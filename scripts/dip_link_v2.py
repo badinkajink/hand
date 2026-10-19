@@ -302,6 +302,10 @@ def a_render():
            ("board", f("board"), C_["board"], (0, 0, 0)), ("fasteners", f("fasteners"), C_["fasteners"], (0, 0, 0)),
            ("qwiic", f("qwiic"), qcol, (0, 0, 0)), ("tip", f(f"tip_{tip}_F"), C_["tip"], (0, 0, 0)),
            ("servo", ctx("context_servo_pip"), C_["servo"], (0, 0, 0)), ("mcp", ctx("context_mcp_link"), C_["mcp"], (0, 0, 0))]
+    routed = bool(P.get("cable_route")) and DLF.fname("cable").exists()
+    ccol = "0.20 0.35 0.85 1"                              # the Qwiic cable's blue
+    if routed:
+        asm.insert(5, ("cable", f("cable"), ccol, (0, 0, 0)))
     MED = A_DIR / "media"
     pf = DLF.PFX
     jb = {n: (np.array(lo), np.array(hi)) for n, lo, hi in A.j1_boxes_F()}
@@ -311,7 +315,7 @@ def a_render():
         ("Clamp plate", (L["x_c1"], -3.0, A.Z_C - 2.0), (0.03, 0.62)),
         ("M2 screw into a shoulder (1.8 mm hole)", (L["x_c1"] + P["m2_head_k"], -P["m2_y"], P["m2_z"]), (0.03, 0.44)),
         ("J1 with its plug, on the whole tab", ((jb["plug"][0][0] + jb["plug"][1][0]) / 2, 0.0, jb["plug"][1][2]), (0.97, 0.36)),
-        ("DIP link 8.5 mm longer than the final", (L["x_cf"], 12.0, A.Z_MOUNT + 4.0), (0.97, 0.55)),
+        (f"DIP link {vals['neck_len']:g} mm longer than the final", (L["x_cf"], 12.0, A.Z_MOUNT + 4.0), (0.97, 0.55)),
         ("Tip, 85A, five magnets", (-2.0, A.Y_HALF, A.Z_C - 2.0), (0.97, 0.78)),
         ("PIP servo", (21.95, -6.0, -52.0), (0.03, 0.20))],
         title="Concept a, v2, assembled at PIP 0 deg, dorsal side")
@@ -321,6 +325,8 @@ def a_render():
           ("board", f("board"), C_["board"], (9, 0, 0)), ("qwiic", f("qwiic"), qcol, (9, 0, 0)),
           ("clamp_plate", f("clamp_plate"), C_["clamp_plate"], (18, 0, 0)),
           ("m2", ctx("fasteners_m2_screw"), C_["fasteners"], (27, 0, 0))]
+    if routed:
+        ex.insert(5, ("cable", f("cable"), ccol, (9, 0, 0)))
     cam = ((9.0, 0.0, A.Z_C), 165, 110, -12)
     img = A._render(ex, cam, MED / f"{pf}_exploded.png")
     hd = sorted([(y, z) for y, z, _ in A.board_items()["holes"] if z < A.Z_C])
@@ -341,7 +347,113 @@ def a_render():
                                                  jb["j1_header"][1][2]), None),
         ("U1 window", (A.X_BACK, 0.0, A.Z_C - 1.2), None)],
         title="Concept a, v2: DIP link from the palmar side", callout=True)
+    if routed:                                             # the cable's route, seen from the slotted arm's side
+        seg = A.cable_segments()
+        _, b1, b2 = seg[2]
+        _, b3, A_ = seg[4]
+        cam = ((6.0, 12.0, -60.0), 95, 250, -14)
+        img = A._render([m for m in asm if m[0] not in ("servo", "mcp")] +
+                        [("servo", ctx("context_servo_pip"), "0.25 0.25 0.27 0.35", (0, 0, 0)),
+                         ("mcp", ctx("context_mcp_link"), "0.62 0.71 0.81 0.30", (0, 0, 0))], cam, MED / f"{pf}_cable_route.png")
+        DLF._annotate_final(img, cam, [
+            ("Plug in J1; the cable turns toward the slotted arm", (b1[0], b1[1], b1[2]), (0.03, 0.80)),
+            ("Groove along the DIP link's dorsal face, open to the back", ((b1[0] + b2[0]) / 2, 9.0, b1[2]), (0.03, 0.62)),
+            ("Turn into the slotted arm's outer face", (b3[0], b3[1], b3[2]), (0.97, 0.80)),
+            (f"Anchor {A.PIP[2] - A_[2]:.1f} mm below the PIP axis", (A_[0], A_[1], A_[2]), (0.97, 0.45)),
+            ("PIP axis", (0.0, A.ARM_OUT, A.PIP[2]), (0.97, 0.22))],
+            title="Concept a, v2: the Qwiic cable's route over the plug and up the slotted arm", callout=False)
+        a_cable_section(A, DLF, vals)
     print("renders ->", MED.relative_to(REPO), flush=True)
+
+
+def cable_span(A, q_step=0.5):
+    """Length of the cable's free span from its anchor on the slotted arm to a tie on the MCP link's side plate (the plate
+    at y 13.4..17.4 begins at z -34.4 at PIP 0): the tie at (0, z -33.0) of the MCP link, over PIP -18..92 deg."""
+    import dip_link_geometry as G
+    A_ = A.cable_segments()[4][2]
+    B = np.array([[0.0, A_[1], -33.0]])
+    qs = np.arange(-18.0, 92.0 + 1e-9, q_step)
+    Ls = np.array([float(np.linalg.norm((A_ - G.rot_pip(B, q)[0])[[0, 2]])) for q in qs])
+    return dict(anchor_F=np.round(A_, 2).tolist(), tie_on_mcp_link_F_at_pip0=B[0].round(2).tolist(),
+                span_mm=dict(min=round(float(Ls.min()), 2), max=round(float(Ls.max()), 2),
+                             at_pip_minus18=round(float(Ls[0]), 2), at_pip0=round(float(Ls[int(18 / q_step)]), 2),
+                             at_pip92=round(float(Ls[-1]), 2), longest_at_pip_deg=float(qs[int(Ls.argmax())])),
+                note="laid with the longest span plus 1 mm, the cable never pulls on the joint; between the anchor and the tie "
+                     "it lies outside y 17.40, where no part of the MCP link or the PIP servo reaches at any PIP angle")
+
+
+def a_cable_section(A, DLF, vals):
+    """Side views of the cable's route: left, the x-z section through the groove on the slotted arm's outer face with the
+    MCP link and the PIP servo at four PIP angles; right, the y-z section through the groove over the plug, the same."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import trimesh
+    from matplotlib.patches import Patch, Polygon as MPoly
+    import dip_link_geometry as G
+    pf = DLF.PFX
+    D = trimesh.load(DLF.fname("dip_link"))
+    Bd = trimesh.load(DLF.fname("board"))
+    Q = trimesh.load(DLF.fname("qwiic"))
+    ctx = {n: G.load_part(n) for n in ("mcp_link", "servo_pip")}
+    C = A.cable_polyline()
+    r = A.P["cable_d"] / 2
+    seg = A.cable_segments()
+    qcol = {-18.0: "#c0392b", 0.0: "#2c3e50", 45.0: "#16a085", 92.0: "#8e44ad"}
+    plt.rcParams.update({"font.family": "serif", "font.size": 15})
+    fig, axs = plt.subplots(1, 2, figsize=(17.0, 10.0))
+    views = [(axs[0], (0, 1, 0), A.P["cable_face_y"] - 0.6, (0, 2), "x in F (mm), dorsal to the right",
+              f"Section y = {A.P['cable_face_y'] - 0.6:.1f} mm, in the slotted arm's face groove", (-24, 24), (-72, -26)),
+             (axs[1], (1, 0, 0), seg[2][1][0], (1, 2), "y in F (mm), toward the slotted arm to the right",
+              f"Section x = {seg[2][1][0]:.1f} mm, through the groove over the plug", (-6, 22), (-74, -48))]
+    for ax, nrm, at, ij, xl, title, xlim, ylim in views:
+        o = np.zeros(3)
+        o[int(np.argmax(nrm))] = at
+        for tm, fc in ((D, "#d6d6cc"), (Bd, "#1f7a3a"), (Q, "#f2f2ea")):
+            s = tm.section(plane_origin=o, plane_normal=nrm)
+            if s is not None:
+                for poly in s.discrete:
+                    ax.add_patch(MPoly(poly[:, list(ij)], closed=True, fc=fc, ec="k", lw=0.5))
+        for q, c in qcol.items():
+            for n, tm in ctx.items():
+                t2 = tm.copy()
+                t2.vertices = G.rot_pip(np.asarray(t2.vertices), q)
+                s = t2.section(plane_origin=o, plane_normal=nrm)
+                if s is not None:
+                    for poly in s.discrete:
+                        ax.add_patch(MPoly(poly[:, list(ij)], closed=True, fc="none", ec=c, lw=1.3))
+        ax.plot(C[:, ij[0]], C[:, ij[1]], "-", color="#2f5bd8", lw=9, alpha=0.55, solid_capstyle="round")
+        ax.plot(C[:, ij[0]], C[:, ij[1]], "-", color="#1b2f80", lw=1.0)
+        if ij == (0, 2):
+            ax.plot([0], [A.PIP[2]], "k+", ms=14, mew=2)
+            A_ = seg[4][2]
+            ax.annotate(f"Anchor, {A.PIP[2] - A_[2]:.1f} mm below the PIP axis", xy=(A_[0], A_[2]), xytext=(-22, -64),
+                        fontsize=14, arrowprops=dict(arrowstyle="->", lw=1.0))
+            ax.annotate("PIP axis", xy=(0.0, A.PIP[2]), xytext=(8, -44), fontsize=14, arrowprops=dict(arrowstyle="->", lw=1.0))
+            ax.annotate("MCP link's side plate", xy=(0.0, -34.4), xytext=(-22, -30), fontsize=14,
+                        arrowprops=dict(arrowstyle="->", lw=1.0))
+        else:
+            ax.annotate("Plug in J1", xy=(seg[0][1][1], seg[0][1][2] - 1.0), xytext=(-5, -72), fontsize=14,
+                        arrowprops=dict(arrowstyle="->", lw=1.0))
+            ax.annotate("Slotted arm", xy=(15.4, -60.0), xytext=(13, -50), fontsize=14, arrowprops=dict(arrowstyle="->", lw=1.0))
+        ax.set_xlim(*xlim)
+        ax.set_ylim(*ylim)
+        ax.set_aspect("equal")
+        ax.grid(True, lw=0.3, alpha=0.4)
+        ax.set_xlabel(xl)
+        ax.set_ylabel("z in F (mm)")
+        ax.set_title(title, fontsize=15)
+    fig.legend([Patch(fc="#d6d6cc", ec="k"), Patch(fc="#2f5bd8", alpha=0.55)] + [Patch(fc="none", ec=c, lw=1.3)
+                                                                                for c in qcol.values()],
+               ["DIP link", f"Cable, {A.P['cable_d']:g} mm bundle"] + [f"MCP link and PIP servo at PIP {q:+.0f} deg"
+                                                                     for q in qcol],
+               loc="lower center", ncol=3, frameon=False, fontsize=14)
+    fig.suptitle(f"Concept a, v2: the Qwiic cable's route (DIP link {vals['neck_len']:g} mm longer)", fontsize=18)
+    fig.tight_layout(rect=(0, 0.08, 1, 0.95))
+    dst = A_DIR / "media" / f"{pf}_cable_section.png"
+    fig.savefig(dst, dpi=100)
+    plt.close(fig)
+    print(dst.relative_to(REPO), flush=True)
 
 
 def a_section():
@@ -358,8 +470,11 @@ def a_section():
     tip = A.P["asm_tip"].replace(".", "p")
     parts = [("Tip, 85A (11/22, five magnets)", DLF.fname(f"tip_{tip}_F"), "#e8c88a"),
              ("DIP link", DLF.fname("dip_link"), "#d6d6cc"), ("Board", DLF.fname("board"), "#1f7a3a"),
-             ("Clamp plate", DLF.fname("clamp_plate"), "#5b8fd9"), ("J1, plug, cable start", DLF.fname("qwiic"), "#f2f2ea"),
+             ("Clamp plate", DLF.fname("clamp_plate"), "#5b8fd9"),
+             ("J1, plug" + ("" if A.P.get("cable_route") else ", cable start"), DLF.fname("qwiic"), "#f2f2ea"),
              ("Screws", DLF.fname("fasteners"), "#c8a33c")]
+    if A.P.get("cable_route") and DLF.fname("cable").exists():
+        parts.append(("Qwiic cable (2.0 mm bundle)", DLF.fname("cable"), "#2f5bd8"))
     meshes = [(n, trimesh.load(p_), c) for n, p_, c in parts]
     ctx = {n: G.load_part(n) for n in ("mcp_link", "servo_pip")}
     plt.rcParams.update({"font.family": "serif", "font.size": 15})
@@ -397,8 +512,12 @@ def a_section():
     axs[0].annotate("J1 on the tab, in the bridge's slot", xy=((jb["j1_header"][0][0] + jb["j1_header"][1][0]) / 2,
                                                               (jb["j1_header"][0][2] + jb["j1_header"][1][2]) / 2),
                     xytext=(9.0, A.Z_C + 2.0), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
-    axs[0].annotate("Plug and the cable's\nfirst 3 mm", xy=(5.9, jb["wire1"][1][2] - 0.5), xytext=(10.0, -46.5), fontsize=15,
-                    arrowprops=dict(arrowstyle="->", lw=1.0))
+    if "wire1" in jb:
+        axs[0].annotate("Plug and the cable's\nfirst 3 mm", xy=(5.9, jb["wire1"][1][2] - 0.5), xytext=(10.0, -46.5),
+                        fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
+    else:
+        axs[0].annotate("Plug; the cable turns\ntoward the slotted arm", xy=(5.9, jb["plug"][1][2] + 0.6),
+                        xytext=(10.0, -46.5), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
     axs[0].annotate("PIP axis", xy=(0.0, -51.55), xytext=(-12.5, -43.5), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
     from matplotlib.patches import Patch
     fig.legend([Patch(fc=c, ec="k") for _, _, c in parts] + [Patch(fc="#b03a2e", ec="k")],
@@ -479,28 +598,52 @@ def a_docs():
     four = next(r for r in sen["rows"] if r["layout"] == "five_z7p4" and r["recipe"] == "w85_30" and r["case"] == "design")
     clear = chk["clearance"]
     L = A.levels()
+    routed = bool(A.P.get("cable_route"))
+    pip_to_tip = round(37.16 + vals["neck_len"], 2)
+    span = cable_span(A) if routed else None
     ev = dict(
-        title="DIP link concept a, v2: the board's own Qwiic connector kept on a DIP link 8.5 mm longer, M2 self-forming "
-              "screws, five-magnet tips",
-        date="2026-10-18", params=str(PARAMS_A.relative_to(REPO)), generator="scripts/dip_link_v2.py a (dip_link_params.apply_a "
-              "on scripts/dip_link_concept_a.py and scripts/dip_link_board_mount.py)",
+        title=(f"DIP link concept a, v2: the board's own Qwiic connector kept on a DIP link {vals['neck_len']:g} mm longer"
+               + (", the Qwiic cable routed out past the slotted arm" if routed else "") + ", M2 self-forming screws, "
+               "five-magnet tips"),
+        date="2026-10-19" if routed else "2026-10-18", params=str(PARAMS_A.relative_to(REPO)),
+        generator="scripts/dip_link_v2.py a (dip_link_params.apply_a on scripts/dip_link_concept_a.py and "
+                  "scripts/dip_link_board_mount.py)",
         owner=["'we should just go for 5x 3x2 magnets'", "'i do like the half ellipsoids most, the 11/22 one especially'",
                "'if we have to lengthen the fingertip to get everything to fit, including the qwiic port and the cable, that's "
-               "fine'", "'for m3 screws, i use 2.75mm diameter holes, m2 i use 1.8'"],
+               "fine'", "'for m3 screws, i use 2.75mm diameter holes, m2 i use 1.8'"]
+              + (["2026-10-19: 'how are you planning to route the cable out though?'; 'i would like to minimize range of "
+                  "motion loss, if any, on the back extension of the DIP joint'"] if routed else []),
         changes_from_final=[
-            f"DIP link {vals['neck_len']:.1f} mm longer between its bridge and the tip (PIP to the tip's end "
-            f"{lg['choice']['a']['pip_to_tip_mm']} mm, 37.16 mm in the final); the clevis arms and the bridge's top are the final's",
+            f"DIP link {vals['neck_len']:g} mm longer between its bridge and the tip (PIP to the tip's end {pip_to_tip} mm, "
+            "37.16 mm in the final); the clevis arms and the bridge's top are the final's"
+            + ("; the slotted arm loses its lower dorsal corner and gains a groove on its outer face for the cable" if routed
+               else ""),
             "the board keeps its whole 9 mm tab and its Qwiic connector J1, tab proximal; the bridge has a slot for J1, the "
             "plug and the cable; no pigtail, no header on the clamp plate",
             "the two distal board screws are M2 x 4 countersunk (DIN 965), forming their thread in 1.8 mm holes of the clamp "
             "plate (no nuts); the two ear screws M2 x 5 into 1.8 mm holes of the shoulders (1.7 mm in the final)",
             "tips with five 3 x 2 mm magnets at the 2.9 mm seat: the 11/22 half-ellipsoid (corners y +-2.5 mm, rows 9.8 mm "
             "apart, the group 0.5 mm toward the mount face) and the block (five_z7p4), both with the key channels"],
-        lengthening=lg["placements"]["a"] | dict(choice=lg["choice"]["a"]),
+        lengthening=lg["placements"]["a"] | dict(choice=lg["choice"]["a"]) | (dict(
+            cable_route=f"{vals['neck_len']:g} mm: the routed cable needs 1.0 mm from the MCP link over PIP -18..92 deg; with a "
+                        "2.0 mm bundle and 2.0 mm bends the groove over the plug cleared 0.14 mm at 8.5, 1.05 mm at 9.5 and 1.51 "
+                        "mm at 10.0 mm (logs/20261019-dip_link_cable/route_rings.log); 9.75 mm is concept b's lengthening, so "
+                        "both designs give one finger length") if routed else {}),
+        cable=(dict(route="out of the plug toward the PIP joint, a 2.0 mm turn to +y over the plug, a groove along the DIP "
+                          "link's dorsal face (open to the back, so the cable is laid in with its far plug on), through the "
+                          "slotted arm's lower dorsal corner, a 2.0 mm turn up into the arm's outer face, a groove half the "
+                          "bundle deep up the face to an anchor below the PIP axis",
+                    bundle_d_mm=A.P["cable_d"], bend_r_mm=A.P["cable_r"], groove_clearance_mm=A.P["cable_clear"],
+                    length_plug_to_anchor_mm=round(float(np.linalg.norm(np.diff(A.cable_polyline(), axis=0), axis=1).sum()), 2),
+                    clearance=clear.get("qwiic_cable"), free_span=span,
+                    range_of_motion="none lost: the cable runs inside the DIP link or outside y 17.40 to its anchor, and the "
+                                    "free span to the MCP link is longest at the PIP angle given, so a cable laid at that "
+                                    "length never pulls on the joint at -18 deg (back extension) or 92 deg")
+               if routed else None),
         clearance=dict(per_part={k: dict(min_mm=v.get("min_mm"), pip_deg=v.get("pip_deg"), part=v.get("part"))
                                  for k, v in clear.items()},
-                       requirement="R7: 0.5 mm rigid; exact method of the specification over PIP -18..92 deg; values of 3 mm "
-                                   "or more are lower bounds (only points within 3-4 mm of the links are turned)"),
+                       requirement="R7: 0.5 mm rigid, 1.0 mm cable; exact method of the specification over PIP -18..92 deg; "
+                                   "values of 3 mm or more are lower bounds (only points within 3-4 mm of the links are turned)"),
         to_pip_servo=chk["to_pip_servo"], walls=chk["walls"], tip_walls_near_channels=chk["tip_walls_near_channels"],
         channels_to_magnets_R4=chk["channels_to_magnets_R4"], overlap_mm3=chk["overlap_mm3"], mass_g=chk["mass_g"],
         width_over_tip_length_y=chk["width_over_tip_length_y"],
@@ -548,19 +691,28 @@ def a_docs():
             "With the tip off, drive the two M2 x 4 countersunk screws from the palmar side through the window plate and the "
             "board's distal holes into the clamp plate's 1.8 mm holes; they form their thread; snug.",
             "Drive the two M2 x 5 screws through the clamp plate's ears into the shoulders' 1.8 mm holes; snug, the ears clear "
-            "of the shoulders.",
-            "Route the cable from the slot's top along the link's dorsal side to y > 17.4 mm and across the PIP joint outside "
-            "the slotted arm; fix it to the DIP link before the joint so a pull does not reach J1.",
-            "Slide the tip along +z onto the keys until both detents engage; read the zero-load field."],
+            "of the shoulders."]
+        + (["Lay the cable into its groove from the dorsal side: bend it toward the slotted arm right behind the plug, press "
+            "it along the groove, around the arm's lower corner and up the groove on the arm's outer face to the anchor; a "
+            "drop of CA glue or a strip of Kapton tape at the anchor keeps a pull off J1.",
+            f"Tie the cable to the MCP link's side plate {span['span_mm']['max'] + 1.0:.0f} mm from the anchor (its longest "
+            f"span, at PIP {span['longest_at_pip_deg']:.0f} deg, plus 1 mm), so it never pulls on the joint."] if routed else
+           ["Route the cable from the slot's top along the link's dorsal side to y > 17.4 mm and across the PIP joint outside "
+            "the slotted arm; fix it to the DIP link before the joint so a pull does not reach J1."])
+        + ["Slide the tip along +z onto the keys until both detents engage; read the zero-load field."],
         first_print_checks=["J1 with the plug mated fits the slot without touching its walls; the cable leaves the slot "
                             "freely", "The M2 screws thread into the 1.8 mm holes by hand and hold the board without play",
-                            "Over the full PIP range by hand, nothing touches the MCP link or the PIP servo (the plug's "
-                            "nearest approach is 0.52 mm at PIP 73.5 deg)"],
-        open_items=[f"Mass {chk['mass_g']['total_without_tip']} g without the tip (R12 7.6 g): the 8.5 mm longer bridge is "
-                    "solid between the clevis arms", "The window plate's web beside each distal M2 countersink is 0.72 mm "
-                    "(R11 0.8 mm for two lines); M1.6 countersunk screws keep the final's 0.80 mm",
-                    "Force resolution of the five-magnet 11/22 needs its finite elements",
-                    "The cable's route past the PIP joint beyond its first 3 mm"],
+                            "Over the full PIP range by hand, nothing touches the MCP link or the PIP servo"
+                            + (f" (the plug's nearest approach is {clear['qwiic_connector']['min_mm']} mm at PIP "
+                               f"{clear['qwiic_connector']['pip_deg']:g} deg)" if clear.get("qwiic_connector") else "")]
+                           + (["The cable stays in its groove over the full PIP range, back extension (-18 deg) included, "
+                               "and the joint turns as freely with the cable tied as without it"] if routed else []),
+        open_items=[f"Mass {chk['mass_g']['total_without_tip']} g without the tip (R12 7.6 g): the {vals['neck_len']:g} mm "
+                    "longer bridge is solid between the clevis arms", "The window plate's web beside each distal M2 "
+                    "countersink is 0.72 mm (R11 0.8 mm for two lines); M1.6 countersunk screws keep the final's 0.80 mm",
+                    "Force resolution of the five-magnet 11/22 needs its finite elements"]
+                   + (["The bundle is modelled as 2.0 mm round; measure the cable's four wires and the groove's fit on the "
+                       "first print"] if routed else ["The cable's route past the PIP joint beyond its first 3 mm"]),
         when=time.strftime("%Y-%m-%d %H:%M"))
     (A_DIR / "evaluation.json").write_text(json.dumps(ev, indent=1, default=float) + "\n")
     print("->", (A_DIR / "evaluation.json").relative_to(REPO), flush=True)

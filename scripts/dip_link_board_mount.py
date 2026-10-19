@@ -144,7 +144,17 @@ def cmd_build(a):
     qm = trimesh.util.concatenate([box_mesh(lo, hi) for _, lo, hi in qparts])
     qm.export(fname("qwiic"))
     asm = trimesh.load(fname("assembly"))
-    trimesh.util.concatenate([asm, qm]).export(fname("assembly"))
+    extra = []
+    if A.P.get("cable_route"):                   # the routed cable from the plug to the slotted arm's outer face
+        cm = A.cable_mesh()
+        cm.export(fname("cable"))
+        extra.append(cm)
+        rec["parts"]["cable"] = dict(file=str(fname("cable").relative_to(REPO)),
+                                     role="Qwiic cable as a 2.0 mm bundle from the plug, in the groove over the plug and up the "
+                                          "slotted arm's outer face to the anchor below the PIP axis (model)",
+                                     length_mm=round(float(np.linalg.norm(np.diff(A.cable_polyline(), axis=0), axis=1).sum()), 2),
+                                     bounds_F=np.round(cm.bounds, 3).tolist(), watertight=bool(cm.is_watertight))
+    trimesh.util.concatenate([asm, qm] + extra).export(fname("assembly"))
     rec["parts"]["qwiic"] = dict(file=str(fname("qwiic").relative_to(REPO)),
                                  role="Qwiic connector (SM04B-SRSS-TB) in the clamp plate's pocket, its mated SHR-04V-S housing, "
                                       "the cable's first 3 mm and the pigtail from J1's pads (model)",
@@ -224,6 +234,8 @@ def j1_parts_board():
            ("j1_header", (-2.95, v_mate, 0.0), (3.05, -13.14, QW["hdr_h"])),
            ("plug", (uc - QW["plug_w"] / 2, v_mate - QW["plug_out"], 0.0), (uc + QW["plug_w"] / 2, v_mate, QW["plug_h"]))]
     v0 = v_mate - QW["plug_out"]
+    if A.P.get("cable_route"):                  # the routed cable replaces the straight 3 mm (A.cable_segments)
+        return out
     for k in range(4):
         u = uc + (k - 1.5) * 1.0
         out.append((f"wire{k}", (u - QW["wire_d"] / 2, v0 - QW["wire_run"], 1.4 - QW["wire_d"] / 2),
@@ -418,6 +430,13 @@ def cmd_check(a):
     res["clearance"]["qwiic_connector"] = dict(min_mm=round(vq, 3), at_F=np.round(Pq[iq], 2).tolist(), pip_deg=qq, part=pq,
                                                n_points=int(len(Pq)))
     print(f"clearance qwiic_connector: {vq:.3f} mm ({pq}, PIP {qq})", flush=True)
+    if A.P.get("cable_route"):                   # the cable up to its anchor; R7 asks 1.0 mm for a cable
+        cm = A.cable_mesh(sections=48)
+        Pc = G.surface_points(cm, 0.25)
+        vc, ic, qc, pc = G.points_clearance_exact(Pc, reach=4.0)
+        res["clearance"]["qwiic_cable"] = dict(min_mm=round(vc, 3), at_F=np.round(Pc[ic], 2).tolist(), pip_deg=qc, part=pc,
+                                               n_points=int(len(Pc)), need_mm=1.0)
+        print(f"clearance qwiic_cable: {vc:.3f} mm ({pc}, PIP {qc})", flush=True)
     tw = {}
     cutter = A.tip_cutter(A.MeshK())
     for key in [k for k in sp["tips"] if k == "block5"]:     # concept a's check covers the other tips

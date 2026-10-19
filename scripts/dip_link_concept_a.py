@@ -92,6 +92,15 @@ P = dict(
     cs_thread_d=0.0,        # v2: > 0 drops the M1.6 nuts; the distal screws form their threads in a hole of this diameter in
                             # the clamp plate (owner: M2 into 1.8 mm, M3 into 2.75 mm)
     asm_tip="block4",       # the tip of the assembly STL, the renders and the overlap checks
+    cable_route=0.0,        # v2 (owner, 2026-10-19): 1 routes the Qwiic cable from J1's plug in a groove over the plug to the
+                            # slotted arm and up its outer face (y 17.40), where neither the MCP link nor the PIP servo
+                            # reaches at any PIP angle; 0 models the plug and the cable's first 3 mm only
+    cable_d=2.0,            # the four 28 AWG wires as one round bundle
+    cable_r=2.0,            # bend radius of the bundle's centre line
+    cable_lead=0.5,         # straight out of the plug before the first bend
+    cable_clear=0.2,        # the groove's clearance around the bundle
+    cable_face_y=17.40,     # the bundle's centre line on the slotted arm's outer face (half of the bundle in its groove)
+    cable_anchor_x=4.0, cable_anchor_z=-56.5,   # where the face groove ends, below the PIP axis (F; the arm stays put)
 )
 # JST SH catalogue sizes (eSH) of the board's Qwiic connector J1 and its mated plug: side-entry header SM04B-SRSS-TB 6.0 mm
 # wide, 4.25 mm deep plus 0.7 mm of leads, 2.9 mm tall; housing SHR-04V-S 5.0 mm wide, 2.96 mm tall mated, 2.0 mm out of the
@@ -109,6 +118,8 @@ def j1_parts_board():
            ("j1_header", (-2.95, v_mate, 0.0), (3.05, -13.14, QW["hdr_h"])),
            ("plug", (uc - QW["plug_w"] / 2, v_mate - QW["plug_out"], 0.0), (uc + QW["plug_w"] / 2, v_mate, QW["plug_h"]))]
     v0 = v_mate - QW["plug_out"]
+    if P.get("cable_route"):                    # the routed cable replaces the straight 3 mm (cable_segments)
+        return out
     for k in range(4):
         u = uc + (k - 1.5) * 1.0
         out.append((f"wire{k}", (u - QW["wire_d"] / 2, v0 - QW["wire_run"], 1.4 - QW["wire_d"] / 2),
@@ -126,6 +137,115 @@ def j1_boxes_F(p=P):
             continue
         out.append((name, (x_cf - hi[2], lo[0], Z_C - hi[1]), (x_cf - lo[2], hi[0], Z_C - lo[1])))
     return out
+
+
+ARM_OUT = 17.40                                 # outer face of the slotted arm (fingertip_mount_DIP_link.stl)
+
+
+def cable_segments(p=P):
+    """Centre line of the Qwiic cable's bundle from the plug's rear face to the anchor on the slotted arm's outer face, in F:
+    straight out of the plug toward the PIP joint, a turn to +y over the plug, a run along +y to the arm, a turn to +z into
+    the arm's outer face and a line up the face to the anchor below the PIP axis. Segments ('line', a, b) and
+    ('arc', a, b, centre, radius, plane, t0_deg, t1_deg) with plane 'yz' (angles of (y, z) about the centre)."""
+    L = levels(p)
+    R, lead = p["cable_r"], p["cable_lead"]
+    x = L["x_cf"] - 1.4                          # the plug's wires leave at mid-height of the housing
+    y0 = 0.05                                    # J1's centre line (spec.json: body u -2.95 .. 3.05)
+    z0 = Z_C + 18.09 + QW["plug_out"]            # the plug's rear face (board v -20.09)
+    a1 = np.array([x, y0, z0 + lead])
+    c1 = np.array([x, y0 + R, a1[2]])
+    b1 = np.array([x, y0 + R, a1[2] + R])
+    yf = p["cable_face_y"]
+    z_run = b1[2]
+    b2 = np.array([x, yf - R, z_run])
+    c2 = np.array([x, yf - R, z_run + R])
+    b3 = np.array([x, yf, z_run + R])
+    A_ = np.array([p["cable_anchor_x"], yf, p["cable_anchor_z"]])
+    return [("line", np.array([x, y0, z0]), a1), ("arc", a1, b1, c1, R, "yz", 180.0, 90.0), ("line", b1, b2),
+            ("arc", b2, b3, c2, R, "yz", -90.0, 0.0), ("line", b3, A_)]
+
+
+def cable_polyline(p=P, step=0.2):
+    """The centre line as points about `step` mm apart."""
+    pts = []
+    for s in cable_segments(p):
+        if s[0] == "line":
+            a, b = s[1], s[2]
+            n = max(1, int(np.ceil(np.linalg.norm(b - a) / step)))
+            seg = [a + (b - a) * t for t in np.linspace(0, 1, n + 1)]
+        else:
+            _, a, b, c, r, plane, t0, t1 = s
+            n = max(2, int(np.ceil(abs(np.radians(t1 - t0)) * r / step)))
+            seg = [np.array([c[0], c[1] + r * np.cos(t), c[2] + r * np.sin(t)])
+                   for t in np.radians(np.linspace(t0, t1, n + 1))]
+        pts += seg if not pts else seg[1:]
+    return np.array(pts)
+
+
+def cable_mesh(p=P, sections=24):
+    """The bundle as a closed tube (trimesh) along the centre line, frames carried along the line."""
+    import trimesh
+    C = cable_polyline(p, 0.25)
+    r = p["cable_d"] / 2
+    T = np.gradient(C, axis=0)
+    T /= np.linalg.norm(T, axis=1)[:, None]
+    u = np.cross(T[0], [1.0, 0, 0]) if abs(T[0][0]) < 0.9 else np.cross(T[0], [0, 1.0, 0])
+    u /= np.linalg.norm(u)
+    th = np.linspace(0, 2 * np.pi, sections, endpoint=False)
+    V = []
+    for k, t in enumerate(T):
+        u = u - np.dot(u, t) * t
+        u /= np.linalg.norm(u)
+        v = np.cross(t, u)
+        V.append(C[k] + r * (np.outer(np.cos(th), u) + np.outer(np.sin(th), v)))
+    V = np.vstack(V + [C[:1], C[-1:]])
+    n, m = len(C), sections
+    F = []
+    for k in range(n - 1):
+        for j in range(m):
+            a, b, c, d = k * m + j, k * m + (j + 1) % m, (k + 1) * m + j, (k + 1) * m + (j + 1) % m
+            F += [(a, c, b), (b, c, d)]
+    s0, s1 = n * m, n * m + 1
+    for j in range(m):
+        F += [(s0, j, (j + 1) % m), (s1, (n - 1) * m + (j + 1) % m, (n - 1) * m + j)]
+    tm = trimesh.Trimesh(V, np.array(F), process=True)
+    if tm.volume < 0:
+        tm.invert()
+    return tm
+
+
+def cable_cuts(K, p=P):
+    """The groove that takes the bundle: open toward the dorsal side over the plug, along the DIP link's dorsal face and
+    through the slotted arm's lower corner (the cable is laid in, its far plug never threads through), then a groove
+    half the bundle deep up the arm's outer face to the anchor."""
+    L = levels(p)
+    rc = p["cable_d"] / 2 + p["cable_clear"]
+    segs = cable_segments(p)
+    x = segs[0][1][0]
+    x_open = 11.5                                 # past the DIP link's and the slotted arm's dorsal edges
+    out = []
+
+    def sector(c, r, t0, t1, w0, w1, n=32):
+        t = np.radians(np.linspace(t0, t1, n + 1))
+        outer = [(c[1] + (r + rc) * np.cos(a), c[2] + (r + rc) * np.sin(a)) for a in t]
+        inner = [(c[1] + max(r - rc, 0.05) * np.cos(a), c[2] + max(r - rc, 0.05) * np.sin(a)) for a in t[::-1]]
+        return K.prism(outer + inner, w0, w1, "yzx")
+    _, a0, a1 = segs[0]
+    out.append(K.box((x - rc, a0[1] - rc, a0[2] - 0.05), (x_open, a0[1] + rc, a1[2] + 0.01)))
+    _, a, b, c, r, _, t0, t1 = segs[1]
+    out.append(sector(c, r, t0, t1, x - rc, x_open))
+    _, b1, b2 = segs[2]
+    out.append(K.box((x - rc, b1[1] - 0.01, b1[2] - rc), (x_open, b2[1] + 0.01, b1[2] + rc)))
+    _, a, b, c, r, _, t0, t1 = segs[3]
+    out.append(sector(c, r, t0, t1, x - rc, x_open))
+    _, b3, A_ = segs[4]
+    d = np.array([A_[0] - b3[0], A_[2] - b3[2]])
+    n_ = np.array([-d[1], d[0]]) / np.linalg.norm(d) * rc
+    strip = [(b3[0] + n_[0], b3[2] - 0.05 + n_[1]), (A_[0] + n_[0], A_[2] + n_[1]), (A_[0] - n_[0], A_[2] - n_[1]),
+             (b3[0] - n_[0], b3[2] - 0.05 - n_[1])]
+    out.append(K.prism(strip, p["cable_face_y"] - rc, ARM_OUT + 1.0, "xzy"))
+    out.append(K.cyl("y", (A_[0], A_[2]), rc, p["cable_face_y"] - rc, ARM_OUT + 1.0, seg=48))   # the groove's round end
+    return K.union(out)
 
 
 def levels(p=P):
@@ -439,7 +559,10 @@ def dip_link_new(K, p=P):
 
 
 def dip_link(K, p=P):
-    return K.clean(K.union([K.arms(), dip_link_new(K, p)]))
+    D = K.union([K.arms(), dip_link_new(K, p)])
+    if p.get("cable_route"):                    # the cable's groove crosses the slotted arm's lower corner and outer face
+        D = K.sub(D, cable_cuts(K, p))
+    return K.clean(D)
 
 
 def clamp_plate(K, p=P):
@@ -651,15 +774,20 @@ def freecad_step():
     rec = {}
     t0 = time.time()
     newb = dip_link_new(K)
-    parts = {"dip_link_new_features": newb, "clamp_plate": clamp_plate(K), "tip_cutter": tip_cutter(K)}
+    cc = cable_cuts(K) if P.get("cable_route") else None     # the cable's groove crosses the slotted arm too
+    parts = {"dip_link_new_features": newb.cut(cc).removeSplitter() if cc is not None else newb,
+             "clamp_plate": clamp_plate(K), "tip_cutter": tip_cutter(K)}
+    if cc is not None:
+        parts["cable_groove_cutter"] = cc
     arms_ = K.arms()
-    parts["dip_link"] = arms_.fuse(newb).removeSplitter()
+    fused = arms_.fuse(newb)
+    parts["dip_link"] = (fused.cut(cc) if cc is not None else fused).removeSplitter()
     for stem, so in parts.items():
         # the fused DIP link keeps the arms' STL facets (about 7000 faces, 23 MB): written to logs/, regenerated on demand
         dst = (CTX / f"{PFX}_{stem}.step") if stem == "dip_link" else fname(stem, "step")
         dst.parent.mkdir(parents=True, exist_ok=True)
         so.exportStep(str(dst))
-        mesh_stem = {"dip_link_new_features": None}.get(stem, stem)
+        mesh_stem = {"dip_link_new_features": None, "cable_groove_cutter": None}.get(stem, stem)
         v_mesh = Mesh.Mesh(str(fname(mesh_stem))).Volume if mesh_stem else None
         rec[stem] = dict(file=str(dst.relative_to(REPO)), tracked=stem != "dip_link", valid=bool(so.isValid()),
                          solids=len(so.Solids), faces=len(so.Faces),
@@ -672,7 +800,10 @@ def freecad_step():
                    "cuts); it overlaps the clevis arms' cut faces by 5 um. The clevis arms are those of "
                    "assets/cad_v1/fingertip_mount_DIP_link.stl at y <= -17.05 and y >= 13.40 mm. The fused DIP link (arms "
                    "and new features, one valid solid) goes to logs/ because the arms' facets make it 23 MB; the STL of the "
-                   "whole part is in the study folder.")
+                   "whole part is in the study folder."
+                   + (" With the routed cable, cable_groove_cutter is the groove's solid: subtract it from the DIP link (it "
+                      "crosses the slotted arm's lower corner and outer face, which dip_link_new_features does not include)."
+                      if cc is not None else ""))
     (OUT / f"{PFX}_step.json").write_text(json.dumps(rec, indent=1))
 
 

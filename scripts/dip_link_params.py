@@ -193,7 +193,22 @@ SCHEMA_A = [
      "header's body and leads", "mm", (0.00, 0.15), ["fit"], 0.05),
     ("qwiic_groove_depth", "Qwiic header on the clamp plate", "Pigtail groove depth", "depth of the groove that takes the "
      "four wires from the clamp plate's notch to the header's leads", "mm", (0.40, 1.00), ["wall"], 0.6),
+    ("cable_d", "Qwiic cable route", "Bundle diameter", "the four 28 AWG wires of the Qwiic cable as one round bundle "
+     "(design cable = idler_side)", "mm", (1.6, 2.6), ["clearance", "fit"], 2.0),
+    ("cable_r", "Qwiic cable route", "Bend radius", "bend radius of the bundle's centre line at its two turns", "mm",
+     (1.0, 3.0), ["clearance"], 2.0),
+    ("cable_lead", "Qwiic cable route", "Straight lead", "straight run out of the plug before the first turn", "mm",
+     (0.0, 1.5), ["clearance"], 0.5),
+    ("cable_clear", "Qwiic cable route", "Groove clearance", "clearance of the groove around the bundle", "mm", (0.1, 0.4),
+     ["fit"], 0.2),
+    ("cable_face_y", "Qwiic cable route", "Bundle y on the arm", "y of the bundle's centre line on the slotted arm's outer "
+     "face (17.40: half the bundle in the face's groove)", "mm", (16.4, 18.4), ["width", "wall"], 17.4),
+    ("cable_anchor_x", "Qwiic cable route", "Anchor x", "x where the groove on the arm's outer face ends (F)", "mm",
+     (0.0, 6.0), ["clearance"], 4.0),
+    ("cable_anchor_z", "Qwiic cable route", "Anchor z", "z where the groove on the arm's outer face ends, below the PIP "
+     "axis at z -51.55 (F; the arm does not move with the lengthening)", "mm", (-60.0, -54.5), ["clearance"], -56.5),
 ]
+OPTIONAL_A = {"cable_d", "cable_r", "cable_lead", "cable_clear", "cable_face_y", "cable_anchor_x", "cable_anchor_z"}
 DESIGN_A = [
     ("qwiic", "Qwiic connection", "header_on_clamp_plate",
      {"header_on_clamp_plate": "J1 removed and the tab cut; a pigtail from J1's pads to an SM04B-SRSS-TB header in a pocket "
@@ -208,6 +223,10 @@ DESIGN_A = [
       "v2_five": "five magnets: the 11/22 half-ellipsoid and the block of v2/print/ (v2/20261018-v2_tips.json), channels cut"}),
     ("asm_tip", "Tip of the assembly", "block4",
      {"block4": "the four-magnet block", "block5": "the five-magnet block", "ell11_5": "the five-magnet 11/22 half-ellipsoid"}),
+    ("cable", "Qwiic cable", "plug_only",
+     {"plug_only": "J1's plug and the cable's first 3 mm only (v2 of 2026-10-18)",
+      "idler_side": "the cable turns to +y over the plug, runs in a groove to the slotted arm and up its outer face to an "
+                    "anchor below the PIP axis, where the MCP link and the servo never reach (needs qwiic = j1_kept)"}),
 ]
 
 # ----------------------------------------------------------------------------------------------- concept b
@@ -434,7 +453,7 @@ def problems(concept, vals, des=None):
             out.append(f"{k}: not a parameter of concept {concept}")
         elif not (known[k][0] - 1e-9 <= v <= known[k][1] + 1e-9):
             out.append(f"{k} = {v:g} mm lies outside {known[k][0]:g}..{known[k][1]:g} mm")
-    out += [f"{k}: missing" for k in known if k not in vals]
+    out += [f"{k}: missing" for k in known if k not in vals and not (concept == "a" and k in OPTIONAL_A)]
     for k, _, _, opts in design_schema(concept):
         if des and k in des and des[k] not in opts:
             out.append(f"{k} = {des[k]}: not one of {', '.join(opts)}")
@@ -453,6 +472,8 @@ def problems(concept, vals, des=None):
             out.append("J1 kept needs the whole tab: tab_len 9.0")
         if (des or {}).get("qwiic") == "j1_kept" and vals["neck_len"] < 8.5 - 1e-9:
             out.append("J1 kept clears the PIP servo and the MCP link by 0.5 mm from neck_len 8.5 (v2/20261018-v2_lengthening.json)")
+        if (des or {}).get("cable") == "idler_side" and (des or {}).get("qwiic") != "j1_kept":
+            out.append("cable = idler_side routes the cable from J1's plug: it needs qwiic = j1_kept")
     if concept == "b" and not out:
         if vals["rail_top"] <= vals["rail_base"]:
             out.append("rail_top must exceed rail_base (a dovetail)")
@@ -552,6 +573,7 @@ def apply_a(vals, des=None):
     P["wire_channel"] = dict(z=(float(vals["wire_channel_z0"]) - L, float(vals["wire_channel_z1"]) - L),
                              x0=float(vals["wire_channel_x0"]))
     P["j1_kept"] = 1.0 if des.get("qwiic") == "j1_kept" else 0.0
+    P["cable_route"] = 1.0 if des.get("cable") == "idler_side" else 0.0
     P["cs_thread_d"] = float(vals.get("screw_thread_d", 1.8)) if des.get("board_screws") == "self_forming" else 0.0
     P["asm_tip"] = des.get("asm_tip", "block4")
     sp = tips_for(des.get("tips", "seat2p9"), L)
@@ -788,8 +810,27 @@ def freecad_assembly():
     keep_j1 = des.get("qwiic") == "j1_kept"
     if keep_j1:
         j1 = {n: board_box(lo, hi) for n, lo, hi in DLF.j1_parts_board() if n != "tab_fr4"}
+        wires = [s for k, s in j1.items() if k.startswith("wire")]
         parts += [("J1 Qwiic header on the board", j1["j1_header"]),
-                  ("Qwiic plug and cable start", j1["plug"].fuse([s for k, s in j1.items() if k.startswith("wire")]).removeSplitter())]
+                  ("Qwiic plug" + (" and cable start" if wires else ""),
+                   j1["plug"].fuse(wires).removeSplitter() if wires else j1["plug"])]
+    if concept == "a" and A.P.get("cable_route"):  # the cable as a 2.0 mm pipe along its centre line (lines and arcs)
+        edges = []
+        for s in A.cable_segments():
+            if s[0] == "line":
+                edges.append(Part.LineSegment(V(*map(float, s[1])), V(*map(float, s[2]))).toShape())
+            else:
+                _, a_, b_, c_, r_, _, t0, t1 = s
+                tm_ = np.radians(0.5 * (t0 + t1))
+                m_ = (c_[0], c_[1] + r_ * np.cos(tm_), c_[2] + r_ * np.sin(tm_))
+                edges.append(Part.Arc(V(*map(float, a_)), V(*map(float, m_)), V(*map(float, b_))).toShape())
+        path_ = Part.Wire(edges)
+        s0 = A.cable_segments()[0]
+        t_ = s0[2] - s0[1]
+        prof = Part.Wire(Part.makeCircle(float(A.P["cable_d"]) / 2, V(*map(float, s0[1])),
+                                         V(*map(float, t_ / np.linalg.norm(t_)))))
+        pipe = Part.Wire(path_).makePipeShell([prof], True, True)
+        parts.append(("Qwiic cable to the anchor on the slotted arm", pipe))
     if concept == "b":
         for k, (y, z) in enumerate(B.screw_yz(), 1):
             sc = Part.makeCylinder(B.HEAD_D / 2, B.HEAD_H, V(B.X_SLOT - B.HEAD_H, y, z), V(1, 0, 0)).fuse(

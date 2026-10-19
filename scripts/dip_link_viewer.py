@@ -160,13 +160,18 @@ class Geometry:
                    magnets=_tm(Mg))
         if W is not None:
             tms["wires"] = _tm(W)
+        routed = bool(j1 and A.P.get("cable_route"))
+        if routed:                                       # the cable from the plug to its anchor on the slotted arm
+            import trimesh
+            tms["qwiic"] = trimesh.util.concatenate([tms["qwiic"], A.cable_mesh()])
         parts = [_mesh_payload("dip_link", "DIP link (clevis arms of the STL, bridge, window plate, keys)", tms["dip_link"],
                                COLOR["dip_link"]),
                  _mesh_payload("clamp_plate", "Clamp plate" + ("" if j1 else " with the Qwiic pocket"), tms["clamp_plate"],
                                COLOR["clamp_plate"]),
                  _mesh_payload("board", "Board: FR-4, chips, parts" + (" (whole tab)" if j1 else " (tab cut)"), tms["board"],
                                COLOR["board"], group="board"),
-                 _mesh_payload("qwiic", "J1, plug and cable start" if j1 else "Qwiic header, plug, cable start, pigtail",
+                 _mesh_payload("qwiic", ("J1, plug and the cable to its anchor on the slotted arm" if routed else
+                                         "J1, plug and cable start" if j1 else "Qwiic header, plug, cable start, pigtail"),
                                tms["qwiic"], COLOR["qwiic"], group="board")]
         if W is not None:
             parts.append(_mesh_payload("wires", "Wires from J1's pads", tms["wires"], COLOR["wires"], group="board"))
