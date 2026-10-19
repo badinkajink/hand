@@ -187,6 +187,12 @@ WORST = EV["clearance"]["worst_rigid"]
 QCH = QW["chosen"]
 TA = DEC["tip_attachment"]
 SF = SEN["static_fields"]
+EVA, EVB = J("v2/a/evaluation.json"), J("v2/b/evaluation.json")     # v2 of a and b with J1 kept and the routed cable
+SUMV2 = J("v2/20261018-v2_summary.json")
+LGV2 = J("v2/20261018-v2_lengthening.json")
+RTB = J("v2/b/20261019-dip_link_v2b_cable_routes.json")["rows"]
+NECK = {c: next(q["value"] for q in J(f"params/20261018-v2_concept_{c}.json")["parameters"] if q["key"] == "neck_len")
+        for c in "ab"}
 TIPN = {"block4": "Block, four magnets", "block5": "Block, five magnets", "cap8.5": "Capsule r 8.5&#8202;mm",
         "ell16": "Half-ellipsoid 16/32&#8202;mm", "ell11": "Half-ellipsoid 11/22&#8202;mm"}
 
@@ -234,6 +240,12 @@ GLOSSARY = [
                "the tip from sliding off along &#8722;z."),
     ("Qwiic, J1", "Qwiic is SparkFun's I2C connection on a 4-pin JST SH connector (1.0&#8202;mm pitch); J1 is the board's "
                   "side-entry Qwiic header on its tab. The cable ends in a JST SHR-04V-S housing."),
+    ("Lengthening", "How much longer the DIP link is between its bridge and the tip's mount face than the final, in mm; the "
+                    "tip, the board and every part fixed to them move distally by it, the clevis arms stay."),
+    ("Bundle", "The Qwiic cable's four 28&#8202;AWG wires modelled as one round bundle 2.0&#8202;mm across, its centre line "
+               "turning with a 2.0&#8202;mm radius."),
+    ("Free span", "Length of cable between its anchor on the slotted arm and a tie on the MCP link's side plate, over the PIP "
+                  "range, in mm; the cable is tied at the longest span plus 1&#8202;mm."),
 ]
 
 
@@ -242,16 +254,112 @@ def glossary():
 
 
 def lede():
-    return (f"Concept a's final DIP link puts the sensing plane of the ReSkin 5X board's chips {f(EV['gap_mm'])}{MM} behind the "
-            f"85A tip's back face, against {f(EV['gap_current_plate_mm'])}{MM} on the current plate. At the tips printed with "
-            f"2.9{MM} magnet seats the predicted force resolution at the contact point is {f(FR['four_30'], 3)}{NN} with four "
-            f"magnets and {f(FR['five_z7p4_30'], 3)}{NN} with five, against "
-            f"{f(srow('four_d3x2_d5', 'w85_30', 'plate_now')['centre_force_N'], 3)} and "
-            f"{f(srow('five_z7p4', 'w85_30', 'plate_now')['centre_force_N'], 3)}{NN} on the current plate. A 0.85{MM} window "
-            f"plate and a 3.0{MM} clamp plate sandwich the board with four brass screws and two pins; the least clearance over "
-            f"PIP &#8722;18 to 92{DEG} is {f(WORST['min_mm'], 3)}{MM}. No orientation of the board's Qwiic connector clears, so "
-            f"a pigtail runs to a Qwiic header on the clamp plate's back. Concept b, a rigid cassette inside the tip that "
-            f"resolves {f(DEC['concepts']['b']['force_resolution_N']['four_30'], 3)}{NN}, also goes to a first print.")
+    ca, cb = EVA["clearance"]["per_part"], EVB["clearance"]["per_part"]
+    return (f"The printable v2 of concepts a and b keeps the ReSkin 5X board's own Qwiic connector J1, as on the owner's "
+            f"board, and leads the Qwiic cable in a groove past the slotted arm to an anchor 5.0{MM} below the PIP axis. Both "
+            f"DIP links are {NECK['a']:g}{MM} longer, so the PIP axis lies {f(37.16 + NECK['a'])}{MM} from the tip's end "
+            f"(37.16{MM} today). Over PIP &#8722;18 to 92{DEG} the 2.0{MM} cable bundle keeps "
+            f"{f(ca['qwiic_cable']['min_mm'])}{MM} (a) and {f(cb['qwiic_cable']['min_mm'])}{MM} (b) from the MCP link, and "
+            f"the joint keeps its whole range. With five magnets a resolves {f(EVA['sensing']['block5_force_resolution_30_N'], 3)}"
+            f"{NN} and b {f(EVB['sensing']['design_point']['force_resolution_gain_N'], 3)}{NN} at the contact point, against "
+            f"{f(srow('five_z7p4', 'w85_30', 'plate_now')['centre_force_N'], 3)}{NN} on the current plate. The pigtail final "
+            f"of 18 October is superseded.")
+
+
+def v2_section():
+    ca, cb = EVA["clearance"]["per_part"], EVB["clearance"]["per_part"]
+    xa, xb = EVA["cable"], EVB["cable"]
+    sp = xa["free_span"]["span_mm"]
+    la, lb = LGV2["placements"]["a"]["tab_proximal_L_mm"], LGV2["placements"]["b_x3.85"]["tab_proximal_L_mm"]
+    lead = next(r for r in RTB if r["route"] == "dorsal" and r["lead"] == 0.5 and r["neck_len"] == 9.75)
+    ar = next(r for r in RTB if r["route"] == "a_route" and r["neck_len"] == 9.75)
+    sa, sb = EVA["sensing"], EVB["sensing"]
+    rows = [
+        ["Lengthening (mm)", f"{NECK['a']:g}", f"{NECK['b']:g}"],
+        ["PIP axis to the tip's end (mm)", f(37.16 + NECK["a"]), f(37.16 + NECK["b"])],
+        ["Cable, plug to anchor (mm)", f(xa["length_plug_to_anchor_mm"], 1), f(xb["length_plug_to_anchor_mm"], 1)],
+        ["Cable to the MCP link (mm), at PIP (&#176;)", f"{f(ca['qwiic_cable']['min_mm'])} at {ca['qwiic_cable']['pip_deg']:.0f}",
+         f"{f(cb['qwiic_cable']['min_mm'])} at {cb['qwiic_cable']['pip_deg']:.0f}"],
+        ["J1 and its plug (mm)", f"{f(ca['qwiic_connector']['min_mm'])} or more", f"{f(cb['qwiic_connector']['min_mm'])} or more"],
+        ["DIP link (mm)", f(ca["dip_link_new"]["min_mm"], 3), f(cb["dip_link_new_body"]["min_mm"], 3)],
+        ["Force resolution, five-magnet block, 30&#8202;% gyroid (N)", f(sa["block5_force_resolution_30_N"], 3),
+         f(sb["design_point"]["force_resolution_gain_N"], 3)],
+        ["Field at U1 from the 11/22 tip (mT), GAIN_SEL", f"{f(sa['static_fields']['ell11_5']['B_U1_mT'], 1)}, "
+         f"{sa['static_fields']['ell11_5']['gain_sel']}", f"{f(sb['static_fields']['ell11_5']['B_U1_mT'], 1)}, "
+         f"{sb['static_fields']['ell11_5']['gain_sel']}"],
+        ["Mass without the tip (g)", f(EVA["mass_g"]["total_without_tip"], 1), f(EVB["mass_g"]["total_without_pad"], 1)],
+    ]
+    return "".join([
+        f"<p>On the owner's board J1 sits on the component side of the 9{MM} tab, its mating face toward the tab's end, as the "
+        f"specification models it. v2 keeps J1 and the whole tab and lengthens the DIP link between its bridge and the tip "
+        f"instead. Both designs take M2 screws into 1.8{MM} self-forming holes of the PLA and tips with five 3 &#215; 2{MM} "
+        f"magnets, the 11/22 half-ellipsoid or the block (Table&#160;[[tab:v2]]).</p>",
+        f"<p>J1, its mated plug and the tab clear the MCP link and the PIP servo by 0.5{MM} (R7) from a lengthening of "
+        f"{la:g}{MM} in a and {lb:g}{MM} in b, whose board sits 3.5{MM} more palmar. The routed cable sets a's "
+        f"lengthening: its turn over the plug keeps 0.14{MM} from the MCP link at 8.5{MM}, 1.05{MM} at 9.5{MM} and "
+        f"{f(ca['qwiic_cable']['min_mm'])}{MM} at 9.75{MM}. Both links are 9.75{MM} longer, one finger length for both "
+        f"designs.</p>",
+        f"<p>In a the cable leaves the plug toward the PIP joint, turns to +y over the plug and runs along the bridge's "
+        f"dorsal corner to the slotted arm, through the arm's lower dorsal corner and up the arm's outer face at y "
+        f"17.40{MM}, half sunk in a groove, to the anchor (Figures&#160;[[fig:v2a_route]] and [[fig:v2a_sec]]). Along its "
+        f"{f(xa['length_plug_to_anchor_mm'], 1)}{MM} the cable keeps {f(ca['qwiic_cable']['min_mm'])}{MM} from the MCP "
+        f"link, nearest at PIP {ca['qwiic_cable']['pip_deg']:.0f}{DEG}. Between the J1 slot and the arm the bridge's arc lies only "
+        f"0.07&#8211;1.4{MM} above the cable, too thin for a roof, so the groove is open to the top there and a strip of "
+        f"Kapton tape keeps the cable on its ledge.</p>",
+        f"<p>In b the plug sits in the neck's slot palmar of the board, its wires at x 2.40{MM} against a's 5.90{MM}, "
+        f"0.7{MM} nearer the PIP axis at the height of the first turn; a's turn over the plug would keep "
+        f"{f(ar['clearance_mm'])}{MM} there. b's cable turns toward the back at the plug's rear face, then to +y at x "
+        f"{f(xb['run_x_mm'], 1)}{MM}, and from the slotted arm on takes a's path to the same anchor "
+        f"(Figures&#160;[[fig:v2b_route]] and [[fig:v2b_sec]]). Along its {f(xb['length_plug_to_anchor_mm'], 1)}{MM} the "
+        f"cable keeps {f(cb['qwiic_cable']['min_mm'])}{MM} from the MCP link, nearest at the first turn at PIP "
+        f"{cb['qwiic_cable']['pip_deg']:.0f}{DEG}; a 0.5{MM} straight lead out of the plug would leave "
+        f"{f(lead['clearance_mm'])}{MM}. Over the plug the groove is open to the top as well, where the bridge's top lies "
+        f"less than 0.8{MM} above it; along the run the bridge leaves 1.13{MM} or more of PLA over the groove.</p>",
+        f"<p>Outside y 17.40{MM} no part of the MCP link or the PIP servo reaches at any PIP angle, and inside it the cable "
+        f"lies in the DIP link, so the cable takes nothing from the joint's range, back extension to &#8722;18{DEG} "
+        f"included. From the anchor to a tie on the MCP link's side plate the free span measures {f(sp['at_pip_minus18'], 1)}"
+        f"{MM} at &#8722;18{DEG} and {f(sp['max'], 1)}{MM} at its longest, at {sp['longest_at_pip_deg']:.0f}{DEG}; tied "
+        f"{sp['max'] + 1.0:.0f}{MM} from the anchor the cable never pulls on the joint.</p>",
+        table(["Quantity", "Concept a, v2", "Concept b, v2"], rows,
+              "v2 of a and b with J1 kept and the routed cable (<code>v2/a/evaluation.json</code>, "
+              "<code>v2/b/evaluation.json</code>). Clearances over PIP &#8722;18 to 92&#176; to the MCP link and the PIP "
+              "servo; values of 1.6&#8202;mm (b) or 3&#8202;mm (a) and more are lower bounds. b's force resolution comes "
+              "from its coarse finite-element grid. R12 asks at most 7.6&#8202;g without the tip.", text_cols=(0,),
+              key="v2"),
+        img("v2/a/media/20261018-dip_link_v2a_cable_route.png", "Concept a, v2: the cable from the plug in J1 along the "
+            "bridge's dorsal corner, into the slotted arm's outer face and up to the anchor below the PIP axis; the MCP link "
+            "and the PIP servo see-through.", "v2a_route", width=1400),
+        figure("".join(f'<img alt="" src="{data_uri(os.path.join(D, f"v2/a/media/20261018-dip_link_v2a_cable_section_panel{k}.png"))}">'
+                       for k in (1, 2)),
+               "Concept a, v2: section y = 16.8&#8202;mm through the slotted arm's face groove (top) and section x = "
+               "5.9&#8202;mm through the run over the plug (bottom). DIP link grey, J1 and the plug white, the cable blue; "
+               "the MCP link and the PIP servo outlined at PIP &#8722;18&#176; (red), 0&#176; (dark grey), 45&#176; (green) "
+               "and 92&#176; (violet).", "v2a_sec", cls="panels"),
+        img("v2/b/media/20261018-dip_link_v2b_cable_route.png", "Concept b, v2: the cable's run along +y at x 8.0&#8202;mm "
+            "in the groove open to the back, its turn into the slotted arm's outer face and the line up to the anchor.",
+            "v2b_route", width=1400),
+        figure("".join(f'<img alt="" src="{data_uri(os.path.join(D, f"v2/b/media/20261018-dip_link_v2b_cable_section_panel{k}.png"))}">'
+                       for k in (1, 2)),
+               "Concept b, v2: section y = 0.05&#8202;mm through J1, the plug and the cable's turn toward the back, the red "
+               "circle at its nearest approach to the MCP link (top), and section x = 8.00&#8202;mm through the run to the "
+               "slotted arm (bottom). DIP link grey, board green, J1 and the plug white, the cable blue; the MCP link and the "
+               "PIP servo outlined at PIP &#8722;18&#176; (red), 0&#176; (dark grey), 45&#176; (green) and 92&#176; "
+               "(violet).", "v2b_sec", cls="panels"),
+        img("v2/a/media/20261018-dip_link_v2a_iso.png", "Concept a, v2, assembled at PIP 0&#176; from the dorsal side.",
+            "v2a_iso", width=1400),
+        img("v2/b/media/20261018-dip_link_v2b_iso_dorsal.png", "Concept b, v2, assembled at PIP 0&#176; from the dorsal "
+            "side; the cable leaves the groove at the back next to the slotted arm.", "v2b_iso", width=1400),
+        "<p>The final of 18 October (Sections&#160;3&#8211;12 below, <code>final/</code> and the Onshape STEP of 16:49) "
+        "desoldered J1 and ran a pigtail from its pads to a Qwiic header on the clamp plate's back, because no orientation "
+        "of J1 cleared at the final's length (Section&#160;5). v2 supersedes it; the sections below record that study, "
+        "whose window plate, clamp plate, keys and tip attachment v2 a keeps.</p>",
+        "<p>The PLA parts print on the Bambu printer from print-oriented STLs and the 85A tips and pads on tool 2 of the "
+        "Prusa XL; <code>v2/README.md</code> lists the files with their settings. The fit tests of 19 October sit on one "
+        "plate per printer, each piece with a printed ID (<a href=\"../20261019-dip_link_fit_prints/"
+        "20261019-dip_link_fit_prints.html\">print sheet of the fit tests</a>). The parameter files "
+        "<code>params/20261018-v2_concept_a.json</code> and <code>params/20261018-v2_concept_b.json</code> reproduce both "
+        "designs; <code>exports/</code> contains their STEP files for Inventor.</p>",
+    ])
 
 
 def design_section():
@@ -268,7 +376,7 @@ def design_section():
          f"locate the board in its plane; the stack has no designed clearance normal to the board "
          f"(Figures&#160;[[fig:iso]]&#8211;[[fig:section]]).</p>",
          f"<p>The tip keeps its outer surface and its stiffness. It slides along +z onto two PLA dovetail keys of the window "
-         f"plate until its mount face meets the bridge; a detent on each key keeps it there (Section&#160;5). The "
+         f"plate until its mount face meets the bridge; a detent on each key keeps it there (Section&#160;6). The "
          f"tip and the board come off separately: the tip by a pull along &#8722;z, the board after four screws. Without "
          f"the tip the assembly weighs {f(CHK['mass_g']['total_without_tip'])}&#8202;g at the links' 15&#8202;% infill "
          f"(R12 limit {f(CHK['mass_g']['limit_R12'], 1)}&#8202;g; the current DIP link with the board weighs "
@@ -313,7 +421,7 @@ def concepts_section():
                                  ("concept_c/media/20261018-concept_c-iso.png", "c")))
     return "".join([
         f"<p>Three concepts were drawn to the same specification, and the owner takes a and b to a first print. Concept a "
-        f"is the design of Section&#160;2. "
+        f"is the design of Section&#160;3. "
         f"Concept b replaces the tip's dorsal 6{MM} with a rigid cassette that clamps the board 0.42{MM} behind an 11{MM} "
         f"TPU pad; it resolves the finest forces, {f(C['b']['force_resolution_N']['four_30'], 3)}{NN} with four magnets, "
         f"but the cassette stiffens the contact by about 20&#8202;% and halves the magnet travel per newton, and the "
@@ -594,30 +702,44 @@ def open_items():
         "design load.",
         "Bench check of the clamp from the specification: zero-load field before and after 50 presses at 3&#8202;N and "
         "after 1&#8202;h at 5&#8202;N; a drift above one force-resolution step means the board moves in its clamp.",
-        "Route the Qwiic cable across the PIP joint on the printed finger over &#8722;18 to 92&#176; and measure the "
-        "least gap to the PIP servo; below 1.0&#8202;mm the cable needs a guide on the DIP link.",
+        "Lay the Qwiic cable into a printed v2 link under its Kapton strip, tie it 26&#8202;mm from the anchor and turn "
+        "the joint from &#8722;18 to 92&#176; by hand: the cable stays in its groove and the joint turns as freely tied as "
+        "untied. A cable that lifts toward the MCP link at b's first turn (1.16&#8202;mm in the model) needs a printed "
+        "clip there.",
+        "Measure the Qwiic cable's four wires as laid together; a bundle wider than 2.0&#8202;mm narrows the clearances of "
+        "Table&#160;[[tab:v2]] by half the excess, and the cable-groove piece W of the 19 October fit tests shows which "
+        "groove width takes it.",
+        "Enter the fit tests' results (<code>docs/experiments/20261019-dip_link_fit_prints/records.csv</code>) in "
+        "<code>params/20261018-v2_concept_a.json</code>: <code>fit_flank</code>, <code>detent_h</code>, "
+        "<code>clear_chip</code>, <code>pin_d</code>, <code>screw_thread_d</code>, <code>m2_pilot</code>; rebuild v2 a "
+        "with <code>scripts/dip_link_v2.py a build step check sense render print docs</code>.",
     ]
     return "<ol class='steps'>" + "".join(f"<li>{i}</li>" for i in items) + "</ol>"
 
 
 def byline():
-    return ("Generator <code>scripts/dip_link_board_mount.py</code> (on <code>scripts/dip_link_concept_a.py</code>) &#183; "
+    return ("Generators <code>scripts/dip_link_v2.py</code> (v2, on <code>scripts/dip_link_concept_a.py</code> and "
+            "<code>scripts/dip_link_concept_b.py</code>) and <code>scripts/dip_link_board_mount.py</code> (the final) &#183; "
             "builder <code>scripts/dip_link_board_mount_page.py</code> &#183; files "
-            "<code>docs/experiments/20261018-dip_link_board_mount/</code> (<code>spec.json</code>, <code>decision.json</code>, "
-            "<code>concept_a/</code>, <code>concept_b/</code>, <code>concept_c/</code>, <code>final/</code>)")
+            "<code>docs/experiments/20261018-dip_link_board_mount/</code> (<code>v2/</code>, <code>params/</code>, "
+            "<code>exports/</code>, <code>spec.json</code>, <code>decision.json</code>, <code>concept_a/</code>, "
+            "<code>concept_b/</code>, <code>concept_c/</code>, <code>final/</code>)")
 
 
 def main():
     REFS.update({})
     v = {"STYLE": P.style_block().replace("</style>", EXTRA_CSS + "</style>"), "BUILT": time.strftime("%Y-%m-%d %H:%M"),
-         "BYLINE": byline(), "LEDE": lede(), "GLOSSARY": glossary(), "DESIGN": design_section(),
+         "BYLINE": byline(), "LEDE": lede(), "GLOSSARY": glossary(), "V2": v2_section(), "DESIGN": design_section(),
          "CONCEPTS": concepts_section(), "QWIIC": qwiic_section(), "TIP": tip_section(), "CLEARANCE": clearance_section(),
          "SENSING": sensing_section(), "DRAWING": drawing_section(), "PRINT": print_section(), "CHECKS": checks_section(),
          "LIMITS": limitations(), "OPEN": open_items()}
-    v["FOOTER"] = ("<p>Rebuild: the run order in the docstring of <code>scripts/dip_link_board_mount.py</code> (build, step, "
-                   "check, sense, render, drawing, docs, eval, decision), then <code>.venv/bin/python "
+    v["FOOTER"] = ("<p>Rebuild: v2 by <code>v2/README.md</code> (<code>scripts/dip_link_v2.py a|b build step check sense "
+                   "render print docs</code>); the final by the run order in the docstring of "
+                   "<code>scripts/dip_link_board_mount.py</code>; then <code>.venv/bin/python "
                    "scripts/dip_link_board_mount_page.py</code>. Files in <code>docs/experiments/20261018-dip_link_board_mount/"
-                   "</code>; hand-off <code>docs/handoff/20261018-calibration_and_dip_finish.md</code>. Related pages: "
+                   "</code>; hand-offs <code>docs/handoff/20261018-calibration_and_dip_finish.md</code> and "
+                   "<code>docs/handoff/20261019-dip_link_qwiic_cable_route.md</code>. Related pages: <a href=\"../"
+                   "20261019-dip_link_fit_prints/20261019-dip_link_fit_prints.html\">print sheet of the DIP-link fit tests</a>, "
                    "<a href=\"../20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html\">"
                    "deployment readiness of the CAD hand with printed 85A fingertips</a>, <a href=\"../20261018-fingertip_print_procedure/"
                    "20261018-siraya85a_fingertip_print_procedure.html\">print procedure for the 85A fingertips</a>. Topic "

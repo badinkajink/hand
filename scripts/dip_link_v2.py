@@ -384,6 +384,20 @@ def cable_span(A=None, q_step=0.5, anchor=None):
                      "it lies outside y 17.40, where no part of the MCP link or the PIP servo reaches at any PIP angle")
 
 
+def save_panels(fig, axs, dst):
+    """Each axes of fig saved on its own, with its title, tick and axis labels, as <dst stem>_panel<k>.png beside dst (for
+    pages whose column is narrower than the whole figure)."""
+    for lg in fig.legends:                       # the figure's legend lies under both panels; the page's caption names it
+        lg.set_visible(False)
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    for k, ax in enumerate(axs, 1):
+        bb = ax.get_tightbbox(r).transformed(fig.dpi_scale_trans.inverted()).padded(0.08)
+        fig.savefig(dst.with_name(f"{dst.stem}_panel{k}.png"), dpi=100, bbox_inches=bb)
+    for lg in fig.legends:
+        lg.set_visible(True)
+
+
 def a_cable_section(A, DLF, vals):
     """Side views of the cable's route: left, the x-z section through the groove on the slotted arm's outer face with the
     MCP link and the PIP servo at four PIP angles; right, the y-z section through the groove over the plug, the same."""
@@ -454,6 +468,7 @@ def a_cable_section(A, DLF, vals):
     fig.tight_layout(rect=(0, 0.08, 1, 0.95))
     dst = A_DIR / "media" / f"{pf}_cable_section.png"
     fig.savefig(dst, dpi=100)
+    save_panels(fig, axs, dst)
     plt.close(fig)
     print(dst.relative_to(REPO), flush=True)
 
@@ -1318,6 +1333,7 @@ def b_cable_section(B, clr=None):
     fig.tight_layout(rect=(0, 0.13, 1, 0.95))
     dst = B_DIR / "media" / f"{pf}_cable_section.png"
     fig.savefig(dst, dpi=100)
+    save_panels(fig, axs, dst)
     plt.close(fig)
     print(dst.relative_to(REPO), flush=True)
 
