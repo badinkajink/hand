@@ -82,6 +82,21 @@ Hardware: a takes two M2 x 4 countersunk and two M2 x 5 cheese-head screws, b fo
 drop of CA glue or a strip of Kapton tape at the anchor; a cable tie on the MCP link's side plate 26 mm from the anchor.
 The assembly sequences and parts lists are in `a/evaluation.json` and `b/evaluation.json` (`assembly`, `parts_list`).
 
+## STEP files for Inventor
+
+`scripts/dip_link_params.py export` wrote both designs with the routed cable, every STEP file read back valid in FreeCAD:
+
+- `../exports/20261019-1516-v2_concept_a_cable/`: the DIP link's new features and the clamp plate as exact solids, the
+  fused link (zipped), the tip cutter, the cable-groove cutter, the five-magnet block tip, and
+  `20261019-1516-v2_concept_a_cable_assembly_D.step.zip` with the board, J1 on its tab, the plug, the cable as a 2.0 mm
+  pipe to its anchor, the four screws and the 11/22 tip in the DIP link STL's coordinates.
+- `../exports/20261019-1508-v2_concept_b_cable/`: the new body and the cover as exact solids, the fused link (zipped), the
+  cable-groove cutter, both pads (faceted), and the assembly with the board, J1, the plug, the cable, the four screws and
+  the 11/22 pad.
+
+Each folder's `print/` has the PLA parts as Bambu STLs with their settings and the tips or pads sliced for the XL;
+`export.json` lists every file and its read-back. Opening them in Inventor: `../README.md`, section Opening the STEP files.
+
 ## Concept c with J1 kept
 
 Concept c (`../concept_c/`) places the board into a PLA carrier at an M601 pause and prints the PLA cap and the 85A tip
