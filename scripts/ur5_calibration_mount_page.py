@@ -384,7 +384,7 @@ work</a>. Hand-off <code>docs/handoff/20261018-ur5_calibration_mount.md</code>.<
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S, 1))
     title = "Calibration mount for the instrumented DIP link on a UR5e and HEX-E"
     page = TEMPLATE.read_text()
-    for k, v in {"TITLE": title, "H1": title, "EYEBROW": "Printed fingertips and force sensing &#183; 2026-10-18",
+    for k, v in {"TITLE": "UR5e calibration mount", "H1": title, "EYEBROW": "Printed fingertips and force sensing &#183; 2026-10-18",
                  "LEDE": lede, "BYLINE": f"Built {time.strftime('%Y-%m-%d %H:%M')} from the study's files; nothing printed or measured yet.",
                  "TOC": toc, "SECTIONS": secs,
                  "FOOTER": "docs/experiments/20261018-ur5_calibration_mount/20261018-ur5_calibration_mount.html",

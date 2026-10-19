@@ -619,7 +619,7 @@ def record_section(prows):
         return f"<td>{esc(v)}</td>" if v else '<td class="blank"></td>'
     rows = "".join(f"<tr><td>{esc(r['order'])}</td><td>{esc(r['print'])}</td>" + cell(r["printed_on"]) + cell(r["seat_mm"])
                    + cell(r["magnets_seated"]) + cell(r["polarity_checked"]) + cell(r["tip_mass_g"])
-                   + cell(r["expected_mass_g"]) + cell(r["defects"]) + "</tr>" for r in prows)
+                   + cell(r["expected_mass_g"]) + cell(r["defects"]) + cell(r.get("notes")) + "</tr>" for r in prows)
     return ('<section id="record"><h2>7. Record of the prints</h2>'
             "<p>Each result goes to a file in the repository; the page shows what the files contain when it is rebuilt.</p>"
             '<div class="tw"><table><thead><tr><th>Result</th><th>File</th></tr></thead><tbody>'
@@ -631,7 +631,7 @@ def record_section(prows):
             "print/</code> and its README.md</td></tr></tbody></table></div>"
             '<div class="tw"><table><thead><tr><th>#</th><th>Print</th><th>Printed on</th><th>Seat (mm)</th>'
             "<th>Magnets seated</th><th>Polarity checked</th><th>Tip mass (g)</th><th>Expected (g)</th><th>Defects</th>"
-            f"</tr></thead><tbody>{rows}</tbody></table></div></section>")
+            f"<th>Notes</th></tr></thead><tbody>{rows}</tbody></table></div></section>")
 
 
 COUPON_DIR = ROOT / "docs/experiments/20261018-dip_link_board_mount/final/print"
