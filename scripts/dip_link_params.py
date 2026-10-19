@@ -30,9 +30,15 @@ import sys
 import time
 from pathlib import Path
 
-import scipy.spatial  # noqa: F401  (loads the environment's libstdc++ before manifold3d does; matplotlib needs it)
+try:
+    import scipy.spatial  # noqa: F401  (loads the environment's libstdc++ before manifold3d does; matplotlib needs it)
+except ImportError:                                 # freecadcmd's Python
+    pass
 
-REPO = Path(__file__).resolve().parents[1]
+try:
+    REPO = Path(__file__).resolve().parents[1]
+except NameError:                                   # freecadcmd executes the file without __file__
+    REPO = Path(os.environ["DLP_REPO"])
 sys.path.insert(0, str(REPO / "scripts"))
 sys.path.insert(0, str(REPO / "src"))
 os.environ.setdefault("DIPA_REPO", str(REPO))
@@ -41,7 +47,7 @@ os.environ.setdefault("DLF_REPO", str(REPO))
 STUDY = REPO / "docs/experiments/20261018-dip_link_board_mount"
 PARAMS = STUDY / "params"
 DEFAULT = {"a": PARAMS / "20261018-concept_a.json", "b": PARAMS / "20261018-concept_b_final.json",
-           "b0": PARAMS / "20261018-concept_b.json"}
+           "b0": PARAMS / "20261018-concept_b.json", "a_v2": PARAMS / "20261018-v2_concept_a.json"}
 WORK = REPO / "logs/20261018-dip_link/params"              # regenerated parts of the checks (untracked)
 E_FEMTIP = Path.home() / "miniconda3/envs/femtip/bin/python"
 RESGUARD = Path.home() / ".claude/bin/resguard.sh"
@@ -67,6 +73,9 @@ CHECKS = {
 # (key, group, label, what it sets, unit, (low, high), checks, committed value). The flat keys shoulder_y0/1 and
 # wire_channel_* map to the tuples of dip_link_concept_a.P; the qwiic_* keys set the final's header placement.
 SCHEMA_A = [
+    ("neck_len", "Lengthening", "DIP link lengthening", "the DIP link grows by this between its bridge and the tip: the tip, "
+     "the board, the clamp plate and the screws move distally together (every z below is given at 0); 8.5 mm lets J1 stay "
+     "plugged in (v2/20261018-v2_lengthening.json)", "mm", (0.00, 14.00), ["clearance", "mass"], 0.0),
     ("chip_h", "Board stack", "Chip height", "MLX90393 package height above the FR-4; the window plate prints chip_h - "
      "chip_proud thick", "mm", (0.80, 1.00), ["gap", "chip_to_magnet", "clearance", "wall"], 0.90),
     ("chip_proud", "Board stack", "Chip protrusion", "how far the chip tops stand proud of the window plate into the tip's "
@@ -85,8 +94,8 @@ SCHEMA_A = [
      "MLX90393", "mm", (0.10, 0.40), ["wall", "fit"], 0.20),
     ("clear_passive", "Widths and windows", "Passive window clearance", "clearance of the windows and the tab pocket around "
      "C1-C5 and R1-R2 (solder fillets)", "mm", (0.10, 0.40), ["wall", "fit"], 0.25),
-    ("tab_len", "Widths and windows", "Tab length", "length of the cut tab past the board's main square (J1 removed; its "
-     "four signal pads end 4.38 mm past it)", "mm", (4.40, 6.00), ["clearance"], 4.9),
+    ("tab_len", "Widths and windows", "Tab length", "length of the tab past the board's main square: 9.0 is the whole tab "
+     "(J1 kept); cut, J1's four signal pads end 4.38 mm past the square", "mm", (4.40, 9.00), ["clearance"], 4.9),
     ("pin_d", "Locating pins", "Pin diameter", "diameter of the clamp plate's two locating pins in the board's 2.40 mm "
      "proximal holes (the pin-fit coupon chooses it)", "mm", (2.20, 2.40), ["fit"], 2.35),
     ("pin_hole_d", "Locating pins", "Pin hole diameter", "diameter of the pins' holes in the window plate (reamed)", "mm",
@@ -109,6 +118,9 @@ SCHEMA_A = [
      ["fit", "wall"], 1.3),
     ("nut_clear", "M1.6 countersunk screws and nuts", "Nut pocket clearance", "extra width of the nut pocket across flats "
      "(0: the nut is pressed in)", "mm", (0.00, 0.20), ["fit"], 0.00),
+    ("screw_thread_d", "M1.6 countersunk screws and nuts", "Self-forming hole", "the distal screws' hole in the clamp plate "
+     "when they form their own thread (design board_screws = self_forming; owner: M2 1.8 mm, M3 2.75 mm)", "mm",
+     (1.30, 2.90), ["fit", "wall"], 1.8),
     ("m2_y", "M2 screws into the shoulders", "Screw |y|", "|y| of the two M2 screws through the ears into the shoulders",
      "mm", (7.50, 9.00), ["wall", "clearance"], 8.1),
     ("m2_z", "M2 screws into the shoulders", "Screw z", "z of the two M2 screws", "mm", (-66.50, -64.50),
@@ -184,9 +196,17 @@ SCHEMA_A = [
 DESIGN_A = [
     ("qwiic", "Qwiic connection", "header_on_clamp_plate",
      {"header_on_clamp_plate": "J1 removed and the tab cut; a pigtail from J1's pads to an SM04B-SRSS-TB header in a pocket "
-                               "of the clamp plate's back, mating face proximal (dip_link_board_mount.py)"}),
+                               "of the clamp plate's back, mating face proximal (dip_link_board_mount.py)",
+      "j1_kept": "the board's own J1 stays on the whole tab, tab proximal; the bridge is slotted for J1, its plug and the "
+                 "cable (needs neck_len >= 8.5 and tab_len 9.0)"}),
+    ("board_screws", "Board screws", "m1p6_nuts",
+     {"m1p6_nuts": "two M1.6 countersunk screws into brass nuts pressed into the clamp plate",
+      "self_forming": "two countersunk screws (cs_d, M2 in v2) form their thread in screw_thread_d holes of the clamp plate"}),
     ("tips", "Printed tips", "seat2p9",
-     {"seat2p9": "the 2.9 mm-seat print set the owner prints (dip_link_board_mount.SHEETS), with two key channels cut"}),
+     {"seat2p9": "the 2.9 mm-seat print set the owner prints (dip_link_board_mount.SHEETS), with two key channels cut",
+      "v2_five": "five magnets: the 11/22 half-ellipsoid and the block of v2/print/ (v2/20261018-v2_tips.json), channels cut"}),
+    ("asm_tip", "Tip of the assembly", "block4",
+     {"block4": "the four-magnet block", "block5": "the five-magnet block", "ell11_5": "the five-magnet 11/22 half-ellipsoid"}),
 ]
 
 # ----------------------------------------------------------------------------------------------- concept b
@@ -307,16 +327,20 @@ DESIGN_B = [
 ]
 
 TITLES = {"a": "DIP link concept a, final: window plate, dorsal clamp plate, Qwiic header on the clamp plate",
+          "a_v2": "DIP link concept a, v2: window plate and dorsal clamp plate on a DIP link 8.5 mm longer, the board's own J1 "
+                  "kept, M2 self-forming screws, five-magnet tips",
           "b": "DIP link concept b, final: the board in a cassette in place of the pad's dorsal 6 mm, Qwiic header on the "
                "tongue, pads of the 2.9 mm print set",
           "b0": "DIP link concept b as committed on 2026-10-18 12:14: the board in a cassette, tab cut and wires soldered, "
                 "pads of the 2.7 mm print set"}
 REPRODUCES = {"a": "docs/experiments/20261018-dip_link_board_mount/final/cad and final/print "
                    "(scripts/dip_link_board_mount.py build)",
+              "a_v2": "docs/experiments/20261018-dip_link_board_mount/v2/a/cad and v2/a/print (scripts/dip_link_v2.py a)",
               "b": "docs/experiments/20261018-dip_link_board_mount/concept_b/final/cad (scripts/dip_link_concept_b.py prep, cad "
                    "with this file in $DIPB_PARAMS)",
               "b0": "docs/experiments/20261018-dip_link_board_mount/concept_b/cad (scripts/dip_link_concept_b.py prep, cad)"}
 GENERATOR = {"a": "scripts/dip_link_params.py apply_a: dip_link_concept_a.P and dip_link_board_mount.qwiic_header_final",
+             "a_v2": "scripts/dip_link_params.py apply_a: dip_link_concept_a.P and its tip-side constants",
              "b": "scripts/dip_link_concept_b.py (its dict P), through scripts/dip_link_params.py apply_b",
              "b0": "scripts/dip_link_concept_b.py (its dict P), through scripts/dip_link_params.py apply_b"}
 _S = "docs/experiments/20261018-dip_link_board_mount"
@@ -327,8 +351,12 @@ OUTPUTS = {  # where the committed design's files are; a saved parameter set has
               prefix="20261018-concept_b_final"),
     "b0": dict(cad=f"{_S}/concept_b/cad", media=f"{_S}/concept_b/media", evaluation=f"{_S}/concept_b/evaluation.json",
                work="logs/20261018-dip_link/concept_b", prefix="20261018-concept_b"),
+    "a_v2": dict(cad=f"{_S}/v2/a/cad", print=f"{_S}/v2/a/print", media=f"{_S}/v2/a/media", prefix="20261018-dip_link_v2a"),
 }
-DESIGN_VALUES = {"a": {}, "b": {"qwiic": "header_on_tongue", "pads": "seat2p9"}, "b0": {"qwiic": "none", "pads": "seat2p7"}}
+DESIGN_VALUES = {"a": {}, "b": {"qwiic": "header_on_tongue", "pads": "seat2p9"}, "b0": {"qwiic": "none", "pads": "seat2p7"},
+                 "a_v2": {"qwiic": "j1_kept", "board_screws": "self_forming", "tips": "v2_five", "asm_tip": "ell11_5"}}
+# v2 of concept a (owner 2026-10-18 18:45): J1 kept on a DIP link 8.5 mm longer, M2 self-forming screws, five-magnet tips
+VALUES_A_V2 = dict(neck_len=8.5, tab_len=9.0, m2_pilot=1.8, cs_d=2.0, cs_k=1.2, cs_dk=3.8, cs_len=4.0, screw_thread_d=1.8)
 FRAME = ("F of spec.json: mm, x toward the dorsal side, y along the PIP axis, z up; the straight finger hangs along -z, the "
          "PIP axis passes through (0, y, -51.55), the tip's back face lies at x 6.45 and its mount face at z -67.30")
 
@@ -354,7 +382,8 @@ def default_doc(name):
               "'outputs' names the committed design's folders; a saved set has none, so it never overwrites them."),
         outputs=OUTPUTS[name], checks=CHECKS,
         design=[dict(key=k, label=lab, value=dv.get(k, v), options=opts) for k, lab, v, opts in design_schema(concept)],
-        parameters=[dict(key=k, group=g, label=lab, value=val, default=val, unit=u, sets=s, range=list(rng), checks=c)
+        parameters=[dict(key=k, group=g, label=lab, value=(VALUES_A_V2.get(k, val) if name == "a_v2" else val),
+                         default=(VALUES_A_V2.get(k, val) if name == "a_v2" else val), unit=u, sets=s, range=list(rng), checks=c)
                     for k, g, lab, s, u, rng, c, val in schema(concept)])
 
 
@@ -391,6 +420,10 @@ def problems(concept, vals, des=None):
             out.append("detent_z must lie on the keys (-67.30 - key_len .. -67.30)")
         if vals["key_head"] <= vals["key_root"]:
             out.append("key_head must exceed key_root (a dovetail)")
+        if (des or {}).get("qwiic") == "j1_kept" and vals["tab_len"] < 9.0 - 1e-9:
+            out.append("J1 kept needs the whole tab: tab_len 9.0")
+        if (des or {}).get("qwiic") == "j1_kept" and vals["neck_len"] < 8.5 - 1e-9:
+            out.append("J1 kept clears the PIP servo and the MCP link by 0.5 mm from neck_len 8.5 (v2/20261018-v2_lengthening.json)")
     if concept == "b" and not out:
         if vals["rail_top"] <= vals["rail_base"]:
             out.append("rail_top must exceed rail_base (a dovetail)")
@@ -441,18 +474,51 @@ def qwiic_header_param():
     return parts, cuts
 
 
-def apply_a(vals):
+Z0 = dict(Z_MOUNT=-67.30, Z_END=-88.71, Z_C=-78.16)       # concept a's tip-side constants at neck_len 0
+Z_KEYS = ("m2_z", "shoulder_cap", "shoulder_z0", "ear_top", "tab_cover_top", "detent_z")   # z of P that move with the tip
+
+
+def tips_for(choice, L):
+    """spec.json with its tips replaced by the chosen set (the final's 2.9 mm tips, or v2's five-magnet tips) and every
+    magnet moved distally by the lengthening L."""
+    A, DLF = modules_a()
+    key = (choice, round(L, 6))
+    if key not in _A.setdefault("specs", {}):
+        sp = json.loads((STUDY / "spec.json").read_text())
+        if choice == "v2_five":
+            tips = {k: v["record"] for k, v in json.loads((STUDY / "v2/20261018-v2_tips.json").read_text())["tips"].items()}
+        else:
+            tips = json.loads(DLF.TIPS_CACHE.read_text())
+        for t in tips.values():
+            for m in t["magnets"]["items"]:
+                m["centre_F"] = [m["centre_F"][0], m["centre_F"][1], round(m["centre_F"][2] - L, 4)]
+        sp["tips"] = tips
+        _A["specs"][key] = sp
+    return json.loads(json.dumps(_A["specs"][key]))
+
+
+def apply_a(vals, des=None):
     """Write a parameter set into dip_link_concept_a.P (in place: the generator's functions hold P as their default
-    argument) and into the Qwiic placement."""
-    A, _ = modules_a()
+    argument), into the Qwiic placement, and, for a lengthened DIP link (neck_len L), into the tip-side constants: Z_MOUNT,
+    Z_END, Z_C and the z values of P move distally by L, the clevis arms and the bridge's top stay."""
+    A, DLF = modules_a()
+    des = dict(des or {})
     P = A.P
+    L = float(vals.get("neck_len", 0.0))
     for k, v in vals.items():
-        if k in P and not isinstance(P[k], (tuple, dict)):
-            P[k] = float(v)
+        if k in P and not isinstance(P[k], (tuple, dict, str)):
+            P[k] = float(v) - (L if k in Z_KEYS else 0.0)
+    for k, z in Z0.items():
+        setattr(A, k, z - L)
     P["shoulder_y"] = (float(vals["shoulder_y0"]), float(vals["shoulder_y1"]))
-    P["wire_channel"] = dict(z=(float(vals["wire_channel_z0"]), float(vals["wire_channel_z1"])),
+    P["wire_channel"] = dict(z=(float(vals["wire_channel_z0"]) - L, float(vals["wire_channel_z1"]) - L),
                              x0=float(vals["wire_channel_x0"]))
-    _A["qwiic"].update(y=float(vals["qwiic_y"]), z_back=float(vals["qwiic_z_back"]),
+    P["j1_kept"] = 1.0 if des.get("qwiic") == "j1_kept" else 0.0
+    P["cs_thread_d"] = float(vals.get("screw_thread_d", 1.8)) if des.get("board_screws") == "self_forming" else 0.0
+    P["asm_tip"] = des.get("asm_tip", "block4")
+    sp = tips_for(des.get("tips", "seat2p9"), L)
+    A.spec = DLF.spec_final = lambda: json.loads(json.dumps(sp))
+    _A["qwiic"].update(y=float(vals["qwiic_y"]), z_back=float(vals["qwiic_z_back"]) - L,
                        pocket_depth=float(vals["qwiic_pocket_depth"]), pocket_clear=float(vals["qwiic_pocket_clear"]),
                        groove_depth=float(vals["qwiic_groove_depth"]))
 
@@ -461,7 +527,8 @@ def values_from_a():
     """The flat parameter values that dip_link_concept_a.P and the final's Qwiic placement hold now."""
     A, _ = modules_a()
     P, Q = A.P, _A["qwiic"]
-    out = {k: P[k] for k, *_ in SCHEMA_A if k in P and not isinstance(P[k], (tuple, dict))}
+    out = {k: P[k] for k, *_ in SCHEMA_A if k in P and not isinstance(P[k], (tuple, dict, str))}
+    out.update(neck_len=0.0, screw_thread_d=1.8)
     out.update(shoulder_y0=P["shoulder_y"][0], shoulder_y1=P["shoulder_y"][1], wire_channel_z0=P["wire_channel"]["z"][0],
                wire_channel_z1=P["wire_channel"]["z"][1], wire_channel_x0=P["wire_channel"]["x0"],
                qwiic_y=Q["y"], qwiic_z_back=Q["z_back"], qwiic_pocket_depth=Q["pocket_depth"],
@@ -469,18 +536,32 @@ def values_from_a():
     return out
 
 
-def redirect_a(root):
-    """Point the final's generator at another folder (cad/, print/, media/, work/ under root), so a parameter set's parts
-    never overwrite final/."""
+def redirect_a(root, prefix=None, work=None):
+    """Point the final's generator at another folder (cad/, print/, media/ under root; work/ under root or at work), so a
+    parameter set's parts never overwrite final/; prefix renames the files (default the final's)."""
     A, DLF = modules_a()
     root = Path(root)
-    DLF.FINAL, DLF.CAD, DLF.PRINT, DLF.MEDIA, DLF.WORK = root, root / "cad", root / "print", root / "media", root / "work"
-    A.OUT, A.MEDIA, A.CTX = root, root / "media", root / "work"
-    for d in (root / "cad", root / "print", root / "media", root / "work"):
+    work = Path(work) if work else root / "work"
+    if prefix:
+        A.PFX = DLF.PFX = prefix
+    DLF.FINAL, DLF.CAD, DLF.PRINT, DLF.MEDIA, DLF.WORK = root, root / "cad", root / "print", root / "media", work
+    A.OUT, A.MEDIA, A.CTX = root, root / "media", work
+    for d in (root / "cad", root / "print", root / "media", work):
         d.mkdir(parents=True, exist_ok=True)
 
 
 # ----------------------------------------------------------------------------------------------- concept b
+def freecad_step_a():
+    """Inside freecadcmd ($DLP_PARAMS, $DLP_OUT): the exact solids of a parameter set of concept a, as
+    dip_link_board_mount.freecad_step writes them for the final."""
+    A, DLF = modules_a()
+    concept, vals, des, doc = load(os.environ["DLP_PARAMS"])
+    apply_a(vals, des)
+    redirect_a(os.environ["DLP_OUT"], (doc.get("outputs") or {}).get("prefix") or os.environ.get("DLP_PREFIX"),
+               os.environ.get("DLP_WORK"))
+    DLF.freecad_step()
+
+
 def apply_b(vals, des=None):
     import dip_link_concept_b as B
     B.apply(vals, des)
@@ -528,11 +609,11 @@ def verify_a(path, out):
     """Regenerate concept a's final at a parameter file's values into out/ (dip_link_board_mount.cmd_build, redirected) and
     compare every STL with final/cad and final/print."""
     A, DLF = modules_a()
-    concept, vals, des, _ = load(path)
+    concept, vals, des, doc = load(path)
     assert concept == "a", path
-    committed = {"cad": DLF.CAD, "print": DLF.PRINT}
-    apply_a(vals)
-    redirect_a(out)
+    committed = {"cad": REPO / doc["outputs"]["cad"], "print": REPO / doc["outputs"]["print"]}
+    apply_a(vals, des)
+    redirect_a(out, doc["outputs"].get("prefix"))
     DLF.cmd_build(argparse.Namespace())
     pairs = []
     for d, src in committed.items():                   # every STL the build writes (fit coupons come from other commands)
@@ -574,7 +655,7 @@ def cmd_verify(a):
     for c in a.concept:
         path = Path(a.params) if a.params else DEFAULT[c]
         out = WORK / f"verify_{c}_{time.strftime('%Y%m%d-%H%M%S')}"
-        rows = verify_a(path, out) if c == "a" else verify_b(path, out)       # b, b0: both through verify_b
+        rows = verify_a(path, out) if c.startswith("a") else verify_b(path, out)       # b, b0: both through verify_b
         rec[c] = dict(params=str(path.relative_to(REPO)), regenerated_in=str(out.relative_to(REPO)), tolerance_mm3=0.01,
                       all_ok=all(r["ok"] for r in rows), parts=rows)
         print(f"concept {c}: {sum(r['ok'] for r in rows)}/{len(rows)} parts within 0.01 mm3 [{time.time() - t0:.0f} s]",
@@ -590,14 +671,16 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("init", help="write the default parameter files from the committed designs")
-    s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0"])
+    s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0", "a_v2"])
     s.add_argument("--force", action="store_true")
     s = sub.add_parser("verify", help="regenerate at a file's values and compare volumes with the committed STL files")
-    s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0"])
+    s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0", "a_v2"])
     s.add_argument("--params", help="parameter file (default: the concept's committed file)")
     a = ap.parse_args()
     {"init": cmd_init, "verify": cmd_verify}[a.cmd](a)
 
 
-if __name__ == "__main__":
+if os.environ.get("DLP_CMD") == "step":
+    freecad_step_a()
+elif __name__ == "__main__":
     main()

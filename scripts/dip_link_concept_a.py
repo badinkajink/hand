@@ -575,7 +575,7 @@ def cmd_build(a):
     D = dip_link(K)
     C = clamp_plate(K)
     B, wires = board_model(K)
-    W = wires_model(K, P, wires, +1)
+    W = None if P.get("j1_kept") else wires_model(K, P, wires, +1)       # J1 kept: no soldered wires
     F_ = fasteners(K)
     cutter = tip_cutter(K)
     rec = dict(parameters=P, levels={k: round(v, 4) for k, v in L.items()}, parts={}, when=time.strftime("%Y-%m-%d %H:%M"))
@@ -584,6 +584,8 @@ def cmd_build(a):
                             ("board", B, "ReSkin 5X with the tab cut to 4.9 mm (model)"),
                             ("wires", W, "the four wires from the pads to the clamp plate's back (model)"),
                             ("tip_cutter", cutter, "volume removed from each tip: two dovetail channels and detent grooves")):
+        if man is None:
+            continue
         tm = to_trimesh(man)
         tm.export(fname(name))
         rec["parts"][name] = dict(file=str(fname(name).relative_to(REPO)), role=role, volume_mm3=round(float(tm.volume), 1),
@@ -630,7 +632,7 @@ def cmd_build(a):
     for n in ("servo_pip", "mcp_link"):
         G.load_part(n).export(CTX / f"context_{n}.stl")
     tipF = trimesh.load(fname(f"tip_{P['asm_tip'].replace('.', 'p')}_F"))
-    asm = trimesh.util.concatenate([to_trimesh(D), to_trimesh(C), to_trimesh(B), to_trimesh(W), fm, tipF,
+    asm = trimesh.util.concatenate([to_trimesh(D), to_trimesh(C), to_trimesh(B)] + ([to_trimesh(W)] if W is not None else []) + [fm, tipF,
                                     G.load_part("servo_pip")])
     asm.export(fname("assembly"))
     rec["parts"]["assembly"] = dict(file=str(fname("assembly").relative_to(REPO)),
@@ -724,7 +726,7 @@ def cmd_check(a):
     D = trimesh.load(fname("dip_link"))
     C = trimesh.load(fname("clamp_plate"))
     B = trimesh.load(fname("board"))
-    W = trimesh.load(fname("wires"))
+    W = trimesh.load(fname("wires")) if fname("wires").exists() else None        # none when J1 is kept
     Fm = trimesh.load(fname("fasteners"))
     res = dict(when=time.strftime("%Y-%m-%d %H:%M"))
     # R6: arms identical to the STL
@@ -739,7 +741,8 @@ def cmd_check(a):
         dv.append(round(float((a1 - a2).volume() + (a2 - a1).volume()), 4))
     res["arms_symmetric_difference_mm3"] = dv
     # clearance over the PIP range (exact method of the spec) per part; the arms are the STL's and are reported apart
-    parts = {"dip_link_new": D, "clamp_plate": C, "board": B, "fasteners": Fm, "wires": W}
+    parts = {k: v for k, v in {"dip_link_new": D, "clamp_plate": C, "board": B, "fasteners": Fm, "wires": W}.items()
+             if v is not None}
     files = {"dip_link_new": "dip_link", "clamp_plate": "clamp_plate", "board": "board", "fasteners": "fasteners",
              "wires": "wires"}
     old_chk = OUT / f"{PFX}_check.json"

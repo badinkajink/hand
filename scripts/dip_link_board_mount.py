@@ -140,7 +140,7 @@ def cmd_build(a):
     rec["tips_source"] = {k: f"{READY.relative_to(REPO)}/print/{v}.json" for k, v in SHEETS.items()}
     rec["seat_mm"] = SEAT
     import dip_link_geometry as G
-    qparts, _ = qwiic_header_final()
+    qparts = connector_parts()
     qm = trimesh.util.concatenate([box_mesh(lo, hi) for _, lo, hi in qparts])
     qm.export(fname("qwiic"))
     asm = trimesh.load(fname("assembly"))
@@ -175,7 +175,7 @@ def freecad_step():
             zf.write(fused, fused.name)
         rec["dip_link"]["file_zip"] = str(z.relative_to(REPO))
         rec["dip_link"]["zip_bytes"] = z.stat().st_size
-    for key in ("block4", "block5"):
+    for key in [k for k, t in A.spec()["tips"].items() if t["shape"] == "block"]:   # curved tips: STL only (below)
         stl = PRINT / f"{PFX}_tip_{key}_print.stl"
         m = Mesh.Mesh(str(stl))
         solids = []                                  # the outer skin and one closed shell per magnet cavity
@@ -282,12 +282,23 @@ def qwiic_header_final():
     return parts, cuts
 
 
+def connector_parts():
+    """The Qwiic connection's parts as (name, lo, hi) boxes in F: J1, its plug and the cable's start on the board when J1
+    is kept (v2), else the relocated header, its plug, the cable's start and the pigtail."""
+    if A.P.get("j1_kept"):
+        return A.j1_boxes_F()
+    return qwiic_header_final()[0]
+
+
 _clamp_plate_a = A.clamp_plate
 
 
 def clamp_plate_final(K, p=A.P):
-    """Concept a's clamp plate with the Qwiic header's pocket and the wire groove cut into its dorsal face."""
+    """Concept a's clamp plate with the Qwiic header's pocket and the wire groove cut into its dorsal face (none when the
+    board keeps its own J1)."""
     C = _clamp_plate_a(K, p)
+    if p.get("j1_kept"):
+        return C
     _, cuts = qwiic_header_final()
     return K.sub(C, K.union([K.box(lo, hi) for _, lo, hi in cuts]))
 
@@ -400,7 +411,7 @@ def cmd_check(a):
                        magnets_x_F=t["magnets"]["items"][0]["x_F"], top_depth_mm=t["magnets"]["top_depth_mm"])
         print(f"R4 {key}: channels {best[0]:.2f} mm from a magnet", flush=True)
     res["channels_to_magnets_R4"] = r4
-    qparts, _ = qwiic_header_final()
+    qparts = connector_parts()
     qm = trimesh.util.concatenate([box_mesh(lo, hi) for _, lo, hi in qparts])
     Pq = G.surface_points(qm, 0.25)
     vq, iq, qq, pq = G.points_clearance_exact(Pq, reach=3.0)
@@ -409,7 +420,7 @@ def cmd_check(a):
     print(f"clearance qwiic_connector: {vq:.3f} mm ({pq}, PIP {qq})", flush=True)
     tw = {}
     cutter = A.tip_cutter(A.MeshK())
-    for key in ("block5",):                                   # concept a's check covers block4, cap8.5, ell16, ell11
+    for key in [k for k in sp["tips"] if k == "block5"]:     # concept a's check covers the other tips
         tF = A.to_trimesh(A.from_trimesh(A.tip_F(key)[0]) - cutter)
         tw[key] = {f"z{z:g}": A.section_min_wall(tF, (0, 0, z), (0, 0, 1)) for z in (-67.6, -69.5, -71.8)}
     res["tip_walls_near_channels"].update(tw)
@@ -861,7 +872,7 @@ def cmd_curve(a):
     import dip_link_geometry as G
     t0 = time.time()
     meshes = {k: trimesh.load(fname(k)) for k in ("dip_link", "clamp_plate", "board", "fasteners", "wires")}
-    qparts, _ = qwiic_header_final()
+    qparts = connector_parts()
     meshes["qwiic"] = trimesh.util.concatenate([box_mesh(lo, hi) for _, lo, hi in qparts])
     rows = {}
     for key, label in SWEEP_GROUPS:

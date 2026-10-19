@@ -255,6 +255,330 @@ def cmd_tips(a):
     print("->", dst.relative_to(REPO), flush=True)
 
 
+# ----------------------------------------------------------------------------------------------- concept a, v2
+PARAMS_A = STUDY / "params/20261018-v2_concept_a.json"
+A_DIR = V2 / "a"
+A_WORK = REPO / "logs/20261018-dip_link/v2/a"
+
+
+def setup_a():
+    """Concept a's generators at v2's parameter file, writing into v2/a/ (work files under logs/)."""
+    import dip_link_params as DP
+    concept, vals, des, doc = DP.load(PARAMS_A)
+    DP.apply_a(vals, des)
+    DP.redirect_a(A_DIR, doc["outputs"]["prefix"], A_WORK)
+    A, DLF = DP.modules_a()
+    return A, DLF, vals, des, doc
+
+
+def a_step():
+    """Exact STEP of the printed parts in freecadcmd (dip_link_params freecad_step_a: dip_link_board_mount.freecad_step)."""
+    import subprocess
+    env = dict(os.environ, DLP_CMD="step", DLP_PARAMS=str(PARAMS_A), DLP_OUT=str(A_DIR), DLP_WORK=str(A_WORK), DLP_REPO=str(REPO))
+    r = subprocess.run(["freecadcmd", str(REPO / "scripts/dip_link_params.py")], env=env, cwd=str(REPO), capture_output=True,
+                       text=True)
+    print("\n".join(l[:300] for l in r.stdout.splitlines() if l.strip() and "%" not in l and "*" not in l)[-3000:], flush=True)
+    if r.returncode or "valid" not in r.stdout:
+        print(r.stderr[-3000:])
+        raise SystemExit("freecadcmd failed")
+
+
+V2_LABELS = {"dip_link": "DIP link, 8.5 mm longer, slotted for J1", "clamp_plate": "Clamp plate", "board": "Board, whole tab",
+             "qwiic": "J1, plug and cable start", "fasteners": "M2 screws", "tip": "Tip, 85A", "servo": "PIP servo",
+             "mcp": "MCP link"}
+
+
+def a_render():
+    """Assembled (dorsal side, PIP 0, with the MCP link and the PIP servo), exploded, the DIP link from the palmar side and
+    the connector close up, through dip_link_concept_a's MuJoCo renderer; labels at the lengthened tip's positions."""
+    A, DLF, vals, des, doc = setup_a()
+    C_ = A.COLORS
+    L, P = A.levels(), A.P
+    f = lambda s_: str(DLF.fname(s_))                     # noqa: E731
+    ctx = lambda s_: str(A_WORK / f"{s_}.stl")            # noqa: E731
+    tip = P["asm_tip"].replace(".", "p")
+    qcol = "0.95 0.95 0.92 1"
+    asm = [("dip_link", f("dip_link"), C_["dip_link"], (0, 0, 0)), ("clamp_plate", f("clamp_plate"), C_["clamp_plate"], (0, 0, 0)),
+           ("board", f("board"), C_["board"], (0, 0, 0)), ("fasteners", f("fasteners"), C_["fasteners"], (0, 0, 0)),
+           ("qwiic", f("qwiic"), qcol, (0, 0, 0)), ("tip", f(f"tip_{tip}_F"), C_["tip"], (0, 0, 0)),
+           ("servo", ctx("context_servo_pip"), C_["servo"], (0, 0, 0)), ("mcp", ctx("context_mcp_link"), C_["mcp"], (0, 0, 0))]
+    MED = A_DIR / "media"
+    pf = DLF.PFX
+    jb = {n: (np.array(lo), np.array(hi)) for n, lo, hi in A.j1_boxes_F()}
+    cam = ((5.0, 0.0, A.Z_C + 5.0), 150, 228, -20)
+    img = A._render(asm, cam, MED / f"{pf}_iso.png")
+    DLF._annotate_final(img, cam, [
+        ("Clamp plate", (L["x_c1"], -3.0, A.Z_C - 2.0), (0.03, 0.62)),
+        ("M2 screw into a shoulder (1.8 mm hole)", (L["x_c1"] + P["m2_head_k"], -P["m2_y"], P["m2_z"]), (0.03, 0.44)),
+        ("J1 with its plug, on the whole tab", ((jb["plug"][0][0] + jb["plug"][1][0]) / 2, 0.0, jb["plug"][1][2]), (0.97, 0.36)),
+        ("DIP link 8.5 mm longer than the final", (L["x_cf"], 12.0, A.Z_MOUNT + 4.0), (0.97, 0.55)),
+        ("Tip, 85A, five magnets", (-2.0, A.Y_HALF, A.Z_C - 2.0), (0.97, 0.78)),
+        ("PIP servo", (21.95, -6.0, -52.0), (0.03, 0.20))],
+        title="Concept a, v2, assembled at PIP 0 deg, dorsal side")
+    ex = [("dip_link", f("dip_link"), C_["dip_link"], (0, 0, 0)),
+          ("cs", ctx("fasteners_cs_screw"), C_["fasteners"], (-12, 0, 0)),
+          ("tip", f(f"tip_{tip}_F"), C_["tip"], (0, 0, -18)),
+          ("board", f("board"), C_["board"], (9, 0, 0)), ("qwiic", f("qwiic"), qcol, (9, 0, 0)),
+          ("clamp_plate", f("clamp_plate"), C_["clamp_plate"], (18, 0, 0)),
+          ("m2", ctx("fasteners_m2_screw"), C_["fasteners"], (27, 0, 0))]
+    cam = ((9.0, 0.0, A.Z_C), 165, 110, -12)
+    img = A._render(ex, cam, MED / f"{pf}_exploded.png")
+    hd = sorted([(y, z) for y, z, _ in A.board_items()["holes"] if z < A.Z_C])
+    DLF._annotate_final(img, cam, [
+        ("DIP link: window plate, keys, the slot for J1", (L["x_cf"], -6.0, A.Z_C - 5.0), None),
+        ("M2 x 4 countersunk screws from the palmar side", (A.X_BACK - 12 + 0.3, hd[0][0], hd[0][1]), None),
+        ("Tip with two key channels", (-1.0, -A.Y_HALF, A.Z_C - 2.0 - 18), None),
+        ("Board with J1, chips toward the tip", (L["x_bb"] + 9, -6.0, A.Z_C - 6.0), None),
+        ("Clamp plate: 1.8 mm holes, the screws form their thread", (L["x_c1"] + 18, -6.0, A.Z_C - 6.0), None),
+        ("M2 x 5 screws into the shoulders", (L["x_c1"] + 27 + P["m2_head_k"], -P["m2_y"], P["m2_z"]), None)],
+        title="Concept a, v2, exploded", callout=True)
+    cam = ((4.0, 0.0, A.Z_C + 3.0), 120, 25, 28)
+    img = A._render([("dip_link", f("dip_link"), C_["dip_link"], (0, 0, 0))], cam, MED / f"{pf}_dip_link_palmar.png")
+    DLF._annotate_final(img, cam, [
+        ("Bridge: the tip's mount face rests here", (-6.0, -12.0, A.Z_MOUNT), None),
+        ("Dovetail keys with detents", (A.X_BACK - P["key_depth"], -P["key_yc"], A.Z_MOUNT - 3.7), None),
+        ("Slot for J1, its plug and the cable", ((jb["j1_header"][0][0] + jb["j1_header"][1][0]) / 2, 0.0,
+                                                 jb["j1_header"][1][2]), None),
+        ("U1 window", (A.X_BACK, 0.0, A.Z_C - 1.2), None)],
+        title="Concept a, v2: DIP link from the palmar side", callout=True)
+    print("renders ->", MED.relative_to(REPO), flush=True)
+
+
+def a_section():
+    """Section y = 0 through U1 and J1 at PIP 0 and at full flexion (92 deg): the stack, J1 with its plug and cable in the
+    bridge's slot, the tip with its magnets, and the MCP link and the PIP servo in outline."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import trimesh
+    from matplotlib.patches import Polygon as MPoly
+    import dip_link_geometry as G
+    A, DLF, vals, des, doc = setup_a()
+    pf = DLF.PFX
+    tip = A.P["asm_tip"].replace(".", "p")
+    parts = [("Tip, 85A (11/22, five magnets)", DLF.fname(f"tip_{tip}_F"), "#e8c88a"),
+             ("DIP link", DLF.fname("dip_link"), "#d6d6cc"), ("Board", DLF.fname("board"), "#1f7a3a"),
+             ("Clamp plate", DLF.fname("clamp_plate"), "#5b8fd9"), ("J1, plug, cable start", DLF.fname("qwiic"), "#f2f2ea"),
+             ("Screws", DLF.fname("fasteners"), "#c8a33c")]
+    meshes = [(n, trimesh.load(p_), c) for n, p_, c in parts]
+    ctx = {n: G.load_part(n) for n in ("mcp_link", "servo_pip")}
+    plt.rcParams.update({"font.family": "serif", "font.size": 15})
+    fig, axs = plt.subplots(1, 2, figsize=(17.0, 11.0))
+    for ax, q in zip(axs, (0.0, 92.0)):
+        for n, tm, c in meshes:
+            sec = tm.section(plane_origin=(0, 0.0, 0), plane_normal=(0, 1, 0))
+            if sec is None:
+                continue
+            for poly in sec.discrete:
+                ax.add_patch(MPoly(poly[:, [0, 2]], closed=True, fc=c, ec="k", lw=0.5))
+        for n, tm in ctx.items():
+            t2 = tm.copy()
+            t2.vertices = G.rot_pip(np.asarray(t2.vertices), q)          # parent-fixed points seen from the DIP link
+            sec = t2.section(plane_origin=(0, 0.0, 0), plane_normal=(0, 1, 0))
+            if sec is None:
+                continue
+            for poly in sec.discrete:
+                ax.add_patch(MPoly(poly[:, [0, 2]], closed=True, fc="none", ec="#3a6fb0" if n == "mcp_link" else "#b04a2a",
+                                   lw=1.2))
+        for m in A.spec()["tips"][A.P["asm_tip"]]["magnets"]["items"]:
+            if abs(m["centre_F"][1]) < 1.6:
+                (x0, x1), z = m["x_F"], m["centre_F"][2]
+                ax.add_patch(MPoly([[x0, z - 1.5], [x1, z - 1.5], [x1, z + 1.5], [x0, z + 1.5]], closed=True, fc="#b03a2e",
+                                   ec="k", lw=0.5))
+        ax.plot([0], [-51.55], "k+", ms=14, mew=2)
+        ax.set_xlim(-14, 24)
+        ax.set_ylim(A.Z_END - 2.0, -40.0)
+        ax.set_aspect("equal")
+        ax.grid(True, lw=0.3, alpha=0.4)
+        ax.set_xlabel("x in F (mm), dorsal to the right")
+        ax.set_ylabel("z in F (mm)")
+        ax.set_title(f"PIP {q:.0f} deg: MCP link (blue) and PIP servo (red) in outline", fontsize=16)
+    jb = {n: (np.array(lo), np.array(hi)) for n, lo, hi in A.j1_boxes_F()}
+    axs[0].annotate("J1 on the tab, in the bridge's slot", xy=((jb["j1_header"][0][0] + jb["j1_header"][1][0]) / 2,
+                                                              (jb["j1_header"][0][2] + jb["j1_header"][1][2]) / 2),
+                    xytext=(9.0, A.Z_C + 2.0), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
+    axs[0].annotate("Plug and the cable's\nfirst 3 mm", xy=(5.9, jb["wire1"][1][2] - 0.5), xytext=(10.0, -46.5), fontsize=15,
+                    arrowprops=dict(arrowstyle="->", lw=1.0))
+    axs[0].annotate("PIP axis", xy=(0.0, -51.55), xytext=(-12.5, -43.5), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
+    from matplotlib.patches import Patch
+    fig.legend([Patch(fc=c, ec="k") for _, _, c in parts] + [Patch(fc="#b03a2e", ec="k")],
+               [n for n, _, _ in parts] + ["Magnets (y = 0)"], loc="lower center", ncol=4, frameon=False, fontsize=15)
+    fig.suptitle("Concept a, v2: section y = 0 through U1 and J1", fontsize=18)
+    fig.tight_layout(rect=(0, 0.07, 1, 0.96))
+    dst = A_DIR / "media" / f"{pf}_section.png"
+    fig.savefig(dst, dpi=100)
+    plt.close(fig)
+    print(dst.relative_to(REPO), flush=True)
+
+
+def a_print():
+    """The PLA parts on one plate (dip_link_print_project.build_project: the link with its support enforcers and shoulder
+    modifiers, the clamp plate, the pin-fit coupon), the attachment fit coupon at v2's keys, and each channelled tip with
+    its pauses (sim2real_fingertip_prints.write_and_check on the sheet's pockets), sliced and checked."""
+    import trimesh
+    import dip_link_print_project as PP
+    import metric_magnet_prints as MP
+    import sim2real_fingertip_prints as SP
+    A, DLF, vals, des, doc = setup_a()
+    pf = DLF.PFX
+    out = A_DIR / "print"
+    # the print project's window-plate box is the final's (z -88.71..-67.30): moved with the tip
+    box0 = PP.box_F_to_print
+
+    def box_shifted(lo, hi, Rt):
+        if abs(lo[2] + 88.71) < 1e-9 and abs(hi[2] + 67.30) < 1e-9:
+            lo, hi = (lo[0], lo[1], A.Z_END), (hi[0], hi[1], A.Z_MOUNT)
+        return box0(lo, hi, Rt)
+    PP.box_F_to_print = box_shifted
+    PP.PFX = pf
+    PP.build_project({"dip_link": DLF.fname("dip_link"), "clamp_plate": DLF.fname("clamp_plate"),
+                      "pin_fit_coupon": DLF.PRINT / f"{pf}_pin_fit_coupon.stl"}, out, f"{pf}_print_link_clamp_coupon_pla_t3",
+                     source=str(PARAMS_A.relative_to(REPO)))
+    PP.build_fit_coupon(out)
+    MP.DATE = SP.DATE = DATE
+    SP.OUT, SP.WORK = out, A_WORK / "print"
+    SP.use_template()
+    for key, t in A.spec()["tips"].items():
+        sheet = json.loads((REPO / t["sheet"]).read_text())
+        part = trimesh.load(DLF.PRINT / f"{pf}_tip_{key.replace('.', 'p')}_print.stl", force="mesh")
+        name = f"{pf}_print_tip_{key.replace('.', 'p')}_channels_85a_t2_g30"
+        ns = argparse.Namespace(seat=SEAT, no_slice=False)
+        body = part
+        rep = SP.write_and_check(part, json.loads(json.dumps(sheet["pockets"])), sheet["pocket_gaps"], sheet["mesh"], name,
+                                 sheet["tip"], sheet["layout"], sheet["magnet"]["top_depth_mm"], 2, 30, body,
+                                 five_layout(sheet["layout"]), ns)
+        rep["stl"] = str((DLF.PRINT / f"{pf}_tip_{key.replace('.', 'p')}_print.stl").relative_to(REPO))
+        rep["note"] = "the v2 sheet's geometry with the two key channels of concept a cut (dip_link_concept_a.tip_cutter)"
+        (out / f"{name}.json").write_text(json.dumps(rep, indent=1, default=float))
+    print("print ->", out.relative_to(REPO), flush=True)
+
+
+def a_docs():
+    """v2/a/evaluation.json: the lengthening, the Qwiic connection, clearance, sensing, walls, mass, the print projects,
+    the parts list and the assembly sequence, from the stage outputs."""
+    A, DLF, vals, des, doc = setup_a()
+    pf = DLF.PFX
+    rd = lambda n: json.loads((A_DIR / f"{pf}_{n}.json").read_text())       # noqa: E731
+    chk, sen, parts = rd("check"), rd("sense"), rd("parts")
+    step = rd("step") if (A_DIR / f"{pf}_step.json").exists() else {}
+    lg = json.loads((V2 / f"{DATE}-v2_lengthening.json").read_text())
+    tips = json.loads((V2 / f"{DATE}-v2_tips.json").read_text())
+    prj = {f.stem: json.loads(f.read_text()) for f in sorted((A_DIR / "print").glob("*.json"))}
+    four = next(r for r in sen["rows"] if r["layout"] == "five_z7p4" and r["recipe"] == "w85_30" and r["case"] == "design")
+    clear = chk["clearance"]
+    L = A.levels()
+    ev = dict(
+        title="DIP link concept a, v2: the board's own Qwiic connector kept on a DIP link 8.5 mm longer, M2 self-forming "
+              "screws, five-magnet tips",
+        date="2026-10-18", params=str(PARAMS_A.relative_to(REPO)), generator="scripts/dip_link_v2.py a (dip_link_params.apply_a "
+              "on scripts/dip_link_concept_a.py and scripts/dip_link_board_mount.py)",
+        owner=["'we should just go for 5x 3x2 magnets'", "'i do like the half ellipsoids most, the 11/22 one especially'",
+               "'if we have to lengthen the fingertip to get everything to fit, including the qwiic port and the cable, that's "
+               "fine'", "'for m3 screws, i use 2.75mm diameter holes, m2 i use 1.8'"],
+        changes_from_final=[
+            f"DIP link {vals['neck_len']:.1f} mm longer between its bridge and the tip (PIP to the tip's end "
+            f"{lg['choice']['a']['pip_to_tip_mm']} mm, 37.16 mm in the final); the clevis arms and the bridge's top are the final's",
+            "the board keeps its whole 9 mm tab and its Qwiic connector J1, tab proximal; the bridge has a slot for J1, the "
+            "plug and the cable; no pigtail, no header on the clamp plate",
+            "the two distal board screws are M2 x 4 countersunk (DIN 965), forming their thread in 1.8 mm holes of the clamp "
+            "plate (no nuts); the two ear screws M2 x 5 into 1.8 mm holes of the shoulders (1.7 mm in the final)",
+            "tips with five 3 x 2 mm magnets at the 2.9 mm seat: the 11/22 half-ellipsoid (corners y +-2.5 mm, rows 9.8 mm "
+            "apart, the group 0.5 mm toward the mount face) and the block (five_z7p4), both with the key channels"],
+        lengthening=lg["placements"]["a"] | dict(choice=lg["choice"]["a"]),
+        clearance=dict(per_part={k: dict(min_mm=v.get("min_mm"), pip_deg=v.get("pip_deg"), part=v.get("part"))
+                                 for k, v in clear.items()},
+                       requirement="R7: 0.5 mm rigid; exact method of the specification over PIP -18..92 deg; values of 3 mm "
+                                   "or more are lower bounds (only points within 3-4 mm of the links are turned)"),
+        to_pip_servo=chk["to_pip_servo"], walls=chk["walls"], tip_walls_near_channels=chk["tip_walls_near_channels"],
+        channels_to_magnets_R4=chk["channels_to_magnets_R4"], overlap_mm3=chk["overlap_mm3"], mass_g=chk["mass_g"],
+        width_over_tip_length_y=chk["width_over_tip_length_y"],
+        sensing=dict(block5_force_resolution_30_N=four["centre_force_N"],
+                     block5_force_resolution_50_N=next(r["centre_force_N"] for r in sen["rows"] if r["layout"] == "five_z7p4"
+                                                       and r["recipe"] == "w85_50" and r["case"] == "design"),
+                     gap_mm=round(L["gap"], 3),
+                     static_fields={k: dict(B_U1_mT=v["design"]["B_U1_mT"], B_max_component_mT=v["design"]["B_max_component_mT"],
+                                            gain_sel=v["design"]["gain_sel"],
+                                            chip_to_magnet_surface_mm=min(v["design"]["chip_to_magnet_surface_mm"]))
+                                    for k, v in sen["static_fields"].items()},
+                     note="force resolution from the readiness finite elements of the five-magnet block (corners moved to the "
+                          "printed 7.4 mm); the five-magnet 11/22 has no finite elements yet, so only its static field, gain "
+                          "and chip-to-magnet distance"),
+        tips={k: dict(layout=v["chosen"], depth_mm=v["depth_mm"], sheet=v["record"]["sheet"]) for k, v in tips["tips"].items()},
+        step=step, parts=parts["parts"],
+        print_projects={k: dict(project=v.get("project"),
+                                print_time=(v.get("slice") or {}).get("print_time") or (v.get("slice") or {}).get("check", {}).get("print_time"),
+                                filament_g=(v.get("slice") or {}).get("filament_g"),
+                                pauses_mm=[q["print_z"] for q in v.get("pauses", [])], checks_pass=(v.get("slice") or {}).get("checks_pass"))
+                        for k, v in prj.items()},
+        parts_list=[
+            dict(item="DIP link, v2", material="PLA", qty=1, file=f"v2/a/cad/{pf}_dip_link.stl",
+                 step=f"v2/a/cad/{pf}_dip_link_new_features.step (new features, exact) and {pf}_dip_link.step.zip (fused)"),
+            dict(item="Clamp plate, v2 (1.8 mm holes, no nut pockets, no Qwiic pocket)", material="PLA or PETG, solid", qty=1,
+                 file=f"v2/a/cad/{pf}_clamp_plate.stl", step=f"v2/a/cad/{pf}_clamp_plate.step"),
+            dict(item="Pin-fit coupon", material="as the clamp plate", qty=1, file=f"v2/a/print/{pf}_pin_fit_coupon.stl"),
+            dict(item="Attachment fit coupon: PLA key sections and 85A channel sections at 0, 0.05, 0.10 mm per flank", qty=1,
+                 file=f"v2/a/print/{pf}_fit_coupon_keys_pla_t3.3mf and {pf}_fit_coupon_channels_85a_t2.3mf"),
+            dict(item="85A tip with key channels and five magnets: 11/22 half-ellipsoid (or the block)", material="Siraya Tech "
+                 "TPU 85A, 30 % gyroid", qty=1, file=f"v2/a/print/{pf}_print_tip_ell11_5_channels_85a_t2_g30.3mf"),
+            dict(item="N52 disc magnet 3 x 2 mm, axially magnetized", qty=5),
+            dict(item="ReSkin 5X board as supplied (J1 kept, tab not cut)", material="FR-4 0.6 mm", qty=1),
+            dict(item="M2 x 4 countersunk screw, DIN 965 / ISO 7046", material="brass or stainless A2", qty=2),
+            dict(item="M2 x 5 cheese-head screw, DIN 84", material="brass", qty=2),
+            dict(item="Qwiic cable (JST SH 4-pin) from J1 to the controller", qty=1)],
+        assembly=[
+            "Print the pin-fit coupon and the attachment fit coupon first; choose the pin and the channel interference.",
+            "Print the PLA plate (DIP link, clamp plate, pin coupon) and the 85A tip with its pauses (press each magnet to the "
+            "floor, north pole toward the palmar side).",
+            "Plug the Qwiic cable into J1 before mounting the board: the plug enters J1 along the tab, from its end.",
+            "Lay the board component side down on the window plate: chips in their windows, J1 and the plug in the bridge's "
+            "slot, the cable out of the slot's top toward the PIP joint.",
+            "Put on the clamp plate (pins through the board's proximal holes into the window plate).",
+            "With the tip off, drive the two M2 x 4 countersunk screws from the palmar side through the window plate and the "
+            "board's distal holes into the clamp plate's 1.8 mm holes; they form their thread; snug.",
+            "Drive the two M2 x 5 screws through the clamp plate's ears into the shoulders' 1.8 mm holes; snug, the ears clear "
+            "of the shoulders.",
+            "Route the cable from the slot's top along the link's dorsal side to y > 17.4 mm and across the PIP joint outside "
+            "the slotted arm; fix it to the DIP link before the joint so a pull does not reach J1.",
+            "Slide the tip along +z onto the keys until both detents engage; read the zero-load field."],
+        first_print_checks=["J1 with the plug mated fits the slot without touching its walls; the cable leaves the slot "
+                            "freely", "The M2 screws thread into the 1.8 mm holes by hand and hold the board without play",
+                            "Over the full PIP range by hand, nothing touches the MCP link or the PIP servo (the plug's "
+                            "nearest approach is 0.52 mm at PIP 73.5 deg)"],
+        open_items=[f"Mass {chk['mass_g']['total_without_tip']} g without the tip (R12 7.6 g): the 8.5 mm longer bridge is "
+                    "solid between the clevis arms", "The window plate's web beside each distal M2 countersink is 0.72 mm "
+                    "(R11 0.8 mm for two lines); M1.6 countersunk screws keep the final's 0.80 mm",
+                    "Force resolution of the five-magnet 11/22 needs its finite elements",
+                    "The cable's route past the PIP joint beyond its first 3 mm"],
+        when=time.strftime("%Y-%m-%d %H:%M"))
+    (A_DIR / "evaluation.json").write_text(json.dumps(ev, indent=1, default=float) + "\n")
+    print("->", (A_DIR / "evaluation.json").relative_to(REPO), flush=True)
+
+
+def cmd_a(a):
+    for stage in a.stages:
+        t0 = time.time()
+        print(f"== a: {stage}", flush=True)
+        if stage == "build":
+            A, DLF, *_ = setup_a()
+            DLF.cmd_build(argparse.Namespace())
+        elif stage == "step":
+            a_step()
+        elif stage == "check":
+            A, DLF, *_ = setup_a()
+            DLF.cmd_check(argparse.Namespace(reuse=False))
+        elif stage == "sense":
+            A, DLF, *_ = setup_a()
+            DLF.cmd_sense(argparse.Namespace())
+        elif stage == "render":
+            a_render()
+            a_section()
+        elif stage == "print":
+            a_print()
+        elif stage == "docs":
+            a_docs()
+        print(f"== a: {stage} [{time.time() - t0:.0f} s]", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -265,8 +589,10 @@ def main():
     s = sub.add_parser("tips")
     s.add_argument("--no-slice", action="store_true")
     sub.add_parser("merge")
+    s = sub.add_parser("a", help="concept a v2 under v2/a/: build, step, check, sense, render, print")
+    s.add_argument("stages", nargs="+", choices=["build", "step", "check", "sense", "render", "print", "docs"])
     a = ap.parse_args()
-    {"lengthen": cmd_lengthen, "tips": cmd_tips, "merge": lambda a: merge()}[a.cmd](a)
+    {"lengthen": cmd_lengthen, "tips": cmd_tips, "merge": lambda a: merge(), "a": cmd_a}[a.cmd](a)
 
 
 if __name__ == "__main__":
