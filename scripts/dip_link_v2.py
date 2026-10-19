@@ -157,10 +157,29 @@ def merge():
 # ----------------------------------------------------------------------------------------------- five-magnet tips
 PRINT = V2 / "print"
 SEAT = 2.9
-FIVE_TRIES = {   # tip: (magnets' top depth under the apex, layouts tried in order; five_z<p>: corners at y +-3 mm, p apart)
-    "tcd_ell7.4x8.5x11x22": (7.5, ["five_z7p4", "five_z9p6", "five_z9p8", "five_z10", "five_z10p4", "five_z11"]),
+FIVE_TRIES = {   # tip: (magnets' top depth under the apex, layouts tried in order; five_y<a>_z<p>: corners at y +-a mm, p apart
+    # along the finger, and the centre; the 11/22's upright slots need the rows ~9.8 mm apart for 1.8 mm between the corner and
+    # centre slots, and at y +-3 mm the distal corner slots then come within 0.9-1.3 mm of the narrowing distal surface
+    "tcd_ell7.4x8.5x11x22": (7.5, ["five_y2p5_z9p8_s0p5", "five_y2p5_z9p8_s1", "five_y2p7_z9p8_s1", "five_y3_z9p8_s1p5",
+                                   "five_y2p5_z10_s1", "five_y2p5_z10_s1p5", "five_y2p3_z10_s1"]),
     "block": (5.0, ["five_z7p4"]),
 }
+
+
+def five_layout(name):
+    """Magnet centres (y, z) in tpu_tip_design's frame (metric_magnet_prints.layout), proximal first: five_y<a>_z<p> puts the
+    corners at y +-a and the contact point's z +-p/2, and the fifth magnet at the contact point; a suffix _s<d> moves the
+    group d mm toward the mount face; other names go to metric_magnet_prints.layout."""
+    import metric_magnet_prints as MP
+    import tpu_tip_design as TD
+    if not name.startswith("five_y"):
+        return MP.layout(name)
+    parts = name[6:].split("_")                      # y<a>, z<p>[, s<shift>]: the group shifted toward the mount face
+    a = float(parts[0].replace("p", "."))
+    p = float(parts[1][1:].replace("p", "."))
+    sh = float(parts[2][1:].replace("p", ".")) if len(parts) > 2 else 0.0
+    zc = TD.Z_C - sh
+    return sorted([(sy * a, zc + sz * p / 2) for sy in (-1, 1) for sz in (-1, 1)] + [(0.0, zc)], key=lambda c: (c[1], c[0]))
 TIP_KEY = {"tcd_ell7.4x8.5x11x22": "ell11_5", "block": "block5"}
 
 
@@ -192,6 +211,16 @@ def cmd_tips(a):
     import sim2real_fingertip_prints as SP
     MP.DATE = SP.DATE = DATE
     SP.OUT, SP.WORK = PRINT, REPO / "logs/20261018-dip_link/v2/print"
+    pauses0 = MP.pauses
+
+    def pauses(pockets, tip):                         # the group's middle magnet is the centre one, wherever the group sits
+        rows = pauses0(pockets, tip)
+        zs = sorted({round(p["z_mm"], 2) for p in pockets})
+        for r in rows:
+            if tip != "block" and {round(pockets[i]["z_mm"], 2) for i in r["magnets"]} == {zs[len(zs) // 2]}:
+                r["message"] = r["message"].replace("(proximal) ", "(centre) ").replace("(distal) ", "(centre) ")
+        return rows
+    MP.pauses = pauses
     PRINT.mkdir(parents=True, exist_ok=True)
     SP.use_template()
     rec = {}
@@ -199,7 +228,7 @@ def cmd_tips(a):
         rows = []
         for lay in tries:
             t0 = time.time()
-            body, part, pockets, gaps, mesh = MP.build(tip, MP.layout(lay), SEAT, depth)
+            body, part, pockets, gaps, mesh = MP.build(tip, five_layout(lay), SEAT, depth)
             ok = MP.walls_pass(pockets, gaps)
             rows.append(dict(layout=lay, walls_ok=bool(ok), wall_min_mm=min(p["wall_min_mm"] for p in pockets),
                              gap_min_mm=min(g["gap_mm"] for g in gaps), seconds=round(time.time() - t0, 1)))
@@ -215,7 +244,7 @@ def cmd_tips(a):
         name = SP.name_of(tip, lay, SEAT, depth, 2, 30)
         ns = argparse.Namespace(seat=SEAT, no_slice=a.no_slice)
         pk = json.loads(json.dumps(pockets, default=float))
-        rep = SP.write_and_check(part, pk, gaps, mesh, name, tip, lay, depth, 2, 30, body, MP.layout(lay), ns)
+        rep = SP.write_and_check(part, pk, gaps, mesh, name, tip, lay, depth, 2, 30, body, five_layout(lay), ns)
         rep["stl"] = str(stl.relative_to(REPO))
         rep["seat_status"] = "the owner's seat (2026-10-18: 2.9 mm)"
         (PRINT / f"{name}.json").write_text(json.dumps(rep, indent=1, default=float))
