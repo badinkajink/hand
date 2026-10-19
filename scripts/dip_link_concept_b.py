@@ -1249,9 +1249,11 @@ def _legend_png(path, keys, title=None):
     img = Image.open(path)
     w, h = img.size
     dpi = 100
-    fig = plt.figure(figsize=(w / dpi, 0.5 * (1 + (len(keys) - 1) // 3) + 0.35), dpi=dpi)
-    fig.legend([Patch(facecolor=COLORS[k], edgecolor="#333333") for k in keys], [_labels()[k] for k in keys], loc="center",
-               ncol=3, frameon=False, fontsize=24)
+    labels = [_labels()[k] for k in keys]
+    ncol = 3 if max(len(t) for t in labels) <= 26 else 2           # long labels in two columns, so none is cut at the edge
+    fig = plt.figure(figsize=(w / dpi, 0.5 * (1 + (len(keys) - 1) // ncol) + 0.35), dpi=dpi)
+    fig.legend([Patch(facecolor=COLORS[k], edgecolor="#333333") for k in keys], labels, loc="center",
+               ncol=ncol, frameon=False, fontsize=24)
     fig.savefig(str(path) + ".legend.png", dpi=dpi)
     plt.close(fig)
     leg = Image.open(str(path) + ".legend.png").convert("RGB")
@@ -1279,12 +1281,12 @@ def render_iso(M, path, view="palmar"):
         kk = "pad" if k.startswith("pad") else k
         op = 0.28 if kk == "mcp_link" else (0.55 if kk == "pad" else 1.0)
         p.add_mesh(_pv(m), color=COLORS[kk], opacity=op, smooth_shading=True, split_sharp_edges=True, specular=0.2)
-    c = np.array([0.0, -2.0, Z_CONTACT + 7.16])
+    c = np.array([0.0, -2.0, Z_CONTACT + 7.16 + 0.5 * NECK])      # the longer link is framed whole
     off = np.array([-62.0, -70.0, 30.0]) if view == "palmar" else np.array([62.0, -70.0, 34.0])
     p.camera.position = tuple(c + off)
     p.camera.focal_point = tuple(c)
     p.camera.up = (0, 0, 1)
-    p.camera.zoom(1.05)
+    p.camera.zoom(1.05 * 34.0 / (34.0 + NECK))
     p.screenshot(str(path))
     p.close()
     keys = [("pad" if k.startswith("pad") else k) for k in M]
@@ -1337,7 +1339,7 @@ def render_qwiic(M, path):
 def render_exploded(M, path):
     import numpy as np
     shift = dict(dip_link=0.0, nuts=10.0, fr4=-6.0, board_parts=-6.0, cover=-12.0, screws=-19.0, pad=-31.0, magnets=-31.0,
-                 qwiic=0.0)
+                 qwiic=-6.0 if DESIGN.get("qwiic") == "j1_kept" else 0.0)       # J1 kept: on the board
     p = _plotter((1700, 1150))
     for k, m in M.items():
         kk = "pad" if k.startswith("pad") else k
@@ -1347,11 +1349,11 @@ def render_exploded(M, path):
         mm.apply_translation([shift[kk], 0.0, 0.0])
         p.add_mesh(_pv(mm), color=COLORS[kk], opacity=0.6 if kk == "pad" else 1.0, smooth_shading=True,
                    split_sharp_edges=True, specular=0.2)
-    c = np.array([-10.0, -2.0, Z_CONTACT + 4.16])
+    c = np.array([-10.0, -2.0, Z_CONTACT + 4.16 + 0.5 * NECK])
     p.camera.position = tuple(c + np.array([-30.0, -95.0, 36.0]))
     p.camera.focal_point = tuple(c)
     p.camera.up = (0, 0, 1)
-    p.camera.zoom(1.15)
+    p.camera.zoom(1.15 * 34.0 / (34.0 + NECK))
     p.screenshot(str(path))
     p.close()
     keys = [k for k in ("pad", "magnets", "screws", "cover", "board_parts", "fr4", "dip_link", "nuts", "qwiic")

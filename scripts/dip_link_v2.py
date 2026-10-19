@@ -617,8 +617,17 @@ def b_print():
     PP.window_boxes = lambda Rt: {}
     PP.PFX = pf
     PP.LABEL["clamp_plate"] = "Cover"
-    PP.build_project({"dip_link": B.CAD_DIR / f"{pf}_dip_link.stl", "clamp_plate": B.CAD_DIR / f"{pf}_cover.stl"}, out,
-                     f"{pf}_print_link_cover_pla_t3", source=str(PARAMS_B.relative_to(REPO)))
+    name = f"{pf}_print_link_cover_pla_t3"
+    rep = PP.build_project({"dip_link": B.CAD_DIR / f"{pf}_dip_link.stl", "clamp_plate": B.CAD_DIR / f"{pf}_cover.stl"}, out,
+                           name, source=str(PARAMS_B.relative_to(REPO)))
+    sl = rep.get("slice") or {}
+    if sl.get("dip_link"):                      # concept a's window-plate test has no meaning on b's link: drop it
+        dl = sl["dip_link"]
+        dl.pop("window_plate", None)
+        sl["checks_pass"] = bool(sl.get("m601", 0) == 0 and dl["support_outside"] == 0)
+        sl["checks"] = "no pause (M601) and no support outside the three enforcers"
+        (out / f"{name}.json").write_text(json.dumps(rep, indent=1, default=float))
+        print(f"{name}: checks {'pass' if sl['checks_pass'] else 'FAIL'} (b's criteria)", flush=True)
     # the rail fit coupon: a 10 mm length of the cover with its two rails (PLA) and three 85A blocks with the pad's grooves
     # at 0, 0.05 and 0.10 mm interference per flank, each block notched once per 0.05 mm
     K = B.MeshB()
@@ -645,7 +654,9 @@ def b_print():
     B.GROOVE_FIT = fit0
     stl_blocks = out / f"{pf}_fit_coupon_grooves_85a.stl"
     trimesh.util.concatenate(blocks).export(stl_blocks)
+    PP.LABEL["clamp_plate"] = "Rail strip"
     PP.build_project({"clamp_plate": stl_strip}, out, f"{pf}_fit_coupon_rails_pla_t3", source=str(PARAMS_B.relative_to(REPO)))
+    PP.LABEL["tip"] = "85A blocks with the pad's grooves, 0 / 0.05 / 0.10 mm per flank"
     PP.build_project({"tip": stl_blocks}, out, f"{pf}_fit_coupon_grooves_85a_t2", source=str(PARAMS_B.relative_to(REPO)))
     # the pads with their pauses: the block pad on its cut back face (its pockets lowered with it), the 11/22 pad upright
     MP.DATE = SP.DATE = DATE
@@ -675,8 +686,322 @@ def b_print():
     print("print ->", out.relative_to(REPO), flush=True)
 
 
+STEP_READ = r"""
+import json, os, sys, tempfile, zipfile
+import Part
+out = {}
+for f in json.loads(os.environ["DLV2_FILES"]):
+    path, tmp = f, None
+    if f.endswith(".zip"):
+        tmp = tempfile.mkdtemp()
+        with zipfile.ZipFile(f) as zf:
+            zf.extractall(tmp)
+            path = os.path.join(tmp, zf.namelist()[0])
+    sh = Part.read(path)
+    out[os.path.basename(f)] = dict(valid=bool(sh.isValid()), solids=len(sh.Solids), faces=len(sh.Faces),
+                                    volume_mm3=round(sh.Volume, 2), bytes=os.path.getsize(f))
+    print(os.path.basename(f), out[os.path.basename(f)], flush=True)
+open(os.environ["DLV2_OUT"], "w").write(json.dumps(out, indent=1))
+print("read back", len(out), flush=True)
+"""
+
+
+def b_step():
+    """Every STEP file of v2/b/cad read back in FreeCAD (Part.read; the zipped ones unzipped first): validity, solids,
+    faces, volume -> v2/b/<prefix>_step.json."""
+    import subprocess
+    B = b_module()
+    files = sorted(str(f) for f in B.CAD_DIR.glob("*.step*"))
+    work = REPO / "logs/20261018-dip_link/v2/b"
+    work.mkdir(parents=True, exist_ok=True)
+    script = work / "step_read.py"
+    script.write_text(STEP_READ)
+    dst = B_DIR / f"{B.PREFIX}_step.json"
+    env = dict(os.environ, DLV2_FILES=json.dumps(files), DLV2_OUT=str(dst))
+    r = subprocess.run(["freecadcmd", str(script)], env=env, cwd=str(REPO), capture_output=True, text=True)
+    print("\n".join(l[:300] for l in r.stdout.splitlines() if l.strip() and "%" not in l and "#" not in l)[-3000:], flush=True)
+    if r.returncode or "read back" not in r.stdout:
+        print(r.stderr[-3000:])
+        raise SystemExit("freecadcmd read-back failed")
+    rec = json.loads(dst.read_text())
+    dst.write_text(json.dumps({Path(k).name: v for k, v in rec.items()} | dict(
+        method="freecadcmd Part.read of each file (zips unzipped), FreeCAD 0.19", when=time.strftime("%Y-%m-%d %H:%M")),
+        indent=1) + "\n")
+
+
+def b_section():
+    """Section y = 0 through U1 and J1 at PIP 0 and at full flexion (92 deg), as a_section: the stack, J1 with its plug
+    and cable in the neck's slot, the pad with its magnets, the MCP link and the PIP servo in outline."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import trimesh
+    from matplotlib.patches import Polygon as MPoly
+    import dip_link_geometry as G
+    B = b_module()
+    pf = B.PREFIX
+    hw = B.hardware()
+    tip = "ell11_5"
+    parts = [("Pad, 85A (11/22, five magnets)", B.load_cad(f"pad_{tip}"), "#e8c88a"),
+             ("DIP link", B.load_cad("dip_link"), "#d6d6cc"), ("Cover", B.load_cad("cover"), "#5b8fd9"),
+             ("Board", B.to_trimesh(hw["fr4"]), "#1f7a3a"), ("Chips and parts", B.to_trimesh(hw["board_parts"]), "#202020"),
+             ("J1, plug, cable start", B.to_trimesh(hw["j1"]), "#f2f2ea"), ("Screws", B.to_trimesh(hw["screws"]), "#c8a33c")]
+    ctx = {n: G.load_part(n) for n in ("mcp_link", "servo_pip")}
+    plt.rcParams.update({"font.family": "serif", "font.size": 15})
+    fig, axs = plt.subplots(1, 2, figsize=(17.0, 12.0))
+    for ax, q in zip(axs, (0.0, 92.0)):
+        for n, tm, c in parts:
+            sec = tm.section(plane_origin=(0, 0.0, 0), plane_normal=(0, 1, 0))
+            if sec is None:
+                continue
+            for poly in sec.discrete:
+                ax.add_patch(MPoly(poly[:, [0, 2]], closed=True, fc=c, ec="k", lw=0.5))
+        for n, tm in ctx.items():
+            t2 = tm.copy()
+            t2.vertices = G.rot_pip(np.asarray(t2.vertices), q)
+            sec = t2.section(plane_origin=(0, 0.0, 0), plane_normal=(0, 1, 0))
+            if sec is None:
+                continue
+            for poly in sec.discrete:
+                ax.add_patch(MPoly(poly[:, [0, 2]], closed=True, fc="none", ec="#3a6fb0" if n == "mcp_link" else "#b04a2a",
+                                   lw=1.2))
+        for c, x0, x1 in B.magnets(tip):
+            if abs(c[1]) < 1.6:
+                ax.add_patch(MPoly([[x0, c[2] - 1.5], [x1, c[2] - 1.5], [x1, c[2] + 1.5], [x0, c[2] + 1.5]], closed=True,
+                                   fc="#b03a2e", ec="k", lw=0.5))
+        ax.plot([0], [-51.55], "k+", ms=14, mew=2)
+        ax.set_xlim(-14, 24)
+        ax.set_ylim(B.TIP["z_end"] - 2.0, -40.0)
+        ax.set_aspect("equal")
+        ax.grid(True, lw=0.3, alpha=0.4)
+        ax.set_xlabel("x in F (mm), dorsal to the right")
+        ax.set_ylabel("z in F (mm)")
+        ax.set_title(f"PIP {q:.0f} deg: MCP link (blue) and PIP servo (red) in outline", fontsize=16)
+    jb = {n: (np.array(lo), np.array(hi)) for n, lo, hi in B.j1_boxes_b()}
+    hd = jb["j1_header"]
+    axs[0].annotate("J1 on the whole tab, in the neck's slot", xy=((hd[0][0] + hd[1][0]) / 2, (hd[0][2] + hd[1][2]) / 2),
+                    xytext=(10.5, B.Z_CONTACT + 17.0), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
+    axs[0].annotate("Plug and the cable's\nfirst 3 mm; the slot\nopens through the\nbridge's top",
+                    xy=((jb["plug"][0][0] + jb["plug"][1][0]) / 2, jb["plug"][1][2] - 0.5), xytext=(9.0, -44.5), fontsize=15,
+                    arrowprops=dict(arrowstyle="->", lw=1.0))
+    axs[0].annotate("Slot open at the neck's\nunderside: the board\nslides in along +z", xy=(2.2, B.TIP["z_mount"]),
+                    xytext=(10.5, B.TIP["z_mount"] - 11.0), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
+    axs[0].annotate("PIP axis", xy=(0.0, -51.55), xytext=(-12.5, -43.5), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
+    from matplotlib.patches import Patch
+    fig.legend([Patch(fc=c, ec="k") for _, _, c in parts] + [Patch(fc="#b03a2e", ec="k")],
+               [n for n, _, _ in parts] + ["Magnets (y = 0)"], loc="lower center", ncol=4, frameon=False, fontsize=15)
+    fig.suptitle("Concept b, v2: section y = 0 through U1 and J1", fontsize=18)
+    fig.tight_layout(rect=(0, 0.07, 1, 0.96))
+    dst = B_DIR / "media" / f"{pf}_section_j1.png"
+    fig.savefig(dst, dpi=100)
+    plt.close(fig)
+    print(dst.relative_to(REPO), flush=True)
+
+
+def b_walls(B):
+    """Least walls of the printed parts in sections through their thin features (dip_link_concept_a.section_min_wall)."""
+    import dip_link_concept_a as A
+    body, cover = B.load_cad("dip_link_new_body"), B.load_cad("cover")
+    zj = 0.5 * (B.Z_CONTACT + 13.14 + B.Z_CONTACT + 18.09)                   # J1's header, mid-height
+    neck = ((B.TIP["x_palmar"] - 0.1, -B.Y_RIM - 0.1, B.TIP["z_mount"]), (B.X_SPINE_BACK + 0.1, B.Y_RIM + 0.1, -60.0))
+    tongue = ((B.X_SEAT - B.RIM_H - 0.1, -B.Y_RIM - 0.1, B.TIP["z_end"]), (B.X_TONGUE_BACK + 0.1, B.Y_RIM + 0.1, B.TIP["z_mount"]))
+    sec = {f"neck_z{zj:.2f}_around_J1": (body, (0, 0, zj), (0, 0, 1), neck),
+           "neck_y0": (body, (0, 0.0, 0), (0, 1, 0), neck),
+           f"neck_y{-3.6:g}": (body, (0, -3.6, 0), (0, 1, 0), neck),
+           f"tongue_z{B.Z_CONTACT + 8.1:.2f}_proximal_screws": (body, (0, 0, B.Z_CONTACT + 8.1), (0, 0, 1), tongue),
+           f"tongue_z{B.Z_CONTACT - 7.9:.2f}_distal_screws": (body, (0, 0, B.Z_CONTACT - 7.9), (0, 0, 1), tongue),
+           f"tongue_x{(B.X_SEAT + B.X_TONGUE_BACK) / 2:.2f}": (body, ((B.X_SEAT + B.X_TONGUE_BACK) / 2, 0, 0), (1, 0, 0), tongue),
+           f"cover_x{(B.X_SLOT + B.X_COMP) / 2:.2f}": (cover, ((B.X_SLOT + B.X_COMP) / 2, 0, 0), (1, 0, 0), None)}
+    out = {}
+    for k, (tm, o, n, b3) in sec.items():
+        out[k] = A.section_min_wall(tm, o, n, box3=b3)
+        print(f"wall {k}: {out[k]}", flush=True)
+    return out
+
+
+def b_r4(B):
+    """R4: the pad's rail grooves and head notches against its magnet pockets (the voids of the pad's mesh), per pad."""
+    import trimesh
+    g_lo = np.array([B.X_SLOT - B.RAIL_H - B.GROOVE_FLOOR, B.RAIL_Y - B.RAIL_TOP / 2 + B.GROOVE_FIT, B.RAIL_Z[0] - 0.2])
+    g_hi = np.array([B.X_SLOT, B.RAIL_Y + B.RAIL_TOP / 2 - B.GROOVE_FIT, B.RAIL_Z[1] + 0.2])
+
+    def box_dist(P, lo, hi):
+        return np.linalg.norm(np.maximum(np.maximum(lo - P, P - hi), 0.0), axis=1)
+    out = {}
+    for key in B.TIPS:
+        pm = trimesh.load(B.WORK / f"pad_{key}.stl")
+        voids = [b for b in pm.split(only_watertight=False) if abs(b.volume) < 100 and len(b.faces) > 20]
+        Vv = np.vstack([b.vertices for b in voids])
+        dg = float(min(box_dist(Vv, g_lo, g_hi).min(), box_dist(Vv * np.array([1, -1, 1]), g_lo, g_hi).min()))
+        dn = []
+        for y, z in B.screw_yz():             # to the notch's cylinder (radius HEAD_NOTCH_D/2, x X_SLOT - HEAD_NOTCH_H .. X_SLOT)
+            dr = np.maximum(np.hypot(Vv[:, 1] - y, Vv[:, 2] - z) - B.HEAD_NOTCH_D / 2, 0.0)
+            dx = np.maximum(B.X_SLOT - B.HEAD_NOTCH_H - Vv[:, 0], 0.0)
+            dn.append(float(np.hypot(dr, dx).min()))
+        out[key] = dict(groove_to_pocket_mm=round(dg, 2), notch_to_pocket_mm=round(min(dn), 2), need_mm=2.0,
+                        ok=bool(min(dg, min(dn)) >= 2.0), pocket_dorsal_x_F=round(float(Vv[:, 0].max()), 2),
+                        tpu_behind_pockets_mm=round(B.X_SLOT - float(Vv[:, 0].max()), 2))
+        print("R4", key, out[key], flush=True)
+    return out
+
+
 def b_docs():
-    raise SystemExit("b docs: written after the check, sense and print stages")
+    """v2/b/evaluation.json: the lengthening, the Qwiic connection, clearance, sensing, walls, R4, mass, the print projects,
+    the parts list and the assembly sequence, from the stage outputs."""
+    B = b_module()
+    pf = B.PREFIX
+    W = B.WORK
+    rd = lambda f: json.loads((W / f).read_text())                         # noqa: E731
+    fc, clr, sens, stat = rd("fc_build.json"), rd("clearance.json"), rd("sensing.json"), rd("static_fields.json")
+    prep = rd("prep.json")
+    lg = json.loads((V2 / f"{DATE}-v2_lengthening.json").read_text())
+    tips = json.loads((V2 / f"{DATE}-v2_tips.json").read_text())
+    step = json.loads((B_DIR / f"{pf}_step.json").read_text()) if (B_DIR / f"{pf}_step.json").exists() else {}
+    prj = {f.stem: json.loads(f.read_text()) for f in sorted((B_DIR / "print").glob("*.json"))}
+    hw = B.hardware()
+    d5 = next(r for r in sens if r["layout"] == "five_d3x2_d5" and abs(r["t_behind_mm"] - B.T_BEHIND) < 1e-6
+              and r["placement"] == "concept_b")
+    t5 = next(r for r in sens if r["layout"] == "five_d3x2_d5" and r["t_behind_mm"] == 10.0 and r["placement"] == "touch")
+    fe5 = next(json.loads(l) for l in open(B.FE_ROWS) if json.loads(l)["layout"] == "five_d3x2_d5"
+               and abs(json.loads(l)["t_behind_mm"] - B.T_BEHIND) < 1e-6)
+    fe5w = next(json.loads(l) for l in open(B.FE_ROWS) if json.loads(l)["layout"] == "five_d3x2_d5"
+                and json.loads(l)["t_behind_mm"] == 10.0)
+    walls = b_walls(B)
+    r4 = b_r4(B)
+    # mass: solid volumes, PLA 1.24 g/cm3 (the link also at the current link's sliced 0.948), brass screws, the board
+    vol = {k: v["volume_mm3"] for k, v in fc.items() if "volume_mm3" in v}
+    m_screws = float(hw["screws"].volume()) * B.RHO["brass"] / 1e3
+    mass = dict(dip_link_solid=round(vol["dip_link"] * B.RHO["pla"] / 1e3, 2),
+                dip_link_at_sliced_density=round(vol["dip_link"] * B.RHO["pla_15"] / 1e3, 2),
+                cover_solid=round(vol["cover"] * B.RHO["pla"] / 1e3, 2), screws_brass=round(m_screws, 2), board=0.64)
+    mass["total_without_pad"] = round(mass["dip_link_at_sliced_density"] + mass["cover_solid"] + mass["screws_brass"] + 0.64, 2)
+    mass["limit_R12"] = 7.6
+    link_prj = next((v for k, v in prj.items() if "link_cover" in k), None)
+    if link_prj and link_prj.get("slice"):
+        mass["sliced_filament_link_and_cover_g"] = link_prj["slice"].get("filament_g")
+    rigid = {k: v for k, v in clr.items() if k not in ("arms_kept", "board_to_servo", "chips_to_servo") and not k.startswith("pad")}
+    worst = min(rigid.items(), key=lambda kv: kv[1]["min_mm"])
+    j1b = {n: (lo, hi) for n, lo, hi in B.j1_boxes_b()}
+    ev = dict(
+        title="DIP link concept b, v2: the board in a cassette behind five-magnet pads on a DIP link 9.75 mm longer, the board's "
+              "own Qwiic connector kept, M2 self-forming screws",
+        date="2026-10-18", params=str(PARAMS_B.relative_to(REPO)),
+        generator="scripts/dip_link_v2.py b (scripts/dip_link_concept_b.py at the parameter file)",
+        status="design; model values; nothing printed or measured",
+        owner=["'we should just go for 5x 3x2 magnets'", "'i do like the half ellipsoids most, the 11/22 one especially'",
+               "'if we have to lengthen the fingertip to get everything to fit, including the qwiic port and the cable, that's "
+               "fine'", "'for m3 screws, i use 2.75mm diameter holes, m2 i use 1.8'"],
+        terms=dict(
+            F="mm, x toward the dorsal side, y along the PIP axis, z up; the straight finger hangs along -z, the PIP axis passes "
+              "through (0, y, -51.55)",
+            slot_plane="x_F of the pad's back face, the cover's front face and the chips' package tops",
+            clearance="least signed distance from a part fixed to the DIP link to the MCP link and the PIP servo over PIP -18 to "
+                      "92 deg, mm (dip_link_geometry.points_clearance_exact, 0.5 deg steps); R7 asks 0.5 mm for rigid parts",
+            force_resolution="Cramer-Rao bound of the normal force at the contact point from one 141 Hz sample of the five "
+                             "chips, the contact position and a uniform background field unknown, N",
+            E_star="pressure-law modulus fitted to the finite-element approach of the screwdriver cylinder (R 12.5 mm), MPa",
+            magnet_travel="mean rigid translation of the five magnets per newton of normal load at the contact point, um/N",
+            wall="least wall thickness in a planar section, twice the distance from the section's medial ridge to its "
+                 "boundary, mm; R11 asks 0.9 mm (0.8 mm for two 0.4 mm lines)",
+            R4="least distance from the pad's rail grooves and screw-head notches to a magnet pocket, mm; R4 asks 2.0 mm"),
+        changes_from_final=[
+            f"DIP link {B.NECK:.2f} mm longer: a neck as wide as the cassette (|y| <= {B.Y_RIM}) between the bridge's underside "
+            f"(z -67.30, unchanged) and the pad's mount face (z {B.TIP['z_mount']:.2f}); PIP to the pad's end "
+            f"{lg['choice']['b']['pip_to_tip_mm']} mm (37.16 mm in the final)",
+            f"the slot plane moved to x_F {B.X_SLOT:.2f} (t_behind {B.T_BEHIND} mm behind the block's magnets, "
+            f"{B.X_SLOT + 1.05:.2f} mm behind the 11/22's), so the pad's grooves and notches keep R4's 2.0 mm from the 11/22's "
+            "pockets; the cover, board and tongue moved dorsally with it",
+            "the board keeps its whole 9 mm tab and its Qwiic connector J1, tab proximal; J1, the plug and the cable lie in a "
+            "slot that runs from the neck's underside through the bridge's top; no wires are soldered, so the tongue has no "
+            "wire exit and no tie block, and no header",
+            f"the seat pocket is open at the tongue's distal end, so the board slides in along +z, J1 first, until the main "
+            "square meets the proximal datum wall",
+            f"four M2 x {B.SCREW_L:g} cheese-head screws (DIN 84) through cover and board form their thread in "
+            f"{B.P['screw_thread_d']:g} mm holes of the tongue; no nuts, no nut pockets",
+            "pads cut from the five-magnet 11/22 half-ellipsoid and the five-magnet block of v2/print"],
+        levels_x_F=dict(pad_back=round(B.X_SLOT, 2), cover=[round(B.X_SLOT, 2), round(B.X_COMP, 2)],
+                        board=[round(B.X_COMP, 2), round(B.X_SEAT, 2)], tongue=[round(B.X_SEAT, 2), round(B.X_TONGUE_BACK, 2)],
+                        spine_back=B.X_SPINE_BACK, sensing_plane=round(B.X_SLOT + B.SPOT, 2)),
+        lengthening=lg["placements"]["b_x3.85"] | dict(choice=lg["choice"]["b"], note=(
+            f"the scan at the component face x_F 3.85 (this design: {B.X_COMP:.2f}); the slot plane x_F 1.35-3.85 all need "
+            "9.75 mm")),
+        qwiic=dict(kept="J1 (JST SH SM04B-SRSS-TB) on the whole tab, tab proximal, mating face toward the PIP joint",
+                   boxes_F={n: [list(np.round(lo, 2)), list(np.round(hi, 2))] for n, (lo, hi) in j1b.items()},
+                   clearance=clr.get("qwiic_connector")),
+        clearance=dict(per_part={k: dict(min_mm=v["min_mm"], exact=v.get("exact"), pip_deg=v.get("pip_deg"), part=v.get("part"))
+                                 for k, v in clr.items()},
+                       min_rigid_mm=worst[1]["min_mm"], min_rigid_part=worst[0],
+                       note="values of 1.6 mm or more are lower bounds (only points within reach of the links are turned); "
+                            "arms_kept are the unchanged clevis arms of fingertip_mount_DIP_link.stl"),
+        walls=walls, r4=r4,
+        sensing=dict(
+            design_point=dict(layout="five_d3x2_d5 with its corners at the printed 7.4 mm (five_z7p4)", t_behind_mm=B.T_BEHIND,
+                              force_resolution_gain_N=d5["gain_noise"]["centre_force_N"],
+                              force_resolution_gain7_N=d5["gain7_noise"]["centre_force_N"],
+                              gain_sel=d5["gain_noise"]["gain_sel"], B_U1_mT=d5["gain_noise"]["B_U1_mT"],
+                              E_star_MPa=round(fe5["E_best_MPa"], 2), approach_1N_um=round(fe5["per_force"]["1"]["delta_um"], 1),
+                              magnet_travel_um_per_N=d5["gain_noise"]["magnet_travel_um_per_N"]),
+            whole_block_touch=dict(force_resolution_gain_N=t5["gain_noise"]["centre_force_N"],
+                                   E_star_MPa=round(fe5w["E_best_MPa"], 2),
+                                   approach_1N_um=round(fe5w["per_force"]["1"]["delta_um"], 1)),
+            static_fields={k: dict(B_U1_mT=v["B_U1_mT"], B_max_component_mT=v["B_max_component_mT"], gain_sel=v["gain_sel"],
+                                   chip_to_magnet_surface_mm=min(v["chip_to_magnet_surface_mm"]),
+                                   chip_to_magnet_centre_mm=min(v["chip_to_magnet_centre_mm"])) for k, v in stat.items()},
+            chip_to_magnet_mm={k: B.chip_magnet_distances(k) for k in B.TIPS},
+            note="force resolution of the block pad from the coarse finite elements of the five-magnet block cut at the slot "
+                 "plane (scripts/dip_link_concept_b.py fe, concept_b/fe/fem_coarse.jsonl); the five-magnet 11/22 has no finite "
+                 "elements, so only its static field, gain and chip-to-magnet distance"),
+        mass_g=mass, prep=prep, step=step,
+        print_projects={k: dict(project=v.get("project"),
+                                print_time=(v.get("slice") or {}).get("print_time"),
+                                filament_g=(v.get("slice") or {}).get("filament_g"),
+                                pauses_mm=[q.get("print_z") for q in v.get("pauses", [])],
+                                checks_pass=(v.get("slice") or {}).get("checks_pass")) for k, v in prj.items()},
+        parts_list=[
+            dict(item=f"DIP link, v2 ({B.NECK:g} mm longer, J1 slot, 1.8 mm screw holes)", material="PLA", qty=1,
+                 file=f"v2/b/cad/{pf}_dip_link.stl", step=f"v2/b/cad/{pf}_dip_link_new_body.step (new body, exact) and "
+                                                         f"{pf}_dip_link.step.zip (fused with the arms)"),
+            dict(item="Cover (web as thick as the chips, two dovetail rails)", material="PLA, solid", qty=1,
+                 file=f"v2/b/cad/{pf}_cover.stl", step=f"v2/b/cad/{pf}_cover.step"),
+            dict(item="Pad, 85A, five magnets: 11/22 half-ellipsoid (or the block)", material="Siraya Tech TPU 85A, 30 % gyroid",
+                 qty=1, file=f"v2/b/print/{pf}_pad_ell11_5_print.stl",
+                 step=f"v2/b/cad/{pf}_pad_ell11_5.step.zip (faceted)"),
+            dict(item="Rail fit coupon: a PLA strip with the two rails and 85A blocks with the grooves at 0, 0.05, 0.10 mm per "
+                      "flank", qty=1, file=f"v2/b/print/{pf}_fit_coupon_rails_pla_t3.3mf and {pf}_fit_coupon_grooves_85a_t2.3mf"),
+            dict(item="N52 disc magnet 3 x 2 mm, axially magnetized", qty=5),
+            dict(item="ReSkin 5X board as supplied (J1 kept, tab not cut)", material="FR-4 0.6 mm", qty=1),
+            dict(item=f"M2 x {B.SCREW_L:g} cheese-head screw, DIN 84 / ISO 1207", material="brass or stainless A2", qty=4),
+            dict(item="Qwiic cable (JST SH 4-pin) from J1 to the controller", qty=1)],
+        assembly=[
+            "Print the rail fit coupon first and choose the groove interference (0, 0.05 or 0.10 mm per flank).",
+            "Print the PLA plate (DIP link, cover) and the 85A pad with its pauses (press each magnet to the floor, north pole "
+            "toward the palmar side).",
+            "Plug the Qwiic cable into J1. Thread the cable up through the slot from the neck's underside until it leaves the "
+            "bridge's top.",
+            "Slide the board proximally along the tongue's seat, chips toward the palmar side and J1 first into the slot, until "
+            "the main square meets the proximal datum wall; push it against the -y datum wall.",
+            "Lay the cover on the board (windows over the parts, rails palmar) and drive the four M2 screws from the palmar side "
+            "through cover and board into the tongue's 1.8 mm holes; they form their thread; tighten crosswise, snug.",
+            "Route the cable from the bridge's top along the link's dorsal side to y > 17.4 mm and across the PIP joint outside "
+            "the slotted arm; fix it to the DIP link before the joint so a pull does not reach J1.",
+            "Press the pad onto the cover: notches over the screw heads, mount face against the neck, until both rails snap in.",
+            "Read the zero-load field of the five chips."],
+        first_print_checks=[
+            "J1 with the plug mated slides through the slot from the neck's underside without touching its walls",
+            "The M2 screws thread into the 1.8 mm holes by hand and clamp the board without play",
+            "The pad's grooves snap onto the rails and the pad does not lift off the cover under a 3 N press",
+            f"Over the full PIP range by hand, nothing touches the MCP link or the PIP servo (the least clearance is "
+            f"{worst[1]['min_mm']} mm, {worst[0]})"],
+        open_items=[f"Mass {mass['total_without_pad']} g without the pad at the link's sliced density (R12 7.6 g): the neck is "
+                    f"a {B.NECK:g} mm block, 21 mm wide and 20 mm deep",
+                    "Force resolution of the five-magnet 11/22 pad needs its finite elements",
+                    "The cable's route past the PIP joint beyond its first 3 mm"],
+        files=dict(cad=sorted(str(f.relative_to(REPO)) for f in B.CAD_DIR.glob("*")),
+                   print=sorted(str(f.relative_to(REPO)) for f in (B_DIR / "print").glob("*")),
+                   media=sorted(str(f.relative_to(REPO)) for f in (B_DIR / "media").glob("*.png"))),
+        when=time.strftime("%Y-%m-%d %H:%M"))
+    (B_DIR / "evaluation.json").write_text(json.dumps(ev, indent=1, default=float) + "\n")
+    print("->", (B_DIR / "evaluation.json").relative_to(REPO), flush=True)
 
 
 def cmd_b(a):
@@ -692,6 +1017,9 @@ def cmd_b(a):
             run_b("sensing", python=REPO / ".venv/bin/python")
         elif stage == "render":
             run_b("render")
+            b_section()
+        elif stage == "step":
+            b_step()
         elif stage == "print":
             b_print()
         elif stage == "docs":
@@ -711,8 +1039,8 @@ def main():
     sub.add_parser("merge")
     s = sub.add_parser("a", help="concept a v2 under v2/a/: build, step, check, sense, render, print")
     s.add_argument("stages", nargs="+", choices=["build", "step", "check", "sense", "render", "print", "docs"])
-    s = sub.add_parser("b", help="concept b v2 under v2/b/: build, check, sense, render, print, docs")
-    s.add_argument("stages", nargs="+", choices=["build", "check", "sense", "render", "print", "docs"])
+    s = sub.add_parser("b", help="concept b v2 under v2/b/: build, step, check, sense, render, print, docs")
+    s.add_argument("stages", nargs="+", choices=["build", "step", "check", "sense", "render", "print", "docs"])
     a = ap.parse_args()
     {"lengthen": cmd_lengthen, "tips": cmd_tips, "merge": lambda a: merge(), "a": cmd_a, "b": cmd_b}[a.cmd](a)
 
