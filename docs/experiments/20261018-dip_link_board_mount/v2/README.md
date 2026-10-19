@@ -19,7 +19,9 @@ length between the anchor and a tie on the MCP link's side plate at (0, 17.40, -
 In a the plug's wires leave at x 5.90 mm. After a 0.5 mm lead the cable turns to +y over the plug (2.0 mm bend radius),
 runs along the DIP link's dorsal face to the slotted arm, turns up into the arm's outer face at y 17.40 and runs half sunk
 in a groove to the anchor at (4.0, 17.40, -56.5). It is 27.2 mm long; its least clearance is 1.28 mm, to the MCP link at
-PIP 60 deg.
+PIP 60 deg. Between the J1 slot and the arm the bridge's arc lies only 0.07-1.4 mm above the groove (the wall check
+found 0.24 mm), so there the groove is open to the top as well: the cable lies on a ledge of the bridge's dorsal corner
+and a strip of Kapton tape keeps it there.
 
 In b the plug sits in the neck's slot palmar of the board, so its wires leave at x 2.40 mm, 0.7 mm closer to the PIP axis
 at the height of the first turn, where the end of the MCP link sweeps a cylinder of radius 12.70 mm about the axis. a's
@@ -79,6 +81,20 @@ Hardware: a takes two M2 x 4 countersunk and two M2 x 5 cheese-head screws, b fo
 (R10: no ferromagnetic fastener within 15 mm of a chip); the board as supplied (J1 kept, tab not cut); a Qwiic cable; a
 drop of CA glue or a strip of Kapton tape at the anchor; a cable tie on the MCP link's side plate 26 mm from the anchor.
 The assembly sequences and parts lists are in `a/evaluation.json` and `b/evaluation.json` (`assembly`, `parts_list`).
+
+## Concept c with J1 kept
+
+Concept c (`../concept_c/`) places the board into a PLA carrier at an M601 pause and prints the PLA cap and the 85A tip
+over it in the same job. With J1 kept at c's board placement (component face x 7.65 mm, parts toward the tip), J1 and its
+plug clear the MCP link and the PIP servo by 0.5 mm from a lengthening of 8.5 mm (0.67 mm there), and a's cable route
+from c's plug (wires at x 6.25 mm) clears the MCP link by 0.30, 0.75, 1.20 and 1.42 mm at 8.5, 9.0, 9.5 and 9.75 mm. c
+would need 9.5 mm, or 9.75 mm for one finger length with a and b (`20261019-v2_concept_c_j1.json`).
+
+The print is the obstacle. c's print plan relies on nothing standing above the last layer before the pause (z 4.60 mm in
+the cartridge's print frame), so the cap and the tip print with no Z-hop or travel rule. J1 is 2.9 mm tall: at the pause
+its top stands at z 6.5 mm, 1.9 mm above that layer, and its body begins 2.3 mm from the tip's mount face, past which
+tool 1 prints the cap and tool 2 the 85A tip. The carrier's tab region would also have to end before J1. c with J1 kept is
+not built; the choice waits on the owner (a test print of the pause with a dummy board on the XL would decide it).
 
 ## Regenerate
 

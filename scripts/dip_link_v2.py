@@ -357,7 +357,8 @@ def a_render():
                          ("mcp", ctx("context_mcp_link"), "0.62 0.71 0.81 0.30", (0, 0, 0))], cam, MED / f"{pf}_cable_route.png")
         DLF._annotate_final(img, cam, [
             ("Plug in J1; the cable turns toward the arm", (b1[0], b1[1], b1[2]), (0.03, 0.90)),
-            ("Groove along the DIP link's dorsal face, open to the back", ((b1[0] + b2[0]) / 2, 9.0, b1[2]), (0.03, 0.62)),
+            ("Ledge along the bridge's dorsal corner, open to the back and the top", ((b1[0] + b2[0]) / 2, 9.0, b1[2]),
+             (0.03, 0.62)),
             ("Turn into the slotted arm's outer face", (b3[0], b3[1], b3[2]), (0.97, 0.74)),
             (f"Anchor {A.PIP[2] - A_[2]:.1f} mm below the PIP axis", (A_[0], A_[1], A_[2]), (0.97, 0.45)),
             ("PIP axis", (0.0, A.ARM_OUT, A.PIP[2]), (0.97, 0.22))],
@@ -663,8 +664,8 @@ def a_docs():
         changes_from_final=[
             f"DIP link {vals['neck_len']:g} mm longer between its bridge and the tip (PIP to the tip's end {pip_to_tip} mm, "
             "37.16 mm in the final); the clevis arms and the bridge's top are the final's"
-            + ("; the slotted arm loses its lower dorsal corner and gains a groove on its outer face for the cable" if routed
-               else ""),
+            + ("; the slotted arm loses its lower dorsal corner and gains a groove on its outer face for the cable, and the "
+               "bridge's dorsal-top corner between the J1 slot and the arm is cut away over the cable" if routed else ""),
             "the board keeps its whole 9 mm tab and its Qwiic connector J1, tab proximal; the bridge has a slot for J1, the "
             "plug and the cable; no pigtail, no header on the clamp plate",
             "the two distal board screws are M2 x 4 countersunk (DIN 965), forming their thread in 1.8 mm holes of the clamp "
@@ -679,7 +680,9 @@ def a_docs():
         cable=(dict(route="out of the plug toward the PIP joint, a 2.0 mm turn to +y over the plug, a groove along the DIP "
                           "link's dorsal face (open to the back, so the cable is laid in with its far plug on), through the "
                           "slotted arm's lower dorsal corner, a 2.0 mm turn up into the arm's outer face, a groove half the "
-                          "bundle deep up the face to an anchor below the PIP axis",
+                          "bundle deep up the face to an anchor below the PIP axis. Between the J1 slot and the arm the groove "
+                          "is open to the top as well: the bridge's arc lies 0.07-1.4 mm above it over x 4.70-7.30, too thin "
+                          "for a roof, so the cable lies on a ledge of the bridge's dorsal corner",
                     bundle_d_mm=A.P["cable_d"], bend_r_mm=A.P["cable_r"], groove_clearance_mm=A.P["cable_clear"],
                     length_plug_to_anchor_mm=round(float(np.linalg.norm(np.diff(A.cable_polyline(), axis=0), axis=1).sum()), 2),
                     clearance=clear.get("qwiic_cable"), free_span=span,
@@ -743,8 +746,9 @@ def a_docs():
             "Drive the two M2 x 5 screws through the clamp plate's ears into the shoulders' 1.8 mm holes; snug, the ears clear "
             "of the shoulders."]
         + (["Lay the cable into its groove from the dorsal side: bend it toward the slotted arm right behind the plug, press "
-            "it along the groove, around the arm's lower corner and up the groove on the arm's outer face to the anchor; a "
-            "drop of CA glue or a strip of Kapton tape at the anchor keeps a pull off J1.",
+            "it along the ledge, around the arm's lower corner and up the groove on the arm's outer face to the anchor. A "
+            "strip of Kapton tape along the open run keeps the cable on its ledge; a drop of CA glue or a strip of Kapton tape "
+            "at the anchor keeps a pull off J1.",
             f"Tie the cable to the MCP link's side plate {span['span_mm']['max'] + 1.0:.0f} mm from the anchor (its longest "
             f"span, at PIP {span['span_mm']['longest_at_pip_deg']:.0f} deg, plus 1 mm), so it never pulls on the joint."] if routed else
            ["Route the cable from the slot's top along the link's dorsal side to y > 17.4 mm and across the PIP joint outside "

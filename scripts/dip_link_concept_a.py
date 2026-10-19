@@ -232,7 +232,9 @@ def tube_mesh(C, r, sections=24):
 def cable_cuts(K, p=P):
     """The groove that takes the bundle: open toward the dorsal side over the plug, along the DIP link's dorsal face and
     through the slotted arm's lower corner (the cable is laid in, its far plug never threads through), then a groove
-    half the bundle deep up the arm's outer face to the anchor."""
+    half the bundle deep up the arm's outer face to the anchor. Between the J1 slot and the slotted arm the run is also
+    open to the top: the bridge's arc (bridge_r about the PIP axis) lies 0.07-1.4 mm above the groove over x 4.70-7.30,
+    too thin for a roof (R11 0.8 mm), so the cable lies on a ledge of the bridge's dorsal corner, held by Kapton tape."""
     L = levels(p)
     rc = p["cable_d"] / 2 + p["cable_clear"]
     segs = cable_segments(p)
@@ -251,9 +253,11 @@ def cable_cuts(K, p=P):
     out.append(sector(c, r, t0, t1, x - rc, x_open))
     _, b1, b2 = segs[2]
     out.append(K.box((x - rc, b1[1] - 0.01, b1[2] - rc), (x_open, b2[1] + 0.01, b1[2] + rc)))
+    out.append(K.box((x - rc, b1[1] - 0.01, b1[2] - rc), (x_open, ARM_Y[1], -50.0)))     # open to the top up to the arm
     _, a, b, c, r, _, t0, t1 = segs[3]
     out.append(sector(c, r, t0, t1, x - rc, x_open))
     _, b3, A_ = segs[4]
+    out.append(K.cyl("y", (b3[0], b3[2]), rc, p["cable_face_y"] - rc, ARM_OUT + 1.0, seg=48))  # the kink into the face line
     d = np.array([A_[0] - b3[0], A_[2] - b3[2]])
     n_ = np.array([-d[1], d[0]]) / np.linalg.norm(d) * rc
     strip = [(b3[0] + n_[0], b3[2] - 0.05 + n_[1]), (A_[0] + n_[0], A_[2] + n_[1]), (A_[0] - n_[0], A_[2] - n_[1]),
@@ -969,6 +973,7 @@ def cmd_check(a):
            "bridge_y-5": (D, (0, -5.0, 0), (0, 1, 0), inner),
            "bridge_y0": (D, (0, 0.0, 0), (0, 1, 0), inner),
            "bridge_y12": (D, (0, 12.0, 0), (0, 1, 0), inner),
+           "bridge_y6": (D, (0, 6.0, 0), (0, 1, 0), inner),
            "clamp_z-86.06": (C, (0, 0, Z_C - 7.9), (0, 0, 1), None),
            "clamp_z-65.35": (C, (0, 0, P["m2_z"]), (0, 0, 1), None),
            "clamp_y8.1": (C, (0, P["m2_y"], 0), (0, 1, 0), None)}
