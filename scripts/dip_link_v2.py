@@ -356,9 +356,9 @@ def a_render():
                         [("servo", ctx("context_servo_pip"), "0.25 0.25 0.27 0.35", (0, 0, 0)),
                          ("mcp", ctx("context_mcp_link"), "0.62 0.71 0.81 0.30", (0, 0, 0))], cam, MED / f"{pf}_cable_route.png")
         DLF._annotate_final(img, cam, [
-            ("Plug in J1; the cable turns toward the slotted arm", (b1[0], b1[1], b1[2]), (0.03, 0.80)),
+            ("Plug in J1; the cable turns toward the arm", (b1[0], b1[1], b1[2]), (0.03, 0.90)),
             ("Groove along the DIP link's dorsal face, open to the back", ((b1[0] + b2[0]) / 2, 9.0, b1[2]), (0.03, 0.62)),
-            ("Turn into the slotted arm's outer face", (b3[0], b3[1], b3[2]), (0.97, 0.80)),
+            ("Turn into the slotted arm's outer face", (b3[0], b3[1], b3[2]), (0.97, 0.74)),
             (f"Anchor {A.PIP[2] - A_[2]:.1f} mm below the PIP axis", (A_[0], A_[1], A_[2]), (0.97, 0.45)),
             ("PIP axis", (0.0, A.ARM_OUT, A.PIP[2]), (0.97, 0.22))],
             title="Concept a, v2: the Qwiic cable's route over the plug and up the slotted arm", callout=False)
@@ -696,15 +696,17 @@ def a_docs():
             "it along the groove, around the arm's lower corner and up the groove on the arm's outer face to the anchor; a "
             "drop of CA glue or a strip of Kapton tape at the anchor keeps a pull off J1.",
             f"Tie the cable to the MCP link's side plate {span['span_mm']['max'] + 1.0:.0f} mm from the anchor (its longest "
-            f"span, at PIP {span['longest_at_pip_deg']:.0f} deg, plus 1 mm), so it never pulls on the joint."] if routed else
+            f"span, at PIP {span['span_mm']['longest_at_pip_deg']:.0f} deg, plus 1 mm), so it never pulls on the joint."] if routed else
            ["Route the cable from the slot's top along the link's dorsal side to y > 17.4 mm and across the PIP joint outside "
             "the slotted arm; fix it to the DIP link before the joint so a pull does not reach J1."])
         + ["Slide the tip along +z onto the keys until both detents engage; read the zero-load field."],
         first_print_checks=["J1 with the plug mated fits the slot without touching its walls; the cable leaves the slot "
                             "freely", "The M2 screws thread into the 1.8 mm holes by hand and hold the board without play",
                             "Over the full PIP range by hand, nothing touches the MCP link or the PIP servo"
-                            + (f" (the plug's nearest approach is {clear['qwiic_connector']['min_mm']} mm at PIP "
-                               f"{clear['qwiic_connector']['pip_deg']:g} deg)" if clear.get("qwiic_connector") else "")]
+                            + ((f" (the plug's nearest approach is {clear['qwiic_connector']['min_mm']} mm at PIP "
+                                f"{clear['qwiic_connector']['pip_deg']:g} deg)" if clear["qwiic_connector"].get("pip_deg")
+                                is not None else f" (the plug stays {clear['qwiic_connector']['min_mm']} mm or more from "
+                                                 "both at every angle)") if clear.get("qwiic_connector") else "")]
                            + (["The cable stays in its groove over the full PIP range, back extension (-18 deg) included, "
                                "and the joint turns as freely with the cable tied as without it"] if routed else []),
         open_items=[f"Mass {chk['mass_g']['total_without_tip']} g without the tip (R12 7.6 g): the {vals['neck_len']:g} mm "
@@ -716,6 +718,133 @@ def a_docs():
         when=time.strftime("%Y-%m-%d %H:%M"))
     (A_DIR / "evaluation.json").write_text(json.dumps(ev, indent=1, default=float) + "\n")
     print("->", (A_DIR / "evaluation.json").relative_to(REPO), flush=True)
+
+
+# ----------------------------------------------------------------------------------------------- coupons for the owner's fits
+COUPONS = V2 / "coupons"
+SWEEP_FLANKS = (0.0, 0.05, 0.10, 0.15, 0.20)     # interference per flank of the 85A channel on the PLA key, mm
+SWEEP_DETENTS = (0.15, 0.25, 0.35)               # detent height on the PLA key, mm
+GAUGE_CLEAR = (0.15, 0.20, 0.30)                 # clearance of the window plate's chip windows, mm
+
+
+def _notches_y(K, x0, x1, y0, z0, z1, n, pitch=1.4, w=0.6):
+    return K.union([K.box((x0, y0 + pitch * j, z0), (x1, y0 + pitch * j + w, z1)) for j in range(n)])
+
+
+def coupon_keys(A, K):
+    """Concept a's PLA key with its detent at each SWEEP_DETENTS height, each on the key coupon's backing plate and stop
+    flange (dip_link_print_project.fit_coupon_meshes), the flange's far end marked by 1, 2 or 3 notches."""
+    import trimesh
+    P = dict(A.P)
+    yc, Zm, XB = P["key_yc"], A.Z_MOUNT, A.X_BACK
+    units = []
+    for k, h in enumerate(SWEEP_DETENTS):
+        key = A.keys(K, dict(P, detent_h=h))[1]
+        unit = K.union([key, K.box((XB - 0.01, yc - 4.5, Zm - 6.0), (XB + 2.0, yc + 4.5, Zm + 0.01)),
+                        K.box((XB - 3.0, yc - 4.5, Zm), (XB + 2.0, yc + 4.5, Zm + 2.0))])
+        unit = K.sub(unit, _notches_y(K, XB - 3.1, XB - 2.4, yc - 3.6, Zm + 1.3, Zm + 2.1, k + 1))
+        units.append(A.to_trimesh(unit).apply_translation((0.0, 11.0 * k, 0.0)))
+    return trimesh.util.concatenate(units)
+
+
+def coupon_channels(A, K):
+    """One 85A channel block per SWEEP_FLANKS value (the tip's back region with tip_cutter's channel and detent groove), its
+    far end marked by 1 to 5 notches."""
+    P = dict(A.P)
+    yc, Zm, XB = P["key_yc"], A.Z_MOUNT, A.X_BACK
+    out = []
+    for k, fl in enumerate(SWEEP_FLANKS):
+        blk = K.box((XB - 4.0, yc - 4.5, Zm - 7.0), (XB, yc + 4.5, Zm))
+        cut = A.tip_cutter(K, dict(P, fit_flank=fl))
+        out.append((fl, A.to_trimesh(K.sub(K.sub(blk, cut), _notches_y(K, XB - 4.1, XB - 3.4, yc - 3.6 - 0.7, Zm - 7.1,
+                                                                         Zm - 6.4, k + 1)))))
+    return out
+
+
+def coupon_carrier(A, K, clear_chip=None, box=None):
+    """Everything of concept a's DIP link that the board, J1, the plug, the cable and the clamp plate touch, without the
+    clevis arms or the bridge's palmar half: the DIP link (cable groove included) cut to x -1..12, |y| <= 11 and z up to the
+    bridge's flat (-63.10), at a chip-window clearance clear_chip."""
+    P0 = dict(A.P)
+    if clear_chip is not None:
+        A.P["clear_chip"] = clear_chip
+    try:
+        D = A.dip_link(K)
+    finally:
+        A.P.update(P0)
+    lo, hi = box or ((-1.0, -11.0, A.Z_END - 1.0), (12.0, 11.0, A.P["bridge_flat"]))
+    return A.to_trimesh(K.inter(D, K.box(lo, hi)))
+
+
+def coupon_gauge(A, K, clear_chip):
+    """The window plate alone with its five chip windows, passive windows and keys, standing on a 2 mm stub of the bridge:
+    the DIP link cut to x 4..7.4, |y| <= 11, z up to Z_MOUNT + 2."""
+    return coupon_carrier(A, K, clear_chip, ((4.0, -11.0, A.Z_END - 1.0), (7.4, 11.0, A.Z_MOUNT + 2.0)))
+
+
+def cmd_coupons(a):
+    """v2/coupons/: the fits the owner calibrates before a whole DIP link is printed (owner, 2026-10-19: 'calibrate the
+    magnetometer board fit and the snap fits, dont need to print the finger'). Concept a: (1) the snap-fit sweep, PLA keys
+    at three detent heights (tool 3) and 85A channel blocks at five interferences (tool 2); (2) the board carrier at the
+    design's chip clearance with a clamp plate; (3) window gauges at three chip clearances. Each project sliced and checked
+    by dip_link_print_project.build_project."""
+    import dip_link_print_project as PP
+    A, DLF, vals, des, doc = setup_a()
+    K = A.MeshK()
+    COUPONS.mkdir(parents=True, exist_ok=True)
+    pf = f"{DATE}-dip_link_v2a_coupon"
+    PP.PFX = pf
+    PP.COUPON_FLANKS = SWEEP_FLANKS
+    rep = dict(owner="2026-10-19: 'calibrate the magnetometer board fit and the snap fits, dont need to print the finger'",
+               params=str(PARAMS_A.relative_to(REPO)), projects={})
+    # (1) snap-fit sweep
+    keys = coupon_keys(A, K)
+    stl = {"key_coupon": COUPONS / f"{pf}_keys_detents_pla.stl"}
+    keys.export(stl["key_coupon"])
+    PP.SETTINGS["key_coupon"] = dict(PP.PLA_OBJECT, perimeters="3", fill_density="100%", fill_pattern="rectilinear")
+    PP.LABEL["key_coupon"] = "PLA keys, detents 0.15 / 0.25 / 0.35 mm (1 / 2 / 3 notches)"
+    for fl, m in coupon_channels(A, K):
+        k = f"channel_block_{fl:.2f}".replace(".", "p")
+        stl[k] = COUPONS / f"{pf}_channel_{k[14:]}_85a.stl"
+        m.export(stl[k])
+        PP.SETTINGS[k] = dict(PP.SETTINGS["tip"])
+        PP.LABEL[k] = f"85A channel block, {fl:.2f} mm per flank"
+    r = PP.build_project({"key_coupon": str(stl["key_coupon"])}, COUPONS, f"{pf}_keys_detents_pla_t3",
+                         source="scripts/dip_link_v2.py coupons")
+    rep["projects"]["keys"] = r["project"]
+    r = PP.build_project({k: str(v) for k, v in stl.items() if k.startswith("channel_block")}, COUPONS,
+                         f"{pf}_channels_5_flanks_85a_t2", source="scripts/dip_link_v2.py coupons")
+    rep["projects"]["channels"] = r["project"]
+    # (2) board carrier with a clamp plate, printed as the DIP link prints (X = -x_F, Y = y_F, Z = -z_F)
+    import trimesh
+    car = coupon_carrier(A, K)
+    car.vertices = np.asarray(car.vertices) @ PP.R_LINK.T
+    stl_car = COUPONS / f"{pf}_board_carrier_clear0p20.stl"
+    car.export(stl_car)
+    PP.SETTINGS["board_carrier"] = dict(PP.PLA_OBJECT, perimeters="3", fill_density="20%", fill_pattern="gyroid",
+                                        top_solid_layers="6", bottom_solid_layers="5")
+    PP.LABEL["board_carrier"] = "Board carrier, chip clearance 0.20 mm"
+    pin = A_DIR / "print" / f"{DLF.PFX}_pin_fit_coupon.stl"            # the clamp plate's pins at several diameters
+    r = PP.build_project({"board_carrier": str(stl_car), "clamp_plate": str(DLF.fname("clamp_plate")),
+                          "pin_fit_coupon": str(pin) if pin.exists() else None}, COUPONS,
+                         f"{pf}_board_carrier_clamp_pins_pla_t3", source="scripts/dip_link_v2.py coupons")
+    rep["projects"]["board_carrier"] = r["project"]
+    # (3) window gauges
+    gst = {}
+    for c in GAUGE_CLEAR:
+        g = coupon_gauge(A, K, c)
+        g.vertices = np.asarray(g.vertices) @ PP.R_LINK.T
+        key = f"gauge_{c:.2f}".replace(".", "p")
+        gst[key] = COUPONS / f"{pf}_window_gauge_clear{key[6:]}.stl"
+        g.export(gst[key])
+        PP.SETTINGS[key] = dict(PP.PLA_OBJECT, perimeters="2", fill_density="100%", fill_pattern="rectilinear")
+        PP.LABEL[key] = f"Window gauge, chip clearance {c:.2f} mm"
+    r = PP.build_project({k: str(v) for k, v in gst.items()}, COUPONS, f"{pf}_window_gauges_pla_t3",
+                         source="scripts/dip_link_v2.py coupons")
+    rep["projects"]["window_gauges"] = r["project"]
+    rep["when"] = time.strftime("%Y-%m-%d %H:%M")
+    (COUPONS / f"{pf}s.json").write_text(json.dumps(rep, indent=1))
+    print("coupons ->", COUPONS.relative_to(REPO), flush=True)
 
 
 def cmd_a(a):
@@ -1314,12 +1443,13 @@ def main():
     s = sub.add_parser("b", help="concept b v2 under v2/b/: build, step, check, sense, render, print, docs")
     s.add_argument("stages", nargs="+", choices=["build", "step", "check", "sense", "render", "print", "docs"])
     sub.add_parser("summary", help="v2/20261018-v2_summary.json: what to print first, each design's numbers")
+    sub.add_parser("coupons", help="v2/coupons/: concept a's snap-fit sweep, board carrier with a clamp plate, window gauges")
     s = sub.add_parser("pads", help="b's pads at $DIPB_PARAMS, sliced with their pauses (for dip_link_params.py export)")
     s.add_argument("--out", required=True)
     s.add_argument("--work", required=True)
     a = ap.parse_args()
     {"lengthen": cmd_lengthen, "tips": cmd_tips, "merge": lambda a: merge(), "a": cmd_a, "b": cmd_b,
-     "summary": cmd_summary, "pads": cmd_pads}[a.cmd](a)
+     "summary": cmd_summary, "pads": cmd_pads, "coupons": cmd_coupons}[a.cmd](a)
 
 
 if __name__ == "__main__":
