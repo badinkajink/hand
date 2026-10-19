@@ -87,21 +87,25 @@ def files_section(R, p1s, xl, n_pla, n_tpu, a1m=None):
     xs = xl["settings"]
     inside = "tip" if CONCEPT == "a" else "pad"
     if a1m:
-        fo, po = a1m["filament_overrides"], a1m["overrides"]
+        fo, po = a1m["filament_settings"], a1m["overrides"]
         tpu_txt = (
             f"The 85A blocks print on the {esc(a1m['printer'])}, whose AMS lite feeds the Siraya Tech 85A through slot "
             f"{a1m['slot']}. The TPU is the project&#8217;s only filament: in Bambu Studio&#8217;s print dialog, map it to "
-            f"slot {a1m['slot']} (or to the external spool if Bambu Studio refuses TPU in the AMS lite). The filament is "
-            f"Bambu&#8217;s Generic TPU with the settings of Siraya Tech&#8217;s profile as the XL printed the 85A tips: "
+            f"slot {a1m['slot']} (or to the external spool if Bambu Studio refuses TPU in the AMS lite). The filament "
+            f"settings are Siraya Tech&#8217;s own A1 mini profile for this TPU ({code(a1m['filament_source'])}): "
             f"{fo['nozzle_temperature'][0]} &#176;C, a {fo['textured_plate_temp'][0]} &#176;C {esc(a1m['bed_type'])}, flow "
-            f"{fo['filament_flow_ratio'][0]}, {fo['filament_retraction_length'][0]} mm retraction, the fan off for "
-            f"{fo['close_fan_the_first_x_layers'][0]} layers, and a volumetric cap of "
-            f"{fo['filament_max_volumetric_speed'][0]} mm&#179;/s (about 24 mm/s at {po['layer_height']} mm layers); the "
-            f"process has {po['wall_loops']} walls, {po['sparse_infill_density']} gyroid, "
-            f"{po['elefant_foot_compensation']} mm elephant-foot compensation and no brim, as on the XL. The interference "
-            f"chosen from these blocks applies to {inside}s printed on the A1 mini; the XL prints its channels to its own "
-            "widths. When the XL is free, its project prints the same blocks on the v17 template: tool 2, "
-            f"{xs['layer_height']} mm layers, {xs['perimeters']} perimeters, {xs['fill_density']} gyroid, no pause.")
+            f"{fo['filament_flow_ratio'][0]}, {fo['filament_retraction_length'][0]} mm retraction at "
+            f"{fo['filament_retraction_speed'][0]} mm/s, the fan from layer {int(fo['close_fan_the_first_x_layers'][0]) + 1}. "
+            f"One value differs: the volumetric cap is {fo['filament_max_volumetric_speed'][0]} mm&#179;/s against "
+            "Siraya&#8217;s 8 (about 24 mm/s against 80 to 100), because the 85A reaches the extruder through the AMS lite "
+            "tube. The process keeps the recipe of the finite-element models and the XL prints, the same on every printer: "
+            f"{po['wall_loops']} walls, {po['sparse_infill_density']} gyroid, {po['top_shell_layers']} skins of "
+            f"{po['layer_height']} mm, {po['elefant_foot_compensation']} mm elephant-foot compensation, no brim "
+            "(Siraya&#8217;s process has 3 walls and 25 % gyroid). The interference chosen from these blocks applies to "
+            f"{inside}s printed on the A1 mini with this profile and the same 0.2 mm elephant-foot compensation; the XL "
+            "prints its channels to its own widths. When the XL is free, its project prints the same blocks on the v17 "
+            f"template: tool 2, {xs['layer_height']} mm layers, {xs['perimeters']} perimeters, {xs['fill_density']} "
+            "gyroid, no pause.")
     else:
         tpu_txt = ("The XL project prints on the v17 template as the 85A fingertips did: tool 2, "
                    f"{xs['layer_height']} mm layers, {xs['perimeters']} perimeters, {xs['fill_density']} gyroid, no pause.")

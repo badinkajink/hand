@@ -74,6 +74,12 @@ SIRAYA_85A = dict(filament_vendor=["Siraya Tech"], nozzle_temperature=["240"], n
                   filament_flow_ratio=["0.96"], filament_retraction_length=["0.6"], filament_density=["1.26"],
                   filament_max_volumetric_speed=["2"], close_fan_the_first_x_layers=["4"], filament_colour=["#FFFFFF"])
 SIRAYA_NAME = "Siraya Tech TPU 85A @BBL A1M"
+# Siraya Tech's own A1 mini profile for the 85A (owner, 2026-10-19 16:50; their project of 2025-07-24, kept in the repo):
+# its filament values replace the XL-derived SIRAYA_85A except the volumetric cap, 2 mm3/s against Siraya's 8, because the
+# 85A reaches the extruder through AMS lite tube 3. Walls, gyroid and skins stay the finite elements' recipe on every
+# printer (owner: "we shouldn't play with the gyroid infill % or the num walls"); Siraya's process (3 walls, 25 %) is unused.
+SIRAYA_A1M_3MF = REPO / "docs/experiments/20261019-dip_link_fit_prints/siraya/siraya_tpu85a_hf_a1mini_0p4_20250724.3mf"
+SIRAYA_KEEP = dict(filament_max_volumetric_speed=["2"])
 
 DETENTS = (0.15, 0.25, 0.35, 0.45)                    # PLA key detent height, mm (v2/coupons: 0.15-0.35)
 FLANKS = (0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.40)    # 85A channel interference per flank, mm (v2/coupons: 0-0.20)
@@ -675,6 +681,24 @@ def check_bambu_gcode(gcode, machine_tag, nozzle_c, bed_c):
     return out
 
 
+def siraya_a1m_filament():
+    """Bambu's Generic TPU @BBL A1M with every filament key that Siraya Tech's A1 mini project sets otherwise, then
+    SIRAYA_KEEP. Returns the preset and the keys taken from Siraya."""
+    base = bbl_preset("filament", A1M["filament"])
+    with zipfile.ZipFile(SIRAYA_A1M_3MF) as z:
+        sir = json.loads(z.read("Metadata/project_settings.config"))
+    skip = {"name", "inherits", "from", "setting_id", "instantiation", "filament_settings_id", "filament_id", "version",
+            "compatible_printers", "compatible_printers_condition", "filament_colour", "filament_ids"}
+    taken = {k: sir[k] for k, v in base.items()
+             if k not in skip and k in sir and sir[k] != v and type(sir[k]) is type(v)}
+    d = dict(base)
+    d.update(taken)
+    d.update(SIRAYA_KEEP)
+    d.update(inherits="", name=SIRAYA_NAME, filament_settings_id=[SIRAYA_NAME], filament_colour=["#FFFFFF"])
+    d["from"] = "User"
+    return d, taken
+
+
 def cmd_a1m(a):
     """The 85A plate on the Bambu Lab A1 mini: the channel blocks placed by `layout`, on filament A1M_SLOT (Siraya Tech TPU
     85A), sliced by Bambu Studio's command line into one project with its G-code; checks that only that filament prints, at
@@ -689,7 +713,7 @@ def cmd_a1m(a):
     paths = {}
     for kind, d in (("machine", bbl_preset("machine", A1M["machine"])),
                     ("process", bbl_preset("process", A1M["process"], A1M_PROCESS)),
-                    ("filament", bbl_preset("filament", A1M["filament"], SIRAYA_85A, SIRAYA_NAME))):
+                    ("filament", siraya_a1m_filament()[0])):
         paths[kind] = work / f"{kind}.json"
         paths[kind].write_text(json.dumps(d, indent=1))
     items = [(s, trimesh.load(RUN / s["stl"], force="mesh")) for s in rep["pieces"] if s["material"] == "85A"]
@@ -732,7 +756,8 @@ def cmd_a1m(a):
         problems.append(f"filaments used {used}, object extruders {ext}")
     if bed_type != A1M_PROCESS["curr_bed_type"]:
         problems.append(f"plate {bed_type}")
-    problems += check_bambu_gcode(gcode, "A1 mini", 240, 35)
+    fil = json.loads(paths["filament"].read_text())
+    problems += check_bambu_gcode(gcode, "A1 mini", int(fil["nozzle_temperature"][0]), int(fil["textured_plate_temp"][0]))
     if re.search(r"; (WIPE_TOWER|PRIME_TOWER)_START", gcode) or "; FEATURE: Prime tower" in gcode:
         problems.append("prime tower in the G-code")
     if problems:
@@ -746,8 +771,13 @@ def cmd_a1m(a):
                f"{fmt_time(pred)}, {weight:.1f} g", fig)
     rep.setdefault("plates", {})["a1m"] = dict(
         project=rel(RUN / proj), map=rel(fig), printer="Bambu Lab A1 mini 0.4 nozzle", filament=SIRAYA_NAME,
-        slot=A1M_SLOT, presets=A1M, overrides=A1M_PROCESS, filament_overrides=SIRAYA_85A, time_s=pred,
-        time=fmt_time(pred), filament_g=weight, layers=layers, bed_type=bed_type, bed_c=35, nozzle_c=240,
+        slot=A1M_SLOT, presets=A1M, overrides=A1M_PROCESS, time_s=pred,
+        filament_source=rel(SIRAYA_A1M_3MF), filament_from_siraya=sorted(siraya_a1m_filament()[1]),
+        filament_kept=SIRAYA_KEEP, filament_settings={k: fil[k] for k in (
+            "nozzle_temperature", "textured_plate_temp", "filament_flow_ratio", "filament_retraction_length",
+            "filament_retraction_speed", "close_fan_the_first_x_layers", "filament_max_volumetric_speed")},
+        time=fmt_time(pred), filament_g=weight, layers=layers, bed_type=bed_type,
+        bed_c=int(fil["textured_plate_temp"][0]), nozzle_c=int(fil["nozzle_temperature"][0]),
         objects=objs, slicer="Bambu Studio 2.5.0.66 command line, arrange off (positions from layout)",
         when=time.strftime("%Y-%m-%d %H:%M"))
     (RUN / "pieces.json").write_text(json.dumps(rep, indent=1) + "\n")
