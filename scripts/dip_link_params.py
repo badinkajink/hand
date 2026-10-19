@@ -919,8 +919,40 @@ def cmd_export(a):
                             checks_pass=sl.get("checks_pass"),
                             note="the PLA parts only; the tips or pads with their magnet pauses come from scripts/dip_link_v2.py")
     (out / "export.json").write_text(json.dumps(rec, indent=1, default=float) + "\n")
+    print(f"RESULT {(out / 'export.json').relative_to(REPO)}", flush=True)
     print(f"export -> {out.relative_to(REPO)}: {len(read)} STEP files read back, all valid {rec['all_valid']} "
           f"[{time.time() - t0:.0f} s]", flush=True)
+
+
+def cmd_check(a):
+    """The full clearance check of a parameter set -> logs/20261018-dip_link/params/checks/<stamp>-<stem>/; prints
+    'RESULT <json>' for the viewer. Concept a: dip_link_board_mount.py check (exact clearance of every new part over PIP
+    -18..92 deg, walls, R4, mass) on the set's parts; concept b: dip_link_concept_b.py prep, cad and clearance."""
+    path = Path(a.params).resolve()
+    concept, vals, des, doc = load(path)
+    bad = problems(concept, vals, des)
+    if bad:
+        raise SystemExit("; ".join(bad))
+    out = WORK / "checks" / f"{time.strftime('%Y%m%d-%H%M%S')}-{path.stem}"
+    out.mkdir(parents=True, exist_ok=True)
+    pfx = path.stem
+    t0 = time.time()
+    if concept == "a":
+        A, DLF = modules_a()
+        apply_a(vals, des)
+        redirect_a(out, pfx, out / "work")
+        DLF.cmd_build(argparse.Namespace())
+        DLF.cmd_check(argparse.Namespace(reuse=False))
+        res = out / f"{pfx}_check.json"
+    else:
+        env = dict(os.environ, DIPB_PARAMS=str(path), DIPB_OUT=str(out / "cad"), DIPB_WORK=str(out / "work"), DIPB_PREFIX=pfx)
+        (out / "cad").mkdir(exist_ok=True)
+        for cmd in (["prep"], ["cad"], ["clearance", "--force"]):
+            _run([str(E_FEMTIP), "-u", str(REPO / "scripts/dip_link_concept_b.py"), *cmd], env, f"concept b {cmd[0]}")
+        res = out / f"{pfx}_clearance.json"
+        res.write_text((out / "work" / "clearance.json").read_text())
+    print(f"check of {path.name} [{time.time() - t0:.0f} s]", flush=True)
+    print(f"RESULT {res.relative_to(REPO)}", flush=True)
 
 
 def main():
@@ -937,8 +969,10 @@ def main():
     s.add_argument("--params", required=True)
     s.add_argument("--name", help="folder name after the date (default: the file's stem)")
     s.add_argument("--no-slice", action="store_true")
+    s = sub.add_parser("check", help="the full clearance check of a parameter set -> logs/20261018-dip_link/params/checks/")
+    s.add_argument("--params", required=True)
     a = ap.parse_args()
-    {"init": cmd_init, "verify": cmd_verify, "export": cmd_export}[a.cmd](a)
+    {"init": cmd_init, "verify": cmd_verify, "export": cmd_export, "check": cmd_check}[a.cmd](a)
 
 
 if os.environ.get("DLP_CMD") == "step":

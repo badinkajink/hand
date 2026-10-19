@@ -218,7 +218,7 @@ async function loadFiles(select) {
     const o = document.createElement("option"); o.value = f.file;
     o.textContent = (f.committed ? "committed: " : "saved: ") + f.file; sel.appendChild(o);
   }
-  const want = select || { a: "20261018-concept_a.json", b: "20261018-concept_b_final.json" }[conc];
+  const want = select || { a: "20261018-v2_concept_a.json", b: "20261018-v2_concept_b.json" }[conc];   // the printable v2
   if ([...sel.options].some((o) => o.value === want)) sel.value = want;
   await loadDoc();
 }
@@ -282,6 +282,9 @@ async function build() {
                                           tip: $("tip").value, q: parseFloat($("q").value) });
     while (designGroup.children.length) { const g = designGroup.children.pop(); g.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
     for (const p of res.parts) designGroup.add(makeMesh(p));
+    if (res.tips && (res.tips.join() !== CTX.tips.join() || $("tip").value !== res.tip)) {   // the design's own tip set
+      CTX.tips = res.tips; Object.assign(CTX.tip_labels, res.tip_labels); fillTips(res.tip);
+    }
     partsPanel(); showReadouts(res); showAngle(res.angle); applyClip();
     $("status").textContent = `Built in ${res.build_seconds} s, checks ${(res.seconds - res.build_seconds).toFixed(1)} s, ` +
       `shown after ${((performance.now() - t0) / 1000).toFixed(1)} s` + (dirty() ? "; unsaved changes" : "");
@@ -374,10 +377,10 @@ $("file").onchange = () => loadDoc();
 $("tip").onchange = () => scheduleBuild(0);
 $("secaxis").onchange = setSectionRange; $("secpos").oninput = applyClip; $("secflip").onchange = applyClip;
 let CTX = null;
-function fillTips() {
-  const sel = $("tip"), keep = sel.value; sel.innerHTML = "";
-  for (const k of CTX.tips) { const o = document.createElement("option"); o.value = k; o.textContent = CTX.tip_labels[k]; sel.appendChild(o); }
-  sel.value = keep && CTX.tips.includes(keep) ? keep : "block4";
+function fillTips(want) {
+  const sel = $("tip"), keep = want || sel.value; sel.innerHTML = "";
+  for (const k of CTX.tips) { const o = document.createElement("option"); o.value = k; o.textContent = CTX.tip_labels[k] || k; sel.appendChild(o); }
+  sel.value = keep && CTX.tips.includes(keep) ? keep : CTX.tips[0];
   $("tiplabel").textContent = $("concept").value === "a" ? "Tip shown" : "Pad shown";
 }
 (async () => {
