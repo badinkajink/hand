@@ -11,7 +11,7 @@ by ID, and the print sheet that scripts/dip_fit_print_plates_page.py builds from
 
 IDs: K = PLA key at a detent height, F = 85A channel block at a flank interference, C = board carrier at a chip-window
 clearance (the digits are hundredths of a millimetre), CP = clamp plate, P = pin coupon, H = self-forming hole coupon,
-W = cable-groove coupon. Keys and carriers carry the ID on a 1.4 mm tag at the bed, the channel blocks engraved in the
+W = cable-groove coupon. Keys and carriers have the ID on a 1.4 mm tag at the bed, the channel blocks engraved in the
 face that lies inside the tip, the coupons engraved beside each variant.
 
     unset VIRTUAL_ENV
@@ -382,10 +382,10 @@ def write_records(specs):
     for d in PIN_D:
         rows.append((f"P{hund(d - 2.0)}", "Board fit", f"the {d:.2f} mm pin enters the board's 2.40 mm hole without play"))
     for d in M2_HOLES:
-        rows.append((f"H M2 {d:.1f} top", "Screw holes", "an M2 x 5 forms its thread and holds without cracking"))
-        rows.append((f"H M2 {d:.1f} front", "Screw holes", "an M2 x 5 forms its thread and holds without cracking"))
+        rows.append((f"H M2 {d:.1f} top", "Screw holes", "an M2 x 5 forms its thread without cracking and does not pull out"))
+        rows.append((f"H M2 {d:.1f} front", "Screw holes", "an M2 x 5 forms its thread without cracking and does not pull out"))
     for d in M3_HOLES:
-        rows.append((f"H M3 {d:.2f}", "Screw holes", "an M3 x 12 forms its thread and holds without cracking"))
+        rows.append((f"H M3 {d:.2f}", "Screw holes", "an M3 x 12 forms its thread without cracking and does not pull out"))
     for w in GROOVES:
         rows.append((f"W {w:.1f}", "Cable groove", "the Qwiic cable lies below the surface around the turn without forcing"))
     with open(RUN / "records.csv", "w", newline="") as f:
