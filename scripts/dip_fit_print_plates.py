@@ -11,12 +11,14 @@ by ID, and the print sheet that scripts/dip_fit_print_plates_page.py builds from
 
 IDs: K = PLA key at a detent height, F = 85A channel block at a flank interference, C = board carrier at a chip-window
 clearance (the digits are hundredths of a millimetre), CP = clamp plate, P = pin coupon, H = self-forming hole coupon,
-W = cable-groove coupon. Keys and carriers have the ID on a 1.4 mm tag at the bed, the channel blocks engraved in the
+W = cable-groove coupon. Concept b's run (--run 20261019b, folder 20261019-dip_link_fit_prints_b): R = the cover's rail
+strip, G = 85A groove block at a flank interference, S = tongue with the seat pocket at a depth, N = neck carrier with
+J1's slot and the cable groove, V = cover. Keys and carriers have the ID on a 1.4 mm tag at the bed, the channel blocks engraved in the
 face that lies inside the tip, the coupons engraved beside each variant.
 
     unset VIRTUAL_ENV
     ~/.claude/bin/resguard.sh run --mem 5G --cpu 300 -- env NUMPY_MADVISE_HUGEPAGE=0 \\
-        ~/miniconda3/envs/femtip/bin/python scripts/dip_fit_print_plates.py pieces bambu xl
+        ~/miniconda3/envs/femtip/bin/python scripts/dip_fit_print_plates.py [--run 20261019b] pieces bambu xl
 
 Concept a's geometry comes from scripts/dip_link_v2.py (setup_a, coupon_carrier, _notches_y) at
 docs/experiments/20261018-dip_link_board_mount/params/20261018-v2_concept_a.json.
@@ -62,6 +64,24 @@ M3_HOLES = (2.65, 2.75, 2.85)                         # self-forming M3 holes, m
 GROOVES = (2.2, 2.4, 2.6)                             # cable-groove width, mm (v2 a: 2.4 for a 2.0 mm bundle)
 GROOVE_DEPTH, GROOVE_R = 2.4, 2.0                     # groove depth; centre-line radius of its turn (v2 a cable_r)
 TAG_T, ENGRAVE, ENGRAVE_TPU = 1.4, 0.6, 0.8           # tag thickness, engraving depth in PLA and in 85A, mm
+FLANKS_B = (0.0, 0.05, 0.10, 0.15, 0.20)              # 85A pad-groove interference per flank on b's rails, mm (step 9)
+SEAT_DEPTHS = (0.35, 0.45, 0.55)                      # depth of b's board seat pocket in the tongue, mm (design 0.45)
+
+# Runs: each a folder of its own with one plate per printer. 20261019: concept a's fit tests (built 2026-10-19 14:58);
+# 20261019b: concept b's (autopilot step 9, 2026-10-19). --run picks one; the default is the first.
+RUNS = {"20261019": dict(folder="20261019-dip_link_fit_prints", pfx="20261019-dip_link_fit", work="20261019-fit_prints",
+                         concept="a", params="docs/experiments/20261018-dip_link_board_mount/params/20261018-v2_concept_a.json"),
+        "20261019b": dict(folder="20261019-dip_link_fit_prints_b", pfx="20261019-dip_link_fit_b", work="20261019-fit_prints_b",
+                          concept="b", params="docs/experiments/20261018-dip_link_board_mount/params/20261018-v2_concept_b.json")}
+CONCEPT = "a"
+
+
+def set_run(rid):
+    """Point RUN, STL, WORK, PFX and CONCEPT at run rid of RUNS."""
+    global RUN, STL, WORK, PFX, CONCEPT
+    r = RUNS[rid]
+    RUN = REPO / f"docs/experiments/{r['folder']}"
+    STL, WORK, PFX, CONCEPT = RUN / "stl", REPO / f"logs/{r['work']}", r["pfx"], r["concept"]
 
 
 def hund(v):
@@ -286,8 +306,120 @@ def piece_channel(A, K, fl):
     return pr, trimesh.Trimesh((np.asarray(pr.vertices) - t) @ R, np.asarray(pr.faces), process=False)
 
 
+def concept_b():
+    import dip_link_v2 as V2
+    B = V2.b_module()
+    return V2, B, B.MeshB()
+
+
+def piece_rails(B, K):
+    """A 10 mm length of concept b's cover with its two dovetail rails (as v2/b's rail strip), printed as the cover prints,
+    on its back face with the rails up; the tag R along its +y side."""
+    import dip_link_print_project as PP
+    z0, z1 = B.Z_CONTACT - 5.0, B.Z_CONTACT + 5.0
+    strip = K.box((B.X_SLOT, -B.Y_RIM, z0), (B.X_COMP, B.Y_RIM, z1))
+    rails = [K.prism_z([(s_ * y, (B.X_SLOT + 0.1) if x > B.X_SLOT else x) for y, x in B.rail_section()], z0, z1)
+             for s_ in (-1, 1)]
+    tm, _ = PP.to_print(B.to_trimesh(K.fuse(strip, rails)), PP.R_CLAMP)
+    lo, hi = tm.bounds
+    return to_tm(to_man(tm) + tag(lo[0], hi[0], hi[1] - 0.6, hi[1] + 6.0, "R", 3.0))
+
+
+def piece_groove_block(B, K, fl):
+    """An 85A block of b's pad back (4 mm deep, the pad's width, 9 mm long) with the two rail grooves at flank
+    interference fl, printed groove mouths down as the pad's back; its ID engraved ENGRAVE_TPU deep in the top face, which
+    lies inside the pad. Returns the block in its print frame and in frame F (dip_link_print_project.build_project turns
+    channel blocks from F)."""
+    import dip_link_print_project as PP
+    import trimesh
+    z0, z1 = B.Z_CONTACT - 5.0, B.Z_CONTACT + 5.0
+    blk = K.box((B.X_SLOT - 4.0, -B.TIP["y_half"], z0 + 0.5), (B.X_SLOT, B.TIP["y_half"], z1 - 0.5))
+    cut = [B.prism([(s_ * y, B.X_SLOT + 0.5 if x > B.X_SLOT else x) for y, x in B.rail_section(-fl, B.GROOVE_FLOOR)], z0, z1)
+           for s_ in (-1, 1)]
+    tm, (R, t) = PP.to_print(B.to_trimesh(K.cut(blk, cut)), PP.R_CLAMP)
+    pr = to_tm(engrave(to_man(tm), hund(fl), 3.4, 0.0, 0.0, float(tm.bounds[1][2]), ENGRAVE_TPU))
+    return pr, trimesh.Trimesh((np.asarray(pr.vertices) - t) @ R, np.asarray(pr.faces), process=False)
+
+
+def piece_seat(V2, B, K, depth):
+    """The tongue of b's DIP link with the board's seat pocket at `depth` (rim_h), from its distal end to 2 mm past the
+    proximal datum wall, with the tab slot and the four 1.8 mm screw holes, printed on its back face with the pocket up;
+    the tag along its +y side."""
+    import dip_link_print_project as PP
+    vals, des = B.load_params()
+    B.apply(dict(vals, rim_h=depth), des)
+    try:
+        body, _ = B.dip_link_parts(K)
+        box_ = K.box((B.X_SEAT - depth - 0.01, -B.Y_RIM - 0.5, B.TIP["z_end"] - 0.1),
+                     (B.X_TONGUE_BACK + 0.01, B.Y_RIM + 0.5, B.Z_BOARD[1] + 2.0))
+        tm, _ = PP.to_print(B.to_trimesh(body ^ box_), PP.R_CLAMP)
+    finally:
+        B.apply(vals, des)
+    lo, hi = tm.bounds
+    return to_tm(to_man(tm) + tag(lo[0], lo[0] + 12.0, hi[1] - 0.6, hi[1] + 6.0, f"S{hund(depth)}", 3.0))
+
+
+def piece_neck_carrier(V2, B, K):
+    """b's DIP link around the board: the tongue with the seat pocket, the neck with the J1 slot and the bridge with the
+    cable's groove (open to the top over the plug, roofed along the run), cut to x -1.5..9.6, |y| <= 11 and z up to -61.5;
+    printed on its back face (the spine's back on the bed). The tongue's back stands 1.45 mm above that plane, so the
+    tongue is thickened dorsally to it, the four screw holes kept through; the tag N on the bed beyond the tongue's distal
+    end."""
+    import dip_link_print_project as PP
+    body, _ = B.dip_link_parts(K)
+    box_ = K.box((-1.5, -11.0, B.TIP["z_end"] - 0.5), (9.6, 11.0, -61.5))
+    back = K.box((B.X_TONGUE_BACK - 0.01, -B.Y_RIM, B.TIP["z_end"]), (B.X_SPINE_BACK, B.Y_RIM, B.TIP["z_mount"] + 0.01))
+    holes = [K.cylx(y, z, B.P["screw_thread_d"] / 2, B.X_TONGUE_BACK - 0.2, B.X_SPINE_BACK + 0.2) for y, z in B.screw_yz()]
+    carrier = K.cut(K.fuse(body ^ box_, [back]), holes)
+    tm, _ = PP.to_print(B.to_trimesh(carrier), PP.R_CLAMP)
+    print(f"   N: tongue thickened by {B.X_SPINE_BACK - B.X_TONGUE_BACK:.2f} mm to the spine's back", flush=True)
+    lo, hi = tm.bounds
+    return drop_slivers(to_tm(to_man(tm) + tag(lo[0] - 7.0, lo[0] + 0.6, -7.0, 7.0, "N", 3.2)))
+
+
+def drop_slivers(tm):
+    """The mesh without the zero-volume bodies a boolean leaves where two faces touched."""
+    import trimesh
+    bodies = [b for b in tm.split(only_watertight=False) if abs(b.volume) > 0.5]
+    out = trimesh.util.concatenate(bodies) if len(bodies) > 1 else bodies[0]
+    out.merge_vertices()
+    return out
+
+
+def piece_cover(B):
+    import dip_link_print_project as PP
+    import trimesh
+    tm, _ = PP.to_print(trimesh.load(B.CAD_DIR / f"{B.PREFIX}_cover.stl", force="mesh"), PP.R_CLAMP)
+    return to_tm(to_man(tm))
+
+
 # ------------------------------------------------------------------------------------------------ piece list
 def piece_specs():
+    return piece_specs_a() if CONCEPT == "a" else piece_specs_b()
+
+
+def piece_specs_b():
+    """Every piece of concept b's run: ID, test, variant, printer and what the owner checks on it."""
+    S = [dict(id="R", stl="R_rail_strip.stl", printer="p1s", material="PLA", test="Snap fit", piece="Rail strip",
+              variant="the cover's two rails, 10 mm long", value=None, mark="tag R", copies=1, short="rails")]
+    for fl in FLANKS_B:
+        S.append(dict(id=f"G{hund(fl)}", stl=f"G{hund(fl)}_groove_flank{hund(fl)}_85a.stl", printer="xl", material="85A",
+                      test="Snap fit", piece="85A groove block", variant=f"{fl:.2f} mm per flank", value=fl,
+                      mark=f"{hund(fl)} engraved on the face inside the pad", copies=1, short=f"{fl:.2f}/flank"))
+    for d in SEAT_DEPTHS:
+        S.append(dict(id=f"S{hund(d)}", stl=f"S{hund(d)}_seat_pocket{hund(d)}.stl", printer="p1s", material="PLA",
+                      test="Board seat", piece="Tongue with the seat pocket", variant=f"pocket {d:.2f} mm deep", value=d,
+                      mark=f"tag S{hund(d)}", copies=1, short=f"pocket {d:.2f}"))
+    S.append(dict(id="N", stl="N_neck_carrier.stl", printer="p1s", material="PLA", test="Board seat and cable",
+                  piece="Neck carrier", variant="J1 slot, seat pocket 0.45 mm, cable groove", value=None, mark="tag N",
+                  copies=1, short="neck, J1, cable",
+                  note="the tongue's back stands 1.45 mm above the spine's back; that gap is filled down to the bed"))
+    S.append(dict(id="V", stl="V_cover.stl", printer="p1s", material="PLA", test="Board seat", piece="Cover",
+                  variant="v2 b", value=None, mark="its shape (windows and two rails; two copies)", copies=2, short="cover"))
+    return S
+
+
+def piece_specs_a():
     """Every piece of the run: ID, test, variant, printer and what the owner checks on it."""
     S = []
     for k, h in enumerate(DETENTS):
@@ -320,13 +452,29 @@ def piece_specs():
 def cmd_pieces(a):
     import trimesh  # noqa: F401
     STL.mkdir(parents=True, exist_ok=True)
-    V2, A, K = concept_a()
+    if CONCEPT == "b":
+        V2, B, K = concept_b()
+    else:
+        V2, A, K = concept_a()
     specs = piece_specs()
     built = {}
     for s in specs:
         t0 = time.time()
         i = s["id"]
-        if i.startswith("K"):
+        if CONCEPT == "b":
+            if i == "R":
+                tm = piece_rails(B, K)
+            elif i.startswith("G"):
+                tm, tmF = piece_groove_block(B, K, s["value"])
+                (WORK / "xl").mkdir(parents=True, exist_ok=True)
+                single(tmF, i).export(WORK / "xl" / s["stl"].replace(".stl", "_F.stl"))
+            elif i.startswith("S"):
+                tm = piece_seat(V2, B, K, s["value"])
+            elif i == "N":
+                tm = piece_neck_carrier(V2, B, K)
+            else:
+                tm = piece_cover(B)
+        elif i.startswith("K"):
             tm = piece_key(V2, A, K, s["value"], DETENTS.index(s["value"]) + 1)
         elif i.startswith("F"):
             tm, tmF = piece_channel(A, K, s["value"])
@@ -347,8 +495,8 @@ def cmd_pieces(a):
         built[i] = s
         print(f"{i:4s} {s['piece']:18s} {s['variant']:42s} size {s['size_mm']} vol {s['volume_mm3']} "
               f"[{time.time() - t0:.1f} s]", flush=True)
-    rep = dict(run=DATE, source="scripts/dip_fit_print_plates.py", params=
-               "docs/experiments/20261018-dip_link_board_mount/params/20261018-v2_concept_a.json",
+    rid = next(k for k, v in RUNS.items() if v["pfx"] == PFX)
+    rep = dict(run=rid, concept=CONCEPT, source=f"scripts/dip_fit_print_plates.py --run {rid}", params=RUNS[rid]["params"],
                owner="2026-10-19 14:25: 'is there a more organized manner you can present the prints (and documentation) "
                      "in? i would also like to maximize printer plate utilization, although i guess it'll be hard to "
                      "discern coupons'", pieces=[dict(s, stl=f"stl/{s['stl']}") for s in specs],
@@ -362,7 +510,9 @@ def cmd_pieces(a):
 
 
 def write_records(specs):
-    """records.csv: one row per check, keyed by piece ID (a pairing as K..+F..), result and notes for the owner."""
+    """records.csv: one row per check, keyed by piece ID (a pairing as K..+F.. or R+G..), result and notes for the owner."""
+    if CONCEPT == "b":
+        return write_records_rows(records_b())
     rows = []
     for fl in FLANKS:
         for chk in ("slides on by hand", "detent clicks", "stays when pulled along the channel", "stays when twisted"):
@@ -388,6 +538,30 @@ def write_records(specs):
         rows.append((f"H M3 {d:.2f}", "Screw holes", "an M3 x 12 forms its thread without cracking and does not pull out"))
     for w in GROOVES:
         rows.append((f"W {w:.1f}", "Cable groove", "the Qwiic cable lies below the surface around the turn without forcing"))
+    write_records_rows(rows)
+
+
+def records_b():
+    rows = []
+    for fl in FLANKS_B:
+        for chk in ("presses onto the rail strip by hand", "both rails snap into their grooves",
+                    "stays under a 3 N pull away from the strip", "stays when pushed along the rails by hand"):
+            rows.append((f"R+G{hund(fl)}", "Snap fit", chk))
+    for d in SEAT_DEPTHS:
+        for chk in ("the board slides into the pocket from its open end until it meets the proximal wall",
+                    "the board lies flat in the pocket without play across it",
+                    "a cover (V) and four M2 x 5 screws clamp the board without play"):
+            rows.append((f"S{hund(d)}+V", "Board seat", chk))
+    for chk in ("J1 with the Qwiic plug mated slides through the slot from the neck's underside without touching its walls",
+                "the board reaches the proximal wall with J1 and the plug in the slot",
+                "M2 x 5 screws through the cover and the board form their thread in the tongue's 1.8 mm holes",
+                "the cable turns toward the back in the open groove over the plug and lies in the groove along the run",
+                "a strip of Kapton tape over the open groove keeps the cable's first turn down"):
+        rows.append(("N+V", "Board seat and cable", chk))
+    return rows
+
+
+def write_records_rows(rows):
     with open(RUN / "records.csv", "w", newline="") as f:
         w_ = csv.writer(f)
         w_.writerow(["id", "test", "check", "result", "notes"])
@@ -522,14 +696,14 @@ def cmd_xl(a):
     rep = json.loads((RUN / "pieces.json").read_text())
     tpu = [s for s in rep["pieces"] if s["printer"] == "xl"]
     PP.PFX, PP.WORK = PFX, WORK / "xl" / "slice"
-    PP.COUPON_FLANKS = FLANKS
+    PP.COUPON_FLANKS = FLANKS if CONCEPT == "a" else FLANKS_B
     PP.bed_figure = lambda *args, **kw: None            # the plate map below replaces its notch-labelled bed figure
     parts = {}
     for s in tpu:
-        k = f"channel_block_{s['value']:.2f}".replace(".", "p")
+        k = f"channel_block_{s['value']:.2f}".replace(".", "p")    # build_project turns a channel block from F
         parts[k] = str(WORK / "xl" / Path(s["stl"]).name.replace(".stl", "_F.stl"))
         PP.SETTINGS[k] = dict(PP.SETTINGS["tip"])
-        PP.LABEL[k] = f"{s['id']}: 85A channel block, {s['value']:.2f} mm per flank"
+        PP.LABEL[k] = f"{s['id']}: 85A {'channel' if CONCEPT == 'a' else 'groove'} block, {s['value']:.2f} mm per flank"
     name = f"{PFX}_xl_85a_t2"
     r = PP.build_project(parts, RUN, name, source="scripts/dip_fit_print_plates.py xl")
     items = []
@@ -608,7 +782,9 @@ def plate_map(items, bed, title, out):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("stages", nargs="+", choices=["pieces", "bambu", "xl"])
+    ap.add_argument("--run", default="20261019", choices=list(RUNS), help="the run: 20261019 concept a, 20261019b concept b")
     a = ap.parse_args()
+    set_run(a.run)
     RUN.mkdir(parents=True, exist_ok=True)
     WORK.mkdir(parents=True, exist_ok=True)
     for st in a.stages:

@@ -75,7 +75,10 @@ magnets to the pocket floor, north pole toward the palmar face, and resume.
 - The five-magnet block versions: `a/print/*_tip_block5_channels_85a_t2_g30.3mf` (pause 12.4 mm) and
   `b/print/*_pad_block5_85a_t2_g30.3mf` (printed on its cut back face, pause 8.8 mm).
 
-The fit coupons of a (snap fits, board carrier, window gauges) and their record sheet are in `coupons/README.md`.
+The fit tests print as runs of one plate per printer, every piece with its ID printed on it: concept a's in
+`../../20261019-dip_link_fit_prints/` and concept b's in `../../20261019-dip_link_fit_prints_b/` (print sheet,
+projects, STLs and records.csv in each; `scripts/dip_fit_print_plates.py [--run 20261019b] pieces bambu xl`). The
+earlier coupons of a, as XL projects, are in `coupons/`.
 
 Hardware: a takes two M2 x 4 countersunk and two M2 x 5 cheese-head screws, b four M2 x 5 cheese-head screws, all brass
 (R10: no ferromagnetic fastener within 15 mm of a chip); the board as supplied (J1 kept, tab not cut); a Qwiic cable; a

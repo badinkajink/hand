@@ -5,7 +5,7 @@ ID, the checks in order, the parameter each check sets, and the owner's records.
 The page is built from the run folder that scripts/dip_fit_print_plates.py writes (pieces.json, the plate maps, the XL
 project's report, records.csv) and regenerates when they change; filled rows of records.csv appear in Section 5.
 
-    .venv/bin/python scripts/dip_fit_print_plates_page.py
+    .venv/bin/python scripts/dip_fit_print_plates_page.py [--run 20261019b]
 """
 from __future__ import annotations
 
@@ -28,6 +28,17 @@ PAGE = RUN / "20261019-dip_link_fit_prints.html"
 TEMPLATE = ROOT / "scripts/dip_fit_print_plates_page.template.html"
 STUDY = "docs/experiments/20261018-dip_link_board_mount"
 PARAMS = f"{STUDY}/params/20261018-v2_concept_a.json"
+CONCEPT = "a"
+RUNS = {"20261019": ("20261019-dip_link_fit_prints", "a"), "20261019b": ("20261019-dip_link_fit_prints_b", "b")}
+
+
+def set_run(rid):
+    """Point RUN, PAGE, PARAMS and CONCEPT at a run of scripts/dip_fit_print_plates.py."""
+    global RUN, PAGE, PARAMS, CONCEPT
+    folder, CONCEPT = RUNS[rid]
+    RUN = ROOT / "docs/experiments" / folder
+    PAGE = RUN / f"{folder}.html"
+    PARAMS = f"{STUDY}/params/20261018-v2_concept_{CONCEPT}.json"
 
 
 def rel(p):
@@ -94,7 +105,7 @@ def files_section(R, p1s, xl, n_pla, n_tpu):
         + figure(ROOT / p1s["map"], "The P1S plate from above, front edge at the bottom. Bold: the ID printed on the "
                  "piece; below: its variant.", "P1S plate map with piece IDs")
         + figure(ROOT / xl["map"], "The XL plate from above; each block's ID is engraved in its top face, which lies "
-                 "inside the tip.", "XL plate map with piece IDs")
+                 f"inside the {'tip' if CONCEPT == 'a' else 'pad'}.", "XL plate map with piece IDs")
         + "</section>")
 
 
@@ -103,9 +114,13 @@ def ids_section(pieces):
         f"<tr><td>{esc(s['id'])}</td><td>{esc(s['piece'])}{' (2)' if s.get('copies', 1) > 1 else ''}</td>"
         f"<td>{esc(s['variant'])}</td><td>{esc(s['mark'])}</td><td>{'P1S' if s['printer'] == 'p1s' else 'XL'}</td></tr>"
         for s in pieces)
+    note = ("The digits of K, F and C give the variant in hundredths of a millimetre: K25 is the key with a 0.25 mm "
+            "detent, F10 the channel block 0.10 mm narrower per flank, C30 the carrier with 0.30 mm chip windows."
+            if CONCEPT == "a" else
+            "The digits of G and S give the variant in hundredths of a millimetre: G10 is the groove block 0.10 mm "
+            "narrower per flank, S45 the tongue with a 0.45 mm deep seat pocket.")
     return ('<section id="ids"><h2>2. Pieces and their IDs</h2>'
-            "<p>The digits of K, F and C give the variant in hundredths of a millimetre: K25 is the key with a 0.25 mm "
-            "detent, F10 the channel block 0.10 mm narrower per flank, C30 the carrier with 0.30 mm chip windows.</p>"
+            f"<p>{note}</p>"
             '<div class="tw"><table class="ids"><tr><th>ID</th><th>Piece</th><th>Variant</th><th>How to tell it</th>'
             f"<th>Printer</th></tr>{rows}</table></div></section>")
 
@@ -170,8 +185,10 @@ def records_section(rows):
     return ('<section id="record"><h2>5. Record</h2>'
             f"<p>{code(rel(RUN / 'records.csv'))} has one row per check, keyed by ID, {len(rows)} rows: "
             + ", ".join(f"{esc(k.lower())} {v}" for k, v in counts.items())
-            + ". Write y, n or a number in result and anything seen in notes; a pairing is written K25+F10, and F* and "
-              f"C* stand for the choices of round 1. {len(filled)} of {len(rows)} rows are filled.</p>"
+            + ". Write y, n or a number in result and anything seen in notes; "
+            + ("a pairing is written K25+F10, and F* and C* stand for the choices of round 1. " if CONCEPT == "a" else
+               "a pairing is written R+G10 or S45+V. ")
+            + f"{len(filled)} of {len(rows)} rows are filled.</p>"
             f"<details><summary>All {len(rows)} rows</summary><div class=\"tw\"><table class=\"rec\"><tr><th>ID</th>"
             f"<th>Test</th><th>Check</th><th>Result</th><th>Notes</th></tr>{body}</table></div></details></section>")
 
@@ -208,6 +225,71 @@ def future_section():
         "9), through the piece list of scripts/dip_fit_print_plates.py.</li></ul></section>")
 
 
+def terms_section_b():
+    T = [("Test piece", "A small part printed by the same process as the real part, to decide one fit before the whole "
+          "DIP link is printed; in materials testing it is called a coupon."),
+         ("Rail and groove", "Concept b&#8217;s cover carries two PLA dovetail rails on its front face; the 85A pad has "
+          "two matching grooves in its back face and is pressed onto the cover until both rails snap in."),
+         ("Flank interference", "How much narrower the pad&#8217;s groove is than the rail on each flank, in mm; 0 is a "
+          "line-to-line fit; the design has 0.05."),
+         ("Seat pocket", "The pocket in the DIP link&#8217;s tongue that takes the board&#8217;s FR-4, open at the "
+          "tongue&#8217;s distal end so the board slides in along the finger, J1 first; its depth is the rim height, "
+          "0.45 mm in the design for a 0.60 mm board, so that the rim stays 0.15 mm short of the cover and the cover "
+          "clamps the board."),
+         ("Neck carrier", "The DIP link around the board: the tongue with the seat pocket, the neck with the slot for J1 "
+          "and its plug, and the bridge with the Qwiic cable&#8217;s groove, open to the top over the plug and roofed "
+          "along the run to the slotted arm."),
+         ("Self-forming hole", "A hole smaller than the screw, in which the screw cuts its own thread in PLA; 1.8 mm for "
+          "M2 (owner, 2026-10-18)."),
+         ("G*, S*", "The groove block and the seat depth chosen in the first round of a check.")]
+    dl = "".join(f"<dt>{a}</dt><dd>{b}</dd>" for a, b in T)
+    return f'<section id="terms"><h2>3. Terms</h2><dl class="glossary">{dl}</dl></section>'
+
+
+def checks_section_b():
+    return (
+        '<section id="checks"><h2>4. Checks, in order</h2>'
+        "<h3>4.1 Snap fit: R and G</h3>"
+        "<p>Press each G block onto the rail strip R by hand, G00 first, grooves over the rails. Record whether it goes "
+        "on, whether both rails snap in, whether it stays under a 3 N pull away from the strip (a 300 g weight hung from "
+        "it) and whether it stays when pushed along the rails. G* is the block with the largest interference that still "
+        f"goes on by hand and stays under the pull; it sets {code('groove_fit')} (design 0.05 mm).</p>"
+        "<h3>4.2 Board seat: S, V and N</h3>"
+        "<p>Slide the ReSkin 5X board, component side up, into the pocket of S35, S45 and S55 from the open end until "
+        "its main square meets the proximal wall and its tab passes the slot. Lay a cover V on it, windows over the "
+        "parts, and drive four M2 &#215; 5 screws through the cover and the board into the 1.8 mm holes. S* is the "
+        "deepest pocket in which the cover still clamps the board without play; it sets "
+        f"{code('rim_h')} (design 0.45 mm). Then mate the Qwiic plug to J1 and slide the board into N from the "
+        "neck&#8217;s underside, J1 and the plug first into their slot; clamp it with the second cover. Bend the cable "
+        "toward the back in the open groove over the plug, lay it along the groove of the run and put a strip of Kapton "
+        "tape over the open part.</p></section>")
+
+
+def changes_section_b():
+    return (
+        '<section id="changes"><h2>6. Changes from concept b&#8217;s coupons of 18 October</h2>'
+        f"<p>The rail coupon in {code(STUDY + '/v2/b/print/')} was a rail strip and three groove blocks (0, 0.05 and "
+        "0.10 mm per flank) as XL projects. This run differs in four ways.</p><ul>"
+        "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the XL.</li>"
+        "<li>Every piece has its ID printed on it.</li>"
+        "<li>The groove sweep reaches 0.20 mm per flank.</li>"
+        "<li>Three tongues with seat pockets 0.35, 0.45 and 0.55 mm deep, the neck carrier with J1&#8217;s slot and the "
+        "cable&#8217;s groove of 19 October, and two covers join the snap fit; the neck carrier&#8217;s tongue is "
+        "thickened 1.45 mm to the spine&#8217;s back so that the piece stands on one flat face.</li></ul></section>")
+
+
+def future_section_b():
+    return (
+        '<section id="future"><h2>Future work</h2><ul>'
+        f"<li>Enter groove_fit and rim_h in {code(PARAMS)} and rebuild v2 b: "
+        f"{code('scripts/dip_link_v2.py b build step check sense render print docs')}; then print the DIP link, the cover "
+        "and a pad.</li>"
+        "<li>If G20 still goes on by hand and lifts off under the pull, the groove sweep stopped short; the next plate "
+        "extends it to 0.40 mm.</li>"
+        "<li>If the board rocks in every pocket, measure the FR-4&#8217;s thickness and the tallest part under the "
+        f"cover and set {code('fr4')} and {code('chip_h')} before changing the pocket.</li></ul></section>")
+
+
 def build():
     R = json.loads((RUN / "pieces.json").read_text())
     pieces = R["pieces"]
@@ -216,6 +298,13 @@ def build():
     n_tpu = sum(1 for s in pieces if s["printer"] == "xl")
     with open(RUN / "records.csv") as f:
         rows = list(csv.DictReader(f))
+    lede_b = (f"Two plates print the fit tests of DIP-link concept b, v2 (the link 9.75 mm longer, the Qwiic cable turned "
+              f"toward the back at the plug and routed past the slotted arm): {n_pla} PLA pieces on the Bambu Lab P1S as "
+              f"one sliced Bambu Studio project ({esc(p1s['time'])}, {p1s['filament_g']:.1f} g) and {n_tpu} Siraya Tech "
+              f"85A groove blocks on tool 2 of the Prusa XL ({esc(hmin(xl['time']))}, {xl['filament_g']:.1f} g). Each "
+              "piece has its ID printed on it: R for the cover's rail strip, G for the groove blocks, S for the three "
+              "tongues with seat pockets, N for the neck carrier with J1's slot and the cable groove, V for the two covers. "
+              "The checks of Section 4 fill records.csv, and each answer sets one parameter of the design file.")
     lede = (f"Two plates print every fit test of DIP-link concept a, v2 (the link 9.75 mm longer, with the Qwiic cable "
             f"routed past the slotted arm): {n_pla} PLA pieces on the Bambu Lab P1S as one sliced Bambu Studio project "
             f"({esc(p1s['time'])}, {p1s['filament_g']:.1f} g) and {n_tpu} Siraya Tech 85A channel blocks on tool 2 of "
@@ -224,11 +313,18 @@ def build():
             "hundredths of a millimetre; P, H and W are the pin, screw-hole and cable-groove pieces, with each size "
             "engraved beside it. The checks of Section 4 fill records.csv, and each answer sets one parameter of the "
             "design file.")
-    secs = [files_section(R, p1s, xl, n_pla, n_tpu), ids_section(pieces), terms_section(), checks_section(),
-            records_section(rows), changes_section(), future_section()]
+    if CONCEPT == "b":
+        lede = lede_b
+        secs = [files_section(R, p1s, xl, n_pla, n_tpu), ids_section(pieces), terms_section_b(), checks_section_b(),
+                records_section(rows), changes_section_b(), future_section_b()]
+    else:
+        secs = [files_section(R, p1s, xl, n_pla, n_tpu), ids_section(pieces), terms_section(), checks_section(),
+                records_section(rows), changes_section(), future_section()]
     toc = ["<li><a href='#files'>1. Files and settings</a></li>", "<li><a href='#ids'>2. Pieces and their IDs</a></li>",
            "<li><a href='#terms'>3. Terms</a></li>", "<li><a href='#checks'>4. Checks, in order</a></li>",
-           "<li><a href='#record'>5. Record</a></li>", "<li><a href='#changes'>6. Changes from the pieces of 13:08</a></li>",
+           "<li><a href='#record'>5. Record</a></li>",
+           "<li><a href='#changes'>6. " + ("Changes from the pieces of 13:08" if CONCEPT == "a" else
+                                           "Changes from concept b's coupons of 18 October") + "</a></li>",
            "<li><a href='#future'>Future work</a></li>"]
     up = "../.."
     eyebrow = (f'<a href="{up}/index.html">SR&#178; Hand documentation</a> &#183; <a href="{up}/pages.html">index of '
@@ -238,14 +334,17 @@ def build():
               f"design: {code(PARAMS)}; the DIP-link study: <a href=\"../20261018-dip_link_board_mount/"
               "20261018-dip_link_magnetometer_board_mount.html\">magnetometer board mount page</a> &#183; built "
               f"{time.strftime('%Y-%m-%d %H:%M')}")
-    footer = ("Rebuild: <code>scripts/dip_fit_print_plates.py pieces bambu xl</code> (femtip Python under resguard; "
+    rarg = "" if CONCEPT == "a" else " --run 20261019b"
+    footer = (f"Rebuild: <code>scripts/dip_fit_print_plates.py{rarg} pieces bambu xl</code> (femtip Python under resguard; "
               "Bambu Studio 2.5 and PrusaSlicer flatpaks), then <code>.venv/bin/python "
-              "scripts/dip_fit_print_plates_page.py</code> (template <code>scripts/dip_fit_print_plates_page.template.html"
+              f"scripts/dip_fit_print_plates_page.py{rarg}</code> (template <code>scripts/dip_fit_print_plates_page.template.html"
               f"</code>). Sources: {code(rel(RUN / 'pieces.json'))}, the XL project&#8217;s report "
-              f"{code(xl['report'])}, {code(rel(RUN / 'records.csv'))}; concept a&#8217;s geometry from "
+              f"{code(xl['report'])}, {code(rel(RUN / 'records.csv'))}; concept {CONCEPT}&#8217;s geometry from "
               "<code>scripts/dip_link_v2.py</code> at the design file.")
     page = TEMPLATE.read_text()
-    for k, v in dict(TITLE="DIP fit print sheet", H1="Print sheet for the DIP-link fit tests of 19 October 2026",
+    h1 = ("Print sheet for the DIP-link fit tests of 19 October 2026" if CONCEPT == "a" else
+          "Print sheet for the fit tests of DIP-link concept b, 19 October 2026")
+    for k, v in dict(TITLE="DIP fit print sheet" if CONCEPT == "a" else "DIP b fit print sheet", H1=h1,
                      EYEBROW=eyebrow, LEDE=lede, BYLINE=byline, TOC="\n".join(toc), SECTIONS="\n".join(secs),
                      FOOTER=footer).items():
         page = page.replace("{{" + k + "}}", v)
@@ -257,4 +356,8 @@ def build():
 
 
 if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--run", default="20261019", choices=list(RUNS))
+    set_run(ap.parse_args().run)
     build()
