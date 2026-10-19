@@ -1810,6 +1810,11 @@ def _url(path):
 
 
 RELATED = [  # (group, date, title, path relative to the repository, contents)
+    ("Results on other pages", "2026-10-18",
+     "Calibration of Drake's hydroelastic field and the 1 mm pads to finite elements of the printed 85A fingertips",
+     "docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration.html",
+     "One modulus and a stiff modulus behind a series spring fitted to the finite-element approach of four printed tips; "
+     "twist arm; pads against Drake on the same servo commands; the capsule's anisotropy"),
     ("Results on other pages", "2026-10-16", "Deployment readiness of the CAD hand with printed 85A magnet fingertips",
      "docs/experiments/20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html",
      "Pads v1, v2 and Drake on printed 85A blocks and curved tips at their finite-element modulus; the CAD hand&#8217;s "
@@ -2020,8 +2025,22 @@ def usability_section():
               "printed 2.7&#8202;mm fillet, because MuJoCo&#8217;s elliptic cone adds a slip term to a sliding pad&#8217;s normal "
               "force; the friction-row change that removes it breaks the hand&#8217;s closed-loop turns (<a href=\"" + link2
               + "\">fingertip co-design page</a>" + (f", <a href=\"{url2}\">artifact</a>" if url2 else "") + ")."
-              + _builder_sentence() + _curved_sentence() + "</p>")
+              + _builder_sentence() + _curved_sentence() + _calibration_sentence() + "</p>")
     return s
+
+
+def _calibration_sentence():
+    """The calibration of Drake's field and the pads to the finite elements of the four printed 85A tips (2026-10-18)."""
+    cp = "docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration.html"
+    if not os.path.exists(os.path.join(ROOT, cp)):
+        return ""
+    link = os.path.relpath(os.path.join(ROOT, cp), os.path.dirname(OUT))
+    url = _url(os.path.join(ROOT, "docs/experiments/20261018-fe_contact_calibration/artifact_url.txt"))
+    return (" Calibrated to those finite elements, a stiff modulus behind a 9.7&#8202;N/mm series spring reproduces the 11/22 "
+            "half-ellipsoid within 5.2&#8202;% RMS approach in Drake and 5.6&#8202;% in 0.5&#8202;mm pads, yet on the same servo "
+            "commands the two end the tool's turn 27&#8211;57&#176; apart on the 25&#8202;mm cell, and one spring cannot fit "
+            "the capsule (<a href=\"" + link + "\">calibration page</a>" + (f", <a href=\"{url}\">artifact</a>" if url else "")
+            + ").")
 
 
 def _curved_sentence():

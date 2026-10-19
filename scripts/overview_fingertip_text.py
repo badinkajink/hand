@@ -63,7 +63,11 @@ Capsule, half-ellipsoid and quarter-ellipsoid tips in the same envelope do no be
 quarter-ellipsoids with the board on their flat back move the magnet 0.6&#8202;&#181;m/N and put 214&#8202;mT on the nearest
 chip. Their finite elements, and those of the block, give a nearly uniform surface, 136&#8211;170&#8202;&#181;m at 1&#8202;N under a
 2&#8202;mm sphere, because the solid walls and skins spread the load over the gyroid core; neither Drake&#8217;s field nor the
-pads reproduce it ([curved fingertips](exp:20261015-curved_tips/20261015-capsule_and_ellipsoid_fingertips.html)).</p>
+pads reproduce it ([curved fingertips](exp:20261015-curved_tips/20261015-capsule_and_ellipsoid_fingertips.html)).
+Fitted to the finite elements of the four 85A prints, a stiff modulus behind a 9.7&#8202;N/mm series spring reproduces the
+11/22 half-ellipsoid within 5.2&#8202;% RMS approach in Drake and 5.6&#8202;% in 0.5&#8202;mm pads, but on the same servo commands
+the two simulators end the tool&#8217;s turn 27&#8211;57&#176; apart, and one spring cannot fit the capsule
+([calibration to the finite elements](exp:20261018-fe_contact_calibration/20261018-fe_contact_calibration.html)).</p>
 <p>Solved from its own G-code, the 20&#8202;% tip with its magnet is softer than these models: 63&#8202;&#181;m at 1&#8202;N
 against 41&#8202;&#181;m, a contact modulus of 7.3&#8202;MPa against 14.6&#8202;MPa, because the stacked beads overlap only
 partly ([eFlesh printability](exp:20261013-eflesh_printability/20261013-eflesh_lattice_printability.html)). A magnet
@@ -101,7 +105,11 @@ by 12&#8202;% and raise the field at the chips to 10.6&#8202;mT, which needs GAI
 board sits on the plate&#8217;s far side, its chips 3.42&#8202;mm from the tip. A tip printed in Siraya Tech 85A at 30&#8202;% gyroid
 with four 3 by 2&#8202;mm magnets then resolves 0.35&#8202;N per sample at the contact point, with the contact position and a
 uniform background field unknown, and 0.14&#8202;N with a fifth magnet over U1
-([deployment readiness](exp:20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html#readout)).</p>
+([deployment readiness](exp:20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html#readout)).
+A redesigned DIP link clamps the board behind a 0.85&#8202;mm window plate, its chips&#8217; sensing plane 0.37&#8202;mm behind
+the tip, and resolves 0.171&#8202;N with four magnets and 0.063&#8202;N with five at the tips printed with 2.9&#8202;mm seats; the
+tip slides onto two dovetail keys, and a pigtail takes the board&#8217;s Qwiic connection to a header on the clamp plate
+([DIP link board mount](exp:20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html)).</p>
 {{FIG board}}
 {{FIG noise}}"""),
     ("print", "Print plan and magnet pockets",
@@ -113,8 +121,9 @@ the STL and pause sheet of each print and a calculator for magnet depth, chip di
 output rate
 ([finite elements of the printed tip](exp:20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html)).
 Fourteen PrusaSlicer projects print the 3 by 2&#8202;mm magnet tips and two seat coupons in Siraya Tech 85A on the Prusa
-XL&#8217;s second extruder, at 30 and 50&#8202;% gyroid, with seats of 2.7&#8202;mm until a coupon shows which seat keeps a magnet
-([deployment readiness](exp:20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html#print)).</p>"""),
+XL&#8217;s second extruder, at 30 and 50&#8202;% gyroid; the seat coupon chose 2.9&#8202;mm seats (owner, 2026-10-18)
+([deployment readiness](exp:20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html#print),
+[print procedure](exp:20261018-fingertip_print_procedure/20261018-siraya85a_fingertip_print_procedure.html)).</p>"""),
     ("budget", "Compliance of the tip and of the servo",
      """<p>At 1&#8202;N the gyroid tip sinks 63&#8202;&#181;m and the eFlesh tips 0.38&#8211;0.61&#8202;mm. The servo plant used in
 training (gain 0.72&#8202;N&#183;m/rad, inferred from the load register and never measured) lets the fingertip yield
@@ -182,6 +191,15 @@ PAGES = [
     ("Printed fingertips and force sensing", "20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_readiness.html",
      "Printed 85A magnet tips on the CAD hand: print files, bench-plan replays, policies, readout behind the DIP plate, "
      "first-bench plan"),
+    ("Printed fingertips and force sensing", "20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html",
+     "Magnetometer board mount in a redesigned DIP link: three concepts, the final with its Qwiic header, tip attachment, "
+     "clearance film, drawing and print projects"),
+    ("Printed fingertips and force sensing", "20261018-fe_contact_calibration/20261018-fe_contact_calibration.html",
+     "Drake&#8217;s field and the pads calibrated to finite elements of the four 85A prints; the simulators on the same commands"),
+    ("Printed fingertips and force sensing", "20261018-fingertip_print_procedure/20261018-siraya85a_fingertip_print_procedure.html",
+     "Print order, pauses, seat test and records for the 85A tips; the attachment fit coupon"),
+    ("Printed fingertips and force sensing", "20261018-printed_fingertip_status/20261018-printed_fingertip_and_dip_link_status.html",
+     "State of the owner&#8217;s requests of 2026-10-18, jobs and logins, decisions waiting on the owner"),
     ("Printed fingertips and force sensing", "20261013-eflesh_printability/20261013-eflesh_lattice_printability.html",
      "Audit and build of eFlesh lattices, as-printed stiffness"),
     ("Printed fingertips and force sensing", "20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html",
