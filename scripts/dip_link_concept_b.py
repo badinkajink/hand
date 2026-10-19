@@ -55,13 +55,20 @@ REPO = Path(__file__).resolve().parents[1]
 STUDY = REPO / "docs/experiments/20261018-dip_link_board_mount"
 OUT = STUDY / "concept_b"
 FE_ROWS = OUT / "fe/fem_coarse.jsonl"
-# $DIPB_OUT and $DIPB_WORK redirect the CAD files and the intermediate meshes of a parameter set (scripts/dip_link_params.py)
-CAD_DIR = Path(os.environ["DIPB_OUT"]) if os.environ.get("DIPB_OUT") else OUT / "cad"
-MEDIA = OUT / "media"
-EVAL = OUT / "evaluation.json"
-WORK = Path(os.environ["DIPB_WORK"]) if os.environ.get("DIPB_WORK") else REPO / "logs/20261018-dip_link/concept_b"
 DATE = "20261018"
-PREFIX = f"{DATE}-concept_b"
+# The parameter file ($DIPB_PARAMS; default the committed concept b, params/20261018-concept_b.json) names its design's
+# folders under "outputs" (concept_b/ for the committed cassette, concept_b/final/ for b's final). A saved parameter set has
+# none: its files go to logs/20261018-dip_link/params/<file stem>/, or to $DIPB_OUT (CAD files; print files beside it) and
+# $DIPB_WORK (intermediate meshes) when scripts/dip_link_params.py sets them.
+PARAMS = Path(os.environ.get("DIPB_PARAMS") or STUDY / "params/20261018-concept_b.json")
+_OUTPUTS = json.loads(PARAMS.read_text()).get("outputs", {})
+_SCRATCH = REPO / "logs/20261018-dip_link/params" / PARAMS.stem
+CAD_DIR = Path(os.environ["DIPB_OUT"]) if os.environ.get("DIPB_OUT") else REPO / _OUTPUTS.get("cad", _SCRATCH / "cad")
+PRINT_OUT = CAD_DIR.parent / "print" if os.environ.get("DIPB_OUT") else REPO / _OUTPUTS.get("print", _SCRATCH / "print")
+MEDIA = REPO / _OUTPUTS.get("media", _SCRATCH / "media")
+EVAL = REPO / _OUTPUTS.get("evaluation", _SCRATCH / "evaluation.json")
+WORK = Path(os.environ["DIPB_WORK"]) if os.environ.get("DIPB_WORK") else REPO / _OUTPUTS.get("work", _SCRATCH / "work")
+PREFIX = _OUTPUTS.get("prefix", f"{DATE}-concept_b")
 
 # ------------------------------------------------------------------------------------------------- design parameters
 # Every length in mm, frame F. Fixed by the specification (the printed tip, the board, the clevis arms):
@@ -80,7 +87,6 @@ PRINT_DIR = REPO / "docs/experiments/20261016-sim2real_fingertip_readiness/print
 # apply() sets both and derives the module-level names below from them; every function reads these names when it runs,
 # so apply(values) changes the design in a running process (scripts/dip_link_viewer.py). Model values: the chip height,
 # the FR-4 thickness and the board's flatness are pending measurements on the owner's board (spec.json "pending").
-PARAMS = STUDY / "params/20261018-concept_b.json"
 P: dict = {}
 DESIGN: dict = {}
 PAD_SETS = {   # printed 85A tips cut into pads: print STL, orientation, magnets' back face x_F
@@ -98,8 +104,8 @@ PAD_SETS = {   # printed 85A tips cut into pads: print STL, orientation, magnets
 
 
 def load_params(path=None):
-    """({key: value}, {design key: value}) of a parameter file (default: $DIPB_PARAMS, else PARAMS)."""
-    doc = json.loads(Path(path or os.environ.get("DIPB_PARAMS") or PARAMS).read_text())
+    """({key: value}, {design key: value}) of a parameter file (default PARAMS: $DIPB_PARAMS or the committed concept b)."""
+    doc = json.loads(Path(path or PARAMS).read_text())
     return ({q["key"]: float(q["value"]) for q in doc["parameters"]},
             {d["key"]: d["value"] for d in doc.get("design", [])})
 
@@ -331,6 +337,29 @@ def pad_cutters():
     return m3.Manifold.batch_boolean(parts, m3.OpType.Add)
 
 
+def pad_print_frame(tm, orient):
+    """A pad (trimesh in F) in its print frame: the tip's sheet frame (F_to_tip), the block pads lowered so that their cut
+    back face (x_F = X_SLOT) lies on the bed; the curved pads stand on their mount face as the whole tips do."""
+    import numpy as np
+    import trimesh
+    V = F_to_tip(tm.vertices, orient)
+    if orient == "back":
+        V[:, 2] -= TIP["x_back"] - X_SLOT
+    out = trimesh.Trimesh(V, np.asarray(tm.faces), process=False)
+    if out.volume < 0:
+        out.invert()
+    return out
+
+
+def pad_pauses(key):
+    """The pad's pause heights (mm above the bed) from the tip's 2.9 or 2.7 mm print sheet: the block pads print on their
+    cut back face, 6.0 mm (TIP x_back - X_SLOT) lower than the whole tip; the upright pads keep the sheet's heights."""
+    name, orient, _ = TIPS[key]
+    sheet = json.loads((PRINT_DIR / f"{name}_g30.json").read_text())
+    dz = (TIP["x_back"] - X_SLOT) if orient == "back" else 0.0
+    return [dict(print_z_mm=round(q["print_z"] - dz, 2), magnets=q["magnets"], message=q["message"]) for q in sheet["pauses"]]
+
+
 def make_pad(key):
     """The printed tip cut at the slot plane, with the rail grooves and the head notches, in F."""
     import trimesh
@@ -429,7 +458,10 @@ def cmd_prep(a):
         pad, whole = make_pad(key)
         tm = to_trimesh(pad)
         tm.export(WORK / f"pad_{key}.stl")
-        tm.export(CAD_DIR / f"{PREFIX}_pad_{key}.stl")              # the print file: the print STL cut, unchanged
+        tm.export(CAD_DIR / f"{PREFIX}_pad_{key}.stl")              # the pad in F (the print STL cut, unchanged)
+        tp = pad_print_frame(tm, TIPS[key][1])
+        PRINT_OUT.mkdir(parents=True, exist_ok=True)
+        tp.export(PRINT_OUT / f"{PREFIX}_pad_{key.replace('.', 'p')}_print.stl")
         dec, dev = decimate_for_step(tm)
         dec.export(WORK / f"pad_{key}_step.stl")
         info[f"pad_{key}_step"] = dict(faces=int(len(dec.faces)), max_deviation_mm=round(dev, 4))
@@ -635,6 +667,8 @@ def dip_link_parts(K):
     for y, z in screw_yz():
         cuts.append(K.cylx(y, z, SCREW_CLEAR / 2, X_SEAT - RIM_H - 0.2, X_SPINE_BACK + 0.2))
         cuts.append(K.hexx(y, z, NUT_POCKET_AF, X_TONGUE_BACK - NUT_POCKET_H, X_SPINE_BACK + 0.2))   # nut in from the back
+    if DESIGN.get("qwiic") == "header_on_tongue":           # the Qwiic header's pocket and the pigtail's groove
+        cuts += [K.box(lo, hi) for _, lo, hi in qwiic_header_b()[1]]
     body = K.cut(body, cuts)
     dip = K.finish(K.fuse(body, K.arms()))
     return body, dip
@@ -757,6 +791,45 @@ def hardware():
     return out
 
 
+QW = dict(hdr_w=6.0, hdr_d=4.25, lead=0.7, hdr_h=2.9, plug_w=5.0, plug_out=2.0, plug_h=2.96, wire_d=0.8, wire_run=3.0)
+# JST SH catalogue sizes (scripts/dip_link_board_mount.py QW): side-entry header SM04B-SRSS-TB 6.0 wide, 4.25 deep plus
+# 0.7 mm of leads, 2.9 tall; housing SHR-04V-S 5.0 wide, 2.96 tall mated, 2.0 out of the header; the cable's first 3 mm
+
+
+def qwiic_header_b():
+    """b's Qwiic connection where J1 fits nowhere (concept_b/final/*_qwiic.json): J1 is cut off with the tab; four wires
+    from the vias at the tab's root run through the wire exit and down a groove in the tongue's back to a side-entry
+    SM04B-SRSS-TB header seated in a pocket of the tongue's back, mating face proximal, so a Qwiic cable plugs in there and
+    leaves toward the PIP joint over the tie block, where a cable tie holds it. Returns the connector parts and the cuts in
+    the DIP link, as (name, lo, hi) boxes in F."""
+    xb = X_TONGUE_BACK                              # the tongue's back face
+    x0 = xb - P["qwiic_pocket_depth"]               # pocket floor = the header's base
+    y0, z_back, c, g = P["qwiic_y"], P["qwiic_z_back"], P["qwiic_pocket_clear"], P["qwiic_groove_depth"]
+    gy0, gy1 = P["qwiic_groove_y0"], P["qwiic_groove_y1"]
+    z_mate = z_back + QW["hdr_d"]
+    z_exit = 0.5 * (WIRE_SLOT["z"][0] + WIRE_SLOT["z"][1])
+    parts = [("q_header", (x0, y0 - QW["hdr_w"] / 2, z_back), (x0 + QW["hdr_h"], y0 + QW["hdr_w"] / 2, z_mate)),
+             ("q_leads", (x0, y0 - 1.8, z_back - QW["lead"]), (x0 + 0.3, y0 + 1.8, z_back)),
+             ("q_plug", (x0, y0 - QW["plug_w"] / 2, z_mate), (x0 + QW["plug_h"], y0 + QW["plug_w"] / 2, z_mate + QW["plug_out"]))]
+    for k in range(4):
+        y = y0 + (k - 1.5) * 1.0
+        zc = z_mate + QW["plug_out"]
+        parts.append((f"q_wire{k}", (x0 + 1.4 - 0.4, y - 0.4, zc), (x0 + 1.4 + 0.4, y + 0.4, zc + QW["wire_run"])))
+    parts.append(("q_pigtail", (xb - g, gy0 + 0.2, z_back - QW["lead"] - 0.5), (xb, gy1 - 0.2, z_exit)))
+    parts.append(("q_pigtail_turn", (xb - g, y0 - 1.8, z_back - QW["lead"] - 0.5), (xb, gy1 - 0.2, z_back - QW["lead"])))
+    cuts = [("pocket_body", (x0, y0 - QW["hdr_w"] / 2 - c, z_back), (xb + 0.1, y0 + QW["hdr_w"] / 2 + c, z_mate + c)),
+            ("pocket_leads", (x0, y0 - 1.8 - c, z_back - QW["lead"] - 0.1), (xb + 0.1, y0 + 1.8 + c, z_back + 0.01)),
+            ("groove_run", (xb - g, gy0, z_back - QW["lead"] - g), (xb + 0.1, gy1, WIRE_SLOT["z"][1])),
+            ("groove_turn", (xb - g, y0 - 1.8 - c, z_back - QW["lead"] - g), (xb + 0.1, gy1, z_back - QW["lead"] + 0.01))]
+    return parts, cuts
+
+
+def qwiic_mesh():
+    """The header, its leads, the mated plug, the cable's first 3 mm and the pigtail as one trimesh (F)."""
+    import trimesh
+    return trimesh.util.concatenate([to_trimesh(box(lo, hi)) for _, lo, hi in qwiic_header_b()[0]])
+
+
 def load_cad(name):
     import trimesh
     return trimesh.load(CAD_DIR / f"{PREFIX}_{name}.stl", force="mesh")
@@ -772,6 +845,8 @@ def assembly_meshes(tip="block4"):
     for k in ("fr4", "board_parts", "screws", "nuts"):
         out[k] = to_trimesh(hw[k])
     out["magnets"] = to_trimesh(hw[f"magnets_{'block5' if tip == 'block5' else 'block4'}"])
+    if DESIGN.get("qwiic") == "header_on_tongue":
+        out["qwiic"] = qwiic_mesh()
     out["mcp_link"] = G.load_part("mcp_link")
     out["servo_pip"] = G.load_part("servo_pip")
     return out
@@ -861,6 +936,8 @@ def cmd_clearance(a):
              "board_with_tab": to_trimesh(hw["fr4"] + hw["board_parts"]), "screws": to_trimesh(hw["screws"]),
              "nuts": to_trimesh(hw["nuts"]), "wires_at_exit": to_trimesh(wires), "pad_block4": load_cad("pad_block4"),
              "arms_kept": trimesh.util.concatenate([trimesh.load(WORK / "arm_horn.stl"), trimesh.load(WORK / "arm_slot.stl")])}
+    if DESIGN.get("qwiic") == "header_on_tongue":
+        parts["qwiic_connector"] = qwiic_mesh()
     out = {}
     if (WORK / "clearance.json").exists() and not a.force:
         out = json.loads((WORK / "clearance.json").read_text())
@@ -965,12 +1042,30 @@ def sensing_point(row, gap, noise=None):
                 false_force_N_per_um={"x (toward the magnets)" if k == "x" else k: v for k, v in feq.items()})
 
 
+def as_printed_five(r0):
+    """An FE row of the five-magnet block with its corner magnets moved to the 2.9 mm print set's spacing (7.4 mm along the
+    finger instead of 7.0, layout five_z7p4) and their motions per newton kept, as scripts/dip_link_board_mount.py
+    cmd_sense does for concept a."""
+    r = json.loads(json.dumps(r0))
+    z5 = sorted({round(TIP["z_mount"] - m["centre_F"][2], 2) for m in tip_records()["block5"]["magnets"]["items"]})
+    for mg in r["magnets"]:
+        if abs(mg[3] - 7.36) < 0.01:
+            mg[3] = min(z5)
+        elif abs(mg[3] - 14.36) < 0.01:
+            mg[3] = max(z5)
+    r["as_printed"] = "five_z7p4"
+    return r
+
+
 def sensing_table():
     """Concept b at every FE depth and the whole block at the touch and plate placements (coarse grid), with the
-    chips' datasheet noise at GAIN_SEL 7 (the spec's convention) and with the noise at the gain the field needs."""
+    chips' datasheet noise at GAIN_SEL 7 (the spec's convention) and with the noise at the gain the field needs. With the
+    pads of the 2.9 mm print set, the five-magnet rows carry the printed corner spacing (as_printed_five)."""
     rows = fe_rows()
     out = []
     for r in sorted(rows, key=lambda r: (r["layout"], -r["t_behind_mm"])):
+        if DESIGN.get("pads") == "seat2p9" and r["layout"].startswith("five"):
+            r = as_printed_five(r)
         tb = r["t_behind_mm"]
         x_slot = MAG_BACK_BLOCK + tb
         cases = [("concept_b" if tb < 10 else "touch", x_slot + SPOT - TIP["x_back"])]
@@ -978,12 +1073,49 @@ def sensing_table():
             cases.append(("plate", 3.42))
         for place, gap in cases:
             rec = dict(layout=r["layout"], magnets=len(r["magnets"]), t_behind_mm=tb, x_slot_F=round(x_slot, 2),
-                       pad_depth_mm=round(x_slot - TIP["x_palmar"], 2), placement=place)
+                       pad_depth_mm=round(x_slot - TIP["x_palmar"], 2), placement=place, as_printed=r.get("as_printed"))
             rec["gain7_noise"] = sensing_point(r, gap)
             rec["gain_noise"] = sensing_point(r, gap, noise="gain")
             out.append(rec)
             print(r["layout"], tb, place, rec["gain7_noise"]["centre_force_N"], rec["gain_noise"]["centre_force_N"],
                   rec["gain_noise"]["gain_sel"], rec["gain_noise"]["res"], flush=True)
+    return out
+
+
+def static_fields():
+    """Static field of each pad's magnets at the five chips (point dipoles, N52 1.45 T, readout frame: x toward the palmar
+    face), the gain it needs (gain_setting) and the distances from each chip's sensing point to the nearest magnet's centre
+    and surface, at this design's sensing plane (X_SLOT + SPOT), for the tips of the pad set."""
+    import numpy as np
+    sys.path.insert(0, str(REPO / "scripts"))
+    import tpu_tip_design as TD
+    import tpu_tip_magnet_sensing as MS
+    gap = X_SLOT + SPOT - TIP["x_back"]
+    chip_uv = [(0, 0), (0, 7), (7, 0), (0, -7), (-7, 0.051)]
+    out = {}
+    for key, t in tip_records().items():
+        mg = t["magnets"]
+        Dm, tm_ = mg["size_mm"]
+        mom = np.array([MS.BR * math.pi * (Dm / 2e3) ** 2 * (tm_ / 1e3) / (4e-7 * math.pi), 0.0, 0.0])
+        mags_t = [np.array([-m["centre_F"][0] - 2.05, m["centre_F"][1], TIP["z_mount"] - m["centre_F"][2]]) * 1e-3
+                  for m in mg["items"]]
+        chips_t = [np.array([TD.X_BACK - gap, u, TD.Z_C + v]) * 1e-3 for u, v in chip_uv]
+        B = np.array([sum(MS.dipole(c, pm, mom) for pm in mags_t) for c in chips_t]) * 1e3
+        bmax = float(np.abs(B).max())
+        g, res, rng = gain_setting(bmax)
+        dc, ds = [], []
+        for u, v in chip_uv:
+            c = np.array([X_SLOT + SPOT, u, Z_CONTACT - v])
+            dc.append(min(float(np.linalg.norm(c - np.array(m["centre_F"]))) for m in mg["items"]))
+            ds.append(min(math.hypot(max(m["x_F"][0] - c[0], 0.0, c[0] - m["x_F"][1]),
+                                     max(math.hypot(c[1] - m["centre_F"][1], c[2] - m["centre_F"][2]) - Dm / 2, 0.0))
+                          for m in mg["items"]))
+        out[key] = dict(gap_from_tip_back_mm=round(gap, 3), B_chips_mT=np.round(B, 3).tolist(),
+                        B_U1_mT=round(float(np.linalg.norm(B[0])), 3), B_max_component_mT=round(bmax, 3), gain_sel=g, res=res,
+                        chip_to_magnet_centre_mm=[round(v, 2) for v in dc], chip_to_magnet_surface_mm=[round(v, 2) for v in ds],
+                        magnets_top_depth_mm=mg["top_depth_mm"], magnets=len(mg["items"]))
+        print(f"static {key:7s}: U1 {out[key]['B_U1_mT']:.2f} mT, max component {bmax:.2f} mT (GAIN_SEL {g}, RES {res}), "
+              f"chip to magnet surface {min(ds):.2f} mm", flush=True)
     return out
 
 
@@ -1010,10 +1142,11 @@ def chip_magnet_distances(key):
 # ================================================================================================= renders
 
 COLORS = dict(dip_link="#c9c9c4", cover="#3b6fc4", fr4="#2f7d4f", board_parts="#202020", pad="#d9c08c",
-              magnets="#8a8f99", screws="#c8a24a", nuts="#b08a30", mcp_link="#9fb6cf", servo_pip="#4a4a4a")
+              magnets="#8a8f99", screws="#c8a24a", nuts="#b08a30", mcp_link="#9fb6cf", servo_pip="#4a4a4a",
+              qwiic="#f0efe6")
 LABEL = dict(dip_link="DIP link (PLA)", cover="Cover (PLA)", fr4="ReSkin 5X board", board_parts="MLX90393 chips, 0402 parts",
              pad="85A pad, block", magnets="Magnets 3 x 2 mm", screws="Brass M1.6 x 5 screws", nuts="Brass M1.6 nuts",
-             mcp_link="MCP link (PIP 0 deg)", servo_pip="PIP servo")
+             mcp_link="MCP link (PIP 0 deg)", servo_pip="PIP servo", qwiic="Qwiic connector")
 
 
 def _pv(mesh):
@@ -1084,12 +1217,41 @@ def render_iso(M, path, view="palmar"):
     p.screenshot(str(path))
     p.close()
     keys = [("pad" if k.startswith("pad") else k) for k in M]
-    _legend_png(path, keys, "Concept b at PIP 0 deg, " + ("palmar side" if view == "palmar" else "dorsal side"))
+    _legend_png(path, keys, f"{_title()} at PIP 0 deg, " + ("palmar side" if view == "palmar" else "dorsal side"))
+
+
+def _title():
+    return "Concept b, final" if DESIGN.get("qwiic", "none") != "none" else "Concept b"
+
+
+def render_qwiic(M, path):
+    """The Qwiic header, its plug and the pigtail on the tongue's back, close up from the dorsal side and distal."""
+    import numpy as np
+    p = _plotter((1600, 1150))
+    for k, m in M.items():
+        kk = "pad" if k.startswith("pad") else k
+        if kk in ("mcp_link",):
+            continue
+        op = 0.55 if kk == "pad" else 1.0
+        p.add_mesh(_pv(m), color=COLORS[kk], opacity=op, smooth_shading=True, split_sharp_edges=True, specular=0.2)
+    parts = {n: (np.array(lo), np.array(hi)) for n, lo, hi in qwiic_header_b()[0]}
+    lo, hi = parts["q_header"]
+    c = np.array([(lo[0] + hi[0]) / 2, 1.0, -79.0])
+    p.camera.position = tuple(c + np.array([52.0, -34.0, 22.0]))
+    p.camera.focal_point = tuple(c)
+    p.camera.up = (0.0, 0.0, 1.0)
+    p.camera.zoom(1.45)
+    p.screenshot(str(path))
+    p.close()
+    keys = [k for k in ("qwiic", "dip_link", "nuts", "fr4", "cover", "pad", "servo_pip") if k in
+            [("pad" if n.startswith("pad") else n) for n in M]]
+    _legend_png(path, keys, "Qwiic header in the tongue's back, plug mated, pigtail in its groove (PIP 0 deg)")
 
 
 def render_exploded(M, path):
     import numpy as np
-    shift = dict(dip_link=0.0, nuts=10.0, fr4=-6.0, board_parts=-6.0, cover=-12.0, screws=-19.0, pad=-31.0, magnets=-31.0)
+    shift = dict(dip_link=0.0, nuts=10.0, fr4=-6.0, board_parts=-6.0, cover=-12.0, screws=-19.0, pad=-31.0, magnets=-31.0,
+                 qwiic=0.0)
     p = _plotter((1700, 1150))
     for k, m in M.items():
         kk = "pad" if k.startswith("pad") else k
@@ -1106,8 +1268,9 @@ def render_exploded(M, path):
     p.camera.zoom(1.15)
     p.screenshot(str(path))
     p.close()
-    keys = [k for k in ("pad", "magnets", "screws", "cover", "board_parts", "fr4", "dip_link", "nuts")]
-    _legend_png(path, keys, "Concept b exploded along x")
+    keys = [k for k in ("pad", "magnets", "screws", "cover", "board_parts", "fr4", "dip_link", "nuts", "qwiic")
+            if k in [("pad" if n.startswith("pad") else n) for n in M]]
+    _legend_png(path, keys, f"{_title()} exploded along x")
 
 
 def section_paths(sec, i, j):
@@ -1141,7 +1304,7 @@ def render_sections(M, path, spec_rows):
     import numpy as np
     from matplotlib.patches import PathPatch, Rectangle
     fig, axs = plt.subplots(1, 2, figsize=(17.5, 10.2), gridspec_kw=dict(width_ratios=[1.05, 1.0]))
-    order = ["mcp_link", "servo_pip", "dip_link", "cover", "fr4", "board_parts", "screws", "nuts", "pad", "magnets"]
+    order = ["mcp_link", "servo_pip", "dip_link", "cover", "fr4", "board_parts", "screws", "nuts", "pad", "magnets", "qwiic"]
     planes = [("y = 0 mm (U1, U2, U4)", [0, 0.0, 0], [0, 1, 0], (0, 2), (-14, 13), (-91, -56)),
               ("z = -78.16 mm (U1, U3, U5)", [0, 0, Z_CONTACT], [0, 0, 1], (1, 0), (-12.5, 12.5), (-12.5, 11))]
     for ax, (title, o, n, (i, j), xl, yl) in zip(axs, planes):
@@ -1185,10 +1348,11 @@ def render_sections(M, path, spec_rows):
     ax.text(-12.2, xs + 0.3, "sensing plane", fontsize=15, family="serif", color="#902020")
     ax.text(4.4, -1.95, "rails", fontsize=15, family="serif", color="#1f3f80", ha="center")
     from matplotlib.patches import Patch
-    keys = ["pad", "cover", "fr4", "board_parts", "dip_link", "mcp_link", "servo_pip"]
+    keys = ["pad", "cover", "fr4", "board_parts", "dip_link", "mcp_link", "servo_pip"] + (["qwiic"] if "qwiic" in M else [])
     fig.legend([Patch(facecolor=COLORS[k], edgecolor="#333333") for k in keys], [LABEL[k] for k in keys], loc="lower center",
                ncol=4, frameon=False, fontsize=17)
-    fig.suptitle("Sections through the chips, concept b at PIP 0 deg (block tip, four magnets)", fontsize=21, family="serif")
+    fig.suptitle(f"Sections through the chips, {_title().lower()} at PIP 0 deg (block tip, four magnets)", fontsize=21,
+                 family="serif")
     fig.tight_layout(rect=(0, 0.10, 1, 0.95))
     fig.savefig(path, dpi=100)
     plt.close(fig)
@@ -1201,6 +1365,8 @@ def cmd_render(a):
     render_iso(M, MEDIA / f"{PREFIX}_iso_dorsal.png", "dorsal")
     render_exploded(M, MEDIA / f"{PREFIX}_exploded.png")
     render_sections(M, MEDIA / f"{PREFIX}_section_chips.png", None)
+    if "qwiic" in M:
+        render_qwiic(M, MEDIA / f"{PREFIX}_qwiic.png")
     import trimesh
     asm = trimesh.util.concatenate(list(M.values()))
     asm.export(CAD_DIR / f"{PREFIX}_assembly_pip0.stl")
@@ -1509,8 +1675,11 @@ def cmd_eval(a):
                  "Re-sliced print sheets of the pads (pause heights)",
                  "The PIP servo's motor field at the chips over the PIP range"],
     )
+    if DESIGN.get("qwiic", "none") != "none":
+        final_sections(ev, clr)
     ev["files"] = dict(
-        generator="scripts/dip_link_concept_b.py",
+        generator="scripts/dip_link_concept_b.py", params=str(PARAMS.relative_to(REPO)),
+        print=sorted(str(f.relative_to(REPO)) for f in PRINT_OUT.glob("*")) if PRINT_OUT.exists() else [],
         cad=sorted(str(f.relative_to(REPO)) for f in CAD_DIR.glob("*")),
         media=sorted(str(f.relative_to(REPO)) for f in MEDIA.glob("*.png")),
         fe=str(FE_ROWS.relative_to(REPO)), evaluation=str(EVAL.relative_to(REPO)),
@@ -1522,9 +1691,173 @@ def cmd_eval(a):
                           mass=ev["mass_g"]["total_without_tip_100pct"], width=width), indent=1))
 
 
+def _qwiic_why(rows):
+    prox = [r for r in rows if r["orientation"] == "tab proximal"]
+    other = [r for r in rows if r["orientation"] != "tab proximal"]
+    out = [max(r["beyond_tip_end_mm"], r["beyond_band_mm"]) for r in other]
+    return (f"With the tab proximal, J1, its plug and the cable's first 3 mm overlap the PIP servo by "
+            f"{min(-r['connector_clearance_mm'] for r in prox):.1f}-{max(-r['connector_clearance_mm'] for r in prox):.1f} mm and "
+            f"the bare tab by {max(-r['tab_clearance_mm'] for r in prox):.1f} mm; distal or lateral they clear the links but "
+            f"stand {min(out):.1f}-{max(out):.1f} mm beyond the tip's end or the 21 mm band, where grasped objects meet them.")
+
+
+def final_sections(ev, clr):
+    """The parts of b's final evaluation that the committed concept b lacks: the Qwiic study and the header, the static
+    fields of the 2.9 mm pads, the pads' print files and pauses, and the print settings (also written beside the
+    evaluation)."""
+    q = json.loads((FINAL / f"{FINAL_PFX}_qwiic.json").read_text())
+    parts, cuts = qwiic_header_b()
+    pb = {n: (lo, hi) for n, lo, hi in parts}
+    ev["title"] = ("DIP link concept b, final: the board in a cassette in place of the pad's dorsal 6 mm, the Qwiic header in "
+                   "the tongue's back, pads of the 2.9 mm print set")
+    ev["status"] = "design; model values; nothing printed or measured"
+    ev["qwiic"] = dict(
+        study=[dict(orientation=("flipped, " if r["flipped"] else "") + r["orientation"],
+                    connector_clearance_mm=r["connector_clearance_mm"], tab_clearance_mm=r["tab_clearance_mm"],
+                    beyond_tip_end_mm=r["beyond_tip_end_mm"], beyond_band_mm=r["beyond_band_mm"], into_pad_mm=r["into_pad_mm"],
+                    fits=bool(r["clears_links"] and r["inside_envelope"])) for r in q["rows"]],
+        decision=("J1 kept" if q["j1_kept"] else "J1 cut off with the tab; a pigtail to an SM04B-SRSS-TB header in a pocket of "
+                                                 "the tongue's back"),
+        why=_qwiic_why(q["rows"]),
+        header=dict(where=f"pocket {P['qwiic_pocket_depth']:.2f} mm deep in the tongue's back (x_F {X_TONGUE_BACK:.2f}), centred "
+                          f"at y {P['qwiic_y']:.2f}, its back at z {P['qwiic_z_back']:.2f}, mating face proximal",
+                    header_box_F=[list(pb["q_header"][0]), list(pb["q_header"][1])],
+                    plug_box_F=[list(pb["q_plug"][0]), list(pb["q_plug"][1])],
+                    tongue_under_pocket_mm=round(X_TONGUE_BACK - P["qwiic_pocket_depth"] - X_SEAT, 2),
+                    pigtail=f"four wires from the vias through the exit slot (z {WIRE_SLOT['z'][0]:.2f}..{WIRE_SLOT['z'][1]:.2f}) "
+                            f"and down a {P['qwiic_groove_depth']:.2f} mm groove at y {P['qwiic_groove_y0']:.2f}.."
+                            f"{P['qwiic_groove_y1']:.2f} to the header's leads",
+                    cable=("the Qwiic cable leaves the plug toward the PIP joint, rises over the tie block (top x_F "
+                           f"{TIE['x_top']:.2f}) and is held there by a 2.5 mm cable tie through the block's tunnel"),
+                    clearance=clr.get("qwiic_connector")))
+    ev["static_fields_2p9"] = json.loads((WORK / "static_fields.json").read_text())
+    pads = {}
+    for key, (name, orient, _) in TIPS.items():
+        pads[key] = dict(file=str((PRINT_OUT / f"{PREFIX}_pad_{key.replace('.', 'p')}_print.stl").relative_to(REPO)),
+                         sheet=f"docs/experiments/20261016-sim2real_fingertip_readiness/print/{name}_g30.json",
+                         orientation="cut back face on the bed, palmar face up" if orient == "back" else
+                                     "upright, mount face on the bed", pauses=pad_pauses(key))
+    ev["pads_print"] = pads
+    ps = dict(
+        printer="Original Prusa XL 5T, 0.4 mm nozzles (PrusaSlicer profile 'Original Prusa XL - 5T Input Shaper 0.4 nozzle')",
+        dip_link=dict(file=f"cad/{PREFIX}_dip_link.stl", tool="a PLA tool (3, 4 or 5 in the owner's v17 template)",
+                      material="PLA (the links: PLA, 15 % infill) or PETG",
+                      orientation="on its side, the horn arm's outer face (y_F -23.25) on the bed: the bridge's profile and "
+                                  "the arms print as layers, every hole along y is vertical",
+                      layer_mm=0.10, perimeters=4, infill="100 % in the tongue and the bridge (modifier), 15 % gyroid elsewhere",
+                      supports="a tree support under the tongue's -y face (12.75 mm above the bed); none in the header pocket "
+                               "or the groove, which open upward on the tongue's back",
+                      after="check the seat (x_F 1.95) with a straightedge (0.05 mm); press the four M1.6 nuts in; clear the "
+                            "header pocket and the groove of strings"),
+        cover=dict(file=f"cad/{PREFIX}_cover.stl", tool="a PLA tool", material="PLA or PETG, solid",
+                   orientation="the clamp face (back, x_F 1.35) on the bed", layer_mm=0.10, infill="100 %", supports="none",
+                   note="the web is as thick as the chips (chip_h); reprint at the measured package height"),
+        pads=dict(tool="tool 2", material="Siraya Tech TPU 85A", profile="Siraya Tech TPU 85A @XL 0.4mm Nozzle (the print "
+                  "procedure page)", infill="gyroid 30 % (50 % for the stiff variants), two perimeters, two around each pocket",
+                  seat_mm=2.9, per_pad=pads,
+                  note="the block pads print on their cut back face, so their pause is 6.0 mm lower than the whole block's "
+                       "(12.4 mm on the 2.9 mm sheet); the curved pads print upright and keep the sheets' pauses; slice each "
+                       "pad's STL with its sheet's settings and these pauses"),
+        assembly_extra=["Cut the tab at v -11.70 (J1 goes with it) and solder four wires (VDD, GND, SDA, SCL; AWG 30-32, "
+                        "about 25 mm) to the vias on the bare side",
+                        "Pass the wires through the exit slot, lay them in the groove of the tongue's back and solder them to "
+                        "the header's leads in the Qwiic pin order (GND, VDD, SDA, SCL from pin 1)",
+                        "Glue the SM04B-SRSS-TB header into its pocket (CA glue on the floor), mating face proximal",
+                        "Plug the Qwiic cable in, lay it over the tie block and tie it there; route it across the PIP joint "
+                        "outside the slotted arm (y > 17.4 mm)"],
+        when=time.strftime("%Y-%m-%d %H:%M"))
+    (EVAL.parent / f"{PREFIX}_print_settings.json").write_text(json.dumps(ps, indent=1))
+    ev["print_settings"] = str((EVAL.parent / f"{PREFIX}_print_settings.json").relative_to(REPO))
+
+
 def cmd_sensing(a):
     t = sensing_table()
     (WORK / "sensing.json").write_text(json.dumps(t, indent=1))
+    (WORK / "static_fields.json").write_text(json.dumps(static_fields(), indent=1))
+
+
+# ================================================================================================= the Qwiic connection
+# The final of concept b (concept_b/final/): the pads of the 2.9 mm print set and a Qwiic connection. The study places the
+# board's own J1 (JST SH side-entry header, its mated SHR-04V-S housing and the cable's first 3 mm; the connector model of
+# scripts/dip_link_board_mount.py) in eight board orientations at b's placement and checks each against the MCP link and
+# the PIP servo over the PIP range and against the envelope the cassette already occupies.
+
+FINAL = OUT / "final"
+FINAL_PFX = f"{DATE}-concept_b_final"
+
+
+def board_to_F_b(P_b, theta_deg, flipped):
+    """Board frame (u, v, w; w the height above the component face) to F for a board rotated in its plane by theta about
+    U1 (0: tab proximal, toward the PIP joint; 180: tab distal; 90: tab toward -y; 270: tab toward +y) at b's placement
+    (component face at X_COMP, parts toward the pad), or flipped (bare face on the pad's back face X_SLOT, parts dorsal)."""
+    import numpy as np
+    th = math.radians(theta_deg)
+    u, v, w = P_b[:, 0], P_b[:, 1], P_b[:, 2]
+    if flipped:
+        u = -u
+    ur = u * math.cos(th) - v * math.sin(th)
+    vr = u * math.sin(th) + v * math.cos(th)
+    x = X_SLOT + FR4 + w if flipped else X_COMP - w
+    return np.column_stack([x, ur, Z_CONTACT - vr])
+
+
+def cmd_qwiic(a):
+    """Where the board's own Qwiic connector J1 can go at b's placement: the eight orientations of
+    dip_link_board_mount.cmd_qwiic (tab proximal, distal, toward -y and +y; component side toward the pad or flipped), each
+    against the MCP link and the PIP servo over PIP -18..92 deg (points_clearance_exact, 0.25 mm samples) and against b's
+    envelope: the tip's end z -88.71, the 21 mm band |y| <= Y_RIM and the pad palmar of X_SLOT. J1 stays if an
+    orientation clears by 0.5 mm inside the envelope. -> concept_b/final/<FINAL_PFX>_qwiic.json"""
+    import numpy as np
+    import trimesh
+    sys.path.insert(0, str(REPO / "scripts"))
+    sys.path.insert(0, str(REPO / "src"))
+    import dip_link_board_mount as DLF
+    import dip_link_geometry as G
+    t0 = time.time()
+    rows = []
+    for flipped in (False, True):
+        for theta, label in ((0, "tab proximal"), (180, "tab distal"), (90, "tab toward -y"), (270, "tab toward +y")):
+            meshes = {}
+            for name, lo, hi in DLF.j1_parts_board():
+                bm = DLF.box_mesh(lo, hi)
+                tm = trimesh.Trimesh(board_to_F_b(np.asarray(bm.vertices), theta, flipped), np.asarray(bm.faces), process=False)
+                if tm.volume < 0:
+                    tm.invert()
+                meshes[name] = tm
+            conn = trimesh.util.concatenate([m for k, m in meshes.items() if k != "tab_fr4"])
+            Pc = G.surface_points(conn, 0.25)
+            v, i, q, part = G.points_clearance_exact(Pc, reach=3.0)
+            Pt = G.surface_points(meshes["tab_fr4"], 0.25)
+            vt, _, qt, pt_ = G.points_clearance_exact(Pt, reach=3.0)
+            V = np.asarray(conn.vertices)
+            beyond_end = float(max(0.0, TIP["z_end"] - V[:, 2].min()))
+            beyond_side = float(max(0.0, np.abs(V[:, 1]).max() - Y_RIM))
+            pad_zone = (V[:, 2] >= TIP["z_end"]) & (V[:, 2] <= TIP["z_mount"]) & (np.abs(V[:, 1]) <= TIP["y_half"])
+            into_pad = float(max(0.0, X_SLOT - V[pad_zone, 0].min())) if pad_zone.any() else 0.0
+            ok_link = bool(v >= 0.5 and vt >= 0.5)
+            ok_env = beyond_end <= 0.0 and beyond_side <= 0.0 and into_pad <= 0.0
+            rows.append(dict(orientation=label, theta_deg=theta, flipped=flipped, connector_clearance_mm=round(v, 3),
+                             connector_clearance_at=dict(pip_deg=q, part=part, at_F=np.round(Pc[i], 2).tolist()),
+                             tab_clearance_mm=round(vt, 3), tab_clearance_at=dict(pip_deg=qt, part=pt_),
+                             beyond_tip_end_mm=round(beyond_end, 2), beyond_band_mm=round(beyond_side, 2),
+                             into_pad_mm=round(into_pad, 2), clears_links=ok_link, inside_envelope=ok_env,
+                             bounds_F=np.round(conn.bounds, 2).tolist()))
+            print(f"{'flipped' if flipped else 'toward pad':10s} {label:14s}: connector {v:+.2f} mm ({part}, PIP {q}), tab "
+                  f"{vt:+.2f} mm; beyond the end {beyond_end:.1f}, beyond the band {beyond_side:.1f}, into the pad "
+                  f"{into_pad:.1f} mm [{time.time() - t0:.0f} s]", flush=True)
+    keep = [r for r in rows if r["clears_links"] and r["inside_envelope"]]
+    out = dict(model=dict(source="scripts/dip_link_board_mount.py j1_parts_board (JST SH SM04B-SRSS-TB on the board, "
+                                 "SHR-04V-S housing mated, Qwiic cable 4 x 28 AWG as 0.8 mm wires for 3.0 mm)",
+                          placement=f"component face at x_F {X_COMP:.2f} (parts toward the pad) or flipped (bare face at "
+                                    f"x_F {X_SLOT:.2f}, parts dorsal); U1 over the contact point",
+                          envelope=dict(z_end=TIP["z_end"], half_w=Y_RIM, pad_back_x=X_SLOT), need_mm=0.5),
+               rows=rows, j1_kept=bool(keep), kept_orientation=keep[0]["orientation"] if keep else None,
+               params=str(Path(os.environ.get("DIPB_PARAMS") or PARAMS).relative_to(REPO)),
+               when=time.strftime("%Y-%m-%d %H:%M"))
+    FINAL.mkdir(parents=True, exist_ok=True)
+    dst = FINAL / f"{FINAL_PFX}_qwiic.json"
+    dst.write_text(json.dumps(out, indent=1, default=float))
+    print(f"J1 kept: {bool(keep)} -> {dst.relative_to(REPO)} [{time.time() - t0:.0f} s]", flush=True)
 
 
 # ================================================================================================= command line
@@ -1543,10 +1876,11 @@ def main():
     sub.add_parser("sensing", help="field and force resolution per FE depth -> WORK/sensing.json")
     sub.add_parser("render", help="iso, exploded and section figures -> concept_b/media/; assembly STL")
     sub.add_parser("eval", help="the evaluation -> concept_b/evaluation.json")
+    sub.add_parser("qwiic", help="J1 in eight orientations at b's placement -> concept_b/final/*_qwiic.json")
     a = ap.parse_args()
     WORK.mkdir(parents=True, exist_ok=True)
     {"fe": cmd_fe, "prep": cmd_prep, "cad": cmd_cad, "clearance": cmd_clearance, "sensing": cmd_sensing,
-     "render": cmd_render, "eval": cmd_eval}[a.cmd](a)
+     "render": cmd_render, "eval": cmd_eval, "qwiic": cmd_qwiic}[a.cmd](a)
 
 
 if os.environ.get("DIPB_FREECAD"):

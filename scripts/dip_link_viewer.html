@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DIP-link parameter viewer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root { --rule: #000; --muted: #555; --bad: #b00000; --good: #006000; --panel: #ffffff; --bg: #ffffff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: #000; font-family: "Times New Roman", Times, serif;
+               font-size: 15px; }
+  #app { display: grid; grid-template-columns: 360px 1fr 330px; height: 100vh; }
+  .col { overflow-y: auto; padding: 8px 10px; border-right: 1px solid var(--rule); background: var(--panel); }
+  .col:last-child { border-right: none; border-left: 1px solid var(--rule); }
+  h1 { font-size: 19px; margin: 2px 0 6px; font-weight: bold; }
+  h2 { font-size: 16px; margin: 12px 0 4px; border-bottom: 1px solid var(--rule); }
+  label.row, div.row { display: grid; grid-template-columns: 1fr 86px; gap: 4px; align-items: center; margin: 2px 0; }
+  .row span.unit { color: var(--muted); font-size: 12px; }
+  input[type=number] { width: 86px; font: inherit; padding: 1px 3px; border: 1px solid #888; }
+  input.bad { border: 2px solid var(--bad); background: #fff0f0; }
+  input.changed { background: #fff8d0; }
+  select, button, input[type=text] { font: inherit; }
+  button { margin: 3px 4px 3px 0; padding: 2px 8px; border: 1px solid #000; background: #eee; cursor: pointer; }
+  button:disabled { color: #888; cursor: default; }
+  details { margin: 4px 0; border-bottom: 1px dotted #999; padding-bottom: 3px; }
+  summary { cursor: pointer; font-weight: bold; }
+  .hint { color: var(--muted); font-size: 12.5px; }
+  .param-sets { font-size: 12px; color: var(--muted); margin: 0 0 2px; }
+  #viewport { position: relative; overflow: hidden; }
+  #viewport canvas { display: block; }
+  #status { position: absolute; left: 8px; top: 6px; background: rgba(255,255,255,0.85); padding: 2px 6px;
+            border: 1px solid #000; font-size: 13px; }
+  #axes { position: absolute; left: 8px; bottom: 6px; background: rgba(255,255,255,0.85); padding: 2px 6px;
+          border: 1px solid #000; font-size: 12.5px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  td, th { border-bottom: 1px solid #ccc; padding: 2px 3px; vertical-align: top; text-align: left; }
+  td.num { text-align: right; white-space: nowrap; }
+  .ok { color: var(--good); } .notok { color: var(--bad); font-weight: bold; }
+  .problems { color: var(--bad); font-size: 13.5px; }
+  pre { white-space: pre-wrap; font-size: 11.5px; max-height: 180px; overflow-y: auto; background: #f6f6f6; padding: 4px;
+        border: 1px solid #ccc; }
+  .partrow { display: grid; grid-template-columns: 18px 1fr 70px; gap: 4px; align-items: center; font-size: 13px; margin: 1px 0; }
+  .swatch { width: 12px; height: 12px; border: 1px solid #000; display: inline-block; margin-right: 4px; vertical-align: -1px; }
+  input[type=range] { width: 100%; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="col" id="left">
+    <h1>DIP-link parameters</h1>
+    <div class="hint">Each field is one parameter of the selected file; a change rebuilds the parts in a second and updates
+      the readouts. Values outside a field's range are outlined red; yellow fields differ from the file.</div>
+    <h2>Design</h2>
+    <div class="row"><span>Concept</span><select id="concept"><option value="a">a: window plate, clamp</option>
+      <option value="b">b: cassette, pad</option></select></div>
+    <div class="row"><span>Parameter file</span><span></span></div>
+    <select id="file" style="width:100%"></select>
+    <div class="row"><span id="tiplabel">Tip shown</span><select id="tip"></select></div>
+    <div id="design"></div>
+    <h2>Parameters</h2>
+    <div id="params"></div>
+    <h2>Save, check, export</h2>
+    <div class="row"><span>Name of the set</span><input type="text" id="setname" placeholder="wider_keys" style="width:120px"></div>
+    <button id="save">Save parameter set</button><button id="reset">Reset to file</button>
+    <div class="hint" id="saved"></div>
+    <button id="check">Run full clearance check</button><button id="export">Export STEP and STL</button>
+    <div class="hint">The check (about 7 min) and the export run on a saved file under resguard; save first when a field is
+      yellow.</div>
+  </div>
+  <div id="viewport"><div id="status">Loading geometry ...</div>
+    <div id="axes">x dorsal (red), y along the PIP axis (green), z up (blue); drag to turn, shift-drag or right-drag to pan,
+      wheel to zoom</div></div>
+  <div class="col" id="right">
+    <h2>Readouts</h2>
+    <div id="problems" class="problems"></div>
+    <table id="readouts"></table>
+    <details id="rowsdetails"><summary>Clearance per part, walls per section</summary><div id="rows"></div></details>
+    <h2>PIP angle</h2>
+    <div class="row"><span>PIP <b id="qval">0</b> deg</span><span></span></div>
+    <input type="range" id="q" min="-18" max="92" step="0.5" value="0">
+    <div class="hint" id="angle"></div>
+    <h2>Parts</h2>
+    <div id="parts"></div>
+    <h2>Section plane</h2>
+    <div class="row"><span>Cut normal to</span><select id="secaxis"><option value="">no section</option>
+      <option value="x">x (dorsal)</option><option value="y" selected>y (PIP axis)</option><option value="z">z (along the finger)</option></select></div>
+    <div class="row"><span>Position <b id="secval">0.0</b> mm</span><label><input type="checkbox" id="secflip"> flip</label></div>
+    <input type="range" id="secpos" min="-25" max="25" step="0.1" value="0">
+    <h2>Jobs</h2>
+    <div id="jobs" class="hint">none</div>
+  </div>
+</div>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const S = { doc: null, values: {}, design: {}, parts: {}, context: {}, buildTimer: null, angleTimer: null, busy: false,
+            pending: false, jobs: {}, partState: {} };
+
+// ---------------------------------------------------------------- three.js scene, z up, mm
+const vp = $("viewport");
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(window.devicePixelRatio || 1);
+renderer.localClippingEnabled = true;
+renderer.setClearColor(0xffffff, 1);
+vp.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1, 1, 4000);
+camera.up.set(0, 0, 1);
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const l1 = new THREE.DirectionalLight(0xffffff, 0.55); l1.position.set(60, -80, 60); scene.add(l1);
+const l2 = new THREE.DirectionalLight(0xffffff, 0.30); l2.position.set(-70, 60, -30); scene.add(l2);
+const designGroup = new THREE.Group(); scene.add(designGroup);
+const pipGroup = new THREE.Group(); pipGroup.position.set(0, 0, -51.55); scene.add(pipGroup);   // turns about the PIP axis
+const axesHelper = new THREE.AxesHelper(8); axesHelper.position.set(16, -14, -90); scene.add(axesHelper);
+const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+const ctl = { target: new THREE.Vector3(2, 0, -70), r: 150, theta: -0.95, phi: 0.32 };
+
+function resize() {
+  const w = vp.clientWidth, h = vp.clientHeight;
+  renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); draw();
+}
+function placeCamera() {
+  const c = Math.cos(ctl.phi);
+  camera.position.set(ctl.target.x + ctl.r * c * Math.cos(ctl.theta), ctl.target.y + ctl.r * c * Math.sin(ctl.theta),
+                      ctl.target.z + ctl.r * Math.sin(ctl.phi));
+  camera.lookAt(ctl.target);
+}
+function draw() { placeCamera(); renderer.render(scene, camera); }
+let drag = null;
+renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
+renderer.domElement.addEventListener("mousedown", (e) => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; });
+window.addEventListener("mouseup", () => { drag = null; });
+window.addEventListener("mousemove", (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.pan) {
+    const k = ctl.r * 0.0016;
+    const right = new THREE.Vector3().subVectors(camera.position, ctl.target).cross(camera.up).normalize();
+    const up = new THREE.Vector3().subVectors(ctl.target, camera.position).cross(right).normalize();
+    ctl.target.addScaledVector(right, dx * k).addScaledVector(up, dy * k);
+  } else {
+    ctl.theta -= dx * 0.008; ctl.phi = Math.max(-1.5, Math.min(1.5, ctl.phi + dy * 0.008));
+  }
+  draw();
+});
+renderer.domElement.addEventListener("wheel", (e) => { e.preventDefault(); ctl.r *= Math.exp(e.deltaY * 0.001); draw(); },
+                                      { passive: false });
+window.addEventListener("resize", resize);
+
+function b64(buf, T) { const s = atob(buf); const u = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new T(u.buffer); }
+function makeMesh(p) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(b64(p.positions, Float32Array), 3));
+  g.setIndex(new THREE.BufferAttribute(b64(p.indices, Uint32Array), 1));
+  g.computeVertexNormals();
+  const st = S.partState[p.name] || { visible: true, opacity: p.opacity };
+  S.partState[p.name] = st;
+  const m = new THREE.MeshPhongMaterial({ color: p.color, flatShading: true, side: THREE.DoubleSide, shininess: 20,
+    transparent: st.opacity < 1, opacity: st.opacity, depthWrite: st.opacity >= 1, clippingPlanes: clipPlanes() });
+  const mesh = new THREE.Mesh(g, m);
+  const grp = new THREE.Group(); grp.add(mesh);
+  if (p.group !== "context" && p.triangles < 120000) {
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(g, 35),
+      new THREE.LineBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.35, clippingPlanes: clipPlanes() }));
+    grp.add(e);
+  }
+  grp.visible = st.visible;
+  grp.userData = p;
+  return grp;
+}
+function clipPlanes() { return $("secaxis").value ? [clipPlane] : []; }
+function applyClip() {
+  const ax = $("secaxis").value, pos = parseFloat($("secpos").value), s = $("secflip").checked ? 1 : -1;
+  $("secval").textContent = pos.toFixed(1);
+  const n = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] }[ax] || [0, 1, 0];
+  clipPlane.normal.set(s * n[0], s * n[1], s * n[2]); clipPlane.constant = -s * pos;
+  for (const grp of [...designGroup.children, ...pipGroup.children])
+    grp.traverse((o) => { if (o.material) { o.material.clippingPlanes = clipPlanes(); o.material.needsUpdate = true; } });
+  draw();
+}
+function setSectionRange() {
+  const ax = $("secaxis").value;
+  const r = { x: [-12, 14, 6.0], y: [-24, 18, 0.0], z: [-92, -44, -78.16] }[ax] || [-24, 18, 0];
+  const el = $("secpos"); el.min = r[0]; el.max = r[1]; el.value = r[2]; applyClip();
+}
+
+// ---------------------------------------------------------------- parts panel
+function partsPanel() {
+  const div = $("parts"); div.innerHTML = "";
+  const all = [...designGroup.children, ...pipGroup.children];
+  for (const grp of all) {
+    const p = grp.userData, st = S.partState[p.name];
+    const row = document.createElement("div"); row.className = "partrow";
+    row.innerHTML = `<input type="checkbox" ${st.visible ? "checked" : ""}>` +
+      `<span><span class="swatch" style="background:${p.color}"></span>${p.label}</span>` +
+      `<input type="range" min="0.1" max="1" step="0.05" value="${st.opacity}" title="opacity">`;
+    const [cb, , op] = row.children;
+    cb.onchange = () => { st.visible = cb.checked; grp.visible = cb.checked; draw(); };
+    op.oninput = () => { st.opacity = parseFloat(op.value);
+      grp.traverse((o) => { if (o.isMesh) { o.material.opacity = st.opacity; o.material.transparent = st.opacity < 1;
+        o.material.depthWrite = st.opacity >= 1; o.material.needsUpdate = true; } }); draw(); };
+    div.appendChild(row);
+  }
+}
+
+// ---------------------------------------------------------------- parameters
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" },
+                                                         body: JSON.stringify(body) });
+  const j = await r.json(); if (!r.ok) throw new Error(j.error || r.statusText); return j;
+}
+async function loadFiles(select) {
+  const files = await api("/api/files");
+  const conc = $("concept").value, sel = $("file"); sel.innerHTML = "";
+  for (const f of files.filter((f) => f.concept === conc)) {
+    const o = document.createElement("option"); o.value = f.file;
+    o.textContent = (f.committed ? "committed: " : "saved: ") + f.file; sel.appendChild(o);
+  }
+  const want = select || { a: "20261018-concept_a.json", b: "20261018-concept_b_final.json" }[conc];
+  if ([...sel.options].some((o) => o.value === want)) sel.value = want;
+  await loadDoc();
+}
+async function loadDoc() {
+  S.doc = await api("/api/params?file=" + encodeURIComponent($("file").value));
+  S.values = {}; S.design = {};
+  for (const q of S.doc.parameters) S.values[q.key] = q.value;
+  for (const d of S.doc.design || []) S.design[d.key] = d.value;
+  renderParams(); scheduleBuild(0);
+}
+function renderParams() {
+  const dz = $("design"); dz.innerHTML = "";
+  for (const d of S.doc.design || []) {
+    const opts = Object.keys(d.options);
+    const row = document.createElement("div"); row.className = "row";
+    row.innerHTML = `<span title="${Object.entries(d.options).map(([k, v]) => k + ": " + v).join("\n")}">${d.label}</span>`;
+    const sel = document.createElement("select");
+    for (const o of opts) { const e = document.createElement("option"); e.value = o; e.textContent = o; sel.appendChild(e); }
+    sel.value = S.design[d.key]; sel.disabled = opts.length < 2;
+    sel.onchange = () => { S.design[d.key] = sel.value; scheduleBuild(); };
+    row.appendChild(sel); dz.appendChild(row);
+  }
+  const box = $("params"); box.innerHTML = "";
+  const groups = {};
+  for (const q of S.doc.parameters) (groups[q.group] = groups[q.group] || []).push(q);
+  for (const [g, qs] of Object.entries(groups)) {
+    const det = document.createElement("details"); det.open = true;
+    det.innerHTML = `<summary>${g}</summary>`;
+    for (const q of qs) {
+      const row = document.createElement("label"); row.className = "row";
+      row.title = `${q.key}: ${q.sets}. Range ${q.range[0]} to ${q.range[1]} ${q.unit}; committed ${q.default}; checks: ${q.checks.join(", ")}`;
+      row.innerHTML = `<span>${q.label} <span class="unit">(${q.unit}; ${q.range[0]} to ${q.range[1]})</span></span>`;
+      const inp = document.createElement("input"); inp.type = "number"; inp.step = "0.01"; inp.min = q.range[0];
+      inp.max = q.range[1]; inp.value = S.values[q.key]; inp.dataset.key = q.key;
+      inp.onchange = () => { const v = parseFloat(inp.value); if (!isNaN(v)) { S.values[q.key] = v; mark(inp, q); scheduleBuild(); } };
+      mark(inp, q);
+      row.appendChild(inp); det.appendChild(row);
+      const sets = document.createElement("div"); sets.className = "param-sets"; sets.textContent = q.sets; det.appendChild(sets);
+    }
+    box.appendChild(det);
+  }
+}
+function mark(inp, q) {
+  const v = S.values[q.key];
+  inp.classList.toggle("bad", v < q.range[0] - 1e-9 || v > q.range[1] + 1e-9);
+  inp.classList.toggle("changed", Math.abs(v - q.value) > 1e-9);
+}
+function dirty() { return S.doc.parameters.some((q) => Math.abs(S.values[q.key] - q.value) > 1e-9) ||
+                          (S.doc.design || []).some((d) => S.design[d.key] !== d.value); }
+function scheduleBuild(ms) {
+  clearTimeout(S.buildTimer); S.buildTimer = setTimeout(build, ms === undefined ? 450 : ms);
+}
+
+// ---------------------------------------------------------------- build and readouts
+async function build() {
+  if (S.busy) { S.pending = true; return; }
+  S.busy = true; $("status").textContent = "Rebuilding ...";
+  try {
+    const t0 = performance.now();
+    const res = await api("/api/build", { concept: $("concept").value, values: S.values, design: S.design,
+                                          tip: $("tip").value, q: parseFloat($("q").value) });
+    while (designGroup.children.length) { const g = designGroup.children.pop(); g.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
+    for (const p of res.parts) designGroup.add(makeMesh(p));
+    partsPanel(); showReadouts(res); showAngle(res.angle); applyClip();
+    $("status").textContent = `Built in ${res.build_seconds} s, checks ${(res.seconds - res.build_seconds).toFixed(1)} s, ` +
+      `shown after ${((performance.now() - t0) / 1000).toFixed(1)} s` + (dirty() ? "; unsaved changes" : "");
+  } catch (e) { $("status").textContent = "Error: " + e.message; }
+  S.busy = false;
+  if (S.pending) { S.pending = false; build(); }
+}
+function fmt(v, unit) { return v === null || v === undefined ? "-" : `${v} ${unit || ""}`; }
+function showReadouts(res) {
+  $("problems").innerHTML = res.problems.length ? "Outside the allowed values:<br>" + res.problems.join("<br>") : "";
+  const order = ["clearance", "gap", "chip_to_magnet", "wall", "mass"];
+  let h = "";
+  for (const k of order) {
+    const r = res.readouts[k]; if (!r) continue;
+    const st = r.ok === undefined ? "" : (r.ok ? `<span class="ok">meets</span>` : `<span class="notok">fails</span>`);
+    h += `<tr><td><b>${r.label}</b><br><span class="hint">${r.note || ""}${r.limit ? "; " + r.limit : ""}</span></td>` +
+         `<td class="num">${fmt(r.value, r.unit)}<br>${st}</td></tr>`;
+  }
+  $("readouts").innerHTML = h;
+  let rows = "<table><tr><th>Part (keep-out)</th><th>Least mm</th></tr>";
+  for (const [k, v] of Object.entries(res.readouts.clearance.rows))
+    rows += `<tr><td>${k.replace(/_/g, " ")}</td><td class="num">${v.min_mm}</td></tr>`;
+  rows += "</table><table><tr><th>Wall section</th><th>Least mm</th></tr>";
+  for (const [k, v] of Object.entries(res.readouts.wall.sections))
+    rows += `<tr><td>${k}</td><td class="num">${v && v.min_wall_mm !== undefined ? v.min_wall_mm : "-"}</td></tr>`;
+  $("rows").innerHTML = rows + "</table>";
+}
+function showAngle(a) {
+  if (!a) return;
+  $("angle").innerHTML = a.min_mm === null ? `At PIP ${a.q_deg} deg: ${a.note}` :
+    `At PIP ${a.q_deg} deg the least clearance is <b>${a.min_mm} mm</b>, from the ${a.part.replace(/_/g, " ")} to the ` +
+    `${a.parent.replace("_", " ")} (surface samples 0.35 mm apart).`;
+}
+$("q").oninput = () => {
+  const q = parseFloat($("q").value); $("qval").textContent = q.toFixed(1);
+  pipGroup.rotation.y = -q * Math.PI / 180; draw();
+  clearTimeout(S.angleTimer);
+  S.angleTimer = setTimeout(async () => { try { showAngle(await api("/api/angle?q=" + q)); } catch (e) {} }, 150);
+};
+
+// ---------------------------------------------------------------- save, check, export, jobs
+$("save").onclick = async () => {
+  try {
+    const r = await api("/api/save", { file: $("file").value, values: S.values, design: S.design, name: $("setname").value });
+    $("saved").innerHTML = `Saved ${r.path}` + (r.problems.length ? `<br><span class="notok">${r.problems.join("; ")}</span>` : "");
+    await loadFiles(r.file);
+  } catch (e) { $("saved").textContent = "Save failed: " + e.message; }
+};
+$("reset").onclick = () => loadDoc();
+async function startJob(kind) {
+  if (dirty()) { $("saved").innerHTML = `<span class="notok">Save the changed values first; ${kind} runs on a saved file.</span>`; return; }
+  try {
+    const r = await api("/api/" + kind, { file: $("file").value });
+    S.jobs[r.job] = { kind, file: $("file").value };
+    pollJobs();
+  } catch (e) { $("saved").textContent = kind + " failed to start: " + e.message; }
+}
+$("check").onclick = () => startJob("check");
+$("export").onclick = () => startJob("export");
+async function pollJobs() {
+  let h = "", running = false;
+  for (const id of Object.keys(S.jobs).reverse()) {
+    let j; try { j = await api("/api/job?id=" + encodeURIComponent(id)); } catch (e) { continue; }
+    running = running || j.running;
+    h += `<div><b>${j.kind}</b> of ${j.file}, started ${j.started}: ${j.running ? "running" : "finished, exit " + j.returncode}</div>`;
+    if (j.result) h += jobResult(j);
+    else h += `<pre>${j.log_tail.split("\n").slice(-12).join("\n").replace(/</g, "&lt;")}</pre>`;
+  }
+  $("jobs").innerHTML = h || "none";
+  if (running) setTimeout(pollJobs, 4000);
+}
+function jobResult(j) {
+  const r = j.result;
+  let h = `<div>Result: ${j.result_file}</div>`;
+  if (r.clearance) {
+    h += "<table><tr><th>Part (exact)</th><th>Least mm</th><th>At</th></tr>";
+    for (const [k, v] of Object.entries(r.clearance))
+      if (v && v.min_mm !== undefined && v.min_mm !== null)
+        h += `<tr><td>${k.replace(/_/g, " ")}</td><td class="num ${v.min_mm >= 0.5 ? "ok" : "notok"}">${v.min_mm}</td>` +
+             `<td>${v.part ? v.part.replace("_", " ") + ", PIP " + v.pip_deg : ""}</td></tr>`;
+    h += "</table>";
+  }
+  if (r.files) h += "<div>Files in " + r.folder + ":</div><pre>" + r.files.join("\n") + "</pre>";
+  return h;
+}
+
+// ---------------------------------------------------------------- start
+$("concept").onchange = () => { fillTips(); loadFiles(); };
+$("file").onchange = () => loadDoc();
+$("tip").onchange = () => scheduleBuild(0);
+$("secaxis").onchange = setSectionRange; $("secpos").oninput = applyClip; $("secflip").onchange = applyClip;
+let CTX = null;
+function fillTips() {
+  const sel = $("tip"), keep = sel.value; sel.innerHTML = "";
+  for (const k of CTX.tips) { const o = document.createElement("option"); o.value = k; o.textContent = CTX.tip_labels[k]; sel.appendChild(o); }
+  sel.value = keep && CTX.tips.includes(keep) ? keep : "block4";
+  $("tiplabel").textContent = $("concept").value === "a" ? "Tip shown" : "Pad shown";
+}
+(async () => {
+  resize();
+  CTX = await api("/api/context");
+  for (const p of CTX.parts) { const g = makeMesh(p); g.position.set(0, 0, 51.55); pipGroup.add(g); }
+  fillTips(); await loadFiles(); setSectionRange();
+})();
+</script>
+</body>
+</html>

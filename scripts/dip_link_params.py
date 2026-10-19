@@ -40,7 +40,8 @@ os.environ.setdefault("DLF_REPO", str(REPO))
 
 STUDY = REPO / "docs/experiments/20261018-dip_link_board_mount"
 PARAMS = STUDY / "params"
-DEFAULT = {"a": PARAMS / "20261018-concept_a.json", "b": PARAMS / "20261018-concept_b.json"}
+DEFAULT = {"a": PARAMS / "20261018-concept_a.json", "b": PARAMS / "20261018-concept_b_final.json",
+           "b0": PARAMS / "20261018-concept_b.json"}
 WORK = REPO / "logs/20261018-dip_link/params"              # regenerated parts of the checks (untracked)
 E_FEMTIP = Path.home() / "miniconda3/envs/femtip/bin/python"
 RESGUARD = Path.home() / ".claude/bin/resguard.sh"
@@ -277,23 +278,57 @@ SCHEMA_B = [
      "tongue (the current plate's back face)", "mm", (8.00, 11.00), ["clearance", "mass"], 9.45),
     ("z_web_low", "Bridge and spine", "Web bottom z", "lowest z of the webs beside the tongue (|y| 10.5 to the arms)",
      "mm", (-72.00, -68.00), ["width", "wall"], -70.05),
+    ("qwiic_y", "Qwiic header on the tongue", "Header y", "y of the SM04B-SRSS-TB header's centre on the tongue's back "
+     "(design qwiic = header_on_tongue)", "mm", (-2.00, 2.00), ["wall"], 0.0),
+    ("qwiic_z_back", "Qwiic header on the tongue", "Header back z", "z of the header's back; its mating face is 4.25 mm "
+     "proximal, the plug's end 6.25 mm, and the cable then runs over the tie block", "mm", (-87.50, -83.00),
+     ["clearance", "wall"], -86.4),
+    ("qwiic_pocket_depth", "Qwiic header on the tongue", "Pocket depth", "depth of the header's pocket in the tongue's back "
+     "(the tongue under it is t_tongue minus this)", "mm", (0.50, 1.50), ["wall"], 1.0),
+    ("qwiic_pocket_clear", "Qwiic header on the tongue", "Pocket clearance", "clearance of the pocket around the header's "
+     "body and leads", "mm", (0.00, 0.15), ["fit"], 0.05),
+    ("qwiic_groove_depth", "Qwiic header on the tongue", "Pigtail groove depth", "depth of the groove that takes the four "
+     "wires from the wire exit to the header's leads", "mm", (0.40, 1.00), ["wall"], 0.6),
+    ("qwiic_groove_y0", "Qwiic header on the tongue", "Groove inner y", "inner y edge of the pigtail groove (beside the tie "
+     "block, which ends at tie_y1)", "mm", (3.10, 4.50), ["wall"], 3.4),
+    ("qwiic_groove_y1", "Qwiic header on the tongue", "Groove outer y", "outer y edge of the pigtail groove (the nut pockets "
+     "begin at y 6.07)", "mm", (4.50, 5.50), ["wall"], 5.0),
 ]
 DESIGN_B = [
     ("qwiic", "Qwiic connection", "none",
      {"none": "the tab cut at tab_cut_v, J1 removed, four wires from the vias through the exit slot (the committed "
-              "concept b)"}),
+              "concept b)",
+      "header_on_tongue": "J1 removed with the tab (no orientation of J1 fits, concept_b/final/*_qwiic.json); the four "
+                          "wires run from the exit slot down a groove of the tongue's back to an SM04B-SRSS-TB header in "
+                          "a pocket there, mating face proximal; the cable leaves over the tie block"}),
     ("pads", "Printed pads", "seat2p7",
      {"seat2p7": "pads cut from the 2.7 mm-seat print STLs (the committed concept b)",
       "seat2p9": "pads cut from the 2.9 mm-seat print STLs the owner prints"}),
 ]
 
 TITLES = {"a": "DIP link concept a, final: window plate, dorsal clamp plate, Qwiic header on the clamp plate",
-          "b": "DIP link concept b: the board in a rigid cassette in place of the tip's dorsal part"}
+          "b": "DIP link concept b, final: the board in a cassette in place of the pad's dorsal 6 mm, Qwiic header on the "
+               "tongue, pads of the 2.9 mm print set",
+          "b0": "DIP link concept b as committed on 2026-10-18 12:14: the board in a cassette, tab cut and wires soldered, "
+                "pads of the 2.7 mm print set"}
 REPRODUCES = {"a": "docs/experiments/20261018-dip_link_board_mount/final/cad and final/print "
                    "(scripts/dip_link_board_mount.py build)",
-              "b": "docs/experiments/20261018-dip_link_board_mount/concept_b/cad (scripts/dip_link_concept_b.py prep, cad)"}
+              "b": "docs/experiments/20261018-dip_link_board_mount/concept_b/final/cad (scripts/dip_link_concept_b.py prep, cad "
+                   "with this file in $DIPB_PARAMS)",
+              "b0": "docs/experiments/20261018-dip_link_board_mount/concept_b/cad (scripts/dip_link_concept_b.py prep, cad)"}
 GENERATOR = {"a": "scripts/dip_link_params.py apply_a: dip_link_concept_a.P and dip_link_board_mount.qwiic_header_final",
-             "b": "scripts/dip_link_concept_b.py (its dict P), through scripts/dip_link_params.py apply_b"}
+             "b": "scripts/dip_link_concept_b.py (its dict P), through scripts/dip_link_params.py apply_b",
+             "b0": "scripts/dip_link_concept_b.py (its dict P), through scripts/dip_link_params.py apply_b"}
+_S = "docs/experiments/20261018-dip_link_board_mount"
+OUTPUTS = {  # where the committed design's files are; a saved parameter set has none and is built under logs/ or exports/
+    "a": dict(cad=f"{_S}/final/cad", print=f"{_S}/final/print"),
+    "b": dict(cad=f"{_S}/concept_b/final/cad", print=f"{_S}/concept_b/final/print", media=f"{_S}/concept_b/final/media",
+              evaluation=f"{_S}/concept_b/final/evaluation.json", work="logs/20261018-dip_link/concept_b_final",
+              prefix="20261018-concept_b_final"),
+    "b0": dict(cad=f"{_S}/concept_b/cad", media=f"{_S}/concept_b/media", evaluation=f"{_S}/concept_b/evaluation.json",
+               work="logs/20261018-dip_link/concept_b", prefix="20261018-concept_b"),
+}
+DESIGN_VALUES = {"a": {}, "b": {"qwiic": "header_on_tongue", "pads": "seat2p9"}, "b0": {"qwiic": "none", "pads": "seat2p7"}}
 FRAME = ("F of spec.json: mm, x toward the dorsal side, y along the PIP axis, z up; the straight finger hangs along -z, the "
          "PIP axis passes through (0, y, -51.55), the tip's back face lies at x 6.45 and its mount face at z -67.30")
 
@@ -306,16 +341,19 @@ def design_schema(concept):
     return DESIGN_A if concept == "a" else DESIGN_B
 
 
-def default_doc(concept):
-    """The parameter file of a concept at its committed values."""
+def default_doc(name):
+    """The parameter file of a committed design: 'a', 'b' (b's final) or 'b0' (b as committed before the Qwiic study)."""
+    concept = name[0]
+    dv = DESIGN_VALUES[name]
     return dict(
-        title=f"Parameters of {TITLES[concept]}", concept=concept, date=time.strftime("%Y-%m-%d"),
-        reproduces=REPRODUCES[concept], generator=GENERATOR[concept], frame=FRAME,
+        title=f"Parameters of {TITLES[name]}", concept=concept, date=time.strftime("%Y-%m-%d"),
+        reproduces=REPRODUCES[name], generator=GENERATOR[name], frame=FRAME,
         note=("Edit a value inside its range, save the file under a new dated name in this folder, then build, check or "
               "export it (scripts/dip_link_params.py, or the viewer scripts/dip_link_viewer.py). 'default' is the "
-              "committed design's value; 'checks' names the checks each parameter changes (defined under 'checks')."),
-        checks=CHECKS,
-        design=[dict(key=k, label=lab, value=v, options=opts) for k, lab, v, opts in design_schema(concept)],
+              "committed design's value; 'checks' names the checks each parameter changes (defined under 'checks'). "
+              "'outputs' names the committed design's folders; a saved set has none, so it never overwrites them."),
+        outputs=OUTPUTS[name], checks=CHECKS,
+        design=[dict(key=k, label=lab, value=dv.get(k, v), options=opts) for k, lab, v, opts in design_schema(concept)],
         parameters=[dict(key=k, group=g, label=lab, value=val, default=val, unit=u, sets=s, range=list(rng), checks=c)
                     for k, g, lab, s, u, rng, c, val in schema(concept)])
 
@@ -463,7 +501,7 @@ def cmd_init(a):
             print(f"{dst.relative_to(REPO)} exists (pass --force to rewrite it)")
             continue
         dst.write_text(json.dumps(default_doc(c), indent=1) + "\n")
-        print(f"{dst.relative_to(REPO)}: {len(schema(c))} parameters")
+        print(f"{dst.relative_to(REPO)}: {len(schema(c[0]))} parameters")
 
 
 def _volume(path):
@@ -505,9 +543,9 @@ def verify_a(path, out):
 
 def verify_b(path, out):
     """Regenerate concept b at a parameter file's values into out/: the arms, the bridge's profile and the pads
-    (dip_link_concept_b prep) in this process, the DIP link, its new body and the cover (fc_build) in freecadcmd; compare
-    every part's STL with concept_b/cad."""
-    concept, vals, des, _ = load(path)
+    (dip_link_concept_b prep) and the DIP link, its new body and the cover (fc_build, in freecadcmd); compare every part's
+    STL with the folder the file's outputs name (concept_b/cad, or concept_b/final/cad for b's final)."""
+    concept, vals, des, doc = load(path)
     assert concept == "b", path
     out = Path(out)
     env = dict(os.environ, DIPB_PARAMS=str(Path(path).resolve()), DIPB_OUT=str(out / "cad"), DIPB_WORK=str(out / "work"))
@@ -524,8 +562,9 @@ def verify_b(path, out):
     if r.returncode or "done" not in r.stdout:
         print(r.stderr[-3000:])
         raise SystemExit("freecadcmd fc_build failed")
-    src = STUDY / "concept_b/cad"
-    pairs = [(new.stem.replace("20261018-concept_b_", ""), new, src / new.name) for new in sorted((out / "cad").glob("*.stl"))]
+    src = REPO / doc["outputs"]["cad"]
+    pre = doc["outputs"].get("prefix", "20261018-concept_b") + "_"
+    pairs = [(new.stem.replace(pre, ""), new, src / new.name) for new in sorted((out / "cad").glob("*.stl"))]
     return compare(pairs)
 
 
@@ -535,7 +574,7 @@ def cmd_verify(a):
     for c in a.concept:
         path = Path(a.params) if a.params else DEFAULT[c]
         out = WORK / f"verify_{c}_{time.strftime('%Y%m%d-%H%M%S')}"
-        rows = verify_a(path, out) if c == "a" else verify_b(path, out)
+        rows = verify_a(path, out) if c == "a" else verify_b(path, out)       # b, b0: both through verify_b
         rec[c] = dict(params=str(path.relative_to(REPO)), regenerated_in=str(out.relative_to(REPO)), tolerance_mm3=0.01,
                       all_ok=all(r["ok"] for r in rows), parts=rows)
         print(f"concept {c}: {sum(r['ok'] for r in rows)}/{len(rows)} parts within 0.01 mm3 [{time.time() - t0:.0f} s]",
@@ -551,10 +590,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("init", help="write the default parameter files from the committed designs")
-    s.add_argument("--concept", nargs="+", default=["a", "b"], choices=["a", "b"])
+    s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0"])
     s.add_argument("--force", action="store_true")
     s = sub.add_parser("verify", help="regenerate at a file's values and compare volumes with the committed STL files")
-    s.add_argument("--concept", nargs="+", default=["a", "b"], choices=["a", "b"])
+    s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0"])
     s.add_argument("--params", help="parameter file (default: the concept's committed file)")
     a = ap.parse_args()
     {"init": cmd_init, "verify": cmd_verify}[a.cmd](a)
