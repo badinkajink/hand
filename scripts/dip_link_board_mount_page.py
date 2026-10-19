@@ -524,6 +524,15 @@ def print_section():
                      esc(cap(v.get("infill", ""))), esc(cap(v.get("supports", v.get("use", "")))) +
                      (f"; {esc(v['after'])}" if v.get("after") else "")])
     pl = [[esc(cap(r["item"])), esc(cap(r.get("material", ""))), esc(str(r.get("qty", "")))] for r in PL]
+    PJ = {k: J(PS["projects"][k]["report"].split("20261018-dip_link_board_mount/", 1)[1]) for k in ("pla", "tip")}
+    pr = PJ["pla"]["slice"]
+    tr = PJ["tip"]["slice"]
+    dl = pr["dip_link"]
+    pe = dl["per_enforcer"]
+    projects = [[f"<a href=\"{PS['projects'][k]['file'].split('20261018-dip_link_board_mount/', 1)[1]}\"><code>"
+                 f"{os.path.basename(PS['projects'][k]['file'])}</code></a>", esc(cap(PS["projects"][k]["parts"])),
+                 esc(PJ[k]["slice"]["print_time"]), f(PJ[k]["slice"]["filament_g"], 2),
+                 "pass" if PJ[k]["slice"]["checks_pass"] else "fail"] for k in ("pla", "tip")]
     seq = "".join(f"<li>{esc(s)}</li>" for s in AS["sequence"])
     return "".join([
         f"<p>All rigid parts print on the Prusa XL with 0.4{MM} nozzles; the PLA parts go on a PLA tool, which is tool 3, "
@@ -532,6 +541,25 @@ def print_section():
         table(["Part", "Tool", "Material", "Orientation", "Layers", "Infill", "Supports and finishing"], rows,
               "XL print settings (<code>final/20261018-dip_link_final_print_settings.json</code>).",
               text_cols=(0, 1, 2, 3, 4, 5, 6), key="print"),
+        f"<p>Two PrusaSlicer projects on the owner's v17 template, sliced with PrusaSlicer 2.9 and checked, are in "
+        f"<code>final/print/</code> (Table&#160;[[tab:projects]]; <code>scripts/dip_link_print_project.py</code> builds them "
+        f"from any set of the parts' STL files). The PLA parts print first. The tip prints without magnets and without "
+        f"its pause, so the dovetail fit is tried before magnets go into a tip. One plate would have heated the bed to "
+        f"the tip's 35&#8202;&#176;C for the PLA parts' first layer and changed tools 169 times. In the PLA project "
+        f"the DIP link stands upright on its supports (Figure&#160;[[fig:sliced]]): three support enforcers, under the "
+        f"horn-side arm, around the slotted arm's end and under the bridge's face toward the PIP axis, produce every "
+        f"support bead, {f(pe['enforcer_bridge_pip_face']['length_mm'] / 1000, 1)}&#8202;m of the "
+        f"{f(sum(v['length_mm'] for v in pe.values()) / 1000, 1)}&#8202;m in total under the bridge, up to z "
+        f"{f(dl['support_top_z'], 1)}{MM}. The five chip windows print open, their tops as overhanging perimeters, and "
+        f"no bridge infill lies on the window plate. The tip's channel floors bridge at z "
+        f"{f(tr['tip']['bridge_infill_z'][0], 1)}{MM}.</p>",
+        table(["Project", "Parts, tool and bed", "Time", "Filament (g)", "Checks"], projects,
+              "Print projects (the JSON report beside each 3mf). Checks: no pause; for the DIP link, supports only from the "
+              "enforcers, chip windows open and no bridge infill on the window plate.", text_cols=(0, 1, 2, 4), key="projects"),
+        img(PJ["pla"]["slice"]["dip_link"]["preview"].split("20261018-dip_link_board_mount/", 1)[1],
+            "DIP link as sliced in the PLA project, seen along the bed's Y axis (the PIP axis) and along X: part beads grey, "
+            "support beads red, support enforcers dashed. The window plate rises as the thin wall at the top with the chip "
+            "windows open; the bridge's mount face is the top surface at z 21.5&#8202;mm.", "sliced", width=1400),
         table(["Item", "Material", "Quantity"], pl, "Parts list (<code>final/20261018-dip_link_final_parts_list.json</code>).",
               text_cols=(0, 1, 2), key="parts"),
         f"<p>Assembly sequence:</p><ol class='steps'>{seq}</ol>",

@@ -1009,7 +1009,18 @@ def print_settings():
                        seat_mm=sh.get("seat_mm"), pauses=[dict(z_mm=p_.get("z_mm") or p_.get("pause_print_z"),
                                                                magnets=p_.get("magnets") or p_.get("n_magnets"))
                                                           for p_ in sh.get("pauses", [])])
+    projects = dict(
+        pla=dict(file=str((PRINT / f"{PFX}_print_link_clamp_coupon_pla_t3.3mf").relative_to(REPO)),
+                 report=str((PRINT / f"{PFX}_print_link_clamp_coupon_pla_t3.json").relative_to(REPO)),
+                 parts="DIP link, clamp plate, pin-fit coupon; tool 3, bed 60 C"),
+        tip=dict(file=str((PRINT / f"{PFX}_print_tip_block4_channels_85a_t2_no_magnets.3mf").relative_to(REPO)),
+                 report=str((PRINT / f"{PFX}_print_tip_block4_channels_85a_t2_no_magnets.json").relative_to(REPO)),
+                 parts="four-magnet block with the key channels, no magnets and no pause; tool 2, bed 35 C"),
+        why_two=("on one plate PrusaSlicer heated the bed to the first tool's 35 C (the tip's) for the PLA parts' first layer "
+                 "and changed tools 169 times, each from the 70 C idle temperature"),
+        generator="scripts/dip_link_print_project.py")
     return dict(
+        projects=projects,
         printer="Original Prusa XL 5T, 0.4 mm nozzles (PrusaSlicer profile 'Original Prusa XL - 5T Input Shaper 0.4 nozzle')",
         parts=dict(
             dip_link=dict(file=str(fname("dip_link").relative_to(REPO)), tool=PLA_TOOL, material="PLA (the links: PLA, 15 % infill)",
@@ -1017,13 +1028,15 @@ def print_settings():
                                       "and shoulders rise from it as vertical walls",
                           layer_mm=0.10, perimeters=3, infill="15 % gyroid as the links; 100 % in the shoulders (modifier "
                           "box |y| 6.0-10.5 mm around the M2 pilots)", supports="only under the clevis arms and the bridge's face "
-                          "toward the PIP axis (paint-on or support enforcers)", seam="aligned, on the dorsal side (away from the "
-                          "window plate's palmar face)", nozzle_C=215, bed_C=60, after="ream the two pin holes to 2.40 mm and the "
+                          "toward the PIP axis (three support enforcers in the project)", seam="rear: the slotted arm's outer side face "
+                          "(+y_F), away from the window plate's faces", nozzle_C="the template's Generic PLA @XLIS: 230 C first "
+                          "layer, 220 C", bed_C=60, after="ream the two pin holes to 2.40 mm and the "
                           "two M2 pilots to 1.70 mm; check the window plate's palmar face with a straightedge (0.05 mm)"),
             clamp_plate=dict(file=str(fname("clamp_plate").relative_to(REPO)), tool=PLA_TOOL, material="PLA or PETG, solid",
                              orientation="back face (x 10.9) on the bed: the board face is a top surface, the pins print "
                                          "vertical, the nut pockets open on the bed side", layer_mm=0.10, perimeters=4,
-                             infill="100 %", supports="none", ironing="on the board face", nozzle_C=215, bed_C=60,
+                             infill="100 %", supports="none", ironing="on the board face", nozzle_C="as the DIP link",
+                             bed_C=60,
                              after="press the two M1.6 nuts in (warm with a soldering iron if tight)"),
             pin_fit_coupon=dict(file=str((PRINT / f"{PFX}_pin_fit_coupon.stl").relative_to(REPO)), tool=PLA_TOOL,
                                 material="the clamp plate's material", orientation="plate on the bed, pins up", layer_mm=0.10,
@@ -1074,7 +1087,8 @@ def assembly():
         "scripts/dip_link_concept_a.py P (the window plate prints at h - 0.05 mm) and rebuild: scripts/dip_link_board_mount.py "
         "build, check.",
         "Print the pin-fit coupon; set pin_d to the pin that enters the board's proximal holes without play; rebuild.",
-        "Print the DIP link and the clamp plate (print_settings.json); ream the window plate's two pin holes to 2.40 mm and "
+        "Print the DIP link and the clamp plate (final/print/20261018-dip_link_final_print_link_clamp_coupon_pla_t3.3mf, tool "
+        "3); remove the supports under the arms and the bridge; ream the window plate's two pin holes to 2.40 mm and "
         "the shoulders' pilots to 1.70 mm.",
         "Desolder J1, cut the tab 4.9 mm from the main square (v = -15.0 mm), solder four wires (VDD, GND, SDA, SCL; AWG "
         "32-36, about 20 mm) to the signal pads, leading to the +y side.",
@@ -1091,7 +1105,9 @@ def assembly():
         "Plug the Qwiic cable into the header; route it along the clamp plate's back toward the PIP joint, then to y > 17.4 mm "
         "and across the joint outside the slotted arm; fix it to the DIP link before the joint so a pull does not reach the "
         "header.",
-        "Print the tip with its channels (2.9 mm seats, magnets north pole toward the palmar face at the pauses).",
+        "Print the tip with its channels: first without magnets "
+        "(final/print/20261018-dip_link_final_print_tip_block4_channels_85a_t2_no_magnets.3mf, tool 2, no pause) to try the "
+        "fit; once it fits, from the 2.9 mm sheet with the channels cut, magnets north pole toward the palmar face at the pause.",
         "Slide the tip along +z onto the keys until its mount face meets the bridge and both detents engage; read the zero-load "
         "field. Tip exchange: pull along -z; the board's screws stay in.",
     ]
