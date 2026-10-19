@@ -238,7 +238,7 @@ class Geometry:
             qlabel = "Qwiic header, plug, cable start, pigtail"
         elif B.DESIGN.get("qwiic") == "j1_kept":
             Q = hw["j1"]
-            qlabel = "J1, plug and cable start"
+            qlabel = "J1, plug and the cable to its anchor on the slotted arm" if B.cable_on() else "J1, plug and cable start"
         else:
             Q = B.box((B.X_SEAT, B.WIRE_SLOT["y"][0] + 0.2, B.WIRE_SLOT["z"][0] + 0.1),
                       (B.X_TONGUE_BACK + 0.6, B.WIRE_SLOT["y"][1] - 0.2, B.WIRE_SLOT["z"][1] - 0.1))
@@ -246,6 +246,9 @@ class Geometry:
         tms = dict(dip_link=_tm(dip), body=_tm(body), cover=_tm(cover), board=_tm(hw["fr4"] + hw["board_parts"]),
                    fasteners=_tm(hw["screws"] + hw["nuts"] if "nuts" in hw else hw["screws"]), qwiic=_tm(Q), tip=_tm(pad),
                    magnets=_tm(Mg))
+        if B.cable_on():                                 # the cable from the plug to its anchor on the slotted arm
+            import trimesh
+            tms["qwiic"] = trimesh.util.concatenate([tms["qwiic"], B.cable_mesh()])
         parts = [_mesh_payload("dip_link", "DIP link (clevis arms of the STL, bridge, tongue, spine)", tms["dip_link"],
                                COLOR["dip_link"]),
                  _mesh_payload("cover", "Cover with rails", tms["cover"], COLOR["cover"]),

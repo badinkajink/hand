@@ -366,11 +366,12 @@ def a_render():
     print("renders ->", MED.relative_to(REPO), flush=True)
 
 
-def cable_span(A, q_step=0.5):
-    """Length of the cable's free span from its anchor on the slotted arm to a tie on the MCP link's side plate (the plate
-    at y 13.4..17.4 begins at z -34.4 at PIP 0): the tie at (0, z -33.0) of the MCP link, over PIP -18..92 deg."""
+def cable_span(A=None, q_step=0.5, anchor=None):
+    """Length of the cable's free span from its anchor on the slotted arm (concept a's, or `anchor`) to a tie on the MCP
+    link's side plate (the plate at y 13.4..17.4 begins at z -34.4 at PIP 0): the tie at (0, z -33.0) of the MCP link, over
+    PIP -18..92 deg."""
     import dip_link_geometry as G
-    A_ = A.cable_segments()[4][2]
+    A_ = np.asarray(anchor, float) if anchor is not None else A.cable_segments()[4][2]
     B = np.array([[0.0, A_[1], -33.0]])
     qs = np.arange(-18.0, 92.0 + 1e-9, q_step)
     Ls = np.array([float(np.linalg.norm((A_ - G.rot_pip(B, q)[0])[[0, 2]])) for q in qs])
@@ -576,12 +577,58 @@ def a_print():
         return box0(lo, hi, Rt)
     PP.box_F_to_print = box_shifted
     PP.PFX = pf
-    PP.build_project({"dip_link": DLF.fname("dip_link"), "clamp_plate": DLF.fname("clamp_plate"),
-                      "pin_fit_coupon": DLF.PRINT / f"{pf}_pin_fit_coupon.stl"}, out, f"{pf}_print_link_clamp_coupon_pla_t3",
-                     source=str(PARAMS_A.relative_to(REPO)))
+    a_bambu(A, DLF, out)
     PP.build_fit_coupon(out)
     print_tips_a(A, DLF, out, pf, A_WORK / "print")
     print("print ->", out.relative_to(REPO), flush=True)
+
+
+def a_bambu(A, DLF, out):
+    """a's DIP link (tessellated from the step stage's exact fused solid when it exists), clamp plate and pin-fit coupon as
+    print-oriented PLA STLs for Bambu Studio (owner, 2026-10-19 14:15); the XL project of these parts is removed."""
+    pf = DLF.PFX
+    for stale in out.glob(f"{pf}_print_link_clamp_coupon_pla_t3*"):
+        stale.unlink()
+    exact = A_WORK / f"{pf}_dip_link.step"           # the fused exact solid of the step stage, tessellated: one closed body
+    src = step_to_stl(exact, A_WORK / f"{pf}_dip_link_exact.stl") if exact.exists() else DLF.fname("dip_link")
+    a_bambu_files(src, DLF.fname("clamp_plate"), out / f"{pf}_pin_fit_coupon.stl", out, pf, str(PARAMS_A.relative_to(REPO)))
+
+
+def a_bambu_files(link_src, clamp_src, pin_src, out, pf, params):
+    """Concept a's PLA parts as Bambu STLs into out/ with <pf>_pla_bambu.json: their settings and, for the link, the support
+    regions and the shoulders' 100 % infill boxes of the XL project (dip_link_print_project.link_volumes) in the STL's own
+    coordinates. Needs dip_link_concept_a at the design's parameters (dip_link_params.apply_a)."""
+    import trimesh
+    import dip_link_print_project as PP
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    rec = dict(printer="Bambu Lab P1S through Bambu Studio, PLA", params=params, parts={}, when=time.strftime("%Y-%m-%d %H:%M"))
+    link = trimesh.load(link_src, force="mesh")
+    rec["parts"]["dip_link"] = bambu_stl(link, PP.R_LINK, out / f"{pf}_dip_link_pla_bambu.stl")
+    rec["parts"]["dip_link"]["source"] = str(Path(link_src).relative_to(REPO)) if REPO in Path(link_src).parents else str(link_src)
+    m, Rt = PP.to_print(link, PP.R_LINK)
+    enf, mods = PP.link_volumes(m, Rt)
+    rec["parts"]["clamp_plate"] = bambu_stl(trimesh.load(clamp_src, force="mesh"), PP.R_CLAMP,
+                                            out / f"{pf}_clamp_plate_pla_bambu.stl")
+    if pin_src and Path(pin_src).exists():
+        rec["parts"]["pin_fit_coupon"] = bambu_stl(trimesh.load(pin_src, force="mesh"), None,
+                                                   out / f"{pf}_pin_fit_coupon_pla_bambu.stl")
+    rec["settings"] = {
+        "dip_link": dict(BAMBU_PLA["dip_link"], supports="tree supports on the build plate only, painted (or enforced) in the "
+                         "three boxes below: under both clevis arms' ends and under the bridge's face toward the PIP axis; none "
+                         "in the chip windows, the J1 slot or the cable groove",
+                         support_boxes_mm={n: [np.round(lo, 2).tolist(), np.round(hi, 2).tolist()] for n, lo, hi in enf},
+                         infill_100pct_boxes_mm={n: [np.round(lo, 2).tolist(), np.round(hi, 2).tolist()] for n, lo, hi in mods},
+                         note="boxes in the STL's coordinates (X, Y centred, Z from the plate); the shoulders take the M2 "
+                              "screws' 1.8 mm holes, so a 100 % rectilinear infill modifier over each"),
+        "clamp_plate": dict(orientation="on its back face (X = z_F, Y = y_F, Z = -x_F)", layer_height_mm=0.1, walls=4,
+                            infill="100 % rectilinear", supports="none", brim="none", ironing="top surfaces"),
+        "pin_fit_coupon": dict(orientation="as modelled, pins up", layer_height_mm=0.1, walls=4, infill="100 % rectilinear",
+                               supports="none", brim="none")}
+    for k, v in rec["parts"].items():
+        print(f"bambu {k}: {v}", flush=True)
+    (out / f"{pf}_pla_bambu.json").write_text(json.dumps(rec, indent=1, default=float) + "\n")
+    return rec
 
 
 def a_docs():
@@ -664,13 +711,15 @@ def a_docs():
                                 print_time=(v.get("slice") or {}).get("print_time") or (v.get("slice") or {}).get("check", {}).get("print_time"),
                                 filament_g=(v.get("slice") or {}).get("filament_g"),
                                 pauses_mm=[q["print_z"] for q in v.get("pauses", [])], checks_pass=(v.get("slice") or {}).get("checks_pass"))
-                        for k, v in prj.items()},
+                        for k, v in prj.items() if not k.endswith("_pla_bambu")},
+        print_pla_bambu=prj.get(f"{pf}_pla_bambu"),
         parts_list=[
-            dict(item="DIP link, v2", material="PLA", qty=1, file=f"v2/a/cad/{pf}_dip_link.stl",
+            dict(item="DIP link, v2", material="PLA (Bambu Studio: print-oriented STL)", qty=1,
+                 file=f"v2/a/print/{pf}_dip_link_pla_bambu.stl",
                  step=f"v2/a/cad/{pf}_dip_link_new_features.step (new features, exact) and {pf}_dip_link.step.zip (fused)"),
-            dict(item="Clamp plate, v2 (1.8 mm holes, no nut pockets, no Qwiic pocket)", material="PLA or PETG, solid", qty=1,
-                 file=f"v2/a/cad/{pf}_clamp_plate.stl", step=f"v2/a/cad/{pf}_clamp_plate.step"),
-            dict(item="Pin-fit coupon", material="as the clamp plate", qty=1, file=f"v2/a/print/{pf}_pin_fit_coupon.stl"),
+            dict(item="Clamp plate, v2 (1.8 mm holes, no nut pockets, no Qwiic pocket)", material="PLA, solid (Bambu Studio)",
+                 qty=1, file=f"v2/a/print/{pf}_clamp_plate_pla_bambu.stl", step=f"v2/a/cad/{pf}_clamp_plate.step"),
+            dict(item="Pin-fit coupon", material="as the clamp plate", qty=1, file=f"v2/a/print/{pf}_pin_fit_coupon_pla_bambu.stl"),
             dict(item="Attachment fit coupon: PLA key sections and 85A channel sections at 0, 0.05, 0.10 mm per flank", qty=1,
                  file=f"v2/a/print/{pf}_fit_coupon_keys_pla_t3.3mf and {pf}_fit_coupon_channels_85a_t2.3mf"),
             dict(item="85A tip with key channels and five magnets: 11/22 half-ellipsoid (or the block)", material="Siraya Tech "
@@ -682,8 +731,9 @@ def a_docs():
             dict(item="Qwiic cable (JST SH 4-pin) from J1 to the controller", qty=1)],
         assembly=[
             "Print the pin-fit coupon and the attachment fit coupon first; choose the pin and the channel interference.",
-            "Print the PLA plate (DIP link, clamp plate, pin coupon) and the 85A tip with its pauses (press each magnet to the "
-            "floor, north pole toward the palmar side).",
+            "Print the DIP link, the clamp plate and the pin coupon in PLA on the Bambu printer (print-oriented STLs, settings "
+            "in v2/README.md) and the 85A tip with its pauses on the XL (press each magnet to the floor, north pole toward the "
+            "palmar side).",
             "Plug the Qwiic cable into J1 before mounting the board: the plug enters J1 along the tab, from its end.",
             "Lay the board component side down on the window plate: chips in their windows, J1 and the plug in the bridge's "
             "slot, the cable out of the slot's top toward the PIP joint.",
@@ -943,9 +993,89 @@ def cmd_pads(a):
     print("pads ->", a.out, flush=True)
 
 
+BAMBU_PLA = {     # Bambu Studio settings per PLA part (owner, 2026-10-19 14:15: PLA on the Bambu printer, TPU on the XL)
+    "dip_link": dict(orientation="tip end up, the clevis arms' rounded ends on the plate (X = -x_F, Y = y_F, Z = -z_F)",
+                     layer_height_mm=0.1, walls=3, top_layers=6, bottom_layers=5, infill="15 % gyroid",
+                     supports="tree supports on the build plate only, painted (or enforced) under both clevis arms' ends and "
+                              "under the bridge's face toward the PIP axis; none in the J1 slot or the cable groove",
+                     brim="5 mm brim (the arms' ends touch the plate along short lines)"),
+    "cover": dict(orientation="on its back face, the rails up (X = z_F, Y = y_F, Z = -x_F)", layer_height_mm=0.1, walls=4,
+                  infill="100 % rectilinear", supports="none", brim="none", ironing="top surfaces"),
+    "rails": dict(orientation="on its back face, the rails up", layer_height_mm=0.1, walls=3, infill="100 % rectilinear",
+                  supports="none", brim="none")}
+
+
+STEP_TO_STL = r"""
+import os
+import MeshPart
+import Part
+sh = Part.read(os.environ["DLV2_STEP"])
+msh = MeshPart.meshFromShape(Shape=sh, LinearDeflection=0.02, AngularDeflection=0.15, Relative=False)
+msh.write(os.environ["DLV2_STL"])
+print("tessellated", len(sh.Solids), "solid(s)", round(sh.Volume, 2), "mm3", msh.CountFacets, "facets", flush=True)
+"""
+
+
+def step_to_stl(step, stl):
+    """An exact STEP tessellated in FreeCAD (MeshPart, 0.02 mm linear and 0.15 rad angular deflection, as
+    dip_link_concept_b.fc_build writes its STL files)."""
+    import subprocess
+    script = Path(stl).parent / "step_to_stl.py"
+    script.write_text(STEP_TO_STL)
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    r = subprocess.run(["freecadcmd", str(script)], env=dict(env, DLV2_STEP=str(step), DLV2_STL=str(stl)), cwd=str(REPO),
+                       capture_output=True, text=True)
+    print("\n".join(l for l in r.stdout.splitlines() if l.startswith("tessellated")), flush=True)
+    if r.returncode or not Path(stl).exists():
+        print(r.stderr[-2000:])
+        raise SystemExit("freecadcmd tessellation failed")
+    return Path(stl)
+
+
+def bambu_stl(tm, R, dst):
+    """A PLA part as a print-oriented STL for Bambu Studio: turned into its print frame (dip_link_print_project.to_print),
+    lying on z = 0, vertices merged and zero-area faces dropped so the slicer sees one watertight body."""
+    import trimesh
+    import dip_link_print_project as PP
+    m, Rt = PP.to_print(tm, R)
+    m = trimesh.Trimesh(np.asarray(m.vertices), np.asarray(m.faces), process=True)
+    m.update_faces(m.nondegenerate_faces())
+    m.remove_unreferenced_vertices()
+    bodies = [b for b in m.split(only_watertight=False) if abs(b.volume) > 0.5]     # zero-volume slivers of the booleans
+    m = trimesh.util.concatenate(bodies) if len(bodies) > 1 else bodies[0]
+    m.merge_vertices()
+    if m.volume < 0:
+        m.invert()
+    m.export(dst)
+    return dict(file=str(dst.relative_to(REPO)), size_mm=np.round(m.extents, 2).tolist(), volume_mm3=round(float(m.volume), 1),
+                watertight=bool(m.is_watertight), bodies=len(m.split(only_watertight=False)),
+                rotation_print_from_F=np.asarray(Rt[0]).tolist())
+
+
+def b_bambu_files(link_src, cover_src, out, pf, params, rails=None):
+    """Concept b's PLA parts (the DIP link, the cover and, given as a mesh in F, the rail strip) as Bambu STLs into out/ with
+    <pf>_pla_bambu.json and their settings (BAMBU_PLA)."""
+    import trimesh
+    import dip_link_print_project as PP
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    rec = dict(printer="Bambu Lab P1S through Bambu Studio, PLA", params=params, parts={},
+               settings={k: BAMBU_PLA[k] for k in ("dip_link", "cover") + (("rails",) if rails is not None else ())},
+               when=time.strftime("%Y-%m-%d %H:%M"))
+    rec["parts"]["dip_link"] = bambu_stl(trimesh.load(link_src, force="mesh"), PP.R_LINK, out / f"{pf}_dip_link_pla_bambu.stl")
+    rec["parts"]["cover"] = bambu_stl(trimesh.load(cover_src, force="mesh"), PP.R_CLAMP, out / f"{pf}_cover_pla_bambu.stl")
+    if rails is not None:
+        rec["parts"]["rails"] = bambu_stl(rails, PP.R_CLAMP, out / f"{pf}_fit_coupon_rails_pla_bambu.stl")
+    for k, v in rec["parts"].items():
+        print(f"bambu {k}: {v}", flush=True)
+    (out / f"{pf}_pla_bambu.json").write_text(json.dumps(rec, indent=1, default=float) + "\n")
+    return rec
+
+
 def b_print():
-    """The DIP link and the cover in PLA (dip_link_print_project.build_project: the link tip end up with enforcers under the
-    arms and the bridge; the cover on its back face), the two pads in 85A with their pauses, and the rail fit coupon."""
+    """The DIP link, the cover and the rail strip as print-oriented PLA STLs for Bambu Studio with their settings (owner,
+    2026-10-19: PLA on the Bambu printer), the 85A groove blocks of the rail fit coupon and the two pads with their pauses
+    as PrusaSlicer projects for the XL's tool 2."""
     import trimesh
     import dip_link_print_project as PP
     import metric_magnet_prints as MP
@@ -953,30 +1083,17 @@ def b_print():
     B = b_module()
     pf, out = B.PREFIX, B_DIR / "print"
     out.mkdir(parents=True, exist_ok=True)
-    lv0 = PP.link_volumes
-    PP.link_volumes = lambda m, Rt: (lv0(m, Rt)[0], [])             # concept a's shoulder modifiers do not apply to b
-    PP.window_boxes = lambda Rt: {}
     PP.PFX = pf
-    PP.LABEL["clamp_plate"] = "Cover"
-    name = f"{pf}_print_link_cover_pla_t3"
-    rep = PP.build_project({"dip_link": B.CAD_DIR / f"{pf}_dip_link.stl", "clamp_plate": B.CAD_DIR / f"{pf}_cover.stl"}, out,
-                           name, source=str(PARAMS_B.relative_to(REPO)))
-    sl = rep.get("slice") or {}
-    if sl.get("dip_link"):                      # concept a's window-plate test has no meaning on b's link: drop it
-        dl = sl["dip_link"]
-        dl.pop("window_plate", None)
-        sl["checks_pass"] = bool(sl.get("m601", 0) == 0 and dl["support_outside"] == 0)
-        sl["checks"] = "no pause (M601) and no support outside the three enforcers"
-        (out / f"{name}.json").write_text(json.dumps(rep, indent=1, default=float))
-        print(f"{name}: checks {'pass' if sl['checks_pass'] else 'FAIL'} (b's criteria)", flush=True)
+    for stale in out.glob(f"{pf}_*_pla_t3*"):         # the XL projects of the PLA parts (before 2026-10-19 14:15)
+        stale.unlink()
     # the rail fit coupon: a 10 mm length of the cover with its two rails (PLA) and three 85A blocks with the pad's grooves
     # at 0, 0.05 and 0.10 mm interference per flank, each block notched once per 0.05 mm
     K = B.MeshB()
     z0, z1 = B.Z_CONTACT - 5.0, B.Z_CONTACT + 5.0
     strip = K.box((B.X_SLOT, -B.Y_RIM, z0), (B.X_COMP, B.Y_RIM, z1))
     rails = [K.prism_z([(s * y, (B.X_SLOT + 0.1) if x > B.X_SLOT else x) for y, x in B.rail_section()], z0, z1) for s in (-1, 1)]
-    stl_strip = out / f"{pf}_fit_coupon_rails_pla.stl"
-    B.to_trimesh(K.fuse(strip, rails)).export(stl_strip)
+    b_bambu_files(B.CAD_DIR / f"{pf}_dip_link.stl", B.CAD_DIR / f"{pf}_cover.stl", out, pf, str(PARAMS_B.relative_to(REPO)),
+                  rails=B.to_trimesh(K.fuse(strip, rails)))
     blocks = []
     fit0 = B.GROOVE_FIT
     for k, fit in enumerate((0.0, 0.05, 0.10)):
@@ -995,8 +1112,6 @@ def b_print():
     B.GROOVE_FIT = fit0
     stl_blocks = out / f"{pf}_fit_coupon_grooves_85a.stl"
     trimesh.util.concatenate(blocks).export(stl_blocks)
-    PP.LABEL["clamp_plate"] = "Rail strip"
-    PP.build_project({"clamp_plate": stl_strip}, out, f"{pf}_fit_coupon_rails_pla_t3", source=str(PARAMS_B.relative_to(REPO)))
     PP.LABEL["tip"] = "85A blocks with the pad's grooves, 0 / 0.05 / 0.10 mm per flank"
     PP.build_project({"tip": stl_blocks}, out, f"{pf}_fit_coupon_grooves_85a_t2", source=str(PARAMS_B.relative_to(REPO)))
     print_pads_b(B, out, REPO / "logs/20261018-dip_link/v2/b/print")
@@ -1062,7 +1177,10 @@ def b_section():
     parts = [("Pad, 85A (11/22, five magnets)", B.load_cad(f"pad_{tip}"), "#e8c88a"),
              ("DIP link", B.load_cad("dip_link"), "#d6d6cc"), ("Cover", B.load_cad("cover"), "#5b8fd9"),
              ("Board", B.to_trimesh(hw["fr4"]), "#1f7a3a"), ("Chips and parts", B.to_trimesh(hw["board_parts"]), "#202020"),
-             ("J1, plug, cable start", B.to_trimesh(hw["j1"]), "#f2f2ea"), ("Screws", B.to_trimesh(hw["screws"]), "#c8a33c")]
+             ("J1 and its plug" if B.cable_on() else "J1, plug, cable start", B.to_trimesh(hw["j1"]), "#f2f2ea"),
+             ("Screws", B.to_trimesh(hw["screws"]), "#c8a33c")]
+    if B.cable_on():
+        parts.append((f"Qwiic cable ({B.cp('cable_d'):g} mm bundle)", B.cable_mesh(), "#2f5bd8"))
     ctx = {n: G.load_part(n) for n in ("mcp_link", "servo_pip")}
     plt.rcParams.update({"font.family": "serif", "font.size": 15})
     fig, axs = plt.subplots(1, 2, figsize=(17.0, 12.0))
@@ -1098,7 +1216,8 @@ def b_section():
     hd = jb["j1_header"]
     axs[0].annotate("J1 on the whole tab, in the neck's slot", xy=((hd[0][0] + hd[1][0]) / 2, (hd[0][2] + hd[1][2]) / 2),
                     xytext=(10.5, B.Z_CONTACT + 14.4), fontsize=15, va="top", arrowprops=dict(arrowstyle="->", lw=1.0))
-    axs[0].annotate("Plug and the cable's\nfirst 3 mm; the slot\nopens through the\nbridge's top",
+    axs[0].annotate("Plug; the cable turns\ntoward the back, then\nto the slotted arm" if B.cable_on() else
+                    "Plug and the cable's\nfirst 3 mm; the slot\nopens through the\nbridge's top",
                     xy=((jb["plug"][0][0] + jb["plug"][1][0]) / 2, jb["plug"][1][2] - 0.5), xytext=(10.5, -64.5), fontsize=15, va="top",
                     arrowprops=dict(arrowstyle="->", lw=1.0))
     axs[0].annotate("Slot open at the neck's\nunderside: the board\nslides in along +z", xy=(2.2, B.TIP["z_mount"]),
@@ -1110,6 +1229,90 @@ def b_section():
     fig.suptitle("Concept b, v2: section y = 0 through U1 and J1", fontsize=18)
     fig.tight_layout(rect=(0, 0.07, 1, 0.96))
     dst = B_DIR / "media" / f"{pf}_section_j1.png"
+    fig.savefig(dst, dpi=100)
+    plt.close(fig)
+    print(dst.relative_to(REPO), flush=True)
+
+
+def b_cable_section(B, clr=None):
+    """Side views of b's cable route: left, the x-z section y = 0.05 through J1, the plug and the turn toward the back,
+    with the MCP link and the PIP servo at four PIP angles and the cable's nearest approach; right, the y-z section through
+    the run to the slotted arm and the turn up its outer face."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch, Polygon as MPoly
+    import dip_link_geometry as G
+    pf = B.PREFIX
+    hw = B.hardware()
+    D = B.load_cad("dip_link")
+    meshes = [(D, "#d6d6cc"), (B.to_trimesh(hw["fr4"]), "#1f7a3a"), (B.to_trimesh(hw["j1"]), "#f2f2ea")]
+    ctx = {n: G.load_part(n) for n in ("mcp_link", "servo_pip")}
+    C = B.cable_polyline()
+    seg = B.cable_segments()
+    xr = B.cp("cable_run_x")
+    qcol = {-18.0: "#c0392b", 0.0: "#2c3e50", 45.0: "#16a085", 92.0: "#8e44ad"}
+    plt.rcParams.update({"font.family": "serif", "font.size": 15})
+    fig, axs = plt.subplots(1, 2, figsize=(17.0, 10.0))
+    views = [(axs[0], (0, 1, 0), 0.05, (0, 2), "x in F (mm), dorsal to the right",
+              "Section y = 0.05 mm, through J1, the plug and the turn toward the back", (-14, 14), (-80, -50)),
+             (axs[1], (1, 0, 0), xr, (1, 2), "y in F (mm), toward the slotted arm to the right",
+              f"Section x = {xr:.2f} mm, through the run to the slotted arm", (-6, 22), (-74, -48))]
+    for ax, nrm, at, ij, xl, title, xlim, ylim in views:
+        o = np.zeros(3)
+        o[int(np.argmax(nrm))] = at
+        for tm, fc in meshes:
+            s = tm.section(plane_origin=o, plane_normal=nrm)
+            if s is not None:
+                for poly in s.discrete:
+                    ax.add_patch(MPoly(poly[:, list(ij)], closed=True, fc=fc, ec="k", lw=0.5))
+        for q, c in qcol.items():
+            for n, tm in ctx.items():
+                t2 = tm.copy()
+                t2.vertices = G.rot_pip(np.asarray(t2.vertices), q)
+                s = t2.section(plane_origin=o, plane_normal=nrm)
+                if s is not None:
+                    for poly in s.discrete:
+                        ax.add_patch(MPoly(poly[:, list(ij)], closed=True, fc="none", ec=c, lw=1.3))
+        k = int(np.argmax(nrm))
+        on = np.abs(C[:, k] - at) < 1.05                    # the part of the centre line within the bundle's radius
+        Cs = np.where(on[:, None], C, np.nan)
+        ax.plot(Cs[:, ij[0]], Cs[:, ij[1]], "-", color="#2f5bd8", lw=9, alpha=0.55, solid_capstyle="round")
+        ax.plot(Cs[:, ij[0]], Cs[:, ij[1]], "-", color="#1b2f80", lw=1.0)
+        if ij == (0, 2):
+            ax.plot([0], [-51.55], "k+", ms=14, mew=2)
+            ax.annotate("PIP axis", xy=(0.0, -51.55), xytext=(-12, -53.5), fontsize=14, arrowprops=dict(arrowstyle="->", lw=1.0))
+            jb = {n: (np.array(lo), np.array(hi)) for n, lo, hi in B.j1_boxes_b()}
+            ax.annotate("Plug in J1", xy=(jb["plug"][0][0] + 0.5, 0.5 * (jb["plug"][0][2] + jb["plug"][1][2])),
+                        xytext=(-12.5, -72), fontsize=14, arrowprops=dict(arrowstyle="->", lw=1.0))
+            if clr and clr.get("qwiic_cable", {}).get("at_F"):
+                p_ = clr["qwiic_cable"]
+                ax.plot([p_["at_F"][0]], [p_["at_F"][2]], "o", ms=7, mfc="none", mec="#c0392b", mew=1.8)
+                ax.annotate(f"Nearest approach {p_['min_mm']:.2f} mm\n(MCP link, PIP {p_['pip_deg']:.0f} deg)",
+                            xy=(p_["at_F"][0], p_["at_F"][2]), xytext=(4.0, -56.5), fontsize=14,
+                            arrowprops=dict(arrowstyle="->", lw=1.0))
+            ax.annotate("Turn toward the back", xy=(seg[1][2][0], seg[1][2][2]), xytext=(6.5, -73.5), fontsize=14,
+                        arrowprops=dict(arrowstyle="->", lw=1.0))
+        else:
+            ax.annotate("Turn into the slotted\narm's outer face", xy=(seg[-2][2][1], seg[-2][2][2]), xytext=(3.0, -52.5),
+                        fontsize=14, arrowprops=dict(arrowstyle="->", lw=1.0))
+            ax.annotate("Run along +y to the arm", xy=(8.0, seg[-3][1][2]), xytext=(-4.5, -71.5), fontsize=14,
+                        arrowprops=dict(arrowstyle="->", lw=1.0))
+        ax.set_xlim(*xlim)
+        ax.set_ylim(*ylim)
+        ax.set_aspect("equal")
+        ax.grid(True, lw=0.3, alpha=0.4)
+        ax.set_xlabel(xl)
+        ax.set_ylabel("z in F (mm)")
+        ax.set_title(title, fontsize=15)
+    fig.legend([Patch(fc="#d6d6cc", ec="k"), Patch(fc="#1f7a3a", ec="k"), Patch(fc="#f2f2ea", ec="k"),
+                Patch(fc="#2f5bd8", alpha=0.55)] + [Patch(fc="none", ec=c, lw=1.3) for c in qcol.values()],
+               ["DIP link", "Board", "J1 and its plug", f"Cable, {B.cp('cable_d'):g} mm bundle"]
+               + [f"MCP link and PIP servo at PIP {q:+.0f} deg" for q in qcol], loc="lower center", ncol=4, frameon=False,
+               fontsize=14)
+    fig.suptitle(f"Concept b, v2: the Qwiic cable's route (DIP link {B.NECK:g} mm longer)", fontsize=18)
+    fig.tight_layout(rect=(0, 0.13, 1, 0.95))
+    dst = B_DIR / "media" / f"{pf}_cable_section.png"
     fig.savefig(dst, dpi=100)
     plt.close(fig)
     print(dst.relative_to(REPO), flush=True)
@@ -1129,6 +1332,13 @@ def b_walls(B):
            f"tongue_z{B.Z_CONTACT - 7.9:.2f}_distal_screws": (body, (0, 0, B.Z_CONTACT - 7.9), (0, 0, 1), tongue),
            f"tongue_x{(B.X_SEAT + B.X_TONGUE_BACK) / 2:.2f}": (body, ((B.X_SEAT + B.X_TONGUE_BACK) / 2, 0, 0), (1, 0, 0), tongue),
            f"cover_x{(B.X_SLOT + B.X_COMP) / 2:.2f}": (cover, ((B.X_SLOT + B.X_COMP) / 2, 0, 0), (1, 0, 0), None)}
+    if B.cable_on():                                 # the bridge over the cable's groove: along the run and across it
+        seg = B.cable_segments()
+        z1 = seg[1][2][2]
+        bridge = ((B.TIP["x_palmar"] - 0.1, B.Y_BRIDGE[0], -70.0), (B.X_SPINE_BACK + 0.1, B.Y_BRIDGE[1], -58.0))
+        for y in (1.0, 6.0, 11.0):
+            sec[f"bridge_y{y:g}_over_the_groove"] = (body, (0, y, 0), (0, 1, 0), bridge)
+        sec[f"bridge_z{z1 + 1.6:.2f}_over_the_groove"] = (body, (0, 0, z1 + 1.6), (0, 0, 1), bridge)
     out = {}
     for k, (tm, o, n, b3) in sec.items():
         out[k] = A.section_min_wall(tm, o, n, box3=b3)
@@ -1211,18 +1421,29 @@ def b_docs():
     link_prj = next((v for k, v in prj.items() if "link_cover" in k), None)
     if link_prj and link_prj.get("slice"):
         mass["sliced_filament_link_and_cover_g"] = link_prj["slice"].get("filament_g")
-    rigid = {k: v for k, v in clr.items() if k not in ("arms_kept", "board_to_servo", "chips_to_servo") and not k.startswith("pad")}
+    rigid = {k: v for k, v in clr.items()
+             if k not in ("arms_kept", "board_to_servo", "chips_to_servo", "qwiic_cable") and not k.startswith("pad")}
     worst = min(rigid.items(), key=lambda kv: kv[1]["min_mm"])
     j1b = {n: (lo, hi) for n, lo, hi in B.j1_boxes_b()}
+    routed = B.cable_on()
+    rings = B_DIR / "20261019-dip_link_v2b_cable_routes.json"
+    rings = json.loads(rings.read_text())["rows"] if rings.exists() else []
+    ar = [r for r in rings if r["route"] == "a_route"]
+    span = cable_span(anchor=B.cable_segments()[-1][2]) if routed else None
+    bambu = prj.get(f"{pf}_pla_bambu", {}).get("parts", {})
     ev = dict(
-        title="DIP link concept b, v2: the board in a cassette behind five-magnet pads on a DIP link 9.75 mm longer, the board's "
-              "own Qwiic connector kept, M2 self-forming screws",
-        date="2026-10-18", params=str(PARAMS_B.relative_to(REPO)),
+        title=(f"DIP link concept b, v2: the board in a cassette behind five-magnet pads on a DIP link {B.NECK:g} mm longer, "
+               "the board's own Qwiic connector kept" + (", the Qwiic cable routed out past the slotted arm" if routed else "")
+               + ", M2 self-forming screws"),
+        date="2026-10-19" if routed else "2026-10-18", params=str(PARAMS_B.relative_to(REPO)),
         generator="scripts/dip_link_v2.py b (scripts/dip_link_concept_b.py at the parameter file)",
         status="design; model values; nothing printed or measured",
         owner=["'we should just go for 5x 3x2 magnets'", "'i do like the half ellipsoids most, the 11/22 one especially'",
                "'if we have to lengthen the fingertip to get everything to fit, including the qwiic port and the cable, that's "
-               "fine'", "'for m3 screws, i use 2.75mm diameter holes, m2 i use 1.8'"],
+               "fine'", "'for m3 screws, i use 2.75mm diameter holes, m2 i use 1.8'"]
+              + (["2026-10-19: 'how are you planning to route the cable out though?'; 'i would like to minimize range of "
+                  "motion loss, if any, on the back extension of the DIP joint'; 14:15: PLA on the Bambu printer through Bambu "
+                  "Studio, TPU on the Prusa XL 5T"] if routed else []),
         terms=dict(
             F="mm, x toward the dorsal side, y along the PIP axis, z up; the straight finger hangs along -z, the PIP axis passes "
               "through (0, y, -51.55)",
@@ -1245,7 +1466,11 @@ def b_docs():
             "pockets; the cover, board and tongue moved dorsally with it",
             "the board keeps its whole 9 mm tab and its Qwiic connector J1, tab proximal; J1, the plug and the cable lie in a "
             "slot that runs from the neck's underside through the bridge's top; no wires are soldered, so the tongue has no "
-            "wire exit and no tie block, and no header",
+            "wire exit and no tie block, and no header"]
+        + ([f"a groove open to the back takes the Qwiic cable out of the plug toward the back, to +y at x {B.cp('cable_run_x'):g} "
+            "mm and through the slotted arm's lower dorsal corner, and half the bundle deep up the arm's outer face to an "
+            "anchor below the PIP axis"] if routed else [])
+        + [
             f"the seat pocket is open at the tongue's distal end, so the board slides in along +z, J1 first, until the main "
             "square meets the proximal datum wall",
             f"four M2 x {B.SCREW_L:g} cheese-head screws (DIN 84) through cover and board form their thread in "
@@ -1256,7 +1481,28 @@ def b_docs():
                         spine_back=B.X_SPINE_BACK, sensing_plane=round(B.X_SLOT + B.SPOT, 2)),
         lengthening=lg["placements"]["b_x3.85"] | dict(choice=lg["choice"]["b"], note=(
             f"the scan at the component face x_F 3.85 (this design: {B.X_COMP:.2f}); the slot plane x_F 1.35-3.85 all need "
-            "9.75 mm")),
+            "9.75 mm")) | (dict(cable_route=(
+                f"{B.NECK:g} mm: the cable turned toward the back out of the plug clears the MCP link by "
+                f"{clr['qwiic_cable']['min_mm']} mm (R7 1.0 mm); with a 0.5 mm straight lead first, 0.676 mm. Concept a's "
+                "turn to +y right over the plug, at b's plug (wires at x_F 2.40, a's at 5.90), would clear "
+                + ", ".join(f"{r['clearance_mm']:.2f} mm at {r['neck_len']:g} mm with "
+                            + ("no lead" if r["lead"] == 0 else f"a {r['lead']:g} mm lead") for r in ar) +
+                " (v2/b/20261019-dip_link_v2b_cable_routes.json)")) if routed and clr.get("qwiic_cable") else {}),
+        cable=(dict(route="out of the plug toward the PIP joint, at once a 2.0 mm turn toward the back over the board's tab "
+                          f"end, a 2.0 mm turn to +y, a run along +y at x {B.cp('cable_run_x'):g} mm to the slotted arm, through "
+                          "the arm's lower dorsal corner, a 2.0 mm turn up into the arm's outer face and a groove half the "
+                          "bundle deep up the face to concept a's anchor below the PIP axis. The groove is open to the back, "
+                          f"and over the plug and the leg toward the back (x up to {B.cable_open_top_x():.2f} mm) also to "
+                          "the top, where the bridge's top lies less than 0.8 mm above it; the cable is laid in with its far "
+                          "plug on",
+                    open_top_to_x_mm=round(B.cable_open_top_x(), 2),
+                    bundle_d_mm=B.cp("cable_d"), bend_r_mm=B.cp("cable_r"), lead_mm=B.cp("cable_lead"),
+                    groove_clearance_mm=B.cp("cable_clear"), run_x_mm=B.cp("cable_run_x"),
+                    length_plug_to_anchor_mm=round(B.cable_length(), 2), clearance=clr.get("qwiic_cable"), free_span=span,
+                    range_of_motion="none lost: the cable runs inside the DIP link or outside y 17.40 to its anchor, and the "
+                                    "free span to the MCP link is longest at the PIP angle given, so a cable laid at that "
+                                    "length never pulls on the joint at -18 deg (back extension) or 92 deg")
+               if routed else None),
         qwiic=dict(kept="J1 (JST SH SM04B-SRSS-TB) on the whole tab, tab proximal, mating face toward the PIP joint",
                    boxes_F={n: [list(np.round(lo, 2)), list(np.round(hi, 2))] for n, (lo, hi) in j1b.items()},
                    clearance=clr.get("qwiic_connector")),
@@ -1284,18 +1530,22 @@ def b_docs():
                  "plane (scripts/dip_link_concept_b.py fe, concept_b/fe/fem_coarse.jsonl); the five-magnet 11/22 has no finite "
                  "elements, so only its static field, gain and chip-to-magnet distance"),
         mass_g=mass, prep=prep, step=step,
-        print_projects={k: project_summary(v) for k, v in prj.items()},
+        print_projects={k: project_summary(v) for k, v in prj.items() if not k.endswith("_pla_bambu")},
+        print_pla_bambu=prj.get(f"{pf}_pla_bambu"),
         parts_list=[
-            dict(item=f"DIP link, v2 ({B.NECK:g} mm longer, J1 slot, 1.8 mm screw holes)", material="PLA", qty=1,
-                 file=f"v2/b/cad/{pf}_dip_link.stl", step=f"v2/b/cad/{pf}_dip_link_new_body.step (new body, exact) and "
-                                                         f"{pf}_dip_link.step.zip (fused with the arms)"),
-            dict(item="Cover (web as thick as the chips, two dovetail rails)", material="PLA, solid", qty=1,
-                 file=f"v2/b/cad/{pf}_cover.stl", step=f"v2/b/cad/{pf}_cover.step"),
+            dict(item=f"DIP link, v2 ({B.NECK:g} mm longer, J1 slot, " + ("cable groove, " if routed else "")
+                      + "1.8 mm screw holes)", material="PLA (Bambu Studio: print-oriented STL)", qty=1,
+                 file=(bambu.get("dip_link") or {}).get("file", f"v2/b/cad/{pf}_dip_link.stl"),
+                 step=f"v2/b/cad/{pf}_dip_link_new_body.step (new body, exact) and {pf}_dip_link.step.zip (fused with the arms)"
+                      + (f"; {pf}_cable_groove_cutter.step" if routed else "")),
+            dict(item="Cover (web as thick as the chips, two dovetail rails)", material="PLA, solid (Bambu Studio)", qty=1,
+                 file=(bambu.get("cover") or {}).get("file", f"v2/b/cad/{pf}_cover.stl"), step=f"v2/b/cad/{pf}_cover.step"),
             dict(item="Pad, 85A, five magnets: 11/22 half-ellipsoid (or the block)", material="Siraya Tech TPU 85A, 30 % gyroid",
                  qty=1, file=f"v2/b/print/{pf}_pad_ell11_5_print.stl",
                  step=f"v2/b/cad/{pf}_pad_ell11_5.step.zip (faceted)"),
             dict(item="Rail fit coupon: a PLA strip with the two rails and 85A blocks with the grooves at 0, 0.05, 0.10 mm per "
-                      "flank", qty=1, file=f"v2/b/print/{pf}_fit_coupon_rails_pla_t3.3mf and {pf}_fit_coupon_grooves_85a_t2.3mf"),
+                      "flank", qty=1, file=f"v2/b/print/{pf}_fit_coupon_rails_pla_bambu.stl (Bambu) and "
+                                           f"{pf}_fit_coupon_grooves_85a_t2.3mf (XL, tool 2)"),
             dict(item="N52 disc magnet 3 x 2 mm, axially magnetized", qty=5),
             dict(item="ReSkin 5X board as supplied (J1 kept, tab not cut)", material="FR-4 0.6 mm", qty=1),
             dict(item=f"M2 x {B.SCREW_L:g} cheese-head screw, DIN 84 / ISO 1207", material="brass (R10: no ferromagnetic "
@@ -1303,28 +1553,39 @@ def b_docs():
             dict(item="Qwiic cable (JST SH 4-pin) from J1 to the controller", qty=1)],
         assembly=[
             "Print the rail fit coupon first and choose the groove interference (0, 0.05 or 0.10 mm per flank).",
-            "Print the PLA plate (DIP link, cover) and the 85A pad with its pauses (press each magnet to the floor, north pole "
-            "toward the palmar side).",
+            "Print the DIP link and the cover in PLA on the Bambu printer (print-oriented STLs, settings in v2/README.md) and "
+            "the 85A pad with its pauses on the XL (press each magnet to the floor, north pole toward the palmar side).",
             "Plug the Qwiic cable into J1. Thread the cable up through the slot from the neck's underside until it leaves the "
             "bridge's top.",
             "Slide the board proximally along the tongue's seat, chips toward the palmar side and J1 first into the slot, until "
             "the main square meets the proximal datum wall; push it against the -y datum wall.",
             "Lay the cover on the board (windows over the parts, rails palmar) and drive the four M2 screws from the palmar side "
-            "through cover and board into the tongue's 1.8 mm holes; they form their thread; tighten crosswise, snug.",
-            "Route the cable from the bridge's top along the link's dorsal side to y > 17.4 mm and across the PIP joint outside "
-            "the slotted arm; fix it to the DIP link before the joint so a pull does not reach J1.",
-            "Press the pad onto the cover: notches over the screw heads, mount face against the neck, until both rails snap in.",
-            "Read the zero-load field of the five chips."],
+            "through cover and board into the tongue's 1.8 mm holes; they form their thread; tighten crosswise, snug."]
+        + (["Lay the cable into its groove: bend it toward the back right at the plug into the groove that is open to the top "
+            "over the plug, then toward the slotted arm, pressing it in from the back along the groove, around the arm's lower "
+            "corner and up the groove on the arm's outer face to the anchor. A strip of Kapton tape over the open groove keeps "
+            "the first turn down; a drop of CA glue or a strip of Kapton tape at the anchor keeps a pull off J1.",
+            f"Tie the cable to the MCP link's side plate {span['span_mm']['max'] + 1.0:.0f} mm from the anchor (its longest "
+            f"span, at PIP {span['span_mm']['longest_at_pip_deg']:.0f} deg, plus 1 mm), so it never pulls on the joint."]
+           if routed else
+           ["Route the cable from the bridge's top along the link's dorsal side to y > 17.4 mm and across the PIP joint outside "
+            "the slotted arm; fix it to the DIP link before the joint so a pull does not reach J1."])
+        + ["Press the pad onto the cover: notches over the screw heads, mount face against the neck, until both rails snap in.",
+           "Read the zero-load field of the five chips."],
         first_print_checks=[
             "J1 with the plug mated slides through the slot from the neck's underside without touching its walls",
             "The M2 screws thread into the 1.8 mm holes by hand and clamp the board without play",
             "The pad's grooves snap onto the rails and the pad does not lift off the cover under a 3 N press",
             f"Over the full PIP range by hand, nothing touches the MCP link or the PIP servo (the least clearance is "
-            f"{worst[1]['min_mm']} mm, {worst[0]})"],
+            f"{worst[1]['min_mm']} mm, {worst[0]})"]
+        + (["The cable stays in its groove over the full PIP range, back extension (-18 deg) included, and the joint turns as "
+            "freely with the cable tied as without it"] if routed else []),
         open_items=[f"Mass {mass['total_without_pad']} g without the pad at the link's sliced density (R12 7.6 g): the neck is "
                     f"a {B.NECK:g} mm block, 21 mm wide and 20 mm deep",
-                    "Force resolution of the five-magnet 11/22 pad needs its finite elements",
-                    "The cable's route past the PIP joint beyond its first 3 mm"],
+                    "Force resolution of the five-magnet 11/22 pad needs its finite elements"]
+                   + (["The bundle is modelled as 2.0 mm round and turns right at the plug's rear face; measure the cable's "
+                       "four wires and the groove's fit on the first print"] if routed else
+                      ["The cable's route past the PIP joint beyond its first 3 mm"]),
         files=dict(cad=sorted(str(f.relative_to(REPO)) for f in B.CAD_DIR.glob("*")),
                    print=sorted(str(f.relative_to(REPO)) for f in (B_DIR / "print").glob("*")),
                    media=sorted(str(f.relative_to(REPO)) for f in (B_DIR / "media").glob("*.png"))),
@@ -1347,6 +1608,9 @@ def cmd_b(a):
         elif stage == "render":
             run_b("render")
             b_section()
+            B = b_module()
+            if B.cable_on():
+                b_cable_section(B, json.loads((B.WORK / "clearance.json").read_text()))
         elif stage == "step":
             b_step()
         elif stage == "print":
@@ -1369,32 +1633,43 @@ def cmd_summary(a):
         r = prj[k][stem]
         return dict(what=what, project=r["project"], print_time=r["print_time"], filament_g=r["filament_g"],
                     pauses_mm=r["pauses_mm"], checks_pass=r["checks_pass"])
+
+    def bambu(k, pfx, part, what):                 # a print-oriented PLA STL for Bambu Studio (owner, 2026-10-19 14:15)
+        rec = json.loads((V2 / k / "print" / f"{pfx}_pla_bambu.json").read_text())
+        r = rec["parts"][part]
+        return dict(what=what, project=r["file"], print_time="Bambu Studio", filament_g=None, pauses_mm=[],
+                    checks_pass=bool(r["watertight"] and r["bodies"] == 1), settings=rec["settings"][part])
+    import dip_link_params as DP
+    neck = {k: DP.load(f)[1]["neck_len"] for k, f in (("a", PARAMS_A), ("b", PARAMS_B))}
     pa, pb = "20261018-dip_link_v2a", "20261018-dip_link_v2b"
     order = [
         item("a", f"{pa}_fit_coupon_keys_pla_t3", "a: PLA key sections with detents (tool 3)"),
         item("a", f"{pa}_fit_coupon_channels_85a_t2", "a: 85A channel blocks at 0, 0.05, 0.10 mm per flank (tool 2); choose the "
                                                        "channel interference"),
-        item("b", f"{pb}_fit_coupon_rails_pla_t3", "b: PLA strip with the cover's two rails (tool 3)"),
+        bambu("b", pb, "rails", "b: PLA strip with the cover's two rails (Bambu)"),
         item("b", f"{pb}_fit_coupon_grooves_85a_t2", "b: 85A blocks with the pad's grooves at 0, 0.05, 0.10 mm per flank "
                                                       "(tool 2); choose the groove interference"),
-        item("a", f"{pa}_print_link_clamp_coupon_pla_t3", "a: DIP link, clamp plate and pin-fit coupon (PLA, tool 3)"),
+        bambu("a", pa, "dip_link", "a: DIP link (PLA, Bambu)"), bambu("a", pa, "clamp_plate", "a: clamp plate (PLA, Bambu)"),
+        bambu("a", pa, "pin_fit_coupon", "a: pin-fit coupon (PLA, Bambu)"),
         item("a", f"{pa}_print_tip_ell11_5_channels_85a_t2_g30", "a: 11/22 half-ellipsoid tip with the key channels and five "
                                                                  "magnets (85A, tool 2)"),
-        item("b", f"{pb}_print_link_cover_pla_t3", "b: DIP link and cover (PLA, tool 3)"),
+        bambu("b", pb, "dip_link", "b: DIP link (PLA, Bambu)"), bambu("b", pb, "cover", "b: cover (PLA, Bambu)"),
         item("b", f"{pb}_print_pad_ell11_5_85a_t2_g30", "b: 11/22 half-ellipsoid pad with five magnets (85A, tool 2)")]
     alt = [item("a", f"{pa}_print_tip_block5_channels_85a_t2_g30", "a: five-magnet block tip with the key channels"),
            item("b", f"{pb}_print_pad_block5_85a_t2_g30", "b: five-magnet block pad")]
     ca, cb = ev["a"]["clearance"]["per_part"], ev["b"]["clearance"]["per_part"]
     designs = dict(
-        a=dict(pip_to_tip_mm=lg["choice"]["a"]["pip_to_tip_mm"], lengthening_mm=lg["choice"]["a"]["lengthening_mm"],
-               least_clearance_mm=dict(dip_link=ca["dip_link_new"]["min_mm"], j1_plug_cable=ca["qwiic_connector"]["min_mm"]),
+        a=dict(pip_to_tip_mm=round(PIP_TO_TIP + neck["a"], 2), lengthening_mm=neck["a"],
+               least_clearance_mm=dict(dip_link=ca["dip_link_new"]["min_mm"], j1_plug=ca["qwiic_connector"]["min_mm"],
+                                       cable=(ca.get("qwiic_cable") or {}).get("min_mm")),
                block5_force_resolution_N=ev["a"]["sensing"]["block5_force_resolution_30_N"],
                static_field_U1_mT={k: v["B_U1_mT"] for k, v in ev["a"]["sensing"]["static_fields"].items()},
                gain_sel={k: v["gain_sel"] for k, v in ev["a"]["sensing"]["static_fields"].items()},
                chip_to_magnet_surface_mm={k: v["chip_to_magnet_surface_mm"] for k, v in ev["a"]["sensing"]["static_fields"].items()},
                mass_without_tip_g=ev["a"]["mass_g"]["total_without_tip"], open_items=ev["a"]["open_items"]),
-        b=dict(pip_to_tip_mm=lg["choice"]["b"]["pip_to_tip_mm"], lengthening_mm=lg["choice"]["b"]["lengthening_mm"],
-               least_clearance_mm=dict(dip_link=cb["dip_link_new_body"]["min_mm"], j1_plug_cable=cb["qwiic_connector"]["min_mm"]),
+        b=dict(pip_to_tip_mm=round(PIP_TO_TIP + neck["b"], 2), lengthening_mm=neck["b"],
+               least_clearance_mm=dict(dip_link=cb["dip_link_new_body"]["min_mm"], j1_plug=cb["qwiic_connector"]["min_mm"],
+                                       cable=(cb.get("qwiic_cable") or {}).get("min_mm")),
                block5_force_resolution_N=ev["b"]["sensing"]["design_point"]["force_resolution_gain_N"],
                static_field_U1_mT={k: v["B_U1_mT"] for k, v in ev["b"]["sensing"]["static_fields"].items()},
                gain_sel={k: v["gain_sel"] for k, v in ev["b"]["sensing"]["static_fields"].items()},
@@ -1424,7 +1699,7 @@ def cmd_summary(a):
     dst = V2 / f"{DATE}-v2_summary.json"
     dst.write_text(json.dumps(out, indent=1, default=float) + "\n")
     for r in order + alt:
-        print(f"{r['what'][:70]:70s} {r['print_time']:>12s} {r['filament_g']} g pauses {r['pauses_mm']} pass {r['checks_pass']}")
+        print(f"{r['what'][:70]:70s} {str(r['print_time']):>12s} {r['filament_g']} g pauses {r['pauses_mm']} pass {r['checks_pass']}")
     print("->", dst.relative_to(REPO), flush=True)
 
 

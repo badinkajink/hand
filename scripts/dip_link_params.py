@@ -340,7 +340,26 @@ SCHEMA_B = [
      "block, which ends at tie_y1)", "mm", (3.10, 4.50), ["wall"], 3.4),
     ("qwiic_groove_y1", "Qwiic header on the tongue", "Groove outer y", "outer y edge of the pigtail groove (the nut pockets "
      "begin at y 6.07)", "mm", (4.50, 5.50), ["wall"], 5.0),
+    ("cable_d", "Qwiic cable route", "Bundle diameter", "the four 28 AWG wires of the Qwiic cable as one round bundle "
+     "(design cable = idler_side)", "mm", (1.6, 2.6), ["clearance", "fit"], 2.0),
+    ("cable_r", "Qwiic cable route", "Bend radius", "bend radius of the bundle's centre line at its three turns", "mm",
+     (1.0, 3.0), ["clearance"], 2.0),
+    ("cable_lead", "Qwiic cable route", "Straight lead", "straight run out of the plug before the first turn (toward the "
+     "back)", "mm", (0.0, 1.5), ["clearance"], 0.0),
+    ("cable_clear", "Qwiic cable route", "Groove clearance", "clearance of the groove around the bundle", "mm", (0.1, 0.4),
+     ["fit"], 0.2),
+    ("cable_run_x", "Qwiic cable route", "Run x", "x of the bundle's centre line where it runs along +y to the slotted arm; "
+     "the cable turns toward the back out of the plug (wires at x_F -4.95 + t_behind + chip_h) and to +y here, so at least "
+     "that x plus twice the bend radius", "mm", (5.5, 8.5), ["clearance", "wall"], 6.4),
+    ("cable_face_y", "Qwiic cable route", "Bundle y on the arm", "y of the bundle's centre line on the slotted arm's outer "
+     "face (17.40: half the bundle in the face's groove)", "mm", (16.4, 18.4), ["width", "wall"], 17.4),
+    ("cable_anchor_x", "Qwiic cable route", "Anchor x", "x where the groove on the arm's outer face ends (F)", "mm",
+     (0.0, 6.0), ["clearance"], 4.0),
+    ("cable_anchor_z", "Qwiic cable route", "Anchor z", "z where the groove on the arm's outer face ends, below the PIP "
+     "axis at z -51.55 (F; the arm does not move with the lengthening)", "mm", (-60.0, -54.5), ["clearance"], -56.5),
 ]
+OPTIONAL_B = {"cable_d", "cable_r", "cable_lead", "cable_clear", "cable_run_x", "cable_face_y", "cable_anchor_x",
+              "cable_anchor_z"}
 DESIGN_B = [
     ("qwiic", "Qwiic connection", "none",
      {"none": "the tab cut at tab_cut_v, J1 removed, four wires from the vias through the exit slot (the committed "
@@ -358,6 +377,11 @@ DESIGN_B = [
     ("board_screws", "Board screws", "m1p6_nuts",
      {"m1p6_nuts": "four M1.6 cheese-head screws into brass nuts in pockets of the tongue's back",
       "self_forming": "four cheese-head screws (screw_d, M2 in v2) form their thread in screw_thread_d holes of the tongue"}),
+    ("cable", "Qwiic cable", "plug_only",
+     {"plug_only": "J1's plug and the cable's first 3 mm only (v2 of 2026-10-18)",
+      "idler_side": "the cable turns toward the back out of the plug, then to +y at cable_run_x, through the slotted arm's "
+                    "lower dorsal corner and up its outer face to an anchor below the PIP axis, where the MCP link and the "
+                    "servo never reach; the groove is open to the back (needs qwiic = j1_kept)"}),
 ]
 
 TITLES = {"a": "DIP link concept a, final: window plate, dorsal clamp plate, Qwiic header on the clamp plate",
@@ -453,7 +477,7 @@ def problems(concept, vals, des=None):
             out.append(f"{k}: not a parameter of concept {concept}")
         elif not (known[k][0] - 1e-9 <= v <= known[k][1] + 1e-9):
             out.append(f"{k} = {v:g} mm lies outside {known[k][0]:g}..{known[k][1]:g} mm")
-    out += [f"{k}: missing" for k in known if k not in vals and not (concept == "a" and k in OPTIONAL_A)]
+    out += [f"{k}: missing" for k in known if k not in vals and k not in (OPTIONAL_A if concept == "a" else OPTIONAL_B)]
     for k, _, _, opts in design_schema(concept):
         if des and k in des and des[k] not in opts:
             out.append(f"{k} = {des[k]}: not one of {', '.join(opts)}")
@@ -488,6 +512,14 @@ def problems(concept, vals, des=None):
             out.append("J1 kept clears the PIP servo and the MCP link by 0.5 mm from neck_len 9.75 (v2/20261018-v2_lengthening.json)")
         if (des or {}).get("board_screws") == "self_forming" and vals["screw_thread_d"] >= vals["screw_d"]:
             out.append("a self-forming hole must be smaller than the screw (screw_thread_d < screw_d)")
+        if (des or {}).get("cable") == "idler_side":
+            if not j1:
+                out.append("cable = idler_side routes the cable from J1's plug: it needs qwiic = j1_kept")
+            x_wires = -3.55 + vals["t_behind"] + vals["chip_h"] - 1.4
+            need = x_wires + 2 * vals.get("cable_r", 2.0)
+            if vals.get("cable_run_x", 6.4) < need - 1e-9:
+                out.append(f"cable_run_x must be at least {need:.2f} mm: the plug's wires at x {x_wires:.2f} plus two bends of "
+                           f"radius {vals.get('cable_r', 2.0):g}")
     return out
 
 
@@ -809,26 +841,33 @@ def freecad_assembly():
     parts = [("Board ReSkin 5X", board.fuse(comps).removeSplitter())]
     keep_j1 = des.get("qwiic") == "j1_kept"
     if keep_j1:
-        j1 = {n: board_box(lo, hi) for n, lo, hi in DLF.j1_parts_board() if n != "tab_fr4"}
+        routed_b = concept == "b" and B.cable_on()          # b's routed cable replaces the straight 3 mm
+        j1 = {n: board_box(lo, hi) for n, lo, hi in DLF.j1_parts_board() if n != "tab_fr4"
+              and not (routed_b and n.startswith("wire"))}
         wires = [s for k, s in j1.items() if k.startswith("wire")]
         parts += [("J1 Qwiic header on the board", j1["j1_header"]),
                   ("Qwiic plug" + (" and cable start" if wires else ""),
                    j1["plug"].fuse(wires).removeSplitter() if wires else j1["plug"])]
-    if concept == "a" and A.P.get("cable_route"):  # the cable as a 2.0 mm pipe along its centre line (lines and arcs)
+    segs = (A.cable_segments() if concept == "a" and A.P.get("cable_route") else
+            B.cable_segments() if concept == "b" and B.cable_on() else None)
+    if segs:                                       # the cable as a pipe along its centre line (lines and arcs)
         edges = []
-        for s in A.cable_segments():
+        for s in segs:
             if s[0] == "line":
-                edges.append(Part.LineSegment(V(*map(float, s[1])), V(*map(float, s[2]))).toShape())
+                if np.linalg.norm(s[2] - s[1]) > 1e-9:
+                    edges.append(Part.LineSegment(V(*map(float, s[1])), V(*map(float, s[2]))).toShape())
             else:
-                _, a_, b_, c_, r_, _, t0, t1 = s
+                _, a_, b_, c_, r_, plane, t0, t1 = s
+                i, j = "xyz".index(plane[0]), "xyz".index(plane[1])
                 tm_ = np.radians(0.5 * (t0 + t1))
-                m_ = (c_[0], c_[1] + r_ * np.cos(tm_), c_[2] + r_ * np.sin(tm_))
+                m_ = np.array(c_, float)
+                m_[i], m_[j] = c_[i] + r_ * np.cos(tm_), c_[j] + r_ * np.sin(tm_)
                 edges.append(Part.Arc(V(*map(float, a_)), V(*map(float, m_)), V(*map(float, b_))).toShape())
         path_ = Part.Wire(edges)
-        s0 = A.cable_segments()[0]
-        t_ = s0[2] - s0[1]
-        prof = Part.Wire(Part.makeCircle(float(A.P["cable_d"]) / 2, V(*map(float, s0[1])),
-                                         V(*map(float, t_ / np.linalg.norm(t_)))))
+        e0 = edges[0]
+        t_ = e0.tangentAt(e0.FirstParameter)
+        d_ = float(A.P["cable_d"]) if concept == "a" else float(B.cp("cable_d"))
+        prof = Part.Wire(Part.makeCircle(d_ / 2, e0.Vertexes[0].Point, t_))
         pipe = Part.Wire(path_).makePipeShell([prof], True, True)
         parts.append(("Qwiic cable to the anchor on the slotted arm", pipe))
     if concept == "b":
@@ -892,6 +931,11 @@ def freecad_assembly():
         rec.update(file=z.name, zip_bytes=z.stat().st_size)
     (out / "assembly.json").write_text(json.dumps(rec, indent=1))
     print("assembly", rec["file"], flush=True)
+
+
+def rel_out(p):
+    p = Path(p)
+    return str(p.relative_to(REPO)) if REPO in p.parents else str(p)
 
 
 def cmd_export(a):
@@ -968,41 +1012,26 @@ def cmd_export(a):
                         "(the exact parts); STL opens only as a reference mesh", when=time.strftime("%Y-%m-%d %H:%M"))
     (out / "assembly.json").unlink()
     if not a.no_slice:
-        import dip_link_print_project as PP
-        if concept == "a":
-            parts = {"dip_link": cad / f"{pfx}_dip_link.stl", "clamp_plate": cad / f"{pfx}_clamp_plate.stl",
-                     "pin_fit_coupon": out / "print" / f"{pfx}_pin_fit_coupon.stl"}
-            box0 = PP.box_F_to_print
-            zm, ze = -67.30 - vals.get("neck_len", 0.0), -88.71 - vals.get("neck_len", 0.0)
-
-            def box_shifted(lo, hi, Rt):          # the print project's window-plate box moves with the tip
-                if abs(lo[2] + 88.71) < 1e-9 and abs(hi[2] + 67.30) < 1e-9:
-                    lo, hi = (lo[0], lo[1], ze), (hi[0], hi[1], zm)
-                return box0(lo, hi, Rt)
-            PP.box_F_to_print = box_shifted
-        else:
-            parts = {"dip_link": cad / f"{pfx}_dip_link.stl", "clamp_plate": cad / f"{pfx}_cover.stl"}
-            lv0 = PP.link_volumes
-            PP.link_volumes = lambda m, Rt: (lv0(m, Rt)[0], [])      # concept a's shoulder modifiers do not apply to b
-            PP.window_boxes = lambda Rt: {}
-            PP.LABEL["clamp_plate"] = "Cover"
-        PP.PFX = pfx
-        rep = PP.build_project(parts, out / "print", f"{pfx}_print_pla_t3", source=rec["params"])
-        sl = rep.get("slice") or {}
-        if concept == "b" and sl.get("dip_link"):
-            sl["dip_link"].pop("window_plate", None)
-            sl["checks_pass"] = bool(sl.get("m601", 0) == 0 and sl["dip_link"]["support_outside"] == 0)
-            (out / "print" / f"{pfx}_print_pla_t3.json").write_text(json.dumps(rep, indent=1, default=float))
-        rec["print"] = dict(project=rep.get("project"), print_time=sl.get("print_time"), filament_g=sl.get("filament_g"),
-                            checks_pass=sl.get("checks_pass"))
+        # PLA on the Bambu printer as print-oriented STLs, 85A on the XL as PrusaSlicer projects (owner, 2026-10-19 14:15)
         import dip_link_v2 as V2
+        pr = out / "print"
         if concept == "a":
-            V2.print_tips_a(A, DLF, out / "print", pfx, work / "print")
+            fused = work / f"{pfx}_dip_link.step"           # the exact fused link of the step stage, tessellated
+            link = V2.step_to_stl(fused, work / f"{pfx}_dip_link_exact.stl") if fused.exists() else cad / f"{pfx}_dip_link.stl"
+            pla = V2.a_bambu_files(link, cad / f"{pfx}_clamp_plate.stl", pr / f"{pfx}_pin_fit_coupon.stl", pr, pfx,
+                                   rec["params"])
         else:
-            _run([str(E_FEMTIP), "-u", str(REPO / "scripts/dip_link_v2.py"), "pads", "--out", str(out / "print"), "--work",
+            pla = V2.b_bambu_files(cad / f"{pfx}_dip_link.stl", cad / f"{pfx}_cover.stl", pr, pfx, rec["params"])
+        rec["print"] = dict(pla_bambu={k: v["file"] for k, v in pla["parts"].items()},
+                            pla_ok=all(v["watertight"] and v["bodies"] == 1 for v in pla["parts"].values()),
+                            settings=f"{rel_out(pr / f'{pfx}_pla_bambu.json')}")
+        if concept == "a":
+            V2.print_tips_a(A, DLF, pr, pfx, work / "print")
+        else:
+            _run([str(E_FEMTIP), "-u", str(REPO / "scripts/dip_link_v2.py"), "pads", "--out", str(pr), "--work",
                   str(work / "print")], env, "concept b pads")
         rec["tips_print"] = {f.stem: V2.project_summary(json.loads(f.read_text()))
-                             for f in sorted((out / "print").glob(f"{pfx}_print_*_85a_t2_g30.json"))}
+                             for f in sorted(pr.glob(f"{pfx}_print_*_85a_t2_g30.json"))}
     (out / "export.json").write_text(json.dumps(rec, indent=1, default=float) + "\n")
     print(f"RESULT {(out / 'export.json').relative_to(REPO)}", flush=True)
     print(f"export -> {out.relative_to(REPO)}: {len(read)} STEP files read back, all valid {rec['all_valid']} "

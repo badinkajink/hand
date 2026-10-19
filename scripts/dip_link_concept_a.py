@@ -165,28 +165,43 @@ def cable_segments(p=P):
             ("arc", b2, b3, c2, R, "yz", -90.0, 0.0), ("line", b3, A_)]
 
 
-def cable_polyline(p=P, step=0.2):
-    """The centre line as points about `step` mm apart."""
+def polyline(segs, step=0.2):
+    """A centre line of ('line', a, b) and ('arc', a, b, centre, radius, plane, t0_deg, t1_deg) segments as points about
+    `step` mm apart; an arc's plane names the two axes whose coordinates turn about the centre ('yz', 'xz' or 'xy')."""
     pts = []
-    for s in cable_segments(p):
+    for s in segs:
         if s[0] == "line":
             a, b = s[1], s[2]
+            if np.linalg.norm(b - a) < 1e-9:              # a lead of zero length
+                continue
             n = max(1, int(np.ceil(np.linalg.norm(b - a) / step)))
             seg = [a + (b - a) * t for t in np.linspace(0, 1, n + 1)]
         else:
             _, a, b, c, r, plane, t0, t1 = s
+            i, j = "xyz".index(plane[0]), "xyz".index(plane[1])
             n = max(2, int(np.ceil(abs(np.radians(t1 - t0)) * r / step)))
-            seg = [np.array([c[0], c[1] + r * np.cos(t), c[2] + r * np.sin(t)])
-                   for t in np.radians(np.linspace(t0, t1, n + 1))]
+            seg = []
+            for t in np.radians(np.linspace(t0, t1, n + 1)):
+                q = np.array(c, float)
+                q[i], q[j] = c[i] + r * np.cos(t), c[j] + r * np.sin(t)
+                seg.append(q)
         pts += seg if not pts else seg[1:]
     return np.array(pts)
 
 
+def cable_polyline(p=P, step=0.2):
+    """The centre line as points about `step` mm apart."""
+    return polyline(cable_segments(p), step)
+
+
 def cable_mesh(p=P, sections=24):
     """The bundle as a closed tube (trimesh) along the centre line, frames carried along the line."""
+    return tube_mesh(cable_polyline(p, 0.25), p["cable_d"] / 2, sections)
+
+
+def tube_mesh(C, r, sections=24):
+    """A closed tube (trimesh) of radius r along the points C, frames carried along the line."""
     import trimesh
-    C = cable_polyline(p, 0.25)
-    r = p["cable_d"] / 2
     T = np.gradient(C, axis=0)
     T /= np.linalg.norm(T, axis=1)[:, None]
     u = np.cross(T[0], [1.0, 0, 0]) if abs(T[0][0]) < 0.9 else np.cross(T[0], [0, 1.0, 0])

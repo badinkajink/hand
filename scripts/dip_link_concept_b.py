@@ -486,6 +486,13 @@ def cmd_prep(a):
         info[f"pad_{key}"] = dict(volume_mm3=round(float(tm.volume), 1), whole_volume_mm3=round(float(whole.volume), 1),
                                  bounds=np.round(tm.bounds, 3).tolist(), watertight=bool(tm.is_watertight))
         print(key, info[f"pad_{key}"], flush=True)
+    if cable_on():                              # the Qwiic cable along its route (a model, for the assembly and checks)
+        cm = cable_mesh()
+        cm.export(CAD_DIR / f"{PREFIX}_cable.stl")
+        info["cable"] = dict(file=str((CAD_DIR / f"{PREFIX}_cable.stl").relative_to(REPO)) if REPO in CAD_DIR.parents else
+                             str(CAD_DIR / f"{PREFIX}_cable.stl"), length_mm=round(cable_length(), 2),
+                             bounds=np.round(cm.bounds, 3).tolist(), watertight=bool(cm.is_watertight))
+        print("cable", info["cable"], flush=True)
     (WORK / "prep.json").write_text(json.dumps(info, indent=1))
 
 
@@ -559,6 +566,14 @@ class BrepB:
         pts = [V(x, y, z0) for y, x in points_yx]
         return self.Part.Face(self.Part.makePolygon(pts + [pts[0]])).extrude(V(0, 0, z1 - z0))
 
+    def prism_x(self, points_yz, x0, x1):
+        V = self.App.Vector
+        pts = [V(x0, y, z) for y, z in points_yz]
+        return self.Part.Face(self.Part.makePolygon(pts + [pts[0]])).extrude(V(x1 - x0, 0, 0))
+
+    def cyly(self, x, z, r, y0, y1):
+        return self.Part.makeCylinder(r, y1 - y0, self.App.Vector(x, y0, z), self.App.Vector(0, 1, 0))
+
     def fuse(self, a, others):
         return a.fuse(others)
 
@@ -620,6 +635,15 @@ class MeshB:
     def prism_z(self, points_yx, z0, z1):
         return self._extrude([(x, y) for y, x in points_yx], z0, z1, [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
 
+    def prism_x(self, points_yz, x0, x1):
+        return self._extrude(list(points_yz), x0, x1, [[0, 0, 1, 0], [1, 0, 0, 0], [0, 1, 0, 0]])
+
+    def cyly(self, x, z, r, y0, y1, n=48):
+        """Cylinder along y."""
+        m3 = _m3()
+        return m3.Manifold.cylinder(float(y1 - y0), float(r), float(r), n).rotate([-90.0, 0.0, 0.0]).translate(
+            [float(x), float(y0), float(z)])                                       # +z -> +y
+
     def fuse(self, a, others):
         m3 = _m3()
         return m3.Manifold.batch_boolean([a] + list(others), m3.OpType.Add)
@@ -662,14 +686,148 @@ def profile():
 
 def j1_boxes_b():
     """J1, its plug and the cable's first 3 mm kept on the board (dip_link_concept_a.j1_parts_board, tab proximal) at b's
-    placement, the component face at X_COMP and the parts toward the pad: (name, lo, hi) boxes in F."""
+    placement, the component face at X_COMP and the parts toward the pad: (name, lo, hi) boxes in F. With the routed
+    cable (cable_on) the cable's straight 3 mm is left out: cable_segments replaces it."""
     sys.path.insert(0, str(REPO / "scripts"))             # freecadcmd starts without it
     import dip_link_concept_a as A
     out = []
     for name, lo, hi in A.j1_parts_board():
-        if name != "tab_fr4":
-            out.append((name, (X_COMP - hi[2], lo[0], Z_CONTACT - hi[1]), (X_COMP - lo[2], hi[0], Z_CONTACT - lo[1])))
+        if name == "tab_fr4" or (name.startswith("wire") and cable_on()):
+            continue
+        out.append((name, (X_COMP - hi[2], lo[0], Z_CONTACT - hi[1]), (X_COMP - lo[2], hi[0], Z_CONTACT - lo[1])))
     return out
+
+
+# The Qwiic cable's route (design cable = idler_side; owner, 2026-10-19: "how are you planning to route the cable out
+# though?", "i would like to minimize range of motion loss, if any, on the back extension of the DIP joint"). b's plug
+# leaves its wires at x_F 2.40, 3.50 mm palmar of concept a's 5.90, and so 0.7 mm closer to the PIP axis at the height of
+# the first turn, where the MCP link's end sweeps a cylinder of radius 12.70 about the axis: a's turn to +y right over the
+# plug would pass the MCP link at about 0.3 mm at neck_len 9.75. The cable therefore turns dorsally first, out of the
+# plug toward the back, then to +y at x cable_run_x, and from there takes concept a's path: through the slotted arm's lower
+# dorsal corner, up its outer face (y 17.40, where no part of the MCP link or the PIP servo reaches at any PIP angle) to the
+# anchor below the PIP axis. The groove is open to the back, so the cable is laid in with its far plug on.
+ARM_OUT = 17.40                 # outer face of the slotted arm (fingertip_mount_DIP_link.stl)
+CABLE = dict(cable_d=2.0, cable_r=2.0, cable_lead=0.0, cable_clear=0.2, cable_run_x=6.40, cable_face_y=17.40,
+             cable_anchor_x=4.0, cable_anchor_z=-56.5)          # values for a parameter file without the cable keys
+X_OPEN = 11.5                   # the groove runs out past the DIP link's back and the slotted arm's dorsal edge
+ROOF_MIN = 0.8                  # R11: the thinnest PLA wall, two 0.4 mm lines
+
+
+def cable_on():
+    return DESIGN.get("cable") == "idler_side" and DESIGN.get("qwiic") == "j1_kept"
+
+
+def cp(key):
+    return float(P.get(key, CABLE[key]))
+
+
+def cable_segments():
+    """Centre line of the cable's bundle from the plug's rear face to the anchor on the slotted arm's outer face, F:
+    straight out of the plug toward the PIP joint (cable_lead), a turn toward the back (cable_r, in the x-z plane), a run
+    toward the back if cable_run_x leaves room, a turn to +y (x-y plane), a run along +y at x cable_run_x to the slotted
+    arm, a turn to +z into the arm's outer face (y-z plane) and a line up the face to the anchor. Segments ('line', a, b)
+    and ('arc', a, b, centre, radius, plane, t0_deg, t1_deg), as dip_link_concept_a.cable_segments."""
+    import numpy as np
+    R, lead = cp("cable_r"), cp("cable_lead")
+    x0 = X_COMP - 1.4                           # the plug's wires leave at mid-height of the housing (concept a's 1.4 mm)
+    y0 = 0.05                                   # J1's centre line (spec.json: body u -2.95 .. 3.05)
+    z0 = Z_CONTACT + 18.09 + QW["plug_out"]     # the plug's rear face (board v -20.09)
+    xr, yf = cp("cable_run_x"), cp("cable_face_y")
+    a1 = np.array([x0, y0, z0 + lead])
+    c1 = np.array([x0 + R, y0, z0 + lead])
+    b1 = np.array([x0 + R, y0, z0 + lead + R])            # heading +x
+    z1 = b1[2]
+    b2 = np.array([xr - R, y0, z1])
+    c2 = np.array([xr - R, y0 + R, z1])
+    b3 = np.array([xr, y0 + R, z1])                       # heading +y
+    b4 = np.array([xr, yf - R, z1])
+    c4 = np.array([xr, yf - R, z1 + R])
+    b5 = np.array([xr, yf, z1 + R])                       # heading +z, on the arm's outer face
+    anchor = np.array([cp("cable_anchor_x"), yf, cp("cable_anchor_z")])
+    segs = [("line", np.array([x0, y0, z0]), a1), ("arc", a1, b1, c1, R, "xz", 180.0, 90.0)]
+    if b2[0] - b1[0] > 1e-6:
+        segs.append(("line", b1, b2))
+    return segs + [("arc", b2, b3, c2, R, "xy", -90.0, 0.0), ("line", b3, b4), ("arc", b4, b5, c4, R, "yz", -90.0, 0.0),
+                   ("line", b5, anchor)]
+
+
+def cable_polyline(step=0.2):
+    sys.path.insert(0, str(REPO / "scripts"))
+    import dip_link_concept_a as A
+    return A.polyline(cable_segments(), step)
+
+
+def cable_mesh(sections=24):
+    """The bundle as a closed tube (trimesh) along the centre line."""
+    sys.path.insert(0, str(REPO / "scripts"))
+    import dip_link_concept_a as A
+    return A.tube_mesh(cable_polyline(0.25), cp("cable_d") / 2, sections)
+
+
+def cable_length():
+    import numpy as np
+    return float(np.linalg.norm(np.diff(cable_polyline(), axis=0), axis=1).sum())
+
+
+def cable_open_top_x():
+    """x up to which the groove over the plug and along the leg toward the back is open to the top. The bridge's top keeps
+    0.8 mm (KEEP_MARGIN) from the volume the MCP link sweeps and the cable about 1.16 mm, so near the plug the bridge's top
+    stands less than ROOF_MIN above the groove and a roof there would be a sliver; the profile is the same at every y between
+    the arms. A strip of Kapton tape over the opening keeps the cable's first turn in place."""
+    segs = cable_segments()
+    rc = cp("cable_d") / 2 + cp("cable_clear")
+    x0, top = segs[0][1][0], segs[1][2][2] + rc
+    thin = [x for x, z in profile() if x >= x0 - rc and z - top < ROOF_MIN]
+    return (max(thin) + 0.25) if thin else x0 - rc
+
+
+def cable_cuts(K):
+    """The groove that takes the bundle (clearance cable_clear all round), open toward the back from the bundle's palmar
+    side: over the plug and out through the neck's back, across to the slotted arm (the inner wall of the turn to +y
+    stays), through the arm's lower dorsal corner, then half the bundle deep up the arm's outer face to the anchor, with
+    a round end. A list of solids of kernel K."""
+    import numpy as np
+    rc = cp("cable_d") / 2 + cp("cable_clear")
+    segs = cable_segments()
+    _, a0, a1 = segs[0]
+    _, _, b1, c1, R, *_ = segs[1]
+    _, b2, b3, c2, *_ = segs[-4]
+    _, _, b4 = segs[-3]
+    _, _, b5, c4, *_ = segs[-2]
+    _, _, anchor = segs[-1]
+    y0, z1 = a0[1], b1[2]
+    # out of the plug and the turn toward the back: the band rc either side of the centre line in (x, z), across y0 +- rc,
+    # its leg toward the back run out to X_OPEN
+    t = np.radians(np.linspace(180.0, 90.0, 33))
+    outer = [(c1[0] + (R + rc) * np.cos(a), c1[2] + (R + rc) * np.sin(a)) for a in t]
+    ri = max(R - rc, 0.05)
+    inner = [(c1[0] + ri * np.cos(a), c1[2] + ri * np.sin(a)) for a in t]          # from the plug's side to the leg
+    band = ([(a0[0] - rc, a0[2] - 0.05)] + outer + [(X_OPEN, z1 + rc), (X_OPEN, z1 - rc)] + inner[::-1]
+            + [(a0[0] + rc, a0[2] - 0.05)])
+    turn1 = K.prism_y(band, y0 - rc, y0 + rc)
+    # open to the top over the band where a roof would be thinner than ROOF_MIN (over the plug and the leg toward the back)
+    xt = max(cable_open_top_x(), c1[0] + 0.01)
+    top = K.prism_y([(a0[0] - rc, a0[2] - 0.05), (a0[0] + rc, a0[2] - 0.05)] + inner + [(xt, z1 - rc), (xt, -50.0),
+                                                                                         (a0[0] - rc, -50.0)], y0 - rc, y0 + rc)
+    # the turn to +y and the run to the arm: a section in (x, y) across z1 +- rc; the turn's inner wall stays
+    ti = np.radians(np.linspace(0.0, -90.0, 33))
+    inner = [(c2[0] + (R - rc) * np.cos(a), c2[1] + (R - rc) * np.sin(a)) for a in ti]
+    run = [(c2[0], y0 - rc), (X_OPEN, y0 - rc), (X_OPEN, b4[1] + 0.01), (b3[0] - rc, b4[1] + 0.01)] + inner
+    run = K.prism_z([(y, x) for x, y in run], z1 - rc, z1 + rc)
+    # the turn into the arm's outer face: a sector in (y, z) from the bundle's palmar side out to X_OPEN
+    t = np.radians(np.linspace(-90.0, 0.0, 33))
+    sec = ([(c4[1] + (R + rc) * np.cos(a), c4[2] + (R + rc) * np.sin(a)) for a in t] +
+           [(c4[1] + max(R - rc, 0.05) * np.cos(a), c4[2] + max(R - rc, 0.05) * np.sin(a)) for a in t[::-1]])
+    turn3 = K.prism_x(sec, b4[0] - rc, X_OPEN)
+    # up the arm's outer face, half the bundle deep, and the groove's round end at the anchor
+    d = np.array([anchor[0] - b5[0], anchor[2] - b5[2]])
+    n_ = np.array([-d[1], d[0]]) / np.linalg.norm(d) * rc
+    strip = [(b5[0] + n_[0], b5[2] - 0.05 + n_[1]), (anchor[0] + n_[0], anchor[2] + n_[1]),
+             (anchor[0] - n_[0], anchor[2] - n_[1]), (b5[0] - n_[0], b5[2] - 0.05 - n_[1])]
+    face = K.prism_y(strip, cp("cable_face_y") - rc, ARM_OUT + 1.0)
+    end = K.cyly(anchor[0], anchor[2], rc, cp("cable_face_y") - rc, ARM_OUT + 1.0)
+    joint = K.cyly(b5[0], b5[2], rc, cp("cable_face_y") - rc, ARM_OUT + 1.0)       # the kink from the turn into the face line
+    return [turn1, top, run, turn3, face, end, joint]
 
 
 def dip_link_parts(K):
@@ -718,9 +876,12 @@ def dip_link_parts(K):
         hi = [max(b[k + 3] for b in B) + 0.3 for k in range(3)]
         cuts.append(K.box((lo[0], lo[1], TIP["z_mount"] - 0.1), (X_COMP + 0.05, hi[1], -46.55)))
         cuts.append(K.box((X_SEAT - RIM_H - 0.1, -10.00, TIP["z_end"] - 0.1), (X_SEAT, 10.05, Z_BOARD[0])))
-    body = K.cut(body, cuts)
-    dip = K.finish(K.fuse(body, K.arms()))
-    return body, dip
+    groove = cable_cuts(K) if cable_on() else []
+    body = K.cut(body, cuts + groove)
+    dip = K.fuse(body, K.arms())
+    if groove:                                  # the groove crosses the slotted arm's lower dorsal corner and outer face
+        dip = K.cut(dip, groove)
+    return body, K.finish(dip)
 
 
 def cover_part(K):
@@ -764,6 +925,9 @@ def fc_build():
     export(dip, "dip_link")
     export(body, "dip_link_new_body")          # the redesigned body alone (B-rep), for editing
     export(cover_part(K), "cover")
+    if cable_on():                              # the cable's groove as one solid, to edit or re-cut in CAD
+        g = cable_cuts(K)
+        export(K.finish(K.fuse(g[0], g[1:])), "cable_groove_cutter")
     for key in TIPS:                            # the pads, faceted, from their meshes
         p = K.mesh_solid(WORK / f"pad_{key}_step.stl")
         step = CAD_DIR / f"{PREFIX}_pad_{key}.step"
@@ -912,6 +1076,8 @@ def assembly_meshes(tip="block4"):
         out["qwiic"] = qwiic_mesh()
     if DESIGN.get("qwiic") == "j1_kept":
         out["qwiic"] = to_trimesh(hw["j1"])
+    if cable_on():
+        out["cable"] = cable_mesh()
     out["mcp_link"] = G.load_part("mcp_link")
     out["servo_pip"] = G.load_part("servo_pip")
     return out
@@ -1008,6 +1174,8 @@ def cmd_clearance(a):
     if DESIGN.get("qwiic") == "j1_kept":
         parts["qwiic_connector"] = to_trimesh(hw["j1"])
         parts.pop("wires_at_exit")
+    if cable_on():                                           # R7 asks 1.0 mm for the cable
+        parts["qwiic_cable"] = cable_mesh(sections=48)
     parts = {k: v for k, v in parts.items() if v is not None}
     out = {}
     if (WORK / "clearance.json").exists() and not a.force:
@@ -1020,7 +1188,7 @@ def cmd_clearance(a):
         P = sample_part(mesh)
         # only points whose lower bound (radius and y about the PIP axis, and the swept keep-out) lies under `reach` are
         # turned through the range; the minimum is exact when it lies under reach, a lower bound otherwise
-        reach = 1.6
+        reach = 4.0 if name == "qwiic_cable" else 1.6
         v, i, q, part = clearance_exact(P, reach=reach, workers=2)
         out[name] = dict(min_mm=round(v, 3), exact=bool(q is not None), at_F=np.round(P[i], 2).tolist() if i is not None else None,
                          pip_deg=q, part=part, n_points=int(len(P)), reach_mm=reach, s=round(time.time() - t0, 1))
@@ -1214,10 +1382,11 @@ def chip_magnet_distances(key):
 
 COLORS = dict(dip_link="#c9c9c4", cover="#3b6fc4", fr4="#2f7d4f", board_parts="#202020", pad="#d9c08c",
               magnets="#8a8f99", screws="#c8a24a", nuts="#b08a30", mcp_link="#9fb6cf", servo_pip="#4a4a4a",
-              qwiic="#f0efe6")
+              qwiic="#f0efe6", cable="#2f5bd8")
 LABEL = dict(dip_link="DIP link (PLA)", cover="Cover (PLA)", fr4="ReSkin 5X board", board_parts="MLX90393 chips, 0402 parts",
              pad="85A pad, block", magnets="Magnets 3 x 2 mm", screws="Brass M1.6 x 5 screws", nuts="Brass M1.6 nuts",
-             mcp_link="MCP link (PIP 0 deg)", servo_pip="PIP servo", qwiic="Qwiic connector")
+             mcp_link="MCP link (PIP 0 deg)", servo_pip="PIP servo", qwiic="Qwiic connector",
+             cable="Qwiic cable, 2.0 mm bundle")
 
 
 def _pv(mesh):
@@ -1305,7 +1474,9 @@ def _labels():
     if DESIGN.get("board_screws") == "self_forming":
         out["screws"] = f"M{SCREW_D:g} x {SCREW_L:g} screws"
     if DESIGN.get("qwiic") == "j1_kept":
-        out["qwiic"] = "J1, plug and cable start"
+        out["qwiic"] = "J1 and its plug" if cable_on() else "J1, plug and cable start"
+    if cable_on():
+        out["cable"] = f"Qwiic cable, {cp('cable_d'):g} mm bundle"
     if DESIGN.get("pads") == "v2_five":
         out["pad"] = "85A pad, 11/22 half-ellipsoid"
         out["magnets"] = "Magnets 3 x 2 mm, five"
@@ -1336,10 +1507,32 @@ def render_qwiic(M, path):
     _legend_png(path, keys, "Qwiic header in the tongue's back, plug mated, pigtail in its groove (PIP 0 deg)")
 
 
+def render_cable(M, path):
+    """The Qwiic cable's route seen from the back and the slotted arm's side: out of the plug toward the back, along the
+    groove to the arm and up its outer face to the anchor; the MCP link and the PIP servo at PIP 0 see-through."""
+    import numpy as np
+    p = _plotter((1600, 1250))
+    for k, m in M.items():
+        kk = "pad" if k.startswith("pad") else k
+        op = {"mcp_link": 0.20, "servo_pip": 0.30, "pad": 0.55}.get(kk, 1.0)
+        p.add_mesh(_pv(m), color=COLORS[kk], opacity=op, smooth_shading=True, split_sharp_edges=True, specular=0.2)
+    c = np.array([5.0, 8.0, -63.5])
+    p.camera.position = tuple(c + np.array([46.0, 46.0, 14.0]))
+    p.camera.focal_point = tuple(c)
+    p.camera.up = (0, 0, 1)
+    p.camera.zoom(1.7)
+    p.screenshot(str(path))
+    p.close()
+    keys = [k for k in ("cable", "qwiic", "dip_link", "fr4", "cover", "pad", "mcp_link", "servo_pip")
+            if k in [("pad" if n.startswith("pad") else n) for n in M]]
+    _legend_png(path, keys, f"{_title()}: the Qwiic cable's route to the slotted arm, PIP 0 deg")
+
+
 def render_exploded(M, path):
     import numpy as np
     shift = dict(dip_link=0.0, nuts=10.0, fr4=-6.0, board_parts=-6.0, cover=-12.0, screws=-19.0, pad=-31.0, magnets=-31.0,
-                 qwiic=-6.0 if DESIGN.get("qwiic") == "j1_kept" else 0.0)       # J1 kept: on the board
+                 qwiic=-6.0 if DESIGN.get("qwiic") == "j1_kept" else 0.0, cable=0.0)      # J1 kept: on the board; the
+    #                                                                                      cable stays in the link's groove
     p = _plotter((1700, 1150))
     for k, m in M.items():
         kk = "pad" if k.startswith("pad") else k
@@ -1356,7 +1549,7 @@ def render_exploded(M, path):
     p.camera.zoom(1.15 * 34.0 / (34.0 + NECK))
     p.screenshot(str(path))
     p.close()
-    keys = [k for k in ("pad", "magnets", "screws", "cover", "board_parts", "fr4", "dip_link", "nuts", "qwiic")
+    keys = [k for k in ("pad", "magnets", "screws", "cover", "board_parts", "fr4", "dip_link", "nuts", "qwiic", "cable")
             if k in [("pad" if n.startswith("pad") else n) for n in M]]
     _legend_png(path, keys, f"{_title()} exploded along x")
 
@@ -1392,7 +1585,8 @@ def render_sections(M, path, spec_rows):
     import numpy as np
     from matplotlib.patches import PathPatch, Rectangle
     fig, axs = plt.subplots(1, 2, figsize=(17.5, 10.2), gridspec_kw=dict(width_ratios=[1.05, 1.0]))
-    order = ["mcp_link", "servo_pip", "dip_link", "cover", "fr4", "board_parts", "screws", "nuts", "pad", "magnets", "qwiic"]
+    order = ["mcp_link", "servo_pip", "dip_link", "cover", "fr4", "board_parts", "screws", "nuts", "pad", "magnets", "qwiic",
+             "cable"]
     planes = [("y = 0 mm (U1, U2, U4)", [0, 0.0, 0], [0, 1, 0], (0, 2), (-14, 13), (TIP["z_end"] - 2.29, -56)),
               (f"z = {Z_CONTACT:.2f} mm (U1, U3, U5)", [0, 0, Z_CONTACT], [0, 0, 1], (1, 0), (-12.5, 12.5), (-12.5, 11))]
     for ax, (title, o, n, (i, j), xl, yl) in zip(axs, planes):
@@ -1439,7 +1633,8 @@ def render_sections(M, path, spec_rows):
     ax.text(-12.2, xs + 0.3, "sensing plane", fontsize=15, family="serif", color="#902020")
     ax.text(RAIL_Y, X_SLOT - RAIL_H - 1.4, "rails", fontsize=15, family="serif", color="#1f3f80", ha="center")
     from matplotlib.patches import Patch
-    keys = ["pad", "cover", "fr4", "board_parts", "dip_link", "mcp_link", "servo_pip"] + (["qwiic"] if "qwiic" in M else [])
+    keys = (["pad", "cover", "fr4", "board_parts", "dip_link", "mcp_link", "servo_pip"] + (["qwiic"] if "qwiic" in M else [])
+            + (["cable"] if "cable" in M else []))
     fig.legend([Patch(facecolor=COLORS[k], edgecolor="#333333") for k in keys], [_labels()[k] for k in keys], loc="lower center",
                ncol=4, frameon=False, fontsize=17)
     what = (f"{_labels()['pad'][9:]} pad, {len(mags)} magnets" if DESIGN.get("pads") == "v2_five" else "block tip, four magnets")
@@ -1458,6 +1653,8 @@ def cmd_render(a):
     render_sections(M, MEDIA / f"{PREFIX}_section_chips.png", None)
     if DESIGN.get("qwiic") == "header_on_tongue":
         render_qwiic(M, MEDIA / f"{PREFIX}_qwiic.png")
+    if cable_on():
+        render_cable(M, MEDIA / f"{PREFIX}_cable_route.png")
     import trimesh
     asm = trimesh.util.concatenate(list(M.values()))
     asm.export(CAD_DIR / f"{PREFIX}_assembly_pip0.stl")

@@ -374,7 +374,10 @@ function jobResult(j) {
       h += `<tr><td>${k}</td><td class="${v.valid ? "ok" : "notok"}">${v.valid ? "valid" : "invalid"}, ${v.solids} solid(s)</td></tr>`;
     h += "</table>";
   }
-  if (r.print) h += `<div>Sliced PLA parts: ${r.print.print_time}, ${r.print.filament_g} g, checks ${r.print.checks_pass ? "pass" : "fail"}</div>`;
+  if (r.print && r.print.pla_bambu)                        // PLA as print-oriented STLs for Bambu Studio (2026-10-19)
+    h += `<div>PLA for Bambu Studio: ${Object.keys(r.print.pla_bambu).join(", ")}, ` +
+         `${r.print.pla_ok ? "each one closed body" : "a part is not one closed body"}; settings in ${r.print.settings}</div>`;
+  else if (r.print) h += `<div>Sliced PLA parts: ${r.print.print_time}, ${r.print.filament_g} g, checks ${r.print.checks_pass ? "pass" : "fail"}</div>`;
   return h;
 }
 
