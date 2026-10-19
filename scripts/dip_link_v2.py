@@ -579,6 +579,126 @@ def cmd_a(a):
         print(f"== a: {stage} [{time.time() - t0:.0f} s]", flush=True)
 
 
+# ----------------------------------------------------------------------------------------------- concept b, v2
+PARAMS_B = STUDY / "params/20261018-v2_concept_b.json"
+B_DIR = V2 / "b"
+
+
+def run_b(*cmd, python=None):
+    """scripts/dip_link_concept_b.py at v2's parameter file (its outputs name v2/b/ and the work folder under logs/)."""
+    import subprocess
+    env = dict(os.environ, DIPB_PARAMS=str(PARAMS_B))
+    r = subprocess.run([str(python or Path.home() / "miniconda3/envs/femtip/bin/python"), "-u",
+                        str(REPO / "scripts/dip_link_concept_b.py"), *cmd], env=env, cwd=str(REPO), capture_output=True, text=True)
+    print("\n".join(l[:260] for l in r.stdout.splitlines() if l.strip() and "*" not in l)[-3500:], flush=True)
+    if r.returncode:
+        print(r.stderr[-3000:])
+        raise SystemExit(f"dip_link_concept_b.py {' '.join(cmd)} failed")
+
+
+def b_module():
+    os.environ["DIPB_PARAMS"] = str(PARAMS_B)
+    import dip_link_concept_b as B
+    return B
+
+
+def b_print():
+    """The DIP link and the cover in PLA (dip_link_print_project.build_project: the link tip end up with enforcers under the
+    arms and the bridge; the cover on its back face), the two pads in 85A with their pauses, and the rail fit coupon."""
+    import trimesh
+    import dip_link_print_project as PP
+    import metric_magnet_prints as MP
+    import sim2real_fingertip_prints as SP
+    B = b_module()
+    pf, out = B.PREFIX, B_DIR / "print"
+    out.mkdir(parents=True, exist_ok=True)
+    lv0 = PP.link_volumes
+    PP.link_volumes = lambda m, Rt: (lv0(m, Rt)[0], [])             # concept a's shoulder modifiers do not apply to b
+    PP.window_boxes = lambda Rt: {}
+    PP.PFX = pf
+    PP.LABEL["clamp_plate"] = "Cover"
+    PP.build_project({"dip_link": B.CAD_DIR / f"{pf}_dip_link.stl", "clamp_plate": B.CAD_DIR / f"{pf}_cover.stl"}, out,
+                     f"{pf}_print_link_cover_pla_t3", source=str(PARAMS_B.relative_to(REPO)))
+    # the rail fit coupon: a 10 mm length of the cover with its two rails (PLA) and three 85A blocks with the pad's grooves
+    # at 0, 0.05 and 0.10 mm interference per flank, each block notched once per 0.05 mm
+    K = B.MeshB()
+    z0, z1 = B.Z_CONTACT - 5.0, B.Z_CONTACT + 5.0
+    strip = K.box((B.X_SLOT, -B.Y_RIM, z0), (B.X_COMP, B.Y_RIM, z1))
+    rails = [K.prism_z([(s * y, (B.X_SLOT + 0.1) if x > B.X_SLOT else x) for y, x in B.rail_section()], z0, z1) for s in (-1, 1)]
+    stl_strip = out / f"{pf}_fit_coupon_rails_pla.stl"
+    B.to_trimesh(K.fuse(strip, rails)).export(stl_strip)
+    blocks = []
+    fit0 = B.GROOVE_FIT
+    for k, fit in enumerate((0.0, 0.05, 0.10)):
+        B.GROOVE_FIT = fit
+        blk = K.box((B.X_SLOT - 4.0, -B.TIP["y_half"], z0 + 0.5), (B.X_SLOT, B.TIP["y_half"], z1 - 0.5))
+        cut = []
+        for s in (-1, 1):
+            sec = [(s * y, B.X_SLOT + 0.5 if x > B.X_SLOT else x) for y, x in B.rail_section(-B.GROOVE_FIT, B.GROOVE_FLOOR)]
+            cut.append(B.prism(sec, z0, z1))
+        cut += [K.box((B.X_SLOT - 4.1, -B.TIP["y_half"] - 0.1 + 1.2 * j, z1 - 1.0), (B.X_SLOT - 3.4, -B.TIP["y_half"] + 0.6 + 1.2 * j,
+                                                                                     z1)) for j in range(k + 1)]
+        tm = B.to_trimesh(K.cut(blk, cut))
+        V = np.column_stack([np.asarray(tm.vertices)[:, 2], np.asarray(tm.vertices)[:, 1], B.X_SLOT - np.asarray(tm.vertices)[:, 0]])
+        V[:, 0] += 12.0 * k
+        blocks.append(trimesh.Trimesh(V, np.asarray(tm.faces), process=False))
+    B.GROOVE_FIT = fit0
+    stl_blocks = out / f"{pf}_fit_coupon_grooves_85a.stl"
+    trimesh.util.concatenate(blocks).export(stl_blocks)
+    PP.build_project({"clamp_plate": stl_strip}, out, f"{pf}_fit_coupon_rails_pla_t3", source=str(PARAMS_B.relative_to(REPO)))
+    PP.build_project({"tip": stl_blocks}, out, f"{pf}_fit_coupon_grooves_85a_t2", source=str(PARAMS_B.relative_to(REPO)))
+    # the pads with their pauses: the block pad on its cut back face (its pockets lowered with it), the 11/22 pad upright
+    MP.DATE = SP.DATE = DATE
+    SP.OUT, SP.WORK = out, REPO / "logs/20261018-dip_link/v2/b/print"
+    SP.use_template()
+    for key, t in B.tip_records().items():
+        sheet = json.loads((REPO / t["sheet"]).read_text())
+        name_, orient, _ = B.TIPS[key]
+        part = trimesh.load(out / f"{pf}_pad_{key.replace('.', 'p')}_print.stl", force="mesh")
+        pk = json.loads(json.dumps(sheet["pockets"]))
+        if orient == "back":
+            dz = B.TIP["x_back"] - B.X_SLOT
+            for q in pk:
+                for f_ in ("floor_mm", "top_mm", "magnet_top_print_mm", "pause_print_z"):
+                    if f_ in q:
+                        q[f_] = round(q[f_] - dz, 3)
+                q["pause_layer"] = int(round(q["pause_print_z"] / 0.2))
+        name = f"{pf}_print_pad_{key.replace('.', 'p')}_85a_t2_g30"
+        ns = argparse.Namespace(seat=SEAT, no_slice=False)
+        rep = SP.write_and_check(part, pk, sheet["pocket_gaps"], sheet["mesh"], name, sheet["tip"], sheet["layout"],
+                                 sheet["magnet"]["top_depth_mm"], 2, 30, part, five_layout(sheet["layout"]), ns)
+        rep["stl"] = str((out / f"{pf}_pad_{key.replace('.', 'p')}_print.stl").relative_to(REPO))
+        rep["note"] = (f"the v2 sheet's tip cut at the slot plane x_F {B.X_SLOT:.2f} with the rail grooves and the head notches"
+                       + ("; printed on the cut back face, so the pockets and the pause sit "
+                          f"{B.TIP['x_back'] - B.X_SLOT:.2f} mm lower than on the whole block" if orient == "back" else ""))
+        (out / f"{name}.json").write_text(json.dumps(rep, indent=1, default=float))
+    print("print ->", out.relative_to(REPO), flush=True)
+
+
+def b_docs():
+    raise SystemExit("b docs: written after the check, sense and print stages")
+
+
+def cmd_b(a):
+    for stage in a.stages:
+        t0 = time.time()
+        print(f"== b: {stage}", flush=True)
+        if stage == "build":
+            run_b("prep")
+            run_b("cad")
+        elif stage == "check":
+            run_b("clearance", "--force")
+        elif stage == "sense":
+            run_b("sensing", python=REPO / ".venv/bin/python")
+        elif stage == "render":
+            run_b("render")
+        elif stage == "print":
+            b_print()
+        elif stage == "docs":
+            b_docs()
+        print(f"== b: {stage} [{time.time() - t0:.0f} s]", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -591,8 +711,10 @@ def main():
     sub.add_parser("merge")
     s = sub.add_parser("a", help="concept a v2 under v2/a/: build, step, check, sense, render, print")
     s.add_argument("stages", nargs="+", choices=["build", "step", "check", "sense", "render", "print", "docs"])
+    s = sub.add_parser("b", help="concept b v2 under v2/b/: build, check, sense, render, print, docs")
+    s.add_argument("stages", nargs="+", choices=["build", "check", "sense", "render", "print", "docs"])
     a = ap.parse_args()
-    {"lengthen": cmd_lengthen, "tips": cmd_tips, "merge": lambda a: merge(), "a": cmd_a}[a.cmd](a)
+    {"lengthen": cmd_lengthen, "tips": cmd_tips, "merge": lambda a: merge(), "a": cmd_a, "b": cmd_b}[a.cmd](a)
 
 
 if __name__ == "__main__":

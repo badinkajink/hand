@@ -72,12 +72,13 @@ PREFIX = _OUTPUTS.get("prefix", f"{DATE}-concept_b")
 
 # ------------------------------------------------------------------------------------------------- design parameters
 # Every length in mm, frame F. Fixed by the specification (the printed tip, the board, the clevis arms):
-TIP = dict(x_palmar=-10.55, x_back=6.45, y_half=7.4, z_mount=-67.30, z_end=-88.71)
-Z_CONTACT = -78.16
+TIP0 = dict(x_palmar=-10.55, x_back=6.45, y_half=7.4, z_mount=-67.30, z_end=-88.71)   # at neck_len 0 (apply() moves z)
+TIP = dict(TIP0)
+Z_CONTACT0 = Z_CONTACT = -78.16
 MAG_BACK_BLOCK = -3.55          # x_F of the block's and capsule's magnets' back faces (3 x 2 mm, tops 5 mm deep)
 SPOT = 0.42                     # sensing spot under the package top (MLX90393 datasheet Fig. 26)
 Y_BRIDGE = (-17.05, 13.40)      # between the clevis arms (spec R6)
-Z_BOARD = (-88.21, -68.06)      # the board's main square along z (v 10.05 .. -10.10)
+Z_BOARD0 = Z_BOARD = (-88.21, -68.06)      # the board's main square along z (v 10.05 .. -10.10)
 HOLES_UV = [(-8.0, -8.10), (8.0, -8.10), (8.0, 7.90), (-8.0, 7.90)]
 HOLE_D = 2.40
 PRINT_DIR = REPO / "docs/experiments/20261016-sim2real_fingertip_readiness/print"
@@ -100,7 +101,16 @@ PAD_SETS = {   # printed 85A tips cut into pads: print STL, orientation, magnets
                 "cap8.5": ("20261016-siraya85a_tcd_cap8p5_four_d3x2_depth5_seat2p9", "upright", -3.55),
                 "ell16": ("20261016-siraya85a_tcd_ell7p4x8p5x16x32_four_d3x2_depth5p5_seat2p9", "upright", -3.05),
                 "ell11": ("20261016-siraya85a_tcd_ell7p4x8p5x11x22_four_d3x2_depth7p5_seat2p9", "upright", -1.05)},
+    "v2_five": {"block5": ("docs/experiments/20261018-dip_link_board_mount/v2/print/"
+                           "20261018-siraya85a_block_five_z7p4_d3x2_depth5_seat2p9", "back", -3.55),
+                "ell11_5": ("docs/experiments/20261018-dip_link_board_mount/v2/print/"
+                            "20261018-siraya85a_tcd_ell7p4x8p5x11x22_five_y2p5_z9p8_s0p5_d3x2_depth7p5_seat2p9", "upright", -1.05)},
 }
+
+
+def pad_source(name):
+    """A pad set's print file stem: a name in the readiness print folder, or a path from the repository's root."""
+    return REPO / name if "/" in name else PRINT_DIR / name
 
 
 def load_params(path=None):
@@ -115,9 +125,13 @@ def apply(values=None, design=None):
     global T_BEHIND, X_SLOT, CHIP_H, FR4, X_COMP, X_SEAT, RIM_H, T_TONGUE, X_TONGUE_BACK, Y_RIM, TAB_CUT_V, SCREW_D, \
         SCREW_CLEAR, HEAD_D, HEAD_H, NUT_AF, NUT_H, NUT_POCKET_AF, NUT_POCKET_H, SCREW_L, HEAD_NOTCH_D, HEAD_NOTCH_H, \
         RAIL_Y, RAIL_BASE, RAIL_TOP, RAIL_H, RAIL_Z, GROOVE_FIT, GROOVE_FLOOR, WINDOW_MARGIN, COVER_TAB_Y, COVER_TAB_Z, \
-        WIRE_SLOT, TIE, KEEP_MARGIN, X_SPINE_BACK, Z_WEB_LOW, TIPS
+        WIRE_SLOT, TIE, KEEP_MARGIN, X_SPINE_BACK, Z_WEB_LOW, TIPS, TIP, Z_CONTACT, Z_BOARD, NECK
     P.update(values or {})
     DESIGN.update(design or {})
+    NECK = P.get("neck_len", 0.0)       # the DIP link lengthened between its bridge and the pad: the tip side moves by -NECK
+    TIP = dict(TIP0, z_mount=TIP0["z_mount"] - NECK, z_end=TIP0["z_end"] - NECK)
+    Z_CONTACT = Z_CONTACT0 - NECK
+    Z_BOARD = (Z_BOARD0[0] - NECK, Z_BOARD0[1] - NECK)
     T_BEHIND = P["t_behind"]             # TPU behind the block's magnets (the fe rows: 10, 6, 4, 3 mm; 10.0 = whole tip)
     X_SLOT = MAG_BACK_BLOCK + T_BEHIND   # the pad's back face = the cover's front face = the chip tops (0.45)
     CHIP_H = P["chip_h"]                 # MLX90393 package height (0.80-1.00 mm; the cover is printed to the measured value)
@@ -141,18 +155,20 @@ def apply(values=None, design=None):
     # dovetail rails on the cover's front face, and the pad's grooves (snap fit)
     RAIL_Y = P["rail_y"]                 # rail centre |y|, between U1/U2/U4 (|y| <= 1.7), C1/C2 (<= 3.55) and U3/U5 (>= 5.3)
     RAIL_BASE, RAIL_TOP, RAIL_H = P["rail_base"], P["rail_top"], P["rail_h"]   # width at the cover, at the top, height
-    RAIL_Z = (P["rail_z0"], P["rail_z1"])
+    RAIL_Z = (P["rail_z0"] - NECK, P["rail_z1"] - NECK)
     GROOVE_FIT = P["groove_fit"]         # the groove is narrower than the rail by this much per flank (the pad's preload)
     GROOVE_FLOOR = P["groove_floor"]     # clearance between the rail's top and the groove's floor
     WINDOW_MARGIN = P["window_margin"]   # windows clear every part by this much (spec R2)
     COVER_TAB_Y = P["cover_tab_y"]       # the cover stops at z -68.30 over the tab (|y| <= 5.6), at the mount plane elsewhere
-    COVER_TAB_Z = P["cover_tab_z"]
-    WIRE_SLOT = dict(y=(P["wire_slot_y0"], P["wire_slot_y1"]), z=(P["wire_slot_z0"], P["wire_slot_z1"]))  # the four vias
-    TIE = dict(y=(P["tie_y0"], P["tie_y1"]), z=(P["tie_z0"], P["tie_z1"]), x_top=P["tie_x_top"],      # a 2.5 mm cable tie
-               tunnel_x=(P["tie_tunnel_x0"], P["tie_tunnel_x1"]), tunnel_z=(P["tie_tunnel_z0"], P["tie_tunnel_z1"]))
+    COVER_TAB_Z = P["cover_tab_z"] - NECK
+    WIRE_SLOT = dict(y=(P["wire_slot_y0"], P["wire_slot_y1"]), z=(P["wire_slot_z0"] - NECK, P["wire_slot_z1"] - NECK))
+    TIE = dict(y=(P["tie_y0"], P["tie_y1"]), z=(P["tie_z0"] - NECK, P["tie_z1"] - NECK), x_top=P["tie_x_top"],  # 2.5 mm tie
+               tunnel_x=(P["tie_tunnel_x0"], P["tie_tunnel_x1"]),
+               tunnel_z=(P["tie_tunnel_z0"] - NECK, P["tie_tunnel_z1"] - NECK))
     KEEP_MARGIN = P["keep_margin"]       # the bridge stays this far from the swept MCP link and PIP servo (0.5 + 0.3)
     X_SPINE_BACK = P["x_spine_back"]     # a dorsal spine behind the tongue joins both arms (the old plate's back face)
-    Z_WEB_LOW = P["z_web_low"]           # webs beside the tongue (|y| >= 10.5, dorsal of the cover) reach the horn arm
+    Z_WEB_LOW = P["z_web_low"]           # webs beside the tongue (|y| >= 10.5, dorsal of the cover) reach the horn arm,
+    #                                      which does not move with the neck
     TIPS = PAD_SETS[DESIGN.get("pads", "seat2p7")]
 
 
@@ -309,15 +325,15 @@ def tip_to_F(V, orient):
     import numpy as np
     V = np.asarray(V, float)
     if orient == "back":          # printed on its back face: x_p = 21.41 - z_t, z_p = x_t + 8.5
-        return np.column_stack([-(V[:, 2] - 8.5) - 2.05, V[:, 1], -67.30 - (21.41 - V[:, 0])])
-    return np.column_stack([-V[:, 0] - 2.05, V[:, 1], -67.30 - V[:, 2]])
+        return np.column_stack([-(V[:, 2] - 8.5) - 2.05, V[:, 1], TIP["z_mount"] - (21.41 - V[:, 0])])
+    return np.column_stack([-V[:, 0] - 2.05, V[:, 1], TIP["z_mount"] - V[:, 2]])
 
 
 def F_to_tip(V, orient):
     """Inverse of tip_to_F (the pads are written back in their print frames)."""
     import numpy as np
     V = np.asarray(V, float)
-    x_t, z_t = -V[:, 0] - 2.05, -67.30 - V[:, 2]
+    x_t, z_t = -V[:, 0] - 2.05, TIP["z_mount"] - V[:, 2]
     if orient == "back":
         return np.column_stack([21.41 - z_t, V[:, 1], x_t + 8.5])
     return np.column_stack([x_t, V[:, 1], z_t])
@@ -355,7 +371,7 @@ def pad_pauses(key):
     """The pad's pause heights (mm above the bed) from the tip's 2.9 or 2.7 mm print sheet: the block pads print on their
     cut back face, 6.0 mm (TIP x_back - X_SLOT) lower than the whole tip; the upright pads keep the sheet's heights."""
     name, orient, _ = TIPS[key]
-    sheet = json.loads((PRINT_DIR / f"{name}_g30.json").read_text())
+    sheet = json.loads(pad_source(f"{name}_g30.json").read_text())
     dz = (TIP["x_back"] - X_SLOT) if orient == "back" else 0.0
     return [dict(print_z_mm=round(q["print_z"] - dz, 2), magnets=q["magnets"], message=q["message"]) for q in sheet["pauses"]]
 
@@ -364,12 +380,12 @@ def make_pad(key):
     """The printed tip cut at the slot plane, with the rail grooves and the head notches, in F."""
     import trimesh
     name, orient, _ = TIPS[key]
-    t = trimesh.load(PRINT_DIR / f"{name}.stl", force="mesh")
+    t = trimesh.load(pad_source(f"{name}.stl"), force="mesh")
     t = trimesh.Trimesh(tip_to_F(t.vertices, orient), t.faces, process=True)    # both maps are proper rotations
     if t.volume < 0:
         t.invert()
     M = to_manifold(t)
-    keep = box((-20, -20, -100), (X_SLOT, 20, -60))
+    keep = box((-20, -20, TIP["z_end"] - 5.0), (X_SLOT, 20, TIP["z_mount"] + 7.3))
     return (M ^ keep) - pad_cutters(), t
 
 
@@ -457,6 +473,8 @@ def cmd_prep(a):
     for key in TIPS:
         pad, whole = make_pad(key)
         tm = to_trimesh(pad)
+        tm.update_faces(tm.nondegenerate_faces())          # zero-area slivers of the boolean (the 11/22's cut leaves two)
+        tm.remove_unreferenced_vertices()
         tm.export(WORK / f"pad_{key}.stl")
         tm.export(CAD_DIR / f"{PREFIX}_pad_{key}.stl")              # the pad in F (the print STL cut, unchanged)
         tp = pad_print_frame(tm, TIPS[key][1])
@@ -642,33 +660,64 @@ def profile():
     return _PROFILES[key]
 
 
+def j1_boxes_b():
+    """J1, its plug and the cable's first 3 mm kept on the board (dip_link_concept_a.j1_parts_board, tab proximal) at b's
+    placement, the component face at X_COMP and the parts toward the pad: (name, lo, hi) boxes in F."""
+    sys.path.insert(0, str(REPO / "scripts"))             # freecadcmd starts without it
+    import dip_link_concept_a as A
+    out = []
+    for name, lo, hi in A.j1_parts_board():
+        if name != "tab_fr4":
+            out.append((name, (X_COMP - hi[2], lo[0], Z_CONTACT - hi[1]), (X_COMP - lo[2], hi[0], Z_CONTACT - lo[1])))
+    return out
+
+
 def dip_link_parts(K):
     """The DIP link's new body (bridge, tongue, webs and tie block, with the board's seat pocket, the tab's room, the wire
-    exit, the tie tunnel, the screw holes and the nut pockets) and the whole DIP link (the body fused with the clevis arms)."""
+    exit, the tie tunnel, the screw holes and the nut pockets) and the whole DIP link (the body fused with the clevis arms).
+    With neck_len > 0 the bridge keeps its underside at the arms' mount plane (z -67.30) and a neck as wide as the cassette
+    (|y| <= Y_RIM) joins it to the pad's mount face, neck_len lower. With J1 kept, the board's wires are not cut free, so
+    the tongue has no wire exit and no tie block."""
     prof = profile()
-    poly = [(TIP["x_palmar"], TIP["z_mount"])] + [tuple(p) for p in prof] + [(X_SPINE_BACK, TIP["z_mount"])]
+    zb = TIP0["z_mount"]
+    poly = [(TIP["x_palmar"], zb)] + [tuple(p) for p in prof] + [(X_SPINE_BACK, zb)]
     bridge = K.prism_y(poly, Y_BRIDGE[0] - 0.02, Y_BRIDGE[1] + 0.02)
     tongue = K.box((X_SEAT - RIM_H, -Y_RIM, TIP["z_end"]), (X_TONGUE_BACK, Y_RIM, TIP["z_mount"] + 0.5))
-    webs = [K.box((X_SEAT - RIM_H, Y_BRIDGE[0] - 0.02, Z_WEB_LOW), (X_SPINE_BACK, -Y_RIM + 0.01, TIP["z_mount"] + 0.5)),
-            K.box((X_SEAT - RIM_H, Y_RIM - 0.01, Z_WEB_LOW), (X_SPINE_BACK, Y_BRIDGE[1] + 0.02, TIP["z_mount"] + 0.5))]
-    tie = K.box((X_TONGUE_BACK - 0.1, TIE["y"][0], TIE["z"][0]), (TIE["x_top"], TIE["y"][1], TIE["z"][1]))
-    body = K.fuse(bridge, [tongue, tie] + webs)
+    webs = [K.box((X_SEAT - RIM_H, Y_BRIDGE[0] - 0.02, Z_WEB_LOW), (X_SPINE_BACK, -Y_RIM + 0.01, zb + 0.5)),
+            K.box((X_SEAT - RIM_H, Y_RIM - 0.01, Z_WEB_LOW), (X_SPINE_BACK, Y_BRIDGE[1] + 0.02, zb + 0.5))]
+    j1 = DESIGN.get("qwiic") == "j1_kept"
+    extra = [] if j1 else [K.box((X_TONGUE_BACK - 0.1, TIE["y"][0], TIE["z"][0]), (TIE["x_top"], TIE["y"][1], TIE["z"][1]))]
+    if NECK > 0:
+        extra.append(K.box((TIP["x_palmar"], -Y_RIM, TIP["z_mount"]), (X_SPINE_BACK, Y_RIM, zb + 0.5)))
+    body = K.fuse(bridge, [tongue] + extra + webs)
     cuts = [
         # the board's seat pocket: main square (datum walls at y = -10.00 and at the proximal edge) and the tab
         K.box((X_SEAT - RIM_H - 0.1, -10.00, Z_BOARD[0] - 0.05), (X_SEAT, 10.05, Z_BOARD[1])),
         K.box((X_SEAT - RIM_H - 0.1, -5.05, Z_BOARD[1] - 0.01), (X_SEAT, 5.05, uv_z(TAB_CUT_V) + 0.10)),
         # room for the tab's component side (R1, R2 0.4 mm tall) inside the bridge
         K.box((X_COMP - 0.5, -5.2, COVER_TAB_Z - 0.1), (X_SEAT, 5.2, uv_z(TAB_CUT_V) + 0.2)),
-        # the wire exit under the tab's root, and the tie tunnel
-        K.box((X_SEAT - 0.01, WIRE_SLOT["y"][0], WIRE_SLOT["z"][0]), (X_TONGUE_BACK + 0.1, WIRE_SLOT["y"][1], WIRE_SLOT["z"][1])),
-        K.box((TIE["tunnel_x"][0] - 0.2, TIE["y"][0] - 0.1, TIE["tunnel_z"][0]), (TIE["tunnel_x"][1], TIE["y"][1] + 0.1,
-                                                                                    TIE["tunnel_z"][1])),
     ]
+    if not j1:      # the wire exit under the tab's root, and the tie tunnel
+        cuts += [K.box((X_SEAT - 0.01, WIRE_SLOT["y"][0], WIRE_SLOT["z"][0]),
+                       (X_TONGUE_BACK + 0.1, WIRE_SLOT["y"][1], WIRE_SLOT["z"][1])),
+                 K.box((TIE["tunnel_x"][0] - 0.2, TIE["y"][0] - 0.1, TIE["tunnel_z"][0]),
+                       (TIE["tunnel_x"][1], TIE["y"][1] + 0.1, TIE["tunnel_z"][1]))]
     for y, z in screw_yz():
+        if DESIGN.get("board_screws") == "self_forming":    # the screw forms its thread in the tongue (owner: M2 into 1.8 mm)
+            cuts.append(K.cylx(y, z, P["screw_thread_d"] / 2, X_SEAT - RIM_H - 0.2, X_SPINE_BACK + 0.2))
+            continue
         cuts.append(K.cylx(y, z, SCREW_CLEAR / 2, X_SEAT - RIM_H - 0.2, X_SPINE_BACK + 0.2))
         cuts.append(K.hexx(y, z, NUT_POCKET_AF, X_TONGUE_BACK - NUT_POCKET_H, X_SPINE_BACK + 0.2))   # nut in from the back
     if DESIGN.get("qwiic") == "header_on_tongue":           # the Qwiic header's pocket and the pigtail's groove
         cuts += [K.box(lo, hi) for _, lo, hi in qwiic_header_b()[1]]
+    if j1:
+        # J1, its plug and the cable in a slot from the neck's underside through the bridge's top, and the seat pocket open
+        # at the tongue's distal end: the board slides in along +z, J1 first, until the main square meets the proximal wall
+        B = [list(lo) + list(hi) for _, lo, hi in j1_boxes_b()]
+        lo = [min(b[k] for b in B) - 0.3 for k in range(3)]
+        hi = [max(b[k + 3] for b in B) + 0.3 for k in range(3)]
+        cuts.append(K.box((lo[0], lo[1], TIP["z_mount"] - 0.1), (X_COMP + 0.05, hi[1], -46.55)))
+        cuts.append(K.box((X_SEAT - RIM_H - 0.1, -10.00, TIP["z_end"] - 0.1), (X_SEAT, 10.05, Z_BOARD[0])))
     body = K.cut(body, cuts)
     dip = K.finish(K.fuse(body, K.arms()))
     return body, dip
@@ -755,9 +804,17 @@ MAG_MASS_G = 0.106                                         # one 3 x 2 mm N52 di
 def tip_records():
     """The printed tips of the pad set (spec.json "tips" for the 2.7 mm seats; the 2.9 mm seats' records of the final,
     final/20261018-dip_link_final_tips.json, with the as-printed magnets)."""
-    if DESIGN.get("pads", "seat2p7") == "seat2p7":
-        return spec()["tips"]
-    return json.loads((STUDY / "final/20261018-dip_link_final_tips.json").read_text())
+    pads = DESIGN.get("pads", "seat2p7")
+    if pads == "seat2p7":
+        tips = spec()["tips"]
+    elif pads == "v2_five":
+        tips = {k: v["record"] for k, v in json.loads((STUDY / "v2/20261018-v2_tips.json").read_text())["tips"].items()}
+    else:
+        tips = json.loads((STUDY / "final/20261018-dip_link_final_tips.json").read_text())
+    for t in tips.values():
+        for m in t["magnets"]["items"]:
+            m["centre_F"] = [m["centre_F"][0], m["centre_F"][1], m["centre_F"][2] - NECK]
+    return tips
 
 
 def magnets(key="block4"):
@@ -785,9 +842,14 @@ def hardware():
     nuts = [hex_x(y, z, NUT_AF, x_nut, x_nut + NUT_H) - cyl_x(y, z, SCREW_D / 2, x_nut - 1, x_nut + NUT_H + 1)
             for y, z in screw_yz()]
     add = lambda L: m3.Manifold.batch_boolean(L, m3.OpType.Add)  # noqa: E731
-    out = dict(fr4=fr4, board_parts=add(parts), chips=add(chips), screws=add(screws), nuts=add(nuts))
-    for key in ("block4", "block5"):
-        out[f"magnets_{key}"] = add([cyl_x(c[1], c[2], 1.5, x0, x1) for c, x0, x1 in magnets(key)])
+    out = dict(fr4=fr4, board_parts=add(parts), chips=add(chips), screws=add(screws))
+    if DESIGN.get("board_screws") != "self_forming":
+        out["nuts"] = add(nuts)
+    if DESIGN.get("qwiic") == "j1_kept":
+        out["j1"] = add([box(lo, hi) for _, lo, hi in j1_boxes_b()])
+    for key in tip_records():
+        if key in ("block4", "block5", "ell11_5"):
+            out[f"magnets_{key}"] = add([cyl_x(c[1], c[2], 1.5, x0, x1) for c, x0, x1 in magnets(key)])
     return out
 
 
@@ -804,7 +866,7 @@ def qwiic_header_b():
     the DIP link, as (name, lo, hi) boxes in F."""
     xb = X_TONGUE_BACK                              # the tongue's back face
     x0 = xb - P["qwiic_pocket_depth"]               # pocket floor = the header's base
-    y0, z_back, c, g = P["qwiic_y"], P["qwiic_z_back"], P["qwiic_pocket_clear"], P["qwiic_groove_depth"]
+    y0, z_back, c, g = P["qwiic_y"], P["qwiic_z_back"] - NECK, P["qwiic_pocket_clear"], P["qwiic_groove_depth"]
     gy0, gy1 = P["qwiic_groove_y0"], P["qwiic_groove_y1"]
     z_mate = z_back + QW["hdr_d"]
     z_exit = 0.5 * (WIRE_SLOT["z"][0] + WIRE_SLOT["z"][1])
@@ -843,10 +905,13 @@ def assembly_meshes(tip="block4"):
     hw = hardware()
     out = {"dip_link": load_cad("dip_link"), "cover": load_cad("cover"), f"pad_{tip}": load_cad(f"pad_{tip}")}
     for k in ("fr4", "board_parts", "screws", "nuts"):
-        out[k] = to_trimesh(hw[k])
-    out["magnets"] = to_trimesh(hw[f"magnets_{'block5' if tip == 'block5' else 'block4'}"])
+        if k in hw:
+            out[k] = to_trimesh(hw[k])
+    out["magnets"] = to_trimesh(hw[f"magnets_{tip if f'magnets_{tip}' in hw else 'block4'}"])
     if DESIGN.get("qwiic") == "header_on_tongue":
         out["qwiic"] = qwiic_mesh()
+    if DESIGN.get("qwiic") == "j1_kept":
+        out["qwiic"] = to_trimesh(hw["j1"])
     out["mcp_link"] = G.load_part("mcp_link")
     out["servo_pip"] = G.load_part("servo_pip")
     return out
@@ -932,12 +997,18 @@ def cmd_clearance(a):
     hw = hardware()
     wires = box((X_SEAT, WIRE_SLOT["y"][0] + 0.2, WIRE_SLOT["z"][0] + 0.1),
                 (X_TONGUE_BACK + 0.6, WIRE_SLOT["y"][1] - 0.2, WIRE_SLOT["z"][1] - 0.1))   # the four wires in the exit
+    pad0 = next(iter(TIPS))
     parts = {"dip_link_new_body": load_cad("dip_link_new_body"), "cover": load_cad("cover"),
              "board_with_tab": to_trimesh(hw["fr4"] + hw["board_parts"]), "screws": to_trimesh(hw["screws"]),
-             "nuts": to_trimesh(hw["nuts"]), "wires_at_exit": to_trimesh(wires), "pad_block4": load_cad("pad_block4"),
+             "nuts": to_trimesh(hw["nuts"]) if "nuts" in hw else None, "wires_at_exit": to_trimesh(wires),
+             f"pad_{pad0}": load_cad(f"pad_{pad0}"),
              "arms_kept": trimesh.util.concatenate([trimesh.load(WORK / "arm_horn.stl"), trimesh.load(WORK / "arm_slot.stl")])}
     if DESIGN.get("qwiic") == "header_on_tongue":
         parts["qwiic_connector"] = qwiic_mesh()
+    if DESIGN.get("qwiic") == "j1_kept":
+        parts["qwiic_connector"] = to_trimesh(hw["j1"])
+        parts.pop("wires_at_exit")
+    parts = {k: v for k, v in parts.items() if v is not None}
     out = {}
     if (WORK / "clearance.json").exists() and not a.force:
         out = json.loads((WORK / "clearance.json").read_text())
@@ -1064,7 +1135,7 @@ def sensing_table():
     rows = fe_rows()
     out = []
     for r in sorted(rows, key=lambda r: (r["layout"], -r["t_behind_mm"])):
-        if DESIGN.get("pads") == "seat2p9" and r["layout"].startswith("five"):
+        if DESIGN.get("pads") in ("seat2p9", "v2_five") and r["layout"].startswith("five"):
             r = as_printed_five(r)
         tb = r["t_behind_mm"]
         x_slot = MAG_BACK_BLOCK + tb
@@ -1179,7 +1250,7 @@ def _legend_png(path, keys, title=None):
     w, h = img.size
     dpi = 100
     fig = plt.figure(figsize=(w / dpi, 0.5 * (1 + (len(keys) - 1) // 3) + 0.35), dpi=dpi)
-    fig.legend([Patch(facecolor=COLORS[k], edgecolor="#333333") for k in keys], [LABEL[k] for k in keys], loc="center",
+    fig.legend([Patch(facecolor=COLORS[k], edgecolor="#333333") for k in keys], [_labels()[k] for k in keys], loc="center",
                ncol=3, frameon=False, fontsize=24)
     fig.savefig(str(path) + ".legend.png", dpi=dpi)
     plt.close(fig)
@@ -1208,7 +1279,7 @@ def render_iso(M, path, view="palmar"):
         kk = "pad" if k.startswith("pad") else k
         op = 0.28 if kk == "mcp_link" else (0.55 if kk == "pad" else 1.0)
         p.add_mesh(_pv(m), color=COLORS[kk], opacity=op, smooth_shading=True, split_sharp_edges=True, specular=0.2)
-    c = np.array([0.0, -2.0, -71.0])
+    c = np.array([0.0, -2.0, Z_CONTACT + 7.16])
     off = np.array([-62.0, -70.0, 30.0]) if view == "palmar" else np.array([62.0, -70.0, 34.0])
     p.camera.position = tuple(c + off)
     p.camera.focal_point = tuple(c)
@@ -1221,7 +1292,22 @@ def render_iso(M, path, view="palmar"):
 
 
 def _title():
+    if DESIGN.get("pads") == "v2_five":
+        return "Concept b, v2"
     return "Concept b, final" if DESIGN.get("qwiic", "none") != "none" else "Concept b"
+
+
+def _labels():
+    """LABEL with the parts of the design in use (v2: M2 screws without nuts, J1 kept, the 11/22 pad)."""
+    out = dict(LABEL)
+    if DESIGN.get("board_screws") == "self_forming":
+        out["screws"] = f"M{SCREW_D:g} x {SCREW_L:g} screws"
+    if DESIGN.get("qwiic") == "j1_kept":
+        out["qwiic"] = "J1, plug and cable start"
+    if DESIGN.get("pads") == "v2_five":
+        out["pad"] = "85A pad, 11/22 half-ellipsoid"
+        out["magnets"] = "Magnets 3 x 2 mm, five"
+    return out
 
 
 def render_qwiic(M, path):
@@ -1261,7 +1347,7 @@ def render_exploded(M, path):
         mm.apply_translation([shift[kk], 0.0, 0.0])
         p.add_mesh(_pv(mm), color=COLORS[kk], opacity=0.6 if kk == "pad" else 1.0, smooth_shading=True,
                    split_sharp_edges=True, specular=0.2)
-    c = np.array([-10.0, -2.0, -74.0])
+    c = np.array([-10.0, -2.0, Z_CONTACT + 4.16])
     p.camera.position = tuple(c + np.array([-30.0, -95.0, 36.0]))
     p.camera.focal_point = tuple(c)
     p.camera.up = (0, 0, 1)
@@ -1305,8 +1391,8 @@ def render_sections(M, path, spec_rows):
     from matplotlib.patches import PathPatch, Rectangle
     fig, axs = plt.subplots(1, 2, figsize=(17.5, 10.2), gridspec_kw=dict(width_ratios=[1.05, 1.0]))
     order = ["mcp_link", "servo_pip", "dip_link", "cover", "fr4", "board_parts", "screws", "nuts", "pad", "magnets", "qwiic"]
-    planes = [("y = 0 mm (U1, U2, U4)", [0, 0.0, 0], [0, 1, 0], (0, 2), (-14, 13), (-91, -56)),
-              ("z = -78.16 mm (U1, U3, U5)", [0, 0, Z_CONTACT], [0, 0, 1], (1, 0), (-12.5, 12.5), (-12.5, 11))]
+    planes = [("y = 0 mm (U1, U2, U4)", [0, 0.0, 0], [0, 1, 0], (0, 2), (-14, 13), (TIP["z_end"] - 2.29, -56)),
+              (f"z = {Z_CONTACT:.2f} mm (U1, U3, U5)", [0, 0, Z_CONTACT], [0, 0, 1], (1, 0), (-12.5, 12.5), (-12.5, 11))]
     for ax, (title, o, n, (i, j), xl, yl) in zip(axs, planes):
         for k in order:
             kk = "pad" if k.startswith("pad") else k
@@ -1325,19 +1411,22 @@ def render_sections(M, path, spec_rows):
         ax.set_title(title, fontsize=19, family="serif")
         ax.tick_params(labelsize=16)
         ax.grid(True, lw=0.3, color="#bbbbbb", zorder=0)
-    mags = magnets("block4")
+    tip = next(name[4:] for name in M if name.startswith("pad_"))
+    mags = magnets(tip)
     ax = axs[0]
     ax.set_xlabel("x in F (mm), dorsal to the right", fontsize=17, family="serif")
     ax.set_ylabel("z in F (mm)", fontsize=17, family="serif")
-    for c, x0, x1 in mags:                       # the magnets lie at y +-3 mm, off this plane: projected outlines
+    for c, x0, x1 in mags:                       # magnets off this plane: projected outlines
         ax.add_patch(Rectangle((x0, c[2] - 1.5), x1 - x0, 3.0, fill=False, ls="--", lw=1.2, ec="#555b66", zorder=5))
-    ax.text(-9.9, -71.2, "magnets at\ny = \u00b13 mm\n(projected)", fontsize=15, family="serif", color="#3c4250")
+    ys = sorted({abs(round(c[1], 1)) for c, _, _ in mags} - {0.0})
+    ax.text(-9.9, Z_CONTACT + 6.96, "magnets at\ny = \u00b1" + ", ".join(f"{y:g}" for y in ys) + " mm\n(projected)", fontsize=15,
+            family="serif", color="#3c4250")
     xs = X_SLOT + SPOT
     ax.axvline(xs, color="#c03030", lw=1.1, ls="--", zorder=5)
-    ax.annotate(f"sensing plane\nx {xs:.2f} mm, 0.42 mm\nbehind the pad", xy=(xs, -86.5), xytext=(6.6, -88.6),
+    ax.annotate(f"sensing plane\nx {xs:.2f} mm, 0.42 mm\nbehind the pad", xy=(xs, Z_CONTACT - 8.34), xytext=(6.6, Z_CONTACT - 10.44),
                 fontsize=15, family="serif", color="#902020", arrowprops=dict(arrowstyle="->", color="#902020", lw=0.9))
     ax.axvline(TIP["x_back"], color="#777777", lw=0.9, ls=":", zorder=5)
-    ax.text(TIP["x_back"] + 0.25, -79.0, "old back\nface x 6.45", fontsize=15, family="serif", color="#555555")
+    ax.text(TIP["x_back"] + 0.25, Z_CONTACT - 0.84, "old back\nface x 6.45", fontsize=15, family="serif", color="#555555")
     ax = axs[1]
     ax.set_xlabel("y in F (mm)", fontsize=17, family="serif")
     ax.set_ylabel("x in F (mm), dorsal up", fontsize=17, family="serif")
@@ -1346,13 +1435,13 @@ def render_sections(M, path, spec_rows):
     ax.text(-1.6, -7.6, "magnets\n(projected)", fontsize=15, family="serif", color="#3c4250", ha="center")
     ax.axhline(xs, color="#c03030", lw=1.1, ls="--", zorder=5)
     ax.text(-12.2, xs + 0.3, "sensing plane", fontsize=15, family="serif", color="#902020")
-    ax.text(4.4, -1.95, "rails", fontsize=15, family="serif", color="#1f3f80", ha="center")
+    ax.text(RAIL_Y, X_SLOT - RAIL_H - 1.4, "rails", fontsize=15, family="serif", color="#1f3f80", ha="center")
     from matplotlib.patches import Patch
     keys = ["pad", "cover", "fr4", "board_parts", "dip_link", "mcp_link", "servo_pip"] + (["qwiic"] if "qwiic" in M else [])
-    fig.legend([Patch(facecolor=COLORS[k], edgecolor="#333333") for k in keys], [LABEL[k] for k in keys], loc="lower center",
+    fig.legend([Patch(facecolor=COLORS[k], edgecolor="#333333") for k in keys], [_labels()[k] for k in keys], loc="lower center",
                ncol=4, frameon=False, fontsize=17)
-    fig.suptitle(f"Sections through the chips, {_title().lower()} at PIP 0 deg (block tip, four magnets)", fontsize=21,
-                 family="serif")
+    what = (f"{_labels()['pad'][9:]} pad, {len(mags)} magnets" if DESIGN.get("pads") == "v2_five" else "block tip, four magnets")
+    fig.suptitle(f"Sections through the chips, {_title().lower()} at PIP 0 deg ({what})", fontsize=21, family="serif")
     fig.tight_layout(rect=(0, 0.10, 1, 0.95))
     fig.savefig(path, dpi=100)
     plt.close(fig)
@@ -1360,12 +1449,12 @@ def render_sections(M, path, spec_rows):
 
 def cmd_render(a):
     MEDIA.mkdir(parents=True, exist_ok=True)
-    M = assembly_meshes("block4")
+    M = assembly_meshes("ell11_5" if "ell11_5" in TIPS else "block4")
     render_iso(M, MEDIA / f"{PREFIX}_iso.png", "palmar")
     render_iso(M, MEDIA / f"{PREFIX}_iso_dorsal.png", "dorsal")
     render_exploded(M, MEDIA / f"{PREFIX}_exploded.png")
     render_sections(M, MEDIA / f"{PREFIX}_section_chips.png", None)
-    if "qwiic" in M:
+    if DESIGN.get("qwiic") == "header_on_tongue":
         render_qwiic(M, MEDIA / f"{PREFIX}_qwiic.png")
     import trimesh
     asm = trimesh.util.concatenate(list(M.values()))

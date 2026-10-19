@@ -47,7 +47,8 @@ os.environ.setdefault("DLF_REPO", str(REPO))
 STUDY = REPO / "docs/experiments/20261018-dip_link_board_mount"
 PARAMS = STUDY / "params"
 DEFAULT = {"a": PARAMS / "20261018-concept_a.json", "b": PARAMS / "20261018-concept_b_final.json",
-           "b0": PARAMS / "20261018-concept_b.json", "a_v2": PARAMS / "20261018-v2_concept_a.json"}
+           "b0": PARAMS / "20261018-concept_b.json", "a_v2": PARAMS / "20261018-v2_concept_a.json",
+           "b_v2": PARAMS / "20261018-v2_concept_b.json"}
 WORK = REPO / "logs/20261018-dip_link/params"              # regenerated parts of the checks (untracked)
 E_FEMTIP = Path.home() / "miniconda3/envs/femtip/bin/python"
 RESGUARD = Path.home() / ".claude/bin/resguard.sh"
@@ -211,9 +212,13 @@ DESIGN_A = [
 
 # ----------------------------------------------------------------------------------------------- concept b
 SCHEMA_B = [
+    ("neck_len", "Lengthening", "DIP link lengthening", "the DIP link grows by this between its bridge and the pad: the pad, "
+     "the cassette and the board move distally together (every z below is given at 0); 9.75 mm lets J1 stay plugged in "
+     "(v2/20261018-v2_lengthening.json)", "mm", (0.00, 14.00), ["clearance", "mass"], 0.0),
     ("t_behind", "Cassette depth and board stack", "TPU behind the magnets", "TPU left behind the block's magnets; the "
-     "pad's back face, the cover's front face and the chip tops lie at x_F -3.55 + t_behind. The coarse finite elements "
-     "exist at 3, 4, 6 and 10 mm", "mm", (3.00, 6.00), ["chip_to_magnet", "force", "clearance", "r4", "mass"], 4.0),
+     "pad's back face, the cover's front face and the chip tops lie at x_F -3.55 + t_behind (6.45 puts 3.95 mm behind the "
+     "11/22's magnets). The coarse finite elements exist at 3, 4, 6 and 10 mm", "mm", (3.00, 7.50),
+     ["chip_to_magnet", "force", "clearance", "r4", "mass"], 4.0),
     ("chip_h", "Cassette depth and board stack", "Chip height", "MLX90393 package height; the cover's web is as thick as "
      "the chips", "mm", (0.80, 1.00), ["clearance", "wall"], 0.90),
     ("fr4", "Cassette depth and board stack", "Board thickness", "FR-4 thickness of the ReSkin 5X (0.6 mm nominal, to be "
@@ -230,26 +235,29 @@ SCHEMA_B = [
      (5.20, 6.50), ["wall"], 5.60),
     ("cover_tab_z", "Widths and windows", "Cover notch z", "z where the cover stops over the tab", "mm", (-69.00, -67.50),
      ["wall"], -68.30),
-    ("tab_cut_v", "Widths and windows", "Tab cut", "board-frame v of the tab cut (R1 and R2 at v -11.40 stay)", "mm",
-     (-12.50, -11.60), ["clearance"], -11.70),
-    ("screw_d", "M1.6 screws and nuts", "Screw shank", "shank diameter of the four cheese-head screws through cover, board "
-     "and tongue", "mm", (1.40, 2.00), ["fit"], 1.6),
-    ("screw_clear", "M1.6 screws and nuts", "Screw hole", "clearance hole of the screws in the cover and the tongue", "mm",
-     (1.60, 2.20), ["fit", "wall"], 1.8),
-    ("head_d", "M1.6 screws and nuts", "Head diameter", "cheese-head diameter", "mm", (2.60, 3.80), ["fit", "r4"], 3.0),
-    ("head_h", "M1.6 screws and nuts", "Head height", "cheese-head height; the heads stand palmar of the cover", "mm",
+    ("tab_cut_v", "Widths and windows", "Tab cut", "board-frame v of the tab cut (R1 and R2 at v -11.40 stay; -19.10 is "
+     "the whole tab, J1 kept)", "mm", (-19.10, -11.60), ["clearance"], -11.70),
+    ("screw_d", "Board screws", "Screw shank", "shank diameter of the four cheese-head screws through cover, board "
+     "and tongue (M1.6 with nuts; M2 self-forming in v2)", "mm", (1.40, 2.50), ["fit"], 1.6),
+    ("screw_clear", "Board screws", "Screw hole", "clearance hole of the screws in the cover and the tongue", "mm",
+     (1.60, 2.80), ["fit", "wall"], 1.8),
+    ("head_d", "Board screws", "Head diameter", "cheese-head diameter", "mm", (2.60, 4.20), ["fit", "r4"], 3.0),
+    ("head_h", "Board screws", "Head height", "cheese-head height; the heads stand palmar of the cover", "mm",
      (0.80, 1.40), ["fit", "r4"], 1.0),
-    ("screw_l", "M1.6 screws and nuts", "Screw length", "screw length", "mm", (4.00, 6.00), ["fit"], 5.0),
-    ("nut_af", "M1.6 screws and nuts", "Nut across flats", "hex nut size across flats", "mm", (2.80, 4.00), ["fit"], 3.2),
-    ("nut_h", "M1.6 screws and nuts", "Nut height", "hex nut height", "mm", (1.00, 1.60), ["fit"], 1.3),
-    ("nut_pocket_af", "M1.6 screws and nuts", "Nut pocket across flats", "nut pocket size across flats on the tongue's "
+    ("screw_l", "Board screws", "Screw length", "screw length", "mm", (4.00, 6.00), ["fit"], 5.0),
+    ("nut_af", "Board screws", "Nut across flats", "hex nut size across flats", "mm", (2.80, 4.00), ["fit"], 3.2),
+    ("nut_h", "Board screws", "Nut height", "hex nut height", "mm", (1.00, 1.60), ["fit"], 1.3),
+    ("nut_pocket_af", "Board screws", "Nut pocket across flats", "nut pocket size across flats on the tongue's "
      "back", "mm", (3.00, 4.20), ["fit", "wall"], 3.35),
-    ("nut_pocket_h", "M1.6 screws and nuts", "Nut pocket depth", "nut pocket depth from the tongue's back", "mm",
+    ("nut_pocket_h", "Board screws", "Nut pocket depth", "nut pocket depth from the tongue's back", "mm",
      (1.10, 2.00), ["fit", "wall"], 1.45),
-    ("head_notch_d", "M1.6 screws and nuts", "Pad notch diameter", "diameter of the pad's four corner notches around the "
-     "screw heads", "mm", (3.00, 4.20), ["fit", "r4"], 3.4),
-    ("head_notch_h", "M1.6 screws and nuts", "Pad notch depth", "depth of the notches into the pad's back face", "mm",
+    ("head_notch_d", "Board screws", "Pad notch diameter", "diameter of the pad's four corner notches around the "
+     "screw heads", "mm", (3.00, 4.80), ["fit", "r4"], 3.4),
+    ("head_notch_h", "Board screws", "Pad notch depth", "depth of the notches into the pad's back face", "mm",
      (0.90, 1.60), ["fit", "r4"], 1.2),
+    ("screw_thread_d", "Board screws", "Self-forming hole", "the screws' hole in the tongue when they form their "
+     "own thread (design board_screws = self_forming; owner: M2 1.8 mm, M3 2.75 mm)", "mm", (1.30, 2.90), ["fit", "wall"],
+     1.8),
     ("rail_y", "Rails on the cover, grooves in the pad", "Rail |y|", "|y| of the two dovetail rails on the cover's front "
      "face", "mm", (3.80, 5.00), ["fit", "r4"], 4.40),
     ("rail_base", "Rails on the cover, grooves in the pad", "Rail base width", "rail width at the cover", "mm",
@@ -320,15 +328,24 @@ DESIGN_B = [
               "concept b)",
       "header_on_tongue": "J1 removed with the tab (no orientation of J1 fits, concept_b/final/*_qwiic.json); the four "
                           "wires run from the exit slot down a groove of the tongue's back to an SM04B-SRSS-TB header in "
-                          "a pocket there, mating face proximal; the cable leaves over the tie block"}),
+                          "a pocket there, mating face proximal; the cable leaves over the tie block",
+      "j1_kept": "the board's own J1 stays on the whole tab, tab proximal, in a slot from the neck's underside through the "
+                 "bridge's top (needs neck_len >= 9.75 and tab_cut_v -19.10); the seat pocket is open at the tongue's distal "
+                 "end so the board slides in along +z, J1 first; no wires are soldered, so no wire exit and no tie block"}),
     ("pads", "Printed pads", "seat2p7",
      {"seat2p7": "pads cut from the 2.7 mm-seat print STLs (the committed concept b)",
-      "seat2p9": "pads cut from the 2.9 mm-seat print STLs the owner prints"}),
+      "seat2p9": "pads cut from the 2.9 mm-seat print STLs the owner prints",
+      "v2_five": "pads cut from v2's five-magnet 11/22 half-ellipsoid and block (v2/20261018-v2_tips.json)"}),
+    ("board_screws", "Board screws", "m1p6_nuts",
+     {"m1p6_nuts": "four M1.6 cheese-head screws into brass nuts in pockets of the tongue's back",
+      "self_forming": "four cheese-head screws (screw_d, M2 in v2) form their thread in screw_thread_d holes of the tongue"}),
 ]
 
 TITLES = {"a": "DIP link concept a, final: window plate, dorsal clamp plate, Qwiic header on the clamp plate",
           "a_v2": "DIP link concept a, v2: window plate and dorsal clamp plate on a DIP link 8.5 mm longer, the board's own J1 "
                   "kept, M2 self-forming screws, five-magnet tips",
+          "b_v2": "DIP link concept b, v2: the board in a cassette behind five-magnet pads on a DIP link 9.75 mm longer, the "
+                  "board's own J1 kept, M2 self-forming screws",
           "b": "DIP link concept b, final: the board in a cassette in place of the pad's dorsal 6 mm, Qwiic header on the "
                "tongue, pads of the 2.9 mm print set",
           "b0": "DIP link concept b as committed on 2026-10-18 12:14: the board in a cassette, tab cut and wires soldered, "
@@ -336,11 +353,13 @@ TITLES = {"a": "DIP link concept a, final: window plate, dorsal clamp plate, Qwi
 REPRODUCES = {"a": "docs/experiments/20261018-dip_link_board_mount/final/cad and final/print "
                    "(scripts/dip_link_board_mount.py build)",
               "a_v2": "docs/experiments/20261018-dip_link_board_mount/v2/a/cad and v2/a/print (scripts/dip_link_v2.py a)",
+              "b_v2": "docs/experiments/20261018-dip_link_board_mount/v2/b/cad and v2/b/print (scripts/dip_link_v2.py b)",
               "b": "docs/experiments/20261018-dip_link_board_mount/concept_b/final/cad (scripts/dip_link_concept_b.py prep, cad "
                    "with this file in $DIPB_PARAMS)",
               "b0": "docs/experiments/20261018-dip_link_board_mount/concept_b/cad (scripts/dip_link_concept_b.py prep, cad)"}
 GENERATOR = {"a": "scripts/dip_link_params.py apply_a: dip_link_concept_a.P and dip_link_board_mount.qwiic_header_final",
              "a_v2": "scripts/dip_link_params.py apply_a: dip_link_concept_a.P and its tip-side constants",
+             "b_v2": "scripts/dip_link_concept_b.py (its dict P), through scripts/dip_link_params.py apply_b",
              "b": "scripts/dip_link_concept_b.py (its dict P), through scripts/dip_link_params.py apply_b",
              "b0": "scripts/dip_link_concept_b.py (its dict P), through scripts/dip_link_params.py apply_b"}
 _S = "docs/experiments/20261018-dip_link_board_mount"
@@ -352,13 +371,23 @@ OUTPUTS = {  # where the committed design's files are; a saved parameter set has
     "b0": dict(cad=f"{_S}/concept_b/cad", media=f"{_S}/concept_b/media", evaluation=f"{_S}/concept_b/evaluation.json",
                work="logs/20261018-dip_link/concept_b", prefix="20261018-concept_b"),
     "a_v2": dict(cad=f"{_S}/v2/a/cad", print=f"{_S}/v2/a/print", media=f"{_S}/v2/a/media", prefix="20261018-dip_link_v2a"),
+    "b_v2": dict(cad=f"{_S}/v2/b/cad", print=f"{_S}/v2/b/print", media=f"{_S}/v2/b/media", evaluation=f"{_S}/v2/b/evaluation.json",
+                 work="logs/20261018-dip_link/v2/b", prefix="20261018-dip_link_v2b"),
 }
 DESIGN_VALUES = {"a": {}, "b": {"qwiic": "header_on_tongue", "pads": "seat2p9"}, "b0": {"qwiic": "none", "pads": "seat2p7"},
-                 "a_v2": {"qwiic": "j1_kept", "board_screws": "self_forming", "tips": "v2_five", "asm_tip": "ell11_5"}}
+                 "a_v2": {"qwiic": "j1_kept", "board_screws": "self_forming", "tips": "v2_five", "asm_tip": "ell11_5"},
+                 "b_v2": {"qwiic": "j1_kept", "board_screws": "self_forming", "pads": "v2_five"}}
+# v2 of concept b: J1 kept on a DIP link 9.75 mm longer, M2 self-forming screws into the tongue, pads of the five-magnet tips
+# with the slot plane 3.95 mm behind the 11/22's magnets (R4: the grooves 2.0 mm from its pockets)
+VALUES_B_V2 = dict(neck_len=9.75, t_behind=6.45, tab_cut_v=-19.10, screw_d=2.0, screw_clear=2.4, head_d=3.8, head_h=1.3,
+                   screw_l=5.0, head_notch_d=4.2, head_notch_h=1.5, screw_thread_d=1.8)
 # v2 of concept a (owner 2026-10-18 18:45): J1 kept on a DIP link 8.5 mm longer, M2 self-forming screws, five-magnet tips
 VALUES_A_V2 = dict(neck_len=8.5, tab_len=9.0, m2_pilot=1.8, cs_d=2.0, cs_k=1.2, cs_dk=3.8, cs_len=4.0, screw_thread_d=1.8)
 FRAME = ("F of spec.json: mm, x toward the dorsal side, y along the PIP axis, z up; the straight finger hangs along -z, the "
          "PIP axis passes through (0, y, -51.55), the tip's back face lies at x 6.45 and its mount face at z -67.30")
+
+
+V2_VALUES = {"a_v2": VALUES_A_V2, "b_v2": VALUES_B_V2}
 
 
 def schema(concept):
@@ -382,8 +411,8 @@ def default_doc(name):
               "'outputs' names the committed design's folders; a saved set has none, so it never overwrites them."),
         outputs=OUTPUTS[name], checks=CHECKS,
         design=[dict(key=k, label=lab, value=dv.get(k, v), options=opts) for k, lab, v, opts in design_schema(concept)],
-        parameters=[dict(key=k, group=g, label=lab, value=(VALUES_A_V2.get(k, val) if name == "a_v2" else val),
-                         default=(VALUES_A_V2.get(k, val) if name == "a_v2" else val), unit=u, sets=s, range=list(rng), checks=c)
+        parameters=[dict(key=k, group=g, label=lab, value=V2_VALUES.get(name, {}).get(k, val),
+                         default=V2_VALUES.get(name, {}).get(k, val), unit=u, sets=s, range=list(rng), checks=c)
                     for k, g, lab, s, u, rng, c, val in schema(concept)])
 
 
@@ -427,8 +456,17 @@ def problems(concept, vals, des=None):
     if concept == "b" and not out:
         if vals["rail_top"] <= vals["rail_base"]:
             out.append("rail_top must exceed rail_base (a dovetail)")
-        if vals["tie_tunnel_x1"] >= vals["tie_x_top"]:
+        j1 = (des or {}).get("qwiic") == "j1_kept"
+        if not j1 and vals["tie_tunnel_x1"] >= vals["tie_x_top"]:
             out.append("the tie's tunnel must stay under the tie block's top")
+        if not j1 and vals["tie_x_top"] <= vals["t_behind"] - 3.55 + vals["chip_h"] + vals["fr4"] + vals["t_tongue"]:
+            out.append("the tie block's top must stand dorsal of the tongue's back")
+        if j1 and vals["tab_cut_v"] > -19.10 + 1e-9:
+            out.append("J1 kept needs the whole tab: tab_cut_v -19.10")
+        if j1 and vals["neck_len"] < 9.75 - 1e-9:
+            out.append("J1 kept clears the PIP servo and the MCP link by 0.5 mm from neck_len 9.75 (v2/20261018-v2_lengthening.json)")
+        if (des or {}).get("board_screws") == "self_forming" and vals["screw_thread_d"] >= vals["screw_d"]:
+            out.append("a self-forming hole must be smaller than the screw (screw_thread_d < screw_d)")
     return out
 
 
@@ -671,10 +709,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("init", help="write the default parameter files from the committed designs")
-    s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0", "a_v2"])
+    s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0", "a_v2", "b_v2"])
     s.add_argument("--force", action="store_true")
     s = sub.add_parser("verify", help="regenerate at a file's values and compare volumes with the committed STL files")
-    s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0", "a_v2"])
+    s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0", "a_v2", "b_v2"])
     s.add_argument("--params", help="parameter file (default: the concept's committed file)")
     a = ap.parse_args()
     {"init": cmd_init, "verify": cmd_verify}[a.cmd](a)
