@@ -46,70 +46,111 @@ import tempfile
 import time
 from pathlib import Path
 
+try:
+    import scipy.spatial  # noqa: F401  (loads the environment's libstdc++ before manifold3d; matplotlib and VTK need it)
+except ImportError:                                 # freecadcmd's Python
+    pass
+
 REPO = Path(__file__).resolve().parents[1]
 STUDY = REPO / "docs/experiments/20261018-dip_link_board_mount"
 OUT = STUDY / "concept_b"
 FE_ROWS = OUT / "fe/fem_coarse.jsonl"
-CAD_DIR = OUT / "cad"
+# $DIPB_OUT and $DIPB_WORK redirect the CAD files and the intermediate meshes of a parameter set (scripts/dip_link_params.py)
+CAD_DIR = Path(os.environ["DIPB_OUT"]) if os.environ.get("DIPB_OUT") else OUT / "cad"
 MEDIA = OUT / "media"
 EVAL = OUT / "evaluation.json"
-WORK = REPO / "logs/20261018-dip_link/concept_b"          # intermediate meshes (untracked)
+WORK = Path(os.environ["DIPB_WORK"]) if os.environ.get("DIPB_WORK") else REPO / "logs/20261018-dip_link/concept_b"
 DATE = "20261018"
 PREFIX = f"{DATE}-concept_b"
 
 # ------------------------------------------------------------------------------------------------- design parameters
-# Every length in mm, frame F. Model values; the chip height, the FR-4 thickness and the board's flatness are pending
-# measurements on the owner's board (spec.json "pending").
+# Every length in mm, frame F. Fixed by the specification (the printed tip, the board, the clevis arms):
 TIP = dict(x_palmar=-10.55, x_back=6.45, y_half=7.4, z_mount=-67.30, z_end=-88.71)
 Z_CONTACT = -78.16
 MAG_BACK_BLOCK = -3.55          # x_F of the block's and capsule's magnets' back faces (3 x 2 mm, tops 5 mm deep)
-T_BEHIND = 4.0                  # TPU behind the block's magnets (the design point, from the fe rows; 10.0 = whole tip)
-X_SLOT = MAG_BACK_BLOCK + T_BEHIND   # the pad's back face = the cover's front face = the chip tops (0.45)
-CHIP_H = 0.90                   # MLX90393 package height (0.80-1.00 mm; the cover is printed to the measured value)
-FR4 = 0.60
 SPOT = 0.42                     # sensing spot under the package top (MLX90393 datasheet Fig. 26)
-X_COMP = X_SLOT + CHIP_H        # the FR-4's component face (1.35)
-X_SEAT = X_COMP + FR4           # the FR-4's bare face = the tongue's seat (1.95)
-RIM_H = 0.45                    # the seat pocket's depth: the rim stops 0.15 mm short of the cover's back face
-T_TONGUE = 3.6                  # tongue behind the seat
-X_TONGUE_BACK = X_SEAT + T_TONGUE    # 5.55
-Y_RIM = 10.5                    # half-width of cover and tongue: the board's 10.0 and a 0.5 mm rim (spec R5)
 Y_BRIDGE = (-17.05, 13.40)      # between the clevis arms (spec R6)
 Z_BOARD = (-88.21, -68.06)      # the board's main square along z (v 10.05 .. -10.10)
-TAB_CUT_V = -11.70              # the tab cut 1.60 mm from the main square, past R1 and R2 (v -11.40)
 HOLES_UV = [(-8.0, -8.10), (8.0, -8.10), (8.0, 7.90), (-8.0, 7.90)]
 HOLE_D = 2.40
-# fasteners (brass, spec R10): M1.6 x 5 cheese head DIN 84 (head 3.0 x 1.0) through cover, board and tongue into an
-# M1.6 hex nut ISO 4032 (3.2 across flats, 1.3 thick) in a pocket on the tongue's back
-SCREW_D, SCREW_CLEAR = 1.6, 1.8
-HEAD_D, HEAD_H = 3.0, 1.0
-NUT_AF, NUT_H = 3.2, 1.3
-NUT_POCKET_AF, NUT_POCKET_H = 3.35, 1.45
-SCREW_L = 5.0
-HEAD_NOTCH_D = 3.4              # the pad's corner notch around a head (0.2 mm all round)
-HEAD_NOTCH_H = 1.2
-# dovetail rails on the cover's front face, and the pad's grooves (snap fit)
-RAIL_Y = 4.40                   # rail centre |y|, between U1/U2/U4 (|y| <= 1.7), C1/C2 (<= 3.55) and U3/U5 (>= 5.3)
-RAIL_BASE, RAIL_TOP, RAIL_H = 1.30, 1.90, 1.00   # width at the cover, width at the top, height
-RAIL_Z = (-83.80, -68.60)
-GROOVE_FIT = 0.05               # the groove is narrower than the rail by this much per flank (the pad's preload)
-GROOVE_FLOOR = 0.05             # clearance between the rail's top and the groove's floor
-WINDOW_MARGIN = 0.20            # windows clear every part by this much (spec R2)
-COVER_TAB_Y = 5.60              # the cover stops at z -68.30 over the tab (|y| <= 5.6), at the mount plane elsewhere
-COVER_TAB_Z = -68.30
-WIRE_SLOT = dict(y=(-4.0, 4.0), z=(-68.30, -67.40))      # through the tongue under the tab's root (the four vias)
-TIE = dict(y=(-3.0, 3.0), z=(-75.2, -70.6), x_top=7.75, tunnel_x=(5.55, 6.75), tunnel_z=(-74.2, -71.6))   # a 2.5 mm tie
-KEEP_MARGIN = 0.80              # the bridge stays this far from the swept MCP link and PIP servo (0.5 + the 0.3 keep-out)
-X_SPINE_BACK = 9.45             # a dorsal spine behind the tongue joins both arms (the old plate's back face)
-Z_WEB_LOW = -70.05              # webs beside the tongue (|y| >= 10.5, dorsal of the cover) reach the horn arm's lowest point
-TIPS = {   # printed 85A tips of the readiness study (spec.json "tips"): print STL, orientation, magnets' back face x_F
-    "block4": ("20261016-siraya85a_block_four_d3x2_depth5_seat2p7", "back", -3.55),
-    "block5": ("20261016-siraya85a_block_five_d3x2_depth5_seat2p7", "back", -3.55),
-    "cap8.5": ("20261016-siraya85a_tcd_cap8p5_four_d3x2_depth5_seat2p7", "upright", -3.55),
-    "ell16": ("20261016-siraya85a_tcd_ell7p4x8p5x16x32_four_d3x2_depth5p5_seat2p7", "upright", -3.05),
-    "ell11": ("20261016-siraya85a_tcd_ell7p4x8p5x11x22_four_d3x2_depth7_seat2p7", "upright", -1.55),
-}
 PRINT_DIR = REPO / "docs/experiments/20261016-sim2real_fingertip_readiness/print"
+# The design's sizes, clearances and spacings form one dict P, read from the parameter file
+# docs/experiments/20261018-dip_link_board_mount/params/20261018-concept_b.json (or the file named by $DIPB_PARAMS), which
+# gives each key's value, unit, what it sets, allowed range and the checks it affects; DESIGN holds the discrete choices.
+# apply() sets both and derives the module-level names below from them; every function reads these names when it runs,
+# so apply(values) changes the design in a running process (scripts/dip_link_viewer.py). Model values: the chip height,
+# the FR-4 thickness and the board's flatness are pending measurements on the owner's board (spec.json "pending").
+PARAMS = STUDY / "params/20261018-concept_b.json"
+P: dict = {}
+DESIGN: dict = {}
+PAD_SETS = {   # printed 85A tips cut into pads: print STL, orientation, magnets' back face x_F
+    "seat2p7": {"block4": ("20261016-siraya85a_block_four_d3x2_depth5_seat2p7", "back", -3.55),
+                "block5": ("20261016-siraya85a_block_five_d3x2_depth5_seat2p7", "back", -3.55),
+                "cap8.5": ("20261016-siraya85a_tcd_cap8p5_four_d3x2_depth5_seat2p7", "upright", -3.55),
+                "ell16": ("20261016-siraya85a_tcd_ell7p4x8p5x16x32_four_d3x2_depth5p5_seat2p7", "upright", -3.05),
+                "ell11": ("20261016-siraya85a_tcd_ell7p4x8p5x11x22_four_d3x2_depth7_seat2p7", "upright", -1.55)},
+    "seat2p9": {"block4": ("20261016-siraya85a_block_four_d3x2_depth5_seat2p9", "back", -3.55),
+                "block5": ("20261016-siraya85a_block_five_z7p4_d3x2_depth5_seat2p9", "back", -3.55),
+                "cap8.5": ("20261016-siraya85a_tcd_cap8p5_four_d3x2_depth5_seat2p9", "upright", -3.55),
+                "ell16": ("20261016-siraya85a_tcd_ell7p4x8p5x16x32_four_d3x2_depth5p5_seat2p9", "upright", -3.05),
+                "ell11": ("20261016-siraya85a_tcd_ell7p4x8p5x11x22_four_d3x2_depth7p5_seat2p9", "upright", -1.05)},
+}
+
+
+def load_params(path=None):
+    """({key: value}, {design key: value}) of a parameter file (default: $DIPB_PARAMS, else PARAMS)."""
+    doc = json.loads(Path(path or os.environ.get("DIPB_PARAMS") or PARAMS).read_text())
+    return ({q["key"]: float(q["value"]) for q in doc["parameters"]},
+            {d["key"]: d["value"] for d in doc.get("design", [])})
+
+
+def apply(values=None, design=None):
+    """Set P and DESIGN from a parameter set and derive the geometry's names from them (mm, frame F)."""
+    global T_BEHIND, X_SLOT, CHIP_H, FR4, X_COMP, X_SEAT, RIM_H, T_TONGUE, X_TONGUE_BACK, Y_RIM, TAB_CUT_V, SCREW_D, \
+        SCREW_CLEAR, HEAD_D, HEAD_H, NUT_AF, NUT_H, NUT_POCKET_AF, NUT_POCKET_H, SCREW_L, HEAD_NOTCH_D, HEAD_NOTCH_H, \
+        RAIL_Y, RAIL_BASE, RAIL_TOP, RAIL_H, RAIL_Z, GROOVE_FIT, GROOVE_FLOOR, WINDOW_MARGIN, COVER_TAB_Y, COVER_TAB_Z, \
+        WIRE_SLOT, TIE, KEEP_MARGIN, X_SPINE_BACK, Z_WEB_LOW, TIPS
+    P.update(values or {})
+    DESIGN.update(design or {})
+    T_BEHIND = P["t_behind"]             # TPU behind the block's magnets (the fe rows: 10, 6, 4, 3 mm; 10.0 = whole tip)
+    X_SLOT = MAG_BACK_BLOCK + T_BEHIND   # the pad's back face = the cover's front face = the chip tops (0.45)
+    CHIP_H = P["chip_h"]                 # MLX90393 package height (0.80-1.00 mm; the cover is printed to the measured value)
+    FR4 = P["fr4"]
+    X_COMP = X_SLOT + CHIP_H             # the FR-4's component face (1.35)
+    X_SEAT = X_COMP + FR4                # the FR-4's bare face = the tongue's seat (1.95)
+    RIM_H = P["rim_h"]                   # the seat pocket's depth: the rim stops 0.15 mm short of the cover's back face
+    T_TONGUE = P["t_tongue"]             # tongue behind the seat
+    X_TONGUE_BACK = X_SEAT + T_TONGUE    # 5.55
+    Y_RIM = P["y_rim"]                   # half-width of cover and tongue: the board's 10.0 and a 0.5 mm rim (spec R5)
+    TAB_CUT_V = P["tab_cut_v"]           # the tab cut 1.60 mm from the main square, past R1 and R2 (v -11.40)
+    # fasteners (brass, spec R10): M1.6 x 5 cheese head DIN 84 (head 3.0 x 1.0) through cover, board and tongue into an
+    # M1.6 hex nut ISO 4032 (3.2 across flats, 1.3 thick) in a pocket on the tongue's back
+    SCREW_D, SCREW_CLEAR = P["screw_d"], P["screw_clear"]
+    HEAD_D, HEAD_H = P["head_d"], P["head_h"]
+    NUT_AF, NUT_H = P["nut_af"], P["nut_h"]
+    NUT_POCKET_AF, NUT_POCKET_H = P["nut_pocket_af"], P["nut_pocket_h"]
+    SCREW_L = P["screw_l"]
+    HEAD_NOTCH_D = P["head_notch_d"]     # the pad's corner notch around a head (0.2 mm all round)
+    HEAD_NOTCH_H = P["head_notch_h"]
+    # dovetail rails on the cover's front face, and the pad's grooves (snap fit)
+    RAIL_Y = P["rail_y"]                 # rail centre |y|, between U1/U2/U4 (|y| <= 1.7), C1/C2 (<= 3.55) and U3/U5 (>= 5.3)
+    RAIL_BASE, RAIL_TOP, RAIL_H = P["rail_base"], P["rail_top"], P["rail_h"]   # width at the cover, at the top, height
+    RAIL_Z = (P["rail_z0"], P["rail_z1"])
+    GROOVE_FIT = P["groove_fit"]         # the groove is narrower than the rail by this much per flank (the pad's preload)
+    GROOVE_FLOOR = P["groove_floor"]     # clearance between the rail's top and the groove's floor
+    WINDOW_MARGIN = P["window_margin"]   # windows clear every part by this much (spec R2)
+    COVER_TAB_Y = P["cover_tab_y"]       # the cover stops at z -68.30 over the tab (|y| <= 5.6), at the mount plane elsewhere
+    COVER_TAB_Z = P["cover_tab_z"]
+    WIRE_SLOT = dict(y=(P["wire_slot_y0"], P["wire_slot_y1"]), z=(P["wire_slot_z0"], P["wire_slot_z1"]))  # the four vias
+    TIE = dict(y=(P["tie_y0"], P["tie_y1"]), z=(P["tie_z0"], P["tie_z1"]), x_top=P["tie_x_top"],      # a 2.5 mm cable tie
+               tunnel_x=(P["tie_tunnel_x0"], P["tie_tunnel_x1"]), tunnel_z=(P["tie_tunnel_z0"], P["tie_tunnel_z1"]))
+    KEEP_MARGIN = P["keep_margin"]       # the bridge stays this far from the swept MCP link and PIP servo (0.5 + 0.3)
+    X_SPINE_BACK = P["x_spine_back"]     # a dorsal spine behind the tongue joins both arms (the old plate's back face)
+    Z_WEB_LOW = P["z_web_low"]           # webs beside the tongue (|y| >= 10.5, dorsal of the cover) reach the horn arm
+    TIPS = PAD_SETS[DESIGN.get("pads", "seat2p7")]
+
+
+apply(*load_params())
 
 
 def uv_to_yz(u, v):
@@ -303,11 +344,12 @@ def make_pad(key):
     return (M ^ keep) - pad_cutters(), t
 
 
-def bridge_profile(margin=KEEP_MARGIN):
+def bridge_profile(margin=None):
     """Top boundary z_top(x) of the bridge between the arms: from z -67.30 upward, the highest z whose column stays
-    `margin` mm from the keep-out swept by the MCP link and the PIP servo over PIP -18..92 deg, projected over the
-    bridge's y range widened by the margin. Returns [(x, z_top)] at the keep-out's 0.25 mm pitch."""
+    `margin` mm (default KEEP_MARGIN) from the keep-out swept by the MCP link and the PIP servo over PIP -18..92 deg,
+    projected over the bridge's y range widened by the margin. Returns [(x, z_top)] at the keep-out's 0.25 mm pitch."""
     import numpy as np
+    margin = KEEP_MARGIN if margin is None else margin
     from scipy.ndimage import distance_transform_edt
     sys.path.insert(0, str(REPO / "scripts"))
     sys.path.insert(0, str(REPO / "src"))
@@ -379,7 +421,7 @@ def cmd_prep(a):
                        faces=int(len(tm.faces)), watertight=bool(tm.is_watertight))
         print(k, info[k], flush=True)
     prof = bridge_profile()
-    (WORK / "bridge_profile.json").write_text(json.dumps(dict(margin=KEEP_MARGIN, profile=prof)))
+    (WORK / "bridge_profile.json").write_text(json.dumps(dict(margin=KEEP_MARGIN, x_spine_back=X_SPINE_BACK, profile=prof)))
     print("bridge profile", len(prof), "points; z_top at x -10.55, -5, 0, 5:",
           [z for x, z in prof if any(abs(x - v) < 0.13 for v in (-10.5, -5.0, 0.0, 5.0))], flush=True)
     CAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -431,51 +473,195 @@ def cover_windows():
     return out
 
 
-# ================================================================================================= FreeCAD solids
+# ================================================================================================= solids, two kernels
+# dip_link_parts() and cover_part() build the DIP link and the cover from P with either kernel: BrepB (FreeCAD, inside
+# freecadcmd) gives the exact solids of the STEP files and the committed STL files; MeshB (manifold3d) gives the same
+# solids as meshes in well under a second, for scripts/dip_link_viewer.py.
 
-def fc_build():
-    """Run by freecadcmd (DIPB_FREECAD=1): B-rep solids of the DIP link and the cover, faceted solids of the pads and
-    the arms; STEP and STL of each part into CAD_DIR."""
-    import FreeCAD as App
-    import Mesh
-    import MeshPart
-    import Part
-    V = App.Vector
-    CAD_DIR.mkdir(parents=True, exist_ok=True)
-    log = {}
+class BrepB:
+    """FreeCAD Part inside freecadcmd: exact solids, by the operations of the committed concept b."""
+    name = "brep"
 
-    def bx(lo, hi):
-        return Part.makeBox(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2], V(*lo))
+    def __init__(self):
+        import FreeCAD as App
+        import Part
+        self.App, self.Part = App, Part
 
-    def cylx(y, z, r, x0, x1):
-        return Part.makeCylinder(r, x1 - x0, V(x0, y, z), V(1, 0, 0))
+    def box(self, lo, hi):
+        return self.Part.makeBox(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2], self.App.Vector(*lo))
 
-    def hexx(y, z, af, x0, x1):
+    def cylx(self, y, z, r, x0, x1):
+        return self.Part.makeCylinder(r, x1 - x0, self.App.Vector(x0, y, z), self.App.Vector(1, 0, 0))
+
+    def hexx(self, y, z, af, x0, x1):
+        V = self.App.Vector
         rc = af / math.sqrt(3.0)
         pts = [V(x0, y + rc * math.cos(math.radians(a)), z + rc * math.sin(math.radians(a))) for a in range(0, 360, 60)]
-        return Part.Face(Part.makePolygon(pts + [pts[0]])).extrude(V(x1 - x0, 0, 0))
+        return self.Part.Face(self.Part.makePolygon(pts + [pts[0]])).extrude(V(x1 - x0, 0, 0))
 
-    def prism_y(points_xz, y0, y1):
+    def prism_y(self, points_xz, y0, y1):
+        V = self.App.Vector
         pts = [V(x, y0, z) for x, z in points_xz]
-        return Part.Face(Part.makePolygon(pts + [pts[0]])).extrude(V(0, y1 - y0, 0))
+        return self.Part.Face(self.Part.makePolygon(pts + [pts[0]])).extrude(V(0, y1 - y0, 0))
 
-    def prism_z(points_yx, z0, z1):
+    def prism_z(self, points_yx, z0, z1):
+        V = self.App.Vector
         pts = [V(x, y, z0) for y, x in points_yx]
-        return Part.Face(Part.makePolygon(pts + [pts[0]])).extrude(V(0, 0, z1 - z0))
+        return self.Part.Face(self.Part.makePolygon(pts + [pts[0]])).extrude(V(0, 0, z1 - z0))
 
-    def mesh_solid(path):
+    def fuse(self, a, others):
+        return a.fuse(others)
+
+    def cut(self, a, others):
+        return a.cut(others)
+
+    def finish(self, s):
+        s = s.removeSplitter()
+        return s.Solids[0] if len(s.Solids) == 1 else s
+
+    def mesh_solid(self, path):
         """A faceted solid from a closed mesh; further closed components (the magnet pockets) become voids."""
+        import Mesh
         solids = []
         for comp in Mesh.Mesh(str(path)).getSeparateComponents():
-            sh = Part.Shape()
+            sh = self.Part.Shape()
             sh.makeShapeFromMesh(comp.Topology, 0.005)
-            so = Part.Solid(Part.Shell(sh.Faces))
+            so = self.Part.Solid(self.Part.Shell(sh.Faces))
             if so.Volume < 0:
                 so.reverse()
             solids.append(so)
         solids.sort(key=lambda s: -s.Volume)
         out = solids[0].cut(solids[1:]) if len(solids) > 1 else solids[0]
         return out.removeSplitter()
+
+    def arms(self):
+        return [self.mesh_solid(WORK / "arm_horn.stl"), self.mesh_solid(WORK / "arm_slot.stl")]
+
+
+class MeshB:
+    """manifold3d: the same solids as meshes (cylinders of 48 segments)."""
+    name = "mesh"
+    _arms = None
+
+    def box(self, lo, hi):
+        return box(lo, hi)
+
+    def cylx(self, y, z, r, x0, x1):
+        return cyl_x(y, z, r, x0, x1)
+
+    def hexx(self, y, z, af, x0, x1):
+        return hex_x(y, z, af, x0, x1)
+
+    @staticmethod
+    def _extrude(poly_uv, w0, w1, T):
+        """A polygon in (u, v) extruded along w from w0 to w1, then mapped to F by the 3 x 4 matrix T (an even permutation
+        of the axes)."""
+        import numpy as np
+        m3 = _m3()
+        Q = np.asarray(poly_uv, float)
+        if np.sum(Q[:, 0] * np.roll(Q[:, 1], -1) - np.roll(Q[:, 0], -1) * Q[:, 1]) < 0:
+            Q = Q[::-1]
+        s = m3.Manifold.extrude(m3.CrossSection([Q]), float(w1 - w0)).translate([0.0, 0.0, float(w0)])
+        return s.transform(np.asarray(T, float))
+
+    def prism_y(self, points_xz, y0, y1):
+        return self._extrude([(z, x) for x, z in points_xz], y0, y1, [[0, 1, 0, 0], [0, 0, 1, 0], [1, 0, 0, 0]])
+
+    def prism_z(self, points_yx, z0, z1):
+        return self._extrude([(x, y) for y, x in points_yx], z0, z1, [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+
+    def fuse(self, a, others):
+        m3 = _m3()
+        return m3.Manifold.batch_boolean([a] + list(others), m3.OpType.Add)
+
+    def cut(self, a, others):
+        m3 = _m3()
+        return a - m3.Manifold.batch_boolean(list(others), m3.OpType.Add)
+
+    def finish(self, s):
+        return s
+
+    def arms(self):
+        """The clevis arms of fingertip_mount_DIP_link.stl, cut as cmd_prep cuts them (computed once per process)."""
+        if MeshB._arms is None:
+            sys.path.insert(0, str(REPO / "scripts"))
+            sys.path.insert(0, str(REPO / "src"))
+            import dip_link_geometry as G
+            M = to_manifold(G.load_part("dip_link"))
+            MeshB._arms = [M ^ box((-40, -24.0, -110), (40, Y_BRIDGE[0] - 0.01, -30)),
+                           M ^ box((-40, Y_BRIDGE[1] + 0.01, -110), (40, 18.0, -30))]
+        return MeshB._arms
+
+
+_PROFILES = {}
+
+
+def profile():
+    """The bridge's top profile for the current KEEP_MARGIN and X_SPINE_BACK: prep's file when it matches them (the B-rep
+    build reads only that), otherwise bridge_profile() (cached per margin and spine)."""
+    key = (KEEP_MARGIN, X_SPINE_BACK)
+    if key not in _PROFILES:
+        f = WORK / "bridge_profile.json"
+        d = json.loads(f.read_text()) if f.exists() else {}
+        if d.get("margin") == KEEP_MARGIN and d.get("x_spine_back", 9.45) == X_SPINE_BACK:
+            _PROFILES[key] = d["profile"]
+        else:
+            _PROFILES[key] = bridge_profile()
+    return _PROFILES[key]
+
+
+def dip_link_parts(K):
+    """The DIP link's new body (bridge, tongue, webs and tie block, with the board's seat pocket, the tab's room, the wire
+    exit, the tie tunnel, the screw holes and the nut pockets) and the whole DIP link (the body fused with the clevis arms)."""
+    prof = profile()
+    poly = [(TIP["x_palmar"], TIP["z_mount"])] + [tuple(p) for p in prof] + [(X_SPINE_BACK, TIP["z_mount"])]
+    bridge = K.prism_y(poly, Y_BRIDGE[0] - 0.02, Y_BRIDGE[1] + 0.02)
+    tongue = K.box((X_SEAT - RIM_H, -Y_RIM, TIP["z_end"]), (X_TONGUE_BACK, Y_RIM, TIP["z_mount"] + 0.5))
+    webs = [K.box((X_SEAT - RIM_H, Y_BRIDGE[0] - 0.02, Z_WEB_LOW), (X_SPINE_BACK, -Y_RIM + 0.01, TIP["z_mount"] + 0.5)),
+            K.box((X_SEAT - RIM_H, Y_RIM - 0.01, Z_WEB_LOW), (X_SPINE_BACK, Y_BRIDGE[1] + 0.02, TIP["z_mount"] + 0.5))]
+    tie = K.box((X_TONGUE_BACK - 0.1, TIE["y"][0], TIE["z"][0]), (TIE["x_top"], TIE["y"][1], TIE["z"][1]))
+    body = K.fuse(bridge, [tongue, tie] + webs)
+    cuts = [
+        # the board's seat pocket: main square (datum walls at y = -10.00 and at the proximal edge) and the tab
+        K.box((X_SEAT - RIM_H - 0.1, -10.00, Z_BOARD[0] - 0.05), (X_SEAT, 10.05, Z_BOARD[1])),
+        K.box((X_SEAT - RIM_H - 0.1, -5.05, Z_BOARD[1] - 0.01), (X_SEAT, 5.05, uv_z(TAB_CUT_V) + 0.10)),
+        # room for the tab's component side (R1, R2 0.4 mm tall) inside the bridge
+        K.box((X_COMP - 0.5, -5.2, COVER_TAB_Z - 0.1), (X_SEAT, 5.2, uv_z(TAB_CUT_V) + 0.2)),
+        # the wire exit under the tab's root, and the tie tunnel
+        K.box((X_SEAT - 0.01, WIRE_SLOT["y"][0], WIRE_SLOT["z"][0]), (X_TONGUE_BACK + 0.1, WIRE_SLOT["y"][1], WIRE_SLOT["z"][1])),
+        K.box((TIE["tunnel_x"][0] - 0.2, TIE["y"][0] - 0.1, TIE["tunnel_z"][0]), (TIE["tunnel_x"][1], TIE["y"][1] + 0.1,
+                                                                                    TIE["tunnel_z"][1])),
+    ]
+    for y, z in screw_yz():
+        cuts.append(K.cylx(y, z, SCREW_CLEAR / 2, X_SEAT - RIM_H - 0.2, X_SPINE_BACK + 0.2))
+        cuts.append(K.hexx(y, z, NUT_POCKET_AF, X_TONGUE_BACK - NUT_POCKET_H, X_SPINE_BACK + 0.2))   # nut in from the back
+    body = K.cut(body, cuts)
+    dip = K.finish(K.fuse(body, K.arms()))
+    return body, dip
+
+
+def cover_part(K):
+    """The cover: a web as thick as the chips over the board's component face, with windows around every part, a notch
+    over the tab, the four screw holes, and the two dovetail rails on its front face."""
+    web = K.box((X_SLOT, -Y_RIM, TIP["z_end"]), (X_COMP, Y_RIM, TIP["z_mount"]))
+    notch = K.box((X_SLOT - 0.1, -COVER_TAB_Y, COVER_TAB_Z), (X_COMP + 0.1, COVER_TAB_Y, TIP["z_mount"] + 0.1))
+    win = [K.box((X_SLOT - 0.1, y0, z0), (X_COMP + 0.1, y1, z1)) for y0, y1, z0, z1 in cover_windows().values()]
+    holes = [K.cylx(y, z, SCREW_CLEAR / 2, X_SLOT - 0.2, X_COMP + 0.2) for y, z in screw_yz()]
+    cover = K.cut(web, [notch] + win + holes)
+    rails = []
+    for s in (-1, 1):
+        sec = [(s * y, (X_SLOT + 0.1) if x > X_SLOT else x) for y, x in rail_section()]
+        rails.append(K.prism_z(sec, RAIL_Z[0], RAIL_Z[1]))
+    return K.finish(K.fuse(cover, rails))
+
+
+def fc_build():
+    """Run by freecadcmd (DIPB_FREECAD=1): B-rep solids of the DIP link and the cover, faceted solids of the pads and
+    the arms; STEP and STL of each part into CAD_DIR."""
+    import MeshPart
+    K = BrepB()
+    CAD_DIR.mkdir(parents=True, exist_ok=True)
+    log = {}
 
     def export(shape, name, lin=0.02, ang=0.15):
         step = CAD_DIR / f"{PREFIX}_{name}.step"
@@ -490,56 +676,13 @@ def fc_build():
         print(name, log[name], flush=True)
 
     t0 = time.time()
-    # ------------------------------------------------------------------ the DIP link
-    prof = json.loads((WORK / "bridge_profile.json").read_text())["profile"]
-    poly = [(TIP["x_palmar"], TIP["z_mount"])] + [tuple(p) for p in prof] + [(X_SPINE_BACK, TIP["z_mount"])]
-    bridge = prism_y(poly, Y_BRIDGE[0] - 0.02, Y_BRIDGE[1] + 0.02)
-    tongue = bx((X_SEAT - RIM_H, -Y_RIM, TIP["z_end"]), (X_TONGUE_BACK, Y_RIM, TIP["z_mount"] + 0.5))
-    webs = [bx((X_SEAT - RIM_H, Y_BRIDGE[0] - 0.02, Z_WEB_LOW), (X_SPINE_BACK, -Y_RIM + 0.01, TIP["z_mount"] + 0.5)),
-            bx((X_SEAT - RIM_H, Y_RIM - 0.01, Z_WEB_LOW), (X_SPINE_BACK, Y_BRIDGE[1] + 0.02, TIP["z_mount"] + 0.5))]
-    tie = bx((X_TONGUE_BACK - 0.1, TIE["y"][0], TIE["z"][0]), (TIE["x_top"], TIE["y"][1], TIE["z"][1]))
-    body = bridge.fuse([tongue, tie] + webs)
-    cuts = [
-        # the board's seat pocket: main square (datum walls at y = -10.00 and at the proximal edge) and the tab
-        bx((X_SEAT - RIM_H - 0.1, -10.00, Z_BOARD[0] - 0.05), (X_SEAT, 10.05, Z_BOARD[1])),
-        bx((X_SEAT - RIM_H - 0.1, -5.05, Z_BOARD[1] - 0.01), (X_SEAT, 5.05, uv_z(TAB_CUT_V) + 0.10)),
-        # room for the tab's component side (R1, R2 0.4 mm tall) inside the bridge
-        bx((X_COMP - 0.5, -5.2, COVER_TAB_Z - 0.1), (X_SEAT, 5.2, uv_z(TAB_CUT_V) + 0.2)),
-        # the wire exit under the tab's root, and the tie tunnel
-        bx((X_SEAT - 0.01, WIRE_SLOT["y"][0], WIRE_SLOT["z"][0]), (X_TONGUE_BACK + 0.1, WIRE_SLOT["y"][1], WIRE_SLOT["z"][1])),
-        bx((TIE["tunnel_x"][0] - 0.2, TIE["y"][0] - 0.1, TIE["tunnel_z"][0]), (TIE["tunnel_x"][1], TIE["y"][1] + 0.1,
-                                                                                  TIE["tunnel_z"][1])),
-    ]
-    for y, z in screw_yz():
-        cuts.append(cylx(y, z, SCREW_CLEAR / 2, X_SEAT - RIM_H - 0.2, X_SPINE_BACK + 0.2))
-        cuts.append(hexx(y, z, NUT_POCKET_AF, X_TONGUE_BACK - NUT_POCKET_H, X_SPINE_BACK + 0.2))   # nut in from the back
-    body = body.cut(cuts)
-    print("DIP body", round(time.time() - t0, 1), "s", flush=True)
-    arms = [mesh_solid(WORK / "arm_horn.stl"), mesh_solid(WORK / "arm_slot.stl")]
-    print("arms", [len(a.Faces) for a in arms], round(time.time() - t0, 1), "s", flush=True)
-    dip = body.fuse(arms).removeSplitter()
-    if len(dip.Solids) == 1:
-        dip = dip.Solids[0]
+    body, dip = dip_link_parts(K)
     print("DIP fused", round(time.time() - t0, 1), "s", flush=True)
     export(dip, "dip_link")
     export(body, "dip_link_new_body")          # the redesigned body alone (B-rep), for editing
-    # ------------------------------------------------------------------ the cover
-    web = bx((X_SLOT, -Y_RIM, TIP["z_end"]), (X_COMP, Y_RIM, TIP["z_mount"]))
-    notch = bx((X_SLOT - 0.1, -COVER_TAB_Y, COVER_TAB_Z), (X_COMP + 0.1, COVER_TAB_Y, TIP["z_mount"] + 0.1))
-    win = [bx((X_SLOT - 0.1, y0, z0), (X_COMP + 0.1, y1, z1)) for y0, y1, z0, z1 in cover_windows().values()]
-    holes = [cylx(y, z, SCREW_CLEAR / 2, X_SLOT - 0.2, X_COMP + 0.2) for y, z in screw_yz()]
-    cover = web.cut([notch] + win + holes)
-    rails = []
-    for s in (-1, 1):
-        sec = [(s * y, (X_SLOT + 0.1) if x > X_SLOT else x) for y, x in rail_section()]
-        rails.append(prism_z(sec, RAIL_Z[0], RAIL_Z[1]))
-    cover = cover.fuse(rails).removeSplitter()
-    if len(cover.Solids) == 1:
-        cover = cover.Solids[0]
-    export(cover, "cover")
-    # ------------------------------------------------------------------ the pads (faceted, from their meshes)
-    for key in TIPS:
-        p = mesh_solid(WORK / f"pad_{key}_step.stl")
+    export(cover_part(K), "cover")
+    for key in TIPS:                            # the pads, faceted, from their meshes
+        p = K.mesh_solid(WORK / f"pad_{key}_step.stl")
         step = CAD_DIR / f"{PREFIX}_pad_{key}.step"
         p.exportStep(str(step))
         log[f"pad_{key}"] = dict(step=str(step.relative_to(REPO)), volume_mm3=round(p.Volume, 2), valid=bool(p.isValid()),
@@ -575,10 +718,18 @@ RHO = dict(pla=1.24, pla_15=0.948, brass=8.5, tpu=1.20)   # g/cm^3; pla_15: the 
 MAG_MASS_G = 0.106                                         # one 3 x 2 mm N52 disc (7.5 g/cm^3)
 
 
+def tip_records():
+    """The printed tips of the pad set (spec.json "tips" for the 2.7 mm seats; the 2.9 mm seats' records of the final,
+    final/20261018-dip_link_final_tips.json, with the as-printed magnets)."""
+    if DESIGN.get("pads", "seat2p7") == "seat2p7":
+        return spec()["tips"]
+    return json.loads((STUDY / "final/20261018-dip_link_final_tips.json").read_text())
+
+
 def magnets(key="block4"):
-    """Magnet cylinders of a printed tip from spec.json: [(centre_F, x0, x1)], 3 x 2 mm, axes along x."""
+    """Magnet cylinders of a printed tip of the pad set: [(centre_F, x0, x1)], 3 x 2 mm, axes along x."""
     out = []
-    for m in spec()["tips"][key]["magnets"]["items"]:
+    for m in tip_records()[key]["magnets"]["items"]:
         out.append((m["centre_F"], m["x_F"][0], m["x_F"][1]))
     return out
 
