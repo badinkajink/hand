@@ -1251,6 +1251,183 @@ def cmd_sections(a):
     print("sections ->", rel(MEDIA / f"{PFX}_sections.png"), flush=True)
 
 
+# ------------------------------------------------------------------------------------------------ print project
+PRINT_SPEC = {
+    # part: (rotation rows = print axes in M (or the table frame), settings, label)
+    "adapter": ([[1.0, 0, 0], [0, -1.0, 0], [0, 0, -1.0]],
+                dict(layer_height="0.15", perimeters="5", fill_density="40%", fill_pattern="gyroid", top_solid_layers="6",
+                     bottom_solid_layers="6", seam_position="rear"),
+                "Adapter disc, tool face on the bed (spigot and dowel up)"),
+    "standoff_fork": ([[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]],
+                      dict(layer_height="0.15", perimeters="5", fill_density="40%", fill_pattern="gyroid",
+                           top_solid_layers="6", bottom_solid_layers="6", seam_position="rear"),
+                      "Standoff-fork, foot on the bed (fork end up)"),
+    "clamp_plate": ([[1.0, 0, 0], [0, 0, 1.0], [0, -1.0, 0]],
+                    dict(layer_height="0.15", perimeters="4", fill_density="100%", fill_pattern="rectilinear",
+                         seam_position="rear"),
+                    "Clamp plate, the face on the arm on the bed"),
+    "indenter_sphere": ([[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]],
+                        dict(layer_height="0.15", perimeters="4", fill_density="40%", fill_pattern="gyroid",
+                             seam_position="rear"), "Indenter, 5 mm sphere"),
+    "indenter_rod": ([[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]],
+                     dict(layer_height="0.15", perimeters="4", fill_density="40%", fill_pattern="gyroid",
+                          seam_position="rear"), "Indenter, 12.5 mm half rod"),
+}
+FORK_SOLID_FROM_ZM = 38.0       # the fork (inner block, hub, key, ears) at 100 % infill: a modifier from this z_M up
+
+
+def cmd_print(a):
+    """PrusaSlicer project for the Prusa XL on the owner's v17 template (PLA, tool 3), sliced and checked: the three mount
+    parts on one plate and the two indenters on a second, through dip_link_print_project's writer and slicer."""
+    import trimesh
+    import dip_link_print_project as PP
+    PRINT.mkdir(parents=True, exist_ok=True)
+    work = WORK / "print"
+    plates = {f"{PFX}_mount_pla_t3": list(PARTS), f"{PFX}_indenters_pla_t3": list(TABLE_PARTS)}
+    report = {}
+    for name, keys in plates.items():
+        objs = []
+        for k in keys:
+            R, st, label = PRINT_SPEC[k]
+            tm = trimesh.load(fname(k), force="mesh")
+            m, Rt = PP.to_print(tm, np.asarray(R))
+            o = dict(key=k, name=k, label=label, short=label.split(",")[0], mesh=m, Rt=Rt, extruder=PP.PLA_TOOL,
+                     settings=dict(st), volumes=[])
+            if k == "standoff_fork":
+                z0 = FORK_SOLID_FROM_ZM - float(np.asarray(tm.bounds)[0][2])
+                lo, hi = np.asarray(m.bounds)
+                o["volumes"].append(dict(name="fork_100pct", type="ParameterModifier",
+                                         mesh=PP.box_mesh((lo[0] - 1, lo[1] - 1, z0), (hi[0] + 1, hi[1] + 1, hi[2] + 1)),
+                                         settings=dict(fill_density="100%", fill_pattern="rectilinear")))
+            objs.append(o)
+        for o, t in zip(objs, PP.layout([o["mesh"] for o in objs])):
+            o["translation"] = t
+        proj = PRINT / f"{name}.3mf"
+        cfg = PP.write_project(proj, objs)
+        PP.bed_figure(objs, PRINT / f"{name}_bed.png", "Prusa XL bed: " + ("mount parts" if "mount" in name else "indenters")
+                      + ", PLA on tool 3")
+        rec = dict(project=rel(proj), template=rel(PP.TEMPLATE), config_set=PP.GLOBAL,
+                   objects=[dict(part=o["key"], label=o["label"], settings=o["settings"],
+                                 rotation_print_from_M=np.asarray(o["Rt"][0]).tolist(),
+                                 bed_translation_mm=np.round(o["translation"], 2).tolist(),
+                                 size_mm=np.round(o["mesh"].extents, 2).tolist(), volume_mm3=round(float(o["mesh"].volume), 1),
+                                 volumes=[dict(name=v["name"], type=v["type"], settings=v.get("settings", {}),
+                                               bounds_print_mm=np.round(v["mesh"].bounds, 2).tolist()) for v in o["volumes"]])
+                            for o in objs])
+        try:
+            gc, log = PP.slice_project(proj, cfg, work / name)
+            summ = PP.gcode_summary(gc)
+            chk = {}
+            for o in objs:
+                lab = summ["labels"].get(o["name"])           # the M486 object index
+                if lab is None:
+                    chk[o["key"]] = dict(error="object label not in the G-code", labels=list(summ["labels"]))
+                    continue
+                S, T = PP.object_segments(gc, lab)
+                tid = {v: k for k, v in T.items()}
+                sup = [tid[k] for k in ("Support material", "Support material interface") if k in tid]
+                zt = float(S[:, 0].max()) if len(S) else None
+                chk[o["key"]] = dict(label=lab, layers=int(len(np.unique(S[:, 0]))), top_z=round(zt, 2) if zt else None,
+                                     part_height=round(float(o["mesh"].extents[2]), 2),
+                                     support_segments=int(np.isin(S[:, 5], sup).sum()) if sup else 0,
+                                     types=sorted(T.values()))
+            rec["slice"] = dict(gcode=rel(gc), summary={k: v for k, v in summ.items() if k != "labels"}, checks=chk,
+                                passes=all(c.get("support_segments", 1) == 0 and c.get("top_z") is not None
+                                           and abs(c["top_z"] - c["part_height"]) < 0.3 for c in chk.values()))
+        except SystemExit as e:
+            rec["slice"] = dict(error=str(e)[-800:])
+        rec["when"] = time.strftime("%Y-%m-%d %H:%M")
+        (PRINT / f"{name}.json").write_text(json.dumps(rec, indent=1, default=float))
+        report[name] = rec.get("slice", {})
+        print(name, json.dumps(rec.get("slice", {}).get("summary", rec.get("slice")))[:400],
+              "passes", rec.get("slice", {}).get("passes"), flush=True)
+
+
+# ------------------------------------------------------------------------------------------------ parts list, assembly, runbook
+def cmd_docs(a):
+    est = json.loads((OUT / f"{PFX}_estimate.json").read_text())
+    step = json.loads((OUT / f"{PFX}_step.json").read_text())["parts"]
+    pr = {n: json.loads((PRINT / f"{PFX}_{n}_pla_t3.json").read_text()) for n in ("mount", "indenters")}
+    m = est["masses_g"]
+    parts_list = [
+        dict(item="Adapter disc", qty=1, material="PLA", file=rel(fname("adapter", "step")), stl=rel(fname("adapter")),
+             mass_g_solid=m["adapter"], note="spigot 31.40 x 5.5 mm and printed dowel 5.95 x 5.0 mm on the robot side"),
+        dict(item="Standoff-fork", qty=1, material="PLA", file=rel(fname("standoff_fork", "step")), stl=rel(fname("standoff_fork")),
+             mass_g_solid=m["standoff_fork"], note="foot, column and fork; the fork end prints at 100 % (modifier)"),
+        dict(item="Clamp plate", qty=1, material="PLA", file=rel(fname("clamp_plate", "step")), stl=rel(fname("clamp_plate")),
+             mass_g_solid=m["clamp_plate"], note="on the horn-side arm's outer face"),
+        dict(item="Indenter, 5 mm sphere (optional)", qty=1, material="PLA", file=rel(fname("indenter_sphere", "step")),
+             stl=rel(fname("indenter_sphere"))),
+        dict(item="Indenter, 12.5 mm half rod (optional)", qty=1, material="PLA", file=rel(fname("indenter_rod", "step")),
+             stl=rel(fname("indenter_rod"))),
+    ] + [dict(item=v["what"], qty=v["qty"], key=k) for k, v in SCREWS.items()] + [
+        dict(item="DIN 125 washer M6 (6.4 x 12 x 1.6)", qty=4), dict(item="DIN 9021 washer M3 (3.2 x 9 x 0.8), brass or A2", qty=1),
+        dict(item="Cable ties, 2.5 mm wide", qty=2),
+        dict(item="OnRobot Quick Changer tool plate (if the HEX-E is the QC version)", qty=1,
+             note="the adapter bolts to its ISO 9409-1-50-4-M6 face; on a UR5e flange or a non-QC HEX-E's tool flange directly"),
+        dict(item="DIP link as printed (CAD hand's, v2 a or v2 b) with its board, Qwiic cable and tip", qty=1)]
+    steps = [
+        "Print the two plates (print/*.3mf); check the adapter's spigot and dowel in the tool plate's recess and hole before "
+        "anything else: the spigot slides in by hand, the dowel enters without force. A tight spigot: sand it or rebuild with "
+        "spigot_d 0.05 mm smaller.",
+        "Adapter on the tool plate (or the UR5e flange): dowel into the 6 mm hole, four M6 x 12 with DIN 125 washers into the "
+        "counterbores, 1.5 N m (PLA under the heads; the UR5e's 8.0 N m is for metal tools). Each bolt enters the flange 7.4 mm "
+        "(the UR5e allows 8, the tool plate 9).",
+        "Standoff-fork on the adapter: four M3 x 12 through the foot into the adapter's 2.75 mm holes; they form their thread.",
+        "Plug the Qwiic cable into J1 on the board; mount the board and the tip on the DIP link as its own README says.",
+        "Slide the DIP link onto the fork along the tool axis: the arms straddle the inner block, the key enters the horn slot "
+        "from its open end, the cable drops into the slot on the dorsal side. Push until the slot's round end seats on the key "
+        "(the link then sits 0.1 mm past nominal; the hub stays 0.2 mm clear of the slot walls).",
+        "Clamp plate on the horn-side arm's outer face; two M3 x 16 into the ears. Push the tip toward its back (the board "
+        "side) while tightening, so the key bears on the slot's palmar flank, which is the flank the normal force loads; snug "
+        "(about 0.3 N m). The plate presses the arm onto the inner block: the horn side is the datum.",
+        "Slotted arm: M3 x 12 with the DIN 9021 washer through the 5.2 mm bore into the inner block; snug. The arm bends up to "
+        "0.2 mm onto the block's face.",
+        "Cable: along the groove on the column's dorsal face, a tie through each tunnel, out through the notch in the foot; "
+        "leave no tension on J1.",
+        "UR5e: declare the payload (set_payload) with the mass and centre of gravity of this page's payload table; TCP at the "
+        "tip's contact point.",
+    ]
+    rec = dict(title="Parts list and assembly of the UR5e calibration mount", parts_list=parts_list, assembly=steps,
+               print=dict((n, dict(project=v["project"], time=v["slice"]["summary"]["print_time"],
+                                   filament_g=v["slice"]["summary"]["filament_g"], passes=v["slice"]["passes"]))
+                          for n, v in pr.items()),
+               step_files={k: dict(file=v["file"], bytes=v["bytes"], valid=v["readback_valid"]) for k, v in step.items()},
+               when=time.strftime("%Y-%m-%d %H:%M"))
+    (OUT / f"{PFX}_assembly.json").write_text(json.dumps(rec, indent=1, default=float))
+    md = [f"# UR5e calibration mount: files and how to rebuild them", "",
+          "Mount for a DIP link as printed (the CAD hand's, v2 a or v2 b of the DIP study: all keep the clevis arms) on the tool "
+          "side of the HEX-E QC on the UR5e, built by `scripts/ur5_calibration_mount.py`. The page is "
+          f"`{PFX}.html` in this folder.", "",
+          "## Files", "",
+          "- `cad/*.step`: exact solids per part, in the mount frame M (origin at the flange face's centre, z along the tool axis "
+          "toward the tip, x toward the palmar side, y along the PIP axis toward the slotted arm); the indenters in a table frame "
+          "(z up). `cad/*.stl`: the same as meshes.",
+          "- `print/*.3mf`: PrusaSlicer projects for the Prusa XL on the owner's v17 template, PLA on tool 3, sliced and checked "
+          "(`print/*.json`).",
+          f"- `{PFX}_interfaces.json` (flange and DIP-link interfaces with sources), `_parts.json`, `_step.json`, `_check.json`, "
+          "`_estimate.json` (deflection, payload, wrist field), `_assembly.json` (parts list, assembly).", "",
+          "## Opening the STEP files in Inventor", "",
+          "File > Open, file type STEP, Options > Convert Model: each part arrives as one editable solid body. The DIP study's STEP "
+          "files (frame D of `fingertip_mount_DIP_link.stl`) go into this frame by a translation only: "
+          f"x_M = x_D, y_M = y_D - {21.25 + Y_AXIS:.2f}, z_M = z_D + {PIP_M:.1f}.", "",
+          "## Rebuild", "",
+          "    E=~/miniconda3/envs/femtip/bin/python",
+          "    RG=\"$HOME/.claude/bin/resguard.sh run --mem 3G --cpu 400 -- taskset -c 12-15 env NUMPY_MADVISE_HUGEPAGE=0 OMP_NUM_THREADS=1\"",
+          "    $RG $E scripts/ur5_calibration_mount.py interfaces",
+          "    $RG $E scripts/ur5_calibration_mount.py build",
+          "    $RG env UR5M_CMD=step UR5M_REPO=$PWD freecadcmd scripts/ur5_calibration_mount.py",
+          "    $RG $E scripts/ur5_calibration_mount.py check",
+          "    $RG $E scripts/ur5_calibration_mount.py estimate",
+          "    $RG env MUJOCO_GL=egl .venv/bin/python scripts/ur5_calibration_mount.py render",
+          "    $RG $E scripts/ur5_calibration_mount.py sections",
+          "    $RG $E scripts/ur5_calibration_mount.py print",
+          "    $E scripts/ur5_calibration_mount.py docs",
+          "", "Sizes and clearances are the `P` dictionary at the top of the script; change one there and rerun from `build`.", ""]
+    (OUT / "README.md").write_text("\n".join(md))
+    print("docs ->", rel(OUT / f"{PFX}_assembly.json"), rel(OUT / "README.md"), flush=True)
+
+
 # ------------------------------------------------------------------------------------------------ main
 def main():
     if os.environ.get("UR5M_CMD") == "step":
@@ -1260,7 +1437,7 @@ def main():
     ap.add_argument("cmd", choices=["interfaces", "build", "check", "estimate", "render", "sections", "print", "docs"])
     a = ap.parse_args()
     {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check, "estimate": cmd_estimate, "render": cmd_render,
-     "sections": cmd_sections}[a.cmd](a)
+     "sections": cmd_sections, "print": cmd_print, "docs": cmd_docs}[a.cmd](a)
 
 
 if __name__ == "__main__":
