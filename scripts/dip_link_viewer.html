@@ -368,6 +368,13 @@ function jobResult(j) {
     h += "</table>";
   }
   if (r.files) h += "<div>Files in " + r.folder + ":</div><pre>" + r.files.join("\n") + "</pre>";
+  if (r.step_read_back) {                                  // an export: every STEP read back in FreeCAD
+    h += `<div>Folder: ${r.folder}</div><table><tr><th>STEP file</th><th>Read back</th></tr>`;
+    for (const [k, v] of Object.entries(r.step_read_back))
+      h += `<tr><td>${k}</td><td class="${v.valid ? "ok" : "notok"}">${v.valid ? "valid" : "invalid"}, ${v.solids} solid(s)</td></tr>`;
+    h += "</table>";
+  }
+  if (r.print) h += `<div>Sliced PLA parts: ${r.print.print_time}, ${r.print.filament_g} g, checks ${r.print.checks_pass ? "pass" : "fail"}</div>`;
   return h;
 }
 

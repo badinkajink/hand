@@ -950,7 +950,8 @@ def cmd_check(a):
         for cmd in (["prep"], ["cad"], ["clearance", "--force"]):
             _run([str(E_FEMTIP), "-u", str(REPO / "scripts/dip_link_concept_b.py"), *cmd], env, f"concept b {cmd[0]}")
         res = out / f"{pfx}_clearance.json"
-        res.write_text((out / "work" / "clearance.json").read_text())
+        res.write_text(json.dumps(dict(clearance=json.loads((out / "work" / "clearance.json").read_text()),
+                                       when=time.strftime("%Y-%m-%d %H:%M")), indent=1))
     print(f"check of {path.name} [{time.time() - t0:.0f} s]", flush=True)
     print(f"RESULT {res.relative_to(REPO)}", flush=True)
 
