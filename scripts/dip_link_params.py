@@ -803,6 +803,24 @@ def freecad_assembly():
             parts.append((f"{kind} {count[kind]}", sh))
     for label, f in json.loads(os.environ["DLP_PARTS"]):
         path = f
+        if f.endswith(".stl"):                     # a tip as a faceted solid: the skin, its magnet pockets cut
+            import Mesh
+            solids = []
+            for comp in Mesh.Mesh(f).getSeparateComponents():
+                if comp.CountFacets < 20:
+                    continue
+                sh = Part.Shape()
+                sh.makeShapeFromMesh(comp.Topology, 0.01)
+                so = Part.makeSolid(Part.Shell(sh.Faces))
+                if so.Volume < 0:
+                    so.reverse()
+                solids.append(so)
+            solids.sort(key=lambda s_: -s_.Volume)
+            so = solids[0]
+            for cav in solids[1:]:
+                so = so.cut(cav)
+            parts.append((label, so.removeSplitter()))
+            continue
         if f.endswith(".zip"):
             import tempfile
             tmp = tempfile.mkdtemp()
@@ -872,6 +890,25 @@ def cmd_export(a):
     for label, stem in exact:
         f = cad / f"{stem}.step"
         files.append([label, str(f if f.exists() else f.with_suffix(".step.zip"))])
+    # the tip (a) or pad (b) of the assembly: the 11/22 half-ellipsoid when the design has it, as a faceted solid
+    if concept == "a":
+        tips = [f for f in cad.glob(f"{pfx}_tip_*_F.stl")]
+        want = des.get("asm_tip", "block4").replace(".", "p")
+        pick = next((f for f in tips if f.name == f"{pfx}_tip_{want}_F.stl"), tips[0] if tips else None)
+        if pick is not None:
+            import trimesh
+            import dip_link_concept_b as Bm                 # decimate_for_step, a pure function
+            dec, dev = Bm.decimate_for_step(trimesh.load(pick, force="mesh"))
+            dst = work / f"{pick.stem}_step.stl"
+            dec.export(dst)
+            files.append([f"Tip 85A {pick.stem.replace(pfx + '_tip_', '').replace('_F', '')} (faceted, {dev:.3f} mm "
+                          f"from the print mesh)", str(dst)])
+    else:
+        pads = sorted(cad.glob(f"{pfx}_pad_*.step*"))
+        pick = next((f for k in ("ell11_5", "ell11") for f in pads if f.name.startswith(f"{pfx}_pad_{k}.step")),
+                    pads[0] if pads else None)
+        if pick is not None:
+            files.append([f"Pad 85A {pick.name.split('_pad_')[1].split('.step')[0]} (faceted)", str(pick)])
     _run(["freecadcmd", str(REPO / "scripts/dip_link_params.py")],
          dict(os.environ, DLP_CMD="assembly", DLP_PARAMS=str(path), DLP_OUT=str(out), DLP_PARTS=json.dumps(files),
               DLP_REPO=str(REPO)), "freecadcmd assembly")
@@ -916,8 +953,15 @@ def cmd_export(a):
             sl["checks_pass"] = bool(sl.get("m601", 0) == 0 and sl["dip_link"]["support_outside"] == 0)
             (out / "print" / f"{pfx}_print_pla_t3.json").write_text(json.dumps(rep, indent=1, default=float))
         rec["print"] = dict(project=rep.get("project"), print_time=sl.get("print_time"), filament_g=sl.get("filament_g"),
-                            checks_pass=sl.get("checks_pass"),
-                            note="the PLA parts only; the tips or pads with their magnet pauses come from scripts/dip_link_v2.py")
+                            checks_pass=sl.get("checks_pass"))
+        import dip_link_v2 as V2
+        if concept == "a":
+            V2.print_tips_a(A, DLF, out / "print", pfx, work / "print")
+        else:
+            _run([str(E_FEMTIP), "-u", str(REPO / "scripts/dip_link_v2.py"), "pads", "--out", str(out / "print"), "--work",
+                  str(work / "print")], env, "concept b pads")
+        rec["tips_print"] = {f.stem: V2.project_summary(json.loads(f.read_text()))
+                             for f in sorted((out / "print").glob(f"{pfx}_print_*_85a_t2_g30.json"))}
     (out / "export.json").write_text(json.dumps(rec, indent=1, default=float) + "\n")
     print(f"RESULT {(out / 'export.json').relative_to(REPO)}", flush=True)
     print(f"export -> {out.relative_to(REPO)}: {len(read)} STEP files read back, all valid {rec['all_valid']} "

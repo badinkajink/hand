@@ -411,6 +411,32 @@ def a_section():
     print(dst.relative_to(REPO), flush=True)
 
 
+def print_tips_a(A, DLF, out, pf, work):
+    """Each tip of a's design (A.spec()["tips"]) with the two key channels cut and its magnet pauses: the print STL that
+    dip_link_board_mount.cmd_build wrote to DLF.PRINT, sliced with its sheet's pockets (sim2real_fingertip_prints
+    write_and_check) into out/."""
+    import trimesh
+    import metric_magnet_prints as MP
+    import sim2real_fingertip_prints as SP
+    MP.DATE = SP.DATE = DATE
+    SP.OUT, SP.WORK = Path(out), Path(work)
+    SP.use_template()
+    for key, t in A.spec()["tips"].items():
+        stl = DLF.PRINT / f"{pf}_tip_{key.replace('.', 'p')}_print.stl"
+        if "sheet" not in t or not stl.exists():
+            continue
+        sheet = json.loads((REPO / t["sheet"]).read_text())
+        part = trimesh.load(stl, force="mesh")
+        name = f"{pf}_print_tip_{key.replace('.', 'p')}_channels_85a_t2_g30"
+        ns = argparse.Namespace(seat=sheet.get("seat_mm", SEAT), no_slice=False)
+        rep = SP.write_and_check(part, json.loads(json.dumps(sheet["pockets"])), sheet["pocket_gaps"], sheet["mesh"], name,
+                                 sheet["tip"], sheet["layout"], sheet["magnet"]["top_depth_mm"], 2, 30, part,
+                                 five_layout(sheet["layout"]), ns)
+        rep["stl"] = str(stl.relative_to(REPO)) if REPO in stl.parents else str(stl)
+        rep["note"] = "the sheet's tip with the two key channels of concept a cut (dip_link_concept_a.tip_cutter)"
+        (Path(out) / f"{name}.json").write_text(json.dumps(rep, indent=1, default=float))
+
+
 def a_print():
     """The PLA parts on one plate (dip_link_print_project.build_project: the link with its support enforcers and shoulder
     modifiers, the clamp plate, the pin-fit coupon), the attachment fit coupon at v2's keys, and each channelled tip with
@@ -435,21 +461,7 @@ def a_print():
                       "pin_fit_coupon": DLF.PRINT / f"{pf}_pin_fit_coupon.stl"}, out, f"{pf}_print_link_clamp_coupon_pla_t3",
                      source=str(PARAMS_A.relative_to(REPO)))
     PP.build_fit_coupon(out)
-    MP.DATE = SP.DATE = DATE
-    SP.OUT, SP.WORK = out, A_WORK / "print"
-    SP.use_template()
-    for key, t in A.spec()["tips"].items():
-        sheet = json.loads((REPO / t["sheet"]).read_text())
-        part = trimesh.load(DLF.PRINT / f"{pf}_tip_{key.replace('.', 'p')}_print.stl", force="mesh")
-        name = f"{pf}_print_tip_{key.replace('.', 'p')}_channels_85a_t2_g30"
-        ns = argparse.Namespace(seat=SEAT, no_slice=False)
-        body = part
-        rep = SP.write_and_check(part, json.loads(json.dumps(sheet["pockets"])), sheet["pocket_gaps"], sheet["mesh"], name,
-                                 sheet["tip"], sheet["layout"], sheet["magnet"]["top_depth_mm"], 2, 30, body,
-                                 five_layout(sheet["layout"]), ns)
-        rep["stl"] = str((DLF.PRINT / f"{pf}_tip_{key.replace('.', 'p')}_print.stl").relative_to(REPO))
-        rep["note"] = "the v2 sheet's geometry with the two key channels of concept a cut (dip_link_concept_a.tip_cutter)"
-        (out / f"{name}.json").write_text(json.dumps(rep, indent=1, default=float))
+    print_tips_a(A, DLF, out, pf, A_WORK / "print")
     print("print ->", out.relative_to(REPO), flush=True)
 
 
@@ -602,6 +614,54 @@ def b_module():
     return B
 
 
+def print_pads_b(B, out, work):
+    """Each pad of b's design with its magnet pauses: the print STL that dip_link_concept_b prep wrote, sliced with its
+    sheet's pockets into out/; the block pads print on their cut back face, so their pockets and pauses move down with it,
+    each pause on the 0.2 mm layer grid before the pocket's bridge layer."""
+    import trimesh
+    import metric_magnet_prints as MP
+    import sim2real_fingertip_prints as SP
+    pf, out = B.PREFIX, Path(out)
+    MP.DATE = SP.DATE = DATE
+    SP.OUT, SP.WORK = out, Path(work)
+    SP.use_template()
+    for key, t in B.tip_records().items():
+        stl = out / f"{pf}_pad_{key.replace('.', 'p')}_print.stl"
+        if key not in B.TIPS or "sheet" not in t or not stl.exists():
+            continue
+        sheet = json.loads((REPO / t["sheet"]).read_text())
+        name_, orient, _ = B.TIPS[key]
+        part = trimesh.load(stl, force="mesh")
+        pk = json.loads(json.dumps(sheet["pockets"]))
+        if orient == "back":
+            dz = B.TIP["x_back"] - B.X_SLOT
+            for q in pk:
+                for f_ in ("floor_mm", "top_mm", "magnet_top_print_mm"):
+                    if f_ in q:
+                        q[f_] = round(q[f_] - dz, 3)
+                # the pause goes before the pocket's bridge layer, the first 0.2 mm layer sliced (at its mid-height) above
+                # the pocket's top; the lowered pause is off the layer grid when dz is not a multiple of 0.2 mm
+                q["pause_layer"] = int(math.ceil((q["top_mm"] + 0.1) / 0.2 - 1e-9))
+                q["pause_print_z"] = round(0.2 * q["pause_layer"], 3)
+        name = f"{pf}_print_pad_{key.replace('.', 'p')}_85a_t2_g30"
+        ns = argparse.Namespace(seat=sheet.get("seat_mm", SEAT), no_slice=False)
+        rep = SP.write_and_check(part, pk, sheet["pocket_gaps"], sheet["mesh"], name, sheet["tip"], sheet["layout"],
+                                 sheet["magnet"]["top_depth_mm"], 2, 30, part, five_layout(sheet["layout"]), ns)
+        rep["stl"] = str(stl.relative_to(REPO)) if REPO in stl.parents else str(stl)
+        rep["note"] = (f"the sheet's tip cut at the slot plane x_F {B.X_SLOT:.2f} with the rail grooves and the head notches"
+                       + ("; printed on the cut back face, so the pockets and the pause sit "
+                          f"{B.TIP['x_back'] - B.X_SLOT:.2f} mm lower than on the whole block" if orient == "back" else ""))
+        (out / f"{name}.json").write_text(json.dumps(rep, indent=1, default=float))
+
+
+def cmd_pads(a):
+    """Concept b's pads at the parameter file in $DIPB_PARAMS (with $DIPB_OUT, $DIPB_WORK, $DIPB_PREFIX as
+    scripts/dip_link_params.py export sets them), sliced with their pauses into --out."""
+    import dip_link_concept_b as B
+    print_pads_b(B, a.out, a.work)
+    print("pads ->", a.out, flush=True)
+
+
 def b_print():
     """The DIP link and the cover in PLA (dip_link_print_project.build_project: the link tip end up with enforcers under the
     arms and the bridge; the cover on its back face), the two pads in 85A with their pauses, and the rail fit coupon."""
@@ -658,34 +718,7 @@ def b_print():
     PP.build_project({"clamp_plate": stl_strip}, out, f"{pf}_fit_coupon_rails_pla_t3", source=str(PARAMS_B.relative_to(REPO)))
     PP.LABEL["tip"] = "85A blocks with the pad's grooves, 0 / 0.05 / 0.10 mm per flank"
     PP.build_project({"tip": stl_blocks}, out, f"{pf}_fit_coupon_grooves_85a_t2", source=str(PARAMS_B.relative_to(REPO)))
-    # the pads with their pauses: the block pad on its cut back face (its pockets lowered with it), the 11/22 pad upright
-    MP.DATE = SP.DATE = DATE
-    SP.OUT, SP.WORK = out, REPO / "logs/20261018-dip_link/v2/b/print"
-    SP.use_template()
-    for key, t in B.tip_records().items():
-        sheet = json.loads((REPO / t["sheet"]).read_text())
-        name_, orient, _ = B.TIPS[key]
-        part = trimesh.load(out / f"{pf}_pad_{key.replace('.', 'p')}_print.stl", force="mesh")
-        pk = json.loads(json.dumps(sheet["pockets"]))
-        if orient == "back":
-            dz = B.TIP["x_back"] - B.X_SLOT
-            for q in pk:
-                for f_ in ("floor_mm", "top_mm", "magnet_top_print_mm"):
-                    if f_ in q:
-                        q[f_] = round(q[f_] - dz, 3)
-                # the pause goes before the pocket's bridge layer, the first 0.2 mm layer sliced (at its mid-height) above
-                # the pocket's top; the lowered pause is off the layer grid when dz is not a multiple of 0.2 mm
-                q["pause_layer"] = int(math.ceil((q["top_mm"] + 0.1) / 0.2 - 1e-9))
-                q["pause_print_z"] = round(0.2 * q["pause_layer"], 3)
-        name = f"{pf}_print_pad_{key.replace('.', 'p')}_85a_t2_g30"
-        ns = argparse.Namespace(seat=SEAT, no_slice=False)
-        rep = SP.write_and_check(part, pk, sheet["pocket_gaps"], sheet["mesh"], name, sheet["tip"], sheet["layout"],
-                                 sheet["magnet"]["top_depth_mm"], 2, 30, part, five_layout(sheet["layout"]), ns)
-        rep["stl"] = str((out / f"{pf}_pad_{key.replace('.', 'p')}_print.stl").relative_to(REPO))
-        rep["note"] = (f"the v2 sheet's tip cut at the slot plane x_F {B.X_SLOT:.2f} with the rail grooves and the head notches"
-                       + ("; printed on the cut back face, so the pockets and the pause sit "
-                          f"{B.TIP['x_back'] - B.X_SLOT:.2f} mm lower than on the whole block" if orient == "back" else ""))
-        (out / f"{name}.json").write_text(json.dumps(rep, indent=1, default=float))
+    print_pads_b(B, out, REPO / "logs/20261018-dip_link/v2/b/print")
     print("print ->", out.relative_to(REPO), flush=True)
 
 
@@ -1129,9 +1162,12 @@ def main():
     s = sub.add_parser("b", help="concept b v2 under v2/b/: build, step, check, sense, render, print, docs")
     s.add_argument("stages", nargs="+", choices=["build", "step", "check", "sense", "render", "print", "docs"])
     sub.add_parser("summary", help="v2/20261018-v2_summary.json: what to print first, each design's numbers")
+    s = sub.add_parser("pads", help="b's pads at $DIPB_PARAMS, sliced with their pauses (for dip_link_params.py export)")
+    s.add_argument("--out", required=True)
+    s.add_argument("--work", required=True)
     a = ap.parse_args()
     {"lengthen": cmd_lengthen, "tips": cmd_tips, "merge": lambda a: merge(), "a": cmd_a, "b": cmd_b,
-     "summary": cmd_summary}[a.cmd](a)
+     "summary": cmd_summary, "pads": cmd_pads}[a.cmd](a)
 
 
 if __name__ == "__main__":

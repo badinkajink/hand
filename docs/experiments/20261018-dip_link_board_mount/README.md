@@ -49,8 +49,9 @@ Ctrl-C in the terminal stops the viewer.
 writes `exports/YYYYMMDD-HHMM-<name>/` in about a minute: `cad/` with an STL and a STEP per part (exact solids for the
 link's new features or new body, the clamp plate or cover and the tip cutter; faceted solids for the tips and pads; STEP
 files over 1.5 MB zipped), `<name>_assembly_D.step` with the board as supplied, J1, the plug, the screws and the printed
-parts as named solids in the coordinates of `assets/cad_v1/fingertip_mount_DIP_link.stl`, `print/` with the print STLs and
-the sliced PLA project for the Prusa XL, and `export.json` with every STEP read back in FreeCAD.
+parts as named solids in the coordinates of `assets/cad_v1/fingertip_mount_DIP_link.stl`, the 11/22 tip or pad among them
+as a faceted solid, `print/` with the print STLs, the sliced PLA project for the Prusa XL and each tip or pad sliced with its
+magnet pauses, and `export.json` with every STEP read back in FreeCAD.
 
 ## Opening the STEP files in Inventor
 
