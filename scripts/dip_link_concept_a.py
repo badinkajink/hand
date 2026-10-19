@@ -87,7 +87,45 @@ P = dict(
     detent_h=0.25, detent_z=-71.60,
     fit_flank=0.05, fit_floor=0.10, fit_len=0.10, groove_r=0.35,
     wire_channel=dict(z=(-65.70, -64.50), x0=6.55),
+    j1_kept=0.0,            # v2 (2026-10-18 18:45): 1 keeps the board's whole tab with its Qwiic connector J1; the bridge is
+                            # slotted for J1, its plug and the cable (tab_len 9.0)
+    cs_thread_d=0.0,        # v2: > 0 drops the M1.6 nuts; the distal screws form their threads in a hole of this diameter in
+                            # the clamp plate (owner: M2 into 1.8 mm, M3 into 2.75 mm)
+    asm_tip="block4",       # the tip of the assembly STL, the renders and the overlap checks
 )
+# JST SH catalogue sizes (eSH) of the board's Qwiic connector J1 and its mated plug: side-entry header SM04B-SRSS-TB 6.0 mm
+# wide, 4.25 mm deep plus 0.7 mm of leads, 2.9 mm tall; housing SHR-04V-S 5.0 mm wide, 2.96 mm tall mated, 2.0 mm out of the
+# header's mating face; Qwiic cable 4 x 28 AWG modelled as 0.8 mm wires, straight for 3.0 mm out of the housing.
+QW = dict(hdr_w=6.0, hdr_d=4.25, lead=0.7, hdr_h=2.9, plug_w=5.0, plug_out=2.0, plug_h=2.96, wire_d=0.8, wire_run=3.0)
+
+
+def j1_parts_board():
+    """J1 as soldered on the ReSkin 5X (spec.json: body u -2.95..3.05, v -18.09..-13.14 including the leads, mating face
+    toward the tab's end), the mated SHR-04V-S housing and the first 3 mm of the Qwiic cable, as (name, lo, hi) boxes in
+    the board frame (u, v, w), w the height above the component face; and the tab's FR-4."""
+    v_mate = -18.09
+    uc = 0.05
+    out = [("tab_fr4", (-5.0, -19.10, -0.6), (5.0, -10.10, 0.0)),
+           ("j1_header", (-2.95, v_mate, 0.0), (3.05, -13.14, QW["hdr_h"])),
+           ("plug", (uc - QW["plug_w"] / 2, v_mate - QW["plug_out"], 0.0), (uc + QW["plug_w"] / 2, v_mate, QW["plug_h"]))]
+    v0 = v_mate - QW["plug_out"]
+    for k in range(4):
+        u = uc + (k - 1.5) * 1.0
+        out.append((f"wire{k}", (u - QW["wire_d"] / 2, v0 - QW["wire_run"], 1.4 - QW["wire_d"] / 2),
+                    (u + QW["wire_d"] / 2, v0, 1.4 + QW["wire_d"] / 2)))
+    return out
+
+
+def j1_boxes_F(p=P):
+    """J1, its plug and the cable's first 3 mm kept on the board at this design's placement (component face at the window
+    plate's dorsal face, parts toward the tip, tab proximal): (name, lo, hi) boxes in F."""
+    x_cf = levels(p)["x_cf"]
+    out = []
+    for name, lo, hi in j1_parts_board():
+        if name == "tab_fr4":
+            continue
+        out.append((name, (x_cf - hi[2], lo[0], Z_C - hi[1]), (x_cf - lo[2], hi[0], Z_C - lo[1])))
+    return out
 
 
 def levels(p=P):
@@ -393,6 +431,10 @@ def dip_link_new(K, p=P):
     for s in (-1, 1):                                      # M2 pilot holes in the shoulders
         cuts.append(K.cyl("x", (s * p["m2_y"], p["m2_z"]), p["m2_pilot"] / 2, L["x_sh1"] - p["m2_depth"],
                           L["x_sh1"] + 0.05))
+    if p.get("j1_kept"):                                   # a slot for J1, its plug and the cable, open through the bridge's top
+        B = np.array([np.r_[lo, hi] for _, lo, hi in j1_boxes_F(p)])
+        lo, hi = B[:, :3].min(0) - 0.3, B[:, 3:].max(0) + 0.3
+        cuts.append(K.box((lo[0], lo[1], lo[2]), (L["x_cf"] + 0.05, hi[1], PIP[2] + 5.0)))
     return K.sub(body, K.union(cuts))
 
 
@@ -422,7 +464,9 @@ def clamp_plate(K, p=P):
     C = K.union(parts)
     cuts = []
     for y, z, d in it["holes"]:
-        if z < Z_C:                                          # distal holes: M1.6 clearance and a nut pocket on the back
+        if z < Z_C and p.get("cs_thread_d"):                 # distal holes: the screw forms its thread in the PLA
+            cuts.append(K.cyl("x", (y, z), p["cs_thread_d"] / 2, L["x_bb"] - 0.05, L["x_c1"] + 0.05))
+        elif z < Z_C:                                        # distal holes: M1.6 clearance and a nut pocket on the back
             cuts.append(K.cyl("x", (y, z), (p["cs_d"] + 0.1) / 2, L["x_bb"] - 0.05, L["x_c1"] + 0.05))
             cuts.append(hexagon_x(K, (y, z), p["nut_s"] + p["nut_clear"], L["x_c1"] - p["nut_m"] - 0.05, L["x_c1"] + 0.05, 30.0))
     for s in (-1, 1):
@@ -487,7 +531,8 @@ def fasteners(K, p=P):
             nut = K.sub(hexagon_x(K, (y, z), p["nut_s"], L["x_c1"] - p["nut_m"], L["x_c1"], 30.0),
                         K.cyl("x", (y, z), p["cs_d"] / 2, L["x_c1"] - 2, L["x_c1"] + 1))
             out.append(("cs_screw", K.union([head, shank])))
-            out.append(("nut", nut))
+            if not p.get("cs_thread_d"):
+                out.append(("nut", nut))
     for s in (-1, 1):
         c = (s * p["m2_y"], p["m2_z"])
         head = K.cyl("x", c, p["m2_head_d"] / 2, L["x_c1"], L["x_c1"] + p["m2_head_k"], seg=48)
@@ -555,24 +600,25 @@ def cmd_build(a):
     fm.export(fname("fasteners"))
     CTX.mkdir(parents=True, exist_ok=True)
     for kind in ("cs_screw", "nut", "m2_screw"):
-        trimesh.util.concatenate([t for (k, _), t in zip(F_, fast) if k == kind]).export(CTX / f"fasteners_{kind}.stl")
+        if any(k == kind for k, _ in F_):
+            trimesh.util.concatenate([t for (k, _), t in zip(F_, fast) if k == kind]).export(CTX / f"fasteners_{kind}.stl")
     rec["parts"]["fasteners"]["file"] = str(fname("fasteners").relative_to(REPO))
     # the tips with their channels, in F (assembly) and in their print frames (slicing)
     rec["tips"] = {}
-    for key in ("block4", "block5", "cap8.5", "ell16", "ell11"):
+    for key in sp["tips"]:
         tm, inv = tip_F(key, sp)
         mt = from_trimesh(tm)
         if mt.status().name != "NoError":
             raise SystemExit(f"tip {key}: {mt.status()}")
         cut = mt - cutter
         tF = to_trimesh(cut)
-        if key == "block4":                                   # the assembly's tip; the others only in their print frame
+        if key == P["asm_tip"]:                               # the assembly's tip; the others only in their print frame
             tF.export(fname(f"tip_{key.replace('.', 'p')}_F"))
         tP = trimesh.Trimesh(inv(np.asarray(tF.vertices)), np.asarray(tF.faces), process=False)
         if tP.volume < 0:
             tP.invert()
         tP.export(fname(f"tip_{key.replace('.', 'p')}_print"))
-        rec["tips"][key] = dict(file_F=str(fname(f"tip_{key.replace('.', 'p')}_F").relative_to(REPO)) if key == "block4" else None,
+        rec["tips"][key] = dict(file_F=str(fname(f"tip_{key.replace('.', 'p')}_F").relative_to(REPO)) if key == P["asm_tip"] else None,
                                 file_print=str(fname(f"tip_{key.replace('.', 'p')}_print").relative_to(REPO)),
                                 source=sp["tips"][key]["stl"], print_orientation=sp["tips"][key]["print_orientation"],
                                 volume_before_mm3=round(float(tm.volume), 1), volume_after_mm3=round(float(tF.volume), 1),
@@ -583,7 +629,7 @@ def cmd_build(a):
     CTX.mkdir(parents=True, exist_ok=True)
     for n in ("servo_pip", "mcp_link"):
         G.load_part(n).export(CTX / f"context_{n}.stl")
-    tipF = trimesh.load(fname("tip_block4_F"))
+    tipF = trimesh.load(fname(f"tip_{P['asm_tip'].replace('.', 'p')}_F"))
     asm = trimesh.util.concatenate([to_trimesh(D), to_trimesh(C), to_trimesh(B), to_trimesh(W), fm, tipF,
                                     G.load_part("servo_pip")])
     asm.export(fname("assembly"))
@@ -769,7 +815,7 @@ def cmd_check(a):
     walls = {}
     inner = ((-11.0, ARM_Y[0] + 0.3, -95.0), (14.0, ARM_Y[1] - 0.3, -40.0))      # the new features, between the arms
     sec = {"window_plate_x6.88": (D, (X_BACK + L["t_w"] / 2, 0, 0), (1, 0, 0), inner),
-           "keys_z-70": (D, (0, 0, -70.0), (0, 0, 1), inner),
+           f"keys_z{Z_MOUNT - 2.7:g}": (D, (0, 0, Z_MOUNT - 2.7), (0, 0, 1), inner),
            "shoulders_z-65.35": (D, (0, 0, P["m2_z"]), (0, 0, 1), inner),
            "bridge_y-5": (D, (0, -5.0, 0), (0, 1, 0), inner),
            "bridge_y0": (D, (0, 0.0, 0), (0, 1, 0), inner),
@@ -784,9 +830,9 @@ def cmd_check(a):
     # TPU between each tip's key channels and its outer surface, in sections near the mount face
     cutter = tip_cutter(MeshK())
     tw = {}
-    for key in ("block4", "cap8.5", "ell16", "ell11"):
+    for key in [k for k in spec()["tips"] if k != "block5"]:          # dip_link_board_mount adds the five-magnet block
         tF = to_trimesh(from_trimesh(tip_F(key)[0]) - cutter)
-        tw[key] = {f"z{z:g}": section_min_wall(tF, (0, 0, z), (0, 0, 1)) for z in (-67.6, -69.5, -71.8)}
+        tw[key] = {f"z{z:g}": section_min_wall(tF, (0, 0, z), (0, 0, 1)) for z in (Z_MOUNT - 0.3, Z_MOUNT - 2.2, Z_MOUNT - 4.5)}
         print(f"tip walls {key}: {tw[key]}", flush=True)
     res["tip_walls_near_channels"] = tw
     # masses
@@ -820,11 +866,12 @@ def cmd_check(a):
                                   m2_heads_above_mount_face=round(float(Fm.vertices[:, 0].max()), 3),
                                   readiness_board_back=11.05)
     # interference between the assembled parts (should be zero apart from intended contacts)
-    tipF = trimesh.load(fname("tip_block4_F"))
+    tk = P["asm_tip"].replace(".", "p")
+    tipF = trimesh.load(fname(f"tip_{tk}_F"))
     pairs = {}
     for n1, m1, n2, m2 in (("dip_link", D, "board", B), ("dip_link", D, "clamp_plate", C), ("clamp_plate", C, "board", B),
-                           ("dip_link", D, "tip_block4", tipF), ("board", B, "tip_block4", tipF),
-                           ("clamp_plate", C, "tip_block4", tipF)):
+                           ("dip_link", D, f"tip_{tk}", tipF), ("board", B, f"tip_{tk}", tipF),
+                           ("clamp_plate", C, f"tip_{tk}", tipF)):
         v = float((from_trimesh(m1) ^ from_trimesh(m2)).volume())
         pairs[f"{n1}|{n2}"] = round(v, 4)
     res["overlap_mm3"] = pairs
