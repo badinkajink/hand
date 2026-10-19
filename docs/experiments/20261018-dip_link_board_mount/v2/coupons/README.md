@@ -1,5 +1,12 @@
 # Fit coupons of DIP-link concept a, v2 (2026-10-19)
 
+Superseded for printing by the runs of one plate per printer with printed IDs: concept a's in
+`../../../20261019-dip_link_fit_prints/` and concept b's in `../../../20261019-dip_link_fit_prints_b/`
+(`scripts/dip_fit_print_plates.py`). The projects below date from 13:08: their PLA is on the XL's tool 3, and their board
+carrier stands on 5.4 mm2 under the bridge's curved face and keeps the PLA roof over the cable groove that v2 a lost
+at 15:35. `scripts/dip_link_v2.py coupons` now fills that face down to the bed (199.5 mm3 under the carrier, 7.1 mm3
+under each window gauge, the J1 slot and the cable groove left open).
+
 The owner calibrates the magnetometer board's fit and the tip's snap fit before printing a whole DIP link (owner,
 2026-10-19: "calibrate the magnetometer board fit and the snap fits, dont need to print the finger"). Every project is a
 sliced PrusaSlicer 3mf for the Prusa XL 5T on the v17 template; its JSON beside it records the settings and the slice

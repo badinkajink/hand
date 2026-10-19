@@ -845,6 +845,19 @@ def coupon_carrier(A, K, clear_chip=None, box=None):
     return A.to_trimesh(K.inter(D, K.box(lo, hi)))
 
 
+def base_filled(tm, R):
+    """A coupon in its print frame (dip_link_print_project.to_print with rotation R) with the flare under a curved face
+    filled down to the bed from the first section that stops growing (dip_fit_print_plates.base_fill, which keeps every
+    void of that section open, so the J1 slot, the plug's room and the cable groove stay clear). Returns the mesh, the
+    fill's height and volume."""
+    import dip_fit_print_plates as FP
+    import dip_link_print_project as PP
+    m, _ = PP.to_print(tm, R)
+    man = FP.to_man(m)
+    z, fill = FP.base_fill(man)
+    return FP.drop_slivers(FP.to_tm(man + fill)), z, fill.volume()
+
+
 def coupon_gauge(A, K, clear_chip):
     """The window plate alone with its five chip windows, passive windows and keys, standing on a 2 mm stub of the bridge:
     the DIP link cut to x 4..7.4, |y| <= 11, z up to Z_MOUNT + 2."""
@@ -886,8 +899,8 @@ def cmd_coupons(a):
     rep["projects"]["channels"] = r["project"]
     # (2) board carrier with a clamp plate, printed as the DIP link prints (X = -x_F, Y = y_F, Z = -z_F)
     import trimesh
-    car = coupon_carrier(A, K)
-    car.vertices = np.asarray(car.vertices) @ PP.R_LINK.T
+    car, zf, vf = base_filled(coupon_carrier(A, K), PP.R_LINK)      # it stood on two 0.8 mm strips under the curved face
+    print(f"board carrier: base filled to {zf:.2f} mm ({vf:.1f} mm3)", flush=True)
     stl_car = COUPONS / f"{pf}_board_carrier_clear0p20.stl"
     car.export(stl_car)
     PP.SETTINGS["board_carrier"] = dict(PP.PLA_OBJECT, perimeters="3", fill_density="20%", fill_pattern="gyroid",
@@ -901,8 +914,8 @@ def cmd_coupons(a):
     # (3) window gauges
     gst = {}
     for c in GAUGE_CLEAR:
-        g = coupon_gauge(A, K, c)
-        g.vertices = np.asarray(g.vertices) @ PP.R_LINK.T
+        g, zf, vf = base_filled(coupon_gauge(A, K, c), PP.R_LINK)
+        print(f"window gauge {c:.2f}: base filled to {zf:.2f} mm ({vf:.1f} mm3)", flush=True)
         key = f"gauge_{c:.2f}".replace(".", "p")
         gst[key] = COUPONS / f"{pf}_window_gauge_clear{key[6:]}.stl"
         g.export(gst[key])
