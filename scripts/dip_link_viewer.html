@@ -387,7 +387,9 @@ function fillTips(want) {
   resize();
   CTX = await api("/api/context");
   for (const p of CTX.parts) { const g = makeMesh(p); g.position.set(0, 0, 51.55); pipGroup.add(g); }
-  fillTips(); await loadFiles(); setSectionRange();
+  const qs = new URLSearchParams(location.search);          // ?concept=b&file=NAME.json opens a given parameter file
+  if (qs.get("concept")) $("concept").value = qs.get("concept");
+  fillTips(); await loadFiles(qs.get("file") || undefined); setSectionRange();
 })();
 </script>
 </body>

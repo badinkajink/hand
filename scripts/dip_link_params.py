@@ -845,7 +845,7 @@ def cmd_export(a):
     bad = problems(concept, vals, des)
     if bad:
         raise SystemExit("; ".join(bad))
-    name = re.sub(r"[^A-Za-z0-9_.-]+", "_", a.name or path.stem.replace(time.strftime("%Y%m%d") + "-", ""))
+    name = re.sub(r"[^A-Za-z0-9_.-]+", "_", a.name or re.sub(r"^\d{8}-(\d{4}-)?", "", path.stem))   # no second date
     out = EXPORTS / f"{time.strftime('%Y%m%d-%H%M')}-{name}"
     work = WORK / "exports" / out.name
     out.mkdir(parents=True, exist_ok=True)
