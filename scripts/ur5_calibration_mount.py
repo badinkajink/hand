@@ -1119,41 +1119,44 @@ def cmd_render(a):
            (W(dipa["board"]), C_["board"], "board_a"), (W(dipa["qwiic"]), C_["qwiic"], "qwiic_a"),
            (W(dipa["fasteners"]), C_["fasteners"], "fasteners_a"), (W(dipa["tip"]), C_["tip"], "tip_a")]
     cx = [(W(ctx["qc"]), C_["qc"], "ctx_qc"), (W(ctx["hexe"]), C_["hex"], "ctx_hexe"), (W(ctx["ur"]), C_["ur_grey"], "ctx_ur")]
-    # 1. the mount with the DIP link on the HEX-E and the UR5e flange
-    cam = (pw([0.0, 0.0, 10.0]), 470, 135, 12)
+    # 1. the mount with the DIP link on the HEX-E and the UR5e flange, from the dorsal and horn side
+    vis = lambda r_, zm: pw([-0.7071 * r_, -0.7071 * r_, zm])          # noqa: E731  (a cylinder's side facing the camera)
+    cam = (pw([0.0, 0.0, 10.0]), 470, 315, -12)
     img = _render(cx + asm + dip, cam, MEDIA / f"{PFX}_on_the_hex_e.png")
     _annotate(img, cam, [
-        ("UR5e tool flange and wrist 3 (context)", pw([0.0, -31.5, -90.0])),
-        ("OnRobot HEX-E QC, 50 mm (context)", pw([0.0, -36.0, -40.0])),
-        ("Quick Changer tool plate, 15.15 mm (context)", pw([0.0, -31.5, -7.0])),
-        ("Adapter disc: spigot, dowel, four M6", pw([0.0, -31.5, 5.5])),
-        ("Standoff-fork", pw([0.0, -17.2, 30.0])),
-        ("Clamp plate on the horn-side arm", pf([0.0, -31.25, -60.0])),
-        ("DIP link v2 a with the board and the 11/22 tip", pf([-6.0, 7.4, -88.0]))],
-        title="Calibration mount on the HEX-E QC, finger pointing down")
-    # 2. close-up of the fork with the DIP link, from the dorsal side and the horn side
-    cam = (pf([0.0, -4.0, -62.0]), 190, 215, 18)
+        ("UR5e tool flange and wrist 3 (context)", vis(31.5, -75.0)),
+        ("OnRobot HEX-E QC, 50 mm (context)", vis(36.0, -40.0)),
+        ("Quick Changer tool plate, 15.15 mm (context)", vis(31.5, -7.5)),
+        ("Adapter disc: spigot, dowel, four M6 x 12", vis(31.5, 5.5)),
+        ("Standoff-fork: foot with four M3 x 12, column", pw([-17.0, -12.0, 30.0])),
+        ("Cable groove and zip-tie pockets", pf([17.0, 0.0, -34.0])),
+        ("Clamp plate on the horn-side arm", pf([-8.0, -31.25, -60.0])),
+        ("DIP link v2 a with the board and the 11/22 tip", pf([6.0, -7.0, -84.0]))],
+        title="Calibration mount on the HEX-E QC, dorsal side, finger down")
+    # 2. close-up of the fork with the DIP link, from the dorsal and horn side
+    cam = (pf([0.0, -4.0, -62.0]), 200, 315, -10)
     img = _render(asm + dip, cam, MEDIA / f"{PFX}_fork_closeup.png")
     _annotate(img, cam, [
-        ("Clamp plate: two M3 x 16 into the ears", pf([14.05, -31.25, -60.0])),
-        ("Horn-side arm clamped on the inner block", pf([4.5, -23.25, -58.0])),
-        ("Cable slot, groove and zip-tie tunnel", pf([17.0, 0.0, -40.0])),
-        ("Slotted arm: M3 x 12 and washer through its 5.2 mm bore", pf([0.0, 17.4, -51.55])),
-        ("J1 and the Qwiic plug", pf([7.3, 0.0, -68.0])),
-        ("Board under a's clamp plate", pf([10.9, 4.0, -84.0]))],
-        title="The fork holding the DIP link, dorsal side")
-    # 3. the standoff-fork alone from below: key, hub, inner block, ears, cable slot
-    cam = (pf([0.0, -4.0, -58.0]), 175, 240, -38)
-    img = _render([(W(parts["standoff_fork"]), C_["standoff_fork"], "standoff_fork_alone")], cam,
-                  MEDIA / f"{PFX}_fork_from_below.png")
+        ("Clamp plate: two M3 x 16 into the ears", pf([-14.05, -31.25, -60.0])),
+        ("Horn-side arm between the clamp plate and the inner block", pf([-5.0, -23.25, -64.0])),
+        ("Cable slot and groove, open on the dorsal side", pf([17.0, 0.0, -47.0])),
+        ("Zip-tie pockets beside the groove", pf([17.0, -6.6, -40.55])),
+        ("J1 and the Qwiic plug in the DIP link's slot", pf([7.3, 0.0, -68.5])),
+        ("Board under a's clamp plate", pf([10.9, -4.0, -86.0]))],
+        title="The fork holding the DIP link, dorsal and horn side")
+    # 3. the standoff-fork alone, tool axis up, from above its fork end (dorsal and horn side)
+    sfm = parts["standoff_fork"]
+    cam = (F_to_M(np.array([0.0, -4.0, -58.0])), 165, 45, -42)
+    img = _render([(sfm, C_["standoff_fork"], "standoff_fork_alone")], cam, MEDIA / f"{PFX}_fork_alone.png")
+    pm = lambda pF: F_to_M(np.asarray(pF, float))                     # noqa: E731
     _annotate(img, cam, [
-        ("Key for the horn slot, 1.6 mm, round end R 2.4", pf([0.0, -20.2, -66.0])),
-        ("Hub: stops 0.3 mm above the slot walls", pf([-6.0, -21.0, -53.2])),
-        ("Inner block between the arms, R 12.5 about the PIP axis", pf([-6.0, 0.0, -62.0])),
-        ("Ears with the clamp-screw holes", pf([-14.05, -21.0, -60.0])),
-        ("Cable slot, open on the dorsal side", pf([8.0, 0.0, -61.0])),
-        ("M3 hole for the slotted arm", pf([0.0, 13.3, -51.55]))],
-        title="Standoff-fork from below, without the DIP link")
+        ("Key for the horn slot: 1.6 mm, round end R 2.4", pm([0.0, -20.2, -67.5])),
+        ("Hub: ends 0.3 mm short of the slot walls", pm([-6.0, -21.0, -53.2])),
+        ("Inner block: fills the 30.45 mm between the arms, R 12.5 about the PIP axis", pm([-8.0, 0.0, -58.0])),
+        ("Ears with the clamp-screw holes (M3, 2.75 mm)", pm([14.05, -21.0, -60.0])),
+        ("Cable slot, open on the dorsal side", pm([9.0, 0.0, -60.0])),
+        ("Cable groove down the column", pm([17.0, 0.0, -35.0]))],
+        title="Standoff-fork without the DIP link, its fork end up")
     # 4. exploded along the tool axis and across the arm
     off = {"adapter": -25.0, "standoff_fork": 0.0, "dip": 30.0}
     exp = [(W(parts["adapter"].copy().apply_translation([0, 0, off["adapter"]])), C_["adapter"], "ex_adapter"),
@@ -1163,13 +1166,13 @@ def cmd_render(a):
         t = dipa[nm].copy()
         t.apply_translation([0, 0, off["dip"]])
         exp.append((W(t), rgba, "ex_" + stem))
-    cam = (pw([0.0, -6.0, 30.0]), 420, 140, 14)
+    cam = (pw([0.0, -6.0, 30.0]), 430, 315, -14)
     img = _render(exp, cam, MEDIA / f"{PFX}_exploded.png")
     _annotate(img, cam, [
-        ("Adapter: M6 x 12 into the flange first", pw([0.0, -31.5, 5.5 + off["adapter"]])),
-        ("Standoff-fork: four M3 x 12 into the adapter", pw([0.0, -17.2, 20.0])),
-        ("DIP link slides on along the tool axis; the key enters the horn slot", pf([0.0, -23.25, -60.0 - off["dip"]])),
-        ("Clamp plate", pw(F_to_M(np.array([0.0, -31.25 - 22.0 * 0 , -60.0])) + np.array([0, -22.0, 0])))],
+        ("Adapter: spigot and dowel up, M6 x 12 into the flange first", pw([-22.3, -22.3, -5.0 + off["adapter"]])),
+        ("Standoff-fork: four M3 x 12 into the adapter", pw([-17.0, -12.0, 25.0])),
+        ("DIP link: slides on along the tool axis, the key into the horn slot", pf([-4.0, -23.25, -60.0 - off["dip"]])),
+        ("Clamp plate", pw(F_to_M(np.array([-8.0, -31.25, -60.0])) + np.array([0, -22.0, 0])))],
         title="Exploded: adapter, standoff-fork, DIP link, clamp plate")
     # 5. indenters
     ind = []
@@ -1177,7 +1180,7 @@ def cmd_render(a):
         t = trimesh.load(fname(nm), force="mesh")
         t.apply_translation([0.0, -30.0 + 60.0 * k, 0.0])
         ind.append((t, C_["indenter"], nm))
-    cam = ((0.0, 0.0, 22.0), 260, 120, 22)
+    cam = ((0.0, 0.0, 22.0), 260, 300, -25)
     img = _render(ind, cam, MEDIA / f"{PFX}_indenters.png")
     _annotate(img, cam, [("Sphere R 5 mm, top 46 mm above the table", (0.0, -30.0, 46.0)),
                          ("Half rod R 12.5 mm (the bench screwdriver's), top 42.5 mm", (0.0, 30.0, 42.5)),
@@ -1221,11 +1224,11 @@ def cmd_sections(a):
     ax.set_xlim(-33, 23)
     ax.set_ylim(-72, -40)
     ax.set_aspect("equal")
-    ax.set_xlabel("y_F (mm), along the PIP axis")
-    ax.set_ylabel("z_F (mm), the tip below")
-    ax.set_title("Section x_F = 0: fork (blue), DIP link v2 a (grey)", fontsize=14)
+    ax.set_xlabel(r"$y_\mathrm{F}$ (mm), along the PIP axis")
+    ax.set_ylabel(r"$z_\mathrm{F}$ (mm), the tip below")
+    ax.set_title(r"Section $x_\mathrm{F} = 0$: fork (blue), DIP link v2 a (grey)", fontsize=14)
     for txt, xy in (("Key in the horn slot", (-20.2, -63.0)), ("Hub", (-19.0, -50.0)), ("Inner block", (-3.0, -57.0)),
-                    ("Clamp plate", (-27.2, -66.8)), ("Slotted arm", (15.4, -60.0))):
+                    ("Clamp plate", (-27.2, -62.0)), ("Slotted arm", (15.4, -60.0))):
         ax.annotate(txt, xy=xy, xytext=(xy[0] + (6 if xy[0] < 10 else -2), xy[1] + (4 if txt != "Clamp plate" else -3)),
                     fontsize=12, arrowprops=dict(arrowstyle="-", lw=0.8))
     # y = -20.2: (x, z) through the slot layer
@@ -1237,8 +1240,8 @@ def cmd_sections(a):
     ax.set_xlim(-17.5, 17.5)
     ax.set_ylim(-72, -40)
     ax.set_aspect("equal")
-    ax.set_xlabel("x_F (mm), dorsal to the right")
-    ax.set_title("Section y_F = -20.2: the key in the horn slot", fontsize=14)
+    ax.set_xlabel(r"$x_\mathrm{F}$ (mm), dorsal to the right")
+    ax.set_title(r"Section $y_\mathrm{F} = -20.2$: the key in the horn slot", fontsize=14)
     for txt, xy, dxy in (("Slot walls of the arm", (3.6, -56.0), (5, 5)), ("Key, 0.1 mm per flank", (0.0, -60.0), (5, -6)),
                          ("Ear", (-14.0, -58.0), (-1, 9))):
         ax.annotate(txt, xy=xy, xytext=(xy[0] + dxy[0], xy[1] + dxy[1]), fontsize=12, arrowprops=dict(arrowstyle="-", lw=0.8))
