@@ -634,6 +634,74 @@ def record_section(prows):
             f"</tr></thead><tbody>{rows}</tbody></table></div></section>")
 
 
+COUPON_DIR = ROOT / "docs/experiments/20261018-dip_link_board_mount/final/print"
+FIT_CSV = RECORDS / "fit_coupon.csv"
+FIT_COLS = ["block", "interference_mm_per_flank", "project", "printed_on", "slides_on", "clicks_over_detent", "stays_on_pull",
+            "stays_on_twist", "comes_off_by_hand", "notes"]
+DIP_PAGE = "../20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html"
+
+
+def fit_coupon_section():
+    """Section 8: the attachment fit coupon of the new DIP link's dovetail keys (test T1 of the DIP page), from the
+    coupon's reports in the DIP study (scripts/dip_link_print_project.py --coupon-only); the record CSV gets one row per
+    channel block."""
+    kp = json.loads((COUPON_DIR / "20261018-dip_link_final_fit_coupon_keys_pla_t3.json").read_text())
+    cp = json.loads((COUPON_DIR / "20261018-dip_link_final_fit_coupon_channels_85a_t2.json").read_text())
+    widths = cp["slice"]["channel_widths"]
+    rows = read_csv(FIT_CSV)
+    have = {r["interference_mm_per_flank"] for r in rows}
+    for k, fl in enumerate(sorted(widths), 1):
+        if fl not in have:
+            rows.append(dict(block=f"{k} notch" + ("es" if k > 1 else ""), interference_mm_per_flank=fl,
+                             project=Path(cp["project"]).name, printed_on="", slides_on="", clicks_over_detent="",
+                             stays_on_pull="", stays_on_twist="", comes_off_by_hand="", notes=""))
+    with open(FIT_CSV, "w", newline="") as f:
+        w = csv.DictWriter(f, FIT_COLS)
+        w.writeheader()
+        w.writerows(rows)
+    dev = max(abs(r["sliced_mm"] - r["design_mm"]) for v in widths.values() for r in v[1:] if r["sliced_mm"] is not None)
+    first = [v[0]["sliced_mm"] - v[0]["design_mm"] for v in widths.values()]
+
+    def cell(v):
+        v = (v or "").strip()
+        return f"<td>{esc(v)}</td>" if v else '<td class="blank"></td>'
+    rec = "".join(f"<tr><td>{esc(r['block'])}</td><td>{esc(r['interference_mm_per_flank'])}</td>" + cell(r["printed_on"])
+                  + cell(r["slides_on"]) + cell(r["clicks_over_detent"]) + cell(r["stays_on_pull"])
+                  + cell(r["stays_on_twist"]) + cell(r["comes_off_by_hand"]) + cell(r["notes"]) + "</tr>" for r in rows)
+    proj = "".join(f"<tr><td><a href='../20261018-dip_link_board_mount/final/print/{Path(r['project']).name}'><code>"
+                   f"{esc(Path(r['project']).name)}</code></a></td><td>{esc(t)}</td><td>{esc(r['slice']['print_time'])}</td>"
+                   f"<td>{r['slice']['filament_g']:.1f}</td></tr>"
+                   for r, t in ((kp, "Three PLA keys with detents; tool 3, PLA, bed 60 \u00b0C, flange on the bed"),
+                                (cp, "Three 85A channel blocks; tool 2, Siraya 85A, bed 35 \u00b0C, back face on the bed, "
+                                     "no pause")))
+    return ('<section id="fit"><h2>8. Attachment fit coupon for the new DIP link</h2>'
+            f"<p>The new DIP link (<a href='{DIP_PAGE}'>DIP page</a>, concept a) holds the tip on two PLA dovetail keys, "
+            "each with a 0.25 mm detent, and the tip&#8217;s channels are narrower than the keys by an interference per "
+            "flank. The coupon tries three interferences before any tip with channels gets magnets: three PLA keys on one "
+            "part, and three 85A channel blocks at 0.00, 0.05 and 0.10 mm per flank, marked by one, two and three notches at "
+            "their closed end. The design uses 0.05 mm. The tips printed with 2.9 mm seats have no channels.</p>"
+            '<div class="tw"><table><thead><tr><th>Project</th><th>Parts, tool and bed</th><th>Time</th><th>Filament (g)</th>'
+            f"</tr></thead><tbody>{proj}</tbody></table></div>"
+            "<p>Each block slides onto its key from the key&#8217;s free end, open end first, until that end meets the "
+            "flange; the detent sits 4.3 mm from the flange. On each block, by hand:</p><ol>"
+            "<li>Slides on: the block goes on with a firm push until it meets the flange.</li>"
+            "<li>Clicks: the detent drops into the block&#8217;s groove with a felt click.</li>"
+            "<li>Stays on when pulled along the key.</li>"
+            "<li>Stays on when twisted about the axis normal to the flange&#8217;s face.</li>"
+            "<li>Comes off by hand with a firm pull, without tearing the 85A.</li></ol>"
+            "<p>The tightest block that passes all five sets <code>fit_flank</code> in <code>scripts/dip_link_concept_a.py</code> "
+            "(P) for the reprinted tips; then <code>scripts/dip_link_board_mount.py build</code> and the hanging-load test T2 "
+            "on the DIP page. As sliced, each channel&#8217;s width equals the design within "
+            f"{dev:.3f} mm on every layer from the second; the first layer opens "
+            + (f"{min(first):.2f}" if round(min(first), 2) == round(max(first), 2) else f"{min(first):.2f}&#8211;{max(first):.2f}")
+            + " mm "
+            "wider, which is PrusaSlicer&#8217;s elephant-foot compensation of 0.2 mm per side.</p>"
+            f"<p>Record each block in <code>{esc(rel(FIT_CSV))}</code>:</p>"
+            '<div class="tw"><table><thead><tr><th>Block</th><th>Interference (mm per flank)</th><th>Printed on</th>'
+            "<th>Slides on</th><th>Clicks</th><th>Stays on, pulled</th><th>Stays on, twisted</th><th>Comes off by hand</th>"
+            f"<th>Notes</th></tr></thead><tbody>{rec}</tbody></table></div></section>")
+
+
 def terms_section():
     T = [("Palmar face", "The tip&#8217;s contact face, toward the object. The block prints with it up; the capsule and "
           "half-ellipsoids print standing, with it toward +X on the bed."),
@@ -701,7 +769,7 @@ def build():
             f"one-wall variants. The first six prints take {fmt_min(t6)}. " + seat_lede(seats, S))
     secs = [order_section(seq, mass), terms_section(), tpu_section(tc, S), magnet_section(bt, seq),
             seat_section(seat_rows, seats, walls_json if walls_json.exists() else None, cmd_prefix), removal_section(),
-            record_section(prows)]
+            record_section(prows), fit_coupon_section()]
     for k, (g, r) in enumerate(seq, start=1):
         secs.append(print_section(k, g, r, mass, seq))
     secs.append(future_section(seats))
@@ -710,7 +778,8 @@ def build():
            "<li><a href='#magnets'>4. Magnets and their polarity</a></li>",
            "<li><a href='#seat'>5. Seat test on the two coupons</a></li>",
            "<li><a href='#removal'>6. Removal and inspection</a></li>",
-           "<li><a href='#record'>7. Record of the prints</a></li>"]
+           "<li><a href='#record'>7. Record of the prints</a></li>",
+           "<li><a href='#fit'>8. Attachment fit coupon for the new DIP link</a></li>"]
     toc += [f"<li><a href='#p{k}'>Print {k}: {short_label(r)}</a></li>" for k, (_, r) in enumerate(seq, start=1)]
     toc.append("<li><a href='#future'>Future work</a></li>")
     up = "../.."

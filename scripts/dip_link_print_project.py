@@ -370,11 +370,14 @@ def bed_figure(objs, dst, title):
                                            hi[1] - lo[1], fc="none", ec="#b03030", lw=1.2, ls="--"))
         cx = 0.5 * (h[:, 0].min() + h[:, 0].max())
         zt = o["mesh"].bounds[1][2]
-        ax.text(cx, h[:, 1].max() + 1.5, f"{o['label']}\n{zt:.1f} mm tall", ha="center", va="bottom", fontsize=13)
+        lab = o.get("short", o["label"])
+        ax.text(cx, h[:, 1].max() + 1.5, f"{lab}\n{zt:.1f} mm tall", ha="center", va="bottom", fontsize=13)
     allp = np.vstack(allp)
     ax.set_xlim(allp[:, 0].min() - 10, allp[:, 0].max() + 10)
     ax.set_ylim(allp[:, 1].min() - 12, allp[:, 1].max() + 22)
-    ax.text(allp[:, 0].min() - 8, allp[:, 1].min() - 9, "Front of the printer; dashed red: support enforcers", fontsize=12)
+    enf = any(v["type"] == "SupportEnforcer" for o in objs for v in o["volumes"])
+    ax.text(allp[:, 0].min() - 8, allp[:, 1].min() - 9, "Front of the printer" + ("; dashed red: support enforcers" if enf else ""),
+            fontsize=12)
     ax.set_aspect("equal")
     ax.set_xlabel("Bed X (mm)")
     ax.set_ylabel("Bed Y (mm)")
@@ -425,14 +428,19 @@ def build_project(parts, out_dir, name, do_slice=True, source=None):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     objs = []
-    for key in ("dip_link", "clamp_plate", "pin_fit_coupon", "tip"):
+    for key in list(parts):
         if not parts.get(key):
             continue
         tm = trimesh.load(parts[key], force="mesh")
-        R = R_LINK if key == "dip_link" else (R_CLAMP if key == "clamp_plate" else None)
+        R = R_LINK if key in ("dip_link", "key_coupon") else (R_CLAMP if (key == "clamp_plate" or key.startswith("channel_block"))
+                                                               else None)
         m, Rt = to_print(tm, R)
         o = dict(key=key, name=key, label=LABEL[key], mesh=m, Rt=Rt, source=rel(parts[key]),
-                 extruder=TPU_TOOL if key == "tip" else PLA_TOOL, settings=dict(SETTINGS[key]), volumes=[])
+                 extruder=TPU_TOOL if (key == "tip" or key.startswith("channel_block")) else PLA_TOOL,
+                 settings=dict(SETTINGS[key]), volumes=[])
+        if key.startswith("channel_block"):
+            n = 1 + COUPON_FLANKS.index(float(key.split("_")[-1].replace("p", ".")))
+            o["short"] = f"{key.split('_')[-1].replace('p', '.')} mm per flank\n{n} notch" + ("es" if n > 1 else "")
         if key == "dip_link":
             enf, mods = link_volumes(m, Rt)
             o["enforcers"] = enf
@@ -504,6 +512,96 @@ def build_project(parts, out_dir, name, do_slice=True, source=None):
     return rep
 
 
+# ------------------------------------------------------------------------------------------------ attachment fit coupon
+COUPON_FLANKS = (0.0, 0.05, 0.10)       # interference per flank of the 85A channel on the PLA key, mm
+
+
+def fit_coupon_meshes(flanks=COUPON_FLANKS):
+    """Test T1 of decision.json: three PLA key units (the DIP link's key with its detent, a 2 mm backing plate for the
+    window plate, a stop flange for the bridge) on one part, and one 85A channel block per interference: the tip's back
+    region 4 mm deep, 9 mm wide, 7 mm long, with the channel and detent groove of dip_link_concept_a.tip_cutter at that
+    flank, its far end marked by 1, 2 or 3 notches. All in frame F; the keys at y_F = key_yc + 11 k."""
+    import dip_link_concept_a as A
+    K, P = A.MeshK(), dict(A.P)
+    yc, Zm = P["key_yc"], A.Z_MOUNT
+    key = [k for k in A.keys(K, P)][1]                     # the key at +key_yc, with its detent
+    units = []
+    for k in range(3):
+        unit = K.union([key, K.box((X_BACK - 0.01, yc - 4.5, Zm - 6.0), (X_BACK + 2.0, yc + 4.5, Zm + 0.01)),
+                        K.box((X_BACK - 3.0, yc - 4.5, Zm), (X_BACK + 2.0, yc + 4.5, Zm + 2.0))])
+        units.append(A.to_trimesh(unit).apply_translation((0.0, 11.0 * k, 0.0)))
+    import trimesh
+    pla = trimesh.util.concatenate(units)
+    blocks = []
+    for k, fl in enumerate(flanks):
+        Pk = dict(P, fit_flank=fl)
+        blk = K.box((X_BACK - 4.0, yc - 4.5, Zm - 7.0), (X_BACK, yc + 4.5, Zm))
+        cut = A.tip_cutter(K, Pk)
+        notches = K.union([K.box((X_BACK - 4.1, yc - 3.6 + 1.4 * j, Zm - 7.1), (X_BACK - 3.4, yc - 3.0 + 1.4 * j, Zm - 6.4))
+                           for j in range(k + 1)])
+        blocks.append((fl, A.to_trimesh(K.sub(K.sub(blk, cut), notches))))
+    return pla, blocks, P
+
+
+def channel_widths(gc, label, t, P, flank, x_win=(0.3, 2.8)):
+    """Width of the channel void on each layer of a block as sliced, from the bead centrelines crossing the middle of the
+    channel's length (print X in x_win, the groove left out) less one bead width, against the design's width at the layer's
+    mid-height. The template prints the first layer 0.5 mm wide with 0.2 mm of elephant-foot compensation per side."""
+    S, T = object_segments(gc, label)
+    out = []
+    d = P["key_depth"]
+    for z in sorted(np.unique(S[:, 0])):
+        L = S[S[:, 0] == z]
+        pts = []
+        for x0, y0, x1, y1 in L[:, 1:5]:
+            n = max(2, int(np.hypot(x1 - x0, y1 - y0) / 0.05))
+            u = np.linspace(0, 1, n)
+            pts.append(np.column_stack([x0 + (x1 - x0) * u - t[0], y0 + (y1 - y0) * u - t[1]]))
+        Q = np.vstack(pts)
+        Q = Q[(Q[:, 0] > x_win[0]) & (Q[:, 0] < x_win[1]) & (np.abs(Q[:, 1]) < 4.0)]
+        lo, hi = Q[Q[:, 1] < 0, 1], Q[Q[:, 1] > 0, 1]
+        zm = z - 0.1                                           # mid-height of a 0.2 mm layer
+        design = P["key_root"] - 2 * flank + (P["key_head"] - P["key_root"]) * min(zm, d + P["fit_floor"]) / d \
+            if zm < d + P["fit_floor"] else None
+        if design is None:
+            break
+        bead = 0.5 if z <= 0.2 + 1e-6 else 0.45                # the template's first-layer and perimeter widths
+        meas = float(hi.min() - lo.max() - bead) if len(lo) and len(hi) else None
+        out.append(dict(z=round(float(z), 2), design_mm=round(design, 3), sliced_mm=None if meas is None else round(meas, 3)))
+    return out
+
+
+def build_fit_coupon(out_dir, do_slice=True):
+    """The PLA key part on tool 3 and the three 85A channel blocks on tool 2, as two projects with their STL."""
+    pla, blocks, P = fit_coupon_meshes()
+    out_dir = Path(out_dir)
+    stl = {"key_coupon": out_dir / f"{PFX}_fit_coupon_keys_pla.stl"}
+    pla.export(stl["key_coupon"])
+    for fl, m in blocks:
+        k = f"channel_block_{fl:.2f}".replace(".", "p")
+        stl[k] = out_dir / f"{PFX}_fit_coupon_{k}_85a.stl"
+        m.export(stl[k])
+        SETTINGS[k] = dict(SETTINGS["tip"])
+        LABEL[k] = f"85A channel block, {fl:.2f} mm per flank"
+    SETTINGS["key_coupon"] = dict(PLA_OBJECT, perimeters="3", fill_density="100%", fill_pattern="rectilinear")
+    LABEL["key_coupon"] = "PLA keys with detents, three"
+    r1 = build_project({"key_coupon": str(stl["key_coupon"])}, out_dir, f"{PFX}_fit_coupon_keys_pla_t3", do_slice=do_slice,
+                       source="scripts/dip_link_print_project.py coupon")
+    r2 = build_project({k: str(v) for k, v in stl.items() if k.startswith("channel_block")}, out_dir,
+                       f"{PFX}_fit_coupon_channels_85a_t2", do_slice=do_slice, source="scripts/dip_link_print_project.py coupon")
+    if do_slice:
+        gc = ROOT / r2["slice"]["gcode"]
+        widths = {}
+        for o, (fl, _) in zip(r2["objects"], blocks):
+            lab = r2["slice"]["labels"][o["key"]]
+            widths[f"{fl:.2f}"] = channel_widths(gc, lab, o["bed_translation_mm"], P, fl)
+        r2["slice"]["channel_widths"] = widths
+        (out_dir / f"{PFX}_fit_coupon_channels_85a_t2.json").write_text(json.dumps(r2, indent=1, default=float))
+        for fl, w in widths.items():
+            print(f"  channel {fl} mm/flank: " + "; ".join(f"z {r['z']}: {r['design_mm']} vs {r['sliced_mm']}" for r in w), flush=True)
+    return r1, r2
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dip-link", default=str(FINAL / "cad" / f"{PFX}_dip_link.stl"))
@@ -514,7 +612,11 @@ def main():
     ap.add_argument("--name", default=f"{PFX}_print_link_clamp_coupon_pla_t3")
     ap.add_argument("--tip-name", default=f"{PFX}_print_tip_block4_channels_85a_t2_no_magnets")
     ap.add_argument("--no-slice", action="store_true")
+    ap.add_argument("--coupon-only", action="store_true", help="only the attachment fit coupon (test T1)")
     a = ap.parse_args()
+    if a.coupon_only:
+        build_fit_coupon(a.out, do_slice=not a.no_slice)
+        return
     pla = dict(dip_link=a.dip_link, clamp_plate=a.clamp_plate, pin_fit_coupon=a.coupon or None)
     build_project(pla, a.out, a.name, do_slice=not a.no_slice, source="scripts/dip_link_print_project.py")
     if a.tip:
