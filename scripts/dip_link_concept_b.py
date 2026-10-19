@@ -68,7 +68,7 @@ PRINT_OUT = CAD_DIR.parent / "print" if os.environ.get("DIPB_OUT") else REPO / _
 MEDIA = REPO / _OUTPUTS.get("media", _SCRATCH / "media")
 EVAL = REPO / _OUTPUTS.get("evaluation", _SCRATCH / "evaluation.json")
 WORK = Path(os.environ["DIPB_WORK"]) if os.environ.get("DIPB_WORK") else REPO / _OUTPUTS.get("work", _SCRATCH / "work")
-PREFIX = _OUTPUTS.get("prefix", f"{DATE}-concept_b")
+PREFIX = os.environ.get("DIPB_PREFIX") or _OUTPUTS.get("prefix", f"{DATE}-concept_b")   # $DIPB_PREFIX: an export's name
 
 # ------------------------------------------------------------------------------------------------- design parameters
 # Every length in mm, frame F. Fixed by the specification (the printed tip, the board, the clevis arms):

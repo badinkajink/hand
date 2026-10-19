@@ -595,7 +595,7 @@ def freecad_step_a():
     A, DLF = modules_a()
     concept, vals, des, doc = load(os.environ["DLP_PARAMS"])
     apply_a(vals, des)
-    redirect_a(os.environ["DLP_OUT"], (doc.get("outputs") or {}).get("prefix") or os.environ.get("DLP_PREFIX"),
+    redirect_a(os.environ["DLP_OUT"], os.environ.get("DLP_PREFIX") or (doc.get("outputs") or {}).get("prefix"),
                os.environ.get("DLP_WORK"))
     DLF.freecad_step()
 
@@ -705,6 +705,224 @@ def cmd_verify(a):
         print("->", dst.relative_to(REPO), flush=True)
 
 
+# ----------------------------------------------------------------------------------------------- export
+EXPORTS = STUDY / "exports"
+STEP_READ = r"""
+import json, os, tempfile, zipfile
+import Part
+out = {}
+for f in json.loads(os.environ["DLP_FILES"]):
+    path = f
+    if f.endswith(".zip"):
+        tmp = tempfile.mkdtemp()
+        with zipfile.ZipFile(f) as zf:
+            zf.extractall(tmp)
+            path = os.path.join(tmp, zf.namelist()[0])
+    sh = Part.read(path)
+    out[os.path.basename(f)] = dict(valid=bool(sh.isValid()), solids=len(sh.Solids), faces=len(sh.Faces),
+                                    volume_mm3=round(sh.Volume, 2), bytes=os.path.getsize(f))
+    print(os.path.basename(f), out[os.path.basename(f)], flush=True)
+open(os.environ["DLP_READ_OUT"], "w").write(json.dumps(out, indent=1))
+print("read back", len(out), flush=True)
+"""
+
+
+def _run(cmd, env, what):
+    r = subprocess.run(cmd, env=env, cwd=str(REPO), capture_output=True, text=True)
+    print("\n".join(l[:300] for l in r.stdout.splitlines() if l.strip() and "%" not in l and "#" not in l)[-3000:], flush=True)
+    if r.returncode:
+        print(r.stderr[-3000:], flush=True)
+        raise SystemExit(f"{what} failed")
+    return r.stdout
+
+
+def freecad_assembly():
+    """Inside freecadcmd ($DLP_PARAMS, $DLP_OUT, $DLP_PARTS): one STEP of the assembly in the DIP link STL's frame D
+    (x_D = -x_F, y_D = y_F + 21.25, z_D = -z_F - 51.55, as scripts/dip_link_onshape_export.py writes): every part's STEP
+    of the export, the board as supplied (FR-4 with its tab, holes and parts, J1, the mated plug and 3 mm of cable) at the
+    design's placement and the screws, each a named solid; zipped when over 1.5 MB."""
+    import zipfile
+    import FreeCAD
+    import Import
+    import Part
+    import numpy as np
+    V = FreeCAD.Vector
+    A, DLF = modules_a()
+    concept, vals, des, doc = load(os.environ["DLP_PARAMS"])
+    out = Path(os.environ["DLP_OUT"])
+    if concept == "a":
+        apply_a(vals, des)
+        x_comp, z_c, fr4 = A.levels()["x_cf"], A.Z_C, A.P["fr4"]
+    else:
+        z_a = A.Z_C
+        B = apply_b(vals, des)
+        x_comp, z_c, fr4 = B.X_COMP, B.Z_CONTACT, B.FR4
+    T = A._T_F_from_stl("dip_link")
+    R = np.round(T[:3, :3])
+    M = np.eye(4)
+    M[:3, :3], M[:3, 3] = R.T, -R.T @ T[:3, 3]
+    Mf = FreeCAD.Matrix(*[float(v) for v in M.ravel()])
+
+    def box(lo, hi):
+        lo, hi = np.asarray(lo, float), np.asarray(hi, float)
+        return Part.makeBox(*(float(d) for d in hi - lo), V(*(float(c) for c in lo)))
+
+    def board_box(lo, hi):
+        P = np.array([[a, b, c] for a in (lo[0], hi[0]) for b in (lo[1], hi[1]) for c in (lo[2], hi[2])], float)
+        Q = np.column_stack([x_comp - P[:, 2], P[:, 0], z_c - P[:, 1]])
+        return box(Q.min(0), Q.max(0))
+    it = A.board_items()
+    dz = z_c - A.Z_C
+    outline = [(-10, -10.1), (-5, -10.1), (-5, -19.1), (5, -19.1), (5, -10.1), (10, -10.1), (10, 10.051), (-10, 10.051)]
+    if concept == "b" and B.TAB_CUT_V > -19.1 + 1e-9:
+        outline = [(-10, -10.1), (-5, -10.1), (-5, B.TAB_CUT_V), (5, B.TAB_CUT_V), (5, -10.1), (10, -10.1), (10, 10.051),
+                   (-10, 10.051)]
+    pts = [V(x_comp, u, z_c - v) for u, v in outline]
+    board = Part.Face(Part.makePolygon(pts + [pts[0]])).extrude(V(fr4, 0, 0))
+    for y, z, d in it["holes"]:
+        board = board.cut(Part.makeCylinder(d / 2, fr4 + 0.2, V(x_comp - 0.1, y, z + dz), V(1, 0, 0)))
+    comps = [box((x_comp - v["h"], v["y"] - v["sy"] / 2, v["z"] + dz - v["sz"] / 2), (x_comp + 0.01, v["y"] + v["sy"] / 2,
+                                                                                         v["z"] + dz + v["sz"] / 2))
+             for v in it["parts"].values()]
+    parts = [("Board ReSkin 5X", board.fuse(comps).removeSplitter())]
+    keep_j1 = des.get("qwiic") == "j1_kept"
+    if keep_j1:
+        j1 = {n: board_box(lo, hi) for n, lo, hi in DLF.j1_parts_board() if n != "tab_fr4"}
+        parts += [("J1 Qwiic header on the board", j1["j1_header"]),
+                  ("Qwiic plug and cable start", j1["plug"].fuse([s for k, s in j1.items() if k.startswith("wire")]).removeSplitter())]
+    if concept == "b":
+        for k, (y, z) in enumerate(B.screw_yz(), 1):
+            sc = Part.makeCylinder(B.HEAD_D / 2, B.HEAD_H, V(B.X_SLOT - B.HEAD_H, y, z), V(1, 0, 0)).fuse(
+                Part.makeCylinder(B.SCREW_D / 2, B.SCREW_L, V(B.X_SLOT, y, z), V(1, 0, 0))).removeSplitter()
+            parts.append((f"Screw M{B.SCREW_D:g} x {B.SCREW_L:g} {k}", sc))
+    else:
+        K = A.BrepK()
+        count = {}
+        for kind, sh in A.fasteners(K):
+            count[kind] = count.get(kind, 0) + 1
+            parts.append((f"{kind} {count[kind]}", sh))
+    for label, f in json.loads(os.environ["DLP_PARTS"]):
+        path = f
+        if f.endswith(".zip"):
+            import tempfile
+            tmp = tempfile.mkdtemp()
+            with zipfile.ZipFile(f) as zf:
+                zf.extractall(tmp)
+                path = os.path.join(tmp, zf.namelist()[0])
+        parts.append((label, Part.read(path)))
+    d = FreeCAD.newDocument("dip_link_assembly")
+    objs, rows = [], []
+    for label, sh in parts:
+        sD = sh.copy()
+        sD.transformShape(Mf)
+        o = d.addObject("Part::Feature", f"p{len(objs)}")
+        o.Label = label
+        o.Shape = sD
+        objs.append(o)
+        rows.append(dict(name=label, valid=bool(sD.isValid()), solids=len(sD.Solids), volume_mm3=round(sD.Volume, 2)))
+        print(f"  {label}: valid {sD.isValid()}, {sD.Volume:.1f} mm3", flush=True)
+    dst = out / f"{out.name}_assembly_D.step"
+    Import.export(objs, str(dst))
+    rec = dict(file=dst.name, bytes=dst.stat().st_size, parts=rows, frame="D: the coordinates of "
+               "assets/cad_v1/fingertip_mount_DIP_link.stl (x_D = -x_F, y_D = y_F + 21.25, z_D = -z_F - 51.55)")
+    if dst.stat().st_size > 1.5e6:
+        z = dst.with_suffix(".step.zip")
+        with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+            zf.write(dst, dst.name)
+        dst.unlink()
+        rec.update(file=z.name, zip_bytes=z.stat().st_size)
+    (out / "assembly.json").write_text(json.dumps(rec, indent=1))
+    print("assembly", rec["file"], flush=True)
+
+
+def cmd_export(a):
+    """A parameter set to exports/YYYYMMDD-HHMM-<name>/: cad/ with STL and STEP per part (exact solids for the printed PLA
+    parts, faceted for the tips or pads), <name>_assembly_D.step(.zip) in the DIP link STL's frame, print/ with the print
+    STLs and (unless --no-slice) the sliced PLA project, and export.json with every STEP read back in FreeCAD."""
+    import re
+    path = Path(a.params).resolve()
+    concept, vals, des, doc = load(path)
+    bad = problems(concept, vals, des)
+    if bad:
+        raise SystemExit("; ".join(bad))
+    name = re.sub(r"[^A-Za-z0-9_.-]+", "_", a.name or path.stem.replace(time.strftime("%Y%m%d") + "-", ""))
+    out = EXPORTS / f"{time.strftime('%Y%m%d-%H%M')}-{name}"
+    work = WORK / "exports" / out.name
+    out.mkdir(parents=True, exist_ok=True)
+    work.mkdir(parents=True, exist_ok=True)
+    t0 = time.time()
+    pfx = out.name
+    if concept == "a":
+        A, DLF = modules_a()
+        apply_a(vals, des)
+        redirect_a(out, pfx, work)
+        DLF.cmd_build(argparse.Namespace())
+        _run(["freecadcmd", str(REPO / "scripts/dip_link_params.py")],
+             dict(os.environ, DLP_CMD="step", DLP_PARAMS=str(path), DLP_OUT=str(out), DLP_WORK=str(work), DLP_PREFIX=pfx,
+                  DLP_REPO=str(REPO)), "freecadcmd step")
+        exact = [("DIP link new features", f"{pfx}_dip_link_new_features"), ("Clamp plate", f"{pfx}_clamp_plate")]
+    else:
+        env = dict(os.environ, DIPB_PARAMS=str(path), DIPB_OUT=str(out / "cad"), DIPB_WORK=str(work), DIPB_PREFIX=pfx)
+        (out / "cad").mkdir(exist_ok=True)
+        _run([str(E_FEMTIP), "-u", str(REPO / "scripts/dip_link_concept_b.py"), "prep"], env, "concept b prep")
+        _run([str(E_FEMTIP), "-u", str(REPO / "scripts/dip_link_concept_b.py"), "cad"], env, "concept b cad")
+        exact = [("DIP link new body", f"{pfx}_dip_link_new_body"), ("Cover", f"{pfx}_cover")]
+    cad = out / "cad"
+    files = []
+    for label, stem in exact:
+        f = cad / f"{stem}.step"
+        files.append([label, str(f if f.exists() else f.with_suffix(".step.zip"))])
+    _run(["freecadcmd", str(REPO / "scripts/dip_link_params.py")],
+         dict(os.environ, DLP_CMD="assembly", DLP_PARAMS=str(path), DLP_OUT=str(out), DLP_PARTS=json.dumps(files),
+              DLP_REPO=str(REPO)), "freecadcmd assembly")
+    steps = sorted(str(f) for f in list(cad.glob("*.step")) + list(cad.glob("*.step.zip")) +
+                   list(out.glob("*_assembly_D.step*")))
+    script = work / "step_read.py"
+    script.write_text(STEP_READ)
+    _run(["freecadcmd", str(script)], dict(os.environ, DLP_FILES=json.dumps(steps), DLP_READ_OUT=str(work / "read.json")),
+         "freecadcmd read-back")
+    read = json.loads((work / "read.json").read_text())
+    rec = dict(params=str(path.relative_to(REPO)) if REPO in path.parents else str(path), concept=concept, design=des,
+               values=vals, folder=str(out.relative_to(REPO)), step_read_back=read,
+               all_valid=all(v["valid"] for v in read.values()), assembly=json.loads((out / "assembly.json").read_text()),
+               stl=sorted(str(f.relative_to(out)) for f in out.rglob("*.stl")),
+               inventor="unzip a .step.zip; File > Open, STEP; Import options: Convert Model gives editable solid bodies "
+                        "(the exact parts); STL opens only as a reference mesh", when=time.strftime("%Y-%m-%d %H:%M"))
+    (out / "assembly.json").unlink()
+    if not a.no_slice:
+        import dip_link_print_project as PP
+        if concept == "a":
+            parts = {"dip_link": cad / f"{pfx}_dip_link.stl", "clamp_plate": cad / f"{pfx}_clamp_plate.stl",
+                     "pin_fit_coupon": out / "print" / f"{pfx}_pin_fit_coupon.stl"}
+            box0 = PP.box_F_to_print
+            zm, ze = -67.30 - vals.get("neck_len", 0.0), -88.71 - vals.get("neck_len", 0.0)
+
+            def box_shifted(lo, hi, Rt):          # the print project's window-plate box moves with the tip
+                if abs(lo[2] + 88.71) < 1e-9 and abs(hi[2] + 67.30) < 1e-9:
+                    lo, hi = (lo[0], lo[1], ze), (hi[0], hi[1], zm)
+                return box0(lo, hi, Rt)
+            PP.box_F_to_print = box_shifted
+        else:
+            parts = {"dip_link": cad / f"{pfx}_dip_link.stl", "clamp_plate": cad / f"{pfx}_cover.stl"}
+            lv0 = PP.link_volumes
+            PP.link_volumes = lambda m, Rt: (lv0(m, Rt)[0], [])      # concept a's shoulder modifiers do not apply to b
+            PP.window_boxes = lambda Rt: {}
+            PP.LABEL["clamp_plate"] = "Cover"
+        PP.PFX = pfx
+        rep = PP.build_project(parts, out / "print", f"{pfx}_print_pla_t3", source=rec["params"])
+        sl = rep.get("slice") or {}
+        if concept == "b" and sl.get("dip_link"):
+            sl["dip_link"].pop("window_plate", None)
+            sl["checks_pass"] = bool(sl.get("m601", 0) == 0 and sl["dip_link"]["support_outside"] == 0)
+            (out / "print" / f"{pfx}_print_pla_t3.json").write_text(json.dumps(rep, indent=1, default=float))
+        rec["print"] = dict(project=rep.get("project"), print_time=sl.get("print_time"), filament_g=sl.get("filament_g"),
+                            checks_pass=sl.get("checks_pass"),
+                            note="the PLA parts only; the tips or pads with their magnet pauses come from scripts/dip_link_v2.py")
+    (out / "export.json").write_text(json.dumps(rec, indent=1, default=float) + "\n")
+    print(f"export -> {out.relative_to(REPO)}: {len(read)} STEP files read back, all valid {rec['all_valid']} "
+          f"[{time.time() - t0:.0f} s]", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -714,11 +932,18 @@ def main():
     s = sub.add_parser("verify", help="regenerate at a file's values and compare volumes with the committed STL files")
     s.add_argument("--concept", nargs="+", default=["a", "b", "b0"], choices=["a", "b", "b0", "a_v2", "b_v2"])
     s.add_argument("--params", help="parameter file (default: the concept's committed file)")
+    s = sub.add_parser("export", help="a parameter set to exports/YYYYMMDD-HHMM-<name>/: STL and STEP per part, the "
+                                      "assembly STEP, the sliced PLA parts, every STEP read back")
+    s.add_argument("--params", required=True)
+    s.add_argument("--name", help="folder name after the date (default: the file's stem)")
+    s.add_argument("--no-slice", action="store_true")
     a = ap.parse_args()
-    {"init": cmd_init, "verify": cmd_verify}[a.cmd](a)
+    {"init": cmd_init, "verify": cmd_verify, "export": cmd_export}[a.cmd](a)
 
 
 if os.environ.get("DLP_CMD") == "step":
     freecad_step_a()
+elif os.environ.get("DLP_CMD") == "assembly":
+    freecad_assembly()
 elif __name__ == "__main__":
     main()
