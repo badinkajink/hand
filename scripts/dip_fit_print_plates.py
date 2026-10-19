@@ -63,7 +63,11 @@ A1M_SLOT = 3
 A1M_PROCESS = dict(layer_height="0.2", wall_loops="2", sparse_infill_density="30%", sparse_infill_pattern="gyroid",
                    top_shell_layers="4", bottom_shell_layers="4", elefant_foot_compensation="0.2",
                    initial_layer_line_width="0.5", seam_position="back", brim_type="no_brim", enable_support="0",
-                   enable_prime_tower="0", curr_bed_type="Textured PEI Plate")
+                   enable_prime_tower="0", curr_bed_type="Textured PEI Plate",
+                   minimum_sparse_infill_area="0", top_shell_thickness="0.7")
+# minimum_sparse_infill_area: Bambu's 15 mm2 turned every infill island of the 4 mm blocks into solid zig-zag (the A1 mini
+# plates of 16:55 had no gyroid); the XL projects keep gyroid in small islands (solid_infill_below_area 0). top_shell_thickness:
+# Bambu's 1.0 mm adds a fifth top layer; 0.7 is the XL projects' top_solid_min_thickness, so four 0.2 mm skins as on the XL.
 # Siraya Tech's XL profile as the 85A prints of 2026-10-16 to 10-18 ran it on tool 2 (print/template_changes.json of the
 # readiness study: 240 C, 35 C bed, flow 0.96, 0.6 mm retraction, fan off for 4 layers), over Bambu's Generic TPU @BBL A1M;
 # the volumetric cap is 2 mm3/s (about 24 mm/s at 0.2 mm layers) because the A1 mini's process speeds of 200-300 mm/s
@@ -681,6 +685,32 @@ def check_bambu_gcode(gcode, machine_tag, nozzle_c, bed_c):
     return out
 
 
+def infill_by_object(gcode, objs, pad=1.0):
+    """Filament (mm) of each feature type in each object of a sliced Bambu G-code, an extrusion going to the object whose
+    bed bounds (objs[i]["bounds_mm"], grown by pad) contain its end point."""
+    import re
+    out = {o["id"]: {} for o in objs}
+    x = y = None
+    feat = None
+    for ln in gcode.splitlines():
+        if ln.startswith("; FEATURE:"):
+            feat = ln.split(":", 1)[1].strip()
+            continue
+        if not ln.startswith(("G0", "G1", "G2", "G3")):
+            continue
+        mx, my, me = (re.search(rf"{c}(-?[\d.]+)", ln) for c in "XYE")
+        x = float(mx.group(1)) if mx else x
+        y = float(my.group(1)) if my else y
+        if not me or feat is None or x is None or y is None or float(me.group(1)) <= 0:
+            continue
+        for o in objs:
+            (x0, y0, _), (x1, y1, _) = o["bounds_mm"]
+            if x0 - pad <= x <= x1 + pad and y0 - pad <= y <= y1 + pad:
+                out[o["id"]][feat] = out[o["id"]].get(feat, 0.0) + float(me.group(1))
+                break
+    return out
+
+
 def siraya_a1m_filament():
     """Bambu's Generic TPU @BBL A1M with every filament key that Siraya Tech's A1 mini project sets otherwise, then
     SIRAYA_KEEP. Returns the preset and the keys taken from Siraya."""
@@ -760,6 +790,13 @@ def cmd_a1m(a):
     problems += check_bambu_gcode(gcode, "A1 mini", int(fil["nozzle_temperature"][0]), int(fil["textured_plate_temp"][0]))
     if re.search(r"; (WIPE_TOWER|PRIME_TOWER)_START", gcode) or "; FEATURE: Prime tower" in gcode:
         problems.append("prime tower in the G-code")
+    feats = infill_by_object(gcode, objs)
+    for o in objs:                                          # the FE recipe's gyroid in every block, as on the XL
+        f = feats[o["id"]]
+        sp, so = f.get("Sparse infill", 0.0), f.get("Internal solid infill", 0.0)
+        o["sparse_infill_mm"], o["internal_solid_infill_mm"] = round(sp, 1), round(so, 1)
+        if sp <= 0.0:
+            problems.append(f"{o['id']} has no sparse infill ({so:.0f} mm of internal solid infill)")
     if problems:
         raise SystemExit("A1 mini project: " + "; ".join(problems))
     warn = res["sliced_plates"][0].get("warning_message")

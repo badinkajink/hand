@@ -101,7 +101,11 @@ def files_section(R, p1s, xl, n_pla, n_tpu, a1m=None):
             "tube. The process keeps the recipe of the finite-element models and the XL prints, the same on every printer: "
             f"{po['wall_loops']} walls, {po['sparse_infill_density']} gyroid, {po['top_shell_layers']} skins of "
             f"{po['layer_height']} mm, {po['elefant_foot_compensation']} mm elephant-foot compensation, no brim "
-            "(Siraya&#8217;s process has 3 walls and 25 % gyroid). The interference chosen from these blocks applies to "
+            "(Siraya&#8217;s process has 3 walls and 25 % gyroid). Two Bambu defaults take the XL projects&#8217; values so "
+            f"that these small blocks print that recipe: the minimum sparse infill area is {po['minimum_sparse_infill_area']} "
+            "mm&#178; against Bambu&#8217;s 15, which made every gyroid island of a block solid zig-zag infill, and the "
+            f"minimum top shell is {po['top_shell_thickness']} mm against Bambu&#8217;s 1.0, which added a fifth top skin. "
+            "The interference chosen from these blocks applies to "
             f"{inside}s printed on the A1 mini with this profile and the same 0.2 mm elephant-foot compensation; the XL "
             "prints its channels to its own widths. When the XL is free, its project prints the same blocks on the v17 "
             f"template: tool 2, {xs['layer_height']} mm layers, {xs['perimeters']} perimeters, {xs['fill_density']} "
@@ -222,11 +226,19 @@ def records_section(rows):
             f"<th>Test</th><th>Check</th><th>Result</th><th>Notes</th></tr>{body}</table></div></details></section>")
 
 
+A1M_SOLID = (
+    "<li>The A1 mini project of 16:55 printed every 85A block solid: Bambu&#8217;s minimum sparse infill area of "
+    "15 mm&#178; turned each gyroid island inside a block&#8217;s walls into zig-zag infill, and its 1.0 mm minimum top "
+    "shell added a fifth top skin. Since 17:06 the project sets both as the XL projects do (0 mm&#178; and 0.7 mm), and "
+    "the build stops unless every block prints gyroid. Blocks printed from the 16:55 project have the same IDs and are "
+    "stiffer behind their walls than the tip or pad they test; record the fits from blocks of the 17:06 project.</li>")
+
+
 def changes_section():
     return (
         '<section id="changes"><h2>6. Changes from the pieces of 13:08</h2>'
         f"<p>The set in {code(STUDY + '/v2/coupons/')} was four XL projects with PLA on tool 3. This run differs in "
-        "six ways.</p><ul>"
+        "seven ways.</p><ul>"
         "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the A1 mini (from 16:40, while the XL "
         "is in use) or the XL.</li>"
         "<li>Every piece has its ID printed on it; the three window gauges had none.</li>"
@@ -241,7 +253,7 @@ def changes_section():
         "<li>The first P1S project of this run started with Bambu Studio&#8217;s generic start G-code: it loaded no "
         "filament from the AMS and left the nozzle at 205 &#176;C. Since 16:40 every Bambu project has the printer&#8217;s "
         "own start, end and filament-change G-code, and the build stops unless the G-code loads from the AMS and heats to "
-        "the filament&#8217;s temperatures.</li></ul></section>")
+        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + "</ul></section>")
 
 
 def future_section():
@@ -303,7 +315,7 @@ def changes_section_b():
     return (
         '<section id="changes"><h2>6. Changes from concept b&#8217;s coupons of 18 October</h2>'
         f"<p>The rail coupon in {code(STUDY + '/v2/b/print/')} was a rail strip and three groove blocks (0, 0.05 and "
-        "0.10 mm per flank) as XL projects. This run differs in five ways.</p><ul>"
+        "0.10 mm per flank) as XL projects. This run differs in six ways.</p><ul>"
         "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the A1 mini (from 16:40, while the XL "
         "is in use) or the XL.</li>"
         "<li>Every piece has its ID printed on it.</li>"
@@ -314,7 +326,7 @@ def changes_section_b():
         "<li>The first P1S project of this run started with Bambu Studio&#8217;s generic start G-code: it loaded no "
         "filament from the AMS and left the nozzle at 205 &#176;C. Since 16:40 every Bambu project has the printer&#8217;s "
         "own start, end and filament-change G-code, and the build stops unless the G-code loads from the AMS and heats to "
-        "the filament&#8217;s temperatures.</li></ul></section>")
+        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + "</ul></section>")
 
 
 def future_section_b():
