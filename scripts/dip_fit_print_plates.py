@@ -53,7 +53,27 @@ P1S = dict(machine="Bambu Lab P1S 0.4 nozzle", process="0.12mm Fine @BBL X1C",
 P1S_PROCESS = dict(layer_height="0.1", wall_loops="3", sparse_infill_density="100%", sparse_infill_pattern="zig-zag",
                    seam_position="back", brim_type="auto_brim", enable_support="0",
                    curr_bed_type="Textured PEI Plate")      # the owner's plate in Bambu Studio (bed type 4): PLA at 55 C
-P1S_BED, XL_BED = (256.0, 256.0), (360.0, 360.0)
+P1S_BED, XL_BED, A1M_BED = (256.0, 256.0), (360.0, 360.0), (180.0, 180.0)
+# 85A on the Bambu Lab A1 mini (owner, 2026-10-19 16:20: "the prusa is in use. ive loaded the sirayatech 85a tpu onto the
+# external spool of the bambu a1 mini (using tube 3 for tool 3 on the ams)"): the TPU is the project's only filament, mapped
+# to the AMS lite's slot 3 in Bambu Studio's send dialog. (A command-line project with the TPU as filament 3 of four wrote
+# the first filament into its slice info and left the weight empty.)
+A1M = dict(machine="Bambu Lab A1 mini 0.4 nozzle", process="0.20mm Standard @BBL A1M", filament="Generic TPU @BBL A1M")
+A1M_SLOT = 3
+A1M_PROCESS = dict(layer_height="0.2", wall_loops="2", sparse_infill_density="30%", sparse_infill_pattern="gyroid",
+                   top_shell_layers="4", bottom_shell_layers="4", elefant_foot_compensation="0.2",
+                   initial_layer_line_width="0.5", seam_position="back", brim_type="no_brim", enable_support="0",
+                   enable_prime_tower="0", curr_bed_type="Textured PEI Plate")
+# Siraya Tech's XL profile as the 85A prints of 2026-10-16 to 10-18 ran it on tool 2 (print/template_changes.json of the
+# readiness study: 240 C, 35 C bed, flow 0.96, 0.6 mm retraction, fan off for 4 layers), over Bambu's Generic TPU @BBL A1M;
+# the volumetric cap is 2 mm3/s (about 24 mm/s at 0.2 mm layers) because the A1 mini's process speeds of 200-300 mm/s
+# would otherwise run up to it, where the XL's 40-60 mm/s stayed under Siraya's 12 mm3/s.
+SIRAYA_85A = dict(filament_vendor=["Siraya Tech"], nozzle_temperature=["240"], nozzle_temperature_initial_layer=["240"],
+                  textured_plate_temp=["35"], textured_plate_temp_initial_layer=["35"], hot_plate_temp=["35"],
+                  hot_plate_temp_initial_layer=["35"], cool_plate_temp=["35"], cool_plate_temp_initial_layer=["35"],
+                  filament_flow_ratio=["0.96"], filament_retraction_length=["0.6"], filament_density=["1.26"],
+                  filament_max_volumetric_speed=["2"], close_fan_the_first_x_layers=["4"], filament_colour=["#FFFFFF"])
+SIRAYA_NAME = "Siraya Tech TPU 85A @BBL A1M"
 
 DETENTS = (0.15, 0.25, 0.35, 0.45)                    # PLA key detent height, mm (v2/coupons: 0.15-0.35)
 FLANKS = (0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.40)    # 85A channel interference per flank, mm (v2/coupons: 0-0.20)
@@ -427,7 +447,7 @@ def piece_specs_a():
                       test="Snap fit", piece="PLA key", variant=f"detent {h:.2f} mm", value=h, mark=f"tag K{hund(h)}, "
                       f"{k + 1} notch{'es' if k else ''} on the flange", copies=1, short=f"detent {h:.2f}"))
     for fl in FLANKS:
-        S.append(dict(id=f"F{hund(fl)}", stl=f"F{hund(fl)}_channel_flank{hund(fl)}_85a.stl", printer="xl", material="85A",
+        S.append(dict(id=f"F{hund(fl)}", stl=f"F{hund(fl)}_channel_flank{hund(fl)}_85a.stl", printer="a1m", material="85A",
                       test="Snap fit", piece="85A channel block", variant=f"{fl:.2f} mm per flank", value=fl,
                       mark=f"{hund(fl)} engraved on the face inside the tip", copies=1, short=f"{fl:.2f}/flank"))
     for c in CHIP_CLEAR:
@@ -597,26 +617,142 @@ def layout(meshes, bed, gap=8.0, width=200.0):
 
 
 def flat_presets(out):
-    """The P1S system presets with their `inherits` chains resolved, P1S_PROCESS applied to the process."""
-    def load(kind, name):
-        d = json.loads((BBL / kind / f"{name}.json").read_text())
-        if d.get("inherits"):
-            base = load(kind, d["inherits"])
-            base.update(d)
-            d = base
-        return d
+    """The P1S system presets through bbl_preset (inherits chains and the printer's G-code templates), P1S_PROCESS applied
+    to the process."""
     paths = {}
     for kind in ("machine", "process", "filament"):
-        d = load(kind, P1S[kind])
         if kind == "process":
-            missing = [k for k in P1S_PROCESS if k not in d and k not in ("brim_type", "curr_bed_type")]
+            d0 = bbl_preset(kind, P1S[kind])
+            missing = [k for k in P1S_PROCESS if k not in d0 and k not in ("brim_type", "curr_bed_type")]
             if missing:
                 raise SystemExit(f"process preset lacks {missing}")
-            d.update(P1S_PROCESS)
-        d.update(inherits="", name=P1S[kind])
+        d = bbl_preset(kind, P1S[kind], P1S_PROCESS if kind == "process" else None)
         paths[kind] = out / f"{kind}.json"
         paths[kind].write_text(json.dumps(d, indent=1))
     return paths
+
+
+def bbl_preset(kind, name, over=None, rename=None):
+    """A Bambu Studio system preset with its `inherits` chain resolved, the G-code of every preset in the chain from its
+    '<name> template <key>.json' files, and `over` applied (a renamed one is a user preset). Bambu keeps a printer's start,
+    end, filament-change, layer-change and timelapse G-code in those files; without them the command line writes
+    fdm_machine_common's generic start (no AMS load, the nozzle left at its 205 C purge temperature)."""
+    import glob
+
+    def load(n):
+        d = json.loads((BBL / kind / f"{n}.json").read_text())
+        chain = [n]
+        if d.get("inherits"):
+            base, bchain = load(d["inherits"])
+            base.update(d)
+            d, chain = base, bchain + chain
+        return d, chain
+    d, chain = load(name)
+    for n in chain:
+        for f in sorted((BBL / kind).glob(f"{glob.escape(n)} template *.json")):
+            t = json.loads(f.read_text())
+            d.update({k: v for k, v in t.items() if k not in ("name", "instantiation", "inherits", "from", "setting_id", "type")})
+    d.update(over or {})
+    d.update(inherits="", name=rename or name)
+    if rename:
+        d.update({"from": "User", "filament_settings_id": [rename]} if kind == "filament" else {"from": "User"})
+    return d
+
+
+def check_bambu_gcode(gcode, machine_tag, nozzle_c, bed_c):
+    """The problems of a Bambu G-code: the printer's own start sequence (its ';===== machine: <tag>' header), a filament
+    load from the AMS (M620 S<n>A and T<n>), the nozzle and the bed at the filament's temperatures."""
+    import re
+    out = []
+    if not re.search(rf"^;===== machine: {re.escape(machine_tag)}", gcode, re.M):     # a line, not the settings dump
+        out.append(f"not the {machine_tag} start G-code")
+    if not re.search(r"^\s*M620 S\d+A", gcode, re.M) or not re.search(r"^\s*T\d\b", gcode, re.M):
+        out.append("no filament load from the AMS")
+    if not re.search(rf"^\s*M10[49] S{nozzle_c}\b", gcode, re.M):
+        out.append(f"nozzle never set to {nozzle_c} C")
+    if not re.search(rf"^\s*M1[49]0 S{bed_c}\b", gcode, re.M):
+        out.append(f"bed never set to {bed_c} C")
+    return out
+
+
+def cmd_a1m(a):
+    """The 85A plate on the Bambu Lab A1 mini: the channel blocks placed by `layout`, on filament A1M_SLOT (Siraya Tech TPU
+    85A), sliced by Bambu Studio's command line into one project with its G-code; checks that only that filament prints, at
+    240 C on a 35 C textured PEI plate, without a prime tower."""
+    import re
+    import trimesh
+    rep = json.loads((RUN / "pieces.json").read_text())
+    work = WORK / "a1m"
+    placed = work / "placed"
+    shutil.rmtree(work, ignore_errors=True)
+    placed.mkdir(parents=True)
+    paths = {}
+    for kind, d in (("machine", bbl_preset("machine", A1M["machine"])),
+                    ("process", bbl_preset("process", A1M["process"], A1M_PROCESS)),
+                    ("filament", bbl_preset("filament", A1M["filament"], SIRAYA_85A, SIRAYA_NAME))):
+        paths[kind] = work / f"{kind}.json"
+        paths[kind].write_text(json.dumps(d, indent=1))
+    items = [(s, trimesh.load(RUN / s["stl"], force="mesh")) for s in rep["pieces"] if s["material"] == "85A"]
+    pos = layout([t for _, t in items], A1M_BED, gap=12.0, width=150.0)
+    files, objs = [], []
+    for (s, tm), p_ in zip(items, pos):
+        tm.apply_translation((p_[0], p_[1], 0.0))
+        f = placed / Path(s["stl"]).name
+        tm.export(f)
+        files.append(str(f))
+        objs.append(dict(id=s["id"], name=f.stem, bounds_mm=np.round(tm.bounds, 2).tolist()))
+    proj = f"{PFX}_a1mini_85a.3mf"
+    cmd = BAMBU + ["--debug", "1", "--arrange", "0", "--orient", "0",
+                   "--load-settings", f"{paths['machine']};{paths['process']}", "--load-filaments", str(paths["filament"]),
+                   "--slice", "0", "--export-3mf", proj, "--outputdir", str(work)] + files
+    t0 = time.time()
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    (work / "cli.log").write_text(r.stdout + r.stderr)
+    res = json.loads((work / "result.json").read_text())
+    if res.get("return_code") != 0:
+        raise SystemExit(f"Bambu Studio: {res.get('error_string')} (log {rel(work / 'cli.log')})")
+    shutil.copy(work / proj, RUN / proj)
+    with zipfile.ZipFile(RUN / proj) as z:
+        info = z.read("Metadata/slice_info.config").decode()
+        gcode = z.read("Metadata/plate_1.gcode").decode(errors="replace")
+        msets = z.read("Metadata/model_settings.config").decode()
+    pred = float(re.search(r'key="prediction" value="([\d.]+)"', info).group(1))
+    weight = float(re.search(r'key="weight" value="([\d.]+)"', info).group(1))
+    used = re.findall(r'<filament id="(\d+)"[^>]*type="([^"]+)"[^>]*used_g="([\d.]+)"', info)
+    layers = int(re.search(r"; total layer number: (\d+)", gcode).group(1))
+    bed_c = [int(float(v)) for v in re.findall(r"^M190 S([\d.]+)", gcode, re.M)]
+    noz_c = [int(float(v)) for v in re.findall(r"^M10[49] S([\d.]+)", gcode, re.M)]
+    bed_type = re.search(r"; curr_bed_type = (.+)", gcode).group(1).strip()
+    names = sorted(re.findall(r'<object id="\d+">\s*<metadata key="name" value="([^"]+)"', msets))
+    ext = sorted(set(re.findall(r'<metadata key="extruder" value="(\d+)"', msets)))
+    problems = []
+    if names != sorted(f"{o['name']}.stl" for o in objs):
+        problems.append(f"objects {names}")
+    if [u[0] for u in used] != ["1"] or used[0][1] != "TPU" or ext != ["1"]:
+        problems.append(f"filaments used {used}, object extruders {ext}")
+    if bed_type != A1M_PROCESS["curr_bed_type"]:
+        problems.append(f"plate {bed_type}")
+    problems += check_bambu_gcode(gcode, "A1 mini", 240, 35)
+    if re.search(r"; (WIPE_TOWER|PRIME_TOWER)_START", gcode) or "; FEATURE: Prime tower" in gcode:
+        problems.append("prime tower in the G-code")
+    if problems:
+        raise SystemExit("A1 mini project: " + "; ".join(problems))
+    warn = res["sliced_plates"][0].get("warning_message")
+    if warn:
+        print("Bambu Studio warning:", warn, flush=True)
+    fig = RUN / f"{PFX}_a1mini_85a_map.png"
+    plate_map([(next(x for x in rep["pieces"] if x["id"] == o["id"]), trimesh.load(placed / f"{o['name']}.stl"))
+               for o in objs], A1M_BED, f"Bambu Lab A1 mini, Siraya Tech 85A (AMS lite slot {A1M_SLOT}): {len(objs)} pieces, "
+               f"{fmt_time(pred)}, {weight:.1f} g", fig)
+    rep.setdefault("plates", {})["a1m"] = dict(
+        project=rel(RUN / proj), map=rel(fig), printer="Bambu Lab A1 mini 0.4 nozzle", filament=SIRAYA_NAME,
+        slot=A1M_SLOT, presets=A1M, overrides=A1M_PROCESS, filament_overrides=SIRAYA_85A, time_s=pred,
+        time=fmt_time(pred), filament_g=weight, layers=layers, bed_type=bed_type, bed_c=35, nozzle_c=240,
+        objects=objs, slicer="Bambu Studio 2.5.0.66 command line, arrange off (positions from layout)",
+        when=time.strftime("%Y-%m-%d %H:%M"))
+    (RUN / "pieces.json").write_text(json.dumps(rep, indent=1) + "\n")
+    print(f"A1 mini: {len(objs)} objects, TPU for slot {A1M_SLOT}, {fmt_time(pred)}, {weight:.2f} g, {layers} layers, bed "
+          f"{bed_type} {bed_c[:1]} C, nozzle {sorted(set(noz_c))} [{time.time() - t0:.0f} s] -> {rel(RUN / proj)}", flush=True)
 
 
 def cmd_bambu(a):
@@ -668,6 +804,9 @@ def cmd_bambu(a):
     bed_type = re.search(r"; curr_bed_type = (.+)", gcode).group(1).strip()
     if bed_type != P1S_PROCESS["curr_bed_type"] or not bed_c or bed_c[0] < 50:
         raise SystemExit(f"plate {bed_type!r}, bed {bed_c[:2]} C: the project is not set to the owner's textured PEI plate")
+    bad = check_bambu_gcode(gcode, "P1S", 220, 55)
+    if bad:
+        raise SystemExit("P1S project: " + "; ".join(bad))
     warn = res["sliced_plates"][0].get("warning_message")
     if warn:
         print("Bambu Studio warning:", warn, flush=True)
@@ -694,7 +833,7 @@ def cmd_xl(a):
     import dip_link_print_project as PP
     import trimesh
     rep = json.loads((RUN / "pieces.json").read_text())
-    tpu = [s for s in rep["pieces"] if s["printer"] == "xl"]
+    tpu = [s for s in rep["pieces"] if s["material"] == "85A"]
     PP.PFX, PP.WORK = PFX, WORK / "xl" / "slice"
     PP.COUPON_FLANKS = FLANKS if CONCEPT == "a" else FLANKS_B
     PP.bed_figure = lambda *args, **kw: None            # the plate map below replaces its notch-labelled bed figure
@@ -781,7 +920,7 @@ def plate_map(items, bed, title, out):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("stages", nargs="+", choices=["pieces", "bambu", "xl"])
+    ap.add_argument("stages", nargs="+", choices=["pieces", "bambu", "a1m", "xl"])
     ap.add_argument("--run", default="20261019", choices=list(RUNS), help="the run: 20261019 concept a, 20261019b concept b")
     a = ap.parse_args()
     set_run(a.run)
@@ -790,7 +929,7 @@ def main():
     for st in a.stages:
         t0 = time.time()
         print(f"== {st}", flush=True)
-        dict(pieces=cmd_pieces, bambu=cmd_bambu, xl=cmd_xl)[st](a)
+        dict(pieces=cmd_pieces, bambu=cmd_bambu, a1m=cmd_a1m, xl=cmd_xl)[st](a)
         print(f"== {st} [{time.time() - t0:.0f} s]", flush=True)
 
 

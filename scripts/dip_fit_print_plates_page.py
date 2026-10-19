@@ -82,37 +82,62 @@ def hmin(t):
     return f"{m // 60} h {m % 60} min" if m >= 60 else f"{m} min"
 
 
-def files_section(R, p1s, xl, n_pla, n_tpu):
+def files_section(R, p1s, xl, n_pla, n_tpu, a1m=None):
     ov = p1s["overrides"]
     xs = xl["settings"]
+    inside = "tip" if CONCEPT == "a" else "pad"
+    if a1m:
+        fo, po = a1m["filament_overrides"], a1m["overrides"]
+        tpu_txt = (
+            f"The 85A blocks print on the {esc(a1m['printer'])}, whose AMS lite feeds the Siraya Tech 85A through slot "
+            f"{a1m['slot']}. The TPU is the project&#8217;s only filament: in Bambu Studio&#8217;s print dialog, map it to "
+            f"slot {a1m['slot']} (or to the external spool if Bambu Studio refuses TPU in the AMS lite). The filament is "
+            f"Bambu&#8217;s Generic TPU with the settings of Siraya Tech&#8217;s profile as the XL printed the 85A tips: "
+            f"{fo['nozzle_temperature'][0]} &#176;C, a {fo['textured_plate_temp'][0]} &#176;C {esc(a1m['bed_type'])}, flow "
+            f"{fo['filament_flow_ratio'][0]}, {fo['filament_retraction_length'][0]} mm retraction, the fan off for "
+            f"{fo['close_fan_the_first_x_layers'][0]} layers, and a volumetric cap of "
+            f"{fo['filament_max_volumetric_speed'][0]} mm&#179;/s (about 24 mm/s at {po['layer_height']} mm layers); the "
+            f"process has {po['wall_loops']} walls, {po['sparse_infill_density']} gyroid, "
+            f"{po['elefant_foot_compensation']} mm elephant-foot compensation and no brim, as on the XL. The interference "
+            f"chosen from these blocks applies to {inside}s printed on the A1 mini; the XL prints its channels to its own "
+            "widths. When the XL is free, its project prints the same blocks on the v17 template: tool 2, "
+            f"{xs['layer_height']} mm layers, {xs['perimeters']} perimeters, {xs['fill_density']} gyroid, no pause.")
+    else:
+        tpu_txt = ("The XL project prints on the v17 template as the 85A fingertips did: tool 2, "
+                   f"{xs['layer_height']} mm layers, {xs['perimeters']} perimeters, {xs['fill_density']} gyroid, no pause.")
+    rows = (f"<tr><td>Bambu Lab P1S, PLA</td><td>{code(Path(p1s['project']).name)}</td><td>{n_pla} "
+            f"({len(p1s['objects'])} objects)</td><td>{esc(p1s['time'])}</td><td>{p1s['filament_g']:.1f} g</td></tr>")
+    if a1m:
+        rows += (f"<tr><td>Bambu Lab A1 mini, 85A in slot {a1m['slot']}</td><td>{code(Path(a1m['project']).name)}</td>"
+                 f"<td>{n_tpu}</td><td>{esc(a1m['time'])}</td><td>{a1m['filament_g']:.1f} g</td></tr>")
+    rows += (f"<tr><td>Prusa XL 5T, tool 2, 85A{' (when free)' if a1m else ''}</td><td>{code(Path(xl['project']).name)}"
+             f"</td><td>{n_tpu}</td><td>{esc(hmin(xl['time']))}</td><td>{xl['filament_g']:.1f} g</td></tr>")
+    tmap = (figure(ROOT / a1m["map"], f"The A1 mini plate from above; each block&#8217;s ID is engraved in its top face, "
+                   f"which lies inside the {inside}.", "A1 mini plate map with piece IDs") if a1m else
+            figure(ROOT / xl["map"], f"The XL plate from above; each block&#8217;s ID is engraved in its top face, which "
+                   f"lies inside the {inside}.", "XL plate map with piece IDs"))
     return (
         '<section id="files"><h2>1. Files and settings</h2>'
         f"<p>All files are in {code(rel(RUN) + '/')}. Open the P1S project in Bambu Studio and print it as it is: it is "
         f"sliced, with the G-code inside, for the {esc(p1s['printer'])} with {esc(p1s['filament'])} on the "
         f"{esc(p1s['bed_type'])} at {p1s['bed_c']} &#176;C. The process is {esc(p1s['presets']['process'])} changed to "
         f"{ov['layer_height']} mm layers, {ov['wall_loops']} walls, {ov['sparse_infill_density']} rectilinear infill, the "
-        "seam at the back, an automatic brim and no supports; Bambu Studio marks these values as changed. The XL project "
-        f"prints on the v17 template as the 85A fingertips did: tool 2, {xs['layer_height']} mm layers, "
-        f"{xs['perimeters']} perimeters, {xs['fill_density']} gyroid, no pause.</p>"
+        "seam at the back, an automatic brim and no supports; Bambu Studio marks these values as changed.</p>"
+        f"<p>{tpu_txt}</p>"
         '<div class="tw"><table class="facts"><tr><th>Plate</th><th>File</th><th>Pieces</th><th>Time</th>'
-        "<th>Filament</th></tr>"
-        f"<tr><td>Bambu Lab P1S, PLA</td><td>{code(Path(p1s['project']).name)}</td><td>{n_pla} "
-        f"({len(p1s['objects'])} objects)</td><td>{esc(p1s['time'])}</td><td>{p1s['filament_g']:.1f} g</td></tr>"
-        f"<tr><td>Prusa XL 5T, tool 2, 85A</td><td>{code(Path(xl['project']).name)}</td><td>{n_tpu}</td>"
-        f"<td>{esc(hmin(xl['time']))}</td><td>{xl['filament_g']:.1f} g</td></tr></table></div>"
+        f"<th>Filament</th></tr>{rows}</table></div>"
         f"<p>Each piece's STL, in print orientation on the bed and named by its ID, is in {code(rel(RUN / 'stl') + '/')}, "
         "for printing one piece again.</p>"
         + figure(ROOT / p1s["map"], "The P1S plate from above, front edge at the bottom. Bold: the ID printed on the "
                  "piece; below: its variant.", "P1S plate map with piece IDs")
-        + figure(ROOT / xl["map"], "The XL plate from above; each block's ID is engraved in its top face, which lies "
-                 f"inside the {'tip' if CONCEPT == 'a' else 'pad'}.", "XL plate map with piece IDs")
-        + "</section>")
+        + tmap + "</section>")
 
 
 def ids_section(pieces):
     rows = "".join(
         f"<tr><td>{esc(s['id'])}</td><td>{esc(s['piece'])}{' (2)' if s.get('copies', 1) > 1 else ''}</td>"
-        f"<td>{esc(s['variant'])}</td><td>{esc(s['mark'])}</td><td>{'P1S' if s['printer'] == 'p1s' else 'XL'}</td></tr>"
+        f"<td>{esc(s['variant'])}</td><td>{esc(s['mark'])}</td>"
+        f"<td>{dict(p1s='P1S', a1m='A1 mini', xl='XL').get(s['printer'], s['printer'])}</td></tr>"
         for s in pieces)
     note = ("The digits of K, F and C give the variant in hundredths of a millimetre: K25 is the key with a 0.25 mm "
             "detent, F10 the channel block 0.10 mm narrower per flank, C30 the carrier with 0.30 mm chip windows."
@@ -197,8 +222,9 @@ def changes_section():
     return (
         '<section id="changes"><h2>6. Changes from the pieces of 13:08</h2>'
         f"<p>The set in {code(STUDY + '/v2/coupons/')} was four XL projects with PLA on tool 3. This run differs in "
-        "five ways.</p><ul>"
-        "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the XL.</li>"
+        "six ways.</p><ul>"
+        "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the A1 mini (from 16:40, while the XL "
+        "is in use) or the XL.</li>"
         "<li>Every piece has its ID printed on it; the three window gauges had none.</li>"
         "<li>The detent sweep reaches 0.45 mm and the flank sweep 0.30 and 0.40 mm, so that each choice can fall "
         "inside its sweep.</li>"
@@ -207,7 +233,11 @@ def changes_section():
         "and cable-groove pieces P, H and W join them.</li>"
         "<li>The carrier is cut at the bridge&#8217;s flat, which left it standing on two 0.8 mm strips under the "
         "bridge&#8217;s curved face; that face reaches the full section 1.8 mm above the bed. The plates fill it down to "
-        "the bed (199.5 mm&#179;); the J1 plug, the cable and the board lie outside the fill.</li></ul></section>")
+        "the bed (199.5 mm&#179;); the J1 plug, the cable and the board lie outside the fill.</li>"
+        "<li>The first P1S project of this run started with Bambu Studio&#8217;s generic start G-code: it loaded no "
+        "filament from the AMS and left the nozzle at 205 &#176;C. Since 16:40 every Bambu project has the printer&#8217;s "
+        "own start, end and filament-change G-code, and the build stops unless the G-code loads from the AMS and heats to "
+        "the filament&#8217;s temperatures.</li></ul></section>")
 
 
 def future_section():
@@ -228,7 +258,7 @@ def future_section():
 def terms_section_b():
     T = [("Test piece", "A small part printed by the same process as the real part, to decide one fit before the whole "
           "DIP link is printed; in materials testing it is called a coupon."),
-         ("Rail and groove", "Concept b&#8217;s cover carries two PLA dovetail rails on its front face; the 85A pad has "
+         ("Rail and groove", "Concept b&#8217;s cover has two PLA dovetail rails on its front face; the 85A pad has "
           "two matching grooves in its back face and is pressed onto the cover until both rails snap in."),
          ("Flank interference", "How much narrower the pad&#8217;s groove is than the rail on each flank, in mm; 0 is a "
           "line-to-line fit; the design has 0.05."),
@@ -269,13 +299,18 @@ def changes_section_b():
     return (
         '<section id="changes"><h2>6. Changes from concept b&#8217;s coupons of 18 October</h2>'
         f"<p>The rail coupon in {code(STUDY + '/v2/b/print/')} was a rail strip and three groove blocks (0, 0.05 and "
-        "0.10 mm per flank) as XL projects. This run differs in four ways.</p><ul>"
-        "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the XL.</li>"
+        "0.10 mm per flank) as XL projects. This run differs in five ways.</p><ul>"
+        "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the A1 mini (from 16:40, while the XL "
+        "is in use) or the XL.</li>"
         "<li>Every piece has its ID printed on it.</li>"
         "<li>The groove sweep reaches 0.20 mm per flank.</li>"
         "<li>Three tongues with seat pockets 0.35, 0.45 and 0.55 mm deep, the neck carrier with J1&#8217;s slot and the "
         "cable&#8217;s groove of 19 October, and two covers join the snap fit; the neck carrier&#8217;s tongue is "
-        "thickened 1.45 mm to the spine&#8217;s back so that the piece stands on one flat face.</li></ul></section>")
+        "thickened 1.45 mm to the spine&#8217;s back so that the piece stands on one flat face.</li>"
+        "<li>The first P1S project of this run started with Bambu Studio&#8217;s generic start G-code: it loaded no "
+        "filament from the AMS and left the nozzle at 205 &#176;C. Since 16:40 every Bambu project has the printer&#8217;s "
+        "own start, end and filament-change G-code, and the build stops unless the G-code loads from the AMS and heats to "
+        "the filament&#8217;s temperatures.</li></ul></section>")
 
 
 def future_section_b():
@@ -293,32 +328,34 @@ def future_section_b():
 def build():
     R = json.loads((RUN / "pieces.json").read_text())
     pieces = R["pieces"]
-    p1s, xl = R["plates"]["p1s"], R["plates"]["xl"]
-    n_pla = sum(s.get("copies", 1) for s in pieces if s["printer"] == "p1s")
-    n_tpu = sum(1 for s in pieces if s["printer"] == "xl")
+    p1s, xl, a1m = R["plates"]["p1s"], R["plates"]["xl"], R["plates"].get("a1m")
+    n_pla = sum(s.get("copies", 1) for s in pieces if s["material"] == "PLA")
+    n_tpu = sum(1 for s in pieces if s["material"] == "85A")
+    tpu_where = (f"on the Bambu Lab A1 mini ({esc(a1m['time'])}, {a1m['filament_g']:.1f} g; or on tool 2 of the Prusa XL)"
+                 if a1m else f"on tool 2 of the Prusa XL ({esc(hmin(xl['time']))}, {xl['filament_g']:.1f} g)")
     with open(RUN / "records.csv") as f:
         rows = list(csv.DictReader(f))
     lede_b = (f"Two plates print the fit tests of DIP-link concept b, v2 (the link 9.75 mm longer, the Qwiic cable turned "
               f"toward the back at the plug and routed past the slotted arm): {n_pla} PLA pieces on the Bambu Lab P1S as "
               f"one sliced Bambu Studio project ({esc(p1s['time'])}, {p1s['filament_g']:.1f} g) and {n_tpu} Siraya Tech "
-              f"85A groove blocks on tool 2 of the Prusa XL ({esc(hmin(xl['time']))}, {xl['filament_g']:.1f} g). Each "
+              f"85A groove blocks {tpu_where}. Each "
               "piece has its ID printed on it: R for the cover's rail strip, G for the groove blocks, S for the three "
               "tongues with seat pockets, N for the neck carrier with J1's slot and the cable groove, V for the two covers. "
               "The checks of Section 4 fill records.csv, and each answer sets one parameter of the design file.")
     lede = (f"Two plates print every fit test of DIP-link concept a, v2 (the link 9.75 mm longer, with the Qwiic cable "
             f"routed past the slotted arm): {n_pla} PLA pieces on the Bambu Lab P1S as one sliced Bambu Studio project "
-            f"({esc(p1s['time'])}, {p1s['filament_g']:.1f} g) and {n_tpu} Siraya Tech 85A channel blocks on tool 2 of "
-            f"the Prusa XL ({esc(hmin(xl['time']))}, {xl['filament_g']:.1f} g). Each piece has its ID printed on it: K for the four PLA "
+            f"({esc(p1s['time'])}, {p1s['filament_g']:.1f} g) and {n_tpu} Siraya Tech 85A channel blocks {tpu_where}. "
+            "Each piece has its ID printed on it: K for the four PLA "
             "keys, F for the channel blocks and C for the three board carriers, the digits giving the variant in "
             "hundredths of a millimetre; P, H and W are the pin, screw-hole and cable-groove pieces, with each size "
             "engraved beside it. The checks of Section 4 fill records.csv, and each answer sets one parameter of the "
             "design file.")
     if CONCEPT == "b":
         lede = lede_b
-        secs = [files_section(R, p1s, xl, n_pla, n_tpu), ids_section(pieces), terms_section_b(), checks_section_b(),
+        secs = [files_section(R, p1s, xl, n_pla, n_tpu, a1m), ids_section(pieces), terms_section_b(), checks_section_b(),
                 records_section(rows), changes_section_b(), future_section_b()]
     else:
-        secs = [files_section(R, p1s, xl, n_pla, n_tpu), ids_section(pieces), terms_section(), checks_section(),
+        secs = [files_section(R, p1s, xl, n_pla, n_tpu, a1m), ids_section(pieces), terms_section(), checks_section(),
                 records_section(rows), changes_section(), future_section()]
     toc = ["<li><a href='#files'>1. Files and settings</a></li>", "<li><a href='#ids'>2. Pieces and their IDs</a></li>",
            "<li><a href='#terms'>3. Terms</a></li>", "<li><a href='#checks'>4. Checks, in order</a></li>",
