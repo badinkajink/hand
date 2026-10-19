@@ -670,10 +670,13 @@ def b_print():
         if orient == "back":
             dz = B.TIP["x_back"] - B.X_SLOT
             for q in pk:
-                for f_ in ("floor_mm", "top_mm", "magnet_top_print_mm", "pause_print_z"):
+                for f_ in ("floor_mm", "top_mm", "magnet_top_print_mm"):
                     if f_ in q:
                         q[f_] = round(q[f_] - dz, 3)
-                q["pause_layer"] = int(round(q["pause_print_z"] / 0.2))
+                # the pause goes before the pocket's bridge layer, the first 0.2 mm layer sliced (at its mid-height) above
+                # the pocket's top; the lowered pause is off the layer grid when dz is not a multiple of 0.2 mm
+                q["pause_layer"] = int(math.ceil((q["top_mm"] + 0.1) / 0.2 - 1e-9))
+                q["pause_print_z"] = round(0.2 * q["pause_layer"], 3)
         name = f"{pf}_print_pad_{key.replace('.', 'p')}_85a_t2_g30"
         ns = argparse.Namespace(seat=SEAT, no_slice=False)
         rep = SP.write_and_check(part, pk, sheet["pocket_gaps"], sheet["mesh"], name, sheet["tip"], sheet["layout"],
@@ -780,12 +783,12 @@ def b_section():
     jb = {n: (np.array(lo), np.array(hi)) for n, lo, hi in B.j1_boxes_b()}
     hd = jb["j1_header"]
     axs[0].annotate("J1 on the whole tab, in the neck's slot", xy=((hd[0][0] + hd[1][0]) / 2, (hd[0][2] + hd[1][2]) / 2),
-                    xytext=(10.5, B.Z_CONTACT + 17.0), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
+                    xytext=(10.5, B.Z_CONTACT + 14.4), fontsize=15, va="top", arrowprops=dict(arrowstyle="->", lw=1.0))
     axs[0].annotate("Plug and the cable's\nfirst 3 mm; the slot\nopens through the\nbridge's top",
-                    xy=((jb["plug"][0][0] + jb["plug"][1][0]) / 2, jb["plug"][1][2] - 0.5), xytext=(9.0, -44.5), fontsize=15,
+                    xy=((jb["plug"][0][0] + jb["plug"][1][0]) / 2, jb["plug"][1][2] - 0.5), xytext=(10.5, -64.5), fontsize=15, va="top",
                     arrowprops=dict(arrowstyle="->", lw=1.0))
     axs[0].annotate("Slot open at the neck's\nunderside: the board\nslides in along +z", xy=(2.2, B.TIP["z_mount"]),
-                    xytext=(10.5, B.TIP["z_mount"] - 11.0), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
+                    xytext=(10.5, B.TIP["z_mount"] - 6.0), fontsize=15, va="top", arrowprops=dict(arrowstyle="->", lw=1.0))
     axs[0].annotate("PIP axis", xy=(0.0, -51.55), xytext=(-12.5, -43.5), fontsize=15, arrowprops=dict(arrowstyle="->", lw=1.0))
     from matplotlib.patches import Patch
     fig.legend([Patch(fc=c, ec="k") for _, _, c in parts] + [Patch(fc="#b03a2e", ec="k")],
@@ -843,6 +846,21 @@ def b_r4(B):
                         tpu_behind_pockets_mm=round(B.X_SLOT - float(Vv[:, 0].max()), 2))
         print("R4", key, out[key], flush=True)
     return out
+
+
+def project_summary(v):
+    """Print time, filament, pauses and the slice checks of a print project's record: the PLA projects
+    (dip_link_print_project) give them under 'slice', the pads (sim2real_fingertip_prints) under 'slice' -> 'check', with a
+    pass when every pocket's pause comes before its bridge layer, no bead lies in a pocket and the walls pass."""
+    sl = v.get("slice") or {}
+    ck = sl.get("check") or {}
+    ok = sl.get("checks_pass")
+    if ok is None and ck.get("pockets"):
+        ok = bool(v.get("walls_ok") and all(q.get("pause_before_bridge") and q.get("beads_in_void_max", 0) == 0
+                                            for q in ck["pockets"]))
+    return dict(project=v.get("project"), print_time=sl.get("print_time") or ck.get("print_time") or sl.get("time"),
+                filament_g=sl.get("filament_g") or ck.get("filament_g"),
+                pauses_mm=[q.get("print_z") for q in v.get("pauses", [])], checks_pass=ok)
 
 
 def b_docs():
@@ -952,11 +970,7 @@ def b_docs():
                  "plane (scripts/dip_link_concept_b.py fe, concept_b/fe/fem_coarse.jsonl); the five-magnet 11/22 has no finite "
                  "elements, so only its static field, gain and chip-to-magnet distance"),
         mass_g=mass, prep=prep, step=step,
-        print_projects={k: dict(project=v.get("project"),
-                                print_time=(v.get("slice") or {}).get("print_time"),
-                                filament_g=(v.get("slice") or {}).get("filament_g"),
-                                pauses_mm=[q.get("print_z") for q in v.get("pauses", [])],
-                                checks_pass=(v.get("slice") or {}).get("checks_pass")) for k, v in prj.items()},
+        print_projects={k: project_summary(v) for k, v in prj.items()},
         parts_list=[
             dict(item=f"DIP link, v2 ({B.NECK:g} mm longer, J1 slot, 1.8 mm screw holes)", material="PLA", qty=1,
                  file=f"v2/b/cad/{pf}_dip_link.stl", step=f"v2/b/cad/{pf}_dip_link_new_body.step (new body, exact) and "
