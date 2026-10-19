@@ -234,11 +234,20 @@ A1M_SOLID = (
     "stiffer behind their walls than the tip or pad they test; record the fits from blocks of the 17:06 project.</li>")
 
 
+def plug_slot_item():
+    where = ("The carriers&#8217; J1 slot" if CONCEPT == "a" else "The neck carrier&#8217;s J1 slot")
+    printed = ("The carriers C15 to C30 printed at about 17:00 have the 6.6 mm slot; the plug does not enter it (owner, "
+               "17:40). " if CONCEPT == "a" else "")
+    return ("<li>" + where + " is 7.8 mm wide since 17:50 (6.6 mm before): the Qwiic cable&#8217;s plug is JST&#8217;s "
+            "SHR-04V-S-B, 7.0 mm wide at its protrusions, where the model had the 5.0 mm SHR-04V-S. The slot clears the "
+            "plug by 0.4 mm a side and J1 by 0.9 mm. " + printed + "</li>")
+
+
 def changes_section():
     return (
         '<section id="changes"><h2>6. Changes from the pieces of 13:08</h2>'
         f"<p>The set in {code(STUDY + '/v2/coupons/')} was four XL projects with PLA on tool 3. This run differs in "
-        "seven ways.</p><ul>"
+        "eight ways.</p><ul>"
         "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the A1 mini (from 16:40, while the XL "
         "is in use) or the XL.</li>"
         "<li>Every piece has its ID printed on it; the three window gauges had none.</li>"
@@ -253,7 +262,7 @@ def changes_section():
         "<li>The first P1S project of this run started with Bambu Studio&#8217;s generic start G-code: it loaded no "
         "filament from the AMS and left the nozzle at 205 &#176;C. Since 16:40 every Bambu project has the printer&#8217;s "
         "own start, end and filament-change G-code, and the build stops unless the G-code loads from the AMS and heats to "
-        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + "</ul></section>")
+        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + plug_slot_item() + "</ul></section>")
 
 
 def future_section():
@@ -315,7 +324,7 @@ def changes_section_b():
     return (
         '<section id="changes"><h2>6. Changes from concept b&#8217;s coupons of 18 October</h2>'
         f"<p>The rail coupon in {code(STUDY + '/v2/b/print/')} was a rail strip and three groove blocks (0, 0.05 and "
-        "0.10 mm per flank) as XL projects. This run differs in six ways.</p><ul>"
+        "0.10 mm per flank) as XL projects. This run differs in seven ways.</p><ul>"
         "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the A1 mini (from 16:40, while the XL "
         "is in use) or the XL.</li>"
         "<li>Every piece has its ID printed on it.</li>"
@@ -326,7 +335,7 @@ def changes_section_b():
         "<li>The first P1S project of this run started with Bambu Studio&#8217;s generic start G-code: it loaded no "
         "filament from the AMS and left the nozzle at 205 &#176;C. Since 16:40 every Bambu project has the printer&#8217;s "
         "own start, end and filament-change G-code, and the build stops unless the G-code loads from the AMS and heats to "
-        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + "</ul></section>")
+        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + plug_slot_item() + "</ul></section>")
 
 
 def future_section_b():

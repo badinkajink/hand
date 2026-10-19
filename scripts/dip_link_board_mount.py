@@ -217,16 +217,17 @@ def freecad_step():
 
 # ----------------------------------------------------------------------------------------------- the Qwiic connector
 # JST SH, 1.0 mm pitch (JST catalogue eSH): side-entry header SM04B-SRSS-TB 6.0 mm wide (B), 4.25 mm deep plus 0.7 mm of
-# leads, 2.9 mm tall; housing SHR-04V-S 5.0 mm wide (B, without protrusions), 2.8 mm tall; mated pair 6.25 mm long and
-# 2.96 mm tall, so the housing stands 2.0 mm out of the header's mating face. Qwiic cables: four 28 AWG wires (insulation
-# 0.4-0.8 mm in the SH range), modelled as 0.8 mm wires at the 1.0 mm pitch, straight for 3.0 mm out of the housing.
-QW = dict(hdr_w=6.0, hdr_d=4.25, lead=0.7, hdr_h=2.9, plug_w=5.0, plug_out=2.0, plug_h=2.96, wire_d=0.8, wire_run=3.0)
+# leads, 2.9 mm tall; housing SHR-04V-S-B, the Qwiic cable's, 7.0 mm wide (B with protrusions; 5.0 mm without), 2.8 mm
+# tall; mated pair 6.25 mm long and 2.96 mm tall, so the housing stands 2.0 mm out of the header's mating face. Qwiic
+# cables: four 28 AWG wires (insulation 0.4-0.8 mm in the SH range), modelled as 0.8 mm wires at the 1.0 mm pitch, straight
+# for 3.0 mm out of the housing. The housing was the 5.0 mm SHR-04V-S until 2026-10-19 17:45 (final/ was built with it).
+QW = dict(hdr_w=6.0, hdr_d=4.25, lead=0.7, hdr_h=2.9, plug_w=7.0, plug_out=2.0, plug_h=2.96, wire_d=0.8, wire_run=3.0)
 ENVELOPE = dict(z_end=-88.71, half_w=10.5, x_back=6.45)   # the tip's end, the 21 mm rigid band, the tip's back plane
 
 
 def j1_parts_board():
     """J1 as soldered on the ReSkin 5X (spec.json: body u -2.95..3.05, v -18.09..-13.14 including the leads, mating face
-    toward the tab's end), the mated SHR-04V-S housing and the first 3 mm of the Qwiic cable, as (name, lo, hi) boxes in
+    toward the tab's end), the mated SHR-04V-S-B housing and the first 3 mm of the Qwiic cable, as (name, lo, hi) boxes in
     the board frame (u, v, w), w the height above the component face; and the tab's FR-4."""
     v_mate = -18.09
     uc = 0.05

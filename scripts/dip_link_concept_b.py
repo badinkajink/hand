@@ -871,9 +871,10 @@ def dip_link_parts(K):
     if j1:
         # J1, its plug and the cable in a slot from the neck's underside through the bridge's top, and the seat pocket open
         # at the tongue's distal end: the board slides in along +z, J1 first, until the main square meets the proximal wall
+        import dip_link_concept_a as A
         B = [list(lo) + list(hi) for _, lo, hi in j1_boxes_b()]
-        lo = [min(b[k] for b in B) - 0.3 for k in range(3)]
-        hi = [max(b[k + 3] for b in B) + 0.3 for k in range(3)]
+        lo = [min(b[k] for b in B) - A.J1_SLOT_CLEAR[k] for k in range(3)]
+        hi = [max(b[k + 3] for b in B) + A.J1_SLOT_CLEAR[k] for k in range(3)]
         cuts.append(K.box((lo[0], lo[1], TIP["z_mount"] - 0.1), (X_COMP + 0.05, hi[1], -46.55)))
         cuts.append(K.box((X_SEAT - RIM_H - 0.1, -10.00, TIP["z_end"] - 0.1), (X_SEAT, 10.05, Z_BOARD[0])))
     groove = cable_cuts(K) if cable_on() else []
@@ -1017,9 +1018,10 @@ def hardware():
     return out
 
 
-QW = dict(hdr_w=6.0, hdr_d=4.25, lead=0.7, hdr_h=2.9, plug_w=5.0, plug_out=2.0, plug_h=2.96, wire_d=0.8, wire_run=3.0)
+QW = dict(hdr_w=6.0, hdr_d=4.25, lead=0.7, hdr_h=2.9, plug_w=7.0, plug_out=2.0, plug_h=2.96, wire_d=0.8, wire_run=3.0)
 # JST SH catalogue sizes (scripts/dip_link_board_mount.py QW): side-entry header SM04B-SRSS-TB 6.0 wide, 4.25 deep plus
-# 0.7 mm of leads, 2.9 tall; housing SHR-04V-S 5.0 wide, 2.96 tall mated, 2.0 out of the header; the cable's first 3 mm
+# 0.7 mm of leads, 2.9 tall; housing SHR-04V-S-B (the Qwiic cable's) 7.0 wide at its protrusions, 2.96 tall mated, 2.0 out
+# of the header (5.0 wide, SHR-04V-S, until 2026-10-19 17:45); the cable's first 3 mm
 
 
 def qwiic_header_b():

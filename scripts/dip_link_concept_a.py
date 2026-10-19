@@ -103,14 +103,17 @@ P = dict(
     cable_anchor_x=4.0, cable_anchor_z=-56.5,   # where the face groove ends, below the PIP axis (F; the arm stays put)
 )
 # JST SH catalogue sizes (eSH) of the board's Qwiic connector J1 and its mated plug: side-entry header SM04B-SRSS-TB 6.0 mm
-# wide, 4.25 mm deep plus 0.7 mm of leads, 2.9 mm tall; housing SHR-04V-S 5.0 mm wide, 2.96 mm tall mated, 2.0 mm out of the
-# header's mating face; Qwiic cable 4 x 28 AWG modelled as 0.8 mm wires, straight for 3.0 mm out of the housing.
-QW = dict(hdr_w=6.0, hdr_d=4.25, lead=0.7, hdr_h=2.9, plug_w=5.0, plug_out=2.0, plug_h=2.96, wire_d=0.8, wire_run=3.0)
+# wide, 4.25 mm deep plus 0.7 mm of leads, 2.9 mm tall; housing SHR-04V-S-B, the Qwiic cable's, 7.0 mm wide at its
+# protrusions (B with protrusions; 5.0 mm without), 2.96 mm tall mated, 2.0 mm out of the header's mating face; Qwiic cable
+# 4 x 28 AWG modelled as 0.8 mm wires, straight for 3.0 mm out of the housing. Until 2026-10-19 17:45 the plug was the
+# 5.0 mm SHR-04V-S and the J1 slot 6.6 mm wide; the owner found the cable's plug "7mm wide, conservatively" against it.
+QW = dict(hdr_w=6.0, hdr_d=4.25, lead=0.7, hdr_h=2.9, plug_w=7.0, plug_out=2.0, plug_h=2.96, wire_d=0.8, wire_run=3.0)
+J1_SLOT_CLEAR = (0.3, 0.4, 0.3)     # the J1 slot's clearance (x, y, z in F) around J1, the plug and the cable start, mm
 
 
 def j1_parts_board():
     """J1 as soldered on the ReSkin 5X (spec.json: body u -2.95..3.05, v -18.09..-13.14 including the leads, mating face
-    toward the tab's end), the mated SHR-04V-S housing and the first 3 mm of the Qwiic cable, as (name, lo, hi) boxes in
+    toward the tab's end), the mated SHR-04V-S-B housing and the first 3 mm of the Qwiic cable, as (name, lo, hi) boxes in
     the board frame (u, v, w), w the height above the component face; and the tab's FR-4."""
     v_mate = -18.09
     uc = 0.05
@@ -572,7 +575,7 @@ def dip_link_new(K, p=P):
                           L["x_sh1"] + 0.05))
     if p.get("j1_kept"):                                   # a slot for J1, its plug and the cable, open through the bridge's top
         B = np.array([np.r_[lo, hi] for _, lo, hi in j1_boxes_F(p)])
-        lo, hi = B[:, :3].min(0) - 0.3, B[:, 3:].max(0) + 0.3
+        lo, hi = B[:, :3].min(0) - np.array(J1_SLOT_CLEAR), B[:, 3:].max(0) + np.array(J1_SLOT_CLEAR)
         cuts.append(K.box((lo[0], lo[1], lo[2]), (L["x_cf"] + 0.05, hi[1], PIP[2] + 5.0)))
     return K.sub(body, K.union(cuts))
 
