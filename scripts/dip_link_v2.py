@@ -1662,10 +1662,13 @@ def cmd_summary(a):
     import dip_link_params as DP
     neck = {k: DP.load(f)[1]["neck_len"] for k, f in (("a", PARAMS_A), ("b", PARAMS_B))}
     pa, pb = "20261018-dip_link_v2a", "20261018-dip_link_v2b"
-    order = [
-        item("a", f"{pa}_fit_coupon_keys_pla_t3", "a: PLA key sections with detents (tool 3)"),
-        item("a", f"{pa}_fit_coupon_channels_85a_t2", "a: 85A channel blocks at 0, 0.05, 0.10 mm per flank (tool 2); choose the "
-                                                       "channel interference"),
+    run = REPO / "docs/experiments/20261019-dip_link_fit_prints"          # the fit tests of 2026-10-19, one plate per printer
+    plates = json.loads((run / "pieces.json").read_text()).get("plates", {}) if (run / "pieces.json").exists() else {}
+    fit = [dict(what=f"fit tests of 2026-10-19, {k.upper()} plate ({v.get('printer')}): pieces with printed IDs; "
+                     "docs/experiments/20261019-dip_link_fit_prints/20261019-dip_link_fit_prints.html",
+                project=v.get("project"), print_time=v.get("time"), filament_g=v.get("filament_g"), pauses_mm=[],
+                checks_pass=v.get("checks_pass", True)) for k, v in plates.items()]
+    order = fit + [
         bambu("b", pb, "rails", "b: PLA strip with the cover's two rails (Bambu)"),
         item("b", f"{pb}_fit_coupon_grooves_85a_t2", "b: 85A blocks with the pad's grooves at 0, 0.05, 0.10 mm per flank "
                                                       "(tool 2); choose the groove interference"),
@@ -1706,12 +1709,14 @@ def cmd_summary(a):
                    static_field_U1="field at the centre chip U1 from the tip's magnets at rest, mT; gain_sel is the highest "
                                    "MLX90393 gain whose range covers 1.25 times the largest component"),
         print_first=order, alternatives=alt,
-        why_this_order=("The four coupons (about 35 min) set the interference of a's channels and b's grooves before a tip or "
-                        "pad takes magnets. a comes before b: it is the judge's final with the owner's 18:45 changes, and its "
-                        "tip is the whole 11/22 shape with two channels, while b's pad is the 11/22 cut 3.95 mm behind its "
-                        "magnets. The block versions of both are the alternatives."),
-        designs=designs, settings="each project carries its printer settings (Prusa XL 5T, PLA on tool 3 at 0.1 mm layers, "
-                                  "Siraya 85A on tool 2 at 0.2 mm layers, 30 % gyroid, M601 pauses at the 2.9 mm seats)",
+        why_this_order=("The fit tests of 2026-10-19 (one P1S plate in PLA, one XL plate in 85A) set a's key and channel "
+                        "fit, the board's window and pin fit, the self-forming holes and the cable groove before a whole link "
+                        "is printed; b's rail strip and groove blocks set b's snap fit. a comes before b: it is the judge's "
+                        "final with the owner's changes, and its tip is the whole 11/22 shape with two channels, while b's pad "
+                        "is the 11/22 cut 3.95 mm behind its magnets. The block versions of both are the alternatives."),
+        designs=designs, settings=("PLA parts print on the Bambu P1S from print-oriented STLs (settings in "
+                                   "v2/a|b/print/*_pla_bambu.json); 85A tips and pads on the Prusa XL 5T's tool 2 from "
+                                   "PrusaSlicer projects (0.2 mm layers, 30 % gyroid, M601 pauses at the 2.9 mm seats)"),
         files=dict(a="docs/experiments/20261018-dip_link_board_mount/v2/a/", b="docs/experiments/20261018-dip_link_board_mount/v2/b/",
                    tips="docs/experiments/20261018-dip_link_board_mount/v2/print/",
                    lengthening=f"docs/experiments/20261018-dip_link_board_mount/v2/{DATE}-v2_lengthening.json"),
