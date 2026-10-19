@@ -984,7 +984,8 @@ def b_docs():
                       "flank", qty=1, file=f"v2/b/print/{pf}_fit_coupon_rails_pla_t3.3mf and {pf}_fit_coupon_grooves_85a_t2.3mf"),
             dict(item="N52 disc magnet 3 x 2 mm, axially magnetized", qty=5),
             dict(item="ReSkin 5X board as supplied (J1 kept, tab not cut)", material="FR-4 0.6 mm", qty=1),
-            dict(item=f"M2 x {B.SCREW_L:g} cheese-head screw, DIN 84 / ISO 1207", material="brass or stainless A2", qty=4),
+            dict(item=f"M2 x {B.SCREW_L:g} cheese-head screw, DIN 84 / ISO 1207", material="brass (R10: no ferromagnetic "
+                 "fastener within 15 mm of a chip; A2 stainless can be weakly magnetic after cold forming)", qty=4),
             dict(item="Qwiic cable (JST SH 4-pin) from J1 to the controller", qty=1)],
         assembly=[
             "Print the rail fit coupon first and choose the groove interference (0, 0.05 or 0.10 mm per flank).",
@@ -1041,6 +1042,78 @@ def cmd_b(a):
         print(f"== b: {stage} [{time.time() - t0:.0f} s]", flush=True)
 
 
+# ----------------------------------------------------------------------------------------------- summary
+def cmd_summary(a):
+    """v2/20261018-v2_summary.json: what to print first and each design's numbers, from v2/a and v2/b (evaluation.json and
+    the print projects' records)."""
+    ev = {k: json.loads((V2 / k / "evaluation.json").read_text()) for k in ("a", "b")}
+    prj = {k: {f.stem: project_summary(json.loads(f.read_text())) for f in sorted((V2 / k / "print").glob("*.json"))}
+           for k in ("a", "b")}
+    lg = json.loads((V2 / f"{DATE}-v2_lengthening.json").read_text())
+
+    def item(k, stem, what):
+        r = prj[k][stem]
+        return dict(what=what, project=r["project"], print_time=r["print_time"], filament_g=r["filament_g"],
+                    pauses_mm=r["pauses_mm"], checks_pass=r["checks_pass"])
+    pa, pb = "20261018-dip_link_v2a", "20261018-dip_link_v2b"
+    order = [
+        item("a", f"{pa}_fit_coupon_keys_pla_t3", "a: PLA key sections with detents (tool 3)"),
+        item("a", f"{pa}_fit_coupon_channels_85a_t2", "a: 85A channel blocks at 0, 0.05, 0.10 mm per flank (tool 2); choose the "
+                                                       "channel interference"),
+        item("b", f"{pb}_fit_coupon_rails_pla_t3", "b: PLA strip with the cover's two rails (tool 3)"),
+        item("b", f"{pb}_fit_coupon_grooves_85a_t2", "b: 85A blocks with the pad's grooves at 0, 0.05, 0.10 mm per flank "
+                                                      "(tool 2); choose the groove interference"),
+        item("a", f"{pa}_print_link_clamp_coupon_pla_t3", "a: DIP link, clamp plate and pin-fit coupon (PLA, tool 3)"),
+        item("a", f"{pa}_print_tip_ell11_5_channels_85a_t2_g30", "a: 11/22 half-ellipsoid tip with the key channels and five "
+                                                                 "magnets (85A, tool 2)"),
+        item("b", f"{pb}_print_link_cover_pla_t3", "b: DIP link and cover (PLA, tool 3)"),
+        item("b", f"{pb}_print_pad_ell11_5_85a_t2_g30", "b: 11/22 half-ellipsoid pad with five magnets (85A, tool 2)")]
+    alt = [item("a", f"{pa}_print_tip_block5_channels_85a_t2_g30", "a: five-magnet block tip with the key channels"),
+           item("b", f"{pb}_print_pad_block5_85a_t2_g30", "b: five-magnet block pad")]
+    ca, cb = ev["a"]["clearance"]["per_part"], ev["b"]["clearance"]["per_part"]
+    designs = dict(
+        a=dict(pip_to_tip_mm=lg["choice"]["a"]["pip_to_tip_mm"], lengthening_mm=lg["choice"]["a"]["lengthening_mm"],
+               least_clearance_mm=dict(dip_link=ca["dip_link_new"]["min_mm"], j1_plug_cable=ca["qwiic_connector"]["min_mm"]),
+               block5_force_resolution_N=ev["a"]["sensing"]["block5_force_resolution_30_N"],
+               static_field_U1_mT={k: v["B_U1_mT"] for k, v in ev["a"]["sensing"]["static_fields"].items()},
+               gain_sel={k: v["gain_sel"] for k, v in ev["a"]["sensing"]["static_fields"].items()},
+               chip_to_magnet_surface_mm={k: v["chip_to_magnet_surface_mm"] for k, v in ev["a"]["sensing"]["static_fields"].items()},
+               mass_without_tip_g=ev["a"]["mass_g"]["total_without_tip"], open_items=ev["a"]["open_items"]),
+        b=dict(pip_to_tip_mm=lg["choice"]["b"]["pip_to_tip_mm"], lengthening_mm=lg["choice"]["b"]["lengthening_mm"],
+               least_clearance_mm=dict(dip_link=cb["dip_link_new_body"]["min_mm"], j1_plug_cable=cb["qwiic_connector"]["min_mm"]),
+               block5_force_resolution_N=ev["b"]["sensing"]["design_point"]["force_resolution_gain_N"],
+               static_field_U1_mT={k: v["B_U1_mT"] for k, v in ev["b"]["sensing"]["static_fields"].items()},
+               gain_sel={k: v["gain_sel"] for k, v in ev["b"]["sensing"]["static_fields"].items()},
+               chip_to_magnet_surface_mm={k: v["chip_to_magnet_surface_mm"] for k, v in ev["b"]["sensing"]["static_fields"].items()},
+               mass_without_tip_g=ev["b"]["mass_g"]["total_without_pad"], open_items=ev["b"]["open_items"]))
+    out = dict(
+        title="Printable v2 of the DIP-link designs a and b: what to print first",
+        terms=dict(pip_to_tip="PIP axis (z_F -51.55) to the tip's end, mm; 37.16 mm on the current hand (the hand model needs "
+                              "the new length)",
+                   least_clearance="least signed distance to the MCP link and the PIP servo over PIP -18 to 92 deg, mm; R7 "
+                                   "asks 0.5 mm",
+                   force_resolution="Cramer-Rao bound of the normal force at the contact point, five-magnet block, 30 % "
+                                    "gyroid, at the gain the field needs, N",
+                   static_field_U1="field at the centre chip U1 from the tip's magnets at rest, mT; gain_sel is the highest "
+                                   "MLX90393 gain whose range covers 1.25 times the largest component"),
+        print_first=order, alternatives=alt,
+        why_this_order=("The four coupons (about 35 min) set the interference of a's channels and b's grooves before a tip or "
+                        "pad takes magnets. a comes before b: it is the judge's final with the owner's 18:45 changes, and its "
+                        "tip is the whole 11/22 shape with two channels, while b's pad is the 11/22 cut 3.95 mm behind its "
+                        "magnets. The block versions of both are the alternatives."),
+        designs=designs, settings="each project carries its printer settings (Prusa XL 5T, PLA on tool 3 at 0.1 mm layers, "
+                                  "Siraya 85A on tool 2 at 0.2 mm layers, 30 % gyroid, M601 pauses at the 2.9 mm seats)",
+        files=dict(a="docs/experiments/20261018-dip_link_board_mount/v2/a/", b="docs/experiments/20261018-dip_link_board_mount/v2/b/",
+                   tips="docs/experiments/20261018-dip_link_board_mount/v2/print/",
+                   lengthening=f"docs/experiments/20261018-dip_link_board_mount/v2/{DATE}-v2_lengthening.json"),
+        when=time.strftime("%Y-%m-%d %H:%M"))
+    dst = V2 / f"{DATE}-v2_summary.json"
+    dst.write_text(json.dumps(out, indent=1, default=float) + "\n")
+    for r in order + alt:
+        print(f"{r['what'][:70]:70s} {r['print_time']:>12s} {r['filament_g']} g pauses {r['pauses_mm']} pass {r['checks_pass']}")
+    print("->", dst.relative_to(REPO), flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1055,8 +1128,10 @@ def main():
     s.add_argument("stages", nargs="+", choices=["build", "step", "check", "sense", "render", "print", "docs"])
     s = sub.add_parser("b", help="concept b v2 under v2/b/: build, step, check, sense, render, print, docs")
     s.add_argument("stages", nargs="+", choices=["build", "step", "check", "sense", "render", "print", "docs"])
+    sub.add_parser("summary", help="v2/20261018-v2_summary.json: what to print first, each design's numbers")
     a = ap.parse_args()
-    {"lengthen": cmd_lengthen, "tips": cmd_tips, "merge": lambda a: merge(), "a": cmd_a, "b": cmd_b}[a.cmd](a)
+    {"lengthen": cmd_lengthen, "tips": cmd_tips, "merge": lambda a: merge(), "a": cmd_a, "b": cmd_b,
+     "summary": cmd_summary}[a.cmd](a)
 
 
 if __name__ == "__main__":
