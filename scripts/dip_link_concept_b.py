@@ -721,9 +721,14 @@ def cp(key):
     return float(P.get(key, CABLE[key]))
 
 
+def r_first():
+    """Bend radius of the first turn, toward the back out of the plug: cable_r1, or cable_r when the file has none."""
+    return float(P["cable_r1"]) if "cable_r1" in P else cp("cable_r")
+
+
 def cable_segments():
     """Centre line of the cable's bundle from the plug's rear face to the anchor on the slotted arm's outer face, F:
-    straight out of the plug toward the PIP joint (cable_lead), a turn toward the back (cable_r, in the x-z plane), a run
+    straight out of the plug toward the PIP joint (cable_lead), a turn toward the back (cable_r1, in the x-z plane), a run
     toward the back if cable_run_x leaves room, a turn to +y (x-y plane), a run along +y at x cable_run_x to the slotted
     arm, a turn to +z into the arm's outer face (y-z plane) and a line up the face to the anchor. Segments ('line', a, b)
     and ('arc', a, b, centre, radius, plane, t0_deg, t1_deg), as dip_link_concept_a.cable_segments."""
@@ -733,9 +738,10 @@ def cable_segments():
     y0 = 0.05                                   # J1's centre line (spec.json: body u -2.95 .. 3.05)
     z0 = Z_CONTACT + 18.09 + QW["plug_out"]     # the plug's rear face (board v -20.09)
     xr, yf = cp("cable_run_x"), cp("cable_face_y")
+    R1 = r_first()
     a1 = np.array([x0, y0, z0 + lead])
-    c1 = np.array([x0 + R, y0, z0 + lead])
-    b1 = np.array([x0 + R, y0, z0 + lead + R])            # heading +x
+    c1 = np.array([x0 + R1, y0, z0 + lead])
+    b1 = np.array([x0 + R1, y0, z0 + lead + R1])          # heading +x
     z1 = b1[2]
     b2 = np.array([xr - R, y0, z1])
     c2 = np.array([xr - R, y0 + R, z1])
@@ -744,7 +750,7 @@ def cable_segments():
     c4 = np.array([xr, yf - R, z1 + R])
     b5 = np.array([xr, yf, z1 + R])                       # heading +z, on the arm's outer face
     anchor = np.array([cp("cable_anchor_x"), yf, cp("cable_anchor_z")])
-    segs = [("line", np.array([x0, y0, z0]), a1), ("arc", a1, b1, c1, R, "xz", 180.0, 90.0)]
+    segs = [("line", np.array([x0, y0, z0]), a1), ("arc", a1, b1, c1, R1, "xz", 180.0, 90.0)]
     if b2[0] - b1[0] > 1e-6:
         segs.append(("line", b1, b2))
     return segs + [("arc", b2, b3, c2, R, "xy", -90.0, 0.0), ("line", b3, b4), ("arc", b4, b5, c4, R, "yz", -90.0, 0.0),
@@ -791,9 +797,9 @@ def cable_cuts(K):
     segs = cable_segments()
     _, a0, a1 = segs[0]
     _, _, b1, c1, R, *_ = segs[1]
-    _, b2, b3, c2, *_ = segs[-4]
+    _, b2, b3, c2, R2, *_ = segs[-4]
     _, _, b4 = segs[-3]
-    _, _, b5, c4, *_ = segs[-2]
+    _, _, b5, c4, R4, *_ = segs[-2]
     _, _, anchor = segs[-1]
     y0, z1 = a0[1], b1[2]
     # out of the plug and the turn toward the back: the band rc either side of the centre line in (x, z), across y0 +- rc,
@@ -811,13 +817,13 @@ def cable_cuts(K):
                                                                                          (a0[0] - rc, -50.0)], y0 - rc, y0 + rc)
     # the turn to +y and the run to the arm: a section in (x, y) across z1 +- rc; the turn's inner wall stays
     ti = np.radians(np.linspace(0.0, -90.0, 33))
-    inner = [(c2[0] + (R - rc) * np.cos(a), c2[1] + (R - rc) * np.sin(a)) for a in ti]
+    inner = [(c2[0] + (R2 - rc) * np.cos(a), c2[1] + (R2 - rc) * np.sin(a)) for a in ti]
     run = [(c2[0], y0 - rc), (X_OPEN, y0 - rc), (X_OPEN, b4[1] + 0.01), (b3[0] - rc, b4[1] + 0.01)] + inner
     run = K.prism_z([(y, x) for x, y in run], z1 - rc, z1 + rc)
     # the turn into the arm's outer face: a sector in (y, z) from the bundle's palmar side out to X_OPEN
     t = np.radians(np.linspace(-90.0, 0.0, 33))
-    sec = ([(c4[1] + (R + rc) * np.cos(a), c4[2] + (R + rc) * np.sin(a)) for a in t] +
-           [(c4[1] + max(R - rc, 0.05) * np.cos(a), c4[2] + max(R - rc, 0.05) * np.sin(a)) for a in t[::-1]])
+    sec = ([(c4[1] + (R4 + rc) * np.cos(a), c4[2] + (R4 + rc) * np.sin(a)) for a in t] +
+           [(c4[1] + max(R4 - rc, 0.05) * np.cos(a), c4[2] + max(R4 - rc, 0.05) * np.sin(a)) for a in t[::-1]])
     turn3 = K.prism_x(sec, b4[0] - rc, X_OPEN)
     # up the arm's outer face, half the bundle deep, and the groove's round end at the anchor
     d = np.array([anchor[0] - b5[0], anchor[2] - b5[2]])

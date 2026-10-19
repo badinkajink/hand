@@ -93,6 +93,9 @@ M2_HOLES = (1.7, 1.8, 1.9)                            # self-forming M2 holes, m
 M3_HOLES = (2.65, 2.75, 2.85)                         # self-forming M3 holes, mm (owner, 2026-10-18: 2.75)
 GROOVES = (2.2, 2.4, 2.6)                             # cable-groove width, mm (v2 a: 2.4 for a 2.0 mm bundle)
 GROOVE_DEPTH, GROOVE_R = 2.4, 2.0                     # groove depth; centre-line radius of its turn (v2 a cable_r)
+# run b's grooves (owner, 2026-10-19 17:55: the Qwiic cable is a flat ribbon about 4 x 1 mm that had to be squished into
+# W's 2.2-2.6 mm grooves; it is massaged into a bundle, modelled as 2.6 mm in a 3.0 mm groove)
+GROOVES_B, GROOVE_DEPTH_B = (2.8, 3.0, 3.4), 3.0
 TAG_T, ENGRAVE, ENGRAVE_TPU = 1.4, 0.6, 0.8           # tag thickness, engraving depth in PLA and in 85A, mm
 FLANKS_B = (0.0, 0.05, 0.10, 0.15, 0.20)              # 85A pad-groove interference per flank on b's rails, mm (step 9)
 SEAT_DEPTHS = (0.35, 0.45, 0.55)                      # depth of b's board seat pocket in the tongue, mm (design 0.45)
@@ -310,14 +313,15 @@ def groove_cs(x0, w):
     return m.CrossSection.batch_boolean(parts, m.OpType.Add)
 
 
-def piece_grooves():
-    """Three open cable grooves, GROOVE_DEPTH deep, widths 2.2, 2.4 and 2.6 mm, each turning 90 degrees about a
-    GROOVE_R centre line as the routed cable turns over the plug and at the slotted arm; the widths engraved above."""
+def piece_grooves(widths=GROOVES, depth=GROOVE_DEPTH):
+    """Three open cable grooves `depth` deep and `widths` wide (run a: 2.2, 2.4 and 2.6 mm, 2.4 deep), each turning 90
+    degrees about a GROOVE_R centre line as the routed cable turns over the plug and at the slotted arm; the widths
+    engraved above."""
     m = M()
     blk = box((-20.0, -11.0, 0.0), (21.0, 11.0, 4.4))
     man = blk
-    for x0, w in zip((-15.0, -2.0, 11.0), GROOVES):
-        man = man - m.Manifold.extrude(groove_cs(x0, w), GROOVE_DEPTH + 0.1).translate([0.0, 0.0, 4.4 - GROOVE_DEPTH])
+    for x0, w in zip((-15.0, -2.0, 11.0), widths):
+        man = man - m.Manifold.extrude(groove_cs(x0, w), depth + 0.1).translate([0.0, 0.0, 4.4 - depth])
         man = engrave(man, f"{w:.1f}", 3.0, x0 + 4.5, 6.5, 4.4, ENGRAVE)
     return to_tm(man)
 
@@ -446,6 +450,10 @@ def piece_specs_b():
                   note="the tongue's back stands 1.45 mm above the spine's back; that gap is filled down to the bed"))
     S.append(dict(id="V", stl="V_cover.stl", printer="p1s", material="PLA", test="Board seat", piece="Cover",
                   variant="v2 b", value=None, mark="its shape (windows and two rails; two copies)", copies=2, short="cover"))
+    S.append(dict(id="W", stl="W_cable_grooves_28_30_34.stl", printer="p1s", material="PLA", test="Cable groove",
+                  piece="Groove coupon", variant=f"widths {', '.join(f'{w:.1f}' for w in GROOVES_B[:-1])} and "
+                  f"{GROOVES_B[-1]:.1f} mm, {GROOVE_DEPTH_B:.1f} mm deep", value=None,
+                  mark="widths engraved above the grooves", copies=1, short="grooves 2.8-3.4"))
     return S
 
 
@@ -502,6 +510,8 @@ def cmd_pieces(a):
                 tm = piece_seat(V2, B, K, s["value"])
             elif i == "N":
                 tm = piece_neck_carrier(V2, B, K)
+            elif i == "W":
+                tm = piece_grooves(GROOVES_B, GROOVE_DEPTH_B)
             else:
                 tm = piece_cover(B)
         elif i.startswith("K"):
@@ -588,16 +598,26 @@ def records_b():
                 "the cable turns toward the back in the open groove over the plug and lies in the groove along the run",
                 "a strip of Kapton tape over the open groove keeps the cable's first turn down"):
         rows.append(("N+V", "Board seat and cable", chk))
+    for w in GROOVES_B:
+        rows.append((f"W {w:.1f}", "Cable groove", "the Qwiic ribbon, massaged into a bundle, lies below the surface around "
+                                                   "the turn without forcing"))
     return rows
 
 
 def write_records_rows(rows):
-    with open(RUN / "records.csv", "w", newline="") as f:
+    """records.csv with a row per check; the result and notes already entered for an (id, check) are kept."""
+    path = RUN / "records.csv"
+    kept = {}
+    if path.exists():
+        with open(path, newline="") as f:
+            kept = {(r["id"], r["check"]): (r["result"], r["notes"]) for r in csv.DictReader(f)}
+    with open(path, "w", newline="") as f:
         w_ = csv.writer(f)
         w_.writerow(["id", "test", "check", "result", "notes"])
         for r in rows:
-            w_.writerow(list(r) + ["", ""])
-    print(f"records.csv: {len(rows)} rows", flush=True)
+            w_.writerow(list(r) + list(kept.get((r[0], r[2]), ("", ""))))
+    n = sum(1 for r in rows if any(kept.get((r[0], r[2]), ("", ""))))
+    print(f"records.csv: {len(rows)} rows ({n} with results kept)", flush=True)
 
 
 # ------------------------------------------------------------------------------------------------ plates

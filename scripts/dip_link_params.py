@@ -193,8 +193,8 @@ SCHEMA_A = [
      "header's body and leads", "mm", (0.00, 0.15), ["fit"], 0.05),
     ("qwiic_groove_depth", "Qwiic header on the clamp plate", "Pigtail groove depth", "depth of the groove that takes the "
      "four wires from the clamp plate's notch to the header's leads", "mm", (0.40, 1.00), ["wall"], 0.6),
-    ("cable_d", "Qwiic cable route", "Bundle diameter", "the four 28 AWG wires of the Qwiic cable as one round bundle "
-     "(design cable = idler_side)", "mm", (1.6, 2.6), ["clearance", "fit"], 2.0),
+    ("cable_d", "Qwiic cable route", "Bundle diameter", "the Qwiic cable, a flat ribbon of four 28 AWG wires about 4 x 1 mm, "
+     "massaged into one round bundle (design cable = idler_side)", "mm", (1.6, 3.2), ["clearance", "fit"], 2.0),
     ("cable_r", "Qwiic cable route", "Bend radius", "bend radius of the bundle's centre line at its two turns", "mm",
      (1.0, 3.0), ["clearance"], 2.0),
     ("cable_lead", "Qwiic cable route", "Straight lead", "straight run out of the plug before the first turn", "mm",
@@ -340,10 +340,13 @@ SCHEMA_B = [
      "block, which ends at tie_y1)", "mm", (3.10, 4.50), ["wall"], 3.4),
     ("qwiic_groove_y1", "Qwiic header on the tongue", "Groove outer y", "outer y edge of the pigtail groove (the nut pockets "
      "begin at y 6.07)", "mm", (4.50, 5.50), ["wall"], 5.0),
-    ("cable_d", "Qwiic cable route", "Bundle diameter", "the four 28 AWG wires of the Qwiic cable as one round bundle "
-     "(design cable = idler_side)", "mm", (1.6, 2.6), ["clearance", "fit"], 2.0),
-    ("cable_r", "Qwiic cable route", "Bend radius", "bend radius of the bundle's centre line at its three turns", "mm",
-     (1.0, 3.0), ["clearance"], 2.0),
+    ("cable_d", "Qwiic cable route", "Bundle diameter", "the Qwiic cable, a flat ribbon of four 28 AWG wires about 4 x 1 mm, "
+     "massaged into one round bundle (design cable = idler_side)", "mm", (1.6, 3.2), ["clearance", "fit"], 2.0),
+    ("cable_r", "Qwiic cable route", "Bend radius", "bend radius of the bundle's centre line at its turns to +y and into "
+     "the arm's outer face (and at the first turn without cable_r1)", "mm", (1.0, 3.0), ["clearance"], 2.0),
+    ("cable_r1", "Qwiic cable route", "First bend radius", "bend radius of the centre line at the first turn, toward the "
+     "back right out of the plug, where the ribbon still lies flat and bends flatwise", "mm", (1.0, 3.0), ["clearance"],
+     2.0),
     ("cable_lead", "Qwiic cable route", "Straight lead", "straight run out of the plug before the first turn (toward the "
      "back)", "mm", (0.0, 1.5), ["clearance"], 0.0),
     ("cable_clear", "Qwiic cable route", "Groove clearance", "clearance of the groove around the bundle", "mm", (0.1, 0.4),
@@ -358,7 +361,7 @@ SCHEMA_B = [
     ("cable_anchor_z", "Qwiic cable route", "Anchor z", "z where the groove on the arm's outer face ends, below the PIP "
      "axis at z -51.55 (F; the arm does not move with the lengthening)", "mm", (-60.0, -54.5), ["clearance"], -56.5),
 ]
-OPTIONAL_B = {"cable_d", "cable_r", "cable_lead", "cable_clear", "cable_run_x", "cable_face_y", "cable_anchor_x",
+OPTIONAL_B = {"cable_d", "cable_r", "cable_r1", "cable_lead", "cable_clear", "cable_run_x", "cable_face_y", "cable_anchor_x",
               "cable_anchor_z"}
 DESIGN_B = [
     ("qwiic", "Qwiic connection", "none",
@@ -516,10 +519,11 @@ def problems(concept, vals, des=None):
             if not j1:
                 out.append("cable = idler_side routes the cable from J1's plug: it needs qwiic = j1_kept")
             x_wires = -3.55 + vals["t_behind"] + vals["chip_h"] - 1.4
-            need = x_wires + 2 * vals.get("cable_r", 2.0)
+            r, r1 = vals.get("cable_r", 2.0), vals.get("cable_r1", vals.get("cable_r", 2.0))
+            need = x_wires + r1 + r
             if vals.get("cable_run_x", 6.4) < need - 1e-9:
-                out.append(f"cable_run_x must be at least {need:.2f} mm: the plug's wires at x {x_wires:.2f} plus two bends of "
-                           f"radius {vals.get('cable_r', 2.0):g}")
+                out.append(f"cable_run_x must be at least {need:.2f} mm: the plug's wires at x {x_wires:.2f} plus bends of "
+                           f"radius {r1:g} and {r:g}")
     return out
 
 
