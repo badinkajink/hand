@@ -23,6 +23,8 @@ the XL print settings, the parts list and the assembly sequence.
     $RG .venv/bin/python scripts/dip_link_board_mount.py sense    # force resolution and fields at the as-printed magnets
     $RG env MUJOCO_GL=egl .venv/bin/python scripts/dip_link_board_mount.py render
     $RG $E scripts/dip_link_board_mount.py drawing     # dimensioned drawing with the critical fits
+    $RG $E scripts/dip_link_board_mount.py curve       # least clearance at every PIP angle -> final/*_clearance_curve.json
+    $RG env MUJOCO_GL=egl .venv/bin/python scripts/dip_link_board_mount.py film   # joint-sweep film with that curve
     $E scripts/dip_link_board_mount.py docs            # print settings, parts list, assembly sequence
     $E scripts/dip_link_board_mount.py eval            # final/evaluation.json
     $E scripts/dip_link_board_mount.py decision        # decision.json: the three concepts scored, Qwiic, attachment
@@ -529,6 +531,56 @@ def _render_final(meshes, cam, dst, *args, **kw):
 
 
 A._render = _render_final
+LABEL_BOX = dict(boxstyle="round,pad=0.25", fc="white", ec="none", alpha=0.85)
+
+
+def _annotate_final(path, cam, labels, title=None, callout=False):
+    """dip_link_concept_a._annotate with each label and the title on a white box, so that text over the dark PIP servo
+    reads."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from PIL import Image
+    img = Image.open(path).convert("RGB")
+    W0, H0 = img.size
+    a_ = np.asarray(img)
+    rows = np.where((a_ < 245).any(axis=(1, 2)))[0]
+    cut = int(min(a_.shape[0], rows.max() + 40)) if len(rows) else a_.shape[0]
+    img = img.crop((0, 0, a_.shape[1], cut))
+    W, H = img.size
+    line = 46.0
+    extra = (len(labels) + 0.6) * line if callout else 0.0
+    fig = plt.figure(figsize=(W / 150, (H + extra) / 150), dpi=150)
+    ax = fig.add_axes([0, extra / (H + extra), 1, H / (H + extra)])
+    ax.imshow(img)
+    ax.set_xlim(0, W)
+    ax.set_ylim(H, 0)
+    ax.axis("off")
+    for k, (text, pF, tpos) in enumerate(labels, 1):
+        u, v = A._project(np.array([pF]), cam, W0, H0)[0]
+        tx, ty = tpos if tpos is not None else (u / W, v / H)
+        if callout:
+            ax.plot([u], [v], "o", ms=27, mfc="white", mec="k", mew=1.6)
+            ax.text(u, v, str(k), ha="center", va="center", fontsize=17, family="serif", weight="bold")
+        else:
+            ax.annotate(text, xy=(u, v), xytext=(tx * W, ty * H), fontsize=17, family="serif", bbox=LABEL_BOX,
+                        arrowprops=dict(arrowstyle="-", lw=1.3, color="k", shrinkA=0, shrinkB=2),
+                        ha="left" if tx < 0.5 else "right", va="center")
+            ax.plot([u], [v], "o", ms=4, color="k")
+    if callout:
+        lg = fig.add_axes([0, 0, 1, extra / (H + extra)])
+        lg.set_xlim(0, W)
+        lg.set_ylim(extra, 0)
+        lg.axis("off")
+        for k, (text, _, _) in enumerate(labels, 1):
+            lg.text(0.03 * W, (k - 0.4) * line, f"{k}   {text}", fontsize=17, family="serif", va="center")
+    if title:
+        ax.text(0.02 * W, 0.035 * H, title, fontsize=19, family="serif", va="top", bbox=LABEL_BOX)
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+A._annotate = _annotate_final
 
 
 def cmd_render(a):
@@ -712,7 +764,7 @@ def cmd_drawing(a):
 
     # C: section z through the proximal holes (pins)
     draw(axC, (0, 0, hp[0][1]), (0, 0, 1), 1, 0)
-    axC.set_xlim(-11.5, 11.5)
+    axC.set_xlim(-11.5, 12.8)
     axC.set_ylim(2.0, 16.4)
     axC.set_xlabel("y (mm)")
     axC.set_ylabel("x (mm), dorsal up")
@@ -721,26 +773,33 @@ def cmd_drawing(a):
                  f"{P['pin_hole_d']:.2f}", xy=(hp[0][0], L["x_cf"] - 0.2), xytext=(-11.2, 14.2), fontsize=12, arrowprops=arrow)
     axC.annotate(f"Diamond pin:\nflats +-{P['diamond_half']:.2f} in y", xy=(hp[1][0], L["x_cf"] + 0.3), xytext=(4.6, 14.2),
                  fontsize=12, arrowprops=arrow)
-    axC.annotate(f"Ear gap {P['ear_gap']:.2f}\nto the shoulder", xy=(8.5, L["x_ear0"] - P["ear_gap"] / 2), xytext=(7.7, 2.4),
-                 fontsize=12, arrowprops=arrow)
+    axC.annotate(f"Ear gap {P['ear_gap']:.2f}\nto the shoulder", xy=(8.5, L["x_ear0"] - P["ear_gap"] / 2), xytext=(12.6, 2.4),
+                 fontsize=12, ha="right", va="bottom", arrowprops=arrow)
 
-    # D: the dovetail key and channel at z -70 (key and channel outlines from concept a's polygon)
-    axD.set_title("D. Dovetail key and tip channel, z -70.00", fontsize=14)
-    kp = np.array(A.key_poly(P, P["key_yc"]))
-    cp = np.array(A.key_poly(P, P["key_yc"], flank=P["fit_flank"], floor=P["fit_floor"], x_top=A.X_BACK + 0.3))
+    # D: one key and its channel in the tip at z -70, oriented as panels B and C (y to the right, x dorsal up), dimensioned
+    yc, xb = P["key_yc"], A.X_BACK
+    xh = xb - P["key_depth"]
+    kp = np.array(A.key_poly(P, yc))[:, [1, 0]]
+    cp = np.array(A.key_poly(P, yc, flank=P["fit_flank"], floor=P["fit_floor"], x_top=xb + 0.3))[:, [1, 0]]
     axD.add_patch(MPoly(cp, closed=True, fc="#e8c88a", ec="k", lw=0.8, ls="--"))
     axD.add_patch(MPoly(kp, closed=True, fc="#d6d6cc", ec="k", lw=0.9))
-    allp = np.vstack([kp, cp])
-    axD.set_xlim(allp[:, 0].min() - 1.4, allp[:, 0].max() + 1.4)
-    axD.set_ylim(allp[:, 1].min() - 2.6, allp[:, 1].max() + 0.8)
+    axD.axhline(xb, color="k", lw=0.8, ls=":")
+    _dim(axD, (yc - P["key_head"] / 2, xh), (yc + P["key_head"] / 2, xh), f"{P['key_head']:.1f} (head)", 0.45, fs=12, side=-1)
+    _dim(axD, (yc - P["key_root"] / 2, xb), (yc + P["key_root"] / 2, xb), f"{P['key_root']:.1f} (root)", 0.45, fs=12)
+    _dim(axD, (yc - P["key_head"] / 2, xh), (yc - P["key_root"] / 2, xb), f"{P['key_depth']:.1f}", 0.7, horizontal=False,
+         fs=12, side=-1)
+    axD.text(yc + P["key_head"] / 2 + 1.0, (xh + xb) / 2,
+             f"Key (grey) on the window plate; channel\n(dashed) in the tip: {P['fit_flank']:.2f} narrower per\n"
+             f"flank, {P['fit_floor']:.2f} deeper, {P['fit_len']:.2f} longer. Detent\n{P['detent_h']:.2f} high at z "
+             f"{P['detent_z']:.2f} in a {2 * P['groove_r']:.2f} groove.\nDotted: the tip's back face, x {xb:.2f}",
+             fontsize=12, va="center", linespacing=1.3)
+    axD.set_xlim(yc - P["key_head"] / 2 - 2.4, yc + 11.6)
+    axD.set_ylim(xh - 1.6, xb + 1.5)
     axD.set_aspect("equal")
     axD.grid(True, lw=0.3, alpha=0.4)
-    axD.set_xlabel("x (mm), dorsal to the right")
-    axD.set_ylabel("y (mm)")
-    axD.text(0.03, 0.03, f"Key (grey): root {P['key_root']:.1f}, head {P['key_head']:.1f}, depth {P['key_depth']:.1f}\n"
-                         f"Channel (dashed): {P['fit_flank']:.2f} narrower per flank,\n{P['fit_floor']:.2f} deeper; "
-                         f"detent {P['detent_h']:.2f} in a {2 * P['groove_r']:.2f} groove",
-             transform=axD.transAxes, fontsize=12, va="bottom")
+    axD.set_xlabel("y (mm)")
+    axD.set_ylabel("x (mm), dorsal up")
+    axD.set_title("D. Dovetail key and tip channel at z = -70.00", fontsize=14)
 
     # table of fits
     _table(axT, ["Feature", "Nominal", "Fit and tolerance"], [list(r) for r in rows], (24, 40, 60), (0.005, 0.19, 0.52))
@@ -756,6 +815,184 @@ def cmd_drawing(a):
         fig.savefig(MEDIA / f"{PFX}_drawing_{tag}.png", dpi=130, bbox_inches=bb.padded(0.08))
     plt.close(fig)
     print(dst.relative_to(REPO), flush=True)
+
+
+# ----------------------------------------------------------------------------------------------- joint sweep
+CURVE = FINAL / f"{PFX}_clearance_curve.json"
+SWEEP_GROUPS = (("dip_link_new", "New DIP-link features"), ("clamp_plate", "Clamp plate"), ("board", "Board"),
+                ("fasteners", "Screws and nuts"), ("wires", "Wires on the DIP link"), ("qwiic", "Qwiic header, plug, pigtail"))
+PARENTS = ("mcp_link", "servo_pip")
+
+
+def points_clearance_curve(points, reach=6.0, step=0.5):
+    """dip_link_geometry.points_clearance_exact at every angle of the PIP grid instead of only the least: the least signed
+    distance (mm) from the points to the MCP link and to the PIP servo at each angle (n_q, 2), over the points that come
+    within `reach` of either part at some angle. A value of `reach` means `reach` or more."""
+    from scipy.spatial import cKDTree
+    import dip_link_geometry as G
+    P, idx = G.parent_samples(PARENTS)
+    X0 = np.asarray(points, float)
+    ry = lambda Q: np.column_stack([np.hypot(Q[:, 0] - G.PIP_C[0], Q[:, 2] - G.PIP_C[2]), Q[:, 1]])  # noqa: E731
+    d_lb, _ = cKDTree(ry(P)).query(ry(X0), k=1)
+    d_k = G.keepout().query(X0)
+    d_lb = np.maximum(d_lb, np.where(np.isfinite(d_k), d_k - 0.3, d_lb))
+    X = X0[d_lb < reach]
+    qs = G.q_grid(step=step)
+    out = np.full((len(qs), len(PARENTS)), reach)
+    if not len(X):
+        return qs, out
+    trees = [cKDTree(P[idx == k]) for k in range(len(PARENTS))]
+    sol = G.parent_solids(PARENTS)
+    for iq, q in enumerate(qs):
+        Xp = G.rot_pip(X, -q)
+        for k in range(len(PARENTS)):
+            d, _ = trees[k].query(Xp, k=1, distance_upper_bound=reach)
+            d = np.minimum(d, reach)
+            sd = np.where(sol[k].contains(Xp), -d, d)
+            out[iq, k] = min(reach, float(sd.min()))
+    return qs, out
+
+
+def cmd_curve(a):
+    """Least clearance of each part fixed to the DIP link to the MCP link and to the PIP servo at every PIP angle (0.5 deg
+    grid, -18..92), by the specification's method (surface samples 0.25 mm apart, the parts' voxel solids for overlaps); the
+    clevis arms are the current link's and are left out as in the check. -> final/<PFX>_clearance_curve.json"""
+    import trimesh
+    import dip_link_geometry as G
+    t0 = time.time()
+    meshes = {k: trimesh.load(fname(k)) for k in ("dip_link", "clamp_plate", "board", "fasteners", "wires")}
+    qparts, _ = qwiic_header_final()
+    meshes["qwiic"] = trimesh.util.concatenate([box_mesh(lo, hi) for _, lo, hi in qparts])
+    rows = {}
+    for key, label in SWEEP_GROUPS:
+        Pt = G.surface_points(meshes["dip_link" if key == "dip_link_new" else key], 0.25)
+        if key == "dip_link_new":
+            Pt = Pt[(Pt[:, 1] > A.ARM_Y[0] + 1e-6) & (Pt[:, 1] < A.ARM_Y[1] - 1e-6)]
+        qs, C = points_clearance_curve(Pt)
+        rows[key] = dict(label=label, n_points=int(len(Pt)), mcp_link=np.round(C[:, 0], 3).tolist(),
+                         servo_pip=np.round(C[:, 1], 3).tolist())
+        k_m, k_s = int(np.argmin(C[:, 0])), int(np.argmin(C[:, 1]))
+        print(f"{key:13s}: MCP link {C[k_m, 0]:.3f} mm at PIP {qs[k_m]:.1f}, PIP servo {C[k_s, 1]:.3f} mm at PIP {qs[k_s]:.1f} "
+              f"[{len(Pt)} pts, {time.time() - t0:.0f} s]", flush=True)
+    out = dict(definition="least signed distance (mm) from each part fixed to the DIP link to the MCP link and to the PIP "
+                          "servo at each PIP angle; surface samples 0.25 mm apart, overlaps negative; values capped at 6.0 mm "
+                          "(6.0 means 6.0 mm or more); the clevis arms (the current link's) are left out",
+               q_deg=np.round(qs, 2).tolist(), reach_mm=6.0, requirement_mm=dict(rigid=0.5, cable=1.0), rows=rows,
+               when=time.strftime("%Y-%m-%d %H:%M"))
+    CURVE.write_text(json.dumps(out, indent=1))
+    print(f"curve -> {CURVE.relative_to(REPO)} [{time.time() - t0:.0f} s]", flush=True)
+
+
+def sweep_mjcf(dip_meshes, ctx_meshes, w, h):
+    """MuJoCo scene of the joint sweep: the MCP link and the PIP servo fixed, the parts fixed to the DIP link on a hinge
+    about the PIP axis (+y through PIP_C; a positive angle flexes the finger, as in the specification)."""
+    import dip_link_geometry as G
+    pc = G.PIP_C * 1e-3
+    assets, fixed, moving = [], [], []
+    for k, (name, path, rgba) in enumerate(ctx_meshes + dip_meshes):
+        assets.append(f'<mesh name="m{k}" file="{path}" scale="0.001 0.001 0.001"/>')
+        if k < len(ctx_meshes):
+            fixed.append(f'<geom type="mesh" mesh="m{k}" rgba="{rgba}" contype="0" conaffinity="0"/>')
+        else:
+            moving.append(f'<geom type="mesh" mesh="m{k}" rgba="{rgba}" pos="{-pc[0]:.5f} {-pc[1]:.5f} {-pc[2]:.5f}" '
+                          f'contype="0" conaffinity="0"/>')
+    return f"""<mujoco><compiler inertiafromgeom="false"/>
+<visual><global offwidth="{w}" offheight="{h}" fovy="{A.FOVY}"/><quality shadowsize="4096" offsamples="8"/>
+<headlight ambient="0.42 0.42 0.42" diffuse="0.48 0.48 0.48" specular="0.05 0.05 0.05"/></visual>
+<asset><texture name="sky" type="skybox" builtin="flat" rgb1="1 1 1" rgb2="1 1 1" width="16" height="16"/>{''.join(assets)}</asset>
+<worldbody><light pos="0.04 -0.06 0.02" dir="-0.4 0.6 -0.3" diffuse="0.40 0.40 0.40" castshadow="false"/>
+<light pos="0.05 0.05 -0.03" dir="-0.5 -0.5 0.2" diffuse="0.22 0.22 0.22" castshadow="false"/>
+{''.join(fixed)}
+<body name="dip" pos="{pc[0]:.5f} {pc[1]:.5f} {pc[2]:.5f}"><inertial pos="0 0 0" mass="0.01" diaginertia="1e-6 1e-6 1e-6"/>
+<joint name="pip" type="hinge" axis="0 1 0"/>{''.join(moving)}</body></worldbody></mujoco>"""
+
+
+def sweep_film(dip_meshes, curve_rows, dst, title, cam=((-10.0, 0.0, -58.0), 150, 90, -12), q_step=1.0):
+    """Film of the PIP joint over -18..92 deg and back: left, the parts on the DIP link turning past the MCP link and the
+    PIP servo (side view, the MCP link and the servo translucent); right, the least clearance of the DIP link's parts to
+    each of the two over the range, with the current angle marked. Frames under logs/, the film (H.264) and a poster at
+    the least clearance to dst (.mp4) and dst's .png."""
+    import shutil
+    import subprocess
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import mujoco
+    from PIL import Image
+    ctx = [("mcp", A._obj(str(WORK / "context_mcp_link.stl")), "0.62 0.62 0.66 0.30"),
+           ("servo", A._obj(str(WORK / "context_servo_pip.stl")), "0.25 0.25 0.28 0.55")]
+    dm = [(n, A._obj(pth), rgba) for n, pth, rgba in dip_meshes]
+    W_R, H_R = 720, 720
+    m = mujoco.MjModel.from_xml_string(sweep_mjcf(dm, ctx, W_R, H_R))
+    d = mujoco.MjData(m)
+    c = mujoco.MjvCamera()
+    lookat, distance, azimuth, elevation = cam
+    c.lookat[:] = np.asarray(lookat) * 1e-3
+    c.distance, c.azimuth, c.elevation = distance * 1e-3, azimuth, elevation
+    qg = np.asarray(curve_rows["q_deg"])
+    rows = curve_rows["rows"]
+    lo_m = np.min([r["mcp_link"] for r in rows.values()], axis=0)
+    lo_s = np.min([r["servo_pip"] for r in rows.values()], axis=0)
+    who_m = [list(rows)[i] for i in np.argmin([r["mcp_link"] for r in rows.values()], axis=0)]
+    who_s = [list(rows)[i] for i in np.argmin([r["servo_pip"] for r in rows.values()], axis=0)]
+    lab = {k: r["label"] for k, r in rows.items()}
+    fwd = np.arange(-18.0, 92.0 + 1e-9, q_step)
+    seq = np.concatenate([fwd, fwd[-2:0:-1]])
+    fdir = WORK / ("film_" + Path(dst).stem)
+    if fdir.exists():
+        shutil.rmtree(fdir)
+    fdir.mkdir(parents=True)
+    plt.rcParams.update({"font.family": "serif", "font.size": 16})
+    k_poster = int(np.argmin(np.minimum(lo_m, lo_s)))
+    q_poster = float(qg[k_poster])
+    with mujoco.Renderer(m, H_R, W_R) as ren:
+        for f_, q in enumerate(list(seq) + [q_poster]):
+            d.qpos[0] = math.radians(q)
+            mujoco.mj_forward(m, d)
+            ren.update_scene(d, camera=c)
+            img = ren.render()
+            i = int(np.argmin(np.abs(qg - q)))
+            fig = plt.figure(figsize=(12.8, 7.2), dpi=100)
+            ax0 = fig.add_axes([0.0, 0.0, 0.5625, 1.0])
+            ax0.imshow(img)
+            ax0.axis("off")
+            ax0.text(0.03, 0.97, f"PIP {q:+.0f} deg", transform=ax0.transAxes, fontsize=26, va="top", bbox=LABEL_BOX)
+            ax1 = fig.add_axes([0.635, 0.45, 0.345, 0.47])
+            ax1.plot(qg, lo_m, color="#3a6fb0", lw=2.2, label="To the MCP link")
+            ax1.plot(qg, lo_s, color="#b04a2a", lw=2.2, label="To the PIP servo")
+            ax1.axhline(0.5, color="k", lw=1.0, ls=":", label="Requirement R7, 0.5 mm")
+            ax1.axvline(q, color="#555555", lw=1.2)
+            ax1.plot([q], [lo_m[i]], "o", color="#3a6fb0", ms=9)
+            ax1.plot([q], [lo_s[i]], "o", color="#b04a2a", ms=9)
+            ax1.set_xlim(-20, 94)
+            ax1.set_ylim(0, 6.2)
+            ax1.set_xlabel("PIP angle (deg)")
+            ax1.set_ylabel("Least clearance (mm)")
+            ax1.grid(True, lw=0.3, alpha=0.5)
+            ax1.legend(loc="upper right", fontsize=15, frameon=False, handlelength=1.4)
+            ax1.set_title(title, fontsize=17)
+            fm = f"{lo_m[i]:.2f} mm" if lo_m[i] < 6.0 else "6 mm or more"
+            fs_ = f"{lo_s[i]:.2f} mm" if lo_s[i] < 6.0 else "6 mm or more"
+            fig.text(0.60, 0.31, f"At PIP {q:+.0f} deg, least clearance to\nthe MCP link: {fm}\n    {lab[who_m[i]]}\n"
+                                 f"the PIP servo: {fs_}\n    {lab[who_s[i]]}", fontsize=17, va="top", linespacing=1.35)
+            out = fdir / (f"f{f_:04d}.png" if f_ < len(seq) else "poster.png")
+            fig.savefig(out, dpi=100)
+            plt.close(fig)
+    dst = Path(dst)
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", "24", "-i", str(fdir / "f%04d.png"), "-c:v", "libx264",
+                    "-pix_fmt", "yuv420p", "-crf", "26", "-preset", "slow", "-movflags", "+faststart", str(dst)], check=True)
+    shutil.copy(fdir / "poster.png", dst.with_suffix(".png"))
+    print(f"film -> {dst.relative_to(REPO)} ({dst.stat().st_size / 1e6:.2f} MB, {len(seq)} frames; poster at PIP {q_poster:+.1f})",
+          flush=True)
+
+
+def cmd_film(a):
+    C_ = A.COLORS
+    dip = [("dip_link", str(fname("dip_link")), C_["dip_link"]), ("clamp_plate", str(fname("clamp_plate")), C_["clamp_plate"]),
+           ("board", str(fname("board")), C_["board"]), ("wires", str(fname("wires")), C_["wires"]),
+           ("fasteners", str(fname("fasteners")), C_["fasteners"]), ("qwiic", str(fname("qwiic")), "0.95 0.95 0.92 1"),
+           ("tip", str(fname("tip_block4_F")), C_["tip"])]
+    sweep_film(dip, json.loads(CURVE.read_text()), MEDIA / f"{PFX}_pip_sweep.mp4", "Concept a: parts on the DIP link")
 
 
 # ----------------------------------------------------------------------------------------------- documents
@@ -962,12 +1199,12 @@ def attachment():
                        "less per tip)."),
         load_paths=[
             dict(load="10 N normal (+x, into the finger)", path="the tip's back face on the window plate and the chip tops",
-                 numbers=f"mean pressure {10.0 / back_area:.3f} MPa over {back_area:.0f} mm2; the keys carry none of it",
+                 numbers=f"mean pressure {10.0 / back_area:.3f} MPa over {back_area:.0f} mm2; the keys take none of it",
                  status="by geometry"),
             dict(load="5 N tangential toward the PIP joint (+z)", path="the tip's mount face on the bridge",
                  numbers="bearing; the line of action passes through the mount face", status="by geometry"),
             dict(load="5 N tangential distal (-z, off the keys)", path="the two detents and the flank friction",
-                 numbers=f"5 N along the keys; detent {P['detent_h']:.2f} mm in 85A TPU, hold force unmeasured",
+                 numbers=f"5 N along the keys; detent {P['detent_h']:.2f} mm in 85A TPU, retention force unmeasured",
                  status="pending: tests T1 and T2"),
             dict(load="5 N tangential lateral (\u00b1y)", path="the key flanks in bearing; the moment opens the far channel",
                  numbers=(f"moment {5.0 * lever_x:.0f} N mm about z ({lever_x:.1f} mm from the contact point to the back face); "
@@ -987,7 +1224,7 @@ def attachment():
                  status="pending: tests T1 and T2"),
         ],
         tests=[
-            dict(id="T1", name="Attachment fit coupon (step 15)",
+            dict(id="T1", name="Attachment fit coupon",
                  what=("PLA key sections and 85A channel sections at 0, 0.05 and 0.10 mm per flank with the detent, printed "
                        "beside the tips; by hand: slides on, clicks over the detent, stays on when pulled and twisted"),
                  decides="the interference per flank for the reprinted tips"),
@@ -1057,7 +1294,7 @@ def cmd_decision(a):
                                     five_30=cs["force_resolution_N"]["concept_c"]["five_30"]),
             chip_to_magnet_centre_mm=cs["chip_to_magnet_mm"]["centre_U1_four"],
             gap_mm=cs["gap_mm"],
-            board_play=dict(mechanism="no screw preload: the cap's first-layer squish holds the stack; crush ribs in the "
+            board_play=dict(mechanism="no screw preload: the cap's first-layer squish keeps the stack in place; crush ribs in the "
                                       "plated holes unmeasured",
                             false_force_x_N_per_um=cs["false_force_four_30"]["x"]["normal"]),
             contact_geometry="block unchanged; curved tips print back face down, so their surfaces are stacked across the finger",
@@ -1106,7 +1343,12 @@ def cmd_decision(a):
                   "assembly and replacement of tip and board", "cable routing past the PIP joint"],
         reference_current_plate_N=ref,
         chip_to_magnet_definition="least distance from a chip's sensing point to a magnet's centre, four-magnet block, mm",
-        concepts=rows, chosen=chosen, qwiic=qwiic, tip_attachment=attachment(),
+        concepts=rows, chosen=chosen,
+        owner_decision=dict(when="2026-10-18 16:36", supersedes="chosen",
+                            decision="concepts a and b both go forward to a first print, each with a Qwiic connection; "
+                                     "concept c is not taken forward",
+                            quote="i think concept A and B are both worthwhile, but need the qwiic connector correction"),
+        qwiic=qwiic, tip_attachment=attachment(),
         final=None if ev is None else dict(
             evaluation="final/evaluation.json", gap_mm=ev["gap_mm"], chip_to_magnet_mm=ev["chip_to_magnet_mm"],
             force_resolution_N={k: ev["force_resolution_N"][k] for k in ("four_30", "five_z7p4_30", "four_50", "five_z7p4_50")},
@@ -1123,13 +1365,14 @@ def main():
         return
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for c in ("build", "qwiic", "check", "sense", "render", "drawing", "docs", "eval", "decision"):
+    for c in ("build", "qwiic", "check", "sense", "render", "drawing", "curve", "film", "docs", "eval", "decision"):
         sp_ = sub.add_parser(c)
         if c == "check":
             sp_.add_argument("--reuse", action="store_true", help="reuse clearance rows whose part STL is unchanged")
     a = ap.parse_args()
     {"build": cmd_build, "qwiic": cmd_qwiic, "check": cmd_check, "sense": cmd_sense, "render": cmd_render,
-     "drawing": cmd_drawing, "docs": cmd_docs, "eval": cmd_eval, "decision": cmd_decision}[a.cmd](a)
+     "drawing": cmd_drawing, "curve": cmd_curve, "film": cmd_film, "docs": cmd_docs, "eval": cmd_eval,
+     "decision": cmd_decision}[a.cmd](a)
 
 
 if __name__ == "__main__" or os.environ.get("DLF_CMD") == "step":

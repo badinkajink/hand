@@ -40,6 +40,8 @@ figure.row3 .imgs{display:grid;grid-template-columns:1fr;gap:10px}
 figure.row3 img{width:100%;height:auto}
 figure.row3 .lab{text-align:center;font-size:15px}
 ol.steps li{margin:.3em 0}
+figure.panels img{display:block;width:auto;max-width:100%;height:auto;margin:0 auto 10px}
+figure.films video{width:100%;height:auto;display:block}
 """ + texsvg.BLOCK_CSS + "\n"
 MM, NN, DEG, MT = "&#8202;mm", "&#8202;N", "&#176;", "&#8202;mT"
 
@@ -80,42 +82,53 @@ def img(rel, caption, key=None, width=None, png=False):
     return figure(f'<img alt="" src="{src}">', caption, key)
 
 
+def film(rel, poster_rel, caption, key=None):
+    p = os.path.join(D, rel)
+    if not os.path.exists(p):
+        raise SystemExit(f"missing film {rel}")
+    v = (f'<video controls muted loop playsinline preload="metadata" poster="{jpeg_uri(os.path.join(D, poster_rel))}" '
+         f'src="data:video/mp4;base64,{base64.b64encode(open(p, "rb").read()).decode()}"></video>')
+    return figure(v, caption, key, cls="films")
+
+
 def pil_uri(im, quality=88):
     buf = io.BytesIO()
     im.convert("RGB").save(buf, "JPEG", quality=quality)
     return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
-def split_panels(path, legend_rows=True):
-    """The panels of a matplotlib figure laid out in one row, cut at the white columns between them; the legend strip
-    under the panels (below the lowest all-white row band) is dropped."""
+def split_panels(path, legend_rows=True, min_gap=18):
+    """The panels of a matplotlib figure laid out in one row, cut at the runs of white columns at least min_gap px wide
+    (the gaps between panels; a panel's axis label and tick labels lie nearer to it). With legend_rows the legend under the
+    panels, below the first white row band of 30 px or more in the lower 40 % of the image, is dropped."""
     import numpy as np
     from PIL import Image
     im = Image.open(path).convert("RGB")
     a = np.asarray(im).astype(int)
-    white = (a.min(axis=2) > 245)
-    rows_white = white.all(axis=1)
-    H = a.shape[0]
+    white = a.min(axis=2) > 245
+    H, Wd = white.shape
+
+    def runs(mask):
+        out, k = [], 0
+        while k < len(mask):
+            if mask[k]:
+                k1 = k
+                while k1 < len(mask) and mask[k1]:
+                    k1 += 1
+                out.append((k, k1))
+                k = k1
+            else:
+                k += 1
+        return out
     top = H
-    if legend_rows:                                     # the last white band above the bottom strip
-        k = H - 1
-        while k > 0 and rows_white[k]:
-            k -= 1
-        while k > 0 and not rows_white[k]:
-            k -= 1
-        top = k if k > H * 0.6 else H
-    cols_white = white[:top].all(axis=0)
-    spans, inside, x0 = [], False, 0
-    for x, w in enumerate(cols_white):
-        if not w and not inside:
-            inside, x0 = True, x
-        elif w and inside:
-            inside = False
-            if x - x0 > 40:
-                spans.append((x0, x))
-    if inside:
-        spans.append((x0, a.shape[1]))
-    return [im.crop((max(0, x0 - 8), 0, min(a.shape[1], x1 + 8), top)) for x0, x1 in spans]
+    if legend_rows:
+        band = [(y0, y1) for y0, y1 in runs(white.all(axis=1)) if y0 >= 0.6 * H and y1 - y0 >= 30]
+        if band:
+            top = band[0][0]
+    cuts = [(x0, x1) for x0, x1 in runs(white[:top].all(axis=0)) if x1 - x0 >= min_gap or x0 == 0 or x1 == Wd]
+    edges = [0] + [v for c in cuts for v in c] + [Wd]
+    spans = [(edges[k], edges[k + 1]) for k in range(0, len(edges) - 1, 2) if edges[k + 1] - edges[k] > 40]
+    return [im.crop((max(0, x0 - 8), 0, min(Wd, x1 + 8), top)) for x0, x1 in spans]
 
 
 def table(head, body, caption, note=None, text_cols=(0,), key=None):
@@ -196,7 +209,7 @@ GLOSSARY = [
                 "dorsal, y along the PIP axis, z up (proximal), in mm. The tip's back face lies at x 6.45&#8202;mm, its "
                 "mount face at z &#8722;67.30&#8202;mm and the contact point at (&#8722;10.55, 0, &#8722;78.16)&#8202;mm."),
     ("Gap", "Distance from the tip's undeformed back face to the chips' sensing plane, which lies 0.42&#8202;mm under each "
-            "MLX90393 package top, in mm. The current DIP link holds the board on a 3.0&#8202;mm plate: gap 3.42&#8202;mm."),
+            "MLX90393 package top, in mm. The current DIP link mounts the board on a 3.0&#8202;mm plate: gap 3.42&#8202;mm."),
     ("Chip-to-magnet distance", "Least distance from a chip's sensing point to a magnet's centre, in mm (to the magnet's "
                                 "surface where stated). Magnets are N52 discs 3&#8202;mm across and 2&#8202;mm thick."),
     ("Force resolution", "Cram&#233;r&#8211;Rao bound (one standard deviation, N) of the normal force at the contact point "
@@ -213,11 +226,12 @@ GLOSSARY = [
                  "with 1.25 times headroom; lower settings cover larger fields with coarser steps."),
     ("R1&#8211;R12", "The requirements of the specification (<code>spec.json</code>): R1 gap at most 0.52&#8202;mm, R4 no "
                      "retention feature within 2.0&#8202;mm of a magnet pocket, R5 tip surface unchanged and nothing wider "
-                     "than 21.0&#8202;mm over the tip's length, R7 clearance, R10 no ferromagnetic part near the chips, R11 "
+                     "than 21.0&#8202;mm over the tip's length, R7 clearance, R10 no ferromagnetic fastener within 15&#8202;mm of "
+                     "a chip and the board no closer to the PIP servo than now, R11 "
                      "printable walls of 0.9&#8202;mm or more, R12 at most 7.6&#8202;g without the tip."),
     ("Interference per flank", "How much narrower each flank of the tip's channel is than the PLA key it slides on, in mm."),
-    ("Detent", "A 0.25&#8202;mm ridge across each key's head face that drops into a groove of the channel floor and holds "
-               "the tip against sliding off along &#8722;z."),
+    ("Detent", "A 0.25&#8202;mm ridge across each key's head face that drops into a groove of the channel floor and keeps "
+               "the tip from sliding off along &#8722;z."),
     ("Qwiic, J1", "Qwiic is SparkFun's I2C connection on a 4-pin JST SH connector (1.0&#8202;mm pitch); J1 is the board's "
                   "side-entry Qwiic header on its tab. The cable ends in a JST SHR-04V-S housing."),
 ]
@@ -228,17 +242,16 @@ def glossary():
 
 
 def lede():
-    c4 = SF["block4"]["design"]["chip_to_magnet_centre_mm"][0]
-    return (f"The final DIP link places the ReSkin 5X board's chips {f(EV['gap_mm'])}{MM} behind the 85A tip's back face, "
-            f"against {f(EV['gap_current_plate_mm'])}{MM} on the current plate. At the tips printed with 2.9{MM} magnet "
-            f"seats the nearest magnet centre lies {f(c4)}{MM} from a chip, and the predicted force resolution at the "
-            f"contact point is {f(FR['four_30'], 3)}{NN} with four magnets and {f(FR['five_z7p4_30'], 3)}{NN} with five, "
-            f"against {f(srow('four_d3x2_d5', 'w85_30', 'plate_now')['centre_force_N'], 3)} and "
-            f"{f(srow('five_z7p4', 'w85_30', 'plate_now')['centre_force_N'], 3)}{NN} on the current plate. A 0.85{MM} "
-            f"window plate and a 3.0{MM} "
-            f"dorsal clamp plate sandwich the board with four brass screws and two pins; the worst clearance over PIP "
-            f"&#8722;18 to 92{DEG} is {f(WORST['min_mm'], 3)}{MM}. The board's Qwiic connector clears in no orientation, "
-            f"so a soldered pigtail runs to a Qwiic header on the clamp plate's back.")
+    return (f"Concept a's final DIP link puts the sensing plane of the ReSkin 5X board's chips {f(EV['gap_mm'])}{MM} behind the "
+            f"85A tip's back face, against {f(EV['gap_current_plate_mm'])}{MM} on the current plate. At the tips printed with "
+            f"2.9{MM} magnet seats the predicted force resolution at the contact point is {f(FR['four_30'], 3)}{NN} with four "
+            f"magnets and {f(FR['five_z7p4_30'], 3)}{NN} with five, against "
+            f"{f(srow('four_d3x2_d5', 'w85_30', 'plate_now')['centre_force_N'], 3)} and "
+            f"{f(srow('five_z7p4', 'w85_30', 'plate_now')['centre_force_N'], 3)}{NN} on the current plate. A 0.85{MM} window "
+            f"plate and a 3.0{MM} clamp plate sandwich the board with four brass screws and two pins; the least clearance over "
+            f"PIP &#8722;18 to 92{DEG} is {f(WORST['min_mm'], 3)}{MM}. No orientation of the board's Qwiic connector clears, so "
+            f"a pigtail runs to a Qwiic header on the clamp plate's back. Concept b, a rigid cassette inside the tip that "
+            f"resolves {f(DEC['concepts']['b']['force_resolution_N']['four_30'], 3)}{NN}, also goes to a first print.")
 
 
 def design_section():
@@ -255,7 +268,7 @@ def design_section():
          f"locate the board in its plane; the stack has no designed clearance normal to the board "
          f"(Figures&#160;[[fig:iso]]&#8211;[[fig:section]]).</p>",
          f"<p>The tip keeps its outer surface and its stiffness. It slides along +z onto two PLA dovetail keys of the window "
-         f"plate until its mount face meets the bridge; a detent on each key holds it there (Section&#160;5). The "
+         f"plate until its mount face meets the bridge; a detent on each key keeps it there (Section&#160;5). The "
          f"tip and the board come off separately: the tip by a pull along &#8722;z, the board after four screws. Without "
          f"the tip the assembly weighs {f(CHK['mass_g']['total_without_tip'])}&#8202;g at the links' 15&#8202;% infill "
          f"(R12 limit {f(CHK['mass_g']['limit_R12'], 1)}&#8202;g; the current DIP link with the board weighs "
@@ -270,7 +283,7 @@ def design_section():
                 "Sections through the stack at y = 0 (chips U4, U1, U2), at y = 3.0&#8202;mm (magnets and a key) and at z "
                 "&#8722;78.16&#8202;mm (chips U5, U1, U3). Colours: 85A block tip tan, DIP link grey, board green, clamp "
                 "plate blue, brass screws and nuts ochre, wires orange, magnets red with their north half darker; the cross "
-                "marks the contact point.", "section")]
+                "marks the contact point.", "section", cls="panels")]
     return "".join(t)
 
 
@@ -299,17 +312,18 @@ def concepts_section():
                                  ("concept_b/media/20261018-concept_b_iso.png", "b"),
                                  ("concept_c/media/20261018-concept_c-iso.png", "c")))
     return "".join([
-        f"<p>Three concepts were drawn to the same specification. Concept a, chosen, is the design of Section&#160;2. "
+        f"<p>Three concepts were drawn to the same specification, and the owner takes a and b to a first print. Concept a "
+        f"is the design of Section&#160;2. "
         f"Concept b replaces the tip's dorsal 6{MM} with a rigid cassette that clamps the board 0.42{MM} behind an 11{MM} "
         f"TPU pad; it resolves the finest forces, {f(C['b']['force_resolution_N']['four_30'], 3)}{NN} with four magnets, "
         f"but the cassette stiffens the contact by about 20&#8202;% and halves the magnet travel per newton, and the "
         f"11/22 half-ellipsoid's groove lies 0.85{MM} from a magnet pocket against R4's 2.0{MM}. Concept c places the "
         f"board at a print pause and prints the cap and the tip over it; it resolves "
         f"{f(C['c']['force_resolution_N']['four_30'], 3)}{NN}, has no screw preload on the board, and a worn tip costs a "
-        f"board. Table&#160;[[tab:concepts]] scores the three on the judge's criteria; the force resolutions compare with "
+        f"board. Table&#160;[[tab:concepts]] scores the three on eight criteria; the force resolutions compare with "
         f"{f(REF['four_30'], 3)}{NN} (four magnets) and {f(REF['five_30'], 3)}{NN} (five, corner magnets 7.0{MM} apart as "
         f"the concepts were scored) on the current plate.</p>",
-        table(head, body, "The three concepts on the criteria of the judge (<code>decision.json</code>; force "
+        table(head, body, "The three concepts on eight criteria (<code>decision.json</code>; force "
               "resolution at 30&#8202;% gyroid, four-magnet block; concept b on its coarse finite-element grid).",
               text_cols=(0, 1, 2, 3), key="concepts"),
         figure(f'<div class="imgs">{ims}</div>', "Concepts a, b and c assembled, from top to bottom (renders from each concept's folder).",
@@ -365,10 +379,10 @@ def tip_section():
         "<p>Table&#160;[[tab:loads]] follows the specification's design loads, 10&#8202;N normal and 5&#8202;N tangential "
         "at the contact point, and adds a pull-off and a twist about the normal. The normal load and the load toward the "
         "PIP joint bear on rigid faces. A 5&#8202;N lateral load acts 17.0&#8202;mm from the back face, so the tip pivots on "
-        "its back edge and pulls the far key with 7.7&#8202;N. The twist is bounded by the torsional friction of the "
+        "its back edge and pulls the far key with 7.7&#8202;N. The twist cannot exceed the torsional friction of the "
         "contact patch, \\(\\tau \\le \\tfrac{2}{3}\\,\\mu F_n a\\) with friction coefficient \\(\\mu\\), normal force "
-        "\\(F_n\\) and patch radius \\(a\\): 20&#8202;N&#8202;mm at \\(\\mu = 1\\), \\(F_n = 10\\)&#8202;N and \\(a = 3\\)&#8202;mm. How much the "
-        "detents and the dovetail lips hold in 85A TPU is unmeasured; tests T1 and T2 measure it.</p>",
+        "\\(F_n\\) and patch radius \\(a\\): 20&#8202;N&#8202;mm at \\(\\mu = 1\\), \\(F_n = 10\\)&#8202;N and \\(a = 3\\)&#8202;mm. The force at which "
+        "the detents and the dovetail lips let go in 85A TPU is unmeasured; tests T1 and T2 measure it.</p>",
         table(["Load", "Path", "Numbers", "Status"], rows,
               "Load paths of the tip attachment (<code>decision.json</code>, tip_attachment).", text_cols=(0, 1, 2, 3),
               key="loads"),
@@ -393,20 +407,38 @@ def clearance_section():
         if v["min_wall_mm"] < 0.9:
             nm = wname.get(k.split("_")[0], k)
             thin[nm] = min(thin.get(nm, 9.0), v["min_wall_mm"])
+    cv = json.load(open(os.path.join(FIN, f"{PFX}_clearance_curve.json")))
+    q = cv["q_deg"]
+    lo = [min(r["mcp_link"][i] for r in cv["rows"].values()) for i in range(len(q))]
+    los = [min(r["servo_pip"][i] for r in cv["rows"].values()) for i in range(len(q))]
+    k_star = min(range(len(q)), key=lambda i: min(lo[i], los[i]))
+    dn = cv["rows"]["dip_link_new"]
+    others = min(min(min(r["mcp_link"]), min(r["servo_pip"])) for k, r in cv["rows"].items() if k != "dip_link_new")
+    k_s = min(range(len(q)), key=lambda i: dn["servo_pip"][i])
     return "".join([
-        f"<p>Every new part clears the MCP link and the PIP servo over the joint range (Table&#160;[[tab:clear]]); the "
-        f"least clearance is {f(WORST['min_mm'], 3)}{MM}, between the new DIP-link features and the MCP link at PIP "
-        f"{f(WORST['pip_deg'], 0)}{DEG}. The clevis arms are the current link's, unchanged. The chips stay "
-        f"{f(T['chips_min_mm'])}{MM} or more from the PIP servo ({f(T['chips_current_plate_min_mm'])}{MM} on the "
-        f"current plate); the FR-4's proximal corner comes to {f(T['main_square_min_mm'])}{MM} at PIP "
-        f"{f(T['main_square_pip_deg'], 1)}{DEG}, 0.15{MM} under R10's 6.3{MM} for magnetic parts, as for any board at "
-        f"this placement.</p>",
+        f"<p>Every new part clears the MCP link and the PIP servo over the joint range (Table&#160;[[tab:clear]], "
+        f"Figure&#160;[[fig:sweep]]); the least clearance is {f(WORST['min_mm'], 3)}{MM}, between the new DIP-link "
+        f"features and the MCP link at PIP {f(WORST['pip_deg'], 0)}{DEG}. The new DIP-link features stay "
+        f"{f(min(dn['mcp_link']), 3)} to {f(max(dn['mcp_link']), 3)}{MM} from the MCP link at every angle and come within "
+        f"{f(dn['servo_pip'][k_s], 2)}{MM} of the PIP servo at PIP {f(q[k_s], 0)}{DEG}; the other parts keep "
+        f"{f(others, 2)}{MM} or more. The clevis arms are the current link's, unchanged. The chips "
+        f"stay {f(T['chips_min_mm'])}{MM} or more from the PIP servo ({f(T['chips_current_plate_min_mm'])}{MM} on the "
+        f"current plate).</p>",
         table(["Part", "Least clearance (mm)", "At PIP (deg)", "Against", "Requirement (mm)"], rows,
               "Clearance of the final's parts over PIP &#8722;18 to 92&#176; (<code>final/20261018-dip_link_final_check.json</code>).",
               text_cols=(0, 3), key="clear"),
+        film(f"final/media/{PFX}_pip_sweep.mp4", f"final/media/{PFX}_pip_sweep.png",
+             "PIP joint from &#8722;18 to 92&#176; and back with concept a's final parts on the DIP link, seen along the PIP "
+             "axis from the horn side, the MCP link and the PIP servo translucent; flexion turns the tip to the left. Right: "
+             "least clearance of the parts on the DIP link to the MCP link and to the PIP servo at each angle, and the part "
+             "that comes closest (<code>final/20261018-dip_link_final_clearance_curve.json</code>, 0.5&#176; steps, values "
+             f"capped at 6&#8202;mm). The poster frame is PIP {f(q[k_star], 1)}&#176;, where the clearance is least.", "sweep"),
         f"<p>Against the specification, R1 (gap {f(EV['gap_mm'])} against 0.52{MM}), R5 (21.0{MM} band, FR-4 edge 0.5{MM} "
         f"inside the rim), R6 (clevis arms kept), R7, R9 (tip and board replaceable with hand tools) and R12 are met in the "
-        f"model; R2 and R3 wait on a print. R11's 0.9{MM} wall rule is missed by "
+        f"model; R2 and R3 wait on a print. R10 asks that the board come no nearer the PIP servo than on the current plate "
+        f"({f(T['spec_R10_mm'], 1)}{MM}); the FR-4's proximal corner comes within {f(T['main_square_min_mm'])}{MM} at PIP "
+        f"{f(T['main_square_pip_deg'], 1)}{DEG}, as any board placed this near the tip does. R11's 0.9{MM} wall rule is "
+        f"missed by "
         + ", ".join(f"{k} ({f(v)}{MM})" for k, v in sorted(thin.items(), key=lambda kv: kv[1])) +
         f": the window plate's thickness follows the chips' height. R4 is met for the board's retention and the tip's "
         f"channels ({f(min(v['min_mm'] for v in CHK['channels_to_magnets_R4'].values()))}{MM} or more from a "
@@ -460,6 +492,16 @@ def drawing_section():
             "Table&#160;[[tab:fits]] lists the critical fits and their tolerances. The window plate's thickness and the "
             "pin diameter are set from measurements on the owner's board and from the pin-fit coupon before the first "
             "print.</p>"
+            "<p>For editing the parts in Onshape, <a href=\"onshape/20261018-dip_link_onshape_parts.step.zip\">"
+            "<code>onshape/20261018-dip_link_onshape_parts.step.zip</code></a> contains each part as an exact solid: the board "
+            "as supplied, with J1 and the mated Qwiic plug, at the placements of concepts a and b; concept a's final parts; "
+            "concept b's new body and cover. <a href=\"onshape/20261018-dip_link_onshape_tips.step.zip\"><code>"
+            "onshape/20261018-dip_link_onshape_tips.step.zip</code></a> contains concept a's block tip with its channels and "
+            "concept b's pad as faceted solids, and <a href=\"onshape/20261018-dip_link_onshape_context_stl.zip\"><code>"
+            "onshape/20261018-dip_link_onshape_context_stl.zip</code></a> the current DIP link and the MCP link and PIP servo "
+            "at PIP &#8722;18, 0 and 92&#176; as meshes. The files use the coordinates of the DIP link STL, "
+            "\\(x_D = -x_F\\), \\(y_D = y_F + 21.25\\), \\(z_D = -z_F - 51.55\\) (mm), so they line up with the DIP link "
+            "in the owner's Part Studio (<code>scripts/dip_link_onshape_export.py</code>).</p>"
             + figure(pic("a") + pic("b"), "Drawing panels A, the stack at y = 0 through U1, and B, the section through the "
                      "M1.6 screws and nuts (mm).", "drawab")
             + figure(pic("c") + pic("d"), "Drawing panels C, the section through the pins and the dovetail keys, and D, a "
@@ -485,7 +527,7 @@ def print_section():
     seq = "".join(f"<li>{esc(s)}</li>" for s in AS["sequence"])
     return "".join([
         f"<p>All rigid parts print on the Prusa XL with 0.4{MM} nozzles; the PLA parts go on a PLA tool, which is tool 3, "
-        f"4 or 5 in the owner's v17 template (tool 1 holds 95A TPU and tool 2 Siraya 85A). STEP and STL files of every "
+        f"4 or 5 in the owner's v17 template (tool 1 is loaded with 95A TPU and tool 2 with Siraya 85A). STEP and STL files of every "
         f"part are in <code>final/cad/</code>, print files in <code>final/print/</code>.</p>",
         table(["Part", "Tool", "Material", "Orientation", "Layers", "Infill", "Supports and finishing"], rows,
               "XL print settings (<code>final/20261018-dip_link_final_print_settings.json</code>).",
@@ -507,7 +549,7 @@ def limitations():
             "elements of the 85A block and a dipole field model, the clearance from the CAD meshes, the retention of the "
             "tip from rigid-body levers. The window plate's thickness assumes 0.90&#8202;mm chips; the owner's board sets "
             "it. The board's flatness on a window plate printed as vertical perimeters, the screws' preload in PLA and its "
-            "creep, the detents' hold in 85A TPU and the cable's route across the PIP joint are unmeasured. Concept b's "
+            "creep, the detents' retention in 85A TPU and the cable's route across the PIP joint are unmeasured. Concept b's "
             "numbers come from a coarser finite-element grid than a's and c's.</p>")
 
 
@@ -519,7 +561,7 @@ def open_items():
         "outside 0.85&#8211;0.95&#8202;mm changes the window plate.",
         "Print the pin-fit coupon (<code>final/print/20261018-dip_link_final_pin_fit_coupon.stl</code>) and set "
         "<code>pin_d</code> to the pin that enters the board's holes without play.",
-        "Print the attachment fit coupon of step 15 (test T1) and choose the interference per flank; then reprint one "
+        "Print the attachment fit coupon (test T1) and choose the interference per flank; then reprint one "
         "four-magnet block with channels and run test T2. A tip that slides past its detent under 5&#8202;N fails the "
         "design load.",
         "Bench check of the clamp from the specification: zero-load field before and after 50 presses at 3&#8202;N and "
