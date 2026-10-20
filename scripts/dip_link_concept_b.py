@@ -811,8 +811,12 @@ def cable_cuts(K):
     band = ([(a0[0] - rc, a0[2] - 0.05)] + outer + [(X_OPEN, z1 + rc), (X_OPEN, z1 - rc)] + inner[::-1]
             + [(a0[0] + rc, a0[2] - 0.05)])
     turn1 = K.prism_y(band, y0 - rc, y0 + rc)
-    # open to the top over the band where a roof would be thinner than ROOF_MIN (over the plug and the leg toward the back)
-    xt = max(cable_open_top_x(), c1[0] + 0.01)
+    # open to the top over the band where a roof would be thinner than ROOF_MIN (over the plug and the leg toward the back);
+    # v3 (cable_leg = open): over the whole leg out through the back, so the cable with its far plug lies in from the top
+    if DESIGN.get("cable_leg", "roofed") == "open":
+        xt = X_OPEN
+    else:
+        xt = max(cable_open_top_x(), c1[0] + 0.01)
     top = K.prism_y([(a0[0] - rc, a0[2] - 0.05), (a0[0] + rc, a0[2] - 0.05)] + inner + [(xt, z1 - rc), (xt, -50.0),
                                                                                          (a0[0] - rc, -50.0)], y0 - rc, y0 + rc)
     # the turn to +y and the run to the arm: a section in (x, y) across z1 +- rc; the turn's inner wall stays
@@ -851,7 +855,9 @@ def dip_link_parts(K):
             K.box((X_SEAT - RIM_H, Y_RIM - 0.01, Z_WEB_LOW), (X_SPINE_BACK, Y_BRIDGE[1] + 0.02, zb + 0.5))]
     j1 = DESIGN.get("qwiic") == "j1_kept"
     extra = [] if j1 else [K.box((X_TONGUE_BACK - 0.1, TIE["y"][0], TIE["z"][0]), (TIE["x_top"], TIE["y"][1], TIE["z"][1]))]
-    if NECK > 0:
+    if NECK > 0 and DESIGN.get("neck", "block") == "column":
+        extra += neck_column(K, zb)
+    elif NECK > 0:
         extra.append(K.box((TIP["x_palmar"], -Y_RIM, TIP["z_mount"]), (X_SPINE_BACK, Y_RIM, zb + 0.5)))
     body = K.fuse(bridge, [tongue] + extra + webs)
     cuts = [
@@ -892,9 +898,81 @@ def dip_link_parts(K):
     return body, K.finish(dip)
 
 
+# Revision of 2026-10-20 (v3), after the owner's prints of v2 b. Owner: "beefing up the cassette ... if we add side volume
+# to mold/constrain around the finger, that should help with the shear force detachment ... probably just around where
+# the screw holes are at the bottom up until the ellipse starts to curve back in" (design cover_walls = pad_flanks); the
+# block under the pad should "just be a column, with an undersized diameter so that it's compatible with any kind of
+# fingertip ... sizing for the 11/22 ellipsoid (just a little bit smaller/recessed)", with "some kind of fillet/angled
+# edge between the magnetometer board mount and this column" (neck = column); the Qwiic cable "is double sided ... you
+# just need to cut out a channel for the cable to slot into" (cable_leg = open). Without these keys a parameter file
+# builds v2 (cover_walls none, neck block, cable_leg roofed).
+ELL = dict(ay=7.4, ax=8.5, az=11.0, azp=22.0)      # the 11/22 half-ellipsoid of the v2 pads (tcd_ell7.4x8.5x11x22), mm
+REV = dict(wall_h=3.0, wall_clear=0.10, wall_top_t=1.2, wall_z0=0.0, col_margin=0.6, col_chamfer=2.0)
+
+
+def rp(key):
+    """A v3 parameter: the parameter file's value, else REV's."""
+    return float(P.get(key, REV[key]))
+
+
+def pad_half_width(z):
+    """|y| of the 11/22 pad's flank at z (F), which runs straight from the pad's back face to its equator."""
+    t = z - Z_CONTACT                                      # positive toward the mount face
+    a = ELL["azp"] if t >= 0 else ELL["az"]
+    return ELL["ay"] * math.sqrt(max(1.0 - (t / a) ** 2, 0.0))
+
+
+def cover_walls(K):
+    """The cover's two side walls (design cover_walls = pad_flanks): wall_h toward the palmar side from the cover's front
+    face, along the pad's straight flanks from the mount face to wall_z0 mm proximal of the apex (0: the pad's widest
+    section, where its outline turns back in), the inner face wall_clear outside the flank, the outer face sloping from the
+    cover's edge (|y| Y_RIM) to wall_top_t outside the widest flank at the top; a counterbore over each screw head inside
+    them, and the distal end cut at 45 deg."""
+    import numpy as np
+    h, c, tt = rp("wall_h"), rp("wall_clear"), rp("wall_top_t")
+    z0, z1 = Z_CONTACT + rp("wall_z0"), TIP["z_mount"]
+    xt = X_SLOT - h
+    y_top = ELL["ay"] + c + tt
+    blocks = [K.prism_z([(s * 3.0, X_SLOT), (s * Y_RIM, X_SLOT), (s * y_top, xt), (s * 3.0, xt)], z0, z1) for s in (-1, 1)]
+    zs = np.linspace(z0 - 2.0, z1 + 1.0, 121)
+    yo = [pad_half_width(min(z, z1)) + c for z in zs]
+    foot = [(y, z) for y, z in zip(yo, zs)] + [(-y, z) for y, z in zip(yo[::-1], zs[::-1])]
+    cuts = [K.prism_x(foot, xt - 1.0, X_SLOT + 0.5),
+            K.prism_y([(X_SLOT + 0.5, z0 - 0.5), (xt - 0.5, z0 + h + 0.5), (xt - 0.5, z0 - 20.0), (X_SLOT + 0.5, z0 - 20.0)],
+                      -Y_RIM - 1.0, Y_RIM + 1.0)]
+    cuts += [K.cylx(y, z, HEAD_NOTCH_D / 2, xt - 1.0, X_SLOT) for y, z in screw_yz() if z0 <= z <= z1]
+    return K.cut(K.fuse(blocks[0], [blocks[1]]), cuts)
+
+
+def column_section(m, x_back):
+    """(y, x) outline of the 11/22 pad's section at its mount face shrunk by m, from x_back (dorsal) over the straight
+    flanks to the pad's equator and around the palmar half-ellipse; and its half-width."""
+    import numpy as np
+    k = math.sqrt(1.0 - ((TIP["z_mount"] - Z_CONTACT) / ELL["azp"]) ** 2)
+    ay, ax = ELL["ay"] * k - m, ELL["ax"] * k - m
+    xc = TIP["x_palmar"] + ELL["ax"]                       # the equator, x_F -2.05
+    pts = [(ay, x_back)] + [(ay * math.cos(a), xc - ax * math.sin(a)) for a in np.linspace(0.0, math.pi, 49)]
+    return pts + [(-ay, x_back)], ay
+
+
+def neck_column(K, zb):
+    """The neck with a column under the pad (design neck = column): dorsal of the tongue's front face (x_F 3.95) the board
+    mount continues as wide as the cassette up to the bridge (it takes the tab, J1, the plug and the cable's groove);
+    palmar of it a column of the 11/22 pad's mount-face section shrunk by col_margin, recessed under every tip; a 45 deg
+    chamfer of col_chamfer in each corner between the two."""
+    m, ch = rp("col_margin"), rp("col_chamfer")
+    z0, z1 = TIP["z_mount"], zb + 0.5
+    xs = X_SEAT - RIM_H                                    # the tongue's front face (x_F 3.95)
+    slab = K.box((xs, -Y_RIM, z0), (X_SPINE_BACK, Y_RIM, z1))
+    sec, ay = column_section(m, xs + 0.01)
+    col = K.prism_z(sec, z0, z1)
+    fil = [K.prism_z([(s * ay, xs + 0.01), (s * (ay + ch), xs + 0.01), (s * ay, xs - ch)], z0, z1) for s in (-1, 1)]
+    return [slab, col] + fil
+
+
 def cover_part(K):
     """The cover: a web as thick as the chips over the board's component face, with windows around every part, a notch
-    over the tab, the four screw holes, and the two dovetail rails on its front face."""
+    over the tab, the four screw holes, and the two dovetail rails on its front face (v3: and the side walls)."""
     web = K.box((X_SLOT, -Y_RIM, TIP["z_end"]), (X_COMP, Y_RIM, TIP["z_mount"]))
     notch = K.box((X_SLOT - 0.1, -COVER_TAB_Y, COVER_TAB_Z), (X_COMP + 0.1, COVER_TAB_Y, TIP["z_mount"] + 0.1))
     win = [K.box((X_SLOT - 0.1, y0, z0), (X_COMP + 0.1, y1, z1)) for y0, y1, z0, z1 in cover_windows().values()]
@@ -904,6 +982,8 @@ def cover_part(K):
     for s in (-1, 1):
         sec = [(s * y, (X_SLOT + 0.1) if x > X_SLOT else x) for y, x in rail_section()]
         rails.append(K.prism_z(sec, RAIL_Z[0], RAIL_Z[1]))
+    if DESIGN.get("cover_walls", "none") == "pad_flanks":
+        rails.append(cover_walls(K))
     return K.finish(K.fuse(cover, rails))
 
 
@@ -1472,6 +1552,8 @@ def render_iso(M, path, view="palmar"):
 
 
 def _title():
+    if DESIGN.get("cover_walls", "none") != "none" or DESIGN.get("neck", "block") != "block":
+        return "Concept b, v3"
     if DESIGN.get("pads") == "v2_five":
         return "Concept b, v2"
     return "Concept b, final" if DESIGN.get("qwiic", "none") != "none" else "Concept b"

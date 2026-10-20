@@ -67,6 +67,9 @@ GLOBAL = dict(D.P1S_PROCESS, layer_height="0.1", sparse_infill_pattern="gyroid",
               brim_type="outer_only", brim_width="5", enable_support="0", support_type="tree(auto)",
               support_on_build_plate_only="1")      # the command line ignores a brim set per object: a 5 mm brim on all
 FILAMENT_AREA = np.pi * 1.75 ** 2 / 4
+TITLE = "v2 a and b, UR5 mount"           # the plate map's title (scripts/v3b_ur5v2_pla_plate.py sets its own)
+OWNER = ("2026-10-19 18:40: 'let's just put all the concept A/B + UR5 PLA mounting stuff ... onto one PLA plate on the p1s "
+         "and send it so i can go home'")
 
 
 def inject(src, dst, settings):
@@ -198,8 +201,7 @@ def main():
             problems.append(f"{o['id']} has no brim")
         if o["settings"]["sparse_infill_density"] == "100%" and o["fill_ratio"] < 0.85:
             problems.append(f"{o['id']} fill ratio {o['fill_ratio']} though asked solid")
-    rec = dict(owner="2026-10-19 18:40: 'let's just put all the concept A/B + UR5 PLA mounting stuff ... onto one PLA plate on "
-                     "the p1s and send it so i can go home'",
+    rec = dict(owner=OWNER,
                project=D.rel(OUT / proj), printer="Bambu Lab P1S 0.4 nozzle", filament=D.P1S["filament"], slot="AMS slot 1",
                plate="Textured PEI Plate, 55 C", process_base=D.P1S["process"], global_settings=GLOBAL, time_s=pred,
                time=D.fmt_time(pred), filament_g=weight, layers=layers, objects=objs, problems=problems,
@@ -207,7 +209,7 @@ def main():
                       "Metadata/model_settings.config, sliced again", when=time.strftime("%Y-%m-%d %H:%M"))
     fig = OUT / f"{PFX}_map.png"
     D.plate_map([(dict(id=o["id"], material="PLA", short=o["label"]), trimesh.load(placed / o["name"])) for o in objs],
-                D.P1S_BED, f"Bambu Lab P1S, PLA (AMS slot 1): v2 a and b, UR5 mount, {D.fmt_time(pred)}, {weight:.0f} g", fig)
+                D.P1S_BED, f"Bambu Lab P1S, PLA (AMS slot 1): {TITLE}, {D.fmt_time(pred)}, {weight:.0f} g", fig)
     rec["map"] = D.rel(fig)
     (OUT / f"{PFX}.json").write_text(json.dumps(rec, indent=1) + "\n")
     for o in objs:

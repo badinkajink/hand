@@ -188,6 +188,7 @@ def build():
     fit = audit["fit_sizes_20261019"]
     good = audit["good_20261018"]
     tp = audit["tip_pad_20261019"]
+    meas = json.loads((D / "print_audit.json").read_text())["measured_20261020"]
     mA = [v for k, v in fit["mass_g_by_object"].items() if k.startswith("A")]
     mB = [v for k, v in fit["mass_g_by_object"].items() if k.startswith("B")]
     blk = d1["block4_g30|ready|M1|pads"]
@@ -246,7 +247,8 @@ skins and the solid modulus unchanged.</dd>
 mm&#179;; its change stands for the change in a part's mass.</dd>
 <dt>Retraction, long travel</dt><dd>From the sliced G-code: a retraction is a filament pull-back before a travel; a long travel is a
 retracted travel longer than 20&#8202;mm, nearly always between parts, where strings form across open air.</dd>
-<dt>Part mass</dt><dd>Filament extruded inside a part's object label (straight and arc moves, 1.75&#8202;mm filament, 1.26&#8202;g/cm&#179;), in g.</dd>
+<dt>Part mass</dt><dd>Filament extruded inside a part's object label (straight and arc moves, 1.75&#8202;mm filament, 1.16&#8202;g/cm&#179;,
+Siraya Tech's ISO 1183 value; the XL profile and the slicer's own total take 1.26&#8202;g/cm&#179;), in g.</dd>
 <dt>Same branch, RMS angle, force difference</dt><dd>The calibration study's consistency test: the pads and Drake replay the same
 logged servo commands; a pair is on the same branch when the tool axes end within 15&#176;; the RMS angle is the root mean square of the
 angle between their tool axes over the replay, in degrees; the force differences are the RMS differences of each finger's normal and
@@ -334,7 +336,12 @@ retraction, so the profile runs hot and pulls back little, which strings on any 
 about 16:20 and 18:40 on 10-19 the spool sat outside the dryer on the A1 mini and the P1S, and Siraya's guide calls for 4&#8211;6&#8202;h at
 50&#8211;65&#8202;&#176;C when 85A has taken up moisture. Strings form outside the parts; a part's stiffness depends on the TPU inside it (Section 3), which a
 scale measures against the slicer's per-part masses. The A tips weigh {min(mA):.3f}&#8211;{max(mA):.3f}&#8202;g and the B pads {min(mB):.3f}&#8211;{max(mB):.3f}&#8202;g
-in the G-code, the same to 0.004&#8202;g across the four sizes.</p>
+in the G-code, the same to 0.004&#8202;g across the four sizes. On the owner's scale (2026-10-20) the A tips weigh
+{meas['A']['mass_g']:.2f}&#8202;g and the B pads {meas['B']['mass_g']:.2f}&#8202;g, {100 * (1 - meas['A']['measured_over_commanded']):.1f} and
+{100 * (1 - meas['B']['measured_over_commanded']):.1f}&#8202;% under the G-code's masses, and {100 * (1 - meas['A']['measured_over_fe']):.1f}&#8202;% less and
+{100 * (meas['B']['measured_over_fe'] - 1):.1f}&#8202;% more TPU than the finite elements of a's tip and b's pad: by Table 2 the A tips sink
+about 7&#8202;% further than modelled and the B pads as modelled. The 14&#8202;% the scale first seemed to show came from the profile's
+density.</p>
 {table(["Plate", "Parts", "Retractions per layer", "Long travels per layer", "Part mass (g)", "Plate filament (g)", "Slicer time"],
        [plate_row(k, audit[k]) for k in ("good_20261018", "tip_pad_20261019", "fit_sizes_20261019")],
        num_cols=(1, 2, 3, 4, 5), n=3,
@@ -411,7 +418,7 @@ plan. {cap_txt}</p>
         srows = [[lab[c], f"{r['magnet_travel_um_per_N']:.2f}", f"{r['B_max_component_mT']:.1f}", f"{r['gain_sel']}",
                   f"{r['gain']['centre_force_N']:.3f}", f"{r['gain']['median_force_N']:.3f}",
                   f"{r['gain']['range_force_N'][0]:.3f}&#8211;{r['gain']['range_force_N'][1]:.3f}", f"{blk[c]:.3f}"]
-                 for c, r in sorted(sr.items())]
+                 for c, r in sorted(sr.items()) if c in lab]          # the walled pads of 10-20 are on the v3 page
         ra, rb = sr.get("a_v2"), sr.get("b_v2")
         txt = ""
         if ra and rb:
@@ -679,11 +686,12 @@ see strings. The control rests on one block calibration (M1) and the readiness c
     turn16_v2 = f"{_t[0]:+.1f}&#176;" if _t else "(pending)"
     S.append(("future", "Future work", f"""
 <ul>
-<li>Weigh the fit-size parts (A00&#8211;A20: {np.mean(mA):.2f}&#8202;g each in the G-code; B00&#8211;B15: {np.mean(mB):.2f}&#8202;g) and the
-magnet tip and pad of the 55&#8202;min plate ({tp['mass_g_by_object'].get('20261018-dip_link_v2a_print_tip_ell11_5_channels_85a_t2_g30', 0):.2f}
-and {tp['mass_g_by_object'].get('20261018-dip_link_v2b_print_pad_ell11_5_85a_t2_g30', 0):.2f}&#8202;g plus 0.53&#8202;g of magnets) to
-0.01&#8202;g. A part 2.5&#8202;% or more under its siblings sinks 5&#8202;% further than they do (Table 2) and does not stand for the calibrated
-tip on the bench.</li>
+<li>Weigh one metre of the 85A spool to 0.01&#8202;g: {meas['A']['filament_1m_g_expected']:.2f}&#8202;g at 1.75&#8202;mm and
+1.16&#8202;g/cm&#179;. Near that, the fit parts contain 6&#8211;7&#8202;% less TPU than the extruder pushed (the A tips then sink about 7&#8202;% further than the
+calibrated print); near {meas['A']['filament_1m_g_expected'] * meas['A']['measured_over_commanded']:.2f}&#8202;g the filament is thin and
+the parts contain what the slicer laid down. Weigh the magnet tip and pad of the 55&#8202;min plate too
+({tp['mass_g_by_object'].get('20261018-dip_link_v2a_print_tip_ell11_5_channels_85a_t2_g30', 0):.2f} and
+{tp['mass_g_by_object'].get('20261018-dip_link_v2b_print_pad_ell11_5_85a_t2_g30', 0):.2f}&#8202;g plus 0.53&#8202;g of magnets).</li>
 <li>Dry the spool at 55&#8202;&#176;C for 6&#8202;h and print one A tip alone, then weigh it against the A tips of 10-19. Fewer strings after drying
 point to moisture; as many strings point to the profile's 240&#8202;&#176;C and 0.6&#8202;mm retraction, which a print of the same tip at
 225&#8202;&#176;C with 1&#8202;mm retraction and wipe on would test, with an indentation, since the nozzle temperature changes the bond between

@@ -190,7 +190,7 @@ def rotate_C(C6, build):
 class TipModel:
     """Assembled stiffness of the tip on a grid with per-cell material tensors (6x6, MPa); mount faces fixed."""
 
-    def __init__(self, grid, mat_id, mats, fix_back=True, fix_top=True, verbose=True):
+    def __init__(self, grid, mat_id, mats, fix_back=True, fix_top=True, verbose=True, fix_dofs=None):
         t0 = time.time()
         self.g = grid
         solid = mat_id >= 0
@@ -226,6 +226,8 @@ class TipModel:
             fixed |= self.X[:, 2] <= 1e-9
         self.fixed_nodes = fixed
         fd = np.repeat(fixed, 3)
+        if fix_dofs is not None:                # further single DOFs held, (nn, 3) bool of the node coordinates
+            fd = fd | np.asarray(fix_dofs(self.X), bool).ravel()
         self.free = np.where(~fd)[0]
         self.dof_map = -np.ones(3 * nn, np.int64)
         self.dof_map[self.free] = np.arange(len(self.free))

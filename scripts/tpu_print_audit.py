@@ -5,8 +5,10 @@ Owner, 2026-10-19 20:20: "the stringing is quite bad right now on the tpu prusa 
 reproducibility ... maybe it's because we're printing so many in sequence?" Per plate: layers, retractions (a G1 with
 negative E and no move), retractions per layer, retracted travels longer than 20 mm (the moves that string across open
 air), the longest lift of a travel, and each object's extruded mass (G1, G2 and G3 moves with positive E inside the object's
-M486 label; relative E, 1.75 mm filament, 1.26 g/cm3), with the slicer's own total. The plates: the owner's good print of
-2026-10-18 (sliced again from its project), the v2 tip-and-pad plate and the fit-size plate of 2026-10-19.
+M486 label; relative E, 1.75 mm filament at Siraya Tech's 1.16 g/cm3, ISO 1183, where the profile and the slicer's total take
+1.26), with the slicer's own total. The plates: the owner's good print of 2026-10-18 (sliced again from its project), the v2
+tip-and-pad plate and the fit-size plate of 2026-10-19. MEASURED: the owner's weighings of printed parts (2026-10-20), with
+the TPU volume they hold at 1.16 g/cm3 against the slicer's commanded volume and the finite elements' TPU volume.
 
     python3 scripts/tpu_print_audit.py
 Out: docs/experiments/20261019-v2_tip_fe_checks/print_audit.json
@@ -39,7 +41,17 @@ SETTINGS = ("temperature", "first_layer_temperature", "filament_retract_length",
             "min_fan_speed", "max_fan_speed", "slowdown_below_layer_time")
 
 
-def audit(gc, density=1.26, dia=1.75):
+DENSITY = 1.16            # g/cm3, Siraya Tech Flex TPU 85A (user guide and TDS, ISO 1183); the XL profile's filament_density 1.26
+PROFILE_DENSITY = 1.26
+# the owner's weighings, 2026-10-20: "the A pads weigh 2.44g and the B pads are 2.01g" (fit-size plate, no magnets); the FE
+# TPU volumes of a's channelled tip and b's cut pad from docs/experiments/20261019-v2_tip_fe_checks/meta.jsonl (a_v2, b_v2)
+MEASURED = {"A": dict(mass_g=2.44, parts="A00-A20 (fit-size plate of 2026-10-19)", fe_case="a_v2", fe_tpu_mm3=2169.2,
+                      sliced_key="A"),
+            "B": dict(mass_g=2.01, parts="B00-B15 (fit-size plate of 2026-10-19)", fe_case="b_v2", fe_tpu_mm3=1722.5,
+                      sliced_key="B")}
+
+
+def audit(gc, density=DENSITY, dia=1.75):
     area = math.pi * dia ** 2 / 4
     x = y = z = 0.0
     zl = 0.0
@@ -109,6 +121,21 @@ def main():
         out["plates"][key] = r
         print(key, {k: r[k] for k in ("objects", "layers", "retractions_per_layer", "travels_over_20mm_per_layer",
                                       "mass_g_objects", "slicer_total_g")}, flush=True)
+    fit = out["plates"]["fit_sizes_20261019"]["mass_g_by_object"]
+    out["measured_20261020"] = {}
+    for k, m in MEASURED.items():
+        sl = [v for n, v in fit.items() if n.startswith(m["sliced_key"])]
+        sliced_g = sum(sl) / len(sl)
+        v_meas = m["mass_g"] / DENSITY * 1e3                    # mm3
+        v_cmd = sliced_g / DENSITY * 1e3
+        out["measured_20261020"][k] = dict(m, sliced_g_at_1p16=round(sliced_g, 3),
+                                           sliced_g_at_profile_1p26=round(sliced_g * PROFILE_DENSITY / DENSITY, 3),
+                                           measured_tpu_mm3=round(v_meas, 1), commanded_tpu_mm3=round(v_cmd, 1),
+                                           measured_over_commanded=round(v_meas / v_cmd, 4),
+                                           measured_over_fe=round(v_meas / m["fe_tpu_mm3"], 4),
+                                           filament_1m_g_expected=round(math.pi * 1.75 ** 2 / 4 * 1000 * DENSITY / 1000, 3))
+    out["density_note"] = ("masses at Siraya Tech's 1.16 g/cm3 (Flex TPU 85A user guide and TDS, ISO 1183); the XL profile and the "
+                           "slicer's total take 1.26 g/cm3, 8.6 % more")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, indent=1) + "\n")
     print("->", OUT.relative_to(ROOT))

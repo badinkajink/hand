@@ -969,8 +969,10 @@ def cmd_a(a):
 
 
 # ----------------------------------------------------------------------------------------------- concept b, v2
-PARAMS_B = STUDY / "params/20261018-v2_concept_b.json"
-B_DIR = V2 / "b"
+PARAMS_B = REPO / (os.environ.get("DLV2_PARAMS_B") or STUDY / "params/20261018-v2_concept_b.json")  # v3: params/20261020-v3_..
+B_DIR = REPO / Path(json.loads(PARAMS_B.read_text())["outputs"]["evaluation"]).parent                # v2/b, v3/b
+B_WORK = REPO / json.loads(PARAMS_B.read_text())["outputs"]["work"]
+B_REL = str(B_DIR.relative_to(STUDY))                                                                # "v2/b"
 
 
 def run_b(*cmd, python=None):
@@ -1160,7 +1162,7 @@ def b_print():
     trimesh.util.concatenate(blocks).export(stl_blocks)
     PP.LABEL["tip"] = "85A blocks with the pad's grooves, 0 / 0.05 / 0.10 mm per flank"
     PP.build_project({"tip": stl_blocks}, out, f"{pf}_fit_coupon_grooves_85a_t2", source=str(PARAMS_B.relative_to(REPO)))
-    print_pads_b(B, out, REPO / "logs/20261018-dip_link/v2/b/print")
+    print_pads_b(B, out, B_WORK / "print")
     print("print ->", out.relative_to(REPO), flush=True)
 
 
@@ -1190,7 +1192,7 @@ def b_step():
     import subprocess
     B = b_module()
     files = sorted(str(f) for f in B.CAD_DIR.glob("*.step*"))
-    work = REPO / "logs/20261018-dip_link/v2/b"
+    work = B_WORK
     work.mkdir(parents=True, exist_ok=True)
     script = work / "step_read.py"
     script.write_text(STEP_READ)
@@ -1356,7 +1358,7 @@ def b_cable_section(B, clr=None):
                ["DIP link", "Board", "J1 and its plug", f"Cable, {B.cp('cable_d'):g} mm bundle"]
                + [f"MCP link and PIP servo at PIP {q:+.0f} deg" for q in qcol], loc="lower center", ncol=4, frameon=False,
                fontsize=14)
-    fig.suptitle(f"Concept b, v2: the Qwiic cable's route (DIP link {B.NECK:g} mm longer)", fontsize=18)
+    fig.suptitle(f"{B._title()}: the Qwiic cable's route (DIP link {B.NECK:g} mm longer)", fontsize=18)
     fig.tight_layout(rect=(0, 0.13, 1, 0.95))
     dst = B_DIR / "media" / f"{pf}_cable_section.png"
     fig.savefig(dst, dpi=100)
@@ -1587,16 +1589,16 @@ def b_docs():
         parts_list=[
             dict(item=f"DIP link, v2 ({B.NECK:g} mm longer, J1 slot, " + ("cable groove, " if routed else "")
                       + "1.8 mm screw holes)", material="PLA (Bambu Studio: print-oriented STL)", qty=1,
-                 file=(bambu.get("dip_link") or {}).get("file", f"v2/b/cad/{pf}_dip_link.stl"),
-                 step=f"v2/b/cad/{pf}_dip_link_new_body.step (new body, exact) and {pf}_dip_link.step.zip (fused with the arms)"
+                 file=(bambu.get("dip_link") or {}).get("file", f"{B_REL}/cad/{pf}_dip_link.stl"),
+                 step=f"{B_REL}/cad/{pf}_dip_link_new_body.step (new body, exact) and {pf}_dip_link.step.zip (fused with the arms)"
                       + (f"; {pf}_cable_groove_cutter.step" if routed else "")),
             dict(item="Cover (web as thick as the chips, two dovetail rails)", material="PLA, solid (Bambu Studio)", qty=1,
-                 file=(bambu.get("cover") or {}).get("file", f"v2/b/cad/{pf}_cover.stl"), step=f"v2/b/cad/{pf}_cover.step"),
+                 file=(bambu.get("cover") or {}).get("file", f"{B_REL}/cad/{pf}_cover.stl"), step=f"{B_REL}/cad/{pf}_cover.step"),
             dict(item="Pad, 85A, five magnets: 11/22 half-ellipsoid (or the block)", material="Siraya Tech TPU 85A, 30 % gyroid",
-                 qty=1, file=f"v2/b/print/{pf}_pad_ell11_5_print.stl",
-                 step=f"v2/b/cad/{pf}_pad_ell11_5.step.zip (faceted)"),
+                 qty=1, file=f"{B_REL}/print/{pf}_pad_ell11_5_print.stl",
+                 step=f"{B_REL}/cad/{pf}_pad_ell11_5.step.zip (faceted)"),
             dict(item="Rail fit coupon: a PLA strip with the two rails and 85A blocks with the grooves at 0, 0.05, 0.10 mm per "
-                      "flank", qty=1, file=f"v2/b/print/{pf}_fit_coupon_rails_pla_bambu.stl (Bambu) and "
+                      "flank", qty=1, file=f"{B_REL}/print/{pf}_fit_coupon_rails_pla_bambu.stl (Bambu) and "
                                            f"{pf}_fit_coupon_grooves_85a_t2.3mf (XL, tool 2)"),
             dict(item="N52 disc magnet 3 x 2 mm, axially magnetized", qty=5),
             dict(item="ReSkin 5X board as supplied (J1 kept, tab not cut)", material="FR-4 0.6 mm", qty=1),

@@ -74,6 +74,12 @@ CASES = {   # name: grid, magnet depth (mm), magnets (None: the calibration's fo
     "v2_5_skin07": dict(grid="base", depth=7.5, mags="five", n_skin=7, layer=0.1),
     "a_v2": dict(grid="base", depth=7.5, mags="five", body="a"),
     "b_v2": dict(grid="base", depth=7.5, mags="five", body="b"),
+    # 2026-10-20: b's pad with the v3 cover's side walls (owner: "if we add side volume to mold/constrain around the finger,
+    # that should help with the shear force detachment"): the flank's nodes held in y from the cut face to wall_h toward the
+    # palmar side, from the mount face to the apex's z (the pad's widest section); a bilateral hold, so the bound on how much
+    # the walls stiffen the pad and change the magnets' motion (the printed walls stand 0.10 mm off and hold only outward)
+    "b_v2_wall3": dict(grid="base", depth=7.5, mags="five", body="b", wall_h=3.0),
+    "b_v2_wall495": dict(grid="base", depth=7.5, mags="five", body="b", wall_h=4.95),
 }
 X_CUT_B = -8.5 + (17.0 - 13.45)        # b's pad: 13.45 mm deep (v2 fit-size parts B00-B15) of the tip's 17.0 mm
 
@@ -90,6 +96,32 @@ def a_channels(X, Y, Z, fl=0.05, depth=1.8, floor=0.1, root=2.4, head=3.6, yc=3.
         gr = ((X - (-8.5 + depth + floor)) ** 2 + (Z - det_z) ** 2 <= groove_r ** 2) & (np.abs(Y - s * yc) <= head / 2)
         out |= ch | gr
     return out
+
+
+def wall_dofs(h, z1=10.86):
+    """The y DOF of b's flank nodes beside the v3 cover's walls: in each (x, z) row of nodes with x within h of the cut
+    face and z from the mount face to z1 (the apex's z in the insert frame), the nodes with the least and the largest y."""
+    def f(X):
+        m = np.zeros(X.shape, bool)
+        idx = np.where((X[:, 0] <= X_CUT_B + h + 1e-6) & (X[:, 2] <= z1 + 1e-6))[0]
+        key = np.round(X[idx, 0], 5) * 1e5 + np.round(X[idx, 2], 5)
+        order = np.lexsort((X[idx, 1], key))
+        ks = key[order]
+        m[idx[order[np.r_[True, ks[1:] != ks[:-1]]]], 1] = True
+        m[idx[order[np.r_[ks[1:] != ks[:-1], True]]], 1] = True
+        return m
+    return f
+
+
+def make_model(c, G, mat_id, mats):
+    """TipModel of a case: b's back at its cut face, and the walls' hold when the case has them."""
+    import tpu_tip_fem_tip as T
+    x_back0 = T.X_BACK
+    T.X_BACK = X_CUT_B if c.get("body") == "b" else x_back0      # TipModel fixes the nodes at x <= X_BACK
+    try:
+        return T.TipModel(G, mat_id, mats, verbose=True, fix_dofs=wall_dofs(c["wall_h"]) if "wall_h" in c else None)
+    finally:
+        T.X_BACK = x_back0
 
 
 def gyroid_cell(w, h=0.05, rho=0.3):
@@ -178,12 +210,7 @@ def run_case(name, max_dof):
     print(f"{name}: {n_el} elements, {n_dof} dof, aux voxels {counts}", flush=True)
     if n_dof > max_dof:
         raise SystemExit(f"{name}: {n_dof} dof above --max-dof {max_dof}")
-    x_back0 = T.X_BACK
-    T.X_BACK = X_CUT_B if c.get("body") == "b" else x_back0      # TipModel fixes the nodes at x <= X_BACK
-    try:
-        model = T.TipModel(G, mat_id, mats, verbose=True)
-    finally:
-        T.X_BACK = x_back0
+    model = make_model(c, G, mat_id, mats)
     del mat_id
     nodes = model.face_nodes(zlim=(0.4, 21.41))
     X = model.X[nodes].copy()
@@ -194,7 +221,7 @@ def run_case(name, max_dof):
     W = model.compliance(nodes, block=100)
     tc = time.time() - tc
     mn = FE.magnet_nodes(model, lay) if lay["mags"] else []
-    base = dict(case=name, tip="ell11", body=c.get("body", "whole"), x_back_mm=X_CUT_B if c.get("body") == "b" else -8.5,
+    base = dict(case=name, tip="ell11", body=c.get("body", "whole"), wall_hold_mm=c.get("wall_h"), x_back_mm=X_CUT_B if c.get("body") == "b" else -8.5,
                 fe_key=KEY, grid=c["grid"], build=BUILD, rho=recipe["rho"], E_s_MPa=recipe["E_s"],
                 bead_mm=recipe.get("bead_mm", 0.45), core_solid_fraction=recipe.get("core_solid_fraction"),
                 wall_mm=c.get("wall", T.WALL), skin_mm=round(c.get("n_skin", T.N_SKIN) * c.get("layer", T.LAYER), 3),
@@ -234,7 +261,7 @@ def run_case(name, max_dof):
     print(f"{name}: {time.time() - t0:.0f} s, peak RSS {peak:.2f} GB", flush=True)
 
 
-SENSE_GAP = {"a_v2": 0.37, "b_v2": 3.32 - 6.45}   # sensing plane behind the whole tip's back face, mm (DIP study levels:
+SENSE_GAP = {"a_v2": 0.37, "b_v2": 3.32 - 6.45, "b_v2_wall3": 3.32 - 6.45, "b_v2_wall495": 3.32 - 6.45}   # sensing plane behind the whole tip's back face, mm (DIP study levels:
                                                # a's sense_x 6.82 against the back face's x_F 6.45; b's sensing_plane x_F 3.32)
 
 
@@ -252,12 +279,7 @@ def run_sense(name):
     c = CASES[name]
     t0 = time.time()
     sh, G, mat_id, mats, lay, counts, recipe = mat_ids(c)
-    x_back0 = T.X_BACK
-    T.X_BACK = X_CUT_B if c.get("body") == "b" else x_back0
-    try:
-        model = T.TipModel(G, mat_id, mats, verbose=True)
-    finally:
-        T.X_BACK = x_back0
+    model = make_model(c, G, mat_id, mats)
     del mat_id
     mn = FE.magnet_nodes(model, lay)
     mot = lambda u: [[(1e3 * t).tolist(), (1e3 * w).tolist()] for t, w in (TM.rigid_fit(model.X[i], u[i]) for i in mn)]  # noqa
