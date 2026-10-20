@@ -66,6 +66,7 @@ def load():
     step = j(D / f"{UP}_step.json")
     plates = {k: j(D / f"print/20261020-p1s_pla_{k}.json") for k in ("calibration", "link")}
     plates["payload"] = j(D / f"{UP}_payload.json")
+    plates["b00"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_print_pad_ell11_5_B00_85a_t2_g30.json")
     fe = {}
     for r in rows(FE / "fe.jsonl"):
         if r["case"] in ("b_v2", "b_v2_wall3", "b_v2_wall495"):
@@ -87,7 +88,10 @@ def main():
     m2, m3 = ev["v2"]["mass_g"], ev["v3"]["mass_g"]
     g3 = chk["b_links"]["v3b"]["gaps_by_region_mm"]
     hs, hr = chk["poses_table"]["sphere_homing_geometry"], chk["poses_table"]["rod_homing_geometry"]
-    pc, pl = plates["calibration"], plates["link"]
+    pc, pl, pb = plates["calibration"], plates["link"], plates["b00"]
+    r4 = ev["v3"]["r4"]["ell11_5"]["groove_to_pocket_mm"]
+    b_u1 = ev["v3"]["sensing"]["static_fields"]["ell11_5"]["B_U1_mT"]
+    pb_t = pb["summary"]["print_time"].replace("m ", "&#8202;min ").replace("s", "&#8202;s")
     has_w3 = "b_v2_wall3" in fe and "b_v2_wall3" in sens
     w3_6 = fe_change(fe, "b_v2_wall3", "6") if "b_v2_wall3" in fe else (0, 0, 0)
     w5_6 = fe_change(fe, "b_v2_wall495", "6") if "b_v2_wall495" in fe else (0, 0, 0)
@@ -104,12 +108,12 @@ def main():
 
     lede = (f"Concept b becomes v3 and the UR5e mount v2 after the owner's first prints. The cover gains side "
             f"walls along the pad's flanks, the neck under the pad becomes a column {pv['col_margin']:.1f}&#8202;mm inside the "
-            f"11/22 outline, and the cable's leg opens to the top, so the double-ended Qwiic cable lies in. The walls change the "
+            f"11/22 outline, and the cable's leg opens to the top for the double-ended Qwiic cable. The walls change the "
             f"pad's approach by at most {abs(w5_6[1]):.2f}&#8202;% at 6&#8202;N"
             + (f" and its force resolution from {sb:.3f} to {sw5:.3f}&#8202;N" if sw5 else "") +
-            f". The mount keeps v1's fork without the spigot and the key: the ears fit the link's base 0.2&#8202;mm off and a set screw "
-            f"seats it straight; the finger lies on the tool axis, and a post beside each indenter homes it. Two P1S plates print "
-            f"in {pc['time']} and {pl['time']}.")
+            f". The mount keeps v1's fork without the spigot and the key; mold ears and a set screw seat the link straight, and a "
+            f"post beside each indenter homes it. Two P1S plates print in {pc['time']} and {pl['time']}; pad B00 with its five "
+            f"magnets prints on the XL in {pb_t}.")
 
     S = []
     S.append(("terms", "Terms and metrics", f"""
@@ -120,8 +124,12 @@ adapter's face on the HEX-E, z along the tool axis toward the tip, x toward the 
 of the homing: z up from the table, x along the tool axis toward the tip, the palmar side down.</dd>
 <dt>Cover</dt><dd>The PLA plate of concept b between the board's component side and the 85A pad, with windows over the chips and
 the two dovetail rails the pad snaps onto (the owner calls it the cassette).</dd>
-<dt>Wall clearance</dt><dd>Gap between a cover wall's inner face and the pad's flank, in mm; the fit covers W00, W10 and W20 have
-0.00, 0.10 and 0.20&#8202;mm.</dd>
+<dt>Wall clearance</dt><dd>Gap on each side, across the finger (along y), between a cover wall's inner face and the pad's straight
+flank as designed, in mm. The walls follow the pad's outline, so the gap is the same along the finger; at the walls' distal end, the
+pad's widest section, they stand 14.8&#8202;mm plus twice the clearance apart. The fit covers W00, W10 and W20 have 0.00, 0.10 and
+0.20&#8202;mm (14.80, 15.00 and 15.20&#8202;mm apart).</dd>
+<dt>Groove fit</dt><dd>How much narrower than the cover's rail the pad's dovetail groove is on each flank, in mm: B00 has 0.00 (the
+groove as wide as the rail), B05 0.05. v3 takes B00, the fit chosen on the v2 rails.</dd>
 <dt>Clearance to the joint</dt><dd>Least signed distance from a part fixed to the DIP link to the MCP link and the PIP servo over
 PIP &#8722;18 to 92&#176; in 0.5&#176; steps, in mm; the specification's R7 asks 0.5&#8202;mm for rigid parts and 1.0&#8202;mm for the cable.</dd>
 <dt>Least wall</dt><dd>Thinnest PLA in the checked sections of a printed part, in mm; R11 asks 0.9&#8202;mm (0.8&#8202;mm for two 0.4&#8202;mm
@@ -159,7 +167,10 @@ point is relative to the indenter's top.</dd>
           ["The block under the pad takes side and large contacts on rigid PLA; a column a little inside the 11/22, a fillet or angled "
            "edge to the board mount", f"Column {pv['col_margin']:.1f}&#8202;mm inside the 11/22 mount-face outline; 45&#176; "
            f"chamfers of {pv['col_chamfer']:.1f}&#8202;mm to the board mount", f"Link {m2['dip_link_solid']:.1f} &#8594; "
-           f"{m3['dip_link_solid']:.1f}&#8202;g solid"]]
+           f"{m3['dip_link_solid']:.1f}&#8202;g solid"],
+          ["The rails slot well at B00; B05 snaps on more easily and pops off sooner",
+           "Groove fit 0.00&#8202;mm (B00) in the v3 parameters; pad B00 with its five magnets as an XL project with three pauses",
+           f"Grooves {r4:.1f}&#8202;mm from the magnet pockets (R4 asks 2.0)"]]
     S.append(("changes", "Changes from the owner's notes of 2026-10-20", f"""
 <p>Table 1 lists each note, the change it made and the check that covers it. The DIP link changes are design switches of the
 concept b generator with their own parameters (<code>cover_walls</code>, <code>neck</code>, <code>cable_leg</code> in
@@ -281,7 +292,7 @@ to touch. The post sits 40.36&#8202;mm toward the robot from the indenter's top,
 {POSE_TXT} Table 5 gives the posts. Bolt the base with the post toward the robot.</p>
 {fig(9, D / f'media/{UP}_homing.png', 'Homing over the rod indenter: the pin in the socket, the pad 30 mm to the side and 5 mm up.')}
 <p>The cradle of the first draft of 2026-10-20, which took the tongue's back as its datum and let the link in from the palmar
-side, stays in the script as <code>fork_style = "cradle"</code>; the plates carry the v1-style fork.</p>
+side, stays in the script as <code>fork_style = "cradle"</code>; the plates print the v1-style fork.</p>
 {table(["Indenter", "Post in the base frame, x, y (mm)", "Pin top above the table (mm)", "Indenter top (mm)"], t5,
        num_cols=(2, 3), caption="Homing posts (homing() in scripts/ur5_calibration_mount.py).", n=5)}"""))
 
@@ -313,7 +324,9 @@ side, stays in the script as <code>fork_style = "cradle"</code>; the plates carr
 again: the mount and the indenters at 0.15&#8202;mm with five walls and 40&#8202;% gyroid, the covers solid at 0.1&#8202;mm, the DIP link at
 0.1&#8202;mm on tree supports, and a 5&#8202;mm brim on every part, which also keeps the covers flat. The fit covers W00, W10 and W20 have
 one, two and three notches in their distal edge; they fit the v2 link already printed, so the walls can be tried on it before v3
-prints. The 85A pad is unchanged (B00). STEP files for Inventor: the mount's parts as exact solids in M ({code(D / 'cad')}, read back
+prints. The 85A pad is B00 with its five 3&#8202;&#215;&#8202;2&#8202;mm magnets, its ID engraved in the mount face: it prints on the XL's
+tool 2 in {pb_t} with pauses at {', '.join(f"{q['print_z']:.1f}" for q in pb['pauses'])}&#8202;mm, the settings of the owner's good
+print of 2026-10-18 ({code(DIP / pb['project'].split('board_mount/')[1])}). STEP files for Inventor: the mount's parts as exact solids in M ({code(D / 'cad')}, read back
 valid), and v3's new body, cover and cable-groove cutter as exact solids in F ({code(DIP / 'v3/b/cad')}).</p>
 {table(["Project", "Time", "PLA (g)", "Parts", "Slice checks failed"], t6, num_cols=(1, 2),
        caption="P1S plates (scripts/v3b_ur5v2_pla_plate.py), print/20261020-p1s_pla_*.json.", n=6)}
@@ -342,6 +355,9 @@ base's x; another heading moves the post's position by the same rotation.</p>"""
 <li>Print the calibration plate, put cover W10 on the v2 link with pad B00 and push the pad sideways by hand at its widest section;
 if it still pops off, try W00, and if W00 binds the pad, W20. The chosen clearance goes into <code>wall_clear</code> and the link plate
 prints with it.</li>
+<li>Read the five chips of a board under pad B00 at GAIN_SEL&#8202;1 and RES&#8202;1 before any touch: the model puts
+{b_u1:.1f}&#8202;mT on U1 from the magnets alone. A field more than 20&#8202;% off (about 0.3&#8202;mm of distance) means the magnets sit
+at another depth or the board at another gap, and the force resolution of Table 3 moves with it.</li>
 <li>On the HEX-E, check that the palmar normal lies along the sensor's +x: press the pad by hand along the palmar normal and read Fx
 against Fy; more than 5&#8202;% of the force in Fy means the axis or the dowel's position differs, and <code>dowel_ang</code> turns the
 whole mount.</li>
@@ -358,7 +374,7 @@ closest approach, which was 0.10&#8202;mm with v2 a.</li>
     files = [DIP / "params/20261020-v3_concept_b.json", DIP / "v3/b/evaluation.json", DIP / "v3/b/cad", DIP / "v3/b/print",
              D / f"{UP}_check.json", D / f"{UP}_payload.json", D / f"{UP}_parts.json", D / f"{UP}_step.json", D / "cad", D / "print", D / "README.md",
              ROOT / "scripts/dip_link_concept_b.py", ROOT / "scripts/dip_link_v2.py", ROOT / "scripts/ur5_calibration_mount.py",
-             ROOT / "scripts/v3b_ur5v2_pla_plate.py", ROOT / "scripts/v2_tip_fe_checks.py", ROOT / "scripts/dip_b_v3_figures.py",
+             ROOT / "scripts/v3b_ur5v2_pla_plate.py", ROOT / "scripts/v3b_pad_b00_magnets_xl.py", ROOT / "scripts/v2_tip_fe_checks.py", ROOT / "scripts/dip_b_v3_figures.py",
              ROOT / "scripts/dip_b_v3_ur5_v2_page.py"]
     S.append(("files", "Files", "<ul>" + "".join(f"<li>{code(f)}</li>" for f in files if Path(f).exists()) + "</ul>"
               + f"<p>Related pages: {link(PAGES['dip'], 'DIP-link redesign')}, {link(PAGES['ur5'], 'UR5e mount v1')}, "
