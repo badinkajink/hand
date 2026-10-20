@@ -188,7 +188,7 @@ def build():
             f"finer grid moves the calibrated tip by {rms_f:.1f}&#8202;% RMS. Under-extrusion matters more: beads 5 and 10&#8202;% "
             f"narrower leave {-dv('v2_5_uex05'):.1f} and {-dv('v2_5_uex10'):.1f}&#8202;% less TPU and let the 12.5&#8202;mm rod sink "
             f"{pct('v2_5_uex05', 'v2_5'):.0f} and {pct('v2_5_uex10', 'v2_5'):.0f}&#8202;% further at 1&#8202;N, about 2&#8202;% per "
-            f"1&#8202;% of missing TPU. Tonight's fit-size plate retracts {fit['retractions_per_layer']:.0f} times per layer against "
+            f"1&#8202;% of missing TPU. The fit-size plate of 10-19 retracts {fit['retractions_per_layer']:.0f} times per layer against "
             f"{good['retractions_per_layer']:.0f} on the good print of 10-18.")
 
     S = []
@@ -302,8 +302,10 @@ in the G-code, the same to 0.004&#8202;g across the four sizes.</p>
         s = v["pads_vs_drake"]
         ang = s.get("median_rms_angle_same_deg")
         pp = v["pass_parts"]
+        alla = s.get("median_rms_angle_all_deg")
         return [lab, f"{s['n']}", f"{s['held_agree']} of {s['n']}", f"{s['same_branch']} of {s['n']}",
-                f"{ang:.1f}" if ang is not None else "&#8211;", f"{v['angle_bound_deg']:.1f}",
+                f"{ang:.1f}" if ang is not None else "&#8211;", f"{alla:.1f}" if alla is not None else "&#8211;",
+                f"{v['angle_bound_deg']:.1f}",
                 (f"{s['median_rms_dN_same_N']:.2f} / {s['median_rms_dT_same_N']:.2f}" if s.get("median_rms_dN_same_N") is not None
                  else "&#8211;"),
                 (", ".join(k for k, ok in (("angle", pp["angle"]), ("force", pp["force"]), ("held", pp["held"])) if not ok)
@@ -311,7 +313,7 @@ in the G-code, the same to 0.004&#8202;g across the four sizes.</p>
 
     S.append(("control", "Pads against Drake with the block as control", f"""
 <p>On 10-18 the Drake replays of the block and the capsule were cut for time, so the 11/22 tip's failed consistency had no control.
-Tonight Drake replayed the block's readiness commands at M1 (the modulus fitted to the finite elements' approach), all six. On the
+On 2026-10-19 Drake replayed the block's readiness commands at M1 (the modulus fitted to the finite elements' approach), all six. On the
 same branch in {blk['pads_vs_drake']['same_branch']} of 6 pairs, the block's pads and Drake differ by a median
 {blk['pads_vs_drake']['median_rms_angle_same_deg']:.1f}&#176; RMS against a {blk['angle_bound_deg']:.1f}&#176; bound and by
 {blk['pads_vs_drake']['median_rms_dN_same_N']:.2f}&#8202;N in normal force against 0.25&#8202;N (Table 4). The block therefore misses the
@@ -319,12 +321,12 @@ force bound as the 11/22 tip does. On the branch the two tips differ: the block 
 it in {e11['pads_vs_drake']['n'] - e11['pads_vs_drake']['same_branch']} of 6 (all on the 25&#8202;mm cell) and in all 3 runs of its own
 plan. The force difference appears on both tip shapes, so a calibration of the normal response does not remove it; the branch split
 belongs to the 11/22 tip. The capsule's replays stopped at 1 of 6 when the memory watchdog killed the job at 20:57.</p>
-{table(["Tip, calibration, commands", "Pairs", "Held agreement", "Same branch", "Median RMS angle (&#176;)", "Angle bound (&#176;)",
-        "Normal / friction force difference (N)", "Fails"],
+{table(["Tip, calibration, commands", "Pairs", "Held agreement", "Same branch", "Median RMS angle, same branch (&#176;)",
+        "Median RMS angle, all pairs (&#176;)", "Angle bound (&#176;)", "Normal / friction force difference (N)", "Fails"],
        [con_row("Block, M1, readiness plans", blk), con_row("Half-ellipsoid 11/22, M2, readiness plans", e11),
-        con_row("Half-ellipsoid 11/22, M2, its own plan", own)], num_cols=(1, 4, 5), n=4,
+        con_row("Half-ellipsoid 11/22, M2, its own plan", own)], num_cols=(1, 4, 5, 6), n=4,
        caption="Pads against Drake on the same logged servo commands (the calibration study's replays/icem.jsonl and its summary code; "
-               "model values). The block's Drake rows are tonight's; the 11/22 rows are those of 10-18.")}"""))
+               "model values). The block's Drake rows are of 10-19; the 11/22 rows are those of 10-18.")}"""))
 
     # ------------------------------------------------------------------ queued runs, shown when their rows exist
     tn = [4]
@@ -383,16 +385,26 @@ allows. {txt}</p>
         if cap and cap.get("complete"):
             rows_m3.append(con_row("Capsule, M1, readiness plans", cap))
         sm = m3["pads_vs_drake"]
+        own_txt = ""
+        if m3o and m3o["pads_vs_drake"]["n"]:
+            so = m3o["pads_vs_drake"]
+            own_txt = (f"; on the tip's own plan {so['same_branch']} of {so['n']} runs end on the same branch (0 of 3 at M2), the median RMS "
+                       f"angle falls from {own['pads_vs_drake']['median_rms_angle_all_deg']:.1f} to {so['median_rms_angle_all_deg']:.1f}&#176;"
+                       f" and the own-plan criterion {'passes' if m3o['pass'] else 'still fails'}")
         t_m = nxt()
         S.append(("spring", "The series spring in both simulators", f"""
 <p>Calibration M3 puts the 11/22 tip's modulus (Drake 65.0, pads 53.0&#8202;MPa) behind a 9.7&#8202;N/mm series spring. On 10-18 only the
-pads' D1&#8211;D8 replays had the spring, so the consistency test ran at M2, the stiff modulus alone. Tonight both simulators replayed the
+pads' D1&#8211;D8 replays had the spring, so the consistency test ran at M2, the stiff modulus alone. On 2026-10-20 both simulators replayed the
 readiness commands with the spring: a slide joint behind each tip, held by a joint equality of that stiffness in the pads
 (fe_contact_calibration_sim.add_spring) and by a PrismaticSpring with critical damping in Drake
-(curved_tips_cell_drake.CellDrake, <code>k_s</code>). With the spring, {sm['same_branch']} of {sm['n']} pairs end on the same branch
-(3 of 6 at M2) and the median RMS angle is {(sm.get('median_rms_angle_same_deg') or float('nan')):.1f}&#176; (Table {t_m}).</p>
-{table(["Tip, calibration, commands", "Pairs", "Held agreement", "Same branch", "Median RMS angle (&#176;)", "Angle bound (&#176;)",
-        "Normal / friction force difference (N)", "Fails"], rows_m3, num_cols=(1, 4, 5), n=t_m,
+(curved_tips_cell_drake.CellDrake, <code>k_s</code>). With the spring, {sm['same_branch']} of {sm['n']} readiness pairs end on the
+same branch (3 of 6 at M2), and the median RMS angle over all pairs falls from {e11['pads_vs_drake']['median_rms_angle_all_deg']:.1f}
+to {sm['median_rms_angle_all_deg']:.1f}&#176;{own_txt} (Table {t_m}). The readiness plans now miss the criterion on the normal force
+alone ({sm['median_rms_dN_same_N']:.2f}&#8202;N against 0.25&#8202;N), as the block does; the pairs still on different branches are on the
+25&#8202;mm cell. The angle bound widens to the pads' own seed spread, {m3['angle_bound_deg']:.1f}&#176; at M3: the pads' turns on the
+25&#8202;mm cell differ by that much between placements. Most of the split of 10-18 therefore came from M2 standing in for the spring.</p>
+{table(["Tip, calibration, commands", "Pairs", "Held agreement", "Same branch", "Median RMS angle, same branch (&#176;)",
+        "Median RMS angle, all pairs (&#176;)", "Angle bound (&#176;)", "Normal / friction force difference (N)", "Fails"], rows_m3, num_cols=(1, 4, 5, 6), n=t_m,
        caption="Pads against Drake with and without the series spring (replays/icem.jsonl; model values).")}"""))
     bed = [r for r in rows(CAL / "bed" / "T2.jsonl") if r.get("status") == "complete"]
     if any(r["arm"] == "ir1000" for r in bed):
@@ -487,7 +499,7 @@ magnet tip and pad of the 55&#8202;min plate ({tp['mass_g_by_object'].get('20261
 and {tp['mass_g_by_object'].get('20261018-dip_link_v2b_print_pad_ell11_5_85a_t2_g30', 0):.2f}&#8202;g plus 0.53&#8202;g of magnets) to
 0.01&#8202;g. A part 2.5&#8202;% or more under its siblings sinks 5&#8202;% further than they do (Table 2) and does not stand for the calibrated
 tip on the bench.</li>
-<li>Dry the spool at 55&#8202;&#176;C for 6&#8202;h and print one A tip alone, then weigh it against tonight's A tips. Fewer strings after drying
+<li>Dry the spool at 55&#8202;&#176;C for 6&#8202;h and print one A tip alone, then weigh it against the A tips of 10-19. Fewer strings after drying
 point to moisture; as many strings point to the profile's 240&#8202;&#176;C and 0.6&#8202;mm retraction, which a print of the same tip at
 225&#8202;&#176;C with 1&#8202;mm retraction and wipe on would test, with an indentation, since the nozzle temperature changes the bond between
 beads.</li>
