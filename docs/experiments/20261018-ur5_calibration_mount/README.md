@@ -6,6 +6,7 @@ Mount for a DIP link as printed (the CAD hand's, v2 a or v2 b of the DIP study: 
 
 - `cad/*.step`: exact solids per part, in the mount frame M (origin at the flange face's centre, z along the tool axis toward the tip, x toward the palmar side, y along the PIP axis toward the slotted arm); the indenters in a table frame (z up). `cad/*.stl`: the same as meshes.
 - `print/*.3mf`: PrusaSlicer projects for the Prusa XL on the owner's v17 template, PLA on tool 3, sliced and checked (`print/*.json`).
+- For the Bambu Lab P1S (PLA from 2026-10-19 on): the three mount parts and the two indenters are on one plate with DIP-link v2 a and b, `../20261019-v2_ur5_pla_plate/20261019-v2_ur5_pla_p1s.3mf` (built by `scripts/v2_ur5_pla_plate.py`, each part's settings in the project as object settings: 0.15 mm, the standoff-fork and the clamp plate solid, the adapter and the indenters 40 % gyroid). The M3 holes stay 2.75 mm. With a v2 link, the slotted arm's M3 washer (DIN 9021, 9 mm) covers the end of the cable's groove on the arm's outer face (its anchor lies 5.0 mm below the PIP axis): lead the cable off the arm before the anchor when the link sits in the mount.
 - `20261018-ur5_calibration_mount_interfaces.json` (flange and DIP-link interfaces with sources), `_parts.json`, `_step.json`, `_check.json`, `_estimate.json` (deflection, payload, wrist field), `_assembly.json` (parts list, assembly).
 
 ## Opening the STEP files in Inventor

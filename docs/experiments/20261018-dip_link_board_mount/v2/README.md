@@ -60,6 +60,8 @@ cable turns to +y.
 
 ## Print files
 
+Plates of 2026-10-19 evening: `../../20261019-v2_ur5_pla_plate/20261019-v2_ur5_pla_p1s.3mf` prints a's link and clamp plate, b's link and cover and the UR5e calibration mount on the P1S (PLA, AMS slot 1, 6 h 42 min, 166 g; each part's settings in the project as object settings, so Bambu Studio keeps them when it slices again; the links at 0.1 mm with tree supports and 40 % gyroid in place of the 100 % shoulder modifiers). `print/20261019-dip_link_v2_tip_a_pad_b_ell11_5_85a_t2_g30.3mf` prints a's 11/22 tip and b's 11/22 pad on the XL, tool 2, with the settings of the owner's good print of 10-18 and three magnet pauses (7.3, 12.2, 17.1 mm; 55 min).
+
 PLA, Bambu printer (Bambu Studio): STLs in print orientation, lying on z = 0, each one closed body. Their settings are in
 `a/print/20261018-dip_link_v2a_pla_bambu.json` and `b/print/20261018-dip_link_v2b_pla_bambu.json`; for a's link that file
 also lists the support regions and the two 100 % infill regions over the shoulders in the STL's own coordinates.
@@ -95,15 +97,15 @@ The assembly sequences and parts lists are in `a/evaluation.json` and `b/evaluat
 
 ## STEP files for Inventor
 
-`scripts/dip_link_params.py export` wrote both designs with the 7.8 mm J1 slot and the 3.0 mm cable groove, every STEP
-file read back valid in FreeCAD (the exports of 15:08 and 15:16, `../exports/20261019-1508-v2_concept_b_cable/` and
+`scripts/dip_link_params.py export` wrote both designs with the 7.8 mm J1 slot, the 3.0 mm cable groove and 1.9 mm M2 holes,
+every STEP file read back valid in FreeCAD (the exports of 15:08 and 15:16, `../exports/20261019-1508-v2_concept_b_cable/` and
 `../exports/20261019-1516-v2_concept_a_cable/`, have the 6.6 mm slot and the 2.4 mm groove):
 
-- `../exports/20261019-1816-v2_concept_a_plug7_cable2p6/`: the DIP link's new features and the clamp plate as exact
+- `../exports/20261019-1851-v2_concept_a_m2hole1p9/`: the DIP link's new features and the clamp plate as exact
   solids, the fused link (zipped), the tip cutter, the cable-groove cutter, the five-magnet block tip, and
-  `20261019-1816-v2_concept_a_plug7_cable2p6_assembly_D.step.zip` with the board, J1 on its tab, the 7.0 mm plug, the cable
+  `20261019-1851-v2_concept_a_m2hole1p9_assembly_D.step.zip` with the board, J1 on its tab, the 7.0 mm plug, the cable
   as a 2.6 mm pipe to its anchor, the four screws and the 11/22 tip in the DIP link STL's coordinates.
-- `../exports/20261019-1818-v2_concept_b_plug7_cable2p6/`: the new body and the cover as exact solids, the fused link
+- `../exports/20261019-1853-v2_concept_b_m2hole1p9/`: the new body and the cover as exact solids, the fused link
   (zipped), the cable-groove cutter, both pads (faceted), and the assembly with the board, J1, the plug, the cable, the four
   screws and the 11/22 pad.
 

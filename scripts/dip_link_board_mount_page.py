@@ -292,7 +292,8 @@ def v2_section():
     return "".join([
         f"<p>On the owner's board J1 sits on the component side of the 9{MM} tab, its mating face toward the tab's end, as the "
         f"specification models it. v2 keeps J1 and the whole tab and lengthens the DIP link between its bridge and the tip "
-        f"instead. Both designs take M2 screws into 1.8{MM} self-forming holes of the PLA and tips with five 3 &#215; 2{MM} "
+        f"instead. Both designs take M2 screws into 1.9{MM} self-forming holes of the PLA (a's shoulders 1.8{MM}) and tips "
+        f"with five 3 &#215; 2{MM} "
         f"magnets, the 11/22 half-ellipsoid or the block (Table&#160;[[tab:v2]]).</p>",
         f"<p>J1, its mated plug and the tab clear the MCP link and the PIP servo by 0.5{MM} (R7) from a lengthening of "
         f"{la:g}{MM} in a and {lb:g}{MM} in b, whose board sits 3.5{MM} more palmar. The routed cable set a's "

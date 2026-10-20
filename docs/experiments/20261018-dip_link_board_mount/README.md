@@ -52,9 +52,10 @@ files over 1.5 MB zipped), `<name>_assembly_D.step` with the board as supplied, 
 parts as named solids in the coordinates of `assets/cad_v1/fingertip_mount_DIP_link.stl`, the 11/22 tip or pad among them
 as a faceted solid, `print/` with the PLA parts as print-oriented STLs for Bambu Studio (their settings in
 `<name>_pla_bambu.json`) and each tip or pad sliced for the XL with its magnet pauses, and `export.json` with every STEP
-read back in FreeCAD. The v2 designs with the routed cable are in `exports/20261019-1816-v2_concept_a_plug7_cable2p6/`
-and `exports/20261019-1818-v2_concept_b_plug7_cable2p6/` (the 7.8 mm J1 slot for the 7.0 mm SHR-04V-S-B plug, the 3.0 mm
-cable groove); the exports of 15:08 and 15:16 have the 6.6 mm slot and the 2.4 mm groove.
+read back in FreeCAD. The v2 designs with the routed cable are in `exports/20261019-1851-v2_concept_a_m2hole1p9/`
+and `exports/20261019-1853-v2_concept_b_m2hole1p9/` (the 7.8 mm J1 slot for the 7.0 mm SHR-04V-S-B plug, the 3.0 mm
+cable groove, 1.9 mm M2 holes); the exports of 15:08 and 15:16 have the 6.6 mm slot and the 2.4 mm groove, those of
+18:16 and 18:18 the 1.8 mm holes.
 
 ## Opening the STEP files in Inventor
 
