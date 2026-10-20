@@ -187,15 +187,44 @@ def greedy_spheres(occ, lo, pitch, budget=40, r_min=0.5, cover=0.92):
     return np.array(C), np.array(R), float(covered.sum() / max(n, 1))
 
 
+REMESH = WORK / "dip_link_watertight_mm.stl"
+
+
+def cmd_remesh(a):
+    """A closed surface of the v2 link (mm, body frame) for MorphIt: its 0.25 mm occupancy (ray parity per shell, voted over
+    three axes) through scikit-image's marching cubes; run in the femtip environment, which has scikit-image."""
+    import trimesh
+    from skimage.measure import marching_cubes
+    m = part_mesh("dip_link")
+    m.apply_scale(1000.0)
+    occ, lo, pitch = occupancy(m)
+    pad = np.pad(occ, 1).astype(np.float32)
+    V, F, _, _ = marching_cubes(pad, level=0.5, spacing=(pitch, pitch, pitch))
+    V = V + lo - pitch + 0.5 * pitch          # voxel centres: lo + (i + 0.5) pitch; the pad shifts indices by one
+    out = trimesh.Trimesh(V, F, process=True)
+    if out.volume < 0:
+        out.invert()
+    WORK.mkdir(parents=True, exist_ok=True)
+    out.export(REMESH)
+    print(f"remesh: {len(out.faces)} faces, watertight {out.is_watertight}, volume {out.volume:.0f} mm3 against "
+          f"{m.volume:.0f}; bounds {np.round(out.bounds, 2).tolist()} against {np.round(m.bounds, 2).tolist()}", flush=True)
+
+
 def pack(mesh, name, budget):
     """Collision spheres of a part (metres, body frame): MorphIt-B as scripts/cad_v1_spheres.py packs the CAD parts when
     the STL is one closed shell, else greedy inscribed spheres on its voxel occupancy (the v2 link's STL is 13 touching
     shells, which MorphIt's watertight check refuses)."""
+    import trimesh
     m = mesh.copy()
     m.apply_scale(1000.0)
     if m.is_watertight:
         C, R = morphit(mesh, name, budget)
         return C, R, dict(method="MorphIt-B", budget=budget)
+    if REMESH.exists() and name == "dip_link":       # the closed remesh of cmd_remesh, as cad_v1_spheres packs the CAD link
+        rm = trimesh.load(REMESH, force="mesh")
+        rm.apply_scale(1e-3)
+        C, R = morphit(rm, name + "_remesh", budget)
+        return C, R, dict(method="MorphIt-B on the 0.25 mm remesh (cmd_remesh)", budget=budget)
     occ, lo, pitch = occupancy(m)
     C, R, cov = greedy_spheres(occ, lo, pitch, budget=budget)
     vol = float(occ.sum()) * pitch ** 3
@@ -278,7 +307,7 @@ def cmd_build(a):
     lo, hi = tip_block_bounds()
     C, R, how = [], [], {}
     for n, m in meshes.items():
-        c, r, info = pack(m, n, {"dip_link": 40, "clamp_plate": 12}[n])
+        c, r, info = pack(m, n, {"dip_link": 20, "clamp_plate": 12}[n])
         C.append(c)
         R.append(r)
         how[n] = info
@@ -327,7 +356,7 @@ def cmd_check(a):
         for tag, d in (("readiness", SRC / v), ("v2", OUT / f"{v}_v2a")):
             m = mujoco.MjModel.from_xml_path(str(d / "cad_v1" / "scene_screwdriver_medium.xml"))
             dd = mujoco.MjData(m)
-            mujoco.mj_forward(m, dd)
+            mujoco.mj_kinematics(m, dd)          # positions only: the straight fingers reach into the scene at q 0
             out[tag] = {f: (dd.xpos[m.body(f"{f}_tip").id].copy(), dd.xpos[m.body(f"{f}_pip_frame").id].copy(),
                             float(m.body_mass[m.body(f"{f}_pip_frame").id]), int(m.nbody), int(m.ngeom)) for f in FINGERS}
         for f in FINGERS:
@@ -340,11 +369,12 @@ def cmd_check(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("remesh")
     for name in ("build", "check"):
         p = sub.add_parser(name)
         p.add_argument("--variants", nargs="+", default=["ell11_g30", "block5_g30"])
     a = ap.parse_args()
-    {"build": cmd_build, "check": cmd_check}[a.cmd](a)
+    {"build": cmd_build, "check": cmd_check, "remesh": cmd_remesh}[a.cmd](a)
 
 
 if __name__ == "__main__":

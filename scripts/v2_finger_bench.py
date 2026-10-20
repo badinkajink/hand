@@ -24,7 +24,17 @@ import v2_finger_cells as VC  # noqa: E402  (redirects the cells module, the kin
 import sim2real_fingertip_bench as SB  # noqa: E402
 
 SB.DATE_TAG = "20261020"
-SB.OUT = ROOT / "docs/experiments/20261019-v2_finger/bench"
+V2D = ROOT / "docs/experiments/20261019-v2_finger"
+SB.OUT = V2D / "bench"
+# the export reads the readout rows by the variant's layout and recipe (w85_<infill>); the v2 variants' names end in _v2a, so
+# their rows are the readiness study's rows under the v2 recipe name, written beside the v2 study (the readout trace only)
+_rows = json.loads((SB.D / "sensing/sensing.json").read_text())
+(V2D / "sensing").mkdir(parents=True, exist_ok=True)
+_alias = [dict(r, recipe=r["recipe"] + "_v2a", alias_of=r["recipe"]) for r in _rows["rows"]]
+(V2D / "sensing/sensing.json").write_text(json.dumps(dict(_rows, rows=_rows["rows"] + _alias,
+                                                          note="readiness rows of 10-16 and their copies under the v2 recipe "
+                                                               "names (scripts/v2_finger_bench.py)"), indent=1))
+SB.D = V2D
 READY_SCENE = "assets/mjcf/experimental/20261016-sim2real_fingertip_readiness/"
 V2_SCENE = "assets/mjcf/experimental/20261019-v2_finger/"
 

@@ -348,11 +348,14 @@ in the G-code, the same to 0.004&#8202;g across the four sizes.</p>
     capd = d1.get("cap_g30|ready|M1|pads")
     if capd and capd.get("complete"):
         sc_ = capd["pads_vs_drake"]
-        cap_txt = (f"The capsule, replayed on 2026-10-20 after the watchdog stopped its first run, ends on the same branch in "
-                   f"{sc_['same_branch']} of {sc_['n']} pairs, {sc_['median_rms_angle_all_deg']:.1f}&#176; RMS apart over all pairs, with "
-                   f"normal forces {sc_['median_rms_dN_same_N']:.2f}&#8202;N apart.")
+        cap_txt = (f"The capsule, replayed on 2026-10-20 after the watchdog stopped its first run, passes every part of the criterion at "
+                   f"M1: {sc_['same_branch']} of {sc_['n']} pairs on the same branch, {sc_['median_rms_angle_all_deg']:.1f}&#176; RMS apart "
+                   f"and normal forces {sc_['median_rms_dN_same_N']:.2f}&#8202;N apart. The force difference is therefore not common to every "
+                   f"tip: it appears on the block at M1 and on the 11/22 tip at its stiff calibrations (M2 and M3, moduli 53&#8211;65&#8202;MPa "
+                   f"against the capsule's 8&#8211;12), and the branch split belongs to the 11/22 tip.")
     else:
-        cap_txt = "The capsule's replays stopped at 1 of 6 when the memory watchdog killed the job at 20:57 on 10-19."
+        cap_txt = ("The capsule's replays stopped at 1 of 6 when the memory watchdog killed the job at 20:57 on 10-19. The force "
+                   "difference appears on both tips replayed; the branch split belongs to the 11/22 tip.")
     S.append(("control", "Pads against Drake with the block as control", f"""
 <p>On 10-18 the Drake replays of the block and the capsule were cut for time, so the 11/22 tip's failed consistency had no control.
 On 2026-10-19 Drake replayed the block's readiness commands at M1 (the modulus fitted to the finite elements' approach), all six. On the
@@ -361,13 +364,14 @@ same branch in {blk['pads_vs_drake']['same_branch']} of 6 pairs, the block's pad
 {blk['pads_vs_drake']['median_rms_dN_same_N']:.2f}&#8202;N in normal force against 0.25&#8202;N (Table 4). The block therefore misses the
 force bound as the 11/22 tip does. On the branch the two tips differ: the block stays on Drake's in all 6 pairs, the 11/22 tip leaves
 it in {e11['pads_vs_drake']['n'] - e11['pads_vs_drake']['same_branch']} of 6 (all on the 25&#8202;mm cell) and in all 3 runs of its own
-plan. The force difference appears on both tip shapes, so a calibration of the normal response does not remove it; the branch split
-belongs to the 11/22 tip. {cap_txt}</p>
+plan. {cap_txt}</p>
 {table(["Tip, calibration, commands", "Pairs", "Held agreement", "Same branch", "Median RMS angle, same branch (&#176;)",
         "Median RMS angle, all pairs (&#176;)", "Angle bound (&#176;)", "Normal / friction force difference (N)", "Fails"],
        [con_row("Block, M1, readiness plans", blk), con_row("Half-ellipsoid 11/22, M2, readiness plans", e11),
         con_row("Half-ellipsoid 11/22, M2, its own plan", own)]
-       + ([con_row("Capsule r 8.5&#8202;mm, M1, readiness plans", capd)] if capd and capd.get("complete") else []),
+       + ([con_row("Capsule r 8.5&#8202;mm, M1, readiness plans", capd)] if capd and capd.get("complete") else [])
+       + ([con_row("Half-ellipsoid 11/22, M1, readiness plans", d1["ell11_g30|ready|M1|pads"])]
+          if (d1.get("ell11_g30|ready|M1|pads") or {}).get("complete") else []),
        num_cols=(1, 4, 5, 6), n=4,
        caption="Pads against Drake on the same logged servo commands (the calibration study's replays/icem.jsonl and its summary code; "
                "model values). The block's Drake rows are of 10-19; the 11/22 rows are those of 10-18.")}"""))
@@ -443,7 +447,11 @@ allows. {txt}</p>
             r6 = [[lab, f"{v['pads_vs_drake']['n']}", f"{v['pads_vs_drake']['same_branch']} of {v['pads_vs_drake']['n']}",
                    f"{v['pads_vs_drake']['median_rms_angle_all_deg']:.1f}", f"{v['pads_vs_drake']['median_rms_dN_same_N']:.2f}",
                    f"{v['pads_seed_spread'].get('median_rms_angle_same_deg') or float('nan'):.1f}"] for lab, v in k6]
-            six = (f"<p>Three more placements (seeds 3&#8211;5) on the same commands give the counts over six (Table {t6}).</p>"
+            _b, _m2, _m3 = (v["pads_vs_drake"] for _, v in k6)
+            six = (f"<p>Three more placements (seeds 3&#8211;5) on the same commands confirm it (Table {t6}): over six placements the spring "
+                   f"puts {_m3['same_branch']} of {_m3['n']} pairs on the same branch against {_m2['same_branch']} of {_m2['n']} at M2, "
+                   f"{_m3['median_rms_angle_all_deg']:.1f}&#176; RMS apart against {_m2['median_rms_angle_all_deg']:.1f}&#176;, and the block "
+                   f"stays on Drake's branch in {_b['same_branch']} of {_b['n']}.</p>"
                    + table(["Tip and calibration, readiness plans", "Pairs", "Same branch", "Median RMS angle, all pairs (&#176;)",
                             "Normal force difference (N)", "Pads' seed spread (&#176;)"], r6, num_cols=(1, 3, 4, 5), n=t6,
                            caption="Pads against Drake over placements 0&#8211;5 (fe_contact_calibration_summary.d1 with six seeds; "
@@ -570,8 +578,10 @@ cells at three seeds, and pinned iCEM on each cell's best HOM grasp (Table {t_v}
     if cc.exists() and any(cc.glob("*.csv")):
         rr_ = []
         for f in sorted(cc.glob("*.csv")):
+            if "_cpu_" in f.stem:
+                continue
             last = f.read_text().strip().splitlines()[-1].split(",")
-            rr_.append([esc(f.stem), last[1], last[2]])
+            rr_.append([esc(f.stem), f"{float(last[1]):+.3f}", f"{float(last[2]):.3f}"])
         for f in sorted(cc.glob("*cpu*.json")):
             j = json.loads(f.read_text())
             rr_.append([esc(f.stem), f"{j.get('final_cos', float('nan')):+.3f}", "held" if j.get("held_end") else "lost"])
@@ -613,9 +623,11 @@ pads and turned it {turn16_v2} on the v2 finger (Section on the longer finger); 
 pointed at <code>assets/mjcf/experimental/20261019-v2_finger/ell11_g30_v2a</code> as scripts/v2_finger_cells.py points the cells, then the
 plant-condition sweep, the abort test and <code>scripts/real_v1_trajectory_clearance.py</code> before the bench. A plan that keeps the
 cylinder in fewer than the 60 of 81 plant conditions of the block's 10-16 plan would argue for re-planning on the measured plant.</li>
-<li>The force bound of the consistency test (0.25&#8202;N normal) fails on the block at M1 and on the 11/22 tip at M3 alike (0.54 and
-0.37&#8202;N). The pinch-brake test of the contact overview's Future work measures which simulator's force sharing the printed tip
-follows; until then the angle and branch criteria carry the comparison.</li>
+<li>The force bound of the consistency test (0.25&#8202;N normal) fails on the block at M1 and on the 11/22 tip at M3 (0.54 and
+0.37&#8202;N) and passes on the capsule at M1 (0.15&#8202;N). Replaying the 11/22 tip's commands at M1 (moduli 8&#8211;12&#8202;MPa, no spring;
+<code>fe_contact_calibration_sim.py icem --tips ell11_g30 --calib M1 --plants pads drake</code>) separates the tip's shape from its stiff
+calibration; the pinch-brake test of the contact overview's Future work measures which simulator's force sharing the printed tip
+follows.</li>
 <li>Put the 11/22 force resolutions (Section on sensing) into the DIP study's evaluations (scripts/dip_link_v2.py, a and b
 <code>docs</code> stages) when the DIP page is next rebuilt, in place of the block's.</li>
 <li>Runs still queued at the page's build (logs/20261019-overnight/q_all.txt, one job at a time): the capsule's Drake replays, the
