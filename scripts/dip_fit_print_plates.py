@@ -596,6 +596,13 @@ def write_records(specs):
     write_records_rows(rows)
 
 
+def design_value(key):
+    """A value of the run's design parameter file (RUNS[...]['params'])."""
+    rid = next(k for k, v in RUNS.items() if v["pfx"] == PFX)
+    d = json.loads((REPO / RUNS[rid]["params"]).read_text())
+    return next(float(e["value"]) for e in d["parameters"] if e["key"] == key)
+
+
 def records_b():
     rows = []
     for fl in FLANKS_B:
@@ -609,7 +616,8 @@ def records_b():
             rows.append((f"S{hund(d)}+V", "Board seat", chk))
     for chk in ("J1 with the Qwiic plug mated slides through the slot from the neck's underside without touching its walls",
                 "the board reaches the proximal wall with J1 and the plug in the slot",
-                "M2 x 5 screws through the cover and the board form their thread in the tongue's 1.8 mm holes",
+                "M2 x 5 screws through the cover and the board form their thread in the tongue's "
+                f"{design_value('screw_thread_d'):.1f} mm holes",
                 "the cable turns toward the back in the open groove over the plug and lies in the groove along the run",
                 "a strip of Kapton tape over the open groove keeps the cable's first turn down"):
         rows.append(("N+V", "Board seat and cable", chk))

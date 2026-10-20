@@ -290,6 +290,11 @@ P1S_85A = (
     "300 mm/s process capped at 2 mm&#179;/s), and the finite-element models&#8217; structure.</li>")
 
 
+SCREW_HOLES_B = (
+    "<li>The tongue&#8217;s four M2 holes in S and N are 1.9 mm since 18:30 (1.8 mm before): in run a&#8217;s clamp plate "
+    "the M2 screws did not form their thread in 1.8 mm holes, although 1.8 mm was fine in the hole piece H (owner).</li>")
+
+
 def changes_section():
     return (
         '<section id="changes"><h2>7. Changes from the pieces of 13:08</h2>'
@@ -315,7 +320,7 @@ def changes_section():
 def results_section_a():
     return (
         '<section id="results"><h2>6. Results so far</h2>'
-        "<p>Results the owner reported by 18:00, and what each changed in v2 a (the record of Section 5 has them):</p><ul>"
+        "<p>Results the owner reported by 18:30, and what each changed in v2 a (the record of Section 5 has them):</p><ul>"
         "<li>Board fit: C20 takes the board well; C15 does too once a print defect on one edge is cleaned off. C20 is the "
         "safer choice, so clear_chip stays 0.20 mm.</li>"
         "<li>Pins: the 2.40 mm pin of P fits the board&#8217;s 2.40 mm hole; pin_d is 2.40 mm (2.35 mm before).</li>"
@@ -327,7 +332,10 @@ def results_section_a():
         "2.6 mm (2.0 mm before) in a 3.0 mm groove, and the cable turns at the plug&#8217;s rear face (after a 0.5 mm "
         "straight lead before), so that it stays 1.44 mm from the MCP link (R7 asks 1.0 mm). Run b&#8217;s W tests "
         "grooves of 2.8, 3.0 and 3.4 mm.</li>"
-        "<li>Open: the snap fit (K and F), the screw holes (H), the clamp plate (CP) and C30.</li></ul></section>")
+        "<li>Screw holes: M2 screws form their thread in H&#8217;s 1.8 mm holes, but not in the clamp plate&#8217;s "
+        "1.8 mm holes; since 18:30 v2 a&#8217;s clamp plate and b&#8217;s tongue have 1.9 mm holes (screw_thread_d). The "
+        "shoulders&#8217; pilots (m2_pilot) stay 1.8 mm.</li>"
+        "<li>Open: the snap fit (K and F), the other screw holes of H, and C30.</li></ul></section>")
 
 
 def future_section():
@@ -359,8 +367,8 @@ def terms_section_b():
          ("Neck carrier", "The DIP link around the board: the tongue with the seat pocket, the neck with the slot for J1 "
           "and its plug, and the bridge with the Qwiic cable&#8217;s groove, open to the top over the plug and roofed "
           "along the run to the slotted arm."),
-         ("Self-forming hole", "A hole smaller than the screw, in which the screw cuts its own thread in PLA; 1.8 mm for "
-          "M2 (owner, 2026-10-18)."),
+         ("Self-forming hole", "A hole smaller than the screw, in which the screw cuts its own thread in PLA; 1.9 mm for "
+          "M2 since 2026-10-19 (1.8 mm, the owner&#8217;s rule of 10-18, was too small in run a&#8217;s clamp plate)."),
          ("G*, S*", "The groove block and the seat depth chosen in the first round of a check.")]
     dl = "".join(f"<dt>{a}</dt><dd>{b}</dd>" for a, b in T)
     return f'<section id="terms"><h2>3. Terms</h2><dl class="glossary">{dl}</dl></section>'
@@ -377,7 +385,7 @@ def checks_section_b():
         "<h3>4.2 Board seat: S, V and N</h3>"
         "<p>Slide the ReSkin 5X board, component side up, into the pocket of S35, S45 and S55 from the open end until "
         "its main square meets the proximal wall and its tab passes the slot. Lay a cover V on it, windows over the "
-        "parts, and drive four M2 &#215; 5 screws through the cover and the board into the 1.8 mm holes. S* is the "
+        "parts, and drive four M2 &#215; 5 screws through the cover and the board into the 1.9 mm holes. S* is the "
         "deepest pocket in which the cover still clamps the board without play; it sets "
         f"{code('rim_h')} (design 0.45 mm). Then mate the Qwiic plug to J1 and slide the board into N from the "
         "neck&#8217;s underside, J1 and the plug first into their slot; clamp it with the second cover. Bend the cable "
@@ -389,7 +397,7 @@ def changes_section_b():
     return (
         '<section id="changes"><h2>6. Changes from concept b&#8217;s coupons of 18 October</h2>'
         f"<p>The rail coupon in {code(STUDY + '/v2/b/print/')} was a rail strip and three groove blocks (0, 0.05 and "
-        "0.10 mm per flank) as XL projects. This run differs in nine ways.</p><ul>"
+        "0.10 mm per flank) as XL projects. This run differs in ten ways.</p><ul>"
         "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the A1 mini (from 16:40, while the XL "
         "is in use) or the XL.</li>"
         "<li>Every piece has its ID printed on it.</li>"
@@ -400,7 +408,7 @@ def changes_section_b():
         "<li>The first P1S project of this run started with Bambu Studio&#8217;s generic start G-code: it loaded no "
         "filament from the AMS and left the nozzle at 205 &#176;C. Since 16:40 every Bambu project has the printer&#8217;s "
         "own start, end and filament-change G-code, and the build stops unless the G-code loads from the AMS and heats to "
-        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + plug_slot_item() + cable_item() + P1S_85A + "</ul></section>")
+        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + plug_slot_item() + cable_item() + P1S_85A + SCREW_HOLES_B + "</ul></section>")
 
 
 def future_section_b():
