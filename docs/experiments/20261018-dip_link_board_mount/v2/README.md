@@ -95,15 +95,17 @@ The assembly sequences and parts lists are in `a/evaluation.json` and `b/evaluat
 
 ## STEP files for Inventor
 
-`scripts/dip_link_params.py export` wrote both designs with the routed cable, every STEP file read back valid in FreeCAD:
+`scripts/dip_link_params.py export` wrote both designs with the 7.8 mm J1 slot and the 3.0 mm cable groove, every STEP
+file read back valid in FreeCAD (the exports of 15:08 and 15:16, `../exports/20261019-1508-v2_concept_b_cable/` and
+`../exports/20261019-1516-v2_concept_a_cable/`, have the 6.6 mm slot and the 2.4 mm groove):
 
-- `../exports/20261019-1516-v2_concept_a_cable/`: the DIP link's new features and the clamp plate as exact solids, the
-  fused link (zipped), the tip cutter, the cable-groove cutter, the five-magnet block tip, and
-  `20261019-1516-v2_concept_a_cable_assembly_D.step.zip` with the board, J1 on its tab, the plug, the cable as a 2.0 mm
-  pipe to its anchor, the four screws and the 11/22 tip in the DIP link STL's coordinates.
-- `../exports/20261019-1508-v2_concept_b_cable/`: the new body and the cover as exact solids, the fused link (zipped), the
-  cable-groove cutter, both pads (faceted), and the assembly with the board, J1, the plug, the cable, the four screws and
-  the 11/22 pad.
+- `../exports/20261019-1816-v2_concept_a_plug7_cable2p6/`: the DIP link's new features and the clamp plate as exact
+  solids, the fused link (zipped), the tip cutter, the cable-groove cutter, the five-magnet block tip, and
+  `20261019-1816-v2_concept_a_plug7_cable2p6_assembly_D.step.zip` with the board, J1 on its tab, the 7.0 mm plug, the cable
+  as a 2.6 mm pipe to its anchor, the four screws and the 11/22 tip in the DIP link STL's coordinates.
+- `../exports/20261019-1818-v2_concept_b_plug7_cable2p6/`: the new body and the cover as exact solids, the fused link
+  (zipped), the cable-groove cutter, both pads (faceted), and the assembly with the board, J1, the plug, the cable, the four
+  screws and the 11/22 pad.
 
 Each folder's `print/` has the PLA parts as Bambu STLs with their settings and the tips or pads sliced for the XL;
 `export.json` lists every file and its read-back. Opening them in Inventor: `../README.md`, section Opening the STEP files.

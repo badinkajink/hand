@@ -99,7 +99,7 @@ def files_section(R, p1s, xl, n_pla, n_tpu, a1m=None, p85=None):
             f"every filament value of Siraya Tech&#8217;s P1S profile ({code(p85['filament_source'])}): "
             f"{fo['nozzle_temperature'][0]} &#176;C, a {fo['textured_plate_temp'][0]} &#176;C {esc(p85['bed_type'])}, flow "
             f"{fo['filament_flow_ratio'][0]}, {fo['filament_retraction_length'][0]} mm retraction, the fan from layer "
-            f"{int(fo['close_fan_the_first_x_layers'][0]) + 1}, a {fo['filament_max_volumetric_speed'][0]} mm&#179;/s cap "
+            f"{int(fo['close_fan_the_first_x_layers'][0]) + 1}, a cap of {fo['filament_max_volumetric_speed'][0]} mm&#179;/s "
             "and no slowdown for layer cooling, and the speeds of its process: outer walls "
             f"{sp['outer_wall_speed']:g} mm/s, inner walls {sp['inner_wall_speed']:g}, infill {sp['sparse_infill_speed']:g}, "
             f"top surfaces {sp['top_surface_speed']:g}, the first layer {sp['initial_layer_speed']:g}, and a "
@@ -267,23 +267,23 @@ A1M_SOLID = (
 
 
 def plug_slot_item():
-    return ("<li>The neck carrier&#8217;s J1 slot is 7.8 mm wide since 17:50 (6.6 mm before): the Qwiic cable&#8217;s plug "
+    return ("<li>The neck carrier&#8217;s J1 slot is 7.8 mm wide since 17:42 (6.6 mm before): the Qwiic cable&#8217;s plug "
             "is JST&#8217;s SHR-04V-S-B, 7.0 mm wide at its protrusions, where the model had the 5.0 mm SHR-04V-S, and it "
-            "did not enter run a&#8217;s 6.6 mm slot (owner, 17:40). The slot clears the plug by 0.4 mm a side and J1 by "
+            "did not enter run a&#8217;s 6.6 mm slot (owner). The slot clears the plug by 0.4 mm a side and J1 by "
             "0.9 mm.</li>")
 
 
 def cable_item():
-    return ("<li>Since 18:00 the neck carrier&#8217;s cable groove is 3.0 mm wide (2.4 mm before): the Qwiic cable is a flat "
+    return ("<li>Since 17:57 the neck carrier&#8217;s cable groove is 3.0 mm wide (2.4 mm before): the Qwiic cable is a flat "
             "ribbon about 4 mm wide and 1 mm thick, which had to be squished into the 2.2 to 2.6 mm grooves of run "
-            "a&#8217;s W (owner, 17:55); massaged into a bundle, it is modelled as 2.6 mm (2.0 mm before). To keep "
+            "a&#8217;s W (owner); massaged into a bundle, it is modelled as 2.6 mm (2.0 mm before). To keep "
             "R7&#8217;s 1.0 mm from the MCP link, the first turn, toward the back right out of the plug, has a 1.5 mm radius "
             "(2.0 mm before; the ribbon still lies flat there and bends flatwise): 1.24 mm. W is new: grooves 2.8, 3.0 and "
             "3.4 mm wide, 3.0 mm deep, each with a 2.0 mm turn.</li>")
 
 
 P1S_85A = (
-    "<li>Since 18:20 the 85A blocks of both runs print on one P1S plate from its external spool, run a&#8217;s before "
+    "<li>Since 18:13 the 85A blocks of both runs print on one P1S plate from its external spool, run a&#8217;s before "
     "run b&#8217;s PLA plate (owner, 18:05: the A1 mini prints went badly with Siraya Tech&#8217;s A1 mini values and "
     "with a generic TPU profile alike; 18:10: one plate for both, then the PLA). The plate takes Siraya Tech&#8217;s P1S "
     "profile, its filament values and its process speeds (45 to 60 mm/s; the A1 mini projects ran Bambu&#8217;s 200 to "
@@ -315,15 +315,15 @@ def changes_section():
 def results_section_a():
     return (
         '<section id="results"><h2>6. Results so far</h2>'
-        "<p>Results the owner reported by 18:05, and what each changed in v2 a (the record of Section 5 has them):</p><ul>"
+        "<p>Results the owner reported by 18:00, and what each changed in v2 a (the record of Section 5 has them):</p><ul>"
         "<li>Board fit: C20 takes the board well; C15 does too once a print defect on one edge is cleaned off. C20 is the "
         "safer choice, so clear_chip stays 0.20 mm.</li>"
         "<li>Pins: the 2.40 mm pin of P fits the board&#8217;s 2.40 mm hole; pin_d is 2.40 mm (2.35 mm before).</li>"
         "<li>J1 slot: the Qwiic cable&#8217;s plug does not enter the carriers&#8217; 6.6 mm slot. The plug is JST&#8217;s "
-        "SHR-04V-S-B, 7.0 mm wide at its protrusions, where the model had the 5.0 mm SHR-04V-S. Since 17:50 v2 a&#8217;s "
+        "SHR-04V-S-B, 7.0 mm wide at its protrusions, where the model had the 5.0 mm SHR-04V-S. Since 17:42 v2 a&#8217;s "
         "slot is 7.8 mm wide, 0.4 mm clear of the plug on each side.</li>"
         "<li>Cable groove: W&#8217;s turns are fine, but the cable is a flat ribbon about 4 mm wide and 1 mm thick that had "
-        "to be squished into the 2.2 to 2.6 mm grooves. Since 18:00 v2 a models the ribbon, massaged into a bundle, as "
+        "to be squished into the 2.2 to 2.6 mm grooves. Since 17:57 v2 a models the ribbon, massaged into a bundle, as "
         "2.6 mm (2.0 mm before) in a 3.0 mm groove, and the cable turns at the plug&#8217;s rear face (after a 0.5 mm "
         "straight lead before), so that it stays 1.44 mm from the MCP link (R7 asks 1.0 mm). Run b&#8217;s W tests "
         "grooves of 2.8, 3.0 and 3.4 mm.</li>"
