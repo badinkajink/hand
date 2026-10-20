@@ -50,6 +50,7 @@ LABEL = {
     "b_v2": "Concept b's pad: v2 magnets, cut 3.55&#8202;mm short at the back",
     "v2_none": "No magnets",
     "cal4_fine": "Calibrated print on the fine grid",
+    "v2_5_fine": "Five magnets 7.5&#8202;mm deep on the fine grid",
     "v2_5_skin07": "Skins 0.7&#8202;mm in place of 0.8&#8202;mm",
     "v2_5_uex05": "5&#8202;% under-extrusion: beads 0.4275&#8202;mm, perimeters 0.855&#8202;mm",
     "v2_5_uex10": "10&#8202;% under-extrusion: beads 0.405&#8202;mm, perimeters 0.81&#8202;mm",
@@ -195,8 +196,8 @@ def build():
     ratio10 = pct("v2_5_uex10", "v2_5") / -dv("v2_5_uex10")
     ratio05 = pct("v2_5_uex05", "v2_5") / -dv("v2_5_uex05")
 
-    lede_parts = [f"The calibration of 2026-10-18 applies to both v2 fingertips: concept a's 11/22 tip lies within {rms_a:.1f}&#8202;% RMS "
-                  f"of the calibrated print in finite elements, b's shorter pad is {-pct('b_v2'):.1f}&#8202;% stiffer."]
+    lede_parts = [f"The calibration of 2026-10-18 applies to both v2 fingertips (a within {rms_a:.1f}&#8202;% RMS of the calibrated print, "
+                  f"b {-pct('b_v2'):.1f}&#8202;% stiffer)."]
     _sj = D / "sensing.json"
     if _sj.exists():
         _sr = {r["case"]: r for r in json.loads(_sj.read_text())["rows"]}
@@ -212,8 +213,15 @@ def build():
     _hb = rows(ROOT / "docs/experiments/20261019-v2_finger/cells_base/hom.jsonl")
     if _hv and _hb:
         _h = lambda rr, v: sum(1 for r in rr if r["variant"] == v and r.get("status") == "ok" and r["held"])  # noqa: E731
+        _vb = sorted((ROOT / "docs/experiments/20261019-v2_finger/bench").glob("20261020-s2r_ell11_g30_v2a_cyl16_*_rel35_verify.json"))
+        _cl = ""
+        if _vb:
+            _a = json.loads(_vb[0].read_text())["finger_clearance_cad"]["achieved_nominal"]
+            _m = (_a.get("cad_mesh_at_that_instant") or {}).get("min_mm")
+            if _m is not None:
+                _cl = f", but its first-bench plan brings the index and middle DIP links within {_m:.1f}&#8202;mm of each other"
         lede_parts.append(f"The 9.75&#8202;mm longer finger keeps the cylinder in {_h(_hv, 'ell11_g30_v2a')} of 108 HOM runs against "
-                          f"{_h(_hb, 'ell11_g30')}.")
+                          f"{_h(_hb, 'ell11_g30')}{_cl}.")
     lede_parts.append(f"Under-extrusion softens a tip about 2&#8202;% per 1&#8202;% of missing TPU.")
     lede = " ".join(lede_parts)
 
@@ -261,7 +269,7 @@ Servo plant: position actuators of gain 0.72&#8202;N&#8202;m/rad and torque limi
                 f"{r0['3']['approach_um']:.1f}", f"{pct(c):+.1f}" if c != ref else "0", f"{rm:.1f}" if c != ref else "&#8211;",
                 f"{r0['1']['r_bar_mm']:.3f}"]
 
-    geo = [c for c in ("cal4_base", "v2_5", "a_v2", "b_v2", "v2_none", "cal4_fine", "v2_5_skin07") if c in T]
+    geo = [c for c in ("cal4_base", "v2_5", "a_v2", "b_v2", "v2_none", "cal4_fine", "v2_5_fine", "v2_5_skin07") if c in T]
     S.append(("geometry", "The v2 fingertips against the calibrated print", f"""
 <p>The calibration fitted Drake's field and the pads to finite elements of the 11/22 half-ellipsoid printed with four 3&#8202;&#215;&#8202;2&#8202;mm
 magnets 7.0&#8202;mm deep. The v2 tips have five magnets 7.5&#8202;mm deep (corners at $y = \\pm 2.5$&#8202;mm, 4.9&#8202;mm along the finger either
@@ -273,7 +281,8 @@ add {pct('v2_none', 'v2_5'):.1f}&#8202;% of stiffness, a's channels change it by
 pad {-pct('b_v2'):.1f}&#8202;% stiffer under the rod ({rms_b:.1f}&#8202;% RMS over the probe set). The pressure arm stays at
 {T['a_v2'][ROD]['per_force']['1']['r_bar_mm']:.3f}&#8202;mm in every case, since the palmar surface sets it. The fine grid (0.2&#8202;mm over the
 contact region; 202,668 against 137,322 degrees of freedom) changes the calibrated tip's rod approach by
-{pct('cal4_fine'):+.1f}&#8202;% and the probe set by {rms_f:.1f}&#8202;% RMS, inside the 5&#8202;% the calibration's capsule grid check allowed.
+{pct('cal4_fine'):+.1f}&#8202;% and the probe set by {rms_f:.1f}&#8202;% RMS, inside the 5&#8202;% the calibration's capsule grid check allowed;
+the v2 tip moves by {rms_vs(T, 'v2_5_fine', 'v2_5')[0]:.1f}&#8202;% RMS on the fine grid.
 The as-sliced skins of the upright prints (0.7&#8202;mm, seven 0.1&#8202;mm layers) change it by {pct('v2_5_skin07', 'v2_5'):+.2f}&#8202;%.</p>
 {table(["Case", "TPU volume (mm&#179;)", "Approach at 0.5&#8202;N (&#181;m)", "At 1&#8202;N", "At 3&#8202;N", "Change at 1&#8202;N (%)",
         "RMS change, 54 approaches (%)", "$\\bar r$ at 1&#8202;N (mm)"],
@@ -352,7 +361,15 @@ in the G-code, the same to 0.004&#8202;g across the four sizes.</p>
                    f"M1: {sc_['same_branch']} of {sc_['n']} pairs on the same branch, {sc_['median_rms_angle_all_deg']:.1f}&#176; RMS apart "
                    f"and normal forces {sc_['median_rms_dN_same_N']:.2f}&#8202;N apart. The force difference is therefore not common to every "
                    f"tip: it appears on the block at M1 and on the 11/22 tip at its stiff calibrations (M2 and M3, moduli 53&#8211;65&#8202;MPa "
-                   f"against the capsule's 8&#8211;12), and the branch split belongs to the 11/22 tip.")
+                   f"against the capsule's 8&#8211;12).")
+        e1 = d1.get("ell11_g30|ready|M1|pads")
+        if e1 and e1.get("complete"):
+            s1 = e1["pads_vs_drake"]
+            cap_txt += (f" The 11/22 tip at M1, the soft calibration the capsule passes at (pads 8.0, Drake 11.8&#8202;MPa), ends on Drake's "
+                        f"branch in {s1['same_branch']} of {s1['n']} pairs, {s1['median_rms_angle_all_deg']:.1f}&#176; RMS apart, with normal "
+                        f"forces {s1['median_rms_dN_same_N']:.2f}&#8202;N apart: its split of 10-18 came from the stiff modulus of M2 without "
+                        f"the spring, not from the half-ellipsoid's shape. M1 misses the finite elements' approach by up to 41&#8202;%, so M3 "
+                        f"stays the calibration to use (next section).")
     else:
         cap_txt = ("The capsule's replays stopped at 1 of 6 when the memory watchdog killed the job at 20:57 on 10-19. The force "
                    "difference appears on both tips replayed; the branch split belongs to the 11/22 tip.")
@@ -565,7 +582,11 @@ gives the creep at 1&#8202;N per tip for the pads at impratio 100 (the planner's
                                        "the board green. Real time.", 2)
         S.append(("v2finger", "The first bench task on the longer v2 finger", f"""
 <p>The v2 DIP link puts the tip 9.75&#8202;mm further from the PIP axis (pad centre 36.36&#8202;mm past it) and weighs
-{vs['dip_body']['mass_g']:.1f}&#8202;g with its clamp plate and the board, against 5.6&#8202;g for the CAD finger's link and board. The
+{vs['dip_body']['mass_g']:.1f}&#8202;g with its clamp plate and the board, against 5.6&#8202;g for the CAD finger's link and board. Its
+collision spheres are packed as the CAD link's are (MorphIt-B, budget 20, on a closed 0.25&#8202;mm remesh of the link's 13-shell STL,
+clipped 0.5&#8202;mm behind the pad faces; scripts/v2_finger_scenes.py). A first run with inscribed spheres, which cover 60&#8202;% of the link
+and none of its surface, let the index and middle links pass into each other in the plan's release; its rows are kept in
+docs/experiments/20261019-v2_finger/inscribed_spheres/. The
 readiness study's control tasks ran on both fingers with the same code, scenes, servo plant and planners
 (scripts/v2_finger_cells.py; the CAD finger's rows with <code>V2_FINGER_BASE=1</code>): HOM on the nine candidate grasps of each of the four
 cells at three seeds, and pinned iCEM on each cell's best HOM grasp (Table {t_v}). {v2txt}</p>
@@ -574,6 +595,57 @@ cells at three seeds, and pinned iCEM on each cell's best HOM grasp (Table {t_v}
        caption="Control tasks of the readiness study on the CAD finger and on the v2 finger (cells.jsonl rows of each; model "
                "values, servo plant kp 0.72&#8202;N&#8202;m/rad, 0.18&#8202;N&#8202;m).")}
 {film_fig}"""))
+    vb = sorted((ROOT / "docs/experiments/20261019-v2_finger/bench").glob("20261020-s2r_ell11_g30_v2a_cyl16_*_rel35_verify.json"))
+    if vb:
+        RB_ = ROOT / "docs/experiments/20261016-sim2real_fingertip_readiness/bench"
+        plans = [("Block, CAD finger (10-16)", RB_ / "20261016-s2r_block4_g30_cyl16_t0p625_c6_cap0p15_rel35_verify.json",
+                  RB_ / "20261016-s2r_block4_g30_cyl16_t0p625_c6_cap0p15_rel35_abort.json"),
+                 ("Half-ellipsoid 11/22, v2 finger", vb[0], Path(str(vb[0]).replace("_verify.json", "_abort.json")))]
+        prow = []
+        for lab, vf, af in plans:
+            v = json.loads(vf.read_text())
+            c = v["finger_clearance_cad"]
+            ach = c["achieved_nominal"]
+            mesh = (ach.get("cad_mesh_at_that_instant") or {}).get("min_mm")
+            ab = json.loads(af.read_text())["rows"] if af.exists() else []
+            rel = max((r["released_after_s"] for r in ab if r.get("released_after_s") is not None), default=None)
+            mesh_ab = min(((r["clearance_achieved"].get("cad_mesh_at_that_instant") or {}).get("min_mm", 99) for r in ab), default=None)
+            prow.append([lab, v["summary"]["removed"]["held"], v["summary"]["removed"]["three_pads"],
+                         f"{v['summary']['removed']['turn_median_deg']:.1f}", f"{max(v['peak_joint_speed_deg_s'].values()):.0f}",
+                         f"{ach['min_mm']:.2f}", f"{mesh:.2f}" if mesh is not None else "&#8211;",
+                         f"{mesh_ab:.2f}" if mesh_ab is not None else "&#8211;", f"{rel:.2f}" if rel is not None else "&#8211;"])
+        t_b = nxt()
+        import csv as _csv
+
+        def step_peak(traj):
+            R = list(_csv.reader(open(traj)))
+            X = np.array([[float(v) for v in r] for r in R[1:]])
+            sp = np.abs(np.diff(X[:, 1:], axis=0)) / np.diff(X[:, 0])[:, None]
+            k, j = np.unravel_index(int(np.argmax(sp)), sp.shape)
+            return R[0][1 + j].replace("_deg", "").replace("_", " "), float(sp[k, j]), float(X[k, 0]), abs(X[k + 1, 1 + j] - X[k, 1 + j])
+        tv = Path(str(vb[0]).replace("_verify.json", "_traj.csv"))
+        tb_ = RB_ / "20261016-s2r_block4_g30_cyl16_t0p625_c6_cap0p15_rel35_traj.csv"
+        jv, spv, tv0, dqv = step_peak(tv)
+        jb, spb, tb0, dqb = step_peak(tb_)
+        bench_txt = (f"The v2 plan keeps the cylinder in {prow[1][1]} plant conditions against the block plan's {prow[0][1]}. Its index "
+                     f"and middle DIP links stay apart in the nominal replay, but only by {prow[1][6]}&#8202;mm at their closest, against "
+                     f"{prow[0][6]}&#8202;mm on the CAD finger, and by {prow[1][7]}&#8202;mm after the latest abort; the commanded targets "
+                     f"would cross them, as the block plan's would. Where the grip hold hands over to the first iCEM command, at "
+                     f"{tv0:.2f}&#8202;s, the {jv} target steps {dqv:.0f}&#176; in one 20&#8202;ms sample ({spv:.0f}&#176;/s, against "
+                     f"{spb:.0f}&#176;/s and {dqb:.0f}&#176; for the block plan's {jb}).")
+        S.append(("benchplan", "First-bench plan on the v2 finger", f"""
+<p>The readiness study's export (scripts/sim2real_fingertip_bench.py through scripts/v2_finger_bench.py) turns the v2 finger's pinned-iCEM
+run on the 16&#8202;mm cell into a station plan: the logged servo targets at 50&#8202;Hz with the commanded offsets capped at 0.15&#8202;N&#8202;m over
+the gain and a release pose 35&#176; more open at every PIP, replayed open loop under 81 plant conditions (gain 0.36, 0.72 and
+1.08&#8202;N&#8202;m/rad, torque limit 0.12, 0.18 and 0.23&#8202;N&#8202;m, friction 0.5, 0.7 and 1.0, three placements each), then aborted at 1, 3
+and 5&#8202;s. Finger clearance is the least distance between different fingers' collision geometry over the nominal replay; at that
+instant the CAD meshes' distance is measured from surface samples, so a value near zero marks meshes that touch or pass into each
+other. Table {t_b} sets the plan beside the block's plan of 10-16 on the CAD finger. {bench_txt}</p>
+{table(["Plan", "Held, post removed", "Three pads", "Median turn (&#176;)", "Peak joint speed (&#176;/s)",
+        "Finger clearance, nominal (mm)", "CAD meshes at that instant (mm)", "CAD meshes, least over the aborts (mm)",
+        "Cylinder free after an abort (s)"], prow, num_cols=(3, 4, 5, 6, 7, 8), n=t_b,
+       caption="First-bench plans on the 16&#8202;mm cell (the plans' _verify.json and _abort.json; model values).")}"""))
+
     cc = D / "contact_class"
     if cc.exists() and any(cc.glob("*.csv")):
         rr_ = []
@@ -618,16 +690,15 @@ point to moisture; as many strings point to the profile's 240&#8202;&#176;C and 
 beads.</li>
 <li>Indent one v2 tip under the 25&#8202;mm rod at 0.5, 1 and 3&#8202;N (readiness procedure, step &#8216;indentation&#8217;) to fix the bench factor
 &#955;; with a and b within 2.5&#8202;% of the calibrated print, one measurement fixes &#955; for both concepts.</li>
-<li>Export the first bench plan for the v2 finger with the 11/22 tip: pinned iCEM on the 16&#8202;mm cell held the cylinder on three
-pads and turned it {turn16_v2} on the v2 finger (Section on the longer finger); <code>scripts/sim2real_fingertip_bench.py export</code>
-pointed at <code>assets/mjcf/experimental/20261019-v2_finger/ell11_g30_v2a</code> as scripts/v2_finger_cells.py points the cells, then the
-plant-condition sweep, the abort test and <code>scripts/real_v1_trajectory_clearance.py</code> before the bench. A plan that keeps the
-cylinder in fewer than the 60 of 81 plant conditions of the block's 10-16 plan would argue for re-planning on the measured plant.</li>
-<li>The force bound of the consistency test (0.25&#8202;N normal) fails on the block at M1 and on the 11/22 tip at M3 (0.54 and
-0.37&#8202;N) and passes on the capsule at M1 (0.15&#8202;N). Replaying the 11/22 tip's commands at M1 (moduli 8&#8211;12&#8202;MPa, no spring;
-<code>fe_contact_calibration_sim.py icem --tips ell11_g30 --calib M1 --plants pads drake</code>) separates the tip's shape from its stiff
-calibration; the pinch-brake test of the contact overview's Future work measures which simulator's force sharing the printed tip
-follows.</li>
+<li>Before the v2 plan goes to the bench: ramp the step from the grip hold to the first iCEM command over 0.2&#8202;s in
+<code>sim2real_fingertip_bench.poses_of</code> and export again; widen the index-middle separation of the 16&#8202;mm cell's layout or keep
+the release pose's PIPs flexed until the DIP links clear by the CAD finger's 2&#8202;mm; then run
+<code>scripts/real_v1_trajectory_clearance.py</code> on the plan and its <code>_traj.csv</code>. A plan that then keeps the cylinder in fewer
+than 50 of 81 plant conditions argues for re-planning on the measured plant.</li>
+<li>The force bound of the consistency test (0.25&#8202;N normal) fails on the block at M1 (0.54&#8202;N) and on the 11/22 tip at M1 and
+M3 (0.28 and 0.37&#8202;N) and passes on the capsule (0.15&#8202;N). The pinch-brake test of the contact overview's Future work measures which
+simulator's force sharing the printed tip follows; a bench result near the pads' would let the planner keep the pads for the 11/22
+tip at M3.</li>
 <li>Put the 11/22 force resolutions (Section on sensing) into the DIP study's evaluations (scripts/dip_link_v2.py, a and b
 <code>docs</code> stages) when the DIP page is next rebuilt, in place of the block's.</li>
 <li>Runs still queued at the page's build (logs/20261019-overnight/q_all.txt, one job at a time): the capsule's Drake replays, the
