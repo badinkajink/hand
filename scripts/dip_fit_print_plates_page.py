@@ -82,11 +82,36 @@ def hmin(t):
     return f"{m // 60} h {m % 60} min" if m >= 60 else f"{m} min"
 
 
-def files_section(R, p1s, xl, n_pla, n_tpu, a1m=None):
+def files_section(R, p1s, xl, n_pla, n_tpu, a1m=None, p85=None):
     ov = p1s["overrides"]
     xs = xl["settings"]
     inside = "tip" if CONCEPT == "a" else "pad"
-    if a1m:
+    if p85:
+        fo, sp, rc = p85["filament_settings"], p85["speeds_mm_s"], p85["recipe"]
+        n85 = len(p85["objects"])
+        tpu_txt = (
+            f"The 85A blocks of both runs print on one Bambu Lab P1S plate from its external spool: "
+            f"{code(p85['project'])} ({esc(p85['time'])}, {p85['filament_g']:.1f} g, {n85} blocks), run a&#8217;s channel "
+            "blocks F00 to F40 in the front row and run b&#8217;s groove blocks G00 to G20 behind them. In Bambu "
+            "Studio&#8217;s print dialog switch the AMS off, so that the printer feeds from the external spool; the PLA "
+            "plate then prints from AMS slot 1. The A1 mini projects printed badly (owner, 18:05), with Siraya Tech&#8217;s "
+            "A1 mini values and with a generic TPU profile alike, and stay in the folder as a record. The P1S project takes "
+            f"every filament value of Siraya Tech&#8217;s P1S profile ({code(p85['filament_source'])}): "
+            f"{fo['nozzle_temperature'][0]} &#176;C, a {fo['textured_plate_temp'][0]} &#176;C {esc(p85['bed_type'])}, flow "
+            f"{fo['filament_flow_ratio'][0]}, {fo['filament_retraction_length'][0]} mm retraction, the fan from layer "
+            f"{int(fo['close_fan_the_first_x_layers'][0]) + 1}, a {fo['filament_max_volumetric_speed'][0]} mm&#179;/s cap "
+            "and no slowdown for layer cooling, and the speeds of its process: outer walls "
+            f"{sp['outer_wall_speed']:g} mm/s, inner walls {sp['inner_wall_speed']:g}, infill {sp['sparse_infill_speed']:g}, "
+            f"top surfaces {sp['top_surface_speed']:g}, the first layer {sp['initial_layer_speed']:g}, and a "
+            f"{p85['skirt_loops']}-loop skirt. The structure is the recipe of the finite-element models, the same on every "
+            f"printer: {rc['wall_loops']} walls, {rc['sparse_infill_density']} gyroid, {rc['top_shell_layers']} skins of "
+            f"{rc['layer_height']} mm, {rc['elefant_foot_compensation']} mm elephant-foot compensation, no brim, a minimum "
+            f"sparse infill area of {rc['minimum_sparse_infill_area']} and a minimum top shell of "
+            f"{rc['top_shell_thickness']} mm (Siraya&#8217;s process has 4 walls, 20 % gyroid and 5 top skins). The "
+            f"interference chosen from these blocks applies to {inside}s printed on the P1S with this profile. When the XL "
+            f"is free, its project prints the same blocks on the v17 template: tool 2, {xs['layer_height']} mm layers, "
+            f"{xs['perimeters']} perimeters, {xs['fill_density']} gyroid, no pause.")
+    elif a1m:
         fo, po = a1m["filament_settings"], a1m["overrides"]
         tpu_txt = (
             f"The 85A blocks print on the {esc(a1m['printer'])}, whose AMS lite feeds the Siraya Tech 85A through slot "
@@ -115,12 +140,19 @@ def files_section(R, p1s, xl, n_pla, n_tpu, a1m=None):
                    f"{xs['layer_height']} mm layers, {xs['perimeters']} perimeters, {xs['fill_density']} gyroid, no pause.")
     rows = (f"<tr><td>Bambu Lab P1S, PLA</td><td>{code(Path(p1s['project']).name)}</td><td>{n_pla} "
             f"({len(p1s['objects'])} objects)</td><td>{esc(p1s['time'])}</td><td>{p1s['filament_g']:.1f} g</td></tr>")
+    if p85:
+        rows += (f"<tr><td>Bambu Lab P1S, 85A from the external spool, both runs</td><td>{code(Path(p85['project']).name)}"
+                 f"</td><td>{len(p85['objects'])}</td><td>{esc(p85['time'])}</td><td>{p85['filament_g']:.1f} g</td></tr>")
     if a1m:
-        rows += (f"<tr><td>Bambu Lab A1 mini, 85A in slot {a1m['slot']}</td><td>{code(Path(a1m['project']).name)}</td>"
+        rows += (f"<tr><td>Bambu Lab A1 mini, 85A in slot {a1m['slot']}{' (printed badly)' if p85 else ''}</td>"
+                 f"<td>{code(Path(a1m['project']).name)}</td>"
                  f"<td>{n_tpu}</td><td>{esc(a1m['time'])}</td><td>{a1m['filament_g']:.1f} g</td></tr>")
     rows += (f"<tr><td>Prusa XL 5T, tool 2, 85A{' (when free)' if a1m else ''}</td><td>{code(Path(xl['project']).name)}"
              f"</td><td>{n_tpu}</td><td>{esc(hmin(xl['time']))}</td><td>{xl['filament_g']:.1f} g</td></tr>")
-    tmap = (figure(ROOT / a1m["map"], f"The A1 mini plate from above; each block&#8217;s ID is engraved in its top face, "
+    tmap = (figure(ROOT / p85["map"], "The P1S 85A plate of both runs from above, front edge at the bottom; each "
+                   "block&#8217;s ID is engraved in its top face, which lies inside the tip (F) or the pad (G).",
+                   "P1S 85A plate map with piece IDs") if p85 else
+            figure(ROOT / a1m["map"], f"The A1 mini plate from above; each block&#8217;s ID is engraved in its top face, "
                    f"which lies inside the {inside}.", "A1 mini plate map with piece IDs") if a1m else
             figure(ROOT / xl["map"], f"The XL plate from above; each block&#8217;s ID is engraved in its top face, which "
                    f"lies inside the {inside}.", "XL plate map with piece IDs"))
@@ -235,33 +267,34 @@ A1M_SOLID = (
 
 
 def plug_slot_item():
-    where = ("The carriers&#8217; J1 slot" if CONCEPT == "a" else "The neck carrier&#8217;s J1 slot")
-    printed = ("The carriers C15 to C30 printed at about 17:00 have the 6.6 mm slot; the plug does not enter it (owner, "
-               "17:40). " if CONCEPT == "a" else "")
-    return ("<li>" + where + " is 7.8 mm wide since 17:50 (6.6 mm before): the Qwiic cable&#8217;s plug is JST&#8217;s "
-            "SHR-04V-S-B, 7.0 mm wide at its protrusions, where the model had the 5.0 mm SHR-04V-S. The slot clears the "
-            "plug by 0.4 mm a side and J1 by 0.9 mm. " + printed + "</li>")
+    return ("<li>The neck carrier&#8217;s J1 slot is 7.8 mm wide since 17:50 (6.6 mm before): the Qwiic cable&#8217;s plug "
+            "is JST&#8217;s SHR-04V-S-B, 7.0 mm wide at its protrusions, where the model had the 5.0 mm SHR-04V-S, and it "
+            "did not enter run a&#8217;s 6.6 mm slot (owner, 17:40). The slot clears the plug by 0.4 mm a side and J1 by "
+            "0.9 mm.</li>")
 
 
 def cable_item():
-    common = ("the Qwiic cable is a flat ribbon about 4 mm wide and 1 mm thick, which had to be squished into the 2.2 to "
-              "2.6 mm grooves of run a&#8217;s W (owner, 17:55); massaged into a bundle, it is modelled as 2.6 mm (2.0 mm "
-              "before) in a 3.0 mm groove (2.4 mm before). ")
-    if CONCEPT == "a":
-        return ("<li>Since 18:00 v2 a&#8217;s cable groove is 3.0 mm wide: " + common + "To keep R7&#8217;s 1.0 mm from the "
-                "MCP link, the cable turns at the plug&#8217;s rear face (after a 0.5 mm straight lead before): 1.44 mm. The "
-                "carriers printed at about 17:00 have the 2.4 mm groove; run b&#8217;s W tests 2.8, 3.0 and 3.4 mm.</li>")
-    return ("<li>Since 18:00 the neck carrier&#8217;s cable groove is 3.0 mm wide: " + common + "To keep R7&#8217;s 1.0 mm "
-            "from the MCP link, the first turn, toward the back right out of the plug, has a 1.5 mm radius (2.0 mm before; "
-            "the ribbon still lies flat there and bends flatwise): 1.24 mm. W is new: grooves 2.8, 3.0 and 3.4 mm wide, "
-            "3.0 mm deep, each with a 2.0 mm turn.</li>")
+    return ("<li>Since 18:00 the neck carrier&#8217;s cable groove is 3.0 mm wide (2.4 mm before): the Qwiic cable is a flat "
+            "ribbon about 4 mm wide and 1 mm thick, which had to be squished into the 2.2 to 2.6 mm grooves of run "
+            "a&#8217;s W (owner, 17:55); massaged into a bundle, it is modelled as 2.6 mm (2.0 mm before). To keep "
+            "R7&#8217;s 1.0 mm from the MCP link, the first turn, toward the back right out of the plug, has a 1.5 mm radius "
+            "(2.0 mm before; the ribbon still lies flat there and bends flatwise): 1.24 mm. W is new: grooves 2.8, 3.0 and "
+            "3.4 mm wide, 3.0 mm deep, each with a 2.0 mm turn.</li>")
+
+
+P1S_85A = (
+    "<li>Since 18:20 the 85A blocks of both runs print on one P1S plate from its external spool, run a&#8217;s before "
+    "run b&#8217;s PLA plate (owner, 18:05: the A1 mini prints went badly with Siraya Tech&#8217;s A1 mini values and "
+    "with a generic TPU profile alike; 18:10: one plate for both, then the PLA). The plate takes Siraya Tech&#8217;s P1S "
+    "profile, its filament values and its process speeds (45 to 60 mm/s; the A1 mini projects ran Bambu&#8217;s 200 to "
+    "300 mm/s process capped at 2 mm&#179;/s), and the finite-element models&#8217; structure.</li>")
 
 
 def changes_section():
     return (
-        '<section id="changes"><h2>6. Changes from the pieces of 13:08</h2>'
+        '<section id="changes"><h2>7. Changes from the pieces of 13:08</h2>'
         f"<p>The set in {code(STUDY + '/v2/coupons/')} was four XL projects with PLA on tool 3. This run differs in "
-        "nine ways.</p><ul>"
+        "eight ways.</p><ul>"
         "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the A1 mini (from 16:40, while the XL "
         "is in use) or the XL.</li>"
         "<li>Every piece has its ID printed on it; the three window gauges had none.</li>"
@@ -276,15 +309,33 @@ def changes_section():
         "<li>The first P1S project of this run started with Bambu Studio&#8217;s generic start G-code: it loaded no "
         "filament from the AMS and left the nozzle at 205 &#176;C. Since 16:40 every Bambu project has the printer&#8217;s "
         "own start, end and filament-change G-code, and the build stops unless the G-code loads from the AMS and heats to "
-        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + plug_slot_item() + cable_item() + "</ul></section>")
+        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + P1S_85A + "</ul></section>")
+
+
+def results_section_a():
+    return (
+        '<section id="results"><h2>6. Results so far</h2>'
+        "<p>Results the owner reported by 18:05, and what each changed in v2 a (the record of Section 5 has them):</p><ul>"
+        "<li>Board fit: C20 takes the board well; C15 does too once a print defect on one edge is cleaned off. C20 is the "
+        "safer choice, so clear_chip stays 0.20 mm.</li>"
+        "<li>Pins: the 2.40 mm pin of P fits the board&#8217;s 2.40 mm hole; pin_d is 2.40 mm (2.35 mm before).</li>"
+        "<li>J1 slot: the Qwiic cable&#8217;s plug does not enter the carriers&#8217; 6.6 mm slot. The plug is JST&#8217;s "
+        "SHR-04V-S-B, 7.0 mm wide at its protrusions, where the model had the 5.0 mm SHR-04V-S. Since 17:50 v2 a&#8217;s "
+        "slot is 7.8 mm wide, 0.4 mm clear of the plug on each side.</li>"
+        "<li>Cable groove: W&#8217;s turns are fine, but the cable is a flat ribbon about 4 mm wide and 1 mm thick that had "
+        "to be squished into the 2.2 to 2.6 mm grooves. Since 18:00 v2 a models the ribbon, massaged into a bundle, as "
+        "2.6 mm (2.0 mm before) in a 3.0 mm groove, and the cable turns at the plug&#8217;s rear face (after a 0.5 mm "
+        "straight lead before), so that it stays 1.44 mm from the MCP link (R7 asks 1.0 mm). Run b&#8217;s W tests "
+        "grooves of 2.8, 3.0 and 3.4 mm.</li>"
+        "<li>Open: the snap fit (K and F), the screw holes (H), the clamp plate (CP) and C30.</li></ul></section>")
 
 
 def future_section():
     return (
         '<section id="future"><h2>Future work</h2><ul>'
-        f"<li>Enter fit_flank, detent_h, clear_chip, pin_d, screw_thread_d, m2_pilot and the groove width in "
-        f"{code(PARAMS)} and rebuild v2 a: {code('scripts/dip_link_v2.py a build step check sense render print docs')}; "
-        "then print the DIP link and a channelled tip.</li>"
+        f"<li>Enter fit_flank and detent_h (from K and F) and screw_thread_d and m2_pilot (from H) in {code(PARAMS)} and "
+        f"rebuild v2 a: {code('scripts/dip_link_v2.py a build step check sense render print docs')}; then print the DIP "
+        "link and a channelled tip. clear_chip (0.20 mm), pin_d (2.40 mm) and the cable groove (3.0 mm) are set.</li>"
         "<li>If K25 slides onto every block up to F40, the flank sweep stopped short of the limit; the next plate "
         "extends it to 0.60 mm. If K45 still does not hold in F*, the detent groove in the tip is the next variable "
         f"({code('groove_r')}).</li>"
@@ -338,7 +389,7 @@ def changes_section_b():
     return (
         '<section id="changes"><h2>6. Changes from concept b&#8217;s coupons of 18 October</h2>'
         f"<p>The rail coupon in {code(STUDY + '/v2/b/print/')} was a rail strip and three groove blocks (0, 0.05 and "
-        "0.10 mm per flank) as XL projects. This run differs in eight ways.</p><ul>"
+        "0.10 mm per flank) as XL projects. This run differs in nine ways.</p><ul>"
         "<li>One plate per printer: the PLA pieces on the P1S, the 85A blocks on the A1 mini (from 16:40, while the XL "
         "is in use) or the XL.</li>"
         "<li>Every piece has its ID printed on it.</li>"
@@ -349,7 +400,7 @@ def changes_section_b():
         "<li>The first P1S project of this run started with Bambu Studio&#8217;s generic start G-code: it loaded no "
         "filament from the AMS and left the nozzle at 205 &#176;C. Since 16:40 every Bambu project has the printer&#8217;s "
         "own start, end and filament-change G-code, and the build stops unless the G-code loads from the AMS and heats to "
-        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + plug_slot_item() + cable_item() + "</ul></section>")
+        "the filament&#8217;s temperatures.</li>" + A1M_SOLID + plug_slot_item() + cable_item() + P1S_85A + "</ul></section>")
 
 
 def future_section_b():
@@ -367,10 +418,12 @@ def future_section_b():
 def build():
     R = json.loads((RUN / "pieces.json").read_text())
     pieces = R["pieces"]
-    p1s, xl, a1m = R["plates"]["p1s"], R["plates"]["xl"], R["plates"].get("a1m")
+    p1s, xl, a1m, p85 = R["plates"]["p1s"], R["plates"]["xl"], R["plates"].get("a1m"), R["plates"].get("p1s85a")
     n_pla = sum(s.get("copies", 1) for s in pieces if s["material"] == "PLA")
     n_tpu = sum(1 for s in pieces if s["material"] == "85A")
-    tpu_where = (f"on the Bambu Lab A1 mini ({esc(a1m['time'])}, {a1m['filament_g']:.1f} g; or on tool 2 of the Prusa XL)"
+    tpu_where = (f"on one Bambu Lab P1S plate with the other run&#8217;s 85A blocks, from the external spool "
+                 f"({esc(p85['time'])}, {p85['filament_g']:.1f} g for all {len(p85['objects'])})" if p85 else
+                 f"on the Bambu Lab A1 mini ({esc(a1m['time'])}, {a1m['filament_g']:.1f} g; or on tool 2 of the Prusa XL)"
                  if a1m else f"on tool 2 of the Prusa XL ({esc(hmin(xl['time']))}, {xl['filament_g']:.1f} g)")
     with open(RUN / "records.csv") as f:
         rows = list(csv.DictReader(f))
@@ -391,16 +444,18 @@ def build():
             "design file.")
     if CONCEPT == "b":
         lede = lede_b
-        secs = [files_section(R, p1s, xl, n_pla, n_tpu, a1m), ids_section(pieces), terms_section_b(), checks_section_b(),
+        secs = [files_section(R, p1s, xl, n_pla, n_tpu, a1m, p85), ids_section(pieces), terms_section_b(), checks_section_b(),
                 records_section(rows), changes_section_b(), future_section_b()]
     else:
-        secs = [files_section(R, p1s, xl, n_pla, n_tpu, a1m), ids_section(pieces), terms_section(), checks_section(),
-                records_section(rows), changes_section(), future_section()]
+        secs = [files_section(R, p1s, xl, n_pla, n_tpu, a1m, p85), ids_section(pieces), terms_section(), checks_section(),
+                records_section(rows), results_section_a(), changes_section(), future_section()]
     toc = ["<li><a href='#files'>1. Files and settings</a></li>", "<li><a href='#ids'>2. Pieces and their IDs</a></li>",
            "<li><a href='#terms'>3. Terms</a></li>", "<li><a href='#checks'>4. Checks, in order</a></li>",
-           "<li><a href='#record'>5. Record</a></li>",
-           "<li><a href='#changes'>6. " + ("Changes from the pieces of 13:08" if CONCEPT == "a" else
-                                           "Changes from concept b's coupons of 18 October") + "</a></li>",
+           "<li><a href='#record'>5. Record</a></li>"]
+    toc += (["<li><a href='#results'>6. Results so far</a></li>",
+             "<li><a href='#changes'>7. Changes from the pieces of 13:08</a></li>"] if CONCEPT == "a" else
+            ["<li><a href='#changes'>6. Changes from concept b's coupons of 18 October</a></li>"])
+    toc += [
            "<li><a href='#future'>Future work</a></li>"]
     up = "../.."
     eyebrow = (f'<a href="{up}/index.html">SR&#178; Hand documentation</a> &#183; <a href="{up}/pages.html">index of '

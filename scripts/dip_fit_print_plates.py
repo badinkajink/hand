@@ -84,6 +84,21 @@ SIRAYA_NAME = "Siraya Tech TPU 85A @BBL A1M"
 # printer (owner: "we shouldn't play with the gyroid infill % or the num walls"); Siraya's process (3 walls, 25 %) is unused.
 SIRAYA_A1M_3MF = REPO / "docs/experiments/20261019-dip_link_fit_prints/siraya/siraya_tpu85a_hf_a1mini_0p4_20250724.3mf"
 SIRAYA_KEEP = dict(filament_max_volumetric_speed=["2"])
+# 85A on the Bambu Lab P1S from its external spool, concept a's channel blocks and b's groove blocks on one plate (owner,
+# 2026-10-19 18:05: "the a1 mini tpu prints went horribly, both with the sirayatech settings and with the generic flex
+# settings ... can we try now on the p1s? ... i have the sirayatech tpu hooked up to the external spool of the p1s now";
+# 18:10: "can we also get the concept A and B tpu prints on one plate so that we can swap to the pla after?"). Siraya
+# Tech's own P1S project gives every filament value and the process's speeds, accelerations, line widths and skirt; the
+# structure of the finite-element models (FE_RECIPE) stays as on every printer. Bambu lists its own 85A only for the
+# P1S's 0.6 and 0.8 mm nozzles, so the filament's base is Generic TPU.
+P1S_TPU = dict(machine="Bambu Lab P1S 0.4 nozzle", process="0.20mm Standard @BBL X1C", filament="Generic TPU")
+SIRAYA_P1S_3MF = REPO / "docs/experiments/20261019-dip_link_fit_prints/siraya/siraya_tpu85a_hf_p1s_0p4_20260728.3mf"
+SIRAYA_P1S_NAME = "Siraya Tech TPU 85A HF @BBL P1S"
+FE_RECIPE = dict(layer_height="0.2", wall_loops="2", sparse_infill_density="30%", sparse_infill_pattern="gyroid",
+                 top_shell_layers="4", bottom_shell_layers="4", top_shell_thickness="0.7", minimum_sparse_infill_area="0",
+                 elefant_foot_compensation="0.2", brim_type="no_brim", enable_support="0", enable_prime_tower="0",
+                 seam_position="back", curr_bed_type="Textured PEI Plate")
+AB_85A = dict(run="20261019", stem="20261019-dip_link_fit_ab_p1s_85a", work="20261019-fit_prints_ab_p1s85a")
 
 DETENTS = (0.15, 0.25, 0.35, 0.45)                    # PLA key detent height, mm (v2/coupons: 0.15-0.35)
 FLANKS = (0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.40)    # 85A channel interference per flank, mm (v2/coupons: 0-0.20)
@@ -621,14 +636,15 @@ def write_records_rows(rows):
 
 
 # ------------------------------------------------------------------------------------------------ plates
-def layout(meshes, bed, gap=8.0, width=200.0):
-    """Shelf packing in the given order: rows of at most `width` mm from the front of the bed, `gap` mm apart, the whole
-    block centred on the bed. Returns each mesh's (dx, dy) from its print frame to the bed."""
+def layout(meshes, bed, gap=8.0, width=200.0, breaks=()):
+    """Shelf packing in the given order: rows of at most `width` mm from the front of the bed, `gap` mm apart, a new row
+    also at every index in `breaks`, the whole block centred on the bed. Returns each mesh's (dx, dy) from its print frame
+    to the bed."""
     rows, row, x, h = [], [], 0.0, 0.0
     for i, tm in enumerate(meshes):
         lo, hi = tm.bounds[0][:2], tm.bounds[1][:2]
         w, d = hi - lo
-        if row and x + w > width:
+        if row and (x + w > width or i in breaks):
             rows.append((row, h))
             row, x, h = [], 0.0, 0.0
         row.append((i, x, lo, w, d))
@@ -842,6 +858,136 @@ def cmd_a1m(a):
           f"{bed_type} {bed_c[:1]} C, nozzle {sorted(set(noz_c))} [{time.time() - t0:.0f} s] -> {rel(RUN / proj)}", flush=True)
 
 
+def siraya_p1s_presets():
+    """Process and filament for 85A on the P1S: Bambu's 0.20mm Standard @BBL X1C and Generic TPU with every key that
+    Siraya Tech's P1S project sets otherwise (its AMS-drying keys left out), FE_RECIPE over the process. Returns
+    (process, filament, process keys taken, filament keys taken)."""
+    with zipfile.ZipFile(SIRAYA_P1S_3MF) as z:
+        sir = json.loads(z.read("Metadata/project_settings.config"))
+    skip = {"name", "inherits", "from", "setting_id", "instantiation", "filament_settings_id", "filament_id", "version",
+            "compatible_printers", "compatible_printers_condition", "filament_colour", "filament_ids", "print_settings_id",
+            "inherits_group", "compatible_prints", "compatible_prints_condition"}
+
+    def taken(base):
+        return {k: sir[k] for k, v in base.items() if k not in skip and not k.startswith("filament_dev_") and k in sir
+                and sir[k] != v and type(sir[k]) is type(v)}
+    tp = taken(bbl_preset("process", P1S_TPU["process"]))
+    tf = taken(bbl_preset("filament", P1S_TPU["filament"]))
+    proc = bbl_preset("process", P1S_TPU["process"], {**tp, **FE_RECIPE})
+    fil = bbl_preset("filament", P1S_TPU["filament"], {**tf, "filament_colour": ["#FFFFFF"]}, rename=SIRAYA_P1S_NAME)
+    return proc, fil, tp, tf
+
+
+def cmd_p1s85a(a):
+    """One P1S plate with every 85A piece of both runs (concept a's channel blocks F, concept b's groove blocks G), the
+    Siraya Tech 85A on the external spool (siraya_p1s_presets), sliced by Bambu Studio's command line into one project;
+    checks the P1S's own start G-code, the filament's temperatures, one TPU filament, gyroid in every block and no prime
+    tower. The project and its map go to run a's folder; the plate's record goes into both runs' pieces.json."""
+    import re
+    import trimesh
+    runs = []
+    for rid, r in RUNS.items():
+        rd = REPO / f"docs/experiments/{r['folder']}"
+        runs.append((rid, rd, json.loads((rd / "pieces.json").read_text())))
+    out = REPO / f"docs/experiments/{RUNS[AB_85A['run']]['folder']}"
+    work = REPO / f"logs/{AB_85A['work']}"
+    placed = work / "placed"
+    shutil.rmtree(work, ignore_errors=True)
+    placed.mkdir(parents=True)
+    proc, fil, tp, tf = siraya_p1s_presets()
+    paths = {}
+    for kind, d in (("machine", bbl_preset("machine", P1S_TPU["machine"])), ("process", proc), ("filament", fil)):
+        paths[kind] = work / f"{kind}.json"
+        paths[kind].write_text(json.dumps(d, indent=1))
+    items = [(rid, rd, s, trimesh.load(rd / s["stl"], force="mesh")) for rid, rd, rep in runs for s in rep["pieces"]
+             if s["material"] == "85A"]
+    pos = layout([t for *_, t in items], P1S_BED, gap=12.0, width=150.0,     # one row per run
+                 breaks={i for i in range(1, len(items)) if items[i][0] != items[i - 1][0]})
+    files, objs = [], []
+    for (rid, rd, s, tm), p_ in zip(items, pos):
+        tm.apply_translation((p_[0], p_[1], 0.0))
+        f = placed / Path(s["stl"]).name
+        tm.export(f)
+        files.append(str(f))
+        objs.append(dict(id=s["id"], run=rid, name=f.stem, bounds_mm=np.round(tm.bounds, 2).tolist()))
+    proj = f"{AB_85A['stem']}.3mf"
+    cmd = BAMBU + ["--debug", "1", "--arrange", "0", "--orient", "0",
+                   "--load-settings", f"{paths['machine']};{paths['process']}", "--load-filaments", str(paths["filament"]),
+                   "--slice", "0", "--export-3mf", proj, "--outputdir", str(work)] + files
+    t0 = time.time()
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    (work / "cli.log").write_text(r.stdout + r.stderr)
+    res = json.loads((work / "result.json").read_text())
+    if res.get("return_code") != 0:
+        raise SystemExit(f"Bambu Studio: {res.get('error_string')} (log {rel(work / 'cli.log')})")
+    shutil.copy(work / proj, out / proj)
+    with zipfile.ZipFile(out / proj) as z:
+        info = z.read("Metadata/slice_info.config").decode()
+        gcode = z.read("Metadata/plate_1.gcode").decode(errors="replace")
+        msets = z.read("Metadata/model_settings.config").decode()
+        cfg = json.loads(z.read("Metadata/project_settings.config"))
+    pred = float(re.search(r'key="prediction" value="([\d.]+)"', info).group(1))
+    weight = float(re.search(r'key="weight" value="([\d.]+)"', info).group(1))
+    used = re.findall(r'<filament id="(\d+)"[^>]*type="([^"]+)"[^>]*used_g="([\d.]+)"', info)
+    layers = int(re.search(r"; total layer number: (\d+)", gcode).group(1))
+    bed_type = re.search(r"; curr_bed_type = (.+)", gcode).group(1).strip()
+    names = sorted(re.findall(r'<object id="\d+">\s*<metadata key="name" value="([^"]+)"', msets))
+    ext = sorted(set(re.findall(r'<metadata key="extruder" value="(\d+)"', msets)))
+    nozzle_c, bed_c = int(fil["nozzle_temperature"][0]), int(fil["textured_plate_temp"][0])
+    problems = []
+    if names != sorted(f"{o['name']}.stl" for o in objs):
+        problems.append(f"objects {names}")
+    if [u[0] for u in used] != ["1"] or used[0][1] != "TPU" or ext != ["1"]:
+        problems.append(f"filaments used {used}, object extruders {ext}")
+    if bed_type != FE_RECIPE["curr_bed_type"]:
+        problems.append(f"plate {bed_type}")
+    problems += check_bambu_gcode(gcode, "P1S", nozzle_c, bed_c)
+    if re.search(r"; (WIPE_TOWER|PRIME_TOWER)_START", gcode) or "; FEATURE: Prime tower" in gcode:
+        problems.append("prime tower in the G-code")
+    for k in ("outer_wall_speed", "inner_wall_speed", "sparse_infill_speed", "wall_loops", "sparse_infill_density",
+              "minimum_sparse_infill_area", "top_shell_thickness"):
+        if cfg.get(k) != proc.get(k):
+            problems.append(f"{k} {cfg.get(k)} in the project, {proc.get(k)} asked")
+    feats = infill_by_object(gcode, objs)
+    for o in objs:                                          # the FE recipe's gyroid in every block
+        f = feats[o["id"]]
+        sp, so = f.get("Sparse infill", 0.0), f.get("Internal solid infill", 0.0)
+        o["sparse_infill_mm"], o["internal_solid_infill_mm"] = round(sp, 1), round(so, 1)
+        if sp <= 0.0:
+            problems.append(f"{o['id']} has no sparse infill ({so:.0f} mm of internal solid infill)")
+    if problems:
+        raise SystemExit("P1S 85A project: " + "; ".join(problems))
+    warn = res["sliced_plates"][0].get("warning_message")
+    if warn:
+        print("Bambu Studio warning:", warn, flush=True)
+    fig = out / f"{AB_85A['stem']}_map.png"
+    plate_map([(next(x for x in rep["pieces"] if x["id"] == o["id"]), trimesh.load(placed / f"{o['name']}.stl"))
+               for o in objs for rid, rd, rep in runs if rid == o["run"]], P1S_BED,
+              f"Bambu Lab P1S, Siraya Tech 85A (external spool): {len(objs)} pieces of runs a (F) and b (G), "
+              f"{fmt_time(pred)}, {weight:.1f} g", fig)
+    first = lambda k: proc[k][0] if isinstance(proc[k], list) else proc[k]      # noqa: E731  (the standard nozzle's)
+    rec = dict(
+        project=rel(out / proj), map=rel(fig), printer="Bambu Lab P1S 0.4 nozzle", filament=SIRAYA_P1S_NAME,
+        spool="external", runs=list(RUNS), presets=P1S_TPU, recipe=FE_RECIPE, filament_source=rel(SIRAYA_P1S_3MF),
+        process_from_siraya=sorted(tp), filament_from_siraya=sorted(tf),
+        filament_settings={k: fil[k] for k in ("nozzle_temperature", "textured_plate_temp", "filament_flow_ratio",
+                                                "filament_retraction_length", "close_fan_the_first_x_layers",
+                                                "filament_max_volumetric_speed", "slow_down_for_layer_cooling")},
+        speeds_mm_s={k: float(first(k)) for k in ("outer_wall_speed", "inner_wall_speed", "sparse_infill_speed",
+                                                  "internal_solid_infill_speed", "top_surface_speed", "initial_layer_speed",
+                                                  "travel_speed")},
+        skirt_loops=int(proc["skirt_loops"]), time_s=pred, time=fmt_time(pred), filament_g=weight, layers=layers,
+        bed_type=bed_type, bed_c=bed_c, nozzle_c=nozzle_c, objects=objs,
+        slicer="Bambu Studio 2.5.0.66 command line, arrange off (positions from layout)",
+        when=time.strftime("%Y-%m-%d %H:%M"))
+    for rid, rd, rep in runs:
+        rep.setdefault("plates", {})["p1s85a"] = rec
+        (rd / "pieces.json").write_text(json.dumps(rep, indent=1) + "\n")
+    print(f"P1S 85A: {len(objs)} objects (runs {', '.join(RUNS)}), external spool, {fmt_time(pred)}, {weight:.2f} g, {layers} "
+          f"layers, bed {bed_type} {bed_c} C, nozzle {nozzle_c} C, outer wall {first('outer_wall_speed')} mm/s "
+          f"[{time.time() - t0:.0f} s] -> {rel(out / proj)}", flush=True)
+
+
 def cmd_bambu(a):
     """The P1S plate: the PLA pieces placed by `layout`, sliced by Bambu Studio's command line into one project with its
     G-code; the plate map and the slicer's time and filament into pieces.json."""
@@ -1007,7 +1153,7 @@ def plate_map(items, bed, title, out):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("stages", nargs="+", choices=["pieces", "bambu", "a1m", "xl"])
+    ap.add_argument("stages", nargs="+", choices=["pieces", "bambu", "a1m", "p1s85a", "xl"])
     ap.add_argument("--run", default="20261019", choices=list(RUNS), help="the run: 20261019 concept a, 20261019b concept b")
     a = ap.parse_args()
     set_run(a.run)
@@ -1016,7 +1162,7 @@ def main():
     for st in a.stages:
         t0 = time.time()
         print(f"== {st}", flush=True)
-        dict(pieces=cmd_pieces, bambu=cmd_bambu, a1m=cmd_a1m, xl=cmd_xl)[st](a)
+        dict(pieces=cmd_pieces, bambu=cmd_bambu, a1m=cmd_a1m, p1s85a=cmd_p1s85a, xl=cmd_xl)[st](a)
         print(f"== {st} [{time.time() - t0:.0f} s]", flush=True)
 
 
