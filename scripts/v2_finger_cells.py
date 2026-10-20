@@ -11,6 +11,7 @@ under logs/20261019-v2_finger/.
     SCALE_HAND=cad_v1 ~/.claude/bin/resguard.sh run --mem 3G --cpu 700 -- env NUMPY_MADVISE_HUGEPAGE=0 .venv/bin/python \\
         scripts/v2_finger_cells.py hom --variants ell11_g30_v2a block5_g30_v2a
     ... scripts/v2_finger_cells.py icem --variants ell11_g30_v2a block5_g30_v2a --cells cylinder:16:0.625 cylinder:25:0.125
+    V2_FINGER_BASE=1 ... scripts/v2_finger_cells.py hom --variants ell11_g30 block5_g30     # the CAD finger, same code
 """
 from __future__ import annotations
 
@@ -26,13 +27,15 @@ import hand_object_scale_kin as K  # noqa: E402
 import sim2real_fingertip_cells as SC  # noqa: E402
 import v2_finger_scenes as VS  # noqa: E402
 
-K.P = 0.026610 + VS.NECK
-K.CHAIN = K.J2 + K.P
-K.CAP_DIST = 0.016060 + VS.NECK
-SC.ASSETS = VS.OUT
-SC.LOGS = ROOT / "logs/20261019-v2_finger"
-SC.OUT = ROOT / "docs/experiments/20261019-v2_finger/cells"
-SC.SCRIPT = "scripts/v2_finger_cells.py"
+BASE = os.environ.get("V2_FINGER_BASE") == "1"      # 1: the readiness study's CAD finger, rows to cells_base/ (the comparison)
+if not BASE:
+    K.P = 0.026610 + VS.NECK
+    K.CHAIN = K.J2 + K.P
+    K.CAP_DIST = 0.016060 + VS.NECK
+    SC.ASSETS = VS.OUT
+SC.LOGS = ROOT / ("logs/20261019-v2_finger" + ("_base" if BASE else ""))
+SC.OUT = ROOT / "docs/experiments/20261019-v2_finger" / ("cells_base" if BASE else "cells")
+SC.SCRIPT = "scripts/v2_finger_cells.py" + (" (V2_FINGER_BASE=1)" if BASE else "")
 
 if __name__ == "__main__":
     SC.main()

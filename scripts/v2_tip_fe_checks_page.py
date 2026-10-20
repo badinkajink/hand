@@ -40,6 +40,7 @@ DIP_PAGE = ROOT / "docs/experiments/20261018-dip_link_board_mount/20261018-dip_l
 PROC_PAGE = ROOT / "docs/experiments/20261018-fingertip_print_procedure/20261018-siraya85a_fingertip_print_procedure.html"
 STATUS_PAGE = ROOT / "docs/experiments/20261018-printed_fingertip_status/20261018-printed_fingertip_and_dip_link_status.html"
 ROD = "cx12.5_z0"
+SC_CELLS = ["cylinder:25:0.125", "cylinder:16:0.625", "cylinder:10:0.75", "cylinder:16:-0.125"]
 VOX_MM3 = 0.05 ** 3
 CORE0 = 0.326                     # solid fraction of the 30 % slicer gyroid cell (h 0.05 mm), the calibration's core
 LABEL = {
@@ -324,6 +325,104 @@ belongs to the 11/22 tip. The capsule's replays stopped at 1 of 6 when the memor
         con_row("Half-ellipsoid 11/22, M2, its own plan", own)], num_cols=(1, 4, 5), n=4,
        caption="Pads against Drake on the same logged servo commands (the calibration study's replays/icem.jsonl and its summary code; "
                "model values). The block's Drake rows are tonight's; the 11/22 rows are those of 10-18.")}"""))
+
+    # ------------------------------------------------------------------ queued runs, shown when their rows exist
+    m3 = d1.get("ell11_g30|ready|M3|pads")
+    m3o = d1.get("ell11_g30|own|M3|pads")
+    cap = d1.get("cap_g30|ready|M1|pads")
+    if m3 and m3["pads_vs_drake"]["n"]:
+        rows_m3 = [con_row("Half-ellipsoid 11/22, M2, readiness plans (10-18)", e11),
+                   con_row("Half-ellipsoid 11/22, M3 with the spring in both, readiness plans", m3)]
+        if m3o and m3o["pads_vs_drake"]["n"]:
+            rows_m3.append(con_row("Half-ellipsoid 11/22, M3 with the spring in both, its own plan", m3o))
+        if cap and cap.get("complete"):
+            rows_m3.append(con_row("Capsule, M1, readiness plans", cap))
+        sm = m3["pads_vs_drake"]
+        S.append(("spring", "The series spring in both simulators", f"""
+<p>Calibration M3 puts the 11/22 tip's modulus (Drake 65.0, pads 53.0&#8202;MPa) behind a 9.7&#8202;N/mm series spring. On 10-18 only the
+pads' D1&#8211;D8 replays had the spring, so the consistency test ran at M2, the stiff modulus alone. Tonight both simulators replayed the
+readiness commands with the spring: a slide joint behind each tip, held by a joint equality of that stiffness in the pads
+(fe_contact_calibration_sim.add_spring) and by a PrismaticSpring with critical damping in Drake
+(curved_tips_cell_drake.CellDrake, <code>k_s</code>). With the spring, {sm['same_branch']} of {sm['n']} pairs end on the same branch
+(3 of 6 at M2) and the median RMS angle is {(sm.get('median_rms_angle_same_deg') or float('nan')):.1f}&#176; (Table 5).</p>
+{table(["Tip, calibration, commands", "Pairs", "Held agreement", "Same branch", "Median RMS angle (&#176;)", "Angle bound (&#176;)",
+        "Normal / friction force difference (N)", "Fails"], rows_m3, num_cols=(1, 4, 5), n=5,
+       caption="Pads against Drake with and without the series spring (replays/icem.jsonl; model values).")}"""))
+    bed = [r for r in rows(CAL / "bed" / "T2.jsonl") if r.get("status") == "complete"]
+    if any(r["arm"] == "ir1000" for r in bed):
+        names = {"block4_g30": "Block", "cap_g30": "Capsule r 8.5&#8202;mm", "ell16_g30": "Half-ellipsoid 16/32&#8202;mm",
+                 "ell11_g30": "Half-ellipsoid 11/22&#8202;mm"}
+        cr = {(r["tip"], r["calib"], r["arm"], r["N"]): r.get("creep_deg_s") for r in bed}
+        brows = []
+        for tip in ("block4_g30", "cap_g30", "ell16_g30", "ell11_g30"):
+            for c in ("M1", "M2"):
+                vals = [cr.get((tip, c, arm, 1.0)) for arm in ("pads", "ir1000", "drake")]
+                if vals[1] is None:
+                    continue
+                brows.append([names[tip], c] + [f"{v:.3f}" if v is not None else "&#8211;" for v in vals])
+        S.append(("creep", "Creep of the pads at impratio 1000", f"""
+<p>Under a held twist at half the onset torque the pads creep where Drake sticks (the calibration page's bed, case T2). MuJoCo's soft
+friction rows creep in proportion to their impedance, so a tenfold impratio should cut the pads' creep about tenfold. Table 6
+gives the creep at 1&#8202;N per tip for the pads at impratio 100 (the planner's), at 1000, and for Drake.</p>
+{table(["Tip", "Calibration", "Pads, impratio 100 (&#176;/s)", "Pads, impratio 1000 (&#176;/s)", "Drake (&#176;/s)"], brows,
+       num_cols=(2, 3, 4), n=6, caption="Creep under a held twist at half the onset torque, 1&#8202;N per tip (bed/T2.jsonl; model values).")}"""))
+    V2 = ROOT / "docs/experiments/20261019-v2_finger"
+    hv, hb = rows(V2 / "cells" / "hom.jsonl"), rows(V2 / "cells_base" / "hom.jsonl")
+    if hv:
+        iv, ib = rows(V2 / "cells" / "icem.jsonl"), rows(V2 / "cells_base" / "icem.jsonl")
+        ready = rows(ROOT / "docs/experiments/20261016-sim2real_fingertip_readiness/cells/icem.jsonl")
+
+        def homstat(rr, var, cell):
+            x = [r for r in rr if r["variant"] == var and r.get("status") == "ok"
+                 and f"{r['shape']}:{r['d_mm']:g}:{r['t']:g}" == cell]
+            h = sorted(r["turn_end_deg"] for r in x if r["held"])
+            return (f"{len(h)} of {len(x)}", f"{h[len(h) // 2]:.1f}" if h else "&#8211;") if x else ("&#8211;", "&#8211;")
+
+        def icstat(rr, var, cell):
+            x = [r for r in rr if r["variant"] == var and r.get("status") == "ok"
+                 and f"{r['shape']}:{r['d_mm']:g}:{r['t']:g}" == cell]
+            if not x:
+                return "&#8211;"
+            r = x[0]
+            return f"{'held' if r['held'] else 'dropped'}, {r['turn_end_deg']:+.1f}&#176;, {r.get('fingers_loaded_end')} loaded"
+
+        crow = []
+        for base, lab in (("ell11_g30", "Half-ellipsoid 11/22, five magnets" if False else "Half-ellipsoid 11/22"),
+                          ("block5_g30", "Block, five magnets")):
+            for cell in SC_CELLS:
+                hb_ = homstat(hb, base, cell)
+                hv_ = homstat(hv, f"{base}_v2a", cell)
+                ib_ = icstat(ib, base, cell) if ib else icstat(ready, base, cell)
+                iv_ = icstat(iv, f"{base}_v2a", cell)
+                crow.append([lab, cell.replace("cylinder:", "Cylinder ").replace(":", " mm, t "), hb_[0], hb_[1], hv_[0], hv_[1], ib_, iv_])
+        vs = json.loads((ROOT / "assets/mjcf/experimental/20261019-v2_finger/ell11_g30_v2a/README.json").read_text())
+        S.append(("v2finger", "The first bench task on the longer v2 finger", f"""
+<p>The v2 DIP link puts the tip 9.75&#8202;mm further from the PIP axis (pad centre 36.36&#8202;mm past it) and weighs
+{vs['dip_body']['mass_g']:.1f}&#8202;g with its clamp plate and the board, against 5.6&#8202;g for the CAD finger's link and board. The
+readiness study's control tasks ran on both fingers with the same code, scenes, servo plant and planners
+(scripts/v2_finger_cells.py; the CAD finger's rows with <code>V2_FINGER_BASE=1</code>): HOM on the nine candidate grasps of each of the four
+cells at three seeds, and pinned iCEM on each cell's best HOM grasp (Table 7).</p>
+{table(["Tip", "Cell", "HOM held, CAD finger", "Median held turn (&#176;)", "HOM held, v2 finger", "Median held turn (&#176;)",
+        "Pinned iCEM, CAD finger", "Pinned iCEM, v2 finger"], crow, num_cols=(2, 3, 4, 5), n=7,
+       caption="Control tasks of the readiness study on the CAD finger and on the v2 finger (cells.jsonl rows of each; model "
+               "values, servo plant kp 0.72&#8202;N&#8202;m/rad, 0.18&#8202;N&#8202;m).")}"""))
+    cc = D / "contact_class"
+    if cc.exists() and any(cc.glob("*.csv")):
+        rr_ = []
+        for f in sorted(cc.glob("*.csv")):
+            last = f.read_text().strip().splitlines()[-1].split(",")
+            rr_.append([esc(f.stem), last[1], last[2]])
+        for f in sorted(cc.glob("*cpu*.json")):
+            j = json.loads(f.read_text())
+            rr_.append([esc(f.stem), f"{j.get('final_cos', float('nan')):+.3f}", "held" if j.get("held_end") else "lost"])
+        S.append(("contactclass", "Tool contact class in the renderer", f"""
+<p>Runs trained before 2026-09-20 saw a tool with MuJoCo's default contact (solref 0.02&#8202;s, solimp 0.9&#8211;0.95), while the
+renderer and the CPU rollout built the tool with the scene's class, and 11 of 16 such policies dropped the tool at the trained pose.
+<code>scripts/rl_render_rollout.py</code> and <code>scripts/policy_cpu_rollout.py</code> now take the run's class
+(<code>--object-contact run</code>, the evaluation suite's rule). Table 8 gives the final signed cosine and height of D7's
+2026-09-20 policy (results/rl/20260920-0101-d7_clip_s0) under each class.</p>
+{table(["Rollout", "Final cos / CPU final cos", "Final height (m) / CPU outcome"], rr_, num_cols=(1,), n=8,
+       caption="D7's pre-fix policy rendered with the run's class and with the scene's (contact_class/).")}"""))
 
     S.append(("limits", "Limitations", """
 <p>The finite elements are linear and small-strain, with frictionless contact, the gyroid homogenized, NinjaFlex 85A's 12&#8202;MPa for

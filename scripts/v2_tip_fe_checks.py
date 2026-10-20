@@ -36,6 +36,7 @@ and meta.jsonl (grid, dof, timings, peak memory). Resumable per probe.
 from __future__ import annotations
 
 import argparse
+import json
 import resource
 import sys
 import time
@@ -233,11 +234,127 @@ def run_case(name, max_dof):
     print(f"{name}: {time.time() - t0:.0f} s, peak RSS {peak:.2f} GB", flush=True)
 
 
+SENSE_GAP = {"a_v2": 0.37, "b_v2": 3.32 - 6.45}   # sensing plane behind the whole tip's back face, mm (DIP study levels:
+                                               # a's sense_x 6.82 against the back face's x_F 6.45; b's sensing_plane x_F 3.32)
+
+
+def run_sense(name):
+    """Concept a's tip or b's pad in tpu_tip_magnet_layouts.run's row format, for tpu_tip_magnet_sensing: the rod at the
+    contact point at 0.5, 1 and 3 N (approach, the magnets' rigid motions), the pressure-law modulus, and unit normal and
+    shear patch loads (Gaussian, sigma 0.6 mm) at y -3, 0, 3 and z_c -4 ... +4 mm with the magnets' motions."""
+    import tpu_tip_design as TD
+    import tpu_tip_fem_tip as T
+    import tpu_tip_magnet as TM
+    import tpu_tip_magnet_layouts as TL
+    if any(r.get("case") == name for r in FE.rows(OUT / "sense_fe.jsonl")):
+        print(name, "sense row done", flush=True)
+        return
+    c = CASES[name]
+    t0 = time.time()
+    sh, G, mat_id, mats, lay, counts, recipe = mat_ids(c)
+    x_back0 = T.X_BACK
+    T.X_BACK = X_CUT_B if c.get("body") == "b" else x_back0
+    try:
+        model = T.TipModel(G, mat_id, mats, verbose=True)
+    finally:
+        T.X_BACK = x_back0
+    del mat_id
+    mn = FE.magnet_nodes(model, lay)
+    mot = lambda u: [[(1e3 * t).tolist(), (1e3 * w).tolist()] for t, w in (TM.rigid_fit(model.X[i], u[i]) for i in mn)]  # noqa
+    nodes = model.face_nodes(zlim=(TD.Z_C - 3.5, TD.Z_C + 3.5))
+    W = model.compliance(nodes)
+    g0 = TM.gaps(model, nodes)
+    A = T.tributary_areas(model, nodes)
+    per, d_fe = {}, []
+    for F in (0.5, 1.0, 3.0):
+        d, p, _ = T.force_controlled(W, g0, F)
+        act = np.where(p > 0)[0]
+        Fn = np.zeros((len(act), 3))
+        Fn[:, 0] = -p[act]
+        per[f"{F:g}"] = dict(delta_um=1e3 * d, magnets=mot(model.solve_full((nodes[act], Fn))))
+        d_fe.append(d)
+    E_best, worst = TM.best_modulus(lambda dd: T.law_force(A, g0, dd, 1.0), (0.5, 1.0, 3.0), d_fe)
+    face = model.face_nodes(zlim=(0.5, TD.Z_END - 0.5))
+    Xf = model.X[face]
+    patches = []
+    for y in TL.PATCH_Y:
+        for dz in TL.PATCH_DZ:
+            z = TD.Z_C + dz
+            wgt = np.exp(-((Xf[:, 1] - y) ** 2 + (Xf[:, 2] - z) ** 2) / (2 * TL.SIGMA ** 2))
+            wgt[wgt < 1e-4 * wgt.max()] = 0
+            wgt /= wgt.sum()
+            sel = wgt > 0
+            rec = dict(y=y, z=z)
+            for key, (k, sgn) in (("normal", (0, -1.0)), ("shear_y", (1, 1.0)), ("shear_z", (2, 1.0))):
+                Fv = np.zeros((sel.sum(), 3))
+                Fv[:, k] = sgn * wgt[sel]
+                u = model.solve_full((face[sel], Fv))
+                rec[key] = mot(u)
+                rec[key + "_face_um_per_N"] = float(1e3 * sgn * (u[face[sel], k] * wgt[sel]).sum())
+            patches.append(rec)
+    row = dict(layout=f"v2_{name}", case=name, body=c.get("body"), depth_mm=lay["depth"], magnets=[list(m) for m in lay["mags"]],
+               recipe="w85_30", n_dof=len(model.free), n_magnet_nodes=[int(len(i)) for i in mn], per_force=per, E_best_MPa=E_best,
+               approach_err_max=worst, patches=patches, sigma_mm=TL.SIGMA, t_total_s=round(time.time() - t0, 1), script=SCRIPT,
+               when=time.strftime("%Y-%m-%d %H:%M"))
+    FE.append(OUT / "sense_fe.jsonl", row)
+    print(f"{name}: E* {E_best:.2f} MPa, approach at 1 N {per['1']['delta_um']:.1f} um, magnet travel "
+          f"{np.mean([np.linalg.norm(t) for t, _ in per['1']['magnets']]):.2f} um/N, {len(patches)} patches, "
+          f"{time.time() - t0:.0f} s", flush=True)
+
+
+def sense():
+    """Force resolution of the v2 tips from sense_fe.jsonl (tpu_tip_magnet_sensing.analyse, five chips, contact position and a
+    uniform background field unknown), at the datasheet noise of GAIN_SEL 7 and at the noise of the gain the field needs
+    (dip_link_concept_b.sensing_point's rule), -> OUT/sensing.json."""
+    import mlx90393_model as MLX
+    import tpu_tip_magnet_sensing as MS
+    out = []
+    for r in FE.rows(OUT / "sense_fe.jsonl"):
+        gap = SENSE_GAP[r["case"]]
+        ch = MS.chips(r, "board", gap)
+        B = MS.B0(r, ch) * 1e3
+        bmax = float(np.abs(B).max())
+        g = res = None
+        for rr in (0, 1):
+            for gg in range(7, -1, -1):
+                rxy, rz = MLX.range_mT(gg, rr)
+                rng = min(rxy, rz, 4.8 * MLX.SENS[gg][rr][0] / MLX.SENS[7][0][0])
+                if rng >= 1.25 * bmax and g is None:
+                    g, res = gg, rr
+        rec = dict(case=r["case"], body=r["body"], gap_mm=gap, B_max_component_mT=round(bmax, 2), gain_sel=g, res=res,
+                   magnet_travel_um_per_N=round(float(np.mean([np.linalg.norm(t) for t, _ in r["per_force"]["1"]["magnets"]])), 2),
+                   approach_1N_um=round(r["per_force"]["1"]["delta_um"], 1), E_star_MPa=round(r["E_best_MPa"], 2))
+        saved = MS.NOISE
+        for tag, noise in (("gain7", None), ("gain", g)):
+            if noise is not None:
+                nxy, nz = MLX.noise_uT(g, res, 0, 5)
+                MS.NOISE = np.array([nz, nxy, nxy])
+            try:
+                a = MS.analyse(r, "board", gap)
+            finally:
+                MS.NOISE = saved
+            both = [p["sigF_n_unk_bg"] for p in a["points"]]
+            rec[tag] = dict(centre_force_N=round(a["centre"]["sigF_n_unk_bg"], 4), median_force_N=round(float(np.median(both)), 4),
+                            range_force_N=[round(min(both), 4), round(max(both), 4)],
+                            centre_sig_y_mm=round(a["centre"]["sig_y_mm_bg"], 3), centre_sig_z_mm=round(a["centre"]["sig_z_mm_bg"], 3),
+                            saturated=a["saturated"])
+        out.append(rec)
+        print(json.dumps(rec), flush=True)
+    (OUT / "sensing.json").write_text(json.dumps(dict(rows=out, script=SCRIPT, when=time.strftime("%Y-%m-%d %H:%M")), indent=1) + "\n")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cases", nargs="+", default=list(CASES), choices=list(CASES))
     ap.add_argument("--max-dof", type=int, default=320000)
+    ap.add_argument("--sense", nargs="*", default=None, choices=list(SENSE_GAP),
+                    help="patch-load rows of these cases for the readout model, then the force resolution of every sense row")
     a = ap.parse_args()
+    if a.sense is not None:
+        for name in a.sense:
+            run_sense(name)
+        sense()
+        return
     for name in a.cases:
         run_case(name, a.max_dof)
 
