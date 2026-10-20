@@ -877,6 +877,7 @@ def dip_link_parts(K):
     if j1:
         # J1, its plug and the cable in a slot from the neck's underside through the bridge's top, and the seat pocket open
         # at the tongue's distal end: the board slides in along +z, J1 first, until the main square meets the proximal wall
+        sys.path.insert(0, str(REPO / "scripts"))         # freecadcmd starts without it
         import dip_link_concept_a as A
         B = [list(lo) + list(hi) for _, lo, hi in j1_boxes_b()]
         lo = [min(b[k] for b in B) - A.J1_SLOT_CLEAR[k] for k in range(3)]

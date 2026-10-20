@@ -8,7 +8,7 @@ Output: docs/experiments/20261018-dip_link_board_mount/v2/.
 
   lengthen   Whether the board's own Qwiic connector J1 can stay plugged in. The DIP link is lengthened between the
              bridge and the tip by L, so that the tip, the board and everything fixed to them move distally by L; J1
-             with its mated SHR-04V-S housing, 3 mm of cable and the uncut 9 mm tab (scripts/dip_link_board_mount.py
+             with its mated SHR-04V-S-B housing, 3 mm of cable and the uncut 9 mm tab (scripts/dip_link_board_mount.py
              j1_parts_board), tab proximal, is checked against the MCP link and the PIP servo over PIP -18..92 deg
              (dip_link_geometry.points_clearance_exact). The least L (0.25 mm) at which both clear by 0.5 mm, per board
              placement (concept a: component face x_F 7.35; concept b: its slot plane), and the L at which the tab distal
@@ -133,7 +133,7 @@ def cmd_lengthen(a):
 
 def merge():
     out = dict(definition=("L: lengthening of the DIP link between its bridge and the tip's mount face, so that the tip, the "
-                           "board and every part fixed to them move distally by L; J1, its mated SHR-04V-S housing, 3 mm of "
+                           "board and every part fixed to them move distally by L; J1, its mated SHR-04V-S-B housing, 3 mm of "
                            "cable and the uncut 9 mm tab, tab proximal, must clear the MCP link and the PIP servo by 0.5 mm "
                            "over PIP -18..92 deg (points_clearance_exact, 0.25 mm samples, 0.5 deg). Tab distal: the tip "
                            "lengthened at its end until the connector lies inside it with 1 mm to spare."),
@@ -491,7 +491,7 @@ def a_section():
              ("J1, plug" + ("" if A.P.get("cable_route") else ", cable start"), DLF.fname("qwiic"), "#f2f2ea"),
              ("Screws", DLF.fname("fasteners"), "#c8a33c")]
     if A.P.get("cable_route") and DLF.fname("cable").exists():
-        parts.append(("Qwiic cable (2.0 mm bundle)", DLF.fname("cable"), "#2f5bd8"))
+        parts.append((f"Qwiic cable ({A.P['cable_d']:g} mm bundle)", DLF.fname("cable"), "#2f5bd8"))
     meshes = [(n, trimesh.load(p_), c) for n, p_, c in parts]
     ctx = {n: G.load_part(n) for n in ("mcp_link", "servo_pip")}
     plt.rcParams.update({"font.family": "serif", "font.size": 15})
@@ -692,13 +692,19 @@ def a_docs():
                         "2.0 mm bundle and 2.0 mm bends the groove over the plug cleared 0.14 mm at 8.5, 1.05 mm at 9.5 and 1.51 "
                         "mm at 10.0 mm (logs/20261019-dip_link_cable/route_rings.log); 9.75 mm is concept b's lengthening, so "
                         "both designs give one finger length") if routed else {}),
-        cable=(dict(route="out of the plug toward the PIP joint, a 2.0 mm turn to +y over the plug, a groove along the DIP "
+        cable=(dict(route=f"the Qwiic cable, a flat ribbon about 4 x 1 mm massaged into a bundle (modelled {A.P['cable_d']:g} "
+                          f"mm round, in a {A.P['cable_d'] + 2 * A.P['cable_clear']:g} mm groove): out of the plug toward the "
+                          "PIP joint, " + (f"after a {A.P['cable_lead']:g} mm lead " if A.P["cable_lead"] else "at once ")
+                          + f"a {A.P['cable_r']:g} mm turn to +y over the plug, a groove along the DIP "
                           "link's dorsal face (open to the back, so the cable is laid in with its far plug on), through the "
-                          "slotted arm's lower dorsal corner, a 2.0 mm turn up into the arm's outer face, a groove half the "
-                          "bundle deep up the face to an anchor below the PIP axis. Between the J1 slot and the arm the groove "
+                          f"slotted arm's lower dorsal corner, a {A.P['cable_r']:g} mm turn up into the arm's outer face, a "
+                          "groove half the bundle deep up the face to an anchor below the PIP axis. Between the J1 slot and the "
+                          "arm the groove "
                           "is open to the top as well: the bridge's arc lies 0.07-1.4 mm above it over x 4.70-7.30, too thin "
                           "for a roof, so the cable lies on a ledge of the bridge's dorsal corner",
                     bundle_d_mm=A.P["cable_d"], bend_r_mm=A.P["cable_r"], groove_clearance_mm=A.P["cable_clear"],
+                    groove_w_mm=round(A.P["cable_d"] + 2 * A.P["cable_clear"], 2), lead_mm=A.P["cable_lead"],
+                    ribbon_mm=[4.0, 1.0],
                     length_plug_to_anchor_mm=round(float(np.linalg.norm(np.diff(A.cable_polyline(), axis=0), axis=1).sum()), 2),
                     clearance=clear.get("qwiic_cable"), free_span=span,
                     range_of_motion="none lost: the cable runs inside the DIP link or outside y 17.40 to its anchor, and the "
@@ -782,8 +788,10 @@ def a_docs():
                     "longer bridge is solid between the clevis arms", "The window plate's web beside each distal M2 "
                     "countersink is 0.72 mm (R11 0.8 mm for two lines); M1.6 countersunk screws keep the final's 0.80 mm",
                     "Force resolution of the five-magnet 11/22 needs its finite elements"]
-                   + (["The bundle is modelled as 2.0 mm round; measure the cable's four wires and the groove's fit on the "
-                       "first print"] if routed else ["The cable's route past the PIP joint beyond its first 3 mm"]),
+                   + ([f"The Qwiic cable is a flat ribbon about 4 x 1 mm (owner, 2026-10-19), massaged into a bundle modelled "
+                       f"as {A.P['cable_d']:g} mm round in a {A.P['cable_d'] + 2 * A.P['cable_clear']:g} mm groove; the fit "
+                       "piece W of run 20261019b tests 2.8, 3.0 and 3.4 mm grooves"] if routed else
+                      ["The cable's route past the PIP joint beyond its first 3 mm"]),
         when=time.strftime("%Y-%m-%d %H:%M"))
     (A_DIR / "evaluation.json").write_text(json.dumps(ev, indent=1, default=float) + "\n")
     print("->", (A_DIR / "evaluation.json").relative_to(REPO), flush=True)
@@ -1521,15 +1529,20 @@ def b_docs():
                 + ", ".join(f"{r['clearance_mm']:.2f} mm at {r['neck_len']:g} mm with "
                             + ("no lead" if r["lead"] == 0 else f"a {r['lead']:g} mm lead") for r in ar) +
                 " (v2/b/20261019-dip_link_v2b_cable_routes.json)")) if routed and clr.get("qwiic_cable") else {}),
-        cable=(dict(route="out of the plug toward the PIP joint, at once a 2.0 mm turn toward the back over the board's tab "
-                          f"end, a 2.0 mm turn to +y, a run along +y at x {B.cp('cable_run_x'):g} mm to the slotted arm, through "
-                          "the arm's lower dorsal corner, a 2.0 mm turn up into the arm's outer face and a groove half the "
+        cable=(dict(route=f"the Qwiic cable, a flat ribbon about 4 x 1 mm massaged into a bundle (modelled {B.cp('cable_d'):g} "
+                          f"mm round, in a {B.cp('cable_d') + 2 * B.cp('cable_clear'):g} mm groove): out of the plug toward the "
+                          f"PIP joint, at once a {B.r_first():g} mm turn toward the back over the board's tab end (the ribbon "
+                          f"still flat, bending flatwise), a {B.cp('cable_r'):g} mm turn to +y, a run along +y at x "
+                          f"{B.cp('cable_run_x'):g} mm to the slotted arm, through the arm's lower dorsal corner, a "
+                          f"{B.cp('cable_r'):g} mm turn up into the arm's outer face and a groove half the "
                           "bundle deep up the face to concept a's anchor below the PIP axis. The groove is open to the back, "
                           f"and over the plug and the leg toward the back (x up to {B.cable_open_top_x():.2f} mm) also to "
                           "the top, where the bridge's top lies less than 0.8 mm above it; the cable is laid in with its far "
                           "plug on",
                     open_top_to_x_mm=round(B.cable_open_top_x(), 2),
-                    bundle_d_mm=B.cp("cable_d"), bend_r_mm=B.cp("cable_r"), lead_mm=B.cp("cable_lead"),
+                    bundle_d_mm=B.cp("cable_d"), bend_r_mm=B.cp("cable_r"), first_turn_r_mm=B.r_first(),
+                    lead_mm=B.cp("cable_lead"), groove_w_mm=round(B.cp("cable_d") + 2 * B.cp("cable_clear"), 2),
+                    ribbon_mm=[4.0, 1.0],
                     groove_clearance_mm=B.cp("cable_clear"), run_x_mm=B.cp("cable_run_x"),
                     length_plug_to_anchor_mm=round(B.cable_length(), 2), clearance=clr.get("qwiic_cable"), free_span=span,
                     range_of_motion="none lost: the cable runs inside the DIP link or outside y 17.40 to its anchor, and the "
@@ -1616,8 +1629,10 @@ def b_docs():
         open_items=[f"Mass {mass['total_without_pad']} g without the pad at the link's sliced density (R12 7.6 g): the neck is "
                     f"a {B.NECK:g} mm block, 21 mm wide and 20 mm deep",
                     "Force resolution of the five-magnet 11/22 pad needs its finite elements"]
-                   + (["The bundle is modelled as 2.0 mm round and turns right at the plug's rear face; measure the cable's "
-                       "four wires and the groove's fit on the first print"] if routed else
+                   + ([f"The Qwiic cable is a flat ribbon about 4 x 1 mm (owner, 2026-10-19), massaged into a bundle modelled "
+                       f"as {B.cp('cable_d'):g} mm round in a {B.cp('cable_d') + 2 * B.cp('cable_clear'):g} mm groove; it turns "
+                       "right at the plug's rear face. The fit piece W of run 20261019b tests 2.8, 3.0 and 3.4 mm grooves"]
+                      if routed else
                       ["The cable's route past the PIP joint beyond its first 3 mm"]),
         files=dict(cad=sorted(str(f.relative_to(REPO)) for f in B.CAD_DIR.glob("*")),
                    print=sorted(str(f.relative_to(REPO)) for f in (B_DIR / "print").glob("*")),

@@ -3,8 +3,11 @@
 Both v2 designs keep the ReSkin 5X board's own Qwiic connector J1 and lead the Qwiic cable from J1's plug in a groove open
 to the back, through the slotted arm's lower dorsal corner and up the arm's outer face to an anchor 5.0 mm below the PIP
 axis. Both DIP links are 9.75 mm longer than the final, so the PIP axis lies 46.91 mm from the tip's end (37.16 mm on the
-current hand). The 2.0 mm cable bundle clears the MCP link by 1.28 mm in a and by 1.16 mm in b over PIP -18 to 92 deg
-(R7 asks 1.0 mm), and the joint keeps its whole range. PLA parts print on the Bambu printer from print-oriented STLs, the
+current hand). The Qwiic cable is a flat ribbon about 4 mm wide and 1 mm thick; massaged into a bundle, it is modelled as
+2.6 mm round in a 3.0 mm groove, and it clears the MCP link by 1.44 mm in a and by 1.24 mm in b over PIP -18 to 92 deg
+(R7 asks 1.0 mm), and the joint keeps its whole range. J1's plug, JST's SHR-04V-S-B, is 7.0 mm wide at its protrusions;
+the J1 slot is 7.8 mm wide. Until the fit prints of 2026-10-19 the model had a 5.0 mm plug (SHR-04V-S, so a 6.6 mm slot
+that the plug did not enter) and a 2.0 mm bundle in a 2.4 mm groove (which the ribbon had to be squished into). PLA parts print on the Bambu printer from print-oriented STLs, the
 85A tips and pads on the Prusa XL 5T from PrusaSlicer projects.
 
 Terms. F is the finger frame of `../spec.json` (mm; x toward the dorsal side, y along the PIP axis, z up; the PIP axis
@@ -16,23 +19,26 @@ length between the anchor and a tie on the MCP link's side plate at (0, 17.40, -
 
 ## Cable route
 
-In a the plug's wires leave at x 5.90 mm. After a 0.5 mm lead the cable turns to +y over the plug (2.0 mm bend radius),
-runs along the DIP link's dorsal face to the slotted arm, turns up into the arm's outer face at y 17.40 and runs half sunk
-in a groove to the anchor at (4.0, 17.40, -56.5). It is 27.2 mm long; its least clearance is 1.28 mm, to the MCP link at
-PIP 60 deg. Between the J1 slot and the arm the bridge's arc lies only 0.07-1.4 mm above the groove (the wall check
+In a the plug's wires leave at x 5.90 mm. Right at the plug's rear face the cable turns to +y over the plug (2.0 mm bend
+radius; a 0.5 mm straight lead came first until 2026-10-19, which with the 2.6 mm bundle would leave about 0.98 mm), runs along
+the DIP link's dorsal face to the slotted arm, turns up into the arm's outer face at y 17.40 and runs half sunk in a
+groove to the anchor at (4.0, 17.40, -56.5). It is 27.2 mm long; its least clearance is 1.44 mm, to the MCP link at
+PIP 15.5 deg. Between the J1 slot and the arm the bridge's arc lies only 0.07-1.4 mm above the groove (the wall check
 found 0.24 mm), so there the groove is open to the top as well: the cable lies on a ledge of the bridge's dorsal corner
 and a strip of Kapton tape keeps it there.
 
 In b the plug sits in the neck's slot palmar of the board, so its wires leave at x 2.40 mm, 0.7 mm closer to the PIP axis
 at the height of the first turn, where the end of the MCP link sweeps a cylinder of radius 12.70 mm about the axis. a's
 turn right over the plug would clear the MCP link by 0.28 mm there. b's cable therefore turns toward the back at the plug's
-rear face, with no lead, then to +y at x 8.0, and from the slotted arm on follows a's path to the same anchor. It is
-32.7 mm long; its least clearance is 1.16 mm, to the MCP link at PIP 6 deg, at the first turn. b's bridge top keeps
+rear face, with no lead and a 1.5 mm bend radius (the ribbon still lies flat there and bends flatwise; a 2.0 mm radius
+would leave about 0.86 mm with the 2.6 mm bundle), then to +y at x 8.0 with a 2.0 mm radius, and from the slotted arm on
+follows a's path to the same anchor. It is 32.9 mm long; its least clearance is 1.24 mm, to the MCP link at PIP 6.5 deg,
+at the first turn. b's bridge top keeps
 0.8 mm from the MCP link's sweep, so over the plug and the short leg toward the back (x up to 6.0 mm) it lies less than
 0.8 mm above the groove; there the groove is open to the top as well, and a strip of Kapton tape over it keeps the first
 turn down. Along the run at x 8.0 the bridge leaves 1.13 mm or more of PLA over the groove. The variants computed for b
-(`b/20261019-dip_link_v2b_cable_routes.json`; the run's x does not change the clearance, 6.4 and 7.4 mm both give
-1.16 mm):
+with the 2.0 mm bundle (`b/20261019-dip_link_v2b_cable_routes.json`; the run's x does not change the clearance, 6.4 and
+7.4 mm both give 1.16 mm), and the two routes of today's design with the 2.6 mm bundle:
 
 | Route | Lengthening (mm) | Lead (mm) | Clearance (mm) | At PIP (deg) |
 |---|---|---|---|---|
@@ -43,6 +49,8 @@ turn down. Along the run at x 8.0 the bridge leaves 1.13 mm or more of PLA over 
 | a's turn to +y at b's plug | 9.75 | 0.5 | 0.28 | -4.5 |
 | a's turn to +y at b's plug | 10.25 | 0 | 1.27 | 14.5 |
 | a's turn to +y at b's plug | 10.5 | 0.5 | 1.02 | 56 |
+| a, 2.6 mm bundle: turn to +y at the plug | 9.75 | 0 | 1.44 | 15.5 |
+| b, 2.6 mm bundle: 1.5 mm first turn toward the back | 9.75 | 0 | 1.24 | 6.5 |
 
 Outside y 17.40 no part of the MCP link or the PIP servo reaches at any PIP angle, and inside it the cable lies in the DIP
 link's groove, so the cable takes nothing from the range of motion. The free span from the anchor is 22.66 mm at PIP -18

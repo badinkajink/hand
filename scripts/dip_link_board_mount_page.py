@@ -239,7 +239,8 @@ GLOSSARY = [
     ("Detent", "A 0.25&#8202;mm ridge across each key's head face that drops into a groove of the channel floor and keeps "
                "the tip from sliding off along &#8722;z."),
     ("Qwiic, J1", "Qwiic is SparkFun's I2C connection on a 4-pin JST SH connector (1.0&#8202;mm pitch); J1 is the board's "
-                  "side-entry Qwiic header on its tab. The cable ends in a JST SHR-04V-S housing."),
+                  "side-entry Qwiic header on its tab. The cable ends in a JST SHR-04V-S-B housing, 7.0&#8202;mm wide "
+                  "at its protrusions; the cable itself is a flat ribbon of four wires, about 4 &#215; 1&#8202;mm."),
     ("Lengthening", "How much longer the DIP link is between its bridge and the tip's mount face than the final, in mm; the "
                     "tip, the board and every part fixed to them move distally by it, the clevis arms stay."),
     ("Bundle", "The Qwiic cable's four 28&#8202;AWG wires modelled as one round bundle 2.0&#8202;mm across, its centre line "
@@ -271,7 +272,6 @@ def v2_section():
     xa, xb = EVA["cable"], EVB["cable"]
     sp = xa["free_span"]["span_mm"]
     la, lb = LGV2["placements"]["a"]["tab_proximal_L_mm"], LGV2["placements"]["b_x3.85"]["tab_proximal_L_mm"]
-    lead = next(r for r in RTB if r["route"] == "dorsal" and r["lead"] == 0.5 and r["neck_len"] == 9.75)
     ar = next(r for r in RTB if r["route"] == "a_route" and r["neck_len"] == 9.75)
     sa, sb = EVA["sensing"], EVB["sensing"]
     rows = [
@@ -295,11 +295,17 @@ def v2_section():
         f"instead. Both designs take M2 screws into 1.8{MM} self-forming holes of the PLA and tips with five 3 &#215; 2{MM} "
         f"magnets, the 11/22 half-ellipsoid or the block (Table&#160;[[tab:v2]]).</p>",
         f"<p>J1, its mated plug and the tab clear the MCP link and the PIP servo by 0.5{MM} (R7) from a lengthening of "
-        f"{la:g}{MM} in a and {lb:g}{MM} in b, whose board sits 3.5{MM} more palmar. The routed cable sets a's "
-        f"lengthening: its turn over the plug keeps 0.14{MM} from the MCP link at 8.5{MM}, 1.05{MM} at 9.5{MM} and "
-        f"{f(ca['qwiic_cable']['min_mm'])}{MM} at 9.75{MM}. Both links are 9.75{MM} longer, one finger length for both "
-        f"designs.</p>",
-        f"<p>In a the cable leaves the plug toward the PIP joint, turns to +y over the plug and runs along the bridge's "
+        f"{la:g}{MM} in a and {lb:g}{MM} in b, whose board sits 3.5{MM} more palmar. The routed cable set a's "
+        f"lengthening: modelled first as a 2.0{MM} bundle, its turn over the plug kept 0.14{MM} from the MCP link at "
+        f"8.5{MM} and 1.05{MM} at 9.5{MM}. Both links are 9.75{MM} longer, one finger length for both designs.</p>",
+        f"<p>The fit prints of 19 October changed three things. The Qwiic cable's plug is JST's SHR-04V-S-B, 7.0{MM} wide "
+        f"at its protrusions, where the model had the 5.0{MM} SHR-04V-S, and it did not enter the printed 6.6{MM} slot; "
+        f"the J1 slot is now 7.8{MM} wide. The cable is a flat ribbon about 4{MM} wide and 1{MM} thick that had to be "
+        f"squished into the 2.2&#8211;2.6{MM} test grooves; massaged into a bundle, it is modelled as "
+        f"{f(xa['bundle_d_mm'], 1)}{MM} round in a {f(xa['groove_w_mm'], 1)}{MM} groove, and to keep R7's 1.0{MM} a turns "
+        f"at the plug's rear face and b's first turn has a {f(xb['first_turn_r_mm'], 1)}{MM} radius. The clamp plate's "
+        f"pins are 2.40{MM} (2.35{MM} before).</p>",
+        f"<p>In a the cable leaves the plug toward the PIP joint, turns at once to +y over the plug and runs along the bridge's "
         f"dorsal corner to the slotted arm, through the arm's lower dorsal corner and up the arm's outer face at y "
         f"17.40{MM}, half sunk in a groove, to the anchor (Figures&#160;[[fig:v2a_route]] and [[fig:v2a_sec]]). Along its "
         f"{f(xa['length_plug_to_anchor_mm'], 1)}{MM} the cable keeps {f(ca['qwiic_cable']['min_mm'])}{MM} from the MCP "
@@ -312,9 +318,9 @@ def v2_section():
         f"{f(xb['run_x_mm'], 1)}{MM}, and from the slotted arm on takes a's path to the same anchor "
         f"(Figures&#160;[[fig:v2b_route]] and [[fig:v2b_sec]]). Along its {f(xb['length_plug_to_anchor_mm'], 1)}{MM} the "
         f"cable keeps {f(cb['qwiic_cable']['min_mm'])}{MM} from the MCP link, nearest at the first turn at PIP "
-        f"{cb['qwiic_cable']['pip_deg']:.0f}{DEG}; a 0.5{MM} straight lead out of the plug would leave "
-        f"{f(lead['clearance_mm'])}{MM}. Over the plug the groove is open to the top as well, where the bridge's top lies "
-        f"less than 0.8{MM} above it; along the run the bridge leaves 1.13{MM} or more of PLA over the groove.</p>",
+        f"{cb['qwiic_cable']['pip_deg']:.0f}{DEG}. That turn has a {f(xb['first_turn_r_mm'], 1)}{MM} radius, the others "
+        f"{f(xb['bend_r_mm'], 1)}{MM}; the ribbon is still flat there and bends flatwise. Over the plug the groove is open "
+        f"to the top as well, where the bridge's top lies less than 0.8{MM} above it.</p>",
         f"<p>Outside y 17.40{MM} no part of the MCP link or the PIP servo reaches at any PIP angle, and inside it the cable "
         f"lies in the DIP link, so the cable takes nothing from the joint's range, back extension to &#8722;18{DEG} "
         f"included. From the anchor to a tie on the MCP link's side plate the free span measures {f(sp['at_pip_minus18'], 1)}"
@@ -704,11 +710,10 @@ def open_items():
         "after 1&#8202;h at 5&#8202;N; a drift above one force-resolution step means the board moves in its clamp.",
         "Lay the Qwiic cable into a printed v2 link under its Kapton strip, tie it 26&#8202;mm from the anchor and turn "
         "the joint from &#8722;18 to 92&#176; by hand: the cable stays in its groove and the joint turns as freely tied as "
-        "untied. A cable that lifts toward the MCP link at b's first turn (1.16&#8202;mm in the model) needs a printed "
-        "clip there.",
-        "Measure the Qwiic cable's four wires as laid together; a bundle wider than 2.0&#8202;mm narrows the clearances of "
-        "Table&#160;[[tab:v2]] by half the excess, and the cable-groove piece W of the 19 October fit tests shows which "
-        "groove width takes it.",
+        f"untied. A cable that lifts toward the MCP link at b's first turn ({f(EVB['clearance']['per_part']['qwiic_cable']['min_mm'])}"
+        "&#8202;mm in the model) needs a printed clip there.",
+        "The groove piece W of run 20261019b (2.8, 3.0 and 3.4&#8202;mm) shows which groove takes the massaged ribbon; a "
+        "bundle wider than the modelled 2.6&#8202;mm narrows the clearances of Table&#160;[[tab:v2]] by half the excess.",
         "Enter the fit tests' results (<code>docs/experiments/20261019-dip_link_fit_prints/records.csv</code>) in "
         "<code>params/20261018-v2_concept_a.json</code>: <code>fit_flank</code>, <code>detent_h</code>, "
         "<code>clear_chip</code>, <code>pin_d</code>, <code>screw_thread_d</code>, <code>m2_pilot</code>; rebuild v2 a "
