@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 import time
@@ -68,7 +69,11 @@ class CellDrake:
     """A scale cell's point-contact scene in Drake, with HT.DrakePlant's interface (reset, set_targets, advance,
     state) and the post switch of turn_rollout."""
 
-    def __init__(self, scene: Path, meta: dict, palm, rt: float = 0.01, E: float = RB.E_TPU, tip_files=None):
+    def __init__(self, scene: Path, meta: dict, palm, rt: float = 0.01, E: float = RB.E_TPU, tip_files=None,
+                 k_s: float | None = None):
+        """k_s (N/m): each tip body on a slide joint along its palmar normal (the axis and range of
+        fe_contact_calibration_sim.add_spring), held at zero by a PrismaticSpring of stiffness k_s and critical
+        damping 2 sqrt(k_s m_tip): the series spring of calibration M3."""
         from pydrake.all import (AddCompliantHydroelasticProperties, AddContactMaterial, AddMultibodyPlant,
                                  AddRigidHydroelasticProperties, CollisionFilterDeclaration, Convex, CoulombFriction,
                                  DiagramBuilder, GeometrySet, MultibodyPlantConfig, Parser, PdControllerGains,
@@ -82,6 +87,11 @@ class CellDrake:
         tipmesh = {}
         for f in RB.FINGERS:
             tipb = root.find(f".//body[@name='{f}_tip']")
+            if k_s:
+                vis = tipb.find(f"geom[@name='{f}_tipvis']")
+                sgn = -1.0 if vis is not None and vis.get("mesh", "").endswith("neg") else 1.0
+                tipb.insert(0, ET.Element("joint", name=f"{f}_tipslide", type="slide", axis=f"{sgn:g} 0 0",
+                                          range="-0.003 0.003", limited="true"))
             for g in list(tipb.findall("geom")):
                 if g.get("type") == "mesh" and g.get("contype") != "0":
                     tipmesh[f] = (tip_files or mesh_file)[g.get("mesh")]
@@ -135,6 +145,15 @@ class CellDrake:
             gid = plant.RegisterCollisionGeometry(plant.GetBodyByName(f"{f}_tip"), RigidTransform(), Convex(tipmesh[f]),
                                                   f"{f}_tipgeom", props("compliant"))
             self.finger_gid[gid] = f
+        self.slides = []
+        if k_s:
+            from pydrake.multibody.tree import PrismaticSpring
+            for f in RB.FINGERS:
+                j = plant.GetJointByName(f"{f}_tipslide")
+                m_tip = plant.GetBodyByName(f"{f}_tip").default_mass()
+                j.set_default_damping(2.0 * math.sqrt(k_s * m_tip))
+                plant.AddForceElement(PrismaticSpring(j, 0.0, k_s))
+                self.slides.append(j)
         plant.Finalize()
         bodies = [plant.get_body(i) for i in plant.GetBodyIndices(self.instance)]
         self.finger_bodies = {f: [bb for bb in bodies if bb.name().startswith(f + "_")] for f in RB.FINGERS}
@@ -181,6 +200,8 @@ class CellDrake:
         p.SetVelocities(self.pc, np.zeros(p.num_velocities()))
         for j, n in zip(self.jidx, HT.NAMES):
             j.set_angle(self.pc, float(self.meta["q0"][n]))
+        for j in self.slides:
+            j.set_translation(self.pc, 0.0)
         tool7 = np.asarray(self.meta["tool7"], float)
         dx, dy, dyaw = RB.jitter(seed)
         q = RB._yaw_quat(tool7[3:], dyaw)

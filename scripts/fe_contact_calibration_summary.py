@@ -129,7 +129,7 @@ def d1():
     for tip in TIPS:
         for own in (False, True):
             plans = sorted({p for p in tip_of if tip_of[p] == tip and p.startswith("own_") == own})
-            for calib in ("U", "M1", "M2"):
+            for calib in ("U", "M1", "M2", "M3"):
                 for padk in ("pads", "pads1", "pads_ir1000"):
                     pd, sp, runs = [], [], []
                     for p in plans:
@@ -308,6 +308,12 @@ def verdicts(fits, bchk, d1s, d2s):
             bp = bchk.get(f"{tip}|{traj}|pads", {})
             d1 = d1s.get(f"{tip}|ready|{traj}|pads")
             d1o = d1s.get(f"{tip}|own|M2|pads") if c == "M3" else None
+            # M3 replayed with the series spring in both simulators (2026-10-19): its own rows decide consistency and M2
+            # no longer stands in for it, so the spring check is reported but not required
+            m3_direct = c == "M3" and bool((d1s.get(f"{tip}|ready|M3|pads") or {}).get("complete"))
+            if m3_direct:
+                d1 = d1s.get(f"{tip}|ready|M3|pads")
+                d1o = d1s.get(f"{tip}|own|M3|pads") or d1o
             spring = (d2s.get(f"{tip}|M2") or {}).get("pairs", {}).get("plan_vs_spring") if c == "M3" else None
             spring_ok = None
             if spring and spring.get("median_rms_angle_same_deg") is not None:
@@ -325,9 +331,11 @@ def verdicts(fits, bchk, d1s, d2s):
                      "spring_check": spring_ok}
             need = ["approach_drake", "approach_pads", "arm_drake", "arm_pads", "consistency_ready"]
             if c == "M3":
-                need += ["consistency_own", "spring_check"]
+                need += ["consistency_own"] + ([] if m3_direct else ["spring_check"])
             ok = all(parts.get(k) is True for k in need)
             v["calibrations"][c] = {"pad_model": pm, "parts": parts, "required": need, "pass": ok,
+                                    "consistency_rows": ("M3 with the spring in both simulators" if m3_direct else
+                                                         ("M2 standing in" if c == "M3" else c)),
                                     "failed": [k for k in need if parts.get(k) is not True],
                                     "drake": {k: dr[k] for k in ("E_MPa", "k_s_N_per_mm", "approach_rms_pct", "approach_max_pct",
                                                                  "arm_min", "arm_max")},

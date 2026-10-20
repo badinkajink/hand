@@ -117,7 +117,7 @@ def bed_model(key, arm, E, s=0.001):
         return name, 1.0
     r_mm = TG.shape(key).a * 1e3
     t = f"tpu{r_mm:g}:tcd={key}"
-    ir, dt = ("ir10", 2.0) if arm == "rl" else ("ir100", 1.0)
+    ir, dt = {"rl": ("ir10", 2.0), "ir1000": ("ir1000", 1.0)}.get(arm, ("ir100", 1.0))
     ss = 0.0005 if arm == "pads05" else s
     sp = f"s{ss * 1e3:g}:rs{0.75 * ss * 1e3:g}"
     ex = f"hloc:Keach:mres0.00025:E{E:.6g}"
@@ -207,9 +207,10 @@ def cell_of(S, cs):
     return cell, shape, dd
 
 
-def plants(tip, cs, ci, E, model, s=0.001, mesh_eps=1e-6, ir=100.0):
+def plants(tip, cs, ci, E, model, s=0.001, mesh_eps=1e-6, ir=100.0, ks=None):
     """(plant, meta) of a cell's candidate: 'pads' (hom_turn3.MjPlant on the pads scene) or 'drake' (CellDrake, the tip
-    hull's terrace outlines simplified to mesh_eps m)."""
+    hull's terrace outlines simplified to mesh_eps m). ks (N/m): calibration M3's series spring behind each tip, a slide
+    joint held by add_spring's joint equality in the pads and by a PrismaticSpring in Drake."""
     s = s or 0.001
     import mujoco
     import curved_tips_cell_drake as CD
@@ -228,10 +229,14 @@ def plants(tip, cs, ci, E, model, s=0.001, mesh_eps=1e-6, ir=100.0):
         sh = TG.shape(spec["key"])
         mp = sh.mesh_paths(LOGS / "meshes_cell" / sh.key, eps=mesh_eps)
         plant = CD.CellDrake(Path(sc["pt"][0]), meta, gg["palm"], E=E,
-                             tip_files={"tpu_pos": str(mp[1.0]), "tpu_neg": str(mp[-1.0])})
+                             tip_files={"tpu_pos": str(mp[1.0]), "tpu_neg": str(mp[-1.0])}, k_s=ks)
     else:
         meta = S.candidate_meta(sc["pads"][1], gg, gp)
-        plant = H.MjPlant(sc["pads"][0], meta)
+        path = sc["pads"][0]
+        if ks:
+            path, info = add_spring(path, ks)
+            meta = dict(meta, spring=info, k_s_N_per_m=ks)
+        plant = H.MjPlant(path, meta)
         S.set_palm(plant.m, gg["palm"])
     return plant, meta, S
 
@@ -421,11 +426,11 @@ def cmd_icem(a):
                 if not seeds:
                     continue
                 base, ir = (model.split("_ir")[0], float(model.split("_ir")[1])) if "_ir" in model else (model, 100.0)
-                E, s, _ = calib_E(tip, calib, base)
+                E, s, ks = calib_E(tip, calib, base)
                 gc.collect()
                 t0 = time.time()
                 try:
-                    plant, meta, S = plants(tip, cs, ci, E, "drake" if base == "drake" else "pads", s, ir=ir)
+                    plant, meta, S = plants(tip, cs, ci, E, "drake" if base == "drake" else "pads", s, ir=ir, ks=ks)
                 except Exception as e:
                     print(f"{pid} {calib} {model}: build failed {e!r}", flush=True)
                     traceback.print_exc()
@@ -434,6 +439,7 @@ def cmd_icem(a):
                 eps = 1e-6
                 for seed in seeds:
                     row = {"plan": pid, "tip": tip, "cell": cs, "cand": ci, "calib": calib, "plant": model, "E_Pa": E,
+                           "k_s_N_per_m": ks,
                            "pad_spacing_mm": s * 1e3 if model != "drake" else None, "seed": seed, "own": a.own,
                            "logged": logged, "servo": SERVO, "build_s": round(build_s, 1), "hold_ms": HOLD * 1e3}
                     for attempt in (0, 1):
@@ -448,7 +454,7 @@ def cmd_icem(a):
                                 # to 10 um (curved_tips_cell_drake's mesh_eps) and run the seed again
                                 eps = 1e-5
                                 del plant
-                                plant, meta, S = plants(tip, cs, ci, E, "drake", s, mesh_eps=eps)
+                                plant, meta, S = plants(tip, cs, ci, E, "drake", s, mesh_eps=eps, ks=ks)
                                 continue
                             break
                     row.update(script=SCRIPT, when=time.strftime("%Y-%m-%d %H:%M"))
