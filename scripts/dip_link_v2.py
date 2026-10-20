@@ -335,7 +335,8 @@ def a_render():
         ("M2 x 4 countersunk screws from the palmar side", (A.X_BACK - 12 + 0.3, hd[0][0], hd[0][1]), None),
         ("Tip with two key channels", (-1.0, -A.Y_HALF, A.Z_C - 2.0 - 18), None),
         ("Board with J1, chips toward the tip", (L["x_bb"] + 9, -6.0, A.Z_C - 6.0), None),
-        ("Clamp plate: 1.8 mm holes, the screws form their thread", (L["x_c1"] + 18, -6.0, A.Z_C - 6.0), None),
+        (f"Clamp plate: {A.P['cs_thread_d']:g} mm holes, the screws form their thread", (L["x_c1"] + 18, -6.0, A.Z_C - 6.0),
+         None),
         ("M2 x 5 screws into the shoulders", (L["x_c1"] + 27 + P["m2_head_k"], -P["m2_y"], P["m2_z"]), None)],
         title="Concept a, v2, exploded", callout=True)
     cam = ((4.0, 0.0, A.Z_C + 3.0), 120, 25, 28)
@@ -614,6 +615,8 @@ def a_bambu_files(link_src, clamp_src, pin_src, out, pf, params):
     """Concept a's PLA parts as Bambu STLs into out/ with <pf>_pla_bambu.json: their settings and, for the link, the support
     regions and the shoulders' 100 % infill boxes of the XL project (dip_link_print_project.link_volumes) in the STL's own
     coordinates. Needs dip_link_concept_a at the design's parameters (dip_link_params.apply_a)."""
+    m2_pilot = next(float(e["value"]) for e in json.loads((REPO / params).read_text())["parameters"]
+                    if e["key"] == "m2_pilot")
     import trimesh
     import dip_link_print_project as PP
     out = Path(out)
@@ -636,7 +639,7 @@ def a_bambu_files(link_src, clamp_src, pin_src, out, pf, params):
                          support_boxes_mm={n: [np.round(lo, 2).tolist(), np.round(hi, 2).tolist()] for n, lo, hi in enf},
                          infill_100pct_boxes_mm={n: [np.round(lo, 2).tolist(), np.round(hi, 2).tolist()] for n, lo, hi in mods},
                          note="boxes in the STL's coordinates (X, Y centred, Z from the plate); the shoulders take the M2 "
-                              "screws' 1.8 mm holes, so a 100 % rectilinear infill modifier over each"),
+                              f"screws' {m2_pilot:g} mm holes, so a 100 % rectilinear infill modifier over each"),
         "clamp_plate": dict(orientation="on its back face (X = z_F, Y = y_F, Z = -x_F)", layer_height_mm=0.1, walls=4,
                             infill="100 % rectilinear", supports="none", brim="none", ironing="top surfaces"),
         "pin_fit_coupon": dict(orientation="as modelled, pins up", layer_height_mm=0.1, walls=4, infill="100 % rectilinear",
@@ -683,8 +686,9 @@ def a_docs():
                "bridge's dorsal-top corner between the J1 slot and the arm is cut away over the cable" if routed else ""),
             "the board keeps its whole 9 mm tab and its Qwiic connector J1, tab proximal; the bridge has a slot for J1, the "
             "plug and the cable; no pigtail, no header on the clamp plate",
-            "the two distal board screws are M2 x 4 countersunk (DIN 965), forming their thread in 1.8 mm holes of the clamp "
-            "plate (no nuts); the two ear screws M2 x 5 into 1.8 mm holes of the shoulders (1.7 mm in the final)",
+            f"the two distal board screws are M2 x 4 countersunk (DIN 965), forming their thread in {A.P['cs_thread_d']:g} mm "
+            f"holes of the clamp plate (no nuts); the two ear screws M2 x 5 into {A.P['m2_pilot']:g} mm holes of the "
+            "shoulders (1.7 mm in the final)",
             "tips with five 3 x 2 mm magnets at the 2.9 mm seat: the 11/22 half-ellipsoid (corners y +-2.5 mm, rows 9.8 mm "
             "apart, the group 0.5 mm toward the mount face) and the block (five_z7p4), both with the key channels"],
         lengthening=lg["placements"]["a"] | dict(choice=lg["choice"]["a"]) | (dict(
@@ -741,7 +745,8 @@ def a_docs():
             dict(item="DIP link, v2", material="PLA (Bambu Studio: print-oriented STL)", qty=1,
                  file=f"v2/a/print/{pf}_dip_link_pla_bambu.stl",
                  step=f"v2/a/cad/{pf}_dip_link_new_features.step (new features, exact) and {pf}_dip_link.step.zip (fused)"),
-            dict(item="Clamp plate, v2 (1.8 mm holes, no nut pockets, no Qwiic pocket)", material="PLA, solid (Bambu Studio)",
+            dict(item=f"Clamp plate, v2 ({A.P['cs_thread_d']:g} mm holes, no nut pockets, no Qwiic pocket)",
+                 material="PLA, solid (Bambu Studio)",
                  qty=1, file=f"v2/a/print/{pf}_clamp_plate_pla_bambu.stl", step=f"v2/a/cad/{pf}_clamp_plate.step"),
             dict(item="Pin-fit coupon", material="as the clamp plate", qty=1, file=f"v2/a/print/{pf}_pin_fit_coupon_pla_bambu.stl"),
             dict(item="Attachment fit coupon: PLA key sections and 85A channel sections at 0, 0.05, 0.10 mm per flank", qty=1,
@@ -763,8 +768,9 @@ def a_docs():
             "slot, the cable out of the slot's top toward the PIP joint.",
             "Put on the clamp plate (pins through the board's proximal holes into the window plate).",
             "With the tip off, drive the two M2 x 4 countersunk screws from the palmar side through the window plate and the "
-            "board's distal holes into the clamp plate's 1.8 mm holes; they form their thread; snug.",
-            "Drive the two M2 x 5 screws through the clamp plate's ears into the shoulders' 1.8 mm holes; snug, the ears clear "
+            f"board's distal holes into the clamp plate's {A.P['cs_thread_d']:g} mm holes; they form their thread; snug.",
+            f"Drive the two M2 x 5 screws through the clamp plate's ears into the shoulders' {A.P['m2_pilot']:g} mm holes; snug, "
+            "the ears clear "
             "of the shoulders."]
         + (["Lay the cable into its groove from the dorsal side: bend it toward the slotted arm right behind the plug, press "
             "it along the ledge, around the arm's lower corner and up the groove on the arm's outer face to the anchor. A "
@@ -776,7 +782,7 @@ def a_docs():
             "the slotted arm; fix it to the DIP link before the joint so a pull does not reach J1."])
         + ["Slide the tip along +z onto the keys until both detents engage; read the zero-load field."],
         first_print_checks=["J1 with the plug mated fits the slot without touching its walls; the cable leaves the slot "
-                            "freely", "The M2 screws thread into the 1.8 mm holes by hand and hold the board without play",
+                            "freely", "The M2 screws thread into their holes by hand and hold the board without play",
                             "Over the full PIP range by hand, nothing touches the MCP link or the PIP servo"
                             + ((f" (the plug's nearest approach is {clear['qwiic_connector']['min_mm']} mm at PIP "
                                 f"{clear['qwiic_connector']['pip_deg']:g} deg)" if clear["qwiic_connector"].get("pip_deg")
@@ -1606,7 +1612,8 @@ def b_docs():
             "Slide the board proximally along the tongue's seat, chips toward the palmar side and J1 first into the slot, until "
             "the main square meets the proximal datum wall; push it against the -y datum wall.",
             "Lay the cover on the board (windows over the parts, rails palmar) and drive the four M2 screws from the palmar side "
-            "through cover and board into the tongue's 1.8 mm holes; they form their thread; tighten crosswise, snug."]
+            f"through cover and board into the tongue's {B.P['screw_thread_d']:g} mm holes; they form their thread; tighten "
+            "crosswise, snug."]
         + (["Lay the cable into its groove: bend it toward the back right at the plug into the groove that is open to the top "
             "over the plug, then toward the slotted arm, pressing it in from the back along the groove, around the arm's lower "
             "corner and up the groove on the arm's outer face to the anchor. A strip of Kapton tape over the open groove keeps "
@@ -1620,7 +1627,7 @@ def b_docs():
            "Read the zero-load field of the five chips."],
         first_print_checks=[
             "J1 with the plug mated slides through the slot from the neck's underside without touching its walls",
-            "The M2 screws thread into the 1.8 mm holes by hand and clamp the board without play",
+            f"The M2 screws thread into the {B.P['screw_thread_d']:g} mm holes by hand and clamp the board without play",
             "The pad's grooves snap onto the rails and the pad does not lift off the cover under a 3 N press",
             f"Over the full PIP range by hand, nothing touches the MCP link or the PIP servo (the least clearance is "
             f"{worst[1]['min_mm']} mm, {worst[0]})"]

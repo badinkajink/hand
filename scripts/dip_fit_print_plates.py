@@ -745,8 +745,8 @@ def infill_by_object(gcode, objs, pad=1.0):
         mx, my, me = (re.search(rf"{c}(-?[\d.]+)", ln) for c in "XYE")
         x = float(mx.group(1)) if mx else x
         y = float(my.group(1)) if my else y
-        if not me or feat is None or x is None or y is None or float(me.group(1)) <= 0:
-            continue
+        if not me or not (mx or my) or feat is None or x is None or y is None or float(me.group(1)) <= 0:
+            continue                                      # a move that extrudes (a bare G1 E is a retraction's recovery)
         for o in objs:
             (x0, y0, _), (x1, y1, _) = o["bounds_mm"]
             if x0 - pad <= x <= x1 + pad and y0 - pad <= y <= y1 + pad:
