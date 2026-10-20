@@ -327,6 +327,51 @@ belongs to the 11/22 tip. The capsule's replays stopped at 1 of 6 when the memor
                "model values). The block's Drake rows are tonight's; the 11/22 rows are those of 10-18.")}"""))
 
     # ------------------------------------------------------------------ queued runs, shown when their rows exist
+    tn = [4]
+
+    def nxt():
+        tn[0] += 1
+        return tn[0]
+
+    sj = D / "sensing.json"
+    if sj.exists():
+        sr = {r["case"]: r for r in json.loads(sj.read_text())["rows"]}
+        ev = {c: json.loads((ROOT / f"docs/experiments/20261018-dip_link_board_mount/v2/{c}/evaluation.json").read_text())["sensing"]
+              for c in ("a", "b")}
+        blk = {"a_v2": ev["a"]["block5_force_resolution_30_N"], "b_v2": ev["b"]["design_point"]["force_resolution_gain_N"]}
+        lab = {"a_v2": "Concept a: the whole 11/22 tip, chips 0.37&#8202;mm behind its back face",
+               "b_v2": "Concept b: the 11/22 pad cut 3.55&#8202;mm short, chips 0.42&#8202;mm behind its cut face"}
+        srows = [[lab[c], f"{r['magnet_travel_um_per_N']:.2f}", f"{r['B_max_component_mT']:.1f}", f"{r['gain_sel']}",
+                  f"{r['gain']['centre_force_N']:.3f}", f"{r['gain']['median_force_N']:.3f}",
+                  f"{r['gain']['range_force_N'][0]:.3f}&#8211;{r['gain']['range_force_N'][1]:.3f}", f"{blk[c]:.3f}"]
+                 for c, r in sorted(sr.items())]
+        ra, rb = sr.get("a_v2"), sr.get("b_v2")
+        txt = ""
+        if ra and rb:
+            txt = (f"With the 11/22 tip, concept a resolves {ra['gain']['centre_force_N']:.3f}&#8202;N at the contact point and concept b "
+                   f"{rb['gain']['centre_force_N']:.3f}&#8202;N, against {blk['a_v2']:.3f} and {blk['b_v2']:.3f}&#8202;N for the five-magnet "
+                   f"block on the DIP page: with the 11/22 tip b resolves {ra['gain']['centre_force_N'] / rb['gain']['centre_force_N']:.1f} times finer than a, as "
+                   f"it does with the block. b also locates the contact to {rb['gain']['centre_sig_y_mm']:.2f} by "
+                   f"{rb['gain']['centre_sig_z_mm']:.2f}&#8202;mm (one standard deviation across and along the finger) against a's "
+                   f"{ra['gain']['centre_sig_y_mm']:.2f} by {ra['gain']['centre_sig_z_mm']:.2f}&#8202;mm. Its magnets move less per newton "
+                   f"({rb['magnet_travel_um_per_N']:.1f} against {ra['magnet_travel_um_per_N']:.1f}&#8202;&#181;m/N, the shorter pad being "
+                   f"stiffer behind them), but its chips sit 3.5&#8202;mm closer to them, where the field changes faster. ")
+        t_s = nxt()
+        S.append(("sensing", "Force resolution of the 11/22 tips in concepts a and b", f"""
+<p>The DIP study compared a's and b's force sensing on the five-magnet block, because the 11/22 half-ellipsoid had no finite
+elements with magnets (v2/a|b/evaluation.json: "only its static field, gain and chip-to-magnet distance"). The rows of 2026-10-20
+give the 11/22 tip in each concept the readout model's inputs: the five magnets' rigid motion under the rod at the contact point and under
+unit normal and shear patch loads at 15 points of the face (y = &#8722;3, 0, 3&#8202;mm; 4&#8202;mm either side of the contact point
+along the finger; scripts/v2_tip_fe_checks.py <code>--sense</code>). The bound is the readout model's
+(scripts/tpu_tip_magnet_sensing.analyse): the Cram&#233;r-Rao bound of the normal force from one 141&#8202;Hz sample of the five
+chips, with the contact position and a uniform background field unknown, at the chip noise of the gain that the static field
+allows. {txt}</p>
+{table(["Tip and board", "Magnet travel (&#181;m/N)", "Largest field component (mT)", "GAIN_SEL", "Force resolution at the contact point (N)",
+        "Median over the 15 points (N)", "Range over the 15 points (N)", "Five-magnet block, DIP page (N)"], srows,
+       num_cols=(1, 2, 3, 4, 5, 6, 7), n=t_s,
+       caption="Readout bound of the v2 tips (sensing.json from sense_fe.jsonl; model values, solid 12&#8202;MPa, N52 magnets at "
+               "1.45&#8202;T).")}"""))
+
     m3 = d1.get("ell11_g30|ready|M3|pads")
     m3o = d1.get("ell11_g30|own|M3|pads")
     cap = d1.get("cap_g30|ready|M1|pads")
@@ -338,15 +383,16 @@ belongs to the 11/22 tip. The capsule's replays stopped at 1 of 6 when the memor
         if cap and cap.get("complete"):
             rows_m3.append(con_row("Capsule, M1, readiness plans", cap))
         sm = m3["pads_vs_drake"]
+        t_m = nxt()
         S.append(("spring", "The series spring in both simulators", f"""
 <p>Calibration M3 puts the 11/22 tip's modulus (Drake 65.0, pads 53.0&#8202;MPa) behind a 9.7&#8202;N/mm series spring. On 10-18 only the
 pads' D1&#8211;D8 replays had the spring, so the consistency test ran at M2, the stiff modulus alone. Tonight both simulators replayed the
 readiness commands with the spring: a slide joint behind each tip, held by a joint equality of that stiffness in the pads
 (fe_contact_calibration_sim.add_spring) and by a PrismaticSpring with critical damping in Drake
 (curved_tips_cell_drake.CellDrake, <code>k_s</code>). With the spring, {sm['same_branch']} of {sm['n']} pairs end on the same branch
-(3 of 6 at M2) and the median RMS angle is {(sm.get('median_rms_angle_same_deg') or float('nan')):.1f}&#176; (Table 5).</p>
+(3 of 6 at M2) and the median RMS angle is {(sm.get('median_rms_angle_same_deg') or float('nan')):.1f}&#176; (Table {t_m}).</p>
 {table(["Tip, calibration, commands", "Pairs", "Held agreement", "Same branch", "Median RMS angle (&#176;)", "Angle bound (&#176;)",
-        "Normal / friction force difference (N)", "Fails"], rows_m3, num_cols=(1, 4, 5), n=5,
+        "Normal / friction force difference (N)", "Fails"], rows_m3, num_cols=(1, 4, 5), n=t_m,
        caption="Pads against Drake with and without the series spring (replays/icem.jsonl; model values).")}"""))
     bed = [r for r in rows(CAL / "bed" / "T2.jsonl") if r.get("status") == "complete"]
     if any(r["arm"] == "ir1000" for r in bed):
@@ -360,12 +406,13 @@ readiness commands with the spring: a slide joint behind each tip, held by a joi
                 if vals[1] is None:
                     continue
                 brows.append([names[tip], c] + [f"{v:.3f}" if v is not None else "&#8211;" for v in vals])
+        t_c = nxt()
         S.append(("creep", "Creep of the pads at impratio 1000", f"""
 <p>Under a held twist at half the onset torque the pads creep where Drake sticks (the calibration page's bed, case T2). MuJoCo's soft
-friction rows creep in proportion to their impedance, so a tenfold impratio should cut the pads' creep about tenfold. Table 6
+friction rows creep in proportion to their impedance, so a tenfold impratio should cut the pads' creep about tenfold. Table {t_c}
 gives the creep at 1&#8202;N per tip for the pads at impratio 100 (the planner's), at 1000, and for Drake.</p>
 {table(["Tip", "Calibration", "Pads, impratio 100 (&#176;/s)", "Pads, impratio 1000 (&#176;/s)", "Drake (&#176;/s)"], brows,
-       num_cols=(2, 3, 4), n=6, caption="Creep under a held twist at half the onset torque, 1&#8202;N per tip (bed/T2.jsonl; model values).")}"""))
+       num_cols=(2, 3, 4), n=t_c, caption="Creep under a held twist at half the onset torque, 1&#8202;N per tip (bed/T2.jsonl; model values).")}"""))
     V2 = ROOT / "docs/experiments/20261019-v2_finger"
     hv, hb = rows(V2 / "cells" / "hom.jsonl"), rows(V2 / "cells_base" / "hom.jsonl")
     if hv:
@@ -387,7 +434,7 @@ gives the creep at 1&#8202;N per tip for the pads at impratio 100 (the planner's
             return f"{'held' if r['held'] else 'dropped'}, {r['turn_end_deg']:+.1f}&#176;, {r.get('fingers_loaded_end')} loaded"
 
         crow = []
-        for base, lab in (("ell11_g30", "Half-ellipsoid 11/22, five magnets" if False else "Half-ellipsoid 11/22"),
+        for base, lab in (("ell11_g30", "Half-ellipsoid 11/22, five magnets"),
                           ("block5_g30", "Block, five magnets")):
             for cell in SC_CELLS:
                 hb_ = homstat(hb, base, cell)
@@ -396,14 +443,15 @@ gives the creep at 1&#8202;N per tip for the pads at impratio 100 (the planner's
                 iv_ = icstat(iv, f"{base}_v2a", cell)
                 crow.append([lab, cell.replace("cylinder:", "Cylinder ").replace(":", " mm, t "), hb_[0], hb_[1], hv_[0], hv_[1], ib_, iv_])
         vs = json.loads((ROOT / "assets/mjcf/experimental/20261019-v2_finger/ell11_g30_v2a/README.json").read_text())
+        t_v = nxt()
         S.append(("v2finger", "The first bench task on the longer v2 finger", f"""
 <p>The v2 DIP link puts the tip 9.75&#8202;mm further from the PIP axis (pad centre 36.36&#8202;mm past it) and weighs
 {vs['dip_body']['mass_g']:.1f}&#8202;g with its clamp plate and the board, against 5.6&#8202;g for the CAD finger's link and board. The
 readiness study's control tasks ran on both fingers with the same code, scenes, servo plant and planners
 (scripts/v2_finger_cells.py; the CAD finger's rows with <code>V2_FINGER_BASE=1</code>): HOM on the nine candidate grasps of each of the four
-cells at three seeds, and pinned iCEM on each cell's best HOM grasp (Table 7).</p>
+cells at three seeds, and pinned iCEM on each cell's best HOM grasp (Table {t_v}).</p>
 {table(["Tip", "Cell", "HOM held, CAD finger", "Median held turn (&#176;)", "HOM held, v2 finger", "Median held turn (&#176;)",
-        "Pinned iCEM, CAD finger", "Pinned iCEM, v2 finger"], crow, num_cols=(2, 3, 4, 5), n=7,
+        "Pinned iCEM, CAD finger", "Pinned iCEM, v2 finger"], crow, num_cols=(2, 3, 4, 5), n=t_v,
        caption="Control tasks of the readiness study on the CAD finger and on the v2 finger (cells.jsonl rows of each; model "
                "values, servo plant kp 0.72&#8202;N&#8202;m/rad, 0.18&#8202;N&#8202;m).")}"""))
     cc = D / "contact_class"
@@ -415,13 +463,14 @@ cells at three seeds, and pinned iCEM on each cell's best HOM grasp (Table 7).</
         for f in sorted(cc.glob("*cpu*.json")):
             j = json.loads(f.read_text())
             rr_.append([esc(f.stem), f"{j.get('final_cos', float('nan')):+.3f}", "held" if j.get("held_end") else "lost"])
+        t_k = nxt()
         S.append(("contactclass", "Tool contact class in the renderer", f"""
 <p>Runs trained before 2026-09-20 saw a tool with MuJoCo's default contact (solref 0.02&#8202;s, solimp 0.9&#8211;0.95), while the
 renderer and the CPU rollout built the tool with the scene's class, and 11 of 16 such policies dropped the tool at the trained pose.
 <code>scripts/rl_render_rollout.py</code> and <code>scripts/policy_cpu_rollout.py</code> now take the run's class
-(<code>--object-contact run</code>, the evaluation suite's rule). Table 8 gives the final signed cosine and height of D7's
+(<code>--object-contact run</code>, the evaluation suite's rule). Table {t_k} gives the final signed cosine and height of D7's
 2026-09-20 policy (results/rl/20260920-0101-d7_clip_s0) under each class.</p>
-{table(["Rollout", "Final cos / CPU final cos", "Final height (m) / CPU outcome"], rr_, num_cols=(1,), n=8,
+{table(["Rollout", "Final cos / CPU final cos", "Final height (m) / CPU outcome"], rr_, num_cols=(1,), n=t_k,
        caption="D7's pre-fix policy rendered with the run's class and with the scene's (contact_class/).")}"""))
 
     S.append(("limits", "Limitations", """
