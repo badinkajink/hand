@@ -164,6 +164,14 @@ if REV == "v2":
         cr_clear_y=0.20, cr_rail_t=2.5, cr_x0=3.0, cr_x1=15.0,   # rails beside the tongue and the neck
         cr_lip_gap=0.6, cr_lip_t=6.0, cr_lip_x0=4.5, cr_screw_x=7.0,   # lip under the tongue's end, M3 x 8 pusher
         home_d=6.3, home_depth=8.0, home_ch=0.6, home_zm=42.0,   # homing socket in the column's palmar face
+        fork_style="ears",          # "ears": v1's fork, slid on along the tool axis, with the clamp plate, no key, the ears an
+        #                             outside mold on the link's base (owner, 15:40: "what the hell happened to the standoff
+        #                             fork? i have no idea how the dip link is supposed to mount to this now"); "cradle": the
+        #                             U-channel on the tongue of 2026-10-20 14:30, the link going in along x
+        ear_gap=0.2,                # the ears' inner faces this far from the link's palmar (x_F -10.55) and dorsal (9.45) faces
+        ear_z_low=-67.5,            # the ears reach 0.2 below the bridge's underside
+        ib_r_b=13.40,               # inner block's arc about the PIP axis: 0.05 above b's bridge (13.45), the z stop
+        push_y=-8.0, push_z=-65.5,  # M3 set screw through the dorsal ear onto the bridge's back, beside the cable's groove
         post_d=6.0, post_base_d=12.0, post_pin_h=8.5, post_dy=30.0, home_dz=5.0,   # homing post on the indenters' bases;
         #                                          the pin bottoms in the socket with its shoulder 0.5 mm short of the column
     )
@@ -439,10 +447,51 @@ def standoff_fork_v2(K, p=P):
     return K.cut_all(s, cut)
 
 
+def standoff_fork_v2_ears(K, p=P):
+    """v2, fork_style "ears": v1's foot, column, hub and inner block, the DIP link sliding on along the tool axis between
+    the two ears as in v1, without the key: the ears' inner faces ear_gap from the bridge's palmar and dorsal faces down to
+    below the bridge (an outside mold on the link's base), the inner block's arc 0.05 mm above b's bridge (the z stop), an
+    M3 set screw through the dorsal ear that pushes the bridge onto the palmar ear, and the homing socket."""
+    c = (0.0, Y_AXIS)
+    fx, (fy0, fy1), r = p["fp_x"], p["fp_y"], p["fp_r"]
+    z_foot0, z_foot1 = zF(p["ad_t"] + p["foot_t"]), zF(p["ad_t"])
+    foot = K.cyl("z", c, p["ad_d"] / 2, z_foot0, z_foot1)
+    top = K.rbox_z(-fx, fx, fy0, fy1, p["hub_z0"], z_foot0 + 0.01, r)
+    xp, xd = -10.55 - p["ear_gap"], 9.45 + p["ear_gap"]
+    ears = K.sub(K.rbox_z(-fx, fx, fy0, fy1, p["ear_z_low"], p["hub_z0"] + 0.01, r),
+                 K.box((xp, fy0 - 1, p["ear_z_low"] - 1), (xd, fy1 + 1, p["hub_z0"] + 1)))
+    ib = K.inter(K.box((-p["ib_x"] - 0.01, p["ib_y"][0], p["ear_z_low"]), (p["ib_x"] + 0.01, p["ib_y"][1], p["hub_z0"] + 0.01)),
+                 K.cyl("y", (0.0, PIP_ZF), p["ib_r_b"], p["ib_y"][0] - 1, p["ib_y"][1] + 1))
+    s = K.union([foot, top, ears, ib])
+    cut = []
+    cy = p["cab_y"]
+    cut.append(K.box((p["cab_x0"], -cy, p["ear_z_low"] - 2), (fx + 1, cy, p["cab_top"])))
+    cut.append(K.box((p["groove_x0"], -cy, p["cab_top"] - 0.01), (fx + 1, cy, z_foot1 + 1)))
+    cut.append(K.box((p["groove_x0"], -cy, z_foot0 - 0.01), (p["ad_d"], cy, z_foot1 + 1)))
+    for zm in p["tie_zm"]:
+        z = zF(zm)
+        za, zb = z - p["tie_h"] / 2, z + p["tie_h"] / 2
+        cut.append(K.box((p["tie_x"][0], -p["tie_side"][1], za), (p["tie_x"][1], p["tie_side"][1], zb)))
+        for sgn in (-1, 1):
+            ya, yb = sorted((sgn * p["tie_side"][0], sgn * p["tie_side"][1]))
+            cut.append(K.box((p["tie_x"][0], ya, za), (fx + 1, yb, zb)))
+    for sx in (-1, 1):                                   # the clamp plate's screws into the ears, as v1
+        cut.append(K.cyl("y", (sx * p["cp_screw_x"], p["cp_screw_z"]), p["m3_pilot"] / 2, fy0 - 1, fy0 + p["ear_hole_depth"]))
+    cut.append(K.cyl("y", (0.0, PIP_ZF), p["m3_pilot"] / 2, p["ib_y"][1] - p["sl_hole_depth"], p["ib_y"][1] + 1))
+    for a in m3_angles(p):
+        x, y = _m_xy(p["m3_r"], a)
+        cut.append(K.cyl("z", (x, y), p["m3_clear"] / 2, z_foot0 - 1, z_foot1 + 1))
+    cut.append(K.cyl("x", (p["push_y"], p["push_z"]), p["m3_pilot"] / 2, xd - 0.5, fx + 1.0))
+    zh, rh = zF(p["home_zm"]), p["home_d"] / 2
+    cut.append(K.cyl("x", (Y_AXIS, zh), rh, -fx - 1.0, -fx + p["home_depth"]))
+    cut.append(K.cyl("x", (Y_AXIS, zh), rh + p["home_ch"] + 1.0, -fx - 1.0, -fx + p["home_ch"], r1=rh))
+    return K.cut_all(s, cut)
+
+
 def standoff_fork(K, p=P):
     """Foot, column and fork in one part."""
     if REV == "v2":
-        return standoff_fork_v2(K, p)
+        return standoff_fork_v2_ears(K, p) if p.get("fork_style") == "ears" else standoff_fork_v2(K, p)
     c = (0.0, Y_AXIS)
     fx, (fy0, fy1), r = p["fp_x"], p["fp_y"], p["fp_r"]
     z_foot0, z_foot1 = zF(p["ad_t"] + p["foot_t"]), zF(p["ad_t"])        # foot: z_F -22.55..-16.55
@@ -549,7 +598,8 @@ def homing(kind):
                 move_to_touch_table=[0.0, -P["post_dy"], -P["home_dz"]], indenter_top_z=TIP_TOP[kind])
 
 
-PARTS = ("adapter", "standoff_fork", "clamp_plate") if REV == "v1" else ("adapter", "standoff_fork")
+PARTS = (("adapter", "standoff_fork", "clamp_plate") if REV == "v1" or P.get("fork_style") == "ears"
+         else ("adapter", "standoff_fork"))
 TABLE_PARTS = ("indenter_sphere", "indenter_rod")
 
 
@@ -897,13 +947,19 @@ def cmd_check_v2(a):
     for k, m in links.items():
         dm = from_trimesh(m)
         r = dict(overlap_fork_mm3=round(float((dm ^ sf).volume()), 4))
-        ins = [(round(float(dx), 2), round(float((dm.translate([dx, 0.0, 0.0]) ^ sf).volume()), 4))
-               for dx in np.arange(-30.0, 0.0001, 0.25)]
-        r["insertion_along_x_overlaps"] = [x for x in ins if x[1] > 1e-4]
-        r["insertion_clear"] = not r["insertion_along_x_overlaps"]
+        ears = P.get("fork_style") == "ears"            # ears: slid on along the tool axis (+z_F); cradle: in along +x_F
+        step_ = (lambda d: [0.0, 0.0, d]) if ears else (lambda d: [d, 0.0, 0.0])
+        ins = [(round(float(d), 2), round(float((dm.translate(step_(d)) ^ sf).volume()), 4)) for d in np.arange(-30.0, 0.0001, 0.25)]
+        r["insertion_axis"] = "+z_F (along the tool axis)" if ears else "+x_F (from the palmar side)"
+        r["insertion_overlaps"] = [x for x in ins if x[1] > 1e-4]
+        r["insertion_clear"] = not r["insertion_overlaps"]
+        if ears:
+            cpm = K.transform(from_trimesh(_load_part("clamp_plate")), np.linalg.inv(T_M_FROM_F))
+            r["overlap_clamp_plate_mm3"] = round(float((dm ^ cpm).volume()), 4)
         pts = _sample(m, 0.1)
         dd, _ = sf_tree.query(pts)
-        reg = {"tongue_back_to_back_plate": (np.abs(pts[:, 0] - L["tongue_back"]) < 0.03) & (pts[:, 2] < L["mount_z"] - 0.5),
+        reg = {"bridge_palmar_face_to_palmar_ear": (np.abs(pts[:, 0] + 10.55) < 0.03) & (pts[:, 2] > -67.3) & (pts[:, 2] < -63.0),
+               "tongue_back_to_back_plate": (np.abs(pts[:, 0] - L["tongue_back"]) < 0.03) & (pts[:, 2] < L["mount_z"] - 0.5),
                "tongue_sides_to_rails": (np.abs(np.abs(pts[:, 1]) - L["tongue_half"]) < 0.03) & (pts[:, 2] < L["mount_z"] - 0.5)
                & (pts[:, 0] > 4.0),
                "tongue_end_to_lip": (np.abs(pts[:, 2] - L["tongue_end"]) < 0.03) & (pts[:, 0] > 4.0),
@@ -986,7 +1042,7 @@ def cmd_payload_v2(a):
     fill = {o["id"]: o["fill_ratio"] for o in plate["objects"]}
     ev = json.loads((DIP / "v3/b/evaluation.json").read_text())["mass_g"]
     items = []
-    for nm, pid in (("adapter", "U1"), ("standoff_fork", "U2")):
+    for nm, pid in (("adapter", "U1"), ("standoff_fork", "U2")) + ((("clamp_plate", "U3"),) if "clamp_plate" in PARTS else ()):
         tm = _load_part(nm)
         items.append((nm, float(tm.volume) * 1e-3 * MATERIAL["pla_density_g_cm3"] * fill[pid], np.asarray(tm.center_mass)))
     link = trimesh.load(DIP / "v3/b/cad/20261020-dip_link_v3b_dip_link.stl", force="mesh")
@@ -1591,6 +1647,93 @@ def cmd_render_v2(a):
     print("renders ->", rel(MEDIA), flush=True)
 
 
+def cmd_render_v2_ears(a):
+    """v2 with the ears fork: the assembly exploded along the tool axis (the link slides on as in v1), the link on the
+    fork from the horn side, and the fork alone."""
+    import trimesh
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    C_ = dict(COLORS, cover="0.36 0.52 0.86 1", cable="0.20 0.30 0.85 1")
+    parts = {nm: trimesh.load(fname(nm), force="mesh") for nm in PARTS}
+    links, extra = b_links_v2()
+    dip = {}
+    for k_, m in (("dip_link", links["v3b"]), ("cover", extra["cover_v3b"]), ("tip", extra["pad"])):
+        t = m.copy()
+        t.apply_transform(T_M_FROM_F)
+        dip[k_] = t
+    scr = _screws_M()
+
+    def W(tm, T=T_W_FROM_M):
+        t = tm.copy()
+        t.apply_transform(T)
+        return t
+
+    def pw(pM):
+        return T_W_FROM_M[:3, :3] @ np.asarray(pM, float)
+
+    def pf(pF):
+        return pw(F_to_M(np.asarray(pF, float)))
+    dz = 34.0
+    sh = lambda t, v: _shifted(t, np.array([[1, 0, 0, v[0]], [0, 1, 0, v[1]], [0, 0, 1, v[2]], [0, 0, 0, 1.0]]))   # noqa
+    exp = [(W(parts["adapter"]), C_["adapter"], "e_ad"), (W(parts["standoff_fork"]), C_["standoff_fork"], "e_sf"),
+           (W(sh(parts["clamp_plate"], [0, -24.0, dz])), C_["clamp_plate"], "e_cp")]
+    exp += [(W(sh(dip[k], [0, 0, dz])), C_[c], "e_" + k) for k, c in (("dip_link", "dip_link"), ("cover", "cover"), ("tip", "tip"))]
+    cam = (pw([0.0, -8.0, 62.0]), 330, 300, -12)
+    img = _render(exp, cam, MEDIA / f"{PFX}_exploded.png")
+    _annotate(img, cam, [
+        ("Adapter: dowel only, four M6 x 12", pw([-22.3, -22.3, 5.5])),
+        ("Standoff-fork: the ears and the inner block as v1, no key", pf([-12.0, -10.0, -60.0])),
+        ("DIP link: slides on along the tool axis, arms either side of the inner block", pf([-10.55, -2.0, -66.0 - dz])),
+        ("Clamp plate on the horn-side arm, two M3 x 16 into the ears", pf([0.0, -31.25 - 24.0, -60.0 - dz]))],
+        title="Mount v2 exploded along the tool axis: the DIP link slides on as in v1")
+    asm = [(W(parts["adapter"]), C_["adapter"], "a_ad"), (W(parts["standoff_fork"]), C_["standoff_fork"], "a_sf"),
+           (W(parts["clamp_plate"]), C_["clamp_plate"], "a_cp"), (W(scr), C_["screws"], "a_scr")]
+    asm += [(W(dip[k]), C_[c], "a_" + k) for k, c in (("dip_link", "dip_link"), ("cover", "cover"), ("tip", "tip"))]
+    cam = (pf([0.0, -6.0, -66.0]), 190, 315, -10)
+    img = _render(asm, cam, MEDIA / f"{PFX}_fork_closeup.png")
+    _annotate(img, cam, [
+        ("Horn-side arm between the clamp plate and the inner block", pf([-5.0, -23.25, -64.0])),
+        ("Dorsal ear with the M3 set screw onto the bridge's back", pf([17.0, P["push_y"], P["push_z"]])),
+        ("Clamp plate: horn-side arm pressed onto the inner block", pf([-8.0, -31.25, -60.0])),
+        ("Cable slot and groove, open on the dorsal side", pf([17.0, 0.0, -47.0]))],
+        title="DIP link b on the mount v2 fork, horn and dorsal side")
+    sfm = parts["standoff_fork"]
+    cam = (F_to_M(np.array([0.0, -4.0, -60.0])), 170, 45, -42)
+    pm = lambda pF: F_to_M(np.asarray(pF, float))                     # noqa: E731
+    img = _render([(sfm, C_["standoff_fork"], "fork_alone_ears")], cam, MEDIA / f"{PFX}_fork_alone.png")
+    _annotate(img, cam, [
+        ("Inner block: its arc 0.05 mm above b's bridge (the stop along the tool axis)", pm([-6.0, 0.0, -64.5])),
+        ("Palmar ear, 0.2 mm off the bridge's palmar face", pm([-10.75, -10.0, -66.0])),
+        ("Dorsal ear, 0.2 mm off the bridge's back, with the set-screw hole", pm([9.65, P["push_y"], P["push_z"]])),
+        ("No key: the horn slot stays empty", pm([0.0, -20.2, -60.0])),
+        ("Cable slot, open on the dorsal side", pm([9.0, 0.0, -60.0]))],
+        title="Standoff-fork v2 alone, its fork end up")
+    hexe = trimesh.creation.cylinder(radius=36.0, height=50.0, sections=96)
+    hexe.apply_translation([0.0, 0.0, -25.0])
+    cam = (pw([0.0, 0.0, 30.0]), 430, 160, -10)
+    img = _render([(W(hexe), C_["hex"], "p_hexe")] + asm, cam, MEDIA / f"{PFX}_on_the_hex_e_palmar.png")
+    _annotate(img, cam, [
+        ("HEX-E (context)", pw([36.0 * 0.94, -36.0 * 0.34, -25.0])),
+        ("Adapter: dowel only, four M6 x 12", pw([31.5 * 0.94, -31.5 * 0.34, 5.5])),
+        ("Homing socket, 6.3 mm, in the column's palmar face", pw([P["fp_x"], 0.0, P["home_zm"]])),
+        ("85A pad on the cover with its side walls", pf([-10.55, 0.0, B_LINK["z_contact"]]))],
+        title="Mount v2 on the HEX-E with DIP link b v3, palmar side, finger down")
+    h = homing("rod")
+    ind = trimesh.load(fname("indenter_rod"), force="mesh")
+    T = T_TABLE_FROM_M.copy()
+    T[:3, 3] = (np.array([0.0, 0.0, h["indenter_top_z"]]) - T_TABLE_FROM_M[:3, :3] @ np.array(h["contact_M"])
+                + np.array([0.0, P["post_dy"], P["home_dz"]]))
+    sc = [(W(t, T), c, f"h_{st}") for t, c, st in
+          [(parts["standoff_fork"], C_["standoff_fork"], "fork"), (parts["adapter"], C_["adapter"], "adapter"),
+           (parts["clamp_plate"], C_["clamp_plate"], "cp"), (hexe, C_["hex"], "hexe"), (dip["dip_link"], C_["dip_link"], "dip"),
+           (dip["cover"], C_["cover"], "cover"), (dip["tip"], C_["tip"], "tip")]] + [(ind, C_["indenter"], "h_ind_rod")]
+    cam = (np.array([-30.0, 15.0, 45.0]), 330, 240, 12)
+    img = _render(sc, cam, MEDIA / f"{PFX}_homing.png")
+    _annotate(img, cam, [("Homing: the post's pin bottoms in the socket", np.array([*h["post_xy"], h["pin_top_z"]])),
+                         ("The pad's contact point 30 mm to the side and 5 mm above the rod",
+                          np.array(h["contact_at_homing_table"]))], title="Rod indenter with its homing post: homing")
+    print("renders ->", rel(MEDIA), flush=True)
+
+
 def _shifted(t, T):
     u = t.copy()
     u.apply_transform(T)
@@ -1844,7 +1987,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("cmd", choices=["interfaces", "build", "check", "estimate", "render", "sections", "print", "docs", "payload"])
     a = ap.parse_args()
-    {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else cmd_render_v2,
+    {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else (cmd_render_v2_ears if P.get("fork_style") == "ears" else cmd_render_v2),
      "sections": cmd_sections, "print": cmd_print, "docs": cmd_docs, "payload": cmd_payload_v2}[a.cmd](a)
 
 

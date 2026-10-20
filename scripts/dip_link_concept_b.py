@@ -907,7 +907,8 @@ def dip_link_parts(K):
 # just need to cut out a channel for the cable to slot into" (cable_leg = open). Without these keys a parameter file
 # builds v2 (cover_walls none, neck block, cable_leg roofed).
 ELL = dict(ay=7.4, ax=8.5, az=11.0, azp=22.0)      # the 11/22 half-ellipsoid of the v2 pads (tcd_ell7.4x8.5x11x22), mm
-REV = dict(wall_h=3.0, wall_clear=0.10, wall_top_t=1.2, wall_z0=0.0, col_margin=0.6, col_chamfer=2.0)
+REV = dict(wall_h=3.0, wall_clear=0.10, wall_top_t=1.2, wall_z0=0.0, col_margin=0.6, col_chamfer=2.0, head_raise=0.0,
+           wall_window_gap=0.5)
 
 
 def rp(key):
@@ -931,16 +932,23 @@ def cover_walls(K):
     import numpy as np
     h, c, tt = rp("wall_h"), rp("wall_clear"), rp("wall_top_t")
     z0, z1 = Z_CONTACT + rp("wall_z0"), TIP["z_mount"]
+    # owner, 2026-10-20 15:20: "the added volume creeps up over the left and right most magnetometers": the walls start
+    # wall_window_gap proximal of every chip window that reaches under them (U3 and U5 at |y| 7.0)
+    reach = [w[3] for w in cover_windows().values() if max(abs(w[0]), abs(w[1])) > ELL["ay"] * 0.8]
+    if reach:
+        z0 = max(z0, max(reach) + rp("wall_window_gap"))
     xt = X_SLOT - h
     y_top = ELL["ay"] + c + tt
-    blocks = [K.prism_z([(s * 3.0, X_SLOT), (s * Y_RIM, X_SLOT), (s * y_top, xt), (s * 3.0, xt)], z0, z1) for s in (-1, 1)]
+    xo = X_SLOT + 0.01                                     # 0.01 mm into the web, so the mesh union joins them
+    blocks = [K.prism_z([(s * 3.0, xo), (s * Y_RIM, xo), (s * Y_RIM, X_SLOT), (s * y_top, xt), (s * 3.0, xt)], z0, z1)
+              for s in (-1, 1)]
     zs = np.linspace(z0 - 2.0, z1 + 1.0, 121)
     yo = [pad_half_width(min(z, z1)) + c for z in zs]
     foot = [(y, z) for y, z in zip(yo, zs)] + [(-y, z) for y, z in zip(yo[::-1], zs[::-1])]
     cuts = [K.prism_x(foot, xt - 1.0, X_SLOT + 0.5),
             K.prism_y([(X_SLOT + 0.5, z0 - 0.5), (xt - 0.5, z0 + h + 0.5), (xt - 0.5, z0 - 20.0), (X_SLOT + 0.5, z0 - 20.0)],
                       -Y_RIM - 1.0, Y_RIM + 1.0)]
-    cuts += [K.cylx(y, z, HEAD_NOTCH_D / 2, xt - 1.0, X_SLOT) for y, z in screw_yz() if z0 <= z <= z1]
+    cuts += [K.cylx(y, z, (HEAD_D + 0.4) / 2, xt - 1.0, X_SLOT - rp("head_raise")) for y, z in screw_yz() if z0 <= z <= z1]
     return K.cut(K.fuse(blocks[0], [blocks[1]]), cuts)
 
 
@@ -984,6 +992,14 @@ def cover_part(K):
         rails.append(K.prism_z(sec, RAIL_Z[0], RAIL_Z[1]))
     if DESIGN.get("cover_walls", "none") == "pad_flanks":
         rails.append(cover_walls(K))
+    hr = rp("head_raise")
+    if hr > 0:      # owner, 2026-10-20 15:20: "the screws can sit a little higher (like 1mm)": a seat under each head
+        rails += [K.cylx(y, z, HEAD_D / 2 + 0.8, X_SLOT - hr, X_SLOT + 0.01) for y, z in screw_yz()]
+        outside = [K.box((X_SLOT - 6.0, Y_RIM, TIP["z_end"] - 5.0), (X_COMP + 1.0, Y_RIM + 5.0, TIP["z_mount"] + 5.0)),
+                   K.box((X_SLOT - 6.0, -Y_RIM - 5.0, TIP["z_end"] - 5.0), (X_COMP + 1.0, -Y_RIM, TIP["z_mount"] + 5.0)),
+                   K.box((X_SLOT - 6.0, -Y_RIM - 5.0, TIP["z_end"] - 5.0), (X_COMP + 1.0, Y_RIM + 5.0, TIP["z_end"]))]
+        return K.finish(K.cut(K.fuse(cover, rails), [K.cylx(y, z, SCREW_CLEAR / 2, X_SLOT - hr - 0.2, X_COMP + 0.2)
+                                                      for y, z in screw_yz()] + outside))
     return K.finish(K.fuse(cover, rails))
 
 

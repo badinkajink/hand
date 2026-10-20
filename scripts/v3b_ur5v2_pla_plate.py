@@ -72,8 +72,9 @@ def covers():
 R_ADAPTER = [[1.0, 0, 0], [0, -1.0, 0], [0, 0, -1.0]]     # tool face on the bed, the dowel up
 PLATES = {
     "calibration": [
-        ("U2", "UR5 standoff-fork v2", UR5 / f"{UP}_standoff_fork.stl", np.eye(3), V.MOUNT),
+        ("U2", "UR5 standoff-fork v2", UR5 / f"{UP}_standoff_fork.stl", np.eye(3), V.MOUNT_SOLID),
         ("U1", "UR5 adapter v2", UR5 / f"{UP}_adapter.stl", R_ADAPTER, V.MOUNT),
+        ("U3", "UR5 clamp plate", UR5 / f"{UP}_clamp_plate.stl", V.R_UR5["clamp_plate"], dict(V.MOUNT_SOLID, wall_loops="4")),
         ("U4", "UR5 sphere indenter v2", UR5 / f"{UP}_indenter_sphere.stl", np.eye(3), V.INDENTER),
         ("U5", "UR5 rod indenter v2", UR5 / f"{UP}_indenter_rod.stl", np.eye(3), V.INDENTER),
         ("W00", "b v3 cover W00", V3 / "print/20261020-dip_link_v3b_cover_W00_pla_bambu.stl", None, V.SOLID),
@@ -93,7 +94,8 @@ def main():
     for plate, parts in PLATES.items():
         V.PARTS[:] = parts
         V.OUT, V.WORK, V.PFX = OUT, WORK / plate, f"20261020-p1s_pla_{plate}"
-        V.TITLE = {"calibration": "UR5 mount v2, indenters, b v3 covers W00-W20", "link": "DIP link b v3, cover W10"}[plate]
+        V.TITLE = {"calibration": "UR5 mount v2 (v1 fork, no key), indenters, b v3 covers W00-W20",
+                   "link": "DIP link b v3, cover W10"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel")

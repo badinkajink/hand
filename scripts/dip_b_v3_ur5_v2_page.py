@@ -107,8 +107,9 @@ def main():
             f"11/22 outline, and the cable's leg opens to the top, so the double-ended Qwiic cable lies in. The walls change the "
             f"pad's approach by at most {abs(w3_6[1]):.2f}&#8202;% at 6&#8202;N"
             + (f" and its force resolution from {sb:.3f} to {sw:.3f}&#8202;N" if sw else "") +
-            f". The mount loses the spigot and the key, puts the finger on the tool axis, takes the link in a cradle on the "
-            f"tongue's back, and homes on a post beside each indenter. Two P1S plates print in {pc['time']} and {pl['time']}.")
+            f". The mount keeps v1's fork without the spigot and the key: the ears fit the link's base 0.2&#8202;mm off and a set screw "
+            f"seats it straight; the finger lies on the tool axis, and a post beside each indenter homes it. Two P1S plates print "
+            f"in {pc['time']} and {pl['time']}.")
 
     S = []
     S.append(("terms", "Terms and metrics", f"""
@@ -141,9 +142,10 @@ point is relative to the indenter's top.</dd>
           ["Palmar side aligned with the sensor's x-axis, taken from the centre toward the nub",
            "The palmar normal points at the dowel (as in v1); the foot's four M3 now sit at 22.5, 112.5, 202.5 and 280&#176;, so the "
            "standoff-fork goes on one way only", "Hex key reaches all four heads"],
-          ["The rod in the horn slot is tight and snapped; clamping can leave the link crooked",
-           "Key removed; a cradle on the tongue: back plate (x datum), rails (y), the bridge on the inner block's flat bottom (z), an M3 "
-           "pusher in the lip", "Both b links go in along x with no overlap"],
+          ["The rod in the horn slot is tight and snapped; clamping can leave the link crooked; an exterior mold on the outer volume",
+           "Key removed; v1's ears now fit the bridge's palmar and dorsal faces 0.2&#8202;mm off, an M3 set screw through the dorsal ear "
+           "seats the link on the palmar ear, the inner block's arc 0.05&#8202;mm above the bridge stops it along the tool axis",
+           "Both b links slide on along the tool axis with no overlap"],
           ["Homing geometry to zero the mount to the table indenters, a slot/rod mating",
            "A 6.3&#8202;mm socket in the column's palmar face; a post with a 6.0&#8202;mm pin on each indenter's base",
            "No overlap at homing or touching, either indenter"],
@@ -188,8 +190,9 @@ bridge, where it takes the board's tab, J1, the plug and the floor of the cable'
 {fig(1, DIP / 'v3/b/media/20261020-dip_link_b_v2_v3_palmar.png', 'Concept b from the palmar side, finger up: v2 as printed and v3.')}
 <p>Figure 2 shows the cover. Its web stays as thick as the chips (0.9&#8202;mm), because the pad's back face rests on the chip tops;
 the new volume is two walls {pv['wall_h']:.1f}&#8202;mm tall along the pad's flanks, where the flanks run straight back from the
-pad's equator. They run from the mount face to the pad's widest section, the owner's &#8216;from the screw holes at the bottom until
-the ellipse starts to curve back in&#8217;, stand {pv['wall_clear']:.2f}&#8202;mm off the flank, and slope outward to the cover's edge
+pad's equator. They run from the mount face toward the pad's widest section, the owner's &#8216;from the screw holes at the bottom until
+the ellipse starts to curve back in&#8217;, and stop {pv['wall_window_gap']:.1f}&#8202;mm short of the windows of the two outer chips,
+4.1&#8202;mm proximal of the apex (owner, 15:20: the first draft reached over them); they stand {pv['wall_clear']:.2f}&#8202;mm off the flank, and slope outward to the cover's edge
 ({pv['wall_top_t']:.1f}&#8202;mm thick at the top); each proximal screw head sits in a counterbore through its wall, and the walls end at
 45&#176;. A sideways push on the pad then bears on the wall instead of prying the dovetails apart. The walls also stiffen the 0.9&#8202;mm web
 along both long edges, which is where the v2 cover lifted off the bed and curled.</p>
@@ -219,8 +222,8 @@ are unchanged (Table 2); a strip of Kapton tape over the leg keeps it down.</p>
     S.append(("walls", "Side walls and the pad's stiffness and readout", f"""
 <p>The walls touch the pad, so they could change the stiffness the 10-18 calibration fitted and the motion the magnetometers read.
 In the finite elements of b's pad (the 11/22 tip cut at the cover, five magnets, the model of the night of 10-19) the walls fix the
-flank's nodes in y over their height and length, both ways; the printed wall stands 0.10&#8202;mm off and resists only outward
-motion, so the change is an upper bound. With {pv['wall_h']:.1f}&#8202;mm walls the approach falls by {abs(w3_6[0]):.2f}&#8202;% on average at 6&#8202;N
+flank's nodes in y over their height and length up to the apex's z, both ways; the printed wall stands 0.10&#8202;mm off, resists
+only outward motion and stops 4.1&#8202;mm short of the apex, so the change is an upper bound. With {pv['wall_h']:.1f}&#8202;mm walls the approach falls by {abs(w3_6[0]):.2f}&#8202;% on average at 6&#8202;N
 (at most {abs(w3_6[1]):.2f}&#8202;% over {w3_6[2]} probes), and with walls over the whole straight flank by {abs(w5_6[1]):.2f}&#8202;% at most
 (Table 3), against the calibration's 5&#8202;% bound."""
               + (f" The magnets then move {sens['b_v2_wall3']['magnet_travel_um_per_N']:.2f} in place of "
@@ -235,33 +238,33 @@ motion, so the change is an upper bound. With {pv['wall_h']:.1f}&#8202;mm walls 
 
     gl = chk["b_links"]
     t4 = [[lab, f"{gl['v2b']['gaps_by_region_mm'][k]:.2f}", f"{gl['v3b']['gaps_by_region_mm'][k]:.2f}"]
-          for k, lab in (("tongue_back_to_back_plate", "Tongue's back to the back plate (x datum)"),
-                         ("bridge_top_to_inner_block", "Bridge to the inner block (z datum, closed by the pusher)"),
-                         ("tongue_sides_to_rails", "Tongue's sides to the rails"),
-                         ("horn_arm_inner_face", "Horn-side arm to the inner block"),
-                         ("slotted_arm_inner_face", "Slotted arm to the inner block (M3 and washer close it)"),
-                         ("neck_back_to_back_plate", "Neck's back to the back plate"),
-                         ("bridge_back_to_ear", "Bridge's back to the ear"))]
+          for k, lab in (("bridge_palmar_face_to_palmar_ear", "Bridge's palmar face to the palmar ear (closed by the set screw)"),
+                         ("bridge_back_to_ear", "Bridge's back to the dorsal ear"),
+                         ("horn_arm_inner_face", "Horn-side arm to the inner block (closed by the clamp plate)"),
+                         ("slotted_arm_inner_face", "Slotted arm to the inner block (M3 and washer close it)"))]
+    t4.append(["Bridge's lowest point to the inner block's arc (the stop along the tool axis)", "0.05", "0.05"])
     S.append(("mount", "UR5e calibration mount v2", f"""
-<p>Figure 5 shows mount v2 on the HEX-E with link b v3. The adapter has only the printed dowel toward the HEX-E, and the palmar
-normal points at it, the sensor's x-axis as the owner takes it from the centre toward the nub. v1 had the same orientation, but its
-foot's four M3 were 90&#176; apart, so the standoff-fork could go on in four orientations; at 22.5, 112.5, 202.5 and 280&#176; it goes on in
-one. The tool axis now runs through the finger's mid-plane (y_F 0), 3.85&#8202;mm from v1's, so the contact point lies on the axis
-in y and 10.55&#8202;mm from it along the palmar normal.</p>
-{fig(5, D / f'media/{UP}_on_the_hex_e_palmar.png', 'Mount v2 on the HEX-E (context) with DIP link b v3, palmar side, finger down.')}
-<p>The key in the horn slot and the palmar ear are gone. The link now goes in dorsally, along &#8722;x of the mount (Figure 6): the
-clevis arms pass either side of the inner block, whose bottom is flat 0.05&#8202;mm above the bridge's highest point, and the tongue
-enters a cradle that hangs below the dorsal ear (Figures 7 and 8). The tongue's back face, 21 by 21&#8202;mm right behind the board, rests
-on the cradle's back plate, so the normal force of an indentation presses the link onto its datum; rails stand 0.2&#8202;mm beside the
-tongue; an M3 in the lip under the tongue's end pushes the link toward the flange until the bridge bears on the inner block; the M3
-with its washer through the slotted arm's bore pulls that arm onto the inner block. Table 4 gives the gaps.
-{'Both b links, v2 as printed and v3, go in along x with no overlap at any of 121 positions over the last 30&#8202;mm.' if ins_ok else
- 'An insertion check failed; see the check file.'}</p>
-{fig(6, D / f'media/{UP}_insertion.png', 'The DIP link 16 mm short of its place, going in dorsally.')}
+<p>Mount v2 keeps v1's standoff-fork and its assembly (Figure 5): the DIP link slides on along the tool axis with its clevis arms
+either side of the inner block, the clamp plate presses the horn-side arm onto the inner block with two M3 into the ears, and the M3
+with its washer goes through the slotted arm's bore into the inner block. The key in the horn slot is gone. In its place the two
+ears are a mold on the outside of the link's base: their inner faces stand 0.2&#8202;mm off the bridge's palmar and dorsal faces and
+reach 0.2&#8202;mm below the bridge, and an M3 set screw through the dorsal ear pushes the bridge onto the palmar ear, so the link
+sits square to the fork before the clamp plate is tightened (Figures 6 and 7). The inner block's arc stands 0.05&#8202;mm above b's
+bridge, the stop along the tool axis, so this fork takes concept b's links only (v2 as printed and v3; the CAD hand's link and a have
+higher bridges). {'Both b links slide on with no overlap at any of 121 positions over the last 30&#8202;mm.' if ins_ok else
+ 'An insertion check failed; see the check file.'} Table 4 gives the gaps.</p>
+<p>The adapter has only the printed dowel toward the HEX-E, and the palmar normal points at it, the sensor's x-axis as the owner
+takes it from the centre toward the nub. v1 had the same orientation, but its foot's four M3 were 90&#176; apart, so the
+standoff-fork could go on in four orientations; at 22.5, 112.5, 202.5 and 280&#176; it goes on in one. The tool axis runs through the
+finger's mid-plane (y_F 0), 3.85&#8202;mm from v1's, so the contact point lies on the axis in y and 10.55&#8202;mm from it along the
+palmar normal (Figure 8).</p>
+{fig(5, D / f'media/{UP}_exploded.png', 'Mount v2 exploded along the tool axis; the DIP link slides on as in v1.')}
+{fig(6, D / f'media/{UP}_fork_closeup.png', 'DIP link b on the fork, horn and dorsal side, with the clamp plate.')}
 {fig(7, D / f'media/{UP}_fork_alone.png', 'The standoff-fork alone, its fork end up.')}
-{fig(8, D / f'media/{UP}_dorsal.png', 'Mount v2 with link b v3 from the dorsal side.')}
+{fig(8, D / f'media/{UP}_on_the_hex_e_palmar.png', 'Mount v2 on the HEX-E (context) with DIP link b v3, palmar side, finger down.')}
 {table(["Gap", "v2 b as printed (mm)", "v3 b (mm)"], t4, num_cols=(1, 2),
-       caption=f"Gaps of the two b links in mount v2 ({UP}_check.json; nearest surface samples 0.1&#8202;mm apart).", n=4)}"""))
+       caption=f"Gaps of the two b links on the fork ({UP}_check.json; nearest surface samples 0.1&#8202;mm apart; the arc's gap by "
+               "construction).", n=4)}"""))
 
     t5 = [[k, f"({h['post_xy'][0]:.2f}, {h['post_xy'][1]:.2f})", f"{h['pin_top_z']:.2f}", f"{h['indenter_top_z']:.1f}"]
           for k, h in (("Sphere", hs), ("Rod", hr))]
@@ -274,21 +277,24 @@ stands 30&#8202;mm to +y of the indenter's top and 5&#8202;mm above it (Figure 9
 to touch. The post sits 40.36&#8202;mm toward the robot from the indenter's top, beside the column at the touching pose.
 {POSE_TXT} Table 5 gives the posts. Bolt the base with the post toward the robot.</p>
 {fig(9, D / f'media/{UP}_homing.png', 'Homing over the rod indenter: the pin in the socket, the pad 30 mm to the side and 5 mm up.')}
+<p>The cradle of the first draft of 2026-10-20, which took the tongue's back as its datum and let the link in from the palmar
+side, stays in the script as <code>fork_style = "cradle"</code>; the plates carry the v1-style fork.</p>
 {table(["Indenter", "Post in the base frame, x, y (mm)", "Pin top above the table (mm)", "Indenter top (mm)"], t5,
        num_cols=(2, 3), caption="Homing posts (homing() in scripts/ur5_calibration_mount.py).", n=5)}"""))
 
     asm = ["Adapter on the HEX-E: dowel into its hole, four M6 &#215; 12 with DIN 125 washers, 1.5&#8202;N&#8202;m.",
-           "Standoff-fork on the adapter: four M3 &#215; 12 through the foot; it fits one way, the cradle away from the dowel.",
+           "Standoff-fork on the adapter: four M3 &#215; 12 through the foot; it fits one way, the palmar ear toward the dowel.",
            "Qwiic cable into J1; pass its far plug up the J1 slot from the neck's underside; slide the board along the tongue's seat, "
            "J1 first.",
            "Lay the cable into the open leg from the top, press it into the groove on the back, Kapton over the leg.",
            "Cover over the board: four M2 &#215; 5 into the tongue (1.9&#8202;mm holes); the two proximal heads through the walls' "
            "counterbores.",
            "Pad onto the rails between the walls (B00).",
-           "Link into the mount from the palmar side, arms either side of the inner block, the tongue into the cradle; the cable up "
-           "the slot in the inner block and the column's groove.",
-           "M3 &#215; 12 with the DIN 9021 washer through the slotted arm's bore, snug; M3 &#215; 8 into the lip until it meets the "
-           "tongue's end, then a quarter turn.",
+           "Slide the link onto the fork along the tool axis, arms either side of the inner block, until the bridge meets the "
+           "inner block; the cable into the slot on the dorsal side and up the column's groove.",
+           "M3 &#215; 8 set screw through the dorsal ear onto the bridge's back until the bridge meets the palmar ear; clamp plate on "
+           "the horn-side arm with two M3 &#215; 16 into the ears; M3 &#215; 12 with the DIN 9021 washer through the slotted arm's bore; "
+           "all snug.",
            "Homing post toward the robot; seat the pin in the socket in freedrive, record the pose, then move (0, &#8722;30, &#8722;5)&#8202;mm.",
            f"UR5e payload {plates['payload']['total_g'] / 1000:.3f}&#8202;kg (the HEX-E's 0.347&#8202;kg included) with its centre of gravity "
            f"{plates['payload']['cog_from_ur_flange_mm'][2]:.1f}&#8202;mm out from the flange and "
