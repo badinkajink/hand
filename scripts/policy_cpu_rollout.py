@@ -224,6 +224,9 @@ def main():
                     help="zero the object terms (object_pos, object_pose_actual, target_axis_misalign) as a blinded "
                          "actor would see them: does the policy need the tool pose, or is it acting open loop?")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--object-contact", choices=("run", "scene", "legacy"), default="run",
+                    help="the tool's contact class: the run's (default; policy_eval_suite.py's rule), the scene's, or "
+                         "MuJoCo's defaults as the GPU env built the tool before 2026-09-20")
     a = ap.parse_args()
     import mujoco
     import yaml
@@ -242,6 +245,18 @@ def main():
     summ = json.load(open(morph / "summary.json"))
     scene = a.scene or (morph / "frozen_scene.xml")
     m = mujoco.MjModel.from_xml_path(str(scene))
+    contact_run = "scene" if "scene_floor" in env_c else "legacy"
+    contact = contact_run if a.object_contact == "run" else a.object_contact
+    if contact == "legacy":
+        # the tool as env_build made it before 2026-09-20: the scene's type, size, mass and friction, every other contact
+        # attribute at MjSpec's default (policy_eval_suite._use_legacy_object_contact); collision filtering stays the scene's
+        tb0 = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "screwdriver_medium")
+        for g in np.flatnonzero(m.geom_bodyid == tb0):
+            m.geom_solref[g] = (0.02, 1.0)
+            m.geom_solimp[g] = (0.9, 0.95, 0.001, 0.5, 2.0)
+            m.geom_solmix[g], m.geom_priority[g], m.geom_condim[g] = 1.0, 0, 3
+            m.geom_margin[g], m.geom_gap[g] = 0.0, 0.0
+    print(f"[cpu] tool contact class: {contact} (the run trained on {contact_run})", flush=True)
     d = mujoco.MjData(m)
     key = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_KEY, summ["keyframe"])
     mujoco.mj_resetDataKeyframe(m, d, key)

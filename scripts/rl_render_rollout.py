@@ -10,12 +10,18 @@
 Same env construction as `policy_eval_suite.py` (so the rollout is the one the numbers
 describe), one env, the in-training viewer replaced by a close camera. Writes the mp4 and a
 CSV of the tool's signed cos, height and per-pad force per policy step.
+
+The tool's contact class is the run's (--object-contact run, as policy_eval_suite.py): a run whose
+config.yaml predates the 2026-09-20 fix (no `scene_floor` key) trained on MuJoCo's default tool
+contact and is rendered on it; `scene` or `legacy` forces one.
 """
 from __future__ import annotations
 
 import argparse
 import csv
 from pathlib import Path
+
+import sys
 
 import numpy as np
 import torch
@@ -41,6 +47,8 @@ def main() -> int:
     ap.add_argument("--residual-from-step", type=int, default=None,
                     help="finger_residual_active_from_step; default = the run's config.yaml")
     ap.add_argument("--stochastic", action="store_true", help="sample actions instead of the mean")
+    ap.add_argument("--object-contact", choices=("run", "scene", "legacy"), default="run",
+                    help="the tool's contact class: the run's (default), the scene's, or MuJoCo's defaults (pre-2026-09-20)")
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
     import json
@@ -58,6 +66,14 @@ def main() -> int:
         else int(trained.get("finger_residual_active_from_step", 0))
     print(f"[render] residual active from step {residual_from}, reorient reward from step "
           f"{trained.get('reorient_start_step', 10)} ({'run config.yaml' if trained else 'defaults'})")
+    contact_run = "scene" if (not trained or "scene_floor" in trained) else "legacy"
+    contact = contact_run if args.object_contact == "run" else args.object_contact
+    if contact == "legacy":
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from policy_eval_suite import _use_legacy_object_contact
+        _use_legacy_object_contact()
+    print(f"[render] tool contact class: {contact} ({'the scene' if contact == 'scene' else 'MuJoCo defaults'}"
+          f"{', the run trained on it' if contact == contact_run else f', the run trained on {contact_run}'})")
     cfg = make_env_cfg(frozen, summ["keyframe"], run, bfc, enable_target_axis=is_b, num_steps=args.steps,
                        finger_residual_scale=args.finger_residual_scale, lift_delta=args.lift_delta,
                        open_finger_from_keyframe=args.open_finger_from_keyframe, num_envs=1,

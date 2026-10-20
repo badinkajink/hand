@@ -9,8 +9,9 @@ against the original link STL to 2e-6 mm):
   link      the v2 a DIP link and its clamp plate (v2/a/cad/*_dip_link.stl, *_clamp_plate.stl) as the visual mesh; their
             masses from the P1S G-code of the evening's PLA plate (7.44 g link without supports, 1.96 g clamp plate) spread
             over each part's volume; the board (0.64 g) as before
-  spheres   MorphIt-B on the link and the clamp plate (scripts/cad_v1_spheres.py's settings: budget 20, 1000 iterations,
-            seed 0), clipped 0.5 mm behind the tip block's faces (cad_v1_spheres.clip_to_pads) at the tip's new place
+  spheres   MorphIt-B on a closed part (scripts/cad_v1_spheres.py's settings), else greedy inscribed spheres on a 0.25 mm
+            occupancy (the link's STL is 13 touching shells), clipped 0.5 mm behind the tip block's faces
+            (cad_v1_spheres.clip_to_pads) at the tip's new place
   tip       the <f>_tip body 9.75 mm further from the PIP axis (pad centre 36.36 mm past the PIP), with its pads, mass and
             magnets unchanged (the readiness variant's)
   board     the board boxes in v2 a's window: FR-4 x 7.3-7.9 mm with the chips to 6.4 mm, centred over the contact point
@@ -97,19 +98,110 @@ def tip_block_bounds():
     return lo - np.array([0, 0, NECK]), hi - np.array([0, 0, NECK])
 
 
-def watertight(m, pitch=0.2):
-    """A closed surface of a mesh's volume (mm): voxels at `pitch` from its surface, filled, marching cubes."""
-    import trimesh
-    vg = m.voxelized(pitch).fill()
-    out = vg.marching_cubes
-    out.apply_transform(vg.transform)
-    out = trimesh.Trimesh(out.vertices, out.faces, process=True)
-    if out.volume < 0:
-        out.invert()
-    if not out.is_watertight:
-        raise SystemExit("voxel remesh is not watertight")
-    print(f"remeshed at {pitch} mm: volume {out.volume:.1f} against {m.volume:.1f} mm3", flush=True)
-    return out
+def column_parity(tri, axis, lo, pitch, shape):
+    """Occupancy of one closed shell on the grid by ray parity along `axis` through the voxel-column centres."""
+    u, v = [k for k in range(3) if k != axis]
+    hits = []
+    for T in tri:
+        P = T[:, [u, v]]
+        i0, j0 = np.floor((P.min(0) - lo[[u, v]]) / pitch - 0.5).astype(int)
+        i1, j1 = np.ceil((P.max(0) - lo[[u, v]]) / pitch - 0.5).astype(int)
+        i0, j0 = max(i0, 0), max(j0, 0)
+        i1, j1 = min(i1, shape[u] - 1), min(j1, shape[v] - 1)
+        if i1 < i0 or j1 < j0:
+            continue
+        I, Jj = np.meshgrid(np.arange(i0, i1 + 1), np.arange(j0, j1 + 1), indexing="ij")
+        cu = lo[u] + (I.ravel() + 0.5) * pitch
+        cv = lo[v] + (Jj.ravel() + 0.5) * pitch
+        (a, b), (c, d), (e, f) = P
+        den = (d - f) * (a - e) + (e - c) * (b - f)
+        if abs(den) < 1e-12:
+            continue
+        l1 = ((d - f) * (cu - e) + (e - c) * (cv - f)) / den
+        l2 = ((f - b) * (cu - e) + (a - e) * (cv - f)) / den
+        l3 = 1 - l1 - l2
+        ok = (l1 >= 0) & (l2 >= 0) & (l3 >= 0)
+        if ok.any():
+            w = l1[ok] * T[0, axis] + l2[ok] * T[1, axis] + l3[ok] * T[2, axis]
+            hits.append(np.column_stack([I.ravel()[ok], Jj.ravel()[ok], w]))
+    occ = np.zeros(shape, bool)
+    if not hits:
+        return occ
+    H = np.concatenate(hits)
+    H = H[np.lexsort((H[:, 2], H[:, 1], H[:, 0]))]
+    key = H[:, 0] * shape[v] + H[:, 1]
+    starts = np.flatnonzero(np.r_[True, key[1:] != key[:-1]])
+    ends = np.r_[starts[1:], len(H)]
+    wc = lo[axis] + (np.arange(shape[axis]) + 0.5) * pitch
+    for s0, s1 in zip(starts, ends):
+        if (s1 - s0) % 2:
+            continue                                     # a grazing ray: leave the column to the other two axes
+        iu, iv = int(H[s0, 0]), int(H[s0, 1])
+        for k in range(s0, s1, 2):
+            m = (wc >= H[k, 2]) & (wc <= H[k + 1, 2])
+            idx = [slice(None)] * 3
+            idx[u], idx[v] = iu, iv
+            col = occ[tuple(idx)]
+            col |= m
+            occ[tuple(idx)] = col
+    return occ
+
+
+def occupancy(m, pitch=0.25):
+    """Voxel occupancy (bool grid, its corner, pitch; mm) of a mesh of closed shells that may touch or overlap: each shell
+    filled by ray parity along x, y and z, a voxel inside when two of the three directions say so, the shells united. The
+    grid is bounded by the mesh's box, so memory stays at a few MB (trimesh `voxelized` subdivides long CAD triangles down
+    to the pitch and ran a 4 GB job into swap on 2026-10-19)."""
+    lo = m.bounds[0] - 2 * pitch
+    shape = tuple(int(x) for x in np.ceil((m.bounds[1] + 2 * pitch - lo) / pitch))
+    occ = np.zeros(shape, bool)
+    for sh in m.split(only_watertight=False):
+        tri = np.asarray(sh.triangles, float)
+        votes = sum(column_parity(tri, ax, lo, pitch, shape).astype(np.uint8) for ax in range(3))
+        occ |= votes >= 2
+    return occ, lo, pitch
+
+
+def greedy_spheres(occ, lo, pitch, budget=40, r_min=0.5, cover=0.92):
+    """Inscribed spheres (mm) covering the occupancy: repeatedly the uncovered voxel deepest inside the part, at the depth's
+    radius, until `budget` spheres, the radius falls under r_min or `cover` of the voxels are covered."""
+    from scipy.ndimage import distance_transform_edt
+    dist = distance_transform_edt(occ) * pitch
+    covered = np.zeros_like(occ)
+    n = int(occ.sum())
+    C, R = [], []
+    grid = np.indices(occ.shape)
+    while len(R) < budget and covered.sum() < cover * n:
+        cand = np.where(occ & ~covered, dist, 0.0)
+        k = np.unravel_index(int(np.argmax(cand)), occ.shape)
+        r = float(dist[k])
+        if r < r_min:
+            break
+        c = lo + (np.array(k) + 0.5) * pitch
+        rr = int(np.ceil(r / pitch)) + 1
+        sl = tuple(slice(max(k[a] - rr, 0), min(k[a] + rr + 1, occ.shape[a])) for a in range(3))
+        P = np.stack([lo[a] + (grid[a][sl] + 0.5) * pitch for a in range(3)], -1)
+        covered[sl] |= np.linalg.norm(P - c, axis=-1) <= r
+        C.append(c)
+        R.append(r)
+    return np.array(C), np.array(R), float(covered.sum() / max(n, 1))
+
+
+def pack(mesh, name, budget):
+    """Collision spheres of a part (metres, body frame): MorphIt-B as scripts/cad_v1_spheres.py packs the CAD parts when
+    the STL is one closed shell, else greedy inscribed spheres on its voxel occupancy (the v2 link's STL is 13 touching
+    shells, which MorphIt's watertight check refuses)."""
+    m = mesh.copy()
+    m.apply_scale(1000.0)
+    if m.is_watertight:
+        C, R = morphit(mesh, name, budget)
+        return C, R, dict(method="MorphIt-B", budget=budget)
+    occ, lo, pitch = occupancy(m)
+    C, R, cov = greedy_spheres(occ, lo, pitch, budget=budget)
+    vol = float(occ.sum()) * pitch ** 3
+    print(f"{name}: occupancy {vol:.0f} mm3 against the mesh's {m.volume:.0f}; {len(R)} inscribed spheres cover {cov:.2f}", flush=True)
+    return C / 1000.0, R / 1000.0, dict(method="greedy inscribed spheres on a 0.25 mm occupancy", budget=budget,
+                                        occupancy_mm3=round(vol, 1), mesh_mm3=round(float(m.volume), 1), coverage=round(cov, 3))
 
 
 def morphit(mesh, name, budget=20):
@@ -118,8 +210,6 @@ def morphit(mesh, name, budget=20):
     WORK.mkdir(parents=True, exist_ok=True)
     m = mesh.copy()
     m.apply_scale(1000.0)
-    if not m.is_watertight:          # the v2 link's STL is 13 touching shells (arms fused over FUSE): remesh its volume
-        m = watertight(m)
     stl = WORK / f"{name}.stl"
     m.export(stl)
     js = WORK / "spheres" / f"{name}_MorphIt-B_n{budget}.json"
@@ -186,11 +276,12 @@ def cmd_build(a):
     meshes = {n: part_mesh(n) for n in ("dip_link", "clamp_plate")}
     vis = trimesh.util.concatenate(list(meshes.values()))
     lo, hi = tip_block_bounds()
-    C, R = [], []
+    C, R, how = [], [], {}
     for n, m in meshes.items():
-        c, r = morphit(m, n)
+        c, r, info = pack(m, n, {"dip_link": 40, "clamp_plate": 12}[n])
         C.append(c)
         R.append(r)
+        how[n] = info
     C, R = np.concatenate(C), np.concatenate(R)
     past0 = CS.past_pad_faces(C, R, lo, hi)
     C, R, n_clip = CS.clip_to_pads(C, R, lo, hi)
@@ -220,7 +311,7 @@ def cmd_build(a):
                       dip_body=dict(mass_g=round(M * 1e3, 3), com_mm=np.round(com * 1e3, 3).tolist(),
                                     parts_g=dict(MASS_G, board=BOARD_G), source="v2/a/cad/20261018-dip_link_v2a_{dip_link,"
                                     "clamp_plate}.stl; masses from the P1S G-code of 20261019-v2_ur5_pla_p1s"),
-                      spheres=dict(n=int(len(R)), clipped=n_clip, past_pad_faces_mm=dict(fitted=past0, clipped=past1)),
+                      spheres=dict(n=int(len(R)), clipped=n_clip, past_pad_faces_mm=dict(fitted=past0, clipped=past1), packing=how),
                       patched=rec, script=f"{SCRIPT} build", when=time.strftime("%Y-%m-%d %H:%M"))
         (dst / "README.json").write_text(json.dumps(readme, indent=1, default=float) + "\n")
         print(f"-> {dst.relative_to(ROOT)}", flush=True)
