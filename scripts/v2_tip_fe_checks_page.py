@@ -345,6 +345,14 @@ in the G-code, the same to 0.004&#8202;g across the four sizes.</p>
                 (", ".join(k for k, ok in (("angle", pp["angle"]), ("force", pp["force"]), ("held", pp["held"])) if not ok)
                  or "none").capitalize()]
 
+    capd = d1.get("cap_g30|ready|M1|pads")
+    if capd and capd.get("complete"):
+        sc_ = capd["pads_vs_drake"]
+        cap_txt = (f"The capsule, replayed on 2026-10-20 after the watchdog stopped its first run, ends on the same branch in "
+                   f"{sc_['same_branch']} of {sc_['n']} pairs, {sc_['median_rms_angle_all_deg']:.1f}&#176; RMS apart over all pairs, with "
+                   f"normal forces {sc_['median_rms_dN_same_N']:.2f}&#8202;N apart.")
+    else:
+        cap_txt = "The capsule's replays stopped at 1 of 6 when the memory watchdog killed the job at 20:57 on 10-19."
     S.append(("control", "Pads against Drake with the block as control", f"""
 <p>On 10-18 the Drake replays of the block and the capsule were cut for time, so the 11/22 tip's failed consistency had no control.
 On 2026-10-19 Drake replayed the block's readiness commands at M1 (the modulus fitted to the finite elements' approach), all six. On the
@@ -354,11 +362,13 @@ same branch in {blk['pads_vs_drake']['same_branch']} of 6 pairs, the block's pad
 force bound as the 11/22 tip does. On the branch the two tips differ: the block stays on Drake's in all 6 pairs, the 11/22 tip leaves
 it in {e11['pads_vs_drake']['n'] - e11['pads_vs_drake']['same_branch']} of 6 (all on the 25&#8202;mm cell) and in all 3 runs of its own
 plan. The force difference appears on both tip shapes, so a calibration of the normal response does not remove it; the branch split
-belongs to the 11/22 tip. The capsule's replays stopped at 1 of 6 when the memory watchdog killed the job at 20:57.</p>
+belongs to the 11/22 tip. {cap_txt}</p>
 {table(["Tip, calibration, commands", "Pairs", "Held agreement", "Same branch", "Median RMS angle, same branch (&#176;)",
         "Median RMS angle, all pairs (&#176;)", "Angle bound (&#176;)", "Normal / friction force difference (N)", "Fails"],
        [con_row("Block, M1, readiness plans", blk), con_row("Half-ellipsoid 11/22, M2, readiness plans", e11),
-        con_row("Half-ellipsoid 11/22, M2, its own plan", own)], num_cols=(1, 4, 5, 6), n=4,
+        con_row("Half-ellipsoid 11/22, M2, its own plan", own)]
+       + ([con_row("Capsule r 8.5&#8202;mm, M1, readiness plans", capd)] if capd and capd.get("complete") else []),
+       num_cols=(1, 4, 5, 6), n=4,
        caption="Pads against Drake on the same logged servo commands (the calibration study's replays/icem.jsonl and its summary code; "
                "model values). The block's Drake rows are of 10-19; the 11/22 rows are those of 10-18.")}"""))
 
@@ -416,8 +426,6 @@ allows. {txt}</p>
                    con_row("Half-ellipsoid 11/22, M3 with the spring in both, readiness plans", m3)]
         if m3o and m3o["pads_vs_drake"]["n"]:
             rows_m3.append(con_row("Half-ellipsoid 11/22, M3 with the spring in both, its own plan", m3o))
-        if cap and cap.get("complete"):
-            rows_m3.append(con_row("Capsule, M1, readiness plans", cap))
         sm = m3["pads_vs_drake"]
         own_txt = ""
         if m3o and m3o["pads_vs_drake"]["n"]:
@@ -426,6 +434,20 @@ allows. {txt}</p>
                        f"angle falls from {own['pads_vs_drake']['median_rms_angle_all_deg']:.1f} to {so['median_rms_angle_all_deg']:.1f}&#176;"
                        f" and the own-plan criterion {'passes' if m3o['pass'] else 'still fails'}")
         t_m = nxt()
+        d6 = SU.d1(seeds=(0, 1, 2, 3, 4, 5))
+        six = ""
+        k6 = [("Block, M1", d6.get("block4_g30|ready|M1|pads")), ("Half-ellipsoid 11/22, M2", d6.get("ell11_g30|ready|M2|pads")),
+              ("Half-ellipsoid 11/22, M3 with the spring in both", d6.get("ell11_g30|ready|M3|pads"))]
+        if all(v and v["pads_vs_drake"]["n"] > 6 for _, v in k6):
+            t6 = nxt()
+            r6 = [[lab, f"{v['pads_vs_drake']['n']}", f"{v['pads_vs_drake']['same_branch']} of {v['pads_vs_drake']['n']}",
+                   f"{v['pads_vs_drake']['median_rms_angle_all_deg']:.1f}", f"{v['pads_vs_drake']['median_rms_dN_same_N']:.2f}",
+                   f"{v['pads_seed_spread'].get('median_rms_angle_same_deg') or float('nan'):.1f}"] for lab, v in k6]
+            six = (f"<p>Three more placements (seeds 3&#8211;5) on the same commands give the counts over six (Table {t6}).</p>"
+                   + table(["Tip and calibration, readiness plans", "Pairs", "Same branch", "Median RMS angle, all pairs (&#176;)",
+                            "Normal force difference (N)", "Pads' seed spread (&#176;)"], r6, num_cols=(1, 3, 4, 5), n=t6,
+                           caption="Pads against Drake over placements 0&#8211;5 (fe_contact_calibration_summary.d1 with six seeds; "
+                                   "model values)."))
         S.append(("spring", "The series spring in both simulators", f"""
 <p>Calibration M3 puts the 11/22 tip's modulus (Drake 65.0, pads 53.0&#8202;MPa) behind a 9.7&#8202;N/mm series spring. On 10-18 only the
 pads' D1&#8211;D8 replays had the spring, so the consistency test ran at M2, the stiff modulus alone. On 2026-10-20 both simulators replayed the
@@ -439,7 +461,8 @@ alone ({sm['median_rms_dN_same_N']:.2f}&#8202;N against 0.25&#8202;N), as the bl
 25&#8202;mm cell differ by that much between placements. Most of the split of 10-18 therefore came from M2 standing in for the spring.</p>
 {table(["Tip, calibration, commands", "Pairs", "Held agreement", "Same branch", "Median RMS angle, same branch (&#176;)",
         "Median RMS angle, all pairs (&#176;)", "Angle bound (&#176;)", "Normal / friction force difference (N)", "Fails"], rows_m3, num_cols=(1, 4, 5, 6), n=t_m,
-       caption="Pads against Drake with and without the series spring (replays/icem.jsonl; model values).")}"""))
+       caption="Pads against Drake with and without the series spring (replays/icem.jsonl; model values).")}
+{six}"""))
     bed = [r for r in rows(CAL / "bed" / "T2.jsonl") if r.get("status") == "complete"]
     if any(r["arm"] == "ir1000" for r in bed):
         names = {"block4_g30": "Block", "cap_g30": "Capsule r 8.5&#8202;mm", "ell16_g30": "Half-ellipsoid 16/32&#8202;mm",

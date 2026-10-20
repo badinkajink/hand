@@ -117,9 +117,10 @@ def summarize(pairs):
 
 # ------------------------------------------------------------------------------------------ D1: iCEM command replays
 
-def d1():
+def d1(seeds=(0, 1, 2)):
     """Pads against Drake on the logged iCEM commands, per tip, plan family (the readiness plans or the tip's own M2
-    plans) and calibration; 'pads' is rule R4's pad model and 'pads1' the 1 mm pads."""
+    plans) and calibration; 'pads' is rule R4's pad model and 'pads1' the 1 mm pads. `seeds`: the placements compared (the
+    plan's criteria count 3 per plan; more seeds, as on 2026-10-20, report the same statistics over more pairs)."""
     R = {}
     for r in rows(D / "replays" / "icem.jsonl"):
         if r.get("status") == "ok":
@@ -133,7 +134,7 @@ def d1():
                 for padk in ("pads", "pads1", "pads_ir1000"):
                     pd, sp, runs = [], [], []
                     for p in plans:
-                        for s in (0, 1, 2):
+                        for s in seeds:
                             A, B = R.get((p, calib, padk, s)), R.get((p, calib, "drake", s))
                             for plant, X in ((padk, A), ("drake", B)):
                                 if X:
@@ -144,8 +145,8 @@ def d1():
                                 if x:
                                     x.update(plan=p, seed=s)
                                     pd.append(x)
-                        for s in (1, 2):
-                            A0, A1 = R.get((p, calib, padk, 0)), R.get((p, calib, padk, s))
+                        for s in seeds[1:]:
+                            A0, A1 = R.get((p, calib, padk, seeds[0])), R.get((p, calib, padk, s))
                             if A0 and A1:
                                 sp.append(pair(A0, A1, axis=True))
                     if not pd:
@@ -159,7 +160,7 @@ def d1():
                     ok_force = own or ((s_pd["median_rms_dN_same_N"] or 9) <= 0.25 and (s_pd["median_rms_dT_same_N"] or 9) <= 0.35)
                     out[f"{tip}|{'own' if own else 'ready'}|{calib}|{padk}"] = {
                         "tip": tip, "own": own, "calib": calib, "pads": padk, "pads_vs_drake": s_pd, "pads_seed_spread": s_sp,
-                        "angle_bound_deg": bound, "complete": n == (3 if own else 6),
+                        "angle_bound_deg": bound, "complete": n == len(seeds) * (1 if own else 2),
                         "pass": bool(s_pd["held_agree"] >= need and ok_angle and ok_force),
                         "pass_parts": {"held": s_pd["held_agree"] >= need, "angle": ok_angle, "force": ok_force},
                         "pairs": pd, "runs": runs,
