@@ -35,6 +35,7 @@ if not BASE:
     SC.ASSETS = VS.OUT
 SC.LOGS = ROOT / ("logs/20261019-v2_finger" + ("_base" if BASE else ""))
 SC.OUT = ROOT / "docs/experiments/20261019-v2_finger" / ("cells_base" if BASE else "cells")
+SC.D = ROOT / "docs/experiments/20261019-v2_finger" / ("base" if BASE else "v2")         # films land in <this>/media
 SC.SCRIPT = "scripts/v2_finger_cells.py" + (" (V2_FINGER_BASE=1)" if BASE else "")
 
 if __name__ == "__main__":

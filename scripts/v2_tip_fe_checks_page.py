@@ -80,6 +80,19 @@ def img_uri(png, width=1100, quality=88):
     return "data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode()
 
 
+def video_uri(path):
+    return "data:video/mp4;base64," + base64.b64encode(Path(path).read_bytes()).decode()
+
+
+def films_html(items, caption, n):
+    """Clips side by side under label bars: items = [(label, mp4, poster png)]."""
+    cells = "".join(f'<div style="flex:1 1 0;min-width:240px"><div style="background:#000;color:#fff;font-size:15px;padding:2px 6px">'
+                    f'{esc(lab)}</div><video controls muted loop playsinline preload="metadata" poster="{img_uri(poster, 700)}" '
+                    f'src="{video_uri(mp4)}" style="width:100%"></video></div>' for lab, mp4, poster in items)
+    return (f'<figure id="film{n}"><div style="display:flex;gap:8px;flex-wrap:wrap">{cells}</div>'
+            f'<figcaption>Figure {n}. {caption}</figcaption></figure>')
+
+
 def table(head, body, num_cols=(), caption=None, n=None):
     cap = f"<caption>Table {n}. {caption}</caption>" if caption else ""
     th = "".join(f'<th{" class=n" if k in num_cols else ""}>{h}</th>' for k, h in enumerate(head))
@@ -182,14 +195,27 @@ def build():
     ratio10 = pct("v2_5_uex10", "v2_5") / -dv("v2_5_uex10")
     ratio05 = pct("v2_5_uex05", "v2_5") / -dv("v2_5_uex05")
 
-    lede = (f"The calibration of 2026-10-18 applies to both v2 fingertips. Under the calibration's 18 probes, finite elements "
-            f"of concept a's channelled 11/22 tip with five magnets lie within {rms_a:.1f}&#8202;% RMS of the calibrated "
-            f"four-magnet print, concept b's pad, cut 3.55&#8202;mm short at the back, sinks {-pct('b_v2'):.1f}&#8202;% less, and the "
-            f"finer grid moves the calibrated tip by {rms_f:.1f}&#8202;% RMS. Under-extrusion matters more: beads 5 and 10&#8202;% "
-            f"narrower leave {-dv('v2_5_uex05'):.1f} and {-dv('v2_5_uex10'):.1f}&#8202;% less TPU and let the 12.5&#8202;mm rod sink "
-            f"{pct('v2_5_uex05', 'v2_5'):.0f} and {pct('v2_5_uex10', 'v2_5'):.0f}&#8202;% further at 1&#8202;N, about 2&#8202;% per "
-            f"1&#8202;% of missing TPU. The fit-size plate of 10-19 retracts {fit['retractions_per_layer']:.0f} times per layer against "
-            f"{good['retractions_per_layer']:.0f} on the good print of 10-18.")
+    lede_parts = [f"The calibration of 2026-10-18 applies to both v2 fingertips: concept a's 11/22 tip lies within {rms_a:.1f}&#8202;% RMS "
+                  f"of the calibrated print in finite elements, b's shorter pad is {-pct('b_v2'):.1f}&#8202;% stiffer."]
+    _sj = D / "sensing.json"
+    if _sj.exists():
+        _sr = {r["case"]: r for r in json.loads(_sj.read_text())["rows"]}
+        if "a_v2" in _sr and "b_v2" in _sr:
+            lede_parts.append(f"With the 11/22 tip b resolves {_sr['b_v2']['gain']['centre_force_N']:.3f}&#8202;N against a's "
+                              f"{_sr['a_v2']['gain']['centre_force_N']:.3f}&#8202;N, as with the block.")
+    _m3 = d1.get("ell11_g30|ready|M3|pads")
+    if _m3 and _m3.get("complete"):
+        lede_parts.append(f"With the series spring in both simulators, pads and Drake end "
+                          f"{_m3['pads_vs_drake']['median_rms_angle_all_deg']:.1f}&#176; RMS apart instead of "
+                          f"{e11['pads_vs_drake']['median_rms_angle_all_deg']:.1f}&#176;: the missing spring caused most of the 10-18 split.")
+    _hv = rows(ROOT / "docs/experiments/20261019-v2_finger/cells/hom.jsonl")
+    _hb = rows(ROOT / "docs/experiments/20261019-v2_finger/cells_base/hom.jsonl")
+    if _hv and _hb:
+        _h = lambda rr, v: sum(1 for r in rr if r["variant"] == v and r.get("status") == "ok" and r["held"])  # noqa: E731
+        lede_parts.append(f"The 9.75&#8202;mm longer finger keeps the cylinder in {_h(_hv, 'ell11_g30_v2a')} of 108 HOM runs against "
+                          f"{_h(_hb, 'ell11_g30')}.")
+    lede_parts.append(f"Under-extrusion softens a tip about 2&#8202;% per 1&#8202;% of missing TPU.")
+    lede = " ".join(lede_parts)
 
     S = []
     S.append(("terms", "Terms and metrics", f"""
@@ -218,6 +244,14 @@ logged servo commands; a pair is on the same branch when the tool axes end withi
 angle between their tool axes over the replay, in degrees; the force differences are the RMS differences of each finger's normal and
 friction force on the tool, in N. Bounds: at least 5 of 6 runs with the same held outcome, a median RMS angle of at most 3&#176; or the
 pads' seed spread, and median force differences of at most 0.25&#8202;N normal and 0.35&#8202;N friction.</dd>
+<dt>Force resolution</dt><dd>The readout model's Cram&#233;r-Rao bound (one standard deviation) of the normal force at a contact point
+from one 141&#8202;Hz sample of the five MLX90393 chips, with the contact position and a uniform background field also unknown, in N.</dd>
+<dt>Cell, held, HOM, pinned iCEM, servo plant</dt><dd>As in the readiness study of 10-16. Cell: one cylinder (10, 16 or 25&#8202;mm in
+diameter, 100&#8202;mm long, 25&#8202;g, on a 3&#8202;mm post) and one finger layout of the scale study's symmetric tripods, $t$ from &#8722;1 (wide)
+to 1 (compact). Held: at the end the cylinder is less than 20&#8202;mm below its height after the grip and at least two fingers each press
+on it with its weight; three loaded: all three. HOM: the relative contact-velocity turn controller of arXiv 2609.25619 at 100&#8202;Hz.
+Pinned iCEM: the scale study's sampling planner (64 rollouts of 0.5&#8202;s replanned every 20&#8202;ms, a cost that keeps three pads loaded).
+Servo plant: position actuators of gain 0.72&#8202;N&#8202;m/rad and torque limit 0.18&#8202;N&#8202;m.</dd>
 </dl>"""))
 
     def geo_row(c):
@@ -446,26 +480,69 @@ gives the creep at 1&#8202;N per tip for the pads at impratio 100 (the planner's
             return f"{'held' if r['held'] else 'dropped'}, {r['turn_end_deg']:+.1f}&#176;, {r.get('fingers_loaded_end')} loaded"
 
         crow = []
-        for base, lab in (("ell11_g30", "Half-ellipsoid 11/22, five magnets"),
+        for base, lab in (("ell11_g30", "Half-ellipsoid 11/22"),
                           ("block5_g30", "Block, five magnets")):
             for cell in SC_CELLS:
                 hb_ = homstat(hb, base, cell)
                 hv_ = homstat(hv, f"{base}_v2a", cell)
                 ib_ = icstat(ib, base, cell) if ib else icstat(ready, base, cell)
                 iv_ = icstat(iv, f"{base}_v2a", cell)
-                crow.append([lab, cell.replace("cylinder:", "Cylinder ").replace(":", " mm, t "), hb_[0], hb_[1], hv_[0], hv_[1], ib_, iv_])
+                crow.append([lab, cell.replace("cylinder:", "Cylinder ").replace(":", " mm, layout t "), hb_[0], hb_[1], hv_[0], hv_[1], ib_, iv_])
         vs = json.loads((ROOT / "assets/mjcf/experimental/20261019-v2_finger/ell11_g30_v2a/README.json").read_text())
         t_v = nxt()
+        rhom = {(r["variant"], r["tag"], r["shape"], r["d_mm"], r["cand"], r["seed"]): r for r in
+                rows(ROOT / "docs/experiments/20261016-sim2real_fingertip_readiness/cells/hom.jsonl") if r.get("status") == "ok"}
+        same = sum(1 for r in hb if r.get("status") == "ok" and (k := (r["variant"], r["tag"], r["shape"], r["d_mm"], r["cand"], r["seed"]))
+                   in rhom and rhom[k]["held"] == r["held"] and abs(rhom[k]["turn_end_deg"] - r["turn_end_deg"]) < 1e-6)
+        nb = sum(1 for r in hb if r.get("status") == "ok")
+        held = lambda rr, var: sum(1 for r in rr if r["variant"] == var and r.get("status") == "ok" and r["held"])  # noqa: E731
+        lim = lambda rr: float(np.mean([r.get("tau_at_limit_frac", 0) for r in rr if r.get("status") == "ok"]))   # noqa: E731
+
+        def ticks(rr, part):
+            x = [r for r in rr if r.get("status") == "ok"]
+            return sum((r.get("nonpad_contact_ticks") or {}).get(part, 0) for r in x) / max(len(x), 1)
+
+        def turn16(rr, var):
+            x = [r for r in rr if r["variant"] == var and r.get("status") == "ok" and r["shape"] == "cylinder" and r["d_mm"] == 16
+                 and abs(r["t"] - 0.625) < 1e-9]
+            return x[0]["turn_end_deg"] if x else float("nan")
+        cell10 = lambda rr, var: sum(1 for r in rr if r["variant"] == var and r.get("status") == "ok" and r["held"]  # noqa: E731
+                                     and r["d_mm"] == 10)
+        v2txt = (f"The CAD finger's rows reproduce those of 10-16 in {same} of {nb} HOM runs, so the two fingers differ only in the DIP "
+                 f"link. With the 11/22 tip the v2 finger keeps the cylinder in {held(hv, 'ell11_g30_v2a')} of 108 HOM runs against "
+                 f"{held(hb, 'ell11_g30')} on the CAD finger; with the five-magnet block in {held(hv, 'block5_g30_v2a')} against "
+                 f"{held(hb, 'block5_g30')}, the block losing the 10&#8202;mm cylinder ({cell10(hv, 'block5_g30_v2a')} of 27 against "
+                 f"{cell10(hb, 'block5_g30')}). Pinned iCEM keeps the cylinder on three pads in all {len([r for r in iv + ib if r.get('status') == 'ok'])} "
+                 f"plans; on the 16&#8202;mm cell, the first bench task's, the 11/22 tip turns it {turn16(iv, 'ell11_g30_v2a'):+.1f}&#176; on "
+                 f"the v2 finger against {turn16(ib, 'ell11_g30'):+.1f}&#176; on the CAD finger. The longer lever costs force: at the PIP "
+                 f"servo the pads press 27&#8202;% less per newton-metre (26.61 against 36.36&#8202;mm), the servos spend "
+                 f"{100 * lim(hv):.1f}&#8202;% of the HOM ticks at their 0.18&#8202;N&#8202;m limit against {100 * lim(hb):.1f}&#8202;%, and parts "
+                 f"other than the pads touch the cylinder in more ticks per run (the board {ticks(hv, 'board'):.0f} against "
+                 f"{ticks(hb, 'board'):.0f}, the DIP link {ticks(hv, 'pip_frame'):.0f} against {ticks(hb, 'pip_frame'):.0f}).")
+        flm = []
+        for tag, lab in (("base", "CAD finger"), ("v2", "v2 finger, 9.75 mm longer")):
+            fj = V2 / tag / "media" / "films.jsonl"
+            if fj.exists():
+                r = [json.loads(l) for l in open(fj)][-1]
+                mp4 = V2 / tag / "media" / r["clip"]
+                poster = mp4.with_name(mp4.stem + "_end.png")
+                flm.append((f"{lab}: {'held' if r['held'] else 'dropped'}, turn {r['turn_end_deg']:+.1f} deg", mp4, poster))
+        film_fig = ""
+        if flm:
+            film_fig = films_html(flm, "HOM on the 16&#8202;mm cylinder (cell t 0.625, the first bench task's cell), the half-ellipsoid "
+                                       "11/22 tip on each finger at its best candidate grasp, seed 0; pads touching the cylinder red, "
+                                       "the board green. Real time.", 2)
         S.append(("v2finger", "The first bench task on the longer v2 finger", f"""
 <p>The v2 DIP link puts the tip 9.75&#8202;mm further from the PIP axis (pad centre 36.36&#8202;mm past it) and weighs
 {vs['dip_body']['mass_g']:.1f}&#8202;g with its clamp plate and the board, against 5.6&#8202;g for the CAD finger's link and board. The
 readiness study's control tasks ran on both fingers with the same code, scenes, servo plant and planners
 (scripts/v2_finger_cells.py; the CAD finger's rows with <code>V2_FINGER_BASE=1</code>): HOM on the nine candidate grasps of each of the four
-cells at three seeds, and pinned iCEM on each cell's best HOM grasp (Table {t_v}).</p>
+cells at three seeds, and pinned iCEM on each cell's best HOM grasp (Table {t_v}). {v2txt}</p>
 {table(["Tip", "Cell", "HOM held, CAD finger", "Median held turn (&#176;)", "HOM held, v2 finger", "Median held turn (&#176;)",
         "Pinned iCEM, CAD finger", "Pinned iCEM, v2 finger"], crow, num_cols=(2, 3, 4, 5), n=t_v,
        caption="Control tasks of the readiness study on the CAD finger and on the v2 finger (cells.jsonl rows of each; model "
-               "values, servo plant kp 0.72&#8202;N&#8202;m/rad, 0.18&#8202;N&#8202;m).")}"""))
+               "values, servo plant kp 0.72&#8202;N&#8202;m/rad, 0.18&#8202;N&#8202;m).")}
+{film_fig}"""))
     cc = D / "contact_class"
     if cc.exists() and any(cc.glob("*.csv")):
         rr_ = []
@@ -492,6 +569,9 @@ their flanks in the print) and concept b's rail grooves and screw-head notches b
 modelled as uniformly narrower beads; real defects cluster at seams and travel starts. The G-code audit counts moves; it does not
 see strings. The control rests on one block calibration (M1) and the readiness commands, three seeds per cell.</p>"""))
 
+    _iv = rows(ROOT / "docs/experiments/20261019-v2_finger/cells/icem.jsonl")
+    _t = [r["turn_end_deg"] for r in _iv if r.get("status") == "ok" and r["variant"] == "ell11_g30_v2a" and r["d_mm"] == 16]
+    turn16_v2 = f"{_t[0]:+.1f}&#176;" if _t else "(pending)"
     S.append(("future", "Future work", f"""
 <ul>
 <li>Weigh the fit-size parts (A00&#8211;A20: {np.mean(mA):.2f}&#8202;g each in the G-code; B00&#8211;B15: {np.mean(mB):.2f}&#8202;g) and the
@@ -505,12 +585,19 @@ point to moisture; as many strings point to the profile's 240&#8202;&#176;C and 
 beads.</li>
 <li>Indent one v2 tip under the 25&#8202;mm rod at 0.5, 1 and 3&#8202;N (readiness procedure, step &#8216;indentation&#8217;) to fix the bench factor
 &#955;; with a and b within 2.5&#8202;% of the calibrated print, one measurement fixes &#955; for both concepts.</li>
-<li>The runs queued behind the closed launch gate (logs/20261019-overnight/q_fe.txt and q_sim.txt): the v2 tip on the fine grid; the
-capsule's Drake replays; the impratio-1000 bed arm on all four tips; calibration M3 with the series spring in both simulators
-(<code>fe_contact_calibration_sim.py icem --tips ell11_g30 --calib M3 --plants pads drake</code>, the spring now in
-<code>curved_tips_cell_drake.CellDrake(k_s=...)</code>; a smoke replay held the tool in both, ending at +10.7&#176; in the pads and +25.9&#176;
-in Drake against +21.1&#176; logged); and the v2 finger's scenes (<code>scripts/v2_finger_scenes.py build</code>). If M3 puts the 11/22 tip
-on Drake's branch in 5 of 6 pairs, the branch split came from M2 standing in for the spring.</li>
+<li>Export the first bench plan for the v2 finger with the 11/22 tip: pinned iCEM on the 16&#8202;mm cell held the cylinder on three
+pads and turned it {turn16_v2} on the v2 finger (Section on the longer finger); <code>scripts/sim2real_fingertip_bench.py export</code>
+pointed at <code>assets/mjcf/experimental/20261019-v2_finger/ell11_g30_v2a</code> as scripts/v2_finger_cells.py points the cells, then the
+plant-condition sweep, the abort test and <code>scripts/real_v1_trajectory_clearance.py</code> before the bench. A plan that keeps the
+cylinder in fewer than the 60 of 81 plant conditions of the block's 10-16 plan would argue for re-planning on the measured plant.</li>
+<li>The force bound of the consistency test (0.25&#8202;N normal) fails on the block at M1 and on the 11/22 tip at M3 alike (0.54 and
+0.37&#8202;N). The pinch-brake test of the contact overview's Future work measures which simulator's force sharing the printed tip
+follows; until then the angle and branch criteria carry the comparison.</li>
+<li>Put the 11/22 force resolutions (Section on sensing) into the DIP study's evaluations (scripts/dip_link_v2.py, a and b
+<code>docs</code> stages) when the DIP page is next rebuilt, in place of the block's.</li>
+<li>Runs still queued at the page's build (logs/20261019-overnight/q_all.txt, one job at a time): the capsule's Drake replays, the
+impratio-1000 bed arm, the v2 tip on the fine grid, the D7 contact-class renders, seeds 3&#8211;5 of the 11/22 tip at M2 and M3 and of the
+block at M1, and films of the 16&#8202;mm task on both fingers. Their sections appear when the page is rebuilt with their rows.</li>
 </ul>"""))
 
     S.append(("files", "Files", f"""
@@ -523,9 +610,9 @@ printed-fingertip work</a>.</p>"""))
 
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S, 1))
-    title = "Stiffness of the v2 fingertips and its sensitivity to under-extrusion"
+    title = "Checks of the v2 11/22 fingertip and the 9.75 mm longer DIP link"
     page = TEMPLATE.read_text()
-    for k, v in {"TITLE": "v2 fingertip stiffness checks", "H1": title,
+    for k, v in {"TITLE": "v2 fingertip checks", "H1": title,
                  "EYEBROW": "Printed fingertips and force sensing &#183; 2026-10-19",
                  "LEDE": lede, "BYLINE": f"Built {time.strftime('%Y-%m-%d %H:%M')} from the study's rows; model values, nothing measured.",
                  "TOC": toc, "SECTIONS": secs, "FOOTER": str(PAGE.relative_to(ROOT)), "TEXCSS": texsvg.CSS}.items():
