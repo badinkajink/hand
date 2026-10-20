@@ -79,7 +79,7 @@
   "cad_v1/scene_screwdriver_medium.xml"
  ],
  "script": "scripts/v2_finger_scenes.py build",
- "when": "2026-10-20 02:46",
+ "when": "2026-10-20 05:12",
  "base_variant": "block5_g30",
  "neck_mm": 9.75,
  "pip_to_pad_centre_mm": 36.36,
@@ -98,27 +98,24 @@
   "source": "v2/a/cad/20261018-dip_link_v2a_{dip_link,clamp_plate}.stl; masses from the P1S G-code of 20261019-v2_ur5_pla_p1s"
  },
  "spheres": {
-  "n": 40,
-  "clipped": 29,
+  "n": 28,
+  "clipped": 16,
   "past_pad_faces_mm": {
    "fitted": {
-    "palmar": 0.12501345574855888,
-    "end": -21.37496529877185,
-    "side": null
+    "palmar": 3.67919635027647,
+    "end": 1.1431223520636593,
+    "side": 6.350409239530563
    },
    "clipped": {
     "palmar": -0.5000000000000004,
-    "end": -21.374965298771855,
-    "side": null
+    "end": -0.5891031540557687,
+    "side": -0.5000000000000004
    }
   },
   "packing": {
    "dip_link": {
-    "method": "greedy inscribed spheres on a 0.25 mm occupancy",
-    "budget": 40,
-    "occupancy_mm3": 8721.3,
-    "mesh_mm3": 8826.3,
-    "coverage": 0.603
+    "method": "MorphIt-B on the 0.25 mm remesh (cmd_remesh)",
+    "budget": 20
    },
    "clamp_plate": {
     "method": "MorphIt-B",
@@ -134,7 +131,7 @@
      0.0,
      -0.03636
     ],
-    "spheres": 40
+    "spheres": 28
    },
    "index": {
     "tip_pos_m": [
@@ -142,7 +139,7 @@
      0.0,
      -0.03636
     ],
-    "spheres": 40
+    "spheres": 28
    },
    "middle": {
     "tip_pos_m": [
@@ -150,7 +147,7 @@
      0.0,
      -0.03636
     ],
-    "spheres": 40
+    "spheres": 28
    }
   },
   "hand.xml": {
@@ -160,7 +157,7 @@
      0.0,
      -0.03636
     ],
-    "spheres": 40
+    "spheres": 28
    },
    "index": {
     "tip_pos_m": [
@@ -168,7 +165,7 @@
      0.0,
      -0.03636
     ],
-    "spheres": 40
+    "spheres": 28
    },
    "middle": {
     "tip_pos_m": [
@@ -176,7 +173,7 @@
      0.0,
      -0.03636
     ],
-    "spheres": 40
+    "spheres": 28
    }
   },
   "finger.xml": {
@@ -186,7 +183,7 @@
      0.0,
      -0.03636
     ],
-    "spheres": 40
+    "spheres": 28
    }
   }
  }

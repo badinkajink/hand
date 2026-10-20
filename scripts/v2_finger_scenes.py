@@ -246,8 +246,8 @@ def morphit(mesh, name, budget=20):
         CS.run([CS.PY, CS.MORPHIT / "hand_trials/pack_link.py", "--mesh", stl, "--budgets", budget, "--variant", "MorphIt-B",
                 "--iterations", 1000, "--seed", 0, "--out", WORK, "--threads", 4], WORK / f"morphit_{name}.log")
     S = json.loads(js.read_text())
-    C = np.asarray(S["centers"] if "centers" in S else S["centres"], float) / 1000.0
-    R = np.asarray(S["radii"], float).ravel() / 1000.0
+    C = np.asarray(S["centers"] if "centers" in S else S["centres"], float)        # pack_link.py writes metres
+    R = np.asarray(S["radii"], float).ravel()
     return C, R
 
 
