@@ -105,8 +105,8 @@ def main():
     lede = (f"Concept b becomes v3 and the UR5e mount v2 after the owner's first prints. The cover gains side "
             f"walls along the pad's flanks, the neck under the pad becomes a column {pv['col_margin']:.1f}&#8202;mm inside the "
             f"11/22 outline, and the cable's leg opens to the top, so the double-ended Qwiic cable lies in. The walls change the "
-            f"pad's approach by at most {abs(w3_6[1]):.2f}&#8202;% at 6&#8202;N"
-            + (f" and its force resolution from {sb:.3f} to {sw:.3f}&#8202;N" if sw else "") +
+            f"pad's approach by at most {abs(w5_6[1]):.2f}&#8202;% at 6&#8202;N"
+            + (f" and its force resolution from {sb:.3f} to {sw5:.3f}&#8202;N" if sw5 else "") +
             f". The mount keeps v1's fork without the spigot and the key: the ears fit the link's base 0.2&#8202;mm off and a set screw "
             f"seats it straight; the finger lies on the tool axis, and a post beside each indenter homes it. Two P1S plates print "
             f"in {pc['time']} and {pl['time']}.")
@@ -155,7 +155,7 @@ point is relative to the indenter's top.</dd>
            "The leg toward the back open to the top out through the back", "Cable clearance unchanged"],
           ["Rails pop off under a sideways push (B00; B05 worse); beef up the cassette with side volume around the pad",
            f"Two walls {pv['wall_h']:.1f}&#8202;mm tall along the pad's flanks from the mount face to the widest section, counterbored "
-           "over the proximal screws", f"Approach change {w3_6[1]:+.2f}&#8202;% at 6&#8202;N (FE)"],
+           "over the proximal screws, the chip windows cut out", f"Approach change {w5_6[1]:+.2f}&#8202;% at 6&#8202;N (FE)"],
           ["The block under the pad takes side and large contacts on rigid PLA; a column a little inside the 11/22, a fillet or angled "
            "edge to the board mount", f"Column {pv['col_margin']:.1f}&#8202;mm inside the 11/22 mount-face outline; 45&#176; "
            f"chamfers of {pv['col_chamfer']:.1f}&#8202;mm to the board mount", f"Link {m2['dip_link_solid']:.1f} &#8594; "
@@ -191,8 +191,10 @@ bridge, where it takes the board's tab, J1, the plug and the floor of the cable'
 <p>Figure 2 shows the cover. Its web stays as thick as the chips (0.9&#8202;mm), because the pad's back face rests on the chip tops;
 the new volume is two walls {pv['wall_h']:.1f}&#8202;mm tall along the pad's flanks, where the flanks run straight back from the
 pad's equator. They run from the mount face toward the pad's widest section, the owner's &#8216;from the screw holes at the bottom until
-the ellipse starts to curve back in&#8217;, and stop {pv['wall_window_gap']:.1f}&#8202;mm short of the windows of the two outer chips,
-4.1&#8202;mm proximal of the apex (owner, 15:20: the first draft reached over them); they stand {pv['wall_clear']:.2f}&#8202;mm off the flank, and slope outward to the cover's edge
+the ellipse starts to curve back in&#8217;, and have the windows of the two outer chips and their capacitors cut out of them, {pv['wall_window_gap']:.1f}&#8202;mm
+around (owner, 15:20 and 15:50: the first draft reached over them); at {pv['wall_h']:.1f}&#8202;mm they cover the flank's whole straight
+part and 1.05&#8202;mm past the equator, where it has curved in by 0.06&#8202;mm (owner, 15:50: 'pop up the retaining lip a lot more');
+they stand {pv['wall_clear']:.2f}&#8202;mm off the flank, and slope outward to the cover's edge
 ({pv['wall_top_t']:.1f}&#8202;mm thick at the top); each proximal screw head sits in a counterbore through its wall, and the walls end at
 45&#176;. A sideways push on the pad then bears on the wall instead of prying the dovetails apart. The walls also stiffen the 0.9&#8202;mm web
 along both long edges, which is where the v2 cover lifted off the bed and curled.</p>
@@ -209,8 +211,8 @@ are unchanged (Table 2); a strip of Kapton tape over the leg keeps it down.</p>
        "today.", n=2)}"""))
 
     fe_rows = []
-    for c, lab in (("b_v2", "No walls (v2 cover)"), ("b_v2_wall3", f"Walls {pv['wall_h']:.1f}&#8202;mm (v3 cover)"),
-                   ("b_v2_wall495", "Walls over the whole straight flank, 4.95&#8202;mm")):
+    for c, lab in (("b_v2", "No walls (v2 cover)"), ("b_v2_wall3", "Walls 3.0&#8202;mm (first draft of the v3 cover)"),
+                   ("b_v2_wall495", f"Walls over the whole straight flank, 4.95&#8202;mm (v3 cover, {pv['wall_h']:.1f}&#8202;mm)")):
         if c not in fe:
             continue
         mean6, low6, n_ = fe_change(fe, c, "6") if c != "b_v2" else (0.0, 0.0, len(fe[c]))
@@ -223,13 +225,14 @@ are unchanged (Table 2); a strip of Kapton tape over the leg keeps it down.</p>
 <p>The walls touch the pad, so they could change the stiffness the 10-18 calibration fitted and the motion the magnetometers read.
 In the finite elements of b's pad (the 11/22 tip cut at the cover, five magnets, the model of the night of 10-19) the walls fix the
 flank's nodes in y over their height and length up to the apex's z, both ways; the printed wall stands 0.10&#8202;mm off, resists
-only outward motion and stops 4.1&#8202;mm short of the apex, so the change is an upper bound. With {pv['wall_h']:.1f}&#8202;mm walls the approach falls by {abs(w3_6[0]):.2f}&#8202;% on average at 6&#8202;N
+only outward motion and has the chip windows cut out of it, so the change is an upper bound; the v3 walls
+({pv['wall_h']:.1f}&#8202;mm) cover the whole straight flank, the last row of Table 3. With {pv['wall_h']:.1f}&#8202;mm walls the approach falls by {abs(w3_6[0]):.2f}&#8202;% on average at 6&#8202;N
 (at most {abs(w3_6[1]):.2f}&#8202;% over {w3_6[2]} probes), and with walls over the whole straight flank by {abs(w5_6[1]):.2f}&#8202;% at most
 (Table 3), against the calibration's 5&#8202;% bound."""
-              + (f" The magnets then move {sens['b_v2_wall3']['magnet_travel_um_per_N']:.2f} in place of "
+              + (f" Over the whole straight flank the magnets move {sens['b_v2_wall495']['magnet_travel_um_per_N']:.2f} in place of "
                  f"{sens['b_v2']['magnet_travel_um_per_N']:.2f}&#8202;&#181;m per newton, so the force resolution at the contact point "
-                 f"goes from {sb:.4f} to {sw:.4f}&#8202;N, {100 * (sw / sb - 1):.0f}&#8202;% coarser, and the contact position stays "
-                 f"within {sens['b_v2_wall3']['gain']['centre_sig_y_mm']:.2f} by {sens['b_v2_wall3']['gain']['centre_sig_z_mm']:.2f}"
+                 f"goes from {sb:.4f} to {sw5:.4f}&#8202;N, {100 * (sw5 / sb - 1):.0f}&#8202;% coarser, and the contact position stays "
+                 f"within {sens['b_v2_wall495']['gain']['centre_sig_y_mm']:.2f} by {sens['b_v2_wall495']['gain']['centre_sig_z_mm']:.2f}"
                  "&#8202;mm; concept a's tip gives 0.065&#8202;N." if sw else " The readout rows are pending.") + f"""</p>
 {table(["Pad", "Rod approach at 1&#8202;N (&#181;m)", "Approach change at 6&#8202;N, mean / largest (%)", "Force resolution (N)",
         "Contact position, 1 sd (mm)"], fe_rows, num_cols=(1, 2, 3, 4),

@@ -932,11 +932,9 @@ def cover_walls(K):
     import numpy as np
     h, c, tt = rp("wall_h"), rp("wall_clear"), rp("wall_top_t")
     z0, z1 = Z_CONTACT + rp("wall_z0"), TIP["z_mount"]
-    # owner, 2026-10-20 15:20: "the added volume creeps up over the left and right most magnetometers": the walls start
-    # wall_window_gap proximal of every chip window that reaches under them (U3 and U5 at |y| 7.0)
-    reach = [w[3] for w in cover_windows().values() if max(abs(w[0]), abs(w[1])) > ELL["ay"] * 0.8]
-    if reach:
-        z0 = max(z0, max(reach) + rp("wall_window_gap"))
+    # owner, 2026-10-20 15:20: "the added volume creeps up over the left and right most magnetometers"; 15:50: "the first
+    # version of the modified cassette was the right idea, just cut right at where the magnetometer pocket is": the walls
+    # keep their length and every chip window is cut out of them, grown by wall_window_gap
     xt = X_SLOT - h
     y_top = ELL["ay"] + c + tt
     xo = X_SLOT + 0.01                                     # 0.01 mm into the web, so the mesh union joins them
@@ -948,7 +946,8 @@ def cover_walls(K):
     cuts = [K.prism_x(foot, xt - 1.0, X_SLOT + 0.5),
             K.prism_y([(X_SLOT + 0.5, z0 - 0.5), (xt - 0.5, z0 + h + 0.5), (xt - 0.5, z0 - 20.0), (X_SLOT + 0.5, z0 - 20.0)],
                       -Y_RIM - 1.0, Y_RIM + 1.0)]
-    cuts += [K.cylx(y, z, (HEAD_D + 0.4) / 2, xt - 1.0, X_SLOT - rp("head_raise")) for y, z in screw_yz() if z0 <= z <= z1]
+    g = rp("wall_window_gap")
+    cuts += [K.box((xt - 1.0, y0 - g, za - g), (X_SLOT + 0.5, y1 + g, zb + g)) for y0, y1, za, zb in cover_windows().values()]
     return K.cut(K.fuse(blocks[0], [blocks[1]]), cuts)
 
 
@@ -992,6 +991,10 @@ def cover_part(K):
         rails.append(K.prism_z(sec, RAIL_Z[0], RAIL_Z[1]))
     if DESIGN.get("cover_walls", "none") == "pad_flanks":
         rails.append(cover_walls(K))
+        h = rp("wall_h")
+        return K.finish(K.cut(K.fuse(cover, rails),
+                              [K.cylx(y, z, SCREW_CLEAR / 2, X_SLOT - h - 1.0, X_COMP + 0.2) for y, z in screw_yz()]
+                              + [K.cylx(y, z, (HEAD_D + 0.4) / 2, X_SLOT - h - 1.0, X_SLOT) for y, z in screw_yz()]))
     hr = rp("head_raise")
     if hr > 0:      # owner, 2026-10-20 15:20: "the screws can sit a little higher (like 1mm)": a seat under each head
         rails += [K.cylx(y, z, HEAD_D / 2 + 0.8, X_SLOT - hr, X_SLOT + 0.01) for y, z in screw_yz()]
