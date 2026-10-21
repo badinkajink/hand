@@ -8,7 +8,7 @@ Winkler pads on the face's nodes (stiffness E* a_i / h_i, builder v2's rule, und
 estimated point), the force arrow, the 1-sigma position ellipse, the chips and magnets, and traces.
 
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py [--port /dev/ttyACM0] [--http 8790]
-        [--board-cal logs/20261020-reskin5x/20261020-calib_weak_magnets.json] [--poles 1 1 1 1 1] [--replay rec.csv]
+        [--board-cal docs/experiments/20261020-fingertip_contact_estimation/data/20261020-calib_pad_as_found.json] [--poles 1 1 1 1 1] [--replay rec.csv]
 then open http://localhost:8790. Keys: b new baseline, c recalibrate at rest (keep the pad untouched), r record.
 """
 from __future__ import annotations
@@ -34,7 +34,7 @@ import fingertip_wrench_model as W  # noqa: E402
 from reskin5x_plot import Reader, ADDRS  # noqa: E402
 
 BASIS = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261020-b_v2_patch_basis.npz"
-BOARD_CAL = ROOT / "logs/20261020-reskin5x/20261020-calib_weak_magnets.json"
+BOARD_CAL = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261020-calib_pad_as_found.json"
 REC_DIR = ROOT / "logs/20261020-contact_estimation"
 WIN_S, FRAME_S, REST_S = 0.05, 1 / 30, 2.0
 
