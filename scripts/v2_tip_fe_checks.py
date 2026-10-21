@@ -80,6 +80,27 @@ CASES = {   # name: grid, magnet depth (mm), magnets (None: the calibration's fo
     # the walls stiffen the pad and change the magnets' motion (the printed walls stand 0.10 mm off and hold only outward)
     "b_v2_wall3": dict(grid="base", depth=7.5, mags="five", body="b", wall_h=3.0),
     "b_v2_wall495": dict(grid="base", depth=7.5, mags="five", body="b", wall_h=4.95),
+    # 2026-10-20 evening (owner, after printing pad B00 with five magnets: "with the 5 magnets, we have to lower the magnets
+    # farther away from the tip / closer to the magnetometer. it looks like it wont deform very much ... did you measure this
+    # difference much?"): b's pad with the four magnets of the 10-18 print (the calibration's grid at 7.5 mm, the 2.9 mm
+    # seat, and at 7.0 mm, the 2.7 mm seat), and the five magnets 1.0 and 0.5 mm shallower and 1.0 mm deeper
+    "b_v2_four": dict(grid="base", depth=7.5, mags=None, body="b"),
+    "b_v2_four_d70": dict(grid="base", depth=7.0, mags=None, body="b"),
+    "b_v2_d65": dict(grid="base", depth=6.5, mags="five", body="b"),
+    "b_v2_d70": dict(grid="base", depth=7.0, mags="five", body="b"),
+    "b_v2_d85": dict(grid="base", depth=8.5, mags="five", body="b"),
+    # the same on grid "bmag": on the base grid b's magnets lie in 1.1 mm elements along x at 7.5 mm and cross into 0.55 mm
+    # ones at 6.5-7.0 mm, and the five's proximal pair reaches the 0.8 mm zone along z, so the depth sweep mixes grids
+    "bm_five_d65": dict(grid="bmag", depth=6.5, mags="five", body="b"),
+    "bm_five_d70": dict(grid="bmag", depth=7.0, mags="five", body="b"),
+    "bm_five_d75": dict(grid="bmag", depth=7.5, mags="five", body="b"),
+    "bm_five_d85": dict(grid="bmag", depth=8.5, mags="five", body="b"),
+    "bm_four_d70": dict(grid="bmag", depth=7.0, mags=None, body="b"),
+    "bm_four_d75": dict(grid="bmag", depth=7.5, mags=None, body="b"),
+    # owner, 2026-10-20 18:35: "is it possible to run just one wall around the magnets instead of 2?": one 0.45 mm perimeter
+    # along each pocket, two along the outer outline (metric_magnet_prints.onewall_modifier prints it)
+    "bm_five_d75_w1": dict(grid="bmag", depth=7.5, mags="five", body="b", pocket_walls=1),
+    "bm_four_d75_w1": dict(grid="bmag", depth=7.5, mags=None, body="b", pocket_walls=1),
 }
 X_CUT_B = -8.5 + (17.0 - 13.45)        # b's pad: 13.45 mm deep (v2 fit-size parts B00-B15) of the tip's 17.0 mm
 
@@ -152,6 +173,51 @@ def layout_of(c):
     return dict(depth=c["depth"], mags=five())
 
 
+def classes_pocket_walls(lay, build, pocket_walls):
+    """FE.classes with `pocket_walls` perimeters of 0.45 mm along each magnet's outline and two (tpu_tip_fem_tip.WALL)
+    along the outer outline, for any build direction (metric_magnet_prints.classes_walls builds along x only); with
+    pocket_walls 2 it is tpu_tip_magnet.classes."""
+    from scipy import ndimage
+    import tpu_tip_fem_tip as T
+    import tpu_tip_magnet as TM
+    import tpu_tip_magnet_layouts as TL
+    H = TM.H_AUX
+    occ, o = TL.occupancy(H, lay, 2)
+    tpu, mag = occ == 1, occ == 2
+    body = tpu | mag
+    ax = {"x": 0, "y": 1, "z": 2}[build]
+    d_out = np.zeros(tpu.shape, np.float32)
+    d_mag = np.full(tpu.shape, np.inf, np.float32)
+    for k in range(tpu.shape[ax]):
+        sl = [slice(None)] * 3
+        sl[ax] = k
+        sl = tuple(sl)
+        if body[sl].any():
+            d_out[sl] = ndimage.distance_transform_edt(np.pad(body[sl], 1))[1:-1, 1:-1] * H
+        if mag[sl].any():
+            d_mag[sl] = ndimage.distance_transform_edt(~mag[sl]) * H
+    wall = tpu & ((d_out <= T.WALL + 1e-9) | (d_mag <= pocket_walls * T.WALL / 2 + 1e-9))
+    n = tpu.shape[ax]
+    m = np.moveaxis(tpu, ax, -1)
+    up = np.zeros(m.shape, np.float32)
+    down = np.zeros(m.shape, np.float32)
+    last = np.full(m.shape[:-1], -1, int)
+    for k in range(n):
+        last = np.where(~m[..., k], k, last)
+        down[..., k] = np.where(m[..., k], (k - last) * H, 0)
+    nxt = np.full(m.shape[:-1], n, int)
+    for k in range(n - 1, -1, -1):
+        nxt = np.where(~m[..., k], k, nxt)
+        up[..., k] = np.where(m[..., k], (nxt - k) * H, 0)
+    skin = np.moveaxis(m & ((up <= T.N_SKIN * T.LAYER + 1e-9) | (down <= T.N_SKIN * T.LAYER + 1e-9)), -1, ax) & ~wall
+    cls = np.zeros(tpu.shape, np.uint8)
+    cls[tpu] = 3
+    cls[skin] = 2
+    cls[wall] = 1
+    cls[mag] = 4
+    return cls, o
+
+
 def mat_ids(c):
     """FE.mat_ids for a case: the 11/22 shape, the case's magnets, recipe and shell."""
     import curved_tips_fe as CF
@@ -161,9 +227,12 @@ def mat_ids(c):
     import tpu_tip_design as TD
     sh = TG.shape(KEY)
     CF.install(sh)
-    g = FE.grid(c["grid"])
+    g = FE.grid("base" if c["grid"] == "bmag" else c["grid"])
     if c.get("body") == "b":                               # the grid starts at the cut face, which is fixed
         g["x"] = [(X_CUT_B, X_CUT_B + 0.9, 0.45), (X_CUT_B + 0.9, 1.0, 1.1)] + g["x"][2:]
+    if c["grid"] == "bmag":                                # every depth and layout's magnets in 0.5 mm along x, 0.3 mm along z
+        g["x"] = [(X_CUT_B, 5.4, 0.5), (5.4, 8.5, 0.25)]
+        g["z"] = [(0.0, 3.5, 0.8), (3.5, 18.5, 0.3), (18.5, 21.41, 0.4)]
     G = T.Grid(T.zoned_axis(g["x"]), T.zoned_axis(g["y"]), T.zoned_axis(g["z"]))
     lay = layout_of(c)
     saved = (T.WALL, T.N_SKIN, T.LAYER, TD.inside_body)
@@ -174,7 +243,8 @@ def mat_ids(c):
     elif c.get("body") == "b":
         TD.inside_body = lambda X, Y, Z: inside(X, Y, Z) & (X >= X_CUT_B)
     try:
-        cls, o = FE.classes(lay, BUILD)
+        cls, o = (FE.classes(lay, BUILD) if c.get("pocket_walls", 2) == 2
+                  else classes_pocket_walls(lay, BUILD, c["pocket_walls"]))
     finally:
         T.WALL, T.N_SKIN, T.LAYER, TD.inside_body = saved
     counts = {k: int((cls == v).sum()) for k, v in (("wall", 1), ("skin", 2), ("core", 3), ("magnet", 4))}
@@ -261,7 +331,7 @@ def run_case(name, max_dof):
     print(f"{name}: {time.time() - t0:.0f} s, peak RSS {peak:.2f} GB", flush=True)
 
 
-SENSE_GAP = {"a_v2": 0.37, "b_v2": 3.32 - 6.45, "b_v2_wall3": 3.32 - 6.45, "b_v2_wall495": 3.32 - 6.45}   # sensing plane behind the whole tip's back face, mm (DIP study levels:
+SENSE_GAP = {"a_v2": 0.37, **{k: 3.32 - 6.45 for k, c in CASES.items() if c.get("body") == "b"}}   # sensing plane behind the whole tip's back face, mm (DIP study levels:
                                                # a's sense_x 6.82 against the back face's x_F 6.45; b's sensing_plane x_F 3.32)
 
 
@@ -371,11 +441,13 @@ def main():
     ap.add_argument("--max-dof", type=int, default=320000)
     ap.add_argument("--sense", nargs="*", default=None, choices=list(SENSE_GAP),
                     help="patch-load rows of these cases for the readout model, then the force resolution of every sense row")
+    ap.add_argument("--rows-only", action="store_true", help="with --sense: the patch-load rows alone, no force resolution")
     a = ap.parse_args()
     if a.sense is not None:
         for name in a.sense:
             run_sense(name)
-        sense()
+        if not a.rows_only:
+            sense()
         return
     for name in a.cases:
         run_case(name, a.max_dof)

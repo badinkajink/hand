@@ -67,6 +67,7 @@ def load():
     plates = {k: j(D / f"print/20261020-p1s_pla_{k}.json") for k in ("calibration", "link")}
     plates["payload"] = j(D / f"{UP}_payload.json")
     plates["b00"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_print_pad_ell11_5_B00_85a_t2_g30.json")
+    plates["b4"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_print_pad_ell11_4_B00_85a_t2_g30.json")
     fe = {}
     for r in rows(FE / "fe.jsonl"):
         if r["case"] in ("b_v2", "b_v2_wall3", "b_v2_wall495"):
@@ -92,6 +93,8 @@ def main():
     r4 = ev["v3"]["r4"]["ell11_5"]["groove_to_pocket_mm"]
     b_u1 = ev["v3"]["sensing"]["static_fields"]["ell11_5"]["B_U1_mT"]
     pb_t = pb["summary"]["print_time"].replace("m ", "&#8202;min ").replace("s", "&#8202;s")
+    p4 = plates["b4"]
+    p4_t = p4["summary"]["print_time"].replace("m ", "&#8202;min ").replace("s", "&#8202;s")
     has_w3 = "b_v2_wall3" in fe and "b_v2_wall3" in sens
     w3_6 = fe_change(fe, "b_v2_wall3", "6") if "b_v2_wall3" in fe else (0, 0, 0)
     w5_6 = fe_change(fe, "b_v2_wall495", "6") if "b_v2_wall495" in fe else (0, 0, 0)
@@ -109,11 +112,12 @@ def main():
     lede = (f"Concept b becomes v3 and the UR5e mount v2 after the owner's first prints. The cover gains side "
             f"walls along the pad's flanks, the neck under the pad becomes a column {pv['col_margin']:.1f}&#8202;mm inside the "
             f"11/22 outline, and the cable's leg opens to the top for the double-ended Qwiic cable. The walls change the "
-            f"pad's approach by at most {abs(w5_6[1]):.2f}&#8202;% at 6&#8202;N"
-            + (f" and its force resolution from {sb:.3f} to {sw5:.3f}&#8202;N" if sw5 else "") +
-            f". The mount keeps v1's fork without the spigot and the key; mold ears and a set screw seat the link straight, and a "
-            f"post beside each indenter homes it. Two P1S plates print in {pc['time']} and {pl['time']}; pad B00 with its five "
-            f"magnets prints on the XL in {pb_t}.")
+            f"pad's approach by at most {abs(w5_6[1]):.2f}&#8202;% at 6&#8202;N, and the owner chose them flush with the pad (W00). "
+            f"The mount keeps v1's fork without the spigot and the key; mold ears and a set screw seat the link straight, and a "
+            f"post beside each indenter homes it. In the readout model the pad resolves "
+            + (f"{sens['bm_five_d75']['gain']['centre_force_N']:.3f}&#8202;N at the contact point with five magnets and "
+               f"{sens['bm_four_d75']['gain']['centre_force_N']:.3f}&#8202;N with four; shallower magnets and one wall around them "
+               f"leave that gap open." if "bm_four_d75" in sens and "bm_five_d75" in sens else "") )
 
     S = []
     S.append(("terms", "Terms and metrics", f"""
@@ -139,6 +143,13 @@ elements of the 10-18 calibration (18 probes on the palmar face, 0.5&#8211;6&#82
 <dt>Force resolution</dt><dd>One standard deviation of the normal force estimated from one sample of the five MLX90393 chips at
 the contact point, with the contact position and a uniform background field unknown (Cram&#233;r&#8211;Rao bound of the readout model,
 <code>tpu_tip_magnet_sensing</code>), at the gain the field needs, in N; smaller is finer.</dd>
+<dt>Magnet depth</dt><dd>Distance along the palmar normal from the pad's apex, its most palmar point, to the magnets' palmar
+faces, in mm. The magnets are 2&#8202;mm thick and b's pad is 13.45&#8202;mm deep, so 11.45&#8202;mm less the depth of TPU lies behind
+them, and the chips' sensing plane is 0.42&#8202;mm behind the pad.</dd>
+<dt>Magnet travel</dt><dd>Mean translation of the magnets when the 12.5&#8202;mm rod presses the contact point with 1&#8202;N, from
+the finite elements, in &#181;m.</dd>
+<dt>Position resolution</dt><dd>One standard deviation of the contact position along y and z, estimated from one sample of the
+five chips by the same bound as the force resolution, in mm.</dd>
 <dt>Datum</dt><dd>A face of the mount against which a face of the DIP link is pressed, so that the link takes one pose; the gap
 given is the nominal one before the link is pressed on.</dd>
 <dt>Homing</dt><dd>Seating the pin of a post on the indenter's base in a socket of the mount, which fixes where the pad's contact
@@ -170,7 +181,14 @@ point is relative to the indenter's top.</dd>
            f"{m3['dip_link_solid']:.1f}&#8202;g solid"],
           ["The rails slot well at B00; B05 snaps on more easily and pops off sooner",
            "Groove fit 0.00&#8202;mm (B00) in the v3 parameters; pad B00 with its five magnets as an XL project with three pauses",
-           f"Grooves {r4:.1f}&#8202;mm from the magnet pockets (R4 asks 2.0)"]]
+           f"Grooves {r4:.1f}&#8202;mm from the magnet pockets (R4 asks 2.0)"],
+          ["W00 works fine (the fit covers with pad B00)", "Wall clearance 0.00&#8202;mm in the v3 parameters; the link plate takes "
+           "cover W00", f"Link plate {pl['time']}, no slice problems"],
+          ["Re-prepare the four-magnet configuration; with five, the magnets sit far from the tip and may not move much",
+           "Pad B00 with the four magnets of the 10-18 print (ID B4) as an XL project; b's pad in the readout model with four and "
+           "five magnets at 6.5&#8211;8.5&#8202;mm", "Table 7, Figure 11"],
+          ["Is it possible to run one wall around the magnets instead of two?", "Both pads with one perimeter along each pocket "
+           "(IDs 5W1, 4W1) as XL projects; the same in the readout model", "Loops counted in the G-code; Table 7"]]
     S.append(("changes", "Changes from the owner's notes of 2026-10-20", f"""
 <p>Table 1 lists each note, the change it made and the check that covers it. The DIP link changes are design switches of the
 concept b generator with their own parameters (<code>cover_walls</code>, <code>neck</code>, <code>cable_leg</code> in
@@ -324,13 +342,62 @@ side, stays in the script as <code>fork_style = "cradle"</code>; the plates prin
 again: the mount and the indenters at 0.15&#8202;mm with five walls and 40&#8202;% gyroid, the covers solid at 0.1&#8202;mm, the DIP link at
 0.1&#8202;mm on tree supports, and a 5&#8202;mm brim on every part, which also keeps the covers flat. The fit covers W00, W10 and W20 have
 one, two and three notches in their distal edge; they fit the v2 link already printed, so the walls can be tried on it before v3
-prints. The 85A pad is B00 with its five 3&#8202;&#215;&#8202;2&#8202;mm magnets, its ID engraved in the mount face: it prints on the XL's
+prints. W00 held pad B00 in the owner's test, so the design and the link plate take it. The 85A pad is B00 with its five 3&#8202;&#215;&#8202;2&#8202;mm magnets, its ID engraved in the mount face: it prints on the XL's
 tool 2 in {pb_t} with pauses at {', '.join(f"{q['print_z']:.1f}" for q in pb['pauses'])}&#8202;mm, the settings of the owner's good
-print of 2026-10-18 ({code(DIP / pb['project'].split('board_mount/')[1])}). STEP files for Inventor: the mount's parts as exact solids in M ({code(D / 'cad')}, read back
+print of 2026-10-18 ({code(DIP / pb['project'].split('board_mount/')[1])}). The pad with the four magnets of the 10-18 print
+(ID B4) prints in {p4_t} with pauses at {', '.join(f"{q['print_z']:.1f}" for q in p4['pauses'])}&#8202;mm
+({code(DIP / p4['project'].split('board_mount/')[1])}); its pockets lie {p4['r4']['notch_to_pocket_mm']:.2f}&#8202;mm from the
+screw-head notches (R4 asks 2.0). Both pads also print with one perimeter along each pocket, a modifier over the pocket layers
+that keeps two at the outer surface (IDs 5W1 and 4W1, files <code>*_pocketwalls1_*</code>; the G-code shows one loop around every
+pocket). STEP files for Inventor: the mount's parts as exact solids in M ({code(D / 'cad')}, read back
 valid), and v3's new body, cover and cable-groove cutter as exact solids in F ({code(DIP / 'v3/b/cad')}).</p>
 {table(["Project", "Time", "PLA (g)", "Parts", "Slice checks failed"], t6, num_cols=(1, 2),
        caption="P1S plates (scripts/v3b_ur5v2_pla_plate.py), print/20261020-p1s_pla_*.json.", n=6)}
 {fig(10, D / 'print/20261020-p1s_pla_calibration_map.png', 'The calibration plate: mount v2, both indenters, covers W00, W10, W20.', 900)}"""))
+
+    MAG = [("Five", "bm_five_d65", 6.5), ("Five", "bm_five_d70", 7.0), ("Five", "bm_five_d75", 7.5), ("Five", "bm_five_d85", 8.5),
+           ("Four", "bm_four_d70", 7.0), ("Four", "bm_four_d75", 7.5),
+           ("Five, one wall", "bm_five_d75_w1", 7.5), ("Four, one wall", "bm_four_d75_w1", 7.5)]
+    BASE = {"bm_five_d65": "b_v2_d65", "bm_five_d70": "b_v2_d70", "bm_five_d75": "b_v2", "bm_five_d85": "b_v2_d85",
+            "bm_four_d70": "b_v2_four_d70", "bm_four_d75": "b_v2_four"}
+    if all(c in sens for _, c, _ in MAG):
+        sm = {c: sens[c] for _, c, _ in MAG}
+        rf = {c: r["gain"]["centre_force_N"] for c, r in sm.items() if r["gain_sel"] is not None}
+        tr = {c: r["magnet_travel_um_per_N"] for c, r in sm.items()}
+        ap1 = {c: r["approach_1N_um"] for c, r in sm.items()}
+        gdev = max(100 * abs(sens[BASE[c]]["gain"]["centre_force_N"] / v - 1) for c, v in rf.items() if c in BASE)
+        t7 = [[lab, f"{dp:.1f}", f"{11.45 - dp:.2f}", f"{tr[c]:.2f}", f"{sm[c]['B_max_component_mT']:.1f}",
+               "none reads it" if sm[c]["gain_sel"] is None else f"{sm[c]['gain_sel']}, {sm[c]['res']}",
+               f"{rf[c]:.3f}" if c in rf else "&#8212;",
+               f"{sm[c]['gain']['centre_sig_y_mm']:.2f} / {sm[c]['gain']['centre_sig_z_mm']:.2f}" if c in rf else "&#8212;"]
+              for lab, c, dp in MAG]
+        S.append(("magnets", "Four and five magnets in b's pad", f"""
+<p>With the magnets 7.5&#8202;mm under the apex, the readout model resolves {rf['bm_five_d75']:.3f}&#8202;N at the contact point with five
+magnets and {rf['bm_four_d75']:.3f}&#8202;N with four (Table 7, Figure 11). The fifth magnet lies over U1, the chip under the contact
+point, while the four lie between the chips. The four sit no shallower: on the 11/22 at the 2.9&#8202;mm seat both layouts need
+7.5&#8202;mm to keep 1.8&#8202;mm of TPU between the distal slots and the surface, and the four-magnet tip printed on 10-18 has them there
+too.</p>
+<p>The magnets move little because the pad's back rests on the cover: at 1&#8202;N the five travel {tr['bm_five_d75']:.1f}&#8202;&#181;m, against
+9.4&#8202;&#181;m in a's whole tip. The chips' sensing plane lies 4.4&#8202;mm behind them instead of 7.9&#8202;mm, so the same travel changes the
+field at the chips more, and b resolves finer than a (0.028 against 0.065&#8202;N on the base grid). Moving the five toward the surface
+trades the two: from 7.5 to 6.5&#8202;mm their travel grows from {tr['bm_five_d75']:.1f} to {tr['bm_five_d65']:.1f}&#8202;&#181;m and the force
+resolution goes from {rf['bm_five_d75']:.3f} to {rf['bm_five_d65']:.3f}&#8202;N; the four's is {rf['bm_four_d70']:.3f}&#8202;N at 7.0&#8202;mm. At
+8.5&#8202;mm the field at a chip reaches {sm['bm_five_d85']['B_max_component_mT']:.0f}&#8202;mT, more than any gain setting reads with the
+model's 25&#8202;% margin.</p>
+<p>One perimeter along each pocket in place of two (<code>metric_magnet_prints.onewall_modifier</code>, two loops kept at the outer
+surface) turns the inner 0.45&#8202;mm of solid TPU around each magnet into gyroid. The five then travel {tr['bm_five_d75_w1']:.1f}&#8202;&#181;m and
+the four {tr['bm_four_d75_w1']:.1f}&#8202;&#181;m at 1&#8202;N, and the pad's approach at 1&#8202;N grows by
+{100 * (ap1['bm_five_d75_w1'] / ap1['bm_five_d75'] - 1):.1f}&#8202;%. The five's force resolution stays at {rf['bm_five_d75_w1']:.3f}&#8202;N;
+the four's improves to {rf['bm_four_d75_w1']:.3f}&#8202;N, {rf['bm_four_d75_w1'] / rf['bm_five_d75']:.1f} times the five's.</p>
+{table(["Magnets", "Magnet depth (mm)", "TPU behind the magnets (mm)", "Magnet travel at 1 N (&#181;m)", "Largest field at a chip (mT)",
+        "GAIN_SEL, RES", "Force resolution at the contact point (N)", "Position resolution at the contact point, y / z (mm)"], t7,
+       num_cols=(1, 2, 3, 4, 6), caption="b's pad in the readout model (scripts/v2_tip_fe_checks.py --sense bm_*, sensing.json); "
+       "two perimeters along each pocket unless one is named; no cover walls.", n=7)}
+{fig(11, DIP / 'v3/b/media/20261020-dip_link_v3b_magnet_layouts.png', "The two layouts over the board's chips, palmar view, and "
+     "the readout model against the magnets' depth; open markers: one wall around the pockets.", 900)}
+<p>These cases run on a grid with 0.5&#8202;mm elements through the pad's depth and 0.3&#8202;mm along the finger from 3.5&#8202;mm. On the
+base grid of Table 3 the magnets at 7.5&#8202;mm lie in 1.1&#8202;mm elements, and the same cases' force resolution differs by up to
+{gdev:.0f}&#8202;%.</p>"""))
 
     S.append(("weights", "Weights of the 85A fit parts", f"""
 <p>The A tips weigh {meas['A']['mass_g']:.2f}&#8202;g and the B pads {meas['B']['mass_g']:.2f}&#8202;g, 14&#8202;% under the slicer's
@@ -347,17 +414,19 @@ explain the gap to the slicer as well as under-extrusion: one metre of the spool
 <p>The clearances, gaps and overlaps are computed on meshes of the designs, not of prints; the owner's printers have made holes
 0.1&#8202;mm small and pins near size. The walls' effect comes from linear finite elements with the flank held both ways; the
 pop-off itself, a large deformation of the pad over the dovetails, is not modelled, so the fit covers decide it. The HEX-E's x-axis
-is taken as the owner reads it (centre to the nub); the sensor's own marking decides it. The homing assumes the tool axis along the
+is taken as the owner reads it (centre to the nub); the sensor's own marking decides it. The readout model is a dipole model with
+the MLX90393's datasheet noise and the board 0.42&#8202;mm behind the pad; nothing in Table 7 is measured, and its depth sweep
+ignores the 1.8&#8202;mm pocket-wall rule, which at the 2.9&#8202;mm seat only 7.5&#8202;mm meets for either layout on the 11/22. The homing assumes the tool axis along the
 base's x; another heading moves the post's position by the same rotation.</p>"""))
 
     S.append(("future", "Future work", f"""
 <ul>
-<li>Print the calibration plate, put cover W10 on the v2 link with pad B00 and push the pad sideways by hand at its widest section;
-if it still pops off, try W00, and if W00 binds the pad, W20. The chosen clearance goes into <code>wall_clear</code> and the link plate
-prints with it.</li>
-<li>Read the five chips of a board under pad B00 at GAIN_SEL&#8202;1 and RES&#8202;1 before any touch: the model puts
-{b_u1:.1f}&#8202;mT on U1 from the magnets alone. A field more than 20&#8202;% off (about 0.3&#8202;mm of distance) means the magnets sit
-at another depth or the board at another gap, and the force resolution of Table 3 moves with it.</li>
+<li>Read the five chips under pads B00 and B4 at GAIN_SEL&#8202;1 (RES&#8202;1 for B00) before any touch: the model puts
+{b_u1:.1f}&#8202;mT on U1 under B00 and at most {sens['bm_four_d75']['B_max_component_mT']:.1f}&#8202;mT on a chip under B4. A field more than
+20&#8202;% off (about 0.3&#8202;mm of distance) means the magnets sit at another depth or the board at another gap. Then press each pad
+at the contact point with the UR5e at 0.5, 1 and 3&#8202;N, ten times each, and compare the spread of the force estimates: Table 7
+predicts B4's {sens['bm_four_d75']['gain']['centre_force_N'] / sens['bm_five_d75']['gain']['centre_force_N']:.1f} times B00's; equal
+spreads would mean the readout is limited by something the model leaves out, such as the board's own noise.</li>
 <li>On the HEX-E, check that the palmar normal lies along the sensor's +x: press the pad by hand along the palmar normal and read Fx
 against Fy; more than 5&#8202;% of the force in Fy means the axis or the dowel's position differs, and <code>dowel_ang</code> turns the
 whole mount.</li>
@@ -375,6 +444,7 @@ closest approach, which was 0.10&#8202;mm with v2 a.</li>
              D / f"{UP}_check.json", D / f"{UP}_payload.json", D / f"{UP}_parts.json", D / f"{UP}_step.json", D / "cad", D / "print", D / "README.md",
              ROOT / "scripts/dip_link_concept_b.py", ROOT / "scripts/dip_link_v2.py", ROOT / "scripts/ur5_calibration_mount.py",
              ROOT / "scripts/v3b_ur5v2_pla_plate.py", ROOT / "scripts/v3b_pad_b00_magnets_xl.py", ROOT / "scripts/v2_tip_fe_checks.py", ROOT / "scripts/dip_b_v3_figures.py",
+             ROOT / "scripts/dip_b_magnet_layouts_figure.py",
              ROOT / "scripts/dip_b_v3_ur5_v2_page.py"]
     S.append(("files", "Files", "<ul>" + "".join(f"<li>{code(f)}</li>" for f in files if Path(f).exists()) + "</ul>"
               + f"<p>Related pages: {link(PAGES['dip'], 'DIP-link redesign')}, {link(PAGES['ur5'], 'UR5e mount v1')}, "

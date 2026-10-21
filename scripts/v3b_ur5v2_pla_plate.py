@@ -4,11 +4,13 @@ link b v3 at three wall clearances (plate "calibration"), and DIP link b v3 (pla
 
 Owner, 2026-10-20, after printing v1 of the mount and v2 of the DIP links: the UR5e calibration comes first, the fingers go
 on the hand in a week or more. The covers are cover W00, W10 and W20: concept b v3's cover with its side walls 0.00, 0.10
-and 0.20 mm outside the pad's flank (design 0.10), told apart by one, two and three notches in the distal edge; they fit
-the DIP link b as printed (v2) as well as v3. Object settings as on the plate of 2026-10-19 (scripts/v2_ur5_pla_plate.py):
+and 0.20 mm outside the pad's flank on each side, told apart by one, two and three notches in the distal edge; they fit
+the DIP link b as printed (v2) as well as v3. The owner tried them with pad B00 ("i think w00 works fine", 2026-10-20), so
+the design and the link plate take W00. Object settings as on the plate of 2026-10-19 (scripts/v2_ur5_pla_plate.py):
 the DIP link at 0.1 mm with tree supports from the plate, the covers solid at 0.1 mm, the mount and the indenters at
 0.15 mm with five walls and 40 % gyroid; a 5 mm brim on every part (Bambu Studio's command line ignores a brim set per
 object), which also keeps the thin covers flat. Output: docs/experiments/20261020-ur5_calibration_mount_v2/print/.
+Arguments name the plates to build (default: both).
 
     unset VIRTUAL_ENV
     ~/.claude/bin/resguard.sh run --mem 5G --cpu 400 -- taskset -c 14-18 env UR5M_REV=v2 NUMPY_MADVISE_HUGEPAGE=0 \\
@@ -64,7 +66,8 @@ def covers():
         print(cid, out[cid], flush=True)
     B.P["wall_clear"] = c0
     (V3 / "print" / "20261020-dip_link_v3b_covers_W00_W10_W20.json").write_text(json.dumps(dict(
-        covers=out, settings=V.SOLID, note="concept b v3's cover at three wall clearances; the design has 0.10 mm"), indent=1,
+        covers=out, settings=V.SOLID, note="concept b v3's cover at three wall clearances; the design has 0.00 mm (W00, owner "
+                                           "2026-10-20: 'i think w00 works fine')"), indent=1,
         default=float) + "\n")
     return out
 
@@ -82,7 +85,7 @@ PLATES = {
         ("W20", "b v3 cover W20", V3 / "print/20261020-dip_link_v3b_cover_W20_pla_bambu.stl", None, V.SOLID)],
     "link": [
         ("B3", "b v3 DIP link", V3 / "print/20261020-dip_link_v3b_dip_link_pla_bambu.stl", None, V.LINK),
-        ("C10", "b v3 cover W10", V3 / "print/20261020-dip_link_v3b_cover_W10_pla_bambu.stl", None, V.SOLID)],
+        ("C00", "b v3 cover W00", V3 / "print/20261020-dip_link_v3b_cover_W00_pla_bambu.stl", None, V.SOLID)],
 }
 
 
@@ -90,12 +93,15 @@ def main():
     t0 = time.time()
     OUT.mkdir(parents=True, exist_ok=True)
     covers()
-    summary = {}
+    sf = OUT / "20261020-p1s_pla_plates.json"
+    summary = json.loads(sf.read_text()) if sf.exists() else {}
     for plate, parts in PLATES.items():
+        if sys.argv[1:] and plate not in sys.argv[1:]:
+            continue
         V.PARTS[:] = parts
         V.OUT, V.WORK, V.PFX = OUT, WORK / plate, f"20261020-p1s_pla_{plate}"
         V.TITLE = {"calibration": "UR5 mount v2 (v1 fork, no key), indenters, b v3 covers W00-W20",
-                   "link": "DIP link b v3, cover W10"}[plate]
+                   "link": "DIP link b v3, cover W00"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel")
@@ -106,7 +112,7 @@ def main():
         rec = json.loads((OUT / f"{V.PFX}.json").read_text())
         summary[plate] = dict(project=rec["project"], time=rec["time"], filament_g=rec["filament_g"], problems=rec["problems"],
                               parts=[o["id"] for o in rec["objects"]])
-    (OUT / "20261020-p1s_pla_plates.json").write_text(json.dumps(summary, indent=1) + "\n")
+    sf.write_text(json.dumps(summary, indent=1) + "\n")
     print(json.dumps(summary, indent=1), f"[{time.time() - t0:.0f} s]", flush=True)
 
 
