@@ -20,6 +20,10 @@ and builds with `RESKIN5X_FQBN=esp32:esp32:adafruit_qtpy_esp32s3_nopsram`; an im
 - `host/flash.sh`: compile and upload.
 - `host/reskin5x_check.py`: per-chip field, noise, drift and temperature, the record rate, and the fraction of the range in
   use, from a few seconds of stream; `--out` writes the records as text.
+- `host/reskin5x_plot.py`: live plot of each chip's change from a baseline (|ΔB| of all chips, then ΔBx, ΔBy, ΔBz per
+  chip, µT, last 10 s); key `b` takes a new baseline.
+- `scripts/reskin5x_pad_fit.py`: the magnets' polarities, position and strength fitted to a capture of the board with a
+  pad on, and the sensing model's force resolution for the fit.
 
 ## Setup
 
@@ -85,9 +89,30 @@ firmware writes the mux channel before each board's reads and sends 15 chips a r
 I2C controller, on the SDA and SCL pads (GPIO7, GPIO6), can take a second board without a mux, and a third would still
 need a mux or a third pin pair.
 
+## Pad on the board
+
+    ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/reskin5x_plot.py
+    ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/reskin5x_check.py --out pad.csv   # pad at rest
+    ~/miniconda3/bin/python scripts/reskin5x_pad_fit.py pad.csv
+
+With pad B00 and its first magnets (3 × 2 mm, not N52) on the board, 2026-10-20: the static field was 1.9 to 7.0 mT per
+chip, the largest component 6.8 mT (18 % of the range), and the noise unchanged at 1.6 and 2.6 µT. The fit prefers two
+diagonally opposite corner magnets reversed relative to the other three, with a moment 35 % of a 3 × 2 mm N52's at the
+design spacing (0.38 mT RMS); full-strength magnets 2.8 mm farther away fit worse (0.71 mT), and five poles the same way
+fit worst (1.91 mT). At the measured noise both readings give a normal-force resolution of 0.10 to 0.12 N at the contact
+point, against 0.039 N for the design; the reversed magnets change it by under 20 %, in their favour. A press gave up to
+64 µT on one chip and 8 µT on another, about 30 times the noise. N52 magnets should raise the fields about 2.9 times,
+to 19 to 28 mT on the strongest chip, inside the range. Stacked into one column, magnets align with each other; marking
+the column's top face and inserting every magnet marked face toward the palm puts all poles the same way, as the sensing
+model assumes and as a calibration shared by three fingers needs.
+
 ## Visualizer
 
     ~/miniconda3/bin/python external/eFlesh/visualizer/viz_eflesh.py -p /dev/ttyACM0 --board white [-v magnitude] [-s 10]
+
+With a pad on, start it with the pad at rest or press `b` before touching: the pad's static field is thousands of µT,
+which at the default scale draws circles hundreds of pixels across. A press changes the field by tens of µT, so
+`reskin5x_plot.py` shows it more clearly.
 
 The window shows the board image with one mark per chip, drawn from the field minus a baseline (the mean of five samples at
 start; key `b` takes it again). In the default mode each chip has a red circle of radius |ΔBz|/s pixels (filled for
