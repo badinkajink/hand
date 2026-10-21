@@ -135,6 +135,17 @@ for `--replay`). Every record of the stream also goes to `logs/20261020-contact_
 kept without pressing r. The model, the estimator and their errors are on the page
 `docs/experiments/20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html`.
 
+The chips run without their on-chip temperature compensation, and each one's sensitivity falls by 0.65 to 0.70 % per C of
+its die temperature: the board warms by about 1 C in the minutes after it is plugged in, which moves the rest reading by
+70 uT, about 2 N on the face. The viewer divides every reading by its chip's gain at the chip's temperature (coefficients
+in `docs/experiments/20261020-fingertip_contact_estimation/data/20261021-thermal_gain.json`, fitted on a night at rest by
+`scripts/fingertip_contact_estimation_study.py thermal`), adds a 2 uT noise floor to the estimator's noise and shows a
+contact only above 0.25 N, and takes a new baseline once the reading has been as still as at rest for 3 s, which also
+takes in a press held that still. The page has sliders for the threshold and the floor and a switch for the re-zero (key
+z); `--floor`, `--min-force`, `--auto-zero 0` and `--no-thermal` set them at the start. When the board is unplugged the
+viewer waits for it, opens it again (on its `/dev/serial/by-id` name, which stays the same when the board comes back as
+another ttyACM) and takes a new baseline 2 s later; nothing else needs to run first.
+
 A pad that moves in its seat leaves an offset after each press, which the estimator reads as a standing contact. To check
 the seat, record about 2 s untouched, then five firm presses at different spots, each under a second and followed by at
 least 2 s untouched, and run
@@ -142,9 +153,11 @@ least 2 s untouched, and run
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/pad_shift_check.py <recording>.csv
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/pad_shift_check.py <stream>.bin --t0 120 --t1 180
 
-It lists every rest's offset from the first rest and the rigid motion of the whole pad that fits it. Offsets of a few uT
-pass; the loose pad of 2026-10-20 left 62 and 104 uT, fit by shifts of 17 and 23 um and tilts of about 4 mrad. The model
-gives about 26 uT for 1 N on the face.
+It lists every rest's offset from the first rest and the rigid motion of the whole pad that fits it, with the readings
+corrected for the chips' temperature (`--no-thermal` leaves them raw; uncorrected, a warming board reads as offsets).
+Offsets of a few uT pass; the loose pad of 2026-10-20 left 62 and 104 uT, fit by shifts of 17 and 23 um and tilts of
+about 4 mrad, and the touches of 2026-10-21 left 33-69 uT (shifts of 8-19 um). The model gives about 26 uT for 1 N on
+the face.
 
 ## Register settings
 

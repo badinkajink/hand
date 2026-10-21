@@ -13,16 +13,26 @@ Every record of the stream also goes to logs/20261020-contact_estimation/stream/
 host time as float64, then 5 x [t x y z] as float32; read_stream() reads it back), so no session is lost; key r writes
 the stretch between two presses of r as a CSV in the format of reskin5x_plot.py --out.
 
+Drift (2026-10-21). The chips run without their on-chip temperature compensation, and their sensitivity falls by 0.65 to
+0.70 % per C of die temperature: the board warms by about 1.3 C in the minutes after it is plugged in, which moves the
+rest reading by 70 uT, and the room's temperature moves it over hours. Every reading is divided by its chip's gain at
+the chip's own temperature (averaged over the last 3 s), with the coefficients fitted on the night of 2026-10-20
+(fingertip_wrench_model.load_thermal; --no-thermal turns it off). The correction and the estimator's nuisances leave 8 to
+14 uT of drift, so the estimator adds a noise floor (--floor, 2 uT a component) to the chips' noise,
+and a contact is shown only above --min-force (0.25 N; once shown, down to 0.6 of it). After a touch the pad can come to
+rest at a new place in its seat; with --auto-zero (default 3 s) the baseline is taken again once the reading has stayed
+as still as at rest for that long (fingertip_wrench_model.RestZero), which also takes in a press held that still.
+
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py [--port /dev/ttyACM0] [--http 8790]
         [--board-cal docs/experiments/20261020-fingertip_contact_estimation/data/20261020-calib_pad_as_found.json]
         [--poles 1 1 1 1 1] [--replay rec.csv] [--no-log]
-then open http://localhost:8790. Keys: b new baseline, c recalibrate at rest (keep the pad untouched), r record.
+then open http://localhost:8790. Keys: b new baseline, c recalibrate at rest (keep the pad untouched), r record,
+z re-zero at rest on or off.
 """
 from __future__ import annotations
 
 import argparse
 import asyncio
-import glob
 import json
 import sys
 import threading
@@ -55,25 +65,34 @@ def read_stream(path):
 
 
 class Replay(threading.Thread):
-    """Plays a reskin5x_plot.py --out recording (host time, 5 x [t x y z]) in real time, with Reader's interface."""
+    """Plays a recording with Reader's interface: a reskin5x_plot.py --out CSV (host time, 5 x [t x y z]) or an .npz with
+    t (n,) and r (n, 5, 4), up to `seconds` of it, `speed` times faster than it was recorded. Times stay those of the
+    recording, so the viewer's windows (50 ms, 3 s) span the same stretch of it at any speed."""
 
-    def __init__(self, path, keep):
+    def __init__(self, path, keep, speed=1.0, seconds=None):
         super().__init__(daemon=True)
-        d = np.loadtxt(path)
-        self.t_rec, self.r_rec = d[:, 0] - d[0, 0], d[:, 1:].reshape(-1, 5, 4)
-        self.keep, self.lock, self.stop, self.t0, self.all = keep, threading.Lock(), False, None, []
+        if str(path).endswith(".npz"):
+            z = np.load(path)
+            self.t_rec, self.r_rec = z["t"] - z["t"][0], z["r"].astype(float)
+        else:
+            d = np.loadtxt(path)
+            self.t_rec, self.r_rec = d[:, 0] - d[0, 0], d[:, 1:].reshape(-1, 5, 4)
+        if seconds:
+            keep_rows = self.t_rec <= seconds
+            self.t_rec, self.r_rec = self.t_rec[keep_rows], self.r_rec[keep_rows]
+        self.keep, self.speed, self.lock, self.stop, self.t0, self.all = keep, speed, threading.Lock(), False, None, []
 
     def run(self):
         self.t0 = time.time()
         while not self.stop:
             time.sleep(0.01)
-            if time.time() - self.t0 > self.t_rec[-1]:
+            if (time.time() - self.t0) * self.speed > self.t_rec[-1]:
                 self.t0 = time.time()                       # loop
 
     def snapshot(self):
         if self.t0 is None:
             return np.zeros(0), np.zeros((0, 5, 4))
-        now = time.time() - self.t0
+        now = (time.time() - self.t0) * self.speed
         sel = (self.t_rec <= now) & (self.t_rec > now - self.keep)
         return self.t_rec[sel] + self.t0, self.r_rec[sel]
 
@@ -122,15 +141,21 @@ class App:
         self.tree = cKDTree(self.basis["pts"])
         self.disp_u = self.basis["disp_u"]
         if a.replay:
-            self.src = Replay(a.replay, keep=3.0)
+            self.src = Replay(a.replay, keep=3.0, speed=a.speed, seconds=a.replay_seconds)
         else:
-            self.src = Reader(a.port or sorted(glob.glob("/dev/ttyACM*"))[0], keep=3.0)
+            self.src = Reader(a.port, keep=3.0)
         self.src.start()
         self.board = W.Calib.load(a.board_cal)
+        self.kappa = None if a.no_thermal else W.load_thermal(a.thermal)
+        self.floor, self.min_force, self.shown_prev = a.floor, a.min_force, False
+        self.rz = W.RestZero(hold_s=a.auto_zero if a.auto_zero > 0 else 3.0)
+        self.auto = a.auto_zero > 0
+        self.T_cal = None
         self.est = self.base = None
         self.clients, self.R_ind, self.status = set(), 8.0, "starting"
         self.rec, self.rec_rows = False, []
         self.scene_dirty = False
+        self.seen_reconnects, self.t_rebase = 0, None
         self.log = None
         if not a.replay and not a.no_log:
             (REC_DIR / "stream").mkdir(parents=True, exist_ok=True)
@@ -140,28 +165,61 @@ class App:
         self.t_flush = time.time()
 
     # ---------------------------------------------------------------- calibration
+    def records(self):
+        """The last 3 s of records without those of a chip that read zeros or values out of range (framing errors when
+        the board starts)."""
+        t, r = self.src.snapshot()
+        if not len(t):
+            return t, r
+        ok = (~np.all(r[:, :, 1:] == 0, axis=2).any(axis=1) & np.isfinite(r).all(axis=(1, 2))
+              & (np.abs(r) < 1e5).all(axis=(1, 2)) & (r[:, :, 0] > -40).all(axis=1) & (r[:, :, 0] < 125).all(axis=1))
+        return t[ok], r[ok]
+
+    def fields(self, rr, r_T):
+        """Fields (n, 15) uT of records rr (n, 5, 4), divided by each chip's gain at its temperature averaged over the
+        records r_T (the last 3 s)."""
+        b = rr[:, :, 1:]
+        if self.kappa is not None:
+            b = W.thermal_correct(b, r_T[:, :, 0].mean(0), self.kappa)
+        return b.reshape(len(rr), 15)
+
     def calibrate(self):
         self.status = f"calibrating: keep the pad untouched for {REST_S:.0f} s"
-        time.sleep(REST_S + 0.2)
-        t, r = self.src.snapshot()
+        time.sleep((REST_S + 0.2) / getattr(self.src, "speed", 1.0))   # a replay runs on the recording's clock
+        t, r = self.records()
         sel = t > t[-1] - REST_S
-        b_rest = r[sel][:, :, 1:].mean(0)
+        b_rest = self.fields(r[sel], r).mean(0).reshape(5, 3)
+        self.T_cal = r[:, :, 0].mean(0)
         t0 = time.time()
         cal = W.calibrate_frames_fixed(b_rest, self.board, poles=tuple(self.a.poles) if self.a.poles else None)
         self.cal = cal
         self.model = W.Model(cal, self.row)
-        est = W.SurfaceEstimator(self.model, self.basis)
+        est = W.SurfaceEstimator(self.model, self.basis, floor_uT=self.floor)
         est.set_noise_scale(1 / np.sqrt(WIN_S * 140))
         self.est, self.base = est, b_rest.ravel()
+        self.rz.t_still = None
         self.scene_dirty = True                               # the pump sends the fitted poles and chip labels
         self.status = (f"calibrated in {time.time() - t0:.1f} s: poles {cal.poles}, magnet strength {cal.k:.2f} of N52, "
                        f"offset ({cal.dx:+.2f}, {cal.dy:+.2f}, {cal.dz:+.2f}) mm, rms {cal.rms_mT:.2f} mT")
         print(self.status, flush=True)
 
     def baseline(self):
-        t, r = self.src.snapshot()
+        t, r = self.records()
         if len(t):
-            self.base = r[t > t[-1] - 0.5][:, :, 1:].mean(0).ravel()
+            self.base = self.fields(r[t > t[-1] - 0.5], r).mean(0)
+            self.rz.t_still = None
+
+    def set_floor(self, uT):
+        self.floor = max(0.0, float(uT))
+        if self.est is not None:
+            self.est.floor = self.floor
+            self.est.set_noise_scale(1 / np.sqrt(WIN_S * 140))
+
+    def settings(self):
+        th = (f"temperature correction on (chip gains -{-self.kappa.max() * 100:.2f} to -{-self.kappa.min() * 100:.2f} % "
+              f"per C)" if self.kappa is not None else "temperature correction off")
+        az = f"re-zero after {self.rz.hold_s:.0f} s at rest: on, {self.rz.count} so far" if self.auto else "re-zero at rest: off"
+        return f"{th}; noise floor {self.floor:.2f} uT; shown above {self.min_force:.2f} N; {az}"
 
     def drain(self):
         """Records since the last frame into the stream log and, while recording, into the recording."""
@@ -184,20 +242,44 @@ class App:
     # ---------------------------------------------------------------- per frame
     def frame(self):
         self.drain()
+        if not getattr(self.src, "connected", True):
+            return dict(type="status", status="board unplugged: waiting for it on USB")
+        if getattr(self.src, "reconnects", 0) != self.seen_reconnects:
+            # the board restarts when it is plugged in again: a new baseline once REST_S of records have arrived
+            self.seen_reconnects, self.t_rebase = self.src.reconnects, time.time() + REST_S + 0.5
+            self.status = f"board plugged in again on {self.src.port}: keep the pad untouched, new baseline in {REST_S:.0f} s"
+            print(self.status, flush=True)
         t, r = self.src.snapshot()
-        if self.est is None or len(t) < 3:
+        if self.t_rebase is not None and time.time() > self.t_rebase and len(t) > 10:
+            self.t_rebase = None
+            self.baseline()
+            self.status = "board plugged in again: new baseline taken (c recalibrates if the pad moved in its seat)"
+            print(self.status, flush=True)
+        if self.est is None or len(t) < 3 or self.t_rebase is not None:
             return dict(type="status", status=self.status)
-        sel = t > t[-1] - WIN_S
-        rr = r[sel][:, :, 1:]
-        good = ~np.all(rr == 0, axis=2).any(axis=1)
-        if good.sum() == 0:
+        t, r = self.records()
+        if len(t) < 3:
             return dict(type="status", status="no data from a chip")
-        d = rr[good].mean(0).ravel() - self.base
+        sel = t > t[-1] - WIN_S
+        if sel.sum() == 0:
+            return dict(type="status", status="no data from a chip")
+        d = self.fields(r[sel], r).mean(0) - self.base
+        if self.auto:
+            last = t > t[-1] - self.rz.span_s
+            nb = self.rz.update(t[last], self.fields(r[last], r), self.base)
+            if nb is not None:
+                d = d + self.base - nb
+                self.base = nb
+                self.status = f"re-zeroed at rest at {time.strftime('%H:%M:%S')}: the rest had moved {self.rz.last_uT:.0f} uT"
         e = self.est.estimate(d)
-        out = dict(type="frame", t=float(t[-1]), status=self.status, db=np.round(d, 1).tolist(),
+        dT = (r[:, :, 0].mean(0) - self.T_cal) if self.T_cal is not None else np.zeros(5)
+        out = dict(type="frame", t=float(t[-1]), status=self.status, settings=self.settings(), db=np.round(d, 1).tolist(),
                    chi2=round(e["chi2_none"], 1), e=round(e.get("e", 0.0), 1), rate=float(len(t) / (t[-1] - t[0] + 1e-9)),
-                   g=np.round(e["g_uT"], 1).tolist(), eps=e["eps"])
-        contact = e["contact"] and e["e"] > self.a.threshold
+                   g=np.round(e["g_uT"], 1).tolist(), eps=e["eps"], dT=np.round(dT, 2).tolist(),
+                   still=round(self.rz.spread, 1) if np.isfinite(self.rz.spread) else None)
+        lim = self.min_force * (0.6 if self.shown_prev else 1.0)
+        contact = e["contact"] and e["e"] > self.a.threshold and e["f_n"] >= lim
+        self.shown_prev = bool(contact)
         out["contact"] = bool(contact)
         if contact:
             p, n, t1, t2, f = (np.array(e[k]) for k in ("p", "n", "t1", "t2", "f"))
@@ -228,7 +310,8 @@ class App:
                                   pole=int(self.cal.poles[j]) if self.est is not None else 1) for j in range(len(c))],
                     chips=[dict(p=np.round(chips[i], 3).tolist(), addr=ADDRS[i],
                                 U=W.U_ORDER[self.cal.perm[i]] if self.est is not None else "") for i in range(5)],
-                    threshold=self.a.threshold, R=self.R_ind, x_cut=float(self.basis["x_cut"]))
+                    threshold=self.a.threshold, R=self.R_ind, x_cut=float(self.basis["x_cut"]), min_force=self.min_force,
+                    floor=self.floor, auto=self.auto, hold_s=self.rz.hold_s, thermal=self.kappa is not None)
 
 
 async def ws_handler(request):
@@ -248,6 +331,14 @@ async def ws_handler(request):
                 await asyncio.get_running_loop().run_in_executor(None, app.calibrate)
             elif cmd.get("cmd") == "indenter":
                 app.R_ind = float(cmd["R"])
+            elif cmd.get("cmd") == "minforce":
+                app.min_force = max(0.0, float(cmd["N"]))
+            elif cmd.get("cmd") == "floor":
+                await asyncio.get_running_loop().run_in_executor(None, app.set_floor, float(cmd["uT"]))
+            elif cmd.get("cmd") == "autozero":
+                app.auto = bool(cmd.get("on", not app.auto))
+                app.rz.t_still = None
+                app.scene_dirty = True
             elif cmd.get("cmd") == "record" and hasattr(app.src, "all"):
                 if not app.rec:
                     app.rec_rows = []
@@ -295,7 +386,15 @@ def main():
     ap.add_argument("--board-cal", default=str(BOARD_CAL), help="a full calibration of this board (chip frames)")
     ap.add_argument("--poles", type=int, nargs=5, default=None, help="known poles, e.g. 1 1 1 1 1 for N52 inserted one way")
     ap.add_argument("--threshold", type=float, default=25.0, help="explained chi-square above which a contact is shown")
-    ap.add_argument("--replay", default=None, help="a reskin5x_plot.py --out recording to play instead of the board")
+    ap.add_argument("--min-force", type=float, default=0.25, help="pressing force (N) above which a contact is shown")
+    ap.add_argument("--floor", type=float, default=2.0, help="noise floor (uT a component) added to the chips' noise")
+    ap.add_argument("--auto-zero", type=float, default=3.0, help="re-zero after this long at rest (s); 0 turns it off")
+    ap.add_argument("--thermal", default=str(W.THERMAL), help="the chips' temperature coefficients (study thermal)")
+    ap.add_argument("--no-thermal", action="store_true", help="do not correct the readings for the chips' temperature")
+    ap.add_argument("--replay", default=None, help="a recording to play instead of the board (reskin5x_plot.py --out "
+                                                   "CSV, or .npz with t and r)")
+    ap.add_argument("--speed", type=float, default=1.0, help="replay this many times faster than recorded")
+    ap.add_argument("--replay-seconds", type=float, default=None, help="replay only the first this many seconds")
     ap.add_argument("--no-log", action="store_true", help="do not write the stream log")
     a = ap.parse_args()
     app = App(a)

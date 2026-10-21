@@ -134,6 +134,19 @@ telemetry stops while a writer owns the bus, so a careless probe reads one stale
 
 `graspgenx_make_morphohand.py` (URDF+config), `graspgenx_eval_phase1.py`, `graspgenx_view_grasps.py`.
 
+## Magnetic fingertip sensing (`docs/experiments/20261020-fingertip_contact_estimation/`)
+
+| script | role |
+|---|---|
+| `fingertip_wrench_fe.py` | FE basis of the pad: magnet motions per newton at the face points or (`--surface`) the 812 sphere-pad points of the whole surface |
+| `fingertip_wrench_model.py` | measurement model of the five-chip board, calibration at rest, `SurfaceEstimator` (contact point and force), the chips' temperature correction (`thermal_correct`) and the re-zero at rest (`RestZero`) |
+| `fingertip_contact_estimation_study.py` | the study's numbers (`results.json`); `thermal` fits the chips' gain coefficients on a night at rest and replays the presses with the viewer's drift settings |
+| `fingertip_contact_estimation_page.py` | the result page (run with `.venv/bin/python`) |
+| `fingertip_contact_film.py`, `fingertip_drift_film.py` | films of the browser viewer in headless Chrome; the second compares the viewer's settings of 2026-10-20 and 2026-10-21 over a replayed warm-up |
+
+The live viewer and the seat check are `src/morphohand/driver/reskin5x/host/wrench_viewer.py` and `pad_shift_check.py`
+(see that folder's README).
+
 ## Documentation (`docs/index.html`, the overviews and the result pages)
 
 | script | role |

@@ -45,20 +45,25 @@
       <tr><th>Contact point x, y, z</th><td colspan="2" id="pxyz">-</td></tr>
       <tr><th>Position 1-sigma along t1, t2</th><td id="sp1">-</td><td id="sp2">-</td></tr>
       <tr><th>Explained chi-square</th><td id="ee">-</td><td id="thr">-</td></tr>
+      <tr><th>Chip temperature since calibration</th><td colspan="2" id="tt">-</td></tr>
       <tr><th>Background change (uT)</th><td colspan="2" id="gg">-</td></tr>
       <tr><th>Peak pressure</th><td colspan="2" id="pk">-</td></tr>
     </table>
-    <div style="font-size:12px">Forces in N and positions in mm, tip frame: x along the palmar face's normal, y across the finger, z from the mount toward the tip end. Tangent 1 is z projected on the surface (y where the normal lies near z), tangent 2 the normal crossed with it. The second column is the 1-sigma uncertainty of the model.</div>
     <div>
       <button id="bb">New baseline (b)</button><button id="bc">Recalibrate at rest (c)</button><button id="br">Record (r)</button>
     </div>
+    <canvas class="trace" id="tf" width="376" height="170"></canvas>
+    <canvas class="trace" id="tp" width="376" height="130"></canvas>
+    <canvas class="trace" id="tb" width="376" height="120"></canvas>
+    <div style="font-size:12px">Forces in N and positions in mm, tip frame: x along the palmar face's normal, y across the finger, z from the mount toward the tip end. Tangent 1 is z projected on the surface (y where the normal lies near z), tangent 2 the normal crossed with it. The second column is the 1-sigma uncertainty of the model.</div>
+    <div id="settings" style="font-size:12px;margin:4px 0"></div>
+    <label>Shown above <span id="mfl">0.25</span> N of pressing force<input type="range" id="mf" min="0.05" max="2" step="0.05" value="0.25"></label>
+    <label>Noise floor <span id="fll">2.00</span> uT a component (higher: less sensitive, less drift shown)<input type="range" id="fl" min="0" max="5" step="0.25" value="2"></label>
+    <label><input type="checkbox" id="az" checked> Re-zero once the pad has been at rest for 3 s (z)</label>
     <label>Deformation shown x<span id="exl">20</span> (at most 2 mm drawn)<input type="range" id="ex" min="1" max="100" value="20"></label>
     <label>Arrow length <span id="arl">4</span> mm per N (at most 25 mm)<input type="range" id="ar" min="1" max="20" value="4"></label>
     <label>Indenter sphere radius <span id="rl">8</span> mm <input type="checkbox" id="showind"> show it<input type="range" id="rr" min="2" max="40" value="8"></label>
     <label>Pressure colour scale <span id="pml">300</span> kPa<input type="range" id="pm" min="5" max="1000" value="300"></label>
-    <canvas class="trace" id="tf" width="376" height="170"></canvas>
-    <canvas class="trace" id="tp" width="376" height="130"></canvas>
-    <canvas class="trace" id="tb" width="376" height="120"></canvas>
   </div>
 </div>
 <script type="module">
@@ -126,6 +131,11 @@ function buildScene(m) {
   const c0 = m.chips.find(c => c.U === 'U1') || m.chips[0];
   board.position.copy(T([c0.p[0] - 0.42 - 0.9 - 0.3, c0.p[1], c0.p[2]])); extras.add(board);
   document.getElementById('thr').textContent = `shown above ${m.threshold}`;
+  if (m.min_force !== undefined) {
+    mf.value = m.min_force; document.getElementById('mfl').textContent = (+m.min_force).toFixed(2);
+    fl.value = m.floor; document.getElementById('fll').textContent = (+m.floor).toFixed(2);
+    az.checked = !!m.auto;
+  }
   rr.value = m.R; document.getElementById('rl').textContent = m.R;
 }
 
@@ -133,6 +143,12 @@ const ex = document.getElementById('ex'), ar = document.getElementById('ar'), rr
 for (const [el, lbl] of [[ex, 'exl'], [ar, 'arl'], [rr, 'rl'], [pm, 'pml']])
   el.addEventListener('input', () => { document.getElementById(lbl).textContent = el.value; if (lbl === 'pml') document.getElementById('pmaxlbl').textContent = el.value; });
 rr.addEventListener('change', () => send({ cmd: 'indenter', R: +rr.value }));
+const mf = document.getElementById('mf'), fl = document.getElementById('fl'), az = document.getElementById('az');
+mf.addEventListener('input', () => { document.getElementById('mfl').textContent = (+mf.value).toFixed(2); });
+mf.addEventListener('change', () => send({ cmd: 'minforce', N: +mf.value }));
+fl.addEventListener('input', () => { document.getElementById('fll').textContent = (+fl.value).toFixed(2); });
+fl.addEventListener('change', () => send({ cmd: 'floor', uT: +fl.value }));
+az.addEventListener('change', () => send({ cmd: 'autozero', on: az.checked }));
 
 const stops = [[0, [0.85, 0.85, 0.85]], [0.25, [1, 0.88, 0.54]], [0.5, [1, 0.60, 0.24]], [0.75, [0.88, 0.19, 0.12]], [1, [0.48, 0, 0.06]]];
 function cmap(v) {
@@ -149,6 +165,11 @@ function fmt(v, d = 2) { return (v >= 0 ? ' ' : '') + v.toFixed(d); }
 
 function onFrame(m) {
   document.getElementById('status').textContent = m.status || '';
+  if (m.settings) document.getElementById('settings').textContent = m.settings;
+  if (m.dT) {
+    const sg = v => (v >= 0 ? '+' : '') + v.toFixed(2);
+    document.getElementById('tt').textContent = `${sg(Math.min(...m.dT))} to ${sg(Math.max(...m.dT))} C`;
+  }
   if (m.type !== 'frame' || !face) return;
   const pos = face.geometry.attributes.position;
   const cA = face.geometry.attributes.color;
@@ -237,7 +258,10 @@ connect();
 document.getElementById('bb').onclick = () => send({ cmd: 'baseline' });
 document.getElementById('bc').onclick = () => send({ cmd: 'calibrate' });
 document.getElementById('br').onclick = () => send({ cmd: 'record' });
-window.addEventListener('keydown', e => { if (e.key === 'b') send({ cmd: 'baseline' }); if (e.key === 'c') send({ cmd: 'calibrate' }); if (e.key === 'r') send({ cmd: 'record' }); });
+window.addEventListener('keydown', e => {
+  if (e.key === 'b') send({ cmd: 'baseline' }); if (e.key === 'c') send({ cmd: 'calibrate' }); if (e.key === 'r') send({ cmd: 'record' });
+  if (e.key === 'z') { az.checked = !az.checked; send({ cmd: 'autozero', on: az.checked }); }
+});
 
 function resize() { const w = view.clientWidth, h = view.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 window.addEventListener('resize', resize); resize();

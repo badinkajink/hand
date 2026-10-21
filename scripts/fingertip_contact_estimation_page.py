@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Result page of the model-based contact estimation study (2026-10-20): the measurement model of the five-chip board under
 the magnetic pad, its calibration at rest, the FE contact basis over the pad's surface, the estimator's errors on simulated
-presses, its behaviour without a press, the owner's first presses by hand, and the live browser viewer.
+presses, its behaviour without a press, the owner's first presses by hand, the drift of the rest reading with the chips'
+temperature and the pad's seat (2026-10-21), and the live browser viewer.
 
 Reads docs/experiments/20261020-fingertip_contact_estimation/ (results.json and data/20261020-uncertainty_maps.npz from
 scripts/fingertip_contact_estimation_study.py; media/ from scripts/fingertip_contact_film.py and the viewer), draws the
@@ -221,6 +222,94 @@ def fig_session(res, out):
     plt.close(fig)
 
 
+def _clock_ticks(ax, start_h, t_s, every_h=2):
+    """Ticks in clock time on an axis of seconds from a start at start_h hours after midnight."""
+    first = int(np.ceil(start_h))
+    hours = np.arange(first, start_h + t_s.max() / 3600 + 1e-9, every_h)
+    ax.set_xticks((hours - start_h) * 3600, [f"{int(h) % 24:02d}:00" for h in hours])
+
+
+def fig_drift(res, out):
+    """The night and the warm-up: the chips' temperatures and the rest reading's change, uncorrected and corrected."""
+    plt = plt_setup()
+    import fingertip_wrench_model as W
+    th = res["thermal"]
+    kap = np.array(th["kappa_per_C"])
+    zn, zw = np.load(D / "data/20261021-overnight_drift_60s.npz"), np.load(D / "data/20261021-warmup_1s.npz")
+    cols = ("#c00000", "#d08000", "#008000", "#0040ff", "#8000a0")
+    fig, ax = plt.subplots(2, 2, figsize=(11, 7.6), dpi=100, gridspec_kw=dict(height_ratios=[1, 1.2]))
+    q = zn["t"] > 1800
+    t, T, B = zn["t"][q], zn["T"][q], zn["B"][q]
+    C = W.thermal_correct(B.reshape(-1, 5, 3), T, kap).reshape(-1, 15)
+    for i in range(5):
+        ax[0, 0].plot(t, T[:, i], color=cols[i], lw=1.2, label=ADDR[i])
+    ax[0, 0].set_ylabel("Die temperature (\u00b0C)")
+    ax[0, 0].legend(loc="upper right", ncol=3, fontsize=11)
+    ax[0, 0].set_title("Night of 20 October, pad untouched", fontsize=13)
+    ax[1, 0].plot(t, B[:, 2] - B[:5, 2].mean(), color="#909090", lw=1.6, label="Uncorrected")
+    ax[1, 0].plot(t, C[:, 2] - C[:5, 2].mean(), color="#000", lw=1.6, label="Corrected (Eq. 9)")
+    ax[1, 0].set_ylabel("Change of 0x0C's z reading (\u00b5T)")
+    ax[1, 0].legend(loc="upper right")
+    start_h = 20 + 6 / 60 + 47 / 3600
+    for a in ax[:, 0]:
+        _clock_ticks(a, start_h, zn["t"])
+        a.set_xlim(t[0], t[-1])
+        a.grid(alpha=0.3)
+    ok = np.isfinite(zw["B"]).all(1) & (zw["t"] > 2) & (zw["t"] < 300)
+    tw, Tw, Bw = zw["t"][ok], zw["T"][ok], zw["B"][ok]
+    Cw = W.thermal_correct(Bw.reshape(-1, 5, 3), Tw, kap).reshape(-1, 15)
+    for i in range(5):
+        ax[0, 1].plot(tw, Tw[:, i] - Tw[:8, i].mean(), color=cols[i], lw=1.2, label=ADDR[i])
+    ax[0, 1].set_ylabel("Temperature rise (\u00b0C)")
+    ax[0, 1].set_title("Warm-up after plugging in, 21 October 09:59", fontsize=13)
+    ax[1, 1].plot(tw, np.linalg.norm(Bw - Bw[:8].mean(0), axis=1), color="#909090", lw=1.6, label="Uncorrected")
+    ax[1, 1].plot(tw, np.linalg.norm(Cw - Cw[:8].mean(0), axis=1), color="#000", lw=1.6, label="Corrected (Eq. 9)")
+    ax[1, 1].set_ylabel("Change of the rest reading (\u00b5T)")
+    ax[1, 1].set_xlabel("Time from the viewer's start (s)")
+    ax[1, 1].set_ylim(0, 150)
+    for x0, lbl in ((150, "touch"), (228, "touch")):
+        ax[1, 1].axvline(x0, color="#c00000", lw=1, ls="--")
+        ax[1, 1].text(x0 + 3, 138, lbl, color="#c00000", fontsize=12)
+    ax[1, 1].legend(loc="upper left")
+    for a in ax[:, 1]:
+        a.set_xlim(0, 300)
+        a.grid(alpha=0.3)
+    ax[1, 0].set_xlabel("Time")
+    fig.tight_layout()
+    fig.savefig(out)
+    plt.close(fig)
+
+
+def fig_rezero(res, out):
+    """The shown force over the recordings by hand, baseline kept and with the re-zero at rest."""
+    plt = plt_setup()
+    z = np.load(D / "data/20261021-rezero_replay.npz")
+    rp = res["thermal"]["replay"]
+    fig, axs = plt.subplots(2, 1, figsize=(11, 6.8), dpi=100)
+    for a, (key, name, title) in zip(axs, (("0959_touches", "09:59 touches", "Touches of 21 October from 09:59 (the warm-up of Figure 7)"),
+                                           ("2006_presses", "20:06 presses", "Presses of 20 October from 20:06, baseline from the rest at 8-10 s"))):
+        K, A, Z = z[key + "_kept_trace"], z[key + "_auto_trace"], z[key + "_auto_zeros"]
+        a.plot(K[:, 0], K[:, 2], color="#e08080", lw=1.0,
+               label=f"Baseline kept: contact shown {rp[name]['baseline kept']['shown_share_pct']:.0f} % of frames")
+        a.plot(A[:, 0], A[:, 2], color="#000", lw=1.0,
+               label=f"Re-zero after 3 s at rest: {rp[name]['auto-zero']['shown_share_pct']:.0f} %")
+        top = max(float(K[:, 2].max()), float(A[:, 2].max()), 1.0)
+        big = Z[:, 1] > 26
+        a.plot(Z[~big, 0], np.full((~big).sum(), -0.04 * top), "|", color="#0040ff", ms=7)
+        a.plot(Z[big, 0], np.full(big.sum(), -0.04 * top), "|", color="#0040ff", ms=16, mew=2,
+               label="Re-zeros (tall: more than 26 \u00b5T, about 1 N on the face)")
+        a.set_ylim(-0.1 * top, top * 1.25)
+        a.set_xlim(K[0, 0], K[-1, 0])
+        a.set_ylabel("Pressing force shown (N)")
+        a.set_title(title, fontsize=13)
+        a.legend(loc="upper right", fontsize=11)
+        a.grid(alpha=0.3)
+    axs[-1].set_xlabel("Time from the recording's start (s)")
+    fig.tight_layout()
+    fig.savefig(out)
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------------------------------------ page
 
 def build():
@@ -231,6 +320,9 @@ def build():
     nc = dict(res["surface"]["as found"]["no_contact"], threshold=25.0)
     fig_quiet({"no_contact": nc}, MEDIA / "20261020-no_press.png")
     fig_session(res, MEDIA / "20261020-presses_by_hand.png")
+    fig_drift(res, MEDIA / "20261021-rest_drift.png")
+    fig_rezero(res, MEDIA / "20261021-rezero_replay.png")
+    th = res["thermal"]
     c, fe, fs = res["calibration"], res["fe"], res["fe_surface"]
     b = c["best"]
     syn = {(s["magnets"], s["window"]): s for s in res["synthetic"]}
@@ -250,19 +342,24 @@ def build():
 
     sh = [np.linalg.norm(r["translation_um"]) for r in big]
     tl = [np.linalg.norm(r["tilt_mrad"]) for r in big]
-    lede = (f"A model of the five-chip board under the magnetic pad, calibrated from its reading at rest, turns the 15 "
-            f"field components into a contact point and force anywhere on the pad's surface, sides included, through an FE "
-            f"basis at the {fs['pads']} sphere pads of the simulations. On simulated presses with N52 magnets and "
-            f"50&#8202;ms of samples the median errors are {s52['all']['pos_median_mm']:.2f}&#8202;mm and "
-            f"{s52['all']['press_abs_median_N']:.2f}&#8202;N, with {s52['all']['far_pct']:.0f}&#8202;% of presses placed "
-            f"more than 1.5&#8202;mm away (the magnets in the pad today: {saf['all']['pos_median_mm']:.2f}&#8202;mm, "
-            f"{saf['all']['press_abs_median_N']:.2f}&#8202;N, {saf['all']['far_pct']:.0f}&#8202;%). In the first presses by "
-            f"hand the pad rocked in its seat: offsets of {min(r['offset_uT'] for r in big):.0f}&#8211;"
-            f"{max(r['offset_uT'] for r in big):.0f}&#8202;&#181;T remained, fit by rigid shifts of "
-            f"{min(sh):.0f}&#8211;{max(sh):.0f}&#8202;&#181;m, which the estimator reads as standing contacts of "
-            f"{min(r['read_as']['f_n'] for r in big if r['read_as']):.0f}&#8211;"
-            f"{max(r['read_as']['f_n'] for r in big if r['read_as']):.0f}&#8202;N. No estimate has been compared with a "
-            f"reference force.")
+    sw = th["floor_sweep"]
+    old_rest = [r_ for r_ in sw if r_["floor_uT"] == 0][0]
+    k_lo, k_hi = -100 * max(th["kappa_per_C"]), -100 * min(th["kappa_per_C"])
+    seat = th["seat_0959"]
+    moved = [q_ for q_ in seat if q_["offset_uT"] > 20]
+    before = th["shown"]
+    lede = (f"A model of the five-chip board, calibrated at rest, turns the 15 field components into a contact point and "
+            f"force anywhere on the pad's surface through an FE basis at the {fs['pads']} sphere pads of the simulations; on "
+            f"simulated presses with N52 magnets the median errors are {s52['all']['pos_median_mm']:.2f}&#8202;mm and "
+            f"{s52['all']['press_abs_median_N']:.2f}&#8202;N ({saf['all']['pos_median_mm']:.2f}&#8202;mm and "
+            f"{saf['all']['press_abs_median_N']:.2f}&#8202;N with today's magnets). On the board the rest reading drifts by "
+            f"{k_lo:.2f}&#8211;{k_hi:.2f}&#8202;% of the field per &#176;C of chip temperature and moves by "
+            f"{min(q_['offset_uT'] for q_ in moved):.0f}&#8211;{max(r['offset_uT'] for r in big):.0f}&#8202;&#181;T when a "
+            f"touch shifts the pad in its seat. A temperature correction, a {th['floor_uT']:.0f}&#8202;&#181;T noise floor and "
+            f"a re-zero after 3&#8202;s at rest stop the viewer showing a contact at rest, which it did "
+            f"{before['warm-up, uncorrected, floor 0 uT']['share_pct']:.0f}&#8211;"
+            f"{before['night, uncorrected, floor 0 uT']['share_pct']:.0f}&#8202;% of the time. No estimate has been compared "
+            f"with a reference force.")
 
     terms = ('<dl class="terms">'
              "<dt>Tip frame</dt><dd>$x$ along the pad's normal toward the palmar face, $y$ across the finger, $z$ along it "
@@ -289,7 +386,21 @@ def build():
              "<dt>Pressing force $f_n$, shear $\\mathbf f_t$</dt><dd>The force $\\mathbf f$ the object applies to the pad, "
              "split into $f_n=-\\mathbf f\\cdot\\mathbf n$ and its components along $\\mathbf t_1$, $\\mathbf t_2$, in N.</dd>"
              "<dt>Explained chi-square $e$</dt><dd>The decrease of the weighted squared residual when the estimated contact "
-             "is added (Eq. 5). The viewer shows a contact when $e>25$.</dd>"
+             "is added (Eq. 5). The viewer shows a contact when $e>25$ and the pressing force is at least 0.25&#8202;N "
+             "(Eq. 11; until 2026-10-20, $e>25$ alone).</dd>"
+             "<dt>Die temperature $T_c$</dt><dd>The temperature chip $c$ reports with each conversion, in &#176;C (noise "
+             "0.10&#8211;0.11&#8202;&#176;C a conversion); the viewer averages it over the last 3&#8202;s.</dd>"
+             "<dt>Gain coefficient $\\kappa_c$</dt><dd>The relative change of chip $c$'s reading per &#176;C of its die "
+             "temperature, fitted on a night at rest (Eq. 9), in % per &#176;C.</dd>"
+             "<dt>Noise floor $\\sigma_{\\mathrm{fl}}$</dt><dd>A standard deviation added to the noise of every component "
+             "in the estimator, in &#181;T, which averaging over the 50&#8202;ms window does not reduce (Eq. 10).</dd>"
+             "<dt>Smallest press shown</dt><dd>The pressing force along the normal at which a press's explained "
+             "chi-square reaches 25 (from its value at 1&#8202;N, since $e$ grows with the square of the force), or "
+             "0.25&#8202;N where that is larger; median over the candidate points of a region.</dd>"
+             "<dt>Stillness $s$, re-zero</dt><dd>$s$: the norm over the 15 components of the standard deviation of the "
+             "reading's ten 0.1&#8202;s means over the last second, in &#181;T (2.2&#8202;&#181;T at rest from the chips' "
+             "noise). A re-zero: a new baseline the viewer takes by itself once $s$ has stayed below 3&#8202;&#181;T for "
+             "3&#8202;s (Eq. 12).</dd>"
              "<dt>Model 1-sigma</dt><dd>Square root of a diagonal entry of the inverse Fisher information at the estimate "
              "(Eq. 6): the spread the noise alone causes when the model is exact. The position 1-sigma is the geometric "
              "mean of those along $\\mathbf t_1$ and $\\mathbf t_2$.</dd>"
@@ -327,6 +438,17 @@ def build():
            r"\sum_i k_i\,[\delta-g_i]_+=f_n,\qquad p_i=\frac{k_i\,[\delta-g_i]_+}{a_i}$$")
     eq8 = (r"$$\Delta\mathbf b^{\mathrm{rest}}\approx A\begin{bmatrix}\boldsymbol\tau\\ \boldsymbol\omega\end{bmatrix}+U\,\Delta\mathbf g,"
            r"\qquad A=\frac{\partial\mathbf b}{\partial(\boldsymbol\tau,\boldsymbol\omega)}\Big|_{\text{all five magnets together}}$$")
+
+    eq9 = (r"$$\tilde{\mathbf b}_c=\frac{\mathbf b_c}{1+\kappa_c\,(\bar T_c-T_{\mathrm{ref}})},\qquad T_{\mathrm{ref}}=25\ "
+           r"^{\circ}\mathrm C,\qquad \kappa_c=\arg\min_{\kappa}\sum_{t}\big\lVert\tilde{\mathbf b}_c(t)-"
+           r"\langle\tilde{\mathbf b}_c\rangle\big\rVert^{2}$$")
+    eq10 = (r"$$\Sigma=\operatorname{diag}\big(\sigma_i^{2}/n+\sigma_{\mathrm{fl}}^{2}\big),\qquad n\approx 7,\qquad"
+            r"\sigma_{\mathrm{fl}}=2\ \mu\mathrm T$$")
+    eq11 = (r"$$\text{contact shown}\iff e>25\ \text{and}\ f_n\ge f_{\min},\qquad f_{\min}=0.25\ \mathrm N"
+            r"\ \ (0.15\ \mathrm N\ \text{once shown})$$")
+    eq12 = (r"$$s=\Big\lVert\operatorname{sd}_{k}\big(\bar{\mathbf b}_k\big)\Big\rVert<3\ \mu\mathrm T\ \text{for}\ "
+            r"3\ \mathrm s\ \ \text{and}\ \ \lVert\bar{\mathbf b}-\mathbf b_0\rVert>5\ \mu\mathrm T\quad\Rightarrow\quad"
+            r"\mathbf b_0\gets\bar{\mathbf b}$$")
 
     t1 = table(["Assignment of 0x0C 0x11 0x12 0x13 0x10", "Poles (centre third)", "$\\theta_0$ (&#176;)", "$k$", "Rest residual (mT)"],
                [[" ".join(U[u] for u in r["perm"]), " ".join("+" if p > 0 else "&#8722;" for p in r["poles"]),
@@ -377,11 +499,50 @@ def build():
                        f"{se['random_residual_pct'][0]:.0f}&#8202;% and 1&#8202;% of them below "
                        f"{se['random_residual_pct'][1]:.0f}&#8202;%.")
 
+    wv = th["warmup"]["variants"]
+    t6 = table(["Correction", "Drift after the warm-up, norm (&#181;T)", "Largest component (&#181;T)"],
+               [[k[0].upper() + k[1:], f"{v['norm_uT']:.1f}", f"{v['max_uT']:.1f}"] for k, v in wv.items()],
+               num_cols=(1, 2), n=6,
+               caption=f"The rest reading's change over the warm-up of 21 October ({th['warmup']['span_s']:.0f}&#8202;s from "
+                       f"the viewer's start to the first touch; the chips warmed by {min(th['warmup']['T_rise_C']):.1f}&#8211;"
+                       f"{max(th['warmup']['T_rise_C']):.1f}&#8202;&#176;C), with the coefficients fitted on the night before "
+                       f"(Eq. 9): per chip or one for all, with each chip's own temperature or the five chips' mean.")
+    t7 = table(["Noise floor (&#181;T)", "Night, contact shown (% of minutes)", "Night, largest force shown (N)",
+                "Warm-up, contact shown (% of seconds)", "Warm-up uncorrected (%)",
+                "Smallest press shown: face, edge, sides (N)"],
+               [[f"{r_['floor_uT']:.1f}", f"{r_['night_shown_pct']:.1f}", f"{r_['night_max_N']:.2f}",
+                 f"{r_['warmup_shown_pct']:.1f}", f"{r_['warmup_uncorrected_shown_pct']:.1f}",
+                 ", ".join(f"{r_['smallest_N'][k]:.2f}" for k in ("face", "edge", "sides"))] for r_ in sw],
+               num_cols=(0, 1, 2, 3, 4), n=7,
+               caption="The estimator at rest as the viewer runs it (Eq. 11, the 50&#8202;ms noise) for each noise floor: the "
+                       "share of the night's 60&#8202;s means and of the warm-up's 1&#8202;s means shown as a contact, both "
+                       "corrected for temperature unless marked, and the smallest press along the normal that shows, with "
+                       "the 0.25&#8202;N threshold in every row. The viewer uses 2&#8202;&#181;T.")
+    rp = th["replay"]
+    t8 = table(["Recording", "Frames", "Contact shown, baseline kept (%)", "Contact shown, re-zero (%)", "Re-zeros",
+                "Of them over 26&#8202;&#181;T", "Re-zeros the reading came back from"],
+               [[nm, f"{rp[nm]['auto-zero']['frames']:,}", f"{rp[nm]['baseline kept']['shown_share_pct']:.1f}",
+                 f"{rp[nm]['auto-zero']['shown_share_pct']:.1f}", f"{rp[nm]['auto-zero']['rezeros']}",
+                 f"{rp[nm]['auto-zero']['rezeros_over_26uT']}", f"{len(rp[nm]['auto-zero']['came_back'])}"]
+                for nm in ("09:59 touches", "20:06 presses", "19:39 session")],
+               num_cols=(1, 2, 3, 4, 5, 6), n=8,
+               caption="The viewer's pipeline at 30&#8202;Hz over the recordings by hand, with the temperature correction, "
+                       "the 2&#8202;&#181;T floor and the 0.25&#8202;N threshold, keeping the first baseline or re-zeroing at "
+                       "rest (Eq. 12). A re-zero the reading came back from: within 10&#8202;s the reading returned to "
+                       "within 30&#8202;% of the re-zero's offset of the earlier baseline. 26&#8202;&#181;T is about 1&#8202;N "
+                       "on the face; the 19:39 session lasts 24&#8202;s.")
+    z6 = np.load(D / "data/20261020-200647_presses_records.npz")
+    tz, Bz = z6["t"], z6["r"][:, :, 1:].reshape(-1, 15).astype(float)
+    start_off = float(np.linalg.norm(Bz[tz < 4].mean(0) - Bz[tz > tz[-1] - 100].mean(0)))
+
     cmd = ("<pre class=\"cmd\">~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py\n"
-           "    # open http://localhost:8790; keys b (new baseline), c (recalibrate at rest), r (record a CSV)\n"
+           "    # open http://localhost:8790; keys b (new baseline), c (recalibrate at rest), r (record a CSV), z (re-zero on/off)\n"
+           "    #   --floor 2 --min-force 0.25 --auto-zero 3 (0: off) --no-thermal\n"
            "~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py --replay REC.csv --http 8791\n"
            "~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/pad_shift_check.py REC.csv   # or a stream log, --t0 --t1\n"
            "~/miniconda3/bin/python scripts/fingertip_contact_estimation_study.py      # the numbers of this page\n"
+           "~/miniconda3/bin/python scripts/fingertip_contact_estimation_study.py thermal   # Section 9, 3 min\n"
+           "~/miniconda3/bin/python scripts/fingertip_drift_film.py                    # Film 9\n"
            "~/miniconda3/envs/femtip/bin/python scripts/fingertip_wrench_fe.py --surface   # the surface basis, 101 s, 2.0 GB</pre>")
 
     S = []
@@ -408,7 +569,7 @@ def build():
               f"$k$, the chips' offset $\\boldsymbol\\delta$ from the pad and a uniform field $\\mathbf g$ by least squares. A "
               f"first pass on the normal component and the in-plane magnitude of each chip's field, which do not depend on "
               f"the chips' rotations, ranks the discrete hypotheses for the full fit.</p>{eq3}"
-              f"<p>For the pad as found (magnets that are not N52, inserted with random poles) the best fit places "
+              f"<p>For the pad as found (magnets of unknown grade, inserted with random poles) the best fit places "
               f"{assign}, with $\\theta_0={b['theta0']:.1f}$&#176;, two diagonally opposite corner magnets reversed, "
               f"$k={b['k']:.2f}$ and the chips offset by ({b['dx']:+.2f}, {b['dy']:+.2f}, {b['dz']:+.2f})&#8202;mm, at "
               f"{b['rms_mT']:.2f}&#8202;mT RMS against fields of {fmin:.1f}&#8211;{fmax:.1f}&#8202;mT per chip (Table 1, "
@@ -455,7 +616,7 @@ def build():
               f"uncertainty (Eq. 6).</p>{eq5}{eq5b}{eq6}"))
     S.append(("simulated", "Errors on simulated presses",
               f"<p>The simulated presses are readings made by the model itself with the measured noise, so they measure "
-              f"the estimator and the information in the reading, not the model's accuracy against the pad. With N52 "
+              f"the estimator and the information in the reading. With N52 "
               f"magnets the whole-surface estimator places {s52['all']['far_pct']:.0f}&#8202;% of presses away; for the "
               f"rest the median position error is {s52['face']['pos_median_mm']:.2f}&#8202;mm on the face and "
               f"{s52['sides']['pos_median_mm']:.2f}&#8202;mm on the sides, and the median press error "
@@ -475,7 +636,8 @@ def build():
                 f"within 0.25&#8202;N and their point within 1.2&#8202;mm with the magnets as found (Table 4).</p>{t4}"
               + f"<p>{t2}</p>"))
     S.append(("quiet", "Behaviour without a press",
-              f"<p>Over 30&#8202;s of the board with the pad untouched ({q['frames']} frames of 50&#8202;ms), the reading's "
+              f"<p>Over 30&#8202;s of the board with the pad untouched ({q['frames']} frames of 50&#8202;ms), with the chips' "
+              f"noise alone in the covariance (Section 9 adds a floor), the reading's "
               f"chi-square against $C$ has a median of {q['chi2_median']:.1f} for 15 components. The best contact the "
               f"whole-surface estimator finds explains a median chi-square of {q['e_median']:.1f} and a 99th percentile of "
               f"{q['e_p99']:.1f}; {q['false_contacts']} frame of {q['frames']} exceeds the threshold of 25 (Figure 4).</p>"
@@ -510,6 +672,97 @@ def build():
               + film(6, MEDIA / "20261020-viewer_session_replay.mp4", MEDIA / "20261020-viewer_session_replay.png",
                      "The same recording replayed through the viewer: the presses, then the standing contacts the shifted "
                      "pad leaves (the force arrow is drawn at most 25&#8202;mm long).")))
+    nt, wu, an = th["night"], th["warmup"], th["after_nuisances"]
+    sh0 = th["shown"]
+    f15 = [r_ for r_ in sw if r_["floor_uT"] == 1.5][0]
+    f2 = [r_ for r_ in sw if r_["floor_uT"] == 2.0][0]
+    lim0 = th["detection_limit_N"]["floor 0 uT"]
+    pre = [q_ for q_ in seat if q_["t1"] < 150]
+    first_m = [q_ for q_ in moved if q_["t0"] < 400]
+    later_m = [q_ for q_ in moved if q_["t0"] >= 400]
+    rv = th["rigid_vs_press"]
+    j0 = int(np.argmax(nt["raw_ptp_uT"]))
+    cb = rp["20:06 presses"]["auto-zero"]["came_back"]
+    S.append(("drift", "Drift of the rest reading",
+              f"<p>The firmware runs the chips without their on-chip temperature compensation (TCMP_EN 0), and each chip's "
+              f"sensitivity falls by {k_lo:.2f}&#8211;{k_hi:.2f}&#8202;% per &#176;C of its die temperature. Over the night "
+              f"of 20 October, with the pad untouched from 20:18 to 09:15, the chips followed the room through "
+              f"{min(nt['T_range_C']):.1f}&#8211;{max(nt['T_range_C']):.1f}&#8202;&#176;C and the rest reading moved by up to "
+              f"{nt['raw_ptp_uT'][j0]:.0f}&#8202;&#181;T peak to peak, on {ADDR[j0 // 3]}'s {'xyz'[j0 % 3]} axis in a field of "
+              f"{nt['field_mT'][j0 // 3]:.1f}&#8202;mT (Figure 7). Dividing each chip's reading by its gain at its own "
+              f"temperature (Eq. 9), with $\\kappa_c$ chosen to make the night's corrected reading of that chip the most "
+              f"constant, leaves {nt['corrected_ptp_uT'][j0]:.0f}&#8202;&#181;T on that axis and {nt['corrected_rms_uT']:.1f}"
+              f"&#8202;&#181;T RMS over the 15 components, against {nt['raw_rms_uT']:.1f}&#8202;&#181;T uncorrected. On "
+              f"{ADDR[0]} one degree is {-1e3 * th['kappa_per_C'][0] * nt['field_mT'][0]:.0f}&#8202;&#181;T, twice the change "
+              f"of a 1&#8202;N press on the face. NdFeB loses about 0.12&#8202;% of its remanence per &#176;C, a sixth of the "
+              f"coefficient.</p>{eq9}"
+              f"<p>The board warms after it is plugged in. On 21 October it was plugged in again at 09:55; over the "
+              f"{wu['span_s']:.0f}&#8202;s from the viewer's start at 09:59:07 to the first touch the chips warmed by "
+              f"{min(wu['T_rise_C']):.1f}&#8211;{max(wu['T_rise_C']):.1f}&#8202;&#176;C and the rest reading moved by "
+              f"{wv['uncorrected']['norm_uT']:.0f}&#8202;&#181;T. The night's coefficients take that to "
+              f"{wv['per chip, own temperature']['norm_uT']:.1f}&#8202;&#181;T (Table 6). One coefficient for all chips does "
+              f"as well ({wv['one coefficient, own temperature']['norm_uT']:.1f}&#8202;&#181;T); the five chips' mean "
+              f"temperature in place of each chip's own leaves {wv['per chip, mean temperature']['norm_uT']:.0f}&#8202;&#181;T, "
+              f"because the chips warm at different rates.</p>{t6}"
+              f"<p>Whether the viewer shows a contact at rest depends more on the estimator's noise model than on the "
+              f"correction (Table 7). With the chips' noise alone, under 1&#8202;&#181;T a component for 50&#8202;ms, the "
+              f"estimator showed a contact in {sh0['night, corrected, floor 0 uT']['share_pct']:.0f}&#8202;% of the night's "
+              f"minutes and {sh0['warm-up, corrected, floor 0 uT']['share_pct']:.0f}&#8202;% of the warm-up's seconds after the "
+              f"correction, at up to {max(sh0['night, corrected, floor 0 uT']['max_N'], sh0['warm-up, corrected, floor 0 uT']['max_N']):.1f}"
+              f"&#8202;N ({sh0['night, uncorrected, floor 0 uT']['share_pct']:.0f} and "
+              f"{sh0['warm-up, uncorrected, floor 0 uT']['share_pct']:.0f}&#8202;% uncorrected, the viewer as it ran until "
+              f"20 October). Its two nuisances, a uniform field and a uniform gain change, leave up to "
+              f"{an['corrected']['night_max_uT']:.0f}&#8202;&#181;T of the corrected night and "
+              f"{an['corrected']['warmup_end_uT']:.0f}&#8202;&#181;T of the corrected warm-up, and against that noise the "
+              f"remainder is read as a contact. The viewer now adds a noise floor of {th['floor_uT']:.0f}&#8202;&#181;T to every "
+              f"component (Eq. 10) and shows a contact only above {th['min_force_N']:.2f}&#8202;N (Eq. 11); with both, no "
+              f"contact shows at rest in either stretch. The floor costs sensitivity: the smallest press shown rises from "
+              f"{lim0['face']:.2f} to {f2['smallest_N']['face']:.2f}&#8202;N on the face, from {lim0['edge']:.2f} to "
+              f"{f2['smallest_N']['edge']:.2f}&#8202;N on the edge and from {lim0['sides']:.2f} to "
+              f"{f2['smallest_N']['sides']:.2f}&#8202;N on the sides. A floor of 1.5&#8202;&#181;T shows "
+              f"{f15['night_shown_pct']:.0f}&#8202;% of the night as a contact. The correction matters once the temperature "
+              f"moves by more than about 1&#8202;&#176;C, where the gain nuisance's prior of 0.3&#8202;% no longer takes up the "
+              f"change: uncorrected, the night shows a contact in {sh0['night, uncorrected, floor 2 uT']['share_pct']:.0f}"
+              f"&#8202;% of its minutes even with the floor.</p>{eq10}{eq11}{t7}"
+              f"<p>A touch also moves the pad in its seat. Before the first touch of 21 October the corrected rests stayed "
+              f"within {max(q_['offset_uT'] for q_ in pre):.0f}&#8202;&#181;T of the first; after it they lay "
+              f"{min(q_['offset_uT'] for q_ in first_m):.0f}&#8211;{max(q_['offset_uT'] for q_ in first_m):.0f}&#8202;&#181;T "
+              f"away and after a later touch {min(q_['offset_uT'] for q_ in later_m):.0f}&#8211;"
+              f"{max(q_['offset_uT'] for q_ in later_m):.0f}&#8202;&#181;T, which rigid shifts of "
+              f"{min(q_['shift_um'] for q_ in moved):.0f}&#8211;{max(q_['shift_um'] for q_ in moved):.0f}&#8202;&#181;m and "
+              f"tilts of {min(q_['tilt_mrad'] for q_ in moved):.1f}&#8211;{max(q_['tilt_mrad'] for q_ in moved):.1f}&#8202;mrad "
+              f"reproduce within {max(q_['residual_pct'] for q_ in moved):.0f}&#8202;% (Eq. 8). At the viewer's start on 20 "
+              f"October at 20:06 the pad sat still {start_off / 1e3:.1f}&#8202;mT from its later rest for 4&#8202;s, until a "
+              f"touch moved it, and the viewer took its baseline there. The reading alone cannot tell a shift in the seat "
+              f"from a press: a rigid motion of the magnet set and a uniform field leave {rv['press_median_pct']:.0f}&#8202;% "
+              f"of a simulated 1&#8202;N press unexplained (median over the surface; {rv['random_median_pct']:.0f}&#8202;% of a "
+              f"random pattern). Their time courses differ: after a touch the pad comes to rest, and a press by hand wavers. "
+              f"The viewer therefore re-zeros once the reading has been as still as at rest for 3&#8202;s and has moved more "
+              f"than 5&#8202;&#181;T from the baseline (Eq. 12). Over the recording of 21 October that takes the share of "
+              f"frames with a contact shown from {rp['09:59 touches']['baseline kept']['shown_share_pct']:.0f} to "
+              f"{rp['09:59 touches']['auto-zero']['shown_share_pct']:.0f}&#8202;%, and over the presses of 20 October, from "
+              f"the rest at 8&#8211;10&#8202;s, from {rp['20:06 presses']['baseline kept']['shown_share_pct']:.0f} to "
+              f"{rp['20:06 presses']['auto-zero']['shown_share_pct']:.0f}&#8202;% (Table 8, Figure 8, Film 9). "
+              f"Of that night's {rp['20:06 presses']['auto-zero']['rezeros']} re-zeros, {len(cb)} took in a state the "
+              f"reading came back from within 10&#8202;s"
+              + (f" ({', '.join(f'{c_[1]:.0f}' for c_ in cb)}&#8202;&#181;T)" if cb else "")
+              + ". A press held as still as the pad at rest for 3&#8202;s goes into the baseline the same way.</p>"
+              f"{eq12}{t8}"
+              + fig(7, MEDIA / "20261021-rest_drift.png",
+                    "The rest reading against the chips' die temperatures. Left: the night of 20 October from 20:36, 60&#8202;s "
+                    "means of the temperatures (top) and of 0x0C's z reading, uncorrected and corrected (bottom). Right: the "
+                    "warm-up after the board was plugged in again on 21 October, 1&#8202;s means of the temperature rise "
+                    "(top) and of the norm of the 15-component change (bottom); after the touches the pad's seat moves the "
+                    "rest, which the correction leaves.")
+              + fig(8, MEDIA / "20261021-rezero_replay.png",
+                    "The pressing force the viewer shows over the recordings by hand, with the temperature correction, the "
+                    "2&#8202;&#181;T floor and the 0.25&#8202;N threshold, keeping the first baseline (light red) or "
+                    "re-zeroing after 3&#8202;s at rest (black; ticks: re-zeros).")
+              + film(9, MEDIA / "20261021-viewer_drift_replay.mp4", MEDIA / "20261021-viewer_drift_replay.png",
+                     "The viewer replaying the warm-up and the touches of 21 October five times faster than recorded, with "
+                     "the settings of 20 October (top) and of 21 October (bottom). The poster is 245&#8202;s into the "
+                     "recording, after the second touch: the chips are 0.9&#8211;1.4&#8202;&#176;C warmer than at the "
+                     "calibration, and the top viewer shows a standing contact of about 10&#8202;N.")))
     S.append(("viewer", "Live viewer in the browser",
               f"<p>{code('src/morphohand/driver/reskin5x/host/wrench_viewer.py')} reads the board and calibrates at rest; "
               f"its page is at http://localhost:8790. The page draws the pad's whole surface deformed by the FE basis at "
@@ -520,7 +773,11 @@ def build():
               f"their fitted poles and the chips with their fitted addresses, and traces of force, contact point and "
               f"reading. Every record of the stream goes to {code('logs/20261020-contact_estimation/stream/')} as it "
               f"arrives (88 bytes a record), so a session is kept without pressing r; "
-              f"{code('pad_shift_check.py')} reports the rest offsets of a recording or of a stretch of that log.</p>{eq7}"
+              f"{code('pad_shift_check.py')} reports the rest offsets of a recording or of a stretch of that log. The server "
+              f"corrects every reading for its chip's temperature, shows a contact by Eq. 11 and re-zeros at rest by Eq. 12; "
+              f"the page has sliders for the threshold force and the noise floor and a switch for the re-zero (key z), and "
+              f"shows the chips' temperature change since the calibration. When the board is unplugged the server waits for "
+              f"it, opens it again and takes a new baseline 2&#8202;s later.</p>{eq7}"
               + cmd))
     S.append(("limits", "Limitations",
               "<p>No estimate has been compared with a reference force or position; the errors above are the model against "
@@ -532,8 +789,11 @@ def build():
               "assumes one contact; a press spread over the pad is reported near its centre of load. The background term "
               "covers uniform fields only, so a steel tool near the pad reads as a contact. The pressure patch assumes a "
               "sphere of a chosen radius on the sphere pads, and the deformation drawn is the FE's response to a Gaussian "
-              "patch, not a contact solution. The magnets in the pad today are not N52 and their poles are mixed; the N52 "
-              "rows assume the same geometry with $k=1$ and all poles one way.</p>"))
+              "patch of load. The magnets in the pad today are of unknown grade and their poles are mixed; the N52 "
+              "rows assume the same geometry with $k=1$ and all poles one way. The temperature coefficients come from one "
+              "night on one board, and the correction uses the chips' die temperature: the magnets' own coefficient follows "
+              "the pad's temperature, which lags the chips', and is left to the gain nuisance. The noise floor raises the "
+              "smallest press shown on the face to 0.6&#8202;N, and the re-zero takes in a press held still for 3&#8202;s.</p>"))
     S.append(("future", "Future work",
               "<ul>"
               "<li>Seat: with the pad fixed in its seat, record five firm presses with 2&#8202;s rests and run "
@@ -553,8 +813,17 @@ def build():
               "errors with the model 1-sigma.</li>"
               "<li>Large presses: the FE row's rod responses at 0.5, 1 and 3&#8202;N give the stiffening as a force-magnitude "
               "correction, to be checked against the reference.</li>"
-              "<li>Temperature: warm the pad at rest (a hand around it) and check that $\\varepsilon$ takes up the drift "
-              "without a contact.</li></ul>"
+              "<li>Temperature: with the pad at rest, hold a warm hand around the finger without touching the pad for 60&#8202;s, "
+              "then take it away, with the viewer logging, and run the study's thermal step on that stretch of the stream "
+              "log. The correction passes if no contact shows while the chips warm by 2&#8211;3&#8202;&#176;C; a drift that "
+              "grows with the temperature after the correction means the magnets' coefficient needs a term of its own, with "
+              "the pad's temperature lagging the chips'. Firmware with TCMP_EN 1, the chips' own compensation, is the "
+              "alternative to test the same way.</li>"
+              "<li>Re-zero: press and hold at about 0.5, 1 and 2&#8202;N for 2, 5 and 10&#8202;s each on the kitchen scale "
+              "with the viewer logging; the study's replay counts the holds the re-zero takes in, which should be none of "
+              "those under 3&#8202;s.</li>"
+              "<li>Floor: after the seat fix and the N52 magnets, repeat the night at rest and the floor sweep (Table 7); "
+              "lower the floor to the smallest value that still shows no contact at rest.</li></ul>"
               f"<p>Status of the printed-fingertip work: {link(STATUS_PAGE, 'status page')}.</p>"))
 
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
@@ -563,8 +832,9 @@ def build():
     for k, v in {"TITLE": "Model-based contact estimation",
                  "H1": "Model-based estimation of contact position and force on the magnetic fingertip",
                  "EYEBROW": "Printed fingertips and force sensing &#183; 2026-10-20", "LEDE": lede,
-                 "BYLINE": f"Built {time.strftime('%Y-%m-%d %H:%M')} from results.json ({res['when']}); the readings at "
-                           f"rest and the presses of Section 8 are measured, the other presses simulated.",
+                 "BYLINE": f"Built {time.strftime('%Y-%m-%d %H:%M')} from results.json ({res['when']}; Section 9 of "
+                           f"2026-10-21); the readings at rest and the recordings of Sections 8 and 9 are measured, the other "
+                           f"presses simulated.",
                  "FILM": film(1, MEDIA / "20261020-viewer_surface_presses.mp4", MEDIA / "20261020-viewer_surface_presses.png",
                               "The browser viewer replaying five synthetic presses made by the model with the measured noise "
                               "and the magnets as found (Table 4): the palmar face, the +y flank, the face's edge on the -y "
@@ -583,7 +853,9 @@ def build():
         f"pad's surface, from an FE basis at the {fs['pads']} sphere pads; on simulated presses with N52 magnets the "
         f"median errors are {s52['all']['pos_median_mm']:.2f} mm and {s52['all']['press_abs_median_N']:.2f} N. In the "
         f"first presses by hand the pad rocked in its seat, leaving offsets of {min(r['offset_uT'] for r in big):.0f}-"
-        f"{max(r['offset_uT'] for r in big):.0f} uT that read as standing contacts."))
+        f"{max(r['offset_uT'] for r in big):.0f} uT that read as standing contacts. The rest reading drifts "
+        f"{k_lo:.2f}-{k_hi:.2f} % of the field per degree C of chip temperature; a correction from each chip's temperature, "
+        f"a 2 uT noise floor and a re-zero after 3 s at rest stop the viewer showing contacts at rest."))
     PAGE.write_text(page)
     print(f"{PAGE.relative_to(ROOT)}: {PAGE.stat().st_size / 1e6:.2f} MB, {len(items)} formulas", flush=True)
 

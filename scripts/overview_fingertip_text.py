@@ -267,8 +267,12 @@ the face when the point was unknown, which is why the layouts went to four magne
 five. On the 11/22 tip concept a resolves 0.065&#8202;N and b 0.028&#8202;N, with the contact located to
 0.34&#8202;&#215;&#8202;0.42&#8202;mm against a&#8217;s 1.40&#8202;&#215;&#8202;1.31&#8202;mm; at the measured noise b&#8217;s 0.028&#8202;N
 becomes about 0.039&#8202;N ([v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)).</p>
-<p>The disturbances are larger than the noise. On the first tip, 10&#8202;&#176;C of chip drift read as 0.47&#8202;N, and a facing
-fingertip&#8217;s magnet moving from 25 to 30&#8202;mm as 5.16&#8202;N, 2.01&#8202;N with the field&#8217;s gradient estimated; the hand&#8217;s
+<p>The disturbances are larger than the noise. The chips run without their on-chip temperature compensation, and each
+one&#8217;s sensitivity falls by 0.65&#8211;0.70&#8202;% per &#176;C of its die temperature: on the centre chip, in 7.6&#8202;mT, one
+degree is 53&#8202;&#181;T, twice a 1&#8202;N press on the face, and the board warms by about 1&#8202;&#176;C in the minutes after it is
+plugged in. Dividing each reading by its chip&#8217;s gain at the chip&#8217;s own temperature leaves 9 of those 70&#8202;&#181;T
+([contact estimation](exp:20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html), Section 9). On the first tip a facing
+fingertip&#8217;s magnet moving from 25 to 30&#8202;mm read as 5.16&#8202;N, 2.01&#8202;N with the field&#8217;s gradient estimated; the hand&#8217;s
 joint angles give the other magnets&#8217; positions, so their field can be subtracted. Earth&#8217;s field, 1.71&#8202;N on U1 alone,
 drops out of the five-chip estimate. The board must not move against the pad: on concept a with four magnets,
 1&#8202;&#181;m of board motion reads as 0.160&#8202;N, which is why the board is clamped
@@ -332,6 +336,13 @@ pad&#8217;s flat end, ears under the two distal board screws and a 2&#8202;mm pi
 6&#8202;mm side walls on the distal flanks in variant TW; in the FE bound the plate and pin cost 1&#8202;% of the resolution
 and the side walls 6&#8202;%, and both caps print in 17&#8202;min
 ([DIP link board mount](exp:20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html)).</p>
+<p>On 2026-10-21, before the cap, touches still moved the rest by 33&#8211;69&#8202;&#181;T (rigid shifts of 8&#8211;19&#8202;&#181;m), and
+over a night at rest the estimator with the chips&#8217; noise alone showed a contact 95&#8202;% of the time, from the 8&#8211;14&#8202;&#181;T
+of drift that the temperature correction and the estimator&#8217;s nuisances leave. The viewer now adds a noise floor of 2&#8202;&#181;T to
+every component, shows a contact only above 0.25&#8202;N and takes a new baseline once the reading has been as still as at
+rest for 3&#8202;s: no contact shows at rest over the night or the board&#8217;s warm-up, the smallest press shown on the face rises
+from 0.20 to 0.60&#8202;N, and a press held still for 3&#8202;s goes into the baseline
+([contact estimation](exp:20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html), Section 9).</p>
 {{FIG hand}}
 <p>The UR5e calibration mount clamps the DIP link to the OnRobot HEX-E with the finger along the tool axis, so the normal
 force falls on the sensor&#8217;s lateral axes (noise 0.035&#8202;N against 0.15&#8202;N axially); under 10&#8202;N the HEX-E deflects
@@ -346,14 +357,17 @@ connected to the lab&#8217;s computer, which this workstation cannot reach.</p>"
 12&#8202;MPa from a NinjaFlex datasheet (95A datasheets span 26&#8211;67&#8202;MPa), every force scales with that modulus, and the
 G-code solves put the printed pads 4&#8211;18&#8202;% stiffer than the design model, depending on how much TPU the beads hold. A scale or load cell under a printed indenter
 settles the scale; an indentation with the HEX-E separates the pad&#8217;s stiffness from the magnets&#8217; strength.</li>
-<li><b>The seat.</b> The FE fixes the pad&#8217;s cut face, and the pad as assembled moved 17&#8211;23&#8202;&#181;m and stayed there. The
-tip cap is meant to hold it; until the pad returns to its seat within a few &#181;T after a firm press, neither the model
-nor a UR5e calibration describes it.</li>
+<li><b>The seat.</b> The FE fixes the pad&#8217;s cut face, and the pad as assembled moved 17&#8211;23&#8202;&#181;m and stayed there;
+touches on 2026-10-21 still moved it 8&#8211;19&#8202;&#181;m. The viewer&#8217;s re-zero at rest clears the offsets but takes in a press
+held still for 3&#8202;s. The tip cap is meant to hold the pad; until it returns to its seat within a few &#181;T after a firm
+press, neither the model nor a UR5e calibration describes it.</li>
 <li><b>The magnets.</b> The N52 magnets are on order. Today&#8217;s resolve 0.10&#8211;0.12&#8202;N; with N52 all one way the models
 predict 0.028&#8211;0.031&#8202;N, about 0.039&#8202;N at the measured noise. Four magnets (0.051&#8202;N) or five (0.029&#8202;N) waits on
 the owner; a test of pads B4 and B00 measures the ratio, predicted 1.8.</li>
-<li><b>Disturbances in the hand.</b> The other fingers&#8217; magnets (5.16&#8202;N equivalent at 25&#8211;30&#8202;mm on the first tip),
-temperature (0.47&#8202;N per 10&#8202;&#176;C) and steel near the pad are modelled but not measured.</li>
+<li><b>Disturbances in the hand.</b> The other fingers&#8217; magnets (5.16&#8202;N equivalent at 25&#8211;30&#8202;mm on the first tip)
+and steel near the pad are modelled but not measured. The chips&#8217; temperature drift is measured, 0.65&#8211;0.70&#8202;% per
+&#176;C, and the correction from each chip&#8217;s temperature leaves 9 of 70&#8202;&#181;T over a warm-up; the magnets&#8217; own
+coefficient, which follows the pad&#8217;s lagging temperature, is not separated yet.</li>
 <li><b>Large presses and shear.</b> The FE is linear and frictionless; a neo-Hookean check lost 11&#8202;% of the force at
 350&#8202;&#181;m on the softest tip. The tip&#8217;s tangential compliance, 48&#8211;177&#8202;&#181;m/N, is in neither simulator, and the
 estimator&#8217;s shear has not been tested.</li>
@@ -420,7 +434,7 @@ FUTURE = [
     'Sensing rows on the probes&#8217; gap rule: <code>run_sense</code> in <code>scripts/v2_tip_fe_checks.py</code> takes its gaps from <code>tpu_tip_magnet.gaps</code>, which moves a face node onto the analytic surface only within half a grid cell of it, and gives 150 against the probe rows&#8217; 185&#8202;&#181;m for the same pad at 1&#8202;N. Rerun <code>--sense b_v2</code> with every face node on the surface; a force resolution that moves by more than 5&#8202;% means the DIP page&#8217;s resolutions need the same rerun.',
     'UR5e session on the lab&#8217;s computer: probe points from the basis&#8217;s pad points over the face and both flanks, three normal forces and two shear directions each, a return to one reference point every ten presses, 30&#8202;s rests; refit strength, offsets, \\(\\theta_0\\), \\(E^*\\) and per-magnet strengths on half the points and compare the other half&#8217;s errors with the model 1-sigma.',
     'Facing finger: record the board with a second tip&#8217;s magnets at 20&#8211;40&#8202;mm and compare with the dipole prediction before subtracting it from the joint angles.',
-    'Temperature: warm the pad at rest with a hand around it; the strength term should take up the drift without a contact appearing.',
+    'Temperature: with the pad at rest, hold a warm hand around the finger for 60&#8202;s and take it away, with the viewer logging, and run <code>scripts/fingertip_contact_estimation_study.py thermal</code> on that stretch: no contact should show while the chips warm by 2&#8211;3&#8202;&#176;C. A drift that grows with the temperature after the correction means the magnets need a coefficient of their own; firmware with TCMP_EN 1 is the alternative to test the same way.',
 ]
 
 PAGES = [

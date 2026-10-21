@@ -19,7 +19,8 @@ from pathlib import Path
 import websockets
 
 
-async def capture(url, seconds, fps, size, frames_dir, warmup):
+async def capture(url, seconds, fps, size, frames_dir, warmup, on_start=None):
+    """Screenshots of url at fps for seconds into frames_dir; on_start(t) gets the host time of the first."""
     port = 9333
     prof = tempfile.mkdtemp(prefix="chrome_film_")
     chrome = subprocess.Popen(["google-chrome", "--headless=new", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
@@ -49,10 +50,15 @@ async def capture(url, seconds, fps, size, frames_dir, warmup):
             await call("Page.navigate", url=url)
             await asyncio.sleep(warmup)
             t0, k = time.time(), 0
+            if on_start is not None:
+                on_start(t0)
             while time.time() - t0 < seconds:
                 r = await call("Page.captureScreenshot", format="png")
-                (frames_dir / f"f{k:05d}.png").write_bytes(base64.b64decode(r["data"]))
-                k += 1
+                img = base64.b64decode(r["data"])
+                last = max(k, int((time.time() - t0) * fps))   # a late screenshot fills the slots it missed, so frame k
+                for j in range(k, last + 1):                   # is the page at t0 + k / fps
+                    (frames_dir / f"f{j:05d}.png").write_bytes(img)
+                k = last + 1
                 await asyncio.sleep(max(0.0, t0 + k / fps - time.time()))
             return k
     finally:

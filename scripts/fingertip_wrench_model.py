@@ -36,6 +36,8 @@ BR = 1.45
 PHI_PP = {"U1": 0.0, "U2": 180.0, "U3": 0.0, "U4": 90.0, "U5": 270.0}   # 5X_ReSkin.Zip pick-and-place rotations, degrees
 U_ORDER = ("U1", "U2", "U3", "U4", "U5")
 NOISE_UT = np.array([1.65, 1.65, 2.57])   # chip x, y, z noise per sample at GAIN_SEL 1, RES 1, DIG_FILT 5 (2026-10-20)
+THERMAL = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261021-thermal_gain.json"
+T_REF_C = 25.0
 
 
 def fe_row(case="b_v2"):
@@ -252,6 +254,67 @@ def calibrate_frames_fixed(b_rest_uT, board: Calib, case=None, poles=None):
                  rms_mT=float(np.sqrt(np.mean(r.fun ** 2))), b_rest_uT=b.tolist())
 
 
+def load_thermal(path=THERMAL):
+    """Each chip's sensitivity coefficient kappa (1/C, streaming order), as fitted by
+    scripts/fingertip_contact_estimation_study.py thermal; None when the file is missing."""
+    p = Path(path)
+    if not p.exists():
+        return None
+    return np.asarray(json.loads(p.read_text())["kappa_per_C"], float)
+
+
+def thermal_correct(b, T, kappa, T_ref=T_REF_C):
+    """Readings b (..., 5, 3) uT as the chips would give them at die temperature T_ref: each chip's reading divided by
+    its gain 1 + kappa (T - T_ref) at its own die temperature T (..., 5) C. The firmware runs the chips without their
+    on-chip temperature compensation (TCMP_EN 0), and their sensitivity falls by about 0.7 % per C."""
+    g = 1.0 + np.asarray(kappa, float) * (np.asarray(T, float) - T_ref)
+    return np.asarray(b, float) / g[..., None]
+
+
+class RestZero:
+    """Re-zeroing of the reading's baseline once the pad has come to rest after a touch.
+
+    The reading is at rest while the spread of its bin_s means over the last span_s (the norm over the 15 components of
+    their standard deviation; the chips' noise alone gives 2.2 uT with 0.1 s bins) stays below still_uT. After hold_s at
+    rest, update() returns the mean of the last span_s as the new baseline when it differs from the old one by more than
+    min_uT, and keeps doing so while the rest lasts, so the baseline follows the pad's slow recovery. A press held as
+    still as the pad at rest for hold_s goes into the baseline too: a shift of the pad in its seat changes the reading
+    as a press does (a rigid motion of the magnets explains 86 % of a simulated 1 N press), and only the time course
+    differs."""
+
+    def __init__(self, hold_s=3.0, still_uT=3.0, bin_s=0.1, span_s=1.0, min_uT=5.0):
+        self.hold_s, self.still_uT, self.bin_s, self.span_s, self.min_uT = hold_s, still_uT, bin_s, span_s, min_uT
+        self.t_still, self.count, self.last_uT, self.spread = None, 0, 0.0, float("nan")
+
+    def update(self, t, b, base):
+        """t (n,) s and b (n, 15) uT: the latest records, temperature-corrected; base (15,): the baseline. Returns the
+        new baseline or None."""
+        sel = t > t[-1] - self.span_s
+        tt, bb = t[sel], b[sel]
+        if len(tt) < 10:
+            self.t_still = None
+            return None
+        k = ((tt - tt[0]) // self.bin_s).astype(int)
+        means = np.array([bb[k == i].mean(0) for i in np.unique(k) if (k == i).sum() >= 3])
+        if len(means) < 0.8 * self.span_s / self.bin_s:
+            self.t_still = None
+            return None
+        self.spread = float(np.linalg.norm(means.std(0)))
+        if self.spread >= self.still_uT:
+            self.t_still = None
+            return None
+        if self.t_still is None:
+            self.t_still = float(tt[0])
+        if t[-1] - self.t_still < self.hold_s:
+            return None
+        new = bb.mean(0)
+        off = float(np.linalg.norm(new - base))
+        if off <= self.min_uT:
+            return None
+        self.count, self.last_uT = self.count + 1, off
+        return new
+
+
 def load_basis(path):
     z = np.load(path, allow_pickle=False)
     return {k: z[k] for k in z.files}
@@ -406,9 +469,10 @@ class SurfaceEstimator:
     0.2 mm); mask(points, normals) may drop some (the flanks behind the cover's walls)."""
 
     def __init__(self, model: Model, basis: dict, levels=2, noise_uT=NOISE_UT, sigma_g_uT=30.0, sigma_eps=3e-3,
-                 mu_max=2.0, sigma_f_N=3.0, f_max_N=25.0, mask=None):
+                 mu_max=2.0, sigma_f_N=3.0, f_max_N=25.0, mask=None, floor_uT=0.0):
         from scipy.interpolate import RBFInterpolator
         self.model, self.basis, self.mu_max, self.sigma_f, self.f_max = model, basis, mu_max, sigma_f_N, f_max_N
+        self.floor = float(floor_uT)
         P, Nn = basis["pts"], basis["normals"]
         nm = basis["motions"].shape[2]
         self.rbf = RBFInterpolator(P, basis["motions"].reshape(len(P), -1), kernel="thin_plate_spline", degree=1)
@@ -434,8 +498,10 @@ class SurfaceEstimator:
         return np.einsum("ij,kfj->kif", self.Jm, M)
 
     def set_noise_scale(self, scale):
-        """Noise of the averaged reading relative to one sample (1/sqrt(conversions averaged))."""
-        self.sig_now = self.sig * scale
+        """Noise of the averaged reading relative to one sample (1/sqrt(conversions averaged)); floor_uT, an error of
+        every component that averaging does not reduce (the drift left after the temperature correction), adds to it
+        in quadrature."""
+        self.sig_now = np.sqrt((self.sig * scale) ** 2 + self.floor ** 2)
         Cov = np.diag(self.sig_now ** 2) + self.Nu @ self.Pq @ self.Nu.T
         self.Linv = np.linalg.inv(np.linalg.cholesky(Cov))
         self.Cinv = self.Linv.T @ self.Linv

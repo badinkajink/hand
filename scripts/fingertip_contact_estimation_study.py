@@ -15,8 +15,13 @@ writes docs/experiments/20261020-fingertip_contact_estimation/results.json and d
                (data/20261020-surface_uncertainty.npz) and its behaviour without a press
   session      the owner's recording of 2026-10-20 19:39 (five presses by hand, the pad loose in its seat): the rests'
                offsets, the rigid pad motion that fits each, and what the estimator reads
+  thermal      (subcommand thermal, merged into results.json) the chips' gain against their die temperature, fitted on
+               the viewer's stream log of the night of 2026-10-20 (pad untouched from 20:18 to 09:15) and tested on the
+               board's warm-up after it was plugged in again on 2026-10-21; written to data/20261021-thermal_gain.json,
+               which the viewer reads; the force the viewer shows at rest with and without the correction; and the
+               presses by hand replayed with and without fingertip_wrench_model.RestZero
 
-    ~/miniconda3/bin/python scripts/fingertip_contact_estimation_study.py
+    ~/miniconda3/bin/python scripts/fingertip_contact_estimation_study.py [thermal]
 """
 from __future__ import annotations
 
@@ -41,6 +46,11 @@ SRC = {"rest": ROOT / "logs/20261020-reskin5x/20261020-pad_as_found.csv",
        "synthetic": ROOT / "logs/20261020-contact_estimation/20261020-synthetic_presses.csv",
        "session": ROOT / "logs/20261020-contact_estimation/20261020-193936-viewer_session.csv"}
 WIN_S, RATE_HZ, THRESHOLD = 0.05, 140.0, 25.0
+STREAM = ROOT / "logs/20261020-contact_estimation/stream"
+NIGHT = STREAM / "20261020-200647-stream.bin"        # viewer started 20:06:47; presses to 20:17:50; unplugged 09:15:24
+WARM = STREAM / "20261021-095907-stream.bin"         # board plugged in again 09:55; viewer started 09:59:07
+REC_DT = np.dtype([("t", "<f8"), ("r", "<f4", (20,))])
+FLOOR_UT, MIN_FORCE_N = 2.0, 0.25                    # the viewer's defaults from 2026-10-21
 
 
 def copy_inputs():
@@ -378,7 +388,375 @@ def session(path, board):
                 trace=np.round(T, 3).tolist())
 
 
+def reduce_stream(path, block_s, t0_s=0.0, t1_s=None):
+    """Block means of a viewer stream log: (start as epoch s, block centres (s from the start), T (n, 5) C, B (n, 15) uT,
+    the largest range of a field component within each block (uT), records per block). Records with a chip reading
+    zeros or values out of range (framing errors at start-up) are dropped."""
+    a = np.memmap(path, REC_DT, mode="r")
+    th = a["t"]
+    start = float(th[0])
+    i0 = int(np.searchsorted(th, start + t0_s))
+    i1 = len(a) if t1_s is None else int(np.searchsorted(th, start + t1_s))
+    nb = int(np.ceil((th[i1 - 1] - start - t0_s) / block_s))
+    S, C = np.zeros((nb, 20)), np.zeros(nb)
+    MX, MN = np.full((nb, 15), -np.inf), np.full((nb, 15), np.inf)
+    for s in range(i0, i1, 2_000_000):
+        c = a[s:min(s + 2_000_000, i1)]
+        t, r = np.asarray(c["t"]), np.asarray(c["r"], float)
+        rr = r.reshape(-1, 5, 4)
+        ok = (np.isfinite(r).all(1) & (np.abs(r) < 1e5).all(1) & ~np.all(rr == 0, axis=2).any(axis=1)
+              & (rr[:, :, 0] > -40).all(1) & (rr[:, :, 0] < 125).all(1))
+        t, r = t[ok], r[ok]
+        k = np.minimum(((t - start - t0_s) // block_s).astype(int), nb - 1)
+        C += np.bincount(k, minlength=nb)
+        for j in range(20):
+            S[:, j] += np.bincount(k, weights=r[:, j], minlength=nb)
+        f = r.reshape(-1, 5, 4)[:, :, 1:].reshape(-1, 15)
+        np.maximum.at(MX, k, f)
+        np.minimum.at(MN, k, f)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        M = (S / C[:, None]).reshape(-1, 5, 4)
+    return start, t0_s + (np.arange(nb) + 0.5) * block_s, M[:, :, 0], M[:, :, 1:].reshape(-1, 15), np.max(MX - MN, axis=1), C
+
+
+def _series(npz, path, block_s, t0_s=0.0, t1_s=None):
+    """reduce_stream of a stream log, kept in data/ (the logs are not in git) and read from there when the log is gone."""
+    if path.exists() and (not npz.exists() or npz.stat().st_mtime < path.stat().st_mtime):
+        start, t, T, B, spread, n = reduce_stream(path, block_s, t0_s, t1_s)
+        np.savez_compressed(npz, start=start, t=t, T=T, B=B, spread=spread, n=n, source=str(path.relative_to(ROOT)),
+                            block_s=block_s)
+    z = np.load(npz)
+    return float(z["start"]), z["t"], z["T"], z["B"], z["spread"], z["n"]
+
+
+def fit_kappa(T, B):
+    """Each chip's gain coefficient kappa (1/C): the value that makes its reading divided by 1 + kappa (T - T_ref) the
+    most constant over the series (least squares over its three components)."""
+    from scipy.optimize import minimize_scalar
+    out = []
+    for i in range(5):
+        b, x = B[:, 3 * i:3 * i + 3], T[:, i] - W.T_REF_C
+
+        def cost(k):
+            c = b / (1 + k * x)[:, None]
+            return float(((c - c.mean(0)) ** 2).sum())
+        out.append(minimize_scalar(cost, bounds=(-0.03, 0.03), method="bounded").x)
+    return np.array(out)
+
+
+def _shown(est, d, min_force=MIN_FORCE_N):
+    """The force the viewer shows for reading change d (0 when it shows no contact)."""
+    e = est.estimate(d)
+    return e["f_n"] if e["contact"] and e["e"] > THRESHOLD and e["f_n"] >= min_force else 0.0
+
+
+def thermal(board):
+    """See the module docstring (thermal)."""
+    sn = _series(DATA / "20261021-overnight_drift_60s.npz", NIGHT, 60.0)
+    sw = _series(DATA / "20261021-warmup_1s.npz", WARM, 1.0, 0.0, 600.0)
+    start_n, tn, Tn, Bn, spn, nn = sn
+    start_w, tw, Tw, Bw, spw, nw = sw
+    quiet = tn > 1800                                  # from 20:36, 18 min after the last press
+    kap = fit_kappa(Tn[quiet], Bn[quiet])
+    one = float(np.median(kap))
+    # warm-up: the first 150 s, before the first touch at 150 s
+    ok = np.isfinite(Bw).all(1) & (tw > 2) & (tw < 148)
+    tw_, Tw_, Bw_ = tw[ok], Tw[ok], Bw[ok]
+    ref = slice(0, 8)
+
+    def drift(B):
+        return B - B[ref].mean(0)
+    variants = {"uncorrected": Bw_,
+                "per chip, own temperature": W.thermal_correct(Bw_.reshape(-1, 5, 3), Tw_, kap).reshape(-1, 15),
+                "one coefficient, own temperature": W.thermal_correct(Bw_.reshape(-1, 5, 3), Tw_, np.full(5, one)).reshape(-1, 15),
+                "per chip, mean temperature": W.thermal_correct(Bw_.reshape(-1, 5, 3), np.repeat(Tw_.mean(1, keepdims=True), 5, 1),
+                                                                kap).reshape(-1, 15)}
+    warm = {k: dict(rms_uT=float(np.sqrt((drift(v)[-10:].mean(0) ** 2).mean())),
+                    max_uT=float(np.abs(drift(v)[-10:].mean(0)).max()),
+                    norm_uT=float(np.linalg.norm(drift(v)[-10:].mean(0)))) for k, v in variants.items()}
+    # the night: the fit's residual and the correction applied to all of it
+    Bq, Tq = Bn[quiet], Tn[quiet]
+    Cq = W.thermal_correct(Bq.reshape(-1, 5, 3), Tq, kap).reshape(-1, 15)
+    night = dict(T_range_C=np.ptp(Tq, 0).round(2).tolist(), raw_ptp_uT=np.ptp(Bq, 0).round(1).tolist(),
+                 corrected_ptp_uT=np.ptp(Cq, 0).round(1).tolist(), raw_rms_uT=float(np.sqrt(Bq.var(0).mean())),
+                 corrected_rms_uT=float(np.sqrt(Cq.var(0).mean())),
+                 field_mT=(np.linalg.norm(Bq.mean(0).reshape(5, 3), axis=1) / 1e3).round(2).tolist())
+    # the force the viewer shows at rest: estimator as the viewer runs it, baseline at the start of the stretch
+    cal = W.calibrate_frames_fixed(W.thermal_correct(Bq[:5].mean(0).reshape(5, 3), Tq[:5].mean(0), kap), board)
+    sb = W.load_basis(SURF)
+    shown = {}
+    for floor in (0.0, FLOOR_UT):
+        est = W.SurfaceEstimator(W.Model(cal), sb, floor_uT=floor)
+        est.set_noise_scale(1 / np.sqrt(WIN_S * RATE_HZ))
+        for name, B, T in (("night", Bq, Tq), ("warm-up", Bw_, Tw_)):
+            for corr in (False, True):
+                X = W.thermal_correct(B.reshape(-1, 5, 3), T, kap).reshape(-1, 15) if corr else B
+                base = X[:5].mean(0) if name == "night" else X[ref].mean(0)
+                f = np.array([_shown(est, x - base, 0.0 if floor == 0 else MIN_FORCE_N) for x in X])
+                shown[f"{name}, {'corrected' if corr else 'uncorrected'}, floor {floor:g} uT"] = dict(
+                    share_pct=float(100 * (f > 0).mean()), max_N=float(f.max()), p95_N=float(np.percentile(f, 95)))
+    # what the estimator's nuisances (a uniform field, a uniform gain change) leave of the drift
+    mdl = W.Model(cal)
+    Qn, _ = np.linalg.qr(np.c_[np.concatenate(list(mdl.R), 0), W.thermal_correct(Bq.mean(0).reshape(5, 3), Tq.mean(0),
+                                                                                    kap).ravel()])
+
+    def left(v):
+        return float(np.linalg.norm(v - Qn @ (Qn.T @ v)))
+    after = {}
+    for corr in (False, True):
+        Xn = W.thermal_correct(Bq.reshape(-1, 5, 3), Tq, kap).reshape(-1, 15) if corr else Bq
+        Xw = variants["per chip, own temperature" if corr else "uncorrected"]
+        after["corrected" if corr else "uncorrected"] = dict(
+            night_max_uT=max(left(x - Xn[:5].mean(0)) for x in Xn),
+            warmup_end_uT=left(Xw[-10:].mean(0) - Xw[ref].mean(0)))
+    # the gain as N per C: a 1 C change of every chip's temperature, uncorrected, read by the estimator at rest
+    est = W.SurfaceEstimator(W.Model(cal), sb)
+    est.set_noise_scale(1 / np.sqrt(WIN_S * RATE_HZ))
+    b25 = W.thermal_correct(Bq.mean(0).reshape(5, 3), Tq.mean(0), kap)
+    e1 = est.estimate((b25 * (1 + kap[:, None]) - b25).ravel())
+    out = dict(kappa_per_C=kap.round(5).tolist(), kappa_median=one, T_ref_C=W.T_REF_C,
+               night=dict(file="data/20261021-overnight_drift_60s.npz", start=time.strftime("%Y-%m-%d %H:%M", time.localtime(start_n)),
+                          hours=float(tn[-1] / 3600), fit_from_h=0.5, **night),
+               warmup=dict(file="data/20261021-warmup_1s.npz", start=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_w)),
+                           span_s=float(tw_[-1] - tw_[0]), T_rise_C=(Tw_[-10:].mean(0) - Tw_[ref].mean(0)).round(2).tolist(),
+                           variants=warm),
+               shown=shown, one_C_reads_as=dict(f_n=e1.get("f_n"), e=e1.get("e"), contact=e1["contact"]),
+               after_nuisances=after,
+               floor_uT=FLOOR_UT, min_force_N=MIN_FORCE_N)
+    W.THERMAL.write_text(json.dumps(dict(kappa_per_C=out["kappa_per_C"], T_ref_C=W.T_REF_C,
+                                         fitted_on=f"{NIGHT.name}, from 20:36 (pad untouched), 60 s means",
+                                         chips="streaming order 0x0C, 0x11, 0x12, 0x13, 0x10",
+                                         script="scripts/fingertip_contact_estimation_study.py thermal",
+                                         when=time.strftime("%Y-%m-%d %H:%M")), indent=1) + "\n")
+    return out
+
+
+def rezero_replay(board, kap, recordings, out_npz):
+    """The viewer's pipeline at 30 Hz over recordings of presses by hand (temperature correction, the 50 ms window, the
+    estimator with the noise floor and the shown-force threshold with its hysteresis), with and without RestZero.
+    recordings: name -> (t, records, baseline window or None for the first rest). The traces (time, the 15-component
+    reading, the baseline's change, the shown force) go to out_npz; the summary per recording and setting: the share of
+    frames with a contact shown, the re-zeros and their offsets, and the re-zeros the reading came back from within 10 s
+    (within 30 % of the re-zero's offset of the earlier baseline): a held press or a passing state taken into the
+    baseline, whose end then shows as a contact until the next re-zero."""
+    sb = W.load_basis(SURF)
+    out, arrays = {}, {}
+    for name, (t, r, win) in recordings.items():
+        T, B = r[:, :, 0], r[:, :, 1:]
+        if win is None:
+            rest = PS_rests(t, B.reshape(-1, 15))
+            r0 = rest[0] if rest else (t[0], t[0] + 1.0)
+        else:
+            r0 = win
+        s0 = (t >= r0[0]) & (t < r0[1])
+        Tcal = T[s0].mean(0)
+        cal = W.calibrate_frames_fixed(W.thermal_correct(B[s0].mean(0), Tcal, kap), board)
+        est = W.SurfaceEstimator(W.Model(cal), sb, floor_uT=FLOOR_UT)
+        est.set_noise_scale(1 / np.sqrt(WIN_S * RATE_HZ))
+        res = dict(baseline_window_s=[float(r0[0]), float(r0[1])])
+        for auto in (False, True):
+            base = W.thermal_correct(B[s0].mean(0), Tcal, kap).ravel()
+            rz = W.RestZero()
+            rows, X, zeros, shown_prev = [], [], [], False
+            for t1 in np.arange(r0[1], t[-1], 1 / 30):
+                i1 = np.searchsorted(t, t1, side="right")
+                iw = np.searchsorted(t, t1 - WIN_S, side="right")
+                if i1 - iw < 3:
+                    continue
+                Ts = T[np.searchsorted(t, t1 - 3.0):i1].mean(0)            # the viewer's 3 s of chip temperatures
+                x = W.thermal_correct(B[iw:i1].mean(0), Ts, kap).ravel()
+                if auto:
+                    i_1 = np.searchsorted(t, t1 - rz.span_s)
+                    nb = rz.update(t[i_1:i1], W.thermal_correct(B[i_1:i1], Ts, kap).reshape(-1, 15), base)
+                    if nb is not None:
+                        zeros.append((float(t1), base.copy(), nb.copy()))
+                        base = nb
+                e = est.estimate(x - base)
+                lim = MIN_FORCE_N * (0.6 if shown_prev else 1.0)
+                shown_prev = bool(e["contact"] and e["e"] > THRESHOLD and e["f_n"] >= lim)
+                rows.append([t1, np.linalg.norm(x - base), e["f_n"] if shown_prev else 0.0])
+                X.append(x)
+            R, X = np.array(rows), np.array(X)
+            back = []
+            for tz, b_old, b_new in zeros:
+                off = np.linalg.norm(b_new - b_old)
+                nxt = (R[:, 0] > tz) & (R[:, 0] < tz + 10.0)
+                if off > 10.0 and nxt.any() and np.min(np.linalg.norm(X[nxt] - b_old, axis=1)) < 0.3 * off:
+                    back.append([tz, float(off)])
+            key = "auto-zero" if auto else "baseline kept"
+            res[key] = dict(shown_share_pct=float(100 * (R[:, 2] > 0).mean()), frames=int(len(R)),
+                            rezeros=len(zeros), rezero_offsets_uT=[round(float(np.linalg.norm(b - a)), 1) for _, a, b in zeros],
+                            rezeros_over_26uT=int(sum(np.linalg.norm(b - a) > 26 for _, a, b in zeros)),
+                            came_back=back)
+            tag = name.replace(":", "").replace(" ", "_") + ("_auto" if auto else "_kept")
+            arrays[tag + "_trace"] = R.astype(np.float32)
+            arrays[tag + "_zeros"] = np.array([[tz, np.linalg.norm(b - a)] for tz, a, b in zeros], np.float32).reshape(-1, 2)
+        out[name] = res
+    np.savez_compressed(out_npz, **arrays)
+    return out
+
+
+def detection_limit(board, b_rest, floors=(0.0, FLOOR_UT)):
+    """The smallest press along the normal the viewer shows (explained chi-square above THRESHOLD and, with the floor,
+    at least MIN_FORCE_N), median by region of the surface, for each noise floor: the force at which a press's explained
+    energy reaches the threshold, from its energy at 1 N (the energy grows with the square of the force). b_rest: the
+    rest field (5, 3) uT the model is calibrated on."""
+    sb = W.load_basis(SURF)
+    cal = W.calibrate_frames_fixed(b_rest, board)
+    out = {}
+    for floor in floors:
+        est = W.SurfaceEstimator(W.Model(cal), sb, floor_uT=floor)
+        est.set_noise_scale(1 / np.sqrt(WIN_S * RATE_HZ))
+        y = -np.einsum("nik,nk->ni", est.Sw, est.Cn)          # whitened change for 1 N along -n
+        lim = np.sqrt(THRESHOLD / np.einsum("ni,ni->n", y, y))
+        if floor > 0:
+            lim = np.maximum(lim, MIN_FORCE_N)
+        reg = region_of(est.Cn)
+        out[f"floor {floor:g} uT"] = {k: float(np.median(lim[reg == k])) for k in ("face", "edge", "sides")}
+    return out
+
+
+def floor_sweep(board, kap, b25, floors=(0.0, 0.5, 1.0, 1.5, 2.0, 3.0)):
+    """For each noise floor: the share of the night (60 s means) and of the warm-up (1 s means) shown as a contact with
+    the temperature correction, of the warm-up without it, and the smallest press shown, median by region."""
+    zn = np.load(DATA / "20261021-overnight_drift_60s.npz")
+    q = zn["t"] > 1800
+    Bn = W.thermal_correct(zn["B"][q].reshape(-1, 5, 3), zn["T"][q], kap).reshape(-1, 15)
+    zw = np.load(DATA / "20261021-warmup_1s.npz")
+    ok = np.isfinite(zw["B"]).all(1) & (zw["t"] > 2) & (zw["t"] < 148)
+    Bw = W.thermal_correct(zw["B"][ok].reshape(-1, 5, 3), zw["T"][ok], kap).reshape(-1, 15)
+    Bu = zw["B"][ok]
+    sb = W.load_basis(SURF)
+    cal = W.calibrate_frames_fixed(b25, board)
+    out = []
+    for floor in floors:
+        est = W.SurfaceEstimator(W.Model(cal), sb, floor_uT=floor)
+        est.set_noise_scale(1 / np.sqrt(WIN_S * RATE_HZ))
+        row = dict(floor_uT=floor)
+        for key, X in (("night", Bn), ("warmup", Bw), ("warmup_uncorrected", Bu)):
+            base = X[:5].mean(0) if key == "night" else X[:8].mean(0)
+            f = np.array([_shown(est, x - base) for x in X])
+            row[key + "_shown_pct"], row[key + "_max_N"] = float(100 * (f > 0).mean()), float(f.max())
+        y = -np.einsum("nik,nk->ni", est.Sw, est.Cn)
+        lim = np.maximum(np.sqrt(THRESHOLD / np.einsum("ni,ni->n", y, y)), MIN_FORCE_N)
+        reg = region_of(est.Cn)
+        row["smallest_N"] = {k: float(np.median(lim[reg == k])) for k in ("face", "edge", "sides")}
+        out.append(row)
+    return out
+
+
+def seat_offsets(t, r, board, kap, min_rest=3.0):
+    """The rests of a recording (pad_shift_check.rests over the temperature-corrected reading) against its first rest,
+    and the rigid motion of the magnet set and uniform field that fit each offset."""
+    sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
+    import pad_shift_check as PS
+    B = W.thermal_correct(r[:, :, 1:], PS.trailing_mean(t, r[:, :, 0]), kap).reshape(-1, 15)
+    segs = PS.rests(t, B, min_rest, 40.0)
+    s0 = (t >= segs[0][0]) & (t < segs[0][1])
+    ref = B[s0].mean(0)
+    A = PS.rigid_jacobian(W.Model(W.calibrate_frames_fixed(ref.reshape(5, 3), board)))
+    out = []
+    for a, b in segs[1:]:
+        sel = (t >= a) & (t < b)
+        P = B[sel].mean(0) - ref
+        x, *_ = np.linalg.lstsq(A, P, rcond=None)
+        out.append(dict(t0=float(a), t1=float(b), offset_uT=float(np.linalg.norm(P)),
+                        shift_um=float(1e3 * np.linalg.norm(x[:3])), tilt_mrad=float(1e3 * np.linalg.norm(x[3:6])),
+                        residual_pct=float(100 * np.linalg.norm(P - A @ x) / max(np.linalg.norm(P), 1e-9))))
+    return out
+
+
+def rigid_vs_press(board, b_rest):
+    """The share of a simulated 1 N press along the normal that a rigid motion of the magnet set and a uniform field
+    (pad_shift_check.rigid_jacobian) leave unexplained, median over the candidate points and by region, against that of
+    random 15-component patterns."""
+    sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
+    import pad_shift_check as PS
+    model = W.Model(W.calibrate_frames_fixed(b_rest, board))
+    est = W.SurfaceEstimator(model, W.load_basis(SURF))
+    Q, _ = np.linalg.qr(PS.rigid_jacobian(model))
+    y = -np.einsum("nik,nk->ni", est.S, est.Cn)
+    res = np.linalg.norm(y - (y @ Q) @ Q.T, axis=1) / np.linalg.norm(y, axis=1)
+    reg = region_of(est.Cn)
+    v = np.random.default_rng(0).normal(size=(4000, 15))
+    rr = np.linalg.norm(v - (v @ Q) @ Q.T, axis=1) / np.linalg.norm(v, axis=1)
+    return dict(press_median_pct=float(100 * np.median(res)),
+                by_region={k: float(100 * np.median(res[reg == k])) for k in ("face", "edge", "sides")},
+                random_median_pct=float(100 * np.median(rr)))
+
+
+def PS_rests(t, B):
+    sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
+    import pad_shift_check as PS
+    return PS.rests(t, B, 0.4, 40.0)
+
+
+def _load_records(path, t0_s=None, t1_s=None):
+    """(time from the start (s), records (n, 5, 4)) of a CSV recording or a stream log, start-up garbage dropped."""
+    if str(path).endswith(".bin"):
+        a = np.memmap(path, REC_DT, mode="r")
+        th = np.asarray(a["t"])
+        i0 = 0 if t0_s is None else int(np.searchsorted(th, th[0] + t0_s))
+        i1 = len(a) if t1_s is None else int(np.searchsorted(th, th[0] + t1_s))
+        t, r = th[i0:i1] - th[0], np.asarray(a["r"][i0:i1], float).reshape(-1, 5, 4)
+    else:
+        d = np.loadtxt(path)
+        t, r = d[:, 0] - d[0, 0], d[:, 1:].reshape(-1, 5, 4)
+    ok = (np.isfinite(r).all((1, 2)) & (np.abs(r) < 1e5).all((1, 2)) & ~np.all(r == 0, axis=2).any(axis=1)
+          & (r[:, :, 0] > -40).all(1) & (r[:, :, 0] < 125).all(1))
+    return t[ok], r[ok]
+
+
+def main_thermal():
+    board = W.Calib.load(DATA / "20261020-calib_pad_as_found.json")
+    th = thermal(board)
+    kap = np.array(th["kappa_per_C"])
+    recs = {"19:39 session": (*_load_records(DATA / "20261020-193936-viewer_session.csv"), None)}
+    for name, path, a, b, fname in (("20:06 presses", NIGHT, 0.0, 1100.0, "20261020-200647_presses_records.npz"),
+                                    ("09:59 touches", WARM, 2.0, 600.0, "20261021-095907_touches_records.npz")):
+        npz = DATA / fname
+        if path.exists() and not npz.exists():
+            t, r = _load_records(path, a, b)
+            np.savez_compressed(npz, t=t, r=r.astype(np.float32), source=str(path.relative_to(ROOT)))
+        z = np.load(npz)
+        # 09:59: the viewer's own first 2 s; 20:06: the rest at 8-10 s (in the viewer's first 2 s the pad sat 1.3 mT
+        # away in its seat until a touch at 4-6 s)
+        w = (float(z["t"][0]), float(z["t"][0]) + 2.0) if name.startswith("09") else (8.0, 10.0)
+        recs[name] = (z["t"], z["r"].astype(float), w)
+    th["replay"] = rezero_replay(board, kap, recs, DATA / "20261021-rezero_replay.npz")
+    z = np.load(DATA / "20261021-overnight_drift_60s.npz")
+    q = z["t"] > 1800
+    b25 = W.thermal_correct(z["B"][q].reshape(-1, 5, 3), z["T"][q], kap).mean(0)
+    th["detection_limit_N"] = detection_limit(board, b25)
+    th["floor_sweep"] = floor_sweep(board, kap, b25)
+    th["rigid_vs_press"] = rigid_vs_press(board, b25)
+    th["seat_0959"] = seat_offsets(*recs["09:59 touches"][:2], board, kap)
+    res = json.loads((D / "results.json").read_text())
+    res["thermal"] = th
+    (D / "results.json").write_text(json.dumps(res, indent=1) + "\n")
+    print("wrote", (D / "results.json").relative_to(ROOT), "and", W.THERMAL.relative_to(ROOT))
+    print("  kappa (%/C):", np.round(100 * kap, 3).tolist())
+    print("  night:", {k: v for k, v in th["night"].items() if k in ("T_range_C", "raw_rms_uT", "corrected_rms_uT")})
+    for k, v in th["warmup"]["variants"].items():
+        print(f"  warm-up {k:34s} norm {v['norm_uT']:6.1f} uT  max {v['max_uT']:5.1f} uT")
+    for k, v in th["shown"].items():
+        print(f"  shown at rest, {k:42s} {v['share_pct']:5.1f} % of the time, max {v['max_N']:.2f} N, p95 {v['p95_N']:.2f} N")
+    print("  1 C uncorrected reads as", th["one_C_reads_as"])
+    print("  left after the nuisances (uT):", th["after_nuisances"])
+    print("  smallest press shown (N, median by region):", th["detection_limit_N"])
+    print("  rigid fit of a 1 N press:", th["rigid_vs_press"])
+    print("  rests of 09:59:", [(round(q['t0']), round(q['offset_uT'], 1), round(q['shift_um'], 1), round(q['tilt_mrad'], 2),
+                                 round(q['residual_pct'])) for q in th["seat_0959"]])
+    for name, rr in th["replay"].items():
+        for k in ("baseline kept", "auto-zero"):
+            v = rr[k]
+            print(f"  replay {name:14s} {k:14s} shown {v['shown_share_pct']:5.1f} %  re-zeros {v['rezeros']} "
+                  f"(over 26 uT: {v['rezeros_over_26uT']}), came back {v['came_back']}; offsets {v['rezero_offsets_uT'][:10]}")
+
+
 def main():
+    if sys.argv[1:] == ["thermal"]:
+        return main_thermal()
     src = copy_inputs()
     basis = W.load_basis(BASIS)
     res = dict(when=time.strftime("%Y-%m-%d %H:%M"), script="scripts/fingertip_contact_estimation_study.py")

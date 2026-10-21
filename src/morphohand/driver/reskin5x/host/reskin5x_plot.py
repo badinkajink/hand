@@ -11,6 +11,7 @@ is left out of that record.
 """
 import argparse
 import glob
+import os
 import threading
 import time
 from collections import deque
@@ -22,14 +23,32 @@ N_CHIPS = 5
 FRAME = 4 * 4 * N_CHIPS + 2
 ADDRS = ("0x0C", "0x11", "0x12", "0x13", "0x10")   # streaming order of the workstation's board
 BASE_S = 0.5
+PORT_GLOBS = ("/dev/serial/by-id/*QT_Py*", "/dev/ttyACM*")
+
+
+def find_port():
+    """The board's serial port: its /dev/serial/by-id name, which stays the same when the board is plugged in again,
+    else the first /dev/ttyACM*; None when neither exists."""
+    for g in PORT_GLOBS:
+        hits = sorted(glob.glob(g))
+        if hits:
+            return hits[0]
+    return None
 
 
 class Reader(threading.Thread):
-    """Reads the port into records (host time, chips x [t x y z]) and keeps the last `keep` seconds of them."""
+    """Reads the port into records (host time, chips x [t x y z]) and keeps the last `keep` seconds of them. When the
+    board is unplugged, the reader closes the port, sets `connected` False and opens the board again once it is back
+    (on `port` while that exists, else on find_port()); `reconnects` counts the reopenings."""
 
     def __init__(self, port, keep):
         super().__init__(daemon=True)
-        self.s = serial.Serial(port, 115200, timeout=0.05)
+        self.port_arg = port
+        self.port = port or find_port()
+        if self.port is None:
+            raise SystemExit("no serial port of the board: plug it in (looked for " + ", ".join(PORT_GLOBS) + ")")
+        self.s = serial.Serial(self.port, 115200, timeout=0.05)
+        self.connected, self.reconnects = True, 0
         self.keep, self.lock, self.all = keep, threading.Lock(), []
         self.t, self.r = deque(), deque()
         self.buf, self.synced, self.stop = bytearray(), False, False
@@ -44,9 +63,34 @@ class Reader(threading.Thread):
         del b[:max(0, len(b) - 2 * FRAME)]
         return False
 
+    def _reopen(self):
+        try:
+            self.s.close()
+        except (serial.SerialException, OSError):
+            pass
+        self.connected, self.synced = False, False
+        self.buf.clear()
+        while not self.stop:
+            time.sleep(0.5)
+            port = self.port_arg if self.port_arg and os.path.exists(self.port_arg) else find_port()
+            if port is None:
+                continue
+            try:
+                self.s = serial.Serial(port, 115200, timeout=0.05)
+            except (serial.SerialException, OSError):
+                continue                              # the device node exists before udev grants access to it
+            self.port, self.connected = port, True
+            self.reconnects += 1
+            return
+
     def run(self):
         while not self.stop:
-            self.buf += self.s.read(8192)
+            try:
+                chunk = self.s.read(8192)
+            except (serial.SerialException, OSError):
+                self._reopen()
+                continue
+            self.buf += chunk
             now, recs = time.time(), []
             while len(self.buf) >= 2 * FRAME:
                 if not self.synced:
@@ -95,7 +139,7 @@ def main():
         matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    rd = Reader(a.port or sorted(glob.glob("/dev/ttyACM*"))[0], max(a.window, BASE_S) + 1.0)
+    rd = Reader(a.port, max(a.window, BASE_S) + 1.0)
     rd.start()
     state = {"base": None}
 

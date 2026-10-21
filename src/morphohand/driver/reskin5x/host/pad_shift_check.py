@@ -11,7 +11,12 @@ scripts/fingertip_wrench_model.py, calibrated on the first rest with the board's
 
 Record with key r in the contact viewer (or reskin5x_plot.py --out): 2 s untouched, then presses of under a second,
 each followed by at least 2 s untouched. Stationary stretches of --min-rest seconds count as rests; a press held that
-long is listed too, and its pattern fits a rigid motion poorly.
+long is listed too, and its pattern fits a rigid motion about as well as a seat shift does (a rigid motion explains 86 %
+of a simulated 1 N press, median over the surface), so only the recording's time course tells the two apart.
+
+Each reading is divided by its chip's gain at the chip's temperature (averaged over the 3 s before it), with the
+coefficients of fingertip_wrench_model.load_thermal; without that, the board's warm-up after it is plugged in (about
+1.3 C in minutes, 70 uT) reads as offsets. --no-thermal turns the correction off.
 """
 from __future__ import annotations
 
@@ -30,20 +35,34 @@ BOARD_CAL = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/
 BASIS = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261020-b_v2_patch_basis.npz"
 
 
-def load(path, t0=None, t1=None):
+def trailing_mean(t, x, span_s=3.0):
+    """Each column of x (n, k) averaged over the span_s before each record."""
+    c = np.cumsum(np.r_[np.zeros((1, x.shape[1])), x], axis=0)
+    i0 = np.searchsorted(t, t - span_s)
+    i1 = np.arange(1, len(t) + 1)
+    return (c[i1] - c[i0]) / (i1 - i0)[:, None]
+
+
+def load(path, t0=None, t1=None, kappa=None):
     """(time from the file's start (s), readings (n, 15) uT, start as epoch s) of a recording (CSV of reskin5x_plot.py
-    --out or of the viewer's key r) or of the viewer's stream log (.bin), cut to [t0, t1) seconds from the start."""
+    --out or of the viewer's key r) or of the viewer's stream log (.bin), cut to [t0, t1) seconds from the start; with
+    kappa (fingertip_wrench_model.load_thermal), corrected for each chip's temperature as the viewer corrects them."""
     if str(path).endswith(".bin"):
         a = np.fromfile(path, np.dtype([("t", "<f8"), ("r", "<f4", (20,))]))
         th, r = a["t"], a["r"].reshape(-1, 5, 4).astype(float)
     else:
         d = np.loadtxt(path)
         th, r = d[:, 0], d[:, 1:].reshape(-1, 5, 4)
+    ok = (np.isfinite(r).all(axis=(1, 2)) & (np.abs(r) < 1e5).all(axis=(1, 2)) & ~np.all(r[:, :, 1:] == 0, axis=2).any(axis=1)
+          & (r[:, :, 0] > -40).all(axis=1) & (r[:, :, 0] < 125).all(axis=1))   # framing errors when the board starts
     t = th - th[0]
+    t, r = t[ok], r[ok]
     sel = np.ones(len(t), bool) if t0 is None else t >= t0
     if t1 is not None:
         sel &= t < t1
-    return t[sel], r[sel][:, :, 1:].reshape(-1, 15), float(th[0])
+    t, r = t[sel], r[sel]
+    b = r[:, :, 1:] if kappa is None else W.thermal_correct(r[:, :, 1:], trailing_mean(t, r[:, :, 0]), kappa)
+    return t, b.reshape(-1, 15), float(th[0])
 
 
 def rests(t, r, min_rest, rate_uT_s):
@@ -92,8 +111,11 @@ def main():
     ap.add_argument("--board-cal", default=str(BOARD_CAL))
     ap.add_argument("--t0", type=float, default=None, help="start of the stretch (s from the file's start)")
     ap.add_argument("--t1", type=float, default=None, help="end of the stretch (s from the file's start)")
+    ap.add_argument("--no-thermal", action="store_true", help="leave the readings uncorrected for the chips' temperature")
     a = ap.parse_args()
-    t, r, start = load(a.csv, a.t0, a.t1)
+    kappa = None if a.no_thermal else W.load_thermal()
+    t, r, start = load(a.csv, a.t0, a.t1, kappa)
+    print("readings corrected for the chips' temperature" if kappa is not None else "readings uncorrected for temperature")
     print(f"file starts {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))}")
     segs = rests(t, r, a.min_rest, a.rate)
     if not segs:
