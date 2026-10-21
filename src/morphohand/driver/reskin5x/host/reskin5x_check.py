@@ -82,8 +82,11 @@ def main():
         print(f"{port}: {len(buf)} bytes in {dt:.1f} s, no records")
         return
     r = r.reshape(len(r), N_CHIPS, 4)
-    print(f"{port}: {len(r)} records in {dt:.1f} s ({len(r) / dt:.0f} Hz)")
-    report(r, dt, a.range_mT)
+    live = np.any(r != 0, axis=(0, 2))
+    ok = np.all(np.any(r[:, live] != 0, axis=2), axis=1)
+    print(f"{port}: {len(r)} records in {dt:.1f} s ({len(r) / dt:.0f} Hz); {np.sum(~ok)} without data on a live chip "
+          "(before its first conversion or after a failed transfer) left out")
+    report(r[ok], dt * ok.mean(), a.range_mT)
     if a.out:
         np.savetxt(a.out, r.reshape(len(r), -1), fmt="%.3f",
                    header=" ".join(f"{q}{c}" for c in range(N_CHIPS) for q in "txyz"))

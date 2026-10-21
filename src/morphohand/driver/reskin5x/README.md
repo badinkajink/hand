@@ -14,6 +14,9 @@ and builds with `RESKIN5X_FQBN=esp32:esp32:adafruit_qtpy_esp32s3_nopsram`; an im
 - `firmware/reskin5x_stream/reskin5x_stream.ino`: the port of `external/eFlesh/arduino/5X_eflesh_stream/5X_eflesh_stream.ino`.
   The STEMMA QT connector is the board's `Wire1` (SDA1 GPIO41, SCL1 GPIO40), `Serial` is the TinyUSB CDC port, and the
   register settings are those below; the header comment lists every change.
+- `firmware/bench_three_board_sweep/`, `firmware/bench_conversion_period/`: timing sketches behind the numbers in the
+  sections on rates and on three boards; they print `STAT`, `CONV` and `NACK` lines. Build and upload one with
+  `RESKIN5X_SKETCH=<name> host/flash.sh`, and put `reskin5x_stream` back afterwards.
 - `host/flash.sh`: compile and upload.
 - `host/reskin5x_check.py`: per-chip field, noise, drift and temperature, the record rate, and the fraction of the range in
   use, from a few seconds of stream; `--out` writes the records as text.
@@ -53,6 +56,35 @@ by the same factor (concept b's pad: 0.028 N at the contact point, about 0.039 N
 of µT means the board turned or a magnet moved near it during the capture: one capture taken while the board was handled
 gave 40 µT on every chip.
 
+## Sample rate on one board
+
+The firmware reads the five chips in 2.0 ms (397 µs a chip at 400 kHz, the MLX90393's I2C limit), writes the 82-byte
+record and waits 0.5 ms: 375 records/s. A chip converts T, X, Y and Z every 7.01 to 7.13 ms, 140 to 143 Hz (from the
+stream, 2026-10-20; the datasheet's formula gives 7.0 ms), so each chip's values repeat in about 2.6 consecutive records
+and its three axes change at different records. The conversion sets the rate of new data. DIG_FILT 4 converts in 4.0 ms
+(250 Hz) and DIG_FILT 3 in 2.5 ms (400 Hz), at 1.4 and 2.0 times the noise by the datasheet's figures; without the wait,
+one board's read limits the stream to about 460 records/s. Reading one chip back to back, every 0.40 ms, lengthens its
+conversion to 7.55 ms (`firmware/bench_conversion_period`).
+
+## Three boards on one QT Py
+
+Every board of this design answers at the same five addresses: U1 is an MLX90393ELW-ABA-011 at 0x0C and U2 to U5 are
+-012 parts at 0x10 to 0x13 (ReSkin's BOM). Three boards on this QT Py therefore need an I2C mux on the STEMMA QT port with
+one channel per board, such as Adafruit's PCA9548 8-channel STEMMA QT board (address 0x70, 10 kΩ pull-ups on its
+controller side). Each board has its own pull-ups, R1 and R2 beside J1 (10 kΩ in the pick-and-place file, 4.7 kΩ in the
+BOM), so the mux channels need none. Timed on this QT Py with a sweep that emulates three boards
+(`firmware/bench_three_board_sweep`): one chip's read 397 µs, a channel write about 190 µs, a 242-byte record over USB
+0.28 ms, and a sweep of 15 chips 6.74 ms (at most 6.97 ms), 148 sweeps/s. The sweep is shorter than a chip's 7.0 to
+7.1 ms conversion, so every conversion of all 15 chips is read, at 140 Hz a chip. The 15 chips draw about 37 mA in burst
+mode (49 mA at the datasheet's maximum) from the QT Py's 600 mA regulator.
+
+A transfer to an absent address takes 19.1 ms at Wire's 50 ms timeout and 20.0 ms at 1 ms, so a sweep that kept reading
+an unplugged board would lose about 95 ms; the firmware reads only the chips it finds at start-up. The three-board
+firmware writes the mux channel before each board's reads and sends 15 chips a record (242 bytes, which anyskin reads with
+`num_mags=15`); `viz_eflesh.py` draws one board, so three boards need a view with three board images. The QT Py's other
+I2C controller, on the SDA and SCL pads (GPIO7, GPIO6), can take a second board without a mux, and a third would still
+need a mux or a third pin pair.
+
 ## Visualizer
 
     ~/miniconda3/bin/python external/eFlesh/visualizer/viz_eflesh.py -p /dev/ttyACM0 --board white [-v magnitude] [-s 10]
@@ -70,7 +102,7 @@ directory.
 
 GAIN_SEL 1, RES 1 on all three axes, OSR 0, DIG_FILT 5 and HALLCONF 0xC: one count is 1.20 µT on x and y and 1.94 µT on z,
 the range is 38.4 mT (the rule of `scripts/v2_tip_fe_checks.py`: 4.8 mT at GAIN_SEL 7 and RES 0, scaled by the count),
-and one conversion of T, X, Y and Z takes 7.0 ms (143 Hz). The range covers the five-magnet concept-b pad B00, whose
+and one conversion of T, X, Y and Z takes 7.0 to 7.1 ms. The range covers the five-magnet concept-b pad B00, whose
 largest field component at a chip is 27.5 mT (`docs/experiments/20261019-v2_tip_fe_checks/sensing.json`, case b_v2);
 concept a's tip, at 11.4 mT, takes GAIN_SEL 2 and RES 0. To change the settings, edit the constants at the top of the
 sketch, run `flash.sh`, and pass the new range to the check's `--range-mT`. The firmware converts counts to µT with the
@@ -79,8 +111,12 @@ settings it wrote, so the host reads µT at any setting.
 ## Record format and chip order
 
 Each record is 82 bytes: for each chip in streaming order, t (°C) and x, y, z (µT) as little-endian float32, then CR LF.
-The firmware reads the five chips about 375 times a second, faster than they convert, so consecutive records repeat
-values, and the three axes of one chip change at different records. The workstation's board answers at 0x0C, 0x10, 0x11,
-0x12 and 0x13 and streams 0x0C, 0x11, 0x12, 0x13, 0x10; a board at 0x0C to 0x10 streams them in address order. The
-visualizer draws the five chips at the centre, left, right, top and bottom of its board image in that order. Which
-address is U1 to U5 on this board has not been measured; a magnet held over one chip at a time shows it.
+A chip's four values are zeros when it did not answer at start-up, when its transfer failed, and until its first
+conversion (5 to 222 ms after start-up in four boots); a read that returns no conversion (raw 0xFFFF, once in about
+18,700 reads) keeps the chip's last values. The chip's status byte is not used: in burst mode its error bit was set on
+93 % of reads of valid data.
+
+The workstation's board answers at 0x0C, 0x10, 0x11, 0x12 and 0x13 and streams 0x0C, 0x11, 0x12, 0x13, 0x10; a board at
+0x0C to 0x10 streams them in address order. The visualizer draws the five chips at the centre, left, right, top and
+bottom of its board image in that order; 0x0C, the only -011 part, is U1 at the centre. Which of 0x10 to 0x13 is U2 to U5
+on this board has not been measured; a magnet held over one chip at a time shows it.

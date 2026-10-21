@@ -12,6 +12,12 @@
       1.4 times that. DIG_FILT 5 with OSR 0 converts T, X, Y and Z in 7.0 ms (143 Hz), the setting of the noise model in
       scripts/mlx90393_model.py.
     - The start-up text reports each chip's register values as read back.
+    - Only the chips found at start-up are read. The library leaves an object without begin() with a null bus, which
+      the original dereferences when fewer than five chips answer; here their records are zeros, as is the record of a
+      chip whose transfer fails. A transfer to an absent address costs about 19 ms in this core, at any Wire timeout. The
+      chip's status byte is not a validity flag: in burst mode its error bit was set on 93 % of reads of valid data.
+    - Until its first conversion, 5 to 222 ms after start-up, and on one read in about 18,700 after that, a chip
+      returns 0xFFFF in every field; such a read keeps the chip's last values, which are zeros at start-up.
 
   Record: for each chip in streaming order, t (degC) and x, y, z (uT) as little-endian float32, then "\r\n": 82 bytes.
   The anyskin package (AnySkinProcess(num_mags=5)) and external/eFlesh/visualizer/viz_eflesh.py parse it unchanged.
@@ -32,6 +38,7 @@ static const uint8_t OSR      = 0;
 static const uint8_t NUM_SENSORS = 5;
 MLX90393 mlx[NUM_SENSORS];
 MLX90393::txyz dataBuf[NUM_SENSORS];
+uint8_t activeCount = 0;  // chips initialized in setup(); the others have no bus and stream zeros
 
 // Known sequences
 const uint8_t TARGETS_ALL_CONSEC[NUM_SENSORS] = {0x0C, 0x0D, 0x0E, 0x0F, 0x10};
@@ -99,6 +106,7 @@ void setup() {
   for (uint8_t i = orderedCount; i < NUM_SENSORS; ++i) {
     dataBuf[i] = {0, 0, 0, 0};
   }
+  activeCount = orderedCount;
 
   Serial.print(F("Streaming order: "));
   for (uint8_t i = 0; i < orderedCount; ++i) {
@@ -109,8 +117,13 @@ void setup() {
 
 void loop() {
   // Read in the same order the sensors were initialized
-  for (uint8_t i = 0; i < NUM_SENSORS; ++i) {
-    mlx[i].readBurstData(dataBuf[i]);  // if that index wasn't initialized (no device), the buffer remains whatever it was
+  for (uint8_t i = 0; i < activeCount; ++i) {
+    // readBurstData would convert an unfilled buffer after a failed transfer, and the status byte's error bit, which
+    // it reports as a failure, is set on most burst-mode reads of valid data; only a failed transfer zeroes the record.
+    // A read that returns 0xFFFF as temperature (451.8 degC) has no conversion in it and keeps the last values.
+    MLX90393::txyzRaw raw;
+    if (mlx[i].readMeasurement(0xF, raw) == MLX90393::STATUS_ERROR) dataBuf[i] = {0, 0, 0, 0};
+    else if (raw.t != 0xFFFF) dataBuf[i] = mlx[i].convertRaw(raw);
   }
 
   // Write binary records in-order

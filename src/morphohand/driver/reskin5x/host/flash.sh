@@ -4,6 +4,7 @@
 #   host/flash.sh            compile, then upload to the first /dev/ttyACM*
 #   host/flash.sh PORT       compile, then upload to PORT
 #   host/flash.sh build      compile only
+#   RESKIN5X_SKETCH=bench_three_board_sweep host/flash.sh    build and upload another sketch under firmware/
 # Uses arduino-cli (on PATH, $ARDUINO_CLI, or the copy inside the Arduino IDE 2 flatpak), the esp32:esp32 core in
 # ~/.arduino15, and the MLX90393 library of the external/eFlesh submodule. A board in the ROM bootloader (BOOT held while
 # RESET is pressed; USB 303a:1001) is flashed without the 1200-baud touch, which would reset it out of the bootloader.
@@ -21,7 +22,9 @@ if [ ! -f "$LIB/MLX90393.h" ]; then
   git -C "$REPO/external/eFlesh" submodule update --init arduino/arduino-MLX90393
 fi
 
-"$CLI" compile --fqbn "$FQBN" --library "$LIB" --jobs 4 --build-path "$BUILD" "$HERE/firmware/reskin5x_stream"
+SKETCH=${RESKIN5X_SKETCH:-reskin5x_stream}
+BUILD=$BUILD/$SKETCH
+"$CLI" compile --fqbn "$FQBN" --library "$LIB" --jobs 4 --build-path "$BUILD" "$HERE/firmware/$SKETCH"
 [ "${1:-}" = build ] && exit 0
 
 PORT=${1:-$(ls /dev/ttyACM* 2>/dev/null | head -1)}
