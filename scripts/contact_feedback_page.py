@@ -446,7 +446,7 @@ def main():
         v["LAW_HAND"] = ""
     v["PARAM_SERVO"] = (
         f"The outcome depends on \\(\\mu\\), the servo and the tip&#8217;s geometry more than on the modulus. Between 5 and 20&#8202;MPa, which "
-        "spans the finite-element estimates of the printed tip (7.3&#8202;MPa from its G-code, 14.6&#8202;MPa homogenised; "
+        "spans the finite-element estimates of the printed tip (14.6&#8202;MPa homogenised, 19.1&#8202;MPa from its G-code; "
         f"<a href=\"{TIP_PAGE}\">printed TPU fingertip</a>), the twist arm at 1&#8202;N changes from {arms[5000000] * 1e3:.2f} to "
         f"{arms[20000000] * 1e3:.2f}&#8202;mm (Table&#160;4). The tool lies across the flat palmar face, so the patch spans the "
         "face&#8217;s 9.4&#8202;mm flat width at any load, and the modulus changes only the patch&#8217;s 2&#8202;mm extent along the "

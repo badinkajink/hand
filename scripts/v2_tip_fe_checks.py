@@ -118,6 +118,8 @@ CASES = {   # name: grid, magnet depth (mm), magnets (None: the calibration's fo
     "b_none": dict(grid="base", depth=7.5, mags="none", body="b"),
     "v2_none_c01": dict(grid="base", depth=7.5, mags="none", cell_h=0.1),
     "b_none_c01": dict(grid="base", depth=7.5, mags="none", body="b", cell_h=0.1),
+    # pad B00 printed its gyroid in 0.1 mm layers; every other case takes the 0.2 mm-layer cell
+    "b_v2_cl01": dict(grid="base", depth=7.5, mags="five", body="b", cell_layer=0.1),
 }
 X_CUT_B = -8.5 + (17.0 - 13.45)        # b's pad: 13.45 mm deep (v2 fit-size parts B00-B15) of the tip's 17.0 mm
 
@@ -186,18 +188,19 @@ def make_model(c, G, mat_id, mats):
         T.X_BACK = x_back0
 
 
-def gyroid_cell(w, h=0.05, rho=0.3):
-    """Homogenized 6x6 tensor (per unit solid modulus) of the slicer gyroid at density setting rho with beads w mm wide
-    (scripts/tpu_tip_fem_cells.slicer_cell), cached in OUT/cells.jsonl."""
+def gyroid_cell(w, h=0.05, rho=0.3, layer=0.2):
+    """Homogenized 6x6 tensor (per unit solid modulus) of the slicer gyroid at density setting rho with beads w mm wide in
+    layers `layer` mm thick (scripts/tpu_tip_fem_cells.slicer_cell), cached in OUT/cells.jsonl."""
     import tpu_tip_fem_cells as TC
     import tpu_tip_fem_core as C
     for r in FE.rows(OUT / "cells.jsonl"):
-        if abs(r["w_mm"] - w) < 1e-9 and abs(r["h_mm"] - h) < 1e-9 and abs(r["rho_req"] - rho) < 1e-9:
+        if (abs(r["w_mm"] - w) < 1e-9 and abs(r["h_mm"] - h) < 1e-9 and abs(r["rho_req"] - rho) < 1e-9
+                and abs(r.get("layer_mm", 0.2) - layer) < 1e-9):
             return np.array(r["C"]), r
     t0 = time.time()
-    occ, L = TC.slicer_cell(rho, h, w=w)
+    occ, L = TC.slicer_cell(rho, h, w=w, layer=layer)
     r = C.homogenize(occ, h, 1.0, 0.45, solver="amg")
-    row = dict(kind="slicer", rho_req=rho, w_mm=w, h_mm=h, period_mm=L, rho=float(occ.mean()), n_dof=r["n_dof"],
+    row = dict(kind="slicer", rho_req=rho, w_mm=w, h_mm=h, layer_mm=layer, period_mm=L, rho=float(occ.mean()), n_dof=r["n_dof"],
                C=np.asarray(r["C"]).tolist(), **TC.summarize(np.asarray(r["C"])), t_s=round(time.time() - t0, 1),
                script=SCRIPT, when=time.strftime("%Y-%m-%d %H:%M"))
     FE.append(OUT / "cells.jsonl", row)
@@ -297,6 +300,10 @@ def mat_ids(c):
         C6, cell = gyroid_cell(c["bead"])
         mats = [mats[0], T.rotate_C(C6, BUILD) * recipe["E_s"]]
         recipe.update(bead_mm=c["bead"], core_solid_fraction=cell["rho"])
+    if "cell_layer" in c:                                  # the gyroid printed in thinner layers (B00: 0.1 mm)
+        C6, cell = gyroid_cell(0.45, layer=c["cell_layer"])
+        mats = [mats[0], T.rotate_C(C6, BUILD) * recipe["E_s"]]
+        recipe.update(cell_layer_mm=c["cell_layer"], core_solid_fraction=cell["rho"])
     if "cell_h" in c:                                      # the gyroid's tensor from the cell at that voxel size
         cell = [r for r in FE.rows(ROOT / "docs/experiments/20261009-tpu_tip_fem/cells.jsonl") if r["kind"] == "slicer"
                 and r.get("rho_req") is not None and abs(r["rho_req"] - recipe["rho"]) < 1e-9 and abs(r["h_mm"] - c["cell_h"]) < 1e-9][0]
@@ -340,7 +347,7 @@ def run_case(name, max_dof):
     base = dict(case=name, tip="ell11", body=c.get("body", "whole"), wall_hold_mm=c.get("wall_h"), x_back_mm=X_CUT_B if c.get("body") == "b" else -8.5,
                 fe_key=KEY, grid=c["grid"], build=BUILD, rho=recipe["rho"], E_s_MPa=recipe["E_s"],
                 bead_mm=recipe.get("bead_mm", 0.45), core_solid_fraction=recipe.get("core_solid_fraction"),
-                cell_h_mm=recipe.get("cell_h_mm", 0.05), wall_mm=c.get("wall", T.WALL), skin_mm=round(c.get("n_skin", T.N_SKIN) * c.get("layer", T.LAYER), 3),
+                cell_h_mm=recipe.get("cell_h_mm", 0.05), cell_layer_mm=recipe.get("cell_layer_mm", 0.2), wall_mm=c.get("wall", T.WALL), skin_mm=round(c.get("n_skin", T.N_SKIN) * c.get("layer", T.LAYER), 3),
                 magnets=[list(m) for m in lay["mags"]], magnet_top_depth_mm=c["depth"], n_dof=len(model.free),
                 n_el=model.n_el, n_face_nodes=len(nodes), n_magnet_nodes=[int(len(i)) for i in mn],
                 staircase_mm=[float(np.nanpercentile(stair, q)) for q in (5, 50, 95)], script=SCRIPT)

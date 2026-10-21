@@ -537,8 +537,11 @@ EFLESH_PAGE = "../20261013-eflesh_printability/20261013-eflesh_lattice_printabil
 
 def as_printed(tip):
     """The tip solved from its PrusaSlicer G-code (scripts/eflesh_tip_fem.py), if run."""
-    f = ROOT / "docs/experiments/20261013-eflesh_printability/fem.jsonl"
-    rows = [json.loads(l) for l in open(f)] if f.exists() else []
+    rows = []
+    # fem_arcs.jsonl (2026-10-21) solves the G-code with its arc moves; the rows of fem.jsonl (10-13) skipped them
+    for name in ("fem.jsonl", "fem_arcs.jsonl"):
+        f = ROOT / "docs/experiments/20261013-eflesh_printability" / name
+        rows += [json.loads(l) for l in open(f)] if f.exists() else []
     rows = [r for r in rows if r["tip"] == tip and "1" in r["per_force"]]
     return rows[-1] if rows else None
 
@@ -564,8 +567,8 @@ def gap_section(H, X):
          f"Solved from its G-code, the 95A 20&#8202;% tip approaches {H.f0(ap['per_force']['1']['delta_um'])}&#8202;&#181;m at 1&#8202;N "
          f"(\\(E^*\\) {H.f1(ap['E_best_MPa'])}&#8202;MPa) and moves its magnet {H.f0(-ap['per_force']['1']['magnet_t_um'][0])}&#8202;&#181;m/N, "
          f"against {H.f0(g3['per_force']['1']['delta_um'])}&#8202;&#181;m ({H.f1(g3['E_best_MPa'])}&#8202;MPa) and "
-         f"{H.f0(-g3['per_force']['1']['magnet_t_um'][0])}&#8202;&#181;m/N here: each layer rests on part of the one below "
-         f"(<a href=\"{EFLESH_PAGE}#fem\">eFlesh page</a>)", "Indentation of the print"],
+         f"{H.f0(-g3['per_force']['1']['magnet_t_um'][0])}&#8202;&#181;m/N here, the beads drawn at their nominal widths "
+         f"(<a href=\"{EFLESH_PAGE}#fem\">eFlesh page</a>; the reading of 10-13 skipped the G-code&#8217;s arcs)", "Indentation of the print"],
     ] if ap and g3 else []) + [
         ["Friction coefficient", "Slip force, twist torque", "Scenes use 1.0 on the TPU tips; not measured on a print",
          "Pull test: slip force over \\(2N\\)"],
@@ -594,9 +597,9 @@ def gap_section(H, X):
            "datasheets, and its friction coefficient not at all; the model takes \\(E_s\\) = 30&#8202;MPa for 95A and the scenes "
            "\\(\\mu\\) = 1.0. One indentation and one pull "
            "test on the first print fix both (next section)."
-           + (f" Solved from its own G-code, the printed 95A 20&#8202;% tip is softer than the models on this page, \\(E^*\\) "
-              f"{H.f1(ap['E_best_MPa'])} against {H.f1(g3['E_best_MPa'])}&#8202;MPa, because each layer of beads rests on part of the one "
-              f"below; the same indentation decides between the two." if ap and g3 else "")
+           + (f" Solved from its own G-code, the printed 95A 20&#8202;% tip is "
+              f"{'stiffer' if ap['E_best_MPa'] > g3['E_best_MPa'] else 'softer'} than the models on this page, \\(E^*\\) "
+              f"{H.f1(ap['E_best_MPa'])} against {H.f1(g3['E_best_MPa'])}&#8202;MPa; the same indentation decides between the two." if ap and g3 else "")
            + " The model error that remains is the single modulus&#8217;s "
            f"{H.f0(min(errs))}&#8211;{H.f0(max(errs))}&#8202;% in approach over 0.5&#8211;3&#8202;N, the twist arm, which the pads give "
            f"{arm_txt}&#8202;% short because the walls carry the face&#8217;s edges, and the tip&#8217;s own tangential compliance, which no "

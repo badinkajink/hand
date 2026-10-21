@@ -210,14 +210,18 @@ the resolved tip, so their comparison tests the homogenization alone. FEniCSx an
 Tables 7 and 8).</p>
 <p><b>Checks.</b> On the 95A block of the first study the model is 1.9&#8202;% off Hertz under a 40&#8202;mm sphere, and a
 model resolving every bead at 0.1&#8202;mm gives the homogenized tip&#8217;s approach within 2.6&#8202;% (44.8 against
-46.0&#8202;&#181;m at 1&#8202;N). On the curved 85A tips the one check is grid refinement: a 0.2&#8202;mm contact grid
-changes the capsule&#8217;s approach by at most 3.6&#8202;%, and the 11/22 tip&#8217;s by 0.1&#8202;% under the rod and
-1.7&#8202;% RMS over the 18 calibration probes
-([calibration to the finite elements](exp:20261018-fe_contact_calibration/20261018-fe_contact_calibration.html),
-[v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)). No model resolving
-the beads, no tetrahedral model and no G-code model of a curved or 85A tip has been solved. Solved from its own G-code,
-the 95A tip of the first study was softer than the design model, 63 against 41&#8202;&#181;m at 1&#8202;N, because the
-stacked beads overlap only in part; only an indentation of a printed tip decides between the two
+46.0&#8202;&#181;m at 1&#8202;N). On the 85A 11/22 tip and b&#8217;s pad the same check, 6&#8211;8 million degrees of freedom
+on the GPU, puts the resolved beads 1.6&#8211;4.8&#8202;% stiffer than the homogenized core under the rods and up to 7.8&#8202;%
+under a 2&#8202;mm sphere, about 1&#8202;% of it from the cell&#8217;s voxel size; a finer contact grid changes the approach by at
+most 3.6&#8202;% (v2 fingertip checks, Section 6;
+[calibration to the finite elements](exp:20261018-fe_contact_calibration/20261018-fe_contact_calibration.html)).
+Solved from its G-code, pad B00 sinks 18&#8202;% less than the design pad under the rod at 1&#8202;N when its beads are drawn at
+their nominal widths, which put 11&#8202;% more TPU in the model than the printed parts weigh, and 3.9&#8202;% less with its
+TPU set to the weighed volume. Its 0.1&#8202;mm layers make the gyroid 8&#8202;% stiffer in the layer plane, and with that cell
+the homogenized pad agrees with the G-code model within 1&#8202;% under the rod
+([v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)). The G-code solve of
+the 95A tip of 10-13 read none of the G-code&#8217;s arc moves, 11&#8202;% of its filament; with them the tip sinks 33 against
+the design model&#8217;s 41&#8202;&#181;m at 1&#8202;N, where the earlier reading gave 63
 ([eFlesh printability](exp:20261013-eflesh_printability/20261013-eflesh_lattice_printability.html)).</p>
 {{FIG film_g20}}"""),
     ("changes", "Effects of the design changes",
@@ -339,8 +343,8 @@ connected to the lab&#8217;s computer, which this workstation cannot reach.</p>"
     ("open", "Open questions",
      r"""<ol>
 <li><b>The force scale.</b> No printed pad has been pressed against a force reference. The FE takes Siraya 85A at
-12&#8202;MPa from a NinjaFlex datasheet (95A datasheets span 26&#8211;67&#8202;MPa), every force scales with that modulus, and on
-the first tip the G-code solve was half as stiff as the design model. A scale or load cell under a printed indenter
+12&#8202;MPa from a NinjaFlex datasheet (95A datasheets span 26&#8211;67&#8202;MPa), every force scales with that modulus, and the
+G-code solves put the printed pads 4&#8211;18&#8202;% stiffer than the design model, depending on how much TPU the beads hold. A scale or load cell under a printed indenter
 settles the scale; an indentation with the HEX-E separates the pad&#8217;s stiffness from the magnets&#8217; strength.</li>
 <li><b>The seat.</b> The FE fixes the pad&#8217;s cut face, and the pad as assembled moved 17&#8211;23&#8202;&#181;m and stayed there. The
 tip cap is meant to hold it; until the pad returns to its seat within a few &#181;T after a firm press, neither the model
@@ -350,9 +354,6 @@ predict 0.028&#8211;0.031&#8202;N, about 0.039&#8202;N at the measured noise. Fo
 the owner; a test of pads B4 and B00 measures the ratio, predicted 1.8.</li>
 <li><b>Disturbances in the hand.</b> The other fingers&#8217; magnets (5.16&#8202;N equivalent at 25&#8211;30&#8202;mm on the first tip),
 temperature (0.47&#8202;N per 10&#8202;&#176;C) and steel near the pad are modelled but not measured.</li>
-<li><b>The FE on the 11/22 pad.</b> Hertz and the model resolving the beads checked the FE on the 95A block; on the
-85A pad that is printed now, grid refinement is the one check, so the homogenized 30&#8202;% core on a curved surface has
-not been compared with its beads.</li>
 <li><b>Large presses and shear.</b> The FE is linear and frictionless; a neo-Hookean check lost 11&#8202;% of the force at
 350&#8202;&#181;m on the softest tip. The tip&#8217;s tangential compliance, 48&#8211;177&#8202;&#181;m/N, is in neither simulator, and the
 estimator&#8217;s shear has not been tested.</li>
@@ -415,8 +416,8 @@ FUTURE = [
     'Seat: with the pad fastened, record five firm presses with 2&#8202;s rests and run <code>src/morphohand/driver/reskin5x/host/pad_shift_check.py</code>; every rest within 5&#8202;&#181;T of the first passes (0.2&#8202;N on the face), offsets of tens of &#181;T that a rigid motion fits mean the pad still moves.',
     'N52 magnets: recalibrate in the viewer (key c); a strength of 0.8&#8211;1.2, all poles one way and a rest residual below 0.43&#8202;mT confirm the field model; a lower strength or larger residual means the magnets&#8217; depth or the pad&#8217;s seat differs from the FE.',
     'Force reference without the UR5e: a kitchen scale or load cell under a printed indenter, holds at about 1, 2 and 4&#8202;N at the face centre, a flank and the tip end; an estimated press more than three model sigmas from the reference falsifies the force scale at that point, and the ratio refits \\(E^*\\).',
-    'FE of the 11/22 pad with its beads resolved: voxelize b&#8217;s pad at 0.1&#8202;mm with the 30&#8202;% gyroid (<code>scripts/tpu_tip_fem_tip.py voxels --stl &lt;pad STL&gt; --rho 0.3</code>), solve it under the 12.5&#8202;mm rod at 0.5, 1 and 3&#8202;N with <code>--E 12</code> (<code>scripts/tpu_tip_fem_gpu.py --indenter cyl</code>, 2&#8211;3&#8202;GB of GPU memory, minutes per load) and compare with the homogenized pad without magnets. The GPU solver first needs the gaps from the 11/22 surface of <code>tip_codesign_geometry</code> (its <code>--surface</code> reads the first study&#8217;s insert) and the pad&#8217;s cut face fixed. A difference above 5&#8202;% falsifies the homogenized core on the curved pad; the same pad voxelized from its G-code (a new entry in <code>TIPS</code> of <code>scripts/eflesh_tip_fem.py</code>) gives the as-printed stiffness that the indentation tests.',
-    'Indentation with the HEX-E: approach against force at 0.5, 1 and 3&#8202;N under the 12.5&#8202;mm rod; outside &#177;25&#8202;% of the FE&#8217;s 150&#8202;&#181;m at 1&#8202;N falsifies the pad&#8217;s modelled stiffness, independently of the magnets.',
+    'Indentation with the HEX-E: approach against force at 0.5, 1 and 3&#8202;N under the 12.5&#8202;mm rod, from first touch. At 1&#8202;N the design model of b&#8217;s pad gives 185&#8202;&#181;m and B00&#8217;s G-code model with its TPU as weighed 178&#8202;&#181;m (v2 fingertip checks, Table 5); outside &#177;25&#8202;% of both falsifies the pad&#8217;s modelled stiffness, independently of the magnets, and points at the datasheet modulus. A result nearer the G-code model moves the calibration to the 0.1&#8202;mm-layer cell (case <code>b_v2_cl01</code>).',
+    'Sensing rows on the probes&#8217; gap rule: <code>run_sense</code> in <code>scripts/v2_tip_fe_checks.py</code> takes its gaps from <code>tpu_tip_magnet.gaps</code>, which moves a face node onto the analytic surface only within half a grid cell of it, and gives 150 against the probe rows&#8217; 185&#8202;&#181;m for the same pad at 1&#8202;N. Rerun <code>--sense b_v2</code> with every face node on the surface; a force resolution that moves by more than 5&#8202;% means the DIP page&#8217;s resolutions need the same rerun.',
     'UR5e session on the lab&#8217;s computer: probe points from the basis&#8217;s pad points over the face and both flanks, three normal forces and two shear directions each, a return to one reference point every ten presses, 30&#8202;s rests; refit strength, offsets, \\(\\theta_0\\), \\(E^*\\) and per-magnet strengths on half the points and compare the other half&#8217;s errors with the model 1-sigma.',
     'Facing finger: record the board with a second tip&#8217;s magnets at 20&#8211;40&#8202;mm and compare with the dipole prediction before subtracting it from the joint angles.',
     'Temperature: warm the pad at rest with a hand around it; the strength term should take up the drift without a contact appearing.',

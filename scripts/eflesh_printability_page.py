@@ -121,6 +121,11 @@ class Data:
                 r = json.load(open(os.path.join(D, "build", f)))
                 self.builds[r["name"]] = r
         self.fem = {r["tip"]: r for r in jl(os.path.join(D, "fem.jsonl"))}
+        # 2026-10-21: rows solved again with gcode_audit's arc chords; the rows of 10-13 skipped every G2/G3 move
+        self.fem_old = {}
+        for r in jl(os.path.join(D, "fem_arcs.jsonl")):
+            self.fem_old[r["tip"]] = self.fem.get(r["tip"])
+            self.fem[r["tip"]] = r
         import tpu_tip_print_plan as PP          # force noise with the current MLX90393 model, from the stored magnet motions
         for r in self.fem.values():
             if "1" in r["per_force"]:
@@ -378,10 +383,23 @@ def fem_text(X: Data):
             f"struts joined to them: {d(w):.0f}&#8202;&#181;m, {nz(w):.3f}&#8202;N and {100 * tr(w) / tr(o):.0f}&#8202;% of the travel. The same "
             f"skin on every face carries the contact to the base: {d(a):.0f}&#8202;&#181;m, {nz(a):.3f}&#8202;N and "
             f"{100 * tr(a) / tr(o):.0f}&#8202;% of the travel, no better than the gyroid tip.</p>"
-            f"<p>The as-printed gyroid is softer than the earlier models of the same tip, {d(g):.0f} against {ref['per_force']['1']['delta_um']:.0f}"
-            f"&#8202;&#181;m at 1&#8202;N and {tr(g):.0f} against {-ref['per_force']['1']['magnet_t_um'][0]:.0f}&#8202;&#181;m/N, because each layer "
-            f"of beads rests on part of the one below and the magnet is TPU here. The open eFlesh tip lies below the pads&#8217; failure of the "
-            f"pull test at 1&#8202;MPa, so a simulated pad for it needs the bed&#8217;s low-modulus checks first.</p>")
+            f"<p>Solved as printed, the gyroid tip is {'stiffer' if d(g) < ref['per_force']['1']['delta_um'] else 'softer'} than the earlier model "
+            f"of the same tip, {d(g):.0f} against {ref['per_force']['1']['delta_um']:.0f}&#8202;&#181;m at 1&#8202;N and {tr(g):.0f} against "
+            f"{-ref['per_force']['1']['magnet_t_um'][0]:.0f}&#8202;&#181;m/N of magnet travel, with the magnet as TPU here. {correction(X)}"
+            f"The open eFlesh tip lies below the pads&#8217; failure of the pull test at 1&#8202;MPa, so a simulated pad for it needs the "
+            f"bed&#8217;s low-modulus checks first.</p>")
+
+
+def correction(X: Data):
+    """The note on the rows of 10-13 that the arc-aware reader replaced."""
+    g, o = X.fem.get("gyroid20"), X.fem_old.get("gyroid20")
+    if not (g and o and g is not o):
+        return ""
+    return (f"Until 2026-10-21 this row came from a G-code reader that skipped arc moves, 11&#8202;% of this tip&#8217;s filament, and gave "
+            f"{o['per_force']['1']['delta_um']:.0f}&#8202;&#181;m, {o['E_best_MPa']:.1f}&#8202;MPa and {-o['per_force']['1']['magnet_t_um'][0]:.0f}"
+            f"&#8202;&#181;m/N, softer than the earlier model; with the arcs split into 0.1&#8202;mm chords it gives "
+            f"{g['per_force']['1']['delta_um']:.0f}&#8202;&#181;m and {g['E_best_MPa']:.1f}&#8202;MPa (fem_arcs.jsonl). The lattice tips&#8217; G-code "
+            f"has at most 0.1&#8202;% of its filament in arcs, and their rows stand. ")
 
 
 def build_section(X: Data):

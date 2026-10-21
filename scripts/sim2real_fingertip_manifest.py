@@ -308,8 +308,10 @@ def main():
                                      "95A 20 % four 3x2 mm": 16.7, "95A 20 % five 3x2 mm": 17.88,
                                      "95A 20 % four 3x2 mm one wall": 16.4}, "MPa", "model",
                                     "docs/experiments/20261009-tpu_tip_fem/magnet_runs.jsonl; 20261016 sensing.json"),
-        "as_printed_95A_20_E_star": v(7.3, "MPa", "model", "scripts/eflesh_tip_fem.py on the G-code (2026-10-13)",
-                                      "half the idealised model's 14.6 MPa: stacked beads overlap partly"),
+        "as_printed_95A_20_E_star": v(19.1, "MPa", "model", "scripts/eflesh_tip_fem.py on the G-code with its arcs "
+                                      "(docs/experiments/20261013-eflesh_printability/fem_arcs.jsonl, 2026-10-21)",
+                                      "stiffer than the idealised model's 14.6 MPa at the beads' nominal widths; the 7.3 MPa of "
+                                      "2026-10-13 came from a G-code reader that skipped arc moves (11 % of the filament)"),
         "printed_tip_indentation": v(None, "um", "pending", "bench probe map (curved tips page, Future work)"),
         "printed_tip_friction": v(None, None, "pending", "pull test, scripts/tpu_tip_calibrate.py fit --pull"),
     }

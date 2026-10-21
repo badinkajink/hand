@@ -168,6 +168,91 @@ def draw(T, out):
     plt.close(fig)
 
 
+RES_PROBES = [("cx12.5_z0", "Rod across, 12.5&#8202;mm, contact point"), ("cz12.5_y0", "Rod along, 12.5&#8202;mm"),
+              ("s_apex", "Sphere 2&#8202;mm, apex"), ("s_y4.1", "Sphere 2&#8202;mm, flank y 4.1&#8202;mm")]
+RES_BODY = {"whole": ("Whole 11/22 tip, no magnets", "v2_none", "v2_none_c01"),
+            "b": ("Concept b's pad, no magnets", "b_none", "b_none_c01"),
+            "b00": ("Pad B00 from its G-code, beads at their widths", "b_v2", "b_none"),
+            "b00m": ("Pad B00 from its G-code, TPU as weighed", "b_v2", "b_v2_cl01")}
+REF_LABEL = {"v2_none_c01": "0.1&#8202;mm-voxel cell", "b_none_c01": "0.1&#8202;mm-voxel cell", "b_none": "No magnets",
+             "b_v2_cl01": "0.1&#8202;mm-layer cell"}
+VOX = ROOT / "assets/fem/20261021-v2_tip_resolved"
+
+
+def resolved():
+    """{body: {probe: {F: row}}} of the kind 'force' rows of resolved.jsonl (scripts/v2_tip_resolved_check.py)."""
+    R = {}
+    for r in rows(D / "resolved.jsonl"):
+        if r.get("kind") == "force":
+            R.setdefault(r["body"], {}).setdefault(r["probe"], {})[f"{r['F_N']:g}"] = r
+    return R
+
+
+def draw_resolved(T, R, out):
+    """Sections of the three voxel models through the contact point, and approach against load under the rod."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import ListedColormap
+    plt.rcParams.update({"font.size": 14, "font.family": "serif"})
+    secs = []
+    for body, lab in (("b", "b's pad, beads resolved"), ("b00", "B00 from its G-code")):
+        f = VOX / f"{body}_g30_h0.1.npz"
+        if not f.exists():
+            return False
+        Z = np.load(f)
+        occ, o, h = Z["occ"], Z["origin"], float(Z["h"])
+        j = int(round((0.0 - o[1]) / h - 0.5))
+        k = int(round((10.86 - o[2]) / h - 0.5))
+        secs.append((lab, occ[:, j, :].T, occ[:, :, k].T, o, occ.shape, h))
+    fig = plt.figure(figsize=(14.5, 6.6), dpi=100)
+    gs = fig.add_gridspec(2, 3, width_ratios=[1.0, 1.0, 1.7], height_ratios=[1.55, 1.0], wspace=0.42, hspace=0.36)
+    cm = ListedColormap(["white", "black"])
+    for col, (lab, sy, sz, o, shp, h) in enumerate(secs):
+        ax = fig.add_subplot(gs[0, col])
+        ax.imshow(sy, origin="lower", cmap=cm, interpolation="nearest",
+                  extent=(o[0], o[0] + shp[0] * h, o[2], o[2] + shp[2] * h))
+        ax.set_title(lab, fontsize=14)
+        ax.set_xlabel("x, palmar normal (mm)")
+        if col == 0:
+            ax.set_ylabel("z from the mount face (mm)")
+        ax2 = fig.add_subplot(gs[1, col])
+        ax2.imshow(sz, origin="lower", cmap=cm, interpolation="nearest",
+                   extent=(o[0], o[0] + shp[0] * h, o[1], o[1] + shp[1] * h))
+        ax2.set_xlabel("x (mm)")
+        if col == 0:
+            ax2.set_ylabel("y (mm)")
+    ax = fig.add_subplot(gs[:, 2])
+    Fs = [0.5, 1.0, 3.0]
+    ax.axhspan(-5, 5, color="0.93", lw=0)
+    ax.axhline(0, color="0.5", lw=0.8)
+    bodies = [("whole", "v2_none", "Whole tip, beads resolved", "0.55"), ("b", "b_none", "b's pad, beads resolved", "k"),
+              ("b00", "b_v2", "B00 G-code, nominal widths", "tab:red"),
+              ("b00m", "b_v2", "B00 G-code, TPU as weighed", "tab:blue")]
+    marks = {"cx12.5_z0": ("-", "o", "Rod across"), "cz12.5_y0": ("--", "s", "Rod along"), "s_apex": (":", "^", "Sphere, apex"),
+             "s_y4.1": ("-.", "v", "Sphere, flank")}
+    for key, ref, lab, col in bodies:
+        for p, (ls, mk, _) in marks.items():
+            if key in R and p in R[key] and all(f"{F:g}" in R[key][p] for F in Fs):
+                y = [100 * (R[key][p][f"{F:g}"]["approach_um"] / T[ref][p]["per_force"][f"{F:g}"]["approach_um"] - 1) for F in Fs]
+                ax.plot(Fs, y, ls, color=col, marker=mk, ms=5, lw=1.6)
+    from matplotlib.lines import Line2D
+    h1 = [Line2D([], [], color=col, lw=2.5, label=lab) for key, _, lab, col in bodies if key in R]
+    h2 = [Line2D([], [], color="0.3", ls=ls, marker=mk, lw=1.4, label=lab) for ls, mk, lab in marks.values()]
+    fig.legend(handles=h1 + h2, fontsize=13, frameon=False, loc="lower center", bbox_to_anchor=(0.5, -0.135), ncol=4)
+    ax.set_xscale("log")
+    ax.set_xticks(Fs)
+    ax.set_xticklabels([f"{F:g}" for F in Fs])
+    ax.minorticks_off()
+    ax.set_xlabel("Normal load (N)")
+    ax.set_ylabel("Approach change against the homogenized model (%)")
+    ax.grid(True, which="both", lw=0.4, color="0.85")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+    return True
+
+
 def build():
     T, vol = fe_cases()
     audit = json.loads((D / "print_audit.json").read_text())["plates"]
@@ -224,6 +309,12 @@ def build():
         lede_parts.append(f"The 9.75&#8202;mm longer finger keeps the cylinder in {_h(_hv, 'ell11_g30_v2a')} of 108 HOM runs against "
                           f"{_h(_hb, 'ell11_g30')}{_cl}.")
     lede_parts.append(f"Under-extrusion softens a tip about 2&#8202;% per 1&#8202;% of missing TPU.")
+    _R = resolved()
+    if all(b in _R and len(_R[b].get(ROD, {})) == 3 for b in ("whole", "b", "b00m")):
+        _ch = lambda b, ref: 100 * (_R[b][ROD]["1"]["approach_um"] / T[ref][ROD]["per_force"]["1"]["approach_um"] - 1)  # noqa: E731
+        lede_parts.append(f"With every gyroid bead resolved on the GPU, the 11/22 tip sinks {-_ch('whole', 'v2_none'):.1f}&#8202;% and b's pad "
+                          f"{-_ch('b', 'b_none'):.1f}&#8202;% less under the rod at 1&#8202;N than the homogenized model; pad B00 solved from its "
+                          f"G-code, with its TPU set to the weighed parts&#8217; volume, sinks {-_ch('b00m', 'b_v2'):.1f}&#8202;% less.")
     lede = " ".join(lede_parts)
 
     S = []
@@ -237,6 +328,13 @@ larger approach is a softer tip.</dd>
 (the 25&#8202;mm screwdriver shaft).</dd>
 <dt>Probe set</dt><dd>The calibration's 18 probes (a 2&#8202;mm sphere at seven points, rods of radius 5, 8 and 12.5&#8202;mm across the finger
 at three heights, rods of radius 8 and 12.5&#8202;mm along it) at 0.5, 1 and 3&#8202;N: 54 approaches per case.</dd>
+<dt>Resolved model</dt><dd>The tip on uniform 0.1&#8202;mm voxels with the walls and skins of the homogenized model and the core
+filled with the gyroid's beads by the slicer's rule (each 0.2&#8202;mm layer the zero set of the gyroid function at mid-layer, 0.45&#8202;mm
+wide), all solid TPU, solved on the GPU (scripts/v2_tip_resolved_check.py). The homogenized model takes its core tensor from the
+same bead pattern on a periodic cell.</dd>
+<dt>As-printed model</dt><dd>A part voxelized from the G-code that printed it: each layer's beads drawn at their widths on a
+0.025&#8202;mm raster, averaged onto 0.1&#8202;mm voxels (a voxel at least half covered is solid), each layer filling the voxels between
+its height and the previous layer's.</dd>
 <dt>RMS change</dt><dd>Root mean square over the 54 approaches of a case's approach over the reference's minus one, in %.</dd>
 <dt>Pressure arm $\\bar r$</dt><dd>Pressure-weighted mean distance of the contact pressure from its centre under the rod at 1&#8202;N, in mm;
 the full-slip torque about the normal is $\\mu F \\bar r$.</dd>
@@ -402,10 +500,113 @@ plan. {cap_txt}</p>
 
     # ------------------------------------------------------------------ queued runs, shown when their rows exist
     tn = [4]
+    fn = [1]
 
     def nxt():
         tn[0] += 1
         return tn[0]
+
+    def nxf():
+        fn[0] += 1
+        return fn[0]
+
+    R = resolved()
+    if all(b in R and all(p in R[b] and len(R[b][p]) == 3 for p, _ in RES_PROBES) for b in ("whole", "b")):
+        def dev(body, ref, probes=RES_PROBES, Fs=("0.5", "1", "3")):
+            d = [R[body][p][F]["approach_um"] / T[ref][p]["per_force"][F]["approach_um"] - 1
+                 for p, _ in probes if p in R.get(body, {}) for F in Fs if F in R[body][p]]
+            return 100 * float(np.sqrt(np.mean(np.square(d)))), 100 * float(np.mean(d)), len(d)
+
+        def rrow(body, p, plab):
+            lab, r1, r2 = RES_BODY[body]
+            x = R[body][p]
+            h = T[r1][p]["per_force"]
+            return [lab, plab] + [f"{h[F]['approach_um']:.1f} / {x[F]['approach_um']:.1f}" for F in ("0.5", "1", "3")] + [
+                f"{100 * (x[F]['approach_um'] / h[F]['approach_um'] - 1):+.1f}" for F in ("0.5", "1", "3")] + [
+                f"{REF_LABEL[r2]}: {100 * (x['1']['approach_um'] / T[r2][p]['per_force']['1']['approach_um'] - 1):+.1f}",
+                f"{h['1']['r_bar_mm']:.3f} / {x['1']['r_bar_mm']:.3f}"]
+        bodies = [b for b in ("whole", "b", "b00", "b00m") if b in R]
+        rrows = [rrow(b, p, pl) for b in bodies for p, pl in RES_PROBES if p in R[b] and len(R[b][p]) == 3]
+        rw, mw, nw = dev("whole", "v2_none")
+        rb, mb, _ = dev("b", "b_none")
+        rw1, mw1, _ = dev("whole", "v2_none_c01")
+        rb1, mb1, _ = dev("b", "b_none_c01")
+        rod = lambda b, ref, F="1": 100 * (R[b][ROD][F]["approach_um"] / T[ref][ROD]["per_force"][F]["approach_um"] - 1)  # noqa: E731
+        sph = [100 * (R[b][p][F]["approach_um"] / T[ref][p]["per_force"][F]["approach_um"] - 1)
+               for b, ref in (("whole", "v2_none"), ("b", "b_none")) for p in ("s_apex", "s_y4.1") for F in ("0.5", "1", "3")]
+        arm = [100 * (R[b][p]["1"]["r_bar_mm"] / T[ref][p]["per_force"]["1"]["r_bar_mm"] - 1)
+               for b, ref in (("whole", "v2_none"), ("b", "b_none")) for p, _ in RES_PROBES]
+        rodch = [100 * (R[b][p][F]["approach_um"] / T[ref][p]["per_force"][F]["approach_um"] - 1)
+                 for b, ref in (("whole", "v2_none"), ("b", "b_none")) for p in ("cx12.5_z0", "cz12.5_y0") for F in ("0.5", "1", "3")]
+        allneg = max(sph + rodch) < 0
+        meta = next((r for r in rows(D / "resolved.jsonl") if r.get("kind") == "solve" and r["body"] == "whole"), {})
+        t_r = nxt()
+        f_r = nxf()
+        fig_r = media / "20261021-resolved_and_printed_pad.png"
+        have_fig = draw_resolved(T, R, fig_r) or fig_r.exists()
+        txt_b00 = ""
+        done = lambda b: b in R and all(p in R[b] and len(R[b][p]) == 3 for p, _ in RES_PROBES)  # noqa: E731
+        if done("b00") and done("b00m") and "b_v2_cl01" in T:
+            solve_info = lambda b: next(r for r in rows(D / "resolved.jsonl") if r.get("kind") == "solve" and r["body"] == b)["voxels"]  # noqa: E731
+            gi, gm = solve_info("b00"), solve_info("b00m")
+            mb_ = json.loads((D / "print_audit.json").read_text())["measured_20261020"]["B"]
+            _, m00, _ = dev("b00", "b_v2")
+            _, m0m, _ = dev("b00m", "b_v2")
+            _, mml, _ = dev("b00m", "b_v2_cl01")
+            c2 = [r for r in rows(D / "cells.jsonl") if abs(r.get("layer_mm", 0.2) - 0.1) < 1e-9 and abs(r["w_mm"] - 0.45) < 1e-9][0]
+            c1 = [r for r in rows(ROOT / "docs/experiments/20261009-tpu_tip_fem/cells.jsonl") if r.get("kind") == "slicer"
+                  and r.get("rho_req") == 0.3 and abs(r["h_mm"] - 0.05) < 1e-9][0]
+            cl = 100 * (T["b_v2_cl01"][ROD]["per_force"]["1"]["approach_um"] / T["b_v2"][ROD]["per_force"]["1"]["approach_um"] - 1)
+            txt_b00 = (f"<p>Pad B00's G-code (<code>{esc(gi['gcode'])}</code>, {gi['layers']} layers, 0.1&#8202;mm above the first) commands "
+                       f"{mb_['commanded_tpu_mm3']:.0f}&#8202;mm&#179; of TPU, and the B fit parts sliced the same way weigh "
+                       f"{mb_['mass_g']:.2f}&#8202;g, {mb_['measured_tpu_mm3']:.0f}&#8202;mm&#179; at 1.16&#8202;g/cm&#179;, "
+                       f"{100 * (mb_['measured_over_fe'] - 1):+.1f}&#8202;% against the design model (Section 4). Drawn at their nominal widths "
+                       f"the beads fill {gi['printed_voxel_mm3']:.0f}&#8202;mm&#179; of voxels, "
+                       f"{100 * (gi['printed_voxel_mm3'] / mb_['measured_tpu_mm3'] - 1):.0f}&#8202;% more than the scale shows, and the pad "
+                       f"sinks {-rod('b00', 'b_v2'):.1f}&#8202;% less than the design pad with its magnets under the rod at 1&#8202;N (mean "
+                       f"{m00:+.1f}&#8202;% over the probes). With every bead narrowed to {gm['width_scale']:.2f} of its width the voxels hold "
+                       f"the weighed {gm['printed_voxel_mm3']:.0f}&#8202;mm&#179;, and the pad sinks {-rod('b00m', 'b_v2'):.1f}&#8202;% less (mean "
+                       f"{m0m:+.1f}&#8202;%). The print's 0.1&#8202;mm layers explain part of it: sliced in 0.1&#8202;mm layers the gyroid is "
+                       f"{100 * (c2['Ex'] / c1['Ex'] - 1):.0f}&#8202;% stiffer in the layer plane and {abs(100 * (c2['Ez'] / c1['Ez'] - 1)):.0f}&#8202;% "
+                       f"{'softer' if c2['Ez'] < c1['Ez'] else 'stiffer'} along the build axis than in the cell's 0.2&#8202;mm layers, and the homogenized pad with that cell sinks {-cl:.1f}&#8202;% less. "
+                       f"Against that pad the print at the weighed volume differs by {rod('b00m', 'b_v2_cl01'):+.1f}&#8202;% under the rod (mean "
+                       f"{mml:+.1f}&#8202;%). Both G-code models take the magnets as TPU, which in the homogenized pad add "
+                       f"{100 * (T['b_none'][ROD]['per_force']['1']['approach_um'] / T['b_v2'][ROD]['per_force']['1']['approach_um'] - 1):.1f}&#8202;% "
+                       f"of stiffness under the rod. A printed face is not a full plane of voxels (narrowed beads leave the cut face's "
+                       f"outer voxel layer nearly empty), so the G-code models fix the first solid node of every row within 0.2&#8202;mm "
+                       f"of the cut face and of the mount face.</p>")
+        S.append(("resolved", "Homogenized core against resolved beads and the printed pad", f"""
+<p>The homogenized model replaces the 30&#8202;% gyroid by an effective solid. Two models on the GPU test it on the 11/22 geometry
+(scripts/v2_tip_resolved_check.py). The first draws every gyroid bead of the same tip on 0.1&#8202;mm voxels by the slicer rule the
+homogenized cell was computed from, inside the same walls and skins, and solves it with scripts/tpu_tip_fem_gpu.py (hex8 elements with
+incompatible modes, one solid TPU at 12&#8202;MPa, matrix-free conjugate gradients; {meta.get('n_dof', 0) / 1e6:.1f} million degrees of
+freedom for the whole tip, about 60&#8202;s per solve). The second voxelizes pad B00 from the G-code that printed it. Both keep the
+homogenized model's fixed faces, gaps from the analytic surface and probes, and reach each load within 1&#8202;% by secant steps on
+the approach (Table {t_r}).</p>
+<p>With every bead resolved, the tip is {'stiffer than the homogenized model at every probe and load' if allneg else 'within the range below'}:
+under the rod at 1&#8202;N the whole tip sinks {-rod('whole', 'v2_none'):.1f}&#8202;% less and b's pad {-rod('b', 'b_none'):.1f}&#8202;% less, and
+over four probes and three loads the mean change is {mw:+.1f} and {mb:+.1f}&#8202;% ({rw:.1f} and {rb:.1f}&#8202;% RMS, {nw} approaches each;
+Figure {f_r}). The largest changes are under the 2&#8202;mm sphere, {min(sph):+.1f}&#8202;% at worst, where the patch ($\\bar r$ about
+0.2&#8202;mm at 0.5&#8202;N) spans two voxels of the resolved model and one element of the homogenized grid; under the rods every change
+lies within {min(rodch):+.1f} to {max(rodch):+.1f}&#8202;%. About 1&#8202;% of the difference is the voxel size of the cell: with the gyroid's
+tensor from the 0.1&#8202;mm cell the homogenized tips are 0.6&#8211;1.2&#8202;% stiffer and the mean changes become {mw1:+.1f} and
+{mb1:+.1f}&#8202;%. The resolved pressure arm $\\bar r$ at 1&#8202;N is {min(arm):+.1f} to {max(arm):+.1f}&#8202;% against the homogenized one,
+shortest under the sphere on the apex.</p>
+{txt_b00}
+{table(["Body", "Probe", "Approach at 0.5&#8202;N, homogenized / voxel model (&#181;m)", "At 1&#8202;N", "At 3&#8202;N",
+        "Change at 0.5&#8202;N (%)", "At 1&#8202;N (%)", "At 3&#8202;N (%)", "Change at 1&#8202;N against a second reference (%)",
+        "$\\bar r$ at 1&#8202;N, homogenized / voxel model (mm)"], rrows, num_cols=(2, 3, 4, 5, 6, 7, 8, 9), n=t_r,
+       caption="Resolved and as-printed models against the homogenized model (resolved.jsonl and fe.jsonl; model values, solid "
+               "12&#8202;MPa). References: the whole tip v2_none and b's pad b_none, both without magnets; pad B00 against b_v2, the design "
+               "pad with five bonded NdFeB magnets. Second references: the same body homogenized with the cell on 0.1&#8202;mm voxels "
+               "(v2_none_c01, b_none_c01), b's pad without magnets (b_none), and b's pad with magnets homogenized with the gyroid "
+               "sliced in 0.1&#8202;mm layers (b_v2_cl01).")}
+{f'''<figure id="fig{f_r}"><img src="{img_uri(fig_r, 1300)}" alt="Sections of the resolved pad and of pad B00, and approach against load">
+<figcaption>Figure {f_r}. Left, b's pad with its beads resolved and pad B00 voxelized from its G-code, in section through the contact
+point along the finger (top; mount face at the bottom, palmar surface on the right) and across it (bottom; TPU black, the magnets of B00
+filled). Right, the change of approach against the homogenized model for each probe and load: the resolved whole tip and pad
+against the homogenized tip and pad without magnets, B00 against the homogenized pad with its five magnets; grey band &#177;5&#8202;%, the
+calibration's approach bound.</figcaption></figure>''' if have_fig else ""}"""))
 
     sj = D / "sensing.json"
     if sj.exists():
@@ -586,7 +787,7 @@ gives the creep at 1&#8202;N per tip for the pads at impratio 100 (the planner's
         if flm:
             film_fig = films_html(flm, "HOM on the 16&#8202;mm cylinder (cell t 0.625, the first bench task's cell), the half-ellipsoid "
                                        "11/22 tip on each finger at its best candidate grasp, seed 0; pads touching the cylinder red, "
-                                       "the board green. Real time.", 2)
+                                       "the board green. Real time.", nxf())
         S.append(("v2finger", "The first bench task on the longer v2 finger", f"""
 <p>The v2 DIP link puts the tip 9.75&#8202;mm further from the PIP axis (pad centre 36.36&#8202;mm past it) and weighs
 {vs['dip_body']['mass_g']:.1f}&#8202;g with its clamp plate and the board, against 5.6&#8202;g for the CAD finger's link and board. Its
@@ -684,6 +885,8 @@ see strings. The control rests on one block calibration (M1) and the readiness c
     _iv = rows(ROOT / "docs/experiments/20261019-v2_finger/cells/icem.jsonl")
     _t = [r["turn_end_deg"] for r in _iv if r.get("status") == "ok" and r["variant"] == "ell11_g30_v2a" and r["d_mm"] == 16]
     turn16_v2 = f"{_t[0]:+.1f}&#176;" if _t else "(pending)"
+    _b00m_pred = (f" and B00's G-code model {R['b00m'][ROD]['1']['approach_um']:.0f}&#8202;&#181;m with its TPU as weighed"
+                  if "b00m" in R and len(R["b00m"].get(ROD, {})) == 3 else "")
     S.append(("future", "Future work", f"""
 <ul>
 <li>Weigh one metre of the 85A spool to 0.01&#8202;g: {meas['A']['filament_1m_g_expected']:.2f}&#8202;g at 1.75&#8202;mm and
@@ -707,6 +910,10 @@ than 50 of 81 plant conditions argues for re-planning on the measured plant.</li
 M3 (0.28 and 0.37&#8202;N) and passes on the capsule (0.15&#8202;N). The pinch-brake test of the contact overview's Future work measures which
 simulator's force sharing the printed tip follows; a bench result near the pads' would let the planner keep the pads for the 11/22
 tip at M3.</li>
+<li>Indent pad B00 under the 12.5&#8202;mm rod at 0.5, 1 and 3&#8202;N: the homogenized design model predicts
+{T['b_v2'][ROD]['per_force']['1']['approach_um']:.0f}&#8202;&#181;m at 1&#8202;N (solid 12&#8202;MPa){_b00m_pred}. A measured approach nearer the
+G-code model keeps the slicer's 0.1&#8202;mm-layer cell for these prints (case <code>b_v2_cl01</code>) and refits the calibration's
+moduli to it; one beyond either model by more than 25&#8202;% points at the solid modulus, which every model takes from a datasheet.</li>
 <li>Put the 11/22 force resolutions (Section on sensing) into the DIP study's evaluations (scripts/dip_link_v2.py, a and b
 <code>docs</code> stages) when the DIP page is next rebuilt, in place of the block's.</li>
 <li>Runs still queued at the page's build (logs/20261019-overnight/q_all.txt, one job at a time): the capsule's Drake replays, the
@@ -716,7 +923,9 @@ block at M1, and films of the 16&#8202;mm task on both fingers. Their sections a
 
     S.append(("files", "Files", f"""
 <p>Folder <code>docs/experiments/20261019-v2_tip_fe_checks/</code>: <code>fe.jsonl</code>, <code>meta.jsonl</code> and <code>cells.jsonl</code>
-(scripts/v2_tip_fe_checks.py), <code>print_audit.json</code> (scripts/tpu_print_audit.py), this page (scripts/v2_tip_fe_checks_page.py).
+(scripts/v2_tip_fe_checks.py), <code>resolved.jsonl</code> (scripts/v2_tip_resolved_check.py; its voxels in the gitignored
+<code>assets/fem/20261021-v2_tip_resolved/</code>, rebuilt in seconds by its <code>voxels</code> and <code>gvoxels</code> commands),
+<code>print_audit.json</code> (scripts/tpu_print_audit.py), this page (scripts/v2_tip_fe_checks_page.py).
 The block's Drake replays are rows of <code>docs/experiments/20261018-fe_contact_calibration/replays/icem.jsonl</code>. Related pages:
 <a href="{relp(CAL_PAGE)}">the calibration of Drake and the pads to the 85A finite elements</a>, <a href="{relp(DIP_PAGE)}">the DIP link
 and its board mount</a>, <a href="{relp(PROC_PAGE)}">the 85A print procedure</a>, <a href="{relp(STATUS_PAGE)}">the status of the
