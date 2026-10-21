@@ -120,6 +120,21 @@ CASES = {   # name: grid, magnet depth (mm), magnets (None: the calibration's fo
     "b_none_c01": dict(grid="base", depth=7.5, mags="none", body="b", cell_h=0.1),
     # pad B00 printed its gyroid in 0.1 mm layers; every other case takes the 0.2 mm-layer cell
     "b_v2_cl01": dict(grid="base", depth=7.5, mags="five", body="b", cell_layer=0.1),
+    # 2026-10-21 16:20 (owner, DIP link b v4): "make the underlying column even smaller radius too. then the edge detections /
+    # bottom face can be usable too". bm_five_d75_cap's walls and cap, with the pad's mount face held only where a column meets
+    # it (mount_dofs): v3's column, 0.6 mm inside the pad's mount-face outline (half-ellipse 6.79 x 5.84 mm), and v4's, 3.0 mm
+    # inside on the palmar side and 1.45 mm at the flanks (4.39 x 4.99 mm), each less J1's slot under the pad's back; and the
+    # whole face held, as every case before. Patches also along the palmar face toward the mount face (dz -6, -8, -10 mm, the
+    # last 0.86 mm from it).
+    "bm_five_d75_cap_face": dict(grid="bmag", depth=7.5, mags="five", body="b", wall_h=4.95,
+                                 cap=dict(end=True, pin=(-3.45, 0.0, 1.0, 3.0), shroud=(12.75, 4.95)),
+                                 patch_dz=(-10.0, -8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0)),
+    "bm_five_d75_cap_colv3": dict(grid="bmag", depth=7.5, mags="five", body="b", wall_h=4.95,
+                                  cap=dict(end=True, pin=(-3.45, 0.0, 1.0, 3.0), shroud=(12.75, 4.95)), mount=dict(ax=6.793, ay=5.836),
+                                  patch_dz=(-10.0, -8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0)),
+    "bm_five_d75_cap_colv4": dict(grid="bmag", depth=7.5, mags="five", body="b", wall_h=4.95,
+                                  cap=dict(end=True, pin=(-3.45, 0.0, 1.0, 3.0), shroud=(12.75, 4.95)), mount=dict(ax=4.393, ay=4.986),
+                                  patch_dz=(-10.0, -8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0)),
 }
 X_CUT_B = -8.5 + (17.0 - 13.45)        # b's pad: 13.45 mm deep (v2 fit-size parts B00-B15) of the tip's 17.0 mm
 
@@ -171,9 +186,25 @@ def cap_dofs(end=True, pin=None, shroud=None, z_end=21.41):
     return f
 
 
+def mount_dofs(ax, ay, slot=(-2.59, 3.9)):
+    """Every DOF of the mount face's nodes (z_t = 0) where a column meets it, in the insert frame (x_t = -x_F - 2.05: the
+    pad's equator at 0, its cut back face at X_CUT_B): |y_t| <= ay dorsal of the equator, the half-ellipse
+    (x_t/ax)^2 + (y_t/ay)^2 <= 1 palmar of it; less J1's slot, open under the pad's back (x_t <= slot[0], |y_t| <= slot[1]:
+    x_F 0.54-3.85 by |y_F| <= 3.9)."""
+    def f(X):
+        m = np.zeros(X.shape, bool)
+        x, y = X[:, 0], X[:, 1]
+        inside = np.where(x <= 0.0, np.abs(y) <= ay + 1e-9, (x / ax) ** 2 + (y / ay) ** 2 <= 1.0 + 1e-9)
+        m[(X[:, 2] <= 1e-9) & inside & ~((x <= slot[0]) & (np.abs(y) <= slot[1]))] = True
+        return m
+    return f
+
+
 def hold_dofs(c):
-    """The DOFs a case holds besides the cut face and the mount face: the v3 cover's walls and the T-cap."""
-    fs = ([wall_dofs(c["wall_h"])] if "wall_h" in c else []) + ([cap_dofs(**c["cap"])] if "cap" in c else [])
+    """The DOFs a case holds besides the cut face and the mount face: the v3 cover's walls and the T-cap; with "mount", the
+    mount face is held only where the column meets it (make_model frees the rest)."""
+    fs = ([wall_dofs(c["wall_h"])] if "wall_h" in c else []) + ([cap_dofs(**c["cap"])] if "cap" in c else []) + (
+        [mount_dofs(**c["mount"])] if "mount" in c else [])
     return (lambda X: np.logical_or.reduce([f(X) for f in fs])) if fs else None
 
 
@@ -183,7 +214,7 @@ def make_model(c, G, mat_id, mats):
     x_back0 = T.X_BACK
     T.X_BACK = X_CUT_B if c.get("body") == "b" else x_back0      # TipModel fixes the nodes at x <= X_BACK
     try:
-        return T.TipModel(G, mat_id, mats, verbose=True, fix_dofs=hold_dofs(c))
+        return T.TipModel(G, mat_id, mats, verbose=True, fix_dofs=hold_dofs(c), fix_top="mount" not in c)
     finally:
         T.X_BACK = x_back0
 
@@ -423,7 +454,7 @@ def run_sense(name):
     Xf = model.X[face]
     patches = []
     for y in TL.PATCH_Y:
-        for dz in TL.PATCH_DZ:
+        for dz in c.get("patch_dz", TL.PATCH_DZ):
             z = TD.Z_C + dz
             wgt = np.exp(-((Xf[:, 1] - y) ** 2 + (Xf[:, 2] - z) ** 2) / (2 * TL.SIGMA ** 2))
             wgt[wgt < 1e-4 * wgt.max()] = 0

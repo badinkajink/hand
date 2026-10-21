@@ -14,7 +14,9 @@ Arguments name the plates to build (default: fork_and_indenters and link; the ca
 Plate "fork_and_indenters" (19:10): the standoff-fork with walls around both legs of the DIP link and the two indenters with
 keyed homing posts, at Bambu Studio's 0.20 mm Standard (2 walls, 15 % grid; owner). Plate "tip_caps" (20:36): caps TP and
 TW over b v3's tip end (scripts/dip_b_tip_cap.py), solid at 0.1 mm, into v3/b/print/. Plate "solid_covers_caps2" (2026-10-21):
-the solid-wall covers I05, I10, I15 and the caps TP2, TW2, solid at 0.1 mm, into v3/b/print/.
+the solid-wall covers I05, I10, I15 and the caps TP2, TW2, solid at 0.1 mm, into v3/b/print/. Plate "heights" (2026-10-21
+16:20): covers I15 with walls 4, 3 and 2 mm tall and caps with side blocks 4, 3 and 2 mm tall at 0.15 mm (scripts/dip_b_v4.py
+heights), into v4/b/print/; plate "link_v4": DIP link b v4 (recessed bridge, smaller column), into v4/b/print/.
 
     unset VIRTUAL_ENV
     ~/.claude/bin/resguard.sh run --mem 5G --cpu 400 -- taskset -c 14-18 env UR5M_REV=v2 NUMPY_MADVISE_HUGEPAGE=0 \\
@@ -45,6 +47,7 @@ import v2_ur5_pla_plate as V  # noqa: E402
 OUT = REPO / "docs/experiments/20261020-ur5_calibration_mount_v2/print"
 WORK = REPO / "logs/20261020-ur5_calibration_mount_v2/plates"
 V3 = REPO / "docs/experiments/20261018-dip_link_board_mount/v3/b"
+V4 = REPO / "docs/experiments/20261018-dip_link_board_mount/v4/b"
 UR5 = REPO / "docs/experiments/20261020-ur5_calibration_mount_v2/cad"
 UP = "20261020-ur5_calibration_mount_v2"
 COVERS = {"W00": 0.0, "W10": 0.10, "W20": 0.20}        # wall clearance per cover, mm
@@ -114,10 +117,20 @@ PLATES = {
          None, dict(V.SOLID, wall_loops="6")) for n, cid in enumerate(("I05", "I10", "I15"), 1)] + [
         ("TP2", "b v3 tip cap TP2", V3 / "print/20261021-dip_link_v3b_tip_cap_TP2_pla_bambu.stl", None, V.SOLID),
         ("TW2", "b v3 tip cap TW2, solid blocks", V3 / "print/20261021-dip_link_v3b_tip_cap_TW2_pla_bambu.stl", None, V.SOLID)],
+    # 2026-10-21 16:20: the height sweep at the owner's 0.15 mm (scripts/dip_b_v4.py heights), the height engraved on each part
+    "heights": [
+        (f"I15H{h}", f"b cover I15, walls {h} mm, '{h}' on the wall tops", V4 / f"print/20261021-dip_link_v4b_cover_I15H{h}_pla_bambu.stl",
+         None, dict(V.SOLID, wall_loops="6")) for h in (4, 3, 2)] + [
+        (f"TW15H{h}", f"b tip cap, blocks {h} mm at 0.15 mm, '{h}' on the plate", V4 / f"print/20261021-dip_link_v4b_tip_cap_TW15H{h}_pla_bambu.stl",
+         None, dict(V.SOLID, wall_loops="6")) for h in (4, 3, 2)],   # four walls left TW15H2 at a fill ratio of 0.845
+    # DIP link b v4: the bridge's palmar edge recessed to a smaller column (params/20261021-v4_concept_b.json), as the v3 link
+    "link_v4": [("B4", "b v4 DIP link, recessed bridge", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl", None, V.LINK)],
 }
-DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2")   # "calibration" (15:40) only when named
+DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2", "heights", "link_v4")   # "calibration" when named
 PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"),     # other plates: OUT, 20261020-p1s_pla_<plate>
-             "solid_covers_caps2": (V3 / "print", "20261021-dip_link_v3b_p1s_pla_solid_covers_caps2")}
+             "solid_covers_caps2": (V3 / "print", "20261021-dip_link_v3b_p1s_pla_solid_covers_caps2"),
+             "heights": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_heights"),
+             "link_v4": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_link")}
 
 
 def main():
@@ -136,7 +149,9 @@ def main():
                    "link": "DIP link b v3, cover W00",
                    "fork_and_indenters": "UR5 mount v2: fork with walls around the legs, indenters with keyed posts",
                    "tip_caps": "DIP link b v3: caps TP and TW over the tip end",
-                   "solid_covers_caps2": "DIP link b v3: solid-wall covers I05, I10, I15 and caps TP2, TW2"}[plate]
+                   "solid_covers_caps2": "DIP link b v3: solid-wall covers I05, I10, I15 and caps TP2, TW2",
+                   "heights": "DIP link b: covers I15 with walls 4, 3, 2 mm and caps with blocks 4, 3, 2 mm at 0.15 mm",
+                   "link_v4": "DIP link b v4: the bridge's palmar edge recessed to a smaller column"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -147,7 +162,11 @@ def main():
                       if plate == "tip_caps" else "")
                    + ("; 2026-10-21: 'make the side walls on the bottom of the cassette actually clamp a little', 'boost the bottom "
                       "screws up a little bit', 'more solid/better connected', 'beef those [tip caps] up as well'"
-                      if plate == "solid_covers_caps2" else ""))
+                      if plate == "solid_covers_caps2" else "")
+                   + ("; 2026-10-21 16:20: 'the 0.15mm inset is still perfectly fine ... let's try to lower the heights on both the "
+                      "top cover and the cassette side walls'" if plate == "heights" else "")
+                   + ("; 2026-10-21 16:20: 'recess/sculpt this edge of the dip link the same way we did for the column ... make the "
+                      "underlying column even smaller radius too'" if plate == "link_v4" else ""))
         try:
             V.main()
         except SystemExit as e:

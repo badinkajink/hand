@@ -93,6 +93,23 @@ Outputs: `v3/b/cad/20261021-dip_link_v3b_cover_I{05,10,15}.step`, `*_tip_cap_TP2
 `v3/b/print/20261021-dip_link_v3b_print_pad_ell11_5_B00_pin_raised_85a_t2_g30.3mf`, checks in
 `v3/b/20261021-dip_link_v3b_solid_covers_and_caps2.json`; page Section 10.
 
+### v4 and the wall-height sweep (2026-10-21 16:20)
+
+DIP link b v4 (`params/20261021-v4_concept_b.json`: design `bridge` recessed, `col_margin` 3.0, `col_side_margin` 1.45, cover I15):
+the bridge's palmar face from x_F -10.55 (flush with the pad's apex) to -6.46 with a 1 mm chamfer, the slotted arm's spur cut to the same
+plane, the column under the pad 3.0 mm inside the pad's mount face on the palmar side. The sweep: covers I15 with walls 4, 3 and 2 mm
+(I15H4-H2) and caps with side blocks 4, 3 and 2 mm at 0.15 mm (TW15H4-H2), the height engraved on each.
+
+    DLV2_PARAMS_B=docs/experiments/20261018-dip_link_board_mount/params/20261021-v4_concept_b.json \
+        $RG ~/miniconda3/envs/femtip/bin/python -u scripts/dip_link_v2.py b build check step
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/dip_b_v4.py link heights step figures
+    $RG env UR5M_REV=v2 ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_ur5v2_pla_plate.py heights link_v4
+
+Outputs in `v4/b/`: `cad/20261021-dip_link_v4b_*` (link, cover I15, covers I15H4-H2, caps TW15H4-H2; STEP without the engraved
+IDs), `print/20261021-dip_link_v4b_p1s_pla_heights.3mf` (42 min) and `_p1s_pla_link.3mf` (1 h 8 min), checks in
+`20261021-dip_link_v4b_checks.json` and `_heights.json`; page
+[DIP link b v4 and a sweep of retaining-wall heights](../20261021-dip_link_b_v4/20261021-dip_link_b_v4_and_wall_heights.html).
+
 ## Opening the STEP files in Inventor
 
 1. Unzip a `.step.zip` first; the plain `.step` files open as they are.

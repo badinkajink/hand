@@ -847,10 +847,8 @@ def dip_link_parts(K):
     With neck_len > 0 the bridge keeps its underside at the arms' mount plane (z -67.30) and a neck as wide as the cassette
     (|y| <= Y_RIM) joins it to the pad's mount face, neck_len lower. With J1 kept, the board's wires are not cut free, so
     the tongue has no wire exit and no tie block."""
-    prof = profile()
     zb = TIP0["z_mount"]
-    poly = [(TIP["x_palmar"], zb)] + [tuple(p) for p in prof] + [(X_SPINE_BACK, zb)]
-    bridge = K.prism_y(poly, Y_BRIDGE[0] - 0.02, Y_BRIDGE[1] + 0.02)
+    bridge = K.prism_y(bridge_polygon(), Y_BRIDGE[0] - 0.02, Y_BRIDGE[1] + 0.02)
     tongue = K.box((X_SEAT - RIM_H, -Y_RIM, TIP["z_end"]), (X_TONGUE_BACK, Y_RIM, TIP["z_mount"] + 0.5))
     webs = [K.box((X_SEAT - RIM_H, Y_BRIDGE[0] - 0.02, Z_WEB_LOW), (X_SPINE_BACK, -Y_RIM + 0.01, zb + 0.5)),
             K.box((X_SEAT - RIM_H, Y_RIM - 0.01, Z_WEB_LOW), (X_SPINE_BACK, Y_BRIDGE[1] + 0.02, zb + 0.5))]
@@ -894,9 +892,43 @@ def dip_link_parts(K):
     groove = cable_cuts(K) if cable_on() else []
     body = K.cut(body, cuts + groove)
     dip = K.fuse(body, K.arms())
-    if groove:                                  # the groove crosses the slotted arm's lower dorsal corner and outer face
-        dip = K.cut(dip, groove)
+    # the groove crosses the slotted arm's lower dorsal corner and outer face; v4 cuts the slotted arm's palmar spur (its flat
+    # top at z_F -62.55 reached x_F -10.55) back to the recessed bridge's face
+    spur = [K.box((bridge_x_palmar() - 30.0, Y_BRIDGE[1] - 0.05, zb - 0.01), (bridge_x_palmar(), 25.0, -62.30))] \
+        if DESIGN.get("bridge", "full") == "recessed" else []
+    if groove or spur:
+        dip = K.cut(dip, groove + spur)
     return body, K.finish(dip)
+
+
+def bridge_x_palmar():
+    """x_F of the recessed bridge's palmar face (design bridge = recessed): 0.02 mm palmar of the column's apex, so the
+    column's half-ellipse stays whole beneath it."""
+    k = math.sqrt(1.0 - ((TIP["z_mount"] - Z_CONTACT) / ELL["azp"]) ** 2)
+    return TIP["x_palmar"] + ELL["ax"] * (1.0 - k) + rp("col_margin") - 0.02
+
+
+def bridge_polygon():
+    """The bridge's outline in (x, z), extruded along y between the arms: from the pad's palmar face x_F -10.55 (v2, v3) or,
+    with design bridge = recessed, from bridge_x_palmar() with a 45 deg chamfer of bridge_chamfer up to the top profile."""
+    import numpy as np
+    zb = TIP0["z_mount"]
+    prof = [tuple(map(float, p)) for p in profile()]
+    if DESIGN.get("bridge", "full") != "recessed":
+        return [(TIP["x_palmar"], zb)] + prof + [(X_SPINE_BACK, zb)]
+    xr, c = bridge_x_palmar(), rp("bridge_chamfer")
+    zt = float(np.interp(xr, [p[0] for p in prof], [p[1] for p in prof]))
+    pts = [(xr, zt)] + [p for p in prof if p[0] > xr + 1e-6]
+    if c <= 0:
+        return [(xr, zb)] + pts + [(X_SPINE_BACK, zb)]
+    line = lambda x: zt - c + (x - xr)                                  # noqa: E731
+    for (x0, z0), (x1, z1) in zip(pts[:-1], pts[1:]):                 # the chamfer meets the top profile
+        d0, d1 = line(x0) - z0, line(x1) - z1
+        if d1 >= 0.0:
+            t = d0 / (d0 - d1) if d1 != d0 else 0.0
+            xc = x0 + t * (x1 - x0)
+            return [(xr, zb), (xr, zt - c), (xc, z0 + t * (z1 - z0))] + [p for p in pts if p[0] > xc + 1e-3] + [(X_SPINE_BACK, zb)]
+    raise ValueError("the bridge's chamfer never meets its top profile")
 
 
 # Revision of 2026-10-20 (v3), after the owner's prints of v2 b. Owner: "beefing up the cassette ... if we add side volume
@@ -909,7 +941,16 @@ def dip_link_parts(K):
 # builds v2 (cover_walls none, neck block, cable_leg roofed).
 ELL = dict(ay=7.4, ax=8.5, az=11.0, azp=22.0)      # the 11/22 half-ellipsoid of the v2 pads (tcd_ell7.4x8.5x11x22), mm
 REV = dict(wall_h=3.0, wall_clear=0.10, wall_top_t=1.2, wall_z0=0.0, col_margin=0.6, col_chamfer=2.0, head_raise=0.0,
-           wall_window_gap=0.5, seat_raise=3.0, wall_chamfer=1.0)
+           wall_window_gap=0.5, seat_raise=3.0, wall_chamfer=1.0, bridge_chamfer=1.0)
+# v4 (owner, 2026-10-21 16:20): "there's no requirement for the dip link to have a long continuous edge. it just serves as a
+# hard stop for the servo. but it also prevents large objects from contacting the fingertip--it'll hit the edge first. maybe we
+# can recess/sculpt this edge ... the same way we did for the column under the fingertip, while making sure our servo and
+# clevis connections are solid"; "make the underlying column even smaller radius too. then the edge detections / bottom face
+# can be usable too". Design bridge = recessed: the bridge's palmar face and the slotted arm's palmar spur cut back to the
+# column's palmar apex (bridge_chamfer at 45 deg along the bridge's palmar top edge); col_margin shrinks the column's palmar
+# half-ellipse and col_side_margin (absent: col_margin) its width, which keeps PLA beside J1's slot. The PIP joint's flexion
+# stop is the horn arm's palmar edge at about 93.5 deg (the bridge's palmar top touched second, at about 97 deg) and its
+# extension stop the bridge's dorsal top at about -22 deg; neither moves with the recess.
 # cover_walls = solid (owner, 2026-10-21, after a wall's proximal end snapped beside a screw counterbore when the pad was
 # pushed off sideways: "make the side walls ... clamp a little (so 0 clearance or even some very marginal interference ...)",
 # "boost the bottom screws up a little bit", "more solid/better connected"): seat_raise is the height of the proximal screws'
@@ -973,12 +1014,13 @@ def cover_walls(K):
     return K.cut(K.fuse(blocks[0], [blocks[1]]), cuts)
 
 
-def column_section(m, x_back):
-    """(y, x) outline of the 11/22 pad's section at its mount face shrunk by m, from x_back (dorsal) over the straight
-    flanks to the pad's equator and around the palmar half-ellipse; and its half-width."""
+def column_section(m, x_back, m_side=None):
+    """(y, x) outline of the 11/22 pad's section at its mount face shrunk by m (by m_side across the finger, default m),
+    from x_back (dorsal) over the straight flanks to the pad's equator and around the palmar half-ellipse; and its
+    half-width."""
     import numpy as np
     k = math.sqrt(1.0 - ((TIP["z_mount"] - Z_CONTACT) / ELL["azp"]) ** 2)
-    ay, ax = ELL["ay"] * k - m, ELL["ax"] * k - m
+    ay, ax = ELL["ay"] * k - (m if m_side is None else m_side), ELL["ax"] * k - m
     xc = TIP["x_palmar"] + ELL["ax"]                       # the equator, x_F -2.05
     pts = [(ay, x_back)] + [(ay * math.cos(a), xc - ax * math.sin(a)) for a in np.linspace(0.0, math.pi, 49)]
     return pts + [(-ay, x_back)], ay
@@ -993,7 +1035,7 @@ def neck_column(K, zb):
     z0, z1 = TIP["z_mount"], zb + 0.5
     xs = X_SEAT - RIM_H                                    # the tongue's front face (x_F 3.95)
     slab = K.box((xs, -Y_RIM, z0), (X_SPINE_BACK, Y_RIM, z1))
-    sec, ay = column_section(m, xs + 0.01)
+    sec, ay = column_section(m, xs + 0.01, P.get("col_side_margin"))
     col = K.prism_z(sec, z0, z1)
     fil = [K.prism_z([(s * ay, xs + 0.01), (s * (ay + ch), xs + 0.01), (s * ay, xs - ch)], z0, z1) for s in (-1, 1)]
     return [slab, col] + fil
@@ -1016,9 +1058,11 @@ def cover_part(K):
         h = rp("wall_h")
         sr = rp("seat_raise") if solid_walls() else 0.0      # the proximal heads on solid wall this far up
         cuts = [K.cylx(y, z, SCREW_CLEAR / 2, X_SLOT - h - 1.0, X_COMP + 0.2) for y, z in screw_yz()]
+        # a seat on the wall's top (seat_raise = wall_h, the lower walls of 2026-10-21) needs no counterbore and no cut
+        # above it: their faces would lie in the top's plane
         cuts += [K.cylx(y, z, (HEAD_D + 0.4) / 2, X_SLOT - h - 1.0, X_SLOT - (sr if z > Z_CONTACT else 0.0))
-                 for y, z in screw_yz()]
-        if sr > 0:      # no wall above a raised seat from the counterbore's distal edge to the mount face: beside the
+                 for y, z in screw_yz() if z < Z_CONTACT or sr < h - 1e-9]
+        if 0 < sr < h - 1e-9:      # no wall above a raised seat from the counterbore's distal edge to the mount face: beside the
             #             counterbore it was a 0.66 mm fin toward the mount face and a 0.4 mm skin toward the cover's edge
             rc = (HEAD_D + 0.4) / 2
             cuts += [K.box((X_SLOT - h - 1.0, 5.0 if y > 0 else -Y_RIM - 1.0, z - rc),
