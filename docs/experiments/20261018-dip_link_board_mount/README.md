@@ -57,6 +57,25 @@ and `exports/20261019-1853-v2_concept_b_m2hole1p9/` (the 7.8 mm J1 slot for the 
 cable groove, 1.9 mm M2 holes); the exports of 15:08 and 15:16 have the 6.6 mm slot and the 2.4 mm groove, those of
 18:16 and 18:18 the 1.8 mm holes.
 
+## Caps over b v3's tip end
+
+Two PLA caps over the tip end of b v3 (owner, 2026-10-20 19:48, the pad popping off its rails): an end plate on the tip
+end, ears under the two distal board screws (M2 x 8 in place of M2 x 5), a 2 mm pin 2.7 mm into the pad's flat end; cap TW
+adds side walls along the pad's distal flanks. The pad that takes the pin is B00P (B00 with a 2.0 mm hole, 3.0 mm deep).
+
+    unset VIRTUAL_ENV PYTHONPATH
+    RG="$HOME/.claude/bin/resguard.sh run --mem 6G --cpu 300 -- taskset -c 14,15 env NUMPY_MADVISE_HUGEPAGE=0"
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/dip_b_tip_cap.py build step render       # caps, checks, STEP, figure
+    $RG env UR5M_REV=v2 ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_ur5v2_pla_plate.py tip_caps   # P1S plate
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_pad_b00_magnets_xl.py --magnets five --pin-hole  # pad B00P, XL
+
+Sizes are in the `CAP` dict at the top of `scripts/dip_b_tip_cap.py`. Outputs: `v3/b/cad/20261020-dip_link_v3b_tip_cap_{TP,TW}.step`
+and `.stl` (frame F), `v3/b/print/20261020-dip_link_v3b_p1s_pla_tip_caps.3mf` (both caps, 17 min),
+`v3/b/print/20261020-dip_link_v3b_print_pad_ell11_5_B00_pin_85a_t2_g30.3mf`, the checks in
+`v3/b/20261020-dip_link_v3b_tip_caps.json`, the FE bounds as cases `bm_five_d75_capend` and `bm_five_d75_cap` of
+`scripts/v2_tip_fe_checks.py`. The page is Section 9 of
+[DIP link b v3 and UR5e mount v2](../20261020-ur5_calibration_mount_v2/20261020-dip_link_b_v3_and_ur5_mount_v2.html).
+
 ## Opening the STEP files in Inventor
 
 1. Unzip a `.step.zip` first; the plain `.step` files open as they are.

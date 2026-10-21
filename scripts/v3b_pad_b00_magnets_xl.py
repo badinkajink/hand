@@ -17,6 +17,9 @@ each before the bridge layer over its pockets, no bead inside a pocket, tool 2 o
 --pocket-walls 1 (owner, 2026-10-20 18:35: "is it possible to run just one wall around the magnets instead of 2?") adds
 metric_magnet_prints.onewall_modifier, a modifier of one perimeter over the pocket layers that leaves two loops at the outer
 surface and one around each pocket, counted in the G-code (IDs 5W1 and 4W1, files *_pocketwalls1_*).
+--pin-hole (owner, 2026-10-20 20:36, choosing the caps over the tip end) cuts the 2.0 mm hole, 3.0 mm deep, that takes the
+caps' pin (scripts/dip_b_tip_cap.py: x_F 1.40 on the centre line, from the tip end, the print's top), IDs B00P and B4P, files
+*_pin_*.
 Output: docs/experiments/20261018-dip_link_board_mount/v3/b/print/20261020-dip_link_v3b_print_pad_ell11_{5,4}_B00_85a_t2_g30.3mf.
 
     unset VIRTUAL_ENV
@@ -76,14 +79,19 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--magnets", choices=list(VARIANTS), default="five")
     ap.add_argument("--pocket-walls", type=int, choices=(1, 2), default=2)
+    ap.add_argument("--pin-hole", action="store_true", help="the hole for the tip caps' pin (scripts/dip_b_tip_cap.py)")
     a = ap.parse_args()
     pset, key, pid, fkey, owner = VARIANTS[a.magnets]
     w1 = a.pocket_walls == 1
     if w1:
         pid = {"five": "5W1", "four": "4W1"}[a.magnets]
         owner += "; 18:35: 'is it possible to run just one wall around the magnets instead of 2?'"
-    name = f"20261020-dip_link_v3b_print_pad_{fkey}_B00{'_pocketwalls1' if w1 else ''}_85a_t2_g30"
-    work = REPO / f"logs/20261020-dip_link/v3/b/print_b00_{a.magnets}{'_w1' if w1 else ''}"
+    if a.pin_hole:
+        pid = {"five": "B00P", "four": "B4P"}[a.magnets] if not w1 else pid + "P"
+        owner += "; 20:36: 'sure we can go with your recommendation' (the caps over the tip end, with a pin into the pad)"
+    tag = ("_pocketwalls1" if w1 else "") + ("_pin" if a.pin_hole else "")
+    name = f"20261020-dip_link_v3b_print_pad_{fkey}_B00{tag}_85a_t2_g30"
+    work = REPO / f"logs/20261020-dip_link/v3/b/print_b00_{a.magnets}{'_w1' if w1 else ''}{'_pin' if a.pin_hole else ''}"
     t0 = time.time()
     work.mkdir(parents=True, exist_ok=True)
     B = V2.b_module()
@@ -94,10 +102,24 @@ def main():
         tip_name, orient, _ = B.TIPS[key]
     finally:
         B.TIPS, B.GROOVE_FIT = tips0, fit0
+    hole = None
+    if a.pin_hole:
+        import dip_b_tip_cap as TC
+        pad = pad - TC.pad_hole()
+        hole = dict(TC.CAP, x_F=TC.CAP["pin_x"], from_tip_end_z_F=TC.ZE)
     tm = B.to_trimesh(pad)
     tm.update_faces(tm.nondegenerate_faces())
     tm.remove_unreferenced_vertices()
     rule = r4(B, tm)
+    if hole is not None:                                        # the hole's least distance to a magnet pocket
+        voids = [b for b in tm.split(only_watertight=False) if abs(b.volume) < 100]
+        Vv = np.vstack([b.vertices for b in voids])
+        dr = np.maximum(np.hypot(Vv[:, 0] - hole["x_F"], Vv[:, 1]) - hole["hole_d"] / 2, 0.0)
+        dz = np.maximum(np.maximum(hole["from_tip_end_z_F"] - Vv[:, 2], Vv[:, 2] - (hole["from_tip_end_z_F"] + hole["hole_l"])), 0.0)
+        hole = dict(d_mm=hole["hole_d"], depth_mm=hole["hole_l"], x_F=hole["x_F"], y_F=0.0, tip_end_z_F=hole["from_tip_end_z_F"],
+                    to_pocket_mm=round(float(np.min(np.hypot(dr, dz))), 2))
+        if hole["to_pocket_mm"] < 2.0:
+            raise SystemExit(f"pin hole {hole['to_pocket_mm']} mm from a pocket")
     tp = B.pad_print_frame(tm, orient)                          # the tip's sheet frame: its pockets apply as they are
     tc, (_, t) = PP.to_print(tp)                                # centred as on the fit-size plate, engraved, moved back
     me, removed = FS.engrave_bed_face(tc, pid)
@@ -108,7 +130,7 @@ def main():
     bodies = sorted(float(b.volume) for b in part.split(only_watertight=False))
     if not part.is_watertight or len(bodies) != len(pockets) + 1 or bodies[-1] <= 0:   # one outer skin and the closed pockets
         raise SystemExit(f"{pid}: watertight {part.is_watertight}, bodies {bodies}")
-    stl = OUT / f"20261020-dip_link_v3b_pad_{fkey}_B00_print.stl"
+    stl = OUT / f"20261020-dip_link_v3b_pad_{fkey}_B00{'_pin' if a.pin_hole else ''}_print.stl"
     if not w1:
         part.export(stl)
     mods, mod_info = [], None
@@ -162,11 +184,11 @@ def main():
                volume_mm3=round(float(part.volume), 1), size_mm=np.round(part.extents, 2).tolist(), r4=rule,
                good_project=PP.rel(FS.GOOD), object_settings=dict(SETTINGS, layer_height="0.1"), sheet=PP.rel(sheet_path),
                magnet=sheet["magnet"], pocket_wall_min_mm=sheet.get("wall_min_mm"), chip_field_sheet=sheet.get("chip_field"),
-               pocket_walls=a.pocket_walls, modifier=mod_info, loops=loops,
+               pocket_walls=a.pocket_walls, modifier=mod_info, loops=loops, pin_hole=hole,
                pauses=prow, gcode=PP.rel(gc), summary={k: v for k, v in summ.items() if k != "labels"}, check=ck, material=mt,
                problems=problems, when=time.strftime("%Y-%m-%d %H:%M"), script="scripts/v3b_pad_b00_magnets_xl.py")
     proj.with_suffix(".json").write_text(json.dumps(rec, indent=1, default=float) + "\n")
-    print(json.dumps(dict(volume_mm3=rec["volume_mm3"], engraving=rec["engraving_removed_mm3"], r4=rule,
+    print(json.dumps(dict(volume_mm3=rec["volume_mm3"], engraving=rec["engraving_removed_mm3"], r4=rule, pin_hole=hole,
                           pauses=[p["print_z"] for p in prow], summary=rec["summary"],
                           pockets=[(q.get("void_layers"), q.get("beads_in_void_max"), (q.get("bridge") or {}).get("covered"),
                                     q.get("pause_before_bridge")) for q in ck["pockets"]],

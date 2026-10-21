@@ -69,6 +69,9 @@ def load():
     plates["b00"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_print_pad_ell11_5_B00_85a_t2_g30.json")
     plates["b4"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_print_pad_ell11_4_B00_85a_t2_g30.json")
     plates["fork"] = j(D / "print/20261020-p1s_pla_fork_and_indenters.json")
+    plates["tipcap"] = j(DIP / "v3/b/20261020-dip_link_v3b_tip_caps.json")
+    plates["caps"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_p1s_pla_tip_caps.json")
+    plates["b00p"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_print_pad_ell11_5_B00_pin_85a_t2_g30.json")
     fe = {}
     for r in rows(FE / "fe.jsonl"):
         if r["case"] in ("b_v2", "b_v2_wall3", "b_v2_wall495"):
@@ -110,16 +113,17 @@ def main():
     POSE_TXT = ("At neither pose does the mount, the link or the pad overlap the indenter, for either indenter." if poses_ok
                 else "A pose overlaps; see the check file.")
 
-    lede = (f"Concept b becomes v3 and the UR5e mount v2 after the owner's first prints. The cover gains side "
-            f"walls along the pad's flanks, the neck under the pad becomes a column {pv['col_margin']:.1f}&#8202;mm inside the "
-            f"11/22 outline, and the cable's leg opens to the top for the double-ended Qwiic cable. The walls change the "
-            f"pad's approach by at most {abs(w5_6[1]):.2f}&#8202;% at 6&#8202;N, and the owner chose them flush with the pad (W00). "
-            f"The mount keeps v1's fork without the spigot and the key; walls around both legs of the link clock it to "
+    lede = (f"Concept b becomes v3 and the UR5e mount v2 after the owner's first prints. The cover gains side walls along the "
+            f"pad's flanks, a column {pv['col_margin']:.1f}&#8202;mm inside the 11/22 outline replaces the neck, and the cable's leg "
+            f"opens to the top. The walls change the pad's approach by at most {abs(w5_6[1]):.2f}&#8202;% at 6&#8202;N; the owner chose "
+            f"them flush with the pad (W00). Walls around both legs of the link clock it on the mount's fork to "
             f"{chk['b_links']['v3b']['turn_to_contact_deg']['about_z_tool_+']:.1f}&#176; about the tool axis without a set screw, "
-            f"and a tapered key on each indenter's post homes it. In the readout model the pad resolves "
-            + (f"{sens['bm_five_d75']['gain']['centre_force_N']:.3f}&#8202;N at the contact point with five magnets and "
-               f"{sens['bm_four_d75']['gain']['centre_force_N']:.3f}&#8202;N with four; shallower magnets and one wall around them "
-               f"leave that gap open." if "bm_four_d75" in sens and "bm_five_d75" in sens else "") )
+            f"and a tapered key on each indenter's post homes it. "
+            + (f"The readout model resolves {sens['bm_five_d75']['gain']['centre_force_N']:.3f}&#8202;N at the contact point with "
+               f"five magnets and {sens['bm_four_d75']['gain']['centre_force_N']:.3f}&#8202;N with four. "
+               if "bm_four_d75" in sens and "bm_five_d75" in sens else "")
+            + (f"A cap over the tip end, hung on the distal board screws with a pin into the pad, holds the pad's last "
+               f"4.9&#8202;mm at a cost of 1&#8211;6&#8202;% of that resolution." if plates.get("tipcap", {}).get("variants") else ""))
 
     S = []
     S.append(("terms", "Terms and metrics", f"""
@@ -158,6 +162,11 @@ given is the nominal one before the link is pressed on.</dd>
 point is relative to the indenter's top and how the finger is turned about the key's axis.</dd>
 <dt>Turn to contact</dt><dd>The smallest turn of the DIP link about an axis through the bridge's middle, from its place on the fork,
 at which the link and the fork overlap, with the clamp plate and the screws off, in degrees on a grid of 0.05 to 5&#176;.</dd>
+<dt>Tip end</dt><dd>The plane z_F &#8722;98.46 where the DIP link's tongue, the cover and the pad end; the board stops 0.5&#8202;mm short of
+it. Seen along the finger it is a T: the tongue and the cover 21 &#215; 5.1&#8202;mm, the pad's flat end 4.4 &#215; 7.5&#8202;mm.</dd>
+<dt>Tip cap TP, TW</dt><dd>A PLA part over the tip end: an end plate 1.2&#8202;mm thick on the T, two ears 3&#8202;mm thick on the cover's
+front face under the two distal board screws, and a 2&#8202;mm pin 2.7&#8202;mm into the pad's flat end. TP's ears stand 0.5&#8202;mm off
+the pad; TW adds side walls 6&#8202;mm tall along the pad's distal flanks, on the pad (0.00&#8202;mm, as W00).</dd>
 </dl>"""))
 
     t1 = [["The 30&#8202;mm disc on the UR5 adapter has no bore in the HEX-E; only the 5.5&#8202;mm nub fits",
@@ -204,7 +213,12 @@ at which the link and the fork overlap, with the clamp plate and the screws off,
            f"{min(v for k_, v in chk['b_links']['v3b']['turn_to_contact_deg_ears_fork'].items() if k_.startswith('about_z')):.2f} and "
            f"{min(v for k_, v in chk['b_links']['v3b']['turn_to_contact_deg_ears_fork'].items() if k_.startswith('about_y')):.1f}&#176;)"],
           ["A standard sparse 15&#8202;% grid infill on the mount's parts", "Bambu Studio's 0.20&#8202;mm Standard (two walls, 15&#8202;% "
-           "grid) for the fork and both indenters", f"Plate {plates['fork']['time']}, {plates['fork']['filament_g']:.0f}&#8202;g"]]
+           "grid) for the fork and both indenters", f"Plate {plates['fork']['time']}, {plates['fork']['filament_g']:.0f}&#8202;g"],
+          ["The pad gets popped out a lot; a T-shaped plate over the tip end, fastened to the link and the pad and molded around "
+           "the fingertip's top (19:48); the recommendation taken (20:36)",
+           "Tip caps TP and TW (Section 9): end plate, ears under the distal board screws (M2 &#215; 8 for &#215; 5), a pin into the pad "
+           "in place of a thread or insert; TW with side walls; pad B00P with the pin's hole",
+           "No overlap with any part; TP's ears 0.50&#8202;mm off the pad; joint clearance over 6.7&#8202;mm; Table 8"]]
     S.append(("changes", "Changes from the owner's notes of 2026-10-20", f"""
 <p>Table 1 lists each note, the change it made and the check that covers it. The DIP link changes are design switches of the
 concept b generator with their own parameters (<code>cover_walls</code>, <code>neck</code>, <code>cable_leg</code> in
@@ -365,17 +379,19 @@ print the fork with the walls.</p>
            f"{UP}_payload.json)."]
     S.append(("assembly", "Assembly", "<ol>" + "".join(f"<li>{a}</li>" for a in asm) + "</ol>"))
 
-    t6 = [[esc(p["project"].split("/")[-1]), p["time"], f"{p['filament_g']:.0f}", ", ".join(o["label"] for o in p["objects"]),
-           "none" if not p["problems"] else esc("; ".join(p["problems"]))] for p in (pc, plates["fork"], pl)]
+    t6 = [[esc(p["project"].split("/")[-1]), p["time"], f"{p['filament_g']:.1f}" if p["filament_g"] < 10 else f"{p['filament_g']:.0f}",
+           ", ".join(o["label"] for o in p["objects"]),
+           "none" if not p["problems"] else esc("; ".join(p["problems"]))] for p in (pc, plates["fork"], pl, plates["caps"])]
     S.append(("print", "Print and CAD files", f"""
-<p>Three Bambu Lab P1S plates in PLA (Table 6), the parts' settings written into each project so Bambu Studio keeps them when it
+<p>Four Bambu Lab P1S plates in PLA (Table 6), the parts' settings written into each project so Bambu Studio keeps them when it
 slices again, and a 5&#8202;mm brim on every part. The calibration plate of 15:40 (printed: the adapter and the clamp plate on it are
 unchanged) has the mount and the indenters at 0.15&#8202;mm with five walls and 40&#8202;% gyroid and the covers solid at 0.1&#8202;mm. The
 fork with the walls and both indenters with the keyed posts print on their own plate at Bambu Studio's 0.20&#8202;mm Standard, two
 walls and 15&#8202;% grid (owner, 19:10: "a standard sparse 15% grid infill"), in {plates['fork']['time']}; the DIP link keeps
 0.1&#8202;mm on tree supports and its cover prints solid, both with walls under 1&#8202;mm. The fit covers W00, W10 and W20 have
 one, two and three notches in their distal edge; they fit the v2 link already printed, so the walls can be tried on it before v3
-prints. W00 held pad B00 in the owner's test, so the design and the link plate take it. The 85A pad is B00 with its five 3&#8202;&#215;&#8202;2&#8202;mm magnets, its ID engraved in the mount face: it prints on the XL's
+prints. W00 held pad B00 in the owner's test, so the design and the link plate take it. The tip caps TP and TW print solid at
+0.1&#8202;mm on their own plate, the end plate on the bed (Section 9). The 85A pad is B00 with its five 3&#8202;&#215;&#8202;2&#8202;mm magnets, its ID engraved in the mount face: it prints on the XL's
 tool 2 in {pb_t} with pauses at {', '.join(f"{q['print_z']:.1f}" for q in pb['pauses'])}&#8202;mm, the settings of the owner's good
 print of 2026-10-18 ({code(DIP / pb['project'].split('board_mount/')[1])}). The pad with the four magnets of the 10-18 print
 (ID B4) prints in {p4_t} with pauses at {', '.join(f"{q['print_z']:.1f}" for q in p4['pauses'])}&#8202;mm
@@ -385,7 +401,7 @@ that keeps two at the outer surface (IDs 5W1 and 4W1, files <code>*_pocketwalls1
 pocket). STEP files for Inventor: the mount's parts as exact solids in M ({code(D / 'cad')}, read back
 valid), and v3's new body, cover and cable-groove cutter as exact solids in F ({code(DIP / 'v3/b/cad')}).</p>
 {table(["Project", "Time", "PLA (g)", "Parts", "Slice checks failed"], t6, num_cols=(1, 2),
-       caption="P1S plates (scripts/v3b_ur5v2_pla_plate.py), print/20261020-p1s_pla_*.json.", n=6)}
+       caption="P1S plates (scripts/v3b_ur5v2_pla_plate.py), print/20261020-p1s_pla_*.json; the tip caps' plate in v3/b/print.", n=6)}
 {fig(11, D / 'print/20261020-p1s_pla_fork_and_indenters_map.png', 'The plate of 19:10: the fork with the walls and both indenters with their keyed posts.', 900)}"""))
 
     MAG = [("Five", "bm_five_d65", 6.5), ("Five", "bm_five_d70", 7.0), ("Five", "bm_five_d75", 7.5), ("Five", "bm_five_d85", 8.5),
@@ -432,6 +448,65 @@ the four's improves to {rf['bm_four_d75_w1']:.3f}&#8202;N, {rf['bm_four_d75_w1']
 base grid of Table 3 the magnets at 7.5&#8202;mm lie in 1.1&#8202;mm elements, and the same cases' force resolution differs by up to
 {gdev:.0f}&#8202;%.</p>"""))
 
+    tc, pcap, pbp = plates["tipcap"], plates["caps"], plates["b00p"]
+    CAPS = [("No walls (v2's cover)", "bm_five_d75"), ("Cover walls, as printed", "bm_five_d75_walls"),
+            ("Walls, cap's end plate and pin", "bm_five_d75_capend"), ("Walls, cap with side walls", "bm_five_d75_cap")]
+    if all(c in sens for _, c in CAPS) and tc.get("variants"):
+        def at(r, y, dz):
+            return next(f for yy, zz, f in r["gain"]["points_y_dz_force_N"] if yy == y and zz == dz)
+        ref = sens["bm_five_d75_walls"]
+        t8 = [[lab, f"{sens[c]['magnet_travel_um_per_N']:.2f}", f"{sens[c]['approach_1N_um']:.1f}",
+               f"{sens[c]['gain']['centre_force_N']:.4f}", f"{at(sens[c], 0.0, 4.0):.4f}",
+               f"{100 * (sens[c]['gain']['centre_force_N'] / ref['gain']['centre_force_N'] - 1):+.1f} / "
+               f"{100 * (at(sens[c], 0.0, 4.0) / at(ref, 0.0, 4.0) - 1):+.1f}"] for lab, c in CAPS]
+        vp, vw = tc["variants"]["TP"], tc["variants"]["TW"]
+        fl = tc["finger_length"]
+        pbp_t = pbp["summary"]["print_time"].replace("m ", "&#8202;min ").replace("s", "&#8202;s")
+        S.append(("caps", "Caps over the tip end", f"""
+<p>The owner found the pad popping out of its rails (19:48) and proposed a T-shaped plate over the tip end, fastened to the link and
+to the pad and molded around the fingertip's top. Nothing holds the pad's last 4.9&#8202;mm: the rails stop at z_F &#8722;93.55 and the cover
+walls at the apex's z, and between them the pad rests on dovetails with a 0.3&#8202;mm undercut per side. Two caps of that idea are built
+(Figure 13). Each has an end plate on the T of the tip end, so the pad sits between the column at its mount face and the plate.
+Across the finger a 2&#8202;mm pin 2.7&#8202;mm into the pad's flat end holds it, 1.5&#8202;mm in front of the pad's back face and
+{pbp['pin_hole']['to_pocket_mm']:.2f}&#8202;mm from the nearest magnet pocket. No thread goes into the TPU: an M2 heat-set insert, 3.2&#8202;mm
+across, would leave 0.6&#8202;mm of TPU at the 4.4&#8202;mm end face. The caps hang from the two distal board screws, which stand 2.65&#8202;mm
+from the tip end outside the pad; M2 &#215; 8 in place of M2 &#215; 5 pass a 3&#8202;mm ear and end where they end now, so the link takes no
+new hole (an axial M2 in the 3.6&#8202;mm tongue would leave 0.85&#8202;mm of PLA beside the board's seat). TP's ears stand
+{vp['gaps_mm']['sides_to_pad']:.2f}&#8202;mm off the pad, measured normal to its outline. TW's side walls run along the pad's distal
+flanks from 0.2&#8202;mm past the U3/U5 windows (z_F &#8722;{abs(tc['wall_z0_F']):.2f}) to the ears; beside the screw heads the 3&#8202;mm ears take
+their place.</p>
+<p>In the finite elements (Table 8), against v3 as printed, the end plate and the pin coarsen the force resolution at the contact
+point by {100 * (sens['bm_five_d75_capend']['gain']['centre_force_N'] / ref['gain']['centre_force_N'] - 1):.0f}&#8202;% and TW by
+{100 * (sens['bm_five_d75_cap']['gain']['centre_force_N'] / ref['gain']['centre_force_N'] - 1):.0f}&#8202;%; 4&#8202;mm toward the tip the
+changes are {100 * (at(sens['bm_five_d75_capend'], 0.0, 4.0) / at(ref, 0.0, 4.0) - 1):.0f} and
+{100 * (at(sens['bm_five_d75_cap'], 0.0, 4.0) / at(ref, 0.0, 4.0) - 1):.0f}&#8202;%. The magnets' travel falls more than the resolution,
+because the plate stops their slide toward the tip; the centre magnet over U1 keeps 96 and 92&#8202;% of its motion along the palmar
+normal. The model bonds the plate and the pin to the pad, its pin is 3&#8202;mm long and the side walls hold the flank both ways,
+so the table bounds the caps' cost.</p>
+<p>Neither cap overlaps the pad with its hole, the cover, the link, the board, the magnets or the screws; the distal screw heads
+stand {tc['distal_screws_to_pad_mm']:.2f}&#8202;mm from the pad. Over PIP &#8722;18 to 92&#176; the caps stay more than
+{vp['pip_sweep']['min_mm']:.1f}&#8202;mm from the MCP link and the PIP servo, and they are {vp['width_mm']:.1f}&#8202;mm wide, the link's width.
+TP weighs {vp['mass_solid_g']:.2f}&#8202;g and TW {vw['mass_solid_g']:.2f}&#8202;g solid. The plate lengthens the finger from
+{fl['pip_to_tip_mm']:.2f} to {fl['pip_to_tip_with_cap_mm']:.2f}&#8202;mm, PIP axis to tip, which the hand model takes if a cap stays.
+Both print on one P1S plate in {pcap['time']} ({pcap['filament_g']:.1f}&#8202;g, solid at 0.1&#8202;mm, end plate on the bed); pad B00P,
+B00 with the pin's hole, prints on the XL in {pbp_t} with the same three pauses. STEP:
+{code(DIP / 'v3/b/cad')} (<code>*_tip_cap_TP.step</code>, <code>*_tip_cap_TW.step</code>, single valid solids).</p>
+<ol>
+<li>Take out the two distal board screws; the proximal pair keeps the board in place.</li>
+<li>With the pad on its rails and against the column, slide the cap onto the tip along the finger: the walls (TW) and ears pass
+the pad's flanks, the pin enters the pad's hole. For the B00 already printed, melt a 2&#8202;mm hole 3&#8202;mm deep with a hot rod
+at the pin's place, or snip the pin off.</li>
+<li>Press the plate onto the pad's end and drive the two M2 &#215; 8 (brass or A2 stainless) through the ears; their 2.4&#8202;mm holes take
+up &#177;0.2&#8202;mm of the pad's printed length.</li>
+</ol>
+{fig(13, DIP / 'v3/b/media/20261020-dip_link_v3b_tip_caps.png', "Caps TP and TW on b v3's tip end, TW pulled off along the finger "
+     "with the distal screws out, and TW seen from beyond the tip.", 1000)}
+{table(["Pad held by", "Magnet travel at 1 N (&#181;m)", "Approach at 1 N (&#181;m)", "Force resolution at the contact point (N)",
+        "Force resolution 4 mm toward the tip (N)", "Change from the walls as printed, contact point / 4 mm toward the tip (%)"], t8,
+       num_cols=(1, 2, 3, 4),
+       caption="b's pad with five magnets 7.5 mm deep in the readout model (scripts/v2_tip_fe_checks.py --sense, sensing.json); "
+       "the walls and the caps held bonded to the pad.", n=8)}"""))
+
     S.append(("weights", "Weights of the 85A fit parts", f"""
 <p>The A tips weigh {meas['A']['mass_g']:.2f}&#8202;g and the B pads {meas['B']['mass_g']:.2f}&#8202;g, 14&#8202;% under the slicer's
 {meas['A']['sliced_g_at_profile_1p26']:.2f} and {meas['B']['sliced_g_at_profile_1p26']:.2f}&#8202;g, which take the XL profile's
@@ -450,7 +525,8 @@ pop-off itself, a large deformation of the pad over the dovetails, is not modell
 is taken as the owner reads it (centre to the nub); the sensor's own marking decides it. The readout model is a dipole model with
 the MLX90393's datasheet noise and the board 0.42&#8202;mm behind the pad; nothing in Table 7 is measured, and its depth sweep
 ignores the 1.8&#8202;mm pocket-wall rule, which at the 2.9&#8202;mm seat only 7.5&#8202;mm meets for either layout on the 11/22. The homing assumes the tool axis along the
-base's x; another heading moves the post's position by the same rotation.</p>"""))
+base's x; another heading moves the post's position by the same rotation. The caps' holds are bonded in the model, and whether a cap
+keeps the pad on is a test on the bench.</p>"""))
 
     S.append(("future", "Future work", f"""
 <ul>
@@ -470,6 +546,10 @@ the printed walls stand further off than 0.15&#8202;mm and <code>mold_gap</code>
 <li>Weigh one metre of the 85A spool to 0.01&#8202;g. Near {meas['A']['filament_1m_g_expected']:.2f}&#8202;g the A tips are under-extruded
 by about 7&#8202;%; near {meas['A']['filament_1m_g_expected'] * meas['A']['measured_over_commanded']:.2f}&#8202;g the filament is thin and the
 tips contain what the slicer laid down. The UR5e indentation of one tip then measures the stiffness the weighing predicts.</li>
+<li>Print plate <code>20261020-dip_link_v3b_p1s_pla_tip_caps.3mf</code> and pad B00P, fit TP, and push the pad sideways at the
+tip and at the apex as hard as popped it off before; if it stays on, keep TP (Table 8's smaller cost), otherwise fit TW. With the
+cap on, repeat the presses of the first item: a spread more than Table 8's change above the walls-only pad means the plate preloads
+the pad, and a thinner plate or a 0.1&#8202;mm relief over the pad's end removes it.</li>
 <li>When the fingers go on the hand, rebuild the v2 finger's scenes with v3's link (<code>scripts/v2_finger_scenes.py</code> with the
 v3 meshes) and run the first-bench export and the trajectory-clearance gate: the narrower neck changes the index and middle links'
 closest approach, which was 0.10&#8202;mm with v2 a.</li>
@@ -479,7 +559,8 @@ closest approach, which was 0.10&#8202;mm with v2 a.</li>
              D / f"{UP}_check.json", D / f"{UP}_payload.json", D / f"{UP}_parts.json", D / f"{UP}_step.json", D / "cad", D / "print", D / "README.md",
              ROOT / "scripts/dip_link_concept_b.py", ROOT / "scripts/dip_link_v2.py", ROOT / "scripts/ur5_calibration_mount.py",
              ROOT / "scripts/v3b_ur5v2_pla_plate.py", ROOT / "scripts/v3b_pad_b00_magnets_xl.py", ROOT / "scripts/v2_tip_fe_checks.py", ROOT / "scripts/dip_b_v3_figures.py",
-             ROOT / "scripts/dip_b_magnet_layouts_figure.py",
+             ROOT / "scripts/dip_b_magnet_layouts_figure.py", ROOT / "scripts/dip_b_tip_cap.py",
+             DIP / "v3/b/20261020-dip_link_v3b_tip_caps.json",
              ROOT / "scripts/dip_b_v3_ur5_v2_page.py"]
     S.append(("files", "Files", "<ul>" + "".join(f"<li>{code(f)}</li>" for f in files if Path(f).exists()) + "</ul>"
               + f"<p>Related pages: {link(PAGES['dip'], 'DIP-link redesign')}, {link(PAGES['ur5'], 'UR5e mount v1')}, "

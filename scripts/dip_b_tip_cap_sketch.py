@@ -4,7 +4,7 @@ numbers: the palmar view and the view from the tip end, with the pad, the cover 
 screws, chips and magnets, and the cap (end plate, side walls along the pad's distal flanks, ears under the two distal
 board screws, a pin into the pad's tip end).
 
-Owner, 2026-10-20 21:00: "the finger is getting popped out a lot ... a separate fingertip that goes ontop of and fastens to
+Owner, 2026-10-20 19:48: "the finger is getting popped out a lot ... a separate fingertip that goes ontop of and fastens to
 both the dip link (top of the magnetometer plate) and the top of the fingertip. im imagining a kind of T-shaped plate ...
 you could trick out this T-plate and extrude it down to mold around the top of the fingertip (and around the screws too)
 for additional side-to-side retaining". Output:
@@ -33,7 +33,7 @@ OUT = ROOT / "docs/experiments/20261018-dip_link_board_mount/v3/b/media/20261020
 ZC, ZE, ZM = B.Z_CONTACT, B.TIP["z_end"], B.TIP["z_mount"]          # -87.91, -98.46, -77.05
 X_FLANK = -2.05                     # palmar end of the pad's straight flank (x_t 0 of the FE frame)
 X_TONGUE = (B.X_SEAT, B.X_TONGUE_BACK)                               # 4.40, 8.00
-CAP = dict(t_end=1.2, t_wall=1.2, z0=-89.80, z_ear=-93.40, ear_t=3.0, pin=(1.40, 0.0, 1.0, 3.0))
+CAP = dict(t_end=1.2, t_wall=1.2, z0=-89.80, z_ear=-93.40, ear_t=3.0, pin=(1.40, 0.0, 1.0, 2.7))
 COL = dict(pad="#dcc28f", cover="#3d6fb8", link="#c8c8c2", cap="#e07b24", board="#2f7d4f", mag="#8a8f99", screw="#c9a54a")
 ARROW = dict(arrowstyle="-", lw=0.8)
 
@@ -84,7 +84,7 @@ def palmar(ax):
         ax.add_patch(Circle((y, zz), B.HEAD_D / 2, fc=COL["screw"], ec="k", lw=0.7, zorder=5))
     xp, yp, rp, lp = CAP["pin"]
     ax.add_patch(Rectangle((yp - rp, ZE), 2 * rp, lp, fill=False, ec="k", lw=1.3, ls="--", zorder=6))
-    for txt, xy, at in (("Pin, 2 mm, 3 mm into\nthe pad's tip end", (yp + rp, ZE + 2.0), (11.6, ZE - 3.4)),
+    for txt, xy, at in (("Pin, 2 mm, 2.7 mm into\nthe pad's tip end", (yp + rp, ZE + 2.0), (11.6, ZE - 3.4)),
                         ("Ear under the distal\nboard screw (M2 x 8)", (8.0 + 1.9, -95.81), (11.6, -93.4)),
                         ("Rails end at\nz_F -93.55", (B.RAIL_Y + 1.0, B.RAIL_Z[0]), (11.6, -89.0)),
                         ("Cap side wall 1.2 mm, from\n0.2 mm past U5's window", (-half_w(-92.0) - 0.6, -92.0),

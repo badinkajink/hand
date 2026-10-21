@@ -101,7 +101,7 @@ CASES = {   # name: grid, magnet depth (mm), magnets (None: the calibration's fo
     # along each pocket, two along the outer outline (metric_magnet_prints.onewall_modifier prints it)
     "bm_five_d75_w1": dict(grid="bmag", depth=7.5, mags="five", body="b", pocket_walls=1),
     "bm_four_d75_w1": dict(grid="bmag", depth=7.5, mags=None, body="b", pocket_walls=1),
-    # owner, 2026-10-20 21:00 (the pad pops off its rails): a separate T-shaped cap over the tip end, fastened to the DIP link
+    # owner, 2026-10-20 19:48 (the pad pops off its rails): a separate T-shaped cap over the tip end, fastened to the DIP link
     # and to the pad's tip end and "extruded down to mold around the top of the fingertip ... for additional side-to-side
     # retaining". On grid bmag: v3's walls as printed (the 6 mm walls hold the whole 4.95 mm straight flank); the walls and
     # the cap's end plate (the tip end face's nodes held in all three directions) with a 2 mm pin 3 mm into the tip end,

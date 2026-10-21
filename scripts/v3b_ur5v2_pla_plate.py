@@ -12,7 +12,8 @@ the DIP link at 0.1 mm with tree supports from the plate, the covers solid at 0.
 object), which also keeps the thin covers flat. Output: docs/experiments/20261020-ur5_calibration_mount_v2/print/.
 Arguments name the plates to build (default: fork_and_indenters and link; the calibration plate of 15:40 only when named).
 Plate "fork_and_indenters" (19:10): the standoff-fork with walls around both legs of the DIP link and the two indenters with
-keyed homing posts, at Bambu Studio's 0.20 mm Standard (2 walls, 15 % grid; owner).
+keyed homing posts, at Bambu Studio's 0.20 mm Standard (2 walls, 15 % grid; owner). Plate "tip_caps" (20:36): caps TP and
+TW over b v3's tip end (scripts/dip_b_tip_cap.py), solid at 0.1 mm, into v3/b/print/.
 
     unset VIRTUAL_ENV
     ~/.claude/bin/resguard.sh run --mem 5G --cpu 400 -- taskset -c 14-18 env UR5M_REV=v2 NUMPY_MADVISE_HUGEPAGE=0 \\
@@ -99,8 +100,14 @@ PLATES = {
         ("U2", "UR5 standoff-fork v2, walls around the legs", UR5 / f"{UP}_standoff_fork.stl", np.eye(3), STANDARD),
         ("U4", "UR5 sphere indenter v2, keyed post", UR5 / f"{UP}_indenter_sphere.stl", np.eye(3), STANDARD),
         ("U5", "UR5 rod indenter v2, keyed post", UR5 / f"{UP}_indenter_rod.stl", np.eye(3), STANDARD)],
+    # 20:36: the two caps over the tip end of b v3 (scripts/dip_b_tip_cap.py), end plate on the bed, solid at 0.1 mm like the
+    # cover (1.2 mm walls, a 2 mm pin)
+    "tip_caps": [
+        ("TP", "b v3 tip cap TP, plate, ears, pin", V3 / "print/20261020-dip_link_v3b_tip_cap_TP_pla_bambu.stl", None, V.SOLID),
+        ("TW", "b v3 tip cap TW, with side walls", V3 / "print/20261020-dip_link_v3b_tip_cap_TW_pla_bambu.stl", None, V.SOLID)],
 }
-DEFAULT_PLATES = ("fork_and_indenters", "link")       # "calibration" (15:40, printed) is rebuilt only when named
+DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps")   # "calibration" (15:40, printed) is rebuilt only when named
+PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps")}   # other plates: OUT, 20261020-p1s_pla_<plate>
 
 
 def main():
@@ -113,20 +120,25 @@ def main():
         if plate not in (sys.argv[1:] or DEFAULT_PLATES):
             continue
         V.PARTS[:] = parts
-        V.OUT, V.WORK, V.PFX = OUT, WORK / plate, f"20261020-p1s_pla_{plate}"
+        out_dir, pfx = PLATE_OUT.get(plate, (OUT, f"20261020-p1s_pla_{plate}"))
+        V.OUT, V.WORK, V.PFX = out_dir, WORK / plate, pfx
         V.TITLE = {"calibration": "UR5 mount v2 (v1 fork, no key), indenters, b v3 covers W00-W20",
                    "link": "DIP link b v3, cover W00",
-                   "fork_and_indenters": "UR5 mount v2: fork with walls around the legs, indenters with keyed posts"}[plate]
+                   "fork_and_indenters": "UR5 mount v2: fork with walls around the legs, indenters with keyed posts",
+                   "tip_caps": "DIP link b v3: caps TP and TW over the tip end"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
                    + ("; 18:55: walls around both legs that clock the link, no set screw, a keyed homing slot and shaft; "
-                      "19:10: standard 15 % grid infill" if plate == "fork_and_indenters" else ""))
+                      "19:10: standard 15 % grid infill" if plate == "fork_and_indenters" else "")
+                   + ("; 19:48: 'the finger is getting popped out a lot ... a kind of T-shaped plate'; 20:36: 'sure we can go "
+                      "with your recommendation' (ears under the distal board screws, a pin, caps with and without side walls)"
+                      if plate == "tip_caps" else ""))
         try:
             V.main()
         except SystemExit as e:
             print("plate", plate, "problems:", e, flush=True)
-        rec = json.loads((OUT / f"{V.PFX}.json").read_text())
+        rec = json.loads((V.OUT / f"{V.PFX}.json").read_text())
         summary[plate] = dict(project=rec["project"], time=rec["time"], filament_g=rec["filament_g"], problems=rec["problems"],
                               parts=[o["id"] for o in rec["objects"]])
     sf.write_text(json.dumps(summary, indent=1) + "\n")
