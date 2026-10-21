@@ -253,7 +253,7 @@ figcaption {{ font-size: 15px; }}
 <h1>{esc(S['title'])}</h1>
 <p class="meta">Curated text as of {esc(S['as_of'])}; live blocks read {esc(built)} by <code>scripts/printed_fingertip_status_page.py</code>
 (rebuild: <code>.venv/bin/python scripts/printed_fingertip_status_page.py</code>; curated text in <code>{esc(CUR.relative_to(ROOT))}</code>).</p>
-<p>{inline(S['lede'])}</p>
+<p class="lede">{inline(S['lede'])}</p>
 <ul>{toc}</ul>
 {''.join(body)}
 </body></html>
