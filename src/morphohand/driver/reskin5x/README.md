@@ -123,6 +123,15 @@ for a board at 0x0C and 0x10 to 0x13, as the workstation's board is, black (the 
 saves the 15 baseline-subtracted components of each displayed frame (60 Hz) to `data/data_<time>.txt` under the working
 directory.
 
+## Contact estimation viewer
+
+    ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py   # then open http://localhost:8790
+
+The viewer calibrates the measurement model from 2 s at rest (keep the pad untouched), then shows the estimated contact
+point and force, the FE deformation and the pad pressure in the browser; keys b (new baseline), c (recalibrate at rest),
+r (record the stream for `--replay`). The model, the estimator and their errors are on the page
+`docs/experiments/20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html`.
+
 ## Register settings
 
 GAIN_SEL 1, RES 1 on all three axes, OSR 0, DIG_FILT 5 and HALLCONF 0xC: one count is 1.20 µT on x and y and 1.94 µT on z,

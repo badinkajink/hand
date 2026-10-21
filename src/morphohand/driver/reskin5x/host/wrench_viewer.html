@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fingertip contact estimate</title>
+<style>
+  body { margin: 0; font-family: "Times New Roman", Times, serif; background: #fff; color: #000; }
+  #wrap { display: flex; height: 100vh; }
+  #view { flex: 1; position: relative; min-width: 0; }
+  #side { width: 400px; padding: 8px 12px; overflow-y: auto; border-left: 1px solid #000; font-size: 15px; }
+  h1 { font-size: 20px; margin: 4px 0 6px; }
+  #status { font-size: 13px; margin-bottom: 6px; min-height: 2.6em; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 6px; }
+  td, th { border: 1px solid #000; padding: 2px 5px; text-align: right; font-size: 14px; }
+  th { text-align: left; font-weight: normal; }
+  .contact { font-size: 18px; margin: 4px 0; }
+  button { font-family: inherit; font-size: 14px; margin: 2px 4px 2px 0; }
+  label { display: block; font-size: 13px; margin-top: 4px; }
+  input[type=range] { width: 100%; }
+  canvas.trace { border: 1px solid #000; display: block; margin-top: 6px; }
+  #legend { position: absolute; left: 10px; bottom: 10px; font-size: 13px; background: rgba(255,255,255,0.85); padding: 4px 6px; border: 1px solid #000; }
+  #cbar { width: 160px; height: 10px; border: 1px solid #000; background: linear-gradient(to right, #d8d8d8, #ffe08a, #ff9a3c, #e0301e, #7a0010); }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="view">
+    <div id="legend">Pressure (kPa) 0 <span id="cbar" style="display:inline-block;vertical-align:middle"></span> <span id="pmaxlbl">300</span><br>
+      Magnets: red north toward the palm, blue south. Arrow: force on the pad.</div>
+  </div>
+  <div id="side">
+    <h1>Fingertip contact estimate</h1>
+    <div id="status">connecting</div>
+    <div class="contact" id="contact">no data</div>
+    <table>
+      <tr><th>Pressing force</th><td id="fp">-</td><td id="sfp">-</td></tr>
+      <tr><th>Shear across (y)</th><td id="fy">-</td><td id="sfy">-</td></tr>
+      <tr><th>Shear along (z)</th><td id="fz">-</td><td id="sfz">-</td></tr>
+      <tr><th>Position across y</th><td id="py">-</td><td id="spy">-</td></tr>
+      <tr><th>Position along z</th><td id="pz">-</td><td id="spz">-</td></tr>
+      <tr><th>Explained chi-square</th><td id="ee">-</td><td id="thr">-</td></tr>
+      <tr><th>Background change (uT)</th><td colspan="2" id="gg">-</td></tr>
+      <tr><th>Peak pressure</th><td colspan="2" id="pk">-</td></tr>
+    </table>
+    <div style="font-size:12px">Forces in N and positions in mm (tip frame, z from the mount toward the tip end); the second column is the 1-sigma uncertainty of the model.</div>
+    <div>
+      <button id="bb">New baseline (b)</button><button id="bc">Recalibrate at rest (c)</button><button id="br">Record (r)</button>
+    </div>
+    <label>Deformation shown x<span id="exl">20</span><input type="range" id="ex" min="1" max="100" value="20"></label>
+    <label>Arrow length <span id="arl">4</span> mm per N<input type="range" id="ar" min="1" max="20" value="4"></label>
+    <label>Indenter sphere radius <span id="rl">8</span> mm <input type="checkbox" id="showind"> show it<input type="range" id="rr" min="2" max="40" value="8"></label>
+    <label>Pressure colour scale <span id="pml">300</span> kPa<input type="range" id="pm" min="5" max="1000" value="300"></label>
+    <canvas class="trace" id="tf" width="376" height="170"></canvas>
+    <canvas class="trace" id="tp" width="376" height="130"></canvas>
+    <canvas class="trace" id="tb" width="376" height="120"></canvas>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const T = p => new THREE.Vector3(p[2], p[0], p[1]);      // tip (x normal, y across, z along) -> three (z, x, y)
+const view = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+view.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
+const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 500);
+camera.position.set(-22, 30, 30);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(10.5, 3, 0);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.6));
+const dl = new THREE.DirectionalLight(0xffffff, 1.4); dl.position.set(-10, 40, 20); scene.add(dl);
+
+let face = null, rest = null, colors = null, nV = 0, wire = null;
+const arrow = new THREE.ArrowHelper(new THREE.Vector3(0, -1, 0), new THREE.Vector3(), 4, 0x0040ff, 1.2, 0.8);
+arrow.visible = false; scene.add(arrow);
+const ellGeo = new THREE.BufferGeometry(); const ellPts = new Float32Array(65 * 3);
+ellGeo.setAttribute('position', new THREE.BufferAttribute(ellPts, 3));
+const ell = new THREE.LineLoop(ellGeo, new THREE.LineBasicMaterial({ color: 0x0040ff })); ell.visible = false; scene.add(ell);
+const ind = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), new THREE.MeshPhongMaterial({ color: 0x3060ff, transparent: true, opacity: 0.05, depthWrite: false }));
+ind.visible = false; scene.add(ind);
+const extras = new THREE.Group(); scene.add(extras);
+
+function label(text, pos) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+  const g = c.getContext('2d'); g.font = '34px Times New Roman'; g.fillStyle = '#000'; g.fillText(text, 4, 44);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
+  s.scale.set(5, 1.25, 1); s.position.copy(pos); return s;
+}
+
+function buildScene(m) {
+  if (face) { scene.remove(face); scene.remove(wire); }
+  extras.clear();
+  nV = m.verts.length;
+  rest = new Float32Array(nV * 3);
+  m.verts.forEach((p, i) => { const v = T(p); rest.set([v.x, v.y, v.z], 3 * i); });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(rest.slice(), 3));
+  colors = new Float32Array(nV * 3).fill(0.85);
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.setIndex(m.tris.flat());
+  geo.computeVertexNormals();
+  face = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ vertexColors: true, side: THREE.DoubleSide, shininess: 20 }));
+  scene.add(face);
+  wire = new THREE.LineSegments(new THREE.WireframeGeometry(geo), new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.08 }));
+  scene.add(wire);
+  const cnt = new Map();
+  for (const t of m.tris) for (let k = 0; k < 3; k++) { const a = t[k], b = t[(k + 1) % 3], key = a < b ? `${a},${b}` : `${b},${a}`; cnt.set(key, (cnt.get(key) || 0) + 1); }
+  const side = [];
+  for (const [key, c] of cnt) if (c === 1) { const [a, b] = key.split(',').map(Number);
+    const pa = m.verts[a], pb = m.verts[b], qa = [m.x_back, pa[1], pa[2]], qb = [m.x_back, pb[1], pb[2]];
+    for (const p of [pa, pb, qb, pa, qb, qa]) { const v = T(p); side.push(v.x, v.y, v.z); } }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(side, 3)); sg.computeVertexNormals();
+  extras.add(new THREE.Mesh(sg, new THREE.MeshPhongMaterial({ color: 0xc8b89a, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })));
+  for (const mg of m.magnets) {
+    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(mg.d / 2, mg.d / 2, mg.t, 24),
+      new THREE.MeshPhongMaterial({ color: mg.pole > 0 ? 0xd02020 : 0x2040d0 }));
+    cyl.position.copy(T(mg.c)); extras.add(cyl);
+  }
+  for (const ch of m.chips) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(3, 0.9, 3), new THREE.MeshPhongMaterial({ color: 0x303030 }));
+    b.position.copy(T(ch.p)); extras.add(b);
+    extras.add(label(`${ch.U} ${ch.addr}`, T([ch.p[0] - 1.5, ch.p[1], ch.p[2]])));
+  }
+  const board = new THREE.Mesh(new THREE.BoxGeometry(20, 0.6, 20), new THREE.MeshPhongMaterial({ color: 0x2a7a2a, transparent: true, opacity: 0.35 }));
+  const c0 = m.chips.find(c => c.U === 'U1') || m.chips[0];
+  board.position.copy(T([c0.p[0] - 0.42 - 0.9 - 0.3, c0.p[1], c0.p[2]])); extras.add(board);
+  document.getElementById('thr').textContent = `shown above ${m.threshold}`;
+  rr.value = m.R; document.getElementById('rl').textContent = m.R;
+}
+
+const ex = document.getElementById('ex'), ar = document.getElementById('ar'), rr = document.getElementById('rr'), pm = document.getElementById('pm');
+for (const [el, lbl] of [[ex, 'exl'], [ar, 'arl'], [rr, 'rl'], [pm, 'pml']])
+  el.addEventListener('input', () => { document.getElementById(lbl).textContent = el.value; if (lbl === 'pml') document.getElementById('pmaxlbl').textContent = el.value; });
+rr.addEventListener('change', () => send({ cmd: 'indenter', R: +rr.value }));
+
+const stops = [[0, [0.85, 0.85, 0.85]], [0.25, [1, 0.88, 0.54]], [0.5, [1, 0.60, 0.24]], [0.75, [0.88, 0.19, 0.12]], [1, [0.48, 0, 0.06]]];
+function cmap(v) {
+  v = Math.max(0, Math.min(1, v));
+  for (let i = 1; i < stops.length; i++) if (v <= stops[i][0]) {
+    const [a, ca] = stops[i - 1], [b, cb] = stops[i], t = (v - a) / (b - a);
+    return ca.map((x, k) => x + t * (cb[k] - x));
+  }
+  return stops[stops.length - 1][1];
+}
+
+const hist = [];
+function fmt(v, d = 2) { return (v >= 0 ? ' ' : '') + v.toFixed(d); }
+
+function onFrame(m) {
+  document.getElementById('status').textContent = m.status || '';
+  if (m.type !== 'frame' || !face) return;
+  const pos = face.geometry.attributes.position;
+  const cA = face.geometry.attributes.color;
+  const k = +ex.value * 1e-3;
+  if (m.contact) {
+    for (let i = 0; i < nV; i++) {
+      const u = T([m.u[3 * i], m.u[3 * i + 1], m.u[3 * i + 2]]);
+      pos.array[3 * i] = rest[3 * i] + k * u.x; pos.array[3 * i + 1] = rest[3 * i + 1] + k * u.y; pos.array[3 * i + 2] = rest[3 * i + 2] + k * u.z;
+      const c = cmap(m.p[i] / +pm.value); cA.array.set(c, 3 * i);
+    }
+    const F = T([-m.f[0], m.f[1], m.f[2]]); const L = F.length() * +ar.value;
+    const q = T(m.q); const dir = F.clone().normalize();
+    arrow.position.copy(q.clone().sub(dir.clone().multiplyScalar(L))); arrow.setDirection(dir);
+    arrow.setLength(Math.max(L, 0.5), Math.min(1.2, 0.4 * L + 0.3), Math.min(0.8, 0.3 * L + 0.2)); arrow.visible = true;
+    const [a, b, th] = m.ell;
+    for (let j = 0; j <= 64; j++) {
+      const t = 2 * Math.PI * j / 64, dy = a * Math.cos(t) * Math.cos(th) - b * Math.sin(t) * Math.sin(th), dz = a * Math.cos(t) * Math.sin(th) + b * Math.sin(t) * Math.cos(th);
+      const v = T([m.q[0] + 0.08, m.y + dy, m.z + dz]); ellPts.set([v.x, v.y, v.z], 3 * j);
+    }
+    ellGeo.attributes.position.needsUpdate = true; ell.visible = true;
+    ind.scale.setScalar(+rr.value); ind.position.copy(T([m.q[0] + +rr.value * m.n[0], m.q[1] + +rr.value * m.n[1], m.q[2] + +rr.value * m.n[2]])); ind.visible = document.getElementById('showind').checked;
+    document.getElementById('contact').textContent = 'Contact';
+    for (const [id, v] of [['fp', m.f[0]], ['fy', m.f[1]], ['fz', m.f[2]], ['py', m.y], ['pz', m.z]]) document.getElementById(id).textContent = fmt(v);
+    for (const [id, j] of [['sfp', 0], ['sfy', 1], ['sfz', 2], ['spy', 3], ['spz', 4]]) document.getElementById(id).textContent = m.sd[j].toFixed(2);
+    document.getElementById('pk').textContent = `${m.pmax.toFixed(0)} kPa`;
+  } else {
+    pos.array.set(rest); cA.array.fill(0.85); arrow.visible = false; ell.visible = false; ind.visible = false;
+    document.getElementById('contact').textContent = 'No contact';
+    for (const id of ['fp', 'fy', 'fz', 'py', 'pz', 'sfp', 'sfy', 'sfz', 'spy', 'spz', 'pk']) document.getElementById(id).textContent = '-';
+  }
+  document.getElementById('ee').textContent = m.e.toFixed(0);
+  if (m.g) document.getElementById('gg').textContent = m.g.map(v => v.toFixed(1)).join(', ');
+  pos.needsUpdate = true; cA.needsUpdate = true; face.geometry.computeVertexNormals();
+  hist.push({ t: m.t, c: m.contact, fp: m.contact ? m.f[0] : 0, ft: m.contact ? Math.hypot(m.f[1], m.f[2]) : 0,
+              y: m.contact ? m.y : NaN, z: m.contact ? m.z : NaN, db: m.db });
+  while (hist.length && m.t - hist[0].t > 10) hist.shift();
+  drawTraces();
+}
+
+function plot(cv, series, lo, hi, ylab) {
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height, L = 34, B = 16;
+  g.clearRect(0, 0, W, H); g.font = '12px Times New Roman'; g.fillStyle = '#000';
+  g.strokeStyle = '#000'; g.strokeRect(L, 2, W - L - 2, H - B - 2);
+  const t1 = hist.length ? hist[hist.length - 1].t : 0;
+  const X = t => L + (W - L - 2) * (1 - (t1 - t) / 10), Y = v => 2 + (H - B - 4) * (1 - (v - lo) / (hi - lo));
+  g.fillText(hi.toFixed(hi < 10 ? 1 : 0), 2, 12); g.fillText(lo.toFixed(lo > -10 ? 1 : 0), 2, H - B);
+  g.fillText(ylab, L + 4, 14); g.fillText('last 10 s', W - 54, H - 3);
+  for (const [key, col] of series) {
+    g.strokeStyle = col; g.beginPath(); let pen = false;
+    for (const h of hist) { const v = h[key]; if (!isFinite(v)) { pen = false; continue; }
+      const x = X(h.t), y = Y(Math.max(lo, Math.min(hi, v))); pen ? g.lineTo(x, y) : g.moveTo(x, y); pen = true; }
+    g.stroke();
+  }
+}
+function drawTraces() {
+  const fmax = Math.max(1, ...hist.map(h => Math.max(h.fp, h.ft))) * 1.1;
+  plot(document.getElementById('tf'), [['fp', '#c00000'], ['ft', '#0040ff']], 0, fmax, 'Force (N): pressing red, shear magnitude blue');
+  plot(document.getElementById('tp'), [['y', '#008000'], ['z', '#800080']], -8, 22, 'Position (mm): y green, z purple');
+  const g = document.getElementById('tb').getContext('2d'), cv = document.getElementById('tb');
+  g.clearRect(0, 0, cv.width, cv.height); g.font = '12px Times New Roman'; g.fillStyle = '#000';
+  const last = hist.length ? hist[hist.length - 1].db : null;
+  g.fillText('Field change per chip axis (uT), x y z of 0x0C 0x11 0x12 0x13 0x10', 4, 12);
+  if (last) {
+    const m = Math.max(10, ...last.map(Math.abs)), w = (cv.width - 8) / 15, y0 = 18 + (cv.height - 22) / 2;
+    g.strokeStyle = '#000'; g.beginPath(); g.moveTo(4, y0); g.lineTo(cv.width - 4, y0); g.stroke();
+    last.forEach((v, i) => { g.fillStyle = ['#c00000', '#008000', '#0040ff'][i % 3];
+      const h = (cv.height - 26) / 2 * v / m; g.fillRect(4 + i * w + 1, Math.min(y0, y0 - h), w - 2, Math.abs(h)); });
+    g.fillStyle = '#000'; g.fillText(`+-${m.toFixed(0)}`, cv.width - 40, cv.height - 3);
+  }
+}
+
+let ws = null;
+function send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+function connect() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.type === 'scene') buildScene(m); else onFrame(m); };
+  ws.onclose = () => { document.getElementById('status').textContent = 'disconnected; retrying'; setTimeout(connect, 1000); };
+}
+connect();
+document.getElementById('bb').onclick = () => send({ cmd: 'baseline' });
+document.getElementById('bc').onclick = () => send({ cmd: 'calibrate' });
+document.getElementById('br').onclick = () => send({ cmd: 'record' });
+window.addEventListener('keydown', e => { if (e.key === 'b') send({ cmd: 'baseline' }); if (e.key === 'c') send({ cmd: 'calibrate' }); if (e.key === 'r') send({ cmd: 'record' }); });
+
+function resize() { const w = view.clientWidth, h = view.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+window.addEventListener('resize', resize); resize();
+(function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+</script>
+</body>
+</html>
