@@ -101,6 +101,17 @@ CASES = {   # name: grid, magnet depth (mm), magnets (None: the calibration's fo
     # along each pocket, two along the outer outline (metric_magnet_prints.onewall_modifier prints it)
     "bm_five_d75_w1": dict(grid="bmag", depth=7.5, mags="five", body="b", pocket_walls=1),
     "bm_four_d75_w1": dict(grid="bmag", depth=7.5, mags=None, body="b", pocket_walls=1),
+    # owner, 2026-10-20 21:00 (the pad pops off its rails): a separate T-shaped cap over the tip end, fastened to the DIP link
+    # and to the pad's tip end and "extruded down to mold around the top of the fingertip ... for additional side-to-side
+    # retaining". On grid bmag: v3's walls as printed (the 6 mm walls hold the whole 4.95 mm straight flank); the walls and
+    # the cap's end plate (the tip end face's nodes held in all three directions) with a 2 mm pin 3 mm into the tip end,
+    # 1.5 mm in front of the back face; and those with the cap's side walls along the straight flank from z_t 12.75
+    # (z_F -89.80, 0.2 mm past the U3/U5 windows) to the tip end. Bilateral holds, so bounds on the stiffening.
+    "bm_five_d75_walls": dict(grid="bmag", depth=7.5, mags="five", body="b", wall_h=4.95),
+    "bm_five_d75_capend": dict(grid="bmag", depth=7.5, mags="five", body="b", wall_h=4.95,
+                               cap=dict(end=True, pin=(-3.45, 0.0, 1.0, 3.0))),
+    "bm_five_d75_cap": dict(grid="bmag", depth=7.5, mags="five", body="b", wall_h=4.95,
+                            cap=dict(end=True, pin=(-3.45, 0.0, 1.0, 3.0), shroud=(12.75, 4.95))),
 }
 X_CUT_B = -8.5 + (17.0 - 13.45)        # b's pad: 13.45 mm deep (v2 fit-size parts B00-B15) of the tip's 17.0 mm
 
@@ -119,12 +130,13 @@ def a_channels(X, Y, Z, fl=0.05, depth=1.8, floor=0.1, root=2.4, head=3.6, yc=3.
     return out
 
 
-def wall_dofs(h, z1=10.86):
+def wall_dofs(h, z1=10.86, z0=-1.0):
     """The y DOF of b's flank nodes beside the v3 cover's walls: in each (x, z) row of nodes with x within h of the cut
-    face and z from the mount face to z1 (the apex's z in the insert frame), the nodes with the least and the largest y."""
+    face and z from z0 (default: the mount face) to z1 (the apex's z in the insert frame), the nodes with the least and the
+    largest y."""
     def f(X):
         m = np.zeros(X.shape, bool)
-        idx = np.where((X[:, 0] <= X_CUT_B + h + 1e-6) & (X[:, 2] <= z1 + 1e-6))[0]
+        idx = np.where((X[:, 0] <= X_CUT_B + h + 1e-6) & (X[:, 2] >= z0 - 1e-6) & (X[:, 2] <= z1 + 1e-6))[0]
         key = np.round(X[idx, 0], 5) * 1e5 + np.round(X[idx, 2], 5)
         order = np.lexsort((X[idx, 1], key))
         ks = key[order]
@@ -134,13 +146,36 @@ def wall_dofs(h, z1=10.86):
     return f
 
 
+def cap_dofs(end=True, pin=None, shroud=None, z_end=21.41):
+    """The DOFs a T-cap over b's tip end holds: every DOF of the tip end face's nodes (end), every DOF of the nodes inside a
+    pin (x_t, y_t, radius, depth from the tip end), and the y DOF of the flank nodes beside the cap's side walls
+    (shroud = (z_t from which they run to the tip end, height from the cut face))."""
+    def f(X):
+        m = np.zeros(X.shape, bool)
+        if end:
+            m[X[:, 2] >= z_end - 1e-6] = True
+        if pin is not None:
+            xc, yc, r, depth = pin
+            m[((X[:, 0] - xc) ** 2 + (X[:, 1] - yc) ** 2 <= r * r + 1e-9) & (X[:, 2] >= z_end - depth - 1e-6)] = True
+        if shroud is not None:
+            m |= wall_dofs(shroud[1], z1=z_end, z0=shroud[0])(X)
+        return m
+    return f
+
+
+def hold_dofs(c):
+    """The DOFs a case holds besides the cut face and the mount face: the v3 cover's walls and the T-cap."""
+    fs = ([wall_dofs(c["wall_h"])] if "wall_h" in c else []) + ([cap_dofs(**c["cap"])] if "cap" in c else [])
+    return (lambda X: np.logical_or.reduce([f(X) for f in fs])) if fs else None
+
+
 def make_model(c, G, mat_id, mats):
-    """TipModel of a case: b's back at its cut face, and the walls' hold when the case has them."""
+    """TipModel of a case: b's back at its cut face, and the walls' and the cap's holds when the case has them."""
     import tpu_tip_fem_tip as T
     x_back0 = T.X_BACK
     T.X_BACK = X_CUT_B if c.get("body") == "b" else x_back0      # TipModel fixes the nodes at x <= X_BACK
     try:
-        return T.TipModel(G, mat_id, mats, verbose=True, fix_dofs=wall_dofs(c["wall_h"]) if "wall_h" in c else None)
+        return T.TipModel(G, mat_id, mats, verbose=True, fix_dofs=hold_dofs(c))
     finally:
         T.X_BACK = x_back0
 
@@ -384,7 +419,8 @@ def run_sense(name):
                 rec[key] = mot(u)
                 rec[key + "_face_um_per_N"] = float(1e3 * sgn * (u[face[sel], k] * wgt[sel]).sum())
             patches.append(rec)
-    row = dict(layout=f"v2_{name}", case=name, body=c.get("body"), depth_mm=lay["depth"], magnets=[list(m) for m in lay["mags"]],
+    row = dict(layout=f"v2_{name}", case=name, body=c.get("body"), wall_hold_mm=c.get("wall_h"), cap=c.get("cap"),
+               depth_mm=lay["depth"], magnets=[list(m) for m in lay["mags"]],
                recipe="w85_30", n_dof=len(model.free), n_magnet_nodes=[int(len(i)) for i in mn], per_force=per, E_best_MPa=E_best,
                approach_err_max=worst, patches=patches, sigma_mm=TL.SIGMA, t_total_s=round(time.time() - t0, 1), script=SCRIPT,
                when=time.strftime("%Y-%m-%d %H:%M"))
@@ -399,6 +435,7 @@ def sense():
     uniform background field unknown), at the datasheet noise of GAIN_SEL 7 and at the noise of the gain the field needs
     (dip_link_concept_b.sensing_point's rule), -> OUT/sensing.json."""
     import mlx90393_model as MLX
+    import tpu_tip_design as TD
     import tpu_tip_magnet_sensing as MS
     out = []
     for r in FE.rows(OUT / "sense_fe.jsonl"):
@@ -428,6 +465,8 @@ def sense():
             both = [p["sigF_n_unk_bg"] for p in a["points"]]
             rec[tag] = dict(centre_force_N=round(a["centre"]["sigF_n_unk_bg"], 4), median_force_N=round(float(np.median(both)), 4),
                             range_force_N=[round(min(both), 4), round(max(both), 4)],
+                            points_y_dz_force_N=[[p["y"], round(p["z"] - TD.Z_C, 2), round(p["sigF_n_unk_bg"], 4)]
+                                                 for p in a["points"]],
                             centre_sig_y_mm=round(a["centre"]["sig_y_mm_bg"], 3), centre_sig_z_mm=round(a["centre"]["sig_z_mm_bg"], 3),
                             saturated=a["saturated"])
         out.append(rec)
