@@ -1,5 +1,6 @@
 /*
-  ReSkin 5X magnetometer board streaming from an Adafruit QT Py ESP32-S3 (8 MB flash, no PSRAM)
+  ReSkin 5X magnetometer board streaming from an Adafruit QT Py ESP32-S3 (4 MB flash, 2 MB PSRAM; the 8 MB no-PSRAM
+  QT Py has the same pins)
 
   Port of eFlesh's arduino/5X_eflesh_stream/5X_eflesh_stream.ino (external/eFlesh; V. Pattabiraman, after ReSkin and
   AnySkin), on the MLX90393 library of T. Yapo and T. Hellebrekers (external/eFlesh/arduino/arduino-MLX90393). Changes:
