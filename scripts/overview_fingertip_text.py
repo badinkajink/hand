@@ -188,17 +188,36 @@ C^{*}_{ij}=\frac{V_s\,D_{ij}+\mathbf f_i\cdot\mathbf u_j}{\lvert Y\rvert}\]
 fraction \(\phi\), between the bending and stretching limits of Gibson and Ashby.</p>
 {{FIG moduli}}
 <p><b>Tip model and contact.</b> The elements are eight-node hexahedra with Wilson&#8211;Taylor incompatible modes, so the
-thin walls bend without shear locking; each takes the tensor of its class, the core&#8217;s rotated into the tip frame.
+thin walls bend without shear locking (a 40-voxel cantilever comes out 2.4&#8202;% below beam theory, against 9.8&#8202;%
+for plain hexahedra); each takes the tensor of its class, the core&#8217;s rotated into the tip frame.
 Concept b&#8217;s pad is fixed at its cut face and the mount face. One sparse Cholesky factorization of \(K\) is reused
 for every load. A rigid frictionless indenter (the shaft, a plate or a sphere) meets the face nodes, whose normal compliance
 \(W\) comes from columns of \(K^{-1}\); at approach \(\delta\) the nodal forces \(\mathbf p\) solve</p>
 \[\mathbf p\ge0,\qquad \mathbf g_0-\delta\,\mathbf 1+W\mathbf p\ge0,\qquad \mathbf p^{\top}\big(\mathbf g_0-\delta\,\mathbf 1+W\mathbf p\big)=0,\]
 <p>and \(\delta\) is bisected until \(\sum p_i\) equals the load. A magnet&#8217;s motion is the rigid fit of its nodes&#8217;
-displacements. Against Hertz on a 40&#8202;mm sphere the model is 1.9&#8202;% off; a model resolving every bead at
-0.1&#8202;mm on the GPU gives the homogenized tip&#8217;s approach within 2.6&#8202;% (44.8 against 46.0&#8202;&#181;m at
-1&#8202;N); finer grids change the approach by at most 3.6&#8202;%. Solved from its own G-code, the 95A tip of the first
-study was softer than the design model, 63 against 41&#8202;&#181;m at 1&#8202;N, because the stacked beads overlap only
-in part; only an indentation of a printed tip decides between the two
+displacements. Each gap \(g_0\) is measured from the tip&#8217;s analytic surface; on the curved tips the grid&#8217;s face
+nodes lie a median 0.10&#8211;0.13&#8202;mm from that surface (95th percentile 0.43&#8211;0.49&#8202;mm).</p>
+<p><b>Solver.</b> The solver is our own Python (<code>scripts/tpu_tip_fem_core.py</code>; SciPy, CHOLMOD and PyAMG on
+the CPU, PyTorch on the GPU). Its input is voxels, the slicer&#8217;s material classes at 0.05&#8202;mm or every gyroid
+bead at 0.1&#8202;mm, and on a voxel grid all elements of one size share one element matrix. The model resolving every
+bead, 1.7&#8211;2.2 million elements and 5&#8211;8 million degrees of freedom, is then solved matrix-free on the GPU in
+2&#8211;3&#8202;GB and 60&#8211;140&#8202;s per approach. The off-the-shelf solvers installed for the study run on the CPU
+from tetrahedral meshes: FEniCSx took 3.3&#8211;5.7&#8202;GB for 0.45&#8211;0.68 million degrees of freedom of quadratic
+tetrahedra, a rate that puts the resolved tip above 40&#8202;GB on a 30&#8202;GB workstation, and PolyFEM&#8217;s IPC
+contact took 7&#8211;14&#8202;min for 57 thousand degrees of freedom. One element code also solves the periodic cells, the homogenized tip and
+the resolved tip, so their comparison tests the homogenization alone. FEniCSx and PolyFEM remain as checks
+([finite elements of the printed tip](exp:20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html),
+Tables 7 and 8).</p>
+<p><b>Checks.</b> On the 95A block of the first study the model is 1.9&#8202;% off Hertz under a 40&#8202;mm sphere, and a
+model resolving every bead at 0.1&#8202;mm gives the homogenized tip&#8217;s approach within 2.6&#8202;% (44.8 against
+46.0&#8202;&#181;m at 1&#8202;N). On the curved 85A tips the one check is grid refinement: a 0.2&#8202;mm contact grid
+changes the capsule&#8217;s approach by at most 3.6&#8202;%, and the 11/22 tip&#8217;s by 0.1&#8202;% under the rod and
+1.7&#8202;% RMS over the 18 calibration probes
+([calibration to the finite elements](exp:20261018-fe_contact_calibration/20261018-fe_contact_calibration.html),
+[v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)). No model resolving
+the beads, no tetrahedral model and no G-code model of a curved or 85A tip has been solved. Solved from its own G-code,
+the 95A tip of the first study was softer than the design model, 63 against 41&#8202;&#181;m at 1&#8202;N, because the
+stacked beads overlap only in part; only an indentation of a printed tip decides between the two
 ([eFlesh printability](exp:20261013-eflesh_printability/20261013-eflesh_lattice_printability.html)).</p>
 {{FIG film_g20}}"""),
     ("changes", "Effects of the design changes",
@@ -331,6 +350,9 @@ predict 0.028&#8211;0.031&#8202;N, about 0.039&#8202;N at the measured noise. Fo
 the owner; a test of pads B4 and B00 measures the ratio, predicted 1.8.</li>
 <li><b>Disturbances in the hand.</b> The other fingers&#8217; magnets (5.16&#8202;N equivalent at 25&#8211;30&#8202;mm on the first tip),
 temperature (0.47&#8202;N per 10&#8202;&#176;C) and steel near the pad are modelled but not measured.</li>
+<li><b>The FE on the 11/22 pad.</b> Hertz and the model resolving the beads checked the FE on the 95A block; on the
+85A pad that is printed now, grid refinement is the one check, so the homogenized 30&#8202;% core on a curved surface has
+not been compared with its beads.</li>
 <li><b>Large presses and shear.</b> The FE is linear and frictionless; a neo-Hookean check lost 11&#8202;% of the force at
 350&#8202;&#181;m on the softest tip. The tip&#8217;s tangential compliance, 48&#8211;177&#8202;&#181;m/N, is in neither simulator, and the
 estimator&#8217;s shear has not been tested.</li>
@@ -393,6 +415,7 @@ FUTURE = [
     'Seat: with the pad fastened, record five firm presses with 2&#8202;s rests and run <code>src/morphohand/driver/reskin5x/host/pad_shift_check.py</code>; every rest within 5&#8202;&#181;T of the first passes (0.2&#8202;N on the face), offsets of tens of &#181;T that a rigid motion fits mean the pad still moves.',
     'N52 magnets: recalibrate in the viewer (key c); a strength of 0.8&#8211;1.2, all poles one way and a rest residual below 0.43&#8202;mT confirm the field model; a lower strength or larger residual means the magnets&#8217; depth or the pad&#8217;s seat differs from the FE.',
     'Force reference without the UR5e: a kitchen scale or load cell under a printed indenter, holds at about 1, 2 and 4&#8202;N at the face centre, a flank and the tip end; an estimated press more than three model sigmas from the reference falsifies the force scale at that point, and the ratio refits \\(E^*\\).',
+    'FE of the 11/22 pad with its beads resolved: voxelize b&#8217;s pad at 0.1&#8202;mm with the 30&#8202;% gyroid (<code>scripts/tpu_tip_fem_tip.py voxels --stl &lt;pad STL&gt; --rho 0.3</code>), solve it under the 12.5&#8202;mm rod at 0.5, 1 and 3&#8202;N with <code>--E 12</code> (<code>scripts/tpu_tip_fem_gpu.py --indenter cyl</code>, 2&#8211;3&#8202;GB of GPU memory, minutes per load) and compare with the homogenized pad without magnets. The GPU solver first needs the gaps from the 11/22 surface of <code>tip_codesign_geometry</code> (its <code>--surface</code> reads the first study&#8217;s insert) and the pad&#8217;s cut face fixed. A difference above 5&#8202;% falsifies the homogenized core on the curved pad; the same pad voxelized from its G-code (a new entry in <code>TIPS</code> of <code>scripts/eflesh_tip_fem.py</code>) gives the as-printed stiffness that the indentation tests.',
     'Indentation with the HEX-E: approach against force at 0.5, 1 and 3&#8202;N under the 12.5&#8202;mm rod; outside &#177;25&#8202;% of the FE&#8217;s 150&#8202;&#181;m at 1&#8202;N falsifies the pad&#8217;s modelled stiffness, independently of the magnets.',
     'UR5e session on the lab&#8217;s computer: probe points from the basis&#8217;s pad points over the face and both flanks, three normal forces and two shear directions each, a return to one reference point every ten presses, 30&#8202;s rests; refit strength, offsets, \\(\\theta_0\\), \\(E^*\\) and per-magnet strengths on half the points and compare the other half&#8217;s errors with the model 1-sigma.',
     'Facing finger: record the board with a second tip&#8217;s magnets at 20&#8211;40&#8202;mm and compare with the dipole prediction before subtracting it from the joint angles.',
