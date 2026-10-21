@@ -239,12 +239,22 @@ def render_tex(t: str) -> tuple[str, int]:
     return TEX_RE.sub(lambda m: next(svgs), t), len(items)
 
 
-def index_table(M) -> str:
-    """Index of linked pages: the topic's pages from the inventory (newest first) and the module's extra pages, each with
-    date, title linked to the local file, contents and the artifact link."""
-    recs = {os.path.relpath(r["file"], "docs/experiments"): r for r in D.records()}
-    rows, group = [], None
+def index_table(M, recs=None, quiet=False) -> str:
+    """Index of linked pages: the pages the module's PAGES names, in its groups and order, with its contents line; then
+    every other page of the topic in the inventory, newest first, with its summary (docs_inventory.records(): the page's
+    docs-summary tag or the first sentences of its lede), so a new page appears without an edit here. scripts/docs_index.py
+    rewrites this table in a built overview between its <!--docs-index--> markers."""
+    recs = {os.path.relpath(r["file"], "docs/experiments"): r for r in (recs or D.records())}
+    group = None
     out = ["<table class='index'><thead><tr><th>Date</th><th>Page</th><th>Contents</th><th>Artifact</th></tr></thead><tbody>"]
+
+    def row(r, contents):
+        art = f"<a href='{r['artifact']}'>Link</a>" if r["artifact"] else ""
+        title = htmlmod_escape(r["title"])
+        if r["status"] != "current":
+            title += f" ({r['status']})"
+        return (f"<tr><td class='num'>{r['date']}</td><td><a href='{rel(r['file'])}'>{title}</a></td>"
+                f"<td>{contents}</td><td>{art}</td></tr>")
     for g, page, contents in M.PAGES:
         r = recs.get(page)
         if r is None:
@@ -252,19 +262,22 @@ def index_table(M) -> str:
         if g != group:
             out.append(f"<tr class='grp'><td colspan='4'>{g}</td></tr>")
             group = g
-        art = f"<a href='{r['artifact']}'>Link</a>" if r["artifact"] else ""
-        title = r["title"]
-        if r["status"] != "current":
-            title += f" ({r['status']})"
-        out.append(f"<tr><td class='num'>{r['date']}</td><td><a href='{rel(r['file'])}'>{title}</a></td>"
-                   f"<td>{contents}</td><td>{art}</td></tr>")
-    out.append("</tbody></table>")
+        out.append(row(r, contents))
     covered = {p for _, p, _ in M.PAGES}
-    missing = [os.path.relpath(r["file"], "docs/experiments") for r in recs.values()
-               if r["topic"] == M.KEY and os.path.relpath(r["file"], "docs/experiments") not in covered]
-    if missing:
-        print(f"  note: {len(missing)} pages of the topic are not in PAGES: {missing}")
+    rest = sorted((r for p, r in recs.items() if r["topic"] == M.KEY and p not in covered),
+                  key=lambda r: (r["date"], r["file"]), reverse=True)
+    if rest:
+        out.append(f"<tr class='grp'><td colspan='4'>{'Other pages of the topic' if M.PAGES else 'Pages of the topic'}</td></tr>")
+        out += [row(r, htmlmod_escape(r["summary"])) for r in rest]
+        if not quiet:
+            print(f"  {len(rest)} pages of the topic not in PAGES, listed with their summaries")
+    out.append("</tbody></table>")
     return "".join(out)
+
+
+def htmlmod_escape(s: str) -> str:
+    import html
+    return html.escape(s, quote=False)
 
 
 def build(key: str, refresh: bool = False) -> str:
@@ -318,7 +331,7 @@ def build(key: str, refresh: bool = False) -> str:
 <section id="future"><h2>Future work</h2><ol>{future}</ol></section>
 <footer>
 <h2 id="index">Index of linked pages</h2>
-<div class="tw">{index_table(M)}</div>
+<div class="tw"><!--docs-index-->{index_table(M)}<!--/docs-index--></div>
 <p>Built by <code>python3 scripts/topic_overview_page.py {key}</code> from <code>scripts/overview_{key}_text.py</code>;
 figures are rendered from the linked pages and cached in <code>docs/overviews/media/</code>.</p>
 </footer>

@@ -138,7 +138,8 @@ telemetry stops while a writer owns the bus, so a careless probe reads one stale
 
 | script | role |
 |---|---|
-| `docs_inventory.py` | one record per result page under `docs/experiments/` (date, title from `INDEX.md`, topic, builder, artifact); `--check` reports pages without a topic or an INDEX row |
+| `docs_inventory.py` | one record per result page under `docs/experiments/` (date, title, topic and summary from the page's `docs-*` meta tags and lede, builder, artifact); `--check` reports pages without a topic or an INDEX row |
+| `docs_index.py` | rebuilds every index from the pages: `INDEX.md`, `docs/index.html`, `docs/pages.html`, the overviews' index tables, `docs/pages.json`; `tag` sets a page's `docs-*` tags; runs by itself when a builder that wrote a result page exits (`DOCS_REFRESH=0` turns it off) |
 | `docs_home_page.py` | the home page `docs/index.html` (run with `.venv/bin/python`) |
 | `topic_overview_page.py` | the topic overviews `docs/overviews/<topic>.html` from `overview_<topic>_text.py`; figures are cut from the detailed pages in headless Chrome (`.venv/bin/python scripts/topic_overview_page.py --all`) |
 | `contact_overview_page.py` | the fingertip contact overview `docs/overviews/contact_model.html` |

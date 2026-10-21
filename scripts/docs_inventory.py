@@ -9,6 +9,11 @@ page's row in docs/experiments/INDEX.md (the descriptive subject), else from its
 folder is set by hand in FOLDER_TOPIC (owner, 2026-10-09: six topics; 2026-10-13: a seventh, printed fingertips), with
 per-page exceptions in FILE_TOPIC; a folder missing from both takes the topic of its INDEX.md row, so a new page is
 never left out of the home page and the page index.
+
+A page's own <head> comes first (owner, 2026-10-20: pages carry a category tag, a date and a tl;dr, and the indices follow
+them): <meta name="docs-topic"> (a key of TOPICS), <meta name="docs-date"> and <meta name="docs-summary">; without them
+the summary is the first two sentences of the page's lede. scripts/docs_index.py writes the tags and rebuilds every
+index from records().
 """
 from __future__ import annotations
 
@@ -173,10 +178,47 @@ def _builders():
 def _title(path):
     head = open(path, encoding="utf-8", errors="replace").read(30000)
     m = re.search(r"<h1[^>]*>(.*?)</h1>", head, re.S) or re.search(r"<title>(.*?)</title>", head, re.S)
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", m.group(1))).strip() if m else ""
+    if not m:
+        return ""
+    import html as htmllib
+    return re.sub(r"\s+", " ", htmllib.unescape(re.sub(r"<[^>]+>", "", re.sub(r"<svg.*?</svg>", " ", m.group(1), flags=re.S)))).strip()
+
+
+DATED_RE = re.compile(r"^\d{8}-[\w.-]+\.html$")          # a result page's file name (templates and sources are not)
+META_RE = re.compile(r'<meta\s+name="docs-(topic|date|summary|status)"\s+content="([^"]*)"\s*/?>', re.I)
+LEDE_RE = re.compile(r'<p[^>]*class="[^"]*\blede\b[^"]*"[^>]*>(.*?)</p>', re.S)
+SENT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\u00c0-\u024f])")
+
+
+def _text(fragment):
+    import html as htmllib
+    t = re.sub(r"<svg.*?</svg>", " ", fragment, flags=re.S)            # rendered mathematics
+    return re.sub(r"\s+", " ", htmllib.unescape(re.sub(r"<[^>]+>", "", t))).strip()
+
+
+def summary_of(lede, max_chars=420):
+    """The first two sentences of a lede, or the first one when two run past max_chars."""
+    s = SENT_RE.split(lede.strip())
+    out = " ".join(s[:2])
+    return out if len(out) <= max_chars or len(s) < 2 else s[0]
+
+
+def page_meta(path):
+    """{topic, date, summary (the docs-* meta tags, where present), lede, pointer}: the description a page gives of itself
+    in its <head> and its lede; pointer is True for a Git LFS pointer that has not been fetched."""
+    head = open(path, encoding="utf-8", errors="replace").read(400000)
+    if head.startswith("version https://git-lfs"):
+        return {"pointer": True, "lede": ""}
+    import html as htmllib
+    out = {k.lower(): htmllib.unescape(v) for k, v in META_RE.findall(head[:head.find("</head>") if "</head>" in head else None])}
+    m = LEDE_RE.search(head)
+    out["lede"] = _text(m.group(1)) if m else ""
+    out["pointer"] = False
+    return out
 
 
 TOPIC_KEY = {t: k for k, t, _ in TOPICS}     # INDEX.md's topic title -> key
+TOPIC_TITLE = {k: t for k, t, _ in TOPICS}
 
 
 def records():
@@ -184,22 +226,30 @@ def records():
     out = []
     for path in sorted(glob.glob(os.path.join(EXP, "*", "*.html"))):
         name, folder = os.path.basename(path), os.path.basename(os.path.dirname(path))
-        if name.endswith(".src.html"):
+        if name.endswith(".src.html") or not DATED_RE.match(name):
             continue
         subject, url, retracted, itopic = idx.get(name, (None, None, False, ""))
         art = os.path.join(os.path.dirname(path), "artifact_url.txt")
         if not url and os.path.exists(art):
             url = open(art).read().strip() or None
+        pm = page_meta(path)
+        topic = pm.get("topic") if pm.get("topic") in TOPIC_TITLE else None
         out.append({
-            "date": f"{folder[:4]}-{folder[4:6]}-{folder[6:8]}",
+            "date": pm.get("date") or f"{folder[:4]}-{folder[4:6]}-{folder[6:8]}",
             "file": os.path.relpath(path, ROOT),
             "folder": folder,
-            "title": subject or _title(path),
+            "title": _title(path) or subject,          # the page's own h1 (INDEX.md's rows follow the pages)
             "page_title": _title(path),
-            "topic": FILE_TOPIC.get(name) or FOLDER_TOPIC.get(folder) or TOPIC_KEY.get(itopic),
+            "summary": pm.get("summary") or summary_of(pm["lede"]),
+            "summary_tagged": bool(pm.get("summary")),
+            "lede": pm["lede"],
+            "mtime": os.path.getmtime(path),
+            "topic": topic or FILE_TOPIC.get(name) or FOLDER_TOPIC.get(folder) or TOPIC_KEY.get(itopic),
             "builder": builders.get(name),
             "artifact": url,
-            "status": "superseded" if folder in SUPERSEDED else "retracted" if retracted else "current",
+            "status": (pm.get("status") if pm.get("status") in ("current", "superseded", "retracted") else
+                       "superseded" if folder in SUPERSEDED else "retracted" if retracted else "current"),
+            "tagged": all(k in pm for k in ("topic", "date", "summary")),
             "mb": round(os.path.getsize(path) / 1e6, 1),
         })
     return out

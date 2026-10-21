@@ -10,6 +10,11 @@ Contact model docs: deck 23 of the contact tutorial (`/home/humanoid/wxie_worksp
 a quoted number or a section of that overview, run `python3 scripts/contact_overview_page.py --deck-check` and update the
 deck in its own repository, or set `DECK_CHECKED` in the builder when nothing in the deck changes.
 
+Result pages carry `docs-topic`, `docs-date` and `docs-summary` meta tags (`scripts/docs_index.py tag`), and the indices
+follow them: a builder that writes a page under `docs/experiments/` reruns `scripts/docs_index.py` when it exits, which
+rewrites `docs/experiments/INDEX.md`, `docs/index.html`, `docs/pages.html`, the overviews' index tables and
+`docs/pages.json`. Commit those with the page; never edit an INDEX.md row by hand.
+
 Large files: media, data rows and detailed result pages under `docs/` are Git LFS files (`.gitattributes`); the home
 page, the overviews and the pages marked `!filter` there stay ordinary files. History before 2026-10-09 is in
 `badinkajink/hand-archive`.

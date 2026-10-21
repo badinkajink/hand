@@ -25,6 +25,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+import docs_index  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
 
@@ -577,6 +578,12 @@ def build():
     svgs = iter(texsvg.render(items, cache_path=TEX_CACHE))
     page = TEX_RE.sub(lambda m: next(svgs), page)
     page = retro_style.apply(page)
+    page = docs_index.tag(page, topic="fingertip", summary=(
+        f"A model of the five-chip board turns its 15 field components into a contact point and force anywhere on the "
+        f"pad's surface, from an FE basis at the {fs['pads']} sphere pads; on simulated presses with N52 magnets the "
+        f"median errors are {s52['all']['pos_median_mm']:.2f} mm and {s52['all']['press_abs_median_N']:.2f} N. In the "
+        f"first presses by hand the pad rocked in its seat, leaving offsets of {min(r['offset_uT'] for r in big):.0f}-"
+        f"{max(r['offset_uT'] for r in big):.0f} uT that read as standing contacts."))
     PAGE.write_text(page)
     print(f"{PAGE.relative_to(ROOT)}: {PAGE.stat().st_size / 1e6:.2f} MB, {len(items)} formulas", flush=True)
 

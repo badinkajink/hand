@@ -8,12 +8,52 @@ the variables and flattens the components; LaTeX SVGs, figures, videos and chart
 
     python3 scripts/retro_style.py PAGE.html [--out OUT.html]   # restyle a built page (in place without --out)
 
-Builders call apply(html) on the finished page before writing it.
+Builders call apply(html) on the finished page before writing it. The first call also schedules, for the end of the
+builder's process, a refresh of the documentation's indices if the process wrote a result page under docs/experiments/
+(scripts/docs_index.py: the page's docs-* tags, INDEX.md, the home page, the page index, the overviews' tables);
+DOCS_REFRESH=0 turns it off.
 """
 from __future__ import annotations
 
 import argparse
+import atexit
+import glob
+import os
 import re
+import sys
+import time
+
+_T0 = time.time()
+_HOOKED = False
+
+
+def _refresh_indices():
+    """At the end of a builder's process: if it wrote a result page under docs/experiments/, tag the page and rebuild
+    the indices (scripts/docs_index.py). A failure is printed, never raised, so an index cannot break a builder."""
+    if os.environ.get("DOCS_REFRESH", "1") == "0" or os.environ.get("DOCS_INDEX_RUNNING") == "1":
+        return
+    here = os.path.dirname(os.path.abspath(__file__))
+    exp = os.path.join(os.path.dirname(here), "docs", "experiments")
+    written = [p for p in glob.glob(os.path.join(exp, "*", "*.html")) if os.path.getmtime(p) >= _T0]
+    if not written:
+        return
+    try:
+        if here not in sys.path:
+            sys.path.insert(0, here)
+        import docs_index
+        ch = docs_index.refresh(quiet=True, written=written)
+        if ch:
+            print(f"docs_index: indices refreshed ({len(ch)} changes: "
+                  f"{', '.join(sorted({c.split(':')[0] for c in ch})[:6])}); commit them with the page", flush=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"docs_index: indices not refreshed ({type(e).__name__}: {e}); run python3 scripts/docs_index.py", flush=True)
+
+
+def _hook():
+    global _HOOKED
+    if not _HOOKED:
+        atexit.register(_refresh_indices)
+        _HOOKED = True
 
 RETRO_CSS = r"""
 /* retro_style.py: plain page style (owner, 2026-10-09) */
@@ -149,6 +189,7 @@ def close_body(html: str) -> str:
 def apply(html: str) -> str:
     """Restyle a built page: drop web-font links, add the plain sheet after every other style block, set the table
     headers in sentence case, and close the body (close_body)."""
+    _hook()
     html = sentence_case_headers(FONT_LINK_RE.sub('', OLD_RE.sub('', html)))
     tag = '<style id="retro">' + RETRO_CSS.strip() + '</style>\n'
     i = html.lower().rfind('</head>')

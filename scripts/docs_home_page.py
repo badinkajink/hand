@@ -20,6 +20,10 @@ JavaScript; a short script adds the expand-all and collapse-all buttons and open
 
 A page is rewritten only when its text apart from the "updated" date changes, so a rebuild that changes nothing leaves
 both files as they are in git.
+
+The home page lists the newest result pages with their summaries, and the page index opens with a search over every
+page's title and summary (a list embedded in the page, so it works from the file system; owner, 2026-10-20). The
+summaries are the pages' docs-summary tags (scripts/docs_index.py), which also runs this script after every page build.
 """
 from __future__ import annotations
 
@@ -102,6 +106,7 @@ TOPICS = [
 ]
 
 CSS = """
+ul.newest{padding-left:20px}ul.newest li{margin:0 0 6px}
 body{margin:0}
 .wrap{max-width:860px;margin:0 auto;padding:24px 16px 48px}
 figure{margin:16px 0}
@@ -255,6 +260,37 @@ TREE_JS = """
   window.addEventListener('hashchange', reveal);
   reveal();
 })();
+"""
+
+
+FIND_JS = """
+(function () {
+  var ui = document.getElementById('findui'); if (!ui) return; ui.hidden = false;
+  var q = document.getElementById('q'), tp = document.getElementById('tp'), ol = document.getElementById('hits'),
+      n = document.getElementById('nhits');
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) {
+    return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
+  function run() {
+    var words = q.value.toLowerCase().split(/\\s+/).filter(Boolean), t = tp.value;
+    var hits = PAGES.filter(function (p) {
+      var text = (p.title + ' ' + p.summary).toLowerCase();
+      return (!t || p.topic === t) && words.every(function (w) { return text.indexOf(w) >= 0; }); });
+    n.textContent = hits.length + ' of ' + PAGES.length + ' pages' + (hits.length > 60 ? ', the newest 60 shown' : '');
+    ol.innerHTML = hits.slice(0, 60).map(function (p) {
+      return '<li><span class="d">' + p.date + '</span> <a href="' + encodeURI(p.href) + '">' + esc(p.title) +
+             '</a> <span class="tp">' + esc(p.topicTitle) + '</span><br><span class="sm">' + esc(p.summary) + '</span></li>';
+    }).join('');
+  }
+  q.addEventListener('input', run); tp.addEventListener('change', run); run();
+})();
+"""
+FIND_CSS = """
+.findui input, .findui select { font: inherit; font-size: 16px; }
+ol.hits { list-style: none; padding-left: 0; margin: 6px 0 18px; }
+ol.hits li { margin: 0 0 8px; }
+ol.hits .d { font-variant-numeric: tabular-nums; }
+ol.hits .tp, ol.hits .sm { font-size: 15px; }
+ol.hits .tp { color: #444; }
 """
 
 
@@ -518,13 +554,21 @@ def pages_html(recs, titles):
     date_tree = ('<ul class="tree">' + folder("fc", f"All {len(recs)} result pages, newest first", date_items,
                                                is_open=True, cls="root") + "</ul>")
 
+    topic_options = "".join(f'<option value="{k}">{esc(t)}</option>' for k, t, _ in D.TOPICS
+                            if any(r["topic"] == k for r in recs))
+    import json
+    pages_json = json.dumps([dict(date=r["date"], title=r["title"] + (f" ({r['status']})" if r["status"] != "current" else ""),
+                                  topic=r["topic"] or "", topicTitle=titles.get(r["topic"], "Unsorted"),
+                                  summary=r.get("summary", ""), href=os.path.relpath(os.path.join(ROOT, r["file"]), here))
+                             for r in sorted(recs, key=lambda r: (r["date"], r.get("mtime", 0)), reverse=True)],
+                            ensure_ascii=False).replace("</", "<\\/")
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Index of result pages</title>
-<style>{TREE_CSS}</style>
+<style>{TREE_CSS}{FIND_CSS}</style>
 </head>
 <body>
 <div class="wrap">
@@ -538,6 +582,12 @@ exist, and to a folder of the other files beside them: data, films, images, prin
 subfolders and at most {CAP} files per folder besides the print files, with a link to the folder for the rest. The result
 pages, data and media are Git LFS files; the commands that fetch them are <a href="#fetch">at the end</a>.</p>
 </header>
+<h2 id="find">Find a page</h2>
+<p class="findui" id="findui" hidden><input type="search" id="q" size="44" placeholder="Words of the title or summary"
+aria-label="Words of the title or summary"> <select id="tp" aria-label="Topic"><option value="">All topics</option>{topic_options}</select>
+<span id="nhits"></span></p>
+<noscript><p>The search needs JavaScript; the trees below list every page.</p></noscript>
+<ol class="hits" id="hits"></ol>
 <h2 id="bytopic">Pages by topic</h2>
 <p class="tools" id="tools" hidden><button type="button" data-act="open">Expand all</button><button type="button"
 data-act="close">Collapse all</button></p>
@@ -554,11 +604,14 @@ this index, the home page and the topic overviews are ordinary files and open fr
 <pre>{lfs_cmd(["docs/experiments/FOLDER/**"])}</pre>
 <p>Each topic in the tree opens to the command that fetches its pages.</p>
 <footer>
-<p>Built by <code>python3 scripts/docs_home_page.py</code> from <code>scripts/docs_inventory.py</code>, which reads the
-result folders and the rows of <code>docs/experiments/INDEX.md</code>, and from the files git tracks under
-<code>docs/experiments/</code>.</p>
+<p>Built by <code>python3 scripts/docs_home_page.py</code> from <code>scripts/docs_inventory.py</code>, which reads each
+result page's docs-* tags (topic, date, summary) and lede and the rows of <code>docs/experiments/INDEX.md</code>, and from
+the files git tracks under <code>docs/experiments/</code>; <code>scripts/docs_index.py</code> rebuilds it whenever a
+builder writes a result page.</p>
 </footer>
 </div>
+<script>const PAGES = {pages_json};
+{FIND_JS}</script>
 <script>{TREE_JS}</script>
 </body>
 </html>
@@ -580,11 +633,21 @@ def write_page(path, html):
     return True
 
 
-def main():
+def newest_html(recs, titles, n=8):
+    """The n newest current result pages, with their topic and summary."""
+    rs = sorted((r for r in recs if r["status"] == "current"), key=lambda r: (r["date"], r.get("mtime", 0)), reverse=True)[:n]
+    items = "".join(f'<li>{r["date"]} <a href="{rel(r["file"])}">{esc(r["title"])}</a> ({esc(titles.get(r["topic"], "unsorted"))}). '
+                    f'{esc(r.get("summary", ""))}</li>' for r in rs)
+    return f"<ul class='newest'>{items}</ul>"
+
+
+def main(quiet=False):
+    """Write both pages; returns the paths that changed."""
     recs = D.records()
     titles = {k: t for k, t, _ in D.TOPICS}
     topics = "\n".join(topic_html(k, t, p, titles) for k, t, p in TOPICS)
     n_pages = len(recs)
+    newest = newest_html(recs, titles)
     html = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -613,6 +676,11 @@ one task: turning a 24.5&#8202;g screwdriver from flat to vertical and then driv
 <p>Each topic links its overview and two or three of its result pages. The <a href="pages.html">index of result pages</a>
 lists all {n_pages}, by topic and by date.</p>
 {topics}
+
+<h2>Newest result pages</h2>
+<p>The eight newest pages with the summary each gives of itself; the <a href="pages.html#find">index of result pages</a>
+searches all {n_pages}.</p>
+{newest}
 
 <h2>Reading the pages</h2>
 <p>The overviews in <code>docs/overviews/</code> open from a clone in any browser. The {n_pages} dated result pages
@@ -646,10 +714,16 @@ environment and the names of hands and policies.</p>
         svgs = iter(texsvg.render(items, cache_path=TEX_CACHE, scale=1.1))
         html = TEX_RE.sub(lambda m: next(svgs), html)
     html = retro_style.apply(html)
+    changed = []
     done = write_page(OUT, html)
-    print(f"{'wrote' if done else 'unchanged'} {OUT} ({os.path.getsize(OUT) / 1e3:.0f} kB)")
+    changed += [OUT] if done else []
+    if not quiet:
+        print(f"{'wrote' if done else 'unchanged'} {OUT} ({os.path.getsize(OUT) / 1e3:.0f} kB)")
     done = write_page(PAGES_OUT, retro_style.apply(pages_html(recs, titles)))
-    print(f"{'wrote' if done else 'unchanged'} {PAGES_OUT} ({os.path.getsize(PAGES_OUT) / 1e3:.0f} kB, {n_pages} pages)")
+    changed += [PAGES_OUT] if done else []
+    if not quiet:
+        print(f"{'wrote' if done else 'unchanged'} {PAGES_OUT} ({os.path.getsize(PAGES_OUT) / 1e3:.0f} kB, {n_pages} pages)")
+    return changed
 
 
 if __name__ == "__main__":

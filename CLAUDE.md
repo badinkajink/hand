@@ -110,8 +110,16 @@ The pattern, followed by every page in `docs/experiments/INDEX.md`:
    monospace font (global rule "Mathematics and algorithms").
 2. **The output file** `docs/experiments/<YYYYMMDD-topic>/<YYYYMMDD-name>.html`. Date-prefix the
    **filename**, not just the folder, so a flat listing sorts.
-3. **A row in `docs/experiments/INDEX.md`** — date, subject, local file, artifact URL, newest
-   first. Update it whenever a page is published or renamed.
+3. **The page describes itself in its `<head>`** (owner, 2026-10-20): `<meta name="docs-topic">` (a key of
+   `docs_inventory.TOPICS`), `<meta name="docs-date">` and `<meta name="docs-summary">`, the tl;dr: the outcome with
+   its numbers in a sentence or two (`docs-status` only for a retracted or superseded page). The builder sets them with
+   `docs_index.tag(html, topic=..., summary=...)` before writing; a page written without them gets its folder's topic
+   and the first two sentences of its lede. **The indices follow the pages**: when a builder that wrote a page under
+   `docs/experiments/` exits, `retro_style` runs `scripts/docs_index.py`, which tags the page and rewrites
+   `docs/experiments/INDEX.md` (one row per page: date, topic, title and summary, local file, artifact),
+   `docs/index.html` (the newest pages), `docs/pages.html` (a search over titles and summaries), the index tables of the
+   topic overviews and `docs/pages.json`. Commit those files with the page; `python3 scripts/docs_index.py` reruns it
+   by hand. Never edit an INDEX.md row by hand: change the page's tags or lede and rebuild.
 4. **The artifact**, a copy of that file published to claude.ai. Updating a page means editing
    the local file and republishing to the **same URL** — never a second artifact for one result.
    The home page `docs/index.html` and the topic overviews `docs/overviews/<topic>.html` are the
