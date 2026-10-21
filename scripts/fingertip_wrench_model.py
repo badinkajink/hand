@@ -168,6 +168,18 @@ class Model:
         dB = self.field(self.mc + t, self.mu + np.cross(w, self.mu), w) - self.field(self.mc, self.mu)
         return (np.einsum("cij,cj->ci", self.R, dB) * 1e6).ravel()
 
+    def motion_jacobian(self):
+        """Reading change (uT, (15, magnets * 6)) per um of translation and per mrad of rotation of each magnet, by
+        central differences of motion_uT: the linear field model of the magnets' small motions."""
+        nm = len(self.mc)
+        J = np.zeros((15, nm * 6))
+        for j in range(nm):
+            for q in range(6):
+                m = np.zeros((nm, 6))
+                m[j, q] = 1.0
+                J[:, 6 * j + q] = 0.5 * (self.motion_uT(m) - self.motion_uT(-m))
+        return J
+
 
 def _resid(b_rest, row, poles, s, perm, p, theta0=None):
     k, dx, dy, dz = p[:4]
@@ -347,3 +359,113 @@ class Estimator:
         nuis = np.linalg.lstsq(self.N_w, dw - Su @ fb, rcond=None)[0]
         return dict(contact=True, y=y, z=z, f=fb.tolist(), cov=cov.tolist(), e=eb, chi2_none=float(dp @ dp),
                     g_uT=nuis[:3].tolist(), eps=float(nuis[3]))
+
+
+def subdivide(P, N, tris, levels=2):
+    """Points and unit normals of a triangulated surface with every triangle split 4**levels times (barycentric points
+    of each triangle, the ones shared along edges kept once): the candidate contact points of SurfaceEstimator."""
+    n = 2 ** levels
+    pts, nrm = [], []
+    for i in range(n + 1):
+        for j in range(n + 1 - i):
+            w = np.array([i, j, n - i - j]) / n
+            pts.append(np.einsum("t,ntc->nc", w, P[tris]))
+            nrm.append(np.einsum("t,ntc->nc", w, N[tris]))
+    X, Nn = np.concatenate(pts), np.concatenate(nrm)
+    _, idx = np.unique(np.round(X / 1e-4).astype(np.int64), axis=0, return_index=True)
+    X, Nn = X[idx], Nn[idx]
+    return X, Nn / np.linalg.norm(Nn, axis=1, keepdims=True)
+
+
+def tangent_frames(Nn):
+    """Unit tangents (t1 along the finger, +z projected on the tangent plane; t2 = n x t1) at unit normals Nn; where the
+    normal lies within 25 degrees of z, t1 is +y projected instead."""
+    ez, ey = np.array([0.0, 0.0, 1.0]), np.array([0.0, 1.0, 0.0])
+    ref = np.where((np.abs(Nn @ ez) > 0.9)[:, None], ey[None], ez[None])
+    t1 = ref - np.einsum("ij,ij->i", ref, Nn)[:, None] * Nn
+    t1 /= np.linalg.norm(t1, axis=1, keepdims=True)
+    return t1, np.cross(Nn, t1)
+
+
+class SurfaceEstimator:
+    """Contact point anywhere on the pad's free surface and the force there, from one reading change d (uT, (15,),
+    chip frames, streaming order).
+
+    The model of d is S(p) f + N q + noise. S(p) (15 x 3) is the change per newton of a patch load at surface point p
+    along the tip frame's x, y, z: the FE surface basis (scripts/fingertip_wrench_fe.py --surface; magnet motions per
+    newton at 812 pad points) interpolated over the surface (thin-plate spline in 3-D) and passed through the linear field
+    model (Model.motion_jacobian). N = [U, b0] are the nuisance directions (a uniform field change, a relative change
+    of the magnets' strength) with a Gaussian prior q ~ N(0, diag(sigma_g^2 I, sigma_eps^2)) in place of projecting them
+    out, so that they cannot take up a press. With C = diag(sigma^2) + N P N^T the covariance of everything but the
+    contact, the force at each candidate point is the generalized least-squares solution, and p maximizes the explained
+    energy e(p) = d^T C^-1 S (S^T C^-1 S)^-1 S^T C^-1 d among the points where the force presses (f . n < 0) and lies
+    within the cone |f_t| <= mu_max |f_n|. Candidates are the pad points' triangulation split 16 times (about 0.2 mm)."""
+
+    def __init__(self, model: Model, basis: dict, levels=2, noise_uT=NOISE_UT, sigma_g_uT=30.0, sigma_eps=3e-3,
+                 mu_max=2.0, mask=None):
+        from scipy.interpolate import RBFInterpolator
+        self.model, self.basis, self.mu_max = model, basis, mu_max
+        P, Nn = basis["pts"], basis["normals"]
+        nm = basis["motions"].shape[2]
+        self.rbf = RBFInterpolator(P, basis["motions"].reshape(len(P), -1), kernel="thin_plate_spline", degree=1)
+        C, Cn = subdivide(P, Nn, basis["tris"], levels)
+        if mask is not None:
+            keep = mask(C, Cn)
+            C, Cn = C[keep], Cn[keep]
+        self.C, self.Cn = C, Cn
+        self.T1, self.T2 = tangent_frames(Cn)
+        self.Jm = model.motion_jacobian()                                    # (15, nm * 6)
+        self.nm = nm
+        self.S = np.concatenate([self._S(C[s:s + 4096]) for s in range(0, len(C), 4096)])   # (nc, 15, 3)
+        self.sig = np.tile(np.asarray(noise_uT, float), 5)
+        self.U = np.concatenate(list(model.R), 0)
+        self.b0 = np.asarray(model.cal.b_rest_uT, float).ravel() if model.cal.b_rest_uT else model.rest_uT().ravel()
+        self.Nu = np.c_[self.U, self.b0]
+        self.Pq = np.diag([sigma_g_uT ** 2] * 3 + [sigma_eps ** 2])
+        self.set_noise_scale(1.0)
+
+    def _S(self, X):
+        """S (k, 15, 3) at points X (k, 3) through the spline of the magnet motions."""
+        M = self.rbf(X).reshape(len(X), 3, self.nm * 6)
+        return np.einsum("ij,kfj->kif", self.Jm, M)
+
+    def set_noise_scale(self, scale):
+        """Noise of the averaged reading relative to one sample (1/sqrt(conversions averaged))."""
+        self.sig_now = self.sig * scale
+        Cov = np.diag(self.sig_now ** 2) + self.Nu @ self.Pq @ self.Nu.T
+        self.Linv = np.linalg.inv(np.linalg.cholesky(Cov))
+        self.Cinv = self.Linv.T @ self.Linv
+        self.Sw = np.einsum("ij,njk->nik", self.Linv, self.S)
+        self.Ginv = np.linalg.inv(np.einsum("nik,nil->nkl", self.Sw, self.Sw))
+
+    def estimate(self, d):
+        """Best contact for reading change d: dict with contact (bool), p, n (mm, tip frame), f (N, tip frame), f_n (the
+        press, along -n), f_t (shear along t1, t2), cov (5 x 5 over f_x, f_y, f_z and the position along t1, t2), e
+        (explained energy), chi2_none (the reading's energy against C), g_uT and eps (the nuisance estimates)."""
+        d = np.asarray(d, float)
+        dw = self.Linv @ d
+        T = np.einsum("nik,i->nk", self.Sw, dw)
+        f = np.einsum("nkl,nl->nk", self.Ginv, T)
+        e = np.einsum("nk,nk->n", T, f)
+        fn = np.einsum("nk,nk->n", f, self.Cn)
+        ft = np.linalg.norm(f - fn[:, None] * self.Cn, axis=1)
+        e[(fn >= 0) | (ft > self.mu_max * -fn)] = -np.inf
+        out = dict(chi2_none=float(dw @ dw))
+        if not np.isfinite(e).any():
+            q = self.Pq @ self.Nu.T @ self.Cinv @ d
+            return dict(out, contact=False, e=0.0, g_uT=q[:3].tolist(), eps=float(q[3]))
+        k = int(np.argmax(e))
+        p, n, t1, t2, fk = self.C[k], self.Cn[k], self.T1[k], self.T2[k], f[k]
+        h = 0.2
+        Sd = self._S(np.stack([p + h * t1, p - h * t1, p + h * t2, p - h * t2]))
+        D1 = self.Linv @ ((Sd[0] - Sd[1]) / (2 * h))
+        D2 = self.Linv @ ((Sd[2] - Sd[3]) / (2 * h))
+        J = np.c_[self.Sw[k], D1 @ fk, D2 @ fk]
+        try:
+            cov = np.linalg.inv(J.T @ J)
+        except np.linalg.LinAlgError:
+            cov = np.full((5, 5), np.nan)
+        q = self.Pq @ self.Nu.T @ self.Cinv @ (d - self.S[k] @ fk)
+        return dict(out, contact=True, p=p.tolist(), n=n.tolist(), t1=t1.tolist(), t2=t2.tolist(), f=fk.tolist(),
+                    f_n=float(-fk @ n), f_t=[float(fk @ t1), float(fk @ t2)], cov=cov.tolist(), e=float(e[k]),
+                    g_uT=q[:3].tolist(), eps=float(q[3]), index=k)

@@ -38,21 +38,22 @@
     <div id="status">connecting</div>
     <div class="contact" id="contact">no data</div>
     <table>
+      <tr><th>Surface</th><td colspan="2" id="wh">-</td></tr>
       <tr><th>Pressing force</th><td id="fp">-</td><td id="sfp">-</td></tr>
-      <tr><th>Shear across (y)</th><td id="fy">-</td><td id="sfy">-</td></tr>
-      <tr><th>Shear along (z)</th><td id="fz">-</td><td id="sfz">-</td></tr>
-      <tr><th>Position across y</th><td id="py">-</td><td id="spy">-</td></tr>
-      <tr><th>Position along z</th><td id="pz">-</td><td id="spz">-</td></tr>
+      <tr><th>Shear, tangent 1</th><td id="f1">-</td><td id="sf1">-</td></tr>
+      <tr><th>Shear, tangent 2</th><td id="f2">-</td><td id="sf2">-</td></tr>
+      <tr><th>Contact point x, y, z</th><td colspan="2" id="pxyz">-</td></tr>
+      <tr><th>Position 1-sigma along t1, t2</th><td id="sp1">-</td><td id="sp2">-</td></tr>
       <tr><th>Explained chi-square</th><td id="ee">-</td><td id="thr">-</td></tr>
       <tr><th>Background change (uT)</th><td colspan="2" id="gg">-</td></tr>
       <tr><th>Peak pressure</th><td colspan="2" id="pk">-</td></tr>
     </table>
-    <div style="font-size:12px">Forces in N and positions in mm (tip frame, z from the mount toward the tip end); the second column is the 1-sigma uncertainty of the model.</div>
+    <div style="font-size:12px">Forces in N and positions in mm, tip frame: x along the palmar face's normal, y across the finger, z from the mount toward the tip end. Tangent 1 is z projected on the surface (y where the normal lies near z), tangent 2 the normal crossed with it. The second column is the 1-sigma uncertainty of the model.</div>
     <div>
       <button id="bb">New baseline (b)</button><button id="bc">Recalibrate at rest (c)</button><button id="br">Record (r)</button>
     </div>
-    <label>Deformation shown x<span id="exl">20</span><input type="range" id="ex" min="1" max="100" value="20"></label>
-    <label>Arrow length <span id="arl">4</span> mm per N<input type="range" id="ar" min="1" max="20" value="4"></label>
+    <label>Deformation shown x<span id="exl">20</span> (at most 2 mm drawn)<input type="range" id="ex" min="1" max="100" value="20"></label>
+    <label>Arrow length <span id="arl">4</span> mm per N (at most 25 mm)<input type="range" id="ar" min="1" max="20" value="4"></label>
     <label>Indenter sphere radius <span id="rl">8</span> mm <input type="checkbox" id="showind"> show it<input type="range" id="rr" min="2" max="40" value="8"></label>
     <label>Pressure colour scale <span id="pml">300</span> kPa<input type="range" id="pm" min="5" max="1000" value="300"></label>
     <canvas class="trace" id="tf" width="376" height="170"></canvas>
@@ -72,9 +73,9 @@ view.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff);
 const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 500);
-camera.position.set(-22, 30, 30);
+camera.position.set(44, 26, 30);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(10.5, 3, 0);
+controls.target.set(10.5, 1, 0);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.6));
 const dl = new THREE.DirectionalLight(0xffffff, 1.4); dl.position.set(-10, 40, 20); scene.add(dl);
 
@@ -111,14 +112,6 @@ function buildScene(m) {
   scene.add(face);
   wire = new THREE.LineSegments(new THREE.WireframeGeometry(geo), new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.08 }));
   scene.add(wire);
-  const cnt = new Map();
-  for (const t of m.tris) for (let k = 0; k < 3; k++) { const a = t[k], b = t[(k + 1) % 3], key = a < b ? `${a},${b}` : `${b},${a}`; cnt.set(key, (cnt.get(key) || 0) + 1); }
-  const side = [];
-  for (const [key, c] of cnt) if (c === 1) { const [a, b] = key.split(',').map(Number);
-    const pa = m.verts[a], pb = m.verts[b], qa = [m.x_back, pa[1], pa[2]], qb = [m.x_back, pb[1], pb[2]];
-    for (const p of [pa, pb, qb, pa, qb, qa]) { const v = T(p); side.push(v.x, v.y, v.z); } }
-  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(side, 3)); sg.computeVertexNormals();
-  extras.add(new THREE.Mesh(sg, new THREE.MeshPhongMaterial({ color: 0xc8b89a, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })));
   for (const mg of m.magnets) {
     const cyl = new THREE.Mesh(new THREE.CylinderGeometry(mg.d / 2, mg.d / 2, mg.t, 24),
       new THREE.MeshPhongMaterial({ color: mg.pole > 0 ? 0xd02020 : 0x2040d0 }));
@@ -159,38 +152,44 @@ function onFrame(m) {
   if (m.type !== 'frame' || !face) return;
   const pos = face.geometry.attributes.position;
   const cA = face.geometry.attributes.color;
-  const k = +ex.value * 1e-3;
+  if (hist.length && m.t < hist[hist.length - 1].t) hist.length = 0;      // a replay started over
+  let k = +ex.value * 1e-3;
   if (m.contact) {
+    let umax = 0;
+    for (let i = 0; i < m.u.length; i++) umax = Math.max(umax, Math.abs(m.u[i]));
+    k = Math.min(k, 2.0 / Math.max(umax, 1e-6));                          // drawn displacement at most 2 mm
     for (let i = 0; i < nV; i++) {
       const u = T([m.u[3 * i], m.u[3 * i + 1], m.u[3 * i + 2]]);
       pos.array[3 * i] = rest[3 * i] + k * u.x; pos.array[3 * i + 1] = rest[3 * i + 1] + k * u.y; pos.array[3 * i + 2] = rest[3 * i + 2] + k * u.z;
-      const c = cmap(m.p[i] / +pm.value); cA.array.set(c, 3 * i);
+      const c = cmap(m.pr[i] / +pm.value); cA.array.set(c, 3 * i);
     }
-    const F = T([-m.f[0], m.f[1], m.f[2]]); const L = F.length() * +ar.value;
-    const q = T(m.q); const dir = F.clone().normalize();
+    const F = T(m.f); const L = Math.min(F.length() * +ar.value, 25);
+    const q = T(m.p); const dir = F.clone().normalize();
     arrow.position.copy(q.clone().sub(dir.clone().multiplyScalar(L))); arrow.setDirection(dir);
     arrow.setLength(Math.max(L, 0.5), Math.min(1.2, 0.4 * L + 0.3), Math.min(0.8, 0.3 * L + 0.2)); arrow.visible = true;
     const [a, b, th] = m.ell;
     for (let j = 0; j <= 64; j++) {
-      const t = 2 * Math.PI * j / 64, dy = a * Math.cos(t) * Math.cos(th) - b * Math.sin(t) * Math.sin(th), dz = a * Math.cos(t) * Math.sin(th) + b * Math.sin(t) * Math.cos(th);
-      const v = T([m.q[0] + 0.08, m.y + dy, m.z + dz]); ellPts.set([v.x, v.y, v.z], 3 * j);
+      const t = 2 * Math.PI * j / 64, d1 = a * Math.cos(t) * Math.cos(th) - b * Math.sin(t) * Math.sin(th), d2 = a * Math.cos(t) * Math.sin(th) + b * Math.sin(t) * Math.cos(th);
+      const v = T([0, 1, 2].map(c => m.p[c] + 0.08 * m.n[c] + d1 * m.t1[c] + d2 * m.t2[c])); ellPts.set([v.x, v.y, v.z], 3 * j);
     }
     ellGeo.attributes.position.needsUpdate = true; ell.visible = true;
-    ind.scale.setScalar(+rr.value); ind.position.copy(T([m.q[0] + +rr.value * m.n[0], m.q[1] + +rr.value * m.n[1], m.q[2] + +rr.value * m.n[2]])); ind.visible = document.getElementById('showind').checked;
+    ind.scale.setScalar(+rr.value); ind.position.copy(T([0, 1, 2].map(c => m.p[c] + +rr.value * m.n[c]))); ind.visible = document.getElementById('showind').checked;
     document.getElementById('contact').textContent = 'Contact';
-    for (const [id, v] of [['fp', m.f[0]], ['fy', m.f[1]], ['fz', m.f[2]], ['py', m.y], ['pz', m.z]]) document.getElementById(id).textContent = fmt(v);
-    for (const [id, j] of [['sfp', 0], ['sfy', 1], ['sfz', 2], ['spy', 3], ['spz', 4]]) document.getElementById(id).textContent = m.sd[j].toFixed(2);
+    document.getElementById('wh').textContent = m.where;
+    for (const [id, v] of [['fp', m.fn], ['f1', m.ft[0]], ['f2', m.ft[1]]]) document.getElementById(id).textContent = fmt(v);
+    document.getElementById('pxyz').textContent = m.p.map(v => v.toFixed(1)).join(', ');
+    for (const [id, j] of [['sfp', 0], ['sf1', 1], ['sf2', 2], ['sp1', 3], ['sp2', 4]]) document.getElementById(id).textContent = m.sd[j].toFixed(2);
     document.getElementById('pk').textContent = `${m.pmax.toFixed(0)} kPa`;
   } else {
     pos.array.set(rest); cA.array.fill(0.85); arrow.visible = false; ell.visible = false; ind.visible = false;
     document.getElementById('contact').textContent = 'No contact';
-    for (const id of ['fp', 'fy', 'fz', 'py', 'pz', 'sfp', 'sfy', 'sfz', 'spy', 'spz', 'pk']) document.getElementById(id).textContent = '-';
+    for (const id of ['wh', 'fp', 'f1', 'f2', 'pxyz', 'sfp', 'sf1', 'sf2', 'sp1', 'sp2', 'pk']) document.getElementById(id).textContent = '-';
   }
   document.getElementById('ee').textContent = m.e.toFixed(0);
   if (m.g) document.getElementById('gg').textContent = m.g.map(v => v.toFixed(1)).join(', ');
   pos.needsUpdate = true; cA.needsUpdate = true; face.geometry.computeVertexNormals();
-  hist.push({ t: m.t, c: m.contact, fp: m.contact ? m.f[0] : 0, ft: m.contact ? Math.hypot(m.f[1], m.f[2]) : 0,
-              y: m.contact ? m.y : NaN, z: m.contact ? m.z : NaN, db: m.db });
+  hist.push({ t: m.t, c: m.contact, fp: m.contact ? m.fn : 0, ft: m.contact ? Math.hypot(m.ft[0], m.ft[1]) : 0,
+              x: m.contact ? m.p[0] : NaN, y: m.contact ? m.p[1] : NaN, z: m.contact ? m.p[2] : NaN, db: m.db });
   while (hist.length && m.t - hist[0].t > 10) hist.shift();
   drawTraces();
 }
@@ -213,7 +212,7 @@ function plot(cv, series, lo, hi, ylab) {
 function drawTraces() {
   const fmax = Math.max(1, ...hist.map(h => Math.max(h.fp, h.ft))) * 1.1;
   plot(document.getElementById('tf'), [['fp', '#c00000'], ['ft', '#0040ff']], 0, fmax, 'Force (N): pressing red, shear magnitude blue');
-  plot(document.getElementById('tp'), [['y', '#008000'], ['z', '#800080']], -8, 22, 'Position (mm): y green, z purple');
+  plot(document.getElementById('tp'), [['x', '#c06000'], ['y', '#008000'], ['z', '#800080']], -8, 22, 'Contact point (mm): x orange, y green, z purple');
   const g = document.getElementById('tb').getContext('2d'), cv = document.getElementById('tb');
   g.clearRect(0, 0, cv.width, cv.height); g.font = '12px Times New Roman'; g.fillStyle = '#000';
   const last = hist.length ? hist[hist.length - 1].db : null;
