@@ -112,6 +112,12 @@ CASES = {   # name: grid, magnet depth (mm), magnets (None: the calibration's fo
                                cap=dict(end=True, pin=(-3.45, 0.0, 1.0, 3.0))),
     "bm_five_d75_cap": dict(grid="bmag", depth=7.5, mags="five", body="b", wall_h=4.95,
                             cap=dict(end=True, pin=(-3.45, 0.0, 1.0, 3.0), shroud=(12.75, 4.95))),
+    # 2026-10-21 (owner, 2026-10-20 23:40: "yes please run these next jobs"): the homogenized references of the resolved-bead
+    # check (scripts/v2_tip_resolved_check.py): b's pad without magnets, and both bodies with the 30 % gyroid's tensor from
+    # the 0.1 mm cell (the resolved model's voxel size) in place of the 0.05 mm cell that every other case takes
+    "b_none": dict(grid="base", depth=7.5, mags="none", body="b"),
+    "v2_none_c01": dict(grid="base", depth=7.5, mags="none", cell_h=0.1),
+    "b_none_c01": dict(grid="base", depth=7.5, mags="none", body="b", cell_h=0.1),
 }
 X_CUT_B = -8.5 + (17.0 - 13.45)        # b's pad: 13.45 mm deep (v2 fit-size parts B00-B15) of the tip's 17.0 mm
 
@@ -291,6 +297,11 @@ def mat_ids(c):
         C6, cell = gyroid_cell(c["bead"])
         mats = [mats[0], T.rotate_C(C6, BUILD) * recipe["E_s"]]
         recipe.update(bead_mm=c["bead"], core_solid_fraction=cell["rho"])
+    if "cell_h" in c:                                      # the gyroid's tensor from the cell at that voxel size
+        cell = [r for r in FE.rows(ROOT / "docs/experiments/20261009-tpu_tip_fem/cells.jsonl") if r["kind"] == "slicer"
+                and r.get("rho_req") is not None and abs(r["rho_req"] - recipe["rho"]) < 1e-9 and abs(r["h_mm"] - c["cell_h"]) < 1e-9][0]
+        mats = [mats[0], T.rotate_C(np.array(cell["C"]), BUILD) * recipe["E_s"]]
+        recipe.update(cell_h_mm=c["cell_h"], core_solid_fraction=cell["rho"])
     mats = list(mats) + [C.iso_D(TM.E_MAG, TM.NU_MAG)]
     cmap = dict(cmap)
     cmap[4] = 2
@@ -329,7 +340,7 @@ def run_case(name, max_dof):
     base = dict(case=name, tip="ell11", body=c.get("body", "whole"), wall_hold_mm=c.get("wall_h"), x_back_mm=X_CUT_B if c.get("body") == "b" else -8.5,
                 fe_key=KEY, grid=c["grid"], build=BUILD, rho=recipe["rho"], E_s_MPa=recipe["E_s"],
                 bead_mm=recipe.get("bead_mm", 0.45), core_solid_fraction=recipe.get("core_solid_fraction"),
-                wall_mm=c.get("wall", T.WALL), skin_mm=round(c.get("n_skin", T.N_SKIN) * c.get("layer", T.LAYER), 3),
+                cell_h_mm=recipe.get("cell_h_mm", 0.05), wall_mm=c.get("wall", T.WALL), skin_mm=round(c.get("n_skin", T.N_SKIN) * c.get("layer", T.LAYER), 3),
                 magnets=[list(m) for m in lay["mags"]], magnet_top_depth_mm=c["depth"], n_dof=len(model.free),
                 n_el=model.n_el, n_face_nodes=len(nodes), n_magnet_nodes=[int(len(i)) for i in mn],
                 staircase_mm=[float(np.nanpercentile(stair, q)) for q in (5, 50, 95)], script=SCRIPT)

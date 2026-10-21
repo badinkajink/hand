@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """What a PrusaSlicer G-code file extrudes, layer by layer (2026-10-13).
 
-Reads an ASCII G-code file from PrusaSlicer (relative extrusion, `;LAYER_CHANGE`, `;Z:`, `;TYPE:`, `;WIDTH:` comments and
+Reads an ASCII G-code file from PrusaSlicer (relative extrusion, G1 moves and G2/G3 arcs with centre offsets I, J split
+into 0.1 mm chords (2026-10-21; before that arcs were skipped), `;LAYER_CHANGE`, `;Z:`, `;TYPE:`, `;WIDTH:` comments and
 `M486 S<n>` object labels) and returns, for one object, the extrusion paths of every layer: their segments, bead widths,
 feature types, the extruded volume, the travels and the retractions. A path is a run of extruding moves without a
 travel or a retraction between them.
@@ -19,7 +20,23 @@ from collections import defaultdict
 import numpy as np
 
 FIL_AREA = math.pi * (1.75 / 2) ** 2          # mm^2 of 1.75 mm filament
-_G1 = re.compile(r"([XYZEF])(-?\d*\.?\d+)")
+_G1 = re.compile(r"([XYZEFIJ])(-?\d*\.?\d+)")
+ARC_CHORD = 0.1                                # mm: G2/G3 arcs (arc_fitting = emit_center) are split into chords this long
+
+
+def arc_points(x, y, nx, ny, i, j, cw):
+    """Points along a G2 (cw) or G3 arc from (x, y) to (nx, ny) about the centre (x + i, y + j), the start excluded."""
+    cx, cy = x + i, y + j
+    r = math.hypot(i, j)
+    a0, a1 = math.atan2(y - cy, x - cx), math.atan2(ny - cy, nx - cx)
+    sweep = a1 - a0
+    if cw and sweep >= 0:
+        sweep -= 2 * math.pi
+    elif not cw and sweep <= 0:
+        sweep += 2 * math.pi
+    n = max(1, int(math.ceil(abs(sweep) * r / ARC_CHORD)))
+    pts = [(cx + r * math.cos(a0 + sweep * k / n), cy + r * math.sin(a0 + sweep * k / n)) for k in range(1, n)]
+    return pts + [(nx, ny)]
 
 
 def parse(path, obj=0, skip_types=("Custom", "Wipe tower", "Skirt/Brim", "Skirt")):
@@ -55,19 +72,24 @@ def parse(path, obj=0, skip_types=("Custom", "Wipe tower", "Skirt/Brim", "Skirt"
             label = None if v < 0 else v
             in_path = False
             continue
-        if not line.startswith("G1 ") and not line.startswith("G0 "):
+        arc = line.startswith("G2 ") or line.startswith("G3 ")
+        if not line.startswith("G1 ") and not line.startswith("G0 ") and not arc:
             continue
         code = line.split(";", 1)[0]
         f = dict((k, float(v)) for k, v in _G1.findall(code))
         nx, ny = f.get("X", x), f.get("Y", y)
         e = f.get("E", 0.0)
-        moved = ("X" in f) or ("Y" in f)
+        moved = ("X" in f) or ("Y" in f) or arc
         mine = cur is not None and label == obj and typ not in skip_types
         if moved and e > 0 and mine:
             if not in_path:
                 path_id += 1; in_path = True
             tid = types.setdefault(typ, len(types))
-            cur["seg"].append((x, y, nx, ny, width, tid, path_id))
+            pts = arc_points(x, y, nx, ny, f.get("I", 0.0), f.get("J", 0.0), line[1] == "2") if arc else [(nx, ny)]
+            px, py = x, y
+            for qx, qy in pts:
+                cur["seg"].append((px, py, qx, qy, width, tid, path_id))
+                px, py = qx, qy
             cur["vol"] += e * FIL_AREA
         elif moved and mine:
             if in_path:
