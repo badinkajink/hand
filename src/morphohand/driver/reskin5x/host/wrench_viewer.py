@@ -130,6 +130,7 @@ class App:
         self.est = self.base = None
         self.clients, self.R_ind, self.status = set(), 8.0, "starting"
         self.rec, self.rec_rows = False, []
+        self.scene_dirty = False
         self.log = None
         if not a.replay and not a.no_log:
             (REC_DIR / "stream").mkdir(parents=True, exist_ok=True)
@@ -152,6 +153,7 @@ class App:
         est = W.SurfaceEstimator(self.model, self.basis)
         est.set_noise_scale(1 / np.sqrt(WIN_S * 140))
         self.est, self.base = est, b_rest.ravel()
+        self.scene_dirty = True                               # the pump sends the fitted poles and chip labels
         self.status = (f"calibrated in {time.time() - t0:.1f} s: poles {cal.poles}, magnet strength {cal.k:.2f} of N52, "
                        f"offset ({cal.dx:+.2f}, {cal.dy:+.2f}, {cal.dz:+.2f}) mm, rms {cal.rms_mT:.2f} mT")
         print(self.status, flush=True)
@@ -244,8 +246,6 @@ async def ws_handler(request):
                 app.baseline()
             elif cmd.get("cmd") == "calibrate":
                 await asyncio.get_running_loop().run_in_executor(None, app.calibrate)
-                for c in list(app.clients):
-                    await c.send_str(json.dumps(app.scene()))
             elif cmd.get("cmd") == "indenter":
                 app.R_ind = float(cmd["R"])
             elif cmd.get("cmd") == "record" and hasattr(app.src, "all"):
@@ -272,6 +272,10 @@ async def pump(app_web):
     while True:
         t0 = time.time()
         if app.clients:
+            if app.scene_dirty:
+                app.scene_dirty = False
+                sc = json.dumps(app.scene())
+                await asyncio.gather(*(c.send_str(sc) for c in list(app.clients)), return_exceptions=True)
             msg = json.dumps(app.frame())
             await asyncio.gather(*(c.send_str(msg) for c in list(app.clients)), return_exceptions=True)
         else:

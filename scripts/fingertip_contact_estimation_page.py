@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Result page of the model-based contact estimation study (2026-10-20): the measurement model of the five-chip board under
-the magnetic pad, its calibration at rest, the FE contact basis, the estimator's errors on simulated presses, its behaviour
-without a press, and the live browser viewer.
+the magnetic pad, its calibration at rest, the FE contact basis over the pad's surface, the estimator's errors on simulated
+presses, its behaviour without a press, the owner's first presses by hand, and the live browser viewer.
 
 Reads docs/experiments/20261020-fingertip_contact_estimation/ (results.json and data/20261020-uncertainty_maps.npz from
 scripts/fingertip_contact_estimation_study.py; media/ from scripts/fingertip_contact_film.py and the viewer), draws the
@@ -120,35 +120,6 @@ def fig_rest(res, out):
     plt.close(fig)
 
 
-def fig_maps(npz, out):
-    plt = plt_setup()
-    z = np.load(npz)
-    ys, zs = z["ys"], z["zs"]
-    fig, axs = plt.subplots(2, 2, figsize=(11, 6.4), dpi=100, sharex=True, sharey=True)
-    for r, (key, lbl) in enumerate((("as_found", "Magnets as found (35 % of N52, mixed poles)"),
-                                    ("n52", "N52, poles one way"))):
-        S = z[key]
-        for c, (k, name, unit, vmax) in enumerate(((0, "Pressing force 1-sigma", "N", None),
-                                                   (None, "Position 1-sigma, sqrt(sd_y sd_z)", "mm", None))):
-            v = S[..., 0] if k == 0 else np.sqrt(S[..., 3] * S[..., 4])
-            ax = axs[r, c]
-            hi = np.nanpercentile(v, 95)
-            im = ax.pcolormesh(zs, ys, v, shading="nearest", cmap="viridis", vmin=0, vmax=hi)
-            ax.scatter(z["chips"][:, 2], z["chips"][:, 1], marker="s", s=80, facecolor="none", edgecolor="#fff", lw=1.5)
-            ax.scatter(z["magnets"][:, 2], z["magnets"][:, 1], marker="o", s=60, facecolor="none", edgecolor="#f04040", lw=1.5)
-            ax.set_title(f"{lbl}\n{name} ({unit})", fontsize=12)
-            ax.set_aspect("equal")
-            cb = fig.colorbar(im, ax=ax, shrink=0.85)
-            cb.set_label(unit)
-            if r == 1:
-                ax.set_xlabel("z, along the finger (mm)")
-            if c == 0:
-                ax.set_ylabel("y, across (mm)")
-    fig.tight_layout()
-    fig.savefig(out)
-    plt.close(fig)
-
-
 def fig_quiet(res, out):
     plt = plt_setup()
     q = res["no_contact"]
@@ -162,9 +133,88 @@ def fig_quiet(res, out):
     for k, (lbl, col) in enumerate((("x", "#c00000"), ("y", "#008000"), ("z", "#0040ff"))):
         a2.plot(S[:, 0], G[:, k], color=col, lw=1, label=f"Background change along {lbl}")
     a2.set_ylabel("Background (uT)")
+    a2.set_ylim(min(-2.5, float(G.min()) - 0.5), float(G.max()) + 3.0)
     a2.set_xlabel("Time (s)")
     a2.legend(loc="upper left", ncol=3)
     a2.grid(alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(out)
+    plt.close(fig)
+
+
+def fig_surface_maps(npz, out):
+    """Model 1-sigma of the press for 1 N along the normal at every pad point, seen from the palm and from both sides."""
+    plt = plt_setup()
+    from matplotlib.colors import LogNorm
+    z = np.load(npz)
+    P, N, tri = z["pts"], z["normals"], z["tris"]
+    tn = N[tri].mean(1)
+    views = (("Palmar face, seen from the palm", 0, 1, (2, 1), "y (mm)"),
+             ("+y flank, seen from +y", 1, 1, (2, 0), "x (mm)"),
+             ("-y flank, mirrored", 1, -1, (2, 0), "x (mm)"))
+    fig, axs = plt.subplots(2, 3, figsize=(14, 6.4), dpi=100, gridspec_kw=dict(wspace=0.32))
+    for r, (key, lbl) in enumerate((("as_found_press", "Magnets as found"), ("n52_press", "N52, poles one way"))):
+        vt = np.nanmean(z[key][tri], axis=1)
+        lo, hi = (float(np.nanpercentile(vt, q)) for q in (2, 98))
+        for c, (title, ax_i, sgn, (iu, iv), yl) in enumerate(views):
+            ax = axs[r, c]
+            vis = (sgn * tn[:, ax_i] > 0.25) & np.isfinite(vt)
+            im = ax.tripcolor(P[:, iu], P[:, iv], tri[vis], facecolors=np.clip(vt[vis], lo, hi), cmap="viridis",
+                              norm=LogNorm(vmin=lo, vmax=hi), edgecolors="none")
+            if c == 0:
+                ax.scatter(z["magnets"][:, 2], z["magnets"][:, 1], marker="o", s=70, facecolor="none", edgecolor="#f04040", lw=1.5)
+                ax.scatter(z["chips"][:, 2], z["chips"][:, 1], marker="s", s=70, facecolor="none", edgecolor="#fff", lw=1.5)
+            ax.set_aspect("equal")
+            if r == 0:
+                ax.set_title(title, fontsize=13)
+            ax.set_xlabel("z, along the finger (mm)")
+            ax.set_ylabel(f"{lbl}\n{yl}" if c == 0 else yl)
+        cb = fig.colorbar(im, ax=list(axs[r]), shrink=0.9, pad=0.01)
+        cb.set_label("Press 1-sigma (N)")
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+
+
+def fig_session(res, out):
+    """The owner's presses by hand: reading change, the estimate, and the last rest's offset against the rigid fit."""
+    plt = plt_setup()
+    s = res["session"]
+    T = np.array(s["trace"], float)
+    fig, (a1, a2, a3) = plt.subplots(3, 1, figsize=(11, 9.6), dpi=100, gridspec_kw=dict(height_ratios=[1.15, 1.0, 1.1]))
+    a1.plot(T[:, 0], T[:, 1], color="#000", lw=1.2)
+    for q in s["rests"]:
+        a1.axvspan(q["t0"], q["t1"], color="#c8c8c8", alpha=0.6, lw=0)
+        if q["offset_uT"] > 5:
+            a1.text(0.5 * (q["t0"] + q["t1"]), q["offset_uT"] + 14, f"rest: {q['offset_uT']:.0f} uT", ha="center", fontsize=12)
+    for k, q in enumerate(s["peaks"], 1):
+        i = int(np.argmin(np.abs(T[:, 0] - q["t"])))
+        a1.text(q["t"], T[i, 1] + 10, f"press {k}", ha="center", fontsize=12)
+    a1.set_ylabel("Reading change (uT)")
+    a1.set_ylim(0, T[:, 1].max() * 1.18)
+    a1.grid(alpha=0.3)
+    a1.set_title("Norm of the 15-component change from the first rest; grey: rests", fontsize=12)
+    a2.plot(T[:, 0], T[:, 2], color="#c00000", lw=1.1, label="Pressing force")
+    a2.plot(T[:, 0], T[:, 3], color="#0040ff", lw=1.1, label="Shear magnitude")
+    for q in s["rests"]:
+        a2.axvspan(q["t0"], q["t1"], color="#c8c8c8", alpha=0.6, lw=0)
+    a2.set_ylabel("Estimate (N)")
+    a2.set_xlabel("Time (s)")
+    a2.legend(loc="upper left")
+    a2.grid(alpha=0.3)
+    last = s["rests"][-1]
+    m, fit = np.array(last["components_uT"]), np.array(last["rigid_fit_uT"])
+    x = np.arange(15)
+    a3.bar(x - 0.2, m, 0.4, color="#303030", label=f"Offset of the rest at {last['t0']:.0f}-{last['t1']:.0f} s")
+    a3.bar(x + 0.2, fit, 0.4, color="#d08040", label="Rigid motion of the whole pad, fitted")
+    a3.set_xticks(x, [c for _ in range(5) for c in "xyz"])
+    for i in range(5):
+        a3.text(3 * i + 1, -0.2, ADDR[i], transform=a3.get_xaxis_transform(), ha="center", fontsize=13)
+        if i:
+            a3.axvline(3 * i - 0.5, color="#999", lw=0.8)
+    a3.axhline(0, color="#000", lw=0.8)
+    a3.set_ylabel("Offset (uT), chip axes")
+    a3.legend(loc="lower left")
+    a3.grid(axis="y", alpha=0.3)
     fig.tight_layout()
     fig.savefig(out)
     plt.close(fig)
@@ -176,33 +226,53 @@ def build():
     res = json.loads((D / "results.json").read_text())
     MEDIA.mkdir(exist_ok=True)
     fig_rest(res, MEDIA / "20261020-rest_fit.png")
-    fig_maps(D / "data/20261020-uncertainty_maps.npz", MEDIA / "20261020-uncertainty_maps.png")
-    fig_quiet(res, MEDIA / "20261020-no_press.png")
-    c, fe, q = res["calibration"], res["fe"], res["no_contact"]
+    fig_surface_maps(D / "data/20261020-surface_uncertainty.npz", MEDIA / "20261020-surface_uncertainty.png")
+    nc = dict(res["surface"]["as found"]["no_contact"], threshold=25.0)
+    fig_quiet({"no_contact": nc}, MEDIA / "20261020-no_press.png")
+    fig_session(res, MEDIA / "20261020-presses_by_hand.png")
+    c, fe, fs = res["calibration"], res["fe"], res["fe_surface"]
     b = c["best"]
     syn = {(s["magnets"], s["window"]): s for s in res["synthetic"]}
-    n52 = syn[("N52, poles one way", "50 ms")]
-    af = syn[("as found", "50 ms")]
+    n52f = syn[("N52, poles one way", "50 ms")]
+    sf = res["surface"]
+    s52, saf = sf["N52, poles one way"]["regions"], sf["as found"]["regions"]
+    m52, maf = sf["N52, poles one way"]["maps"], sf["as found"]["maps"]
+    q = sf["as found"]["no_contact"]
+    se = res["session"]
+    rests = se["rests"]
+    big = [r for r in rests if r["offset_uT"] > 30]
     fmin, fmax = min(c["field_mT"]), max(c["field_mT"])
     perm = b["perm"]
     assign = ", ".join(f"{ADDR[i]} at {U[perm[i]]}" for i in range(5))
-    mp = res["maps"]
+    sr = res["synthetic_recording"]
+    fa = fs["face_agreement"]
 
-    lede = (f"A measurement model of the five-chip board under the magnetic pad, calibrated from its reading at rest, turns "
-            f"the 15 field components into a contact point and a contact force without a robot. The rest fit identifies which "
-            f"chip address sits at which position, the chips' axes, the magnets' poles and their strength ({b['k']:.2f} of "
-            f"N52 for the magnets in the pad today; {b['rms_mT']:.2f}&#8202;mT RMS against {fmin:.1f}&#8211;{fmax:.1f}&#8202;mT). "
-            f"An FE basis of {fe['load_cases']} patch loads maps forces to magnet motions. On simulated presses with N52 "
-            f"magnets and 50&#8202;ms of samples, the RMS errors are {n52['rms']['y_mm']:.2f}&#8202;mm in position and "
-            f"{n52['rms']['f_press_N']:.2f}&#8202;N in pressing force; with today's magnets {af['rms']['y_mm']:.1f}&#8211;"
-            f"{af['rms']['z_mm']:.1f}&#8202;mm and {af['rms']['f_press_N']:.2f}&#8202;N. A browser viewer shows the estimate, "
-            f"the FE deformation and the pad pressure at 30 frames per second. No estimate has been compared with a "
-            f"reference force yet.")
+    sh = [np.linalg.norm(r["translation_um"]) for r in big]
+    tl = [np.linalg.norm(r["tilt_mrad"]) for r in big]
+    lede = (f"A model of the five-chip board under the magnetic pad, calibrated from its reading at rest, turns the 15 "
+            f"field components into a contact point and force anywhere on the pad's surface, sides included, through an FE "
+            f"basis at the {fs['pads']} sphere pads of the simulations. On simulated presses with N52 magnets and "
+            f"50&#8202;ms of samples the median errors are {s52['all']['pos_median_mm']:.2f}&#8202;mm and "
+            f"{s52['all']['press_abs_median_N']:.2f}&#8202;N, with {s52['all']['far_pct']:.0f}&#8202;% of presses placed "
+            f"more than 1.5&#8202;mm away (the magnets in the pad today: {saf['all']['pos_median_mm']:.2f}&#8202;mm, "
+            f"{saf['all']['press_abs_median_N']:.2f}&#8202;N, {saf['all']['far_pct']:.0f}&#8202;%). In the first presses by "
+            f"hand the pad rocked in its seat: offsets of {min(r['offset_uT'] for r in big):.0f}&#8211;"
+            f"{max(r['offset_uT'] for r in big):.0f}&#8202;&#181;T remained, fit by rigid shifts of "
+            f"{min(sh):.0f}&#8211;{max(sh):.0f}&#8202;&#181;m, which the estimator reads as standing contacts of "
+            f"{min(r['read_as']['f_n'] for r in big if r['read_as']):.0f}&#8211;"
+            f"{max(r['read_as']['f_n'] for r in big if r['read_as']):.0f}&#8202;N. No estimate has been compared with a "
+            f"reference force.")
 
     terms = ('<dl class="terms">'
              "<dt>Tip frame</dt><dd>$x$ along the pad's normal toward the palmar face, $y$ across the finger, $z$ along it "
-             "from the mount toward the tip end, in mm (the FE's frame). The pad's face spans about $y=-6$ to $6$ and "
-             "$z=1$ to $20$&#8202;mm.</dd>"
+             "from the mount toward the tip end, in mm (the FE's frame). The palmar face spans about $y=-6$ to $6$ and "
+             "$z=1$ to $20$&#8202;mm at $x$ up to 8.5&#8202;mm; the pad's cut face, on the board, lies at $x=-4.95$&#8202;mm.</dd>"
+             "<dt>Surface point $\\mathbf p$, normal $\\mathbf n$, tangents $\\mathbf t_1$, $\\mathbf t_2$</dt><dd>A point "
+             "of the pad's free surface, its outward unit normal, and two unit tangents: $\\mathbf t_1$ is $\\mathbf e_z$ "
+             "projected on the tangent plane ($\\mathbf e_y$ where the normal lies within 25&#176; of $z$), "
+             "$\\mathbf t_2=\\mathbf n\\times\\mathbf t_1$.</dd>"
+             "<dt>Regions</dt><dd>Face: $n_x>0.7$; edge: $0.3\\le n_x\\le0.7$; sides: $n_x<0.3$ (the two flanks and the "
+             "tip end).</dd>"
              "<dt>Reading, reading change</dt><dd>The 15 field components the five chips report, each in its own axes, "
              "in &#181;T; the reading change $\\Delta\\mathbf b$ is the reading minus a baseline taken at rest.</dd>"
              "<dt>Noise per sample</dt><dd>Standard deviation of one conversion with the pad at rest: 1.65&#8202;&#181;T "
@@ -213,20 +283,25 @@ def build():
              "(remanence 1.45&#8202;T).</dd>"
              "<dt>Rest residual</dt><dd>RMS over the 15 components of the measured minus the modelled reading at rest, "
              "in mT.</dd>"
-             "<dt>Sensitivity $S(\\mathbf u)$</dt><dd>The reading change per newton of a patch load centred at face point "
-             "$\\mathbf u=(y,z)$: three columns, for pressing along $-x$ and shearing along $+y$ and $+z$.</dd>"
-             "<dt>Pressing force, shear</dt><dd>$f_\\mathrm{press}$, $f_y$, $f_z$: the force the object applies to the pad, "
-             "in N.</dd>"
-             "<dt>Explained chi-square $e$</dt><dd>The decrease of the weighted squared residual when the best contact is "
-             "added to the nuisance terms (Eq. 5). The viewer shows a contact when $e>25$.</dd>"
+             "<dt>Sensitivity $S(\\mathbf p)$</dt><dd>The reading change per newton of a patch load centred at surface "
+             "point $\\mathbf p$: three columns, for loads along $x$, $y$ and $z$.</dd>"
+             "<dt>Pressing force $f_n$, shear $\\mathbf f_t$</dt><dd>The force $\\mathbf f$ the object applies to the pad, "
+             "split into $f_n=-\\mathbf f\\cdot\\mathbf n$ and its components along $\\mathbf t_1$, $\\mathbf t_2$, in N.</dd>"
+             "<dt>Explained chi-square $e$</dt><dd>The decrease of the weighted squared residual when the estimated contact "
+             "is added (Eq. 5). The viewer shows a contact when $e>25$.</dd>"
              "<dt>Model 1-sigma</dt><dd>Square root of a diagonal entry of the inverse Fisher information at the estimate "
-             "(Eq. 6): the spread the noise alone causes when the model is exact.</dd>"
-             "<dt>RMS error</dt><dd>Root mean square of estimate minus truth over 300 simulated presses: $y$, $z$ uniform "
-             "over the face, $f_\\mathrm{press}$ uniform in 0.3&#8211;3&#8202;N, shears normal with 0.3&#8202;N standard "
-             "deviation, a background change of 5&#8202;&#181;T and a strength change of 0.1&#8202;% per press.</dd>"
+             "(Eq. 6): the spread the noise alone causes when the model is exact. The position 1-sigma is the geometric "
+             "mean of those along $\\mathbf t_1$ and $\\mathbf t_2$.</dd>"
+             "<dt>Simulated press</dt><dd>A reading made by the model itself: a point uniform by area over the surface, "
+             "$f_n$ uniform in 0.3&#8211;3&#8202;N, shear normal with 0.3&#8202;N standard deviation along each tangent, a "
+             "background change of 5&#8202;&#181;T, a strength change of 0.1&#8202;% and the noise of 50&#8202;ms.</dd>"
+             "<dt>Placed away</dt><dd>A simulated press whose estimated point lies more than 1.5&#8202;mm from the true one; "
+             "the position and force errors in the tables leave these out and the tables give their share.</dd>"
              "<dt>Background change $\\Delta\\mathbf g$, strength change $\\varepsilon$</dt><dd>A uniform field change in "
              "the tip frame (the finger turning in Earth's field), in &#181;T; a relative change of the magnets' strength "
-             "(N52 loses about 0.12&#8202;% per &#176;C).</dd></dl>")
+             "(N52 loses about 0.12&#8202;% per &#176;C).</dd>"
+             "<dt>Rest offset</dt><dd>The mean reading over a stretch with nothing pressing (a rest) minus the mean "
+             "reading of the first rest, in &#181;T (norm over 15 components unless a chip is named).</dd></dl>")
 
     eq1 = (r"$$\mathbf B(\mathbf p)=\sum_{j=1}^{5}\sum_{q} w_q\,\frac{\mu_0}{4\pi}\,"
            r"\frac{3\,\hat{\mathbf r}_{jq}(\hat{\mathbf r}_{jq}\!\cdot\mathbf m_j)-\mathbf m_j}{\lVert\mathbf r_{jq}\rVert^{3}},\qquad"
@@ -236,16 +311,21 @@ def build():
     eq3 = (r"$$\min_{s_j,\;\pi,\;s,\;\theta_0,\;k,\;\boldsymbol\delta,\;\mathbf g}\;\sum_{i=1}^{5}\Big\lVert \mathbf b_i^{\,\mathrm{rest}}"
            r"-R_{\pi(i)}\big(\mathbf B(\mathbf p_{\pi(i)}-\boldsymbol\delta)+\mathbf g\big)\Big\rVert^{2},\qquad \lvert g_x\rvert,"
            r"\lvert g_y\rvert,\lvert g_z\rvert\le 100\ \mu\mathrm T$$")
-    eq4 = (r"$$\Delta\mathbf b=S(\mathbf u)\,\mathbf f+U\,\Delta\mathbf g+\mathbf b^{\mathrm{rest}}\varepsilon+\mathbf n,\qquad"
-           r" S(\mathbf u)=\frac{\partial\mathbf b}{\partial\mathbf q}\,G(\mathbf u),\qquad U=\begin{bmatrix}R_1\\ \vdots\\ R_5\end{bmatrix},"
-           r"\qquad \mathbf n\sim\mathcal N(0,\Sigma)$$")
-    eq5 = (r"$$N=\big[\,U\ \ \mathbf b^{\mathrm{rest}}\,\big],\quad P=I-N(N^{\top}WN)^{-1}N^{\top}W,\quad"
-           r" e(\mathbf u)=\Delta\mathbf b^{\top}WPS\,\big(S^{\top}P^{\top}WPS\big)^{-1}S^{\top}P^{\top}W\,\Delta\mathbf b,\quad"
-           r"\hat{\mathbf u}=\arg\max_{\mathbf u}e(\mathbf u)$$")
-    eq6 = (r"$$\hat{\mathbf f}=\big(S^{\top}P^{\top}WPS\big)^{-1}S^{\top}P^{\top}W\,\Delta\mathbf b,\qquad"
-           r" J=\big[\,PS\ \ \ P\,\partial_yS\,\hat{\mathbf f}\ \ \ P\,\partial_zS\,\hat{\mathbf f}\,\big],\qquad"
-           r"\operatorname{cov}(\hat{\mathbf f},\hat{\mathbf u})\approx\big(J^{\top}WJ\big)^{-1}$$")
-    eq7 = (r"$$k_i=\frac{E^{*}a_i}{h_i},\qquad \sum_i k_i\,[\delta-g_i]_+=f_{\mathrm{press}},\qquad p_i=\frac{k_i\,[\delta-g_i]_+}{a_i}$$")
+    eq4 = (r"$$\Delta\mathbf b=S(\mathbf p)\,\mathbf f+N\mathbf q+\mathbf n,\qquad S(\mathbf p)=\frac{\partial\mathbf b}{\partial\mathbf m}"
+           r"\,M(\mathbf p),\qquad N=\begin{bmatrix}U&\mathbf b^{\mathrm{rest}}\end{bmatrix},\quad U=\begin{bmatrix}R_1\\ \vdots\\ R_5\end{bmatrix},"
+           r"\qquad \mathbf q\sim\mathcal N(0,P),\quad \mathbf f\sim\mathcal N(0,\sigma_f^2 I),\quad \mathbf n\sim\mathcal N(0,\Sigma)$$")
+    eq5 = (r"$$C=\Sigma+NPN^{\top},\quad G=S^{\top}C^{-1}S,\quad \mathbf t=S^{\top}C^{-1}\Delta\mathbf b,\quad"
+           r"\hat{\mathbf f}=\big(G+\sigma_f^{-2}I\big)^{-1}\mathbf t,\quad e=\mathbf t^{\top}\hat{\mathbf f},\quad"
+           r"\ell(\mathbf p)=e-\ln\det\big(I+\sigma_f^{2}G\big)$$")
+    eq5b = (r"$$\hat{\mathbf p}=\arg\max_{\mathbf p}\ \ell(\mathbf p)\quad\text{subject to}\quad \hat{\mathbf f}\cdot\mathbf n<0,"
+            r"\quad \lVert\hat{\mathbf f}_t\rVert\le\mu_{\max}\,\lvert\hat{\mathbf f}\cdot\mathbf n\rvert,\quad"
+            r"\lVert\hat{\mathbf f}\rVert\le f_{\max}$$")
+    eq6 = (r"$$J=\big[\,S\ \ \ \partial_{t_1}S\,\hat{\mathbf f}\ \ \ \partial_{t_2}S\,\hat{\mathbf f}\,\big],\qquad"
+           r"\operatorname{cov}(\hat{\mathbf f},\hat{\mathbf p})\approx\Big(J^{\top}C^{-1}J+\operatorname{diag}\big(\sigma_f^{-2}I_3,\,0,\,0\big)\Big)^{-1}$$")
+    eq7 = (r"$$k_i=\frac{E^{*}a_i}{h_i},\quad h_i=\max\big(\mathbf n_i\cdot(\mathbf x_i-\mathbf x_c),\,1\ \mathrm{mm}\big),\qquad"
+           r"\sum_i k_i\,[\delta-g_i]_+=f_n,\qquad p_i=\frac{k_i\,[\delta-g_i]_+}{a_i}$$")
+    eq8 = (r"$$\Delta\mathbf b^{\mathrm{rest}}\approx A\begin{bmatrix}\boldsymbol\tau\\ \boldsymbol\omega\end{bmatrix}+U\,\Delta\mathbf g,"
+           r"\qquad A=\frac{\partial\mathbf b}{\partial(\boldsymbol\tau,\boldsymbol\omega)}\Big|_{\text{all five magnets together}}$$")
 
     t1 = table(["Assignment of 0x0C 0x11 0x12 0x13 0x10", "Poles (centre third)", "$\\theta_0$ (&#176;)", "$k$", "Rest residual (mT)"],
                [[" ".join(U[u] for u in r["perm"]), " ".join("+" if p > 0 else "&#8722;" for p in r["poles"]),
@@ -254,18 +334,54 @@ def build():
                caption=f"The best fit of each assignment of chip addresses to positions, of {c['n_hypotheses']} fitted "
                        f"hypotheses (poles in the FE row's order; a rest residual with $k$ at its bound of 0.1 is a failed fit).")
     keys = ("y_mm", "z_mm", "f_press_N", "f_y_N", "f_z_N")
-    t2 = table(["Magnets", "Samples", "$y$ (mm)", "$z$ (mm)", "$f_\\mathrm{press}$ (N)", "$f_y$ (N)", "$f_z$ (N)", "Shown as contact"],
+    t2 = table(["Magnets", "Samples", "$y$ (mm)", "$z$ (mm)", "$f_n$ (N)", "$f_y$ (N)", "$f_z$ (N)", "Shown as contact"],
                [[s["magnets"][0].upper() + s["magnets"][1:], s["window"]] + [f"{s['rms'][k]:.2f} ({s['sigma_median'][k]:.2f})" for k in keys]
                 + [f"{s['detected_at_threshold']} of {s['n']}"] for s in res["synthetic"]],
                num_cols=(2, 3, 4, 5, 6, 7), n=2,
-               caption="RMS error of the estimator on 300 simulated presses, with the median model 1-sigma in brackets, and "
-                       "the presses shown as contacts ($e>25$).")
+               caption="The face-only estimator (the first version, on the 133 face points): RMS error on 300 simulated "
+                       "presses on the face, with the median model 1-sigma in brackets, and the presses shown as contacts "
+                       "($e>25$).")
+    rows3 = []
+    for name, R in (("N52, poles one way", s52), ("As found", saf)):
+        for reg in ("face", "edge", "sides", "all"):
+            v = R[reg]
+            rows3.append([name, f"{reg} ({v['n']})", f"{v['far_pct']:.1f}", f"{v['pos_median_mm']:.2f}",
+                          f"{v['press_abs_median_N']:.3f}", f"{v['press_rms_N']:.2f}", f"{v['sd_press_median_N']:.3f}",
+                          f"{v['sd_pos_median_mm']:.2f}", f"{v['press_z_rms']:.2f}"])
+    t3 = table(["Magnets", "Region (presses)", "Placed away (%)", "Position error, median (mm)", "Press error, median (N)",
+                "Press error, RMS (N)", "Press 1-sigma, median (N)", "Position 1-sigma, median (mm)",
+                "Press error / 1-sigma, RMS"],
+               rows3, num_cols=(2, 3, 4, 5, 6, 7, 8), n=3,
+               caption="The whole-surface estimator on 600 simulated presses per configuration, 50&#8202;ms of samples, by "
+                       "region of the true point. Errors and 1-sigmas leave out the presses placed away.")
+    t4 = table(["Press", "$f_n$ true (N)", "$f_n$ estimated (N)", "Shear true (N)", "Shear estimated (N)",
+                "Position error (mm)", "Position 1-sigma (mm)"],
+               [[q_["name"], f"{q_['f_n']:.2f}", f"{e_['f_n']:.2f}", f"{q_['f_t'][0]:.2f}, {q_['f_t'][1]:.2f}",
+                 f"{e_['f_t'][0]:.2f}, {e_['f_t'][1]:.2f}", f"{e_['pos_err_mm']:.2f}", f"{e_['sd_pos_mm']:.2f}"]
+                for q_, e_ in zip(sr["presses"], sr["estimates"])],
+               num_cols=(1, 2, 3, 4, 5, 6), n=4,
+               caption="The five synthetic presses of Figure 1 (magnets as found) through the viewer's pipeline: "
+                       "calibration and baseline on the recording's first 2&#8202;s, the 50&#8202;ms window at each press's "
+                       "middle. Shear along $\\mathbf t_1$, $\\mathbf t_2$.")
+    t5 = table(["Rest (s)", "Offset (&#181;T)", "Shift (&#181;m)", "Tilt (mrad)", "Rigid fit residual (%)", "Estimator reads"],
+               [[f"{r['t0']:.1f}&#8211;{r['t1']:.1f}", f"{r['offset_uT']:.1f}", f"{np.linalg.norm(r['translation_um']):.1f}",
+                 f"{np.linalg.norm(r['tilt_mrad']):.1f}", f"{r['residual_pct']:.0f}",
+                 (f"{r['read_as']['f_n']:.1f}&#8202;N at ({', '.join(f'{v:.1f}' for v in r['read_as']['p'])})"
+                  if r["read_as"] else "no contact")] for r in rests[1:]],
+               num_cols=(0, 1, 2, 3, 4), n=5,
+               caption=f"The rests after the presses of Figure 5 against the first rest ({rests[0]['t0']:.1f}&#8211;"
+                       f"{rests[0]['t1']:.1f}&#8202;s): the rigid motion of all five magnets together and a uniform field "
+                       f"fitted to each offset (Eq. 8; 9 parameters for 15 components), and the whole-surface "
+                       f"estimator's reading of it. Random 15-component patterns leave a median residual of "
+                       f"{se['random_residual_pct'][0]:.0f}&#8202;% and 1&#8202;% of them below "
+                       f"{se['random_residual_pct'][1]:.0f}&#8202;%.")
 
     cmd = ("<pre class=\"cmd\">~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py\n"
-           "    # open http://localhost:8790; keys b (new baseline), c (recalibrate at rest), r (record the stream)\n"
+           "    # open http://localhost:8790; keys b (new baseline), c (recalibrate at rest), r (record a CSV)\n"
            "~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py --replay REC.csv --http 8791\n"
+           "~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/pad_shift_check.py REC.csv   # or a stream log, --t0 --t1\n"
            "~/miniconda3/bin/python scripts/fingertip_contact_estimation_study.py      # the numbers of this page\n"
-           "~/miniconda3/envs/femtip/bin/python scripts/fingertip_wrench_fe.py         # the FE basis, 27 s, 2.0 GB</pre>")
+           "~/miniconda3/envs/femtip/bin/python scripts/fingertip_wrench_fe.py --surface   # the surface basis, 101 s, 2.0 GB</pre>")
 
     S = []
     S.append(("terms", "Terms and metrics", terms))
@@ -303,85 +419,139 @@ def build():
               + fig(2, MEDIA / "20261020-rest_fit.png",
                     "The reading at rest per chip axis, measured with the pad as found and modelled by the best fit (labels: "
                     "address, fitted position, axis).")))
-    S.append(("estimator", "Contact model and estimator",
-              f"<p>A contact at face point $\\mathbf u$ with force $\\mathbf f$ moves each magnet rigidly by $G(\\mathbf u)"
-              f"\\mathbf f$, taken from the FE of concept b's pad: the gyroid infill's homogenized stiffness, the back fixed, "
-              f"$E^*={fe['E_star_MPa']:.1f}$&#8202;MPa from the pressure law and an approach of {fe['approach_1N_um']:.0f}"
-              f"&#8202;&#181;m at 1&#8202;N. The basis has {fe['patch_centres']} patch centres on a 1&#8202;mm grid with three "
-              f"loads each (Gaussian traction of $\\sigma={fe['sigma_mm']}$&#8202;mm, 1&#8202;N), {fe['load_cases']} load "
-              f"cases on one factorization of {fe['n_dof']:,} degrees of freedom (27&#8202;s, 2.0&#8202;GB), and keeps every "
-              f"load's displacement at {fe['display_nodes']} face nodes for the viewer. The field model turns the motions "
-              f"into the sensitivity $S(\\mathbf u)$, interpolated onto a 0.25&#8202;mm grid (Eq. 4).</p>{eq4}"
-              f"<p>A background change $\\Delta\\mathbf g$ reaches every chip through its rotation, and a strength change "
-              f"$\\varepsilon$ scales the rest reading. At each grid point the force and the four nuisance values enter "
-              f"linearly and follow from weighted least squares ($W=\\Sigma^{{-1}}$, the noise per axis); the contact point "
-              f"maximizes the explained chi-square (Eq. 5) and is refined continuously within one grid step, and the Fisher "
-              f"information gives its uncertainty (Eq. 6). A contact must press ($f_\\mathrm{{press}}>0$). One estimate "
-              f"takes {n52['frame_ms']:.1f}&#8202;ms.</p>{eq5}{eq6}"))
+    S.append(("fe", "FE basis over the pad's surface",
+              f"<p>A contact at surface point $\\mathbf p$ with force $\\mathbf f$ moves each magnet rigidly by "
+              f"$M(\\mathbf p)\\mathbf f$, taken from the FE of concept b's pad: the gyroid infill's homogenized stiffness, "
+              f"the cut face and the mount face fixed, $E^*={fe['E_star_MPa']:.1f}$&#8202;MPa from the pressure law and an "
+              f"approach of {fe['approach_1N_um']:.0f}&#8202;&#181;m at 1&#8202;N. The first basis loaded {fe['patch_centres']} "
+              f"points of a 1&#8202;mm grid on the palmar face. The basis of the estimator now loads the surface points of the "
+              f"tip's {fs['pads']} sphere pads in front of the cut face, the contact model of the simulations "
+              f"({fs['area_mm2']:.0f}&#8202;mm&#178;: {fs['regions']['face']} on the face, {fs['regions']['edge']} on the "
+              f"edge, {fs['regions']['sides']} on the sides). Each takes 1&#8202;N along $x$, $y$ and $z$, spread by a "
+              f"Gaussian of $\\sigma={fe['sigma_mm']}$&#8202;mm over the FE's {fs['surface_nodes']:,} free surface nodes "
+              f"(each node's area projected on its smoothed normal; nodes facing within 73&#176; of the pad's normal): "
+              f"{fs['load_cases']:,} load cases on one factorization of {fs['n_dof']:,} degrees of freedom, 101&#8202;s "
+              f"and 2.0&#8202;GB. On the face its press motions agree with the first basis within "
+              f"{100 * fa['rel_diff_median']:.1f}&#8202;% (median over {fa['points']} points; "
+              f"{100 * fa['rel_diff_p90']:.0f}&#8202;% at the 90th percentile, the paired points "
+              f"{fa['match_mm_median']:.1f}&#8202;mm apart). The normal compliance at the loaded patch is "
+              f"{fs['normal_compliance_um_per_N'][0]:.0f}, {fs['normal_compliance_um_per_N'][1]:.0f} and "
+              f"{fs['normal_compliance_um_per_N'][2]:.0f}&#8202;&#181;m/N at the 5th, 50th and 95th percentiles over the "
+              f"surface; the basis also keeps every load's displacement at the pad points for the viewer.</p>"))
+    S.append(("estimator", "Estimator over the surface",
+              f"<p>The magnet motions are interpolated between the pad points by a thin-plate spline in three dimensions "
+              f"and passed through the linear field model (the change of the 15 components per micrometre and milliradian "
+              f"of each magnet), which gives $S(\\mathbf p)$ (Eq. 4). A background change and a strength change enter "
+              f"through $N$ with a Gaussian prior ($P$: 30&#8202;&#181;T per axis, $3\\times10^{{-3}}$ in strength) so "
+              f"that they cannot take up a press; the face-only estimator projected them out.</p>{eq4}"
+              f"<p>For every candidate point the force follows in closed form (Eq. 5). The candidate is chosen by the log "
+              f"marginal likelihood $\\ell(\\mathbf p)$ with a force prior of $\\sigma_f=3$&#8202;N: without the prior, a "
+              f"point where the reading barely responds explains any pattern with a large enough force, and the determinant "
+              f"charges each point for the patterns it could explain. The force must press, lie within a cone of "
+              f"$\\mu_{{\\max}}=2$ and stay below $f_{{\\max}}=25$&#8202;N. The candidates are the pad points' triangulation with "
+              f"every triangle split 16 times, {sf['as found']['candidates']:,} points about 0.2&#8202;mm apart; one estimate "
+              f"takes {sf['N52, poles one way']['frame_ms']:.1f}&#8202;ms, and the Fisher information gives its "
+              f"uncertainty (Eq. 6).</p>{eq5}{eq5b}{eq6}"))
     S.append(("simulated", "Errors on simulated presses",
-              f"<p>Each configuration was tested on 300 presses generated by the model itself with the measured noise, so "
-              f"Table 2 measures the estimator and the information in the reading, not the model's accuracy against the pad. "
-              f"With N52 magnets and 50&#8202;ms of samples the RMS errors are {n52['rms']['y_mm']:.2f}&#8202;mm, "
-              f"{n52['rms']['f_press_N']:.3f}&#8202;N pressing and {n52['rms']['f_y_N']:.3f} and {n52['rms']['f_z_N']:.3f}"
-              f"&#8202;N in shear; the force errors exceed the model 1-sigma by 1.7&#8211;2.7 times, the position errors "
-              f"by 1.0&#8211;1.9 times. Over the face the model 1-sigma for a 1&#8202;N press has a median of "
-              f"{mp['as found']['f_press_N'][1]:.3f}&#8202;N and {mp['as found']['y_mm'][1]:.2f}&#8202;mm with the magnets as "
-              f"found and {mp['N52, poles one way']['f_press_N'][1]:.3f}&#8202;N and {mp['N52, poles one way']['y_mm'][1]:.2f}"
-              f"&#8202;mm with N52 (Figure 3); the outer rows across the pad, beyond the chips, are 2&#8211;3 times "
-              f"worse.</p>{t2}"
-              + fig(3, MEDIA / "20261020-uncertainty_maps.png",
-                    "Model 1-sigma of the pressing force and of the position for a 1&#8202;N press over the face, with "
-                    "50&#8202;ms of samples. White squares: chips; red circles: magnets.")))
+              f"<p>The simulated presses are readings made by the model itself with the measured noise, so they measure "
+              f"the estimator and the information in the reading, not the model's accuracy against the pad. With N52 "
+              f"magnets the whole-surface estimator places {s52['all']['far_pct']:.0f}&#8202;% of presses away; for the "
+              f"rest the median position error is {s52['face']['pos_median_mm']:.2f}&#8202;mm on the face and "
+              f"{s52['sides']['pos_median_mm']:.2f}&#8202;mm on the sides, and the median press error "
+              f"{s52['face']['press_abs_median_N']:.3f} and {s52['sides']['press_abs_median_N']:.3f}&#8202;N (Table 3). The "
+              f"errors follow the model 1-sigma (ratio {min(v['press_z_rms'] for v in s52.values()):.2f}&#8211;"
+              f"{max(v['press_z_rms'] for v in s52.values()):.2f}); the RMS press error on the sides, "
+              f"{s52['sides']['press_rms_N']:.2f}&#8202;N, comes from a few presses deep on the flanks, where the 1-sigma "
+              f"is largest (Figure 3). With the magnets as found, {saf['all']['far_pct']:.0f}&#8202;% are placed away and "
+              f"the rest have {saf['all']['pos_median_mm']:.2f}&#8202;mm and {saf['all']['press_abs_median_N']:.3f}&#8202;N. "
+              f"The face-only estimator gave {n52f['rms']['y_mm']:.2f}&#8202;mm and {n52f['rms']['f_press_N']:.3f}&#8202;N "
+              f"RMS on the face with N52 (Table 2).</p>{t3}"
+              + fig(3, MEDIA / "20261020-surface_uncertainty.png",
+                    "Model 1-sigma of the pressing force for 1&#8202;N along the normal at each pad point, 50&#8202;ms of "
+                    "samples, seen from the palm and from both sides; colour scales clipped at the 95th percentile. Red "
+                    "circles: magnets; white squares: chips.")
+              + f"<p>Through the viewer's own pipeline the five synthetic presses of Figure 1 return their pressing force "
+                f"within 0.25&#8202;N and their point within 1.2&#8202;mm with the magnets as found (Table 4).</p>{t4}"
+              + f"<p>{t2}</p>"))
     S.append(("quiet", "Behaviour without a press",
-              f"<p>Over 30&#8202;s of the board with the pad untouched ({q['frames']} frames of 50&#8202;ms), the residual "
-              f"after the nuisance terms has a median chi-square of {q['chi2_median']:.1f} against {q['dof']} degrees of "
-              f"freedom, so the noise model holds to about 10&#8202;%. The best spurious contact explains a median "
-              f"chi-square of {q['e_median']:.1f} and a 99th percentile of {q['e_p99']:.1f}; {q['false_contacts']} frame of "
-              f"{q['frames']} exceeds the threshold of {q['threshold']:.0f}. A step of about 5&#8202;&#181;T in the reading "
-              f"at {q['step_s']:.0f}&#8202;s, the finger turning slightly, appears as a background change along $z$ from "
-              f"{q['g_before'][2]:.1f} to {q['g_after'][2]:.1f}&#8202;&#181;T and not as a contact (Figure 4).</p>"
+              f"<p>Over 30&#8202;s of the board with the pad untouched ({q['frames']} frames of 50&#8202;ms), the reading's "
+              f"chi-square against $C$ has a median of {q['chi2_median']:.1f} for 15 components. The best contact the "
+              f"whole-surface estimator finds explains a median chi-square of {q['e_median']:.1f} and a 99th percentile of "
+              f"{q['e_p99']:.1f}; {q['false_contacts']} frame of {q['frames']} exceeds the threshold of 25 (Figure 4).</p>"
               + fig(4, MEDIA / "20261020-no_press.png",
-                    "The estimator over 30&#8202;s without a press: the explained chi-square of the best contact against the "
-                    "threshold (top) and the background change it assigns (bottom).")))
+                    "The whole-surface estimator over 30&#8202;s without a press: the explained chi-square of the best "
+                    "contact against the threshold (top) and the background change it assigns (bottom).")))
+    pk = se["peaks"]
+    S.append(("hand", "Presses by hand with the pad loose in its seat",
+              f"<p>The owner pressed the pad by hand five times in {se['span_s']:.0f}&#8202;s at {se['start'][11:16]} with "
+              f"the viewer recording; the reading departed {min(p_['dB_uT'] for p_ in pk):.0f}&#8211;"
+              f"{max(p_['dB_uT'] for p_ in pk):.0f}&#8202;&#181;T from the preceding rest at the presses (Figure 5). After "
+              f"the first press it returned within {rests[1]['offset_uT']:.0f}&#8202;&#181;T of the first rest; after the "
+              f"fourth and fifth it stayed {rests[2]['offset_uT']:.0f} and {rests[3]['offset_uT']:.0f}&#8202;&#181;T away "
+              f"for the 2&#8211;3&#8202;s of the following rests, without decay. The chips' temperatures, averaged over 1&#8202;s, "
+              f"varied by at most {max(se['temperature_C']):.2f}&#8202;&#176;C over the recording. A rigid motion of the whole magnet set and a "
+              f"uniform field (Eq. 8) reproduce the two large offsets with {rests[2]['residual_pct']:.0f} and "
+              f"{rests[3]['residual_pct']:.0f}&#8202;% residual (Table 5): shifts of "
+              f"{np.linalg.norm(rests[2]['translation_um']):.0f} and {np.linalg.norm(rests[3]['translation_um']):.0f}"
+              f"&#8202;&#181;m and tilts of {np.linalg.norm(rests[2]['tilt_mrad']):.1f} and "
+              f"{np.linalg.norm(rests[3]['tilt_mrad']):.1f}&#8202;mrad. The owner confirmed the pad rocking from side to "
+              f"side in its seat as it was pushed. The FE fixes the pad's cut face, so the estimator explains the "
+              f"offsets as standing contacts of {min(r['read_as']['f_n'] for r in big if r['read_as']):.0f}&#8211;"
+              f"{max(r['read_as']['f_n'] for r in big if r['read_as']):.0f}&#8202;N, and the presses themselves as "
+              f"{min(p_['f_n'] for p_ in pk):.1f}&#8211;{max(p_['f_n'] for p_ in pk):.1f}&#8202;N with the point jumping "
+              f"between the face and the +y flank (Figure 6). The model gives about 26&#8202;&#181;T per newton for a press "
+              f"on the face; whether the pad also gave more field per newton than the model while it moved cannot be told "
+              f"without a reference force.</p>{eq8}{t5}"
+              + fig(5, MEDIA / "20261020-presses_by_hand.png",
+                    f"The owner's recording of {se['start'][:16]}: the reading change from the first rest with the rests "
+                    f"in grey (top), the whole-surface estimator's pressing force and shear where it shows a contact "
+                    f"(middle), and the last rest's offset per chip axis against the rigid motion fitted to it (bottom).")
+              + film(6, MEDIA / "20261020-viewer_session_replay.mp4", MEDIA / "20261020-viewer_session_replay.png",
+                     "The same recording replayed through the viewer: the presses, then the standing contacts the shifted "
+                     "pad leaves (the force arrow is drawn at most 25&#8202;mm long).")))
     S.append(("viewer", "Live viewer in the browser",
-              f"<p>{code('src/morphohand/driver/reskin5x/host/wrench_viewer.py')} reads the board, calibrates at rest and "
-              f"serves the page at http://localhost:8790. The page draws the face deformed by the FE basis at the estimated "
-              f"force (the displacement scaled for display), coloured by the contact pressure of Winkler pads on the face "
-              f"nodes under a sphere pressed at the estimated point (Eq. 7, the stiffness rule of the pad builder v2 with "
-              f"$h_i$ the node's depth below the FE nodes' centroid). It also draws the force arrow, the 1-sigma position "
-              f"ellipse, the magnets in their fitted poles and the chips with their fitted addresses. Figure 1 replays two "
-              f"synthetic presses through the server: 2&#8202;N at (1, 12)&#8202;mm returns 2.03&#8202;N at (1.00, 12.12)"
-              f"&#8202;mm, and (1.5, 0.4, &#8722;0.3)&#8202;N at (&#8722;2, 7)&#8202;mm returns (1.58, 0.39, &#8722;0.37)"
-              f"&#8202;N at (&#8722;1.32, 6.72)&#8202;mm, 0.68&#8202;mm off across against a 1-sigma of 0.61&#8202;mm.</p>{eq7}"
-              + fig(5, MEDIA / "20261020-viewer_board_live.png",
-                    "The viewer on the board at 19:20 on 2026-10-20, with the magnets as found.")
+              f"<p>{code('src/morphohand/driver/reskin5x/host/wrench_viewer.py')} reads the board and calibrates at rest; "
+              f"its page is at http://localhost:8790. The page draws the pad's whole surface deformed by the FE basis at "
+              f"the estimated force (the displacement drawn at most 2&#8202;mm), coloured by the pressure of the sphere pads "
+              f"under a sphere pressed at the estimated point along the normal (Eq. 7, the stiffness rule of the pad builder "
+              f"v2 with $h_i$ the pad's depth below the FE nodes' centroid $\\mathbf x_c$ along its normal). It also draws "
+              f"the force arrow at the contact point, the 1-sigma position ellipse in the tangent plane, the magnets in "
+              f"their fitted poles and the chips with their fitted addresses, and traces of force, contact point and "
+              f"reading. Every record of the stream goes to {code('logs/20261020-contact_estimation/stream/')} as it "
+              f"arrives (88 bytes a record), so a session is kept without pressing r; "
+              f"{code('pad_shift_check.py')} reports the rest offsets of a recording or of a stretch of that log.</p>{eq7}"
               + cmd))
     S.append(("limits", "Limitations",
               "<p>No estimate has been compared with a reference force or position; the errors above are the model against "
               "itself. The rest residual of 0.43&#8202;mT, about 10&#8202;% of the field, shows how well the magnets' geometry "
               "is known, and the sensitivity can be wrong by a similar or larger fraction. The FE is linear elastic with the "
-              "gyroid's homogenized stiffness, without the stiffening of large presses or the infill's local buckling. The "
-              "estimator assumes one contact; a press spread over the pad is reported near its centre of load, and the outer "
-              "millimetre of the face lies outside the FE grid. The background term covers uniform fields only, so a steel "
-              "tool near the pad reads as a contact. The pressure patch assumes a sphere of a chosen radius on Winkler pads, "
-              "and the deformation drawn is the FE's response to a Gaussian patch, not a contact solution. The magnets in the "
-              "pad today are not N52 and their poles are mixed; the N52 rows assume the same geometry with $k=1$ and all "
-              "poles one way.</p>"))
+              "gyroid's homogenized stiffness, without the stiffening of large presses or the infill's local buckling, and "
+              "with the pad's cut face fixed: a pad that moves in its seat breaks the model, as the presses by hand show. "
+              "The cover's walls along the flanks are not in the FE; points behind them are still candidates. The estimator "
+              "assumes one contact; a press spread over the pad is reported near its centre of load. The background term "
+              "covers uniform fields only, so a steel tool near the pad reads as a contact. The pressure patch assumes a "
+              "sphere of a chosen radius on the sphere pads, and the deformation drawn is the FE's response to a Gaussian "
+              "patch, not a contact solution. The magnets in the pad today are not N52 and their poles are mixed; the N52 "
+              "rows assume the same geometry with $k=1$ and all poles one way.</p>"))
     S.append(("future", "Future work",
               "<ul>"
-              "<li>Recalibrate with the N52 magnets (key c in the viewer, or "
-              "<code>fingertip_wrench_model.calibrate</code> on a <code>reskin5x_check.py --out</code> capture). The fit should "
-              "give $k$ near 1, all poles one way and a rest residual below 0.43&#8202;mT; a $k$ well below 1 or a larger "
-              "residual means the magnets' depth or the pad's seat on the board differs from the FE row.</li>"
-              "<li>Ground truth without the UR5: masses of 50&#8211;500&#8202;g on a printed 3&#8202;mm stylus at marked points "
-              "of a printed grid jig give the pressing force and position. Errors beyond 2&#8211;3 model sigmas falsify the "
-              "model at that point.</li>"
-              "<li>The UR5 session with the HEX-E sensor: a grid of points, forces and shear directions; refit $k$, "
-              "$\\boldsymbol\\delta$, $\\theta_0$, $E^*$ (which scales $S$ by $1/E^*$) and per-magnet strengths on part of it, "
-              "and compare the held-out errors with the model 1-sigma. A learned residual correction only if these physical "
-              "parameters leave a structured error.</li>"
+              "<li>Seat: with the pad fixed in its seat, record five firm presses with 2&#8202;s rests and run "
+              "<code>pad_shift_check.py</code> on it. Rest offsets of a few &#181;T pass; offsets of tens of &#181;T that a "
+              "rigid motion fits mean the pad still moves.</li>"
+              "<li>N52 magnets: recalibrate (key c). The fit should give $k$ near 1, all poles one way and a rest residual "
+              "below 0.43&#8202;mT; a $k$ well below 1 or a larger residual means the magnets' depth or the pad's seat on "
+              "the board differs from the FE row.</li>"
+              "<li>A force reference without the UR5: a kitchen scale under one of the printed indenters, the finger "
+              "pressed onto it at the face centre, a flank and the tip end at about 1, 2 and 4&#8202;N, with the scale's "
+              "reading written down for each hold. The ratio of the estimated to the scale's force at each point tests "
+              "$E^*$ and $k$; errors beyond 2&#8211;3 model sigmas falsify the model there.</li>"
+              "<li>The UR5 session with the HEX-E sensor, on the robot's computer: points over the face and both flanks "
+              "taken from the basis's pad points, three normal forces and two shear directions each, a return to a "
+              "reference point every ten presses for drift, and 30&#8202;s rests for the pad's recovery; refit $k$, "
+              "$\\boldsymbol\\delta$, $\\theta_0$, $E^*$ and per-magnet strengths on half of it and compare the other half's "
+              "errors with the model 1-sigma.</li>"
               "<li>Large presses: the FE row's rod responses at 0.5, 1 and 3&#8202;N give the stiffening as a force-magnitude "
-              "correction, to be checked against the masses.</li>"
+              "correction, to be checked against the reference.</li>"
               "<li>Temperature: warm the pad at rest (a hand around it) and check that $\\varepsilon$ takes up the drift "
               "without a contact.</li></ul>"
               f"<p>Status of the printed-fingertip work: {link(STATUS_PAGE, 'status page')}.</p>"))
@@ -392,12 +562,14 @@ def build():
     for k, v in {"TITLE": "Model-based contact estimation",
                  "H1": "Model-based estimation of contact position and force on the magnetic fingertip",
                  "EYEBROW": "Printed fingertips and force sensing &#183; 2026-10-20", "LEDE": lede,
-                 "BYLINE": f"Built {time.strftime('%Y-%m-%d %H:%M')} from results.json ({res['when']}); the field readings "
-                           f"are measured, the presses simulated.",
-                 "FILM": film(1, MEDIA / "20261020-viewer_synthetic_presses.mp4", MEDIA / "20261020-viewer_synthetic_presses.png",
-                              "The browser viewer replaying two synthetic presses made by the model with the measured noise "
-                              "(Section 7): the estimated force arrow, the 1-sigma ellipse, the FE deformation drawn 20 times "
-                              "and the pad pressure on a 300&#8202;kPa scale."),
+                 "BYLINE": f"Built {time.strftime('%Y-%m-%d %H:%M')} from results.json ({res['when']}); the readings at "
+                           f"rest and the presses of Section 8 are measured, the other presses simulated.",
+                 "FILM": film(1, MEDIA / "20261020-viewer_surface_presses.mp4", MEDIA / "20261020-viewer_surface_presses.png",
+                              "The browser viewer replaying five synthetic presses made by the model with the measured noise "
+                              "and the magnets as found (Table 4): the palmar face, the +y flank, the face's edge on the -y "
+                              "side (behind the pad in this view), the tip end and a press with shear along the finger. "
+                              "Arrow: estimated force; ring: 1-sigma position ellipse; colour: pad pressure on a 300&#8202;kPa "
+                              "scale; deformation drawn 20 times, at most 2&#8202;mm."),
                  "TOC": toc, "SECTIONS": secs, "FOOTER": str(PAGE.relative_to(ROOT)), "TEXCSS": texsvg.CSS}.items():
         page = page.replace("{{" + k + "}}", v)
     items = [((m.group(1) if m.group(1) is not None else m.group(2)).strip(), m.group(1) is not None)

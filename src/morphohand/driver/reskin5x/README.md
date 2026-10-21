@@ -127,10 +127,24 @@ directory.
 
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py   # then open http://localhost:8790
 
-The viewer calibrates the measurement model from 2 s at rest (keep the pad untouched), then shows the estimated contact
-point and force, the FE deformation and the pad pressure in the browser; keys b (new baseline), c (recalibrate at rest),
-r (record the stream for `--replay`). The model, the estimator and their errors are on the page
+The viewer calibrates the measurement model from 2 s at rest (keep the pad untouched; press c to repeat), then shows the
+estimated contact point and force anywhere on the pad's surface, sides included, the FE deformation and the pad pressure
+in the browser; keys b (new baseline), c (recalibrate at rest), r (write the stretch between two presses of r as a CSV
+for `--replay`). Every record of the stream also goes to `logs/20261020-contact_estimation/stream/<start>-stream.bin`
+(88 bytes a record: host time float64, 5 x [t x y z] float32; `wrench_viewer.read_stream` reads it), so a session is
+kept without pressing r. The model, the estimator and their errors are on the page
 `docs/experiments/20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html`.
+
+A pad that moves in its seat leaves an offset after each press, which the estimator reads as a standing contact. To check
+the seat, record about 2 s untouched, then five firm presses at different spots, each under a second and followed by at
+least 2 s untouched, and run
+
+    ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/pad_shift_check.py <recording>.csv
+    ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/pad_shift_check.py <stream>.bin --t0 120 --t1 180
+
+It lists every rest's offset from the first rest and the rigid motion of the whole pad that fits it. Offsets of a few uT
+pass; the loose pad of 2026-10-20 left 62 and 104 uT, fit by shifts of 17 and 23 um and tilts of about 4 mrad. The model
+gives about 26 uT for 1 N on the face.
 
 ## Register settings
 
@@ -152,5 +166,5 @@ conversion (5 to 222 ms after start-up in four boots); a read that returns no co
 
 The workstation's board answers at 0x0C, 0x10, 0x11, 0x12 and 0x13 and streams 0x0C, 0x11, 0x12, 0x13, 0x10; a board at
 0x0C to 0x10 streams them in address order. The visualizer draws the five chips at the centre, left, right, top and
-bottom of its board image in that order; 0x0C, the only -011 part, is U1 at the centre. Which of 0x10 to 0x13 is U2 to U5
-on this board has not been measured; a magnet held over one chip at a time shows it.
+bottom of its board image in that order; 0x0C, the only -011 part, is U1 at the centre. The rest fit of 2026-10-20 places 0x11 at U3, 0x12 at
+U5, 0x13 at U2 and 0x10 at U4 (contact estimation page, Table 1); a magnet held over one chip at a time would confirm it.

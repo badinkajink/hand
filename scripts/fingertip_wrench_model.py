@@ -396,15 +396,19 @@ class SurfaceEstimator:
     newton at 812 pad points) interpolated over the surface (thin-plate spline in 3-D) and passed through the linear field
     model (Model.motion_jacobian). N = [U, b0] are the nuisance directions (a uniform field change, a relative change
     of the magnets' strength) with a Gaussian prior q ~ N(0, diag(sigma_g^2 I, sigma_eps^2)) in place of projecting them
-    out, so that they cannot take up a press. With C = diag(sigma^2) + N P N^T the covariance of everything but the
-    contact, the force at each candidate point is the generalized least-squares solution, and p maximizes the explained
-    energy e(p) = d^T C^-1 S (S^T C^-1 S)^-1 S^T C^-1 d among the points where the force presses (f . n < 0) and lies
-    within the cone |f_t| <= mu_max |f_n|. Candidates are the pad points' triangulation split 16 times (about 0.2 mm)."""
+    out, so that they cannot take up a press, and the force has a Gaussian prior f ~ N(0, sigma_f^2 I). With C =
+    diag(sigma^2) + N P N^T the covariance of everything but the contact, G = S^T C^-1 S and t = S^T C^-1 d, the force at
+    each candidate point is the posterior mean f = (G + I / sigma_f^2)^-1 t, and p maximizes the log evidence
+    2 ln p(d | p) + const = t^T f - ln det(I + sigma_f^2 G) among the points where f presses (f . n < 0) and lies within
+    the cone |f_t| <= mu_max |f_n| and below f_max in magnitude. Without the prior a point where the reading barely
+    responds explains any pattern with a large enough force; the determinant charges points for the patterns they could
+    explain. e = t^T f is the explained energy. Candidates are the pad points' triangulation split 16 times (about
+    0.2 mm); mask(points, normals) may drop some (the flanks behind the cover's walls)."""
 
     def __init__(self, model: Model, basis: dict, levels=2, noise_uT=NOISE_UT, sigma_g_uT=30.0, sigma_eps=3e-3,
-                 mu_max=2.0, mask=None):
+                 mu_max=2.0, sigma_f_N=3.0, f_max_N=25.0, mask=None):
         from scipy.interpolate import RBFInterpolator
-        self.model, self.basis, self.mu_max = model, basis, mu_max
+        self.model, self.basis, self.mu_max, self.sigma_f, self.f_max = model, basis, mu_max, sigma_f_N, f_max_N
         P, Nn = basis["pts"], basis["normals"]
         nm = basis["motions"].shape[2]
         self.rbf = RBFInterpolator(P, basis["motions"].reshape(len(P), -1), kernel="thin_plate_spline", degree=1)
@@ -436,7 +440,9 @@ class SurfaceEstimator:
         self.Linv = np.linalg.inv(np.linalg.cholesky(Cov))
         self.Cinv = self.Linv.T @ self.Linv
         self.Sw = np.einsum("ij,njk->nik", self.Linv, self.S)
-        self.Ginv = np.linalg.inv(np.einsum("nik,nil->nkl", self.Sw, self.Sw))
+        G = np.einsum("nik,nil->nkl", self.Sw, self.Sw)
+        self.Ginv = np.linalg.inv(G + np.eye(3) / self.sigma_f ** 2)
+        self.logdet = np.linalg.slogdet(np.eye(3) + self.sigma_f ** 2 * G)[1]
 
     def estimate(self, d):
         """Best contact for reading change d: dict with contact (bool), p, n (mm, tip frame), f (N, tip frame), f_n (the
@@ -449,12 +455,13 @@ class SurfaceEstimator:
         e = np.einsum("nk,nk->n", T, f)
         fn = np.einsum("nk,nk->n", f, self.Cn)
         ft = np.linalg.norm(f - fn[:, None] * self.Cn, axis=1)
-        e[(fn >= 0) | (ft > self.mu_max * -fn)] = -np.inf
+        score = e - self.logdet
+        score[(fn >= 0) | (ft > self.mu_max * -fn) | (np.einsum("nk,nk->n", f, f) > self.f_max ** 2)] = -np.inf
         out = dict(chi2_none=float(dw @ dw))
-        if not np.isfinite(e).any():
+        if not np.isfinite(score).any():
             q = self.Pq @ self.Nu.T @ self.Cinv @ d
             return dict(out, contact=False, e=0.0, g_uT=q[:3].tolist(), eps=float(q[3]))
-        k = int(np.argmax(e))
+        k = int(np.argmax(score))
         p, n, t1, t2, fk = self.C[k], self.Cn[k], self.T1[k], self.T2[k], f[k]
         h = 0.2
         Sd = self._S(np.stack([p + h * t1, p - h * t1, p + h * t2, p - h * t2]))
@@ -462,10 +469,10 @@ class SurfaceEstimator:
         D2 = self.Linv @ ((Sd[2] - Sd[3]) / (2 * h))
         J = np.c_[self.Sw[k], D1 @ fk, D2 @ fk]
         try:
-            cov = np.linalg.inv(J.T @ J)
+            cov = np.linalg.inv(J.T @ J + np.diag([1 / self.sigma_f ** 2] * 3 + [0, 0]))
         except np.linalg.LinAlgError:
             cov = np.full((5, 5), np.nan)
         q = self.Pq @ self.Nu.T @ self.Cinv @ (d - self.S[k] @ fk)
         return dict(out, contact=True, p=p.tolist(), n=n.tolist(), t1=t1.tolist(), t2=t2.tolist(), f=fk.tolist(),
                     f_n=float(-fk @ n), f_t=[float(fk @ t1), float(fk @ t2)], cov=cov.tolist(), e=float(e[k]),
-                    g_uT=q[:3].tolist(), eps=float(q[3]), index=k)
+                    log_evidence=float(score[k]), g_uT=q[:3].tolist(), eps=float(q[3]), index=k)
