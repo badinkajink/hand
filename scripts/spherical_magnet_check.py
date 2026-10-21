@@ -201,6 +201,46 @@ def neighbour_torque(row, D):
     return dict(moment_mA_m2=round(1e3 * m, 2), magnets=out)
 
 
+def chip_range(R):
+    """Why larger magnets overflow the chips (2026-10-21, owner: "that doesnt seem right that the field would be too
+    strong"): the datasheet's saturation onset, the usable field of the gain rule, the axial field of each sphere at U1's
+    distance and the distance it needs, a disc's dipole error by thickness and distance, the press as a fraction of the
+    static field, and four 4 mm spheres with their tops at the discs' tops."""
+    row = R["bm_five_d75"]
+    P, C = chips_mm(), centres_mm(row)
+    r_u1 = float(np.linalg.norm(C - P[0], axis=1).min())
+    x_u1 = float(C[2, 0] - P[0, 0])                              # the centre magnet's axial distance to U1
+    usable = min(min(MLX.range_mT(0, 1)), 4.8 * MLX.SENS[0][1][0] / MLX.SENS[7][0][0]) / 1.25
+    pole_T = 2 / 3 * FW.BR
+    axis = []
+    for D in (2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0):
+        a = D / 2
+        axis.append(dict(D_mm=D, volume_mm3=round(math.pi / 6 * D ** 3, 2), field_at_U1_mT=round(1e3 * pole_T * (a / x_u1) ** 3, 1),
+                         distance_for_usable_mm=round(a * (1e3 * pole_T / usable) ** (1 / 3), 2),
+                         distance_for_50mT_mm=round(a * (1e3 * pole_T / 50.0) ** (1 / 3), 2)))
+    disc = []
+    for L in (1.0, 2.0, 2.6, 3.0):
+        for z in (3.0, 4.4, x_u1, 7.0, 10.0):
+            f = lambda u: u / math.hypot(u, 1.5)                  # noqa: E731
+            ex = FW.BR / 2 * (f(z + L / 2) - f(z - L / 2))
+            dip = 2e-7 * FW.BR * math.pi * 1.5e-3 ** 2 * (L * 1e-3) / MU0 / (z * 1e-3) ** 3
+            disc.append(dict(d_mm=3.0, t_mm=L, z_mm=round(z, 2), exact_mT=round(1e3 * ex, 3), dipole_err_pct=round(100 * (dip / ex - 1), 2)))
+    me = model_error(row)
+    rest, press = np.array(me["rest_uT"]), np.array(me["press_uT_per_N"])
+    four = R["bm_four_d75"]
+    C4 = centres_mm(four)
+    m4 = FW.BR * math.pi / 6 * (4e-3) ** 3 / MU0
+    lowered = float(np.abs(FW.dipole_field(P, C4 - np.array([1.0, 0, 0]), np.tile([m4, 0.0, 0.0], (len(C4), 1)))).max() * 1e3)
+    return dict(saturation_onset_mT=50.0, datasheet="MLX90393 rev. 012, ABA-0xx standard IMC (logs/20261013-mlx/mlx90393.pdf)",
+                lowest_gain_range_mT=round(usable * 1.25, 2), usable_mT=round(usable, 2), pole_field_T=round(pole_T, 3),
+                U1_axial_mm=round(x_u1, 2), U1_nearest_mm=round(r_u1, 2),
+                chip_to_apex_mm=round(MS.TD.X_FACE - P[0, 0], 2), sphere_axis=axis, disc_dipole_error=disc,
+                press_fraction_pct_per_N=[round(float(100 * np.linalg.norm(press[k]) / np.linalg.norm(rest[k])), 3) for k in range(5)],
+                five_disc_exact_max_mT=sense_cylinder_exact(row)["B_max_component_mT"],
+                four_sphere4_top_at_disc_top_max_mT=round(lowered, 1),
+                sphere4_equivalent_discs_mm=[[4.0, round(math.pi / 6 * 64 / (math.pi * 4), 2)], [3.0, round(math.pi / 6 * 64 / (math.pi * 2.25), 2)]])
+
+
 def main():
     t0 = time.time()
     R = rows()
@@ -235,6 +275,8 @@ def main():
     print("3 mm sphere, top at the cylinder's top:", out["sphere_3_top_at_cylinder_top"], flush=True)
     out["neighbour_torque"] = {f"{D:g}": neighbour_torque(R["bm_five_d75"], D) for D in (3.0,)}
     print("torque on 3 mm spheres:", out["neighbour_torque"]["3"], flush=True)
+    out["range"] = chip_range(R)
+    print("range:", json.dumps(out["range"])[:600], flush=True)
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / "20261021-spherical_magnet_check.json"
     path.write_text(json.dumps(out, indent=1) + "\n")
