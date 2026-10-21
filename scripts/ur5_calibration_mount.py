@@ -163,17 +163,32 @@ if REV == "v2":
         cr_neck_clear=0.5,          # the neck's back to the back plate (v2: the tongue alone is the datum)
         cr_clear_y=0.20, cr_rail_t=2.5, cr_x0=3.0, cr_x1=15.0,   # rails beside the tongue and the neck
         cr_lip_gap=0.6, cr_lip_t=6.0, cr_lip_x0=4.5, cr_screw_x=7.0,   # lip under the tongue's end, M3 x 8 pusher
-        home_d=6.3, home_depth=8.0, home_ch=0.6, home_zm=42.0,   # homing socket in the column's palmar face
-        fork_style="ears",          # "ears": v1's fork, slid on along the tool axis, with the clamp plate, no key, the ears an
+        # homing (owner, 2026-10-20 18:55: "the slot and shaft shouldnt be round, this leads to orientation uncertainty. we
+        # need to be able to clock the finger exactly"): a rectangular socket in the column's palmar face and a key on each
+        # indenter's post, every face drafted home_draft so the key seats on its faces; the key's ends home_end_relief short
+        # of the socket's, so its long faces (y_F) always seat: they fix y and the turn about the pin's axis
+        home_key=(8.0, 18.0),       # socket mouth: width along y_F, length along the tool axis (mm)
+        home_draft=20.0, home_end_relief=0.15,
+        home_depth=5.3, home_floor_gap=0.8, home_key_below=1.0, home_zm=38.0, post_margin=3.0,
+        fork_style="mold",          # "mold" (owner, 18:55: "i thought you should try adding a perimeter volume so that it also
+        #                             'clocks' the dip link. the set screw i again am worried could affix the dip link
+        #                             incorrectly"): the ears fork with walls around both legs' outlines and no set screw;
+        #                             "ears": v1's fork, slid on along the tool axis, with the clamp plate, no key, the ears an
         #                             outside mold on the link's base (owner, 15:40: "what the hell happened to the standoff
         #                             fork? i have no idea how the dip link is supposed to mount to this now"); "cradle": the
         #                             U-channel on the tongue of 2026-10-20 14:30, the link going in along x
         ear_gap=0.2,                # the ears' inner faces this far from the link's palmar (x_F -10.55) and dorsal (9.45) faces
         ear_z_low=-67.5,            # the ears reach 0.2 below the bridge's underside
         ib_r_b=13.40,               # inner block's arc about the PIP axis: 0.05 above b's bridge (13.45), the z stop
-        push_y=-8.0, push_z=-65.5,  # M3 set screw through the dorsal ear onto the bridge's back, beside the cable's groove
-        post_d=6.0, post_base_d=12.0, post_pin_h=8.5, post_dy=30.0, home_dz=5.0,   # homing post on the indenters' bases;
-        #                                          the pin bottoms in the socket with its shoulder 0.5 mm short of the column
+        push_y=-8.0, push_z=-65.5,  # M3 set screw through the dorsal ear onto the bridge's back (fork_style "ears" only)
+        post_dy=30.0, home_dz=5.0,  # at homing the contact point stands post_dy to the side of the indenter and home_dz above it
+        mold_gap=0.15,              # fork_style "mold": its walls this far from each leg's outline in the leg's plane (x-z),
+        #                             the outline swept along the tool axis, so the link still slides on
+        mold_short=0.2,             # the walls stop this far short of each leg's outer face: the clamp plate and the slotted
+        #                             arm's screw press the legs onto the inner block (the y datum), not onto the walls
+        mold_close=3.2,             # notches in a leg's outline narrower than twice this are closed first (the horn slot,
+        #                             5.0-5.8 mm: no key in it)
+        mold_z=(-67.5, -40.0),      # z_F range of the walls
     )
 MATERIAL = dict(pla_density_g_cm3=1.24, pla_E_MPa=2500.0, pla_nu=0.35,
                 src="PLA: density 1.24 g/cm3 (filament); E 2.5 GPa for 100 % printed PLA, the lower end of 2.5-3.5 GPa")
@@ -276,6 +291,10 @@ class MeshK:
                 parts.append(self.cyl("y", (x, z), r, y0, y1))
         return self.union(parts)
 
+    def hull(self, pts):
+        """Convex solid of two parallel quadrilaterals pts[:4] and pts[4:] (corners in the same order)."""
+        return self.M.Manifold.hull_points([[float(v) for v in q] for q in pts])
+
 
 class BrepK(MeshK):
     """FreeCAD Part, inside freecadcmd: exact solids for the STEP files."""
@@ -309,6 +328,10 @@ class BrepK(MeshK):
         pts = [self.V((x, y0, z)) for x, z in poly]
         face = self.Part.Face(self.Part.makePolygon(pts + [pts[0]]))
         return face.extrude(self.V((0, y1 - y0, 0)))
+
+    def hull(self, pts):
+        wires = [self.Part.makePolygon([self.V(q) for q in quad] + [self.V(quad[0])]) for quad in (pts[:4], pts[4:])]
+        return self.Part.makeLoft(wires, True)
 
     def union(self, parts):
         parts = list(parts)
@@ -386,6 +409,114 @@ def key_poly(p=P, z_top=None):
     return [(-h(SLOT_END_Z), SLOT_END_Z), (h(SLOT_END_Z), SLOT_END_Z), (h(z_top), z_top), (-h(z_top), z_top)]
 
 
+def frustum(K, axis, c, h0, h1, a0, a1):
+    """Rectangular frustum along axis from a0 to a1, its half-sizes h0 at a0 and h1 at a1 along the other two coordinates (in
+    xyz order), centred on c (those two coordinates)."""
+    pts = []
+    for a, (hu, hv) in ((a0, h0), (a1, h1)):
+        for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+            u, v = c[0] + su * hu, c[1] + sv * hv
+            pts.append({"x": (a, u, v), "y": (u, a, v), "z": (u, v, a)}[axis])
+    return K.hull(pts)
+
+
+def home_halves(d, key=False, p=P):
+    """Half-sizes (across the finger, along the tool axis) of the homing socket, or of the key seated in it, d mm into the
+    column from its palmar face (d < 0: outside the column)."""
+    t = math.tan(math.radians(p["home_draft"]))
+    w, l_ = p["home_key"]
+    return (w / 2 - d * t, l_ / 2 - d * t - (p["home_end_relief"] if key else 0.0))
+
+
+def homing_socket(K, p=P):
+    """The homing socket in F: along x_F from 1 mm outside the column's palmar face to home_depth into it."""
+    fx = p["fp_x"]
+    return frustum(K, "x", (Y_AXIS, zF(p["home_zm"])), home_halves(-1.0, p=p), home_halves(p["home_depth"], p=p),
+                   -fx - 1.0, -fx + p["home_depth"])
+
+
+LEG_LAYERS = (   # the legs' layers: name, y_F range of the link's sections, which wall face stops short of the leg's outer face
+    ("horn_outer", (OUTER[0], OUTER[1]), "y0"),
+    ("horn_slot", (SLOT[0], SLOT[1]), None),
+    ("horn_inner", (INNER[0], -16.95), None),        # to the inner block's face
+    ("slotted", (13.30, ARM_SLOTTED[1]), "y1"),      # from the inner block's face
+)
+
+
+def leg_molds(p=P):
+    """fork_style "mold": x-z polygons of the walls around the DIP link's two legs, per layer of the legs (F). In each layer
+    the sections of both b links (v2 and v3; their legs are the CAD hand link's) at 0.1 mm steps in y are united with their
+    holes filled, the horn slot filled to its walls' top (no key in it) and other notches narrower than 2 mold_close closed,
+    the outline swept down along -z_F
+    (the link slides on along +z_F, so the walls never meet it on the way), widened by mold_gap and cut from the block
+    |x_F| <= fp_x, z_F in mold_z. Cached in cad/<PFX>_leg_molds.json, which the STEP build reads (freecadcmd has neither
+    trimesh nor shapely)."""
+    path = CAD / f"{PFX}_leg_molds.json"
+    key = dict(gap=p["mold_gap"], short=p["mold_short"], close=p["mold_close"], z=list(p["mold_z"]), fp_x=p["fp_x"],
+               slot_filled=True)
+    if path.exists():
+        d = json.loads(path.read_text())
+        if d.get("params") == key:
+            return d["layers"]
+    import trimesh
+    from shapely import affinity
+    from shapely.geometry import Polygon, box as sbox
+    from shapely.ops import unary_union
+    srcs = ("v2/b/cad/20261018-dip_link_v2b_dip_link.stl", "v3/b/cad/20261020-dip_link_v3b_dip_link.stl")
+    links = [trimesh.load(DIP / f, force="mesh") for f in srcs]
+    z0, z1 = p["mold_z"]
+    drop = (z1 - z0) + 40.0
+    layers = []
+    for name, ys, short in LEG_LAYERS:
+        loops = []
+        for m in links:
+            for y in np.arange(ys[0] + 0.02, ys[1] - 0.019, 0.1):
+                sec = m.section(plane_origin=[0.0, float(y), 0.0], plane_normal=[0.0, 1.0, 0.0])
+                if sec is None:
+                    continue
+                for ent in sec.entities:
+                    q = sec.vertices[ent.points][:, [0, 2]]
+                    if len(q) >= 4:
+                        g = Polygon(q).buffer(0)
+                        if g.area > 0.01:
+                            loops.append(g)                       # outer loops and holes alike: the union fills the holes
+        if name == "horn_slot":                           # the horn slot filled to its walls' top: nothing enters it
+            hw = slot_half(SLOT_TOP) + 0.05
+            loops.append(sbox(-hw, SLOT_END_Z - SLOT_END_R - 0.05, hw, SLOT_TOP))
+        U = unary_union(loops)
+        r = p["mold_close"]
+        U = U.buffer(r, join_style=1).buffer(-r, join_style=1)
+        sweep = []
+        for g in (U.geoms if hasattr(U, "geoms") else [U]):
+            ext = np.asarray(g.exterior.coords)
+            sweep += [Polygon(ext), affinity.translate(Polygon(ext), 0.0, -drop)]
+            for a_, b_ in zip(ext[:-1], ext[1:]):
+                if abs(b_[0] - a_[0]) > 1e-9:
+                    sweep.append(Polygon([tuple(a_), tuple(b_), (b_[0], b_[1] - drop), (a_[0], a_[1] - drop)]).buffer(0))
+        S = unary_union(sweep).buffer(p["mold_gap"], join_style=1)
+        walls = sbox(-p["fp_x"], z0, p["fp_x"], z1).difference(S)
+        polys = []
+        for g in (walls.geoms if hasattr(walls, "geoms") else [walls]):
+            if g.area < 0.5:
+                continue
+            g = g.simplify(0.005, preserve_topology=True)
+            if len(g.interiors):
+                raise RuntimeError(f"{name}: a wall with a hole")
+            polys.append(np.round(np.asarray(g.exterior.coords)[:-1], 4).tolist())
+        y0, y1 = ys
+        if short == "y0":
+            y0 = ARM_HORN[0] + p["mold_short"]
+        elif short == "y1":
+            y1 = ARM_SLOTTED[1] - p["mold_short"]
+        layers.append(dict(name=name, sections_y=[round(v, 3) for v in ys], walls_y=[round(y0, 3), round(y1, 3)], polys=polys,
+                           area_mm2=round(float(walls.area), 1)))
+        print(f"leg mold {name}: walls y {y0:.2f}..{y1:.2f}, {len(polys)} pieces, {walls.area:.1f} mm2", flush=True)
+    path.write_text(json.dumps(dict(params=key, layers=layers, sources=[str(Path("docs/experiments/20261018-dip_link_board_mount")
+                                                                            / f) for f in srcs],
+                                    when=time.strftime("%Y-%m-%d %H:%M")), indent=1) + "\n")
+    return layers
+
+
 def cradle(K, p=P):
     """v2: a U-channel below the dorsal ear that takes the DIP link's tongue (owner, 2026-10-20: "a better choice is an
     exterior mold that constrains the outer volume rather than this little rod"): a back plate on the tongue's back face,
@@ -440,18 +571,16 @@ def standoff_fork_v2(K, p=P):
     # the lip's pusher: M3 into a 2.75 mm hole along z
     zb_lip = B_LINK["tongue_end"] - p["cr_lip_gap"]
     cut.append(K.cyl("z", (p["cr_screw_x"], 0.0), p["m3_pilot"] / 2, zb_lip - p["cr_lip_t"] - 1.0, zb_lip + 0.5))
-    # homing socket: along x_F into the column's palmar face, on the finger's mid-plane
-    zh, rh = zF(p["home_zm"]), p["home_d"] / 2
-    cut.append(K.cyl("x", (Y_AXIS, zh), rh, -fx - 1.0, -fx + p["home_depth"]))
-    cut.append(K.cyl("x", (Y_AXIS, zh), rh + p["home_ch"] + 1.0, -fx - 1.0, -fx + p["home_ch"], r1=rh))
+    cut.append(homing_socket(K, p))                       # homing socket: along x_F into the column's palmar face
     return K.cut_all(s, cut)
 
 
 def standoff_fork_v2_ears(K, p=P):
-    """v2, fork_style "ears": v1's foot, column, hub and inner block, the DIP link sliding on along the tool axis between
-    the two ears as in v1, without the key: the ears' inner faces ear_gap from the bridge's palmar and dorsal faces down to
-    below the bridge (an outside mold on the link's base), the inner block's arc 0.05 mm above b's bridge (the z stop), an
-    M3 set screw through the dorsal ear that pushes the bridge onto the palmar ear, and the homing socket."""
+    """v2, fork_style "ears" and "mold": v1's foot, column, hub and inner block, the DIP link sliding on along the tool axis
+    between the two ears as in v1, without the key: the ears' inner faces ear_gap from the bridge's palmar and dorsal faces
+    down to below the bridge, the inner block's arc 0.05 mm above b's bridge (the z stop), and the homing socket. "ears" adds
+    an M3 set screw through the dorsal ear that pushes the bridge onto the palmar ear; "mold" adds walls mold_gap around
+    both legs' outlines (leg_molds), which locate the link in x and in its turns, and has no set screw."""
     c = (0.0, Y_AXIS)
     fx, (fy0, fy1), r = p["fp_x"], p["fp_y"], p["fp_r"]
     z_foot0, z_foot1 = zF(p["ad_t"] + p["foot_t"]), zF(p["ad_t"])
@@ -462,7 +591,13 @@ def standoff_fork_v2_ears(K, p=P):
                  K.box((xp, fy0 - 1, p["ear_z_low"] - 1), (xd, fy1 + 1, p["hub_z0"] + 1)))
     ib = K.inter(K.box((-p["ib_x"] - 0.01, p["ib_y"][0], p["ear_z_low"]), (p["ib_x"] + 0.01, p["ib_y"][1], p["hub_z0"] + 0.01)),
                  K.cyl("y", (0.0, PIP_ZF), p["ib_r_b"], p["ib_y"][0] - 1, p["ib_y"][1] + 1))
-    s = K.union([foot, top, ears, ib])
+    mold = p.get("fork_style") == "mold"
+    # each layer's walls reach slightly into the next layer, whose walls cover that region too (the outer layer's lie inside
+    # the slot layer's, the slot layer's inside the inner layer's), and into the inner block: no coincident faces
+    ext = {"horn_outer": (0.0, 0.02), "horn_slot": (0.0, 0.02), "horn_inner": (0.0, 0.05), "slotted": (-0.05, 0.0)}
+    walls = [K.prism_xz(poly, ly["walls_y"][0] + ext[ly["name"]][0], ly["walls_y"][1] + ext[ly["name"]][1])
+             for ly in leg_molds(p) for poly in ly["polys"]] if mold else []
+    s = K.union([foot, top, ears, ib] + walls)
     cut = []
     cy = p["cab_y"]
     cut.append(K.box((p["cab_x0"], -cy, p["ear_z_low"] - 2), (fx + 1, cy, p["cab_top"])))
@@ -475,23 +610,23 @@ def standoff_fork_v2_ears(K, p=P):
         for sgn in (-1, 1):
             ya, yb = sorted((sgn * p["tie_side"][0], sgn * p["tie_side"][1]))
             cut.append(K.box((p["tie_x"][0], ya, za), (fx + 1, yb, zb)))
-    for sx in (-1, 1):                                   # the clamp plate's screws into the ears, as v1
-        cut.append(K.cyl("y", (sx * p["cp_screw_x"], p["cp_screw_z"]), p["m3_pilot"] / 2, fy0 - 1, fy0 + p["ear_hole_depth"]))
+    ys0 = min(fy0, ARM_HORN[0] + p["mold_short"]) if mold else fy0
+    for sx in (-1, 1):                                   # the clamp plate's screws into the ears (through the horn walls)
+        cut.append(K.cyl("y", (sx * p["cp_screw_x"], p["cp_screw_z"]), p["m3_pilot"] / 2, ys0 - 1, fy0 + p["ear_hole_depth"]))
     cut.append(K.cyl("y", (0.0, PIP_ZF), p["m3_pilot"] / 2, p["ib_y"][1] - p["sl_hole_depth"], p["ib_y"][1] + 1))
     for a in m3_angles(p):
         x, y = _m_xy(p["m3_r"], a)
         cut.append(K.cyl("z", (x, y), p["m3_clear"] / 2, z_foot0 - 1, z_foot1 + 1))
-    cut.append(K.cyl("x", (p["push_y"], p["push_z"]), p["m3_pilot"] / 2, xd - 0.5, fx + 1.0))
-    zh, rh = zF(p["home_zm"]), p["home_d"] / 2
-    cut.append(K.cyl("x", (Y_AXIS, zh), rh, -fx - 1.0, -fx + p["home_depth"]))
-    cut.append(K.cyl("x", (Y_AXIS, zh), rh + p["home_ch"] + 1.0, -fx - 1.0, -fx + p["home_ch"], r1=rh))
+    if not mold:                                         # the set screw of "ears"
+        cut.append(K.cyl("x", (p["push_y"], p["push_z"]), p["m3_pilot"] / 2, xd - 0.5, fx + 1.0))
+    cut.append(homing_socket(K, p))
     return K.cut_all(s, cut)
 
 
 def standoff_fork(K, p=P):
     """Foot, column and fork in one part."""
     if REV == "v2":
-        return standoff_fork_v2_ears(K, p) if p.get("fork_style") == "ears" else standoff_fork_v2(K, p)
+        return standoff_fork_v2_ears(K, p) if p.get("fork_style") in ("ears", "mold") else standoff_fork_v2(K, p)
     c = (0.0, Y_AXIS)
     fx, (fy0, fy1), r = p["fp_x"], p["fp_y"], p["fp_r"]
     z_foot0, z_foot1 = zF(p["ad_t"] + p["foot_t"]), zF(p["ad_t"])        # foot: z_F -22.55..-16.55
@@ -567,13 +702,14 @@ def indenter(K, kind):
     # overthink that one. it can literally be a slot/rod mating"), its pin seated in the mount's socket when the tip's
     # contact point stands home_dz above the indenter's top and post_dy to the side (the table frame: x along the tool axis
     # toward the tip, z up)
+    # 18:55 the key: a frustum, its long side along the tool axis (x), on a block home_key_below under the socket's mouth
     h = homing(kind)
-    xp, yp, zt = h["post_xy"][0], h["post_xy"][1], h["pin_top_z"]
-    rb, rp_ = P["post_base_d"] / 2, P["post_d"] / 2
-    arm = [K.box((xp - rb - 2.0, -12.0, 0.0), (-34.99, 12.0, 6.0)),
-           K.box((xp - rb - 2.0, 11.99, 0.0), (xp + rb + 2.0, yp + rb + 2.0, 6.0))]
-    post = [K.cyl("z", (xp, yp), rb, 5.99, zt - P["post_pin_h"]), K.cyl("z", (xp, yp), rp_, zt - P["post_pin_h"] - 0.01, zt - 0.5),
-            K.cyl("z", (xp, yp), rp_, zt - 0.5, zt, r1=rp_ - 0.5)]
+    xp, yp, zb, zt = h["post_xy"][0], h["post_xy"][1], h["body_top_z"], h["pin_top_z"]
+    k0 = home_halves(-P["home_key_below"] - 0.01, key=True)[::-1]           # (along x, along y) at the block's top
+    k1 = home_halves(P["home_depth"] - P["home_floor_gap"], key=True)[::-1]  # at the key's top
+    bx, by = k0[0] + P["post_margin"], k0[1] + P["post_margin"]
+    arm = [K.box((xp - bx, -12.0, 0.0), (-34.99, 12.0, 6.0)), K.box((xp - bx, 11.99, 0.0), (xp + bx, yp + by, 6.0))]
+    post = [K.rbox_z(xp - bx, xp + bx, yp - by, yp + by, 5.99, zb, 2.0), frustum(K, "z", (xp, yp), k0, k1, zb - 0.01, zt)]
     return K.union([base, top] + arm + post)
 
 
@@ -582,25 +718,33 @@ TIP_TOP = {"sphere": 46.0, "rod": 42.5}         # the indenters' tops above the 
 
 def homing(kind):
     """v2: where the homing post stands on an indenter's base and the move from homing to the contact. With the palmar side
-    down and the tool axis along the base's +x, the socket's floor lies d from the tip's contact point (M -> table: z_M -> x,
-    y_M -> y, x_M -> -z); at homing the contact point stands post_dy to +y and home_dz above the indenter's top, so the pin's
-    top is at that point + d."""
+    down and the tool axis along the base's +x (M -> table: z_M -> x, y_M -> y, x_M -> -z), the socket's mouth on the
+    column's palmar face lies d from the tip's contact point; at homing the contact point stands post_dy to +y and home_dz
+    above the indenter's top, so the mouth is at that point + d. The key's long faces seat where its section equals the
+    socket's, at the mouth's plane; its top stays home_floor_gap short of the socket's floor, its block home_key_below under
+    the mouth, and its ends home_end_relief inside the socket's."""
     a_M = F_to_M(np.array([-10.55, 0.0, B_LINK["z_contact"]]))
+    m_M = F_to_M(np.array([-P["fp_x"], Y_AXIS, zF(P["home_zm"])]))
     s_M = F_to_M(np.array([-P["fp_x"] + P["home_depth"], Y_AXIS, zF(P["home_zm"])]))
-    d = s_M - a_M
-    d_tab = np.array([d[2], d[1], -d[0]])
+    tab = lambda v: np.array([v[2], v[1], -v[0]])                               # noqa: E731
     tip = np.array([0.0, 0.0, TIP_TOP[kind]])
     contact_home = tip + np.array([0.0, P["post_dy"], P["home_dz"]])
-    pin = contact_home + d_tab
-    return dict(contact_M=np.round(a_M, 3).tolist(), socket_floor_M=np.round(s_M, 3).tolist(),
-                contact_to_socket_table=np.round(d_tab, 3).tolist(), post_xy=[round(float(pin[0]), 3), round(float(pin[1]), 3)],
-                pin_top_z=round(float(pin[2]), 3), contact_at_homing_table=np.round(contact_home, 3).tolist(),
+    mouth = contact_home + tab(m_M - a_M)
+    w, l_ = P["home_key"]
+    return dict(contact_M=np.round(a_M, 3).tolist(), socket_mouth_M=np.round(m_M, 3).tolist(), socket_floor_M=np.round(s_M, 3).tolist(),
+                contact_to_mouth_table=np.round(tab(m_M - a_M), 3).tolist(),
+                post_xy=[round(float(mouth[0]), 3), round(float(mouth[1]), 3)], mouth_z=round(float(mouth[2]), 3),
+                pin_top_z=round(float(mouth[2] + P["home_depth"] - P["home_floor_gap"]), 3),
+                body_top_z=round(float(mouth[2] - P["home_key_below"]), 3),
+                socket_mouth_mm=[w, l_], key_at_mouth_mm=[w, round(l_ - 2 * P["home_end_relief"], 3)], draft_deg=P["home_draft"],
+                contact_at_homing_table=np.round(contact_home, 3).tolist(),
                 move_to_touch_table=[0.0, -P["post_dy"], -P["home_dz"]], indenter_top_z=TIP_TOP[kind])
 
 
-PARTS = (("adapter", "standoff_fork", "clamp_plate") if REV == "v1" or P.get("fork_style") == "ears"
+PARTS = (("adapter", "standoff_fork", "clamp_plate") if REV == "v1" or P.get("fork_style") in ("ears", "mold")
          else ("adapter", "standoff_fork"))
 TABLE_PARTS = ("indenter_sphere", "indenter_rod")
+MOLD = REV == "v2" and P.get("fork_style") == "mold"
 
 
 def build_parts(K, p=P):
@@ -931,6 +1075,33 @@ def b_links_v2():
 T_TABLE_FROM_M = np.array([[0.0, 0, 1.0, 0], [0, 1.0, 0, 0], [-1.0, 0, 0, 0], [0, 0, 0, 1.0]])   # palmar down, tool axis +x
 
 
+def turn_play(dm, sf, centre=(0.0, -1.8, -62.0), angles=(0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0)):
+    """How far the link turns about each axis of F through `centre` (the bridge's middle) before it meets the fork: the
+    least angle (deg, each sense) at which their overlap exceeds 1e-3 mm3; None: still clear at the largest angle. With
+    the clamp plate and the slotted arm's screw off, the turn the fork's own shape allows."""
+    c = np.asarray(centre, float)
+    out = {}
+    for ax, v in (("about_x", (1.0, 0.0, 0.0)), ("about_y_pip", (0.0, 1.0, 0.0)), ("about_z_tool", (0.0, 0.0, 1.0))):
+        for sgn in (1, -1):
+            hit = None
+            for a in angles:
+                R = _rot(np.asarray(v), math.radians(sgn * a))
+                T = np.eye(4)
+                T[:3, :3] = R
+                T[:3, 3] = c - R @ c
+                if float((dm.transform(T[:3, :]) ^ sf).volume()) > 1e-3:
+                    hit = a
+                    break
+            out[f"{ax}_{'+' if sgn > 0 else '-'}"] = hit
+    return out
+
+
+def _rot(axis, ang):
+    axis = axis / np.linalg.norm(axis)
+    K_ = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
+    return np.eye(3) + math.sin(ang) * K_ + (1 - math.cos(ang)) * K_ @ K_
+
+
 def cmd_check_v2(a):
     """v2: the b links in the mount (overlap, the insertion along +x_F, gaps at each datum), the foot's screws, the homing
     socket and posts, and the mount, link and pad against each indenter at the homing and the touching poses."""
@@ -947,7 +1118,7 @@ def cmd_check_v2(a):
     for k, m in links.items():
         dm = from_trimesh(m)
         r = dict(overlap_fork_mm3=round(float((dm ^ sf).volume()), 4))
-        ears = P.get("fork_style") == "ears"            # ears: slid on along the tool axis (+z_F); cradle: in along +x_F
+        ears = P.get("fork_style") in ("ears", "mold")  # ears, mold: slid on along the tool axis (+z_F); cradle: along +x_F
         step_ = (lambda d: [0.0, 0.0, d]) if ears else (lambda d: [d, 0.0, 0.0])
         ins = [(round(float(d), 2), round(float((dm.translate(step_(d)) ^ sf).volume()), 4)) for d in np.arange(-30.0, 0.0001, 0.25)]
         r["insertion_axis"] = "+z_F (along the tool axis)" if ears else "+x_F (from the palmar side)"
@@ -970,10 +1141,23 @@ def cmd_check_v2(a):
                "horn_arm_inner_face": np.abs(pts[:, 1] - ARM_HORN[1]) < 0.03,
                "slotted_arm_inner_face": np.abs(pts[:, 1] - ARM_SLOTTED[0]) < 0.03,
                "horn_arm_outer_layer_to_column": (np.abs(pts[:, 1] - OUTER[1]) < 0.03) & (pts[:, 2] > -53.0)}
+        if P.get("fork_style") == "mold":               # the legs' outlines (their side and top faces) to the walls
+            off_y = lambda ys: np.all([np.abs(pts[:, 1] - y) > 0.03 for y in ys], axis=0)          # noqa: E731
+            reg["horn_leg_outline_to_walls"] = ((pts[:, 1] > ARM_HORN[0] + 0.03) & (pts[:, 1] < ARM_HORN[1] - 0.03)
+                                                & off_y(SLOT) & (pts[:, 2] > -66.0)
+                                                & (np.abs(pts[:, 0]) > slot_half(np.clip(pts[:, 2], -66.05, -53.5)) + 0.05))
+            reg["slotted_leg_outline_to_walls"] = ((pts[:, 1] > ARM_SLOTTED[0] + 0.03) & (pts[:, 1] < ARM_SLOTTED[1] - 0.03)
+                                                   & (pts[:, 2] > -63.0))
         r["gaps_by_region_mm"] = {n: (round(float(dd[s_].min()), 3) if s_.any() else None) for n, s_ in reg.items()}
         r["least_gap_mm"] = round(float(dd.min()), 3)
+        r["turn_to_contact_deg"] = turn_play(dm, sf)
         res[k] = r
-        print(k, "overlap", r["overlap_fork_mm3"], "insertion clear", r["insertion_clear"], r["gaps_by_region_mm"], flush=True)
+        print(k, "overlap", r["overlap_fork_mm3"], "insertion clear", r["insertion_clear"], r["gaps_by_region_mm"],
+              "turn", r["turn_to_contact_deg"], flush=True)
+    if MOLD:                                             # the same turns on the fork of 15:40 (ears and set screw)
+        res["v3b"]["turn_to_contact_deg_ears_fork"] = turn_play(from_trimesh(links["v3b"]),
+                                                                standoff_fork_v2_ears(K, dict(P, fork_style="ears")))
+        print("ears fork turn", res["v3b"]["turn_to_contact_deg_ears_fork"], flush=True)
     acc = []
     for ang in m3_angles():
         x, y = _m_xy(P["m3_r"], ang)
@@ -1035,11 +1219,15 @@ def cmd_check_v2(a):
 def cmd_payload_v2(a):
     """v2: mass and centre of gravity of everything past the UR5e's flange for set_payload: the HEX-E (50 mm, 0.347 kg, CoG
     20 mm from its robot face, its data sheet), the adapter and the standoff-fork at the plastic the P1S plate lays down
-    (print/20261020-p1s_pla_calibration.json: volume x fill ratio x 1.24 g/cm3), DIP link b v3 at its sliced density with
+    (print/20261020-p1s_pla_calibration.json, the fork from print/20261020-p1s_pla_fork_and_indenters.json when it exists:
+    volume x fill ratio x 1.24 g/cm3), DIP link b v3 at its sliced density with
     the cover, board, pad, magnets and brass screws (v3/b/evaluation.json), and the steel screws."""
     import trimesh
     plate = json.loads((PRINT / "20261020-p1s_pla_calibration.json").read_text())
     fill = {o["id"]: o["fill_ratio"] for o in plate["objects"]}
+    newer = PRINT / "20261020-p1s_pla_fork_and_indenters.json"      # the fork of 19:10 at 15 % grid, when sliced
+    if newer.exists():
+        fill.update({o["id"]: o["fill_ratio"] for o in json.loads(newer.read_text())["objects"] if o["id"] == "U2"})
     ev = json.loads((DIP / "v3/b/evaluation.json").read_text())["mass_g"]
     items = []
     for nm, pid in (("adapter", "U1"), ("standoff_fork", "U2")) + ((("clamp_plate", "U3"),) if "clamp_plate" in PARTS else ()):
@@ -1681,7 +1869,8 @@ def cmd_render_v2_ears(a):
     img = _render(exp, cam, MEDIA / f"{PFX}_exploded.png")
     _annotate(img, cam, [
         ("Adapter: dowel only, four M6 x 12", pw([-22.3, -22.3, 5.5])),
-        ("Standoff-fork: the ears and the inner block as v1, no key", pf([-12.0, -10.0, -60.0])),
+        ("Standoff-fork: walls around both legs, the ears and the inner block; no key, no set screw" if MOLD else
+         "Standoff-fork: the ears and the inner block as v1, no key", pf([-12.0, -10.0, -60.0])),
         ("DIP link: slides on along the tool axis, arms either side of the inner block", pf([-10.55, -2.0, -66.0 - dz])),
         ("Clamp plate on the horn-side arm, two M3 x 16 into the ears", pf([0.0, -31.25 - 24.0, -60.0 - dz]))],
         title="Mount v2 exploded along the tool axis: the DIP link slides on as in v1")
@@ -1692,21 +1881,33 @@ def cmd_render_v2_ears(a):
     img = _render(asm, cam, MEDIA / f"{PFX}_fork_closeup.png")
     _annotate(img, cam, [
         ("Horn-side arm between the clamp plate and the inner block", pf([-5.0, -23.25, -64.0])),
-        ("Dorsal ear with the M3 set screw onto the bridge's back", pf([17.0, P["push_y"], P["push_z"]])),
+        ("Walls around the horn leg, 0.15 mm off its outline" if MOLD else
+         "Dorsal ear with the M3 set screw onto the bridge's back",
+         pf([8.0, -22.6, -50.0]) if MOLD else pf([17.0, P["push_y"], P["push_z"]])),
         ("Clamp plate: horn-side arm pressed onto the inner block", pf([-8.0, -31.25, -60.0])),
         ("Cable slot and groove, open on the dorsal side", pf([17.0, 0.0, -47.0]))],
         title="DIP link b on the mount v2 fork, horn and dorsal side")
     sfm = parts["standoff_fork"]
     cam = (F_to_M(np.array([0.0, -4.0, -60.0])), 170, 45, -42)
     pm = lambda pF: F_to_M(np.asarray(pF, float))                     # noqa: E731
-    img = _render([(sfm, C_["standoff_fork"], "fork_alone_ears")], cam, MEDIA / f"{PFX}_fork_alone.png")
+    img = _render([(sfm, C_["standoff_fork"], "fork_alone_" + P["fork_style"])], cam, MEDIA / f"{PFX}_fork_alone.png")
     _annotate(img, cam, [
         ("Inner block: its arc 0.05 mm above b's bridge (the stop along the tool axis)", pm([-6.0, 0.0, -64.5])),
-        ("Palmar ear, 0.2 mm off the bridge's palmar face", pm([-10.75, -10.0, -66.0])),
-        ("Dorsal ear, 0.2 mm off the bridge's back, with the set-screw hole", pm([9.65, P["push_y"], P["push_z"]])),
-        ("No key: the horn slot stays empty", pm([0.0, -20.2, -60.0])),
-        ("Cable slot, open on the dorsal side", pm([9.0, 0.0, -60.0]))],
+        ("Palmar ear, 0.2 mm off the bridge's palmar face", pm([-10.75, -10.0, -66.0]))]
+        + ([("Walls around the horn leg: its outline 0.15 mm off, the slot left open", pm([6.0, -21.5, -60.0])),
+            ("Walls around the slotted leg", pm([-7.5, 15.0, -56.0]))] if MOLD else
+           [("Dorsal ear, 0.2 mm off the bridge's back, with the set-screw hole", pm([9.65, P["push_y"], P["push_z"]])),
+            ("No key: the horn slot stays empty", pm([0.0, -20.2, -60.0]))])
+        + [("Cable slot, open on the dorsal side", pm([9.0, 0.0, -60.0]))],
         title="Standoff-fork v2 alone, its fork end up")
+    if MOLD:                                             # the slotted leg in its walls, from the slotted side
+        cam = (pf([0.0, 10.0, -58.0]), 150, 135, -8)
+        img = _render(asm, cam, MEDIA / f"{PFX}_fork_slotted_side.png")
+        _annotate(img, cam, [
+            ("Slotted leg in its walls, 0.15 mm off its outline", pf([-6.0, 17.4, -55.0])),
+            ("M3 x 12 with its washer through the leg's bore into the inner block", pf([0.0, 17.4, PIP_ZF])),
+            ("Walls stop 0.2 mm short of the leg's outer face", pf([-12.0, 17.2, -48.0]))],
+            title="DIP link b on the mount v2 fork, slotted side")
     hexe = trimesh.creation.cylinder(radius=36.0, height=50.0, sections=96)
     hexe.apply_translation([0.0, 0.0, -25.0])
     cam = (pw([0.0, 0.0, 30.0]), 430, 160, -10)
@@ -1714,7 +1915,8 @@ def cmd_render_v2_ears(a):
     _annotate(img, cam, [
         ("HEX-E (context)", pw([36.0 * 0.94, -36.0 * 0.34, -25.0])),
         ("Adapter: dowel only, four M6 x 12", pw([31.5 * 0.94, -31.5 * 0.34, 5.5])),
-        ("Homing socket, 6.3 mm, in the column's palmar face", pw([P["fp_x"], 0.0, P["home_zm"]])),
+        (f"Homing socket, {P['home_key'][0]:.0f} x {P['home_key'][1]:.0f} mm at its mouth, faces at {P['home_draft']:.0f} deg",
+         pw([P["fp_x"], 0.0, P["home_zm"]])),
         ("85A pad on the cover with its side walls", pf([-10.55, 0.0, B_LINK["z_contact"]]))],
         title="Mount v2 on the HEX-E with DIP link b v3, palmar side, finger down")
     h = homing("rod")
@@ -1728,7 +1930,7 @@ def cmd_render_v2_ears(a):
            (dip["cover"], C_["cover"], "cover"), (dip["tip"], C_["tip"], "tip")]] + [(ind, C_["indenter"], "h_ind_rod")]
     cam = (np.array([-30.0, 15.0, 45.0]), 330, 240, 12)
     img = _render(sc, cam, MEDIA / f"{PFX}_homing.png")
-    _annotate(img, cam, [("Homing: the post's pin bottoms in the socket", np.array([*h["post_xy"], h["pin_top_z"]])),
+    _annotate(img, cam, [("Homing: the key's long faces seat in the socket", np.array([*h["post_xy"], h["mouth_z"]])),
                          ("The pad's contact point 30 mm to the side and 5 mm above the rod",
                           np.array(h["contact_at_homing_table"]))], title="Rod indenter with its homing post: homing")
     print("renders ->", rel(MEDIA), flush=True)
@@ -1987,7 +2189,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("cmd", choices=["interfaces", "build", "check", "estimate", "render", "sections", "print", "docs", "payload"])
     a = ap.parse_args()
-    {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else (cmd_render_v2_ears if P.get("fork_style") == "ears" else cmd_render_v2),
+    {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else (cmd_render_v2_ears if P.get("fork_style") in ("ears", "mold") else cmd_render_v2),
      "sections": cmd_sections, "print": cmd_print, "docs": cmd_docs, "payload": cmd_payload_v2}[a.cmd](a)
 
 

@@ -68,6 +68,7 @@ def load():
     plates["payload"] = j(D / f"{UP}_payload.json")
     plates["b00"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_print_pad_ell11_5_B00_85a_t2_g30.json")
     plates["b4"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_print_pad_ell11_4_B00_85a_t2_g30.json")
+    plates["fork"] = j(D / "print/20261020-p1s_pla_fork_and_indenters.json")
     fe = {}
     for r in rows(FE / "fe.jsonl"):
         if r["case"] in ("b_v2", "b_v2_wall3", "b_v2_wall495"):
@@ -113,8 +114,9 @@ def main():
             f"walls along the pad's flanks, the neck under the pad becomes a column {pv['col_margin']:.1f}&#8202;mm inside the "
             f"11/22 outline, and the cable's leg opens to the top for the double-ended Qwiic cable. The walls change the "
             f"pad's approach by at most {abs(w5_6[1]):.2f}&#8202;% at 6&#8202;N, and the owner chose them flush with the pad (W00). "
-            f"The mount keeps v1's fork without the spigot and the key; mold ears and a set screw seat the link straight, and a "
-            f"post beside each indenter homes it. In the readout model the pad resolves "
+            f"The mount keeps v1's fork without the spigot and the key; walls around both legs of the link clock it to "
+            f"{chk['b_links']['v3b']['turn_to_contact_deg']['about_z_tool_+']:.1f}&#176; about the tool axis without a set screw, "
+            f"and a tapered key on each indenter's post homes it. In the readout model the pad resolves "
             + (f"{sens['bm_five_d75']['gain']['centre_force_N']:.3f}&#8202;N at the contact point with five magnets and "
                f"{sens['bm_four_d75']['gain']['centre_force_N']:.3f}&#8202;N with four; shallower magnets and one wall around them "
                f"leave that gap open." if "bm_four_d75" in sens and "bm_five_d75" in sens else "") )
@@ -152,8 +154,10 @@ the finite elements, in &#181;m.</dd>
 five chips by the same bound as the force resolution, in mm.</dd>
 <dt>Datum</dt><dd>A face of the mount against which a face of the DIP link is pressed, so that the link takes one pose; the gap
 given is the nominal one before the link is pressed on.</dd>
-<dt>Homing</dt><dd>Seating the pin of a post on the indenter's base in a socket of the mount, which fixes where the pad's contact
-point is relative to the indenter's top.</dd>
+<dt>Homing</dt><dd>Seating the key of a post on the indenter's base in a socket of the mount, which fixes where the pad's contact
+point is relative to the indenter's top and how the finger is turned about the key's axis.</dd>
+<dt>Turn to contact</dt><dd>The smallest turn of the DIP link about an axis through the bridge's middle, from its place on the fork,
+at which the link and the fork overlap, with the clamp plate and the screws off, in degrees on a grid of 0.05 to 5&#176;.</dd>
 </dl>"""))
 
     t1 = [["The 30&#8202;mm disc on the UR5 adapter has no bore in the HEX-E; only the 5.5&#8202;mm nub fits",
@@ -186,9 +190,21 @@ point is relative to the indenter's top.</dd>
            "cover W00", f"Link plate {pl['time']}, no slice problems"],
           ["Re-prepare the four-magnet configuration; with five, the magnets sit far from the tip and may not move much",
            "Pad B00 with the four magnets of the 10-18 print (ID B4) as an XL project; b's pad in the readout model with four and "
-           "five magnets at 6.5&#8211;8.5&#8202;mm", "Table 7, Figure 11"],
+           "five magnets at 6.5&#8211;8.5&#8202;mm", "Table 7, Figure 12"],
           ["Is it possible to run one wall around the magnets instead of two?", "Both pads with one perimeter along each pocket "
-           "(IDs 5W1, 4W1) as XL projects; the same in the readout model", "Loops counted in the G-code; Table 7"]]
+           "(IDs 5W1, 4W1) as XL projects; the same in the readout model", "Loops counted in the G-code; Table 7"],
+          ["The homing slot and shaft should not be round: they leave the finger's turn unknown; clock it exactly",
+           "A rectangular key on each post and a socket in the column, every face at 20&#176;; the key's long faces seat with no "
+           "play, its ends 0.15&#8202;mm inside the socket's", "Key and socket meet with no overlap at homing; the key's top 0.8&#8202;mm "
+           "short of the floor"],
+          ["An exterior mold for the two legs, a perimeter volume that clocks the link; the set screw could fix the link wrongly",
+           "Walls around both legs' outlines 0.15&#8202;mm off, the outline swept along the tool axis; no set screw",
+           f"Turn to contact {chk['b_links']['v3b']['turn_to_contact_deg']['about_z_tool_+']:.1f}&#176; about the tool axis, "
+           f"{chk['b_links']['v3b']['turn_to_contact_deg']['about_y_pip_+']:.1f}&#176; about the PIP axis (ears fork: "
+           f"{min(v for k_, v in chk['b_links']['v3b']['turn_to_contact_deg_ears_fork'].items() if k_.startswith('about_z')):.2f} and "
+           f"{min(v for k_, v in chk['b_links']['v3b']['turn_to_contact_deg_ears_fork'].items() if k_.startswith('about_y')):.1f}&#176;)"],
+          ["A standard sparse 15&#8202;% grid infill on the mount's parts", "Bambu Studio's 0.20&#8202;mm Standard (two walls, 15&#8202;% "
+           "grid) for the fork and both indenters", f"Plate {plates['fork']['time']}, {plates['fork']['filament_g']:.0f}&#8202;g"]]
     S.append(("changes", "Changes from the owner's notes of 2026-10-20", f"""
 <p>Table 1 lists each note, the change it made and the check that covers it. The DIP link changes are design switches of the
 concept b generator with their own parameters (<code>cover_walls</code>, <code>neck</code>, <code>cable_leg</code> in
@@ -270,49 +286,63 @@ only outward motion and has the chip windows cut out of it, so the change is an 
 
     gl = chk["b_links"]
     t4 = [[lab, f"{gl['v2b']['gaps_by_region_mm'][k]:.2f}", f"{gl['v3b']['gaps_by_region_mm'][k]:.2f}"]
-          for k, lab in (("bridge_palmar_face_to_palmar_ear", "Bridge's palmar face to the palmar ear (closed by the set screw)"),
+          for k, lab in (("horn_leg_outline_to_walls", "Horn leg's outline to its walls"),
+                         ("slotted_leg_outline_to_walls", "Slotted leg's outline to its walls"),
+                         ("bridge_palmar_face_to_palmar_ear", "Bridge's palmar face to the fork"),
                          ("bridge_back_to_ear", "Bridge's back to the dorsal ear"),
                          ("horn_arm_inner_face", "Horn-side arm to the inner block (closed by the clamp plate)"),
                          ("slotted_arm_inner_face", "Slotted arm to the inner block (M3 and washer close it)"))]
     t4.append(["Bridge's lowest point to the inner block's arc (the stop along the tool axis)", "0.05", "0.05"])
+    tt, te = gl["v3b"]["turn_to_contact_deg"], gl["v3b"]["turn_to_contact_deg_ears_fork"]
+    tmin = lambda d, a: min(v for k_, v in d.items() if k_.startswith(a))          # noqa: E731
     S.append(("mount", "UR5e calibration mount v2", f"""
 <p>Mount v2 keeps v1's standoff-fork and its assembly (Figure 5): the DIP link slides on along the tool axis with its clevis arms
 either side of the inner block, the clamp plate presses the horn-side arm onto the inner block with two M3 into the ears, and the M3
-with its washer goes through the slotted arm's bore into the inner block. The key in the horn slot is gone. In its place the two
-ears are a mold on the outside of the link's base: their inner faces stand 0.2&#8202;mm off the bridge's palmar and dorsal faces and
-reach 0.2&#8202;mm below the bridge, and an M3 set screw through the dorsal ear pushes the bridge onto the palmar ear, so the link
-sits square to the fork before the clamp plate is tightened (Figures 6 and 7). The inner block's arc stands 0.05&#8202;mm above b's
-bridge, the stop along the tool axis, so this fork takes concept b's links only (v2 as printed and v3; the CAD hand's link and a have
-higher bridges). {'Both b links slide on with no overlap at any of 121 positions over the last 30&#8202;mm.' if ins_ok else
+with its washer goes through the slotted arm's bore into the inner block. The key in the horn slot is gone, and walls around both
+legs locate the link in its place (owner, 18:55). In each layer of each leg (the horn leg's outer, slot and inner layers and the
+slotted leg) the fork fills the region outside the leg's outline, 0.15&#8202;mm off it, the outline swept along the tool axis so the
+link slides in past the walls; the horn slot is filled before, so nothing enters it (Figures 6 to 8). The walls stop 0.2&#8202;mm short
+of each leg's outer face, so the clamp plate and the slotted arm's screw press the legs onto the inner block, and the set screw is
+gone. With the clamp plate and the screws off, a turn of {tmin(tt, 'about_z'):.1f}&#176; about the tool axis,
+{tmin(tt, 'about_y'):.1f}&#176; about the PIP axis or {tmin(tt, 'about_x'):.1f}&#176; about the palmar normal brings the link onto the
+fork, against {tmin(te, 'about_z'):.2f}, {tmin(te, 'about_y'):.1f} and {tmin(te, 'about_x'):.1f}&#176; on the ears fork of 15:40. The inner
+block's arc stands 0.05&#8202;mm above b's bridge, the stop along the tool axis, so this fork takes concept b's links only (v2 as printed
+and v3; the CAD hand's link and a have higher bridges). {'Both b links slide on with no overlap at any of 121 positions over the last 30&#8202;mm.' if ins_ok else
  'An insertion check failed; see the check file.'} Table 4 gives the gaps.</p>
 <p>The adapter has only the printed dowel toward the HEX-E, and the palmar normal points at it, the sensor's x-axis as the owner
 takes it from the centre toward the nub. v1 had the same orientation, but its foot's four M3 were 90&#176; apart, so the
 standoff-fork could go on in four orientations; at 22.5, 112.5, 202.5 and 280&#176; it goes on in one. The tool axis runs through the
 finger's mid-plane (y_F 0), 3.85&#8202;mm from v1's, so the contact point lies on the axis in y and 10.55&#8202;mm from it along the
-palmar normal (Figure 8).</p>
+palmar normal (Figure 9).</p>
 {fig(5, D / f'media/{UP}_exploded.png', 'Mount v2 exploded along the tool axis; the DIP link slides on as in v1.')}
 {fig(6, D / f'media/{UP}_fork_closeup.png', 'DIP link b on the fork, horn and dorsal side, with the clamp plate.')}
-{fig(7, D / f'media/{UP}_fork_alone.png', 'The standoff-fork alone, its fork end up.')}
-{fig(8, D / f'media/{UP}_on_the_hex_e_palmar.png', 'Mount v2 on the HEX-E (context) with DIP link b v3, palmar side, finger down.')}
+{fig(7, D / f'media/{UP}_fork_slotted_side.png', 'DIP link b on the fork, slotted side: the leg in its walls.')}
+{fig(8, D / f'media/{UP}_fork_alone.png', 'The standoff-fork alone, its fork end up.')}
+{fig(9, D / f'media/{UP}_on_the_hex_e_palmar.png', 'Mount v2 on the HEX-E (context) with DIP link b v3, palmar side, finger down.')}
 {table(["Gap", "v2 b as printed (mm)", "v3 b (mm)"], t4, num_cols=(1, 2),
        caption=f"Gaps of the two b links on the fork ({UP}_check.json; nearest surface samples 0.1&#8202;mm apart; the arc's gap by "
                "construction).", n=4)}"""))
 
-    t5 = [[k, f"({h['post_xy'][0]:.2f}, {h['post_xy'][1]:.2f})", f"{h['pin_top_z']:.2f}", f"{h['indenter_top_z']:.1f}"]
-          for k, h in (("Sphere", hs), ("Rod", hr))]
+    t5 = [[k, f"({h['post_xy'][0]:.2f}, {h['post_xy'][1]:.2f})", f"{h['mouth_z']:.2f}", f"{h['pin_top_z']:.2f}",
+           f"{h['indenter_top_z']:.1f}"] for k, h in (("Sphere", hs), ("Rod", hr))]
     S.append(("homing", "Homing to the indenters", f"""
-<p>Each indenter's base gains a post: a 12&#8202;mm column with a 6.0&#8202;mm pin, 8.5&#8202;mm long, which seats in a 6.3&#8202;mm socket
-8.0&#8202;mm deep in the column's palmar face, z_M {chk['poses_table']['sphere_homing_geometry']['socket_floor_M'][2]:.0f}&#8202;mm from the
-flange. With the palmar side down and the tool axis along the base's +x, the pin bottoms in the socket when the pad's contact point
-stands 30&#8202;mm to +y of the indenter's top and 5&#8202;mm above it (Figure 9); from there the robot moves
-(0, &#8722;{P_DY:.0f}, &#8722;{P_DZ:.0f})&#8202;mm in the table frame
-to touch. The post sits 40.36&#8202;mm toward the robot from the indenter's top, beside the column at the touching pose.
-{POSE_TXT} Table 5 gives the posts. Bolt the base with the post toward the robot.</p>
-{fig(9, D / f'media/{UP}_homing.png', 'Homing over the rod indenter: the pin in the socket, the pad 30 mm to the side and 5 mm up.')}
+<p>Each indenter's base gains a post with a key (owner, 18:55: the round pin left the finger's turn about it unknown): a block
+and on it a frustum {hs['key_at_mouth_mm'][0]:.0f} by {hs['key_at_mouth_mm'][1]:.1f}&#8202;mm at the socket's mouth, every face drafted
+{hs['draft_deg']:.0f}&#176;, its long side along the tool axis. The socket in the column's palmar face has the same faces,
+{hs['socket_mouth_mm'][0]:.0f} by {hs['socket_mouth_mm'][1]:.0f}&#8202;mm at the mouth and 5.3&#8202;mm deep, centred
+{chk['poses_table']['sphere_homing_geometry']['socket_mouth_M'][2]:.0f}&#8202;mm from the flange. Pushed in, the key's long faces meet the
+socket's at the mouth's plane: no play across the finger and none in the turn about the key's axis. Its ends stand 0.15&#8202;mm inside
+the socket's, so the long faces always seat first and the position along the tool axis stays within &#177;0.15&#8202;mm; its top stays
+0.8&#8202;mm short of the floor. With the palmar side down and the tool axis along the base's +x, the key seats when the pad's contact
+point stands 30&#8202;mm to +y of the indenter's top and 5&#8202;mm above it (Figure 10); from there the robot moves
+(0, &#8722;{P_DY:.0f}, &#8722;{P_DZ:.0f})&#8202;mm in the table frame to touch. {POSE_TXT} Table 5 gives the posts. Bolt the base with
+the post toward the robot.</p>
+{fig(10, D / f'media/{UP}_homing.png', 'Homing over the rod indenter: the key in the socket, the pad 30 mm to the side and 5 mm up.')}
 <p>The cradle of the first draft of 2026-10-20, which took the tongue's back as its datum and let the link in from the palmar
-side, stays in the script as <code>fork_style = "cradle"</code>; the plates print the v1-style fork.</p>
-{table(["Indenter", "Post in the base frame, x, y (mm)", "Pin top above the table (mm)", "Indenter top (mm)"], t5,
-       num_cols=(2, 3), caption="Homing posts (homing() in scripts/ur5_calibration_mount.py).", n=5)}"""))
+side, stays in the script as <code>fork_style = "cradle"</code>, and the ears fork of 15:40 with its set screw as "ears"; the plates
+print the fork with the walls.</p>
+{table(["Indenter", "Post in the base frame, x, y (mm)", "Socket mouth above the table at homing (mm)", "Key top (mm)",
+        "Indenter top (mm)"], t5, num_cols=(2, 3, 4), caption="Homing posts (homing() in scripts/ur5_calibration_mount.py).", n=5)}"""))
 
     asm = ["Adapter on the HEX-E: dowel into its hole, four M6 &#215; 12 with DIN 125 washers, 1.5&#8202;N&#8202;m.",
            "Standoff-fork on the adapter: four M3 &#215; 12 through the foot; it fits one way, the palmar ear toward the dowel.",
@@ -322,12 +352,12 @@ side, stays in the script as <code>fork_style = "cradle"</code>; the plates prin
            "Cover over the board: four M2 &#215; 5 into the tongue (1.9&#8202;mm holes); the two proximal heads through the walls' "
            "counterbores.",
            "Pad onto the rails between the walls (B00).",
-           "Slide the link onto the fork along the tool axis, arms either side of the inner block, until the bridge meets the "
-           "inner block; the cable into the slot on the dorsal side and up the column's groove.",
-           "M3 &#215; 8 set screw through the dorsal ear onto the bridge's back until the bridge meets the palmar ear; clamp plate on "
-           "the horn-side arm with two M3 &#215; 16 into the ears; M3 &#215; 12 with the DIN 9021 washer through the slotted arm's bore; "
-           "all snug.",
-           "Homing post toward the robot; seat the pin in the socket in freedrive, record the pose, then move (0, &#8722;30, &#8722;5)&#8202;mm.",
+           "Slide the link onto the fork along the tool axis, each leg into its walls and the arms either side of the inner block, "
+           "until the bridge meets the inner block; the cable into the slot on the dorsal side and up the column's groove.",
+           "Clamp plate on the horn-side arm with two M3 &#215; 16 into the ears; M3 &#215; 12 with the DIN 9021 washer through the "
+           "slotted arm's bore; all snug. No set screw: the walls locate the link.",
+           "Homing post toward the robot; push the socket onto the key in freedrive until it stops, record the pose, then move "
+           "(0, &#8722;30, &#8722;5)&#8202;mm.",
            f"UR5e payload {plates['payload']['total_g'] / 1000:.3f}&#8202;kg (the HEX-E's 0.347&#8202;kg included) with its centre of gravity "
            f"{plates['payload']['cog_from_ur_flange_mm'][2]:.1f}&#8202;mm out from the flange and "
            f"{plates['payload']['cog_from_ur_flange_mm'][1]:.1f}&#8202;mm along the PIP axis; TCP at the contact point, "
@@ -336,11 +366,14 @@ side, stays in the script as <code>fork_style = "cradle"</code>; the plates prin
     S.append(("assembly", "Assembly", "<ol>" + "".join(f"<li>{a}</li>" for a in asm) + "</ol>"))
 
     t6 = [[esc(p["project"].split("/")[-1]), p["time"], f"{p['filament_g']:.0f}", ", ".join(o["label"] for o in p["objects"]),
-           "none" if not p["problems"] else esc("; ".join(p["problems"]))] for p in (pc, pl)]
+           "none" if not p["problems"] else esc("; ".join(p["problems"]))] for p in (pc, plates["fork"], pl)]
     S.append(("print", "Print and CAD files", f"""
-<p>Two Bambu Lab P1S plates in PLA (Table 6), the parts' settings written into each project so Bambu Studio keeps them when it slices
-again: the mount and the indenters at 0.15&#8202;mm with five walls and 40&#8202;% gyroid, the covers solid at 0.1&#8202;mm, the DIP link at
-0.1&#8202;mm on tree supports, and a 5&#8202;mm brim on every part, which also keeps the covers flat. The fit covers W00, W10 and W20 have
+<p>Three Bambu Lab P1S plates in PLA (Table 6), the parts' settings written into each project so Bambu Studio keeps them when it
+slices again, and a 5&#8202;mm brim on every part. The calibration plate of 15:40 (printed: the adapter and the clamp plate on it are
+unchanged) has the mount and the indenters at 0.15&#8202;mm with five walls and 40&#8202;% gyroid and the covers solid at 0.1&#8202;mm. The
+fork with the walls and both indenters with the keyed posts print on their own plate at Bambu Studio's 0.20&#8202;mm Standard, two
+walls and 15&#8202;% grid (owner, 19:10: "a standard sparse 15% grid infill"), in {plates['fork']['time']}; the DIP link keeps
+0.1&#8202;mm on tree supports and its cover prints solid, both with walls under 1&#8202;mm. The fit covers W00, W10 and W20 have
 one, two and three notches in their distal edge; they fit the v2 link already printed, so the walls can be tried on it before v3
 prints. W00 held pad B00 in the owner's test, so the design and the link plate take it. The 85A pad is B00 with its five 3&#8202;&#215;&#8202;2&#8202;mm magnets, its ID engraved in the mount face: it prints on the XL's
 tool 2 in {pb_t} with pauses at {', '.join(f"{q['print_z']:.1f}" for q in pb['pauses'])}&#8202;mm, the settings of the owner's good
@@ -353,7 +386,7 @@ pocket). STEP files for Inventor: the mount's parts as exact solids in M ({code(
 valid), and v3's new body, cover and cable-groove cutter as exact solids in F ({code(DIP / 'v3/b/cad')}).</p>
 {table(["Project", "Time", "PLA (g)", "Parts", "Slice checks failed"], t6, num_cols=(1, 2),
        caption="P1S plates (scripts/v3b_ur5v2_pla_plate.py), print/20261020-p1s_pla_*.json.", n=6)}
-{fig(10, D / 'print/20261020-p1s_pla_calibration_map.png', 'The calibration plate: mount v2, both indenters, covers W00, W10, W20.', 900)}"""))
+{fig(11, D / 'print/20261020-p1s_pla_fork_and_indenters_map.png', 'The plate of 19:10: the fork with the walls and both indenters with their keyed posts.', 900)}"""))
 
     MAG = [("Five", "bm_five_d65", 6.5), ("Five", "bm_five_d70", 7.0), ("Five", "bm_five_d75", 7.5), ("Five", "bm_five_d85", 8.5),
            ("Four", "bm_four_d70", 7.0), ("Four", "bm_four_d75", 7.5),
@@ -373,7 +406,7 @@ valid), and v3's new body, cover and cable-groove cutter as exact solids in F ({
               for lab, c, dp in MAG]
         S.append(("magnets", "Four and five magnets in b's pad", f"""
 <p>With the magnets 7.5&#8202;mm under the apex, the readout model resolves {rf['bm_five_d75']:.3f}&#8202;N at the contact point with five
-magnets and {rf['bm_four_d75']:.3f}&#8202;N with four (Table 7, Figure 11). The fifth magnet lies over U1, the chip under the contact
+magnets and {rf['bm_four_d75']:.3f}&#8202;N with four (Table 7, Figure 12). The fifth magnet lies over U1, the chip under the contact
 point, while the four lie between the chips. The four sit no shallower: on the 11/22 at the 2.9&#8202;mm seat both layouts need
 7.5&#8202;mm to keep 1.8&#8202;mm of TPU between the distal slots and the surface, and the four-magnet tip printed on 10-18 has them there
 too.</p>
@@ -393,7 +426,7 @@ the four's improves to {rf['bm_four_d75_w1']:.3f}&#8202;N, {rf['bm_four_d75_w1']
         "GAIN_SEL, RES", "Force resolution at the contact point (N)", "Position resolution at the contact point, y / z (mm)"], t7,
        num_cols=(1, 2, 3, 4, 6), caption="b's pad in the readout model (scripts/v2_tip_fe_checks.py --sense bm_*, sensing.json); "
        "two perimeters along each pocket unless one is named; no cover walls.", n=7)}
-{fig(11, DIP / 'v3/b/media/20261020-dip_link_v3b_magnet_layouts.png', "The two layouts over the board's chips, palmar view, and "
+{fig(12, DIP / 'v3/b/media/20261020-dip_link_v3b_magnet_layouts.png', "The two layouts over the board's chips, palmar view, and "
      "the readout model against the magnets' depth; open markers: one wall around the pockets.", 900)}
 <p>These cases run on a grid with 0.5&#8202;mm elements through the pad's depth and 0.3&#8202;mm along the finger from 3.5&#8202;mm. On the
 base grid of Table 3 the magnets at 7.5&#8202;mm lie in 1.1&#8202;mm elements, and the same cases' force resolution differs by up to
@@ -430,8 +463,10 @@ spreads would mean the readout is limited by something the model leaves out, suc
 <li>On the HEX-E, check that the palmar normal lies along the sensor's +x: press the pad by hand along the palmar normal and read Fx
 against Fy; more than 5&#8202;% of the force in Fy means the axis or the dowel's position differs, and <code>dowel_ang</code> turns the
 whole mount.</li>
-<li>Home on each indenter three times, re-seating the pin each time, and record the poses: a spread over 0.2&#8202;mm means the pin's fit,
-and a socket 0.1&#8202;mm smaller tightens it.</li>
+<li>Home on each indenter three times, re-seating the key each time, and record the poses: a spread over 0.1&#8202;mm or 0.2&#176;
+about the key's axis means the long faces do not seat (ends binding: raise <code>home_end_relief</code>).</li>
+<li>Slide the link into the new fork without the clamp plate and rock it by hand: if it rocks more than Table 4's turns suggest,
+the printed walls stand further off than 0.15&#8202;mm and <code>mold_gap</code> 0.10 tightens them; if it does not go in, 0.20.</li>
 <li>Weigh one metre of the 85A spool to 0.01&#8202;g. Near {meas['A']['filament_1m_g_expected']:.2f}&#8202;g the A tips are under-extruded
 by about 7&#8202;%; near {meas['A']['filament_1m_g_expected'] * meas['A']['measured_over_commanded']:.2f}&#8202;g the filament is thin and the
 tips contain what the slicer laid down. The UR5e indentation of one tip then measures the stiffness the weighing predicts.</li>

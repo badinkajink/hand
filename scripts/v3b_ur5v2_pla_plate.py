@@ -10,7 +10,9 @@ the design and the link plate take W00. Object settings as on the plate of 2026-
 the DIP link at 0.1 mm with tree supports from the plate, the covers solid at 0.1 mm, the mount and the indenters at
 0.15 mm with five walls and 40 % gyroid; a 5 mm brim on every part (Bambu Studio's command line ignores a brim set per
 object), which also keeps the thin covers flat. Output: docs/experiments/20261020-ur5_calibration_mount_v2/print/.
-Arguments name the plates to build (default: both).
+Arguments name the plates to build (default: fork_and_indenters and link; the calibration plate of 15:40 only when named).
+Plate "fork_and_indenters" (19:10): the standoff-fork with walls around both legs of the DIP link and the two indenters with
+keyed homing posts, at Bambu Studio's 0.20 mm Standard (2 walls, 15 % grid; owner).
 
     unset VIRTUAL_ENV
     ~/.claude/bin/resguard.sh run --mem 5G --cpu 400 -- taskset -c 14-18 env UR5M_REV=v2 NUMPY_MADVISE_HUGEPAGE=0 \\
@@ -44,6 +46,11 @@ V3 = REPO / "docs/experiments/20261018-dip_link_board_mount/v3/b"
 UR5 = REPO / "docs/experiments/20261020-ur5_calibration_mount_v2/cad"
 UP = "20261020-ur5_calibration_mount_v2"
 COVERS = {"W00": 0.0, "W10": 0.10, "W20": 0.20}        # wall clearance per cover, mm
+# owner, 2026-10-20 19:10: "we have a super dense infill on these mount parts. i think across the board it can be a standard
+# sparse 15% grid infill since none of these are super fine or small parts": Bambu Studio's 0.20 mm Standard for the mount's
+# parts (the DIP link and its cover keep theirs: walls under 1 mm print nearly solid anyway)
+STANDARD = dict(layer_height="0.2", wall_loops="2", top_shell_layers="5", bottom_shell_layers="3",
+                sparse_infill_density="15%", sparse_infill_pattern="grid", enable_support="0")
 
 
 def covers():
@@ -86,7 +93,14 @@ PLATES = {
     "link": [
         ("B3", "b v3 DIP link", V3 / "print/20261020-dip_link_v3b_dip_link_pla_bambu.stl", None, V.LINK),
         ("C00", "b v3 cover W00", V3 / "print/20261020-dip_link_v3b_cover_W00_pla_bambu.stl", None, V.SOLID)],
+    # 19:10: the parts that changed after the owner's 18:55 notes (the fork's walls around both legs, the keyed homing), at
+    # STANDARD; the adapter and the clamp plate of the calibration plate are unchanged
+    "fork_and_indenters": [
+        ("U2", "UR5 standoff-fork v2, walls around the legs", UR5 / f"{UP}_standoff_fork.stl", np.eye(3), STANDARD),
+        ("U4", "UR5 sphere indenter v2, keyed post", UR5 / f"{UP}_indenter_sphere.stl", np.eye(3), STANDARD),
+        ("U5", "UR5 rod indenter v2, keyed post", UR5 / f"{UP}_indenter_rod.stl", np.eye(3), STANDARD)],
 }
+DEFAULT_PLATES = ("fork_and_indenters", "link")       # "calibration" (15:40, printed) is rebuilt only when named
 
 
 def main():
@@ -96,15 +110,18 @@ def main():
     sf = OUT / "20261020-p1s_pla_plates.json"
     summary = json.loads(sf.read_text()) if sf.exists() else {}
     for plate, parts in PLATES.items():
-        if sys.argv[1:] and plate not in sys.argv[1:]:
+        if plate not in (sys.argv[1:] or DEFAULT_PLATES):
             continue
         V.PARTS[:] = parts
         V.OUT, V.WORK, V.PFX = OUT, WORK / plate, f"20261020-p1s_pla_{plate}"
         V.TITLE = {"calibration": "UR5 mount v2 (v1 fork, no key), indenters, b v3 covers W00-W20",
-                   "link": "DIP link b v3, cover W00"}[plate]
+                   "link": "DIP link b v3, cover W00",
+                   "fork_and_indenters": "UR5 mount v2: fork with walls around the legs, indenters with keyed posts"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
-                   "cassette, a column under the pad and an open cable channel")
+                   "cassette, a column under the pad and an open cable channel"
+                   + ("; 18:55: walls around both legs that clock the link, no set screw, a keyed homing slot and shaft; "
+                      "19:10: standard 15 % grid infill" if plate == "fork_and_indenters" else ""))
         try:
             V.main()
         except SystemExit as e:
