@@ -80,7 +80,12 @@ def main():
     ap.add_argument("--magnets", choices=list(VARIANTS), default="five")
     ap.add_argument("--pocket-walls", type=int, choices=(1, 2), default=2)
     ap.add_argument("--pin-hole", action="store_true", help="the hole for the tip caps' pin (scripts/dip_b_tip_cap.py)")
+    ap.add_argument("--raised-seats", action="store_true",
+                    help="for the solid-wall covers I05-I15: proximal notches seat_raise deeper, the pin hole's mouth chamfered "
+                         "for TP2/TW2's fillet (pad B00R; needs --pin-hole)")
     a = ap.parse_args()
+    if a.raised_seats and not a.pin_hole:
+        raise SystemExit("--raised-seats builds pad B00R, which has the pin hole: add --pin-hole")
     pset, key, pid, fkey, owner = VARIANTS[a.magnets]
     w1 = a.pocket_walls == 1
     if w1:
@@ -89,24 +94,35 @@ def main():
     if a.pin_hole:
         pid = {"five": "B00P", "four": "B4P"}[a.magnets] if not w1 else pid + "P"
         owner += "; 20:36: 'sure we can go with your recommendation' (the caps over the tip end, with a pin into the pad)"
-    tag = ("_pocketwalls1" if w1 else "") + ("_pin" if a.pin_hole else "")
-    name = f"20261020-dip_link_v3b_print_pad_{fkey}_B00{tag}_85a_t2_g30"
-    work = REPO / f"logs/20261020-dip_link/v3/b/print_b00_{a.magnets}{'_w1' if w1 else ''}{'_pin' if a.pin_hole else ''}"
+    if a.raised_seats:
+        pid = {"five": "B00R", "four": "B4R"}[a.magnets] if not w1 else pid[:-1] + "R"
+        owner += ("; 2026-10-21: 'boost the bottom screws up a little bit' (cover I05-I15: the proximal heads 3 mm up, so the "
+                  "pad's proximal notches are 3 mm deeper)")
+    tag = ("_pocketwalls1" if w1 else "") + ("_pin" if a.pin_hole else "") + ("_raised" if a.raised_seats else "")
+    date = "20261021" if a.raised_seats else "20261020"
+    name = f"{date}-dip_link_v3b_print_pad_{fkey}_B00{tag}_85a_t2_g30"
+    work = REPO / f"logs/20261020-dip_link/v3/b/print_b00_{a.magnets}{'_w1' if w1 else ''}{'_pin' if a.pin_hole else ''}" \
+                  f"{'_raised' if a.raised_seats else ''}"
     t0 = time.time()
     work.mkdir(parents=True, exist_ok=True)
     B = V2.b_module()
     tips0, fit0 = B.TIPS, B.GROOVE_FIT
     B.TIPS, B.GROOVE_FIT = B.PAD_SETS[pset], FIT
+    walls0 = B.DESIGN.get("cover_walls")
+    if a.raised_seats:
+        B.DESIGN["cover_walls"] = "solid"                       # pad_cutters: the proximal notches seat_raise deeper
     try:
         pad, _ = B.make_pad(key)
         tip_name, orient, _ = B.TIPS[key]
     finally:
         B.TIPS, B.GROOVE_FIT = tips0, fit0
+        B.DESIGN["cover_walls"] = walls0
     hole = None
     if a.pin_hole:
         import dip_b_tip_cap as TC
-        pad = pad - TC.pad_hole()
-        hole = dict(TC.CAP, x_F=TC.CAP["pin_x"], from_tip_end_z_F=TC.ZE)
+        pad = pad - TC.pad_hole(TC.CAP2["hole_chamfer"] if a.raised_seats else 0.0)
+        hole = dict(TC.CAP, x_F=TC.CAP["pin_x"], from_tip_end_z_F=TC.ZE,
+                    mouth_chamfer=TC.CAP2["hole_chamfer"] if a.raised_seats else 0.0)
     tm = B.to_trimesh(pad)
     tm.update_faces(tm.nondegenerate_faces())
     tm.remove_unreferenced_vertices()
@@ -117,7 +133,7 @@ def main():
         dr = np.maximum(np.hypot(Vv[:, 0] - hole["x_F"], Vv[:, 1]) - hole["hole_d"] / 2, 0.0)
         dz = np.maximum(np.maximum(hole["from_tip_end_z_F"] - Vv[:, 2], Vv[:, 2] - (hole["from_tip_end_z_F"] + hole["hole_l"])), 0.0)
         hole = dict(d_mm=hole["hole_d"], depth_mm=hole["hole_l"], x_F=hole["x_F"], y_F=0.0, tip_end_z_F=hole["from_tip_end_z_F"],
-                    to_pocket_mm=round(float(np.min(np.hypot(dr, dz))), 2))
+                    mouth_chamfer_mm=hole["mouth_chamfer"], to_pocket_mm=round(float(np.min(np.hypot(dr, dz))), 2))
         if hole["to_pocket_mm"] < 2.0:
             raise SystemExit(f"pin hole {hole['to_pocket_mm']} mm from a pocket")
     tp = B.pad_print_frame(tm, orient)                          # the tip's sheet frame: its pockets apply as they are
@@ -130,7 +146,7 @@ def main():
     bodies = sorted(float(b.volume) for b in part.split(only_watertight=False))
     if not part.is_watertight or len(bodies) != len(pockets) + 1 or bodies[-1] <= 0:   # one outer skin and the closed pockets
         raise SystemExit(f"{pid}: watertight {part.is_watertight}, bodies {bodies}")
-    stl = OUT / f"20261020-dip_link_v3b_pad_{fkey}_B00{'_pin' if a.pin_hole else ''}_print.stl"
+    stl = OUT / f"{date}-dip_link_v3b_pad_{fkey}_B00{'_pin' if a.pin_hole else ''}{'_raised' if a.raised_seats else ''}_print.stl"
     if not w1:
         part.export(stl)
     mods, mod_info = [], None
@@ -185,6 +201,7 @@ def main():
                good_project=PP.rel(FS.GOOD), object_settings=dict(SETTINGS, layer_height="0.1"), sheet=PP.rel(sheet_path),
                magnet=sheet["magnet"], pocket_wall_min_mm=sheet.get("wall_min_mm"), chip_field_sheet=sheet.get("chip_field"),
                pocket_walls=a.pocket_walls, modifier=mod_info, loops=loops, pin_hole=hole,
+               proximal_notch_depth_mm=round(B.HEAD_NOTCH_H + (B.rp("seat_raise") if a.raised_seats else 0.0), 2),
                pauses=prow, gcode=PP.rel(gc), summary={k: v for k, v in summ.items() if k != "labels"}, check=ck, material=mt,
                problems=problems, when=time.strftime("%Y-%m-%d %H:%M"), script="scripts/v3b_pad_b00_magnets_xl.py")
     proj.with_suffix(".json").write_text(json.dumps(rec, indent=1, default=float) + "\n")

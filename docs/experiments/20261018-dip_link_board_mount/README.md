@@ -76,6 +76,23 @@ and `.stl` (frame F), `v3/b/print/20261020-dip_link_v3b_p1s_pla_tip_caps.3mf` (b
 `scripts/v2_tip_fe_checks.py`. The page is Section 9 of
 [DIP link b v3 and UR5e mount v2](../20261020-ur5_calibration_mount_v2/20261020-dip_link_b_v3_and_ur5_mount_v2.html).
 
+### Second revision (2026-10-21)
+
+After the pad, pushed sideways, came off cover W00 and broke a wall's proximal end (a 0.66 mm fin beside the proximal
+screw's counterbore): covers I05, I10, I15 with `cover_walls` "solid" in `scripts/dip_link_concept_b.py` (walls straight up
+the 21 mm edge with a 1 mm chamfer, ending at the U3/U5 windows, 0.05/0.10/0.15 mm interference per side; the proximal
+screws' heads on solid wall `seat_raise` 3 mm up, M2 x 8), caps TP2 (1.6 mm plate, chamfers, filleted pin) and TW2 (solid
+5 mm side blocks, M2 x 10 for the distal screws), and pad B00R (proximal notches 4.5 mm deep, the pin hole chamfered):
+
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/dip_b_tip_cap.py covers2 step2 render2
+    $RG env UR5M_REV=v2 ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_ur5v2_pla_plate.py solid_covers_caps2
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_pad_b00_magnets_xl.py --magnets five --pin-hole --raised-seats
+
+Outputs: `v3/b/cad/20261021-dip_link_v3b_cover_I{05,10,15}.step`, `*_tip_cap_TP2.step`, `*_tip_cap_TW2.step`,
+`v3/b/print/20261021-dip_link_v3b_p1s_pla_solid_covers_caps2.3mf` (40 min),
+`v3/b/print/20261021-dip_link_v3b_print_pad_ell11_5_B00_pin_raised_85a_t2_g30.3mf`, checks in
+`v3/b/20261021-dip_link_v3b_solid_covers_and_caps2.json`; page Section 10.
+
 ## Opening the STEP files in Inventor
 
 1. Unzip a `.step.zip` first; the plain `.step` files open as they are.

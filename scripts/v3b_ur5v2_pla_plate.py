@@ -13,7 +13,8 @@ object), which also keeps the thin covers flat. Output: docs/experiments/2026102
 Arguments name the plates to build (default: fork_and_indenters and link; the calibration plate of 15:40 only when named).
 Plate "fork_and_indenters" (19:10): the standoff-fork with walls around both legs of the DIP link and the two indenters with
 keyed homing posts, at Bambu Studio's 0.20 mm Standard (2 walls, 15 % grid; owner). Plate "tip_caps" (20:36): caps TP and
-TW over b v3's tip end (scripts/dip_b_tip_cap.py), solid at 0.1 mm, into v3/b/print/.
+TW over b v3's tip end (scripts/dip_b_tip_cap.py), solid at 0.1 mm, into v3/b/print/. Plate "solid_covers_caps2" (2026-10-21):
+the solid-wall covers I05, I10, I15 and the caps TP2, TW2, solid at 0.1 mm, into v3/b/print/.
 
     unset VIRTUAL_ENV
     ~/.claude/bin/resguard.sh run --mem 5G --cpu 400 -- taskset -c 14-18 env UR5M_REV=v2 NUMPY_MADVISE_HUGEPAGE=0 \\
@@ -105,9 +106,18 @@ PLATES = {
     "tip_caps": [
         ("TP", "b v3 tip cap TP, plate, ears, pin", V3 / "print/20261020-dip_link_v3b_tip_cap_TP_pla_bambu.stl", None, V.SOLID),
         ("TW", "b v3 tip cap TW, with side walls", V3 / "print/20261020-dip_link_v3b_tip_cap_TW_pla_bambu.stl", None, V.SOLID)],
+    # 2026-10-21: the solid-wall covers at 0.05-0.15 mm interference (proximal heads 3 mm up) and the second caps
+    # (scripts/dip_b_tip_cap.py covers2), solid at 0.1 mm like the covers before them; the covers' 3-4 mm walls take six
+    # perimeters (with four, 100 % zig-zag left them at a fill ratio of 0.85 against the W covers' 0.875)
+    "solid_covers_caps2": [
+        (cid, f"b v3 cover {cid}, solid walls, {n} notch{'es' if n > 1 else ''}", V3 / f"print/20261021-dip_link_v3b_cover_{cid}_pla_bambu.stl",
+         None, dict(V.SOLID, wall_loops="6")) for n, cid in enumerate(("I05", "I10", "I15"), 1)] + [
+        ("TP2", "b v3 tip cap TP2", V3 / "print/20261021-dip_link_v3b_tip_cap_TP2_pla_bambu.stl", None, V.SOLID),
+        ("TW2", "b v3 tip cap TW2, solid blocks", V3 / "print/20261021-dip_link_v3b_tip_cap_TW2_pla_bambu.stl", None, V.SOLID)],
 }
-DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps")   # "calibration" (15:40, printed) is rebuilt only when named
-PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps")}   # other plates: OUT, 20261020-p1s_pla_<plate>
+DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2")   # "calibration" (15:40) only when named
+PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"),     # other plates: OUT, 20261020-p1s_pla_<plate>
+             "solid_covers_caps2": (V3 / "print", "20261021-dip_link_v3b_p1s_pla_solid_covers_caps2")}
 
 
 def main():
@@ -125,7 +135,8 @@ def main():
         V.TITLE = {"calibration": "UR5 mount v2 (v1 fork, no key), indenters, b v3 covers W00-W20",
                    "link": "DIP link b v3, cover W00",
                    "fork_and_indenters": "UR5 mount v2: fork with walls around the legs, indenters with keyed posts",
-                   "tip_caps": "DIP link b v3: caps TP and TW over the tip end"}[plate]
+                   "tip_caps": "DIP link b v3: caps TP and TW over the tip end",
+                   "solid_covers_caps2": "DIP link b v3: solid-wall covers I05, I10, I15 and caps TP2, TW2"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -133,7 +144,10 @@ def main():
                       "19:10: standard 15 % grid infill" if plate == "fork_and_indenters" else "")
                    + ("; 19:48: 'the finger is getting popped out a lot ... a kind of T-shaped plate'; 20:36: 'sure we can go "
                       "with your recommendation' (ears under the distal board screws, a pin, caps with and without side walls)"
-                      if plate == "tip_caps" else ""))
+                      if plate == "tip_caps" else "")
+                   + ("; 2026-10-21: 'make the side walls on the bottom of the cassette actually clamp a little', 'boost the bottom "
+                      "screws up a little bit', 'more solid/better connected', 'beef those [tip caps] up as well'"
+                      if plate == "solid_covers_caps2" else ""))
         try:
             V.main()
         except SystemExit as e:

@@ -348,8 +348,9 @@ def pad_cutters():
         sec = [(s * y, x) for y, x in rail_section(-GROOVE_FIT, GROOVE_FLOOR)]
         sec = [(y, X_SLOT + 0.5 if x > X_SLOT else x) for y, x in sec]       # through the back face
         parts.append(prism(sec, z0, z1))
-    for y, z in screw_yz():
-        parts.append(cyl_x(y, z, HEAD_NOTCH_D / 2, X_SLOT - HEAD_NOTCH_H, X_SLOT + 1.0))
+    for y, z in screw_yz():           # solid walls: the proximal heads stand seat_raise higher, the notches as much deeper
+        hn = HEAD_NOTCH_H + (rp("seat_raise") if solid_walls() and z > Z_CONTACT else 0.0)
+        parts.append(cyl_x(y, z, HEAD_NOTCH_D / 2, X_SLOT - hn, X_SLOT + 1.0))
     return m3.Manifold.batch_boolean(parts, m3.OpType.Add)
 
 
@@ -908,7 +909,16 @@ def dip_link_parts(K):
 # builds v2 (cover_walls none, neck block, cable_leg roofed).
 ELL = dict(ay=7.4, ax=8.5, az=11.0, azp=22.0)      # the 11/22 half-ellipsoid of the v2 pads (tcd_ell7.4x8.5x11x22), mm
 REV = dict(wall_h=3.0, wall_clear=0.10, wall_top_t=1.2, wall_z0=0.0, col_margin=0.6, col_chamfer=2.0, head_raise=0.0,
-           wall_window_gap=0.5)
+           wall_window_gap=0.5, seat_raise=3.0, wall_chamfer=1.0)
+# cover_walls = solid (owner, 2026-10-21, after a wall's proximal end snapped beside a screw counterbore when the pad was
+# pushed off sideways: "make the side walls ... clamp a little (so 0 clearance or even some very marginal interference ...)",
+# "boost the bottom screws up a little bit", "more solid/better connected"): seat_raise is the height of the proximal screws'
+# seats above the cover's front face (the wall solid beneath, the pad's proximal notches as much deeper), wall_chamfer the
+# 45 deg chamfer along each wall's outer top edge.
+
+
+def solid_walls():
+    return DESIGN.get("cover_walls") == "solid"
 
 
 def rp(key):
@@ -930,24 +940,36 @@ def cover_walls(K):
     cover's edge (|y| Y_RIM) to wall_top_t outside the widest flank at the top; a counterbore over each screw head inside
     them, and the distal end cut at 45 deg."""
     import numpy as np
+    solid = solid_walls()
     h, c, tt = rp("wall_h"), rp("wall_clear"), rp("wall_top_t")
-    z0, z1 = Z_CONTACT + rp("wall_z0"), TIP["z_mount"]
+    g = rp("wall_window_gap")
+    win = cover_windows()
+    # solid: the walls end at the U3/U5 windows' proximal edge; past it the window cut left a 1.5 x 1.9 mm stub 1.5 mm off
+    # the pad, which held nothing
+    z0 = (max(win["U3"][3], win["U5"][3]) + g + 0.01) if solid else Z_CONTACT + rp("wall_z0")
+    z1 = TIP["z_mount"]
     # owner, 2026-10-20 15:20: "the added volume creeps up over the left and right most magnetometers"; 15:50: "the first
     # version of the modified cassette was the right idea, just cut right at where the magnetometer pocket is": the walls
     # keep their length and every chip window is cut out of them, grown by wall_window_gap
     xt = X_SLOT - h
-    y_top = ELL["ay"] + c + tt
     xo = X_SLOT + 0.01                                     # 0.01 mm into the web, so the mesh union joins them
-    blocks = [K.prism_z([(s * 3.0, xo), (s * Y_RIM, xo), (s * Y_RIM, X_SLOT), (s * y_top, xt), (s * 3.0, xt)], z0, z1)
-              for s in (-1, 1)]
+    if solid:                                              # the outer face straight up the cover's edge, chamfered at the top
+        ch = rp("wall_chamfer")
+        blocks = [K.prism_z([(s * 3.0, xo), (s * Y_RIM, xo), (s * Y_RIM, xt + ch), (s * (Y_RIM - ch), xt), (s * 3.0, xt)], z0, z1)
+                  for s in (-1, 1)]
+    else:
+        y_top = ELL["ay"] + c + tt
+        blocks = [K.prism_z([(s * 3.0, xo), (s * Y_RIM, xo), (s * Y_RIM, X_SLOT), (s * y_top, xt), (s * 3.0, xt)], z0, z1)
+                  for s in (-1, 1)]
     zs = np.linspace(z0 - 2.0, z1 + 1.0, 121)
     yo = [pad_half_width(min(z, z1)) + c for z in zs]
     foot = [(y, z) for y, z in zip(yo, zs)] + [(-y, z) for y, z in zip(yo[::-1], zs[::-1])]
-    cuts = [K.prism_x(foot, xt - 1.0, X_SLOT + 0.5),
-            K.prism_y([(X_SLOT + 0.5, z0 - 0.5), (xt - 0.5, z0 + h + 0.5), (xt - 0.5, z0 - 20.0), (X_SLOT + 0.5, z0 - 20.0)],
-                      -Y_RIM - 1.0, Y_RIM + 1.0)]
-    g = rp("wall_window_gap")
-    cuts += [K.box((xt - 1.0, y0 - g, za - g), (X_SLOT + 0.5, y1 + g, zb + g)) for y0, y1, za, zb in cover_windows().values()]
+    cuts = [K.prism_x(foot, xt - 1.0, X_SLOT + 0.5)]
+    if not solid:
+        cuts.append(K.prism_y([(X_SLOT + 0.5, z0 - 0.5), (xt - 0.5, z0 + h + 0.5), (xt - 0.5, z0 - 20.0), (X_SLOT + 0.5, z0 - 20.0)],
+                              -Y_RIM - 1.0, Y_RIM + 1.0))
+    if not solid:   # solid: the walls end before U3/U5, and C_3/C_5 (0.5 mm tall) keep their windows in the web alone
+        cuts += [K.box((xt - 1.0, y0 - g, za - g), (X_SLOT + 0.5, y1 + g, zb + g)) for y0, y1, za, zb in win.values()]
     return K.cut(K.fuse(blocks[0], [blocks[1]]), cuts)
 
 
@@ -989,12 +1011,20 @@ def cover_part(K):
     for s in (-1, 1):
         sec = [(s * y, (X_SLOT + 0.1) if x > X_SLOT else x) for y, x in rail_section()]
         rails.append(K.prism_z(sec, RAIL_Z[0], RAIL_Z[1]))
-    if DESIGN.get("cover_walls", "none") == "pad_flanks":
+    if DESIGN.get("cover_walls", "none") in ("pad_flanks", "solid"):
         rails.append(cover_walls(K))
         h = rp("wall_h")
-        return K.finish(K.cut(K.fuse(cover, rails),
-                              [K.cylx(y, z, SCREW_CLEAR / 2, X_SLOT - h - 1.0, X_COMP + 0.2) for y, z in screw_yz()]
-                              + [K.cylx(y, z, (HEAD_D + 0.4) / 2, X_SLOT - h - 1.0, X_SLOT) for y, z in screw_yz()]))
+        sr = rp("seat_raise") if solid_walls() else 0.0      # the proximal heads on solid wall this far up
+        cuts = [K.cylx(y, z, SCREW_CLEAR / 2, X_SLOT - h - 1.0, X_COMP + 0.2) for y, z in screw_yz()]
+        cuts += [K.cylx(y, z, (HEAD_D + 0.4) / 2, X_SLOT - h - 1.0, X_SLOT - (sr if z > Z_CONTACT else 0.0))
+                 for y, z in screw_yz()]
+        if sr > 0:      # no wall above a raised seat from the counterbore's distal edge to the mount face: beside the
+            #             counterbore it was a 0.66 mm fin toward the mount face and a 0.4 mm skin toward the cover's edge
+            rc = (HEAD_D + 0.4) / 2
+            cuts += [K.box((X_SLOT - h - 1.0, 5.0 if y > 0 else -Y_RIM - 1.0, z - rc),
+                           (X_SLOT - sr, Y_RIM + 1.0 if y > 0 else -5.0, TIP["z_mount"] + 0.5))
+                     for y, z in screw_yz() if z > Z_CONTACT]
+        return K.finish(K.cut(K.fuse(cover, rails), cuts))
     hr = rp("head_raise")
     if hr > 0:      # owner, 2026-10-20 15:20: "the screws can sit a little higher (like 1mm)": a seat under each head
         rails += [K.cylx(y, z, HEAD_D / 2 + 0.8, X_SLOT - hr, X_SLOT + 0.01) for y, z in screw_yz()]
@@ -1107,7 +1137,9 @@ def hardware():
              for u0, u1, v0, v1, h in board_parts().values()]
     chips = [box((X_COMP - h, u0, uv_z(v1)), (X_COMP + 0.001, u1, uv_z(v0)))
              for k, (u0, u1, v0, v1, h) in board_parts().items() if k.startswith("U")]
-    screws = [cyl_x(y, z, HEAD_D / 2, X_SLOT - HEAD_H, X_SLOT) + cyl_x(y, z, SCREW_D / 2, X_SLOT - 0.01, X_SLOT + SCREW_L)
+    sr = rp("seat_raise") if solid_walls() else 0.0          # solid walls: the proximal pair M2 x (5 + seat_raise), heads up
+    screws = [cyl_x(y, z, HEAD_D / 2, X_SLOT - (sr if z > Z_CONTACT else 0.0) - HEAD_H, X_SLOT - (sr if z > Z_CONTACT else 0.0))
+              + cyl_x(y, z, SCREW_D / 2, X_SLOT - (sr if z > Z_CONTACT else 0.0) - 0.01, X_SLOT + SCREW_L)
               for y, z in screw_yz()]
     x_nut = X_TONGUE_BACK - NUT_POCKET_H
     nuts = [hex_x(y, z, NUT_AF, x_nut, x_nut + NUT_H) - cyl_x(y, z, SCREW_D / 2, x_nut - 1, x_nut + NUT_H + 1)

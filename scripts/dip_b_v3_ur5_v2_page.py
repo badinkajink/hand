@@ -72,6 +72,9 @@ def load():
     plates["tipcap"] = j(DIP / "v3/b/20261020-dip_link_v3b_tip_caps.json")
     plates["caps"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_p1s_pla_tip_caps.json")
     plates["b00p"] = j(DIP / "v3/b/print/20261020-dip_link_v3b_print_pad_ell11_5_B00_pin_85a_t2_g30.json")
+    plates["rev2"] = j(DIP / "v3/b/20261021-dip_link_v3b_solid_covers_and_caps2.json")
+    plates["plate2"] = j(DIP / "v3/b/print/20261021-dip_link_v3b_p1s_pla_solid_covers_caps2.json")
+    plates["b00r"] = j(DIP / "v3/b/print/20261021-dip_link_v3b_print_pad_ell11_5_B00_pin_raised_85a_t2_g30.json")
     fe = {}
     for r in rows(FE / "fe.jsonl"):
         if r["case"] in ("b_v2", "b_v2_wall3", "b_v2_wall495"):
@@ -164,6 +167,11 @@ point is relative to the indenter's top and how the finger is turned about the k
 at which the link and the fork overlap, with the clamp plate and the screws off, in degrees on a grid of 0.05 to 5&#176;.</dd>
 <dt>Tip end</dt><dd>The plane z_F &#8722;98.46 where the DIP link's tongue, the cover and the pad end; the board stops 0.5&#8202;mm short of
 it. Seen along the finger it is a T: the tongue and the cover 21 &#215; 5.1&#8202;mm, the pad's flat end 4.4 &#215; 7.5&#8202;mm.</dd>
+<dt>Interference</dt><dd>How far a wall's inner face stands inside the pad's flank as designed, on each side, in mm: the negative
+of the wall clearance. Covers I05, I10 and I15 have 0.05, 0.10 and 0.15&#8202;mm, so their walls squeeze the 14.8&#8202;mm pad to 14.7, 14.6
+and 14.5&#8202;mm.</dd>
+<dt>Seat raise</dt><dd>Height of the proximal board screws' seats above the cover's front face, in mm; the wall beneath a seat is solid
+but for the screw's 2.4&#8202;mm hole. 0 on the covers W00&#8211;W20, 3.0 on I05&#8211;I15.</dd>
 <dt>Tip cap TP, TW</dt><dd>A PLA part over the tip end: an end plate 1.2&#8202;mm thick on the T, two ears 3&#8202;mm thick on the cover's
 front face under the two distal board screws, and a 2&#8202;mm pin 2.7&#8202;mm into the pad's flat end. TP's ears stand 0.5&#8202;mm off
 the pad; TW adds side walls 6&#8202;mm tall along the pad's distal flanks, on the pad (0.00&#8202;mm, as W00).</dd>
@@ -218,7 +226,20 @@ the pad; TW adds side walls 6&#8202;mm tall along the pad's distal flanks, on th
            "the fingertip's top (19:48); the recommendation taken (20:36)",
            "Tip caps TP and TW (Section 9): end plate, ears under the distal board screws (M2 &#215; 8 for &#215; 5), a pin into the pad "
            "in place of a thread or insert; TW with side walls; pad B00P with the pin's hole",
-           "No overlap with any part; TP's ears 0.50&#8202;mm off the pad; joint clearance over 6.7&#8202;mm; Table 8"]]
+           "No overlap with any part; TP's ears 0.50&#8202;mm off the pad; joint clearance over 6.7&#8202;mm; Table 8"],
+          ["10-21: the cassette still lets the pad snap out; make its side walls clamp a little (zero clearance or a very marginal "
+           "interference that squishes the pad in)", "Covers I05, I10, I15 with the walls 0.05, 0.10 and 0.15&#8202;mm inside the pad's "
+           "flank on each side (Section 10)", "Interference " + ", ".join(f"{v['interference_with_B00R_mm3']:.1f}" for v in
+                                                                          plates["rev2"]["covers"].values())
+           + "&#8202;mm&#179; with pad B00R; no other overlap"],
+          ["10-21: the walls' proximal end snapped off beside the screw hole when the pad was pushed off sideways; boost the bottom "
+           "screws up; make the structure more solid and better connected",
+           "Proximal screw seats 3&#8202;mm up on solid wall (M2 &#215; 8), no wall above them toward the mount face; walls straight up the "
+           "21&#8202;mm edge with a 1&#8202;mm chamfer, ending at the U3/U5 windows; pad B00R with notches 3&#8202;mm deeper",
+           "Heads 0.20&#8202;mm from B00R's notches; walls 3.1&#8211;4.1&#8202;mm thick"],
+          ["10-21: beef up the tip caps, above all the one that curves around the ellipse (a tiny piece with sharp angles)",
+           "TP2: 1.6&#8202;mm plate, chamfered ears, filleted pin root; TW2: solid blocks from the pad's flank to the 21&#8202;mm edge, "
+           "5&#8202;mm tall, heads on top (M2 &#215; 10)", "No overlap but the designed interference; joint clearance over 6.6&#8202;mm"]]
     S.append(("changes", "Changes from the owner's notes of 2026-10-20", f"""
 <p>Table 1 lists each note, the change it made and the check that covers it. The DIP link changes are design switches of the
 concept b generator with their own parameters (<code>cover_walls</code>, <code>neck</code>, <code>cable_leg</code> in
@@ -381,9 +402,10 @@ print the fork with the walls.</p>
 
     t6 = [[esc(p["project"].split("/")[-1]), p["time"], f"{p['filament_g']:.1f}" if p["filament_g"] < 10 else f"{p['filament_g']:.0f}",
            ", ".join(o["label"] for o in p["objects"]),
-           "none" if not p["problems"] else esc("; ".join(p["problems"]))] for p in (pc, plates["fork"], pl, plates["caps"])]
+           "none" if not p["problems"] else esc("; ".join(p["problems"]))] for p in (pc, plates["fork"], pl, plates["caps"],
+                                                                                    plates["plate2"])]
     S.append(("print", "Print and CAD files", f"""
-<p>Four Bambu Lab P1S plates in PLA (Table 6), the parts' settings written into each project so Bambu Studio keeps them when it
+<p>Five Bambu Lab P1S plates in PLA (Table 6), the parts' settings written into each project so Bambu Studio keeps them when it
 slices again, and a 5&#8202;mm brim on every part. The calibration plate of 15:40 (printed: the adapter and the clamp plate on it are
 unchanged) has the mount and the indenters at 0.15&#8202;mm with five walls and 40&#8202;% gyroid and the covers solid at 0.1&#8202;mm. The
 fork with the walls and both indenters with the keyed posts print on their own plate at Bambu Studio's 0.20&#8202;mm Standard, two
@@ -507,6 +529,54 @@ up &#177;0.2&#8202;mm of the pad's printed length.</li>
        caption="b's pad with five magnets 7.5 mm deep in the readout model (scripts/v2_tip_fe_checks.py --sense, sensing.json); "
        "the walls and the caps held bonded to the pad.", n=8)}"""))
 
+    r2, pl2, pbr = plates["rev2"], plates["plate2"], plates["b00r"]
+    if r2.get("covers") and r2.get("caps"):
+        cv, cp, rh = r2["covers"], r2["caps"], r2["raised_heads"]
+        pbr_t = pbr["summary"]["print_time"].replace("m ", "&#8202;min ").replace("s", "&#8202;s")
+        t9 = [[k, f"{-v['wall_clear_mm']:.2f}", f"{v['interference_with_B00R_mm3']:.1f}", f"{v['mass_solid_g']:.2f}",
+               f"{v['notches']}"] for k, v in cv.items()]
+        t10 = [[k, cp[k]["label"].split(": ")[1], f"{cp[k]['side_height_mm']:.1f}", cp[k]["distal_screws"],
+                f"{max(cp[k]['overlap_mm3']['pad_B00R'], 0.0):.1f}", f"{cp[k]['gaps_mm']['sides_to_B00R']:.2f}",
+                f"{cp[k]['mass_solid_g']:.2f}"] for k in ("TP2", "TW2")]
+        S.append(("rev2", "Covers and caps after the 10-21 breakage", f"""
+<p>On 10-21 the pad, pushed sideways, came off cover W00 and broke the proximal end of a wall. Between each proximal screw's
+counterbore and the mount face the wall was a fin 0.66&#8202;mm thick: the counterbore, 4.2&#8202;mm across for the screw head at
+y&#8202;&#177;8.0, cut through the wall's whole height and through its inner face, because the head stands 0.78&#8202;mm inside the pad's flank.
+Past the U3/U5 windows the walls ended in stubs 1.5&#8202;mm off the pad. The covers I05, I10 and I15 change three things (Figure 14).
+Their walls clamp the pad: the inner faces stand 0.05, 0.10 and 0.15&#8202;mm inside the flank on each side (Table 9). The proximal screws'
+heads sit {rh['seat_above_cover_mm']:.1f}&#8202;mm up, on wall that is solid beneath them but for the 2.4&#8202;mm hole, and the wall above the
+seats is gone from the counterbore's distal edge to the mount face, which leaves no fin or skin beside the heads. The walls rise straight up the cover's
+21&#8202;mm edge to a 1&#8202;mm chamfer, 3.1&#8211;4.1&#8202;mm thick where the old ones tapered to 1.2&#8202;mm, and end at the U3/U5 windows; the
+capacitors beside U3 and U5, 0.5&#8202;mm tall, keep their windows in the web alone. The pad's proximal notches are
+{pbr['proximal_notch_depth_mm']:.1f}&#8202;mm deep in place of 1.5, so the raised heads stand {rh['to_B00R_mm']:.2f}&#8202;mm from pad B00R; in a pad
+cut for the old covers they would overlap {rh['overlap_B00_notch_1p5_mm3']:.1f}&#8202;mm&#179; of TPU at the two proximal corners.</p>
+<p>TW's walls were 1.2&#8202;mm thick and stepped down to the ears. TW2 replaces them with solid blocks from the pad's flank, at
+0.05&#8202;mm interference, to the cover's edge, 5&#8202;mm tall over the pad's whole straight flank, with the distal screws' heads on
+top (M2 &#215; 10). TP2 keeps TP's ears 0.5&#8202;mm off the pad. Both have a 1.6&#8202;mm end plate, 0.5&#8202;mm chamfers along the sides'
+outer and proximal top edges and a 0.4&#8202;mm fillet at the pin's root (Table 10). Pad B00R's hole has a 0.5&#8202;mm chamfer at its mouth
+for the fillet and stays {pbr['pin_hole']['to_pocket_mm']:.2f}&#8202;mm from the nearest pocket. The plate lengthens the finger to
+{r2['finger_length']['pip_to_tip_with_cap_mm']:.2f}&#8202;mm, PIP axis to tip. No cover or cap overlaps the link, the board, the
+magnets or the screws; over PIP &#8722;18 to 92&#176; they stay more than {min(cv['I05']['pip_sweep']['min_mm'], cp['TP2']['pip_sweep']['min_mm'], cp['TW2']['pip_sweep']['min_mm']):.1f}&#8202;mm
+from the MCP link and the PIP servo, and every part is 21.0&#8202;mm wide. STEP: <code>v3/b/cad/20261021-dip_link_v3b_cover_I*.step</code>,
+<code>*_tip_cap_TP2.step</code>, <code>*_tip_cap_TW2.step</code> (single valid solids).</p>
+<p>The three covers and both caps print on one P1S plate in {pl2['time']} ({pl2['filament_g']:.1f}&#8202;g, solid at 0.1&#8202;mm, the covers with six
+perimeters), and pad B00R on the XL in {pbr_t} with the same three pauses. The covers have one, two and three notches in the distal
+edge right of the centre line (the W covers' are left of it).</p>
+<ol>
+<li>The proximal pair of board screws becomes M2 &#215; 8 (heads on the raised seats); the distal pair M2 &#215; 8 through TP2's ears or
+M2 &#215; 10 through TW2's blocks, all ending at x_F 7.90 in the tongue as before.</li>
+<li>Pads printed for the old covers (B00, B00P) meet the raised heads at their proximal corners: cut each proximal notch 3&#8202;mm deeper
+with a knife (a 4.2&#8202;mm circle around the screw, to 4.5&#8202;mm from the back face), or print B00R.</li>
+</ol>
+{fig(14, DIP / 'v3/b/media/20261021-dip_link_v3b_solid_covers_and_caps2.png', "Cover I05 with its screws; caps TW2 and TP2 on the "
+     "finger with pad B00R; the raised seat beside the pad's deeper notch.", 1000)}
+{table(["Cover", "Interference per side (mm)", "Interference with B00R (mm&#179;)", "Mass, solid (g)", "Notches"], t9,
+       num_cols=(1, 2, 3, 4), caption="The solid-wall covers (scripts/dip_b_tip_cap.py covers2, "
+       "v3/b/20261021-dip_link_v3b_solid_covers_and_caps2.json).", n=9)}
+{table(["Cap", "Sides", "Side height (mm)", "Distal screws", "Interference with B00R (mm&#179;)", "Sides to B00R (mm)",
+        "Mass, solid (g)"], t10, num_cols=(2, 4, 5, 6), caption="The second caps; TW2's blocks stand 0.05 mm inside the pad's flank, which shows as "
+       "interference.", n=10)}"""))
+
     S.append(("weights", "Weights of the 85A fit parts", f"""
 <p>The A tips weigh {meas['A']['mass_g']:.2f}&#8202;g and the B pads {meas['B']['mass_g']:.2f}&#8202;g, 14&#8202;% under the slicer's
 {meas['A']['sliced_g_at_profile_1p26']:.2f} and {meas['B']['sliced_g_at_profile_1p26']:.2f}&#8202;g, which take the XL profile's
@@ -546,6 +616,9 @@ the printed walls stand further off than 0.15&#8202;mm and <code>mold_gap</code>
 <li>Weigh one metre of the 85A spool to 0.01&#8202;g. Near {meas['A']['filament_1m_g_expected']:.2f}&#8202;g the A tips are under-extruded
 by about 7&#8202;%; near {meas['A']['filament_1m_g_expected'] * meas['A']['measured_over_commanded']:.2f}&#8202;g the filament is thin and the
 tips contain what the slicer laid down. The UR5e indentation of one tip then measures the stiffness the weighing predicts.</li>
+<li>Print plate <code>20261021-dip_link_v3b_p1s_pla_solid_covers_caps2.3mf</code> and pad B00R. Press B00R into I05, I10 and I15
+in turn and push it sideways at the apex as hard as popped it off W00: take the least interference that keeps it on; if I15 does,
+and the pad's static field at rest moves more than 10&#8202;% from W00's, the clamp is squeezing the magnets and I10 is the choice.</li>
 <li>Print plate <code>20261020-dip_link_v3b_p1s_pla_tip_caps.3mf</code> and pad B00P, fit TP, and push the pad sideways at the
 tip and at the apex as hard as popped it off before; if it stays on, keep TP (Table 8's smaller cost), otherwise fit TW. With the
 cap on, repeat the presses of the first item: a spread more than Table 8's change above the walls-only pad means the plate preloads
@@ -560,7 +633,7 @@ closest approach, which was 0.10&#8202;mm with v2 a.</li>
              ROOT / "scripts/dip_link_concept_b.py", ROOT / "scripts/dip_link_v2.py", ROOT / "scripts/ur5_calibration_mount.py",
              ROOT / "scripts/v3b_ur5v2_pla_plate.py", ROOT / "scripts/v3b_pad_b00_magnets_xl.py", ROOT / "scripts/v2_tip_fe_checks.py", ROOT / "scripts/dip_b_v3_figures.py",
              ROOT / "scripts/dip_b_magnet_layouts_figure.py", ROOT / "scripts/dip_b_tip_cap.py",
-             DIP / "v3/b/20261020-dip_link_v3b_tip_caps.json",
+             DIP / "v3/b/20261020-dip_link_v3b_tip_caps.json", DIP / "v3/b/20261021-dip_link_v3b_solid_covers_and_caps2.json",
              ROOT / "scripts/dip_b_v3_ur5_v2_page.py"]
     S.append(("files", "Files", "<ul>" + "".join(f"<li>{code(f)}</li>" for f in files if Path(f).exists()) + "</ul>"
               + f"<p>Related pages: {link(PAGES['dip'], 'DIP-link redesign')}, {link(PAGES['ur5'], 'UR5e mount v1')}, "
