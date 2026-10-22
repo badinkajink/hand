@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Sphere-packed fingertip contact</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -9,11 +10,13 @@
   <div class="eyebrow"><a href="../index.html">SR&#178; Hand documentation</a> &#183; <a href="../pages.html">index of result pages</a> &#183; topic overview: fingertip contact model &#183; 1&#8211;14 October 2026 &#183; built {{BUILT}}</div>
   <h1>Sphere-packed fingertip pads as a distributed contact model for dexterous manipulation in MuJoCo</h1>
   <p class="lede">{{LEDE}}</p>
-  <div class="byline">real_v1 screwdriver (r&#8202;12.5&#8202;mm, 24.5&#8202;g) between two fingertips: the 10.55&#8202;mm sphere of the bed, the
-  analytic check, and the printed TPU block with 2.7&#8202;mm fillets, the default fingertip since 13 October; \(\mu=1\), \(E=10\)&#8202;MPa
-  &#183; MuJoCo 3.6 (CPU) and MuJoCo-Warp, Drake 1.57 SAP, Newton {{NEWTON_REV}} &#183; builder <code>scripts/contact_overview_page.py</code>,
-  equations LaTeX rendered to SVG by <code>scripts/texsvg.py</code> &#183; task results on the bed page
-  (<code>{{BED_PATH}}</code>{{BED_LINK}}) and the chain page (<code>{{CHAIN_PATH}}</code>, <a href="{{CHAIN_URL}}">artifact</a>)</div>
+  <div class="byline">Tool: the real_v1 screwdriver, radius 12.5&#8202;mm and mass 24.5&#8202;g, pinched between two fingertips.
+  Fingertips: the 10.55&#8202;mm sphere of the test bed, which has an analytic solution, and the printed TPU block with
+  2.7&#8202;mm fillets, the default fingertip since 13 October. Friction coefficient \(\mu=1\), modulus \(E=10\)&#8202;MPa.
+  Simulators: MuJoCo 3.6 on the CPU, MuJoCo-Warp on the GPU, Drake 1.57 with its SAP solver, and Newton {{NEWTON_REV}}.
+  Builder: <code>scripts/contact_overview_page.py</code>; equations are LaTeX rendered to SVG by <code>scripts/texsvg.py</code>.
+  Task results: the test-bed page (<code>{{BED_PATH}}</code>{{BED_LINK}}) and the chain page (<code>{{CHAIN_PATH}}</code>,
+  <a href="{{CHAIN_URL}}">artifact</a>).</div>
 </header>
 
 <nav class="toc"><div class="col">
@@ -37,34 +40,43 @@
 
 <section id="problem"><div class="col">
 <h2>Components of a fingertip contact model</h2>
-<p>The SR2 hand pinches, turns, rolls and releases a 24.5&#8202;g screwdriver between two or three soft fingertips. Four
-contact quantities govern these motions: the normal force with the pad compliance behind it, Coulomb friction in the tangent
-plane, the friction torque about the contact normal, and the pressure distribution over the contact area, which sets that
-torque and the centre of pressure. The pinch brake and the wield of arXiv 2609.25619 depend on the friction torque.</p>
-<p>The fingertip is a printed TPU block, 17.0&#8202;mm deep with a 14.8&#8202;mm wide palmar face and 2.7&#8202;mm fillets, and the
-planned prints have a gyroid infill; since 13 October the scenes model it as 1&#8202;mm pads. Its modulus, damping, shear
-compliance and friction are unmeasured; finite elements of the planned prints are on the printed-tip page (index below). The model is
-therefore judged by agreement with pressure-field references and analytic limits on task-level metrics, by consistency
-across step size and resolution, and by cost. A receding-horizon controller corrects a consistent model error from measured
-state, provided the model contains the friction torque and slip the task uses.</p>
-<p>The task scenes with point-contact pads use MuJoCo&#8217;s elliptic friction cone, impratio 10 and a soft contact on pads,
-tool and floor (solref 0.006, solimp 0.97&#8211;0.995). On m05, the earlier simulation-only hand, a policy retrained with
-harder contact (solimp 0.985&#8211;0.999) kept the grasp and lost the turn, at an alignment reward of 13 against 48
-(<a href="../experiments/20260818-perp_review_page/20260818-perp_reorientation.html">two finger arrangements</a>).</p>
+<p>The SR2 hand pinches, turns, rolls and releases a 24.5&#8202;g screwdriver between two or three soft fingertips. How the
+tool moves depends on four contact quantities:</p>
+<ul>
+<li>the normal force, and the compliance of the fingertip behind it;</li>
+<li>Coulomb friction in the plane of the contact;</li>
+<li>the friction torque about the contact normal, which resists twisting;</li>
+<li>the pressure over the contact area, which sets the friction torque and the centre of pressure.</li>
+</ul>
+<p>The friction torque matters most in these tasks. Without it, two fingertips that pinch the tool act as a hinge, and
+the tool swings down under its own weight. The torque is needed in two maneuvers of Wang, Oh and Pollard
+(arXiv 2609.25619). In the pinch brake, the hand lowers its pinch force so that the tool swings down slowly. In the wield, a tool that stands
+in a hole is turned about its axis by repeated pinch, twist and release cycles.</p>
+<p>The fingertip is a printed TPU block, 17.0&#8202;mm deep, with a 14.8&#8202;mm wide palmar face and 2.7&#8202;mm fillets. The
+planned prints have a gyroid infill. Since 13 October the scenes model the block with 1&#8202;mm pads. Its modulus, damping,
+shear compliance and friction have not been measured yet. Finite-element models of the planned prints are on the
+printed-tip page (index below). Until the measurements exist, the contact model is compared with reference models and
+analytic limits on the metrics of whole tasks. It is also checked for consistency across time steps and sphere spacings,
+and its cost is measured. A controller that replans from measured state corrects a consistent model error, as long as
+the model contains the friction torque and the slip that the task depends on.</p>
+<p>The task scenes that use point contact run MuJoCo&#8217;s elliptic friction cone at impratio 10, with soft contacts on the
+fingertips, the tool and the floor (solref 0.006, solimp 0.97&#8211;0.995).</p>
 <div class="tw">{{CAP_TABLE}}</div>
-<p class="tnote">Table&#160;1. Contact quantities each model represents. Cost: wall time of one physics step at 1&#8202;ms, on
-one CPU core for the two-pad pinch rig (bed task&#160;1, &#8220;bed&#8221;) and for the open-loop turn replay of the real_v1 hand (&#8220;hand&#8221;,
-median over the {{HAND_N}} D1&#8211;D8 placements that Drake also ran, the TPU block as 1&#8202;mm pads or as one convex mesh with point contact), and for GPU models on the SR2
-holding fixture of Figure&#160;10, for one world alone and per world-step at the batch of highest throughput; the pad&#8217;s GPU
-numbers are MuJoCo-Warp&#8217;s. Table&#160;4 gives the costs on the hand and in training. {{CAP_NOTE}}</p>
+<p class="tnote">Table&#160;1. Contact quantities that each model represents. The cost is the wall time of one physics step
+of 1&#8202;ms. On one CPU core it is given on the test bed (task&#160;1, &#8220;bed&#8221;) and for the open-loop turn replay on the
+real_v1 hand (&#8220;hand&#8221;). The hand&#8217;s cost is the median over the {{HAND_N}} D1&#8211;D8 placements that Drake also ran,
+with the TPU block as 1&#8202;mm pads or as one convex mesh with point contact. For the GPU models the cost is given on the
+SR2 holding fixture of Figure&#160;10, for one world alone and per world-step at the batch size of highest throughput. The
+pads&#8217; GPU numbers are MuJoCo-Warp&#8217;s. Table&#160;4 gives the costs on the hand and in training. {{CAP_NOTE}}</p>
 <figure class="diagram">
 {{FIG_MODELS}}
-<figcaption>Figure&#160;1. Five representations of a fingertip pressed on the tool. (a) A point contact transmits normal force
-and friction at one point and no torque about the normal. (b) condim&#160;4 adds a torsional friction coefficient at that point,
-rescheduled every step from a fit to Drake&#8217;s torque. (c) The sphere pad replaces the fingertip surface with small spheres;
-each touching sphere is a soft contact with its own Coulomb cone, and the friction torque is the moment of their friction
-forces. (d) The hydroelastic field assigns a pressure to the overlap volume and integrates it over the contact surface.
-(e) A lattice (CSLC) adds lateral springs between neighbouring elements, which spread load beyond the overlap.</figcaption>
+<figcaption>Figure&#160;1. Five models of a fingertip pressed on the tool. (a) A point contact transmits a normal force and
+friction at one point, and no torque about the normal. (b) MuJoCo&#8217;s condim&#160;4 adds a torsional friction coefficient at
+that point; the coefficient is reset every step from a fit to Drake&#8217;s torque. (c) The sphere pad replaces the fingertip
+surface with small spheres. Each sphere that touches is a soft contact with its own Coulomb cone, and the friction torque
+is the moment of their friction forces. (d) The hydroelastic field assigns a pressure to the overlap volume and integrates
+it over the contact surface. (e) A lattice (CSLC) adds lateral springs between neighbouring elements, which spread load
+beyond the overlap.</figcaption>
 </figure>
 </div></section>
 
@@ -72,81 +84,106 @@ forces. (d) The hydroelastic field assigns a pressure to the overlap volume and 
 <h2>Contact mechanics of a soft fingertip</h2>
 
 <h3><span class="step">1</span>Friction torque of a contact patch</h3>
-<p>A pad pressed with normal force \(F\) spreads it over a patch \(A\) as a pressure \(p\). When the tool turns about the
-contact normal relative to the pad, each area element slides on a circle about the patch centre, and its friction
-\(\mu p\,dA\) acts at lever \(\rho\):</p>
+<p>A pad pressed on the tool resists twisting up to a torque \(T=\mu F\bar r\). Here \(\mu\) is the friction coefficient,
+\(F\) the normal force and \(\bar r\) a lever arm, the friction arm, that is a fraction of the patch radius.</p>
+<p>The pad presses with normal force \(F\), which spreads over a contact patch \(A\) as a pressure \(p\). When the tool
+turns about the contact normal, each small piece \(dA\) of the patch slides along a circle around the patch centre. Its
+friction force \(\mu p\,dA\) acts at the distance \(\rho\) from the centre, so it adds the torque \(\mu p\rho\,dA\).
+Summing over the patch gives</p>
 <div class="eq">\[F=\int_A p\,dA,\qquad T=\mu\int_A p\,\rho\,dA=\mu F\,\bar r,\qquad \bar r=\frac{\int_A p\,\rho\,dA}{\int_A p\,dA}.\]<span class="eqno">(1)</span></div>
-<p>\(T\) is the largest torque the contact transmits before it spins. The friction arm \(\bar r\) is the force-weighted mean
-distance of the patch from its centre. Friction on opposite sides of the centre turns the tool the same way, so a patch whose
-centre of pressure lies at its centre still has an arm. For a disc of radius \(a\) under a uniform pressure \(p\), rings of
-area \(2\pi\rho\,d\rho\) give</p>
+<p>\(T\) is the largest torque the contact can resist before the tool spins. The friction arm \(\bar r\) is the mean
+distance of the patch from its centre, weighted by pressure. Friction on opposite sides of the centre turns the tool the
+same way. The arm is therefore not zero when the pressure is centred.</p>
+<p>For a disc of radius \(a\) under a uniform pressure \(p\), the patch is a set of rings of area \(2\pi\rho\,d\rho\), and
+(1) gives</p>
 <div class="eq">\[F=\int_0^a p\,2\pi\rho\,d\rho=p\,\pi a^2,\qquad T=\mu\int_0^a p\,\rho\,2\pi\rho\,d\rho=\mu p\,\frac{2\pi a^3}{3},\qquad \bar r=\frac{2a}{3}.\]</div>
-<p>The patch radius scales every lever and the shape of the pressure sets the weights. With \(u=\rho/a\), a cone of pressure
-\(1-u\) gives \(\bar r/a=1/2\); the paraboloid \(1-u^2\) of a spring bed (step&#160;2) gives \(8/15=0.533\), the Hertz profile
-\(\sqrt{1-u^2}\) (step&#160;3) \(3\pi/16=0.589\), a uniform pressure \(2/3\) and a ring at the rim 1.</p>
-<p>A point contact has \(\rho=0\) and transmits no torque about its normal, so two point contacts pinching a tool form a free
-hinge about the line through them. The bed&#8217;s screwdriver, with its centre of mass \(d\)&#8202;=&#8202;{{HINGE_D}}&#8202;mm from that line,
-exerts a gravity torque \(mgd\cos\varphi\) about it, with \(mgd\)&#8202;=&#8202;{{HINGE_MGD}}&#8202;mN&#8202;m and \(\varphi\) the tool&#8217;s angle
-below horizontal. Two pads hold it at rest where</p>
+<p>The patch radius \(a\) sets the scale of the arm. The shape of the pressure sets the fraction of \(a\). With
+\(u=\rho/a\) the distance as a fraction of the radius, the arm is</p>
+<ul>
+<li>\(a/2\) under a cone of pressure, \(1-u\);</li>
+<li>\(8a/15=0.533\,a\) under the paraboloid \(1-u^2\) of a Winkler foundation (step&#160;2);</li>
+<li>\(3\pi a/16=0.589\,a\) under the Hertz profile \(\sqrt{1-u^2}\) (step&#160;3);</li>
+<li>\(2a/3\) under a uniform pressure;</li>
+<li>\(a\) when all the pressure lies in a ring at the rim.</li>
+</ul>
+<p>A point contact has no patch (\(\rho=0\)), so it resists no twist. Two point contacts that pinch a tool therefore act
+as a free hinge about the line through them. The screwdriver&#8217;s centre of mass lies \(d\)&#8202;=&#8202;{{HINGE_D}}&#8202;mm from that
+line. Gravity therefore twists the tool about the line with the torque \(mgd\cos\varphi\), where \(\varphi\) is the tool&#8217;s
+angle below horizontal and \(mgd\)&#8202;=&#8202;{{HINGE_MGD}}&#8202;mN&#8202;m. Two pads keep the tool still while their friction torque
+exceeds the gravity torque:</p>
 <div class="eq">\[2\mu F\,\bar r(F)\ \ge\ mgd\cos\varphi .\]</div>
-<p>At 1&#8202;N per pad the arm of step&#160;2 on the screwdriver, {{HINGE_ARM1}}&#8202;mm, gives a capacity of {{HINGE_CAP1}}&#8202;mN&#8202;m
-with \(\mu=1\), so the tool comes to rest at \(\varphi\)&#8202;=&#8202;{{HINGE_PHI1}}&#176;; it stays horizontal from {{HINGE_FH}}&#8202;N per pad.
-At {{HINGE_N1}}&#8202;N, the end of the braked swing of bed task&#160;5, the pads still transmit {{HINGE_CAPN1}}&#8202;mN&#8202;m and the
-balance gives {{HINGE_PHIN1}}&#176;. Point contacts hold the tool only hanging, at 90&#176;.</p>
+<p>At 1&#8202;N per pad the arm on the screwdriver is {{HINGE_ARM1}}&#8202;mm (step&#160;2), so the two pads resist up to
+{{HINGE_CAP1}}&#8202;mN&#8202;m with \(\mu=1\). The tool then comes to rest at \(\varphi\)&#8202;=&#8202;{{HINGE_PHI1}}&#176;. It stays horizontal
+when each pad presses with {{HINGE_FH}}&#8202;N or more. The braked swing of task&#160;5 on the test bed ends at
+{{HINGE_N1}}&#8202;N. There the pads still resist {{HINGE_CAPN1}}&#8202;mN&#8202;m, and the tool rests at {{HINGE_PHIN1}}&#176;. Point contacts
+hold the tool only hanging straight down, at 90&#176;.</p>
 
 <h3><span class="step">2</span>Winkler foundation and the hydroelastic pressure field</h3>
-<p>A Winkler foundation is a bed of independent springs, each pushing back in proportion to its own compression:
-\(p=k_w\delta\), with \(k_w=E/h\) in N/m&#179; for a layer of modulus \(E\) and thickness \(h\). Drake&#8217;s hydroelastic contact
-(Elandt et al., 2019) is a foundation of this kind: each compliant body has a pressure field that rises with depth below its
-surface, and the pressure at a point of the contact surface depends only on that point&#8217;s depth inside the undeformed body.
-For a sphere of radius \(R\) the field is \(p=E\,\delta/R\), a Winkler layer with \(h=R\). The sphere&#8217;s surface at distance
-\(\rho\) from its lowest point lies \(R-\sqrt{R^2-\rho^2}\approx\rho^2/2R\) higher, so a sphere pressed \(\delta_0\) into a flat
-face compresses the spring at \(\rho\) by \(\delta_0-\rho^2/2R\), and the patch ends at \(a=\sqrt{2R\delta_0}\). Summed over
-rings, with \(a^2=2R\delta_0\),</p>
+<p>A layer of independent springs, the Winkler foundation, gives a friction arm that grows as the fourth root of the force.
+Drake&#8217;s hydroelastic contact is such a layer.</p>
+<p>In a Winkler foundation each point of the surface is a spring that pushes back in proportion to its own compression
+\(\delta\): \(p=k_w\delta\). For a layer of modulus \(E\) and thickness \(h\) the spring constant per unit area is
+\(k_w=E/h\), in N/m&#179;. Drake&#8217;s hydroelastic contact (Elandt et al., 2019) works the same way. Each soft body has a
+pressure field that grows with depth below its surface. The pressure at a point of the contact surface depends only on how
+deep that point lies inside the undeformed body. For a sphere of radius \(R\) the field is \(p=E\,\delta/R\), a Winkler
+layer of thickness \(h=R\).</p>
+<p>Press the sphere a depth \(\delta_0\) into a flat face. At the distance \(\rho\) from its lowest point, the sphere&#8217;s
+surface lies \(R-\sqrt{R^2-\rho^2}\approx\rho^2/2R\) higher. The spring there is therefore compressed by
+\(\delta_0-\rho^2/2R\), and the patch ends where this reaches zero, at \(a=\sqrt{2R\delta_0}\). Adding up the rings of the
+patch gives the force:</p>
 <div class="eq">\[F=2\pi k_w\int_0^a\Bigl(\delta_0-\frac{\rho^2}{2R}\Bigr)\rho\,d\rho=2\pi k_w\Bigl(\frac{\delta_0a^2}{2}-\frac{a^4}{8R}\Bigr)=\pi k_wR\,\delta_0^2 .\]<span class="eqno">(2)</span></div>
-<p>The force grows as \(\delta_0^2\) because the patch area \(2\pi R\delta_0\) and the mean pressure \(k_w\delta_0/2\) each grow in
-proportion to \(\delta_0\). The pressure \(k_w\delta_0(1-\rho^2/a^2)\) is the paraboloid of step&#160;1, so \(\bar r=8a/15\), and
-eliminating \(\delta_0\) with \(a^4=4R^2\delta_0^2=4RF/(\pi k_w)\) gives the arm as a power of the load:</p>
+<p>The force grows as \(\delta_0^2\) because two things grow in proportion to \(\delta_0\): the patch area
+\(2\pi R\delta_0\) and the mean pressure \(k_w\delta_0/2\). The pressure \(k_w\delta_0(1-\rho^2/a^2)\) is the paraboloid of
+step&#160;1, so \(\bar r=8a/15\). Equation (2) gives \(a^4=4R^2\delta_0^2=4RF/(\pi k_w)\), and substituting it writes the arm
+as a power of the force:</p>
 <div class="eq">\[\bar r_W=\frac{8}{15}\Bigl(\frac{4R}{\pi k_w}\Bigr)^{1/4}F^{1/4}=c\,F^{1/4},\qquad T=\mu c\,F^{5/4}.\]<span class="eqno">(3)</span></div>
-<p>For the real_v1 fingertip at Drake&#8217;s default \(E\)&#8202;=&#8202;10&#8202;MPa, \(k_w=E/R\)&#8202;=&#8202;{{KW}}&#8202;N/mm&#179;: 1&#8202;N sinks the sphere
-{{BED_D0_UM}}&#8202;&#181;m into a flat face over a patch of radius {{BED_A_MM}}&#8202;mm, with a peak pressure of {{BED_P0}}&#8202;MPa and a contact
-stiffness \(dF/d\delta_0=2\pi k_wR\delta_0\) of {{BED_KC}}&#8202;N/mm, and \(c={{C_FLAT}}\ \mathrm{mm\,N^{-1/4}}\).
-On the 12.5&#8202;mm screwdriver the patch is narrower across the tool axis. Integrating the same field over the sphere&#8211;cylinder
-overlap (<code>scripts/hydroelastic_arm_integral.py</code>) gives an arm of 0.820, 0.974 and 1.281&#8202;mm at 0.5, 1 and 3&#8202;N,
-\(c=0.974\ \mathrm{mm\,N^{-1/4}}\) with the exponent 1/4 to within 0.1&#8202;%. This integral is the reference of the twist task;
-Drake and the sphere pads are two discretizations of it. The springs are uncoupled, so the pressure is zero outside the
-geometric overlap.</p>
+<p>The arm grows as the fourth root of the force, and the friction torque as its 5/4 power.</p>
+<p>The real_v1 fingertip sphere has \(k_w=E/R\)&#8202;=&#8202;{{KW}}&#8202;N/mm&#179; at Drake&#8217;s default \(E\)&#8202;=&#8202;10&#8202;MPa. A force of
+1&#8202;N sinks it {{BED_D0_UM}}&#8202;&#181;m into a flat face. The patch then has a radius of {{BED_A_MM}}&#8202;mm and a peak pressure
+of {{BED_P0}}&#8202;MPa. The contact stiffness \(dF/d\delta_0=2\pi k_wR\delta_0\) is {{BED_KC}}&#8202;N/mm, and
+\(c={{C_FLAT}}\ \mathrm{mm\,N^{-1/4}}\).</p>
+<p>On the 12.5&#8202;mm screwdriver the patch is narrower across the tool&#8217;s axis. Integrating the same field over the overlap of
+the sphere and the cylinder (<code>scripts/hydroelastic_arm_integral.py</code>) gives arms of 0.820, 0.974 and 1.281&#8202;mm at
+0.5, 1 and 3&#8202;N. That is \(c=0.974\ \mathrm{mm\,N^{-1/4}}\), with the exponent 1/4 to within 0.1&#8202;%. This integral is the
+reference for the twist task. Drake and the sphere pads are two discretizations of it. The springs are independent, so the
+pressure is zero outside the overlap.</p>
 
 <h3><span class="step">3</span>Hertz contact</h3>
-<p>A homogeneous elastic body transmits load sideways through shear, so its surface deflects outside the loaded region and
-the pressure takes the Hertz form. For a sphere on a rigid flat, with \(E^\ast=E/(1-\nu^2)\),</p>
+<p>A solid elastic fingertip spreads load sideways, and its friction arm grows as \(F^{1/3}\), faster than the foundation&#8217;s
+\(F^{1/4}\). The two laws can be told apart by how the twist torque grows with force.</p>
+<p>A homogeneous elastic body passes load sideways through shear. Its surface therefore deflects outside the loaded region,
+and the pressure takes the Hertz form. For a sphere on a rigid flat, with \(E^\ast=E/(1-\nu^2)\) and \(\nu\) Poisson&#8217;s
+ratio,</p>
 <div class="eq">\[a^3=\frac{3FR}{4E^\ast},\qquad p(\rho)=\frac{3F}{2\pi a^2}\sqrt{1-\frac{\rho^2}{a^2}},\qquad \bar r_H=\frac{3\pi}{16}\,a\;\propto\;F^{1/3}.\]<span class="eqno">(4)</span></div>
-<p>At the same approach an elastic solid touches over a smaller patch, \(a^2=R\delta\) against the bed&#8217;s \(2R\delta\), and its
-mean pressure grows with the strain \(a/R\), so \(F\propto\delta^{3/2}\) and \(a\propto F^{1/3}\). Drake&#8217;s 10&#8202;MPa is a
-parameter of its pressure field, \(k_wR\); taken as a Young&#8217;s modulus with \(\nu=0.45\) (\(E^\ast\)&#8202;=&#8202;{{HZ_ESTAR}}&#8202;MPa), (4)
-gives \(a\)&#8202;=&#8202;{{HZ_A}}&#8202;mm and \(\bar r\)&#8202;=&#8202;{{HZ_RBAR}}&#8202;mm at 1&#8202;N, half the bed&#8217;s {{C_FLAT}}&#8202;mm. The two laws differ
-in how fast the arm grows with load. Between 0.5 and 3&#8202;N:</p>
+<p>At the same approach an elastic solid touches over a smaller patch than the foundation: \(a^2=R\delta\) against
+\(2R\delta\). Its mean pressure also grows with the strain \(a/R\). Together these give \(F\propto\delta^{3/2}\) and
+\(a\propto F^{1/3}\).</p>
+<p>Drake&#8217;s 10&#8202;MPa is a parameter of its pressure field, \(k_wR\). Read as a Young&#8217;s modulus with \(\nu=0.45\)
+(\(E^\ast\)&#8202;=&#8202;{{HZ_ESTAR}}&#8202;MPa), it gives \(a\)&#8202;=&#8202;{{HZ_A}}&#8202;mm and \(\bar r\)&#8202;=&#8202;{{HZ_RBAR}}&#8202;mm at 1&#8202;N by (4). That is
+half the foundation&#8217;s {{C_FLAT}}&#8202;mm. Between 0.5 and 3&#8202;N the arm grows</p>
 <div class="eq">\[\frac{\bar r(3\,\mathrm{N})}{\bar r(0.5\,\mathrm{N})}=6^{1/4}=1.565\ \text{(foundation)},\qquad 6^{1/3}=1.817\ \text{(Hertz)}.\]<span class="eqno">(5)</span></div>
-<p>The modulus enters only the prefactor \(c\) of \(\bar r=c\,F^{\gamma}\), with \(\gamma\) = 1/4 on a foundation and 1/3 under
-Hertz, so the ratio \(\bar r(F_2)/\bar r(F_1)=(F_2/F_1)^{\gamma}\) does not depend on it. A bench
-measures torque, \(T=\mu F\bar r\propto F^{1+\gamma}\), which grows {{T_RATIO_BED}} times from 0.5 to 3&#8202;N on a bed and
-{{T_RATIO_HZ}} times under Hertz; dividing the spin torque by the pull force at slip under the same pinch,
-\(\bar r=T/F_\text{slip}\) for two pads, removes the friction coefficient. A tip whose arm grows as \(F^{0.15}\), inside the range
-of exponents from 0 to 1/3 that Xydas and Kao measured on soft fingertips, gives a ratio of {{RATIO_015}}, which neither law fits. The
-test assumes a spherical tip. On the printed TPU block the screwdriver presses a line across a flat face, and in finite
-elements of the planned prints the arm grows only {{FE_ARM_RATIO}} times from 0.5 to 3&#8202;N.</p>
+<p>The modulus enters only the prefactor \(c\) of \(\bar r=c\,F^{\gamma}\), with \(\gamma\)&#8202;=&#8202;1/4 on a foundation and 1/3
+under Hertz. The ratio \(\bar r(F_2)/\bar r(F_1)=(F_2/F_1)^{\gamma}\) therefore does not depend on the modulus, and a bench
+can test the law without knowing it. A bench measures the torque \(T=\mu F\bar r\propto F^{1+\gamma}\). From 0.5 to 3&#8202;N the
+torque grows {{T_RATIO_BED}} times on a foundation and {{T_RATIO_HZ}} times under Hertz. Dividing the spin torque by the
+pull force at slip under the same pinch, \(\bar r=T/F_\text{slip}\) for two pads, removes the friction coefficient.</p>
+<p>Xydas and Kao measured exponents from 0 to 1/3 on soft fingertips. A tip with \(\bar r\propto F^{0.15}\), inside that range,
+gives a ratio of {{RATIO_015}}, which neither law fits. The test holds for a spherical tip. On the printed TPU block the
+screwdriver presses a line across a flat face. In finite-element models of the planned prints the arm then grows only
+{{FE_ARM_RATIO}} times from 0.5 to 3&#8202;N.</p>
 
 <h3><span class="step">4</span>Lateral coupling: the Pasternak foundation</h3>
-<p>A Pasternak foundation adds a shear layer that couples neighbouring springs,</p>
-<div class="eq">\[p=k_w\,\delta-G\,\nabla^2\delta,\qquad \ell=\sqrt{G/k_w},\]<span class="eqno">(6)</span></div>
-<p>and load spreads a coupling length \(\ell\) beyond the overlap. A foundation suffices for \(\ell\ll a\); a coupled foundation
-is needed for \(\ell\sim a\), and a shell or modal model for \(\ell\gg a\). {{CSLC_MECH}} The asides page describes how
-\(\ell\) would be measured on the printed tip ({{ASIDES_REF}}).</p>
+<p>A Pasternak foundation adds a shear layer that couples neighbouring springs:</p>
+<div class="eq">\[p=k_w\,\delta-G\,\nabla^2\delta,\qquad \ell=\sqrt{G/k_w}.\]<span class="eqno">(6)</span></div>
+<p>Load then spreads a coupling length \(\ell\) beyond the overlap. A Winkler foundation is enough when \(\ell\) is much
+smaller than the patch radius \(a\). A coupled foundation is needed when \(\ell\) is close to \(a\), and a shell or modal
+model when \(\ell\) is much larger. {{CSLC_MECH}} The asides page describes how \(\ell\) would be measured on the printed
+tip ({{ASIDES_REF}}).</p>
 <figure class="diagram">
 {{FIG_SCALING}}
-<figcaption>Figure&#160;2. Friction arm against pad force. Grey: the foundation law (3) integrated over the screwdriver patch; dashed:
-a Hertz arm (4) equal to it at 1&#8202;N. Markers: the arm at spin onset in bed task&#160;2 (torque ramp about the pinch axis),
-\(\bar r=\tau_\text{onset}/2\mu N\). {{SCALING_NOTE}}</figcaption>
+<figcaption>Figure&#160;2. Friction arm against pad force. Grey: the foundation law (3) integrated over the screwdriver&#8217;s
+patch. Dashed: a Hertz arm (4) equal to it at 1&#8202;N. Markers: the arm at spin onset in task&#160;2 on the test bed (a torque
+ramp about the pinch axis), \(\bar r=\tau_\text{onset}/2\mu N\). {{SCALING_NOTE}}</figcaption>
 </figure>
 </div></section>
 
@@ -154,156 +191,191 @@ a Hertz arm (4) equal to it at 1&#8202;N. Markers: the arm at spin onset in bed 
 <h2>Sphere-packed pads in MuJoCo</h2>
 
 <h3><span class="step">5</span>Sphere discretization of the foundation</h3>
-<p>The pad replaces the field with \(n\) spheres of radius \(r_s\) whose outer envelope is the fingertip. Each sphere is an
-ordinary condim&#160;3 MuJoCo contact, and the pad&#8217;s force and torque are sums over the spheres in contact:</p>
+<p>A pad of small spheres reproduces the Winkler foundation when each sphere is given the foundation&#8217;s stiffness times
+its share of the area. Pressed on a flat with 1&#8202;N, the 1&#8202;mm pad&#8217;s arm is {{FLAT_ARM}}&#8202;mm, against the foundation&#8217;s
+{{FLAT_BED}}&#8202;mm.</p>
+<p>The pad replaces the pressure field with \(n\) spheres of radius \(r_s\). The spheres sit inside the fingertip, and their
+outer surfaces trace its shape. Each sphere is an ordinary MuJoCo contact with condim&#160;3: a normal force and friction in
+two directions. The pad&#8217;s force and torque are sums over the spheres that touch the tool:</p>
 <div class="eq">\[F\approx\sum_i N_i,\qquad T\approx\sum_i \rho_i\,f_{t,i},\qquad \lVert f_{t,i}\rVert\le\mu N_i .\]<span class="eqno">(7)</span></div>
-<p>Each sphere gets the foundation&#8217;s stiffness over its share \(A_s\) of the pad. A sphere meets the tool under its centre, and
-the centres lie on radius \(R-r_s\), so the lattice projected onto the tool shrinks by \((R-r_s)/R\) in each direction and its
-contact points are \((R/(R-r_s))^2\)&#8202;=&#8202;{{PAD_DENS}} times as dense as on the fingertip surface:</p>
+<p>Each sphere is a spring with the foundation&#8217;s stiffness \(E/R\) times its share \(A_s\) of the pad&#8217;s area. One
+correction is made for the sphere radius. A sphere touches the tool at the point under its centre, and the centres lie on a sphere of
+radius \(R-r_s\). Seen from the tool, the lattice is therefore shrunk by \((R-r_s)/R\) in each direction. Its contact points
+are \((R/(R-r_s))^2\)&#8202;=&#8202;{{PAD_DENS}} times as dense as on the fingertip surface, and the stiffness corrects for this:</p>
 <div class="eq">\[k_s=\frac{E}{R}\,A_s\Bigl(\frac{R-r_s}{R}\Bigr)^2 .\]<span class="eqno">(8)</span></div>
-<p>The same geometry makes the pad a bed of curvature radius \(R-r_s\): sphere \(i\) overlaps the tool by
-\(\delta_0-\rho_i^2/2(R-r_s)\), so at equal force its arm is \(((R-r_s)/R)^{1/4}\)&#8202;=&#8202;{{PAD_ARMFAC}} of the bed&#8217;s. The bed&#8217;s
-1&#8202;mm pad covers a {{BED_CAP}}&#176; cap with \(n\)&#8202;=&#8202;{{BED_N}} spheres of \(k_s\)&#8202;=&#8202;{{BED_KS}}&#8202;N/m; the chain&#8217;s thumb pad,
-which Figures&#160;3 and 4 show, covers a {{CH_CAP}}&#176; cap with {{CH_N}} spheres of {{CH_KS}}&#8202;N/m. Pressed on a flat with 1&#8202;N,
-{{FLAT_N}} of the bed pad&#8217;s spheres touch and their arm is {{FLAT_ARM}}&#8202;mm, against the bed&#8217;s {{FLAT_BED}}&#8202;mm and the
-{{FLAT_PRED}}&#8202;mm of a bed of curvature \(R-r_s\). Halving the spacing gives four times the spheres, each a quarter as stiff,
-so the stiffness per unit area stays \(k_w\). Figure&#160;3 shows the sphere forces sampling the field&#8217;s pressure profile at
-3&#8202;N, and Figure&#160;4 the patches at 3 and 0.5&#8202;N.</p>
-<p>The spacing has to stay small against the patch radius, {{PATCH_A}}&#8202;mm at 0.5&#8211;3&#8202;N on a flat. At 0.5&#8202;N a 2&#8202;mm pad
-touches with {{PL2_N}} spheres, and tilting the lattice by 0&#8211;8&#176; before pressing moves its arm {{PL2}} the bed&#8217;s; the
-1&#8202;mm pad&#8217;s arm moves {{PL1}}, and the 0.5&#8202;mm pad&#8217;s {{PL05}}. In the bed&#8217;s twist at 0.5&#8202;N the 2&#8202;mm pad starts to spin
-at an arm of {{P2_ONSET}}&#8202;mm and spins at {{P2_KIN}}&#8202;mm, {{P2_ONSET_DEV}} and {{P2_KIN_DEV}}&#8202;% below the integrated law, while
-the chain&#8217;s 2&#8202;mm thumb pad of Figure&#160;4, pressed on the tool at rest with the same force, has an arm {{P2_FIG4}} the
-field&#8217;s.</p>
+<p>The same geometry makes the pad a foundation of curvature radius \(R-r_s\), slightly smaller than \(R\). At equal force
+its arm is \(((R-r_s)/R)^{1/4}\)&#8202;=&#8202;{{PAD_ARMFAC}} times the foundation&#8217;s.</p>
+<p>On the test bed the 1&#8202;mm pad covers a {{BED_CAP}}&#176; cap of the fingertip sphere with \(n\)&#8202;=&#8202;{{BED_N}} spheres of
+\(k_s\)&#8202;=&#8202;{{BED_KS}}&#8202;N/m. The chain&#8217;s thumb pad, shown in Figures&#160;3 and 4, covers a {{CH_CAP}}&#176; cap with {{CH_N}}
+spheres of {{CH_KS}}&#8202;N/m. Pressed on a flat with 1&#8202;N, {{FLAT_N}} of the test bed pad&#8217;s spheres touch. Their arm is
+{{FLAT_ARM}}&#8202;mm, against {{FLAT_BED}}&#8202;mm for the foundation and {{FLAT_PRED}}&#8202;mm for a foundation of curvature
+\(R-r_s\). Halving the spacing gives four times as many spheres, each a quarter as stiff, so the stiffness per unit area
+stays \(k_w\). Figure&#160;3 shows the sphere forces sampling the field&#8217;s pressure at 3&#8202;N. Figure&#160;4 shows the patches at
+3 and 0.5&#8202;N.</p>
+<p>The spacing must stay small compared with the patch radius, which is {{PATCH_A}}&#8202;mm at 0.5&#8211;3&#8202;N on a flat. A 2&#8202;mm
+pad is too coarse at 0.5&#8202;N, where it touches with {{PL2_N}} spheres. Tilting its lattice by 0&#8211;8&#176; before pressing then
+moves its arm {{PL2}} the foundation&#8217;s. Under the same tilts the 1&#8202;mm pad&#8217;s arm moves {{PL1}}, and the 0.5&#8202;mm pad&#8217;s
+{{PL05}}. In the twist on the test bed at 0.5&#8202;N, the 2&#8202;mm pad&#8217;s arm is {{P2_ONSET_DEV}}&#8202;% below the law at spin onset and
+{{P2_KIN_DEV}}&#8202;% below it while spinning.</p>
 <figure class="diagram">
 {{FIG_SECTION}}
-<figcaption>Figure&#160;3. Section along the tool axis through one contact at 3&#8202;N, true scale (from the chain page). Left: Drake
-overlaps the undeformed fingertip with the rigid tool and applies p&#8202;=&#8202;E&#183;d/R over the overlap (shaded); the pressure on
-the tool surface is plotted beneath. Right: the 1&#8202;mm pad&#8217;s spheres along the same line. Each overlap is one spring, and its
-force divided by the sphere&#8217;s share of the pad area (bars) samples the field&#8217;s profile (dashed).</figcaption>
+<figcaption>Figure&#160;3. Section along the tool&#8217;s axis through one contact at 3&#8202;N, true scale (from the chain page).
+Left: Drake overlaps the undeformed fingertip with the rigid tool and applies p&#8202;=&#8202;E&#183;d/R over the overlap (shaded); the
+pressure on the tool&#8217;s surface is plotted beneath. Right: the 1&#8202;mm pad&#8217;s spheres along the same line. Each overlap is one
+spring. Its force divided by the sphere&#8217;s share of the pad&#8217;s area (bars) samples the field&#8217;s pressure (dashed).</figcaption>
 </figure>
 <figure class="diagram">
 {{FIG_PATCH}}
-<figcaption>Figure&#160;4. The contact area seen through the tool at 3 and 0.5&#8202;N; x runs along the tool axis. Left: the field&#8217;s
-pressure contours. Right: the sphere centres of the 2, 1 and 0.5&#8202;mm pads, where a touching sphere&#8217;s disc area is
+<figcaption>Figure&#160;4. The contact area seen through the tool at 3 and 0.5&#8202;N; x runs along the tool&#8217;s axis. Left: the
+field&#8217;s pressure contours. Right: the sphere centres of the 2, 1 and 0.5&#8202;mm pads, where a touching sphere&#8217;s disc area is
 proportional to its force. The dotted circle is the friction arm.</figcaption>
 </figure>
 
 <h3><span class="step">6</span>Static stiffness of a MuJoCo soft contact</h3>
-<p>MuJoCo solves each step for constraint forces \(f\) in the space of the contact rows:</p>
+<p>At rest each MuJoCo contact row acts as a spring whose stiffness is set by three numbers: the time constant of
+<code>solref</code>, the impedance of <code>solimp</code> and the contact&#8217;s inverse inertia. A pad at rest is therefore a
+discrete Winkler foundation.</p>
+<p>A MuJoCo contact contributes rows to the solver: one for the normal direction and one or more for friction. Each step,
+MuJoCo solves one linear system for the forces \(f\) of all the rows. For each row it sets a reference acceleration
+\(a_\text{ref}\), which pulls the penetration back to zero like a damped spring. A regularizer \(R\) makes the contact
+soft:</p>
 <div class="eq">\[\begin{aligned}
 (A+R)\,f&=a_\text{ref}-a_0,\qquad A=J M^{-1}J^\top,\qquad R=\operatorname{diag}\Bigl(\frac{1-d}{d}\,\hat\Lambda_i\Bigr),\\
 a_\text{ref}&=-b\,v-k\,r,\qquad b=\frac{2}{d_\text{max}t_c},\qquad k=\frac{d}{d_\text{max}^2t_c^2}.
 \end{aligned}\]<span class="eqno">(9)</span></div>
-<p>Here \(a_0\) is the row acceleration without contact, \(r\) and \(v\) the penetration and its rate, \((t_c,1)\) the
-<code>solref</code>, \(d\) the impedance from <code>solimp</code>, and \(\hat\Lambda_i\) MuJoCo&#8217;s estimate of row \(i\)&#8217;s inverse
-inertia, the sum of the two bodies&#8217; <code>body_invweight0</code>. \(R\) is diagonal because MuJoCo builds each \(R_i\) from its
-own \(\hat\Lambda_i\), while the Delassus matrix \(A\) couples every pair of rows on a shared body. With the constrained
-acceleration \(a_1=a_0+Af\), (9) reads row by row, for any \(A\) and any force inside its cone,</p>
-<div class="eq">\[R_if_i=a_{\text{ref},i}-a_{1,i},\]</div>
-<p>so the rows interact only through \(a_1\). At rest every row has \(a_1=v=0\), so \(R_if_i=-k\,r_i\); with a constant impedance
-\(d=d_\text{max}=d_0\), \(k=1/(d_0t_c^2)\) and \(R_i=(1-d_0)\hat\Lambda_i/d_0\),</p>
+<p>Here \(a_0\) is the rows&#8217; acceleration without contact, and \(r\) and \(v\) are the penetration and its rate. The time
+constant \(t_c\) is the first value of <code>solref</code>, and the impedance \(d\) comes from <code>solimp</code>.
+\(\hat\Lambda_i\) is MuJoCo&#8217;s estimate of the inverse inertia of row \(i\): the sum of the two bodies&#8217;
+<code>body_invweight0</code>. The Delassus matrix \(A\) couples every pair of rows on a shared body. \(R\) is diagonal,
+because each \(R_i\) uses only its own \(\hat\Lambda_i\).</p>
+<p>Write \(a_1=a_0+Af\) for the acceleration with contact. Equation (9) then splits into one equation per row, for any
+\(A\) and any force inside its cone:</p>
+<div class="eq">\[R_if_i=a_{\text{ref},i}-a_{1,i}.\]</div>
+<p>The rows affect each other only through \(a_1\). At rest \(a_1=v=0\) for every row, so \(R_if_i=-k\,r_i\). With a constant
+impedance \(d=d_\text{max}=d_0\), the stiffness term is \(k=1/(d_0t_c^2)\) and the regularizer is
+\(R_i=(1-d_0)\hat\Lambda_i/d_0\). Dividing one by the other gives the force of one sphere:</p>
 <div class="eq">\[f_i=k_s\,\lvert r_i\rvert,\qquad k_s=\frac{1}{t_c^2\,(1-d_0)\,\hat\Lambda_i},\qquad c_s=2t_c\,k_s .\]<span class="eqno">(10)</span></div>
-<p>Here \(k_s=k/R_i\) is the row&#8217;s stiffness and \(c_s=b/R_i\) its damping coefficient in N&#8202;s/m, the force per unit
-penetration rate when \(a_1=0\). Each sphere is a spring of stiffness \(k_s\) whatever its neighbours carry, so in statics the pad is a discrete Winkler
-foundation. When one pad slides along the normal against a fixed plate, its spheres all measure the same motion: every entry
-of \(A\) is \(\hat\Lambda\), and \(A\) has rank one with the eigenvalue \(n\hat\Lambda\) along the common motion. While the pad moves, pressing
-one sphere harder accelerates the body and unloads the others; at rest \(a_1=0\) removes that coupling. Codex&#8217;s static audit
-measured the force per overlap equal to (10) to floating-point precision
-(<code>docs/experiments/20261004-codex/20261004-distributed_contact.html</code>). Away from rest one row with \(A=\hat\Lambda\) has
-\(a_1=d_0a_\text{ref}+(1-d_0)a_0\), and its penetration obeys</p>
-<div class="eq">\[\ddot r+\frac{2}{t_c}\,\dot r+\frac{r}{t_c^2}=(1-d_0)\,a_0 ,\]</div>
-<p>a critically damped motion with time constant \(t_c\) for any \(d_0\) and \(\hat\Lambda\): a sphere pushed from rest returns as
-\((1+t/t_c)\,e^{-t/t_c}\) and is within 5&#8202;% of rest after \({{REL_X}}\,t_c\), {{REL_MS}}&#8202;ms at \(t_c\)&#8202;=&#8202;{{TC_MS}}&#8202;ms. Under
-quasi-static loading the row&#8217;s damping over its rest stiffness, \(c_s/k_s=2t_c\) in (10), is {{TC2_MS}}&#8202;ms against
-Drake&#8217;s dissipation time of 10&#8202;ms. In bed task&#160;6 at 1&#8202;N, with \(t_c\)&#8202;=&#8202;{{ONSET_TCS}}, the slip force gives an
-effective \(\mu\) of {{MU_TC}} and the arm spinning at 1&#8202;rad/s is {{KIN_TC}}&#8202;mm, while the arm at spin onset grows with
-\(t_c\) through the friction dampers of step&#160;8: {{ONSET_TC}}&#8202;mm.</p>
+<p>Here \(k_s=k/R_i\) is the row&#8217;s stiffness. \(c_s=b/R_i\) is its damping coefficient in N&#8202;s/m, the force per unit
+penetration rate when \(a_1=0\). Each sphere is a spring of stiffness \(k_s\), whatever its neighbours do, so at rest the pad
+is a discrete Winkler foundation. In Codex&#8217;s static audit the force per overlap equalled (10) to floating-point precision
+(<code>docs/experiments/20261004-codex/20261004-distributed_contact.html</code>).</p>
+<p>While the pad moves, its spheres do interact. When the pad slides along the normal against a plate, all its spheres
+measure the same motion. Every entry of \(A\) is then \(\hat\Lambda\), and \(A\) has the eigenvalue \(n\hat\Lambda\) along the
+common motion. Pressing one sphere harder accelerates the pad and unloads the others. At rest \(a_1=0\) removes that
+coupling.</p>
+<p>Away from rest a single row with \(A=\hat\Lambda\) has \(a_1=d_0a_\text{ref}+(1-d_0)a_0\), and its penetration obeys</p>
+<div class="eq">\[\ddot r+\frac{2}{t_c}\,\dot r+\frac{r}{t_c^2}=(1-d_0)\,a_0 .\]</div>
+<p>This is a critically damped motion with time constant \(t_c\), for any \(d_0\) and \(\hat\Lambda\). A sphere pushed from rest
+returns as \((1+t/t_c)\,e^{-t/t_c}\). It is within 5&#8202;% of rest after \({{REL_X}}\,t_c\), which is {{REL_MS}}&#8202;ms at
+\(t_c\)&#8202;=&#8202;{{TC_MS}}&#8202;ms. Under slow loading the ratio of the row&#8217;s damping to its stiffness, \(c_s/k_s=2t_c\) in (10), is
+{{TC2_MS}}&#8202;ms. Drake&#8217;s corresponding dissipation time is 10&#8202;ms.</p>
+<p>Task&#160;6 on the test bed varies \(t_c\) at 1&#8202;N, over {{ONSET_TCS}}. The slip force gives an effective \(\mu\) of
+{{MU_TC}}. The arm while spinning at 1&#8202;rad/s is {{KIN_TC}}&#8202;mm. The arm at spin onset grows with \(t_c\), as
+{{ONSET_TC}}&#8202;mm, through the friction dampers of step&#160;8.</p>
 
 <h3><span class="step">7</span>Inverse-inertia calibration</h3>
-<p>Solref&#8217;s \(k\) is an acceleration per metre, in s\(^{-2}\); dividing it by \(R_i\), in kg\(^{-1}\), gives a force per metre,
-and that is where the bodies&#8217; masses enter (10). Solved for the impedance,</p>
+<p>The sphere stiffness in (10) depends on the masses of the pad and the tool through \(\hat\Lambda\). The impedance \(d_0\) is
+therefore computed from the compiled model for each pad and object, and the arm then no longer depends on the tool&#8217;s
+mass (Figure&#160;5).</p>
+<p>The value \(k\) of <code>solref</code> is an acceleration per metre, in s\(^{-2}\). Dividing it by \(R_i\), in
+kg\(^{-1}\), turns it into a force per metre. That is how the bodies&#8217; masses enter (10). Solved for the impedance,</p>
 <div class="eq">\[d_0=1-\frac{1}{k_s\hat\Lambda t_c^2},\qquad 0<d_0<1\iff t_c>(k_s\hat\Lambda)^{-1/2}.\]</div>
-<p>At a given \(t_c\) the softest spring MuJoCo can give is \(1/(\hat\Lambda t_c^2)\), reached as \(d_0\to0\), so a softer sphere
-needs a longer time constant. On the bed&#8217;s railed pads \(\hat\Lambda\)&#8202;=&#8202;{{BED_WP}}&#8202;+&#8202;{{W_TOOL}}&#8202;=&#8202;{{BED_LAM}}&#8202;kg\(^{-1}\), a
-{{BED_PADG}}&#8202;g pad and the 24.5&#8202;g tool: the 1&#8202;mm pad&#8217;s {{BED_KS}}&#8202;N/m needs \(t_c\) above {{BED_TCMIN}}&#8202;ms and takes
-\(d_0\)&#8202;=&#8202;{{BED_D0}} at {{TC_MS}}&#8202;ms, and the 0.5&#8202;mm pad&#8217;s {{BED_KS05}}&#8202;N/m needs {{BED_TCMIN05}}&#8202;ms. On the chain&#8217;s
-thumb, \(\hat\Lambda\)&#8202;=&#8202;{{TH_WP}}&#8202;+&#8202;{{W_TOOL}}&#8202;=&#8202;{{TH_LAM}}&#8202;kg\(^{-1}\), the 1&#8202;mm and 0.5&#8202;mm pads need {{TH_TCMIN}} and
-{{TH_TCMIN05}}&#8202;ms, and the 1&#8202;mm pad takes \(d_0\)&#8202;=&#8202;{{TH_D0}} at {{TC_MS}}&#8202;ms. \(\hat\Lambda\) is the pad&#8217;s inverse weight
-\(w_p\) plus the tool&#8217;s, so with \(d_0\) held, a tool \(s\) times heavier than the nominal \(m_0\) scales every sphere&#8217;s stiffness by</p>
-<div class="eq">\[\frac{k_s(s\,m_0)}{k_s(m_0)}=\frac{w_p+1/m_0}{w_p+1/(s\,m_0)},\]</div>
-<p>{{MASSF_BED}} on the bed and {{MASSF_TH}} on the thumb for a fourfold tool, whose arm then shortens by {{ARMF_BED}} and
-{{ARMF_TH}}&#8202;% through \(\bar r\propto k_s^{-1/4}\): a tool-mass error matters most where the pad is heavy against the tool.
-{{MASS_TEXT}} The friction arm depends on the stiffness only through the patch radius:</p>
+<p>A valid impedance lies between 0 and 1. At a given \(t_c\) the softest spring MuJoCo can give is therefore
+\(1/(\hat\Lambda t_c^2)\), reached as \(d_0\to0\). A softer sphere is possible only with a longer time constant.</p>
+<p>On the railed pads of the test bed, \(\hat\Lambda\)&#8202;=&#8202;{{BED_WP}}&#8202;+&#8202;{{W_TOOL}}&#8202;=&#8202;{{BED_LAM}}&#8202;kg\(^{-1}\): the inverse
+weights of a {{BED_PADG}}&#8202;g pad and the 24.5&#8202;g tool. For the 1&#8202;mm pad&#8217;s spheres of {{BED_KS}}&#8202;N/m, \(t_c\) must
+then exceed {{BED_TCMIN}}&#8202;ms, and \(d_0\) is {{BED_D0}} at {{TC_MS}}&#8202;ms. For the 0.5&#8202;mm pad&#8217;s spheres of
+{{BED_KS05}}&#8202;N/m, \(t_c\) must exceed {{BED_TCMIN05}}&#8202;ms. On the chain&#8217;s thumb, \(\hat\Lambda\)&#8202;=&#8202;{{TH_WP}}&#8202;+&#8202;{{W_TOOL}}&#8202;=&#8202;{{TH_LAM}}&#8202;kg\(^{-1}\).
+For its 1&#8202;mm and 0.5&#8202;mm pads, \(t_c\) must exceed {{TH_TCMIN}} and {{TH_TCMIN05}}&#8202;ms, and its 1&#8202;mm pad&#8217;s \(d_0\)
+is {{TH_D0}} at {{TC_MS}}&#8202;ms.</p>
+<p>Because \(\hat\Lambda\) includes the tool&#8217;s inverse weight, a tool of the wrong mass changes every sphere&#8217;s stiffness. The
+arm depends on the stiffness only through the patch radius:</p>
 <div class="eq">\[\bar r\propto a\propto\Bigl(\frac{F}{k_s}\Bigr)^{1/4}\quad\Longrightarrow\quad \frac{\Delta\bar r}{\bar r}\approx-\frac14\,\frac{\Delta k_s}{k_s}.\]<span class="eqno">(11)</span></div>
+<p>Let \(w_p\) be the pad&#8217;s inverse weight and \(m_0\) the nominal tool mass. With \(d_0\) fixed, a tool \(s\) times heavier
+scales every sphere&#8217;s stiffness by</p>
+<div class="eq">\[\frac{k_s(s\,m_0)}{k_s(m_0)}=\frac{w_p+1/m_0}{w_p+1/(s\,m_0)}.\]</div>
+<p>For a tool four times heavier the factor is {{MASSF_BED}} on the test bed and {{MASSF_TH}} on the thumb. The arm then
+shortens by {{ARMF_BED}} and {{ARMF_TH}}&#8202;%. A wrong tool mass matters most where the pad is heavy compared with the tool.
+{{MASS_TEXT}}</p>
 <figure class="diagram">
 {{FIG_MASS}}
-<figcaption>Figure&#160;5. Friction arm of the 1&#8202;mm pad against tool mass, two-pad pinch at 0.5 and 3&#8202;N
-(<code>scripts/pad_mass_calibration.py</code>). Dashed: inverse inertia fixed at its nominal-tool value; solid: computed from the
-compiled model for each pad&#8211;object pair at load. Grey: the hydroelastic law. With the fixed value the arm moves by
-\(k_s^{-1/4}\) of the stiffness error, (11).</figcaption>
+<figcaption>Figure&#160;5. Friction arm of the 1&#8202;mm pad against tool mass, in a two-pad pinch at 0.5 and 3&#8202;N
+(<code>scripts/pad_mass_calibration.py</code>). Dashed: inverse inertia fixed at its value for the nominal tool. Solid:
+inverse inertia computed from the compiled model for each pad and object at load. Grey: the hydroelastic law. With the
+fixed value the arm moves by \(k_s^{-1/4}\) of the stiffness error, (11).</figcaption>
 </figure>
 <p>{{MEFF_TEXT}}</p>
 
 <h3><span class="step">8</span>Creep under MuJoCo&#8217;s soft friction</h3>
-<p>Creep is the steady sliding of a contact under a tangential load below its friction limit; rigid Coulomb friction gives
-none. A sphere&#8217;s friction rows enter (9) with \(a_\text{ref}=-b\,v\) and no position term, and with a regulariser
-\(R_t=R_n/\kappa\) set by <code>impratio</code> \(\kappa\). At steady sliding \(a_1=0\), so each friction row obeys
-\(R_tf_t=-b\,v\); with \(b=2/(d_0t_c)\) and (10) it is a damper \(c_t\), in N&#8202;s/m, with \(\kappa\) times the normal row&#8217;s
-coefficient \(c_s\):</p>
+<p>Below the friction limit MuJoCo&#8217;s soft friction acts as a damper. A pad under a steady sideways load therefore slides
+slowly. This sliding, called creep, is proportional to the load and inversely proportional to impratio.</p>
+<p>Rigid Coulomb friction gives no creep. A sphere&#8217;s friction rows enter (9) with the reference acceleration
+\(a_\text{ref}=-b\,v\) and no position term. Their regularizer is \(R_t=R_n/\kappa\), where \(\kappa\) is
+<code>impratio</code>. At steady sliding \(a_1=0\), so each friction row obeys \(R_tf_t=-b\,v\). With \(b=2/(d_0t_c)\) and
+(10), the friction row is a damper \(c_t\), in N&#8202;s/m, \(\kappa\) times the normal row&#8217;s coefficient \(c_s\):</p>
 <div class="eq">\[f_t=-\frac{b}{R_t}\,v=-\frac{2\kappa}{(1-d_0)\,\hat\Lambda\,t_c}\,v=-c_t\,v,\qquad c_t=\kappa\,c_s=2\kappa\,k_s\,t_c .\]</div>
-<p>Once \(d_0\) is chosen for \(k_s\) (step&#160;7), \((1-d_0)\hat\Lambda=1/(k_st_c^2)\), and neither \(d_0\) nor \(\hat\Lambda\) remains.
-All touching spheres slide together, so with equal shares \(n\) spheres carry a load \(F_t\) at</p>
+<p>Once \(d_0\) is set for \(k_s\) (step&#160;7), \((1-d_0)\hat\Lambda=1/(k_st_c^2)\), so neither \(d_0\) nor \(\hat\Lambda\) remains in
+\(c_t\). All touching spheres slide together. When \(n\) spheres share a sideways load \(F_t\) equally, they creep at</p>
 <div class="eq">\[v_\text{creep}=\frac{F_t}{n\,c_t}=\frac{F_t}{2\kappa\,n\,k_s\,t_c}.\]<span class="eqno">(12)</span></div>
-<p>Rigid Coulomb friction leaves the shares undetermined below slip. MuJoCo&#8217;s dampers make them equal, so the outer spheres,
-with the smallest normal forces \(N_i\), reach \(\mu N_i\) first and the inner ones carry the rest:</p>
+<p>Under rigid Coulomb friction, how a load below slip is shared between the spheres is undetermined. MuJoCo&#8217;s
+dampers share it equally. The
+outer spheres press with the smallest normal forces \(N_i\), so they reach their limits \(\mu N_i\) first, and the inner ones
+take the rest:</p>
 <div class="eq">\[F_t=\sum_i\min\bigl(c_t\,v,\ \mu N_i\bigr).\]</div>
 <p>{{CREEP_TEXT}}</p>
 
 <h3><span class="step">9</span>Step-size bound for a pad</h3>
-<p>Away from rest, the rows of one pad move together. For \(n\) rows of equal \(\hat\Lambda\) on one body, \(A\) has the
-eigenvalue \(n\hat\Lambda\) along their common motion, so (9) gives that motion an effective impedance \(d'\), a damping rate
-\(\beta\) in s\(^{-1}\) and a spring \(\omega^2\):</p>
+<p>A pad stays stable in MuJoCo&#8217;s integrator while the time step is below \(2t_c(\sqrt{1+q}-1)\), where \(q\) falls from 1
+to \(d_0\) as more spheres touch. For the 1&#8202;mm pads at \(t_c\)&#8202;=&#8202;{{TC_MS}}&#8202;ms the bound is {{SB_ONE}}&#8202;ms when one
+sphere touches and {{SB_LIM}}&#8202;ms when many do.</p>
+<p>Away from rest the rows of one pad move together, and their common motion can become unstable at a long step. For
+\(n\) rows of equal \(\hat\Lambda\) on one body, \(A\) has the eigenvalue \(n\hat\Lambda\) along that motion. In (9) the motion
+then has an effective impedance \(d'\), a damping rate \(\beta\) in s\(^{-1}\) and a spring \(\omega^2\):</p>
 <div class="eq">\[d'=\frac{n\,d_0}{n\,d_0+1-d_0},\qquad \beta=d'\,b=\frac{2}{q\,t_c},\qquad \omega^2=d'\,k=\frac{1}{q\,t_c^2},\qquad q=\frac{d_0}{d'}=d_0+\frac{1-d_0}{n}.\]<span class="eqno">(13)</span></div>
 <p>On a body that also turns, the largest eigenvalue \(\lambda_\text{max}\) of \(A\) takes the place of \(n\hat\Lambda\), and
-\(q=d_0+(1-d_0)\hat\Lambda/\lambda_\text{max}\). MuJoCo evaluates \(a_\text{ref}=-b\,v-k\,r\) at the state at the start of the step,
-so the spring term is as explicit as the damper. For \(\ddot x=-\beta\,\dot x-\omega^2x\), updating the velocity and then the
-position with the new velocity over a step \(\Delta t\) gives the step matrix</p>
-<div class="eq">\[\begin{bmatrix}x\\ v\end{bmatrix}_{j+1}=\begin{bmatrix}1-\Delta t^2\omega^2 & \Delta t\,(1-\Delta t\,\beta)\\ -\Delta t\,\omega^2 & 1-\Delta t\,\beta\end{bmatrix}\begin{bmatrix}x\\ v\end{bmatrix}_j ,\]</div>
-<p>whose eigenvalues lie inside the unit circle when \(\Delta t\,\beta<2\) and \(\Delta t^2\omega^2+2\Delta t\,\beta<4\). With (13) the
-second condition reads \((\Delta t/t_c)^2+4\Delta t/t_c<4q\):</p>
+\(q=d_0+(1-d_0)\hat\Lambda/\lambda_\text{max}\). MuJoCo evaluates \(a_\text{ref}=-b\,v-k\,r\) at the state at the start of the
+step, so the spring is as explicit as the damper. For \(\ddot x=-\beta\,\dot x-\omega^2x\), MuJoCo updates the velocity and
+then the position with the new velocity. Over a step \(\Delta t\) this gives the step matrix</p>
+<div class="eq">\[\begin{bmatrix}x\\ v\end{bmatrix}_{j+1}=\begin{bmatrix}1-\Delta t^2\omega^2 & \Delta t\,(1-\Delta t\,\beta)\\ -\Delta t\,\omega^2 & 1-\Delta t\,\beta\end{bmatrix}\begin{bmatrix}x\\ v\end{bmatrix}_j .\]</div>
+<p>The motion stays stable while the matrix&#8217;s eigenvalues lie inside the unit circle. That holds when \(\Delta t\,\beta<2\) and
+\(\Delta t^2\omega^2+2\Delta t\,\beta<4\). With (13) the second condition reads \((\Delta t/t_c)^2+4\Delta t/t_c<4q\), which gives
+the bound:</p>
 <div class="eq">\[\Delta t<2t_c\bigl(\sqrt{1+q}-1\bigr)\;\longrightarrow\;\begin{cases}2(\sqrt2-1)\,t_c, & n=1,\\ 2t_c\bigl(\sqrt{1+d_0}-1\bigr), & n\to\infty.\end{cases}\]<span class="eqno">(14)</span></div>
-<p>The damper condition alone, \(\Delta t<q\,t_c\), is {{SB_LONGER}}&#8202;% longer for \(q\) from 0.2 to 1. For the {{SB_N}} spheres of
-the bed&#8217;s pad pressed on a plate at 1&#8202;N (step&#160;5; \(d_0\)&#8202;=&#8202;{{SB_D0}}, \(t_c\)&#8202;=&#8202;{{TC_MS}}&#8202;ms, \(q\)&#8202;=&#8202;{{SB_Q}}) the
-bound is {{SB_BOUND}}&#8202;ms against the damper&#8217;s {{SB_DAMP}}&#8202;ms. Deck&#160;23 of the contact tutorial (repository
-<code>wxie_workspace/contact</code>, script <code>tutorial/09_fingertip_contact.py</code>, row <code>d23_step_threshold</code>)
-bisects the spectral radius of MuJoCo&#8217;s one-step map for this pad on an undamped slide and finds it crossing 1 at the
-bound, to within \(10^{-4}t_c\) at 24 pairs of \(t_c\) and \(d_0\). For the 1&#8202;mm pads of these pages (\(t_c\)&#8202;=&#8202;{{TC_MS}}&#8202;ms, \(d_0\)&#8202;=&#8202;{{SB_D0S}}) the bound falls from
-{{SB_ONE}}&#8202;ms for one touching sphere to {{SB_LIM}}&#8202;ms for many.</p>
-<p>The pads gave the same task results from 50&#8202;&#181;s to 10&#8202;ms
-steps in Codex&#8217;s 50&#8202;Hz sweep (Figure&#160;8). Codex&#8217;s per-contact mapping set \(d_0=10^{-4}\) to impose each sphere&#8217;s spring and
-damper exactly. Then \(q\approx1/n\), and the damping rate \(\beta\approx nc_s\hat\Lambda\), with \(c_s\)&#8202;=&#8202;24.5&#8202;N&#8202;s/m
-per sphere, requires \(\Delta t<2/(nc_s\hat\Lambda)\): 60&#8211;90&#8202;&#181;s for 20&#8211;30 spheres. Those runs diverged at every step from 0.5 to 10&#8202;ms
-and completed only at 50&#8202;&#181;s. MuJoCo applies its clamp \(t_c\ge2\Delta t\) per row, which leaves this collective mode
-unbounded.</p>
+<p>With the damper condition alone, \(\Delta t<q\,t_c\), steps {{SB_LONGER}}&#8202;% longer would be stable for \(q\) from 0.2
+to 1. Take the
+{{SB_N}} spheres of the test bed&#8217;s pad pressed on a plate at 1&#8202;N (step&#160;5; \(d_0\)&#8202;=&#8202;{{SB_D0}},
+\(t_c\)&#8202;=&#8202;{{TC_MS}}&#8202;ms, \(q\)&#8202;=&#8202;{{SB_Q}}). Their bound is {{SB_BOUND}}&#8202;ms, against {{SB_DAMP}}&#8202;ms from the damper
+alone. Deck&#160;23 of the contact tutorial checks (14) numerically (repository <code>wxie_workspace/contact</code>, script
+<code>tutorial/09_fingertip_contact.py</code>, row <code>d23_step_threshold</code>). It bisects the spectral radius of
+MuJoCo&#8217;s one-step map for this pad on an undamped slide. The radius crosses 1 at the bound to within \(10^{-4}t_c\), at 24
+pairs of \(t_c\) and \(d_0\). For the 1&#8202;mm pads of these pages (\(t_c\)&#8202;=&#8202;{{TC_MS}}&#8202;ms, \(d_0\)&#8202;=&#8202;{{SB_D0S}}) the bound
+falls from {{SB_ONE}}&#8202;ms for one touching sphere to {{SB_LIM}}&#8202;ms for many.</p>
+<p>In Codex&#8217;s 50&#8202;Hz sweep the pads gave the same task results at steps from 50&#8202;&#181;s to 10&#8202;ms (Figure&#160;8). Codex&#8217;s earlier
+per-contact mapping set \(d_0=10^{-4}\) to impose each sphere&#8217;s spring and damper exactly. Then \(q\approx1/n\), and the
+damping rate is \(\beta\approx nc_s\hat\Lambda\), with \(c_s\)&#8202;=&#8202;24.5&#8202;N&#8202;s/m per sphere. Stability then holds only
+for \(\Delta t<2/(nc_s\hat\Lambda)\), which is 60&#8211;90&#8202;&#181;s for 20&#8211;30 spheres. Those runs diverged at every step from 0.5 to
+10&#8202;ms and completed only at 50&#8202;&#181;s. MuJoCo&#8217;s clamp \(t_c\ge2\Delta t\) acts on each row alone, so it does not limit
+this collective motion.</p>
 <p>{{STAB_TEXT}}</p>
 <figure class="diagram">
 {{FIG_STAB}}
 <figcaption>Figure&#160;6. Largest stable step of a 1&#8202;mm pad holding the tool against gravity at 1&#8202;N, against the bound (14)
-(bed task&#160;7, <code>scripts/contact_bed_stability.py</code>). Each bar is one (\(d_0\), \(t_c\)) pair; the diagonal is
-equality with (14). {{STAB_NOTE}}</figcaption>
+(task&#160;7 on the test bed, <code>scripts/contact_bed_stability.py</code>). Each bar is one (\(d_0\), \(t_c\)) pair; the
+diagonal is equality with (14). {{STAB_NOTE}}</figcaption>
 </figure>
 
 <h3><span class="step">10</span>condim&#160;4 with a rescheduled torsional coefficient</h3>
-<p>condim&#160;4 keeps one contact per pad and adds a torsional coefficient \(\mu_t\), limited together with the tangential force by an
-elliptic cone \((f_1^2+f_2^2)/\mu^2+\tau^2/\mu_t^2\le N^2\). Matching (3) requires \(\mu_t=\mu\bar r(N)\), which varies with load,
-so the plant rewrites it before every step from the last normal force:</p>
+<p>MuJoCo&#8217;s condim&#160;4 gives one contact point a torsional friction coefficient. Reset every step from the last normal
+force, that coefficient reproduces the torque law (3) with one contact per pad.</p>
+<p>condim&#160;4 keeps one contact per pad and adds the torsional coefficient \(\mu_t\). The tangential force and the torque
+share one elliptic cone, \((f_1^2+f_2^2)/\mu^2+\tau^2/\mu_t^2\le N^2\). To match (3), \(\mu_t\) must equal \(\mu\bar r(N)\), which
+changes with the load. The plant therefore rewrites \(\mu_t\) before every step from the last normal force:</p>
 <div class="eq">\[\mu_t[j]=\mu\,c\,N[j-1]^{1/4}\quad\Longrightarrow\quad \tau_\text{max}[j]\approx\mu\,c\,N^{5/4}.\]<span class="eqno">(15)</span></div>
-<p>The bed&#8217;s condim&#160;4 takes \(c\) and the exponent from a fit to Drake&#8217;s torque on this rig
-(\(c=0.996\ \mathrm{mm\,N^{-1/4}}\), 0.2498), so it reproduces Drake&#8217;s torque while the tool spins; at spin onset it sits
-above the law (twist, in the comparison below). It costs one coefficient write per contact per step. With a single contact
-point, its centre of pressure is fixed, and under a pure pull or roll it behaves as condim&#160;3. The chain page derives the brake
-that uses it (<code>{{CHAIN_PATH}}</code>, steps&#160;3 and 5).</p>
+<p>On the test bed condim&#160;4 takes \(c\) and the exponent from a fit to Drake&#8217;s torque on this rig
+(\(c=0.996\ \mathrm{mm\,N^{-1/4}}\), exponent 0.2498). It reproduces Drake&#8217;s torque while the tool spins. At spin onset its
+torque lies above the law (the twist task below). It costs one coefficient write per contact per step. With a single
+contact point its centre of pressure cannot move, and under a pure pull or roll it behaves as condim&#160;3. The chain page
+derives the brake that uses it (<code>{{CHAIN_PATH}}</code>, steps&#160;3 and 5).</p>
 </div></section>
 
 <section id="references"><div class="col">
@@ -315,28 +387,30 @@ that uses it (<code>{{CHAIN_PATH}}</code>, steps&#160;3 and 5).</p>
 <h2>Comparison with the reference models</h2>
 <p>{{EVIDENCE_LEAD}}</p>
 <div class="tw">{{AGREE_TABLE}}</div>
-<p class="tnote">Table&#160;2. Task metrics of the comparison bed (<code>{{BED_PATH}}</code>{{BED_LINK}}); terms are defined at the top
-of the page. Shading compares each model with Drake hydroelastic: within 10&#8202;% (dark), 10&#8211;25&#8202;% (light), 25&#8211;50&#8202;% (amber),
-beyond 50&#8202;% or a failed case (red). {{AGREE_NOTE}}</p>
+<p class="tnote">Table&#160;2. Task metrics on the test bed (<code>{{BED_PATH}}</code>{{BED_LINK}}); the terms are defined at
+the top of the page. The shading compares each model with Drake hydroelastic: within 10&#8202;% (dark), 10&#8211;25&#8202;% (light),
+25&#8211;50&#8202;% (amber), and beyond 50&#8202;% or a failed case (red). {{AGREE_NOTE}}</p>
 {{EVIDENCE_TASKS}}
 <h3>Printed TPU block, the default fingertip</h3>
 <p>{{BLOCK_TEXT}}</p>
 <div class="tw">{{BLOCK_TABLE}}</div>
-<p class="tnote">Table&#160;3. Bed tasks 1, 2 and 5 on the printed TPU block with 2.7&#8202;mm fillets: the 1&#8202;mm pads in MuJoCo against
-Drake hydroelastic, 1&#8202;ms step unless named (<code>docs/experiments/20261006-fingertip_backends/tip_T1.jsonl</code>,
-<code>tip_T2.jsonl</code>, <code>tip_T5.jsonl</code>). Shading compares the pads with Drake as in Table&#160;2. The twist ramp, set from
-the sphere&#8217;s law, spins neither model at 0.5&#8202;N, so the onset arm starts at 1&#8202;N.</p>
+<p class="tnote">Table&#160;3. Tasks 1, 2 and 5 on the test bed with the printed TPU block of 2.7&#8202;mm fillets. The
+1&#8202;mm pads in MuJoCo are compared with Drake hydroelastic, at a 1&#8202;ms step unless named
+(<code>docs/experiments/20261006-fingertip_backends/tip_T1.jsonl</code>, <code>tip_T2.jsonl</code>, <code>tip_T5.jsonl</code>).
+The shading compares the pads with Drake as in Table&#160;2. The twist ramp, set from the sphere&#8217;s law, spins neither model
+at 0.5&#8202;N, so the onset arm starts at 1&#8202;N.</p>
 <h3>Agreement of the pads with Drake across MuJoCo, MuJoCo-Warp and Newton</h3>
 <p>{{AGREE_SIM_TEXT}}</p>
 <figure class="diagram">
 {{FIG_AGREE_SIM}}
-<figcaption>Figure&#160;7. Agreement with Drake hydroelastic under one control method, open-loop replay. Columns: the bed twist
-(onset torque at 0.5, 1 and 3&#8202;N, ratio to Drake) and the bed brake (largest swing, difference from Drake), both with the
-10.55&#8202;mm sphere, and the plan replay of the three-finger turn on D1&#8211;D8 with the printed TPU block of 2.7&#8202;mm fillets (tool
-turn and grip force at the hold, 24 placements paired with Drake). The blue line is Drake, the band &#177;3&#176; or &#177;10&#8202;%; hollow
-markers dropped or released the tool. Point contact transmits no torque about its normal; its twist markers are the onset
-protocol&#8217;s offset (Table&#160;2). Rows and script: <code>docs/experiments/20261006-simulator_agreement/</code>,
-<code>scripts/simulator_agreement_figure.py</code>.</figcaption>
+<figcaption>Figure&#160;7. Agreement with Drake hydroelastic under one control method, open-loop replay. The first columns
+are the twist on the test bed (onset torque at 0.5, 1 and 3&#8202;N, as a ratio to Drake&#8217;s) and the brake (largest swing, as
+a difference from Drake&#8217;s), both with the 10.55&#8202;mm sphere. The last columns are the plan replay of the three-finger
+turn on D1&#8211;D8 with the printed TPU block of 2.7&#8202;mm fillets: tool turn and grip force at the hold, 24 placements paired
+with Drake. The blue line is
+Drake, and the band is &#177;3&#176; or &#177;10&#8202;%. Hollow markers dropped or released the tool. Point contact transmits no torque
+about its normal; its twist markers are the onset protocol&#8217;s offset (Table&#160;2). Rows and script:
+<code>docs/experiments/20261006-simulator_agreement/</code>, <code>scripts/simulator_agreement_figure.py</code>.</figcaption>
 </figure>
 <h3>Reorientation policies on the pads and on point contact</h3>
 <p>{{RL_REPLAY_TEXT}}</p>
@@ -344,48 +418,51 @@ protocol&#8217;s offset (Table&#160;2). Rows and script: <code>docs/experiments/
 <p>{{STEP_TEXT}}</p>
 <figure class="diagram ifig" id="contact-step">
 {{FIG_STEP}}
-<figcaption>Figure&#160;8. Codex&#8217;s 50&#8202;Hz controller sweep of the Exp&#160;2 twist sequence on the SR2 hand
+<figcaption>Figure&#160;8. Codex&#8217;s sweep of the Exp&#160;2 twist sequence on the SR2 hand with a 50&#8202;Hz controller
 (<code>scripts/distributed_contact_timestep.py</code>). (a) The tool&#8217;s angle about the pinch axis at the end of the sequence,
-against the physics step; an open marker at the top of (a) marks a diverged run. (b) Physics wall time per simulated second, one core.</figcaption>
+against the physics step; an open marker at the top marks a diverged run. (b) Physics wall time per simulated second on one
+core.</figcaption>
 </figure>
 <h3>Cost</h3>
 <p>{{COST_TEXT}}</p>
 <div class="tw">{{COST_TABLE}}</div>
-<p class="tnote">Table&#160;4. Cost of the fingertip models: one physics step at 1&#8202;ms on one CPU core (&#181;s), one world-step in a GPU
-batch (&#181;s; the trainer&#8217;s 2&#8202;ms step on the RL state), one PPO iteration at 2,048 envs (s) and GPU memory (GB). Point contact is
-condim&#160;3 on the bed and the TPU block as one convex mesh on the hand and in training. Both models of the CAD hand have
-MorphIt spheres on its links. Rows: <code>docs/experiments/20261005-contact_bed/pull_slip.jsonl</code>,
-<code>20261006-fingertip_backends/tip_T1.jsonl</code>, <code>20261006-hom_turn3/plans_mujoco.jsonl</code> and <code>plans_drake.jsonl</code>,
-<code>20261006-simulator_agreement/plans_mujoco_pt.jsonl</code>, <code>20261013-scale_turn_controllers/planners/timing.json</code>,
-<code>20261014-scale_turn_cad_v1/planners/timing.json</code>, <code>20261005-gpu_scaling/</code>,
-<code>20261006-rl_contact/same_state_timing.jsonl</code>, and the <code>run_costs.jsonl</code> of
-<code>20261011-servo_plant_policies</code> and <code>20261008-contact_model_policies</code>.</p>
+<p class="tnote">Table&#160;4. Cost of the fingertip models. The columns are one physics step of 1&#8202;ms on one CPU core
+(&#181;s), and one world-step in a GPU batch (&#181;s, the trainer&#8217;s 2&#8202;ms step on the RL state). They are followed by one PPO
+iteration at 2,048 envs (s) and the GPU memory (GB). On
+the test bed, point contact is condim&#160;3. On the hand and in training it is the TPU block as one convex mesh. Both models of
+the CAD hand have MorphIt spheres on its links. Rows: <code>docs/experiments/20261005-contact_bed/pull_slip.jsonl</code>,
+<code>20261006-fingertip_backends/tip_T1.jsonl</code>, <code>20261006-hom_turn3/plans_mujoco.jsonl</code> and
+<code>plans_drake.jsonl</code>, <code>20261006-simulator_agreement/plans_mujoco_pt.jsonl</code>,
+<code>20261013-scale_turn_controllers/planners/timing.json</code>, <code>20261014-scale_turn_cad_v1/planners/timing.json</code>,
+<code>20261005-gpu_scaling/</code>, <code>20261006-rl_contact/same_state_timing.jsonl</code>, and the
+<code>run_costs.jsonl</code> of <code>20261011-servo_plant_policies</code> and <code>20261008-contact_model_policies</code>.</p>
 <figure class="diagram">
 {{FIG_COST}}
-<figcaption>Figure&#160;9. Agreement against cost on the bed tasks: each model&#8217;s median absolute deviation from Drake over the
-metrics of Table&#160;2, against the cost of one physics step at 1&#8202;ms. {{COST_NOTE}}</figcaption>
+<figcaption>Figure&#160;9. Agreement against cost on the test bed: each model&#8217;s median absolute deviation from Drake over the
+metrics of Table&#160;2, against the cost of one physics step of 1&#8202;ms. {{COST_NOTE}}</figcaption>
 </figure>
 <figure class="diagram ifig" id="contact-gpu">
 {{FIG_GPU}}
-<figcaption>Figure&#160;10. Batched GPU throughput on one RTX 4070 Ti SUPER (16&#8202;GB), SR2 thumb&#8211;index holding fixture, 1&#8202;ms step
-unless marked (<code>scripts/gpu_scaling_mjwarp.py</code>{{GPU_NEWTON_SCRIPT}}). Simulated seconds per wall second equal world-steps
-per second times the step. {{GPU_NOTE}}</figcaption>
+<figcaption>Figure&#160;10. Batched GPU throughput on one RTX 4070 Ti SUPER (16&#8202;GB), on the SR2 holding fixture of thumb and
+index, at a 1&#8202;ms step unless marked (<code>scripts/gpu_scaling_mjwarp.py</code>{{GPU_NEWTON_SCRIPT}}). Simulated seconds per
+wall second equal world-steps per second times the step. {{GPU_NOTE}}</figcaption>
 </figure>
 <h3>The whole task</h3>
-<p>The chain page runs the controller of arXiv 2609.25619 through pick, braked swing, squeeze and peg-hole insertion on the SR2
-hand in eight contact models, and the paper&#8217;s Exp&#160;2, Exp&#160;3 and wield with the sphere pads. The closed-loop brake ends the
-swing at {{PHI_DHY}}&#176; in Drake hydroelastic and {{PHI_S1}}&#176; with the 1&#8202;mm pad, and both insert the tool; point contact
-drops it. The films below are from that page (<code>{{CHAIN_PATH}}</code>, <a href="{{CHAIN_URL}}">artifact</a>).</p>
+<p>The chain page runs the controller of arXiv 2609.25619 on the SR2 hand through pick, braked swing, squeeze and peg-hole
+insertion, in eight contact models. With the sphere pads it also runs the paper&#8217;s Exp&#160;2, Exp&#160;3 and wield. The
+closed-loop brake ends the swing at {{PHI_DHY}}&#176; in Drake hydroelastic and at {{PHI_S1}}&#176; with the 1&#8202;mm pad, and both
+models insert the tool. With point contact the hand drops it. The films below are from that page
+(<code>{{CHAIN_PATH}}</code>, <a href="{{CHAIN_URL}}">artifact</a>).</p>
 <figure>
 <video src="{{CLOSEUP_FILM}}" poster="{{CLOSEUP_POSTER}}" controls muted loop playsinline preload="metadata"></video>
-<figcaption>Figure&#160;11. The thumb pad through the nominal chain, real time. Left to right: Drake hydroelastic (contact-surface
-faces), MuJoCo 0.5, 1 and 2&#8202;mm sphere pads (the collision spheres), and condim&#160;4 (one contact point). Faces and spheres
-share one colour scale, 0&#8211;0.3&#8202;MPa; the black dot is the centre of pressure.</figcaption>
+<figcaption>Figure&#160;11. The thumb pad through the nominal chain, in real time. Left to right: Drake hydroelastic (the faces
+of its contact surface), MuJoCo sphere pads of 0.5, 1 and 2&#8202;mm (the collision spheres), and condim&#160;4 (one contact
+point). Faces and spheres share one colour scale, 0&#8211;0.3&#8202;MPa; the black dot is the centre of pressure.</figcaption>
 </figure>
 <figure>
 <video src="{{CHAIN_FILM}}" poster="{{CHAIN_POSTER}}" controls muted loop playsinline preload="metadata"></video>
-<figcaption>Figure&#160;12. The nominal chain in six contact models, real time: pick, closed-loop brake to vertical, squeeze and
-insertion.</figcaption>
+<figcaption>Figure&#160;12. The nominal chain in six contact models, in real time: pick, closed-loop brake to vertical, squeeze
+and insertion.</figcaption>
 </figure>
 {{USABILITY}}
 </div></section>
@@ -395,19 +472,26 @@ insertion.</figcaption>
 <p>{{SKIN_SUMMARY}}</p>
 <figure class="diagram">
 {{FIG_T8}}
-<figcaption>Figure&#160;14. Task&#160;8 at 1&#8202;N per pad: an axial force on the tool of 0, +1, &#8722;1, +1, 0&#8202;N, half the slip force each way, with Mindlin&#8217;s closed form dashed. (a) The tool&#8217;s axial displacement against the force at the bed&#8217;s settings and a 1&#8202;ms step. The pads creep while the force is positive and keep the displacement; the skin goes out and back along Mindlin&#8217;s initial slope, with the thin loop of the 1&#8202;ms step (2.58&#8202;&#181;J at 0.025&#8202;ms); the bristles trace a loop close to Mindlin&#8217;s. (b) The displacement against time at the policy trainer&#8217;s impratio of 10 and 2&#8202;ms step, the skin with the hand&#8217;s 0.26&#8202;kg of armature. The pads and the skin creep through the whole cycle and end it 143&#8202;&#181;m out; the skin&#8217;s springs add their 36&#8202;&#181;m on top.</figcaption>
+<figcaption>Figure&#160;14. Task&#160;8 at 1&#8202;N per pad: an axial force on the tool of 0, +1, &#8722;1, +1 and 0&#8202;N, half the slip
+force each way, with Mindlin&#8217;s closed form dashed. (a) The tool&#8217;s axial displacement against the force, at the test
+bed&#8217;s settings and a 1&#8202;ms step. The pads creep while the force is positive and keep the displacement. The skin goes out
+and back along Mindlin&#8217;s initial slope, with the thin loop of the 1&#8202;ms step (2.58&#8202;&#181;J at 0.025&#8202;ms). The bristle model
+traces a loop close to Mindlin&#8217;s. (b) The displacement against time at the policy trainer&#8217;s impratio of 10 and 2&#8202;ms
+step, the skin with the hand&#8217;s 0.26&#8202;kg of armature. The pads and the skin creep through the whole cycle and end it
+143&#8202;&#181;m out; the skin&#8217;s springs add their 36&#8202;&#181;m on top.</figcaption>
 </figure>
 </div></section>
 
 <section id="open"><div class="col">
 <h2>Future work</h2>
 {{OPEN_LIST}}
-<p>Drake and the spheres integrate the same pressure law, which is local and has no state. With the friction rows stiffened by impratio 1000,
-the sprung skin adds the shear compliance before slip and the rolling bristles its hysteresis, the bristles at {{BRISTLE_X}} times
-the batched cost; at the policy trainer&#8217;s impratio of 10 the friction rows&#8217; creep swamps the skin&#8217;s springs. Neither model represents the
-lateral spread of load in an elastic tip, and on a spherical tip both give a contact radius growing as \(N^{1/4}\); measured
-soft fingertips give exponents from 0 to 1/3, depending on the material (Xydas and Kao). The spheres add the creep of
-MuJoCo&#8217;s soft friction rows and miss surface features finer than their 1&#8202;mm spacing.</p>
+<p>Drake and the spheres integrate the same pressure law, which is local and has no state. With the friction rows stiffened
+by impratio 1000, the sprung skin adds the shear compliance before slip, and the bristle model adds its hysteresis at
+{{BRISTLE_X}} times the batched cost. At the policy trainer&#8217;s impratio of 10 the creep of the friction rows is larger than
+the deflection of the skin&#8217;s springs. Neither model spreads load sideways as an elastic tip does. On a spherical tip both
+give a contact radius that grows as \(N^{1/4}\), and measured soft fingertips give exponents from 0 to 1/3, depending on the
+material (Xydas and Kao). The spheres add the creep of MuJoCo&#8217;s soft friction rows, and they miss surface features finer than
+their 1&#8202;mm spacing.</p>
 </div></section>
 
 <footer><div class="col">

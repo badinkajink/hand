@@ -1440,12 +1440,12 @@ def skin_answer(X: Data) -> dict:
             f"{max(n['sk_change']):.0f}&#8202;&#181;m, so they used the skin&#8217;s compliance and armature without its presliding.")
     test = ("The presliding remains to be tested by a skin policy trained where its friction rows hold, at a higher impratio "
             "with more solver iterations or a 1&#8202;ms step.")
-    short = (f"Two skin seeds trained on the servo-limited plant change no held count beyond the pads&#8217; seed spread in "
+    short = (f"Two skin seeds trained on the servo plant change no held count beyond the pads&#8217; seed spread in "
              f"{nc} evaluation conditions, replays and perturbations included"
-             f"{'' if not bh else ' (except ' + ' and '.join(PROSE[r['key']] for r in bh) + ')'}, and end at held cosines of "
-             f"{_two(hc['tpu27skin'])} against the pads&#8217; {_two(hc['tpu27pads1'])}, inside that spread in "
-             f"{nc - len(bcos)} of the {nc}; they too trained at impratio 10 without the skin&#8217;s presliding, which remains "
-             "to be tested with friction rows that hold.")
+             f"{'' if not bh else ' (except ' + ' and '.join(PROSE[r['key']] for r in bh) + ')'}. They end at held cosines of "
+             f"{_two(hc['tpu27skin'])}, against the pads&#8217; {_two(hc['tpu27pads1'])}, inside that spread in "
+             f"{nc - len(bcos)} of the {nc} conditions. They too trained at impratio 10 without the skin&#8217;s presliding, which "
+             "remains to be tested with friction rows that hold.")
     lede = ((f"Pads on a sprung skin change no held count beyond the bare pads&#8217; seed spread in {nc} evaluation "
              "conditions, replays and perturbations included, " if not bh else
              "Pads on a sprung skin change the held count beyond the bare pads&#8217; seed spread only "

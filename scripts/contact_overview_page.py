@@ -152,53 +152,65 @@ dl.glossary dd{margin:0;color:var(--ink2)}
 # ------------------------------------------------------------------------------------------ terms and metrics
 
 GLOSSARY = [
-    ("pad", "One fingertip&#8217;s contact with the tool; \\(N\\) is its normal force."),
-    ("friction arm \\(\\bar r\\)", "Pressure-weighted mean distance of the contact patch from its centre, in mm; a pad turns once "
-            "the torque about its normal exceeds \\(\\mu N\\bar r\\)."),
-    ("effective \\(\\mu\\)", "Pull force at slip onset (task&#160;1) divided by \\(2N\\); rigid Coulomb friction gives 1."),
-    ("creep", "Sliding under half the slip load, in &#181;m/s (pull) or &#176;/s (twist); rigid Coulomb friction gives 0."),
-    ("slip speed", "Mean sliding speed in the 50&#8202;ms after slip onset, in mm/s."),
-    ("arm at spin onset", "Twist torque at spin onset (task&#160;2) divided by \\(2\\mu N\\), in mm per pad."),
-    ("arm spinning at 1&#8202;rad/s", "Twist torque while the tool spins at 1&#8202;rad/s about the pinch axis (task&#160;2) "
-            "divided by \\(2\\mu N\\), in mm per pad."),
-    ("rolling ratio", "Tool rotation times its radius over half the pad travel (task&#160;3); rolling without slip gives 1.008."),
-    ("drift per cycle", "Tool displacement per 5&#8202;Hz shake cycle below the slip load (task&#160;4), in &#181;m."),
-    ("swing end", "Final tool angle as the pinch force falls from 6 to 0.2&#8202;N (task&#160;5); 90&#176; is hanging."),
-    ("brake force at 45&#176;", "Pinch force per pad at which the braked tool passes 45&#176; below horizontal (task&#160;5), "
-            "in N; more friction torque keeps the tool up to a lower force."),
-    ("tool turn", "Rotation of the tool axis toward vertical in a replayed three-finger turn; <i>within 3&#176;</i> counts replays "
-            "that end within 3&#176; of Drake&#8217;s."),
-    ("presliding", "Displacement of the tool under a tangential load below the slip force that returns when the load is "
-            "removed; task&#160;8 reads it at half the slip force, in &#181;m (Mindlin at 1&#8202;N: 40.3)."),
-    ("loop area", "Energy dissipated per cycle of a tangential load below slip, in &#181;J; a spring gives none and partial "
-            "slip a closed loop (Mindlin at 1&#8202;N: 6.13)."),
-    ("&#181;s per step", "Wall time of one 1&#8202;ms physics step on one CPU core; per world-step on the GPU."),
-    ("\\(t_c\\), \\(d_0\\), \\(\\hat\\Lambda\\), \\(m_\\text{eff}\\)", "MuJoCo&#8217;s <code>solref</code> time constant, "
-            "<code>solimp</code> impedance and contact inverse inertia, with \\(m_\\text{eff} = 1/\\hat\\Lambda\\); together they set "
-            "the sphere stiffness, (10)."),
+    ("test bed", "The two-pad pinch rig of the 10-01 study. Two fingertip pads on rails pinch the screwdriver, and numbered "
+            "tasks load it: 1 pull, 2 twist, 3 roll, 4 shake and 5 brake. Task&#160;6 varies the settings that set creep, "
+            "task&#160;7 the time step, and task&#160;8 cycles a load below slip. The fingertip is the 10.55&#8202;mm sphere unless "
+            "the printed block is named."),
+    ("pad", "One fingertip&#8217;s contact with the tool. \\(N\\) is its normal force."),
+    ("friction arm \\(\\bar r\\)", "The mean distance of the contact patch from its centre, weighted by pressure, in mm. A pad "
+            "spins once the torque about its normal exceeds \\(\\mu N\\bar r\\)."),
+    ("effective \\(\\mu\\)", "The pull force at the onset of slip (task&#160;1) divided by \\(2N\\). Rigid Coulomb friction "
+            "gives 1."),
+    ("creep", "Sliding under half the slip load, in &#181;m/s for a pull or &#176;/s for a twist. Rigid Coulomb friction "
+            "gives 0."),
+    ("slip speed", "The mean sliding speed in the 50&#8202;ms after slip starts, in mm/s."),
+    ("arm at spin onset", "The twist torque at which the tool starts to spin (task&#160;2), divided by \\(2\\mu N\\), in mm per "
+            "pad."),
+    ("arm spinning at 1&#8202;rad/s", "The twist torque while the tool spins at 1&#8202;rad/s about the pinch axis "
+            "(task&#160;2), divided by \\(2\\mu N\\), in mm per pad."),
+    ("rolling ratio", "The tool&#8217;s rotation times its radius, divided by half the pad travel (task&#160;3). Rolling without "
+            "slip gives 1.008."),
+    ("drift per cycle", "The tool&#8217;s displacement per cycle of a 5&#8202;Hz shake below the slip load (task&#160;4), in "
+            "&#181;m."),
+    ("swing end", "The tool&#8217;s final angle as the pinch force falls from 6 to 0.2&#8202;N (task&#160;5). Hanging is "
+            "90&#176;."),
+    ("brake force at 45&#176;", "The pinch force per pad at which the braked tool passes 45&#176; below horizontal "
+            "(task&#160;5), in N. More friction torque keeps the tool up down to a lower force."),
+    ("tool turn", "The rotation of the tool&#8217;s axis toward vertical in a replayed three-finger turn. <i>Within 3&#176;</i> "
+            "counts the replays that end within 3&#176; of Drake&#8217;s."),
+    ("presliding", "The tool&#8217;s displacement under a tangential load below the slip force, which returns when the load is "
+            "removed. In task&#160;8 it is read at half the slip force, in &#181;m (Mindlin&#8217;s solution at 1&#8202;N: 40.3)."),
+    ("loop area", "The energy lost per cycle of a tangential load below slip, in &#181;J. A spring loses none, and partial slip "
+            "traces a closed loop (Mindlin at 1&#8202;N: 6.13)."),
+    ("&#181;s per step", "The wall time of one physics step of 1&#8202;ms on one CPU core, or of one world-step on the GPU."),
+    ("\\(t_c\\), \\(d_0\\), \\(\\hat\\Lambda\\), \\(m_\\text{eff}\\)", "MuJoCo&#8217;s contact settings: the time constant of "
+            "<code>solref</code>, the impedance of <code>solimp</code>, and the contact&#8217;s inverse inertia \\(\\hat\\Lambda\\), "
+            "with the effective mass \\(m_\\text{eff} = 1/\\hat\\Lambda\\). Together they set the sphere stiffness, (10)."),
     ("\\(k_h\\), \\(k_f\\)", "Newton&#8217;s hydroelastic stiffness \\(E/h\\), in N/m&#179;, and its friction gain, a damping "
             "coefficient in N&#8202;s/m."),
-    ("impratio, condim", "MuJoCo&#8217;s friction-to-normal stiffness ratio; condim&#160;4 adds torsional friction to condim&#160;3."),
-    ("\\(d'\\), \\(q\\)", "Impedance of \\(n\\) contact rows of one pad moving together, (13), and \\(q=d_0/d'\\), which sets the "
-            "step bound (14)."),
-    ("relaxation time \\(t_r\\)", "Drake&#8217;s contact dissipation time, its damping over its stiffness, 10&#8202;ms. A pad "
-            "sphere&#8217;s damping over its rest stiffness is \\(2t_c\\), (10); released from a push, it returns to within "
+    ("impratio, condim", "impratio is MuJoCo&#8217;s ratio of friction stiffness to normal stiffness. condim sets the friction "
+            "directions of a contact: condim&#160;3 has two tangential directions, and condim&#160;4 adds torsion about the "
+            "normal."),
+    ("\\(d'\\), \\(q\\)", "The impedance of \\(n\\) contact rows of one pad that move together, (13), and \\(q=d_0/d'\\), which "
+            "sets the step bound (14)."),
+    ("relaxation time \\(t_r\\)", "Drake&#8217;s contact dissipation time, its damping over its stiffness: 10&#8202;ms. A pad "
+            "sphere&#8217;s damping over its rest stiffness is \\(2t_c\\), (10). Released from a push, a sphere returns to within "
             "5&#8202;% of rest in \\(4.74\\,t_c\\)."),
 ]
 
 # terms of the policy and cost paragraphs, shown on this page only (other pages import GLOSSARY)
 GLOSSARY_RL = [
-    ("world-step", "One physics step of one world in a GPU batch; its cost is the batch step&#8217;s wall time over the "
-            "number of worlds."),
-    ("PPO iteration", "One iteration of the reorientation trainer, proximal policy optimization (PPO) over 2,048 envs: "
-            "24 env steps per env and the policy update, in s. Zero-action env throughput counts env steps per second with "
-            "the actions held at zero after the scripted grasp, which leaves out the update."),
+    ("world-step", "One physics step of one world in a GPU batch. Its cost is the wall time of the batch step divided by "
+            "the number of worlds."),
+    ("PPO iteration", "One iteration of the reorientation trainer, which uses proximal policy optimization (PPO) over "
+            "2,048 envs: 24 env steps per env and the policy update, in s. Zero-action throughput is the number of env steps "
+            "per second with the actions held at zero after the scripted grasp; it leaves out the update."),
     ("held, held cosine", "A rollout or replay holds the tool when it ends with at least two fingertips pressing on it and "
-            "the tool above 60&#8202;mm. Held cosine: cosine between the tool axis and the vertical at the end, averaged over "
-            "the held rollouts; 1 is upright."),
-    ("servo-limited and working plant", "Finger servos of the simulated hand. Servo-limited plant: the SCS0009&#8217;s gain "
-            "of 0.72&#8202;N&#8202;m/rad and torque limit of 0.18&#8202;N&#8202;m. Working plant (studies of 2026-10-06 and 10-08): "
-            "a 1&#8202;N&#8202;m limit, 4.4 times the servo&#8217;s stall torque."),
+            "the tool above 60&#8202;mm. The held cosine is the cosine between the tool&#8217;s axis and the vertical at the end, "
+            "averaged over the held rollouts; 1 is upright."),
+    ("servo plant, 1&#8202;N&#8202;m plant", "Models of the simulated hand&#8217;s finger servos (the plant). The servo plant has "
+            "the SCS0009&#8217;s gain of 0.72&#8202;N&#8202;m/rad and torque limit of 0.18&#8202;N&#8202;m. The 1&#8202;N&#8202;m plant, used in "
+            "the studies of 2026-10-06 and 10-08, has a 1&#8202;N&#8202;m limit, 4.4 times the servo&#8217;s stall torque."),
 ]
 
 
@@ -585,16 +597,15 @@ def mass_text(cal):
     lo = [lt[(m, 0.5)]["rbar_mm"] for m in (0.25, 1.0, 4.0)]
     hi = [lt[(m, 3.0)]["rbar_mm"] for m in (0.25, 1.0, 4.0)]
     lawlo, lawhi = C_LAW * 1e3 * 0.5 ** EXP_LAW, C_LAW * 1e3 * 3 ** EXP_LAW
-    return (f"On the calibration rig, whose railed pads have the thumb&#8217;s inverse weight, a sphere calibrated with the "
-            f"nominal tool and reused for a tool four times heavier comes out {k4:.2f}&#215; too stiff, and for a tool four times "
-            f"lighter {k025:.2f}&#215;. Computing \\(\\hat\\Lambda\\) from the compiled model for each pad&#8211;object pair at load, "
-            f"and \\(d_0\\) from it, removes the dependence at no run-time cost. MuJoCo computes <code>body_invweight0</code> once, "
-            f"at the reference pose <code>qpos0</code>, and does not update it as the bodies move, so the value read after "
-            f"compiling is the one the solver uses. With it the arm is {_rng(lo)}&#8202;mm at 0.5&#8202;N and "
+    return (f"The calibration rig&#8217;s railed pads have the thumb&#8217;s inverse weight. A sphere calibrated there with the "
+            f"nominal tool comes out {k4:.2f}&#215; too stiff when reused for a tool four times heavier, and {k025:.2f}&#215; for "
+            f"a tool four times lighter. Computing \\(\\hat\\Lambda\\) from the compiled model for each pad and object at load, "
+            f"and \\(d_0\\) from it, removes this dependence at no run-time cost. MuJoCo computes <code>body_invweight0</code> "
+            f"once, at the reference pose <code>qpos0</code>, and does not update it as the bodies move. The value read after "
+            f"compiling is therefore the one the solver uses. With it the arm is {_rng(lo)}&#8202;mm at 0.5&#8202;N and "
             f"{_rng(hi)}&#8202;mm at 3&#8202;N for all three masses, {abs(statistics.mean(lo) / lawlo - 1) * 100:.0f} and "
-            f"{abs(statistics.mean(hi) / lawhi - 1) * 100:.0f}&#8202;% under the hydroelastic law; with the fixed value it moves by "
-            f"{num(d025, '+.0f')} and {num(d4, '+.0f')}&#8202;% (Figure&#160;5). The chain&#8217;s plant already calibrates each trial this way, "
-            f"so the per-step remapping of every contact that Codex built is unnecessary.")
+            f"{abs(statistics.mean(hi) / lawhi - 1) * 100:.0f}&#8202;% under the hydroelastic law. With the fixed value the arm "
+            f"moves by {num(d025, '+.0f')} and {num(d4, '+.0f')}&#8202;% (Figure&#160;5).")
 
 
 # ------------------------------------------------------------------------------------------ creep and stability text
@@ -630,17 +641,17 @@ def _same4(a, b):
 
 
 def creep_text(pull, creep, tip_pull=None):
-    """Step 8 (deck 23, creep-mechanism): the friction damper c = 2 kappa k_s t_c of the bed's 1 mm pad, the equal-share
-    and cone-saturated predictions against the creep of bed task 6 (creep.jsonl part T1, which stores both), the factor
-    over Drake per tip and step (pull_slip.jsonl, tip_T1.jsonl), the 1/(kappa t_c) law and noslip."""
+    """Step 8 (deck 23, creep-mechanism): the friction damper c = 2 kappa k_s t_c of the test bed's 1 mm pad, the
+    equal-share and cone-saturated predictions against the creep of task 6 (creep.jsonl part T1, which stores both), the
+    factor over Drake per tip and step (pull_slip.jsonl, tip_T1.jsonl), the 1/(kappa t_c) law and noslip."""
     out = []
     t1 = [r for r in creep if r.get("part") == "T1" and _eq(r.get("dt_ms"), 1.0) and r.get("status") == "complete"]
     sel = lambda model, kap, ns=0: sorted((r for r in t1 if r.get("model") == model and _eq(r.get("impratio"), kap)  # noqa: E731
                                            and r.get("noslip_iterations", 0) == ns), key=lambda r: r["N"])
     base = sel("mj_pads1", 100.0)
     if not base:
-        return ("By (12), creep falls with a larger <code>impratio</code> and a longer \\(t_c\\). Bed task&#160;6, which tests both, "
-                "has not run.")
+        return ("By (12), creep falls with a larger <code>impratio</code> and a longer \\(t_c\\). Task&#160;6 on the test bed, "
+                "which tests both, has not run.")
     r0 = base[0]
     d0, lam, tc, kap = r0["pred_d0"], r0["pred_Lambda"], r0["pred_tc_s"], r0["pred_impratio"]
     ks = 1.0 / ((1 - d0) * lam * tc ** 2)
@@ -649,56 +660,60 @@ def creep_text(pull, creep, tip_pull=None):
     meas = [r["creep_mm_s"] * 1e3 for r in base]
     cone = [r["pred_v_cone_mm_s"] * 1e3 for r in base]
     same = all(_same4(a, b) for a, b in zip(meas, cone))
-    out.append(f"For the bed&#8217;s 1&#8202;mm pad (\\(d_0\\)&#8202;=&#8202;{d0:.3f}, \\(\\hat\\Lambda\\)&#8202;=&#8202;{lam:.2f}&#8202;kg\\(^{{-1}}\\), "
-               f"\\(t_c\\)&#8202;=&#8202;{tc * 1e3:g}&#8202;ms, \\(\\kappa\\)&#8202;=&#8202;{kap:g}) each touching sphere is a damper of "
-               f"\\(c_t\\)&#8202;=&#8202;{num(c, ',.1f')}&#8202;N&#8202;s/m. Held at half its slip force in bed task&#160;1, with "
-               f"{lst([r['pred_n_contacts'] for r in base], 0)} spheres touching at {_lst([r['N'] for r in base], '&#8202;N')}, equal "
-               f"shares give {lst([r['pred_v_formula_mm_s'] * 1e3 for r in base], 1)}&#8202;&#181;m/s; with "
-               f"{lst([r['pred_n_saturated'] for r in base], 0)} spheres at their cones the sum gives {lst(cone, 1)}&#8202;&#181;m/s, "
-               + ("the measured creep to four digits." if same else
-                  f"against {lst(meas, 1)}&#8202;&#181;m/s measured."))
+    out.append(f"For the test bed&#8217;s 1&#8202;mm pad (\\(d_0\\)&#8202;=&#8202;{d0:.3f}, "
+               f"\\(\\hat\\Lambda\\)&#8202;=&#8202;{lam:.2f}&#8202;kg\\(^{{-1}}\\), \\(t_c\\)&#8202;=&#8202;{tc * 1e3:g}&#8202;ms, "
+               f"\\(\\kappa\\)&#8202;=&#8202;{kap:g}), each touching sphere is a damper of \\(c_t\\)&#8202;=&#8202;{num(c, ',.1f')}&#8202;N&#8202;s/m. "
+               f"In task&#160;1 the pad is held at half its slip force, with {lst([r['pred_n_contacts'] for r in base], 0)} "
+               f"spheres touching at {_lst([r['N'] for r in base], '&#8202;N')}. Equal shares give "
+               f"{lst([r['pred_v_formula_mm_s'] * 1e3 for r in base], 1)}&#8202;&#181;m/s. With "
+               f"{lst([r['pred_n_saturated'] for r in base], 0)} spheres at their cones, the sum gives {lst(cone, 1)}&#8202;&#181;m/s, "
+               + ("the measured creep to four digits." if same else f"against {lst(meas, 1)}&#8202;&#181;m/s measured."))
+    out.append("</p><p>")
     # the 1/(kappa t_c) law: impratio and the time constant at 1 N
     at1 = lambda model, k: next((r["creep_mm_s"] * 1e3 for r in sel(model, k) if _eq(r["N"], 1.0)), None)  # noqa: E731
     kaps = [k for k in (100.0, 1000.0, 3000.0, 10000.0) if at1("mj_pads1", k) is not None]
     tcs = [(m, _tc_of(next((r.get("rig_spec") or r.get("spec") for r in t1 if r.get("model") == m), ""))) for m in
            ("mj_pads1_tr05", "mj_pads1_tr10") if at1(m, 100.0) is not None]
     if len(kaps) > 1:
-        out.append(f"At 1&#8202;N the creep falls as \\(1/\\kappa t_c\\): {lst([at1('mj_pads1', k) for k in kaps], 2)}&#8202;&#181;m/s at "
-                   f"impratio {lst([k for k in kaps], 0).replace('10000', '10,000')} (bed task&#160;6)"
-                   + (f", and {lst([at1(m, 100.0) for m, _ in tcs], 2)}&#8202;&#181;m/s at \\(t_c\\)&#8202;=&#8202;"
-                      f"{_lst([t * 1e3 for _, t in tcs], '&#8202;ms')} and impratio 100" if tcs else "")
-                   + f", so at the policy trainer&#8217;s impratio of 10 the bed pad would creep about "
-                     f"{at1('mj_pads1', 100.0) * 10 * 1e-3:.2f}&#8202;mm/s.")
+        out.append(f"At 1&#8202;N the creep falls as \\(1/\\kappa t_c\\): it is {lst([at1('mj_pads1', k) for k in kaps], 2)}"
+                   f"&#8202;&#181;m/s at impratio {lst([k for k in kaps], 0).replace('10000', '10,000')} (task&#160;6).")
+        if tcs:
+            out.append(f"At \\(t_c\\)&#8202;=&#8202;{_lst([t * 1e3 for _, t in tcs], '&#8202;ms')} and impratio 100 it is "
+                       f"{lst([at1(m, 100.0) for m, _ in tcs], 2)}&#8202;&#181;m/s.")
+        out.append(f"At the policy trainer&#8217;s impratio of 10 the test bed&#8217;s pad would therefore creep about "
+                   f"{at1('mj_pads1', 100.0) * 10 * 1e-3:.2f}&#8202;mm/s.")
     ns = [at1x for at1x in (next((r["creep_mm_s"] * 1e3 for r in sel("mj_pads1", 100.0, n) if _eq(r["N"], 1.0)), None)
                             for n in (3, 10)) if at1x is not None]
     if ns and max(ns) < 0:
-        out.append(f"Three or ten <code>noslip_iterations</code>, which re-solve the friction rows without \\(R_t\\) after the main "
-                   f"solve, turn the creep into a slide of {abs(ns[0]):.2f}&#8202;&#181;m/s against the load.")
+        out.append(f"Three or ten <code>noslip_iterations</code> re-solve the friction rows without \\(R_t\\) after the main "
+                   f"solve. They turn the creep into a slide of {abs(ns[0]):.2f}&#8202;&#181;m/s against the load.")
     # a finer pad at its own t_c
     p05 = pick(pull, "mj_pads05", N=1.0, dt_ms=1.0)
     if p05:
-        out.append(f"A finer pad creeps as fast at equal \\(t_c\\), because \\(nk_s\\) stays near \\(k_w\\) times the patch area; the "
-                   f"bed&#8217;s 0.5&#8202;mm pad runs at \\(t_c\\)&#8202;=&#8202;{_tc_of(p05.get('spec')) * 1e3:g}&#8202;ms (step&#160;7) and creeps "
-                   f"{p05['creep_mm_s'] * 1e3:.1f}&#8202;&#181;m/s at 1&#8202;N.")
+        out.append(f"A finer pad creeps as fast at equal \\(t_c\\), because \\(nk_s\\) stays near \\(k_w\\) times the patch area. "
+                   f"The test bed&#8217;s 0.5&#8202;mm pad runs at \\(t_c\\)&#8202;=&#8202;{_tc_of(p05.get('spec')) * 1e3:g}&#8202;ms "
+                   f"(step&#160;7) and creeps {p05['creep_mm_s'] * 1e3:.1f}&#8202;&#181;m/s at 1&#8202;N.")
     # factor over Drake, one per tip and step
     fac = lambda rows, a, b, dt: [(pick(rows, a, N=N, dt_ms=dt) or {}).get("creep_mm_s", 0) /  # noqa: E731
                                   max((pick(rows, b, N=N, dt_ms=dt) or {}).get("creep_mm_s", 0), 1e-15) for N in (0.5, 1.0, 3.0)]
     f1, f5 = fac(pull, "mj_pads1", "drake_hydro", 1.0), fac(pull, "mj_pads1", "drake_hydro", 5.0)
     dk = [pick(pull, "drake_hydro", N=N, dt_ms=1.0) for N in (0.5, 1.0, 3.0)]
     if all(dk) and all(f1):
-        s = (f"Drake&#8217;s SAP solver creeps {dk[0]['creep_mm_s'] * 1e3:.2f}&#8211;{dk[-1]['creep_mm_s'] * 1e3:.2f}&#8202;&#181;m/s under the "
-             f"same loads, so on the 10.55&#8202;mm sphere at a 1&#8202;ms step the pad creeps {lst([round(x) for x in f1], 0)} times "
-             f"faster at 0.5, 1 and 3&#8202;N")
+        out.append("</p><p>")
+        out.append(f"Drake&#8217;s SAP solver creeps {dk[0]['creep_mm_s'] * 1e3:.2f}&#8211;{dk[-1]['creep_mm_s'] * 1e3:.2f}"
+                   "&#8202;&#181;m/s under the same loads. On the 10.55&#8202;mm sphere at a 1&#8202;ms step the pad therefore creeps "
+                   f"{lst([round(x) for x in f1], 0)} times faster than Drake at 0.5, 1 and 3&#8202;N.")
         if all(f5):
-            s += f", and {min(f5):.0f}&#8211;{max(f5):.0f} times at a 5&#8202;ms step, where Drake creeps more"
+            out.append(f"At a 5&#8202;ms step, where Drake creeps more, the factor is {min(f5):.0f}&#8211;{max(f5):.0f}.")
         if tip_pull:
             tb = pick(tip_pull, "mj_tpu2p7_pads1", N=1.0, dt_ms=1.0)
             td = pick(tip_pull, "drake_tpu2p7", N=1.0, dt_ms=1.0)
             if tb and td:
-                s += f"; on the printed TPU block at 1&#8202;N and 1&#8202;ms the factor is {tb['creep_mm_s'] / td['creep_mm_s']:.0f} (Table&#160;3)"
-        out.append(s + ". A damper moves the tool by the time integral of its load, so a held tool does not come back when "
-                       "the load does (task&#160;8, Figure&#160;14).")
-    return " ".join(out)
+                out.append(f"On the printed TPU block at 1&#8202;N and 1&#8202;ms the factor is "
+                           f"{tb['creep_mm_s'] / td['creep_mm_s']:.0f} (Table&#160;3).")
+        out.append("A damper moves the tool by the time integral of its load, so a held tool does not come back when the "
+                   "load is removed (task&#160;8, Figure&#160;14).")
+    return " ".join(out).replace(" </p><p> ", "</p><p>")
 
 
 def stab_rows():
@@ -804,45 +819,45 @@ def _lst(v, unit=""):
 
 
 def stab_text(rows, fig=6, tail=False):
-    """Two paragraphs, joined by '</p><p>' for a caller that wraps the text in one <p>: bed task 7 against (14), then the
-    friction rows' bound, point contact and MuJoCo's clamp (review of 2026-10-14: one paragraph per bound)."""
+    """Two paragraphs, joined by '</p><p>' for a caller that wraps the text in one <p>: task 7 on the test bed against (14),
+    then the friction rows' bound, point contact and MuJoCo's clamp (review of 2026-10-14: one paragraph per bound)."""
     st = stab_stats(rows)
     if not st:
         return ""
-    out = [f"Bed task&#160;7 holds the tool against gravity at 1&#8202;N per pad for 1&#8202;s with \\(d_0\\) from {st['d0'][0]:g} to "
-           f"{st['d0'][-1]:g}, \\(t_c\\) of {_lst(st['tc'], '&#8202;ms')} and steps from 0.25 to 15&#8202;ms, with MuJoCo&#8217;s clamp "
-           f"switched off so that \\(t_c\\) stays as set. For {len(st['inside'])} of the {st['n']} pairs the largest step that held and "
-           f"the first that failed bracket (14) (Figure&#160;{fig})."]
+    out = [f"Task&#160;7 on the test bed holds the tool against gravity at 1&#8202;N per pad for 1&#8202;s. It varies \\(d_0\\) from "
+           f"{st['d0'][0]:g} to {st['d0'][-1]:g} and \\(t_c\\) over {_lst(st['tc'], '&#8202;ms')}. The step runs from 0.25 to "
+           "15&#8202;ms, with MuJoCo&#8217;s clamp switched off so that \\(t_c\\) stays as set. For "
+           f"{len(st['inside'])} of the {st['n']} pairs, the largest step that held and the first that failed bracket (14) "
+           f"(Figure&#160;{fig})."]
     if st["outside"]:
         above = [r for r in st["outside"] if (r.get("dt_max_held_ms") or 0) > stab_bound(r) * 1.0001]
         below = sorted((r for r in st["outside"] if r not in above), key=lambda r: (r["tc_ms"], r["d0"]))
-        s = f"In {len(above)} of the other {len(st['outside'])} the pinch held at steps above the bound"
+        out.append(f"In {len(above)} of the other {len(st['outside'])} the pinch held at steps above the bound.")
         if below:
             kinds = {stab_fail_kind(r) for r in below}
             how = "the pads ejected the tool" if kinds == {"ejected"} else "the run failed"
-            s += (f", and at \\(d_0\\)&#8202;=&#8202;{_lst([r['d0'] for r in below])} with \\(t_c\\)&#8202;=&#8202;"
-                  f"{_lst(sorted({r['tc_ms'] for r in below}), '&#8202;ms')} {how} at "
-                  f"{_lst(sorted({r['dt_first_fail_ms'] for r in below}), '&#8202;ms')}, below bounds of "
-                  f"{min(stab_bound(r) for r in below):.1f}&#8211;{max(stab_bound(r) for r in below):.1f}&#8202;ms")
-        out.append(s + ".")
+            out.append(f"At \\(d_0\\)&#8202;=&#8202;{_lst([r['d0'] for r in below])} with \\(t_c\\)&#8202;=&#8202;"
+                       f"{_lst(sorted({r['tc_ms'] for r in below}), '&#8202;ms')}, {how} at "
+                       f"{_lst(sorted({r['dt_first_fail_ms'] for r in below}), '&#8202;ms')}, below bounds of "
+                       f"{min(stab_bound(r) for r in below):.1f}&#8211;{max(stab_bound(r) for r in below):.1f}&#8202;ms.")
     first, out = out, []
     if st["f_in"]:
         pt = st["point"]
-        s = ("In the pinch the tool&#8217;s weight rests on friction rows, which have no spring. Their damper alone gives "
-             "\\(\\Delta t<t_c\\bigl(d_0+(1-d_0)\\hat\\Lambda/(\\kappa\\lambda_t)\\bigr)\\approx d_0t_c\\), with \\(\\lambda_t\\) the largest "
-             f"eigenvalue of the friction rows&#8217; \\(A\\), and this bound brackets {len(st['f_in'])} of the {st['n']} pad pairs")
+        out.append("In the pinch the tool&#8217;s weight rests on the friction rows, which have no spring. Their damper alone gives "
+                   "the bound \\(\\Delta t<t_c\\bigl(d_0+(1-d_0)\\hat\\Lambda/(\\kappa\\lambda_t)\\bigr)\\approx d_0t_c\\), with "
+                   "\\(\\lambda_t\\) the largest eigenvalue of the friction rows&#8217; \\(A\\). This bound brackets "
+                   f"{len(st['f_in'])} of the {st['n']} pad pairs.")
         if pt and len(st["pt_f"]) == len(pt):
-            s += (f" and point contact&#8217;s failures at {_lst([r['dt_first_fail_ms'] for r in pt], '&#8202;ms')} for \\(d_0\\)&#8202;=&#8202;"
-                  f"{_lst([r['d0'] for r in pt])} at \\(t_c\\)&#8202;=&#8202;{pt[0]['tc_ms']:g}&#8202;ms, where (14) gives "
-                  f"{step_bound(pt[0]['tc_ms'], pt[0]['d0'], 1):.1f}&#8202;ms for any \\(d_0\\)")
-        out.append(s + ".")
+            out.append(f"It also brackets the failures of point contact at {_lst([r['dt_first_fail_ms'] for r in pt], '&#8202;ms')} "
+                       f"for \\(d_0\\)&#8202;=&#8202;{_lst([r['d0'] for r in pt])} at \\(t_c\\)&#8202;=&#8202;{pt[0]['tc_ms']:g}&#8202;ms, where "
+                       f"(14) gives {step_bound(pt[0]['tc_ms'], pt[0]['d0'], 1):.1f}&#8202;ms for any \\(d_0\\).")
     if st["stiff"] and st["soft"]:
-        out.append(f"With the clamp on, as MuJoCo runs by default, a row whose \\(t_c\\) is below \\(2\\Delta t\\) runs at "
-                   f"\\(t_c=2\\Delta t\\), so the friction rows&#8217; bound becomes \\(2d_0\\Delta t\\) and exceeds \\(\\Delta t\\) once "
-                   f"\\(d_0\\ge1/2\\): the pads with \\(d_0\\)&#8202;&#8805;&#8202;0.5 held at every step up to "
-                   f"{min(r['dt_max_held_ms'] for r in st['stiff']):g}&#8202;ms at all three \\(t_c\\), and those with \\(d_0\\) of "
-                   f"{_lst(sorted({r['d0'] for r in st['soft']}))} failed from {min(r['dt_first_fail_ms'] for r in st['soft']):g} to "
-                   f"{max(r['dt_first_fail_ms'] for r in st['soft']):g}&#8202;ms.")
+        out.append("With the clamp on, as MuJoCo runs by default, a row whose \\(t_c\\) is below \\(2\\Delta t\\) runs at "
+                   "\\(t_c=2\\Delta t\\). The friction rows&#8217; bound then becomes \\(2d_0\\Delta t\\), which exceeds \\(\\Delta t\\) "
+                   "once \\(d_0\\ge1/2\\). The pads with \\(d_0\\)&#8202;&#8805;&#8202;0.5 held at every step up to "
+                   f"{min(r['dt_max_held_ms'] for r in st['stiff']):g}&#8202;ms at all three \\(t_c\\). Those with \\(d_0\\) of "
+                   f"{_lst(sorted({r['d0'] for r in st['soft']}))} failed from {min(r['dt_first_fail_ms'] for r in st['soft']):g} "
+                   f"to {max(r['dt_first_fail_ms'] for r in st['soft']):g}&#8202;ms.")
     if tail:
         out.append("Which rows set the largest stable step on the hand is open (Future work).")
     return " ".join(first) + ("</p><p>" + " ".join(out) if out else "")
@@ -931,13 +946,14 @@ def step_text(rows):
     cost = lambda rs, dt: next((r["timing"]["physics_seconds_per_sim_second"] for r in rs if abs(r["case"]["physics_dt"] - dt) < 1e-9), None)  # noqa: E731
     a = [r["pinch_angle_end_deg"] for r in leg]
     b = [r["pinch_angle_end_deg"] for r in dk]
-    return (f"Codex ran the paper&#8217;s Exp&#160;2 twist sequence with a 20&#8202;ms controller and physics steps from 50&#8202;&#181;s to 10&#8202;ms. "
-            f"The 1&#8202;mm pad ends the sequence at {num(min(a), '.1f')} to {num(max(a), '.1f')}&#176; about the pinch axis over all six steps, "
-            f"Drake hydroelastic at {num(min(b), '.1f')} to {num(max(b), '.1f')}&#176;. Both include the same ratchet toward hanging that "
-            f"the chain page traced to free pad spin. The four per-contact mappings diverged in {len(mfail)} of {len(mapped)} runs, "
-            f"every step from 0.5&#8202;ms up, and the {len(mok)} that finished at 50&#8202;&#181;s ended at "
-            f"{num(min(r['pinch_angle_end_deg'] for r in mok), '.0f')} to {num(max(r['pinch_angle_end_deg'] for r in mok), '.0f')}&#176;. "
-            f"At equal step the pad costs {cost(dk, 0.001) / cost(leg, 0.001):.0f}&#215; less than Drake at 1&#8202;ms and "
+    return (f"Codex ran the paper&#8217;s Exp&#160;2 twist sequence with a controller at 50&#8202;Hz and physics steps from "
+            f"50&#8202;&#181;s to 10&#8202;ms. Over all six steps the 1&#8202;mm pad ends the sequence at {num(min(a), '.1f')} to "
+            f"{num(max(a), '.1f')}&#176; about the pinch axis, and Drake hydroelastic at {num(min(b), '.1f')} to "
+            f"{num(max(b), '.1f')}&#176;. Both include the same ratchet toward hanging, which the chain page traced to the pads "
+            f"spinning freely. Codex&#8217;s four per-contact mappings diverged in {len(mfail)} of {len(mapped)} runs, at every step "
+            f"from 0.5&#8202;ms up. The {len(mok)} that finished, at 50&#8202;&#181;s, ended at "
+            f"{num(min(r['pinch_angle_end_deg'] for r in mok), '.0f')} to {num(max(r['pinch_angle_end_deg'] for r in mok), '.0f')}"
+            f"&#176;. At equal step the pad costs {cost(dk, 0.001) / cost(leg, 0.001):.0f}&#215; less than Drake at 1&#8202;ms and "
             f"{cost(dk, 0.01) / cost(leg, 0.01):.0f}&#215; less at 10&#8202;ms (Figure&#160;8).")
 
 
@@ -1982,50 +1998,49 @@ def usability_section():
     kp = lambda sc, fs: " and ".join(str(C[(f, sc, "closed", "kp=0.36")]) for f in fs)  # noqa: E731
     s = ("<h3>Cost and control outcomes on the real_v1 hand</h3>"
          f"<p>On the real_v1 hand the 1&#8202;mm pads cost {grip['1 mm pads']:.0f}&#8202;&#181;s per grip step on one CPU core, "
-         f"{grip['1 mm pads'] / grip['Block mesh, point contact']:.1f} times point contact on the TPU block, "
-         f"{g['1 mm pads']:.2f}&#8202;&#181;s per MuJoCo-Warp world-step ({g['1 mm pads'] / g['Block mesh']:.1f} times the block "
-         "mesh) and 1.47 times the mesh per PPO iteration (U1 of the "
-         f"<a href=\"{link}\">usability page</a>" + (f", <a href=\"{url}\">artifact</a>" if url else "") + "). On the "
-         f"servo-limited plant they end the eight deployed plans within 3&#176; of Drake on {a('1 mm pads')} of 24 placements, "
-         f"against {a('2 mm pads')} for 2&#8202;mm pads and {a('Point contact')} for point contact (U2), and keep "
-         f"{sw[('pads', 'kp0.', 2.0)]['within3_1ms']} of 40 within 3&#176; of their own 1&#8202;ms turn at a 2&#8202;ms step, where "
-         f"point contact keeps the tool on {sw[('pt', 'kp0.', 1.0)]['held']} of 40 even at 1&#8202;ms (U3).")
+         f"{grip['1 mm pads'] / grip['Block mesh, point contact']:.1f} times point contact on the TPU block. In MuJoCo-Warp they "
+         f"cost {g['1 mm pads']:.2f}&#8202;&#181;s per world-step, {g['1 mm pads'] / g['Block mesh']:.1f} times the block mesh, and "
+         "a PPO iteration costs 1.47 times the mesh&#8217;s (U1 of the "
+         f"<a href=\"{link}\">usability page</a>" + (f", <a href=\"{url}\">artifact</a>" if url else "") + "). On the servo "
+         f"plant the pads end the eight deployed plans within 3&#176; of Drake on {a('1 mm pads')} of 24 placements. 2&#8202;mm pads "
+         f"do so on {a('2 mm pads')}, and point contact on {a('Point contact')} (U2). At a 2&#8202;ms step the pads keep "
+         f"{sw[('pads', 'kp0.', 2.0)]['within3_1ms']} of 40 turns within 3&#176; of their own turn at 1&#8202;ms. With point contact "
+         f"the hand keeps the tool on only {sw[('pt', 'kp0.', 1.0)]['held']} of 40 placements even at 1&#8202;ms (U3).")
     if s4:
         R4 = {r["config"]: r for r in s4["configs"]}
         p4, c4, pt = R4["icem_pin"], R4["icem_pin_pt4"], R4["icem_pin_pt"]
         s += (f" Pinned iCEM that rolls out condim&#160;4 or point contact in place of the pads replans "
               f"{p4['replan_s_3threads'] / c4['replan_s_3threads']:.0f} and {p4['replan_s_3threads'] / pt['replan_s_3threads']:.0f} "
-              f"times faster and loses a median {-c4['paired_change_median']:.0f}&#176; and {-pt['paired_change_median']:.0f}&#176; "
-              "of held turn on the pad plant (U4)")
+              f"times faster. It loses a median {-c4['paired_change_median']:.0f}&#176; and {-pt['paired_change_median']:.0f}&#176; "
+              "of held turn on the pad plant (U4).")
         fr = {v["variant"]: v for v in s4.get("friction", [])}
         if "mu0.5" in fr:
             v = fr["mu0.5"]
-            s += (f"; the pads planner itself, planning with friction 1 on a plant at 0.5, ends {v['three_finger']} of {v['n']} "
-                  "runs with three fingertips loaded")
-        s += "."
-    s += (" RL policies trained on the TPU mesh keep the tool on the 1&#8202;mm pad plant as well as pad-trained ones, "
-          f"{kp('tpu27pads1', ('Mesh s0', 'Mesh s1'))} against {kp('tpu27pads1', ('Pads s0', 'Pads s1'))} of 128 at half servo "
-          f"gain, while the pad-trained policies fall to {kp('tpu27mesh', ('Pads s0', 'Pads s1'))} on the mesh plant (U5). "
-          "Held counts do not show that two contact models give the same dynamics, so training, planning and evaluation use the "
-          "same 1&#8202;mm pads with the same builder, and the same contact numerics wherever the trainer still holds the grasp "
-          "under them (owner, 2026-10-15).</p>")
+            s += (f" The pads planner itself, planning with friction 1 on a plant at 0.5, ends {v['three_finger']} of {v['n']} "
+                  "runs with three fingertips loaded.")
+    s += (" At half servo gain, RL policies trained on the TPU mesh keep the tool on the 1&#8202;mm pad plant as often as "
+          f"pad-trained ones do. They hold {kp('tpu27pads1', ('Mesh s0', 'Mesh s1'))} of 128 rollouts, against "
+          f"{kp('tpu27pads1', ('Pads s0', 'Pads s1'))}. The pad-trained policies fall to {kp('tpu27mesh', ('Pads s0', 'Pads s1'))} "
+          "on the mesh plant (U5). Held counts do not show that two contact models give the same dynamics. The same 1&#8202;mm "
+          "pads, built by the same builder, are therefore used for training, planning and evaluation, with the same contact "
+          "numerics wherever the trainer still holds the grasp under them (owner, 2026-10-15).</p>")
     film = os.path.join(USE_DIR, "rl/media/20261014-rl_cross_kp036.mp4")
     poster = os.path.join(USE_DIR, "rl/media/20261014-rl_cross_kp036.jpg")
     if os.path.exists(film) and os.path.exists(poster):
-        s += film_tag(film, poster, "Figure&#160;13. Half servo gain (0.36&#8202;N&#183;m/rad), closed loop: the TPU-mesh policy "
-                      "seed 0 on its own plant and on the 1&#8202;mm pad plant (top), and the 1&#8202;mm pad policy seed 0 on its "
-                      "own plant and on the TPU-mesh plant (bottom), the median world of 128 each; the pad policy drops the tool on "
-                      "the mesh plant (U5 of the usability page).")
+        s += film_tag(film, poster, "Figure&#160;13. Half servo gain (0.36&#8202;N&#183;m/rad), closed loop. Top: the TPU-mesh "
+                      "policy seed 0 on its own plant and on the 1&#8202;mm pad plant. Bottom: the 1&#8202;mm pad policy seed 0 on its "
+                      "own plant and on the TPU-mesh plant. Each panel is the median world of 128; the pad policy drops the "
+                      "tool on the mesh plant (U5 of the usability page).")
     cd = "docs/experiments/20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html"
     if os.path.exists(os.path.join(ROOT, cd)):
         link2 = os.path.relpath(os.path.join(ROOT, cd), os.path.dirname(OUT))
         url2 = _url(os.path.join(ROOT, "docs/experiments/20261014-tip_codesign/artifact_url.txt"))
-        s += ("<p>Across fingertip shapes the pads keep the twist-onset torque within 2&#8202;% of the quasi-static law on fillets "
-              "of 1.5&#8202;mm or more, but their sliding torque grows with spin rate, 1.25 times the law at 1&#8202;rad/s on the "
-              "printed 2.7&#8202;mm fillet, because MuJoCo&#8217;s elliptic cone adds a slip term to a sliding pad&#8217;s normal "
-              "force; the friction-row change that removes it breaks the hand&#8217;s closed-loop turns (<a href=\"" + link2
-              + "\">fingertip co-design page</a>" + (f", <a href=\"{url2}\">artifact</a>" if url2 else "") + ")."
-              + _builder_sentence() + _curved_sentence() + _calibration_sentence() + "</p>")
+        s += ("<p>Across fingertip shapes the pads keep the twist-onset torque within 2&#8202;% of the quasi-static law on "
+              "fillets of 1.5&#8202;mm or more. Their sliding torque, however, grows with spin rate: it is 1.25 times the law at "
+              "1&#8202;rad/s on the printed 2.7&#8202;mm fillet. MuJoCo&#8217;s elliptic cone adds a slip term to a sliding pad&#8217;s "
+              "normal force, and the change to the friction rows that removes it breaks the hand&#8217;s closed-loop turns "
+              "(<a href=\"" + link2 + "\">fingertip co-design page</a>" + (f", <a href=\"{url2}\">artifact</a>" if url2 else "")
+              + ")." + _builder_sentence() + _curved_sentence() + _calibration_sentence() + "</p>")
     return s
 
 
@@ -2036,11 +2051,11 @@ def _calibration_sentence():
         return ""
     link = os.path.relpath(os.path.join(ROOT, cp), os.path.dirname(OUT))
     url = _url(os.path.join(ROOT, "docs/experiments/20261018-fe_contact_calibration/artifact_url.txt"))
-    return (" Calibrated to those finite elements, a stiff modulus behind a 9.7&#8202;N/mm series spring reproduces the 11/22 "
-            "half-ellipsoid within 5.2&#8202;% RMS approach in Drake and 5.6&#8202;% in 0.5&#8202;mm pads, yet on the same servo "
-            "commands the two end the tool's turn 27&#8211;57&#176; apart on the 25&#8202;mm cell, and one spring cannot fit "
-            "the capsule (<a href=\"" + link + "\">calibration page</a>" + (f", <a href=\"{url}\">artifact</a>" if url else "")
-            + ").")
+    return (" The finite elements of the printed tips were also used for calibration. There a stiff modulus behind a "
+            "9.7&#8202;N/mm series spring reproduces the approach of the 11/22 half-ellipsoid tip, within 5.2&#8202;% RMS in Drake "
+            "and 5.6&#8202;% in 0.5&#8202;mm pads. On the same servo commands, however, the two end the tool&#8217;s turn 27&#8211;57&#176; apart on the 25&#8202;mm "
+            "cell, and one spring cannot fit the capsule tip (<a href=\"" + link + "\">calibration page</a>"
+            + (f", <a href=\"{url}\">artifact</a>" if url else "") + ").")
 
 
 def _curved_sentence():
@@ -2050,9 +2065,9 @@ def _curved_sentence():
         return ""
     link = os.path.relpath(os.path.join(ROOT, cp), os.path.dirname(OUT))
     url = _url(os.path.join(ROOT, "docs/experiments/20261015-curved_tips/artifact_url.txt"))
-    return (" Capsule and half-ellipsoid tips in the same envelope turn the tool on a third of the block&#8217;s friction arm, "
-            "and their pads stay within 6&#8202;% of the law&#8217;s spin arm at 1&#8202;rad/s; finite elements of the printed tips "
-            "show a nearly uniform surface stiffness that neither Drake&#8217;s field nor any pad builder reproduces (<a href=\""
+    return (" Capsule and half-ellipsoid tips in the same envelope turn the tool on a third of the block&#8217;s friction arm. "
+            "Their pads stay within 6&#8202;% of the law&#8217;s spin arm at 1&#8202;rad/s. Finite elements of the printed tips show "
+            "a nearly uniform surface stiffness, which neither Drake&#8217;s field nor any pad builder reproduces (<a href=\""
             + link + "\">curved fingertips page</a>" + (f", <a href=\"{url}\">artifact</a>" if url else "") + ").")
 
 
@@ -2066,10 +2081,10 @@ def _builder_sentence():
     if not r:
         return ""
     m = lambda pair: r["pairs"][pair]["ang_rms_deg"]["median"]  # noqa: E731
-    return (" Since 15 October each pad takes its own depth below the tip&#8217;s volume centroid (builder v2): over the "
-            "servo-limited plant&#8217;s plan replays the tool&#8217;s orientation then differs from Drake&#8217;s by a median RMS of "
-            f"{m('v2-drake'):.1f}&#176;, against {m('v1-drake'):.1f}&#176; with one stiffness per finger and "
-            f"{r['seed_spread']['drake']['ang_rms_deg']['median']:.1f}&#176; between two tool placements in Drake.")
+    return (" Since 15 October each pad takes its own depth below the tip&#8217;s volume centroid (builder v2). Over the servo "
+            "plant&#8217;s plan replays, the tool&#8217;s orientation then differs from Drake&#8217;s by a median RMS of "
+            f"{m('v2-drake'):.1f}&#176;. With one stiffness per finger it differs by {m('v1-drake'):.1f}&#176;, and between two "
+            f"tool placements in Drake by {r['seed_spread']['drake']['ang_rms_deg']['median']:.1f}&#176;.")
 
 
 def main():
