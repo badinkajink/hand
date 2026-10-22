@@ -88,8 +88,8 @@ paths**; the gate passes them separately and a plan can clear one and not the ot
 ## Writing
 
 Prose rules for every page, report, commit message and runbook are the **Writing** section of the
-global `~/.claude/CLAUDE.md` (titles, anti-patterns, editorial judgement, defining every term). `AGENTS.md` carries a
-condensed copy for Codex; if the two differ, `~/.claude/CLAUDE.md` wins.
+global `~/.claude/CLAUDE.md`: thirteen elements of style, with their examples and history in
+`~/.claude/writing_reference.md`. `AGENTS.md` has a copy for Codex; if the two differ, `~/.claude/CLAUDE.md` wins.
 
 ## Result pages — an HTML doc page, ALWAYS. Never a RESULTS.md.
 
