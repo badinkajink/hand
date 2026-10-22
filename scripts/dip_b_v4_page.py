@@ -195,7 +195,7 @@ cap held), in N; dz is the point's distance along the finger from the contact po
            f"{chk['bridge_top_least_radius_mm']['v4']:.2f}"]]
     S.append(("bridge", "Bridge edge and column", f"""
 <p>The bridge spans the 30.5{MM} between the clevis arms. On v3 its palmar face stood at x_F &#8722;10.55, the x of the pad's apex, and
-the slotted arm carried a 1.2{MM} spur out to the same plane, so a flat object pressed along the palmar normal met the bridge and the
+the slotted arm had a 1.2{MM} spur out to the same plane. A flat object pressed along the palmar normal therefore met the bridge and the
 pad together, 20.6{MM} apart along the finger. v4 moves the bridge's palmar face to the column's apex, x_F {des['bridge_x_palmar_F']:.2f}, chamfers
 its top edge {des['bridge_chamfer_mm']:.0f}{MM} at 45{DEG} and cuts the spur back to the same plane (Figure 1). The horn arm, which takes the servo's horn,
 reaches only to x_F &#8722;6.31 at the bridge, so its whole joint with the bridge stays; the slotted arm keeps its full outline above
@@ -203,7 +203,7 @@ z_F &#8722;62.3. The cut removes {chk['removed_from_v3_mm3']:.0f}&#8202;mm&#179;
 UR5e mount's walls, molded around v2's and v3's legs, take v4 as they are, and the bridge's top, on which the mount's inner block
 rests, keeps its least radius about the PIP axis.</p>
 <p>The column under the pad now lies {des['col_margin_mm']:.1f}{MM} inside the pad's mount face on the palmar side and
-{des['col_side_margin_mm']:.2f}{MM} at the flanks; the flank recess keeps {col['v4']['pla_beside_j1_mm']:.2f}{MM} of PLA on each side of J1's slot, which
+{des['col_side_margin_mm']:.2f}{MM} at the flanks. The flank recess leaves {col['v4']['pla_beside_j1_mm']:.2f}{MM} of PLA on each side of J1's slot, which
 runs up through the neck behind the pad. The pad's mount face reaches {col['v4']['pad_overhang_palmar_mm']:.1f}{MM} past the column on the palmar side
 (v3: {col['v3']['palmar_x_F'] - col['pad_mount_face']['palmar_x_F']:.1f}{MM}). The neck loses {100 * (1 - neck['v4']['I_about_y_mm4'] / neck['v3']['I_about_y_mm4']):.0f}&#8202;% of its second moment for a palmar load (Table 2);
 the board mount behind the column, 5.5{MM} thick and 21{MM} wide, makes up most of it.</p>
@@ -255,7 +255,7 @@ toward the distal side, and whenever the PIP is extended past 0{DEG}.</p>
         S.append(("readout", "Readout toward the pad's mount face", f"""
 <p>The finite elements of pad B00 under cover I15 and a TW cap (walls and cap held, as in the second revision's bound) hold the pad's
 mount face where a column meets it: all of it (as every earlier case), v3's column, or v4's. Toward the mount face the readout model
-resolves the normal force more finely the more of the face is free: 0.9{MM} from the mount face on the centre line
+resolves the normal force more finely the more of the face is free. At 0.9{MM} from the mount face on the centre line the resolution is
 {rim['bm_five_d75_cap_face']:.3f}&#8202;N with the whole face held, {rim['bm_five_d75_cap_colv3']:.3f}&#8202;N with v3's column and
 {rim['bm_five_d75_cap_colv4']:.3f}&#8202;N with v4's. At the contact point the three give {c0['bm_five_d75_cap_face']:.4f},
 {c0['bm_five_d75_cap_colv3']:.4f} and {c0['bm_five_d75_cap_colv4']:.4f}&#8202;N (Table 5).</p>
@@ -276,7 +276,7 @@ resolves the normal force more finely the more of the face is free: 0.9{MM} from
     tk.insert(0, ["TW2 (printed)", "5", "0.05", "M2 x 10", "3.5", "&#8211;", f"{tw2['pip_sweep']['min_mm']:.1f}", f"{tw2['mass_solid_g']:.2f}"])
     S.append(("heights", "Wall-height sweep", f"""
 <p>Each cover keeps I15's {hts['interference_mm']:.2f}{MM} interference and solid walls; only their height changes (Table 6). The pad's flank is
-straight for {hts['pad_flank_straight_mm']:.2f}{MM} from its back face, so I15's 6{MM} walls and a 5{MM} wall would hold the same flank; 4, 3 and 2{MM} hold
+straight for {hts['pad_flank_straight_mm']:.2f}{MM} from its back face, so I15's 6{MM} walls and a 5{MM} wall would hold the same flank. Walls of 4, 3 and 2{MM} hold
 less of it. The proximal heads stay on their 3{MM} seats where the wall is taller, and sit on the wall's top on I15H2, where an M2 x 6
 leaves 2.5{MM} of thread in the tongue. The caps keep TW2's plate, pin and chamfers, take I15's interference in place of TW2's 0.05{MM} and
 lower the side blocks (Table 7); the distal heads sit on the blocks, M2 x 8 on TW15H4 and TW15H3 and M2 x 6 on TW15H2. The wall or block
@@ -359,9 +359,9 @@ into the slot on the finger a little more. and similarly, undersize the slot and
 fit.&#8221; The set takes cover I15H3 and cap TW15H3 of the sweep. On cover 3T each dovetail rail grows
 {fit3['fit3']['rail_grow']:.2f}{MM} per flank and its top edge {fit3['fit3']['rail_top_grow']:.2f}{MM} more; the pad's grooves lie
 {fit3['fit3']['groove_fit']:.2f}{MM} per flank inside the nominal rail (pad B05R, as B00R otherwise). The rail now presses
-{fi['at_cover_face']:.2f}{MM} into each groove wall at the cover's face and {fi['at_rail_top']:.2f}{MM} at its top, where the sweep's pair met
-with {fs['at_cover_face']:.2f} and {fs['at_rail_top']:.2f}{MM} (the groove's 0.05{MM} floor clearance tilts its flank slightly inside the rail's top);
-to snap on, each lip of a groove's mouth stretches {fr['snap_in_opening_per_side_mm']['new']:.2f}{MM} in place of
+{fi['at_cover_face']:.2f}{MM} into each groove wall at the cover's face and {fi['at_rail_top']:.2f}{MM} at its top. The sweep's pair met
+with only {fs['at_cover_face']:.2f} and {fs['at_rail_top']:.2f}{MM} (the groove's 0.05{MM} floor clearance tilts its flank slightly inside the rail's top).
+To snap on, each lip of a groove's mouth stretches {fr['snap_in_opening_per_side_mm']['new']:.2f}{MM} in place of
 {fr['snap_in_opening_per_side_mm']['sweep']:.2f}{MM} (Table 8, Figure 4). The pin hole narrows from {fp['hole_d_B00R_mm']:.1f} to
 {fp['hole_d_mm']:.1f}{MM}, {fp['interference_per_side_mm']:.1f}{MM} per side under the cap's pin, its 0.5{MM} mouth chamfer kept.
 The hole stays {xl['pin_hole']['to_pocket_mm']:.2f}{MM} and the grooves {xl['r4']['groove_to_pocket_mm']:.1f}{MM} from the nearest magnet pocket
@@ -411,15 +411,15 @@ a pad pops off 3S, the next set has half the base interference of 3T: <code>rail
 <li>Read the five chips with pad B00R on v4 while pressing the pad's palmar face with the UR5e 1{MM} from its mount face at 0.5, 1 and
 3&#8202;N, ten times each, and once at the contact point; Table 5 predicts a spread at the edge
 {f"{rim['bm_five_d75_cap_colv4'] / c0['bm_five_d75_cap_colv4']:.1f} times" if have_fe else "several times"} that at the contact point.
-A spread more than twice that means the column holds more of the mount face than modelled (the printed column's edge, the pad's
+A spread more than twice that means that the column fixes more of the mount face than modelled (the printed column's edge, the pad's
 notch over J1's slot) and <code>col_margin</code> 3.5 frees more.</li>
-<li>Press a flat plate onto the finger with the UR5e along the palmar normal and at 5 and 10{DEG} toward the proximal side, to 3&#8202;N:
-the bridge must not mark the plate's paint or foil before the force reaches 3&#8202;N; a mark at 10{DEG} on v4 means the chamfer is too
+<li>Press a flat plate onto the finger with the UR5e along the palmar normal and at 5 and 10{DEG} toward the proximal side, to 3&#8202;N.
+The bridge must not mark the plate's paint or foil before the force reaches 3&#8202;N. A mark at 10{DEG} on v4 means that the chamfer is too
 small (<code>bridge_chamfer</code> 1.5).</li>
 <li>Drive the PIP to 92{DEG} and command 3{DEG} further: the horn arm must stop it with no contact on the bridge (a witness mark of
 marker ink on the bridge's top); if the bridge marks, the arm deflects more than the 3&#8202;mm-wide spur's loss allows and a stop pad on
 the bridge's slotted-arm end is the fix.</li>
-<li>When the fingers go on the hand, rebuild the finger scenes with v4's link and run the trajectory-clearance gate: the link only lost
+<li>When the fingers go on the hand, rebuild the finger scenes with v4's link and run the trajectory-clearance gate. The link only lost
 material, so the closest approach of the index and middle links can only grow.</li>
 </ul>"""))
 

@@ -112,8 +112,8 @@ z_M {P['ad_t'] + P['m6_head_k']:.0f}) and lifted when it has slid up until its t
 <dt>Thread engagement</dt><dd>How far a seated screw reaches past the adapter's face into the HEX-E's tapped hole: the screw's
 length under the head minus the plastic (and washer) under the head, in mm.</dd>
 <dt>Key tilt</dt><dd>The angle between a hex key's axis and the tool axis while its tip is in a screw's socket, in degrees. A key is
-modelled as a cylinder of 2.885{MM} radius (a 5{MM} hex key's corners) from 0.5{MM} above the head's top, 129.5{MM} long; it is
-clear when its overlap with every part is zero, clear by 0.5{MM} when a cylinder 0.5{MM} wider is also clear.</dd>
+modelled as a cylinder of 2.885{MM} radius (a 5{MM} hex key's corners) from 0.5{MM} above the head's top, 129.5{MM} long. It is
+clear when its overlap with every part is zero, and clear by 0.5{MM} when a cylinder 0.5{MM} wider is also clear.</dd>
 <dt>Overlap</dt><dd>Volume common to two parts' meshes, from manifold3d booleans, in mm&#179;. Values under 0.001 are the
 meshes' facets.</dd>
 <dt>Turn to contact</dt><dd>The least turn of the DIP link about an axis through the bridge's middle at which it meets the fork
@@ -151,7 +151,7 @@ less one line width ({ins['as_sliced']['outer_wall_line_width_mm']:.2f}{MM}), pe
 thread on the hex e ft sensor. then, if you could make the holes accessible from the top plate, that would be great. so i dont have
 to mount it to the robto first. i can pre-place the screws through the dip link interface. now that we've offset the dip link, two
 holes could easily be exposed, and two we might have to finnagle in there. should still be able to tighten with a ball-end allen key."
-The thread depth of the owner's HEX-E is unknown; the UR5e's flange allows 8{MM} and the Quick Changer's tool plate 9{MM}, so v3 sets
+The thread depth of the owner's HEX-E is unknown. The UR5e's flange allows 8{MM} and the Quick Changer's tool plate 9{MM}, so v3 sets
 the engagement to {prot:.1f}{MM}, and a washer under each head brings it to {prot_w:.1f}{MM}.</p>"""
               + table(["Quantity", "Mount v2", "Mount v3"], rows, caption="Mount v2 against v3; Figure 1 shows the screws in their "
                       "pockets.", n=1)))
@@ -165,15 +165,15 @@ the engagement to {prot:.1f}{MM}, and a washer under each head brings it to {pro
 <p>Each M6 head sits in a pocket {P['m6_pocket_d']}{MM} across that reaches from the adapter's top face to z_M
 {P['m6_pocket_top']}, so a screw can lift until its tip is flush with the adapter's face and the adapter sits flat on the HEX-E
 before any screw is started. A head (10{MM}) cannot pass the {P['key_d']:.0f}{MM} hole or the {P['key_d']:.0f}{MM}-wide channel
-above it: a head 0.1{MM} above its pocket meets the foot with {min(capt.values()):.0f}&#8211;{max(capt.values()):.0f}&#8202;mm&#179;
+above it. A head 0.1{MM} above its pocket meets the foot with {min(capt.values()):.0f}&#8211;{max(capt.values()):.0f}&#8202;mm&#179;
 at the four screws. {'The screws and the printed parts have zero overlap in all three positions at all four screws.' if zero_ov else 'The check file lists overlaps of the screws with the printed parts.'}</p>
-<p>The two screws on the slotted-arm side lie 4.4{MM} beyond the column's face, so a straight key reaches them; the holes above
+<p>The two screws on the slotted-arm side lie 4.4{MM} beyond the column's face, so a straight key reaches them. The holes above
 them notch the outer corners of the walls around the slotted leg, 3.5{MM} from each screw's axis, away from the faces that locate
 the leg. The two screws at y_M &#8722;17.68 sit under the column's corners, where the fork's ears and the clamp plate's M3 screws lie
-above them; a channel leans {tilt:.0f}{DEG} out of the column's palmar or dorsal face and is wide enough for the socket's height
-anywhere between seated and lifted. Table 2 gives the keys at the tilts tried, within the 25{DEG} a ball end usually allows: at
-{', '.join(f'{t:.0f}' for t in ok_tilts)}{DEG} the key clears the fork with the screw seated, on a washer and lifted; at 15{DEG} it
-grazes the channel with the screw lifted, at 25{DEG} with the screw seated without a washer.</p>"""
+above them. A channel leans {tilt:.0f}{DEG} out of the column's palmar or dorsal face and is wide enough for the socket's height
+anywhere between seated and lifted. Table 2 gives the keys at the tilts tried, within the 25{DEG} a ball end usually allows. At
+{', '.join(f'{t:.0f}' for t in ok_tilts)}{DEG} the key clears the fork with the screw seated, on a washer and lifted. At 15{DEG} it
+grazes the channel with the screw lifted, and at 25{DEG} with the screw seated without a washer.</p>"""
         + table(["Screws", "Key tilt", "Seated", "Seated on a washer", "Lifted"],
                 [("y_M +17.68 (45, 135" + DEG + ")", f"0{DEG}, straight", *(key_cell(side[p], 0.0) for p in ("seated", "seated_washer", "lifted"))),
                  ("y_M +17.68", f"10{DEG}", *(key_cell(side[p], 10.0) for p in ("seated", "seated_washer", "lifted")))]
@@ -233,12 +233,12 @@ neither indenter overlaps the mount, the link or the pad ({'zero in all four pos
 <p>The owner, on 2026-10-22: "having some trouble with the ur5 mount plate. let's not go for self-threaded m3 holes there and just
 put four brass insert bores in there. make suer to size the bore correctly for the brass insert, theres some guidance online on how
 to shape the profile for a good press insert." The four 2.75{MM} holes in which the foot's M3{X}12 formed their own thread were
-replaced by bores for brass heat-set inserts in the adapter's top face. The fork is unchanged: its 3.4{MM} clearance holes and
+replaced by bores for brass heat-set inserts in the adapter's top face. The fork is unchanged. Its 3.4{MM} clearance holes and
 {P['m3_cb_d']:.1f}{MM} counterbores stand over the inserts, so the fork printed on 2026-10-21 is kept and only the adapter is
 printed again.</p>
 <p>The bore follows CNC Kitchen's design table for its M3{X}5.7 insert, {ins['insert']['knurl_d_mm']:.1f}{MM} across the knurls:
 a straight {bo['d_mm']:.1f}{MM} hole, walls of at least {ins['rule']['min_wall_mm']:.1f}{MM}, and a blind hole at least 1{MM}
-longer than the insert; its guide adds that no chamfer is needed and that the insert is pressed flush. The bore is
+longer than the insert. Its guide adds that no chamfer is needed and that the insert is pressed flush. The bore is
 {bo['depth_mm']:.1f}{MM} deep, {bo['depth_mm'] - ins['insert']['length_mm']:.1f}{MM} longer than the insert, because the screw
 passes through the insert and ends {sc['reach_below_face_mm']:.1f}{MM} below the face. A {bo['mouth_chamfer_mm']:.1f}{MM}{X}45{DEG}
 chamfer at the mouth departs from the guide: the adapter prints with this face on the bed, where the first layer spreads into the
@@ -295,8 +295,8 @@ the screw is tightened says the bore is too large for it.</li>
 <li>Thread depth of the HEX-E: turn one M6{X}20 in by hand until it stops and count the turns (1{MM} per turn). Under
 {prot + 0.5:.1f}{MM}, put a DIN 125 washer under each head ({prot_w:.1f}{MM}) or rebuild with <code>ad_t</code> 1{MM} larger in the v3
 block of <code>P</code> in <code>scripts/ur5_calibration_mount.py</code>.</li>
-<li>Seat creep: tighten one M6 to 1.5&#8202;N&#8202;m on the printed adapter, mark the head's height and measure it again after a day;
-a head that sinks more than 0.1{MM} says the six walls under it are too few.</li>
+<li>Seat creep: tighten one M6 to 1.5&#8202;N&#8202;m on the printed adapter, mark the head's height and measure it again after a day.
+A head that sinks more than 0.1{MM} shows that the six walls under it are too few.</li>
 <li>Homing repeatability and the HEX-E's x-axis check, still open from v2, on the raised mount.</li>
 </ul>"""))
 
