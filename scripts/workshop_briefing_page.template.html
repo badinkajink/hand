@@ -294,9 +294,10 @@ full-error rollouts per confirmed design ({{N_FULL}} cells); its outputs, <code>
 <h3>Promotion from {{N_CON}} to eight</h3>
 <p>Promotion is a hand-triggered step per pass. The leaders of each pass by full-error win are exported
 (<code>real_v1_export_plan.py</code>: three set-points with the clip, a 50 Hz per-joint trajectory CSV, a build sheet
-and a pose sheet) and gated: every commanded joint inside the servo&#8217;s measured range with the &#177;70&#176; yaw cap,
-every mount inside the gantry travel, index&#8211;middle clearance of at least 5 mm along both the three-set-point chord the
-station interpolates and the CSV path (a plan can clear one and not the other), and plan validity. The survivors are
+and a pose sheet). They are then gated on four conditions. Every commanded joint is inside the servo&#8217;s measured range
+with the &#177;70&#176; yaw cap. Every mount is inside the gantry travel. The index&#8211;middle clearance is at least 5 mm along
+both the three-set-point chord that the station interpolates and the CSV path (a plan can clear one and not the other).
+The plan is valid. The survivors are
 band-scanned on the bench schedule (33 clips &#215; 4 replicates, 9.6 s hold) and shipped at a clip inside the band, at
 least 0.10 rad above its lower edge to absorb the measured yaw droop. The retention gate and the bench schedule disagree
 about which hands work: of the five gate-passers promoted from the 8,192 pass, two had a bench band
@@ -309,13 +310,13 @@ excluded three exported plans before the study: <code>g23</code> (0.8 mm), <code
 <code>g24</code> (&#8722;5.2 mm; the simulator scores it 0.750, which would have placed it second).</p>
 
 <h3>Selected region of the design space</h3>
-<p>Selection moves toward compact tripods. In the plane of thumb-to-pair span and index&#8211;middle opening (both linear in
-the six mounts), the quadrant below the population medians holds 25 % of the reachable population, 65 % of the retained,
-71 % of the confirmed and seven of the eight deployed; the screen cuts the spread of those two coordinates to 0.59 and
+<p>Selection moves toward compact tripods. Take the plane of thumb-to-pair span and index&#8211;middle opening (both linear in
+the six mounts). The quadrant below the population medians contains 25 % of the reachable population, 65 % of the retained,
+71 % of the confirmed and seven of the eight deployed. The screen cuts the spread of those two coordinates to 0.59 and
 0.74 of the population&#8217;s. Principal components of the 535 retained designs explain 47, 21 and 17 % on three
 directions and 8, 4 and 2 % on the rest, so the survivors lie near a three-dimensional sheet in the six-dimensional box.
-The depth of the grasp fit separates retained from discarded designs at AUC 0.80 and does not predict alignment
-(&#961;<sub>s</sub> +0.08 over the 535); the KaRMA rolling-pinch metric behaves the same way (AUC 0.80 for retention,
+The depth of the grasp fit separates retained from discarded designs at AUC 0.80 but does not predict alignment
+(&#961;<sub>s</sub> +0.08 over the 535). The KaRMA rolling-pinch metric behaves the same way (AUC 0.80 for retention,
 &#961;<sub>s</sub> 0.11 against the screened turn).</p>
 <p>The funnel trained no policy and scored one maneuver. The retention gate&#8217;s proof lift differs from the
 bench&#8217;s fixed-palm hold, the two order hands differently, and the paper tests the bench schedule&#8217;s ranking. The
@@ -384,8 +385,8 @@ alignment measures how far a hand turns the tool when it keeps it, which the geo
 alignment measures how often a trial ends with a turned, held tool, which a downstream task needs. The paper should name
 its convention and report the other beside it.</p>
 <p>Hold rate and alignment are nearly uncorrelated (&#961;<sub>s</sub> = {{RHO_HOLD_BENCH}}): the hands that turn furthest when
-they hold drop most often (D5, D8), and the hand that always holds turns least (D7). One open-loop plan trades the two: in
-the simulated chain no cell holds the tool past about 59&#176; of turn and every cell that turns 44&#176; or less holds it 4/4
+they hold drop most often (D5, D8), and the hand that always holds turns least (D7). One open-loop plan trades the two. In
+the simulated chain no cell holds the tool past about 59&#176; of turn, and every cell that turns 44&#176; or less holds it 4/4
 (<code>docs/experiments/20260906-screened_turn/</code>), because the index pad leaves at about half the turn and the total pad
 force falls from 28 N to 0.3 N by 70 % of it.</p>
 
@@ -425,12 +426,12 @@ simulated sensitivity to tool placement</p>
 <p>The six gantries run on T5 &#215; 1 lead screws at 3,216 steps/mm and home sensorlessly against a hard stop (TMC5160
 StallGuard2, with a timeout fallback on which J3 and J5 always home). A 45 mm caliper check on J1/J3/J5 found 0.0 % scale
 error (<code>verify_frame_mapping.py --travel</code>). The home&#8217;s repeatability has not been measured (home ten times and
-read one mount against a dial indicator, half an hour); in simulation a 2 mm mount error changes retention through the turn
-from 77 % to 80 % over 18 designs, and the nearest two deployed hands are 14.4 mm apart.</p>
+read one mount against a dial indicator, half an hour). In simulation a 2 mm mount error changes retention through the turn
+from 77 % to 80 % over 18 designs. The nearest two deployed hands are 14.4 mm apart.</p>
 
 <h3>Trial-to-trial repeatability</h3>
-<p>Stage 1 of the protocol ran twelve consecutive trials of D1&#8217;s plan with a full re-stage between each; the seven with a
-hold-window cosine give a mean of +0.881 and an sd of 0.011 (95 % interval on the sd 0.007&#8211;0.024), and the other five
+<p>Stage 1 of the protocol ran twelve consecutive trials of D1&#8217;s plan with a full re-stage between each. The seven with a
+hold-window cosine give a mean of +0.881 and an sd of 0.011 (95 % interval on the sd 0.007&#8211;0.024). The other five
 lost the vane tag, which led to the 40 mm tag
 (<code>docs/experiments/20260831-real_v1-transfer-protocol/sessions/20260831-1845-sv1_w6689-stage1/README.md</code>). Against
 the simulated between-plan spread of 0.24, four trials per plan resolve a design difference of 0.02. Re-staging is the
@@ -439,9 +440,9 @@ between sessions. Within-design sd for six of the seven measurable hands is 0.02
 of 0.49&#8211;0.94; D3 is the exception at 0.221, a mixture of held grips and partial slips.</p>
 
 <h3>Tag tracker</h3>
-<p>A 40 mm static tag gives the world-up datum, and a tag on a vane along the shaft (30 mm on a 71 mm vane at first, then
-40 mm on a 77 mm vane) gives the tool&#8217;s pose, read by a RealSense D435 at 30 fps with 0.017&#176; rms angle noise and
-0.030 mm rms height noise. The operator&#8217;s by-eye estimate was &#177;5&#176; and missed axial slip: one earlier
+<p>A 40 mm static tag gives the world-up datum. A tag on a vane along the shaft (30 mm on a 71 mm vane at first, then
+40 mm on a 77 mm vane) gives the tool&#8217;s pose. A RealSense D435 reads the tags at 30 fps with 0.017&#176; rms angle noise
+and 0.030 mm rms height noise. The operator&#8217;s by-eye estimate was &#177;5&#176; and missed axial slip: one earlier
 &#8220;90&#176;&#8221; was the shaft falling through the grasp.</p>
 
 <h3>Simulated sensitivity to manual placement</h3>
@@ -462,12 +463,12 @@ mount error |N(0, 1.5 mm &#183; L)|, a servo zero offset |N(0, 2&#176; &#183; L)
 <p class="small" style="color:var(--ink3)">Width of the placement band inside which the win rate stays above 50 %, 20 draws per
 point, flat-pad hand, fixed palm, each design at its bench-tuned cell (<code>docs/experiments/20260829-real_v1_deploy/DEPLOY.md</code>
 &#167;11). Platform height is one-sided on every design: too low is too little squeeze.</p>
-<p>Axial placement is the tight axis (2&#8211;6 mm bands), and for half the designs the working band sits 1&#8211;4 mm to one
+<p>Axial placement is the tight axis (2&#8211;6 mm bands). For half the designs the working band sits 1&#8211;4 mm to one
 side of the shipped placement (rv04_mid reads 40 % at nominal and 100 % from &#8722;8 to &#8722;1 mm). For the six Sobol hands
 the full-error ensemble retained 4&#8211;15 of 20 draws; the bench&#8217;s 2/10&#8211;10/10 lies inside that range, though the two
 order the hands differently (&#961;<sub>s</sub> = &#8722;0.14 over the six). Pooled over 18 designs, a servo zero offset of
-&#177;1&#176; takes retention through the turn from 77 % to 60 % and &#177;2&#176; to 39 %, while a 2 mm mount error costs
-nothing; the servos&#8217; measured yaw shortfall (arrival at 0.44&#8211;0.90 of command) is the largest sim-to-real term on
+&#177;1&#176; takes retention through the turn from 77 % to 60 % and &#177;2&#176; takes it to 39 %, while a 2 mm mount error costs
+nothing. The servos&#8217; measured yaw shortfall (arrival at 0.44&#8211;0.90 of command) is the largest sim-to-real term on
 record.</p>
 </div></section>
 
@@ -559,7 +560,7 @@ clipping the residual at &#177;1 rad (2026-09-19) gave policies whose commands a
 <p>Policies are trained on the calibrated plant (kp 0.5) with the built palm plate, the screw-tip tool and the object pose
 observed. D6 from scratch at 60 M steps holds 64/64 at cos 0.933, and a 20 M grip finetune reaches 0.969 at 10.8 N
 (<a href="../20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html">page</a>). Sixteen warm-started jobs across D1&#8211;D7
-with the residual clipped at &#177;1 rad hold 64/64 at the trained pose; with the spawn jittered the hold ranking runs from D5
+with the residual clipped at &#177;1 rad hold 64/64 at the trained pose. With the spawn jittered the hold ranking runs from D5
 at 57/64 to D7 at 35/64 (<a href="../20260919-hands_tranche/20260919-reorient_policies_across_hands.html">page</a>). In the
 UR5e chain D5 and both D6 policies hold the turn and keep the tool through the handover and eight gait cycles, while the
 gait turns the screw &#8722;0.002 revolutions because the servo sits on its torque ceiling at the calibrated gain. Nothing learned

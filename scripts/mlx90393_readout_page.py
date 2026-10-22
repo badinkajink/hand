@@ -325,8 +325,8 @@ def chip_section(X: Data):
     g = X.tip("gyroid20")
     txt = (f"<p>eFlesh&#8217;s firmware (<code>~/wxie_workspace/eFlesh/arduino/5X_eflesh_stream/5X_eflesh_stream.ino</code> with its "
            "arduino-MLX90393 library) sets HALLCONF 0xC, GAIN_SEL 1, RES 2 on all three axes, OSR 0 and DIG_FILT 4, turns temperature "
-           "compensation off, and reads the board&#8217;s five chips in burst mode (T, X, Y, Z) over 400&#8202;kHz I&#178;C. That is a "
-           f"wide-range setting for eFlesh&#8217;s 9.5&#8202;mm magnets close to the board: one count is {ef['lsb_xy_uT']:.2f}&#8202;&#181;T "
+           "compensation off, and reads the board&#8217;s five chips in burst mode (T, X, Y, Z) over 400&#8202;kHz I&#178;C. This is a "
+           f"wide-range setting for eFlesh&#8217;s 9.5&#8202;mm magnets close to the board. One count is {ef['lsb_xy_uT']:.2f}&#8202;&#181;T "
            f"on X and Y and {ef['lsb_z_uT']:.2f}&#8202;&#181;T on Z, coarser than the chip&#8217;s own noise at that conversion time, and a "
            f"burst takes {ef['burst_ms']:.1f}&#8202;ms ({ef['rate_Hz']:.0f}&#8202;Hz). A tip with one 4.76&#8202;mm magnet 5&#8202;mm deep puts "
            f"{g['B0_uT'] / 1e3:.2f}&#8202;mT on U1 with the chips against the back face, inside the &#177;4.8&#8202;mT the datasheet "
@@ -421,9 +421,9 @@ def tips_section(X: Data):
            f"estimate keeps. Estimating the gradient as well brings it to {fn(g['neighbour_board_grad_N'])}&#8202;N and raises the noise to "
            f"{fn(g['sigF_board_grad_N'])}&#8202;N (Figure&#160;[[fig:tips]]). With eFlesh&#8217;s firmware setting one count on U1&#8217;s "
            f"normal axis is {fn(ge['lsb_force_N'])}&#8202;N on the gyroid tip.</p>"
-           "<p>The gyroid tip is usable as a force sensor on the board if the readout zeroes whenever the finger is out of contact, "
-           "corrects each chip&#8217;s offset with its burst&#8217;s temperature channel, and subtracts the other fingertips&#8217; magnets, "
-           f"whose positions follow from the joint angles. eFlesh&#8217;s disturbances stay under {math.ceil(ef_max * 10) / 10:g}&#8202;N "
+           "<p>The gyroid tip is usable as a force sensor on the board if the readout does three things. It zeroes whenever the finger "
+           "is out of contact. It corrects each chip&#8217;s offset with its burst&#8217;s temperature channel. It subtracts the other "
+           f"fingertips&#8217; magnets, whose positions follow from the joint angles. eFlesh&#8217;s disturbances stay under {math.ceil(ef_max * 10) / 10:g}&#8202;N "
            "without these.</p>")
     tab = table(["Tip", "Travel<br>(&#181;m/N)", "Signal at<br>U1 (&#181;T/N)", "Noise, U1<br>alone (N)", "Noise, five<br>chips (N)",
                  "One count,<br>eFlesh firmware (N)", "Drift per<br>10&#8202;&#176;C (N)", "Earth&#8217;s field,<br>U1 alone (N)",
@@ -492,7 +492,7 @@ def layouts_section(X: Data):
                 f"{m(r2)}&#8202;N, and four 4.76 &#215; 1.59&#8202;mm magnets, the one-magnet design&#8217;s size, to {c(r4)} and "
                 f"{m(r4)}&#8202;N, with every load point between {r4['both_range'][0]:.2f} and {r4['both_range'][1]:.2f}&#8202;N against "
                 f"{one['both_range'][0]:.2f}&#8211;{one['both_range'][1]:.2f}&#8202;N for one magnet. The two larger sets put {r2['B0_max_mT']:.1f} and "
-                f"{r4['B0_max_mT']:.1f}&#8202;mT on the chips, over the {SEN.B_RANGE_MT:g}&#8202;mT guaranteed at the highest gain: they need "
+                f"{r4['B0_max_mT']:.1f}&#8202;mT on the chips, over the {SEN.B_RANGE_MT:g}&#8202;mT guaranteed at the highest gain. They need "
                 f"GAIN_SEL {gain_for(r2['B0_max_mT'])} and {gain_for(r4['B0_max_mT'])}, for which the datasheet gives no noise, so their "
                 f"bounds are lower bounds. Four 4.76&#8202;mm magnets raise the pad modulus to {E4:.1f}&#8202;MPa, {100 * (E4 / E1 - 1):.0f}&#8202;% "
                 "above one magnet&#8217;s (Table&#160;[[tab:stiff]]), and leave 1.7&#8202;mm of TPU between the press-fit pockets across the "
@@ -639,10 +639,10 @@ def lede(X: Data):
     rng = lambda r: f"{r['both_range'][0]:.2f}&#8211;{r['both_range'][1]:.2f}"  # noqa: E731
     return (f"eFlesh&#8217;s five-chip board reads one 141&#8202;Hz sample of the printed 20&#8202;% gyroid tip to "
             f"{fn(g['sigF_board_bg_N'])}&#8202;N with the Earth&#8217;s field removed, against {fn(g['sigF_N'])}&#8202;N from the chip under "
-            f"the magnet and {fn(o['sigF_board_bg_N'])}&#8202;N on open eFlesh; the v17 finger&#8217;s 2.5&#8202;mm plate over the chips "
+            f"the magnet and {fn(o['sigF_board_bg_N'])}&#8202;N on open eFlesh. The v17 finger&#8217;s 2.5&#8202;mm plate over the chips "
             f"doubles it to {fn(gv['sigF_board_bg_N'])}&#8202;N. Offset drift ({fn(g['drift10C_board_N'])}&#8202;N per 10&#8202;&#176;C) and "
             f"a facing fingertip&#8217;s magnet ({fn(g['neighbour_board_N'])}&#8202;N) remain on the gyroid. With the contact&#8217;s position "
-            f"and the Earth&#8217;s field unknown, one 4.76&#8202;mm magnet reads the 15 load points to {rng(one)}&#8202;N; four of the same "
+            f"and the Earth&#8217;s field unknown, one 4.76&#8202;mm magnet reads the 15 load points to {rng(one)}&#8202;N. Four of the same "
             f"AplysiaTech magnets read every one to {rng(four)}&#8202;N, for "
             f"{100 * (X.fem[FOUR4]['E_best_MPa'] / X.fem[ONE]['E_best_MPa'] - 1):.0f}&#8202;% more pad modulus and GAIN_SEL "
             f"{gain_for(four['B0_max_mT'])}.")
