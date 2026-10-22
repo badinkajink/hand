@@ -383,9 +383,10 @@ library (the October 2 runs used the earlier code). No part has run on hardware.
 
     S.append(("future", "Future work", r"""
 <ul>
-<li>The length scale of Eq. (2) for the tasks: the four tasks at $\\ell=100$&#8202;mm and in SI units (autopilot step 6 of
-<code>docs/handoff/20261021-hom_controllers.md</code>). If the tasks keep their scores at 100&#8202;mm, that scale becomes the default,
-since it also reproduces Exp. A.</li>
+<li>The length scale of Eq. (2): at $\\ell=100$&#8202;mm, which reproduces Exp. A's ranking, every cylinder pick of the tasks fails
+(0 of 24 rollouts hold) and rolling degrades (the results page's section on the length scale), so the tasks keep 20&#8202;mm. The scale or weights of the
+reference implementation are the first item of the comparison below; a scale that passes both Exp. A and the picks would replace
+20&#8202;mm.</li>
 <li>Comparison with the reference implementation: the same scripted sliders on one hand in both codes, compared element by element on
 the relative contact velocities of Exp. A and the object twist of Exp. B; first the weights and units of Table 2.</li>
 <li>A Drake plant behind the same <code>Mirror</code> (as <code>hom_chain.DrakeChainPlant</code> did for the earlier code) to run the
@@ -463,7 +464,9 @@ def med(xs):
 
 
 def fmt(x, nd=1):
-    return "&#8212;" if x is None else f"{x:.{nd}f}"
+    if x is None:
+        return "&#8212;"
+    return f"{(x if abs(x) >= 0.5 * 10 ** -nd else 0.0):.{nd}f}"
 
 
 def results_page():
@@ -619,8 +622,29 @@ singular value.</p>""" + T(["Object", "Mount spacing x, y (mm)", "Palm height (m
                         for d in sorted({r['d_mm'] for r in R[task]}))
         S.append((task, name, T(head, body, f"{name} across sphere sizes, seeds 0/1/2.") + f'<div class="films">{films}</div>'))
 
-    # variants
-    var_rows = {t: [r for r in R[t] if r.get("variant", "base") != "base"] for t in R}
+    # the length scale of Eq. (2)
+    ELLV = {"base": "20&#8202;mm", "ell100": "100&#8202;mm", "si": "1&#8202;m"}
+    if any(r.get("variant") in ("ell100", "si") for t in R for r in R[t]):
+        body = []
+        for t in ("pinpush", "press", "roll", "twist"):
+            key = {"pinpush": "disp_end_mm", "press": "wall_err_rms", "roll": "w_rmse_ratio", "twist": "w_rmse_ratio"}[t]
+            for d in sorted({r["d_mm"] for r in R[t]}):
+                row = [t, f"{d:g}"]
+                for v in ("base", "ell100", "si"):
+                    rs = [r for r in R[t] if r["d_mm"] == d and r.get("variant", "base") == v]
+                    row.append(f"{sum(r['held'] for r in rs)}/{len(rs)}, {fmt(med([r.get(key) for r in rs]), 2)}" if rs else "&#8212;")
+                body.append(row)
+        S.append(("units", "Length scale of Eq. (2) in the tasks", r"""
+<p>Eq. (2) compares angular and linear errors through the length scale $\ell$ (linear rows divided by $\ell$), which the HOM paper
+does not state. The method page's Exp. A gives the paper's ranking (roll about $y$ and separation best) at $\ell=100$&#8202;mm. In the
+tasks that scale fails: with rotation errors weighed more, the pinching fingers no longer close on the cylinder during the pick, and
+no cylinder is held; rolling degrades and twisting holds with smaller ramps. The tasks therefore keep $\ell=20$&#8202;mm.</p>"""
+                  + T(["Task", "Size (mm)", "$\\ell=20$&#8202;mm: held, score", "100&#8202;mm", "1&#8202;m (SI)"], body,
+                      "Held count and median score at three length scales (score: pin-push displacement in mm, press wall-force RMS "
+                      "error in N, roll and twist angular RMSE / step).", num_from=2)))
+
+    # deployment variants
+    var_rows = {t: [r for r in R[t] if r.get("variant", "base") in ("nofilter", "rate50", "sense")] for t in R}
     if any(var_rows.values()):
         body = []
         for t in ("pinpush", "press", "roll", "twist"):

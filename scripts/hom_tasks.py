@@ -890,9 +890,53 @@ def cmd_run(a) -> int:
     return 0
 
 
+def cmd_filter_sweep(a) -> int:
+    """The estimator's settings on the sphere tasks: the filter's source of the reference geodesic velocity (the
+    paper's reference relative velocities, zero when a task commands the object twist, against the twist Eq. (2)
+    plans), its largest gain k_max, and the controller period. Rows: OUT/filter_sweep.jsonl (fsynced, resumable)."""
+    import mujoco
+    path = OUT / "filter_sweep.jsonl"
+    done = set()
+    if path.exists():
+        for line in path.read_text().splitlines():
+            r = json.loads(line)
+            done.add((r["task"], r["d_mm"], r["source"], r["k_max"], r["dt"], r["seed"]))
+    for task in a.tasks:
+        for d_mm in (a.d or SIZES[task]):
+            p_pads, p_pt, setup = build(task, float(d_mm))
+            m_pt = mujoco.MjModel.from_xml_path(str(p_pt))
+            S.set_palm(m_pt, setup["palm"])
+            fs, os_ = sr2_specs(setup)
+            mirror = H.Mirror(m_pt, fs, os_)
+            q_open, _ = open_pose(setup, mujoco.MjModel.from_xml_path(str(p_pt)))
+            plant = Plant(p_pads, setup)
+            for src in ("reference", "planned"):
+                for kmax in (100.0, 25.0):
+                    for dt in (0.01, 0.02):
+                        for seed in a.seeds:
+                            key = (task, float(d_mm), src, kmax, dt, seed)
+                            if key in done:
+                                continue
+                            hp = H.HomParams(dt=dt, filter=H.FilterParams(k_max=kmax, source=src))
+                            row = {"task": task, "d_mm": float(d_mm), "source": src, "k_max": kmax, "dt": dt, "seed": seed}
+                            try:
+                                res, _, _ = rollout(task, setup, plant, mirror, q_open, seed, PRM, hp)
+                                row.update({k: res.get(k) for k in ("held", "w_rmse_ratio", "drift_max_mm", "steps",
+                                                                     "ramp_three_pads_max_deg")}, status="ok")
+                            except Exception as e:
+                                row.update(status="error", error=f"{type(e).__name__}: {e}")
+                            _append(path, row)
+                            print(key, row.get("held"), row.get("w_rmse_ratio"), flush=True)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("filter-sweep")
+    p.add_argument("--tasks", nargs="+", default=["roll", "twist"])
+    p.add_argument("--d", nargs="+", type=float)
+    p.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     p = sub.add_parser("design")
     p.add_argument("--tasks", nargs="+", default=list(TASKS))
     p.add_argument("--d", nargs="+", type=float)
@@ -911,6 +955,8 @@ def main() -> int:
         for kv in a.set:
             k, v = kv.split("=")
             PRM[k] = type(PRM[k])(float(v)) if not isinstance(PRM[k], tuple) else tuple(float(x) for x in v.split(","))
+    if a.cmd == "filter-sweep":
+        return cmd_filter_sweep(a)
     return cmd_design(a) if a.cmd == "design" else cmd_run(a)
 
 
