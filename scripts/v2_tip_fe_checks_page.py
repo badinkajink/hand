@@ -373,10 +373,10 @@ Servo plant: position actuators of gain 0.72&#8202;N&#8202;m/rad and torque limi
     S.append(("geometry", "The v2 fingertips against the calibrated print", f"""
 <p>The calibration fitted Drake's field and the pads to finite elements of the 11/22 half-ellipsoid printed with four 3&#8202;&#215;&#8202;2&#8202;mm
 magnets 7.0&#8202;mm deep. The v2 tips have five magnets 7.5&#8202;mm deep (corners at $y = \\pm 2.5$&#8202;mm, 4.9&#8202;mm along the finger either
-side of a centre magnet), concept a cuts two dovetail key channels 1.9&#8202;mm into the back face over the 5.1&#8202;mm nearest the mount, and
-concept b cuts the tip 3.55&#8202;mm short at the back (13.45 of 17.0&#8202;mm deep) and rests that face on its cover. Both share the 11/22
-palmar surface and its 14.8&#8202;&#215;&#8202;21.41&#8202;mm outline; a's tip looks larger on the plate because it keeps the full depth
-(Table 3 gives the masses). Each change moves the approach by less than the calibration's 5&#8202;% approach bound: the magnets
+side of a centre magnet). Concept a cuts two dovetail key channels 1.9&#8202;mm into the back face over the 5.1&#8202;mm nearest the mount.
+Concept b cuts the tip 3.55&#8202;mm short at the back (13.45 of 17.0&#8202;mm deep) and rests that face on its cover. Both share the 11/22
+palmar surface and its 14.8&#8202;&#215;&#8202;21.41&#8202;mm outline. Tip a looks larger on the plate because it keeps the full depth
+(Table 3 gives the masses). Each change moves the approach by less than the calibration's 5&#8202;% approach bound. The magnets
 add {pct('v2_none', 'v2_5'):.1f}&#8202;% of stiffness, a's channels change it by {abs(pct('a_v2', 'v2_5')):.2f}&#8202;%, and b's shorter body makes the
 pad {-pct('b_v2'):.1f}&#8202;% stiffer under the rod ({rms_b:.1f}&#8202;% RMS over the probe set). The pressure arm stays at
 {T['a_v2'][ROD]['per_force']['1']['r_bar_mm']:.3f}&#8202;mm in every case, since the palmar surface sets it. The fine grid (0.2&#8202;mm over the
@@ -435,9 +435,9 @@ about 16:20 and 18:40 on 10-19 the spool sat outside the dryer on the A1 mini an
 50&#8211;65&#8202;&#176;C when 85A has taken up moisture. Strings form outside the parts; a part's stiffness depends on the TPU inside it (Section 3), which a
 scale measures against the slicer's per-part masses. The A tips weigh {min(mA):.3f}&#8211;{max(mA):.3f}&#8202;g and the B pads {min(mB):.3f}&#8211;{max(mB):.3f}&#8202;g
 in the G-code, the same to 0.004&#8202;g across the four sizes. On the owner's scale (2026-10-20) the A tips weigh
-{meas['A']['mass_g']:.2f}&#8202;g and the B pads {meas['B']['mass_g']:.2f}&#8202;g, {100 * (1 - meas['A']['measured_over_commanded']):.1f} and
-{100 * (1 - meas['B']['measured_over_commanded']):.1f}&#8202;% under the G-code's masses, and {100 * (1 - meas['A']['measured_over_fe']):.1f}&#8202;% less and
-{100 * (meas['B']['measured_over_fe'] - 1):.1f}&#8202;% more TPU than the finite elements of a's tip and b's pad: by Table 2 the A tips sink
+{meas['A']['mass_g']:.2f}&#8202;g and the B pads {meas['B']['mass_g']:.2f}&#8202;g. These are {100 * (1 - meas['A']['measured_over_commanded']):.1f} and
+{100 * (1 - meas['B']['measured_over_commanded']):.1f}&#8202;% under the G-code's masses. They contain {100 * (1 - meas['A']['measured_over_fe']):.1f}&#8202;% less and
+{100 * (meas['B']['measured_over_fe'] - 1):.1f}&#8202;% more TPU than the finite elements of a's tip and b's pad. By Table 2 the A tips sink
 about 7&#8202;% further than modelled and the B pads as modelled. The 14&#8202;% the scale first seemed to show came from the profile's
 density.</p>
 {table(["Plate", "Parts", "Retractions per layer", "Long travels per layer", "Part mass (g)", "Plate filament (g)", "Slicer time"],
@@ -635,8 +635,8 @@ calibration's approach bound.</figcaption></figure>''' if have_fig else ""}"""))
         S.append(("sensing", "Force resolution of the 11/22 tips in concepts a and b", f"""
 <p>The DIP study compared a's and b's force sensing on the five-magnet block, because the 11/22 half-ellipsoid had no finite
 elements with magnets (v2/a|b/evaluation.json: "only its static field, gain and chip-to-magnet distance"). The rows of 2026-10-20
-give the 11/22 tip in each concept the readout model's inputs: the five magnets' rigid motion under the rod at the contact point and under
-unit normal and shear patch loads at 15 points of the face (y = &#8722;3, 0, 3&#8202;mm; 4&#8202;mm either side of the contact point
+give the 11/22 tip in each concept the readout model's inputs. These are the five magnets' rigid motion under the rod at the contact point
+and under unit normal and shear patch loads at 15 points of the face (y = &#8722;3, 0, 3&#8202;mm; 4&#8202;mm either side of the contact point
 along the finger; scripts/v2_tip_fe_checks.py <code>--sense</code>). The bound is the readout model's
 (scripts/tpu_tip_magnet_sensing.analyse): the Cram&#233;r-Rao bound of the normal force from one 141&#8202;Hz sample of the five
 chips, with the contact position and a uniform background field unknown, at the chip noise of the gain that the static field
@@ -689,8 +689,8 @@ readiness commands with the spring: a slide joint behind each tip, held by a joi
 (curved_tips_cell_drake.CellDrake, <code>k_s</code>). With the spring, {sm['same_branch']} of {sm['n']} readiness pairs end on the
 same branch (3 of 6 at M2), and the median RMS angle over all pairs falls from {e11['pads_vs_drake']['median_rms_angle_all_deg']:.1f}
 to {sm['median_rms_angle_all_deg']:.1f}&#176;{own_txt} (Table {t_m}). The readiness plans now miss the criterion on the normal force
-alone ({sm['median_rms_dN_same_N']:.2f}&#8202;N against 0.25&#8202;N), as the block does; the pairs still on different branches are on the
-25&#8202;mm cell. The angle bound widens to the pads' own seed spread, {m3['angle_bound_deg']:.1f}&#176; at M3: the pads' turns on the
+alone ({sm['median_rms_dN_same_N']:.2f}&#8202;N against 0.25&#8202;N), as the block does. The pairs still on different branches are on the
+25&#8202;mm cell. The angle bound widens to the pads' own seed spread, {m3['angle_bound_deg']:.1f}&#176; at M3, because the pads' turns on the
 25&#8202;mm cell differ by that much between placements. Most of the split of 10-18 therefore came from M2 standing in for the spring.</p>
 {table(["Tip, calibration, commands", "Pairs", "Held agreement", "Same branch", "Median RMS angle, same branch (&#176;)",
         "Median RMS angle, all pairs (&#176;)", "Angle bound (&#176;)", "Normal / friction force difference (N)", "Fails"], rows_m3, num_cols=(1, 4, 5, 6), n=t_m,
@@ -770,9 +770,9 @@ gives the creep at 1&#8202;N per tip for the pads at impratio 100 (the planner's
                  f"{held(hb, 'block5_g30')}, the block losing the 10&#8202;mm cylinder ({cell10(hv, 'block5_g30_v2a')} of 27 against "
                  f"{cell10(hb, 'block5_g30')}). Pinned iCEM keeps the cylinder on three pads in all {len([r for r in iv + ib if r.get('status') == 'ok'])} "
                  f"plans; on the 16&#8202;mm cell, the first bench task's, the 11/22 tip turns it {turn16(iv, 'ell11_g30_v2a'):+.1f}&#176; on "
-                 f"the v2 finger against {turn16(ib, 'ell11_g30'):+.1f}&#176; on the CAD finger. The longer lever costs force: at the PIP "
-                 f"servo the pads press 27&#8202;% less per newton-metre (26.61 against 36.36&#8202;mm), the servos spend "
-                 f"{100 * lim(hv):.1f}&#8202;% of the HOM ticks at their 0.18&#8202;N&#8202;m limit against {100 * lim(hb):.1f}&#8202;%, and parts "
+                 f"the v2 finger against {turn16(ib, 'ell11_g30'):+.1f}&#176; on the CAD finger. The longer lever costs force. At the PIP "
+                 f"servo the pads press 27&#8202;% less per newton-metre (26.61 against 36.36&#8202;mm). The servos spend "
+                 f"{100 * lim(hv):.1f}&#8202;% of the HOM ticks at their 0.18&#8202;N&#8202;m limit against {100 * lim(hb):.1f}&#8202;%. Parts "
                  f"other than the pads touch the cylinder in more ticks per run (the board {ticks(hv, 'board'):.0f} against "
                  f"{ticks(hb, 'board'):.0f}, the DIP link {ticks(hv, 'pip_frame'):.0f} against {ticks(hb, 'pip_frame'):.0f}).")
         flm = []
@@ -867,7 +867,7 @@ other. Table {t_b} sets the plan beside the block's plan of 10-16 on the CAD fin
             rr_.append([esc(f.stem), f"{j.get('final_cos', float('nan')):+.3f}", "held" if j.get("held_end") else "lost"])
         t_k = nxt()
         S.append(("contactclass", "Tool contact class in the renderer", f"""
-<p>Runs trained before 2026-09-20 saw a tool with MuJoCo's default contact (solref 0.02&#8202;s, solimp 0.9&#8211;0.95), while the
+<p>Runs trained before 2026-09-20 used a tool with MuJoCo's default contact (solref 0.02&#8202;s, solimp 0.9&#8211;0.95), but the
 renderer and the CPU rollout built the tool with the scene's class, and 11 of 16 such policies dropped the tool at the trained pose.
 <code>scripts/rl_render_rollout.py</code> and <code>scripts/policy_cpu_rollout.py</code> now take the run's class
 (<code>--object-contact run</code>, the evaluation suite's rule). Table {t_k} gives the final signed cosine and height of D7's
@@ -916,7 +916,7 @@ G-code model keeps the slicer's 0.1&#8202;mm-layer cell for these prints (case <
 moduli to it; one beyond either model by more than 25&#8202;% points at the solid modulus, which every model takes from a datasheet.</li>
 <li>Put the 11/22 force resolutions (Section on sensing) into the DIP study's evaluations (scripts/dip_link_v2.py, a and b
 <code>docs</code> stages) when the DIP page is next rebuilt, in place of the block's.</li>
-<li>Runs still queued at the page's build (logs/20261019-overnight/q_all.txt, one job at a time): the capsule's Drake replays, the
+<li>Runs still queued at the page's build (logs/20261019-overnight/q_all.txt, one job at a time) are the capsule's Drake replays, the
 impratio-1000 bed arm, the v2 tip on the fine grid, the D7 contact-class renders, seeds 3&#8211;5 of the 11/22 tip at M2 and M3 and of the
 block at M1, and films of the 16&#8202;mm task on both fingers. Their sections appear when the page is rebuilt with their rows.</li>
 </ul>"""))

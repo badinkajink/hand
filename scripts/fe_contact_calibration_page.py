@@ -681,10 +681,10 @@ def fe_section():
     cap_long = 2 * fe("cap_g30", "cz12.5_y0", "1", "half_z_mm")
     cap_across = 2 * fe("cap_g30", "cx12.5_z0", "1", "half_z_mm")
     return (
-        "<p>Each print was modelled as sliced: two 0.45&#8202;mm perimeters and four 0.2&#8202;mm skins of solid TPU around "
-        "every outline, the magnet pockets&#8217; included, over the homogenized 30&#8239;% gyroid, in the print&#8217;s "
-        "orientation (the block on its back face, the curved tips upright), with the four magnets bonded at the sheet "
-        "depths (5, 5, 5.5 and 7&#8202;mm) and the back and mount faces fixed. The solid modulus is NinjaFlex 85A&#8217;s "
+        "<p>Each print was modelled as sliced. Two 0.45&#8202;mm perimeters and four 0.2&#8202;mm skins of solid TPU surround "
+        "every outline, the magnet pockets&#8217; included, over the homogenized 30&#8239;% gyroid in the print&#8217;s "
+        "orientation (the block on its back face, the curved tips upright). The four magnets are bonded at the sheet "
+        "depths (5, 5, 5.5 and 7&#8202;mm), and the back and mount faces are fixed. The solid modulus is NinjaFlex 85A&#8217;s "
         "12&#8202;MPa, standing in for Siraya&#8217;s unmeasured one. Frictionless rigid probes were pressed along the palmar "
         f"normal from first touch of the design surface; the models have {dof}&#8202;k degrees of freedom and peak at "
         f"{gb}&#8202;GB.</p>"
@@ -742,7 +742,7 @@ def fits_section():
         "gives every modulus. The curves were computed on each tip&#8217;s simulated surface (the as-printed hull) under "
         rf"the same 18 probes as the finite elements; a series spring adds \(F/k_s\) to the approach and leaves the "
         "patch unchanged:</p>" + eqs +
-        "<p>M1, the one modulus fitted to the approach, gets the RMS approach error to "
+        "<p>M1 is the one modulus fitted to the approach. It brings the RMS approach error to "
         f"{rng([v['approach_rms_pct'] for v in m1d], 1)}&#8239;% in Drake and {rng([v['approach_rms_pct'] for v in m1p], 1)}&#8239;% "
         f"in the 1&#8202;mm pads, but the largest error is {rng([v['approach_max_pct'] for v in m1d], 0)}&#8239;% in Drake "
         f"and {rng([v['approach_max_pct'] for v in m1p], 0)}&#8239;% in the pads. Drake&#8217;s field sinks with a force "
@@ -844,7 +844,7 @@ def bench_section():
             "calibrated modulus and spring. The finite elements pass at a residual of at most 10&#8239;% RMS after &#955; and a "
             "bench force exponent within 0.10 of theirs.</li>"
             f"<li>A 4&#8202;mm steel ball at the apex at 0.5, 1 and 3&#8202;N: the finite elements predict a ball-over-rod "
-            f"approach ratio of {rng(bo, 1)} at 1&#8202;N on the curved tips and a local law 2 or more; a bench ratio of 2 or "
+            f"approach ratio of {rng(bo, 1)} at 1&#8202;N on the curved tips and a local law 2 or more. A bench ratio of 2 or "
             "more falsifies the finite elements&#8217; skin-over-core response and favours M1.</li>"
             "<li>A twist test: the rod pressed at 1 and 3&#8202;N and turned about the normal until slip, with &#956; from a pull "
             rf"test; an onset arm within 0.70&#8211;1.15 of {RB} confirms the arm calibration (M2, M3), an arm of "
@@ -873,8 +873,8 @@ def limitations():
             "the block and the capsule has the static and twist cases only.</li>"
             "<li>The 0.5&#8202;mm pads at the capsule&#8217;s M2 modulus (36&#8202;MPa) and at the U moduli (13&#8211;14&#8202;MPa) "
             "are too soft per pad for the pad builder (<code>reorient_backends.replace_tips</code>), which maps each pad&#8217;s "
-            "stiffness to a MuJoCo impedance d0 and refuses d0 below 0.05 at the 0.02&#8202;s relaxation: the capsule has no "
-            "replays at M2 and the 0.5&#8202;mm check arm did not run.</li>"
+            "stiffness to a MuJoCo impedance d0 and refuses d0 below 0.05 at the 0.02&#8202;s relaxation. The capsule therefore has no "
+            "replays at M2, and the 0.5&#8202;mm check arm did not run.</li>"
             "<li>The servo plant is the ad-hoc identification of 2026-10-13 (kp 0.72&#8202;N&#8202;m/rad, 0.18&#8202;N&#8202;m); its "
             "3.4&#8211;4.7&#8202;mm/N at the fingertip is what keeps normal-stiffness errors small on trajectories.</li>"
             "<li>The D1&#8211;D8 plans were designed for the block; on the curved tips they run near the tool&#8217;s slip "
@@ -1081,8 +1081,8 @@ def ICEM_TEXT():
     if go:
         so = go["pads_vs_drake"]
         txt += (f"On the tip&#8217;s own plan, re-planned on its 1&#8202;mm pads at M2, both simulators keep the tool in "
-                f"{so['held_agree']} of {so['n']} runs and the axes end {rng([p_['angle_end_deg'] for p_ in go['pairs']], 0)}&#176; "
-                f"apart in every pair, with the normal forces {rng([p_['rms_dN_N'] for p_ in go['pairs']], 1)}&#8202;N RMS apart "
+                f"{so['held_agree']} of {so['n']} runs. The axes end {rng([p_['angle_end_deg'] for p_ in go['pairs']], 0)}&#176; "
+                f"apart in every pair, and the normal forces are {rng([p_['rms_dN_N'] for p_ in go['pairs']], 1)}&#8202;N RMS apart "
                 "(Figure&#160;[[fig:film]]). ")
     gi = d1g("ell11_g30", "M2", pads="pads_ir1000")
     if gi and g:
@@ -1117,8 +1117,8 @@ def D1D8_TEXT():
     if sp:
         ok = (sp['median_rms_angle_same_deg'] or 9) <= 1 and (sp['median_rms_dN_same_N'] or 9) <= 0.05
         txt += (f"Spring check on the 11/22 tip: the 0.5&#8202;mm pads at M2 behind the {S['fits']['ell11_g30']['k_s_N_per_mm']:.1f}&#8202;N/mm "
-                f"slide spring (M3) against the same pads without it agree on the held outcome in {sp['held_agree']} of "
-                f"{sp['n']} runs; the {sp['same_branch']} same-branch pairs differ by a median {f(sp['median_rms_angle_same_deg'], 2)}&#176; "
+                f"slide spring (M3) agree on the held outcome with the same pads without it in {sp['held_agree']} of "
+                f"{sp['n']} runs. The {sp['same_branch']} same-branch pairs differ by a median {f(sp['median_rms_angle_same_deg'], 2)}&#176; "
                 f"and {f(sp['median_rms_dN_same_N'], 3)}&#8202;N per finger (bounds 1&#176; and 0.05&#8202;N), so M2 "
                 f"{'stands in' if ok else 'does not stand in'} for M3 on trajectories. ")
     rl = d2p("ell11_g30", "M2", "rl")
@@ -1170,9 +1170,9 @@ def VERDICT_TEXT():
             f"{e11['pads']['arm_max']:.2f}), and misses consistency and the spring check. ")
     if g:
         s_ = g["pads_vs_drake"]
-        txt += (f"On the readiness commands both simulators keep the tool in {s_['held_agree']} of {s_['n']} replays, "
-                f"{s_['same_branch']} pairs end on the same branch, and their median RMS angle is "
-                f"{s_['median_rms_angle_same_deg']:.1f}&#176; against a {g['angle_bound_deg']:.1f}&#176; bound, with forces "
+        txt += (f"On the readiness commands both simulators keep the tool in {s_['held_agree']} of {s_['n']} replays. "
+                f"{s_['same_branch']} pairs end on the same branch. Their median RMS angle is "
+                f"{s_['median_rms_angle_same_deg']:.1f}&#176; against a {g['angle_bound_deg']:.1f}&#176; bound, and the forces are "
                 f"{s_['median_rms_dN_same_N']:.2f} and {s_['median_rms_dT_same_N']:.2f}&#8202;N apart against 0.25 and 0.35&#8202;N. ")
     if go:
         txt += (f"On its own plan the tool axes end {rng([p_['angle_end_deg'] for p_ in go['pairs']], 0)}&#176; apart in all "
