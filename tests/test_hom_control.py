@@ -272,7 +272,7 @@ def test_gcf_convention(mirror):
 
 def test_impedance_target_on_the_surface_from_a_lagging_reference():
     """'reference' impedance: with theta_ref lagging 1.6 mm behind the finger, the servo target's action point still
-    lands on the measured surface and presses F sum_j (J^T x1)_j^2 / k_p,j into it; the earlier 'gap' mode adds the gap
+    sits on the measured surface and presses F sum_j (J^T x1)_j^2 / k_p,j into it; the earlier 'gap' mode adds the gap
     measured at the finger to the lagging reference and stops short by the lag."""
     mujoco = pytest.importorskip("mujoco")
     m = mujoco.MjModel.from_xml_string(XML.replace("<mujoco>", '<mujoco><compiler angle="radian"/>', 1))

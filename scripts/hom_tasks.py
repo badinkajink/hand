@@ -701,7 +701,7 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
         plant.advance(t)
         if film is not None and (len(rows) - 1) % 4 == 0:
             frames.append(film.frame(plant, f"{task}, {setup['shape']} {setup['d_mm']:g} mm, seed {seed}",
-                                     f"{info['phase']:<16s} t {t:4.2f} s  " + film_line(task, s, info)))
+                                     f"{info['phase']:<10s} {t:4.2f} s  " + film_line(task, s, info)))
     wall = time.perf_counter() - w0
     res = metrics(task, setup, rows, s0, plant.state())
     res.update(wall_s=round(wall, 2), sat_ticks=n_sat, n_ticks=len(rows))
@@ -715,12 +715,12 @@ def pinch_angle(axis) -> float:
 
 
 def film_line(task, s, info):
-    F = " ".join(f"{f[0].upper()}{s['cop'].get(f, (None, 0.0))[1]:4.1f}" for f in FINGERS)
+    F = " ".join(f"{f[0].upper()} {s['cop'].get(f, (None, 0.0))[1]:.1f}" for f in FINGERS)
     if task in ("pinpush", "press"):
         th = pinch_angle(H.quat_to_mat(s["quat"])[:, 2])
         ref = info.get("theta_ref")
-        return f"angle {th:+5.1f} deg" + (f" (cmd {ref:+5.1f})" if ref is not None else "") + f"  pads {F} N"
-    return f"w {np.degrees(s['w']).round(0)} deg/s  pads {F} N"
+        return f"{th:+5.1f} deg" + (f" (cmd {ref:+5.1f})" if ref is not None else "") + f"  {F} N"
+    return f"w {np.degrees(s['w']).round(0)} deg/s  {F} N"
 
 
 def metrics(task, setup, rows, s0, se):
