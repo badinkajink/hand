@@ -343,14 +343,14 @@ def horizon_section(S):
             f"state and scores the vertical cosine. The best 0.1&#8201;rad offset raises it by {g(fd, 3)}, a tilt of "
             f"{tilt_deg(c0, c0 + fd):.3f}&#176;. The 400&#8201;ms local search turned the tool by {turn400:.1f}&#176; "
             f"and a reorientation to vertical takes {math.degrees(math.acos(c0)):.1f}&#176;. In these 20 steps the "
-            f"tool settles after the post is removed: {c20['no action']['opened']} of the {c20['no action']['at_start']} "
+            f"tool shifts after the post is removed: {c20['no action']['opened']} of the {c20['no action']['at_start']} "
             f"pad contacts open and {c20['no action']['closed']} closes without an action, "
             f"{c20['CPU finite-difference action']['opened']} and {c20['CPU finite-difference action']['closed']} with the "
             "best offset (<code>contacts20.json</code>).</p>"
             f"<p>The response to the offsets is linear over these 20 steps (the CPU derivative changes by "
             f"{pct(max(cpu_sw) / min(cpu_sw) - 1, 1)} between steps of 10<sup>&#8722;4</sup> and "
             f"10<sup>&#8722;2</sup>&#8201;rad), so every estimate of its gradient selects "
-            f"the same action: the CPU finite-difference direction gained {g(fd, 4)}, the fork&#8217;s AD gradient "
+            f"the same action. The CPU finite-difference direction gained {g(fd, 4)}, the fork&#8217;s AD gradient "
             f"{g(ad, 4)} and the best of 128 random directions {g(best, 4)} ({pct(best / fd)} of the CPU direction). "
             "The test measures whether the fork reproduces CPU MuJoCo&#8217;s local response, and every method "
             f"passes it. Without an action the fork&#8217;s vertical cosine after the same 20&#8201;ms differs from "
@@ -472,11 +472,11 @@ def fd_section(S):
             "10<sup>&#8722;3</sup> and 3&#215;10<sup>&#8722;3</sup>&#8201;rad.</p>")
     text += (f"<p>The 400&#8201;ms search takes L-BFGS-B&#8217;s gradient from SciPy&#8217;s two-point differences at "
              f"the default step, {g(step, 3)} in plan units ({g(step * 0.35, 2)}&#8201;rad of yaw target). On the "
-             f"packed pads this step gives the gradient of the larger steps: cosine "
-             f"{pads['hold']['cosine_to_1e-3'][0]:.3f} to the 10<sup>&#8722;3</sup> gradient at the hold plan and "
+             f"packed pads this step gives the gradient of the larger steps. The cosine to the 10<sup>&#8722;3</sup> gradient is "
+             f"{pads['hold']['cosine_to_1e-3'][0]:.3f} at the hold plan and "
              f"{pads['cem128']['cosine_to_1e-3'][0]:.2f} at the CEM128 plan that the hybrid refines, where a "
              f"10<sup>&#8722;4</sup> step crosses a small jump in the score. On the convex mesh the default step measures "
-             f"collision-solver noise, and the score is rough at every step below 10<sup>&#8722;2</sup>: at the CEM128 "
+             f"collision-solver noise, and the score is rough at every step below 10<sup>&#8722;2</sup>. At the CEM128 "
              f"plan the gradient&#8217;s norm is {mesh['cem128']['norm'][0]:.1f} at the default step, "
              f"{mesh['cem128']['norm'][2]:.1f} at 10<sup>&#8722;4</sup>, {mesh['cem128']['norm'][3]:.2f} at "
              f"10<sup>&#8722;3</sup> and {mesh['cem128']['norm'][-1]:.2f} at 10<sup>&#8722;2</sup> (Figure&#160;1). "
@@ -542,8 +542,8 @@ def cfd_section(S):
             f"{rc['fork_ad'][0] / cpu0[0]:.1f} times the CPU value and the height derivative "
             f"{rc['fork_ad'][1] / cpu0[1]:.1f} times. The state CFD is meant for, a finger millimetres from the tool "
             "with no ordinary derivative, was not measured. CFD also always ran with the scan loop, which evaluates "
-            "all 100 Newton iterations of the bed numerics with up to 50 line-search steps each in every simulation "
-            f"step ({code('solver.py')} line 577); the fork&#8217;s examples use 2 to 4 Newton iterations and 10 "
+            "all 100 Newton iterations of the bed numerics, with up to 50 line-search steps each, in every simulation "
+            f"step ({code('solver.py')} line 577). The fork&#8217;s examples use 2 to 4 Newton iterations and 10 "
             "line-search steps.</p>")
 
 
@@ -585,11 +585,11 @@ def uses_section(S):
     return ("<p>The reorientation policies are trained with PPO in MuJoCo-Warp through mjlab. PPO estimates its "
             "gradient from sampled returns and uses no simulator derivative, so DiffMJX would change only the "
             "simulator. Training through simulator derivatives (analytic policy gradients) needs reverse-mode "
-            "derivatives over hundreds of steps. The fork&#8217;s ordinary solver loop supports forward mode only; "
-            "the scan loop costs 100 Newton iterations with up to 50 line-search steps per simulation step under "
-            "these numerics, and the 1&#8201;mm model did not finish compiling a 20&#8201;ms forward rollout in "
+            "derivatives over hundreds of steps. The fork&#8217;s ordinary solver loop supports forward mode only. "
+            "Under these numerics the scan loop costs 100 Newton iterations with up to 50 line-search steps per simulation step, "
+            "and the 1&#8201;mm model did not finish compiling a 20&#8201;ms forward rollout in "
             f"{att['elapsed_before_stop_s'] / 60:.1f}&#8201;min on the GPU.</p>"
-            f"<p>For plan search, a finite-difference gradient of the 13 plan values takes 14 CPU rollouts: "
+            f"<p>For plan search, a finite-difference gradient of the 13 plan values needs 14 CPU rollouts. They take "
             f"{14 * t1:.2f}&#8201;s on the 1&#8201;mm pads and {14 * t2:.2f}&#8201;s on the 2&#8201;mm pads, against "
             f"{pads['methods']['cem']['wall_s']:.1f} and {pads2['methods']['cem']['wall_s']:.1f}&#8201;s for the "
             "256-evaluation CEM. Local derivatives describe one contact mode: the packed-pad score jumps within "
@@ -624,9 +624,9 @@ def bugs_section(S):
         f"{g(fr['torque_world_Nm'][0], 2)}&#8201;N&#8201;m ({code('diffmjx_audit_probes.py frames')}). Both pages now "
         "say &#8220;about the tool&#8217;s body x axis&#8221;; the values are unchanged.",
         f"The column &#8220;AD error&#8221; measured the fork against CPU MuJoCo. In the 1&#8201;ms index-yaw "
-        f"derivatives it read {pct(min(ad_cpu), 1)}&#8211;{pct(max(ad_cpu), 1)}; the fork&#8217;s AD differs from its "
-        f"own finite differences by {pct(min(ad_fd), 3)}&#8211;{pct(max(ad_fd), 3)} and the fork&#8217;s finite "
-        f"differences from CPU MuJoCo&#8217;s by {pct(min(fk_cpu), 1)}&#8211;{pct(max(fk_cpu), 1)}, the two columns "
+        f"derivatives it read {pct(min(ad_cpu), 1)}&#8211;{pct(max(ad_cpu), 1)}. The fork&#8217;s AD differs from its "
+        f"own finite differences by {pct(min(ad_fd), 3)}&#8211;{pct(max(ad_fd), 3)}, and the fork&#8217;s finite "
+        f"differences differ from CPU MuJoCo&#8217;s by {pct(min(fk_cpu), 1)}&#8211;{pct(max(fk_cpu), 1)}, the two columns "
         "that replace it.",
         f"The lede left compilation out of the gradient cost: {jac['gradient_warm_s']:.1f}&#8201;s warm against "
         f"{1e3 * ls['cpu_fd_6_evals_s']:.1f}&#8201;ms, {grp(jac['gradient_warm_s'] / ls['cpu_fd_6_evals_s'])} times. "
@@ -660,9 +660,9 @@ def bugs_section(S):
     hy, ml = t["tpu6_padsT_hybrid"], t["tpu6_pt_direct_gradient"]
     text += (f"<p>Over the eight grip jitters the corrected packed-pad hybrid holds {hy['tpu6_padsT']['after']['held']} of 8 "
              f"on the packed pads at a gain of {hy['tpu6_padsT']['after']['gain_if_held']:+.3f} "
-             f"({hy['tpu6_padsT']['before']['held']} of 8 at {hy['tpu6_padsT']['before']['gain_if_held']:+.3f} before) and "
-             f"{hy['tpu6_pt']['after']['held']} of 8 on the convex mesh ({hy['tpu6_pt']['before']['held']} of 8 before); "
-             f"the corrected mesh local plan holds {ml['tpu6_pt']['after']['held']} of 8 on the mesh at "
+             f"({hy['tpu6_padsT']['before']['held']} of 8 at {hy['tpu6_padsT']['before']['gain_if_held']:+.3f} before). It holds "
+             f"{hy['tpu6_pt']['after']['held']} of 8 on the convex mesh ({hy['tpu6_pt']['before']['held']} of 8 before). "
+             f"The corrected mesh local plan holds {ml['tpu6_pt']['after']['held']} of 8 on the mesh at "
              f"{ml['tpu6_pt']['after']['gain_if_held']:+.3f} ({ml['tpu6_pt']['before']['held']} of 8 at "
              f"{ml['tpu6_pt']['before']['gain_if_held']:+.3f} before). JSON: <code>transfer-fd1e-2-mj360.json</code>.</p>")
     return text
@@ -809,7 +809,7 @@ def onset_section(S):
                    f"{on['sample_ms']}&#8201;ms. JSON: <code>turn_onset.json</code>.")
     text += (f"<p>The fork&#8217;s forward pass costs {g(on['fork_warm_100ms_s'], 3)}&#8201;s warm for "
              f"{on['horizon_ms']}&#8201;ms against {g(1e3 * hd['cpu_rollout_s'], 3)}&#8201;ms in CPU MuJoCo with contact "
-             f"summaries every 10&#8201;ms; its first 10&#8201;ms chunk, with compilation, took "
+             f"summaries every 10&#8201;ms. Its first 10&#8201;ms chunk, with compilation, took "
              f"{g(on['fork_first_chunk_s'], 3)}&#8201;s.</p>")
     return text
 

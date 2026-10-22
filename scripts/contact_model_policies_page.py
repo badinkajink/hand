@@ -1316,7 +1316,7 @@ def transfer_text(X: Data):
         held_box = [a for a, (h, n) in bh.items() if h > 0.25 * n]
         out.append(f"Closed loop in MuJoCo-Warp under the other contact models of the TPU block, the skin policies held "
                    f"{pc(T['tpu27skin'], ' rollouts')}), the pad policies {pc(T['tpu27pads1'])}) and the TPU-mesh "
-                   f"policies {pc(T['tpu27mesh'])}: {ms}). The box-tip policy held {pc(T['box'])}) on the TPU block, and on the box "
+                   f"policies {pc(T['tpu27mesh'])}: {ms}). The box-tip policy held {pc(T['box'])}) on the TPU block. On the box "
                    f"tip, a different shape, " + (f"only the {' and '.join(SHORT[a] for a in held_box)} policies held more "
                    f"than a quarter of the rollouts ("
                    + (f"{bh[held_box[0]][0]} of {bh[held_box[0]][1]}" if len(held_box) == 1 else
@@ -1401,16 +1401,16 @@ def robust_text(X: Data):
     exc = (" in all but " + ", ".join(f"{nm(t)} ({held(t, 'kp=10')} held)" for t in k10)) if k10 else ""
     out = [f"At a finger servo gain \\(k_p\\) of 10&#8202;N&#8202;m/rad, "
            f"2.5&#215; the training plant&#8217;s, the policies lose the tool after the onset (median loss at policy step "
-           f"{min(lost):.0f}&#8211;{max(lost):.0f}){exc}; at 6&#8202;N&#8202;m/rad the point-contact policies held "
+           f"{min(lost):.0f}&#8211;{max(lost):.0f}){exc}. At 6&#8202;N&#8202;m/rad the point-contact policies held "
            f"{p6[0]} of {p6[1]} rollouts and the pad and skin policies {c6[0]} of {c6[1]}."]
     other = ("friction=0.7", "friction=1.3", "mass=0.8", "mass=1.2", "dt=0.001", "noise=2,5")
     low = [(t, p) for t in tags if tag_arm(t) != "box" for p in other if rb[(t, p)]["n_held"] < 0.95 * rb[(t, p)]["n"]]
     lab = lambda p: {"dt=0.001": "the 1&#8202;ms step", "noise=2,5": "the pose noise"}.get(p, p.replace("=", " &#215;"))  # noqa: E731
     bx = [rb[(t, p)]["n_held"] for t in pt if tag_arm(t) == "box" for p in ("nominal",) + other]
     out.append("Friction &#177;30&#8202;%, tool mass &#177;20&#8202;%, the 1&#8202;ms step and the grasp-pose noise "
-               "keep every TPU-block policy at 95&#8202;% held or more"
+               "leave every TPU-block policy at 95&#8202;% held or more"
                + (" except " + " and ".join(f"{nm(t)} at {lab(p)} ({held(t, p)})" for t, p in low) if low else "")
-               + (f"; the box-tip policy holds {min(bx)}&#8211;{max(bx)} of 128 under these and at the nominal." if bx
+               + (f". The box-tip policy holds {min(bx)}&#8211;{max(bx)} of 128 under these and at the nominal." if bx
                   else "."))
     turn = [t for t in tags if rb[(t, "kp=2")].get("held_cos_mean") is not None
             and rb[(t, "kp=2")]["held_cos_mean"] < rb[(t, "nominal")]["held_cos_mean"] - 0.1]
@@ -1467,7 +1467,7 @@ def lede(X: Data):
     p1 = [f"{W.get(n_runs, n_runs) if n_runs > 6 else n_runs} PPO runs of up to 40&#8202;M steps in MuJoCo-Warp trained "
           f"the D6 screwdriver turn. Replayed open loop in CPU MuJoCo, Drake and "
           f"Newton, the finger targets of the pad and skin policies (1&#8202;mm sphere pads, bare or on a sprung skin) kept "
-          f"the tool in {rc[0]} of {rc[1]} replays, those of the point-contact policies in {rp[0]} of {rp[1]}."]
+          f"the tool in {rc[0]} of {rc[1]} replays. Those of the point-contact policies kept it in {rp[0]} of {rp[1]}."]
     T = {a: tpu_transfer(X, a) for a in ("tpu27mesh", "tpu27pads1", "tpu27skin")}
     if all(T.values()):
         pct = lambda t: f"{100 * t[0] / t[1]:.0f}&#8202;%"  # noqa: E731
@@ -1502,7 +1502,7 @@ def correction(X: Data):
     s = [json.loads(line) for line in open(p)] if os.path.exists(p) else []
     hc = lambda arm: [r["held_cos_mean"] for r in s if r["arm"] == arm and r.get("held_cos_mean") is not None]  # noqa: E731
     txt = ("Correction, 2026-10-12: the working plant&#8217;s joint torque limit of 1&#8202;N&#8202;m is 4.4 times the "
-           "SCS0009 servo&#8217;s stall torque (0.23&#8202;N&#8202;m at 6&#8202;V), and these runs gave the grip term a weight of "
+           "SCS0009 servo&#8217;s stall torque (0.23&#8202;N&#8202;m at 6&#8202;V). These runs gave the grip term a weight of "
            "+0.25, a bonus for fingertip force above 4&#8202;N, so every final policy gripped the tool with "
            f"{min(g):.0f}&#8211;{max(g):.0f}&#8202;N.")
     if hc("tpu27pads1") and hc("tpu27mesh"):
