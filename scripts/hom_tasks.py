@@ -33,6 +33,8 @@ Commits before 2026-10-22 read the pin-push as a prismatic pinch slid by the thu
 pushing the cylinder against a wall, and the roll as a rotation in place about the horizontal axes.
 
     .venv/bin/python scripts/hom_tasks.py design                                  # grasp per task and size
+    .venv/bin/python scripts/hom_tasks.py design --tasks pinpush --lever 30       # middle 30-35 mm from the pinch
+    .venv/bin/python scripts/hom_tasks.py run --tasks pinpush --variants l30 l60  # ... and the runs on those grasps
     .venv/bin/python scripts/hom_tasks.py run --tasks pinpush press --d 10 25 --seeds 0 1 2
     .venv/bin/python scripts/hom_tasks.py run --tasks roll --d 40 --seeds 0 --film
 Rows: docs/experiments/20261021-hom_framework/rows/<task>.jsonl, one fsynced line per rollout, resumable.
@@ -78,18 +80,20 @@ CYL_LEN = 0.100                  # m: the scale study's tool length
 EXPA_MOVER = "thumb"             # Exp. A: the finger whose palmar side faces the cylinder in the equator grasp
 PINCH, PUSHER = ("thumb", "index"), "middle"
 LEVER_MIN = 0.040                # m: the middle's contact at least this far from the pinch along the cylinder
+LEVER_WIN = 0.005                # m: with design --lever, the lever lies in [lever, lever + LEVER_WIN]
 PHI_P = (0.0, 15.0)              # deg below the equator: the pinching pads' contact latitudes searched (at 30 deg the
                                  # pinch squeezes the cylinder out upward)
 PHI_M = {"pinpush": (0.0, 15.0), "press": (30.0, 45.0)}   # the middle's: at or near the equator (friction), below it
                                                          # (normal force)
 
 
-def dkey(task, d_mm):
-    """design.json key: thumb-index pinch grasps per task (pinpush_cylinder25, the middle's latitude differs); equator
-    grasps of a sphere plain (sphere40), of a cylinder with eq_ (eq_cylinder25)."""
+def dkey(task, d_mm, lever=None):
+    """design.json key: thumb-index pinch grasps per task (pinpush_cylinder25, the middle's latitude differs), with the
+    lever window's lower end in mm when one was set (pinpush_l30_cylinder25); equator grasps of a sphere plain
+    (sphere40), of a cylinder with eq_ (eq_cylinder25)."""
     shape = SHAPE[task]
     if GRASP[task] == "pinch_y":
-        return f"{task}_{shape}{d_mm:g}"
+        return f"{task}_{'' if lever is None else f'l{lever:g}_'}{shape}{d_mm:g}"
     return f"{'eq_' if shape == 'cylinder' else ''}{shape}{d_mm:g}"
 KP = 4.0
 DT_C = 0.01
@@ -118,13 +122,15 @@ def _pinch_y_targets(r, des):
     return tg, n_out
 
 
-def design_pinch_y(d_mm: float, task: str, L: float = CYL_LEN, keep: int = 400):
+def design_pinch_y(d_mm: float, task: str, L: float = CYL_LEN, keep: int = 400, lever=None):
     """Ranked grasps of the thumb-index pinch for a cylinder of diameter d along palm y: over the tripod layouts of the
     scale study, the axis position x_c and depth h, the pinch's y_p and latitude phi_p (PHI_P) and the middle's y_m and
     latitude (PHI_M[task]), the reachable grasps (servo limits with 3 deg margin) whose distal links face the object
-    (palmar normal within 25 deg of the contact normal), with the middle LEVER_MIN to L - 20 mm from the pinch, ranked by
-    the smallest pad-Jacobian singular value of the three fingers. The pad centre is the scale study's (a sphere of the
-    phalange radius about the distal link's end); open_pose then moves each finger until the TPU block touches."""
+    (palmar normal within 25 deg of the contact normal), with the middle LEVER_MIN to L - 20 mm from the pinch (with
+    `lever` in mm: lever to lever + LEVER_WIN), ranked by the smallest pad-Jacobian singular value of the three fingers.
+    The pad centre is the scale study's (a sphere of the phalange radius about the distal link's end); open_pose then
+    moves each finger until the TPU block touches."""
+    lo, hi = (LEVER_MIN, L - 0.020) if lever is None else (lever / 1000.0, lever / 1000.0 + LEVER_WIN)
     r = d_mm / 2000.0
     lim = K.limits(False)
     rr = r + K.R + K.GAP
@@ -159,7 +165,7 @@ def design_pinch_y(d_mm: float, task: str, L: float = CYL_LEN, keep: int = 400):
         bm = np.take_along_axis(sm, km[..., None], -1)[..., 0]  # (x_c, h, y_m)
         lever = yv[:, None] - yv[None, :]                        # y_p - y_m
         comb = np.minimum(bti[:, :, :, None], bm[:, :, None, :])
-        comb = np.where((lever >= LEVER_MIN - 1e-9) & (lever <= L - 0.020 + 1e-9), comb, -np.inf)
+        comb = np.where((lever >= lo - 1e-9) & (lever <= hi + 1e-9), comb, -np.inf)
         flat = np.argsort(comb, axis=None)[::-1][:keep]
         for i, j, k, l in zip(*np.unravel_index(flat, comb.shape)):
             if not np.isfinite(comb[i, j, k, l]):
@@ -179,15 +185,15 @@ def design_pinch_y(d_mm: float, task: str, L: float = CYL_LEN, keep: int = 400):
     return ranked
 
 
-def link_clearance(task, des, d_mm):
+def link_clearance(task, des, d_mm, lever=None):
     """Smallest distance (m) from any finger geom other than the tip's to the object at the touch and the open pose,
     on the TPU-block mesh model (pt) of the design's layout; and the finger joints at both poses."""
     import mujoco
     tmp = dict(json.loads((OUT / "design.json").read_text())) if (OUT / "design.json").exists() else {}
-    key = dkey(task, d_mm)
+    key = dkey(task, d_mm, lever)
     tmp[key] = des
     _write_design(tmp)
-    _p_pads, p_pt, setup = build(task, d_mm, models=("pt",))
+    _p_pads, p_pt, setup = build(task, d_mm, models=("pt",), lever=lever)
     m = mujoco.MjModel.from_xml_path(str(p_pt))
     q_open, q_touch = open_pose(setup, m)
     S.set_palm(m, setup["palm"])
@@ -255,16 +261,17 @@ def cmd_design(a) -> int:
     out = {}
     for task in a.tasks:
         for d in (a.d or SIZES[task]):
-            key = dkey(task, d)
+            lever = a.lever if GRASP[task] == "pinch_y" else None
+            key = dkey(task, d, lever)
             if key in out:
                 continue
             t0 = time.time()
             if GRASP[task] == "pinch_y":
                 out[key] = None
                 passing = []
-                ranked = design_pinch_y(d, task)
+                ranked = design_pinch_y(d, task, lever=lever)
                 for des in ranked[:a.max_try]:
-                    clr, _qo, _qt = link_clearance(task, des, d)
+                    clr, _qo, _qt = link_clearance(task, des, d, lever)
                     if (clr["touch"] >= 0.0005 and clr["open"] >= 0.0015     # links 0.5 mm off when the block touches
                             and clr["touch_ff"] >= 0.001 and clr["open_ff"] >= 0.001):
                         des["link_clearance_mm"] = {k: round(1e3 * v, 2) for k, v in clr.items()}
@@ -287,10 +294,10 @@ def cmd_design(a) -> int:
 
 # ------------------------------------------------------------------------------------------------ scenes
 
-def build(task: str, d_mm: float, models=("pads", "pt")):
-    """(pads scene path, pt scene path, setup dict) for one task and size."""
+def build(task: str, d_mm: float, models=("pads", "pt"), lever=None):
+    """(pads scene path, pt scene path, setup dict) for one task and size (`lever`: the grasp of design --lever)."""
     shape = SHAPE[task]
-    des = json.loads((OUT / "design.json").read_text())[dkey(task, d_mm)]
+    des = json.loads((OUT / "design.json").read_text())[dkey(task, d_mm, lever)]
     if des is None:
         raise RuntimeError(f"no feasible grasp for {shape} {d_mm}")
     R_ = _reach()
@@ -879,7 +886,10 @@ VARIANTS = {
     "floop": ({"force_loop_gain": 0.01}, None),       # v_sep += 10 mm/s per N of force error (needs fingertip force)
     "ell5": ({"ell": 0.005}, None),
     "ell100": ({"ell": 0.1}, None),
+    "l30": ({}, None),                                # pin-push on the grasps of design --lever 30 / 60
+    "l60": ({}, None),
 }
+LEVER_VARIANTS = {"l30": 30.0, "l60": 60.0}           # variant -> design --lever (mm)
 
 
 def cmd_run(a) -> int:
@@ -896,9 +906,9 @@ def cmd_run(a) -> int:
                 if not todo and not a.film:
                     continue
                 try:
-                    p_pads, p_pt, setup = build(task, float(d_mm))
+                    p_pads, p_pt, setup = build(task, float(d_mm), lever=LEVER_VARIANTS.get(var))
                 except Exception as e:
-                    print(task, d_mm, "build failed:", e, flush=True)
+                    print(task, d_mm, var, "build failed:", e, flush=True)
                     continue
                 m_pt = mujoco.MjModel.from_xml_path(str(p_pt))
                 S.set_palm(m_pt, setup["palm"])
@@ -912,7 +922,8 @@ def cmd_run(a) -> int:
                     film = Film(plant, setup) if (a.film and seed == a.seeds[0]) else None
                     row = {"task": task, "shape": setup["shape"], "d_mm": float(d_mm), "seed": seed,
                            "variant": var + (f"_{a.tag}" if a.tag else ""),
-                           "design": {k: setup["design"][k] for k in ("tag", "h", "score")},
+                           "design": {k: setup["design"][k] for k in ("tag", "h", "score", "lever_mm")
+                                      if k in setup["design"]},
                            "prm": {k: (list(v) if isinstance(v, tuple) else v) for k, v in PRM.items()},
                            "hom": {k: v for k, v in vars(hprm).items() if k != "filter"},
                            "filter": vars(hprm.filter), "when": time.strftime("%Y-%m-%d %H:%M")}
@@ -923,7 +934,7 @@ def cmd_run(a) -> int:
                             row["trace"] = trace[::2]
                         if film is not None and frames:
                             import hom_contact_rig as HR
-                            fp = MEDIA / f"20261021-hom_{task}_{setup['shape']}{d_mm:g}_{var}.mp4"
+                            fp = MEDIA / f"20261021-hom_{task}_{setup['shape']}{d_mm:g}_{vname}.mp4"
                             HR.write_mp4(frames, fp, fps=25)
                             row["film"] = str(fp.relative_to(ROOT))
                     except Exception as e:
@@ -989,6 +1000,8 @@ def main() -> int:
     p.add_argument("--tasks", nargs="+", default=list(TASKS))
     p.add_argument("--d", nargs="+", type=float)
     p.add_argument("--max-try", type=int, default=400)
+    p.add_argument("--lever", type=float, default=None,
+                   help="pinch grasps with the middle lever to lever + 5 mm from the pinch (mm); keys <task>_l<lever>_...")
     p = sub.add_parser("run")
     p.add_argument("--tasks", nargs="+", default=list(TASKS))
     p.add_argument("--d", nargs="+", type=float)
