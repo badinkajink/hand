@@ -24,6 +24,10 @@ Commands of this script (frame F; outputs under docs/experiments/20261018-dip_li
            interference, their checks and print STLs -> 20261021-dip_link_v4b_heights.json
   step     the covers and caps as B-rep in freecadcmd (without the engraved IDs): cad/*.step
   figures  media/20261021-dip_link_b_v3_v4_palmar.png, _flat_object.png, _heights.png
+  fit3     (2026-10-22) cover 3T: I15H3 with rails 0.05 mm wider per flank and their top edge 0.05 more, its checks against pad
+           B05R (grooves 0.05 inside the nominal rail, pin hole 1.6 mm) and its print STL -> 20261022-dip_link_v4b_fit3.json;
+           fit3fig the rail's section in its groove; step3 its STEP. The pads print with scripts/v3b_pad_b00_magnets_xl.py
+           --groove-fit 0.05 --hole-d 1.6 --pid B05R --copies 3, the covers and caps with v3b_ur5v2_pla_plate.py fit3
 
     unset VIRTUAL_ENV PYTHONPATH
     ~/.claude/bin/resguard.sh run --mem 4G --cpu 200 -- taskset -c 14,15 env NUMPY_MADVISE_HUGEPAGE=0 \\
@@ -451,6 +455,197 @@ def cmd_heights():
     print("problems:", problems, f"[{time.time() - t0:.0f} s]", flush=True)
 
 
+# ------------------------------------------------------------------------------------------------ the set of 2026-10-22
+# Owner, 2026-10-22 11:30: "for the new fingers with the hole in the top, we should really undersize this hole too. i think the
+# middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle ground ... widen the top edge of the
+# trapezoid of the rail so that it digs into the slot on the finger a little more. and similarly, undersize the slot and
+# oversize the rail just a little bit for an even tighter fit. prepare a tpu print on the prusa for three new fingertips (with
+# pauses) and then a PLA print with three new cassettes and top covers". Per flank, mm: the cover's rails grow rail_grow and
+# their top edge rail_top_grow more; the pad's grooves lie groove_fit inside the nominal rail (1.30 wide at the cover, 1.90 at
+# the top); so the rail meets the groove's walls by rail_grow + groove_fit at the cover's face and by that plus rail_top_grow
+# at the top (B00 and I15H3: 0 and 0). The pin hole of pad B05R is hole_d wide for the caps' 2.0 mm pin (B00R: 2.0).
+FIT3 = dict(wall_h=3.0, block_h=3.0, rail_grow=0.05, rail_top_grow=0.05, groove_fit=0.05, hole_d=1.6, cover_id="3T",
+            pad_id="B05R", cap_id="TW15H3", copies=3)
+FIT3_REC = V4 / "20261022-dip_link_v4b_fit3.json"
+PFX3 = "20261022-dip_link_v4b"
+
+
+def pad_fit3(fit=None, hole_d=None):
+    """Pad B05R in F (B00R with its grooves `fit` inside the nominal rail and the pin hole `hole_d` wide; defaults FIT3)."""
+    fit = FIT3["groove_fit"] if fit is None else fit
+    d0 = TC.CAP["hole_d"]
+    TC.CAP["hole_d"] = FIT3["hole_d"] if hole_d is None else hole_d
+    try:
+        with TC.b_state(design=dict(cover_walls="solid"), tips=B.PAD_SETS["v2_five"], groove_fit=fit):
+            pad, _ = B.make_pad("ell11_5")
+        return pad - TC.pad_hole(TC.CAP2["hole_chamfer"])
+    finally:
+        TC.CAP["hole_d"] = d0
+
+
+def cover_fit3(K, engraved=True, grow=True):
+    """Cover I15H3 with the rails of FIT3 (grow=False: the sweep's I15H3), FIT3's cover ID on each wall's top."""
+    h = FIT3["wall_h"]
+    q = dict(wall_clear=-INTERFERENCE, wall_h=h, seat_raise=min(h, SEAT_MAX))
+    if grow:
+        q.update(rail_grow=FIT3["rail_grow"], rail_top_grow=FIT3["rail_top_grow"])
+    with TC.b_state(design=dict(cover_walls="solid"), params=q):
+        cov = B.cover_part(K)
+    if engraved:
+        for s_ in (-1, 1):
+            cov = engrave(cov, FIT3["cover_id"] if grow else f"{h:g}", ENGRAVE["cap_cover"], (B.X_SLOT - h, s_ * 8.35, -84.0),
+                          (-1, 0, 0), (0, 0, -1), ENGRAVE["depth"])
+    return cov
+
+
+def rails_only(cov):
+    """The part of a cover inside the rails' envelope (palmar of the front face, within 1.5 mm of each rail's centre)."""
+    z0, z1 = B.RAIL_Z
+    m = B.box((B.X_SLOT - B.RAIL_H - 0.3, B.RAIL_Y - 1.5, z0 - 0.1), (B.X_SLOT - 0.001, B.RAIL_Y + 1.5, z1 + 0.1))
+    m2 = B.box((B.X_SLOT - B.RAIL_H - 0.3, -B.RAIL_Y - 1.5, z0 - 0.1), (B.X_SLOT - 0.001, -B.RAIL_Y + 1.5, z1 + 0.1))
+    return cov ^ (m + m2)
+
+
+def cmd_fit3():
+    import numpy as np
+    import dip_link_print_project as PP
+    import dip_link_v2 as L2
+    t0 = time.time()
+    K = B.MeshB()
+    hw = B.hardware()
+    link = B.to_manifold(B.load_cad("dip_link"))
+    board = hw["fr4"] + hw["board_parts"]
+    pad_new, pad_old = pad_fit3(), TC.pad_rev2()
+    cov, cov_bare, cov_old = cover_fit3(K), cover_fit3(K, engraved=False), cover_fit3(K, engraved=False, grow=False)
+    stl = V4 / "cad" / f"{PFX3}_cover_I15H3_{FIT3['cover_id']}.stl"
+    rt = TC.round_trip(cov, stl)
+    tm = B.to_trimesh(cov)
+    bam = L2.bambu_stl(tm, PP.R_CLAMP, V4 / "print" / f"{PFX3}_cover_I15H3_{FIT3['cover_id']}_pla_bambu.stl")
+    scr = screws_sweep(min(FIT3["wall_h"], SEAT_MAX), FIT3["block_h"])
+    with cap_dims(FIT3["block_h"], -INTERFERENCE):
+        cap = TC.cap_part2(K, dict(side="blocks"))
+    rg, rtg, gf = FIT3["rail_grow"], FIT3["rail_top_grow"], FIT3["groove_fit"]
+    rail_new = [(round(2 * (B.RAIL_BASE / 2 + rg), 3), round(2 * (B.RAIL_TOP / 2 + rg + rtg), 3))]
+    fh = B.RAIL_H / (B.RAIL_H + B.GROOVE_FLOOR)       # the groove's flank reaches the floor GROOVE_FLOOR below the rail's top
+
+    def flank(rail_half_b, rail_half_t, fit):           # interference per flank at the cover's face and at the rail's top, mm
+        gb, gt = B.RAIL_BASE / 2 - fit, B.RAIL_TOP / 2 - fit
+        return dict(at_cover_face=round(rail_half_b - gb, 3), at_rail_top=round(rail_half_t - (gb + (gt - gb) * fh), 3))
+    rec = dict(owner="2026-10-22 11:30: 'for the new fingers with the hole in the top, we should really undersize this hole too. i "
+                     "think the middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle ground ... "
+                     "widen the top edge of the trapezoid of the rail so that it digs into the slot on the finger a little more. and "
+                     "similarly, undersize the slot and oversize the rail just a little bit for an even tighter fit'",
+               fit3=FIT3,
+               rail=dict(nominal_base_top_h_mm=[B.RAIL_BASE, B.RAIL_TOP, B.RAIL_H], cover_base_top_mm=rail_new[0],
+                         groove_base_top_mm=[round(B.RAIL_BASE - 2 * gf, 3), round(B.RAIL_TOP - 2 * gf, 3)],
+                         interference_per_flank_mm=flank(B.RAIL_BASE / 2 + rg, B.RAIL_TOP / 2 + rg + rtg, gf),
+                         sweep_I15H3_B00R_per_flank_mm=flank(B.RAIL_BASE / 2, B.RAIL_TOP / 2, 0.0),
+                         snap_in_opening_per_side_mm=dict(new=round((rail_new[0][1] - (B.RAIL_BASE - 2 * gf)) / 2, 3),
+                                                          sweep=round((B.RAIL_TOP - B.RAIL_BASE) / 2, 3))),
+               pin=dict(pin_d_mm=TC.CAP["pin_d"], hole_d_mm=FIT3["hole_d"], hole_d_B00R_mm=TC.CAP["hole_d"],
+                        interference_per_side_mm=round((TC.CAP["pin_d"] - FIT3["hole_d"]) / 2, 3),
+                        pin_in_pad_mm3=round(float((cap ^ pad_new).volume()), 3), pin_in_B00R_mm3=round(float((cap ^ pad_old).volume()), 3)),
+               cover=dict(id=FIT3["cover_id"], stl=PP.rel(stl), bambu=bam, round_trip=rt, volume_mm3=rt["volume_mm3"],
+                          width_mm=round(float(tm.bounds[1][1] - tm.bounds[0][1]), 3),
+                          engraving_mm3=round(float(cov_bare.volume() - cov.volume()), 3),
+                          overlap_mm3=dict(dip_link_v4=round(float((cov ^ link).volume()), 4), board=round(float((cov ^ board).volume()), 4),
+                                           screws=round(float((cov ^ scr).volume()), 4)),
+                          into_pad_mm3=dict(new_cover_B05R=round(float((cov ^ pad_new).volume()), 3),
+                                            sweep_I15H3_B00R=round(float((cov_old ^ pad_old).volume()), 3),
+                                            rails_new_B05R=round(float((rails_only(cov) ^ pad_new).volume()), 3),
+                                            rails_sweep_B00R=round(float((rails_only(cov_old) ^ pad_old).volume()), 3))),
+               cap=dict(id=FIT3["cap_id"], bambu=PP.rel(V4 / "print" / f"{PFX}_tip_cap_{FIT3['cap_id']}_pla_bambu.stl"),
+                        note="the sweep's cap TW15H3, unchanged ('3' on its end plate)"),
+               pad=dict(id=FIT3["pad_id"], volume_mm3=round(float(pad_new.volume()), 2), B00R_volume_mm3=round(float(pad_old.volume()), 2)))
+    problems = []
+    if rt["reread_mm3"] < 0.999 * rt["volume_mm3"] or not rt["watertight"]:
+        problems.append(f"cover STL round trip {rt}")
+    bad = {q: x for q, x in rec["cover"]["overlap_mm3"].items() if x > 0.05}
+    if bad:
+        problems.append(f"cover overlaps {bad}")
+    if rec["cover"]["width_mm"] > 21.0 + 1e-6:
+        problems.append(f"cover width {rec['cover']['width_mm']}")
+    rec.update(problems=problems, when=time.strftime("%Y-%m-%d %H:%M"), script="scripts/dip_b_v4.py fit3",
+               seconds=round(time.time() - t0, 1))
+    FIT3_REC.write_text(json.dumps(rec, indent=1, default=float) + "\n")
+    print(json.dumps({k: rec[k] for k in ("rail", "pin", "problems")}, default=float), json.dumps(rec["cover"]["into_pad_mm3"]),
+          f"[{time.time() - t0:.0f} s]", flush=True)
+
+
+def cmd_fit3_figure():
+    """Section of one rail in its groove across the finger (y) and into the pad (depth from the cover's front face): the sweep's
+    I15H3 rail in B00R's groove and the 3T rail in B05R's groove, the interference hatched."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Polygon as MPoly
+    from shapely.geometry import Polygon, box as sbox
+    rg, rtg, gf = FIT3["rail_grow"], FIT3["rail_top_grow"], FIT3["groove_fit"]
+    dep = lambda sec: [(y - B.RAIL_Y, B.X_SLOT - x) for y, x in sec]            # noqa: E731  (y about the rail, depth)
+    plt.rcParams.update({"font.family": "serif", "font.size": 15})
+    fig, axs = plt.subplots(1, 2, figsize=(10.5, 4.6), dpi=130, sharey=True)
+    for ax, (ttl, rail, groove) in zip(axs, (
+            ("Sweep: I15H3 on pad B00R", B.rail_section(), B.rail_section(0.0, B.GROOVE_FLOOR)),
+            ("Now: 3T on pad B05R", B.rail_section(rg, 0.0, rtg), B.rail_section(-gf, B.GROOVE_FLOOR)))):
+        R, G = Polygon(dep(rail)), Polygon(dep(groove))
+        pad = sbox(-1.9, 0.0, 1.9, 1.6).difference(G)
+        for g in (pad.geoms if hasattr(pad, "geoms") else [pad]):
+            ax.add_patch(MPoly(list(g.exterior.coords), closed=True, fc="#ead7b0", ec="0.4", lw=0.8))
+        ax.add_patch(MPoly(list(R.exterior.coords), closed=True, fc=(0.36, 0.56, 0.85, 0.55), ec="#1f3f80", lw=1.4))
+        ov = R.intersection(pad)
+        for g in (ov.geoms if hasattr(ov, "geoms") else [ov]):
+            if g.area > 1e-3:                                 # the sweep's rail equals its groove: rounding slivers only
+                ax.add_patch(MPoly(list(g.exterior.coords), closed=True, fc="none", ec="#b02020", hatch="////", lw=0.8))
+        b, t = (rail[1][0] - rail[0][0]), (rail[2][0] - rail[3][0])
+        gb, gt = (groove[1][0] - groove[0][0]), (groove[2][0] - groove[3][0])
+        ax.text(0.0, -0.32, f"Rail {b:.2f} at the cover, {t:.2f} at the top", ha="center", fontsize=13)
+        ax.text(0.0, 1.30, f"Groove {gb:.2f} at the mouth, {gt:.2f} at the floor", ha="center", fontsize=13)
+        ax.plot([-1.9, 1.9], [0, 0], "k-", lw=1.0)
+        ax.set_xlim(-1.9, 1.9)
+        ax.set_ylim(-0.5, 1.65)
+        ax.set_aspect("equal")
+        ax.set_title(ttl, fontsize=15)
+    axs[0].set_ylabel("Into the pad (mm)")
+    fig.supxlabel("Across the finger from the rail's centre (mm)", fontsize=15)
+    fig.tight_layout()
+    dst = V4 / "media" / f"{PFX3}_rails_fit3.png"
+    fig.savefig(dst)
+    plt.close(fig)
+    print("figure ->", dst.relative_to(REPO), flush=True)
+
+
+def fc_main3():
+    """Inside freecadcmd: cover 3T as B-rep (no engraving), STEP into v4/b/cad."""
+    K = B.BrepB()
+    s = cover_fit3(K, engraved=False)
+    step = V4 / "cad" / f"{PFX3}_cover_I15H3_{FIT3['cover_id']}.step"
+    s.exportStep(str(step))
+    log = dict(step=str(step.relative_to(REPO)), volume_mm3=round(s.Volume, 3), valid=bool(s.isValid()), solids=len(s.Solids),
+               faces=len(s.Faces))
+    WORK.mkdir(parents=True, exist_ok=True)
+    (WORK / "fc_fit3.json").write_text(json.dumps(log, indent=1))
+    print("FC", json.dumps(log), flush=True)
+    print("FC done", flush=True)
+
+
+def cmd_step3():
+    env = {k: v for k, v in os.environ.items() if k not in ("VIRTUAL_ENV", "PYTHONPATH")}
+    env["DIPB4_FREECAD"] = "fit3"
+    r = subprocess.run(["freecadcmd", str(Path(__file__).resolve())], env=env, cwd=str(REPO), capture_output=True, text=True)
+    print("\n".join(l for l in r.stdout.splitlines() if l.startswith("FC")), flush=True)
+    if r.returncode != 0 or "FC done" not in r.stdout:
+        print(r.stderr[-3000:])
+        raise SystemExit("freecadcmd failed")
+    log = json.loads((WORK / "fc_fit3.json").read_text())
+    rec = json.loads(FIT3_REC.read_text())
+    mv = rec["cover"]["volume_mm3"] + rec["cover"]["engraving_mm3"]
+    log.update(mesh_volume_without_engraving_mm3=round(mv, 3), volume_diff_pct=round(100 * (log["volume_mm3"] / mv - 1), 3))
+    rec["step"] = log
+    FIT3_REC.write_text(json.dumps(rec, indent=1, default=float) + "\n")
+    if not log["valid"] or log["solids"] != 1 or abs(log["volume_diff_pct"]) > 1.0:
+        raise SystemExit(f"STEP problems: {log}")
+
+
 # ------------------------------------------------------------------------------------------------ STEP
 def fc_main():
     """Inside freecadcmd: the sweep's covers and caps as B-rep (no engraving), STEP into v4/b/cad."""
@@ -577,11 +772,14 @@ def cmd_figures():
 def main():
     for c in sys.argv[1:] or ["link", "heights", "step", "figures"]:
         t0 = time.time()
-        {"link": cmd_link, "heights": cmd_heights, "step": cmd_step, "figures": cmd_figures}[c]()
+        {"link": cmd_link, "heights": cmd_heights, "step": cmd_step, "figures": cmd_figures, "fit3": cmd_fit3,
+         "fit3fig": cmd_fit3_figure, "step3": cmd_step3}[c]()
         print(f"== {c} [{time.time() - t0:.0f} s]", flush=True)
 
 
 if os.environ.get("DIPB4_FREECAD") == "1":
     fc_main()
+elif os.environ.get("DIPB4_FREECAD") == "fit3":
+    fc_main3()
 elif __name__ == "__main__":
     main()

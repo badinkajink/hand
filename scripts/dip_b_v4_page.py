@@ -69,7 +69,10 @@ def load():
     plates = {k: j(V4 / f"print/{PFX}_p1s_pla_{k}.json") for k in ("heights", "link")}
     sens = {r["case"]: r for r in j(FE / "sensing.json")["rows"]}
     rev2 = j(DIP / "v3/b/20261021-dip_link_v3b_solid_covers_and_caps2.json")
-    return pv, chk, hts, plates, sens, rev2
+    fit3 = j(V4 / "20261022-dip_link_v4b_fit3.json")
+    fit3["plate"] = j(V4 / "print/20261022-dip_link_v4b_p1s_pla_fit3.json")
+    fit3["xl"] = j(V4 / "print/20261022-dip_link_print_pad_ell11_5_B05R_x3_85a_t2_g30.json")
+    return pv, chk, hts, plates, sens, rev2, fit3
 
 
 def point(sens, case, y, dz):
@@ -84,7 +87,7 @@ def ptime(rec):
 
 
 def main():
-    pv, chk, hts, plates, sens, rev2 = load()
+    pv, chk, hts, plates, sens, rev2, fit3 = load()
     col, des = chk["column"], chk["design"]
     st = chk["stops"]
     fo = chk["flat_object"]["summary"]
@@ -106,7 +109,9 @@ def main():
             f"The joint still stops on the horn arm at {fl4['q_deg']:.0f}{DEG}. "
             + (f"Near the mount face the readout resolves {rim['bm_five_d75_cap_colv4']:.2f}&#8202;N, against {rim['bm_five_d75_cap_colv3']:.2f}"
                f"&#8202;N on v3's column. " if have_fe else "")
-            + f"Covers I15 with 2&#8211;4{MM} walls and caps with 2&#8211;4{MM} blocks print on one P1S plate in {ptime(ph)}.")
+            + f"From a sweep of 2&#8211;4{MM} cover walls and cap blocks the owner chose 3{MM}; the set printed on 2026-10-22 adds rails "
+              f"{fit3['rail']['interference_per_flank_mm']['at_cover_face']:.2f}&#8211;{fit3['rail']['interference_per_flank_mm']['at_rail_top']:.2f}{MM} "
+              f"tighter per flank and a {fit3['pin']['hole_d_mm']:.1f}{MM} pin hole.")
 
     S = []
     S.append(("terms", "Terms and metrics", f"""
@@ -294,11 +299,52 @@ on TW15H2. Pad B00R fits every cover and cap of the sweep; a B00 or B00P pad nee
 The v4 link takes the board, a cover, a pad and a cap as v3 does. On the bench, fit pad B00R in I15H4 with TW15H4 and push the pad
 sideways at its apex as hard as popped it off W00, then step down to the 3 and 2{MM} parts; cover and cap can be lowered separately.</p>"""))
 
+    fr, fp, xl, pl3 = fit3["rail"], fit3["pin"], fit3["xl"], fit3["plate"]
+    fi, fs = fr["interference_per_flank_mm"], fr["sweep_I15H3_B00R_per_flank_mm"]
+    t8 = [["Rail width at the cover / at its top (mm)", f"{fr['nominal_base_top_h_mm'][0]:.2f} / {fr['nominal_base_top_h_mm'][1]:.2f}",
+           f"{fr['cover_base_top_mm'][0]:.2f} / {fr['cover_base_top_mm'][1]:.2f}"],
+          ["Groove width at its mouth / at its floor (mm)", f"{fr['nominal_base_top_h_mm'][0]:.2f} / {fr['nominal_base_top_h_mm'][1]:.2f}",
+           f"{fr['groove_base_top_mm'][0]:.2f} / {fr['groove_base_top_mm'][1]:.2f}"],
+          ["Interference per flank at the cover / at the rail's top (mm)", f"{fs['at_cover_face']:.2f} / {fs['at_rail_top']:.2f}",
+           f"{fi['at_cover_face']:.2f} / {fi['at_rail_top']:.2f}"],
+          ["Groove mouth's stretch to pass the rail's top, per side (mm)", f"{fr['snap_in_opening_per_side_mm']['sweep']:.2f}",
+           f"{fr['snap_in_opening_per_side_mm']['new']:.2f}"],
+          ["Rails inside the pad (mm&#179;)", f"{fit3['cover']['into_pad_mm3']['rails_sweep_B00R']:.2f}",
+           f"{fit3['cover']['into_pad_mm3']['rails_new_B05R']:.2f}"],
+          ["Cover inside the pad, walls and rails (mm&#179;)", f"{fit3['cover']['into_pad_mm3']['sweep_I15H3_B00R']:.1f}",
+           f"{fit3['cover']['into_pad_mm3']['new_cover_B05R']:.1f}"],
+          ["Pin hole for the cap's 2.0" + MM + " pin (mm)", f"{fp['hole_d_B00R_mm']:.1f}", f"{fp['hole_d_mm']:.1f}"],
+          ["Cap inside the pad, blocks and pin (mm&#179;)", f"{fp['pin_in_B00R_mm3']:.1f}", f"{fp['pin_in_pad_mm3']:.1f}"],
+          ["Engraved IDs: cover, cap, pad", "3, 3, B00R", f"{fit3['fit3']['cover_id']}, 3, {fit3['fit3']['pad_id']}"]]
+    S.append(("chosen", "Chosen heights and tighter rails", f"""
+<p>The owner, 2026-10-22 11:30: &#8220;for the new fingers with the hole in the top, we should really undersize this hole too. i think the
+middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle ground. i think it could probably still pop out
+there, but i have to live with that. i think we can, just a teensy bit, widen the top edge of the trapezoid of the rail so that it digs
+into the slot on the finger a little more. and similarly, undersize the slot and oversize the rail just a little bit for an even tighter
+fit.&#8221; The set takes cover I15H3 and cap TW15H3 of the sweep. On cover 3T each dovetail rail grows
+{fit3['fit3']['rail_grow']:.2f}{MM} per flank and its top edge {fit3['fit3']['rail_top_grow']:.2f}{MM} more; the pad's grooves lie
+{fit3['fit3']['groove_fit']:.2f}{MM} per flank inside the nominal rail (pad B05R, as B00R otherwise). The rail now presses
+{fi['at_cover_face']:.2f}{MM} into each groove wall at the cover's face and {fi['at_rail_top']:.2f}{MM} at its top, where the sweep's pair met
+with {fs['at_cover_face']:.2f} and {fs['at_rail_top']:.2f}{MM} (the groove's 0.05{MM} floor clearance tilts its flank slightly inside the rail's top);
+to snap on, each lip of a groove's mouth stretches {fr['snap_in_opening_per_side_mm']['new']:.2f}{MM} in place of
+{fr['snap_in_opening_per_side_mm']['sweep']:.2f}{MM} (Table 8, Figure 4). The pin hole narrows from {fp['hole_d_B00R_mm']:.1f} to
+{fp['hole_d_mm']:.1f}{MM}, {fp['interference_per_side_mm']:.1f}{MM} per side under the cap's pin, its 0.5{MM} mouth chamfer kept.
+The hole stays {xl['pin_hole']['to_pocket_mm']:.2f}{MM} and the grooves {xl['r4']['groove_to_pocket_mm']:.1f}{MM} from the nearest magnet pocket
+(rule R4 asks 2.0{MM}).
+Cover 3T overlaps neither the link nor the board nor the screws; its STL reads back watertight and its STEP is one valid solid.</p>
+{table(["Quantity", "Sweep: I15H3, TW15H3, pad B00R", "2026-10-22: 3T, TW15H3, pad B05R"], t8,
+       caption="The sweep's 3 mm pair against the set of 2026-10-22; per flank, the rail against the groove's wall.", n=8)}
+{fig(4, V4 / 'media' / '20261022-dip_link_v4b_rails_fit3.png', 'One rail (blue, PLA) in its groove in the pad (tan, TPU), across the finger: the sweep&#8217;s rail on pad B00R (left) and cover 3T&#8217;s on pad B05R (right); hatched: rail inside the pad.', 1100)}
+<p>Prints: {code(ROOT / xl['copies']['project'])}, the three pads on the Prusa XL's tool 2 in 85A, {xl['copies']['summary']['print_time']},
+{xl['copies']['summary']['filament_g']:.1f}&#8202;g, with the one-pad pauses at {', '.join(f'{z:g}' for z in xl['copies']['pauses_found_z'])}{MM}, each
+message saying to press the magnets into all three pads; and {code(ROOT / pl3['project'])}, the three covers and three caps on the P1S, solid
+at 0.1{MM}, {ptime(pl3)}, {pl3['filament_g']:.1f}&#8202;g. Screws as the sweep's 3{MM} pair: M2 x 8 throughout.</p>"""))
+
     S.append(("future", "Future work", f"""
 <ul>
-<li>Fit test of the sweep: with pad B00R, push each cover and cap pair sideways at the apex as before, ten pushes per pair, from
-H4 down. The lowest pair that keeps the pad on all ten pushes sets <code>wall_h</code> in the parameter file and the cap's block height;
-if H2 holds, a 1.5{MM} wall is the next step (<code>COVER_H</code> in {code(ROOT / 'scripts/dip_b_v4.py')}).</li>
+<li>Fit test of the 3T set: snap each B05R onto a 3T cover, fit the TW15H3 cap and push the pad sideways at its apex ten times. A pad
+that will not snap on by hand goes back to B00R on 3T ({fi['at_cover_face'] - fit3['fit3']['groove_fit']:.2f}{MM} per flank at the cover);
+a pad that still pops off asks for <code>groove_fit</code> 0.10 in <code>FIT3</code> of {code(ROOT / 'scripts/dip_b_v4.py')}.</li>
 <li>Read the five chips with pad B00R on v4 while pressing the pad's palmar face with the UR5e 1{MM} from its mount face at 0.5, 1 and
 3&#8202;N, ten times each, and once at the contact point; Table 5 predicts a spread at the edge
 {f"{rim['bm_five_d75_cap_colv4'] / c0['bm_five_d75_cap_colv4']:.1f} times" if have_fe else "several times"} that at the contact point.
@@ -320,7 +366,8 @@ or of the servo's horn. The readout numbers bound the stiffening from above, sin
 directions where the printed parts only push. The sweep's retention is untested; Table 6 gives what each wall faces, not what it
 holds.</p>"""))
 
-    files = [DIP / "params/20261021-v4_concept_b.json", V4 / f"{PFX}_checks.json", V4 / f"{PFX}_heights.json", V4 / "cad", V4 / "print",
+    files = [DIP / "params/20261021-v4_concept_b.json", V4 / f"{PFX}_checks.json", V4 / f"{PFX}_heights.json",
+             V4 / "20261022-dip_link_v4b_fit3.json", ROOT / "scripts/v3b_pad_b00_magnets_xl.py", V4 / "cad", V4 / "print",
              V4 / "media", ROOT / "scripts/dip_link_concept_b.py", ROOT / "scripts/dip_link_v2.py", ROOT / "scripts/dip_b_v4.py",
              ROOT / "scripts/dip_b_tip_cap.py", ROOT / "scripts/v3b_ur5v2_pla_plate.py", ROOT / "scripts/v2_tip_fe_checks.py",
              FE / "sensing.json", ROOT / "scripts/dip_b_v4_page.py"]
@@ -342,7 +389,9 @@ holds.</p>"""))
     summary = (f"DIP link b v4 recesses the bridge's palmar edge to x_F {des['bridge_x_palmar_F']:.2f} mm and shrinks the column under the "
                f"pad, so a flat object meets the pad {fo['v4']['lead_head_on_mm']:.1f} mm before any rigid part (v3: "
                f"{abs(fo['v3']['lead_head_on_mm']):.1f} mm); the joint still stops on the horn arm at {fl4['q_deg']:.1f} deg. Covers I15 with 4, 3 "
-               f"and 2 mm walls and caps with 4, 3 and 2 mm blocks at 0.15 mm print on one plate for the owner's height test.")
+               f"and 2 mm walls and caps with 4, 3 and 2 mm blocks at 0.15 mm went to the owner's height test; the owner chose 3 mm, and "
+               f"the set of 2026-10-22 adds rails {fit3['rail']['interference_per_flank_mm']['at_cover_face']:.2f}-"
+               f"{fit3['rail']['interference_per_flank_mm']['at_rail_top']:.2f} mm tighter per flank and a {fit3['pin']['hole_d_mm']:.1f} mm pin hole.")
     out = docs_index.tag(out, topic="fingertip", summary=summary, date="2026-10-21")
     out = retro_style.apply(out)
     D.mkdir(parents=True, exist_ok=True)

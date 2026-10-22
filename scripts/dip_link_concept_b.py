@@ -313,11 +313,11 @@ def hex_x(y, z, af, x0, x1):
     return m3.Manifold.hull_points(np.array(P, float))
 
 
-def rail_section(widen=0.0, top_extra=0.0):
+def rail_section(widen=0.0, top_extra=0.0, top_widen=0.0):
     """Dovetail (y, x) outline of one rail at y > 0: RAIL_BASE wide on the cover's face, RAIL_TOP wide RAIL_H palmar of
-    it. widen > 0 grows it per flank; top_extra moves its top palmar."""
+    it. widen > 0 grows it per flank; top_extra moves its top palmar; top_widen grows its top edge alone per flank."""
     xb, xt = X_SLOT + 0.001, X_SLOT - RAIL_H - top_extra
-    b, t = RAIL_BASE / 2 + widen, RAIL_TOP / 2 + widen
+    b, t = RAIL_BASE / 2 + widen, RAIL_TOP / 2 + widen + top_widen
     return [(RAIL_Y - b, xb), (RAIL_Y + b, xb), (RAIL_Y + t, xt), (RAIL_Y - t, xt)]
 
 
@@ -1050,8 +1050,12 @@ def cover_part(K):
     holes = [K.cylx(y, z, SCREW_CLEAR / 2, X_SLOT - 0.2, X_COMP + 0.2) for y, z in screw_yz()]
     cover = K.cut(web, [notch] + win + holes)
     rails = []
+    # owner, 2026-10-22: "widen the top edge of the trapezoid of the rail so that it digs into the slot on the finger a little
+    # more ... undersize the slot and oversize the rail just a little bit": the cover's rails grow rail_grow per flank and
+    # their top edge rail_top_grow more, the pad's grooves stay groove_fit inside the nominal rail (absent keys: 0, v1-v4)
+    rg, rt = float(P.get("rail_grow", 0.0)), float(P.get("rail_top_grow", 0.0))
     for s in (-1, 1):
-        sec = [(s * y, (X_SLOT + 0.1) if x > X_SLOT else x) for y, x in rail_section()]
+        sec = [(s * y, (X_SLOT + 0.1) if x > X_SLOT else x) for y, x in rail_section(rg, 0.0, rt)]
         rails.append(K.prism_z(sec, RAIL_Z[0], RAIL_Z[1]))
     if DESIGN.get("cover_walls", "none") in ("pad_flanks", "solid"):
         rails.append(cover_walls(K))

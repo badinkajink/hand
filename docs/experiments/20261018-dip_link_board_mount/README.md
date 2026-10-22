@@ -110,6 +110,22 @@ IDs), `print/20261021-dip_link_v4b_p1s_pla_heights.3mf` (42 min) and `_p1s_pla_l
 `20261021-dip_link_v4b_checks.json` and `_heights.json`; page
 [DIP link b v4 and a sweep of retaining-wall heights](../20261021-dip_link_b_v4/20261021-dip_link_b_v4_and_wall_heights.html).
 
+### Chosen heights and tighter rails (2026-10-22 11:30)
+
+The owner chose the sweep's 3 mm pair (cover I15H3, cap TW15H3) and asked for tighter rails and a smaller pin hole. Cover 3T is
+I15H3 with each rail 0.05 mm wider per flank and its top edge 0.05 mm more (`rail_grow`, `rail_top_grow` in `cover_part`; absent
+keys build v1-v4 unchanged); pad B05R is B00R with its grooves 0.05 mm inside the nominal rail and a 1.6 mm pin hole. The rail
+presses 0.10 mm into each groove wall at the cover and 0.16 mm at its top. Sizes are `FIT3` in `scripts/dip_b_v4.py`.
+
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/dip_b_v4.py fit3 fit3fig step3
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_pad_b00_magnets_xl.py --magnets five --pin-hole --raised-seats \
+        --groove-fit 0.05 --hole-d 1.6 --pid B05R --copies 3 --out docs/experiments/20261018-dip_link_board_mount/v4/b/print --date 20261022
+    $RG env UR5M_REV=v2 ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_ur5v2_pla_plate.py fit3
+
+Outputs in `v4/b/`: `cad/20261022-dip_link_v4b_cover_I15H3_3T.{stl,step}`, `print/20261022-dip_link_print_pad_ell11_5_B05R_x3_85a_t2_g30.3mf`
+(three pads on the XL, pauses at 7.3, 12.2, 17.1 mm, 1 h 20 min), `print/20261022-dip_link_v4b_p1s_pla_fit3.3mf` (three 3T covers and
+three TW15H3 caps on the P1S, 43 min), checks in `20261022-dip_link_v4b_fit3.json`; page section 8 of the v4 page.
+
 ## Opening the STEP files in Inventor
 
 1. Unzip a `.step.zip` first; the plain `.step` files open as they are.
