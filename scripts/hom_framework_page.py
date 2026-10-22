@@ -92,11 +92,13 @@ def rows_file(p):
     return out
 
 
-def video(path, caption, n):
+def video(path, caption, n, poster=None):
     if not Path(path).exists():
         return ""
     b64 = base64.b64encode(Path(path).read_bytes()).decode()
-    return (f'<figure><video controls muted loop playsinline preload="metadata" src="data:video/mp4;base64,{b64}"></video>'
+    pa = (f' poster="data:image/jpeg;base64,{base64.b64encode(Path(poster).read_bytes()).decode()}"'
+          if poster is not None and Path(poster).exists() else "")
+    return (f'<figure><video controls muted loop playsinline preload="metadata"{pa} src="data:video/mp4;base64,{b64}"></video>'
             f'<figcaption>Film {n}. {caption}</figcaption></figure>')
 
 
@@ -411,7 +413,8 @@ directly, a replay of the stream gives them again, and a plan with other mounts 
 CAD-model SR2 hand: a pin-push and a press on cylinders of 10&#8211;40&#8202;mm (a thumb-index pinch as the revolute joint of Exp. C,
 the middle finger as the pusher of Eq. (3), turning the cylinder by friction in the pin-push and by its normal force in the press),
 and spheres of 30&#8211;63&#8202;mm rolled along the thumb and twisted (the paper's Exp. B on an equator tripod), with films of every
-size.</p>"""))
+size. It also varies the pin-push's drive force and lever, and compares HOM with a sampling MPC that plans on the plant's own model
+from the same pick.</p>"""))
 
     S.append(("limits", "Limitations", r"""
 <p>The library has not been run against the reference implementation, so the agreement is with the paper's text, not its code; the
@@ -510,6 +513,72 @@ def fmt(x, nd=1):
 SIZES_CYL = (10, 16, 25, 40)
 
 
+WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+TASK_LABEL = {"pinpush": "Pin-push", "press": "Press", "roll": "Roll", "twist": "Twist"}
+
+
+def nf(f):
+    """A force in N as written on the page: 0.5, 0.75, 1.0, 1.5, 2.0."""
+    return f"{f:.1f}" if abs(f * 10 - round(f * 10)) < 1e-9 else f"{f:.2f}"
+
+
+def span(xs, nd=1, scale=1.0, dash="&#8211;"):
+    """'lo-hi' of the values (one value when both ends print alike), '&#8212;' when there are none."""
+    xs = [scale * x for x in xs if x is not None]
+    if not xs:
+        return "&#8212;"
+    lo, hi = fmt(min(xs), nd), fmt(max(xs), nd)
+    return lo if lo == hi else f"{lo}{dash}{hi}"
+
+
+def mpc_findings(MP, arm, pad_force):
+    """The MPC section's findings paragraph, from the rows."""
+    rng = span
+
+    def top(xs, nd=0):
+        xs = [x for x in xs if x is not None]
+        return fmt(max(xs), nd) if xs else "&#8212;"
+
+    A = {k: [r for t in MP for r in arm(t, k)] for k in ("hom", "mpc")}
+    if not A["mpc"]:
+        return ""
+    H = {(t, k): [r for r in arm(t, k) if r["held"]] for t in MP for k in ("hom", "mpc")}
+    cyl = {k: H[("pinpush", k)] + H[("press", k)] for k in ("hom", "mpc")}
+    sph = {k: H[("roll", k)] + H[("twist", k)] for k in ("hom", "mpc")}
+    # rollouts whose object fell before the task began (in the shared HOM pick): z 15 mm below its start at t < 2.0 s
+    early = [r for r in A["mpc"] if not r["held"] and any(x["t"] < 2.0 and x["pos_mm"][2] < r["trace"][0]["pos_mm"][2] - 15.0
+                                                          for x in r.get("trace", []))]
+    out = [f"MPC held {sum(r['held'] for r in A['mpc'])} of {len(A['mpc'])} rollouts and HOM "
+           f"{sum(r['held'] for r in A['hom'])} of {len(A['hom'])}"
+           + (f"; the {WORDS.get(len(early), len(early))} lost by both fell off the post while the fingers closed, before the task "
+              "began." if early and
+              len(early) == len(A["mpc"]) - sum(r["held"] for r in A["mpc"]) else ".")]
+    if cyl["mpc"]:
+        th = {(t, k): [r.get("theta_rmse_deg") for r in H[(t, k)]] for t in ("pinpush", "press") for k in ("hom", "mpc")}
+        out.append("On the cylinders MPC tracks the pinch angle with an RMSE of " + " and ".join(
+            f"{rng(th[(t, 'mpc')])}{NB}deg in the {t.replace('pinpush', 'pin-push')} (HOM {rng(th[(t, 'hom')])}{NB}deg)"
+            for t in ("pinpush", "press") if th[(t, "mpc")]) + ". It squeezes to do so: its "
+                   f"pads press {rng([pad_force(r) for r in cyl['mpc']], 0)}{NB}N on average against HOM's "
+                   f"{rng([pad_force(r) for r in cyl['hom']], 0)}{NB}N, finger links press the cylinder with up to "
+                   f"{top([r.get('link_force_max_N') for r in cyl['mpc']])}{NB}N (HOM {top([r.get('link_force_max_N') for r in cyl['hom']])}"
+                   f"{NB}N), and the middle finger's pad slides up to {top([r.get('pusher_slip_max_mm') for r in cyl['mpc']])}{NB}mm "
+                   f"over the cylinder (HOM {top([r.get('pusher_slip_max_mm') for r in cyl['hom']])}{NB}mm).")
+    if sph["mpc"]:
+        w = {(t, k): [r.get("w_rmse_ratio") for r in H[(t, k)]] for t in ("roll", "twist") for k in ("hom", "mpc")}
+        ce = {k: [r.get("centre_err_max_mm") for r in H[("roll", k)]] for k in ("hom", "mpc")}
+        out.append("On the spheres it tracks no better than HOM: its angular RMSE / step is " + " and ".join(
+            f"{rng(w[(t, 'mpc')], 2)} in the {t} (HOM {rng(w[(t, 'hom')], 2)})" for t in ("roll", "twist") if w[(t, "mpc")])
+                   + (f", and in the roll the sphere's centre leaves its path by {rng(ce['mpc'])}{NB}mm against HOM's "
+                      f"{rng(ce['hom'])}{NB}mm" if ce["mpc"] else "")
+                   + f", with pads pressing {rng([pad_force(r) for r in sph['mpc']], 0)}{NB}N against "
+                     f"{rng([pad_force(r) for r in sph['hom']], 0)}{NB}N.")
+    out.append(f"Over held runs its servo targets reverse {rng([r.get('cmd_reversals') for r in A['mpc'] if r['held']])} times "
+               f"per second against HOM's {rng([r.get('cmd_reversals') for r in A['hom'] if r['held']])}, and one rollout costs "
+               f"{rng([r.get('wall_s') for r in A['mpc'] if r['held']], 0, 1 / 60)}{NB}min of computation against "
+               f"{rng([r.get('wall_s') for r in A['hom'] if r['held']], 0)}{NB}s.")
+    return "<p>" + " ".join(out) + "</p>"
+
+
 def results_page():
     des = json.loads((D / "design.json").read_text()) if (D / "design.json").exists() else {}
     R = {t: [r for r in rows(t) if r.get("status") == "ok"] for t in ("pinpush", "press", "roll", "twist")}
@@ -521,9 +590,9 @@ def results_page():
         n_tab[0] += 1
         return table(head, body, num_from=num_from, caption=caption, n=n_tab[0])
 
-    def F(path, caption):
+    def F(path, caption, poster=None):
         n_film[0] += 1
-        return video(path, caption, n_film[0])
+        return video(path, caption, n_film[0], poster)
 
     def base(t, d=None, v="base"):
         return [r for r in R[t] if r.get("variant", "base") == v and (d is None or r["d_mm"] == d)]
@@ -565,6 +634,14 @@ thumb moves the centre along the thumb at $r\omega$: 7 to 11&#8202;mm per 20&#82
 <dt>Twist ramp on three pads</dt><dd>After the steps the twist reference runs at 30&#8202;deg/s for 3&#8202;s; the largest angle
 turned while all three pads press with more than 0.05&#8202;N.</dd>
 <dt>Link force</dt><dd>Largest normal force between a finger link other than the tip and the object during a rollout, in N.</dd>
+<dt>Pad force</dt><dd>A finger's pads' normal force on the object averaged over the task; the largest of the three fingers'
+averages, in N. HOM commands 3&#8202;N to the pinching fingers (the thumb adds the middle finger's share along the pinch axis),
+1.5&#8202;N to the pin-push's middle finger, 0.5&#8202;N to the press's and 2.5&#8202;N per pad on the sphere.</dd>
+<dt>Command reversals</dt><dd>Sign changes of a servo target's rate between 10&#8202;ms samples, per joint and per second of the task
+(changes under $10^{-4}$&#8202;rad ignored). The commanded strokes themselves reverse 0.3 to 0.7 times per second.</dd>
+<dt>Command rate</dt><dd>Root-mean-square rate of the nine servo targets over the task's 10&#8202;ms samples, in rad/s.</dd>
+<dt>Time per run</dt><dd>Wall-clock seconds to compute one rollout of 4.9 to 7.8&#8202;s simulated time: one core for HOM, five
+rollout threads for MPC (six for the 25&#8202;mm pin-push at seed 0).</dd>
 </dl>"""))
 
     lf = {t: [r.get("link_force_max_N") for r in base(t) if r["held"] and r.get("link_force_max_N") is not None] for t in R}
@@ -694,12 +771,88 @@ out of the grasp, so they are excluded. The sphere grasps are the scale study's 
                                 "three seeds.")
                   + f'<div class="films">{films}</div>'))
 
+    # pin-push drive force and lever (scripts/hom_tasks.py --set f_drive=... --tag fd05/fd075/fd1/fd2; design --lever, variants
+    # l30 l60)
+    FD = (("base_fd05", 0.5), ("base_fd075", 0.75), ("base_fd1", 1.0), ("base", 1.5), ("base_fd2", 2.0))
+    LV = (("l30", "l30_"), ("base", ""), ("l60", "l60_"))
+    if any(base("pinpush", v=v) for v, _ in FD if v != "base"):
+        def outcome(rs):
+            hh = [r for r in rs if r["held"]]
+            return [held(rs), fmt(med([r.get("theta_rmse_deg") for r in hh]), 1),
+                    " / ".join(fmt(stroke(rs, k), 2) for k in ("up", "down", "back")),
+                    fmt(med([r.get("off_axis_max_deg") for r in hh]), 1), fmt(med([r.get("pusher_slip_max_mm") for r in hh]), 1)]
+
+        def rmse(v, d):
+            return med([r.get("theta_rmse_deg") for r in base("pinpush", d, v) if r["held"]])
+
+        sizes = sorted({r["d_mm"] for r in R["pinpush"]})
+        body_f, body_l = [], []
+        for d in sizes:
+            for v, f in FD:
+                rs = base("pinpush", d, v)
+                if rs:
+                    body_f.append([f"{d:g}", nf(f) + (" (base)" if v == "base" else "")] + outcome(rs))
+            for v, pre in LV:
+                rs, g = base("pinpush", d, v), des.get(f"pinpush_{pre}cylinder{d:g}")
+                if rs or g is not None or v != "base":
+                    body_l.append([f"{d:g}", f"{g['lever_mm']:g}" + (" (base)" if v == "base" else "") if g else
+                                   ("35" if v == "l30" else "60") + ", no grasp", fmt(1e3 * g["score"], 1) if g else "&#8212;"]
+                                  + (outcome(rs) if rs else ["&#8212;"] * 5))
+        big = (16.0, 25.0, 40.0)
+        ran = [(v, f) for v, f in FD if base("pinpush", v=v)]
+        ranked = sorted(ran, key=lambda vf: med([rmse(vf[0], d) for d in big]))
+        fd05 = {d: [r for r in base("pinpush", d, "base_fd05") if r["held"]] for d in (16.0, 25.0)}
+        g_base = [1e3 * des[f"pinpush_cylinder{d:g}"]["score"] for d in sizes if f"pinpush_cylinder{d:g}" in des]
+        g_lv = {v: [1e3 * des[f"pinpush_{pre}cylinder{d:g}"]["score"] for d in sizes if des.get(f"pinpush_{pre}cylinder{d:g}")]
+                for v, pre in LV[::2]}
+        r_lv = {v: [rmse(v, d) for d in big if rmse(v, d) is not None] for v in ("l30", "base", "l60")}
+        fd2_40 = base("pinpush", 40.0, "base_fd2")
+
+        films = "".join(F(MEDIA / f"20261021-hom_pinpush_cylinder25_{v}.mp4",
+                          f"Pin-push on the 25{NB}mm cylinder, seed 0, {'base grasp, ' if v == 'base' else ''}middle finger "
+                          f"{des[f'pinpush_{pre}cylinder25']['lever_mm']:g}{NB}mm from the pinch.")
+                        for v, pre in LV
+                        if (MEDIA / f"20261021-hom_pinpush_cylinder25_{v}.mp4").exists() and f"pinpush_{pre}cylinder25" in des)
+        S.append(("drive", "Pin-push drive force and lever", r"""
+<p>The middle finger's commanded force $f_{\rm drive}$ sets the friction available to drag the cylinder round the pinch, and the
+lever, the distance of its contact from the pinch along the cylinder, sets the torque that friction exerts about the pinch axis.
+The base runs press with 1.5&#8202;N on the best-conditioned grasp with a lever of 40&#8202;mm or more (42.5&#8211;52.5&#8202;mm).
+Four more drive forces ran on the base grasps, and two grasp searches placed the middle finger 30&#8211;35&#8202;mm and
+60&#8211;65&#8202;mm from the pinch with the rest of the search unchanged.</p>
+<p>Over 0.5&#8211;2.0&#8202;N the median angle RMSE on the 16, 25 and 40&#8202;mm cylinders is lowest at """
+                  + " and ".join(f"{nf(f)}{NB}N (" + ", ".join(fmt(rmse(v, d), 2) for d in big) + f"{NB}deg)" for v, f in ranked[:2])
+                  + ", against " + ", ".join(fmt(rmse("base", d), 2) for d in big) + r"""&#8202;deg at 1.5&#8202;N. """
+                  + (r"""At 0.5&#8202;N friction no longer drags the 16 and 25&#8202;mm cylinders round: median angle RMSE """
+                     + " and ".join(fmt(med([r["theta_rmse_deg"] for r in fd05[d]]), 1) for d in fd05) + "&#8202;deg, the middle "
+                     "finger's pad sliding " + " and ".join(fmt(med([r.get("pusher_slip_max_mm") for r in fd05[d]]), 1) for d in fd05)
+                     + "&#8202;mm. " if all(fd05.values()) else "")
+                  + r"""At 2.0&#8202;N the 40&#8202;mm cylinder stops following the back stroke (gain """
+                  + fmt(stroke(fd2_40, "back"), 2) + r""") while the middle finger's pad slides """
+                  + fmt(med([r.get("pusher_slip_max_mm") for r in fd2_40 if r["held"]]), 0) + r"""&#8202;mm.</p>"""
+                  + T(["Size<br>(mm)", "Drive force<br>(N)", "Held", "Angle RMSE<br>(deg)", "Gains up /<br>down / back",
+                       "Off-axis<br>rotation (deg)", "Pusher<br>slip (mm)"], body_f,
+                      "Pin-push drive force on the base grasps, seeds 0&#8211;2: medians over held runs.", num_from=1)
+                  + r"""<p>Both lever searches return grasps whose least-conditioned finger has a smaller singular value than the base
+grasp's (""" + span(g_lv["l30"]) + " and " + span(g_lv["l60"]) + "&#8202;mm/rad against " + span(g_base) + r"""), and on the
+16&#8211;40&#8202;mm cylinders both track worse: an angle RMSE of """ + span(r_lv["l30"]) + "&#8202;deg with the middle finger 35&#8202;mm "
+                  "from the pinch and " + span(r_lv["l60"]) + "&#8202;deg at 60&#8202;mm, against " + span(r_lv["base"])
+                  + r"""&#8202;deg for the base grasps. On the 10&#8202;mm cylinder the 60&#8202;mm lever gives """ + fmt(rmse("l60", 10.0), 1)
+                  + "&#8202;deg against the base grasp's " + fmt(rmse("base", 10.0), 1) + r"""&#8202;deg. With the 35&#8202;mm
+lever the cylinder follows the down and back strokes with gains of """
+                  + span([stroke(base("pinpush", d, "l30"), k) for d in sizes for k in ("down", "back")], 2)
+                  + r"""; no 35&#8202;mm grasp keeps the links clear of the 10&#8202;mm cylinder.</p>"""
+                  + T(["Size<br>(mm)", "Lever<br>(mm)", "Singular value<br>(mm/rad)", "Held", "Angle RMSE<br>(deg)",
+                       "Gains up /<br>down / back", "Off-axis<br>rotation (deg)", "Pusher<br>slip (mm)"], body_l,
+                      "Pin-push lever at 1.5&#8202;N, seeds 0&#8211;2: medians over held runs. Singular value: the grasp's "
+                      "least-conditioned finger's smallest pad-Jacobian singular value.", num_from=1)
+                  + f'<div class="films">{films}</div>'))
+
     def compare(variants, key_note):
         body = []
         for t in ("pinpush", "press", "roll", "twist"):
             key, nd = SCORE[t]
             for d in sorted({r["d_mm"] for r in R[t]}):
-                row = [t, f"{d:g}"]
+                row = [TASK_LABEL[t], f"{d:g}"]
                 for v in variants:
                     rs = base(t, d, v)
                     row.append(f"{held(rs)}, {fmt(med([r.get(key) for r in rs if r['held']]), nd)}" if rs else "&#8212;")
@@ -730,7 +883,7 @@ does not state. The method page's Exp. A gives the paper's ranking at $\ell=100$
         body = []
         for t in ("roll", "twist"):
             for d in sorted({r["d_mm"] for r in FS if r["task"] == t}):
-                row = [t, f"{d:g}"]
+                row = [TASK_LABEL[t], f"{d:g}"]
                 for src, kmax, dt in (("reference", 100.0, 0.01), ("planned", 100.0, 0.01), ("planned", 25.0, 0.01),
                                       ("reference", 100.0, 0.02), ("planned", 100.0, 0.02), ("planned", 25.0, 0.02)):
                     rs = [r for r in FS if r["task"] == t and r["d_mm"] == d and r["source"] == src and r["k_max"] == kmax
@@ -759,6 +912,70 @@ the object pose read 40&#8202;ms late with 0.5&#8202;mm and 1&#8202;deg noise, c
 measurement.</p>""" + T(["Task", "Size (mm)", "Base: held, score", "No filter", "50&#8202;Hz", "50&#8202;Hz, noisy sensing",
                          "Force loop"], compare(("base",) + VAR, ""), f"Deployment variants, seeds 0&#8211;2 ({SCORE_TXT}).",
                         num_from=2)))
+
+    # pinned iCEM against HOM in the same loop (scripts/hom_tasks_mpc.py); the last row per size, seed and controller
+    MP = {t: [r for r in rows(f"mpc_{t}") if r.get("status") == "ok"] for t in ("pinpush", "press", "roll", "twist")}
+
+    def pad_force(r):
+        tr = [x for x in r.get("trace", []) if x["t"] >= 2.0 - 1e-9]
+        return max(st.mean(x["F"][f] for x in tr) for f in ("thumb", "index", "middle")) if tr else None
+
+    def arm(t, k, d=None):
+        return [r for r in MP[t] if r["controller"] == k and (d is None or r["d_mm"] == d)]
+
+    if any(MP.values()):
+        body, smooth = [], []
+        for t in ("pinpush", "press", "roll", "twist"):
+            key, nd = SCORE[t]
+            if t == "twist":
+                key, nd = "w_rmse_ratio", 2
+            for d in sorted({r["d_mm"] for r in MP[t]}):
+                c = {k: arm(t, k, d) for k in ("hom", "mpc")}
+                body.append([TASK_LABEL[t], f"{d:g}"]
+                            + [held(c[k]) for k in ("hom", "mpc")]
+                            + [fmt(med([r.get(key) for r in c[k] if r["held"]]), nd) for k in ("hom", "mpc")]
+                            + [fmt(med([pad_force(r) for r in c[k] if r["held"]]), 1) for k in ("hom", "mpc")]
+                            + [fmt(med([r.get("link_force_max_N") for r in c[k] if r["held"]]), 1) for k in ("hom", "mpc")])
+            c = {k: arm(t, k) for k in ("hom", "mpc")}
+            if c["hom"] or c["mpc"]:
+                smooth.append([TASK_LABEL[t]]
+                              + [fmt(med([r.get(m) for r in c[k] if r["held"]]), nd2) for m, nd2 in
+                                 (("cmd_reversals", 1), ("cmd_rate_rms", 2), ("wall_s", 0)) for k in ("hom", "mpc")])
+        films = "".join(F(MEDIA / f"20261021-hom_vs_mpc_{t}_{o}{d}.mp4",
+                          f"{name}, {d}{NB}mm {o}, seed 0: HOM (left) and pinned iCEM (right) from the same pick.",
+                          MEDIA / f"20261021-hom_vs_mpc_{t}_{o}{d}.jpg")
+                        for t, name, o, ds in (("pinpush", "Pin-push", "cylinder", (25, 40)), ("press", "Press", "cylinder", (25, 40)),
+                                               ("roll", "Roll", "sphere", (40, 63)), ("twist", "Twist", "sphere", (40, 63)))
+                        for d in ds if (MEDIA / f"20261021-hom_vs_mpc_{t}_{o}{d}.mp4").exists())
+        S.append(("mpc", "MPC baseline", r"""
+<p>From the start of each task (2.0&#8202;s, after the HOM pick and lift) the planner of the 2026-10-14 scale study, pinned iCEM,
+replaces the HOM controller. Every 10&#8202;ms it samples 64 plans of the nine servo targets (two iterations of 32, three knots over
+0.5&#8202;s, knot noise 0.08&#8202;rad, the first knot fixed to the applied target), rolls them out on the plant's own pads model with
+<code>mujoco.rollout</code> and applies the best; between replannings the targets follow that plan at the 1&#8202;ms physics step.
+A plan costs, over its 50 samples at 10&#8202;ms,
+$$J=\sum_{k=1}^{49}c_k+10\,c_{50}+\sum_{i=1}^{2}\lVert\mathbf u_{i+1}-\mathbf u_i\rVert^2,$$
+with $\mathbf u_i$ the knots (rad) and the sample cost $c_k$ of the task:
+$$\begin{aligned}
+c^{\rm pin\text{-}push,\,press}&=\Big(\tfrac{\theta-\theta_{\rm ref}}{2^\circ}\Big)^2+\Big(\tfrac{\psi-\psi_0}{5^\circ}\Big)^2
++\textstyle\sum_f{\rm clip}\big(\tfrac{0.2\,{\rm N}-F_f}{0.2\,{\rm N}},0,1\big)+10\,[z<z_0-15\,{\rm mm}],\\
+c^{\rm roll,\,twist}&=\tfrac{\lVert\bm\omega-\bm\omega_{\rm ref}\rVert^2}{(10^\circ/{\rm s})^2}+\tfrac{\lVert\mathbf p-\mathbf p_{\rm ref}\rVert^2}{(5\,{\rm mm})^2}
++\textstyle\sum_f{\rm clip}\big(\tfrac{0.5\,{\rm N}-F_f}{0.5\,{\rm N}},0,1\big)+10\,[z<z_0-15\,{\rm mm}],
+\end{aligned}$$
+where $\theta$ is the pinch angle and $\theta_{\rm ref}$ the commanded angle, $\psi$ the angle between the cylinder's axis and the
+plane normal to the pinch axis ($\psi_0$ at the task start), $F_f$ a finger tip's net force on the object from a contact sensor of
+the planner's model, $\bm\omega$ the object's angular velocity, $\mathbf p$ its centre and $z$ its height. The references are the
+HOM schedule's: $\mathbf p_{\rm ref}$ is the centre at the task start plus, in the roll, the integral of the velocity of rolling on
+the thumb. The HOM arm runs in the same loop and logs the same commands.</p>"""
+                  + mpc_findings(MP, arm, pad_force)
+                  + T(["Task", "Size (mm)", "Held<br>HOM", "<br>MPC", "Score<br>HOM", "<br>MPC", "Pad force (N)<br>HOM", "<br>MPC",
+                       "Link force (N)<br>HOM", "<br>MPC"],
+                      body, "Pinned iCEM (MPC) against HOM, seeds 0&#8211;2: held count, and medians over held runs of the score (angle "
+                      "RMSE in deg for pin-push and press, angular RMSE / step for roll and twist), the pad force and the link force.",
+                      num_from=2)
+                  + T(["Task", "Reversals (1/s)<br>HOM", "<br>MPC", "Command rate (rad/s)<br>HOM", "<br>MPC",
+                       "Time per run (s)<br>HOM", "<br>MPC"], smooth,
+                      "Command smoothness and computation per task, medians over the held runs of both sizes.")
+                  + films))
 
     rl = D / "rl_assessment.json"
     A = None
@@ -790,54 +1007,70 @@ at three seeds (<code>rl_assessment.json</code>, written on 2026-10-21 against t
     S.append(("limits", "Limitations", r"""
 <p>All results are simulation on one contact model and one plant, with 25&#8202;g objects. The pinch grasps are one layout family (the
 scale study's tripods). The task schedules are fixed slider sequences, as in the paper's teleoperation, with no feedback from the
-task score. The MPC comparison of 2026-10-21 ran on the earlier task definitions and is not repeated here. In the twist ramp a
-finger link presses the sphere with up to """ + fmt(max(lf.get("twist") or [0.0]), 0) + r"""&#8202;N, outside the tips'
-sensing.</p>"""))
+task score. The MPC plans on the plant's own model from its full state, which a controller on the bench does not have. The lever
+searches change the grasp's conditioning together with the lever. In the twist ramp a finger link presses the sphere with up to """
+              + fmt(max(lf.get("twist") or [0.0]), 0) + r"""&#8202;N, outside the tips' sensing.</p>"""))
     S.append(("future", "Future work", r"""
 <ul>
-<li>MPC on the corrected tasks: <code>scripts/hom_tasks_mpc.py</code> with costs on the pinch angle (pin-push, press) and on the
-centre's path (roll), seeds 0&#8211;2 at 25&#8202;mm and 40&#8202;mm; MPC tracking the pinch angle with a gain above HOM's 0.6 would locate
-the pin-push's shortfall in the HOM schedule rather than the friction drive.</li>
-<li>Pin-push drive force and lever: <code>--set f_drive=1.0,2.0</code> and grasps with the middle finger 30 and 60&#8202;mm from the
-pinch (<code>LEVER_MIN</code>); the friction drive is limited by the cylinder turning in the pinch about the vertical (off-axis
-rotation), which a shorter lever reduces at the same drive torque per newton of friction.</li>
+<li>MPC within HOM's force budget: in <code>scripts/hom_tasks_mpc.py</code>, a cost on each pad's force above 5&#8202;N and on
+the force of contact sensors on every finger link, then pin-push and press at 25 and 40&#8202;mm, seeds 0&#8211;2. An angle RMSE
+still under 1&#8202;deg with pads under 5&#8202;N and no link contact would show that planning closes HOM's tracking error; an RMSE
+near HOM's 2.5&#8202;deg would show that the squeeze does.</li>
+<li>Lever at a fixed layout: a <code>--layout</code> option of <code>scripts/hom_tasks.py design --lever</code> that keeps the base
+grasp's tripod layout, so the 35 and 60&#8202;mm levers keep its conditioning. A 35&#8202;mm lever within 0.5&#8202;deg of the base
+grasp's angle RMSE would put the lever table's losses on the grasps' conditioning.</li>
+<li>Drive force: ten seeds at 0.75 and 1.0&#8202;N on the 16 and 25&#8202;mm cylinders (<code>--set f_drive=0.75 --seeds 0 1 2 3 4 5
+6 7 8 9</code>) before 0.75&#8202;N replaces 1.5&#8202;N as the pin-push's default; one of three 16&#8202;mm seeds slipped at
+0.75&#8202;N (8.8&#8202;deg).</li>
 <li>Twist without link contact: a layout or palm height that keeps every link 1&#8202;mm off the sphere through a 90&#8202;deg ramp; a
-ramp on three pads above the present one with link force under 0.5&#8202;N would show the link was carrying the twist.</li>
+larger ramp on three pads with link force under 0.5&#8202;N would show that the link's contact limits the present ramp.</li>
 <li>Bench dry run with <code>src/morphohand/control/hom_bench.py</code> at 50&#8202;Hz on recorded tag poses, then the pin-push on a
 25&#8202;mm cylinder on the hand, with the middle finger's tip sensor as the force signal.</li>
 </ul>"""))
     S.append(("files", "Files", f"""
 <p>Folder <code>docs/experiments/20261021-hom_framework/</code>: the demonstration clips (<code>*.mov</code>), <code>design.json</code>
 (grasps), <code>rows/&lt;task&gt;.jsonl</code> (one line per rollout with its trace), <code>filter_sweep.jsonl</code>,
-<code>rl_assessment.json</code>, <code>media/</code> (films). Rows of the earlier task definitions are in commit 8f8fa3ed. Scripts:
-<code>scripts/hom_tasks.py</code> (design, run), <code>src/morphohand/control/hom_bench.py</code> (the controller between the
-bench's signals and the servo targets, with a 50&#8202;Hz dry run), <code>scripts/hom_framework_page.py</code>. The method page:
+<code>rows/mpc_&lt;task&gt;.jsonl</code> (the MPC comparison, both arms, with the command log), <code>rl_assessment.json</code>,
+<code>media/</code> (films; <code>20261021-hom_vs_mpc_*.mp4</code> side by side). Rows of the earlier task definitions are in commit
+8f8fa3ed. Scripts: <code>scripts/hom_tasks.py</code> (design, design <code>--lever</code>, run),
+<code>scripts/hom_tasks_mpc.py</code> (the MPC baseline), <code>src/morphohand/control/hom_bench.py</code> (the controller between
+the bench's signals and the servo targets, with a 50&#8202;Hz dry run), <code>scripts/hom_framework_page.py</code>. The method page:
 <a href="{relp(METHOD)}">Hand-object mechanism control: the method and its MuJoCo implementation</a>.</p>"""))
 
     pp, pr, ro, tw = base("pinpush"), base("press"), base("roll"), base("twist")
-    gq = {d: base("roll", d, "gapq") for d in (63.0,)}
     if pp and pr and ro and tw:
-        ppl = [r for r in pp if r["d_mm"] >= 16]
-        lede = (f"The library's HOM controller runs the four demonstrated tasks on the CAD-model SR2 hand in MuJoCo. In the pin-push "
-                f"the middle finger presses parallel to a thumb-index pinch and turns the cylinder about it by friction: "
-                f"{sum(r['held'] for r in pp)}/{len(pp)} rollouts held on 10&#8211;40{NB}mm cylinders, and on 16&#8211;40{NB}mm the "
-                f"angle about the pinch tracks &#177;15{NB}deg with an RMSE of {fmt(min(r['theta_rmse_deg'] for r in ppl if r['held']))}"
-                f"&#8211;{fmt(max(r['theta_rmse_deg'] for r in ppl if r['held']))}{NB}deg (stroke gains "
-                f"{fmt(min(s_['gain'] for r in ppl if r['held'] for s_ in r['strokes']), 2)}&#8211;"
-                f"{fmt(max(s_['gain'] for r in ppl if r['held'] for s_ in r['strokes']), 2)}). The press, the paper's pusher lifting "
-                f"with its normal force, held {sum(r['held'] for r in pr)}/{len(pr)} with gains of "
-                f"{fmt(min(s_['gain'] for r in pr if r['held'] for s_ in r['strokes']), 2)}&#8211;"
-                f"{fmt(max(s_['gain'] for r in pr if r['held'] for s_ in r['strokes']), 2)}. Rolling along the thumb held "
-                f"{sum(r['held'] for r in ro)}/{len(ro)} spheres of 30&#8211;63{NB}mm (angular RMSE / step "
-                f"{fmt(min(r['w_rmse_ratio'] for r in ro if r['held']), 2)}&#8211;{fmt(max(r['w_rmse_ratio'] for r in ro if r['held']), 2)}) "
-                f"and twisting {sum(r['held'] for r in tw)}/{len(tw)}, with a finger link pressing the sphere in the twist ramp.")
-        if gq[63.0]:
-            lede += (f" Measuring the servo impedance's gap at the joint reference held the 63{NB}mm roll in "
-                     f"{held(base('roll', 63.0))} runs against {held(gq[63.0])} with the earlier impedance.")
+        ppl = [r["theta_rmse_deg"] for r in pp if r["d_mm"] >= 16 and r["held"]]
+        lede = (f"On the CAD-model SR2 hand in MuJoCo the library's HOM controller held {held(pp)} pin-push rollouts (a middle "
+                f"finger dragging a cylinder round a thumb-index pinch by friction) and tracked the &#177;15{NB}deg command with an "
+                f"RMSE of {span(ppl)}{NB}deg on 16&#8211;40{NB}mm cylinders; the press held {held(pr)}, the roll {held(ro)} and the "
+                f"twist {held(tw)}.")
+        summary = (f"Under the HOM controller the pin-push held {held(pp)} rollouts (angle RMSE {span(ppl, dash='-')} deg on 16-40 mm "
+                   f"cylinders), the press {held(pr)}, rolling {held(ro)} and twisting {held(tw)}.")
+        fd = [(v, f) for v, f in (("base_fd05", 0.5), ("base_fd075", 0.75), ("base_fd1", 1.0), ("base", 1.5), ("base_fd2", 2.0))
+              if base("pinpush", v=v)]
+
+        def fd_rmse(v):
+            return [med([r["theta_rmse_deg"] for r in base("pinpush", d, v) if r["held"]]) for d in (16.0, 25.0, 40.0)]
+        if len(fd) > 1:
+            bv, bf = min(fd, key=lambda vf: med(fd_rmse(vf[0])))
+            lede += f" A drive force of {nf(bf)}{NB}N tracks best ({span(fd_rmse(bv))}{NB}deg)."
+        mc = [r for t in ("pinpush", "press") for r in MP[t] if r["controller"] == "mpc" and r["held"]]
+        hh = {t: [r["theta_rmse_deg"] for r in MP[t] if r["controller"] == "hom" and r["held"]] for t in ("pinpush", "press")}
+        hc = [r for t in ("pinpush", "press") for r in MP[t] if r["controller"] == "hom" and r["held"]]
+        if mc and hc:
+            th_m = [r["theta_rmse_deg"] for r in mc]
+            pf_m, pf_h = [pad_force(r) for r in mc], [pad_force(r) for r in hc]
+            vs = ", ".join(f"{span(hh[t])}{NB}deg in the {t.replace('pinpush', 'pin-push')}" for t in ("pinpush", "press") if hh[t])
+            allm = [r for t in MP for r in MP[t] if r["controller"] == "mpc" and r["held"]]
+            lede += (f" Pinned iCEM on the plant's own model tracks the pinch angle to {span(th_m)}{NB}deg (HOM {vs}) by squeezing "
+                     f"with {span(pf_m, 0)}{NB}N per pad against {span(pf_h, 0)}{NB}N, tracks the spheres no better than HOM, and costs "
+                     f"{span([r['wall_s'] for r in allm], 0, 1 / 60)}{NB}min of computation per rollout.")
+            summary += (f" Pinned iCEM tracks the pinch angle to {span(th_m, dash='-')} deg against HOM's "
+                        + " and ".join(f"{span(hh[t], dash='-')} deg in the {t.replace('pinpush', 'pin-push')}"
+                                       for t in ("pinpush", "press") if hh[t])
+                        + f" but squeezes with {span(pf_m, 0, dash='-')} N per pad against {span(pf_h, 0, dash='-')} N.")
     else:
-        lede = "Rows pending."
-    summary = re.sub(r"<[^>]+>|\$", "", lede.replace("&#8202;", " ").replace("&#8211;", "-").replace("&#177;", "+-"))
-    summary = ". ".join(summary.split(". ")[:2]).rstrip(".") + "."
+        lede = summary = "Rows pending."
     assemble(S, "HOM tasks across object sizes", "HOM control of four demonstrated tasks across object sizes on the CAD-model SR2 hand",
              "Reorientation mechanisms and control &#183; 2026-10-22", lede,
              f"Built {time.strftime('%Y-%m-%d %H:%M')} from rows/*.jsonl at commit {git_short()}.", RESULTS, summary)
