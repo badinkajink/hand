@@ -116,6 +116,7 @@ class Calib:
     g_uT: tuple = (0.0, 0.0, 0.0)
     rms_mT: float = float("nan")
     b_rest_uT: list = field(default_factory=list)
+    rms_next_mT: float = float("nan")         # residual of the best other pole pattern (calibrate_frames_fixed)
 
     def save(self, path):
         Path(path).write_text(json.dumps(asdict(self), indent=1) + "\n")
@@ -235,23 +236,58 @@ def calibrate(b_rest_uT, case="b_v2", poles=None, top=24, verbose=True):
     return cal, fits
 
 
-def calibrate_frames_fixed(b_rest_uT, board: Calib, case=None, poles=None):
-    """Fit poles (16 patterns unless given), strength and offsets with the chip frames and assignment of `board` (a
-    previous full calibration of the same board) kept: seconds instead of a minute, for a new pad or new magnets."""
+PRESCREEN_OFFSETS = [(dx, dy, dz) for dx in (0.0, 1.5) for dy in (-1.5, 0.0, 1.5) for dz in (-1.5, 0.0, 1.5)]
+
+
+def prescreen_poles(b, row, board: Calib, offsets=PRESCREEN_OFFSETS):
+    """Every pole pattern ranked by a linear fit of the reading at rest b (uT, (5, 3)): at each offset (dx, dy, dz) of
+    the grid the reading is a strength times the pattern's field plus a uniform field, both fitted by least squares.
+    The board's chip axes fix the field's sign, so a negative strength selects the reversed pattern and all 2^n patterns
+    are covered. Returns [(rms_uT, poles, k, (dx, dy, dz), g_uT)] best first, one entry per pattern."""
+    nm = len(row["magnets"])
+    R = Model(Calib(poles=(1,) * nm, s=board.s, theta0=board.theta0, perm=board.perm), row).R
+    U = np.stack([R[:, :, a].ravel() for a in range(3)], 1)            # reading of a uniform field of 1 uT
+    pats = [p for p in itertools.product((1, -1), repeat=nm) if p[0] == 1]
+    best = {}
+    for off in offsets:
+        F = np.stack([Model(Calib(poles=tuple(int(i == j) for i in range(nm)), s=board.s, theta0=board.theta0,
+                                  perm=board.perm, dx=off[0], dy=off[1], dz=off[2]), row).rest_uT().ravel()
+                      for j in range(nm)], 1)                         # reading of each magnet alone, N52, pole +1
+        for p in pats:
+            A = np.column_stack([F @ np.array(p), U])
+            x = np.linalg.lstsq(A, b.ravel(), rcond=None)[0]
+            rms = float(np.sqrt(np.mean((A @ x - b.ravel()) ** 2)))
+            sp = p if x[0] > 0 else tuple(-v for v in p)
+            if sp not in best or rms < best[sp][0]:
+                best[sp] = (rms, sp, abs(float(x[0])), off, x[1:4])
+    return sorted(best.values(), key=lambda q: q[0])
+
+
+def calibrate_frames_fixed(b_rest_uT, board: Calib, case=None, poles=None, keep=6):
+    """Fit poles, strength and offsets with the chip frames and assignment of `board` (a previous full calibration of
+    the same board) kept: seconds instead of a minute, for a new pad or new magnets. Unless `poles` is given, all 32
+    patterns are searched, the centre magnet's pole included (the board's chip axes fix the field's sign): the linear
+    prescreen_poles ranks them and the nonlinear fit runs on the `keep` best. rms_next_mT is the residual of the best
+    other pattern fitted."""
     row = fe_row(case or board.case)
     b = np.asarray(b_rest_uT, float)
-    pole_set = [poles] if poles is not None else [(c[0], c[1], 1, c[2], c[3]) for c in itertools.product((1, -1), repeat=4)]
-    best = None
-    for pl in pole_set:
-        for x0 in ([1.0, 0, 0, 0], [0.4, 0, 0, 0]):
-            r = least_squares(lambda p: _resid(b, row, pl, board.s, board.perm, p, theta0=board.theta0), x0 + [0, 0, 0],
-                              bounds=([0.1, -3, -4, -4, -100, -100, -100], [2.0, 8, 4, 4, 100, 100, 100]))
-            if best is None or r.cost < best[0].cost:
-                best = (r, pl)
-    r, pl = best
+    bounds = ([0.1, -3, -4, -4, -100, -100, -100], [2.0, 8, 4, 4, 100, 100, 100])
+    if poles is not None:
+        starts = [(tuple(poles), x0 + [0, 0, 0]) for x0 in ([1.0, 0, 0, 0], [0.4, 0, 0, 0])]
+    else:
+        starts = [(pl, [float(np.clip(k, 0.1, 2.0)), *off, *np.clip(g, -100, 100)])
+                  for _, pl, k, off, g in prescreen_poles(b, row, board)[:keep]]
+    fits = {}
+    for pl, x0 in starts:
+        r = least_squares(lambda p: _resid(b, row, pl, board.s, board.perm, p, theta0=board.theta0), x0, bounds=bounds)
+        if pl not in fits or r.cost < fits[pl].cost:
+            fits[pl] = r
+    ranked = sorted(fits.items(), key=lambda q: q[1].cost)
+    pl, r = ranked[0]
+    rms = [float(np.sqrt(np.mean(q.fun ** 2))) for _, q in ranked]
     return Calib(case=case or board.case, poles=tuple(int(v) for v in pl), s=board.s, theta0=board.theta0, perm=board.perm,
                  k=float(r.x[0]), dx=float(r.x[1]), dy=float(r.x[2]), dz=float(r.x[3]), g_uT=tuple(float(v) for v in r.x[4:7]),
-                 rms_mT=float(np.sqrt(np.mean(r.fun ** 2))), b_rest_uT=b.tolist())
+                 rms_mT=rms[0], b_rest_uT=b.tolist(), rms_next_mT=rms[1] if len(rms) > 1 else float("nan"))
 
 
 def load_thermal(path=THERMAL):

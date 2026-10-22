@@ -144,7 +144,15 @@ contact only above 0.25 N, and takes a new baseline once the reading has been as
 takes in a press held that still. The page has sliders for the threshold and the floor and a switch for the re-zero (key
 z); `--floor`, `--min-force`, `--auto-zero 0` and `--no-thermal` set them at the start. When the board is unplugged the
 viewer waits for it, opens it again (on its `/dev/serial/by-id` name, which stays the same when the board comes back as
-another ttyACM) and takes a new baseline 2 s later; nothing else needs to run first.
+another ttyACM) and calibrates again 2 s later, since the pad may have been changed meanwhile; nothing else needs to run
+first.
+
+A pad change needs no key (2026-10-22). With no pad on the board the reading's magnitude is 0.16 mT (9 to 13 mT with a
+pad), and below 0.5 mT the viewer shows no contact; a pad put on is calibrated once it has been still for 3 s. A re-zero
+that would move the rest by more than 10 % of the calibrated field calibrates instead, since the pad was set down in
+another place or pose. All 32 pole patterns are searched, so each magnet may go in either way. The status line gives
+the poles row by row, tip end first, and adds a warning when the next pattern fits within 1.5 times the residual. Every
+calibration is saved under `logs/20261020-contact_estimation/calib/`.
 
 A pad that moves in its seat leaves an offset after each press, which the estimator reads as a standing contact. To check
 the seat, record about 2 s untouched, then five firm presses at different spots, each under a second and followed by at

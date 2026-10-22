@@ -13,6 +13,15 @@ Every record of the stream also goes to logs/20261020-contact_estimation/stream/
 host time as float64, then 5 x [t x y z] as float32; read_stream() reads it back), so no session is lost; key r writes
 the stretch between two presses of r as a CSV in the format of reskin5x_plot.py --out.
 
+Pad changes (2026-10-22). The fitted poles, strength and offsets belong to one pad, so the viewer calibrates again by
+itself when the pad changes. The magnitude of the reading over its 15 components is 0.16 mT with no pad on the board and
+9 to 13 mT with the pads of 2026-10-22. Below 0.5 mT no contact is shown, and once a pad has been on the board and still
+for 3 s it is calibrated. After the board is plugged in again it is calibrated as well, since the pad may have been
+changed while it was unplugged. A re-zero that would move the rest by more than 10 % of the calibrated rest's
+magnitude also calibrates, because the pad was set down in another place or pose. All 32 pole patterns are searched
+(fingertip_wrench_model.calibrate_frames_fixed), so each magnet may be inserted either way. The status line gives the
+poles row by row, tip end first, and every calibration is saved to logs/20261020-contact_estimation/calib/<time>-calib.json.
+
 Drift (2026-10-21). The chips run without their on-chip temperature compensation, and their sensitivity falls by 0.65 to
 0.70 % per C of die temperature: the board warms by about 1.3 C in the minutes after it is plugged in, which moves the
 rest reading by 70 uT, and the room's temperature moves it over hours. Every reading is divided by its chip's gain at
@@ -55,6 +64,10 @@ BASIS = DATA / "20261020-b_v2_surface_basis.npz"
 BOARD_CAL = DATA / "20261020-calib_pad_as_found.json"
 REC_DIR = ROOT / "logs/20261020-contact_estimation"
 WIN_S, FRAME_S, REST_S = 0.05, 1 / 30, 2.0
+PAD_OFF_MT, PAD_ON_MT = 0.5, 1.0   # field magnitude over the 15 components: 0.16 mT with no pad, 9-13 mT with the pads of 10-22
+REST_MOVED = 0.1                   # a rest this fraction of the calibrated rest's magnitude away is calibrated again
+                                   # (seat shifts of 10-20 moved it 62-104 uT, about 1 %; the pad set down in another
+                                   # pose at 15:22:59 on 10-22 moved it 14.3 mT, 110 %)
 STREAM_DTYPE = np.dtype([("t", "<f8"), ("r", "<f4", (20,))])
 
 
@@ -151,7 +164,8 @@ class App:
         self.rz = W.RestZero(hold_s=a.auto_zero if a.auto_zero > 0 else 3.0)
         self.auto = a.auto_zero > 0
         self.T_cal = None
-        self.est = self.base = None
+        self.est = self.base = self.cal = None
+        self.pad_off, self.pad_still, self.cal_lock = False, W.RestZero(hold_s=3.0), threading.Lock()
         self.clients, self.R_ind, self.status = set(), 8.0, "starting"
         self.rec, self.rec_rows = False, []
         self.scene_dirty = False
@@ -183,25 +197,62 @@ class App:
             b = W.thermal_correct(b, r_T[:, :, 0].mean(0), self.kappa)
         return b.reshape(len(rr), 15)
 
-    def calibrate(self):
-        self.status = f"calibrating: keep the pad untouched for {REST_S:.0f} s"
-        time.sleep((REST_S + 0.2) / getattr(self.src, "speed", 1.0))   # a replay runs on the recording's clock
-        t, r = self.records()
-        sel = t > t[-1] - REST_S
-        b_rest = self.fields(r[sel], r).mean(0).reshape(5, 3)
-        self.T_cal = r[:, :, 0].mean(0)
-        t0 = time.time()
-        cal = W.calibrate_frames_fixed(b_rest, self.board, poles=tuple(self.a.poles) if self.a.poles else None)
-        self.cal = cal
-        self.model = W.Model(cal, self.row)
-        est = W.SurfaceEstimator(self.model, self.basis, floor_uT=self.floor)
-        est.set_noise_scale(1 / np.sqrt(WIN_S * 140))
-        self.est, self.base = est, b_rest.ravel()
-        self.rz.t_still = None
-        self.scene_dirty = True                               # the pump sends the fitted poles and chip labels
-        self.status = (f"calibrated in {time.time() - t0:.1f} s: poles {cal.poles}, magnet strength {cal.k:.2f} of N52, "
-                       f"offset ({cal.dx:+.2f}, {cal.dy:+.2f}, {cal.dz:+.2f}) mm, rms {cal.rms_mT:.2f} mT")
-        print(self.status, flush=True)
+    def calibrate(self, why=None):
+        if not self.cal_lock.acquire(blocking=False):         # a calibration is already running
+            return
+        try:
+            self.status = (f"{why}: " if why else "") + f"calibrating, keep the pad untouched for {REST_S:.0f} s"
+            print(self.status, flush=True)
+            time.sleep((REST_S + 0.2) / getattr(self.src, "speed", 1.0))   # a replay runs on the recording's clock
+            t, r = self.records()
+            if len(t) < 10:
+                self.status = "no data from the board: not calibrated (c tries again)"
+                return
+            sel = t > t[-1] - REST_S
+            b_rest = self.fields(r[sel], r).mean(0).reshape(5, 3)
+            if np.linalg.norm(b_rest) < PAD_ON_MT * 1e3:
+                self.pad_off, self.est, self.scene_dirty = True, None, True
+                self.status = "no pad on the board: a pad is calibrated once it has been on the board and still for 3 s"
+                print(self.status, flush=True)
+                return
+            self.T_cal = r[:, :, 0].mean(0)
+            t0 = time.time()
+            cal = W.calibrate_frames_fixed(b_rest, self.board, poles=tuple(self.a.poles) if self.a.poles else None)
+            self.cal = cal
+            self.model = W.Model(cal, self.row)
+            est = W.SurfaceEstimator(self.model, self.basis, floor_uT=self.floor)
+            est.set_noise_scale(1 / np.sqrt(WIN_S * 140))
+            self.est, self.base, self.pad_off = est, b_rest.ravel(), False
+            self.rz.t_still = None
+            self.scene_dirty = True                           # the pump sends the fitted poles and chip labels
+            saved = ""
+            if not self.a.replay and not self.a.no_log:
+                (REC_DIR / "calib").mkdir(parents=True, exist_ok=True)
+                path = REC_DIR / "calib" / time.strftime("%Y%m%d-%H%M%S-calib.json")
+                cal.save(path)
+                saved = f"; saved to {path.relative_to(ROOT)}"
+            self.status = (f"calibrated in {time.time() - t0:.1f} s: poles {self.pole_rows(cal.poles)}, magnet strength "
+                           f"{cal.k:.2f} of N52, offset ({cal.dx:+.2f}, {cal.dy:+.2f}, {cal.dz:+.2f}) mm, rms "
+                           f"{cal.rms_mT:.2f} mT (next pattern {cal.rms_next_mT:.2f} mT)")
+            if cal.rms_next_mT < 1.5 * cal.rms_mT:          # 2.0-4.1 with the pads of 10-22 in their seat
+                self.status += "; another pattern fits almost as well, so the pad may not sit in its seat"
+            print(self.status + saved, flush=True)
+        finally:
+            self.cal_lock.release()
+
+    def start_calibration(self, why):
+        """Calibrate in the background after the pad or the board changed, showing no contacts until it is done."""
+        self.est, self.scene_dirty = None, True
+        self.status = f"{why}: calibrating, keep the pad untouched for {REST_S:.0f} s"
+        threading.Thread(target=self.calibrate, args=(why,), daemon=True).start()
+
+    def pole_rows(self, poles):
+        """The poles row by row along the finger, tip end first, each row from -y to +y: '+ + / + / - -'."""
+        c, _ = W.magnets(self.row)
+        rows = {}
+        for j in np.lexsort((c[:, 1], -c[:, 2])):
+            rows.setdefault(round(float(c[j, 2]), 1), []).append("+" if poles[j] > 0 else "-")
+        return "tip end " + " / ".join(" ".join(v) for v in rows.values()) + " mount end"
 
     def baseline(self):
         t, r = self.records()
@@ -245,17 +296,16 @@ class App:
         if not getattr(self.src, "connected", True):
             return dict(type="status", status="board unplugged: waiting for it on USB")
         if getattr(self.src, "reconnects", 0) != self.seen_reconnects:
-            # the board restarts when it is plugged in again: a new baseline once REST_S of records have arrived
+            # the board restarts when it is plugged in again, and the pad may have been changed meanwhile: a new
+            # calibration once REST_S of records have arrived
             self.seen_reconnects, self.t_rebase = self.src.reconnects, time.time() + REST_S + 0.5
-            self.status = f"board plugged in again on {self.src.port}: keep the pad untouched, new baseline in {REST_S:.0f} s"
+            self.status = f"board plugged in again on {self.src.port}: keep the pad untouched, calibration in {REST_S:.0f} s"
             print(self.status, flush=True)
         t, r = self.src.snapshot()
         if self.t_rebase is not None and time.time() > self.t_rebase and len(t) > 10:
             self.t_rebase = None
-            self.baseline()
-            self.status = "board plugged in again: new baseline taken (c recalibrates if the pad moved in its seat)"
-            print(self.status, flush=True)
-        if self.est is None or len(t) < 3 or self.t_rebase is not None:
+            self.start_calibration("board plugged in again")
+        if len(t) < 3 or self.t_rebase is not None:
             return dict(type="status", status=self.status)
         t, r = self.records()
         if len(t) < 3:
@@ -263,10 +313,37 @@ class App:
         sel = t > t[-1] - WIN_S
         if sel.sum() == 0:
             return dict(type="status", status="no data from a chip")
-        d = self.fields(r[sel], r).mean(0) - self.base
+        b_now = self.fields(r[sel], r).mean(0)
+        level = float(np.linalg.norm(b_now)) / 1e3
+        if level < PAD_OFF_MT:
+            # the pad is off the board: the next pad is calibrated once it has been on the board and still for 3 s
+            self.pad_still.t_still = None
+            if not self.pad_off:
+                self.pad_off, self.est, self.scene_dirty = True, None, True
+                self.status = (f"no pad on the board ({level:.2f} mT): put one on and leave it untouched; it is "
+                               f"calibrated after {self.pad_still.hold_s:.0f} s at rest")
+                print(self.status, flush=True)
+            return dict(type="status", status=self.status)
+        if self.pad_off:
+            if level > PAD_ON_MT:
+                last = t > t[-1] - self.pad_still.span_s
+                if self.pad_still.update(t[last], self.fields(r[last], r), np.zeros(15)) is not None:
+                    self.pad_off = False
+                    self.start_calibration("a pad was put on the board")
+                else:
+                    self.status = f"a pad is on the board: it is calibrated after {self.pad_still.hold_s:.0f} s at rest"
+            return dict(type="status", status=self.status)
+        if self.est is None:
+            return dict(type="status", status=self.status)
+        d = b_now - self.base
         if self.auto:
             last = t > t[-1] - self.rz.span_s
             nb = self.rz.update(t[last], self.fields(r[last], r), self.base)
+            ref = np.ravel(self.cal.b_rest_uT)
+            if nb is not None and np.linalg.norm(nb - ref) > REST_MOVED * np.linalg.norm(ref):
+                # the pad was set down in another place or pose: a new calibration in place of a re-zero
+                self.start_calibration(f"the rest moved {np.linalg.norm(nb - ref) / 1e3:.1f} mT from the calibrated one")
+                return dict(type="status", status=self.status)
             if nb is not None:
                 d = d + self.base - nb
                 self.base = nb
