@@ -26,6 +26,10 @@ file wins where they differ. They apply to every page, report, commit message an
 
 - Write as a researcher: plain declarative sentences, the technical noun as subject, numbers with units, the finding
   before the story. The style reference is `paper/hand_iros26-4.pdf`.
+- About 15 % of sentences are passive (owner, 2026-10-22). Each passive replaces an active sentence that gives a thing
+  agency and puts the quantity acted on first: "the coefficient encodes the patch" becomes "the patch is encoded in the
+  coefficient". Physical actions stay active ("the thumb presses the cylinder"). Where the passive reads worse, remove
+  the agency instead: "the point contacts let it swing" becomes "between the point contacts it swings".
 - Chat replies are plain paragraphs to a colleague (owner, 2026-10-11): no markdown headers, numbered section titles,
   bold lead-in labels or nested bullets; the answer first, then its numbers, then what happens next; a list only for
   paths, links or commands.
