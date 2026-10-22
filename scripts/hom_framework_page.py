@@ -218,7 +218,7 @@ $|u|\le2$&#8202;rad/s. The joint-limit bound is applied to $\theta_{\rm ref}$, t
 an approach stops just before contact and the force comes from the impedance controller [1]; here the distance is 0.5&#8202;mm.</p>"""))
 
     S.append(("commands", "Commands: relative velocities, object twist, pinch and pusher, Eq. (3)", r"""
-<p>Each finger takes either its four relative contact velocities directly (the paper's Exp. A moves a finger round a cylinder this
+<p>Each finger takes either its four relative contact velocities (the paper's Exp. A moves a finger round a cylinder this
 way, one element at a time) or the object's reference body twist $\mathcal V^b_{PB_0}$ through Eq. (1) with $v_{i,\rm ref}=0$, so
 that the finger moves with the object's material point and the object becomes the mechanism's effector (Exp. B). The two fingers of
 a pinch take the same separation velocity and the same applied force. When a third finger turns the object about the pinch axis as
@@ -227,7 +227,7 @@ $$\mathcal V^b_{PB_0}=\mathrm{Ad}_{T_{B_0M}}\begin{bmatrix}s&0&0&0_{1\times3}\en
 <p>where $\{M\}$ is the pinch frame fixed to the object, with its origin at the midpoint of the two pinch contacts and its $x$ axis
 along the line joining them. One scalar $s$ then drives the revolute joint that the pinch forms, as the operator's slider did in the
 paper's Exp. C.</p>
-<p><code>HandCommand</code> holds these sliders: per finger a mode (free, pinch or pusher), $v_{\rm ref}$, the weights and the applied
+<p><code>HandCommand</code> contains these sliders: per finger a mode (free, pinch or pusher), $v_{\rm ref}$, the weights and the applied
 force; for the hand the object twist, $s$ and the pinch's fingers. <code>pusher_body_twist</code> is Eq. (3); a test checks that
 points on the pinch axis do not move under it. A pinch used as a prismatic joint takes an explicit pusher twist, a translation along
 the tool, in place of Eq. (3) (<code>HandCommand.pusher_twist</code>); the pin-push and press tasks use it.</p>"""))
@@ -373,7 +373,7 @@ needs it cannot run there yet. The library keeps it as an option (<code>HomParam
 <li>Surfaces: closest points of the rounded block against 60,000 sampled surface points, the block's shape operator on a face (0),
 an edge ($1/r$ across, 0 along) and a corner ($1/r$), cylinder side, cap and interior queries, sphere and plane queries, a posed
 surface.</li>
-<li>Geodesic steps: 10&#8202;mm along a 20&#8202;mm sphere lands on the great circle to 1e-12&#8202;m; round and along a cylinder.</li>
+<li>Geodesic steps: 10&#8202;mm along a 20&#8202;mm sphere ends on the great circle within 1e-12&#8202;m; round and along a cylinder.</li>
 <li>Roll-slide kinematics: rolling (three radius pairs) and sliding of a sphere on a sphere against the closed forms, and rolling
 against the contact point found from the moved bodies (0.1&#8202;%).</li>
 <li>Eq. (1) against finite differences of a two-joint finger and a free sphere at five random states and object twists (1e-4
@@ -532,7 +532,7 @@ through a pinch used as a prismatic joint; other readings, such as the foundatio
 finger or a pusher above the tool.</p>
 <ul>
 <li><b>Pin-push.</b> A 70&#8202;mm cylinder lies along the palm's $x$ axis. Index and middle pinch it across its middle with
-1.5&#8202;N each: a prismatic joint whose torsional friction holds the gravity torque as the centre of mass leaves the pinch. The thumb,
+1.5&#8202;N each: a prismatic joint whose torsional friction resists the gravity torque as the centre of mass leaves the pinch. The thumb,
 a pusher on the end cap, takes a translation of 10&#8202;mm/s along the axis for 1&#8202;s while the pinching fingers keep
 $\mathcal V^b_{PB_0}=0$; then the pinch locks at 3&#8202;N.</li>
 <li><b>Press.</b> The same grasp, a wall 4&#8202;mm beyond the far end cap. The thumb pushes the cylinder to the wall at 8&#8202;mm/s,
