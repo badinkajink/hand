@@ -156,10 +156,10 @@ def jitter_text(R, done, res):
          + (f"Friction DR on top leaves {by_hand(dr_lo, 1, 1)} of 64. " if dr_lo else ""))
     if big:
         d7 = [r[3][0] for r in big if r[0].startswith("D7")]
-        t += (f"The evaluation published here on 2026-09-20 ran on two plants: <code>env_build</code> began to copy the "
+        t += (f"The evaluation published here on 2026-09-20 ran on two plants. While it ran, <code>env_build</code> began to copy the "
               "scene&#8217;s contact class onto the tool (solref 0.006, solimp 0.97&#8211;0.995, against MuJoCo&#8217;s defaults of "
-              "0.02 and 0.9&#8211;0.95 in training) while it ran, so its first four policies (D6 with seed 0 under both arms, D3 and D4 "
-              "with the clipped residual) were evaluated as trained and the other twelve on the scene&#8217;s class, where "
+              "0.02 and 0.9&#8211;0.95 in training). Its first four policies (D6 with seed 0 under both arms, D3 and D4 "
+              "with the clipped residual) were therefore evaluated as trained. The other twelve were evaluated on the scene&#8217;s class, where "
               f"{len(big)} of them read {rng([r[3][0] for r in big])} of 64" + (f" (D7 {' and '.join(str(v) for v in sorted(d7))})" if d7 else "") + ".")
         nom = [r for r in have if r[4] is not None]
         if len(nom) == len(have):
@@ -168,7 +168,7 @@ def jitter_text(R, done, res):
             t += (f" Repeated on the scene&#8217;s class on 2026-10-11 at the trained pose, with no jitter, {len(lo_n)} of the "
                   f"{len(have)} hold the tool in at most {max(r[4] for r in lo_n)} of 64 rollouts"
                   + (f" and only {keepers(keep, nom)} keep it" if keep else "")
-                  + "; the drop in held rollouts comes from the contact class.")
+                  + ". The drop in held rollouts comes from the contact class.")
         t += (" The CPU replays and the chain below also run the tool on the scene&#8217;s contact class, and the "
               "<a href=\"../20260920-robust_tranche/20260920-robust_reorient_policies.html\">2026-09-20 continuation</a> trains every "
               "checkpoint further on it, with the jitter.")
