@@ -139,6 +139,22 @@ Outputs in `v4/b/`: `cad/20261022-dip_link_v4b_cover_I15H2_2T.{stl,step}`, `prin
 covers and three TW15H2 caps on the P1S, 39 min), checks in `20261022-dip_link_v4b_fit2.json`; Table 9 of the v4 page. Two more
 DIP links b v4 on one P1S plate: `print/20261022-dip_link_v4b_p1s_pla_link_x2.3mf` (1 h 52 min).
 
+### Snug sets without the added interference (2026-10-22 16:37)
+
+With the 3T set the pad no longer sat flush on the cassette and was locked in too tightly (owner: "now i want to try a setting
+where it's a more very-snug fit without all the compression"). The snug sets remove the interference of 11:30 for the B05R pads
+already printed: the rails of covers 3S and 2S are as wide as B05R's grooves along the whole flank (1.20 mm at the cover, 1.771 mm
+at the top; `rail_grow` -0.05, `rail_top_grow` -0.0143), and caps TW15H3S and TW15H2S have a 1.6 mm pin for B05R's 1.6 mm hole.
+The walls and the caps' blocks keep I15 (0.15 mm per side). `FIT3S`, `FIT2S` in `scripts/dip_b_v4.py`; screws M2 x 8 on the
+3 mm parts, M2 x 6 on the 2 mm parts.
+
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/dip_b_v4.py fit3s fit2s step3s step2s
+    $RG env UR5M_REV=v2 ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_ur5v2_pla_plate.py snug
+
+Outputs in `v4/b/`: `cad/20261022-dip_link_v4b_cover_I15H3_3S.{stl,step}`, `_cover_I15H2_2S`, `_tip_cap_TW15H3S`, `_tip_cap_TW15H2S`,
+`print/20261022-dip_link_v4b_p1s_pla_snug.3mf` (three of each part on the P1S, 1 h 12 min), checks in `20261022-dip_link_v4b_fit3s.json`
+and `_fit2s.json`; Table 10 of the v4 page.
+
 ## Opening the STEP files in Inventor
 
 1. Unzip a `.step.zip` first; the plain `.step` files open as they are.

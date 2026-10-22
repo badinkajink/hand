@@ -30,6 +30,9 @@ Commands of this script (frame F; outputs under docs/experiments/20261018-dip_li
            --groove-fit 0.05 --hole-d 1.6 --pid B05R --copies 3, the covers and caps with v3b_ur5v2_pla_plate.py fit3
   fit2     (2026-10-22 16:17) cover 2T: I15H2 with 3T's rails, for the same pads and the sweep's cap TW15H2
            -> 20261022-dip_link_v4b_fit2.json; step2 its STEP; plate v3b_ur5v2_pla_plate.py fit2
+  fit3s, fit2s  (2026-10-22 16:37) the snug sets on the B05R pads: covers 3S and 2S with rails as wide as B05R's grooves, caps
+           TW15H3S and TW15H2S with a pin as wide as B05R's 1.6 mm hole; walls and blocks at I15 -> 20261022-dip_link_v4b_fit3s.json,
+           _fit2s.json; step3s, step2s their STEP files; plate v3b_ur5v2_pla_plate.py snug
 
     unset VIRTUAL_ENV PYTHONPATH
     ~/.claude/bin/resguard.sh run --mem 4G --cpu 200 -- taskset -c 14,15 env NUMPY_MADVISE_HUGEPAGE=0 \\
@@ -474,7 +477,19 @@ PFX3 = "20261022-dip_link_v4b"
 # tighter fit on the rails/slots for the fingertip/cassette, it might be viable again": the sweep's 2 mm pair with FIT3's rails;
 # the same pad B05R, the sweep's cap TW15H2 (the cap has no rail; its pin is the same)
 FIT2 = dict(FIT3, wall_h=2.0, block_h=2.0, cover_id="2T", cap_id="TW15H2")
-FITS = {"fit3": (FIT3, FIT3_REC), "fit2": (FIT2, V4 / "20261022-dip_link_v4b_fit2.json")}
+# Owner, 2026-10-22 16:37, after fitting the 3T set: "let's setup a print for both the 2t and 3t settings that doesnt have all
+# these interference fits. when i inspected the fit, the fingertip no longer sits flush with the cassette due to all these
+# changes. as a result the fingertip is super locked in, and now i want to try a setting where it's a more very-snug fit without
+# all the compression". The snug sets 3S and 2S take the 11:30 interference out on the B05R pads already printed: each rail as
+# wide as B05R's groove along its whole flank (rail_grow = -groove_fit; the top narrowed by the tilt the groove's floor
+# clearance gives its flank, so the two flanks coincide) and the cap's pin as wide as B05R's 1.6 mm hole. The walls and the
+# cap's blocks keep the I15 interference of 10-21 ("the 0.15mm inset is still perfectly fine").
+ZERO_TOP = -(B.RAIL_TOP - B.RAIL_BASE) * B.GROOVE_FLOOR / (B.RAIL_H + B.GROOVE_FLOOR) / 2      # -0.0143 mm per flank
+FIT3S = dict(FIT3, rail_grow=-FIT3["groove_fit"], rail_top_grow=round(ZERO_TOP, 4), pin_d=FIT3["hole_d"], cover_id="3S",
+             cap_id="TW15H3S")
+FIT2S = dict(FIT3S, wall_h=2.0, block_h=2.0, cover_id="2S", cap_id="TW15H2S")
+FITS = {"fit3": (FIT3, FIT3_REC), "fit2": (FIT2, V4 / "20261022-dip_link_v4b_fit2.json"),
+        "fit3s": (FIT3S, V4 / "20261022-dip_link_v4b_fit3s.json"), "fit2s": (FIT2S, V4 / "20261022-dip_link_v4b_fit2s.json")}
 FIT_OWNER = {
     "fit3": "2026-10-22 11:30: 'for the new fingers with the hole in the top, we should really undersize this hole too. i think the "
             "middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle ground ... widen the top edge of "
@@ -482,6 +497,25 @@ FIT_OWNER = {
             "and oversize the rail just a little bit for an even tighter fit'",
     "fit2": "2026-10-22 16:17: 'can you also prepare cassettes + top covers at the lowest setting that we tried. i think now with this "
             "tighter fit on the rails/slots for the fingertip/cassette, it might be viable again'"}
+FIT_OWNER["fit3s"] = FIT_OWNER["fit2s"] = (
+    "2026-10-22 16:37: 'let's setup a print for both the 2t and 3t settings that doesnt have all these interference fits. when i "
+    "inspected the fit, the fingertip no longer sits flush with the cassette due to all these changes. as a result the fingertip is "
+    "super locked in, and now i want to try a setting where it's a more very-snug fit without all the compression'")
+
+
+class pin_dims:
+    """CAP's pin diameter set for a cap, then restored."""
+
+    def __init__(self, d):
+        self.d = d
+
+    def __enter__(self):
+        self.old = TC.CAP["pin_d"]
+        TC.CAP["pin_d"] = self.d
+
+    def __exit__(self, *exc):
+        TC.CAP["pin_d"] = self.old
+        return False
 
 
 def pad_fit3(fit=None, hole_d=None):
@@ -541,7 +575,8 @@ def cmd_fit3(name="fit3"):
     tm = B.to_trimesh(cov)
     bam = L2.bambu_stl(tm, PP.R_CLAMP, V4 / "print" / f"{PFX3}_cover_{hh}_{F['cover_id']}_pla_bambu.stl")
     scr = screws_sweep(min(F["wall_h"], SEAT_MAX), F["block_h"])
-    with cap_dims(F["block_h"], -INTERFERENCE):
+    pin_d = F.get("pin_d", TC.CAP["pin_d"])
+    with cap_dims(F["block_h"], -INTERFERENCE), pin_dims(pin_d):
         cap = TC.cap_part2(K, dict(side="blocks"))
     rg, rtg, gf = F["rail_grow"], F["rail_top_grow"], F["groove_fit"]
     rail_new = [(round(2 * (B.RAIL_BASE / 2 + rg), 3), round(2 * (B.RAIL_TOP / 2 + rg + rtg), 3))]
@@ -557,8 +592,8 @@ def cmd_fit3(name="fit3"):
                         **{f"sweep_{hh}_B00R_per_flank_mm": flank(B.RAIL_BASE / 2, B.RAIL_TOP / 2, 0.0)},
                         snap_in_opening_per_side_mm=dict(new=round((rail_new[0][1] - (B.RAIL_BASE - 2 * gf)) / 2, 3),
                                                          sweep=round((B.RAIL_TOP - B.RAIL_BASE) / 2, 3))),
-           "pin": dict(pin_d_mm=TC.CAP["pin_d"], hole_d_mm=F["hole_d"], hole_d_B00R_mm=TC.CAP["hole_d"],
-                       interference_per_side_mm=round((TC.CAP["pin_d"] - F["hole_d"]) / 2, 3),
+           "pin": dict(pin_d_mm=pin_d, hole_d_mm=F["hole_d"], hole_d_B00R_mm=TC.CAP["hole_d"],
+                       interference_per_side_mm=round((pin_d - F["hole_d"]) / 2, 3),
                        pin_in_pad_mm3=round(float((cap ^ pad_new).volume()), 3), pin_in_B00R_mm3=round(float((cap ^ pad_old).volume()), 3)),
            "cover": dict(id=F["cover_id"], stl=PP.rel(stl), bambu=bam, round_trip=rt, volume_mm3=rt["volume_mm3"],
                          width_mm=round(float(tm.bounds[1][1] - tm.bounds[0][1]), 3),
@@ -574,9 +609,23 @@ def cmd_fit3(name="fit3"):
            "pad": dict(id=F["pad_id"], volume_mm3=round(float(pad_new.volume()), 2), B00R_volume_mm3=round(float(pad_old.volume()), 2))}
     if name != "fit3":                                  # the sweep's screws at these heights (scripts/dip_b_v4.py heights)
         hts = json.loads(HEIGHTS.read_text())
-        rec["screws"] = dict(proximal=hts["covers"][hh]["proximal_screws"], distal=hts["caps"][F["cap_id"]]["distal_screws"],
-                             thread_in_tongue_mm=min(hts["covers"][hh]["thread_in_tongue_mm"],
-                                                     hts["caps"][F["cap_id"]]["thread_in_tongue_mm"]))
+        kk = f"TW15H{F['block_h']:g}"
+        rec["screws"] = dict(proximal=hts["covers"][hh]["proximal_screws"], distal=hts["caps"][kk]["distal_screws"],
+                             thread_in_tongue_mm=min(hts["covers"][hh]["thread_in_tongue_mm"], hts["caps"][kk]["thread_in_tongue_mm"]))
+    if "pin_d" in F:                                    # a cap of its own: the sweep's blocks and plate, F's pin, F's ID engraved
+        cap_e = engrave(cap, F["cover_id"], ENGRAVE["cap_cap"], (4.3, 0.0, TC.ZE - TC.CAP2["t_end"]), (0, 0, -1), (1, 0, 0),
+                        ENGRAVE["depth"])
+        cstl = V4 / "cad" / f"{PFX3}_tip_cap_{F['cap_id']}.stl"
+        crt = TC.round_trip(cap_e, cstl)
+        ctm = B.to_trimesh(cap_e)
+        cbam = L2.bambu_stl(ctm, np.eye(3), V4 / "print" / f"{PFX3}_tip_cap_{F['cap_id']}_pla_bambu.stl")
+        rec["cap"] = dict(id=F["cap_id"], stl=PP.rel(cstl), bambu=cbam, round_trip=crt, volume_mm3=crt["volume_mm3"],
+                          width_mm=round(float(ctm.bounds[1][1] - ctm.bounds[0][1]), 3),
+                          engraving_mm3=round(float(cap.volume() - cap_e.volume()), 3),
+                          overlap_mm3={k: round(float((cap_e ^ o).volume()), 4) for k, o in
+                                       dict(cover=cov, dip_link_v4=link, board=board, screws=scr).items()},
+                          note=f"TW15H{F['block_h']:g}'s blocks and end plate with a {pin_d:g} mm pin, '{F['cover_id']}' on the end "
+                               f"plate's outer face")
     problems = []
     if rt["reread_mm3"] < 0.999 * rt["volume_mm3"] or not rt["watertight"]:
         problems.append(f"cover STL round trip {rt}")
@@ -585,6 +634,15 @@ def cmd_fit3(name="fit3"):
         problems.append(f"cover overlaps {bad}")
     if rec["cover"]["width_mm"] > 21.0 + 1e-6:
         problems.append(f"cover width {rec['cover']['width_mm']}")
+    if "round_trip" in rec["cap"]:
+        crt = rec["cap"]["round_trip"]
+        if crt["reread_mm3"] < 0.999 * crt["volume_mm3"] or not crt["watertight"]:
+            problems.append(f"cap STL round trip {crt}")
+        bad = {q: x for q, x in rec["cap"]["overlap_mm3"].items() if x > 0.05}
+        if bad:
+            problems.append(f"cap overlaps {bad}")
+        if rec["cap"]["width_mm"] > 21.0 + 1e-6:
+            problems.append(f"cap width {rec['cap']['width_mm']}")
     old = json.loads(rec_path.read_text()) if rec_path.exists() else {}
     rec.update(problems=problems, when=time.strftime("%Y-%m-%d %H:%M"), script=f"scripts/dip_b_v4.py {name}",
                seconds=round(time.time() - t0, 1), step=old.get("step"))
@@ -644,6 +702,13 @@ def fc_main3(name="fit3"):
     s.exportStep(str(step))
     log = dict(step=str(step.relative_to(REPO)), volume_mm3=round(s.Volume, 3), valid=bool(s.isValid()), solids=len(s.Solids),
                faces=len(s.Faces))
+    if "pin_d" in F:                                    # the set's own cap
+        with cap_dims(F["block_h"], -INTERFERENCE), pin_dims(F["pin_d"]):
+            c = TC.cap_part2(K, dict(side="blocks"))
+        cstep = V4 / "cad" / f"{PFX3}_tip_cap_{F['cap_id']}.step"
+        c.exportStep(str(cstep))
+        log["cap"] = dict(step=str(cstep.relative_to(REPO)), volume_mm3=round(c.Volume, 3), valid=bool(c.isValid()),
+                          solids=len(c.Solids), faces=len(c.Faces))
     WORK.mkdir(parents=True, exist_ok=True)
     (WORK / f"fc_{name}.json").write_text(json.dumps(log, indent=1))
     print("FC", json.dumps(log), flush=True)
@@ -663,9 +728,15 @@ def cmd_step3(name="fit3"):
     rec = json.loads(rec_path.read_text())
     mv = rec["cover"]["volume_mm3"] + rec["cover"]["engraving_mm3"]
     log.update(mesh_volume_without_engraving_mm3=round(mv, 3), volume_diff_pct=round(100 * (log["volume_mm3"] / mv - 1), 3))
+    bad = not log["valid"] or log["solids"] != 1 or abs(log["volume_diff_pct"]) > 1.0
+    if "cap" in log:
+        cl = log["cap"]
+        cmv = rec["cap"]["volume_mm3"] + rec["cap"]["engraving_mm3"]
+        cl.update(mesh_volume_without_engraving_mm3=round(cmv, 3), volume_diff_pct=round(100 * (cl["volume_mm3"] / cmv - 1), 3))
+        bad = bad or not cl["valid"] or cl["solids"] != 1 or abs(cl["volume_diff_pct"]) > 1.0
     rec["step"] = log
     rec_path.write_text(json.dumps(rec, indent=1, default=float) + "\n")
-    if not log["valid"] or log["solids"] != 1 or abs(log["volume_diff_pct"]) > 1.0:
+    if bad:
         raise SystemExit(f"STEP problems: {log}")
 
 
@@ -797,7 +868,8 @@ def main():
         t0 = time.time()
         {"link": cmd_link, "heights": cmd_heights, "step": cmd_step, "figures": cmd_figures, "fit3": cmd_fit3,
          "fit3fig": cmd_fit3_figure, "step3": cmd_step3, "fit2": lambda: cmd_fit3("fit2"),
-         "step2": lambda: cmd_step3("fit2")}[c]()
+         "step2": lambda: cmd_step3("fit2"), "fit3s": lambda: cmd_fit3("fit3s"), "fit2s": lambda: cmd_fit3("fit2s"),
+         "step3s": lambda: cmd_step3("fit3s"), "step2s": lambda: cmd_step3("fit2s")}[c]()
         print(f"== {c} [{time.time() - t0:.0f} s]", flush=True)
 
 

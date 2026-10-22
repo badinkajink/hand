@@ -152,12 +152,18 @@ PLATES = {
               None, dict(V.SOLID, wall_loops="6")) for k in (1, 2, 3)] + [
         (f"TW2-{k}", "cap TW15H2", V4 / "print/20261021-dip_link_v4b_tip_cap_TW15H2_pla_bambu.stl", None,
          dict(V.SOLID, wall_loops="6")) for k in (1, 2, 3)],
+    # 2026-10-22 16:37: the snug sets without the 11:30 interference, on the B05R pads (scripts/dip_b_v4.py fit3s fit2s): covers
+    # 3S and 2S (rails as wide as B05R's grooves) and caps TW15H3S and TW15H2S (a 1.6 mm pin), three each; settings as fit3
+    "snug": [(f"{c}-{k}", lab, V4 / f"print/20261022-dip_link_v4b_{stem}_pla_bambu.stl", None, dict(V.SOLID, wall_loops="6"))
+             for c, lab, stem in (("3S", "cover 3S", "cover_I15H3_3S"), ("T3S", "cap TW15H3S", "tip_cap_TW15H3S"),
+                                  ("2S", "cover 2S", "cover_I15H2_2S"), ("T2S", "cap TW15H2S", "tip_cap_TW15H2S"))
+             for k in (1, 2, 3)],
     # 2026-10-22: two more of DIP link b v4 (owner: "i want to print two more too"), the settings of plate "link_v4"
     "link_v4_x2": [(f"B4-{k}", "b v4 DIP link, recessed bridge", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl", None,
                     V.LINK) for k in (1, 2)],
 }
 DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2", "heights", "link_v4", "mount_v3", "fit3",
-                  "mount_v3_adapter", "link_v4_x2", "fit2")   # "calibration" when named
+                  "mount_v3_adapter", "link_v4_x2", "fit2", "snug")   # "calibration" when named
 PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"),     # other plates: OUT, 20261020-p1s_pla_<plate>
              "solid_covers_caps2": (V3 / "print", "20261021-dip_link_v3b_p1s_pla_solid_covers_caps2"),
              "heights": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_heights"),
@@ -166,7 +172,8 @@ PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"
              "fit3": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit3"),
              "mount_v3_adapter": (V3M / "print", "20261022-ur5_calibration_mount_v3_p1s_pla_adapter_inserts"),
              "link_v4_x2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_link_x2"),
-             "fit2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit2")}
+             "fit2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit2"),
+             "snug": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_snug")}
 
 
 def main():
@@ -192,7 +199,8 @@ def main():
                    "fit3": "DIP link b: three covers I15H3 with tighter rails (3T) and three caps TW15H3",
                    "mount_v3_adapter": "UR5 mount v3: the adapter with bores for M3 heat-set inserts",
                    "link_v4_x2": "DIP link b v4, two copies",
-                   "fit2": "DIP link b: covers 2T, caps TW15H2"}[plate]
+                   "fit2": "DIP link b: covers 2T, caps TW15H2",
+                   "snug": "DIP link b: snug covers 3S, 2S and caps"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -213,6 +221,9 @@ def main():
                    + ("; 2026-10-22 16:17: 'can you also prepare cassettes + top covers at the lowest setting that we tried. i think "
                       "now with this tighter fit on the rails/slots for the fingertip/cassette, it might be viable again'"
                       if plate == "fit2" else "")
+                   + ("; 2026-10-22 16:37: 'let's setup a print for both the 2t and 3t settings that doesnt have all these "
+                      "interference fits ... i want to try a setting where it's a more very-snug fit without all the compression'"
+                      if plate == "snug" else "")
                    + ("; 2026-10-21 17:54: 'i only have 20mm long m6 screws. so we need to pop everything up a little. there is "
                       "not much thread on the hex e ft sensor ... make the holes accessible from the top plate'"
                       if plate in ("mount_v3", "mount_v3_adapter") else "")

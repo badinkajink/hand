@@ -74,6 +74,8 @@ def load():
     fit3["xl"] = j(V4 / "print/20261022-dip_link_print_pad_ell11_5_B05R_x3_85a_t2_g30.json")
     fit3["set2"] = j(V4 / "20261022-dip_link_v4b_fit2.json")            # 16:17: the 2 mm pair with 3T's rails
     fit3["set2"]["plate"] = j(V4 / "print/20261022-dip_link_v4b_p1s_pla_fit2.json")
+    fit3["snug"] = {n: j(V4 / f"20261022-dip_link_v4b_{n}.json") for n in ("fit3s", "fit2s")}     # 16:37: no 11:30 interference
+    fit3["snug"]["plate"] = j(V4 / "print/20261022-dip_link_v4b_p1s_pla_snug.json")
     return pv, chk, hts, plates, sens, rev2, fit3
 
 
@@ -111,9 +113,10 @@ def main():
             f"The joint still stops on the horn arm at {fl4['q_deg']:.0f}{DEG}. "
             + (f"Near the mount face the readout resolves {rim['bm_five_d75_cap_colv4']:.2f}&#8202;N, against {rim['bm_five_d75_cap_colv3']:.2f}"
                f"&#8202;N on v3's column. " if have_fe else "")
-            + f"From a sweep of 2&#8211;4{MM} cover walls and cap blocks the owner chose 3{MM}; the set printed on 2026-10-22 adds rails "
+            + f"From a sweep of 2&#8211;4{MM} walls and blocks the owner chose 3{MM}. Rails "
               f"{fit3['rail']['interference_per_flank_mm']['at_cover_face']:.2f}&#8211;{fit3['rail']['interference_per_flank_mm']['at_rail_top']:.2f}{MM} "
-              f"tighter per flank and a {fit3['pin']['hole_d_mm']:.1f}{MM} pin hole.")
+              f"tighter per flank then locked the pad in so tightly that it no longer sat flush; snug sets at zero interference replace "
+              f"them.")
 
     S = []
     S.append(("terms", "Terms and metrics", f"""
@@ -330,6 +333,24 @@ sideways at its apex as hard as popped it off W00, then step down to the 3 and 2
           ["Screws, proximal / distal", f"{s2c['proximal_screws']} / {s2k['distal_screws']}",
            f"{s2['screws']['proximal']} / {s2['screws']['distal']}"],
           ["Engraved IDs: cover, cap, pad", "2, 2, B00R", f"{s2['fit2']['cover_id']}, 2, {s2['fit2']['pad_id']}"]]
+    sn, psn = fit3["snug"], fit3["snug"]["plate"]                       # the snug sets of 16:37
+    s3s, s2s = sn["fit3s"], sn["fit2s"]
+    f3s = s3s["rail"]["interference_per_flank_mm"]
+    t10 = [["Rail width at the cover / at its top (mm)", f"{fr['cover_base_top_mm'][0]:.2f} / {fr['cover_base_top_mm'][1]:.2f}",
+            f"{s3s['rail']['cover_base_top_mm'][0]:.2f} / {s3s['rail']['cover_base_top_mm'][1]:.3f}"],
+           ["Interference per flank at the cover / at the rail's top (mm)", f"{fi['at_cover_face']:.2f} / {fi['at_rail_top']:.2f}",
+            f"{abs(f3s['at_cover_face']):.2f} / {abs(f3s['at_rail_top']):.2f}"],
+           ["Rails inside the pad (mm&#179;)", f"{fit3['cover']['into_pad_mm3']['rails_new_B05R']:.2f}",
+            f"{s3s['cover']['into_pad_mm3']['rails_new_B05R']:.2f}"],
+           ["Cover inside the pad, 3" + MM + " / 2" + MM + " walls (mm&#179;)",
+            f"{fit3['cover']['into_pad_mm3']['new_cover_B05R']:.1f} / {s2['cover']['into_pad_mm3']['new_cover_B05R']:.1f}",
+            f"{s3s['cover']['into_pad_mm3']['new_cover_B05R']:.1f} / {s2s['cover']['into_pad_mm3']['new_cover_B05R']:.1f}"],
+           ["Cap's pin in B05R's 1.6" + MM + " hole: diameter, interference per side (mm)",
+            f"{fp['pin_d_mm']:.1f}, {fp['interference_per_side_mm']:.1f}", f"{s3s['pin']['pin_d_mm']:.1f}, {s3s['pin']['interference_per_side_mm']:.1f}"],
+           ["Cap inside the pad, 3" + MM + " / 2" + MM + " blocks (mm&#179;)", f"{fp['pin_in_pad_mm3']:.1f} / {s2['pin']['pin_in_pad_mm3']:.1f}",
+            f"{s3s['pin']['pin_in_pad_mm3']:.1f} / {s2s['pin']['pin_in_pad_mm3']:.1f}"],
+           ["Engraved IDs: covers, caps", "3T, 2T; 3, 2", f"{s3s['fit3s']['cover_id']}, {s2s['fit2s']['cover_id']}; "
+                                                         f"{s3s['fit3s']['cover_id']}, {s2s['fit2s']['cover_id']}"]]
     S.append(("chosen", "Chosen heights and tighter rails", f"""
 <p>The owner, 2026-10-22 11:30: &#8220;for the new fingers with the hole in the top, we should really undersize this hole too. i think the
 middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle ground. i think it could probably still pop out
@@ -363,15 +384,30 @@ nor the board nor the screws; its STL reads back watertight and its STEP is one 
 the mesh). {code(ROOT / p2['project'])}: three covers 2T and three caps TW15H2 on the P1S, solid at 0.1{MM}, {ptime(p2)},
 {p2['filament_g']:.1f}&#8202;g. Each TW15H2 is flagged at a fill ratio of {p2['objects'][-1]['fill_ratio']:.3f}, as on the sweep's plate.</p>
 {table(["Quantity", "Sweep: I15H2, TW15H2, pad B00R", "2026-10-22 16:17: 2T, TW15H2, pad B05R"], t9,
-       caption="The sweep's 2 mm pair against the same heights with 3T's rails and pad B05R.", n=9)}"""))
+       caption="The sweep's 2 mm pair against the same heights with 3T's rails and pad B05R.", n=9)}
+<p>The owner, 2026-10-22 16:37, after fitting the 3T set: &#8220;let's setup a print for both the 2t and 3t settings that doesnt have
+all these interference fits. when i inspected the fit, the fingertip no longer sits flush with the cassette due to all these changes. as
+a result the fingertip is super locked in, and now i want to try a setting where it's a more very-snug fit without all the
+compression.&#8221; In the snug sets the interference added at 11:30 is removed, for the B05R pads already printed. Each rail of
+covers 3S and 2S is as wide as B05R's groove along its whole flank: {s3s['rail']['cover_base_top_mm'][0]:.2f}{MM} at the cover and
+{s3s['rail']['cover_base_top_mm'][1]:.3f}{MM} at its top. At the top the groove's 0.05{MM} floor clearance narrows the groove by
+{abs(s3s['fit3s']['rail_top_grow']):.3f}{MM} per flank, and the rail's top is narrowed by the same amount. The caps TW15H3S and TW15H2S have a
+{s3s['pin']['pin_d_mm']:.1f}{MM} pin for B05R's {s3s['pin']['hole_d_mm']:.1f}{MM} hole. The walls and the caps' blocks keep the I15
+interference of 2026-10-21, 0.15{MM} per side, so the pad is squeezed only at its flanks, as on the sweep's parts with B00R (Table 10).
+Screws: M2 x 8 on the 3{MM} parts, M2 x 6 on the 2{MM} parts. Every new part overlaps neither the link nor the board nor the screws, and
+its STL and STEP read back as one valid solid. {code(ROOT / psn['project'])}: three each of covers 3S and 2S and caps TW15H3S and
+TW15H2S on the P1S, solid at 0.1{MM}, {ptime(psn)}, {psn['filament_g']:.1f}&#8202;g. Each TW15H2S is flagged at a fill ratio of
+{[o for o in psn['objects'] if o['id'].startswith('T2S')][0]['fill_ratio']:.3f}, as TW15H2 was.</p>
+{table(["Quantity", "3T and 2T sets on pad B05R", "16:37: snug sets 3S and 2S on pad B05R"], t10,
+       caption="The tight sets of 11:30 and 16:17 against the snug sets on the same pads.", n=10)}"""))
 
     S.append(("future", "Future work", f"""
 <ul>
-<li>Fit test of the 3T set: snap each B05R onto a 3T cover, fit the TW15H3 cap and push the pad sideways at its apex ten times. A pad
-that will not snap on by hand goes back to B00R on 3T ({fi['at_cover_face'] - fit3['fit3']['groove_fit']:.2f}{MM} per flank at the cover);
-a pad that still pops off asks for <code>groove_fit</code> 0.10 in <code>FIT3</code> of {code(ROOT / 'scripts/dip_b_v4.py')}. Then the
-same test on the 2T set, with cover 2T, cap TW15H2 and the same pads. Pads that stay on through ten pushes make 2{MM} the height;
-pads that pop off 2T but stayed on 3T keep it at 3{MM}.</li>
+<li>Fit test of the snug sets; with the 3T set the pad was locked in too tightly to sit flush (owner, 2026-10-22 16:37). Snap
+each B05R onto cover 3S and fit cap TW15H3S. The pad must sit flush on the cover's face: a 0.05{MM} feeler gauge must not enter
+between them. Then push the pad sideways at its apex ten times, and repeat with 2S and TW15H2S. If the pads stay on 2S, the height is 2{MM}. If
+a pad pops off 3S, the next set has half the base interference of 3T: <code>rail_grow</code> 0 in <code>FIT3S</code> of
+{code(ROOT / 'scripts/dip_b_v4.py')}, 0.05{MM} per flank against B05R along the whole flank.</li>
 <li>Read the five chips with pad B00R on v4 while pressing the pad's palmar face with the UR5e 1{MM} from its mount face at 0.5, 1 and
 3&#8202;N, ten times each, and once at the contact point; Table 5 predicts a spread at the edge
 {f"{rim['bm_five_d75_cap_colv4'] / c0['bm_five_d75_cap_colv4']:.1f} times" if have_fe else "several times"} that at the contact point.
@@ -394,7 +430,8 @@ directions where the printed parts only push. The sweep's retention is untested;
 holds.</p>"""))
 
     files = [DIP / "params/20261021-v4_concept_b.json", V4 / f"{PFX}_checks.json", V4 / f"{PFX}_heights.json",
-             V4 / "20261022-dip_link_v4b_fit3.json", V4 / "20261022-dip_link_v4b_fit2.json", ROOT / "scripts/v3b_pad_b00_magnets_xl.py",
+             V4 / "20261022-dip_link_v4b_fit3.json", V4 / "20261022-dip_link_v4b_fit2.json", V4 / "20261022-dip_link_v4b_fit3s.json",
+             V4 / "20261022-dip_link_v4b_fit2s.json", ROOT / "scripts/v3b_pad_b00_magnets_xl.py",
              V4 / "cad", V4 / "print",
              V4 / "media", ROOT / "scripts/dip_link_concept_b.py", ROOT / "scripts/dip_link_v2.py", ROOT / "scripts/dip_b_v4.py",
              ROOT / "scripts/dip_b_tip_cap.py", ROOT / "scripts/v3b_ur5v2_pla_plate.py", ROOT / "scripts/v2_tip_fe_checks.py",
@@ -419,8 +456,9 @@ holds.</p>"""))
                f"{abs(fo['v3']['lead_head_on_mm']):.1f} mm); the joint still stops on the horn arm at {fl4['q_deg']:.1f} deg. Covers I15 with 4, 3 "
                f"and 2 mm walls and caps with 4, 3 and 2 mm blocks at 0.15 mm went to the owner's height test; the owner chose 3 mm, and "
                f"the set of 2026-10-22 adds rails {fit3['rail']['interference_per_flank_mm']['at_cover_face']:.2f}-"
-               f"{fit3['rail']['interference_per_flank_mm']['at_rail_top']:.2f} mm tighter per flank and a {fit3['pin']['hole_d_mm']:.1f} mm pin hole; "
-               f"a 2 mm set with the same rails (cover 2T, cap TW15H2) followed for a second fit test.")
+               f"{fit3['rail']['interference_per_flank_mm']['at_rail_top']:.2f} mm tighter per flank and a {fit3['pin']['hole_d_mm']:.1f} mm pin hole, "
+               f"which held the pad so tightly that it no longer sat flush; the snug sets 3S and 2S fit the same B05R pads at zero "
+               f"interference on the rails and the pin.")
     out = docs_index.tag(out, topic="fingertip", summary=summary, date="2026-10-21")
     out = retro_style.apply(out)
     D.mkdir(parents=True, exist_ok=True)
