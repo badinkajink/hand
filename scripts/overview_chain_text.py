@@ -92,7 +92,7 @@ FUTURE = [
     "Continue the 2026-09-20 policies for 20&#8202;M steps on the working plant and run each through the chain from 20 "
     "spawns. Five spawns cannot separate a weak policy from an unlucky pose.",
     "Measure the finger dynamics on the bench: a 20&#176; free-air step per joint read at 111&#8202;Hz and a force-gauge push "
-    "against a holding servo. The working plant is wrong if the step reaches its final value in under 0.2&#8202;s.",
+    "against a holding servo. The working plant is wrong if the step stays within a narrow band of its final value after under 0.2&#8202;s.",
     "Export the gait ring, re-index and relay legs as plans and pass them through "
     "<code>real_v1_trajectory_clearance.py</code> and the servo-limit check before any bench chain.",
 ]
