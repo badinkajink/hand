@@ -518,6 +518,13 @@ angular velocity and the reference while a reference is commanded, divided by th
 <dt>Drift</dt><dd>Largest distance of the sphere's centre from its position at the start of the task, in mm.</dd>
 <dt>Twist ramp</dt><dd>After the steps, the twist reference runs at 30&#8202;deg/s for 3&#8202;s; the score is the largest angle
 turned while all three pads press with more than 0.05&#8202;N.</dd>
+<dt>Command rate</dt><dd>Root-mean-square rate of change of the nine servo targets, sampled every 10&#8202;ms from the start of the task,
+in rad/s.</dd>
+<dt>Command reversals</dt><dd>Sign changes of a servo target's rate per joint per second over the same samples (changes under
+$10^{-4}$&#8202;rad ignored); a target that moves steadily has none, one that dithers has many.</dd>
+<dt>Angular jitter</dt><dd>Root-mean-square difference between the object's angular velocity and its 100&#8202;ms running mean,
+in deg/s.</dd>
+<dt>Wall time per run</dt><dd>Seconds of computation for one rollout: one CPU core for HOM, six rollout threads for MPC.</dd>
 </dl>"""))
 
     S.append(("setup", "Hand, plant and tasks", r"""
@@ -704,49 +711,181 @@ the object pose read 40&#8202;ms late with 0.5&#8202;mm and 1&#8202;deg noise, c
                          "Deployment variants (score: pin-push displacement in mm, press wall-force RMS error in N, roll and twist "
                          "angular RMSE / step).", num_from=2)))
 
+    # pinned iCEM against HOM in the same loop (scripts/hom_tasks_mpc.py); the last row per size, seed and controller
+    SCORE = {"pinpush": ("disp_end_mm", 1), "press": ("wall_err_rms", 2), "roll": ("w_rmse_ratio", 2),
+             "twist": ("ramp_three_pads_max_deg", 0)}
+    MP = {}
+    for t in ("pinpush", "press", "roll", "twist"):
+        last = {}
+        for r in rows(f"mpc_{t}"):
+            if r.get("status") == "ok":
+                last[(r["d_mm"], r["seed"], r["controller"])] = r
+        MP[t] = list(last.values())
+    if any(MP.values()):
+        body, smooth = [], []
+        for t in ("pinpush", "press", "roll", "twist"):
+            key, nd = SCORE[t]
+            for d in sorted({r["d_mm"] for r in MP[t]}):
+                c = {k: [r for r in MP[t] if r["d_mm"] == d and r["controller"] == k] for k in ("hom", "mpc")}
+                body.append([t, f"{d:g}"]
+                            + [f"{sum(r['held'] for r in c[k])}/{len(c[k])}" if c[k] else "&#8212;" for k in ("hom", "mpc")]
+                            + [fmt(med([r.get(key) for r in c[k] if r["held"]]), nd) if c[k] else "&#8212;"
+                               for k in ("hom", "mpc")])
+            c = {k: [r for r in MP[t] if r["controller"] == k] for k in ("hom", "mpc")}
+            if not (c["hom"] or c["mpc"]):
+                continue
+            smooth.append([t] + [fmt(med([r.get(m) for r in c[k]]), nd2) if c[k] else "&#8212;"
+                                 for m, nd2 in (("cmd_rate_rms", 2), ("cmd_reversals", 1), ("omega_jitter", 1), ("wall_s", 0))
+                                 for k in ("hom", "mpc")])
+        thumb = {k: med([s_["thumb_mean"] for r in MP["press"] if r["controller"] == k for s_ in r.get("press_steps", [])])
+                 for k in ("hom", "mpc")}
+        films = "".join(F(MEDIA / f"20261021-hom_vs_mpc_{t}_{o}.mp4", f"{t.capitalize()}, {o.replace('cylinder', 'cylinder ').replace('sphere', 'sphere ')}"
+                          f"&#8202;mm, seed 0: HOM (left) and pinned iCEM (right) from the same pick.")
+                        for t, o in (("pinpush", "cylinder25"), ("press", "cylinder25"), ("roll", "sphere40"), ("twist", "sphere40")))
+        S.append(("mpc", "MPC baseline", r"""
+<p>From the start of each task (2.0&#8202;s, after the HOM pick and lift) the planner of the 2026-10-14 scale study, pinned iCEM,
+replaces the HOM controller. Every 10&#8202;ms it samples 64 plans of the nine servo targets (two iterations of 32, three knots over
+0.5&#8202;s, knot noise 0.08&#8202;rad, the first knot fixed to the applied target), rolls them out on the plant's own pads model with
+<code>mujoco.rollout</code> and applies the best; between replannings the targets follow that plan at the 1&#8202;ms physics step.
+A plan costs, over its 50 samples at 10&#8202;ms,
+$$J=\sum_{k=1}^{49}c_k+10\,c_{50}+\sum_{i=1}^{2}\lVert\mathbf u_{i+1}-\mathbf u_i\rVert^2,$$
+with $\mathbf u_i$ the knots (rad) and the sample cost $c_k$ of the task:
+$$\begin{aligned}
+c^{\rm pin\text{-}push}&=\Big(\tfrac{d-d_{\rm ref}}{1\,{\rm mm}}\Big)^2+\tfrac{1-\mathbf a\cdot\mathbf a_0}{1-\cos 5^\circ}
++\textstyle\sum_f{\rm clip}\big(\tfrac{0.2\,{\rm N}-F_f}{0.2\,{\rm N}},0,1\big)+10\,[z<z_0-15\,{\rm mm}],\\
+c^{\rm press}&=\Big(\tfrac{F_{\rm wall}-F_{\rm ref}}{0.25\,{\rm N}}\Big)^2+\tfrac{1-\mathbf a\cdot\mathbf a_0}{1-\cos 5^\circ}
++10\,[z<z_0-15\,{\rm mm}],\\
+c^{\rm roll,\,twist}&=\tfrac{\lVert\bm\omega-\bm\omega_{\rm ref}\rVert^2}{(10^\circ/{\rm s})^2}+\tfrac{\lVert\mathbf p-\mathbf p_0\rVert^2}{(5\,{\rm mm})^2}
++\textstyle\sum_f{\rm clip}\big(\tfrac{0.5\,{\rm N}-F_f}{0.5\,{\rm N}},0,1\big)+10\,[z<z_0-15\,{\rm mm}],
+\end{aligned}$$
+where $d$ is the cylinder's displacement along its axis $\mathbf a$ since the task began ($\mathbf a_0$ the axis then), $F_f$ a
+finger tip's net force on the object from a contact sensor of the planner's model, $F_{\rm wall}$ the wall's force on the cylinder,
+$\bm\omega$ the object's angular velocity, $\mathbf p$ its centre and $z$ its height. The references are the HOM schedule's; the
+press steps start at the wall contact, predicted at 0.5&#8202;s until it happens. The HOM arm runs in the same loop and its rows carry
+the same command log.</p>"""
+                  + T(["Task", "Size (mm)", "Held, HOM", "Held, MPC", "Score, HOM", "Score, MPC"], body,
+                      "Pinned iCEM (MPC) against HOM, seeds 0&#8211;2: held count and median score over held runs (pin-push axial "
+                      "displacement in mm, press wall-force RMS error in N, roll angular RMSE / step, twist ramp on three pads in deg).",
+                      num_from=2)
+                  + T(["Task", "Command rate<br>HOM", "<br>MPC", "Reversals<br>HOM", "<br>MPC", "Angular jitter<br>HOM",
+                       "<br>MPC", "Time per run<br>HOM", "<br>MPC"], smooth,
+                      "Command smoothness and computation per task, medians over sizes and seeds: command rate in rad/s, command "
+                      "reversals per joint per second, angular jitter in deg/s, wall time per run in s.")
+                  + (f"<p>In the press steps the thumb presses on the end cap with a median {fmt(thumb['hom'], 2)}&#8202;N under HOM "
+                     f"and {fmt(thumb['mpc'], 2)}&#8202;N under MPC.</p>" if thumb["hom"] is not None and thumb["mpc"] is not None else "")
+                  + films))
+
+    # the window's probes: the impedance from the measured surface and a force loop (scripts/hom_tasks.py --rows-file probes)
+    PR = [r for r in rows_file(D / "probes.jsonl") if r.get("status") == "ok"]
+    if PR:
+        body = []
+        for t in ("pinpush", "press", "roll", "twist"):
+            key, nd = SCORE[t]
+            for d in sorted({r["d_mm"] for r in PR if r["task"] == t}):
+                row = [t, f"{d:g}"]
+                for v, src in (("base", R[t]), ("surface", PR), ("floop", PR)):
+                    rs = [r for r in src if r.get("task", t) == t and r["d_mm"] == d and r.get("variant", "base") == v]
+                    row.append(f"{sum(r['held'] for r in rs)}/{len(rs)}, {fmt(med([r.get(key) for r in rs if r['held']]), nd)}"
+                               if rs else "&#8212;")
+                body.append(row)
+        S.append(("probes", "Impedance from the contact surface and a force loop", r"""
+<p>Two variants of the base controller: <b>surface</b> keeps the servo target's impedance offset measured from the object's surface at
+the measured contact also while the finger touches (<code>HomParams.impedance="surface"</code>), and <b>floop</b> adds
+10&#8202;mm/s of $v_{\rm sep}$ per newton of force error, a force loop that needs a fingertip force measurement.</p>"""
+                  + T(["Task", "Size (mm)", "Base: held, score", "Surface", "Force loop"], body,
+                      "Held count and median score over held runs, seeds 0&#8211;2 (scores as in the MPC table).", num_from=2)))
+
     rl = D / "rl_assessment.json"
+    A = None
     if rl.exists():
         try:
             A = json.loads(rl.read_text())
-            S.append(("rl", "Reinforcement learning", "<p>" + esc(A.get("recommendation", "")) + "</p>"))
-        except Exception:
-            pass
+        except json.JSONDecodeError:
+            A = None
+    if A:
+        NAMES = {"residual_ppo_on_hom": "Residual PPO on HOM", "hom_teacher_imitation": "HOM as teacher (cloning, then DAgger)",
+                 "ppo_from_scratch": "PPO from scratch"}
+        C = A.get("cost", {})
+        body = []
+        for o in A.get("options", []):
+            c = C.get(o["name"], {})
+            gpu = c.get("gpu_hours")
+            body.append([NAMES.get(o["name"], esc(o["name"])), esc(o.get("action", "")), esc(o.get("expected_gain", "")),
+                         f"{c.get('engineering_days', '&#8212;')}", fmt(gpu, 1) if isinstance(gpu, (int, float)) else "&#8212;"])
+        S.append(("rl", "Reinforcement learning: options and costs", r"""
+<p>The bench measures the nine joint angles on the servo bus (closed loop at 50&#8202;Hz) and the object pose from two AprilTags at
+30&#8202;frames/s; it has no calibrated fingertip or wall force. The HOM controller costs 1.1&#8202;ms per period on one core
+(0.97&#8211;1.36&#8202;ms over the 16 cells), against 0.26&#8202;s for one step of 2,048 GPU environments with pads
+(7,800 environment steps/s, 43&#8202;min per 20&#8202;M-step seed). The options, their costs for four tasks at three seeds, and what each
+could gain over the measured HOM gaps (<code>rl_assessment.json</code>):</p>"""
+                  + T(["Option", "Action", "What it could gain", "Engineering (days)", "GPU hours"], body,
+                      "Learning options for the four tasks. GPU hours: 20&#8202;M steps per seed, three seeds per task, one policy per "
+                      "task over its four sizes.", num_from=3)
+                  + "<p>" + esc(A.get("recommendation", "")) + "</p>"))
 
     S.append(("limits", "Limitations", r"""
 <p>All results are simulation on one contact model and one plant. The objects weigh 25&#8202;g. The pin-push and press grasps are one
 layout family (the scale study's tripods); a layout searched for these tasks could change the 10 and 32&#8211;40&#8202;mm results.
 The task schedules are fixed slider sequences, as in the paper's teleoperation, with no feedback from the task score.</p>"""))
+    fw_mpc = (r"""<li>Pinned iCEM on the same tasks and scenes (<code>scripts/hom_tasks_mpc.py</code>): if MPC holds where
+HOM drops (50&#8211;63&#8202;mm spheres on the $y$ steps), the failure is the HOM schedule's, not the grasp's.</li>
+""" if not any(MP.values()) else "")
+    fw_rl = (r"""<li>HOM at 50&#8202;Hz without contact estimates (witness points only, the signals the bench has) on the four tasks,
+seeds 0&#8211;2, as a variant of <code>scripts/hom_tasks.py</code>: it measures how much of HOM the bench's signals support and fixes
+the base of a residual policy. Then a residual-PPO pilot on twist with the 40&#8202;mm sphere: 5&#8202;M steps, two seeds, a CPU pool
+of HOM controllers. The pilot fails if the ramp held on three pads stays at or below HOM's 50&#8202;Hz median of 33&#8202;deg, or if the
+policy reverses its servo targets more than twice as often as HOM.</li>
+""" if A else "")
     S.append(("future", "Future work", r"""
 <ul>
-<li>Pinned iCEM on the same tasks and scenes (<code>scripts/hom_tasks_mpc.py</code>, the autopilot job's step 2): if MPC holds where
-HOM drops (10&#8202;mm cylinders, 50&#8211;63&#8202;mm spheres on the $y$ steps), the failure is the HOM schedule's, not the grasp's.</li>
-<li>Press with a thumb posture square to the end cap: a pusher-specific layout search that scores the angle between the block's face and
+""" + fw_mpc + fw_rl + r"""<li>Press with a thumb posture square to the end cap: a pusher-specific layout search that scores the angle between the block's face and
 the cap; wall forces within 0.1&#8202;N of the command would confirm that the edge contact causes the shortfall.</li>
 <li>Bench dry run with <code>src/morphohand/control/hom_bench.py</code> at 50&#8202;Hz on recorded tag poses, then the twist task on a
 40&#8202;mm sphere on the hand.</li>
 </ul>"""))
     S.append(("files", "Files", f"""
 <p>Folder <code>docs/experiments/20261021-hom_framework/</code>: <code>design.json</code> (grasps), <code>rows/&lt;task&gt;.jsonl</code>
-(one line per rollout with its trace), <code>media/</code> (films). Scripts: <code>scripts/hom_tasks.py</code> (design, run),
-<code>scripts/hom_framework_page.py</code>. The method page: <a href="{relp(METHOD)}">Hand-object mechanism control: the method and its
+(one line per rollout with its trace), <code>rows/mpc_&lt;task&gt;.jsonl</code> (the MPC comparison, both arms, with the command log),
+<code>rl_assessment.json</code> (learning options), <code>media/</code> (films; <code>20261021-hom_vs_mpc_*.mp4</code> side by side at
+every size). Scripts: <code>scripts/hom_tasks.py</code> (design, run), <code>scripts/hom_tasks_mpc.py</code> (MPC),
+<code>src/morphohand/control/hom_bench.py</code> (the controller between the bench's signals and the servo targets, with a 50&#8202;Hz
+dry run), <code>scripts/hom_framework_page.py</code>. The method page: <a href="{relp(METHOD)}">Hand-object mechanism control: the method and its
 MuJoCo implementation</a>.</p>"""))
 
     # lede from the numbers
     def held(t, d):
         rs = [r for r in R[t] if r["d_mm"] == d and r.get("variant", "base") == "base"]
         return f"{sum(r['held'] for r in rs)}/{len(rs)}" if rs else "&#8212;"
-    pp = [r for r in R["pinpush"] if r.get("variant", "base") == "base" and r["d_mm"] in (20.0, 25.0)]
+    pp = [r for r in R["pinpush"] if r.get("variant", "base") == "base"]
     tw = [r for r in R["twist"] if r.get("variant", "base") == "base"]
     ro = [r for r in R["roll"] if r.get("variant", "base") == "base"]
+    pin = [r["disp_end_mm"] for r in pp if r["held"]] or [0.0]
+    wl = [s_["wall_mean"] for r in R["press"] if r.get("variant", "base") == "base" for s_ in r.get("press_steps", [])
+          if s_["F_ref"] >= 1.0] or [0.0]
     lede = ("The library's HOM controller runs four tasks on the CAD-model SR2 hand in MuJoCo. Twisting a sphere holds at every size "
             f"from 30 to 63{NB}mm ({sum(r['held'] for r in tw)}/{len(tw)} rollouts) and turns it "
             f"{fmt(min(r.get('ramp_three_pads_max_deg') or 0 for r in tw), 0)}&#8211;{fmt(max(r.get('ramp_three_pads_max_deg') or 0 for r in tw), 0)}{NB}deg on three pads. "
             f"Rolling holds on 30 and 40{NB}mm spheres (angular RMSE / step {fmt(min(r['w_rmse_ratio'] for r in ro if r['d_mm'] <= 40), 2)}&#8211;"
             f"{fmt(max(r['w_rmse_ratio'] for r in ro if r['d_mm'] <= 40), 2)}) and loses larger spheres on the steps about the $y$ axis "
-            f"({held('roll', 50.0)} at 50, {held('roll', 63.0)} at 63{NB}mm). The pin-push moves 20 and 25{NB}mm cylinders "
-            f"{fmt(min(r['disp_end_mm'] for r in pp))}&#8211;{fmt(max(r['disp_end_mm'] for r in pp))}{NB}mm of the commanded 10 and drops "
-            f"the 10{NB}mm cylinder; the press reaches the wall but delivers 0.4&#8211;1.2{NB}N for commands of 1&#8211;2{NB}N, because "
+            f"({held('roll', 50.0)} at 50, {held('roll', 63.0)} at 63{NB}mm). The pin-push holds {sum(r['held'] for r in pp)}/{len(pp)} "
+            f"cylinders of 10&#8211;25{NB}mm and moves them {fmt(min(pin))}&#8211;{fmt(max(pin))}{NB}mm of the commanded 10; the press "
+            f"reaches the wall but delivers {fmt(min(wl))}&#8211;{fmt(max(wl))}{NB}N for commands of 1&#8211;2{NB}N, because "
             "the thumb's block meets the end cap on its edge.") if (tw and ro and pp) else "Rows pending."
+    if lede != "Rows pending." and any(MP.values()):
+        cnt = {k: [r for t in MP for r in MP[t] if r["controller"] == k] for k in ("hom", "mpc")}
+        lede += (f" Pinned iCEM, replanning every 10{NB}ms on the same plant from the task phase on, holds "
+                 f"{sum(r['held'] for r in cnt['mpc'])}/{len(cnt['mpc'])} runs against HOM's "
+                 f"{sum(r['held'] for r in cnt['hom'])}/{len(cnt['hom'])} in the same loop, at a median "
+                 f"{fmt(med([r.get('wall_s') for r in cnt['mpc']]), 0)}{NB}s of computation per run against "
+                 f"{fmt(med([r.get('wall_s') for r in cnt['hom']]), 1)}{NB}s, and reverses its servo targets "
+                 f"{fmt(med([r.get('cmd_reversals') for r in cnt['mpc']]), 1)} times per second against HOM's "
+                 f"{fmt(med([r.get('cmd_reversals') for r in cnt['hom']]), 1)}.")
+    if lede != "Rows pending." and PR:
+        sr = {d: [r for r in PR if r["task"] == "roll" and r.get("variant") == "surface" and r["d_mm"] == d] for d in (50.0, 63.0)}
+        if all(sr.values()):
+            lede += (f" With the impedance kept on the measured surface in contact, the roll holds "
+                     f"{sum(r['held'] for r in sr[50.0])}/{len(sr[50.0])} at 50 and {sum(r['held'] for r in sr[63.0])}/{len(sr[63.0])} "
+                     f"at 63{NB}mm (base {held('roll', 50.0)} and {held('roll', 63.0)}).")
     summary = re.sub(r"<[^>]+>|\$", "", lede.replace("&#8202;", " ").replace("&#8211;", "-"))
     summary = ". ".join(summary.split(". ")[:2]).rstrip(".") + "."
     assemble(S, "HOM tasks across object sizes", "HOM control of four tasks across object sizes on the CAD-model SR2 hand",
