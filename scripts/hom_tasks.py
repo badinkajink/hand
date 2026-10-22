@@ -360,12 +360,15 @@ class Plant:
         self.act = {f: np.array([m.actuator(f"a_{f}_{j}").id for j in JOINTS]) for f in FINGERS}
         self.obj_mask = np.zeros(m.ngeom, bool)
         self.obj_mask[m.geom_bodyid == self.tb] = True
-        self.fidx = -np.ones(m.ngeom, int)
+        self.fidx = -np.ones(m.ngeom, int)                 # any body of finger k
+        self.tidx = -np.ones(m.ngeom, int)                 # the tip body of finger k (its pads)
         for g in range(m.ngeom):
             bn = m.body(m.geom_bodyid[g]).name
             for k, f in enumerate(FINGERS):
                 if bn.startswith(f + "_"):
                     self.fidx[g] = k
+                    if bn == f"{f}_tip":
+                        self.tidx[g] = k
         self.post = m.geom("post").id
         self.post0 = (int(m.geom_contype[self.post]), int(m.geom_conaffinity[self.post]))
         self.wall = m.geom("wall").id if task_has_wall(setup) else -1
@@ -400,10 +403,12 @@ class Plant:
             self.mj.mj_step(self.m, self.d)
 
     def contacts(self):
-        """Per finger (centre of pressure, normal force) on the object, and the wall's normal force."""
+        """Per finger the centre of pressure and normal force of its tip's pads on the object (what a fingertip sensor
+        measures, and the paper's contact of the distal link), the force of all its bodies on the object (links
+        included), and the wall's normal force."""
         d = self.d
         n = d.ncon
-        cop = {}
+        cop, Ftot = {}, {f: 0.0 for f in FINGERS}
         wallF = 0.0
         if n:
             g = d.contact.geom[:n]
@@ -416,15 +421,17 @@ class Plant:
             other = np.where(t1, g[:, 1], g[:, 0])
             pair = t1 != t2
             fing = np.where(pair, self.fidx[other], -1)
+            tip = np.where(pair, self.tidx[other], -1)
             pos = d.contact.pos[:n]
             for k, f in enumerate(FINGERS):
-                sel = (fing == k) & (fn > 0)
+                Ftot[f] = float(fn[(fing == k) & (fn > 0)].sum())
+                sel = (tip == k) & (fn > 0)
                 F = float(fn[sel].sum())
                 if F > 0:
                     cop[f] = ((fn[sel, None] * pos[sel]).sum(0) / F, F)
             if self.wall >= 0:
                 wallF = float(fn[pair & (other == self.wall)].sum())
-        return cop, wallF
+        return cop, wallF, Ftot
 
     def state(self):
         d = self.d
@@ -433,9 +440,9 @@ class Plant:
         pos = d.qpos[self.qa:self.qa + 3].copy()
         quat = d.qpos[self.qa + 3:self.qa + 7].copy()
         self.mj.mj_objectVelocity(self.m, d, self.mj.mjtObj.mjOBJ_BODY, self.tb, self.v6, 0)
-        cop, wallF = self.contacts()
+        cop, wallF, Ftot = self.contacts()
         return {"t": float(d.time), "q": q, "qd": qd, "pos": pos, "quat": quat, "w": self.v6[:3].copy(),
-                "v": self.v6[3:].copy(), "cop": cop, "wallF": wallF}
+                "v": self.v6[3:].copy(), "cop": cop, "wallF": wallF, "Ftot": Ftot}
 
 
 def task_has_wall(setup):
@@ -647,6 +654,7 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
                "w_dps": np.degrees(s["w"]).round(2).tolist(), "v_mms": (1e3 * s["v"]).round(2).tolist(),
                "axis": R[:, 2].round(5).tolist(),
                "F": {f: round(s["cop"].get(f, (None, 0.0))[1], 3) for f in FINGERS},
+               "F_link": {f: round(max(0.0, s["Ftot"][f] - s["cop"].get(f, (None, 0.0))[1]), 3) for f in FINGERS},
                "dist_mm": {f: round(1e3 * ci[f]["dist"], 3) for f in FINGERS},
                "src": {f: ci[f]["source"] for f in FINGERS}}
         if task == "expa":
@@ -688,10 +696,11 @@ def metrics(task, setup, rows, s0, se):
     """Scores of one rollout (see the module docstring)."""
     out = {}
     z0 = rows[0]["pos_mm"][2]
-    loaded = sum(1 for f in FINGERS if se["cop"].get(f, (None, 0.0))[1] >= 0.025 * 9.81 / 2)
+    loaded = sum(1 for f in FINGERS if se["Ftot"][f] >= 0.025 * 9.81 / 2)
     out["dropped"] = bool(se["pos"][2] * 1e3 < z0 - 15.0)
     out["fingers_end"] = loaded
     out["held"] = (not out["dropped"]) and loaded >= 2
+    out["link_force_max_N"] = round(max(max(r["F_link"].values()) for r in rows), 3) if rows and "F_link" in rows[0] else None
     if task == "expa":
         V = np.array([r["v_ref"] for r in rows])
         Ach = np.array([r["v_ach"] for r in rows])
