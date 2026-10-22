@@ -62,11 +62,19 @@ ROWS = OUT / "rows"
 MEDIA = OUT / "media"
 SCN = ROOT / "logs/20261021-hom_tasks/scenes"
 FINGERS, JOINTS = S.FINGERS, S.JOINTS
-TASKS = ("pinpush", "press", "roll", "twist")
+TASKS = ("pinpush", "press", "roll", "twist", "expa")
 SIZES = {"pinpush": (10.0, 16.0, 20.0, 25.0), "press": (10.0, 16.0, 20.0, 25.0),
-         "roll": (30.0, 40.0, 50.0, 63.0), "twist": (30.0, 40.0, 50.0, 63.0)}
-SHAPE = {"pinpush": "cylinder", "press": "cylinder", "roll": "sphere", "twist": "sphere"}
+         "roll": (30.0, 40.0, 50.0, 63.0), "twist": (30.0, 40.0, 50.0, 63.0), "expa": (25.0,)}
+SHAPE = {"pinpush": "cylinder", "press": "cylinder", "roll": "sphere", "twist": "sphere", "expa": "cylinder"}
+GRASP = {"pinpush": "pinch_x", "press": "pinch_x", "roll": "equator", "twist": "equator", "expa": "equator"}
 CYL_LEN = 0.070                  # m: shorter than the scale study's 100 mm so the thumb reaches the end cap
+EXPA_MOVER = "thumb"             # Exp. A: the finger whose palmar side faces the cylinder in the equator grasp
+
+
+def dkey(task, d_mm):
+    """design.json key: pinch-x grasps keep the plain key (cylinder25); equator grasps of a cylinder get eq_."""
+    shape = SHAPE[task]
+    return f"{'eq_' if GRASP[task] == 'equator' and shape == 'cylinder' else ''}{shape}{d_mm:g}"
 KP = 4.0
 DT_C = 0.01
 FILLET = 0.0027
@@ -134,7 +142,7 @@ def link_clearance(task, des, d_mm):
     on the TPU-block mesh model (pt) of the design's layout; and the finger joints at both poses."""
     import mujoco
     tmp = dict(json.loads((OUT / "design.json").read_text())) if (OUT / "design.json").exists() else {}
-    key = f"{SHAPE[task]}{d_mm:g}"
+    key = dkey(task, d_mm)
     tmp[key] = des
     _write_design(tmp)
     _p_pads, p_pt, setup = build(task, d_mm, models=("pt",))
@@ -179,17 +187,17 @@ def _write_design(dct):
     os.replace(tmp, OUT / "design.json")
 
 
-def design_sphere(d_mm: float):
-    """Best roll/twist grasp for a sphere: the scale study's equator tripod (hand_object_scale_sim.candidates) on the
-    layout and palm height whose least-conditioned finger has the largest smallest singular value."""
+def design_sphere(d_mm: float, shape: str = "sphere"):
+    """Best equator grasp (roll, twist, Exp. A): the scale study's equator tripod (hand_object_scale_sim.candidates) on
+    the layout and palm height whose least-conditioned finger has the largest smallest singular value."""
     R_ = _reach()
     cells = {(c["tag"], c["shape"], c["d_mm"]): c for c in R_["cells"]}
     best = None
     for lay in R_["families"]["diag"]:
-        c = cells.get((lay["tag"], "sphere", float(d_mm)))
+        c = cells.get((lay["tag"], shape, float(d_mm)))
         if c is None:
             continue
-        for k, cand in enumerate(S.candidates(dict(c), "sphere", float(d_mm))):
+        for k, cand in enumerate(S.candidates(dict(c), shape, float(d_mm))):
             score = min(cand["sigma_min_mm"].values())
             if cand["min_margin_deg"] < 3.0:
                 continue
@@ -205,11 +213,11 @@ def cmd_design(a) -> int:
     out = {}
     for task in a.tasks:
         for d in (a.d or SIZES[task]):
-            key = f"{SHAPE[task]}{d:g}"
+            key = dkey(task, d)
             if key in out:
                 continue
             t0 = time.time()
-            if SHAPE[task] == "cylinder":
+            if GRASP[task] == "pinch_x":
                 out[key] = None
                 passing = []
                 ranked = design_pinch_x(d)
@@ -223,7 +231,7 @@ def cmd_design(a) -> int:
                     out[key] = max(passing, key=lambda c: c["score"])
                     out[key]["n_ranked"], out[key]["n_passing"] = len(ranked), len(passing)
             else:
-                out[key] = design_sphere(d)
+                out[key] = design_sphere(d, SHAPE[task])
             print(key, None if out[key] is None else {k: out[key].get(k) for k in ("tag", "x_p", "h", "score", "n_passing",
                                                                                     "link_clearance_mm")},
                   f"{time.time() - t0:.1f} s", flush=True)
@@ -239,7 +247,7 @@ def cmd_design(a) -> int:
 def build(task: str, d_mm: float, models=("pads", "pt")):
     """(pads scene path, pt scene path, setup dict) for one task and size."""
     shape = SHAPE[task]
-    des = json.loads((OUT / "design.json").read_text())[f"{shape}{d_mm:g}"]
+    des = json.loads((OUT / "design.json").read_text())[dkey(task, d_mm)]
     if des is None:
         raise RuntimeError(f"no feasible grasp for {shape} {d_mm}")
     R_ = _reach()
@@ -248,7 +256,7 @@ def build(task: str, d_mm: float, models=("pads", "pt")):
     sc = S.cell_scenes(cell, shape, float(d_mm), models=models)
     r = d_mm / 2000.0
     xs, ys = des["x_sep_mm"] / 1000, des["y_sep_mm"] / 1000
-    if shape == "cylinder":
+    if GRASP[task] == "pinch_x":
         tg, n_out = _pinch_x_targets(r, CYL_LEN, des["x_p"], des["h"])
         centre = np.array([des["x_p"], 0.0, -des["h"]])
         quat = AXIS_X
@@ -258,8 +266,8 @@ def build(task: str, d_mm: float, models=("pads", "pt")):
         centre = gg["centre_palm"]
         tg = {f: centre + gg["rel"][f] for f in FINGERS}
         n_out = gg["n_out"]
-        quat = SPHERE_Q
-        hl = 0.0
+        quat = SPHERE_Q                                  # the scale study's: a cylinder lies along palm y
+        hl = 0.05 if shape == "cylinder" else 0.0
     palm = np.array([-centre[0], -centre[1], S.Z_OBJ - centre[2]])
     paths = {"pads": None}
     for mdl in models:
@@ -269,7 +277,7 @@ def build(task: str, d_mm: float, models=("pads", "pt")):
         tb = root.find(f".//body[@name='{S.OBJ}']")
         tb.set("quat", " ".join(f"{v:.8f}" for v in quat))
         og = tb.find("geom")
-        if shape == "cylinder":
+        if GRASP[task] == "pinch_x":
             og.set("size", f"{r:.6f} {hl:.6f}")
         if task == "press":
             # a 6 mm plate standing on the floor, its top 2 mm above the cylinder, in collision class 2 so that only
@@ -348,6 +356,7 @@ class Plant:
         self.qa = m.jnt_qposadr[m.body_jntadr[self.tb]]
         self.va = m.jnt_dofadr[m.body_jntadr[self.tb]]
         self.qadr = {f: np.array([m.jnt_qposadr[m.joint(f"{f}_{j}").id] for j in JOINTS]) for f in FINGERS}
+        self.vadr = {f: np.array([m.jnt_dofadr[m.joint(f"{f}_{j}").id] for j in JOINTS]) for f in FINGERS}
         self.act = {f: np.array([m.actuator(f"a_{f}_{j}").id for j in JOINTS]) for f in FINGERS}
         self.obj_mask = np.zeros(m.ngeom, bool)
         self.obj_mask[m.geom_bodyid == self.tb] = True
@@ -420,11 +429,12 @@ class Plant:
     def state(self):
         d = self.d
         q = {f: d.qpos[self.qadr[f]].copy() for f in FINGERS}
+        qd = {f: d.qvel[self.vadr[f]].copy() for f in FINGERS}
         pos = d.qpos[self.qa:self.qa + 3].copy()
         quat = d.qpos[self.qa + 3:self.qa + 7].copy()
         self.mj.mj_objectVelocity(self.m, d, self.mj.mjtObj.mjOBJ_BODY, self.tb, self.v6, 0)
         cop, wallF = self.contacts()
-        return {"t": float(d.time), "q": q, "pos": pos, "quat": quat, "w": self.v6[:3].copy(),
+        return {"t": float(d.time), "q": q, "qd": qd, "pos": pos, "quat": quat, "w": self.v6[:3].copy(),
                 "v": self.v6[3:].copy(), "cop": cop, "wallF": wallF}
 
 
@@ -435,6 +445,8 @@ def task_has_wall(setup):
 # ------------------------------------------------------------------------------------------------ task schedules
 
 T_OPEN, T_CLOSE, T_SQUEEZE, T_LIFT = 0.1, 0.8, 1.2, 1.6
+EXPA_T0, EXPA_STEP, EXPA_REST = 0.3, 0.3, 0.3          # s; a 0.3 s step of 20 mm/s keeps the 8 mm gap open
+EXPA_ORDER = (0, 1, 2, 3, 4, 5)                      # spin, roll_y, roll_z, sep, slide_y, slide_z
 V_APPROACH = 0.020                                    # m/s: the paper's linear step
 W_STEP = math.radians(40.0)                           # rad/s: the paper's angular step (PRM w_step_dps)
 
@@ -452,7 +464,8 @@ class Schedule:
     def __init__(self, task, setup, prm):
         self.task, self.setup, self.prm = task, setup, prm
         self.t_end = {"pinpush": T_LIFT + 0.4 + prm["t_push"] + 1.0, "press": T_LIFT + 0.4 + 1.0 + 4.0 + 0.3,
-                      "roll": T_LIFT + 0.4 + 2 * 1.3 + 0.3, "twist": T_LIFT + 0.4 + 1.3 + 4.0 + 0.5}[task]
+                      "roll": T_LIFT + 0.4 + 2 * 1.3 + 0.3, "twist": T_LIFT + 0.4 + 1.3 + 4.0 + 0.5,
+                      "expa": EXPA_T0 + 6 * (2 * EXPA_STEP + EXPA_REST) + 0.2}[task]
         self.t_wall = None
         self.ref = {"ax_disp_mm": 0.0}
 
@@ -467,8 +480,32 @@ class Schedule:
             return "lift"
         return "task"
 
+    def expa(self, t):
+        """The paper's Exp. A: one finger (EXPA_MOVER, the thumb, whose palmar side faces the cylinder in the equator
+        grasp) moves round the cylinder without contact; each element of its reference relative contact velocity is
+        stepped + then - (40 deg/s or 20 mm/s), the others held at zero; the other fingers hold their open pose. The
+        100 mm cylinder of the scale study rests on its post along palm y."""
+        fc = {f: H.FingerCommand(follow_object=False) for f in FINGERS}
+        cmd = H.HandCommand(fingers=fc)
+        info = {"phase": "rest", "v_ref": np.zeros(6)}
+        tt = t - EXPA_T0
+        if tt >= 0:
+            k, r = divmod(tt, 2 * EXPA_STEP + EXPA_REST)
+            k = int(k)
+            if k < 6:
+                mag = math.radians(40.0) if k < 3 else 0.020
+                elem = EXPA_ORDER[k]
+                sg = 1.0 if r < EXPA_STEP else (-1.0 if r < 2 * EXPA_STEP else 0.0)
+                v = np.zeros(6)
+                v[elem] = sg * mag
+                fc[EXPA_MOVER].v_ref = v
+                info = {"phase": f"{H.COMPONENTS[elem]} {'+' if sg > 0 else '-' if sg < 0 else ''}".strip(), "v_ref": v}
+        return cmd, info
+
     def __call__(self, t, s):
         task = self.task
+        if task == "expa":
+            return self.expa(t)
         ph = self.phase(t)
         fc = {f: H.FingerCommand() for f in FINGERS}
         cmd = H.HandCommand(fingers=fc)
@@ -595,7 +632,7 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
             meas.obj_quat = qn
             meas.cop = {f: (p + rng.normal(size=3) * noise.get("cop_mm", 0.0) * 1e-3,
                             max(0.0, F + rng.normal() * noise.get("f_N", 0.0))) for f, (p, F) in sm["cop"].items()}
-        if t >= T_LIFT and not lifted:
+        if t >= T_LIFT and not lifted and task != "expa":
             plant.post_off()
             lifted = True
         if s0 is None and t >= T_LIFT + 0.4 - 1e-9:
@@ -612,6 +649,12 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
                "F": {f: round(s["cop"].get(f, (None, 0.0))[1], 3) for f in FINGERS},
                "dist_mm": {f: round(1e3 * ci[f]["dist"], 3) for f in FINGERS},
                "src": {f: ci[f]["source"] for f in FINGERS}}
+        if task == "expa":
+            g = ctl.gcf(EXPA_MOVER, meas)                                # Eq. (1) at the measured joint rates
+            A, b = ctl.eq1_rows(EXPA_MOVER, g, np.zeros(6))
+            row["v_ref"] = info["v_ref"].round(5).tolist()
+            row["v_ach"] = (A @ s["qd"][EXPA_MOVER] + b).round(5).tolist()
+            row["gap_mm"] = round(1e3 * g.dist, 3)
         if "w_ref" in info:
             row["w_ref_dps"] = np.degrees(info["w_ref"]).round(2).tolist()
         if "v_ax_ref" in info:
@@ -649,6 +692,28 @@ def metrics(task, setup, rows, s0, se):
     out["dropped"] = bool(se["pos"][2] * 1e3 < z0 - 15.0)
     out["fingers_end"] = loaded
     out["held"] = (not out["dropped"]) and loaded >= 2
+    if task == "expa":
+        V = np.array([r["v_ref"] for r in rows])
+        Ach = np.array([r["v_ach"] for r in rows])
+        scale = np.array([180 / math.pi] * 3 + [1e3] * 3)               # deg/s and mm/s
+        err = (Ach - V) * scale
+        per = {}
+        for k, elem in enumerate(EXPA_ORDER):
+            on = np.abs(V[:, elem]) > 0
+            if not on.any():
+                continue
+            mag = 40.0 if elem < 3 else 20.0
+            per[H.COMPONENTS[elem]] = {
+                "rmse_ratio": round(float(np.sqrt(np.mean(err[on, elem] ** 2)) / mag), 3),
+                "gain": round(float(np.median(Ach[on, elem] / V[on, elem])), 3),
+                "crosstalk_ang_dps": round(float(np.sqrt(np.mean(np.delete(err[on, :3], elem, 1) ** 2))) if elem < 3
+                                           else float(np.sqrt(np.mean(err[on, :3] ** 2))), 2),
+                "crosstalk_lin_mms": round(float(np.sqrt(np.mean(np.delete(err[on, 3:], elem - 3, 1) ** 2))) if elem >= 3
+                                           else float(np.sqrt(np.mean(err[on, 3:] ** 2))), 2)}
+        out["elements"] = per
+        out["min_gap_mm"] = round(float(min(r["gap_mm"] for r in rows)), 2)
+        out["held"] = True
+        return out
     task_rows = [r for r in rows if r["t"] >= T_LIFT + 0.4 - 1e-9]
     if not task_rows or s0 is None:
         return out
@@ -763,6 +828,9 @@ VARIANTS = {
     "nofilter": ({"use_filter": False}, None),
     "rate50": ({"dt": 0.02}, None),
     "sense": ({"dt": 0.02}, {"pos_mm": 0.5, "rot_deg": 1.0, "cop_mm": 1.0, "f_N": 0.03, "delay_s": 0.04}),
+    "si": ({"ell": 1.0}, None),                       # Eq. (2) in SI units with equal weights (rad/s against m/s)
+    "ell5": ({"ell": 0.005}, None),
+    "ell100": ({"ell": 0.1}, None),
 }
 
 

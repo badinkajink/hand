@@ -224,14 +224,14 @@ class Mirror:
 # ------------------------------------------------------------------------------------------------ Eq. (2), Eq. (3)
 
 def solve_eq2(A, b, v_ref, w, theta, theta_ref, lo, hi, dt, theta_healthy=None, w_damp=1e-3, w_healthy=1e-5,
-              k_healthy=1.0, u_max=2.0):
+              k_healthy=1.0, u_max=2.0, scale=None):
     """Eq. (2) for one finger: u = argmin sum_i w_i |v_i,ref - v_i(u)|^2 + w_damp |u|^2
     + w_healthy |k_p (theta_healthy - theta) - u|^2, subject to the joint limits after one step and |u| <= u_max.
     v(u) = A u + b is Eq. (1) at this finger's joint rates; rows are scaled by SCALE (linear rows by 1/ELL).
     The joint-limit bound is applied to the integrated reference theta_ref (the servo target)."""
     from scipy.optimize import lsq_linear
     n = A.shape[1]
-    sw = np.sqrt(np.asarray(w, float)) * SCALE
+    sw = np.sqrt(np.asarray(w, float)) * (SCALE if scale is None else np.asarray(scale, float))
     rows = [sw[:, None] * A, math.sqrt(w_damp) * np.eye(n)]
     rhs = [sw * (np.asarray(v_ref, float) - b), np.zeros(n)]
     if theta_healthy is not None and w_healthy > 0:
@@ -387,6 +387,7 @@ class HomParams:
     contact_force_min: float = 0.02      # N: a finger with less pad force counts as apart
     force_loop_gain: float = 0.0         # m/s per N: optional v_sep correction from the measured force (not in the paper)
     dls: float = 0.002                   # m/rad: damping of the gap-closing step of the servo impedance
+    ell: float = ELL                     # m: linear rows of Eq. (2) are divided by ell (1.0: SI units, equal weights)
     filter: FilterParams = field(default_factory=FilterParams)
 
 
@@ -484,7 +485,7 @@ class HomController:
             th = np.asarray(meas.q[f], float)
             u = solve_eq2(A, b, v_ref, c.weights, th, self.theta_ref[f], mr.lo[f], mr.hi[f], dt,
                           self.healthy.get(f) if self.healthy else None, prm.w_damp, prm.w_healthy, prm.k_healthy,
-                          prm.u_max)
+                          prm.u_max, scale=np.array([1.0, 1.0, 1.0] + [1.0 / prm.ell] * 3))
             tr = self.theta_ref[f] + dt * u
             tr = np.clip(tr, th - prm.lead, th + prm.lead)
             self.theta_ref[f] = np.clip(tr, mr.lo[f], mr.hi[f])
