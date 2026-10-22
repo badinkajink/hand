@@ -76,6 +76,19 @@ def rows(name):
     return out
 
 
+def rows_file(p):
+    p = Path(p)
+    if not p.exists():
+        return []
+    out = []
+    for line in p.read_text().splitlines():
+        try:
+            out.append(json.loads(line))
+        except json.JSONDecodeError:
+            pass
+    return out
+
+
 def video(path, caption, n):
     if not Path(path).exists():
         return ""
@@ -251,7 +264,10 @@ weight. $J^{+}$ is a damped pseudo-inverse (damping 2&#8202;mm/rad).</p>
 <p>The paper's filter gains are not printed. Here $k_{\min}=5$&#8202;s$^{-1}$, $k_{\max}=100$&#8202;s$^{-1}$ and
 $\alpha=20$&#8202;mm/s; on a static contact with 1&#8202;mm measurement noise the filtered point stays within 0.35 of the raw
 error (test). <code>FilterParams.source</code> selects the paper's $S\,\mathcal V_{L_0L_1,\rm ref}$ or, as an option, the twist that
-Eq. (2) plans.</p>"""))
+Eq. (2) plans. The choice matters when a task commands the object twist with zero reference relative velocities, as Exp. B does: the
+reference geodesic speed is then zero and the gain never leaves $k_{\min}$ (results page, contact estimator settings). The discrete
+update moves $k\,\Delta t$ of the way to the measurement each period, so $k_{\max}\Delta t$ must stay well below 1; the paper's
+500&#8202;Hz allows $k_{\max}=100$&#8202;s$^{-1}$, the bench's 50&#8202;Hz about a quarter of it.</p>"""))
 
     S.append(("paper_exps", "The paper's experiments and implementation", r"""
 <p>The paper teleoperates five simulated hands in Drake with hydroelastic contact, chosen because a pinch needs friction torque about
@@ -388,7 +404,8 @@ library (the October 2 runs used the earlier code). No part has run on hardware.
 reference implementation are the first item of the comparison below; a scale that passes both Exp. A and the picks would replace
 20&#8202;mm.</li>
 <li>Comparison with the reference implementation: the same scripted sliders on one hand in both codes, compared element by element on
-the relative contact velocities of Exp. A and the object twist of Exp. B; first the weights and units of Table 2.</li>
+the relative contact velocities of Exp. A and the object twist of Exp. B; first the weights and units of Table 2, then which twist
+feeds the filter's process model in Exp. B (the reference relative velocities are zero there) and its gains.</li>
 <li>A Drake plant behind the same <code>Mirror</code> (as <code>hom_chain.DrakeChainPlant</code> did for the earlier code) to run the
 tasks on hydroelastic contact, the paper's model.</li>
 <li>The centre of pressure from the magnet fingertips once calibrated, as the paper's future work proposes; until then the bench runs
@@ -642,6 +659,33 @@ no cylinder is held; rolling degrades and twisting holds with smaller ramps. The
                   + T(["Task", "Size (mm)", "$\\ell=20$&#8202;mm: held, score", "100&#8202;mm", "1&#8202;m (SI)"], body,
                       "Held count and median score at three length scales (score: pin-push displacement in mm, press wall-force RMS "
                       "error in N, roll and twist angular RMSE / step).", num_from=2)))
+
+    # the estimator: source of the reference geodesic velocity, k_max and the controller period
+    FS = [r for r in rows_file(D / "filter_sweep.jsonl") if r.get("status") == "ok"]
+    if FS:
+        body = []
+        for t in ("roll", "twist"):
+            for d in sorted({r["d_mm"] for r in FS if r["task"] == t}):
+                row = [t, f"{d:g}"]
+                for src, kmax, dt in (("reference", 100.0, 0.01), ("planned", 100.0, 0.01), ("planned", 25.0, 0.01),
+                                      ("reference", 100.0, 0.02), ("planned", 100.0, 0.02), ("planned", 25.0, 0.02)):
+                    rs = [r for r in FS if r["task"] == t and r["d_mm"] == d and r["source"] == src and r["k_max"] == kmax
+                          and r["dt"] == dt]
+                    row.append(f"{sum(r['held'] for r in rs)}/{len(rs)}, {fmt(med([r.get('w_rmse_ratio') for r in rs]), 2)}"
+                               if rs else "&#8212;")
+                body.append(row)
+        S.append(("estimator", "Contact estimator settings", r"""
+<p>The filter of Eqs. (4)&#8211;(6) predicts the contact frames' motion from $S\,\mathcal V_{L_0L_1,\rm ref}$, the reference
+relative contact velocities. In the roll and twist tasks, as in the paper's Exp. B, those references are zero and the motion comes
+from the object twist, so the reference geodesic speed is zero, the gain stays at $k_{\min}$ and the filtered action point trails
+the rolling contact with a time constant of $1/k_{\min}=0.2$&#8202;s. Fed instead with the relative twist that Eq. (2) plans
+(<code>FilterParams.source="planned"</code>), the filter follows the rolling contact and its gain reaches $k_{\max}$; the discrete
+update then moves $k\,\Delta t$ of the way to the measurement each period, which overshoots above 1 and is unstable near 2. The
+paper's 500&#8202;Hz gives $k_{\max}\Delta t=0.2$ at $k_{\max}=100$&#8202;s$^{-1}$; at the bench's 50&#8202;Hz the same gain gives 2.</p>"""
+                  + T(["Task", "Size (mm)", "Reference, 100&#8202;Hz", "Planned, $k_{\\max}$ 100", "Planned, 25",
+                       "Reference, 50&#8202;Hz", "Planned, 100", "Planned, 25"], body,
+                      "Held count and median angular RMSE / step for the filter's source, $k_{\\max}$ (s$^{-1}$) and "
+                      "controller rate; seeds 0&#8211;2.", num_from=2)))
 
     # deployment variants
     var_rows = {t: [r for r in R[t] if r.get("variant", "base") in ("nofilter", "rate50", "sense")] for t in R}
