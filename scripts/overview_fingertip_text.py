@@ -91,9 +91,9 @@ CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330"
 </svg>"""
 
 LEDE = (
-    "The printed fingertip is a pad of Siraya Tech 85A TPU, two walls and four solid skins around a gyroid core, on the "
-    "DIP link over ReSkin&#8217;s five-chip MLX90393 board, with five 3&#8202;&#215;&#8202;2&#8202;mm magnets 7.5&#8202;mm "
-    "under its apex. One chain of models follows it from the slicer&#8217;s rules to the chip readings: finite elements of "
+    "The printed fingertip is a pad of Siraya Tech 85A TPU, with two walls and four solid skins around a gyroid core. "
+    "It sits on the DIP link over the five-chip MLX90393 board of ReSkin. Five 3&#8202;&#215;&#8202;2&#8202;mm magnets lie "
+    "7.5&#8202;mm under its apex. One chain of models runs from the slicer&#8217;s rules to the chip readings. It has finite elements of "
     "the printed structure with the gyroid homogenized, the magnets&#8217; motion under any surface load, and a field "
     "model of the five chips. Forward, the chain chose the design: concept b&#8217;s pad resolves 0.028&#8211;0.031&#8202;N "
     "per sample at its contact point with N52 magnets. Inverted, it estimates contact point and force anywhere on the pad "
@@ -115,9 +115,9 @@ TERMS = [
     ("Magnet travel", "Rigid motion of a magnet per newton of contact force, from the FE, in &#181;m/N."),
     ("Sensing plane", "The plane of the five chips&#8217; Hall elements; on concept b it lies 0.42&#8202;mm below the "
      "pad&#8217;s back face."),
-    ("Force resolution", "The Cram&#233;r&#8211;Rao bound on the standard deviation of the pressing force from one "
-     "conversion of the five chips (141&#8202;Hz) at a known contact point, with Earth&#8217;s field unknown, in N: the "
-     "spread of the best unbiased estimate when the models are exact."),
+    ("Force resolution", "The Cram&#233;r&#8211;Rao bound on the standard deviation of the pressing force, in N. It is "
+     "computed from one conversion of the five chips (141&#8202;Hz) at a known contact point, with Earth&#8217;s field "
+     "unknown. It is the spread of the best unbiased estimate when the models are exact."),
     ("Sphere pads", "The simulations&#8217; contact model of the tip: 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its "
      "surface, each with stiffness \\(K_i=E\\,a_i/h_i\\) (builder v2: \\(h_i\\) its depth below the tip&#8217;s volume "
      "centroid)."),
@@ -133,26 +133,26 @@ TERMS = [
 
 SECTIONS = [
     ("chain", "Components of the fingertip and its models",
-     r"""<p>The fingertip is concept b of the DIP-link study, chosen by the owner after the first prints of 2026-10-20: the
-front 13.45 of the 17.0&#8202;mm of the 11/22 half-ellipsoid tip of the simulations, printed as a pad that slides into a PLA
-cover on the DIP link over the ReSkin 5X board, whose chips lie 0.42&#8202;mm below the pad&#8217;s back face
+     r"""<p>The fingertip is concept b of the DIP-link study, which the owner chose after the first prints of 2026-10-20. The pad
+is the front 13.45 of the 17.0&#8202;mm of the 11/22 half-ellipsoid tip of the simulations. It slides into a PLA
+cover on the DIP link, over the ReSkin 5X board. The board&#8217;s chips lie 0.42&#8202;mm below the pad&#8217;s back face
 ([DIP link b v3 and mount v2](exp:20261020-ur5_calibration_mount_v2/20261020-dip_link_b_v3_and_ur5_mount_v2.html)). Five
 N52 magnets, a centre one and four corners 7.4&#8202;mm apart, sit with their tops 7.5&#8202;mm under the apex, the
 shallowest depth that keeps 1.8&#8202;mm of TPU around every pocket. A press moves the magnets by a few micrometres; the
 chips read the change of their field.</p>
 """ + CHAIN_SVG + r"""
-<p>Each box is one model with its own check. The finite elements resolve what the printer makes, walls, skins and
-gyroid, because the walls carry the face&#8217;s edges and set the patch the pads must reproduce. The field model
-represents each magnet as a cylinder of 72 dipoles, because one dipole is 5.5&#8202;% high at the chips&#8217;
-distance. The rest calibration makes the chain usable on a pad as built: it finds the chips&#8217; layout and the
-magnets&#8217; poles and strength from 2&#8202;s of untouched reading. Forward, the chain ranks designs by their force
-resolution before anything is printed; inverted, it turns readings into a contact point and a force without a robot.</p>"""),
+<p>Each box is one model with its own check. The finite elements resolve what the printer makes: walls, skins and
+gyroid. They do so because the walls carry the face&#8217;s edges and set the patch that the pads must reproduce. The field model
+represents each magnet as a cylinder of 72 dipoles, because a single dipole is 5.5&#8202;% high at the chips&#8217;
+distance. The rest calibration makes the chain usable on a pad as built. From 2&#8202;s of untouched reading it finds the
+chips&#8217; layout and the magnets&#8217; poles and strength. Forward, the chain ranks designs by their force
+resolution before anything is printed. Inverted, it turns readings into a contact point and a force without a robot.</p>"""),
     ("print", "The printed pad",
-     r"""<p>The pads print on the Prusa XL&#8217;s tool 2 or the P1S&#8217;s external spool in Siraya Tech 85A at 240&#8202;&#176;C on
-a 35&#8202;&#176;C bed, upright in 0.1&#8202;mm layers: two perimeters outside and around each pocket, four top and four
-bottom layers, gyroid at 30 or 50&#8202;%. The print pauses at 9.2 and 16.2&#8202;mm of height to take the magnets, north
-toward the palmar face, into pockets whose 2.9&#8202;mm seats hold them by press fit (the owner&#8217;s choice from the
-seat coupon, 2026-10-18). The recipe stays the same on every printer, so one FE describes every pad
+     r"""<p>The pads print in Siraya Tech 85A on the Prusa XL&#8217;s tool 2 or the P1S&#8217;s external spool. The nozzle is at
+240&#8202;&#176;C and the bed at 35&#8202;&#176;C. The pad prints upright in 0.1&#8202;mm layers, with two perimeters
+outside and around each pocket, four top and four bottom layers, and gyroid at 30 or 50&#8202;%. The print pauses at 9.2
+and 16.2&#8202;mm of height so that the magnets can be placed, north toward the palmar face. Each magnet sits in a pocket
+with a 2.9&#8202;mm seat and is held by press fit (the owner&#8217;s choice from the seat coupon, 2026-10-18). The recipe stays the same on every printer, so one FE describes every pad
 ([print procedure](exp:20261018-fingertip_print_procedure/20261018-siraya85a_fingertip_print_procedure.html)). The
 pads weigh 0.6&#8202;% more TPU than the FE assumes, and concept a&#8217;s tips 3.0&#8202;% less, about 7&#8202;% softer
 ([DIP link b v3 and mount v2](exp:20261020-ur5_calibration_mount_v2/20261020-dip_link_b_v3_and_ur5_mount_v2.html)).</p>
@@ -161,38 +161,39 @@ pads weigh 0.6&#8202;% more TPU than the FE assumes, and concept a&#8217;s tips 
 newton, until the approach outgrows what 1&#8202;mm pads represent. The rule from the co-design study is at least
 12&#8202;&#181;m/N of travel for 0.1&#8202;N
 ([fingertip co-design](exp:20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html)); the
-95A tips of the first studies gave 11.7&#8202;&#181;m/N at best. eFlesh lattices travel 250&#8202;&#181;m/N open, as
-eFlesh prints them, but sink 613&#8202;&#181;m at 1&#8202;N and print with unsupported islands; closed by a skin on every
-face they sink 81&#8202;&#181;m and give 0.075&#8202;N, the gyroid&#8217;s resolution
+95A tips of the first studies gave 11.7&#8202;&#181;m/N at best. eFlesh lattices, printed open as eFlesh prints them, give
+250&#8202;&#181;m/N of travel, but they sink 613&#8202;&#181;m at 1&#8202;N and print with unsupported islands. With a skin closing
+every face they sink 81&#8202;&#181;m and give 0.075&#8202;N, which is the gyroid&#8217;s resolution
 ([eFlesh printability](exp:20261013-eflesh_printability/20261013-eflesh_lattice_printability.html)).</p>"""),
     ("fe", "Finite elements of the printed structure",
      r"""<p><b>Materials.</b> The tip&#8217;s shape is voxelized at 0.05&#8202;mm. In each layer plane, TPU within 0.9&#8202;mm
-of the outline is wall; TPU within 0.8&#8202;mm of an exposed surface along the build axis is skin; the rest is core, and
-the magnets are a fourth class, with walls and skins lining their pockets as the slicer prints them. The classes are
+of the outline is wall. TPU within 0.8&#8202;mm of an exposed surface along the build axis is skin. The rest is core. The
+magnets are a fourth class, and walls and skins line their pockets as the slicer prints them. The classes are
 sampled onto a graded hexahedral grid, 0.2&#8211;0.25&#8202;mm under the face and 0.8&#8211;1.1&#8202;mm deep inside
 (about 120&#8211;220 thousand degrees of freedom). Walls and skins are solid TPU, isotropic with Poisson 0.45: 30&#8202;MPa
 for 95A and 12&#8202;MPa for 85A, from datasheets (NinjaFlex standing in for Siraya&#8217;s unmeasured 85A). The magnets
 are NdFeB at 160&#8202;GPa, bonded
 ([finite elements of the printed tip](exp:20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html)).</p>
 <p><b>Gyroid core.</b> The core is homogenized from the gyroid as the slicer prints it. In each 0.2&#8202;mm layer the
-toolpath follows the zero set of the gyroid function at mid-layer with a 0.45&#8202;mm bead, and successive layers bond
+toolpath follows the zero set of the gyroid function at mid-layer, with a 0.45&#8202;mm bead. Successive layers bond
 only where their beads overlap:</p>
 \[g(\mathbf x)=\sin X\cos Y+\sin Y\cos Z+\sin Z\cos X,\qquad \mathbf X=\frac{2.44\,\rho}{s}\,\mathbf x,\quad s=0.407\ \mathrm{mm}\]
 <p>A periodic cell of these voxels takes six unit macroscopic strains \(\boldsymbol\varepsilon_i\); each load case solves
 for the periodic fluctuation \(\mathbf u_i\), and the effective tensor is the cell&#8217;s mean stress:</p>
 \[K\,\mathbf u_i=-\mathbf f_i,\qquad \mathbf f_i=\sum_e B_e^{\top}D\,\boldsymbol\varepsilon_i\,V_e,\qquad
 C^{*}_{ij}=\frac{V_s\,D_{ij}+\mathbf f_i\cdot\mathbf u_j}{\lvert Y\rvert}\]
-<p>The result is orthotropic, stiffer along the build axis. At the settings used, 30&#8202;% prints 32.6&#8202;% solid with
-\(E_x=0.087\,E_s\) in the layer plane and \(E_z=0.135\,E_s\) along the build axis, and 50&#8202;% prints 55.0&#8202;% with
-0.228 and 0.311; over 11&#8211;42&#8202;% solid \(E_x/E_s=0.43\,\phi^{1.40}\) and \(E_z/E_s=0.60\,\phi^{1.29}\) in the solid
-fraction \(\phi\), between the bending and stretching limits of Gibson and Ashby.</p>
+<p>The result is orthotropic, and it is stiffer along the build axis. At the settings used, 30&#8202;% prints 32.6&#8202;% solid.
+Its modulus is \(E_x=0.087\,E_s\) in the layer plane and \(E_z=0.135\,E_s\) along the build axis. The setting 50&#8202;%
+prints 55.0&#8202;% solid, with 0.228 and 0.311. Over 11&#8211;42&#8202;% solid the moduli follow
+\(E_x/E_s=0.43\,\phi^{1.40}\) and \(E_z/E_s=0.60\,\phi^{1.29}\) in the solid fraction \(\phi\). These fits lie between
+the bending and stretching limits of Gibson and Ashby.</p>
 {{FIG moduli}}
 <p><b>Tip model and contact.</b> The elements are eight-node hexahedra with Wilson&#8211;Taylor incompatible modes, so the
-thin walls bend without shear locking (a 40-voxel cantilever comes out 2.4&#8202;% below beam theory, against 9.8&#8202;%
-for plain hexahedra); each takes the tensor of its class, the core&#8217;s rotated into the tip frame.
+thin walls bend without shear locking. A 40-voxel cantilever comes out 2.4&#8202;% below beam theory, against 9.8&#8202;%
+for plain hexahedra. Each element takes the tensor of its class, and the core&#8217;s tensor is rotated into the tip frame.
 Concept b&#8217;s pad is fixed at its cut face and the mount face. One sparse Cholesky factorization of \(K\) is reused
-for every load. A rigid frictionless indenter (the shaft, a plate or a sphere) meets the face nodes, whose normal compliance
-\(W\) comes from columns of \(K^{-1}\); at approach \(\delta\) the nodal forces \(\mathbf p\) solve</p>
+for every load. A rigid frictionless indenter (the shaft, a plate or a sphere) meets the face nodes. Their normal compliance
+\(W\) comes from columns of \(K^{-1}\). At approach \(\delta\) the nodal forces \(\mathbf p\) solve</p>
 \[\mathbf p\ge0,\qquad \mathbf g_0-\delta\,\mathbf 1+W\mathbf p\ge0,\qquad \mathbf p^{\top}\big(\mathbf g_0-\delta\,\mathbf 1+W\mathbf p\big)=0,\]
 <p>and \(\delta\) is bisected until \(\sum p_i\) equals the load. A magnet&#8217;s motion is the rigid fit of its nodes&#8217;
 displacements. Each gap \(g_0\) is measured from the tip&#8217;s analytic surface; on the curved tips the grid&#8217;s face
@@ -202,31 +203,31 @@ the CPU, PyTorch on the GPU). Its input is voxels, the slicer&#8217;s material c
 bead at 0.1&#8202;mm, and on a voxel grid all elements of one size share one element matrix. The model resolving every
 bead, 1.7&#8211;2.2 million elements and 5&#8211;8 million degrees of freedom, is then solved matrix-free on the GPU in
 2&#8211;3&#8202;GB and 60&#8211;140&#8202;s per approach. The off-the-shelf solvers installed for the study run on the CPU
-from tetrahedral meshes: FEniCSx took 3.3&#8211;5.7&#8202;GB for 0.45&#8211;0.68 million degrees of freedom of quadratic
-tetrahedra, a rate that puts the resolved tip above 40&#8202;GB on a 30&#8202;GB workstation, and PolyFEM&#8217;s IPC
-contact took 7&#8211;14&#8202;min for 57 thousand degrees of freedom. One element code also solves the periodic cells, the homogenized tip and
-the resolved tip, so their comparison tests the homogenization alone. FEniCSx and PolyFEM remain as checks
+from tetrahedral meshes. FEniCSx took 3.3&#8211;5.7&#8202;GB for 0.45&#8211;0.68 million degrees of freedom of quadratic
+tetrahedra. At that rate the resolved tip needs above 40&#8202;GB, and the workstation has 30&#8202;GB. PolyFEM&#8217;s IPC
+contact took 7&#8211;14&#8202;min for 57 thousand degrees of freedom. One element code solves the periodic cells, the
+homogenized tip and the resolved tip, so their comparison tests the homogenization alone. FEniCSx and PolyFEM remain as checks
 ([finite elements of the printed tip](exp:20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html),
 Tables 7 and 8).</p>
-<p><b>Checks.</b> On the 95A block of the first study the model is 1.9&#8202;% off Hertz under a 40&#8202;mm sphere, and a
-model resolving every bead at 0.1&#8202;mm gives the homogenized tip&#8217;s approach within 2.6&#8202;% (44.8 against
-46.0&#8202;&#181;m at 1&#8202;N). On the 85A 11/22 tip and b&#8217;s pad the same check, 6&#8211;8 million degrees of freedom
-on the GPU, puts the resolved beads 1.6&#8211;4.8&#8202;% stiffer than the homogenized core under the rods and up to 7.8&#8202;%
-under a 2&#8202;mm sphere, about 1&#8202;% of it from the cell&#8217;s voxel size; a finer contact grid changes the approach by at
-most 3.6&#8202;% (v2 fingertip checks, Section 6;
+<p><b>Checks.</b> On the 95A block of the first study the model is 1.9&#8202;% off Hertz under a 40&#8202;mm sphere. A
+model that resolves every bead at 0.1&#8202;mm gives the homogenized tip&#8217;s approach within 2.6&#8202;% (44.8 against
+46.0&#8202;&#181;m at 1&#8202;N). The same check on the 85A 11/22 tip and b&#8217;s pad used 6&#8211;8 million degrees of
+freedom on the GPU. It puts the resolved beads 1.6&#8211;4.8&#8202;% stiffer than the homogenized core under the rods, and up
+to 7.8&#8202;% stiffer under a 2&#8202;mm sphere. About 1&#8202;% of that comes from the cell&#8217;s voxel size. A finer
+contact grid changes the approach by at most 3.6&#8202;% (v2 fingertip checks, Section 6;
 [calibration to the finite elements](exp:20261018-fe_contact_calibration/20261018-fe_contact_calibration.html)).
-Solved from its G-code, pad B00 sinks 18&#8202;% less than the design pad under the rod at 1&#8202;N when its beads are drawn at
-their nominal widths, which put 11&#8202;% more TPU in the model than the printed parts weigh, and 3.9&#8202;% less with its
-TPU set to the weighed volume. Its 0.1&#8202;mm layers make the gyroid 8&#8202;% stiffer in the layer plane, and with that cell
-the homogenized pad agrees with the G-code model within 1&#8202;% under the rod
+Pad B00 was solved from its G-code. Under the rod at 1&#8202;N it sinks 18&#8202;% less than the design pad when its beads are
+drawn at their nominal widths. Those widths put 11&#8202;% more TPU in the model than the printed parts weigh. With its TPU
+set to the weighed volume the pad sinks 3.9&#8202;% less. Its 0.1&#8202;mm layers make the gyroid 8&#8202;% stiffer in the
+layer plane. With that cell the homogenized pad agrees with the G-code model within 1&#8202;% under the rod
 ([v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)). The G-code solve of
-the 95A tip of 10-13 read none of the G-code&#8217;s arc moves, 11&#8202;% of its filament; with them the tip sinks 33 against
-the design model&#8217;s 41&#8202;&#181;m at 1&#8202;N, where the earlier reading gave 63
+the 95A tip of 10-13 read none of the G-code&#8217;s arc moves, which are 11&#8202;% of its filament. With them the tip sinks
+33&#8202;&#181;m at 1&#8202;N against the design model&#8217;s 41, where the earlier reading gave 63
 ([eFlesh printability](exp:20261013-eflesh_printability/20261013-eflesh_lattice_printability.html)).</p>
 {{FIG film_g20}}"""),
     ("changes", "Effects of the design changes",
-     r"""<p>Each change below was solved on the same models; approaches are under the 12.5&#8202;mm shaft at 1&#8202;N and
-resolutions per sample at the contact point
+     r"""<p>Each change below was solved on the same models. Approaches are under the 12.5&#8202;mm shaft at 1&#8202;N, and
+resolutions are per sample at the contact point
 ([finite elements of the printed tip](exp:20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html),
 [v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)).</p>
 <div class="tw"><table class="index"><thead><tr><th>Change</th><th>Effect</th></tr></thead><tbody>
@@ -240,123 +241,124 @@ resolutions per sample at the contact point
 <tr><td>Cover walls on b&#8217;s flanks</td><td>Held both ways in the model (an upper bound): 3.0&#8202;mm walls &#8722;0.16&#8202;% approach and 0.030&#8202;N; v3&#8217;s 6&#8202;mm walls 0.0313&#8202;N; with the proposed tip cap 0.0317&#8202;N, with its side walls 0.0332&#8202;N</td></tr>
 <tr><td>Shape</td><td>Of 24 printable fillet shapes none turns the tool better than the as-built block; curved tips cut the twist-onset arm to a third; in 85A at 30&#8202;% all shapes sink 251&#8211;262&#8202;&#181;m under a 2&#8202;mm sphere</td></tr>
 </tbody></table></div>
-<p>Two choices follow from the table: five magnets, because the centre magnet over U1 halves the resolution of four, and
-concept b, because the cut pad puts the magnets 3.5&#8202;mm closer to the chips. The cover walls and the cap cost at most
-16&#8202;% of the resolution, in the bound that holds the flanks both ways.</p>"""),
+<p>Two choices follow from the table. Five magnets are used, because the centre magnet over U1 halves the resolution of four.
+Concept b is used, because the cut pad puts the magnets 3.5&#8202;mm closer to the chips. The cover walls and the cap cost
+at most 16&#8202;% of the resolution, in the bound that holds the flanks both ways.</p>"""),
     ("readout", "Magnetic readout and force resolution",
      r"""<p>The ReSkin 5X board has five MLX90393 three-axis Hall magnetometers in a plus, U1 at the centre and U2&#8211;U5
 7.00&#8202;mm from it; each chip senses 0.42&#8202;mm under its package top. A QT Py ESP32-S3 reads them over its STEMMA QT
-port in 2.0&#8202;ms, 375 records a second, while each chip converts every 7.0&#8211;7.1&#8202;ms (140&#8211;143&#8202;Hz). The
-firmware sets the gain at GAIN_SEL&#8202;1, RES&#8202;1 (1.20&#8202;&#181;T a count on \(x\) and \(y\), 1.94 on \(z\), a range of
-38.4&#8202;mT), because b&#8217;s five magnets put 27.5&#8202;mT on the nearest chip and the most sensitive gain covers
-4.8&#8202;mT. At rest the measured noise per sample is 1.54&#8211;1.76&#8202;&#181;T on \(x\) and \(y\) and 2.32&#8211;2.59&#8202;&#181;T on
+port in 2.0&#8202;ms, which gives 375 records a second. Each chip converts every 7.0&#8211;7.1&#8202;ms (140&#8211;143&#8202;Hz).
+The firmware sets the gain at GAIN_SEL&#8202;1, RES&#8202;1. That gives 1.20&#8202;&#181;T a count on \(x\) and \(y\), 1.94 on
+\(z\), and a range of 38.4&#8202;mT. This gain is used because b&#8217;s five magnets put 27.5&#8202;mT on the nearest chip,
+and the most sensitive gain covers only 4.8&#8202;mT. At rest the measured noise per sample is 1.54&#8211;1.76&#8202;&#181;T on \(x\) and \(y\) and 2.32&#8211;2.59&#8202;&#181;T on
 \(z\), 1.4 times the datasheet model for this gain. Three fingers&#8217; boards answer at the same addresses and need an
 I&#178;C multiplexer; a sweep of 15 chips takes 6.74&#8202;ms, inside one conversion
 ([magnetometer readout](exp:20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html),
 <code>src/morphohand/driver/reskin5x/README.md</code>).</p>
 {{FIG board}}
 <p>The design studies rank layouts by force resolution. The FE gives each magnet&#8217;s translation and rotation per newton
-of a patch load; the field model turns that into the change of the 15 readings, the sensitivity \(S\); and the noise
-\(\Sigma\) bounds how well a force can be read. With a uniform background field \(\mathbf b\) (Earth&#8217;s) unknown, and
+of a patch load. The field model turns that into the change of the 15 readings, which is the sensitivity \(S\). The noise
+\(\Sigma\) then bounds how well a force can be read. With a uniform background field \(\mathbf b\) (Earth&#8217;s) unknown, and
 the contact point too when it is unknown,</p>
 \[\mathbf r=S\,\mathbf f+U\mathbf b+\mathbf n,\qquad J=\big[\,S\ \ U\ \ \partial_yS\,\mathbf f\ \ \partial_zS\,\mathbf f\,\big],\qquad
 \sigma_{f_n}=\sqrt{\big[(J^{\top}\Sigma^{-1}J)^{-1}\big]_{nn}},\]
 <p>the Cram&#233;r&#8211;Rao bound on the pressing force from one sample. It is a lower bound: it assumes the models are exact.
-On the first 95A tip one 4.76&#8202;mm magnet 5&#8202;mm deep resolved 0.044&#8202;N at a known point and 0.08&#8211;1.48&#8202;N over
-the face when the point was unknown, which is why the layouts went to four magnets (0.14&#8202;N everywhere) and then
-five. On the 11/22 tip concept a resolves 0.065&#8202;N and b 0.028&#8202;N, with the contact located to
-0.34&#8202;&#215;&#8202;0.42&#8202;mm against a&#8217;s 1.40&#8202;&#215;&#8202;1.31&#8202;mm; at the measured noise b&#8217;s 0.028&#8202;N
-becomes about 0.039&#8202;N ([v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)).</p>
-<p>The disturbances are larger than the noise. The chips run without their on-chip temperature compensation, and each
-one&#8217;s sensitivity falls by 0.65&#8211;0.70&#8202;% per &#176;C of its die temperature: on the centre chip, in 7.6&#8202;mT, one
-degree is 53&#8202;&#181;T, twice a 1&#8202;N press on the face, and the board warms by about 1&#8202;&#176;C in the minutes after it is
-plugged in. Dividing each reading by its chip&#8217;s gain at the chip&#8217;s own temperature leaves 9 of those 70&#8202;&#181;T
+On the first 95A tip one 4.76&#8202;mm magnet 5&#8202;mm deep resolved 0.044&#8202;N at a known point. When the point
+was unknown it resolved 0.08&#8211;1.48&#8202;N over the face. For that reason the layouts went to four magnets
+(0.14&#8202;N everywhere) and then five. On the 11/22 tip concept a resolves 0.065&#8202;N and b resolves 0.028&#8202;N. The
+contact is located to 0.34&#8202;&#215;&#8202;0.42&#8202;mm with b and 1.40&#8202;&#215;&#8202;1.31&#8202;mm with a. At the measured
+noise b&#8217;s 0.028&#8202;N becomes about 0.039&#8202;N ([v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)).</p>
+<p>The disturbances are larger than the noise. The chips run without their on-chip temperature compensation. Each
+chip&#8217;s sensitivity falls by 0.65&#8211;0.70&#8202;% per &#176;C of its die temperature. On the centre chip, in
+7.6&#8202;mT, one degree is 53&#8202;&#181;T, which is twice a 1&#8202;N press on the face. The board warms by about
+1&#8202;&#176;C in the minutes after it is plugged in. Dividing each reading by its chip&#8217;s gain at the chip&#8217;s own temperature leaves 9 of those 70&#8202;&#181;T
 ([contact estimation](exp:20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html), Section 9). On the first tip a facing
 fingertip&#8217;s magnet moving from 25 to 30&#8202;mm read as 5.16&#8202;N, 2.01&#8202;N with the field&#8217;s gradient estimated; the hand&#8217;s
 joint angles give the other magnets&#8217; positions, so their field can be subtracted. Earth&#8217;s field, 1.71&#8202;N on U1 alone,
-drops out of the five-chip estimate. The board must not move against the pad: on concept a with four magnets,
-1&#8202;&#181;m of board motion reads as 0.160&#8202;N, which is why the board is clamped
+drops out of the five-chip estimate. The board must not move against the pad. On concept a with four magnets,
+1&#8202;&#181;m of board motion reads as 0.160&#8202;N, and for that reason the board is clamped
 ([DIP link board mount](exp:20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html)).</p>"""),
     ("estimate", "Contact point and force from the readings",
      r"""<p>The estimator runs the chain backwards
 ([contact estimation](exp:20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html)). At rest
-the 15 components are the magnets&#8217; field and Earth&#8217;s. With each chip&#8217;s rotation taken from the board&#8217;s
-pick-and-place file and one common offset fitted, the rest calibration finds which address sits at which position, every
-magnet&#8217;s pole, the magnets&#8217; strength and the pad&#8217;s offset on the board. On pad B00 as first assembled it fits at
+the 15 components are the magnets&#8217; field and Earth&#8217;s. The rotation of each chip is taken from the board&#8217;s
+pick-and-place file, and one common offset is fitted. The rest calibration then finds which address sits at which
+position. It also finds every magnet&#8217;s pole, the magnets&#8217; strength and the pad&#8217;s offset on the board. On pad B00 as first assembled it fits at
 0.43&#8202;mT RMS against fields of 1.9&#8211;7.0&#8202;mT, and finds magnets at 35&#8202;% of an N52&#8217;s moment with two
 diagonal corners reversed, which the owner confirmed were not N52 and inserted at random. A press then changes the reading
 by</p>
 \[\Delta\mathbf b=S(\mathbf p)\,\mathbf f+N\mathbf q+\mathbf n,\qquad N=\big[\,U\ \ \mathbf b^{\mathrm{rest}}\,\big],\]
 <p>where \(S(\mathbf p)\) comes from an FE basis of 1&#8202;N loads along \(x\), \(y\) and \(z\) at the 812 pad points over the
-whole free surface (2,436 load cases, 101&#8202;s, 2.0&#8202;GB), interpolated between them by a thin-plate spline, and
-\(\mathbf q\) holds a uniform field change and a strength change with Gaussian priors. With \(C\) the covariance of the
+whole free surface (2,436 load cases, 101&#8202;s, 2.0&#8202;GB). A thin-plate spline interpolates between the points.
+The vector \(\mathbf q\) contains a uniform field change and a strength change, each with a Gaussian prior. With \(C\) the covariance of the
 noise and the nuisance terms and a force prior \(\sigma_f=3\)&#8202;N, the force at each candidate point and the point
 itself follow from</p>
 \[\hat{\mathbf f}(\mathbf p)=\big(S^{\top}C^{-1}S+\sigma_f^{-2}I\big)^{-1}S^{\top}C^{-1}\Delta\mathbf b,\qquad
 \hat{\mathbf p}=\arg\max_{\mathbf p}\ \Big[\Delta\mathbf b^{\top}C^{-1}S\,\hat{\mathbf f}-\ln\det\big(I+\sigma_f^{2}S^{\top}C^{-1}S\big)\Big],\]
 <p>the log marginal likelihood of a contact at \(\mathbf p\), over 12,581 candidate points about 0.2&#8202;mm apart, with the
 force pressing, inside a friction cone of 2 and below 25&#8202;N. The determinant charges each point for the patterns it
-could explain: without it the best fit often went to a flank point where the reading barely responds, with forces of
+could explain. Without it the best fit often went to a flank point where the reading barely responds, with forces of
 100&#8202;N and more. The Fisher information gives each estimate&#8217;s 1-sigma; one estimate takes 1.2&#8202;ms.</p>
-<p>On 600 simulated presses with N52 magnets and the 50&#8202;ms window, 2&#8202;% are placed more than 1.5&#8202;mm away; the rest
-have median errors of 0.20&#8202;mm and 0.036&#8202;N on the face and 0.17&#8202;mm and 0.050&#8202;N on the flanks, and the errors
-follow the predicted 1-sigma (ratio 1.10&#8211;1.16). With the magnets in the pad today, 15&#8202;% are placed away and the rest
-have 0.39&#8202;mm and 0.08&#8202;N. Over 30&#8202;s without a press, one frame of 880 shows a contact.</p>
+<p>Of 600 simulated presses with N52 magnets and the 50&#8202;ms window, 2&#8202;% are placed more than 1.5&#8202;mm away. The
+rest have median errors of 0.20&#8202;mm and 0.036&#8202;N on the face, and 0.17&#8202;mm and 0.050&#8202;N on the flanks. The
+errors follow the predicted 1-sigma (ratio 1.10&#8211;1.16). With the magnets in the pad today, 15&#8202;% are placed away
+and the rest have 0.39&#8202;mm and 0.08&#8202;N. Over 30&#8202;s without a press, one frame of 880 shows a contact.</p>
 {{FIG surface}}
 {{FIG viewer}}"""),
     ("pads", "The fingertip in the simulations",
-     r"""<p>The simulations represent the tip by sphere pads, 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface,
-each with stiffness \(K_i=E\,a_i/h_i\); builder v2, the default since 2026-10-15, takes \(h_i\) as each pad&#8217;s depth
+     r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
+Each pad has stiffness \(K_i=E\,a_i/h_i\). In builder v2, the default since 2026-10-15, \(h_i\) is the pad&#8217;s depth
 below the tip&#8217;s volume centroid. One modulus misses the FE&#8217;s approach by 20&#8211;28&#8202;%, because the FE&#8217;s
 force grows as \(\delta^{1.07}\) and the law&#8217;s as \(\delta^{1.5}\): the walls and skins spread the load over the core.
-A stiff local modulus behind a series spring, \(a(F)=F/k_s+a_{\mathrm{loc}}(F;E_{\mathrm{loc}})\) with
-\(k_s=9.7\)&#8202;N/mm, fits the 11/22 tip within 5.2&#8202;% RMS approach in Drake&#8217;s hydroelastic field and
-5.6&#8202;% in 0.5&#8202;mm pads, though no single spring fits the capsule
+A stiff local modulus behind a series spring fits the 11/22 tip, with
+\(a(F)=F/k_s+a_{\mathrm{loc}}(F;E_{\mathrm{loc}})\) and \(k_s=9.7\)&#8202;N/mm. The RMS approach error is 5.2&#8202;% in
+Drake&#8217;s hydroelastic field and 5.6&#8202;% in 0.5&#8202;mm pads. No single spring fits the capsule
 ([calibration to the finite elements](exp:20261018-fe_contact_calibration/20261018-fe_contact_calibration.html)). With the
-spring in both simulators, the same servo commands end the tool&#8217;s turn 6.3&#176; apart in place of 18.6&#176;, while
-their contact forces still differ by 0.37&#8202;N against a 0.25&#8202;N bound
+spring in both simulators, the same servo commands end the tool&#8217;s turn 6.3&#176; apart in place of 18.6&#176;. Their
+contact forces still differ by 0.37&#8202;N against a 0.25&#8202;N bound
 ([v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)). The estimator
 reports its forces at the same pads the simulations use, so a measured contact and a simulated one can be compared pad
 by pad.</p>"""),
     ("hardware", "Hardware built and measured",
-     r"""<p>The DIP link holds the board against the pad. Of three concepts, the window plate with a clamp (a), a cover that
-clamps the board behind the pad on rails (b) and a board printed over (c), the design judge chose a on 2026-10-18 and the
-owner took a and b to print; on 2026-10-20 the owner chose b (&#8220;concept B is the clear winner&#8221;), which also resolves
-0.028 against 0.065&#8202;N. Version 2 keeps the board&#8217;s own Qwiic connector and lays the cable in a groove past the
-slotted arm, with both links 9.75&#8202;mm longer; v3 adds 6&#8202;mm cover walls along the pad&#8217;s flanks, a column under the
-pad and a cable leg open to the top
+     r"""<p>The DIP link holds the board against the pad. Three concepts were drawn: the window plate with a clamp (a), a cover that
+clamps the board behind the pad on rails (b) and a board printed over (c). The design judge chose a on 2026-10-18, and the
+owner took a and b to print. On 2026-10-20 the owner chose b (&#8220;concept B is the clear winner&#8221;), which also
+resolves 0.028 against 0.065&#8202;N. Version 2 keeps the board&#8217;s own Qwiic connector and lays the cable in a groove
+past the slotted arm. Both links are 9.75&#8202;mm longer. Version 3 adds 6&#8202;mm cover walls along the pad&#8217;s flanks,
+a column under the pad and a cable leg open to the top
 ([DIP link board mount](exp:20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html),
 [DIP link b v3 and mount v2](exp:20261020-ur5_calibration_mount_v2/20261020-dip_link_b_v3_and_ur5_mount_v2.html)).</p>
 <p>In the prints of 2026-10-20 the rails at groove fit B00 slot together but pop off under a sideways push, and cover W00
-keeps pad B00 in place. In the owner&#8217;s first presses by hand the pad rocked in its seat: after the fourth and fifth
-presses the reading stayed 62 and 104&#8202;&#181;T from rest, which a rigid shift of the whole pad by 17&#8211;23&#8202;&#181;m with a
-tilt of about 4&#8202;mrad reproduces (7&#8211;14&#8202;% residual, 62&#8202;% for random patterns), and which the estimator reads as
-standing contacts of 11&#8211;12&#8202;N. The owner accepted a cap over the tip end the same evening: an end plate on the
-pad&#8217;s flat end, ears under the two distal board screws and a 2&#8202;mm pin into the pad (pad B00P has its hole), with
-6&#8202;mm side walls on the distal flanks in variant TW; in the FE bound the plate and pin cost 1&#8202;% of the resolution
-and the side walls 6&#8202;%, and both caps print in 17&#8202;min
+keeps pad B00 in place. In the owner&#8217;s first presses by hand the pad rocked in its seat. After the fourth and fifth
+presses the reading stayed 62 and 104&#8202;&#181;T from rest. A rigid shift of the whole pad by 17&#8211;23&#8202;&#181;m with a
+tilt of about 4&#8202;mrad reproduces this (7&#8211;14&#8202;% residual, 62&#8202;% for random patterns). The estimator reads
+the shift as standing contacts of 11&#8211;12&#8202;N. The same evening the owner accepted a cap over the tip end. It has an
+end plate on the pad&#8217;s flat end, ears under the two distal board screws and a 2&#8202;mm pin into the pad (pad B00P
+has its hole). Variant TW adds 6&#8202;mm side walls on the distal flanks. In the FE bound the plate and pin cost
+1&#8202;% of the resolution and the side walls 6&#8202;%. Both caps print in 17&#8202;min
 ([DIP link board mount](exp:20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html)).</p>
-<p>On 2026-10-21, before the cap, touches still moved the rest by 33&#8211;69&#8202;&#181;T (rigid shifts of 8&#8211;19&#8202;&#181;m), and
-over a night at rest the estimator with the chips&#8217; noise alone showed a contact 95&#8202;% of the time, from the 8&#8211;14&#8202;&#181;T
-of drift that the temperature correction and the estimator&#8217;s nuisances leave. The viewer now adds a noise floor of 2&#8202;&#181;T to
-every component, shows a contact only above 0.25&#8202;N and takes a new baseline once the reading has been as still as at
-rest for 3&#8202;s: no contact shows at rest over the night or the board&#8217;s warm-up, the smallest press shown on the face rises
-from 0.20 to 0.60&#8202;N, and a press held still for 3&#8202;s goes into the baseline
+<p>On 2026-10-21, before the cap, touches still moved the rest by 33&#8211;69&#8202;&#181;T (rigid shifts of 8&#8211;19&#8202;&#181;m).
+Over a night at rest the estimator, with the chips&#8217; noise alone, showed a contact 95&#8202;% of the time. The cause
+was 8&#8211;14&#8202;&#181;T of drift that the temperature correction and the estimator&#8217;s nuisances leave. The viewer now
+adds a noise floor of 2&#8202;&#181;T to every component and shows a contact only above 0.25&#8202;N. It takes a new
+baseline once the reading has been as still as at rest for 3&#8202;s. No contact shows at rest over the night or the
+board&#8217;s warm-up. The smallest press shown on the face rises from 0.20 to 0.60&#8202;N, and a press held still for
+3&#8202;s goes into the baseline
 ([contact estimation](exp:20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html), Section 9).</p>
 {{FIG hand}}
-<p>The UR5e calibration mount clamps the DIP link to the OnRobot HEX-E with the finger along the tool axis, so the normal
-force falls on the sensor&#8217;s lateral axes (noise 0.035&#8202;N against 0.15&#8202;N axially); under 10&#8202;N the HEX-E deflects
-0.49&#8202;mm, the link 0.010&#8211;0.026&#8202;mm and the mount 0.004&#8202;mm. The first version printed with a spigot the HEX-E
-has no bore for and a key that snapped; v2 clocks the link by walls around its legs and homes on a drafted key on each
-indenter, and is sliced but not all printed
+<p>The UR5e calibration mount clamps the DIP link to the OnRobot HEX-E with the finger along the tool axis. The normal
+force then falls on the sensor&#8217;s lateral axes (noise 0.035&#8202;N against 0.15&#8202;N axially). Under 10&#8202;N the
+HEX-E deflects 0.49&#8202;mm, the link 0.010&#8211;0.026&#8202;mm and the mount 0.004&#8202;mm. The first version printed with a spigot, for which the HEX-E
+has no bore, and with a key that snapped. Version 2 clocks the link by walls around its legs and homes on a drafted key
+on each indenter. It is sliced but not all printed
 ([UR5e mount v1](exp:20261018-ur5_calibration_mount/20261018-ur5_calibration_mount.html)). The UR5e and the HEX-E are
 connected to the lab&#8217;s computer, which this workstation cannot reach.</p>"""),
     ("open", "Open questions",
      r"""<ol>
 <li><b>The force scale.</b> No printed pad has been pressed against a force reference. The FE takes Siraya 85A at
-12&#8202;MPa from a NinjaFlex datasheet (95A datasheets span 26&#8211;67&#8202;MPa), every force scales with that modulus, and the
-G-code solves put the printed pads 4&#8211;18&#8202;% stiffer than the design model, depending on how much TPU the beads hold. A scale or load cell under a printed indenter
-settles the scale; an indentation with the HEX-E separates the pad&#8217;s stiffness from the magnets&#8217; strength.</li>
+12&#8202;MPa from a NinjaFlex datasheet (95A datasheets span 26&#8211;67&#8202;MPa). Every force scales with that modulus.
+The G-code solves put the printed pads 4&#8211;18&#8202;% stiffer than the design model, depending on how much TPU the beads
+hold. A scale or load cell under a printed indenter would fix the scale; an indentation with the HEX-E separates the pad&#8217;s stiffness from the magnets&#8217; strength.</li>
 <li><b>The seat.</b> The FE fixes the pad&#8217;s cut face, and the pad as assembled moved 17&#8211;23&#8202;&#181;m and stayed there;
 touches on 2026-10-21 still moved it 8&#8211;19&#8202;&#181;m. The viewer&#8217;s re-zero at rest clears the offsets but takes in a press
 held still for 3&#8202;s. The tip cap is meant to hold the pad; until it returns to its seat within a few &#181;T after a firm
@@ -371,8 +373,8 @@ coefficient, which follows the pad&#8217;s lagging temperature, is not separated
 <li><b>Large presses and shear.</b> The FE is linear and frictionless; a neo-Hookean check lost 11&#8202;% of the force at
 350&#8202;&#181;m on the softest tip. The tip&#8217;s tangential compliance, 48&#8211;177&#8202;&#181;m/N, is in neither simulator, and the
 estimator&#8217;s shear has not been tested.</li>
-<li><b>The simulators.</b> Calibrated to the FE, the pads and Drake agree on approach within 6&#8202;% but end a turn
-6.3&#176; apart with contact forces 0.37&#8202;N apart; whether builder v2 stays the default waits on the owner.</li>
+<li><b>The simulators.</b> Calibrated to the FE, the pads and Drake agree on approach within 6&#8202;%. They end a turn
+6.3&#176; apart, with contact forces 0.37&#8202;N apart. Whether builder v2 stays the default waits on the owner.</li>
 </ol>"""),
 ]
 
@@ -386,10 +388,11 @@ FIGURES = {
                             "structures upright."),
     "moduli": dict(image="docs/overviews/media/fingertip_moduli_plot.png", width=760,
                    alt="Homogenized moduli of printed gyroid against solid fraction.",
-                   caption="Moduli of the printed gyroid against the core&#8217;s solid fraction, from the homogenized cells "
-                           "of the <a href='../experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html'>"
+                   caption="Moduli of the printed gyroid against the core&#8217;s solid fraction, in the layer plane and along the "
+                           "build axis. They come from the homogenized cells of the "
+                           "<a href='../experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html'>"
                            "finite-element study</a> (filled: 0.1&#8202;mm voxels; open: 0.05&#8202;mm, the cells the tips "
-                           "use), in the layer plane and along the build axis, with the fits \\(0.43\\,\\phi^{1.40}\\) and "
+                           "use). The plot also shows the fits \\(0.43\\,\\phi^{1.40}\\) and "
                            "\\(0.60\\,\\phi^{1.29}\\), the ideal sheet gyroid, eFlesh&#8217;s cut cells and the "
                            "Gibson&#8211;Ashby limits. Drawn by <code>scripts/overview_fingertip_figures.py</code>."),
     # film labels go to ffmpeg drawtext, which reads a bare % as an expansion and then draws no label: escape it as \%
@@ -404,37 +407,37 @@ FIGURES = {
                           "apart, and the sensing gap in section."),
     "surface": dict(image="docs/experiments/20261020-fingertip_contact_estimation/media/20261020-surface_uncertainty.png",
                     width=828, alt="Press 1-sigma over the pad's surface, two magnet sets, three views.",
-                    caption="Model 1-sigma of the pressing force for 1&#8202;N along the normal at each pad point, 50&#8202;ms "
-                            "of samples, seen from the palm and from both flanks, for the magnets in the pad today and for "
-                            "N52 magnets all one way (log scale). Red circles: magnets; white squares: chips. The mount end "
+                    caption="Model 1-sigma of the pressing force for 1&#8202;N along the normal at each pad point, from 50&#8202;ms "
+                            "of samples. The views are from the palm and from both flanks. Two magnet sets are shown: the magnets "
+                            "in the pad today and N52 magnets all one way (log scale). Red circles: magnets; white squares: chips. The mount end "
                             "and the flanks&#8217; lowest millimetres respond least. From the "
                             "<a href='../experiments/20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html'>"
                             "contact estimation</a>, Figure&#160;3."),
     "viewer": dict(film=[[(FILM_VIEW, "Browser viewer, five synthetic presses, magnets as found")]],
                    page="20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html",
                    source="contact estimation",
-                   caption="The browser viewer replaying five presses the model made with the measured noise: the palmar "
+                   caption="The browser viewer replays five presses that the model made with the measured noise. The presses are on the palmar "
                            "face, the +y flank, the face&#8217;s edge on the &#8722;y side (behind the pad in this view), the "
                            "tip end, and a press with shear along the finger. Arrow: the estimated force; ring: the 1-sigma "
                            "position ellipse; colour: the pads&#8217; pressure; deformation from the FE, drawn 20 times."),
     "hand": dict(image="docs/experiments/20261020-fingertip_contact_estimation/media/20261020-presses_by_hand.png",
                  width=760, alt="The owner's first presses by hand: reading change, estimate, and the offset left by the pad.",
-                 caption="The owner&#8217;s first presses by hand (2026-10-20 19:39): the reading change from the first rest "
-                         "with the rests in grey, the estimator&#8217;s force, and the last rest&#8217;s offset per chip axis "
-                         "against a rigid motion of the whole pad fitted to it. From the "
+                 caption="The owner&#8217;s first presses by hand (2026-10-20 19:39). The panels show the reading change from "
+                         "the first rest, with the rests in grey; the estimator&#8217;s force; and the last rest&#8217;s offset "
+                         "per chip axis, against a rigid motion of the whole pad fitted to it. From the "
                          "<a href='../experiments/20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html'>"
                          "contact estimation</a>, Figure&#160;5."),
 }
 
 FUTURE = [
-    'Seat: with the pad fastened, record five firm presses with 2&#8202;s rests and run <code>src/morphohand/driver/reskin5x/host/pad_shift_check.py</code>; every rest within 5&#8202;&#181;T of the first passes (0.2&#8202;N on the face), offsets of tens of &#181;T that a rigid motion fits mean the pad still moves.',
-    'N52 magnets: recalibrate in the viewer (key c); a strength of 0.8&#8211;1.2, all poles one way and a rest residual below 0.43&#8202;mT confirm the field model; a lower strength or larger residual means the magnets&#8217; depth or the pad&#8217;s seat differs from the FE.',
-    'Force reference without the UR5e: a kitchen scale or load cell under a printed indenter, holds at about 1, 2 and 4&#8202;N at the face centre, a flank and the tip end; an estimated press more than three model sigmas from the reference falsifies the force scale at that point, and the ratio refits \\(E^*\\).',
-    'Indentation with the HEX-E: approach against force at 0.5, 1 and 3&#8202;N under the 12.5&#8202;mm rod, from first touch. At 1&#8202;N the design model of b&#8217;s pad gives 185&#8202;&#181;m and B00&#8217;s G-code model with its TPU as weighed 178&#8202;&#181;m (v2 fingertip checks, Table 5); outside &#177;25&#8202;% of both falsifies the pad&#8217;s modelled stiffness, independently of the magnets, and points at the datasheet modulus. A result nearer the G-code model moves the calibration to the 0.1&#8202;mm-layer cell (case <code>b_v2_cl01</code>).',
-    'Sensing rows on the probes&#8217; gap rule: <code>run_sense</code> in <code>scripts/v2_tip_fe_checks.py</code> takes its gaps from <code>tpu_tip_magnet.gaps</code>, which moves a face node onto the analytic surface only within half a grid cell of it, and gives 150 against the probe rows&#8217; 185&#8202;&#181;m for the same pad at 1&#8202;N. Rerun <code>--sense b_v2</code> with every face node on the surface; a force resolution that moves by more than 5&#8202;% means the DIP page&#8217;s resolutions need the same rerun.',
-    'UR5e session on the lab&#8217;s computer: probe points from the basis&#8217;s pad points over the face and both flanks, three normal forces and two shear directions each, a return to one reference point every ten presses, 30&#8202;s rests; refit strength, offsets, \\(\\theta_0\\), \\(E^*\\) and per-magnet strengths on half the points and compare the other half&#8217;s errors with the model 1-sigma.',
+    'Seat: with the pad fastened, record five firm presses with 2&#8202;s rests and run <code>src/morphohand/driver/reskin5x/host/pad_shift_check.py</code>. Every rest within 5&#8202;&#181;T of the first passes (0.2&#8202;N on the face). Offsets of tens of &#181;T that a rigid motion fits mean that the pad still moves.',
+    'N52 magnets: recalibrate in the viewer (key c). A strength of 0.8&#8211;1.2, all poles one way and a rest residual below 0.43&#8202;mT confirm the field model. A lower strength or a larger residual means that the magnets&#8217; depth or the pad&#8217;s seat differs from the FE.',
+    'Force reference without the UR5e: put a kitchen scale or load cell under a printed indenter and hold the press at about 1, 2 and 4&#8202;N at the face centre, a flank and the tip end. An estimated press more than three model sigmas from the reference falsifies the force scale at that point, and the ratio refits \\(E^*\\).',
+    'Indentation with the HEX-E: approach against force at 0.5, 1 and 3&#8202;N under the 12.5&#8202;mm rod, from first touch. At 1&#8202;N the design model of b&#8217;s pad gives 185&#8202;&#181;m. B00&#8217;s G-code model, with its TPU as weighed, gives 178&#8202;&#181;m (v2 fingertip checks, Table 5). A result outside &#177;25&#8202;% of both falsifies the pad&#8217;s modelled stiffness, independently of the magnets, and points at the datasheet modulus. A result nearer the G-code model moves the calibration to the 0.1&#8202;mm-layer cell (case <code>b_v2_cl01</code>).',
+    'Sensing rows on the probes&#8217; gap rule: <code>run_sense</code> in <code>scripts/v2_tip_fe_checks.py</code> takes its gaps from <code>tpu_tip_magnet.gaps</code>. That function moves a face node onto the analytic surface only within half a grid cell of it, and it gives 150&#8202;&#181;m against the probe rows&#8217; 185 for the same pad at 1&#8202;N. Rerun <code>--sense b_v2</code> with every face node on the surface; a force resolution that moves by more than 5&#8202;% means the DIP page&#8217;s resolutions need the same rerun.',
+    'UR5e session on the lab&#8217;s computer: probe the basis&#8217;s pad points over the face and both flanks, at three normal forces and two shear directions each. Return to one reference point every ten presses and rest 30&#8202;s. Refit strength, offsets, \\(\\theta_0\\), \\(E^*\\) and per-magnet strengths on half the points, and compare the other half&#8217;s errors with the model 1-sigma.',
     'Facing finger: record the board with a second tip&#8217;s magnets at 20&#8211;40&#8202;mm and compare with the dipole prediction before subtracting it from the joint angles.',
-    'Temperature: with the pad at rest, hold a warm hand around the finger for 60&#8202;s and take it away, with the viewer logging, and run <code>scripts/fingertip_contact_estimation_study.py thermal</code> on that stretch: no contact should show while the chips warm by 2&#8211;3&#8202;&#176;C. A drift that grows with the temperature after the correction means the magnets need a coefficient of their own; firmware with TCMP_EN 1 is the alternative to test the same way.',
+    'Temperature: with the pad at rest and the viewer logging, hold a warm hand around the finger for 60&#8202;s and take it away. Run <code>scripts/fingertip_contact_estimation_study.py thermal</code> on that stretch. No contact should show while the chips warm by 2&#8211;3&#8202;&#176;C. A drift that grows with the temperature after the correction means the magnets need a coefficient of their own. Firmware with TCMP_EN 1 is the alternative, to be tested the same way.',
 ]
 
 PAGES = [
