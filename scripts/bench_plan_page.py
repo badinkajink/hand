@@ -495,20 +495,20 @@ def plant_section(C, C1, R, grips):
     return (
         f"<p>The SCS0009 finger servo stalls at {STALL_NM:g}&#8202;N&#8202;m at 6&#8202;V (datasheet), and its overload "
         f"protection cuts the drive to 20&#8202;% after a sustained load above {TRIP_FRAC * 100:.0f}&#8202;% of stall "
-        f"(<a href='{SYSID}'>servo study</a>), so the servo plant limits each joint to {PS['fr']:g}&#8202;N&#8202;m. The "
+        f"(<a href='{SYSID}'>servo study</a>). The servo plant therefore limits each joint to {PS['fr']:g}&#8202;N&#8202;m. The "
         f"load register reaches full drive at {DEG_PER_LOAD * LOAD_FULL:.1f}&#176; of position error "
-        f"({DEG_PER_LOAD:g}&#176; per load unit over {N_SYSID_RUNS} bench runs), which gives a stiffness of "
-        f"{STALL_NM:g}&#8202;N&#8202;m&#8202;/&#8202;{err:.3f}&#8202;rad = {STALL_NM / err:.2f}&#8202;N&#8202;m/rad; the "
-        f"plant uses {PS['kp']:g}&#8202;N&#8202;m/rad and a {PS['tau']:.2f}&#8202;s time constant. The plan&#8217;s first "
-        f"version used {P1['kp']:g}&#8202;N&#8202;m/rad and a {P1['fr']:g}&#8202;N&#8202;m limit, "
-        f"{P1['fr'] / STALL_NM:.1f} times the stall torque, from a fit of bench replays that reproduced the joint angles "
-        f"to {R['lo']:.1f}&#8211;{R['hi']:.1f}&#176; at every limit from {R['fr_lo']:g} to {R['fr_hi']:g}&#8202;N&#8202;m; "
-        f"policies trained on that plant gripped the screwdriver with {grips[0]:.0f}&#8211;{grips[1]:.0f}&#8202;N "
+        f"({DEG_PER_LOAD:g}&#176; per load unit over {N_SYSID_RUNS} bench runs). This gives a stiffness of "
+        f"{STALL_NM:g}&#8202;N&#8202;m&#8202;/&#8202;{err:.3f}&#8202;rad = {STALL_NM / err:.2f}&#8202;N&#8202;m/rad. The "
+        f"plant uses {PS['kp']:g}&#8202;N&#8202;m/rad and a {PS['tau']:.2f}&#8202;s time constant.</p>"
+        f"<p>The plan&#8217;s first version used {P1['kp']:g}&#8202;N&#8202;m/rad and a {P1['fr']:g}&#8202;N&#8202;m limit, "
+        f"{P1['fr'] / STALL_NM:.1f} times the stall torque. It came from a fit of bench replays that reproduced the joint "
+        f"angles to {R['lo']:.1f}&#8211;{R['hi']:.1f}&#176; at every limit from {R['fr_lo']:g} to {R['fr_hi']:g}&#8202;N&#8202;m. "
+        f"Policies trained on that plant gripped the screwdriver with {grips[0]:.0f}&#8211;{grips[1]:.0f}&#8202;N "
         f"(<a href='{POLICY_PAGE}'>contact-model policies of 8 October</a>). In this study both plants command "
-        "4&#8202;N per pad, and the hold grasps of the Stage&#160;1 cells press the cylinder with "
+        "4&#8202;N per pad. The hold grasps of the Stage&#160;1 cells press the cylinder with "
         f"{rng(min(gs), max(gs), 1)}&#8202;N in total on the servo plant"
         + (f" and {rng(min(gw), max(gw), 1)}&#8202;N on the 1&#8202;N&#8202;m plant" if gw else "")
-        + f"; under a load along gravity they hold {rng(min(ds_), max(ds_), 1)}&#8202;N"
+        + f". Under a load along gravity they hold {rng(min(ds_), max(ds_), 1)}&#8202;N"
         + (f" and {rng(min(dw), max(dw), 1)}&#8202;N" if dw else "") + " (Table&#160;1).</p>"
     )
 
@@ -659,9 +659,9 @@ def push_section(cell, preds, cpu_min):
         "<p>Stage&#160;1 opens with a push test that calibrates the plant. The hand holds the turn grasp of the band "
         "cell " + im(f"t = {cell['t']:g}") + " (Table&#160;1), index yaw, MCP and PIP at "
         + ", ".join(f(v, 0) for v in si["q_deg"]) + f"&#176;; {pose}. A push-pull force gauge on a manual "
-        "linear stage presses the index fingertip along the contact normal, away from where the cylinder would sit, in "
-        f"steps of {PUSH_STEP_N:g}&#8202;N held {PUSH_HOLD_S}&#8202;s each, until the most loaded servo trips its "
-        "overload protection (load readback fixed at 200), and then backs off in the same steps. The fingertip "
+        "linear stage presses the index fingertip along the contact normal, away from where the cylinder would sit. The "
+        f"steps are {PUSH_STEP_N:g}&#8202;N, held {PUSH_HOLD_S}&#8202;s each. The push continues until the most loaded servo "
+        "trips its overload protection (load readback fixed at 200). The gauge then backs off in the same steps. The fingertip "
         "displacement follows from the joint position readbacks through the finger kinematics "
         "(<code>hand_object_scale_kin.fk</code>). The slope of force against displacement gives the fingertip "
         "stiffness, the force at the trip gives the trip force, and the gap between the loading and unloading branches "
@@ -669,9 +669,9 @@ def push_section(cell, preds, cpu_min):
         f"<p>At this pose the servo plant predicts a fingertip stiffness of {f(si['k'], 2)}&#8202;N/mm and a trip force "
         f"of {f(si['F'])}&#8202;N, set by the {si['joint']} joint; the 1&#8202;N&#8202;m plant predicts "
         f"{f(wi['k'], 2)}&#8202;N/mm and {f(wi['F'])}&#8202;N. The plant&#8217;s stiffness then scales by the ratio of "
-        "measured to predicted fingertip stiffness and its torque limit by the ratio of trip forces, and the 15 cells "
-        f"are re-simulated on the refitted plant before the first turn trial ({cpu_min:.0f} CPU-minutes of rollouts); "
-        "if the band moves, the Stage&#160;1 cells move with it.</p>"
+        "measured to predicted fingertip stiffness, and its torque limit scales by the ratio of trip forces. The 15 cells "
+        f"are re-simulated on the refitted plant before the first turn trial ({cpu_min:.0f} CPU-minutes of rollouts). "
+        "If the band moves, the Stage&#160;1 cells move with it.</p>"
     )
 
 
@@ -740,12 +740,12 @@ def stage2_section(C, C1, H2):
         f"<p>Stage&#160;2 runs the 16 and 25&#8202;mm cylinders at five layouts each by the same rule (Table&#160;2) "
         "and tests prediction&#160;2. In these cells the servo plant predicts "
         + " and ".join(at(s_, d) for d, s_, _ in say)
-        + "; the 1&#8202;N&#8202;m plant predicts " + " and ".join(at(w_, d) for d, _, w_ in say)
+        + ". The 1&#8202;N&#8202;m plant predicts " + " and ".join(at(w_, d) for d, _, w_ in say)
         + ". The bench successes therefore show which plant places the band.</p>"
-        "<p>The cells follow the rule of Stage&#160;1, five layouts centred on the band; a cylinder without a band is "
-        "centred on its layout of largest median held turn. The rule of the first version, one layout wider than the "
-        "band and the rest on the compact side, gives the same Stage&#160;1 cells but none for a cylinder without a band"
-        + (f", and on the 16&#8202;mm cylinder, whose band is one layout wide, it puts three cells past the band, where "
+        "<p>The cells follow the rule of Stage&#160;1: five layouts centred on the band. A cylinder without a band is "
+        "centred on its layout of largest median held turn. The rule of the first version put one layout wider than the "
+        "band and the rest on the compact side. It gives the same Stage&#160;1 cells but none for a cylinder without a band"
+        + (f". On the 16&#8202;mm cylinder, whose band is one layout wide, it puts three cells past the band, where "
            f"the drop load passes its peak (rank correlation {P.num(rho_old, '.1f')}, against "
            f"{P.num(RHO_MAX, '.1f')} in the decision)" if rho_old is not None else "")
         + f". Stage&#160;2 takes {f(H2['total'])}&#8202;h on two bench days.</p>"
@@ -762,8 +762,8 @@ def time_section(H1, H2, S):
     tot = {k: H1[k] + H2[k] for k in H1}
     return (
         tcap("Bench time. A day opens with homing, the tracker check and setup (45&#8202;min) and five trials of the "
-             "previous day&#8217;s band cell, which measure drift between days; turn trials take 90&#8202;s, mass series "
-             "6&#8202;min, a layout change 30&#8202;s (protocol.json of 8 October); the push test takes "
+             "previous day&#8217;s band cell, which measure drift between days. Turn trials take 90&#8202;s, mass series "
+             "6&#8202;min and a layout change 30&#8202;s (protocol.json of 8 October). The push test takes "
              f"{T_PUSH_SETUP_S / 60:.0f}&#8202;min to mount the gauge and {PUSH_SERIES} series of "
              f"{T_PUSH_SERIES_S / 60:.0f}&#8202;min.")
         + table(["Stage", "Cells", "Turn trials", "Mass series", "Days (overhead)", "Push test, h", "Hours"],
