@@ -137,18 +137,25 @@ PLATES = {
               None, dict(V.SOLID, wall_loops="6")) for k in (1, 2, 3)] + [
         (f"TW3-{k}", "b tip cap TW15H3, '3' on the plate", V4 / "print/20261021-dip_link_v4b_tip_cap_TW15H3_pla_bambu.stl", None,
          dict(V.SOLID, wall_loops="6")) for k in (1, 2, 3)],
+    # 2026-10-22: the adapter's M3 holes became 4.0 mm bores for brass heat-set inserts (scripts/ur5_calibration_mount.py,
+    # m3_seat "insert"); six walls put the knurls in solid plastic. "mount_v3_adapter": the adapter alone, for the owner who
+    # has the fork of 10-21 (its M3 clearance holes and counterbores are unchanged)
     "mount_v3": [
-        ("U1", "UR5 adapter v3, 15 mm, M6 x 20", V3M / f"cad/{UP3}_adapter.stl", R_ADAPTER, dict(STANDARD, wall_loops="6")),
+        ("U1", "UR5 adapter v3, M3 insert bores", V3M / f"cad/{UP3}_adapter.stl", R_ADAPTER, dict(STANDARD, wall_loops="6")),
         ("U2", "UR5 standoff-fork v3, captive M6 heads", V3M / f"cad/{UP3}_standoff_fork.stl", np.eye(3),
          dict(STANDARD, wall_loops="4"))],
+    "mount_v3_adapter": [
+        ("U1", "UR5 adapter v3, M3 insert bores", V3M / f"cad/{UP3}_adapter.stl", R_ADAPTER, dict(STANDARD, wall_loops="6"))],
 }
-DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2", "heights", "link_v4", "mount_v3", "fit3")   # "calibration" when named
+DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2", "heights", "link_v4", "mount_v3", "fit3",
+                  "mount_v3_adapter")   # "calibration" when named
 PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"),     # other plates: OUT, 20261020-p1s_pla_<plate>
              "solid_covers_caps2": (V3 / "print", "20261021-dip_link_v3b_p1s_pla_solid_covers_caps2"),
              "heights": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_heights"),
              "link_v4": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_link"),
              "mount_v3": (V3M / "print", f"{UP3}_p1s_pla"),
-             "fit3": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit3")}
+             "fit3": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit3"),
+             "mount_v3_adapter": (V3M / "print", "20261022-ur5_calibration_mount_v3_p1s_pla_adapter_inserts")}
 
 
 def main():
@@ -171,7 +178,8 @@ def main():
                    "heights": "DIP link b: covers I15 with walls 4, 3, 2 mm and caps with blocks 4, 3, 2 mm at 0.15 mm",
                    "link_v4": "DIP link b v4: the bridge's palmar edge recessed to a smaller column",
                    "mount_v3": "UR5 mount v3: adapter and standoff-fork for M6 x 20, keys from above",
-                   "fit3": "DIP link b: three covers I15H3 with tighter rails (3T) and three caps TW15H3"}[plate]
+                   "fit3": "DIP link b: three covers I15H3 with tighter rails (3T) and three caps TW15H3",
+                   "mount_v3_adapter": "UR5 mount v3: the adapter with bores for M3 heat-set inserts"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -189,7 +197,9 @@ def main():
                       "underlying column even smaller radius too'" if plate == "link_v4" else "")
                    + ("; 2026-10-21 17:54: 'i only have 20mm long m6 screws. so we need to pop everything up a little. there is "
                       "not much thread on the hex e ft sensor ... make the holes accessible from the top plate'"
-                      if plate == "mount_v3" else "")
+                      if plate in ("mount_v3", "mount_v3_adapter") else "")
+                   + ("; 2026-10-22: 'let's not go for self-threaded m3 holes there and just put four brass insert bores in there. "
+                      "make sure to size the bore correctly for the brass insert'" if plate in ("mount_v3", "mount_v3_adapter") else "")
                    + ("; 2026-10-22 11:30: 'the middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle "
                       "ground ... widen the top edge of the trapezoid of the rail ... undersize the slot and oversize the rail just a "
                       "little bit ... a PLA print with three new cassettes and top covers'" if plate == "fit3" else ""))

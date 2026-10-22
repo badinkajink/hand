@@ -7,7 +7,8 @@ five magnetometers can be calibrated against the HEX-E while the robot presses t
 parts: an adapter disc (the ISO 9409-1-50-4-M6 interface: spigot, dowel, four M6 in counterbores), a standoff-fork (foot,
 column, and a fork that fills the clevis: an inner block between the arms, a key in the horn slot, ears for the clamp screws,
 a cable slot), and a clamp plate on the horn-side arm. Screws are M3 into 2.75 mm holes in PLA (self-forming, owner) and M6
-into the flange. Two optional table indenters (a 5 mm sphere and the 25 mm rod).
+into the flange; in v3 since 2026-10-22 the foot's four M3 go into brass heat-set inserts in the adapter. Two optional table
+indenters (a 5 mm sphere and the 25 mm rod).
 
 Frames, mm. F: the finger frame of the DIP study (scripts/dip_link_geometry.py): x toward the dorsal side, y along the PIP
 axis, z up; the PIP axis passes through (0, y, -51.55); the horn-side arm lies at y -23.25..-17.05, the slotted arm at
@@ -54,7 +55,8 @@ sys.path.insert(0, str(REPO / "src"))
 # pop everything up a little. there is not much thread on the hex e ft sensor ... make the holes accessible from the top
 # plate ... i can pre-place the screws through the dip link interface ... should still be able to tighten with a ball-end
 # allen key"): the adapter 15 mm thick, the heads captive in pockets of a 13 mm foot with key holes from above, everything
-# above the foot 11 mm higher than v2.
+# above the foot 11 mm higher than v2. 2026-10-22: v3's adapter takes brass heat-set inserts for the foot's M3 (m3_seat
+# "insert"; `inserts` checks the bores); UR5M_ONLY=adapter rebuilds that part alone.
 REV = os.environ.get("UR5M_REV", "v1")
 V2UP = REV in ("v2", "v3")
 DATE = {"v1": "20261018", "v2": "20261020", "v3": "20261021"}[REV]
@@ -214,6 +216,17 @@ if REV == "v3":
         m3_cb_d=6.5, m3_under=4.0, m3_depth=9.0,  # M3 x 12: counterbored, 4 mm of foot under the head, 8 mm into the adapter
         home_zm=49.0,               # the homing socket 11 mm up with the rest: the indenters' posts fit unchanged
         tie_zm=(34.0, 46.0),
+        # 2026-10-22 (owner: "let's not go for self-threaded m3 holes there and just put four brass insert bores in there. make
+        # sure to size the bore correctly for the brass insert"): the foot's M3 x 12 go into brass heat-set inserts pressed into
+        # the adapter's top face. CNC Kitchen's table (poster "Dimensions & Design Guidelines") for its M3 x 5.7 and M3 x 3
+        # inserts: 4.6 mm across the knurls, a 4.0 mm hole, walls of at least 1.6 mm, a blind hole at least 1 mm longer than
+        # the insert; its guide asks for a straight hole. Inserts of other sizes take other holes: 3.6 mm for the generic
+        # M3 x 4 x 5 (4.0 mm across, JLC3DP), 4.4 mm for the Voron M3 x 5 x 4 (5.0 mm across, CNC Kitchen)
+        m3_seat="insert",
+        ins_hole=4.0, ins_len=5.7, ins_od=4.6,   # the bore, straight; the insert it is sized for (length, across the knurls)
+        ins_ch=0.3,                 # 45 deg chamfer at the bore's mouth, which prints on the bed: the first layer's squeeze and
+        #                             the plastic the insert pushes up stay below the face the foot sits on
+        #                             (m3_depth 9.0 stays: the bore reaches 3.3 mm past the insert and 1.0 mm past the screw's tip)
     )
 MATERIAL = dict(pla_density_g_cm3=1.24, pla_E_MPa=2500.0, pla_nu=0.35,
                 src="PLA: density 1.24 g/cm3 (filament); E 2.5 GPa for 100 % printed PLA, the lower end of 2.5-3.5 GPa")
@@ -229,6 +242,9 @@ if REV == "v3":
     SCREWS["M6x20_ISO4762"] = dict(qty=4, what="M6 x 20 socket head cap screw, steel, captive in the foot, into the HEX-E (no "
                                                "washer: 5.0 mm of thread; a DIN 125 washer under the head: 3.4 mm)", mass_g=6.9)
     del SCREWS["M6x12_ISO4762"]
+    SCREWS["M3x12_foot"] = dict(qty=4, what="M3 x 12 socket head cap screw, foot into the adapter's heat-set inserts", mass_g=1.2)
+    SCREWS["M3_insert"] = dict(qty=4, what="M3 x 5.7 brass heat-set insert, 4.6 mm across the knurls (CNC Kitchen's M3 x 5.7 or "
+                                           "the like), in the adapter's 4.0 mm bores", mass_g=0.4)   # mass from its size
 
 
 def fname(stem, ext="stl", sub=CAD):
@@ -405,7 +421,8 @@ def m3_angles(p=P):
 
 def adapter(K, p=P):
     """Adapter disc on the flange: spigot and dowel on the robot side (z_M < 0), four M6 counterbored from the tool side,
-    four 2.75 mm holes for the foot's M3 screws."""
+    four holes for the foot's M3 screws: 2.75 mm and self-forming, or (m3_seat "insert", v3 since 2026-10-22) straight bores
+    for brass heat-set inserts with a chamfered mouth."""
     c = (0.0, Y_AXIS)
     z0, z1 = zF(p["ad_t"]), zF(0.0)                      # tool face, robot face (z_F)
     body = [K.cyl("z", c, p["ad_d"] / 2, z0, z1)]
@@ -430,7 +447,12 @@ def adapter(K, p=P):
             cut.append(K.cyl("z", (x, y), p["m6_cb_d"] / 2, z0 - 1, zF(p["m6_under"])))
     for a in m3_angles(p):
         x, y = _m_xy(p["m3_r"], a)
-        cut.append(K.cyl("z", (x, y), p["m3_pilot"] / 2, z0 - 1, zF(p["ad_t"] - p["m3_depth"])))
+        if p.get("m3_seat") == "insert":
+            r_ = p["ins_hole"] / 2
+            cut.append(K.cyl("z", (x, y), r_, z0 - 1, zF(p["ad_t"] - p["m3_depth"])))
+            cut.append(K.cyl("z", (x, y), r_ + p["ins_ch"] + 0.01, z0 - 0.01, z0 + p["ins_ch"], r1=r_))
+        else:
+            cut.append(K.cyl("z", (x, y), p["m3_pilot"] / 2, z0 - 1, zF(p["ad_t"] - p["m3_depth"])))
     return K.cut_all(s, cut)
 
 
@@ -821,15 +843,27 @@ TABLE_PARTS = ("indenter_sphere", "indenter_rod")
 MOLD = V2UP and P.get("fork_style") == "mold"
 
 
+ONLY = tuple(s for s in os.environ.get("UR5M_ONLY", "").split(",") if s)   # e.g. UR5M_ONLY=adapter: build and STEP these alone,
+#                                                                           the other parts' files and records stay as they are
+
+
 def build_parts(K, p=P):
     """The printed parts in M (and the indenters in their table frame)."""
     out = {}
     for nm, fn in (("adapter", adapter), ("standoff_fork", standoff_fork), ("clamp_plate", clamp_plate)):
-        if nm in PARTS:
+        if nm in PARTS and (not ONLY or nm in ONLY):
             out[nm] = K.transform(fn(K, p), T_M_FROM_F)
-    out["indenter_sphere"] = indenter(K, "sphere")
-    out["indenter_rod"] = indenter(K, "rod")
+    for kind in ("sphere", "rod"):
+        if not ONLY or f"indenter_{kind}" in ONLY:
+            out[f"indenter_{kind}"] = indenter(K, kind)
     return out
+
+
+def _merge_parts(path, rec):
+    """With UR5M_ONLY, the records of the parts not rebuilt are kept from the file."""
+    if ONLY and path.exists():
+        return dict(json.loads(path.read_text())["parts"], **rec)
+    return rec
 
 
 # ------------------------------------------------------------------------------------------------ mesh helpers
@@ -989,6 +1023,7 @@ def cmd_build(a):
                        watertight=bool(tm.is_watertight), triangles=int(len(tm.faces)), status=str(s.status()),
                        frame="M" if nm in PARTS else "table (z up, base on the table)")
         print(f"{nm}: {s.volume():.0f} mm3, bounds {np.round(b, 2).tolist()}", flush=True)
+    rec = _merge_parts(OUT / f"{PFX}_parts.json", rec)
     (OUT / f"{PFX}_parts.json").write_text(json.dumps(dict(parameters=P, frame=dict(
         F="finger frame of the DIP study", M="mount frame: origin at the flange face's centre, z along the tool axis toward "
         "the tip, x toward the palmar side, y along the PIP axis", T_M_from_F=T_M_FROM_F.tolist(),
@@ -1020,6 +1055,7 @@ def freecad_step():
                        volume_mm3=round(so.Volume, 1), readback_valid=bool(back.isValid()), readback_solids=len(back.Solids),
                        readback_volume_mm3=round(back.Volume, 1))
         print(nm, rec[nm], flush=True)
+    rec = _merge_parts(OUT / f"{PFX}_step.json", rec)
     (OUT / f"{PFX}_step.json").write_text(json.dumps(dict(parts=rec, note="exact solids from FreeCAD Part (OpenCASCADE) in "
                                                            "the mount frame M (indenters: table frame), mm", when=time.strftime(
                                                            "%Y-%m-%d %H:%M")), indent=1))
@@ -1388,6 +1424,8 @@ def cmd_payload_v2(a):
               ("m6_screws" if REV == "v3" else "m6_screws_washers", m6[0], m6[1]),
               ("m3_screws", 4 * SCREWS["M3x12_foot"]["mass_g"] + 2.4, np.array([0.0, 0.0, 24.0 if REV == "v3" else 20.0])),
               ("hex_e", 347.0, np.array([0.0, 5.0, -50.0 + 20.0]))]
+    if P.get("m3_seat") == "insert":
+        items.append(("m3_inserts", 4 * SCREWS["M3_insert"]["mass_g"], np.array([0.0, 0.0, P["ad_t"] - P["ins_len"] / 2])))
     m = sum(i[1] for i in items)
     cog_M = sum(i[1] * i[2] for i in items) / m
     rec = dict(items=[dict(item=n, mass_g=round(w, 1), cog_M_mm=np.round(c, 1).tolist()) for n, w, c in items],
@@ -2103,6 +2141,196 @@ def _screws_M_v3(lift=0.0):
     return trimesh.util.concatenate(out)
 
 
+def _inserts_M(dz=0.0):
+    """v3 since 2026-10-22: the four M3 heat-set inserts in M, flush with the adapter's top face (raised by dz), as tubes of
+    the knurls' diameter around a 2.5 mm bore."""
+    import trimesh
+    out = []
+    for a_ in m3_angles():
+        x, y = _m_xy(P["m3_r"], a_)
+        t = trimesh.creation.annulus(r_min=1.25, r_max=P["ins_od"] / 2, height=P["ins_len"], sections=48)
+        t.apply_translation([-x, y - Y_AXIS, P["ad_t"] - P["ins_len"] / 2 + dz])
+        out.append(t)
+    return trimesh.util.concatenate(out)
+
+
+def _sliced_bores(proj, rows):
+    """The insert bores as Bambu Studio sliced them: in the adapter's plate, the wall arcs (G2/G3 of the outer and inner
+    walls) around each bore, the least radius per layer; the hole's diameter is twice that radius less one outer-wall line
+    width. A bore's centre on the plate is the median centre of the wall arcs of radius 2.1-2.3 mm within 4 mm of where the
+    layout put it (Bambu Studio may move the part, here about 2 mm); the arcs within 0.3 mm of that centre count. The adapter
+    prints tool face down (x, -y, -z of M)."""
+    import re
+    import zipfile
+    meta = json.loads(proj.with_suffix(".json").read_text())
+    b = np.array(meta["objects"][0]["bounds_mm"])
+    cx, cy = (b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2
+    g = zipfile.ZipFile(proj).read("Metadata/plate_1.gcode").decode(errors="replace")
+    w = float(re.search(r"; outer_wall_line_width = ([\d.]+)", g).group(1))
+    arcs, x, y, z, wall = [], 0.0, 0.0, 0.0, False
+    for line in g.splitlines():
+        if line.startswith("; FEATURE:"):
+            wall = line.split(":", 1)[1].strip() in ("Outer wall", "Inner wall")
+        s = line.split(";", 1)[0].split()
+        if not s or s[0] not in ("G0", "G1", "G2", "G3"):
+            continue
+        d = {t[0]: float(t[1:]) for t in s[1:] if t[0] in "XYZEIJ" and len(t) > 1}
+        if wall and s[0] in ("G2", "G3") and d.get("E", 0.0) > 0 and \
+                math.hypot(d.get("X", x) - x, d.get("Y", y) - y) > 1.0:      # loop arcs; seam pieces of 0.3 mm fit stray centres
+            ox, oy = x + d.get("I", 0.0), y + d.get("J", 0.0)
+            arcs.append((z, ox, oy, math.hypot(x - ox, y - oy)))
+        x, y, z = d.get("X", x), d.get("Y", y), d.get("Z", z)
+    A = np.array(arcs)
+    out = []
+    for r_ in rows:
+        ex, ey = cx + r_["centre_M"][0], cy - r_["centre_M"][1]
+        c0 = A[(np.hypot(A[:, 1] - ex, A[:, 2] - ey) < 4.0) & (A[:, 3] > 2.1) & (A[:, 3] < 2.3)]
+        ox, oy = float(np.median(c0[:, 1])), float(np.median(c0[:, 2]))
+        m = np.hypot(A[:, 1] - ox, A[:, 2] - oy) < 0.3
+        per = {}
+        for zz, rr in A[m][:, [0, 3]]:
+            per[round(zz, 2)] = min(rr, per.get(round(zz, 2), 9.0))
+        zs = sorted(per)
+        body = [per[k] for k in zs if k > zs[0] + 0.01]
+        out.append(dict(angle_deg=r_["angle_deg"], centre_on_plate_mm=[round(ox, 2), round(oy, 2)],
+                        layout_offset_mm=[round(ox - ex, 2), round(oy - ey, 2)],
+                        first_layer_hole_d_mm=round(2 * (per[zs[0]] - w / 2), 2),
+                        hole_d_mm=round(2 * (float(np.median(body)) - w / 2), 2),
+                        hole_d_range_mm=[round(2 * (min(body) - w / 2), 2), round(2 * (max(body) - w / 2), 2)],
+                        last_layer_z_mm=zs[-1], layers=len(zs)))
+    return dict(project=rel(proj), outer_wall_line_width_mm=w, bores=out,
+                note="from the extrusion arcs' centres and radii; Bambu Studio may move the part on the plate (here about 2 mm)")
+
+
+def cmd_inserts(a):
+    """v3 since 2026-10-22: the adapter's four bores for M3 heat-set inserts. On the exported adapter mesh: each bore's
+    diameter (twice the mean distance of its section's vertices from the bore's axis) from the mouth to the bottom, the depth
+    at which it ends (sections 0.02 mm apart), and the least wall from the bore to the disc's rim or another hole; from the
+    parameters: the room in the bore below the insert for the plastic the knurls displace, the M3 x 12's reach and the
+    clearance of its tip; by manifold3d: the screw's overlap with the adapter and the fork (zero when its path is clear) and
+    the insert's with the adapter (the plastic its knurls displace, as an envelope). Writes <PFX>_inserts.json and a figure:
+    the adapter's top face and a section along the tool axis through the screw at 90 deg (media/<PFX>_inserts.png)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Circle, Polygon as MPoly, Rectangle
+    t0 = time.time()
+    tm_a, tm_f = _load_part("adapter"), _load_part("standoff_fork")
+    zt, L, Dh, ch, dep, od = P["ad_t"], P["ins_len"], P["ins_hole"], P["ins_ch"], P["m3_depth"], P["ins_od"]
+    reach = 12.0 - P["m3_under"]                          # the M3 x 12's tip below the adapter's top face
+
+    def loops(z):
+        sec = tm_a.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1])
+        return [e[:, :2] for e in sec.discrete] if sec is not None else []
+
+    K = MeshK()
+    ma, mf = from_trimesh(tm_a), from_trimesh(tm_f)
+    rows = []
+    for a_ in m3_angles():
+        xF, yF = _m_xy(P["m3_r"], a_)
+        c = np.array([-xF, yF - Y_AXIS])
+        diam = {}
+        for d in (0.02, ch / 2, ch + 0.05, 1.0, 3.0, L, L + 1.0, reach, dep - 0.05):
+            near = [e for e in loops(zt - d) if np.linalg.norm(e.mean(axis=0) - c) < 1.0]
+            diam[f"{d:.2f}"] = round(2 * float(np.hypot(*(near[0] - c).T).mean()), 3) if near else None
+        end = None
+        for d in np.arange(dep - 0.3, dep + 0.3, 0.02):
+            if not [e for e in loops(zt - d) if np.linalg.norm(e.mean(axis=0) - c) < 1.0]:
+                end = round(float(d), 2)
+                break
+        ls = loops(zt - 3.0)
+        own = [e for e in ls if np.linalg.norm(e.mean(axis=0) - c) < 1.0][0]
+        walls = []
+        for e in ls:
+            if e is own:
+                continue
+            dd = float(np.min(np.linalg.norm(own[:, None, :] - e[None, :, :], axis=2)))
+            r_e = float(np.hypot(*(e - e.mean(axis=0)).T).mean())          # the loop's own radius tells it apart
+            walls.append((round(dd, 2), "rim" if r_e > 20 else ("M6 hole" if r_e > 2.6 else "insert bore")))
+        walls.sort()
+        scr = K.union([K.cyl("z", tuple(c), 1.5, zt - reach, zt + P["m3_under"]),
+                       K.cyl("z", tuple(c), 2.75, zt + P["m3_under"], zt + P["m3_under"] + 3.0)])
+        ins = K.sub(K.cyl("z", tuple(c), od / 2, zt - L, zt), K.cyl("z", tuple(c), 1.25, zt - L - 1, zt + 1))
+        rows.append(dict(angle_deg=a_, centre_M=np.round(c, 2).tolist(), diameter_mm_at_depth=diam, bore_ends_at_depth_mm=end,
+                         least_wall_mm=walls[0][0], least_wall_to=walls[0][1],
+                         knurl_wall_mm=round(walls[0][0] - (od - Dh) / 2, 2),
+                         screw_overlap_mm3=dict(adapter=round(float((scr ^ ma).volume()), 4),
+                                                standoff_fork=round(float((scr ^ mf).volume()), 4)),
+                         insert_overlap_adapter_mm3=round(float((ins ^ ma).volume()), 2)))
+        print(rows[-1], flush=True)
+    env = math.pi / 4 * (od ** 2 - Dh ** 2) * L
+    proj = PRINT / "20261022-ur5_calibration_mount_v3_p1s_pla_adapter_inserts.3mf"
+    sliced = _sliced_bores(proj, rows) if proj.exists() else None
+    rec = dict(rev=REV, insert=dict(what=SCREWS["M3_insert"]["what"], length_mm=L, knurl_d_mm=od), as_sliced=sliced,
+               bore=dict(d_mm=Dh, depth_mm=dep, mouth_chamfer_mm=ch, mouth_d_mm=Dh + 2 * ch, straight=True),
+               source="CNC Kitchen, 'Dimensions & Design Guidelines' (poster, 2025): M3 x 5.7 and M3 x 3, insert 4.6 mm, hole "
+                      "4.0 mm, wall at least 1.6 mm, blind hole at least L + 1 mm; its guide: straight holes, no chamfer "
+                      "needed, the insert pressed flush",
+               rule=dict(min_wall_mm=1.6, min_depth_mm=L + 1.0),
+               screw=dict(what="M3 x 12 from the foot's counterbore", reach_below_face_mm=reach, engaged_mm=min(reach, L),
+                          tip_to_bore_end_mm=round(dep - reach, 2)),
+               displaced_envelope_mm3=round(env, 1), room_below_insert_mm3=round(math.pi / 4 * Dh ** 2 * (dep - L), 1),
+               bores=rows, when=time.strftime("%Y-%m-%d %H:%M"), seconds=round(time.time() - t0, 1))
+    (OUT / f"{PFX}_inserts.json").write_text(json.dumps(rec, indent=1, default=float))
+
+    # figure: the top face with the bores and the M6 holes; a section along the tool axis through the screw at 90 deg
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    plt.rcParams.update({"font.family": "serif", "font.size": 17})        # the page shows it about 860 px wide
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12.0, 6.4), dpi=130, gridspec_kw=dict(width_ratios=[1.0, 1.15]))
+    for e in loops(zt - 3.0):
+        rim = float(np.hypot(*(e - e.mean(axis=0)).T).mean()) > 20
+        ax0.add_patch(MPoly(e, closed=True, fc="#ddb07a" if rim else "white", ec="k", lw=0.7, zorder=1 if rim else 2))
+    for r_ in rows:
+        cx, cy = r_["centre_M"]
+        ax0.add_patch(Circle((cx, cy), od / 2, fc="none", ec="#a87b17", lw=1.4, ls="--", zorder=3))
+        lab = f"{r_['angle_deg']:.0f}{chr(176)}"
+        ax0.annotate(lab, xy=(cx, cy), xytext=(cx * 0.66, cy * 0.66), ha="center", va="center", fontsize=16,
+                     arrowprops=dict(arrowstyle="-", lw=0.7))
+    ax0.set_xlim(-35, 35)
+    ax0.set_ylim(-35, 35)
+    ax0.set_aspect("equal")
+    ax0.set_title("Adapter, 3 mm below its top face", fontsize=17)
+    ax0.set_xlabel("x$_M$ (mm), toward the dowel")
+    ax0.set_ylabel("y$_M$ (mm)")
+    yc = P["m3_r"]
+    cols = {"adapter": "#ddb07a", "standoff_fork": "#7da6e3"}
+    for nm, tm in (("adapter", tm_a), ("standoff_fork", tm_f)):
+        sec = tm.section(plane_origin=[0, 0, 0], plane_normal=[1, 0, 0])
+        for e in sec.discrete:
+            ax1.add_patch(MPoly(e[:, [1, 2]], closed=True, fc=cols[nm], ec="k", lw=0.6))
+    for sx in (-1, 1):
+        ax1.add_patch(Rectangle((yc + sx * 1.5 if sx > 0 else yc - od / 2, zt - L), od / 2 - 1.5, L, fc="#c9a227", ec="k", lw=0.8,
+                                hatch="////"))
+    ax1.add_patch(Rectangle((yc - 1.5, zt - reach), 3.0, reach + P["m3_under"], fc="0.62", ec="k", lw=0.8))
+    ax1.add_patch(Rectangle((yc - 2.75, zt + P["m3_under"]), 5.5, 3.0, fc="0.45", ec="k", lw=0.8))
+    zb = zt - dep                                         # the bore's end; its width dimensioned below it
+    for sx in (-1, 1):
+        ax1.plot([yc + sx * Dh / 2] * 2, [zb, zb - 1.6], color="k", lw=0.6)
+    ax1.annotate("", xy=(yc - Dh / 2, zb - 1.2), xytext=(yc + Dh / 2, zb - 1.2), arrowprops=dict(arrowstyle="<->", lw=0.9))
+    ax1.text(yc, zb - 2.0, f"{Dh:.1f} mm", ha="center", va="top", fontsize=16)
+    ax1.annotate("", xy=(yc + 4.2, zt), xytext=(yc + 4.2, zb), arrowprops=dict(arrowstyle="<->", lw=0.9))
+    ax1.plot([yc + Dh / 2, yc + 4.6], [zb, zb], color="k", lw=0.6)
+    ax1.text(yc + 4.6, zt - dep / 2, f"{dep:.1f} mm", rotation=90, va="center", ha="left", fontsize=16)
+    notes = [(f"Foot: counterbore {P['m3_cb_d']:.1f} mm,\n{P['m3_under']:.0f} mm under the head",
+              (yc + 3.25, zt + P["m3_under"] + 1.5), 24.0),
+             (f"Chamfer {ch:.1f} mm{chr(215)}45{chr(176)}", (yc + Dh / 2 + ch / 2, zt - 0.1), 16.5),
+             (f"Insert M3{chr(215)}{L:.1f}, {od:.1f} mm\nknurls, pressed flush", (yc + od / 2 - 0.3, zt - 2.0), 11.0),
+             (f"M3{chr(215)}12: tip {dep - reach:.1f} mm\nabove the bore's end", (yc + 1.5, zt - reach + 0.3), 3.5)]
+    for text, xy, yt in notes:
+        ax1.annotate(text, xy=xy, xytext=(36.5, yt), fontsize=15, va="center", arrowprops=dict(arrowstyle="-", lw=0.7))
+    ax1.set_xlim(18.0, 62.0)
+    ax1.set_ylim(-0.5, 29.5)
+    ax1.set_aspect("equal")
+    ax1.set_xticks([20, 25, 30, 35])
+    ax1.set_title(f"Section through the screw at 90{chr(176)}", fontsize=17)
+    ax1.set_xlabel("y$_M$ (mm)")
+    ax1.set_ylabel("z$_M$ (mm), along the tool axis")
+    fig.tight_layout()
+    fig.savefig(MEDIA / f"{PFX}_inserts.png")
+    plt.close(fig)
+    print("inserts ->", rel(OUT / f"{PFX}_inserts.json"), rel(MEDIA / f"{PFX}_inserts.png"), f"[{time.time() - t0:.0f} s]", flush=True)
+
+
 def _hex_key(tip, d, length=110.0, short=30.0, ball=False):
     """A 5 mm hex L-key in M: the long arm from tip along d (unit), the short arm bent at its far end; a ball end at the tip."""
     import trimesh
@@ -2174,11 +2402,19 @@ def cmd_render_v3(a):
     exp = [(parts["adapter"], C_["adapter"], "x_ad"), (m6, C_["screws"], "x_m6"), (sh(parts["standoff_fork"], d1), C_["standoff_fork"], "x_sf"),
            (sh(parts["clamp_plate"], d2), C_["clamp_plate"], "x_cp")] + [(sh(dip[k], d2), C_[c], "x_" + k)
                                                                          for k, c in (("dip_link", "dip_link"), ("cover", "cover"), ("tip", "tip"))]
+    labels = [("First: the four M6 x 20 into the adapter's holes, heads on its top face", np.array([b45[0], b45[1], zt + 2.0])),
+              ("Then the fork over the heads, four M3 x 12 into the adapter", np.array([30.0, 8.0, 28.0 + d1]))]
+    if P.get("m3_seat") == "insert":                     # 2026-10-22: the inserts go in first, shown above their bores
+        dz_i = 22.0
+        exp.append((_inserts_M(dz_i), C_["fasteners"], "x_ins"))
+        x0, y0 = _m_xy(P["m3_r"], m3_angles()[2])         # the one at 198 deg: the callout clear of the M6 heads'
+        labels = [("First: four M3 heat-set inserts into the adapter's top face (above their bores)",
+                   np.array([-x0, y0 - Y_AXIS, P["ad_t"] + dz_i + 9.0])),      # the callout's disc above the insert, not on it
+                  ("Then the four M6 x 20 into the adapter's holes, heads on its top face", labels[0][1]),
+                  ("Then the fork over the heads, four M3 x 12 into the inserts", labels[1][1])]
     cam = (np.array([0.0, 0.0, 95.0]), 660, 130, -12)
     img = _render(exp, cam, MEDIA / f"{PFX}_exploded.png")
-    _annotate(img, cam, [
-        ("First: the four M6 x 20 into the adapter's holes, heads on its top face", np.array([b45[0], b45[1], zt + 2.0])),
-        ("Then the fork over the heads, four M3 x 12 into the adapter", np.array([30.0, 8.0, 28.0 + d1])),
+    _annotate(img, cam, labels + [
         ("Last: the DIP link onto the fork along the tool axis, then the clamp plate", F_to_M(np.array([-10.55, 0.0, -66.0])) + [0, 0, d2])],
         title="Mount v3 exploded along the tool axis, in assembly order", callout=True)
     print("renders ->", rel(MEDIA), flush=True)
@@ -2491,10 +2727,11 @@ def main():
         return
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("cmd", choices=["interfaces", "build", "check", "estimate", "render", "sections", "print", "docs", "payload",
-                                    "screws"])
+                                    "screws", "inserts"])
     a = ap.parse_args()
     {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else (cmd_render_v3 if REV == "v3" else cmd_render_v2_ears if P.get("fork_style") in ("ears", "mold") else cmd_render_v2),
-     "sections": cmd_sections_v3 if REV == "v3" else cmd_sections, "print": cmd_print, "docs": cmd_docs, "payload": cmd_payload_v2, "screws": cmd_check_v3_screws}[a.cmd](a)
+     "sections": cmd_sections_v3 if REV == "v3" else cmd_sections, "print": cmd_print, "docs": cmd_docs, "payload": cmd_payload_v2, "screws": cmd_check_v3_screws,
+     "inserts": cmd_inserts}[a.cmd](a)
 
 
 if __name__ == "__main__":
