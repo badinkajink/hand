@@ -405,9 +405,10 @@ def cell10_section():
     rv1 = A["v1"]["rms_turn_vs_drake_deg"]
     rv2 = A["v2"]["rms_turn_vs_drake_deg"]
     return (f"<p>Builder v2 lowered the as-built block&#8217;s stage-1 score from 0.428 to 0.219 because no grasp of the "
-            f"10&#8202;mm cylinder holds on seed 0. Run with Drake as the plant (the cell&#8217;s scene parsed into Drake 1.57 "
-            f"with the tip as a compliant convex hull, <code>scripts/curved_tips_cell_drake.py</code>), the same candidates, seeds "
-            f"0&#8211;5 and controller keep the cylinder as builder v1 does: candidates 6 and 7 hold at "
+            f"10&#8202;mm cylinder holds on seed 0. The same candidates, seeds "
+            f"0&#8211;5 and controller were run with Drake as the plant (the cell&#8217;s scene parsed into Drake 1.57 "
+            f"with the tip as a compliant convex hull, <code>scripts/curved_tips_cell_drake.py</code>). Drake keeps the "
+            f"cylinder as builder v1 does. Candidates 6 and 7 hold at "
             f"{A['drake']['held']['6'] + A['drake']['held']['7']} of 12 seeds in Drake and "
             f"{A['v1']['held']['6'] + A['v1']['held']['7']} of 12 with v1, and at {A['v2']['held']['6'] + A['v2']['held']['7']} of "
             f"12 with v2 (Table&#160;[[tab:cell10]]). Before a drop the turn traces of both builders follow Drake&#8217;s: the "
@@ -428,15 +429,15 @@ def stiffness_section():
     sp = [x for k in tips for x in STF[k]["fe_sphere_1N_range_um"]]
     M = lambda m, key, ks=tips: [STF[k]["models"][m][key] for k in ks if m in STF[k]["models"]]  # noqa: E731
     pads = lambda key, ks=tips: M("v1", key, ks) + M("v2", key, ks)  # noqa: E731
-    t = (f"<p>The printed tips&#8217; finite elements give a nearly uniform surface: under the 2&#8202;mm sphere the approach at "
+    t = (f"<p>The printed tips&#8217; finite elements give a nearly uniform surface. Under the 2&#8202;mm sphere the approach at "
          f"1&#8202;N lies between {min(sp):.0f} and {max(sp):.0f}&#8202;&#181;m at all seven points of all four tips, apex, edges "
          f"and ends alike (Figure&#160;[[fig:stiffness]]). The two 0.45&#8202;mm perimeters or four 0.2&#8202;mm skins of solid TPU "
-         f"form a shell over the 20&#8202;% gyroid core and spread the load, so the approach grows nearly in proportion to the load "
-         f"(\\(n\\) = {rng([STF[k]['fe_exponent_apex_sphere'] for k in tips])} under the sphere) and the 25&#8202;mm tool, which "
-         f"loads a far larger area, indents the curved tips {rng([STF[k]['fe_cyl_over_sphere_1N'] for k in cur])} as far as the "
-         f"sphere at 1&#8202;N (the flat block {f(STF['tcd_rs3_re3']['fe_cyl_over_sphere_1N'])}). The model of the as-built "
+         f"form a shell over the 20&#8202;% gyroid core and spread the load. The approach therefore grows nearly in proportion "
+         f"to the load (\\(n\\) = {rng([STF[k]['fe_exponent_apex_sphere'] for k in tips])} under the sphere). The 25&#8202;mm "
+         f"tool loads a far larger area. It indents the curved tips {rng([STF[k]['fe_cyl_over_sphere_1N'] for k in cur])} as far as "
+         f"the sphere at 1&#8202;N (the flat block {f(STF['tcd_rs3_re3']['fe_cyl_over_sphere_1N'])}). The model of the as-built "
          "block agrees with the 14 October finite elements of the (3,&#160;6) block on a grid twice as fine: 43.4 against "
-         "39.1&#8202;&#181;m at 1&#8202;N under the tool, load exponent 0.93 against 0.94.</p>"
+         "39.1&#8202;&#181;m at 1&#8202;N under the tool, and load exponent 0.93 against 0.94.</p>"
          f"<p>Every contact model is a local foundation: the pressure at a point depends on that point&#8217;s overlap alone. At "
          f"10&#8202;MPa Drake&#8217;s field is {rng(M('drake', 'modulus_scale_to_fe'), 1)} times too soft under the sphere and "
          f"{rng(M('drake', 'modulus_scale_cyl0'), 1)} times under the tool, its load exponent is "
@@ -512,15 +513,15 @@ def quarter_section():
     cur = sens.get("tcd_qell7.4x8.5x11x22", {}).get("current", {})
     t = (f"<p>The flat back is {rng([T[k]['back_width_mm']['0'] for k in qk], 1)}&#8202;mm wide at the contact point and "
          f"{rng([T[k]['back_width_mm']['-7'] for k in qk], 1)}&#8202;mm at 7&#8202;mm distal, where the board&#8217;s distal chip "
-         f"sits; the five-chip board is {f(board.get('width_mm'), 1)}&#8202;&#215;&#8202;{f(board.get('length_mm'), 1)}&#8202;mm with "
-         f"its outer chips 7&#8202;mm from the centre, so it overhangs the back by about "
-         f"{(board.get('width_mm', 20) - T[qk[0]]['back_width_mm']['0']) / 2:.1f}&#8202;mm on each side and its side chips sit at "
+         f"sits. The five-chip board is {f(board.get('width_mm'), 1)}&#8202;&#215;&#8202;{f(board.get('length_mm'), 1)}&#8202;mm with "
+         f"its outer chips 7&#8202;mm from the centre. It overhangs the back by about "
+         f"{(board.get('width_mm', 20) - T[qk[0]]['back_width_mm']['0']) / 2:.1f}&#8202;mm on each side, and its side chips sit at "
          f"the tip&#8217;s edges. The mount face shrinks to {rng([T[k]['mount_face_mm2'] for k in qk], 0)}&#8202;mm&#178; from the "
          f"block&#8217;s {b['mount_face_mm2']:.0f}&#8202;mm&#178;.</p>"
          f"<p>With the board on the back plane the magnet barely moves. The finite elements, with every node of the back plane "
          f"fixed, put the magnet&#8217;s travel at {rng([sens[k]['current']['travel_um_per_N'] for k in qk if k in sens], 2)}&#8202;"
-         f"&#181;m/N (Table&#160;[[tab:qsense]]): between the magnet and the board lie the pocket&#8217;s solid floor and the "
-         f"part&#8217;s bottom skins, 1&#8211;1.9&#8202;mm of nearly solid TPU, and the load compresses the pulp above the magnet "
+         f"&#181;m/N (Table&#160;[[tab:qsense]]). Between the magnet and the board lie the pocket&#8217;s solid floor and the "
+         f"part&#8217;s bottom skins, 1&#8211;1.9&#8202;mm of nearly solid TPU. The load compresses the pulp above the magnet "
          f"instead. A first run that left the back plane free (its grid had no node at \\(x\\) = 0) gave "
          f"{f(fb.get('travel_um_per_N'), 0)}&#8202;&#181;m/N and an approach of {f(fb.get('approach_1N_um'), 0)}&#8202;&#181;m against "
          f"{f(cur.get('approach_1N_um'), 0)}; its rows are kept in <code>fe/superseded_free_back.jsonl</code>. The field at the "
@@ -540,7 +541,7 @@ def quarter_section():
           f"{rng([100 * v['step_share_median'] for v in nail.values()], 1)}&#8202;% of the steps and up to "
           f"{rng([v['max_N'] for v in nail.values()], 0)}&#8202;N. Nothing else touches it.</p>")
     tq = T[qk[0]]["terrace_face_up_mm"]
-    t += (f"<p>Printed on its back, the quarter-ellipsoid&#8217;s apex is the top of the print and its last layer flattens a "
+    t += (f"<p>Printed on its back, the quarter-ellipsoid&#8217;s apex is the top of the print. Its last layer flattens a "
           f"terrace of {f(tq['0.1']['across'], 1)}&#8202;&#215;&#8202;{f(tq['0.1']['along'], 1)}&#8202;mm at 0.1&#8202;mm layers "
           f"({f(tq['0.2']['across'], 1)}&#8202;&#215;&#8202;{f(tq['0.2']['along'], 1)}&#8202;mm at 0.2&#8202;mm; the 16/32 tip "
           f"{f(T[qk[2]]['terrace_face_up_mm']['0.1']['along'], 1)}&#8202;mm along), larger than the 1&#8202;N contact patch. "
@@ -605,8 +606,8 @@ def limitations():
 def open_items():
     items = [
         ("Bench probe map", "Press the printed as-built block and the 16/32&#8202;mm half-ellipsoid with a 4&#8202;mm ball at "
-         "the seven map points at 0.5, 1 and 3&#8202;N on the bench load cell; an approach within 20&#8202;% of "
-         "140&#8211;170&#8202;&#181;m at 1&#8202;N everywhere confirms the shell model, edges 30&#8202;% softer than the apex "
+         "the seven map points at 0.5, 1 and 3&#8202;N on the bench load cell. An approach within 20&#8202;% of "
+         "140&#8211;170&#8202;&#181;m at 1&#8202;N everywhere confirms the shell model. Edges 30&#8202;% softer than the apex "
          "refute it in favour of the local models."),
         ("Builder v2 and the 10&#8202;mm cylinder", "If the owner keeps v2, rerun stage 1 of the as-built block with "
          "<code>scripts/curved_tips_rig.py scale --h local --K each</code> at \\(E\\) from "
@@ -614,10 +615,10 @@ def open_items():
          "fitted modulus marks the per-pad depth as the cause."),
         ("Tool-fitted modulus in the pipeline", "Set \\(E\\) per tip to the tool-probe fit of builder v2 (13&#8211;31&#8202;MPa) in "
          "<code>reorient_backends.replace_tips</code> and repeat the D1&#8211;D8 trajectory comparison "
-         "(<code>scripts/curved_tips_traj.py</code>); a median RMS tool angle below the 10&#8202;MPa value for both pads and "
+         "(<code>scripts/curved_tips_traj.py</code>). A median RMS tool angle below the 10&#8202;MPa value for both pads and "
          "Drake makes the fitted modulus the default."),
         ("Sensing on a quarter-ellipsoid", "Move the magnet to 1.5&#8211;2.5&#8202;mm under the apex with soft gyroid below it "
-         "and rerun <code>scripts/curved_tips_fe.py</code>; a design reaches the 2026-10-14 sensing rule if the travel is at "
+         "and rerun <code>scripts/curved_tips_fe.py</code>. A design reaches the 2026-10-14 sensing rule if the travel is at "
          "least 12&#8202;&#181;m/N with the field at the nearest chip under 50&#8202;mT."),
         ("Fingernail overhang", "Rerun <code>scripts/curved_tips_nail.py --over 0</code> and <code>--over 0.5</code>; a nail that "
          "the tool no longer touches in any D1&#8211;D8 replay gives the length the bench tasks tolerate."),

@@ -282,14 +282,14 @@ def rate_section():
     t = (f"<p>The pads&#8217; sliding torque grows with spin rate (Figure&#160;[[fig:rate]]). On the \\(r\\) = 2.7&#8202;mm block the "
          f"spin arm is {S['base']['spin_mm']['0.03']:.2f}{MM} at 0.03&#8202;rad/s, {S['base']['spin_mm']['1']:.2f}{MM} at "
          f"1&#8202;rad/s and {S['base']['spin_mm']['3']:.2f}{MM} at 3&#8202;rad/s, against the law&#8217;s "
-         f"{S['law']['spin_1N_mm']:.2f}{MM}; Drake gives {S['drake']['spin_mm']['1']:.2f}{MM} at 1&#8202;rad/s. MuJoCo&#8217;s "
+         f"{S['law']['spin_1N_mm']:.2f}{MM}. Drake gives {S['drake']['spin_mm']['1']:.2f}{MM} at 1&#8202;rad/s. MuJoCo&#8217;s "
          "elliptic cone sets the normal force of a sliding contact as</p>"
          f"<div class='eq'>{eq}</div>"
          "<p>with \\(D_0\\) the contact&#8217;s regularisation, \\(\\mu_r\\) its regularised friction, \\(\\mathbf{a}_t\\) and \\(\\mathbf{v}_t\\) "
          "the tangential acceleration and velocity of the contact, \\(B\\) the reference damping and \\(j_n\\) the normal reference "
          "acceleration (<code>engine_core_constraint.c</code>). The slip term \\(\\mu\\lVert B\\mathbf{v}_t\\rVert\\) acts as a phantom "
-         "penetration \\(\\zeta t_r \\mu v_\\mathrm{slip}\\), about 120&#8202;&#181;m at 6&#8202;mm from the axis at 1&#8202;rad/s, and "
-         f"carries {100 * S['base']['slip_share_1']:.0f}&#8202;% of the sliding pads&#8217; normal force at 1&#8202;rad/s. It does "
+         "penetration \\(\\zeta t_r \\mu v_\\mathrm{slip}\\), about 120&#8202;&#181;m at 6&#8202;mm from the axis at 1&#8202;rad/s. At "
+         f"1&#8202;rad/s it supplies {100 * S['base']['slip_share_1']:.0f}&#8202;% of the sliding pads&#8217; normal force. It does "
          "not depend on impratio. The slip number in Table&#160;[[tab:det]] compares that phantom penetration with the real one; "
          "it falls from 6.2 on the sharp block to 0.3 on the round one, which is why rounder tips deteriorate less.</p>"
          "<p>Explicit pad-tool contact pairs with friction-row damping 0.1&#8202;s and impratio 1000 remove most of the excess "
@@ -316,9 +316,9 @@ def builder_section():
                     + [f2(100 * b["ripple_1mm"]["1"]["arm0_ripple"], 1)])
     fb = J("final/summary_builders.json") or {}
     t = ("<p>Quasi-static pad models of the same shapes separate the builder&#8217;s geometric error from the rate effect. At 1&#8202;N "
-         "the 1&#8202;mm pads give the law&#8217;s twist-onset arm within &#8722;3 to +2&#8202;% on smooth members, and pad spacing, "
+         "the 1&#8202;mm pads give the law&#8217;s twist-onset arm within &#8722;3 to +2&#8202;% on smooth members. Pad spacing, "
          "the local foundation depth and per-pad stiffness move it by less than 1&#8202;% (Table&#160;[[tab:builder]]). The "
-         "remaining error is set by where the lattice falls under the contact line: moving the line 1&#8202;mm along the finger "
+         "remaining error depends on where the lattice falls under the contact line. Moving the line 1&#8202;mm along the finger "
          "changes the arm by the ripple in the last column.</p>")
     t += table(["Tip", "0.5&#8202;mm pads", "1&#8202;mm pads", "1.5&#8202;mm pads", "1&#8202;mm, local h", "1&#8202;mm, per-pad K",
                 "Ripple, %"], body,
@@ -327,8 +327,8 @@ def builder_section():
                "mean). <code>deterioration/builders.jsonl</code>.", key="builder")
     t += (f"<p>On the hand the local foundation depth with per-pad stiffness (builder v2) agrees with Drake on "
           f"{v2['E1e+07_hlocal_Keach']['within3_of_drake']} of 24 plan replays of the as-built tip as printed, against "
-          f"{v2['E1e+07']['within3_of_drake']} for builder v1; {v2['v1_vs_v2_changed_replays']} of 40 replays differ by more "
-          "than 3&#176; between the two, the same share as any 0.1&#8202;% friction change.</p>")
+          f"{v2['E1e+07']['within3_of_drake']} for builder v1. Of 40 replays, {v2['v1_vs_v2_changed_replays']} differ by more "
+          "than 3&#176; between the two. Any 0.1&#8202;% friction change gives the same share.</p>")
     if fb:
         t += builders_finalists(fb)
     return t + builder_default()
@@ -376,22 +376,23 @@ def builder_default():
     dk = [tu["drake"]["turn_end_deg"][k] for k in stall]
     t = ("<p>Builder v2 is the default of <code>reorient_backends.replace_tips</code> since 15 October for the default block and "
          "the CAD-envelope tips; <code>builder=\"v1\"</code> reproduces every earlier run. The comparison behind the change uses whole "
-         "rollouts, since held counts cannot show that two contact models give the same dynamics (owner, 2026-10-15): the plan "
-         "replays and the HOM turns of D1&#8211;D8 on the servo-limited plant under builders v1 and v2 and in Drake, with the tool "
-         "pose and each finger&#8217;s normal and friction force on the tool every 20&#8202;ms (<code>scripts/pad_builder_check.py</code>). "
+         "rollouts, since held counts cannot show that two contact models give the same dynamics (owner, 2026-10-15). It covers "
+         "the plan replays and the HOM turns of D1&#8211;D8 on the servo-limited plant under builders v1 and v2 and in Drake. Every "
+         "20&#8202;ms it records the tool pose and each finger&#8217;s normal and friction force on the tool "
+         "(<code>scripts/pad_builder_check.py</code>). "
          f"On the default block&#8217;s replays the tool orientation differs from Drake&#8217;s by a median RMS of "
          f"{q(r0, 'v2-drake', 'ang_rms_deg'):.2f}&#176; with v2 and {q(r0, 'v1-drake', 'ang_rms_deg'):.2f}&#176; with v1 (upper "
          f"quartiles {q(r0, 'v2-drake', 'ang_rms_deg', 'q75'):.1f} and {q(r0, 'v1-drake', 'ang_rms_deg', 'q75'):.1f}&#176;), against "
-         f"{r0['seed_spread']['drake']['ang_rms_deg']['median']:.2f}&#176; between two placements in Drake; the normal force by "
+         f"{r0['seed_spread']['drake']['ang_rms_deg']['median']:.2f}&#176; between two placements in Drake. The normal force differs by "
          f"{q(r0, 'v2-drake', 'F_rms_N'):.3f} and {q(r0, 'v1-drake', 'F_rms_N'):.3f}&#8202;N and the friction force by "
          f"{q(r0, 'v2-drake', 'T_rms_N'):.3f} and {q(r0, 'v1-drake', 'T_rms_N'):.3f}&#8202;N (Table&#160;[[tab:bdefault]], "
          f"Figure&#160;[[fig:bdefault]]). Builder v2 is closer to Drake in tool orientation in {word[closer_ang]} tip-and-task "
-         f"groups and in friction force in {word[closer_T]}; on the default block&#8217;s HOM turns both builders&#8217; forces differ "
+         f"groups and in friction force in {word[closer_T]}. On the default block&#8217;s HOM turns both builders&#8217; forces differ "
          f"from Drake&#8217;s by the same amount (normal {q(h0, 'v2-drake', 'F_rms_N'):.2f} and {q(h0, 'v1-drake', 'F_rms_N'):.2f}&#8202;N, "
          f"friction {q(h0, 'v2-drake', 'T_rms_N'):.2f} and {q(h0, 'v1-drake', 'T_rms_N'):.2f}&#8202;N).</p>"
-         f"<p>The end state does not separate the builders: with the held outcome and a turn within 3&#176; of Drake&#8217;s, "
+         f"<p>The end state does not separate the builders. With the held outcome and a turn within 3&#176; of Drake&#8217;s, "
          f"{tu['v2']['within_of_drake']} and {tu['v1']['within_of_drake']} of {tu['v1']['n_vs_drake']} default-block replays agree "
-         f"with v2 and v1, and within 5&#176;, {h0['tally']['v2']['within_of_drake']} and {h0['tally']['v1']['within_of_drake']} of "
+         f"with v2 and v1. Within 5&#176;, the counts are {h0['tally']['v2']['within_of_drake']} and {h0['tally']['v1']['within_of_drake']} of "
          f"{h0['tally']['v1']['n_vs_drake']} HOM turns. The turn measures only the tilt of the tool&#8217;s axis: on {len(hid['v1'])} "
          f"placements v1 ends within that tolerance with the axis {min(ax):.0f}&#8211;{max(ax):.0f}&#176; from Drake&#8217;s (the top row "
          f"of Figure&#160;[[fig:bdefault]]), and v2 on {len(hid['v2'])}. Both builders leave the tool unturned on the default "
@@ -447,8 +448,8 @@ def screen_section():
          f"has 26 tips. The eight highest J1 are {top} (Figure&#160;[[fig:screen]]); the simulation default scores "
          f"{C['tpu2.7']['J1']:.3f}. Across the 24 printed candidates the pads&#8217; twist-onset arm stays within "
          f"{min(on):.2f}&#8211;{max(on):.2f} of the law. The 1&#8202;rad/s spin arm runs from {min(sp)[0]:.2f} times the law on "
-         f"{tip_name(min(sp)[1])} to {max(sp)[0]:.2f} times on {tip_name(max(sp)[1])}: side fillets of 2&#8202;mm or less raise it "
-         "as on the flat family, and the 10.5&#8202;mm end fillet with side fillets of 4.5&#8202;mm or less brings it below the "
+         f"{tip_name(min(sp)[1])} to {max(sp)[0]:.2f} times on {tip_name(max(sp)[1])}. Side fillets of 2&#8202;mm or less raise it "
+         "as on the flat family. The 10.5&#8202;mm end fillet with side fillets of 4.5&#8202;mm or less brings it below the "
          "law.</p>")
     t += img("media/fig_screen.png", "Stage 1 over the printed grid (rows r<sub>side</sub>, columns r<sub>end</sub>): J1 at "
              "\\(\\mu\\) = 0.7, and the 1&#8202;mm pads against the law: spin arm at 1&#8202;rad/s and brake force at 45&#176;. Rows: "
@@ -520,9 +521,9 @@ def confirm_section():
         f16, f25 = by.get((best, 16.0)), by.get((best, 25.0))
         if b16 and b25 and f16 and f25:
             t += (f"<p>Pinned iCEM, the sampling planner that keeps three pads on the cylinder, gives the same order on two cells "
-                  f"at seed 0 and \\(\\mu\\) = 1.0: the as-built tip turns the 16&#8202;mm cylinder {b16['turn_end_deg']:.1f}&#176; and "
+                  f"at seed 0 and \\(\\mu\\) = 1.0. The as-built tip turns the 16&#8202;mm cylinder {b16['turn_end_deg']:.1f}&#176; and "
                   f"the 25&#8202;mm one {b25['turn_end_deg']:.1f}&#176;, {tip_name(best)} {f16['turn_end_deg']:.1f}&#176; and "
-                  f"{f25['turn_end_deg']:.1f}&#176;, every run held with all three fingers loaded at the end "
+                  f"{f25['turn_end_deg']:.1f}&#176;. The cylinder is held in every run, with all three fingers loaded at the end "
                   "(<code>final/icem/turn.jsonl</code>, <code>scripts/tip_codesign_rig.py icem</code>).</p>")
     t += film("media/hom_cylinder_16_0.625_s3_tile.mp4", "media/hom_cylinder_16_0.625_s3_tile_poster.jpg",
               "HOM on the CAD hand&#8217;s 16&#8202;mm cylinder cell (pair separations 62.5/72.5&#8202;mm), seed 3, \\(\\mu\\) = 0.7, the "
@@ -646,13 +647,13 @@ def lede():
     best = max((k for k in S3 if k != "tcd_rs3_re3_p0.2"), key=lambda k: S3[k]["J3"])
     lo, hi = S3[best]["dJ3_ci90"]
     return (f"The 1&#8202;mm sphere pads reproduce the law&#8217;s twist-onset torque within 2&#8202;% on fillets of 1.5&#8202;mm or more "
-            f"and 7&#8211;14&#8202;% high on sharper edges, but their sliding torque grows with spin rate: at 1&#8202;rad/s the spin arm "
+            f"and 7&#8211;14&#8202;% high on sharper edges, but their sliding torque grows with spin rate. At 1&#8202;rad/s the spin arm "
             f"is {S['2.7']['base']['spin_over_law']['1']:.2f} times the law on the printed tip&#8217;s 2.7&#8202;mm fillet and "
             f"{S['0']['base']['spin_over_law']['1']:.2f} times on a sharp block, while Drake stays within 0.97&#8211;1.12. The excess "
             "comes from MuJoCo&#8217;s elliptic friction cone, and removing it breaks the hand&#8217;s closed-loop turns. Of 24 "
             "printable fingertip shapes screened on the SR2 hand&#8217;s tasks, none of the three finalists beats the as-built tip "
-            f"on fresh placements: the best, with a {rs_re(best)[0]}&#8202;mm side and a {rs_re(best)[1]}&#8202;mm end fillet, scores "
-            f"J3 = {S3[best]['J3']:.3f} against {b['J3']:.3f}, a difference whose 90&#8202;% interval runs from {lo:+.3f} to "
+            f"on fresh placements. The best has a {rs_re(best)[0]}&#8202;mm side and a {rs_re(best)[1]}&#8202;mm end fillet. It scores "
+            f"J3 = {S3[best]['J3']:.3f} against {b['J3']:.3f}. The 90&#8202;% interval of the difference runs from {lo:+.3f} to "
             f"{hi:+.3f}. Per-pad stiffness raises the pads&#8217; agreement with Drake on three of the four tips of stage 3.")
 
 
