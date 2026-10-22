@@ -672,13 +672,13 @@ def newton_section():
         out += [
             "<h3>The deployed turn with the correction</h3>",
             f"<p>In the turn scene each fingertip (4.9&#8202;g, the same body in Newton&#8217;s model and the MJCF) has an "
-            f"inverse weight of {f(wt, 2)}&#8202;1/kg, the finger chain and its servo armature seen at the tip, and the tool "
-            f"{f(wtool, 1)}; {M_EFF} = {f(1e3 / (wt + wtool), 1)}&#8202;g, so each tip&#8217;s {K_H} is multiplied by "
-            f"{f(wt + wtool, 1)}&#8202;1/kg and the tool&#8217;s {K_H} is 100 times the largest tip {K_H} "
+            f"inverse weight of {f(wt, 2)}&#8202;1/kg, which is the finger chain and its servo armature seen at the tip. The tool&#8217;s inverse weight is "
+            f"{f(wtool, 1)}&#8202;1/kg. This gives {M_EFF} = {f(1e3 / (wt + wtool), 1)}&#8202;g, so each tip&#8217;s {K_H} is multiplied by "
+            f"{f(wt + wtool, 1)}&#8202;1/kg, and the tool&#8217;s {K_H} is 100 times the largest tip {K_H} "
             f"(<code>scripts/newton_turn.py --mass-correct</code>). The deployed plans then hold the tool on {n_held} of "
             f"{len(mc)} placements ({n_1006} in a run of the same placements on 2026-10-06), against {raw_held} of "
-            f"{len(raw)} uncorrected (Table&#160;3, column F; uncorrected rows "
-            f"<code>plans_newton.jsonl</code>, {raw_grip} of the 40 lost the tool during the grip). {len(turned)} of the "
+            f"{len(raw)} uncorrected (Table&#160;3, column F). In the uncorrected rows (<code>plans_newton.jsonl</code>), "
+            f"{raw_grip} of the 40 lost the tool during the grip. {len(turned)} of the "
             f"held placements turn the tool more than 10&#176;. On {len(still)} ({still_txt}) the tool stays in the grip "
             f"but turns less than 5&#176;. {len(fell_grip)} placements "
             f"({', '.join(sorted(r['hand'] + ' seed ' + str(r['seed']) for r in fell_grip))}) drop the tool during the "
@@ -973,8 +973,8 @@ def rl_section():
         tcap("Throughput of the D6 RL training env per fingertip model (<code>scripts/rl_contact_throughput.py</code>, "
              "rows <code>docs/experiments/20261006-rl_contact/throughput.jsonl</code>). Contacts/world: largest count in one "
              "world after the grasp. GPU memory: nvidia-smi with the env alive, at the largest batch measured. The 1&#8202;mm pads at "
-             "4,096 envs: on 2026-10-06 a GPU allocation failed in a process holding earlier envs; on 2026-10-07, alone, the "
-             "watchdog stopped the build at its 11&#8202;GB memory cap, where the TPU mesh env at 4,096 envs uses 5.1&#8202;GB."),
+             "4,096 envs failed twice. On 2026-10-06 a GPU allocation failed in a process holding earlier envs. On 2026-10-07, alone, the "
+             "watchdog stopped the build at its 11&#8202;GB memory cap. The TPU mesh env at 4,096 envs uses 5.1&#8202;GB."),
         mark("throughput"),
         f"<p>Physics is a small part of an env step: at 2,048 envs the box tip&#8217;s physics takes "
         f"{f(100 * phys_frac, 0) if phys_frac else '&#8211;'}&#8202;% of the wall time, the rest is observation, reward, "
@@ -1002,7 +1002,7 @@ def memory_sentence(T, LIM):
         n = max((n for n in (1024, 2048, 4096) if gb(v, n)), default=None)
         if n:
             parts.append(f"{gb(v, n):.1f}&#8202;GB for {lab} at {num(n, ',d')} envs")
-    return "GPU memory, the whole card as nvidia-smi reports it with the env alive, grows with the pads: " + "; ".join(parts) + "."
+    return "GPU memory, the whole card as nvidia-smi reports it with the env alive, grows with the pads. It is " + "; ".join(parts) + "."
 
 
 def sensor_paragraph(T):
@@ -1412,7 +1412,7 @@ def next_section():
         "finger&#8217;s contact a slide reference along the tool axis while the other two hold; measure the reachable turn "
         "and the drop rate on the same 40 placements.",
         f"<b>Newton&#8217;s turn without rotation.</b> Log the per-finger normal force and the tip slip speed "
-        f"in <code>newton_turn.py</code> and compare them with MuJoCo&#8217;s pad forces on {still_txt}, where the "
+        f"in <code>newton_turn.py</code>, and compare them with MuJoCo&#8217;s pad forces on {still_txt}. On these hands the "
         "mass-corrected Newton grip holds the tool but turns it less than 5&#176;.",
         "<b>Friction rows of Newton&#8217;s hydroelastic contact.</b> The 2026-10-05 friction gain \\(k_f = 10\\) gives the "
         "hydroelastic friction rows a time constant of 3.9&#8202;ms on the bed (Section&#160;5). Run "
@@ -1422,7 +1422,7 @@ def next_section():
         "130&#176; swing and the two drops during the grip come from the friction rows.",
         f"<b>Longer training.</b> Both fingertips are still rising at 20&#8202;M steps (Figure&#160;{REF.get('training', '')}). Continue the four runs "
         "to 60&#8202;M (the 2026-09-17 budget) from their final checkpoints with the critic and optimizer warm-started, "
-        "and compare the held cosine at 40 and 60&#8202;M; a pad run that stays below the mesh runs by more than their "
+        "and compare the held cosine at 40 and 60&#8202;M. A pad run that stays below the mesh runs by more than their "
         "seed spread (0.05) at 60&#8202;M would point to the fingertip model and away from the step budget.",
         "<b>Mesh-tip contact between MuJoCo-Warp and CPU MuJoCo.</b> At the replay onset state of the mesh runs, list the "
         "three block&#8211;tool contacts (position, normal, depth, efc force) in both implementations "
@@ -1448,7 +1448,7 @@ def lede():
             T[(r["variant"], r["num_envs"])] = r
     r1 = (T[("pads1", 2048)]["env_steps_per_s"] / T[("legacy", 2048)]["env_steps_per_s"]
           if ("pads1", 2048) in T and ("legacy", 2048) in T else None)
-    return ("Replaying 177 tracked bench runs fixes the simulated servo model: fingers with a 0.02&#8202;s time constant and "
+    return ("Replaying 177 tracked bench runs fixes the simulated servo model. Fingers with a 0.02&#8202;s time constant and "
             "friction near 1 reproduce the joint readings within 2.89&#176;, though the gain stays unidentified. On this "
             f"model the deployed open-loop plans hold the tool in {sum(r['held_end'] for r in pm)} of {len(pm)} placements "
             f"and turn it {f(min(pv), 0)}&#8211;{f(max(pv), 0)}&#176;; the hand-object controller of Wang, Oh and Pollard holds "
