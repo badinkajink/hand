@@ -159,6 +159,27 @@ Offsets of a few uT pass; the loose pad of 2026-10-20 left 62 and 104 uT, fit by
 about 4 mrad, and the touches of 2026-10-21 left 33-69 uT (shifts of 8-19 um). The model gives about 26 uT for 1 N on
 the face.
 
+## Calibration session on the UR5
+
+`host/ur5_tip_calibration.py` runs the calibration on the lab's UR5 (CB3, RTDE at 192.168.0.4) against the OptoForce
+HEX-E (its Ethernet DAQ at 192.168.0.5, UDP port 49152, polled at 500 Hz): homing on the indenter's key in freedrive, a
+gravity sweep, touch-offs on the mount's column and on the pad, a registration fit, pivot presses, then calibration
+presses, slides, rolls and twists from a plan written on the workstation
+(`scripts/ur5_tip_calibration_plan.py` -> `docs/experiments/20261022-ur5_tip_calibration/plan/20261022-plan_sphere.json`).
+The robot's computer needs this file, `host/reskin5x_plot.py` (the board's reader) and the plan, with numpy, pyserial
+and ur_rtde.
+
+    python ur5_tip_calibration.py --plan 20261022-plan_sphere.json --stages preflight      # streams, payload
+    python ur5_tip_calibration.py --plan 20261022-plan_sphere.json --dry 15                 # the session 15 mm off
+    python ur5_tip_calibration.py --plan 20261022-plan_sphere.json --name sphere1           # the session
+    ... --resume logs/<date>-tip_calibration/<session>                                      # after an interruption
+    .venv/bin/python src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py --plan <plan> --sim   # the simulator
+
+The lab's HEX-E is the 2017 OptoForce model, 35 mm from the flange to its tool face and 260 g (data sheet V1.0), so the
+pad's face centre lies 128.36 mm from the flange along the tool axis (mount v3's pages took the 50 mm OnRobot HEX-E QC).
+The session's files, the ground truth it gives and a simulated session are on the page
+`docs/experiments/20261022-ur5_tip_calibration/20261022-ur5_tip_calibration_protocol.html`.
+
 ## Register settings
 
 GAIN_SEL 1, RES 1 on all three axes, OSR 0, DIG_FILT 5 and HALLCONF 0xC: one count is 1.20 µT on x and y and 1.94 µT on z,

@@ -147,6 +147,19 @@ telemetry stops while a writer owns the bus, so a careless probe reads one stale
 The live viewer and the seat check are `src/morphohand/driver/reskin5x/host/wrench_viewer.py` and `pad_shift_check.py`
 (see that folder's README).
 
+## Fingertip calibration on the UR5 (`docs/experiments/20261022-ur5_tip_calibration/`)
+
+| script | role |
+|---|---|
+| `ur5_tip_calibration_plan.py` | the session's plan: nominal frames of the tool stack (OptoForce HEX-E 35 mm, mount v3, DIP link b v4), the pad's surface, every stage's targets, their reach and clearance on an assumed placement (`--placement x,y,z,yaw --block mm`) |
+| `ur5_cb3_cell.py` | the cell's geometry for the plan and the film: the UR5 URDF's links, the tool's meshes, the indenters, block, plywood and table as distance functions |
+| `ur5_tip_calibration_analysis.py` | ground truth of every hold of a session (contact point, force, shear, torsion in the pad frame) and the estimator scored against it; in a simulated session the ground truth against the simulator's contact |
+| `ur5_tip_calibration_film.py` | MuJoCo replay of a session's joint record, the cell and the pad on the sphere side by side; `--still t ...` for stills |
+| `ur5_tip_calibration_page.py` | `collect <session>` copies a session's small files and writes `results.json`; without arguments builds the page (`.venv/bin/python`) |
+
+The session's program and its simulator are `src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py` and
+`ur5_tip_calibration_sim.py`.
+
 ## Documentation (`docs/index.html`, the overviews and the result pages)
 
 | script | role |
