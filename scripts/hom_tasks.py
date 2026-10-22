@@ -153,14 +153,22 @@ def link_clearance(task, des, d_mm):
                 dd.qpos[m.jnt_qposadr[m.joint(f"{f}_{j}").id]] = q0[f][k]
         mujoco.mj_forward(m, dd)
         dmin = 1.0
+        fg = {f: [] for f in FINGERS}
         for g in range(m.ngeom):
             bn = m.body(m.geom_bodyid[g]).name
-            if not any(bn.startswith(f + "_") for f in FINGERS) or bn.endswith("_tip"):
+            fing = [f for f in FINGERS if bn.startswith(f + "_")]
+            if not fing or (m.geom_contype[g] == 0 and m.geom_conaffinity[g] == 0):
                 continue
-            if m.geom_contype[g] == 0 and m.geom_conaffinity[g] == 0:
-                continue
-            dmin = min(dmin, mujoco.mj_geomDistance(m, dd, g, og, 0.05, None))
+            fg[fing[0]].append(g)
+            if not bn.endswith("_tip"):
+                dmin = min(dmin, mujoco.mj_geomDistance(m, dd, g, og, 0.05, None))
         out[name] = dmin
+        ff = 1.0                                    # finger against finger (the pinch fingers meet over thin objects)
+        for a, b in (("index", "middle"), ("thumb", "index"), ("thumb", "middle")):
+            for g1 in fg[a]:
+                for g2 in fg[b]:
+                    ff = min(ff, mujoco.mj_geomDistance(m, dd, g1, g2, 0.02, None))
+        out[name + "_ff"] = ff
     return out, q_open, q_touch
 
 
@@ -207,7 +215,8 @@ def cmd_design(a) -> int:
                 ranked = design_pinch_x(d)
                 for des in ranked[:a.max_try]:
                     clr, _qo, _qt = link_clearance(task, des, d)
-                    if clr["touch"] >= 0.0005 and clr["open"] >= 0.0015:     # links 0.5 mm off when the block touches
+                    if (clr["touch"] >= 0.0005 and clr["open"] >= 0.0015     # links 0.5 mm off when the block touches
+                            and clr["touch_ff"] >= 0.001 and clr["open_ff"] >= 0.001):
                         des["link_clearance_mm"] = {k: round(1e3 * v, 2) for k, v in clr.items()}
                         passing.append(des)
                 if passing:
