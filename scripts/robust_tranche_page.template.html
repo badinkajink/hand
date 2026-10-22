@@ -126,12 +126,13 @@ index and middle come within 30 mm.</dd>
 <h2>What changed in the plant, and why</h2>
 <p>The 2026-09-19 tranche (<a href="../20260919-hands_tranche/20260919-reorient_policies_across_hands.html">page</a>)
 held 64 of 64 on every hand at the trained pose, because training and evaluation spawned the tool at one pose
-(<code>cube_spawn_xy_jitter 0</code>), and most of its policies dropped the tool in the UR5e chain. Spawned 3&#8202;mm and
-10&#176; off that pose with the tool on the scene&#8217;s contact class (the evaluation of 2026-09-20), D7 held 0 of 64, D6 clip seed 1 8,
-D5 26 and D1 20; on the contact class they trained with, the same jitter leaves them 57, 64, 64 and 60 of 64, and at the trained pose on the scene&#8217;s class, with no jitter, they hold 0, 0, 11 and 14 (re-evaluated 2026-10-11,
-<a href="../20260919-hands_tranche/20260919-reorient_policies_across_hands.html">2026-09-19 page</a>). The mjlab
-environment also differed from the scene of every CPU replay, chain rollout and bench comparison in three places, and a
-fourth difference, shared by both, was found on 2026-09-23:</p>
+(<code>cube_spawn_xy_jitter 0</code>). Most of its policies dropped the tool in the UR5e chain. The tool was then spawned
+3&#8202;mm and 10&#176; off that pose, on the scene&#8217;s contact class (the evaluation of 2026-09-20). D7 held 0 of 64,
+D6 clip seed 1 held 8, D5 26 and D1 20. On the contact class they trained with, the same jitter leaves them 57, 64, 64
+and 60 of 64. At the trained pose on the scene&#8217;s class, with no jitter, they hold 0, 0, 11 and 14 (re-evaluated
+2026-10-11, <a href="../20260919-hands_tranche/20260919-reorient_policies_across_hands.html">2026-09-19 page</a>).
+The mjlab environment also differed from the scene of every CPU replay, chain rollout and bench comparison in three
+places. A fourth difference, shared by both, was found on 2026-09-23:</p>
 {{TABLE_PLANT}}
 <p>Recipe: the 2026-09-19 flags plus <code>--scene-floor --cube-spawn-xy-jitter 0.003 --cube-spawn-yaw-jitter
 0.1745</code> on a tip-mesh morphology run, warm-started from each job&#8217;s 2026-09-19 checkpoint (queue
@@ -229,9 +230,9 @@ has 192 steps (3.84 s) to turn the shaft to vertical and keep it.</figcaption></
 <li><strong>2026-09-17, grip finetune, 20 M</strong> (<code>ft_gpm5</code>): cos 0.969 at 10.8 N, but it dropped the tool in the
 chain at 3.2 s where the 17 N parent held 3/4, so the tranches continue the parent.</li>
 <li><strong>2026-09-19 tranche, 16 jobs</strong>: the parent continued on each hand with the residual clipped at &#177;1 rad,
-a grip penalty above 6 N and, on six jobs, the separation term; 64/64 at the trained pose on every hand; at &#177;3 mm of
-spawn jitter with the tool on the scene&#8217;s contact class D7, D6 seed 1, D5 and D1 held 0&#8211;26 of 64, and 57&#8211;64 on the
-contact class they trained with (re-evaluated 2026-10-11).</li>
+a grip penalty above 6 N and, on six jobs, the separation term. Every hand held 64/64 at the trained pose. At &#177;3 mm of
+spawn jitter with the tool on the scene&#8217;s contact class, D7, D6 seed 1, D5 and D1 held 0&#8211;26 of 64. On the
+contact class they trained with they held 57&#8211;64 (re-evaluated 2026-10-11).</li>
 <li><strong>2026-09-20 tranche (this page), {{N_JOBS}} jobs</strong>: each 2026-09-19 checkpoint continued on the
 <code>_cal_tip</code> scene with the scene floor and contact class, spawn jitter and friction randomisation.</li>
 </ol>
@@ -254,13 +255,13 @@ solver; <code>policy_eval_suite.py --spawn-jitter-mm 3 --spawn-yaw-deg 10 --fric
 judged on (<code>*_eval_j3dr.json</code> for every job).</li>
 <li><strong>Training plant against bench.</strong> The tool&#8217;s contact class, the floor and the tip had differed between the
 mjlab environment and the scene since the first mjlab run, and the finger joint damping of both differs from the servo.</li>
-<li><strong>Arm offset.</strong> The 4.9&#8202;mm the palm sat below its command at the turn was the menagerie servo settling
-(kp/kv = 5&#8202;rad/s); a UR5e told its payload holds about 0.1&#8202;mm, and the chain runs the arm at ten times the position
-gain.</li>
+<li><strong>Arm offset.</strong> The 4.9&#8202;mm the palm sat below its command at the turn was the menagerie servo easing toward its command
+(kp/kv = 5&#8202;rad/s). A UR5e told its payload holds the palm within about 0.1&#8202;mm, and the chain runs the arm at ten
+times the position gain.</li>
 <li><strong>Two silent no-ops, both fixed.</strong> The friction variants of the zero-shot table were copies of the base scene
 on every calibrated scene until 2026-09-20 02:00, and <code>--payload-gravcomp</code> also compensated the finger links.</li>
-<li><strong>Separation term.</strong> &#8722;10 below 30&#8202;mm gives 2&#8211;10&#8202;mm of index&#8211;middle clearance on D1, D3,
-D5 and D6 and removes the turn on D4 and D7, which turn by running the two fingers together.</li>
+<li><strong>Separation term.</strong> A term of &#8722;10 below 30&#8202;mm gives 2&#8211;10&#8202;mm of index&#8211;middle clearance on D1, D3,
+D5 and D6. It removes the turn on D4 and D7, which turn by running the two fingers together.</li>
 </ul>
 </div></section>
 
@@ -272,8 +273,8 @@ page names both), fit the plant to them, and continue these checkpoints on it; n
 that.</li>
 <li><strong>Turn quality.</strong> The continued policies end at cos 0.80&#8211;0.96; one 60&#8202;M continuation of the D6
 separation job on the fitted plant separates convergence from the cost of the jitter.</li>
-<li><strong>Inherited settings.</strong> Test each on D6 at the same budget: tip-lost after 3 against 15 steps, the progress
-weight at 100 / 300 / 900, a friction band of [0.4, 1.4], observation noise set from the tracker and servo telemetry, and a
+<li><strong>Inherited settings.</strong> Test each setting on D6 at the same budget: tip-lost after 3 against 15 steps; the progress
+weight at 100 / 300 / 900; a friction band of [0.4, 1.4]; observation noise set from the tracker and servo telemetry; and a
 residual scale of 1.0 with clip 1.0 (the same &#177;1 rad with a different exploration std).</li>
 <li><strong>D4.</strong> Both draws stopped on NaN observations on the g12 tip-mesh scene; inspect the D4 pads against the tip
 mesh at spawn before another D4 job.</li>

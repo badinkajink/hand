@@ -290,21 +290,21 @@ GLOSSARY = [
      "0.08&#8202;N&#8202;m&#8202;s/rad."),
     ("servo-limited plant", "The finger servo model of this page: \\(k_p\\) = 0.72&#8202;N&#8202;m/rad, \\(\\tau_\\text{max}\\) "
      "= 0.18&#8202;N&#8202;m, \\(b\\) = 0.0144&#8202;N&#8202;m&#8202;s/rad. The SCS0009 servo stalls at 0.23&#8202;N&#8202;m at "
-     "6&#8202;V and its overload protection trips above 80&#8202;% of that (0.18&#8202;N&#8202;m); its drive reaches full "
-     "duty at 18&#176; of position error, so \\(k_p\\) = 0.23&#8202;N&#8202;m / 0.314&#8202;rad; \\(b/k_p\\) keeps the "
-     "fitted 20&#8202;ms time constant."),
+     "6&#8202;V, and its overload protection trips above 80&#8202;% of that (0.18&#8202;N&#8202;m). Its drive reaches full "
+     "duty at 18&#176; of position error, so \\(k_p\\) = 0.23&#8202;N&#8202;m / 0.314&#8202;rad. The damping \\(b\\) "
+     "is set so that \\(b/k_p\\) keeps the fitted 20&#8202;ms time constant."),
     ("contact model", "The fingertip&#8217;s collision geometry. The printed TPU block (17&#215;14.8&#215;22&#8202;mm, 2.7&#8202;mm "
-     "fillets) is one convex mesh with MuJoCo point contact (<b>TPU mesh</b>; condim 3, no torsional friction), or 1,060 "
-     "spheres of 1&#8202;mm per fingertip (<b>pads</b>), whose distributed contacts give a torsional friction, or the same "
-     "pads on a sprung skin (<b>skin</b>). The 2026-10-08 study also trained the legacy <b>box tip</b> (point contact). In "
+     "fillets) takes one of three forms. It is one convex mesh with MuJoCo point contact (<b>TPU mesh</b>; condim 3, no "
+     "torsional friction). It is 1,060 spheres of 1&#8202;mm per fingertip (<b>pads</b>), whose distributed contacts give "
+     "a torsional friction. Or it is the same pads on a sprung skin (<b>skin</b>). The 2026-10-08 study also trained the legacy <b>box tip</b> (point contact). In "
      "the tables a policy is its contact model and seed, e.g. Pads s0."),
-    ("sprung skin", "Each fingertip&#8217;s pad spheres on a 2&#8202;g body held to the fingertip by two slides tangent to the "
-     "palmar face and a hinge about its normal, with springs at the elastic stiffness of the pads&#8217; contact patch at "
-     "5&#8202;N per fingertip, the servo-plant policies&#8217; mean hold force (Mindlin&#8217;s \\(k_t = 8Ga/(2-\\nu)\\) = "
+    ("sprung skin", "Each fingertip&#8217;s pad spheres sit on a 2&#8202;g body. Two slides tangent to the palmar face and a hinge about "
+     "its normal hold the body to the fingertip. The springs have the elastic stiffness of the pads&#8217; contact patch at "
+     "5&#8202;N per fingertip, which is the servo-plant policies&#8217; mean hold force (Mindlin&#8217;s \\(k_t = 8Ga/(2-\\nu)\\) = "
      "52.3&#8202;kN/m per slide, Lubkin&#8217;s \\(k_\\theta = 16Ga^3/3\\) = 0.466&#8202;N&#8202;m/rad; patch radius \\(a\\) = "
-     "2.94&#8202;mm, \\(G\\) = 3.45&#8202;MPa, \\(\\nu\\) = 0.45), 0.26&#8202;kg of armature on each slide and "
-     "3.6&#215;10<sup>&#8722;6</sup>&#8202;kg&#8202;m&#178; on the hinge so that each spring&#8217;s period stays long against the "
-     "2&#8202;ms step, and critical damping (<code>scripts/make_work_plant_runs.py --skin</code>; "
+     "2.94&#8202;mm, \\(G\\) = 3.45&#8202;MPa, \\(\\nu\\) = 0.45). Each slide has 0.26&#8202;kg of armature and the hinge has "
+     "3.6&#215;10<sup>&#8722;6</sup>&#8202;kg&#8202;m&#178;, so that each spring&#8217;s period stays long against the "
+     "2&#8202;ms step. The damping is critical (<code>scripts/make_work_plant_runs.py --skin</code>; "
      f"<a href=\"{SKIN_PAGE}\">sprung-skin page</a>). The working-plant skin was sized at 12&#8202;N (65&#8202;kN/m)."),
     ("env step, iteration", "One 20&#8202;ms policy step of one of 2,048 parallel envs; a PPO iteration is 24 steps per "
      "env, 49,152 env steps, and 40&#8202;M env steps are 813 iterations."),
@@ -348,11 +348,12 @@ GLOSSARY = [
     ("action noise", "Standard deviation of the policy&#8217;s Gaussian action distribution in training, in action units "
      "(one unit is 0.5&#8202;rad of servo target); 0.30 at the start."),
     ("perturbation", "One quantity changed in the evaluation of a final policy on its own scene, everything else as trained "
-     "(128 rollouts): the sliding friction of every geom &#215;0.7 or &#215;1.3; the tool&#8217;s mass and inertia &#215;0.8 or "
-     "&#215;1.2; the finger servos&#8217; gain \\(k_p\\) set to 0.36, 1.08 or 1.8&#8202;N&#8202;m/rad (0.5, 1.5 and 2.5 times "
-     "0.72); their torque limit set to 0.12 or 0.23&#8202;N&#8202;m (1&#8202;N&#8202;m in the torque-limit swap); a 1&#8202;ms "
-     "simulation step with the same seconds of grasp and lift; <b>grasp jitter</b>, the tool spawned up to 2&#8202;mm off "
-     "its trained position and up to 5&#176; turned about vertical, uniform per rollout. The 2026-10-08 page used the same "
+     "(128 rollouts). The changes are as follows. The sliding friction of every geom is &#215;0.7 or &#215;1.3. The tool&#8217;s "
+     "mass and inertia are &#215;0.8 or &#215;1.2. The finger servos&#8217; gain \\(k_p\\) is 0.36, 1.08 or "
+     "1.8&#8202;N&#8202;m/rad (0.5, 1.5 and 2.5 times 0.72). Their torque limit is 0.12 or 0.23&#8202;N&#8202;m "
+     "(1&#8202;N&#8202;m in the torque-limit swap). The simulation step is 1&#8202;ms, with the same seconds of grasp and "
+     "lift. <b>Grasp jitter</b> spawns the tool up to 2&#8202;mm off its trained position and up to 5&#176; turned about "
+     "vertical, uniform per rollout. The 2026-10-08 page used the same "
      "set with the gains 2, 6 and 10&#8202;N&#8202;m/rad of its 4&#8202;N&#8202;m/rad plant."),
     ("seed spread, Fisher p, bootstrap interval", "The seed spread is the difference between the two seeds of one contact "
      "model. Fisher p: two-sided Fisher exact test on the held counts of two contact models, both seeds pooled. Bootstrap "
@@ -400,13 +401,13 @@ def plant_section(X: Data):
              f"{len(X.finals('08', 'tpu27skin'))} skin",
              f"{len(X.finals('11', 'tpu27mesh'))} TPU mesh, {len(X.finals('11', 'tpu27pads1'))} pads, "
              f"{len(X.finals('11', 'tpu27skin'))} skin"]]
-    out = ("<p>The four TPU-mesh and pad runs repeat the 2026-10-08 runs with two changes, the plant and the sign of the "
-           "grip term (Table&#160;1); two runs on the sprung skin followed on 2026-10-12 with the same flags, its springs sized "
-           "at the 5&#8202;N per fingertip with which the servo-plant policies hold the tool. Everything else is as on "
+    out = ("<p>The four TPU-mesh and pad runs repeat the 2026-10-08 runs with two changes: the plant and the sign of the "
+           "grip term (Table&#160;1). Two runs on the sprung skin followed on 2026-10-12 with the same flags. Its springs are "
+           "sized at the 5&#8202;N per fingertip with which the servo-plant policies hold the tool. Everything else is as on "
            "2026-10-08: hand D6, the 24.5&#8202;g screwdriver, MuJoCo-Warp at 2&#8202;ms with impratio 10, recipe "
            "<code>b_liveA</code>, 2,048 envs, 40&#8202;M steps, friction randomisation, seeds 0 and 1. Before training, the "
-           "scripted grasp and lift held the tool in 64 of 64 worlds with all three fingertips in contact at policy steps 60 "
-           f"and 150 on {len(ok)} of {len(chk)} servo-plant scenes (box tip, TPU mesh, pads and skin; "
+           "scripted grasp and lift held the tool in 64 of 64 worlds, with all three fingertips in contact at policy steps 60 "
+           f"and 150, on {len(ok)} of {len(chk)} servo-plant scenes (box tip, TPU mesh, pads and skin; "
            "<code>plant_check.json</code>, <code>plant_check_skin.json</code>).</p>")
     out += table(head, body, "Plant and grip term of the two studies (scenes by <code>scripts/make_work_plant_runs.py "
                              "--plant</code>, runs by <code>scripts/rl_contact_train_queue_20261008.sh</code> and "
@@ -427,9 +428,9 @@ def plant_section(X: Data):
         nrun = sum(1 for r in X.finals("11") if r["tag"] in X.cost["11"])
         out += (f"<p>The {WORDS.get(nrun, nrun)} runs took {tot:.1f}&#8202;GPU-h on the RTX 4070 Ti SUPER, one at a time (Table&#160;2). A pad "
                 f"iteration cost {np.median(sp['tpu27pads1']) / np.median(sp['tpu27mesh']):.2f}&#215; a TPU-mesh iteration "
-                f"({np.median(sp['tpu27pads1']):.2f} against {np.median(sp['tpu27mesh']):.2f}&#8202;s) and a skin iteration "
-                f"{np.median(sp['tpu27skin']) / np.median(sp['tpu27mesh']):.2f}&#215; ({np.median(sp['tpu27skin']):.2f}&#8202;s); "
-                f"in the 2026-10-08 runs, "
+                f"({np.median(sp['tpu27pads1']):.2f} against {np.median(sp['tpu27mesh']):.2f}&#8202;s), and a skin iteration "
+                f"{np.median(sp['tpu27skin']) / np.median(sp['tpu27mesh']):.2f}&#215; ({np.median(sp['tpu27skin']):.2f}&#8202;s). "
+                f"In the 2026-10-08 runs, "
                 f"which shared the workstation with other jobs, a pad iteration cost {np.median(sp8['tpu27pads1']) / np.median(sp8['tpu27mesh']):.2f}&#215; "
                 f"({np.median(sp8['tpu27pads1']):.2f} against {np.median(sp8['tpu27mesh']):.2f}&#8202;s).</p>")
     out += table(head2, b2, "Training cost of the servo-plant runs: median wall time per PPO iteration and in total "
@@ -562,7 +563,7 @@ def final_section(X: Data):
            f"{rng(hc('11', 'tpu27mesh'), 3)} (working plant {rng(hc('08', 'tpu27mesh'), 3)}), that of the pad policies "
            f"{rng(hc('11', 'tpu27pads1'), 3)} (working plant {rng(hc('08', 'tpu27pads1'), 3)}) and that of the skin policies "
            f"{rng(hc('11', 'tpu27skin'), 3)} (working plant {rng(hc('08', 'tpu27skin'), 3)}). The summed fingertip force falls "
-           f"from {rng(grip(tps), 0)}&#8202;N to {rng(grip(f11), 0)}&#8202;N, and the thumb carries "
+           f"from {rng(grip(tps), 0)}&#8202;N to {rng(grip(f11), 0)}&#8202;N, and the thumb supplies "
            f"{rng([100 * v for v in thumb(f11)], 0)}&#8202;% of it ({rng([100 * v for v in thumb(tps)], 0)}&#8202;% on the working "
            f"plant). Every servo-plant policy brings the tool to 90&#8202;% of its final cosine within "
            f"{max(tt):.2f}&#8202;s of the onset (Figure&#160;{FIGNO['traces']}).</p>")
@@ -720,17 +721,17 @@ def mech_text(X: Data):
     yaw11 = [X.m(r["tag"])["range_limit_by_joint"]["middle_yaw"] for r in f11 if X.m(r["tag"])]
     p1 = (f"<p>Contact spin separates the pads of the two plants. On the working plant the pad policies spun the tool "
           f"{rng(sp('08', 'tpu27pads1'), 0)}&#176; relative to their fingertips during the turn, at a summed pad brake of "
-          f"{rng(br('08', 'tpu27pads1'), 0)}&#8202;mN&#8202;m; on the servo-limited plant they spin it "
-          f"{rng(sp('11', 'tpu27pads1'), 0)}&#176; at {rng(br('11', 'tpu27pads1'), 0)}&#8202;mN&#8202;m, as far as the "
+          f"{rng(br('08', 'tpu27pads1'), 0)}&#8202;mN&#8202;m. On the servo-limited plant they spin it "
+          f"{rng(sp('11', 'tpu27pads1'), 0)}&#176; at {rng(br('11', 'tpu27pads1'), 0)}&#8202;mN&#8202;m. That is as far as the "
           f"point-contact TPU mesh ({rng(sp('11', 'tpu27mesh'), 0)}&#176;; {rng(sp('08', 'tpu27mesh'), 0)}&#176; on the working "
           f"plant). The turn about the pinch axis follows: pads {rng(tn('08', 'tpu27pads1'), 0)}&#176; on the working plant and "
           f"{rng(tn('11', 'tpu27pads1'), 0)}&#176; on the servo-limited plant, TPU mesh {rng(tn('08', 'tpu27mesh'), 0)}&#176; "
           f"and {rng(tn('11', 'tpu27mesh'), 0)}&#176;. The skin policies spun the tool {rng(sp('08', 'tpu27skin'), 0)}&#176; at a "
-          f"pad brake of {rng(br('08', 'tpu27skin'), 0)}&#8202;mN&#8202;m on the working plant, as far as its TPU-mesh policies, "
-          f"and spin it {rng(sp('11', 'tpu27skin'), 0)}&#176; at {rng(br('11', 'tpu27skin'), 0)}&#8202;mN&#8202;m on the "
-          "servo-limited plant.</p>")
+          f"pad brake of {rng(br('08', 'tpu27skin'), 0)}&#8202;mN&#8202;m on the working plant, as far as its TPU-mesh policies. "
+          f"On the servo-limited plant they spin it {rng(sp('11', 'tpu27skin'), 0)}&#176; at "
+          f"{rng(br('11', 'tpu27skin'), 0)}&#8202;mN&#8202;m.</p>")
     p2 = (f"<p>The thumb&#8217;s mcp actuator sits at its torque limit in {rng([100 * v for v in tl], 0)}&#8202;% of the held "
-          f"steps of every TPU-block policy on both plants, so the actuator limit sets the grip; the grip term was "
+          f"steps of every TPU-block policy on both plants, so the actuator limit sets the grip. The grip term was "
           f"{sgn_rng(gt['08'])} per episode at the end of the working-plant runs and is {sgn_rng(gt['11'])} in the "
           f"servo-plant runs, against an alignment term of {rng(al, 0)} (Figure&#160;{FIGNO['curves']}). On the servo-limited "
           f"plant a finger joint sits at its extension limit in {rng([100 * v for v in ext11], 0)}&#8202;% of the held steps, "
@@ -774,8 +775,8 @@ def swap_text(X: Data):
     for r, m0, m1 in pads:
         if m1["n_held"] == m1["n"] and m1["held_cos_mean"] < 0.5:
             y0, y1 = middle_yaw(X, r["tag"]), middle_yaw(X, r["tag"], pk["11"])
-            out.append(f" Pad seed {r['seed']} holds all {m1['n']} but no longer turns the tool: its held cosine falls from "
-                       f"{m0['held_cos_mean']:.3f} to {m1['held_cos_mean']:.3f} and its contact spin from {m0['spin_deg']:.0f} to "
+            out.append(f" Pad seed {r['seed']} holds all {m1['n']} but no longer turns the tool. Its held cosine falls from "
+                       f"{m0['held_cos_mean']:.3f} to {m1['held_cos_mean']:.3f}, and its contact spin falls from {m0['spin_deg']:.0f} to "
                        f"{m1['spin_deg']:.0f}&#176;"
                        + (f", and the middle finger&#8217;s yaw stops at {y1:.2f}&#8202;rad instead of {y0:.2f}" if y0 and y1 else "")
                        + ".")
@@ -785,17 +786,17 @@ def swap_text(X: Data):
     sk = pairs[("11", "tpu27skin")]
     if sk:
         out.append(" The skin policies grip " + " and ".join(f"{gr(m1) / gr(m0):.1f}" for _, m0, m1 in sk) + "&#215; harder ("
-                   + " and ".join(f"{gr(m1):.0f}" for _, _, m1 in sk) + "&#8202;N); "
-                   + "; ".join(f"seed {r['seed']} holds {m1['n_held']} of {m1['n']} rollouts (held cosine "
-                               f"{m0['held_cos_mean']:.3f} &#8594; {m1['held_cos_mean']:.3f})" for r, m0, m1 in sk) + ".")
+                   + " and ".join(f"{gr(m1):.0f}" for _, _, m1 in sk) + "&#8202;N). "
+                   + " ".join(f"Seed {r['seed']} holds {m1['n_held']} of {m1['n']} rollouts (held cosine "
+                              f"{m0['held_cos_mean']:.3f} &#8594; {m1['held_cos_mean']:.3f})." for r, m0, m1 in sk))
     w = [(a, r, m1) for a in ("tpu27pads1", "tpu27mesh", "tpu27skin", "box") for r, m0, m1 in pairs[("08", a)]]
     drop = [f"{CAP[a]} s{r['seed']}" for a, r, m1 in w if m1["n_held"] == 0]
     kept = [(a, r, m1) for a, r, m1 in w if m1["n_held"] > 0]
     if w:
-        held_txt = "; " + ", ".join(f"{CAP[a]} s{r['seed']} holds {m1['n_held']}" for a, r, m1 in kept) + (
+        held_txt = ". " + ", ".join(f"{CAP[a]} s{r['seed']} holds {m1['n_held']}" for a, r, m1 in kept) + (
             f" of 64, at held cosines of {rng([m1['held_cos_mean'] for _, _, m1 in kept], 2)}") if kept else ""
         who = ", ".join(drop[:-1]) + " and " + drop[-1] if len(drop) > 1 else "".join(drop)
-        out.append(f" Given 0.18&#8202;N&#8202;m, the working-plant policies {who} drop every rollout, so the swap tests the "
+        out.append(f" Given 0.18&#8202;N&#8202;m, the working-plant policies {who} drop every rollout. The swap therefore tests the "
                    f"brake in one direction only{held_txt}.")
     return "".join(out) + "</p>"
 
@@ -856,9 +857,9 @@ def transfer_text(X: Data):
     g = {(a, e): [v for aa, ee, v in gap if aa == a and ee == e] for a in SKIN_ARMS for e in ENGINES}
     cross = [t for t in X.tr["11"] if t["scene"] in SKIN_ARMS and t["scene"] != t["arm"]]
     box = [t for t in X.tr["11"] if t["scene"] == "box"]
-    out = (f"<p>Replayed open loop on the servo-limited plant, the finger targets of the pad policies kept the tool in "
+    out = (f"<p>The finger targets were replayed open loop on the servo-limited plant. The pad policies' targets kept the tool in "
            f"{pads11[0]:,} of {pads11[1]:,} replays, those of the TPU-mesh policies in {mesh11[0]:,} of {mesh11[1]:,} and those "
-           f"of the skin policies in {skin11[0]:,} of {skin11[1]:,}; on the working plant the pad and skin targets kept it in "
+           f"of the skin policies in {skin11[0]:,} of {skin11[1]:,}. On the working plant the pad and skin targets kept the tool in "
            f"{comp08[0]:,} of {comp08[1]:,} and the point-contact targets in {point08[0]:,} of {point08[1]:,} "
            f"(<a href=\"{PAGE8}\">2026-10-08 page</a>). ")
     if cross:
@@ -877,13 +878,13 @@ def transfer_text(X: Data):
     nt = {a: replay_totals_engine(X, "11", a, "newton") for a in ("tpu27pads1", "tpu27mesh", "tpu27skin")}
     nt8 = {a: replay_totals_engine(X, "08", a, "newton") for a in ("tpu27pads1",)}
     med = lambda v: (f"{np.median(v):+.3f}".replace("-", "&#8722;") if v else "&#8211;")  # noqa: E731
-    out += ("The final cosine of a held replay minus that of the MuJoCo-Warp rollout it replays is a median "
-            + ", ".join(f"{med(g[('tpu27pads1', e)])} (pads), {med(g[('tpu27skin', e)])} (skin) and {med(g[('tpu27mesh', e)])} "
+    out += ("The final cosine of a held replay minus that of the MuJoCo-Warp rollout it replays has these medians: "
+            + "; ".join(f"{med(g[('tpu27pads1', e)])} (pads), {med(g[('tpu27skin', e)])} (skin) and {med(g[('tpu27mesh', e)])} "
                         f"(TPU mesh) in {ENG_LBL[e]}" for e in ENGINES) + ".</p>")
     if falls:
         early = sum(1 for t in falls if t <= 1.0)
-        out += (f"<p>Newton loses the most replays: the pad targets keep the tool in {nt['tpu27pads1'][0]} of "
-                f"{nt['tpu27pads1'][1]} worlds there ({nt8['tpu27pads1'][0]} of {nt8['tpu27pads1'][1]} at the working "
+        out += (f"<p>Newton loses the most replays. There the pad targets keep the tool in {nt['tpu27pads1'][0]} of "
+                f"{nt['tpu27pads1'][1]} worlds ({nt8['tpu27pads1'][0]} of {nt8['tpu27pads1'][1]} at the working "
                 f"plant&#8217;s grip), the TPU-mesh targets in {nt['tpu27mesh'][0]} of {nt['tpu27mesh'][1]} and the skin targets "
                 f"in {nt['tpu27skin'][0]} of {nt['tpu27skin'][1]}. The tool falls "
                 f"{min(falls):.1f}&#8211;{max(falls):.1f}&#8202;s after the onset, in {early} of {len(falls)} worlds within the "
@@ -906,10 +907,10 @@ def newton_repeat_text(X: Data):
     h2 = {a: (sum(1 for _, b in pairs if arm_of(b["dir"]) == a and b.get("held_end")),
               sum(1 for _, b in pairs if arm_of(b["dir"]) == a)) for a in ("tpu27pads1", "tpu27mesh")}
     head = (f" A second Newton pass over the same worlds, targets and onset states kept the tool in {h2['tpu27pads1'][0]} of "
-            f"{h2['tpu27pads1'][1]} pad and {h2['tpu27mesh'][0]} of {h2['tpu27mesh'][1]} TPU-mesh replays")
+            f"{h2['tpu27pads1'][1]} pad replays and {h2['tpu27mesh'][0]} of {h2['tpu27mesh'][1]} TPU-mesh replays")
     if same == len(pairs):
         return head + f", and all {len(pairs)} worlds ended the same way in both passes."
-    return (head + f"; {same} of {len(pairs)} worlds ended the same way in both passes, so Newton&#8217;s GPU contact solve "
+    return (head + f". {same} of {len(pairs)} worlds ended the same way in both passes, so Newton&#8217;s GPU contact solve "
             "does not repeat a replay of this grip exactly.")
 
 
@@ -1291,8 +1292,8 @@ def skin_films(X: Data):
         out.append(f'<figure class="replays"><div class="cell">{video(side)}</div><figcaption>Figure&#160;{FIG[0]}. Seed 0 of '
                    f"the pad policy (left) and of the skin policy (right), the films of Figures&#160;1 and {FIG[0] - 1} side by side "
                    f"at real speed. Both lift the handle end with the middle finger and pivot the tool about the thumb and index "
-                   f"within a quarter second of the onset; the pads hold it at a held cosine of {pr['held_cos_mean']:.2f} with "
-                   f"{pr['grip_N']:.0f}&#8202;N and the skin at {sr['held_cos_mean']:.2f} with {sr['grip_N']:.0f}&#8202;N. "
+                   f"within a quarter second of the onset. The pads hold it at a held cosine of {pr['held_cos_mean']:.2f} with "
+                   f"{pr['grip_N']:.0f}&#8202;N, and the skin holds it at {sr['held_cos_mean']:.2f} with {sr['grip_N']:.0f}&#8202;N. "
                    f"<code>{side}</code></figcaption></figure>")
     for f_role, r in zip(("best", "median"), rk):
         if f_role != "median":
@@ -1480,11 +1481,11 @@ def skin_text(X: Data) -> str:
     p1 = ((f"<p>The skin&#8217;s held count stays within the pads&#8217; seed spread in all {nc} conditions" if held_ok else
            f"<p>The skin&#8217;s held count leaves the pads&#8217; seed spread {' and '.join(PROSE[r['key']] for r in n['bh_tpu27pads1'])}")
           + f" (Table&#160;{TABNO['skin']}, Figure&#160;{FIGNO['skin_cmp']}). Fisher&#8217;s test on the counts pooled over seeds "
-          f"separates the skin from the pads under the perturbations, where the skin drops {pt['tpu27skin'][1] - pt['tpu27skin'][0]} "
+          f"separates the skin from the pads under the perturbations. There the skin drops {pt['tpu27skin'][1] - pt['tpu27skin'][0]} "
           f"of {pt['tpu27skin'][1]:,} rollouts and the pads {pt['tpu27pads1'][1] - pt['tpu27pads1'][0]} (p = "
-          f"{fmt_p(n['pt_p']['tpu27pads1'])}); {max(dr)} of the skin&#8217;s drops come from its seed {worst}"
+          f"{fmt_p(n['pt_p']['tpu27pads1'])}). Of the skin&#8217;s drops, {max(dr)} come from its seed {worst}"
           + (f", {' and '.join(PROSE[r['key']] for r in big)}" if big else "") + f", and seed {1 - worst} drops {min(dr)}. "
-          f"The skin&#8217;s held cosine lies below the pads&#8217; in {len(lower_p)} of {nc} conditions, by {abs(d[0]):.2f} at "
+          f" The skin&#8217;s held cosine lies below the pads&#8217; in {len(lower_p)} of {nc} conditions, by {abs(d[0]):.2f} at "
           f"nominal (95&#8202;% interval {fmt_iv(d)})"
           + (f", and below both pad seeds {' and '.join(PROSE[r['key']] for r in low_p)}" if low_p else "")
           + f" (Table&#160;{TABNO['skin_cos']}). It lies below both TPU-mesh seeds in {len(low_m)} of {nc} conditions"
@@ -1502,9 +1503,9 @@ def skin_text(X: Data) -> str:
         p3 = (f"<p>Both skin seeds turn the tool the way the pad policies do and reach 90&#8202;% of their final cosine "
               f"{min(tt.values()):.2f}&#8211;{max(tt.values()):.2f}&#8202;s after the onset (Figures&#160;{FIGNO['skin_films']} and "
               f"{FIGNO.get('skin_side', FIGNO['skin_films'])}). Seed 1 presses the tool with its index at "
-              f"{f[1]['grip_index_N']:.1f}&#8202;N, against {f[0]['grip_index_N']:.1f}&#8202;N in seed 0, keeps the middle "
+              f"{f[1]['grip_index_N']:.1f}&#8202;N, against {f[0]['grip_index_N']:.1f}&#8202;N in seed 0. It keeps the middle "
               f"finger&#8217;s yaw off its range limit ({100 * yaw.get(1, 0):.0f}&#8202;% of the held steps at the limit, "
-              f"{100 * yaw.get(0, 0):.0f}&#8202;% in seed 0) and leaves the tool "
+              f"{100 * yaw.get(0, 0):.0f}&#8202;% in seed 0). It leaves the tool "
               f"{np.degrees(np.arccos(f[1]['held_cos_mean'])):.0f}&#176; from vertical.</p>")
     return p1 + p2 + p3
 
@@ -1515,8 +1516,8 @@ def skin_mech_text(X: Data) -> str:
         return ""
     return (f"<p>Table&#160;{TABNO['skin_mech']} splits the tool&#8217;s motion against each fingertip in the hold. On the skin "
             f"the springs stand deflected by {min(n['sk_defl']):.0f}&#8211;{max(n['sk_defl']):.0f}&#8202;&#181;m and "
-            f"{min(n['sk_hinge']):.0f}&#8211;{max(n['sk_hinge']):.0f}&#8202;mrad, carrying {100 * min(n['sk_use']):.0f}&#8211;"
-            f"{100 * max(n['sk_use']):.0f}&#8202;% of the friction limit, and their deflection changes by "
+            f"{min(n['sk_hinge']):.0f}&#8211;{max(n['sk_hinge']):.0f}&#8202;mrad, which loads them to {100 * min(n['sk_use']):.0f}&#8211;"
+            f"{100 * max(n['sk_use']):.0f}&#8202;% of the friction limit. Their deflection changes by "
             f"{min(n['sk_change']):.0f}&#8211;{max(n['sk_change']):.0f}&#8202;&#181;m over the 2&#8202;s, while the tool slides "
             f"{min(n['sk_slide_um']) / 1e3:.1f}&#8211;{max(n['sk_slide_um']) / 1e3:.1f}&#8202;mm over the spheres: the slide moves "
             f"the tool {min(n['sk_ratio']):.0f}&#8211;{max(n['sk_ratio']):.0f} times as far as the springs. The pad and TPU-mesh "
@@ -1634,12 +1635,12 @@ def lede(X: Data):
     sw = [(r, X.m(r["tag"]), X.m(r["tag"], "fr=1")) for r in f11]
     stop = [x[0] for x in sw if x[1] and x[2] and x[0]["arm"] == "tpu27pads1" and x[2]["n_held"] == x[2]["n"]
             and x[2]["held_cos_mean"] < 0.5]
-    p = [f"With the finger torque limited to the SCS0009 servo&#8217;s 0.18&#8202;N&#8202;m and a penalty on fingertip force, "
-         f"the D6 policies with TPU-mesh and 1&#8202;mm pad fingertips hold the screwdriver in "
+    p = [f"The finger torque is limited to the SCS0009 servo&#8217;s 0.18&#8202;N&#8202;m, and a penalty acts on fingertip force. "
+         f"The D6 policies with TPU-mesh and 1&#8202;mm pad fingertips then hold the screwdriver in "
          f"{sum(r['n_held'] for r in f11)} of {sum(r['n'] for r in f11)} rollouts at {rng(grip(f11), 0)}&#8202;N "
-         f"({rng(grip(tps), 0)}&#8202;N at 1&#8202;N&#8202;m), and the pads turn it nearly as far as the TPU mesh (held cosine "
+         f"({rng(grip(tps), 0)}&#8202;N at 1&#8202;N&#8202;m). The pads turn it nearly as far as the TPU mesh (held cosine "
          f"{rng(hc('11', 'tpu27pads1'), 2)} against {rng(hc('11', 'tpu27mesh'), 2)})"
-         + (f"; at 1&#8202;N&#8202;m pad seed {stop[0]['seed']} stops turning it." if stop else ".")]
+         + (f". At 1&#8202;N&#8202;m pad seed {stop[0]['seed']} stops turning it." if stop else ".")]
     a = skin_answer(X)
     if a:
         p.append(a["lede"])
@@ -1698,7 +1699,7 @@ def open_items(X: Data):
          f"{_slide_mm(X)} over the spheres during the hold while the springs&#8217; deflection changes by "
          f"{_change_um(X)}. Rerun the scripted-grasp check of <code>scripts/make_work_plant_runs.py --plant "
          "kp0.72_kv0_fr0.18_fl0_dp0.0144 --skin</code> at impratio 100, 300 and 1000 with 20 solver iterations or a 1&#8202;ms "
-         "step, train two skin seeds at the first setting that holds 64 of 64, and evaluate them with <code>rl_contact_eval.py "
+         "step. Train two skin seeds at the first setting that holds 64 of 64, and evaluate them with <code>rl_contact_eval.py "
          "final creep robust --study 20261011</code>. Springs that carry most of the tool&#8217;s motion against the fingertips "
          "in the hold, with the held cosine, jittered held share and replay counts within the pads&#8217; seed spread, retire "
          f"the skin (<a href=\"{CONTACT_OV}#open\">contact overview</a>, future work)."),

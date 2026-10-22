@@ -155,7 +155,7 @@ def pipeline_blocks(run_dir, common_flags=()):
     ]
     obs_table = table(["term", "dims", "meaning", "actor noise (uniform)"], [list(r) for r in obs_rows])
     act = (f"<p>The actor is an MLP {'-'.join(str(d) for d in rr['actor']['hidden_dims'])} ({rr['actor']['activation']}) from the 66 inputs to 9 Gaussian "
-           f"means with a learned per-dimension standard deviation (initial {rr['actor']['distribution_cfg']['init_std']}); the critic has the same shape and reads the "
+           f"means with a learned per-dimension standard deviation (initial {rr['actor']['distribution_cfg']['init_std']}). The critic has the same shape and reads the "
            f"same 66 terms without noise. Each action is clipped to &#177;{ppo['clip_actions']} by the rsl_rl wrapper and multiplied by "
            f"{env['finger_residual_scale']} rad before it is added to the finger set-point, so the residual is limited to "
            f"&#177;{float(ppo['clip_actions']) * float(env['finger_residual_scale']):.1f} rad and is zero before policy step {onset}. "
@@ -316,9 +316,9 @@ def main():
             e = reeval(P, run_of(pres, j.get("warm_start", "")), "j3dr_scene")
             if e:
                 sc.append(f"{j['hand']}{'' if j['arm'] == 'clip' else ' + separation'} {int(round(e['hold_rate'] * 64))}")
-        reading = ("<p>Jittered hold with friction DR, continued against parent, each on the plant it trained on (the parent with "
-                   "MuJoCo&#8217;s default tool contact and mjlab&#8217;s floor, the continuation with the scene&#8217;s contact "
-                   "class, floor and tip mesh): " +
+        reading = ("<p>Jittered hold with friction DR, continued against parent, each on the plant it trained on. The parent used "
+                   "MuJoCo&#8217;s default tool contact and mjlab&#8217;s floor. The continuation used the scene&#8217;s contact "
+                   "class, floor and tip mesh. " +
                    "; ".join(f"{h} {ARM_LABEL.get(a_, a_)} {p}&#8594;{c} of 64 (cos {pc:+.2f}&#8594;{cc:+.2f})" for h, a_, p, c, pc, cc in reading_bits) +
                    ". " + (f"Gains of 8 or more: {', '.join(b[0] for b in up)}. " if up else "") +
                    (f"Losses of 8 or more: {', '.join(b[0] for b in down)}. " if down else "") +
@@ -424,11 +424,12 @@ def main():
     rank = sorted(reading_bits, key=lambda b: -b[3])
     lede = (f"{n_done} of {len(jobs)} continuation jobs trained"
             + (f" ({', '.join(sorted(set(j['hand'] for j in failed)))} stopped on NaN observations)" if failed else "") + ". "
-            + ("Under &#177;3 mm / &#177;10&#176; spawn jitter with friction DR the continued policies hold the tool in "
+            + ("Under &#177;3 mm / &#177;10&#176; spawn jitter with friction DR the continued policies hold the tool in this many "
+               "rollouts: "
                + ", ".join(f"{h}{'' if a_ == 'clip' else ' + separation'} {c}" for h, a_, p, c, pc, cc in rank)
-               + " of 64 rollouts. " if rank else "")
-            + "Every policy here trained on a plant whose finger joints carry the template&#8217;s 0.5 N&#183;m&#183;s/rad of "
-              "damping, a 1&#8202;s time constant; the chain after the turn and that plant defect are on the 2026-09-23 page.")
+               + " of 64. " if rank else "")
+            + "Every policy here trained on a plant whose finger joints have the template&#8217;s 0.5 N&#183;m&#183;s/rad of "
+              "damping, a 1&#8202;s time constant. The chain after the turn and that plant defect are on the 2026-09-23 page.")
     when = sorted({e["evaluated"][:10] for jj in done for e in (nom(R, jj["id"]), jit(R, jj["id"])) if e and e.get("evaluated")})
     fig = eval_figure(R, P, done, res, pres)
     sub = {"LEDE": lede, "F_EVAL": fig.html(), "REEVAL": f"numbers and figure from the re-evaluation of {', '.join(when)} (<code>traces/</code>)",

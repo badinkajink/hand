@@ -88,25 +88,25 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 6 September 2026 &#183; retracted the
     same day</div>
   <h1>Pad contact elevation and tool retention across eight deployed hands</h1>
-  <p class="lede">Retracted on 2026-09-06: the claimed rise from 18 to 30 full chains of 48 with a pad-target
-  angle counted a screwdriver standing on its handle as upright, and on the signed cosine {{HANDLE_DOWN}} of the
-  {{TOTAL_STANDS}} table stands were handle down. The closure measurement survives: on six of the eight deployed
-  hands all three pads touch the shaft below its equator and the vertical pad force equals the tool&#8217;s
-  0.240 N weight, while D1 presses the tool down with 3.463 N.</p>
+  <p class="lede">Retracted on 2026-09-06. The claimed rise from 18 to 30 full chains of 48 used a pad-target
+  angle that counted a screwdriver standing on its handle as upright. On the signed cosine {{HANDLE_DOWN}} of the
+  {{TOTAL_STANDS}} table stands were handle down. The closure measurement survives. On six of the eight deployed
+  hands all three pads touch the shaft below its equator, and the vertical pad force equals the tool&#8217;s
+  0.240 N weight. On D1 the pads press the tool down with 3.463 N.</p>
   <div class="byline">Replaced by the <a href="../20260906-control_diagnosis/20260906-control_diagnosis.html">control
   diagnosis</a> of the same date</div>
 
   <div class="retract">
     <span class="tag">Retraction</span>
-    <p><code>probe_real_v1_chain._av()</code> folds the tool&#8217;s axis to point up when <code>tip_len</code> is
-    0, and <code>real_v1_chain_hands._cell</code> passes <code>tip_len=0.0</code> for every table-stand cell, so
-    <code>tilt_deg</code> is <code>arccos|cos|</code> and a screwdriver standing on its <em>handle</em> reads as a
+    <p>When <code>tip_len</code> is 0, <code>probe_real_v1_chain._av()</code> folds the tool&#8217;s axis to point up.
+    <code>real_v1_chain_hands._cell</code> passes <code>tip_len=0.0</code> for every table-stand cell. For these cells
+    <code>tilt_deg</code> is <code>arccos|cos|</code>, and a screwdriver standing on its <em>handle</em> reads as a
     0.00&#176; stand. Every stand count on the original page came from that mode. Re-scored on the signed cosine,
-    <strong>{{HANDLE_DOWN}} of {{TOTAL_STANDS}}</strong> of those stands were handle down, 180&#176; from the task,
-    which voids the elevation sweep, the grip-loop sweep and the straddle&#215;depth grid. The air-mode results were
+    <strong>{{HANDLE_DOWN}} of {{TOTAL_STANDS}}</strong> of those stands were handle down, 180&#176; from the task.
+    This voids the elevation sweep, the grip-loop sweep and the straddle&#215;depth grid. The air-mode results were
     signed and stand: 0 stands in 96.</p>
-    <p>The drops come from the pivot height <code>axis_k</code>, which decides which end of the tool goes down, and
-    from the grasp fitter, which leaves the fingers no extension to turn with (control-diagnosis page).</p>
+    <p>Two causes produce the drops. The pivot height <code>axis_k</code> decides which end of the tool goes down. The
+    grasp fitter leaves the fingers no extension to turn with (control-diagnosis page).</p>
   </div>
 </header>
 
@@ -114,14 +114,14 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   <h2>Terms and metrics</h2>
   <dl class="terms">
     <dt><b>z_rel</b></dt><dd>Height of a pad contact above the shaft&#8217;s own axis at closure, in shaft radii;
-      negative is below the equator. The table gives the mean of the three pads.</dd>
+      negative is below the equator. The table lists the mean of the three pads.</dd>
     <dt><b>Span</b></dt><dd>Angle around the shaft covered by the three contacts, in degrees.</dd>
     <dt><b>F<sub>z,pad</sub></b></dt><dd>Vertical component of the summed pad contact force at closure, in N;
       positive holds the tool up.</dd>
     <dt><b>&Delta;z at close</b></dt><dd>Vertical displacement of the tool while the grasp closes, in mm.</dd>
     <dt><b>Carry (chain), bench retention</b></dt><dd>Chain runs, of 6, that keep the tool through the carry; bench trials on the
       CB1 that kept the tool through a completed reorientation.</dd>
-    <dt><b>Signed cosine</b></dt><dd>Cosine of the tool&#8217;s own +z axis with world +z: +1 tip down, &minus;1
+    <dt><b>Signed cosine</b></dt><dd>Cosine of the angle between the tool&#8217;s own +z axis and world +z: +1 is tip down, &minus;1 is
       handle down.</dd>
   </dl>
 </section>
@@ -134,9 +134,9 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   {{CLOSURE_TBL}}
 
   <p>On six of the eight hands F<sub>z,pad</sub> is +0.241 N, the screwdriver&#8217;s weight to three figures. On
-  <code>sv1_w6689_b060</code> it is &minus;3.463 N: the pads press the tool down with fourteen times its weight,
-  and the table under it keeps it in place. <code>sv1_w0099_b100</code> does the same at a tenth of the magnitude.
-  <code>fit_real_v1_pose.tip_targets</code> documents the wedge-sign rule this measures; the original
+  <code>sv1_w6689_b060</code> it is &minus;3.463 N. The pads press the tool down with fourteen times its weight, and
+  the table under the tool keeps it in place. <code>sv1_w0099_b100</code> does the same at a tenth of the magnitude.
+  <code>fit_real_v1_pose.tip_targets</code> documents the wedge-sign rule that this measurement tests. The original
   page&#8217;s inference that pads below the equator unblock the chain is the retracted part.</p>
 </section>
 
@@ -144,9 +144,9 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   <h2>Signed chain outcomes of the same day</h2>
   <p>The air-mode runs of the same day include a countersink, hence a nonzero <code>tip_len</code> and a signed
   score: 1 complete chain in 352 rollouts. A per-hand sweep of clip 0.40 to 1.15 against <code>axis_k</code> 0.15,
-  0.25 and 0.35 completed 0 of 432; 60 held the tool at <code>reoriented</code> on two or more pads at or above its
-  weight, the best at cos +0.83 and 0.41 N, against the reference <code>rv05_manual_stored</code> (169 of 169 on
-  2026-09-03) at +0.994 and 10.47 N.</p>
+  0.25 and 0.35 completed 0 of 432. In 60 of them the tool was held at <code>reoriented</code> on two or more pads at or
+  above its weight. The best of these reached cos +0.83 and 0.41 N. The reference <code>rv05_manual_stored</code>
+  (169 of 169 on 2026-09-03) reached +0.994 and 10.47 N.</p>
 </section>
 
 <section class="col">
