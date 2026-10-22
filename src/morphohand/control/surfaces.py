@@ -94,6 +94,8 @@ class Cylinder(Surface):
         q = np.array([min(rho, self.r) * e[0], min(rho, self.r) * e[1], min(max(z, -self.hl), self.hl)])
         d = p - q
         dist = float(np.linalg.norm(d))
+        if dist < 1e-15:                                             # on the rim: the side's normal
+            return 0.0, q, e
         return dist, q, d / dist
 
     def shape_operator(self, q, n):

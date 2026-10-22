@@ -22,9 +22,10 @@ object, at {L1}'s origin, in {L1}'s axes. Object twists are body twists (w_b, v_
 
 Changes for MuJoCo and for servo-driven hardware (documented in docs/experiments/20261021-hom_framework/):
   * The joints are position servos (MuJoCo position actuators with the bench-identified gain k_p), not torque-controlled
-    joints under inverse dynamics. The integrated joint reference theta_ref is the servo target, and the impedance
-    controller's reference penetration becomes the servo-spring offset J^T (F x_C1) / k_p for a commanded force F,
-    plus an optional gravity feedforward tau_g / k_p.
+    joints under inverse dynamics. The integrated joint reference theta_ref is the servo target. The impedance
+    controller becomes two servo offsets for a commanded force F: J^+ (gap x_C1), which moves the action point onto the
+    object's surface, and J^T (F x_C1) / k_p, which presses with F through the servo spring; plus an optional gravity
+    feedforward tau_g / k_p.
   * Witness points come from mj_geomDistance on a kinematic copy of the scene (the Mirror) instead of FCL/fcpw on
     convex decompositions; in contact, the centre of pressure of the sphere-pad contacts plays the role of the
     hydroelastic centre of pressure, and the closest points come from analytic surfaces (surfaces.py) instead of
@@ -140,7 +141,7 @@ class Mirror:
         self.gid = {f.name: m.geom(f.geom).id for f in fingers}
         self.aid = {f.name: m.joint(f.axis_joint).id for f in fingers}
         self.ob = m.body(obj.body).id
-        self.og = m.geom(obj.geom).id
+        self.og = m.geom(obj.geom).id if obj.geom else int(np.flatnonzero(m.geom_bodyid == self.ob)[0])
         ja = m.body_jntadr[self.ob]
         self.obj_free = m.body_jntnum[self.ob] > 0 and m.jnt_type[ja] == mujoco.mjtJoint.mjJNT_FREE
         self.oq = m.jnt_qposadr[ja] if self.obj_free else None
@@ -368,6 +369,8 @@ class HandCommand:
     object_twist: np.ndarray = field(default_factory=lambda: np.zeros(6))   # V_PB0 reference, object body frame
     s: float = 0.0                                       # Eq. (3) reduced-order speed about the pinch axis, rad/s
     pinch: tuple[str, str] | None = None                 # the fingers of the pinch that defines {M}
+    pusher_twist: np.ndarray | None = None               # explicit object body twist for pusher fingers; replaces
+                                                         # Eq. (3) (a pinch used as a prismatic joint: a translation)
 
 
 @dataclass
@@ -383,6 +386,7 @@ class HomParams:
     use_filter: bool = True              # impedance action point from the complementary filter
     contact_force_min: float = 0.02      # N: a finger with less pad force counts as apart
     force_loop_gain: float = 0.0         # m/s per N: optional v_sep correction from the measured force (not in the paper)
+    dls: float = 0.002                   # m/rad: damping of the gap-closing step of the servo impedance
     filter: FilterParams = field(default_factory=FilterParams)
 
 
@@ -417,6 +421,13 @@ class HomController:
             if flt is not None:
                 flt.reset()
         self.M = self.M_key = None
+
+    def reanchor(self, f: str, theta: np.ndarray):
+        """Set finger f's joint reference to its measured angles: the switch from motion to force control of a finger
+        whose planned motion the object did not follow (a pusher stopped by a wall), so the reference wound up ahead of
+        the finger does not stay in the servo spring as force."""
+        if self.theta_ref is not None:
+            self.theta_ref[f] = np.asarray(theta, float).copy()
 
     # Eq. (1)
     def eq1_rows(self, f: str, g: Gcf, V_obj_body: np.ndarray):
@@ -458,7 +469,9 @@ class HomController:
             c = cmd.fingers.get(f, FingerCommand())
             g = gcfs[f]
             V = np.asarray(cmd.object_twist, float) if c.follow_object else np.zeros(6)
-            if c.mode == "pusher" and self.M is not None:
+            if c.mode == "pusher" and cmd.pusher_twist is not None:
+                V = V + np.asarray(cmd.pusher_twist, float)
+            elif c.mode == "pusher" and self.M is not None:
                 V = V + pusher_body_twist(cmd.s, *self.M)
             v_ref = np.asarray(c.v_ref, float).copy()
             Fm = meas.cop.get(f, (None, 0.0))[1] if meas.cop else 0.0
@@ -484,7 +497,12 @@ class HomController:
             offset = np.zeros(len(th))
             kp = mr.kp[f]
             if c.force > 0:
+                # the impedance's reference penetration is measured from the object's surface: move the action point
+                # across the remaining gap (damped least squares), then press with F through the servo spring
                 Jp, _ = mr.jac(f, p_act)
+                gap = max(g.dist, 0.0)
+                if gap > 0:
+                    offset += Jp.T @ np.linalg.solve(Jp @ Jp.T + prm.dls ** 2 * np.eye(3), gap * n_act)
                 offset += Jp.T @ (c.force * n_act) / kp
             if prm.gravity_ff:
                 offset += mr.gravity(f) / kp
