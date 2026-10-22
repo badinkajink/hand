@@ -146,12 +146,18 @@ PLATES = {
          dict(STANDARD, wall_loops="4"))],
     "mount_v3_adapter": [
         ("U1", "UR5 adapter v3, M3 insert bores", V3M / f"cad/{UP3}_adapter.stl", R_ADAPTER, dict(STANDARD, wall_loops="6"))],
+    # 2026-10-22 16:17: the lowest heights of the sweep with the tighter rails (scripts/dip_b_v4.py fit2): three covers 2T (I15H2
+    # with 3T's rails, '2T' on the wall tops) and three caps TW15H2 ('2' on the end plate) for the B05R pads; settings as fit3
+    "fit2": [(f"2T-{k}", "cover 2T", V4 / "print/20261022-dip_link_v4b_cover_I15H2_2T_pla_bambu.stl",
+              None, dict(V.SOLID, wall_loops="6")) for k in (1, 2, 3)] + [
+        (f"TW2-{k}", "cap TW15H2", V4 / "print/20261021-dip_link_v4b_tip_cap_TW15H2_pla_bambu.stl", None,
+         dict(V.SOLID, wall_loops="6")) for k in (1, 2, 3)],
     # 2026-10-22: two more of DIP link b v4 (owner: "i want to print two more too"), the settings of plate "link_v4"
     "link_v4_x2": [(f"B4-{k}", "b v4 DIP link, recessed bridge", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl", None,
                     V.LINK) for k in (1, 2)],
 }
 DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2", "heights", "link_v4", "mount_v3", "fit3",
-                  "mount_v3_adapter", "link_v4_x2")   # "calibration" when named
+                  "mount_v3_adapter", "link_v4_x2", "fit2")   # "calibration" when named
 PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"),     # other plates: OUT, 20261020-p1s_pla_<plate>
              "solid_covers_caps2": (V3 / "print", "20261021-dip_link_v3b_p1s_pla_solid_covers_caps2"),
              "heights": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_heights"),
@@ -159,7 +165,8 @@ PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"
              "mount_v3": (V3M / "print", f"{UP3}_p1s_pla"),
              "fit3": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit3"),
              "mount_v3_adapter": (V3M / "print", "20261022-ur5_calibration_mount_v3_p1s_pla_adapter_inserts"),
-             "link_v4_x2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_link_x2")}
+             "link_v4_x2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_link_x2"),
+             "fit2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit2")}
 
 
 def main():
@@ -184,7 +191,8 @@ def main():
                    "mount_v3": "UR5 mount v3: adapter and standoff-fork for M6 x 20, keys from above",
                    "fit3": "DIP link b: three covers I15H3 with tighter rails (3T) and three caps TW15H3",
                    "mount_v3_adapter": "UR5 mount v3: the adapter with bores for M3 heat-set inserts",
-                   "link_v4_x2": "DIP link b v4, two copies"}[plate]
+                   "link_v4_x2": "DIP link b v4, two copies",
+                   "fit2": "DIP link b: covers 2T, caps TW15H2"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -202,6 +210,9 @@ def main():
                       "underlying column even smaller radius too'" if plate in ("link_v4", "link_v4_x2") else "")
                    + ("; 2026-10-22: 'where are the stls for the new dip link? i want to print two more too'"
                       if plate == "link_v4_x2" else "")
+                   + ("; 2026-10-22 16:17: 'can you also prepare cassettes + top covers at the lowest setting that we tried. i think "
+                      "now with this tighter fit on the rails/slots for the fingertip/cassette, it might be viable again'"
+                      if plate == "fit2" else "")
                    + ("; 2026-10-21 17:54: 'i only have 20mm long m6 screws. so we need to pop everything up a little. there is "
                       "not much thread on the hex e ft sensor ... make the holes accessible from the top plate'"
                       if plate in ("mount_v3", "mount_v3_adapter") else "")

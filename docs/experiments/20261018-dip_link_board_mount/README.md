@@ -126,6 +126,19 @@ Outputs in `v4/b/`: `cad/20261022-dip_link_v4b_cover_I15H3_3T.{stl,step}`, `prin
 (three pads on the XL, pauses at 7.3, 12.2, 17.1 mm, 1 h 20 min), `print/20261022-dip_link_v4b_p1s_pla_fit3.3mf` (three 3T covers and
 three TW15H3 caps on the P1S, 43 min), checks in `20261022-dip_link_v4b_fit3.json`; page section 8 of the v4 page.
 
+### Lowest heights with the tighter rails (2026-10-22 16:17)
+
+The owner asked for the sweep's lowest pair again, now that the rails fit tighter. Cover 2T is I15H2 with 3T's rails (`FIT2` in
+`scripts/dip_b_v4.py`); the cap is the sweep's TW15H2 and the pads are the B05R already printed. Both screw pairs are M2 x 6, with
+2.5 mm of thread in the tongue.
+
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/dip_b_v4.py fit2 step2
+    $RG env UR5M_REV=v2 ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_ur5v2_pla_plate.py fit2
+
+Outputs in `v4/b/`: `cad/20261022-dip_link_v4b_cover_I15H2_2T.{stl,step}`, `print/20261022-dip_link_v4b_p1s_pla_fit2.3mf` (three 2T
+covers and three TW15H2 caps on the P1S, 39 min), checks in `20261022-dip_link_v4b_fit2.json`; Table 9 of the v4 page. Two more
+DIP links b v4 on one P1S plate: `print/20261022-dip_link_v4b_p1s_pla_link_x2.3mf` (1 h 52 min).
+
 ## Opening the STEP files in Inventor
 
 1. Unzip a `.step.zip` first; the plain `.step` files open as they are.

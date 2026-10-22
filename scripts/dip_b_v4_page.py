@@ -72,6 +72,8 @@ def load():
     fit3 = j(V4 / "20261022-dip_link_v4b_fit3.json")
     fit3["plate"] = j(V4 / "print/20261022-dip_link_v4b_p1s_pla_fit3.json")
     fit3["xl"] = j(V4 / "print/20261022-dip_link_print_pad_ell11_5_B05R_x3_85a_t2_g30.json")
+    fit3["set2"] = j(V4 / "20261022-dip_link_v4b_fit2.json")            # 16:17: the 2 mm pair with 3T's rails
+    fit3["set2"]["plate"] = j(V4 / "print/20261022-dip_link_v4b_p1s_pla_fit2.json")
     return pv, chk, hts, plates, sens, rev2, fit3
 
 
@@ -316,6 +318,18 @@ sideways at its apex as hard as popped it off W00, then step down to the 3 and 2
           ["Pin hole for the cap's 2.0" + MM + " pin (mm)", f"{fp['hole_d_B00R_mm']:.1f}", f"{fp['hole_d_mm']:.1f}"],
           ["Cap inside the pad, blocks and pin (mm&#179;)", f"{fp['pin_in_B00R_mm3']:.1f}", f"{fp['pin_in_pad_mm3']:.1f}"],
           ["Engraved IDs: cover, cap, pad", "3, 3, B00R", f"{fit3['fit3']['cover_id']}, 3, {fit3['fit3']['pad_id']}"]]
+    s2, p2 = fit3["set2"], fit3["set2"]["plate"]                        # the 2 mm set of 16:17
+    s2c, s2k = hts["covers"]["I15H2"], hts["caps"]["TW15H2"]
+    f2i, f2s = s2["rail"]["interference_per_flank_mm"], s2["rail"]["sweep_I15H2_B00R_per_flank_mm"]
+    t9 = [["Wall / block height (mm)", f"{s2c['wall_h_mm']:g} / {s2k['block_h_mm']:g}", f"{s2['fit2']['wall_h']:g} / {s2['fit2']['block_h']:g}"],
+          ["Interference per flank at the cover / at the rail's top (mm)", f"{f2s['at_cover_face']:.2f} / {f2s['at_rail_top']:.2f}",
+           f"{f2i['at_cover_face']:.2f} / {f2i['at_rail_top']:.2f}"],
+          ["Cover inside the pad, walls and rails (mm&#179;)", f"{s2['cover']['into_pad_mm3']['sweep_I15H2_B00R']:.1f}",
+           f"{s2['cover']['into_pad_mm3']['new_cover_B05R']:.1f}"],
+          ["Cap inside the pad, blocks and pin (mm&#179;)", f"{s2['pin']['pin_in_B00R_mm3']:.1f}", f"{s2['pin']['pin_in_pad_mm3']:.1f}"],
+          ["Screws, proximal / distal", f"{s2c['proximal_screws']} / {s2k['distal_screws']}",
+           f"{s2['screws']['proximal']} / {s2['screws']['distal']}"],
+          ["Engraved IDs: cover, cap, pad", "2, 2, B00R", f"{s2['fit2']['cover_id']}, 2, {s2['fit2']['pad_id']}"]]
     S.append(("chosen", "Chosen heights and tighter rails", f"""
 <p>The owner, 2026-10-22 11:30: &#8220;for the new fingers with the hole in the top, we should really undersize this hole too. i think the
 middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle ground. i think it could probably still pop out
@@ -338,13 +352,26 @@ Cover 3T overlaps neither the link nor the board nor the screws; its STL reads b
 <p>Prints: {code(ROOT / xl['copies']['project'])}, the three pads on the Prusa XL's tool 2 in 85A, {xl['copies']['summary']['print_time']},
 {xl['copies']['summary']['filament_g']:.1f}&#8202;g, with the one-pad pauses at {', '.join(f'{z:g}' for z in xl['copies']['pauses_found_z'])}{MM}, each
 message saying to press the magnets into all three pads; and {code(ROOT / pl3['project'])}, the three covers and three caps on the P1S, solid
-at 0.1{MM}, {ptime(pl3)}, {pl3['filament_g']:.1f}&#8202;g. Screws as the sweep's 3{MM} pair: M2 x 8 throughout.</p>"""))
+at 0.1{MM}, {ptime(pl3)}, {pl3['filament_g']:.1f}&#8202;g. Screws as the sweep's 3{MM} pair: M2 x 8 throughout.</p>
+<p>The owner, 2026-10-22 16:17: &#8220;can you also prepare cassettes + top covers at the lowest setting that we tried. i think now with
+this tighter fit on the rails/slots for the fingertip/cassette, it might be viable again.&#8221; Cover 2T is the sweep's I15H2 with 3T's
+rails; the cap is the sweep's TW15H2, whose pin is the same, and the pads are the three B05R already printed. The rails meet B05R's
+grooves as on 3T (Table 8); the walls and blocks cover {s2c['flank_held_mm']:.0f}{MM} of the pad's {hts['pad_flank_straight_mm']:.2f}{MM}
+straight flank in place of 3{MM} (Table 9). Both pairs of screws shorten to {s2['screws']['proximal']}, which leaves
+{s2['screws']['thread_in_tongue_mm']:.1f}{MM} of thread in the tongue against 3.5{MM} with the 3{MM} pair. Cover 2T overlaps neither the link
+nor the board nor the screws; its STL reads back watertight and its STEP is one valid solid ({s2['step']['volume_diff_pct']:+.2f}&#8202;% from
+the mesh). {code(ROOT / p2['project'])}: three covers 2T and three caps TW15H2 on the P1S, solid at 0.1{MM}, {ptime(p2)},
+{p2['filament_g']:.1f}&#8202;g. Each TW15H2 is flagged at a fill ratio of {p2['objects'][-1]['fill_ratio']:.3f}, as on the sweep's plate.</p>
+{table(["Quantity", "Sweep: I15H2, TW15H2, pad B00R", "2026-10-22 16:17: 2T, TW15H2, pad B05R"], t9,
+       caption="The sweep's 2 mm pair against the same heights with 3T's rails and pad B05R.", n=9)}"""))
 
     S.append(("future", "Future work", f"""
 <ul>
 <li>Fit test of the 3T set: snap each B05R onto a 3T cover, fit the TW15H3 cap and push the pad sideways at its apex ten times. A pad
 that will not snap on by hand goes back to B00R on 3T ({fi['at_cover_face'] - fit3['fit3']['groove_fit']:.2f}{MM} per flank at the cover);
-a pad that still pops off asks for <code>groove_fit</code> 0.10 in <code>FIT3</code> of {code(ROOT / 'scripts/dip_b_v4.py')}.</li>
+a pad that still pops off asks for <code>groove_fit</code> 0.10 in <code>FIT3</code> of {code(ROOT / 'scripts/dip_b_v4.py')}. Then the
+same test on the 2T set, with cover 2T, cap TW15H2 and the same pads. Pads that stay on through ten pushes make 2{MM} the height;
+pads that pop off 2T but stayed on 3T keep it at 3{MM}.</li>
 <li>Read the five chips with pad B00R on v4 while pressing the pad's palmar face with the UR5e 1{MM} from its mount face at 0.5, 1 and
 3&#8202;N, ten times each, and once at the contact point; Table 5 predicts a spread at the edge
 {f"{rim['bm_five_d75_cap_colv4'] / c0['bm_five_d75_cap_colv4']:.1f} times" if have_fe else "several times"} that at the contact point.
@@ -367,7 +394,8 @@ directions where the printed parts only push. The sweep's retention is untested;
 holds.</p>"""))
 
     files = [DIP / "params/20261021-v4_concept_b.json", V4 / f"{PFX}_checks.json", V4 / f"{PFX}_heights.json",
-             V4 / "20261022-dip_link_v4b_fit3.json", ROOT / "scripts/v3b_pad_b00_magnets_xl.py", V4 / "cad", V4 / "print",
+             V4 / "20261022-dip_link_v4b_fit3.json", V4 / "20261022-dip_link_v4b_fit2.json", ROOT / "scripts/v3b_pad_b00_magnets_xl.py",
+             V4 / "cad", V4 / "print",
              V4 / "media", ROOT / "scripts/dip_link_concept_b.py", ROOT / "scripts/dip_link_v2.py", ROOT / "scripts/dip_b_v4.py",
              ROOT / "scripts/dip_b_tip_cap.py", ROOT / "scripts/v3b_ur5v2_pla_plate.py", ROOT / "scripts/v2_tip_fe_checks.py",
              FE / "sensing.json", ROOT / "scripts/dip_b_v4_page.py"]
@@ -391,7 +419,8 @@ holds.</p>"""))
                f"{abs(fo['v3']['lead_head_on_mm']):.1f} mm); the joint still stops on the horn arm at {fl4['q_deg']:.1f} deg. Covers I15 with 4, 3 "
                f"and 2 mm walls and caps with 4, 3 and 2 mm blocks at 0.15 mm went to the owner's height test; the owner chose 3 mm, and "
                f"the set of 2026-10-22 adds rails {fit3['rail']['interference_per_flank_mm']['at_cover_face']:.2f}-"
-               f"{fit3['rail']['interference_per_flank_mm']['at_rail_top']:.2f} mm tighter per flank and a {fit3['pin']['hole_d_mm']:.1f} mm pin hole.")
+               f"{fit3['rail']['interference_per_flank_mm']['at_rail_top']:.2f} mm tighter per flank and a {fit3['pin']['hole_d_mm']:.1f} mm pin hole; "
+               f"a 2 mm set with the same rails (cover 2T, cap TW15H2) followed for a second fit test.")
     out = docs_index.tag(out, topic="fingertip", summary=summary, date="2026-10-21")
     out = retro_style.apply(out)
     D.mkdir(parents=True, exist_ok=True)
