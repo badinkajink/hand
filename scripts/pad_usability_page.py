@@ -220,8 +220,8 @@ def cost_section():
             f"core (16&#8202;mm cylinder; {us('124.8')} on the 25&#8202;mm cylinder), 9.1 and 7.3 times point contact on the TPU "
             "block (Table&#160;[[tab:cpu]], Figure&#160;[[fig:cpu]]). Narrowphase collision and the constraint solve take 67&#8202;% "
             "of the pads&#8217; step. Restricting the pads to collide with the cylinder changes nothing, since every grip contact "
-            "is already a pad&#8211;cylinder pair; the GPU planner&#8217;s solver settings (tolerance 10<sup>&#8722;6</sup>, 20 "
-            "iterations, 10 line searches) make the CPU plant reset on a bad acceleration in 7 and 20 of 64 rollouts. Fewer pads "
+            "is already a pad&#8211;cylinder pair. With the GPU planner&#8217;s solver settings (tolerance 10<sup>&#8722;6</sup>, 20 "
+            "iterations, 10 line searches) the CPU plant resets on a bad acceleration in 7 and 20 of 64 rollouts. Fewer pads "
             f"cut the cost: 2&#8202;mm pads step the grip in {us('56.2')} and {us('68.3')}, and a replanning of pinned iCEM takes "
             "0.75&#8202;s against the pads&#8217; 2.19&#8202;s on three threads, 0.34 of it. Point contact and condim&#160;4 "
             "replan in 0.20&#8211;0.26&#8202;s.</p>"
@@ -230,7 +230,7 @@ def cost_section():
             + "<p>On the GPU the 1&#8202;mm pads cost 2.37&#8202;&#181;s per world-step at the held RL state, 3.7 times the block "
             "mesh; 2&#8202;mm pads cost 0.95&#8202;&#181;s and condim&#160;4 0.68&#8202;&#181;s (Table&#160;[[tab:gpu]], "
             "Figure&#160;[[fig:gpu]]). In 12-iteration PPO probes the pads add 2.36&#8202;s per iteration to the mesh&#8217;s "
-            "8.62&#8202;s; the 40&#8202;M-step training logs of 11 October give 2.32&#8202;s over 5.45&#8202;s, 1.47 times the "
+            "8.62&#8202;s. The 40&#8202;M-step training logs of 11 October give 2.32&#8202;s over 5.45&#8202;s, which is 1.47 times the "
             "mesh over the whole run. The probes ran pinned to E-cores, which added 3.2&#8202;s per iteration to both arms. 2&#8202;mm "
             "pads add 1.07&#8202;s and condim&#160;4 0.04&#8202;s.</p>"
             "<p>GPU memory follows the trainer&#8217;s buffer rule: every scene with more than 500 geoms gets 640 contacts, 3,072 "
@@ -308,8 +308,8 @@ def step_section():
                "Spectral stability thresholds with the reference clamp off. Grips: the scale study&#8217;s 16 and 25&#8202;mm cells "
                "0.8&#8202;s after the grip command, with the post&#8217;s collisions removed as in the planner&#8217;s model.",
                key="spectral")
-    return ("<p>With MuJoCo&#8217;s reference clamp on (the contact time constant raised to twice the step when the step exceeds "
-            "half of it), the 1&#8202;mm pads keep 37 of 40 placements within 3&#176; of their own 1&#8202;ms turn at 2&#8202;ms on "
+    return ("<p>MuJoCo&#8217;s reference clamp raises the contact time constant to twice the step when the step exceeds "
+            "half of it. With the clamp on, the 1&#8202;mm pads keep 37 of 40 placements within 3&#176; of their own 1&#8202;ms turn at 2&#8202;ms on "
             "the servo-limited plant and at 4&#8202;ms on the working plant (Table&#160;[[tab:sweep]], Figure&#160;[[fig:sweep]]). "
             "Point contact keeps the tool on only 29 of 40 servo-plant placements at 1&#8202;ms and reaches a usable 2&#8202;ms on "
             "the working plant. At their usable step the pads cost 56&#8202;ms of CPU per simulated second on the servo plant, "
@@ -412,9 +412,9 @@ def rl_section():
     t2 = table(["Final", "Numerics", "Held (of 128)", "Change", "Held-cosine change"], rows,
                "Each final on its own plant, closed loop with grasp-pose noise, at impratio 100 (written into the model in place) "
                "and at a 4&#8202;ms step, against the trainer&#8217;s 2&#8202;ms and impratio 10.", key="rlnum")
-    return ("<p>On the 1&#8202;mm pad plant every servo-plant final keeps the tool, whichever fingertip it trained on: at half servo "
+    return ("<p>On the 1&#8202;mm pad plant every servo-plant final keeps the tool, whichever fingertip it trained on. At half servo "
             "gain (0.36&#8202;N&#183;m/rad) the TPU-mesh finals keep 125 and 123 of 128 closed-loop rollouts and the pad finals 119 "
-            "and 126, and replays of their own actions at a 0.12&#8202;N&#183;m torque limit keep 61&#8211;64 of 64 "
+            "and 126. Replays of their own actions at a 0.12&#8202;N&#183;m torque limit keep 61&#8211;64 of 64 "
             "(Table&#160;[[tab:rlcross]], Figure&#160;[[fig:rlcross]]). On the TPU-mesh plant the same conditions separate the "
             "policies: the mesh finals keep 96 and 117 of 128 at half gain, the pad finals 48 and 32, and every final&#8217;s replays "
             "keep 0&#8211;9 of 64.</p>"
@@ -428,9 +428,9 @@ def rl_section():
             "drops the tool (8&#8211;99 of 128 held at nominal) and matches on none. Which plant the hardware follows is the "
             "question of the torque-limited bench replays in Future work.</p>"
             "<p>On their own plants a 4&#8202;ms physics step changes three finals by 1&#8211;3 of 128 held rollouts and costs the "
-            "TPU-mesh seed 1 22; impratio 100, written into the model in place, changes held counts by &#8722;1 to +4 and held "
-            "cosine by &#8722;0.006 to &#8722;0.027 (Table&#160;[[tab:rlnum]]), so the trainer&#8217;s grasp holds at the "
-            "planner&#8217;s impratio of 100 and new training runs use it. The trainer&#8217;s 2&#8202;ms step is the pads&#8217; "
+            "TPU-mesh seed 1 22. Impratio 100, written into the model in place, changes held counts by &#8722;1 to +4 and held "
+            "cosine by &#8722;0.006 to &#8722;0.027 (Table&#160;[[tab:rlnum]]). The trainer&#8217;s grasp therefore holds at the "
+            "planner&#8217;s impratio of 100, and new training runs use it. The trainer&#8217;s 2&#8202;ms step is the pads&#8217; "
             "usable step on the servo-limited plant (U3).</p>"
             + t1
             + img("docs/experiments/20261014-pad_usability/rl/20261014-u5_cross.png", f["figures"][0]["caption"], "rlcross")
@@ -469,9 +469,9 @@ def open_items():
         ("Twist-onset torque of the printed tip", "a hanging mass on a 50&#8202;mm lever at 1 and 3&#8202;N per tip; an arm of "
          "3.0&#8202;mm or more at 3&#8202;N means the pads under-predict torsion by 9&#8202;% or more (pads 2.74, finite elements "
          "3.12&#8202;mm)."),
-        ("Pinch brake on D6", "thumb and index pinch the bench cylinder 15&#8202;mm off its centre of mass while the squeeze ramps "
-         "down 0.5&#176;/s, tracked by the tag, 10 repeats, after <code>scripts/real_v1_trajectory_clearance.py</code>; point "
-         "contact predicts a free swing at the ramp&#8217;s start, the pads 45&#176; at 0.34&#8202;N per pad."),
+        ("Pinch brake on D6", "Thumb and index pinch the bench cylinder 15&#8202;mm off its centre of mass while the squeeze ramps "
+         "down 0.5&#176;/s, tracked by the tag. Run 10 repeats after <code>scripts/real_v1_trajectory_clearance.py</code>. Point "
+         "contact predicts a free swing at the ramp&#8217;s start. The pads predict 45&#176; at 0.34&#8202;N per pad."),
         ("Contact buffers of a full run", "log the largest contacts, rows and matches per world over a 40&#8202;M-step 2&#8202;mm pad "
          "run with <code>scripts/rl_train_cube.py</code>; per-scene buffers 1.3 times those peaks would cut its GPU memory from "
          "10.9&#8202;GB toward the probe&#8217;s 4.7&#8202;GB, and an overflow line falsifies the sizing."),
