@@ -146,16 +146,20 @@ PLATES = {
          dict(STANDARD, wall_loops="4"))],
     "mount_v3_adapter": [
         ("U1", "UR5 adapter v3, M3 insert bores", V3M / f"cad/{UP3}_adapter.stl", R_ADAPTER, dict(STANDARD, wall_loops="6"))],
+    # 2026-10-22: two more of DIP link b v4 (owner: "i want to print two more too"), the settings of plate "link_v4"
+    "link_v4_x2": [(f"B4-{k}", "b v4 DIP link, recessed bridge", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl", None,
+                    V.LINK) for k in (1, 2)],
 }
 DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2", "heights", "link_v4", "mount_v3", "fit3",
-                  "mount_v3_adapter")   # "calibration" when named
+                  "mount_v3_adapter", "link_v4_x2")   # "calibration" when named
 PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"),     # other plates: OUT, 20261020-p1s_pla_<plate>
              "solid_covers_caps2": (V3 / "print", "20261021-dip_link_v3b_p1s_pla_solid_covers_caps2"),
              "heights": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_heights"),
              "link_v4": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_link"),
              "mount_v3": (V3M / "print", f"{UP3}_p1s_pla"),
              "fit3": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit3"),
-             "mount_v3_adapter": (V3M / "print", "20261022-ur5_calibration_mount_v3_p1s_pla_adapter_inserts")}
+             "mount_v3_adapter": (V3M / "print", "20261022-ur5_calibration_mount_v3_p1s_pla_adapter_inserts"),
+             "link_v4_x2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_link_x2")}
 
 
 def main():
@@ -179,7 +183,8 @@ def main():
                    "link_v4": "DIP link b v4: the bridge's palmar edge recessed to a smaller column",
                    "mount_v3": "UR5 mount v3: adapter and standoff-fork for M6 x 20, keys from above",
                    "fit3": "DIP link b: three covers I15H3 with tighter rails (3T) and three caps TW15H3",
-                   "mount_v3_adapter": "UR5 mount v3: the adapter with bores for M3 heat-set inserts"}[plate]
+                   "mount_v3_adapter": "UR5 mount v3: the adapter with bores for M3 heat-set inserts",
+                   "link_v4_x2": "DIP link b v4, two copies"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -194,7 +199,9 @@ def main():
                    + ("; 2026-10-21 16:20: 'the 0.15mm inset is still perfectly fine ... let's try to lower the heights on both the "
                       "top cover and the cassette side walls'" if plate == "heights" else "")
                    + ("; 2026-10-21 16:20: 'recess/sculpt this edge of the dip link the same way we did for the column ... make the "
-                      "underlying column even smaller radius too'" if plate == "link_v4" else "")
+                      "underlying column even smaller radius too'" if plate in ("link_v4", "link_v4_x2") else "")
+                   + ("; 2026-10-22: 'where are the stls for the new dip link? i want to print two more too'"
+                      if plate == "link_v4_x2" else "")
                    + ("; 2026-10-21 17:54: 'i only have 20mm long m6 screws. so we need to pop everything up a little. there is "
                       "not much thread on the hex e ft sensor ... make the holes accessible from the top plate'"
                       if plate in ("mount_v3", "mount_v3_adapter") else "")
