@@ -1,0 +1,443 @@
+#!/usr/bin/env python3
+"""Sampling MPC on the four HOM tasks of hom_tasks.py: the baseline beside the HOM controller on the same CAD-model
+hand, servo plant, pads, objects, grasps and object placements.
+
+Every run starts as a HOM run: the open pose, the approach at v_sep = 20 mm/s, the commanded pad forces and the lift
+(hom_tasks.Schedule and the HOM controller until t = 2.0 s). From the task phase on, the controller is either the HOM
+controller (controller "hom", which reproduces the rows of hom_tasks.py and adds the command log) or pinned iCEM
+(controller "mpc"): the planners of 2026-10-14 (hand_object_scale_planners.py, config icem_pin: 64 rollouts of 0.5 s,
+two iterations of 32, three knots, knot noise 0.08 rad with AR(1) correlation 0.7 across knots, the two best elites
+kept, the first knot pinned to the applied command), replanned every 10 ms (100 Hz, the HOM controller's rate) on the
+plant's own pads model with mujoco.rollout; between replannings the servo targets follow the planned spline at the
+1 ms physics step. The planner's model is the plant's, compiled again with one contact sensor per finger (net force
+between the tip body, which carries the pads, and the object) and, for press, one between the object and the wall.
+
+Task costs, per 10 ms sample over the horizon (the last sample weighted w_term = 10 times, plus w_du times the squared
+knot-to-knot change of the targets, as in the 2026-10-14 planners); the references are those of hom_tasks.Schedule:
+  pinpush  ((d - d_ref) / 1 mm)^2, d the object's displacement along its axis at the task start and d_ref the
+           commanded 10 mm/s for 1 s, then 10 mm; tilt (1 - a.a0) / (1 - cos 5 deg); per finger
+           clip((0.2 N - F_f) / 0.2 N, 0, 1), F_f the finger's net force on the object
+  press    ((F_wall - F_ref) / 0.25 N)^2 from the wall contact on (before it, from the predicted contact at
+           4 mm / 8 mm/s = 0.5 s); tilt as pinpush
+  roll     |w - w_ref|^2 / (10 deg/s)^2, w the object's angular velocity (world); |p - p0|^2 / (5 mm)^2;
+  twist    per finger clip((0.5 N - F_f) / 0.5 N, 0, 1)
+  all      10 [object more than 15 mm below its height at the task start]
+Rows carry the metrics of hom_tasks.metrics and, from the 10 ms samples of the task phase, the smoothness metrics of
+hand_object_scale_mpc.smooth_metrics (command rate, command reversals, angular-velocity jitter, three-pad share).
+
+    .venv/bin/python scripts/hom_tasks_mpc.py run --tasks press --d 25 --seeds 0 --controllers mpc
+    .venv/bin/python scripts/hom_tasks_mpc.py run --controllers mpc hom --seeds 0 --shard 0/2
+    .venv/bin/python scripts/hom_tasks_mpc.py run --tasks pinpush press --d 25 --seeds 0 --controllers hom mpc --film
+Rows: docs/experiments/20261021-hom_framework/rows/mpc_<task>.jsonl, one fsynced line per rollout, resumable per
+(task, size, seed, controller). Films (--film, seed 0): media/20261021-mpc_<task>_<object>.mp4 and, when the HOM run
+of the same cell is filmed in the same call, media/20261021-hom_vs_mpc_<task>_<object>.mp4 with a poster .jpg.
+"""
+from __future__ import annotations
+
+import os
+
+os.environ.setdefault("SCALE_HAND", "cad_v1")
+
+import argparse  # noqa: E402
+import json  # noqa: E402
+import math  # noqa: E402
+import sys  # noqa: E402
+import time  # noqa: E402
+import traceback  # noqa: E402
+import xml.etree.ElementTree as ET  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+import numpy as np  # noqa: E402
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "src"))
+import hand_object_scale_mpc as M  # noqa: E402
+import hand_object_scale_sim as S  # noqa: E402
+import hom_tasks as T  # noqa: E402
+from hom_tasks import Plant, Schedule, build, metrics, open_pose  # noqa: E402
+from morphohand.control import hom as H  # noqa: E402
+
+FINGERS = S.FINGERS
+T_TASK = T.T_LIFT + 0.4
+PANELS = ROOT / "logs/20261021-hom_tasks/panels"
+# pinned iCEM of 2026-10-14 (hand_object_scale_planners.BASE + CONFIGS["icem_pin"]) at 100 Hz replanning
+MPC = {**M.DEFAULTS, **M.PLANNER_DEFAULTS,
+       **dict(method="icem", iters=2, pin0=1.0, nsample=64, horizon=0.5, dt_plan=0.01, w_tilt=1.0, tilt_deg=5.0,
+              w_disp=1.0, sig_disp=0.001, w_force=1.0, sig_force=0.25, w_omega=1.0, sig_omega_dps=10.0, w_drift=1.0,
+              sig_drift=0.005, w_contact=1.0, f_min_push=0.2, f_min_tripod=0.5, w_drop=10.0)}
+INT_KEYS = ("nsample", "knots", "cost_every", "iters", "keep", "log_every")
+
+
+def planner_model(plant: Plant, path: Path, task: str):
+    """The plant's model compiled again from its XML with one contact sensor per finger (net force between the tip
+    body and the object) and, for press, one between the object and the wall; the post never collides; the palm as on
+    the plant."""
+    mj = plant.mj
+    root = ET.parse(path).getroot()
+    sens = root.find("sensor")
+    if sens is None:
+        sens = ET.SubElement(root, "sensor")
+    for f in FINGERS:
+        ET.SubElement(sens, "contact", name=f"mpc_{f}", body1=f"{f}_tip", body2=S.OBJ, data="force", reduce="netforce",
+                      num="1")
+    if task == "press":
+        ET.SubElement(sens, "contact", name="mpc_wall", body1=S.OBJ, body2="wall", data="force", reduce="netforce",
+                      num="1")
+    tmp = path.with_name(f"{path.stem}.mpcsens.{os.getpid()}.xml")
+    ET.ElementTree(root).write(tmp)
+    try:
+        m = mj.MjModel.from_xml_path(str(tmp))
+    finally:
+        tmp.unlink()
+    m.body_pos[m.body("palm_pose").id] = plant.m.body_pos[plant.m.body("palm_pose").id]
+    post = m.geom("post").id
+    m.geom_contype[post] = m.geom_conaffinity[post] = 0
+    if m.nq != plant.m.nq or m.nv != plant.m.nv or m.nu != plant.m.nu:
+        raise RuntimeError("the sensor model changed the state size")
+    return m
+
+
+class _PlantView:
+    """The attributes of a hom_turn3.MjPlant that hand_object_scale_mpc.Planner reads, on a hom_tasks.Plant."""
+
+    def __init__(self, plant: Plant):
+        self.mj, self.m, self.d = plant.mj, plant.m, plant.d
+        self.act = np.concatenate([plant.act[f] for f in FINGERS])
+        self.qa, self.va, self.tb = plant.qa, plant.va, plant.tb
+
+
+def quat_rotate(q, v):
+    """Rotate vectors v (..., 3) by unit quaternions q (..., 4) (w, x, y, z)."""
+    w, r = q[..., :1], q[..., 1:]
+    c = np.cross(r, v)
+    return v + 2.0 * w * c + 2.0 * np.cross(r, c)
+
+
+class TaskPlanner(M.Planner):
+    """hand_object_scale_mpc.Planner (its sampling, iCEM update, pinning and shift) with the task costs of this
+    module; `ref` holds the references at the cost samples of the current replanning."""
+
+    def __init__(self, plant: Plant, path: Path, task: str, prm: dict, nthread: int):
+        from mujoco import rollout
+        view = _PlantView(plant)
+        mj = plant.mj
+        self.mj, self.plant, self.prm, self.task = mj, view, prm, task
+        self.rng = np.random.default_rng(0)
+        self.m = m = planner_model(plant, path, task)
+        self.pool = rollout.Rollout(nthread=nthread)
+        self.datas = [mj.MjData(m) for _ in range(nthread)]
+        self.spec = mj.mjtState.mjSTATE_FULLPHYSICS
+        self.x0 = np.empty(mj.mj_stateSize(m, self.spec))
+        self.dt = float(m.opt.timestep)
+        self.nh = int(round(prm["horizon"] / self.dt))
+        self.knot_t = np.linspace(0.0, prm["horizon"], int(prm["knots"]))
+        tk = np.arange(self.nh) * self.dt
+        self.W = np.stack([np.interp(tk, self.knot_t, np.eye(len(self.knot_t))[k]) for k in range(len(self.knot_t))], 1)
+        self.lo, self.hi = m.actuator_ctrlrange[view.act, 0], m.actuator_ctrlrange[view.act, 1]
+        self.qa = 1 + int(view.qa)                 # FULLPHYSICS = [time, qpos, qvel, act, ...]
+        self.wa = 1 + m.nq + int(view.va) + 3      # the free joint's angular velocity (body frame)
+        self.ctrl_full = np.zeros((int(prm["nsample"]), self.nh, m.nu))
+        self.ref = None
+        self.start(0)
+
+    def start(self, seed: int):
+        """A new rollout: no nominal plan, no kept elites, the sampling stream of this seed."""
+        self.nominal = self.t_nom = self.elites = None
+        self.rng = np.random.default_rng([int(seed), 20261021])
+        self.ctrl_full[:] = self.plant.d.ctrl
+
+    def cost(self, states, samples, p_ref, z0, sens=None):
+        prm, ref = self.prm, self.ref
+        ce = prm["cost_every"]
+        X = states[:, ce - 1::ce]
+        q = X[..., self.qa:self.qa + 7]
+        p, qw = q[..., :3], q[..., 3:]
+        run = prm["w_drop"] * (p[..., 2] < ref["z0"] - 0.015)
+        Sd = sens[:, ce - 1::ce] if sens is not None else None
+        if Sd is not None:
+            F = np.linalg.norm(Sd[..., :3 * len(FINGERS)].reshape(*Sd.shape[:2], len(FINGERS), 3), axis=-1)
+        if self.task in ("pinpush", "press"):
+            x, y, w_ = qw[..., 1], qw[..., 2], qw[..., 0]
+            z_ = qw[..., 3]
+            axis = np.stack([2 * (x * z_ + w_ * y), 2 * (y * z_ - w_ * x), 1 - 2 * (x * x + y * y)], -1)
+            cos = np.clip(axis @ ref["a0"], -1.0, 1.0)
+            run = run + prm["w_tilt"] * (1.0 - cos) / (1.0 - math.cos(math.radians(prm["tilt_deg"])))
+        if self.task == "pinpush":
+            disp = (p - ref["p0"]) @ ref["a0"]
+            run = run + prm["w_disp"] * ((disp - ref["d_ref"]) / prm["sig_disp"]) ** 2
+            run = run + prm["w_contact"] * np.clip((prm["f_min_push"] - F) / prm["f_min_push"], 0.0, 1.0).sum(-1)
+        elif self.task == "press":
+            Fw = np.linalg.norm(Sd[..., 3 * len(FINGERS):3 * len(FINGERS) + 3], axis=-1)
+            run = run + prm["w_force"] * ref["F_on"] * ((Fw - ref["F_ref"]) / prm["sig_force"]) ** 2
+        else:
+            ww = quat_rotate(qw, X[..., self.wa:self.wa + 3])
+            run = run + prm["w_omega"] * np.sum((ww - ref["w_ref"]) ** 2, -1) / math.radians(prm["sig_omega_dps"]) ** 2
+            run = run + prm["w_drift"] * np.sum((p - ref["p0"]) ** 2, -1) / prm["sig_drift"] ** 2
+            run = run + prm["w_contact"] * np.clip((prm["f_min_tripod"] - F) / prm["f_min_tripod"], 0.0, 1.0).sum(-1)
+        c = run[:, :-1].sum(1) + prm["w_term"] * run[:, -1]
+        return c + prm["w_du"] * np.sum(np.diff(samples, axis=1) ** 2, (1, 2))
+
+
+# ------------------------------------------------------------------------------------------------ references
+
+def w_ref_at(task: str, prm: dict, tt: float) -> np.ndarray:
+    """The object's reference angular velocity (world, rad/s) at tt seconds into the task phase (hom_tasks.Schedule)."""
+    w = np.zeros(3)
+    if tt < 0:
+        return w
+    if task == "roll":
+        seq, durs = [(0, +1), (0, -1), (None, 0), (1, +1), (1, -1), (None, 0)], [0.5, 0.5, 0.3, 0.5, 0.5, 0.3]
+    else:
+        seq, durs = [(2, +1), (2, -1), (None, 0)], [0.5, 0.5, 0.3]
+    edges = np.cumsum([0.0] + durs)
+    i = int(np.searchsorted(edges, tt, side="right")) - 1
+    if i < len(seq):
+        ax, sg = seq[i]
+        if ax is not None:
+            w[ax] = sg * math.radians(prm["w_step_dps"])
+    elif task == "twist" and tt - edges[-1] < 3.0:
+        w[2] = math.radians(prm["ramp_dps"])
+    return w
+
+
+def press_ref_at(prm: dict, tt: float, tt_wall: float) -> tuple[float, float]:
+    """(F_ref, weight): the press steps from the wall contact at tt_wall on; before it, no force reference."""
+    if tt < tt_wall:
+        return 0.0, 0.0
+    steps = prm["press_steps"]
+    return float(steps[min(int((tt - tt_wall) // 1.0), len(steps) - 1)]), 1.0
+
+
+def horizon_ref(task: str, prm: dict, sch: Schedule, t_now: float, s0: dict, planner: TaskPlanner) -> dict:
+    """The references at the planner's cost samples, (k + 1) * cost_every physics steps after t_now."""
+    ce = planner.prm["cost_every"]
+    tt = t_now - T_TASK + (np.arange(planner.nh // ce) + 1) * ce * planner.dt
+    R0 = H.quat_to_mat(s0["quat"])
+    ref = {"z0": float(s0["pos"][2]), "p0": s0["pos"].copy(), "a0": R0[:, 2].copy()}
+    if task == "pinpush":
+        ref["d_ref"] = prm["v_push"] * np.clip(tt, 0.0, prm["t_push"])
+    elif task == "press":
+        if sch.t_wall is not None:
+            tw = sch.t_wall
+        else:                     # the contact HOM's pusher would make at v_wall, or now if that time has passed
+            tw = max(t_now - T_TASK, T.WALL_GAP / prm["v_wall"])
+        fr = np.array([press_ref_at(prm, x, tw) for x in tt])
+        ref["F_ref"], ref["F_on"] = fr[:, 0], fr[:, 1]
+    else:
+        ref["w_ref"] = np.stack([w_ref_at(task, prm, x) for x in tt])
+    return ref
+
+
+# ------------------------------------------------------------------------------------------------ rollout
+
+def task_row(task, s, info):
+    """One 10 ms row in the format of hom_tasks.rollout (the fields hom_tasks.metrics reads)."""
+    R = H.quat_to_mat(s["quat"])
+    row = {"t": None, "phase": info["phase"], "pos_mm": (1e3 * s["pos"]).round(3).tolist(),
+           "w_dps": np.degrees(s["w"]).round(2).tolist(), "v_mms": (1e3 * s["v"]).round(2).tolist(),
+           "axis": R[:, 2].round(5).tolist(), "F": {f: round(s["cop"].get(f, (None, 0.0))[1], 3) for f in FINGERS},
+           "F_link": {f: round(max(0.0, s["Ftot"][f] - s["cop"].get(f, (None, 0.0))[1]), 3) for f in FINGERS}}
+    if "w_ref" in info:
+        row["w_ref_dps"] = np.degrees(info["w_ref"]).round(2).tolist()
+    if "v_ax_ref" in info:
+        row["v_ax_ref_mms"] = round(1e3 * info["v_ax_ref"], 3)
+    if task == "press":
+        row["wallF"] = round(s["wallF"], 4)
+        row["F_ref"] = info.get("F_ref")
+    return row
+
+
+def rollout(task, setup, plant, mirror, q_open, seed, controller, planner=None, film=None, label=""):
+    """One task under HOM until the task phase and under `controller` ("hom" or "mpc") from it on."""
+    prm = T.PRM
+    hprm = H.HomParams(dt=T.DT_C)
+    sch = Schedule(task, setup, prm)
+    plant.reset(q_open, seed)
+    ctl = H.HomController(mirror, hprm, healthy={f: np.asarray(q_open[f]) for f in FINGERS})
+    act = np.concatenate([plant.act[f] for f in FINGERS])
+    dt = T.DT_C
+    t, s0, lifted = 0.0, None, False
+    rows, frames, log, costs = [], [], [], []
+    n_plan, t_plan = 0, 0.0
+    w0 = time.perf_counter()
+    while t < sch.t_end - 1e-9:
+        s = plant.state()
+        if t >= T.T_LIFT and not lifted:
+            plant.post_off()
+            lifted = True
+        if s0 is None and t >= T_TASK - 1e-9:
+            s0 = s
+        cmd, info = sch(t, s)
+        u_applied = plant.d.ctrl[act].copy()
+        if t >= T_TASK - 1e-9:
+            log.append((float(t), u_applied, s["w"].copy(), H.quat_to_mat(s["quat"]),
+                        np.array([s["cop"].get(f, (None, 0.0))[1] for f in FINGERS])))
+        if controller == "mpc" and t >= T_TASK - 1e-9:
+            if n_plan == 0:
+                planner.start(seed)
+            if "w_ref" in info and not np.allclose(info["w_ref"], w_ref_at(task, prm, t - T_TASK)):
+                raise RuntimeError(f"reference mismatch at t {t:.2f}")
+            planner.ref = horizon_ref(task, prm, sch, t, s0, planner)
+            tp = time.perf_counter()
+            u, c_best, _c_nom = planner.plan(float(plant.d.time), None, None)
+            t_plan += time.perf_counter() - tp
+            n_plan += 1
+            costs.append(round(float(c_best), 3))
+            for k in range(int(round(dt / planner.dt))):
+                plant.d.ctrl[act] = u[k]
+                plant.mj.mj_step(plant.m, plant.d)
+            t += dt
+            plant.advance(t)
+        else:
+            for f in info.get("reanchor", ()):
+                ctl.reanchor(f, s["q"][f])
+            meas = H.Measurement(q=s["q"], obj_pos=s["pos"], obj_quat=s["quat"], cop=dict(s["cop"]))
+            q_cmd, _ci = ctl.step(meas, cmd)
+            plant.set_targets(q_cmd)
+            t += dt
+            plant.advance(t)
+        row = task_row(task, s, info)
+        row["t"] = round(t - dt, 3)
+        row["u"] = [round(float(v), 4) for v in u_applied]
+        rows.append(row)
+        if film is not None and (len(rows) - 1) % 4 == 0:
+            frames.append(film.frame(plant, f"{label}{task}, {setup['shape']} {setup['d_mm']:g} mm, seed {seed}",
+                                     f"{info['phase']:<16s} t {t:4.2f} s  " + T.film_line(task, s, info)))
+        if not np.all(np.isfinite(plant.d.qpos)):
+            raise FloatingPointError(f"non-finite state at t {t:.3f}")
+    res = metrics(task, setup, rows, s0, plant.state())
+    sm = M.smooth_metrics(log, S.MASS * 9.81, lambda R: 0.0, t_from=T_TASK)
+    sm.pop("peak_rate", None)
+    res.update(sm, wall_s=round(time.perf_counter() - w0, 2), n_ticks=len(rows))
+    if controller == "mpc":
+        res.update(plan_s=round(t_plan, 2), n_plan=n_plan, plan_ms_mean=round(1e3 * t_plan / max(1, n_plan), 1),
+                   cost_med=float(np.median(costs)) if costs else None)
+    return res, rows, frames
+
+
+# ------------------------------------------------------------------------------------------------ CLI
+
+def _done(path: Path) -> set:
+    out = set()
+    if path.exists():
+        for line in path.read_text().splitlines():
+            r = json.loads(line)
+            if r.get("status") == "ok":
+                out.add((r["task"], r["d_mm"], r["seed"], r["controller"]))
+    return out
+
+
+def _append(path: Path, row: dict) -> None:
+    with open(path, "a") as fh:
+        fh.write(json.dumps(row) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+
+
+def tile(clips, stem):
+    import reorient_backends_films as F
+    F.W, F.H = 640, 480
+    n = F.tile_stream(clips, T.MEDIA / f"{stem}.mp4", T.MEDIA / f"{stem}.jpg", cols=len(clips), crf=22)
+    print(f"tiled {n} frames -> {stem}.mp4", flush=True)
+
+
+def cmd_run(a) -> int:
+    import mujoco
+    prm = dict(MPC)
+    for kv in a.set:
+        k, v = kv.split("=")
+        prm[k] = v if isinstance(prm.get(k), str) else float(v)
+    for k in INT_KEYS:
+        prm[k] = int(prm[k])
+    rows_dir = Path(a.rows_dir) if a.rows_dir else T.ROWS
+    rows_dir.mkdir(parents=True, exist_ok=True)
+    T.MEDIA.mkdir(parents=True, exist_ok=True)
+    PANELS.mkdir(parents=True, exist_ok=True)
+    jobs = [(task, float(d), sd, c) for task in a.tasks for d in (a.d or T.SIZES[task]) for sd in a.seeds
+            for c in a.controllers]
+    k0, n0 = (int(v) for v in a.shard.split("/"))
+    jobs = [j for i, j in enumerate(jobs) if i % n0 == k0]
+    done = {task: _done(rows_dir / f"mpc_{task}.jsonl") for task in a.tasks}
+    jobs = [j for j in jobs if (j[0], j[1], j[2], j[3]) not in done[j[0]] or (a.film and j[2] == a.seeds[0])]
+    print(f"{len(jobs)} runs in shard {a.shard}; mpc {prm}", flush=True)
+    cell = None
+    clips = {}
+    for task, d_mm, seed, ctrl in jobs:
+        if cell is None or cell[0] != (task, d_mm):
+            try:
+                p_pads, p_pt, setup = build(task, d_mm)
+            except Exception as e:
+                print(task, d_mm, "build failed:", e, flush=True)
+                cell = None
+                continue
+            m_pt = mujoco.MjModel.from_xml_path(str(p_pt))
+            S.set_palm(m_pt, setup["palm"])
+            fs, os_ = T.sr2_specs(setup)
+            mirror = H.Mirror(m_pt, fs, os_)
+            q_open, _ = open_pose(setup, mujoco.MjModel.from_xml_path(str(p_pt)))
+            plant = Plant(p_pads, setup)
+            cell = ((task, d_mm), setup, mirror, q_open, plant, p_pads, {})
+        _, setup, mirror, q_open, plant, p_pads, planners = cell
+        planner = None
+        if ctrl == "mpc":
+            if "mpc" not in planners:
+                planners["mpc"] = TaskPlanner(plant, p_pads, task, prm, a.nthread)
+            planner = planners["mpc"]
+        film = T.Film(plant, setup) if (a.film and seed == a.seeds[0]) else None
+        obj = f"{setup['shape']}{d_mm:g}"
+        row = {"task": task, "shape": setup["shape"], "d_mm": d_mm, "seed": seed, "controller": ctrl, "variant": "base",
+               "design": {k: setup["design"][k] for k in ("tag", "h", "score")},
+               "prm": {k: (list(v) if isinstance(v, tuple) else v) for k, v in T.PRM.items()},
+               "mpc": prm if ctrl == "mpc" else None, "nthread": a.nthread, "when": time.strftime("%Y-%m-%d %H:%M")}
+        try:
+            res, trace, frames = rollout(task, setup, plant, mirror, q_open, seed, ctrl, planner, film,
+                                         "HOM: " if ctrl == "hom" else "MPC: ")
+            row.update(res, status="ok")
+            row["trace"] = trace[::2]
+            if film is not None and frames:
+                import hom_contact_rig as HR
+                fp = (T.MEDIA / f"20261021-mpc_{task}_{obj}.mp4") if ctrl == "mpc" else \
+                    (PANELS / f"20261021-hom_{task}_{obj}_panel.mp4")
+                HR.write_mp4(frames, fp, fps=25)
+                row["film"] = str(fp.relative_to(ROOT))
+                clips.setdefault((task, obj), {})[ctrl] = fp
+        except Exception as e:
+            row.update(status="error", error=f"{type(e).__name__}: {e}", tb=traceback.format_exc()[-1500:])
+        if film is not None:
+            # close now: Renderer.close frees its GL context before its mjr context, so a renderer collected after the
+            # next one exists deletes that one's buffers (the first MPC film of 21:58 came out black)
+            film.r.close()
+        if (task, d_mm, seed, ctrl) not in done[task] or film is not None:
+            _append(rows_dir / f"mpc_{task}.jsonl", row)
+        brief = {k: row.get(k) for k in ("held", "disp_end_mm", "v_rmse_ratio", "wall_err_rms", "w_rmse_ratio",
+                                         "ramp_three_pads_max_deg", "tilt_max_deg", "drift_max_mm", "cmd_rate_rms",
+                                         "cmd_reversals", "omega_jitter", "wall_s", "plan_ms_mean", "error")
+                 if row.get(k) is not None}
+        print(task, d_mm, ctrl, seed, brief, flush=True)
+        cc = clips.get((task, obj), {})
+        if "hom" in cc and "mpc" in cc:
+            tile([cc["hom"], cc["mpc"]], f"20261021-hom_vs_mpc_{task}_{obj}")
+            clips.pop((task, obj))
+    return 0
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("run")
+    p.add_argument("--tasks", nargs="+", default=list(T.TASKS))
+    p.add_argument("--d", nargs="+", type=float)
+    p.add_argument("--seeds", nargs="+", type=int, default=[0])
+    p.add_argument("--controllers", nargs="+", default=["mpc"], choices=["mpc", "hom"])
+    p.add_argument("--nthread", type=int, default=6, help="rollout threads of the planner")
+    p.add_argument("--shard", default="0/1")
+    p.add_argument("--film", action="store_true", help="film the first seed of each cell")
+    p.add_argument("--set", nargs="*", default=[], help="planner and cost parameters k=v (MPC)")
+    p.add_argument("--rows-dir", default=None, help="rows directory (default the study's rows/)")
+    a = ap.parse_args()
+    return cmd_run(a)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
