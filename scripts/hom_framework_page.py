@@ -309,8 +309,8 @@ intrinsic tactile sensing for the centre of pressure and fusion with motion capt
         ["Curvature", "libigl vertex-interpolated principal curvatures", "Exact shape operators of the analytic surfaces",
          "Closed form available"],
         ["Geodesic step", "Arc of the osculating circle", "The same arc, then projected onto the surface", "No drift off the surface"],
-        ["Weights and units", "Not printed", "Linear rows / 20&#8202;mm; $w_{\\rm damp}=10^{-3}$, $w_{\\rm healthy}=10^{-5}$",
-         "Chosen; to compare with the reference implementation"],
+        ["Weights and units", "Not printed", "Linear rows / $\\ell$, $\\ell=20$&#8202;mm; $w_{\\rm damp}=10^{-3}$, $w_{\\rm healthy}=10^{-5}$",
+         "Chosen; $\\ell=100$&#8202;mm reproduces the paper's Exp. A ranking (Section 13)"],
         ["Filter gains", "Not printed", "$k_{\\min}=5$, $k_{\\max}=100$&#8202;s$^{-1}$, $\\alpha=20$&#8202;mm/s", "Chosen"],
         ["Rates", "Simulation 1&#8202;kHz, framework 500&#8202;Hz", "Physics 1&#8202;kHz, controller 100&#8202;Hz (50&#8202;Hz checked)",
          "The servo bus closes its loop at about 50&#8202;Hz"],
@@ -368,6 +368,8 @@ relative); the sign of $v_{\rm sep}$.</li>
 </ul>
 <p>Run them with <code>PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/test_hom_control.py -q</code>.</p>"""))
 
+    S.append(("expa", "Exp. A on the library and the units of Eq. (2)", expa_section()))
+
     S.append(("tasks", "Tasks run on the library", r"""
 <p>The companion page, <a href="@@RESULTS@@">HOM control of four tasks across object sizes</a>, runs the library on the CAD-model SR2
 hand: a pin-push and a press on cylinders of 10&#8211;25&#8202;mm (an index-middle pinch with the thumb as pusher on the end cap) and
@@ -375,15 +377,15 @@ rolling and twisting of spheres of 30&#8211;63&#8202;mm (the paper's Exp. B on a
 
     S.append(("limits", "Limitations", r"""
 <p>The library has not been run against the reference implementation, so the agreement is with the paper's text, not its code; the
-weights, filter gains and units of Table 2 are this library's choices. The filter has been tested on spheres and in the tasks, not
-against hydroelastic centres of pressure. Exp. A and Exp. D have not been rerun on the library (the October 2 runs used the earlier
-code). No part has run on hardware.</p>"""))
+weights, filter gains and units of Table 2 are this library's choices, and Exp. A shows that the units change which elements track.
+The filter has been tested on spheres and in the tasks, not against hydroelastic centres of pressure. Exp. D has not been rerun on the
+library (the October 2 runs used the earlier code). No part has run on hardware.</p>"""))
 
     S.append(("future", "Future work", r"""
 <ul>
-<li>Exp. A on the library: one finger of the CAD hand round a standing cylinder, the six elements stepped at 40&#8202;deg/s and
-20&#8202;mm/s as in <code>hom_control.exp1</code>, which gave tracking gains of 0.81 (linear) and 0.17 (angular) on D8 with the
-earlier code. A gain below 0.5 on the roll about $y$ would point to a convention error, since the paper tracks that element best.</li>
+<li>The length scale of Eq. (2) for the tasks: the four tasks at $\\ell=100$&#8202;mm and in SI units (autopilot step 6 of
+<code>docs/handoff/20261021-hom_controllers.md</code>). If the tasks keep their scores at 100&#8202;mm, that scale becomes the default,
+since it also reproduces Exp. A.</li>
 <li>Comparison with the reference implementation: the same scripted sliders on one hand in both codes, compared element by element on
 the relative contact velocities of Exp. A and the object twist of Exp. B; first the weights and units of Table 2.</li>
 <li>A Drake plant behind the same <code>Mirror</code> (as <code>hom_chain.DrakeChainPlant</code> did for the earlier code) to run the
@@ -405,7 +407,8 @@ Earlier controllers: <code>scripts/hom_control.py</code>, <code>hom_chain.py</co
             r"as one library for MuJoCo hands with position servos, in the paper's conventions: generalized contact frames, the "
             r"relative contact twist of Eq. (1), the least squares of Eq. (2), the pinch and pusher sub-assemblies with Eq. (3), "
             r"the anti-windup of the separation velocity and the complementary filter of Eqs. (4)&#8211;(6). Nineteen tests check it "
-            r"against closed forms and finite differences (Eq. (1) to 1e-4 relative). It differs from the paper in the 14 places of "
+            r"against closed forms and finite differences (Eq. (1) to 1e-4 relative), and the paper's Exp. A on the CAD-model hand "
+            r"gives the paper's ranking (roll about $y$ and separation best) when Eq. (2) weighs 100&#8202;mm/s like 1&#8202;rad/s. It differs from the paper in the 14 places of "
             r"Table 2, mostly where position servos replace torque control and sphere pads replace hydroelastic contact; the three "
             r"earlier HOM controllers in this repository differ more (Table 3).")
     summary = ("The HOM paper's controller (GCFs, Eqs. 1-6, pinch and pusher) implemented as one MuJoCo library for position-servo "
@@ -414,6 +417,42 @@ Earlier controllers: <code>scripts/hom_control.py</code>, <code>hom_chain.py</co
     assemble(S, "HOM controller implementation", "Hand-object mechanism control: the method and its MuJoCo implementation",
              "Reorientation mechanisms and control &#183; 2026-10-21", lede,
              f"Built {time.strftime('%Y-%m-%d %H:%M')} at commit {commit}.", METHOD, summary)
+
+
+def expa_section():
+    R = {r["variant"]: r for r in rows("expa") if r.get("status") == "ok"}
+    if not R:
+        return "<p>Rows pending.</p>"
+    names = {"ell5": "5&#8202;mm", "base": "20&#8202;mm (default)", "ell100": "100&#8202;mm", "si": "1&#8202;m (SI units)"}
+    order = [v for v in ("ell5", "base", "ell100", "si") if v in R]
+    comps = ["spin", "roll_y", "roll_z", "sep", "slide_y", "slide_z"]
+    head = ["Length scale $\\ell$"] + ["Spin", "Roll $y$", "Roll $z$", "Separation", "Slide $y$", "Slide $z$"]
+    body = [[names[v]] + [f"{R[v]['elements'][c]['gain']:.2f} ({R[v]['elements'][c]['rmse_ratio']:.2f})" for c in comps]
+            for v in order]
+    film = video(MEDIA / "20261021-hom_expa_cylinder25_base.mp4",
+                 "Exp. A on the CAD-model hand, length scale 20&#8202;mm: the thumb moves round the 25&#8202;mm cylinder "
+                 "without touching it, one relative-velocity element at a time (the label names the element).", 1)
+    b, h = R.get("base"), R.get("ell100")
+    return (r"""
+<p>The paper's Exp. A moves one finger round a cylinder without contact and steps each element of its reference relative contact
+velocity, the others held at zero. On the CAD-model hand the thumb of the scale study's equator grasp of a 25&#8202;mm cylinder plays
+that finger; its palmar side faces the cylinder, so its flexion axis lies in the GCF's tangent plane as in the paper. Each element is
+stepped +40&#8202;deg/s or +20&#8202;mm/s for 0.3&#8202;s, then the negative step, then 0.3&#8202;s of rest. Table 4 gives the
+tracking gain (median of achieved over commanded during the step, from Eq. (1) at the measured joint rates) and, in brackets, the
+paper's RMSE / step.</p>""" + table(head, body, num_from=1, n=4,
+                                    caption=f"Exp. A on the library: tracking gain (RMSE / step) per element for {len(order)} length scales of Eq. (2).")
+            + r"""
+<p>The paper reports the roll about $y$ and the separation tracked best and the spin worst. Which elements the least squares tracks
+depends on how a linear error is weighed against an angular one, which the paper does not state. At $\ell=100$&#8202;mm the library
+gives the paper's ranking at the top: roll about $y$ """ + f"{h['elements']['roll_y']['gain']:.2f} and separation {h['elements']['sep']['gain']:.2f}" + r""".
+At the 20&#8202;mm used in the tasks the separation and slides track (""" + f"{b['elements']['sep']['gain']:.2f}, {b['elements']['slide_y']['gain']:.2f}, {b['elements']['slide_z']['gain']:.2f}" + r""")
+and the rotations barely move, because flexing the finger about its joint also translates the contact point by tens of millimetres
+per radian, which the 20&#8202;mm scale penalises heavily. In SI units the rotations track and the slides do not. The roll about $z$
+needs ab- or adduction in this posture and stays below 0.1 at every scale. The finger never touched the cylinder (closest approach
+at least 0.1&#8202;mm in every run).</p>
+<p>In the pinch-x grasp of the pin-push and press tasks the index and middle touch the cylinder with the sides of their blocks, so
+their flexion axes lie along the contact normal and flexion appears as spin; Exp. A run with the index there tracks spin, not the
+roll about $y$ (rows in <code>logs/20261021-hom_tasks/old_rows/</code>).</p>""" + film)
 
 
 # ================================================================================================ the results page
