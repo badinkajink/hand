@@ -388,6 +388,7 @@ class HomParams:
     force_loop_gain: float = 0.0         # m/s per N: optional v_sep correction from the measured force (not in the paper)
     dls: float = 0.002                   # m/rad: damping of the gap-closing step of the servo impedance
     ell: float = ELL                     # m: linear rows of Eq. (2) are divided by ell (1.0: SI units, equal weights)
+    impedance: str = "gap"               # "gap" or "surface": where the servo impedance measures the penetration from
     filter: FilterParams = field(default_factory=FilterParams)
 
 
@@ -501,8 +502,10 @@ class HomController:
                 # the impedance's reference penetration is measured from the object's surface: move the action point
                 # across the remaining gap (damped least squares), then press with F through the servo spring
                 Jp, _ = mr.jac(f, p_act)
-                gap = max(g.dist, 0.0)
-                if gap > 0:
+                # "gap": move across the gap only while apart; "surface": also in contact, so the reference stays on the
+                # measured surface when the object moves off its reference twist (the paper's penetration from the surface)
+                gap = g.dist if prm.impedance == "surface" else max(g.dist, 0.0)
+                if gap != 0.0:
                     offset += Jp.T @ np.linalg.solve(Jp @ Jp.T + prm.dls ** 2 * np.eye(3), gap * n_act)
                 offset += Jp.T @ (c.force * n_act) / kp
             if prm.gravity_ff:

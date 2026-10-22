@@ -829,6 +829,8 @@ VARIANTS = {
     "rate50": ({"dt": 0.02}, None),
     "sense": ({"dt": 0.02}, {"pos_mm": 0.5, "rot_deg": 1.0, "cop_mm": 1.0, "f_N": 0.03, "delay_s": 0.04}),
     "si": ({"ell": 1.0}, None),                       # Eq. (2) in SI units with equal weights (rad/s against m/s)
+    "surface": ({"impedance": "surface"}, None),      # servo target kept on the measured surface in contact too
+    "floop": ({"force_loop_gain": 0.01}, None),       # v_sep += 10 mm/s per N of force error (needs fingertip force)
     "ell5": ({"ell": 0.005}, None),
     "ell100": ({"ell": 0.1}, None),
 }
@@ -839,7 +841,7 @@ def cmd_run(a) -> int:
     ROWS.mkdir(parents=True, exist_ok=True)
     MEDIA.mkdir(parents=True, exist_ok=True)
     for task in a.tasks:
-        path = ROWS / f"{task}.jsonl"
+        path = (OUT / f"{a.rows_file}.jsonl") if a.rows_file else ROWS / f"{task}.jsonl"
         done = _done(path)
         for d_mm in (a.d or SIZES[task]):
             for var in a.variants:
@@ -950,6 +952,7 @@ def main() -> int:
     p.add_argument("--traces", action="store_true")
     p.add_argument("--set", nargs="*", default=[], help="task parameters k=v (PRM), recorded in each row's variant")
     p.add_argument("--tag", default="", help="suffix of the variant name for rows run with --set")
+    p.add_argument("--rows-file", default="", help="write rows to OUT/<name>.jsonl instead of rows/<task>.jsonl")
     a = ap.parse_args()
     if a.cmd == "run":
         for kv in a.set:
