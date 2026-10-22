@@ -11,6 +11,8 @@ measure a page's sentences and flag the ones to rewrite under the elements of st
     python3 scripts/prose_lint.py --flags PAGE.html               # one JSON line per sentence with its flags
     python3 scripts/prose_lint.py --terms PAGE.html               # abbreviations, symbols and repeated terms with
                                                                   # their first use, for a definition check
+    python3 scripts/prose_lint.py --brief PAGE.html ...           # one line per page against the targets; page
+                                                                  # builds print it on exit (scripts/retro_style.py)
 
 The last four modes parse sentences with spaCy (en_core_web_sm 3.8.0) and re-run themselves under `uv run` with it
 when it is missing; the first run downloads it into uv's cache. The flags follow the contact repository's
@@ -412,12 +414,28 @@ def terms(nlp, path, rows):
             print(f"  x{n:<3} {k:<34} [{r['section'][:30]}] {r['text'][:120]}")
 
 
+# targets of the plain-language passes (deck 23 and the contact overview, 2026-10-22)
+TARGET = {"mean": 18.0, "over30": 5.0, "any": 300}
+
+
+def brief(path, o):
+    over = [f"{k} {o[k]:g}{' %' if k == 'over30' else ''} > {TARGET[k]:g}" for k in TARGET if o[k] > TARGET[k]]
+    rel = os.path.relpath(path)
+    return (f"prose: {rel}: {o['sentences']} sentences, mean {o['mean']:g} words, {o['over30']:g} % over 30, grade "
+            f"{o['grade']:g}, {o['any']} flagged per 1000" + (f"; above target ({', '.join(over)}): "
+            f"python3 scripts/prose_lint.py --top 20 {rel}" if over else "; within the targets"))
+
+
 def spacy_main(args):
     try:
         import spacy
     except ImportError:
         os.execvp(SPACY[0], SPACY + [os.path.abspath(__file__)] + sys.argv[1:])
     nlp = spacy.load("en_core_web_sm")
+    if args.brief:
+        for p in args.paths:
+            print(brief(p, stats(p, sentences(nlp, p))), flush=True)
+        return
     if args.stats:
         out = [stats(p, sentences(nlp, p)) for p in args.paths]
         print("| " + " | ".join(h for _, h in STAT_COLS) + " |")
@@ -450,13 +468,14 @@ def main():
     a.add_argument("--flags", action="store_true", help="one JSON line per sentence")
     a.add_argument("--top", type=int, default=0, help="the N worst flagged sentences with their source lines")
     a.add_argument("--terms", action="store_true", help="abbreviations, symbols and repeated terms with first use")
+    a.add_argument("--brief", action="store_true", help="one line per page against the targets")
     a.add_argument("--src", nargs="*", help="source files for --top (default: the builder the page names)")
     args = a.parse_args()
     if args.lede:
         for p in args.paths:
             print(len(lede_of(p).split()), p)
         return
-    if args.stats or args.flags or args.top or args.terms:
+    if args.stats or args.flags or args.top or args.terms or args.brief:
         return spacy_main(args)
     sys.exit(1 if sum(report(p) for p in args.paths) else 0)
 

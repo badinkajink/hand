@@ -35,6 +35,8 @@ def _refresh_indices():
     here = os.path.dirname(os.path.abspath(__file__))
     exp = os.path.join(os.path.dirname(here), "docs", "experiments")
     written = [p for p in glob.glob(os.path.join(exp, "*", "*.html")) if os.path.getmtime(p) >= _T0]
+    ov = [p for p in glob.glob(os.path.join(os.path.dirname(here), "docs", "overviews", "*.html")) if os.path.getmtime(p) >= _T0]
+    _prose_check(here, written + ov)
     if not written:
         return
     try:
@@ -47,6 +49,23 @@ def _refresh_indices():
                   f"{', '.join(sorted({c.split(':')[0] for c in ch})[:6])}); commit them with the page", flush=True)
     except Exception as e:  # noqa: BLE001
         print(f"docs_index: indices not refreshed ({type(e).__name__}: {e}); run python3 scripts/docs_index.py", flush=True)
+
+
+def _prose_check(here, pages):
+    """One line per written page from scripts/prose_lint.py --brief (sentence length, grade, flags against the targets
+    of the plain-language passes, owner 2026-10-22: automate the rough checks). Printed, never raised; PROSE_CHECK=0
+    skips it."""
+    if not pages or os.environ.get("PROSE_CHECK", "1") == "0":
+        return
+    import subprocess
+    try:
+        r = subprocess.run([sys.executable, os.path.join(here, "prose_lint.py"), "--brief", *pages], capture_output=True,
+                           text=True, timeout=180)
+        for line in r.stdout.splitlines():
+            if line.startswith("prose: "):
+                print(line, flush=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"prose: not checked ({type(e).__name__}); run python3 scripts/prose_lint.py --brief PAGE", flush=True)
 
 
 def _hook():

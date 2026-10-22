@@ -91,6 +91,13 @@ Prose rules for every page, report, commit message and runbook are the **Writing
 global `~/.claude/CLAUDE.md`: thirteen elements of style, with their examples and history in
 `~/.claude/writing_reference.md`. `AGENTS.md` has a copy for Codex; if the two differ, `~/.claude/CLAUDE.md` wins.
 
+Every page build prints one line per page from `scripts/prose_lint.py --brief` (through `retro_style`): sentence length,
+grade and flags against the targets of the plain-language passes of 2026-10-22 (mean at most 18 words, at most 5 % of
+sentences over 30 words, at most 300 flagged per 1000). Above target, `python3 scripts/prose_lint.py --top 20 PAGE`
+lists the worst sentences with their lines in the builder; edit those instead of reading the whole builder. The flags
+find sentences to rewrite (precision 0.76, recall 0.82 against blind labels; local Qwen models did no better); judging a
+rewrite still needs a reader.
+
 ## Result pages — an HTML doc page, ALWAYS. Never a RESULTS.md.
 
 **The deliverable for any experiment worth reporting is a dated HTML page, not a markdown file.**

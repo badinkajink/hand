@@ -25,6 +25,13 @@ The canonical rules are the Writing section of `~/.claude/CLAUDE.md`; this is a 
 file wins where they differ. The examples and history behind each rule are in `~/.claude/writing_reference.md`.
 They apply to every page, report, commit message and runbook.
 
+Every page build prints one line per page from `scripts/prose_lint.py --brief` (through `retro_style`): sentence length,
+grade and flags against the targets of the plain-language passes of 2026-10-22 (mean at most 18 words, at most 5 % of
+sentences over 30 words, at most 300 flagged per 1000). Above target, `python3 scripts/prose_lint.py --top 20 PAGE`
+lists the worst sentences with their lines in the builder; edit those instead of reading the whole builder. The flags
+find sentences to rewrite (precision 0.76, recall 0.82 against blind labels; local Qwen models did no better); judging a
+rewrite still needs a reader.
+
 ### Chat replies
 
 Plain paragraphs to a colleague (owner, 2026-10-11: "stop using these horrible ass header styles"). No markdown
