@@ -262,20 +262,20 @@ concept b generator with their own parameters (<code>cover_walls</code>, <code>n
     S.append(("dip", "DIP link b v3", f"""
 <p>Figure 1 shows the neck. In v2 a block as wide as the cassette (21&#8202;mm) and as deep as the tip filled the 9.75&#8202;mm between the
 pad's mount face and the bridge, its palmar face level with the pad's apex. In v3 the part palmar of the tongue's front face
-(x_F 3.95) is a column of the 11/22 pad's mount-face section shrunk by {pv['col_margin']:.1f}&#8202;mm: 11.7&#8202;mm wide and reaching
-x_F &#8722;8.84, 1.71&#8202;mm behind the apex, so a flat object pressed on the palmar side compresses the pad that far before it meets the
-column, and every other tip, being larger, covers it too. Dorsal of x_F 3.95 the board mount stays as wide as the cassette up to the
-bridge, where it takes the board's tab, J1, the plug and the floor of the cable's groove; {pv['col_chamfer']:.1f}&#8202;mm chamfers at
+(x_F 3.95) is a column of the 11/22 pad's mount-face section shrunk by {pv['col_margin']:.1f}&#8202;mm. It is 11.7&#8202;mm wide and reaches
+x_F &#8722;8.84, 1.71&#8202;mm behind the apex. A flat object pressed on the palmar side therefore compresses the pad that far before it meets the
+column, and every other tip, being larger, covers the column too. Dorsal of x_F 3.95 the board mount stays as wide as the cassette up to the
+bridge, where it takes the board's tab, J1, the plug and the floor of the cable's groove. Chamfers of {pv['col_chamfer']:.1f}&#8202;mm at
 45&#176; join it to the column. Beside J1 the column leaves {w3['neck_z-72.30_around_J1']['min_wall_mm']:.2f}&#8202;mm of PLA (Table 2). The bridge and the clevis arms, which take the servo's horn and the joint's shaft, are as before.</p>
 {fig(1, DIP / 'v3/b/media/20261020-dip_link_b_v2_v3_palmar.png', 'Concept b from the palmar side, finger up: v2 as printed and v3.')}
 <p>Figure 2 shows the cover. Its web stays as thick as the chips (0.9&#8202;mm), because the pad's back face rests on the chip tops;
 the new volume is two walls {pv['wall_h']:.1f}&#8202;mm tall along the pad's flanks, where the flanks run straight back from the
 pad's equator. They run from the mount face toward the pad's widest section, the owner's &#8216;from the screw holes at the bottom until
-the ellipse starts to curve back in&#8217;, and have the windows of the two outer chips and their capacitors cut out of them, {pv['wall_window_gap']:.1f}&#8202;mm
-around (owner, 15:20 and 15:50: the first draft reached over them); at {pv['wall_h']:.1f}&#8202;mm they cover the flank's whole straight
-part and 1.05&#8202;mm past the equator, where it has curved in by 0.06&#8202;mm (owner, 15:50: 'pop up the retaining lip a lot more');
-they stand {pv['wall_clear']:.2f}&#8202;mm off the flank, and slope outward to the cover's edge
-({pv['wall_top_t']:.1f}&#8202;mm thick at the top); each proximal screw head sits in a counterbore through its wall, and the walls end at
+the ellipse starts to curve back in&#8217;. The windows of the two outer chips and their capacitors are cut out of them, {pv['wall_window_gap']:.1f}&#8202;mm
+around (owner, 15:20 and 15:50: the first draft reached over them). At {pv['wall_h']:.1f}&#8202;mm they cover the flank's whole straight
+part and 1.05&#8202;mm past the equator, where it has curved in by 0.06&#8202;mm (owner, 15:50: 'pop up the retaining lip a lot more').
+They stand {pv['wall_clear']:.2f}&#8202;mm off the flank and slope outward to the cover's edge
+({pv['wall_top_t']:.1f}&#8202;mm thick at the top). Each proximal screw head sits in a counterbore through its wall, and the walls end at
 45&#176;. A sideways push on the pad then bears on the wall instead of prying the dovetails apart. The walls also stiffen the 0.9&#8202;mm web
 along both long edges, which is where the v2 cover lifted off the bed and curled.</p>
 {fig(2, DIP / 'v3/b/media/20261020-dip_link_b_v2_v3_cover.png', 'The cover of v2 and of v3, and v3 with the pad (see-through).')}
@@ -304,16 +304,16 @@ are unchanged (Table 2); a strip of Kapton tape over the leg keeps it down.</p>
     S.append(("walls", "Side walls and the pad's stiffness and readout", f"""
 <p>The walls touch the pad, so they could change the stiffness the 10-18 calibration fitted and the motion the magnetometers read.
 In the finite elements of b's pad (the 11/22 tip cut at the cover, five magnets, the model of the night of 10-19) the walls fix the
-flank's nodes in y over their height and length up to the apex's z, both ways; the printed wall stands 0.10&#8202;mm off, resists
-only outward motion and has the chip windows cut out of it, so the change is an upper bound; the v3 walls
+flank's nodes in y over their height and length up to the apex's z, both ways. The printed wall stands 0.10&#8202;mm off, resists
+only outward motion and has the chip windows cut out of it, so the change is an upper bound. The v3 walls
 ({pv['wall_h']:.1f}&#8202;mm) cover the whole straight flank, the last row of Table 3. With {pv['wall_h']:.1f}&#8202;mm walls the approach falls by {abs(w3_6[0]):.2f}&#8202;% on average at 6&#8202;N
 (at most {abs(w3_6[1]):.2f}&#8202;% over {w3_6[2]} probes), and with walls over the whole straight flank by {abs(w5_6[1]):.2f}&#8202;% at most
 (Table 3), against the calibration's 5&#8202;% bound."""
               + (f" Over the whole straight flank the magnets move {sens['b_v2_wall495']['magnet_travel_um_per_N']:.2f} in place of "
                  f"{sens['b_v2']['magnet_travel_um_per_N']:.2f}&#8202;&#181;m per newton, so the force resolution at the contact point "
-                 f"goes from {sb:.4f} to {sw5:.4f}&#8202;N, {100 * (sw5 / sb - 1):.0f}&#8202;% coarser, and the contact position stays "
+                 f"goes from {sb:.4f} to {sw5:.4f}&#8202;N, which is {100 * (sw5 / sb - 1):.0f}&#8202;% coarser. The contact position stays "
                  f"within {sens['b_v2_wall495']['gain']['centre_sig_y_mm']:.2f} by {sens['b_v2_wall495']['gain']['centre_sig_z_mm']:.2f}"
-                 "&#8202;mm; concept a's tip gives 0.065&#8202;N." if sw else " The readout rows are pending.") + f"""</p>
+                 "&#8202;mm. Concept a's tip gives 0.065&#8202;N." if sw else " The readout rows are pending.") + f"""</p>
 {table(["Pad", "Rod approach at 1&#8202;N (&#181;m)", "Approach change at 6&#8202;N, mean / largest (%)", "Force resolution (N)",
         "Contact position, 1 sd (mm)"], fe_rows, num_cols=(1, 2, 3, 4),
        caption="b's pad with and without the walls' hold (scripts/v2_tip_fe_checks.py cases b_v2, b_v2_wall3, b_v2_wall495; "
@@ -331,8 +331,8 @@ only outward motion and has the chip windows cut out of it, so the change is an 
     tt, te = gl["v3b"]["turn_to_contact_deg"], gl["v3b"]["turn_to_contact_deg_ears_fork"]
     tmin = lambda d, a: min(v for k_, v in d.items() if k_.startswith(a))          # noqa: E731
     S.append(("mount", "UR5e calibration mount v2", f"""
-<p>Mount v2 keeps v1's standoff-fork and its assembly (Figure 5): the DIP link slides on along the tool axis with its clevis arms
-either side of the inner block, the clamp plate presses the horn-side arm onto the inner block with two M3 into the ears, and the M3
+<p>Mount v2 keeps v1's standoff-fork and its assembly (Figure 5). The DIP link slides on along the tool axis with its clevis arms
+either side of the inner block. The clamp plate presses the horn-side arm onto the inner block with two M3 into the ears. The M3
 with its washer goes through the slotted arm's bore into the inner block. The key in the horn slot is gone, and walls around both
 legs locate the link in its place (owner, 18:55). In each layer of each leg (the horn leg's outer, slot and inner layers and the
 slotted leg) the fork fills the region outside the leg's outline, 0.15&#8202;mm off it, the outline swept along the tool axis so the
@@ -409,7 +409,7 @@ print the fork with the walls.</p>
 slices again, and a 5&#8202;mm brim on every part. The calibration plate of 15:40 (printed: the adapter and the clamp plate on it are
 unchanged) has the mount and the indenters at 0.15&#8202;mm with five walls and 40&#8202;% gyroid and the covers solid at 0.1&#8202;mm. The
 fork with the walls and both indenters with the keyed posts print on their own plate at Bambu Studio's 0.20&#8202;mm Standard, two
-walls and 15&#8202;% grid (owner, 19:10: "a standard sparse 15% grid infill"), in {plates['fork']['time']}; the DIP link keeps
+walls and 15&#8202;% grid (owner, 19:10: "a standard sparse 15% grid infill"), in {plates['fork']['time']}. The DIP link keeps
 0.1&#8202;mm on tree supports and its cover prints solid, both with walls under 1&#8202;mm. The fit covers W00, W10 and W20 have
 one, two and three notches in their distal edge; they fit the v2 link already printed, so the walls can be tried on it before v3
 prints. W00 held pad B00 in the owner's test, so the design and the link plate take it. The tip caps TP and TW print solid at
@@ -492,7 +492,7 @@ walls at the apex's z, and between them the pad rests on dovetails with a 0.3&#8
 Across the finger a 2&#8202;mm pin 2.7&#8202;mm into the pad's flat end holds it, 1.5&#8202;mm in front of the pad's back face and
 {pbp['pin_hole']['to_pocket_mm']:.2f}&#8202;mm from the nearest magnet pocket. No thread goes into the TPU: an M2 heat-set insert, 3.2&#8202;mm
 across, would leave 0.6&#8202;mm of TPU at the 4.4&#8202;mm end face. The caps hang from the two distal board screws, which stand 2.65&#8202;mm
-from the tip end outside the pad; M2 &#215; 8 in place of M2 &#215; 5 pass a 3&#8202;mm ear and end where they end now, so the link takes no
+from the tip end outside the pad. M2 &#215; 8 in place of M2 &#215; 5 pass a 3&#8202;mm ear and end where they end now, so the link takes no
 new hole (an axial M2 in the 3.6&#8202;mm tongue would leave 0.85&#8202;mm of PLA beside the board's seat). TP's ears stand
 {vp['gaps_mm']['sides_to_pad']:.2f}&#8202;mm off the pad, measured normal to its outline. TW's side walls run along the pad's distal
 flanks from 0.2&#8202;mm past the U3/U5 windows (z_F &#8722;{abs(tc['wall_z0_F']):.2f}) to the ears; beside the screw heads the 3&#8202;mm ears take
@@ -546,8 +546,8 @@ Past the U3/U5 windows the walls ended in stubs 1.5&#8202;mm off the pad. The co
 Their walls clamp the pad: the inner faces stand 0.05, 0.10 and 0.15&#8202;mm inside the flank on each side (Table 9). The proximal screws'
 heads sit {rh['seat_above_cover_mm']:.1f}&#8202;mm up, on wall that is solid beneath them but for the 2.4&#8202;mm hole, and the wall above the
 seats is gone from the counterbore's distal edge to the mount face, which leaves no fin or skin beside the heads. The walls rise straight up the cover's
-21&#8202;mm edge to a 1&#8202;mm chamfer, 3.1&#8211;4.1&#8202;mm thick where the old ones tapered to 1.2&#8202;mm, and end at the U3/U5 windows; the
-capacitors beside U3 and U5, 0.5&#8202;mm tall, keep their windows in the web alone. The pad's proximal notches are
+21&#8202;mm edge to a 1&#8202;mm chamfer. They are 3.1&#8211;4.1&#8202;mm thick where the old ones tapered to 1.2&#8202;mm, and they end at the U3/U5 windows.
+The capacitors beside U3 and U5, 0.5&#8202;mm tall, keep their windows in the web alone. The pad's proximal notches are
 {pbr['proximal_notch_depth_mm']:.1f}&#8202;mm deep in place of 1.5, so the raised heads stand {rh['to_B00R_mm']:.2f}&#8202;mm from pad B00R; in a pad
 cut for the old covers they would overlap {rh['overlap_B00_notch_1p5_mm3']:.1f}&#8202;mm&#179; of TPU at the two proximal corners.</p>
 <p>TW's walls were 1.2&#8202;mm thick and stepped down to the ears. TW2 replaces them with solid blocks from the pad's flank, at
@@ -583,8 +583,8 @@ with a knife (a 4.2&#8202;mm circle around the screw, to 4.5&#8202;mm from the b
 1.26&#8202;g/cm&#179;; Siraya Tech gives 1.16&#8202;g/cm&#179; for Flex TPU 85A (ISO 1183). At 1.16 the parts contain
 {100 * (1 - meas['A']['measured_over_commanded']):.1f} and {100 * (1 - meas['B']['measured_over_commanded']):.1f}&#8202;% less TPU than
 the slicer extruded, and {100 * (1 - meas['A']['measured_over_fe']):.1f}&#8202;% less and {100 * (meas['B']['measured_over_fe'] - 1):.1f}&#8202;%
-more than the finite elements model; by the under-extrusion runs of {link(PAGES['fe'], '10-19')}, about 2.3&#8211;2.5&#8202;% of approach per
-1&#8202;% of TPU, the A tips are about 7&#8202;% softer than modelled and the B pads as modelled. A filament thinner than 1.75&#8202;mm would
+more than the finite elements model. The under-extrusion runs of {link(PAGES['fe'], '10-19')} give about 2.3&#8211;2.5&#8202;% of approach per
+1&#8202;% of TPU, so the A tips are about 7&#8202;% softer than modelled and the B pads as modelled. A filament thinner than 1.75&#8202;mm would
 explain the gap to the slicer as well as under-extrusion: one metre of the spool weighs {meas['A']['filament_1m_g_expected']:.2f}&#8202;g at
 1.75&#8202;mm and 1.16&#8202;g/cm&#179;.</p>"""))
 
@@ -593,7 +593,7 @@ explain the gap to the slicer as well as under-extrusion: one metre of the spool
 0.1&#8202;mm small and pins near size. The walls' effect comes from linear finite elements with the flank held both ways; the
 pop-off itself, a large deformation of the pad over the dovetails, is not modelled, so the fit covers decide it. The HEX-E's x-axis
 is taken as the owner reads it (centre to the nub); the sensor's own marking decides it. The readout model is a dipole model with
-the MLX90393's datasheet noise and the board 0.42&#8202;mm behind the pad; nothing in Table 7 is measured, and its depth sweep
+the MLX90393's datasheet noise and the board 0.42&#8202;mm behind the pad. Nothing in Table 7 is measured. Its depth sweep
 ignores the 1.8&#8202;mm pocket-wall rule, which at the 2.9&#8202;mm seat only 7.5&#8202;mm meets for either layout on the 11/22. The homing assumes the tool axis along the
 base's x; another heading moves the post's position by the same rotation. The caps' holds are bonded in the model, and whether a cap
 keeps the pad on is a test on the bench.</p>"""))
@@ -603,9 +603,9 @@ keeps the pad on is a test on the bench.</p>"""))
 <li>Read the five chips under pads B00 and B4 at GAIN_SEL&#8202;1 (RES&#8202;1 for B00) before any touch: the model puts
 {b_u1:.1f}&#8202;mT on U1 under B00 and at most {sens['bm_four_d75']['B_max_component_mT']:.1f}&#8202;mT on a chip under B4. A field more than
 20&#8202;% off (about 0.3&#8202;mm of distance) means the magnets sit at another depth or the board at another gap. Then press each pad
-at the contact point with the UR5e at 0.5, 1 and 3&#8202;N, ten times each, and compare the spread of the force estimates: Table 7
-predicts B4's {sens['bm_four_d75']['gain']['centre_force_N'] / sens['bm_five_d75']['gain']['centre_force_N']:.1f} times B00's; equal
-spreads would mean the readout is limited by something the model leaves out, such as the board's own noise.</li>
+at the contact point with the UR5e at 0.5, 1 and 3&#8202;N, ten times each, and compare the spread of the force estimates. Table 7
+predicts B4's {sens['bm_four_d75']['gain']['centre_force_N'] / sens['bm_five_d75']['gain']['centre_force_N']:.1f} times B00's. Equal
+spreads would mean that the readout is limited by something the model leaves out, such as the board's own noise.</li>
 <li>On the HEX-E, check that the palmar normal lies along the sensor's +x: press the pad by hand along the palmar normal and read Fx
 against Fy; more than 5&#8202;% of the force in Fy means the axis or the dowel's position differs, and <code>dowel_ang</code> turns the
 whole mount.</li>

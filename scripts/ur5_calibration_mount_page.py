@@ -192,9 +192,9 @@ its axis, where its signal noise is 0.035&#8202;N, against 0.15&#8202;N along th
 force would fall on the noisier axis. The PIP axis lies 46&#8202;mm from the flange face, which puts v2 a's board 62.0&#8202;mm and its
 nearest chip {da['nearest_chip_from_flange_mm']:.1f}&#8202;mm from the flange face (v2 b: 64.3 and {db['nearest_chip_from_flange_mm']:.1f}&#8202;mm),
 (127 and 139&#8202;mm from the UR5e flange).</p>
-<p>The horn-side arm is the datum in $y$. Its three layers are 6.2&#8202;mm of PLA joined to the bridge 9&#8202;mm below the clamp, too
+<p>The horn-side arm is the datum in $y$. Its three layers are 6.2&#8202;mm of PLA joined to the bridge 9&#8202;mm below the clamp. They are too
 stiff to bend onto the inner block (about 4&#8202;N per micrometre), so the clamp plate pushes the whole link 0.10&#8202;mm toward the slotted
-side until the inner layer rests on the inner block; the slotted arm, 4.0&#8202;mm thick and 12.5&#8202;mm long, bends that far for about
+side until the inner layer rests on the inner block. The slotted arm, 4.0&#8202;mm thick and 12.5&#8202;mm long, bends that far for about
 24&#8202;N of its screw's pull. The key and the hub sit 0.15&#8202;mm or more from the outer layer after that shift. The link seats along
 the tool axis when the slot's round end meets the key's end; the hub then stays 0.2&#8202;mm clear of the slot walls. Tightened with
 the tip pushed toward its back, the key bears on the slot's palmar flank, the flank that the normal force loads, so that a normal
@@ -219,7 +219,7 @@ column and leaves J1 unloaded.</p>
     w = chk["walls_mm"]
     S.append(("checks", "Clearances and walls", f"""
 <p>None of the three links overlaps the fork or the clamp plate, at the nominal pose or assembled (shifted 0.10&#8202;mm in $y$ onto the
-datum and 0.10&#8202;mm along the tool axis onto the key's end), and none touches the fork anywhere on the 30&#8202;mm slide onto it, checked
+datum and 0.10&#8202;mm along the tool axis onto the key's end). None touches the fork anywhere on the 30&#8202;mm slide onto it, checked
 in 0.25&#8202;mm steps (Table 2). A hex key reaches each of the foot's four M3 straight from above, and the clamp screws pass 0.5&#8202;mm or
 more from every link. The thinnest walls are the key at {w['key_thickness']}&#8202;mm, the ears at {w['ear_wall_inner']}&#8202;mm beside
 the 2.75&#8202;mm holes, and the floor over the tie tunnels at {w['tie_floor']}&#8202;mm. The board's nearest chip lies 65.6&#8202;mm from the
@@ -244,10 +244,10 @@ away.</p>
     cg = pay["cog_from_ur_flange_mm"]
     S.append(("deflection", "Deflection and payload", f"""
 <p>The mount moves the contact point {ea['mount_to_clamp']['normal_10N_mm']:.3f}&#8202;mm under the 10&#8202;N normal load and
-{ea['mount_to_clamp']['tangential_5N_y_mm']:.3f}&#8202;mm under 5&#8202;N across the finger; the DIP link with its board and clamp plate or
+{ea['mount_to_clamp']['tangential_5N_y_mm']:.3f}&#8202;mm under 5&#8202;N across the finger. The DIP link with its board and clamp plate or
 cover adds {link_lo:.3f}-{link_hi:.3f}&#8202;mm, the range between its parts acting as one section and as separate beams (Table 3). Both
-lie under the 0.1&#8202;mm the hand-off set. The HEX-E deflects 0.49&#8202;mm under the same normal load: a force sensor measures through
-its own strain, and its data sheet gives 1.7&#8202;mm at 200&#8202;N and 2.5&#176; at 10&#8202;N&#8202;m. The contact point therefore moves about
+lie under the 0.1&#8202;mm the hand-off set. The HEX-E deflects 0.49&#8202;mm under the same normal load, because a force sensor measures through
+its own strain. Its data sheet gives 1.7&#8202;mm at 200&#8202;N and 2.5&#176; at 10&#8202;N&#8202;m. The contact point therefore moves about
 0.05&#8202;mm per newton toward the robot during a press, 0.15&#8202;mm at the protocol's 3&#8202;N.</p>
 <p>The estimate integrates bending and shear along the tool axis over the sections of the meshes, cut every 0.5&#8202;mm from the foot
 to the contact point at $z_c$, with PLA's modulus $E$ = 2.5&#8202;GPa (100&#8202;% printed PLA, the low end of 2.5-3.5&#8202;GPa), $G = E/2.7$
@@ -270,8 +270,8 @@ with $L$ the distance from the HEX-E's tool plane to the contact point, {ea['hex
 <p>The printed parts weigh {mount_g}&#8202;g solid, the adapter {mass['adapter']:.0f}&#8202;g, the standoff-fork {mass['standoff_fork']:.0f}&#8202;g
 and the clamp plate {mass['clamp_plate']:.0f}&#8202;g; the print project prints them at 40&#8202;% gyroid outside the fork and uses
 {pt['mount']['filament_g']:.0f}&#8202;g of filament. With the HEX-E QC, the tool plate, screws and DIP link v2 a with its tip, the payload
-is {pay['total_kg']:.3f}&#8202;kg with its centre of gravity {cg[2]:.0f}&#8202;mm from the flange along the tool axis and
-{abs(cg[1]):.1f}&#8202;mm off it (Table 4), 13&#8202;% of the UR5e's 5&#8202;kg payload.</p>
+is {pay['total_kg']:.3f}&#8202;kg. Its centre of gravity is {cg[2]:.0f}&#8202;mm from the flange along the tool axis and
+{abs(cg[1]):.1f}&#8202;mm off it (Table 4). The payload is 13&#8202;% of the UR5e's 5&#8202;kg payload.</p>
 {tab(["Item", "Mass (g)", "Centre of gravity in M (mm)"], prow, "Payload for <code>set_payload</code>: "
      f"{pay['total_kg']:.3f}&#8202;kg, centre of gravity ({cg[0]:.1f}, {cg[1]:.1f}, {cg[2]:.1f})&#8202;mm from the UR5e flange.",
      num_cols=(1,))}"""))
@@ -281,9 +281,9 @@ is {pay['total_kg']:.3f}&#8202;kg with its centre of gravity {cg[2]:.0f}&#8202;m
     steps = "".join(f"<li>{esc(s_)}</li>" for s_ in asm["assembly"])
     S.append(("assembly", "Parts, print and assembly", f"""
 {tab(["Item", "Qty", "Material", "STEP"], pl, "Parts list (<code>" + PFX + "_assembly.json</code>); STEP files in <code>cad/</code>.")}
-<p>The three parts print on one plate of the Prusa XL in PLA on tool 3 at 0.15&#8202;mm layers, without supports: the adapter on its
-tool face so the mating face and the spigot are top surfaces, the standoff-fork on its foot with the fork end up, and the clamp
-plate on the face that presses the arm (Figure {n_fig[0] + 1}). PrusaSlicer estimates {pt['mount']['print_time']} and
+<p>The three parts print on one plate of the Prusa XL in PLA on tool 3 at 0.15&#8202;mm layers, without supports. The adapter lies on its
+tool face, so the mating face and the spigot are top surfaces. The standoff-fork stands on its foot with the fork end up. The clamp
+plate lies on the face that presses the arm (Figure {n_fig[0] + 1}). PrusaSlicer estimates {pt['mount']['print_time']} and
 {pt['mount']['filament_g']:.1f}&#8202;g; the two indenters take {pt['indenters']['print_time']} and
 {pt['indenters']['filament_g']:.1f}&#8202;g on a second plate. Every part slices to its full height and no support is generated.</p>
 {fig("mount_pla_t3_bed", "The mount's plate on the Prusa XL bed, PLA on tool 3.", 1000, D / "print")}
@@ -333,9 +333,9 @@ on one clock with the robot's TCP pose.</li>
 chip and pose. A pose-dependent change above the chips' noise is the wrist rotor's and is subtracted per pose.</li>
 <li><b>Rigid control.</b> A solid PLA dummy of the tip's outline, pressed to 3&#8202;N with a 60&#8202;s hold and released: the hysteresis and
 drift of the HEX-E, mount and robot, which the tip's numbers are read against.</li>
-<li><b>Normal presses.</b> The 5&#8202;mm sphere at 15 contact points, 2&#8202;mm apart along the finger (&#8722;4 to 4&#8202;mm from the contact
-point) and 3&#8202;mm across (&#8722;3, 0, 3), each approached along the local normal at 0.5&#8202;mm/s until the HEX-E reads 0.05&#8202;N, then
-loaded to 0.25, 0.5, 1, 2 and 3&#8202;N for 2&#8202;s each and unloaded in the same steps; three repeats.</li>
+<li><b>Normal presses.</b> The 5&#8202;mm sphere presses at 15 contact points, 2&#8202;mm apart along the finger (&#8722;4 to 4&#8202;mm from the contact
+point) and 3&#8202;mm across (&#8722;3, 0, 3). Each point is approached along the local normal at 0.5&#8202;mm/s until the HEX-E reads 0.05&#8202;N. The load
+then goes to 0.25, 0.5, 1, 2 and 3&#8202;N for 2&#8202;s each and returns in the same steps. There are three repeats.</li>
 <li><b>Tangential loads.</b> At the contact point and the four points 3&#8202;mm from it, at 1, 2 and 3&#8202;N normal, move the indenter across
 and along the finger until the tangential force reaches 3&#8202;N or stops rising (slip).</li>
 <li><b>Hysteresis and creep.</b> At the contact point, three loops each to 0.5, 1 and 3&#8202;N at 0.1&#8202;N/s, holding the robot still for
