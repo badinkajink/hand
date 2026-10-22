@@ -21,7 +21,11 @@ writes docs/experiments/20261020-fingertip_contact_estimation/results.json and d
                which the viewer reads; the force the viewer shows at rest with and without the correction; and the
                presses by hand replayed with and without fingertip_wrench_model.RestZero
 
-    ~/miniconda3/bin/python scripts/fingertip_contact_estimation_study.py [thermal]
+  poles        (subcommand poles) the five N52 magnets in four pole patterns: the estimator's errors on simulated
+               presses, the change of a 1 N press, and the field a neighbouring fingertip with the same pattern puts on
+               the board (its part that a uniform field does not take up), facing and side by side, against distance
+
+    ~/miniconda3/bin/python scripts/fingertip_contact_estimation_study.py [thermal | poles]
 """
 from __future__ import annotations
 
@@ -754,9 +758,73 @@ def main_thermal():
                   f"(over 26 uT: {v['rezeros_over_26uT']}), came back {v['came_back']}; offsets {v['rezero_offsets_uT'][:10]}")
 
 
+POLE_PATTERNS = {"all one way": (1, 1, 1, 1, 1), "checkerboard": (1, -1, 1, -1, 1), "centre reversed": (1, 1, -1, 1, 1),
+                 "rows opposite": (1, 1, 1, -1, -1)}       # +1: north toward the palmar face; the FE row's magnet order
+FACING_MM, SIDE_MM = np.arange(0.0, 40.1, 2.5), np.arange(22.0, 60.1, 2.0)
+
+
+def neighbour_reading(model, cfg, v):
+    """Reading change (uT, (15,)) of the board from a second fingertip with the same magnets: 'facing', the two palmar
+    faces v mm apart with the second tip mirrored across the plane between them; 'side', the second tip v mm across the
+    finger (along y), turned the same way."""
+    mc, mu = model.mc.copy(), model.mu.copy()
+    if cfg == "facing":
+        mc[:, 0] = 2 * (8.5 + v / 2) - mc[:, 0]               # the palmar face at x = 8.5 mm
+        mu = -mu
+    else:
+        mc[:, 1] += v
+    return (np.einsum("cij,cj->ci", model.R, model.field(mc, mu)) * 1e6).ravel()
+
+
+def poles(board):
+    """See the module docstring (poles)."""
+    sb = W.load_basis(SURF)
+    out = {}
+    for name, P in POLE_PATTERNS.items():
+        model = W.Model(W.Calib(**{**board.__dict__, "k": 1.0, "poles": P, "b_rest_uT": []}))
+        est = W.SurfaceEstimator(model, sb)
+        est.set_noise_scale(1 / np.sqrt(WIN_S * RATE_HZ))
+        syn = surface_synthetic(est, sb, n=600)["regions"]
+        pm, pp = surface_maps(est, sb)
+        y = -np.einsum("nik,nk->ni", est.S, est.Cn)
+        mag, reg = np.linalg.norm(y, axis=1), region_of(est.Cn)
+        U = np.concatenate(list(model.R), 0)
+
+        def nonuniform(d):
+            g, *_ = np.linalg.lstsq(U, d, rcond=None)
+            return float(np.linalg.norm(d - U @ g))
+        curves = {}
+        for cfg, vals in (("facing", FACING_MM), ("side", SIDE_MM)):
+            curves[cfg] = dict(mm=vals.tolist(),
+                               nonuniform_uT=[nonuniform(neighbour_reading(model, cfg, v)) for v in vals],
+                               moving5_uT=[nonuniform(neighbour_reading(model, cfg, v + 5) - neighbour_reading(model, cfg, v))
+                                           for v in vals])
+        out[name] = dict(poles=list(P), net=int(sum(P)),
+                         rest_mT=(np.linalg.norm(model.rest_uT(), axis=1) / 1e3).round(2).tolist(),
+                         simulated={k: dict(pos_median_mm=v["pos_median_mm"], press_abs_median_N=v["press_abs_median_N"],
+                                            far_pct=v["far_pct"]) for k, v in syn.items()},
+                         sigma_1N=dict(press_N=float(np.nanmedian(pm)), pos_mm=float(np.nanmedian(pp))),
+                         press_uT_per_N={k: float(np.median(mag[reg == k])) for k in ("face", "edge", "sides")},
+                         neighbour=curves)
+    return out
+
+
 def main():
     if sys.argv[1:] == ["thermal"]:
         return main_thermal()
+    if sys.argv[1:] == ["poles"]:
+        res = json.loads((D / "results.json").read_text())
+        res["poles"] = poles(W.Calib.load(DATA / "20261020-calib_pad_as_found.json"))
+        (D / "results.json").write_text(json.dumps(res, indent=1) + "\n")
+        for name, v in res["poles"].items():
+            nb = v["neighbour"]
+            i25, i10 = nb["side"]["mm"].index(26.0) if 26.0 in nb["side"]["mm"] else 2, nb["facing"]["mm"].index(10.0)
+            print(f"  {name:16s} net {v['net']:+d}: sim {v['simulated']['all']['pos_median_mm']:.2f} mm "
+                  f"{v['simulated']['all']['press_abs_median_N']:.3f} N far {v['simulated']['all']['far_pct']:.1f} %, "
+                  f"face {v['press_uT_per_N']['face']:.0f} uT/N; side {nb['side']['mm'][i25]:.0f} mm "
+                  f"{nb['side']['nonuniform_uT'][i25]:.0f} uT (5 mm move {nb['side']['moving5_uT'][i25]:.0f}); facing 10 mm "
+                  f"{nb['facing']['nonuniform_uT'][i10]:.0f} uT (5 mm move {nb['facing']['moving5_uT'][i10]:.0f})")
+        return
     src = copy_inputs()
     basis = W.load_basis(BASIS)
     res = dict(when=time.strftime("%Y-%m-%d %H:%M"), script="scripts/fingertip_contact_estimation_study.py")

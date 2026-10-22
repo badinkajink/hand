@@ -310,6 +310,33 @@ def fig_rezero(res, out):
     plt.close(fig)
 
 
+def fig_poles(res, out):
+    """The neighbouring fingertip's field at the board, per pole pattern, against distance."""
+    plt = plt_setup()
+    po = res["poles"]
+    cols = {"all one way": "#000", "checkerboard": "#c00000", "centre reversed": "#0040ff", "rows opposite": "#008000"}
+    fig, axs = plt.subplots(1, 2, figsize=(11, 4.9), dpi=100, sharey=True)
+    for a, cfg, xl in ((axs[0], "facing", "Gap between the two palmar faces (mm)"),
+                       (axs[1], "side", "Spacing of the two fingertips across the finger (mm)")):
+        for name, v in po.items():
+            c = v["neighbour"][cfg]
+            a.semilogy(c["mm"], c["nonuniform_uT"], color=cols[name], lw=1.8, label=f"{name[0].upper() + name[1:]} (net {v['net']:+d})")
+            a.semilogy(c["mm"], c["moving5_uT"], color=cols[name], lw=1.2, ls="--")
+        lo = min(v["press_uT_per_N"]["face"] for v in po.values())
+        hi = max(v["press_uT_per_N"]["face"] for v in po.values())
+        a.axhspan(lo, hi, color="#d0d0d0", alpha=0.6, lw=0)
+        a.text(c["mm"][-1], hi * 1.12, "1 N press on the face", ha="right", fontsize=12)
+        a.set_xlabel(xl)
+        a.grid(alpha=0.3, which="both")
+        a.set_title("Palmar faces toward each other" if cfg == "facing" else "Side by side, turned the same way", fontsize=13)
+    axs[0].set_ylabel("Field at the board not uniform (\u00b5T)")
+    axs[0].legend(loc="upper right", fontsize=11)
+    axs[1].text(0.98, 0.02, "dashed: change for 5 mm more", transform=axs[1].transAxes, ha="right", va="bottom", fontsize=12)
+    fig.tight_layout()
+    fig.savefig(out)
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------------------------------------ page
 
 def build():
@@ -322,6 +349,7 @@ def build():
     fig_session(res, MEDIA / "20261020-presses_by_hand.png")
     fig_drift(res, MEDIA / "20261021-rest_drift.png")
     fig_rezero(res, MEDIA / "20261021-rezero_replay.png")
+    fig_poles(res, MEDIA / "20261022-pole_patterns.png")
     th = res["thermal"]
     c, fe, fs = res["calibration"], res["fe"], res["fe_surface"]
     b = c["best"]
@@ -763,6 +791,59 @@ def build():
                      "the settings of 20 October (top) and of 21 October (bottom). The poster is 245&#8202;s into the "
                      "recording, after the second touch: the chips are 0.9&#8211;1.4&#8202;&#176;C warmer than at the "
                      "calibration, and the top viewer shows a standing contact of about 10&#8202;N.")))
+    po = res["poles"]
+    sd = po["all one way"]["neighbour"]["side"]["mm"]
+    i26, i10 = sd.index(26.0), po["all one way"]["neighbour"]["facing"]["mm"].index(10.0)
+    t9 = table(["Pattern", "Poles toward the palm", "Net moment (magnets)", "Position error (mm)", "Press error (N)",
+                "Placed away (%)", "1 N press on the face (&#181;T)", "Side by side at 26 mm (&#181;T)",
+                "Facing, faces 10 mm apart (&#181;T)"],
+               [[k[0].upper() + k[1:], " ".join("N" if q_ > 0 else "S" for q_ in v["poles"]), f"{v['net']:+d}",
+                 f"{v['simulated']['all']['pos_median_mm']:.2f}", f"{v['simulated']['all']['press_abs_median_N']:.3f}",
+                 f"{v['simulated']['all']['far_pct']:.1f}", f"{v['press_uT_per_N']['face']:.0f}",
+                 f"{v['neighbour']['side']['nonuniform_uT'][i26]:.0f} ({v['neighbour']['side']['moving5_uT'][i26]:.0f})",
+                 f"{v['neighbour']['facing']['nonuniform_uT'][i10]:.0f} ({v['neighbour']['facing']['moving5_uT'][i10]:.0f})"]
+                for k, v in po.items()],
+               num_cols=(2, 3, 4, 5, 6, 7, 8), n=9,
+               caption="Four pole patterns of the five N52 magnets ($k=1$; poles in the FE row's order: the corner at the "
+                       "mount end on $-y$, the one on $+y$, the centre, the tip-end corner on $-y$, the one on $+y$): the "
+                       "whole-surface estimator's median errors on 600 simulated presses with 50&#8202;ms of samples, the "
+                       "reading change of a 1&#8202;N press along the normal on the face (median), and the part of a second "
+                       "fingertip's field at the board that a uniform field does not take up, with the change for 5&#8202;mm "
+                       "more in brackets.")
+    ao, cb_, cr = po["all one way"], po["checkerboard"], po["centre reversed"]
+    S.append(("poles", "Pole pattern of the five magnets",
+              f"<p>The print procedure seats every magnet north toward the palmar face, and the N52 rows above assume that "
+              f"pattern. The eFlesh authors seat neighbouring magnets in alternating polarity, so that the far field of a "
+              f"sensor cancels and a second sensor nearby induces less signal (Pattabiraman et al., arXiv:2506.09994, "
+              f"Section 2.7.1); their cube has four magnets, whose moments cancel. Five magnets cannot cancel: the "
+              f"smallest net moment is one magnet's. The checkerboard, with the centre and the corners on one diagonal "
+              f"north toward the palm and the other diagonal south, has that net moment, and its corners' first moments "
+              f"cancel as well; the pad as found has this pattern (Section 3). Table 9 and Figure 10 compare four "
+              f"patterns: the estimator's errors, and the field a second fingertip with the same pattern puts on the "
+              f"board, in the part a uniform field does not take up, which the estimator reads as a contact.</p>"
+              f"<p>Against all one way, the checkerboard lowers the neighbour's field by "
+              f"{ao['neighbour']['side']['nonuniform_uT'][i26] / cb_['neighbour']['side']['nonuniform_uT'][i26]:.1f} times "
+              f"side by side at 26&#8202;mm ({ao['neighbour']['side']['nonuniform_uT'][i26]:.0f} to "
+              f"{cb_['neighbour']['side']['nonuniform_uT'][i26]:.0f}&#8202;&#181;T) and "
+              f"{ao['neighbour']['facing']['nonuniform_uT'][i10] / cb_['neighbour']['facing']['nonuniform_uT'][i10]:.1f} times "
+              f"with the palmar faces 10&#8202;mm apart ({ao['neighbour']['facing']['nonuniform_uT'][i10]:.0f} to "
+              f"{cb_['neighbour']['facing']['nonuniform_uT'][i10]:.0f}&#8202;&#181;T), and a 1&#8202;N press on the face "
+              f"changes the reading by {cb_['press_uT_per_N']['face']:.0f} against {ao['press_uT_per_N']['face']:.0f}&#8202;"
+              f"&#181;T. The estimator's median errors grow from {ao['simulated']['all']['pos_median_mm']:.2f} to "
+              f"{cb_['simulated']['all']['pos_median_mm']:.2f}&#8202;mm and from {ao['simulated']['all']['press_abs_median_N']:.3f} "
+              f"to {cb_['simulated']['all']['press_abs_median_N']:.3f}&#8202;N. Reversing only the centre magnet gives the "
+              f"smallest errors, {cr['simulated']['all']['pos_median_mm']:.2f}&#8202;mm and "
+              f"{cr['simulated']['all']['press_abs_median_N']:.3f}&#8202;N, and lowers the neighbour's field by "
+              f"{ao['neighbour']['side']['nonuniform_uT'][i26] / cr['neighbour']['side']['nonuniform_uT'][i26]:.1f} times. "
+              f"With the checkerboard a fingertip side by side at 26&#8202;mm still changes the reading by "
+              f"{cb_['neighbour']['side']['moving5_uT'][i26]:.0f}&#8202;&#181;T when it moves 5&#8202;mm away, about a "
+              f"{cb_['neighbour']['side']['moving5_uT'][i26] / cb_['press_uT_per_N']['face']:.1f}&#8202;N press; the other "
+              f"fingertips' field, placed by the hand's joint angles, has to be subtracted as well.</p>{t9}"
+              + fig(10, MEDIA / "20261022-pole_patterns.png",
+                    "The part of a second fingertip's field at the board that a uniform field does not take up, for four "
+                    "pole patterns of the five N52 magnets (both tips alike), against the gap between the palmar faces "
+                    "(left, the second tip mirrored) and the spacing across the finger (right); dashed, its change when the "
+                    "second tip moves 5&#8202;mm farther. Grey: the reading change of a 1&#8202;N press on the face.")))
     S.append(("viewer", "Live viewer in the browser",
               f"<p>{code('src/morphohand/driver/reskin5x/host/wrench_viewer.py')} reads the board and calibrates at rest; "
               f"its page is at http://localhost:8790. The page draws the pad's whole surface deformed by the FE basis at "
@@ -822,6 +903,10 @@ def build():
               "<li>Re-zero: press and hold at about 0.5, 1 and 2&#8202;N for 2, 5 and 10&#8202;s each on the kitchen scale "
               "with the viewer logging; the study's replay counts the holds the re-zero takes in, which should be none of "
               "those under 3&#8202;s.</li>"
+              "<li>Pole pattern: seat the N52 magnets in the checkerboard in two pads, fix them side by side 26, 30 and "
+              "40&#8202;mm apart and facing at 10 and 20&#8202;mm, and record one board while the other pad moves in 5&#8202;mm "
+              "steps. The model of Figure 10 passes if the measured change, less its uniform part, is within 30&#8202;% of "
+              "it; then subtract the modelled field and check that no contact shows.</li>"
               "<li>Floor: after the seat fix and the N52 magnets, repeat the night at rest and the floor sweep (Table 7); "
               "lower the floor to the smallest value that still shows no contact at rest.</li></ul>"
               f"<p>Status of the printed-fingertip work: {link(STATUS_PAGE, 'status page')}.</p>"))
@@ -833,8 +918,8 @@ def build():
                  "H1": "Model-based estimation of contact position and force on the magnetic fingertip",
                  "EYEBROW": "Printed fingertips and force sensing &#183; 2026-10-20", "LEDE": lede,
                  "BYLINE": f"Built {time.strftime('%Y-%m-%d %H:%M')} from results.json ({res['when']}; Section 9 of "
-                           f"2026-10-21); the readings at rest and the recordings of Sections 8 and 9 are measured, the other "
-                           f"presses simulated.",
+                           f"2026-10-21, Section 10 of 2026-10-22); the readings at rest and the recordings of Sections 8 and "
+                           f"9 are measured, the other presses and the fields of Section 10 modelled.",
                  "FILM": film(1, MEDIA / "20261020-viewer_surface_presses.mp4", MEDIA / "20261020-viewer_surface_presses.png",
                               "The browser viewer replaying five synthetic presses made by the model with the measured noise "
                               "and the magnets as found (Table 4): the palmar face, the +y flank, the face's edge on the -y "
