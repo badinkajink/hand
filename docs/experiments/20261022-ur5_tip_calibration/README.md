@@ -89,7 +89,7 @@ bash scripts/ur5_tip_calibration_lab_setup.sh                      # --ft IP, --
 
 The clone skips every git-lfs file (`.lfsconfig`). The setup script changes nothing on the robot and does six things:
 
-- it pulls the plan, the protocol page and the simulator's three data files through git-lfs (16 MB);
+- it pulls the plan, the protocol page and the simulator's four data files through git-lfs (17 MB);
 - it makes a venv `~/.venvs/tipcal` with numpy, scipy, pyserial and ur_rtde; `--python PATH` uses an interpreter that
   already has them, such as magpie_control's;
 - it lists every copy of magpie_control's OptoForce reader under `$HOME` and marks the old one;

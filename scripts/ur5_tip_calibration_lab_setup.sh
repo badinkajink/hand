@@ -34,11 +34,11 @@ fix() { printf '  FIX  %s\n' "$*"; FAIL=1; }
 CAL=docs/experiments/20261022-ur5_tip_calibration
 EST=docs/experiments/20261020-fingertip_contact_estimation/data
 PLAN=$CAL/plan/20261022-plan_sphere.json
-LFS_FILES="$PLAN,$CAL/20261022-ur5_tip_calibration_protocol.html,$EST/20261020-b_v2_surface_basis.npz,$EST/20261020-calib_pad_as_found.json,$EST/20261021-thermal_gain.json"
+LFS_FILES="$PLAN,$CAL/20261022-ur5_tip_calibration_protocol.html,$EST/20261020-b_v2_surface_basis.npz,$EST/20261020-calib_pad_as_found.json,$EST/20261021-thermal_gain.json,docs/experiments/20261019-v2_tip_fe_checks/sense_fe.jsonl"
 
 echo "1. files kept in git-lfs"
 if git lfs version >/dev/null 2>&1; then
-  # .lfsconfig sets lfs.fetchexclude = * so that clones skip the media; cleared here for these five files only
+  # .lfsconfig sets lfs.fetchexclude = * so that clones skip the media; cleared here for these six files only
   if git -c lfs.fetchexclude= lfs pull --include="$LFS_FILES"; then ok "git lfs pull"; else fix "git lfs pull failed: GitHub access (SSH key or token) or the network"; fi
 else
   fix "git-lfs is missing: sudo apt install git-lfs (or the binary from github.com/git-lfs/git-lfs/releases), then run this again"
@@ -69,12 +69,13 @@ echo "3. magpie_control's OptoForce readers on this computer"
 n_old=0
 while IFS= read -r f; do
   grep -q 'class OptoForce' "$f" 2>/dev/null || continue
-  repo=$(git -C "$(dirname "$f")" rev-parse --show-toplevel 2>/dev/null || echo "not in a git checkout")
-  at=$(git -C "$(dirname "$f")" log -1 --format='%h %ad' --date=short 2>/dev/null || true)
-  if grep -q VALID_RATES "$f"; then ok "current reader: $f"
-  else
-    n_old=$((n_old + 1))
+  if grep -q VALID_RATES "$f"; then ok "current reader: $f"; continue; fi
+  n_old=$((n_old + 1))
+  if repo=$(git -C "$(dirname "$f")" rev-parse --show-toplevel 2>/dev/null); then
+    at=$(git -C "$repo" log -1 --format='%h %ad' --date=short 2>/dev/null)
     printf '  OLD  %s\n       checkout %s at %s: update it to magpie_control main (see the runbook)\n' "$f" "$repo" "$at"
+  else
+    printf '  OLD  %s\n       a built or installed copy: rebuild or reinstall it from a current checkout\n' "$f"
   fi
 done < <(timeout 120 find "$HOME" -xdev -name ft_sensor.py -not -path '*/.git/*' 2>/dev/null)
 [ "$n_old" -eq 0 ] && ok "no old reader found"
@@ -110,7 +111,7 @@ if [ -n "$found" ]; then
   first=$(echo "$found" | head -1 | cut -d' ' -f1)
   [ "$first" != "$FT" ] && echo "       pass --ft $first to the program"
 else
-  fix "no HEX-E DAQ answers on $FT, 192.168.0.5 or 192.168.0.3 (UDP 49152): its power, its Ethernet cable, its address"
+  fix "no HEX-E DAQ answers on $(printf '%s\n' "$FT" 192.168.0.5 192.168.0.3 | awk '!s[$0]++' | paste -sd' '), UDP 49152: its power, its Ethernet cable, its address"
 fi
 board=$(ls /dev/serial/by-id/*QT_Py* 2>/dev/null | head -1)
 if [ -n "$board" ]; then
