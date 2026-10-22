@@ -174,8 +174,11 @@ HEX-E (its Ethernet DAQ at 192.168.0.5, UDP port 49152, polled at 500 Hz): homin
 gravity sweep, touch-offs on the mount's column and on the pad, a registration fit, pivot presses, then calibration
 presses, slides, rolls and twists from a plan written on the workstation
 (`scripts/ur5_tip_calibration_plan.py` -> `docs/experiments/20261022-ur5_tip_calibration/plan/20261022-plan_sphere.json`).
-The robot's computer needs this file, `host/reskin5x_plot.py` (the board's reader) and the plan, with numpy, pyserial
-and ur_rtde.
+The robot's computer runs it from a clone of the repository: the runbook
+`docs/experiments/20261022-ur5_tip_calibration/README.md` and its setup check `scripts/ur5_tip_calibration_lab_setup.sh`
+(git-lfs files, a venv with numpy, scipy, pyserial and ur_rtde, old copies of magpie_control's F/T reader, the robot,
+the DAQ and the board, three simulated stages) cover it. The program stops the DAQ and empties its socket before it
+starts, and empties it again before each polled request, so a late answer cannot pass for a newer one.
 
     python ur5_tip_calibration.py --plan 20261022-plan_sphere.json --stages preflight      # streams, payload
     python ur5_tip_calibration.py --plan 20261022-plan_sphere.json --dry 15                 # the session 15 mm off

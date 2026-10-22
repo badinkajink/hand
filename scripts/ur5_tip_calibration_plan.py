@@ -311,10 +311,15 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
         add(dict(id=f"grav-{k:02d}", stage="gravity", kind="orient", axis=ax, deg=ang, tilt_deg=tilt, roll_deg=roll,
                  station_I=st_I, p=p_ref.tolist(), twist=0.0), grav_poses, need_extra=5.0)
     chk.q = q_home.copy()
-    # 4. mount face touches (rigid)
+    # 4. mount face touches (rigid). mount-0 and mount-2 push on to 5 N: on the rigid column, the push past the onset is the
+    # HEX-E's and the robot's deflection along x_M, the direction of the face presses; at two heights (z_M 52 and 68 mm)
+    # it separates the HEX-E's shift from its tilt, which the ground truth takes from the data sheet otherwise (0.19 mm
+    # of the 0.77 mm indentation of a 5 N face press)
     for k, (yy, zz) in enumerate(((-16.0, 52.0), (-16.0, 60.0), (-16.0, 68.0), (6.0, 62.0), (6.0, 68.0), (-6.0, 68.0))):
         a = dict(id=f"mount-{k}", stage="mount", kind="touch", target=dict(frame="M", p=[17.0, yy, zz], n=[1.0, 0.0, 0.0]),
-                 twist=0.0, standoff=2.0, beyond_mm=1.0, v=0.0001, stop_N=0.8, fit_N=0.6)
+                 twist=0.0, standoff=2.0, beyond_mm=1.0, v=0.0001, stop_N=5.0 if k in (0, 2) else 0.8, fit_N=0.6)
+        if k in (0, 2):
+            a["role"] = "compliance"
 
         def mposes(a):
             tg = a["target"]

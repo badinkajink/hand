@@ -144,11 +144,15 @@ def sections(res, plan, h):
         "<p>The turn of the mount about the tool axis depends on how the HEX-E and the mount's dowel sit on the flange. "
         "The session measures it. Before the session, the stack is measured once with calipers, from the flange face to the "
         "HEX-E's tool face. A value other than 35.0" + NB + "mm goes into the plan's " + code("geometry.T_EM") + ".</p>"
-        "<p>The lab's F/T reader in magpie_control reads at most 50" + NB + "Hz. It requests one sample per read and "
-        "sleeps 20" + NB + "ms after each request. Its retry loop also returns after the first try. The program here "
-        "polls the same DAQ datagrams at 500" + NB + "Hz in a thread, as magpie_force_control's C++ driver does. Repeated "
-        "samples are dropped by their sequence numbers. The default address is 192.168.0.5; the C++ driver uses "
-        "192.168.0.3.</p>")
+        "<p>The program polls the HEX-E's DAQ one sample at a time at 500" + NB + "Hz, in a thread. magpie_control's reader "
+        "has done the same since Niraj Pudasaini's commit 806b94a of 2026-03-06, and so has magpie_force_control's C++ "
+        "driver. The reader before it, of 2024-11, slept 20" + NB + "ms after each request and read at most 50" + NB +
+        "Hz. Its socket also kept late answers, and each late answer passed for a newer one, so its readings fell further "
+        "behind over a run. The program stops the DAQ and empties the socket before it starts. Before each request it "
+        "empties the socket again and counts what it drops. It drops repeated samples by their sequence numbers. Against "
+        "a fake DAQ on this computer, its samples were 0.0" + NB + "ms old at the median, both after late answers and "
+        "with a DAQ left streaming by an earlier program. In the second case magpie_control's current reader returned "
+        "samples 64" + NB + "ms old. The default address is 192.168.0.5; the C++ driver uses 192.168.0.3.</p>")
     S.append(("stack", "OptoForce HEX-E and the tool stack on the flange", sec))
 
     # ------------------------------------------------------------------------------------------------ the cell
@@ -226,7 +230,11 @@ def sections(res, plan, h):
         "<h3>Touch-offs</h3>"
         "<p>Each touch-off starts 1.5" + NB + "mm off the surface; on the rigid column it starts 2" + NB + "mm off. The "
         "robot approaches along the normal at 0.15" + NB + "mm/s, or 0.1" + NB + "mm/s on the column. It stops when the "
-        "push reaches 0.5" + NB + "N, or 0.8" + NB + "N on the column. The push $y$ against the travel $s$ is fitted by</p>"
+        "push reaches 0.5" + NB + "N, or 0.8" + NB + "N on the column. Two column touch-offs, at $z_M$ = 52 and 68" + NB +
+        "mm, push on to 5" + NB + "N. On the rigid column the travel past the onset is the HEX-E's and the robot's "
+        "deflection along $x_M$, the direction of the face presses. By the data sheet it is 0.12 and 0.16" + NB + "mm at "
+        "5" + NB + "N; the two heights separate the HEX-E's shift from its tilt. The push $y$ against the travel $s$ is "
+        "fitted by</p>"
         "$$y = a\\,(s - s_0)_+^{\\,p} + b, \\qquad p \\in \\{1, 1.25, 1.5, 1.75, 2\\}.$$"
         "<p>The onset $s_0$ is searched over the 0.5" + NB + "mm before the push rises. The rise is found on a "
         "50" + NB + "ms moving average, because single samples of the HEX-E's noise cross small thresholds. At the onset "
@@ -433,15 +441,20 @@ def sections(res, plan, h):
 
     # ------------------------------------------------------------------------------------------------ lab computer
     sec = (
-        "<p>Three files go to the robot's computer: the program, the board's reader and the plan. The program needs "
-        "Python 3 with numpy, pyserial and ur_rtde, which magpie_control already installs.</p>"
+        "<p>The robot's computer runs the session from a clone of this repository. The step-by-step runbook for the operator "
+        "and for a Claude Code session there is " + code("docs/experiments/20261022-ur5_tip_calibration/README.md") + ". "
+        "Its setup script pulls the plan through git-lfs and makes a Python venv with numpy, scipy, pyserial and ur_rtde. "
+        "It also lists old copies of magpie_control's F/T reader, probes the robot, the DAQ and the board, and runs three "
+        "stages in the simulator:</p>"
         '<pre class="cmd">'
-        "scp src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py src/morphohand/driver/reskin5x/host/reskin5x_plot.py \\\\\\n"
-        "    docs/experiments/20261022-ur5_tip_calibration/plan/20261022-plan_sphere.json  &lt;lab&gt;:tipcal/\\n"
-        "python ur5_tip_calibration.py --plan 20261022-plan_sphere.json --stages preflight          # streams, payload\\n"
-        "python ur5_tip_calibration.py --plan 20261022-plan_sphere.json --dry 15                     # whole session, 15 mm off\\n"
-        "python ur5_tip_calibration.py --plan 20261022-plan_sphere.json --name sphere1               # the session\\n"
-        "python ur5_tip_calibration.py --plan 20261022-plan_sphere.json --resume logs/&lt;date&gt;-tip_calibration/&lt;session&gt;"
+        "git clone --depth 1 git@github.com:badinkajink/hand.git ~/hand &amp;&amp; cd ~/hand\\n"
+        "bash scripts/ur5_tip_calibration_lab_setup.sh\\n"
+        "P=src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py; PLAN=docs/experiments/20261022-ur5_tip_calibration/plan/20261022-plan_sphere.json\\n"
+        "~/.venvs/tipcal/bin/python $P --plan $PLAN --stages preflight                  # streams, payload\\n"
+        "~/.venvs/tipcal/bin/python $P --plan $PLAN --stages preflight,homing,gravity,mount   # at 30 % speed\\n"
+        "~/.venvs/tipcal/bin/python $P --plan $PLAN --dry 15                            # whole session, 15 mm off\\n"
+        "~/.venvs/tipcal/bin/python $P --plan $PLAN --name sphere1                      # the session\\n"
+        "~/.venvs/tipcal/bin/python $P --plan $PLAN --resume logs/&lt;date&gt;-tip_calibration/&lt;session&gt;"
         "</pre>"
         "<p>Before the first run:</p><ul>"
         "<li>Measure the stack with calipers, from the flange face to the HEX-E's tool face. The plan has 35.0" + NB +
@@ -449,9 +462,10 @@ def sections(res, plan, h):
         "<li>Check that the HEX-E's DAQ answers on 192.168.0.5, or pass " + code("--ft") + ". Pass " + code("--board") +
         " if the board's port is not found by its id.</li>"
         f"<li>Clamp the indenter on a 38{NB}mm block to the plywood, {-pm[1]:.0f}{NB}mm in front of the robot's base. Its "
-        "x axis points away from the robot and its homing post stands as in Figure 2. For another place, rebuild the plan "
-        "with " + code("--placement x,y,z,yaw --block h") + " (" + code("scripts/ur5_tip_calibration_plan.py") + ", "
-        "20" + NB + "s).</li>"
+        "x axis points away from the robot and its homing post stands as in Figure 2. Homing measures the placement. "
+        f"Past 20{NB}mm, 5{NB}deg of yaw or 2{NB}deg of tilt from the plan's, the program stops. The plywood is then moved, "
+        "or the plan is rebuilt with " + code("--placement x,y,z,yaw --block h") + " (" +
+        code("scripts/ur5_tip_calibration_plan.py") + ", 20" + NB + "s).</li>"
         "<li>Leave slack in the board's USB cable and the HEX-E's cable. The flank presses turn the tool 90" + NB + "deg "
         "about its axis.</li>"
         "<li>Run " + code("--stages preflight,homing,gravity,mount") + " first, at reduced speed on the pendant, and watch "
@@ -473,7 +487,16 @@ def sections(res, plan, h):
         "error may be larger, and it limits the contact point (Table 12). The pad is the FE model's: linear, and seated as "
         "designed. The printed pad's shape, its seat and its creep enter only a session on the robot; the pad rocked in its "
         "seat under the owner's presses on 10-20. The pivot check relies on the board's pattern with the as-found magnets, "
-        "about 15" + NB + "uT/mm at 3" + NB + "N. The tip end cannot be pressed past cap TW15H3.</p>")
+        "about 15" + NB + "uT/mm at 3" + NB + "N. The tip end cannot be pressed past cap TW15H3.</p>"
+        "<p>The simulator's friction acts on the contact as a whole and has no torsional part. Its twists therefore made "
+        "almost no torsion: the median was 0.00" + NB + "N" + NB + "mm at 1" + NB + "N and 0.10" + NB + "N" + NB + "mm at 2.5" +
+        NB + "N. The torsion error of Table 13 is the measurement's alone. A Hertz estimate for the 5" + NB + "mm sphere, "
+        "with a friction coefficient of 1, gives about 0.7" + NB + "N" + NB + "mm at 1" + NB + "N and 2.3" + NB + "N" + NB +
+        "mm at 2.5" + NB + "N on the real pad. The face's normal is perpendicular to the tool axis, so a 2.5" + NB + "N push "
+        "puts about 230" + NB + "N" + NB + "mm of moment on the HEX-E. The torsion is about 1" + NB + "% of that. The "
+        "difference between the turns of +20 and -20" + NB + "deg reverses the friction and leaves the push's moment, so "
+        "it gives twice the torsion. A change of the push between the two turns still enters through the crosstalk of up "
+        "to 5" + NB + "%, most at 1" + NB + "N.</p>")
     S.append(("limits", "Limitations", sec))
 
     # ------------------------------------------------------------------------------------------------ future work
@@ -493,7 +516,19 @@ def sections(res, plan, h):
         "<li>The neighbour's field: fix a second pad with magnets on the plywood and sweep the board past it without "
         "contact. This checks the field that the joints' kinematics will subtract.</li>"
         "<li>A learned model on the session's holds, which the analysis writes, compared with the model-based estimator on "
-        "the same holds.</li></ul>"
+        "the same holds.</li>"
+        "<li>The HEX-E's deflection from mount-0 and mount-2 (5" + NB + "N at $z_M$ = 52 and 68" + NB + "mm), fitted as a "
+        "shift and a tilt, in place of the data sheet's in " + code("scripts/ur5_tip_calibration_analysis.py") + ". If the "
+        "depth at 5" + NB + "N changes by more than 0.02" + NB + "mm, the data sheet's compliance was too coarse for the "
+        "ground truth of Section 5.</li>"
+        "<li>The sphere-pad contact model against the session: replay the measured pose of the indenter in the pad frame "
+        "against tip b's 1" + NB + "mm pads (builder v2) in MuJoCo. Then compare push against depth at the 68 grid points, "
+        "shear against slide, and the twists' torsion loop. A new script reads the session folder. The pads fail as a "
+        "model of the printed tip if their depth at 2 to 5" + NB + "N is off by more than the 20-28" + NB + "% by which "
+        "they missed the FE model.</li>"
+        "<li>Torsion without the lever arm: the sphere on the HEX-E's axis and the finger clamped to the table. The HEX-E's "
+        "$\\tau_z$ then reads the torsion, at a noise of 0.001" + NB + "N" + NB + "m per sample. The twists of this plan "
+        "should also go to 5" + NB + "N, about 6" + NB + "N" + NB + "mm by the Hertz estimate.</li></ul>"
         f"<p>Status of the printed-fingertip work: {link(h['STATUS_PAGE'], 'status page')}.</p>")
     S.append(("future", "Future work", sec))
     return S, lede, summary

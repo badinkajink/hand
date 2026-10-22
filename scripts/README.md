@@ -156,6 +156,7 @@ The live viewer and the seat check are `src/morphohand/driver/reskin5x/host/wren
 | `ur5_tip_calibration_analysis.py` | ground truth of every hold of a session (contact point, force, shear, torsion in the pad frame) and the estimator scored against it; in a simulated session the ground truth against the simulator's contact |
 | `ur5_tip_calibration_film.py` | MuJoCo replay of a session's joint record, the cell and the pad on the sphere side by side; `--still t ...` for stills |
 | `ur5_tip_calibration_page.py` | `collect <session>` copies a session's small files and writes `results.json`; without arguments builds the page (`.venv/bin/python`) |
+| `ur5_tip_calibration_lab_setup.sh` | setup check of the UR5's computer in a fresh clone: pulls the plan and the simulator's data through git-lfs, makes the venv, lists old copies of magpie_control's F/T reader, probes the robot, the HEX-E's DAQ and the board, runs three simulated stages (runbook: `docs/experiments/20261022-ur5_tip_calibration/README.md`) |
 
 The session's program and its simulator are `src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py` and
 `ur5_tip_calibration_sim.py`.

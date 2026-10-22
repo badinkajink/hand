@@ -506,8 +506,15 @@ class OptoForceStream(threading.Thread):
     """The HEX-E through its Ethernet DAQ: UDP to port 49152, the DAQ's datagrams of magpie_control (ft_sensor.py,
     magpie_force_control/src/ft_sensor.cpp): header 0x1234, command 0x0082 speed (1000 / value Hz: 2 is 500 Hz), 0x0081
     filter (0 none), 0x0042 bias (1 tares), 0x0002 send n samples; answers of 3 uint32 (sequence numbers, status) and 6
-    int32, forces / 1e4 N, torques / 1e5 N m. Polled one sample at a time (the lab's verified way); stream=True asks
-    for continuous sending instead. Rows: t_host, ft_sequence, status, Fx, Fy, Fz, Tx, Ty, Tz."""
+    int32, forces / 1e4 N, torques / 1e5 N m. Polled one sample at a time (the lab's verified way, as in magpie_control's
+    reader since commit 806b94a of 2026-03-06); stream=True asks for continuous sending instead. Rows: t_host,
+    ft_sequence, status, Fx, Fy, Fz, Tx, Ty, Tz.
+
+    A datagram that waits in the socket is stale: an answer that arrived after its read timed out, or one the DAQ sent
+    on its own because a program quit while it streamed. Read later, it would pass for the answer to a newer request,
+    and the lag would grow by one sample each time (the 20 ms reader of 2024-11 in magpie_control piled them up this
+    way). So configure() stops the DAQ and empties the socket, and each polled request first empties it again;
+    n_late counts the datagrams dropped."""
 
     SPEED = {500: 2, 250: 4, 100: 10, 50: 20}
 
@@ -515,7 +522,7 @@ class OptoForceStream(threading.Thread):
         super().__init__(daemon=True)
         self.addr, self.rate, self.app, self.stream_mode, self.bias = (ip, port), rate, appender, stream, bias
         self.ring = Ring()
-        self.stop, self.n, self.n_timeout, self.n_repeat = False, 0, 0, 0
+        self.stop, self.n, self.n_timeout, self.n_repeat, self.n_late = False, 0, 0, 0, 0
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(0.05)
         self.sock.connect(self.addr)
@@ -525,7 +532,24 @@ class OptoForceStream(threading.Thread):
         self.sock.send(struct.pack("!HHI", 0x1234, cid, value))
         time.sleep(wait)
 
+    def drain(self):
+        n = 0
+        self.sock.setblocking(False)
+        try:
+            while True:
+                self.sock.recv(64)
+                n += 1
+        except (BlockingIOError, InterruptedError):
+            pass
+        except OSError:                                          # ICMP port unreachable while nothing answers
+            pass
+        finally:
+            self.sock.settimeout(0.05)
+        return n
+
     def configure(self):
+        self._cmd(0x0000, 0)
+        self.n_late += self.drain()
         self._cmd(0x0082, self.SPEED[self.rate])
         self._cmd(0x0081, 0)
         if self.bias:
@@ -542,11 +566,16 @@ class OptoForceStream(threading.Thread):
         nxt, rows = time.time(), []
         while not self.stop:
             if not self.stream_mode:
+                self.n_late += self.drain()
                 self.sock.send(req)
             try:
                 data = self.sock.recv(64)
             except socket.timeout:
                 self.n_timeout += 1
+                continue
+            except OSError:                                      # ICMP port unreachable: the DAQ is not up yet
+                self.n_timeout += 1
+                time.sleep(0.05)
                 continue
             t = time.time()
             if len(data) != 36:
@@ -1092,6 +1121,10 @@ class Session:
         print(f"preflight: HEX-E {out['ft_hz']:.0f} Hz, board {out['board_hz']:.0f} records/s, robot {out['robot_hz']:.0f} Hz")
         if len(vf):
             print("  HEX-E noise (1 sigma) N, N m:", np.round(vf.std(axis=0), 4))
+        ft = self.be.ft
+        if hasattr(ft, "n_late"):
+            out.update(ft_timeouts=ft.n_timeout, ft_late=ft.n_late)
+            print(f"  HEX-E reads: {ft.n_timeout} timed out, {ft.n_late} late datagrams dropped (0 and 0 on a clean link)")
         pl = self.plan.get("payload")
         if pl:
             self.be.robot.set_payload(pl["kg"], pl["cog_mm"])
@@ -1126,9 +1159,35 @@ class Session:
         self.reg.T_BI = Th @ self.reg.T_EM @ inv(self.geo.T_IM_home)
         self.reg.notes["homing_spread_mm_deg"] = spread
         print(f"homing: {n} seatings within {max(s[0] for s in spread):.3f} mm, {max(s[1] for s in spread):.3f} deg of their mean")
+        self.check_placement()
         self.save_reg()
         self.log.event(event="end", id="homing", status="ok", rec=dict(T_BE_home=Th, poses=poses, spread=spread))
         self.done.add("homing")
+
+    def check_placement(self, max_mm=20.0, max_yaw=5.0, max_tilt=2.0):
+        """The plan's reach and clearance checks hold for the placement it was built on (checks.placement_mm_deg: x, y, z
+        in the base frame, yaw of x_I about z_B). Homing measures the real one; past the limits the operator moves the
+        plywood, rebuilds the plan, or types 'continue'."""
+        pl = self.plan.get("checks", {}).get("placement_mm_deg")
+        if pl is None:
+            return
+        p, R = self.reg.T_BI[:3, 3], self.reg.T_BI[:3, :3]
+        yaw = math.degrees(math.atan2(R[1, 0], R[0, 0]))
+        tilt = math.degrees(math.acos(float(np.clip(R[2, 2], -1.0, 1.0))))
+        dp = p - np.array(pl[:3], float)
+        dyaw = (yaw - pl[3] + 180.0) % 360.0 - 180.0
+        self.reg.notes["placement_offset_mm_deg"] = dict(d_mm=dp.tolist(), d_yaw=dyaw, tilt=tilt)
+        print(f"  indenter at ({p[0]:.1f}, {p[1]:.1f}, {p[2]:.1f}) mm, yaw {yaw:.1f} deg, tilt {tilt:.2f} deg; the plan has "
+              f"({pl[0]:.0f}, {pl[1]:.0f}, {pl[2]:.0f}) mm, yaw {pl[3]:.0f} deg")
+        if np.linalg.norm(dp) <= max_mm and abs(dyaw) <= max_yaw and tilt <= max_tilt:
+            return
+        ans = self.be.operator(
+            f"the indenter is {np.linalg.norm(dp):.0f} mm, {dyaw:+.1f} deg of yaw and {tilt:.1f} deg of tilt from the plan's "
+            f"placement (limits {max_mm:.0f} mm, {max_yaw:.0f} deg, {max_tilt:.0f} deg), where its reach and clearance were not "
+            f"checked. Move the plywood by ({-dp[0]:+.0f}, {-dp[1]:+.0f}) mm in the base frame and run again, or rebuild "
+            f"the plan with --placement {p[0]:.0f},{p[1]:.0f},{p[2]:.0f},{yaw:.0f}. Type continue to go on", kind="placement")
+        if str(ans).strip().lower() != "continue":
+            raise SystemExit("stopped at the placement check; homing runs again on the next start")
 
     def stage_gravity(self, stage="gravity"):
         acts = self.actions(stage)
@@ -1474,6 +1533,10 @@ def main(argv=None):
             pass
     finally:
         log.save("registration.json", ses.reg.to_json())
+        ft = getattr(be, "ft", None)
+        if hasattr(ft, "n_late"):
+            log.event(event="ft_reads", n=ft.n, timeouts=ft.n_timeout, late=ft.n_late, repeats=ft.n_repeat)
+            print(f"HEX-E: {ft.n} samples, {ft.n_timeout} timed out, {ft.n_late} late datagrams dropped")
         be.close()
         log.close()
         print(f"session in {log.dir}")
