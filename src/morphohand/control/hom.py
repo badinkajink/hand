@@ -23,9 +23,10 @@ object, at {L1}'s origin, in {L1}'s axes. Object twists are body twists (w_b, v_
 Changes for MuJoCo and for servo-driven hardware (documented in docs/experiments/20261021-hom_framework/):
   * The joints are position servos (MuJoCo position actuators with the bench-identified gain k_p), not torque-controlled
     joints under inverse dynamics. The integrated joint reference theta_ref is the servo target. The impedance
-    controller becomes two servo offsets for a commanded force F: J^+ (gap x_C1), which moves the action point onto the
-    object's surface, and J^T (F x_C1) / k_p, which presses with F through the servo spring; plus an optional gravity
-    feedforward tau_g / k_p.
+    controller becomes two servo offsets for a commanded force F: J^+ (gap x_C1), which moves the reference's action
+    point onto the measured surface (gap: the signed distance of the action point at theta_ref from the object, so the
+    target stays on the surface when the object moves off its reference twist), and J^T (F x_C1) / k_p, which presses
+    with F through the servo spring; plus an optional gravity feedforward tau_g / k_p.
   * Witness points come from mj_geomDistance on a kinematic copy of the scene (the Mirror) instead of FCL/fcpw on
     convex decompositions; in contact, the centre of pressure of the sphere-pad contacts plays the role of the
     hydroelastic centre of pressure, and the closest points come from analytic surfaces (surfaces.py) instead of
@@ -388,7 +389,11 @@ class HomParams:
     force_loop_gain: float = 0.0         # m/s per N: optional v_sep correction from the measured force (not in the paper)
     dls: float = 0.002                   # m/rad: damping of the gap-closing step of the servo impedance
     ell: float = ELL                     # m: linear rows of Eq. (2) are divided by ell (1.0: SI units, equal weights)
-    impedance: str = "gap"               # "gap" or "surface": where the servo impedance measures the penetration from
+    impedance: str = "reference"         # where the servo impedance measures the gap it closes: "reference" (the action
+                                         # point at theta_ref, closed when behind the surface, in contact or apart); "gap"
+                                         # and "surface" (at the measured angles: only while apart / also in contact, and
+                                         # into the object), the versions before 2026-10-22
+    gap_max: float = 0.006               # m: the gap-closing step is cut to this ("reference"); beyond, v_sep closes it
     filter: FilterParams = field(default_factory=FilterParams)
 
 
@@ -502,9 +507,15 @@ class HomController:
                 # the impedance's reference penetration is measured from the object's surface: move the action point
                 # across the remaining gap (damped least squares), then press with F through the servo spring
                 Jp, _ = mr.jac(f, p_act)
-                # "gap": move across the gap only while apart; "surface": also in contact, so the reference stays on the
-                # measured surface when the object moves off its reference twist (the paper's penetration from the surface)
-                gap = g.dist if prm.impedance == "surface" else max(g.dist, 0.0)
+                if prm.impedance == "reference":
+                    # the gap of the action point at theta_ref (linearised from the measured one), closed when the
+                    # reference has fallen behind the surface: the target then sits F/k inside the measured surface. A
+                    # reference ahead of the surface (a pusher's motion, or an object pushed into the finger) is kept,
+                    # so the servo spring pushes or resists there
+                    gap = float(np.clip(g.dist - n_act @ (Jp @ (self.theta_ref[f] - th)), 0.0, prm.gap_max))
+                else:
+                    # "gap": at the measured angles, while apart; "surface": also in contact
+                    gap = g.dist if prm.impedance == "surface" else max(g.dist, 0.0)
                 if gap != 0.0:
                     offset += Jp.T @ np.linalg.solve(Jp @ Jp.T + prm.dls ** 2 * np.eye(3), gap * n_act)
                 offset += Jp.T @ (c.force * n_act) / kp

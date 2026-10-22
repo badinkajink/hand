@@ -270,6 +270,35 @@ def test_gcf_convention(mirror):
     assert mirror.gcf_witness("f").dist < g.dist
 
 
+def test_impedance_target_on_the_surface_from_a_lagging_reference():
+    """'reference' impedance: with theta_ref lagging 1.6 mm behind the finger, the servo target's action point still
+    lands on the measured surface and presses F sum_j (J^T x1)_j^2 / k_p,j into it; the earlier 'gap' mode adds the gap
+    measured at the finger to the lagging reference and stops short by the lag."""
+    mujoco = pytest.importorskip("mujoco")
+    m = mujoco.MjModel.from_xml_string(XML.replace("<mujoco>", '<mujoco><compiler angle="radian"/>', 1))
+    fs = H.FingerSpec("f", ["j0", "j1", "j2"], "tip", "tipgeom", "j2", Posed(Sphere(0.01), pos=[0.03, 0, 0]))
+    mirror = H.Mirror(m, [fs], H.ObjectSpec("obj", "objgeom", Posed(Sphere(0.02))))
+    q = np.zeros(3)
+    pos, quat = np.array([0.08, 0.0, 0.068]), np.array([1.0, 0.0, 0.0, 0.0])
+    F = 0.5
+    lag = np.array([0.0, -0.02, 0.0])                       # j1 turned away from the object: the tip 1.6 mm higher
+    mirror.set_state({"f": q}, pos, quat)
+    g = mirror.gcf_witness("f")
+    Jp, _ = mirror.jac("f", g.p1)
+    press = F * float(((Jp.T @ g.x1) ** 2 / mirror.kp["f"]).sum())
+    behind = -g.x1 @ (Jp @ lag)
+    assert g.dist == pytest.approx(0.002, abs=2e-4) and behind == pytest.approx(0.0016, abs=1e-4)
+    advance = {}
+    for mode in ("reference", "gap"):
+        ctl = H.HomController(mirror, H.HomParams(use_filter=False, gravity_ff=False, dls=1e-6, impedance=mode))
+        ctl.reset({"f": q + lag})
+        out, _ = ctl.step(H.Measurement(q={"f": q}, obj_pos=pos, obj_quat=quat),
+                          H.HandCommand(fingers={"f": H.FingerCommand(force=F)}))
+        advance[mode] = g.x1 @ (Jp @ (out["f"] - q))       # how far the target moves the action point toward the object
+    assert advance["reference"] == pytest.approx(g.dist + press, rel=1e-3)
+    assert advance["gap"] == pytest.approx(g.dist + press - behind, rel=1e-3)
+
+
 def test_eq2_unbounded_matches_closed_form():
     A = RNG.normal(size=(6, 3))
     b = RNG.normal(size=6) * 0.01
@@ -338,3 +367,57 @@ def test_filter_smooths_static_noise():
         raw.append(np.linalg.norm(p1 - true))
     assert flt.k[0] == pytest.approx(5.0) and flt.k[1] == pytest.approx(5.0)
     assert np.mean(errs[100:]) < 0.35 * np.mean(raw[100:])
+
+
+# ------------------------------------------------------------------------------------------------ bench adapter
+
+def test_hom_bench_simulated_stream():
+    """hom_bench on a simulated stream: 2 s of the roll task on the 40 mm sphere (approach, squeeze, lift) at 50 Hz in
+    closed loop through the bench units (servo degrees, the object pose and contact estimates in the palm frame in mm).
+    On the same plant states the controller run directly gives the same servo targets, a replay of the recorded stream
+    gives them again, and a plan whose mounts are not the design's layout is refused."""
+    pytest.importorskip("mujoco")
+    import json
+    from morphohand.control import hom_bench as B
+    try:
+        bench = B.HomBench.from_design("roll", 40.0)
+    except (FileNotFoundError, json.JSONDecodeError, KeyError, RuntimeError) as e:
+        pytest.skip(f"CAD-hand cell unavailable: {e}")
+    stream, _ = B.simulate(bench, seed=0, seconds=2.0)
+    assert len(stream) == 100
+    assert {s["phase"] for s in stream} == {"open", "close", "squeeze", "lift"}
+    assert all(not s["clipped"] for s in stream)
+    assert any(len(s["contacts"]) == 3 for s in stream)                        # the pads touch before the lift
+    T = bench.T
+    plant = T.Plant(bench.p_pads, bench.setup)
+    plant.reset(bench.q_open, 0)
+    ctl = H.HomController(bench.mirror, bench.prm, healthy=bench.q_open)
+    sch = T.Schedule("roll", bench.setup, T.PRM)
+    t, lifted = 0.0, False
+    for smp in stream:
+        s = plant.state()
+        if t >= T.T_LIFT and not lifted:
+            plant.post_off()
+            lifted = True
+        cmd, _ = sch(t, s)
+        q_cmd, _ = ctl.step(H.Measurement(q=s["q"], obj_pos=s["pos"], obj_quat=s["quat"], cop=dict(s["cop"])), cmd)
+        q_bench = B.sim_from_servo(smp["targets"])
+        for f in B.FINGERS:
+            assert q_bench[f] == pytest.approx(q_cmd[f], abs=1e-6)
+        plant.set_targets(q_bench)                                             # the states of the simulated stream
+        t += bench.prm.dt                                                      # accumulated as simulate() does
+        plant.advance(t)
+    for a, b in zip(B.replay(bench, stream), stream):
+        for f in B.FINGERS:
+            for sv in ("aa", "fe1", "fe2"):
+                assert a["targets"][f][sv] == pytest.approx(b["targets"][f][sv], abs=1e-6)
+    plan = {"design": bench.setup["design"]["tag"],
+            "mounts_palm_mm": {f: (1e3 * bench.setup["mounts"][f][:2]).tolist() for f in B.FINGERS},
+            "poses": [{"name": "open", "ramp_s": 0.0, "hold_s": 0.0,
+                       "joints": {f: dict(zip(B.SIM_JOINTS, np.degrees(bench.q_open[f]).tolist())) for f in B.FINGERS}}]}
+    pb = B.HomBench.from_plan(plan, "roll", 40.0)
+    for f in B.FINGERS:
+        assert pb.q_open[f] == pytest.approx(bench.q_open[f], abs=1e-12)
+    plan["mounts_palm_mm"]["index"][0] += 2.0
+    with pytest.raises(ValueError):
+        B.HomBench.from_plan(plan, "roll", 40.0)

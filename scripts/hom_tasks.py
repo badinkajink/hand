@@ -3,30 +3,37 @@
 object sizes, in CPU MuJoCo on the bench servo plant (kp 4 N m/rad, 1 N m, damping 0.08) with the printed TPU block as
 1 mm sphere pads (builder v2), 1 ms physics, 100 Hz control.
 
-Tasks. Each maps one sub-assembly of the HOM paper (arXiv 2609.25619v2) onto the three-finger SR2 hand, whose fingers
-hang from a palm plate above the object.
-  pinpush  Cylinder (70 mm long) along palm x. Index and middle pinch it across its middle (palm y); the pinch is a
-           prismatic joint (1.5 N per pad: enough torsional friction to hold the gravity torque as the centre of mass
-           leaves the pinch axis, little enough for the thumb to slide it). The thumb is a pusher on the -x end cap:
-           its reference object twist is a translation along the cylinder axis at 10 mm/s for 1.0 s (Eq. 3 with a
-           translation in place of the rotation s), while the pinch fingers hold their reference (V_PB0 = 0, as the
-           paper's pinching fingers in its Exp. C). Then the pinch locks at 3 N. Score: axial displacement against the
-           commanded 10 mm, axial-velocity RMSE, axis tilt.
-  press    The pinpush grasp with a wall 4 mm beyond the +x end cap. The thumb pushes the cylinder to the wall
-           (8 mm/s), then holds its reference and commands its contact force through the servo spring (the paper's
-           impedance) in steps of 0.5, 1.0, 2.0 and 0.5 N, 1 s each, with the pinch relaxed to 0.6 N: the pusher
-           presses the tool on an environmental contact. Score: wall force against the command, per step.
-  roll     Sphere at the circumcentre of the three mounts, equator tripod (the scale study's grasp). All three fingers
-           follow the object's reference body twist with free rolling (w_roll = 0), as the paper's Exp. B: steps of
-           +-40 deg/s about the two horizontal axes, 0.5 s each, with 2.5 N per pad (at 1.5 N the 40 mm sphere left the
-           grasp on the first y-axis step). Score: angular-velocity RMSE / step (the paper's
-           metric), achieved angle per step, drift of the centre.
-  twist    The roll grasp; the same steps about the vertical axis, then a ramp at 30 deg/s to the largest held twist.
+Tasks. Each maps a sub-assembly of the HOM paper (arXiv 2609.25619v2) onto the three-finger SR2 hand, whose fingers
+hang from a palm plate above the object. The demonstrations are the four clips in docs/experiments/20261021-hom_framework
+(cylinder_push.mov, cylinder_press.mov, roll_sphere.mov, twist_sphere.mov).
+  pinpush  Pin-pusher with a friction drive. A 100 mm cylinder lies along palm y. Thumb and index pinch it across palm x
+           at y_p: the pinch is a revolute joint about the line through the two contacts (the paper's Exp. C, both
+           pinching fingers with V_PB0 = 0 and w_spin = 0). The middle finger's pad touches the cylinder beside the
+           index at y_m, LEVER_MIN or more from the pinch, with its normal parallel to the pinch axis. It is the
+           pusher: its reference object twist is Eq. (3)'s rotation s about the pinch axis, and with its pad held
+           sticking (w_slide) and pressed with f_drive, its tangential motion drags the cylinder round the axis by
+           friction, in both directions. (The demonstration pushes with the back of a finger, where SR2 has no
+           tactile sensing.) Command: +-15 deg at 15 deg/s. Score: angle about the pinch axis against the command
+           (RMSE, gain per stroke), sliding of the middle's pad on the cylinder, rotation off the pinch axis.
+  press    The paper's pusher on the same pinch: the middle's pad touches the cylinder 30 deg below its equator, so its
+           normal force has a component across the pinch axis and lifts the middle's side; it presses lightly (f_press)
+           and its reference motion pushes. Command: up 20 deg at 20 deg/s, hold 1 s, down again. Scores as pinpush.
+           Both cylinder tasks use the weights of the paper's Exp. C: every finger rolls freely (w_roll = 0), the
+           pinching pads also spin (w_spin = 0), and the pusher does not slide.
+  roll     Sphere at the circumcentre of the three mounts, equator tripod (the scale study's grasp). The sphere rolls
+           along the thumb's pad, as in the demonstration: its reference body twist is a rotation about palm y through
+           the thumb's contact (the centre moves along the thumb at r w), steps of +-40 deg/s for 0.5 s; index and
+           middle drive it, every finger with free rolling (w_roll = 0, the paper's Exp. B), 2.5 N per pad. Score:
+           angular-velocity RMSE / step (the paper's metric), achieved angle per step, error of the centre's path.
+  twist    The roll grasp; steps of +-40 deg/s about the vertical through the centre, then a ramp at 30 deg/s to the
+           largest twist held on three pads.
 Every task starts with the paper's pick: fingers 8 mm off the object approach at v_sep = 20 mm/s until the anti-windup
 stops them 0.5 mm away, the commanded forces turn on, and the support post is removed.
+Commits before 2026-10-22 read the pin-push as a prismatic pinch slid by the thumb on the end cap, the press as the thumb
+pushing the cylinder against a wall, and the roll as a rotation in place about the horizontal axes.
 
     .venv/bin/python scripts/hom_tasks.py design                                  # grasp per task and size
-    .venv/bin/python scripts/hom_tasks.py run --tasks pinpush press --d 10 16 25 40 --seeds 0 1 2
+    .venv/bin/python scripts/hom_tasks.py run --tasks pinpush press --d 10 25 --seeds 0 1 2
     .venv/bin/python scripts/hom_tasks.py run --tasks roll --d 40 --seeds 0 --film
 Rows: docs/experiments/20261021-hom_framework/rows/<task>.jsonl, one fsynced line per rollout, resumable.
 """
@@ -63,24 +70,32 @@ MEDIA = OUT / "media"
 SCN = ROOT / "logs/20261021-hom_tasks/scenes"
 FINGERS, JOINTS = S.FINGERS, S.JOINTS
 TASKS = ("pinpush", "press", "roll", "twist", "expa")
-SIZES = {"pinpush": (10.0, 16.0, 20.0, 25.0), "press": (10.0, 16.0, 20.0, 25.0),
+SIZES = {"pinpush": (10.0, 16.0, 25.0, 40.0), "press": (10.0, 16.0, 25.0, 40.0),
          "roll": (30.0, 40.0, 50.0, 63.0), "twist": (30.0, 40.0, 50.0, 63.0), "expa": (25.0,)}
 SHAPE = {"pinpush": "cylinder", "press": "cylinder", "roll": "sphere", "twist": "sphere", "expa": "cylinder"}
-GRASP = {"pinpush": "pinch_x", "press": "pinch_x", "roll": "equator", "twist": "equator", "expa": "equator"}
-CYL_LEN = 0.070                  # m: shorter than the scale study's 100 mm so the thumb reaches the end cap
+GRASP = {"pinpush": "pinch_y", "press": "pinch_y", "roll": "equator", "twist": "equator", "expa": "equator"}
+CYL_LEN = 0.100                  # m: the scale study's tool length
 EXPA_MOVER = "thumb"             # Exp. A: the finger whose palmar side faces the cylinder in the equator grasp
+PINCH, PUSHER = ("thumb", "index"), "middle"
+LEVER_MIN = 0.040                # m: the middle's contact at least this far from the pinch along the cylinder
+PHI_P = (0.0, 15.0)              # deg below the equator: the pinching pads' contact latitudes searched (at 30 deg the
+                                 # pinch squeezes the cylinder out upward)
+PHI_M = {"pinpush": (0.0, 15.0), "press": (30.0, 45.0)}   # the middle's: at or near the equator (friction), below it
+                                                         # (normal force)
 
 
 def dkey(task, d_mm):
-    """design.json key: pinch-x grasps keep the plain key (cylinder25); equator grasps of a cylinder get eq_."""
+    """design.json key: thumb-index pinch grasps per task (pinpush_cylinder25, the middle's latitude differs); equator
+    grasps of a sphere plain (sphere40), of a cylinder with eq_ (eq_cylinder25)."""
     shape = SHAPE[task]
-    return f"{'eq_' if GRASP[task] == 'equator' and shape == 'cylinder' else ''}{shape}{d_mm:g}"
+    if GRASP[task] == "pinch_y":
+        return f"{task}_{shape}{d_mm:g}"
+    return f"{'eq_' if shape == 'cylinder' else ''}{shape}{d_mm:g}"
 KP = 4.0
 DT_C = 0.01
 FILLET = 0.0027
-AXIS_X = (0.70710678, 0.0, 0.70710678, 0.0)        # body z (the cylinder axis) along world x
-SPHERE_Q = (0.70710678, 0.70710678, 0.0, 0.0)       # the scale study's object orientation
-WALL_GAP = 0.004
+SPHERE_Q = (0.70710678, 0.70710678, 0.0, 0.0)       # the scale study's object orientation: body z (a cylinder's axis)
+                                                    # along palm -y
 
 
 # ------------------------------------------------------------------------------------------------ grasp design
@@ -89,50 +104,77 @@ def _reach():
     return json.loads((S.OUT_DIR / "reach.json").read_text())
 
 
-def _pinch_x_targets(r, L, x_p, h):
-    """Pad-centre targets (palm frame), object-outward normals: index and middle across y at x_p, thumb on the -x
-    end cap. The object centre is (x_p, 0, -h)."""
+def _pinch_y_targets(r, des):
+    """Pad-centre targets (palm frame) and object-outward contact normals of the thumb-index pinch: the cylinder's axis
+    along palm y through (x_c, ., -h); thumb and index across x at y_p, phi_p below the equator; the middle on the
+    index's side at y_m, phi_m below the equator (phi_m = 0: its normal parallel to the pinch axis)."""
+    pp, pm = math.radians(des["phi_p"]), math.radians(des["phi_m"])
+    n_out = {"thumb": np.array([-math.cos(pp), 0.0, -math.sin(pp)]),
+             "index": np.array([math.cos(pp), 0.0, -math.sin(pp)]),
+             "middle": np.array([math.cos(pm), 0.0, -math.sin(pm)])}
+    yy = {"thumb": des["y_p"], "index": des["y_p"], "middle": des["y_m"]}
     rr = r + K.R + K.GAP
-    tg = {"index": np.array([x_p, rr, -h]), "middle": np.array([x_p, -rr, -h]),
-          "thumb": np.array([x_p - L / 2 - K.R - K.GAP, 0.0, -h])}
-    n_out = {"index": np.array([0.0, 1.0, 0.0]), "middle": np.array([0.0, -1.0, 0.0]),
-             "thumb": np.array([-1.0, 0.0, 0.0])}
+    tg = {f: np.array([des["x_c"], yy[f], -des["h"]]) + rr * n_out[f] for f in FINGERS}
     return tg, n_out
 
 
-def design_pinch_x(d_mm: float, L: float = CYL_LEN):
-    """Best pinpush/press grasp for a cylinder of diameter d: over the tripod layouts of the scale study, the pinch
-    position x_p and the palm height h, the reachable grasp (servo limits with 3 deg margin, the object 15 mm below the
-    plate) with the largest smallest pad-Jacobian singular value. The pad centre is the scale study's: a sphere of the
-    phalange radius about the distal link's end; open_pose then moves each finger until the TPU block touches."""
+def design_pinch_y(d_mm: float, task: str, L: float = CYL_LEN, keep: int = 400):
+    """Ranked grasps of the thumb-index pinch for a cylinder of diameter d along palm y: over the tripod layouts of the
+    scale study, the axis position x_c and depth h, the pinch's y_p and latitude phi_p (PHI_P) and the middle's y_m and
+    latitude (PHI_M[task]), the reachable grasps (servo limits with 3 deg margin) whose distal links face the object
+    (palmar normal within 25 deg of the contact normal), with the middle LEVER_MIN to L - 20 mm from the pinch, ranked by
+    the smallest pad-Jacobian singular value of the three fingers. The pad centre is the scale study's (a sphere of the
+    phalange radius about the distal link's end); open_pose then moves each finger until the TPU block touches."""
     r = d_mm / 2000.0
     lim = K.limits(False)
-    best = None
+    rr = r + K.R + K.GAP
+    cos_ok = math.cos(math.radians(25.0))
+    xc = np.arange(-0.03, 0.0301, 0.0025)
     ranked = []
     for lay in _reach()["families"]["diag"]:
         xs, ys = lay["x_sep"] / 1000, lay["y_sep"] / 1000
         mt = K.mounts(xs, ys)
-        for x_p in np.arange(-0.03, 0.0601, 0.0025):
-            for h in np.arange(r + 0.015, 0.1101, 0.0025):
-                tg, n_out = _pinch_x_targets(r, L, x_p, h)
-                rec = {}
-                for f in FINGERS:
-                    q, ok = K.ik(f, (tg[f] - mt[f])[None])
-                    qq, good, mmin, _ = K.pick_branch(q[0], np.asarray(ok[0]), lim[f], math.radians(3.0))
-                    if not good:
-                        break
-                    palm = K.fk(f, qq)["palmar"]            # recorded only: these grasps touch with the block's end
-                    _, smin = K.jac_cond(f, qq)
-                    rec[f] = (qq, float(mmin), float(smin), float(palm @ (-n_out[f])))
-                if len(rec) < 3:
-                    continue
-                score = min(v[2] for v in rec.values())
-                ranked.append({"score": score, "tag": lay["tag"], "t": lay["t"], "x_sep_mm": lay["x_sep"],
-                               "y_sep_mm": lay["y_sep"], "x_p": float(x_p), "h": float(h), "L": L, "d_mm": d_mm,
-                               "q_deg": {f: np.degrees(v[0]).round(2).tolist() for f, v in rec.items()},
-                               "margin_deg": {f: round(math.degrees(v[1]), 2) for f, v in rec.items()},
-                               "sigma_min_mm": {f: round(v[2] * 1000, 2) for f, v in rec.items()},
-                               "palmar_cos": {f: round(v[3], 3) for f, v in rec.items()}})
+        b = ys / 2
+        hh = np.arange(r + 0.02, 0.1001, 0.0025)
+        yv = np.arange(-b, b + 1e-9, 0.0025)
+
+        def solve(f, phis):
+            X, Hh, Y, PH = np.meshgrid(xc, hh, yv, np.radians(phis), indexing="ij")
+            sx = -1.0 if f == "thumb" else 1.0
+            n = np.stack([sx * np.cos(PH), np.zeros_like(PH), -np.sin(PH)], -1)
+            T = np.stack([X, Y, -Hh], -1) + rr * n
+            q, ok = K.ik(f, T - mt[f])
+            qq, good, _, _ = K.pick_branch(q, ok, lim[f], math.radians(3.0))
+            pc = (K.fk(f, qq)["palmar"] * (-n)).sum(-1)
+            _, smin = K.jac_cond(f, qq)
+            return np.where(good & (pc >= cos_ok), smin, -np.inf), qq, pc
+
+        st, qt, pct = solve("thumb", PHI_P)
+        si, qi, pci = solve("index", PHI_P)
+        sm, qm, pcm = solve("middle", PHI_M[task])
+        sti = np.minimum(st, si)                                 # (x_c, h, y_p, phi_p)
+        kp_ = sti.argmax(-1)
+        bti = np.take_along_axis(sti, kp_[..., None], -1)[..., 0]
+        km = sm.argmax(-1)
+        bm = np.take_along_axis(sm, km[..., None], -1)[..., 0]  # (x_c, h, y_m)
+        lever = yv[:, None] - yv[None, :]                        # y_p - y_m
+        comb = np.minimum(bti[:, :, :, None], bm[:, :, None, :])
+        comb = np.where((lever >= LEVER_MIN - 1e-9) & (lever <= L - 0.020 + 1e-9), comb, -np.inf)
+        flat = np.argsort(comb, axis=None)[::-1][:keep]
+        for i, j, k, l in zip(*np.unravel_index(flat, comb.shape)):
+            if not np.isfinite(comb[i, j, k, l]):
+                break
+            a, c = kp_[i, j, k], km[i, j, l]
+            q = {"thumb": qt[i, j, k, a], "index": qi[i, j, k, a], "middle": qm[i, j, l, c]}
+            ranked.append({"score": float(comb[i, j, k, l]), "tag": lay["tag"], "t": lay["t"],
+                           "x_sep_mm": lay["x_sep"], "y_sep_mm": lay["y_sep"], "x_c": float(xc[i]), "h": float(hh[j]),
+                           "y_p": float(yv[k]), "y_m": float(yv[l]), "phi_p": float(PHI_P[a]),
+                           "phi_m": float(PHI_M[task][c]), "L": L, "d_mm": d_mm,
+                           "lever_mm": round(1e3 * float(yv[k] - yv[l]), 2),
+                           "q_deg": {f: np.degrees(v).round(2).tolist() for f, v in q.items()},
+                           "palmar_cos": {"thumb": round(float(pct[i, j, k, a]), 3),
+                                          "index": round(float(pci[i, j, k, a]), 3),
+                                          "middle": round(float(pcm[i, j, l, c]), 3)}})
     ranked.sort(key=lambda c: -c["score"])
     return ranked
 
@@ -217,10 +259,10 @@ def cmd_design(a) -> int:
             if key in out:
                 continue
             t0 = time.time()
-            if GRASP[task] == "pinch_x":
+            if GRASP[task] == "pinch_y":
                 out[key] = None
                 passing = []
-                ranked = design_pinch_x(d)
+                ranked = design_pinch_y(d, task)
                 for des in ranked[:a.max_try]:
                     clr, _qo, _qt = link_clearance(task, des, d)
                     if (clr["touch"] >= 0.0005 and clr["open"] >= 0.0015     # links 0.5 mm off when the block touches
@@ -232,7 +274,8 @@ def cmd_design(a) -> int:
                     out[key]["n_ranked"], out[key]["n_passing"] = len(ranked), len(passing)
             else:
                 out[key] = design_sphere(d, SHAPE[task])
-            print(key, None if out[key] is None else {k: out[key].get(k) for k in ("tag", "x_p", "h", "score", "n_passing",
+            print(key, None if out[key] is None else {k: out[key].get(k) for k in ("tag", "x_c", "h", "y_p", "y_m", "phi_p",
+                                                                                    "phi_m", "score", "n_passing",
                                                                                     "link_clearance_mm")},
                   f"{time.time() - t0:.1f} s", flush=True)
             path = OUT / "design.json"
@@ -256,39 +299,26 @@ def build(task: str, d_mm: float, models=("pads", "pt")):
     sc = S.cell_scenes(cell, shape, float(d_mm), models=models)
     r = d_mm / 2000.0
     xs, ys = des["x_sep_mm"] / 1000, des["y_sep_mm"] / 1000
-    if GRASP[task] == "pinch_x":
-        tg, n_out = _pinch_x_targets(r, CYL_LEN, des["x_p"], des["h"])
-        centre = np.array([des["x_p"], 0.0, -des["h"]])
-        quat = AXIS_X
-        hl = CYL_LEN / 2
+    if GRASP[task] == "pinch_y":
+        tg, n_out = _pinch_y_targets(r, des)
+        centre = np.array([des["x_c"], 0.5 * (des["y_p"] + des["y_m"]), -des["h"]])   # mass between pinch and middle
     else:
         gg = S.grasp_geometry(cell, shape, float(d_mm), des["h"], des["spread"])
         centre = gg["centre_palm"]
         tg = {f: centre + gg["rel"][f] for f in FINGERS}
         n_out = gg["n_out"]
-        quat = SPHERE_Q                                  # the scale study's: a cylinder lies along palm y
-        hl = 0.05 if shape == "cylinder" else 0.0
+    quat = SPHERE_Q                                      # the scale study's: a cylinder lies along palm y
+    hl = CYL_LEN / 2 if shape == "cylinder" else 0.0
     palm = np.array([-centre[0], -centre[1], S.Z_OBJ - centre[2]])
     paths = {"pads": None}
     for mdl in models:
         src = Path(sc[mdl][0])
-        dst = src.with_name(f"{src.stem}__hom_{task}{'_wall' if task == 'press' else ''}.xml")
+        dst = src.with_name(f"{src.stem}__hom_{task}.xml")
         root = ET.parse(src).getroot()
         tb = root.find(f".//body[@name='{S.OBJ}']")
         tb.set("quat", " ".join(f"{v:.8f}" for v in quat))
-        og = tb.find("geom")
-        if GRASP[task] == "pinch_x":
-            og.set("size", f"{r:.6f} {hl:.6f}")
-        if task == "press":
-            # a 6 mm plate standing on the floor, its top 2 mm above the cylinder, in collision class 2 so that only
-            # the object touches it (the finger links pass above it)
-            x_wall = hl + WALL_GAP
-            hz = (S.Z_OBJ + r + 0.002) / 2.0
-            wb = ET.SubElement(root.find("worldbody"), "body", name="wall", pos=f"{x_wall + 0.003:.6f} 0 {hz:.6f}")
-            ET.SubElement(wb, "geom", name="wall", type="box", size=f"0.003 0.015 {hz:.6f}", rgba="0.55 0.55 0.6 1",
-                          friction=f"{S.MU:g} 0.005 0.0001", contype="2", conaffinity="2")
-            og.set("contype", str(int(og.get("contype", "1")) | 2))
-            og.set("conaffinity", str(int(og.get("conaffinity", "1")) | 2))
+        if shape == "cylinder":
+            tb.find("geom").set("size", f"{r:.6f} {hl:.6f}")
         tmp = dst.with_name(dst.name + f".{os.getpid()}.tmp")
         ET.ElementTree(root).write(tmp)
         os.replace(tmp, dst)
@@ -371,7 +401,6 @@ class Plant:
                         self.tidx[g] = k
         self.post = m.geom("post").id
         self.post0 = (int(m.geom_contype[self.post]), int(m.geom_conaffinity[self.post]))
-        self.wall = m.geom("wall").id if task_has_wall(setup) else -1
         self.v6 = np.zeros(6)
 
     def reset(self, q0: dict, seed: int):
@@ -404,12 +433,11 @@ class Plant:
 
     def contacts(self):
         """Per finger the centre of pressure and normal force of its tip's pads on the object (what a fingertip sensor
-        measures, and the paper's contact of the distal link), the force of all its bodies on the object (links
-        included), and the wall's normal force."""
+        measures, and the paper's contact of the distal link), and the force of all its bodies on the object (links
+        included)."""
         d = self.d
         n = d.ncon
         cop, Ftot = {}, {f: 0.0 for f in FINGERS}
-        wallF = 0.0
         if n:
             g = d.contact.geom[:n]
             adr = d.contact.efc_address[:n]
@@ -429,9 +457,7 @@ class Plant:
                 F = float(fn[sel].sum())
                 if F > 0:
                     cop[f] = ((fn[sel, None] * pos[sel]).sum(0) / F, F)
-            if self.wall >= 0:
-                wallF = float(fn[pair & (other == self.wall)].sum())
-        return cop, wallF, Ftot
+        return cop, Ftot
 
     def state(self):
         d = self.d
@@ -440,13 +466,9 @@ class Plant:
         pos = d.qpos[self.qa:self.qa + 3].copy()
         quat = d.qpos[self.qa + 3:self.qa + 7].copy()
         self.mj.mj_objectVelocity(self.m, d, self.mj.mjtObj.mjOBJ_BODY, self.tb, self.v6, 0)
-        cop, wallF, Ftot = self.contacts()
+        cop, Ftot = self.contacts()
         return {"t": float(d.time), "q": q, "qd": qd, "pos": pos, "quat": quat, "w": self.v6[:3].copy(),
-                "v": self.v6[3:].copy(), "cop": cop, "wallF": wallF, "Ftot": Ftot}
-
-
-def task_has_wall(setup):
-    return setup["task"] == "press"
+                "v": self.v6[3:].copy(), "cop": cop, "Ftot": Ftot}
 
 
 # ------------------------------------------------------------------------------------------------ task schedules
@@ -470,11 +492,27 @@ class Schedule:
 
     def __init__(self, task, setup, prm):
         self.task, self.setup, self.prm = task, setup, prm
-        self.t_end = {"pinpush": T_LIFT + 0.4 + prm["t_push"] + 1.0, "press": T_LIFT + 0.4 + 1.0 + 4.0 + 0.3,
-                      "roll": T_LIFT + 0.4 + 2 * 1.3 + 0.3, "twist": T_LIFT + 0.4 + 1.3 + 4.0 + 0.5,
-                      "expa": EXPA_T0 + 6 * (2 * EXPA_STEP + EXPA_REST) + 0.2}[task]
-        self.t_wall = None
-        self.ref = {"ax_disp_mm": 0.0}
+        self.prof = None
+        if task == "pinpush":                            # +A, -A, back to 0, hold: both directions by friction
+            A, w = prm["rot_deg"], prm["rot_dps"]
+            self.prof = [(A / w, w, "up"), (2 * A / w, -w, "down"), (A / w, w, "back"), (0.5, 0.0, "hold")]
+        elif task == "press":                            # up by the normal force, hold, down by the weight
+            A, w = prm["press_deg"], prm["press_dps"]
+            self.prof = [(A / w, w, "press"), (1.0, 0.0, "hold up"), (A / w, -w, "release"), (0.5, 0.0, "hold")]
+        t_task = sum(p_[0] for p_ in self.prof) if self.prof else {"roll": 2 * 1.3, "twist": 1.3 + 4.0}.get(task, 0.0)
+        self.t_end = (EXPA_T0 + 6 * (2 * EXPA_STEP + EXPA_REST) + 0.2 if task == "expa"
+                      else T_LIFT + 0.4 + t_task + (0.3 if task == "roll" else 0.5 if task == "twist" else 0.0))
+
+    def angle(self, tt):
+        """Commanded rotation about the pinch axis at task time tt: angle (deg, + lifts the middle's side), rate
+        (deg/s) and the segment's name."""
+        th = 0.0
+        for dur, w, name in self.prof:
+            if tt < dur:
+                return th + w * tt, w, name
+            th += w * dur
+            tt -= dur
+        return th, 0.0, self.prof[-1][2]
 
     def phase(self, t):
         if t < T_OPEN:
@@ -519,48 +557,28 @@ class Schedule:
         info = {"phase": ph}
         tt = t - (T_LIFT + 0.4)
         if task in ("pinpush", "press"):
-            for f in ("index", "middle"):
+            for f in PINCH:                              # the revolute pinch of Exp. C: held, free to spin and roll
                 c = fc[f]
                 c.mode, c.follow_object = "pinch", False
+                c.weights = np.array([0.0, self.prm["w_roll_pinch"], self.prm["w_roll_pinch"], 1.0, 1.0, 1.0])
                 c.force = 0.0 if t < T_CLOSE else self.prm["f_pinch"]
                 _approach(c, t)
-            th = fc["thumb"]
-            th.mode = "pusher"
-            th.force = 0.0 if t < T_CLOSE else self.prm["f_thumb"]
-            _approach(th, t)
-            cmd.pinch = ("index", "middle")
-            R = H.quat_to_mat(s["quat"])
+            pu = fc[PUSHER]
+            pu.mode = "pusher"
+            pu.force = 0.0 if t < T_CLOSE else self.prm["f_drive" if task == "pinpush" else "f_press"]
+            pu.weights = np.array([1.0, self.prm["w_roll_push"], self.prm["w_roll_push"], 1.0, 1.0, 1.0])
+            # the thumb alone opposes the index and the middle along the pinch axis: it presses with both forces'
+            # components along that axis, so the commanded forces balance and the cylinder stays between the pads
+            n_t, n_m = self.setup["n_out"][PINCH[0]], self.setup["n_out"][PUSHER]
+            fc[PINCH[0]].force += pu.force * max(0.0, -(n_m @ n_t))
+            _approach(pu, t)
+            cmd.pinch = PINCH
             if ph == "task":
-                if task == "pinpush":
-                    tp = self.prm["t_push"]
-                    v_ax = self.prm["v_push"] if tt < tp else 0.0
-                    if tt >= tp:
-                        for f in ("index", "middle"):
-                            fc[f].force = self.prm["f_lock"]
-                    info["phase"] = "push" if tt < tp else "lock"
-                    self.ref["ax_disp_mm"] = 1e3 * self.prm["v_push"] * min(tt, tp)
-                    info["v_ax_ref"] = v_ax
-                    cmd.pusher_twist = np.array([0.0, 0.0, 0.0, 0.0, 0.0, v_ax])     # along the body z axis
-                else:
-                    for f in ("index", "middle"):
-                        fc[f].force = self.prm["f_press_pinch"]       # light prismatic pinch: the wall takes the load
-                    if self.t_wall is None and (s["wallF"] > 0.05 or tt > 1.0):
-                        self.t_wall = tt
-                        info["reanchor"] = ["thumb"]                   # motion -> force: drop the wound-up reference
-                    if self.t_wall is None:
-                        info["phase"] = "to wall"
-                        cmd.pusher_twist = np.array([0.0, 0.0, 0.0, 0.0, 0.0, self.prm["v_wall"]])
-                    else:
-                        for f in ("index", "middle"):
-                            fc[f].force = self.prm["f_press_pinch"]   # the wall takes the axial load
-                        k = int((tt - self.t_wall) // 1.0)
-                        steps = self.prm["press_steps"]
-                        F = steps[min(k, len(steps) - 1)]
-                        th.force = F
-                        info["phase"] = f"press {F:g} N"
-                        info["F_ref"] = F
-                        cmd.pusher_twist = np.zeros(6)
-            info["R"] = R
+                th, w, name = self.angle(tt)
+                cmd.s = -math.radians(w)                 # {M}'s x runs thumb -> index (+x): + s lowers the middle's side
+                info["phase"] = name
+                info["theta_ref"] = th
+            info["R"] = H.quat_to_mat(s["quat"])
         else:
             w_ref = np.zeros(3)
             for f in FINGERS:
@@ -570,8 +588,8 @@ class Schedule:
                 c.force = 0.0 if t < T_CLOSE else self.prm["f_tripod"]
                 _approach(c, t)
             if ph == "task":
-                if task == "roll":
-                    seq = [(0, +1), (0, -1), (None, 0), (1, +1), (1, -1), (None, 0)]
+                if task == "roll":                       # about palm y through the thumb's contact: down, up, up, down
+                    seq = [(1, +1), (1, -1), (None, 0), (1, -1), (1, +1), (None, 0)]
                     durs = [0.5, 0.5, 0.3, 0.5, 0.5, 0.3]
                 else:
                     seq = [(2, +1), (2, -1), (None, 0)]
@@ -582,7 +600,8 @@ class Schedule:
                     ax, sg = seq[i]
                     if ax is not None:
                         w_ref[ax] = sg * math.radians(self.prm["w_step_dps"])
-                    info["phase"] = "rest" if ax is None else f"w{'xyz'[ax]} {'+' if sg > 0 else '-'}"
+                    rep = " 2" if seq[:i].count(seq[i]) else ""          # the second step of the same sign
+                    info["phase"] = "rest" if ax is None else f"w{'xyz'[ax]} {'+' if sg > 0 else '-'}{rep}"
                 elif task == "twist":
                     tr = tt - edges[-1]                                          # ramp to the largest twist
                     if tr < 3.0:
@@ -593,14 +612,21 @@ class Schedule:
                 else:
                     info["phase"] = "hold"
             R = H.quat_to_mat(s["quat"])
-            cmd.object_twist = np.concatenate([R.T @ w_ref, np.zeros(3)])       # rotation about the centre
+            v_ref = np.zeros(3)
+            if task == "roll":
+                # rolling on a still thumb: the instantaneous axis passes through the thumb's contact, r along the
+                # thumb's inward normal from the centre, so the centre moves at w x (r n_in)
+                v_ref = np.cross(w_ref, -self.setup["r"] * self.setup["n_out"]["thumb"])
+            cmd.object_twist = np.concatenate([R.T @ w_ref, R.T @ v_ref])
             info["w_ref"] = w_ref
+            info["v_ref"] = v_ref
             info["R"] = R
         return cmd, info
 
 
-PRM = {"f_pinch": 1.5, "f_press_pinch": 0.6, "f_lock": 3.0, "f_thumb": 0.3, "v_push": 0.010, "t_push": 1.0,
-       "v_wall": 0.008, "press_steps": (0.5, 1.0, 2.0, 0.5), "f_tripod": 2.5, "ramp_dps": 30.0, "w_step_dps": 40.0}
+PRM = {"f_pinch": 3.0, "f_drive": 1.5, "f_press": 0.5, "rot_deg": 15.0, "rot_dps": 15.0, "press_deg": 20.0,
+       "press_dps": 20.0, "w_roll_pinch": 0.0, "w_roll_push": 1.0, "f_tripod": 2.5, "ramp_dps": 30.0,
+       "w_step_dps": 40.0}
 
 
 # ------------------------------------------------------------------------------------------------ rollout
@@ -663,13 +689,12 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
             row["v_ref"] = info["v_ref"].round(5).tolist()
             row["v_ach"] = (A @ s["qd"][EXPA_MOVER] + b).round(5).tolist()
             row["gap_mm"] = round(1e3 * g.dist, 3)
+        row["cop_obj_mm"] = {f: (1e3 * (R.T @ (p_ - s["pos"]))).round(3).tolist() for f, (p_, _F) in s["cop"].items()}
         if "w_ref" in info:
             row["w_ref_dps"] = np.degrees(info["w_ref"]).round(2).tolist()
-        if "v_ax_ref" in info:
-            row["v_ax_ref_mms"] = round(1e3 * info["v_ax_ref"], 3)
-        if task == "press":
-            row["wallF"] = round(s["wallF"], 4)
-            row["F_ref"] = info.get("F_ref")
+            row["v_ref_mms"] = (1e3 * info["v_ref"]).round(3).tolist()
+        if "theta_ref" in info:
+            row["theta_ref_deg"] = round(info["theta_ref"], 3)
         rows.append(row)
         plant.set_targets(q_cmd)
         t += dt
@@ -683,13 +708,19 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
     return res, rows, frames
 
 
+def pinch_angle(axis) -> float:
+    """Angle (deg) of the cylinder's axis about palm x (the pinch axis), + when the middle's side (the axis' +z end,
+    which points to palm -y) is up."""
+    return math.degrees(math.atan2(axis[2], -axis[1]))
+
+
 def film_line(task, s, info):
     F = " ".join(f"{f[0].upper()}{s['cop'].get(f, (None, 0.0))[1]:4.1f}" for f in FINGERS)
-    if task == "press":
-        return f"wall {s['wallF']:4.2f} N  pads {F} N"
-    if task in ("roll", "twist"):
-        return f"w {np.degrees(s['w']).round(0)} deg/s  pads {F} N"
-    return f"x {1e3 * s['pos'][0]:6.2f} mm  pads {F} N"
+    if task in ("pinpush", "press"):
+        th = pinch_angle(H.quat_to_mat(s["quat"])[:, 2])
+        ref = info.get("theta_ref")
+        return f"angle {th:+5.1f} deg" + (f" (cmd {ref:+5.1f})" if ref is not None else "") + f"  pads {F} N"
+    return f"w {np.degrees(s['w']).round(0)} deg/s  pads {F} N"
 
 
 def metrics(task, setup, rows, s0, se):
@@ -729,38 +760,37 @@ def metrics(task, setup, rows, s0, se):
     p0 = np.array(task_rows[0]["pos_mm"])
     a0 = np.array(task_rows[0]["axis"])
     if task in ("pinpush", "press"):
-        disp = np.array([(np.array(r["pos_mm"]) - p0) @ a0 for r in task_rows])
-        tilt = np.array([math.degrees(math.acos(max(-1.0, min(1.0, np.array(r["axis"]) @ a0)))) for r in task_rows])
-        out["tilt_max_deg"] = round(float(tilt.max()), 2)
-        out["lateral_max_mm"] = round(float(max(np.linalg.norm((np.array(r["pos_mm"]) - p0) - ((np.array(r["pos_mm"]) - p0) @ a0) * a0)
-                                                for r in task_rows)), 2)
-        if task == "pinpush":
-            push = [i for i, r in enumerate(task_rows) if r["phase"] == "push"]
-            v = np.gradient(disp, 0.01)
-            vr = np.array([task_rows[i].get("v_ax_ref_mms", 0.0) for i in range(len(task_rows))])
-            out["disp_end_mm"] = round(float(disp[-1]), 2)
-            out["disp_cmd_mm"] = round(1e3 * PRM["v_push"] * PRM["t_push"], 2)
-            out["disp_err_mm"] = round(float(disp[-1] - out["disp_cmd_mm"]), 2)
-            out["v_rmse_mms"] = round(float(np.sqrt(np.mean((v[push] - vr[push]) ** 2))), 2) if push else None
-            out["v_rmse_ratio"] = round(out["v_rmse_mms"] / (1e3 * PRM["v_push"]), 3) if push else None
-            out["thumb_contact_frac"] = round(float(np.mean([r["F"]["thumb"] > 0.02 for i, r in enumerate(task_rows)
-                                                             if r["phase"] == "push"])), 3) if push else None
-        else:
-            st = {}
-            for r in task_rows:
-                if r.get("F_ref") is not None:
-                    st.setdefault(r["phase"], []).append((r["t"], r["F_ref"], r["wallF"], r["F"]["thumb"]))
-            steps = []
-            for ph, v in st.items():
-                v = np.array(v)
-                tail = v[v[:, 0] >= v[-1, 0] - 0.5]
-                steps.append({"F_ref": float(tail[0, 1]), "wall_mean": round(float(tail[:, 2].mean()), 3),
-                              "wall_sd": round(float(tail[:, 2].std()), 3),
-                              "thumb_mean": round(float(tail[:, 3].mean()), 3)})
-            out["press_steps"] = steps
-            out["wall_err_rms"] = round(float(np.sqrt(np.mean([(s_["wall_mean"] - s_["F_ref"]) ** 2 for s_ in steps]))), 3) \
-                if steps else None
-            out["reached_wall"] = bool(steps)
+        A = np.array([r["axis"] for r in task_rows])
+        th = np.array([pinch_angle(a_) for a_ in A])
+        th -= th[0]
+        ref = np.array([r.get("theta_ref_deg", 0.0) for r in task_rows])
+        out["theta_rmse_deg"] = round(float(np.sqrt(np.mean((th - ref) ** 2))), 2)
+        out["theta_max_deg"], out["theta_min_deg"] = round(float(th.max()), 2), round(float(th.min()), 2)
+        strokes = []
+        names = [r["phase"] for r in task_rows]
+        for name in dict.fromkeys(names):
+            idx = [i for i, n in enumerate(names) if n == name]
+            dref = ref[idx[-1]] - (ref[idx[0] - 1] if idx[0] > 0 else 0.0)
+            if abs(dref) < 1e-6:
+                continue
+            dth = th[idx[-1]] - (th[idx[0] - 1] if idx[0] > 0 else 0.0)
+            strokes.append({"stroke": name, "ref_deg": round(float(dref), 2), "angle_deg": round(float(dth), 2),
+                            "gain": round(float(dth / dref), 3)})
+        out["strokes"] = strokes
+        out["gain_min"] = round(min(s_["gain"] for s_ in strokes), 3) if strokes else None
+        # rotation off the pinch axis: the axis leaving the palm y-z plane
+        out["off_axis_max_deg"] = round(float(np.degrees(np.abs(np.arcsin(np.clip(A[:, 0], -1, 1)) -
+                                                               math.asin(max(-1.0, min(1.0, A[0, 0]))))).max()), 2)
+        def path(f):                                     # displacement of finger f's centre of pressure on the object
+            P = [np.array(r["cop_obj_mm"][f]) for r in task_rows if f in r["cop_obj_mm"]]
+            return float(max(np.linalg.norm(q_ - P[0]) for q_ in P)) if P else None
+        sl = path(PUSHER)
+        out["pusher_slip_max_mm"] = round(sl, 2) if sl is not None else None
+        pinch = [0.5 * (np.array(r["cop_obj_mm"][PINCH[0]]) + np.array(r["cop_obj_mm"][PINCH[1]]))[2]
+                 for r in task_rows if all(f in r["cop_obj_mm"] for f in PINCH)]
+        out["pinch_slide_max_mm"] = round(float(np.abs(np.array(pinch) - pinch[0]).max()), 2) if pinch else None
+        out["pusher_contact_frac"] = round(float(np.mean([r["F"][PUSHER] > 0.02 for r in task_rows])), 3)
+        out["F_mean"] = {f: round(float(np.mean([r["F"][f] for r in task_rows])), 3) for f in FINGERS}
     else:
         W = np.array([r["w_dps"] for r in task_rows])
         Wr = np.array([r.get("w_ref_dps", [0, 0, 0]) for r in task_rows])
@@ -782,6 +812,10 @@ def metrics(task, setup, rows, s0, se):
         out["steps"] = steps
         P = np.array([r["pos_mm"] for r in task_rows])
         out["drift_max_mm"] = round(float(np.linalg.norm(P - P[0], axis=1).max()), 2)
+        Vr = np.array([r.get("v_ref_mms", [0.0, 0.0, 0.0]) for r in task_rows])
+        Pr = P[0] + np.vstack([np.zeros(3), np.cumsum(Vr[:-1], 0) * 0.01])
+        out["centre_err_max_mm"] = round(float(np.linalg.norm(P - Pr, axis=1).max()), 2)
+        out["centre_travel_ref_mm"] = round(float(np.linalg.norm(Pr - P[0], axis=1).max()), 2)
         if task == "twist":
             ramp = [i for i, r in enumerate(task_rows) if r["phase"] in ("twist ramp", "hold")]
             if ramp:
@@ -804,8 +838,10 @@ class Film:
         self.cam = mujoco.MjvCamera()
         self.cam.lookat[:] = [0.0, 0.0, S.Z_OBJ + 0.01]
         self.cam.distance = 0.20 if setup["shape"] == "cylinder" else 0.22
-        self.cam.azimuth = 90.0                      # from -y: the cylinder side-on, the thumb on the left end cap
-        self.cam.elevation = 10.0 if setup["shape"] == "cylinder" else 5.0
+        if GRASP[setup["task"]] == "pinch_y":         # from the thumb's side, 20 deg off the pinch axis: the tilt
+            self.cam.azimuth, self.cam.elevation = 340.0, 10.0
+        else:
+            self.cam.azimuth, self.cam.elevation = 90.0, 5.0
 
     def frame(self, plant, title, line):
         import hom_contact_rig as HR
@@ -838,7 +874,8 @@ VARIANTS = {
     "rate50": ({"dt": 0.02}, None),
     "sense": ({"dt": 0.02}, {"pos_mm": 0.5, "rot_deg": 1.0, "cop_mm": 1.0, "f_N": 0.03, "delay_s": 0.04}),
     "si": ({"ell": 1.0}, None),                       # Eq. (2) in SI units with equal weights (rad/s against m/s)
-    "surface": ({"impedance": "surface"}, None),      # servo target kept on the measured surface in contact too
+    "gapq": ({"impedance": "gap"}, None),             # the impedance gap at the measured angles, while apart (before 10-22)
+    "surface": ({"impedance": "surface"}, None),      # ... and also in contact
     "floop": ({"force_loop_gain": 0.01}, None),       # v_sep += 10 mm/s per N of force error (needs fingertip force)
     "ell5": ({"ell": 0.005}, None),
     "ell100": ({"ell": 0.1}, None),
@@ -893,8 +930,8 @@ def cmd_run(a) -> int:
                         row.update(status="error", error=f"{type(e).__name__}: {e}", tb=traceback.format_exc()[-1500:])
                     if (task, float(d_mm), seed, vname) not in done or film is not None:
                         _append(path, row)
-                    brief = {k: row.get(k) for k in ("held", "disp_end_mm", "v_rmse_ratio", "wall_err_rms",
-                                                     "w_rmse_ratio", "ramp_three_pads_max_deg", "tilt_max_deg",
+                    brief = {k: row.get(k) for k in ("held", "theta_rmse_deg", "gain_min", "pusher_slip_max_mm",
+                                                     "w_rmse_ratio", "ramp_three_pads_max_deg", "centre_err_max_mm",
                                                      "drift_max_mm", "wall_s", "error")
                              if row.get(k) is not None}
                     print(task, d_mm, var, seed, brief, flush=True)
