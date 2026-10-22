@@ -111,8 +111,8 @@ footer a{color:var(--s2)}
   <p class="lede">On the bench-calibrated plant, the contact-fixed turn of every earlier result reaches only
   0&#8211;20&#176; from any grasp the fitter accepts. Releasing the
   middle finger instead lets the screwdriver swing tip-down about the thumb&#8211;index pinch under its own weight,
-  ending at cos +0.92&#8211;0.98 on two pads. D8 does it 6 of 6 at a 12&nbsp;mm squeeze, D6 with the thumb at the
-  index&#8217;s station, and D2 and D4, the bench&#8217;s 10-of-10 and 9-of-10 hands, with the thumb at 30&nbsp;mm.
+  ending at cos +0.92&#8211;0.98 on two pads. D8 does it 6 of 6 at a 12&nbsp;mm squeeze. D6 does it with the thumb at the
+  index&#8217;s station. D2 and D4, the bench&#8217;s 10-of-10 and 9-of-10 hands, do it with the thumb at 30&nbsp;mm.
   The swing fails at kp 0.25 and above a pad torsional friction of 0.003&#8211;0.01.</p>
   <div class="byline">{{N_SWING}} chain rollouts and {{N_PROBE}} instrumented runs &#183; plant
   <code>cal</code>: kp 0.5, kv 0.02, force ceiling 0.35 N&#183;m, elliptic cone, impratio 10,
@@ -149,8 +149,8 @@ effective patch radius in m.</dd>
 <p class="sub">D6, calibrated plant, the chain&#8217;s own turn: per-step joint, tip and contact record</p>
 <p>The chain&#8217;s turn rotates the fingertips about a pivot between the driver pads, with joint angles from
 a rigid IK model. On D6 the yaw joints move 18&#8211;40&#8201;% of their command (thumb 2.5&#176; of 13.7, index
-5.0&#176; of 21.1, middle 11.4&#176; of 28.5): the actuator torque, about 0.15&nbsp;N&#183;m, is balanced by friction
-at the pads, which creep over the shaft at 6&#8211;10&nbsp;mm/s, and the tool turns 4.7&#176;.</p>
+5.0&#176; of 21.1, middle 11.4&#176; of 28.5). The actuator torque, about 0.15&nbsp;N&#183;m, is balanced by friction
+at the pads, which creep over the shaft at 6&#8211;10&nbsp;mm/s. The tool turns 4.7&#176;.</p>
 </div>
 {{CHART_TRACE}}
 <div class="col">
@@ -197,9 +197,9 @@ carry, seat, handover and eight gait cycles, ending 9&#176; off vertical.</figca
 +0.99, carried to the seat and through the handover with the palm horizontal throughout; the gait
 knocks it over in frame 15.</figcaption></figure>
 <div class="col">
-<p>The contact model decides whether the swing appears: under the template&#8217;s pyramidal cone at impratio
-1 the released pad still reads 0.26&nbsp;N and the tool stays; under the elliptic cone at impratio 10 it swings.
-At the flat pads&#8217; friction of 2.4 the swing stops at 0.3&nbsp;N of residual contact; at 1.0 it goes; at 0.6 the
+<p>The contact model decides whether the swing appears. Under the template&#8217;s pyramidal cone at impratio
+1 the released pad still reads 0.26&nbsp;N and the tool stays. Under the elliptic cone at impratio 10 it swings.
+At the flat pads&#8217; friction of 2.4 the swing stops at 0.3&nbsp;N of residual contact. At 1.0 it goes. At 0.6 the
 pinch loses the tool on D6 and holds it on D8.</p>
 </div>
 {{TABLE_D6PINCH}}
@@ -221,10 +221,10 @@ holds, D2 and D4 swing, and D6 keeps the tool through the whole chain.</p>
 <div class="col">
 <h3>Seeds, squeeze and plant</h3>
 <p>Six seeds at 0.5 mm of spawn jitter on the three hands that swing at the plans&#8217; thumb
-station. D8 needs the 12 mm squeeze to lift at all and then swings 6 of 6; D6 swings 4&#8211;5
-of 6 at 8&#8211;10 mm and the extra pinch squeeze hurts it (the tool is pushed onto the middle
-pad, which then cannot leave); D3 swings partially. At kp 0.25, the plant the settled re-fit
-implies, no hand swings: the pinch force halves to ~1 N per pad and the tool slides out during
+station. D8 needs the 12 mm squeeze to lift at all and then swings 6 of 6. D6 swings 4&#8211;5
+of 6 at 8&#8211;10 mm, and the extra pinch squeeze hurts it (the tool is pushed onto the middle
+pad, which then cannot leave). D3 swings partially. At kp 0.25, the plant the final re-fit
+implies, no hand swings: the pinch force halves to ~1 N per pad, and the tool slides out during
 the swing on every hand. The pinch force is commandable (flexion is the direction these
 fingers have room in), so this margin can be sized on the bench.</p>
 </div>
@@ -248,16 +248,16 @@ opened, read by the vane tag, measures it.</p>
 <li><strong>Bench swing test.</strong> Grip as the plan does, open the middle finger and read the vane tag, on
 D8 and D6 at 10 and 12&#8211;14&nbsp;mm of squeeze, then on D2, D4 and D7 with the thumb re-fitted to
 20&#8211;30&nbsp;mm (<code>real_v1_export_plan.py</code>, <code>thumb_axial</code>). Accept a swing past 60&#176;
-kept in 4 of 5 trials on any hand; no swing at any squeeze puts the pad&#8217;s torsional friction above 0.005 and
-calls for a rounder pad.</li>
+kept in 4 of 5 trials on any hand. If no swing occurs at any squeeze, the pad&#8217;s torsional friction is above 0.005 and
+a rounder pad is needed.</li>
 <li><strong>Pad torsional friction and &mu;.</strong> From that test, the squeeze at which the swing starts,
-against the 0.0036&nbsp;N&#183;m gravity torque, gives the torsional coefficient, and the squeeze at which the pinch
-drops the tool gives &mu;; set <code>cal</code> from them.</li>
+against the 0.0036&nbsp;N&#183;m gravity torque, gives the torsional coefficient. The squeeze at which the pinch
+drops the tool gives &mu;. Set <code>cal</code> from them.</li>
 <li><strong>Grasp fitted for the swing.</strong> Score in <code>fit_real_v1_pose.py</code> the radial room for
 the middle pad to leave the shaft and the thumb at the index&#8217;s station (now set by hand with
 <code>--thumb-axials</code>).</li>
 <li><strong>Re-close after the swing.</strong> Close the middle finger on the vertical shaft at the pinch station,
-turning the two-pad hang into a three-pad hold before the carry; the chain&#8217;s 0.3&nbsp;mm regrip helps D2 and
+turning the two-pad hang into a three-pad hold before the carry. The chain&#8217;s 0.3&nbsp;mm regrip helps D2 and
 D7 and hurts D6.</li>
 <li><strong>Policy on this plant.</strong> Train a reorientation residual on <code>cal</code> over the
 pinch-and-release sequence with the tag pose observed; the plant drops the tool at kp 0.25, &mu; 0.6 or torsional

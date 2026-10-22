@@ -197,7 +197,7 @@ def refs():
             "<p>Hertz&#8217;s radius, Cattaneo&#8211;Mindlin&#8217;s tangential displacement under a force \\(Q\\) per pad (unloading by "
             "the Mindlin&#8211;Deresiewicz rule \\(u_{\\downarrow}(Q) = u(Q^*) - 2u\\big((Q^*-Q)/2\\big)\\)) and Lubkin&#8217;s initial torsional "
             "stiffness. <code>scripts/contact_reference_laws.py</code> also solves Lubkin&#8217;s partial-slip twist on a grid of "
-            f"{sc['cells']} surface cells with Cerruti&#8217;s half-space influence functions; run as a no-slip translation and twist the "
+            f"{sc['cells']} surface cells with Cerruti&#8217;s half-space influence functions. Run as a no-slip translation and twist, the "
             f"same solver gives {sc['k_t_cells']:.0f} and {sc['k_theta_cells'] * 1e3:.3f} against the closed forms {sc['k_t_closed']:.0f}&#8202;N/m "
             f"and {sc['k_theta_closed'] * 1e3:.3f}&#8202;mN&#8202;m/rad.</p>" +
             table(["N", "Hertz \\(a\\) (mm)", "approach (&#181;m)", "T8 presliding (&#181;m)", "recovered (&#181;m)", "loop (&#181;J)",
@@ -398,13 +398,13 @@ def dropped(X):
             f"weight, which softens their friction rows: effective \\(\\mu\\) {fmt(t1['mu_eff'], 2)} at 1&#8202;N, T2 onset arm {fmt(t2[1], 2)} of the "
             f"law, T5 largest swing {fmt(t5['phi_max_deg'], 0)}&#176;. It costs {fmt(X.gpu(la), 1)}&#8202;&#181;s per world-step "
             f"({X.gpu(la) / gp:.0f}&#215;), and with a 2&#8202;mm coupling length it is unstable at 1&#8202;ms.</p>"
-            "<p>The flex replaces the spheres within 20&#176; of the pole by a MuJoCo <code>flexcomp</code>: 165 points and 540 linear "
-            "tetrahedra per pad (1&#8202;mm hexagonal columns, two 1.5&#8202;mm layers, the back layer and the rim pinned to the pad), "
-            "St&#160;Venant&#8211;Kirchhoff elasticity at \\(E\\) = 10&#8202;MPa and \\(\\nu\\) = 0.45, 0.10&#8202;g of TPU per cap, its surface "
-            "tetrahedra in contact with the tool. MuJoCo-Warp 3.14 has flex elasticity and flex&#8211;cylinder collision but only the Euler, "
+            "<p>The flex replaces the spheres within 20&#176; of the pole by a MuJoCo <code>flexcomp</code>. Each pad has 165 points and 540 linear "
+            "tetrahedra (1&#8202;mm hexagonal columns, two 1.5&#8202;mm layers, the back layer and the rim pinned to the pad). The elasticity is "
+            "St&#160;Venant&#8211;Kirchhoff at \\(E\\) = 10&#8202;MPa and \\(\\nu\\) = 0.45, with 0.10&#8202;g of TPU per cap. Its surface "
+            "tetrahedra are in contact with the tool. MuJoCo-Warp 3.14 has flex elasticity and flex&#8211;cylinder collision but only the Euler, "
             "RK4 and implicit integrators, and MuJoCo 3.14 accepts flex elasticity only under its <code>discrete</code> integrator. With "
             "explicit integration (MuJoCo 3.6 <code>implicitfast</code>, 3.14 Euler) the cap diverges at 1&#8202;ms with up to 100&#8202;g of armature on "
-            "each vertex degree of freedom, and a 4&#215;4&#215;3&#8202;mm flex block at \\(\\nu\\) = 0.45 still oscillates between 9.5 and "
+            "each vertex degree of freedom. A 4&#215;4&#215;3&#8202;mm flex block at \\(\\nu\\) = 0.45 still oscillates between 9.5 and "
             "21&#8202;&#181;m about its 14.0&#8202;&#181;m static compression after 6&#8202;s with 3&#8202;kg. Under the discrete integrator on one core it runs at 1&#8202;ms with the TPU&#8217;s mass, and a "
             "4&#215;4&#215;3&#8202;mm flex block under a uniform 1&#8202;N load compresses 19.0&#8202;&#181;m against the exact 18.75 "
             f"(\\(\\nu\\) = 0). Its patch radius grows with exponent {fmt(sfl.get('r_rms_exp'), 2)} and its approach with "
@@ -491,8 +491,8 @@ def lede(X):
 def open_items():
     items = [("The tip&#8217;s modulus.", "The skin, the bristles and the lattice are sized on Hertz at 10&#8202;MPa, where the pressure "
               "law&#8217;s patch is twice Hertz&#8217;s radius; the two agree near 0.8&#8202;MPa. An indentation test on the printed tip, force "
-              "against depth at 0.25&#8211;4&#8202;N, gives \\(E\\) and the approach exponent, which decides between the pads&#8217; 1/2 and "
-              "the softening impedance&#8217;s 2/3; T8 on the bench, a slow axial force cycle at a fixed pinch, measures presliding and "
+              "against depth at 0.25&#8211;4&#8202;N, gives \\(E\\) and the approach exponent. The exponent decides between the pads&#8217; 1/2 and "
+              "the softening impedance&#8217;s 2/3. T8 on the bench, a slow axial force cycle at a fixed pinch, measures presliding and "
               "loop area."),
              ("T2 on a compliant tip.", "T2 detects spin onset when the tool turns faster than 30&#8202;&#176;/s, and the skin&#8217;s hinge "
               "winds faster than that at 3&#8202;N. Onset taken from the tool&#8217;s rotation relative to the skin body in "
@@ -518,13 +518,13 @@ def correction():
     s10 = pick("t8_trainer_settings", "mj_pads1_skin_ir10", 2.0, "hand 0.26 kg")
     return ("Correction, 2026-10-12. The skin&#8217;s loop at the 1&#8202;ms step is a step error: at 0.025&#8202;ms the skin gives "
             f"{c['u_presliding_um']:.1f}&#8202;&#181;m of presliding at 1&#8202;N, {c['u_recovered_um']:.1f} recovered and a loop of "
-            f"{c['loop_area_uJ']:.2f}&#8202;&#181;J against Mindlin&#8217;s 6.13. Its twist result holds at 0.5 and 1&#8202;N; at 3&#8202;N "
+            f"{c['loop_area_uJ']:.2f}&#8202;&#181;J against Mindlin&#8217;s 6.13. Its twist result stays within the test at 0.5 and 1&#8202;N. At 3&#8202;N "
             "the held tool&#8217;s 4&#8202;Hz twist on the hinges, damped at a ratio of 0.2, trips the test at 0.07 of the law. The "
-            "contact-model policies run the skin at impratio 10; at 100, 300 and 1000 the trainer&#8217;s solver threw the tool out of the "
+            "contact-model policies run the skin at impratio 10. At 100, 300 and 1000 the trainer&#8217;s solver threw the tool out of the "
             "grasp. "
             f"At impratio 10 the bare pads creep {p10['u_presliding_um']:.0f}&#8202;&#181;m over the first ramp of task&#160;8, the skin moves "
-            f"the tool {s10['u_presliding_um']:.0f}&#8202;&#181;m, its springs&#8217; 36 on top of the same creep, and both end the "
-            f"cycle {s10['u_end_um']:.0f}&#8202;&#181;m out, so those policies trained without the skin&#8217;s presliding. Rows: "
+            f"the tool {s10['u_presliding_um']:.0f}&#8202;&#181;m, which is its springs&#8217; 36 on top of the same creep, and both end the "
+            f"cycle {s10['u_end_um']:.0f}&#8202;&#181;m out. Those policies therefore trained without the skin&#8217;s presliding. Rows: "
             "<code>docs/experiments/20261007-native_compliance/t8_step_convergence.jsonl</code>; detail in the overview&#8217;s "
             "section on the sprung skin.")
 
