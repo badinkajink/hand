@@ -49,6 +49,8 @@ WORK = REPO / "logs/20261020-ur5_calibration_mount_v2/plates"
 V3 = REPO / "docs/experiments/20261018-dip_link_board_mount/v3/b"
 V4 = REPO / "docs/experiments/20261018-dip_link_board_mount/v4/b"
 UR5 = REPO / "docs/experiments/20261020-ur5_calibration_mount_v2/cad"
+V3M = REPO / "docs/experiments/20261021-ur5_calibration_mount_v3"
+UP3 = "20261021-ur5_calibration_mount_v3"
 UP = "20261020-ur5_calibration_mount_v2"
 COVERS = {"W00": 0.0, "W10": 0.10, "W20": 0.20}        # wall clearance per cover, mm
 # owner, 2026-10-20 19:10: "we have a super dense infill on these mount parts. i think across the board it can be a standard
@@ -125,12 +127,20 @@ PLATES = {
          None, dict(V.SOLID, wall_loops="6")) for h in (4, 3, 2)],   # four walls left TW15H2 at a fill ratio of 0.845
     # DIP link b v4: the bridge's palmar edge recessed to a smaller column (params/20261021-v4_concept_b.json), as the v3 link
     "link_v4": [("B4", "b v4 DIP link, recessed bridge", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl", None, V.LINK)],
+    # 2026-10-21 17:54: mount v3 for M6 x 20 (scripts/ur5_calibration_mount.py with UR5M_REV=v3): the adapter 15 mm thick, the
+    # heads captive in the foot with key holes from above; STANDARD as the fork of 19:10, six walls on the adapter so the
+    # plastic under each M6 head is solid down to the HEX-E, four on the fork for its M3 seats
+    "mount_v3": [
+        ("U1", "UR5 adapter v3, 15 mm, M6 x 20", V3M / f"cad/{UP3}_adapter.stl", R_ADAPTER, dict(STANDARD, wall_loops="6")),
+        ("U2", "UR5 standoff-fork v3, captive M6 heads", V3M / f"cad/{UP3}_standoff_fork.stl", np.eye(3),
+         dict(STANDARD, wall_loops="4"))],
 }
-DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2", "heights", "link_v4")   # "calibration" when named
+DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2", "heights", "link_v4", "mount_v3")   # "calibration" when named
 PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"),     # other plates: OUT, 20261020-p1s_pla_<plate>
              "solid_covers_caps2": (V3 / "print", "20261021-dip_link_v3b_p1s_pla_solid_covers_caps2"),
              "heights": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_heights"),
-             "link_v4": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_link")}
+             "link_v4": (V4 / "print", "20261021-dip_link_v4b_p1s_pla_link"),
+             "mount_v3": (V3M / "print", f"{UP3}_p1s_pla")}
 
 
 def main():
@@ -151,7 +161,8 @@ def main():
                    "tip_caps": "DIP link b v3: caps TP and TW over the tip end",
                    "solid_covers_caps2": "DIP link b v3: solid-wall covers I05, I10, I15 and caps TP2, TW2",
                    "heights": "DIP link b: covers I15 with walls 4, 3, 2 mm and caps with blocks 4, 3, 2 mm at 0.15 mm",
-                   "link_v4": "DIP link b v4: the bridge's palmar edge recessed to a smaller column"}[plate]
+                   "link_v4": "DIP link b v4: the bridge's palmar edge recessed to a smaller column",
+                   "mount_v3": "UR5 mount v3: adapter and standoff-fork for M6 x 20, keys from above"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -166,7 +177,10 @@ def main():
                    + ("; 2026-10-21 16:20: 'the 0.15mm inset is still perfectly fine ... let's try to lower the heights on both the "
                       "top cover and the cassette side walls'" if plate == "heights" else "")
                    + ("; 2026-10-21 16:20: 'recess/sculpt this edge of the dip link the same way we did for the column ... make the "
-                      "underlying column even smaller radius too'" if plate == "link_v4" else ""))
+                      "underlying column even smaller radius too'" if plate == "link_v4" else "")
+                   + ("; 2026-10-21 17:54: 'i only have 20mm long m6 screws. so we need to pop everything up a little. there is "
+                      "not much thread on the hex e ft sensor ... make the holes accessible from the top plate'"
+                      if plate == "mount_v3" else ""))
         try:
             V.main()
         except SystemExit as e:

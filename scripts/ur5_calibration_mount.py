@@ -50,20 +50,27 @@ sys.path.insert(0, str(REPO / "src"))
 
 # UR5M_REV=v2: the revision of 2026-10-20 after the owner printed v1 (no spigot, one-way foot, the finger on the tool axis,
 # a cradle on the DIP link's tongue in place of the key, homing socket and posts); unset: v1 of 2026-10-18 as committed.
+# UR5M_REV=v3: the revision of 2026-10-21 for M6 x 20 screws (owner, 17:54: "i only have 20mm long m6 screws. so we need to
+# pop everything up a little. there is not much thread on the hex e ft sensor ... make the holes accessible from the top
+# plate ... i can pre-place the screws through the dip link interface ... should still be able to tighten with a ball-end
+# allen key"): the adapter 15 mm thick, the heads captive in pockets of a 13 mm foot with key holes from above, everything
+# above the foot 11 mm higher than v2.
 REV = os.environ.get("UR5M_REV", "v1")
-DATE = "20261018" if REV == "v1" else "20261020"
-OUT = REPO / ("docs/experiments/20261018-ur5_calibration_mount" if REV == "v1" else
-              "docs/experiments/20261020-ur5_calibration_mount_v2")
+V2UP = REV in ("v2", "v3")
+DATE = {"v1": "20261018", "v2": "20261020", "v3": "20261021"}[REV]
+PFX = {"v1": "20261018-ur5_calibration_mount", "v2": "20261020-ur5_calibration_mount_v2",
+       "v3": "20261021-ur5_calibration_mount_v3"}[REV]
+OUT = REPO / "docs/experiments" / PFX
 CAD, MEDIA, PRINT = OUT / "cad", OUT / "media", OUT / "print"
-PFX = "20261018-ur5_calibration_mount" if REV == "v1" else "20261020-ur5_calibration_mount_v2"
-WORK = REPO / ("logs/20261018-ur5_calibration_mount" if REV == "v1" else "logs/20261020-ur5_calibration_mount_v2")
+WORK = REPO / "logs" / PFX
 DL = REPO / "logs/20261018-ur5_calibration_mount/downloads"   # the data sheets of `interfaces`
 DIP = REPO / "docs/experiments/20261018-dip_link_board_mount"
 V2 = DIP / "v2"
 
 # ------------------------------------------------------------------------------------------------ frame and placement
 PIP_ZF = -51.55                 # z_F of the PIP axis
-PIP_M = 46.0                    # PIP axis above the flange face (z_M): v2 boards' nearest edge >= 62 mm, chips >= 74 mm
+PIP_M = 57.0 if REV == "v3" else 46.0   # PIP axis above the flange face (z_M): v2 boards' nearest edge >= 62 mm, chips >= 74
+#                                         mm; v3 11 mm higher (the foot's top at z_M 28 in place of 17)
 Y_AXIS = -3.85 if REV == "v1" else 0.0
 # y_F of the tool axis: v1 the centre of the fork's footprint (y_F -21.0..13.3); v2 the finger's mid-plane (owner,
 # 2026-10-20: "offset the ur5 mount block for the dip finger such that the finger is inline with the center")
@@ -147,7 +154,7 @@ P = dict(
 # behind the board, the neck's back, the bridge's highest point between the arms, the arms' lowest point, the contact point
 B_LINK = dict(tongue_back=8.0, tongue_half=10.5, tongue_end=-98.46, neck_back=9.45, mount_z=-77.05, arms_low=-70.05,
               bridge_top=-61.75, z_contact=-87.91)
-if REV == "v2":
+if V2UP:
     P.update(
         spigot_h=0.0,               # owner: "theres a 30mm diameter disc coming out of the ur5 adaptor, remove this. the hex-e
         #                             i have does not have a bore for that. only the little 5.5mm diameter nub is usable"
@@ -190,6 +197,24 @@ if REV == "v2":
         #                             5.0-5.8 mm: no key in it)
         mold_z=(-67.5, -40.0),      # z_F range of the walls
     )
+if REV == "v3":
+    P.update(
+        ad_t=15.0,                  # an M6 x 20 seated on the adapter's top face stands 5.0 mm out of its face into the HEX-E
+        m6_seat="top",              # the head on the adapter's top face (no counterbore), the hole's mouth chamfered
+        m6_len=20.0, m6_head_d=10.0, m6_head_k=6.0, m6_ch=0.5,   # ISO 4762 M6 x 20, 5 mm hex socket
+        foot_t=13.0, foot_d=70.0,   # the foot z_M 15..28, 70 mm across: 3.75 mm of wall outside the pockets (the adapter
+        #                             stays 63 mm on the HEX-E's face; the HEX-E is 72 mm across)
+        m6_pocket_d=12.5,           # each head in a pocket of the foot, open toward the adapter (a DIN 125 washer fits)
+        m6_pocket_top=26.5,         # the head's top rises to z_M 26 when the screw's tip is flush with the adapter's face
+        key_d=7.0,                  # holes for a 5 mm hex key (5.77 mm across corners) above each pocket: the heads stay captive
+        key_tilt=20.0,              # the two screws under the column's corners (y_M -17.68): a ball-end key this far from the
+        #                             tool axis, leaning out along x_M; the two at y_M +17.68 take a straight key
+        key_sweep=(21.0, 26.0),     # z_M of the head's top, seated without a washer .. lifted: the key reaches it anywhere between
+        m3_angles=(0.0, 90.0, 198.0, 270.0),     # foot screws clear of the pockets and the cable notch; one way round
+        m3_cb_d=6.5, m3_under=4.0, m3_depth=9.0,  # M3 x 12: counterbored, 4 mm of foot under the head, 8 mm into the adapter
+        home_zm=49.0,               # the homing socket 11 mm up with the rest: the indenters' posts fit unchanged
+        tie_zm=(34.0, 46.0),
+    )
 MATERIAL = dict(pla_density_g_cm3=1.24, pla_E_MPa=2500.0, pla_nu=0.35,
                 src="PLA: density 1.24 g/cm3 (filament); E 2.5 GPa for 100 % printed PLA, the lower end of 2.5-3.5 GPa")
 SCREWS = {
@@ -200,6 +225,10 @@ SCREWS = {
     "M3x12_slotted": dict(qty=1, what="M3 x 12 socket head cap screw, brass or A2, with DIN 9021 washer 3.2 x 9 x 0.8, "
                                       "through the slotted arm's bore", mass_g=1.4),
 }
+if REV == "v3":
+    SCREWS["M6x20_ISO4762"] = dict(qty=4, what="M6 x 20 socket head cap screw, steel, captive in the foot, into the HEX-E (no "
+                                               "washer: 5.0 mm of thread; a DIN 125 washer under the head: 3.4 mm)", mass_g=6.9)
+    del SCREWS["M6x12_ISO4762"]
 
 
 def fname(stem, ext="stl", sub=CAD):
@@ -395,7 +424,10 @@ def adapter(K, p=P):
     for a in bolt_angles(p):
         x, y = _m_xy(p["bolt_r"], a)
         cut.append(K.cyl("z", (x, y), p["m6_hole"] / 2, z0 - 1, z1 + 1))
-        cut.append(K.cyl("z", (x, y), p["m6_cb_d"] / 2, z0 - 1, zF(p["m6_under"])))
+        if p.get("m6_seat") == "top":                      # v3: the head on the top face, the mouth chamfered
+            cut.append(K.cyl("z", (x, y), p["m6_hole"] / 2 + p["m6_ch"] + 0.01, z0 - 0.01, z0 + p["m6_ch"], r1=p["m6_hole"] / 2))
+        else:
+            cut.append(K.cyl("z", (x, y), p["m6_cb_d"] / 2, z0 - 1, zF(p["m6_under"])))
     for a in m3_angles(p):
         x, y = _m_xy(p["m3_r"], a)
         cut.append(K.cyl("z", (x, y), p["m3_pilot"] / 2, z0 - 1, zF(p["ad_t"] - p["m3_depth"])))
@@ -462,7 +494,8 @@ def leg_molds(p=P):
     from shapely import affinity
     from shapely.geometry import Polygon, box as sbox
     from shapely.ops import unary_union
-    srcs = ("v2/b/cad/20261018-dip_link_v2b_dip_link.stl", "v3/b/cad/20261020-dip_link_v3b_dip_link.stl")
+    srcs = ("v2/b/cad/20261018-dip_link_v2b_dip_link.stl", "v3/b/cad/20261020-dip_link_v3b_dip_link.stl") + (
+        ("v4/b/cad/20261021-dip_link_v4b_dip_link.stl",) if REV == "v3" else ())
     links = [trimesh.load(DIP / f, force="mesh") for f in srcs]
     z0, z1 = p["mold_z"]
     drop = (z1 - z0) + 40.0
@@ -575,6 +608,43 @@ def standoff_fork_v2(K, p=P):
     return K.cut_all(s, cut)
 
 
+def key_channel(K, x_m, y_m, sx, p=P, r=None, length=110.0):
+    """v3: the way of a ball-end hex key to the socket of an M6 head under the column's corner, in F. The key's axis passes
+    through the socket's centre, key_tilt from the tool axis, leaning out along sx * x_M; the socket's centre lies anywhere
+    on the bolt's axis between z_M key_sweep[0] (seated) and key_sweep[1] (lifted), so the channel is the prism of a stadium:
+    two cylinders of radius r about the axes through the two ends and the slab between them."""
+    th = math.radians(p["key_tilt"])
+    r = p["key_d"] / 2 if r is None else r
+    d = np.array([sx * math.sin(th), 0.0, math.cos(th)])
+    u = np.array([-sx * math.cos(th), 0.0, math.sin(th)])
+    w = np.cross(d, u)
+    z0, z1 = p["key_sweep"]
+    lu = (z1 - z0) * math.sin(th)
+    s0, s1 = -3.0, length
+    loc = K.union([K.box((0.0, -r, s0), (lu, r, s1)), K.cyl("z", (0.0, 0.0), r, s0, s1), K.cyl("z", (lu, 0.0), r, s0, s1)])
+    T = np.eye(4)
+    T[:3, :3] = np.column_stack([u, w, d])
+    assert abs(np.linalg.det(T[:3, :3]) - 1.0) < 1e-9
+    T[:3, 3] = [x_m, y_m, z0]
+    return K.transform(loc, np.linalg.inv(T_M_FROM_F) @ T)
+
+
+def m6_ways(K, p=P):
+    """v3: the cuts in the foot for the four M6 x 20: a pocket around each head from the adapter's face up to m6_pocket_top,
+    a vertical key hole above the two heads at y_M > 0 (clear of the column; it also notches the corners of the walls around
+    the slotted leg) and a tilted key channel above the two under the column's corners (y_M < 0)."""
+    out = []
+    for a in bolt_angles(p):
+        x, y = _m_xy(p["bolt_r"], a)                        # F
+        x_m, y_m = -x, y - Y_AXIS
+        out.append(K.cyl("z", (x, y), p["m6_pocket_d"] / 2, zF(p["m6_pocket_top"]), zF(p["ad_t"]) + 1.0))
+        if y_m > 0:
+            out.append(K.cyl("z", (x, y), p["key_d"] / 2, zF(140.0), zF(p["m6_pocket_top"] - 0.5)))
+        else:
+            out.append(key_channel(K, x_m, y_m, 1.0 if x_m > 0 else -1.0, p))
+    return out
+
+
 def standoff_fork_v2_ears(K, p=P):
     """v2, fork_style "ears" and "mold": v1's foot, column, hub and inner block, the DIP link sliding on along the tool axis
     between the two ears as in v1, without the key: the ears' inner faces ear_gap from the bridge's palmar and dorsal faces
@@ -584,7 +654,7 @@ def standoff_fork_v2_ears(K, p=P):
     c = (0.0, Y_AXIS)
     fx, (fy0, fy1), r = p["fp_x"], p["fp_y"], p["fp_r"]
     z_foot0, z_foot1 = zF(p["ad_t"] + p["foot_t"]), zF(p["ad_t"])
-    foot = K.cyl("z", c, p["ad_d"] / 2, z_foot0, z_foot1)
+    foot = K.cyl("z", c, p.get("foot_d", p["ad_d"]) / 2, z_foot0, z_foot1)
     top = K.rbox_z(-fx, fx, fy0, fy1, p["hub_z0"], z_foot0 + 0.01, r)
     xp, xd = -10.55 - p["ear_gap"], 9.45 + p["ear_gap"]
     ears = K.sub(K.rbox_z(-fx, fx, fy0, fy1, p["ear_z_low"], p["hub_z0"] + 0.01, r),
@@ -617,6 +687,10 @@ def standoff_fork_v2_ears(K, p=P):
     for a in m3_angles(p):
         x, y = _m_xy(p["m3_r"], a)
         cut.append(K.cyl("z", (x, y), p["m3_clear"] / 2, z_foot0 - 1, z_foot1 + 1))
+        if "m3_cb_d" in p:                               # v3: counterbored, m3_under of foot under the head
+            cut.append(K.cyl("z", (x, y), p["m3_cb_d"] / 2, z_foot0 - 1, zF(p["ad_t"] + p["m3_under"])))
+    if "m6_pocket_d" in p:                               # v3: the M6 heads captive in the foot, keys from above
+        cut += m6_ways(K, p)
     if not mold:                                         # the set screw of "ears"
         cut.append(K.cyl("x", (p["push_y"], p["push_z"]), p["m3_pilot"] / 2, xd - 0.5, fx + 1.0))
     cut.append(homing_socket(K, p))
@@ -625,7 +699,7 @@ def standoff_fork_v2_ears(K, p=P):
 
 def standoff_fork(K, p=P):
     """Foot, column and fork in one part."""
-    if REV == "v2":
+    if V2UP:
         return standoff_fork_v2_ears(K, p) if p.get("fork_style") in ("ears", "mold") else standoff_fork_v2(K, p)
     c = (0.0, Y_AXIS)
     fx, (fy0, fy1), r = p["fp_x"], p["fp_y"], p["fp_r"]
@@ -696,7 +770,7 @@ def indenter(K, kind):
     else:
         top = K.union([K.box((-12.5, -10.0, 5.99), (12.5, 10.0, 30.0)), K.cyl("y", (0.0, 30.0), 12.5, -10.0, 10.0)])
         top = K.inter(top, K.box((-13, -11, 5.9), (13, 11, 43)))
-    if REV != "v2":
+    if not V2UP:
         return K.union([base, top])
     # v2: the homing post (owner, 2026-10-20: "add homing geometry so i can zero the ur5 mount to the indenter. dont
     # overthink that one. it can literally be a slot/rod mating"), its pin seated in the mount's socket when the tip's
@@ -744,7 +818,7 @@ def homing(kind):
 PARTS = (("adapter", "standoff_fork", "clamp_plate") if REV == "v1" or P.get("fork_style") in ("ears", "mold")
          else ("adapter", "standoff_fork"))
 TABLE_PARTS = ("indenter_sphere", "indenter_rod")
-MOLD = REV == "v2" and P.get("fork_style") == "mold"
+MOLD = V2UP and P.get("fork_style") == "mold"
 
 
 def build_parts(K, p=P):
@@ -1060,7 +1134,8 @@ def b_links_v2():
     pad and the cover of v3 (the cradle meets the tongue, which is the same in both)."""
     import trimesh
     out = {}
-    for k, f in (("v2b", "v2/b/cad/20261018-dip_link_v2b_dip_link.stl"), ("v3b", "v3/b/cad/20261020-dip_link_v3b_dip_link.stl")):
+    for k, f in (("v2b", "v2/b/cad/20261018-dip_link_v2b_dip_link.stl"), ("v3b", "v3/b/cad/20261020-dip_link_v3b_dip_link.stl")) + (
+            (("v4b", "v4/b/cad/20261021-dip_link_v4b_dip_link.stl"),) if REV == "v3" else ()):
         m = trimesh.load(DIP / f, force="mesh")
         m.merge_vertices()
         out[k] = m
@@ -1216,6 +1291,67 @@ def cmd_check_v2(a):
     print("access", acc, "heads", heads, "walls", walls, f"[{time.time() - t0:.0f} s]", flush=True)
 
 
+def cmd_check_v3_screws(a):
+    """v3: the four M6 x 20 against the adapter and the foot, seated (with and without a DIN 125 washer) and lifted until the
+    tip is flush with the adapter's face; a 5 mm hex key (a cylinder of the key's 5.77 mm across corners, and 1 mm wider for
+    clearance) from each head's socket along its hole or channel, against the mount, the clamp plate, DIP links b v3 and v4,
+    their covers and the pad. Overlaps by manifold3d booleans, mm3."""
+    import trimesh
+    t0 = time.time()
+    parts = {nm: from_trimesh(_load_part(nm)) for nm in ("adapter", "standoff_fork", "clamp_plate")}
+    others = {}
+    for k_, f in (("link_v3b", "v3/b/cad/20261020-dip_link_v3b_dip_link.stl"), ("link_v4b", "v4/b/cad/20261021-dip_link_v4b_dip_link.stl"),
+                  ("cover_v3b", "v3/b/cad/20261020-dip_link_v3b_cover.stl"), ("cover_I15H4_v4b", "v4/b/cad/20261021-dip_link_v4b_cover_I15H4.stl"),
+                  ("pad", "v2/b/cad/20261018-dip_link_v2b_pad_ell11_5.stl")):
+        m = trimesh.load(DIP / f, force="mesh")
+        m.apply_transform(T_M_FROM_F)
+        others[k_] = from_trimesh(m)
+    K = MeshK()
+    k_, L, hd = P["m6_head_k"], P["m6_len"], P["m6_head_d"]
+    seats = {"seated": P["ad_t"] + k_, "seated_washer": P["ad_t"] + 1.6 + k_,
+             "lifted": L + k_}                            # lifted: the tip flush with the adapter's face (z_M 0)
+    rows = []
+    for a_ in bolt_angles():
+        xF, yF = _m_xy(P["bolt_r"], a_)
+        x_m, y_m = -xF, yF - Y_AXIS
+        under = y_m < 0
+        for pose, zt in seats.items():
+            head = K.cyl("z", (x_m, y_m), hd / 2, zt - k_, zt)
+            shank = K.cyl("z", (x_m, y_m), 3.0, zt - k_ - L, zt - k_)
+            r = dict(bolt_deg=a_, xy_M=[round(x_m, 2), round(y_m, 2)], pose=pose, head_top_zM=round(zt, 2),
+                     protrusion_mm=round(L - (zt - k_), 2),
+                     overlap_mm3={nm: round(float(((head + shank) ^ s_).volume()), 4) for nm, s_ in parts.items()})
+            keys = {}
+            tilts = (15.0, 20.0, 25.0) if under else (0.0, 10.0)
+            for tdeg in tilts:
+                th = math.radians(tdeg)
+                sx = 1.0 if x_m > 0 else -1.0
+                d = np.array([sx * math.sin(th), 0.0, math.cos(th)]) if under else np.array([sx * math.sin(th) / math.sqrt(2), math.sin(th) / math.sqrt(2), math.cos(th)])
+                for rk, tag in ((5.77 / 2, "key"), (5.77 / 2 + 0.5, "key_plus_0.5")):
+                    cyl = K.cyl("z", (0.0, 0.0), rk, 0.5, 130.0)
+                    R = trimesh.geometry.align_vectors([0, 0, 1.0], d)
+                    R[:3, 3] = [x_m, y_m, zt]
+                    kc = cyl.transform(R[:3, :])
+                    ov = {nm: round(float((kc ^ s_).volume()), 3) for nm, s_ in list(parts.items()) + list(others.items())}
+                    keys[f"{tag}_tilt{tdeg:.0f}"] = {nm: v for nm, v in ov.items() if v > 0} or "clear"
+            r["key_overlaps_mm3"] = keys
+            rows.append(r)
+            print(a_, pose, r["protrusion_mm"], r["overlap_mm3"], keys, flush=True)
+    # the head cannot leave its pocket: the head lifted 0.6 mm past the pocket's top meets the foot at every bolt
+    capt = []
+    for a_ in bolt_angles():
+        xF, yF = _m_xy(P["bolt_r"], a_)
+        h = K.cyl("z", (-xF, yF - Y_AXIS), hd / 2, P["m6_pocket_top"] + 0.1, P["m6_pocket_top"] + 0.1 + k_)
+        capt.append(dict(bolt_deg=a_, overlap_above_pocket_mm3=round(float((h ^ parts["standoff_fork"]).volume()), 2)))
+    rec = dict(rev=REV, screws="ISO 4762 M6 x 20; seated: head on the adapter's top face (z_M %.1f)" % P["ad_t"],
+               poses=rows, captive=capt, pocket=dict(d=P["m6_pocket_d"], top_zM=P["m6_pocket_top"]),
+               key="5 mm hex key as a cylinder of 2.885 mm radius (and +0.5 mm) from 0.5 mm above the head's top, 129.5 mm long; "
+                   "+y bolts straight (0 deg) and 10 deg outward, -y bolts 15/20/25 deg outward along x_M",
+               when=time.strftime("%Y-%m-%d %H:%M"), seconds=round(time.time() - t0, 1))
+    (OUT / f"{PFX}_screws.json").write_text(json.dumps(rec, indent=1, default=float))
+    print("captive", capt, f"[{time.time() - t0:.0f} s]", flush=True)
+
+
 def cmd_payload_v2(a):
     """v2: mass and centre of gravity of everything past the UR5e's flange for set_payload: the HEX-E (50 mm, 0.347 kg, CoG
     20 mm from its robot face, its data sheet), the adapter and the standoff-fork at the plastic the P1S plate lays down
@@ -1223,25 +1359,34 @@ def cmd_payload_v2(a):
     volume x fill ratio x 1.24 g/cm3), DIP link b v3 at its sliced density with
     the cover, board, pad, magnets and brass screws (v3/b/evaluation.json), and the steel screws."""
     import trimesh
-    plate = json.loads((PRINT / "20261020-p1s_pla_calibration.json").read_text())
+    p2 = REPO / "docs/experiments/20261020-ur5_calibration_mount_v2/print"
+    plate = json.loads((p2 / "20261020-p1s_pla_calibration.json").read_text())
     fill = {o["id"]: o["fill_ratio"] for o in plate["objects"]}
-    newer = PRINT / "20261020-p1s_pla_fork_and_indenters.json"      # the fork of 19:10 at 15 % grid, when sliced
+    newer = p2 / "20261020-p1s_pla_fork_and_indenters.json"         # the fork of 19:10 at 15 % grid, when sliced
     if newer.exists():
         fill.update({o["id"]: o["fill_ratio"] for o in json.loads(newer.read_text())["objects"] if o["id"] == "U2"})
+    if REV == "v3":                                     # v3's adapter and fork from their own plate; the clamp plate is v2's
+        fill.update({o["id"]: o["fill_ratio"] for o in json.loads((PRINT / f"{PFX}_p1s_pla.json").read_text())["objects"]})
     ev = json.loads((DIP / "v3/b/evaluation.json").read_text())["mass_g"]
     items = []
     for nm, pid in (("adapter", "U1"), ("standoff_fork", "U2")) + ((("clamp_plate", "U3"),) if "clamp_plate" in PARTS else ()):
         tm = _load_part(nm)
         items.append((nm, float(tm.volume) * 1e-3 * MATERIAL["pla_density_g_cm3"] * fill[pid], np.asarray(tm.center_mass)))
-    link = trimesh.load(DIP / "v3/b/cad/20261020-dip_link_v3b_dip_link.stl", force="mesh")
+    lk = "v4" if REV == "v3" else "v3"                  # v3 of the mount carries DIP link b v4 (its sliced mass, v4 checks)
+    link = trimesh.load(DIP / ("v4/b/cad/20261021-dip_link_v4b_dip_link.stl" if lk == "v4" else
+                               "v3/b/cad/20261020-dip_link_v3b_dip_link.stl"), force="mesh")
     link.apply_transform(T_M_FROM_F)
     c_link = np.asarray(link.center_mass)
     c_tip = F_to_M(np.array([-2.0, 0.0, B_LINK["z_contact"]]))
-    items += [("dip_link_b_v3", ev["dip_link_at_sliced_density"], c_link),
+    m_link = (json.loads((DIP / "v4/b/20261021-dip_link_v4b_checks.json").read_text())["mass_g"]["v4"]["sliced"] if lk == "v4"
+              else ev["dip_link_at_sliced_density"])
+    m6 = (4 * SCREWS["M6x20_ISO4762"]["mass_g"], np.array([0.0, 0.0, 11.0])) if REV == "v3" else \
+        (4 * SCREWS["M6x12_ISO4762"]["mass_g"], np.array([0.0, 0.0, 6.0]))
+    items += [(f"dip_link_b_{lk}", m_link, c_link),
               ("cover_board_screws", ev["cover_solid"] + ev["board"] + ev["screws_brass"], F_to_M(np.array([3.5, 0.0, -88.0]))),
               ("pad_and_magnets", 2.01 + 5 * 0.106, c_tip),
-              ("m6_screws_washers", 4 * SCREWS["M6x12_ISO4762"]["mass_g"], np.array([0.0, 0.0, 6.0])),
-              ("m3_screws", 4 * SCREWS["M3x12_foot"]["mass_g"] + 2.4, np.array([0.0, 0.0, 20.0])),
+              ("m6_screws" if REV == "v3" else "m6_screws_washers", m6[0], m6[1]),
+              ("m3_screws", 4 * SCREWS["M3x12_foot"]["mass_g"] + 2.4, np.array([0.0, 0.0, 24.0 if REV == "v3" else 20.0])),
               ("hex_e", 347.0, np.array([0.0, 5.0, -50.0 + 20.0]))]
     m = sum(i[1] for i in items)
     cog_M = sum(i[1] * i[2] for i in items) / m
@@ -1936,6 +2081,164 @@ def cmd_render_v2_ears(a):
     print("renders ->", rel(MEDIA), flush=True)
 
 
+def _screws_M_v3(lift=0.0):
+    """v3's screws in M: four M6 x 20 seated on the adapter (raised by lift), four M3 x 12 in the foot's counterbores, the
+    clamp plate's two M3 x 16, the slotted arm's M3 x 12 with its washer."""
+    import trimesh
+    out = []
+    for a_ in bolt_angles():
+        x, y = _m_xy(P["bolt_r"], a_)
+        out.append(_screw((0, 0, -1), np.array([-x, y - Y_AXIS, P["ad_t"] + lift]), P["m6_len"], 6.0, P["m6_head_d"], P["m6_head_k"]))
+    for a_ in m3_angles():
+        x, y = _m_xy(P["m3_r"], a_)
+        out.append(_screw((0, 0, -1), np.array([-x, y - Y_AXIS, P["ad_t"] + P["m3_under"]]), 12.0, 3.0, 5.5, 3.0))
+    for sx in (-1, 1):
+        c = F_to_M(np.array([sx * P["cp_screw_x"], ARM_HORN[0] - P["cp_t"] + P["cp_cb_t"], P["cp_screw_z"]]))
+        out.append(_screw((0, 1, 0), c, 16.0, 3.0, 5.5, 3.0))
+    out.append(_screw((0, -1, 0), F_to_M(np.array([0.0, ARM_SLOTTED[1] + 0.8, PIP_ZF])), 12.0, 3.0, 5.5, 3.0))
+    w = trimesh.creation.cylinder(radius=4.5, height=0.8, sections=48)
+    w.apply_transform(trimesh.geometry.align_vectors([0, 0, 1.0], [0, 1.0, 0]))
+    w.apply_translation(F_to_M(np.array([0.0, ARM_SLOTTED[1] + 0.4, PIP_ZF])))
+    out.append(w)
+    return trimesh.util.concatenate(out)
+
+
+def _hex_key(tip, d, length=110.0, short=30.0, ball=False):
+    """A 5 mm hex L-key in M: the long arm from tip along d (unit), the short arm bent at its far end; a ball end at the tip."""
+    import trimesh
+    d = np.asarray(d, float) / np.linalg.norm(d)
+    e = np.cross(d, [0.0, 1.0, 0.0])
+    e = e / np.linalg.norm(e) if np.linalg.norm(e) > 1e-6 else np.array([1.0, 0, 0])
+
+    def bar(a, b):
+        c = trimesh.creation.cylinder(radius=5.0 / math.sqrt(3), height=float(np.linalg.norm(b - a)), sections=6)
+        T = trimesh.geometry.align_vectors([0, 0, 1.0], (b - a) / np.linalg.norm(b - a))
+        T[:3, 3] = (a + b) / 2
+        c.apply_transform(T)
+        return c
+    tip = np.asarray(tip, float)
+    p0 = tip + d * (3.5 if ball else 0.0)
+    p1 = tip + d * length
+    parts = [bar(p0, p1), bar(p1 - d * 2.5, p1 - d * 2.5 + e * short)]
+    if ball:
+        b_ = trimesh.creation.icosphere(subdivisions=3, radius=2.5)
+        b_.apply_translation(tip + d * 2.0)
+        neck = trimesh.creation.cylinder(radius=1.6, height=2.0, sections=24)
+        T = trimesh.geometry.align_vectors([0, 0, 1.0], d)
+        T[:3, 3] = tip + d * 3.3
+        neck.apply_transform(T)
+        parts += [b_, neck]
+    return trimesh.util.concatenate(parts)
+
+
+def cmd_render_v3(a):
+    """v3 figures: the mount on the HEX-E with DIP link b v4, the M6 x 20 and a key in each kind of access (tool axis up, the
+    view of someone tightening from above), and the parts exploded along the tool axis in the order they go together."""
+    import trimesh
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    C_ = dict(COLORS, cover="0.36 0.52 0.86 1", key="0.15 0.15 0.17 1", keyb="0.75 0.25 0.20 1")
+    parts = {nm: trimesh.load(fname(nm), force="mesh") for nm in PARTS}
+    dip = {}
+    for k_, f in (("dip_link", "v4/b/cad/20261021-dip_link_v4b_dip_link.stl"), ("cover", "v4/b/cad/20261021-dip_link_v4b_cover.stl"),
+                  ("tip", "v4/b/cad/20261021-dip_link_v4b_pad_ell11_5.stl")):
+        t = trimesh.load(DIP / f, force="mesh")
+        t.apply_transform(T_M_FROM_F)
+        dip[k_] = t
+    scr = _screws_M_v3()
+    hexe = trimesh.creation.cylinder(radius=36.0, height=22.0, sections=96)      # the HEX-E's top 22 mm (context)
+    hexe.apply_translation([0.0, 0.0, -11.0])
+    b45 = np.array([P["bolt_r"] * math.cos(math.radians(45.0)), P["bolt_r"] * math.sin(math.radians(45.0)), 0.0])
+    b315 = np.array([b45[0], -b45[1], 0.0])
+    zt = P["ad_t"] + P["m6_head_k"]
+    th = math.radians(P["key_tilt"])
+    key_s = _hex_key(b45 + [0, 0, zt], [0.0, 0.0, 1.0], length=85.0, short=24.0)
+    key_b = _hex_key(b315 + [0, 0, zt], [math.sin(th), 0.0, math.cos(th)], length=85.0, short=24.0, ball=True)
+    asm = [(hexe, C_["hex"], "v3_hexe"), (parts["adapter"], C_["adapter"], "v3_ad"), (parts["standoff_fork"], C_["standoff_fork"], "v3_sf"),
+           (parts["clamp_plate"], C_["clamp_plate"], "v3_cp"), (scr, C_["screws"], "v3_scr"), (key_s, C_["key"], "v3_keys"),
+           (key_b, C_["keyb"], "v3_keyb")] + [(dip[k], C_[c], "v3_" + k) for k, c in (("dip_link", "dip_link"), ("cover", "cover"), ("tip", "tip"))]
+    cam = (np.array([8.0, 0.0, 50.0]), 380, 140, -22)
+    img = _render(asm, cam, MEDIA / f"{PFX}_keys.png")
+    _annotate(img, cam, [
+        ("Adapter, 15 mm: an M6 x 20 seated on it enters the HEX-E 5.0 mm", np.array([31.0, -6.0, 8.0])),
+        ("Foot, 13 mm: each M6 head in a pocket, captive", np.array([34.0, 6.0, 22.0])),
+        ("Straight 5 mm key from above, slotted-arm side", b45 + [0, 0, 70.0]),
+        (f"Ball-end key at {P['key_tilt']:.0f} deg beside the column's corner", b315 + np.array([math.sin(th), 0, math.cos(th)]) * 70.0),
+        ("DIP link b v4 on the fork as in v2; clamp plate unchanged", F_to_M(np.array([-10.0, -2.0, -75.0])))],
+        title="Mount v3 on the HEX-E, tool axis up: the M6 x 20 tighten from above")
+    # exploded along the tool axis: adapter with the M6 dropped in, the fork lowered over the heads, the link, the clamp plate
+    sh = lambda t, dz: _shifted(t, np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, dz], [0, 0, 0, 1.0]]))   # noqa: E731
+    m6 = trimesh.util.concatenate([_screw((0, 0, -1), np.array([*(P["bolt_r"] * np.array([math.cos(math.radians(a_)), math.sin(math.radians(a_))])),
+                                                                  P["ad_t"]]), P["m6_len"], 6.0, P["m6_head_d"], P["m6_head_k"])
+                                   for a_ in bolt_angles()])
+    d1, d2 = 45.0, 95.0
+    exp = [(parts["adapter"], C_["adapter"], "x_ad"), (m6, C_["screws"], "x_m6"), (sh(parts["standoff_fork"], d1), C_["standoff_fork"], "x_sf"),
+           (sh(parts["clamp_plate"], d2), C_["clamp_plate"], "x_cp")] + [(sh(dip[k], d2), C_[c], "x_" + k)
+                                                                         for k, c in (("dip_link", "dip_link"), ("cover", "cover"), ("tip", "tip"))]
+    cam = (np.array([0.0, 0.0, 95.0]), 660, 130, -12)
+    img = _render(exp, cam, MEDIA / f"{PFX}_exploded.png")
+    _annotate(img, cam, [
+        ("First: the four M6 x 20 into the adapter's holes, heads on its top face", np.array([b45[0], b45[1], zt + 2.0])),
+        ("Then the fork over the heads, four M3 x 12 into the adapter", np.array([30.0, 8.0, 28.0 + d1])),
+        ("Last: the DIP link onto the fork along the tool axis, then the clamp plate", F_to_M(np.array([-10.55, 0.0, -66.0])) + [0, 0, d2])],
+        title="Mount v3 exploded along the tool axis, in assembly order", callout=True)
+    print("renders ->", rel(MEDIA), flush=True)
+
+
+def cmd_sections_v3(a):
+    """v3: sections through the M6 axes in the x-z plane of M, y_M +17.68 (the two screws on the slotted-arm side, a straight
+    key) and -17.68 (the two under the column's corners, a ball-end key), the screws seated and lifted."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Polygon as MPoly, Rectangle
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    tms = {nm: _load_part(nm) for nm in ("adapter", "standoff_fork", "clamp_plate")}
+    cols = {"adapter": "#ddb07a", "standoff_fork": "#7da6e3", "clamp_plate": "#4f78b8"}
+    plt.rcParams.update({"font.family": "serif", "font.size": 15})
+    fig, axs = plt.subplots(1, 2, figsize=(11.0, 6.4), dpi=130, sharey=True)
+    yb = P["bolt_r"] * math.sin(math.radians(45.0))
+    zt, k_, L = P["ad_t"] + P["m6_head_k"], P["m6_head_k"], P["m6_len"]
+    for ax, yv, ttl in ((axs[0], yb, "Slotted-arm side, y$_M$ = +17.7 mm"), (axs[1], -yb, "Under the column, y$_M$ = $-$17.7 mm")):
+        ax.add_patch(Rectangle((-36, -9), 72, 9, fc="0.85", ec="0.5", hatch="//", lw=0.6))
+        ax.text(0, -5.5, "HEX-E", ha="center", va="center", fontsize=14)
+        for nm, tm in tms.items():
+            sec = tm.section(plane_origin=[0, yv, 0], plane_normal=[0, 1, 0])
+            if sec is None:
+                continue
+            for e in sec.discrete:
+                ax.add_patch(MPoly(e[:, [0, 2]], closed=True, fc=cols[nm], ec="k", lw=0.6))
+        for sx in (1, -1):
+            x = sx * yb
+            ax.add_patch(Rectangle((x - 5, zt - k_), 10, k_, fc="0.45", ec="k", lw=0.8))
+            ax.add_patch(Rectangle((x - 3, zt - k_ - L), 6, L, fc="0.62", ec="k", lw=0.8))
+            ax.add_patch(Rectangle((x - 5, L), 10, k_, fc="none", ec="k", lw=1.0, ls="--"))
+            tilt = 0.0 if yv > 0 else math.radians(P["key_tilt"])
+            dvec = np.array([sx * math.sin(tilt), math.cos(tilt)])
+            nvec = np.array([dvec[1], -dvec[0]])
+            p0 = np.array([x, zt]) + dvec * 0.5
+            p1 = p0 + dvec * 52.0
+            ax.add_patch(MPoly(np.array([p0 + nvec * 2.5, p1 + nvec * 2.5, p1 - nvec * 2.5, p0 - nvec * 2.5]), closed=True,
+                               fc=(0.75, 0.2, 0.15, 0.55), ec=(0.6, 0.1, 0.1), lw=0.8))
+        ax.set_xlim(-36, 36)
+        ax.set_ylim(-9, 76)
+        ax.set_aspect("equal")
+        ax.set_title(ttl, fontsize=15)
+        ax.set_xlabel("x$_M$ (mm), palmar side to the right")
+    axs[0].set_ylabel("z$_M$ (mm), along the tool axis")
+    axs[0].annotate("Key hole 7 mm", xy=(yb, 27.3), xytext=(1.0, 40.0), fontsize=14, arrowprops=dict(arrowstyle="-", lw=0.8))
+    axs[0].annotate("Pocket 12.5 mm", xy=(-yb + 5.6, 24.0), xytext=(-12.0, 33.0), fontsize=14, arrowprops=dict(arrowstyle="-", lw=0.8))
+    axs[0].annotate("5.0 mm into the HEX-E", xy=(yb + 3.0, -2.5), xytext=(10.0, -8.5), fontsize=13, va="bottom",
+                    arrowprops=dict(arrowstyle="-", lw=0.8))
+    axs[1].annotate(f"Channel at {P['key_tilt']:.0f}°", xy=(yb + 6.0, 34.0), xytext=(14.0, 52.0), fontsize=14,
+                    arrowprops=dict(arrowstyle="-", lw=0.8))
+    axs[0].annotate("Head lifted, tip flush\nwith the adapter (dashed)", xy=(-yb + 4.5, 25.5), xytext=(-12.0, 56.0), fontsize=13,
+                    arrowprops=dict(arrowstyle="-", lw=0.8))
+    fig.tight_layout()
+    fig.savefig(MEDIA / f"{PFX}_sections.png")
+    plt.close(fig)
+    print("sections ->", rel(MEDIA / f"{PFX}_sections.png"), flush=True)
+
+
 def _shifted(t, T):
     u = t.copy()
     u.apply_transform(T)
@@ -2187,10 +2490,11 @@ def main():
         freecad_step()
         return
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["interfaces", "build", "check", "estimate", "render", "sections", "print", "docs", "payload"])
+    ap.add_argument("cmd", choices=["interfaces", "build", "check", "estimate", "render", "sections", "print", "docs", "payload",
+                                    "screws"])
     a = ap.parse_args()
-    {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else (cmd_render_v2_ears if P.get("fork_style") in ("ears", "mold") else cmd_render_v2),
-     "sections": cmd_sections, "print": cmd_print, "docs": cmd_docs, "payload": cmd_payload_v2}[a.cmd](a)
+    {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else (cmd_render_v3 if REV == "v3" else cmd_render_v2_ears if P.get("fork_style") in ("ears", "mold") else cmd_render_v2),
+     "sections": cmd_sections_v3 if REV == "v3" else cmd_sections, "print": cmd_print, "docs": cmd_docs, "payload": cmd_payload_v2, "screws": cmd_check_v3_screws}[a.cmd](a)
 
 
 if __name__ == "__main__":
