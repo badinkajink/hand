@@ -10,24 +10,28 @@ two iterations of 32, three knots, knot noise 0.08 rad with AR(1) correlation 0.
 kept, the first knot pinned to the applied command), replanned every 10 ms (100 Hz, the HOM controller's rate) on the
 plant's own pads model with mujoco.rollout; between replannings the servo targets follow the planned spline at the
 1 ms physics step. The planner's model is the plant's, compiled again with one contact sensor per finger (net force
-between the tip body, which carries the pads, and the object) and, for press, one between the object and the wall.
+between the tip body, which carries the pads, and the object).
 
 Task costs, per 10 ms sample over the horizon (the last sample weighted w_term = 10 times, plus w_du times the squared
-knot-to-knot change of the targets, as in the 2026-10-14 planners); the references are those of hom_tasks.Schedule:
-  pinpush  ((d - d_ref) / 1 mm)^2, d the object's displacement along its axis at the task start and d_ref the
-           commanded 10 mm/s for 1 s, then 10 mm; tilt (1 - a.a0) / (1 - cos 5 deg); per finger
-           clip((0.2 N - F_f) / 0.2 N, 0, 1), F_f the finger's net force on the object
-  press    ((F_wall - F_ref) / 0.25 N)^2 from the wall contact on (before it, from the predicted contact at
-           4 mm / 8 mm/s = 0.5 s); tilt as pinpush
-  roll     |w - w_ref|^2 / (10 deg/s)^2, w the object's angular velocity (world); |p - p0|^2 / (5 mm)^2;
-  twist    per finger clip((0.5 N - F_f) / 0.5 N, 0, 1)
+knot-to-knot change of the targets, as in the 2026-10-14 planners). The references are hom_tasks.Schedule's, tabulated
+at the controller's ticks when the task starts:
+  pinpush, press  ((theta - theta_ref) / 2 deg)^2, theta the pinch angle (hom_tasks.pinch_angle of the cylinder's axis
+           a, about palm x) since the task start and theta_ref Schedule.angle's command; ((psi - psi_0) / 5 deg)^2,
+           psi = asin(a_x) the rotation off the pinch axis; per finger clip((0.2 N - F_f) / 0.2 N, 0, 1), F_f the
+           finger's net force on the object
+  roll     |w - w_ref|^2 / (10 deg/s)^2, w the object's angular velocity (world); |p - p_ref|^2 / (5 mm)^2, p_ref the
+           task-start centre plus the integral of Schedule's v_ref (the centre rolling along the thumb); per finger
+           clip((0.5 N - F_f) / 0.5 N, 0, 1)
+  twist    as roll with p_ref the task-start centre
   all      10 [object more than 15 mm below its height at the task start]
-Rows carry the metrics of hom_tasks.metrics and, from the 10 ms samples of the task phase, the smoothness metrics of
+Rows carry the fields hom_tasks.rollout writes (cop_obj_mm, theta_ref_deg, w_ref_dps, v_ref_mms), so hom_tasks.metrics
+scores both arms, and, from the 10 ms samples of the task phase, the smoothness metrics of
 hand_object_scale_mpc.smooth_metrics (command rate, command reversals, angular-velocity jitter, three-pad share).
+Commits before 2026-10-22 scored the earlier task definitions (axial displacement for pin-push, wall force for press).
 
-    .venv/bin/python scripts/hom_tasks_mpc.py run --tasks press --d 25 --seeds 0 --controllers mpc
+    .venv/bin/python scripts/hom_tasks_mpc.py run --tasks pinpush --d 25 --seeds 0 --controllers mpc
     .venv/bin/python scripts/hom_tasks_mpc.py run --controllers mpc hom --seeds 0 --shard 0/2
-    .venv/bin/python scripts/hom_tasks_mpc.py run --tasks pinpush press --d 25 --seeds 0 --controllers hom mpc --film
+    .venv/bin/python scripts/hom_tasks_mpc.py run --tasks pinpush press --d 25 40 --seeds 0 1 2 --controllers hom mpc --film
 Rows: docs/experiments/20261021-hom_framework/rows/mpc_<task>.jsonl, one fsynced line per rollout, resumable per
 (task, size, seed, controller). Films (--film, seed 0): media/20261021-mpc_<task>_<object>.mp4 and, when the HOM run
 of the same cell is filmed in the same call, media/20261021-hom_vs_mpc_<task>_<object>.mp4 with a poster .jpg.
@@ -63,16 +67,15 @@ T_TASK = T.T_LIFT + 0.4
 PANELS = ROOT / "logs/20261021-hom_tasks/panels"
 # pinned iCEM of 2026-10-14 (hand_object_scale_planners.BASE + CONFIGS["icem_pin"]) at 100 Hz replanning
 MPC = {**M.DEFAULTS, **M.PLANNER_DEFAULTS,
-       **dict(method="icem", iters=2, pin0=1.0, nsample=64, horizon=0.5, dt_plan=0.01, w_tilt=1.0, tilt_deg=5.0,
-              w_disp=1.0, sig_disp=0.001, w_force=1.0, sig_force=0.25, w_omega=1.0, sig_omega_dps=10.0, w_drift=1.0,
-              sig_drift=0.005, w_contact=1.0, f_min_push=0.2, f_min_tripod=0.5, w_drop=10.0)}
+       **dict(method="icem", iters=2, pin0=1.0, nsample=64, horizon=0.5, dt_plan=0.01, w_theta=1.0, sig_theta_deg=2.0,
+              w_off=1.0, sig_off_deg=5.0, w_omega=1.0, sig_omega_dps=10.0, w_drift=1.0, sig_drift=0.005, w_contact=1.0,
+              f_min_push=0.2, f_min_tripod=0.5, w_drop=10.0)}
 INT_KEYS = ("nsample", "knots", "cost_every", "iters", "keep", "log_every")
 
 
-def planner_model(plant: Plant, path: Path, task: str):
+def planner_model(plant: Plant, path: Path):
     """The plant's model compiled again from its XML with one contact sensor per finger (net force between the tip
-    body and the object) and, for press, one between the object and the wall; the post never collides; the palm as on
-    the plant."""
+    body and the object); the post never collides; the palm as on the plant."""
     mj = plant.mj
     root = ET.parse(path).getroot()
     sens = root.find("sensor")
@@ -80,9 +83,6 @@ def planner_model(plant: Plant, path: Path, task: str):
         sens = ET.SubElement(root, "sensor")
     for f in FINGERS:
         ET.SubElement(sens, "contact", name=f"mpc_{f}", body1=f"{f}_tip", body2=S.OBJ, data="force", reduce="netforce",
-                      num="1")
-    if task == "press":
-        ET.SubElement(sens, "contact", name="mpc_wall", body1=S.OBJ, body2="wall", data="force", reduce="netforce",
                       num="1")
     tmp = path.with_name(f"{path.stem}.mpcsens.{os.getpid()}.xml")
     ET.ElementTree(root).write(tmp)
@@ -124,7 +124,7 @@ class TaskPlanner(M.Planner):
         mj = plant.mj
         self.mj, self.plant, self.prm, self.task = mj, view, prm, task
         self.rng = np.random.default_rng(0)
-        self.m = m = planner_model(plant, path, task)
+        self.m = m = planner_model(plant, path)
         self.pool = rollout.Rollout(nthread=nthread)
         self.datas = [mj.MjData(m) for _ in range(nthread)]
         self.spec = mj.mjtState.mjSTATE_FULLPHYSICS
@@ -154,26 +154,20 @@ class TaskPlanner(M.Planner):
         q = X[..., self.qa:self.qa + 7]
         p, qw = q[..., :3], q[..., 3:]
         run = prm["w_drop"] * (p[..., 2] < ref["z0"] - 0.015)
-        Sd = sens[:, ce - 1::ce] if sens is not None else None
-        if Sd is not None:
-            F = np.linalg.norm(Sd[..., :3 * len(FINGERS)].reshape(*Sd.shape[:2], len(FINGERS), 3), axis=-1)
+        F = np.linalg.norm(sens[:, ce - 1::ce].reshape(sens.shape[0], -1, len(FINGERS), 3), axis=-1)
         if self.task in ("pinpush", "press"):
-            x, y, w_ = qw[..., 1], qw[..., 2], qw[..., 0]
-            z_ = qw[..., 3]
-            axis = np.stack([2 * (x * z_ + w_ * y), 2 * (y * z_ - w_ * x), 1 - 2 * (x * x + y * y)], -1)
-            cos = np.clip(axis @ ref["a0"], -1.0, 1.0)
-            run = run + prm["w_tilt"] * (1.0 - cos) / (1.0 - math.cos(math.radians(prm["tilt_deg"])))
-        if self.task == "pinpush":
-            disp = (p - ref["p0"]) @ ref["a0"]
-            run = run + prm["w_disp"] * ((disp - ref["d_ref"]) / prm["sig_disp"]) ** 2
+            w_, x, y, z_ = qw[..., 0], qw[..., 1], qw[..., 2], qw[..., 3]
+            a = np.stack([2 * (x * z_ + w_ * y), 2 * (y * z_ - w_ * x), 1 - 2 * (x * x + y * y)], -1)   # body z
+            th = np.degrees(np.arctan2(a[..., 2], -a[..., 1])) - ref["th0"]
+            dth = (th - ref["theta_ref"] + 180.0) % 360.0 - 180.0
+            run = run + prm["w_theta"] * (dth / prm["sig_theta_deg"]) ** 2
+            psi = np.degrees(np.arcsin(np.clip(a[..., 0], -1.0, 1.0))) - ref["psi0"]
+            run = run + prm["w_off"] * (psi / prm["sig_off_deg"]) ** 2
             run = run + prm["w_contact"] * np.clip((prm["f_min_push"] - F) / prm["f_min_push"], 0.0, 1.0).sum(-1)
-        elif self.task == "press":
-            Fw = np.linalg.norm(Sd[..., 3 * len(FINGERS):3 * len(FINGERS) + 3], axis=-1)
-            run = run + prm["w_force"] * ref["F_on"] * ((Fw - ref["F_ref"]) / prm["sig_force"]) ** 2
         else:
             ww = quat_rotate(qw, X[..., self.wa:self.wa + 3])
             run = run + prm["w_omega"] * np.sum((ww - ref["w_ref"]) ** 2, -1) / math.radians(prm["sig_omega_dps"]) ** 2
-            run = run + prm["w_drift"] * np.sum((p - ref["p0"]) ** 2, -1) / prm["sig_drift"] ** 2
+            run = run + prm["w_drift"] * np.sum((p - ref["p_ref"]) ** 2, -1) / prm["sig_drift"] ** 2
             run = run + prm["w_contact"] * np.clip((prm["f_min_tripod"] - F) / prm["f_min_tripod"], 0.0, 1.0).sum(-1)
         c = run[:, :-1].sum(1) + prm["w_term"] * run[:, -1]
         return c + prm["w_du"] * np.sum(np.diff(samples, axis=1) ** 2, (1, 2))
@@ -181,70 +175,55 @@ class TaskPlanner(M.Planner):
 
 # ------------------------------------------------------------------------------------------------ references
 
-def w_ref_at(task: str, prm: dict, tt: float) -> np.ndarray:
-    """The object's reference angular velocity (world, rad/s) at tt seconds into the task phase (hom_tasks.Schedule)."""
-    w = np.zeros(3)
-    if tt < 0:
-        return w
-    if task == "roll":
-        seq, durs = [(0, +1), (0, -1), (None, 0), (1, +1), (1, -1), (None, 0)], [0.5, 0.5, 0.3, 0.5, 0.5, 0.3]
-    else:
-        seq, durs = [(2, +1), (2, -1), (None, 0)], [0.5, 0.5, 0.3]
-    edges = np.cumsum([0.0] + durs)
-    i = int(np.searchsorted(edges, tt, side="right")) - 1
-    if i < len(seq):
-        ax, sg = seq[i]
-        if ax is not None:
-            w[ax] = sg * math.radians(prm["w_step_dps"])
-    elif task == "twist" and tt - edges[-1] < 3.0:
-        w[2] = math.radians(prm["ramp_dps"])
-    return w
-
-
-def press_ref_at(prm: dict, tt: float, tt_wall: float) -> tuple[float, float]:
-    """(F_ref, weight): the press steps from the wall contact at tt_wall on; before it, no force reference."""
-    if tt < tt_wall:
-        return 0.0, 0.0
-    steps = prm["press_steps"]
-    return float(steps[min(int((tt - tt_wall) // 1.0), len(steps) - 1)]), 1.0
-
-
-def horizon_ref(task: str, prm: dict, sch: Schedule, t_now: float, s0: dict, planner: TaskPlanner) -> dict:
-    """The references at the planner's cost samples, (k + 1) * cost_every physics steps after t_now."""
-    ce = planner.prm["cost_every"]
-    tt = t_now - T_TASK + (np.arange(planner.nh // ce) + 1) * ce * planner.dt
+def ref_table(task: str, sch: Schedule, ticks: list, i0: int, s0: dict) -> dict:
+    """hom_tasks.Schedule's references at the controller ticks ticks[i0:] (the task phase; the same float times as the
+    control loop): the pinch angle's command (deg), the object's reference angular velocity (world, rad/s), and the
+    centre's reference path, the task-start centre plus the left Riemann sum of v_ref (hom_tasks.metrics' path)."""
+    still = {"quat": np.array([1.0, 0.0, 0.0, 0.0])}
+    th, w, v = [], [], []
+    for t in ticks[i0:]:
+        _cmd, info = sch(t, still)
+        th.append(info.get("theta_ref", 0.0))
+        w.append(info.get("w_ref", np.zeros(3)))
+        v.append(info.get("v_ref", np.zeros(3)))
+    dt = T.DT_C
+    V = np.array(v)
     R0 = H.quat_to_mat(s0["quat"])
-    ref = {"z0": float(s0["pos"][2]), "p0": s0["pos"].copy(), "a0": R0[:, 2].copy()}
-    if task == "pinpush":
-        ref["d_ref"] = prm["v_push"] * np.clip(tt, 0.0, prm["t_push"])
-    elif task == "press":
-        if sch.t_wall is not None:
-            tw = sch.t_wall
-        else:                     # the contact HOM's pusher would make at v_wall, or now if that time has passed
-            tw = max(t_now - T_TASK, T.WALL_GAP / prm["v_wall"])
-        fr = np.array([press_ref_at(prm, x, tw) for x in tt])
-        ref["F_ref"], ref["F_on"] = fr[:, 0], fr[:, 1]
+    a0 = R0[:, 2]
+    return {"z0": float(s0["pos"][2]), "th0": T.pinch_angle(a0), "psi0": math.degrees(math.asin(max(-1.0, min(1.0, a0[0])))),
+            "theta": np.array(th), "w": np.array(w),
+            "p": s0["pos"][None] + np.vstack([np.zeros(3), np.cumsum(V[:-1], 0) * dt])}
+
+
+def horizon_ref(task: str, tab: dict, j: int, planner: TaskPlanner) -> dict:
+    """The references at the planner's cost samples when it replans at task tick j: sample k lies (k + 1) * cost_every
+    physics steps (10 ms) ahead, at tick j + k + 1; past the task's end the last value holds."""
+    nk = planner.nh // planner.prm["cost_every"]
+    idx = np.minimum(j + 1 + np.arange(nk), len(tab["theta"]) - 1)
+    ref = {"z0": tab["z0"], "th0": tab["th0"], "psi0": tab["psi0"]}
+    if task in ("pinpush", "press"):
+        ref["theta_ref"] = tab["theta"][idx]
     else:
-        ref["w_ref"] = np.stack([w_ref_at(task, prm, x) for x in tt])
+        ref["w_ref"] = tab["w"][idx]
+        ref["p_ref"] = tab["p"][idx] if task == "roll" else np.broadcast_to(tab["p"][0], (nk, 3))
     return ref
 
 
 # ------------------------------------------------------------------------------------------------ rollout
 
 def task_row(task, s, info):
-    """One 10 ms row in the format of hom_tasks.rollout (the fields hom_tasks.metrics reads)."""
+    """One 10 ms row with the fields hom_tasks.rollout writes and hom_tasks.metrics reads."""
     R = H.quat_to_mat(s["quat"])
     row = {"t": None, "phase": info["phase"], "pos_mm": (1e3 * s["pos"]).round(3).tolist(),
            "w_dps": np.degrees(s["w"]).round(2).tolist(), "v_mms": (1e3 * s["v"]).round(2).tolist(),
            "axis": R[:, 2].round(5).tolist(), "F": {f: round(s["cop"].get(f, (None, 0.0))[1], 3) for f in FINGERS},
-           "F_link": {f: round(max(0.0, s["Ftot"][f] - s["cop"].get(f, (None, 0.0))[1]), 3) for f in FINGERS}}
+           "F_link": {f: round(max(0.0, s["Ftot"][f] - s["cop"].get(f, (None, 0.0))[1]), 3) for f in FINGERS},
+           "cop_obj_mm": {f: (1e3 * (R.T @ (p_ - s["pos"]))).round(3).tolist() for f, (p_, _F) in s["cop"].items()}}
     if "w_ref" in info:
         row["w_ref_dps"] = np.degrees(info["w_ref"]).round(2).tolist()
-    if "v_ax_ref" in info:
-        row["v_ax_ref_mms"] = round(1e3 * info["v_ax_ref"], 3)
-    if task == "press":
-        row["wallF"] = round(s["wallF"], 4)
-        row["F_ref"] = info.get("F_ref")
+        row["v_ref_mms"] = (1e3 * info["v_ref"]).round(3).tolist()
+    if "theta_ref" in info:
+        row["theta_ref_deg"] = round(info["theta_ref"], 3)
     return row
 
 
@@ -257,7 +236,11 @@ def rollout(task, setup, plant, mirror, q_open, seed, controller, planner=None, 
     ctl = H.HomController(mirror, hprm, healthy={f: np.asarray(q_open[f]) for f in FINGERS})
     act = np.concatenate([plant.act[f] for f in FINGERS])
     dt = T.DT_C
-    t, s0, lifted = 0.0, None, False
+    ticks, tk = [], 0.0                          # the loop's tick times, accumulated as the loop accumulates them
+    while tk < sch.t_end - 1e-9:
+        ticks.append(tk)
+        tk += dt
+    t, s0, lifted, i, j0, tab = 0.0, None, False, 0, None, None
     rows, frames, log, costs = [], [], [], []
     n_plan, t_plan = 0, 0.0
     w0 = time.perf_counter()
@@ -267,7 +250,11 @@ def rollout(task, setup, plant, mirror, q_open, seed, controller, planner=None, 
             plant.post_off()
             lifted = True
         if s0 is None and t >= T_TASK - 1e-9:
-            s0 = s
+            s0, j0 = s, i
+            if controller == "mpc":
+                if abs(planner.prm["cost_every"] * planner.dt - dt) > 1e-12 or ticks[i] != t:
+                    raise RuntimeError("the planner's cost samples are not the controller's ticks")
+                tab = ref_table(task, sch, ticks, i, s0)
         cmd, info = sch(t, s)
         u_applied = plant.d.ctrl[act].copy()
         if t >= T_TASK - 1e-9:
@@ -276,9 +263,11 @@ def rollout(task, setup, plant, mirror, q_open, seed, controller, planner=None, 
         if controller == "mpc" and t >= T_TASK - 1e-9:
             if n_plan == 0:
                 planner.start(seed)
-            if "w_ref" in info and not np.allclose(info["w_ref"], w_ref_at(task, prm, t - T_TASK)):
+            j = i - j0
+            if (abs(info.get("theta_ref", 0.0) - tab["theta"][j]) > 1e-9
+                    or not np.allclose(info.get("w_ref", np.zeros(3)), tab["w"][j])):
                 raise RuntimeError(f"reference mismatch at t {t:.2f}")
-            planner.ref = horizon_ref(task, prm, sch, t, s0, planner)
+            planner.ref = horizon_ref(task, tab, j, planner)
             tp = time.perf_counter()
             u, c_best, _c_nom = planner.plan(float(plant.d.time), None, None)
             t_plan += time.perf_counter() - tp
@@ -306,6 +295,7 @@ def rollout(task, setup, plant, mirror, q_open, seed, controller, planner=None, 
                                      f"{info['phase']:<16s} t {t:4.2f} s  " + T.film_line(task, s, info)))
         if not np.all(np.isfinite(plant.d.qpos)):
             raise FloatingPointError(f"non-finite state at t {t:.3f}")
+        i += 1
     res = metrics(task, setup, rows, s0, plant.state())
     sm = M.smooth_metrics(log, S.MASS * 9.81, lambda R: 0.0, t_from=T_TASK)
     sm.pop("peak_rate", None)
@@ -329,10 +319,18 @@ def _done(path: Path) -> set:
 
 
 def _append(path: Path, row: dict) -> None:
-    with open(path, "a") as fh:
-        fh.write(json.dumps(row) + "\n")
-        fh.flush()
-        os.fsync(fh.fileno())
+    """One fsynced line, written in one call under an exclusive lock: parallel jobs append to the same rows file."""
+    import fcntl
+    data = (json.dumps(row) + "\n").encode()
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o664)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        view = memoryview(data)
+        while view:
+            view = view[os.write(fd, view):]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def tile(clips, stem):
@@ -410,9 +408,9 @@ def cmd_run(a) -> int:
             film.r.close()
         if (task, d_mm, seed, ctrl) not in done[task] or film is not None:
             _append(rows_dir / f"mpc_{task}.jsonl", row)
-        brief = {k: row.get(k) for k in ("held", "disp_end_mm", "v_rmse_ratio", "wall_err_rms", "w_rmse_ratio",
-                                         "ramp_three_pads_max_deg", "tilt_max_deg", "drift_max_mm", "cmd_rate_rms",
-                                         "cmd_reversals", "omega_jitter", "wall_s", "plan_ms_mean", "error")
+        brief = {k: row.get(k) for k in ("held", "theta_rmse_deg", "gain_min", "off_axis_max_deg", "pusher_slip_max_mm",
+                                         "w_rmse_ratio", "centre_err_max_mm", "ramp_three_pads_max_deg", "drift_max_mm",
+                                         "cmd_rate_rms", "cmd_reversals", "omega_jitter", "wall_s", "plan_ms_mean", "error")
                  if row.get(k) is not None}
         print(task, d_mm, ctrl, seed, brief, flush=True)
         cc = clips.get((task, obj), {})
