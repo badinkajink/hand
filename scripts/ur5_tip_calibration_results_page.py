@@ -9,6 +9,8 @@ session's own folder in lab/<session>/. The outputs come from
     .venv/bin/python scripts/ur5_tip_calibration_analysis.py lab/<session> --gravity-from lab/20261022-195420-first2
     .venv/bin/python scripts/ur5_tip_calibration_fe.py data/<session>/holds.npz --plan lab/<session>/plan.json --out data/<session>/fe.json
     .venv/bin/python scripts/ur5_tip_calibration_predict.py data/<session>
+    .venv/bin/python scripts/ur5_tip_calibration_pads.py data/<session>/holds.npz --plan lab/<session>/plan.json \
+        --fe-json data/<session>/fe.json --shear 1,10,100 --out data/<session>/pads.json
 
 (paths under docs/experiments/20261022-ur5_tip_calibration/). Writes the figures to media/ and the page
 docs/experiments/20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html.
@@ -46,6 +48,7 @@ PROTOCOL_PAGE = D / "20261022-ur5_tip_calibration_protocol.html"
 EST_PAGE = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html"
 STATUS_PAGE = ROOT / "docs/experiments/20261018-printed_fingertip_status/20261018-printed_fingertip_and_dip_link_status.html"
 QUEUE = D / "QUEUE.md"
+E_TPU_DEFAULT = 10.0             # MPa, reorient_backends.E_TPU
 REGION_STYLE = {"face": ("o", "#1f5fbf"), "edge": ("s", "#c0392b"), "flank": ("^", "#2e8b57")}
 RNAME = {"face": "face", "edge": "edges", "flank": "flanks"}
 MODELS = [("physical", "Physical model, compliance fitted", "#2e8b57", "-"),
@@ -88,6 +91,7 @@ def load(session):
     R["TR"] = (json.loads((sd / "predict/magnet_transfer_sim.json").read_text())
                if (sd / "predict/magnet_transfer_sim.json").exists() else None)
     R["HY"] = json.loads((sd / "predict/hybrid_cv.json").read_text()) if (sd / "predict/hybrid_cv.json").exists() else None
+    R["PADS"] = json.loads((sd / "pads.json").read_text()) if (sd / "pads.json").exists() else None
     plan = json.loads((ld / "plan.json").read_text())
     have = {a["id"] for a in plan["actions"]}
     for f in sorted(ld.glob("plan_resume_*.json")):
@@ -160,6 +164,67 @@ def fig_fe(R, out):
     h, l_ = ax[0].get_legend_handles_labels()
     fig.legend(h, l_, loc="lower center", ncol=3, frameon=False, fontsize=11)
     fig.tight_layout(rect=(0, 0.15, 1, 1))
+    fig.savefig(out)
+    plt.close(fig)
+
+
+def fig_pads(R, out):
+    plt = P.plt_setup()
+    Q, FE = R["PADS"], R["FE"]
+    lv = sorted(Q["by_level"], key=float)
+    x = np.array([float(k) for k in lv])
+    fh = FE["holds"]
+    fl, fn, fb = np.array(fh["level_N"]), np.array(fh["f_n"]), np.array(fh["fe_best_N"])
+    fe_b = [float(np.median(fn[(fl == L) & (fb > 0)] / fb[(fl == L) & (fb > 0)])) for L in x]
+    fig, ax = plt.subplots(1, 2, figsize=(10.0, 4.8), dpi=110)
+    ax[0].plot(x, [Q["by_level"][k]["pads_over_fe"] for k in lv], "o-", color="#c0392b",
+               label=f"Pads over FE pad, pads at {Q['E_FE_MPa']:.1f} MPa")
+    ax[0].plot(x, [Q["by_level"][k]["meas_over_pads_E_meas"] for k in lv], "s-", color="#1f5fbf",
+               label=f"Measured over pads at {Q['E_meas_MPa']:.2f} MPa")
+    ax[0].plot(x, fe_b, "^--", color="#2e8b57", label=f"Measured over FE pad {FE['s_best']:g} times softer")
+    ax[0].axhline(1.0, color="k", lw=1.0)
+    ax[0].set_xscale("log")
+    ax[0].set_yscale("log")
+    ax[0].set_xticks([0.25, 0.5, 1, 2, 5])
+    ax[0].set_xticklabels(["0.25", "0.5", "1", "2", "5"])
+    ax[0].set_yticks([0.5, 0.7, 1, 1.5, 2])
+    ax[0].set_yticklabels(["0.5", "0.7", "1", "1.5", "2"])
+    ax[0].minorticks_off()
+    ax[0].set_ylim(0.45, 2.2)
+    ax[0].set_xlabel("Force level (N)")
+    ax[0].set_ylabel("Force ratio (median over the holds)")
+    ax[0].set_title("(a) Force ratios at the registered positions")
+    ax[0].legend(fontsize=10.5, loc="upper left", frameon=False)
+    runs = Q.get("shear", {}).get("runs", {})
+    irs = sorted({v["impratio"] for v in runs.values()})
+    for k_, (nm, col, mk) in enumerate((("E_FE", "#c0392b", "o"), ("E_meas", "#1f5fbf", "s"))):
+        med, lo, hi = [], [], []
+        for ir in irs:
+            r = runs.get(f"impratio{ir:g}_{nm}")
+            v = np.array([np.nan if y is None else y for y in r["per_hold"]], float)
+            v = v[np.isfinite(v)]
+            med.append(np.median(v))
+            lo.append(np.percentile(v, 10))
+            hi.append(np.percentile(v, 90))
+        xs = np.array(irs) * (0.9 if k_ == 0 else 1.1)
+        med, lo, hi = np.array(med), np.array(lo), np.array(hi)
+        ax[1].errorbar(xs, med, yerr=[med - lo, hi - med], fmt=mk, color=col, capsize=4, ms=7,
+                       label=f"Pads at {Q['delta_' + nm]['E_MPa']:.2f} MPa" if nm == "E_meas" else
+                       f"Pads at {Q['delta_' + nm]['E_MPa']:.1f} MPa")
+    hold = Q["shear"]["hold_s"]["median"]
+    ax[1].axhline(0.1 / hold, color="k", lw=1.0, ls="--", label=f"0.1 mm over a {hold:.1f} s hold")
+    ax[1].set_xscale("log")
+    ax[1].set_yscale("log")
+    ax[1].set_xticks(irs)
+    ax[1].set_xticklabels([f"{v:g}" for v in irs])
+    ax[1].minorticks_off()
+    ax[1].set_xlabel("MuJoCo impratio")
+    ax[1].set_ylabel("Sliding speed under the measured shear (mm/s)")
+    ax[1].set_title("(b) Creep of the pads under the holds' shear")
+    ax[1].legend(fontsize=10.5, loc="upper right", frameon=False)
+    for a in ax:
+        a.grid(alpha=0.3, which="both")
+    fig.tight_layout()
     fig.savefig(out)
     plt.close(fig)
 
@@ -341,6 +406,16 @@ def sections(R, F):
                      f"folds, against {cv['gp']['loc_median']:.2f} mm for the Gaussian process"
                      + (f", but within {PR['turns']['mlp:board']['loc_mm']['median']:.2f} mm on the rolls and twists."
                         if PR.get("turns") and "mlp:board" in PR["turns"] else "."))
+    Q = R.get("PADS")
+    if Q:
+        ru = Q.get("shear", {}).get("runs", {})
+        lede += (f" The simulations' sphere pads on the same surface, with a spring in series, follow the measured "
+                 f"indentation within {Q['delta_E_FE']['law']['rms_mm'] * 1e3:.0f} µm rms, against "
+                 f"{sr['rms_mm'] * 1e3:.0f} µm for the FE pad."
+                 + (f" Under the holds' shear, MuJoCo's soft friction lets the sphere slide along them at "
+                    f"{ru['impratio1_E_FE']['creep_mm_s']['median']:.1f} mm/s at impratio 1 and "
+                    f"{ru['impratio100_E_FE']['creep_mm_s']['median']:.3f} mm/s at impratio 100."
+                    if "impratio1_E_FE" in ru and "impratio100_E_FE" in ru else ""))
     summary = (f"UR5 run {R['session'].split('-', 2)[-1]}: measured force is {fe_r['face']['ratio_median_s1']:.2f} of the FE "
                f"pad's at the registered positions while the board reads {min(fs.values()):.2f}-{max(fs.values()):.2f} of "
                f"the HEX-E's force; extra indentation {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N outside the pad; "
@@ -383,6 +458,14 @@ def sections(R, F):
          "error is $|\\hat f_n / f_n - 1|$."),
         ("Force scale", "The least-squares slope of the estimator's normal force against $f_n$ over a region's grid "
          "presses. At a value of 1 the estimated force equals the HEX-E's on average."),
+        ("Sphere pads", "The contact model of the simulations: spheres of radius 0.75 mm, one per square millimetre of "
+         "the tip's surface. Each is a spring of stiffness $K_i = E\\,a_i / h_i$ (builder v2), with $a_i$ its area and "
+         "$h_i$ its depth below the centroid of the pad's solid. Here they sit on the 812 surface points of the FE basis."),
+        ("Pad modulus $E$", "The modulus in $K_i$, in MPa. $E_\\mathrm{FE}$ fits the pads' force to the FE pad's at the "
+         "registered positions, by least squares of the log ratio. $E_\\mathrm{meas}$ fits it to the HEX-E's force, by the "
+         "median relative error. The simulations' default is 10 MPa."),
+        ("Creep", "The sphere's speed along the pad's surface in MuJoCo, in mm/s, over the second half of 1 s. A constant "
+         "force equal to a hold's measured force vector pushes the sphere, and the friction coefficient is 1."),
         ("Predictor, training presses $N$", "A model trained on the holds of the first $N$ presses in time order and "
          "scored on held-out presses (every fourth grid press, apart from the reference presses). Each score is the "
          "median over the held-out holds."),
@@ -412,7 +495,7 @@ def sections(R, F):
             + (F["link"](LAB_PAGE, "page of the lab runs") if LAB_PAGE.exists() else "page of the lab runs (not built yet)")
             + f"; the protocol is on the {F['link'](PROTOCOL_PAGE, 'protocol page')}.{ref_txt}</p>"
             + F["table"](["Quantity", "Value"], rows, num_cols=(1,), caption="Registration and data of the session.", n=1)
-            + (f"<p>The presses {ands(exc)} are left out of the ground truth. In each of them the HEX-E carried 0.3 to "
+            + (f"<p>The presses {ands(exc)} are left out of the ground truth. In each of them the HEX-E measured 0.3 to "
                f"0.4 N before the pad met the sphere, rising with the travel. That load did not show on the board. They "
                f"are flank presses at the most turned wrist of the grid, with joint 6 at 70 to 72°. The lab traced the "
                f"load to the HEX-E's cable or a graze of the tool (its message stamped 23:50).</p>" if exc else "")
@@ -664,7 +747,7 @@ def sections(R, F):
                         + [f"{sc[k_]['gp raw (retrained on ' + k_ + ')']['loc_mm']:.2f}, {sc[k_]['gp raw (retrained on ' + k_ + ')']['force_N']:.3f}"
                            for k_ in ("A", "B", "C")])
             poles_c = "".join("+" if q > 0 else "-" for q in TR["sets"]["C"]["poles"])
-            body += (f"<p>The owner asked whether these predictors carry over to stronger N52 magnets in a checkerboard of poles. "
+            body += (f"<p>The owner asked whether these predictors transfer to stronger N52 magnets in a checkerboard of poles. "
                      f"This was tried in simulation on sphere2's mechanics. Each hold keeps its true contact point and force. "
                      f"The board's change is synthesized from the magnets' motions in the FE model and their dipole fields. "
                      f"The simulated pad differs from the FE model in two ways that do not depend on the magnets. Its compliance "
@@ -673,15 +756,15 @@ def sections(R, F):
                      f"and set C N52 magnets in a checkerboard ({poles_c}). Every learned model was trained on set A only (Table 8).</p>"
                      f"<p>The physical model is rebuilt for each set from its magnets' strength and poles, which the rest fit "
                      f"finds; the stronger magnets alone take it from {sc['A']['physical']['loc_mm']:.1f} to "
-                     f"{sc['C']['physical']['loc_mm']:.1f} mm. A GP on the raw board change does not carry over: "
+                     f"{sc['C']['physical']['loc_mm']:.1f} mm. A GP on the raw board change does not transfer: "
                      f"{sc['B']['gp raw (trained on A)']['loc_mm']:.2f} and {sc['C']['gp raw (trained on A)']['loc_mm']:.2f} mm, "
                      f"with force errors of {sc['B']['gp raw (trained on A)']['force_N']:.2f} and "
                      f"{sc['C']['gp raw (trained on A)']['force_N']:.2f} N. A GP that corrects the physical estimate, with the "
-                     f"estimate itself as its input, does carry over: {sc['B']['physical+gp (trained on A)']['loc_mm']:.2f} and "
+                     f"estimate itself as its input, does transfer: {sc['B']['physical+gp (trained on A)']['loc_mm']:.2f} and "
                      f"{sc['C']['physical+gp (trained on A)']['loc_mm']:.2f} mm. A GP retrained on each new set gives "
                      f"{sc['B']['gp raw (retrained on B)']['loc_mm']:.2f} and {sc['C']['gp raw (retrained on C)']['loc_mm']:.2f} mm. "
                      f"Errors that do depend on the magnets, such as a magnet seated off its place, are not in this simulation "
-                     f"and would not carry over ({code(ROOT / 'scripts/fingertip_magnet_transfer_sim.py')}).</p>"
+                     f"and would not transfer ({code(ROOT / 'scripts/fingertip_magnet_transfer_sim.py')}).</p>"
                      + (f"<p>A third input was tried: the magnets' translations, solved from the board change through each "
                         f"set's own field model. A GP on them gives {sc['A']['gp on magnet motions (trained on A)']['loc_mm']:.2f}, "
                         f"{sc['B']['gp on magnet motions (trained on A)']['loc_mm']:.2f} and "
@@ -712,6 +795,100 @@ def sections(R, F):
                                    "out once), medians.", n=9))
         S_.append(("predict", "Predictors of the contact point and the normal force", body))
 
+    # ---- sphere pads
+    Q = R.get("PADS")
+    if Q:
+        dF, dM, dT = Q["delta_E_FE"], Q["delta_E_meas"], Q["delta_E_TPU"]
+        rq, lq, loc, m3 = Q["ratio_meas"], Q["by_level"], Q["location"], Q.get("M3")
+        k0, k1 = min(lq, key=float), max(lq, key=float)
+        mj = max(Q[f"delta_{k}"]["mujoco"]["law_minus_mujoco_um"]["max"] for k in ("E_FE", "E_meas", "E_TPU"))
+        fl, fn_, fb = (np.array(FE["holds"][k]) for k in ("level_N", "f_n", "fe_best_N"))
+        rr = ("face", "edge", "flank")
+
+        def mrow(name, E, ratios, d):
+            return [name, "" if E is None else f"{E:.2f}", ", ".join(f1(ratios[r]) for r in rr), f"{d['fit'][0]:.2f}",
+                    f"{d['fit'][1]:.3f}", f"{d['rms_mm'] * 1e3:.0f}"]
+        mrows = [mrow("FE pad as computed", None, {r: fe_r[r]["ratio_median_s1"] for r in rr},
+                      dict(fit=[sr["a_mm"], sr["c_mm_N"]], rms_mm=sr["rms_mm"])),
+                 mrow("Pads at the simulations' default", dT["E_MPa"], rq["E_TPU"]["by_region"],
+                      dict(fit=dT["law"]["fit"]["fit"], rms_mm=dT["law"]["rms_mm"])),
+                 mrow("Pads fitted to the FE pad", dF["E_MPa"], rq["E_FE"]["by_region"],
+                      dict(fit=dF["law"]["fit"]["fit"], rms_mm=dF["law"]["rms_mm"])),
+                 mrow("Pads fitted to the HEX-E", dM["E_MPa"], rq["E_meas"]["by_region"],
+                      dict(fit=dM["law"]["fit"]["fit"], rms_mm=dM["law"]["rms_mm"]))]
+        lrows = []
+        for k in sorted(lq, key=float):
+            mm = (fl == float(k)) & (fb > 0)
+            lrows.append([f"{float(k):g}", f"{lq[k]['n']}", f1(lq[k]["pads_over_fe"]), f1(lq[k]["meas_over_pads_E_meas"]),
+                          f1(float(np.median(fn_[mm] / fb[mm])))])
+        sh = Q.get("shear")
+        sh_txt = ""
+        if sh:
+            ru = sh["runs"]
+            irs = sorted({v["impratio"] for v in ru.values()})
+            vF = {ir: ru[f"impratio{ir:g}_E_FE"]["creep_mm_s"]["median"] for ir in irs}
+            vM = {ir: ru[f"impratio{ir:g}_E_meas"]["creep_mm_s"]["median"] for ir in irs}
+            hold = sh["hold_s"]["median"]
+
+            def left(key):                                  # the sphere slid off the pad: faster than 100 mm/s
+                return int(sum(1 for y in ru[key]["per_hold"] if y is not None and y > 100.0))
+            sh_txt = (f"<p>The pads do not keep the sphere still under the holds' shear. The measured tangential force is a "
+                      f"median {sh['tangential_N']['median']:.2f} N, {sh['tangential_over_normal']['median']:.2f} of the normal "
+                      f"force. In the rig the sphere takes the measured force vector, normal and tangential, and slides along the "
+                      f"pad at a steady speed. With the pads at {dF['E_MPa']:.1f} MPa the median speed is "
+                      + ands([f"{vF[ir]:.3g} mm/s at impratio {ir:g}" for ir in irs])
+                      + f" (Fig. 5b). The pads at {dM['E_MPa']:.2f} MPa slide faster, "
+                      + ands([f"{vM[ir]:.3g} mm/s" for ir in irs])
+                      + f". Over the median hold of {hold:.1f} s, impratio {irs[0]:g} would move the sphere "
+                      f"{vF[irs[0]] * hold:.1f} mm with the stiffer pads. At impratio {irs[0]:g} the sphere left the pad "
+                      f"within the second in {left(f'impratio{irs[0]:g}_E_FE')} of {Q['n']} holds with the stiffer pads. "
+                      f"With the softer pads it left in {left(f'impratio{irs[0]:g}_E_meas')}. At impratio {irs[-1]:g} it "
+                      f"left in {left(f'impratio{irs[-1]:g}_E_FE')} and {left(f'impratio{irs[-1]:g}_E_meas')} holds. The robot fixed the "
+                      f"sphere's position during the real holds, so there the shear built up with the contact in place.</p>")
+        body = (f"<p>Sphere pads built on this pad's surface follow the measured indentation as closely as the FE pad does "
+                f"when both take a spring in series. With the pads fitted to the FE pad, the residual of $\\Delta = a + "
+                f"c\\,f_n$ is {dF['law']['rms_mm'] * 1e3:.0f} µm rms, against {sr['rms_mm'] * 1e3:.0f} µm for the FE pad "
+                f"(Table 10). Here $\\Delta$ is defined as in Section 3, with the pads in place of the FE pad. With one "
+                f"modulus of {dM['E_MPa']:.2f} MPa and no spring in series, the pads give the measured force within a median "
+                f"{Q['median_rel_err_meas'] * 100:.0f} %. The FE pad scaled by {FE['s_best']:g} gives it within "
+                f"{FE['median_rel_err_best'] * 100:.0f} %. That modulus is {E_TPU_DEFAULT / dM['E_MPa']:.0f} times below "
+                f"the simulations' default of {E_TPU_DEFAULT:g} MPa, because it also takes up the extra indentation of "
+                f"Section 3.</p>"
+                f"<p>The {Q['n_pads']} pads stand on the surface points of the FE basis, so both models share one surface. "
+                f"Their depths $h_i$ run from {Q['h_mm']['min']:.1f} to {Q['h_mm']['max']:.1f} mm. In the MuJoCo rig, made "
+                f"by {F['code']('scripts/ur5_tip_calibration_pads.py')}, the pads are fixed and the sphere rides on a slide "
+                f"along the contact normal. The measured normal force pushes it toward the pad for 0.4 s. At every hold its "
+                f"final position agrees with the pads' spring law within {max(mj, 0.01):.2f} µm, so at rest MuJoCo adds "
+                f"nothing to the law the pads were built with.</p>"
+                f"<p>Against the FE pad at the same positions, the modulus that fits best, {Q['E_FE_MPa']:.1f} MPa, leaves "
+                f"{Q['pads_vs_fe_log_rms_pct']:.0f} % rms in the logarithm of the force ratio. The ratio of pads over FE "
+                f"rises with the load, from {lq[k0]['pads_over_fe']:.2f} at {float(k0):g} N to {lq[k1]['pads_over_fe']:.2f} "
+                f"at {float(k1):g} N (Table 11, Fig. 5a). The pads' force grows faster with the sphere's depth than the FE "
+                f"pad's."
+                + (f" Stiffer pads, at {m3['E_loc_MPa']:.0f} MPa, in series with a spring of {m3['k_s_N_mm']:.2f} N/mm "
+                   f"follow the FE pad's depth at the measured forces within {m3['rms_mm'] * 1e3:.0f} µm rms. The study of "
+                   f"2026-10-18 that calibrated the simulators to FE models used this form as its recipe M3, with the pads' "
+                   f"modulus set by the twist arm. Here both values are fitted to depth alone, so the size of the contact "
+                   f"patch is not checked." if m3 and m3.get("k_s_N_mm") else "")
+                + "</p>"
+                f"<p>The pads place the centre of the contact a median {loc['pads_vs_fe']['median_mm'] * 1e3:.0f} µm from the "
+                f"FE pad's, and {loc['pads_vs_fe']['p90_mm'] * 1e3:.0f} µm at the 90th percentile. The FE pad's centre lies "
+                f"a median {loc['fe_vs_geo']['median_mm'] * 1e3:.0f} µm from the surface point nearest the sphere's "
+                f"centre.</p>" + sh_txt
+                + P.table(["Model", "Modulus (MPa)", "Measured over model: face, edges, flanks", "a (mm)", "c (mm/N)",
+                           "Residual of Δ (µm rms)"], mrows, num_cols=(1, 3, 4, 5),
+                          caption="FE pad and sphere pads against the HEX-E at the registered positions (medians by region).",
+                          n=10)
+                + P.table(["Level (N)", "Holds", "Pads over FE pad", "Measured over pads at E_meas",
+                           "Measured over FE pad, scaled"], lrows, num_cols=(0, 1, 2, 3, 4),
+                          caption="Force ratios by force level (medians over the holds).", n=11)
+                + F["fig"](5, MEDIA / "20261022-sphere2_sphere_pads_against_hexe.png",
+                           f"Sphere pads against the measured pad. (a) Force ratios at the registered positions by force level: "
+                           f"the pads over the FE pad, and the measured force over the pads and over the scaled FE pad. (b) The sphere's sliding speed in MuJoCo "
+                           f"under a constant force equal to each hold's measured force, by impratio: medians with the 10th "
+                           f"and 90th percentiles. The dashed line is 0.1 mm over the median hold."))
+        S_.append(("pads", "Sphere-pad model against the measured pad", body))
+
     # ---- limitations, future work
     body = ("<p>In the ground truth, the arm, the tool's parts and the indenter's mount are taken as rigid. By the extra "
             f"indentation of Section 3, the pad's true depth at 3 N is about {sr['a_mm'] + sr['c_mm_N'] * 3.0:.2f} mm less "
@@ -734,9 +911,13 @@ def sections(R, F):
         "moved back along the normal) and repeat the FE comparison per region. A ratio of measured over FE near 1 in "
         "every region confirms a compliance in series; a ratio that still changes with the region points to the FE "
         "model's surface.",
-        "Compare the twists' torsion about the normal with the sphere pads' friction torque at the same normal force "
-        "(contact model overview). The torsion is half the difference between the outbound and the return holds at each "
-        "angle. A torque outside the pads' range at the measured friction coefficient falsifies the pads' torsion.",
+        "Compare the twists' torsion about the normal with the sphere pads' friction torque at the same normal force, by "
+        "turning the sphere about the normal in the rig of " + F["code"]("ur5_tip_calibration_pads.py") + ". The torsion is "
+        "half the difference between the outbound and the return holds at each angle. A torque outside the pads' range at "
+        "the measured friction coefficient falsifies the pads' torsion.",
+        "Repeat the sphere-pad comparison on the rod run (rod1g) with the rig's capsule indenter. If the pads' residual of "
+        "$\\Delta$ stays within 10 µm of the FE pad's for the line contact as well, the pads' depth law holds for both "
+        "indenter shapes.",
         "Run a grid in random order on another night, so that clock time and absolute temperature stop following the "
         "target; then the temperature inputs can be scored without the leak.",
     ]
@@ -753,6 +934,8 @@ def build(session):
     fig_map(R, MEDIA / "20261022-sphere2_estimates_on_the_pad.png")
     if R["PR"]:
         fig_predict(R, MEDIA / "20261022-sphere2_predictor_learning_curves.png")
+    if R["PADS"]:
+        fig_pads(R, MEDIA / "20261022-sphere2_sphere_pads_against_hexe.png")
     F = dict(fig=P.fig, table=P.table, link=P.link, code=P.code)
     S, lede, summary = sections(R, F)
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))

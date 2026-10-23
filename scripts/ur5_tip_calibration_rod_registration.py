@@ -192,7 +192,9 @@ def joint_fit(parts, axis="homing", sig=SIG):
         a = b["a_h"] if b["nb"] == 3 else C.exp_so3(x[k0 + 3] * b["u1"] + x[k0 + 4] * b["u2"]) @ b["a_h"]
         out["sessions"].append(dict(kind=b["geo"].kind, n_pad=n, rms_pad_mm=float(np.sqrt(np.mean((res_um * 1e-3) ** 2))),
                                     residual_um={t["id"]: round(float(v), 1) for t, v in zip(b["pad"], res_um)},
-                                    c_B=c.tolist(), axis_B=a.tolist(), centre_change_mm=float(np.linalg.norm(c - b["c0"]))))
+                                    c_B=c.tolist(), axis_B=a.tolist(), centre_change_mm=float(np.linalg.norm(c - b["c0"])),
+                                    axis_turn_from_homing_deg=math.degrees(math.acos(float(np.clip(a @ b["a_h"], -1, 1)))),
+                                    axis_tilt_deg=math.degrees(math.asin(min(1.0, abs(float(a[2])))))))
     return out
 
 
@@ -229,7 +231,8 @@ def main():
     ap.add_argument("--write-reg", default=None, help="copy the session's small files here with the --use fit's registration")
     ap.add_argument("--use", default="cylinder-home", help="fit for --write-reg: sphere-homing, cylinder-homing, cylinder-home, "
                                                           "cylinder-free, joint-homing, joint-free")
-    ap.add_argument("--joint", default=None, help="a sphere session with the same tool: fit one mount and pad to both")
+    ap.add_argument("--joint", default=None, help="sphere sessions with the same tool, comma-separated: fit one mount and pad "
+                    "to all of them and this session")
     ap.add_argument("--only-joint", action="store_true", help="skip the single-session fits")
     ap.add_argument("--exclude", default="", help="touch-off ids of this session to leave out, comma-separated (rod1t: "
                     "pad-edge-01, which met the rod 0.66 mm before the modelled pad)")
@@ -259,24 +262,28 @@ def main():
                   f"{te['tcp_mm_deg'][0]:.3f} mm, {te['tcp_mm_deg'][1]:.2f} deg"
                   + (f"; axis {te['axis_offset_mm']:.3f} mm, {te['axis_angle_deg']:.2f} deg" if "axis_offset_mm" in te else ""))
     if a.joint:
-        sj = Path(a.joint)
-        pj = json.loads((sj / "plan.json").read_text())
-        gj = C.Geometry(pj)
-        rj = json.loads((sj / "registration.json").read_text())
         exj = {x for x in a.exclude_joint.split(",") if x}
-        tj = [t for t in json.loads((sj / "touches.json").read_text()) if t["id"] not in exj]
-        if exj:
-            print(f"left out of {sj.name}: {', '.join(sorted(exj))}")
+        others = []
+        for sj in (Path(x) for x in a.joint.split(",") if x):
+            gj = C.Geometry(json.loads((sj / "plan.json").read_text()))
+            rj = json.loads((sj / "registration.json").read_text())
+            tj = [t for t in json.loads((sj / "touches.json").read_text()) if t["id"] not in exj]
+            if exj & {t["id"] for t in json.loads((sj / "touches.json").read_text())}:
+                print(f"left out of {sj.name}: {', '.join(sorted(exj))}")
+            others.append((sj, gj, rj, tj))
         for axis in ("homing", "free"):
-            f = joint_fit([(geo, start(geo, reg_d), touches), (gj, start(gj, rj), tj)], axis)
-            s0, s1 = f["sessions"]
+            f = joint_fit([(geo, start(geo, reg_d), touches)] + [(gj, start(gj, rj), tj) for _, gj, rj, tj in others], axis)
+            s0 = f["sessions"][0]
             f["T_BI"] = T_BI_of(geo, start(geo, reg_d), dict(axis_B=s0["axis_B"], c_B=s0["c_B"])).tolist()
             f["truth"] = truth_errors(sd, geo, f["T_EM"], f["T_MP"], f["T_BI"])
             fits[f"joint-{axis}"] = dict(f, rms_pad_mm=s0["rms_pad_mm"], c_B=s0["c_B"], axis_B=s0["axis_B"])
             te = f["truth"]
-            print(f"joint    axis {axis:6s}: {geo.kind} {s0['rms_pad_mm'] * 1e3:6.1f} um rms over {s0['n_pad']}, {gj.kind} "
-                  f"{s1['rms_pad_mm'] * 1e3:6.1f} um over {s1['n_pad']}; TCP moved {f['tcp_change_mm_deg'][0]:.3f} mm, "
-                  f"{f['tcp_change_mm_deg'][1]:.3f} deg"
+            print(f"joint    axis {axis:6s}: {geo.kind} {s0['rms_pad_mm'] * 1e3:6.1f} um rms over {s0['n_pad']}, "
+                  + ", ".join(f"{sj.name} {s1['rms_pad_mm'] * 1e3:6.1f} um over {s1['n_pad']}"
+                              for (sj, *_), s1 in zip(others, f["sessions"][1:]))
+                  + f"; TCP moved {f['tcp_change_mm_deg'][0]:.3f} mm, {f['tcp_change_mm_deg'][1]:.3f} deg"
+                  + (f"; rod axis {s0['axis_turn_from_homing_deg']:.2f} deg from homing's, tilt {s0['axis_tilt_deg']:.2f} deg, "
+                     f"centre moved {s0['centre_change_mm']:.3f} mm" if geo.kind == "rod" else "")
                   + (f"; from the program's fit {C.pose_error(T_EP_prog, np.array(f['T_EM']) @ np.array(f['T_MP']))[0]:.3f} mm, "
                      f"{C.pose_error(T_EP_prog, np.array(f['T_EM']) @ np.array(f['T_MP']))[1]:.3f} deg" if T_EP_prog is not None else "")
                   + (f"; against the truth: pad {te['pad_median_mm']:.3f} mm median, {te['pad_max_mm']:.3f} max, axis "

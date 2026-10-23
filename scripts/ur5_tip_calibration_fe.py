@@ -41,10 +41,11 @@ class FEPad:
         Cm = np.transpose(du, (2, 3, 0, 1)).reshape(3 * n, 3 * n).astype(float) * 1e-3     # u = C F, mm / N
         self.C = 0.5 * (Cm + Cm.T)
 
-    def force(self, c, s=1.0, R=5.0, axis=None):
+    def force(self, c, s=1.0, R=5.0, axis=None, patch=False):
         """Normal contact force (N, pad frame) of the FE pad on a sphere of radius R centred at c (mm, pad frame), or on a
         cylinder of radius R whose axis passes through c along `axis`, with the FE's compliance scaled by s; and the
-        number of points in contact."""
+        number of points in contact. With patch, also the force-weighted mean of the loaded points (mm), None without
+        contact."""
         r = self.X - c
         if axis is not None and np.linalg.norm(axis) > 0.5:          # a rod: the distance to its axis line
             a = np.asarray(axis, float) / np.linalg.norm(axis)
@@ -54,7 +55,7 @@ class FEPad:
         nh = r / dist[:, None]
         K = np.nonzero((gap < 0.6) & (np.einsum("ij,ij->i", nh, self.N) < -0.2))[0]
         if len(K) == 0 or gap[K].min() >= 0:
-            return np.zeros(3), 0
+            return (np.zeros(3), 0, None) if patch else (np.zeros(3), 0)
         idx = (3 * K[:, None] + np.arange(3)[None]).ravel()
         Ck = self.C[np.ix_(idx, idx)] * s
         Nk = np.zeros((3 * len(K), len(K)))
@@ -65,6 +66,8 @@ class FEPad:
         Lc = np.linalg.cholesky(Mn)
         p, _ = nnls(Lc.T, -np.linalg.solve(Lc, gap[K]))
         F = (Nk @ p).reshape(-1, 3)
+        if patch:
+            return F.sum(axis=0), int((p > 1e-9).sum()), (p[:, None] * self.X[K]).sum(0) / max(float(p.sum()), 1e-12)
         return F.sum(axis=0), int((p > 1e-9).sum())
 
 
