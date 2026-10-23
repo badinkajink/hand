@@ -480,6 +480,7 @@ class Check:
         TP = CELL.tool_points()
         groups = dict(mount=("adapter", "fork", "clamp_plate"), finger=("dip_link", "cover", "cap"), hex_e=("hex_e",))
         least = {lab: {g: (1e9, None) for g in groups} for lab in G}
+        per = {}                                                # action -> group -> least clearance, registered
         for a in plan["actions"]:
             if a["stage"] not in stages or a["kind"] not in ("press", "slide", "roll", "twist"):
                 continue
@@ -510,12 +511,21 @@ class Check:
                                     float(CELL.other_sdf(C.apply(T_BE @ T_EM_, TP[nm])).min()))
                             if v < least[lab][g][0]:
                                 least[lab][g] = (v, a["id"])
+                            if lab == "registered":
+                                per.setdefault(a["id"], {}).setdefault(g, 1e9)
+                                per[a["id"]][g] = min(per[a["id"]][g], v)
         self.p(f"clearance over {', '.join(stages)} with {src} (the builder checks the nominal geometry):")
         for g in groups:
             (vn, an), (vr, ar) = least["nominal"][g], least["registered"][g]
             self.p(f"  {g:7s} least {vr:6.2f} mm registered ({ar}), {vn:6.2f} nominal ({an}); needs {need[g]:.1f} "
                    f"[{flag(vr >= need[g])}]")
         self.out["clearance_registered"] = {g: least["registered"][g] for g in groups}
+        under = {aid: {g: round(v, 2) for g, v in gs.items() if v < need[g]} for aid, gs in per.items()}
+        under = {aid: gs for aid, gs in under.items() if gs}
+        self.p(f"  under the margins with the registration: {len(under)} actions" + (": " + ", ".join(
+            f"{aid} ({', '.join(f'{g} {v:.2f}' for g, v in gs.items())})" for aid, gs in sorted(under.items())) if under else ""))
+        self.out["clearance_per_action"] = {aid: {g: float(v) for g, v in gs.items()} for aid, gs in per.items()}
+        self.out["clearance_under"] = under
 
     def run(self):
         self.overview()

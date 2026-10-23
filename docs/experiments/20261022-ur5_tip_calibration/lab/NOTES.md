@@ -233,6 +233,31 @@ stage: the HEX-E's factory calibration, first2's fit for the analysis (QUEUE R11
   `scripts/ur5_tip_calibration_check.py SESSION --clearance PLAN` with the new registration, dropping what falls under
   the margins. Then the pivot, grid, shear and roll stages.
 
+### 10:45 to about 12:15 on 2026-10-23, rod1 (the rod, R19) at 30 %, in two parts, with the owner's go at 10:4x
+
+The owner, at the desk at about 10:40: "if things are looking good, then yea, go ahead with the rod tests". At 10:45
+the robot was at home in normal safety mode with the slider at 0.30. The HEX-E answered with no gap, and nothing else
+held the robot or the DAQ.
+
+- 10:45, `rod1` on `plan/20261023-plan_rod_lab_reg.json`, stages preflight, homing, pad, register (`SEAT=...:
+  right_indenter_seated`). Homing from the rod's seating of 18:40 put the rod at (−289.0, −584.6, 69.0) mm, yaw
+  −94.1 deg, tilt 1.43 deg. All 22 touch-offs ended ok, with onsets −1.09 to −2.02 mm from the expected (median
+  −1.52, spread 0.21 mm). The plan has the nominal tool (T_MP translation (2.05, 0, 82.5) mm), not last night's
+  registered one, which put the pad 2.45 mm and 2.7 deg off in its seat. So the pad met the rod early, and at the
+  touch-offs near −2 mm it touched already at the rest pose (an onset extrapolated before the start). Every approach
+  stayed under 1 N. The HEX-E had 60,509 samples, no timeout and no gap. Exit 0 at 10:55.
+- The registration fitted the 22 touches at 0.122 mm rms, against 0.05 mm asked and 0.057 mm on the sphere last
+  night. The largest residuals were pad-face-07 −292, pad-edge-07 +248, pad-face-01 +199 and pad-edge-03 +174 µm.
+  It moved the TCP 1.74 mm and 3.88 deg (last night 2.01 mm and 2.81 deg) and the rod 1.22 mm. Likely causes: the
+  rod's seated tilt of 1.43 deg, which a centre-only fit absorbs into the TCP, and the touches that began in contact.
+  For the analysis, a residual of a tenth of a millimetre is small against the estimator's 2 mm.
+- `scripts/ur5_tip_calibration_check.py --clearance` (it now also lists every action under a margin) with this
+  registration: mount least 2.81 mm. Three actions fell under 3 mm: grid-006 2.94, grid-029 2.85 and shear-3-1N
+  2.81 mm. Finger least 1.69 mm (needs 0.8), HEX-E 32.9 mm (needs 6). The three were dropped
+  (`lab/20261023-plan_rod_lab_reg_rod1.json`, 96 actions); the next closest are grid-051 3.18 and grid-023 3.19 mm.
+- 10:57, `rod1g` (resume) on that plan, stages preflight, pivot, grid, roll; printout
+  `logs/20261023-105751-tipcal-rod1g.log`. Preflight passed (noise 0.022, 0.033, 0.235 N, no timeout).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
