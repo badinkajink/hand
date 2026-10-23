@@ -1450,6 +1450,7 @@ class Session:
         if not acts:
             return
         recs = {}
+        lvl = float(self.plan.get("pivot", {}).get("level_N", 1.5))
         for a in acts:
             def one(a):
                 T_rest, d = self.target_pose(a, 1.5)
@@ -1457,23 +1458,34 @@ class Session:
                 r = self.press(a, T_rest, d, levels=a.get("levels", (1.5, 3.0)), stop_N=a.get("stop_N", 3.0),
                                max_mm=4.0, v=0.0004, hold_s=float(a.get("hold_s", 1.5)))
                 r["T_rest"] = T_rest
+                # the board's change at lvl now, while the press's samples are in the streams' rings (180 s): read
+                # after all six pivots, the reference's had left them at 30 % speed (2026-10-22, a crash)
+                bl = self.board_level(r, lvl)
+                r["board_level"] = None if bl is None else [np.asarray(bl[0]).tolist(), np.asarray(bl[1]).tolist()]
                 return r
             r = self.act(a, one)
             if r is not None:
                 recs[a["id"]] = (a, r)
         if self.dry:
             return
-        lvl = float(self.plan.get("pivot", {}).get("level_N", 1.5))
+        def stored(r):
+            bl = r.get("board_level")
+            return None if bl is None else (np.array(bl[0], float), np.array(bl[1], float))
+
         ref = [v for v in recs.values() if v[0].get("role") == "ref"]
         offs = [v for v in recs.values() if v[0].get("role") == "offset"]
         turns = [v for v in recs.values() if v[0].get("role") == "turn"]
         if not ref or len(offs) < 4:
             print("pivot: missing presses")
             return
-        b0, f0 = self.board_level(ref[0][1], lvl)
+        bl0 = stored(ref[0][1])
+        if bl0 is None:
+            print("pivot: the reference press held no level; no check")
+            return
+        b0, f0 = bl0
         cols, rows = [], []
         for a, r in offs:
-            bl = self.board_level(r, lvl)
+            bl = stored(r)
             if bl is not None:
                 rows.append(np.array(a["offset_P"]))
                 cols.append(bl[0] - b0)
@@ -1482,7 +1494,7 @@ class Session:
         out = []
         t1, t2 = (np.array(self.plan["pivot"][k], float) for k in ("t1", "t2"))
         for a, r in turns:
-            bl = self.board_level(r, lvl)
+            bl = stored(r)
             if bl is None:
                 continue
             b, f_E = bl
