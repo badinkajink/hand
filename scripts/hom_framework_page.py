@@ -176,19 +176,19 @@ can turn about the pinch axis or slide through the pinch. With the two contacts 
 racks of a double rack-and-pinion and turn the tool about its own axis. A single contact, the <b>pusher</b>, acts as an actuator or a
 support: it often turns or moves the tool about or along a pinch, and it can press the tool on the environment, which then acts as
 the second finger of a pinch.</p>
-<p>The screwdriver sequence of the paper uses all of these: a pinch of fingers 1 and 3 picks the tool up as a fixed joint, relaxes to
-a revolute joint so gravity swings the tool down, finger 2 pushes it to vertical about the pinch axis, presses it on the table while
-fingers 1 and 3 turn it about its axis, and fingers 1 and 3 release, move round and turn again.</p>"""))
+<p>The screwdriver sequence of the paper uses all of these. A pinch of fingers 1 and 3 picks the tool up as a fixed joint. The pinch
+relaxes to a revolute joint, so gravity swings the tool down. Finger 2 pushes the tool to vertical about the pinch axis and presses it
+on the table while fingers 1 and 3 turn it about its axis. Fingers 1 and 3 then release, move round and turn again.</p>"""))
 
     S.append(("gcf", "Generalized contact frames", r"""
 <p>Each finger has two GCFs, $\{L_1\}$ on the finger body expected to touch the object and $\{L_0\}$ on the object [1]. When the
-bodies are apart the origins are the witness points and the normal axes follow the gradient of the bodies' signed distance; in
+bodies are apart the origins are the witness points, and the normal axes follow the gradient of the bodies' signed distance. In
 contact, the origins are the points of each surface closest to the contact point, and the normals point from the contact point to
 the origins, outward from each body. The finger's $x_1$ therefore points from the finger toward the object and $x_0=-x_1$. The
 $y$ axes are aligned as closely as the tangent plane allows with the finger body's joint axis, so that a rotation about $y$ is
 the finger's own flexion, and $z=x\times y$.</p>
 <p>In the library, <code>Mirror.gcf_witness</code> takes the witness points from <code>mj_geomDistance</code> between the TPU
-block's convex mesh and the object on a kinematic copy of the scene, and <code>Mirror.gcf_from_cop</code> projects the pads'
+block's convex mesh and the object on a kinematic copy of the scene. <code>Mirror.gcf_from_cop</code> projects the pads'
 centre of pressure onto analytic surfaces of the block (a box with 2.7&#8202;mm rounded edges) and of the object.</p>"""))
 
     S.append(("eq1", "Relative contact twist, Eq. (1)", r"""
@@ -216,7 +216,7 @@ relative motion: the paper's Exp. B sets $w_{\rm roll}=0$ so the fingers roll on
 two pinching fingers so the object can turn between them. The reference $u_{\rm ref}$ is integrated into $\theta_{\rm ref}$, which an
 inverse-dynamics controller tracks.</p>
 <p><code>solve_eq2</code> stacks the weighted rows and solves the bounded problem with scipy's BVLS. The paper gives neither its
-weights nor the units in which angular and linear rows are compared; here every linear row is divided by $\ell=20$&#8202;mm, so
+weights nor the units in which angular and linear rows are compared. Here every linear row is divided by $\ell=20$&#8202;mm, so
 20&#8202;mm/s weighs as much as 1&#8202;rad/s, and $w_{\rm damp}=10^{-3}$, $w_{\rm healthy}=10^{-5}$, $k_h=1$&#8202;s$^{-1}$,
 $|u|\le2$&#8202;rad/s. The joint-limit bound is applied to $\theta_{\rm ref}$, the servo target.</p>
 <p><b>Anti-windup.</b> When a finger is within a small distance of the object, a positive $v_{\rm sep,ref}$ is clamped to zero, so
@@ -277,12 +277,12 @@ $\alpha=20$&#8202;mm/s; on a static contact with 1&#8202;mm measurement noise th
 error (test). <code>FilterParams.source</code> selects the paper's $S\,\mathcal V_{L_0L_1,\rm ref}$ or, as an option, the twist that
 Eq. (2) plans. The choice matters when a task commands the object twist with zero reference relative velocities, as Exp. B does: the
 reference geodesic speed is then zero and the gain never leaves $k_{\min}$ (results page, contact estimator settings). The discrete
-update moves $k\,\Delta t$ of the way to the measurement each period, so $k_{\max}\Delta t$ must stay well below 1; the paper's
-500&#8202;Hz allows $k_{\max}=100$&#8202;s$^{-1}$, the bench's 50&#8202;Hz about a quarter of it.</p>"""))
+update moves $k\,\Delta t$ of the way to the measurement each period, so $k_{\max}\Delta t$ must stay well below 1. The paper's
+500&#8202;Hz allows $k_{\max}=100$&#8202;s$^{-1}$, and the bench's 50&#8202;Hz allows about a quarter of that.</p>"""))
 
     S.append(("paper_exps", "The paper's experiments and implementation", r"""
-<p>The paper teleoperates five simulated hands in Drake with hydroelastic contact, chosen because a pinch needs friction torque about
-its axis, which point contact lacks: Orca V2, Wuji, Sharpa Wave, a three-finger power-grasp hand (Custom A) and a five-finger
+<p>The paper teleoperates five simulated hands in Drake with hydroelastic contact, which is used because a pinch needs friction torque about
+its axis, and point contact has none. The hands are Orca V2, Wuji, Sharpa Wave, a three-finger power-grasp hand (Custom A) and a five-finger
 anthropomorphic hand (Custom B). The simulation steps at 1&#8202;kHz and the framework at 500&#8202;Hz. Each finger has eight sliders
 (the sub-assembly, the applied force as a reference penetration, and the six relative velocities); the hand has six for the object
 twist, one for $s$ and six for the palm, a floating base. The weights of Eq. (2) are the same on every hand. There are four
@@ -299,7 +299,7 @@ sides, pull, switch sides, tripod, with $w_{\rm spin}=0$ for the pinching finger
 <li><b>Exp. D</b>, a precision screwdriver picked, loaded by the gravity swing and the pusher, pressed on the table by finger 2 and
 turned by fingers 1 and 3 in release-and-turn cycles.</li>
 </ul>
-<p>The paper reports RMSE traces, no success rates, and names hardware contact sensing as the open problem; its future work proposes
+<p>The paper reports RMSE traces and no success rates, and it names hardware contact sensing as the open problem. Its future work proposes
 intrinsic tactile sensing for the centre of pressure and fusion with motion capture.</p>"""))
 
     S.append(("codemap", "Code map", table(
@@ -401,8 +401,8 @@ relative); the sign of $v_{\rm sep}$.</li>
 <li>The filter at rest: gains equal $k_{\min}$, and the filtered contact point's error is below 0.35 of the raw error.</li>
 <li>The servo impedance: from a reference 1.6&#8202;mm behind the finger the target's action point sits on the surface plus the
 spring's press; the earlier gap stops short by the lag.</li>
-<li>The bench adapter: 2&#8202;s of the roll task at 50&#8202;Hz through the bench's units give the targets of the controller run
-directly, a replay of the stream gives them again, and a plan with other mounts is refused.</li>
+<li>The bench adapter: 2&#8202;s of the roll task at 50&#8202;Hz through the bench's units give the controller&#39;s own targets
+without adjustment, a replay of the stream gives them again, and a plan with other mounts is refused.</li>
 </ul>
 <p>Run them with <code>PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/test_hom_control.py -q</code>.</p>"""))
 
@@ -417,7 +417,7 @@ size. It also varies the pin-push's drive force and lever, and compares HOM with
 from the same pick.</p>"""))
 
     S.append(("limits", "Limitations", r"""
-<p>The library has not been run against the reference implementation, so the agreement is with the paper's text, not its code; the
+<p>The library has not been run against the reference implementation, so the agreement is with the paper's text and not its code. The
 weights, filter gains and units of Table 2 are this library's choices, and Exp. A shows that the units change which elements track.
 The filter has been tested on spheres and in the tasks, not against hydroelastic centres of pressure. Exp. D has not been rerun on the
 library (the October 2 runs used the earlier code). No part has run on hardware.</p>"""))

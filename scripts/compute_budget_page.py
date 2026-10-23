@@ -196,7 +196,7 @@ def chart_duty(d) -> str:
     return figure("\n".join(o) + "</svg>",
                   f'{d["local"]["train_hours"]} hours of training spread over '
                   f'{d["local"]["span_days"]} days, a duty cycle of {dc}%. '
-                  f'{d["local"]["active_days"]} days carried a run; the other '
+                  f'{d["local"]["active_days"]} days had a run; the other '
                   f'{d["local"]["span_days"] - d["local"]["active_days"]} are the grey '
                   f'baseline. On the days it ran at all the GPU averaged '
                   f'{d["local"]["train_hours"] / d["local"]["active_days"]:.1f} hours, so the '

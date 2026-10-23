@@ -110,8 +110,8 @@ footer a{color:var(--s2)}
   <h1>Reorientation mechanism on the shipped, calibrated and bench plants</h1>
   <p class="lede">Every finger-driven reorientation the simulator has produced ran on a rigid,
   instantaneous actuator. On the actuator the bench calibrated, the fingers turn a gripped tool
-  1&#8211;8&#176; on every hand at every setting tried; the bench maneuver the hardware has run 251
-  times is a 20&#8211;40&#176; tip of a tool resting on the pads at its own weight; and the
+  1&#8211;8&#176; on every hand at every setting tried. The bench maneuver the hardware has run 251
+  times is a 20&#8211;40&#176; tip of a tool resting on the pads at its own weight. The
   chain&#8217;s 90&#176; is the arm&#8217;s, with the tool held on three pads at 1.3&#8211;3.5 N on
   eight of sixteen hands. The 2026-09-06 chain, the rv05 chain and the eight-hand ranking each
   measured a different plant.</p>
@@ -238,7 +238,7 @@ frame 2, hangs from the fingers at <code>staged</code> (frame 4), and lies relea
 from frame 5.</figcaption></figure>
 <div class="col">
 <p>The 2026-09-06 chain that completed on D6 used a 2 mm squeeze, which at kp 30 is a 6.9 N
-three-pad grip; the rigid fingers rolled that gripped tool 90&#176; and gaited it. The hardware
+three-pad grip. The rigid fingers rolled that gripped tool 90&#176; and gaited it. The hardware
 cannot do either half: under a comparable grip its yaw servos stall at 12.6&#176; with the load
 register at 855&#8211;915 and the protective trip at ~800. The 2026-09-06 pivot and pole-flip
 mechanism is a property of kp 30.</p>
@@ -275,7 +275,7 @@ at least two pads at more than the tool&#8217;s weight.</p>
 {{TABLE_MATRIX}}
 <div class="col">
 <p>D2, the hardware&#8217;s 10-of-10 hand, loses a pad during the finger turn (3 pads at 3.65 N at
-the lift, 2 at 0.79 N after the turn) and drops at the arm&#8217;s rotation; with the finger turn
+the lift, 2 at 0.79 N after the turn) and drops at the arm&#8217;s rotation. With the finger turn
 removed it stages at cos +0.92 on three pads. D4 and D7 go the other way: without the 1&#8211;8&#176;
 pre-turn they drop at the regrip. The relief never produces a cradle tip inside the chain; the
 turn stays at 1&#8211;8&#176; at 4 and 8 mm on every hand. Each plan&#8217;s own screened turn inside
@@ -294,7 +294,7 @@ countersink held, the tripod never forms, and the gait turns 0.0&#8211;0.2 rev.<
 <p><code>apply_measured_plant.py</code> documents where kp, forcerange, frictionloss and the masses
 come from. It does not mention kv, which defaults to 0.6. A position actuator with kp 0.5 and
 kv 0.6 driving a link of negligible inertia is a first-order lag with time constant kv / kp =
-1.2 s. The hardware&#8217;s own logs bound the servo&#8217;s lag at under 40 ms: on the 2026-08-29
+1.2 s. The hardware&#8217;s own logs bound the servo&#8217;s lag at under 40 ms. On the 2026-08-29
 stream run the flexion joints tracked a 1.08 s trajectory to under 1&#176;, and in the stepped
 free-air run the pip joint follows a ramp to within 0.5&#176; at 0.13 s per step.</p>
 </div>
@@ -331,8 +331,8 @@ factor of two, and the chain&#8217;s outcome sits inside that factor.</p>
 <h2>Bench maneuver per hand against the bench</h2>
 <p class="sub">8 deployed plans &#183; 4 jittered replays each (4 mm, 0.09 rad, the gate&#8217;s own) &#183; 3 plants</p>
 <p>The plant calibration was cross-validated on one hand. Replayed on all eight with the
-gate&#8217;s spawn jitter, the simulated turn has a seed spread of 4&#8211;58&#176; and none of the
-three plants ranks the hands as the bench does: Spearman against the bench&#8217;s net turn on held
+gate&#8217;s spawn jitter, the simulated turn has a seed spread of 4&#8211;58&#176;, and none of the
+three plants ranks the hands as the bench does. Spearman against the bench&#8217;s net turn on held
 trials is {{RHO_SHIPPED}} on the shipped plant, {{RHO_CORRECTED}} on the calibrated plant and
 {{RHO_FAST}} with the servo&#8217;s speed. The paper&#8217;s &#961;<sub>s</sub> = 0.33 was between the
 screened simulation, whose load regulator holds the grip at 0.4&#8211;1.8 N, and bench alignment;
@@ -358,7 +358,7 @@ prediction is retention on three pads and cos &gt; 0.9 at the end of the move. A
 of these six hands retain across 5 trials. Falsification: D7 drops, which the kp 0.25 plant
 predicts and the kp 0.5 plant does not, and would fix the stiffness at the same time.</li>
 <li><strong>Measure kv.</strong> One free-air step response per joint at 111 Hz (the bus rate the
-2026-09-02 latency fix allows), 20&#176; step, read position until settled; fit the time constant
+2026-09-02 latency fix allows), 20&#176; step, read position until it stops changing; fit the time constant
 and the no-load speed. Then re-fit kp with that kv via <code>calibrate_plant_kp.py --kv</code>.
 Until then the chain runs at both kp 0.5 and kp 0.25, and only results that agree between them count.</li>
 <li><strong>The handover and gait</strong> stay position sequences composed on the rigid plant.

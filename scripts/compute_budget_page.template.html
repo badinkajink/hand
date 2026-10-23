@@ -178,8 +178,8 @@ footer a{color:var(--s2)}
   is limited by the depth of the dependency chain inside one step: MuJoCo's solver runs
   <code>iterations &#215; ls_iterations</code> sequential passes, and with 15 joints and a
   handful of contacts none of those passes is wide enough to fill the device. That matches what
-  the card reports while training, 43&#8211;46% utilisation with CUDA graph capture already
-  enabled, and it explains why the two levers people reach for first are both spent: the solver
+  the card reports while training: 43&#8211;46% utilisation with CUDA graph capture already
+  enabled. It also explains why the two levers people reach for first are both spent. The solver
   already ships at <code>iterations=10, ls_iterations=20</code> (set in
   <code>env_build.py</code>, overriding whatever the scene XML says), and adding environments
   widens kernels that were never the constraint.</p>
@@ -204,8 +204,8 @@ footer a{color:var(--s2)}
     <span class="tag">Sizing rule for this stack</span>
     <p>Rank candidate GPUs for mjwarp training by clock, ahead of FLOPs, memory or SM count, and
     confirm with a smoke job on a real scene before committing an allocation. A consumer part
-    with a high boost clock will beat a datacenter part at the same generation on this workload,
-    and the gap does not close at any batch size either machine can hold.</p>
+    with a high boost clock will beat a datacenter part of the same generation on this workload.
+    The gap does not close at any batch size that either machine can fit.</p>
   </div>
 
   <p>The GH200 clock is the specified value; <code>clocks.sm</code> has not been read on the compute node
@@ -257,7 +257,7 @@ footer a{color:var(--s2)}
   <p>At the measured sd, the 20-design comparison that justified the allocation costs 16
   GH200-hours, or under twelve hours on the workstation. The study answered its own question and
   priced its own successor out of needing a cluster. It also cost {{SB_SU}} SU and produced the
-  second result the program needed: b33 sits at {{SB_REF}} with {{SB_RANK}} draws, so the
+  second result the program needed. Policy b33 sits at {{SB_REF}} with {{SB_RANK}} draws, so the
   sim-to-real hardware specification downstream of it rests on a typical draw.</p>
 
   <p>One limit on how far that generalises. The seed band shared a single Policy A warmstart
@@ -280,7 +280,7 @@ footer a{color:var(--s2)}
   available hardware move, running on a GH200 instead, is {{RATIO_MED}}&#215; in the wrong
   direction. Any plan that adds compute before trimming the budget is buying the smaller lever
   at the higher price. A shorter budget is riskier for a from-scratch run than for a warm-started
-  finetune, and the recipes hold the reward shaping without the timestep budget, so cutting it
+  finetune. The recipes contain the reward shaping without the timestep budget, so cutting it
   means editing every launcher that passes <code>--total-timesteps</code>.</p>
 </section>
 
@@ -290,7 +290,7 @@ footer a{color:var(--s2)}
 
   <p>Sixteen draws of 20M timesteps take {{SEQ_LOCAL_H}} hours of exclusive GPU on the workstation. On
   DeltaAI they take {{IDEAL_GH_H}} hours at 16-way concurrency with no queue wait ({{IDEAL_SPEEDUP}}&#215;)
-  and {{EIGHT_WAY_H}} hours at 8-way ({{EIGHT_WAY_SPEEDUP}}&#215;); the seed band&rsquo;s recorded elapsed
+  and {{EIGHT_WAY_H}} hours at 8-way ({{EIGHT_WAY_SPEEDUP}}&#215;). The seed band&rsquo;s recorded elapsed
   time, &#8220;a few hours&#8221;, was set by the unmeasured queue wait. It used {{SB_GPUH}} GPU-hours and was
   billed {{SB_SU}} SU ({{SB_BILL_OVER}}&#215; for reservation rounding). The {{SPAN_DAYS}}-day local history
   would take {{HISTORY_GH_H}} GH200-hours, more than the {{BALANCE}} SU left.</p>
