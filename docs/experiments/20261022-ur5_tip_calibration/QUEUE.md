@@ -587,6 +587,14 @@ push that answers it arrives.
     it; rod1t's streams will show the force's direction. In rod1g, grid-039 and grid-040 ran above 35 deg (42.9 and
     45.5) and are checked against the board's reading. The joint fit leaves edge-01 out
     (`ur5_tip_calibration_rod_registration.py --exclude`).
+  - 13:08, after the lab's 12:55 note that sph3t's first five onsets repeat sphere2's within 0.06 mm. The tool is
+    then last night's, and the rod is fitted with the spheres' tool and its own centre. A joint fit of rod1t (without
+    edge-01) and sphere2 leaves 52.6 µm rms on the rod over 21 and 57.4 µm on sphere2 over 29 (sphere2's own fit:
+    57.0). The TCP moves 1.77 mm and 2.04 deg from nominal. Two more angles for the rod's axis turn it 6.6 deg and
+    lower the rod's residual by 1.7 µm only, so the axis stays the homing's. The lab confirmed that no one measured the
+    rod's level along its length; the ±7 mm touch-offs that would measure it are a later item, not tonight's. When
+    sph3t's files land, the same fit takes sph3t and sphere2 together (`--joint sph3t,sphere2`), and rod1g is analysed
+    with that registration.
 
 - R20 (moved out of this channel at 10:51 on 10-23 at the owner's request; nothing in it is for the lab session. It continues
   in its own conversation from `docs/handoff/20261023-ati_ft_calibration.md`, and its requests to the lab will go in
