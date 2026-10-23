@@ -281,7 +281,7 @@ push that answers it arrives.
   the program's window (`WRIST_MARGIN`). That drops shear-5-1N alone, and the plan has 142 actions; every other action
   is unchanged, so the simulated run covers them.
 
-- R13 (answered 21:51 by sphere2r's registration, see the end of this item; asked 21:19). tcp2's three presses met the sphere 0.72, 0.83 and
+- R13 (answered 21:48 by sphere2r's registration, see the end of this item; asked 21:19). tcp2's three presses met the sphere 0.72, 0.83 and
   0.76 mm before the planned contact: ref-00 on the face, grid-052 and grid-053 on the flank. Each onset is the start of
   the push along the approach, fitted as for the touch-offs. Read as a shift of the pad, the three give (0.72, 0.10,
   1.07) mm in P: 0.7 mm along the face normal and 1.1 mm along the finger. The two flank points see the finger's
@@ -314,7 +314,7 @@ push that answers it arrives.
   The contact points of the grid therefore carry about 0.3 mm of uncertainty along the finger (R9). The six pivots and
   the board's location error (`board_minus_registration_mm`) check that direction without the touches.
 
-- R14 (done 21:50 by the lab and the workstation). `scripts/ur5_tip_calibration_check.py --clearance [PLAN]` (753ccc2d)
+- R14 (done 21:48 by the lab and the workstation). `scripts/ur5_tip_calibration_check.py --clearance [PLAN]` (753ccc2d)
   gives the plan's least clearance of the mount, the finger and the HEX-E with the session's registration, against the
   nominal geometry that the builder checks. Once registered, the program puts the real pad on its targets, and the mount
   stands where the real geometry puts it. With sphere2r's registration the finger comes to 0.57 mm at grid-050 (needed
