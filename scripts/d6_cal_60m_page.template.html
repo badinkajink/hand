@@ -122,9 +122,9 @@ from control step 58.</dd>
 <p class="sub">deterministic actions &#183; 64 rollouts &#215; 250 steps &#183; held = tool above 60 mm with at least
 0.5 N on a pad at step 249 &#183; <code>policy_eval_suite.py</code> with the run&#8217;s own timing &#183; {{REEVAL}}</p>
 {{TABLE_MAIN}}
-<p>The lift ends at step 40 with the tool at 109 mm, flat. From step 58 the residual is active; the roll
-starts at step 68 and the tool passes cos 0.5 at step 100, 0.77 at 140, 0.87 at 160 and crosses 0.9 at
-step {{TAL60}} &#177; 3, then holds the last {{HOLD60}} steps at 0.93 with the centre at {{Z60}} mm. The thumb
+<p>The lift ends at step 40 with the tool at 109 mm, flat. From step 58 the residual is active. The roll
+starts at step 68. The tool passes cos 0.5 at step 100, 0.77 at 140 and 0.87 at 160, and it crosses 0.9 at
+step {{TAL60}} &#177; 3. It then holds the last {{HOLD60}} steps at 0.93 with the centre at {{Z60}} mm. The thumb
 bears the roll: its pad force rises from 3 N flat to 6 N as the roll starts and 10&#8211;12 N at the end,
 against 5&#8211;7 N on the index and 2&#8211;5 N on the middle (mean over the rollout {{F60}} N, {{FT60}} N
 total). The 10&#8211;90 % band of the final cos is {{BAND60}} wide.</p>
@@ -156,9 +156,9 @@ The last 160 iterations added {{AL_LAST160}} %, so the curve is still rising slo
 Tip-lost terminations return between iterations 300 and 500 (1&#8211;3 per reset batch of 3072
 environments) while the roll is being learned, and are near zero again by 600. Mean object height steps
 from 0.11 to 0.13 m at iteration 500, where the roll begins to raise the tool&#8217;s centre.</p>
-<p>A stopping rule for the ACCESS queue has to come from a per-checkpoint evaluation, because the
-episode reward keeps rising after the deterministic held-cos has stopped moving (the reward sums cos
-over the steps after 58, so it grows as the turn gets earlier). Checkpoints are saved every 50
+<p>A stopping rule for the ACCESS queue has to come from a per-checkpoint evaluation. The
+episode reward keeps rising after the deterministic held-cos has stopped moving, because the reward sums cos
+over the steps after 58 and so grows as the turn gets earlier. Checkpoints are saved every 50
 iterations; evaluating models 300&#8211;800 under the corrected evaluator gives the held-cos curve the rule
 is set from. That evaluation is queued behind the run in progress.</p>
 </div></section>
@@ -172,9 +172,9 @@ default 0, trained value 58 &#183; fixed 2026-09-17 by reading the run&#8217;s <
 runs train that way. <code>make_env_cfg</code>, which <code>policy_eval_suite.py</code>,
 <code>rl_render_rollout.py</code> and four other scripts build their environment from, did not take that
 parameter and left it at 0. Under that evaluator the model-812 policy acts on the tool from the first step,
-during a lift it never controlled. Its residual pushes the grip before the tool is off the post, and in
+during a lift it never controlled. Its residual pushes the grip before the tool is off the post. In
 {{R0_LOST}} of 64 rollouts the tool leaves the hand at step {{R0_DROP}} and falls to the floor, often standing on
-its end (z = 50 mm, the half-length), where the alignment score reads 0.99 with no pad touching it. The evaluator reported
+its end (z = 50 mm, the half-length). There the alignment score reads 0.99 with no pad touching the tool. The evaluator reported
 {{R0_ALIGNED}} of 64 aligned and {{R0_HELD}} of 64 held; with sampled actions {{R0S_ALIGNED}} aligned and
 {{R0S_HELD}} held. Training logged episode lengths of 249.9 of 250 and a mean object height of 131 mm at
 the same iteration, which is what exposed the mismatch.</p>
@@ -222,8 +222,8 @@ from step 140 the tool rests at 50&#176; between the three pads.</figcaption></f
 <p>Grip: the 20 M policy averages 12.5 N over the active phase; both 60 M policies 17&#8211;18 N, rising to
 20&#8211;23 N in the last 50 steps, with the thumb at 11 N. The chain runs D6 at 6.9 N total and the bench
 servos trip their overload protection well below 11 N on one pad. A weight that can move this in the units
-the manager applies is &#8722;5: an 11 N thumb then costs 0.10 per step, a third of the alignment term&#8217;s
-0.28, and a 6 N thumb 0.008. That run is a finetune of the cos-{{COS60}} checkpoint (actor and critic
+the manager applies is &#8722;5. An 11 N thumb then costs 0.10 per step, a third of the alignment term&#8217;s
+0.28, and a 6 N thumb costs 0.008. That run is a finetune of the cos-{{COS60}} checkpoint (actor and critic
 warm-started, terminations unchanged, 20 M steps, <code>results/rl/20260917-1844-d6_cal_reorient_ft_gpm5_20M_s0</code>)
 so that the run-to-run band above does not hide the effect of the grip term.</p>
 </div></section>
@@ -259,10 +259,10 @@ at 3 N, or the spread term, is the next step down in simulation.</li>
 its reorient phase, inside <code>probe_real_v1_chain.py</code>) tests the arm lift, the 100 mm wrist stack, the
 screw-tip mesh, the plate at 0 and the CPU solver in one rollout. Until it runs, this page says nothing about
 the UR5e chain.</li>
-<li><strong>Seeds and hands.</strong> Two draws of one seed on one hand, 0.29 apart. Three more D6 seeds
-at this budget give the band properly, and any comparison between recipes needs either that many draws per
-arm or a finetune from a shared checkpoint;
-the other seven hands need a <code>cal</code> morphology run each at the squeeze the chain&#8217;s arm lift
+<li><strong>Seeds and hands.</strong> Two draws of one seed on one hand are 0.29 apart. Three more D6 seeds
+at this budget would give the band properly. Any comparison between recipes needs either that many draws per
+arm or a finetune from a shared checkpoint.
+The other seven hands need a <code>cal</code> morphology run each at the squeeze the chain&#8217;s arm lift
 held (D8 at 12 mm; D1 and D2 pop the tool out at 10 mm on <code>cal</code>) and the evaluator&#8217;s lift as the
 gate.</li>
 <li><strong>What the policy reads.</strong> The observation includes the tool pose. The input-replay test

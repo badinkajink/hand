@@ -65,8 +65,8 @@ def figures(T, e):
     fr0 = IF.eval_figure("eval-residual", items, legend=legend, show_band=False,
                          facets=[{**pol(["60"])[0], "values": pol(0)[0]["values"][:2]},
                                  {"key": "ev", "label": "Evaluator", "values": [(k, lab) for k, lab, _ in ev], "on": ["t", "r0"]}],
-                         caption=(f"The evaluator settings of the table, 64 rollouts each, medians. With the residual from step 0 model 812 "
-                                  f"drops the tool in {e['60r0']['n_lost']} of 64 rollouts; tools standing on the floor read a cosine "
+                         caption=(f"The evaluator settings of the table, 64 rollouts each, medians. With the residual from step 0, model 812 "
+                                  f"drops the tool in {e['60r0']['n_lost']} of 64 rollouts. Tools standing on the floor read a cosine "
                                   f"near 1 at a height under 60&#8202;mm. The policy box adds the 20 M checkpoint, which holds the "
                                   f"tool in {int(round(e['20r0']['hold_rate'] * 64))} of 64 rollouts with the residual from step 0 "
                                   f"(cos {e['20r0']['final_cos_mean']:.2f}) and {int(round(e['20']['hold_rate'] * 64))} of 64 as trained "
