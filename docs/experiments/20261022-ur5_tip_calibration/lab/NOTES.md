@@ -146,7 +146,7 @@ reads).
 
 No twists or rolls run again until the builder checks every pose along their turns.
 
-### 21:08 to 23:xx, sphere2 (pad, register, pivot, grid, then the checked turns) at 30 %, in three parts
+### 21:08 to 23:27, sphere2 (pad, register, pivot, grid, then the checked turns) at 30 %, in three parts
 
 Folder `20261022-210852-sphere2/` (one session, resumed twice; `printout.txt`, `printout_resume.txt`,
 `printout_grid.txt`; the plans of the resumes as `plan_resume_2131.json` and `plan_resume_2152.json`). No gravity
@@ -171,29 +171,35 @@ stage: the HEX-E's factory calibration, first2's fit for the analysis (QUEUE R11
   the copy and LFS upload of the 160 MB session folder at the same moment. Its dirty pages throttle every writer, the
   reader's own write of ft.bin included. During a run only the small files are copied and pushed now; the reader should
   hand its rows to a writer thread and never write a file itself.
+- sphere2g went on to exit 0 at 23:27:03. The grid ended 72 of 73 (66 grid presses and 6 reference presses; grid-007
+  the one abort). roll-0 and roll-3 at 1.5 N and all eight twists at 1 and 2.5 N ended ok. The HEX-E's force moved at
+  most 2.8 N from its tare, the press included, and joint 5 kept between 38 and 65 deg. The HEX-E's stream in sphere2g:
+  573,387 samples, no timed-out read, no gap over 0.5 s, and none over 50 ms after 22:02:32.
+- The six reference presses (`lab/track_refs.py`), from ref-00 (21:52, onset 1.709 mm, depth 0.709 mm): onset +0.066,
+  +0.047, +0.016, +0.035 and +0.048 mm; depth +0.013, +0.052, +0.021, +0.026 and +0.025 mm (ref-05 at 22:56). All well
+  inside the stop rule (0.3 and 0.1 mm), so neither the pad nor its clamp crept over 65 min.
+- Four flank presses, grid-061, -065, -066 and -067 (22:53 to 22:55, y_P about −6.7 mm, joint 6 at 70 to 72 deg, the
+  most turned wrist of the grid), read 0.34 to 0.42 N on the HEX-E before the pad met the sphere. The load rose with
+  the travel from the rest pose. The board moved only 2.1 to 4.7 µT there, as in flank presses without that load
+  (1.7 to 3.3 µT), against 9 to 12 µT for 0.4 N on the pad. So the load went through the HEX-E's cable or another part of
+  the tool. The workstation's FE comparison had flagged the same four, and its analysis now leaves them out (67264280).
+- The arm went home at 23:29 with `move_guarded.py` (each waypoint within 0.10 mm; the HEX-E changed at most 0.83 N).
+  The whole session folder is pushed as bf3aa417 (442 MB of LFS). The board's host times step back 42 times in 3.0 M
+  records, at most 28 ms; the workstation's analysis selects by time masks, which these steps do not upset.
+- The page of the night: `docs/experiments/20261022-ur5_tip_calibration/20261022-ur5_tip_calibration_lab_runs.html`
+  (97caa02a), https://claude.ai/artifact/1yHnNnGGE7Aq7VMZQmLvdw. This clone has no TeX, so the workstation rendered the
+  page's formulas into `texsvg_cache.json` (b404e9b8). About 8,000 docs files here are still LFS pointers, so
+  `docs_index` must not run here: its pages.json came out 13 kB short. The workstation runs it.
 
-## State at 22:23 and what remains of the night (for a session after a compaction)
+## State at 00:05 on 2026-10-23 (for a session after a compaction)
 
-- Running: `sphere2g` in tmux `tipcal` (printout `logs/20261022-215121-tipcal-sphere2g.log`), the resumed session
-  `logs/20261022-tip_calibration/210852-sphere2`, plan `lab/20261022-plan_sphere_lab_turns_checked_reg2144.json`, stages
-  grid, shear, roll, twist, 30 %. Grid 32 of 73 at 22:22, one abort (grid-007, the copy at 22:02). This process runs the
-  program of 21:51; the queued writer (96abeec0) and the pivot fix (8be552e1) apply from the next start.
-- Reference presses (`lab/track_refs.py SESSION`): ref-00 21:52 onset 1.709 mm, depth 0.709 mm; ref-01 22:05 onset
-  +0.066, depth +0.013; ref-02 22:21 onset +0.047, depth +0.052 mm. ref-03 to ref-05 come at about 22:35, 22:48 and the
-  grid's end. Stop rule agreed with the workstation: interrupt (SIGINT to the program's pid, never keys to the pane) if
-  the onset moves more than 0.3 mm from ref-00 or the depth to 2 N grows more than 0.1 mm (the clamp creeping, R16).
-- During the run: no simulator at normal priority, no copy or push of the streams (only small files: events,
-  registration, touches, plan_resume, printout). `logs/20261022-ur5_joint_temps.jsonl` logs the joint temperatures every
-  30 s (they read constant so far).
-- At the run's end: `move_guarded.py go home` (plan first); copy the session folder whole to
-  `lab/20261022-210852-sphere2/` with the printouts and push; then build the page:
-  `/usr/bin/python3 scripts/ur5_tip_calibration_lab_page.py --film logs/20261022-ur5_camera/sphere2` (writes
-  `20261022-ur5_tip_calibration_lab_runs.html`), commit with the index files, publish it as an artifact and give the owner
-  the link with the local path. The workstation (session "UR5 fingertip calibration coordination", reachable by
-  SendMessage) builds the analysis page and runs the predictor study (scripts/ur5_tip_calibration_predict.py) on the
-  pushed folder.
-- Not before the owner is back: R10 (the HEX-E's connector, flex test), R5 (force gain with a weighed mass), any gravity
-  sweep, the mount stage.
+- Nothing runs on the robot. The arm is home, and the program and `move_guarded.py` are not running.
+  `log_joint_temps.py` still writes `logs/20261022-ur5_joint_temps.jsonl` every 30 s until about 02:10 (reads only).
+- No further robot run tonight unless the owner asks. The segment the owner asked for is in. What remains needs someone
+  at the bench: R10 (the HEX-E's connector, flex test), R16 (whether the DIP link moves in the fork), and a slow repeat
+  of grid-066's approach while someone watches the cable and the tool's parts near the sphere.
+- A later resume of the session could retry grid-007 and pad-flank-04, -08 and -09 with the current program (queued
+  writer 96abeec0, pivot fix 8be552e1). The gravity, mount and final stages stay out until the owner decides.
 
 ## The lab clone and git-lfs
 
