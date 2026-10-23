@@ -318,8 +318,8 @@ def research_asides():
             ],
         )
         + """
-    <p><strong>Proposed uses:</strong> matrix-vector products A x = J[M⁻¹(Jᵀx)] for coupled-contact diagnostics;
-    an efficient linear algebra component if a future solver needs it; and comparisons of full versus
+    <p><strong>Proposed uses:</strong> matrix-vector products A x = J[M⁻¹(Jᵀx)] to examine coupled contacts;
+    an efficient linear algebra component if a future solver needs one; and comparison of full versus
     reduced patches that preserve resultant wrench but may alter local force modes. Exact diagonal entries
     can be probed without storing A, but all diagonals generally require multiple queries or a dedicated
     diagonal algorithm; one operator product is not automatically a complete diagonal.</p>
@@ -345,12 +345,12 @@ def research_asides():
     the uncoupled pads miss the print and would start the coupled-skin implementation.</p></li>
     <li><p><strong>Perturbed timestep sweep.</strong> Repeat the 42 cases of the
     <a href="20261004-controller_timestep.html">controller timestep page</a> with preload, mass, command speed and
-    contact phase perturbed, and check the wrench at a finer control rate; the coarsest step that meets
+    contact phase perturbed, and check the wrench at a finer control rate. The coarsest step that meets
     task and cost tolerances declared before the run is the one to use.</p></li>
     <li><p><strong>Gradient check in DiffMJX.</strong> Port the 2026-10-05 contact bed&#8217;s static pinch and twist
     (<code>scripts/contact_bed_newton.py</code> geometry) to the DiffMJX fork with 2&#8202;mm pads (290 per tip),
-    compare <code>jax.grad</code> of the sink and of the onset torque with respect to E against central differences
-    at 0.5, 1 and 3&#8202;N, and time one step against MuJoCo-Warp. Gradients within 5&#8202;% of the differences
+    and compare <code>jax.grad</code> of the sink and of the onset torque with respect to E against central differences
+    at 0.5, 1 and 3&#8202;N. Then time one step against MuJoCo-Warp. Gradients within 5&#8202;% of the differences
     and a step under ten times MuJoCo-Warp&#8217;s would make a gradient fit of the pad parameters worth
     building.</p></li>
     <li><p><strong>Semantic priors and matrix-free products.</strong> Revisit DeliGrasp-style priors if physical
@@ -407,7 +407,7 @@ def differentiable_pads_aside():
     <p><strong>DiffMJX release</strong> (<a href="https://github.com/martius-lab/diffmjx">github.com/martius-lab/diffmjx</a>,
     checked 2026-10-06; not evaluated). Apache-2.0, created 2026-02-09, last push 2026-07-27 (commit b5453ea), for
     Paulus, Geist, Schumacher, Musil, Rappenecker and Martius, &#8220;Differentiable Simulation of Hard Contacts with
-    Soft Gradients for Learning and Control&#8221; (ICLR 2026, arXiv 2506.14186). The repository holds a uv project,
+    Soft Gradients for Learning and Control&#8221; (ICLR 2026, arXiv 2506.14186). The repository contains a uv project,
     <code>setup.sh</code> and four experiments: a 1-D point mass (integration step and gradients), object tosses
     (adaptive integration), billiards (CFD) and a cube toss timing compilation and gradient cost. <code>setup.sh</code>
     clones three public components: the MJX fork <code>martius-lab/mujoco</code>, branch <code>diffmjx</code> (CFD,
@@ -669,8 +669,8 @@ def hardware_tip_asides():
         + f"""
     <p><strong>Where the sphere pads sit.</strong> Each pad sphere is a Winkler element. At rest its MuJoCo
     contact is an independent spring, K = 1 / (t<sub>c</sub>²(1 − d<sub>0</sub>) diagApprox), and the
-    per-sphere friction cones give distributed Coulomb slip, so the patch transmits the torsion that a point
-    contact lacks (point contact gives zero torque in both simulators on the rig). Indenting one sphere
+    per-sphere friction cones give distributed Coulomb slip, so the patch transmits torsion. A point
+    contact transmits none (zero torque in both simulators on the rig). Indenting one sphere
     does not load its neighbours, so the pads have no lateral coupling; the coupling the audit measures in
     motion runs through the Delassus operator, which is rigid-body inertia and not material. The pads also
     have no elastic tangential pre-slip state. MuJoCo's friction law is first order with zero stiffness,
@@ -703,7 +703,7 @@ def hardware_tip_asides():
     probe on MuJoCo {probe["meta"]["mujoco"]} (<code>scripts/flexcomp_skin_probe.py</code>,
     <a href="data/flexcomp_skin_probe.json">JSON</a>) pressed an ellipsoid skin of the fingertip's
     10.55 mm radius onto a box at {probe["meta"]["press_N"]:g} N with a {probe["meta"]["timestep_s"] * 1e3:g} ms
-    step, slider stiffness E/R times each vertex's area share, and wall time taken over
+    step. The slider stiffness was E/R times each vertex's area share. Wall time was taken over
     {probe["meta"]["timed_steps"]} steps after a {probe["meta"]["settle_steps"]}-step rest on one core.</p>
     """
         + table(["Case", "Integrator", "Vertices", "nv", "µs / step", "End state or compile error"], probe_rows)
@@ -738,9 +738,9 @@ def hardware_tip_asides():
     smaller than a (0.5 mm tip) at 0.5, 1 and 3 N and record the displacement u(r) of the surrounding
     surface, by DIC on a speckled tip or by a second probe stepped outward. Fit u(r) ∼ exp(−r/ℓ) and
     compare ℓ with a = {a_lo:.1f}–{a_hi:.1f} mm. Repeat at two indentation rates for hysteresis, and once
-    over a lattice wall and once over a void: a gyroid period comparable to the {2 * a_lo:.1f}–{2 * a_hi:.1f} mm
-    patch diameter would make the law depend on where the patch falls, and no homogenized surface model
-    would hold. A torsion sweep on the pinch rig over 0.5–3 N measures the task quantity. The arm
+    over a lattice wall and once over a void. A gyroid period comparable to the {2 * a_lo:.1f}–{2 * a_hi:.1f} mm
+    patch diameter would make the law depend on where the patch falls. No homogenized surface model
+    would then apply. A torsion sweep on the pinch rig over 0.5–3 N measures the task quantity. The arm
     r̄ grows by 6<sup>1/4</sup> = {6 ** 0.25:.2f} over that range under a Winkler-type law and by
     6<sup>1/3</sup> = {6 ** (1 / 3):.2f} under a Hertzian half-space, where the whole surface is coupled.
     A shear test at fixed normal load gives k<sub>t</sub> and the pre-slip displacement before gross slip.</p>
