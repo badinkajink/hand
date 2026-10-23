@@ -275,9 +275,9 @@ def block_positions(r, idx):
            f"on the bed), {across}")
     if len(idx) == 5:
         c = [p for p in pts if abs(p[1]) < 1e-6]
-        txt += f": the corners of a 2 &#215; 2 grid and one at the contact point ({num(c[0][0])}, 0)"
+        txt += f". They are the corners of a 2 &#215; 2 grid and one at the contact point ({num(c[0][0])}, 0)"
     else:
-        txt += ": a 2 &#215; 2 grid"
+        txt += ". They form a 2 &#215; 2 grid"
     return txt
 
 
@@ -389,9 +389,9 @@ def print_section(k, group, r, mass, seq):
         out.append(figure(MEDIA / f"{stem(r)}_bed.png", "The coupon on the bed as the project places it, flat, seats up.",
                           "Seat coupon on the bed"))
         out.append(figure(MEDIA / f"{stem(r)}_top.png",
-                          "The coupon from above: round pockets of 2.7, 2.8 and 2.9 mm (the block&#8217;s seat, magnet "
-                          "flat) and slots of the same widths (the curved tips&#8217; seat, magnet on its edge), the "
-                          "2.7 mm seats at the chamfered end.", "Seat coupon top view", width=900, jpeg=False))
+                          "The coupon from above has round pockets of 2.7, 2.8 and 2.9 mm (the block&#8217;s seat, magnet "
+                          "flat). It also has slots of the same widths (the curved tips&#8217; seat, magnet on its edge). "
+                          "The 2.7 mm seats are at the chamfered end.", "Seat coupon top view", width=900, jpeg=False))
         out.append("<p>The seat test of Section 5 uses this coupon once it is off the sheet.</p>")
     else:
         same = [j for j, (_, q) in enumerate(seq, start=1) if j < k and not is_coupon(q) and stem(q) == stem(r)]
@@ -429,8 +429,8 @@ def order_section(seq, mass):
     tot = "; ".join(f"{g.lower()} {fmt_min(sum(v))}" for g, v in groups.items())
     return (f'<section id="order"><h2>1. Order of prints</h2>'
             "<p>The coupons come first because their result sets the seat of every tip. The four-magnet block at 30 % is "
-            "the tip of the first-bench package; the capsule and the two half-ellipsoids follow; the variants come last, "
-            "the one-wall blocks only if the one-wall coupon keeps its magnets. No quarter-ellipsoid has a print project: "
+            "the tip of the first-bench package. The capsule and the two half-ellipsoids follow. The variants come last, "
+            "and the one-wall blocks print only if the one-wall coupon keeps its magnets. No quarter-ellipsoid has a print project: "
             "on the five-chip board its flat back saturates the chips (capsule and ellipsoid fingertips page, "
             "Section 9).</p>"
             f'<div class="tw"><table><thead><tr><th>#</th><th>Print</th><th>Time</th><th>Pauses</th><th>Magnets</th></tr>'
@@ -513,9 +513,9 @@ def seat_lede(seats, S):
         g = min(x["gap_mm"] for x in five["pocket_gaps"])
         extra.append(f"the five-magnet block's corner pockets sit {five['layout'][6:].replace('p', '.')} mm apart along "
                      f"the finger ({g:.2f} mm between pockets)")
-    txt = f"The two-wall seat coupon chose {s:g} mm (owner, 2026-10-18), and every tip here has {s:g} mm seats"
+    txt = f"The two-wall seat coupon chose {s:g} mm (owner, 2026-10-18). Every tip here has {s:g} mm seats"
     if extra:
-        txt += "; to keep 1.8 mm of TPU around every pocket at that seat, " + " and ".join(extra)
+        txt += ". To keep 1.8 mm of TPU around every pocket at that seat, " + " and ".join(extra)
     return txt + "."
 
 
@@ -587,9 +587,9 @@ def seat_section(seat_rows, seats, walls_json, cmd_prefix):
             "<ol><li>Take the coupon off the sheet once it has cooled.</li>"
             "<li>Press one magnet into each round pocket, flat, with a flat non-magnetic tool, and one into each slot on "
             "its edge.</li>"
-            "<li>For each seat note whether the magnet reached the floor (its top face 0.15&#8211;0.25 mm below the "
-            "surface), whether the wall split, and whether the magnet stays when the coupon is turned over and tapped "
-            "on the table.</li>"
+            "<li>For each seat note three things. Does the magnet reach the floor (its top face 0.15&#8211;0.25 mm below the "
+            "surface)? Does the wall split? Does the magnet stay when the coupon is turned over and tapped "
+            "on the table?</li>"
             "<li>The seat to use is the narrowest that takes the magnet to its floor without splitting the wall and "
             "keeps it.</li>"
             f"<li>Write the result into <code>{esc(rel(SEAT_CSV))}</code> (yes or no in each column).</li></ol>"
@@ -597,8 +597,8 @@ def seat_section(seat_rows, seats, walls_json, cmd_prefix):
             f"<th>Wall split</th><th>Keeps it when tapped</th></tr></thead><tbody>{rows}</tbody></table></div>"
             f"<p>{res}</p>"
             "<p>If 2.7 mm takes and keeps the magnet, print the tips as they are. If only 2.8 or 2.9 mm does, rebuild the "
-            "tips of that family with the chosen seat before printing them (2.8 shown; the seat is in the new file "
-            "names, and the 2.7 mm files stay), then the README, the figures and this page:</p>"
+            "tips of that family with the chosen seat before printing them. The command below shows 2.8; the seat is in the new file "
+            "names, and the 2.7 mm files stay. Then rebuild the README, the figures and this page:</p>"
             f'<pre class="cmd">{esc(b)}</pre>{wt}</section>')
 
 
@@ -677,9 +677,9 @@ def fit_coupon_section():
     return ('<section id="fit"><h2>8. Attachment fit coupon for the new DIP link</h2>'
             f"<p>The new DIP link (<a href='{DIP_PAGE}'>DIP page</a>, concept a) holds the tip on two PLA dovetail keys, "
             "each with a 0.25 mm detent, and the tip&#8217;s channels are narrower than the keys by an interference per "
-            "flank. The coupon tries three interferences before any tip with channels gets magnets: three PLA keys on one "
-            "part, and three 85A channel blocks at 0.00, 0.05 and 0.10 mm per flank, marked by one, two and three notches at "
-            "their closed end. The design uses 0.05 mm. The tips printed with 2.9 mm seats have no channels.</p>"
+            "flank. The coupon tries three interferences before any tip with channels gets magnets. It has three PLA keys on one "
+            "part and three 85A channel blocks at 0.00, 0.05 and 0.10 mm per flank. One, two and three notches at "
+            "their closed end mark the blocks. The design uses 0.05 mm. The tips printed with 2.9 mm seats have no channels.</p>"
             '<div class="tw"><table><thead><tr><th>Project</th><th>Parts, tool and bed</th><th>Time</th><th>Filament (g)</th>'
             f"</tr></thead><tbody>{proj}</tbody></table></div>"
             "<p>Each block slides onto its key from the key&#8217;s free end, open end first, until that end meets the "
@@ -761,12 +761,12 @@ def build():
     cvt = [r["slice"]["check"]["print_time"] for r in cv]
     pz = " and ".join(f"{num(p['print_z'])}" for p in cv[0]["pauses"])
     lede = (f"The {len(seq)} PrusaSlicer projects of the 85A set print the magnet fingertips in Siraya Tech TPU 85A on tool 2 of the Prusa XL, "
-            f"at 240 &#176;C on a 35 &#176;C bed. Print them in this order: the two seat coupons "
-            f"({' and '.join(r['slice']['check']['print_time'] for r in cp)}), whose result sets the magnet seat; the "
+            f"at 240 &#176;C on a 35 &#176;C bed. Print them in this order. First come the two seat coupons "
+            f"({' and '.join(r['slice']['check']['print_time'] for r in cp)}), whose result sets the magnet seat. Next is the "
             f"30 % four-magnet block of the bench package ({bt['slice']['check']['print_time']}, one pause at "
-            f"{num(bt['pauses'][0]['print_z'])} mm); the capsule and the two half-ellipsoids at 30 % "
-            f"({min(cvt, key=minutes)} to {max(cvt, key=minutes)}, pauses at {pz} mm); then the 50 %, five-magnet and "
-            f"one-wall variants. The first six prints take {fmt_min(t6)}. " + seat_lede(seats, S))
+            f"{num(bt['pauses'][0]['print_z'])} mm). Then come the capsule and the two half-ellipsoids at 30 % "
+            f"({min(cvt, key=minutes)} to {max(cvt, key=minutes)}, pauses at {pz} mm). The 50 %, five-magnet and "
+            f"one-wall variants follow. The first six prints take {fmt_min(t6)}. " + seat_lede(seats, S))
     secs = [order_section(seq, mass), terms_section(), tpu_section(tc, S), magnet_section(bt, seq),
             seat_section(seat_rows, seats, walls_json if walls_json.exists() else None, cmd_prefix), removal_section(),
             record_section(prows), fit_coupon_section()]

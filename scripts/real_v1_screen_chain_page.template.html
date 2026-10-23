@@ -130,7 +130,7 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   <p class="lede">The eight bench plans were rerun in simulation, alone and inside the chained
   task. Alone, the deploy screen reproduces the bench on the three best hands (held cosine 0.827,
   0.726 and 0.568 against 0.834, 0.797 and 0.553). In the chain, six of eight hands lift the tool and
-  hold the turn in 16 of 16 rollouts, and the losses come at two places: the plans&rsquo; 10&nbsp;mm
+  hold the turn in 16 of 16 rollouts. The losses come at two places. The plans&rsquo; 10&nbsp;mm
   squeeze ejects a tool lying on a table, and only 43 of the 91 runs that stand the tool upright reach
   a gait grasp. On the bench, alignment does not predict retention.</p>
   <div class="byline">{{NTRIAL}} bench trials &middot; {{NCHAIN}} chain rollouts &middot; MuJoCo 3.6</div>
@@ -182,10 +182,10 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   <div class="callout"><span class="tag">The gate that would fail</span>
   <p><b>No hand reaches mean <code>cos_hold</code> 0.95</b>, so a 0.95 gate admits nothing, and
   the single hand above 0.90 has the second-worst retention at 0.30. Alignment predicts
-  nothing about retention: on the pre-registered analysis
+  nothing about retention. On the pre-registered analysis
   (<code>paper/figures/ranking.json</code>, dropped trials scored 0 for parity with the
   simulator) per-hand retention rate ranks against mean alignment at Spearman
-  <b>{{RHO_PAPER}}</b> and against peak alignment at <b>{{RHO_PEAK}}</b>; on the per-trial table
+  <b>{{RHO_PAPER}}</b> and against peak alignment at <b>{{RHO_PEAK}}</b>. On the per-trial table
   here, taking the median alignment over retained trials only, it is <b>{{RHO_TRIAL}}</b>. Both
   are within noise of zero at n&nbsp;=&nbsp;8, and they disagree in sign. Retention therefore has
   to be measured on its own.</p></div>
@@ -210,7 +210,7 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   <p>An earlier report of &ldquo;2 of 256 held reorientations&rdquo; read
   <code>held_reorient</code> at the <code>upright</code> seam in <b>table</b> mode, where the
   maneuver stands the tool on the table and lets go by construction. It is the released-tool
-  measurement. <code>held_turn</code>, measured while the fingers carry, is
+  measurement. <code>held_turn</code>, measured while the fingers bear the tool, is
   {{NTURN}}/{{NCHAIN}}.</p></div>
 </section>
 
@@ -230,8 +230,8 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   <p><code>_grip_from_fit</code> clamps its palm-height search to
   <code>[depth &minus; 8&nbsp;mm, depth]</code>, so overriding squeeze without re-fitting depth
   is a plausible cause and is not the cause. Re-fitting with the depth search free at
-  squeeze&nbsp;2&nbsp;mm returns the plan's own depth on six of eight hands, moves
-  <code>sv1_w6689</code> by 6.0&nbsp;mm and two others by 1.0&nbsp;mm, and changes contact count
+  squeeze&nbsp;2&nbsp;mm returns the plan's own depth on six of eight hands. It moves
+  <code>sv1_w6689</code> by 6.0&nbsp;mm and two others by 1.0&nbsp;mm, and it changes the contact count
   on none.</p>
 </section>
 
@@ -251,8 +251,8 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   <figure><img src="{{IMG_D7}}" alt="rv05_manual chain seam frames">
   <figcaption>rv05_manual_b85, same schedule, same rendering. Lift, set down, stand, re-index,
   gait.</figcaption></figure>
-  <p>Three properties separate <code>sv1_w6689</code> from the six that work and they are
-  confounded in one hand: it is the only set-A hand at <code>straddle_mm</code> 32.0 (the rest
+  <p>Three properties separate <code>sv1_w6689</code> from the six that work, and all three
+  belong to this one hand, so they cannot be told apart. It is the only set-A hand at <code>straddle_mm</code> 32.0 (the rest
   are 40.0), the shallowest at <code>grip_depth_mm</code> 52.5 (the rest 56.5&ndash;66.5), and
   the only one with two non-pad contacts at closure.</p>
 </section>
