@@ -140,9 +140,11 @@ and the normal force's error (N, estimate less the HEX-E's), against the worksta
     S.append(("use", "What to use", """<ul>
 <li>Re-zero at rest just before contact, after the chips' temperature correction. The viewer's auto-zero does this when
 the pad has rested for 3 s. Neither the field term nor the decay needs subtracting for this estimator.</li>
-<li>The board's change for the calibration's ground truth could be taken against the rest before alone, rather than the
-two rests interpolated (Table 2). The analysis now offers that for the board (<code>--board-zero before</code>), as it
-does for the HEX-E (<code>--zero before</code>); the workstation is rerunning sphere2 with it.</li>
+<li>For the calibration's ground truth the zero matters little. The analysis now offers the rest before for the board
+(<code>--board-zero before</code>), as it does for the HEX-E (<code>--zero before</code>). On the whole of sphere2 it
+raises the board's force read against the HEX-E's by 4 to 10 % (0.87, 0.80 and 1.15 on face, edges and flanks, against
+0.83, 0.78 and 1.05). It moves the estimator's location by no more than its noise and leaves the workstation's GP at
+0.82 mm against 0.84 mm. The analysis keeps the two rests as its default.</li>
 <li>Learning should go into the estimator's response, not the zero. It reads high at low force, short at high force,
 and places contacts with a bias of about 2 mm. The workstation's predictors, trained on the same session's presses,
 reach 0.84 mm and 0.09 N.</li>

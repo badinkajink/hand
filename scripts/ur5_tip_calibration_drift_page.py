@@ -130,7 +130,7 @@ def build():
     svgs = iter(texsvg.render(items, cache_path=TEX_CACHE))
     page = P.TEX_RE.sub(lambda m: next(svgs), page)
     page = retro_style.apply(page)
-    page = docs_index.tag(page, topic="fingertip", summary=summary)
+    page = docs_index.tag(page, topic="fingertip", summary=summary, date="2026-10-23")
     PAGE.write_text(page)
     print(f"{PAGE.relative_to(ROOT)}: {PAGE.stat().st_size / 1e6:.2f} MB, {len(items)} formulas", flush=True)
 
