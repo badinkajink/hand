@@ -1,0 +1,35 @@
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 360 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0379 0.0141 0.2102 0.0031 0.0037 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+== homing
+homing: from the recorded seating docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:left_indenter_seated (no freedrive, nothing moves)
+homing: 1 seatings within 0.000 mm, 0.000 deg of their mean
+  indenter at (-139.0, -595.6, 71.1) mm, yaw -92.3 deg, tilt 0.71 deg; the plan has (-138, -596, 71) mm, yaw -92 deg
+== pad
+  pad-flank-05: onset -0.760 mm from the expected (power 2.00, fit 84.0 mN)
+  pad-edge-06: onset -0.910 mm from the expected (power 2.00, fit 71.0 mN)
+  pad-edge-03: onset -1.184 mm from the expected (power 1.00, fit 136.1 mN)
+  pad-edge-09: onset -1.040 mm from the expected (power 1.75, fit 79.4 mN)
+  pad-edge-00: onset -0.881 mm from the expected (power 1.75, fit 50.9 mN)
+  pad-face-03: onset -1.050 mm from the expected (power 1.50, fit 58.6 mN)
+  pad-face-09: onset -0.824 mm from the expected (power 1.50, fit 45.8 mN)
+  pad-face-07: onset -0.787 mm from the expected (power 1.00, fit 40.7 mN)
+  pad-face-08: onset -1.049 mm from the expected (power 2.00, fit 80.3 mN)
+  pad-edge-05: onset -0.730 mm from the expected (power 1.50, fit 112.1 mN)
+  pad-face-01: onset -0.743 mm from the expected (power 1.50, fit 95.9 mN)
+  pad-face-00: onset -0.682 mm from the expected (power 1.75, fit 40.3 mN)
+  pad-face-06: onset -0.670 mm from the expected (power 2.00, fit 45.3 mN)
+  pad-face-11: onset -0.396 mm from the expected (power 1.00, fit 38.1 mN)
+  pad-face-10: onset -0.308 mm from the expected (power 2.00, fit 49.6 mN)
+  pad-edge-04: onset -0.047 mm from the expected (power 1.75, fit 50.3 mN)
+  pad-edge-08: onset +0.399 mm from the expected (power 2.00, fit 71.9 mN)
+  pad-flank-07: onset +0.519 mm from the expected (power 2.00, fit 71.5 mN)
+  pad-edge-07: onset +0.559 mm from the expected (power 2.00, fit 35.8 mN)
+== register
+register: pad touches 0.043 mm rms (19), face nan mm (0); TCP moved 1.623 mm, 1.926 deg; sphere centre moved 1.430 mm
+  TCP of the pad frame on the flange (for the pendant): 0.00029, -0.00332, 0.11843, -0.01373, 0.03332, -1.61768  (m, rotation vector)
+HEX-E: 259372 samples, 0 timed out, 0 late datagrams dropped, 0 gaps over 0.5 s
+session in /home/will/workspace/hand/logs/20261023-tip_calibration/124052-sph3t
+exit 0 at 13:24:15

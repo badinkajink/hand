@@ -300,6 +300,24 @@ held the robot or the DAQ.
   onsets. The touch-offs under the margins 1 mm past the contact differ with each tool. All eight in the union are
   dropped: edge-01, face-02, face-04, face-05 (mount 2.43 to 2.99 mm) and flank-03, edge-02, flank-01, flank-02
   (finger 0.57 to 0.77 mm). The result is `lab/20261023-plan_sphere_lab_touch50_sph3t.json`, with 24 touch-offs.
+  The workstation (12:41) traced rod1t's poor fit to edge-01 alone (+659 µm). Without it the fit is 40.4 µm rms over
+  21, with the rod's centre 1.17 mm from homing. No modelled part was near the rod at edge-01's onset, and its joint 6
+  was the largest, +45.5 deg, so the HEX-E's cable is the likely cause.
+- So the five flanks with joint 6 above +60 deg were dropped as well: flank-04 (+72.1), flank-08 (+71.8), flank-06
+  (+66.2), flank-09 (+65.0) and flank-00 (+64.0). Last night flank-04, -08 and -09 were the pad stage's three aborts
+  with no HEX-E sample, and flank-06 and -00 gave the latest onsets. They were the plan's last five, so the 19 left
+  are the first 19 of the 24 simulated: no abort, 0.011 mm rms, and the cell check passed (joint 5 47.5 to 80.0 deg,
+  mount ≥ 3.2, finger ≥ 1.9 mm).
+- 12:40, `sph3t` on that plan, stages preflight, homing, pad, register (`SEAT=...:left_indenter_seated`). All 19
+  ended ok with no abort, about 2.1 min each. The onsets repeat last night's sphere2 to within 0.06 mm on most: flank-05
+  −0.760 (−0.814), edge-03 −1.184 (−1.186), face-00 −0.682 (−0.677), edge-07 +0.559 (+0.498); the largest change was
+  edge-05's 0.157 mm. On the sphere, then, the tool has not moved since last night. The registration fitted the 19 at
+  0.043 mm rms (sphere2: 0.057 mm over 29), moved the TCP 1.62 mm and 1.93 deg, and the sphere's centre 1.43 mm. The
+  HEX-E had 259,372 samples, no timeout and no gap. Exit 0 at 13:24; home at 13:26 (the HEX-E changed 1.83 N on the
+  way, the payload turning with joint 6 from 55 to 6 deg). The session folder is `lab/20261023-124052-sph3t/`.
+- The rod's level along its length was never checked. Its pose comes from one hand seating of the fork in its key
+  (18:40, tilt 1.43 deg), and all touch-offs lie within 0.9 to 2.6 mm along the 20 mm rod. The workstation fits the
+  tool to sph3t and sphere2 together and gives the rod its own position and two axis angles.
 
 ## The lab clone and git-lfs
 
