@@ -128,7 +128,7 @@ GLOSSARY = [
      f"{FACTS['plant_kp']}&#8202;N&#8202;m/rad."),
     ("Stall torque \\(\\tau_{max}\\)", "Torque at full duty and zero speed at a stated supply voltage, in N&#8202;m."),
     ("Friction", "Torque opposing motion inside the gearbox: Coulomb (constant), viscous (proportional to speed), Stribeck (a "
-     "higher breakaway torque at low speed) and load-dependent (growing with the torque the gears carry), in N&#8202;m."),
+     "higher breakaway torque at low speed) and load-dependent (growing with the torque on the gears), in N&#8202;m."),
     ("Armature \\(J_a\\)", "Rotor and gear inertia reflected to the output shaft, in kg&#8202;m&#178;."),
     ("Latency", "Time from a goal sent on the bus to the first change of duty, plus the age of a reading when it arrives, in ms."),
     ("Fingertip compliance", "Displacement of the fingertip along a direction per newton applied there, in mm/N, from the "
@@ -147,7 +147,7 @@ def why_section():
     return ("<p>The servo plant of every result since 2026-10-11 gives each finger joint a position gain of "
             f"{FACTS['plant_kp']}&#8202;N&#8202;m/rad and a torque limit of {FACTS['plant_tau']}&#8202;N&#8202;m. The gain comes from "
             "the load register&#8217;s slope, 0.018&#8202;degree per load unit, read as full duty at 18&#8202;degrees of error and "
-            f"scaled by the seller&#8217;s {FACTS['scs_stall']}&#8202;N&#8202;m stall torque; no measurement fixed the strength, and the "
+            f"scaled by the seller&#8217;s {FACTS['scs_stall']}&#8202;N&#8202;m stall torque. No measurement fixed the strength. The "
             "replay fits of 2026-10-06 (177 tracked runs, 648 plants) scored 2.53&#8211;2.75&#8202;degrees of joint error for every gain "
             "from 0.25 to 30 and every torque limit from 0.2 to 1&#8202;N&#8202;m, so they constrained only a time constant under "
             "0.2&#8202;s and the friction coefficient. The 2026-09-02 runs measured the hold&#8217;s slope (0.0186&#8202;degree per load "
@@ -223,8 +223,8 @@ def steps_section():
     tab = table(["Step", "Time", "What to do and what it gives"], rows,
                 f"Bench steps, about {total / 60:.1f}&#8202;h with the owner setting up and swapping loads; the workstation logs over the "
                 "bus and fits between steps.", text_cols=(0, 1, 2), key="steps")
-    return ("<p>Two rigs carry the measurements (Figure&#160;[[fig:rig]]): a pendulum with one servo, which isolates the actuator, "
-            "and a finger of the hand pressing a load cell, which checks the model where the policy uses it. The serial port is "
+    return ("<p>Two rigs take the measurements (Figure&#160;[[fig:rig]]). A pendulum with one servo measures the actuator alone. "
+            "A finger of the hand pressing a load cell checks the model where the policy uses it. The serial port is "
             "exclusive and telemetry pauses while a writer owns the bus, so every step runs with the control station stopped and one "
             "logger owning the bus.</p>" + tab)
 
@@ -239,14 +239,14 @@ def rig_section():
 
 
 def fit_section():
-    return ("<p>The fit follows the paper: CMA-ES on the mean absolute joint-angle error of simulated against logged trajectories, "
-            "a quarter of the logs held out, three restarts, models M1 to M4 compared on the held-out error; BAM&#8217;s code does it "
+    return ("<p>The fit follows the paper. It runs CMA-ES on the mean absolute joint-angle error of simulated against logged trajectories, "
+            "with a quarter of the logs held out and three restarts, and compares models M1 to M4 on the held-out error. BAM&#8217;s code does it "
             "in minutes. The per-unit runs then refit only \\(k_t/R\\), \\(K_c\\) and the delay. The model is accepted if its "
             "held-out error is under half of the present plant&#8217;s on the same logs, and if it predicts the finger press&#8217;s "
             "force against penetration within 20&#8202;% below saturation.</p>"
             "<p>In MuJoCo, BAM drives the joint with a motor actuator, not a position actuator, and rewrites the joint&#8217;s friction "
             "loss and damping every step from the previous external torque. Our RL runs in MuJoCo-Warp, whose friction loss is one "
-            "value per joint for all worlds; the first version keeps M1&#8217;s terms in the model file, and the held-out error of M1 "
+            "value per joint for all worlds. The first version keeps M1&#8217;s terms in the model file. The held-out error of M1 "
             "against M4 measures what the load-dependent term costs before anyone writes a per-world update.</p>")
 
 
@@ -269,7 +269,7 @@ def open_items():
          "sample, fsynced) and <code>scripts/servo_id_fit.py</code> (model, fit, held-out error, MuJoCo actuator parameters); "
          "written before the session and dry-run on one spare servo."),
         ("Compliance budget with measured gains.", "Recompute the fingertip compliance toward the tool with the identified "
-         "\\(k_\\theta\\) and compare it with the tips&#8217; 0.063 and 0.38&#8211;0.61&#8202;mm/N: the tip&#8217;s deformation needs "
+         "\\(k_\\theta\\) and compare it with the tips&#8217; 0.063 and 0.38&#8211;0.61&#8202;mm/N. The tip&#8217;s deformation needs "
          "its own model in the simulator if it exceeds a third of the finger&#8217;s total."),
         ("Policies on the identified plant.", "Retrain the servo-plant reorientation of 2026-10-11 on the identified actuator with "
          "unit-to-unit randomization, and compare its bench transfer with the present plant&#8217;s."),
