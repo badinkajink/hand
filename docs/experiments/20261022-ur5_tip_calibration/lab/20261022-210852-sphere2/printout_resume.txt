@@ -21,3 +21,22 @@ preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 362 records/s, robot 124
 register: pad touches 0.057 mm rms (29), face nan mm (0); TCP moved 2.008 mm, 2.807 deg; sphere centre moved 1.224 mm
   TCP of the pad frame on the flange (for the pendant): 0.00015, -0.00369, 0.11864, -0.05185, 0.00801, -1.62217  (m, rotation vector)
 == pivot
+/home/will/workspace/hand/src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py:1423: RuntimeWarning: Mean of empty slice.
+  r0 = self.board_since(*rec["t_rest0"])[1].reshape(-1, 5, 4)[:, :, 1:].mean(axis=0).ravel()
+/home/will/.local/lib/python3.10/site-packages/numpy/core/_methods.py:121: RuntimeWarning: invalid value encountered in divide
+  ret = um.true_divide(
+/home/will/workspace/hand/src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py:1424: RuntimeWarning: Mean of empty slice.
+  r1 = self.board_since(*rec["t_rest1"])[1].reshape(-1, 5, 4)[:, :, 1:].mean(axis=0).ravel()
+HEX-E: 98383 samples, 118 timed out, 0 late datagrams dropped, 4 gaps over 0.5 s; 0.6 s, Fz +0.4 N; 1.4 s, Fz +0.2 N; 2.8 s, Fz +0.1 N; 1.7 s, Fz +0.3 N
+session in logs/20261022-tip_calibration/210852-sphere2
+Traceback (most recent call last):
+  File "/home/will/workspace/hand/src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py", line 1675, in <module>
+    main()
+  File "/home/will/workspace/hand/src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py", line 1654, in main
+    ses.run([s for s in a.stages.split(",") if s])
+  File "/home/will/workspace/hand/src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py", line 1591, in run
+    self.stage_pivot()
+  File "/home/will/workspace/hand/src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py", line 1473, in stage_pivot
+    b0, f0 = self.board_level(ref[0][1], lvl)
+TypeError: cannot unpack non-iterable NoneType object
+exit 1 at 21:49:02

@@ -17,3 +17,80 @@ preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 362 records/s, robot 124
   grid-036 (10/73): to 3.00 N
   grid-030 (11/73): to 3.00 N
   grid-029 (12/73): to 5.00 N
+  grid-009 (13/73): to 5.00 N
+  grid-007: ABORT no HEX-E sample for 100 ms
+  grid-013 (15/73): to 5.00 N
+  grid-027 (16/73): to 5.00 N
+  ref-01 (17/73): to 2.00 N
+  grid-012 (18/73): to 5.00 N
+  grid-028 (19/73): to 5.00 N
+  grid-008 (20/73): to 5.00 N
+  grid-011 (21/73): to 5.00 N
+  grid-006 (22/73): to 5.00 N
+  grid-010 (23/73): to 5.00 N
+  grid-014 (24/73): to 5.00 N
+  grid-015 (25/73): to 5.00 N
+  grid-026 (26/73): to 5.00 N
+  grid-037 (27/73): to 3.00 N
+  grid-005 (28/73): to 5.00 N
+  grid-020 (29/73): to 5.00 N
+  grid-038 (30/73): to 3.00 N
+  grid-000 (31/73): to 5.00 N
+  grid-004 (32/73): to 5.00 N
+  ref-02 (33/73): to 2.00 N
+  grid-016 (34/73): to 5.00 N
+  grid-019 (35/73): to 5.00 N
+  grid-001 (36/73): to 5.00 N
+  grid-018 (37/73): to 5.00 N
+  grid-003 (38/73): to 5.00 N
+  grid-017 (39/73): to 5.00 N
+  grid-040 (40/73): to 3.00 N
+  grid-024 (41/73): to 5.00 N
+  grid-002 (42/73): to 5.00 N
+  grid-025 (43/73): to 5.00 N
+  grid-022 (44/73): to 5.00 N
+  grid-021 (45/73): to 5.00 N
+  grid-039 (46/73): to 3.00 N
+  grid-023 (47/73): to 5.00 N
+  ref-03 (48/73): to 2.00 N
+  grid-041 (49/73): to 3.00 N
+  grid-054 (50/73): to 2.00 N
+  grid-042 (51/73): to 3.00 N
+  grid-049 (52/73): to 3.00 N
+  grid-047 (53/73): to 3.00 N
+  grid-043 (54/73): to 3.00 N
+  grid-055 (55/73): to 2.00 N
+  grid-056 (56/73): to 2.00 N
+  grid-048 (57/73): to 3.00 N
+  grid-044 (58/73): to 3.00 N
+  grid-046 (59/73): to 3.00 N
+  grid-057 (60/73): to 2.00 N
+  grid-045 (61/73): to 3.00 N
+  grid-058 (62/73): to 2.00 N
+  grid-059 (63/73): to 2.00 N
+  ref-04 (64/73): to 2.00 N
+  grid-062 (65/73): to 2.00 N
+  grid-063 (66/73): to 2.00 N
+  grid-064 (67/73): to 2.00 N
+  grid-060 (68/73): to 2.00 N
+  grid-061 (69/73): to 2.00 N
+  grid-065 (70/73): to 2.00 N
+  grid-067 (71/73): to 2.00 N
+  grid-066 (72/73): to 2.00 N
+  ref-05 (73/73): to 2.00 N
+== shear
+== roll
+  roll-0 (1/2): to 1.50 N
+  roll-3 (2/2): to 1.50 N
+== twist
+  twist-0-1.0N (1/8): to 1.00 N
+  twist-0-2.5N (2/8): to 2.50 N
+  twist-1-1.0N (3/8): to 1.00 N
+  twist-1-2.5N (4/8): to 2.50 N
+  twist-2-1.0N (5/8): to 1.00 N
+  twist-2-2.5N (6/8): to 2.50 N
+  twist-3-1.0N (7/8): to 1.00 N
+  twist-3-2.5N (8/8): to 2.50 N
+HEX-E: 573387 samples, 0 timed out, 0 late datagrams dropped, 0 gaps over 0.5 s
+session in logs/20261022-tip_calibration/210852-sphere2
+exit 0 at 23:27:03
