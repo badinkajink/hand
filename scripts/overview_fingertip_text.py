@@ -402,7 +402,17 @@ contact forces still differ by 0.37&#8202;N against a 0.25&#8202;N bound
 reports its forces at the same pads the simulations use, so a measured contact and a simulated one can be compared pad
 by pad. Through the board&#8217;s force, the UR5 session puts the printed pad&#8217;s bulk within about 22&#8202;% of the FE
 model. Where the extra 0.20&#8202;mm/N of indentation lies is open. In the pad&#8217;s surface, finer than the 1&#8202;mm FE
-mesh, the pads would miss it as well; in the mount, they would not.</p>"""),
+mesh, the pads would miss it as well; in the mount, they would not.</p>
+<p>The sphere pads were also run against sphere2&#8217;s 357 press holds, on the 812 surface points of the FE basis
+([UR5 ground truth and predictors](exp:20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html),
+Section 7). With a spring in series, pads fitted to the FE pad (5.4&#8202;MPa) follow the measured indentation as closely
+as the FE pad does, 135 against 133&#8202;&#181;m RMS. One modulus of 0.90&#8202;MPa without a spring gives the measured
+force within a median 19&#8202;%. That modulus is 11 times below the RL scenes&#8217; 10&#8202;MPa, because it also takes up
+the extra indentation. The pads&#8217; force grows faster with depth than the FE pad&#8217;s: it is 0.73 of the FE
+pad&#8217;s at 0.25&#8202;N and 1.51 at 5&#8202;N. Stiffer pads at 153&#8202;MPa behind a spring of 8.45&#8202;N/mm follow the
+FE pad&#8217;s depth within 12&#8202;&#181;m RMS. The pads place the contact&#8217;s centre a median 125&#8202;&#181;m from the
+FE pad&#8217;s. Under the holds&#8217; measured shear the sphere slides on the pads at 1.79&#8202;mm/s at impratio 1, and at
+0.121 and 0.012&#8202;mm/s at impratio 10 and 100.</p>"""),
     ("hardware", "Hardware built and measured",
      r"""<p>The DIP link holds the board against the pad. Three concepts were drawn: the window plate with a clamp (a), a
 cover that clamps the board behind the pad on rails (b) and a board printed over (c). On 2026-10-20 the owner chose b
