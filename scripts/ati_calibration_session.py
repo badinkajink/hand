@@ -211,8 +211,17 @@ class Session:
                                                                            q_deg=np.degrees(q)))
 
     def payload(self, on):
+        """The plan's payload; with the mass on, the mass as weighed (--mass-g) at the plan's place for it (the plan's
+        with_mass record is for its nominal mass)."""
         p = self.plan["payload"]
-        kg, cog = (p["with_mass"]["kg"], p["with_mass"]["cog_mm"]) if on else (p["kg"], p["cog_mm"])
+        kg, cog = p["kg"], p["cog_mm"]
+        if on:
+            w = p["with_mass"]
+            m_nom = w["kg"] - kg
+            z_m = (w["kg"] * w["cog_mm"][2] - kg * cog[2]) / m_nom
+            m = (self.a.mass_g or 1e3 * m_nom) * 1e-3
+            cog = [0.0, 0.0, round((kg * cog[2] + m * z_m) / (kg + m), 1)]
+            kg = round(kg + m, 4)
         self.be.robot.set_payload(kg, cog)
 
     def move(self, sid):
@@ -233,8 +242,8 @@ class Session:
 
     def rest(self):
         """Wait for the gages to settle (std over 0.5 s within 1.5 times the rest noise, at least settle_s, at most
-        settle_max_s), then average rest_s seconds."""
-        T = self.plan["time"]
+        settle_max_s), then average rest_s seconds (the plan's, or --rest-s)."""
+        T = dict(self.plan["time"], **({"rest_s": self.a.rest_s} if self.a.rest_s else {}))
         t0 = self.be.now()
         self.be.sleep(T["settle_s"])
         while self.be.now() - t0 < T["settle_max_s"]:
@@ -305,8 +314,9 @@ def main(argv=None):
     ap.add_argument("--robot", default="192.168.0.4")
     ap.add_argument("--ati", default="192.168.1.1", help="the Net F/T box (its documented default)")
     ap.add_argument("--hexe", default=None, help="the HEX-E's DAQ, e.g. 192.168.0.6 (optional: its gains, R5)")
-    ap.add_argument("--mass-g", type=float, default=None, help="the mass with its S hook, weighed to 0.1 g")
+    ap.add_argument("--mass-g", type=float, default=None, help="the mass with its holder, weighed to 0.1 g")
     ap.add_argument("--speed", type=float, default=1.0, help="factor on the plan's joint speed and acceleration")
+    ap.add_argument("--rest-s", type=float, default=None, help="seconds averaged at each rest (the plan's 3 s by default)")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--step", action="store_true")
     ap.add_argument("--resume", default=None)
@@ -320,7 +330,7 @@ def main(argv=None):
     if plan.get("kind") != "ati_mass_calibration":
         raise SystemExit("not an ATI calibration plan")
     if a.mass_g is None and not a.dry:
-        raise SystemExit("--mass-g: weigh the mass with its S hook to 0.1 g")
+        raise SystemExit("--mass-g: weigh the mass with its holder to 0.1 g")
     folder = Path(a.resume) if a.resume else Path(a.logs) / f"{time.strftime('%Y%m%d')}-ati_calibration" / \
         f"{time.strftime('%H%M%S')}-{a.name}"
     if a.sim:

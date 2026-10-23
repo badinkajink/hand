@@ -6,8 +6,9 @@ mount for the ATI for the HEX-E and build up a calibration plan ... the Z-axis i
 design an alternate mount that has it rotated?").
 
 Reads docs/experiments/20261023-ati_ft_calibration/ (the stack's parts of scripts/ati_stack_mount.py, the plate of
-scripts/v3b_ur5v2_pla_plate.py ati_stack, the plan of scripts/ati_calibration_plan.py, the simulated sessions and the
-reference comparison of scripts/ati_sim_sessions.py, the press excitation of scripts/ati_calibration_sim.py, the film of
+scripts/v3b_ur5v2_pla_plate.py ati_stack and ati_mass, the mass holder of scripts/ati_stack_mount.py holder, the plan of
+scripts/ati_calibration_plan.py, the simulated sessions and the reference comparison of scripts/ati_sim_sessions.py (and its
+runs at 250 g, 112 g and 112 g with 12 s rests), the press excitation of scripts/ati_calibration_sim.py, the film of
 scripts/ati_calibration_film.py) and writes docs/experiments/20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html.
 
     .venv/bin/python scripts/ati_ft_calibration_page.py
@@ -77,7 +78,9 @@ def load():
     j = lambda p: json.loads(Path(p).read_text())                              # noqa: E731
     return dict(parts=j(D / "20261023-ati_stack_parts.json"), plan=j(D / "plan/20261023-ati_plan_mass.json"),
                 sims=j(D / "20261023-ati_sim_sessions.json"), plate=j(D / "print/20261023-ati_stack_p1s_pla.json"),
-                press=j(D / "20261023-ati_calibration_sim.json"))
+                press=j(D / "20261023-ati_calibration_sim.json"), holder=j(D / "20261023-ati_mass_holder.json"),
+                hplate=j(D / "print/20261023-ati_mass_holder_p1s_pla.json"),
+                by_mass={t: j(D / f"20261023-ati_sim_sessions_{t}.json") for t in ("m250", "m112", "m112r12")})
 
 
 def least(plan):
@@ -90,8 +93,24 @@ def least(plan):
     return out
 
 
+def by_mass_rows(X):
+    """Error against the truth by hung mass and rest: the medians' range over five sensors and three axes, and the largest
+    90th percentile."""
+    out = []
+    for sims in [X["sims"]] + [X["by_mass"][t] for t in ("m250", "m112", "m112r12")]:
+        md = np.array([x["truth"]["full"]["median"] for x in sims["sessions"]])
+        p9 = np.array([x["truth"]["full"]["p90"] for x in sims["sessions"]])
+        out.append(dict(mass_g=sims.get("mass_g", 500.3), rest_s=sims.get("rest_s") or 3.0, F=(md[:, :3].min(), md[:, :3].max()),
+                        F90=p9[:, :3].max(), T=(md[:, 3:].min() * 1e3, md[:, 3:].max() * 1e3), T90=p9[:, 3:].max() * 1e3))
+    return out
+
+
 def sections(X):
     parts, plan, sims, plate, press = X["parts"], X["plan"], X["sims"], X["plate"], X["press"]
+    hold, hplate, BM = X["holder"], X["hplate"], by_mass_rows(X)
+    hg = hold["geometry"]
+    m112 = next(b for b in BM if b["mass_g"] < 200 and b["rest_s"] == 3.0)
+    slow = next(b for b in BM if b["rest_s"] > 3.0)
     L = least(plan)
     rc = sims["reference_compare"]
     tr = np.array([s["truth"]["full"]["median"] for s in sims["sessions"]])
@@ -102,14 +121,17 @@ def sections(X):
     lede = (f"The Mini45 goes on the HEX-E coaxially, and a weighed mass is the reference of its calibration. In simulation, "
             f"with the HEX-E as reference the ATI's force is off by {min(rc['hexe_coaxial']['median'][:3]):.2f} to "
             f"{max(rc['hexe_coaxial']['median'][:3]):.2f} N (medians). Turning the ATI by 90° moves the HEX-E's Fz gain error "
-            f"into the ATI's Fx. With the mass, five simulated Mini45s are recovered to {tr[:, :3].min():.3f} to "
-            f"{tr[:, :3].max():.3f} N and {tr[:, 3:].min() * 1e3:.1f} to {tr[:, 3:].max() * 1e3:.1f} N·mm. The printed stack "
+            f"into the ATI's Fx. With a 0.5 kg mass, five simulated Mini45s are recovered to {tr[:, :3].min():.3f} to "
+            f"{tr[:, :3].max():.3f} N and {tr[:, 3:].min() * 1e3:.1f} to {tr[:, 3:].max() * 1e3:.1f} N·mm. With the lab's "
+            f"100 g weight in its printed holder the error is {m112['F'][0]:.3f} to {m112['F'][1]:.3f} N; it falls about "
+            f"as the inverse of the mass. The printed stack "
             f"is built to ATI's drawing 9230-05-1094; it prints in {plate['time']} on the P1S. The robot plan has "
             f"{len(plan['stations'])} stations at five eyes of a hook cross and takes about {plan['minutes']:.0f} min. Every "
             f"station and move is checked against the arm, the cell and the hanging mass.")
     summary = (f"ATI Mini45 calibration with a weighed mass: coaxial stack from ATI drawing 9230-05-1094 (P1S, {plate['time']}); "
                f"{len(plan['stations'])} checked stations at five eyes, about {plan['minutes']:.0f} min; simulated sessions "
-               f"recover the sensor to {tr[:, :3].max():.3f} N and {tr[:, 3:].max() * 1e3:.1f} N mm (medians); with the HEX-E "
+               f"recover the sensor to {tr[:, :3].max():.3f} N and {tr[:, 3:].max() * 1e3:.1f} N mm (medians) with 0.5 kg and "
+               f"to {m112['F'][1]:.3f} N with the lab's 100 g weight in a printed holder; with the HEX-E "
                f"as reference the error is up to {max(rc['hexe_coaxial']['median'][:3]):.2f} N, coaxial or turned 90 deg.")
     S = []
     terms = [("Wrench $w$", "Force and torque at the ATI's sensing origin, in the ATI's frame: $F_x, F_y, F_z$ in N and "
@@ -119,9 +141,11 @@ def sections(X):
               "(FT00000) is selected, in counts."),
              ("Calibration matrix $C$", "The 6 x 6 matrix of $w = C\\,(g - g_0)$, from counts to N and N·m; $g_0$ is the "
               "gage values with no load on the tool side."),
-             ("Eye", "A 1.2 mm hole through a 1.6 mm end wall of the hook cross. A short loop of braided line (the pigtail) is "
-              "knotted behind it, and the mass hangs from the pigtail on an S hook. Each eye has a position $p$ and an "
-              "outward direction $u$."),
+             ("Eye", "A 1.2 mm hole through a 1.6 mm end wall of the hook cross. A short line of braided line with a loop at "
+              "its end (the pigtail) is knotted behind it, and the mass hangs from the loop. Each eye has a position $p$ and "
+              "an outward direction $u$."),
+             ("Mass $m$", "What hangs from the pigtail, weighed to 0.1 g: the lab's 100 g weight with its printed holder and "
+              "the holder's two screws, or a heavier mass."),
              ("Bend", "The angle between an eye's outward direction and gravity. The line hangs free of its arm when the bend "
               "is at most 75°, that is $g \\cdot u \\geq 0.26$ with $g$ the unit vector of gravity."),
              ("Station", "A joint vector of the UR5 that turns the ATI about a fixed point $P_0$ until gravity has a chosen "
@@ -204,16 +228,31 @@ def sections(X):
 
     body = (f"<p>For the calibration a hook cross is screwed on in the fork's place (Fig. 2). Four arms reach "
             f"{abs(ev['+x']['p_M'][0]):.0f} mm along $\\pm x_M$ and $\\pm y_M$, and a post reaches 118 mm up the tool axis. "
-            f"Each of the five ends is an eye. A mass of about 0.5 kg hangs from one eye at a time, on a pigtail and an S hook. "
-            f"It is weighed with its S hook to 0.1 g. Its wrench at the ATI's origin is the reference:</p>"
+            f"Each of the five ends is an eye. A mass hangs from one eye at a time, on a pigtail, and is weighed to 0.1 g. "
+            f"Its wrench at the ATI's origin is the reference:</p>"
             f"$$w = \\begin{{bmatrix}} m\\,\\mathbf{{g}}_A \\\\ (p_e + \\rho\\,n) \\times m\\,\\mathbf{{g}}_A \\end{{bmatrix}}.$$"
             f"<p>Here $m$ is the mass and $\\mathbf{{g}}_A$ local gravity in the ATI's frame, from the robot's joints (9.796 "
             f"m/s² in Boulder). $p_e$ is the eye's exit point, and $n$ the unit direction of gravity across the eye's axis. "
             f"The line leaves the eye at the hole's edge, so its line of action passes $\\rho$ = 0.6 mm from the eye's centre. "
             f"At one station the tool's own weight and the gages' zero are the same with and without the mass. Each station "
             f"is therefore recorded both ways, and their difference is the mass's wrench alone.</p>"
-            + fig(2, D / "media/20261023-ati_hook_cross.png", "The hook cross on the stack, the tool 30° from vertical and a mass "
-                  "hanging from the +x eye."))
+            f"<p>The lab's mass is a 100 g weight, a body {hold['weight']['d_mm']:.0f} mm across and "
+            f"{hold['weight']['h_mm']:.0f} mm tall with a knob on top. It sits in a printed holder (Fig. 3). The cup has "
+            f"three crush ribs and a floor with a hole for pushing the weight out. The cap is screwed on with two M3 x 12, "
+            f"presses on the weight's top face and covers the knob. A tab on the cap has a slot that rises at 45° to a seat "
+            f"on the axis. The pigtail's loop slides up the slot into the seat, and the holder hangs from it. The seat is "
+            f"{hg['seat_mm']:.1f} mm above the cup's underside, and the holder is {2 * hg['radius_mm']:.0f} mm across its "
+            f"ears. The plan models the mass as a line {hg['envelope']['line_mm']:.0f} mm long, then a cylinder "
+            f"{2 * hg['envelope']['r_mm']:.0f} mm across and {hg['envelope']['h_mm']:.0f} mm long. The holder stays inside "
+            f"that envelope with its seat {hg['seat_below_eye_mm'][0]:.0f} to {hg['seat_below_eye_mm'][1]:.0f} mm below the "
+            f"eye, so the pigtails are knotted to hang their loops 55 to 65 mm below their eyes. Both parts print upright "
+            f"without supports, in {hplate['time']} and {hplate['filament_g']:.0f} g "
+            f"({code(D / 'print/20261023-ati_mass_holder_p1s_pla.3mf')}).</p>"
+            + fig(2, D / "media/20261023-ati_hook_cross.png", "The hook cross on the stack, the tool 30° from vertical and the "
+                  "100 g weight in its holder hanging from the +x eye.")
+            + fig(3, D / "media/20261023-ati_mass_holder.png", "The holder of the 100 g weight, exploded and cut on the tab's "
+                  f"plane ({code(ROOT / 'scripts/ati_stack_mount.py')} holder). The knob is drawn as a guess; the cap's "
+                  "pocket takes one up to 18 mm across and 13 mm tall.", width=900))
     S.append(("cross", "The hook cross and the hanging mass", body))
 
     body = (f"<p>At a station the ATI is turned about a fixed point $P_0$ until gravity has a chosen direction in its frame. "
@@ -239,9 +278,9 @@ def sections(X):
             f"block the stations are ordered as the cycle of least joint travel. In that cycle every move is clear with "
             f"the mass hanging, and no move bends the line back over its arm. Every move was checked at ten points along "
             f"its joint path. The {len(plan['stations'])} stations and {sum(len(b['steps']) for b in plan['blocks'])} steps "
-            f"take about {plan['minutes']:.0f} min at 0.3 rad/s (Fig. 3). Each station has 4 s for the swing to decay and "
+            f"take about {plan['minutes']:.0f} min at 0.3 rad/s (Fig. 4). Each station has 4 s for the swing to decay and "
             f"3 s of rest. The plan is {code(D / 'plan/20261023-ati_plan_mass.json')}.</p>"
-            + film(3, D / "media/20261023-ati_calibration_sim_session.mp4", D / "media/20261023-ati_calibration_sim_session.png",
+            + film(4, D / "media/20261023-ati_calibration_sim_session.mp4", D / "media/20261023-ati_calibration_sim_session.png",
                    "The plan in a simulated session at 24 times speed. Left, the cell from the front; right, the tool from "
                    "the side away from the robot. The label bar names the block, the eye and the mass's state."))
     S.append(("plan", "Robot plan of the calibration", body))
@@ -268,6 +307,20 @@ def sections(X):
                     num_cols=(1, 2, 3, 4, 5), caption="Simulated sessions on the plan: error against the truth and "
                     "leave-one-eye-out error of the full fit, medians per axis "
                     f"({code(D / '20261023-ati_sim_sessions.json')}).", n=4))
+    rows = [[f"{b['mass_g']:.0f}", f"{b['rest_s']:.0f}", f"{b['F'][0]:.3f} to {b['F'][1]:.3f}", f"{b['F90']:.3f}",
+             f"{b['T'][0]:.1f} to {b['T'][1]:.1f}", f"{b['T90']:.1f}"] for b in BM]
+    body += (f"<p>The sessions above hung 500.3 g. The same five sensors were calibrated with 250 g and with 112 g, the "
+             f"100 g weight with its holder and screws (Table 5). The error grows as the mass shrinks. At 112 g the medians "
+             f"are {m112['F'][0]:.3f} to {m112['F'][1]:.3f} N, about four times those at 500 g. They remain below the "
+             f"HEX-E reference's {min(co[:3]):.2f} to {max(co[:3]):.2f} N. Averaging 12 s at each station in place of 3 s "
+             f"leaves them at {slow['F'][0]:.3f} to {slow['F'][1]:.3f} N. So the noise of the rests is not the limit at 112 g. "
+             f"The limit is the gages' drift between a station's two rests, which are minutes apart. In the simulator that "
+             f"drift is up to 2 counts a minute with a random walk on top; the box check measures the real one.</p>"
+             + table(["Mass (g)", "Rest (s)", "F error (N), median", "F error (N), 90th percentile", "T error (N·mm), median",
+                      "T error (N·mm), 90th percentile"], rows, num_cols=(0, 1, 2, 3, 4, 5),
+                     caption="Error against the truth of the full fit by hung mass and rest time: the range of the medians "
+                     "over five sensors and three axes, and the largest 90th percentile "
+                     f"({code(ROOT / 'scripts/ati_sim_sessions.py')} --mass-g, --rest-s).", n=5))
     S.append(("sim", "Simulated sessions", body))
 
     pl = plan["payload"]
@@ -280,22 +333,26 @@ def sections(X):
         "Counts per Force and Counts per Torque must then be 1. On comm.htm, enable RDT. Check the stream with "
         "<code>python3 scripts/ati_netft_logger.py --ip 192.168.1.1 --out logs/&lt;date&gt;-ati_box_check --seconds 10</code>. "
         "It should show the RDT rate set on comm.htm, status 0 and steady gages at rest.",
-        f"Print the plate {code(D / 'print/20261023-ati_stack_p1s_pla.3mf')}. Open the four arm eyes with a 1.0 to 1.2 mm "
-        "drill. Press four M3 x 5.7 brass inserts into the top. Knot a pigtail of braided line, 0.3 to 0.5 mm and 10 kg or "
-        "more, behind each eye.",
+        f"Print the plates {code(D / 'print/20261023-ati_stack_p1s_pla.3mf')} and "
+        f"{code(D / 'print/20261023-ati_mass_holder_p1s_pla.3mf')}. Open the four arm eyes with a 1.0 to 1.2 mm drill. Press "
+        "four M3 x 5.7 brass inserts into the top. Knot a pigtail of braided line, 0.3 to 0.5 mm and 10 kg or more, behind "
+        "each eye, with a loop at its end 55 to 65 mm below the eye.",
         "Assemble the stack. Six M3 x 12 go from the base's underside into the ATI's mounting side. The base goes over the "
         "adapter's M6 heads with four M3 x 20. Six M3 x 10 go through the top into the ATI's tool side; no longer screw may "
         "be used there, since its threads are 3.0 mm deep. The cable lies in the base's channel, tied in the tunnel, with a "
         "service loop to the forearm. The hook cross takes four M3 x 12 into the top's inserts. No part may touch both of "
         "the ATI's plates.",
-        f"Weigh the mass with its S hook to 0.1 g. The payload is {pl['kg']:.3f} kg, its centre of mass "
-        f"{pl['cog_mm'][2]:.0f} mm from the flange, and {pl['with_mass']['kg']:.3f} kg with the mass; the program sets both.",
+        "Press the weight into the cup, knob up, until it sits on the floor; if the ribs are too tight, scrape them with a "
+        "knife. Screw the cap on with two M3 x 12. Weigh the weight, holder and screws together to 0.1 g. The payload is "
+        f"{pl['kg']:.3f} kg, its centre of mass {pl['cog_mm'][2]:.0f} mm from the flange; the program sets it, and adds "
+        "the weighed mass while the mass hangs. To hang the holder, slide the pigtail's loop up the slot into the seat.",
         "Jog the robot to the plan's homing pose (the lab's home of 22 October: joints 48.3, -86.3, 109.5, -24.8, 47.3, "
         "6.4°). A dry run with no mass at half speed, a hand on the emergency stop: <code>python3 scripts/ati_calibration_session.py "
         "--plan docs/experiments/20261023-ati_ft_calibration/plan/20261023-ati_plan_mass.json --ati 192.168.1.1 --dry "
         "--speed 0.5 --name dry</code>.",
         "The run, about 27 min with ten mass changes at the program's prompts: the same command with <code>--mass-g "
-        "&lt;grams&gt; --hexe 192.168.0.6 --name run1</code> in place of <code>--dry --speed 0.5 --name dry</code>.",
+        "&lt;grams&gt; --hexe 192.168.0.6 --name run1</code> in place of <code>--dry --speed 0.5 --name dry</code>, the grams "
+        "being the weighed holder.",
         "On the workstation: <code>.venv/bin/python scripts/ati_calibration_analysis.py &lt;session folder&gt;</code> writes "
         "the matrix, the leave-one-eye-out errors and the HEX-E's gains into the folder's analysis/.",
         "Afterwards: the fork in the cross's place and the sphere plans rebuilt for the 46.7 mm longer tool, to compare the "
@@ -308,10 +365,14 @@ def sections(X):
             "eye are taken from the drawings. The mass's swing is modelled as a damped pendulum. The plan is checked against "
             "the URDF's collision meshes and the cell of the tip calibration, as the rod plan placed it on 23 October. "
             "Objects outside that model are seen only in the dry run. The Mini40 has another interface and a 1 N·m torque "
-            "range: it needs its own top and base and a mass of about 0.2 kg.</p>")
+            "range: it needs its own top and base and a mass of about 0.2 kg. The weight's knob was not measured. The "
+            "drift that limits the calibration with 100 g is the simulator's assumption.</p>")
     S.append(("limits", "Limitations", body))
     fw = ["Run the box check and record the box's state as found. A status other than 0 at rest stops the plan before any "
           "print. So does a gage that does not change when the tool side is pressed by hand.",
+          "Record 10 min of the box at rest in the box check, and rerun the simulated sessions at 112 g with its noise and "
+          "drift. If the median error then exceeds 0.01 N, hang 0.25 to 0.5 kg in place of the 100 g weight; Table 5 "
+          "predicts half and a quarter of the error.",
           "Run the session on the Mini45 and the analysis. A leave-one-eye-out error above 0.1 N or 5 N·mm is about three "
           "times the simulated. It would mean a nonlinearity, a gage fault or a wrong eye geometry, none of which a 6 x 6 "
           "matrix represents.",

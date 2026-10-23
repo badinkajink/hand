@@ -28,8 +28,14 @@ to 118 mm. Each eye is a 1.2 mm hole through a 1.6 mm end wall, with a slot behi
 braided line (a pigtail) from which the mass hangs. The mass's line leaves the eye's edge, so its line of action passes
 within the hole's radius of the eye's exit point; scripts/ati_calibration_analysis.py takes that into account.
 
-    .venv/bin/python scripts/ati_stack_mount.py [build] [--clock DEG]     STLs, parts JSON
-    .venv/bin/python scripts/ati_stack_mount.py render                     exploded stack and hook cross figures
+Mass holder (12:52): the owner's weight (100 g, a body 25 mm across and 25 mm tall, a knob on top) in a cup with three crush
+ribs, under a cap screwed on with two M3 x 12 that presses on its top face and covers the knob. The cap's tab has a slot
+that rises at 45 deg from its edge to a seat on the axis; the pigtail's loop slides up the slot into the seat, and the
+holder hangs from the seat. Both parts print upright without supports.
+
+    .venv/bin/python scripts/ati_stack_mount.py [build] [--clock DEG]     STLs, parts JSON (and the holder)
+    .venv/bin/python scripts/ati_stack_mount.py holder                     the holder's STLs and record only
+    .venv/bin/python scripts/ati_stack_mount.py render [--figures stack,cross,holder]   the figures
 (each through ~/.claude/bin/resguard.sh run --mem 3G: they load meshes)
 """
 from __future__ import annotations
@@ -83,6 +89,19 @@ ARM_L, ARM_W, ARM_H, PLATE_T = 80.0, 12.0, 16.0, 6.0
 POST_D, POST_H = 16.0, 118.0
 EYE_D, EYE_WALL, KNOT_SLOT = 1.2, 1.6, (8.0, 4.0)    # hole, end wall, slot behind it (length, width)
 CROSS_CB_Z = 5.5                                     # the cross's M3 heads 5.5 mm above its underside
+# --- the mass holder (owner, 2026-10-23 12:52: "a 100g mass on a 25mm diameter 25mm height form factor. theres a little
+# knobby thing coming out. i think we'd need to built a tight-fit enclosure. i also dont have a hook") ---
+WEIGHT_D, WEIGHT_H = 25.0, 25.0                      # the weight's body as the owner measured it
+KNOB_POCKET = (18.0, 13.0)                           # the cap's pocket for the knob, across and deep (the knob unmeasured)
+HOLD_BORE, HOLD_WALL, HOLD_FLOOR, PUSH_D = 25.6, 2.4, 2.4, 8.0
+RIB_TIP_D, RIB_HALF, RIB_ANG = 24.8, 0.7, (90.0, 210.0, 330.0)    # three crush ribs 0.4 mm proud of the bore
+HOLD_PROUD = 0.4                                     # the weight stands this far above the cup's rim: the cap clamps it
+EAR_R, EAR_D, PILOT_D, PILOT_DEPTH = 16.0, 8.0, 2.75, 10.0         # the cap's two M3 x 12 into self-formed threads
+FLANGE_T, DOME_WALL = 4.0, 2.4
+TAB_T, TAB_W, TAB_RECT = 5.0, 16.0, 7.2              # the thread tab on the dome: thickness, width, straight height
+SLOT_W, SEAT_D, SEAT_Z, ENTRY_Z = 1.5, 2.4, 10.0, 2.0   # its slot rises at 45 deg from the edge to a seat on the axis
+PIGTAIL_MM = 60.0                                    # the eye to the bottom of the pigtail's loop, where the seat hangs
+HALVES = ROOT / "logs/20261023-ati_mass_holder"      # cut-away halves for the figure (written by the holder build)
 
 
 def z_base0():
@@ -233,6 +252,105 @@ def cross(K):
     return K.cut_all(s, cut)
 
 
+def _prism_z(K, poly, z0, z1):
+    """Polygon in the x-y plane (list of (x, y)) extruded along z from z0 to z1."""
+    poly = np.asarray(poly, float)
+    a = 0.5 * np.sum(poly[:, 0] * np.roll(poly[:, 1], -1) - np.roll(poly[:, 0], -1) * poly[:, 1])
+    return K.M.Manifold.extrude(K.M.CrossSection([poly if a > 0 else poly[::-1]]), z1 - z0).translate([0.0, 0.0, z0])
+
+
+def cup_h():
+    return HOLD_FLOOR + WEIGHT_H - HOLD_PROUD
+
+
+def cap_top():
+    return KNOB_POCKET[1] + DOME_WALL                # the dome's top above the cap's underside
+
+
+def holder_cup(K):
+    """The weight's cup, on the bed as it hangs: a 25.6 mm bore with three crush ribs to 24.8 mm, their tops tapered, a floor
+    with an 8 mm hole to push the weight out, and two ears with 2.75 mm holes for the cap's M3 x 12."""
+    H, R = cup_h(), HOLD_BORE / 2 + HOLD_WALL
+    s = K.union([K.cyl("z", (0.0, 0.0), R, 0.0, H)] + [K.cyl("z", xy(EAR_R, a), EAR_D / 2, 0.0, H) for a in (0.0, 180.0)])
+    s = K.cut_all(s, [K.cyl("z", (0.0, 0.0), HOLD_BORE / 2, HOLD_FLOOR, H + 1.0),
+                      K.cyl("z", (0.0, 0.0), PUSH_D / 2, -1.0, HOLD_FLOOR + 1.0)]
+                  + [K.cyl("z", xy(EAR_R, a), PILOT_D / 2, H - PILOT_DEPTH, H + 1.0) for a in (0.0, 180.0)])
+    rt, rw = RIB_TIP_D / 2, HOLD_BORE / 2
+    ribs = []
+    for a in RIB_ANG:
+        c, sn = math.cos(math.radians(a)), math.sin(math.radians(a))
+        pts = [(rt, 0.0), (rw, RIB_HALF), (rw + 0.4, RIB_HALF), (rw + 0.4, -RIB_HALF), (rw, -RIB_HALF)]
+        ribs.append(_prism_z(K, [(r * c - t * sn, r * sn + t * c) for r, t in pts], HOLD_FLOOR, H))
+    s = K.union([s] + ribs)
+    # the ribs' tops tapered over 3 mm, the rim chamfered 0.8 mm at 45 deg
+    return K.cut_all(s, [K.cyl("z", (0.0, 0.0), rt - 0.01, H - 3.8, H - 0.8, r1=rw + 0.01),
+                         K.cyl("z", (0.0, 0.0), rw + 0.01, H - 0.8, H + 0.01, r1=rw + 0.8)])
+
+
+def holder_cap(K):
+    """The cap, on the bed as it hangs: a 4 mm flange that presses on the weight's top face, held by two M3 x 12 through
+    its ears, a dome over the knob, and on the dome a tab 5 mm thick with a slot that rises at 45 deg from its edge to a
+    2.4 mm seat on the axis. The pigtail's loop goes up the slot into the seat, and the holder hangs from the seat."""
+    kd, kh = KNOB_POCKET
+    top, w = cap_top(), TAB_W / 2
+    parts = [K.cyl("z", (0.0, 0.0), HOLD_BORE / 2 + HOLD_WALL, 0.0, FLANGE_T),
+             K.cyl("z", (0.0, 0.0), kd / 2 + DOME_WALL, 0.0, top)]
+    parts += [K.cyl("z", xy(EAR_R, a), EAR_D / 2, 0.0, FLANGE_T) for a in (0.0, 180.0)]
+    parts.append(K.prism_xz([(-w, top - 0.5), (w, top - 0.5), (w, top + TAB_RECT), (-w, top + TAB_RECT)],
+                            -TAB_T / 2, TAB_T / 2))
+    parts.append(K.cyl("y", (0.0, top + TAB_RECT), w, -TAB_T / 2, TAB_T / 2))
+    s = K.union(parts)
+    cut = [K.cyl("z", (0.0, 0.0), kd / 2, -1.0, kh)]
+    cut += [K.cyl("z", xy(EAR_R, a), CLR_D / 2, -1.0, FLANGE_T + 1.0) for a in (0.0, 180.0)]
+    p1 = np.array([0.0, top + SEAT_Z])
+    p0 = np.array([-w - 1.0, top + ENTRY_Z - (SEAT_Z - ENTRY_Z) / w])
+    d = (p1 - p0) / np.linalg.norm(p1 - p0)
+    n = np.array([-d[1], d[0]]) * SLOT_W / 2
+    cut.append(K.prism_xz([p0 + n, p1 + n, p1 - n, p0 - n], -TAB_T, TAB_T))
+    cut.append(K.cyl("y", (0.0, top + SEAT_Z), SEAT_D / 2, -TAB_T, TAB_T))
+    return K.cut_all(s, cut)
+
+
+def holder_geometry(plan_mass=None):
+    """Heights in the hanging holder (mm, from the cup's underside) and the pigtail lengths that keep it inside the plan's
+    envelope for the mass: a thin line for line_mm below the eye, then a cylinder r_mm across and h_mm long."""
+    env = plan_mass or dict(line_mm=45.0, r_mm=25.0, h_mm=80.0)
+    z_cap = cup_h() + HOLD_PROUD
+    seat = z_cap + cap_top() + SEAT_Z
+    tab_top = z_cap + cap_top() + TAB_RECT + TAB_W / 2
+    com = HOLD_FLOOR + WEIGHT_H / 2                   # the weight's centre, about the whole holder's
+    return dict(seat_mm=round(seat, 2), top_mm=round(tab_top, 2), radius_mm=EAR_R + EAR_D / 2,
+                com_below_seat_mm=round(seat - com, 1),
+                seat_below_eye_mm=[round(env["line_mm"] + tab_top - seat, 1), round(env["line_mm"] + env["h_mm"] - seat, 1)],
+                envelope=env, fits=bool(EAR_R + EAR_D / 2 <= env["r_mm"]))
+
+
+def holder_build(K=None):
+    K = K or UM.MeshK()
+    try:
+        env = json.loads((OUT / "plan/20261023-ati_plan_mass.json").read_text())["mass"]
+    except (OSError, ValueError, KeyError):
+        env = None
+    rec = dict(when=time.strftime("%Y-%m-%d %H:%M"), weight=dict(d_mm=WEIGHT_D, h_mm=WEIGHT_H, knob_pocket_mm=KNOB_POCKET),
+               geometry=holder_geometry(env), parts={},
+               screws="2 x M3 x 12 socket head through the cap's ears into the cup's 2.75 mm holes (threads formed in the PLA)")
+    for nm, s in (("mass_cup", holder_cup(K)), ("mass_cap", holder_cap(K))):
+        tm = UM.to_trimesh(s)
+        f = OUT / f"cad/20261023-ati_{nm}.stl"
+        tm.export(f)
+        rec["parts"][nm] = dict(file=str(f.relative_to(ROOT)), volume_mm3=round(float(s.volume()), 1),
+                                bounds=np.round(np.asarray(tm.bounds), 2).tolist(), watertight=bool(tm.is_watertight))
+        print(f"{nm}: {s.volume():.0f} mm3, bounds {np.round(np.asarray(tm.bounds), 1).tolist()}", flush=True)
+        HALVES.mkdir(parents=True, exist_ok=True)                 # the halves on y <= 0 for the cut-away figure
+        UM.to_trimesh(K.inter(s, K.box((-60.0, -60.0, -1.0), (60.0, 0.0, 100.0)))).export(HALVES / f"{nm}_half.stl")
+    (OUT / "20261023-ati_mass_holder.json").write_text(json.dumps(rec, indent=1) + "\n")
+    g = rec["geometry"]
+    print(f"holder: seat {g['seat_mm']} mm above the cup's underside, top {g['top_mm']}, {g['radius_mm']} mm across the ears "
+          f"(radius); the seat {g['seat_below_eye_mm'][0]}-{g['seat_below_eye_mm'][1]} mm below the eye keeps it in the plan's "
+          f"envelope", flush=True)
+    return rec
+
+
 def frames(clock):
     """The ATI's sensing frame in M (4 x 4) and the eyes in M and in the ATI frame."""
     c, s_ = math.cos(math.radians(clock)), math.sin(math.radians(clock))
@@ -282,6 +400,7 @@ def main(clock=None):
     (OUT / f"{STEM}_parts.json").write_text(json.dumps(rec, indent=1) + "\n")
     print(f"clock {clock:.0f} deg: {rec['wall_mm']:.2f} mm least wall; cable toward {rec['cable_deg_M']:.0f} deg in M; "
           f"the tool {rec['added_length_mm']:.1f} mm longer; ATI origin at z_M {z_ati_origin():.1f}")
+    holder_build(K)
     return rec
 
 
@@ -304,7 +423,7 @@ def ati_mesh(clock):
     return trimesh.util.concatenate(parts + [fit, cab])
 
 
-def render():
+def render(which=("stack", "cross", "holder")):
     import trimesh
     rec = json.loads((OUT / f"{STEM}_parts.json").read_text())
     clock = rec["clock_deg"]
@@ -336,8 +455,9 @@ def render():
         labels.append((lab, [c[0] + 30.0, c[1] - 20.0, c[2]]))
     ctr = np.mean([mm.bounds.mean(axis=0) for mm, _, _ in items], axis=0)
     cam = (ctr.tolist(), 700.0, 210.0, 12.0)
-    dst = UM._render(items, cam, OUT / "media/20261023-ati_stack_exploded.png")
-    UM._annotate(dst, cam, labels, title="The ATI Mini45 between the HEX-E and mount v3, exploded along the tool axis")
+    if "stack" in which:
+        dst = UM._render(items, cam, OUT / "media/20261023-ati_stack_exploded.png")
+        UM._annotate(dst, cam, labels, title="The ATI Mini45 between the HEX-E and mount v3, exploded along the tool axis")
     # the hook cross on the stack with a line and a mass hanging from the +x eye, the tool horizontal
     items, labels = [], []
     for name, m, z, col in (("adapter", ad, 0.0, UM.COLORS["adapter"]), ("base", base_m, ADAPTER_TOP, "0.55 0.78 0.50 1"),
@@ -349,15 +469,18 @@ def render():
     ev = rec["eyes"]
     e0 = np.array(ev[0]["p_M"])
     g = np.array([0.5, 0.0, math.sqrt(0.75)])                     # the tool 30 deg from vertical, the +x arm 30 deg down
-    line = trimesh.creation.cylinder(radius=0.6, segment=[e0, e0 + g * 45.0])
-    mass = trimesh.creation.cylinder(radius=19.0, height=60.0, sections=64)
+    hg = holder_geometry()
+    L = PIGTAIL_MM
+    line = trimesh.creation.cylinder(radius=0.6, segment=[e0, e0 + g * L])
     zax = np.array([0.0, 0.0, 1.0])
-    v = np.cross(zax, g)
+    v = np.cross(zax, -g)
     Rm = np.eye(4)
-    Rm[:3, :3] = np.eye(3) + _skew(v) + _skew(v) @ _skew(v) / (1.0 + zax @ g)   # z -> g
-    mass.apply_transform(Rm)
-    mass.apply_translation(e0 + g * (45.0 + 30.0))
-    items += [(line, "0.15 0.15 0.15 1", "ati_c_line"), (mass, "0.45 0.47 0.52 1", "ati_c_mass")]
+    Rm[:3, :3] = np.eye(3) + _skew(v) + _skew(v) @ _skew(v) / (1.0 + zax @ -g)  # the holder's z -> up, against gravity
+    Rm[:3, 3] = e0 + g * (L + hg["seat_mm"])                      # its seat at the pigtail's end
+    items.append((line, "0.15 0.15 0.15 1", "ati_c_line"))
+    for nm, mm, col in holder_meshes():
+        mm.apply_transform(Rm)
+        items.append((mm, col, f"ati_c_{nm}"))
     Wd = np.eye(4)                                                # display: gravity straight down the picture
     a = -g
     v = np.cross(a, [0.0, 0.0, 1.0])
@@ -369,20 +492,87 @@ def render():
     for e in ev:
         if e["name"] in names:
             labels.append((names[e["name"]], (Wd @ np.r_[e["p_M"], 1.0])[:3]))
-    labels.append(("A weighed mass on a pigtail of braided line and an S hook (0.5 kg for the Mini45)",
-                   (Wd @ np.r_[e0 + g * 75.0, 1.0])[:3]))
+    labels.append((f"The 100 g weight in its holder, {L:.0f} mm below the eye on a pigtail",
+                   (Wd @ np.r_[e0 + g * (L + hg["seat_mm"] - 20.0), 1.0])[:3]))
     labels.append(("Hook cross on the top's inserts, in the fork's place",
                    (Wd @ np.r_[[0.0, -40.0, z_top1() + 8.0], 1.0])[:3]))
     ctr = np.mean([mm.bounds.mean(axis=0) for mm, _, _ in items], axis=0)
     cam = (ctr.tolist(), 720.0, 235.0, 18.0)
-    dst = UM._render(items, cam, OUT / "media/20261023-ati_hook_cross.png")
-    UM._annotate(dst, cam, labels, title="Calibration with a weighed mass: the hook cross on the ATI")
+    if "cross" in which:
+        dst = UM._render(items, cam, OUT / "media/20261023-ati_hook_cross.png")
+        UM._annotate(dst, cam, labels, title="Calibration with a weighed mass: the hook cross on the ATI")
+    if "holder" in which:
+        render_holder()
     print("figures in", OUT / "media")
+
+
+def weight_mesh():
+    """The owner's weight: the body as measured, the knob a guess (a neck 8 mm across, a head 12 mm across, 8 mm in all)."""
+    import trimesh
+    parts = [trimesh.creation.cylinder(radius=WEIGHT_D / 2, height=WEIGHT_H, sections=96),
+             trimesh.creation.cylinder(radius=4.0, height=3.2, sections=48),
+             trimesh.creation.cylinder(radius=6.0, height=5.0, sections=48)]
+    for p, z in zip(parts, (WEIGHT_H / 2, WEIGHT_H + 1.5, WEIGHT_H + 5.5)):
+        p.apply_translation([0.0, 0.0, z])
+    return trimesh.util.concatenate(parts)
+
+
+def screw_mesh(length):
+    import trimesh
+    sh = trimesh.creation.cylinder(radius=1.5, height=length, sections=32)
+    sh.apply_translation([0.0, 0.0, -length / 2])
+    hd = trimesh.creation.cylinder(radius=2.75, height=3.0, sections=32)
+    hd.apply_translation([0.0, 0.0, 1.5])
+    return trimesh.util.concatenate([sh, hd])
+
+
+def holder_meshes(explode=0.0, section=False):
+    """The holder as it hangs (z up, the cup's underside at 0): cup, weight, cap and the two screws, moved apart along z by
+    explode; with section, the printed parts cut in half on the tab's plane."""
+    import trimesh
+    src = (lambda nm: HALVES / f"{nm}_half.stl") if section else (lambda nm: OUT / f"cad/20261023-ati_{nm}.stl")
+    cup = trimesh.load(src("mass_cup"), force="mesh")
+    cap = trimesh.load(src("mass_cap"), force="mesh")
+    z_cap = cup_h() + HOLD_PROUD
+    w = weight_mesh()
+    w.apply_translation([0.0, 0.0, HOLD_FLOOR + explode])
+    cap.apply_translation([0.0, 0.0, z_cap + 2.0 * explode])
+    out = [("mass_cup", cup, "0.55 0.78 0.50 1"), ("mass_weight", w, "0.62 0.64 0.68 1"), ("mass_cap", cap, "0.55 0.78 0.50 1")]
+    for k, a in enumerate((0.0, 180.0)):
+        s = screw_mesh(12.0)
+        s.apply_translation([*xy(EAR_R, a), z_cap + FLANGE_T + 3.0 * explode])
+        out.append((f"mass_screw{k}", s, "0.25 0.25 0.27 1"))
+    return out
+
+
+def render_holder():
+    """The holder exploded, its printed parts cut in half on the tab's plane."""
+    ex = 34.0
+    items = [(m, col, f"holder_{nm}") for nm, m, col in holder_meshes(explode=ex, section=True)]
+    z_cap = cup_h() + HOLD_PROUD + 2.0 * ex
+    top = z_cap + cap_top()
+    labels = [("Cup: 25.6 mm bore, three crush ribs to 24.8 mm, an 8 mm hole in the floor", [-HOLD_BORE / 2 - 1.0, 0.0, 12.0]),
+              ("The weight, 25 x 25 mm as measured (its knob drawn as a guess)", [-WEIGHT_D / 2, -6.0, ex + 14.0]),
+              ("Cap: 4 mm flange on the weight, knob pocket 18 mm across, 13 mm deep", [-kd_r() - 1.0, 0.0, z_cap + 8.0]),
+              ("Slot at 45 degrees to a 2.4 mm seat on the axis for the pigtail's loop", [-3.0, 0.0, top + 6.0]),
+              ("Two M3 x 12 into 2.75 mm holes in the cup", [EAR_R, 0.0, z_cap + FLANGE_T + 3.0 * ex])]
+    ctr = np.mean([m.bounds.mean(axis=0) for m, _, _ in items], axis=0)
+    cam = (ctr.tolist(), 470.0, -72.0, -12.0)
+    dst = UM._render(items, cam, OUT / "media/20261023-ati_mass_holder.png")
+    UM._annotate(dst, cam, labels, title="Holder for the 100 g weight, exploded and cut on the tab's plane")
+
+
+def kd_r():
+    return KNOB_POCKET[0] / 2 + DOME_WALL
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("cmd", nargs="?", default="build", choices=("build", "render"))
+    ap.add_argument("cmd", nargs="?", default="build", choices=("build", "render", "holder"))
     ap.add_argument("--clock", type=float, default=None)
+    ap.add_argument("--figures", default="stack,cross,holder", help="render: which figures")
     a = ap.parse_args()
-    render() if a.cmd == "render" else main(a.clock)
+    if a.cmd == "render":
+        render(tuple(a.figures.split(",")))
+    else:
+        holder_build() if a.cmd == "holder" else main(a.clock)

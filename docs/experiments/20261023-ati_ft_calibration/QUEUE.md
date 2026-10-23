@@ -18,7 +18,10 @@ Run the session in its simulator first, on the lab computer: `$PY scripts/ati_ca
   (FT00000), lbf and lbf-in on the Configuration page and enables RDT on comm.htm. The lab session runs
   `$PY scripts/ati_netft_logger.py --ip <box> --out docs/experiments/20261023-ati_ft_calibration/lab/<date>-<time>-boxcheck --seconds 20`
   with the sensor at rest for 10 s, then pressed by hand on its tool side for 10 s. It passes with status 0
-  throughout, the RDT rate as set, no gage at its limit and every gage changing under the press. Push the folder.
+  throughout, the RDT rate as set, no gage at its limit and every gage changing under the press. Then record the gages'
+  drift: the same command with `--seconds 600` and `<date>-<time>-boxdrift`, nothing touching the sensor (added 13:13:
+  the calibration with the 100 g weight is limited by the drift between a station's two rests in simulation). Push both
+  folders.
 
 - A2 (open, 12:25; after A1 passes and the stack is assembled). Dry run of the plan with no mass, at half speed, the
   owner's hand on the emergency stop. Jog the robot to the plan's homing pose first (joints 48.3, -86.3, 109.5, -24.8,
@@ -29,6 +32,9 @@ Run the session in its simulator first, on the lab computer: `$PY scripts/ati_ca
   pulls or where anything in the cell comes within 50 mm of the tool. Push the session folder.
 
 - A3 (open, 12:25; after A2). The calibration run, about 27 min, with the operator at the robot for ten mass changes.
-  Weigh the mass with its S hook to 0.1 g first. Command: the one of A2 with `--mass-g <grams> --hexe 192.168.0.6
+  The mass is the owner's 100 g weight in its printed holder (plate `print/20261023-ati_mass_holder_p1s_pla.3mf`, two
+  M3 x 12; 13:13), or a heavier mass that fits the plan's envelope. The pigtails hang their loops 55 to 65 mm below the
+  eyes; the holder hangs from its seat with the loop slid up the cap's slot. Weigh the weight, holder and screws together
+  to 0.1 g first. Command: the one of A2 with `--mass-g <grams> --hexe 192.168.0.6
   --name run1` in place of `--dry --speed 0.5 --name dry`. The program stops on a gage saturation, on a gap of over
   0.5 s in the box's stream and on a protective stop; `--resume <folder>` continues. Push the whole session folder.
