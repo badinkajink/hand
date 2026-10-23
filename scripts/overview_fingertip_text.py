@@ -379,9 +379,10 @@ that calibration recovers the sensor to 0.021&#8202;N with the lab&#8217;s 100&#
      r"""<p>A calibration learned on one pad must also work on a pad with other magnets. This was simulated on sphere2&#8217;s
 mechanics: each hold keeps its true point and force, and its board change is synthesized for other magnets. The physical
 model, rebuilt from each set&#8217;s rest calibration, gives 2.02&#8202;mm with today&#8217;s magnets. It gives 1.52&#8202;mm
-with N52 magnets and 1.56&#8202;mm with N52 magnets in a checkerboard of poles. Trained on today&#8217;s magnets, a GP on the
-raw board change is off by 1.64 and 4.21&#8202;mm on the two N52 sets. A GP that corrects the physical estimate, with that
-estimate as its input, gives 0.73 and 0.70&#8202;mm. On sphere2&#8217;s real presses the corrected estimate is off by 1.50&#8202;mm
+with N52 magnets all one way. It gives 1.36&#8202;mm with N52 magnets in the checkerboard now printed, with the centre magnet
+and one diagonal one way and the other diagonal the other way. Trained on today&#8217;s magnets, a GP on the raw board change
+is off by 1.64 and 4.09&#8202;mm on the two N52 sets. A GP that corrects the physical estimate, with that estimate as its
+input, gives 0.73 and 0.83&#8202;mm. Retrained on the checkerboard, the GP gives 0.61&#8202;mm. On sphere2&#8217;s real presses the corrected estimate is off by 1.50&#8202;mm
 over four folds, and the MLP by 0.79&#8202;mm
 ([UR5 ground truth and predictors](exp:20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html),
 Tables 8 and 9).</p>
@@ -463,7 +464,11 @@ series with the pad: in the DIP link&#8217;s clamp, the mount, the HEX-E, the ar
 has not been found.</li>
 <li><b>The registration along the finger.</b> Sphere2&#8217;s own registration and a joint one with the rod&#8217;s and
 sph3t&#8217;s touch-offs fit them equally well. They place sphere2&#8217;s contacts a median 1.09&#8202;mm apart, 0.94&#8202;mm
-of it along the finger, a direction that neither indenter&#8217;s touch-offs fix well.</li>
+of it along the finger. Every touch-off met the indenter at its top, with a vertical contact normal, so none of them sees
+a horizontal shift of the indenter; that place rests on the homing seating. Twelve touch-offs aimed 3&#8202;mm beside the
+sphere&#8217;s top meet curved parts of the pad off the top. In the simulator, with the seating 0.6&#8202;mm off, they cut
+the contact error at the presses from 0.23 to 0.07&#8202;mm and from 1.36 to 0.05&#8202;mm under two sets of tool errors.
+They are planned for the checkerboard tips (QUEUE.md R22).</li>
 <li><b>Light presses.</b> Below 1&#8202;N the untrained estimator places contacts about 10&#8202;mm away. The step of about
 7&#8202;&#181;T that each press leaves on the rest is the size of a 0.3&#8202;N press. Learned models give 1.1 to
 2.5&#8202;mm there.</li>
