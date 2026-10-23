@@ -12,7 +12,7 @@ clear of the indenter, chosen by farthest-point sampling in four regions (face: 
 all its poses and clears the cell.
 
     .venv/bin/python scripts/ur5_tip_calibration_plan.py [--indenter sphere|rod] [--placement x,y,z,yaw] [--order joint6]
-            [--gravity-roll-offset 30]
+            [--gravity-roll-offset 30] [--touch-twist 30]
         placement: the indenter's base in the robot's base frame (mm, deg; x_I points away from the robot)
         gravity-roll-offset: deg added to every roll of the gravity stations; with 30 none sits half a turn from the
         homing pose, where the IK nearest the homing branch may take either side
@@ -239,14 +239,14 @@ def tip_reachable(geo, kind, idx, twist=0.0):
 
 
 def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_mm=38.0, mount_turn_deg=0.0,
-          block_half_mm=(50.0, 30.0), order_by="plan", roll_offset_deg=0.0, q_seed_deg=None):
+          block_half_mm=(50.0, 30.0), order_by="plan", roll_offset_deg=0.0, q_seed_deg=None, touch_twist_deg=0.0):
     """placement: the indenter's base in the base frame (x, y, z mm, yaw deg); block_mm: the block under the indenter;
     block_half_mm: its half sizes along x_I, y_I (a 2 by 4 under the indenter runs far along y_I); order_by: "plan" (the
     order in which the actions are made) or "joint6" (module docstring); roll_offset_deg: added to every roll of the
     gravity stations; q_seed_deg: the robot's joints at its seating on the key, whose IK branch the session follows
     (the program solves its moves nearest them). Without it the builder picks the branch of most clearance, which on
     2026-10-22 was another branch from the lab robot's (joint 1 -92 against 59 deg), so its checks described another
-    arm."""
+    arm. touch_twist_deg: the flank and edge touch-offs turned by +-t, else +-2t, else 0 (step 5)."""
     t_start = time.time()
     CELL.BOARD["block_mm"] = float(block_mm)
     CELL.BOARD["block_half_mm"] = tuple(float(v) for v in block_half_mm)
@@ -289,8 +289,11 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
     acts, dropped = [], []
 
     def add(a, poses, contact_P=None, need_extra=0.0, contact_M=None, need=CLEAR):
-        """Append action a when every pose in poses reaches and clears (trying the twists when a['twist'] is None)."""
-        twists = TWISTS if a.get("twist") is None else (a["twist"],)
+        """Append action a when every pose in poses reaches and clears (trying the twists when a['twist'] is None: those
+        of a['twists_first'] first, then 0)."""
+        first = tuple(a.pop("twists_first", ()))
+        rest = (0.0,) if first else tuple(TWISTS)
+        twists = (first + rest) if a.get("twist") is None else (a["twist"],)
         best = None
         for tw in twists:
             a2 = dict(a, twist=tw)
@@ -378,13 +381,22 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
             return [C.Tm(T_rest[:3, :3], T_rest[:3, 3] - d * 10.0), T_rest,
                     C.Tm(T_rest[:3, :3], T_rest[:3, 3] + d * a["standoff"])]       # rigid: the touch stops at 0.8 N
         add(dict(a, twist=None), mposes, contact_M=a["target"]["p"], need=dict(CLEAR, mount=2.0))   # after homing: 0.3 mm known
-    # 5. pad touches over the regions
+    # 5. pad touches over the regions. At twist 0 the finger lies along x_I, and a shift of the sphere along x_I slides it
+    # along the face and the flanks without changing any gap: the touches leave the sphere's place along the finger to the
+    # homing's prior (0.25 mm). A flank's or an edge's touch at twist t sees that shift by its normal's y_P part times
+    # sin t, so touch_twist_deg turns them by +-t, else +-2t, else 0 (the lab's cell in the simulator, 2026-10-22: the
+    # contact point 0.29 mm off along z_P at every press with all touches at twist 0, 0.05 mm with them twisted;
+    # twists of 90 deg and more, or 60 deg tried first, put travel paths through the wrist's limit on the lab's branch)
     for r_, n_ in COUNTS["touch"].items():
         idx = np.nonzero((reg == r_) & reach)[0]
         for j, s in enumerate(fps(geo.pts[idx], n_, p_ref)):
             i = int(idx[s])
-            add(dict(id=f"pad-{r_}-{j:02d}", stage="pad", kind="touch", target=tgt(i), twist=None, standoff=1.5,
-                     beyond_mm=1.2, v=0.00015, stop_N=0.5, fit_N=0.4), press_poses, contact_P=geo.pts[i])
+            a = dict(id=f"pad-{r_}-{j:02d}", stage="pad", kind="touch", target=tgt(i), twist=None, standoff=1.5,
+                     beyond_mm=1.2, v=0.00015, stop_N=0.5, fit_N=0.4)
+            if touch_twist_deg and r_ in ("flank", "edge"):
+                t_, sg = float(touch_twist_deg), (1.0 if j % 2 == 0 else -1.0)
+                a["twists_first"] = (sg * t_, -sg * t_, sg * 2 * t_, -sg * 2 * t_)
+            add(a, press_poses, contact_P=geo.pts[i])
     # 6. pivot: the face centre, four 0.3 mm offsets, four turns
     t1 = np.array([0.0, 0.0, 1.0]) - n_ref[2] * n_ref
     t1 /= np.linalg.norm(t1)
@@ -550,6 +562,7 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
                           points_by_region={r: int((reg == r).sum()) for r in ("face", "edge", "flank", "tip")},
                           dropped=dropped, travel_joint_paths_bad=travel_bad, clearances_needed_mm=CLEAR,
                           order=dict(mode=order_by, joint6_travel_deg=order_info), gravity_roll_offset_deg=roll_offset_deg,
+                          touch_twist_deg=touch_twist_deg,
                           counts={s: sum(1 for a in acts if a["stage"] == s) for s in
                                   ("gravity", "mount", "pad", "pivot", "grid", "shear", "roll", "twist", "final", "final_gravity")},
                           seconds=round(time.time() - t_start, 1))
@@ -579,6 +592,8 @@ def main():
                     "stations; 30 keeps every station at least 30 deg from half a turn off the homing pose")
     ap.add_argument("--q-seed", default=None, help="deg, comma separated: the robot's joints at its seating on the key "
                     "(lab/poses.jsonl); the checks then follow the IK branch the session uses")
+    ap.add_argument("--touch-twist", type=float, default=0.0, help="deg: the flank and edge touch-offs turned by +-t, "
+                    "else +-2t, else 0, so that the registration sees the sphere's place along the finger; 30 recommended")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     for o in a.other:
@@ -587,7 +602,7 @@ def main():
         CELL.OTHER.append((C.Tm(C.rot(C.EZ, yaw), [x, y, z]), k))
     build(a.indenter, tuple(float(v) for v in a.placement.split(",")), a.out, a.block, a.mount_turn,
           tuple(float(v) for v in a.block_half.split(",")), a.order, a.gravity_roll_offset,
-          None if a.q_seed is None else [float(v) for v in a.q_seed.split(",")])
+          None if a.q_seed is None else [float(v) for v in a.q_seed.split(",")], a.touch_twist)
 
 
 if __name__ == "__main__":
