@@ -406,6 +406,14 @@ push that answers it arrives.
   error of the FE model. The board's force is 0.83, 0.78 and 1.05 of the HEX-E's on face, edges and flanks. The
   estimator's numbers above do not change: the four presses stopped at 2 N.
 
+  Update 01:10 on 10-23. The lab's drift study (`20261023-ur5_tip_board_drift.html`) finds that each press leaves a
+  6.7 uT step along its own change, so the two-rest zero takes part of the press out. `--board-zero before` in the
+  analysis zeroes each hold on the rest before alone (`data/20261022-210852-sphere2-zbefore/`). The board's force then
+  reads 0.87, 0.80 and 1.15 of the HEX-E's on face, edges and flanks (two-rest zero 0.83, 0.78, 1.05). The estimator's
+  median location error moves by up to 0.5 mm either way by force level, and the 1.4 mm offset at 3 N and over stays.
+  The GP gives 0.82 mm on held-out presses (0.84) and 1.98 mm on turns (2.05), with 0.235 N on turns (0.189). The
+  default stays the two-rest zero; the option is kept.
+
 - R17 (answered 23:38 and 23:44 on the whole session; begun 22:21 on the workstation; the owner asked at 22:10 through the lab). Predictors of the contact point
   and the normal force from the board, trained on a session's presses in time order:
   `scripts/ur5_tip_calibration_predict.py <analysis output folder>`, outputs in `data/<session>/predict/predict.json`.

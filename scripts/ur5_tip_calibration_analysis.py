@@ -45,6 +45,9 @@ OUT = ROOT / "docs/experiments/20261022-ur5_tip_calibration/data"
 ZERO = "both"           # the HEX-E's zero: "both" rests interpolated in time (default), or the rest "before" alone (--zero)
 GRAVITY_FROM = None     # a session (or its registration.json) whose gravity fit a session without one takes (--gravity-from)
 REF_DRIFT = False       # move the sphere along the approach by the ref presses' onset drift, interpolated in time (--ref-drift)
+BOARD_ZERO = "both"     # the board's zero for each hold: the rests before and after the action interpolated in time, or the
+#                         rest before alone (--board-zero before; the lab's drift study of 2026-10-23: a press leaves a step
+#                         along its own change that fades with tau 19 s, so the rest after takes part of the press out)
 # Actions whose HEX-E reading includes a load that is not on the pad, left out of the ground truth (by session folder name)
 EXCLUDE = {
     "20261022-210852-sphere2": (("grid-061", "grid-065", "grid-066", "grid-067"),
@@ -158,6 +161,8 @@ class Session:
     def rest_board(self, rec, t):
         r0 = self.win(self.d["t_b"], self.b, *rec["t_rest0"]).mean(axis=0)
         r1 = self.win(self.d["t_b"], self.b, *rec["t_rest1"]).mean(axis=0) if rec.get("t_rest1") else r0
+        if BOARD_ZERO == "before":
+            return r0, float(np.linalg.norm(r1 - r0))
         ta, tb = np.mean(rec["t_rest0"]), np.mean(rec["t_rest1"]) if rec.get("t_rest1") else np.mean(rec["t_rest0"]) + 1
         return r0 + (r1 - r0) * (t - ta) / max(tb - ta, 1e-6), float(np.linalg.norm(r1 - r0))
 
@@ -418,6 +423,7 @@ def summarize(ses, holds):
     S["rest_drift_uT"] = stats([h["rest_drift_uT"] for h in holds])
     S["ft_rest_drift_N"] = stats([h["ft_rest_drift_N"] for h in holds])
     S["zero"] = ZERO
+    S["board_zero"] = BOARD_ZERO
     ref = [h for h in holds if h.get("role") == "ref" and abs((h["level_N"] or 0) - 1.0) < 1e-9]
     if len(ref) > 1:
         d0 = ref[0]["d_board"]
@@ -532,11 +538,14 @@ def main():
                     "before and after the action interpolated in time, or the rest before alone (the analysis before 2026-10-22 20:00)")
     ap.add_argument("--gravity-from", default=None, help="a session (or its registration.json) whose gravity fit a "
                     "session run without the gravity stage takes")
+    ap.add_argument("--board-zero", choices=("both", "before"), default="both", help="the board's zero for each hold: the "
+                    "rests before and after interpolated in time, or the rest before alone")
     ap.add_argument("--ref-drift", action="store_true", help="move the sphere along the approach by the reference "
                     "presses' onset drift, interpolated in time")
     a = ap.parse_args()
-    global ZERO, GRAVITY_FROM, REF_DRIFT
+    global ZERO, GRAVITY_FROM, REF_DRIFT, BOARD_ZERO
     ZERO = a.zero
+    BOARD_ZERO = a.board_zero
     GRAVITY_FROM = a.gravity_from
     REF_DRIFT = a.ref_drift
     ses = Session(a.session)
