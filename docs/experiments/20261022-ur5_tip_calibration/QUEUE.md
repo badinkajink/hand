@@ -668,10 +668,19 @@ push that answers it arrives.
   - An offset touch-off's onset comes after the same free travel as a plain one's. The program prints it against the
     target's standoff, so it reads about 0.1 to 0.3 mm later than a plain one (the action's `onset_shift_mm`), plus the
     registration's own offset.
-  - One tip per session. The owner seats the tip in DIP link b and homes the mount by hand on the key (`--home-from`, as
-    on 10-22). Stages: preflight, homing, pad, register. Then `ur5_tip_calibration_check.py --clearance` with the new
-    registration, as for sph3t, and then grid and final. The grid is sphere2's, in its order by joint 6, without grid-061,
-    -065, -066 and -067 and without any press with joint 6 above 60 deg. No rolls, twists or slides unless the owner asks.
+  - One tip per session, in two passes. The owner seats the tip in DIP link b and homes the mount by hand on the key
+    (`--home-from`, as on 10-22). Every registration of 10-22 and 10-23 lapsed when the finger came off at 16:30 (lab
+    f05c1678). The offset touch-offs were cleared against sphere2's tool, so on the new stack they run only after its own
+    registration:
+    1. `plan/20261023-plan_sphere_lab_plain_touches.json` (the same plan without the offset touch-offs), stages preflight,
+       homing, pad, register;
+    2. `ur5_tip_calibration_check.py --clearance plan/20261023-plan_sphere_lab_offset_touches.json` with that registration,
+       stages pad and grid; drop what falls under the margins;
+    3. resume on the offset plan, stages pad and register: the offset touch-offs, now placed with the registered tool, then
+       one fit of all touch-offs;
+    4. grid and final. The grid is sphere2's, in its order by joint 6, without grid-061, -065, -066 and -067 and without any
+       press with joint 6 above 60 deg. No rolls, twists or slides unless the owner asks.
+    With the ATI in the stack both plans are rebuilt first.
   - Time per tip, from sph3t and sphere2g: 36 touch-offs at 2.3 min each take about 1 h 25 min, and 73 presses at
     0.9 min each about 1 h 05 min. About 2 h 40 min in all. A 3.5 mm start saves about 20 min if the first onsets come
     within 2.5 mm of the prediction. Three tips need someone to swap them, so one tip can run unattended per night.
