@@ -102,8 +102,8 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 <section id="terms" class="col">
   <h2>Terms and metrics</h2>
   <dl class="terms">
-    <dt><b>Chain</b></dt><dd>Lift the screwdriver from the table, turn it tip-down in the air, set it into the
-      countersink and gait it 8 cycles, in simulation with a floating palm; k/n counts the rollouts of n that
+    <dt><b>Chain</b></dt><dd>In simulation with a floating palm: lift the screwdriver from the table, turn it tip-down in the air, set it into the
+      countersink and gait it 8 cycles. The count k/n is the number of rollouts, out of n, that
       complete it.</dd>
     <dt><b>Reference chain</b></dt><dd><code>rv05_manual_stored</code> with its stored CEM grasp, sphere pads, pivot
       0.25, clip 0.50 and a &minus;90&#176; turn; 169/169 completed on 2026-09-03.</dd>
@@ -147,7 +147,7 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 
   <p>A one-line fix in <code>palm_driver.py</code> restored the floating-palm path on 2026-09-06, and
   <code>tests/test_chain_reference.py</code> now pins the chain: a signed cosine above 0.90 at
-  <code>reoriented</code>, two or more pads carrying at least 0.240 N, a floor-free tool and 8 of 8 gait cycles. At
+  <code>reoriented</code>, two or more pads pressing with at least 0.240 N, a floor-free tool and 8 of 8 gait cycles. At
   the deployed pivot height the test fails with cos 0.0008.</p>
 </section>
 
@@ -158,15 +158,15 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   {{ABLATE_TBL}}
 
   <p><strong>Pivot.</strong> At <code>axis_k</code> 0.05 the lift is the reference&#8217;s, since the pivot enters
-  after it, and the turn takes the tool to cos &minus;0.988: within 9&#176; of vertical, standing on its handle, and
-  it drops. Every deployed plan sets 0.05 to 0.15.</p>
+  after it. The turn takes the tool to cos &minus;0.988, within 9&#176; of vertical but standing on its handle, and
+  the tool drops. Every deployed plan sets 0.05 to 0.15.</p>
 
   <p><strong>Clip.</strong> At 0.85 the tool reaches cos +0.970 while the pad force falls from 5.55 N to 0.15 N,
-  below the tool&#8217;s 0.240 N weight, so it arrives vertical in a hand that no longer holds it. The plan angle of
+  which is below the tool&#8217;s 0.240 N weight, so the tool arrives vertical in a hand that no longer holds it. The plan angle of
   &minus;60&#176; under-rotates and still chains 3 of 4.</p>
 
   <p><strong>Pads and grasp.</strong> Both pad arms fail at the lift, with no contacts, because each grasp was
-  fitted for the other pad shape; flat pads with a grasp fitted for them (last row) lift on three pads at 3.37 N
+  fitted for the other pad shape. Flat pads with a grasp fitted for them (last row) lift on three pads at 3.37 N
   and turn to cos +0.755.</p>
 </section>
 
@@ -189,7 +189,7 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
 
   <p>At 4 mm the grasp lifts on three pads at <strong>8.79 N</strong>, above the reference&#8217;s 5.55 N, and
   still drops the tool by the next seam, so finger travel limits the turn at that grip force. Lowering the palm
-  would add headroom, and the fitter cannot: asked for 62, 58, 54, 50 and 46 mm of grip depth on this hand,
+  would add headroom, but the fitter cannot do it. Asked for 62, 58, 54, 50 and 46 mm of grip depth on this hand,
   <code>_grip_from_fit</code> returns no pose, because its clamp searches only
   <code>[depth &minus; 8 mm, depth]</code> and only the deepest depth solves.</p>
 </section>
@@ -206,13 +206,13 @@ footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",mo
   {{OP_TBL}}
 
   <p>A sweep of the chain&#8217;s own band per hand (clip 0.40 to 1.15 against pivot 0.15, 0.25 and 0.35, at
-  &minus;90&#176;) gives {{BAND_OK}} chains in {{BAND_N}} rollouts; {{BAND_HELD}} hold the tool at
+  &minus;90&#176;) gives {{BAND_OK}} chains in {{BAND_N}} rollouts. Of these, {{BAND_HELD}} hold the tool at
   <code>reoriented</code> on two or more pads at or above its weight. The wrong-pole turn is gone and the grip is
   missing.</p>
 
   {{BAND_TBL}}
 
-  <p>The load test separates two cases: D5 reaches cos +0.989 on 0.3 pads at 0.09 N, a released tool standing
+  <p>The load test separates two cases. D5 reaches cos +0.989 on 0.3 pads at 0.09 N, a released tool standing
   vertical, while D7 holds three pads through the turn and reaches +0.83, 34&#176; short, at 0.41 N against the
   reference&#8217;s 10.47 N.</p>
 </section>

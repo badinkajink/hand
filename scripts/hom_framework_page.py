@@ -704,8 +704,8 @@ force of another link on the object in a held base run is """
 pinch's and the middle finger's positions along the cylinder and the latitudes of their contacts below the equator (the pinch at 0
 or 15&#8202;deg, the middle finger at 0 or 15&#8202;deg for the pin-push and 30 or 45&#8202;deg for the press). A grasp must be reachable
 inside the servos' calibrated ranges with 3&#8202;deg to spare, with every distal link's palmar face within 25&#8202;deg of its contact
-normal and the middle finger 40&#8202;mm or more from the pinch; on the MuJoCo model every link but the tips stays 0.5&#8202;mm from
-the cylinder at touch and 1.5&#8202;mm when open, and the fingers 1&#8202;mm from each other. The grasp with the largest smallest
+normal and the middle finger 40&#8202;mm or more from the pinch. On the MuJoCo model every link but the tips stays 0.5&#8202;mm from
+the cylinder at touch and 1.5&#8202;mm when open, and the fingers stay 1&#8202;mm from each other. The grasp with the largest smallest
 pad-Jacobian singular value of the three fingers is kept; at touch its links stay """ + fmt(min(c[0] for c in clr_min), 1)
                   + r"""&#8202;mm or more from the cylinder and its fingers """ + fmt(min(c[1] for c in clr_min), 1)
                   + r"""&#8202;mm or more from each other. Pinching contacts 30&#8202;deg below the equator squeezed the cylinder up and
@@ -864,8 +864,8 @@ lever the cylinder follows the down and back strokes with gains of """
 <p>The servo target of a finger with a commanded force is its joint reference plus two offsets: one that moves the impedance's
 action point across a gap onto the object's surface, and one that presses with $F$ through the servo spring. Until 2026-10-22 the
 gap was measured at the measured joint angles and closed only while the finger was apart (<b>gapq</b>). A finger whose reference
-had fallen behind a moving object while its pad still touched then kept a target outside the surface, and its force decayed:
-the pin-push's middle finger stopped 0.6&#8202;mm short of a cylinder its own push had turned, and the 63&#8202;mm sphere peeled off the
+had fallen behind a moving object while its pad still touched then kept a target outside the surface, and its force decayed.
+The pin-push's middle finger stopped 0.6&#8202;mm short of a cylinder its own push had turned, and the 63&#8202;mm sphere peeled off the
 pads in the rolling steps. The base runs measure the gap at the reference configuration and close it whenever the reference is
 behind the surface; a reference ahead of the surface is kept, so a pusher's motion still pushes.</p>"""
                   + T(["Task", "Size (mm)", "Reference: held, score", "Earlier (gapq)"], compare(("base", "gapq"), ""),
@@ -905,10 +905,10 @@ $k_{\max}\Delta t=0.2$ at $k_{\max}=100$&#8202;s$^{-1}$; the bench's 50&#8202;Hz
     VAR = ("nofilter", "rate50", "sense", "floop")
     if any(base(t, v=v) for t in R for v in VAR):
         S.append(("variants", "Deployment variants", r"""
-<p>Variants of the base runs that move toward the bench: <b>nofilter</b> takes the impedance's action point from the GCF instead of
-the filter; <b>rate50</b> runs the controller at 50&#8202;Hz, the servo bus's closed-loop rate; <b>sense</b> runs at 50&#8202;Hz with
+<p>Four variants of the base runs move toward the bench. The <b>nofilter</b> variant takes the impedance's action point from the GCF instead of
+the filter. The <b>rate50</b> variant runs the controller at 50&#8202;Hz, the servo bus's closed-loop rate. The <b>sense</b> variant runs at 50&#8202;Hz with
 the object pose read 40&#8202;ms late with 0.5&#8202;mm and 1&#8202;deg noise, centre-of-pressure noise of 1&#8202;mm and force noise of
-0.03&#8202;N; <b>floop</b> adds 10&#8202;mm/s of $v_{\rm sep}$ per newton of force error, a force loop that needs a fingertip force
+0.03&#8202;N. The <b>floop</b> variant adds 10&#8202;mm/s of $v_{\rm sep}$ per newton of force error, a force loop that needs a fingertip force
 measurement.</p>""" + T(["Task", "Size (mm)", "Base: held, score", "No filter", "50&#8202;Hz", "50&#8202;Hz, noisy sensing",
                          "Force loop"], compare(("base",) + VAR, ""), f"Deployment variants, seeds 0&#8211;2 ({SCORE_TXT}).",
                         num_from=2)))
@@ -950,8 +950,8 @@ measurement.</p>""" + T(["Task", "Size (mm)", "Base: held, score", "No filter", 
         S.append(("mpc", "MPC baseline", r"""
 <p>From the start of each task (2.0&#8202;s, after the HOM pick and lift) the planner of the 2026-10-14 scale study, pinned iCEM,
 replaces the HOM controller. Every 10&#8202;ms it samples 64 plans of the nine servo targets (two iterations of 32, three knots over
-0.5&#8202;s, knot noise 0.08&#8202;rad, the first knot fixed to the applied target), rolls them out on the plant's own pads model with
-<code>mujoco.rollout</code> and applies the best; between replannings the targets follow that plan at the 1&#8202;ms physics step.
+0.5&#8202;s, knot noise 0.08&#8202;rad, the first knot fixed to the applied target). It rolls them out on the plant's own pads model with
+<code>mujoco.rollout</code> and applies the best. Between replannings the targets follow that plan at the 1&#8202;ms physics step.
 A plan costs, over its 50 samples at 10&#8202;ms,
 $$J=\sum_{k=1}^{49}c_k+10\,c_{50}+\sum_{i=1}^{2}\lVert\mathbf u_{i+1}-\mathbf u_i\rVert^2,$$
 with $\mathbf u_i$ the knots (rad) and the sample cost $c_k$ of the task:
@@ -1020,7 +1020,7 @@ near HOM's 2.5&#8202;deg would show that the squeeze does.</li>
 grasp's tripod layout, so the 35 and 60&#8202;mm levers keep its conditioning. A 35&#8202;mm lever within 0.5&#8202;deg of the base
 grasp's angle RMSE would put the lever table's losses on the grasps' conditioning.</li>
 <li>Drive force: ten seeds at 0.75 and 1.0&#8202;N on the 16 and 25&#8202;mm cylinders (<code>--set f_drive=0.75 --seeds 0 1 2 3 4 5
-6 7 8 9</code>) before 0.75&#8202;N replaces 1.5&#8202;N as the pin-push's default; one of three 16&#8202;mm seeds slipped at
+6 7 8 9</code>) before 0.75&#8202;N replaces 1.5&#8202;N as the pin-push's default. One of three 16&#8202;mm seeds slipped at
 0.75&#8202;N (8.8&#8202;deg).</li>
 <li>Twist without link contact: a layout or palm height that keeps every link 1&#8202;mm off the sphere through a 90&#8202;deg ramp; a
 larger ramp on three pads with link force under 0.5&#8202;N would show that the link's contact limits the present ramp.</li>
