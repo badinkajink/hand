@@ -242,7 +242,7 @@ dipole value (Table 1). Over the five chips its rest field differs from the dipo
 {min(me['bm_five_d75']['dipole']['rest_err_pct_per_chip']):.1f}&#8211;{max(me['bm_five_d75']['dipole']['rest_err_pct_per_chip']):.1f}{NBSP}%,
 and its change under a 1{NBSP}N press by {me['bm_five_d75']['dipole']['press_err_pct']:.0f}{NBSP}% at 7.5{NBSP}mm depth and
 {me['bm_five_d85']['dipole']['press_err_pct']:.0f}{NBSP}% at 8.5{NBSP}mm. The exact disc field here is a volume quadrature of point
-dipoles at 16{NBSP}x{NBSP}64{NBSP}x{NBSP}16 points, equal to the analytic axial field to the printed digits and to the 24{NBSP}x{NBSP}96{NBSP}x{NBSP}24
+dipoles at 16{NBSP}x{NBSP}64{NBSP}x{NBSP}16 points. It equals the analytic axial field to the printed digits and the 24{NBSP}x{NBSP}96{NBSP}x{NBSP}24
 quadrature within {me['bm_five_d75']['check']['rest_err_uT_max']:.2f}{NBSP}&#181;T. The contact estimator
 (<code>fingertip_wrench_model.Model</code>, 72 points per disc) agrees with it to
 {max(me['bm_five_d75']['quad72']['press_err_pct'], me['bm_five_d85']['quad72']['press_err_pct']):.3f}{NBSP}%, so the sphere's exact
@@ -266,11 +266,11 @@ falls as $(a/z)^3$, so a larger sphere at a fixed distance gives the field of a 
 rest field, and a press changes that field by little: {min(press):.2f}&#8211;{max(press):.2f}{NBSP}% per newton on the five chips of
 pad B00 ({press[0]:.2f}{NBSP}% on U1). The rest field must therefore stay inside the chip's range. At U1's {mm(R['U1_axial_mm'])} a
 3{NBSP}mm sphere gives {sizes[2]['field_at_U1_mT']:.1f}{NBSP}mT on its axis and a 4{NBSP}mm sphere {sizes[3]['field_at_U1_mT']:.1f}{NBSP}mT
-alone; the four neighbours add the rest of the {f5['sphere_4']['B_max_component_mT']:.0f}{NBSP}mT of Table 3 (Table 2, Figure 1).</p>
+alone. The four neighbours add the rest of the {f5['sphere_4']['B_max_component_mT']:.0f}{NBSP}mT of Table 3 (Table 2, Figure 1).</p>
 <p>A larger magnet kept inside the range has to sit farther from the chips, where a given travel changes the reading by a smaller
 fraction (about $3\\,\\delta z / z$ for an axial step $\\delta z$). Magnets nearer the face also move more per newton (7.5{NBSP}&#181;m/N at
 6.5{NBSP}mm depth, 5.2 at 7.5{NBSP}mm), so the two effects partly cancel. With this chip a design gains from magnet size only until the
-largest component reaches the usable field: pad B00's exact discs use {R['five_disc_exact_max_mT']:.1f} of {R['usable_mT']:.1f}{NBSP}mT, and a
+largest component reaches the usable field. Pad B00's exact discs use {R['five_disc_exact_max_mT']:.1f} of {R['usable_mT']:.1f}{NBSP}mT, and a
 magnet with the moment that fills it at the same centres would resolve {f5['range_limited']['centre_force_N']:.3f}{NBSP}N.</p>
 {figure(media / '20261021-axial_field_vs_distance.png', 1, f"Axial field of N52 spheres of 2&#8211;6{NBSP}mm and of the 3{NBSP}x{NBSP}2{NBSP}mm disc against the distance from the magnet's centre, with the chip's saturation onset and usable field. The 3{NBSP}mm sphere and the disc have equal volumes; on the axis the disc's field is {dd[(2.0, R['U1_axial_mm'])]:.1f}{NBSP}% under the sphere's at U1 and {dd[(2.0, 10.0)]:.1f}{NBSP}% under at 10{NBSP}mm.")}
 {tab_size}"""))
@@ -287,7 +287,7 @@ magnet with the moment that fills it at the same centres would resolve {f5['rang
 <p>Each sphere takes the place of a disc at the disc's centre and moves with the disc's rigid motion from the finite-element rows of
 <code>docs/experiments/20261019-v2_tip_fe_checks/sense_fe.jsonl</code> (cases <code>bm_five_d65</code>&#8211;<code>d85</code>,
 <code>bm_four_d70</code>, <code>d75</code>). Table 3 and Figure 2 give the options. The 3{NBSP}mm sphere improves the five-magnet pad by
-{100 * (1 - sph5['centre_force_N'] / disc5['centre_force_N']):.0f}{NBSP}%; it is 1{NBSP}mm taller than the disc, and with its top kept at the
+{100 * (1 - sph5['centre_force_N'] / disc5['centre_force_N']):.0f}{NBSP}%; it is 1{NBSP}mm taller than the disc. With its top kept at the
 disc's top (centre 0.5{NBSP}mm deeper, motions halfway to the 8.5{NBSP}mm row) it puts {top5['B_max_component_mT']:.1f}{NBSP}mT on a chip and
 resolves {top5['centre_force_N']:.3f}{NBSP}N. Spheres of 2 and 2.5{NBSP}mm lose by the ratio of their moments. The five-magnet layout's corner
 pairs are 5.0{NBSP}mm apart, which admits spheres of at most 3.2{NBSP}mm with 1.8{NBSP}mm walls.</p>
@@ -305,15 +305,15 @@ nearly the same field in a height of {R['sphere4_equivalent_discs_mm'][0][1]:.1f
 <p>A disc's slot fixes its axis, so a disc can only go in with its pole reversed, which the calibration finds (two corners of the
 first pad of 2026-10-20). A sphere's axis is not visible and nothing in the slot fixes it. With the five moments parallel, each magnet
 sits in its neighbours' field, {min(abs(b) for b in Bs):.1f}&#8211;{max(abs(b) for b in Bs):.1f}{NBSP}mT against its own moment at the
-corners and the centre, which turns a loose 3{NBSP}mm sphere away from the parallel arrangement with
+corners and the centre. This field turns a loose 3{NBSP}mm sphere away from the parallel arrangement with
 {min(Ts):.2f}&#8211;{max(Ts):.2f}{NBSP}N{NBSP}mm per radian of tilt. The print pause leaves air above each magnet in its slot, so a sphere
-needs a seat that grips it, or an aligning field while the layers above it print, and the calibration then fits each magnet's
+needs a seat that grips it, or an aligning field while the layers above it print. The calibration then fits each magnet's
 direction (two angles) in addition to its pole.</p>"""))
 
     Sx.append(("dipole_bound", "Point dipoles in the earlier force resolutions", f"""
 <p><code>tpu_tip_magnet_sensing.analyse</code>, which gives the force resolutions of the earlier fingertip pages, models every magnet as
 a point dipole. For the 3{NBSP}x{NBSP}2{NBSP}mm discs of pad B00 it therefore gives the 3{NBSP}mm sphere's value,
-{sph5['centre_force_N']:.4f}{NBSP}N, where the exact disc gives {disc5['centre_force_N']:.4f}{NBSP}N; the largest component is
+{sph5['centre_force_N']:.4f}{NBSP}N, where the exact disc gives {disc5['centre_force_N']:.4f}{NBSP}N. The largest component is
 {f5['cylinder_3x2']['B_max_component_mT']:.2f} against {disc5['B_max_component_mT']:.2f}{NBSP}mT. On the four-magnet layout the two
 agree ({f4['cylinder_3x2']['centre_force_N']:.4f} and {disc4['centre_force_N']:.4f}{NBSP}N). <code>spherical_magnet_check.sense_cylinder_exact</code>
 gives the exact value for any row of <code>sense_fe.jsonl</code>.</p>"""))
@@ -336,7 +336,7 @@ centre would change Table 3.</li>
 <code>scripts/reskin5x_pad_fit.py</code> with each magnet's direction free (the discs fitted to 0.38{NBSP}mT RMS); then the same presses
 for a disc pad and a sphere pad under <code>src/morphohand/driver/reskin5x/host/pad_shift_check.py</code> and a kitchen-scale reference.
 The model predicts a force resolution {100 * (1 - sph5['centre_force_N'] / disc5['centre_force_N']):.0f}{NBSP}% finer for
-3{NBSP}mm spheres than for discs at the same centres; a sphere pad that resolves worse than the disc pad, or a direction scatter over
+3{NBSP}mm spheres than for discs at the same centres. A sphere pad that resolves worse than the disc pad, or a direction scatter over
 5{NBSP}degrees in the fit, argues against spheres in printed pads.</li>
 <li>A 4{NBSP}x{NBSP}{R['sphere4_equivalent_discs_mm'][0][1]:.1f}{NBSP}mm disc on the four-magnet layout, through the same wall checks: the same
 moment as a 4{NBSP}mm sphere at the disc's height.</li>

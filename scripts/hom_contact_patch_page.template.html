@@ -122,7 +122,7 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
   {{ERR_P4S}}&#8202;% with condim&#160;4 and a torsional coefficient rescheduled from the normal force, and within
   {{ERR_SP}}&#8202;% with pads of 0.75&#8202;mm spheres. Lowering the pinch from 6 to 0.2&#8202;N lowers the tool along the
   quasi-static brake law in both simulators (45&#176; at {{N45_REF}}&#8202;N in Drake, {{N45_SP}}&#8202;N with sphere pads,
-  {{N45_QS}}&#8202;N predicted); with point contact the tool swings over.</p>
+  {{N45_QS}}&#8202;N predicted). With point contact the tool swings over.</p>
   <div class="byline">rig: two 10.55&#8202;mm sphere pads on force-controlled rails (20&#8202;g, 5&#8202;N&#183;s/m), free
   24.5&#8202;g cylinder of radius 12.5&#8202;mm and length 100&#8202;mm, &#956;&#8202;1.0, 1&#8202;ms step &#183; Drake {{DRAKE_V}}, SAP, compliant
   hydroelastic pads (E&#8202;10&#8202;MPa, 1&#8202;mm tetrahedra), rigid hydroelastic tool (0.5&#8202;mm) &#183; MuJoCo {{MUJOCO_V}},
@@ -187,14 +187,14 @@ At 2&#8202;mm spacing one or two spheres touch below 1&#8202;N and the arm falls
 <p class="sub">torque arm per pad at 1&#8202;N (4&#8202;N where marked), spun at 0.5 and 2&#8202;rad/s</p>
 <p>Drake&#8217;s hydroelastic torque is independent of the spin rate only when the contact&#8217;s relaxation time is
 short. At SAP&#8217;s default of 0.1&#8202;s the arm at 1&#8202;N drops from {{RT01_W05}}&#8202;mm at 0.5&#8202;rad/s to
-{{RT01_W2}}&#8202;mm at 2&#8202;rad/s, and the contact surface loses about half its faces. Turning the tool about the
+{{RT01_W2}}&#8202;mm at 2&#8202;rad/s. The contact surface loses about half its faces. Turning the tool about the
 pinch axis moves the cylinder&#8217;s surface along the pad normal at &#969;&#183;y&#183;z&#8202;/&#8202;R<sub>c</sub> inside the
 patch, toward the pad in two quadrants and away from it in the other two. The Kelvin&#8211;Voigt term adds force where
 the surface approaches and removes it where it recedes; the receding quadrants leave the patch and the arm shrinks.
 The sphere pads with a 0.1&#8202;s relaxation lose {{SP01_LOSS}}&#8202;% the same way. The sphere pads at 0.02&#8202;s and
 Drake at 0.01 and 0.02&#8202;s change by {{SHORT_CHANGE}}&#8202;% or less between the two rates.</p>
 <p>MuJoCo&#8217;s friction is also regularized. At impratio&#160;10, the value in the calibrated real_v1 plant, condim&#160;4 at
-4&#8202;N delivers {{IR10_C4}}&#8202;% of its torque at 0.5&#8202;rad/s and the sphere pads {{IR10_SP}}&#8202;%; at impratio&#160;100
+4&#8202;N delivers {{IR10_C4}}&#8202;% of its torque at 0.5&#8202;rad/s and the sphere pads {{IR10_SP}}&#8202;%. At impratio&#160;100
 both are rate-independent.</p>
 {{TABLE_RATE}}
 </div></section>
@@ -204,10 +204,10 @@ both are rate-independent.</p>
 <p class="sub">gravity on &#183; centre of mass d from the pinch line &#183; pinch held at 6&#8202;N, then lowered geometrically to
 0.2&#8202;N over 4&#8202;s &#183; &#966;&#8202;=&#8202;rotation of the tool axis about the pinch axis, 0 horizontal, 90&#176; hanging</p>
 <p>Every model with friction torque lowers the tool to vertical as the pinch force falls. From about 45&#176; on, the
-angle follows the quasi-static brake law cos&#8202;&#966;&#8202;=&#8202;2&#956;&#8202;N&#8202;r&#772;(N)&#8202;/&#8202;(m&#8202;g&#8202;d), corrected for
-the friction the pads spend carrying the weight. For d&#8202;=&#8202;15&#8202;mm it places 45&#176; at {{N45_QS}}&#8202;N and
-80&#176; at {{N80_QS}}&#8202;N. Drake at 0.01&#8202;s passes them at {{N45_REF}} and {{N80_REF}}&#8202;N, the 0.5&#8202;mm sphere
-pads at {{N45_SP}} and {{N80_SP}}&#8202;N, and the rescheduled condim&#160;4 at {{N45_P4S}} and {{N80_P4S}}&#8202;N.</p>
+angle follows the quasi-static brake law cos&#8202;&#966;&#8202;=&#8202;2&#956;&#8202;N&#8202;r&#772;(N)&#8202;/&#8202;(m&#8202;g&#8202;d). The law is corrected for
+the friction that the pads spend on bearing the weight. For d&#8202;=&#8202;15&#8202;mm it places 45&#176; at {{N45_QS}}&#8202;N and
+80&#176; at {{N80_QS}}&#8202;N. Drake at 0.01&#8202;s passes them at {{N45_REF}} and {{N80_REF}}&#8202;N. The 0.5&#8202;mm sphere
+pads pass them at {{N45_SP}} and {{N80_SP}}&#8202;N, and the rescheduled condim&#160;4 at {{N45_P4S}} and {{N80_P4S}}&#8202;N.</p>
 <div class="duo">
 {{CHART_BRAKE_A}}
 {{CHART_BRAKE_B}}
@@ -219,8 +219,8 @@ swing rate from {{PEAK4_REF}} to {{PEAK12_REF}}&#8202;deg/s and the sphere pads&
 <p>With the 0.1&#8202;s relaxation the brake weakens as the tool speeds up. Drake drops the tool from 45&#176; to 80&#176;
 between {{N45_DEF}} and {{N80_DEF}}&#8202;N and swings it to {{MAX_DEF}}&#176;, past vertical; the sphere pads with the same
 relaxation swing it to {{MAX_SP01}}&#176;. At 0.02&#8202;s Drake still falls through 80&#176; at {{N80_RT02}}&#8202;N on the 4&#8202;s
-ramp, while the sphere pads at 0.02&#8202;s pass 80&#176; at {{N80_SP}}&#8202;N, so per second of relaxation the weakening is
-stronger in Drake than in MuJoCo. On the 12&#8202;s ramp the swing is slower and Drake at 0.02&#8202;s follows the law to
+ramp, while the sphere pads at 0.02&#8202;s pass 80&#176; at {{N80_SP}}&#8202;N. Per second of relaxation the weakening is
+therefore stronger in Drake than in MuJoCo. On the 12&#8202;s ramp the swing is slower and Drake at 0.02&#8202;s follows the law to
 80&#176; ({{N80_RT02_12}}&#8202;N).</p>
 <p>With point contact there is no friction torque. The tool swings through {{MAX_DPT}}&#176; in Drake and
 {{MAX_MPT}}&#176; in MuJoCo as its weight comes on at 6&#8202;N and keeps swinging. At impratio&#160;10 the condim&#160;4
@@ -254,8 +254,8 @@ wanders {{COP_S2}}&#8202;mm at 2&#8202;mm, jumping {{STEP_S2}}&#8202;mm between 
 pad&#8217;s normal force as &#956;&#183;r&#772;(N), r&#772;&#8202;=&#8202;{{C_FIT}}&#8202;mm&#183;(N&#8202;/&#8202;1&#8202;N)<sup>1/4</sup> for the real_v1 fingertip
 at 10&#8202;MPa. The arm scales as E<sup>&#8722;1/4</sup>R<sup>1/2</sup>. One contact per pad; the reschedule is a write to
 <code>geom_friction</code> (or <code>pair_friction</code>) before each step and costs nothing measurable.</li>
-<li>Where the patch itself matters (a flat or mesh pad, a centre of pressure off a non-primitive finger), sphere
-pads: 0.75&#8202;mm spheres at 1&#8202;mm spacing, 126 per 35&#176; cap and 9&#8211;22 in contact, stiffness from E. The 4&#8202;s brake
+<li>Where the patch itself matters (a flat or mesh pad, a centre of pressure off a non-primitive finger), use sphere
+pads: 0.75&#8202;mm spheres at 1&#8202;mm spacing, 126 per 35&#176; cap and 9&#8211;22 in contact, with stiffness from E. The 4&#8202;s brake
 run takes {{WALL_S1}}&#8202;s of CPU for 5.5&#8202;s simulated, against {{WALL_P4S}}&#8202;s for condim&#160;4 and {{WALL_DRAKE}}&#8202;s
 for Drake.</li>
 <li>The calibrated real_v1 plant runs impratio&#160;10, at which both MuJoCo pinches creep; a brake needs 100.</li>
