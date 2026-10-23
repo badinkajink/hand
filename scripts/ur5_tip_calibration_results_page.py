@@ -537,6 +537,45 @@ def sections(R, F):
                            "Median errors on the held-out presses against the number of training presses, for the "
                            "board change as the only input. (a) Location error; (b) normal force error. The dotted line "
                            "is the untrained estimator."))
+        # by force level, on the held-out presses
+        keys = (("viewer", "Viewer's estimator, untrained"), ("gp:board", "Gaussian process"),
+                ("physical+gp:board", "Physical model and Gaussian process"))
+        src = dict(viewer=v, **{k: last[k] for k, _ in keys if k != "viewer"})
+        levels = sorted(v.get("by_level", {}), key=float)
+        if levels:
+            lrows = [[f"{float(L):g}"] + [f1(src[k]["by_level"].get(L, {}).get("loc_mm", {}).get("median")) for k, _ in keys]
+                     for L in levels]
+            gl = [src["gp:board"]["by_level"][L]["loc_mm"]["median"] for L in levels if float(L) < 1.0
+                  and src["gp:board"]["by_level"].get(L, {}).get("loc_mm", {}).get("median") is not None]
+            vl = [v["by_level"][L]["loc_mm"]["median"] for L in levels if float(L) < 1.0
+                  and v["by_level"].get(L, {}).get("loc_mm", {}).get("median") is not None]
+            body += ((f"<p>Below 1 N the untrained estimator's median location error is {min(vl):.1f} to {max(vl):.1f} mm "
+                      f"on the held-out presses. The GP's is {min(gl):.1f} to {max(gl):.1f} mm there (Table 6).</p>"
+                      if gl and vl else "")
+                     + P.table(["Level (N)"] + [lab for _, lab in keys], lrows, num_cols=tuple(range(len(keys) + 1)),
+                               caption="Location error (mm, median) on the held-out presses by force level, with the "
+                                       "board change as the input.", n=6))
+        tv = PR.get("turns")
+        if tv:
+            kinds = sorted(tv["viewer"].get("by_kind", {}))
+            tkeys = (("viewer", "Viewer's estimator, untrained"), ("physical", "Physical model, compliance fitted"),
+                     ("gp:board", "Gaussian process, board"), ("ridge:board", "Ridge regression, board"),
+                     ("physical+gp:board", "Physical model and Gaussian process, board"),
+                     ("gp:+orientation (leaks the target)", "Gaussian process, board and orientation"))
+            trows = [[lab, f1(tv[k]["loc_mm"]["median"]), f1(tv[k]["force_N"]["median"], 3)]
+                     + [f1(tv[k].get("by_kind", {}).get(kd, {}).get("loc_mm", {}).get("median")) for kd in kinds]
+                     for k, lab in tkeys if k in tv]
+            kind_name = {"slide": "slides", "roll": "rolls", "twist": "twists"}
+            body += (f"<p>The {ands([kind_name.get(k, k) for k in kinds])} test the predictors at tool orientations that "
+                     f"no press has. Every press trains them here, and the {tv['n_holds']} holds of "
+                     f"{tv['n_actions']} turn actions are scored (Table 7). The GP on the board places these contacts "
+                     f"within {tv['gp:board']['loc_mm']['median']:.2f} mm, and the physical model within "
+                     f"{tv['physical']['loc_mm']['median']:.2f} mm. With the orientation added, the GP's error is "
+                     f"{tv['gp:+orientation (leaks the target)']['loc_mm']['median']:.2f} mm.</p>"
+                     + P.table(["Model", "Location error (mm)", "Normal force error (N)"]
+                               + [f"Location error, {kind_name.get(k, k)} (mm)" for k in kinds], trows,
+                               num_cols=tuple(range(1, 3 + len(kinds))),
+                               caption="Predictors trained on every press and scored on the turn holds (medians).", n=7))
         S_.append(("predict", "Predictors of the contact point and the normal force", body))
 
     # ---- limitations, future work
