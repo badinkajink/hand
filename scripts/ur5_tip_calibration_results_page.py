@@ -21,7 +21,9 @@ docs/experiments/20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_
 --data names the analysis folder under data/ (default: the session's own, with its own registration). The rod run's
 analyses with the joint registration of three sessions (scripts/ur5_tip_calibration_rod_registration.py) and with
 rod1t's own fit, data/20261023-104526-rod1-joint/ and -ownreg/, and the session analysed with the joint registration,
-data/<session>-joint/, give Section 8 when they exist.
+data/<session>-joint/, give Section 8 when they exist. The day repeat's analysis with the session's registration and
+its comparison, data/20261023-124052-sph3t-s2reg/ with day_repeat.json from scripts/ur5_tip_calibration_day_repeat.py,
+gives Section 9 (--day-data names another folder).
 """
 from __future__ import annotations
 
@@ -57,6 +59,7 @@ QUEUE = D / "QUEUE.md"
 E_TPU_DEFAULT = 10.0             # MPa, reorient_backends.E_TPU
 ROD_DATA = D / "data/20261023-104526-rod1-joint"
 SPH3T = D / "lab/20261023-124052-sph3t"
+DAY_DATA = D / "data/20261023-124052-sph3t-s2reg"   # the day repeat (QUEUE.md R21), placed with sphere2's registration
 REGION_STYLE = {"face": ("o", "#1f5fbf"), "edge": ("s", "#c0392b"), "flank": ("^", "#2e8b57")}
 RNAME = {"face": "face", "edge": "edges", "flank": "flanks"}
 MODELS = [("physical", "Physical model, compliance fitted", "#2e8b57", "-"),
@@ -87,7 +90,7 @@ def hm(t):
 
 
 # ------------------------------------------------------------------------------------------------ data
-def load(session, data=None):
+def load(session, data=None, day_data=None):
     sd, ld = DATA / (data or session), LAB / session
     R = dict(session=session, sd=sd, ld=ld)
     R["S"] = json.loads((sd / "summary.json").read_text())
@@ -118,6 +121,13 @@ def load(session, data=None):
                 m_ = a_["kind"] == "press"
                 dp = b_["p"][m_] - a_["p"][m_]
                 R[key]["moved"] = dict(median=float(np.median(np.linalg.norm(dp, axis=1))), mean=dp.mean(0).tolist())
+    dd = Path(day_data) if day_data else DAY_DATA
+    if (dd / "day_repeat.json").exists():
+        R["DAY"] = {k: json.loads((dd / f).read_text()) for k, f in (("DR", "day_repeat.json"), ("FE", "fe.json"),
+                    ("S", "summary.json")) if (dd / f).exists()}
+        hz = np.load(dd / "holds.npz", allow_pickle=False)
+        R["DAY"]["H"] = {k: hz[k] for k in ("id", "t", "kind", "level_N")}
+        R["DAY"]["dir"] = dd
     plan = json.loads((ld / "plan.json").read_text())
     have = {a["id"] for a in plan["actions"]}
     for f in sorted(ld.glob("plan_resume_*.json")):
@@ -290,6 +300,66 @@ def fig_rod(R, out):
     for a in ax:
         a.grid(alpha=0.3, which="both")
     fig.tight_layout()
+    fig.savefig(out)
+    plt.close(fig)
+
+
+def fig_day(R, out):
+    plt = P.plt_setup()
+    DR = R["DAY"]["DR"]
+    st, snr = DR["same_target"], DR.get("same_night_refs")
+    fig, ax = plt.subplots(1, 2, figsize=(10.0, 4.8), dpi=110)
+    srcs = [(st["pairs"], "A day later, same target", "#1f5fbf", "o", -0.15)]
+    if snr and snr.get("pairs"):
+        srcs.append((snr["pairs"], "Same night, reference press repeated", "#c0392b", "s", 0.15))
+    levels = sorted({float(L) for src in srcs for L in src[0]["level_N"]})
+    pos = {L: j for j, L in enumerate(levels)}
+    rng = np.random.default_rng(0)
+    top = 0.0
+    for src, lab, col, mk, dx in srcs:
+        lv, rel = np.array(src["level_N"], float), np.array(src["board_rel_change"], float) * 100.0
+        x = np.array([pos[L] for L in lv]) + dx
+        ax[0].scatter(x + rng.uniform(-0.06, 0.06, len(x)), rel, s=22, marker=mk, color=col, alpha=0.6, label=lab)
+        for L in levels:
+            m = lv == L
+            if m.any():
+                ax[0].plot([pos[L] + dx - 0.13, pos[L] + dx + 0.13], [np.median(rel[m])] * 2, "-", color=col, lw=2.5)
+        top = max(top, float(np.percentile(rel, 98)))
+    ax[0].set_xticks(range(len(levels)))
+    ax[0].set_xticklabels([f"{L:g}" for L in levels])
+    ax[0].set_ylim(0, max(10.0, top * 1.1))
+    ax[0].set_xlabel("Force level (N)")
+    ax[0].set_ylabel("Difference of the board change (%)")
+    ax[0].set_title("(a) Board change at the same target")
+    ax[0].legend(fontsize=10.5, loc="upper right", frameon=False)
+    dl, sn = DR["day_later"], DR.get("same_night", {})
+    for k, lab, col in (("gp:board", "Gaussian process", "#1f5fbf"), ("mlp:board", "MLP ensemble", "#8e44ad"),
+                        ("physical", "Physical model", "#2e8b57")):
+        for src, ls, mk, when in ((dl, "-", "o", "a day later"), (sn, "--", "s", "same night")):
+            if k not in src or "by_level" not in src[k]:
+                continue
+            bl = src[k]["by_level"]
+            L = [x for x in sorted(bl, key=float) if bl[x]["loc_mm"]["median"] is not None]
+            ax[1].plot([float(x) for x in L], [bl[x]["loc_mm"]["median"] for x in L], ls, marker=mk, ms=5, color=col,
+                       lw=1.6, label=f"{lab}, {when}")
+    ax[1].set_xscale("log")
+    ax[1].set_yscale("log")
+    xt = [L for L in (0.25, 0.5, 1, 2, 3, 5) if any(abs(L - v) < 1e-6 for v in levels)] or [0.5, 1, 2, 5]
+    ax[1].set_xticks(xt)
+    ax[1].set_xticklabels([f"{v:g}" for v in xt])
+    ax[1].minorticks_off()
+    lo, hi = ax[1].get_ylim()
+    ticks = [t for t in (0.1, 0.2, 0.5, 1, 2, 5, 10) if lo <= t <= hi]
+    ax[1].set_yticks(ticks)
+    ax[1].set_yticklabels([f"{t:g}" for t in ticks])
+    ax[1].set_xlabel("Force level (N)")
+    ax[1].set_ylabel("Location error, median (mm)")
+    ax[1].set_title("(b) Predictors' location error")
+    for a in ax:
+        a.grid(alpha=0.3, which="both")
+    h, l_ = ax[1].get_legend_handles_labels()
+    fig.legend(h, l_, loc="lower center", ncol=3, frameon=False, fontsize=10.5)
+    fig.tight_layout(rect=(0, 0.15, 1, 1))
     fig.savefig(out)
     plt.close(fig)
 
@@ -487,6 +557,10 @@ def sections(R, F):
                      f"folds, against {cv['gp']['loc_median']:.2f} mm for the Gaussian process"
                      + (f", but within {PR['turns']['mlp:board']['loc_mm']['median']:.2f} mm on the rolls and twists."
                         if PR.get("turns") and "mlp:board" in PR["turns"] else "."))
+    DY_ = R.get("DAY")
+    if DY_ and DY_.get("DR") and "gp:board" in DY_["DR"]["day_later"]:
+        lede += (f" A day later, the Gaussian process trained on all of the night's presses places the contacts of "
+                 f"repeated presses within {DY_['DR']['day_later']['gp:board']['loc_mm']['median']:.2f} mm.")
     Q = R.get("PADS")
     if Q:
         ru = Q.get("shear", {}).get("runs", {})
@@ -553,6 +627,12 @@ def sections(R, F):
          "scored on held-out presses (every fourth grid press, apart from the reference presses). Each score is the "
          "median over the held-out holds."),
     ]
+    if R.get("DAY"):
+        terms += [
+            ("Difference of the board change", "For two holds at the same press target and force level, "
+             "$|\\mathbf{b}_2 - \\mathbf{b}_1| / |\\mathbf{b}_1|$ in %, where $\\mathbf{b}$ is a hold's board change. "
+             "A repeat of the reference press is paired with the first reference press of sphere2."),
+            ("Indentation change", "$d_2 - d_1$ in µm, the registered indentation of the same pairs of holds.")]
     S_.append(("terms", "Terms and metrics",
                '<dl class="terms">' + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in terms) + "</dl>"))
 
@@ -1069,6 +1149,104 @@ def sections(R, F):
                            "by force level (medians)."))
         S_.append(("rod", "Rod presses and the split of the extra indentation", body))
 
+    # ---- day repeat
+    DY = R.get("DAY")
+    if DY and DY.get("DR"):
+        DR = DY["DR"]
+        dl, sn = DR["day_later"], DR.get("same_night", {})
+        st, snr = DR.get("same_target"), DR.get("same_night_refs")
+        Hd = DY["H"]
+        pm = Hd["kind"] == "press"
+        ids_d = sorted(set(Hd["id"][pm].tolist()))
+        grid_d = [i for i in ids_d if not i.startswith("ref-")]
+        n_ref = len(ids_d) - len(grid_d)
+        n_grid_s = sum(1 for i in set(H["id"][press_mask(H)].tolist()) if R["acts"].get(i, {}).get("stage") == "grid"
+                       and not i.startswith("ref-"))
+        td0, td1 = float(Hd["t"][pm].min()), float(Hd["t"][pm].max())
+        same = np.isin(H["id"], grid_d)
+        md = pm & np.isin(Hd["id"], grid_d)
+        hours = (float(np.median(Hd["t"][md])) - float(np.median(H["t"][same]))) / 3600.0 if same.any() and md.any() else None
+        names = [("viewer", "Viewer's estimator, untrained"), ("physical", "Physical model, compliance fitted"),
+                 ("gp:board", "Gaussian process on the board"), ("mlp:board", "MLP ensemble on the board"),
+                 ("physical+gp:board", "Physical model and a Gaussian process on its residual")]
+        prow = []
+        for k, nm in names:
+            a_ = DR["viewer"] if k == "viewer" else dl.get(k)
+            b_ = (PR["viewer"] if PR else None) if k == "viewer" else sn.get(k)
+            prow.append([nm] + [f1(x[key]["median"], nd) if x else "&#8211;" for x in (a_, b_)
+                                for key, nd in (("loc_mm", 2), ("force_N", 3))])
+        sl = st["by_level"] if st else {}
+        rl = snr["by_level"] if snr else {}
+        lrow = []
+        for L in sorted(set(sl) | set(rl), key=float):
+            a_, b_ = sl.get(L), rl.get(L)
+            lrow.append([f"{float(L):g}"] + [y for x in (a_, b_) for y in (
+                (f"{x['n']}", f"{x['board_rel_change'] * 100:.0f}", f"{x['depth_change_mm'] * 1e3:+.0f}") if x
+                else ("0", "&#8211;", "&#8211;"))])
+        g, m_ = dl.get("gp:board"), dl.get("mlp:board")
+        gs, ms_ = sn.get("gp:board"), sn.get("mlp:board")
+        body = (f"<p>Trained on all {DR['n_train_presses']} presses of sphere2, the Gaussian process places the contacts "
+                f"of the presses repeated a day later within {g['loc_mm']['median']:.2f} mm, and their force within "
+                f"{g['force_N']['median']:.3f} N (medians, Table 13)."
+                + (f" Trained on the first {sn['N']} presses, it placed the same night's held-out contacts within "
+                   f"{gs['loc_mm']['median']:.2f} mm and {gs['force_N']['median']:.3f} N (Section 6)." if gs else "")
+                + ((f" The MLP ensemble gives {m_['loc_mm']['median']:.2f} mm a day later"
+                    + (f", against {ms_['loc_mm']['median']:.2f} mm the same night." if ms_ else ".")) if m_ else "")
+                + f" The viewer's estimator, with the magnets fitted to the field at rest of the night before, gives "
+                f"{DR['viewer']['loc_mm']['median']:.2f} mm"
+                + (f", against {PR['viewer']['loc_mm']['median']:.2f} mm on the night's held-out presses." if PR else ".")
+                + "</p>"
+                f"<p>The lab repeated {len(grid_d)} of sphere2's {n_grid_s} grid presses and made its reference press "
+                f"{n_ref} times, from {hm(td0)} to {hm(td1)} on 2026-10-23 (QUEUE.md R21)."
+                + (f" The presses came a median {hours:.0f} h after the same presses of sphere2." if hours else "")
+                + " The tool had not moved on the arm since sphere2 (Section 8). The robot aimed the presses with the "
+                "registration of the touch-offs sph3t. The ground truth here uses sphere2's registration, as the other "
+                "sections do."
+                + (f" Paired by target and level, the two runs' registered contact points lie a median "
+                   f"{st['point_apart_mm']['median']:.2f} mm apart." if st and "point_apart_mm" in st else "")
+                + " The physical model and the snap of the predicted points keep sphere2's fit of the field at rest, as a "
+                "calibration made one night and used the next day would.</p>")
+        if st:
+            rv = [v["board_rel_change"] * 100 for v in rl.values()]
+            rd = [v["depth_change_mm"] * 1e3 for v in rl.values()]
+            body += (f"<p>At the same target and force level, the board change a day later differs from the night's by a "
+                     f"median {st['board_rel_change']['median'] * 100:.0f} % of its size, over {st['n']} pairs of holds "
+                     f"(Table 14, Fig. 7a)."
+                     + (f" Between the night's own repeats of the reference press it differed by {min(rv):.0f} to "
+                        f"{max(rv):.0f} %, as medians by level." if rv else "")
+                     + f" The registered indentation at the same force changed by a median "
+                     f"{st['depth_change_mm']['median'] * 1e3:+.0f} µm a day later"
+                     + (f", and by {min(rd):+.0f} to {max(rd):+.0f} µm between the night's repeats." if rd else ".")
+                     + "</p>")
+        dfe = DY.get("FE", {}).get("series")
+        dS = DY.get("S", {}).get("by_region", {})
+        if dfe:
+            body += (f"<p>Beyond the FE pad the repeated presses travel {dfe['a_mm']:.2f} mm + {dfe['c_mm_N']:.2f} mm/N, "
+                     f"with a residual of {dfe['rms_mm'] * 1e3:.0f} µm rms over {dfe['n']} holds. The night's presses "
+                     f"travelled {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N (Section 3)."
+                     + (f" With its magnets fitted to the day's field at rest, the viewer's estimator gives "
+                        f"{dS['face']['force_scale']:.2f} of the HEX-E's force on the face, against {fs['face']:.2f} the "
+                        f"night before." if dS.get("face", {}).get("force_scale") is not None else "")
+                     + "</p>")
+        body += (P.table(["Predictor", "Location error, a day later (mm)", "Force error, a day later (N)",
+                          "Location error, same night (mm)", "Force error, same night (N)"], prow, num_cols=(1, 2, 3, 4),
+                         caption=f"Predictors trained on sphere2's presses and scored on the presses a day later (all "
+                                 f"{DR['n_train_presses']} training presses) and on the night's held-out presses (first "
+                                 f"{sn.get('N', '?')}). Medians over the holds.", n=13)
+                 + (P.table(["Level (N)", "Pairs a day later", "Difference of the board change (%)",
+                             "Indentation change (µm)", "Pairs of reference holds, same night",
+                             "Difference of the board change, same night (%)", "Indentation change, same night (µm)"],
+                            lrow, num_cols=(0, 1, 2, 3, 4, 5, 6),
+                            caption="Board change and indentation at the same target and force level (medians by level).",
+                            n=14) if lrow else "")
+                 + F["fig"](7, MEDIA / "20261023-sphere2_day_repeat.png",
+                            "Repeat of sphere2's presses a day later. (a) Difference of the board change at the same "
+                            "target and force level, each pair of holds a point, with the medians as bars: the presses a day "
+                            "later against the night's, and the night's repeats of the reference press against its first. "
+                            "(b) Median location error of the predictors trained on sphere2, by force level: on the presses "
+                            "a day later (solid) and on the night's held-out presses (dashed)."))
+        S_.append(("day", "Repeat of the sphere grid a day later", body))
+
     # ---- limitations, future work
     rs_ = R["ROD"]["FE"]["series"] if R.get("ROD") else None
     body = ("<p>In the ground truth, the arm, the tool's parts and the indenter's mount are taken as rigid. "
@@ -1080,7 +1258,8 @@ def sections(R, F):
             + "The tangential location of the contact changes much less if that motion lies along "
             "the normal; a rotation of the pad under load would also move it tangentially. "
             f"The held-out set has {PR['n_test_presses'] if PR else 0} presses. The training presses come from the "
-            "same night, the same pad and the same seating of the tool.</p>")
+            "same night, the same pad and the same seating of the tool"
+            + (", and the day repeat of Section 9 used them as well.</p>" if R.get("DAY") else ".</p>"))
     S_.append(("limits", "Limitations", body))
     fw = [
         "Press the DIP link by hand in its fork, and the sphere's block on the 2x4, and watch for motion (QUEUE.md R16). "
@@ -1116,8 +1295,8 @@ def sections(R, F):
 
 
 # ------------------------------------------------------------------------------------------------ the page
-def build(session, data=None):
-    R = load(session, data)
+def build(session, data=None, day_data=None):
+    R = load(session, data, day_data)
     MEDIA.mkdir(parents=True, exist_ok=True)
     fig_fe(R, MEDIA / "20261022-sphere2_fe_against_hexe.png")
     fig_board(R, MEDIA / "20261022-sphere2_board_against_hexe.png")
@@ -1128,6 +1307,8 @@ def build(session, data=None):
         fig_pads(R, MEDIA / "20261022-sphere2_sphere_pads_against_hexe.png")
     if R.get("ROD"):
         fig_rod(R, MEDIA / "20261023-rod1_against_sphere2.png")
+    if R.get("DAY"):
+        fig_day(R, MEDIA / "20261023-sphere2_day_repeat.png")
     F = dict(fig=P.fig, table=P.table, link=P.link, code=P.code)
     S, lede, summary = sections(R, F)
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
@@ -1135,7 +1316,8 @@ def build(session, data=None):
     built = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     byline = (f"Workstation analysis of the lab's run {P.esc(session)}, built {built} from "
               f"{P.code('data/' + (data or session) + '/')}"
-              + (f" and {P.code('data/' + ROD_DATA.name + '/')}" if R.get("ROD") else "") + f" by {P.code('scripts/ur5_tip_calibration_results_page.py')}. "
+              + (f", {P.code('data/' + ROD_DATA.name + '/')}" if R.get("ROD") else "")
+              + (f" and {P.code('data/' + R['DAY']['dir'].name + '/')}" if R.get("DAY") else "") + f" by {P.code('scripts/ur5_tip_calibration_results_page.py')}. "
               f"Requests to the lab: {P.link(QUEUE, 'QUEUE.md')}; status of the work: {P.link(STATUS_PAGE, 'status page')}.")
     page = TEMPLATE.read_text()
     for k, v in {"TITLE": "UR5 fingertip ground truth",
@@ -1158,5 +1340,6 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--session", default="20261022-210852-sphere2")
     ap.add_argument("--data", default=None, help="the analysis folder under data/ (default: the session's own)")
+    ap.add_argument("--day-data", default=None, help=f"the day repeat's analysis folder (default {DAY_DATA.name})")
     a = ap.parse_args()
-    build(a.session, a.data)
+    build(a.session, a.data, a.day_data)

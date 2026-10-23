@@ -11,8 +11,9 @@ the training session's rest fit (calib_rest.json), as a calibration made one nig
 
 Same target and level: a hold of the later session is matched to the training session's hold of the same press id and
 force level (a repeated reference press to the training session's ref-00). Reported are the board change's difference
-over its size, |d_2 - d_1| / |d_1| (the 15 components, uT), the normal force's ratio f_2 / f_1, and the difference of
-the registered indentation at that level, d_2 - d_1 (mm).
+over its size, |d_2 - d_1| / |d_1| (the 15 components, uT), the normal force's ratio f_2 / f_1, the difference of
+the registered indentation at that level, d_2 - d_1 (mm), and the distance between the two registered contact points (mm;
+the later session's presses were placed with its own registration).
 
     .venv/bin/python scripts/ur5_tip_calibration_day_repeat.py <training folder> <test folder> [--out day_repeat.json]
 """
@@ -77,16 +78,21 @@ def main():
         rel = np.linalg.norm(d2 - d1, axis=1) / np.maximum(np.linalg.norm(d1, axis=1), 1e-9)
         fr = Ht["f_n"][j2] / H["f_n"][j1]
         dd = Ht["depth"][j2] - H["depth"][j1]
+        dp = np.linalg.norm(Ht["p"][j2] - H["p"][j1], axis=1)     # the registered contact points of the pair apart
         lv = H["level_N"][j1]
         out["same_target"] = dict(
             n=int(len(pairs)), board_rel_change=dict(median=float(np.median(rel)), p90=float(np.percentile(rel, 90))),
-            force_ratio=dict(median=float(np.median(fr))), depth_change_mm=dict(median=float(np.median(dd)),
+            force_ratio=dict(median=float(np.median(fr))), point_apart_mm=dict(median=float(np.median(dp)),
+                                                                               p90=float(np.percentile(dp, 90))),
+            depth_change_mm=dict(median=float(np.median(dd)),
                                                                                  p90_abs=float(np.percentile(np.abs(dd), 90))),
             by_level={f"{L:g}": dict(n=int((lv == L).sum()), board_rel_change=float(np.median(rel[lv == L])),
                                      depth_change_mm=float(np.median(dd[lv == L])))
                       for L in sorted(set(lv.tolist()))},
             refs=[dict(id=str(Ht["id"][b]), level_N=float(lv[k]), depth_change_mm=float(dd[k]), board_rel_change=float(rel[k]))
-                  for k, b in enumerate(j2) if str(Ht["id"][b]).startswith("ref-")])
+                  for k, b in enumerate(j2) if str(Ht["id"][b]).startswith("ref-")],
+            pairs=dict(id=[str(Ht["id"][b]) for b in j2], level_N=lv.tolist(), board_rel_change=rel.tolist(),
+                       depth_change_mm=dd.tolist(), force_ratio=fr.tolist(), point_apart_mm=dp.tolist()))
     # the same night's spread: the training session's own repeats of the reference press against its ref-00
     r1 = [(j1, j2) for j1, j2 in same_target(H, H) if str(H["id"][j2]).startswith("ref-") and str(H["id"][j2]) != "ref-00"]
     if r1:
@@ -96,7 +102,9 @@ def main():
         lv1 = H["level_N"][a1]
         out["same_night_refs"] = dict(n=int(len(r1)), by_level={f"{L:g}": dict(
             n=int((lv1 == L).sum()), board_rel_change=float(np.median(rr[lv1 == L])),
-            depth_change_mm=float(np.median(ddr[lv1 == L]))) for L in sorted(set(lv1.tolist()))})
+            depth_change_mm=float(np.median(ddr[lv1 == L]))) for L in sorted(set(lv1.tolist()))},
+            pairs=dict(id=[str(H["id"][b]) for b in a2], level_N=lv1.tolist(), board_rel_change=rr.tolist(),
+                       depth_change_mm=ddr.tolist()))
     print(f"trained on {out['n_train_presses']} presses ({out['n_train_holds']} holds) of {a.train}; scored on "
           f"{out['n_test_presses']} presses ({out['n_test_holds']} holds) of {a.test}")
     print(f"  viewer's estimator: {out['viewer']['loc_mm']['median']:.2f} mm, {out['viewer']['force_N']['median']:.3f} N")
@@ -110,7 +118,8 @@ def main():
         st = out["same_target"]
         print(f"  same target and level ({st['n']} holds): board change differs by {st['board_rel_change']['median'] * 100:.1f} % "
               f"of its size (median; p90 {st['board_rel_change']['p90'] * 100:.1f} %); force ratio {st['force_ratio']['median']:.3f}; "
-              f"indentation {st['depth_change_mm']['median'] * 1e3:+.0f} um (median)")
+              f"indentation {st['depth_change_mm']['median'] * 1e3:+.0f} um (median); contact points "
+              f"{st['point_apart_mm']['median']:.2f} mm apart (median, p90 {st['point_apart_mm']['p90']:.2f})")
         if "same_night_refs" in out:
             print("  the same night's reference presses against its ref-00 (median by level): " + "; ".join(
                 f"{L} N board {v['board_rel_change'] * 100:.1f} %, indentation {v['depth_change_mm'] * 1e3:+.0f} um"
