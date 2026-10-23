@@ -340,7 +340,7 @@ def compare_section(X: Data):
                 "joint.", "assembly")
             + f"<p>The model reproduces the owner&#8217;s CAD views (Figure&#160;[[fig:assembly]]). Figure&#160;[[fig:compare]] draws "
             "real_v1&#8217;s capsule finger on the same mount. The two fingers agree from the yaw axis to the MCP axis and from the PIP axis to "
-            f"the tip; the CAD MCP link is {mm(km['mcp_to_pip'] - 20.75)} longer, and on 2026-10-13 the owner confirmed that this STL is the link "
+            f"the tip. The CAD MCP link is {mm(km['mcp_to_pip'] - 20.75)} longer, and on 2026-10-13 the owner confirmed that this STL is the link "
             f"mounted on the hand. On the dorsal side the servos reach {mm(servo_x, 1)} from the finger axis and the {PART_NAME[link_p]} "
             f"{mm(X.dorsal[link_p], 1)}; the capsules have a radius of 10.55&#8202;mm. Table&#160;[[tab:compare]] compares lengths, masses and "
             "collision geometry.</p>"
@@ -526,8 +526,8 @@ def collision_section(X: Data):
         f"where no finger touches the tool, the balanced spheres raise the step time from {us(pads_only, 'open'):.1f}&#8202;&#181;s with pads "
         f"only to {us(bal, 'open'):.1f}&#8202;&#181;s, and the tight spheres to {us(tight, 'open'):.1f}&#8202;&#181;s. In the close ramp the "
         f"balanced spheres cost {us(bal, 'close'):.1f}&#8202;&#181;s per step with up to {close['ncon_max']} contacts. The pads touch the tool "
-        f"first, after {first['tip']:.2f}&#8202;s; the ramp then curls the DIP links until their dorsal plates face the tool, which they "
-        f"touch from {others[0][0]:.2f}&#8202;s, and the finger bodies other than the tips carry {pct(1 - close['tip_force_share'])} of the "
+        f"first, after {first['tip']:.2f}&#8202;s. The ramp then curls the DIP links until their dorsal plates face the tool, which they "
+        f"touch from {others[0][0]:.2f}&#8202;s. The finger bodies other than the tips bear {pct(1 - close['tip_force_share'])} of the "
         "finger-to-tool normal force."
         + (" Real_v1&#8217;s shorter fingers do not reach the tool in either condition." if not rv1_touch else "") + "</p>",
         table(["Scene", "Colliding geoms", "Step time, open (&#181;s)", "Step time, close (&#181;s)", "Contacts, close (largest)",
@@ -597,7 +597,7 @@ def parts_section(X: Data):
         "frame. The builder extracts three kinds of feature from them, shown in Figure&#160;[[fig:parts]] and listed in "
         "Table&#160;[[tab:bores]]: the bearing bores, the slotted bores and the servo seats. The servo STL gives the output spline "
         f"(4.0&#8202;mm), the case base, the tab holes {mm(sv['tab_pitch'])} apart with their tab face {mm(sv['tab_face'])} above the base, "
-        f"the top of its round boss at {mm(sv['boss_top'])} and the end of the spline at {mm(sv['height'])}; the spline lies "
+        f"the top of its round boss at {mm(sv['boss_top'])} and the end of the spline at {mm(sv['height'])}. The spline lies "
         f"{mm(sv['spline_offset_from_tab_centre'])} from the midpoint of the tab holes.</p>"
         + img("parts.png", "The CAD parts with the bores the builder extracts: red, the 10.2&#8202;mm bearing bore; blue, the 5.2&#8202;mm "
               "slotted bore; green, the servo&#8217;s output spline. Each line is drawn along the bore&#8217;s axis.", "parts")
@@ -655,9 +655,9 @@ def checks_section(X: Data):
             f"(Table&#160;[[tab:checks]]). With its base on the bearing wall, each servo&#8217;s tab face lies at "
             f"{mm(sv['mcp']['tab_face_axial_mm'])}, the far end of both pilot holes. At the yaw and MCP joints the horn&#8217;s plate lies under "
             f"the child&#8217;s horn-side arm, {mm(j['yaw']['boss_to_horn_seat_mm'], 1)} above the boss on both parts. At the PIP joint the "
-            "DIP link&#8217;s horn-side arm holds the horn&#8217;s arm in a horn-shaped slot between the two layers that carry its four "
-            f"screw holes, {num(j['pip']['horn_slot_axial_mm'][0] - j['pip']['servo_boss_top_axial_mm'], 1)} to "
-            f"{mm(j['pip']['boss_to_horn_seat_mm'], 1)} above the boss; the owner&#8217;s {mm(B.HORN_MM, 1)} horn leaves "
+            "DIP link&#8217;s horn-side arm has the horn&#8217;s arm in a horn-shaped slot between the two layers with its four "
+            f"screw holes. The slot lies {num(j['pip']['horn_slot_axial_mm'][0] - j['pip']['servo_boss_top_axial_mm'], 1)} to "
+            f"{mm(j['pip']['boss_to_horn_seat_mm'], 1)} above the boss. The owner&#8217;s {mm(B.HORN_MM, 1)} horn leaves "
             f"{mm(j['pip']['horn_clearance_mm'], 1)} of clearance there, so the flush seat holds at all three joints.</p>"
             + table(["Quantity", "Model", "Reference"], rows, "Assembly checks.", key="checks", text_cols=(0, 2)))
 
@@ -696,10 +696,10 @@ def open_items(X: Data):
         ("Grasp key for the longer finger.", f"Run <code>scripts/fit_real_v1_pose.py --scene {REL_MODEL}/scene_screwdriver_medium.xml "
          "--write</code> to write <code>open_ik</code>, the key the reorientation runs start from. The fit fails if no pose holds the "
          "screwdriver on the three tips&#8217; pads at the real_v1 mounts."),
-        ("Reorientation policy on the CAD finger.", "Three scripts need changes first: <code>scripts/make_pad_morphology_run.py</code> fails "
+        ("Reorientation policy on the CAD finger.", "Three scripts need changes first. The script <code>scripts/make_pad_morphology_run.py</code> fails "
          "on this scene with &#8220;repeated name tpu_pos in mesh&#8221;, because <code>replace_tips</code> appends the tip meshes to a scene "
-         "that already has them; with <code>--mu</code> unset it reads friction 1.0 from <code>thumb_tipvis</code> instead of the pads&#8217; "
-         "2.4; and <code>scripts/apply_measured_plant.py</code> finds no capsules and leaves the CAD masses as they are. Then train the "
+         "that already has them. With <code>--mu</code> unset it reads friction 1.0 from <code>thumb_tipvis</code> instead of the pads&#8217; "
+         "2.4. The script <code>scripts/apply_measured_plant.py</code> finds no capsules and leaves the CAD masses as they are. Then train the "
          "servo-plant reorientation on a frozen copy of this scene and compare its held cosine with the capsule finger&#8217;s run "
          "<code>results/phase1/real_v1/20261011-sv1_u0308_b050_servo_tip_tpu2.7pads1</code>; a held cosine lower by more than that "
          "run&#8217;s seed spread means the link spheres&#8217; contacts change the task."),

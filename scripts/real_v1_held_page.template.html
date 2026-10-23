@@ -92,8 +92,8 @@ footer{font-family:var(--sans);font-size:12.5px;color:var(--muted);
   <div class="kicker">real_v1 &middot; negative result &middot; 2026-09-05</div>
   <h1>Table-supported reorientation across sixteen hands</h1>
   <p class="lede">On a simulated UR5e, the table-supported maneuver stands the screwdriver upright in
-  {{NSTOOD}} of {{NALL}} runs across sixteen hands, but only {{HELD}} runs still hold it with two loaded
-  pads at that moment; in {{P0}} stands no pad touches the tool. The table stands the tool up after the
+  {{NSTOOD}} of {{NALL}} runs across sixteen hands. Only {{HELD}} runs still hold it with two loaded
+  pads at that moment, and in {{P0}} stands no pad touches the tool. The table stands the tool up after the
   hand lets go. The deployed plans' 10 mm squeeze ejects a tool lying on the table, and smaller squeezes
   trade the carry against the handover: 2 mm loses 24 of 64 runs in the carry, 6 mm loses 32 at the
   handover.</p>
@@ -152,7 +152,7 @@ hand holds the tool. Pad contacts at the upright seam over the {{NSTOOD}} stands
 <tr class="ok"><td>2</td><td class="num">{{P2}}</td></tr>
 </tbody></table></div>
 
-<p>The median pad force there is <b>0.000 N</b>, above the tool's 0.24 N weight in 2 stands: the table holds the
+<p>The median pad force there is <b>0.000 N</b>, above the tool's 0.24 N weight in 2 stands. The table supports the
 tool, and the 89&deg; turn that an earlier version of this page reported is the tilt of a released tool.
 <span class="m">chain()</span> now records the load test as <span class="m">held_reorient</span>, and
 <span class="m">reorient_ok</span> requires it; <b>{{HELD}} of {{NALL}}</b> runs pass.</p>
@@ -185,8 +185,8 @@ moves.</p>
 </table></div>
 
 <p>2 mm loses 24 runs in the carry; 6 mm loses 32 at the handover. Complete chains peak at 2 mm ({{OK2}}) and
-4 mm ({{OK4}}); a squeeze chosen per hand gives {{BEST}}. Two handover sweeps did not raise the count: scanning the
-gait palm height against the open ring gives 21 chains against 44 for the closed ring (128 runs per arm), and opening
+4 mm ({{OK4}}); a squeeze chosen per hand gives {{BEST}}. Two handover sweeps did not raise the count. Scanning the
+gait palm height against the open ring gives 21 chains against 44 for the closed ring (128 runs per arm). Opening
 the pads to 6&ndash;22 mm before the descent changes nothing, since the open ring's IK residual grows one-for-one with
 the target.</p>
 
@@ -194,7 +194,7 @@ the target.</p>
 <p>Every deployed plan sets <span class="m">squeeze_mm = 10.0</span>, which drives the pad centres to
 <span class="m">r_obj + r_pad + gap &minus; squeeze</span> = 12.5 + 10.55 + 1 &minus; 10 = 14.05 mm from the shaft
 axis, nine millimetres inside the 23.05 mm at which contact begins. The value was fitted on a bench scene where a
-100 mm post under the shaft takes the reaction; on a table nothing does, and the pinch drives the tool up and out.</p>
+100 mm post under the shaft takes the reaction. On a table nothing does, and the pinch drives the tool up and out.</p>
 <p>With the palm still, <span class="m">g12_b095</span> lifts the tool +3.8, +8.9, +12.8 and +18.6 mm at 2, 4, 6
 and 10 mm of squeeze while its pad force falls through 10.4, 5.4, 1.8 and 0.5 N. At 10 mm, nine of the sixteen hands
 lift the tool by more than its 12.5 mm radius, onto <span class="m">thumb_pip_frame</span>.</p>
@@ -260,8 +260,8 @@ probe. Last column: complete chains at 2, 3, 4 and 6 mm, the reported squeeze in
   href="../20260903-real_v1_handover/20260903-real_v1_relay_handover.html">relay hand-over page</a>); the maneuver
   qualifies only if it then passes <span class="m">held_reorient</span>.</li>
   <li><b>Gear ceiling on the gait gain.</b> The pad ring turns the shaft by 1.684 times the stroke, so a 30&deg;
-  stroke gives at most 50.5&deg; per gait cycle; <span class="m">gain_mean_deg</span>, the mean rotation per cycle,
-  reads &minus;67 to &minus;86&deg; on g12 and +188&deg; on u5860, a spun or thrown shaft. Count a cycle above the
+  stroke gives at most 50.5&deg; per gait cycle. The value <span class="m">gain_mean_deg</span>, the mean rotation per cycle,
+  reads &minus;67 to &minus;86&deg; on g12 and +188&deg; on u5860, which means a spun or thrown shaft. Count a cycle above the
   ceiling as a gait loss.</li>
 </ol>
 
