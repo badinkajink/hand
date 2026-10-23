@@ -51,7 +51,8 @@ RNAME = {"face": "face", "edge": "edges", "flank": "flanks"}
 MODELS = [("physical", "Physical model, compliance fitted", "#2e8b57", "-"),
           ("gp:board", "Gaussian process on the board", "#1f5fbf", "-"),
           ("ridge:board", "Ridge regression on the board", "#7f7f7f", "--"),
-          ("physical+gp:board", "Physical model and a Gaussian process on its residual", "#c0392b", "-")]
+          ("physical+gp:board", "Physical model and a Gaussian process on its residual", "#c0392b", "-"),
+          ("mlp:board", "MLP ensemble on the board", "#8e44ad", "-")]
 STEPS = ["board", "+temperature change", "+time since rest", "+orientation (leaks the target)"]
 STEP_TEXT = {"board": "Board", "+temperature change": "Board, temperature change",
              "+time since rest": "Board, temperature change, time since rest",
@@ -79,6 +80,7 @@ def load(session):
     R["H"] = {k: Hz[k] for k in Hz.files}
     R["FE"] = json.loads((sd / "fe.json").read_text())
     R["PR"] = json.loads((sd / "predict/predict.json").read_text()) if (sd / "predict/predict.json").exists() else None
+    R["CV"] = json.loads((sd / "predict/cv4_gp_mlp.json").read_text()) if (sd / "predict/cv4_gp_mlp.json").exists() else None
     plan = json.loads((ld / "plan.json").read_text())
     have = {a["id"] for a in plan["actions"]}
     for f in sorted(ld.glob("plan_resume_*.json")):
@@ -308,9 +310,9 @@ def sections(R, F):
 
     # ---- lede
     k_fe = 1.0 / fe_r["face"]["ratio_median_s1"]
-    lede = (f"At the sphere's registered positions in the UR5 run {R['session'].split('-', 2)[-1]}, the force computed "
-            f"with the pad's finite-element (FE) model is {k_fe:.1f} times the force measured by the HEX-E (median on the "
-            f"face). The force estimated from the board is {min(fs.values()):.2f} to {max(fs.values()):.2f} times the "
+    lede = (f"At the sphere's registered positions in the UR5 run {R['session'].split('-', 2)[-1]}, the pad's "
+            f"finite-element (FE) model gives {k_fe:.1f} times the force measured by the HEX-E, as a median on the "
+            f"face. The force estimated from the board is {min(fs.values()):.2f} to {max(fs.values()):.2f} times the "
             f"HEX-E's, so the pad itself is not {FE['s_best']:g} times softer than its model. The extra indentation, "
             f"{sr['a_mm']:.2f} mm plus {sr['c_mm_N']:.2f} mm per newton, occurs in parts whose deformation is not sensed "
             f"by the board. From 1 N up, the viewer's estimator places contacts {min(loc_hi):.1f} to {max(loc_hi):.1f} mm "
@@ -326,6 +328,12 @@ def sections(R, F):
             lede += (f" On the rolls and twists, at orientations that no press had, it places contacts within "
                      f"{t['gp:board']['loc_mm']['median']:.2f} mm, against {t['viewer']['loc_mm']['median']:.2f} mm for "
                      f"the untrained estimator.")
+        if R.get("CV"):
+            cv = R["CV"]
+            lede += (f" An ensemble of small MLPs places held-out contacts within {cv['mlp']['loc_median']:.2f} mm over four "
+                     f"folds, against {cv['gp']['loc_median']:.2f} mm for the Gaussian process"
+                     + (f", but within {PR['turns']['mlp:board']['loc_mm']['median']:.2f} mm on the rolls and twists."
+                        if PR.get("turns") and "mlp:board" in PR["turns"] else "."))
     summary = (f"UR5 run {R['session'].split('-', 2)[-1]}: measured force is {fe_r['face']['ratio_median_s1']:.2f} of the FE "
                f"pad's at the registered positions while the board reads {min(fs.values()):.2f}-{max(fs.values()):.2f} of "
                f"the HEX-E's force; extra indentation {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N outside the pad; "
@@ -533,7 +541,8 @@ def sections(R, F):
         rows.append(["Physical model, compliance fitted", "Board", f1(last["physical"]["loc_mm"]["median"]),
                      f1(last["physical"]["force_N"]["median"], 3)])
         for st in STEPS:
-            for lab, key in (("Gaussian process", "gp"), ("Ridge regression", "ridge"), ("Physical model and Gaussian process", "physical+gp")):
+            for lab, key in (("Gaussian process", "gp"), ("MLP ensemble", "mlp"), ("Ridge regression", "ridge"),
+                             ("Physical model and Gaussian process", "physical+gp")):
                 e = last.get(f"{key}:{st}")
                 if e:
                     rows.append([lab, STEP_TEXT[st],
@@ -581,7 +590,7 @@ def sections(R, F):
                            "board change as the only input. (a) Location error; (b) normal force error. The dotted line "
                            "is the untrained estimator."))
         # by force level, on the held-out presses
-        keys = (("viewer", "Viewer's estimator, untrained"), ("gp:board", "Gaussian process"),
+        keys = (("viewer", "Viewer's estimator, untrained"), ("gp:board", "Gaussian process"), ("mlp:board", "MLP ensemble"),
                 ("physical+gp:board", "Physical model and Gaussian process"))
         src = dict(viewer=v, **{k: last[k] for k, _ in keys if k != "viewer"})
         levels = sorted(v.get("by_level", {}), key=float)
@@ -602,7 +611,8 @@ def sections(R, F):
         if tv:
             kinds = sorted(tv["viewer"].get("by_kind", {}))
             tkeys = (("viewer", "Viewer's estimator, untrained"), ("physical", "Physical model, compliance fitted"),
-                     ("gp:board", "Gaussian process, board"), ("ridge:board", "Ridge regression, board"),
+                     ("gp:board", "Gaussian process, board"), ("mlp:board", "MLP ensemble, board"),
+                     ("ridge:board", "Ridge regression, board"),
                      ("physical+gp:board", "Physical model and Gaussian process, board"),
                      ("gp:+orientation (leaks the target)", "Gaussian process, board and orientation"))
             trows = [[lab, f1(tv[k]["loc_mm"]["median"]), f1(tv[k]["force_N"]["median"], 3)]
@@ -619,6 +629,23 @@ def sections(R, F):
                                + [f"Location error, {kind_name.get(k, k)} (mm)" for k in kinds], trows,
                                num_cols=tuple(range(1, 3 + len(kinds))),
                                caption="Predictors trained on every press and scored on the turn holds (medians).", n=7))
+        cv = R.get("CV")
+        if cv and "mlp:board" in last:
+            m, g = last["mlp:board"], last["gp:board"]
+            d = cv["mlp_minus_gp"]
+            body += (f"<p>An ensemble of five small multilayer perceptrons (MLP) was trained on the same inputs. Each has two "
+                     f"hidden layers of 64 units and weight decay; its number of training steps is chosen on the latest fifth "
+                     f"of the training presses. On the {PR['n_test_presses']} held-out presses it places contacts within "
+                     f"{m['loc_mm']['median']:.2f} mm and their force within {m['force_N']['median']:.3f} N, against "
+                     f"{g['loc_mm']['median']:.2f} mm and {g['force_N']['median']:.3f} N for the GP. Over four folds, in which "
+                     f"each of the {d['presses']} grid presses is held out once, the MLP gives {cv['mlp']['loc_median']:.2f} mm "
+                     f"against {cv['gp']['loc_median']:.2f} mm. The difference is {d['loc_median_mm']:.2f} mm (95 % interval "
+                     f"{d['loc_ci95'][0]:.2f} to {d['loc_ci95'][1]:.2f}, bootstrap over presses), and "
+                     f"{d['force_median_N']:.3f} N in force ({d['force_ci95'][0]:.3f} to {d['force_ci95'][1]:.3f}). From 1 N up "
+                     f"the MLP gives {cv['mlp']['loc_median_from_1N']:.2f} mm and the GP {cv['gp']['loc_median_from_1N']:.2f} mm; "
+                     f"below 1 N they give {cv['mlp']['loc_median_below_1N']:.2f} and {cv['gp']['loc_median_below_1N']:.2f} mm. "
+                     + (f"On the rolls and twists the MLP is worse: {tv['mlp:board']['loc_mm']['median']:.2f} mm against "
+                        f"{tv['gp:board']['loc_mm']['median']:.2f} mm for the GP.</p>" if tv and "mlp:board" in tv else "</p>"))
         S_.append(("predict", "Predictors of the contact point and the normal force", body))
 
     # ---- limitations, future work

@@ -172,6 +172,63 @@ class GP:
         return K @ self.a * self.sy + self.my
 
 
+
+class MLP:
+    """An ensemble of small multilayer perceptrons (torch, CPU): standardized inputs and outputs, two hidden layers of 64
+    SiLU units, AdamW with weight decay, full-batch steps. The number of steps is chosen on the last fifth of the
+    training rows (the latest presses, rows being in time order), then each member is trained on all rows with it.
+    The prediction is the members' mean (owner, 2026-10-23: "does training an MLP work any better than GP")."""
+
+    def __init__(self, members=5, hidden=64, wd=1e-3, lr=3e-3, max_steps=3000, every=50):
+        self.members, self.hidden, self.wd, self.lr, self.max_steps, self.every = members, hidden, wd, lr, max_steps, every
+
+    def _net(self, d, k, seed):
+        import torch
+        torch.manual_seed(seed)
+        return torch.nn.Sequential(torch.nn.Linear(d, self.hidden), torch.nn.SiLU(), torch.nn.Linear(self.hidden, self.hidden),
+                                   torch.nn.SiLU(), torch.nn.Linear(self.hidden, k))
+
+    def _train(self, Z, T, steps, seed, Zv=None, Tv=None):
+        import torch
+        net = self._net(Z.shape[1], T.shape[1], seed)
+        opt = torch.optim.AdamW(net.parameters(), lr=self.lr, weight_decay=self.wd)
+        x, y = torch.as_tensor(Z, dtype=torch.float32), torch.as_tensor(T, dtype=torch.float32)
+        xv = torch.as_tensor(Zv, dtype=torch.float32) if Zv is not None else None
+        yv = torch.as_tensor(Tv, dtype=torch.float32) if Tv is not None else None
+        curve = []
+        for k in range(1, steps + 1):
+            opt.zero_grad()
+            loss = torch.mean((net(x) - y) ** 2)
+            loss.backward()
+            opt.step()
+            if xv is not None and k % self.every == 0:
+                with torch.no_grad():
+                    curve.append((k, float(torch.mean((net(xv) - yv) ** 2))))
+        return net, curve
+
+    def fit(self, X, Y, floor=None):
+        import torch
+        torch.set_num_threads(2)
+        self.mx, self.sx = X.mean(0), scale(X, floor)
+        self.my, self.sy = Y.mean(0), Y.std(0) + 1e-9
+        Z, T = (X - self.mx) / self.sx, (Y - self.my) / self.sy
+        n = len(Z)
+        if n >= 10:
+            cut = int(round(0.8 * n))
+            _, curve = self._train(Z[:cut], T[:cut], self.max_steps, 0, Z[cut:], T[cut:])
+            self.steps = min(curve, key=lambda c: c[1])[0]
+        else:
+            self.steps = 500
+        self.nets = [self._train(Z, T, self.steps, m)[0] for m in range(self.members)]
+        return self
+
+    def predict(self, X):
+        import torch
+        Z = torch.as_tensor((X - self.mx) / self.sx, dtype=torch.float32)
+        with torch.no_grad():
+            P = np.mean([net(Z).numpy() for net in self.nets], axis=0)
+        return P * self.sy + self.my
+
 # ------------------------------------------------------------------------------------------------------- physical model
 class Physical:
     """The viewer's estimator with k, dx, dy, dz and the compliance scale c fitted to training holds."""
@@ -286,8 +343,10 @@ def models(H, tr, Ht, te, cal0, basis, est_snap, group="level_N"):
         Xtr, Xte = features(H, st)[tr], features(Ht, st)[te]
         Ytr = np.c_[H["p"][tr], H["f_n"][tr]]
         fl = floors(st)
-        for lab, model in (("gp", GP()), ("ridge", Ridge())):
+        for lab, model in (("gp", GP()), ("ridge", Ridge()), ("mlp", MLP())):
             Y = model.fit(Xtr, Ytr, fl).predict(Xte)
+            if lab == "mlp":
+                row.setdefault("mlp_steps", {})[name] = model.steps
             row[f"{lab}:{name}"] = scores(Ht, te, snap(est_snap, Y[:, :3]), Y[:, 3], group)
         # the physical predictor plus a GP on its residual, prior mean zero, trained on the holds it placed within 2 mm
         ok = np.all(np.isfinite(Ptr), axis=1)
@@ -321,7 +380,8 @@ def run(folder, sizes, out_dir):
         res["curve"].append(row)
         print(f"  N = {N:3d} presses ({len(tr)} holds): physical {row['physical']['loc_mm']['median']:.2f} mm, "
               f"{row['physical']['force_N']['median']:.3f} N (k {ph.theta[0]:.3f}, c {math.exp(ph.theta[4]):.2f}); gp board "
-              f"{row['gp:board']['loc_mm']['median']:.2f} mm, {row['gp:board']['force_N']['median']:.3f} N; physical+gp board "
+              f"{row['gp:board']['loc_mm']['median']:.2f} mm, {row['gp:board']['force_N']['median']:.3f} N; mlp board "
+              f"{row['mlp:board']['loc_mm']['median']:.2f} mm, {row['mlp:board']['force_N']['median']:.3f} N; physical+gp board "
               f"{row.get('physical+gp:board', {}).get('loc_mm', {}).get('median', float('nan')):.2f} mm")
     # the turn holds (slides, rolls, twists), whose tool orientations no press has: every press trains
     if len(T["id"]) >= 3:
@@ -333,7 +393,8 @@ def run(folder, sizes, out_dir):
         print(f"  turn holds ({tv['n_holds']} from {tv['n_actions']} actions), trained on every press: viewer "
               f"{tv['viewer']['loc_mm']['median']:.2f} mm, {tv['viewer']['force_N']['median']:.3f} N; physical "
               f"{tv['physical']['loc_mm']['median']:.2f} mm; gp board {tv['gp:board']['loc_mm']['median']:.2f} mm, "
-              f"{tv['gp:board']['force_N']['median']:.3f} N; gp with orientation "
+              f"{tv['gp:board']['force_N']['median']:.3f} N; mlp board {tv['mlp:board']['loc_mm']['median']:.2f} mm, "
+              f"{tv['mlp:board']['force_N']['median']:.3f} N; gp with orientation "
               f"{tv['gp:+orientation (leaks the target)']['loc_mm']['median']:.2f} mm")
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
