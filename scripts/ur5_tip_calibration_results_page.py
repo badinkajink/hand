@@ -682,6 +682,13 @@ def sections(R, F):
                      f"{sc['B']['gp raw (retrained on B)']['loc_mm']:.2f} and {sc['C']['gp raw (retrained on C)']['loc_mm']:.2f} mm. "
                      f"Errors that do depend on the magnets, such as a magnet seated off its place, are not in this simulation "
                      f"and would not carry over ({code(ROOT / 'scripts/fingertip_magnet_transfer_sim.py')}).</p>"
+                     + (f"<p>A third input was tried: the magnets' translations, solved from the board change through each "
+                        f"set's own field model. A GP on them gives {sc['A']['gp on magnet motions (trained on A)']['loc_mm']:.2f}, "
+                        f"{sc['B']['gp on magnet motions (trained on A)']['loc_mm']:.2f} and "
+                        f"{sc['C']['gp on magnet motions (trained on A)']['loc_mm']:.2f} mm on sets A, B and C. An MLP on them "
+                        f"gives {sc['C']['mlp on magnet motions (trained on A)']['loc_mm']:.2f} mm on the checkerboard. Solving "
+                        f"for translations alone amplifies the noise of today's weak magnets and leaves out the magnets' turns.</p>"
+                        if "gp on magnet motions (trained on A)" in sc["A"] else "")
                      + P.table(["Predictor", "Set A: today's magnets (mm, N)", "Set B: N52 (mm, N)", "Set C: N52, checkerboard (mm, N)"],
                                trow, num_cols=(1, 2, 3), caption="Median location and normal force errors on the held-out "
                                "presses, simulated board changes on sphere2's mechanics.", n=8))

@@ -100,6 +100,15 @@ def run(folder, out, c_true=1.15, delta=(-0.33, -1.21, 0.72), noise_uT=2.0, seed
     Xa = np.c_[PHYS["A"][0][tr][ok], PHYS["A"][1][tr][ok]]
     Ra = np.c_[P[tr][ok] - PHYS["A"][0][tr][ok], fn[tr][ok] - PHYS["A"][1][tr][ok]]
     gp_res = PR.GP(center=True).fit(Xa, Ra, np.array([0.2, 0.2, 0.2, 0.05]))
+    # magnet-motion inputs: the five magnets' translations (um) solved from the board change through each set's own field
+    # model (translations only, 15 x 15), a description of the pad's deformation that does not depend on the magnets
+    U = {}
+    for k, cal in sets.items():
+        Jm = W.Model(cal).motion_jacobian()
+        Jt = Jm[:, [6 * j + q for j in range(5) for q in range(3)]]
+        U[k] = D[k] @ np.linalg.pinv(Jt).T
+    gp_u = PR.GP().fit(U["A"][tr], np.c_[P[tr], fn[tr]], np.full(15, 0.05))
+    mlp_u = PR.MLP().fit(U["A"][tr], np.c_[P[tr], fn[tr]], np.full(15, 0.05))
     for k in sets:
         ph, pf = PHYS[k]
         s = {"physical": score(ph[te], pf[te], te)}
@@ -110,6 +119,10 @@ def run(folder, out, c_true=1.15, delta=(-0.33, -1.21, 0.72), noise_uT=2.0, seed
         Yc = np.full((len(te), 4), np.nan)
         Yc[okt] = gp_res.predict(X[okt])
         s["physical+gp (trained on A)"] = score(snap(np.where(np.isfinite(ph[te]), ph[te], 0.0) + Yc[:, :3]), pf[te] + Yc[:, 3], te)
+        Yu = gp_u.predict(U[k][te])
+        s["gp on magnet motions (trained on A)"] = score(snap(Yu[:, :3]), Yu[:, 3], te)
+        Ym = mlp_u.predict(U[k][te])
+        s["mlp on magnet motions (trained on A)"] = score(snap(Ym[:, :3]), Ym[:, 3], te)
         g_k = PR.GP().fit(D[k][tr], np.c_[P[tr], fn[tr]], fl)
         Yk = g_k.predict(D[k][te])
         s[f"gp raw (retrained on {k})"] = score(snap(Yk[:, :3]), Yk[:, 3], te)
