@@ -505,7 +505,8 @@ class Appender:
 class OptoForceStream(threading.Thread):
     """The HEX-E through its Ethernet DAQ: UDP to port 49152, the DAQ's datagrams of magpie_control (ft_sensor.py,
     magpie_force_control/src/ft_sensor.cpp): header 0x1234, command 0x0082 speed (1000 / value Hz: 2 is 500 Hz), 0x0081
-    filter (0 none), 0x0042 bias (1 tares), 0x0002 send n samples; answers of 3 uint32 (sequence numbers, status) and 6
+    low-pass filter (0 none; 2, 3, 4 cut at 150, 50, 15 Hz), 0x0042 bias (1 tares), 0x0002 send n samples; answers of 3
+    uint32 (sequence numbers, status) and 6
     int32, forces / 1e4 N, torques / 1e5 N m. Polled one sample at a time (the lab's verified way, as in magpie_control's
     reader since commit 806b94a of 2026-03-06); stream=True asks for continuous sending instead. Rows: t_host,
     ft_sequence, status, Fx, Fy, Fz, Tx, Ty, Tz.
@@ -514,13 +515,18 @@ class OptoForceStream(threading.Thread):
     on its own because a program quit while it streamed. Read later, it would pass for the answer to a newer request,
     and the lag would grow by one sample each time (the 20 ms reader of 2024-11 in magpie_control piled them up this
     way). So configure() stops the DAQ and empties the socket, and each polled request first empties it again;
-    n_late counts the datagrams dropped."""
+    n_late counts the datagrams dropped.
+
+    The DAQ hands out single samples, so a slower poll alone leaves the noise as it is; its low-pass lowers it. Polled at
+    100 Hz on 2026-10-22 (lab computer, arm off), Fz's noise per sample was 0.53 N with no filter (as at 250 and 500 Hz),
+    0.35, 0.21 and 0.13 N with filters 2, 3 and 4 (owner: "100-200 is a better range. at 500 things are really noise")."""
 
     SPEED = {500: 2, 250: 4, 100: 10, 50: 20}
 
-    def __init__(self, ip, port=49152, rate=500, appender=None, stream=False, bias=True):
+    def __init__(self, ip, port=49152, rate=100, appender=None, stream=False, bias=True, filt=3):
         super().__init__(daemon=True)
         self.addr, self.rate, self.app, self.stream_mode, self.bias = (ip, port), rate, appender, stream, bias
+        self.filt = int(filt)
         self.ring = Ring()
         self.stop, self.n, self.n_timeout, self.n_repeat, self.n_late = False, 0, 0, 0, 0
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -551,7 +557,7 @@ class OptoForceStream(threading.Thread):
         self._cmd(0x0000, 0)
         self.n_late += self.drain()
         self._cmd(0x0082, self.SPEED[self.rate])
-        self._cmd(0x0081, 0)
+        self._cmd(0x0081, self.filt)
         if self.bias:
             self._cmd(0x0042, 1)
         if self.stream_mode:
@@ -732,7 +738,8 @@ class URRobot:
 
 class RealBackend:
     def __init__(self, args, log):
-        self.ft = OptoForceStream(args.ft, rate=args.ft_rate, appender=log.appender("ft.bin"), stream=args.ft_stream)
+        self.ft = OptoForceStream(args.ft, rate=args.ft_rate, appender=log.appender("ft.bin"), stream=args.ft_stream,
+                                  filt=args.ft_filter)
         self.ft.configure()
         self.ft.start()
         self.board = BoardStream(args.board, appender=log.appender("board.bin", BoardStream.DTYPE))
@@ -1118,7 +1125,8 @@ class Session:
         out = dict(ft_hz=len(tf) / 2.0, board_hz=len(tb) / 2.0, robot_hz=len(tr) / 2.0,
                    ft_std=vf.std(axis=0) if len(vf) else None,
                    board_std_uT=vb.reshape(-1, 5, 4)[:, :, 1:].std(axis=0) if len(vb) else None)
-        print(f"preflight: HEX-E {out['ft_hz']:.0f} Hz, board {out['board_hz']:.0f} records/s, robot {out['robot_hz']:.0f} Hz")
+        print(f"preflight: HEX-E {out['ft_hz']:.0f} Hz (asked {self.args.ft_rate} Hz, filter {self.args.ft_filter}), "
+              f"board {out['board_hz']:.0f} records/s, robot {out['robot_hz']:.0f} Hz")
         if len(vf):
             print("  HEX-E noise (1 sigma) N, N m:", np.round(vf.std(axis=0), 4))
         ft = self.be.ft
@@ -1129,9 +1137,19 @@ class Session:
         if pl:
             self.be.robot.set_payload(pl["kg"], pl["cog_mm"])
             print(f"  payload set: {pl['kg']:.3f} kg at {pl['cog_mm']} mm from the flange")
-        if out["ft_hz"] < 100 or out["board_hz"] < 50:
+        if out["ft_hz"] < 0.8 * self.args.ft_rate or out["board_hz"] < 50:      # a 100 Hz poll counts 99.5-100.5
             raise SystemExit("a stream is missing or slow: check the HEX-E's DAQ (IP, power) and the board's USB")
         self.log.event(event="end", id="preflight", status="ok", rec=out)
+
+    def home_from_file(self):
+        """The flange pose of a recorded seating on the indenter's key (--home-from FILE:LABEL, a JSON line with label and
+        T_tcp_mm, the flange pose in mm as 4 x 4: the hand seatings of 2026-10-22), for runs with nobody at the robot."""
+        path, _, label = self.args.home_from.rpartition(":")
+        recs = [json.loads(s) for s in Path(path).read_text().splitlines() if s.strip()]
+        hit = [r for r in recs if r.get("label") == label]
+        if not hit:
+            raise SystemExit(f"--home-from: no record labelled {label!r} in {path}")
+        return np.array(hit[-1]["T_tcp_mm"], float)
 
     def stage_homing(self):
         if "homing" in self.done and self.reg.T_BI is not None:
@@ -1139,6 +1157,10 @@ class Session:
         n = int(self.plan.get("homing", {}).get("repeats", 3))
         poses = []
         self.log.event(event="start", id="homing", stage="homing", kind="homing")
+        if getattr(self.args, "home_from", None):
+            poses = [self.home_from_file()]
+            n = 0
+            print(f"homing: from the recorded seating {self.args.home_from} (no freedrive, nothing moves)", flush=True)
         for k in range(n):
             self.be.robot.teach(True)
             self.be.operator(f"homing {k + 1}/{n}: in freedrive, seat the mount's socket on the indenter's key "
@@ -1158,7 +1180,8 @@ class Session:
         self.reg.q_home = self.be.robot.ik(Th, self.be.robot.q())
         self.reg.T_BI = Th @ self.reg.T_EM @ inv(self.geo.T_IM_home)
         self.reg.notes["homing_spread_mm_deg"] = spread
-        print(f"homing: {n} seatings within {max(s[0] for s in spread):.3f} mm, {max(s[1] for s in spread):.3f} deg of their mean")
+        print(f"homing: {len(poses)} seatings within {max(s[0] for s in spread):.3f} mm, {max(s[1] for s in spread):.3f} deg "
+              "of their mean")
         self.check_placement()
         self.save_reg()
         self.log.event(event="end", id="homing", status="ok", rec=dict(T_BE_home=Th, poses=poses, spread=spread))
@@ -1181,6 +1204,9 @@ class Session:
               f"({pl[0]:.0f}, {pl[1]:.0f}, {pl[2]:.0f}) mm, yaw {pl[3]:.0f} deg")
         if np.linalg.norm(dp) <= max_mm and abs(dyaw) <= max_yaw and tilt <= max_tilt:
             return
+        if getattr(self.args, "home_from", None):                # nobody at the robot to answer a prompt
+            raise SystemExit(f"stopped at the placement check: the indenter is {np.linalg.norm(dp):.0f} mm, {dyaw:+.1f} "
+                             f"deg of yaw and {tilt:.1f} deg of tilt from the plan's placement")
         ans = self.be.operator(
             f"the indenter is {np.linalg.norm(dp):.0f} mm, {dyaw:+.1f} deg of yaw and {tilt:.1f} deg of tilt from the plan's "
             f"placement (limits {max_mm:.0f} mm, {max_yaw:.0f} deg, {max_tilt:.0f} deg), where its reach and clearance were not "
@@ -1491,9 +1517,13 @@ def main(argv=None):
     ap.add_argument("--plan", required=True)
     ap.add_argument("--robot", default="192.168.0.4")
     ap.add_argument("--ft", default="192.168.0.5", help="the HEX-E DAQ (magpie_force_control uses 192.168.0.3)")
-    ap.add_argument("--ft-rate", type=int, default=500, choices=(50, 100, 250, 500))
+    ap.add_argument("--ft-rate", type=int, default=100, choices=(50, 100, 250, 500), help="HEX-E poll rate, Hz")
+    ap.add_argument("--ft-filter", type=int, default=3, choices=range(7), help="the DAQ's low-pass: 0 none, 1 500 Hz, "
+                    "2 150 Hz, 3 50 Hz (default: nothing above the 100 Hz poll's 50 Hz folds in), 4 15 Hz, 5 5 Hz, 6 1.5 Hz")
     ap.add_argument("--ft-stream", action="store_true", help="ask the DAQ to stream instead of polling it")
     ap.add_argument("--board", default=None, help="serial port of the board (default: found by id)")
+    ap.add_argument("--home-from", default=None, help="FILE:LABEL, a recorded seating on the key (JSON lines with label "
+                    "and T_tcp_mm) in place of the three freedrive seatings: for runs with nobody at the robot")
     ap.add_argument("--stages", default=",".join(STAGES))
     ap.add_argument("--resume", default=None)
     ap.add_argument("--dry", type=float, default=0.0, help="mm added to every standoff: no contact")
@@ -1511,7 +1541,7 @@ def main(argv=None):
     if a.sim:
         sys.path.insert(0, str(HERE))
         import ur5_tip_calibration_sim as SIM
-        be = SIM.SimBackend(plan, seed=a.sim_seed, truth=a.sim_truth)
+        be = SIM.SimBackend(plan, seed=a.sim_seed, truth=a.sim_truth, ft_rate=a.ft_rate, ft_filter=a.ft_filter)
         log = SessionLog(a.logs, a.name, a.resume, clock=be.now)
         be.attach(log)
     else:

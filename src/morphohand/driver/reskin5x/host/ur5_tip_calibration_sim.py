@@ -15,8 +15,9 @@ pad; normal contact with the sphere (or the rod) as a linear complementarity pro
 (Truth.mu) for the motion of the indenter along the pad since the contact began, less its motion along the press.
 
 HEX-E: the contact wrench and the payload's weight about the sensor's origin, through its axes (Truth.hex_turn_deg about
-the tool axis, sign), crosstalk, offsets that drift, and its datasheet noise (1 sigma: 0.035, 0.035, 0.15 N, 0.002,
-0.002, 0.001 N m) at 500 Hz. Board: the magnet model of the as-found calibration (scripts/fingertip_wrench_model.py) with
+the tool axis, sign), crosstalk, offsets that drift, and its noise per sample at the program's --ft-rate: as measured on
+the lab's HEX-E for the program's --ft-filter (HEX_NOISE_MEASURED, 100 Hz poll of 2026-10-22), else the datasheet's
+(1 sigma: 0.035, 0.035, 0.15 N, 0.002, 0.002, 0.001 N m). Board: the magnet model of the as-found calibration (scripts/fingertip_wrench_model.py) with
 the FE's magnet motions for the contact forces, Earth's field turned into the pad's frame, the chips' gain falling with
 their warm-up (0.65-0.70 % per C, 1.3 C over the first minutes) and their noise, 140 records/s.
 """
@@ -45,6 +46,11 @@ DH_CB3 = dict(d=[89.159, 0.0, 0.0, 109.15, 94.65, 82.3], a=[0.0, -425.0, -392.25
 HEX_COMPLIANCE = dict(f_mm_N=(1.7 / 200, 1.7 / 200, 0.3 / 200), r_rad_Nmm=(math.radians(2.5) / 1e4, math.radians(2.5) / 1e4,
                                                                           math.radians(5.0) / 6.5e3))
 HEX_NOISE = (0.035, 0.035, 0.15, 0.002, 0.002, 0.001)
+HEX_NOISE_MEASURED = {       # 1 sigma per sample by the DAQ's low-pass code, polled at 100 Hz, arm off (2026-10-22)
+    0: (0.086, 0.059, 0.534, 0.0072, 0.0095, 0.0023),
+    2: (0.060, 0.050, 0.352, 0.0044, 0.0055, 0.0017),
+    3: (0.043, 0.050, 0.213, 0.0028, 0.0038, 0.0010),
+    4: (0.034, 0.044, 0.131, 0.0016, 0.0021, 0.0006)}
 
 
 # ------------------------------------------------------------------------------------------- the CB3
@@ -208,6 +214,7 @@ class World:
         self.teach = False
         self.prot = False
         self.ft_next = self.board_next = self.robot_next = self.t
+        self.ft_rate, self.hex_noise = 500.0, np.array(HEX_NOISE)     # SimBackend sets the program's
         self.streams = None
 
     # ---------------------------------------------------------------- robot motion
@@ -419,7 +426,7 @@ class World:
         f_S = f_S + R_SE @ gE
         t_S = t_S + R_SE @ np.cross(np.array(self.tr.payload_com_mm) * 1e-3, gE)
         w = self.tr.hex_sign * np.r_[self.Kf @ f_S, self.Kt @ t_S]
-        return w + self.off + self.rng.normal(0.0, 1.0, 6) * np.array(HEX_NOISE)
+        return w + self.off + self.rng.normal(0.0, 1.0, 6) * self.hex_noise
 
     def board_reading(self):
         Tf = self.flange_true()
@@ -450,9 +457,9 @@ class World:
                 w = self.hex_reading()
                 self.streams.ft_add(self.t, w)
                 self.n_ft = getattr(self, "n_ft", 0) + 1
-                if self.n_ft % 5 == 0:                                     # 100 Hz is enough for the holds
+                if self.n_ft % max(1, round(self.ft_rate / 100.0)) == 0:   # 100 Hz is enough for the holds
                     self.streams.truth_add(self.t, np.r_[self.truth_row, C.T_to_ur(self.flange_true())])
-                self.ft_next += 1.0 / 500.0
+                self.ft_next += 1.0 / self.ft_rate
             if self.t >= self.board_next:
                 self.contact()
                 self.streams.board_add(self.t, self.board_reading())
@@ -585,13 +592,15 @@ class SimRobot:
 
 
 class SimBackend:
-    def __init__(self, plan, seed=0, truth=None):
+    def __init__(self, plan, seed=0, truth=None, ft_rate=500, ft_filter=None):
         tr = Truth(seed=seed)
         if truth:
             d = json.loads(Path(truth).read_text()) if isinstance(truth, (str, Path)) else dict(truth)
             tr = Truth(**{**asdict(tr), **d})
         self.truth = tr
         self.w = World(plan, tr)
+        self.w.ft_rate = float(ft_rate)
+        self.w.hex_noise = np.array(HEX_NOISE_MEASURED.get(ft_filter, HEX_NOISE))
         self.streams = SimStreams()
         self.w.streams = self.streams
         start = plan["sim"]["start"]

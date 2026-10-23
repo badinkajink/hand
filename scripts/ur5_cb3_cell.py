@@ -24,7 +24,9 @@ sys.path.insert(0, str(HOST))
 import ur5_tip_calibration as C  # noqa: E402
 import ur5_tip_calibration_sim as SIM  # noqa: E402
 
-UR_DESC = Path.home() / "Programs/rh56_controller/magpie_force_control/src/ur_description"
+UR_DESC = next((p for p in (Path.home() / "Programs/rh56_controller/magpie_force_control/src/ur_description",
+                            Path.home() / "workspace/rh56_controller/magpie_force_control/src/ur_description")   # UR5's PC
+                if p.exists()), Path.home() / "Programs/rh56_controller/magpie_force_control/src/ur_description")
 URDF = UR_DESC / "ur5.urdf"
 MOUNT = ROOT / "docs/experiments/20261021-ur5_calibration_mount_v3/cad"
 FINGER = ROOT / "docs/experiments/20261018-dip_link_board_mount/v4/b/cad"
@@ -242,16 +244,27 @@ def cell_sdf(P_I, T_BI, board=None):
     return np.min(np.stack(parts), axis=0)
 
 
+OTHER = []   # other indenters standing on the table, as obstacles: (T_BI, kind); the lab's rod beside the sphere (2026-10-22)
+
+
+def other_sdf(P_B):
+    """Least distance (mm) of base-frame points to the other indenters (1e9 when there are none)."""
+    if not OTHER:
+        return np.full(len(P_B), 1e9)
+    return np.min([indenter_sdf(C.apply(C.inv(T), P_B), k) for T, k in OTHER], axis=0)
+
+
 def clearance(q, T_BE, T_BI, T_EM, kind="sphere", contact_P=None, excl_mm=4.0, ply=True, contact_M=None):
     """Least clearances (mm) of each part to the indenter and to the plywood, its riser and the table for joints q and
-    flange pose T_BE. The pad's points within excl_mm of contact_P (its target, P frame) are kept from the indenter's
-    tip (they touch it)."""
+    flange pose T_BE, and to the OTHER indenters. The pad's points within excl_mm of contact_P (its target, P frame) are
+    kept from the indenter's tip (they touch it)."""
     T_IB = C.inv(T_BI)
     out = {}
     LF = link_frames(q)
     for ln, p in robot_points().items():
         PI = C.apply(T_IB @ LF[ln], p)
-        out[ln] = min(float(indenter_sdf(PI, kind).min()), float(cell_sdf(PI, T_BI).min()) if ply else 1e9)
+        out[ln] = min(float(indenter_sdf(PI, kind).min()), float(cell_sdf(PI, T_BI).min()) if ply else 1e9,
+                      float(other_sdf(C.apply(LF[ln], p)).min()))
     T_IM = T_IB @ T_BE @ T_EM
     for name, p in tool_points().items():
         PI = C.apply(T_IM, p)
@@ -264,7 +277,8 @@ def clearance(q, T_BE, T_BI, T_EM, kind="sphere", contact_P=None, excl_mm=4.0, p
                            indenter_sdf(PI[near], kind, tip=False).min() if near.any() else 1e9)
         else:
             d = float(indenter_sdf(PI, kind).min())
-        out[name] = min(float(d), float(cell_sdf(PI, T_BI).min()) if ply else 1e9)
+        out[name] = min(float(d), float(cell_sdf(PI, T_BI).min()) if ply else 1e9,
+                        float(other_sdf(C.apply(T_BE @ T_EM, p)).min()))
     return out
 
 

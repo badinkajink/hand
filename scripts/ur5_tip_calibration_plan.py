@@ -42,7 +42,9 @@ ROBOT_LINKS = ("forearm_link", "wrist_1_link", "wrist_2_link", "wrist_3_link")
 CLEAR = dict(robot=8.0, hex_e=6.0, mount=3.0, finger=0.8, pad=0.3, ply=5.0, travel=3.0)
 
 
-def nominal(kind):
+def nominal(kind, mount_turn_deg=0.0):
+    """mount_turn_deg: x_M's turn about the tool axis from tool0's x (the lab's mount measured -92.15 on 2026-10-22: the
+    palmar side along tool0's -y, from two hand seatings on the keys, logs/20261022-ur5_homing_by_hand)."""
     B = np.load(BASIS)
     T_IM = np.eye(4)
     T_IM[:3, :3] = [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]]       # z_M -> x_I, y_M -> y_I, x_M -> -z_I
@@ -52,13 +54,16 @@ def nominal(kind):
     ind = (dict(kind="sphere", centre=[0.0, 0.0, 41.0], radius=5.0) if kind == "sphere"
            else dict(kind="rod", centre=[0.0, 0.0, 30.0], radius=12.5, axis=[0.0, 1.0, 0.0], half_length=10.0))
     return dict(
-        T_EM=C.Tm(None, [0.0, 0.0, CELL.HEX["height_mm"]]), T_MP=CELL.T_M_FROM_P, T_ES=C.Tm(None, [0.0, 0.0, CELL.HEX["height_mm"]]),
+        T_EM=C.Tm(C.rot(C.EZ, mount_turn_deg), [0.0, 0.0, CELL.HEX["height_mm"]]), T_MP=CELL.T_M_FROM_P,
+        T_ES=C.Tm(None, [0.0, 0.0, CELL.HEX["height_mm"]]),
         T_IM_home=T_IM, indenter=ind,
         surface=dict(pts=B["pts"], normals=B["normals"], tris=B["tris"]),
         mount_face=dict(point=[17.0, 0.0, 0.0], normal=[1.0, 0.0, 0.0]),
         notes=dict(
             T_EM="the HEX-E's tool face 35.0 mm from the UR flange (OptoForce HEX-E V1.0 data sheet, built-in UR adapter); "
-                 "x_M toward the HEX-E's dowel, assumed on tool0's x until the session fits it",
+                 + ("x_M toward the HEX-E's dowel, assumed on tool0's x until the session fits it" if not mount_turn_deg
+                    else f"x_M turned {mount_turn_deg:+.2f} deg about the tool axis from tool0's x, as measured by hand "
+                         "seatings on the keys; the session fits it"),
             T_MP="the pad's tip frame in the mount frame of UR5 mount v3 with DIP link b v4: a translation",
             T_ES="the HEX-E's moment origin assumed on its tool face's centre, its axes on the flange's",
             T_IM_home="the mount at homing in the indenter frame: socket on the key, the face centre 30 mm to +y and 5 mm "
@@ -211,11 +216,14 @@ def tip_reachable(geo, kind, idx, twist=0.0):
     return ok, out
 
 
-def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_mm=38.0):
-    """placement: the indenter's base in the base frame (x, y, z mm, yaw deg); block_mm: the block under the indenter."""
+def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_mm=38.0, mount_turn_deg=0.0,
+          block_half_mm=(50.0, 30.0)):
+    """placement: the indenter's base in the base frame (x, y, z mm, yaw deg); block_mm: the block under the indenter;
+    block_half_mm: its half sizes along x_I, y_I (a 2 by 4 under the indenter runs far along y_I)."""
     t_start = time.time()
     CELL.BOARD["block_mm"] = float(block_mm)
-    g = nominal(kind)
+    CELL.BOARD["block_half_mm"] = tuple(float(v) for v in block_half_mm)
+    g = nominal(kind, mount_turn_deg)
     plan = dict(version=C.PLAN_VERSION, created=time.strftime("%Y-%m-%d %H:%M"), indenter=kind,
                 geometry=g, payload=payload(),
                 travel=dict(turn_deg=20.0, far_mm=60.0, lift_mm=60.0, joint_deg=45.0),
@@ -452,6 +460,8 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
     plan["sim"] = dict(T_BI=T_BI, start=dict(p=p_ref.tolist(), n=n_ref.tolist(), standoff=80.0), q_seed=q_home.tolist(),
                        placement_mm_deg=list(placement))
     plan["checks"] = dict(placement_mm_deg=list(placement), block_mm=float(block_mm), board=dict(CELL.BOARD),
+                          other=[dict(kind=k, T_BI=np.round(T, 4).tolist()) for T, k in CELL.OTHER],
+                          mount_turn_deg=float(mount_turn_deg),
                           homing=checks["homing"], seed=checks["seed"],
                           reachable_points=int(reach.sum()),
                           reachable_by_region={r: int(((reg == r) & reach).sum()) for r in ("face", "edge", "flank", "tip")},
@@ -477,9 +487,18 @@ def main():
     ap.add_argument("--placement", default="0,-450,56,-90", help="x,y,z (mm), yaw (deg) of the indenter's base in the "
                     "robot's base frame (z: above the table the robot stands on)")
     ap.add_argument("--block", type=float, default=38.0, help="mm of block under the indenter on the plywood")
+    ap.add_argument("--block-half", default="50,30", help="half sizes of the block along x_I, y_I (mm)")
+    ap.add_argument("--mount-turn", type=float, default=0.0, help="x_M's turn about the tool axis from tool0's x (deg)")
+    ap.add_argument("--other", action="append", default=[], help="another indenter on the table as an obstacle: "
+                    "kind,x,y,z,yaw (its base in the base frame, mm and deg); repeatable")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
-    build(a.indenter, tuple(float(v) for v in a.placement.split(",")), a.out, a.block)
+    for o in a.other:
+        k, *v = o.split(",")
+        x, y, z, yaw = (float(s) for s in v)
+        CELL.OTHER.append((C.Tm(C.rot(C.EZ, yaw), [x, y, z]), k))
+    build(a.indenter, tuple(float(v) for v in a.placement.split(",")), a.out, a.block, a.mount_turn,
+          tuple(float(v) for v in a.block_half.split(",")))
 
 
 if __name__ == "__main__":
