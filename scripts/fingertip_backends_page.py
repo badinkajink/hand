@@ -344,8 +344,8 @@ iterations; its projected Gauss&#8211;Seidel pass converges slowly on the torsio
 <code>NotImplementedError</code> for any <code>noslip_iterations</code>&#8202;&gt;&#8202;0 (<code>external/mujoco_warp/mujoco_warp/_src/io.py</code>), so it
 cannot reach the RL pipeline.</p>
 <p><b>A longer relaxation time</b> lowers creep as 1/t<sub>r</sub> but makes the pinch torque depend on spin rate, as Drake&#8217;s relaxation time
-does: with t<sub>r</sub>&#8202;0.05&#8202;s the brake swings through to {f(tr05['phi_end_deg'], 1)}&#176; at 1&#8202;ms and stops at
-{f(tr05b['phi_end_deg'], 1)}&#176; at 5&#8202;ms, and passes 80&#176; at {f(tr05['N_at_80_N'], 2)}&#8202;N instead of {f(base5['N_at_80_N'], 2)}&#8202;N; with
+does. With t<sub>r</sub>&#8202;0.05&#8202;s the brake swings through to {f(tr05['phi_end_deg'], 1)}&#176; at 1&#8202;ms and stops at
+{f(tr05b['phi_end_deg'], 1)}&#176; at 5&#8202;ms, and it passes 80&#176; at {f(tr05['N_at_80_N'], 2)}&#8202;N instead of {f(base5['N_at_80_N'], 2)}&#8202;N. With
 0.1&#8202;s the tool leaves the pinch at the 5&#8202;ms step.</p>
 <p><b>Heavier objects.</b> Mass enters the creep only through the load. With the stiffness calibrated per object at load (the 10-05 pad
 calibration), a heavier tool held at the same pad force creeps faster in proportion to the extra tangential load until it slips. Held at the same
@@ -521,7 +521,7 @@ r<sub>f</sub>&#8202;6, {f(r27['L']['extent_y_mm'], 1) if r27 else '&#8211;'} for
 sphere pads reproduce the twist onset of the filleted blocks: {f(a6, 3)} against {f(d6, 3)}&#8202;mm at 1&#8202;N and {f(a6h, 3)} against {f(d6h, 3)} at
 3&#8202;N for r<sub>f</sub>&#8202;6, {f(a27, 3)} against {f(d27, 3)} and {f(a27h, 3)} against {f(d27h, 3)} for 2.7 (Table&#160;3, Figure&#160;{FIG[0] + 1}). On the sharp box the
 pads put extra spheres along both side edges and overstate the arm by about 8&#8202;%. A single convex mesh gives MuJoCo one contact point and no
-torsion; with <code>multiccd</code> it gives five points along the line, and its arm falls with force and changes with step
+torsion. With <code>multiccd</code> it gives five points along the line, and its arm falls with force and changes with step
 ({f(mc1.get('rbar_onset_mm'), 2)}&#8202;mm at 1&#8202;ms, {f(mc5.get('rbar_onset_mm'), 2)}&#8202;mm at 5&#8202;ms, 3&#8202;N), so it is not a usable torsion model.</p>
 {t_static}
 <p class="note">Table&#160;2. Static contact on the rig with the tool pressed at the pad force and no other load: force-weighted arm about the pinch normal and patch area (MuJoCo: spheres in contact times their area share; Drake: hydroelastic surface area), MuJoCo 1&#8202;mm pads / Drake hydroelastic. Rows: <code>tip_static.jsonl</code>.</p>
@@ -721,15 +721,15 @@ def turn_section():
     return f"""<p>The deployed reorientation is the open-loop three-finger turn of the SR2 paper: the hand closes on the screwdriver lying on a
 post with its palm fixed, and a joint-space trajectory moves all three fingertips so that the tool turns toward vertical about the pinch axis.
 The bench ran it {sum(B[h]['n'] for h in HANDS)} times on the eight deployed hands (<code>paper/figures/ranking.json</code>). Here each hand&#8217;s plan
-replays unchanged ({n_rows} rollouts in MuJoCo, MuJoCo-Warp and Drake): 0.8&#8202;s grip, the plan&#8217;s 4&#8202;s trajectory (1.3&#8202;s more grip, a 1.1&#8202;s turn, hold),
-1.5&#8202;s hold, then 4&#8202;s more; the finger servos are the calibrated position servos (kp&#8202;0.5, kv&#8202;0.02, 0.35&#8202;N&#8202;m, joint damping 0.5, measured
+replays unchanged ({n_rows} rollouts in MuJoCo, MuJoCo-Warp and Drake). The replay has 0.8&#8202;s of grip, the plan&#8217;s 4&#8202;s trajectory (1.3&#8202;s more grip, a 1.1&#8202;s turn, hold),
+1.5&#8202;s of hold, then 4&#8202;s more. The finger servos are the calibrated position servos (kp&#8202;0.5, kv&#8202;0.02, 0.35&#8202;N&#8202;m, joint damping 0.5, measured
 masses), friction is the scenes&#8217; 2.4, the step 1&#8202;ms, and nine tool placements per hand are the same seeds in every simulator
 (<code>scripts/reorient_backends.py</code>; MuJoCo-Warp runs 64 seeds in one batch). The harness reproduces the 2026-09-16 replay where that
 replay&#8217;s outcome is stable (D7 21.9&#8202;&#177;&#8202;4.1&#176; against 21.6&#8202;&#177;&#8202;3.8&#176;, D2, D4, D5 within 3&#176;).</p>
 <p><b>Every bench scene starts the tool inside its post.</b> <code>scene_mutate.set_object_platform</code> puts the tool&#8217;s centre and the
 post&#8217;s top at the same height, so the 12.5&#8202;mm tool begins 12.5&#8202;mm deep in the post (contact distance &#8722;12.5&#8202;mm in the compiled scene) and
 is thrown out in the first 20&#8202;ms. Every replay of a bench plan since 2026-08-29 has this start, including the plant-correction gate,
-Table&#160;IV&#8217;s simulated column and the 2026-09-16 turn studies; the 17&#176; of tilt those replays found &#8220;already in the grip&#8221; is mostly the ejection.
+Table&#160;IV&#8217;s simulated column and the 2026-09-16 turn studies. The 17&#176; of tilt those replays found &#8220;already in the grip&#8221; is mostly the ejection.
 Here the post is shortened so the tool rests on it at the plan&#8217;s pose ({n_rows} rows in <code>reorient_*.jsonl</code>; the rows with the
 original post are kept in <code>superseded_tool_in_post/</code>). With the tool resting, D7&#8217;s plan holds the tool on every seed in MuJoCo and Drake
 with the legacy box and turns it {f(gl('mujoco|legacy|pt|fast|bed|ir100|muscene', 'D7').get('turn_held_mean'), 0)}&#8211;{f(gl('mujoco|legacy|pt|fast|scene|ir1|muscene', 'D7').get('turn_held_mean'), 0)}&#176;, where the bench turned it 33&#176;.</p>
@@ -803,7 +803,7 @@ def ir_block(S):
            f"{fr(d4['mjwarp|tpu6|pads|fast|bed|ir100|muscene'])} to {fr(d4['mjwarp|tpu6|pads|fast|bed|ir10000|muscene'])}. The lost seeds hold "
            f"through the grip exactly as at impratio 100 and drop 0.4&#8211;0.8&#8202;s into the turn, the tool landing on its end. The solver "
            f"converges in both (median 1&#8211;4 Newton iterations, at most 17 of the 100 allowed, on D3 seed 0), so the difference is the friction "
-           f"law: soft friction lets the pads slide while the fingers move, and at impratio 10&#8202;000 they hold until the cone limit and then let "
+           f"law. Soft friction lets the pads slide while the fingers move. At impratio 10&#8202;000 the pads hold until the cone limit and then let "
            f"go.</p>")
     return txt + table(["pads on TPU r<sub>f</sub> 6"] + HANDS, rows) + \
         "<p class='note'>Table&#160;7. Held seeds of the 6&#8202;mm-fillet pads per hand against impratio.</p>"
@@ -817,9 +817,9 @@ def design_section():
     split = sum(1 for h in HANDS if ("mujoco|legacy|pt|fast|bed|ir100|muscene", h) in S and ("drake|legacy|fast|muscene", h) in S
                 and abs(S[("mujoco|legacy|pt|fast|bed|ir100|muscene", h)]["held_hold"] - S[("drake|legacy|fast|muscene", h)]["held_hold"]) >= 4)
     return """<p>The fingertip sets what the task does: the friction arm of a pinch differs by 1.4&#8211;4.6 times between the sphere, the two fillets and
-the sharp box at 0.5&#8202;N, and the deployed turn holds the tool on 7&#8211;12 of 72 seeds with the sphere and 59&#8211;61 with the 6&#8202;mm block. Whether
+the sharp box at 0.5&#8202;N. The deployed turn holds the tool on 7&#8211;12 of 72 seeds with the sphere and 59&#8211;61 with the 6&#8202;mm block. Whether
 two simulators agree about the task depends on how that fingertip&#8217;s contact is represented (Table&#160;6). Finger-shape optimisation has a long record
-for the first; choosing a fingertip by how consistently different contact models simulate its task has none that we found.</p>
+for the first, but choosing a fingertip by how consistently different contact models simulate its task has none that we found.</p>
 <h3>Prior work</h3>
 <ul class="refs">
 <li><b>Fingertip and finger form for a task.</b> Fit2Form (Ha, Agrawal and Song, CoRL 2020) generates parallel-jaw finger pairs per object with a learned
@@ -851,7 +851,7 @@ contact models M (MuJoCo point, MuJoCo sphere pads, Drake hydroelastic, Newton h
 <p class="eqline">J(g) = mean<sub>m&#8712;M</sub> success<sub>m</sub>(g) &#8722; &#955;&#8202;&#183;&#8202;disagreement<sub>M</sub>(g) &#8722; &#951;&#8202;&#183;&#8202;cost(g),</p>
 <p>with disagreement the fraction of paired seeds on which the models&#8217; outcomes differ (Table&#160;6&#8217;s first column, complemented) and cost the GPU time per
 world-step of the pad model. The 2026-09 bench plans held the tool on seven of eight hands in the simulator they were planned in and on
-2&#8211;10 of 10 trials on the bench; in Table&#160;4 the held count of that planning model (legacy box, MuJoCo point contact) differs from Drake&#8217;s for
+2&#8211;10 of 10 trials on the bench. In Table&#160;4 the held count of that planning model (legacy box, MuJoCo point contact) differs from Drake&#8217;s for
 the same plan by four or more seeds of nine on {LEGACY_SPLIT} hands. The quick-release tips of the SR2 hand (paper Sec.&#160;II-B) make each candidate a print and a swap, so the ensemble can be
 checked against hardware at every round.</p>
 <h3>Tasks</h3>

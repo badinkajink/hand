@@ -158,8 +158,8 @@ footer a{color:var(--s2)}
   for procurement and design iteration, and exclude task success from its claims. The test here is whether
   it ranks this program&#8217;s candidate hands usefully.</p>
 
-  <p>real_v1 makes that test clean: every hand has the same fingers (links of 33.45, 33.45 and 37.16 mm, the
-  same joint limits), and a design is six numbers, the x and y of each finger&#8217;s mount, so KaRMA is a
+  <p>real_v1 makes that test clean. Every hand has the same fingers (links of 33.45, 33.45 and 37.16 mm, the
+  same joint limits), and a design is six numbers, the x and y of each finger&#8217;s mount. KaRMA is therefore a
   three-number function of those six. On the same label, logistic regression on the six mount coordinates
   predicts retention at AUC 0.839, the grasp fit&#8217;s <span class="mono">depth_fit</span> at 0.803, and the
   extension ceiling of the rotational-lock page at 0.617 (n = 80).</p>
@@ -178,7 +178,7 @@ footer a{color:var(--s2)}
   canonicalizes the base link to the world origin, so a rigid translation cannot change the
   score, and each real_v1 design has its own palm height from
   <span class="mono">fit_real_v1_pose.py</span>.</p>
-  <p>The export was checked three ways: the install reproduces the paper&#8217;s Inspire row exactly (4 voxels,
+  <p>The export was checked three ways. The install reproduces the paper&#8217;s Inspire row exactly (4 voxels,
   KaRMA-T 0.000417, KaRMA-R 0.004386, KaRMA-S 0.2500, <span class="mono">L_ref</span> 155.4 mm); exporting a
   design from its own MJCF and re-mounting the base hand at its six coordinates give byte-identical URDFs on 20
   of 20 designs; and pinning <span class="mono">karma.seed_selection</span> to one process, which stops 18
@@ -205,7 +205,7 @@ footer a{color:var(--s2)}
   {{CHART_AUC}}
   <p>KaRMA-T separates retained from discarded designs at <strong>AUC {{AUC_T}}</strong>
   (bootstrap {{AUC_T_CI}}) and KaRMA-R at {{AUC_R}}. The best single number measurable off the
-  mount plate, how close the two scored mounts are, reads {{AUC_RULER}}; a paired bootstrap over
+  mount plate, how close the two scored mounts are, reads {{AUC_RULER}}. A paired bootstrap over
   the same designs puts KaRMA-T ahead of it by <strong>{{DELTA}}</strong> ({{DELTA_CI}},
   p&nbsp;&lt;&nbsp;0.001). Logistic regression on all six mount coordinates reads {{AUC_MOUNTS}}
   here, and adding KaRMA&#8217;s three scores takes it to {{AUC_BOTH}}. The search adds
@@ -236,16 +236,16 @@ footer a{color:var(--s2)}
 <section class="col">
   <h2>Choice of the finger pair</h2>
   <p>KaRMA takes a thumb and an index. real_v1 has three fingers, and this programme&#8217;s
-  own result is that the third loaded finger is what keeps the tool: the opposed pair peaks at
+  own result is that the third loaded finger keeps the tool. The opposed pair peaks at
   0.995 and drops the tool in every rollout with the thumb at 0 N, while inline-plus-thumb
-  settles at 0.884 and keeps it on three loaded fingers. Scoring the same {{PAIR_N}} designs
+  ends at 0.884 and keeps it on three loaded fingers. Scoring the same {{PAIR_N}} designs
   with thumb&#8211;index and again with thumb&#8211;middle gives Spearman
   {{PAIR_RHO}} between the two rankings, and a median absolute disagreement of
   {{PAIR_RATIO}} in log&#8322; KaRMA-T.</p>
   {{CHART_PAIRS}}
   <p>On the {{PAIR_N}} designs scored both ways, thumb&#8211;index predicts retention
   at AUC {{PM_TI}} and thumb&#8211;middle at {{PM_TM}}; the paired difference is
-  {{PM_DELTA}}, so at this sample size neither pair is demonstrably the better one to hand
+  {{PM_DELTA}}. At this sample size neither pair is demonstrably the better one to give
   the metric. Taking the better of the two scores per design reads {{PM_BEST}}, no better. A three-finger
   hand therefore has no single KaRMA score: the number depends on the choice of pair.</p>
   <h3>Relation to mount distance</h3>
@@ -262,8 +262,8 @@ footer a{color:var(--s2)}
   <h2>Scale invariance</h2>
   <p>KaRMA scales every length by <span class="mono">L_ref</span>, which suits comparing hands of different
   sizes but ignores the fixed 25 mm shaft. Re-running {{SC_N}} designs with the factor set to 1, the sphere at the
-  shaft&#8217;s 12.5 mm radius and the capsule at the real 10.55 mm pad leaves the KaRMA-T ranking at Spearman
-  <strong>{{SC_RHO}}</strong>, moves retention AUC by {{SC_DELTA}}, and leaves the turn correlation at
+  shaft&#8217;s 12.5 mm radius and the capsule at the real 10.55 mm pad, leaves the KaRMA-T ranking at Spearman
+  <strong>{{SC_RHO}}</strong>. It moves retention AUC by {{SC_DELTA}} and leaves the turn correlation at
   {{SC_TURN}}.</p>
   <p>The invariance therefore does not explain the flat turn correlation; recovering the turn would take a
   change to the search itself.</p>
@@ -284,11 +284,11 @@ footer a{color:var(--s2)}
   {{PAD_PCT}}% of those contacts are nearest at the pad; the rest lie partway up a link.</p>
   {{FIG_REPLAY}}
   <p>Driving KaRMA&#8217;s own joint trajectory through MuJoCo, on KaRMA&#8217;s own capsule
-  geometry with its own sphere at its own seed pose, does not carry the object. The pinch has
-  no preload by construction &#8212; the search drives the contact gap to within
-  <span class="mono">eps_g</span> and no further &#8212; so nothing presses, and adding 5&#176;
-  of commanded squeeze on the two contact fingers does not fix it: the sphere is never held at
-  two contacts and normal force stays at zero, while it travels {{REPLAY_RATIO}}&#215; the
+  geometry with its own sphere at its own seed pose, does not hold the object. The pinch has
+  no preload by construction (the search drives the contact gap to within
+  <span class="mono">eps_g</span> and no further), so nothing presses. Adding 5&#176;
+  of commanded squeeze on the two contact fingers does not fix it. The sphere is never held at
+  two contacts and normal force stays at zero. It travels {{REPLAY_RATIO}}&#215; the
   predicted distance because it is pushed and does not roll.</p>
   <p>KaRMA delivers the kinematically feasible rolling path it claims. Executed open loop under
   position control the path drops the object, so using it as a motion primitive needs added grip
