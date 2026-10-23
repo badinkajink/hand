@@ -135,8 +135,8 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
   <h1>Relative contact-velocity control of the screwdriver pick, braked swing, peg-hole insertion and wield on the SR2 hand in MuJoCo and Drake</h1>
   <p class="lede">With the controller of Wang, Oh and Pollard, the SR2 hand picks the screwdriver, brakes its swing to
   hanging and inserts it in a peg hole, in simulation. The closed-loop brake ends the swing at {{PHI_DHY}}&#176; in
-  Drake hydroelastic, {{PHI_S1}}&#176; with 1&#8202;mm sphere pads and {{PHI_P4S}}&#176; with condim&#160;4, and
-  the tool goes {{DEPTH_RANGE}}&#8202;mm into its hole; point contact, without friction torque, drops it. The pick
+  Drake hydroelastic, {{PHI_S1}}&#176; with 1&#8202;mm sphere pads and {{PHI_P4S}}&#176; with condim&#160;4.
+  The tool goes {{DEPTH_RANGE}}&#8202;mm into its hole. Point contact has no friction torque and drops it. The pick
   fails on {{PICK_FAIL}} of 10 perturbed seeds. Per simulated second the physics costs {{MS_P4S}}&#8202;ms with
   condim&#160;4, {{MS_S1}}&#8202;ms with 1&#8202;mm pads and {{MS_DHY}}&#8202;ms with Drake hydroelastic.</p>
   <div class="byline">D8 gantry from <code>sv1_w0099_b100_plan.json</code> on a four-axis palm stage (x, y, z, yaw; the arm)
@@ -335,7 +335,7 @@ the forces of the 10-01 load step, where Drake passed 45&#176; at 1.26&#8202;N a
 <figcaption>Figure&#160;4. The law behind steps&#160;3 and 5, for the nominal tool and \(\mu=1\). (a) The torsional coefficient
 that makes one MuJoCo contact carry the hydroelastic patch&#8217;s torque grows as \(N^{1/4}\) (green). condim&#160;4 stores one
 value per geom; set at the 3&#8202;N hold (dashed), it is right only there and 57&#8202;% too high at the 0.5&#8202;N end of the
-swing. Rescheduling reads \(N\) each step and moves \(\mu_t\) along the green curve. (b) The torque the two pads can carry
+swing. Rescheduling reads \(N\) each step and moves \(\mu_t\) along the green curve. (b) The torque that the two pads can resist
 about the pinch axis, (11), starts at the 0.12&#8202;N slip limit, where the weight uses all the friction. Each dashed line is the
 gravity torque \(mgd\cos\varphi\) at one swing angle. Where it meets the curve is the pad force (12) that holds the tool still
 there. The brake commands a little less than \(N^\ast\) to let the tool swing on, and a little more to slow it.</figcaption>

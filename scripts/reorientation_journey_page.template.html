@@ -107,10 +107,10 @@ footer a{color:var(--s2)}
   <div class="eyebrow">MorphoHand &#183; real_v1 &#183; 8 September 2026</div>
   <h1>Screwdriver reorientation across eight deployed hands</h1>
   <p class="lede">In {{N_ROLLOUTS}} simulated rollouts over {{N_SWEEPS}} sweeps on the eight deployed hands, D6
-  completed the whole chain open loop (grasp the lying screwdriver, lift it, turn it tip-down, seat it in a countersink
-  and gait it) on 3 of 4 seeds at one setting: pivot 0.15, travel budget 0.50 rad. Of the 90&#176; turn the fingers
-  delivered 39.5&#176; and the arm the rest. The pivot height chose which end of the tool went down (cos &#8722;0.988 at
-  0.05, +0.994 at 0.25), and the deployment grasp fitter left 0.44&#8211;1.26 mm of finger extension against the
+  completed the whole chain open loop on 3 of 4 seeds at one setting: pivot 0.15, travel budget 0.50 rad. The chain
+  grasps the lying screwdriver, lifts it, turns it tip-down, seats it in a countersink and gaits it. Of the 90&#176; turn the fingers
+  delivered 39.5&#176; and the arm the rest. The pivot height set which end of the tool went down (cos &#8722;0.988 at
+  0.05, +0.994 at 0.25). The deployment grasp fitter left 0.44&#8211;1.26 mm of finger extension against the
   reference grasp&#8217;s 2.74 mm.</p>
   <div class="byline">Simulation on the shipped servo model (kp 30 N&#183;m/rad), no hardware run &#183; scored on the
   signed cosine with a load test at the tool&#8217;s weight, 0.240 N</div>
@@ -241,7 +241,7 @@ footer a{color:var(--s2)}
   </div>
 
   <p>With the pivot set per hand, three of the eight reach a held, floor-free, tip-down turn: D5 at +0.894 on two pads
-  at 14.13 N (the best held turn in the record), D3 at +0.987 on two pads at 3.36 N and D1 at +0.913 on a single pad.
+  at 14.13 N (the best held turn in the record), D3 at +0.987 on two pads at 3.36 N, and D1 at +0.913 on a single pad.
   All three lose the tool at the set-down.</p>
 </section>
 
@@ -325,8 +325,8 @@ footer a{color:var(--s2)}
   </table></div>
 
   <p>The turn angle costs least: &#8722;60&#176; under-rotates and still completes 3 of 4. A travel budget of 0.85 rad
-  completes 1 of 4. <code>tips=box</code> and <code>grasp=fit</code> both drop the tool at the lift, each from a grasp
-  computed for other pads or another grasp source; flat pads with a grasp fitted for them lift 3 of 4 on three pads at
+  completes 1 of 4. Both <code>tips=box</code> and <code>grasp=fit</code> drop the tool at the lift, each from a grasp
+  computed for other pads or another grasp source. Flat pads with a grasp fitted for them lift 3 of 4 on three pads at
   3.37 N.</p>
 </section>
 
@@ -352,7 +352,7 @@ footer a{color:var(--s2)}
 
   <p>Grip force is sufficient: the 4 mm cell lifts on three pads at 8.79 N, more than the reference, and the tool is on
   the floor at the next checkpoint. The fitter&#8217;s palm-height search is clamped to
-  <code>[depth &#8722; 8 mm, depth]</code>; asked for 62, 58, 54, 50 and 46 mm on the reference hand it returns no pose at
+  <code>[depth &#8722; 8 mm, depth]</code>. Asked for 62, 58, 54, 50 and 46 mm on the reference hand, it returns no pose at
   any of them, so its only feasible depth is the deepest.</p>
 </section>
 
@@ -364,8 +364,8 @@ footer a{color:var(--s2)}
   worse at a pivot height that works open loop.</p>
 
   <h3>Force loop</h3>
-  <p>Two bugs were fixed first: the sweep tool exposed only the servo-load proxy, so <em>every earlier chain sweep had
-  run open loop</em>, and <code>_force_step</code> slewed the trim at &#177;0.0006 rad per tick, 0.066 rad over a
+  <p>Two bugs were fixed first. The sweep tool exposed only the servo-load proxy, so <em>every earlier chain sweep had
+  run open loop</em>. And <code>_force_step</code> slewed the trim at &#177;0.0006 rad per tick, 0.066 rad over a
   550-step turn against an authority band of 0.45 rad. With both fixed:</p>
 
   <div class="tw"><table>

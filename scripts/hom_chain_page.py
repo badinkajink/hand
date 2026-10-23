@@ -111,7 +111,7 @@ def nominal_table():
         'the lower end below the block top when the palm stops (goal 20&#8202;mm, hole 30&#8202;mm deep). Lower end tilt = tool axis from '
         'vertical, in and out of the swing plane. Axial slip = travel of the tool along its axis through the pinch from the brake '
         'onward. Chain = pick, swing within 5&#176;, hold within 5&#176;, and inserted 15&#8202;mm or more on two pads. The Drake rows were '
-        're-run on 2026-10-02 after the hand&#8217;s collision exclusions were restored (Known issues): the hydroelastic swing end moved '
+        're-run on 2026-10-02 after the hand&#8217;s collision exclusions were restored (Known issues). The hydroelastic swing end moved '
         'from 92.4&#176; to its value here, the insertion depth from 22.1&#8202;mm by less than 0.1&#8202;mm, and point contact still swings '
         'free.</p>')
 
@@ -503,7 +503,7 @@ keep the <code>&lt;contact&gt;</code> element; check any new port with a contact
 yaw axes are not mirror images about the pinch plane. The hanging tool then leans 1.5&#8211;2.3&#176; out of the swing plane in
 MuJoCo and about 1&#176; in Drake.</li>
 <li><b>Brake end band:</b> near vertical a friction brake cannot do better than about 2&#176;. The gravity torque vanishes
-while the pads must still carry the weight (2&#956;N&#8202;&#8805;&#8202;W), so the brake accepts 2.5&#176;.</li>
+while the pads must still bear the weight (2&#956;N&#8202;&#8805;&#8202;W), so the brake accepts 2.5&#176;.</li>
 <li><b>Drake results before the exclusion fix:</b> every Drake number on the first two versions of this page came from a hand
 whose mcp and pip were locked by self-contact. The re-run moved the hydroelastic swing end from 92.4 to 91.3&#176; and Drake
 point-contact physics from 143 to the value in the timing table; the wield did not turn at all before the fix. The old rows
