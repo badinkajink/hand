@@ -322,6 +322,16 @@ could explain. Without it the best fit often went to a flank point where the rea
 rest have median errors of 0.20&#8202;mm and 0.036&#8202;N on the face, and 0.17&#8202;mm and 0.050&#8202;N on the flanks. The
 errors follow the predicted 1-sigma (ratio 1.10&#8211;1.16). With the magnets in the pad today, 15&#8202;% are placed away
 and the rest have 0.39&#8202;mm and 0.08&#8202;N. Over 30&#8202;s without a press, one frame of 880 shows a contact.</p>
+<p>Steel near the pad is magnetized by the magnets, and its field at the chips is that of the magnets&#8217; mirror images.
+A 100&#8202;g mass and a steel ruler, touched to the second fingertip&#8217;s face without force, changed the reading by
+217 to 360&#8202;&#181;T. Each touch was estimated as a press of 9.0 to 17.5&#8202;N on a side wall. The images lie four times
+as far from the chips as the magnets, so their field varies little across the board. A uniform field and a linear gradient
+fit 94 to 98&#8202;% of each touch&#8217;s change and 28 to 30&#8202;% of a press&#8217;s. With the viewer&#8217;s key f, each
+contact is compared with such a field and not shown when the field fits better by more than 25 in chi-square
+([fields from outside the pad](exp:20261023-foreign_field_rejection/20261023-foreign_field_rejection.html)). The frames
+shown as contacts during six touches fell from 432 to 29. Of 20,851 contact frames in the UR5 streams, 117 were
+rejected, none inside a hold. A press made with a steel object is rejected where the object&#8217;s field dominates,
+so the test is off by default.</p>
 {{FIG surface}}
 {{FIG viewer}}"""),
     ("calibration", "Calibration against the HEX-E on the UR5",
@@ -488,7 +498,9 @@ on order. The models predict 0.028&#8211;0.031&#8202;N with N52, about 0.039&#82
 correction transfers in simulation. On the second fingertip it has not yet been scored against known points and
 forces.</li>
 <li><b>Disturbances in the hand.</b> The other fingers&#8217; magnets (5.16&#8202;N equivalent at 25&#8211;30&#8202;mm on the
-first tip) and steel near the pad are modelled but not measured. The chips&#8217; temperature drift is measured,
+first tip) are modelled but not measured. Steel touched to the face reads as a press of 9 to 17.5&#8202;N. The test against
+fields from outside the pad removes most of those frames, but the first half second of a touch and fields of 40 to
+90&#8202;&#181;T still show 1 to 9&#8202;N. The chips&#8217; temperature drift is measured,
 0.65&#8211;0.70&#8202;% per &#176;C, and the correction from each chip&#8217;s temperature leaves 9 of 70&#8202;&#181;T over a
 warm-up. The magnets&#8217; own coefficient, which follows the pad&#8217;s lagging temperature, is not separated yet.</li>
 <li><b>Large presses, shear and torsion.</b> The FE is linear and frictionless; a neo-Hookean check lost 11&#8202;% of the
@@ -583,6 +595,7 @@ FUTURE = [
     'Torsion on the HEX-E&#8217;s axis: twist the pad at 5&#8202;N on a fixture that puts the face&#8217;s normal along the tool axis. The torsion is half the difference between the outbound and return holds. A torque outside the sphere pads&#8217; friction torque at the measured friction coefficient falsifies the pads&#8217; torsion.',
     'Sensing rows on the probes&#8217; gap rule: <code>run_sense</code> in <code>scripts/v2_tip_fe_checks.py</code> takes its gaps from <code>tpu_tip_magnet.gaps</code>. That function moves a face node onto the analytic surface only within half a grid cell of it. It gives 150&#8202;&#181;m against the probe rows&#8217; 185 for the same pad at 1&#8202;N. Rerun <code>--sense b_v2</code> with every face node on the surface; a force resolution that moves by more than 5&#8202;% means the DIP page&#8217;s resolutions need the same rerun.',
     'Facing finger: record the board with a second tip&#8217;s magnets at 20&#8211;40&#8202;mm and compare with the dipole prediction before subtracting it from the joint angles.',
+    'Steel at known distances and forces: touch the 100&#8202;g mass and the ruler through printed spacers of 0.5 to 10&#8202;mm, then set the mass on the face (0.98&#8202;N). Run <code>scripts/fingertip_foreign_field.py touches</code> on each stretch. A spacer reading over 100&#8202;&#181;T with &#923; under 25 means the test misses steel. A joint fit of a contact and the far field within 0.3&#8202;N of 0.98&#8202;N would measure presses made with steel.',
     'Temperature: with the pad at rest and the viewer logging, hold a warm hand around the finger for 60&#8202;s and take it away. Run <code>scripts/fingertip_contact_estimation_study.py thermal</code> on that stretch. No contact should show while the chips warm by 2&#8211;3&#8202;&#176;C. A drift that grows with the temperature after the correction means the magnets need a coefficient of their own. Firmware with TCMP_EN 1 is the alternative, to be tested the same way.',
 ]
 
@@ -595,6 +608,8 @@ PAGES = [
      "Drake&#8217;s field and the pads calibrated to the FE of the four 85A prints"),
     ("Method", "20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html",
      "Rest calibration, FE surface basis, whole-surface estimator, the first presses by hand, the browser viewer"),
+    ("Method", "20261023-foreign_field_rejection/20261023-foreign_field_rejection.html",
+     "Steel near the pad: the magnets&#8217; images, a test against fields from outside the pad, the viewer&#8217;s toggle"),
     ("Design", "20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html",
      "The v2 tips and b&#8217;s pad: print deviations, magnet count and depth, cover walls, resolution"),
     ("Design", "20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html",

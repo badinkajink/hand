@@ -60,6 +60,7 @@
     <label>Shown above <span id="mfl">0.25</span> N of pressing force<input type="range" id="mf" min="0.05" max="2" step="0.05" value="0.25"></label>
     <label>Noise floor <span id="fll">2.00</span> uT a component (higher: less sensitive, less drift shown)<input type="range" id="fl" min="0" max="5" step="0.25" value="2"></label>
     <label><input type="checkbox" id="az" checked> Re-zero once the pad has been at rest for 3 s (z)</label>
+    <label><input type="checkbox" id="ff"> Show no contact when a field from outside the pad explains the reading better: steel or a magnet near the tip (f)</label>
     <label>Deformation shown x<span id="exl">20</span> (at most 2 mm drawn)<input type="range" id="ex" min="1" max="100" value="20"></label>
     <label>Arrow length <span id="arl">4</span> mm per N (at most 25 mm)<input type="range" id="ar" min="1" max="20" value="4"></label>
     <label>Indenter sphere radius <span id="rl">8</span> mm <input type="checkbox" id="showind"> show it<input type="range" id="rr" min="2" max="40" value="8"></label>
@@ -135,6 +136,7 @@ function buildScene(m) {
     mf.value = m.min_force; document.getElementById('mfl').textContent = (+m.min_force).toFixed(2);
     fl.value = m.floor; document.getElementById('fll').textContent = (+m.floor).toFixed(2);
     az.checked = !!m.auto;
+    ff.checked = !!m.foreign;
   }
   rr.value = m.R; document.getElementById('rl').textContent = m.R;
 }
@@ -149,6 +151,8 @@ mf.addEventListener('change', () => send({ cmd: 'minforce', N: +mf.value }));
 fl.addEventListener('input', () => { document.getElementById('fll').textContent = (+fl.value).toFixed(2); });
 fl.addEventListener('change', () => send({ cmd: 'floor', uT: +fl.value }));
 az.addEventListener('change', () => send({ cmd: 'autozero', on: az.checked }));
+const ff = document.getElementById('ff');
+ff.addEventListener('change', () => send({ cmd: 'foreign', on: ff.checked }));
 
 const stops = [[0, [0.85, 0.85, 0.85]], [0.25, [1, 0.88, 0.54]], [0.5, [1, 0.60, 0.24]], [0.75, [0.88, 0.19, 0.12]], [1, [0.48, 0, 0.06]]];
 function cmap(v) {
@@ -203,7 +207,7 @@ function onFrame(m) {
     document.getElementById('pk').textContent = `${m.pmax.toFixed(0)} kPa`;
   } else {
     pos.array.set(rest); cA.array.fill(0.85); arrow.visible = false; ell.visible = false; ind.visible = false;
-    document.getElementById('contact').textContent = 'No contact';
+    document.getElementById('contact').textContent = m.foreign ? 'No contact: a field from outside the pad' : 'No contact';
     for (const id of ['wh', 'fp', 'f1', 'f2', 'pxyz', 'sfp', 'sf1', 'sf2', 'sp1', 'sp2', 'pk']) document.getElementById(id).textContent = '-';
   }
   document.getElementById('ee').textContent = m.e.toFixed(0);
@@ -261,6 +265,7 @@ document.getElementById('br').onclick = () => send({ cmd: 'record' });
 window.addEventListener('keydown', e => {
   if (e.key === 'b') send({ cmd: 'baseline' }); if (e.key === 'c') send({ cmd: 'calibrate' }); if (e.key === 'r') send({ cmd: 'record' });
   if (e.key === 'z') { az.checked = !az.checked; send({ cmd: 'autozero', on: az.checked }); }
+  if (e.key === 'f') { ff.checked = !ff.checked; send({ cmd: 'foreign', on: ff.checked }); }
 });
 
 function resize() { const w = view.clientWidth, h = view.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }

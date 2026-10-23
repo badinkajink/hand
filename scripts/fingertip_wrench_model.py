@@ -578,3 +578,55 @@ class SurfaceEstimator:
         return dict(out, contact=True, p=p.tolist(), n=n.tolist(), t1=t1.tolist(), t2=t2.tolist(), f=fk.tolist(),
                     f_n=float(-fk @ n), f_t=[float(fk @ t1), float(fk @ t2)], cov=cov.tolist(), e=float(e[k]),
                     log_evidence=float(score[k]), g_uT=q[:3].tolist(), eps=float(q[3]), index=k)
+
+
+def far_field_basis(model: Model):
+    """Reading change (uT, (15, 8)) of a field whose sources lie outside the pad, to first order across the board: a
+    uniform field along the tip frame's x, y and z (1 uT each) and the five components of a harmonic linear gradient
+    about the chips' centroid (1 uT per mm each), each read through every chip's rotation. Steel, another magnet or the
+    Earth's field lie at least 14 mm from the chips (the palmar face is 14.1 mm above the sensing plane) and the pad's
+    magnets 5.7 mm, so the field of the first varies smoothly over the 14 mm board, while a press changes the field most
+    at the chips beneath the contact."""
+    cols = [np.concatenate(list(model.R), 0)]
+    r0 = model.P.mean(0)
+    for i, j in ((0, 0), (1, 1), (0, 1), (0, 2), (1, 2)):
+        G = np.zeros((3, 3))
+        if i == j:
+            G[i, i], G[2, 2] = 1.0, -1.0
+        else:
+            G[i, j] = G[j, i] = 1.0
+        cols.append(np.concatenate([model.R[c] @ (G @ (model.P[c] - r0)) for c in range(len(model.P))])[:, None])
+    return np.concatenate(cols, 1)
+
+
+class ForeignField:
+    """Test of a reading change against a field from outside the pad: steel near the tip, another magnet, the Earth's
+    field turning (owner, 2026-10-23: "can you determine some abstract rule to ignore these ferromagnetic presences? even
+    if it works, it probably needs to be a toggle").
+
+    lam(d, e) compares the best contact e = SurfaceEstimator.estimate(d) with the best far field. Lambda is the
+    chi-square of the contact's residual (d less S(p) f, with a uniform field and a change of the magnets' strength
+    fitted to it by weighted least squares) less the chi-square of d against far_field_basis and the strength change,
+    both in the estimator's noise at its current scale. Each explanation has nine parameters, and a positive Lambda
+    favours the far field. A contact is rejected when Lambda exceeds `on`. On the 737 press and turn holds of the UR5
+    sessions sphere2 and rod1 Lambda stayed at or below 15.4; six touches of a steel mass and a steel ruler on the palmar
+    face on 2026-10-23 gave 395 to 633 (docs/experiments/20261023-foreign_field_rejection)."""
+
+    def __init__(self, est: SurfaceEstimator, on=25.0):
+        self.est, self.on = est, float(on)
+        self.A = np.c_[far_field_basis(est.model), est.b0[:, None]]
+
+    @staticmethod
+    def chi2(A, d, sig):
+        Aw, dw = A / sig[:, None], d / sig
+        r = dw - Aw @ np.linalg.lstsq(Aw, dw, rcond=None)[0]
+        return float(r @ r)
+
+    def lam(self, d, e):
+        d = np.asarray(d, float)
+        sig = self.est.sig_now
+        r = d - self.est.S[e["index"]] @ np.asarray(e["f"], float) if e.get("contact") else d
+        return self.chi2(self.est.Nu[:, :4], r, sig) - self.chi2(self.A, d, sig)
+
+    def rejects(self, d, e):
+        return self.lam(d, e) > self.on

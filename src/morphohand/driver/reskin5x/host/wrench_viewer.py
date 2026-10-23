@@ -32,11 +32,20 @@ and a contact is shown only above --min-force (0.25 N; once shown, down to 0.6 o
 rest at a new place in its seat; with --auto-zero (default 3 s) the baseline is taken again once the reading has stayed
 as still as at rest for that long (fingertip_wrench_model.RestZero), which also takes in a press held that still.
 
+Fields from outside the pad (2026-10-23). Steel touched to the face changes the reading by 200 to 360 uT, and the
+estimator explains that change as a press of 9 to 17 N on a side wall. With --foreign-gate (key f) every contact is
+tested against a field from outside the pad (fingertip_wrench_model.ForeignField: a uniform field and a linear gradient
+across the board) and not shown when that field explains the reading better by more than --foreign-lambda (25) in
+chi-square. Steel that changes the reading by more than about 100 uT is then never shown as a contact; at 40 to 90 uT,
+as an object comes near, some frames still show about 3.5 N. A press made with a steel object is rejected where the
+object's field dominates the reading. The
+test rejected none of 737 press and turn holds on the UR5 (docs/experiments/20261023-foreign_field_rejection).
+
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py [--port /dev/ttyACM0] [--http 8790]
         [--board-cal docs/experiments/20261020-fingertip_contact_estimation/data/20261020-calib_pad_as_found.json]
-        [--poles 1 1 1 1 1] [--replay rec.csv] [--no-log]
+        [--poles 1 1 1 1 1] [--replay rec.csv] [--no-log] [--foreign-gate]
 then open http://localhost:8790. Keys: b new baseline, c recalibrate at rest (keep the pad untouched), r record,
-z re-zero at rest on or off.
+z re-zero at rest on or off, f the test for fields from outside the pad on or off.
 """
 from __future__ import annotations
 
@@ -163,6 +172,7 @@ class App:
         self.floor, self.min_force, self.shown_prev = a.floor, a.min_force, False
         self.rz = W.RestZero(hold_s=a.auto_zero if a.auto_zero > 0 else 3.0)
         self.auto = a.auto_zero > 0
+        self.foreign, self.ff, self.n_foreign = a.foreign_gate, None, 0
         self.T_cal = None
         self.est = self.base = self.cal = None
         self.pad_off, self.pad_still, self.cal_lock = False, W.RestZero(hold_s=3.0), threading.Lock()
@@ -222,6 +232,7 @@ class App:
             self.model = W.Model(cal, self.row)
             est = W.SurfaceEstimator(self.model, self.basis, floor_uT=self.floor)
             est.set_noise_scale(1 / np.sqrt(WIN_S * 140))
+            self.ff = W.ForeignField(est, self.a.foreign_lambda)
             self.est, self.base, self.pad_off = est, b_rest.ravel(), False
             self.rz.t_still = None
             self.scene_dirty = True                           # the pump sends the fitted poles and chip labels
@@ -270,7 +281,9 @@ class App:
         th = (f"temperature correction on (chip gains -{-self.kappa.max() * 100:.2f} to -{-self.kappa.min() * 100:.2f} % "
               f"per C)" if self.kappa is not None else "temperature correction off")
         az = f"re-zero after {self.rz.hold_s:.0f} s at rest: on, {self.rz.count} so far" if self.auto else "re-zero at rest: off"
-        return f"{th}; noise floor {self.floor:.2f} uT; shown above {self.min_force:.2f} N; {az}"
+        ff = (f"fields from outside the pad rejected above {self.a.foreign_lambda:.0f} in chi-square, {self.n_foreign} frames "
+              "so far" if self.foreign else "fields from outside the pad: not tested")
+        return f"{th}; noise floor {self.floor:.2f} uT; shown above {self.min_force:.2f} N; {az}; {ff}"
 
     def drain(self):
         """Records since the last frame into the stream log and, while recording, into the recording."""
@@ -356,6 +369,15 @@ class App:
                    still=round(self.rz.spread, 1) if np.isfinite(self.rz.spread) else None)
         lim = self.min_force * (0.6 if self.shown_prev else 1.0)
         contact = e["contact"] and e["e"] > self.a.threshold and e["f_n"] >= lim
+        if contact and self.foreign and self.ff is not None:
+            lam = self.ff.lam(d, e)
+            out["lam"] = round(lam, 1)
+            if lam > self.ff.on:
+                contact, out["foreign"] = False, True
+                self.n_foreign += 1
+                out["status"] = (f"a field from outside the pad (steel or a magnet near the tip?): the reading changed "
+                                 f"{np.linalg.norm(d):.0f} uT and a field across the board explains it better than a "
+                                 f"contact by {lam:.0f} in chi-square, so no contact is shown (f turns the test off)")
         self.shown_prev = bool(contact)
         out["contact"] = bool(contact)
         if contact:
@@ -388,7 +410,8 @@ class App:
                     chips=[dict(p=np.round(chips[i], 3).tolist(), addr=ADDRS[i],
                                 U=W.U_ORDER[self.cal.perm[i]] if self.est is not None else "") for i in range(5)],
                     threshold=self.a.threshold, R=self.R_ind, x_cut=float(self.basis["x_cut"]), min_force=self.min_force,
-                    floor=self.floor, auto=self.auto, hold_s=self.rz.hold_s, thermal=self.kappa is not None)
+                    floor=self.floor, auto=self.auto, hold_s=self.rz.hold_s, thermal=self.kappa is not None,
+                    foreign=self.foreign)
 
 
 async def ws_handler(request):
@@ -415,6 +438,9 @@ async def ws_handler(request):
             elif cmd.get("cmd") == "autozero":
                 app.auto = bool(cmd.get("on", not app.auto))
                 app.rz.t_still = None
+                app.scene_dirty = True
+            elif cmd.get("cmd") == "foreign":
+                app.foreign = bool(cmd.get("on", not app.foreign))
                 app.scene_dirty = True
             elif cmd.get("cmd") == "record" and hasattr(app.src, "all"):
                 if not app.rec:
@@ -466,6 +492,9 @@ def main():
     ap.add_argument("--min-force", type=float, default=0.25, help="pressing force (N) above which a contact is shown")
     ap.add_argument("--floor", type=float, default=2.0, help="noise floor (uT a component) added to the chips' noise")
     ap.add_argument("--auto-zero", type=float, default=3.0, help="re-zero after this long at rest (s); 0 turns it off")
+    ap.add_argument("--foreign-gate", action="store_true", help="show no contact when a field from outside the pad (steel, "
+                                                                "a magnet) explains the reading better (key f)")
+    ap.add_argument("--foreign-lambda", type=float, default=25.0, help="chi-square margin of that test")
     ap.add_argument("--thermal", default=str(W.THERMAL), help="the chips' temperature coefficients (study thermal)")
     ap.add_argument("--no-thermal", action="store_true", help="do not correct the readings for the chips' temperature")
     ap.add_argument("--replay", default=None, help="a recording to play instead of the board (reskin5x_plot.py --out "
