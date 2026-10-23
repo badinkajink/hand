@@ -11,8 +11,17 @@ clear of the indenter, chosen by farthest-point sampling in four regions (face: 
 |n_y| > 0.7; tip end: n_z > 0.7). Each target turns about the vertical through its contact (twist) until the robot reaches
 all its poses and clears the cell.
 
-    .venv/bin/python scripts/ur5_tip_calibration_plan.py [--indenter sphere|rod] [--placement x,y,z,yaw]
+    .venv/bin/python scripts/ur5_tip_calibration_plan.py [--indenter sphere|rod] [--placement x,y,z,yaw] [--order joint6]
+            [--gravity-roll-offset 30]
         placement: the indenter's base in the robot's base frame (mm, deg; x_I points away from the robot)
+        gravity-roll-offset: deg added to every roll of the gravity stations; with 30 none sits half a turn from the
+        homing pose, where the IK nearest the homing branch may take either side
+        order joint6: each stage's actions ordered by joint 6 at their rest poses, solved nearest the homing branch as
+        the session solves its joint moves, so that the HEX-E's cable is turned less (2026-10-22: the sensor dropped
+        out twice while joint 6 turned). The gravity sweeps go out and back (every other station in order of joint 6,
+        then the rest in reverse), which keeps the direction of gravity apart from time for the fit's drift term; the
+        pad and grid stages are sorted, the grid's reference presses kept at their places. The travel checks run on
+        the new order.
 """
 from __future__ import annotations
 
@@ -217,9 +226,11 @@ def tip_reachable(geo, kind, idx, twist=0.0):
 
 
 def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_mm=38.0, mount_turn_deg=0.0,
-          block_half_mm=(50.0, 30.0)):
+          block_half_mm=(50.0, 30.0), order_by="plan", roll_offset_deg=0.0):
     """placement: the indenter's base in the base frame (x, y, z mm, yaw deg); block_mm: the block under the indenter;
-    block_half_mm: its half sizes along x_I, y_I (a 2 by 4 under the indenter runs far along y_I)."""
+    block_half_mm: its half sizes along x_I, y_I (a 2 by 4 under the indenter runs far along y_I); order_by: "plan" (the
+    order in which the actions are made) or "joint6" (module docstring); roll_offset_deg: added to every roll of the
+    gravity stations."""
     t_start = time.time()
     CELL.BOARD["block_mm"] = float(block_mm)
     CELL.BOARD["block_half_mm"] = tuple(float(v) for v in block_half_mm)
@@ -298,12 +309,17 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
         return dict(frame="P", p=[round(float(v), 4) for v in geo.pts[i]], n=[round(float(v), 5) for v in geo.nrm[i]],
                     index=int(i), region=region or str(reg[i]))
 
-    # 3. gravity sweep: the face centre 150 mm above the indenter's top
+    # 3. gravity sweep: the face centre 150 mm above the indenter's top; roll_offset_deg turns every roll, so that no
+    # station sits half a turn from the homing pose, where the IK nearest the homing branch may take either side (the
+    # lab's first run, 2026-10-22: grav-03 at roll 180 reached +166.6 deg of joint 6, 22.8 deg off its orientation, and
+    # the next station turned joint 6 by 285 deg)
     st_I = (geo.c_I + (geo.R + 150.0) * C.EZ).tolist()
     grav = []
     for tilt in (0.0, 45.0, 90.0, -30.0):
         rolls = {0.0: (0, 60, 120, 180, 240, 300), 45.0: (0, 90, 180, 270), 90.0: (0, 90), -30.0: (0, 180)}[tilt]
         for roll in rolls:
+            if roll_offset_deg:
+                roll = (roll + roll_offset_deg + 180.0) % 360.0 - 180.0
             R = C.rot([0.0, 1.0, 0.0], tilt) @ C.rot([1.0, 0.0, 0.0], roll)
             w = C.log_so3(R)
             ang = float(np.degrees(np.linalg.norm(w)))
@@ -422,15 +438,57 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
     for k, (tilt, roll, ax, ang) in enumerate([grav[j] for j in (0, 1, 3, 6, 8, 11)]):
         add(dict(id=f"fgrav-{k:02d}", stage="final_gravity", kind="orient", axis=ax, deg=ang, tilt_deg=tilt, roll_deg=roll,
                  station_I=st_I, p=p_ref.tolist(), twist=0.0), grav_poses, need_extra=5.0)
-    # travel between consecutive contact actions: joint paths of the big turns; between gravity orientations: moveJ
+    # order by joint 6 (--order joint6), before the travel checks so that they cover each action's new neighbours
+    def joint6(a):
+        """Joint 6 (rad) at the action's rest pose, solved nearest the homing branch as the session's joint moves are,
+        and wrapped to within half a turn of the homing pose's."""
+        if a["stage"] in ("gravity", "final_gravity"):
+            T = grav_poses(a)[0]
+        elif a.get("target", {}).get("frame") == "P":
+            T = press_poses(a)[1]
+        else:
+            return None
+        q = chk.ik(T, q_home)
+        if q is None:
+            return None
+        return float(q_home[5] + (q[5] - q_home[5] + math.pi) % (2 * math.pi) - math.pi)
+
+    q6 = {a["id"]: joint6(a) for a in acts}
+    for a in acts:
+        if q6[a["id"]] is not None:
+            a["joint6_deg"] = round(math.degrees(q6[a["id"]]), 1)
+
+    def j6_travel(seq):
+        v = [q6[a["id"]] for a in seq if q6[a["id"]] is not None]
+        return round(float(np.degrees(np.abs(np.diff(v)).sum())), 1) if len(v) > 1 else 0.0
+
+    order_info = {}
+    new = []
+    for stg in dict.fromkeys(a["stage"] for a in acts):          # the stages in their order; each one's actions adjoin
+        ga = [a for a in acts if a["stage"] == stg]
+        key = lambda a: q6[a["id"]] if q6[a["id"]] is not None else float(q_home[5])   # noqa: E731
+        ga2 = ga
+        if order_by == "joint6" and stg in ("gravity", "final_gravity"):
+            srt = sorted(ga, key=key)
+            ga2 = srt[0::2] + srt[1::2][::-1]
+        elif order_by == "joint6" and stg in ("pad", "grid"):
+            fixed = {k for k, a in enumerate(ga) if a.get("role") == "ref"}
+            free = iter(sorted([a for a in ga if a.get("role") != "ref"], key=key))
+            ga2 = [ga[k] if k in fixed else next(free) for k in range(len(ga))]
+        order_info[stg] = dict(plan_deg=j6_travel(ga), ordered_deg=j6_travel(ga2))
+        new += ga2
+    acts[:] = new
+    if order_by == "joint6":
+        print("joint-6 travel by stage, deg (plan order -> by joint 6): " +
+              ", ".join(f"{s} {v['plan_deg']:.0f} -> {v['ordered_deg']:.0f}" for s, v in order_info.items()), flush=True)
+    # travel between consecutive contact actions: joint paths of the big turns; between gravity orientations: moveJ to
+    # each station's IK nearest the homing branch, as the session solves them
     travel_bad = []
     for stg in ("gravity", "final_gravity"):
         ga = [a for a in acts if a["stage"] == stg]
         qs = []
-        qq = q_home.copy()
         for a in ga:
-            qq = chk.ik(grav_poses(a)[0], qq)
-            qs.append(qq)
+            qs.append(chk.ik(grav_poses(a)[0], q_home))
         for a0, a1, q0, q1 in zip(ga[:-1], ga[1:], qs[:-1], qs[1:]):
             if q0 is not None and q1 is not None:
                 ok, worst = chk.joint_path_ok(q0, q1, need=10.0)
@@ -468,6 +526,7 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
                           reachable_index=np.nonzero(reach)[0].tolist(),
                           points_by_region={r: int((reg == r).sum()) for r in ("face", "edge", "flank", "tip")},
                           dropped=dropped, travel_joint_paths_bad=travel_bad, clearances_needed_mm=CLEAR,
+                          order=dict(mode=order_by, joint6_travel_deg=order_info), gravity_roll_offset_deg=roll_offset_deg,
                           counts={s: sum(1 for a in acts if a["stage"] == s) for s in
                                   ("gravity", "mount", "pad", "pivot", "grid", "shear", "roll", "twist", "final", "final_gravity")},
                           seconds=round(time.time() - t_start, 1))
@@ -491,6 +550,10 @@ def main():
     ap.add_argument("--mount-turn", type=float, default=0.0, help="x_M's turn about the tool axis from tool0's x (deg)")
     ap.add_argument("--other", action="append", default=[], help="another indenter on the table as an obstacle: "
                     "kind,x,y,z,yaw (its base in the base frame, mm and deg); repeatable")
+    ap.add_argument("--order", default="plan", choices=("plan", "joint6"), help="joint6: each stage's actions ordered by "
+                    "joint 6, the gravity sweeps out and back (module docstring)")
+    ap.add_argument("--gravity-roll-offset", type=float, default=0.0, help="deg added to every roll of the gravity "
+                    "stations; 30 keeps every station at least 30 deg from half a turn off the homing pose")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     for o in a.other:
@@ -498,7 +561,7 @@ def main():
         x, y, z, yaw = (float(s) for s in v)
         CELL.OTHER.append((C.Tm(C.rot(C.EZ, yaw), [x, y, z]), k))
     build(a.indenter, tuple(float(v) for v in a.placement.split(",")), a.out, a.block, a.mount_turn,
-          tuple(float(v) for v in a.block_half.split(",")))
+          tuple(float(v) for v in a.block_half.split(",")), a.order, a.gravity_roll_offset)
 
 
 if __name__ == "__main__":
