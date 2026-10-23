@@ -281,7 +281,7 @@ push that answers it arrives.
   the program's window (`WRIST_MARGIN`). That drops shear-5-1N alone, and the plan has 142 actions; every other action
   is unchanged, so the simulated run covers them.
 
-- R13 (21:19; the workstation's analysis after sphere2's register). tcp2's three presses met the sphere 0.72, 0.83 and
+- R13 (answered 21:51 by sphere2r's registration, see the end of this item; asked 21:19). tcp2's three presses met the sphere 0.72, 0.83 and
   0.76 mm before the planned contact: ref-00 on the face, grid-052 and grid-053 on the flank. Each onset is the start of
   the push along the approach, fitted as for the touch-offs. Read as a shift of the pad, the three give (0.72, 0.10,
   1.07) mm in P: 0.7 mm along the face normal and 1.1 mm along the finger. The two flank points see the finger's
@@ -296,6 +296,33 @@ push that answers it arrives.
   The pad frame moved 0.05 mm, the TCP's turn changed 0.4 deg, and the touch residual went from 10 to 12 um rms. At
   the touches, the sphere's centre in P moved 0.12 mm across the finger on average, and at most 0.17 mm on any axis. A
   uniform early contact therefore leaves the contact point within about 0.15 mm.
+
+  The real touches are not uniform, so the guess above does not hold. sphere2's onsets run from 1.19 mm early to 0.89 mm
+  late, and sphere2r's registration (21:44, 29 touches) fits them at 57 um rms (Table 2: under 50). Its residuals show no
+  trend over the 36 minutes of touches; the largest are about 0.1 mm, on flank-05, edge-08, edge-09, flank-03 and
+  flank-01. The TCP moved 2.01 mm and 2.81 deg, and the sphere's centre 1.22 mm. Several parameters lie 3 to 5 sigma past
+  their priors:
+
+  | Parameter | Fitted | Posterior 1-sigma | Prior 1-sigma |
+  |---|---|---|---|
+  | Pad in its seat, about x_M (deg) | -1.81 | 0.33 | 0.6 |
+  | Pad in its seat, about y_M (deg) | -1.98 | 0.39 | 0.6 |
+  | Mount on the flange, along z (mm) | +0.94 | 0.26 | 0.6 |
+  | Sphere's centre along x_I, the finger (mm) | +0.98 | 0.33 | 0.25 |
+  | Sphere's centre along z_I (mm) | -0.64 | 0.03 | 0.12 |
+
+  The contact points of the grid therefore carry about 0.3 mm of uncertainty along the finger (R9). The six pivots and
+  the board's location error (`board_minus_registration_mm`) check that direction without the touches.
+
+- R14 (done 21:50 by the lab and the workstation). `scripts/ur5_tip_calibration_check.py --clearance [PLAN]` (753ccc2d)
+  gives the plan's least clearance of the mount, the finger and the HEX-E with the session's registration, against the
+  nominal geometry that the builder checks. Once registered, the program puts the real pad on its targets, and the mount
+  stands where the real geometry puts it. With sphere2r's registration the finger comes to 0.57 mm at grid-050 (needed
+  0.8) and the mount to 2.27 mm at shear-0-1N (needed 3.0). The lab dropped the actions more than 0.3 mm under a margin
+  and every action under the finger's: grid-050, shear-0-1N, shear-0-2N and shear-3-1N. That leaves
+  `lab/20261022-plan_sphere_lab_turns_checked_reg2144.json` with 138 actions. grid-025, -027 and -028 stay at 2.75 to
+  2.98 mm of the mount's 3 mm. On tcp2's real poses the model was about 1.2 mm conservative, and the 10 N abort stops a
+  press that touches.
 
   The twist's turn added 0.29, 0.47 and 0.63 N along the finger at 5, 10 and 20 deg, after the HEX-E's creep of
   0.08 N/min is removed. Its axis therefore passed off the contact across the finger, by 0.25 mm at the FE's stuck-contact
