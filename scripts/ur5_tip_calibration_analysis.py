@@ -364,6 +364,74 @@ def summarize(ses, holds):
     return S
 
 
+def pivot_check(ses, N=None):
+    """The program's pivot check (stage_pivot) from the session's files. The board's change at N newtons of push for
+    the four offset presses gives its map J (uT per mm along the face's t1 and t2). Through J, each press's change against
+    the reference press places it on the face, and the registration's own prediction of the same place checks it. On
+    2026-10-22 (sphere2r) the program's own check lost the reference press's board samples from its 180 s ring buffer."""
+    pv = ses.d["plan"].get("pivot")
+    if not pv:
+        return None
+    N = float(pv.get("level_N", 1.5)) if N is None else float(N)
+    t1, t2 = np.array(pv["t1"], float), np.array(pv["t2"], float)
+    d_B = -(ses.reg.T_BI[:3, :3] @ C.EZ)
+    ft = ses.d["ft"]
+
+    def level(rec):
+        if not rec.get("t_rest0") or not rec.get("t_rest1") or not rec.get("levels"):
+            return None
+        r0 = ses.win(ses.d["t_b"], ses.b, *rec["t_rest0"]).mean(axis=0)
+        r1 = ses.win(ses.d["t_b"], ses.b, *rec["t_rest1"]).mean(axis=0)
+        ta, tb = np.mean(rec["t_rest0"]), np.mean(rec["t_rest1"])
+        R_BE = np.array(rec["T_stop"])[:3, :3]
+        pts = []
+        for lv in rec["levels"]:
+            vb = ses.win(ses.d["t_b"], ses.b, *lv["t"])
+            vf = ses.win(ft[:, 0], ft[:, 3:6], *lv["t"])
+            if not len(vb) or not len(vf):
+                continue
+            rest = r0 + (r1 - r0) * (np.mean(lv["t"]) - ta) / max(tb - ta, 1e-6)
+            f_E = np.linalg.solve(ses.reg.K, vf.mean(axis=0) - np.array(rec["tare"])[:3])
+            pts.append((float(-(R_BE @ f_E) @ d_B), vb.mean(axis=0) - rest))
+        if not pts:
+            return None
+        pts.sort(key=lambda x: x[0])
+        if len(pts) == 1:
+            return pts[0][1] * N / pts[0][0]
+        (f1, b1), (f2, b2) = pts[-2], pts[-1]
+        return b1 + (b2 - b1) * (N - f1) / (f2 - f1)
+
+    recs = [(ses.acts[aid], e["rec"]) for aid, e in ses.ends.items()
+            if e.get("status") == "ok" and ses.acts.get(aid, {}).get("stage") == "pivot" and e.get("rec")]
+    ref = [v for v in recs if v[0].get("role") == "ref"]
+    offs = [v for v in recs if v[0].get("role") == "offset"]
+    if not ref or len(offs) < 3:
+        return None
+    b0 = level(ref[0][1])
+    rows, cols = [], []
+    for a, r in offs:
+        bl = level(r)
+        if bl is not None:
+            rows.append(a["offset_P"])
+            cols.append(bl - b0)
+    J = np.linalg.lstsq(np.array(rows, float), np.array(cols), rcond=None)[0].T          # (15, 2)
+    q0 = C.apply(C.inv(np.array(ref[0][1]["T_rest"]) @ ses.T_EP), ses.c_B)
+    out = dict(level_N=N, t1=t1, t2=t2, presses=[])
+    for a, r in recs:
+        if a.get("role") == "ref":
+            continue
+        bl = level(r)
+        if bl is None:
+            continue
+        dp = np.linalg.lstsq(J, bl - b0, rcond=None)[0]
+        q1 = C.apply(C.inv(np.array(r["T_rest"]) @ ses.T_EP), ses.c_B)
+        pred = np.array([(q1 - q0) @ t1, (q1 - q0) @ t2])
+        out["presses"].append(dict(id=a["id"], role=a["role"], twist=float(a.get("twist", 0.0)), offset_P=a["offset_P"],
+                                   dp_board=dp, dp_registration=pred, board_minus_registration=dp - pred,
+                                   resid_uT=float(np.linalg.norm(J @ dp - (bl - b0)))))
+    return out
+
+
 def save(holds, path):
     keys = ["t", "level_N", "turn_deg", "twist", "f_n", "depth", "tn", "rest_drift_uT", "n_rec", "deflection_mm", "ft_rest_drift_N"]
     arr = {k: np.array([h[k] if h[k] is not None else np.nan for h in holds], float) for k in keys}
@@ -408,6 +476,11 @@ def main():
     evaluate(holds, estm, "est_masked")
     S = summarize(ses, holds)
     S["estimator_calibration"] = dict(k=cal.k, poles=cal.poles, dx=cal.dx, dy=cal.dy, dz=cal.dz, rms_mT=cal.rms_mT)
+    S["pivot_check"] = pivot_check(ses)
+    for pr in (S["pivot_check"] or {}).get("presses", []):
+        print(f"pivot {pr['id']} ({pr['role']}, twist {pr['twist']:+.0f} deg): the board places it "
+              f"{pr['dp_board'][0]:+.3f}, {pr['dp_board'][1]:+.3f} mm from the reference, the registration "
+              f"{pr['dp_registration'][0]:+.3f}, {pr['dp_registration'][1]:+.3f} (fit residual {pr['resid_uT']:.1f} uT)")
     out = Path(a.out or OUT / Path(a.session).name)
     out.mkdir(parents=True, exist_ok=True)
     save(holds, out / "holds.npz")
