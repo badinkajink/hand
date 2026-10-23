@@ -172,6 +172,29 @@ stage: the HEX-E's factory calibration, first2's fit for the analysis (QUEUE R11
   reader's own write of ft.bin included. During a run only the small files are copied and pushed now; the reader should
   hand its rows to a writer thread and never write a file itself.
 
+## State at 22:23 and what remains of the night (for a session after a compaction)
+
+- Running: `sphere2g` in tmux `tipcal` (printout `logs/20261022-215121-tipcal-sphere2g.log`), the resumed session
+  `logs/20261022-tip_calibration/210852-sphere2`, plan `lab/20261022-plan_sphere_lab_turns_checked_reg2144.json`, stages
+  grid, shear, roll, twist, 30 %. Grid 32 of 73 at 22:22, one abort (grid-007, the copy at 22:02). This process runs the
+  program of 21:51; the queued writer (96abeec0) and the pivot fix (8be552e1) apply from the next start.
+- Reference presses (`lab/track_refs.py SESSION`): ref-00 21:52 onset 1.709 mm, depth 0.709 mm; ref-01 22:05 onset
+  +0.066, depth +0.013; ref-02 22:21 onset +0.047, depth +0.052 mm. ref-03 to ref-05 come at about 22:35, 22:48 and the
+  grid's end. Stop rule agreed with the workstation: interrupt (SIGINT to the program's pid, never keys to the pane) if
+  the onset moves more than 0.3 mm from ref-00 or the depth to 2 N grows more than 0.1 mm (the clamp creeping, R16).
+- During the run: no simulator at normal priority, no copy or push of the streams (only small files: events,
+  registration, touches, plan_resume, printout). `logs/20261022-ur5_joint_temps.jsonl` logs the joint temperatures every
+  30 s (they read constant so far).
+- At the run's end: `move_guarded.py go home` (plan first); copy the session folder whole to
+  `lab/20261022-210852-sphere2/` with the printouts and push; then build the page:
+  `/usr/bin/python3 scripts/ur5_tip_calibration_lab_page.py --film logs/20261022-ur5_camera/sphere2` (writes
+  `20261022-ur5_tip_calibration_lab_runs.html`), commit with the index files, publish it as an artifact and give the owner
+  the link with the local path. The workstation (session "UR5 fingertip calibration coordination", reachable by
+  SendMessage) builds the analysis page and runs the predictor study (scripts/ur5_tip_calibration_predict.py) on the
+  pushed folder.
+- Not before the owner is back: R10 (the HEX-E's connector, flex test), R5 (force gain with a weighed mass), any gravity
+  sweep, the mount stage.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
