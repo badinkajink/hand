@@ -9,8 +9,8 @@ questions"); owner, 2026-10-23: "make sure our main overview doc for the printed
 to read". Takeaways: (1) one chain of models runs from the print recipe to the chip readings and back to a contact
 estimate, and on the UR5 against the HEX-E the board's force agrees within 0.78-1.05 while the untrained estimate is
 1.6-2.6 mm off from 1 N up (a GP trained on 59 presses: 0.84 mm); (2) what each design choice does to stiffness and force
-resolution, and why concept b's pad with five magnets; (3) what is still open: the compliance in series with the pad,
-presses below 1 N, the force reference, the N52 magnets, the transfer of learned corrections. Budget: about 3,600 words
+resolution, and why concept b's pad with five magnets; (3) what is still open: the print's softness under a small
+indenter (rod presses put at most 0.10 of sphere2's 0.20 mm/N in series), presses below 1 N, the force reference, the N52 magnets, the transfer of learned corrections. Budget: about 3,600 words
 of prose. Sources: the pages in PAGES and the fact sheets of 2026-10-20 (FE and printing; readout and hardware), each
 number as its page gives it.
 """
@@ -101,12 +101,13 @@ LEDE = (
     "readings: finite elements of the printed structure, the magnets&#8217; motion under any surface load, and a field "
     "model of the chips. Run forward, the chain ranked the designs; concept b&#8217;s pad, the one built, resolves "
     "0.028&#8211;0.031&#8202;N per sample with N52 magnets. Run inverted, it estimates contact point and force without "
-    "training. On the UR5 against the HEX-E force sensor, with today&#8217;s weaker magnets, the board&#8217;s force was "
-    "0.78 to 1.05 times the HEX-E&#8217;s. From 1&#8202;N up the untrained estimate lay 1.6 to 2.6&#8202;mm from the "
+    "training. On the UR5 against the HEX-E force sensor, with today&#8217;s weaker magnets, the board&#8217;s force under "
+    "a sphere was 0.78 to 1.05 times the HEX-E&#8217;s. From 1&#8202;N up the untrained estimate lay 1.6 to 2.6&#8202;mm from the "
     "contact; a Gaussian process trained on 59 presses brought this to 0.84&#8202;mm. On a second pad with two magnets "
     "reversed, the model rebuilt from its rest reading placed six presses within 0.9&#8202;mm of their mean. Below "
-    "1&#8202;N the untrained estimate fails, and 0.20&#8202;mm/N of compliance in series with the pad is not yet "
-    "located.")
+    "1&#8202;N the untrained estimate fails. Under the sphere the presses travel 0.20&#8202;mm/N beyond the FE pad; rod "
+    "presses put at most half of that in series with the pad and the rest at the sphere&#8217;s contact, where the print "
+    "is softer than its model.")
 
 TERMS = [
     ("Approach", "Travel of a rigid indenter into the tip from first touch under a given normal force, in &#181;m; the "
@@ -339,18 +340,22 @@ point by 2.01&#8202;mm and 2.81&#176; from its CAD and homing values. Then 74 pr
 gave 78 more. Over 65&#8202;min the reference press kept its onset within 0.07&#8202;mm and its depth within 0.05&#8202;mm,
 so the pad stayed in its seat.</p>
 {{FIG ur5_film}}
-<p>The board&#8217;s force agrees with the HEX-E&#8217;s. Its slope against the HEX-E&#8217;s normal force is 0.83 on the
+<p>Under the sphere the board&#8217;s force agrees with the HEX-E&#8217;s. Its slope against the HEX-E&#8217;s normal force is 0.83 on the
 face, 0.78 on the edges and 1.05 on the flanks. The registered indentation is larger than the FE pad&#8217;s at the
 measured force: at that depth the FE pad would push back with 5.1 times the measured force. If the pad itself were that
 much softer than its model, the magnets would move about five times as far per newton. The board would then read about
 five times the HEX-E&#8217;s force. The pad&#8217;s bulk therefore lies within about 22&#8202;% of the FE model. The extra
 indentation fits 0.33&#8202;mm plus 0.20&#8202;mm per newton, in parts whose motion the magnets do not see
 ([UR5 ground truth and predictors](exp:20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html),
-Sections 3 and 4). The candidates are the DIP link&#8217;s clamp in the fork, the printed mount, the HEX-E, the arm&#8217;s
-joints and the indenter&#8217;s stand.</p>
+Sections 3 and 4). Presses under a rod of radius 12.5&#8202;mm, in the sessions of 2026-10-23, travel 0.07&#8202;mm plus
+0.10&#8202;mm per newton beyond the FE pad. A spring in series with the pad, in the mount, the arm or the indenter&#8217;s
+stand, would add the same travel per newton under both indenters. At most 0.10&#8202;mm/N therefore lies in series. At
+least 0.10&#8202;mm/N arises at the sphere&#8217;s contact, where the FE pad is stiffer than the print (Section 8 of the
+same page).</p>
 <p>From 1&#8202;N up, the untrained estimator places contacts 1.6 to 2.6&#8202;mm from the registered points (medians by
 force level). Its forces are within 10 to 26&#8202;% of the HEX-E&#8217;s. At 3&#8202;N and over its mean error is a
-systematic offset of 1.4&#8202;mm. Below 1&#8202;N it places contacts a median 9.8&#8202;mm away. Each press leaves the rest
+systematic offset of 1.4&#8202;mm. Under the rod its force is 0.63 of the HEX-E&#8217;s on the face and 0.71 on the
+edges. Below 1&#8202;N it places contacts a median 9.8&#8202;mm away. Each press leaves the rest
 about 7&#8202;&#181;T off, the change of 0.3&#8202;N, and below 1&#8202;N that step is as large as the press itself.</p>
 {{FIG board_hexe}}
 <p>Learned models do better on the same pad. A Gaussian process (GP) from the board change to the contact point and normal
@@ -358,15 +363,17 @@ force was trained on 59 presses. It places 15 held-out presses within 0.84&#8202
 untrained estimator gives 3.79&#8202;mm and 0.382&#8202;N. An ensemble of five small multilayer perceptrons (MLP) gives
 0.74&#8202;mm and 0.061&#8202;N. Over four folds the MLP gives 0.79&#8202;mm and the GP 1.00&#8202;mm. On the rolls and twists,
 at orientations that no press had, the GP gives 2.05&#8202;mm, the MLP 2.93&#8202;mm and the untrained estimator
-2.44&#8202;mm.</p>
+2.44&#8202;mm. Trained on 45 rod presses, the MLP places held-out contacts within 0.57&#8202;mm and the GP within
+1.05&#8202;mm.</p>
 <p>Over the 2.3&#8202;h session the board&#8217;s zero moved by up to 71&#8202;&#181;T. Earth&#8217;s field, turning with the
 tool, made 98&#8202;% of that change, and the estimator absorbs it as a uniform field. A press leaves a step of 7&#8202;&#181;T
 along its own change. Of that step 0.29 lasts, and the rest fades with a time constant of 19&#8202;s. No learned zero beat a
 re-zero at rest before each press ([board drift](exp:20261022-ur5_tip_calibration/20261023-ur5_tip_board_drift.html)).</p>
 <p>The HEX-E is a weak reference. Its Fz channel reads 0.78 and 0.87 of the other axes&#8217; gain in two gravity fits, and
 its link failed in three of the first night&#8217;s eight runs. An ATI Mini45 of the lab is to replace it. It will first be
-calibrated on the UR5 with a weighed 0.5&#8202;kg mass hung at five points (39 stations, about 27&#8202;min). In simulated
-sessions that calibration recovers the sensor to 0.005&#8202;N and 0.4&#8202;N&#8202;mm (medians)
+calibrated on the UR5 with a weighed mass hung at five points (39 stations, about 27&#8202;min). In simulated sessions
+that calibration recovers the sensor to 0.021&#8202;N with the lab&#8217;s 100&#8202;g weight in a printed holder, and to
+0.005&#8202;N with a 0.5&#8202;kg mass (medians)
 ([ATI calibration plan](exp:20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html)).</p>"""),
     ("transfer", "Transfer to other magnets and a second fingertip",
      r"""<p>A calibration learned on one pad must also work on a pad with other magnets. This was simulated on sphere2&#8217;s
@@ -401,8 +408,8 @@ contact forces still differ by 0.37&#8202;N against a 0.25&#8202;N bound
 ([v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)). The estimator
 reports its forces at the same pads the simulations use, so a measured contact and a simulated one can be compared pad
 by pad. Through the board&#8217;s force, the UR5 session puts the printed pad&#8217;s bulk within about 22&#8202;% of the FE
-model. Where the extra 0.20&#8202;mm/N of indentation lies is open. In the pad&#8217;s surface, finer than the 1&#8202;mm FE
-mesh, the pads would miss it as well; in the mount, they would not.</p>
+model. Rod presses put at least 0.10&#8202;mm/N of the extra indentation at the sphere&#8217;s contact, where the FE pad is
+stiffer than the print. The pads, calibrated to that FE, are as stiff there.</p>
 <p>The sphere pads were also run against sphere2&#8217;s 357 press holds, on the 812 surface points of the FE basis
 ([UR5 ground truth and predictors](exp:20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html),
 Section 7). With a spring in series, pads fitted to the FE pad (5.4&#8202;MPa) follow the measured indentation as closely
@@ -410,7 +417,8 @@ as the FE pad does, 135 against 133&#8202;&#181;m RMS. One modulus of 0.90&#8202
 force within a median 19&#8202;%. That modulus is 11 times below the RL scenes&#8217; 10&#8202;MPa, because it also takes up
 the extra indentation. The pads&#8217; force grows faster with depth than the FE pad&#8217;s: it is 0.73 of the FE
 pad&#8217;s at 0.25&#8202;N and 1.51 at 5&#8202;N. Stiffer pads at 153&#8202;MPa behind a spring of 8.45&#8202;N/mm follow the
-FE pad&#8217;s depth within 12&#8202;&#181;m RMS. The pads place the contact&#8217;s centre a median 125&#8202;&#181;m from the
+FE pad&#8217;s depth within 12&#8202;&#181;m RMS. Under the rod, pads fitted to the FE pad (5.2&#8202;MPa) leave
+56&#8202;&#181;m RMS with a spring in series, against 58&#8202;&#181;m for the FE pad. The pads place the contact&#8217;s centre a median 125&#8202;&#181;m from the
 FE pad&#8217;s. Under the holds&#8217; measured shear the sphere slides on the pads at 1.79&#8202;mm/s at impratio 1, and at
 0.121 and 0.012&#8202;mm/s at impratio 10 and 100.</p>"""),
     ("hardware", "Hardware built and measured",
@@ -448,11 +456,14 @@ link&#8217;s turn under a face press from 1.0&#176; to 0.05&#176;
 the robot.</p>"""),
     ("open", "Open questions",
      r"""<ol>
-<li><b>The compliance in series.</b> Sphere2&#8217;s presses travel 0.33&#8202;mm plus 0.20&#8202;mm/N beyond the FE
-pad&#8217;s indentation, while the board&#8217;s force agrees with the HEX-E&#8217;s within 0.78&#8211;1.05. The extra
-travel lies where the magnets do not sense it. The candidates are the DIP link&#8217;s clamp, the mount, the HEX-E, the arm
-and the indenter&#8217;s stand. A surface layer finer than the 1&#8202;mm FE mesh is one more. It sets the registered depth, so
-the comparison of indentation with the FE waits on it.</li>
+<li><b>The softness at a small contact.</b> Under the sphere the presses travel 0.33&#8202;mm plus 0.20&#8202;mm/N
+beyond the FE pad&#8217;s indentation; under the rod, 0.07&#8202;mm plus 0.10&#8202;mm/N. At most 0.10&#8202;mm/N lies in
+series with the pad: in the DIP link&#8217;s clamp, the mount, the HEX-E, the arm or the indenter&#8217;s stand. At least
+0.10&#8202;mm/N arises at the sphere&#8217;s contact, where the FE pad is stiffer than the print. The cause in the print
+has not been found.</li>
+<li><b>The registration along the finger.</b> Sphere2&#8217;s own registration and a joint one with the rod&#8217;s and
+sph3t&#8217;s touch-offs fit them equally well. They place sphere2&#8217;s contacts a median 1.09&#8202;mm apart, 0.94&#8202;mm
+of it along the finger, a direction that neither indenter&#8217;s touch-offs fix well.</li>
 <li><b>Light presses.</b> Below 1&#8202;N the untrained estimator places contacts about 10&#8202;mm away. The step of about
 7&#8202;&#181;T that each press leaves on the rest is the size of a 0.3&#8202;N press. Learned models give 1.1 to
 2.5&#8202;mm there.</li>
@@ -551,10 +562,11 @@ FIGURES = {
 }
 
 FUTURE = [
-    'Compliance in series (QUEUE.md R16): put a dial indicator on the sphere&#8217;s block. Press a rigid part of the tool, the HEX-E&#8217;s adapter or the fork, on the sphere at 1 to 5&#8202;N. Travel of the block puts the compliance on the indenter&#8217;s side. Travel beyond the HEX-E&#8217;s data sheet with a still block puts it in the arm or the mount. Travel near the data sheet&#8217;s leaves the DIP link&#8217;s clamp for the 0.20&#8202;mm/N.',
-    'Mount v5: seat the wedge, then repeat sphere2&#8217;s pad touch-offs, registration and reference presses. An extra indentation whose slope stays at 0.20&#8202;mm/N rules out the link&#8217;s turn in the fork as its cause.',
-    'ATI Mini45 (the ATI plan&#8217;s QUEUE.md, A1): run the box check, print the stack and run the 39 stations with the weighed mass. Then repeat a grid of presses against the ATI. A board force outside 0.78&#8211;1.05 of the ATI&#8217;s means that the HEX-E&#8217;s gain biased sphere2&#8217;s comparison.',
-    'Cylinder presses: analyse the rod sessions of 2026-10-23 (rod1g&#8217;s grid and rolls, rod1t&#8217;s touch-offs) as sphere2 was analysed. A location error under the rod well above the sphere&#8217;s 1.6&#8211;2.6&#8202;mm means that the estimator&#8217;s point-load basis misses line contacts.',
+    'Compliance in series (QUEUE.md R16): put a dial indicator on the sphere&#8217;s block. Press a rigid part of the tool, the HEX-E&#8217;s adapter or the fork, on the sphere at 1 to 5&#8202;N. Travel of the block puts the compliance on the indenter&#8217;s side. Travel beyond the HEX-E&#8217;s data sheet with a still block puts it in the arm or the mount. Travel near the data sheet&#8217;s leaves the DIP link&#8217;s clamp for the series part, at most 0.10&#8202;mm/N.',
+    'Softness at the sphere: press the FE pad&#8217;s printed twin with a 5&#8202;mm sphere on a bench under a dial indicator, the pad clamped on a rigid block, at 0.5 to 5&#8202;N. Travel near the sphere&#8217;s local part (UR5 results page, Section 8) confirms that the FE pad is too stiff under a sphere. Travel near the FE pad&#8217;s own places that part in the robot&#8217;s tool.',
+    'Mount v5: seat the wedge, then repeat the rod&#8217;s touch-offs, registration and presses. A slope that stays at 0.10&#8202;mm/N under the rod rules out the link&#8217;s turn in the fork as the series part.',
+    'ATI Mini45 (the ATI plan&#8217;s QUEUE.md, A1): run the box check, print the stack and run the 39 stations with the 100&#8202;g weight in its printed holder, or with 0.5&#8202;kg. Then repeat a grid of presses against the ATI. A board force outside 0.78&#8211;1.05 of the ATI&#8217;s means that the HEX-E&#8217;s gain biased sphere2&#8217;s comparison.',
+    'Untrained estimator under the rod: score the viewer&#8217;s estimator on rod1&#8217;s 279 holds, as Table 3 of the UR5 results page scores it on sphere2&#8217;s. A location error well above the sphere&#8217;s 1.6&#8211;2.6&#8202;mm means that the estimator&#8217;s point-load basis misses line contacts.',
     'Second fingertip with known points and forces: clamp it in a printed jig with sphere seats at the reference point and 4&#8202;mm from it toward &#177;y and &#177;z. Press through a kitchen scale at about 1, 2 and 4&#8202;N. Run <code>scripts/fingertip_second_tip_transfer.py --landmarks</code> on the stretch. A GP correction whose median location error exceeds the physical model&#8217;s by more than 0.9&#8202;mm does not transfer across pole patterns.',
     'N52 magnets: recalibrate in the viewer (key c). A strength of 0.8&#8211;1.2, the poles as inserted and a rest residual below 0.43&#8202;mT confirm the field model. Then repeat the jig presses or a short UR5 grid; the simulation predicts 1.5&#8202;mm for the rebuilt physical model and 0.7&#8202;mm with the GP correction.',
     'Torsion on the HEX-E&#8217;s axis: twist the pad at 5&#8202;N on a fixture that puts the face&#8217;s normal along the tool axis. The torsion is half the difference between the outbound and return holds. A torque outside the sphere pads&#8217; friction torque at the measured friction coefficient falsifies the pads&#8217; torsion.',
