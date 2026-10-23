@@ -43,7 +43,9 @@ if a.cell:
     reg = json.loads((sd / "registration.json").read_text())
     T_BI = np.array(reg["T_BI"])
     T_EM = np.array(reg["T_EM"])
-    pl = json.loads((sd / "plan.json").read_text()).get("checks", {})
+    plan = json.loads((sd / "plan.json").read_text())
+    KIND = plan.get("indenter", "sphere")                       # the indenter the session presses (sphere or rod)
+    pl = plan.get("checks", {})
     CELL.BOARD.update({k: (tuple(v) if isinstance(v, list) else v) for k, v in pl.get("board", {}).items()})
     for o in pl.get("other", []):
         CELL.OTHER.append((np.array(o["T_BI"]), o["kind"]))
@@ -70,7 +72,7 @@ for i in range(0, len(t), a.every):
     d["n"] += 1
     cb = {}
     if a.cell:
-        cl = CELL.clearance(q[i], CELL.SIM.fk(q[i]), T_BI, T_EM, "sphere")
+        cl = CELL.clearance(q[i], CELL.SIM.fk(q[i]), T_BI, T_EM, KIND)
         for part, g in GROUP.items():
             cb[g] = min(cb.get(g, 1e9), cl[part])
         for g, v in cb.items():

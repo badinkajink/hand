@@ -215,6 +215,24 @@ stage: the HEX-E's factory calibration, first2's fit for the analysis (QUEUE R11
 - 00:2x, the owner asked for a study of the board's drift. It is `scripts/ur5_tip_calibration_drift.py` on this
   session, run here.
 
+## 2026-10-23 morning: the rod plan (R19), checked here before any run
+
+- The owner asked through the workstation at about 07:50: "did we also try cylinder presses? can we do that if we are
+  feeling good about it?". The workstation's plan is `plan/20261023-plan_rod_lab_reg.json`. It has 99 actions on the
+  rod with the sphere as an obstacle, seeded from the rod's seating of 18:40 (`right_indenter_seated`).
+- In the lab's simulator the whole plan except gravity ran with no abort in 15 min
+  (`logs/20261023-tip_calibration/081321-simrod`, printout `logs/20261023-sim-rod.log`). The registration fitted 22
+  touches at 0.018 mm rms.
+- `lab/check_arm_samples.py --cell` now models the session's own indenter, not always a sphere. Joint 5 stayed between
+  40.3 and 57.6 deg and the port at least 48.5 mm from the arm. In the cell the HEX-E kept 31.7 mm, the mount 3.3 mm
+  and the finger 2.0 mm. No sample broke a rule.
+- At 08:13 the robot was running in normal safety mode at home, with the slider at 0.30. The HEX-E answered at 100 Hz
+  with no gap in 20 s and still held last night's tare (Fz −1.1 N), so it had not restarted overnight.
+- `lab/tipcal_run.sh` takes the seating from `SEAT=...` (the rod: `poses.jsonl:right_indenter_seated`).
+- The run waits for the owner's direct go. It is staged: preflight, homing, pad and register first. Then
+  `scripts/ur5_tip_calibration_check.py SESSION --clearance PLAN` with the new registration, dropping what falls under
+  the margins. Then the pivot, grid, shear and roll stages.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
