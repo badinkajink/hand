@@ -12,7 +12,7 @@ clear of the indenter, chosen by farthest-point sampling in four regions (face: 
 all its poses and clears the cell.
 
     .venv/bin/python scripts/ur5_tip_calibration_plan.py [--indenter sphere|rod] [--placement x,y,z,yaw] [--order joint6]
-            [--gravity-roll-offset 30] [--touch-twist 30]
+            [--gravity-roll-offset 30]
         placement: the indenter's base in the robot's base frame (mm, deg; x_I points away from the robot)
         gravity-roll-offset: deg added to every roll of the gravity stations; with 30 none sits half a turn from the
         homing pose, where the IK nearest the homing branch may take either side
@@ -384,9 +384,10 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
     # 5. pad touches over the regions. At twist 0 the finger lies along x_I, and a shift of the sphere along x_I slides it
     # along the face and the flanks without changing any gap: the touches leave the sphere's place along the finger to the
     # homing's prior (0.25 mm). A flank's or an edge's touch at twist t sees that shift by its normal's y_P part times
-    # sin t, so touch_twist_deg turns them by +-t, else +-2t, else 0 (the lab's cell in the simulator, 2026-10-22: the
-    # contact point 0.29 mm off along z_P at every press with all touches at twist 0, 0.05 mm with them twisted;
-    # twists of 90 deg and more, or 60 deg tried first, put travel paths through the wrist's limit on the lab's branch)
+    # sin t, so touch_twist_deg turns them by +-t, else +-2t, else 0. Not recommended: over four simulator truths on the
+    # lab's branch (2026-10-22, homing spread 0.25 mm along the key) it took the presses' contact error from 0.30 to
+    # 0.11 and from 0.32 to 0.02 mm, but from 0.38 to 0.53 and from 0.47 to 0.61 mm: the twisted touches stand at other
+    # arm configurations, whose kinematic error (about 0.1 mm) they see at half the sensitivity (QUEUE.md R7)
     for r_, n_ in COUNTS["touch"].items():
         idx = np.nonzero((reg == r_) & reach)[0]
         for j, s in enumerate(fps(geo.pts[idx], n_, p_ref)):
@@ -593,7 +594,8 @@ def main():
     ap.add_argument("--q-seed", default=None, help="deg, comma separated: the robot's joints at its seating on the key "
                     "(lab/poses.jsonl); the checks then follow the IK branch the session uses")
     ap.add_argument("--touch-twist", type=float, default=0.0, help="deg: the flank and edge touch-offs turned by +-t, "
-                    "else +-2t, else 0, so that the registration sees the sphere's place along the finger; 30 recommended")
+                    "else +-2t, else 0, so that the registration sees the sphere's place along the finger; not "
+                    "recommended (step 5's comment: it helped in two simulator truths and hurt in two)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     for o in a.other:

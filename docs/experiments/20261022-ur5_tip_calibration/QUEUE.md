@@ -133,8 +133,11 @@ push that answers it arrives.
   orientations in this plan and gets no fit, because the program needs 6. Its changes between orientations are
   compared with the first fit's prediction on the workstation instead.
 
-- R7 (implemented 20:19 in abf5db34; the plan, before the next run). Turn the flank and edge touch-offs with
-  `--touch-twist 30`. Every touch-off of the canonical plan and of the lab's plan was at twist 0, where the finger lies
+- R7 (withdrawn 20:28; kept as an option, not recommended). Turn the flank and edge touch-offs with
+  `--touch-twist 30`. Over five simulator truths on the robot's branch, the option helped in two and hurt in two (the
+  second table below). The twisted touches stand at other arm configurations. Their kinematic error, about 0.1 mm in
+  the simulator, is seen at half the sensitivity and biases the fit. A real CB3 is less accurate than the simulator's.
+  The request as written at 20:19: Every touch-off of the canonical plan and of the lab's plan was at twist 0, where the finger lies
   along x_I. Sliding the sphere along x_I then changes no gap on the face or the flanks, so the sphere's place along
   the finger came from the homing's prior alone (0.25 mm). A flank's or an edge's touch at twist t sees that shift by
   its normal's y_P part times sin t. The option tries +-t, then +-2t, then 0. Contact error of the presses against the
@@ -149,8 +152,28 @@ push that answers it arrives.
 
   On the robot's branch, the wrist limit of 93e9c7db leaves 8 of the 20 a twist with every travel path clear. Trying
   60 deg first, or allowing 90, put travel paths into the wrist's limit. Tonight's homing is a single hand seating,
-  and the error along the finger depends on its prior. The recommended build is the lab's options with
-  `--q-seed=59.48,-75.93,120.3,-44.61,62.11,1.83 --order joint6 --gravity-roll-offset 30 --touch-twist 30`.
+  and the error along the finger depends on its prior.
+
+  Five truths (20:28), each drawn with the mount's and the pad's errors, the indenter's placement, a homing spread of
+  0.25 mm along the key, and the seed. Contact error of the presses (median, mm):
+
+  | Truth | All touches at twist 0 | --touch-twist 30 | Error at twist 0, mean vector in P (mm) |
+  |---|---|---|---|
+  | k1 | 0.299 | 0.114 | (-0.01, 0.13, 0.25) |
+  | k3 | 0.324 | 0.020 | (-0.01, 0.16, 0.26) |
+  | k4 | 0.377 | 0.526 | (-0.02, 0.13, 0.33) |
+  | k5 | 0.473 | 0.605 | (-0.07, -0.10, 0.43) |
+
+  k2 drew a 2 deg turn of the mount, and its touches missed the pad in both runs. The recommended build for tonight is
+  the lab's options with `--q-seed=59.48,-75.93,120.3,-44.61,62.11,1.83 --order joint6 --gravity-roll-offset 30`.
+
+- R9 (open, 20:30; the analysis and the owner). With every touch at twist 0, the contact point along the finger (z_P)
+  rests on the homing's seating. With a homing spread of 0.25 mm along the key, the four truths put the presses' contact
+  point 0.25 to 0.43 mm off along z_P, the same at every press. That offset does not show in the touch residuals (12
+  um rms), and with the pivot out tonight nothing in the run measures it. The analysis will estimate it from the board,
+  as the mean of the estimator's location error along z_P over the grid, against the estimator's own bias of about
+  0.1 mm. On the robot, three freedrive seatings (the runbook's homing) in place of the one recorded seating shrink the
+  random part of the seating error. A seating pushed the same way each time keeps its bias.
 
 - R8 (open, 20:23; the owner and the lab, before the grid). The gravity sweep of `first2` (19:54, before the e-stop)
   does not give a map of the HEX-E that can be trusted. With the drift term, its residual is 65 mN (Table 2: under
