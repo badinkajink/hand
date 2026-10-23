@@ -1,0 +1,19 @@
+resumed logs/20261022-tip_calibration/210852-sphere2: 37 actions done, 29 touches
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 362 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0462 0.0141 0.2401 0.0028 0.004  0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+== grid
+  ref-00 (1/73): to 2.00 N
+  grid-052 (2/73): to 2.00 N
+  grid-053 (3/73): to 2.00 N
+  grid-033 (4/73): to 3.00 N
+  grid-032 (5/73): to 3.00 N
+  grid-051 (6/73): to 3.00 N
+  grid-034 (7/73): to 3.00 N
+  grid-031 (8/73): to 3.00 N
+  grid-035 (9/73): to 3.00 N
+  grid-036 (10/73): to 3.00 N
+  grid-030 (11/73): to 3.00 N
+  grid-029 (12/73): to 5.00 N
