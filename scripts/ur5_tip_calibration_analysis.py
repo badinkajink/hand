@@ -6,7 +6,8 @@ For every hold of the session (a press's force level, a turn of a slide, roll or
 robot and the HEX-E through the session's registration (registration.json): the flange's mean pose during the hold, the
 HEX-E's deflection under the measured wrench (data sheet compliance), the pad's frame on the flange and the sphere's
 centre give where the sphere stands in the pad frame, hence the contact point (the pad's closest surface point), its
-normal and the indentation; the HEX-E's change from the rest before the press, less the change of the payload's weight
+normal and the indentation; the HEX-E's change from its zero (the rests before and after the action, interpolated in
+time: the sensor drifts), less the change of the payload's weight
 with the tool's orientation (the gravity fit), through its fitted 3 x 3 map, gives the force in the pad frame, its press
 along the normal, its shear and, from the torques about the contact point, the torsion about the normal. The board's
 change is the hold's mean reading (each chip corrected for its die temperature) against the rests before and after the
@@ -17,6 +18,7 @@ In a simulated session (sim_truth.bin) the ground truth is compared with the sim
 pressure, normal and torsion, which tests the measurement chain itself.
 
     .venv/bin/python scripts/ur5_tip_calibration_analysis.py logs/20261022-tip_calibration/<session> [--out DIR]
+        [--zero before]     the rest before each action alone as the HEX-E's zero (the analysis up to 2026-10-22 19:40)
 """
 from __future__ import annotations
 
@@ -40,6 +42,7 @@ DATA = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data"
 BASIS = DATA / "20261020-b_v2_surface_basis.npz"
 BOARD_CAL = DATA / "20261020-calib_pad_as_found.json"
 OUT = ROOT / "docs/experiments/20261022-ur5_tip_calibration/data"
+ZERO = "both"           # the HEX-E's zero: "both" rests interpolated in time (default), or the rest "before" alone (--zero)
 
 
 def load(sd):
@@ -137,6 +140,23 @@ class Session:
         c = c - (dt + np.cross(dw, c - self.o_P_true))
         return dict(f=f, cop=cop, n=n / np.linalg.norm(n), tn=float(rows[:, 10].mean()), kind=int(rows[0, 12]), c=c)
 
+    def zero(self, rec, t):
+        """The HEX-E's reading at rest at time t of an action: the means of the rest before it and the rest after it
+        (both at the action's rest pose, out of contact), interpolated in time, since the sensor's zero drifts (the lab's
+        untared Fz moved 17 N in 45 min after a power cycle, 2026-10-22). Without a rest after, the rest before alone.
+        Returns the zero and the change from the first rest to the second (6, N and N m)."""
+        z0 = np.array(rec["tare"], float)
+        if ZERO == "before" or not rec.get("t_rest1"):
+            return z0, np.zeros(6)
+        ft = self.d["ft"]
+        w0 = self.win(ft[:, 0], ft[:, 3:9], *rec["t_rest0"])
+        w1 = self.win(ft[:, 0], ft[:, 3:9], *rec["t_rest1"])
+        if not len(w0) or not len(w1):
+            return z0, np.zeros(6)
+        z0, z1 = w0.mean(axis=0), w1.mean(axis=0)
+        ta, tb = np.mean(rec["t_rest0"]), np.mean(rec["t_rest1"])
+        return z0 + (z1 - z0) * (t - ta) / max(tb - ta, 1e-6), z1 - z0
+
     def ground_truth(self, rec, t0, t1, T_rest_pose):
         """The hold's ground truth (dict) from the robot, the HEX-E and the registration."""
         T_BE = self.pose(t0, t1)
@@ -144,7 +164,7 @@ class Session:
         if T_BE is None or not len(w):
             return None
         w = w.mean(axis=0)
-        tare = np.array(rec["tare"], float)
+        tare, dz = self.zero(rec, 0.5 * (t0 + t1))
         R0, R1 = T_rest_pose[:3, :3], T_BE[:3, :3]
         g0, g1 = R0.T @ np.array([0.0, 0.0, -1.0]), R1.T @ np.array([0.0, 0.0, -1.0])
         df = w[:3] - tare[:3] - self.A @ (g1 - g0)
@@ -171,7 +191,8 @@ class Session:
         tc_E = t_E - np.cross(p_E - self.o_E, f_E)
         tn = float(tc_E @ (self.T_EP[:3, :3] @ n_c))
         return dict(T_BE=T_BE, c_P=c_P, p=p_c, n=n_c, depth=float(self.geo.R - d), f=f_P, f_n=fn, f_t=ft, tn=tn,
-                    deflection_mm=float(np.linalg.norm(C.apply(C.inv(T_BP0), C.apply(T_BP, p_c)) - p_c)))
+                    deflection_mm=float(np.linalg.norm(C.apply(C.inv(T_BP0), C.apply(T_BP, p_c)) - p_c)),
+                    ft_rest_drift_N=float(np.linalg.norm(dz[:3])))
 
     def holds(self):
         """Every hold of every press and turn with its ground truth and the board's change."""
@@ -292,6 +313,8 @@ def summarize(ses, holds):
     if holds and "est_masked" in holds[0]:
         S["estimator_masked_by_level"] = est_scores(holds, "est_masked")
     S["rest_drift_uT"] = stats([h["rest_drift_uT"] for h in holds])
+    S["ft_rest_drift_N"] = stats([h["ft_rest_drift_N"] for h in holds])
+    S["zero"] = ZERO
     ref = [h for h in holds if h.get("role") == "ref" and abs((h["level_N"] or 0) - 1.0) < 1e-9]
     if len(ref) > 1:
         d0 = ref[0]["d_board"]
@@ -302,7 +325,7 @@ def summarize(ses, holds):
 
 
 def save(holds, path):
-    keys = ["t", "level_N", "turn_deg", "twist", "f_n", "depth", "tn", "rest_drift_uT", "n_rec", "deflection_mm"]
+    keys = ["t", "level_N", "turn_deg", "twist", "f_n", "depth", "tn", "rest_drift_uT", "n_rec", "deflection_mm", "ft_rest_drift_N"]
     arr = {k: np.array([h[k] if h[k] is not None else np.nan for h in holds], float) for k in keys}
     for k in ("p", "n", "f", "f_t", "c_P", "target", "d_board"):
         arr[k] = np.array([h[k] for h in holds], float)
@@ -329,7 +352,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("session")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--zero", choices=("both", "before"), default="both", help="the HEX-E's zero for each hold: the rests "
+                    "before and after the action interpolated in time, or the rest before alone (the analysis before 2026-10-22 20:00)")
     a = ap.parse_args()
+    global ZERO
+    ZERO = a.zero
     ses = Session(a.session)
     holds = ses.holds()
     cal, est = estimator(ses, holds)
