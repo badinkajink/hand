@@ -309,6 +309,20 @@ def summarize(ses, holds):
                 by[r] = dict(location_mm=stats([np.linalg.norm(tangential(np.array(h["est"]["p"]) - h["p"], h["n"])) for h in hh]),
                              force_scale=float((x @ y) / (x @ x)))
         S["by_region"] = by
+        # the board against the registration along the pad: with every touch at twist 0 the contact point along the
+        # finger (z_P) rests on the homing's seating, and the presses then share one offset; the estimator's mean
+        # location error at 3 N and over (where its own bias is small) measures it. A check, not a correction: the
+        # ground truth stays free of the board. Simulator, 2026-10-22 (truth k4 of QUEUE.md R9): offset 0.325 mm along
+        # z_P, board minus registration 0.306 mm, the estimator's own bias -0.019 mm
+        hi = [h for h in m_ok if h["kind"] == "press" and (h["level_N"] or 0.0) >= 2.9]
+        if len(hi) >= 5:
+            d = np.array([tangential(np.array(h["est"]["p"]) - h["p"], h["n"]) for h in hi])
+            S["board_minus_registration_mm"] = dict(levels="3 N and over", n=len(hi), mean=d.mean(0), sd=d.std(0),
+                                                    se=d.std(0) / math.sqrt(len(hi)))
+    gt_t = [h for h in holds if h["truth"] is not None and h["truth"]["kind"] == 1 and h["kind"] == "press"]
+    if gt_t:                                                       # simulated sessions: the registration's own offset
+        d = np.array([tangential((h["truth"]["c"] - ses.geo.R * h["n"]) - h["p"], h["n"]) for h in gt_t])
+        S["registration_offset_vs_truth_mm"] = dict(n=len(gt_t), mean=d.mean(0), sd=d.std(0))
     S["estimator_by_level"] = est_scores(holds, "est")
     if holds and "est_masked" in holds[0]:
         S["estimator_masked_by_level"] = est_scores(holds, "est_masked")

@@ -175,6 +175,14 @@ push that answers it arrives.
   0.1 mm. On the robot, three freedrive seatings (the runbook's homing) in place of the one recorded seating shrink the
   random part of the seating error. A seating pushed the same way each time keeps its bias.
 
+  Tested at 20:36 on truth k4 through the grid, with tonight's plan and no twists. The registration's offset against
+  the simulator's truth is (-0.025, 0.131, 0.323) mm in P. At the 82 holds of 3 N and over, the estimator's mean
+  location error against the registration's ground truth is (-0.069, 0.070, 0.306) mm, with standard errors of 0.010,
+  0.014 and 0.011 mm. So the board recovers the offset along z_P to 0.017 mm. Its own bias there is -0.019 mm; at 1 N
+  it is -0.71 mm. In the simulator the board follows the estimator's own model, so the real bias will be larger. The
+  analysis's summary reports it as `board_minus_registration_mm`, a check that leaves the ground truth free of the
+  board.
+
 - R8 (open, 20:23; the owner and the lab, before the grid). The gravity sweep of `first2` (19:54, before the e-stop)
   does not give a map of the HEX-E that can be trusted. With the drift term, its residual is 65 mN (Table 2: under
   20). The gains of the three axes are 1.135, 1.085 and 0.78 of their mean. The sensor's axes come out tilted 2.4 deg
