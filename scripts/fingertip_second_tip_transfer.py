@@ -77,11 +77,13 @@ def holds(t, b, threshold, min_s, rest_s=1.0):
     for k in range(len(t)):
         mag[k] = np.linalg.norm(b[k] - rest)
         still[k] = mag[k] < 0.5 * threshold
-        if t[k] - t[k0] >= 0.5:                                  # the rest follows slow drift through still stretches
-            j = np.searchsorted(t, t[k] - 2.0)
-            sel = still[j:k + 1]
-            if sel.sum() > 20 and sel.mean() > 0.9:
-                rest = np.median(b[j:k + 1][sel], axis=0)
+        if t[k] - t[k0] >= 0.5:
+            # a new rest whenever the field holds steady for 4 s (longer than a press), wherever it settles: a turn of
+            # the board in the Earth's field or a shift of the pad in its seat moves the rest by tens of uT
+            j = np.searchsorted(t, t[k] - 4.0)
+            if t[k] - t[j] > 3.5 and np.all(b[j:k + 1].std(0) < 3.0):
+                rest = b[j:k + 1].mean(0)
+                still[j:k + 1] = True
             k0 = k
     on = (mag > threshold).astype(int)
     edges = np.flatnonzero(np.diff(np.r_[0, on, 0]))
