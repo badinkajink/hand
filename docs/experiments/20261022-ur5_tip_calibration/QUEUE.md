@@ -689,5 +689,16 @@ push that answers it arrives.
   - Questions for the owner: (1) is each new tip today's pad with only the magnets changed; (2) one tip tonight, or
     sessions with a swap in between; (3) is the ATI in the stack tonight?
 
+- R23 (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
+  back on after the ATI work: `plan/20261023-plan_sphere_lab_check6_sph3t.json`, six of sph3t's 19 touch-offs at its
+  5.0 mm standoff (pad-face-00, -08, pad-edge-00, -04, -06, pad-flank-07), renamed `chk-*` so that a resume on sph3t
+  runs them. They were chosen for residuals within 40 um of sph3t's registration, joint 6 within 52 deg, and both sides
+  of the pad. With sph3t's registration they clear the mount by 4.2 mm and the finger by 2.4 mm at least.
+  - Resumed on sph3t's registration, each touch-off's printed onset should come within 0.1 mm of its `expect_onset_mm`
+    (-0.038 to +0.028 mm: minus sph3t's residual at that point). Then sessions resume on sph3t's registration;
+    otherwise the touch-offs and the registration are redone.
+  - Along the finger the six see a shift of the link at about 0.3 of its size (their normals' n_z is 0.0 to 0.33). A
+    0.3 mm slide of the link along the fork would move their onsets by about 0.1 mm.
+
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
