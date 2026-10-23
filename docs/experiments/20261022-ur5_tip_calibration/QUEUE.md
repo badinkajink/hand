@@ -522,6 +522,21 @@ push that answers it arrives.
     the worst residuals (0.17 to 0.29 mm). The workstation refits with the distance to the axis line. The run goes on
     unchanged unless the refit turns the TCP by more than a degree; then the mount clearance of the remaining actions
     is recomputed here.
+  - 11:05: answered by the lab's 292b84b1. The cylinder refit (`scripts/ur5_tip_calibration_rod_registration.py`) does
+    not change the registration: 121.7 to 122.1 µm rms with the axis fixed, turning with the mount or free, the TCP
+    0.08 to 0.12 mm and 0.19 to 0.36 deg from the program's. The sphere model was not the cause.
+  - 11:16, after rod1g ends and before anything is moved: two touch-off sessions, both from the stored seatings. In 19
+    of rod1's 22 touches the onset lies within 0.1 mm of the approach's start; the pad already pressed the rod at the
+    tared rest pose, so the registration rests on the start of each motion. sphere2's 29 touches were clean (onsets
+    0.31 to 2.39 mm into the approach). In the simulator, with sphere2's registered tool as the truth, the rod's
+    touch-offs alone leave the pad 0.25 mm off the truth (median), and a joint fit with touch-offs on the sphere
+    0.12 mm.
+    1. `rod1t`: `plan/20261023-plan_rod_lab_touch35.json` (rod1g's plan, the 22 pad touch-offs at a 3.5 mm standoff),
+       `--stages preflight,homing,pad,register --home-from docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:right_indenter_seated`.
+    2. `sph3t`: `plan/20261023-plan_sphere_lab_touch35.json` (sphere2's first plan, its 32 pad touch-offs at 3.5 mm),
+       `--stages preflight,homing,pad,register --home-from docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:left_indenter_seated`.
+    Push each session's small files when it ends. A placement check that stops either one ends the request. rod1g's
+    presses are analysed with the joint registration (`ur5_tip_calibration_analysis.py --registration-from`).
 
 - R20 (moved out of this channel at 10:51 on 10-23 at the owner's request; nothing in it is for the lab session. It continues
   in its own conversation from `docs/handoff/20261023-ati_ft_calibration.md`, and its requests to the lab will go in

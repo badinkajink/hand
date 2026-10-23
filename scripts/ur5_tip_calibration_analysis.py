@@ -44,6 +44,9 @@ BOARD_CAL = DATA / "20261020-calib_pad_as_found.json"
 OUT = ROOT / "docs/experiments/20261022-ur5_tip_calibration/data"
 ZERO = "both"           # the HEX-E's zero: "both" rests interpolated in time (default), or the rest "before" alone (--zero)
 GRAVITY_FROM = None     # a session (or its registration.json) whose gravity fit a session without one takes (--gravity-from)
+REG_FROM = None         # a session (or its registration.json) whose registration replaces this session's (--registration-from):
+#                         the same tool and indenter, not touched between them (rod1, 2026-10-23: its touch-offs began in
+#                         contact, so its presses take the registration of touch-offs run after them, QUEUE.md R19)
 REF_DRIFT = False       # move the sphere along the approach by the ref presses' onset drift, interpolated in time (--ref-drift)
 BOARD_ZERO = "both"     # the board's zero for each hold: the rests before and after the action interpolated in time, or the
 #                         rest before alone (--board-zero before; the lab's drift study of 2026-10-23: a press leaves a step
@@ -105,6 +108,17 @@ class Session:
         self.d = load(sd)
         self.geo = C.Geometry(self.d["plan"])
         reg = C.Registration(self.geo).load(self.d["reg"])
+        if REG_FROM:
+            p = Path(REG_FROM)
+            p = p / "registration.json" if p.is_dir() else p
+            other = json.loads(p.read_text())
+            if "register" not in other.get("notes", {}):
+                raise SystemExit(f"{p} has no registration fit")
+            for k in ("T_EM", "T_MP", "T_BI"):
+                setattr(reg, k, np.array(other[k], float))
+            self.d["reg"].setdefault("notes", {})["registration_from"] = dict(path=str(p), register=other["notes"]["register"])
+            self.d["reg"]["notes"]["register_own"] = self.d["reg"]["notes"].get("register")
+            self.d["reg"]["notes"]["register"] = other["notes"]["register"]
         if reg.grav is None:
             if not GRAVITY_FROM:
                 raise SystemExit(f"{sd}: no gravity fit in this session; pass --gravity-from <a session with one>")
@@ -542,13 +556,16 @@ def main():
                     "session run without the gravity stage takes")
     ap.add_argument("--board-zero", choices=("both", "before"), default="both", help="the board's zero for each hold: the "
                     "rests before and after interpolated in time, or the rest before alone")
+    ap.add_argument("--registration-from", default=None, help="a session (or its registration.json) whose registration "
+                    "(T_EM, T_MP, T_BI) replaces this session's: same tool and indenter, untouched between the two")
     ap.add_argument("--ref-drift", action="store_true", help="move the sphere along the approach by the reference "
                     "presses' onset drift, interpolated in time")
     a = ap.parse_args()
-    global ZERO, GRAVITY_FROM, REF_DRIFT, BOARD_ZERO
+    global ZERO, GRAVITY_FROM, REF_DRIFT, BOARD_ZERO, REG_FROM
     ZERO = a.zero
     BOARD_ZERO = a.board_zero
     GRAVITY_FROM = a.gravity_from
+    REG_FROM = a.registration_from
     REF_DRIFT = a.ref_drift
     ses = Session(a.session)
     holds = ses.holds()
