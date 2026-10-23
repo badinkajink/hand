@@ -118,9 +118,9 @@ a:focus-visible{outline:2px solid var(--s2);outline-offset:2px;border-radius:2px
   <h1>Pinch-brake loading of the screwdriver on the SR2 hand in Drake and MuJoCo</h1>
   <p class="lede">On the SR2 hand (D8 gantry, calibrated position servos), thumb and index lower the real_v1
   screwdriver from horizontal to hanging by relaxing their pinch, the load step of Wang, Oh and Pollard. Drake with
-  hydroelastic fingertips at a 0.01&#8202;s relaxation passes 45&#176; at {{H45_D}}&#8202;N and 80&#176; at {{H80_D}}&#8202;N of pad force;
-  MuJoCo with condim&#160;4 and a rescheduled &#956;<sub>t</sub> passes them at {{H45_C4}} and {{H80_C4}}&#8202;N, and MuJoCo with
-  sphere-packed fingertips at {{H45_SP}} and {{H80_SP}}&#8202;N. The two-pad rig&#8217;s quasi-static law predicts {{Q45}} and
+  hydroelastic fingertips at a 0.01&#8202;s relaxation passes 45&#176; at {{H45_D}}&#8202;N and 80&#176; at {{H80_D}}&#8202;N of pad force.
+  MuJoCo with condim&#160;4 and a rescheduled &#956;<sub>t</sub> passes them at {{H45_C4}} and {{H80_C4}}&#8202;N.
+  MuJoCo with sphere-packed fingertips passes them at {{H45_SP}} and {{H80_SP}}&#8202;N. The two-pad rig&#8217;s quasi-static law predicts {{Q45}} and
   {{Q80}}&#8202;N. With point contact the tool swings away at release.</p>
   <div class="byline">D8 gantry from <code>sv1_w0099_b100_plan.json</code> baked into <code>real_hand.xml</code>, palm fixed
   250&#8202;mm up &#183; fingers: kp 0.5&#8202;N&#183;m/rad, kv 0.02, effort 0.35&#8202;N&#183;m, no joint damping or friction loss &#183; tool
@@ -153,10 +153,10 @@ normal to the pinch axis.</dd>
 <h2>Setup</h2>
 <p class="sub">one grasp, one force schedule, eight contact models, two centre-of-mass offsets</p>
 <p>The pinch point sits 45&#8202;mm below the gantry plane, midway between the thumb and index mounts, with the tool axis
-horizontal and perpendicular to the thumb&#8211;index line; the middle finger is parked straight and tilted back. IK
+horizontal and perpendicular to the thumb&#8211;index line. The middle finger is parked straight and tilted back. IK
 places the thumb and index tip spheres touching the tool. The pinch force is commanded through the position servos as
-q&#8202;=&#8202;q<sub>touch</sub>&#8202;+&#8202;J<sup>T</sup>(F&#8202;&#251;)&#8202;/&#8202;k<sub>p</sub>, so each pad pushes along the pinch axis; a target placed
-inside the tool by IK instead pushes along the servo&#8217;s joint-space stiffness, and in a first run that yawed the tool
+q&#8202;=&#8202;q<sub>touch</sub>&#8202;+&#8202;J<sup>T</sup>(F&#8202;&#251;)&#8202;/&#8202;k<sub>p</sub>, so each pad pushes along the pinch axis. A target placed
+inside the tool by IK instead makes the pad push along the servo&#8217;s joint-space stiffness. In a first run, this yawed the tool
 20&#176; out of the swing plane while the fingers closed. The fingers close on the tool at F&#8202;=&#8202;4&#8202;N with its weight
 compensated, the weight is released, F is held for 0.6&#8202;s and then lowered geometrically to 0.5&#8202;N over 4&#8202;s.</p>
 <p>The calibrated plant&#8217;s joint friction loss (0.0035&#8202;N&#183;m) is left out of both simulators because Drake&#8217;s SAP
@@ -200,7 +200,7 @@ lift. The next run is this force schedule inside <code>probe_real_v1_chain.chain
 MuJoCo with condim&#160;4 rescheduled at impratio 100.</li>
 <li><strong>The servo.</strong> The force command assumes the bench servo is the calibrated kp&#8202;0.5 with no friction
 loss. In MuJoCo the calibrated friction loss lowers the low end of the pad force by about 0.2&#8202;N. A bench step-down of
-the commanded force with the tag reading the angle measures both it and &#956;<sub>t</sub>/&#956; (open since 2026-09-16).</li>
+the commanded force, with the tag reading the angle, measures the servo&#8217;s friction loss and &#956;<sub>t</sub>/&#956; (open since 2026-09-16).</li>
 <li><strong>The pusher.</strong> The paper sets the final angle with a third finger pushing the tool about the pinch
 axis. Here the tool&#8217;s short end points toward the parked middle finger; whether the middle can reach and turn it is
 the paper&#8217;s Experiment 3 and is not run.</li>

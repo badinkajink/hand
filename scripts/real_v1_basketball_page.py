@@ -272,8 +272,8 @@ def main():
     all_cases = "all four" if len(flips) == n_cases == 4 else f"{len(flips)} of the {n_cases}"
 
     lede = (f"A size-7 basketball is reachable on the real_v1 hand only as a friction cap grasp from above, at "
-            f"wrap angles up to {max(w7_theta) if w7_theta else 0}&#176; on the widest gantry layout and "
-            f"{fit_at(fits, 'wide', '7', max(w7_theta))['plate_gap_mm']:.0f} mm short of the palm plate; seating it "
+            f"wrap angles up to {max(w7_theta) if w7_theta else 0}&#176; on the widest gantry layout, where it stops "
+            f"{fit_at(fits, 'wide', '7', max(w7_theta))['plate_gap_mm']:.0f} mm short of the palm plate. Seating it "
             f"needs a mount ring {ring_short:.0f} mm wider than the gantries reach. "
             + (f"The measured servo ({n_pad} N per pad) holds it through a 0.10 m lift at &#956; &#8805; {w7m['mu']:.1f}"
                if w7m else "The measured servo holds it at no friction coefficient up to 2.4")
@@ -287,9 +287,10 @@ def main():
         f"measured-servo rollouts at a saturating command hold. On the wide layout "
         + (f"a size-7 ball holds from &#956; {w7m['mu']:.1f} at &#952; {w7m['theta_deg']:.0f}&#176;, with "
            f"{sum(w7m['pads_end'][f]['N'] for f in G.FINGER_NAMES)/3:.1f} N per pad at the end of the hold and the "
-           f"pads at {max(w7m['pads_end'][f]['util'] for f in G.FINGER_NAMES):.0%} of their friction limit; "
+           f"pads at {max(w7m['pads_end'][f]['util'] for f in G.FINGER_NAMES):.0%} of their friction limit. "
            if w7m else "no rollout holds a size-7 ball. ")
-        + "at lower friction the pads slide up the cap and the ball stays on the floor. The 10 mm command holds "
+        + ("At lower friction " if w7m else "At any friction ")
+        + "the pads slide up the cap and the ball stays on the floor. The 10 mm command holds "
           "nothing.")
     hold_para_2 = (
         "The shipped servo presses 50&#8211;150 N per pad, more than any finger on the bench delivers, so its column "
