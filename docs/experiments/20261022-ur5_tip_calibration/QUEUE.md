@@ -619,5 +619,17 @@ push that answers it arrives.
   - `scripts/ati_netft_logger.py --ip <box> --out <session folder>` beside the program;
   - eight checked poses per hook point (`move_guarded.py`), the cross's 70 mm arms checked against the robot's links.
 
+- R21 (15:18 on 10-23; the owner's go, in the workstation chat: "we can run the 40 minute test then"). A day repeat of
+  half of last night's grid on the sphere, about 40 min, to score last night's predictors on presses made a day later.
+  - Resume sph3t (`lab/20261023-124052-sph3t/`), so its registration (0.043 mm rms) places the presses and no new
+    touch-offs are made.
+  - Presses: the even-numbered grid presses of sphere2's `plan_resume_2152.json` (grid-000, grid-002, ... grid-072),
+    with the same force levels, in last night's order by joint 6. Leave out grid-061, -065, -066 and -067 and any
+    press with joint 6 above 60 deg. The reference press at the start, in the middle and at the end. No rolls, twists
+    or slides.
+  - Before the run, `ur5_tip_calibration_check.py --clearance` with sph3t's registration, as for sph3t.
+  - When it ends: the small files first, then the streams. The robot must be free for the owner's ATI work, so stop
+    after the presses that fit if the owner needs it sooner.
+
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
