@@ -57,7 +57,9 @@ come next, and the final reference press and gravity sweep last.
 4. After each run, compare the printout with Table 2 and tell the operator what differs before the next command.
 5. The workstation's memory guard (`~/.claude/bin/resguard.sh`) and its usage-window hand-offs do not exist on this
    computer. The program is one process of about 250 MB.
-6. Nothing is committed or pushed from this computer. The session folder goes back to the workstation (last section).
+6. After each run, the session folder goes to GitHub as `QUEUE.md` describes. The workstation's session analyses each
+   push and asks there for further runs (owner, 2026-10-22). A change to the program is pushed as well, with the
+   simulator run that tested it named in the commit message.
 
 ## Hardware, network and tool stack
 
@@ -188,7 +190,8 @@ Enter. It then lifts the tool 5 mm away from the indenter and goes on to the nex
 
 ## After the session
 
-The session folder is about 270 MB. Copy it to the workstation's `logs/20261022-tip_calibration/` (or a folder dated
+The session folder is about 270 MB. It reaches the workstation through GitHub as `QUEUE.md` describes; the copy below
+is the fallback. Copy it to the workstation's `logs/20261022-tip_calibration/` (or a folder dated
 with the session's day), with scp, rsync or a USB drive. On the workstation:
 
 ```
