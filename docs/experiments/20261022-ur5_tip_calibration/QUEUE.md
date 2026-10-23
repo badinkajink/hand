@@ -237,6 +237,9 @@ push that answers it arrives.
   The program's gap guard (20bfc6e7) keeps the data safe: an action with a gap aborts, and `--resume` continues the
   session. A link that fails every few minutes still ends each run within its first stage.
 
+  Added 21:53: in sphere2r the box stopped answering for 1.4, 2.8 and 1.7 s, with 118 timed-out reads and no counter
+  restart, and pad-flank-09, -08 and -04 aborted (lab, 21:52). The reader was polling, so the pause was the link's.
+
 - R11 (open, 21:00; the lab, the next runs). Leave the gravity stage out until the cables are routed. The five stations
   that sphere1 finished before the restart test first2's fit. With only the offset free, first2's map predicts them to
   63 mN rms, and first2's own sweep fitted to 65 mN. Per axis the misfit is 37, 36 and 96 mN, largest in Fz as in
@@ -323,6 +326,14 @@ push that answers it arrives.
   `lab/20261022-plan_sphere_lab_turns_checked_reg2144.json` with 138 actions. grid-025, -027 and -028 stay at 2.75 to
   2.98 mm of the mount's 3 mm. On tcp2's real poses the model was about 1.2 mm conservative, and the 10 N abort stops a
   press that touches.
+
+- R15 (open, 21:53; the lab, before the next pivot stage). All six pivots of sphere2r held 1.5 and 3.0 N, and then
+  `stage_pivot` stopped on a TypeError: `board_level` returned None for the reference press. The cause is the 180 s
+  ring buffer (`Ring(keep_s=180)`). The stage reads every press's board samples only after the sixth press, and at 30 %
+  speed pivot-0's samples have left the buffer by then. A check for None would skip the pivot check on every real run.
+  `board_level` should run inside each press's action, while its samples are in the buffer, or read `board.bin` and
+  `ft.bin`. The analysis's `pivot_check` (8e9c6f59) does the same computation from the files. On the simulated session
+  195934-sim-joint6r30 it gives pivot-5 (0.013, 0.065) mm against the program's (0.009, 0.066).
 
   The twist's turn added 0.29, 0.47 and 0.63 N along the finger at 5, 10 and 20 deg, after the HEX-E's creep of
   0.08 N/min is removed. Its axis therefore passed off the contact across the finger, by 0.25 mm at the FE's stuck-contact
