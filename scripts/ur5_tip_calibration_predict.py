@@ -88,9 +88,29 @@ def split(H):
 
 
 # ------------------------------------------------------------------------------------------------------- regressors
+def floors(step):
+    """The smallest standard deviation an input is standardized by, at its resolution: 1 uT for the board, 0.05 C for a
+    temperature change, 1 s for the time since the rest, 0.05 for a unit vector. Without it an input that barely varies
+    over the training rows is divided by its noise, and a test row where it differs is multiplied by thousands (the ridge
+    with the orientation inputs predicted 1781 N from three presses on one region)."""
+    f = [np.full(15, 1.0)]
+    if step >= 1:
+        f.append(np.full(5, 0.05))
+    if step >= 2:
+        f.append(np.full(1, 1.0))
+    if step >= 3:
+        f.append(np.full(6, 0.05))
+    return np.concatenate(f)
+
+
+def scale(X, floor=None):
+    sd = X.std(0)
+    return np.maximum(sd, floor) if floor is not None else sd + 1e-9
+
+
 class Ridge:
-    def fit(self, X, Y):
-        self.mx, self.sx = X.mean(0), X.std(0) + 1e-9
+    def fit(self, X, Y, floor=None):
+        self.mx, self.sx = X.mean(0), scale(X, floor)
         self.my = Y.mean(0)
         Z = (X - self.mx) / self.sx
         Zb = np.c_[Z, np.ones(len(Z))]
@@ -120,8 +140,8 @@ class GP:
     def __init__(self, center=True):
         self.center = center
 
-    def fit(self, X, Y):
-        self.mx, self.sx = X.mean(0), X.std(0) + 1e-9
+    def fit(self, X, Y, floor=None):
+        self.mx, self.sx = X.mean(0), scale(X, floor)
         self.my = Y.mean(0) if self.center else np.zeros(Y.shape[1])
         self.sy = (Y.std(0) if self.center else np.sqrt(np.mean(Y ** 2, axis=0))) + 1e-9
         Z = (X - self.mx) / self.sx
@@ -271,15 +291,16 @@ def run(folder, sizes, out_dir):
         for st, name in enumerate(STEPS):
             Xtr, Xte = features(H, st)[tr], features(H, st)[te]
             Ytr = np.c_[H["p"][tr], H["f_n"][tr]]
+            fl = floors(st)
             for lab, model in (("gp", GP()), ("ridge", Ridge())):
-                Y = model.fit(Xtr, Ytr).predict(Xte)
+                Y = model.fit(Xtr, Ytr, fl).predict(Xte)
                 row[f"{lab}:{name}"] = scores(H, te, snap(est_snap, Y[:, :3]), Y[:, 3])
             # the physical predictor plus a GP on its residual, prior mean zero, trained on the holds it placed within 2 mm
             ok = np.all(np.isfinite(Ptr), axis=1)
             ok[ok] &= np.linalg.norm(H["p"][tr][ok] - Ptr[ok], axis=1) < 2.0
             if ok.sum() >= 3:
                 Rtr = np.c_[H["p"][tr][ok] - Ptr[ok], H["f_n"][tr][ok] - Ftr[ok]]
-                Y = GP(center=False).fit(Xtr[ok], Rtr).predict(Xte)
+                Y = GP(center=False).fit(Xtr[ok], Rtr, fl).predict(Xte)
                 row[f"physical+gp:{name}"] = scores(H, te, snap(est_snap, Pp + Y[:, :3]), Fp + Y[:, 3])
             else:                                       # too few holds to learn a residual: the physical prediction
                 row[f"physical+gp:{name}"] = row["physical"]

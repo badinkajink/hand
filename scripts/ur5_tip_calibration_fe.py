@@ -10,6 +10,11 @@ HEX-E, whose deflection the ground truth has already removed): the surface point
 it, their gaps closed by the FE's compliance matrix scaled by s, with non-negative normal forces (NNLS). The force at a
 fixed sphere position is not proportional to 1/s, since the contact grows with depth, so s is fitted on a grid.
 
+The second comparison keeps the FE pad as it is (s = 1) and moves the sphere back along the contact normal until the FE
+force equals the measured one: that distance is the indentation that the FE pad does not account for. A spring in series
+between the pad and the HEX-E (the DIP link in its fork, the mount, the arm) makes it grow in proportion to the force;
+an error of the registration along the normal makes it constant. It is fitted as a + c F.
+
     .venv/bin/python scripts/ur5_tip_calibration_fe.py <holds.npz from ur5_tip_calibration_analysis.py> [--out fe.json]
 """
 from __future__ import annotations
@@ -71,7 +76,7 @@ def main():
     idx = np.nonzero(m)[0]
     R = float(json.loads(Path(a.plan).read_text())["geometry"]["indenter"]["radius"])
     pad = FEPad()
-    grid = np.round(np.arange(0.6, 1.81, 0.05), 3)
+    grid = np.round(np.r_[np.arange(0.6, 2.0, 0.05), np.arange(2.0, 8.01, 0.25)], 3)
     pred = np.zeros((len(grid), len(idx)))
     for k, s in enumerate(grid):
         for j, i in enumerate(idx):
@@ -96,12 +101,46 @@ def main():
         mm = lv == L
         lvl[f"{L:g}"] = dict(n=int(mm.sum()), ratio_median_s1=float(np.median(meas[mm] / pred[np.argmin(np.abs(grid - 1.0)), mm])))
     out["by_level"] = lvl
+    # the indentation beyond the FE pad's: the sphere moved back along the normal until the FE force equals the measured
+    delta = np.full(len(idx), np.nan)
+    for j, i in enumerate(idx):
+        c, n, f_m = H["c_P"][i], H["n"][i], meas[j]
+        lo, hi = -1.0, float(H["depth"][i]) + 0.3
+        if float(-pad.force(c + lo * n, 1.0, R)[0] @ n) < f_m:
+            continue
+        for _ in range(40):
+            mid = 0.5 * (lo + hi)
+            if float(-pad.force(c + mid * n, 1.0, R)[0] @ n) > f_m:
+                lo = mid
+            else:
+                hi = mid
+        delta[j] = 0.5 * (lo + hi)
+    ok = np.isfinite(delta)
+    Xs = np.c_[np.ones(ok.sum()), meas[ok]]
+    ab, *_ = np.linalg.lstsq(Xs, delta[ok], rcond=None)
+    c0 = float(meas[ok] @ delta[ok] / (meas[ok] @ meas[ok]))
+    out["series"] = dict(n=int(ok.sum()), a_mm=float(ab[0]), c_mm_N=float(ab[1]),
+                         rms_mm=float(np.sqrt(np.mean((Xs @ ab - delta[ok]) ** 2))), c0_mm_N=c0,
+                         rms0_mm=float(np.sqrt(np.mean((c0 * meas[ok] - delta[ok]) ** 2))),
+                         by_region={r: dict(n=int((ok & (reg == r)).sum()),
+                                            fit=np.linalg.lstsq(np.c_[np.ones((ok & (reg == r)).sum()), meas[ok & (reg == r)]],
+                                                                delta[ok & (reg == r)], rcond=None)[0].tolist())
+                                    for r in sorted(set(reg.tolist())) if (ok & (reg == r)).sum() >= 3})
+    s1 = int(np.argmin(np.abs(grid - 1.0)))
+    out["holds"] = dict(id=H["id"][idx].tolist(), region=reg.tolist(), level_N=lv.tolist(), f_n=meas.tolist(),
+                        depth_mm=H["depth"][idx].tolist(), fe_s1_N=pred[s1].tolist(), fe_best_N=pred[kb].tolist(),
+                        delta_mm=[None if not np.isfinite(x) else float(x) for x in delta])
     print(f"{len(idx)} press holds over {a.min_N} N: compliance scale over the FE s = {grid[kb]:.2f} (median force error "
           f"{cost[kb] * 100:.1f} %; at s = 1 {out['median_rel_err_s1'] * 100:.1f} %)")
     for r, v in by.items():
         print(f"  {r:6s} n={v['n']:3d}: measured over FE at s = 1 {v['ratio_median_s1']:.3f}, at s = {grid[kb]:.2f} {v['ratio_median_best']:.3f}")
     for L, v in lvl.items():
         print(f"  level {L:>4s} N n={v['n']:3d}: measured over FE at s = 1 {v['ratio_median_s1']:.3f}")
+    sr = out["series"]
+    print(f"  indentation beyond the FE pad (s = 1), {sr['n']} holds: {sr['a_mm']:.3f} mm + {sr['c_mm_N']:.3f} mm/N x F "
+          f"(rms {sr['rms_mm'] * 1e3:.0f} um); through zero {sr['c0_mm_N']:.3f} mm/N (rms {sr['rms0_mm'] * 1e3:.0f} um)")
+    for r, v in sr["by_region"].items():
+        print(f"  {r:6s} n={v['n']:3d}: {v['fit'][0]:.3f} mm + {v['fit'][1]:.3f} mm/N x F")
     if a.out:
         Path(a.out).write_text(json.dumps(out, indent=1))
 
