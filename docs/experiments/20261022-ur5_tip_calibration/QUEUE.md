@@ -363,7 +363,7 @@ push that answers it arrives.
   The board's linear map from four offsets does not carry over to a turned press, so that turn does not test the
   registration.
 
-- R17 (in progress 22:22 on the workstation; the owner asked at 22:10 through the lab). Predictors of the contact point
+- R17 (in progress 22:21 on the workstation; the owner asked at 22:10 through the lab). Predictors of the contact point
   and the normal force from the board, trained on a session's presses in time order:
   `scripts/ur5_tip_calibration_predict.py <analysis output folder>`, outputs in `data/<session>/predict/predict.json`.
   Every fourth grid press is held out. The predictors are the viewer's estimator with its compliance scale fitted (the
