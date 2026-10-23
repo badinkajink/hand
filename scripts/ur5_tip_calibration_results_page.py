@@ -59,6 +59,10 @@ STEP_TEXT = {"board": "Board", "+temperature change": "Board, temperature change
              "+orientation (leaks the target)": "Board, temperature change, time since rest, orientation"}
 
 
+def code(p):
+    return P.code(p)
+
+
 def f1(x, n=2):
     return "&#8211;" if x is None or (isinstance(x, float) and not math.isfinite(x)) else f"{x:.{n}f}"
 
@@ -81,6 +85,8 @@ def load(session):
     R["FE"] = json.loads((sd / "fe.json").read_text())
     R["PR"] = json.loads((sd / "predict/predict.json").read_text()) if (sd / "predict/predict.json").exists() else None
     R["CV"] = json.loads((sd / "predict/cv4_gp_mlp.json").read_text()) if (sd / "predict/cv4_gp_mlp.json").exists() else None
+    R["TR"] = (json.loads((sd / "predict/magnet_transfer_sim.json").read_text())
+               if (sd / "predict/magnet_transfer_sim.json").exists() else None)
     plan = json.loads((ld / "plan.json").read_text())
     have = {a["id"] for a in plan["actions"]}
     for f in sorted(ld.glob("plan_resume_*.json")):
@@ -646,6 +652,38 @@ def sections(R, F):
                      f"below 1 N they give {cv['mlp']['loc_median_below_1N']:.2f} and {cv['gp']['loc_median_below_1N']:.2f} mm. "
                      + (f"On the rolls and twists the MLP is worse: {tv['mlp:board']['loc_mm']['median']:.2f} mm against "
                         f"{tv['gp:board']['loc_mm']['median']:.2f} mm for the GP.</p>" if tv and "mlp:board" in tv else "</p>"))
+        TR = R.get("TR")
+        if TR:
+            sc = TR["scores"]
+            keys = (("physical", "Physical model, rebuilt for each set, untrained"),
+                    ("gp raw (trained on A)", "GP on the board change, trained on set A"),
+                    ("physical+gp (trained on A)", "Physical model with a GP correction trained on set A"))
+            trow = [[lab] + [f"{sc[k_][key]['loc_mm']:.2f}, {sc[k_][key]['force_N']:.3f}" for k_ in ("A", "B", "C")] for key, lab in keys]
+            trow.append(["GP on the board change, retrained on each set"]
+                        + [f"{sc[k_]['gp raw (retrained on ' + k_ + ')']['loc_mm']:.2f}, {sc[k_]['gp raw (retrained on ' + k_ + ')']['force_N']:.3f}"
+                           for k_ in ("A", "B", "C")])
+            poles_c = "".join("+" if q > 0 else "-" for q in TR["sets"]["C"]["poles"])
+            body += (f"<p>The owner asked whether these predictors carry over to stronger N52 magnets in a checkerboard of poles. "
+                     f"This was tried in simulation on sphere2's mechanics. Each hold keeps its true contact point and force. "
+                     f"The board's change is synthesized from the magnets' motions in the FE model and their dipole fields. "
+                     f"The simulated pad differs from the FE model in two ways that do not depend on the magnets. Its compliance "
+                     f"is {TR['c_true']:g} times the FE's, and it responds like a point {np.linalg.norm(TR['delta_mm']):.1f} mm away. "
+                     f"Set A has today's magnets (k {TR['sets']['A']['k']:.3f}), set B N52 magnets with the same poles (k 1.0), "
+                     f"and set C N52 magnets in a checkerboard ({poles_c}). Every learned model was trained on set A only (Table 8).</p>"
+                     f"<p>The physical model is rebuilt for each set from its magnets' strength and poles, which the rest fit "
+                     f"finds; the stronger magnets alone take it from {sc['A']['physical']['loc_mm']:.1f} to "
+                     f"{sc['C']['physical']['loc_mm']:.1f} mm. A GP on the raw board change does not carry over: "
+                     f"{sc['B']['gp raw (trained on A)']['loc_mm']:.2f} and {sc['C']['gp raw (trained on A)']['loc_mm']:.2f} mm, "
+                     f"with force errors of {sc['B']['gp raw (trained on A)']['force_N']:.2f} and "
+                     f"{sc['C']['gp raw (trained on A)']['force_N']:.2f} N. A GP that corrects the physical estimate, with the "
+                     f"estimate itself as its input, does carry over: {sc['B']['physical+gp (trained on A)']['loc_mm']:.2f} and "
+                     f"{sc['C']['physical+gp (trained on A)']['loc_mm']:.2f} mm. A GP retrained on each new set gives "
+                     f"{sc['B']['gp raw (retrained on B)']['loc_mm']:.2f} and {sc['C']['gp raw (retrained on C)']['loc_mm']:.2f} mm. "
+                     f"Errors that do depend on the magnets, such as a magnet seated off its place, are not in this simulation "
+                     f"and would not carry over ({code(ROOT / 'scripts/fingertip_magnet_transfer_sim.py')}).</p>"
+                     + P.table(["Predictor", "Set A: today's magnets (mm, N)", "Set B: N52 (mm, N)", "Set C: N52, checkerboard (mm, N)"],
+                               trow, num_cols=(1, 2, 3), caption="Median location and normal force errors on the held-out "
+                               "presses, simulated board changes on sphere2's mechanics.", n=8))
         S_.append(("predict", "Predictors of the contact point and the normal force", body))
 
     # ---- limitations, future work
