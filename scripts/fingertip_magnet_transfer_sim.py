@@ -71,7 +71,7 @@ def tangential(P, Pt, N):
     return np.linalg.norm(d - (d * N).sum(1)[:, None] * N, axis=1)
 
 
-def run(folder, out, c_true=1.15, delta=(-0.33, -1.21, 0.72), noise_uT=2.0, seed=0):
+def run(folder, out, c_true=1.15, delta=(-0.33, -1.21, 0.72), noise_uT=2.0, seed=0, want="ABCD"):
     H, _, cal0 = PR.load(folder)
     basis = W.load_basis(PR.BASIS)
     rbf = PR.Physical(cal0, basis).rbf
@@ -81,7 +81,9 @@ def run(folder, out, c_true=1.15, delta=(-0.33, -1.21, 0.72), noise_uT=2.0, seed
     P, F, N, fn = H["p"], H["f"], H["n"], H["f_n"]
     rng = np.random.default_rng(seed)
     sets = {"A": cal0, "B": replace(cal0, k=1.0), "C": replace(cal0, k=1.0, poles=checkerboard(cal0)),
-            "D": replace(cal0, k=1.0, poles=checkerboard_diagonal(cal0))}
+            "D": replace(cal0, k=1.0, poles=checkerboard_diagonal(cal0)),
+            "E": replace(cal0, poles=checkerboard_diagonal(cal0))}             # today's magnets in the printed checkerboard
+    sets = {k: v for k, v in sets.items() if k in want}
     D, EST, PHYS = {}, {}, {}
     for k, cal in sets.items():
         cal = replace(cal, b_rest_uT=W.Model(cal).rest_uT().tolist())          # the rest a rest fit of this set gives
@@ -149,5 +151,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("folder")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--sets", default="ABCD", help="the sets to simulate (A always, as the training set); E is today's "
+                    "magnets in the printed checkerboard")
     a = ap.parse_args()
-    run(a.folder, a.out or str(Path(a.folder) / "predict/magnet_transfer_sim.json"))
+    run(a.folder, a.out or str(Path(a.folder) / "predict/magnet_transfer_sim.json"), want="A" + a.sets.replace("A", ""))

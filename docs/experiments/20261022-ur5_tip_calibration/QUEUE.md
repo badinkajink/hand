@@ -688,6 +688,16 @@ push that answers it arrives.
     and the MLP, and sphere2's correction is scored on it (the transfer of Table 8 on the results page).
   - Questions for the owner: (1) is each new tip today's pad with only the magnets changed; (2) one tip tonight, or
     sessions with a swap in between; (3) is the ATI in the stack tonight?
+  - The owner's answers (16:42, workstation chat): (1) "same pad, magnet polarities changed to checker board", bottom row
+    N S, middle N, top row S N (bottom at the mount end: the centre and one diagonal north, the pattern simulated as set
+    D); (2) "only one tip. we will swap tips in the evening"; (3) the ATI stays in the stack "only if the calibration goes
+    well". The workstation's advice is to leave it out tonight (one change at a time; the plans are built and checked
+    for the HEX-E stack; the ATI's force scale is better measured in a daytime run with both sensors in series).
+  - The rest fit searches all 32 pole patterns (`fingertip_wrench_model.calibrate_frames_fixed`), so the analysis finds
+    the checkerboard or its mirror by itself. Simulated on sphere2's mechanics: with today's magnets in this checkerboard
+    the board changes by 51 uT (median) against 36 uT for today's pad; sphere2's correction gives 1.26 mm and a GP
+    retrained on the new tip 0.98 mm. With N52 magnets they give 0.79 and 0.58 mm
+    (`data/20261022-210852-sphere2/predict/magnet_transfer_sim_ADE.json`).
 
 - R23 (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
   back on after the ATI work: `plan/20261023-plan_sphere_lab_check6_sph3t.json`, six of sph3t's 19 touch-offs at its
