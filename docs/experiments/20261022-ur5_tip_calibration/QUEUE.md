@@ -563,6 +563,20 @@ push that answers it arrives.
     30 % slider, against 56 min at 5.0 mm), if the check with rod1t's registration and `--home-from
     lab/poses.jsonl:left_indenter_seated` predicts every onset at −2.5 mm or later (1 mm of free approach);
     otherwise 5.0 mm. The touch-offs that the check lists under the margins are dropped.
+  - 12:13, a second simulated truth changes the choice of 11:31. Its tool error is rod1's fit with the mount's turn
+    set to 1.43 deg (the homing tilt measured in rod1), with other robot kinematic errors and no plywood tilt. Median
+    contact-location error through the analysis, rod and sphere sessions:
+
+    | Registration | Rod, truth 1 (mm) | Rod, truth 2 (mm) | Sphere, truth 1 (mm) | Sphere, truth 2 (mm) |
+    |---|---|---|---|---|
+    | The program's own | 0.603 | 0.277 | 0.565 | 0.161 |
+    | Joint fit | 0.302 | 0.167 | 0.258 | 0.118 |
+    | Joint fit, ×4 | 0.091 | 0.292 | 0.167 | 0.261 |
+
+    The joint fit at the program's priors beats the program's own fit under both truths. The ×4 priors help only under
+    truth 1, whose tool turns 2.8 deg. The pivot presses cannot pick between them: the board's offsets between pivots
+    stay the same to 0.01 mm under every registration. So rod1g is analysed with the joint fit at the program's
+    priors, and the ×4 fit is run beside it as the spread.
 
 - R20 (moved out of this channel at 10:51 on 10-23 at the owner's request; nothing in it is for the lab session. It continues
   in its own conversation from `docs/handoff/20261023-ati_ft_calibration.md`, and its requests to the lab will go in
