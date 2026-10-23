@@ -100,14 +100,13 @@ def log(ip, out, seconds=0.0, flush_every=500):
                 print("no record for 1 s", flush=True)
                 continue
             t = time.time()
-            if len(data) < REC.size:
-                continue
-            r = REC.unpack(data[:REC.size])
-            if last is not None and r[0] != last + 1:
-                lost += max(r[0] - last - 1, 0)
-            last = r[0]
-            rows.append((t,) + r)
-            n += 1
+            for k in range(len(data) // REC.size):                  # the box's buffer mode packs several records
+                r = REC.unpack_from(data, k * REC.size)
+                if last is not None and r[0] != last + 1:
+                    lost += max(r[0] - last - 1, 0)
+                last = r[0]
+                rows.append((t,) + r)
+                n += 1
             if len(rows) >= flush_every:
                 f.write(np.asarray(rows, float).tobytes())
                 f.flush()

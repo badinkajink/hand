@@ -176,12 +176,12 @@ PLATES = {
     "mount_v5_wedge": [(f"SW{k}", "UR5 mount v5 wedge, 10 deg, 1.2-2.9 mm", V5M / f"cad/{UP5}_stop_wedge.stl", R_WEDGE,
                         dict(V.SOLID, wall_loops="6"))
                        for k in (1, 2)],
-    # 2026-10-23: the ATI Mini45's stack on the HEX-E and the hook cross (scripts/ati_stack_mount.py; the Mini45's hole clocking,
-    # thread depth and height to be measured first), flat as modelled, six walls
+    # 2026-10-23: the ATI Mini45's stack on the HEX-E and the hook cross (scripts/ati_stack_mount.py, revision 2 at 11:30 from
+    # ATI's drawing 9230-05-1094 rev 20), flat as modelled, six walls; the cross's eyes print as 1.2 mm horizontal holes
     "ati_stack": [
-        ("A1", "ATI base over v3's M6 heads", ATI / "cad/20261023-ati_stack_ati_base.stl", np.eye(3), dict(STANDARD, wall_loops="6")),
+        ("A1", "ATI base over v3's M6 heads, cable channel", ATI / "cad/20261023-ati_stack_ati_base.stl", np.eye(3), dict(STANDARD, wall_loops="6")),
         ("A2", "ATI top, v3 foot pattern, inserts", ATI / "cad/20261023-ati_stack_ati_top.stl", np.eye(3), dict(STANDARD, wall_loops="6")),
-        ("A3", "hook cross for known masses", ATI / "cad/20261023-ati_stack_hook_cross.stl", np.eye(3), dict(STANDARD, wall_loops="6"))],
+        ("A3", "hook cross, five eyes", ATI / "cad/20261023-ati_stack_hook_cross.stl", np.eye(3), dict(STANDARD, wall_loops="6"))],
     # 2026-10-22: two more of DIP link b v4 (owner: "i want to print two more too"), the settings of plate "link_v4"
     "link_v4_x2": [(f"B4-{k}", "b v4 DIP link, recessed bridge", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl", None,
                     V.LINK) for k in (1, 2)],
@@ -230,7 +230,7 @@ def main():
                    "snug": "DIP link b: snug covers 3S, 2S and caps",
                    "mount_v4_fork": "UR5 mount v4: standoff-fork with a stop plate behind the DIP link's tongue",
                    "mount_v5_wedge": "UR5 mount v5: two PLA wedges for the stop plate's gap",
-                   "ati_stack": "ATI Mini45 on the HEX-E: base, top and hook cross (draft, the ATI unmeasured)"}[plate]
+                   "ati_stack": "ATI Mini45 on the HEX-E: base, top and hook cross (ATI drawing 9230-05-1094)"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"

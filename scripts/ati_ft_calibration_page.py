@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Page of 2026-10-23: a plan to calibrate the lab's uncalibrated ATI Mini45 on the UR5 with known masses, to replace the
-HEX-E whose link fails (owner: "the only way to permanently fix the HEX-E robot is to calibrate one of our uncalibrated ATI
-sensors ... we can probably calibrate the ATI with just a 3dp mount to the HEX-E, with the current indenter setup").
+"""Page of 2026-10-23: the calibration of the lab's ATI Mini45 on the UR5 with a weighed mass: the coaxial stack on the
+HEX-E from ATI's drawing, the hook cross, the robot plan, the session program and its simulated sessions (owner: "the only
+way to permanently fix the HEX-E robot is to calibrate one of our uncalibrated ATI sensors"; later the same day: "design a
+mount for the ATI for the HEX-E and build up a calibration plan ... the Z-axis is the noisiest axis ... maybe we have to
+design an alternate mount that has it rotated?").
 
-Reads docs/experiments/20261023-ati_ft_calibration/ (the excitation simulation of scripts/ati_calibration_sim.py, the fit's
-self-test of scripts/ati_calibration_fit.py, the printed parts of scripts/ati_stack_mount.py and their renders) and writes
-docs/experiments/20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html.
+Reads docs/experiments/20261023-ati_ft_calibration/ (the stack's parts of scripts/ati_stack_mount.py, the plate of
+scripts/v3b_ur5v2_pla_plate.py ati_stack, the plan of scripts/ati_calibration_plan.py, the simulated sessions and the
+reference comparison of scripts/ati_sim_sessions.py, the press excitation of scripts/ati_calibration_sim.py, the film of
+scripts/ati_calibration_film.py) and writes docs/experiments/20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html.
 
     .venv/bin/python scripts/ati_ft_calibration_page.py
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -33,6 +37,7 @@ TEX_CACHE = D / "texsvg_cache.json"
 TEX_RE = re.compile(r"\$\$(.+?)\$\$|\$(.+?)\$", re.S)
 CAL = ROOT / "docs/experiments/20261022-ur5_tip_calibration"
 HANDOFF = D / "20261023-ati_mini40_mini45_calibration_handoff.md"     # the owner's note as uploaded on 10-23, unchanged
+DRAWING = "https://www.ati-ia.com/app_content/Documents/9230-05-1094.auto.pdf"
 table, img_uri, esc = VP.table, VP.img_uri, VP.esc
 
 
@@ -53,166 +58,273 @@ def fig(n, png, caption, width=1100):
             f"<figcaption>Figure {n}. {caption}</figcaption></figure>")
 
 
-def f3(v):
-    return ", ".join(f"{x:.3f}" for x in v)
+def film(n, mp4, poster, caption):
+    v = "data:video/mp4;base64," + base64.b64encode(Path(mp4).read_bytes()).decode()
+    return (f'<figure id="fig{n}"><video controls muted loop playsinline autoplay preload="metadata" '
+            f'poster="{img_uri(poster, 1280)}" src="{v}" style="width:100%"></video>'
+            f"<figcaption>Figure {n}. {caption}</figcaption></figure>")
 
 
-def sections():
-    sim = json.loads((D / "20261023-ati_calibration_sim.json").read_text())
-    st = json.loads((D / "20261023-ati_fit_selftest.json").read_text())
-    parts = json.loads((D / "20261023-ati_stack_parts.json").read_text())
-    cur = sim["curves"]
-    full = st["fits"]["full"]["median"]
-    sv = sim["singular_values_scaled"]
-    lede = (f"The HEX-E's link to its box failed in every run of 22 October, and its own gains were off (Fz 0.78 "
-            f"of the other axes in one fit against gravity). The lab's ATI Mini45 (FT11452) and Mini40 (FT16552) have no factory calibration. "
-            f"In a simulation on the presses of the UR5 run sphere2, the presses alone excite three of the six wrench "
-            f"directions, since every press acts at nearly the same lever. Fitted to them, the ATI is off on other wrenches by up "
-            f"to {max(cur['presses, HEX-E reference'][-1]['general_median_abs'][:3]):.1f} N and "
-            f"{max(cur['presses, HEX-E reference'][-1]['general_median_abs'][3:]) * 1e3:.0f} N·mm. Forty poses of a "
-            f"weighed 0.5 kg mass at five hook points excite all six. They recover a simulated Mini45 to "
-            f"{max(full[:3]):.2f} N and {max(full[3:]) * 1e3:.1f} N·mm, about its resolution. Printed parts put the ATI "
-            f"between the HEX-E and mount v3; for the masses a hook cross goes in the fork's place. The Mini45's hole "
-            f"clocking, thread depth and height are unmeasured, so the parts are drafts.")
-    summary = (f"ATI Mini45 calibration plan: presses alone excite 3 of 6 wrench directions (fit off by up to "
-               f"{max(cur['presses, HEX-E reference'][-1]['general_median_abs'][:3]):.1f} N on general wrenches); 40 poses of a weighed 0.5 kg mass at 5 hook points recover a simulated Mini45 to "
-               f"{max(full[:3]):.2f} N, {max(full[3:]) * 1e3:.1f} N mm; printed stack and hook cross drafted (ATI hole "
-               f"clocking unmeasured); Net F/T logger tested on a simulated box.")
+def nf(v, k=3):
+    return ", ".join(f"{x:.{k}f}" for x in v)
+
+
+def nmm(v, k=1):
+    return ", ".join(f"{x * 1e3:.{k}f}" for x in v)
+
+
+def load():
+    j = lambda p: json.loads(Path(p).read_text())                              # noqa: E731
+    return dict(parts=j(D / "20261023-ati_stack_parts.json"), plan=j(D / "plan/20261023-ati_plan_mass.json"),
+                sims=j(D / "20261023-ati_sim_sessions.json"), plate=j(D / "print/20261023-ati_stack_p1s_pla.json"),
+                press=j(D / "20261023-ati_calibration_sim.json"))
+
+
+def least(plan):
+    st = plan["stations"]
+    out = {k: min(s["clear"][k] for s in st) for k in ("self_tool", "port", "tool_cell", "links_cell")}
+    for kind in ("mass_line", "mass_tool", "mass_links", "mass_cell"):
+        out[kind] = min(v for s in st for k, v in s["clear"].items() if k.startswith(kind + "_") and k.split("_")[-1] in s["eyes"])
+    q = np.array([s["q_deg"] for s in st])
+    out["q_lo"], out["q_hi"] = q.min(0), q.max(0)
+    return out
+
+
+def sections(X):
+    parts, plan, sims, plate, press = X["parts"], X["plan"], X["sims"], X["plate"], X["press"]
+    L = least(plan)
+    rc = sims["reference_compare"]
+    tr = np.array([s["truth"]["full"]["median"] for s in sims["sessions"]])
+    lo = np.array([s["leave_eye_out"]["full"]["median"] for s in sims["sessions"]])
+    sv = plan["checks"]["scaled_singular_values"]
+    zM = parts["z_M"]
+    ev = {e["name"]: e for e in parts["eyes"]}
+    lede = (f"The Mini45 goes on the HEX-E coaxially, and a weighed mass is the reference of its calibration. In simulation, "
+            f"with the HEX-E as reference the ATI's force is off by {min(rc['hexe_coaxial']['median'][:3]):.2f} to "
+            f"{max(rc['hexe_coaxial']['median'][:3]):.2f} N (medians). Turning the ATI by 90° moves the HEX-E's Fz gain error "
+            f"into the ATI's Fx. With the mass, five simulated Mini45s are recovered to {tr[:, :3].min():.3f} to "
+            f"{tr[:, :3].max():.3f} N and {tr[:, 3:].min() * 1e3:.1f} to {tr[:, 3:].max() * 1e3:.1f} N·mm. The printed stack "
+            f"is built to ATI's drawing 9230-05-1094; it prints in {plate['time']} on the P1S. The robot plan has "
+            f"{len(plan['stations'])} stations at five eyes of a hook cross and takes about {plan['minutes']:.0f} min. Every "
+            f"station and move is checked against the arm, the cell and the hanging mass.")
+    summary = (f"ATI Mini45 calibration with a weighed mass: coaxial stack from ATI drawing 9230-05-1094 (P1S, {plate['time']}); "
+               f"{len(plan['stations'])} checked stations at five eyes, about {plan['minutes']:.0f} min; simulated sessions "
+               f"recover the sensor to {tr[:, :3].max():.3f} N and {tr[:, 3:].max() * 1e3:.1f} N mm (medians); with the HEX-E "
+               f"as reference the error is up to {max(rc['hexe_coaxial']['median'][:3]):.2f} N, coaxial or turned 90 deg.")
     S = []
-    terms = [("Wrench $w$", "Force and torque at the ATI's origin: $F_x, F_y, F_z$ in N and $T_x, T_y, T_z$ in N·m. The "
-              "origin is taken at the centre of the ATI's mounting face."),
-             ("Gage values $g$", "The six numbers the Net F/T box sends in its raw-gage mode: uncalibrated strain gage "
-              "values, minus their value at rest."),
-             ("Calibration matrix $C$", "The 6 x 6 matrix of $w = C\\,(g - g_0)$, fitted here. Only its row shapes can be taken "
-              "from the factory matrices of other Mini45s."),
-             ("Excitation", "How well the reference wrenches span the six directions of $w$, measured by the singular values "
-              "of the stacked wrenches with torques divided by 0.1 m. A small value is a direction the data barely test."),
-             ("Error on general wrenches", "The median absolute error of a fitted $C$ on wrenches it was not fitted on: a "
-              "0.3 kg mass at random points and orientations, and random forces at the origin.")]
+    terms = [("Wrench $w$", "Force and torque at the ATI's sensing origin, in the ATI's frame: $F_x, F_y, F_z$ in N and "
+              "$T_x, T_y, T_z$ in N·mm. The origin is the centre of the tool adapter plate's face; $+z$ points from the "
+              "mounting side to the tool side (ATI drawing 9230-05-1094)."),
+             ("Gage values $g$", "The six raw strain gage values the Net F/T box sends over RDT when calibration #16 "
+              "(FT00000) is selected, in counts."),
+             ("Calibration matrix $C$", "The 6 x 6 matrix of $w = C\\,(g - g_0)$, from counts to N and N·m; $g_0$ is the "
+              "gage values with no load on the tool side."),
+             ("Eye", "A 1.2 mm hole through a 1.6 mm end wall of the hook cross. A short loop of braided line (the pigtail) is "
+              "knotted behind it, and the mass hangs from the pigtail on an S hook. Each eye has a position $p$ and an "
+              "outward direction $u$."),
+             ("Bend", "The angle between an eye's outward direction and gravity. The line hangs free of its arm when the bend "
+              "is at most 75°, that is $g \\cdot u \\geq 0.26$ with $g$ the unit vector of gravity."),
+             ("Station", "A joint vector of the UR5 that turns the ATI about a fixed point $P_0$ until gravity has a chosen "
+              "direction in the ATI's frame."),
+             ("Excitation", "The singular values of the stacked reference wrenches with torques divided by 0.1 m. A small value "
+              "marks a direction of $w$ that the data barely test."),
+             ("Error against the truth", "For a simulated sensor, the median absolute error per axis of a fitted $C$ on 2000 "
+              "wrenches outside the fit. Their forces are 0.2 to 5 N, at points within 150 mm of the ATI's origin."),
+             ("Leave-one-eye-out error", "$C$ fitted without one eye's pairs and scored on them, each eye in turn; the "
+              "median absolute error per axis.")]
     S.append(("terms", "Terms and metrics", '<dl class="terms">' + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in terms) + "</dl>"))
 
-    rows = [["Mini45, FT11452", "9105-TW-Mini45, US-120-160 as received", "None for this serial; FT31565 (Mini45, TWE) and "
-             "FT32816 (Mini45, Net F/T) give row shapes"],
-            ["Mini40, FT16552", "9105-TW-Mini40, SI-20-1", "None for this serial; FT21031 (Mini40, MUX) gives row shapes"],
-            ["Net F/T box, FT35796", "9105-NETBA, with an analog front end", "Its calibration slots are unread"]]
-    body = ("<p>The owner's handoff note (October 2026) lists the hardware and the factory matrices recovered for other "
-            "serials of the same models. The note's own warning applies: a borrowed matrix maps another unit's signals "
-            "through other electronics. Here those matrices are used to check the gage order and signs, and in the "
-            "six- and twelve-parameter models below.</p>"
-            + table(["Sensor", "Hardware", "Calibration"], rows, caption="The lab's ATI hardware (from the RMA form in the handoff "
-                    "note).", n=1)
-            + "<p>Before any load, the box's present state is saved as found: every web page, its netftapi2.xml, the "
-            "selected calibration slot and its serial. Then the factory raw-gage slot (#16, FT00000, ATI Quick Start "
-            "section 3.4.2) is selected by hand in the web page, so that the box sends gage values.</p>")
-    S.append(("sensors", "The lab's ATI sensors and what is known", body))
+    m, co, tu = rc["mass"]["median"], rc["hexe_coaxial"]["median"], rc["hexe_turned"]["median"]
+    rows = [["Weighed mass", nf(m[:3]), nmm(m[3:])], ["HEX-E, ATI coaxial", nf(co[:3]), nmm(co[3:])],
+            ["HEX-E, ATI turned 90° about y", nf(tu[:3]), nmm(tu[3:])]]
+    body = (f"<p>The HEX-E's z axis is its noisiest. In its data sheet the noise per sample is 0.15 N in Fz and 0.035 N in "
+            f"Fx and Fy. On 22 October the lab measured 0.21 N in Fz, at 100 Hz with filter 3. Its gains differ more than its "
+            f"noise: in the gravity sweep of run first2, Fz came out at 0.78 of the three axes' mean. Fx and Fy came out at "
+            f"1.135 and 1.085. The ATI Mini45 has one force resolution for all three axes (ATI's Mini45 page). The resolution is "
+            f"1/20 lbf in the US-120-160 calibration that the sensor was received with, and 1/16 N in SI-145-5.</p>"
+            f"<p>In simulation the ATI was calibrated against three references on the same 40 pairs of a session (Table 1). "
+            f"The HEX-E's reading had the gains above, and its noise was averaged over each 3 s rest. That noise averages "
+            f"down to 0.012 N in Fz, while its gain errors pass into $C$ unchanged. With the ATI turned 90°, the ATI's Fx is "
+            f"read by the HEX-E's Fz. The error in Fz then falls from {co[2]:.3f} to {tu[2]:.3f} N. The error in Fx rises "
+            f"from {co[0]:.3f} to {tu[0]:.3f} N. With the mass as reference, no sensor axis enters the fit: the robot turns "
+            f"gravity through every direction of the ATI's frame. So the stack is coaxial. The HEX-E is logged in the "
+            f"session only to fit its own gains, R5 of the tip calibration's queue.</p>"
+            + table(["Reference", "F error (N)", "T error (N·mm)"], rows, num_cols=(1, 2),
+                    caption="Error against the truth of the full fit with each reference, medians; for the HEX-E over 20 draws "
+                    f"of its noise and torque gains ({code(ROOT / 'scripts/ati_reference_compare.py')}).", n=1)
+            + f"<p>The sphere presses of the tip calibration cannot replace the gravity stations either. Every press acts about "
+            f"80 mm from the ATI, so each torque is nearly a fixed multiple of its force. Their scaled singular values are "
+            f"{nf(press['singular_values_scaled'][:3], 1)} for three directions and {nf(press['singular_values_scaled'][3:], 2)} "
+            f"for the others ({code(ROOT / 'scripts/ati_calibration_sim.py')}).</p>")
+    S.append(("reference", "The HEX-E's z axis and the reference of the calibration", body))
 
-    p0, ph = cur["presses, HEX-E reference"][-1], cur["presses (HEX-E) and 24 gravity poses (HEX-E)"][-1]
-    pm = cur["presses (HEX-E) and 5 hook points x 8 poses (known mass)"][-1]
-    mo = cur["5 hook points x 8 poses (known mass) alone"][-1]
+    rows = [["Mounting side (robot)", "6 x M3 x 0.5, 5.0 deep", "39.24 mm; pairs 20° apart about 60, 180, 300°",
+             "1 x Ø3, 5 deep, at +X on 39.24 mm", "Ø9.5 recess, 3 deep"],
+            ["Tool side", "6 x M3 x 0.5, 3.0 deep", "28.2 mm; pairs 40° apart about 60, 180, 300°",
+             "2 x Ø3, 3.4 deep, at 0 and 120° on 28.194 mm", "Ø9.5 recess, 3 deep"]]
+    body = (f"<p>The Mini45's interface is given in ATI's drawing 9230-05-1094 rev 20 (<a href=\"{DRAWING}\">ATI</a>, "
+            f"fetched 23 October) and in Table 2. The transducer is 45 mm across and 15.7 mm high, with a 5.7 mm mounting adapter plate and "
+            f"a 3.7 mm tool adapter plate. The cable of the standard Mini45-R leaves the mounting plate radially, 110° from "
+            f"+X. The drawing's note 3 forbids screws deeper than the threads. Note 5 forbids any part that touches both "
+            f"plates. In the morning's draft, 20° pairs and 4 mm threads had been assumed on both faces. On the tool side the pairs are "
+            f"40° apart and the threads 3.0 mm deep.</p>"
+            + table(["Face", "Threads", "Bolt circle", "Dowel holes", "Centre"], rows,
+                    caption="The Mini45's interface on drawing 9230-05-1094 rev 20; angles from the ATI's +X toward +Y.", n=2))
+    S.append(("interface", "The Mini45's interface on ATI's drawing", body))
+
+    sc = parts["screws"]
+    rows = [["ATI base", "Ø70, 18 mm and a Ø44 pad 2 mm high", sc[0]["what"].replace("socket head, ", "") + "; " +
+             sc[1]["what"].replace("socket head, ", "")],
+            ["ATI Mini45", "Ø45, 15.7 mm", f"Turned {parts['clock_deg']:.0f}° about the tool axis from $x_M$; its cable "
+             f"toward {parts['cable_deg_M']:.0f}° in M"],
+            ["ATI top", "Ø63, 11 mm", sc[2]["what"].replace("socket head, ", "") + "; four M3 x 5.7 brass inserts in mount "
+             "v3's foot pattern"],
+            ["Hook cross", "160 x 160 x 124 mm", sc[4]["what"].replace("socket head, ", "")]]
+    body = (f"<p>The ATI goes between mount v3's adapter and its standoff-fork (Fig. 1). The HEX-E, its adapter and the "
+            f"indenters stay as they are. The adapter's M6 x 20 are tightened first; the base fits over their heads and "
+            f"screws into the adapter's brass inserts beside the ATI. The fork, or the hook cross for the calibration, screws "
+            f"into the top as it did into the adapter. The tool becomes {parts['added_length_mm']:.1f} mm longer, and the "
+            f"ATI's origin stands at $z_M$ = {zM['ati_origin']:.1f} mm, $M$ being mount v3's frame on the HEX-E's tool "
+            f"face.</p>"
+            f"<p>The screws stop short of the ATI's threads: 4.0 mm of the 5.0 mm on the mounting side and 2.5 mm of the "
+            f"3.0 mm on the tool side. A pad 44 mm across lifts the ATI 2 mm off the base, so the cable's fitting clears the "
+            f"disc. A channel 7 mm wide and a zip-tie tunnel lead the cable to the robot's side. At a clock of 114° the walls "
+            f"between the base's own holes are {parts['wall_mm']:.1f} mm, the thickest of any clock. The cable then leaves "
+            f"44° from the HEX-E's cable port. Dowel pins are optional: one 3 x 8 in the base and two 3 x 6 in the top locate "
+            f"the ATI to its drawing.</p>"
+            f"<p>The three parts print on one P1S plate at Bambu's 0.20 mm Standard with six walls. The plate takes "
+            f"{plate['time']} and {plate['filament_g']:.0f} g, with no supports "
+            f"({code(D / 'print/20261023-ati_stack_p1s_pla.3mf')}). The arms' eyes print as horizontal holes and are opened "
+            f"with a 1.0 to 1.2 mm drill.</p>"
+            + table(["Part", "Size", "Fastening"], rows, caption="The stack's parts and screws "
+                    f"({code(ROOT / 'scripts/ati_stack_mount.py')}).", n=3)
+            + fig(1, D / "media/20261023-ati_stack_exploded.png", "The stack exploded along the tool axis: mount v3's adapter, "
+                  "the ATI base, the Mini45 with its cable's fitting, the ATI top and mount v3's standoff-fork."))
+    S.append(("stack", "The stack on the HEX-E", body))
+
+    body = (f"<p>For the calibration a hook cross is screwed on in the fork's place (Fig. 2). Four arms reach "
+            f"{abs(ev['+x']['p_M'][0]):.0f} mm along $\\pm x_M$ and $\\pm y_M$, and a post reaches 118 mm up the tool axis. "
+            f"Each of the five ends is an eye. A mass of about 0.5 kg hangs from one eye at a time, on a pigtail and an S hook. "
+            f"It is weighed with its S hook to 0.1 g. Its wrench at the ATI's origin is the reference:</p>"
+            f"$$w = \\begin{{bmatrix}} m\\,\\mathbf{{g}}_A \\\\ (p_e + \\rho\\,n) \\times m\\,\\mathbf{{g}}_A \\end{{bmatrix}}.$$"
+            f"<p>Here $m$ is the mass and $\\mathbf{{g}}_A$ local gravity in the ATI's frame, from the robot's joints (9.796 "
+            f"m/s² in Boulder). $p_e$ is the eye's exit point, and $n$ the unit direction of gravity across the eye's axis. "
+            f"The line leaves the eye at the hole's edge, so its line of action passes $\\rho$ = 0.6 mm from the eye's centre. "
+            f"At one station the tool's own weight and the gages' zero are the same with and without the mass. Each station "
+            f"is therefore recorded both ways, and their difference is the mass's wrench alone.</p>"
+            + fig(2, D / "media/20261023-ati_hook_cross.png", "The hook cross on the stack, the tool 30° from vertical and a mass "
+                  "hanging from the +x eye."))
+    S.append(("cross", "The hook cross and the hanging mass", body))
+
+    body = (f"<p>At a station the ATI is turned about a fixed point $P_0$ until gravity has a chosen direction in its frame. "
+            f"$P_0$ is ({nf(plan['p0_mm'], 0)}) mm in the robot's base frame: 430 mm above the table and 110 mm short of the "
+            f"indenters' 2x4. The candidates were 160 gravity directions, each at 24 turns about the vertical. They were "
+            f"solved on the branch of the lab's homing pose ({code(ROOT / 'scripts/ati_calibration_plan.py')}), and "
+            f"{plan['checks']['n_candidates']} directions passed every check. Eight stations per eye were then chosen greedily "
+            f"for D-optimality: each next station raised the log-determinant of the information of the six wrench "
+            f"directions the most. The excitation is {nf(sv[:5], 1)} and {sv[5]:.1f}. The random poses of the morning's "
+            f"draft gave 21.5 down to 6.3.</p>"
+            f"<p>At each station the joints stay on the branch of the homing pose. Joint 5 stays between 30 and 130°, and "
+            f"joint 6 within 150° of the homing pose's, for the cables. The tool clears the forearm and wrist links by at "
+            f"least {L['self_tool']:.1f} mm, and the HEX-E's cable port clears them by {L['port']:.1f} mm. The tool and the "
+            f"links clear the table, the 2x4, the plywood and both indenters by "
+            f"{min(L['tool_cell'], L['links_cell']):.0f} mm. The mass is modelled as a cylinder 50 mm across and 80 mm long, "
+            f"below 45 mm of line. It stays {L['mass_tool']:.0f} mm from the tool and {L['mass_links']:.0f} mm from the "
+            f"robot's links, the shoulder included, and {L['mass_cell']:.0f} mm from the cell. Joint 5 reaches "
+            f"{L['q_hi'][4]:.0f}°, past the 100° window of the tip calibration's program. Those stations are checked on the "
+            f"robot in the dry run at half speed.</p>"
+            f"<p>The session runs one block per eye. A block starts at the reference station without the mass, for the "
+            f"drift. The eye's eight stations follow without the mass. At the loading station the operator hangs the mass, "
+            f"and the same stations are visited with it. At the loading station again the operator takes it off. Within a "
+            f"block the stations are ordered as the cycle of least joint travel. In that cycle every move is clear with "
+            f"the mass hanging, and no move bends the line back over its arm. Every move was checked at ten points along "
+            f"its joint path. The {len(plan['stations'])} stations and {sum(len(b['steps']) for b in plan['blocks'])} steps "
+            f"take about {plan['minutes']:.0f} min at 0.3 rad/s (Fig. 3). Each station has 4 s for the swing to decay and "
+            f"3 s of rest. The plan is {code(D / 'plan/20261023-ati_plan_mass.json')}.</p>"
+            + film(3, D / "media/20261023-ati_calibration_sim_session.mp4", D / "media/20261023-ati_calibration_sim_session.png",
+                   "The plan in a simulated session at 24 times speed. Left, the cell from the front; right, the tool from "
+                   "the side away from the robot. The label bar names the block, the eye and the mass's state."))
+    S.append(("plan", "Robot plan of the calibration", body))
+
     rows = []
-    for lab, r in (("Presses, HEX-E as reference", p0), ("Presses and one hook point, HEX-E as reference", ph),
-                   ("Presses (HEX-E) and five hook points (known mass)", pm), ("Five hook points (known mass) alone", mo)):
-        rows.append([lab, f3(r["press_median_abs"][:3]), ", ".join(f"{x * 1e3:.1f}" for x in r["press_median_abs"][3:]),
-                     f3(r["general_median_abs"][:3]), ", ".join(f"{x * 1e3:.1f}" for x in r["general_median_abs"][3:])])
-    body = (f"<p>The first idea is to calibrate the ATI against the HEX-E on the sphere presses of the existing plan. "
-            f"Sphere2's press holds were moved to an ATI origin in the stack below. A simulated Mini45 was fitted against the "
-            f"HEX-E's wrench. Its gages were up to 10 % off the FT31565 shape. The HEX-E had its data-sheet noise and a 3 % "
-            f"gain error per axis ({code(ROOT / 'scripts/ati_calibration_sim.py')}).</p>"
-            f"<p>Every press acts about 80 mm from the ATI, so each torque is nearly a fixed multiple of its force. The scaled "
-            f"singular values are {', '.join(f'{v:.3g}' for v in sv[:3])} for three directions and "
-            f"{', '.join(f'{v:.2g}' for v in sv[3:])} for the others. Torsion about the tool axis reaches only {sim['excitation']['range_N_Nm'][5] * 1e3:.0f} N·mm. A fit to the "
-            f"presses reproduces held-out presses but misses general wrenches (Table 2). A known mass hung at five points "
-            f"60 mm out along x and y and 100 mm up the axis fills the missing directions. With the mass as its own "
-            f"reference, the HEX-E's gain errors stay out of the fit.</p>"
-            + table(["Data in the fit", "Presses: F (N)", "Presses: T (N·mm)", "General: F (N)", "General: T (N·mm)"], rows,
-                    num_cols=(1, 2, 3, 4), caption="Median absolute error of the fitted ATI on held-out presses and on general "
-                    "wrenches, 59 training presses, 20 simulated sensors.", n=2))
-    S.append(("excitation", "Excitation from the existing presses", body))
+    for s, t, l in zip(sims["sessions"], tr, lo):
+        rows.append([str(s["seed"]), str(s["pairs"]), nf(t[:3]), nmm(t[3:]), nf(l[:3]), nmm(l[3:])])
+    r12 = np.array([s["truth"]["rows12"]["median"] for s in sims["sessions"]])
+    body = (f"<p>The session program ({code(ROOT / 'scripts/ati_calibration_session.py')}) ran the plan against a "
+            f"simulated robot and box in virtual time, five times with five simulated sensors "
+            f"({code(ROOT / 'scripts/ati_calibration_sim_session.py')}). Each sensor had FT31565's row shapes at the "
+            f"US-120-160 range with gage gains up to 10 % off, and 3 counts of noise per sample at 500 Hz. Its gages drifted "
+            f"up to 2 counts a minute with a random walk on top. The ATI sat 1.5° and 0.3 mm off its nominal place, and the "
+            f"eyes 0.2 mm off theirs; the line left 0.55 mm from each eye's centre. The robot's flange stopped 0.03° off its "
+            f"kinematic model, and the mass swung 0.3 to 1.5° after each move. In the analysis "
+            f"({code(ROOT / 'scripts/ati_calibration_analysis.py')}) the drift is taken from the reference station's rests, "
+            f"and 40 pairs are formed, mass on minus mass off at each station.</p>"
+            f"<p>The full 6 x 6 fit recovers each sensor to {tr[:, :3].min():.3f} to {tr[:, :3].max():.3f} N and "
+            f"{tr[:, 3:].min() * 1e3:.1f} to {tr[:, 3:].max() * 1e3:.1f} N·mm against the truth (Table 4). Left out one "
+            f"eye at a time, it predicts that eye's pairs to {lo[:, :3].min():.3f} to {lo[:, :3].max():.3f} N. The model "
+            f"with FT31565's row shapes and twelve gains reaches {r12[:, :3].max():.3f} N. The ATI's 1.5° turn in the stack "
+            f"moves its rows away from the borrowed shape. So the full matrix is the calibration.</p>"
+            + table(["Sensor", "Pairs", "F error (N)", "T error (N·mm)", "Left-out eye: F (N)", "Left-out eye: T (N·mm)"], rows,
+                    num_cols=(1, 2, 3, 4, 5), caption="Simulated sessions on the plan: error against the truth and "
+                    "leave-one-eye-out error of the full fit, medians per axis "
+                    f"({code(D / '20261023-ati_sim_sessions.json')}).", n=4))
+    S.append(("sim", "Simulated sessions", body))
 
-    rows = [[m, f3(st["fits"][k]["median"][:3]), ", ".join(f"{x * 1e3:.2f}" for x in st["fits"][k]["median"][3:])]
-            for k, m in (("full", "Full 6 x 6, ridge"), ("rows12", "Row shapes, six output and six gage gains"),
-                         ("rows6", "Row shapes, six output gains"))]
-    body = (f"<p>The fit uses 40 poses: the 0.5 kg mass at each of the five hook points, at eight tool orientations each. The "
-            f"design's scaled singular values are {', '.join(f'{v:g}' for v in st['design'])}, so all six directions are "
-            f"excited. The simulated Mini45 has its gages up to 10 % off the FT31565 shape and noise at its stated resolution "
-            f"(1/16 N, 1/752 N·m). The full matrix recovers held-out wrenches to that resolution (Table 3). The "
-            f"twelve-parameter model is nearly as good. The six-parameter model is not, because the gages differ from the "
-            f"borrowed shape ({code(ROOT / 'scripts/ati_calibration_fit.py')} --selftest).</p>"
-            f"<p>The reference wrench of a pose is $w = [m\\,g_S,\\; r \\times m\\,g_S]$, where $g_S$ is gravity in the ATI's "
-            f"frame from the robot's joints and $r$ is the hook point. The tool's own weight and the gages' zero are the same "
-            f"at a given orientation with the mass on and off. Taking that difference cancels both, so each orientation is "
-            f"recorded twice. The HEX-E logs as well, and the same differences calibrate its gains against the mass, the "
-            f"open question of QUEUE.md R5.</p>"
-            + table(["Model", "F error (N)", "T error (N·mm)"], rows, num_cols=(1, 2),
-                    caption="Fit to 40 known-mass poses, scored on a 0.3 kg mass at other points and orientations (medians).", n=3))
-    S.append(("masses", "Calibration with known masses", body))
-
-    pr = parts["parts"]
-    rows = [["ATI base", f"{parts['stack_mm']['base']:.0f} mm, Ø63", "Over v3's M6 heads; four M3 x 20 into v3's adapter inserts; "
-             "six M3 x 10 up into the ATI, heads 12 mm up in counterbores"],
-            ["ATI Mini45", f"{parts['stack_mm']['ati']:.1f} mm, Ø45", "Stand-in: height, hole clocking and thread depth unmeasured"],
-            ["ATI top", f"{parts['stack_mm']['top']:.0f} mm, Ø63", "Six M3 x 12 down into the ATI; four M3 x 5.7 brass inserts in "
-             "v3's foot pattern (radius 25.5 mm at 0, 90, 198, 270°)"],
-            ["Hook cross", "140 x 140 x 105 mm", "In the fork's place for the calibration; 4.5 mm holes for S hooks at the five "
-             "points"]]
-    body = (f"<p>The ATI goes between mount v3's adapter and its standoff-fork, so the HEX-E, the indenters and the finger stay "
-            f"as they are (Fig. 1). v3's adapter is bolted to the HEX-E first, with its M6 x 20 tightened before anything covers "
-            f"them. The base then goes over the M6 heads and screws into the adapter's brass inserts outside the ATI's "
-            f"footprint. The fork screws into the top as it did into the adapter. The stack makes the tool "
-            f"{parts['stack_mm']['total_added']:.1f} mm longer, so the calibration plans must be rebuilt for it. For the "
-            f"masses, the hook cross goes in the fork's place (Fig. 2).</p>"
-            f"<p>The Mini45's interface comes from ATI's drawing 9230-05-1094 as quoted by a web search. Its mounting side has six "
-            f"M3 on a 39.24 mm circle, its tool side six M3 on 28.2 mm, and 3 mm dowel holes. ATI's own site could not be "
-            f"reached on 23 October. The two holes of each pair are assumed {parts['unmeasured']['ATI_PAIR_DEG']:.0f}° apart. "
-            f"The ATI is clocked at {parts['clock_deg']:.0f}°, which leaves {parts['counterbore_wall_to_base_m3_mm']:.1f} mm of wall "
-            f"between its screws' counterbores and the base's M3 holes ({code(ROOT / 'scripts/ati_stack_mount.py')}).</p>"
-            + (lambda pl: (f"<p>The base, the top and the hook cross print on one P1S plate, at Bambu's 0.20 mm Standard with "
-                           f"six walls. The plate takes {pl['time']} and {pl['filament_g']:.0f} g, most of it the cross. It is "
-                           f"{code(D / 'print/20261023-ati_stack_p1s_pla.3mf')}; after a remeasure it is rebuilt by "
-                           f"scripts/ati_stack_mount.py and then scripts/v3b_ur5v2_pla_plate.py ati_stack.</p>") if pl else "")(
-                json.loads((D / "print/20261023-ati_stack_p1s_pla.json").read_text())
-                if (D / "print/20261023-ati_stack_p1s_pla.json").exists() else None)
-            + table(["Part", "Size", "Fastening"], rows, caption="Printed parts and the ATI in the stack.", n=4)
-            + fig(1, D / "media/20261023-ati_stack_exploded.png", "The stack exploded along the tool axis: v3's adapter, the "
-                  "ATI base, the Mini45 (a stand-in cylinder), the ATI top and v3's standoff-fork.")
-            + fig(2, D / "media/20261023-ati_hook_cross.png", "The hook cross on the ATI top in the fork's place, with its "
-                  "five hook points."))
-    S.append(("stack", "The stack on the HEX-E and the hook cross", body))
-
-    steps = ["Measure the Mini45: height, the angle between the holes of a pair, the dowel holes' places and the M3 thread "
-             "depth on both faces; set ATI_* in scripts/ati_stack_mount.py and rebuild.",
-             "Save the Net F/T box's state as found (web pages, netftapi2.xml, the selected calibration), then select the "
-             "raw-gage slot #16 (FT00000) by hand. Connect the box, check that the gages read steady at rest.",
-             "Run scripts/ati_netft_logger.py --ip <box> --out <session folder> beside the UR5 program, so that both write "
-             "into the same session folder with host time stamps.",
-             "Print the base, the top and the hook cross; press the brass inserts into the top.",
-             "Assemble the stack with the hook cross. For each of the five hook points, run the plan's gravity stations "
-             "once without the mass and once with the weighed mass on its hook. With the cross on, the tool stays "
-             "63.7 mm from the robot's links and 67 mm from the cell at all 16 stations of the lab's plan "
-             "(scripts/ati_gravity_pose_check.py). A hanging mass must not swing within those distances.",
-             "Fit with scripts/ati_calibration_fit.py on the pairs (mass-on minus mass-off at each orientation) and check "
-             "the held-out poses; the same pairs give the HEX-E's gains.",
-             "Swap the cross for the fork and finger; run the sphere plan rebuilt for the 44.7 mm stack; compare the ATI "
-             "with the HEX-E on the presses."]
+    pl = plan["payload"]
+    steps = [
+        "Box: before changing anything, photograph its DIP switches (four screws, the box unpowered) and save every web "
+        "page and <code>http://&lt;box&gt;/netftapi2.xml</code>. Power it from 25 V DC at 10 W on the Pwr/CAN connector, or "
+        "from a PoE switch. With DIP switch 9 on, its address is 192.168.1.1 (Net F/T manual, section 3.4). The lab computer "
+        "is given 192.168.1.100/24 on that network: <code>sudo ip addr add 192.168.1.100/24 dev &lt;interface&gt;</code>.",
+        "On the box's Configuration page, select #16-FT00000, lbf and lbf-in, and apply (ATI Quick Start, section 3.4.2). "
+        "Counts per Force and Counts per Torque must then be 1. On comm.htm, enable RDT. Check the stream with "
+        "<code>python3 scripts/ati_netft_logger.py --ip 192.168.1.1 --out logs/&lt;date&gt;-ati_box_check --seconds 10</code>. "
+        "It should show the RDT rate set on comm.htm, status 0 and steady gages at rest.",
+        f"Print the plate {code(D / 'print/20261023-ati_stack_p1s_pla.3mf')}. Open the four arm eyes with a 1.0 to 1.2 mm "
+        "drill. Press four M3 x 5.7 brass inserts into the top. Knot a pigtail of braided line, 0.3 to 0.5 mm and 10 kg or "
+        "more, behind each eye.",
+        "Assemble the stack. Six M3 x 12 go from the base's underside into the ATI's mounting side. The base goes over the "
+        "adapter's M6 heads with four M3 x 20. Six M3 x 10 go through the top into the ATI's tool side; no longer screw may "
+        "be used there, since its threads are 3.0 mm deep. The cable lies in the base's channel, tied in the tunnel, with a "
+        "service loop to the forearm. The hook cross takes four M3 x 12 into the top's inserts. No part may touch both of "
+        "the ATI's plates.",
+        f"Weigh the mass with its S hook to 0.1 g. The payload is {pl['kg']:.3f} kg, its centre of mass "
+        f"{pl['cog_mm'][2]:.0f} mm from the flange, and {pl['with_mass']['kg']:.3f} kg with the mass; the program sets both.",
+        "Jog the robot to the plan's homing pose (the lab's home of 22 October: joints 48.3, -86.3, 109.5, -24.8, 47.3, "
+        "6.4°). A dry run with no mass at half speed, a hand on the emergency stop: <code>python3 scripts/ati_calibration_session.py "
+        "--plan docs/experiments/20261023-ati_ft_calibration/plan/20261023-ati_plan_mass.json --ati 192.168.1.1 --dry "
+        "--speed 0.5 --name dry</code>.",
+        "The run, about 27 min with ten mass changes at the program's prompts: the same command with <code>--mass-g "
+        "&lt;grams&gt; --hexe 192.168.0.6 --name run1</code> in place of <code>--dry --speed 0.5 --name dry</code>.",
+        "On the workstation: <code>.venv/bin/python scripts/ati_calibration_analysis.py &lt;session folder&gt;</code> writes "
+        "the matrix, the leave-one-eye-out errors and the HEX-E's gains into the folder's analysis/.",
+        "Afterwards: the fork in the cross's place and the sphere plans rebuilt for the 46.7 mm longer tool, to compare the "
+        "calibrated ATI with the HEX-E on the presses."]
     body = "<ol>" + "".join(f"<li>{x}</li>" for x in steps) + "</ol>"
     S.append(("procedure", "Procedure", body))
 
-    body = ("<p>In both simulations the sensor is linear with the FT31565 row shape and gage gains within 10 %, and the "
-            "mass and hook geometry are known exactly. Hysteresis, temperature drift and a damaged gage are not in them. The stack's "
-            "parts are drafts from a quoted drawing; nothing here has been printed or connected. The Mini40 (1 N·m torque "
-            "range) suits a 0.2 kg mass on the same hooks; the Mini45 takes the 0.5 kg.</p>")
+    body = ("<p>The simulated sensor is linear, with no hysteresis, no temperature drift beyond a linear trend and random "
+            "walk, and no damaged gage. The ATI's place in the stack, the eyes' places and the line's departure from each "
+            "eye are taken from the drawings. The mass's swing is modelled as a damped pendulum. The plan is checked against "
+            "the URDF's collision meshes and the cell of the tip calibration, as the rod plan placed it on 23 October. "
+            "Objects outside that model are seen only in the dry run. The Mini40 has another interface and a 1 N·m torque "
+            "range: it needs its own top and base and a mass of about 0.2 kg.</p>")
     S.append(("limits", "Limitations", body))
-    fw = ["Fit the 40-pose calibration on the real Mini45 and score it on a held-out hook point. An error above 0.1 N or "
-          "5 N·mm means a nonlinearity or a gage problem that a 6 x 6 matrix does not represent.",
-          "Repeat the five-hook procedure a day later without remounting: a change of C beyond the fit's spread is drift.",
-          "Compare the ATI and the HEX-E on the sphere presses after both are calibrated with the mass. Their difference "
-          "is the HEX-E's error, which was in the ground truth of 22 October."]
+    fw = ["Run the box check and record the box's state as found. A status other than 0 at rest stops the plan before any "
+          "print. So does a gage that does not change when the tool side is pressed by hand.",
+          "Run the session on the Mini45 and the analysis. A leave-one-eye-out error above 0.1 N or 5 N·mm is about three "
+          "times the simulated. It would mean a nonlinearity, a gage fault or a wrong eye geometry, none of which a 6 x 6 "
+          "matrix represents.",
+          "Repeat the session a day later without remounting: a change of $C$ beyond the leave-one-eye-out spread is drift "
+          "of the sensor or the box.",
+          "Compare the ATI and the HEX-E on the sphere presses with the HEX-E's gains from the same session. Their difference "
+          "is the HEX-E's error in the ground truth of 22 October."]
     S.append(("future", "Future work", "<ol>" + "".join(f"<li>{x}</li>" for x in fw) + "</ol>"))
     return S, lede, summary
 
 
 def main():
-    S, lede, summary = sections()
+    S, lede, summary = sections(load())
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S, 1))
     byline = (f"Workstation, 23 October 2026, built from {code(D)} by {code(ROOT / 'scripts/ati_ft_calibration_page.py')}. "
@@ -220,7 +332,8 @@ def main():
               f"{link(HANDOFF, HANDOFF.name)}. The calibration runs it builds on: "
               + link(CAL / "20261022-ur5_tip_ground_truth_and_predictors.html", "UR5 ground truth and predictors") + ".")
     page = TEMPLATE.read_text()
-    for k, v in {"TITLE": "ATI calibration plan", "H1": "Empirical calibration of the lab's ATI Mini45 on the UR5 with known masses",
+    for k, v in {"TITLE": "ATI calibration plan",
+                 "H1": "Calibration of the lab's ATI Mini45 on the UR5 with a weighed mass",
                  "EYEBROW": "Printed fingertips and force sensing &#183; 2026-10-23", "LEDE": lede, "BYLINE": byline,
                  "FILM": "", "TOC": toc, "SECTIONS": secs, "FOOTER": str(PAGE.relative_to(ROOT)), "TEXCSS": texsvg.CSS}.items():
         page = page.replace("{{" + k + "}}", v)
