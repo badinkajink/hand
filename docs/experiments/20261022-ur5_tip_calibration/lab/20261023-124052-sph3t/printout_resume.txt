@@ -1,0 +1,40 @@
+resumed logs/20261023-tip_calibration/124052-sph3t: 21 actions done, 19 touches
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 362 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0489 0.0228 0.2099 0.003  0.0038 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+== grid
+  ref-00 (1/30): to 2.00 N
+  grid-052 (2/30): to 2.00 N
+  grid-032 (3/30): to 3.00 N
+  grid-034 (4/30): to 3.00 N
+  grid-036 (5/30): to 3.00 N
+  grid-030 (6/30): to 3.00 N
+  grid-012 (7/30): to 5.00 N
+  grid-008 (8/30): to 5.00 N
+  grid-006 (9/30): to 5.00 N
+  grid-010 (10/30): to 5.00 N
+  grid-014 (11/30): to 5.00 N
+  grid-026 (12/30): to 5.00 N
+  grid-020 (13/30): to 5.00 N
+  grid-038 (14/30): to 3.00 N
+  grid-000 (15/30): to 5.00 N
+  ref-01 (16/30): to 2.00 N
+  grid-004 (17/30): to 5.00 N
+  grid-016 (18/30): to 5.00 N
+  grid-018 (19/30): to 5.00 N
+  grid-040 (20/30): to 3.00 N
+  grid-024 (21/30): to 5.00 N
+  grid-022 (22/30): to 5.00 N
+  grid-054 (23/30): to 2.00 N
+  grid-042 (24/30): to 3.00 N
+  grid-056 (25/30): to 2.00 N
+  grid-048 (26/30): to 3.00 N
+  grid-044 (27/30): to 3.00 N
+  grid-046 (28/30): to 3.00 N
+  grid-058 (29/30): to 2.00 N
+  ref-02 (30/30): to 2.00 N
+HEX-E: 161858 samples, 0 timed out, 0 late datagrams dropped, 0 gaps over 0.5 s
+session in logs/20261023-tip_calibration/124052-sph3t
+exit 0 at 16:03:34

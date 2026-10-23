@@ -319,6 +319,25 @@ held the robot or the DAQ.
   (18:40, tilt 1.43 deg), and all touch-offs lie within 0.9 to 2.6 mm along the 20 mm rod. The workstation fits the
   tool to sph3t and sphere2 together and gives the rod its own position and two axis angles.
 
+### 15:36 to 16:04 on 2026-10-23, sph3g (R21): half of last night's grid again, a day later, on sph3t's registration
+
+The owner's go came at 15:18 in the workstation's chat ("we can run the 40 minute test then"). They confirmed it in
+the lab session ("go") at about 15:36.
+
+- The plan is `lab/20261023-plan_sphere_lab_r21_dayrepeat.json`. It holds the even-numbered grid presses of sphere2's
+  `plan_resume_2152.json`, in last night's order and at their force levels, with joint 6 from −64.8 to +57.4 deg. Left
+  out are grid-060, -062 and -064 (joint 6 above +60 deg) and grid-066. The plan has no grid-050.
+  `scripts/ur5_tip_calibration_check.py --clearance` with sph3t's registration then dropped grid-028 (mount 2.34 mm) and
+  grid-002 (2.95 mm). That leaves 27 presses, with ref-00, ref-01 and ref-02 at the start, the middle and the end.
+- The simulator resumed a copy of sph3t's small files, with its truth set to sph3t's registered tool and sphere. All 30
+  actions ran with no abort, and `check_arm_samples.py --cell` passed (joint 5 48.3 to 85.1 deg, mount ≥ 3.3, finger
+  ≥ 2.1, HEX-E ≥ 31.6 mm).
+- 15:36:30, `sph3g`: `--resume logs/20261023-tip_calibration/124052-sph3t --stages preflight,grid`. All 30 ended with
+  no abort, and the HEX-E had 161,858 samples, no timeout and no gap. ref-00 (15:37) passed 0.1 N at 1.545 mm and
+  2 N at 2.196 mm, a depth of 0.651 mm. ref-01 (15:51) moved the onset +0.077 mm and the depth −0.004 mm; ref-02
+  (16:03) moved them +0.037 and −0.040 mm. Exit 0 at 16:03:34; home at 16:05. The data are in
+  `lab/20261023-124052-sph3t/` with `printout_resume.txt` and `plan_resume_1536.json`.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
