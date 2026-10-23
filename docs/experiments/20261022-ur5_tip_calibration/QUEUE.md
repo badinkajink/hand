@@ -36,7 +36,8 @@ push that answers it arrives.
 
 - R1 (standing, 2026-10-22 19:30). Push the session folder of every run as above, beginning with `first`. The workstation
   compares each with Table 2 of the README and with the simulated session 151114-sim, and answers here within about
-  10 minutes of the push. First answered by `lab/20261022-192715-first/` (ffc6ed71).
+  10 minutes of the push. First answered by `lab/20261022-192715-first/` (ffc6ed71). `first2`, `sphere1` and `tcp1`
+  followed; R10 and R11 answer the last two.
 
 - R2 (done by the lab in 20bfc6e7, 19:40, by another route). A stream gap over 0.5 s aborts the action it falls in
   and is logged as `ft_gap`. An orientation read after a lost tare makes the sweep's residual exceed 0.1 N, which stops
@@ -103,15 +104,16 @@ push that answers it arrives.
   gravity check now solves each station nearest the homing branch, as the program does. A full simulated session on
   this plan runs here now.
 
-- R4 (in progress at 19:52: the owner found the connector itself loose and is tightening its coupling ring; the owner,
-  before the next run). Test the HEX-E's cable on the robot. The dropouts began at joint 6
+- R4 (reopened 21:00 as R10: the tightened connector failed again at 20:27 and at 20:46; at 19:52 the owner had found
+  the connector loose and tightened its coupling ring). Test the HEX-E's cable on the robot. The dropouts began at joint 6
   = 69.0 deg turning at +5.1 deg/s and at 23.5 deg turning at -6.9 deg/s. Both angles lie inside the span of the
   presses, and both came mid-turn. That fits a connection that opens when the cable moves, more than a cable drawn
   tight at one end of the span. Reseat both connectors of the cable and relieve its strain at the sensor. Then, with
   the program stopped, turn joint 6 from -180 to +170 deg and back three times at 10 deg/s, 150 mm above the
   indenter, while one reader logs the stream. It passes with no gap over 100 ms and no counter restart.
 
-- R5 (open, 19:38; the owner, when at the robot, not blocking). Check the HEX-E's force gain with a known mass. Its
+- R5 (changed 21:00: no sweep tonight, a test at rest on a later day, see R11; asked 19:38). Check the HEX-E's force
+  gain with a known mass. Its
   raw zero is at about 645 N on a 200 N sensor, and the analysis takes every force from its gain. Run the gravity
   stage twice, with a mass of 100 to 200 g (weighed to 0.1 g) taped to the mount and without it:
   `tipcal_run.sh gainA --stages preflight,homing,gravity`, then `gainB`. The change of the fitted weight against
@@ -183,7 +185,10 @@ push that answers it arrives.
   analysis's summary reports it as `board_minus_registration_mm`, a check that leaves the ground truth free of the
   board.
 
-- R8 (open, 20:23; the owner and the lab, before the grid). The gravity sweep of `first2` (19:54, before the e-stop)
+  Amended 21:00: the lab's segment plan of 20:50 has the six pivots again. Their check measures the sphere's place
+  along the finger with no use of the board, so the offset along z_P then has two estimates.
+
+- R8 (closed 21:00: the owner left the sweep out of tonight's runs, R11; the cables went into R10; asked 20:23). The gravity sweep of `first2` (19:54, before the e-stop)
   does not give a map of the HEX-E that can be trusted. With the drift term, its residual is 65 mN (Table 2: under
   20). The gains of the three axes are 1.135, 1.085 and 0.78 of their mean. The sensor's axes come out tilted 2.4 deg
   from the tool axis, and the centre of mass 6.7 mm off it. The residual is largest in Fz: +162 mN at grav-04, after
@@ -198,6 +203,55 @@ push that answers it arrives.
 
   The grid's data stay usable if the residual remains over 30 mN: each press has its own rests, and the map can be
   refitted afterwards from R5.
+
+- R10 (open, 21:00; the owner, before the next run). The HEX-E's link to its box failed in every run tonight, once with
+  the arm still. No plan or program change avoids it. The losses, from the streams and `lab/NOTES.md`:
+
+  | Time | Run | The HEX-E's stream | The arm |
+  |---|---|---|---|
+  | 19:27:40 | first | 7.2 s gap; counter restarted, 13702 to 102 | joint 6 at 69 deg, turning 6.5 deg/s |
+  | 19:28:24 | first | stopped for about 2 min | joint 6 at 23.5 deg, turning -7 deg/s |
+  | 19:43:27 | none | no sensor in the box for 4 min | still; the owner touched the connector |
+  | 19:58:45 | first2 | 0.42 s with no answer, counter running on | joints 5 and 6 turning |
+  | 19:59:25 | first2 | no sensor in the box | moved by hand after the e-stop |
+  | 20:27:40 | sphere1 | counter restarted, 18754 to 2; 14 samples, then none | joint 4 turning 6.7 deg/s, joint 6 2.8 deg/s |
+  | 20:46:58 | tcp1 | no sensor in the box | still since 20:28:20 |
+
+  After each restart the first samples read Fz 1863 N, falling to 655 N within 0.1 s, as the sensor starts up. So the
+  sensor lost its power or its link, at the connector or in the cable. Tightening the coupling ring and tying the cable
+  down at 19:48 did not stop it. At 19:59 the wrist pressed the cable port against the forearm, which may have damaged
+  the port or the cable at its strain relief. Before the next run:
+  1. Look at the connector and the port on the sensor: bent or pushed-back pins, a cracked housing, the ring threaded
+     fully home. Look along the cable for a kink, mostly near the port.
+  2. Fit a spare cable if there is one.
+  3. Clamp the cable to the robot's side of the sensor (the flange or the UR adapter), 3 to 5 cm from the connector,
+     with that length slack. The wrist's turns then pull on the clamp.
+  4. Flex the cable with the arm still while `lab/sensor_watch.py` logs the stream: 10 s at the connector, 10 s at its
+     middle and 10 s at the box. It passes with no gap over 100 ms and no counter restart. The place where it fails is
+     the part to replace.
+
+  The program's gap guard (20bfc6e7) keeps the data safe: an action with a gap aborts, and `--resume` continues the
+  session. A link that fails every few minutes still ends each run within its first stage.
+
+- R11 (open, 21:00; the lab, the next runs). Leave the gravity stage out until the cables are routed. The five stations
+  that sphere1 finished before the restart test first2's fit. With only the offset free, first2's map predicts them to
+  63 mN rms, and first2's own sweep fitted to 65 mN. Per axis the misfit is 37, 36 and 96 mN, largest in Fz as in
+  first2. So first2's map predicts a later session as closely as either sweep fits its own stations, and another sweep
+  with the same cables would not improve it. The lab's segment plan of 20:50 has no gravity stage already.
+
+  In a session without the stage, the program sets the press levels with the HEX-E's factory axes and gains (K the
+  identity). The analysis takes first2's fit for such a session:
+  `.venv/bin/python scripts/ur5_tip_calibration_analysis.py <session> --gravity-from
+  docs/experiments/20261022-ur5_tip_calibration/lab/20261022-195420-first2`. It was tested on a simulated session with
+  its own fit removed and borrowed back: the 32 arrays of `holds.npz` came out identical.
+
+  The force gain stays open (R5). Both fits give the Fz channel a lower gain than Fx and Fy: 0.78 of their mean in
+  first2 and 0.87 over sphere1's five stations. Cables pulling on the tool would give that, and so would a low Fz gain.
+  Through first2's map, the analysis reads every force along the sensor's z 28 % larger than the factory gains do. The
+  runs tonight do not depend on it, since each press has its own rests and the analysis can apply another map
+  afterwards. The test needs no sweep. At the home pose gravity lies along the sensor's -y, and with the tool pointing
+  down along its z. At each pose, read 10 s, hang a weighed 100 to 200 g mass from the mount, read 10 s, take it off
+  and read 10 s. The change against m g gives that axis's gain to about 1 %.
 
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
