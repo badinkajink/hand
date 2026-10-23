@@ -337,6 +337,10 @@ the lab session ("go") at about 15:36.
   2 N at 2.196 mm, a depth of 0.651 mm. ref-01 (15:51) moved the onset +0.077 mm and the depth −0.004 mm; ref-02
   (16:03) moved them +0.037 and −0.040 mm. Exit 0 at 16:03:34; home at 16:05. The data are in
   `lab/20261023-124052-sph3t/` with `printout_resume.txt` and `plan_resume_1536.json`.
+- 16:30, the owner: "its time to calibrate the ati can i take off the finger". The robot stood at home in normal
+  safety mode, with nothing from the lab session connected to it or to the DAQ, so yes. With the finger off, every
+  registration of 10-22 and 10-23 (sphere2, rod1, rod1t, sph3t) stops holding for the robot. A finger that goes back
+  on needs its own touch-offs and registration before any press.
 
 ## The lab clone and git-lfs
 
