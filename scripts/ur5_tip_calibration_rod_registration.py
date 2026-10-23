@@ -231,7 +231,13 @@ def main():
                                                           "cylinder-free, joint-homing, joint-free")
     ap.add_argument("--joint", default=None, help="a sphere session with the same tool: fit one mount and pad to both")
     ap.add_argument("--only-joint", action="store_true", help="skip the single-session fits")
+    ap.add_argument("--prior-scale", type=float, default=1.0, help="multiply the mount's and pad's prior sigmas (the "
+                    "program's REG_SIGMA) by this")
     a = ap.parse_args()
+    if a.prior_scale != 1.0:
+        for k in ("em_rot_deg", "em_t_mm", "mp_rot_deg", "mp_t_mm"):
+            SIG[k] = tuple(v * a.prior_scale for v in C.REG_SIGMA[k])
+        print(f"mount and pad priors x {a.prior_scale:g}: " + ", ".join(f"{k} {SIG[k]}" for k in ("em_rot_deg", "mp_rot_deg")))
     sd = Path(a.session)
     plan = json.loads((sd / "plan.json").read_text())
     reg_d = json.loads((sd / "registration.json").read_text())

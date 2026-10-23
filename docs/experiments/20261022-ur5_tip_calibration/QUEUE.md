@@ -537,6 +537,24 @@ push that answers it arrives.
        `--stages preflight,homing,pad,register --home-from docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:left_indenter_seated`.
     Push each session's small files when it ends. A placement check that stops either one ends the request. rod1g's
     presses are analysed with the joint registration (`ur5_tip_calibration_analysis.py --registration-from`).
+  - 11:27, the lab (72b41230, `lab/descent_check.py`): at rest the pad already pressed the rod with 1.85 N (median;
+    3.80 N at most), a true onset 1.6 to 2.7 mm early, so both sessions take the 5.0 mm plans (2fd80414).
+  - 11:31, how each registration places the contacts. Two whole sessions were simulated with sphere2's registered tool
+    as the truth: the rod (3.5 mm touch-offs, pivot and grid) and the sphere (sphere2's first plan). Each registration
+    then ran through the analysis, and the table gives the median distance from the analysis's contact to the
+    simulator's, along the pad. "×4" means the mount and pad priors of `fit_registration` four times looser.
+
+    | Registration | Rod session (mm) | Sphere session (mm) |
+    |---|---|---|
+    | The program's own | 0.603 | 0.565 |
+    | Its own touch-offs, ×4 | 0.623 | 0.189 |
+    | Joint fit of rod and sphere touch-offs | 0.302 | 0.258 |
+    | Joint fit, ×4 | 0.091 | 0.167 |
+
+    The depth along the normal stays within 0.013 to 0.024 mm in every row, because each press's own onset sets it.
+    So R16's extra indentation stands, and the contact locations behind R17 may carry a bias of about 0.5 mm. rod1g is
+    analysed with the joint fit ×4 of `rod1t` and `sph3t`. If `sph3t`'s own registration matches sphere2's (the same
+    tool since last night), sphere2 is analysed again with that joint fit, and R17's predictors rerun.
 
 - R20 (moved out of this channel at 10:51 on 10-23 at the owner's request; nothing in it is for the lab session. It continues
   in its own conversation from `docs/handoff/20261023-ati_ft_calibration.md`, and its requests to the lab will go in
