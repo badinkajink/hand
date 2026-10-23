@@ -11,7 +11,13 @@ flange's position along the approach at the top level of each reference press (t
 With ft.bin and robot.bin the check adds the HEX-E's noise in each rest, the force reached by the column pushes and,
 in a dry run, the HEX-E's reading against the gravity fit along every travel (cables pulling as the tool turns).
 
-    .venv/bin/python scripts/ur5_tip_calibration_check.py <session folder> [--json out.json]
+With --clearance [PLAN] it adds the least clearance of the mount, the finger and the HEX-E to the indenter and the cell
+at every press pose and every degree of every turn of the plan (the session's own plan by default), with the nominal
+geometry that the builder checks and with the session's registration (fitted here from its touch-offs when the register
+stage has not run). Once registered, the program puts the real pad on its targets and the mount stands where the real
+geometry puts it: on 2026-10-22 sphere2's first 20 touch-offs moved the TCP 1.80 mm and 2.16 deg.
+
+    .venv/bin/python scripts/ur5_tip_calibration_check.py <session folder> [--json out.json] [--clearance [PLAN]]
 """
 from __future__ import annotations
 
@@ -441,6 +447,76 @@ class Check:
                f"{(when[worst] - self.ft[0, 0]) / 60:.1f} min (a cable pulling shows as a load that follows the tool's turn)")
         self.out["travel_load_mN"] = dict(median=float(np.median(nrm) * 1e3), p99=float(np.percentile(nrm, 99) * 1e3))
 
+    def registered_clearance(self, plan_path=None, stages=("pivot", "grid", "shear", "roll", "twist", "final"), step=1.0):
+        """Least clearance of each tool group to the indenter, the cell and the other indenters over the plan's press
+        poses (rest and 1 mm past contact) and its turns (every step deg), nominal against registered."""
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import ur5_cb3_cell as CELL
+        plan = json.loads(Path(plan_path).read_text()) if plan_path else self.plan
+        ck = plan.get("checks", {})
+        CELL.BOARD.update(ck.get("board") or {})
+        CELL.OTHER[:] = [(np.array(o["T_BI"], float), o["kind"]) for o in ck.get("other", [])]
+        need = dict(dict(mount=3.0, finger=0.8, hex_e=6.0), **{k: v for k, v in (ck.get("clearances_needed_mm") or {}).items()
+                                                                if k in ("mount", "finger", "hex_e")})
+        geo = C.Geometry(plan)
+        reg = C.Registration(geo).load(self.reg_d)
+        if reg.T_BE_home is None:
+            self.p("clearance: no homing in this session")
+            return
+        T_BI_home = reg.T_BE_home @ geo.T_EM0 @ C.inv(geo.T_IM_home)
+        if "register" in self.notes:
+            src, (T_EM, T_MP, T_BI) = "the session's registration", (reg.T_EM, reg.T_MP, reg.T_BI)
+        else:
+            pads = [t for t in self.touches if t.get("kind") == "pad"]
+            if len(pads) < 6:
+                self.p(f"clearance: {len(pads)} pad touch-offs, too few for a registration")
+                return
+            r0 = C.Registration(geo).load(self.reg_d)
+            r0.T_EM, r0.T_MP, r0.T_BI = geo.T_EM0.copy(), geo.T_MP0.copy(), T_BI_home
+            f = C.fit_registration(geo, r0, pads)
+            T_BI = C.Tm(T_BI_home[:3, :3], f["c_B"] - T_BI_home[:3, :3] @ geo.c_I)
+            src, (T_EM, T_MP) = f"a fit to its {len(pads)} pad touch-offs", (f["T_EM"], f["T_MP"])
+        G = dict(nominal=(T_BI_home, geo.T_EM0, geo.T_MP0), registered=(T_BI, T_EM, T_MP))
+        TP = CELL.tool_points()
+        groups = dict(mount=("adapter", "fork", "clamp_plate"), finger=("dip_link", "cover", "cap"), hex_e=("hex_e",))
+        least = {lab: {g: (1e9, None) for g in groups} for lab in G}
+        for a in plan["actions"]:
+            if a["stage"] not in stages or a["kind"] not in ("press", "slide", "roll", "twist"):
+                continue
+            tg, st = a["target"], float(a.get("standoff", 1.5))
+            for lab, (T_BI_, T_EM_, T_MP_) in G.items():
+                T_EP = T_EM_ @ T_MP_
+                T_IP = geo.T_IP(tg["p"], tg["n"], a.get("twist", 0.0), st, a.get("offset", (0.0, 0.0)))
+                poses = [T_BI_ @ C.Tm(T_IP[:3, :3], T_IP[:3, 3] - EZ * dz) @ C.inv(T_EP) for dz in (0.0, st + 1.0)]
+                if a["kind"] != "press":                        # the turns of run_turns, from the deep pose
+                    c_B = C.apply(T_BI_, geo.c_I)
+                    top_B = C.apply(T_BI_, geo.c_I + geo.R * EZ)
+                    for mv in a["moves"]:
+                        ang = math.radians(mv.get("dir_deg", 0.0))
+                        u = T_BI_[:3, :3] @ np.cross(EZ, [math.cos(ang), math.sin(ang), 0.0])
+                        centre, axis = ((c_B, u) if a["kind"] == "slide" else (top_B, u) if a["kind"] == "roll"
+                                        else (top_B, T_BI_[:3, :3] @ EZ))
+                        cur = 0.0
+                        for dg in list(mv["degs"]) + [0.0]:
+                            n = max(1, int(math.ceil(abs(dg - cur) / step)))
+                            poses += [C.turn_about(poses[1], centre, axis, cur + (dg - cur) * j / n) for j in range(1, n + 1)]
+                            cur = dg
+                for T_BE in poses:
+                    T_IM = C.inv(T_BI_) @ T_BE @ T_EM_
+                    for g, names in groups.items():
+                        for nm in names:
+                            PI = C.apply(T_IM, TP[nm])
+                            v = min(float(CELL.indenter_sdf(PI, plan["indenter"]).min()), float(CELL.cell_sdf(PI, T_BI_).min()),
+                                    float(CELL.other_sdf(C.apply(T_BE @ T_EM_, TP[nm])).min()))
+                            if v < least[lab][g][0]:
+                                least[lab][g] = (v, a["id"])
+        self.p(f"clearance over {', '.join(stages)} with {src} (the builder checks the nominal geometry):")
+        for g in groups:
+            (vn, an), (vr, ar) = least["nominal"][g], least["registered"][g]
+            self.p(f"  {g:7s} least {vr:6.2f} mm registered ({ar}), {vn:6.2f} nominal ({an}); needs {need[g]:.1f} "
+                   f"[{flag(vr >= need[g])}]")
+        self.out["clearance_registered"] = {g: least["registered"][g] for g in groups}
+
     def run(self):
         self.overview()
         self.preflight()
@@ -459,9 +535,15 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("session")
     ap.add_argument("--json", default=None)
+    ap.add_argument("--clearance", nargs="?", const="", default=None, help="the plan's clearances with the session's "
+                    "registration (or a fit to its touch-offs); PLAN defaults to the session's own")
     a = ap.parse_args()
     ch = Check(a.session)
     print(ch.run())
+    if a.clearance is not None:
+        ch.lines = []
+        ch.registered_clearance(a.clearance or None)
+        print("\n".join(ch.lines))
     if a.json:
         Path(a.json).write_text(json.dumps(ch.out, indent=1, default=C.jsonable))
 
