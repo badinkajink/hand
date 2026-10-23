@@ -133,5 +133,40 @@ push that answers it arrives.
   orientations in this plan and gets no fit, because the program needs 6. Its changes between orientations are
   compared with the first fit's prediction on the workstation instead.
 
+- R7 (implemented 20:19 in abf5db34; the plan, before the next run). Turn the flank and edge touch-offs with
+  `--touch-twist 30`. Every touch-off of the canonical plan and of the lab's plan was at twist 0, where the finger lies
+  along x_I. Sliding the sphere along x_I then changes no gap on the face or the flanks, so the sphere's place along
+  the finger came from the homing's prior alone (0.25 mm). A flank's or an edge's touch at twist t sees that shift by
+  its normal's y_P part times sin t. The option tries +-t, then +-2t, then 0. Contact error of the presses against the
+  simulator's truth, with the same truth and seed in each pair:
+
+  | Branch and stages | Touch twists | Contact error median (mm) | p95 (mm) | Max (mm) |
+  |---|---|---|---|---|
+  | Builder's own branch, full session | all 0 | 0.287 | 0.323 | 0.396 |
+  | Builder's own branch, through pivot | 20 of 20 twisted | 0.052 | 0.087 | 0.158 |
+  | Robot's branch (--q-seed), tonight's stages | all 0 | 0.089 | 0.131 | 0.155 |
+  | Robot's branch (--q-seed), tonight's stages | 8 of 20 twisted | 0.077 | 0.098 | 0.108 |
+
+  On the robot's branch, the wrist limit of 93e9c7db leaves 8 of the 20 a twist with every travel path clear. Trying
+  60 deg first, or allowing 90, put travel paths into the wrist's limit. Tonight's homing is a single hand seating,
+  and the error along the finger depends on its prior. The recommended build is the lab's options with
+  `--q-seed=59.48,-75.93,120.3,-44.61,62.11,1.83 --order joint6 --gravity-roll-offset 30 --touch-twist 30`.
+
+- R8 (open, 20:23; the owner and the lab, before the grid). The gravity sweep of `first2` (19:54, before the e-stop)
+  does not give a map of the HEX-E that can be trusted. With the drift term, its residual is 65 mN (Table 2: under
+  20). The gains of the three axes are 1.135, 1.085 and 0.78 of their mean. The sensor's axes come out tilted 2.4 deg
+  from the tool axis, and the centre of mass 6.7 mm off it. The residual is largest in Fz: +162 mN at grav-04, after
+  the 285 deg turn of joint 6, -202 mN at grav-09, after a 178 deg turn, and +160 mN at grav-10. A 1.5 s mean of Fz
+  has about 20 mN of noise. With equal gains forced, the residual is 144 mN. The pattern fits a cable twisted by
+  joint 6; a low gain of the Fz channel, whose raw zero is near 645 N, would also give it. Before the grid:
+  1. route both cables with a service loop tied to the forearm, so that neither drags nor winds (R4), and sweep
+     gravity again on the plan of R7;
+  2. run R5 as two gravity runs back to back, from the same start pose with the same plan, the second with a weighed
+     100 to 200 g mass taped to the mount. The cable forces repeat with the path and cancel in the difference, which
+     gives the HEX-E's 3 x 3 map with the Fz gain to about 1 %.
+
+  The grid's data stay usable if the residual remains over 30 mN: each press has its own rests, and the map can be
+  refitted afterwards from R5.
+
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
