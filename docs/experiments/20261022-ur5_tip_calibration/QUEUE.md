@@ -454,7 +454,7 @@ push that answers it arrives.
   1.05. In its fit the contact points are the registered ones, a median of 2.0 mm from the estimator's from 1 N up (see
   R16's offset). Page: `20261022-ur5_tip_ground_truth_and_predictors.html`, Section 6.
 
-- R18 (designed on the workstation at 00:45 on 10-23, not printed; the owner asked through the lab at 00:16). A mount that fastens the
+- R18 (designed on the workstation at 00:38 on 10-23, not printed; the owner asked through the lab at 00:16). A mount that fastens the
   DIP link rigidly, since the link moves in mount v3's fork (R16). It has to beat the extra indentation of 0.33 mm +
   0.20 mm/N (0.21, 0.17 and 0.14 mm/N on face, edges and flanks). It keeps the HEX-E stack and mount v3's captive
   M6 x 20, the mount's turn of -92.15 deg on the flange (or a plan rebuilt for a new turn), at least 15 mm from the
