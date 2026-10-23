@@ -159,6 +159,71 @@ def tool_points(spacing=2.0):
     return out
 
 
+# ------------------------------------------------------------------------------------------- the tool against the robot
+# The HEX-E's cable port (owner, 2026-10-22, after the port was pressed against the forearm with joint 5 at 173.5 deg): a
+# cylinder about 1 in long and 5/16 in across, radial from the sensor's side along the flange's +y (its top at homing),
+# then a right-angle continuation 0.75 in long toward the flange's -x. In the flange frame E, at the HEX-E's mid-height.
+PORT = dict(r_mm=3.97, z_mm=17.5, radial_mm=25.4, bend_mm=19.05)
+SELF_LINKS = ("forearm_link", "wrist_1_link", "wrist_2_link")
+SELF_CLEAR = dict(port=15.0, hex_e=10.0, tool=15.0)      # mm; the HEX-E's body stands 34.8 mm from wrist 2 in every pose
+
+
+def _tube(a, b, r, n=20, m=10):
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    d = b - a
+    L = float(np.linalg.norm(d))
+    d /= L
+    u = np.cross(d, [0.0, 0.0, 1.0])
+    u = u if np.linalg.norm(u) > 1e-6 else np.cross(d, [1.0, 0.0, 0.0])
+    u /= np.linalg.norm(u)
+    w = np.cross(d, u)
+    s_ = np.linspace(0.0, L, n)[:, None, None]
+    th = np.linspace(0.0, 2 * math.pi, m, endpoint=False)[None, :, None]
+    return (a + s_ * d + r * (np.cos(th) * u + np.sin(th) * w)).reshape(-1, 3)
+
+
+@lru_cache(maxsize=1)
+def port_points():
+    """Surface samples of the HEX-E's cable port and its bend (E frame, mm)."""
+    r0 = HEX["diameter_mm"] / 2
+    a = np.array([0.0, r0, PORT["z_mm"]])
+    b = a + [0.0, PORT["radial_mm"], 0.0]
+    c = b + [-PORT["bend_mm"], 0.0, 0.0]
+    return np.vstack([_tube(a, b, PORT["r_mm"]), _tube(b, c, PORT["r_mm"])])
+
+
+@lru_cache(maxsize=1)
+def _self_trees():
+    from scipy.spatial import cKDTree
+    return {ln: cKDTree(robot_points()[ln]) for ln in SELF_LINKS}
+
+
+@lru_cache(maxsize=1)
+def _self_tool_points():
+    tp = tool_points()
+    rest = np.vstack([tp[k][::8] for k in TOOL_PARTS])
+    return tp["hex_e"][::2], rest
+
+
+def self_clearance(q, T_EM):
+    """Least distances (mm) of the HEX-E, its cable port and the mount and finger to the robot's own forearm and wrist
+    links at joints q. The cell's checks (clearance) cover the indenters, the board and the table; this one covers the
+    tool folding back onto the arm, as with joint 5 near 180 deg."""
+    LF = link_frames(q)
+    T_BE = LF["tool0"]
+    hex_M, rest_M = _self_tool_points()
+    parts = dict(hex_e=C.apply(T_BE @ T_EM, hex_M), port=C.apply(T_BE, port_points()), tool=C.apply(T_BE @ T_EM, rest_M))
+    out = {}
+    for name, PB in parts.items():
+        out[name] = min(float(tree.query(C.apply(C.inv(LF[ln]), PB))[0].min()) for ln, tree in _self_trees().items())
+    return out
+
+
+def self_ok(q, T_EM, need=SELF_CLEAR):
+    sc = self_clearance(q, T_EM)
+    return all(sc[k] >= need[k] for k in need), sc
+
+
 # ------------------------------------------------------------------------------------------- indenters (I frame)
 def sd_box(P, lo, hi):
     c = (np.asarray(lo) + np.asarray(hi)) / 2

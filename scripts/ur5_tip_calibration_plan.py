@@ -49,6 +49,9 @@ COUNTS = dict(grid=dict(face=30, edge=22, flank=16, tip=6), touch=dict(face=12, 
 TWISTS = (0.0, 30.0, -30.0, 60.0, -60.0, 90.0, -90.0, 120.0, -120.0, 150.0, -150.0, 180.0)
 ROBOT_LINKS = ("forearm_link", "wrist_1_link", "wrist_2_link", "wrist_3_link")
 CLEAR = dict(robot=8.0, hex_e=6.0, mount=3.0, finger=0.8, pad=0.3, ply=5.0, travel=3.0)
+# Joint 5 at least 30 deg from the wrist's singularity (0 and 180 deg). On 2026-10-22 a travel took it to 173.5 deg and
+# pressed the HEX-E's cable port against the forearm (the owner stopped the robot); the limit was 7 deg (sin 0.12).
+WRIST_SIN = 0.5
 
 
 def nominal(kind, mount_turn_deg=0.0):
@@ -172,8 +175,12 @@ class Checker:
             return False, dict(reason="no IK"), None
         if not (-math.pi - 0.2 <= q[1] <= 0.2):
             return False, dict(reason="upper arm below the table"), q
-        if abs(math.sin(q[4])) < 0.12:
-            return False, dict(reason="wrist singularity"), q
+        if abs(math.sin(q[4])) < WRIST_SIN:
+            return False, dict(reason="wrist within 30 deg of its singularity", q_deg=np.degrees(q).round(1).tolist()), q
+        sok, sc = CELL.self_ok(q, self.T_EM)
+        if not sok:
+            return False, dict(reason="the tool near the robot's own links", self={k: round(v, 1) for k, v in sc.items()},
+                               q_deg=np.degrees(q).round(1).tolist()), q
         cl = CELL.clearance(q, T, self.T_BI, self.T_EM, self.kind, contact_P=contact_P, contact_M=contact_M)
         worst = {}
         for k, v in cl.items():
@@ -181,12 +188,18 @@ class Checker:
                    "mount" if k in ("adapter", "fork", "clamp_plate") else "pad" if k == "pad" else "finger")
             worst[grp] = min(worst.get(grp, 1e9), v)
         ok = all(worst[g] >= need[g] + extra for g in worst)
-        return ok, dict(clear={k: round(v, 2) for k, v in worst.items()}), q
+        return ok, dict(clear={k: round(v, 2) for k, v in worst.items()}, self={k: round(v, 1) for k, v in sc.items()},
+                        q_deg=np.degrees(q).round(1).tolist()), q
 
     def joint_path_ok(self, q0, q1, n=12, need=CLEAR["travel"]):
         for s in np.linspace(0, 1, n)[1:-1]:
             q = q0 + (q1 - q0) * s
             T = SIM.fk(q)
+            if abs(math.sin(q[4])) < WRIST_SIN:
+                return False, f"joint 5 at {math.degrees(q[4]):.0f} deg"
+            sok, sc = CELL.self_ok(q, self.T_EM)
+            if not sok:
+                return False, "tool near the arm: " + ", ".join(f"{k} {v:.1f} mm" for k, v in sc.items())
             cl = CELL.clearance(q, T, self.T_BI, self.T_EM, self.kind)
             if min(cl.values()) < need:
                 return False, round(min(cl.values()), 2)
@@ -226,11 +239,14 @@ def tip_reachable(geo, kind, idx, twist=0.0):
 
 
 def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_mm=38.0, mount_turn_deg=0.0,
-          block_half_mm=(50.0, 30.0), order_by="plan", roll_offset_deg=0.0):
+          block_half_mm=(50.0, 30.0), order_by="plan", roll_offset_deg=0.0, q_seed_deg=None):
     """placement: the indenter's base in the base frame (x, y, z mm, yaw deg); block_mm: the block under the indenter;
     block_half_mm: its half sizes along x_I, y_I (a 2 by 4 under the indenter runs far along y_I); order_by: "plan" (the
     order in which the actions are made) or "joint6" (module docstring); roll_offset_deg: added to every roll of the
-    gravity stations."""
+    gravity stations; q_seed_deg: the robot's joints at its seating on the key, whose IK branch the session follows
+    (the program solves its moves nearest them). Without it the builder picks the branch of most clearance, which on
+    2026-10-22 was another branch from the lab robot's (joint 1 -92 against 59 deg), so its checks described another
+    arm."""
     t_start = time.time()
     CELL.BOARD["block_mm"] = float(block_mm)
     CELL.BOARD["block_half_mm"] = tuple(float(v) for v in block_half_mm)
@@ -260,7 +276,14 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
           flush=True)
     # 2. homing pose and the IK branch
     T_home = T_BI @ geo.T_IM_home @ C.inv(geo.T_EM0)
-    chk.seed(T_home)
+    if q_seed_deg is not None:
+        q_s = chk.ik(T_home, np.radians(np.asarray(q_seed_deg, float)))
+        if q_s is None or np.abs(q_s - np.radians(np.asarray(q_seed_deg, float))).max() > math.radians(5.0):
+            raise SystemExit(f"the homing pose has no IK within 5 deg of --q-seed {q_seed_deg}")
+        chk.q = q_s
+        chk.seed_info = dict(branches=1, given_deg=list(q_seed_deg), q_deg=np.degrees(q_s).round(1).tolist())
+    else:
+        chk.seed(T_home)
     q_home = chk.q.copy()
     checks = dict(homing=chk.pose_ok(T_home)[1], seed=chk.seed_info)
     acts, dropped = [], []
@@ -554,6 +577,8 @@ def main():
                     "joint 6, the gravity sweeps out and back (module docstring)")
     ap.add_argument("--gravity-roll-offset", type=float, default=0.0, help="deg added to every roll of the gravity "
                     "stations; 30 keeps every station at least 30 deg from half a turn off the homing pose")
+    ap.add_argument("--q-seed", default=None, help="deg, comma separated: the robot's joints at its seating on the key "
+                    "(lab/poses.jsonl); the checks then follow the IK branch the session uses")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     for o in a.other:
@@ -561,7 +586,8 @@ def main():
         x, y, z, yaw = (float(s) for s in v)
         CELL.OTHER.append((C.Tm(C.rot(C.EZ, yaw), [x, y, z]), k))
     build(a.indenter, tuple(float(v) for v in a.placement.split(",")), a.out, a.block, a.mount_turn,
-          tuple(float(v) for v in a.block_half.split(",")), a.order, a.gravity_roll_offset)
+          tuple(float(v) for v in a.block_half.split(",")), a.order, a.gravity_roll_offset,
+          None if a.q_seed is None else [float(v) for v in a.q_seed.split(",")])
 
 
 if __name__ == "__main__":
