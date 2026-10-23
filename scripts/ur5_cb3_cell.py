@@ -11,6 +11,7 @@ base on the plywood).
 from __future__ import annotations
 
 import math
+import os
 import sys
 import xml.etree.ElementTree as ET
 from functools import lru_cache
@@ -28,19 +29,22 @@ UR_DESC = next((p for p in (Path.home() / "Programs/rh56_controller/magpie_force
                             Path.home() / "workspace/rh56_controller/magpie_force_control/src/ur_description")   # UR5's PC
                 if p.exists()), Path.home() / "Programs/rh56_controller/magpie_force_control/src/ur_description")
 URDF = UR_DESC / "ur5.urdf"
-MOUNT = ROOT / "docs/experiments/20261021-ur5_calibration_mount_v3/cad"
+# The mount: v3 of 2026-10-21 by default; UR5_MOUNT=v4 takes v4 of 2026-10-23 (v3 with the stop plate behind the tongue,
+# the same frames and PIP_M), whose parts the builder writes to their own folder
+_MOUNT_STEM = {"v3": "20261021-ur5_calibration_mount_v3", "v4": "20261023-ur5_calibration_mount_v4"}[os.environ.get("UR5_MOUNT", "v3")]
+MOUNT = ROOT / "docs/experiments" / _MOUNT_STEM / "cad"
 FINGER = ROOT / "docs/experiments/20261018-dip_link_board_mount/v4/b/cad"
 TOOL_PARTS = {   # name: (file, frame)
-    "adapter": (MOUNT / "20261021-ur5_calibration_mount_v3_adapter.stl", "M"),
-    "fork": (MOUNT / "20261021-ur5_calibration_mount_v3_standoff_fork.stl", "M"),
-    "clamp_plate": (MOUNT / "20261021-ur5_calibration_mount_v3_clamp_plate.stl", "M"),
+    "adapter": (MOUNT / f"{_MOUNT_STEM}_adapter.stl", "M"),
+    "fork": (MOUNT / f"{_MOUNT_STEM}_standoff_fork.stl", "M"),
+    "clamp_plate": (MOUNT / f"{_MOUNT_STEM}_clamp_plate.stl", "M"),
     "dip_link": (FINGER / "20261021-dip_link_v4b_dip_link.stl", "F"),
     "cover": (FINGER / "20261022-dip_link_v4b_cover_I15H3_3T.stl", "F"),
     "cap": (FINGER / "20261021-dip_link_v4b_tip_cap_TW15H3.stl", "F"),
     "pad": (FINGER / "20261021-dip_link_v4b_pad_ell11_5.stl", "F"),
 }
-INDENTER_STL = {"sphere": MOUNT / "20261021-ur5_calibration_mount_v3_indenter_sphere.stl",
-                "rod": MOUNT / "20261021-ur5_calibration_mount_v3_indenter_rod.stl"}
+INDENTER_STL = {"sphere": MOUNT / f"{_MOUNT_STEM}_indenter_sphere.stl",
+                "rod": MOUNT / f"{_MOUNT_STEM}_indenter_rod.stl"}
 HEX = dict(height_mm=35.0, diameter_mm=70.0, across_connector_mm=78.5, mass_kg=0.260)   # OptoForce HEX-E V1.0 data sheet
 T_M_FROM_F = np.array([[-1.0, 0, 0, 0], [0, 1.0, 0, 0], [0, 0, -1.0, 5.45], [0, 0, 0, 1.0]])   # mount v3 (PIP_M 57)
 T_M_FROM_P = C.Tm(None, [2.05, 0.0, 82.50])                      # the pad's tip frame in M (b v4 on mount v3)

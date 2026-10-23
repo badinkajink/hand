@@ -51,6 +51,8 @@ V4 = REPO / "docs/experiments/20261018-dip_link_board_mount/v4/b"
 UR5 = REPO / "docs/experiments/20261020-ur5_calibration_mount_v2/cad"
 V3M = REPO / "docs/experiments/20261021-ur5_calibration_mount_v3"
 UP3 = "20261021-ur5_calibration_mount_v3"
+V4M = REPO / "docs/experiments/20261023-ur5_calibration_mount_v4"
+UP4 = "20261023-ur5_calibration_mount_v4"
 UP = "20261020-ur5_calibration_mount_v2"
 COVERS = {"W00": 0.0, "W10": 0.10, "W20": 0.20}        # wall clearance per cover, mm
 # owner, 2026-10-20 19:10: "we have a super dense infill on these mount parts. i think across the board it can be a standard
@@ -158,6 +160,12 @@ PLATES = {
              for c, lab, stem in (("3S", "cover 3S", "cover_I15H3_3S"), ("T3S", "cap TW15H3S", "tip_cap_TW15H3S"),
                                   ("2S", "cover 2S", "cover_I15H2_2S"), ("T2S", "cap TW15H2S", "tip_cap_TW15H2S"))
              for k in (1, 2, 3)],
+    # 2026-10-23: mount v4's standoff-fork alone (scripts/ur5_calibration_mount.py with UR5M_REV=v4): v3's with a stop plate
+    # behind the DIP link's tongue, three M3 insert bores in it and one in the inner block; six walls, so the knurls sit in
+    # solid plastic and the plate prints nearly solid. The adapter (mount_v3_adapter) and the clamp plate stay as printed
+    "mount_v4_fork": [
+        ("U2", "UR5 standoff-fork v4, stop plate behind the tongue", V4M / f"cad/{UP4}_standoff_fork.stl", np.eye(3),
+         dict(STANDARD, wall_loops="6"))],
     # 2026-10-22: two more of DIP link b v4 (owner: "i want to print two more too"), the settings of plate "link_v4"
     "link_v4_x2": [(f"B4-{k}", "b v4 DIP link, recessed bridge", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl", None,
                     V.LINK) for k in (1, 2)],
@@ -173,7 +181,8 @@ PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"
              "mount_v3_adapter": (V3M / "print", "20261022-ur5_calibration_mount_v3_p1s_pla_adapter_inserts"),
              "link_v4_x2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_link_x2"),
              "fit2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit2"),
-             "snug": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_snug")}
+             "snug": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_snug"),
+             "mount_v4_fork": (V4M / "print", f"{UP4}_p1s_pla")}
 
 
 def main():
@@ -200,7 +209,8 @@ def main():
                    "mount_v3_adapter": "UR5 mount v3: the adapter with bores for M3 heat-set inserts",
                    "link_v4_x2": "DIP link b v4, two copies",
                    "fit2": "DIP link b: covers 2T, caps TW15H2",
-                   "snug": "DIP link b: snug covers 3S, 2S and caps"}[plate]
+                   "snug": "DIP link b: snug covers 3S, 2S and caps",
+                   "mount_v4_fork": "UR5 mount v4: standoff-fork with a stop plate behind the DIP link's tongue"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -229,6 +239,8 @@ def main():
                       if plate in ("mount_v3", "mount_v3_adapter") else "")
                    + ("; 2026-10-22: 'let's not go for self-threaded m3 holes there and just put four brass insert bores in there. "
                       "make sure to size the bore correctly for the brass insert'" if plate in ("mount_v3", "mount_v3_adapter") else "")
+                   + ("; 2026-10-23 (through the lab session): the DIP link moves a little in the fork when the pad is pressed "
+                      "hard; a mount that fastens the link more rigidly" if plate == "mount_v4_fork" else "")
                    + ("; 2026-10-22 11:30: 'the middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle "
                       "ground ... widen the top edge of the trapezoid of the rail ... undersize the slot and oversize the rail just a "
                       "little bit ... a PLA print with three new cassettes and top covers'" if plate == "fit3" else ""))

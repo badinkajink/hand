@@ -58,10 +58,11 @@ sys.path.insert(0, str(REPO / "src"))
 # above the foot 11 mm higher than v2. 2026-10-22: v3's adapter takes brass heat-set inserts for the foot's M3 (m3_seat
 # "insert"; `inserts` checks the bores); UR5M_ONLY=adapter rebuilds that part alone.
 REV = os.environ.get("UR5M_REV", "v1")
-V2UP = REV in ("v2", "v3")
-DATE = {"v1": "20261018", "v2": "20261020", "v3": "20261021"}[REV]
+V2UP = REV in ("v2", "v3", "v4")
+V3UP = REV in ("v3", "v4")      # v4 (2026-10-23) is v3 with a stop behind the DIP link's tongue (stop_* in its P block)
+DATE = {"v1": "20261018", "v2": "20261020", "v3": "20261021", "v4": "20261023"}[REV]
 PFX = {"v1": "20261018-ur5_calibration_mount", "v2": "20261020-ur5_calibration_mount_v2",
-       "v3": "20261021-ur5_calibration_mount_v3"}[REV]
+       "v3": "20261021-ur5_calibration_mount_v3", "v4": "20261023-ur5_calibration_mount_v4"}[REV]
 OUT = REPO / "docs/experiments" / PFX
 CAD, MEDIA, PRINT = OUT / "cad", OUT / "media", OUT / "print"
 WORK = REPO / "logs" / PFX
@@ -71,7 +72,7 @@ V2 = DIP / "v2"
 
 # ------------------------------------------------------------------------------------------------ frame and placement
 PIP_ZF = -51.55                 # z_F of the PIP axis
-PIP_M = 57.0 if REV == "v3" else 46.0   # PIP axis above the flange face (z_M): v2 boards' nearest edge >= 62 mm, chips >= 74
+PIP_M = 57.0 if V3UP else 46.0   # PIP axis above the flange face (z_M): v2 boards' nearest edge >= 62 mm, chips >= 74
 #                                         mm; v3 11 mm higher (the foot's top at z_M 28 in place of 17)
 Y_AXIS = -3.85 if REV == "v1" else 0.0
 # y_F of the tool axis: v1 the centre of the fork's footprint (y_F -21.0..13.3); v2 the finger's mid-plane (owner,
@@ -199,7 +200,7 @@ if V2UP:
         #                             5.0-5.8 mm: no key in it)
         mold_z=(-67.5, -40.0),      # z_F range of the walls
     )
-if REV == "v3":
+if V3UP:
     P.update(
         ad_t=15.0,                  # an M6 x 20 seated on the adapter's top face stands 5.0 mm out of its face into the HEX-E
         m6_seat="top",              # the head on the adapter's top face (no counterbore), the hole's mouth chamfered
@@ -238,13 +239,44 @@ SCREWS = {
     "M3x12_slotted": dict(qty=1, what="M3 x 12 socket head cap screw, brass or A2, with DIN 9021 washer 3.2 x 9 x 0.8, "
                                       "through the slotted arm's bore", mass_g=1.4),
 }
-if REV == "v3":
+if V3UP:
     SCREWS["M6x20_ISO4762"] = dict(qty=4, what="M6 x 20 socket head cap screw, steel, captive in the foot, into the HEX-E (no "
                                                "washer: 5.0 mm of thread; a DIN 125 washer under the head: 3.4 mm)", mass_g=6.9)
     del SCREWS["M6x12_ISO4762"]
     SCREWS["M3x12_foot"] = dict(qty=4, what="M3 x 12 socket head cap screw, foot into the adapter's heat-set inserts", mass_g=1.2)
     SCREWS["M3_insert"] = dict(qty=4, what="M3 x 5.7 brass heat-set insert, 4.6 mm across the knurls (CNC Kitchen's M3 x 5.7 or "
                                            "the like), in the adapter's 4.0 mm bores", mass_g=0.4)   # mass from its size
+
+if REV == "v4":
+    # 2026-10-23 (the owner, through the lab session, after a hand check: the DIP link moves a little in v3's fork when the
+    # pad is pressed hard; the UR5 run sphere2 measured 0.33 mm + 0.20 mm/N of travel beyond the FE pad, 0.21 mm/N on the
+    # face; docs/experiments/20261022-ur5_tip_calibration/QUEUE.md R16, R18). In v3 the legs alone hold the link: their walls
+    # stand 0.15 mm off, so with the clamp loose the link turns 1.0 deg about the PIP axis before it meets the fork (check.json
+    # turn_to_contact_deg), 0.64 mm at the contact point 36.4 mm below the axis, and a press on the face turns it that way.
+    # v4 adds a stop plate behind the tongue, hanging from the dorsal ear: three brass M3 set screws in heat-set inserts are
+    # turned onto the tongue's back face (x_F 8.0) once the link is clamped, then locked with jam nuts, so the normal force
+    # of a press on the face or an edge pushes the tongue onto them 5 to 8 mm behind the contact. The screws only touch:
+    # the walls and the clamp still place the link. The slotted arm's M3 goes into a brass insert in the inner block.
+    P.update(
+        stop_y=9.5,                 # the plate's half-width (y_F); the tongue's back face spans |y_F| <= 8.95 below z_F -79
+        stop_x=(9.95, 16.0),        # its inner face 0.5 mm off the neck's back (x_F 9.45), which slides past it as the link
+        #                             goes on along the tool axis, so 1.95 mm off the tongue's back (x_F 8.0); its outer face
+        stop_neck_x=9.95,           # the same face beside the neck; the board's cable stays under x_F 9.30 in its groove
+        stop_step_z=-77.6,          # the neck ends at z_F -77.6 (the tongue's back below it at x_F 8.0)
+        stop_top_z=-67.0,           # 0.5 mm into the dorsal ear, whose bottom is at ear_z_low -67.5
+        stop_bot_z=-92.0,           # the plate's lower end, 2.1 mm below the tip cap's top (z_F -89.86), 1.0 mm off its back
+        stop_r=1.0,                 # its vertical edges rounded
+        stop_screws=((0.0, -80.5), (-5.0, -87.0), (5.0, -87.0)),   # (y_F, z_F) of the three set screws: a three-point seat
+        #                                                            behind chips U2 (z_F -80.9) and U1, U3, U5 (-87.9)
+        stop_ins_hole=4.0, stop_ins_len=5.7, stop_ins_ch=0.3,     # CNC Kitchen's M3 x 5.7 bore, pressed from the outer face
+        stop_clear=3.4,             # the screw's hole through the rest of the plate
+        sl_seat="insert",           # the slotted arm's M3 x 12 into an M3 x 5.7 brass insert in the inner block (v3: a 2.75 mm
+        sl_ins_depth=8.5,           # self-forming hole); the bore reaches 1.3 mm past the screw's tip
+    )
+    SCREWS["M3_stop"] = dict(qty=3, what="M3 x 12 set screw, flat point, brass (A2 if brass is not at hand), with an M3 brass "
+                                         "nut as jam nut, turned onto the tongue's back through the stop plate", mass_g=0.9)
+    SCREWS["M3_insert_stop"] = dict(qty=4, what="M3 x 5.7 brass heat-set insert (4.6 mm across the knurls): three in the stop "
+                                               "plate, one in the inner block for the slotted arm's screw", mass_g=0.4)
 
 
 def fname(stem, ext="stl", sub=CAD):
@@ -517,7 +549,7 @@ def leg_molds(p=P):
     from shapely.geometry import Polygon, box as sbox
     from shapely.ops import unary_union
     srcs = ("v2/b/cad/20261018-dip_link_v2b_dip_link.stl", "v3/b/cad/20261020-dip_link_v3b_dip_link.stl") + (
-        ("v4/b/cad/20261021-dip_link_v4b_dip_link.stl",) if REV == "v3" else ())
+        ("v4/b/cad/20261021-dip_link_v4b_dip_link.stl",) if V3UP else ())
     links = [trimesh.load(DIP / f, force="mesh") for f in srcs]
     z0, z1 = p["mold_z"]
     drop = (z1 - z0) + 40.0
@@ -667,6 +699,28 @@ def m6_ways(K, p=P):
     return out
 
 
+def stop_plate(K, p=P):
+    """v4: the plate behind the DIP link's tongue, hanging from the dorsal ear: x_F stop_neck_x..stop_x[1] beside the neck,
+    stop_x[0]..stop_x[1] behind the tongue, |y_F| <= stop_y (F)."""
+    x0, x1 = p["stop_x"]
+    yh, r = p["stop_y"], p["stop_r"]
+    upper = K.rbox_z(p["stop_neck_x"], x1, -yh, yh, p["stop_step_z"] - 0.01, p["stop_top_z"], r)
+    lower = K.rbox_z(x0, x1, -yh, yh, p["stop_bot_z"], p["stop_step_z"], r)
+    return [upper, lower]
+
+
+def stop_bores(K, p=P):
+    """v4: for each set screw an insert bore from the plate's outer face (x_F stop_x[1]), chamfered at its mouth, and a
+    clearance hole through the rest of the plate onto the tongue."""
+    x0, x1 = p["stop_x"]
+    r_, L, ch = p["stop_ins_hole"] / 2, p["stop_ins_len"], p["stop_ins_ch"]
+    out = []
+    for y, z in p["stop_screws"]:
+        out.append(K.cyl("x", (y, z), r_, x1 - L - 0.5, x1 + 1.0))
+        out.append(K.cyl("x", (y, z), r_, x1 - ch, x1 + 0.01, r1=r_ + ch + 0.01))
+        out.append(K.cyl("x", (y, z), p["stop_clear"] / 2, x0 - 1.0, x1 - L - 0.49))
+    return out
+
 def standoff_fork_v2_ears(K, p=P):
     """v2, fork_style "ears" and "mold": v1's foot, column, hub and inner block, the DIP link sliding on along the tool axis
     between the two ears as in v1, without the key: the ears' inner faces ear_gap from the bridge's palmar and dorsal faces
@@ -689,10 +743,14 @@ def standoff_fork_v2_ears(K, p=P):
     ext = {"horn_outer": (0.0, 0.02), "horn_slot": (0.0, 0.02), "horn_inner": (0.0, 0.05), "slotted": (-0.05, 0.0)}
     walls = [K.prism_xz(poly, ly["walls_y"][0] + ext[ly["name"]][0], ly["walls_y"][1] + ext[ly["name"]][1])
              for ly in leg_molds(p) for poly in ly["polys"]] if mold else []
-    s = K.union([foot, top, ears, ib] + walls)
+    stop = stop_plate(K, p) if "stop_x" in p else []
+    s = K.union([foot, top, ears, ib] + walls + stop)
     cut = []
     cy = p["cab_y"]
-    cut.append(K.box((p["cab_x0"], -cy, p["ear_z_low"] - 2), (fx + 1, cy, p["cab_top"])))
+    # the cable slot through the dorsal ear; with the stop plate below the ear it ends at the ear's bottom
+    cut.append(K.box((p["cab_x0"], -cy, p["ear_z_low"] - (0.01 if stop else 2)), (fx + 1, cy, p["cab_top"])))
+    if stop:
+        cut += stop_bores(K, p)
     cut.append(K.box((p["groove_x0"], -cy, p["cab_top"] - 0.01), (fx + 1, cy, z_foot1 + 1)))
     cut.append(K.box((p["groove_x0"], -cy, z_foot0 - 0.01), (p["ad_d"], cy, z_foot1 + 1)))
     for zm in p["tie_zm"]:
@@ -705,7 +763,12 @@ def standoff_fork_v2_ears(K, p=P):
     ys0 = min(fy0, ARM_HORN[0] + p["mold_short"]) if mold else fy0
     for sx in (-1, 1):                                   # the clamp plate's screws into the ears (through the horn walls)
         cut.append(K.cyl("y", (sx * p["cp_screw_x"], p["cp_screw_z"]), p["m3_pilot"] / 2, ys0 - 1, fy0 + p["ear_hole_depth"]))
-    cut.append(K.cyl("y", (0.0, PIP_ZF), p["m3_pilot"] / 2, p["ib_y"][1] - p["sl_hole_depth"], p["ib_y"][1] + 1))
+    if p.get("sl_seat") == "insert":                     # v4: a brass insert for the slotted arm's screw, chamfered mouth
+        r_, y1 = p["stop_ins_hole"] / 2, p["ib_y"][1]
+        cut.append(K.cyl("y", (0.0, PIP_ZF), r_, y1 - p["sl_ins_depth"], y1 + 1))
+        cut.append(K.cyl("y", (0.0, PIP_ZF), r_, y1 - p["stop_ins_ch"], y1 + 0.01, r1=r_ + p["stop_ins_ch"] + 0.01))
+    else:
+        cut.append(K.cyl("y", (0.0, PIP_ZF), p["m3_pilot"] / 2, p["ib_y"][1] - p["sl_hole_depth"], p["ib_y"][1] + 1))
     for a in m3_angles(p):
         x, y = _m_xy(p["m3_r"], a)
         cut.append(K.cyl("z", (x, y), p["m3_clear"] / 2, z_foot0 - 1, z_foot1 + 1))
@@ -1171,7 +1234,7 @@ def b_links_v2():
     import trimesh
     out = {}
     for k, f in (("v2b", "v2/b/cad/20261018-dip_link_v2b_dip_link.stl"), ("v3b", "v3/b/cad/20261020-dip_link_v3b_dip_link.stl")) + (
-            (("v4b", "v4/b/cad/20261021-dip_link_v4b_dip_link.stl"),) if REV == "v3" else ()):
+            (("v4b", "v4/b/cad/20261021-dip_link_v4b_dip_link.stl"),) if V3UP else ()):
         m = trimesh.load(DIP / f, force="mesh")
         m.merge_vertices()
         out[k] = m
@@ -1262,6 +1325,12 @@ def cmd_check_v2(a):
         r["gaps_by_region_mm"] = {n: (round(float(dd[s_].min()), 3) if s_.any() else None) for n, s_ in reg.items()}
         r["least_gap_mm"] = round(float(dd.min()), 3)
         r["turn_to_contact_deg"] = turn_play(dm, sf)
+        if "stop_x" in P:                                # v4: the three set screws turned in to 0.02 mm off the tongue
+            scr = K.union([K.cyl("x", (y, z), 1.5, B_LINK["tongue_back"] + 0.02, P["stop_x"][1] + 3.0)
+                           for y, z in P["stop_screws"]])
+            r["overlap_set_screws_mm3"] = round(float((dm ^ scr).volume()), 4)
+            r["turn_to_contact_deg_screws_set"] = turn_play(dm, K.union([sf, scr]))
+            print(k, "turn with the stop screws set", r["turn_to_contact_deg_screws_set"], flush=True)
         res[k] = r
         print(k, "overlap", r["overlap_fork_mm3"], "insertion clear", r["insertion_clear"], r["gaps_by_region_mm"],
               "turn", r["turn_to_contact_deg"], flush=True)
@@ -1318,7 +1387,7 @@ def cmd_check_v2(a):
                  rail=P["cr_rail_t"], lip_thread_mm=round(P["cr_lip_t"] - (L["tongue_back"] + P["cr_clear_x"] - P["cr_screw_x"]), 2),
                  inner_block_height=round(P["hub_z0"] - P["ib_flat_z"], 2),
                  socket_to_column_side=round(P["fp_x"] - P["home_depth"], 2))
-    rec = dict(rev="v2", b_links=res, hex_key_access=acc, foot_screw_heads=heads, poses_table=poses, walls_mm=walls,
+    rec = dict(rev=REV, b_links=res, hex_key_access=acc, foot_screw_heads=heads, poses_table=poses, walls_mm=walls,
                note="F frame for the links; table frame for the poses (x along the tool axis toward the tip, z up, the palmar "
                     "side down); overlaps by manifold3d booleans of the meshes (the pad's overlap at 'touch' is the contact's "
                     "tessellation); gaps by nearest neighbours between surface samples 0.1 mm apart",
@@ -1401,14 +1470,17 @@ def cmd_payload_v2(a):
     newer = p2 / "20261020-p1s_pla_fork_and_indenters.json"         # the fork of 19:10 at 15 % grid, when sliced
     if newer.exists():
         fill.update({o["id"]: o["fill_ratio"] for o in json.loads(newer.read_text())["objects"] if o["id"] == "U2"})
-    if REV == "v3":                                     # v3's adapter and fork from their own plate; the clamp plate is v2's
-        fill.update({o["id"]: o["fill_ratio"] for o in json.loads((PRINT / f"{PFX}_p1s_pla.json").read_text())["objects"]})
+    if V3UP:                                            # v3's adapter and fork from their own plate; the clamp plate is v2's
+        v3p = REPO / "docs/experiments/20261021-ur5_calibration_mount_v3/print/20261021-ur5_calibration_mount_v3_p1s_pla.json"
+        fill.update({o["id"]: o["fill_ratio"] for o in json.loads(v3p.read_text())["objects"]})
+        if REV == "v4" and (PRINT / f"{PFX}_p1s_pla.json").exists():          # v4's fork from its own plate
+            fill.update({o["id"]: o["fill_ratio"] for o in json.loads((PRINT / f"{PFX}_p1s_pla.json").read_text())["objects"]})
     ev = json.loads((DIP / "v3/b/evaluation.json").read_text())["mass_g"]
     items = []
     for nm, pid in (("adapter", "U1"), ("standoff_fork", "U2")) + ((("clamp_plate", "U3"),) if "clamp_plate" in PARTS else ()):
         tm = _load_part(nm)
         items.append((nm, float(tm.volume) * 1e-3 * MATERIAL["pla_density_g_cm3"] * fill[pid], np.asarray(tm.center_mass)))
-    lk = "v4" if REV == "v3" else "v3"                  # v3 of the mount carries DIP link b v4 (its sliced mass, v4 checks)
+    lk = "v4" if V3UP else "v3"                  # v3 of the mount carries DIP link b v4 (its sliced mass, v4 checks)
     link = trimesh.load(DIP / ("v4/b/cad/20261021-dip_link_v4b_dip_link.stl" if lk == "v4" else
                                "v3/b/cad/20261020-dip_link_v3b_dip_link.stl"), force="mesh")
     link.apply_transform(T_M_FROM_F)
@@ -1416,13 +1488,13 @@ def cmd_payload_v2(a):
     c_tip = F_to_M(np.array([-2.0, 0.0, B_LINK["z_contact"]]))
     m_link = (json.loads((DIP / "v4/b/20261021-dip_link_v4b_checks.json").read_text())["mass_g"]["v4"]["sliced"] if lk == "v4"
               else ev["dip_link_at_sliced_density"])
-    m6 = (4 * SCREWS["M6x20_ISO4762"]["mass_g"], np.array([0.0, 0.0, 11.0])) if REV == "v3" else \
+    m6 = (4 * SCREWS["M6x20_ISO4762"]["mass_g"], np.array([0.0, 0.0, 11.0])) if V3UP else \
         (4 * SCREWS["M6x12_ISO4762"]["mass_g"], np.array([0.0, 0.0, 6.0]))
     items += [(f"dip_link_b_{lk}", m_link, c_link),
               ("cover_board_screws", ev["cover_solid"] + ev["board"] + ev["screws_brass"], F_to_M(np.array([3.5, 0.0, -88.0]))),
               ("pad_and_magnets", 2.01 + 5 * 0.106, c_tip),
-              ("m6_screws" if REV == "v3" else "m6_screws_washers", m6[0], m6[1]),
-              ("m3_screws", 4 * SCREWS["M3x12_foot"]["mass_g"] + 2.4, np.array([0.0, 0.0, 24.0 if REV == "v3" else 20.0])),
+              ("m6_screws" if V3UP else "m6_screws_washers", m6[0], m6[1]),
+              ("m3_screws", 4 * SCREWS["M3x12_foot"]["mass_g"] + 2.4, np.array([0.0, 0.0, 24.0 if V3UP else 20.0])),
               ("hex_e", 347.0, np.array([0.0, 5.0, -50.0 + 20.0]))]
     if P.get("m3_seat") == "insert":
         items.append(("m3_inserts", 4 * SCREWS["M3_insert"]["mass_g"], np.array([0.0, 0.0, P["ad_t"] - P["ins_len"] / 2])))
@@ -2420,6 +2492,96 @@ def cmd_render_v3(a):
     print("renders ->", rel(MEDIA), flush=True)
 
 
+def _stop_hardware_M():
+    """v4: the three set screws (from the tongue's back to 4 mm past the plate's outer face) and their jam nuts, in M."""
+    import trimesh
+    scr, nuts = [], []
+    x1 = P["stop_x"][1]
+    for y, z in P["stop_screws"]:
+        a_, b_ = F_to_M(np.array([B_LINK["tongue_back"], y, z])), F_to_M(np.array([x1 + 4.0, y, z]))
+        for r, p0, p1, sec, out in ((1.5, a_, b_, 32, scr),
+                                    (5.5 / math.sqrt(3), F_to_M(np.array([x1, y, z])), F_to_M(np.array([x1 + 2.4, y, z])), 6, nuts)):
+            c = trimesh.creation.cylinder(radius=r, height=float(np.linalg.norm(p1 - p0)), sections=sec)
+            c.apply_transform(trimesh.geometry.align_vectors([0, 0, 1.0], (p1 - p0) / np.linalg.norm(p1 - p0)))
+            c.apply_translation((p0 + p1) / 2)
+            out.append(c)
+    return trimesh.util.concatenate(scr), trimesh.util.concatenate(nuts)
+
+
+def cmd_render_v4(a):
+    """v4 figures: the stop plate behind the DIP link's tongue with its three set screws and jam nuts, seen from the dorsal
+    side, and sections through the screws with a press on the face."""
+    import trimesh
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    C_ = dict(COLORS, cover="0.36 0.52 0.86 1")
+    parts = {nm: trimesh.load(fname(nm), force="mesh") for nm in PARTS}
+    V4B = DIP / "v4/b/cad"
+    dip = {}
+    for k_, f in (("dip_link", "20261021-dip_link_v4b_dip_link.stl"), ("cover", "20261022-dip_link_v4b_cover_I15H3_3S.stl"),
+                  ("tip", "20261021-dip_link_v4b_pad_block5.stl"), ("cap", "20261022-dip_link_v4b_tip_cap_TW15H3S.stl")):
+        t = trimesh.load(V4B / f, force="mesh")
+        t.apply_transform(T_M_FROM_F)
+        dip[k_] = t
+    scr, nuts = _stop_hardware_M()
+    asm = [(parts["adapter"], C_["adapter"], "v4_ad"), (parts["standoff_fork"], C_["standoff_fork"], "v4_sf"),
+           (parts["clamp_plate"], C_["clamp_plate"], "v4_cp"), (scr, C_["brass"], "v4_scr"), (nuts, C_["brass"], "v4_nut"),
+           (dip["dip_link"], C_["dip_link"], "v4_link"), (dip["cover"], C_["cover"], "v4_cover"), (dip["tip"], C_["tip"], "v4_tip"),
+           (dip["cap"], "0.30 0.60 0.40 1", "v4_cap")]
+    look = F_to_M(np.array([12.0, 0.0, -78.0]))
+    cam = (look, 260, -35, -12)
+    img = _render(asm, cam, MEDIA / f"{PFX}_stop.png")
+    y0, z0 = P["stop_screws"][0]
+    _annotate(img, cam, [
+        ("Stop plate behind the tongue, part of the standoff-fork", F_to_M(np.array([P["stop_x"][1], 7.5, -84.0]))),
+        ("Three brass M3 set screws in heat-set inserts, turned onto the tongue's back", F_to_M(np.array([P["stop_x"][1] + 3.0, y0, z0]))),
+        ("Jam nuts lock the screws once they touch", F_to_M(np.array([P["stop_x"][1] + 1.2, 5.0, -87.0]))),
+        ("Legs in their walls and the clamp plate, as in v3", F_to_M(np.array([0.0, -27.0, -60.0]))),
+        ("Pad and cover of DIP link b v4", F_to_M(np.array([-8.0, 0.0, -90.0])))],
+        title="Mount v4: the stop plate behind the DIP link's tongue, from the dorsal side")
+    # sections through the screws, x_M (palmar to the right) against z_M (the tool axis, tip up)
+    plt.rcParams.update({"font.family": "serif", "font.size": 13})
+    fig, axs = plt.subplots(1, 2, figsize=(11.0, 6.4), dpi=110)
+    cols = {"standoff_fork": "#5b8fd9", "clamp_plate": "#3c6fb5", "dip_link": "#d8d8d2", "cover": "#5c84db", "tip": "#ebc78c",
+            "cap": "#4d9966", "screws": "#cca640", "nuts": "#cca640"}
+    meshes = dict(standoff_fork=parts["standoff_fork"], clamp_plate=parts["clamp_plate"], dip_link=dip["dip_link"],
+                  cover=dip["cover"], tip=dip["tip"], cap=dip["cap"], screws=scr, nuts=nuts)
+    zc = F_to_M(np.array([-10.55, 0.0, B_LINK["z_contact"]]))
+    for ax, yF in zip(axs, (0.0, 5.0)):
+        for nm, m in meshes.items():
+            sec = m.section(plane_origin=[0.0, yF - Y_AXIS, 0.0], plane_normal=[0.0, 1.0, 0.0])
+            if sec is None:
+                continue
+            for e in sec.entities:
+                q = sec.vertices[e.points]
+                ax.fill(q[:, 0], q[:, 2], color=cols[nm], ec="k", lw=0.5)
+        ax.annotate("", xy=(zc[0], zc[2]), xytext=(zc[0] + 9.0, zc[2]), arrowprops=dict(arrowstyle="-|>", color="#b03030", lw=2.0))
+        ax.text(zc[0] + 1.0, zc[2] + 2.0, "Press on the face", color="#b03030", fontsize=12)
+        ax.set_xlim(-24, 24)
+        ax.set_ylim(55, 108)
+        ax.set_aspect("equal")
+        ax.grid(alpha=0.3)
+        ax.set_xlabel("x$_M$ (mm), palmar side to the right")
+        ax.set_title(f"Through y$_F$ = {yF:+.0f} mm" + (": the screw at z$_F$ -80.5" if yF == 0 else ": a screw at z$_F$ -87.0"))
+    axs[0].set_ylabel("z$_M$ (mm), along the tool axis")
+    fig.tight_layout()
+    fig.savefig(MEDIA / f"{PFX}_stop_sections.png")
+    plt.close(fig)
+    # a turntable film about the tool axis, the link on: 36 frames, 10 deg apart, three seconds at 12 frames per second
+    import subprocess
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        for k in range(36):
+            _render(asm, (F_to_M(np.array([0.0, 0.0, -47.0])), 290, -35 + 10 * k, -14), Path(tmp) / f"f{k:03d}.png", w=960, h=720)
+        film = MEDIA / f"{PFX}_turntable.mp4"
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", "12", "-i", str(Path(tmp) / "f%03d.png"),
+                        "-vf", "crop=960:720:0:0", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "26", str(film)], check=True)
+        import shutil
+        shutil.copy(Path(tmp) / "f000.png", MEDIA / f"{PFX}_turntable.png")
+    print("render v4:", MEDIA / f"{PFX}_stop.png", MEDIA / f"{PFX}_stop_sections.png", film, flush=True)
+
 def cmd_sections_v3(a):
     """v3: sections through the M6 axes in the x-z plane of M, y_M +17.68 (the two screws on the slotted-arm side, a straight
     key) and -17.68 (the two under the column's corners, a ball-end key), the screws seated and lifted."""
@@ -2729,8 +2891,8 @@ def main():
     ap.add_argument("cmd", choices=["interfaces", "build", "check", "estimate", "render", "sections", "print", "docs", "payload",
                                     "screws", "inserts"])
     a = ap.parse_args()
-    {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else (cmd_render_v3 if REV == "v3" else cmd_render_v2_ears if P.get("fork_style") in ("ears", "mold") else cmd_render_v2),
-     "sections": cmd_sections_v3 if REV == "v3" else cmd_sections, "print": cmd_print, "docs": cmd_docs, "payload": cmd_payload_v2, "screws": cmd_check_v3_screws,
+    {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else (cmd_render_v4 if REV == "v4" else cmd_render_v3 if V3UP else cmd_render_v2_ears if P.get("fork_style") in ("ears", "mold") else cmd_render_v2),
+     "sections": cmd_sections_v3 if V3UP else cmd_sections, "print": cmd_print, "docs": cmd_docs, "payload": cmd_payload_v2, "screws": cmd_check_v3_screws,
      "inserts": cmd_inserts}[a.cmd](a)
 
 
