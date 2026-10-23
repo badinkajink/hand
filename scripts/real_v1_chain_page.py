@@ -449,8 +449,8 @@ BODY = r"""
   <div class="col">
     <h2>Grip decay during the set-down</h2>
     <p>At the top of a raised-pivot turn the tool is often cradled against the middle phalanges with
-    the pads barely on it (about 0.5&nbsp;mm of commanded interference), and the hold leaks: the
-    shaft creeps down through the pads at about 1.5&nbsp;mm/s and the pad force decays to nothing in
+    the pads barely on it (about 0.5&nbsp;mm of commanded interference), and the hold leaks. The
+    shaft creeps down through the pads at about 1.5&nbsp;mm/s, and the pad force decays to nothing in
     under two seconds, as <code>probe_real_v1_carry</code> measured from the other direction
     (16.1&nbsp;N to zero, tool on the table by 1.6&nbsp;s).</p>
   </div>
@@ -478,18 +478,18 @@ BODY = r"""
     <div class="tw"><table><thead><tr><th>Condition</th><th class="num">Chains</th>
       <th class="num">Turns</th><th>Note</th></tr></thead><tbody>{ctrls}</tbody></table></div>
     <p>The mid-air re-grasp fails although the gait's tripod ring solves to 1.1&nbsp;mm at the carry's
-    own palm pose: a linear joint-space move from one grasp to the other passes through a
+    own palm pose. A linear joint-space move from one grasp to the other passes through a
     configuration that holds neither, and in mid-air nothing supports the tool. With the tool set
     on the floor first the same transition works on every seed, so the floor lets the hand change
     its grasp.</p>
     <h3>Tolerance of the set-down to the carry's exit tilt</h3>
     <p>The carry's exit tilt depends mostly on the length of the hold after the turn (cos 0.837 at
-    the last commanded step, 0.946 after 0.6&nbsp;s, 0.996 after 1.0&nbsp;s), and any exit tilt
+    the last commanded step, 0.946 after 0.6&nbsp;s, 0.996 after 1.0&nbsp;s). Any exit tilt
     from 6&deg; to 25&deg; completes the chain.</p>
     <div class="tw"><table><thead><tr><th class="num">Hold after the turn (s)</th>
       <th class="num">Carry exit tilt (&deg;)</th><th class="num">Chains</th>
       <th class="num">Turns</th></tr></thead><tbody>{hold_rows}</tbody></table></div>
-    <p>The gait keeps the limits it had on a bare floor: a 30&deg; stroke per cycle is reliable,
+    <p>The gait keeps the limits it had on a bare floor. A 30&deg; stroke per cycle is reliable,
     45&deg; roughly doubles the turn rate and loses seeds, and 60&deg; walks the tool over.</p>
     <div class="tw"><table><thead><tr><th class="num">Stroke (&deg;)</th><th class="num">Chains</th>
       <th class="num">Turns / 8 cycles</th><th class="num">&deg; per cycle</th>
@@ -527,8 +527,8 @@ BODY = r"""
   </figure>
   <div class="col">
     <p>The arm's cost is stiffness, with a sharp threshold. The menagerie UR5e has no gravity
-    feedforward: its shoulder sits 21&nbsp;mrad below its set-point under the arm's own 12&nbsp;kg
-    and the palm droops 12.7&nbsp;mm at the top of the lift, which turns a 5&deg; carry exit into
+    feedforward. Its shoulder sits 21&nbsp;mrad below its set-point under the arm's own 12&nbsp;kg,
+    and the palm droops 12.7&nbsp;mm at the top of the lift. This turns a 5&deg; carry exit into
     29&deg; and breaks the set-down. Compensating the <em>arm's</em> links (the hand stays an
     undeclared payload) reduces the droop from 12.7&nbsp;mm to 0.35&nbsp;mm on the same robot.</p>
   </div>
@@ -555,8 +555,8 @@ BODY = r"""
     <p class="sub">A 45&deg; frustum tip and a matching countersink</p>
     <p>On a flat plane the ground acts only as a friction brake and the tool walks
     (<code>drift_mm</code>). The tool now has a 45&deg; frustum tip, a convex mesh that MuJoCo&#8217;s
-    hull represents exactly, and the floor a matching countersink; since a conical hole is not
-    convex, the seat is built from 32 facets for the wall, a disc for the relieved bottom and a flat
+    hull represents exactly, and the floor has a matching countersink. A conical hole is not
+    convex, so the seat is built from 32 facets for the wall, a disc for the relieved bottom and a flat
     annulus around the mouth.</p>
     <p>The tool is picked up lying on the table, 40&nbsp;mm from the seat, so the chain has to
     transport it as well as insert it.</p>
@@ -586,9 +586,9 @@ BODY = r"""
   <div class="col">
     <h3>Press depth and capture radius</h3>
     <p>Below about 8&nbsp;mm of commanded press the tip stops above its seat and the gait has
-    nothing to push against; from 10 to 18&nbsp;mm the press makes no further difference. The
+    nothing to push against. From 10 to 18&nbsp;mm the press makes no further difference. The
     capture radius is 6&nbsp;mm against 10.5&nbsp;mm of geometric clearance, because the tool
-    arrives with 2&ndash;5&deg; of tilt and a tilted cone binds in a cone of the same angle: an
+    arrives with 2&ndash;5&deg; of tilt and a tilted cone binds in a cone of the same angle. An
     8&deg; entry stops 3&nbsp;mm into a 10&nbsp;mm seat.</p>
   </div>
   <div class="pair">

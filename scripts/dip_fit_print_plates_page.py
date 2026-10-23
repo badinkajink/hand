@@ -179,8 +179,8 @@ def ids_section(pieces):
         f"<td>{esc(s['variant'])}</td><td>{esc(s['mark'])}</td>"
         f"<td>{dict(p1s='P1S', a1m='A1 mini', xl='XL').get(s['printer'], s['printer'])}</td></tr>"
         for s in pieces)
-    note = ("The digits of K, F and C give the variant in hundredths of a millimetre: K25 is the key with a 0.25 mm "
-            "detent, F10 the channel block 0.10 mm narrower per flank, C30 the carrier with 0.30 mm chip windows."
+    note = ("The digits of K, F and C give the variant in hundredths of a millimetre. K25 is the key with a 0.25 mm "
+            "detent, F10 is the channel block 0.10 mm narrower per flank, and C30 is the carrier with 0.30 mm chip windows."
             if CONCEPT == "a" else
             "The digits of G and S give the variant in hundredths of a millimetre: G10 is the groove block 0.10 mm "
             "narrower per flank, S45 the tongue with a 0.45 mm deep seat pocket.")
@@ -259,7 +259,7 @@ def records_section(rows):
 
 
 A1M_SOLID = (
-    "<li>The A1 mini project of 16:55 printed every 85A block solid: Bambu&#8217;s minimum sparse infill area of "
+    "<li>The A1 mini project of 16:55 printed every 85A block solid. Bambu&#8217;s minimum sparse infill area of "
     "15 mm&#178; turned each gyroid island inside a block&#8217;s walls into zig-zag infill, and its 1.0 mm minimum top "
     "shell added a fifth top skin. Since 17:06 the project sets both as the XL projects do (0 mm&#178; and 0.7 mm), and "
     "the build stops unless every block prints gyroid. Blocks printed from the 16:55 project have the same IDs and are "
@@ -329,8 +329,8 @@ def results_section_a():
         "slot is 7.8 mm wide, 0.4 mm clear of the plug on each side.</li>"
         "<li>Cable groove: W&#8217;s turns are fine, but the cable is a flat ribbon about 4 mm wide and 1 mm thick that had "
         "to be squished into the 2.2 to 2.6 mm grooves. Since 17:57 v2 a models the ribbon, massaged into a bundle, as "
-        "2.6 mm (2.0 mm before) in a 3.0 mm groove, and the cable turns at the plug&#8217;s rear face (after a 0.5 mm "
-        "straight lead before), so that it stays 1.44 mm from the MCP link (R7 asks 1.0 mm). Run b&#8217;s W tests "
+        "2.6 mm (2.0 mm before) in a 3.0 mm groove, and since then the cable turns at the plug&#8217;s rear face (after a 0.5 mm "
+        "straight lead before). It stays 1.44 mm from the MCP link, where R7 asks 1.0 mm. Run b&#8217;s W tests "
         "grooves of 2.8, 3.0 and 3.4 mm.</li>"
         "<li>Screw holes: M2 screws form their thread in H&#8217;s 1.8 mm holes, but not in the clamp plate&#8217;s "
         "1.8 mm holes; since 18:30 v2 a&#8217;s clamp plate and b&#8217;s tongue have 1.9 mm holes (screw_thread_d). The "
