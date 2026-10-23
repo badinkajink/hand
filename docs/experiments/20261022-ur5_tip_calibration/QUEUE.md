@@ -514,6 +514,14 @@ push that answers it arrives.
     preflight,homing,pad,register,pivot,grid,shear,roll`, about 1.5 h. The analysis borrows first2's gravity fit as for
     sphere2. The FE comparison takes the rod since 08:21 (the analysis stores the rod's axis per hold): on the simulated
     rod session it fits the pad's compliance at 1.20 times the FE's, where the simulator's is 1.15.
+  - 11:00, after rod1 (lab e4fcb876): push rod1's small files now (all but `ft.bin`, `robot.bin` and `board.bin`), so
+    that its registration is checked here while rod1g runs. The program's `fit_registration` treats the rod as a
+    sphere: each pad touch's residual is the pad's distance to one point, minus R, and homing fixes the rod's axis. All
+    22 touch-offs press the same point on the axis. The pad's offset in its seat then moves each real contact along the
+    rod, by up to about 2 mm. A cylinder allows that motion; a sphere penalizes it by about 0.16 mm at 2 mm, the size of
+    the worst residuals (0.17 to 0.29 mm). The workstation refits with the distance to the axis line. The run goes on
+    unchanged unless the refit turns the TCP by more than a degree; then the mount clearance of the remaining actions
+    is recomputed here.
 
 - R20 (moved out of this channel at 10:51 on 10-23 at the owner's request; nothing in it is for the lab session. It continues
   in its own conversation from `docs/handoff/20261023-ati_ft_calibration.md`, and its requests to the lab will go in
