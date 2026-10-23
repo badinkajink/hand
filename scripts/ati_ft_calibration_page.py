@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import os
 import re
 import sys
@@ -80,7 +81,8 @@ def load():
                 sims=j(D / "20261023-ati_sim_sessions.json"), plate=j(D / "print/20261023-ati_stack_p1s_pla.json"),
                 press=j(D / "20261023-ati_calibration_sim.json"), holder=j(D / "20261023-ati_mass_holder.json"),
                 hplate=j(D / "print/20261023-ati_mass_holder_p1s_pla.json"),
-                by_mass={t: j(D / f"20261023-ati_sim_sessions_{t}.json") for t in ("m250", "m112", "m112r12")})
+                cplate=j(D / "print/20261023-ati_mass_cap2_p1s_pla.json"),
+                by_mass={t: j(D / f"20261023-ati_sim_sessions_{t}.json") for t in ("m250", "m112", "m112r12", "m112stiff")})
 
 
 def least(plan):
@@ -97,11 +99,13 @@ def by_mass_rows(X):
     """Error against the truth by hung mass and rest: the medians' range over five sensors and three axes, and the largest
     90th percentile."""
     out = []
-    for sims in [X["sims"]] + [X["by_mass"][t] for t in ("m250", "m112", "m112r12")]:
+    for sims in [X["sims"]] + [X["by_mass"][t] for t in ("m250", "m112", "m112r12", "m112stiff")]:
         md = np.array([x["truth"]["full"]["median"] for x in sims["sessions"]])
         p9 = np.array([x["truth"]["full"]["p90"] for x in sims["sessions"]])
+        off = (sims["sim_line_mm"] - sims["line_mm"]) / 2 if sims.get("sim_line_mm") else 0.0
         out.append(dict(mass_g=sims.get("mass_g", 500.3), rest_s=sims.get("rest_s") or 3.0, F=(md[:, :3].min(), md[:, :3].max()),
-                        F90=p9[:, :3].max(), T=(md[:, 3:].min() * 1e3, md[:, 3:].max() * 1e3), T90=p9[:, 3:].max() * 1e3))
+                        F90=p9[:, :3].max(), T=(md[:, 3:].min() * 1e3, md[:, 3:].max() * 1e3), T90=p9[:, 3:].max() * 1e3,
+                        off=off, line=(f"{off:.0f} mm off the model" if off > 0 else f"thread, {sims.get('line_mm', 0.3):.1f} mm")))
     return out
 
 
@@ -109,7 +113,10 @@ def sections(X):
     parts, plan, sims, plate, press = X["parts"], X["plan"], X["sims"], X["plate"], X["press"]
     hold, hplate, BM = X["holder"], X["hplate"], by_mass_rows(X)
     hg = hold["geometry"]
-    m112 = next(b for b in BM if b["mass_g"] < 200 and b["rest_s"] == 3.0)
+    m112 = next(b for b in BM if b["mass_g"] < 200 and b["rest_s"] == 3.0 and b["off"] == 0)
+    stiff = next(b for b in BM if b["off"] > 0)
+    lo_st = np.array([x["leave_eye_out"]["full"]["median"] for x in X["by_mass"]["m112stiff"]["sessions"]])
+    stiff_lo = (lo_st[:, 3:].min() * 1e3, lo_st[:, 3:].max() * 1e3)
     slow = next(b for b in BM if b["rest_s"] > 3.0)
     L = least(plan)
     rc = sims["reference_compare"]
@@ -141,11 +148,13 @@ def sections(X):
               "(FT00000) is selected, in counts."),
              ("Calibration matrix $C$", "The 6 x 6 matrix of $w = C\\,(g - g_0)$, from counts to N and N·m; $g_0$ is the "
               "gage values with no load on the tool side."),
-             ("Eye", "A 1.2 mm hole through a 1.6 mm end wall of the hook cross. A short line of braided line with a loop at "
-              "its end (the pigtail) is knotted behind it, and the mass hangs from the loop. Each eye has a position $p$ and "
-              "an outward direction $u$."),
-             ("Mass $m$", "What hangs from the pigtail, weighed to 0.1 g: the lab's 100 g weight with its printed holder and "
-              "the holder's two screws, or a heavier mass."),
+             ("Eye", "A 1.2 mm hole through a 1.6 mm end wall of the hook cross, with a slot behind the wall. The line from "
+              "which the mass hangs passes through it, its stopper knot in the slot. Each eye has an exit point $p_e$ and an "
+              "outward direction $u$."),
+             ("Line", "A thin, flexible line from an eye to the holder's tie hole: polyester thread, dental floss or braided "
+              "fishing line, 0.2 to 0.5 mm across. Its diameter $d$ is measured and given to the session."),
+             ("Mass $m$", "What hangs from the eye, weighed to 0.1 g: the lab's 100 g weight with its printed holder, the "
+              "holder's two screws and the line, or a heavier mass."),
              ("Bend", "The angle between an eye's outward direction and gravity. The line hangs free of its arm when the bend "
               "is at most 75°, that is $g \\cdot u \\geq 0.26$ with $g$ the unit vector of gravity."),
              ("Station", "A joint vector of the UR5 that turns the ATI about a fixed point $P_0$ until gravity has a chosen "
@@ -226,33 +235,58 @@ def sections(X):
                   "the ATI base, the Mini45 with its cable's fitting, the ATI top and mount v3's standoff-fork."))
     S.append(("stack", "The stack on the HEX-E", body))
 
+    T = 0.117 * 9.796                                     # the 100 g weight with its holder and screws, N
+    lam = lambda E, d: math.sqrt(E * math.pi * d ** 4 / 64.0 / T)          # noqa: E731  bending length, mm (E in N/mm2)
     body = (f"<p>For the calibration a hook cross is screwed on in the fork's place (Fig. 2). Four arms reach "
             f"{abs(ev['+x']['p_M'][0]):.0f} mm along $\\pm x_M$ and $\\pm y_M$, and a post reaches 118 mm up the tool axis. "
-            f"Each of the five ends is an eye. A mass hangs from one eye at a time, on a pigtail, and is weighed to 0.1 g. "
-            f"Its wrench at the ATI's origin is the reference:</p>"
-            f"$$w = \\begin{{bmatrix}} m\\,\\mathbf{{g}}_A \\\\ (p_e + \\rho\\,n) \\times m\\,\\mathbf{{g}}_A \\end{{bmatrix}}.$$"
+            f"Each of the five ends is an eye: a hole of radius $R$ = {parts['eye']['hole_d'] / 2:.1f} mm through a wall "
+            f"$t$ = {parts['eye']['wall']:.1f} mm thick, with a slot behind it. A mass hangs from one eye at a time on a line "
+            f"whose stopper knot sits in the slot, and is weighed to 0.1 g. Its wrench at the ATI's origin is the "
+            f"reference:</p>"
+            f"$$w = \\begin{{bmatrix}} m\\,\\mathbf{{g}}_A \\\\ p_l \\times m\\,\\mathbf{{g}}_A \\end{{bmatrix}}.$$"
             f"<p>Here $m$ is the mass and $\\mathbf{{g}}_A$ local gravity in the ATI's frame, from the robot's joints (9.796 "
-            f"m/s² in Boulder). $p_e$ is the eye's exit point, and $n$ the unit direction of gravity across the eye's axis. "
-            f"The line leaves the eye at the hole's edge, so its line of action passes $\\rho$ = 0.6 mm from the eye's centre. "
-            f"At one station the tool's own weight and the gages' zero are the same with and without the mass. Each station "
-            f"is therefore recorded both ways, and their difference is the mass's wrench alone.</p>"
-            f"<p>The lab's mass is a 100 g weight, a body {hold['weight']['d_mm']:.0f} mm across and "
-            f"{hold['weight']['h_mm']:.0f} mm tall with a knob on top. It sits in a printed holder (Fig. 3). The cup has "
-            f"three crush ribs and a floor with a hole for pushing the weight out. The cap is screwed on with two M3 x 12, "
-            f"presses on the weight's top face and covers the knob. A tab on the cap has a slot that rises at 45° to a seat "
-            f"on the axis. The pigtail's loop slides up the slot into the seat, and the holder hangs from it. The seat is "
-            f"{hg['seat_mm']:.1f} mm above the cup's underside, and the holder is {2 * hg['radius_mm']:.0f} mm across its "
-            f"ears. The plan models the mass as a line {hg['envelope']['line_mm']:.0f} mm long, then a cylinder "
-            f"{2 * hg['envelope']['r_mm']:.0f} mm across and {hg['envelope']['h_mm']:.0f} mm long. The holder stays inside "
-            f"that envelope with its seat {hg['seat_below_eye_mm'][0]:.0f} to {hg['seat_below_eye_mm'][1]:.0f} mm below the "
-            f"eye, so the pigtails are knotted to hang their loops 55 to 65 mm below their eyes. Both parts print upright "
-            f"without supports, in {hplate['time']} and {hplate['filament_g']:.0f} g "
-            f"({code(D / 'print/20261023-ati_mass_holder_p1s_pla.3mf')}).</p>"
+            f"m/s² in Boulder). $p_l$ is a point of the line's centre line. With $p_e$ the eye's exit point, $u$ its outward "
+            f"axis, $\\alpha$ the angle between gravity and $u$, $n$ the unit direction of gravity across $u$ and $d$ the "
+            f"line's diameter,</p>"
+            f"$$p_l = \\begin{{cases}} p_e - t\\,u, & \\tan\\alpha \\le (R - d/2)/t, \\\\ p_e + R\\,n + \\tfrac{{d}}{{2}}\\,\\hat m, "
+            f"& \\text{{otherwise.}} \\end{{cases}}$$"
+            f"<p>Near the eye's axis the line runs straight from the knot. Past "
+            f"{math.degrees(math.atan((parts['eye']['hole_d'] / 2 - 0.15) / parts['eye']['wall'])):.0f}° for a line 0.3 mm "
+            f"across, it bends over the hole's outer edge and hangs $d/2$ off it. $\\hat m$ is the unit vector across gravity "
+            f"in the plane of $u$ and gravity, on the side of $u$. At one station the tool's own weight and the gages' zero "
+            f"are the same with and without the mass. Each station is therefore recorded both ways, and their difference is "
+            f"the mass's wrench alone.</p>"
+            f"<p>The model of $p_l$ is right only for a line that turns at the knot or at the edge. The bending length "
+            f"$\\sqrt{{EI/T}}$ is the length over which a line turns toward gravity under its tension $T$. Under the "
+            f"{T:.2f} N of the 100 g weight and its holder, it is {lam(117e3, 0.5):.0f} mm for a copper wire 0.5 mm across. "
+            f"It is {lam(117e3, 1.0):.0f} mm for one 1 mm across, and {lam(3e3, 0.3):.1f} mm for a nylon monofilament "
+            f"0.3 mm across. For a polyester thread, dental floss or a braided fishing line it is about 0.1 to 0.2 mm, since "
+            f"their fibres bend apart. A stiff line moves the line of action off $p_l$ by about its bending length. Each "
+            f"millimetre adds {T:.2f} N·mm to a torque reference. In simulation at 112 g, the line was hung "
+            f"{stiff['off']:.0f} mm farther off the edge than modelled (Table 5). The torque errors rose from "
+            f"{m112['T'][0]:.1f} to {m112['T'][1]:.1f} N·mm to {stiff['T'][0]:.1f} to {stiff['T'][1]:.1f} N·mm. The forces stay at "
+            f"{stiff['F'][0]:.3f} to {stiff['F'][1]:.3f} N, since the force references do not depend on $p_l$. The "
+            f"session's own check, leaving one eye out, gives {stiff_lo[0]:.1f} to {stiff_lo[1]:.1f} N·mm with the stiff line "
+            f"as with thread, so the error would not be seen in the lab.</p>"
+            f"<p>The lab's mass is a 100 g weight: a body {hold['weight']['d_mm']:.0f} mm across and "
+            f"{hold['weight']['h_mm']:.0f} mm tall, with a knob {hold['weight']['knob_mm'][0]:.0f} mm across and "
+            f"{hold['weight']['knob_mm'][1]:.0f} mm tall on top. It sits in a printed holder (Fig. 3). The cup has three "
+            f"crush ribs and a floor with a hole for pushing the weight out. The cap is screwed on with two M3 x 12 and "
+            f"presses on the weight's top face. Its pocket, 0.3 mm wider and 0.5 mm deeper than the knob, centres it. A tab "
+            f"on the cap has a tie hole {hold['weight']['tie_hole_mm']:.0f} mm across on the axis. The line is tied through "
+            f"it, and the holder hangs from the hole's top, {hg['seat_mm']:.1f} mm above the cup's underside. The holder is "
+            f"{2 * hg['radius_mm']:.0f} mm across its ears. The plan models the mass as a line "
+            f"{hg['envelope']['line_mm']:.0f} mm long, then a cylinder {2 * hg['envelope']['r_mm']:.0f} mm across and "
+            f"{hg['envelope']['h_mm']:.0f} mm long. The holder stays inside that envelope with its tie hole "
+            f"{hg['seat_below_eye_mm'][0]:.0f} to {hg['seat_below_eye_mm'][1]:.0f} mm below the eye, so the line is tied "
+            f"with 55 to 70 mm between the eye and the tie hole. The cup and cap print upright without supports in "
+            f"{hplate['time']} ({code(D / 'print/20261023-ati_mass_holder_p1s_pla.3mf')}); the cap alone prints in "
+            f"{X['cplate']['time']} ({code(D / 'print/20261023-ati_mass_cap2_p1s_pla.3mf')}).</p>"
             + fig(2, D / "media/20261023-ati_hook_cross.png", "The hook cross on the stack, the tool 30° from vertical and the "
                   "100 g weight in its holder hanging from the +x eye.")
-            + fig(3, D / "media/20261023-ati_mass_holder.png", "The holder of the 100 g weight, exploded and cut on the tab's "
-                  f"plane ({code(ROOT / 'scripts/ati_stack_mount.py')} holder). The knob is drawn as a guess; the cap's "
-                  "pocket takes one up to 18 mm across and 13 mm tall.", width=900))
+            + fig(3, D / "media/20261023-ati_mass_holder.png", "The holder of the 100 g weight, exploded and cut through its "
+                  f"axis ({code(ROOT / 'scripts/ati_stack_mount.py')} holder). Cap 2 of 15:34 has a pocket for the measured "
+                  "knob and a tie hole; the cap of 12:52 had a slot for a pigtail's loop.", width=900))
     S.append(("cross", "The hook cross and the hanging mass", body))
 
     body = (f"<p>At a station the ATI is turned about a fixed point $P_0$ until gravity has a chosen direction in its frame. "
@@ -294,7 +328,7 @@ def sections(X):
             f"({code(ROOT / 'scripts/ati_calibration_sim_session.py')}). Each sensor had FT31565's row shapes at the "
             f"US-120-160 range with gage gains up to 10 % off, and 3 counts of noise per sample at 500 Hz. Its gages drifted "
             f"up to 2 counts a minute with a random walk on top. The ATI sat 1.5° and 0.3 mm off its nominal place, and the "
-            f"eyes 0.2 mm off theirs; the line left 0.55 mm from each eye's centre. The robot's flange stopped 0.03° off its "
+            f"eyes 0.2 mm off theirs. Their holes were 0.1 mm smaller than drawn, and a line 0.3 mm across was knotted behind each eye. The robot's flange stopped 0.03° off its "
             f"kinematic model, and the mass swung 0.3 to 1.5° after each move. In the analysis "
             f"({code(ROOT / 'scripts/ati_calibration_analysis.py')}) the drift is taken from the reference station's rests, "
             f"and 40 pairs are formed, mass on minus mass off at each station.</p>"
@@ -307,7 +341,7 @@ def sections(X):
                     num_cols=(1, 2, 3, 4, 5), caption="Simulated sessions on the plan: error against the truth and "
                     "leave-one-eye-out error of the full fit, medians per axis "
                     f"({code(D / '20261023-ati_sim_sessions.json')}).", n=4))
-    rows = [[f"{b['mass_g']:.0f}", f"{b['rest_s']:.0f}", f"{b['F'][0]:.3f} to {b['F'][1]:.3f}", f"{b['F90']:.3f}",
+    rows = [[f"{b['mass_g']:.0f}", f"{b['rest_s']:.0f}", b["line"], f"{b['F'][0]:.3f} to {b['F'][1]:.3f}", f"{b['F90']:.3f}",
              f"{b['T'][0]:.1f} to {b['T'][1]:.1f}", f"{b['T90']:.1f}"] for b in BM]
     body += (f"<p>The sessions above hung 500.3 g. The same five sensors were calibrated with 250 g and with 112 g, the "
              f"100 g weight with its holder and screws (Table 5). The error grows as the mass shrinks. At 112 g the medians "
@@ -316,11 +350,12 @@ def sections(X):
              f"leaves them at {slow['F'][0]:.3f} to {slow['F'][1]:.3f} N. So the noise of the rests is not the limit at 112 g. "
              f"The limit is the gages' drift between a station's two rests, which are minutes apart. In the simulator that "
              f"drift is up to 2 counts a minute with a random walk on top; the box check measures the real one.</p>"
-             + table(["Mass (g)", "Rest (s)", "F error (N), median", "F error (N), 90th percentile", "T error (N·mm), median",
-                      "T error (N·mm), 90th percentile"], rows, num_cols=(0, 1, 2, 3, 4, 5),
-                     caption="Error against the truth of the full fit by hung mass and rest time: the range of the medians "
-                     "over five sensors and three axes, and the largest 90th percentile "
-                     f"({code(ROOT / 'scripts/ati_sim_sessions.py')} --mass-g, --rest-s).", n=5))
+             + table(["Mass (g)", "Rest (s)", "Line", "F error (N), median", "F error (N), 90th percentile",
+                      "T error (N·mm), median", "T error (N·mm), 90th percentile"], rows, num_cols=(0, 1, 3, 4, 5, 6),
+                     caption="Error against the truth of the full fit by hung mass, rest time and line: the range of the "
+                     "medians over five sensors and three axes, and the largest 90th percentile. In the last row the "
+                     "simulated line hangs 2 mm farther off the hole's edge than the analysis takes it to, as a stiff line "
+                     f"would ({code(ROOT / 'scripts/ati_sim_sessions.py')} --mass-g, --rest-s, --sim-line-mm).", n=5))
     S.append(("sim", "Simulated sessions", body))
 
     pl = plan["payload"]
@@ -334,25 +369,33 @@ def sections(X):
         "<code>python3 scripts/ati_netft_logger.py --ip 192.168.1.1 --out logs/&lt;date&gt;-ati_box_check --seconds 10</code>. "
         "It should show the RDT rate set on comm.htm, status 0 and steady gages at rest.",
         f"Print the plates {code(D / 'print/20261023-ati_stack_p1s_pla.3mf')} and "
-        f"{code(D / 'print/20261023-ati_mass_holder_p1s_pla.3mf')}. Open the four arm eyes with a 1.0 to 1.2 mm drill. Press "
-        "four M3 x 5.7 brass inserts into the top. Knot a pigtail of braided line, 0.3 to 0.5 mm and 10 kg or more, behind "
-        "each eye, with a loop at its end 55 to 65 mm below the eye.",
+        f"{code(D / 'print/20261023-ati_mass_holder_p1s_pla.3mf')} (or {code(D / 'print/20261023-ati_mass_cap2_p1s_pla.3mf')} "
+        "alone, if the cup of 12:52 is printed). Open the four arm eyes with a 1.0 to 1.2 mm drill; drill them larger only if "
+        "the line does not pass, and give the drill's size to the session as <code>--eye-hole-mm</code>. Press four M3 x 5.7 "
+        "brass inserts into the top.",
         "Assemble the stack. Six M3 x 12 go from the base's underside into the ATI's mounting side. The base goes over the "
         "adapter's M6 heads with four M3 x 20. Six M3 x 10 go through the top into the ATI's tool side; no longer screw may "
         "be used there, since its threads are 3.0 mm deep. The cable lies in the base's channel, tied in the tunnel, with a "
         "service loop to the forearm. The hook cross takes four M3 x 12 into the top's inserts. No part may touch both of "
         "the ATI's plates.",
         "Press the weight into the cup, knob up, until it sits on the floor; if the ribs are too tight, scrape them with a "
-        "knife. Screw the cap on with two M3 x 12. Weigh the weight, holder and screws together to 0.1 g. The payload is "
+        "knife. Screw the cap on with two M3 x 12. Tie a line through the cap's tie hole: polyester thread, dental floss or "
+        "braided fishing line, 0.2 to 0.5 mm across and rated 2 kg or more, never wire or monofilament. Measure its diameter. "
+        "Weigh the weight, holder, screws and line together to 0.1 g. The payload is "
         f"{pl['kg']:.3f} kg, its centre of mass {pl['cog_mm'][2]:.0f} mm from the flange; the program sets it, and adds "
-        "the weighed mass while the mass hangs. To hang the holder, slide the pigtail's loop up the slot into the seat.",
+        "the weighed mass while the mass hangs.",
+        "To hang the mass at the program's prompt, pass the line's free end through the eye from outside (a drop of "
+        "superglue stiffens its tip) and out of the slot. Tie a figure-eight stopper knot so that the tie hole hangs 55 to "
+        "70 mm below the eye, and pull the knot back into the slot. To take it off, push the knot out of the slot and untie "
+        "it.",
         "Jog the robot to the plan's homing pose (the lab's home of 22 October: joints 48.3, -86.3, 109.5, -24.8, 47.3, "
         "6.4°). A dry run with no mass at half speed, a hand on the emergency stop: <code>python3 scripts/ati_calibration_session.py "
         "--plan docs/experiments/20261023-ati_ft_calibration/plan/20261023-ati_plan_mass.json --ati 192.168.1.1 --dry "
         "--speed 0.5 --name dry</code>.",
-        "The run, about 27 min with ten mass changes at the program's prompts: the same command with <code>--mass-g "
-        "&lt;grams&gt; --hexe 192.168.0.6 --name run1</code> in place of <code>--dry --speed 0.5 --name dry</code>, the grams "
-        "being the weighed holder.",
+        "The run takes about 27 min, with ten mass changes at the program's prompts. Its command is the dry run's with "
+        "<code>--mass-g &lt;grams&gt; --line-mm &lt;mm&gt; --hexe 192.168.0.6 --name run1</code> in place of <code>--dry "
+        "--speed 0.5 --name dry</code>. The grams are the weighed holder's with its line, and the millimetres the line's "
+        "diameter.",
         "On the workstation: <code>.venv/bin/python scripts/ati_calibration_analysis.py &lt;session folder&gt;</code> writes "
         "the matrix, the leave-one-eye-out errors and the HEX-E's gains into the folder's analysis/.",
         "Afterwards: the fork in the cross's place and the sphere plans rebuilt for the 46.7 mm longer tool, to compare the "
@@ -365,14 +408,15 @@ def sections(X):
             "eye are taken from the drawings. The mass's swing is modelled as a damped pendulum. The plan is checked against "
             "the URDF's collision meshes and the cell of the tip calibration, as the rod plan placed it on 23 October. "
             "Objects outside that model are seen only in the dry run. The Mini40 has another interface and a 1 N·m torque "
-            "range: it needs its own top and base and a mass of about 0.2 kg. The weight's knob was not measured. The "
-            "drift that limits the calibration with 100 g is the simulator's assumption.</p>")
+            "range: it needs its own top and base and a mass of about 0.2 kg. The drift that limits the calibration with "
+            "100 g is the simulator's assumption. The line is modelled as turning at its knot or at the hole's edge; its "
+            "fibres' bending length of 0.1 to 0.2 mm is not in the model.</p>")
     S.append(("limits", "Limitations", body))
     fw = ["Run the box check and record the box's state as found. A status other than 0 at rest stops the plan before any "
           "print. So does a gage that does not change when the tool side is pressed by hand.",
           "Record 10 min of the box at rest in the box check, and rerun the simulated sessions at 112 g with its noise and "
-          "drift. If the median error then exceeds 0.01 N, hang 0.25 to 0.5 kg in place of the 100 g weight; Table 5 "
-          "predicts half and a quarter of the error.",
+          "drift. If the median error then exceeds 0.01 N, hang 0.25 to 0.5 kg in place of the 100 g weight; the simulated "
+          "error is then a half and a quarter (Table 5).",
           "Run the session on the Mini45 and the analysis. A leave-one-eye-out error above 0.1 N or 5 N·mm is about three "
           "times the simulated. It would mean a nonlinearity, a gage fault or a wrong eye geometry, none of which a 6 x 6 "
           "matrix represents.",

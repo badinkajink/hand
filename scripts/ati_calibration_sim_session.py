@@ -6,8 +6,9 @@ can be scored against a known calibration.
 The truth: a Mini45 whose gage values are g = D w + g0 + drift(t) + noise, D the inverse of a 6 x 6 calibration with
 the row shapes of ATI's FT31565 (the owner's handoff note, R_31565) at the lab sensor's US-120-160 range (about 0.08 N
 per count), gage gains up to 10 % off; the ATI turned 1.5 deg about its axis and 0.3 mm off its nominal place in the
-stack; the hook cross's eyes 0.2 mm off their drawing, the line leaving each eye's edge 0.55 mm from its centre (the
-analysis assumes 0.6); the tool beyond the ATI 120 g at (0.5, -0.3, 35) mm; a drift of up to 2 counts per minute per
+stack; the hook cross's eyes 0.2 mm off their drawing and their holes 0.1 mm smaller than drawn (or than --eye-hole-mm),
+the line (--line-mm across) knotted behind each eye's wall and leaving it as the analysis's line_point has it; the tool
+beyond the ATI 120 g at (0.5, -0.3, 35) mm; a drift of up to 2 counts per minute per
 gage and a random walk; 3 counts of noise per sample at 500 Hz; the robot's flange 0.03 deg off its kinematic model at
 each stop; a mass that swings after each move with 0.3 to 1.5 deg, decaying in 6 s, and 3 deg after it is hung.
 """
@@ -24,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HOST = ROOT / "src/morphohand/driver/reskin5x/host"
 sys.path.insert(0, str(HOST))
 sys.path.insert(0, str(ROOT / "scripts"))
+import ati_calibration_analysis as AN  # noqa: E402
 import ur5_tip_calibration as TC  # noqa: E402
 import ur5_tip_calibration_sim as URSIM  # noqa: E402
 
@@ -45,13 +47,6 @@ def rotz(deg):
 def small_rot(rng, sd_deg):
     w = rng.normal(0.0, math.radians(sd_deg), 3)
     return TC.exp_so3(w)
-
-
-def edge_point(p, u, g_hat, rho):
-    """Where the line leaves an eye of radius rho: the hole's rim on the side gravity pulls toward."""
-    gp = g_hat - (g_hat @ u) * u
-    n = np.linalg.norm(gp)
-    return p if n < 1e-9 else p + rho * gp / n
 
 
 class Truth:
@@ -81,14 +76,17 @@ class Truth:
             p_nom = np.array(e["p_A"], float) + rng.normal(0.0, 0.2, 3)
             p = R_err.T @ (p_nom - self.off_err)
             self.eyes[e["name"]] = (p, R_err.T @ np.array(e["u_A"], float))
-        self.rho = 0.55
+        self.hole_r = plan["geometry"]["eye"]["hole_d"] / 2 - 0.05            # the holes print 0.1 mm small
+        self.wall = plan["geometry"]["eye"].get("wall", 1.6)
+        self.line_d = 0.0
         self.m_tool, self.c_tool = 0.120, np.array([0.5, -0.3, 35.0])
         self.mass_kg = None
         self.g = plan["g_local"]
 
     def to_json(self):
         return dict(C=self.C, D=self.D, gains=self.gains, g0=self.g0, drift_counts_per_s=self.drift, noise=self.noise,
-                    clock_err_deg=self.clock_err, origin_err_mm=self.off_err, rho_mm=self.rho, m_tool=self.m_tool,
+                    clock_err_deg=self.clock_err, origin_err_mm=self.off_err, hole_r_mm=self.hole_r, wall_mm=self.wall,
+                    line_d_mm=self.line_d, m_tool=self.m_tool,
                     c_tool_mm=self.c_tool, mass_kg=self.mass_kg, eyes={k: dict(p_A=p, u_A=u) for k, (p, u) in self.eyes.items()},
                     T_EA_true=self.T_EA)
 
@@ -149,7 +147,7 @@ class World:
                 t0, amp, dirB, per = self.swing
                 th = amp * math.exp(-(t - t0) / 6.0) * math.sin(2 * math.pi * (t - t0) / per)
                 f = f + tr.mass_kg * tr.g * th * (R_BA.T @ dirB)
-            pe = edge_point(p, u, f / np.linalg.norm(f), tr.rho)
+            pe = AN.line_point(p, u, f / np.linalg.norm(f), tr.hole_r, tr.wall, tr.line_d)
             w = w + np.r_[f, np.cross(pe * 1e-3, f)]
         return w
 
@@ -246,6 +244,9 @@ class SimBackend:
     def __init__(self, plan, args, seed=0):
         self.truth = Truth(plan, seed)
         self.truth.mass_kg = (args.mass_g or 500.0) * 1e-3
+        if getattr(args, "eye_hole_mm", None):
+            self.truth.hole_r = args.eye_hole_mm / 2 - 0.05
+        self.truth.line_d = getattr(args, "sim_line_mm", None) or getattr(args, "line_mm", None) or 0.0
         self.w = World(plan, self.truth, np.radians(plan["home_q_deg"]))
         self.robot, self.ati, self.hexe = SimRobot(self.w), SimAti(self.w), None
         self.log = None

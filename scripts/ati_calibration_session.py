@@ -317,6 +317,10 @@ def main(argv=None):
     ap.add_argument("--mass-g", type=float, default=None, help="the mass with its holder, weighed to 0.1 g")
     ap.add_argument("--speed", type=float, default=1.0, help="factor on the plan's joint speed and acceleration")
     ap.add_argument("--rest-s", type=float, default=None, help="seconds averaged at each rest (the plan's 3 s by default)")
+    ap.add_argument("--line-mm", type=float, default=None, help="the line's diameter, measured (recorded for the analysis)")
+    ap.add_argument("--eye-hole-mm", type=float, default=None, help="the eyes' holes as drilled, if not the plan's 1.2 mm")
+    ap.add_argument("--sim-line-mm", type=float, default=None, help="--sim only: twice the line's offset off the edge in the "
+                    "simulated truth (a stiff line), in place of --line-mm")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--step", action="store_true")
     ap.add_argument("--resume", default=None)

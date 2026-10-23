@@ -33,8 +33,12 @@ Run the session in its simulator first, on the lab computer: `$PY scripts/ati_ca
 
 - A3 (open, 12:25; after A2). The calibration run, about 27 min, with the operator at the robot for ten mass changes.
   The mass is the owner's 100 g weight in its printed holder (plate `print/20261023-ati_mass_holder_p1s_pla.3mf`, two
-  M3 x 12; 13:13), or a heavier mass that fits the plan's envelope. The pigtails hang their loops 55 to 65 mm below the
-  eyes; the holder hangs from its seat with the loop slid up the cap's slot. Weigh the weight, holder and screws together
-  to 0.1 g first. Command: the one of A2 with `--mass-g <grams> --hexe 192.168.0.6
-  --name run1` in place of `--dry --speed 0.5 --name dry`. The program stops on a gage saturation, on a gap of over
+  M3 x 12; cap 2 of 15:34, `print/20261023-ati_mass_cap2_p1s_pla.3mf`, fits the measured knob and has a tie hole), or a
+  heavier mass that fits the plan's envelope. A line is tied through the cap's tie hole: polyester thread, dental floss
+  or braided fishing line, 0.2 to 0.5 mm across, never wire or monofilament (a stiff line moves the force off the eye).
+  At each mass change its free end goes through the eye from outside and out of the slot, and a figure-eight stopper
+  knot in the slot holds it with the tie hole 55 to 70 mm below the eye. Measure the line's diameter and weigh the
+  weight, holder, screws and line together to 0.1 g first. Command: the one of A2 with `--mass-g <grams> --line-mm <mm>
+  --hexe 192.168.0.6 --name run1` in place of `--dry --speed 0.5 --name dry`, and `--eye-hole-mm <mm>` if the eyes were
+  drilled larger than 1.2 mm. The program stops on a gage saturation, on a gap of over
   0.5 s in the box's stream and on a protective stop; `--resume <folder>` continues. Push the whole session folder.

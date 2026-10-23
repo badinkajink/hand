@@ -4,17 +4,20 @@ gage values, gravity in the ATI's frame from the robot's joints, the drift from 
 on minus the mass off at each station, and the 6 x 6 matrix C that turns gage values into the wrench at the ATI's
 origin (N, N m, the ATI's frame of drawing 9230-05-1094 as placed by the stack: scripts/ati_stack_mount.py).
 
-The reference wrench of a loaded rest at station s on eye e: the mass m (weighed with its S hook) under local gravity
-g_A, applied where the line leaves the eye: w = [m g_A, (p_e + rho n) x m g_A], n the unit direction of g_A across the
-eye's axis and rho the eye's hole radius (the plan's 0.6 mm unless --rho). The tool's own weight and the gages' zero are
-the same with and without the mass at one station; their difference leaves the mass's wrench alone.
+The reference wrench of a loaded rest at station s on eye e: the mass m (weighed with its holder) under local gravity
+g_A, along the line from the eye: w = [m g_A, p_l x m g_A], p_l a point of the line's centre (line_point). The line's
+stopper knot sits behind the eye's wall (1.6 mm); the line runs straight from the knot while it clears the hole's outer
+edge, and past atan((R - d/2) / 1.6) from the eye's axis it bends over that edge and hangs d/2 off it (R the hole's
+radius, the plan's 0.6 mm unless the session's --eye-hole-mm or --rho; d the line's diameter, the session's --line-mm
+or --line-mm here). The tool's own weight and the gages' zero are the same with and without the mass at one station;
+their difference leaves the mass's wrench alone.
 
 Models (scripts/ati_calibration_fit.py): "full", the 6 x 6 matrix by ridge regression; "rows6" and "rows12", the row
 shapes of FT31565 with six output gains, and with six gage gains as well. Scored by leaving one eye out at a time
 (every station of that eye), per axis. With --truth (a simulated session's sim_truth.json, found by itself) the fitted
 C is also scored on 2000 wrenches of the pad's range: forces to 5 N at points within 150 mm of the ATI's origin.
 
-    .venv/bin/python scripts/ati_calibration_analysis.py <session folder> [--rho 0.6] [--trim 0.5]
+    .venv/bin/python scripts/ati_calibration_analysis.py <session folder> [--rho 0.6] [--line-mm 0.3] [--trim 0.5]
 Writes <session>/analysis/pairs.npz, ati_calibration.json and prints a summary.
 """
 from __future__ import annotations
@@ -86,14 +89,23 @@ def gravity_A(q, T_EA):
     return T[:3, :3].T @ np.array([0.0, 0.0, -1.0])
 
 
-def edge_point(p, u, g_hat, rho):
-    gp = g_hat - (g_hat @ u) * u
-    n = np.linalg.norm(gp)
-    return p if n < 1e-9 else p + rho * gp / n
+def line_point(p, u, g_hat, R, t, d=0.0):
+    """A point of the centre line of a line that hangs along g_hat from an eye: a hole of radius R through a wall t thick,
+    its exit point p on the outer face and its axis u outward, the line's stopper knot against the wall's inner face. The
+    line runs straight from the knot (p - t u) while it clears the hole's outer edge. Past atan((R - d/2) / t) from the
+    axis it bends over the edge at p + R n, n the direction of g_hat across the axis, and hangs with its centre d/2 off
+    the edge, on the outer side of the bend (d the line's diameter). mm in, mm out."""
+    gu = float(g_hat @ u)
+    gp = g_hat - gu * u
+    s = float(np.linalg.norm(gp))
+    if s * t <= (R - d / 2) * gu:
+        return p - t * u
+    m = u - gu * g_hat
+    return p + R * gp / s + 0.5 * d * m / np.linalg.norm(m)
 
 
-def mass_wrench(g_hat, eye, m_kg, g_local, rho):
-    p = edge_point(np.array(eye["p_A"], float), np.array(eye["u_A"], float), g_hat, rho) * 1e-3
+def mass_wrench(g_hat, eye, m_kg, g_local, line):
+    p = line_point(np.array(eye["p_A"], float), np.array(eye["u_A"], float), g_hat, line["R"], line["t"], line["d"]) * 1e-3
     f = m_kg * g_local * g_hat
     return np.r_[f, np.cross(p, f)]
 
@@ -108,7 +120,7 @@ def drift_model(R):
     return (lambda t: np.array([np.interp(t, tt, gg[:, k]) for k in range(6)])), ref
 
 
-def pairs(R, plan, m_kg, rho, drift):
+def pairs(R, plan, m_kg, line, drift):
     """Mass on minus mass off at each station of each block, drift removed: G (n, 6), W (n, 6), eye and station."""
     T_EA = np.array(plan["geometry"]["T_EA"], float)
     eyes = {e["name"]: e for e in plan["geometry"]["eyes"]}
@@ -124,7 +136,7 @@ def pairs(R, plan, m_kg, rho, drift):
             for r in on:
                 gh = gravity_A(r["q"], T_EA)
                 G.append(r["g"] - drift(r["t"]) - g_off)
-                W.append(mass_wrench(gh, eyes[r["eye"]], m_kg, plan["g_local"], rho))
+                W.append(mass_wrench(gh, eyes[r["eye"]], m_kg, plan["g_local"], line))
                 grp.append(f"{r['eye']}:{st}")
                 eye_of.append(r["eye"])
                 gA.append(gh)
@@ -188,15 +200,27 @@ def hexe_gains(R, plan, m_kg):
                 residual_rms_N=float(np.sqrt(np.mean((X @ K.T - Y) ** 2))))
 
 
-def main(folder, rho=None, trim=0.5):
+def line_of(plan, ses, rho=None, line_mm=None):
+    """The eye's hole radius, wall and the line's diameter (mm): --rho and --line-mm here, else the session's record, else
+    the plan's hole and a line of no thickness."""
+    sa = ses.get("args", {})
+    R = rho if rho is not None else (sa.get("eye_hole_mm") or plan["geometry"]["eye"]["hole_d"]) / 2
+    d = line_mm if line_mm is not None else sa.get("line_mm")
+    if d is None:
+        print("the line's diameter is not recorded: taken as 0 (give --line-mm)")
+        d = 0.0
+    return dict(R=float(R), t=float(plan["geometry"]["eye"].get("wall", 1.6)), d=float(d))
+
+
+def main(folder, rho=None, trim=0.5, line_mm=None):
     folder = Path(folder)
     plan = json.loads((folder / "plan.json").read_text())
     ses = json.loads((folder / "session.json").read_text())
     m_kg = ses["mass_g"] * 1e-3
-    rho = plan["geometry"]["eye"]["hole_d"] / 2 if rho is None else rho
+    line = line_of(plan, ses, rho, line_mm)
     R = rests(folder, plan, trim)
     drift, ref = drift_model(R)
-    G, W, grp, eye_of, gA = pairs(R, plan, m_kg, rho, drift)
+    G, W, grp, eye_of, gA = pairs(R, plan, m_kg, line, drift)
     out_dir = folder / "analysis"
     out_dir.mkdir(exist_ok=True)
     np.savez(out_dir / "pairs.npz", G=G, W=W, group=grp, eye=eye_of, g_A=gA)
@@ -205,7 +229,7 @@ def main(folder, rho=None, trim=0.5):
     C_r12 = FIT.fit_rows12(G, W, Rs)
     res_in = np.abs(G @ C_full.T - W)
     cv = leave_eye_out(G, W, eye_of, Rs)
-    rec = dict(session=str(folder), mass_kg=m_kg, g_local=plan["g_local"], rho_mm=rho, trim_s=trim, rests=len(R), pairs=len(G),
+    rec = dict(session=str(folder), mass_kg=m_kg, g_local=plan["g_local"], line_mm=line, trim_s=trim, rests=len(R), pairs=len(G),
                eyes=sorted(set(eye_of.tolist())), design_singular_values=FIT.design(W),
                drift_counts=dict(reference_rests=len(ref), span=(np.ptp([r["g"] for r in ref], axis=0).tolist() if ref else None)),
                C_full=C_full.tolist(), C_rows12=C_r12.tolist(),
@@ -241,7 +265,8 @@ def main(folder, rho=None, trim=0.5):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("folder")
-    ap.add_argument("--rho", type=float, default=None)
+    ap.add_argument("--rho", type=float, default=None, help="the eyes' hole radius, mm (default: the session's or the plan's)")
+    ap.add_argument("--line-mm", type=float, default=None, help="the line's diameter, mm (default: the session's)")
     ap.add_argument("--trim", type=float, default=0.5)
     a = ap.parse_args()
-    main(a.folder, a.rho, a.trim)
+    main(a.folder, a.rho, a.trim, a.line_mm)

@@ -186,8 +186,11 @@ PLATES = {
     # cup and cap upright as they hang, six walls (the 2.4 mm walls and the 5 mm tab print solid)
     "ati_mass": [
         ("M1", "mass holder cup, three crush ribs", ATI / "cad/20261023-ati_mass_cup.stl", np.eye(3), dict(STANDARD, wall_loops="6")),
-        ("M2", "mass holder cap, knob pocket, thread slot", ATI / "cad/20261023-ati_mass_cap.stl", np.eye(3),
+        ("M2", "mass holder cap 2, knob pocket, tie hole", ATI / "cad/20261023-ati_mass_cap.stl", np.eye(3),
          dict(STANDARD, wall_loops="6"))],
+    # 15:34: cap 2 alone (the knob measured at 14 x 11 mm; a tie hole in place of the slot), for a cup already printed
+    "ati_mass_cap": [("M2", "mass holder cap 2, knob pocket, tie hole", ATI / "cad/20261023-ati_mass_cap.stl", np.eye(3),
+                      dict(STANDARD, wall_loops="6"))],
     # 2026-10-22: two more of DIP link b v4 (owner: "i want to print two more too"), the settings of plate "link_v4"
     "link_v4_x2": [(f"B4-{k}", "b v4 DIP link, recessed bridge", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl", None,
                     V.LINK) for k in (1, 2)],
@@ -207,7 +210,8 @@ PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"
              "mount_v4_fork": (V4M / "print", f"{UP4}_p1s_pla"),
              "mount_v5_wedge": (V5M / "print", f"{UP5}_p1s_pla_wedge"),
              "ati_stack": (ATI / "print", "20261023-ati_stack_p1s_pla"),
-             "ati_mass": (ATI / "print", "20261023-ati_mass_holder_p1s_pla")}
+             "ati_mass": (ATI / "print", "20261023-ati_mass_holder_p1s_pla"),
+             "ati_mass_cap": (ATI / "print", "20261023-ati_mass_cap2_p1s_pla")}
 
 
 def main():
@@ -238,7 +242,8 @@ def main():
                    "mount_v4_fork": "UR5 mount v4: standoff-fork with a stop plate behind the DIP link's tongue",
                    "mount_v5_wedge": "UR5 mount v5: two PLA wedges for the stop plate's gap",
                    "ati_stack": "ATI Mini45 on the HEX-E: base, top and hook cross (ATI drawing 9230-05-1094)",
-                   "ati_mass": "ATI calibration: holder for the 100 g weight, cup and cap"}[plate]
+                   "ati_mass": "ATI calibration: holder for the 100 g weight, cup and cap 2",
+                   "ati_mass_cap": "ATI calibration: cap 2 of the 100 g weight's holder (knob 14 x 11 mm, tie hole)"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -275,6 +280,8 @@ def main():
                    + ("; 2026-10-23 12:52: 'a 100g mass on a 25mm diameter 25mm height form factor. theres a little knobby "
                       "thing coming out. i think we'd need to built a tight-fit enclosure. i also dont have a hook'"
                       if plate == "ati_mass" else "")
+                   + ("; 2026-10-23 15:34: 'the knob coming out is 7mm in radius, 11mm in height ... can you redesign the top "
+                      "cover for this measurement'" if plate in ("ati_mass", "ati_mass_cap") else "")
                    + ("; 2026-10-22 11:30: 'the middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle "
                       "ground ... widen the top edge of the trapezoid of the rail ... undersize the slot and oversize the rail just a "
                       "little bit ... a PLA print with three new cassettes and top covers'" if plate == "fit3" else ""))

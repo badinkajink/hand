@@ -4,7 +4,7 @@
 comparison on the first (scripts/ati_reference_compare.py) and a summary in
 docs/experiments/20261023-ati_ft_calibration/20261023-ati_sim_sessions.json. The sessions' streams stay in logs/.
 
-    .venv/bin/python scripts/ati_sim_sessions.py [--seeds 5] [--mass-g 500.3 --tag "" --rest-s S]
+    .venv/bin/python scripts/ati_sim_sessions.py [--seeds 5] [--mass-g 500.3 --tag "" --rest-s S --line-mm 0.3 --sim-line-mm D]
 
 With --tag the summary is 20261023-ati_sim_sessions_<tag>.json, the streams go to logs/20261023-ati_sim_<tag>/ and the
 HEX-E comparison is left out.
@@ -28,16 +28,18 @@ PLAN = D / "plan/20261023-ati_plan_mass.json"
 LOGS = ROOT / "logs/20261023-ati_sim"
 
 
-def main(seeds, mass_g=500.3, tag="", rest_s=None):
+def main(seeds, mass_g=500.3, tag="", rest_s=None, line_mm=0.3, sim_line_mm=None):
     logs = LOGS.with_name(f"{LOGS.name}_{tag}") if tag else LOGS
     if logs.exists():
         shutil.rmtree(logs)
-    out = dict(plan=str(PLAN.relative_to(ROOT)), mass_g=mass_g, rest_s=rest_s, sessions=[])
+    out = dict(plan=str(PLAN.relative_to(ROOT)), mass_g=mass_g, rest_s=rest_s, line_mm=line_mm, sim_line_mm=sim_line_mm,
+               sessions=[])
     first = None
     for s in range(seeds):
         cmd = [sys.executable, str(ROOT / "scripts/ati_calibration_session.py"), "--plan", str(PLAN), "--mass-g", str(mass_g),
-               "--sim", "--sim-seed", str(s), "--logs", str(logs), "--name", f"seed{s}"]
-        r = subprocess.run(cmd + (["--rest-s", str(rest_s)] if rest_s else []), capture_output=True, text=True, check=True)
+               "--sim", "--sim-seed", str(s), "--logs", str(logs), "--name", f"seed{s}", "--line-mm", str(line_mm)]
+        cmd += (["--rest-s", str(rest_s)] if rest_s else []) + (["--sim-line-mm", str(sim_line_mm)] if sim_line_mm else [])
+        r = subprocess.run(cmd, capture_output=True, text=True, check=True)
         folder = Path(r.stdout.strip().splitlines()[-1].split("session in ")[-1])
         first = first or folder
         rec = AN.main(folder)
@@ -56,5 +58,7 @@ if __name__ == "__main__":
     ap.add_argument("--mass-g", type=float, default=500.3)
     ap.add_argument("--tag", default="")
     ap.add_argument("--rest-s", type=float, default=None)
+    ap.add_argument("--line-mm", type=float, default=0.3, help="the line's diameter (a polyester thread or floss)")
+    ap.add_argument("--sim-line-mm", type=float, default=None, help="the truth's line in place of --line-mm (a stiff line)")
     a = ap.parse_args()
-    main(a.seeds, a.mass_g, a.tag, a.rest_s)
+    main(a.seeds, a.mass_g, a.tag, a.rest_s, a.line_mm, a.sim_line_mm)

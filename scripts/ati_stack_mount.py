@@ -24,14 +24,15 @@ The ATI turns 114 deg about the tool axis from x_M (the clock of thickest walls 
 cable then leaves toward 224 deg in M, 44 deg from the HEX-E's cable port (-x_M).
 
 Hook cross: a 6 mm plate on the top's inserts, four arms 12 x 16 mm to 80 mm along +-x_M, +-y_M and a post 16 mm across
-to 118 mm. Each eye is a 1.2 mm hole through a 1.6 mm end wall, with a slot behind it for the knot of a short loop of
-braided line (a pigtail) from which the mass hangs. The mass's line leaves the eye's edge, so its line of action passes
-within the hole's radius of the eye's exit point; scripts/ati_calibration_analysis.py takes that into account.
+to 118 mm. Each eye is a 1.2 mm hole through a 1.6 mm end wall, with a slot behind it for the stopper knot of the line
+from which the mass hangs. The line runs from the knot along gravity, or bends over the hole's outer edge when gravity is
+more than atan(0.6 / 1.6) from the eye's axis; scripts/ati_calibration_analysis.py takes both into account.
 
 Mass holder (12:52): the owner's weight (100 g, a body 25 mm across and 25 mm tall, a knob on top) in a cup with three crush
-ribs, under a cap screwed on with two M3 x 12 that presses on its top face and covers the knob. The cap's tab has a slot
-that rises at 45 deg from its edge to a seat on the axis; the pigtail's loop slides up the slot into the seat, and the
-holder hangs from the seat. Both parts print upright without supports.
+ribs, under a cap screwed on with two M3 x 12 that presses on its top face and covers the knob. Cap 2 (15:34, the knob
+measured at 14 mm across and 11 mm tall): a pocket that centres the knob, and in place of 12:52's slot a 2 mm tie hole on
+the axis; the line from the eye is tied through it, and the holder hangs from the hole's top. Both parts print upright
+without supports.
 
     .venv/bin/python scripts/ati_stack_mount.py [build] [--clock DEG]     STLs, parts JSON (and the holder)
     .venv/bin/python scripts/ati_stack_mount.py holder                     the holder's STLs and record only
@@ -92,15 +93,17 @@ CROSS_CB_Z = 5.5                                     # the cross's M3 heads 5.5 
 # --- the mass holder (owner, 2026-10-23 12:52: "a 100g mass on a 25mm diameter 25mm height form factor. theres a little
 # knobby thing coming out. i think we'd need to built a tight-fit enclosure. i also dont have a hook") ---
 WEIGHT_D, WEIGHT_H = 25.0, 25.0                      # the weight's body as the owner measured it
-KNOB_POCKET = (18.0, 13.0)                           # the cap's pocket for the knob, across and deep (the knob unmeasured)
+KNOB = (14.0, 11.0)                                  # the knob, across and tall (owner, 15:34: "7mm in radius, 11mm in height")
+KNOB_POCKET = (14.6, 11.5)                           # the cap's pocket for it (12:52's cap: 18 x 13, the knob unmeasured)
 HOLD_BORE, HOLD_WALL, HOLD_FLOOR, PUSH_D = 25.6, 2.4, 2.4, 8.0
 RIB_TIP_D, RIB_HALF, RIB_ANG = 24.8, 0.7, (90.0, 210.0, 330.0)    # three crush ribs 0.4 mm proud of the bore
 HOLD_PROUD = 0.4                                     # the weight stands this far above the cup's rim: the cap clamps it
 EAR_R, EAR_D, PILOT_D, PILOT_DEPTH = 16.0, 8.0, 2.75, 10.0         # the cap's two M3 x 12 into self-formed threads
 FLANGE_T, DOME_WALL = 4.0, 2.4
-TAB_T, TAB_W, TAB_RECT = 5.0, 16.0, 7.2              # the thread tab on the dome: thickness, width, straight height
-SLOT_W, SEAT_D, SEAT_Z, ENTRY_Z = 1.5, 2.4, 10.0, 2.0   # its slot rises at 45 deg from the edge to a seat on the axis
-PIGTAIL_MM = 60.0                                    # the eye to the bottom of the pigtail's loop, where the seat hangs
+TAB_T, TAB_W = 5.0, 12.0                             # the tab on the dome: thickness, width (its top a half-disc)
+TIE_D, TIE_Z = 2.0, 4.0                              # its tie hole on the axis: across, centre above the dome (15:34: the
+                                                     # line is tied through the cap, the slot of 12:52 dropped)
+PIGTAIL_MM = 60.0                                    # the eye to the cap's tie hole along the line
 HALVES = ROOT / "logs/20261023-ati_mass_holder"      # cut-away halves for the figure (written by the holder build)
 
 
@@ -220,7 +223,7 @@ def eyes():
 
 def cross(K):
     """On the top's inserts: a 6 mm plate, four arms to 80 mm (on the bed, 16 mm high), a post to 118 mm; each eye a
-    1.2 mm hole through a 1.6 mm end wall with a slot behind it for the pigtail's knot."""
+    1.2 mm hole through a 1.6 mm end wall with a slot behind it for the line's stopper knot."""
     parts = [K.cyl("z", (0.0, 0.0), TOP_D / 2, 0.0, PLATE_T)]
     for sx, sy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
         x0, x1 = sorted((0.0, sx * ARM_L)) if sx else (-ARM_W / 2, ARM_W / 2)
@@ -289,35 +292,31 @@ def holder_cup(K):
 
 def holder_cap(K):
     """The cap, on the bed as it hangs: a 4 mm flange that presses on the weight's top face, held by two M3 x 12 through
-    its ears, a dome over the knob, and on the dome a tab 5 mm thick with a slot that rises at 45 deg from its edge to a
-    2.4 mm seat on the axis. The pigtail's loop goes up the slot into the seat, and the holder hangs from the seat."""
+    its ears; a dome over the knob, its pocket 0.3 mm wider and 0.5 mm deeper than the knob, so the knob centres it; on
+    the dome a tab 5 mm thick with a 2 mm tie hole on the axis. The line from the eye is tied through the hole, and the
+    holder hangs from the hole's top."""
     kd, kh = KNOB_POCKET
     top, w = cap_top(), TAB_W / 2
     parts = [K.cyl("z", (0.0, 0.0), HOLD_BORE / 2 + HOLD_WALL, 0.0, FLANGE_T),
              K.cyl("z", (0.0, 0.0), kd / 2 + DOME_WALL, 0.0, top)]
     parts += [K.cyl("z", xy(EAR_R, a), EAR_D / 2, 0.0, FLANGE_T) for a in (0.0, 180.0)]
-    parts.append(K.prism_xz([(-w, top - 0.5), (w, top - 0.5), (w, top + TAB_RECT), (-w, top + TAB_RECT)],
-                            -TAB_T / 2, TAB_T / 2))
-    parts.append(K.cyl("y", (0.0, top + TAB_RECT), w, -TAB_T / 2, TAB_T / 2))
+    parts.append(K.prism_xz([(-w, top - 0.5), (w, top - 0.5), (w, top + TIE_Z), (-w, top + TIE_Z)], -TAB_T / 2, TAB_T / 2))
+    parts.append(K.cyl("y", (0.0, top + TIE_Z), w, -TAB_T / 2, TAB_T / 2))
     s = K.union(parts)
-    cut = [K.cyl("z", (0.0, 0.0), kd / 2, -1.0, kh)]
+    cut = [K.cyl("z", (0.0, 0.0), kd / 2, -1.0, kh),
+           K.cyl("z", (0.0, 0.0), kd / 2 + 0.6, -0.01, 0.6, r1=kd / 2 - 0.01)]          # a 0.6 mm lead-in at the pocket
     cut += [K.cyl("z", xy(EAR_R, a), CLR_D / 2, -1.0, FLANGE_T + 1.0) for a in (0.0, 180.0)]
-    p1 = np.array([0.0, top + SEAT_Z])
-    p0 = np.array([-w - 1.0, top + ENTRY_Z - (SEAT_Z - ENTRY_Z) / w])
-    d = (p1 - p0) / np.linalg.norm(p1 - p0)
-    n = np.array([-d[1], d[0]]) * SLOT_W / 2
-    cut.append(K.prism_xz([p0 + n, p1 + n, p1 - n, p0 - n], -TAB_T, TAB_T))
-    cut.append(K.cyl("y", (0.0, top + SEAT_Z), SEAT_D / 2, -TAB_T, TAB_T))
+    cut.append(K.cyl("y", (0.0, top + TIE_Z), TIE_D / 2, -TAB_T, TAB_T))
     return K.cut_all(s, cut)
 
 
 def holder_geometry(plan_mass=None):
-    """Heights in the hanging holder (mm, from the cup's underside) and the pigtail lengths that keep it inside the plan's
+    """Heights in the hanging holder (mm, from the cup's underside) and the line lengths that keep it inside the plan's
     envelope for the mass: a thin line for line_mm below the eye, then a cylinder r_mm across and h_mm long."""
     env = plan_mass or dict(line_mm=45.0, r_mm=25.0, h_mm=80.0)
     z_cap = cup_h() + HOLD_PROUD
-    seat = z_cap + cap_top() + SEAT_Z
-    tab_top = z_cap + cap_top() + TAB_RECT + TAB_W / 2
+    seat = z_cap + cap_top() + TIE_Z + TIE_D / 2      # the line bears on the tie hole's top
+    tab_top = z_cap + cap_top() + TIE_Z + TAB_W / 2
     com = HOLD_FLOOR + WEIGHT_H / 2                   # the weight's centre, about the whole holder's
     return dict(seat_mm=round(seat, 2), top_mm=round(tab_top, 2), radius_mm=EAR_R + EAR_D / 2,
                 com_below_seat_mm=round(seat - com, 1),
@@ -331,7 +330,8 @@ def holder_build(K=None):
         env = json.loads((OUT / "plan/20261023-ati_plan_mass.json").read_text())["mass"]
     except (OSError, ValueError, KeyError):
         env = None
-    rec = dict(when=time.strftime("%Y-%m-%d %H:%M"), weight=dict(d_mm=WEIGHT_D, h_mm=WEIGHT_H, knob_pocket_mm=KNOB_POCKET),
+    rec = dict(when=time.strftime("%Y-%m-%d %H:%M"), revision="cap 2 (15:34): pocket for the measured knob, tie hole",
+               weight=dict(d_mm=WEIGHT_D, h_mm=WEIGHT_H, knob_mm=KNOB, knob_pocket_mm=KNOB_POCKET, tie_hole_mm=TIE_D),
                geometry=holder_geometry(env), parts={},
                screws="2 x M3 x 12 socket head through the cap's ears into the cup's 2.75 mm holes (threads formed in the PLA)")
     for nm, s in (("mass_cup", holder_cup(K)), ("mass_cap", holder_cap(K))):
@@ -476,7 +476,7 @@ def render(which=("stack", "cross", "holder")):
     v = np.cross(zax, -g)
     Rm = np.eye(4)
     Rm[:3, :3] = np.eye(3) + _skew(v) + _skew(v) @ _skew(v) / (1.0 + zax @ -g)  # the holder's z -> up, against gravity
-    Rm[:3, 3] = e0 + g * (L + hg["seat_mm"])                      # its seat at the pigtail's end
+    Rm[:3, 3] = e0 + g * (L + hg["seat_mm"])                      # its tie hole at the line's end
     items.append((line, "0.15 0.15 0.15 1", "ati_c_line"))
     for nm, mm, col in holder_meshes():
         mm.apply_transform(Rm)
@@ -492,7 +492,7 @@ def render(which=("stack", "cross", "holder")):
     for e in ev:
         if e["name"] in names:
             labels.append((names[e["name"]], (Wd @ np.r_[e["p_M"], 1.0])[:3]))
-    labels.append((f"The 100 g weight in its holder, {L:.0f} mm below the eye on a pigtail",
+    labels.append((f"The 100 g weight in its holder, tied {L:.0f} mm below the eye",
                    (Wd @ np.r_[e0 + g * (L + hg["seat_mm"] - 20.0), 1.0])[:3]))
     labels.append(("Hook cross on the top's inserts, in the fork's place",
                    (Wd @ np.r_[[0.0, -40.0, z_top1() + 8.0], 1.0])[:3]))
@@ -507,12 +507,11 @@ def render(which=("stack", "cross", "holder")):
 
 
 def weight_mesh():
-    """The owner's weight: the body as measured, the knob a guess (a neck 8 mm across, a head 12 mm across, 8 mm in all)."""
+    """The owner's weight as measured: the body and the knob as cylinders."""
     import trimesh
     parts = [trimesh.creation.cylinder(radius=WEIGHT_D / 2, height=WEIGHT_H, sections=96),
-             trimesh.creation.cylinder(radius=4.0, height=3.2, sections=48),
-             trimesh.creation.cylinder(radius=6.0, height=5.0, sections=48)]
-    for p, z in zip(parts, (WEIGHT_H / 2, WEIGHT_H + 1.5, WEIGHT_H + 5.5)):
+             trimesh.creation.cylinder(radius=KNOB[0] / 2, height=KNOB[1], sections=64)]
+    for p, z in zip(parts, (WEIGHT_H / 2, WEIGHT_H + KNOB[1] / 2)):
         p.apply_translation([0.0, 0.0, z])
     return trimesh.util.concatenate(parts)
 
@@ -552,14 +551,14 @@ def render_holder():
     z_cap = cup_h() + HOLD_PROUD + 2.0 * ex
     top = z_cap + cap_top()
     labels = [("Cup: 25.6 mm bore, three crush ribs to 24.8 mm, an 8 mm hole in the floor", [-HOLD_BORE / 2 - 1.0, 0.0, 12.0]),
-              ("The weight, 25 x 25 mm as measured (its knob drawn as a guess)", [-WEIGHT_D / 2, -6.0, ex + 14.0]),
-              ("Cap: 4 mm flange on the weight, knob pocket 18 mm across, 13 mm deep", [-kd_r() - 1.0, 0.0, z_cap + 8.0]),
-              ("Slot at 45 degrees to a 2.4 mm seat on the axis for the pigtail's loop", [-3.0, 0.0, top + 6.0]),
-              ("Two M3 x 12 into 2.75 mm holes in the cup", [EAR_R, 0.0, z_cap + FLANGE_T + 3.0 * ex])]
+              ("The weight as measured: body 25 x 25 mm, knob 14 mm across and 11 mm tall", [-WEIGHT_D / 2, -6.0, ex + 14.0]),
+              ("Cap: 4 mm flange on the weight, knob pocket 14.6 mm across and 11.5 mm deep", [-kd_r() - 1.0, 0.0, z_cap + 6.0]),
+              ("Tie hole 2 mm across on the axis: the line from the eye is tied through it", [-TAB_W / 2, 0.0, top + TIE_Z]),
+              ("Two M3 x 12 into 2.75 mm holes in the cup", [EAR_R, 0.0, cup_h() + HOLD_PROUD + FLANGE_T + 3.0 * ex - 6.0])]
     ctr = np.mean([m.bounds.mean(axis=0) for m, _, _ in items], axis=0)
     cam = (ctr.tolist(), 470.0, -72.0, -12.0)
     dst = UM._render(items, cam, OUT / "media/20261023-ati_mass_holder.png")
-    UM._annotate(dst, cam, labels, title="Holder for the 100 g weight, exploded and cut on the tab's plane")
+    UM._annotate(dst, cam, labels, title="Holder for the 100 g weight, exploded and cut through its axis")
 
 
 def kd_r():
