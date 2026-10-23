@@ -297,12 +297,12 @@ def v2_section():
         f"magnets, the 11/22 half-ellipsoid or the block (Table&#160;[[tab:v2]]).</p>",
         f"<p>J1, its mated plug and the tab clear the MCP link and the PIP servo by 0.5{MM} (R7) from a lengthening of "
         f"{la:g}{MM} in a and {lb:g}{MM} in b, whose board sits 3.5{MM} more palmar. The routed cable set a's "
-        f"lengthening: modelled first as a 2.0{MM} bundle, its turn over the plug kept 0.14{MM} from the MCP link at "
+        f"lengthening. Modelled first as a 2.0{MM} bundle, its turn over the plug kept 0.14{MM} from the MCP link at "
         f"8.5{MM} and 1.05{MM} at 9.5{MM}. Both links are 9.75{MM} longer, one finger length for both designs.</p>",
         f"<p>The fit prints of 19 October changed three things. The Qwiic cable's plug is JST's SHR-04V-S-B, 7.0{MM} wide "
-        f"at its protrusions, where the model had the 5.0{MM} SHR-04V-S, and it did not enter the printed 6.6{MM} slot; "
-        f"the J1 slot is now 7.8{MM} wide. The cable is a flat ribbon about 4{MM} wide and 1{MM} thick that had to be "
-        f"squished into the 2.2&#8211;2.6{MM} test grooves; massaged into a bundle, it is modelled as "
+        f"at its protrusions, where the model had the 5.0{MM} SHR-04V-S, and it did not enter the printed 6.6{MM} slot. "
+        f"The J1 slot is now 7.8{MM} wide. The cable is a flat ribbon about 4{MM} wide and 1{MM} thick that had to be "
+        f"squished into the 2.2&#8211;2.6{MM} test grooves. Massaged into a bundle, it is modelled as "
         f"{f(xa['bundle_d_mm'], 1)}{MM} round in a {f(xa['groove_w_mm'], 1)}{MM} groove, and to keep R7's 1.0{MM} a turns "
         f"at the plug's rear face and b's first turn has a {f(xb['first_turn_r_mm'], 1)}{MM} radius. The clamp plate's "
         f"pins are 2.40{MM} (2.35{MM} before).</p>",
@@ -314,7 +314,7 @@ def v2_section():
         f"0.07&#8211;1.4{MM} above the cable, too thin for a roof, so the groove is open to the top there and a strip of "
         f"Kapton tape keeps the cable on its ledge.</p>",
         f"<p>In b the plug sits in the neck's slot palmar of the board, its wires at x 2.40{MM} against a's 5.90{MM}, "
-        f"0.7{MM} nearer the PIP axis at the height of the first turn; a's turn over the plug would keep "
+        f"0.7{MM} nearer the PIP axis at the height of the first turn. A turn over the plug, as in a, would keep "
         f"{f(ar['clearance_mm'])}{MM} there. b's cable turns toward the back at the plug's rear face, then to +y at x "
         f"{f(xb['run_x_mm'], 1)}{MM}, and from the slotted arm on takes a's path to the same anchor "
         f"(Figures&#160;[[fig:v2b_route]] and [[fig:v2b_sec]]). Along its {f(xb['length_plug_to_anchor_mm'], 1)}{MM} the "
@@ -375,10 +375,10 @@ def design_section():
          f"thick, printed at the chips' package height less 0.05{MM}. The five MLX90393 chips reach through its windows "
          f"and stand 0.05{MM} proud of its palmar face, so the tip's back face rests on the window plate and presses on the "
          f"chip tops; the sensing plane lies {f(EV['gap_mm'])}{MM} behind the back face (requirement R1 allows 0.52{MM}). "
-         f"Behind the board's bare face a 3.0{MM} PLA clamp plate presses the FR-4 onto the window plate: two M1.6 "
+         f"Behind the board's bare face a 3.0{MM} PLA clamp plate presses the FR-4 onto the window plate. Two M1.6 "
          f"countersunk brass screws pass from the palmar side through the window plate and the board's distal holes into "
-         f"brass nuts in the clamp plate, and two M2 brass screws pull the clamp plate's ears toward the shoulders of the "
-         f"link, which the ears miss by 0.3{MM} so the preload goes into the board. Two pins of the clamp plate pass "
+         f"brass nuts in the clamp plate. Two M2 brass screws pull the clamp plate's ears toward the shoulders of the "
+         f"link, which the ears miss by 0.3{MM}, so the preload goes into the board. Two pins of the clamp plate pass "
          f"through the board's proximal holes into reamed holes of the window plate with 0.025{MM} radial clearance and "
          f"locate the board in its plane; the stack has no designed clearance normal to the board "
          f"(Figures&#160;[[fig:iso]]&#8211;[[fig:section]]).</p>",
@@ -430,8 +430,8 @@ def concepts_section():
         f"<p>Three concepts were drawn to the same specification, and the owner takes a and b to a first print. Concept a "
         f"is the design of Section&#160;3. "
         f"Concept b replaces the tip's dorsal 6{MM} with a rigid cassette that clamps the board 0.42{MM} behind an 11{MM} "
-        f"TPU pad; it resolves the finest forces, {f(C['b']['force_resolution_N']['four_30'], 3)}{NN} with four magnets, "
-        f"but the cassette stiffens the contact by about 20&#8202;% and halves the magnet travel per newton, and the "
+        f"TPU pad. It resolves the finest forces, {f(C['b']['force_resolution_N']['four_30'], 3)}{NN} with four magnets, "
+        f"but the cassette stiffens the contact by about 20&#8202;% and halves the magnet travel per newton. The "
         f"11/22 half-ellipsoid's groove lies 0.85{MM} from a magnet pocket against R4's 2.0{MM}. Concept c places the "
         f"board at a print pause and prints the cap and the tip over it; it resolves "
         f"{f(C['c']['force_resolution_N']['four_30'], 3)}{NN}, has no screw preload on the board, and a worn tip costs a "
@@ -461,7 +461,7 @@ def qwiic_section():
         f"{f(-QW['rows'][0]['connector_clearance_mm'])}{MM} at PIP &#8722;18{DEG}, "
         f"{f(-QW['rows'][4]['connector_clearance_mm'])}{MM} with the board flipped. With the tab distal or lateral the "
         f"connector clears the links by 12.2&#8211;15.4{MM} but stands 12.5{MM} beyond the tip's end or 12.6{MM} outside "
-        f"the 21{MM} band, where grasped objects meet it: in the readiness study the cylinder touched the board in 9 to 27 "
+        f"the 21{MM} band, where grasped objects meet it. In the readiness study the cylinder touched the board in 9 to 27 "
         f"of 27 runs per cell with the board inside the band.</p>",
         table(["Board orientation", "Connector clearance (mm)", "Tab clearance (mm)", "Beyond the tip's end (mm)",
                "Outside the 21&#8202;mm band (mm)", "Clears"], rows,
@@ -713,7 +713,7 @@ def open_items():
         "the joint from &#8722;18 to 92&#176; by hand: the cable stays in its groove and the joint turns as freely tied as "
         f"untied. A cable that lifts toward the MCP link at b's first turn ({f(EVB['clearance']['per_part']['qwiic_cable']['min_mm'])}"
         "&#8202;mm in the model) needs a printed clip there.",
-        "The groove piece W of run 20261019b (2.8, 3.0 and 3.4&#8202;mm) shows which groove takes the massaged ribbon; a "
+        "The groove piece W of run 20261019b (2.8, 3.0 and 3.4&#8202;mm) shows which groove takes the massaged ribbon. A "
         "bundle wider than the modelled 2.6&#8202;mm narrows the clearances of Table&#160;[[tab:v2]] by half the excess.",
         "Enter the fit tests' results (<code>docs/experiments/20261019-dip_link_fit_prints/records.csv</code>) in "
         "<code>params/20261018-v2_concept_a.json</code>: <code>fit_flank</code>, <code>detent_h</code>, "

@@ -95,7 +95,7 @@ def files_section(R, p1s, xl, n_pla, n_tpu, a1m=None, p85=None):
             "blocks F00 to F40 in the front row and run b&#8217;s groove blocks G00 to G20 behind them. In Bambu "
             "Studio&#8217;s print dialog switch the AMS off, so that the printer feeds from the external spool; the PLA "
             "plate then prints from AMS slot 1. The A1 mini projects printed badly (owner, 18:05), with Siraya Tech&#8217;s "
-            "A1 mini values and with a generic TPU profile alike, and stay in the folder as a record. The P1S project takes "
+            "A1 mini values and with a generic TPU profile alike, and stay in the folder as a record. The P1S project uses "
             f"every filament value of Siraya Tech&#8217;s P1S profile ({code(p85['filament_source'])}): "
             f"{fo['nozzle_temperature'][0]} &#176;C, a {fo['textured_plate_temp'][0]} &#176;C {esc(p85['bed_type'])}, flow "
             f"{fo['filament_flow_ratio'][0]}, {fo['filament_retraction_length'][0]} mm retraction, the fan from layer "
@@ -267,16 +267,16 @@ A1M_SOLID = (
 
 
 def plug_slot_item():
-    return ("<li>The neck carrier&#8217;s J1 slot is 7.8 mm wide since 17:42 (6.6 mm before): the Qwiic cable&#8217;s plug "
-            "is JST&#8217;s SHR-04V-S-B, 7.0 mm wide at its protrusions, where the model had the 5.0 mm SHR-04V-S, and it "
+    return ("<li>The neck carrier&#8217;s J1 slot is 7.8 mm wide since 17:42 (6.6 mm before). The Qwiic cable&#8217;s plug "
+            "is JST&#8217;s SHR-04V-S-B, 7.0 mm wide at its protrusions, where the model had the 5.0 mm SHR-04V-S. The plug "
             "did not enter run a&#8217;s 6.6 mm slot (owner). The slot clears the plug by 0.4 mm a side and J1 by "
             "0.9 mm.</li>")
 
 
 def cable_item():
-    return ("<li>Since 17:57 the neck carrier&#8217;s cable groove is 3.0 mm wide (2.4 mm before): the Qwiic cable is a flat "
+    return ("<li>Since 17:57 the neck carrier&#8217;s cable groove is 3.0 mm wide (2.4 mm before). The Qwiic cable is a flat "
             "ribbon about 4 mm wide and 1 mm thick, which had to be squished into the 2.2 to 2.6 mm grooves of run "
-            "a&#8217;s W (owner); massaged into a bundle, it is modelled as 2.6 mm (2.0 mm before). To keep "
+            "a&#8217;s W (owner). Massaged into a bundle, it is modelled as 2.6 mm (2.0 mm before). To keep "
             "R7&#8217;s 1.0 mm from the MCP link, the first turn, toward the back right out of the plug, has a 1.5 mm radius "
             "(2.0 mm before; the ribbon still lies flat there and bends flatwise): 1.24 mm. W is new: grooves 2.8, 3.0 and "
             "3.4 mm wide, 3.0 mm deep, each with a 2.0 mm turn.</li>")
@@ -285,13 +285,13 @@ def cable_item():
 P1S_85A = (
     "<li>Since 18:13 the 85A blocks of both runs print on one P1S plate from its external spool, run a&#8217;s before "
     "run b&#8217;s PLA plate (owner, 18:05: the A1 mini prints went badly with Siraya Tech&#8217;s A1 mini values and "
-    "with a generic TPU profile alike; 18:10: one plate for both, then the PLA). The plate takes Siraya Tech&#8217;s P1S "
+    "with a generic TPU profile alike; 18:10: one plate for both, then the PLA). The plate uses Siraya Tech&#8217;s P1S "
     "profile, its filament values and its process speeds (45 to 60 mm/s; the A1 mini projects ran Bambu&#8217;s 200 to "
-    "300 mm/s process capped at 2 mm&#179;/s), and the finite-element models&#8217; structure.</li>")
+    "300 mm/s process capped at 2 mm&#179;/s). It also uses the finite-element models&#8217; structure.</li>")
 
 
 SCREW_HOLES_B = (
-    "<li>The tongue&#8217;s four M2 holes in S and N are 1.9 mm since 18:30 (1.8 mm before): in run a&#8217;s clamp plate "
+    "<li>The tongue&#8217;s four M2 holes in S and N are 1.9 mm since 18:30 (1.8 mm before). In run a&#8217;s clamp plate "
     "the M2 screws did not form their thread in 1.8 mm holes, although 1.8 mm was fine in the hole piece H (owner).</li>")
 
 
@@ -360,8 +360,8 @@ def terms_section_b():
           "two matching grooves in its back face and is pressed onto the cover until both rails snap in."),
          ("Flank interference", "How much narrower the pad&#8217;s groove is than the rail on each flank, in mm; 0 is a "
           "line-to-line fit; the design has 0.05."),
-         ("Seat pocket", "The pocket in the DIP link&#8217;s tongue that takes the board&#8217;s FR-4, open at the "
-          "tongue&#8217;s distal end so the board slides in along the finger, J1 first; its depth is the rim height, "
+         ("Seat pocket", "The pocket in the DIP link&#8217;s tongue that takes the board&#8217;s FR-4. It is open at the "
+          "tongue&#8217;s distal end so that the board slides in along the finger, J1 first. Its depth is the rim height, "
           "0.45 mm in the design for a 0.60 mm board, so that the rim stays 0.15 mm short of the cover and the cover "
           "clamps the board."),
          ("Neck carrier", "The DIP link around the board: the tongue with the seat pocket, the neck with the slot for J1 "
@@ -403,7 +403,7 @@ def changes_section_b():
         "<li>Every piece has its ID printed on it.</li>"
         "<li>The groove sweep reaches 0.20 mm per flank.</li>"
         "<li>Three tongues with seat pockets 0.35, 0.45 and 0.55 mm deep, the neck carrier with J1&#8217;s slot and the "
-        "cable&#8217;s groove of 19 October, and two covers join the snap fit; the neck carrier&#8217;s tongue is "
+        "cable&#8217;s groove of 19 October, and two covers join the snap fit. The neck carrier&#8217;s tongue is "
         "thickened 1.45 mm to the spine&#8217;s back so that the piece stands on one flat face.</li>"
         "<li>The first P1S project of this run started with Bambu Studio&#8217;s generic start G-code: it loaded no "
         "filament from the AMS and left the nozzle at 205 &#176;C. Since 16:40 every Bambu project has the printer&#8217;s "
