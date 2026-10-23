@@ -610,7 +610,7 @@ def post_section(X: Data):
          f"at most and turns it about the contacts&#8217; centroid, near the centre, so a cylinder turned by more than a few tens of "
          f"degrees comes down onto the post. On the servo plant, {len(big)} of the {len(X.r_post)} HOM runs with the post were held at "
          f"60&#176; or more, and in {len(sw)} of them the cylinder had turned more than 15&#176; past the angle where the governor "
-         f"stopped the reference: the turn stopped, the cylinder swung on about the pinch under its weight, and the post caught it. "
+         f"stopped the reference. The turn stopped, the cylinder swung on about the pinch under its weight, and the post caught it. "
          f"On the 1&#8202;N&#8202;m plant the same holds for {len(sww)} of {len(bigw)}. Figure&#160;[[fig:posttrace]] shows one such run "
          f"on a bench-plan band cell.</p>")
     svg, leg = svg_post_trace(X)
@@ -619,8 +619,8 @@ def post_section(X: Data):
                     "16&#8202;mm band cell, placement 0, servo plant. Top: turn angle with the post present for the whole run and with it "
                     "removed at 1.3&#8202;s; squares mark the governor&#8217;s freeze. Bottom: the post&#8217;s normal force on the "
                     "cylinder in the run with the post (clipped at 2.5&#8202;N).", leg, key="posttrace")
-    s += (f"<p>Removing the post at 1.3&#8202;s leaves the spheres&#8217; scores within {max(difs):.0f}&#176; of their values with it, "
-          f"and moves cylinder scores by a median {med(dif1):.0f}&#176; and up to {max(dif1):.0f}&#176; on the 1&#8202;N&#8202;m plant "
+    s += (f"<p>Removing the post at 1.3&#8202;s leaves the spheres&#8217; scores within {max(difs):.0f}&#176; of their values with it. "
+          f"It moves cylinder scores by a median {med(dif1):.0f}&#176; and up to {max(dif1):.0f}&#176; on the 1&#8202;N&#8202;m plant "
           f"({n_cyl20} of {len(dif1)} cells by more than 20&#176;), and by a median {med(difv):.0f}&#176; and up to {max(difv):.0f}&#176; "
           f"on the servo plant (Figure&#160;[[fig:postscatter]]). Scores move both ways: the post blocks some turns and catches others. "
           f"Without the post, {len(sw0)} of the {len(big0)} servo-plant runs held at 60&#176; or more still swung past the freeze, held "
@@ -647,7 +647,7 @@ def landscape_section(X: Data):
          f"the post and {deg(med(post))} with it, and MPC scores at least 60&#176; in {m60} cells, HOM in {h60} without the post and "
          f"{p60} with it (Figures&#160;[[fig:landscape]] and [[fig:pairs]]). MPC gets there by pinch-and-swing: it lets one finger "
          f"leave the cylinder, which swings about the remaining pinch at a median peak of {st_m['rate']:.0f}&#176;/s and is held near "
-         f"upright; {st_m['two']} of its {st_m['held']} held runs end on two fingers, and {st_m['h60_3']} of its {st_m['n']} runs end "
+         f"upright. {st_m['two']} of its {st_m['held']} held runs end on two fingers, and {st_m['h60_3']} of its {st_m['n']} runs end "
          f"held at 60&#176; or more on three pads (Table&#160;[[tab:runs]], films in the next section). The hand can swing and hold "
          f"the cylinder at nearly every layout; the narrow bands of the bench plan come from HOM.</p>")
     if k3:
@@ -739,7 +739,7 @@ def planners_section(X: Data):
                          + (", a bench-plan band cell)" if (d, t) in band else ")") for d, t in cells)
     s = ("<p>The three-pad MPC of the previous section keeps the cylinder on three pads, but its servo targets jump at every "
          "replanning and the fingers dither, where HOM moves them in one sweep (films in the next section). This section compares "
-         f"sampling planners at the same budget on {len(cells)} cells and {len(seeds)} placements each: {cell_txt}. Every CPU planner "
+         f"sampling planners at the same budget on {len(cells)} cells and {len(seeds)} placements each. The cells are {cell_txt}. Every CPU planner "
          "uses the three-pad cost of Eq.&#160;(3) and spends 64 rollouts of 0.5&#8202;s per 20&#8202;ms replanning on a plan of "
          "three knots with noise 0.08&#8202;rad; HOM runs on the same grasps and placements "
          "(<code>scripts/hand_object_scale_planners.py</code>).</p>"
@@ -909,8 +909,8 @@ def cost_section(X: Data):
         body.append(["MPC, three pads", "50", "64 &#215; 0.5&#8202;s", "6", f"{med(w3):.0f}", f"{max(w3):.0f}"])
     s = (f"<p>MPC costs about {med(wm) / max(1e-6, med(wh)):.0f} times HOM&#8217;s wall time per run and the three-pad variant "
          f"{(med(w3) if w3 else float('nan')) / max(1e-6, med(wh)):.0f} times (Table&#160;[[tab:cost]]). Each replanning of the first "
-         "rolls out 9.6&#8202;s of simulated time, 32 plans of 0.3&#8202;s, and the second 32&#8202;s, with the 1&#8202;mm sphere pads at "
-         f"1&#8202;ms steps; planning takes {100 * frac:.0f}&#8202;% of MPC&#8217;s wall time. The MPC grid, {len(X.r_mpc)} runs, took "
+         "rolls out 9.6&#8202;s of simulated time, which is 32 plans of 0.3&#8202;s. Each replanning of the second rolls out 32&#8202;s. Both use the 1&#8202;mm sphere pads at "
+         f"1&#8202;ms steps. Planning takes {100 * frac:.0f}&#8202;% of MPC&#8217;s wall time. The MPC grid, {len(X.r_mpc)} runs, took "
          f"{sum(wm) / 3600:.1f}&#8202;h of six-thread time, and the three-pad grid, {len(X.r_mpc3)} runs, {sum(w3) / 3600:.1f}&#8202;h.</p>")
     s += table(["Controller", "Control rate, Hz", "Rollouts per replanning", "Threads", "Wall time per run, median, s",
                 "Wall time per run, longest, s"], body, "Cost of the controllers on the servo plant.", key="cost")
@@ -926,7 +926,7 @@ def cost_section(X: Data):
               f"{pm['grip']['constraint_us']:.0f}&#8202;&#181;s the constraint solver. With the hand open the pads still cost "
               f"{pm['open']['step_us']:.0f}&#8202;&#181;s against {pt['open']['step_us']:.1f}, nearly all in the position stage, "
               f"which handles {pm['ngeom']:,} geoms against {pt['ngeom']}. One replanning of 64 plans of 0.5&#8202;s takes "
-              f"{ro(pm, 12):.2f}&#8202;s on 12 threads with the pads and {ro(pt, 12):.2f}&#8202;s with point contact; on the six "
+              f"{ro(pm, 12):.2f}&#8202;s on 12 threads with the pads and {ro(pt, 12):.2f}&#8202;s with point contact. On the six "
               f"threads of the planner runs it takes {ro(pm, 6):.2f}&#8202;s, {ro(pm, 6) / 0.02:.0f} times the 20&#8202;ms it "
               "plans for.</p>")
         body = []
@@ -1023,7 +1023,7 @@ def lede(X: Data):
     big, sw = X.swing(X.r_post)
     st_m = X.stats(X.r_mpc)
     s = (f"On the servo plant, HOM&#8217;s turn scores in the hand-object scale study record its governor and the support post more "
-         f"than the hand: in {len(sw)} of its {len(big)} runs held at 60&#176; or more, the cylinder swung on past the governor&#8217;s "
+         f"than the hand. In {len(sw)} of its {len(big)} runs held at 60&#176; or more, the cylinder swung on past the governor&#8217;s "
          f"stop and came to rest on the post. Sampling MPC on the same cells holds the cylinder at 60&#176; or more in "
          f"{sum(1 for x in mpc if x >= 60)} of {len(ks)} cells (HOM {sum(1 for k in ks if X.nopost[k]['score'] >= 60)}), by "
          f"pinch-and-swing: {st_m['two']} of its {st_m['held']} held runs end on two fingers, at a median peak rate of "

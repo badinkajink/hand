@@ -93,7 +93,7 @@ footer a{color:var(--s2)}
   plant (grasp, lift, learned turn, arm staging, seat, handover, gait) in {{N_COMP4}} of {{N_RUNS4}} rollouts over five
   spawns, and every completed rollout turns the screw forward, {{TURNS_RANGE}} rev in eight gait cycles. The D1 and D2
   policies lose the tool before the seat on every spawn. The plant these policies trained on moves the fingers with a
-  1&#8202;s time constant; at the bench servo&#8217;s speed none of the ten holds the tool through its own turn.</p>
+  1&#8202;s time constant. At the bench servo&#8217;s speed none of the ten holds the tool through its own turn.</p>
   <div class="byline">plant <code>cal</code>: finger kp 0.5, kv 0.02, joint damping 0.5, forcerange 0.35 N&#183;m,
   elliptic cone, &#956; 1.0, palm plate at 25 mm &#183; policies of the 2026-09-20 robust tranche
   (<a href="../20260920-robust_tranche/20260920-robust_reorient_policies.html">page</a>) &#183; CPU MuJoCo, one rollout
@@ -129,7 +129,7 @@ in s.</dd>
 the chain completed</p>
 {{TABLE_OUTCOME}}
 <p>The six policies are those that held the tool through their turn in the 2026-09-20 nominal chain run; the other four
-drop it in the turn. D1 with the separation term and D2 lose the tool before the seat on every spawn, at the post-turn regrip or in the arm&#8217;s staging, where the tool hangs on two pads while the palm rotates
+drop it in the turn. D1 with the separation term and D2 lose the tool before the seat on every spawn. The loss comes at the post-turn regrip or in the arm&#8217;s staging, where the tool hangs on two pads while the palm rotates
 25&#8211;50&#176;.</p>
 <div class="keep"><span class="tag">Chain setting</span>
 <p><code>real_v1_chain_policy.py --plant cal --plate-mm 25 --turn-steps 2500 --hold-steps 0 --gait-ring
@@ -160,8 +160,8 @@ press depth plus 5&#8202;mm. The press leaves the palm plate bearing on the tool
 middle pad, which cannot reach the open radius at its station, stays pinned at 36&#8202;N until that load is removed;
 lifted without the unload, it drags the tool over.</li>
 <li><strong>Re-pose.</strong> The palm goes straight up until no fingertip can reach below the tool&#8217;s top, then
-levels over the gait pose. At the press the palm is 23&#8211;35&#176; off level, and from there the relay handover&#8217;s best ring is
-5&#8211;24&#8202;mm out of reach and its gait turns the tool 0.00 rev (<code>runs/relay/</code>); a palm that moves while two
+levels over the gait pose. At the press the palm is 23&#8211;35&#176; off level. From there the relay handover&#8217;s best ring is
+5&#8211;24&#8202;mm out of reach, and its gait turns the tool 0.00 rev (<code>runs/relay/</code>). A palm that moves while two
 pads hold the seated tool pulls it out of the seat. The tool therefore stands alone in the countersink for 6.4&#8202;s
 between the release and the descent.</li>
 <li><strong>Ring.</strong> Placed per hand by <code>real_v1_gait_ring_screen.py</code> (below), solved on the released
@@ -174,7 +174,7 @@ to 53&#176; short of the approach pose and landed on the tool.</li>
 <li><strong>Gait.</strong> Twist 2&#8202;s, release, return and regrasp 1.5&#8202;s each, 20&#176; stroke, 5&#8202;mm squeeze,
 all three pads released together, and a host-side boost on the achieved joint angle (command = set-point + 2 &#215;
 shortfall, rate-limited) armed at the ring grasp. Without the boost the pads move 0.1&#8211;1.2&#176; of a
-20&#8211;25&#176; commanded twist; at a 30&#176; stroke the gait knocked the tool over on two of four policies, and at
+20&#8211;25&#176; commanded twist. At a 30&#176; stroke the gait knocked the tool over on two of four policies, and at
 20&#176; all four turned it. In the completed rollouts above the tool turns a median 11.8&#176; per
 cycle (10th&#8211;90th percentile 5.6&#8211;21.3&#176;) on two or three pads, against the 34&#176; a slip-free 20&#176; stroke
 delivers through the 1.68 gear of the pad ring.</li>
@@ -199,7 +199,7 @@ next section: on the 0.12&#8211;0.24&#8202;s phases of the 2026-09-02 gait the f
 <p>The calibrated plant sets the finger servos to kp 0.5 and kv 0.02 but keeps the joint damping of the template
 (<code>assets/mjcf/real_v1/real_hand.xml</code>, default class <code>ctrl</code>: damping 0.5&#8202;N&#183;m&#183;s/rad),
 which <code>apply_measured_plant.py</code> never changed. The finger time constant is (0.5 + 0.02) / 0.5 = 1.04&#8202;s. The
-2026-09-16 page computed it as kv / kp and concluded 40&#8202;ms. The bench bounds the servo far below 1&#8202;s: on the
+2026-09-16 page computed it as kv / kp and concluded 40&#8202;ms. The bench bounds the servo far below 1&#8202;s. On the
 2026-08-29 stream run the flexion joints tracked a 1.08&#8202;s trajectory to under 1&#176;, and in the stepped free-air run
 the pip follows 0.13&#8202;s steps to within 0.5&#176;. Every calibrated-plant result since 2026-09-16, including the training
 of these policies, ran with the 1&#8202;s fingers.</p>
@@ -208,15 +208,15 @@ tool&#8217;s tilt and pads at the end of the learned turn</p>
 {{TABLE_DAMPING}}
 <p>Policies holding the tool at the end of their turn: {{HELD_05}} of 10 at the trained damping, {{HELD_025}} at 0.25,
 {{HELD_01}} at 0.1 and {{HELD_0}} at 0. With bench-speed fingers the policies&#8217; saturated &#177;1&#8202;rad residuals
-are executed within tens of milliseconds and the tool leaves the hand 8&#8211;20 policy steps after the policy takes over;
-the grasp and lift before it hold on every hand (3&#8211;4 pads, 3.1&#8211;4.4&#8202;N).</p>
+are executed within tens of milliseconds, and the tool leaves the hand 8&#8211;20 policy steps after the policy takes over.
+The grasp and lift before it hold on every hand (3&#8211;4 pads, 3.1&#8211;4.4&#8202;N).</p>
 <p class="sub">The chain without a policy at damping 0 (<code>calfast</code>): the chain&#8217;s own open-loop finger turn,
 and no finger turn at all</p>
 {{TABLE_CALFAST}}
 <p>At damping 0 the chain fails before the seat on every hand whether or not the fingers turn the tool, including the case
 where the arm alone stands the gripped tool up, which the damped plant did on five hands on 2026-09-16. In the model the
 damping both slows the response to a command about 25&#215; past the servo&#8217;s and resists the tool back-driving the
-fingers; the real gear train resists back-driving through friction that grows with the load (a 12.3&#176; friction cone
+fingers. The real gear train resists back-driving through friction that grows with the load (a 12.3&#176; friction cone
 under a grasp and 0.7&#8211;1.5&#176; hanging free, 2026-09-02), which a constant <code>frictionloss</code> cannot express.
 Neither plant reproduces both measurements.</p>
 </div></section>
