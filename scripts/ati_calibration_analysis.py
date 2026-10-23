@@ -224,7 +224,7 @@ def main(folder, rho=None, trim=0.5, line_mm=None):
     out_dir = folder / "analysis"
     out_dir.mkdir(exist_ok=True)
     np.savez(out_dir / "pairs.npz", G=G, W=W, group=grp, eye=eye_of, g_A=gA)
-    Rs = FIT.R_31565
+    Rs = FIT.R_21031 if plan.get("sensor") == "Mini40" else FIT.R_31565       # the shape prior of the same model
     C_full = FIT.fit_full(G, W)
     C_r12 = FIT.fit_rows12(G, W, Rs)
     res_in = np.abs(G @ C_full.T - W)

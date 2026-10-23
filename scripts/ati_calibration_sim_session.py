@@ -5,7 +5,9 @@ can be scored against a known calibration.
 
 The truth: a Mini45 whose gage values are g = D w + g0 + drift(t) + noise, D the inverse of a 6 x 6 calibration with
 the row shapes of ATI's FT31565 (the owner's handoff note, R_31565) at the lab sensor's US-120-160 range (about 0.08 N
-per count), gage gains up to 10 % off; the ATI turned 1.5 deg about its axis and 0.3 mm off its nominal place in the
+per count), gage gains up to 10 % off (a plan for the Mini40: FT21031's row shapes, R_21031, and 7.25 times the counts
+per N and 5 times per N m, the ratio of the two models' largest calibrations, SI-580-20 and SI-80-4, as if both flexures
+were strained alike at full range and the box's raw gain were the same); the ATI turned 1.5 deg about its axis and 0.3 mm off its nominal place in the
 stack; the hook cross's eyes 0.2 mm off their drawing and their holes 0.1 mm smaller than drawn (or than --eye-hole-mm),
 the line (--line-mm across) knotted behind each eye's wall and leaving it as the analysis's line_point has it; the tool
 beyond the ATI 120 g at (0.5, -0.3, 35) mm; a drift of up to 2 counts per minute per
@@ -55,8 +57,12 @@ class Truth:
         self.rng = rng
         # counts -> N, N m: FT31565's row shapes; row norms such that the US-120-160 range spans about 20000 counts
         scale = np.array([0.11, 0.11, 0.11, 0.0037, 0.0037, 0.0037])
+        self.sensor = plan.get("sensor", "Mini45")
+        R = R_31565
+        if self.sensor == "Mini40":
+            scale, R = scale / np.array([7.25, 7.25, 7.25, 5.0, 5.0, 5.0]), AN.FIT.R_21031
         self.gains = 1.0 + rng.uniform(-0.1, 0.1, 6)
-        self.C = np.diag(scale) @ R_31565 @ np.diag(self.gains)
+        self.C = np.diag(scale) @ R @ np.diag(self.gains)
         self.D = np.linalg.inv(self.C)
         self.g0 = rng.uniform(-3000, 3000, 6)
         self.drift = rng.uniform(-2.0, 2.0, 6) / 60.0                 # counts per s

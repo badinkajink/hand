@@ -82,7 +82,10 @@ def load():
                 press=j(D / "20261023-ati_calibration_sim.json"), holder=j(D / "20261023-ati_mass_holder.json"),
                 hplate=j(D / "print/20261023-ati_mass_holder_p1s_pla.json"),
                 cplate=j(D / "print/20261023-ati_mass_cap2_p1s_pla.json"),
-                by_mass={t: j(D / f"20261023-ati_sim_sessions_{t}.json") for t in ("m250", "m112", "m112r12", "m112stiff")})
+                by_mass={t: j(D / f"20261023-ati_sim_sessions_{t}.json")
+                         for t in ("m250", "m112", "m112r12", "m112stiff", "mini40_m112")},
+                parts40=j(D / "20261023-ati_stack_mini40_parts.json"), plan40=j(D / "plan/20261023-ati_plan_mass_mini40.json"),
+                plate40=j(D / "print/20261023-ati_stack_mini40_p1s_pla.json"))
 
 
 def least(plan):
@@ -99,11 +102,12 @@ def by_mass_rows(X):
     """Error against the truth by hung mass and rest: the medians' range over five sensors and three axes, and the largest
     90th percentile."""
     out = []
-    for sims in [X["sims"]] + [X["by_mass"][t] for t in ("m250", "m112", "m112r12", "m112stiff")]:
+    for sims in [X["sims"]] + [X["by_mass"][t] for t in ("m250", "m112", "m112r12", "m112stiff", "mini40_m112")]:
         md = np.array([x["truth"]["full"]["median"] for x in sims["sessions"]])
         p9 = np.array([x["truth"]["full"]["p90"] for x in sims["sessions"]])
         off = (sims["sim_line_mm"] - sims["line_mm"]) / 2 if sims.get("sim_line_mm") else 0.0
-        out.append(dict(mass_g=sims.get("mass_g", 500.3), rest_s=sims.get("rest_s") or 3.0, F=(md[:, :3].min(), md[:, :3].max()),
+        out.append(dict(sensor="Mini40" if "mini40" in sims["plan"] else "Mini45",
+                        mass_g=sims.get("mass_g", 500.3), rest_s=sims.get("rest_s") or 3.0, F=(md[:, :3].min(), md[:, :3].max()),
                         F90=p9[:, :3].max(), T=(md[:, 3:].min() * 1e3, md[:, 3:].max() * 1e3), T90=p9[:, 3:].max() * 1e3,
                         off=off, line=(f"{off:.0f} mm off the model" if off > 0 else f"thread, {sims.get('line_mm', 0.3):.1f} mm")))
     return out
@@ -113,7 +117,10 @@ def sections(X):
     parts, plan, sims, plate, press = X["parts"], X["plan"], X["sims"], X["plate"], X["press"]
     hold, hplate, BM = X["holder"], X["hplate"], by_mass_rows(X)
     hg = hold["geometry"]
-    m112 = next(b for b in BM if b["mass_g"] < 200 and b["rest_s"] == 3.0 and b["off"] == 0)
+    m112 = next(b for b in BM if b["mass_g"] < 200 and b["rest_s"] == 3.0 and b["off"] == 0 and b["sensor"] == "Mini45")
+    m40 = next(b for b in BM if b["sensor"] == "Mini40")
+    p40, pl40, pt40 = X["parts40"], X["plan40"], X["plate40"]
+    L40 = least(pl40)
     stiff = next(b for b in BM if b["off"] > 0)
     lo_st = np.array([x["leave_eye_out"]["full"]["median"] for x in X["by_mass"]["m112stiff"]["sessions"]])
     stiff_lo = (lo_st[:, 3:].min() * 1e3, lo_st[:, 3:].max() * 1e3)
@@ -134,12 +141,17 @@ def sections(X):
             f"as the inverse of the mass. The printed stack "
             f"is built to ATI's drawing 9230-05-1094; it prints in {plate['time']} on the P1S. The robot plan has "
             f"{len(plan['stations'])} stations at five eyes of a hook cross and takes about {plan['minutes']:.0f} min. Every "
-            f"station and move is checked against the arm, the cell and the hanging mass.")
+            f"station and move is checked against the arm, the cell and the hanging mass. For the lab's Mini40 a base and a "
+            f"top were drawn from ATI's drawings 9230-05-1278 and 9230-05-1314; the cross and the holder are shared. Its plan has "
+            f"{len(pl40['stations'])} stations, and with the 100 g weight five simulated Mini40s are recovered to "
+            f"{m40['F'][0]:.4f} to {m40['F'][1]:.4f} N.")
     summary = (f"ATI Mini45 calibration with a weighed mass: coaxial stack from ATI drawing 9230-05-1094 (P1S, {plate['time']}); "
                f"{len(plan['stations'])} checked stations at five eyes, about {plan['minutes']:.0f} min; simulated sessions "
                f"recover the sensor to {tr[:, :3].max():.3f} N and {tr[:, 3:].max() * 1e3:.1f} N mm (medians) with 0.5 kg and "
                f"to {m112['F'][1]:.3f} N with the lab's 100 g weight in a printed holder; with the HEX-E "
-               f"as reference the error is up to {max(rc['hexe_coaxial']['median'][:3]):.2f} N, coaxial or turned 90 deg.")
+               f"as reference the error is up to {max(rc['hexe_coaxial']['median'][:3]):.2f} N, coaxial or turned 90 deg. The Mini40 "
+               f"gets its own base and top (ATI drawings 9230-05-1278, 9230-05-1314), {len(pl40['stations'])} stations, and "
+               f"{m40['F'][1]:.4f} N with the 100 g weight in simulation.")
     S = []
     terms = [("Wrench $w$", "Force and torque at the ATI's sensing origin, in the ATI's frame: $F_x, F_y, F_z$ in N and "
               "$T_x, T_y, T_z$ in N·mm. The origin is the centre of the tool adapter plate's face; $+z$ points from the "
@@ -263,7 +275,7 @@ def sections(X):
             f"0.3 mm across. For a polyester thread, dental floss or a braided fishing line it is about 0.1 to 0.2 mm, since "
             f"their fibres bend apart. A stiff line moves the line of action off $p_l$ by about its bending length. Each "
             f"millimetre adds {T:.2f} N·mm to a torque reference. In simulation at 112 g, the line was hung "
-            f"{stiff['off']:.0f} mm farther off the edge than modelled (Table 5). The torque errors rose from "
+            f"{stiff['off']:.0f} mm farther off the edge than modelled (Table 6). The torque errors rose from "
             f"{m112['T'][0]:.1f} to {m112['T'][1]:.1f} N·mm to {stiff['T'][0]:.1f} to {stiff['T'][1]:.1f} N·mm. The forces stay at "
             f"{stiff['F'][0]:.3f} to {stiff['F'][1]:.3f} N, since the force references do not depend on $p_l$. The "
             f"session's own check, leaving one eye out, gives {stiff_lo[0]:.1f} to {stiff_lo[1]:.1f} N·mm with the stiff line "
@@ -289,6 +301,35 @@ def sections(X):
                   "knob and a tie hole; the cap of 12:52 had a slot for a pigtail's loop.", width=900))
     S.append(("cross", "The hook cross and the hanging mass", body))
 
+    rows = [["Mounting side (robot)", "3 x M3 x 0.5, 5.0 deep", "33 mm; at 82.5, 202.5, 322.5°",
+             "2 x Ø3, 2.5 deep (-E: 5.0), at 37.5 and 277.5° on 33 mm", "Ø6.35 through hole"],
+            ["Tool side", "3 x M3 x 0.5, 3.0 deep", "33 mm; at 60, 180, 300°", "2 x Ø3, 2.5 deep, at 0 and 120° on 35 mm",
+             "Through hole"]]
+    sc40 = p40["screws"]
+    body = (f"<p>The lab's second sensor is a Mini40 (FT16552, received for the SI-20-1 calibration: 20 N in $F_x$ and $F_y$, "
+            f"60 N in $F_z$, 1 N·m in torque). It is read by the same Net F/T box, one sensor at a time. Its interface is given "
+            f"in ATI's drawings 9230-05-1278 rev 11 (Mini40-R and -A) and 9230-05-1314 rev 09 (Mini40-E), fetched 23 October "
+            f"(Table 4). Both drawings give the same holes. The transducer is 40.1 mm across and 12.27 mm tall; the -E is "
+            f"14.0 mm tall. Its origin is the centre of the tool face, as the Mini45's. The cable leaves the mounting plate "
+            f"radially, at 150° from +X on the -R and at 157.5° on the -E with a 17.3 mm strain relief. The -A's cable leaves "
+            f"the mounting face's centre and is not provided for.</p>"
+            f"<p>The Mini40 takes its own base and top, and the cross, the holder and the line are the Mini45's (Fig. 4). The base "
+            f"is the Mini45's with a pad {p40['ati']['d_mm'] - 2.1:.0f} mm across and a channel 10 mm wide that takes either "
+            f"cable. Its three M3 x 12 enter 4.0 mm of the 5.0 mm threads, and the top's three M3 x 10 enter 2.5 mm of the 3.0 mm. "
+            f"At a clock of {p40['clock_deg']:.0f}° the base's least wall is {p40['wall_mm']:.2f} mm. The cable then leaves "
+            f"toward {p40['cable_deg_M']:.0f}° in M, beside the Mini45's {parts['cable_deg_M']:.0f}°, so both cables are routed "
+            f"the same way along the arm. The thickest walls, 5.63 mm, would point the cable to 132°. The tool becomes "
+            f"{p40['added_length_mm']:.1f} mm longer, and the eyes keep their places in the ATI's frame on the -E as well. The "
+            f"two parts print in {pt40['time']} and {pt40['filament_g']:.0f} g "
+            f"({code(D / 'print/20261023-ati_stack_mini40_p1s_pla.3mf')}).</p>"
+            + table(["Face", "Threads", "Bolt circle", "Dowel holes", "Centre"], rows,
+                    caption="The Mini40's interface on drawings 9230-05-1278 rev 11 and 9230-05-1314 rev 09; angles from the "
+                    "ATI's +X toward +Y.", n=4)
+            + fig(4, D / "media/20261023-ati_stack_mini40_exploded.png", "The Mini40's stack exploded along the tool axis "
+                  f"({code(ROOT / 'scripts/ati_stack_mount.py')} --sensor mini40): mount v3's adapter, the Mini40's base, the "
+                  "Mini40-R with its cable's fitting, its top, and mount v3's standoff-fork."))
+    S.append(("mini40", "The Mini40's interface and stack", body))
+
     body = (f"<p>At a station the ATI is turned about a fixed point $P_0$ until gravity has a chosen direction in its frame. "
             f"$P_0$ is ({nf(plan['p0_mm'], 0)}) mm in the robot's base frame: 430 mm above the table and 110 mm short of the "
             f"indenters' 2x4. The candidates were 160 gravity directions, each at 24 turns about the vertical. They were "
@@ -312,9 +353,15 @@ def sections(X):
             f"block the stations are ordered as the cycle of least joint travel. In that cycle every move is clear with "
             f"the mass hanging, and no move bends the line back over its arm. Every move was checked at ten points along "
             f"its joint path. The {len(plan['stations'])} stations and {sum(len(b['steps']) for b in plan['blocks'])} steps "
-            f"take about {plan['minutes']:.0f} min at 0.3 rad/s (Fig. 4). Each station has 4 s for the swing to decay and "
+            f"take about {plan['minutes']:.0f} min at 0.3 rad/s (Fig. 5). Each station has 4 s for the swing to decay and "
             f"3 s of rest. The plan is {code(D / 'plan/20261023-ati_plan_mass.json')}.</p>"
-            + film(4, D / "media/20261023-ati_calibration_sim_session.mp4", D / "media/20261023-ati_calibration_sim_session.png",
+            f"<p>The Mini40's plan was built the same way from its parts "
+            f"({code(D / 'plan/20261023-ati_plan_mass_mini40.json')}). It has {len(pl40['stations'])} stations and "
+            f"{sum(len(b['steps']) for b in pl40['blocks'])} steps and takes about {pl40['minutes']:.0f} min. Its excitation is "
+            f"{nf(pl40['checks']['scaled_singular_values'][:5], 1)} and {pl40['checks']['scaled_singular_values'][5]:.1f}. The "
+            f"tool clears the forearm and wrist by {L40['self_tool']:.1f} mm and the HEX-E's cable port by {L40['port']:.1f} mm, "
+            f"and the mass's line clears the tool by {L40['mass_line']:.1f} mm. Joint 5 reaches {L40['q_hi'][4]:.0f}°.</p>"
+            + film(5, D / "media/20261023-ati_calibration_sim_session.mp4", D / "media/20261023-ati_calibration_sim_session.png",
                    "The plan in a simulated session at 24 times speed. Left, the cell from the front; right, the tool from "
                    "the side away from the robot. The label bar names the block, the eye and the mass's state."))
     S.append(("plan", "Robot plan of the calibration", body))
@@ -333,29 +380,35 @@ def sections(X):
             f"({code(ROOT / 'scripts/ati_calibration_analysis.py')}) the drift is taken from the reference station's rests, "
             f"and 40 pairs are formed, mass on minus mass off at each station.</p>"
             f"<p>The full 6 x 6 fit recovers each sensor to {tr[:, :3].min():.3f} to {tr[:, :3].max():.3f} N and "
-            f"{tr[:, 3:].min() * 1e3:.1f} to {tr[:, 3:].max() * 1e3:.1f} N·mm against the truth (Table 4). Left out one "
+            f"{tr[:, 3:].min() * 1e3:.1f} to {tr[:, 3:].max() * 1e3:.1f} N·mm against the truth (Table 5). Left out one "
             f"eye at a time, it predicts that eye's pairs to {lo[:, :3].min():.3f} to {lo[:, :3].max():.3f} N. The model "
             f"with FT31565's row shapes and twelve gains reaches {r12[:, :3].max():.3f} N. The ATI's 1.5° turn in the stack "
             f"moves its rows away from the borrowed shape. So the full matrix is the calibration.</p>"
             + table(["Sensor", "Pairs", "F error (N)", "T error (N·mm)", "Left-out eye: F (N)", "Left-out eye: T (N·mm)"], rows,
                     num_cols=(1, 2, 3, 4, 5), caption="Simulated sessions on the plan: error against the truth and "
                     "leave-one-eye-out error of the full fit, medians per axis "
-                    f"({code(D / '20261023-ati_sim_sessions.json')}).", n=4))
-    rows = [[f"{b['mass_g']:.0f}", f"{b['rest_s']:.0f}", b["line"], f"{b['F'][0]:.3f} to {b['F'][1]:.3f}", f"{b['F90']:.3f}",
-             f"{b['T'][0]:.1f} to {b['T'][1]:.1f}", f"{b['T90']:.1f}"] for b in BM]
+                    f"({code(D / '20261023-ati_sim_sessions.json')}).", n=5))
+    rows = [[b["sensor"], f"{b['mass_g']:.0f}", f"{b['rest_s']:.0f}", b["line"], f"{b['F'][0]:.4f} to {b['F'][1]:.4f}",
+             f"{b['F90']:.4f}", f"{b['T'][0]:.2f} to {b['T'][1]:.2f}", f"{b['T90']:.2f}"] for b in BM]
     body += (f"<p>The sessions above hung 500.3 g. The same five sensors were calibrated with 250 g and with 112 g, the "
-             f"100 g weight with its holder and screws (Table 5). The error grows as the mass shrinks. At 112 g the medians "
+             f"100 g weight with its holder and screws (Table 6). The error grows as the mass shrinks. At 112 g the medians "
              f"are {m112['F'][0]:.3f} to {m112['F'][1]:.3f} N, about four times those at 500 g. They remain below the "
              f"HEX-E reference's {min(co[:3]):.2f} to {max(co[:3]):.2f} N. Averaging 12 s at each station in place of 3 s "
              f"leaves them at {slow['F'][0]:.3f} to {slow['F'][1]:.3f} N. So the noise of the rests is not the limit at 112 g. "
              f"The limit is the gages' drift between a station's two rests, which are minutes apart. In the simulator that "
              f"drift is up to 2 counts a minute with a random walk on top; the box check measures the real one.</p>"
-             + table(["Mass (g)", "Rest (s)", "Line", "F error (N), median", "F error (N), 90th percentile",
-                      "T error (N·mm), median", "T error (N·mm), 90th percentile"], rows, num_cols=(0, 1, 3, 4, 5, 6),
-                     caption="Error against the truth of the full fit by hung mass, rest time and line: the range of the "
+             + f"<p>The Mini40 was simulated on its own plan at 112 g, with FT21031's row shapes and 7.25 times the Mini45's "
+             f"counts per N (5 times per N·m). That ratio is the one between the two models' largest calibrations, SI-580-20 "
+             f"and SI-80-4: their flexures are taken to be strained alike at full range, and the box's raw gain to be the "
+             f"same. The 100 g weight then moves the gages 7 times as far as on the Mini45, against the same noise and drift. "
+             f"The medians are {m40['F'][0]:.4f} to {m40['F'][1]:.4f} N and {m40['T'][0]:.2f} to {m40['T'][1]:.2f} N·mm "
+             f"(Table 6).</p>"
+             + table(["Sensor", "Mass (g)", "Rest (s)", "Line", "F error (N), median", "F error (N), 90th percentile",
+                      "T error (N·mm), median", "T error (N·mm), 90th percentile"], rows, num_cols=(1, 2, 4, 5, 6, 7),
+                     caption="Error against the truth of the full fit by sensor, hung mass, rest time and line: the range of the "
                      "medians over five sensors and three axes, and the largest 90th percentile. In the last row the "
                      "simulated line hangs 2 mm farther off the hole's edge than the analysis takes it to, as a stiff line "
-                     f"would ({code(ROOT / 'scripts/ati_sim_sessions.py')} --mass-g, --rest-s, --sim-line-mm).", n=5))
+                     f"would ({code(ROOT / 'scripts/ati_sim_sessions.py')} --mass-g, --rest-s, --sim-line-mm, --plan).", n=6))
     S.append(("sim", "Simulated sessions", body))
 
     pl = plan["payload"]
@@ -396,6 +449,12 @@ def sections(X):
         "<code>--mass-g &lt;grams&gt; --line-mm &lt;mm&gt; --hexe 192.168.0.6 --name run1</code> in place of <code>--dry "
         "--speed 0.5 --name dry</code>. The grams are the weighed holder's with its line, and the millimetres the line's "
         "diameter.",
+        "The Mini40, after the Mini45's run. Switch the box off and move its transducer cable from the Mini45 to the Mini40. "
+        "Unscrew the cross, the top, the Mini45 and its base. Screw the Mini40 to its own base with three M3 x 12 from below, "
+        "the base onto the adapter with four M3 x 20, and the Mini40's top onto it with three M3 x 10, never longer. Lay the "
+        "cable in the base's channel and screw the cross onto the top. Repeat the box check, then the dry run and the run with "
+        "<code>plan/20261023-ati_plan_mass_mini40.json</code> and <code>--name dry40</code>, <code>--name run40</code>. The "
+        "Mini40's torque range is 1 N·m: a push of about 12 N at an arm's end saturates it, so the cross is handled gently.",
         "On the workstation: <code>.venv/bin/python scripts/ati_calibration_analysis.py &lt;session folder&gt;</code> writes "
         "the matrix, the leave-one-eye-out errors and the HEX-E's gains into the folder's analysis/.",
         "Afterwards: the fork in the cross's place and the sphere plans rebuilt for the 46.7 mm longer tool, to compare the "
@@ -407,8 +466,8 @@ def sections(X):
             "walk, and no damaged gage. The ATI's place in the stack, the eyes' places and the line's departure from each "
             "eye are taken from the drawings. The mass's swing is modelled as a damped pendulum. The plan is checked against "
             "the URDF's collision meshes and the cell of the tip calibration, as the rod plan placed it on 23 October. "
-            "Objects outside that model are seen only in the dry run. The Mini40 has another interface and a 1 N·m torque "
-            "range: it needs its own top and base and a mass of about 0.2 kg. The drift that limits the calibration with "
+            "Objects outside that model are seen only in the dry run. The Mini40's counts per N in the box's raw mode are "
+            "assumed from its calibrations' ranges, and its mass of 50 g from the data sheet. The drift that limits the calibration with "
             "100 g is the simulator's assumption. The line is modelled as turning at its knot or at the hole's edge; its "
             "fibres' bending length of 0.1 to 0.2 mm is not in the model.</p>")
     S.append(("limits", "Limitations", body))
@@ -416,7 +475,7 @@ def sections(X):
           "print. So does a gage that does not change when the tool side is pressed by hand.",
           "Record 10 min of the box at rest in the box check, and rerun the simulated sessions at 112 g with its noise and "
           "drift. If the median error then exceeds 0.01 N, hang 0.25 to 0.5 kg in place of the 100 g weight; the simulated "
-          "error is then a half and a quarter (Table 5).",
+          "error is then a half and a quarter (Table 6).",
           "Run the session on the Mini45 and the analysis. A leave-one-eye-out error above 0.1 N or 5 N·mm is about three "
           "times the simulated. It would mean a nonlinearity, a gage fault or a wrong eye geometry, none of which a 6 x 6 "
           "matrix represents.",
@@ -438,7 +497,7 @@ def main():
               + link(CAL / "20261022-ur5_tip_ground_truth_and_predictors.html", "UR5 ground truth and predictors") + ".")
     page = TEMPLATE.read_text()
     for k, v in {"TITLE": "ATI calibration plan",
-                 "H1": "Calibration of the lab's ATI Mini45 on the UR5 with a weighed mass",
+                 "H1": "Calibration of the lab's ATI Mini45 and Mini40 on the UR5 with a weighed mass",
                  "EYEBROW": "Printed fingertips and force sensing &#183; 2026-10-23", "LEDE": lede, "BYLINE": byline,
                  "FILM": "", "TOC": toc, "SECTIONS": secs, "FOOTER": str(PAGE.relative_to(ROOT)), "TEXCSS": texsvg.CSS}.items():
         page = page.replace("{{" + k + "}}", v)

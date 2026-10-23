@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Robot plan of the ATI Mini45's calibration with a weighed mass on the lab's UR5 (CB3): the stations, their order and
+"""Robot plan of the ATI Mini45's (or, with --parts, the Mini40's) calibration with a weighed mass on the lab's UR5 (CB3):
+the stations, their order and
 their checks, for scripts/ati_calibration_session.py (owner, 2026-10-23: "design a mount for the ATI for the HEX-E and
 build up a calibration plan").
 
@@ -85,8 +86,9 @@ def tool_points_M(rec, spacing=2.5):
         m = trimesh.load(ROOT / rec["parts"][nm]["file"], force="mesh")
         m.apply_translation([0.0, 0.0, z])
         parts.append(m)
-    ati = trimesh.creation.cylinder(radius=22.5, height=15.7, sections=64)
-    ati.apply_translation([0.0, 0.0, zM["ati_mount_face"] + 15.7 / 2])
+    sd = rec.get("ati", dict(d_mm=45.0, h_mm=15.7))
+    ati = trimesh.creation.cylinder(radius=sd["d_mm"] / 2, height=sd["h_mm"], sections=64)
+    ati.apply_translation([0.0, 0.0, zM["ati_mount_face"] + sd["h_mm"] / 2])
     parts.append(ati)
     P = []
     for m in parts:
@@ -366,11 +368,14 @@ def move_s(q0, q1):
 def payload(rec):
     """Mass and centre of gravity past the UR flange for set_payload (E frame, mm), without and with the mass: the HEX-E
     (260 g, data sheet), v3's adapter, M6 screws and inserts (v3's payload record), the printed parts at 0.70 g/cm3 (the
-    draft plate's slicing: 142 g for 204 cm3), the Mini45 (92 g, to be weighed), 20 g of M3 screws."""
+    draft plate's slicing: 142 g for 204 cm3), the sensor (the Mini45 92 g, the Mini40 50 g; to be weighed), 20 g of M3
+    screws."""
     import trimesh
     zM = rec["z_M"]
+    sd = rec.get("ati", dict(d_mm=45.0, h_mm=15.7, mass_g=92.0))
     items = [("hex_e", 260.0, -17.5), ("adapter", 24.9, 7.4), ("m6_screws_inserts", 29.2, 11.0),
-             ("ati_mini45", 92.0, zM["ati_mount_face"] + 15.7 / 2), ("m3_screws", 20.0, zM["ati_origin"])]
+             (f"ati_{rec.get('sensor', 'Mini45').lower()}", sd["mass_g"], zM["ati_mount_face"] + sd["h_mm"] / 2),
+             ("m3_screws", 20.0, zM["ati_origin"])]
     for nm, z in (("ati_base", zM["adapter_top"]), ("ati_top", zM["ati_origin"]), ("hook_cross", zM["top_face"])):
         m = trimesh.load(ROOT / rec["parts"][nm]["file"], force="mesh")
         items.append((nm, float(m.volume) * 0.70e-3, z + float(m.center_mass[2])))
@@ -469,7 +474,7 @@ def build(P0, per_eye, out):
     end_home, _ = path_ok(chk, cands[ref]["q"], chk.q_home)
     t_total += move_s(cands[ref]["q"], chk.q_home) if end_home else 0.0
     rec, T_EM, T_MA = chk.rec, chk.T_EM, chk.T_MA
-    plan = dict(version=1, kind="ati_mass_calibration", made=time.strftime("%Y-%m-%d %H:%M"),
+    plan = dict(version=1, kind="ati_mass_calibration", made=time.strftime("%Y-%m-%d %H:%M"), sensor=rec.get("sensor", "Mini45"),
                 note="stations for scripts/ati_calibration_session.py; built by scripts/ati_calibration_plan.py",
                 geometry=dict(T_EM=T_EM, T_MA=T_MA, T_EA=chk.T_EA, eyes=chk.eyes, eye=rec["eye"], z_M=rec["z_M"],
                               mount_turn_deg=MOUNT_TURN, parts=str(PARTS.relative_to(ROOT)), clock_deg=rec["clock_deg"]),
@@ -496,5 +501,7 @@ if __name__ == "__main__":
     ap.add_argument("--p0", default="-180,-420,430", help="mm in the base frame: where the ATI's origin stays")
     ap.add_argument("--per-eye", type=int, default=8)
     ap.add_argument("--out", default=str(D / "plan/20261023-ati_plan_mass.json"))
+    ap.add_argument("--parts", default=str(PARTS), help="the stack's parts record (scripts/ati_stack_mount.py --sensor)")
     a = ap.parse_args()
+    PARTS = Path(a.parts).resolve()
     build([float(v) for v in a.p0.split(",")], a.per_eye, a.out)

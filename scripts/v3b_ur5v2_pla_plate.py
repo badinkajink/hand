@@ -182,6 +182,13 @@ PLATES = {
         ("A1", "ATI base over v3's M6 heads, cable channel", ATI / "cad/20261023-ati_stack_ati_base.stl", np.eye(3), dict(STANDARD, wall_loops="6")),
         ("A2", "ATI top, v3 foot pattern, inserts", ATI / "cad/20261023-ati_stack_ati_top.stl", np.eye(3), dict(STANDARD, wall_loops="6")),
         ("A3", "hook cross, five eyes", ATI / "cad/20261023-ati_stack_hook_cross.stl", np.eye(3), dict(STANDARD, wall_loops="6"))],
+    # 2026-10-23 17:45: the ATI Mini40's base and top (scripts/ati_stack_mount.py --sensor mini40; ATI drawings 9230-05-1278
+    # rev 11 and 9230-05-1314 rev 09); the hook cross and the mass holder are the Mini45's
+    "ati_stack_mini40": [
+        ("A4", "Mini40 base over v3's M6 heads, cable channel", ATI / "cad/20261023-ati_stack_mini40_ati_base.stl", np.eye(3),
+         dict(STANDARD, wall_loops="6")),
+        ("A5", "Mini40 top, v3 foot pattern, inserts", ATI / "cad/20261023-ati_stack_mini40_ati_top.stl", np.eye(3),
+         dict(STANDARD, wall_loops="6"))],
     # 2026-10-23 12:52: the holder of the owner's 100 g weight for the ATI calibration (scripts/ati_stack_mount.py holder):
     # cup and cap upright as they hang, six walls (the 2.4 mm walls and the 5 mm tab print solid)
     "ati_mass": [
@@ -211,7 +218,8 @@ PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"
              "mount_v5_wedge": (V5M / "print", f"{UP5}_p1s_pla_wedge"),
              "ati_stack": (ATI / "print", "20261023-ati_stack_p1s_pla"),
              "ati_mass": (ATI / "print", "20261023-ati_mass_holder_p1s_pla"),
-             "ati_mass_cap": (ATI / "print", "20261023-ati_mass_cap2_p1s_pla")}
+             "ati_mass_cap": (ATI / "print", "20261023-ati_mass_cap2_p1s_pla"),
+             "ati_stack_mini40": (ATI / "print", "20261023-ati_stack_mini40_p1s_pla")}
 
 
 def main():
@@ -243,7 +251,8 @@ def main():
                    "mount_v5_wedge": "UR5 mount v5: two PLA wedges for the stop plate's gap",
                    "ati_stack": "ATI Mini45 on the HEX-E: base, top and hook cross (ATI drawing 9230-05-1094)",
                    "ati_mass": "ATI calibration: holder for the 100 g weight, cup and cap 2",
-                   "ati_mass_cap": "ATI calibration: cap 2 of the 100 g weight's holder (knob 14 x 11 mm, tie hole)"}[plate]
+                   "ati_mass_cap": "ATI calibration: cap 2 of the 100 g weight's holder (knob 14 x 11 mm, tie hole)",
+                   "ati_stack_mini40": "ATI Mini40 on the HEX-E: base and top (ATI drawings 9230-05-1278, 9230-05-1314)"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -280,6 +289,8 @@ def main():
                    + ("; 2026-10-23 12:52: 'a 100g mass on a 25mm diameter 25mm height form factor. theres a little knobby "
                       "thing coming out. i think we'd need to built a tight-fit enclosure. i also dont have a hook'"
                       if plate == "ati_mass" else "")
+                   + ("; 2026-10-23: 'i only want to do this once, so can you set up a mount for the ati mini 40 too'"
+                      if plate == "ati_stack_mini40" else "")
                    + ("; 2026-10-23 15:34: 'the knob coming out is 7mm in radius, 11mm in height ... can you redesign the top "
                       "cover for this measurement'" if plate in ("ati_mass", "ati_mass_cap") else "")
                    + ("; 2026-10-22 11:30: 'the middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle "

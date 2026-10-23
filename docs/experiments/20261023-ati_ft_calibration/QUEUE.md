@@ -42,3 +42,17 @@ Run the session in its simulator first, on the lab computer: `$PY scripts/ati_ca
   --hexe 192.168.0.6 --name run1` in place of `--dry --speed 0.5 --name dry`, and `--eye-hole-mm <mm>` if the eyes were
   drilled larger than 1.2 mm. The program stops on a gage saturation, on a gap of over
   0.5 s in the box's stream and on a protective stop; `--resume <folder>` continues. Push the whole session folder.
+
+- A4 (open, 17:52; after A3; the owner's go). The Mini40 (FT16552) on the same box. With the box off, move the
+  transducer cable from the Mini45 to the Mini40. Unscrew the cross, the top, the Mini45 and its base. Screw the Mini40
+  to its own base (plate `print/20261023-ati_stack_mini40_p1s_pla.3mf`) with three M3 x 12 from below, the base onto the
+  adapter with four M3 x 20, its top onto it with three M3 x 10 (never longer: its tool-side threads are 3.0 mm), and the
+  cross onto the top with four M3 x 12. Its cable lies in the base's channel toward the Mini45's route. Note in
+  `lab/NOTES.md` whether the Mini40 is a -R (short fitting), -E (17 mm strain relief) or -A (cable out of the mounting
+  face's centre: the base does not fit it; stop). Then the box check of A1 for the Mini40, into `lab/<date>-<time>-boxcheck40`
+  and `-boxdrift40`; the box stays on #16 (FT00000).
+- A5 (open, 17:52; after A4). The Mini40's dry run: A2's command with
+  `--plan docs/experiments/20261023-ati_ft_calibration/plan/20261023-ati_plan_mass_mini40.json --name dry40`. Its torque
+  range is 1 N m: a push of about 12 N at an arm's end saturates it, and the program stops on a saturation.
+- A6 (open, 17:52; after A5). The Mini40's run: A3's command with the Mini40's plan and `--name run40`, the same weight,
+  holder and line.

@@ -34,7 +34,8 @@ measured at 14 mm across and 11 mm tall): a pocket that centres the knob, and in
 the axis; the line from the eye is tied through it, and the holder hangs from the hole's top. Both parts print upright
 without supports.
 
-    .venv/bin/python scripts/ati_stack_mount.py [build] [--clock DEG]     STLs, parts JSON (and the holder)
+    .venv/bin/python scripts/ati_stack_mount.py [build] [--sensor mini45|mini40] [--clock DEG]   STLs, parts JSON
+                                                                           (the Mini45's build also writes the cross and holder)
     .venv/bin/python scripts/ati_stack_mount.py holder                     the holder's STLs and record only
     .venv/bin/python scripts/ati_stack_mount.py render [--figures stack,cross,holder]   the figures
 (each through ~/.claude/bin/resguard.sh run --mem 3G: they load meshes)
@@ -90,6 +91,35 @@ ARM_L, ARM_W, ARM_H, PLATE_T = 80.0, 12.0, 16.0, 6.0
 POST_D, POST_H = 16.0, 118.0
 EYE_D, EYE_WALL, KNOT_SLOT = 1.2, 1.6, (8.0, 4.0)    # hole, end wall, slot behind it (length, width)
 CROSS_CB_Z = 5.5                                     # the cross's M3 heads 5.5 mm above its underside
+# --- the sensors: the Mini45 above, and the Mini40 (owner, 2026-10-23 17:36: "i only want to do this once, so can you set
+# up a mount for the ati mini 40 too"), from ATI's drawings 9230-05-1278 rev 11 (Mini40-R and -A) and 9230-05-1314 rev 09
+# (Mini40-E), fetched 2026-10-23. Both Mini40 drawings give the same interface: mounting side three M3 x 0.5 tapped 5.0
+# deep on a 33 mm circle at 82.5, 202.5 and 322.5 deg from +X, two 3 mm slip-fit dowel holes on it at 37.5 and 277.5 deg
+# (2.5 deep on -R, 5.0 on -E), a 6.35 mm centre hole; tool side three M3 x 0.5 tapped 3.0 deep on 33 mm at 60, 180 and
+# 300 deg, two 3 mm dowel holes 2.5 deep on a 35 mm circle at 0 and 120 deg. 40.1 mm across; 12.27 mm tall (-R, -A) or
+# 14.0 (-E). The cable leaves the mounting plate radially at 150 deg (-R, a fitting) or 157.5 deg (-E, a 17.3 mm strain
+# relief); -A's leaves the mounting face's centre and is not provided for. Origin at the tool face's centre, as the Mini45.
+SENSORS = {
+    "mini45": dict(key="mini45", name="Mini45", stem=STEM, rev=REV, H=ATI_H, D=ATI_D, mount_t=ATI_MOUNT_T,
+                   drawing="ATI drawing 9230-05-1094 rev 20, Mini45 transducer (www.ati-ia.com, fetched 2026-10-23)",
+                   mount=[(ATI_MOUNT_BC / 2, c + s_ * MOUNT_PAIR_HALF) for c in MOUNT_PAIRS for s_ in (-1, 1)],
+                   tool=[(ATI_TOOL_BC / 2, c + s_ * TOOL_PAIR_HALF) for c in MOUNT_PAIRS for s_ in (-1, 1)],
+                   thread_mount=THREAD_MOUNT, thread_tool=THREAD_TOOL,
+                   dowel_mount=[(ATI_MOUNT_BC / 2, a) for a in DOWEL_MOUNT], dowel_mount_hole=5.0, dowel_mount_pin="3 x 8",
+                   dowel_tool=[(ATI_DOWEL_TOOL_BC / 2, a) for a in DOWEL_TOOL],
+                   cable_deg=CABLE_DEG, cable=CABLE_FITTING, pad_d=PAD_D, channel_w=CHANNEL_W, mass_g=92.0),
+    "mini40": dict(key="mini40", name="Mini40", stem=STEM + "_mini40", H=12.27, D=40.1, mount_t=5.5, H_E=14.0,
+                   rev="v1 2026-10-23 (ATI drawings 9230-05-1278 rev 11 and 9230-05-1314 rev 09)",
+                   drawing="ATI drawings 9230-05-1278 rev 11, Mini40 transducer radial and axial cable exit, and 9230-05-1314 "
+                           "rev 09, Mini40-E (www.ati-ia.com, fetched 2026-10-23)",
+                   mount=[(16.5, a) for a in (82.5, 202.5, 322.5)], tool=[(16.5, a) for a in (60.0, 180.0, 300.0)],
+                   thread_mount=5.0, thread_tool=3.0,
+                   dowel_mount=[(16.5, 37.5), (16.5, 277.5)], dowel_mount_hole=4.0, dowel_mount_pin="3 x 6",
+                   dowel_tool=[(17.5, 0.0), (17.5, 120.0)],
+                   cable_deg=153.75, cable_variants={"-R": 150.0, "-E": 157.5}, cable=dict(d=6.0, out=3.0),
+                   pad_d=38.0, channel_w=10.0, cable_toward=224.0, cable_tol=10.0, mass_g=50.0),
+}
+S = SENSORS["mini45"]                                # the sensor being built; main() sets it
 # --- the mass holder (owner, 2026-10-23 12:52: "a 100g mass on a 25mm diameter 25mm height form factor. theres a little
 # knobby thing coming out. i think we'd need to built a tight-fit enclosure. i also dont have a hook") ---
 WEIGHT_D, WEIGHT_H = 25.0, 25.0                      # the weight's body as the owner measured it
@@ -101,7 +131,7 @@ HOLD_PROUD = 0.4                                     # the weight stands this fa
 EAR_R, EAR_D, PILOT_D, PILOT_DEPTH = 16.0, 8.0, 2.75, 10.0         # the cap's two M3 x 12 into self-formed threads
 FLANGE_T, DOME_WALL = 4.0, 2.4
 TAB_T, TAB_W = 5.0, 12.0                             # the tab on the dome: thickness, width (its top a half-disc)
-TIE_D, TIE_Z = 2.0, 4.0                              # its tie hole on the axis: across, centre above the dome (15:34: the
+TIE_HOLE_D, TIE_HOLE_Z = 2.0, 4.0                    # its tie hole on the axis: across, centre above the dome (15:34: the
                                                      # line is tied through the cap, the slot of 12:52 dropped)
 PIGTAIL_MM = 60.0                                    # the eye to the cap's tie hole along the line
 HALVES = ROOT / "logs/20261023-ati_mass_holder"      # cut-away halves for the figure (written by the holder build)
@@ -116,7 +146,7 @@ def z_ati0():
 
 
 def z_ati_origin():
-    return z_ati0() + ATI_H                          # its sensing origin: the tool face's centre
+    return z_ati0() + S["H"]                         # its sensing origin: the tool face's centre
 
 
 def z_top1():
@@ -128,11 +158,11 @@ def xy(r, a):
 
 
 def mount_holes(clock):
-    return [xy(ATI_MOUNT_BC / 2, clock + c + s * MOUNT_PAIR_HALF) for c in MOUNT_PAIRS for s in (-1, 1)]
+    return [xy(r, clock + a) for r, a in S["mount"]]
 
 
 def tool_holes(clock):
-    return [xy(ATI_TOOL_BC / 2, clock + c + s * TOOL_PAIR_HALF) for c in MOUNT_PAIRS for s in (-1, 1)]
+    return [xy(r, clock + a) for r, a in S["tool"]]
 
 
 def walls(clock):
@@ -145,29 +175,31 @@ def walls(clock):
             q = xy(M3_R, a)
             d = math.hypot(p[0] - q[0], p[1] - q[1])
             w += [d - CB_D / 2 - CLR_D / 2, d - CLR_D / 2 - 3.25]
-    for a0 in DOWEL_MOUNT:
-        p = xy(ATI_MOUNT_BC / 2, clock + a0)
+    for r0, a0 in S["dowel_mount"]:
+        p = xy(r0, clock + a0)
         for a in M3_ANG:
             q = xy(M3_R, a)
             w.append(math.hypot(p[0] - q[0], p[1] - q[1]) - DOWEL_HOLE / 2 - 3.25)
-    u = np.array(xy(1.0, clock + CABLE_DEG))
+    u = np.array(xy(1.0, clock + S["cable_deg"]))
     n = np.array([-u[1], u[0]])
+    cw = S["channel_w"]
     for a in M3_ANG:
         q = np.array(xy(M3_R, a))
         if 18.0 < q @ u < 38.0:
-            w.append(abs(q @ n) - CHANNEL_W / 2 - 3.25)
+            w.append(abs(q @ n) - cw / 2 - 3.25)
         if TIE_R[0] - 3.0 < q @ u < TIE_R[1] + 3.0:               # the tie's tunnel and slots against the through holes
-            w.append(abs(q @ n) - CHANNEL_W / 2 - 3.0 - CLR_D / 2)
+            w.append(abs(q @ n) - cw / 2 - 3.0 - CLR_D / 2)
     for p in mount_holes(clock):                                  # and against the ATI screws' counterbores (z 0..12)
         q = np.array(p)
         if TIE_R[0] - 4.0 < q @ u < TIE_R[1] + 4.0:
-            w.append(abs(q @ n) - CHANNEL_W / 2 - 3.0 - CB_D / 2)
+            w.append(abs(q @ n) - cw / 2 - 3.0 - CB_D / 2)
     return min(w)
 
 
 def base(K, clock):
     """z from the adapter's top face (z_M 15)."""
-    s = K.union([K.cyl("z", (0.0, 0.0), BASE_D / 2, 0.0, BASE_T), K.cyl("z", (0.0, 0.0), PAD_D / 2, BASE_T - 0.01, BASE_T + PAD_H)])
+    pad_d, cw = S["pad_d"], S["channel_w"]
+    s = K.union([K.cyl("z", (0.0, 0.0), BASE_D / 2, 0.0, BASE_T), K.cyl("z", (0.0, 0.0), pad_d / 2, BASE_T - 0.01, BASE_T + PAD_H)])
     top = BASE_T + PAD_H
     seat = top + ENGAGE_MOUNT - SCREW["ati_mount"]                # 12.0: the ATI screws' heads from below
     cut = []
@@ -178,16 +210,17 @@ def base(K, clock):
         cut += [K.cyl("z", c, CLR_D / 2, -1.0, BASE_T + 1.0), K.cyl("z", c, 3.25, BASE_T - ADAPTER_CB, BASE_T + 1.0)]
     for c in mount_holes(clock):                                  # M3 x 12 up into the ATI; counterbores from below
         cut += [K.cyl("z", c, CLR_D / 2, -1.0, top + 1.0), K.cyl("z", c, CB_D / 2, -1.0, seat)]
-    for a0 in DOWEL_MOUNT:                                        # a 3 x 8 pin: 5 mm in the base, 3 mm into the ATI's 5.0
-        cut.append(K.cyl("z", xy(ATI_MOUNT_BC / 2, clock + a0), DOWEL_HOLE / 2, top - 5.0, top + 1.0))
+    for r0, a0 in S["dowel_mount"]:                               # Mini45: a 3 x 8 pin, 5 mm in the base, 3 into the ATI's 5.0;
+        cut.append(K.cyl("z", xy(r0, clock + a0), DOWEL_HOLE / 2,     # Mini40: 3 x 6, 4 mm in the base, 2 into its 2.5
+                         top - S["dowel_mount_hole"], top + 1.0))
     # the cable: a channel from under the ATI's rim to the base's edge, 3 mm deep, and a zip-tie tunnel under its floor
-    a = clock + CABLE_DEG
+    a = clock + S["cable_deg"]
     R = UM._axis_T("z")
-    ch = K.box((PAD_D / 2 - 1.5, -CHANNEL_W / 2, BASE_T - CHANNEL_DEPTH), (BASE_D / 2 + 1.0, CHANNEL_W / 2, top + 1.0))
+    ch = K.box((pad_d / 2 - 1.5, -cw / 2, BASE_T - CHANNEL_DEPTH), (BASE_D / 2 + 1.0, cw / 2, top + 1.0))
     t0, t1 = TIE_Z                                                # a 1.8 mm bridge under the channel's floor
-    tie = [K.box((TIE_R[0], -CHANNEL_W / 2 - 3.0, t0), (TIE_R[1], CHANNEL_W / 2 + 3.0, t1)),
-           K.box((TIE_R[0], CHANNEL_W / 2 + 0.8, t0), (TIE_R[1], CHANNEL_W / 2 + 3.0, BASE_T + 1.0)),
-           K.box((TIE_R[0], -CHANNEL_W / 2 - 3.0, t0), (TIE_R[1], -CHANNEL_W / 2 - 0.8, BASE_T + 1.0))]
+    tie = [K.box((TIE_R[0], -cw / 2 - 3.0, t0), (TIE_R[1], cw / 2 + 3.0, t1)),
+           K.box((TIE_R[0], cw / 2 + 0.8, t0), (TIE_R[1], cw / 2 + 3.0, BASE_T + 1.0)),
+           K.box((TIE_R[0], -cw / 2 - 3.0, t0), (TIE_R[1], -cw / 2 - 0.8, BASE_T + 1.0))]
     rot = np.eye(4)
     rot[:2, :2] = [[math.cos(math.radians(a)), -math.sin(math.radians(a))], [math.sin(math.radians(a)), math.cos(math.radians(a))]]
     cut += [K.transform(t, rot @ R) for t in [ch] + tie]
@@ -201,8 +234,8 @@ def top(K, clock):
     cut = []
     for c in tool_holes(clock):
         cut += [K.cyl("z", c, CLR_D / 2, -1.0, TOP_T + 1.0), K.cyl("z", c, CB_D / 2, seat, TOP_T + 1.0)]
-    for a0 in DOWEL_TOOL:                                         # 3 x 6 pins: 4 mm in the top, 2 mm into the ATI's 3.4
-        cut.append(K.cyl("z", xy(ATI_DOWEL_TOOL_BC / 2, clock + a0), DOWEL_HOLE / 2, -1.0, 4.0))
+    for r0, a0 in S["dowel_tool"]:                                # 3 x 6 pins: 4 mm in the top, 2 mm into the ATI's 3.4 (2.5)
+        cut.append(K.cyl("z", xy(r0, clock + a0), DOWEL_HOLE / 2, -1.0, 4.0))
     for a in M3_ANG:                                              # inserts for the fork's foot (or the hook cross)
         c = xy(M3_R, a)
         cut += [K.cyl("z", c, INS_HOLE / 2, TOP_T - INS_DEPTH, TOP_T + 1.0),
@@ -300,13 +333,13 @@ def holder_cap(K):
     parts = [K.cyl("z", (0.0, 0.0), HOLD_BORE / 2 + HOLD_WALL, 0.0, FLANGE_T),
              K.cyl("z", (0.0, 0.0), kd / 2 + DOME_WALL, 0.0, top)]
     parts += [K.cyl("z", xy(EAR_R, a), EAR_D / 2, 0.0, FLANGE_T) for a in (0.0, 180.0)]
-    parts.append(K.prism_xz([(-w, top - 0.5), (w, top - 0.5), (w, top + TIE_Z), (-w, top + TIE_Z)], -TAB_T / 2, TAB_T / 2))
-    parts.append(K.cyl("y", (0.0, top + TIE_Z), w, -TAB_T / 2, TAB_T / 2))
+    parts.append(K.prism_xz([(-w, top - 0.5), (w, top - 0.5), (w, top + TIE_HOLE_Z), (-w, top + TIE_HOLE_Z)], -TAB_T / 2, TAB_T / 2))
+    parts.append(K.cyl("y", (0.0, top + TIE_HOLE_Z), w, -TAB_T / 2, TAB_T / 2))
     s = K.union(parts)
     cut = [K.cyl("z", (0.0, 0.0), kd / 2, -1.0, kh),
            K.cyl("z", (0.0, 0.0), kd / 2 + 0.6, -0.01, 0.6, r1=kd / 2 - 0.01)]          # a 0.6 mm lead-in at the pocket
     cut += [K.cyl("z", xy(EAR_R, a), CLR_D / 2, -1.0, FLANGE_T + 1.0) for a in (0.0, 180.0)]
-    cut.append(K.cyl("y", (0.0, top + TIE_Z), TIE_D / 2, -TAB_T, TAB_T))
+    cut.append(K.cyl("y", (0.0, top + TIE_HOLE_Z), TIE_HOLE_D / 2, -TAB_T, TAB_T))
     return K.cut_all(s, cut)
 
 
@@ -315,8 +348,8 @@ def holder_geometry(plan_mass=None):
     envelope for the mass: a thin line for line_mm below the eye, then a cylinder r_mm across and h_mm long."""
     env = plan_mass or dict(line_mm=45.0, r_mm=25.0, h_mm=80.0)
     z_cap = cup_h() + HOLD_PROUD
-    seat = z_cap + cap_top() + TIE_Z + TIE_D / 2      # the line bears on the tie hole's top
-    tab_top = z_cap + cap_top() + TIE_Z + TAB_W / 2
+    seat = z_cap + cap_top() + TIE_HOLE_Z + TIE_HOLE_D / 2      # the line bears on the tie hole's top
+    tab_top = z_cap + cap_top() + TIE_HOLE_Z + TAB_W / 2
     com = HOLD_FLOOR + WEIGHT_H / 2                   # the weight's centre, about the whole holder's
     return dict(seat_mm=round(seat, 2), top_mm=round(tab_top, 2), radius_mm=EAR_R + EAR_D / 2,
                 com_below_seat_mm=round(seat - com, 1),
@@ -331,7 +364,7 @@ def holder_build(K=None):
     except (OSError, ValueError, KeyError):
         env = None
     rec = dict(when=time.strftime("%Y-%m-%d %H:%M"), revision="cap 2 (15:34): pocket for the measured knob, tie hole",
-               weight=dict(d_mm=WEIGHT_D, h_mm=WEIGHT_H, knob_mm=KNOB, knob_pocket_mm=KNOB_POCKET, tie_hole_mm=TIE_D),
+               weight=dict(d_mm=WEIGHT_D, h_mm=WEIGHT_H, knob_mm=KNOB, knob_pocket_mm=KNOB_POCKET, tie_hole_mm=TIE_HOLE_D),
                geometry=holder_geometry(env), parts={},
                screws="2 x M3 x 12 socket head through the cap's ears into the cup's 2.75 mm holes (threads formed in the PLA)")
     for nm, s in (("mass_cup", holder_cup(K)), ("mass_cap", holder_cap(K))):
@@ -366,45 +399,84 @@ def frames(clock):
     return T_MA, ev
 
 
-def main(clock=None):
+def best_clock():
+    """The clock of thickest walls; for a sensor with cable_toward, among the clocks that point its cable within cable_tol
+    of that direction in M (the Mini40's toward the Mini45's, so that both cables take one route along the arm)."""
+    cl = np.arange(0.0, 360.0, 1.0)
+    if "cable_toward" in S:
+        d = np.abs((cl + S["cable_deg"] - S["cable_toward"] + 180.0) % 360.0 - 180.0)
+        cl = cl[d <= S["cable_tol"]]
+    return max(cl, key=walls)
+
+
+def main(clock=None, sensor="mini45"):
+    global S
+    S = SENSORS[sensor]
     if clock is None:
-        clock = max(np.arange(0.0, 360.0, 1.0), key=walls)
+        clock = best_clock()
     K = UM.MeshK()
     (OUT / "cad").mkdir(parents=True, exist_ok=True)
     T_MA, ev = frames(clock)
-    rec = dict(revision=REV, when=time.strftime("%Y-%m-%d %H:%M"), clock_deg=float(clock),
-               wall_mm=round(walls(clock), 2), cable_deg_M=float((clock + CABLE_DEG) % 360.0),
-               source="ATI drawing 9230-05-1094 rev 20, Mini45 transducer (www.ati-ia.com, fetched 2026-10-23)",
+    nm_, nd_ = len(S["dowel_mount"]), len(S["dowel_tool"])
+    rec = dict(sensor=S["name"], revision=S["rev"], when=time.strftime("%Y-%m-%d %H:%M"), clock_deg=float(clock),
+               wall_mm=round(walls(clock), 2), cable_deg_M=float((clock + S["cable_deg"]) % 360.0),
+               source=S["drawing"], ati=dict(d_mm=S["D"], h_mm=S["H"], mass_g=S["mass_g"], mass_note="data sheet; weigh it"),
                z_M=dict(adapter_top=ADAPTER_TOP, base_top=ADAPTER_TOP + BASE_T, ati_mount_face=z_ati0(),
                         ati_origin=z_ati_origin(), top_face=z_top1(), cross_post_eye=z_top1() + POST_H),
                added_length_mm=z_top1() - ADAPTER_TOP, T_MA=np.round(T_MA, 6).tolist(), eyes=ev,
                eye=dict(hole_d=EYE_D, wall=EYE_WALL),
                screws=[dict(qty=4, what=f"M3 x {SCREW['base_to_adapter']:.0f} socket head, base into v3's adapter inserts "
                                         f"({SCREW['base_to_adapter'] - (BASE_T - ADAPTER_CB):.1f} mm into the 5.7 mm insert)"),
-                       dict(qty=6, what=f"M3 x {SCREW['ati_mount']:.0f} socket head, from the base's underside into the "
-                                        f"ATI's mounting side: {ENGAGE_MOUNT:.1f} mm of its {THREAD_MOUNT:.1f} mm thread"),
-                       dict(qty=6, what=f"M3 x {SCREW['ati_tool']:.0f} socket head, through the top into the ATI's tool "
-                                        f"side: {ENGAGE_TOOL:.1f} mm of its {THREAD_TOOL:.1f} mm thread; never longer"),
+                       dict(qty=len(S["mount"]), what=f"M3 x {SCREW['ati_mount']:.0f} socket head, from the base's underside "
+                                        f"into the ATI's mounting side: {ENGAGE_MOUNT:.1f} mm of its {S['thread_mount']:.1f} mm "
+                                        "thread"),
+                       dict(qty=len(S["tool"]), what=f"M3 x {SCREW['ati_tool']:.0f} socket head, through the top into the ATI's "
+                                        f"tool side: {ENGAGE_TOOL:.1f} mm of its {S['thread_tool']:.1f} mm thread; never longer"),
                        dict(qty=4, what="M3 x 5.7 brass heat-set inserts in the top (v3's foot pattern)"),
                        dict(qty=4, what=f"M3 x {SCREW['cross_to_top']:.0f} socket head, the hook cross into the top's "
                                         "inserts (the fork takes its own M3 x 12)"),
-                       dict(qty=3, what="3 mm dowel pins, optional: one 3 x 8 in the base, two 3 x 6 in the top")],
+                       dict(qty=nm_ + nd_, what=f"3 mm dowel pins, optional: {'one' if nm_ == 1 else 'two'} "
+                                                f"{S['dowel_mount_pin']} in the base, two 3 x 6 in the top")]
+               if sensor == "mini45" else
+               [dict(qty=4, what=f"M3 x {SCREW['base_to_adapter']:.0f} socket head, base into v3's adapter inserts "
+                                 f"({SCREW['base_to_adapter'] - (BASE_T - ADAPTER_CB):.1f} mm into the 5.7 mm insert)"),
+                dict(qty=len(S["mount"]), what=f"M3 x {SCREW['ati_mount']:.0f} socket head, from the base's underside into the "
+                                               f"ATI's mounting side: {ENGAGE_MOUNT:.1f} mm of its {S['thread_mount']:.1f} mm thread"),
+                dict(qty=len(S["tool"]), what=f"M3 x {SCREW['ati_tool']:.0f} socket head, through the top into the ATI's tool "
+                                              f"side: {ENGAGE_TOOL:.1f} mm of its {S['thread_tool']:.1f} mm thread; never longer"),
+                dict(qty=4, what="M3 x 5.7 brass heat-set inserts in the top (v3's foot pattern)"),
+                dict(qty=4, what=f"M3 x {SCREW['cross_to_top']:.0f} socket head, the hook cross into the top's inserts"),
+                dict(qty=nm_ + nd_, what=f"3 mm dowel pins, optional: two {S['dowel_mount_pin']} in the base (2 mm into the "
+                                         "Mini40's 2.5 mm holes), two 3 x 6 in the top")],
                parts={})
-    for nm, s in (("ati_base", base(K, clock)), ("ati_top", top(K, clock)), ("hook_cross", cross(K))):
+    builds = [("ati_base", lambda: base(K, clock)), ("ati_top", lambda: top(K, clock))]
+    if sensor == "mini45":
+        builds.append(("hook_cross", lambda: cross(K)))
+    else:                                                         # the cross and the mass holder are shared
+        rec["parts"]["hook_cross"] = json.loads((OUT / f"{STEM}_parts.json").read_text())["parts"]["hook_cross"]
+        rec["variants"] = dict(height_mm={"-R": S["H"], "-A": S["H"], "-E": S["H_E"]}, cable_deg=S["cable_variants"],
+                               note="the -E stands 1.73 mm taller; the eyes keep their places in the ATI's frame, so the "
+                                    "plan and the analysis hold for both")
+    for nm, fn in builds:
+        s = fn()
         tm = UM.to_trimesh(s)
-        f = OUT / f"cad/{STEM}_{nm}.stl"
+        f = OUT / f"cad/{S['stem']}_{nm}.stl"
         tm.export(f)
         rec["parts"][nm] = dict(file=str(f.relative_to(ROOT)), volume_mm3=round(float(s.volume()), 1),
                                 bounds=np.round(np.asarray(tm.bounds), 2).tolist(), watertight=bool(tm.is_watertight))
         print(f"{nm}: {s.volume():.0f} mm3, bounds {np.round(np.asarray(tm.bounds), 1).tolist()}", flush=True)
-    (OUT / f"{STEM}_parts.json").write_text(json.dumps(rec, indent=1) + "\n")
-    print(f"clock {clock:.0f} deg: {rec['wall_mm']:.2f} mm least wall; cable toward {rec['cable_deg_M']:.0f} deg in M; "
-          f"the tool {rec['added_length_mm']:.1f} mm longer; ATI origin at z_M {z_ati_origin():.1f}")
-    holder_build(K)
+    (OUT / f"{S['stem']}_parts.json").write_text(json.dumps(rec, indent=1) + "\n")
+    print(f"{S['name']}: clock {clock:.0f} deg: {rec['wall_mm']:.2f} mm least wall; cable toward {rec['cable_deg_M']:.0f} deg "
+          f"in M; the tool {rec['added_length_mm']:.1f} mm longer; ATI origin at z_M {z_ati_origin():.2f}")
+    if sensor == "mini45":
+        holder_build(K)
     return rec
 
 
 # ------------------------------------------------------------------------------------------------ figures
+NUM = {2: "two", 3: "three", 4: "four", 6: "six"}
+
+
 def _skew(v):
     return np.array([[0.0, -v[2], v[1]], [v[2], 0.0, -v[0]], [-v[1], v[0], 0.0]])
 
@@ -412,28 +484,28 @@ def _skew(v):
 def ati_mesh(clock):
     """A stand-in of the Mini45 in M: the body, the cable's fitting and a stub of cable."""
     import trimesh
-    parts = [trimesh.creation.cylinder(radius=ATI_D / 2, height=ATI_H, sections=96)]
-    parts[0].apply_translation([0.0, 0.0, z_ati0() + ATI_H / 2])
-    a = math.radians(clock + CABLE_DEG)
+    parts = [trimesh.creation.cylinder(radius=S["D"] / 2, height=S["H"], sections=96)]
+    parts[0].apply_translation([0.0, 0.0, z_ati0() + S["H"] / 2])
+    a = math.radians(clock + S["cable_variants"]["-R"] if "cable_variants" in S else clock + S["cable_deg"])
     u = np.array([math.cos(a), math.sin(a), 0.0])
-    z = z_ati0() + ATI_MOUNT_T / 2
-    fit = trimesh.creation.cylinder(radius=CABLE_FITTING["d"] / 2, segment=[u * (ATI_D / 2 - 1.0) + [0, 0, z],
-                                                                            u * (ATI_D / 2 + CABLE_FITTING["out"]) + [0, 0, z]])
-    cab = trimesh.creation.cylinder(radius=2.6, segment=[u * (ATI_D / 2 + 1.0) + [0, 0, z], u * (BASE_D / 2 + 6.0) + [0, 0, z - 4.0]])
+    z = z_ati0() + S["mount_t"] / 2
+    D, cf = S["D"], S["cable"]
+    fit = trimesh.creation.cylinder(radius=cf["d"] / 2, segment=[u * (D / 2 - 1.0) + [0, 0, z], u * (D / 2 + cf["out"]) + [0, 0, z]])
+    cab = trimesh.creation.cylinder(radius=2.6, segment=[u * (D / 2 + 1.0) + [0, 0, z], u * (BASE_D / 2 + 6.0) + [0, 0, z - 4.0]])
     return trimesh.util.concatenate(parts + [fit, cab])
 
 
 def render(which=("stack", "cross", "holder")):
     import trimesh
-    rec = json.loads((OUT / f"{STEM}_parts.json").read_text())
+    rec = json.loads((OUT / f"{S['stem']}_parts.json").read_text())
     clock = rec["clock_deg"]
     (OUT / "media").mkdir(parents=True, exist_ok=True)
     mnt = UM.OUT.parent / "20261021-ur5_calibration_mount_v3/cad"
     ad = trimesh.load(mnt / "20261021-ur5_calibration_mount_v3_adapter.stl", force="mesh")
     fork = trimesh.load(mnt / "20261021-ur5_calibration_mount_v3_standoff_fork.stl", force="mesh")
-    base_m = trimesh.load(OUT / f"cad/{STEM}_ati_base.stl", force="mesh")
-    top_m = trimesh.load(OUT / f"cad/{STEM}_ati_top.stl", force="mesh")
-    cr = trimesh.load(OUT / f"cad/{STEM}_hook_cross.stl", force="mesh")
+    base_m = trimesh.load(OUT / f"cad/{S['stem']}_ati_base.stl", force="mesh")
+    top_m = trimesh.load(OUT / f"cad/{S['stem']}_ati_top.stl", force="mesh")
+    cr = trimesh.load(OUT / f"cad/{STEM}_hook_cross.stl", force="mesh")              # shared by both sensors
     W = UM.T_W_FROM_M
     gap = 22.0
     items, labels = [], []
@@ -441,11 +513,12 @@ def render(which=("stack", "cross", "holder")):
     fork_z = z_top1() - (ADAPTER_TOP)                             # the fork's foot from the adapter's face to the top's
     for name, m, z, col, lab in (
             ("adapter", ad, dz["adapter"], UM.COLORS["adapter"], "Mount v3's adapter on the HEX-E, its M6 x 20 tightened first"),
-            ("base", base_m, ADAPTER_TOP + dz["base"], "0.55 0.78 0.50 1", "ATI base: over the M6 heads, a 44 mm pad, a cable "
-             "channel; four M3 x 20"),
-            ("ati", ati_mesh(clock), dz["ati"], "0.80 0.81 0.84 1", "ATI Mini45: six M3 x 12 from below (4.0 mm of 5.0)"),
-            ("top", top_m, z_ati_origin() + dz["top"], "0.55 0.78 0.50 1", "ATI top: six M3 x 10 into the ATI (2.5 mm of 3.0), "
-             "four inserts"),
+            ("base", base_m, ADAPTER_TOP + dz["base"], "0.55 0.78 0.50 1", f"ATI base: over the M6 heads, a {S['pad_d']:.0f} mm "
+             "pad, a cable channel; four M3 x 20"),
+            ("ati", ati_mesh(clock), dz["ati"], "0.80 0.81 0.84 1", f"ATI {S['name']}: {NUM[len(S['mount'])]} M3 x 12 from below "
+             f"(4.0 mm of {S['thread_mount']:.1f})"),
+            ("top", top_m, z_ati_origin() + dz["top"], "0.55 0.78 0.50 1", f"ATI top: {NUM[len(S['tool'])]} M3 x 10 into the ATI "
+             f"(2.5 mm of {S['thread_tool']:.1f}), four inserts"),
             ("fork", fork, fork_z + dz["fork"], UM.COLORS["standoff_fork"], "Mount v3's standoff-fork, unchanged")):
         mm = m.copy()
         mm.apply_translation([0.0, 0.0, z])
@@ -456,8 +529,8 @@ def render(which=("stack", "cross", "holder")):
     ctr = np.mean([mm.bounds.mean(axis=0) for mm, _, _ in items], axis=0)
     cam = (ctr.tolist(), 700.0, 210.0, 12.0)
     if "stack" in which:
-        dst = UM._render(items, cam, OUT / "media/20261023-ati_stack_exploded.png")
-        UM._annotate(dst, cam, labels, title="The ATI Mini45 between the HEX-E and mount v3, exploded along the tool axis")
+        dst = UM._render(items, cam, OUT / f"media/{S['stem']}_exploded.png")
+        UM._annotate(dst, cam, labels, title=f"The ATI {S['name']} between the HEX-E and mount v3, exploded along the tool axis")
     # the hook cross on the stack with a line and a mass hanging from the +x eye, the tool horizontal
     items, labels = [], []
     for name, m, z, col in (("adapter", ad, 0.0, UM.COLORS["adapter"]), ("base", base_m, ADAPTER_TOP, "0.55 0.78 0.50 1"),
@@ -553,7 +626,7 @@ def render_holder():
     labels = [("Cup: 25.6 mm bore, three crush ribs to 24.8 mm, an 8 mm hole in the floor", [-HOLD_BORE / 2 - 1.0, 0.0, 12.0]),
               ("The weight as measured: body 25 x 25 mm, knob 14 mm across and 11 mm tall", [-WEIGHT_D / 2, -6.0, ex + 14.0]),
               ("Cap: 4 mm flange on the weight, knob pocket 14.6 mm across and 11.5 mm deep", [-kd_r() - 1.0, 0.0, z_cap + 6.0]),
-              ("Tie hole 2 mm across on the axis: the line from the eye is tied through it", [-TAB_W / 2, 0.0, top + TIE_Z]),
+              ("Tie hole 2 mm across on the axis: the line from the eye is tied through it", [-TAB_W / 2, 0.0, top + TIE_HOLE_Z]),
               ("Two M3 x 12 into 2.75 mm holes in the cup", [EAR_R, 0.0, cup_h() + HOLD_PROUD + FLANGE_T + 3.0 * ex - 6.0])]
     ctr = np.mean([m.bounds.mean(axis=0) for m, _, _ in items], axis=0)
     cam = (ctr.tolist(), 470.0, -72.0, -12.0)
@@ -569,9 +642,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("cmd", nargs="?", default="build", choices=("build", "render", "holder"))
     ap.add_argument("--clock", type=float, default=None)
+    ap.add_argument("--sensor", default="mini45", choices=sorted(SENSORS))
     ap.add_argument("--figures", default="stack,cross,holder", help="render: which figures")
     a = ap.parse_args()
+    S = SENSORS[a.sensor]
     if a.cmd == "render":
         render(tuple(a.figures.split(",")))
     else:
-        holder_build() if a.cmd == "holder" else main(a.clock)
+        holder_build() if a.cmd == "holder" else main(a.clock, a.sensor)
