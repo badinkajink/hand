@@ -120,6 +120,29 @@ these big joint movements in this gravity tests are SO MARGINAL"). The HEX-E gav
 the box listed no sensor. The arm had not moved since 20:28:20, so the connection failed with nothing turning. Nothing
 moved in this run.
 
+### 20:51, tcp2 (preflight, homing, 3 grid presses, 8 twists) at 30 %: three presses, then the first twist hit the fixture's key with the mount's fork
+
+Folder `20261022-205059-tcp2/`. Plan `20261022-plan_sphere_lab_window_untwisted_segment_twist.json`, the nominal TCP, the
+HEX-E's factory calibration (no gravity stage). The HEX-E had come back at 20:48:19 and held through the run (0 timed-out
+reads).
+
+- ref-00, grid-052 and grid-053 pressed to 2 N and back, 1.16 to 1.61 mm past their rest poses, 11.5 to 14.3 s each:
+  the first presses of the pad on the sphere.
+- twist-0-1.0N turns the pressed pad about the vertical through the contact by +5, +10, +20, then −5, −10 and −20 deg.
+  The +20 deg half ran with the load near its press value. On the way to −20 deg, at about −13 deg (joint 5 at 73 deg),
+  Fx went from +1.7 to −8.3 N in 4 s and Ty to −0.31 N m; the action aborted at 10 N (20:57:19). In the cell model the
+  mount's fork came within 0.1 mm of the indenter at that pose (8.1 mm at t+200 s, 1.0 at t+236, 0.1 at t+241.5). The
+  builder checks a twist's press pose only, and the simulator models only the pad's contact, so neither saw it.
+- twist-0-2.5N had begun its turn when the program was interrupted (20:58:37). The pad was lifted 10 mm straight off the
+  sphere with `move_guarded.py` (HEX-E change at most 0.83 N) and the arm went home. The overhead frame at 21:01 shows
+  both fixtures as before.
+- At the start of the +5 deg step, Fy changed by about 1.1 N and Tx by about −0.07 N m, then stayed near those values
+  through +20 deg. A pure twist about the contact normal through the sphere's centre changes neither, so the pad was
+  dragged sideways: the pivot was off the contact point. That is the TCP check the owner asked for; its size needs the
+  analysis.
+
+No twists or rolls run again until the builder checks every pose along their turns.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
