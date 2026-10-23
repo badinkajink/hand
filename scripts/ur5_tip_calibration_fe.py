@@ -64,6 +64,15 @@ class FEPad:
         return F.sum(axis=0), int((p > 1e-9).sum())
 
 
+def line_fit(x, y):
+    """y = a + c x by least squares: the fit [a, c], its standard errors and the number of points."""
+    X = np.c_[np.ones(len(x)), x]
+    b, *_ = np.linalg.lstsq(X, y, rcond=None)
+    r = y - X @ b
+    cov = (r @ r) / max(len(x) - 2, 1) * np.linalg.inv(X.T @ X)
+    return dict(n=int(len(x)), fit=b.tolist(), se=np.sqrt(np.diag(cov)).tolist())
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("holds")
@@ -91,6 +100,7 @@ def main():
     by = {}
     reg = H["region"][idx]
     lv = H["level_N"][idx]
+    np.seterr(divide="ignore")                                    # a hold whose registered sphere misses the FE pad: ratio inf
     for r in sorted(set(reg.tolist())):
         mm = reg == r
         by[r] = dict(n=int(mm.sum()), ratio_median_s1=float(np.median(meas[mm] / pred[np.argmin(np.abs(grid - 1.0)), mm])),
@@ -122,9 +132,7 @@ def main():
     out["series"] = dict(n=int(ok.sum()), a_mm=float(ab[0]), c_mm_N=float(ab[1]),
                          rms_mm=float(np.sqrt(np.mean((Xs @ ab - delta[ok]) ** 2))), c0_mm_N=c0,
                          rms0_mm=float(np.sqrt(np.mean((c0 * meas[ok] - delta[ok]) ** 2))),
-                         by_region={r: dict(n=int((ok & (reg == r)).sum()),
-                                            fit=np.linalg.lstsq(np.c_[np.ones((ok & (reg == r)).sum()), meas[ok & (reg == r)]],
-                                                                delta[ok & (reg == r)], rcond=None)[0].tolist())
+                         by_region={r: line_fit(meas[ok & (reg == r)], delta[ok & (reg == r)])
                                     for r in sorted(set(reg.tolist())) if (ok & (reg == r)).sum() >= 3})
     s1 = int(np.argmin(np.abs(grid - 1.0)))
     out["holds"] = dict(id=H["id"][idx].tolist(), region=reg.tolist(), level_N=lv.tolist(), f_n=meas.tolist(),
@@ -140,7 +148,8 @@ def main():
     print(f"  indentation beyond the FE pad (s = 1), {sr['n']} holds: {sr['a_mm']:.3f} mm + {sr['c_mm_N']:.3f} mm/N x F "
           f"(rms {sr['rms_mm'] * 1e3:.0f} um); through zero {sr['c0_mm_N']:.3f} mm/N (rms {sr['rms0_mm'] * 1e3:.0f} um)")
     for r, v in sr["by_region"].items():
-        print(f"  {r:6s} n={v['n']:3d}: {v['fit'][0]:.3f} mm + {v['fit'][1]:.3f} mm/N x F")
+        print(f"  {r:6s} n={v['n']:3d}: {v['fit'][0]:.3f} mm + {v['fit'][1]:.3f} mm/N x F (standard errors {v['se'][0]:.3f}, "
+              f"{v['se'][1]:.3f})")
     if a.out:
         Path(a.out).write_text(json.dumps(out, indent=1))
 

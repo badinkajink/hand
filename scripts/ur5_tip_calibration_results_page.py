@@ -307,24 +307,32 @@ def sections(R, F):
                    f"from {on[0]['id']} to {on[-1]['id']}; the ground truth is not corrected for it.")
 
     # ---- lede
-    lede = (f"At the sphere's registered positions, the HEX-E measured a quarter of the force computed with the pad's "
-            f"finite-element (FE) model. The median ratio is {fe_r['face']['ratio_median_s1']:.2f} on the face, over "
-            f"{FE['n']} press holds of the UR5 run {R['session'].split('-', 2)[-1]}. "
-            f"Against the HEX-E's force, the force estimated from the board has a slope of {min(fs.values()):.2f} to "
-            f"{max(fs.values()):.2f} by region. The pad's magnets therefore move as predicted by the FE model. The rest of "
-            f"the indentation, {sr['a_mm']:.2f} mm plus {sr['c_mm_N']:.2f} mm per newton, occurs in parts whose deformation "
-            f"is not sensed by the board. Contacts are placed by the viewer's estimator within {min(loc_hi):.1f} to "
-            f"{max(loc_hi):.1f} mm (median) from 1 N up, and {min(loc_lo):.1f} mm or more away below 1 N.")
+    k_fe = 1.0 / fe_r["face"]["ratio_median_s1"]
+    lede = (f"At the sphere's registered positions in the UR5 run {R['session'].split('-', 2)[-1]}, the force computed "
+            f"with the pad's finite-element (FE) model is {k_fe:.1f} times the force measured by the HEX-E (median on the "
+            f"face). The force estimated from the board is {min(fs.values()):.2f} to {max(fs.values()):.2f} times the "
+            f"HEX-E's, so the pad itself is not {FE['s_best']:g} times softer than its model. The extra indentation, "
+            f"{sr['a_mm']:.2f} mm plus {sr['c_mm_N']:.2f} mm per newton, occurs in parts whose deformation is not sensed "
+            f"by the board. From 1 N up, the viewer's estimator places contacts {min(loc_hi):.1f} to {max(loc_hi):.1f} mm "
+            f"(median) from the registered points; below 1 N it fails.")
     if last:
         g = last["gp:board"]
-        lede += (f" A Gaussian process trained on {last['N']} presses places held-out contacts within "
-                 f"{g['loc_mm']['median']:.2f} mm and their force within {g['force_N']['median']:.2f} N (medians).")
+        lede += (f" A Gaussian process on the board change, trained on {last['N']} presses, places held-out contacts "
+                 f"within {g['loc_mm']['median']:.2f} mm and their force within {g['force_N']['median']:.2f} N. With the "
+                 f"chips' temperature change and the time since the rest added, its location error is "
+                 f"{last['gp:+time since rest']['loc_mm']['median']:.2f} mm.")
+        if PR.get("turns"):
+            t = PR["turns"]
+            lede += (f" On the rolls and twists, at orientations that no press had, it places contacts within "
+                     f"{t['gp:board']['loc_mm']['median']:.2f} mm, against {t['viewer']['loc_mm']['median']:.2f} mm for "
+                     f"the untrained estimator.")
     summary = (f"UR5 run {R['session'].split('-', 2)[-1]}: measured force is {fe_r['face']['ratio_median_s1']:.2f} of the FE "
-               f"pad's at the registered positions while the board reads the HEX-E's force (slope "
-               f"{min(fs.values()):.2f}-{max(fs.values()):.2f}); extra indentation {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N "
-               f"outside the pad; estimator {min(loc_hi):.1f}-{max(loc_hi):.1f} mm from 1 N"
+               f"pad's at the registered positions while the board reads {min(fs.values()):.2f}-{max(fs.values()):.2f} of "
+               f"the HEX-E's force; extra indentation {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N outside the pad; "
+               f"estimator {min(loc_hi):.1f}-{max(loc_hi):.1f} mm from 1 N"
                + (f"; GP on {last['N']} presses {last['gp:board']['loc_mm']['median']:.2f} mm, "
-                  f"{last['gp:board']['force_N']['median']:.2f} N." if last else "."))
+                  f"{last['gp:board']['force_N']['median']:.2f} N on held-out presses" if last else "")
+               + (f", {PR['turns']['gp:board']['loc_mm']['median']:.2f} mm on rolls and twists." if PR and PR.get("turns") else "."))
 
     S_ = []
     # ---- 1 terms
@@ -337,8 +345,8 @@ def sections(R, F):
         ("Ground truth", "The contact point $\\mathbf{p}$ and the normal $\\mathbf{n}$ on the pad follow from the flange's "
          "pose, the registration of the tool and of the sphere's centre, and the sphere's radius. The normal force $f_n$ "
          "is the HEX-E's force along $-\\mathbf{n}$, in N, with the tool's weight and the drift of the zero removed. "
-         "Every part between the HEX-E and the pad is taken as rigid; the HEX-E's own deflection is removed with its data "
-         "sheet's compliance."),
+         "The arm, the tool's parts and the indenter's mount are taken as rigid. The HEX-E's own deflection is removed with "
+         "its data sheet's compliance."),
         ("Registered indentation $d$", "The depth of the sphere inside the pad's nominal surface at the registered pose, in mm."),
         ("FE pad", "The finite-element model of the printed pad, pressed by a frictionless sphere. Its surface compliance "
          "is that of DIP link b, case b_v2, from " + F["code"]("scripts/fingertip_wrench_fe.py --surface") + ". The "
@@ -350,7 +358,8 @@ def sections(R, F):
          "$\\mathbf{n}$ before the force of the FE pad at $s = 1$ equals the measured $f_n$. It is fitted as "
          "$\\Delta = a + c\\,f_n$, with $a$ an offset at zero force (mm) and $c$ a compliance in series with the pad (mm/N)."),
         ("Board change", "The mean field of the board's five three-axis magnetometer chips over a hold, minus the field at "
-         "rest before the press: 15 values in µT."),
+         "rest: 15 values in µT. The field at rest is interpolated in time between the rests before and after the press, "
+         "and the chips' temperature drift is corrected first."),
         ("Viewer's estimator", "The surface estimator of the contact viewer (" + F["link"](EST_PAGE, "contact estimation page")
          + "). The magnets' strength $k$ and the chips' offsets are fitted to the field at rest before the first reference "
          "press. A board change is then mapped to a contact point and a normal force through the FE model's magnet motions."),
@@ -397,18 +406,31 @@ def sections(R, F):
         lv_rows.append([f"{float(k):g}", f"{fe_lv[k]['n']}", f1(float(np.median(np.array(FE['holds']['f_n'])[mm]))),
                         f1(float(np.median(np.array(FE['holds']['depth_mm'])[mm]))),
                         f1(float(np.median(np.array(FE['holds']['fe_s1_N'])[mm]))), f1(fe_lv[k]["ratio_median_s1"])])
-    body = (f"<p>At the registered sphere positions, the force of the FE pad is about four times the measured force "
-            f"(Fig. 1a, Table 2). The median of measured over FE is {fe_r['face']['ratio_median_s1']:.2f} on the face, "
-            f"{fe_r['edge']['ratio_median_s1']:.2f} on the edges and {fe_r['flank']['ratio_median_s1']:.2f} on the flanks. "
-            f"It changes little with the force level, from {min(v['ratio_median_s1'] for v in fe_lv.values()):.2f} "
-            f"to {max(v['ratio_median_s1'] for v in fe_lv.values()):.2f}. "
+    hi_r = [v["ratio_median_s1"] for k, v in fe_lv.items() if float(k) >= 1.0 and v["n"] >= 3]
+    lo_k = min(fe_lv, key=float)
+    s1 = np.array(FE["holds"]["fe_s1_N"])
+    miss = np.nonzero(s1 <= 0)[0]
+    miss_txt = ""
+    if len(miss):
+        dm = np.array(FE["holds"]["depth_mm"])[miss]
+        mr = sorted(set(np.array(FE["holds"]["region"])[miss].tolist()))
+        ml = sorted(set(np.array(FE["holds"]["level_N"])[miss].tolist()))
+        miss_txt = (f" At {len(miss)} holds ({ands([RNAME[r] for r in mr])}, "
+                    f"{ands([f'{x:g}' for x in ml])} N) the registered sphere stands {-dm.max():.2f} to {-dm.min():.2f} mm "
+                    f"clear of the pad's surface, although the HEX-E measured contact; their ratio is left out.")
+    body = (f"<p>At the registered sphere positions, the force of the FE pad is {k_fe:.1f} times the measured force on "
+            f"the face (Fig. 1a, Table 2). The median of measured over FE is {fe_r['face']['ratio_median_s1']:.2f} on the "
+            f"face, {fe_r['edge']['ratio_median_s1']:.2f} on the edges and {fe_r['flank']['ratio_median_s1']:.2f} on the "
+            f"flanks. It is {fe_lv[lo_k]['ratio_median_s1']:.2f} at {float(lo_k):g} N and {min(hi_r):.2f} to "
+            f"{max(hi_r):.2f} from 1 N up.{miss_txt} "
             f"The compliance scale that fits best is $s = {FE['s_best']:g}$, with a median force error of "
             f"{FE['median_rel_err_best'] * 100:.0f} %, against {FE['median_rel_err_s1'] * 100:.0f} % at $s = 1$.</p>"
             f"<p>With the FE pad kept at $s = 1$, the sphere must be moved back along the normal by $\\Delta$ to give the "
             f"measured force. Over {sr['n']} holds, $\\Delta = {sr['a_mm']:.3f} + {sr['c_mm_N']:.3f}\\,f_n$ "
             f"(mm, with $f_n$ in N), with a residual of {sr['rms_mm'] * 1e3:.0f} µm rms (Fig. 1b). "
             f"Through zero the slope is {sr['c0_mm_N']:.3f} mm/N and the residual {sr['rms0_mm'] * 1e3:.0f} µm. "
-            + " ".join(f"On the {RNAME[r]} the fit is {srr[r]['fit'][0]:.2f} mm + {srr[r]['fit'][1]:.2f} mm/N."
+            + " ".join(f"On the {RNAME[r]} the fit is {srr[r]['fit'][0]:.2f} mm + {srr[r]['fit'][1]:.3f} mm/N"
+                       + (f", with a standard error of {srr[r]['se'][1]:.3f} mm/N on the slope." if "se" in srr[r] else ".")
                        for r in RNAME if r in srr)
             + "</p>"
             + P.table(["Level (N)", "Holds", "Measured force (N)", "Registered indentation (mm)", "FE force at s = 1 (N)",
@@ -423,23 +445,26 @@ def sections(R, F):
 
     # ---- 4 board and estimator
     bm = S.get("board_minus_registration_mm")
+    rp = [x["change_uT"] for x in S.get("reference_press_1N", [])]
     est_rows = []
     for k in sorted(lvl, key=float):
         v = lvl[k]
         est_rows.append([f"{float(k):g}", f"{v['n']}", f1(v["loc_median_mm"]), f1(v["loc_p90_mm"]),
                          f"{v['far_2mm'] * 100:.0f}", f1(v["rel_force_median"])])
     body = (f"<p>Against the HEX-E's normal force, the estimator's normal force has a slope of {fs['face']:.2f} on the "
-            f"face, {fs['edge']:.2f} on the edges and {fs['flank']:.2f} on the flanks (Fig. 2a). In a pad four times softer "
-            f"than its FE model, the magnets would move four times as far per newton. The estimated force would then be "
-            f"about four times the measured. The pad's bulk therefore deforms as predicted by the FE model. The extra "
-            f"indentation of Section 3 occurs where the magnets do not move against the chips. It may occur in the chain "
-            f"from the DIP link to the HEX-E or in the indenter's mount. It may also occur at the printed surface, whose "
-            f"local compliance may not be resolved by the FE mesh of 1 mm.</p>"
-            f"<p>Every press pushes the sphere down along the vertical. With a compliance in the indenter's mount or in "
-            f"the table, the slope would therefore be the same in every region. The slopes of $\\Delta$ differ: "
-            + ands([f"{srr[r]['fit'][1]:.2f} mm/N on the {RNAME[r]}" for r in RNAME if r in srr])
-            + ". The direction of the load in the tool's frame changes with the region, so these differences point to "
-            "the tool's side.</p>"
+            f"face, {fs['edge']:.2f} on the edges and {fs['flank']:.2f} on the flanks (Fig. 2a). In a pad {FE['s_best']:g} "
+            f"times softer than its FE model, the magnets would move {FE['s_best']:g} times as far per newton. The estimated "
+            f"force would then be about {FE['s_best']:g} times the measured. The pad's bulk is therefore within about "
+            f"{(1 - min(fs.values())) * 100:.0f} % of the FE model's compliance. The extra indentation of Section 3 occurs "
+            f"where the magnets do not move against the chips.</p>"
+            f"<p>On the tool's side, the pad is in series with the DIP link's clamp in the fork, the printed mount, the "
+            f"HEX-E and the arm's joints. The arm's pose comes from its joint encoders; a deflection under load that the "
+            f"encoders do not report adds to the registered depth. On the indenter's side are the sphere's block, the 2x4, its clamps and the "
+            f"table. A compliance at the printed surface that the FE mesh of 1 mm does not resolve would also leave the "
+            f"magnets still. Every press pushes the sphere down along the vertical, so the indenter's side alone would give "
+            f"one slope in every region. The slopes are "
+            + ands([f"{srr[r]['fit'][1]:.3f} mm/N on the {RNAME[r]}" for r in RNAME if r in srr])
+            + ". The FE model's own error may differ by region as well, so these slopes do not place the compliance.</p>"
             f"<p>From 1 N up, contacts are placed by the estimator within {min(loc_hi):.1f} to {max(loc_hi):.1f} mm "
             f"(median; Table 3, Fig. 2b). Its force is within {min(rf_hi) * 100:.0f} to {max(rf_hi) * 100:.0f} % of the "
             f"HEX-E's. Below 1 N the median location error is "
@@ -447,8 +472,14 @@ def sections(R, F):
                else f"{min(loc_lo):.1f} mm. ")
             + (f"At 3 N and over, the mean location error over {bm['n']} holds is ({bm['mean'][0]:.2f}, "
                f"{bm['mean'][1]:.2f}, {bm['mean'][2]:.2f}) mm in the pad's frame. Its standard errors are "
-               f"{bm['se'][0]:.2f}, {bm['se'][1]:.2f} and {bm['se'][2]:.2f} mm. " if bm else "")
+               f"{bm['se'][0]:.2f}, {bm['se'][1]:.2f} and {bm['se'][2]:.2f} mm. The offset of "
+               f"{np.linalg.norm(bm['mean']):.1f} mm is therefore systematic. Either the registered contact points or the "
+               f"model's magnets are displaced by about that much. " if bm else "")
             + "Fig. 3 shows where the estimates lie on the pad.</p>"
+            + (f"<p>Between the rests before and after a press, the board's field at rest changes by "
+               f"{S['rest_drift_uT']['median']:.1f} µT (median; 90th percentile {S['rest_drift_uT']['p90']:.1f} µT). "
+               f"The six reference presses at 1 N changed it by {min(rp):.0f} to {max(rp):.0f} µT. Below 1 N the change "
+               f"of a press is about as large as that of its rests, and there the estimator fails.</p>" if rp else "")
             + P.table(["Level (N)", "Holds", "Location error, median (mm)", "Location error, 90th percentile (mm)",
                        "Holds over 2 mm (%)", "Relative force error, median"], est_rows, num_cols=(0, 1, 2, 3, 4, 5),
                       caption="The viewer's estimator against the ground truth, by force level.", n=3)
@@ -497,6 +528,8 @@ def sections(R, F):
                 if e:
                     rows.append([lab, STEP_TEXT[st],
                                  f1(e["loc_mm"]["median"]), f1(e["force_N"]["median"], 3)])
+        mk = press_mask(H) & H["est_contact"].astype(bool) & (H["level_N"] >= 0.99)
+        med_hi = float(np.median(tangential_err(H)[mk]))
         names = {"physical": "the physical model", "gp:board": "the GP", "ridge:board": "ridge regression",
                  "physical+gp:board": "the physical model with the GP"}
         best_f = min(((names[k], last[k]["force_N"]["median"]) for k in names), key=lambda x: x[1])
@@ -517,9 +550,9 @@ def sections(R, F):
                 f"{last['gp:board']['force_N']['median']:.3f} N (medians). On the same holds, the errors of the untrained "
                 f"estimator are {v['loc_mm']['median']:.2f} mm and {v['force_N']['median']:.3f} N. "
                 f"The physical model's compliance scale is fitted between {min(cvals):.2f} and {max(cvals):.2f}, and its "
-                f"location error is {last['physical']['loc_mm']['median']:.2f} mm. This scale is below 1, while the force "
-                f"scale of Section 4 is close to 1. In the fit the contact points are the registered ones, and the "
-                f"estimator puts the contacts 1 to 2 mm from them.</p>"
+                f"location error is {last['physical']['loc_mm']['median']:.2f} mm. This scale is below the force scale of "
+                f"Section 4, {min(fs.values()):.2f} to {max(fs.values()):.2f}. In the fit the contact points are the "
+                f"registered ones, which lie a median of {med_hi:.1f} mm from the estimator's contacts at 1 N and over.</p>"
                 f"<p>For the normal force, the smallest error with the board alone is that of "
                 f"{best_f[0]}, {best_f[1]:.3f} N. With the temperature change added, the GP's location error is "
                 f"{last['gp:+temperature change']['loc_mm']['median']:.2f} mm; with the time since the rest as well, it is "
@@ -579,24 +612,30 @@ def sections(R, F):
         S_.append(("predict", "Predictors of the contact point and the normal force", body))
 
     # ---- limitations, future work
-    body = ("<p>In the ground truth, every part between the HEX-E and the pad is taken as rigid. By the extra "
+    body = ("<p>In the ground truth, the arm, the tool's parts and the indenter's mount are taken as rigid. By the extra "
             f"indentation of Section 3, the pad's true depth at 3 N is about {sr['a_mm'] + sr['c_mm_N'] * 3.0:.2f} mm less "
-            "than the registered one. The tangential location of the contact changes much less "
-            "if that motion lies along the normal; a rotation of the pad under load would also move it tangentially. "
-            f"The held-out set has {PR['n_test_presses'] if PR else 0} presses, and the training presses come from the "
+            "than the registered one. The tangential location of the contact changes much less if that motion lies along "
+            "the normal; a rotation of the pad under load would also move it tangentially. "
+            f"The held-out set has {PR['n_test_presses'] if PR else 0} presses. The training presses come from the "
             "same night, the same pad and the same seating of the tool.</p>")
     S_.append(("limits", "Limitations", body))
     fw = [
-        "Press the DIP link by hand in its fork and the sphere's block on the 2x4, and watch for motion (QUEUE.md R16). "
-        "Then press a rigid part of the tool, the HEX-E's adapter or the fork, on the sphere at 1 to 5 N. A travel of "
-        f"about {sr['c_mm_N']:.2f} mm/N beyond the HEX-E's data sheet places the compliance outside the DIP link. A travel "
-        "near the data sheet's places it in the link or at the pad's surface.",
-        "Add $\\Delta = a + c\\,f_n$ to the ground truth (" + F["code"]("ur5_tip_calibration_analysis.py") + ", sphere moved "
-        "back along the normal) and recompute the estimator's location error. If the error at 1 N and over stays above "
-        "1 mm, the compliance does not explain it.",
-        "Score the predictors on the slides, rolls and twists (" + F["code"]("ur5_tip_calibration_predict.py") + " on turn "
-        "holds), whose orientations the presses do not cover. A GP error there near its error on held-out presses "
-        "shows that it does not rely on the target's identity.",
+        "Press the DIP link by hand in its fork, and the sphere's block on the 2x4, and watch for motion (QUEUE.md R16). "
+        "Then press a rigid part of the tool, the HEX-E's adapter or the fork, on the sphere at 1 to 5 N, with a dial "
+        "indicator on the sphere's block. Travel of the block places the compliance on the indenter's side. Travel "
+        f"beyond the HEX-E's data sheet with a still block places it in the arm or the mount. Travel near the data "
+        f"sheet's leaves the DIP link's clamp for the {sr['c_mm_N']:.2f} mm/N.",
+        "Fit the magnets' offsets and the pad's pose in its seat to the presses at 3 N and over: the physical model of "
+        + F["code"]("ur5_tip_calibration_predict.py") + " without its priors on the offsets. If the mean location error "
+        f"falls below 0.5 mm from {np.linalg.norm(bm['mean']) if bm else 0:.1f} mm, the offset is in the model's magnets; "
+        "if it stays, it is in the registration.",
+        "Add $\\Delta = a + c\\,f_n$ to the ground truth (" + F["code"]("ur5_tip_calibration_analysis.py") + ", sphere "
+        "moved back along the normal) and repeat the FE comparison per region. A ratio of measured over FE near 1 in "
+        "every region confirms a compliance in series; a ratio that still changes with the region points to the FE "
+        "model's surface.",
+        "Compare the twists' torsion about the normal with the sphere pads' friction torque at the same normal force "
+        "(contact model overview). The torsion is half the difference between the outbound and the return holds at each "
+        "angle. A torque outside the pads' range at the measured friction coefficient falsifies the pads' torsion.",
         "Run a grid in random order on another night, so that clock time and absolute temperature stop following the "
         "target; then the temperature inputs can be scored without the leak.",
     ]
