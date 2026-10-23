@@ -109,8 +109,11 @@ class Check:
         reads = [e for e in self.ev if e.get("event") == "ft_reads"]
         if reads:
             r = reads[-1]
-            self.p(f"  HEX-E reads: {r['n']} samples, {r['timeouts']} timed out, {r['late']} late, {r['repeats']} repeated "
-                   f"[{flag(r['timeouts'] == 0 and r['late'] == 0)}]")
+            self.p(f"  HEX-E reads: {r['n']} samples, {r['timeouts']} timed out, {r['late']} late, {r['repeats']} repeated, "
+                   f"{len(r.get('gaps') or [])} gaps over 0.5 s [{flag(r['timeouts'] == 0 and r['late'] == 0 and not r.get('gaps'))}]")
+        for g in [e for e in self.ev if e.get("event") == "ft_gap"]:
+            self.p(f"  HEX-E gap in {g['id']}: {g['t1'] - g['t0']:.1f} s, counter {g['seq0']} -> {g['seq1']}, Fz changed by "
+                   f"{g['dFz_N']:+.1f} N")
         self.out["stages"] = stages
         self.out["aborts"] = ab
 
@@ -151,7 +154,34 @@ class Check:
                    f"[{flag(np.linalg.norm(dp) <= 20 and abs(pl['d_yaw']) <= 5 and pl['tilt'] <= 2)}]")
         self.out["homing"] = dict(spread=sp.tolist(), placement=pl)
 
+    def gravity_records(self, stage):
+        R, F, T, t, ids = [], [], [], [], []
+        for a in self.plan["actions"]:
+            if a["stage"] == stage and a["id"] in self.ok:
+                r = self.ok[a["id"]]["rec"]
+                R.append(r["R_BE"])
+                F.append(r["ft"][:3])
+                T.append(r["ft"][3:])
+                t.append(float(np.mean(r["t"])))
+                ids.append(a["id"])
+        return np.array(R), np.array(F), np.array(T), np.array(t), ids
+
+    @staticmethod
+    def fit_with_drift(R, F, t):
+        """The gravity fit with one more column, the record's time: f_S = A g_E + o + v (t - t_mean)."""
+        gE = np.einsum("kji,j->ki", R, np.array([0.0, 0.0, -1.0]))
+        X = np.c_[gE, np.ones(len(gE)), (t - t.mean()) / 60.0]
+        sol, *_ = np.linalg.lstsq(X, F, rcond=None)
+        A = sol[:3].T
+        return dict(A=A, v_N_min=sol[4], weight_N=float(np.linalg.svd(A)[1].mean()),
+                    rms_f_N=float(np.sqrt(np.mean((F - X @ sol) ** 2))))
+
     def gravity(self):
+        for st in ("gravity_failed", "final_gravity_failed"):
+            if st in self.notes:
+                f = self.notes[st]
+                self.p(f"{st.replace('_failed', '')}: FAILED the program's gate: weight {f['weight_N']:.3f} N, residual "
+                       f"{f['rms_f_N']:.3f} N, {f['rms_t_Nm'] * 1e3:.2f} N mm")
         g = self.notes.get("gravity")
         if not g:
             return
@@ -162,27 +192,38 @@ class Check:
         self.p(f"  centre of mass {np.round(g['com_mm'], 1)} mm from the HEX-E's origin (simulated 0.3, 2.1, 16.9); sign "
                f"{g['sign']:+.0f}; HEX-E axes turned {g['z_turn_deg']:+.2f} deg about the tool axis, {g['turn_deg']:.2f} in all; "
                f"gains of its axes {np.round(sv / sv.mean(), 3)} of their mean; skew of K {g['skew_of_K']:.3f}")
-        # the residual of each orientation, from the records
-        R, F, T, ids = [], [], [], []
-        for a in self.plan["actions"]:
-            if a["stage"] == "gravity" and a["id"] in self.ok:
-                r = self.ok[a["id"]]["rec"]
-                R.append(r["R_BE"])
-                F.append(r["ft"][:3])
-                T.append(r["ft"][3:])
-                ids.append(a["id"])
+        # the residual of each orientation, from the records, and the fit with a drift term
+        R, F, T, t, ids = self.gravity_records("gravity")
         if len(R) >= 6:
-            fit = C.fit_gravity(np.array(R), np.array(F), np.array(T))
-            gE = np.einsum("kji,j->ki", np.array(R), np.array([0.0, 0.0, -1.0]))
-            res = np.array(F) - (gE @ fit["A"].T + fit["of"])
+            fit = C.fit_gravity(R, F, T)
+            gE = np.einsum("kji,j->ki", R, np.array([0.0, 0.0, -1.0]))
+            res = F - (gE @ fit["A"].T + fit["of"])
             worst = np.argsort(-np.linalg.norm(res, axis=1))[:3]
             self.p("  largest residuals: " + ", ".join(f"{ids[k]} {np.linalg.norm(res[k]) * 1e3:.1f} mN" for k in worst))
+            fd = self.fit_with_drift(R, F, t)
+            dA = np.linalg.norm(fd["A"] - fit["A"]) / np.linalg.norm(fit["A"])
+            self.p(f"  with a drift term over the {(t[-1] - t[0]) / 60:.1f} min sweep: drift {np.round(fd['v_N_min'] * 1e3, 1)} mN/min, "
+                   f"residual {fd['rms_f_N'] * 1e3:.1f} mN, weight {fd['weight_N']:.3f} N; the map A moves {dA * 100:.2f} %")
+            self.out["gravity_drift"] = dict(v_mN_min=(fd["v_N_min"] * 1e3).tolist(), rms_mN=fd["rms_f_N"] * 1e3, dA=dA)
         fg = self.notes.get("final_gravity")
         if fg:
             dw = fg["weight_N"] - g["weight_N"]
             self.p(f"final gravity: weight {fg['weight_N']:.3f} N, {dw * 1e3:+.1f} mN from the first [{flag(abs(dw) < 0.01)}] "
                    f"(within 10 mN); centre of mass moved {np.linalg.norm(np.subtract(fg['com_mm'], g['com_mm'])):.2f} mm; "
                    f"axes turn {fg['z_turn_deg'] - g['z_turn_deg']:+.2f} deg")
+        Rf, Ff, Tf, tf, idf = self.gravity_records("final_gravity")
+        grav = (self.reg_d or {}).get("grav")
+        if len(Rf) >= 2 and grav:
+            # the changes between the final sweep's orientations against the first fit's map (offsets cancel)
+            A = np.array(grav["A"])
+            gE = np.einsum("kji,j->ki", Rf, np.array([0.0, 0.0, -1.0]))
+            dF = Ff[1:] - Ff[0]
+            dP = (gE[1:] - gE[0]) @ A.T
+            s = float((dF.ravel() @ dP.ravel()) / (dP.ravel() @ dP.ravel()))
+            rms = float(np.sqrt(np.mean((dF - dP) ** 2)))
+            self.p(f"final sweep against the first fit: {len(Rf)} orientations; their changes are {s:.4f} x the predicted ones "
+                   f"(1 = the same map), rms difference {rms * 1e3:.1f} mN over {(tf[-1] - tf[0]) / 60:.1f} min")
+            self.out["final_vs_first"] = dict(scale=s, rms_mN=rms * 1e3)
         self.out["gravity"] = g
 
     # ------------------------------------------------------------------ touch-offs and the registration
