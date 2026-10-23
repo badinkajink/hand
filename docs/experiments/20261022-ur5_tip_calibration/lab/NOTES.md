@@ -277,7 +277,29 @@ held the robot or the DAQ.
   `sim.T_BI` sits 2.45 mm above the seating and cancels the tilt.) Last night's real onsets on the sphere were −1.19 to
   +0.89 mm. The 5.0 mm plans were simulated with the indenters where the
   stored seatings put them (sim-only copies with `sim.T_BI` from the seating, `--sim-truth` with no tilt or indenter
-  error), in `/dev/shm/tipcal-sim`.
+  error), in `/dev/shm/tipcal-sim`. Both ended with no abort (rod 22 touches, 0.012 mm rms; sphere 32, 0.020 mm).
+  `check_arm_samples.py --cell` passed the rod (mount ≥ 3.4, finger ≥ 2.6 mm). On the sphere it found the fork
+  2.55 mm from the sphere at face-02 with the simulator's tool; on last night's real motions, with sphere2's
+  registered tool, the fork kept ≥ 3.31 mm.
+- rod1g ended at 11:47:53 with exit 0: the 51 grid actions and roll-0 and roll-3, no abort. The HEX-E had 299,532
+  samples, no timeout and no gap. The reference presses, as onset and depth change from ref-00: ref-01 +0.009/+0.002,
+  ref-02 −0.002/+0.018, ref-03 −0.003/+0.023, ref-04 (11:40) −0.046/+0.049 mm. All are inside the stop rule, but the
+  depth grew steadily, to half the rule's 0.1 mm. Home through `move_guarded.py` at 11:49. The whole session folder
+  is in `lab/20261023-104526-rod1/` (190 MB, with `printout_resume.txt` and `plan_resume_1057.json`).
+- 11:52, `rod1t` on `plan/20261023-plan_rod_lab_touch50.json`, stages preflight, homing, pad, register. The 30 %
+  slider scales the approach too: 0.045 mm/s, so each touch-off took 81 to 107 s. All 22 ended ok, with clean onsets
+  of −1.34 to −2.48 mm from the expected; the descent check had predicted rod1's to within 0.05 mm on most. The
+  registration fitted them at 0.201 mm rms (rod1: 0.122 mm), moved the TCP 1.28 mm and 4.95 deg and the rod's centre
+  4.05 mm. The program fits the rod as a sphere at one point; the workstation's cylinder fit should judge this
+  registration. The HEX-E had one gap of 0.6 s (Fz +0.1 N, not a restart). Exit 0 at 12:30; home at 12:32.
+- The workstation chose 3.5 mm for the sphere if every touch-off's predicted onset was −2.5 mm or later. Its check
+  (`scripts/ur5_tip_calibration_check.py --clearance PLAN --clearance-stages pad --home-from SEAT`, 9a5ce959) plans each
+  touch-off with the nominal tool and finds where the registered pad meets the indenter. With rod1t's registration the
+  onsets came out −3.20 to −1.55 mm, so sph3t takes the 5.0 mm plan. The three tools disagree. Onset medians are −1.87
+  with rod1t's, −1.40 with rod1's and −0.40 with sphere2's, and sphere2's −1.10 to +0.90 matches last night's real
+  onsets. The touch-offs under the margins 1 mm past the contact differ with each tool. All eight in the union are
+  dropped: edge-01, face-02, face-04, face-05 (mount 2.43 to 2.99 mm) and flank-03, edge-02, flank-01, flank-02
+  (finger 0.57 to 0.77 mm). The result is `lab/20261023-plan_sphere_lab_touch50_sph3t.json`, with 24 touch-offs.
 
 ## The lab clone and git-lfs
 
