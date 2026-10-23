@@ -509,8 +509,8 @@ push that answers it arrives.
   - Run, on mount v3 as it stands, at 30 %: `--plan docs/experiments/20261022-ur5_tip_calibration/plan/20261023-plan_rod_lab_reg.json
     --home-from docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:right_indenter_seated --stages
     preflight,homing,pad,register,pivot,grid,shear,roll`, about 1.5 h. The analysis borrows first2's gravity fit as for
-    sphere2. Left on the workstation: the FE comparison against a cylinder (`ur5_tip_calibration_fe.py` knows only a
-    sphere).
+    sphere2. The FE comparison takes the rod since 08:25 (the analysis stores the rod's axis per hold): on the simulated
+    rod session it fits the pad's compliance at 1.20 times the FE's, where the simulator's is 1.15.
 
 - R20 (planned on the workstation at 08:18 on 10-23; the owner, 10-23 morning: "the only way to permanently fix the
   HEX-E robot is to calibrate one of our uncalibrated ATI sensors"). Plan and parts:

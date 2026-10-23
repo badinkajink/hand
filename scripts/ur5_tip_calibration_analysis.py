@@ -275,7 +275,9 @@ class Session:
         p_E = C.apply(self.T_EP, p_c)
         tc_E = t_E - np.cross(p_E - self.o_E, f_E)
         tn = float(tc_E @ (self.T_EP[:3, :3] @ n_c))
-        return dict(T_BE=T_BE, c_P=c_P, p=p_c, n=n_c, depth=float(self.geo.R - d), f=f_P, f_n=fn, f_t=ft, tn=tn,
+        axis_P = (T_BP[:3, :3].T @ (self.reg.T_BI[:3, :3] @ self.geo.rod_axis) if self.geo.kind == "rod"
+                  else np.zeros(3))                         # the rod's axis in the pad frame (the FE comparison's cylinder)
+        return dict(T_BE=T_BE, c_P=c_P, p=p_c, n=n_c, depth=float(self.geo.R - d), f=f_P, f_n=fn, f_t=ft, tn=tn, axis_P=axis_P,
                     deflection_mm=float(np.linalg.norm(C.apply(C.inv(T_BP0), C.apply(T_BP, p_c)) - p_c)),
                     ft_rest_drift_N=float(np.linalg.norm(dz[:3])))
 
@@ -507,7 +509,7 @@ def save(holds, path):
     keys = ["t", "level_N", "turn_deg", "twist", "f_n", "depth", "tn", "rest_drift_uT", "n_rec", "deflection_mm", "ft_rest_drift_N",
             "dt_zero"]
     arr = {k: np.array([h[k] if h[k] is not None else np.nan for h in holds], float) for k in keys}
-    for k in ("p", "n", "f", "f_t", "c_P", "target", "d_board", "g_P", "R_BE", "T_chip", "dT_chip"):
+    for k in ("p", "n", "f", "f_t", "c_P", "target", "d_board", "g_P", "R_BE", "T_chip", "dT_chip", "axis_P"):
         arr[k] = np.array([h[k] for h in holds], float)
     arr["id"] = np.array([h["id"] for h in holds])
     arr["kind"] = np.array([h["kind"] for h in holds])

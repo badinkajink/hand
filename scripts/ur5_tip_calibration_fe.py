@@ -41,10 +41,14 @@ class FEPad:
         Cm = np.transpose(du, (2, 3, 0, 1)).reshape(3 * n, 3 * n).astype(float) * 1e-3     # u = C F, mm / N
         self.C = 0.5 * (Cm + Cm.T)
 
-    def force(self, c, s=1.0, R=5.0):
-        """Normal contact force (N, pad frame) of the FE pad on a sphere of radius R centred at c (mm, pad frame), with
-        the FE's compliance scaled by s; and the number of points in contact."""
+    def force(self, c, s=1.0, R=5.0, axis=None):
+        """Normal contact force (N, pad frame) of the FE pad on a sphere of radius R centred at c (mm, pad frame), or on a
+        cylinder of radius R whose axis passes through c along `axis`, with the FE's compliance scaled by s; and the
+        number of points in contact."""
         r = self.X - c
+        if axis is not None and np.linalg.norm(axis) > 0.5:          # a rod: the distance to its axis line
+            a = np.asarray(axis, float) / np.linalg.norm(axis)
+            r = r - (r @ a)[:, None] * a[None]
         dist = np.linalg.norm(r, axis=1)
         gap = dist - R
         nh = r / dist[:, None]
@@ -83,13 +87,15 @@ def main():
     H = np.load(a.holds, allow_pickle=False)
     m = (H["kind"] == "press") & np.isfinite(H["f_n"]) & (H["f_n"] > a.min_N)
     idx = np.nonzero(m)[0]
-    R = float(json.loads(Path(a.plan).read_text())["geometry"]["indenter"]["radius"])
+    ind = json.loads(Path(a.plan).read_text())["geometry"]["indenter"]
+    R = float(ind["radius"])
+    AX = H["axis_P"] if ind.get("kind") == "rod" and "axis_P" in H.files else [None] * len(H["f_n"])
     pad = FEPad()
     grid = np.round(np.r_[np.arange(0.6, 2.0, 0.05), np.arange(2.0, 8.01, 0.25)], 3)
     pred = np.zeros((len(grid), len(idx)))
     for k, s in enumerate(grid):
         for j, i in enumerate(idx):
-            f, _ = pad.force(H["c_P"][i], s, R)
+            f, _ = pad.force(H["c_P"][i], s, R, AX[i])
             pred[k, j] = float(-f @ H["n"][i])                    # the push along the contact normal, as f_n
     meas = H["f_n"][idx]
     rel = np.abs(pred / meas[None] - 1.0)
@@ -116,11 +122,11 @@ def main():
     for j, i in enumerate(idx):
         c, n, f_m = H["c_P"][i], H["n"][i], meas[j]
         lo, hi = -1.0, float(H["depth"][i]) + 0.3
-        if float(-pad.force(c + lo * n, 1.0, R)[0] @ n) < f_m:
+        if float(-pad.force(c + lo * n, 1.0, R, AX[i])[0] @ n) < f_m:
             continue
         for _ in range(40):
             mid = 0.5 * (lo + hi)
-            if float(-pad.force(c + mid * n, 1.0, R)[0] @ n) > f_m:
+            if float(-pad.force(c + mid * n, 1.0, R, AX[i])[0] @ n) > f_m:
                 lo = mid
             else:
                 hi = mid
