@@ -223,7 +223,7 @@ def press_rows(run="20261022-210852-sphere2", stages=("grid", "pivot")):
         mr = (r[:, 0] >= t0 - 0.05) & (r[:, 0] <= t1 + 0.05)
         if m.sum() < 20 or mr.sum() < 5:
             continue
-        d = np.array(rec.get("d_B") or (-T_rest[:3, :3] @ np.array([0, 0, 1.0])))
+        d = -np.array(reg["T_BI"])[:3, 2]                        # the program's approach: down the indenter's z
         P = np.array([C.ur_to_T(v[8:14])[:3, 3] for v in r[mr]])
         s = np.interp(f["t"][m], r[mr, 0], (P - T_rest[:3, 3]) @ d)
         tare = np.array(rec["tare"])[:3]
@@ -323,6 +323,22 @@ def make_film(frames_dir, out_mp4, fps=12):
 
 
 # ------------------------------------------------------------------------------------------------ text
+def drift_text(dr):
+    """The board's drift over sphere2's rests, and the two zeros of a press compared at its rest after."""
+    if not dr:
+        return ""
+    return (f"<p>Over sphere2's {dr['minutes']:.0f} minutes, {dr['n']} rests out of contact gave the rest reading against time. "
+            f"Their raw spread is {dr['raw_span']:.0f} µT on the worst component, from the tool's orientation; less the "
+            f"Earth-field term of the fit above it is {dr['less_span']:.0f} µT. The chips' temperature moved "
+            f"{dr['T_span']:.2f} °C. What is left drifts {dr['slope_norm']:.2f} µT per minute over all 15 components, a few "
+            "tenths of a µT over one press. A press itself moves the rest by more. Its rest after differs from its rest "
+            f"before by {dr['local_med']:.1f} µT in the median ({dr['local_p90']:.1f} µT at the 90th percentile) over "
+            f"{dr['n_pairs']} presses and touch-offs, as the pad settles in its seat. A model of the rest that knows the time "
+            f"since the zero misses the rest after by {dr['model_med']:.1f} µT in the median, about as much. Each press's "
+            "zero is therefore taken from both of its rests, interpolated to the time of each hold, as the analysis does for "
+            "the HEX-E.</p>")
+
+
 def sections(R, F):
     """(id, heading, html) of every section, and the lede and the summary, from the numbers R and the figure files F."""
     esc, table, fig, code = P.esc, P.table, P.fig, P.code
@@ -362,16 +378,17 @@ the table in the cell model. The plan needs 6 mm for the HEX-E, 3 mm for the mou
     grow = [[hm(g["t"]), f"{g['s']:.2f}", "open" if g.get("open") else ("restart" if g["restart"] else "pause"),
              "" if g["dFz"] is None else f"{g['dFz']:+.1f}", esc(g["run"])] for g in gp if g["s"] > 0.3 or g["restart"] or g.get("open")]
     S.append(("link", "Losses of the HEX-E's link", (
-        f"<p>The HEX-E's stream stopped {len(gp)} times for over 50 ms. {n_restart} were restarts of the sensor. Each "
-        "restart came while joint 6 was turning, or with the arm still, and the box then listed no sensor for 1 to 20 min. "
-        f"{n_pause} were pauses with the counter running on (Table 2). The sensor read its old untared zero, 651 N in Fz, "
-        "and its usual noise each time it came back. So its link failed, at the connector or in the cable, and the "
-        "sensing element did not. After the first restart its tare was lost: two stations of the first gravity sweep were "
-        "read 645 N higher, which is why every action with a gap over 0.5 s is now aborted.</p>"
-        "<p>The pauses had another cause. The reader of the HEX-E wrote ft.bin and called fsync every 0.5 s from its own "
-        "thread. On the lab computer's SSD an fsync blocked for 0.1 to 0.4 s, and a touch-off with no sample for 100 ms is "
-        "aborted. Eight of sphere2's first 28 touch-offs were lost that way. With the fsync moved to a thread of its own "
-        "(commit d1ef3216), the resumed run had no pause.</p>"
+        f"<p>The HEX-E's stream stopped {len(gp)} times for over 50 ms (Table 2). {n_restart} were restarts of the sensor. "
+        "They came while joint 6 turned and, once, with the arm still. Each time the box listed no sensor for 1 to 20 min. "
+        "The sensor read its old untared zero, 651 N in Fz, and its usual noise each time it came back, so the failures lay "
+        "in its link, at the connector or in the cable. After the first restart its tare was lost, and two stations of the "
+        "first gravity sweep were read 645 N higher. Every action with a gap over 0.5 s is therefore aborted now.</p>"
+        f"<p>The other {n_pause} were pauses, with the sensor's counter running on. Most came from the computer. The reader "
+        "of the HEX-E wrote ft.bin and called fsync every 0.5 s from its own thread. On the lab computer's SSD an fsync "
+        "blocked for 0.1 to 0.4 s, and an action with no sample for 100 ms is aborted. Eight of sphere2's first 28 "
+        "touch-offs were lost that way. With the fsync moved out (commit d1ef3216) one more pause came, during a 160 MB "
+        "copy, whose dirty pages throttled the reader's own write; the reader now hands its rows to a writer thread "
+        "(96abeec0). Three pauses of 1.4 to 2.8 s came from the box itself, which did not answer the reads.</p>"
         + table(["Time", "Length (s)", "Kind", "Fz after less before (N)", "Run"], grow, num_cols=(0, 1, 3),
                 caption="The HEX-E's gaps of over 0.3 s, and every restart.", n=2))))
     S.append(("wrist", "The wrist's stop at 19:59 and the checks of the arm against itself", (
@@ -415,7 +432,8 @@ the table in the cell model. The plan needs 6 mm for the HEX-E, 3 mm for the mou
         + ", ".join(f"{a:.1f}" for a in ef["chip_deg"]) + " deg from chip 0's, a quarter turn apart as on the board. The "
         "chips' temperature correction of 0.65 to 0.70 % per °C was applied first.</p>"
         "<p>A press tared at its own rest pose takes Earth's field into its zero. A roll or a twist turns the pad while it is "
-        "pressed, and its board reading then needs the orientation term of this fit subtracted.</p>")))
+        "pressed, and its board reading then needs the orientation term of this fit subtracted.</p>"
+        + drift_text(R.get("drift")))))
     S.append(("future", "Future work", """<ul>
 <li>The HEX-E's link (QUEUE.md R10): inspect the connector and the port, clamp the cable 3 to 5 cm from the connector, and
 flex it with the arm still while <code>lab/sensor_watch.py</code> logs. It passes with no gap over 100 ms and no
