@@ -559,11 +559,11 @@ push that answers it arrives.
     session runs them (9a5ce959). The rest pose is planned with the nominal tool; the tool and the indenter sit where
     the registration puts them; the approach is stepped until the registered pad meets the indenter. `--home-from
     FILE:LABEL` places the indenter from a recorded seating with the session's registered mount.
-  - 12:09, the lab's question: `sph3t` at 3.5 mm (`plan/20261023-plan_sphere_lab_touch35.json`, about 41 min at the
+  - 12:06, the lab's question: `sph3t` at 3.5 mm (`plan/20261023-plan_sphere_lab_touch35.json`, about 41 min at the
     30 % slider, against 56 min at 5.0 mm), if the check with rod1t's registration and `--home-from
     lab/poses.jsonl:left_indenter_seated` predicts every onset at −2.5 mm or later (1 mm of free approach);
     otherwise 5.0 mm. The touch-offs that the check lists under the margins are dropped.
-  - 12:13, a second simulated truth changes the choice of 11:31. Its tool error is rod1's fit with the mount's turn
+  - 12:09, a second simulated truth changes the choice of 11:31. Its tool error is rod1's fit with the mount's turn
     set to 1.43 deg (the homing tilt measured in rod1), with other robot kinematic errors and no plywood tilt. Median
     contact-location error through the analysis, rod and sphere sessions:
 
