@@ -10,7 +10,8 @@ field model (scripts/fingertip_wrench_model.py) for a magnet set: d = c_true S_c
 differs from the FE model in ways that do not depend on the magnets: its compliance is c_true times the FE's and its
 response is that of a point delta away (the 1.4 mm offset of the sphere2 analysis). Three magnet sets: A, today's
 (k and poles of sphere2's rest fit); B, N52 at k = 1 with the same poles; C, N52 in a checkerboard (the magnet nearest the
-pad's centre one way, the four around it the other).
+pad's centre one way, the four around it the other); D, N52 in the checkerboard of the print procedure's advice
+of 2026-10-22 (the centre and one diagonal one way, the other diagonal the other way), the pattern printed on 10-23.
 
 Predictors, all trained on set A's training presses (every fourth grid press held out, as in
 scripts/ur5_tip_calibration_predict.py) and scored on the held-out presses of each set:
@@ -48,6 +49,16 @@ def checkerboard(cal):
     return tuple(1 if j == c else -1 for j in range(len(yz)))
 
 
+def checkerboard_diagonal(cal):
+    """The checkerboard of the print procedure's advice (2026-10-22): the centre magnet and one diagonal of the four
+    around it one way, the other diagonal the other way (a net moment of one magnet)."""
+    row = W.fe_row(cal.case)
+    yz = np.array([[m[2], m[3]] for m in row["magnets"]], float)
+    c = int(np.argmin(np.linalg.norm(yz - yz.mean(0), axis=1)))
+    d = yz - yz[c]
+    return tuple(1 if (j == c or d[j, 0] * d[j, 1] > 0) else -1 for j in range(len(yz)))
+
+
 def synth(cal, P, F, rbf, rng, c_true, delta, noise_uT):
     Jm = W.Model(cal).motion_jacobian()
     M = rbf(P + delta[None]).reshape(len(P), 3, -1)
@@ -69,7 +80,8 @@ def run(folder, out, c_true=1.15, delta=(-0.33, -1.21, 0.72), noise_uT=2.0, seed
     te = np.nonzero(np.isin(H["id"], test))[0]
     P, F, N, fn = H["p"], H["f"], H["n"], H["f_n"]
     rng = np.random.default_rng(seed)
-    sets = {"A": cal0, "B": replace(cal0, k=1.0), "C": replace(cal0, k=1.0, poles=checkerboard(cal0))}
+    sets = {"A": cal0, "B": replace(cal0, k=1.0), "C": replace(cal0, k=1.0, poles=checkerboard(cal0)),
+            "D": replace(cal0, k=1.0, poles=checkerboard_diagonal(cal0))}
     D, EST, PHYS = {}, {}, {}
     for k, cal in sets.items():
         cal = replace(cal, b_rest_uT=W.Model(cal).rest_uT().tolist())          # the rest a rest fit of this set gives
