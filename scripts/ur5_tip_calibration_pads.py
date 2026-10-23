@@ -117,6 +117,8 @@ class Rig:
         self.pads = pads
         self.b = self.m.body("ind").id
         self.g = self.m.geom("ind").id
+        if hasattr(self.m, "geom_sameframe"):      # compiled at the body's frame: kinematics would ignore geom_quat
+            self.m.geom_sameframe[self.g] = 0
         self.A = float(self.m.body_invweight0[self.b, 0])
 
     def set_E(self, E):

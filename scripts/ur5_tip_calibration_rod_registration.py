@@ -236,7 +236,8 @@ def main():
     ap.add_argument("--only-joint", action="store_true", help="skip the single-session fits")
     ap.add_argument("--exclude", default="", help="touch-off ids of this session to leave out, comma-separated (rod1t: "
                     "pad-edge-01, which met the rod 0.66 mm before the modelled pad)")
-    ap.add_argument("--exclude-joint", default="", help="touch-off ids of the --joint session to leave out")
+    ap.add_argument("--exclude-joint", default="", help="touch-off ids of the --joint sessions to leave out; NAME:id leaves "
+                    "id out of the session whose folder name contains NAME only")
     ap.add_argument("--prior-scale", type=float, default=1.0, help="multiply the mount's and pad's prior sigmas (the "
                     "program's REG_SIGMA) by this")
     a = ap.parse_args()
@@ -262,21 +263,27 @@ def main():
                   f"{te['tcp_mm_deg'][0]:.3f} mm, {te['tcp_mm_deg'][1]:.2f} deg"
                   + (f"; axis {te['axis_offset_mm']:.3f} mm, {te['axis_angle_deg']:.2f} deg" if "axis_offset_mm" in te else ""))
     if a.joint:
-        exj = {x for x in a.exclude_joint.split(",") if x}
         others = []
         for sj in (Path(x) for x in a.joint.split(",") if x):
+            exj = {x.split(":", 1)[-1] for x in a.exclude_joint.split(",")
+                   if x and (":" not in x or x.split(":", 1)[0] in sj.name)}
             gj = C.Geometry(json.loads((sj / "plan.json").read_text()))
             rj = json.loads((sj / "registration.json").read_text())
-            tj = [t for t in json.loads((sj / "touches.json").read_text()) if t["id"] not in exj]
-            if exj & {t["id"] for t in json.loads((sj / "touches.json").read_text())}:
-                print(f"left out of {sj.name}: {', '.join(sorted(exj))}")
+            tall = json.loads((sj / "touches.json").read_text())
+            tj = [t for t in tall if t["id"] not in exj]
+            if len(tj) < len(tall):
+                print(f"left out of {sj.name}: {', '.join(sorted(exj & {t['id'] for t in tall}))}")
             others.append((sj, gj, rj, tj))
         for axis in ("homing", "free"):
             f = joint_fit([(geo, start(geo, reg_d), touches)] + [(gj, start(gj, rj), tj) for _, gj, rj, tj in others], axis)
             s0 = f["sessions"][0]
             f["T_BI"] = T_BI_of(geo, start(geo, reg_d), dict(axis_B=s0["axis_B"], c_B=s0["c_B"])).tolist()
             f["truth"] = truth_errors(sd, geo, f["T_EM"], f["T_MP"], f["T_BI"])
-            fits[f"joint-{axis}"] = dict(f, rms_pad_mm=s0["rms_pad_mm"], c_B=s0["c_B"], axis_B=s0["axis_B"])
+            fits[f"joint-{axis}"] = dict(f, rms_pad_mm=s0["rms_pad_mm"], c_B=s0["c_B"], axis_B=s0["axis_B"],
+                                         centre_change_mm=s0["centre_change_mm"], n_pad=s0["n_pad"],
+                                         joint_sessions=[sd.name] + [sj.name for sj, *_ in others],
+                                         joint_rms_um={n_: round(x["rms_pad_mm"] * 1e3, 1) for n_, x in
+                                                       zip([sd.name] + [sj.name for sj, *_ in others], f["sessions"])})
             te = f["truth"]
             print(f"joint    axis {axis:6s}: {geo.kind} {s0['rms_pad_mm'] * 1e3:6.1f} um rms over {s0['n_pad']}, "
                   + ", ".join(f"{sj.name} {s1['rms_pad_mm'] * 1e3:6.1f} um over {s1['n_pad']}"
@@ -325,8 +332,9 @@ def main():
         d = dict(reg_d)
         d["T_EM"], d["T_MP"] = f["T_EM"], f["T_MP"]
         d["T_BI"] = f["T_BI"] if "T_BI" in f else T_BI_of(geo, reg0, f).tolist()
-        d["notes"] = dict(reg_d.get("notes", {}), register=dict(prog or {}, **{k: f[k] for k in ("rms_pad_mm", "tcp_change_mm_deg",
-                                                                                              "T_EM", "T_MP", "c_B")}),
+        d["notes"] = dict(reg_d.get("notes", {}), register=dict(prog or {}, **{k: f[k] for k in (
+                              "rms_pad_mm", "tcp_change_mm_deg", "T_EM", "T_MP", "c_B", "centre_change_mm", "n_pad",
+                              "joint_sessions", "joint_rms_um") if k in f}),
                           refit=dict(use=a.use, script=Path(__file__).name))
         (out / "registration.json").write_text(json.dumps(d, indent=1) + "\n")
         print(f"registration of {a.use} written to {out / 'registration.json'}")

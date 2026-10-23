@@ -16,6 +16,12 @@ session's own folder in lab/<session>/. The outputs come from
 docs/experiments/20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html.
 
     .venv/bin/python scripts/ur5_tip_calibration_results_page.py [--session 20261022-210852-sphere2]
+        [--data 20261022-210852-sphere2-joint]
+
+--data names the analysis folder under data/ (default: the session's own, with its own registration). The rod run's
+analyses with the joint registration of three sessions (scripts/ur5_tip_calibration_rod_registration.py) and with
+rod1t's own fit, data/20261023-104526-rod1-joint/ and -ownreg/, and the session analysed with the joint registration,
+data/<session>-joint/, give Section 8 when they exist.
 """
 from __future__ import annotations
 
@@ -49,6 +55,8 @@ EST_PAGE = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/202610
 STATUS_PAGE = ROOT / "docs/experiments/20261018-printed_fingertip_status/20261018-printed_fingertip_and_dip_link_status.html"
 QUEUE = D / "QUEUE.md"
 E_TPU_DEFAULT = 10.0             # MPa, reorient_backends.E_TPU
+ROD_DATA = D / "data/20261023-104526-rod1-joint"
+SPH3T = D / "lab/20261023-124052-sph3t"
 REGION_STYLE = {"face": ("o", "#1f5fbf"), "edge": ("s", "#c0392b"), "flank": ("^", "#2e8b57")}
 RNAME = {"face": "face", "edge": "edges", "flank": "flanks"}
 MODELS = [("physical", "Physical model, compliance fitted", "#2e8b57", "-"),
@@ -79,19 +87,37 @@ def hm(t):
 
 
 # ------------------------------------------------------------------------------------------------ data
-def load(session):
-    sd, ld = DATA / session, LAB / session
+def load(session, data=None):
+    sd, ld = DATA / (data or session), LAB / session
     R = dict(session=session, sd=sd, ld=ld)
     R["S"] = json.loads((sd / "summary.json").read_text())
     Hz = np.load(sd / "holds.npz", allow_pickle=False)
     R["H"] = {k: Hz[k] for k in Hz.files}
     R["FE"] = json.loads((sd / "fe.json").read_text())
     R["PR"] = json.loads((sd / "predict/predict.json").read_text()) if (sd / "predict/predict.json").exists() else None
-    R["CV"] = json.loads((sd / "predict/cv4_gp_mlp.json").read_text()) if (sd / "predict/cv4_gp_mlp.json").exists() else None
-    R["TR"] = (json.loads((sd / "predict/magnet_transfer_sim.json").read_text())
-               if (sd / "predict/magnet_transfer_sim.json").exists() else None)
-    R["HY"] = json.loads((sd / "predict/hybrid_cv.json").read_text()) if (sd / "predict/hybrid_cv.json").exists() else None
+    R["older"] = []                                 # studies taken from the session's own analysis (its registration)
+    for k, f in (("CV", "cv4_gp_mlp.json"), ("TR", "magnet_transfer_sim.json"), ("HY", "hybrid_cv.json")):
+        q = sd / "predict" / f
+        if not q.exists() and (DATA / session / "predict" / f).exists():
+            q = DATA / session / "predict" / f
+            R["older"].append(k)
+        R[k] = json.loads(q.read_text()) if q.exists() else None
     R["PADS"] = json.loads((sd / "pads.json").read_text()) if (sd / "pads.json").exists() else None
+    own = DATA / session / "fe.json"
+    R["FE_OWN"] = json.loads(own.read_text()) if data and data != session and own.exists() else None
+    if ROD_DATA.exists() and (ROD_DATA / "fe.json").exists():
+        R["ROD"] = {k: json.loads((ROD_DATA / f).read_text()) for k, f in (("S", "summary.json"), ("FE", "fe.json"),
+                    ("PR", "predict/predict.json"), ("PADS", "pads.json")) if (ROD_DATA / f).exists()}
+        R["ROD"]["plan"] = json.loads((LAB / ROD_DATA.name.rsplit("-", 1)[0] / "plan.json").read_text())
+    for key, folder in (("SPH_JOINT", DATA / f"{session}-joint"), ("ROD_OWN", ROD_DATA.with_name(ROD_DATA.name[:-len("joint")] + "ownreg"))):
+        if folder != sd and (folder / "fe.json").exists():
+            R[key] = {k: json.loads((folder / f).read_text()) for k, f in (("FE", "fe.json"), ("PR", "predict/predict.json"),
+                      ("S", "summary.json")) if (folder / f).exists()}
+            if key == "SPH_JOINT":
+                a_, b_ = np.load(sd / "holds.npz"), np.load(folder / "holds.npz")
+                m_ = a_["kind"] == "press"
+                dp = b_["p"][m_] - a_["p"][m_]
+                R[key]["moved"] = dict(median=float(np.median(np.linalg.norm(dp, axis=1))), mean=dp.mean(0).tolist())
     plan = json.loads((ld / "plan.json").read_text())
     have = {a["id"] for a in plan["actions"]}
     for f in sorted(ld.glob("plan_resume_*.json")):
@@ -227,6 +253,55 @@ def fig_pads(R, out):
     fig.tight_layout()
     fig.savefig(out)
     plt.close(fig)
+
+
+def fig_rod(R, out):
+    plt = P.plt_setup()
+    fig, ax = plt.subplots(1, 2, figsize=(10.0, 4.8), dpi=110)
+    xm = 0.0
+    for nm, fe, col, mk in (("Sphere, radius 5 mm", R["FE"], "#1f5fbf", "o"),
+                            (f"Rod, radius {R['ROD']['plan']['geometry']['indenter']['radius']:g} mm", R["ROD"]["FE"],
+                             "#c0392b", "s")):
+        h, sr = fe["holds"], fe["series"]
+        fn = np.array(h["f_n"])
+        dl = np.array([np.nan if x is None else x for x in h["delta_mm"]], float)
+        ax[0].scatter(fn, dl, s=10, marker=mk, color=col, alpha=0.35)
+        x = np.linspace(0, float(np.nanmax(fn)) * 1.02, 50)
+        ax[0].plot(x, sr["a_mm"] + sr["c_mm_N"] * x, "-", color=col, lw=2.0,
+                   label=f"{nm}: {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N")
+        xm = max(xm, x[-1])
+        lv = sorted(fe["by_level"], key=float)
+        ax[1].plot([float(k) for k in lv], [fe["by_level"][k]["ratio_median_s1"] for k in lv], marker=mk, color=col, label=nm)
+    ax[0].set_xlim(0, xm)
+    ax[0].set_ylim(-0.3, 1.6)
+    ax[0].set_xlabel("Normal force from the HEX-E (N)")
+    ax[0].set_ylabel("Indentation beyond the FE pad (mm)")
+    ax[0].set_title("(a) Indentation beyond the FE pad")
+    ax[0].legend(fontsize=10.5, loc="upper left", frameon=False)
+    ax[1].set_xscale("log")
+    ax[1].set_xticks([0.25, 0.5, 1, 2, 5])
+    ax[1].set_xticklabels(["0.25", "0.5", "1", "2", "5"])
+    ax[1].minorticks_off()
+    ax[1].set_ylim(0, 0.6)
+    ax[1].set_xlabel("Force level (N)")
+    ax[1].set_ylabel("Measured over FE pad (median)")
+    ax[1].set_title("(b) Measured force over the FE pad's")
+    ax[1].legend(fontsize=10.5, loc="lower right", frameon=False)
+    for a in ax:
+        a.grid(alpha=0.3, which="both")
+    fig.tight_layout()
+    fig.savefig(out)
+    plt.close(fig)
+
+
+def own_fits_apart():
+    """Median and largest distance (mm) over the pad's surface between sph3t's and sphere2's own registrations."""
+    import ur5_tip_calibration as C
+    regs = [json.loads((d / "registration.json").read_text())["notes"]["register"] for d in (SPH3T, LAB / "20261022-210852-sphere2")]
+    g = C.Geometry(json.loads((LAB / "20261022-210852-sphere2/plan.json").read_text()))
+    Ta, Tb = (np.array(r["T_EM"]) @ np.array(r["T_MP"]) for r in regs)
+    d = np.linalg.norm(C.apply(Ta, g.pts) - C.apply(Tb, g.pts), axis=1)
+    return float(np.median(d)), float(d.max())
 
 
 def fig_board(R, out):
@@ -385,9 +460,15 @@ def sections(R, F):
     lede = (f"At the sphere's registered positions in the UR5 run {R['session'].split('-', 2)[-1]}, the pad's "
             f"finite-element (FE) model gives {k_fe:.1f} times the force measured by the HEX-E, as a median on the "
             f"face. The force estimated from the board is {min(fs.values()):.2f} to {max(fs.values()):.2f} times the "
-            f"HEX-E's, so the pad itself is not {FE['s_best']:g} times softer than its model. The extra indentation, "
-            f"{sr['a_mm']:.2f} mm plus {sr['c_mm_N']:.2f} mm per newton, occurs in parts whose deformation is not sensed "
-            f"by the board. From 1 N up, the viewer's estimator places contacts {min(loc_hi):.1f} to {max(loc_hi):.1f} mm "
+            f"HEX-E's, so the pad itself is not {FE['s_best']:g} times softer than its model. "
+            + (f"Under the sphere the presses travel {sr['a_mm']:.2f} mm plus {sr['c_mm_N']:.2f} mm per newton beyond the "
+               f"FE pad. Under a rod of radius {R['ROD']['plan']['geometry']['indenter']['radius']:g} mm they travel "
+               f"{R['ROD']['FE']['series']['a_mm']:.2f} mm plus {R['ROD']['FE']['series']['c_mm_N']:.2f} mm per newton. So at most "
+               f"{R['ROD']['FE']['series']['c_mm_N']:.2f} mm/N lies in series with the pad, and the rest arises at the "
+               f"sphere's contact. " if R.get("ROD") else
+               f"The extra indentation, {sr['a_mm']:.2f} mm plus {sr['c_mm_N']:.2f} mm per newton, occurs in parts whose "
+               f"deformation is not sensed by the board. ")
+            + f"From 1 N up, the viewer's estimator places contacts {min(loc_hi):.1f} to {max(loc_hi):.1f} mm "
             f"(median) from the registered points; below 1 N it fails.")
     if last:
         g = last["gp:board"]
@@ -418,7 +499,9 @@ def sections(R, F):
                     if "impratio1_E_FE" in ru and "impratio100_E_FE" in ru else ""))
     summary = (f"UR5 run {R['session'].split('-', 2)[-1]}: measured force is {fe_r['face']['ratio_median_s1']:.2f} of the FE "
                f"pad's at the registered positions while the board reads {min(fs.values()):.2f}-{max(fs.values()):.2f} of "
-               f"the HEX-E's force; extra indentation {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N outside the pad; "
+               f"the HEX-E's force; extra indentation {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N under the sphere"
+               + (f", {R['ROD']['FE']['series']['a_mm']:.2f} mm + {R['ROD']['FE']['series']['c_mm_N']:.2f} mm/N under the rod"
+                  if R.get("ROD") else "") + "; "
                f"estimator {min(loc_hi):.1f}-{max(loc_hi):.1f} mm from 1 N"
                + (f"; GP on {last['N']} presses {last['gp:board']['loc_mm']['median']:.2f} mm, "
                   f"{last['gp:board']['force_N']['median']:.2f} N on held-out presses" if last else "")
@@ -489,9 +572,15 @@ def sections(R, F):
     if exc:
         rows.append(["Presses left out of the ground truth", f"{len(exc)}"])
     body = (f"<p>The run {P.esc(R['session'].split('-', 2)[-1])} started at {hm(R['t0'])}; its last event in this copy "
-            f"is from {hm(R['t1'])}. Its pad touch-offs were fitted to a registration of the tool and the sphere (Table 1). "
-            f"The registration moved the tool centre point by {tcp_mm:.2f} mm and {tcp_deg:.2f}° from the CAD and homing values. "
-            f"The run itself, its restarts and the HEX-E's link are described on the "
+            f"is from {hm(R['t1'])}. "
+            + (f"Its pad touch-offs were fitted together with those of two sessions of 2026-10-23, on the rod and on the "
+               f"sphere, to one registration of the tool (Table 1, Section 8). "
+               if reg.get("joint_sessions") else "Its pad touch-offs were fitted to a registration of the tool and the sphere (Table 1). ")
+            + f"The registration moved the tool centre point by {tcp_mm:.2f} mm and {tcp_deg:.2f}° from the CAD and homing values. "
+            + (f"With the session's own registration of 2026-10-22, the extra indentation of Section 3 was "
+               f"{R['FE_OWN']['series']['a_mm']:.2f} mm + {R['FE_OWN']['series']['c_mm_N']:.2f} mm/N, with a residual of "
+               f"{R['FE_OWN']['series']['rms_mm'] * 1e3:.0f} µm rms. " if R.get("FE_OWN") else "")
+            + f"The run itself, its restarts and the HEX-E's link are described on the "
             + (F["link"](LAB_PAGE, "page of the lab runs") if LAB_PAGE.exists() else "page of the lab runs (not built yet)")
             + f"; the protocol is on the {F['link'](PROTOCOL_PAGE, 'protocol page')}.{ref_txt}</p>"
             + F["table"](["Quantity", "Value"], rows, num_cols=(1,), caption="Registration and data of the session.", n=1)
@@ -727,7 +816,10 @@ def sections(R, F):
                      f"hidden layers of 64 units and weight decay; its number of training steps is chosen on the latest fifth "
                      f"of the training presses. On the {PR['n_test_presses']} held-out presses it places contacts within "
                      f"{m['loc_mm']['median']:.2f} mm and their force within {m['force_N']['median']:.3f} N, against "
-                     f"{g['loc_mm']['median']:.2f} mm and {g['force_N']['median']:.3f} N for the GP. Over four folds, in which "
+                     f"{g['loc_mm']['median']:.2f} mm and {g['force_N']['median']:.3f} N for the GP. "
+                     + ("The four-fold comparison and the studies below it use the ground truth of the session's own "
+                        "registration of 2026-10-22. " if R.get("older") else "")
+                     + f"Over four folds, in which "
                      f"each of the {d['presses']} grid presses is held out once, the MLP gives {cv['mlp']['loc_median']:.2f} mm "
                      f"against {cv['gp']['loc_median']:.2f} mm. The difference is {d['loc_median_mm']:.2f} mm (95 % interval "
                      f"{d['loc_ci95'][0]:.2f} to {d['loc_ci95'][1]:.2f}, bootstrap over presses), and "
@@ -889,10 +981,97 @@ def sections(R, F):
                            f"and 90th percentiles. The dashed line is 0.1 mm over the median hold."))
         S_.append(("pads", "Sphere-pad model against the measured pad", body))
 
+    # ---- rod
+    RD = R.get("ROD")
+    if RD:
+        rfe, rsr = RD["FE"], RD["FE"]["series"]
+        rfs = {r: v["force_scale"] for r, v in RD["S"]["by_region"].items()}
+        rpr = RD["PR"]["curve"][-1] if RD.get("PR") else None
+        spr = PR["curve"][-1] if PR else None
+        R_rod = RD["plan"]["geometry"]["indenter"]["radius"]
+        jr = reg.get("joint_rms_um", {})
+        jn = {k.split("-")[-1]: v for k, v in jr.items()}
+        own_med, own_max = own_fits_apart()
+        loc_part = sr["c_mm_N"] - rsr["c_mm_N"]
+
+        def row(name, fe, srs, pr):
+            br = fe["by_region"]
+            return [name, f"{srs['n']}", f"{fe['s_best']:g}",
+                    ", ".join(f1(br[r]["ratio_median_s1"]) for r in ("face", "edge") if r in br),
+                    f"{srs['a_mm']:.3f}", f"{srs['c_mm_N']:.3f}", f"{srs['rms_mm'] * 1e3:.0f}",
+                    f"{pr['gp:board']['loc_mm']['median']:.2f}" if pr else "",
+                    f"{pr['mlp:board']['loc_mm']['median']:.2f}" if pr and "mlp:board" in pr else ""]
+        rows = [row("Sphere, radius 5 mm (sphere2), its own registration", FE, sr, spr)]
+        SJ, RO = R.get("SPH_JOINT"), R.get("ROD_OWN")
+        if SJ:
+            rows.append(row("Sphere (sphere2), joint registration", SJ["FE"], SJ["FE"]["series"],
+                            SJ["PR"]["curve"][-1] if SJ.get("PR") else None))
+        rows.append(row(f"Rod, radius {R_rod:g} mm (rod1), joint registration", rfe, rsr, rpr))
+        if RO:
+            rows.append(row("Rod (rod1), rod1t's own fit", RO["FE"], RO["FE"]["series"],
+                            RO["PR"]["curve"][-1] if RO.get("PR") else None))
+        rq = RD.get("PADS")
+        body = (f"<p>Under the rod the presses travel {rsr['a_mm']:.2f} mm + {rsr['c_mm_N']:.2f} mm/N beyond the FE pad, "
+                f"with a residual of {rsr['rms_mm'] * 1e3:.0f} µm rms over {rsr['n']} holds. Under the sphere, with the same "
+                f"registration of the tool, they travel {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N (Section 3; Fig. 6a, "
+                f"Table 12). A spring in series with the pad, in the mount, the arm or the indenter's support, adds the same "
+                f"travel per newton under both indenters. At most {rsr['c_mm_N']:.2f} mm/N is therefore in series. At least "
+                f"{loc_part:.2f} mm/N arises at the sphere's contact, where the FE pad is stiffer than the print. The rod, of "
+                f"radius {R_rod:g} mm, spreads its load along a line across the pad. Measured over FE at $s = 1$ is "
+                f"{rfe['by_region']['face']['ratio_median_s1']:.2f} on the face under the rod, against "
+                f"{fe_r['face']['ratio_median_s1']:.2f} under the sphere (Fig. 6b).</p>"
+                f"<p>The rod run rod1 (10:45 on 2026-10-23) began its touch-offs with the pad already on the rod, since its "
+                f"plan placed the rest poses with the nominal tool. The lab then made 22 touch-offs on the rod at a 5.0 mm "
+                f"standoff (rod1t) and 19 on the sphere (sph3t). Most of sph3t's onsets repeat sphere2's within 0.06 mm, so the "
+                f"tool did not move overnight. One registration of the tool, with each indenter's centre fitted, leaves "
+                + (f"{jn.get('rod1t', float('nan')):.0f} µm rms on rod1t, {jn.get('sph3t', float('nan')):.0f} µm on sph3t "
+                   f"and {jn.get('sphere2', float('nan')):.0f} µm on sphere2. " if jn else "residuals of 40 to 60 µm rms. ")
+                + f"It leaves out rod1t's pad-edge-01, which met the rod 0.66 mm before the modelled pad, with joint 6 at "
+                f"45.5°. The two sphere sessions' own fits put the pad {own_med:.2f} mm apart, as a median over its surface "
+                f"(largest {own_max:.2f} mm). Touch-offs on one sphere fix the turn about the tool axis only weakly. In "
+                f"two simulated sessions with realistic tool errors, a joint fit of rod and sphere touch-offs placed contacts "
+                f"0.17 to 0.30 mm from the truth (median). One session's fit placed them 0.28 to 0.60 mm off (QUEUE.md R19).</p>"
+                + (f"<p>On the real presses the two registrations disagree along the finger. With the joint one, sphere2's "
+                   f"contact points move by a median {SJ['moved']['median']:.2f} mm: on average {abs(SJ['moved']['mean'][2]):.2f} mm "
+                   f"along the finger, toward its {'mount' if SJ['moved']['mean'][2] < 0 else 'tip'}. Both fit sphere2's touch-offs equally well, and neither indenter's touch-offs fix "
+                   f"that direction well; the rod's tilt, never measured, may also pull the joint fit. The other sections "
+                   f"therefore keep sphere2's own registration. With the joint one, sphere2's extra indentation is "
+                   f"{SJ['FE']['series']['a_mm']:.2f} mm + {SJ['FE']['series']['c_mm_N']:.2f} mm/N, with "
+                   f"{SJ['FE']['series']['rms_mm'] * 1e3:.0f} µm rms (Table 12). The slope under each indenter is the same "
+                   f"under either registration, so the split above holds; the offsets $a$ depend on the registration.</p>"
+                   if SJ else "")
+                + f"<p>Under the rod the board's force estimate is {rfs.get('face', float('nan')):.2f} of the HEX-E's on the "
+                f"face and {rfs.get('edge', float('nan')):.2f} on the edges, against {fs['face']:.2f} and {fs['edge']:.2f} "
+                f"under the sphere."
+                + (f" Trained on {rpr['N']} rod presses, the Gaussian process places held-out contacts within "
+                   f"{rpr['gp:board']['loc_mm']['median']:.2f} mm and the MLP ensemble within "
+                   f"{rpr['mlp:board']['loc_mm']['median']:.2f} mm. Their force errors are "
+                   f"{rpr['gp:board']['force_N']['median']:.3f} and {rpr['mlp:board']['force_N']['median']:.3f} N."
+                   if rpr and "mlp:board" in rpr else "")
+                + (f" Under the rod, the sphere pads fitted to the FE pad ({rq['E_FE_MPa']:.1f} MPa) leave "
+                   f"{rq['delta_E_FE']['law']['rms_mm'] * 1e3:.0f} µm rms of $\\Delta$ with a spring in series. The FE pad "
+                   f"leaves {rsr['rms_mm'] * 1e3:.0f} µm." if rq else "")
+                + "</p>"
+                + P.table(["Indenter", "Holds", "FE scale s", "Measured over FE at s = 1: face, edges", "a (mm)", "c (mm/N)",
+                           "Residual of Δ (µm rms)", "GP location (mm)", "MLP location (mm)"], rows,
+                          num_cols=(1, 2, 4, 5, 6, 7, 8),
+                          caption="Sphere and rod presses against the FE pad under two registrations. The predictors are "
+                                  "trained on all but the held-out presses of each run (medians).", n=12)
+                + F["fig"](6, MEDIA / "20261023-rod1_against_sphere2.png",
+                           "Sphere and rod against the FE pad. (a) Indentation beyond the FE pad against the HEX-E's normal "
+                           "force, each hold a point, with the fitted lines. (b) Measured force over the FE pad's at $s = 1$, "
+                           "by force level (medians)."))
+        S_.append(("rod", "Rod presses and the split of the extra indentation", body))
+
     # ---- limitations, future work
-    body = ("<p>In the ground truth, the arm, the tool's parts and the indenter's mount are taken as rigid. By the extra "
-            f"indentation of Section 3, the pad's true depth at 3 N is about {sr['a_mm'] + sr['c_mm_N'] * 3.0:.2f} mm less "
-            "than the registered one. The tangential location of the contact changes much less if that motion lies along "
+    rs_ = R["ROD"]["FE"]["series"] if R.get("ROD") else None
+    body = ("<p>In the ground truth, the arm, the tool's parts and the indenter's mount are taken as rigid. "
+            + (f"The rod's extra indentation (Section 8) bounds the part that lies in series with the pad. At 3 N the "
+               f"pad's true depth is then at most {rs_['a_mm'] + rs_['c_mm_N'] * 3.0:.2f} mm less than the registered one. "
+               if rs_ else
+               f"By the extra indentation of Section 3, the pad's true depth at 3 N is about "
+               f"{sr['a_mm'] + sr['c_mm_N'] * 3.0:.2f} mm less than the registered one. ")
+            + "The tangential location of the contact changes much less if that motion lies along "
             "the normal; a rotation of the pad under load would also move it tangentially. "
             f"The held-out set has {PR['n_test_presses'] if PR else 0} presses. The training presses come from the "
             "same night, the same pad and the same seating of the tool.</p>")
@@ -902,7 +1081,8 @@ def sections(R, F):
         "Then press a rigid part of the tool, the HEX-E's adapter or the fork, on the sphere at 1 to 5 N, with a dial "
         "indicator on the sphere's block. Travel of the block places the compliance on the indenter's side. Travel "
         f"beyond the HEX-E's data sheet with a still block places it in the arm or the mount. Travel near the data "
-        f"sheet's leaves the DIP link's clamp for the {sr['c_mm_N']:.2f} mm/N.",
+        f"sheet's leaves the DIP link's clamp for the "
+        + (f"rod's {R['ROD']['FE']['series']['c_mm_N']:.2f} mm/N." if R.get("ROD") else f"{sr['c_mm_N']:.2f} mm/N."),
         "Fit the magnets' offsets and the pad's pose in its seat to the presses at 3 N and over: the physical model of "
         + F["code"]("ur5_tip_calibration_predict.py") + " without its priors on the offsets. If the mean location error "
         f"falls below 0.5 mm from {np.linalg.norm(bm['mean']) if bm else 0:.1f} mm, the offset is in the model's magnets; "
@@ -915,9 +1095,13 @@ def sections(R, F):
         "turning the sphere about the normal in the rig of " + F["code"]("ur5_tip_calibration_pads.py") + ". The torsion is "
         "half the difference between the outbound and the return holds at each angle. A torque outside the pads' range at "
         "the measured friction coefficient falsifies the pads' torsion.",
+    ] + ([] if R.get("ROD", {}).get("PADS") else [
         "Repeat the sphere-pad comparison on the rod run (rod1g) with the rig's capsule indenter. If the pads' residual of "
         "$\\Delta$ stays within 10 µm of the FE pad's for the line contact as well, the pads' depth law holds for both "
-        "indenter shapes.",
+        "indenter shapes."]) + [
+        "Press the FE pad's printed twin with a 5 mm sphere on a bench under a dial indicator, the pad clamped on a rigid "
+        "block, at 0.5 to 5 N. Travel near the sphere's local part of Section 8 confirms that the FE pad is too stiff under "
+        "a sphere. Travel near the FE pad's own places that part in the robot's tool.",
         "Run a grid in random order on another night, so that clock time and absolute temperature stop following the "
         "target; then the temperature inputs can be scored without the leak.",
     ]
@@ -926,8 +1110,8 @@ def sections(R, F):
 
 
 # ------------------------------------------------------------------------------------------------ the page
-def build(session):
-    R = load(session)
+def build(session, data=None):
+    R = load(session, data)
     MEDIA.mkdir(parents=True, exist_ok=True)
     fig_fe(R, MEDIA / "20261022-sphere2_fe_against_hexe.png")
     fig_board(R, MEDIA / "20261022-sphere2_board_against_hexe.png")
@@ -936,13 +1120,16 @@ def build(session):
         fig_predict(R, MEDIA / "20261022-sphere2_predictor_learning_curves.png")
     if R["PADS"]:
         fig_pads(R, MEDIA / "20261022-sphere2_sphere_pads_against_hexe.png")
+    if R.get("ROD"):
+        fig_rod(R, MEDIA / "20261023-rod1_against_sphere2.png")
     F = dict(fig=P.fig, table=P.table, link=P.link, code=P.code)
     S, lede, summary = sections(R, F)
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S, 1))
     built = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     byline = (f"Workstation analysis of the lab's run {P.esc(session)}, built {built} from "
-              f"{P.code('data/' + session + '/')} by {P.code('scripts/ur5_tip_calibration_results_page.py')}. "
+              f"{P.code('data/' + (data or session) + '/')}"
+              + (f" and {P.code('data/' + ROD_DATA.name + '/')}" if R.get("ROD") else "") + f" by {P.code('scripts/ur5_tip_calibration_results_page.py')}. "
               f"Requests to the lab: {P.link(QUEUE, 'QUEUE.md')}; status of the work: {P.link(STATUS_PAGE, 'status page')}.")
     page = TEMPLATE.read_text()
     for k, v in {"TITLE": "UR5 fingertip ground truth",
@@ -964,4 +1151,6 @@ def build(session):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--session", default="20261022-210852-sphere2")
-    build(ap.parse_args().session)
+    ap.add_argument("--data", default=None, help="the analysis folder under data/ (default: the session's own)")
+    a = ap.parse_args()
+    build(a.session, a.data)
