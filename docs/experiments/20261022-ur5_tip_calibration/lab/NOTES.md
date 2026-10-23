@@ -146,6 +146,32 @@ reads).
 
 No twists or rolls run again until the builder checks every pose along their turns.
 
+### 21:08 to 23:xx, sphere2 (pad, register, pivot, grid, then the checked turns) at 30 %, in three parts
+
+Folder `20261022-210852-sphere2/` (one session, resumed twice; `printout.txt`, `printout_resume.txt`,
+`printout_grid.txt`; the plans of the resumes as `plan_resume_2131.json` and `plan_resume_2152.json`). No gravity
+stage: the HEX-E's factory calibration, first2's fit for the analysis (QUEUE R11). The owner left at about 20:50
+("i prioritize getting a segment of fingertip calibration data").
+
+- 21:08, `sphere2` on `20261022-plan_sphere_lab_window_untwisted_segment1.json`: 20 touch-offs with onsets −1.19 to
+  +0.17 mm from the expected. Eight aborted with no HEX-E sample for 100 ms; three in a row stopped it at 21:30. The
+  pauses (0.05 to 0.36 s, the sample counter running on) came from the reader's own fsync of ft.bin on the WD Green
+  SSD, with the overhead time-lapse writing JPEGs to the same disk (stopped at 21:19). Fixed in d1ef3216.
+- 21:32, `sphere2r` (resume) on `plan/20261022-plan_sphere_lab_turns_checked.json`, the fixed program: 9 more
+  touch-offs; three aborted at 21:42 to 21:44 on the box's own pauses (1.4, 2.8 and 1.7 s, 118 timed-out reads, no
+  counter restart: the link of R10). The registration at 21:44 fitted 29 touches at 0.057 mm rms (Table 2: under 0.05),
+  moved the TCP 2.01 mm and 2.81 deg and the sphere's centre 1.22 mm. All six pivots held 1.5 and 3.0 N; then the
+  program crashed in the pivot check (the reference pivot's samples had left the 180 s rings; fixed in 8be552e1).
+- With this registration the plan's least clearances fell under their margins (`scripts/ur5_tip_calibration_check.py
+  --clearance`): the finger 0.57 mm at grid-050 (needs 0.8) and the mount 2.27 to 2.62 mm in three slides (needs 3).
+  Those four were dropped (`lab/20261022-plan_sphere_lab_turns_checked_reg2144.json`, 138 actions); the workstation
+  agreed. grid-025, -027 and -028 stay at 2.75 to 2.98 mm for the mount.
+- 21:51, `sphere2g` (resume) on that plan, stages grid, shear, roll, twist: by 22:02, 12 of 73 grid presses, no abort,
+  and no HEX-E gap over 31 ms. At 22:02:19 the reader paused 0.36 s (counter running on) and grid-007 aborted: that was
+  the copy and LFS upload of the 160 MB session folder at the same moment. Its dirty pages throttle every writer, the
+  reader's own write of ft.bin included. During a run only the small files are copied and pushed now; the reader should
+  hand its rows to a writer thread and never write a file itself.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

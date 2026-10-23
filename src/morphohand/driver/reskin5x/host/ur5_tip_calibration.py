@@ -43,6 +43,7 @@ import argparse
 import json
 import math
 import os
+import queue
 import socket
 import struct
 import sys
@@ -487,42 +488,54 @@ class Ring:
 
 
 class Appender:
-    """Binary file of float64 rows, flushed at most every 0.5 s and fsynced every 5 s by a thread of its own.
+    """Binary file of float64 rows (or of dtype rows), written by a thread of its own: write() only queues the bytes, and
+    the thread writes them, flushes every 0.5 s and fsyncs every 5 s.
 
-    The fsync used to run in the writer's thread, which for ft.bin is the HEX-E's reader: on the lab computer's SSD it
-    blocked for 0.1 to 0.4 s, and the reader's pauses of 2026-10-22 (0.36 s at 21:14:59, then 0.08 to 0.15 s every 0.6 s
-    from 21:17:45) aborted three touch-offs with no HEX-E sample for 100 ms while the sensor sampled on."""
+    The HEX-E's reader is the writer of ft.bin, and any wait in its thread is a gap in the stream. On 2026-10-22 the
+    reader's own fsync blocked it 0.1 to 0.4 s on the lab computer's SSD, and later, with the fsync moved out, its write
+    still waited 0.36 s while a 160 MB copy filled the page cache (dirty pages throttle every writer). Each such wait
+    aborted an action with no HEX-E sample for 100 ms while the sensor sampled on."""
 
     def __init__(self, path, dtype=None):
         self.f = open(path, "ab")
         self.dtype = dtype
-        self.last = 0.0
         self.lock = threading.Lock()
+        self.q = queue.Queue()
         self.closed = False
-        threading.Thread(target=self._sync, daemon=True).start()
-
-    def _sync(self):
-        while not self.closed:
-            time.sleep(5.0)
-            try:
-                os.fsync(self.f.fileno())
-            except (OSError, ValueError):                        # closed meanwhile
-                return
+        self.th = threading.Thread(target=self._run, daemon=True)
+        self.th.start()
 
     def write(self, rows):
-        with self.lock:
-            if self.dtype is None:
-                self.f.write(np.asarray(rows, "<f8").tobytes())
-            else:
-                self.f.write(np.asarray(rows, self.dtype).tobytes())
-            now = time.time()
-            if now - self.last > 0.5:
-                self.f.flush()
-                self.last = now
+        self.q.put(np.asarray(rows, "<f8" if self.dtype is None else self.dtype).tobytes())
+
+    def _run(self):
+        last_flush = last_sync = time.time()
+        while True:
+            try:
+                b = self.q.get(timeout=0.5)
+            except queue.Empty:
+                b = None
+            with self.lock:
+                if self.f.closed:
+                    return
+                if b is not None:
+                    self.f.write(b)
+                now = time.time()
+                if now - last_flush > 0.5:
+                    self.f.flush()
+                    last_flush = now
+                if now - last_sync > 5.0:
+                    os.fsync(self.f.fileno())
+                    last_sync = now
+            if self.closed and self.q.empty():
+                return
 
     def close(self):
+        self.closed = True
+        self.th.join(timeout=10.0)
         with self.lock:
-            self.closed = True
+            while not self.q.empty():                            # anything the thread had not written yet
+                self.f.write(self.q.get_nowait())
             self.f.flush()
             os.fsync(self.f.fileno())
             self.f.close()
