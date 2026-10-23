@@ -45,6 +45,13 @@ OUT = ROOT / "docs/experiments/20261022-ur5_tip_calibration/data"
 ZERO = "both"           # the HEX-E's zero: "both" rests interpolated in time (default), or the rest "before" alone (--zero)
 GRAVITY_FROM = None     # a session (or its registration.json) whose gravity fit a session without one takes (--gravity-from)
 REF_DRIFT = False       # move the sphere along the approach by the ref presses' onset drift, interpolated in time (--ref-drift)
+# Actions whose HEX-E reading includes a load that is not on the pad, left out of the ground truth (by session folder name)
+EXCLUDE = {
+    "20261022-210852-sphere2": (("grid-061", "grid-065", "grid-066", "grid-067"),
+                                "0.3 to 0.4 N on the HEX-E that rises with travel before the pad meets the sphere and that "
+                                "the board does not see; flanks at y_P -6.7 mm with joint 6 at 70 to 72 deg, the cable or a "
+                                "graze (the lab's message stamped 2026-10-22 23:50)"),
+}
 
 
 def borrow_gravity(reg, src):
@@ -90,6 +97,8 @@ def load(sd):
 
 class Session:
     def __init__(self, sd):
+        self.sd = Path(sd)
+        self.excluded = set(EXCLUDE.get(self.sd.name, ((), ""))[0])
         self.d = load(sd)
         self.geo = C.Geometry(self.d["plan"])
         reg = C.Registration(self.geo).load(self.d["reg"])
@@ -272,7 +281,7 @@ class Session:
             if e.get("status") != "ok" or aid not in self.acts:
                 continue
             a, rec = self.acts[aid], e.get("rec") or {}
-            if a["kind"] not in ("press", "slide", "roll", "twist") or not rec.get("levels"):
+            if a["kind"] not in ("press", "slide", "roll", "twist") or not rec.get("levels") or aid in self.excluded:
                 continue
             T_rest = np.array(rec["T_rest"]) if rec.get("T_rest") is not None else None
             if T_rest is None:
@@ -415,6 +424,8 @@ def summarize(ses, holds):
         S["reference_press_1N"] = [dict(t_min=round((h["t"] - ref[0]["t"]) / 60, 1), change_uT=float(np.linalg.norm(h["d_board"])),
                                         from_first_uT=float(np.linalg.norm(h["d_board"] - d0)), f_n=h["f_n"]) for h in ref]
     S["holds"] = len(holds)
+    if ses.excluded:
+        S["excluded"] = dict(actions=sorted(ses.excluded), why=EXCLUDE.get(ses.sd.name, ((), ""))[1])
     return S
 
 

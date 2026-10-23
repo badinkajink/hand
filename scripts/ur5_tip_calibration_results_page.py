@@ -387,6 +387,9 @@ def sections(R, F):
             ["Press holds analysed", f"{sf['n_holds']} from {sf['n_press']} presses ({stages})"],
             ["Turn holds (slides, rolls, twists)", f"{sf['n_turn_holds']} from {sf['n_turn_actions']} actions"],
             ["Aborted actions", f"{len(R['abort'])} (" + ", ".join(f"{k} {v}" for k, v in sorted(ab_st.items())) + ")"]]
+    exc = S.get("excluded", {}).get("actions", [])
+    if exc:
+        rows.append(["Presses left out of the ground truth", f"{len(exc)}"])
     body = (f"<p>The run {P.esc(R['session'].split('-', 2)[-1])} started at {hm(R['t0'])}; its last event in this copy "
             f"is from {hm(R['t1'])}. Its pad touch-offs were fitted to a registration of the tool and the sphere (Table 1). "
             f"The registration moved the tool centre point by {tcp_mm:.2f} mm and {tcp_deg:.2f}° from the CAD and homing values. "
@@ -394,6 +397,10 @@ def sections(R, F):
             + (F["link"](LAB_PAGE, "page of the lab runs") if LAB_PAGE.exists() else "page of the lab runs (not built yet)")
             + f"; the protocol is on the {F['link'](PROTOCOL_PAGE, 'protocol page')}.{ref_txt}</p>"
             + F["table"](["Quantity", "Value"], rows, num_cols=(1,), caption="Registration and data of the session.", n=1)
+            + (f"<p>The presses {ands(exc)} are left out of the ground truth. In each of them the HEX-E carried 0.3 to "
+               f"0.4 N before the pad met the sphere, rising with the travel. That load did not show on the board. They "
+               f"are flank presses at the most turned wrist of the grid, with joint 6 at 70 to 72°. The lab traced the "
+               f"load to the HEX-E's cable or a graze of the tool (its message stamped 23:50).</p>" if exc else "")
             + "<p>The HEX-E's gravity fit was taken from the run first2 (19:54), since this run had no gravity stage. "
             "The zero of each hold is interpolated in time between the rests before and after its press.</p>")
     S_.append(("session", "Session and ground truth", body))
@@ -464,7 +471,10 @@ def sections(R, F):
             f"magnets still. Every press pushes the sphere down along the vertical, so the indenter's side alone would give "
             f"one slope in every region. The slopes are "
             + ands([f"{srr[r]['fit'][1]:.3f} mm/N on the {RNAME[r]}" for r in RNAME if r in srr])
-            + ". The FE model's own error may differ by region as well, so these slopes do not place the compliance.</p>"
+            + ", with standard errors of "
+            + ands([f"{srr[r]['se'][1]:.3f}" for r in RNAME if r in srr and "se" in srr[r]])
+            + " mm/N. The direction of the load in the tool's frame changes with the region, so a compliance on the tool's "
+            "side would make the slopes differ. A regional error of the FE model would make them differ as well.</p>"
             f"<p>From 1 N up, contacts are placed by the estimator within {min(loc_hi):.1f} to {max(loc_hi):.1f} mm "
             f"(median; Table 3, Fig. 2b). Its force is within {min(rf_hi) * 100:.0f} to {max(rf_hi) * 100:.0f} % of the "
             f"HEX-E's. Below 1 N the median location error is "
