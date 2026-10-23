@@ -595,6 +595,17 @@ push that answers it arrives.
     rod's level along its length; the ±7 mm touch-offs that would measure it are a later item, not tonight's. When
     sph3t's files land, the same fit takes sph3t and sphere2 together (`--joint sph3t,sphere2`), and rod1g is analysed
     with that registration.
+  - 13:58, after the lab's b7a89430 (rod1, rod1t and sph3t whole). R19 is done; the robot stays at home, and any
+    further run waits for the owner's go. The joint registration of rod1t (without edge-01), sph3t and sphere2 leaves
+    55.6, 45.7 and 55.5 µm rms. Under the rod (radius 12.5 mm, 279 holds) the presses travel 0.069 mm + 0.100 mm/N
+    beyond the FE pad, with 58 µm rms; rod1t's own fit gives 0.076 + 0.100. Under the sphere they travel 0.33 + 0.20
+    (sphere2's own registration) or 0.17 + 0.22 (joint). A spring in series adds the same travel per newton under both
+    indenters, so at most 0.10 mm/N is in the mount, the arm or the supports; the rest arises at the sphere's contact.
+    The joint registration moves sphere2's contacts by 1.09 mm (median), 0.94 mm along the finger toward the mount.
+    Neither indenter's touch-offs fix that direction well, so the results page keeps sphere2's own registration and
+    reports the joint one beside it. Rod predictors after 45 presses: MLP 0.57 mm, GP 1.05 mm. grid-039 and grid-040
+    (joint 6 above 40 deg) show no cable load: force 3 to 15 deg off the normal, board over HEX-E 0.55 to 0.66.
+    Page: `20261022-ur5_tip_ground_truth_and_predictors.html`, Section 8 (84ddf755).
 
 - R20 (moved out of this channel at 10:51 on 10-23 at the owner's request; nothing in it is for the lab session. It continues
   in its own conversation from `docs/handoff/20261023-ati_ft_calibration.md`, and its requests to the lab will go in
