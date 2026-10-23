@@ -454,7 +454,7 @@ push that answers it arrives.
   1.05. In its fit the contact points are the registered ones, a median of 2.0 mm from the estimator's from 1 N up (see
   R16's offset). Page: `20261022-ur5_tip_ground_truth_and_predictors.html`, Section 6.
 
-- R18 (in progress on the workstation from 00:16 on 10-23; the owner asked through the lab). A mount that fastens the
+- R18 (designed on the workstation at 00:45 on 10-23, not printed; the owner asked through the lab at 00:16). A mount that fastens the
   DIP link rigidly, since the link moves in mount v3's fork (R16). It has to beat the extra indentation of 0.33 mm +
   0.20 mm/N (0.21, 0.17 and 0.14 mm/N on face, edges and flanks). It keeps the HEX-E stack and mount v3's captive
   M6 x 20, the mount's turn of -92.15 deg on the flange (or a plan rebuilt for a new turn), at least 15 mm from the
@@ -463,6 +463,23 @@ push that answers it arrives.
   registration and FE model still apply. Proof on the bench: a dial indicator on the link while a rigid part presses
   the pad, with v3 and with the new mount; then the reference press's depth to 2 N (0.71 to 0.76 mm tonight) should
   fall toward the FE pad's indentation, about 0.27 mm.
+
+  Mount v4 (0c2ea786; page `docs/experiments/20261023-ur5_calibration_mount_v4/20261023-ur5_calibration_mount_v4.html`).
+  In v3 the legs alone hold the link: with the clamp loose it turns 1.0 deg about the PIP axis before it meets the
+  fork's walls, 0.63 mm at the contact point, and a face press drives that turn. v4 is v3 with a stop plate hanging
+  from the dorsal ear behind the tongue. Three brass M3 set screws in heat-set inserts are turned onto the tongue's back
+  (x_F 8.0) once the link is clamped, then locked with jam nuts. The slotted arm's M3 goes into an insert. With the
+  screws set, the turn a face press drives is 0.05 deg (the check's step); the turn about x, which flank presses
+  drive, stays 0.3 deg. The link slides on clear. Along plan reg2144 with sphere2's registration the plate stays
+  12.0 mm from the cell; the mount's least clearance is v3's (2.75 to 2.84 mm at grid-027). Only the standoff-fork is
+  reprinted (P1S, 1 h 46 min, 64.9 g, six walls). The owner decides on printing it. When v4 goes on the robot:
+  - payload 0.403 kg in place of 0.384 (the fork +14 g, screws, nuts and inserts +5 g), its centre about 2 mm further
+    along the tool axis;
+  - pad touch-offs and registration again (the link may sit up to 1 deg differently);
+  - plans checked with `UR5_MOUNT=v4` for `scripts/ur5_cb3_cell.py` (the builder and `ur5_tip_calibration_check.py
+    --clearance`), which needs `docs/experiments/20261023-ur5_calibration_mount_v4/cad/*.stl` from LFS on the lab
+    computer;
+  - then the reference press and a short grid, to refit the indentation beyond the FE pad.
 
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
