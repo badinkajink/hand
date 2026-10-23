@@ -447,9 +447,13 @@ class Check:
                f"{(when[worst] - self.ft[0, 0]) / 60:.1f} min (a cable pulling shows as a load that follows the tool's turn)")
         self.out["travel_load_mN"] = dict(median=float(np.median(nrm) * 1e3), p99=float(np.percentile(nrm, 99) * 1e3))
 
-    def registered_clearance(self, plan_path=None, stages=("pivot", "grid", "shear", "roll", "twist", "final"), step=1.0):
-        """Least clearance of each tool group to the indenter, the cell and the other indenters over the plan's press
-        poses (rest and 1 mm past contact) and its turns (every step deg), nominal against registered."""
+    def registered_clearance(self, plan_path=None, stages=("pad", "mount", "pivot", "grid", "shear", "roll", "twist", "final"),
+                             step=1.0, home_from=None):
+        """Least clearance of each tool group to the indenter, the cell and the other indenters over the plan's touch-off
+        and press poses (rest and 1 mm past the expected contact) and its turns (every step deg), nominal against
+        registered. home_from (FILE:LABEL, a recorded seating as the program's --home-from) places the indenter from that
+        seating with this session's registered mount: the clearance of another indenter's plan (2026-10-23: the sphere's
+        touch-offs with rod1t's registration, before sph3t ran)."""
         sys.path.insert(0, str(ROOT / "scripts"))
         import ur5_cb3_cell as CELL
         plan = json.loads(Path(plan_path).read_text()) if plan_path else self.plan
@@ -464,7 +468,21 @@ class Check:
             self.p("clearance: no homing in this session")
             return
         T_BI_home = reg.T_BE_home @ geo.T_EM0 @ C.inv(geo.T_IM_home)
-        if "register" in self.notes:
+        if home_from:
+            if "register" not in self.notes:
+                self.p("clearance: --home-from takes the session's registered mount, and this session has no registration")
+                return
+            path, _, label = home_from.rpartition(":")
+            hit = [json.loads(s) for s in Path(path).read_text().splitlines() if s.strip()]
+            hit = [r for r in hit if r.get("label") == label]
+            if not hit:
+                self.p(f"clearance: no seating labelled {label!r} in {path}")
+                return
+            T_BE_seat = np.array(hit[-1]["T_tcp_mm"], float)
+            T_BI_home = T_BE_seat @ geo.T_EM0 @ C.inv(geo.T_IM_home)
+            src = f"the session's registered mount and the indenter from the seating {label}"
+            T_EM, T_MP, T_BI = reg.T_EM, reg.T_MP, T_BE_seat @ reg.T_EM @ C.inv(geo.T_IM_home)
+        elif "register" in self.notes:
             src, (T_EM, T_MP, T_BI) = "the session's registration", (reg.T_EM, reg.T_MP, reg.T_BI)
         else:
             pads = [t for t in self.touches if t.get("kind") == "pad"]
@@ -484,15 +502,23 @@ class Check:
             need.setdefault("stop_wedge", need["mount"])
         least = {lab: {g: (1e9, None) for g in groups} for lab in G}
         per = {}                                                # action -> group -> least clearance, registered
+        as_run, per_as_run, as_run_onset = {g: (1e9, None) for g in groups}, {}, {}     # touch-offs in a fresh session
+        as_run_rest_contact = set()
         for a in plan["actions"]:
-            if a["stage"] not in stages or a["kind"] not in ("press", "slide", "roll", "twist"):
+            if a["stage"] not in stages or a["kind"] not in ("touch", "press", "slide", "roll", "twist"):
                 continue
             tg, st = a["target"], float(a.get("standoff", 1.5))
             for lab, (T_BI_, T_EM_, T_MP_) in G.items():
-                T_EP = T_EM_ @ T_MP_
-                T_IP = geo.T_IP(tg["p"], tg["n"], a.get("twist", 0.0), st, a.get("offset", (0.0, 0.0)))
-                poses = [T_BI_ @ C.Tm(T_IP[:3, :3], T_IP[:3, 3] - EZ * dz) @ C.inv(T_EP) for dz in (0.0, st + 1.0)]
-                if a["kind"] != "press":                        # the turns of run_turns, from the deep pose
+                if tg.get("frame") == "M":                      # a touch-off on the mount's face (the program's target_pose)
+                    R = C.rot(EZ, a.get("twist", 0.0)) @ geo.R_ref @ C.rot_from_to(tg["n"], [1.0, 0.0, 0.0])
+                    c = geo.contact_point_I(st, tg.get("y_rod", 0.0))
+                    poses = [T_BI_ @ C.Tm(R, c - R @ np.asarray(tg["p"], float) - EZ * dz) @ C.inv(T_EM_)
+                             for dz in (0.0, st + 1.0)]
+                else:
+                    T_EP = T_EM_ @ T_MP_
+                    T_IP = geo.T_IP(tg["p"], tg["n"], a.get("twist", 0.0), st, a.get("offset", (0.0, 0.0)), tg.get("y_rod", 0.0))
+                    poses = [T_BI_ @ C.Tm(T_IP[:3, :3], T_IP[:3, 3] - EZ * dz) @ C.inv(T_EP) for dz in (0.0, st + 1.0)]
+                if a["kind"] not in ("press", "touch"):         # the turns of run_turns, from the deep pose
                     c_B = C.apply(T_BI_, geo.c_I)
                     top_B = C.apply(T_BI_, geo.c_I + geo.R * EZ)
                     for mv in a["moves"]:
@@ -517,6 +543,57 @@ class Check:
                             if lab == "registered":
                                 per.setdefault(a["id"], {}).setdefault(g, 1e9)
                                 per[a["id"]][g] = min(per[a["id"]][g], v)
+            if a["kind"] == "touch" and tg.get("frame") != "M":
+                # A touch-off as a fresh session runs it: the program plans it with the nominal tool (no registration yet),
+                # while the tool and the indenter sit where the registration puts them. The approach goes on until the
+                # registered pad meets the indenter, then 1 mm further (the program stops at stop_N, about 0.3 mm past).
+                (T_BIn, T_EMn, T_MPn), (T_BIr, T_EMr, T_MPr) = G["nominal"], G["registered"]
+                T_IP = geo.T_IP(tg["p"], tg["n"], a.get("twist", 0.0), st, a.get("offset", (0.0, 0.0)), tg.get("y_rod", 0.0))
+                rest = T_BIn @ T_IP @ C.inv(T_EMn @ T_MPn)
+                d_B = -(T_BIn[:3, :3] @ EZ)
+                P_E = C.apply(T_EMr @ T_MPr, geo.pts)
+                L = st + float(a.get("beyond_mm", 1.2))
+                dz_c = None
+                for dz in np.arange(0.0, L + 1e-9, 0.05):
+                    T = C.Tm(rest[:3, :3], rest[:3, 3] + d_B * dz)
+                    if float(CELL.indenter_sdf(C.apply(C.inv(T_BIr) @ T, P_E), plan["indenter"]).min()) <= 0.0:
+                        dz_c = float(dz)
+                        break
+                as_run_onset[a["id"]] = None if dz_c is None else dz_c - st
+                if dz_c == 0.0:
+                    as_run_rest_contact.add(a["id"])
+                for dz in (0.0, L if dz_c is None else min(dz_c + 1.0, L)):
+                    T_BE = C.Tm(rest[:3, :3], rest[:3, 3] + d_B * dz)
+                    T_IM = C.inv(T_BIr) @ T_BE @ T_EMr
+                    for g, names in groups.items():
+                        for nm in names:
+                            PI = C.apply(T_IM, TP[nm])
+                            v = min(float(CELL.indenter_sdf(PI, plan["indenter"]).min()), float(CELL.cell_sdf(PI, T_BIr).min()),
+                                    float(CELL.other_sdf(C.apply(T_BE @ T_EMr, TP[nm])).min()))
+                            if v < as_run[g][0]:
+                                as_run[g] = (v, a["id"])
+                            per_as_run.setdefault(a["id"], {}).setdefault(g, 1e9)
+                            per_as_run[a["id"]][g] = min(per_as_run[a["id"]][g], v)
+        if as_run_onset:
+            on = {k: v for k, v in as_run_onset.items() if v is not None}
+            miss = sorted(k for k, v in as_run_onset.items() if v is None)
+            self.p(f"touch-offs as a fresh session runs them (planned with the nominal tool; tool and indenter from {src}):")
+            if on:
+                self.p(f"  predicted onsets {min(on.values()):+.2f} to {max(on.values()):+.2f} mm from the expected (median "
+                       f"{float(np.median(list(on.values()))):+.2f}); the rest pose is already in contact for "
+                       f"{len(as_run_rest_contact)} of {len(on)}" + (f": {', '.join(sorted(as_run_rest_contact))}"
+                                                                     if as_run_rest_contact else ""))
+            if miss:
+                self.p(f"  no contact within standoff + beyond_mm for {len(miss)}: {', '.join(miss)}")
+            for g in groups:
+                v, aid = as_run[g]
+                self.p(f"  {g:7s} least {v:6.2f} mm ({aid}); needs {need[g]:.1f} [{flag(v >= need[g])}]")
+            und = {aid: {g: round(v, 2) for g, v in gs.items() if v < need[g]} for aid, gs in per_as_run.items()}
+            und = {aid: gs for aid, gs in und.items() if gs}
+            self.p(f"  under the margins as run: {len(und)} touch-offs" + (": " + ", ".join(
+                f"{aid} ({', '.join(f'{g} {v:.2f}' for g, v in gs.items())})" for aid, gs in sorted(und.items())) if und else ""))
+            self.out["touch_as_run"] = dict(onset_mm=as_run_onset, least={g: as_run[g] for g in groups}, under=und,
+                                            per_action={aid: {g: float(v) for g, v in gs.items()} for aid, gs in per_as_run.items()})
         self.p(f"clearance over {', '.join(stages)} with {src} (the builder checks the nominal geometry):")
         for g in groups:
             (vn, an), (vr, ar) = least["nominal"][g], least["registered"][g]
@@ -550,12 +627,16 @@ def main():
     ap.add_argument("--json", default=None)
     ap.add_argument("--clearance", nargs="?", const="", default=None, help="the plan's clearances with the session's "
                     "registration (or a fit to its touch-offs); PLAN defaults to the session's own")
+    ap.add_argument("--clearance-stages", default="pad,mount,pivot,grid,shear,roll,twist,final",
+                    help="the plan's stages that --clearance checks (touch-offs since 2026-10-23)")
+    ap.add_argument("--home-from", default=None, help="FILE:LABEL, a recorded seating: --clearance places the indenter from "
+                    "it with this session's registered mount (another indenter's plan with this session's tool)")
     a = ap.parse_args()
     ch = Check(a.session)
     print(ch.run())
     if a.clearance is not None:
         ch.lines = []
-        ch.registered_clearance(a.clearance or None)
+        ch.registered_clearance(a.clearance or None, stages=tuple(a.clearance_stages.split(",")), home_from=a.home_from)
         print("\n".join(ch.lines))
     if a.json:
         Path(a.json).write_text(json.dumps(ch.out, indent=1, default=C.jsonable))
