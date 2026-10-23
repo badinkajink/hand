@@ -610,8 +610,8 @@ stack.</figcaption></figure><figure>{c_droop_x}<figcaption>Droop against the rob
 folded arm deflects less.</figcaption></figure></div>
 
 <p>With the carry grip swept at each geometry, the best cell orders by droop. Every seed completes up to
-{K["CUT"]}&nbsp;mm of droop; 0.97&nbsp;mm gives 3 of 8 and 1.29&nbsp;mm none. The grip each geometry needs rises with
-droop over the same range, because the grip force is commanded interference minus deflection: a wrist that deflects
+{K["CUT"]}&nbsp;mm of droop. At 0.97&nbsp;mm, 3 of 8 complete, and at 1.29&nbsp;mm none. The grip each geometry needs rises with
+droop over the same range, because the grip force is commanded interference minus deflection. A wrist that deflects
 more needs a larger command for the same force.</p>
 
 <div class="tw"><table>
@@ -663,8 +663,8 @@ post-turn drift the published chain relied on was the tool rolling back after th
 <h3>Prediction, control and measurement of the post-turn drift</h3>
 
 <p><b>Prediction.</b> The tilt at the last commanded step has an SD of {K["SD_C"]}&#176; over spawn jitter, after 150
-hold steps {wri[(True, 150)]["settle_sd"]:.2f}&#176; and after 900 steps {wri[(True, 900)]["settle_sd"]:.2f}&#176;: the
-shaft rolls away from an unstable configuration and the seeds diverge.</p>
+hold steps {wri[(True, 150)]["settle_sd"]:.2f}&#176; and after 900 steps {wri[(True, 900)]["settle_sd"]:.2f}&#176;. The
+shaft rolls away from an unstable configuration, and the seeds diverge.</p>
 
 <p><b>Control.</b> The hold length lowers the tilt only up to a point: the best cell is 150 steps (0.3&nbsp;s) at
 {K["BEST_HOLD_TILT"]}&#176;, and longer holds drift back out. Extra closure held through the sweep raises the tilt at the
@@ -759,7 +759,7 @@ tighter grip stops the rolling.</p>
 the chain: {K["MH_HELD"]} of {K["MH_N"]} designs still held the tool at the last turn step and {K["MH_CHAIN"]} finished
 the chain in any seed. In {K["MH_FALSE_N"]} of 8 seeds <code>rv04_mid_sp40</code> reaches the <code>turned</code> checkpoint with no pad on the
 tool and the tool at z&nbsp;=&nbsp;{K["MH_FALSE_Z"]}&nbsp;mm, the depth of the countersink. It dropped the shaft during
-the turn and the shaft landed in its seat, which is vertical by construction, so the checkpoint reads
+the turn, and the shaft fell into its seat, which is vertical by construction, so the checkpoint reads
 {K["MH_FALSE_MIN"]}&#176; of tilt at best and {K["MH_FALSE"]}&#176; on average, better than the hand that turned the
 tool. Every tilt on this page is therefore counted only while two pads hold the tool clear, and the bench tracker needs
 the same gate: a seated tool and a held one look equally vertical to the camera.</p>

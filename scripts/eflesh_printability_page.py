@@ -240,7 +240,7 @@ def tools_section(X: Data):
            f"triangles, {t8['obj_MB']:.0f}&#8202;MB) and a {t6['extent_mm'][0]:.0f} &#215; {t6['extent_mm'][1]:.0f} &#215; "
            f"{t6['extent_mm'][2]:.0f}&#8202;mm block of 6&#8202;mm cells ({t6['faces'] / 1e6:.2f}&#8202;M triangles, {t6['obj_MB']:.0f}&#8202;MB). "
            f"This is why only boxes came out of the owner&#8217;s runs.</p>"
-           f"<p>File size follows the number of cells, since the tool meshes every cell at 50 samples per edge: "
+           f"<p>File size follows the number of cells, since the tool meshes every cell at 50 samples per edge. The sizes are "
            + ", ".join(f"{r['obj_MB']:.0f}&#8202;MB" for r in cubes)
            + " for a 24&#8202;mm cube at 8, 6 and 4&#8202;mm cells. The surface it writes has a median edge of 0.16&#8202;mm, a third of a "
              "bead, so the slicer reduces most of that detail to the same beads.</p>")
@@ -254,7 +254,7 @@ def struts_section(X: Data):
     a, b = v["v15_E0.002_c8"], v["v14_E0.01_c8"]
     txt = (f"<p>eFlesh&#8217;s map from the modulus parameter to geometry moves the struts very little. From \\(E\\) = 0.001 to 0.01, a "
            f"tenfold range of target modulus, two of the four thickness parameters stay at their bounds (1.0 and 1.2&#8202;mm at 8&#8202;mm "
-           f"cells) and the other two grow from {lo8[1]:.2f} to {hi8[1]:.2f}&#8202;mm and from {lo8[2]:.2f} to {hi8[2]:.2f}&#8202;mm, about half a "
+           f"cells). The other two grow from {lo8[1]:.2f} to {hi8[1]:.2f}&#8202;mm and from {lo8[2]:.2f} to {hi8[2]:.2f}&#8202;mm, about half a "
            f"bead (Figure&#160;[[fig:struts]]). The lattice&#8217;s solid fraction goes from {pc(a['design_frac'], 1)} at \\(E\\) = 0.002 to "
            f"{pc(b['design_frac'], 1)} at 0.01. PrusaSlicer reproduces both within 3&#8202;%: the owner&#8217;s FLEX profile extrudes "
            f"{pc(a['print_frac'], 1)} and {pc(b['print_frac'], 1)} (filament volume over the box). The slicer does print the designed "
@@ -286,20 +286,20 @@ def layers_section(X: Data):
     c8, c6, c4 = A["cube24_c8"], A["cube24_c6"], A["cube24_c4"]
     f6, f4 = A["cube24_c6_n025"], A["cube24_c4_n025"]
     v17, g20 = A["v17_project"], A["tip_gyroid20"]
-    txt = (f"<p>A strut lattice prints as many small islands per layer, and the islands shrink with the cell. In one 24&#8202;mm cube of "
-           f"eFlesh&#8217;s lattice at \\(E\\) = 0.0035, the share of islands that rest on the layer below over less than half their area goes "
+    txt = (f"<p>A strut lattice prints as many small islands per layer, and the islands shrink with the cell. Take one 24&#8202;mm cube of "
+           f"eFlesh&#8217;s lattice at \\(E\\) = 0.0035. The share of islands that rest on the layer below over less than half their area goes "
            f"from {pc(c8['islands_under_half_supported'])} at 8&#8202;mm cells to {pc(c6['islands_under_half_supported'])} at 6&#8202;mm and "
-           f"{pc(c4['islands_under_half_supported'])} at 4&#8202;mm, and the share of all extruded area that rests on the layer below from "
+           f"{pc(c4['islands_under_half_supported'])} at 4&#8202;mm. The share of all extruded area that rests on the layer below goes from "
            f"{pc(c8['supported_area'])} to {pc(c6['supported_area'])} and {pc(c4['supported_area'])} (Figure&#160;[[fig:support]], "
            f"Table&#160;[[tab:audit]]). The median island shrinks from {c8['island_area_median_mm2']:.2f} to {c4['island_area_median_mm2']:.2f}&#8202;mm&#178;, "
            f"one loop of a bead around a strut, while the layer shift of an inclined strut stays near 0.2&#8202;mm. A bead that lies on "
-           f"nothing bonds at its edges only, which is the delamination the owner saw at tight spacing; Visible Touch (UCLA) reports "
+           f"nothing bonds at its edges only, which is the delamination the owner saw at tight spacing. Visible Touch (UCLA) reports "
            f"&#8220;lattice delamination&#8221; in eFlesh&#8217;s reference design, and Aguilar-Segovia et al. avoid printed truss lattices for "
            f"the same islands (<a href=\"#related\">Related work</a>).</p>"
-           f"<p>A 0.25&#8202;mm nozzle with 0.1&#8202;mm layers moves the limit by one step: 6&#8202;mm cells then leave "
+           f"<p>A 0.25&#8202;mm nozzle with 0.1&#8202;mm layers moves the limit by one step. Cells of 6&#8202;mm then leave "
            f"{pc(f6['islands_under_half_supported'])} of the islands under half supported, as 8&#8202;mm cells do on the 0.4&#8202;mm nozzle, and "
-           f"4&#8202;mm cells {pc(f4['islands_under_half_supported'])}; the cube&#8217;s print time grows from {fmt_time(c6['time'])} to "
-           f"{fmt_time(f6['time'])}. This is the slicer&#8217;s geometry only; whether TPU 95A runs through a 0.25&#8202;mm nozzle is a bench "
+           f"4&#8202;mm cells leave {pc(f4['islands_under_half_supported'])}. The cube&#8217;s print time grows from {fmt_time(c6['time'])} to "
+           f"{fmt_time(f6['time'])}. This is the slicer&#8217;s geometry only. Whether TPU 95A runs through a 0.25&#8202;mm nozzle is a bench "
            f"question.</p>"
            f"<p>The printed v17 finger has a median of {v17['islands_median']:.0f} islands in each lattice layer and {v17['retracts_per_layer']:.0f} "
            f"retractions per layer, against {g20['islands_median']:.0f} island and {g20['retracts_per_layer']:.1f} retractions for the 20&#8202;% "
@@ -397,7 +397,7 @@ def correction(X: Data):
         return ""
     return (f"Until 2026-10-21 this row came from a G-code reader that skipped arc moves, 11&#8202;% of this tip&#8217;s filament, and gave "
             f"{o['per_force']['1']['delta_um']:.0f}&#8202;&#181;m, {o['E_best_MPa']:.1f}&#8202;MPa and {-o['per_force']['1']['magnet_t_um'][0]:.0f}"
-            f"&#8202;&#181;m/N, softer than the earlier model; with the arcs split into 0.1&#8202;mm chords it gives "
+            f"&#8202;&#181;m/N, softer than the earlier model. With the arcs split into 0.1&#8202;mm chords it gives "
             f"{g['per_force']['1']['delta_um']:.0f}&#8202;&#181;m and {g['E_best_MPa']:.1f}&#8202;MPa (fem_arcs.jsonl). The lattice tips&#8217; G-code "
             f"has at most 0.1&#8202;% of its filament in arcs, and their rows stand. ")
 
