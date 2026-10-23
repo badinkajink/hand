@@ -487,13 +487,27 @@ class Ring:
 
 
 class Appender:
-    """Binary file of float64 rows, flushed and fsynced at most every 0.5 s."""
+    """Binary file of float64 rows, flushed at most every 0.5 s and fsynced every 5 s by a thread of its own.
+
+    The fsync used to run in the writer's thread, which for ft.bin is the HEX-E's reader: on the lab computer's SSD it
+    blocked for 0.1 to 0.4 s, and the reader's pauses of 2026-10-22 (0.36 s at 21:14:59, then 0.08 to 0.15 s every 0.6 s
+    from 21:17:45) aborted three touch-offs with no HEX-E sample for 100 ms while the sensor sampled on."""
 
     def __init__(self, path, dtype=None):
         self.f = open(path, "ab")
         self.dtype = dtype
         self.last = 0.0
         self.lock = threading.Lock()
+        self.closed = False
+        threading.Thread(target=self._sync, daemon=True).start()
+
+    def _sync(self):
+        while not self.closed:
+            time.sleep(5.0)
+            try:
+                os.fsync(self.f.fileno())
+            except (OSError, ValueError):                        # closed meanwhile
+                return
 
     def write(self, rows):
         with self.lock:
@@ -504,11 +518,11 @@ class Appender:
             now = time.time()
             if now - self.last > 0.5:
                 self.f.flush()
-                os.fsync(self.f.fileno())
                 self.last = now
 
     def close(self):
         with self.lock:
+            self.closed = True
             self.f.flush()
             os.fsync(self.f.fileno())
             self.f.close()

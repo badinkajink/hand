@@ -136,10 +136,13 @@ reads).
 - twist-0-2.5N had begun its turn when the program was interrupted (20:58:37). The pad was lifted 10 mm straight off the
   sphere with `move_guarded.py` (HEX-E change at most 0.83 N) and the arm went home. The overhead frame at 21:01 shows
   both fixtures as before.
-- At the start of the +5 deg step, Fy changed by about 1.1 N and Tx by about −0.07 N m, then stayed near those values
-  through +20 deg. A pure twist about the contact normal through the sphere's centre changes neither, so the pad was
-  dragged sideways: the pivot was off the contact point. That is the TCP check the owner asked for; its size needs the
-  analysis.
+- The turn's own load, measured from the pressed state by the workstation (1 s means), lies mostly along the sensor's z,
+  which at twist 0 runs along the finger: Fz rose 0.32, 0.52 and 0.74 N at +5, +10 and +20 deg (0.29, 0.47 and 0.63 N
+  less the HEX-E's creep). The Fy of 1.1 N and Tx of −0.08 N m seen at the first step belong to the press to 1 N itself.
+  The robot turned exactly about a line within 0.1 to 0.3 mm of the homed sphere's top, so the pad's contact lay off the
+  turn's axis across the finger: 0.25 mm by the FE model's contact stiffness, about 1 mm by the stiffness the presses
+  show. That is the TCP check the owner asked for.
+- The three presses met the sphere 0.72, 0.83 and 0.76 mm before the planned contact.
 
 No twists or rolls run again until the builder checks every pose along their turns.
 
