@@ -363,6 +363,18 @@ push that answers it arrives.
   The board's linear map from four offsets does not carry over to a turned press, so that turn does not test the
   registration.
 
+  Update 22:51, same data (`scripts/ur5_tip_calibration_fe.py` of 027f7c6a). With the scale's grid widened to 8, the
+  best scale is 4.0, with a median force error of 12 % (302 % at the FE's own compliance). Kept as computed, the FE pad
+  gives the measured force once the sphere moves back along the normal by 0.21 mm + 0.19 mm/N times the force (rms
+  108 um over 69 holds). The slope is 0.22 mm/N on the face, 0.16 on the edges and 0.09 on the flanks. Every press
+  pushes the sphere straight down, so the 2x4, its clamps and the table would give one slope in every region. Slopes
+  that change with the load's direction in the tool's frame point to the tool's side. The 0.21 mm at zero force fits
+  play that closes at the first touch. A compliance at the printed surface that the 1 mm FE mesh does not resolve
+  would also leave the magnets still. It would be largest where the contact is smallest, on the edges and flanks, and
+  the face has the largest slope. Hand check, in this order: the DIP link in the fork (palmar and sideways), the mount
+  on the HEX-E, the sphere's block on the 2x4. Both fits are in Fig. 1 of
+  `20261022-ur5_tip_ground_truth_and_predictors.html` (b34784f6), which is rebuilt on the whole run.
+
 - R17 (in progress 22:21 on the workstation; the owner asked at 22:10 through the lab). Predictors of the contact point
   and the normal force from the board, trained on a session's presses in time order:
   `scripts/ur5_tip_calibration_predict.py <analysis output folder>`, outputs in `data/<session>/predict/predict.json`.
