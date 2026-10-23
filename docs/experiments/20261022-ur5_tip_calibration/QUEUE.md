@@ -204,7 +204,9 @@ push that answers it arrives.
   The grid's data stay usable if the residual remains over 30 mN: each press has its own rests, and the map can be
   refitted afterwards from R5.
 
-- R10 (open, 21:00; the owner, before the next run). The HEX-E's link to its box failed in every run tonight, once with
+- R10 (answered by the owner just after midnight on 10-23: the HEX-E cannot be fixed now, and a new cable may be
+  ordered but will take a while, so runs keep the intermittent link and its guards; opened 21:00). The HEX-E's link to
+  its box failed in every run tonight, once with
   the arm still. No plan or program change avoids it. The losses, from the streams and `lab/NOTES.md`:
 
   | Time | Run | The HEX-E's stream | The arm |
@@ -341,7 +343,8 @@ push that answers it arrives.
   touches measure that direction. The 1.1 N in Fy that the lab read at the first step is the twist's own press to 1 N:
   the mount's -92 deg turn puts the pad's normal along the sensor's y.
 
-- R16 (open, 22:05; the owner, in daylight). The first analysis of sphere2 (pad, pivots and 12 grid presses as of
+- R16 (confirmed by the owner's hand check just after midnight on 10-23: the DIP link moves a little in the fork
+  when the pad is pressed hard; the fix is R18; opened 22:05). The first analysis of sphere2 (pad, pivots and 12 grid presses as of
   22:02; `data/20261022-210852-sphere2/`, `--gravity-from` first2) finds the chain from the board to the HEX-E softer than
   the model. At the sphere's positions from the registration, the measured normal force is 0.25 of the FE pad's at every
   level from 0.5 to 5 N and in every region. The compliance scale that fits would be about 4, outside the fit's grid
@@ -450,6 +453,16 @@ push that answers it arrives.
   2.19 against 2.34 mm). The physical model's compliance scale stays at 0.56, below the board's force scale of 0.78 to
   1.05. In its fit the contact points are the registered ones, a median of 2.0 mm from the estimator's from 1 N up (see
   R16's offset). Page: `20261022-ur5_tip_ground_truth_and_predictors.html`, Section 6.
+
+- R18 (in progress on the workstation from 00:16 on 10-23; the owner asked through the lab). A mount that fastens the
+  DIP link rigidly, since the link moves in mount v3's fork (R16). It has to beat the extra indentation of 0.33 mm +
+  0.20 mm/N (0.21, 0.17 and 0.14 mm/N on face, edges and flanks). It keeps the HEX-E stack and mount v3's captive
+  M6 x 20, the mount's turn of -92.15 deg on the flange (or a plan rebuilt for a new turn), at least 15 mm from the
+  HEX-E's cable port to the forearm and wrist in the plan's poses (`ur5_cb3_cell.self_clearance`), 3 mm from the mount
+  to the cell and the sphere's homing key along every checked turn, and the pad's seat as it is, so tonight's
+  registration and FE model still apply. Proof on the bench: a dial indicator on the link while a rigid part presses
+  the pad, with v3 and with the new mount; then the reference press's depth to 2 N (0.71 to 0.76 mm tonight) should
+  fall toward the FE pad's indentation, about 0.27 mm.
 
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
