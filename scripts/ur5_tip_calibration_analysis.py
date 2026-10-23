@@ -43,14 +43,35 @@ BASIS = DATA / "20261020-b_v2_surface_basis.npz"
 BOARD_CAL = DATA / "20261020-calib_pad_as_found.json"
 OUT = ROOT / "docs/experiments/20261022-ur5_tip_calibration/data"
 ZERO = "both"           # the HEX-E's zero: "both" rests interpolated in time (default), or the rest "before" alone (--zero)
+GRAVITY_FROM = None     # a session (or its registration.json) whose gravity fit a session without one takes (--gravity-from)
+
+
+def borrow_gravity(reg, src):
+    """A session run without the gravity stage takes the fit of another session with the same tool and HEX-E: the
+    payload's maps A and Bt, the HEX-E's axes K and Kt, and its turn about the tool axis (the rotation of T_ES). The
+    other session's offsets and drift are not used, since every hold's zero comes from its own rests. On 2026-10-22
+    first2's fit predicted the five stations of sphere1 to 63 mN rms with only the offset free; its own residual was
+    65 mN."""
+    p = Path(src)
+    p = p / "registration.json" if p.is_dir() else p
+    d = json.loads(p.read_text())
+    if d.get("grav") is None:
+        raise SystemExit(f"{p} has no gravity fit")
+    reg.grav = {k: np.array(v, float) for k, v in d["grav"].items()}
+    reg.K, reg.Kt = np.array(d["K"], float), np.array(d["Kt"], float)
+    reg.T_ES = reg.T_ES.copy()
+    reg.T_ES[:3, :3] = np.array(d["T_ES"], float)[:3, :3]
+    return reg
 
 
 def load(sd):
     sd = Path(sd)
     ev = [json.loads(l) for l in open(sd / "events.jsonl") if l.strip()]
-    ft = np.fromfile(sd / "ft.bin", "<f8").reshape(-1, 9)
+    ft = np.fromfile(sd / "ft.bin", "<f8")
+    ft = ft[: len(ft) // 9 * 9].reshape(-1, 9)                    # a copy made mid-run can cut the last row
     bd = np.fromfile(sd / "board.bin", C.BoardStream.DTYPE)
-    rb = np.fromfile(sd / "robot.bin", "<f8").reshape(-1, 15)
+    rb = np.fromfile(sd / "robot.bin", "<f8")
+    rb = rb[: len(rb) // 15 * 15].reshape(-1, 15)
     truth = None
     if (sd / "sim_truth.bin").exists():
         truth = np.fromfile(sd / "sim_truth.bin", "<f8").reshape(-1, 19)
@@ -64,6 +85,11 @@ class Session:
         self.d = load(sd)
         self.geo = C.Geometry(self.d["plan"])
         reg = C.Registration(self.geo).load(self.d["reg"])
+        if reg.grav is None:
+            if not GRAVITY_FROM:
+                raise SystemExit(f"{sd}: no gravity fit in this session; pass --gravity-from <a session with one>")
+            reg = borrow_gravity(reg, GRAVITY_FROM)
+            self.d["reg"].setdefault("notes", {})["gravity_from"] = str(GRAVITY_FROM)
         self.reg = reg
         self.T_EP = reg.T_EP()
         self.c_B = C.apply(reg.T_BI, self.geo.c_I)
@@ -368,9 +394,12 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--zero", choices=("both", "before"), default="both", help="the HEX-E's zero for each hold: the rests "
                     "before and after the action interpolated in time, or the rest before alone (the analysis before 2026-10-22 20:00)")
+    ap.add_argument("--gravity-from", default=None, help="a session (or its registration.json) whose gravity fit a "
+                    "session run without the gravity stage takes")
     a = ap.parse_args()
-    global ZERO
+    global ZERO, GRAVITY_FROM
     ZERO = a.zero
+    GRAVITY_FROM = a.gravity_from
     ses = Session(a.session)
     holds = ses.holds()
     cal, est = estimator(ses, holds)
