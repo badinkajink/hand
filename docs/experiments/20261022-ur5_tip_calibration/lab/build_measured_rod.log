@@ -1,0 +1,10 @@
+reachable surface points: 160 of 812 (face 56/104, edge 76/197, flank 28/427, tip 0/80)
+only got 1256/1275 samples!
+only got 1248/1275 samples!
+155 actions ({'gravity': 12, 'mount': 6, 'pad': 32, 'pivot': 7, 'grid': 74, 'shear': 7, 'roll': 4, 'twist': 8, 'final': 1, 'final_gravity': 4}), 6 dropped, 0 travel paths short of clearance -> logs/20261022-ur5_homing_by_hand/20261022-plan_sphere_measured_rod.json (0.2 MB, 61 s)
+  dropped {'id': 'grav-08', 'twist': 0.0, 'why': {'reason': 'no IK', 'pose': 0}}
+  dropped {'id': 'grav-11', 'twist': 0.0, 'why': {'reason': 'no IK', 'pose': 0}}
+  dropped {'id': 'pivot-7', 'twist': 45.0, 'why': {'clear': {'robot': 10.36, 'mount': 11.15, 'finger': 9.86, 'pad': 2.91, 'hex_e': 4.02}, 'pose': 1}}
+  dropped {'id': 'pivot-8', 'twist': 60.0, 'why': {'clear': {'robot': -6.15, 'mount': 11.15, 'finger': 9.86, 'pad': 2.91, 'hex_e': -7.34}, 'pose': 1}}
+  dropped {'id': 'fgrav-04', 'twist': 0.0, 'why': {'reason': 'no IK', 'pose': 0}}
+  dropped {'id': 'fgrav-05', 'twist': 0.0, 'why': {'reason': 'no IK', 'pose': 0}}

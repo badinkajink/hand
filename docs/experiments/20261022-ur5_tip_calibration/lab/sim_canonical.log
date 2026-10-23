@@ -1,0 +1,20 @@
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 140 records/s, robot 125 Hz
+  HEX-E noise (1 sigma) N, N m: [0.045  0.0469 0.2197 0.0028 0.0034 0.001 ]
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+== homing
+[sim operator] homing 1/3: in freedrive, seat the mount's socket on the indenter's key (palmar face down, the finger along the indenter's +x), hold it seated
+[sim operator] homing 2/3: in freedrive, seat the mount's socket on the indenter's key (palmar face down, the finger along the indenter's +x), hold it seated
+[sim operator] homing 3/3: in freedrive, seat the mount's socket on the indenter's key (palmar face down, the finger along the indenter's +x), hold it seated
+homing: 3 seatings within 0.097 mm, 0.000 deg of their mean
+  indenter at (2.4, -451.3, 55.6) mm, yaw -89.7 deg, tilt 0.79 deg; the plan has (0, -450, 56) mm, yaw -90 deg
+== gravity
+gravity: weight 1.800 N (184 g), centre of mass [ 0.3  2.2 17. ] mm (from the HEX-E's origin), sign +1, HEX-E axes turned -7.33 deg about the tool axis (7.34 in all), residual 0.0090 N, 0.00013 N m
+== mount
+  mount-0: onset +0.153 mm from the expected (power 1.00, fit 44.3 mN)
+  mount-1: onset +0.141 mm from the expected (power 1.00, fit 42.1 mN)
+  mount-2: onset +0.197 mm from the expected (power 1.00, fit 42.2 mN)
+  mount-3: onset +0.508 mm from the expected (power 1.00, fit 41.2 mN)
+  mount-4: onset +0.534 mm from the expected (power 1.00, fit 44.1 mN)
+  mount-5: onset +0.350 mm from the expected (power 1.00, fit 43.1 mN)
+session in /tmp/tmp.Em1SbXi145/20261022-tip_calibration/190559-canonical

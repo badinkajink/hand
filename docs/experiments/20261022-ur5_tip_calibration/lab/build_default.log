@@ -1,0 +1,6 @@
+reachable surface points: 160 of 812 (face 56/104, edge 76/197, flank 28/427, tip 0/80)
+only got 1256/1275 samples!
+only got 1248/1275 samples!
+159 actions ({'gravity': 12, 'mount': 6, 'pad': 32, 'pivot': 9, 'grid': 74, 'shear': 7, 'roll': 4, 'twist': 8, 'final': 1, 'final_gravity': 6}), 2 dropped, 0 travel paths short of clearance -> logs/20261022-ur5_homing_by_hand/check_plan_default.json (0.2 MB, 58 s)
+  dropped {'id': 'grav-10', 'twist': 0.0, 'why': {'reason': 'no IK', 'pose': 0}}
+  dropped {'id': 'grav-13', 'twist': 0.0, 'why': {'reason': 'no IK', 'pose': 0}}
