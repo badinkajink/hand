@@ -204,6 +204,16 @@ stage: the HEX-E's factory calibration, first2's fit for the analysis (QUEUE R11
   cable may be ordered but will take a while, so runs live with the intermittent link and its guards. R16: the DIP link
   moves a little in the fork when the pad is pressed hard. A mount that fastens the link more rigidly was requested from
   the workstation. The owner called the day done.
+- 00:39, the workstation's answer (R18, 0c2ea786): mount v4, designed and not printed. It is v3 plus a stop plate
+  behind the DIP link's tongue: three brass M3 set screws in heat-set inserts, turned onto the tongue's back after the
+  link is clamped and locked with jam nuts. A face press now turns the link 0.05 deg instead of 1.0 deg. Only the fork is
+  reprinted (1 h 46 min, 64.9 g); the owner decides when. Page:
+  `docs/experiments/20261023-ur5_calibration_mount_v4/20261023-ur5_calibration_mount_v4.html`. Before v4 runs here: the
+  payload goes to 0.403 kg, its centre about 2 mm further out. Pull the v4 CAD STLs from LFS. Check every plan with
+  `UR5_MOUNT=v4` for `ur5_cb3_cell.py`. Then repeat the pad touch-offs and the registration, a reference press and a
+  short grid.
+- 00:2x, the owner asked for a study of the board's drift. It is `scripts/ur5_tip_calibration_drift.py` on this
+  session, run here.
 
 ## The lab clone and git-lfs
 
