@@ -191,7 +191,7 @@ stage: the HEX-E's factory calibration, first2's fit for the analysis (QUEUE R11
   page's formulas into `texsvg_cache.json` (b404e9b8). About 8,000 docs files here are still LFS pointers, so
   `docs_index` must not run here: its pages.json came out 13 kB short. The workstation runs it.
 
-## State at 00:05 on 2026-10-23 (for a session after a compaction)
+## State at 23:58 on 2026-10-22 (for a session after a compaction)
 
 - Nothing runs on the robot. The arm is home, and the program and `move_guarded.py` are not running.
   `log_joint_temps.py` still writes `logs/20261022-ur5_joint_temps.jsonl` every 30 s until about 02:10 (reads only).
