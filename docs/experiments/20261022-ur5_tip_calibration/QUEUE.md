@@ -462,7 +462,10 @@ push that answers it arrives.
   1.05. In its fit the contact points are the registered ones, a median of 2.0 mm from the estimator's from 1 N up (see
   R16's offset). Page: `20261022-ur5_tip_ground_truth_and_predictors.html`, Section 6.
 
-- R18 (designed on the workstation at 00:38 on 10-23, not printed; the owner asked through the lab at 00:16). A mount that fastens the
+- R18 (moved out of this channel at 10:51 on 10-23 at the owner's request; nothing in it is for the lab session. It continues
+  in its own conversation from `docs/handoff/20261023-ur5_mount_v4.md`. When the owner puts v4 on the robot, a new request
+  here gives the lab the steps at the end of this item. Designed on the workstation at 00:38, not printed; the owner asked
+  through the lab at 00:16). A mount that fastens the
   DIP link rigidly, since the link moves in mount v3's fork (R16). It has to beat the extra indentation of 0.33 mm +
   0.20 mm/N (0.21, 0.17 and 0.14 mm/N on face, edges and flanks). It keeps the HEX-E stack and mount v3's captive
   M6 x 20, the mount's turn of -92.15 deg on the flange (or a plan rebuilt for a new turn), at least 15 mm from the
@@ -512,7 +515,9 @@ push that answers it arrives.
     sphere2. The FE comparison takes the rod since 08:21 (the analysis stores the rod's axis per hold): on the simulated
     rod session it fits the pad's compliance at 1.20 times the FE's, where the simulator's is 1.15.
 
-- R20 (planned on the workstation at 08:18 on 10-23; the owner, 10-23 morning: "the only way to permanently fix the
+- R20 (moved out of this channel at 10:51 on 10-23 at the owner's request; nothing in it is for the lab session. It continues
+  in its own conversation from `docs/handoff/20261023-ati_ft_calibration.md`, and its requests to the lab will go in
+  `docs/experiments/20261023-ati_ft_calibration/QUEUE.md`. Planned on the workstation at 08:18; the owner, 10-23 morning: "the only way to permanently fix the
   HEX-E robot is to calibrate one of our uncalibrated ATI sensors"). Plan and parts:
   `docs/experiments/20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html`. The calibration needs a weighed
   mass at five hook points of a printed cross, at eight tool orientations each, with and without the mass. Presses on

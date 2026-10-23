@@ -32,7 +32,7 @@ TEMPLATE = ROOT / "scripts/ur5_tip_calibration_page.template.html"
 TEX_CACHE = D / "texsvg_cache.json"
 TEX_RE = re.compile(r"\$\$(.+?)\$\$|\$(.+?)\$", re.S)
 CAL = ROOT / "docs/experiments/20261022-ur5_tip_calibration"
-HANDOFF = Path.home() / ".claude-accounts/colorado/uploads/ec307d8f-8a52-45e1-992b-f83a6be75e2a/d354d3cb-ATI_Mini40_Mini45_Calibration_Handoff.md"
+HANDOFF = D / "20261023-ati_mini40_mini45_calibration_handoff.md"     # the owner's note as uploaded on 10-23, unchanged
 table, img_uri, esc = VP.table, VP.img_uri, VP.esc
 
 
@@ -216,8 +216,8 @@ def main():
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S, 1))
     byline = (f"Workstation, 23 October 2026, built from {code(D)} by {code(ROOT / 'scripts/ati_ft_calibration_page.py')}. "
-              f"Owner's handoff note on the ATI hardware: {code('ATI_Mini40_Mini45_Calibration_Handoff.md')} (uploaded "
-              f"23 October). The calibration runs it builds on: "
+              f"Owner's handoff note on the ATI hardware, uploaded 23 October and copied unchanged into this folder: "
+              f"{link(HANDOFF, HANDOFF.name)}. The calibration runs it builds on: "
               + link(CAL / "20261022-ur5_tip_ground_truth_and_predictors.html", "UR5 ground truth and predictors") + ".")
     page = TEMPLATE.read_text()
     for k, v in {"TITLE": "ATI calibration plan", "H1": "Empirical calibration of the lab's ATI Mini45 on the UR5 with known masses",
