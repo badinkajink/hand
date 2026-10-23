@@ -406,7 +406,7 @@ push that answers it arrives.
   error of the FE model. The board's force is 0.83, 0.78 and 1.05 of the HEX-E's on face, edges and flanks. The
   estimator's numbers above do not change: the four presses stopped at 2 N.
 
-  Update 01:10 on 10-23. The lab's drift study (`20261023-ur5_tip_board_drift.html`) finds that each press leaves a
+  Update 01:06 on 10-23. The lab's drift study (`20261023-ur5_tip_board_drift.html`) finds that each press leaves a
   6.7 uT step along its own change, so the two-rest zero takes part of the press out. `--board-zero before` in the
   analysis zeroes each hold on the rest before alone (`data/20261022-210852-sphere2-zbefore/`). The board's force then
   reads 0.87, 0.80 and 1.15 of the HEX-E's on face, edges and flanks (two-rest zero 0.83, 0.78, 1.05). The estimator's
