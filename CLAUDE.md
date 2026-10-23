@@ -97,6 +97,7 @@ sentences over 30 words, at most 300 flagged per 1000). Above target, `python3 s
 lists the worst sentences with their lines in the builder; edit those instead of reading the whole builder. The flags
 find sentences to rewrite (precision 0.76, recall 0.82 against blind labels; local Qwen models did no better); judging a
 rewrite still needs a reader.
+The plain-language pass of 2026-10-22 over the overviews and about 65 result pages (run table `docs/handoff/plain-language-hand/20261022-run_table.md`) took the overviews from 26.9 to 16.7 words a sentence and the result pages from 23.7 to 21.8 on average; each page went through `scripts/prose_gate.py` and an Opus judge, and 62 of 612 judged pairs needed repair.
 
 ## Result pages — an HTML doc page, ALWAYS. Never a RESULTS.md.
 
