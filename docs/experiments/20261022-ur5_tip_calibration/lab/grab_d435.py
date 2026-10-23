@@ -1,7 +1,9 @@
 """One frame of the overhead RealSense D435: colour PNG and depth aligned to colour (npy, metres), after 30 frames of
 auto-exposure. Read-only.
 
-    /usr/bin/python3 docs/experiments/20261022-ur5_tip_calibration/lab/grab_d435.py NAME
+    /usr/bin/python3 docs/experiments/20261022-ur5_tip_calibration/lab/grab_d435.py NAME [DIR]
+
+DIR defaults to this folder.
 """
 import json
 import sys
@@ -14,6 +16,9 @@ from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 name = sys.argv[1]
+if len(sys.argv) > 2:
+    HERE = Path(sys.argv[2]).resolve()
+    HERE.mkdir(parents=True, exist_ok=True)
 pipe, cfg = rs.pipeline(), rs.config()
 cfg.enable_stream(rs.stream.color, 1280, 720, rs.format.rgb8, 15)
 cfg.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 15)

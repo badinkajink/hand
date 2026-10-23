@@ -163,23 +163,25 @@ the simulator moves its indenter by a few millimetres on purpose, so a real pose
 
 ## The unattended runs
 
-Run each from the clone's root in tmux:
+Run each from the clone's root in tmux. `tipcal_run.sh NAME [options]` starts one in the tmux session `tipcal` with the
+variables below, copies its printout to `logs/<date>-<time>-tipcal-NAME.log`, and refuses while the program runs or when
+the plan or the seating is a git-lfs pointer. Written out:
 
 ```
 PY=/usr/bin/python3
 P=src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py
 PLAN=docs/experiments/20261022-ur5_tip_calibration/lab/20261022-plan_sphere_measured_rod.json
-HOME=docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:left_indenter_seated
+SEAT=docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:left_indenter_seated   # not HOME: that would change $HOME
 FT="--ft 192.168.0.6"          # --ft-rate 100 --ft-filter 3 are the defaults now
 ```
 
 1. Stop the viewer (`pkill -f wrench_viewer.py` from a script, never in a command line that also names it). Check
    that the robot is at home and the slider is at 30 %.
-2. First run, at 30 %: `$PY $P --plan $PLAN $FT --home-from $HOME --stages preflight,homing,gravity,mount --name first`.
+2. First run, at 30 %: `$PY $P --plan $PLAN $FT --home-from $SEAT --stages preflight,homing,gravity,mount --name first`.
    Compare its printout with Table 2 of `../README.md`. Expect the HEX-E noise of the table above, not the data sheet's.
-3. Dry run: `$PY $P --plan $PLAN $FT --home-from $HOME --dry 15 --name dry`. Start it at 30 %. Raise the slider to
+3. Dry run: `$PY $P --plan $PLAN $FT --home-from $SEAT --dry 15 --name dry`. Start it at 30 %. Raise the slider to
    100 % (`rtde_io.RTDEIOInterface('192.168.0.4').setSpeedSlider(1.0)`) once the first actions pass.
-4. Session: `$PY $P --plan $PLAN $FT --home-from $HOME --name sphere1`. Resume with `--resume logs/<date>-tip_calibration/<time>-sphere1`.
+4. Session: `$PY $P --plan $PLAN $FT --home-from $SEAT --name sphere1`. Resume with `--resume logs/<date>-tip_calibration/<time>-sphere1`.
 5. Light analysis runs here (`scripts/ur5_tip_calibration_analysis.py`). The session folder and its results go to the
    repository. The heavy simulation goes to the work computer.
 
@@ -194,7 +196,9 @@ runs, and between them, check the overhead camera's view.
 |---|---|
 | `poses.jsonl` | the recorded poses: the home before and after the 2x4 turned, and the seatings on both keys |
 | `moves.jsonl` | every guarded move: target, reached pose, error, the force's largest change, why it stopped |
-| `record_pose.py`, `indenters.py`, `move_guarded.py`, `teach_hold.py`, `grab_d435.py` | the tools above |
+| `record_pose.py`, `indenters.py`, `move_guarded.py`, `teach_hold.py`, `grab_d435.py` | the tools above (`grab_d435.py NAME DIR` saves elsewhere) |
+| `tipcal_run.sh` | starts one run of the program in tmux, with its printout copied to `logs/` |
+| `<date>-<time>-<name>/` | each run's session folder, its printout and overhead frames (`NOTES.md` has the runs) |
 | `20261022-plan_sphere_measured_rod.json` | the plan for this cell (155 actions) |
 | `build_measured_rod.log`, `build_default.log` | the builder's output: this plan, and the reproduction of the workstation's |
 | `sim_canonical.log`, `sim_measured_simhome.log`, `sim_seating.jsonl` | the simulator checks |

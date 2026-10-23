@@ -29,4 +29,27 @@ program does not log, run by run.
 
 ## Runs
 
-(none yet)
+### 19:27, first (preflight, homing, gravity, mount) at 30 %: stopped in gravity when the HEX-E dropped out
+
+Folder `20261022-192715-first/`: the session folder, the printout and two overhead frames.
+
+- Preflight passed. The HEX-E answered at 100 Hz with filter 3. Its noise was 0.044, 0.016 and 0.230 N, and 0.0029,
+  0.0038 and 0.0011 N m, with no timed-out or late reads. The board streamed 360 records/s and the robot 124 Hz.
+- Homing from the sphere seating put the indenter at (−139.0, −595.6, 71.1) mm, yaw −92.3 deg, tilt 0.71 deg.
+- Gravity: grav-00 to grav-03 ended ok. At 19:27:40.4 the stream stopped for 7.2 s while joint 6 turned through 69 deg
+  at 6.5 deg/s. The DAQ's sample counter then restarted (13702, then 102), and the sensor came back untared at Fz
+  645.5 N. grav-02 and grav-03 were read with that offset, so this sweep gives no fit.
+- At 19:28:24.6 the stream stopped again, with joint 6 at 23.5 deg turning at −6.9 deg/s, for about 2 min. grav-04 to
+  grav-06 aborted with no sample for 100 ms, and the program stopped after three aborts in a row (19:29:21).
+- The DAQ box answered ping throughout, and the board's stream had no gap over 100 ms. The DAQ's status word read 0
+  while the sensor was tared and 0x40000 after the restart, so the "overload warning" bit follows the untared offset.
+- The robot was left at grav-06's orientation, the flange at (−133, −512, 365) mm, in normal mode. Joint 6 runs from
+  −118 to +167 deg in this sweep. The owner was asked to check the HEX-E's cable, its two connectors and its slack for
+  those turns.
+
+## The lab clone and git-lfs
+
+The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
+because `.lfsconfig` skips LFS content. The program then failed to read the plan (19:26, nothing moved). The files came
+back from the local LFS store, identical to the originals in `logs/20261022-ur5_homing_by_hand/`. This clone now has
+`lfs.fetchexclude` cleared in `.git/config`, as the workstation's has, and `tipcal_run.sh` refuses to start on a pointer.
