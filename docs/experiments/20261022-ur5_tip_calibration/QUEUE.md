@@ -630,6 +630,13 @@ push that answers it arrives.
   - Before the run, `ur5_tip_calibration_check.py --clearance` with sph3t's registration, as for sph3t.
   - When it ends: the small files first, then the streams. The robot must be free for the owner's ATI work, so stop
     after the presses that fit if the owner needs it sooner.
+  - 16:10, done (lab d69efe2d, 599364a4; sph3g 15:36 to 16:03, 27 grid presses and three reference presses, no abort).
+    Analysed with sphere2's own registration (`data/20261023-124052-sph3t-s2reg/`, results page Section 9). Trained on all
+    74 of sphere2's presses, the GP places the contacts of the presses made a day later within 0.80 mm and the MLP within
+    0.71 mm. On the night's own held-out presses they reached 0.84 and 0.74 mm. At 1 and 2 N the board change at the same
+    target differs from the night's by 38 and 20 %, against 35 and 23 % between the night's own repeats of the reference
+    press. The pad met the sphere earlier: at the same force the registered indentation is 0.15 mm smaller (median), and
+    the FE comparison gives 0.19 mm + 0.20 mm/N against the night's 0.33 + 0.20.
 
 - R22 (draft at 16:00 on 10-23; nothing to run before the owner's go and answers. The owner, 10-23: three new tips with the
   checkerboard of poles, "which i will let you calibrate overnight"). Calibration of each new tip on the HEX-E stack as it
@@ -638,6 +645,13 @@ push that answers it arrives.
   - Plan: `plan/20261023-plan_sphere_lab_offset_touches.json`. It is last night's full plan
     (`lab/20261022-plan_sphere_lab_turns_checked_reg2144.json`) with 12 offset touch-offs after its 32 touch-offs. Every
     touch-off starts 5.0 mm above its predicted onset, as in sph3t.
+  - Clearance. The first version of this plan (43566570, 15:54) failed `ur5_tip_calibration_check.py --clearance` with
+    sphere2's registration. Three of its offset touch-offs put the finger 0.8 to 1.2 mm into the sphere near the tip end,
+    and two brought the mount within 0.1 to 1.7 mm of it. The plan of 80f1f1ea (16:05) replaces it. Its offset touch-offs
+    are chosen among those that clear the checker's margins plus 0.3 mm, both as a fresh session runs them and as planned
+    with the registration. All 12 clear. Eight of last night's plain touch-offs stay under the margins with sphere2's
+    registration (pad-edge-01, -02, pad-face-02, -04, -05, pad-flank-01, -02, -03). Drop them as for sph3t, which leaves
+    24 plain and 12 offset touch-offs.
   - Why offset touch-offs. Every touch-off so far met the sphere at its top, with a vertical contact normal. Such a
     touch-off sees no horizontal shift of the sphere's centre. The place along the finger then rests on the homing
     seating, which the fit takes with a prior of 0.25 mm. Sphere2's two registrations put its contacts 0.94 mm apart along
@@ -645,11 +659,12 @@ push that answers it arrives.
     descends vertically. A curved part of the pad then meets the sphere off its top, where the contact normal is tilted.
     The program already applies an action's `offset` in `target_pose`, so nothing in it changes.
   - Expected effect. In the covariance of the registration fit on sphere2's touch-offs, the 12 lower the standard
-    deviation of the presses' contact points along the finger from 0.27 to 0.07 mm
+    deviation of the presses' contact points along the finger from 0.27 to 0.08 mm
     (`scripts/ur5_tip_calibration_touch_information.py --offset-mm 3`). In the simulator every homing seating was put
     0.6 mm off along the finger (`seat_bias_mm`, new in its Truth). The contact error at the presses then fell from 0.23 to
-    0.07 mm under the default tool errors. Under sphere2's fitted tool errors it fell from 1.36 to 0.05 mm
-    (`data/20261023-offset_touch_sim.json`).
+    0.17 mm under the default tool errors. Under sphere2's fitted tool errors it fell from 1.36 to 0.04 mm
+    (`data/20261023-offset_touch_sim.json`). The first version's twelve, which failed the clearance check, reached 0.07 mm
+    under the default errors.
   - An offset touch-off's onset comes after the same free travel as a plain one's. The program prints it against the
     target's standoff, so it reads about 0.1 to 0.3 mm later than a plain one (the action's `onset_shift_mm`), plus the
     registration's own offset.
@@ -657,9 +672,9 @@ push that answers it arrives.
     on 10-22). Stages: preflight, homing, pad, register. Then `ur5_tip_calibration_check.py --clearance` with the new
     registration, as for sph3t, and then grid and final. The grid is sphere2's, in its order by joint 6, without grid-061,
     -065, -066 and -067 and without any press with joint 6 above 60 deg. No rolls, twists or slides unless the owner asks.
-  - Time per tip, from sph3t and sphere2g: 44 touch-offs at 2.3 min each take about 1 h 40 min, and 73 presses at
-    0.9 min each about 1 h 05 min. About 3 h in all. A 3.5 mm start saves about 25 min if the first onsets come within
-    2.5 mm of the prediction. Three tips need someone to swap them, so one tip can run unattended per night.
+  - Time per tip, from sph3t and sphere2g: 36 touch-offs at 2.3 min each take about 1 h 25 min, and 73 presses at
+    0.9 min each about 1 h 05 min. About 2 h 40 min in all. A 3.5 mm start saves about 20 min if the first onsets come
+    within 2.5 mm of the prediction. Three tips need someone to swap them, so one tip can run unattended per night.
   - Analysis: the rest fit chooses the poles (the checkerboard or its mirror). Each tip gets the physical model, the GP
     and the MLP, and sphere2's correction is scored on it (the transfer of Table 8 on the results page).
   - Questions for the owner: (1) is each new tip today's pad with only the magnets changed; (2) one tip tonight, or

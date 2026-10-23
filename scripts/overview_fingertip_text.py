@@ -365,6 +365,12 @@ untrained estimator gives 3.79&#8202;mm and 0.382&#8202;N. An ensemble of five s
 at orientations that no press had, the GP gives 2.05&#8202;mm, the MLP 2.93&#8202;mm and the untrained estimator
 2.44&#8202;mm. Trained on 45 rod presses, the MLP places held-out contacts within 0.57&#8202;mm and the GP within
 1.05&#8202;mm.</p>
+<p>The learned models held a day later. The lab repeated 27 of sphere2&#8217;s grid presses about 18&#8202;h later. Trained on
+all of the night&#8217;s presses, the GP placed their contacts within 0.80&#8202;mm and the MLP within 0.71&#8202;mm. At 1 and
+2&#8202;N the board change at the same target differed from the night&#8217;s by 38 and 20&#8202;%. The night&#8217;s own
+repeats of one press differed by 35 and 23&#8202;%. The pad met the sphere about 0.15&#8202;mm earlier at the same force
+([UR5 ground truth and predictors](exp:20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html),
+Section 9).</p>
 <p>Over the 2.3&#8202;h session the board&#8217;s zero moved by up to 71&#8202;&#181;T. Earth&#8217;s field, turning with the
 tool, made 98&#8202;% of that change, and the estimator absorbs it as a uniform field. A press leaves a step of 7&#8202;&#181;T
 along its own change. Of that step 0.29 lasts, and the rest fades with a time constant of 19&#8202;s. No learned zero beat a
@@ -467,7 +473,7 @@ sph3t&#8217;s touch-offs fit them equally well. They place sphere2&#8217;s conta
 of it along the finger. Every touch-off met the indenter at its top, with a vertical contact normal, so none of them sees
 a horizontal shift of the indenter; that place rests on the homing seating. Twelve touch-offs aimed 3&#8202;mm beside the
 sphere&#8217;s top meet curved parts of the pad off the top. In the simulator, with the seating 0.6&#8202;mm off, they cut
-the contact error at the presses from 0.23 to 0.07&#8202;mm and from 1.36 to 0.05&#8202;mm under two sets of tool errors.
+the contact error at the presses from 0.23 to 0.17&#8202;mm and from 1.36 to 0.04&#8202;mm under two sets of tool errors.
 They are planned for the checkerboard tips (QUEUE.md R22).</li>
 <li><b>Light presses.</b> Below 1&#8202;N the untrained estimator places contacts about 10&#8202;mm away. The step of about
 7&#8202;&#181;T that each press leaves on the rest is the size of a 0.3&#8202;N press. Learned models give 1.1 to

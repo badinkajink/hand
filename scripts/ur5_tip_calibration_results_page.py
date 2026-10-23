@@ -327,7 +327,7 @@ def fig_day(R, out):
         top = max(top, float(np.percentile(rel, 98)))
     ax[0].set_xticks(range(len(levels)))
     ax[0].set_xticklabels([f"{L:g}" for L in levels])
-    ax[0].set_ylim(0, max(10.0, top * 1.1))
+    ax[0].set_ylim(0, max(10.0, top * 1.3))                  # room for the legend above the points
     ax[0].set_xlabel("Force level (N)")
     ax[0].set_ylabel("Difference of the board change (%)")
     ax[0].set_title("(a) Board change at the same target")
@@ -579,7 +579,9 @@ def sections(R, F):
                f"estimator {min(loc_hi):.1f}-{max(loc_hi):.1f} mm from 1 N"
                + (f"; GP on {last['N']} presses {last['gp:board']['loc_mm']['median']:.2f} mm, "
                   f"{last['gp:board']['force_N']['median']:.2f} N on held-out presses" if last else "")
-               + (f", {PR['turns']['gp:board']['loc_mm']['median']:.2f} mm on rolls and twists." if PR and PR.get("turns") else "."))
+               + (f", {PR['turns']['gp:board']['loc_mm']['median']:.2f} mm on rolls and twists" if PR and PR.get("turns") else "")
+               + (f"; trained on all its presses, {R['DAY']['DR']['day_later']['gp:board']['loc_mm']['median']:.2f} mm on "
+                  f"presses a day later." if R.get("DAY") and "gp:board" in R["DAY"]["DR"]["day_later"] else "."))
 
     S_ = []
     # ---- 1 terms
@@ -1185,49 +1187,61 @@ def sections(R, F):
                 else ("0", "&#8211;", "&#8211;"))])
         g, m_ = dl.get("gp:board"), dl.get("mlp:board")
         gs, ms_ = sn.get("gp:board"), sn.get("mlp:board")
+        ph_, phs = dl.get("physical"), sn.get("physical")
         body = (f"<p>Trained on all {DR['n_train_presses']} presses of sphere2, the Gaussian process places the contacts "
-                f"of the presses repeated a day later within {g['loc_mm']['median']:.2f} mm, and their force within "
-                f"{g['force_N']['median']:.3f} N (medians, Table 13)."
-                + (f" Trained on the first {sn['N']} presses, it placed the same night's held-out contacts within "
+                f"of the presses made a day later within {g['loc_mm']['median']:.2f} mm (median, Table 13). Its force error "
+                f"is {g['force_N']['median']:.3f} N."
+                + (f" Trained on the first {sn['N']} presses, it placed the night's own held-out contacts within "
                    f"{gs['loc_mm']['median']:.2f} mm and {gs['force_N']['median']:.3f} N (Section 6)." if gs else "")
-                + ((f" The MLP ensemble gives {m_['loc_mm']['median']:.2f} mm a day later"
-                    + (f", against {ms_['loc_mm']['median']:.2f} mm the same night." if ms_ else ".")) if m_ else "")
-                + f" The viewer's estimator, with the magnets fitted to the field at rest of the night before, gives "
+                + ((f" The MLP ensemble gives {m_['loc_mm']['median']:.2f} mm and {m_['force_N']['median']:.3f} N a day "
+                    f"later" + (f", against {ms_['loc_mm']['median']:.2f} mm and {ms_['force_N']['median']:.3f} N the same "
+                                f"night." if ms_ else ".")) if m_ else "")
+                + (f" The physical model gives {ph_['loc_mm']['median']:.2f} mm, against {phs['loc_mm']['median']:.2f} mm."
+                   if ph_ and phs else "")
+                + f" The viewer's estimator, with the magnets fitted to the night's field at rest, gives "
                 f"{DR['viewer']['loc_mm']['median']:.2f} mm"
-                + (f", against {PR['viewer']['loc_mm']['median']:.2f} mm on the night's held-out presses." if PR else ".")
+                + (f", against {PR['viewer']['loc_mm']['median']:.2f} mm." if PR else ".")
                 + "</p>"
                 f"<p>The lab repeated {len(grid_d)} of sphere2's {n_grid_s} grid presses and made its reference press "
                 f"{n_ref} times, from {hm(td0)} to {hm(td1)} on 2026-10-23 (QUEUE.md R21)."
                 + (f" The presses came a median {hours:.0f} h after the same presses of sphere2." if hours else "")
-                + " The tool had not moved on the arm since sphere2 (Section 8). The robot aimed the presses with the "
-                "registration of the touch-offs sph3t. The ground truth here uses sphere2's registration, as the other "
-                "sections do."
+                + " At 12:45 the touch-offs sph3t had met the sphere within 0.06 mm of sphere2's, so the tool was the "
+                "night's (Section 8). The robot aimed the presses with sph3t's registration. The ground truth here uses "
+                "sphere2's registration, as the other sections do."
                 + (f" Paired by target and level, the two runs' registered contact points lie a median "
                    f"{st['point_apart_mm']['median']:.2f} mm apart." if st and "point_apart_mm" in st else "")
                 + " The physical model and the snap of the predicted points keep sphere2's fit of the field at rest, as a "
                 "calibration made one night and used the next day would.</p>")
         if st:
-            rv = [v["board_rel_change"] * 100 for v in rl.values()]
+            both = [L for L in sorted(set(sl) & set(rl), key=float) if float(L) >= 1.0]
+            lo_, hi_ = min(sl, key=float), max(sl, key=float)
             rd = [v["depth_change_mm"] * 1e3 for v in rl.values()]
-            body += (f"<p>At the same target and force level, the board change a day later differs from the night's by a "
-                     f"median {st['board_rel_change']['median'] * 100:.0f} % of its size, over {st['n']} pairs of holds "
-                     f"(Table 14, Fig. 7a)."
-                     + (f" Between the night's own repeats of the reference press it differed by {min(rv):.0f} to "
-                        f"{max(rv):.0f} %, as medians by level." if rv else "")
-                     + f" The registered indentation at the same force changed by a median "
-                     f"{st['depth_change_mm']['median'] * 1e3:+.0f} µm a day later"
-                     + (f", and by {min(rd):+.0f} to {max(rd):+.0f} µm between the night's repeats." if rd else ".")
+            day_pct = ands([f"{sl[L]['board_rel_change'] * 100:.0f}" for L in both])
+            night_pct = ands([f"{rl[L]['board_rel_change'] * 100:.0f}" for L in both])
+            body += ("<p>"
+                     + (f"At {ands([f'{float(L):g}' for L in both])} N, the board change a day later differs from the "
+                        f"night's at the same target by {day_pct} % of its size (medians, Table 14, Fig. 7a). Between the "
+                        f"night's own repeats of the reference press it differed by {night_pct} %. " if both else "")
+                     + f"The difference is {sl[lo_]['board_rel_change'] * 100:.0f} % at {float(lo_):g} N and "
+                     f"{sl[hi_]['board_rel_change'] * 100:.0f} % at {float(hi_):g} N.</p>"
+                     f"<p>A day later the pad met the sphere earlier. At the same force its registered indentation is a "
+                     f"median {-st['depth_change_mm']['median'] * 1e3:.0f} µm smaller"
+                     + (f", while between the night's own repeats it grew by {min(rd):.0f} to {max(rd):.0f} µm." if rd else ".")
                      + "</p>")
         dfe = DY.get("FE", {}).get("series")
         dS = DY.get("S", {}).get("by_region", {})
         if dfe:
-            body += (f"<p>Beyond the FE pad the repeated presses travel {dfe['a_mm']:.2f} mm + {dfe['c_mm_N']:.2f} mm/N, "
-                     f"with a residual of {dfe['rms_mm'] * 1e3:.0f} µm rms over {dfe['n']} holds. The night's presses "
-                     f"travelled {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N (Section 3)."
-                     + (f" With its magnets fitted to the day's field at rest, the viewer's estimator gives "
-                        f"{dS['face']['force_scale']:.2f} of the HEX-E's force on the face, against {fs['face']:.2f} the "
-                        f"night before." if dS.get("face", {}).get("force_scale") is not None else "")
-                     + "</p>")
+            body = body[:-4] + (f" Beyond the FE pad the repeated presses travel {dfe['a_mm']:.2f} mm + {dfe['c_mm_N']:.2f} "
+                                f"mm/N, with a residual of {dfe['rms_mm'] * 1e3:.0f} µm rms over {dfe['n']} holds. The night's "
+                                f"presses travelled {sr['a_mm']:.2f} mm + {sr['c_mm_N']:.2f} mm/N (Section 3). The slope is "
+                                f"the night's, and the offset is {sr['a_mm'] - dfe['a_mm']:.2f} mm smaller. From the onset at "
+                                f"0.1 N to 2 N, the day's first reference press travelled 0.651 mm and the night's first "
+                                f"0.709 mm (the lab's track_refs.py, its message of 16:06)."
+                                + (f" With its magnets fitted to the day's field at rest, the viewer's estimator gives "
+                                   f"{dS['face']['force_scale']:.2f} of the HEX-E's force on the face, against "
+                                   f"{fs['face']:.2f} the night before." if dS.get("face", {}).get("force_scale") is not None
+                                   else "")
+                                + "</p>")
         body += (P.table(["Predictor", "Location error, a day later (mm)", "Force error, a day later (N)",
                           "Location error, same night (mm)", "Force error, same night (N)"], prow, num_cols=(1, 2, 3, 4),
                          caption=f"Predictors trained on sphere2's presses and scored on the presses a day later (all "
