@@ -489,5 +489,28 @@ push that answers it arrives.
     computer;
   - then the reference press and a short grid, to refit the indentation beyond the FE pad.
 
+- R19 (ready on the workstation at 08:10 on 10-23; the owner asked at about 07:50: "did we also try cylinder presses? can
+  we do that if we are feeling good about it?"). Every press so far was on the 5 mm sphere; the rod (12.5 mm half
+  cylinder, the screwdriver's radius) stood in every plan as an obstacle only. A rod session presses the pad's face and
+  edges against a line, which tests the pad model at the screwdriver's curvature. It also splits R16's extra travel
+  (0.33 mm + 0.20 mm/N): a contact this wide leaves the FE mesh little local error, so travel that stays the same on the
+  rod lies in series with the pad.
+  - Plan `plan/20261023-plan_rod_lab_reg.json`, 99 actions: 22 touch-offs on the rod, 5 pivot presses, 53 grid presses
+    (face 49 and edge 23 points reachable; no flank reaches the rod), 1 slide, 2 rolls, plus gravity stations that runs
+    skip. Built with `--indenter rod --placement=-289.5,-585.5,70.3,-94.07 --block 38 --block-half 55,500
+    --mount-turn=-92.15 --other=sphere,-138.5,-595.6,70.8,-92.3 --q-seed=42.91,-69.80,111.48,-40.17,47.33,1.83
+    --order joint6 --gravity-roll-offset 30` (the seed is the rod's hand seating of 18:40, "right_indenter_seated" in
+    `lab/poses.jsonl`). The builder now accepts the pad's line contact with the rod; before that it dropped every press.
+    Six actions came under 3 mm of mount clearance with the tool as registered last night (2.44 to 2.98 mm) and are out:
+    grid-005, -024, -025, -050 and shear-0-1N, -2N. With that tool the finger keeps at least 1.37 mm.
+  - Simulator, the whole plan without gravity: 22 touch-offs at 0.015 mm rms, all 57 grid presses, 3 slides and 2 rolls
+    ran (`logs/20261023-rodsim/`, 4 min). The analysis matches the simulator's contact to 0.095 mm and its normal force
+    to 0.009 N; the estimator places contacts within 0.18 to 0.46 mm from 1 N up.
+  - Run, on mount v3 as it stands, at 30 %: `--plan docs/experiments/20261022-ur5_tip_calibration/plan/20261023-plan_rod_lab_reg.json
+    --home-from docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:right_indenter_seated --stages
+    preflight,homing,pad,register,pivot,grid,shear,roll`, about 1.5 h. The analysis borrows first2's gravity fit as for
+    sphere2. Left on the workstation: the FE comparison against a cylinder (`ur5_tip_calibration_fe.py` knows only a
+    sphere).
+
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
