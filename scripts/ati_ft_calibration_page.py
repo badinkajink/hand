@@ -166,6 +166,12 @@ def sections():
             f"reached on 23 October. The two holes of each pair are assumed {parts['unmeasured']['ATI_PAIR_DEG']:.0f}° apart. "
             f"The ATI is clocked at {parts['clock_deg']:.0f}°, which leaves {parts['counterbore_wall_to_base_m3_mm']:.1f} mm of wall "
             f"between its screws' counterbores and the base's M3 holes ({code(ROOT / 'scripts/ati_stack_mount.py')}).</p>"
+            + (lambda pl: (f"<p>The base, the top and the hook cross print on one P1S plate at Bambu's 0.20 mm Standard with "
+                           f"six walls: {pl['time']}, {pl['filament_g']:.0f} g, most of it the cross "
+                           f"({code(D / 'print/20261023-ati_stack_p1s_pla.3mf')}, built by scripts/v3b_ur5v2_pla_plate.py "
+                           f"ati_stack after scripts/ati_stack_mount.py).</p>") if pl else "")(
+                json.loads((D / "print/20261023-ati_stack_p1s_pla.json").read_text())
+                if (D / "print/20261023-ati_stack_p1s_pla.json").exists() else None)
             + table(["Part", "Size", "Fastening"], rows, caption="Printed parts and the ATI in the stack.", n=4)
             + fig(1, D / "media/20261023-ati_stack_exploded.png", "The stack exploded along the tool axis: v3's adapter, the "
                   "ATI base, the Mini45 (a stand-in cylinder), the ATI top and v3's standoff-fork.")

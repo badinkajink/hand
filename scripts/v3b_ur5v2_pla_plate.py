@@ -53,6 +53,7 @@ V3M = REPO / "docs/experiments/20261021-ur5_calibration_mount_v3"
 UP3 = "20261021-ur5_calibration_mount_v3"
 V4M = REPO / "docs/experiments/20261023-ur5_calibration_mount_v4"
 UP4 = "20261023-ur5_calibration_mount_v4"
+ATI = REPO / "docs/experiments/20261023-ati_ft_calibration"
 UP = "20261020-ur5_calibration_mount_v2"
 COVERS = {"W00": 0.0, "W10": 0.10, "W20": 0.20}        # wall clearance per cover, mm
 # owner, 2026-10-20 19:10: "we have a super dense infill on these mount parts. i think across the board it can be a standard
@@ -166,6 +167,12 @@ PLATES = {
     "mount_v4_fork": [
         ("U2", "UR5 standoff-fork v4, stop plate behind the tongue", V4M / f"cad/{UP4}_standoff_fork.stl", np.eye(3),
          dict(STANDARD, wall_loops="6"))],
+    # 2026-10-23: the ATI Mini45's stack on the HEX-E and the hook cross (scripts/ati_stack_mount.py; the Mini45's hole clocking,
+    # thread depth and height to be measured first), flat as modelled, six walls
+    "ati_stack": [
+        ("A1", "ATI base over v3's M6 heads", ATI / "cad/20261023-ati_stack_ati_base.stl", np.eye(3), dict(STANDARD, wall_loops="6")),
+        ("A2", "ATI top, v3 foot pattern, inserts", ATI / "cad/20261023-ati_stack_ati_top.stl", np.eye(3), dict(STANDARD, wall_loops="6")),
+        ("A3", "hook cross for known masses", ATI / "cad/20261023-ati_stack_hook_cross.stl", np.eye(3), dict(STANDARD, wall_loops="6"))],
     # 2026-10-22: two more of DIP link b v4 (owner: "i want to print two more too"), the settings of plate "link_v4"
     "link_v4_x2": [(f"B4-{k}", "b v4 DIP link, recessed bridge", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl", None,
                     V.LINK) for k in (1, 2)],
@@ -182,7 +189,8 @@ PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"
              "link_v4_x2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_link_x2"),
              "fit2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit2"),
              "snug": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_snug"),
-             "mount_v4_fork": (V4M / "print", f"{UP4}_p1s_pla")}
+             "mount_v4_fork": (V4M / "print", f"{UP4}_p1s_pla"),
+             "ati_stack": (ATI / "print", "20261023-ati_stack_p1s_pla")}
 
 
 def main():
@@ -210,7 +218,8 @@ def main():
                    "link_v4_x2": "DIP link b v4, two copies",
                    "fit2": "DIP link b: covers 2T, caps TW15H2",
                    "snug": "DIP link b: snug covers 3S, 2S and caps",
-                   "mount_v4_fork": "UR5 mount v4: standoff-fork with a stop plate behind the DIP link's tongue"}[plate]
+                   "mount_v4_fork": "UR5 mount v4: standoff-fork with a stop plate behind the DIP link's tongue",
+                   "ati_stack": "ATI Mini45 on the HEX-E: base, top and hook cross (draft, the ATI unmeasured)"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
