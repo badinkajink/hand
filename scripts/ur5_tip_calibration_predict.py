@@ -174,6 +174,12 @@ class Physical:
         sig = np.sqrt((np.tile(np.asarray(W.NOISE_UT, float), 5)[None] / np.sqrt(np.maximum(H["n_rec"][idx], 1))[:, None]) ** 2
                       + 2.0 ** 2)
 
+        # the magnets' strength and the compliance both scale the change, and the first presses may all stand at one
+        # point (the pivots): k and the offsets keep priors around the rest's fit (5 %, 0.2 mm), which the rest field
+        # determines; the compliance scale is free
+        th0 = np.array([self.cal0.k, self.cal0.dx, self.cal0.dy, self.cal0.dz])
+        sd0 = np.array([0.05 * self.cal0.k, 0.2, 0.2, 0.2])
+
         def resid(th):
             mod = W.Model(self.cal(th))
             Jm = mod.motion_jacobian()
@@ -182,10 +188,10 @@ class Physical:
             Q, _ = np.linalg.qr(Nu)
             R = D - pred
             R = R - (R @ Q) @ Q.T                                          # the nuisances projected out
-            return (R / sig).ravel()
+            return np.r_[(R / sig).ravel(), (th[:4] - th0) / sd0]
 
         th, r, cov = C.lm(resid, self.theta.copy(), iters=iters)
-        self.theta, self.rms_uT = th, float(np.sqrt(np.mean((r * sig.ravel()) ** 2)))
+        self.theta, self.rms_uT = th, float(np.sqrt(np.mean((r[:sig.size] * sig.ravel()) ** 2)))
         self.est = None
         return self
 
@@ -275,6 +281,8 @@ def run(folder, sizes, out_dir):
                 Rtr = np.c_[H["p"][tr][ok] - Ptr[ok], H["f_n"][tr][ok] - Ftr[ok]]
                 Y = GP(center=False).fit(Xtr[ok], Rtr).predict(Xte)
                 row[f"physical+gp:{name}"] = scores(H, te, snap(est_snap, Pp + Y[:, :3]), Fp + Y[:, 3])
+            else:                                       # too few holds to learn a residual: the physical prediction
+                row[f"physical+gp:{name}"] = row["physical"]
         res["curve"].append(row)
         print(f"  N = {N:3d} presses ({len(tr)} holds): physical {row['physical']['loc_mm']['median']:.2f} mm, "
               f"{row['physical']['force_N']['median']:.3f} N (k {ph.theta[0]:.3f}, c {math.exp(ph.theta[4]):.2f}); gp board "
