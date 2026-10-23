@@ -141,8 +141,8 @@ vertical at the end of the hold for every held rollout &#183; bench column: the 
 <p>Every bench replay so far, including the plant-correction gate of 2026-09-02, ran with the plate on the
 mounting plane. Moving it to the measured +25 mm changes the result on every hand that reaches it. On
 <code>fast</code>, rv05 goes from {{D7_CAL_PL0}}&#176; (plate at 0, <code>cal</code>) and 55&#8211;57&#176; (plate at 0,
-<code>fast</code>) to {{D7_FAST_PL25}}&#176; from vertical, D2 from 46&#8211;75&#176; to 16&#8211;22&#176;, D4 from
-57&#8211;61&#176; to 24&#8211;36&#176;; D1 and D8, which the plate at 0 kept in the hand, drop the tool
+<code>fast</code>) to {{D7_FAST_PL25}}&#176; from vertical. On <code>fast</code>, D2 goes from 46&#8211;75&#176; to 16&#8211;22&#176; and D4 from
+57&#8211;61&#176; to 24&#8211;36&#176;. D1 and D8, which the plate at 0 kept in the hand, drop the tool
 during the turn with the plate at 25. The bench measured 57&#176; on rv05 and 42&#176; on D2, so the simulation that agreed
 with the bench had a support the built hand lacks at that height, and the simulation with the built plate
 over-turns.</p>
@@ -150,8 +150,8 @@ over-turns.</p>
 bolted to the underside of the palm and sit in that gap. The scene has no collision geometry for
 them, and the tool&#8217;s upper end at 50&#176; is where the old plate was and the servo bank is. One look at the
 bench can test whether the tool rests on the servo bank (Future work).</p>
-<p>On <code>cal</code> the picture is different again: D1, D2 and D8 lose the tool at the grip on the post
-(the plan&#8217;s 10 mm squeeze at &#956; 1.0 pops it out before the turn), D6 holds only with the plate at
+<p>On <code>cal</code> the picture is different again. D1, D2 and D8 lose the tool at the grip on the post
+(the plan&#8217;s 10 mm squeeze at &#956; 1.0 pops it out before the turn). D6 holds only with the plate at
 25, and rv05 holds at plate 0 and drops at plate 25. The two contact models disagree about the grip as well as
 the turn, and neither has been checked against the bench&#8217;s grip forces.</p>
 {{TABLE_PLATE}}
@@ -171,7 +171,7 @@ boxes are the mount workspaces, drawn without collision).</figcaption></figure>
 <h2>Commanding a larger arc does not extend the tip</h2>
 <p class="sub">rv05 re-exported with the deployed plan&#8217;s grasp, pivot (axis_k 0.05) and budget (0.85 rad) at
 60, 75, 90 and 110&#176; &#183; plate at 0 &#183; two seeds</p>
-<p>The re-export at 60&#176; does not reproduce the deployed plan: its turn_end differs by up to 10&#176; on the
+<p>The re-export at 60&#176; does not reproduce the deployed plan. Its turn_end differs by up to 10&#176; on the
 middle mcp (the exporter is not bit-reproducible across the palm-plate and generator changes since
 2026-09-02), and it tips the tool only to 73&#8211;86&#176; from vertical. The 75, 90 and 110&#176; exports
 saturate the middle yaw and pip at the budget and land at 70&#8211;89&#176;. The deployed plan&#8217;s 50&#176; belongs to
@@ -198,10 +198,10 @@ without re-opening the grip, and no exported plan provides one.</p>
 <h2>An RL environment on the calibrated plant</h2>
 <p class="sub"><code>scripts/make_cal_morphology_run.py</code> &#183; <code>results/phase1/real_v1/20260916-&lt;hand&gt;_cal/</code></p>
 <p>The trainer reads a morphology-run directory: a frozen scene, the grip, and a reference rollout. The
-new builder takes the chain&#8217;s flat scene for a hand (the fitter&#8217;s grasp at 10 mm squeeze as the
-<code>open_ik</code> keyframe), applies the measured servo (kp 0.5, kv 0.02, forcerange 0.35 N&#183;m,
-frictionloss 0.0035, real masses), the Coulomb-like contact model (elliptic cone, impratio 10, pad &#956;
-1.0), moves the plate to +25 mm, and stores the Phase-1 evaluator&#8217;s own lift-and-hold rollout as the
+new builder starts from the chain&#8217;s flat scene for a hand (the fitter&#8217;s grasp at 10 mm squeeze as the
+<code>open_ik</code> keyframe). It applies the measured servo (kp 0.5, kv 0.02, forcerange 0.35 N&#183;m,
+frictionloss 0.0035, real masses) and the Coulomb-like contact model (elliptic cone, impratio 10, pad &#956;
+1.0), and it moves the plate to +25 mm. It then stores the Phase-1 evaluator&#8217;s own lift-and-hold rollout as the
 reference. MuJoCo-Warp compiles the elliptic cone and impratio 10: a 12-iteration smoke run at 1024
 environments trained at 3.05 s per iteration (8,000 steps/s).</p>
 <ul>
@@ -221,7 +221,7 @@ Policy A, residual (&#177;0.5 rad) from step 58 over the scripted lift, 3,072 en
 randomisation 0.55&#8211;1.15, object pose observed &#183; 36 min &#183; 64 deterministic rollouts of 250 steps
 (<code>policy_eval_suite.py</code>) &#183; {{REEVAL}}</p>
 <p>The policy lifts the tool to 113 mm on three pads and rolls it from flat to <strong>cos {{COS_R0}}</strong>, a
-{{DEG_R0}}&#176; turn, held in {{HELD_R0}} of 64 rollouts; the total pad force rises from 8 to 13 N, more than the bench servos hold
+{{DEG_R0}}&#176; turn, held in {{HELD_R0}} of 64 rollouts; the total pad force rises from 8 to 13 N, which is more than the bench servos hold
 before their protection trips. <strong>Correction, 2026-09-17:</strong> this evaluation applied the residual from step 0
 instead of the trained step 58 (as trained, this checkpoint reads {{COS_T}}), and the same recipe at 60 M steps reaches cos
 {{COS60}}, held {{HELD60}} of 64 (<a href="../20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html">page</a>), so the
@@ -241,7 +241,7 @@ to step 249 at cos +0.45.</figcaption></figure>
 <li><strong>Support of the tool at the bench&#8217;s 50&#176;.</strong> One bench run of rv05_manual_b85 with a look at the
 handle end at the rest shows whether it touches a yaw servo housing, the plate or nothing. If a servo, add the servo-bank
 boxes to <code>assets/mjcf/real_v1/real_hand.xml</code> from the CAD and regenerate the bench scenes with
-<code>build_real_v1_scenes.py --keep-keyframes</code>; if nothing, the bench&#8217;s 50&#176; has another cause and the
+<code>build_real_v1_scenes.py --keep-keyframes</code>. If nothing, the bench&#8217;s 50&#176; has another cause and the
 plant-correction gate needs re-running with the plate at 25.</li>
 <li><strong>Contact model of the grip.</strong> <code>cal</code> loses D1, D2 and D8 at the grip on the post, while
 <code>fast</code> and the bench keep all eight. Replay the grip alone with

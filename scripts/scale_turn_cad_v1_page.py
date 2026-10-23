@@ -603,15 +603,15 @@ def question(X: Data):
             "planners on four cells. This page repeats its servo-plant measurements on the CAD-model hand "
             f"(<a href=\"{CAD_PAGE}\">finger model from the CAD parts</a>): the finger assembled from the STLs of its printed "
             "parts. Its MCP link spaces the MCP and PIP axes 30.80&#8202;mm apart against real_v1&#8217;s 20.75&#8202;mm, so "
-            "each finger reaches 10.05&#8202;mm further; its links collide through 151 spheres per finger; its masses are those "
-            "of the printed parts and servos, 85&#8202;g per finger; and its TPU fingertip block is 21.41&#8202;mm long against "
+            "each finger reaches 10.05&#8202;mm further. Its links collide through 151 spheres per finger. Its masses are those "
+            "of the printed parts and servos, 85&#8202;g per finger. Its TPU fingertip block is 21.41&#8202;mm long against "
             "22.0&#8202;mm, which gives 1,016 pads per fingertip. Joints, mounts, actuators, the servo plant, the cylinders, the "
             "grasp rule and the controllers are the real_v1 page&#8217;s. The scale study&#8217;s closed-form kinematics "
             "(<code>scripts/hand_object_scale_kin.py</code>, <code>SCALE_HAND=cad_v1</code>) use the CAD spacing and agree "
             "with the compiled CAD model to 0.0000&#8202;mm over 600 random poses.</p>"
             f"<p>The longer finger has a feasible grasp in {n_cad} cells of the diagonal layout family with the 10, 16 and "
             f"25&#8202;mm cylinders, against {n_v1} for real_v1 (a grasp is feasible when the scale study&#8217;s clearance "
-            "model finds a palm height and straddle at which every pad reaches the cylinder). Each run grips for 0.8&#8202;s with the cell&#8217;s grip command, then "
+            "model finds a palm height and straddle at which every pad reaches the cylinder). Each run grips for 0.8&#8202;s with the cell&#8217;s grip command and then "
             "hands control to the controller until 6.3&#8202;s or until HOM&#8217;s hold ends; the support post under the "
             "cylinder is removed when the controller starts turning, at 1.3&#8202;s for HOM and 0.8&#8202;s for MPC, as on the "
             "real_v1 page. Beyond the real_v1 page, pinned iCEM, the planner that turns furthest in the planner comparison, runs on "
@@ -723,7 +723,7 @@ def land_text(X: Data):
             + cell_list(X.land, hi) + ". "
             f"Over these {len(rows)} runs it moves the servo targets at a median {f(rows, 'cmd_rate_rms'):.2f}&#8202;rad/s with "
             f"{f(rows, 'cmd_reversals'):.1f} reversals per joint per second, and the cylinder&#8217;s angular-velocity jitter is "
-            f"{f(rows, 'omega_jitter'):.1f}&#8202;&#176;/s; the three-pad MPC&#8217;s runs on the same cells give "
+            f"{f(rows, 'omega_jitter'):.1f}&#8202;&#176;/s. The three-pad MPC&#8217;s runs on the same cells give "
             f"{f(m3, 'cmd_rate_rms'):.2f}&#8202;rad/s, {f(m3, 'cmd_reversals'):.1f} reversals and "
             f"{f(m3, 'omega_jitter'):.1f}&#8202;&#176;/s.</p>")
 
@@ -744,7 +744,7 @@ def landscape_section(X: Data):
     s = (f"<p>Over the {n} servo-plant cells, MPC&#8217;s median cell score is {deg(med(mpc))} against {deg(med(hom))} for HOM without "
          f"the post and {deg(med(post))} with it, and MPC scores at least 60&#176; in {m60} cells, HOM in {h60} without the post and "
          f"{p60} with it (Figures&#160;[[fig:landscape]] and [[fig:pairs]]). MPC gets there by pinch-and-swing: it lets one finger "
-         f"leave the cylinder, which swings about the remaining pinch at a median peak of {st_m['rate']:.0f}&#176;/s; "
+         f"leave the cylinder, which swings about the remaining pinch at a median peak of {st_m['rate']:.0f}&#176;/s. "
          f"{st_m['two']} of its {st_m['held']} held runs end on two fingers, and {st_m['h60_3']} of its {st_m['n']} runs end "
          f"held at 60&#176; or more on three pads (Table&#160;[[tab:runs]]"
          + (", Figure&#160;[[fig:film16625]]" if X.films else "") + "). "
@@ -841,7 +841,7 @@ def planners_section(X: Data):
                          + (", a bench-plan band cell)" if (d, t) in band else ")") for d, t in cells)
     s = ("<p>The three-pad MPC of the previous section is unpinned predictive sampling: it keeps the cylinder on three pads, but "
          "its servo targets jump at every replanning. This section compares "
-         f"sampling planners at the same budget on {len(cells)} cells and {len(seeds)} placements each: {cell_txt}. Every CPU planner "
+         f"sampling planners at the same budget on {len(cells)} cells and {len(seeds)} placements each. The cells are {cell_txt}. Every CPU planner "
          "uses the three-pad cost of Eq.&#160;(3) and spends 64 rollouts of 0.5&#8202;s per 20&#8202;ms replanning on a plan of "
          "three knots with noise 0.08&#8202;rad; HOM runs on the same grasps and placements "
          "(<code>scripts/hand_object_scale_planners.py</code>).</p>"
@@ -1111,8 +1111,8 @@ def cost_section(X: Data):
         body.append(["MPC, three pads", "50", "64 &#215; 0.5&#8202;s", "6", f"{med(w3):.0f}", f"{max(w3):.0f}"])
     s = (f"<p>MPC costs about {med(wm) / max(1e-6, med(wh)):.0f} times HOM&#8217;s wall time per run and the three-pad variant "
          f"{(med(w3) if w3 else float('nan')) / max(1e-6, med(wh)):.0f} times (Table&#160;[[tab:cost]]). Each replanning of the first "
-         "rolls out 9.6&#8202;s of simulated time, 32 plans of 0.3&#8202;s, and the second 32&#8202;s, with the 1&#8202;mm sphere pads at "
-         f"1&#8202;ms steps; planning takes {100 * frac:.0f}&#8202;% of MPC&#8217;s wall time. The MPC grid, {len(X.r_mpc)} runs, took "
+         "rolls out 9.6&#8202;s of simulated time, which is 32 plans of 0.3&#8202;s. Each replanning of the second rolls out 32&#8202;s. Both use the 1&#8202;mm sphere pads at "
+         f"1&#8202;ms steps. Planning takes {100 * frac:.0f}&#8202;% of MPC&#8217;s wall time. The MPC grid, {len(X.r_mpc)} runs, took "
          f"{sum(wm) / 3600:.1f}&#8202;h of six-thread time, and the three-pad grid, {len(X.r_mpc3)} runs, {sum(w3) / 3600:.1f}&#8202;h.</p>")
     s += table(["Controller", "Control rate, Hz", "Rollouts per replanning", "Threads", "Wall time per run, median, s",
                 "Wall time per run, longest, s"], body, "Cost of the controllers on the servo plant.", key="cost")
@@ -1128,7 +1128,7 @@ def cost_section(X: Data):
               f"{pm['grip']['constraint_us']:.0f}&#8202;&#181;s the constraint solver. With the hand open the pads still cost "
               f"{pm['open']['step_us']:.0f}&#8202;&#181;s against {pt['open']['step_us']:.1f}, nearly all in the position stage, "
               f"which handles {pm['ngeom']:,} geoms against {pt['ngeom']}. One replanning of 64 plans of 0.5&#8202;s takes "
-              f"{ro(pm, 12):.2f}&#8202;s on 12 threads with the pads and {ro(pt, 12):.2f}&#8202;s with point contact; on the six "
+              f"{ro(pm, 12):.2f}&#8202;s on 12 threads with the pads and {ro(pt, 12):.2f}&#8202;s with point contact. On the six "
               f"threads of the planner runs it takes {ro(pm, 6):.2f}&#8202;s, {ro(pm, 6) / 0.02:.0f} times the 20&#8202;ms it "
               "plans for.</p>")
         body = []
@@ -1213,7 +1213,7 @@ def open_items():
          "plant runs the CAD hand; a planner transfers if it keeps three pads in at least seven of eight runs."),
         ("Real-time MPC.", "Measure the pinned iCEM with the planner on point contact (the plant keeps the pads), a 0.25&#8202;s "
          "horizon, replanning every 40&#8202;ms and 32 samples, each alone and together, against the speed-up the cost "
-         "section predicts; it is usable on the bench if one replanning fits in 20&#8202;ms on 12 threads and the four "
+         "section predicts. It is usable on the bench if one replanning fits in 20&#8202;ms on 12 threads and the four "
          "planner cells keep three pads."),
     ]
     return "<ul class='open'>" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in items) + "</ul>"
