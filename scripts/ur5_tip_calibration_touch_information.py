@@ -16,6 +16,11 @@ other parts (scripts/ur5_tip_calibration_plan.py tip_reachable), either
   --offset-mm 3   every reachable point with the sphere's top 3 mm beside the target along +-x_I or +-y_I (the plan's
                   "offset"), approached vertically until the pad first meets the sphere.
 
+With --offset-mm every candidate must clear the margins of scripts/ur5_tip_calibration_check.py --clearance (mount 3.0,
+finger 0.8, HEX-E 6.0 mm, plus --margin for a newly seated pad) with the session's registration, both as a fresh session
+runs it (planned with the nominal tool) and as planned with the registration. On 2026-10-23 the first twelve, chosen
+without that test, put the finger 0.8 to 1.2 mm into the sphere near the tip end and the mount within 0.1 mm of it.
+
 Every vertical touch at the sphere's top has its contact normal along -z_I, so it sees no horizontal shift of the sphere's
 centre: that position rests on the homing seating's prior (0.25 mm along the finger). On a curved part of the pad an
 offset touch meets the sphere off its top, where the contact normal has a horizontal part.
@@ -128,6 +133,42 @@ class Info:
         return T_BE, cp, float(np.hypot(nI[0], nI[1]))
 
 
+def offset_action(geo, k, i, off, base=1.5, region=""):
+    """A touch-off action aimed off the sphere's top (scripts/ur5_tip_calibration_offset_touches.py makes the same)."""
+    p, n = geo.pts[i], geo.nrm[i]
+
+    def gap(s_):
+        return geo.surface_distance(C.apply(C.inv(geo.T_IP(p, n, 0.0, s_, off)), geo.c_I))[0] - geo.R
+    lo, hi = -4.0, 4.0
+    if gap(hi) <= 0 or gap(lo) >= 0:
+        return None
+    for _ in range(50):
+        m = 0.5 * (lo + hi)
+        lo, hi = (lo, m) if gap(m) > 0 else (m, hi)
+    return dict(id=f"pad-off-{k:02d}", stage="pad", kind="touch", role="offset",
+                target=dict(frame="P", p=[round(float(v), 4) for v in p], n=[round(float(v), 5) for v in n], index=int(i),
+                            region=region),
+                twist=0.0, offset=[float(v) for v in off], standoff=round(base + hi, 3), beyond_mm=round(1.2 - hi, 3),
+                v=0.00015, stop_N=0.5, fit_N=0.4, onset_shift_mm=round(-hi, 3))
+
+
+def clear_ok(folder, plan, actions, margin):
+    """Ids of the touch-off actions that clear ur5_tip_calibration_check.py's margins plus margin (mm), as a fresh session
+    runs them and as planned with the session's registration."""
+    import tempfile
+    import ur5_tip_calibration_check as CK
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump(dict(plan, actions=actions), f, default=C.jsonable)
+    ch = CK.Check(folder)
+    ch.lines = []
+    ch.registered_clearance(f.name, stages=("pad",))
+    Path(f.name).unlink()
+    need = dict(mount=3.0, finger=0.8, hex_e=6.0)
+    per_r, per_a = ch.out["clearance_per_action"], ch.out["touch_as_run"]["per_action"]
+    return {a["id"] for a in actions if all(min(per_r.get(a["id"], {}).get(g, -1e9), per_a.get(a["id"], {}).get(g, -1e9))
+                                            >= need[g] + margin for g in need)}
+
+
 def jac(f, h=1e-6):
     x0 = np.zeros(15)
     r0 = f(x0)
@@ -152,6 +193,7 @@ def main():
     ap.add_argument("--add", type=int, default=8)
     ap.add_argument("--nz", type=float, default=0.3)
     ap.add_argument("--offset-mm", type=float, default=0.0)
+    ap.add_argument("--margin", type=float, default=0.3, help="mm beyond the checker's clearances (--offset-mm)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     plan, reg, touches = session(a.folder)
@@ -176,18 +218,24 @@ def main():
     if a.offset_mm > 0:
         pool = [i for i in range(len(geo.pts)) if reg_[i] and PL.tip_reachable(geo, geo.kind, i)[0]]
         o_ = a.offset_mm
-        cands = []
+        cands, acts = [], []
         for i in pool:
             for off in ((o_, 0.0), (-o_, 0.0), (0.0, o_), (0.0, -o_)):
                 r_ = I.onset(geo.pts[i], geo.nrm[i], off)
-                if r_ is not None and np.linalg.norm(r_[1] - geo.pts[i]) <= 4.0:       # met near the target
-                    cands.append((i, off, I.touch_row(r_[0]), r_[2]))
-        print(f"  offset candidates ({o_:g} mm on {len(pool)} reachable points): {len(cands)}, horizontal part of the "
-              f"contact normal median {np.median([c[3] for c in cands]):.2f}", flush=True)
+                act = offset_action(geo, len(acts), i, off, region=str(reg_[i]))
+                if r_ is not None and act is not None and np.linalg.norm(r_[1] - geo.pts[i]) <= 4.0:   # met near the target
+                    cands.append((i, off, I.touch_row(r_[0]), r_[2], act["id"]))
+                    acts.append(act)
+        ok = clear_ok(a.folder, plan, acts, a.margin)
+        n0 = len(cands)
+        cands = [c for c in cands if c[4] in ok]
+        print(f"  offset candidates ({o_:g} mm on {len(pool)} reachable points): {n0}, {len(cands)} clear the checker's "
+              f"margins + {a.margin:g} mm; horizontal part of the contact normal median "
+              f"{np.median([c[3] for c in cands]):.2f}", flush=True)
     else:
         pool = [int(i) for i in np.nonzero(geo.nrm[:, 2] >= a.nz)[0]]
         ok = [i for i in pool if PL.tip_reachable(geo, geo.kind, i)[0]]
-        cands = [(i, (0.0, 0.0), I.touch_row(I.T_BE_at(geo.pts[i], geo.nrm[i])), 0.0) for i in ok]
+        cands = [(i, (0.0, 0.0), I.touch_row(I.T_BE_at(geo.pts[i], geo.nrm[i])), 0.0, None) for i in ok]
         print(f"  candidates with n_z >= {a.nz:g}: {len(pool)}, reachable {len(ok)}", flush=True)
     J, chosen, steps = J0.copy(), [], []
     for _ in range(min(a.add, len(cands))):
@@ -200,7 +248,7 @@ def main():
             if best is None or z < best[1]:
                 best = (j, z, y)
         chosen.append(best[0])
-        i, off, row, h = cands[best[0]]
+        i, off, row, h, _ = cands[best[0]]
         J = np.vstack([J, row])
         p, n = geo.pts[i], geo.nrm[i]
         steps.append(dict(index=int(i), region=str(reg_[i]), p=p.round(3).tolist(), n=n.round(3).tolist(), offset_I=list(off),
@@ -210,7 +258,8 @@ def main():
     if a.out:
         Path(a.out).write_text(json.dumps(dict(folder=str(a.folder), n_touch=len(rows), n_press=len(presses),
                                                rms_pad_mm=rr["rms_pad_mm"], scale=scale, sd_z_mm=z0, sd_y_mm=y0,
-                                               nz_min=a.nz, offset_mm=a.offset_mm, n_candidates=len(cands),
+                                               nz_min=a.nz, offset_mm=a.offset_mm, margin_mm=a.margin,
+                                               n_candidates=len(cands),
                                                added=steps),
                                           indent=1) + "\n")
         print(f"-> {a.out}")

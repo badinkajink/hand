@@ -5,8 +5,9 @@ Every touch-off of the plans so far meets the sphere at its top, with the contac
 horizontal shift of the sphere's centre; that position rests on the homing seating's prior (0.25 mm along the finger).
 An offset touch-off places its target point beside the sphere's top by (ox, oy) in I (the action's "offset", which the
 program's target_pose already applies) and approaches vertically, so that a curved part of the pad meets the sphere off
-its top. scripts/ur5_tip_calibration_touch_information.py --offset-mm 3 picks the targets and offsets; on sphere2's
-registration twelve of them lower the contact point's standard deviation along the finger from 0.27 to 0.07 mm.
+its top. scripts/ur5_tip_calibration_touch_information.py --offset-mm 3 picks the targets and offsets among those that
+clear the margins of scripts/ur5_tip_calibration_check.py --clearance; on sphere2's registration twelve of them lower the
+contact point's standard deviation along the finger from 0.27 to 0.08 mm. Check the plan made here with that tool as well.
 
 The pad meets the sphere at another travel than the target point would: the onset standoff s_on (the target point's
 height above the sphere's top when the pad first meets the sphere, from the plan's nominal geometry) sets the action's
