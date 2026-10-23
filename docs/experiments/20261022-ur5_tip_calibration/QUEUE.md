@@ -363,5 +363,31 @@ push that answers it arrives.
   The board's linear map from four offsets does not carry over to a turned press, so that turn does not test the
   registration.
 
+- R17 (in progress 22:22 on the workstation; the owner asked at 22:10 through the lab). Predictors of the contact point
+  and the normal force from the board, trained on a session's presses in time order:
+  `scripts/ur5_tip_calibration_predict.py <analysis output folder>`, outputs in `data/<session>/predict/predict.json`.
+  Every fourth grid press is held out. The predictors are the viewer's estimator with its compliance scale fitted (the
+  magnets' strength and the chips' offsets held near the rest's fit), a Gaussian process from the inputs (ridge as the
+  linear baseline), and the two together. The inputs go in one at a time: the board, the chips' temperature change
+  since the press's rest, then the time since that rest. The tool's orientation is tried apart. In this protocol each
+  target has a planned orientation, so it identifies the target: on the simulated session it took the GP to 0.24 mm.
+  Medians on the held-out presses:
+
+  | Session, predictor | Location (mm) | Normal force (N) |
+  |---|---|---|
+  | Simulated 195934, viewer's estimator | 0.38 | 0.324 |
+  | Simulated 195934, physical model fitted on 3 presses | 0.44 | 0.084 |
+  | Simulated 195934, GP from the board on 3 / 65 presses | 4.55 / 0.45 | 1.29 / 0.022 |
+  | Simulated 195934, physical model plus a GP on 65 presses | 0.33 | 0.058 |
+  | sphere2 as of 22:02, viewer's estimator | 1.97 | 0.376 |
+  | sphere2 as of 22:02, physical model fitted on 16 presses | 3.58 | 0.325 |
+  | sphere2 as of 22:02, GP from the board on 15 presses | 1.05 | 0.139 |
+
+  sphere2 has two held-out presses so far (10 holds). Its physical fit wants a compliance scale of 0.31 to 0.54 (1.20 in
+  the simulator, whose truth is 1.15). At the registered contact points the board changes by a third to a half of the
+  model's prediction, while the free estimator matches the force within 10 %. Either the registered points are off by
+  about 2 mm, or the model's response over the pad differs from the real pad's; the full grid separates the two. The
+  study runs again on the whole folder after the run, and on the turn holds once the turns have run.
+
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
