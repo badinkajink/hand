@@ -248,7 +248,7 @@ def glossary():
          "contact. Pads (1&#8202;mm pads): the block&#8217;s surface as spheres of 0.75&#8202;mm radius at 1&#8202;mm spacing. Sprung skin: the "
          "pads on a plate sprung to the fingertip. The policies were trained on the TPU mesh, the pads or the skin."),
         ("Held", "A rollout holds the tool at 5&#8202;s when at least two fingertips each press with at least 0.24&#8202;N (the tool&#8217;s "
-         "weight) and the tool is above 60&#8202;mm; held share is the fraction of the 64 rollouts that hold."),
+         "weight) and the tool is above 60&#8202;mm. The held share is the fraction of the 64 rollouts that hold."),
         ("Held cosine", "Cosine between the tool&#8217;s axis and the vertical at 5&#8202;s, averaged over the held rollouts; 1 is "
          "upright, and the turn starts at about 0."),
         ("Closed loop", "The policy computes each action at 50&#8202;Hz from its observations: finger joint angles and velocities, the "
@@ -298,7 +298,7 @@ def main():
         f"and hardly need it for the fingertip contact model. Replayed open loop on another tip model, a policy&#8217;s own actions "
         f"hold the tool in {T['o_h']:,} of {T['n']:,} rollouts, against {T['c_h']:,} closed loop, and end within {T['d_max']:.2f} of "
         f"the closed loop&#8217;s held cosine. With friction halved the closed loop holds {fr5['c_h']} of {fr5['n']} rollouts and the replay "
-        f"{fr5['o_h']}; at half the servo gain {kp['c_h']} against {kp['o_h']}. The pads&#8217; contact stiffness is a physical "
+        f"{fr5['o_h']}. At half the servo gain the counts are {kp['c_h']} against {kp['o_h']}. The pads&#8217; contact stiffness is a physical "
         f"value, {L['pad_K']:,.0f}&#8202;N/m per pad at 10&#8202;MPa for tools of 6 to 98&#8202;g, and a fourfold change of the modulus "
         f"moves the twist arm by {abs(arm_change):.0f}&#8202;%.")
     v["GLOSSARY"] = glossary()
@@ -312,7 +312,7 @@ def main():
     box_d = [abs(hc(X.cell(a, s, 'tip', 'box', 'open')) - hc(X.cell(a, s, 'tip', 'box', 'closed'))) for a, s in POL]
     v["FB_TIP"] = (
         f"The tip model leaves the closed loop and the replay alike (Figure&#160;1, top). Over the 24 cells of six policies and "
-        f"four tip models the closed loop holds {T['c_h']:,} of {T['n']:,} rollouts and the replay {T['o_h']:,}; their held cosines "
+        f"four tip models the closed loop holds {T['c_h']:,} of {T['n']:,} rollouts and the replay {T['o_h']:,}. Their held cosines "
         f"differ by {T['d_mean']:.3f} on average and by {T['d_max']:.3f} at most. The box tip, a rigid box with point contact "
         f"and the largest change of contact geometry, moves the replay&#8217;s held cosine by up to {max(box_d):.3f} from the "
         "closed loop&#8217;s, in either direction.")
@@ -329,12 +329,12 @@ def main():
     floor = min(min(PH[k]["c_h"], PH[k]["o_h"]) for k in small)
     v["FB_PHYS"] = (
         f"Physical changes separate the two (Figure&#160;1, bottom; Figure&#160;2). With friction halved the closed loop holds "
-        f"{fr5['c_h']} of {fr5['n']} rollouts and the replay {fr5['o_h']}, and at friction &#215;0.7 {fr7['c_h']} against "
-        f"{fr7['o_h']}; at half the servo gain {kp['c_h']} against {kp['o_h']}, and at a 0.12&#8202;N&#8202;m torque limit "
+        f"{fr5['c_h']} of {fr5['n']} rollouts and the replay {fr5['o_h']}. At friction &#215;0.7 the counts are {fr7['c_h']} against "
+        f"{fr7['o_h']}. At half the servo gain they are {kp['c_h']} against {kp['o_h']}, and at a 0.12&#8202;N&#8202;m torque limit "
         f"{fr['c_h']} against {fr['o_h']}. Friction &#215;1.3 and the three mass changes leave both modes holding at least "
-        f"{floor} of {fr5['n']}, though a tool twice as heavy ends the replay of {pname(m2['worst'][1], m2['worst'][2])} "
+        f"{floor} of {fr5['n']}. One exception: a tool twice as heavy ends the replay of {pname(m2['worst'][1], m2['worst'][2])} "
         f"{abs(m2['worst'][0]):.2f} below its closed loop&#8217;s held cosine. The reliance on feedback varies between seeds more "
-        f"than between tip arms: the replays of {' and '.join(robust)} hold every rollout under all eight changes, while those "
+        f"than between tip arms. The replays of {' and '.join(robust)} hold every rollout under all eight changes, while those "
         f"of {', '.join(pname(a, sd) for a, sd, _ in needy[:-1])} and {pname(needy[-1][0], needy[-1][1])} lose "
         f"{min(x for _, _, x in needy)} to {max(x for _, _, x in needy)} of 64 rollouts under at least one of the four "
         "reductions. "
@@ -371,7 +371,7 @@ def main():
     v["LAW_MODEL"] = (
         "The pads represent the printed tip as a Winkler foundation, a pressure \\(p=(E/h)\\,\\delta\\) on the overlap \\(\\delta\\) "
         "with \\(h\\)&#8202;=&#8202;8.5&#8202;mm, discretised as one sphere of 0.75&#8202;mm radius per 1&#8202;mm&#178; of tip surface, each a spring "
-        "\\(K_s\\). MuJoCo&#8217;s soft contact gives a contact row at rest the stiffness \\(K\\) of (1), and the builder "
+        "\\(K_s\\). MuJoCo&#8217;s soft contact gives a contact row at rest the stiffness \\(K\\) of (1). The builder "
         "(<code>reorient_backends.replace_tips</code>) solves \\(d\\) per finger so that \\(K\\) equals the median \\(K_s\\) for the "
         "inverse weight of the scene&#8217;s own tool. The time constant \\(t_c\\) sets the damping and the creep, and \\(d\\) the "
         "stiffness.")
@@ -380,7 +380,7 @@ def main():
         "hand is rigid, gravity is off, and the tool is pressed onto the thumb&#8217;s palmar face with its axis across the face. "
         f"Every touching pad&#8217;s force over its penetration is {st[1.0]['k_min']:,.1f}&#8202;N/m at every load, \\(K_s\\) within the "
         "six significant digits the scene file stores for \\(d\\), "
-        "and the normal forces balance the applied load within 0.2&#8202;%. The approach and the twist limit follow the pressure law "
+        "and the normal forces balance the applied load within 0.2&#8202;%. The approach and the twist limit match the pressure law "
         f"integrated over the block&#8217;s surface at 0.1&#8202;mm within {max(abs(s['approach_m'] / s['approach_law_m'] - 1) for s in L['static']) * 100:.0f}&#8202;% "
         f"and {max(abs(s['twist_Nm'] / s['twist_law_Nm'] - 1) for s in L['static']) * 100:.0f}&#8202;% (Table&#160;1); the largest "
         "difference is at 0.5&#8202;N, where two rows of pads sample a patch 2&#8202;mm wide.")
@@ -397,8 +397,8 @@ def main():
         "Below the slip force each pad&#8217;s friction rows hold the tool through a damper, so a held tangential load \\(F_t\\) "
         f"makes the tool creep at the speed of (2), with \\(n\\) touching pads. At 1&#8202;N and half the slip force the tool creeps "
         f"{c10['v_m_s'] * 1e3:.4f}&#8202;mm/s at impratio 10, where (2) gives {c10['v_law_m_s'] * 1e3:.4f}, and "
-        f"{c100['v_m_s'] * 1e3:.5f}&#8202;mm/s at impratio 100, where it gives {c100['v_law_m_s'] * 1e3:.5f}; 1.2 times the slip force "
-        f"slides it {c10['slide_m_in_0p1s'] * 1e3:.0f}&#8202;mm in 0.1&#8202;s. MuJoCo takes the friction coefficient of the geom with the "
+        f"{c100['v_m_s'] * 1e3:.5f}&#8202;mm/s at impratio 100, where it gives {c100['v_law_m_s'] * 1e3:.5f}. At 1.2 times the slip force "
+        f"the tool slides {c10['slide_m_in_0p1s'] * 1e3:.0f}&#8202;mm in 0.1&#8202;s. MuJoCo takes the friction coefficient of the geom with the "
         "higher contact priority, so the pads&#8217; coefficient of 1 sets this limit and the tool&#8217;s 2.4 is unused. "
         f"A twist of half the twist limit turns the tool {tw[0.5]['turned_deg_in_0p2s']:.2f}&#176; in 0.2&#8202;s and 1.2 times "
         f"the limit {tw[1.2]['turned_deg_in_0p2s']:.1f}&#176; (Table&#160;2). In the last form of (2) the inverse weight has cancelled, "
