@@ -44,6 +44,7 @@ BOARD_CAL = DATA / "20261020-calib_pad_as_found.json"
 OUT = ROOT / "docs/experiments/20261022-ur5_tip_calibration/data"
 ZERO = "both"           # the HEX-E's zero: "both" rests interpolated in time (default), or the rest "before" alone (--zero)
 GRAVITY_FROM = None     # a session (or its registration.json) whose gravity fit a session without one takes (--gravity-from)
+REF_DRIFT = False       # move the sphere along the approach by the ref presses' onset drift, interpolated in time (--ref-drift)
 
 
 def borrow_gravity(reg, src):
@@ -190,6 +191,42 @@ class Session:
         ta, tb = np.mean(rec["t_rest0"]), np.mean(rec["t_rest1"])
         return z0 + (z1 - z0) * (t - ta) / max(tb - ta, 1e-6), z1 - z0
 
+    def ref_onsets(self):
+        """(time, onset in mm past the rest pose along the approach, id) of every reference press, fitted on the push
+        against the flange's travel as the touch-offs are. On 2026-10-22 sphere2's onset moved 0.066 mm later in 13.5 min
+        while the depth from 0.1 to 2 N stayed at 0.71 mm (lab, 22:10): the arm warming or the chain creeping."""
+        if hasattr(self, "_ref_on"):
+            return self._ref_on
+        d_B = -(self.reg.T_BI[:3, :3] @ C.EZ)
+        ft, rb = self.d["ft"], self.d["rb"]
+        out = []
+        for aid, e in self.ends.items():
+            a, rec = self.acts.get(aid), e.get("rec") or {}
+            if e.get("status") != "ok" or not a or a.get("role") != "ref" or not rec.get("t_move0") or not rec.get("t_stop"):
+                continue
+            m = (ft[:, 0] >= rec["t_move0"]) & (ft[:, 0] <= rec["t_stop"])
+            if m.sum() < 60:
+                continue
+            j = np.clip(np.searchsorted(rb[:, 0], ft[m, 0]), 0, len(rb) - 1)
+            T = np.array([C.ur_to_T(r[8:14]) for r in rb[j]])
+            s = (T[:, :3, 3] - np.array(rec["T_rest"])[:3, 3]) @ d_B
+            f_E = (self.Kinv @ (ft[m, 3:6] - np.array(rec["tare"])[:3]).T).T
+            push = -np.einsum("kij,kj->ki", T[:, :3, :3], f_E) @ d_B
+            on = C.fit_onset(s, push, 1.0)
+            if on is not None:
+                k = int(np.argmin(np.abs(s - on[0])))
+                out.append((float(ft[m, 0][k]), on[0], aid))
+        self._ref_on = sorted(out)
+        return self._ref_on
+
+    def drift(self, t):
+        """The ref presses' onset at time t less the first's (mm, later contact positive), linear between them."""
+        on = self.ref_onsets()
+        if not REF_DRIFT or len(on) < 2:
+            return 0.0
+        tt, ss = np.array([o[0] for o in on]), np.array([o[1] for o in on])
+        return float(np.interp(t, tt, ss - ss[0]))
+
     def ground_truth(self, rec, t0, t1, T_rest_pose):
         """The hold's ground truth (dict) from the robot, the HEX-E and the registration."""
         T_BE = self.pose(t0, t1)
@@ -212,7 +249,8 @@ class Session:
         T_ES = self.reg.T_ES
         T_BP = T_BE @ T_ES @ C.Tm(C.exp_so3(dw), dtr) @ C.inv(T_ES) @ self.T_EP
         T_BP0 = T_BE @ self.T_EP
-        c_P = C.apply(C.inv(T_BP), self.c_B)
+        c_B = self.c_B - self.drift(0.5 * (t0 + t1)) * (self.reg.T_BI[:3, :3] @ C.EZ)     # a later contact: the sphere lower
+        c_P = C.apply(C.inv(T_BP), c_B)
         d, _, _ = self.geo.surface_distance(c_P)
         _, n_c = self.contact_on_surface(c_P)
         p_c = c_P - self.geo.R * n_c              # continuous in c_P: the sphere's point along the normal
@@ -471,10 +509,13 @@ def main():
                     "before and after the action interpolated in time, or the rest before alone (the analysis before 2026-10-22 20:00)")
     ap.add_argument("--gravity-from", default=None, help="a session (or its registration.json) whose gravity fit a "
                     "session run without the gravity stage takes")
+    ap.add_argument("--ref-drift", action="store_true", help="move the sphere along the approach by the reference "
+                    "presses' onset drift, interpolated in time")
     a = ap.parse_args()
-    global ZERO, GRAVITY_FROM
+    global ZERO, GRAVITY_FROM, REF_DRIFT
     ZERO = a.zero
     GRAVITY_FROM = a.gravity_from
+    REF_DRIFT = a.ref_drift
     ses = Session(a.session)
     holds = ses.holds()
     cal, est = estimator(ses, holds)
@@ -484,6 +525,12 @@ def main():
     S = summarize(ses, holds)
     S["estimator_calibration"] = dict(k=cal.k, poles=cal.poles, dx=cal.dx, dy=cal.dy, dz=cal.dz, rms_mT=cal.rms_mT)
     S["pivot_check"] = pivot_check(ses)
+    on = ses.ref_onsets()
+    S["ref_onsets"] = dict(applied=REF_DRIFT, presses=[dict(id=i, t=t, onset_mm=o) for t, o, i in on])
+    if on:
+        print("ref presses' onsets (mm past rest): " + ", ".join(f"{i} {o:.3f}" for t, o, i in on)
+              + f"; drift {on[-1][1] - on[0][1]:+.3f} mm over {(on[-1][0] - on[0][0]) / 60:.0f} min"
+              + (" (applied)" if REF_DRIFT else ""))
     for pr in (S["pivot_check"] or {}).get("presses", []):
         print(f"pivot {pr['id']} ({pr['role']}, twist {pr['twist']:+.0f} deg): the board places it "
               f"{pr['dp_board'][0]:+.3f}, {pr['dp_board'][1]:+.3f} mm from the reference, the registration "
