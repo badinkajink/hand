@@ -1,0 +1,60 @@
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 368 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0393 0.0186 0.2347 0.0031 0.0037 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+== homing
+homing: from the recorded seating docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:left_indenter_seated (no freedrive, nothing moves)
+homing: 1 seatings within 0.000 mm, 0.000 deg of their mean
+  indenter at (-139.0, -595.6, 71.1) mm, yaw -92.3 deg, tilt 0.71 deg; the plan has (-138, -596, 71) mm, yaw -92 deg
+== gravity
+gravity: weight 1.567 N (160 g), centre of mass [-6.2 -2.6 13.3] mm (from the HEX-E's origin), sign +1, HEX-E axes turned -0.61 deg about the tool axis (2.51 in all), residual 0.0654 N, 0.00425 N m; d
+rift during the 236 s sweep [-0.006 -0.005  0.086] N/min, [ 0.0002  0.0009 -0.0005] N m/min
+== mount
+  mount-0: ABORT no HEX-E sample for 100 ms
+  mount-1: ABORT protective or emergency stop
+
+>>> the robot is stopped: clear the protective stop on the pendant [Enter]
+interrupted: stopping the robot
+RTDEControlInterface: RTDE control script is not running!
+HEX-E: 30321 samples, 2185 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.6 s, Fz +0.0 N
+RTDEControlInterface: RTDE control script is not running!
+session in /home/will/workspace/hand/logs/20261022-tip_calibration/195420-first2
+exit 0 at 20:01:16
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

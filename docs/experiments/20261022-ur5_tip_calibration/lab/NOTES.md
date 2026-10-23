@@ -47,6 +47,49 @@ Folder `20261022-192715-first/`: the session folder, the printout and two overhe
   −118 to +167 deg in this sweep. The owner was asked to check the HEX-E's cable, its two connectors and its slack for
   those turns.
 
+### 19:43 to 19:48, the HEX-E's connector
+
+With the arm still at grav-06's orientation, the stream stopped at 19:43:27.8, just after Fz stepped up 3.7 N. The owner
+had touched the connector ("seems like its super sensitive!"). The box then listed no sensor (status 131072, a blank
+serial number) until 19:47:21. For a few seconds the readings came back wrong (Fz 697 N, then 806 N) while the contact
+was making. From 19:47:43 they held the old zero, 651.0 to 652.1 N, with no gaps. The owner tightened the connector and
+tied the cable down "as tight and tied down as its gonna get".
+
+### 19:54, first2 (preflight, homing, gravity, mount) at 30 %: gravity done, stopped by the owner in the mount stage
+
+Folder `20261022-195420-first2/`. The arm was first taken home with `move_guarded.py` (0.02 mm from the target).
+
+- Preflight passed: noise 0.039, 0.019 and 0.235 N; no timed-out reads; board 368 records/s.
+- Gravity: all 12 orientations, no dropout, 236 s. Weight 1.567 N (160 g), centre of mass (−6.2, −2.6, 13.3) mm from
+  the HEX-E's origin, the HEX-E's axes turned −0.61 deg about the tool axis (2.51 deg in all). The force residual is
+  0.065 N against Table 2's 0.02 N, mostly along the sensor's z: ±0.10 to 0.20 N at grav-04, -05, -09 and -10. Leaving
+  out any one orientation changes it by at most 17 mN. The fitted drift of Fz is 0.086 N/min.
+- mount-0 aborted at 19:58:45: the answers stopped for 0.42 s. The sample counter advanced 410 over the gap, so the
+  sensor kept sampling.
+- mount-1's travel turned joint 5 from 140 to 173.6 deg, 6 deg from the wrist's singularity. The owner saw the wrist
+  pressing the HEX-E's cable port ("the HEXE ft sensor gets squished by the wrist pitch joint") and pressed the
+  emergency stop at 19:59:01.4 (safety mode 7 until 19:59:12). The HEX-E read at most 1.5 N up to the stop. The owner
+  then moved the arm by hand. At 19:59:24.9 the HEX-E read (−14.3, −42.6, −5.8) N, and from 19:59:25.4 the box listed
+  no sensor. The program, waiting at its prompt, was interrupted at 20:01.
+- After the owner reseated the connector, the HEX-E read again at about 20:06. Its untared zero was 651.25 N, as before.
+  Its noise over 15 s was 0.042, 0.041 and 0.242 N, and 0.0029, 0.0039 and 0.0011 N m, as in the table for filter 3.
+- The arm went home with `move_guarded.py` at 20:10. The first try crashed in the robot interface (a core dump, nothing
+  moved), probably on the control script that the interrupted program had left; the second reached home within 0.04 mm.
+
+What let the travel through, found afterwards:
+1. The plan builder solved its poses on its own IK branch (joint 1 −92 deg, joint 5 −90 deg). The robot sat on another
+   (joint 1 59 deg, joint 5 62 deg at the seating), and the program solves its moves nearest the robot's joints. So the
+   plan's checks described another arm. On the robot's branch, the mount stage's poses have joint 5 at −61 deg, on the
+   flipped wrist, so reaching them crosses the singularity.
+2. The builder's wrist limit was 7 deg from the singularity.
+3. No check put the tool against the robot itself, and the cable port was not in the model. With the port as the owner
+   measured it (25.4 mm by 7.9 mm, radial from the sensor's top at homing, then 19 mm toward the flange's −x), the model
+   puts it 0.5 mm from the forearm at the pose of the stop.
+
+The plan builder now takes the seating's joints (`--q-seed`), keeps joint 5 at least 30 deg from the singularity and
+needs 15 mm between the tool (port included) and the forearm and wrist links (93e9c7db). The mount stage stays out of
+tonight's runs (owner: "that straight pointing down orientation---not a fan of it").
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
