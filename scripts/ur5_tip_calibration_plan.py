@@ -52,6 +52,9 @@ CLEAR = dict(robot=8.0, hex_e=6.0, mount=3.0, finger=0.8, pad=0.3, ply=5.0, trav
 # Joint 5 at least 30 deg from the wrist's singularity (0 and 180 deg). On 2026-10-22 a travel took it to 173.5 deg and
 # pressed the HEX-E's cable port against the forearm (the owner stopped the robot); the limit was 7 deg (sin 0.12).
 WRIST_SIN = 0.5
+# Joint 5 inside the program's --wrist-window on the robot's branch (deg). With joint 5 past about 100 deg the tool folds
+# back toward the forearm; the twisted touch-offs reached 149 deg, which the program refuses.
+WRIST_WINDOW = (30.0, 100.0)
 
 
 def nominal(kind, mount_turn_deg=0.0):
@@ -177,6 +180,8 @@ class Checker:
             return False, dict(reason="upper arm below the table"), q
         if abs(math.sin(q[4])) < WRIST_SIN:
             return False, dict(reason="wrist within 30 deg of its singularity", q_deg=np.degrees(q).round(1).tolist()), q
+        if not WRIST_WINDOW[0] <= math.degrees(q[4]) <= WRIST_WINDOW[1]:
+            return False, dict(reason="joint 5 outside the wrist window", q_deg=np.degrees(q).round(1).tolist()), q
         sok, sc = CELL.self_ok(q, self.T_EM)
         if not sok:
             return False, dict(reason="the tool near the robot's own links", self={k: round(v, 1) for k, v in sc.items()},
@@ -195,7 +200,7 @@ class Checker:
         for s in np.linspace(0, 1, n)[1:-1]:
             q = q0 + (q1 - q0) * s
             T = SIM.fk(q)
-            if abs(math.sin(q[4])) < WRIST_SIN:
+            if abs(math.sin(q[4])) < WRIST_SIN or not WRIST_WINDOW[0] <= math.degrees(q[4]) <= WRIST_WINDOW[1]:
                 return False, f"joint 5 at {math.degrees(q[4]):.0f} deg"
             sok, sc = CELL.self_ok(q, self.T_EM)
             if not sok:

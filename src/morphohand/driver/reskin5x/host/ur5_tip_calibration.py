@@ -735,7 +735,15 @@ class URRobot:
         except Exception:                                        # noqa: BLE001  (older controllers)
             pass
         q = self.c.getInverseKinematics(x, list(qnear))
-        return np.array(q) if q else None
+        if not q:
+            return None
+        try:                                                     # the controller's IK can come back off the target:
+            e = pose_error(ur_to_T(self.c.getForwardKinematics(list(q), [0.0] * 6)), T)   # grav-03 of 2026-10-22, 22.8 deg
+        except Exception:                                        # noqa: BLE001  (older controllers)
+            e = (0.0, 0.0)
+        if e[0] > 1.0 or e[1] > 0.5:
+            return None
+        return np.array(q)
 
     def stopped(self):
         return bool(self.r.isProtectiveStopped() or self.r.isEmergencyStopped())
@@ -852,6 +860,7 @@ class Session:
         self.geo = Geometry(plan)
         self.reg = Registration(self.geo)
         self.safety = dict(plan.get("safety", {}))
+        self.wrist_window = tuple(float(v) for v in str(getattr(args, "wrist_window", "30,100")).split(","))
         self.safety.setdefault("abort_N", 10.0)
         self.safety.setdefault("abort_Nm", 1.5)
         self.safety.setdefault("box_mm", 400.0)
@@ -898,8 +907,24 @@ class Session:
             if self.now() - t0 > timeout:
                 raise Abort("the robot did not come to rest")
 
+    def wrist_ok(self, q):
+        lo, hi = self.wrist_window
+        return lo <= math.degrees(float(q[4])) <= hi
+
+    def check_wrist(self, q=None, target=False):
+        """Abort when joint 5 leaves --wrist-window (deg): near 0 and 180 deg the wrist is singular, and past about 90
+        deg the HEX-E's cable port can reach the forearm (2026-10-22: pressed at 173.5 deg, the owner stopped it)."""
+        q = self.be.robot.q() if q is None else q
+        if not self.wrist_ok(q):
+            if not target:
+                self.be.robot.stopL(3.0)
+            raise Abort(f"joint 5 {'target' if target else 'at'} {math.degrees(float(q[4])):.1f} deg, outside "
+                        f"{self.wrist_window[0]:.0f} to {self.wrist_window[1]:.0f} deg")
+
     def check_ft(self, tare=None):
-        """Abort on a stale HEX-E stream, a protective stop, or a load past the limits (relative to tare)."""
+        """Abort on a stale HEX-E stream, a protective stop, a load past the limits (relative to tare), or joint 5
+        outside the wrist window."""
+        self.check_wrist()
         t, v = self.be.ft.ring.latest()
         if t is None or self.now() - t > 0.1:
             self.be.robot.stopL(2.0)
@@ -940,6 +965,7 @@ class Session:
             q = self.be.robot.ik(T, q_ref)
             if q is None:
                 raise Abort("no IK solution")
+            self.check_wrist(q, target=True)
             self.be.robot.moveJ(q, 0.4, 0.6, asynchronous=True)
         else:
             self.be.robot.moveL(T, v, a, asynchronous=True)
@@ -1260,6 +1286,7 @@ class Session:
                 q = self.be.robot.ik(T, self.reg.q_home if self.reg.q_home is not None else self.be.robot.q())
                 if q is None:
                     raise Abort("orientation out of reach")
+                self.check_wrist(q, target=True)
                 self.be.robot.moveJ(q, 0.4, 0.6)
                 self.sleep(0.8)
                 t0 = self.now()
@@ -1288,6 +1315,12 @@ class Session:
               f"drift during the {max(Tt) - min(Tt):.0f} s sweep {np.round(fit['v_f'], 3)} N/min, "
               f"{np.round(fit['v_t'], 4)} N m/min")
         lim = float(getattr(self.args, "gravity_max_rms", 0.1))
+        want = getattr(self.args, "gravity_expect_N", None)
+        if stage == "gravity" and want is not None and abs(fit["weight_N"] / float(want) - 1.0) > 0.05:
+            self.reg.notes["gravity_failed"] = {k: fit[k] for k in ("weight_N", "rms_f_N", "rms_t_Nm")}
+            self.save_reg()
+            raise SystemExit(f"gravity: weight {fit['weight_N']:.3f} N, over 5 % from the expected {float(want):.3f} N: "
+                             "the HEX-E's gain or the payload changed; stopping before any contact")
         if fit["rms_f_N"] > lim:
             self.reg.notes[f"{stage}_failed"] = {k: fit[k] for k in ("weight_N", "rms_f_N", "rms_t_Nm")}
             self.save_reg()
@@ -1568,6 +1601,11 @@ def main(argv=None):
     ap.add_argument("--home-from", default=None, help="FILE:LABEL, a recorded seating on the key (JSON lines with label "
                     "and T_tcp_mm) in place of the three freedrive seatings: for runs with nobody at the robot")
     ap.add_argument("--stages", default=",".join(STAGES))
+    ap.add_argument("--wrist-window", default="30,100", help="deg: joint 5 stays within LO,HI in every move and target "
+                    "(the lab plan of 2026-10-22 needs 37 to 90 deg outside the mount stage)")
+    ap.add_argument("--gravity-expect-N", type=float, default=None, help="N: the weight of an earlier sweep with the same "
+                    "tool; a fitted weight over 5 %% from it stops the session before any contact (2026-10-22: 1.567 N "
+                    "in first2, before the HEX-E's cable port was squeezed)")
     ap.add_argument("--gravity-max-rms", type=float, default=0.1, help="N: the gravity sweep's force residual past which "
                     "the session stops before any contact (Table 2 expects under 0.02 N)")
     ap.add_argument("--resume", default=None)

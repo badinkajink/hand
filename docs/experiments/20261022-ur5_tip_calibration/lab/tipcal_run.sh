@@ -9,13 +9,13 @@ set -u
 cd "$(dirname "$0")/../../../.." || exit 1
 NAME=$1
 shift
-if pgrep -f "^/usr/bin/python3 -u src/morphohand/driver/reskin5x/host/ur5_tip_calibration\.py" >/dev/null; then
+if pgrep -af "^/usr/bin/python3 -u src/morphohand/driver/reskin5x/host/ur5_tip_calibration\.py" | grep -qv -- "--sim"; then
     echo "the calibration program is running: not starting $NAME"
     exit 1
 fi
 PY=/usr/bin/python3
 P=src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py
-PLAN=docs/experiments/20261022-ur5_tip_calibration/lab/20261022-plan_sphere_measured_rod.json
+PLAN=${PLAN:-docs/experiments/20261022-ur5_tip_calibration/lab/20261022-plan_sphere_lab_wrist_twist.json}   # the plan of 20:23 (wrist, port, twisted touches)
 SEAT=docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:left_indenter_seated
 for f in "$PLAN" "${SEAT%:*}"; do                 # a pull or rebase in a clone that skips LFS leaves pointers
     if head -c 40 "$f" | grep -q "git-lfs"; then

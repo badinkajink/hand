@@ -1,0 +1,63 @@
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 140 records/s, robot 125 Hz
+  HEX-E noise (1 sigma) N, N m: [0.045  0.0469 0.2197 0.0028 0.0034 0.001 ]
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+== homing
+[sim operator] homing 1/3: in freedrive, seat the mount's socket on the indenter's key (palmar face down, the finger along the indenter's +x), hold it seated
+[sim operator] homing 2/3: in freedrive, seat the mount's socket on the indenter's key (palmar face down, the finger along the indenter's +x), hold it seated
+[sim operator] homing 3/3: in freedrive, seat the mount's socket on the indenter's key (palmar face down, the finger along the indenter's +x), hold it seated
+homing: 3 seatings within 0.078 mm, 0.000 deg of their mean
+  indenter at (-135.9, -597.5, 69.4) mm, yaw -92.0 deg, tilt 0.80 deg; the plan has (-138, -596, 71) mm, yaw -92 deg
+== pad
+  pad-flank-01: onset +0.426 mm from the expected (power 1.00, fit 107.0 mN)
+  pad-flank-05: onset +0.519 mm from the expected (power 1.25, fit 81.1 mN)
+  pad-edge-06: onset +0.482 mm from the expected (power 1.25, fit 66.8 mN)
+  pad-edge-03: onset +0.104 mm from the expected (power 1.50, fit 132.4 mN)
+  pad-edge-09: onset +0.208 mm from the expected (power 1.00, fit 85.2 mN)
+  pad-edge-00: onset +0.422 mm from the expected (power 1.00, fit 54.1 mN)
+  pad-face-03: onset +0.330 mm from the expected (power 1.00, fit 62.5 mN)
+  pad-face-09: onset +0.499 mm from the expected (power 1.00, fit 47.4 mN)
+  pad-face-07: onset +0.533 mm from the expected (power 1.50, fit 49.4 mN)
+  pad-face-08: onset +0.107 mm from the expected (power 1.25, fit 79.1 mN)
+  pad-face-02: onset +0.544 mm from the expected (power 1.25, fit 50.7 mN)
+  pad-edge-05: onset -0.167 mm from the expected (power 1.00, fit 106.8 mN)
+  pad-face-01: onset -0.113 mm from the expected (power 1.00, fit 102.2 mN)
+  pad-face-00: onset +0.352 mm from the expected (power 1.00, fit 49.8 mN)
+  pad-face-06: onset +0.129 mm from the expected (power 1.00, fit 62.2 mN)
+  pad-face-11: onset +0.275 mm from the expected (power 1.00, fit 51.9 mN)
+  pad-face-04: onset +0.290 mm from the expected (power 1.00, fit 51.5 mN)
+  pad-face-10: onset -0.004 mm from the expected (power 1.00, fit 62.0 mN)
+  pad-edge-02: onset -0.424 mm from the expected (power 1.50, fit 116.3 mN)
+  pad-face-05: onset +0.087 mm from the expected (power 1.75, fit 48.9 mN)
+  pad-edge-04: onset -0.021 mm from the expected (power 1.25, fit 58.4 mN)
+  pad-flank-02: onset -0.372 mm from the expected (power 2.00, fit 109.4 mN)
+  pad-edge-08: onset -0.204 mm from the expected (power 1.25, fit 73.4 mN)
+  pad-flank-07: onset -0.192 mm from the expected (power 1.25, fit 72.7 mN)
+  pad-edge-07: onset +0.068 mm from the expected (power 1.00, fit 44.3 mN)
+  pad-edge-01: onset +0.178 mm from the expected (power 1.00, fit 46.9 mN)
+  pad-flank-03: onset -0.128 mm from the expected (power 1.00, fit 63.0 mN)
+  pad-flank-00: onset +0.131 mm from the expected (power 1.00, fit 39.4 mN)
+  pad-flank-09: onset +0.170 mm from the expected (power 1.00, fit 47.6 mN)
+  pad-flank-06: onset +0.008 mm from the expected (power 1.00, fit 49.7 mN)
+  pad-flank-08: onset +0.136 mm from the expected (power 1.00, fit 42.1 mN)
+  pad-flank-04: onset +0.181 mm from the expected (power 1.00, fit 44.2 mN)
+== register
+register: pad touches 0.012 mm rms (32), face nan mm (0); TCP moved 1.140 mm, 0.913 deg; sphere centre moved 0.854 mm
+  TCP of the pad frame on the flange (for the pendant): -0.00041, -0.00234, 0.11855, 0.00566, -0.00974, -1.59599  (m, rotation vector)
+== pivot
+  pivot pivot-5 twist +15 deg: the board places it -0.007, +0.007 mm from the reference (shear 0.069 N, fit residual 1.1 uT)
+  pivot-5: board -0.007 +0.007 mm, registration -0.000 -0.000 mm, apart 0.010 mm
+== grid
+  ref-00 (1/12): to 2.00 N
+  grid-052 (2/12): to 2.00 N
+  grid-053 (3/12): to 2.00 N
+  grid-033 (4/12): to 3.00 N
+  grid-032 (5/12): to 3.00 N
+  grid-051 (6/12): to 3.00 N
+  grid-034 (7/12): to 3.00 N
+  grid-031 (8/12): to 3.00 N
+  grid-035 (9/12): to 3.00 N
+  grid-036 (10/12): to 3.00 N
+  grid-030 (11/12): to 3.00 N
+  grid-029 (12/12): to 5.00 N
+session in /home/will/workspace/hand/logs/20261022-tip_calibration/203029-sim-seg1
