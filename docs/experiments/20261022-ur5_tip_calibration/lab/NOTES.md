@@ -338,9 +338,13 @@ the lab session ("go") at about 15:36.
   (16:03) moved them +0.037 and −0.040 mm. Exit 0 at 16:03:34; home at 16:05. The data are in
   `lab/20261023-124052-sph3t/` with `printout_resume.txt` and `plan_resume_1536.json`.
 - 16:30, the owner: "its time to calibrate the ati can i take off the finger". The robot stood at home in normal
-  safety mode, with nothing from the lab session connected to it or to the DAQ, so yes. With the finger off, every
-  registration of 10-22 and 10-23 (sphere2, rod1, rod1t, sph3t) stops holding for the robot. A finger that goes back
-  on needs its own touch-offs and registration before any press.
+  safety mode, with nothing from the lab session connected to it or to the DAQ, so yes. The owner (16:3x): the
+  geometry does not change, and rehoming on the keys might do more harm than good. Agreed: the indenters and the robot
+  stay, and the registration's sphere is better placed than a hand seating, which it moved by 1.43 mm. What can shift
+  is the seat of each part taken off and put back: the link in the fork, and the mount on the HEX-E if it comes off.
+  So when the finger is back, about six sphere touch-offs at 5.0 mm (some 12 min) are compared with sph3t's onsets,
+  which repeated last night's to within 0.06 mm. Within about 0.1 mm, the sessions resume on sph3t's registration;
+  otherwise the touch-offs are redone. No rehoming unless an indenter moves.
 
 ## The lab clone and git-lfs
 
