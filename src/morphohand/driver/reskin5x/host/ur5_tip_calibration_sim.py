@@ -135,6 +135,7 @@ class Truth:
     payload_kg: float = 0.184                                        # past the HEX-E's sensing element
     payload_com_mm: tuple = (0.2, 2.0, 16.9)                         # from the HEX-E's origin, flange axes
     seat_err_mm: tuple = (0.10, 0.03, 0.04)                          # homing: along the key (its relieved ends), across, depth
+    seat_bias_mm: tuple = (0.0, 0.0, 0.0)                            # homing: a fixed offset of every seating (I), e.g. the key off the sphere's axis
     dh_err: float = 0.08                                             # mm and mrad of the DH perturbation
     repeat_mm: float = 0.01
     pad_soft: float = 1.15                                           # the printed pad's compliance over the FE's
@@ -636,6 +637,7 @@ class SimBackend:
         if kind == "seat":
             e = self.truth.seat_err_mm
             d = np.array([self.w.rng.uniform(-e[0], e[0]), self.w.rng.normal(0, e[1]), self.w.rng.normal(0, e[2])])
+            d = d + np.asarray(self.truth.seat_bias_mm, float)
             T_BM = self.w.T_BI @ C.Tm(None, d) @ self.w.geo.T_IM_home
             T_BE = T_BM @ C.inv(self.w.T_EM)
             q = ik(T_BE, self.w.q, self.w.dh_true)
