@@ -253,5 +253,37 @@ push that answers it arrives.
   down along its z. At each pose, read 10 s, hang a weighed 100 to 200 g mass from the mount, read 10 s, take it off
   and read 10 s. The change against m g gives that axis's gain to about 1 %.
 
+- R12 (done 21:20 by the workstation, asked by the lab at 21:09; the simulator run of its turn stages is going). The
+  builder now checks every 0.5 deg step of each slide, roll and twist as `run_turns` moves them, with all parts against
+  the cell (`turn_poses`). In tcp2, twist-0-1.0N's turn put the mount's fork on the indenter's homing key. On tcp2's own
+  poses and homing, the cell model puts the fork 5.6 mm from the key at the pressed pose, 3.0 mm at -3.3 deg and 0 at
+  -7.1 deg; on the robot the load began at -8.6 deg. Turning the other way moves the fork off (10.7 mm at +10 deg).
+  Built with the lab's options, the old twists of +-20 deg all drop at -3 to -4 deg. Each twist now turns one way, out
+  and back: 5, 10, 15, 10 and 5 deg, or the mirror of that when the first way does not clear. The friction's torsion
+  changes sign with the direction of turning, and the push's moment follows the pose. Half the difference between the
+  way out and the way back at 5 and 10 deg is then the torsion. At 15 deg joint 5 stays at 36.6 deg or more. At 20 deg it
+  came to 31.2 deg on the robot, 1.2 deg inside the window; the builder's IK gave 31.0.
+
+  The plan is `plan/20261022-plan_sphere_lab_turns_checked.json`, built with the options of `lab/README.md` plus
+  `--q-seed=59.48,-75.93,120.3,-44.61,62.11,1.83 --order joint6 --gravity-roll-offset 30`. It has 143 actions, and
+  every action outside the turn stages is the same as in the lab's `20261022-plan_sphere_lab_window_untwisted.json`,
+  with the same twist and order. Of the turn stages, 4 slides of 7, 2 rolls of 4 and all 8 twists clear. shear-1, -2
+  and -4 and roll-1 and -2 come to 2.87 to 2.99 mm of the 3 mm that the mount needs.
+
+- R13 (21:20; the workstation's analysis after sphere2's register). tcp2's three presses met the sphere 0.72, 0.83 and
+  0.76 mm before the planned contact: ref-00 on the face, grid-052 and grid-053 on the flank. Each onset is the start of
+  the push along the approach, fitted as for the touch-offs. Read as a shift of the pad, the three give (0.72, 0.10,
+  1.07) mm in P: 0.7 mm along the face normal and 1.1 mm along the finger. The two flank points see the finger's
+  direction through their normals, 0.44 and 0.30 along z_P. A uniform offset of the pad's surface by 0.77 mm fits the
+  three as well. The registration fits T_EM, T_MP and the sphere's centre as rigid transforms, with priors of 0.25 to
+  0.6 mm, and has no offset term. A shift shows in sphere2's registration as a TCP change of about 1.3 mm. An offset
+  shows as touch residuals of opposite sign on the two flanks.
+
+  The twist's turn added 0.29, 0.47 and 0.63 N along the finger at 5, 10 and 20 deg, after the HEX-E's creep of
+  0.08 N/min is removed. Its axis therefore passed off the contact across the finger, by 0.25 mm at the FE's stuck-contact
+  stiffness (13 to 15 N/mm at 1.3 N) and by about 1 mm at the stiffness of the presses (about 3 N/mm at 1.2 N). The flank
+  touches measure that direction. The 1.1 N in Fy that the lab read at the first step is the twist's own press to 1 N:
+  the mount's -92 deg turn puts the pad's normal along the sensor's y.
+
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
