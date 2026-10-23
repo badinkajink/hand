@@ -55,12 +55,14 @@ STEPS = ("board", "+temperature change", "+time since rest", "+orientation (leak
 
 # ------------------------------------------------------------------------------------------------------- data
 def load(folder):
+    """The press holds, the turn holds (slides, rolls, twists) and the magnets fitted to the first rest."""
     z = np.load(Path(folder) / "holds.npz", allow_pickle=False)
-    H = {k: z[k] for k in z.files}
-    keep = (H["kind"] == "press") & np.isfinite(H["f_n"]) & np.all(np.isfinite(H["d_board"]), axis=1)
-    H = {k: v[keep] for k, v in H.items()}
+    A = {k: z[k] for k in z.files}
+    ok = np.isfinite(A["f_n"]) & np.all(np.isfinite(A["d_board"]), axis=1)
+    H = {k: v[ok & (A["kind"] == "press")] for k, v in A.items()}
+    T = {k: v[ok & np.isin(A["kind"], ["slide", "roll", "twist"])] for k, v in A.items()}
     cal = W.Calib.load(Path(folder) / "calib_rest.json")
-    return H, cal
+    return H, T, cal
 
 
 def features(H, step):
@@ -234,7 +236,7 @@ class Physical:
 
 
 # ------------------------------------------------------------------------------------------------------- scores
-def scores(H, idx, P, Fn):
+def scores(H, idx, P, Fn, group="level_N"):
     n = H["n"][idx]
     dp = P - H["p"][idx]
     loc = np.linalg.norm(dp - np.sum(dp * n, axis=1)[:, None] * n, axis=1)
@@ -248,7 +250,12 @@ def scores(H, idx, P, Fn):
         return dict(n=int(len(x)), median=float(np.median(x)) if len(x) else None,
                     p90=float(np.percentile(x, 90)) if len(x) else None)
 
-    out = dict(loc_mm=st(loc), force_N=st(fe), rel_force=st(rel[big]), detected=f"{int(ok.sum())}/{len(idx)}", by_level={})
+    out = dict(loc_mm=st(loc), force_N=st(fe), rel_force=st(rel[big]), detected=f"{int(ok.sum())}/{len(idx)}")
+    if group == "kind":                                  # turn holds: by slide, roll and twist
+        out["by_kind"] = {k: dict(loc_mm=st(loc[H["kind"][idx] == k]), force_N=st(fe[H["kind"][idx] == k]))
+                          for k in sorted(set(H["kind"][idx].tolist()))}
+        return out
+    out["by_level"] = {}
     for L in sorted(set(np.round(H["level_N"][idx], 3)[np.isfinite(H["level_N"][idx])].tolist())):
         m = np.round(H["level_N"][idx], 3) == L
         out["by_level"][f"{L:g}"] = dict(loc_mm=st(loc[m]), force_N=st(fe[m]))
@@ -266,8 +273,36 @@ def snap(est, P):
 
 
 # ------------------------------------------------------------------------------------------------------- main
+def models(H, tr, Ht, te, cal0, basis, est_snap, group="level_N"):
+    """Every predictor trained on the holds tr of H and scored on the holds te of Ht."""
+    row = dict(holds=int(len(tr)))
+    ph = Physical(cal0, basis).fit(H, tr)
+    Pp, Fp = ph.predict(Ht, te)
+    row["physical"] = scores(Ht, te, Pp, Fp, group)
+    row["physical_params"] = dict(k=ph.theta[0], dx=ph.theta[1], dy=ph.theta[2], dz=ph.theta[3],
+                                  c=math.exp(ph.theta[4]), rms_uT=ph.rms_uT)
+    Ptr, Ftr = ph.predict(H, tr)
+    for st, name in enumerate(STEPS):
+        Xtr, Xte = features(H, st)[tr], features(Ht, st)[te]
+        Ytr = np.c_[H["p"][tr], H["f_n"][tr]]
+        fl = floors(st)
+        for lab, model in (("gp", GP()), ("ridge", Ridge())):
+            Y = model.fit(Xtr, Ytr, fl).predict(Xte)
+            row[f"{lab}:{name}"] = scores(Ht, te, snap(est_snap, Y[:, :3]), Y[:, 3], group)
+        # the physical predictor plus a GP on its residual, prior mean zero, trained on the holds it placed within 2 mm
+        ok = np.all(np.isfinite(Ptr), axis=1)
+        ok[ok] &= np.linalg.norm(H["p"][tr][ok] - Ptr[ok], axis=1) < 2.0
+        if ok.sum() >= 3:
+            Rtr = np.c_[H["p"][tr][ok] - Ptr[ok], H["f_n"][tr][ok] - Ftr[ok]]
+            Y = GP(center=False).fit(Xtr[ok], Rtr, fl).predict(Xte)
+            row[f"physical+gp:{name}"] = scores(Ht, te, snap(est_snap, Pp + Y[:, :3]), Fp + Y[:, 3], group)
+        else:                                           # too few holds to learn a residual: the physical prediction
+            row[f"physical+gp:{name}"] = row["physical"]
+    return row, ph
+
+
 def run(folder, sizes, out_dir):
-    H, cal0 = load(folder)
+    H, T, cal0 = load(folder)
     basis = W.load_basis(BASIS)
     train, test = split(H)
     te = np.nonzero(np.isin(H["id"], test))[0]
@@ -281,34 +316,25 @@ def run(folder, sizes, out_dir):
     est_snap = phys0.estimator()
     for N in sorted(set([s for s in sizes if s < len(train)] + [len(train)])):
         tr = np.nonzero(np.isin(H["id"], train[:N]))[0]
-        row = dict(N=N, holds=int(len(tr)))
-        ph = Physical(cal0, basis).fit(H, tr)
-        Pp, Fp = ph.predict(H, te)
-        row["physical"] = scores(H, te, Pp, Fp)
-        row["physical_params"] = dict(k=ph.theta[0], dx=ph.theta[1], dy=ph.theta[2], dz=ph.theta[3],
-                                      c=math.exp(ph.theta[4]), rms_uT=ph.rms_uT)
-        Ptr, Ftr = ph.predict(H, tr)
-        for st, name in enumerate(STEPS):
-            Xtr, Xte = features(H, st)[tr], features(H, st)[te]
-            Ytr = np.c_[H["p"][tr], H["f_n"][tr]]
-            fl = floors(st)
-            for lab, model in (("gp", GP()), ("ridge", Ridge())):
-                Y = model.fit(Xtr, Ytr, fl).predict(Xte)
-                row[f"{lab}:{name}"] = scores(H, te, snap(est_snap, Y[:, :3]), Y[:, 3])
-            # the physical predictor plus a GP on its residual, prior mean zero, trained on the holds it placed within 2 mm
-            ok = np.all(np.isfinite(Ptr), axis=1)
-            ok[ok] &= np.linalg.norm(H["p"][tr][ok] - Ptr[ok], axis=1) < 2.0
-            if ok.sum() >= 3:
-                Rtr = np.c_[H["p"][tr][ok] - Ptr[ok], H["f_n"][tr][ok] - Ftr[ok]]
-                Y = GP(center=False).fit(Xtr[ok], Rtr, fl).predict(Xte)
-                row[f"physical+gp:{name}"] = scores(H, te, snap(est_snap, Pp + Y[:, :3]), Fp + Y[:, 3])
-            else:                                       # too few holds to learn a residual: the physical prediction
-                row[f"physical+gp:{name}"] = row["physical"]
+        row, ph = models(H, tr, H, te, cal0, basis, est_snap)
+        row = dict(N=N, **row)
         res["curve"].append(row)
         print(f"  N = {N:3d} presses ({len(tr)} holds): physical {row['physical']['loc_mm']['median']:.2f} mm, "
               f"{row['physical']['force_N']['median']:.3f} N (k {ph.theta[0]:.3f}, c {math.exp(ph.theta[4]):.2f}); gp board "
               f"{row['gp:board']['loc_mm']['median']:.2f} mm, {row['gp:board']['force_N']['median']:.3f} N; physical+gp board "
               f"{row.get('physical+gp:board', {}).get('loc_mm', {}).get('median', float('nan')):.2f} mm")
+    # the turn holds (slides, rolls, twists), whose tool orientations no press has: every press trains
+    if len(T["id"]) >= 3:
+        tt = np.arange(len(T["id"]))
+        row, ph = models(H, np.arange(len(H["id"])), T, tt, cal0, basis, est_snap, group="kind")
+        res["turns"] = dict(n_actions=int(len(np.unique(T["id"]))), n_holds=int(len(tt)),
+                            viewer=scores(T, tt, *phys0.predict(T, tt), group="kind"), **row)
+        tv = res["turns"]
+        print(f"  turn holds ({tv['n_holds']} from {tv['n_actions']} actions), trained on every press: viewer "
+              f"{tv['viewer']['loc_mm']['median']:.2f} mm, {tv['viewer']['force_N']['median']:.3f} N; physical "
+              f"{tv['physical']['loc_mm']['median']:.2f} mm; gp board {tv['gp:board']['loc_mm']['median']:.2f} mm, "
+              f"{tv['gp:board']['force_N']['median']:.3f} N; gp with orientation "
+              f"{tv['gp:+orientation (leaks the target)']['loc_mm']['median']:.2f} mm")
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "predict.json").write_text(json.dumps(res, indent=1, default=float))
