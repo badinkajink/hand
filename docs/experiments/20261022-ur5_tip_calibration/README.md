@@ -44,6 +44,17 @@ come next, and the final reference press and gravity sweep last.
 
 ## Rules for a Claude Code session on the lab computer
 
+**Changed for the night of 2026-10-22 (owner).** After the TCP check passed, the owner handed the runs to the lab
+computer's session ("once that passes, Ill trust you to run things autonomously ... you can stop whatever the hell youre
+doing (+ the ur5s built in safety stop)"). That session now:
+- starts the program itself, with `--home-from` in place of the freedrive seatings;
+- moves the robot with `lab/move_guarded.py` between runs;
+- commits and pushes;
+- leaves the heavy analysis to the work computer's session, which polls the repository.
+
+`lab/README.md` holds the cell as measured, the plan for it, and the commands. The rules below still hold where they
+don't conflict: one reader on the DAQ, simulator first, and Table 2 after each run.
+
 1. The operator starts every run of the program in a tmux session named `tipcal`. The program asks for Enter during
    homing and after a protective stop, and a Claude Code shell has no keyboard. Claude reads the program's output with
    `tmux capture-pane -p -t tipcal -S -300` and reads the session folder's `events.jsonl`. It never sends keys to that
