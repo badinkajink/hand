@@ -200,6 +200,10 @@ stage: the HEX-E's factory calibration, first2's fit for the analysis (QUEUE R11
   of grid-066's approach while someone watches the cable and the tool's parts near the sphere.
 - A later resume of the session could retry grid-007 and pad-flank-04, -08 and -09 with the current program (queued
   writer 96abeec0, pivot fix 8be552e1). The gravity, mount and final stages stay out until the owner decides.
+- The owner's answers, just after midnight on 2026-10-23. R10: the HEX-E can't be fixed ("it is what it is"). A new
+  cable may be ordered but will take a while, so runs live with the intermittent link and its guards. R16: the DIP link
+  moves a little in the fork when the pad is pressed hard. A mount that fastens the link more rigidly was requested from
+  the workstation. The owner called the day done.
 
 ## The lab clone and git-lfs
 
