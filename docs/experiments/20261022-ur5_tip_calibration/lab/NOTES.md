@@ -256,7 +256,28 @@ held the robot or the DAQ.
   2.81 mm. Finger least 1.69 mm (needs 0.8), HEX-E 32.9 mm (needs 6). The three were dropped
   (`lab/20261023-plan_rod_lab_reg_rod1.json`, 96 actions); the next closest are grid-051 3.18 and grid-023 3.19 mm.
 - 10:57, `rod1g` (resume) on that plan, stages preflight, pivot, grid, roll; printout
-  `logs/20261023-105751-tipcal-rod1g.log`. Preflight passed (noise 0.022, 0.033, 0.235 N, no timeout).
+  `logs/20261023-105751-tipcal-rod1g.log`. Preflight passed (noise 0.022, 0.033, 0.235 N, no timeout). The pivot
+  stage has a reference and four offsets but no twisted press, so `pivots.json` is empty and the fit is in the events.
+  The reference presses held: ref-01 (11:11) moved the onset +0.009 mm and the depth +0.002 mm from ref-00 (0.1 N
+  at 1.152 mm, depth 0.429 mm); ref-02 (11:23) −0.002 and +0.018 mm.
+- 11:16, the workstation (R19): rod1's touch-offs began in contact, so two touch-off sessions after rod1g, `rod1t`
+  on the rod and `sph3t` on the sphere, for a joint registration. `lab/descent_check.py` measured the contact from the
+  last vertical descent onto each rest pose, which keeps the orientation. The preload is the force at rest against the
+  force 6 to 10 mm higher. On sphere2's 29 clean touches it was 0.056 N median (0.169 N at most). On rod1's 20
+  touches with a descent it was 1.85 N median and 3.80 N at most; 16 had over 0.3 N, with contact 0.09 to 1.16 mm
+  above the rest. That is a true onset of −1.59 to −2.66 mm from the expected (face-02 −2.66, face-07 −2.62). So the
+  pad bore up to about 4.3 N at a touch's stop, not 0.5 N. Past the workstation's 2.5 mm, both sessions use its
+  5.0 mm plans (`plan/20261023-plan_rod_lab_touch50.json`, `plan/20261023-plan_sphere_lab_touch50.json`, 2fd80414),
+  which differ from their sources only in the touch-offs' standoff.
+- In the simulator the rod at 3.5 mm ended 22 touches with no abort (0.018 mm rms). The sphere at 3.5 mm aborted
+  three in a row with no contact onset. The default truth tilts the plywood 0.23 and 0.17 deg about the base and
+  shifts the indenter by (1.5, −2.0, 0.8) mm. That puts the sphere's top 2.33 mm below where the program's homing has
+  it and 4.4 mm to the side, which on a sphere of 5 mm radius makes every contact come several millimetres late, past
+  the 1.2 mm a touch may go beyond the expected contact. (The rod's top line comes out 0.05 mm high: its plan's
+  `sim.T_BI` sits 2.45 mm above the seating and cancels the tilt.) Last night's real onsets on the sphere were −1.19 to
+  +0.89 mm. The 5.0 mm plans were simulated with the indenters where the
+  stored seatings put them (sim-only copies with `sim.T_BI` from the seating, `--sim-truth` with no tilt or indenter
+  error), in `/dev/shm/tipcal-sim`.
 
 ## The lab clone and git-lfs
 
