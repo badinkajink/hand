@@ -87,6 +87,7 @@ def load(session):
     R["CV"] = json.loads((sd / "predict/cv4_gp_mlp.json").read_text()) if (sd / "predict/cv4_gp_mlp.json").exists() else None
     R["TR"] = (json.loads((sd / "predict/magnet_transfer_sim.json").read_text())
                if (sd / "predict/magnet_transfer_sim.json").exists() else None)
+    R["HY"] = json.loads((sd / "predict/hybrid_cv.json").read_text()) if (sd / "predict/hybrid_cv.json").exists() else None
     plan = json.loads((ld / "plan.json").read_text())
     have = {a["id"] for a in plan["actions"]}
     for f in sorted(ld.glob("plan_resume_*.json")):
@@ -684,6 +685,24 @@ def sections(R, F):
                      + P.table(["Predictor", "Set A: today's magnets (mm, N)", "Set B: N52 (mm, N)", "Set C: N52, checkerboard (mm, N)"],
                                trow, num_cols=(1, 2, 3), caption="Median location and normal force errors on the held-out "
                                "presses, simulated board changes on sphere2's mechanics.", n=8))
+            HY = R.get("HY")
+            if HY:
+                hrow = [[lab, f"{HY[k]['loc_median']:.2f}", f"{HY[k]['loc_median_from_1N']:.2f}", f"{HY[k]['loc_median_below_1N']:.2f}",
+                         f"{HY[k]['force_median']:.3f}"]
+                        for k, lab in (("physical", "Physical model, untrained"), ("gp raw", "GP on the board change"),
+                                       ("mlp raw", "MLP on the board change"), ("physical+gp", "Physical model with a GP correction"),
+                                       ("physical+mlp", "Physical model with an MLP correction"))]
+                body += (f"<p>On the real presses the correction that carries over costs accuracy. Over the four folds, its "
+                         f"median location error is {HY['physical+gp']['loc_median']:.2f} mm. The MLP on the board change gets "
+                         f"{HY['mlp raw']['loc_median']:.2f} mm (Table 9). Below "
+                         f"1 N it gives {HY['physical+gp']['loc_median_below_1N']:.2f} mm, because the physical estimate there "
+                         f"is {HY['physical']['loc_median_below_1N']:.1f} mm off and the correction sees only that estimate. "
+                         f"After a change of magnets, the corrected physical model works from a rest fit alone. A short session "
+                         f"of presses that retrains the MLP brings back the better figure; the learning curve above puts that at "
+                         f"about 40 presses ({code(ROOT / 'scripts/fingertip_hybrid_cv.py')}).</p>"
+                         + P.table(["Predictor", "Location (mm)", "From 1 N (mm)", "Below 1 N (mm)", "Force (N)"], hrow,
+                                   num_cols=(1, 2, 3, 4), caption="Real presses of sphere2, four folds (each grid press held "
+                                   "out once), medians.", n=9))
         S_.append(("predict", "Predictors of the contact point and the normal force", body))
 
     # ---- limitations, future work
