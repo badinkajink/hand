@@ -55,6 +55,9 @@ WRIST_SIN = 0.5
 # Joint 5 inside the program's --wrist-window on the robot's branch (deg). With joint 5 past about 100 deg the tool folds
 # back toward the forearm; the twisted touch-offs reached 149 deg, which the program refuses.
 WRIST_WINDOW = (30.0, 100.0)
+# The builder keeps joint 5 this far inside the program's window: its IK put joint 5 within 0.3 deg of the robot's in
+# tcp2's twist (31.0 against 31.2 deg at +20 deg), and a slide planned at 30.3 deg would abort on the robot.
+WRIST_MARGIN = 1.0
 # The program turns a slide, roll or twist in contact in steps of this many degrees (run_turns' step_deg), and the builder
 # checks every step. On 2026-10-22 (tcp2) twist-0-1.0N's turn toward -10 deg put the mount's fork on the indenter's key
 # at -8.6 deg (8 N); the builder had checked the press poses only.
@@ -184,7 +187,7 @@ class Checker:
             return False, dict(reason="upper arm below the table"), q
         if abs(math.sin(q[4])) < WRIST_SIN:
             return False, dict(reason="wrist within 30 deg of its singularity", q_deg=np.degrees(q).round(1).tolist()), q
-        if not WRIST_WINDOW[0] <= math.degrees(q[4]) <= WRIST_WINDOW[1]:
+        if not WRIST_WINDOW[0] + WRIST_MARGIN <= math.degrees(q[4]) <= WRIST_WINDOW[1] - WRIST_MARGIN:
             return False, dict(reason="joint 5 outside the wrist window", q_deg=np.degrees(q).round(1).tolist()), q
         sok, sc = CELL.self_ok(q, self.T_EM)
         if not sok:
@@ -204,7 +207,7 @@ class Checker:
         for s in np.linspace(0, 1, n)[1:-1]:
             q = q0 + (q1 - q0) * s
             T = SIM.fk(q)
-            if abs(math.sin(q[4])) < WRIST_SIN or not WRIST_WINDOW[0] <= math.degrees(q[4]) <= WRIST_WINDOW[1]:
+            if abs(math.sin(q[4])) < WRIST_SIN or not WRIST_WINDOW[0] + WRIST_MARGIN <= math.degrees(q[4]) <= WRIST_WINDOW[1] - WRIST_MARGIN:
                 return False, f"joint 5 at {math.degrees(q[4]):.0f} deg"
             sok, sc = CELL.self_ok(q, self.T_EM)
             if not sok:

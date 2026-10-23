@@ -217,6 +217,10 @@ push that answers it arrives.
   | 20:27:40 | sphere1 | counter restarted, 18754 to 2; 14 samples, then none | joint 4 turning 6.7 deg/s, joint 6 2.8 deg/s |
   | 20:46:58 | tcp1 | no sensor in the box | still since 20:28:20 |
 
+  At 21:21 the lab found that sphere2's short gaps, with the counter running on, came from the program's own fsync of
+  `ft.bin` on a slow disk; d1ef3216 moves the fsync to a thread of its own. The 0.42 s gap at 19:58:45 has the same
+  signature. The other six losses are the sensor's.
+
   After each restart the first samples read Fz 1863 N, falling to 655 N within 0.1 s, as the sensor starts up. So the
   sensor lost its power or its link, at the connector or in the cable. Tightening the coupling ring and tying the cable
   down at 19:48 did not stop it. At 19:59 the wrist pressed the cable port against the forearm, which may have damaged
@@ -253,7 +257,7 @@ push that answers it arrives.
   down along its z. At each pose, read 10 s, hang a weighed 100 to 200 g mass from the mount, read 10 s, take it off
   and read 10 s. The change against m g gives that axis's gain to about 1 %.
 
-- R12 (done 21:20 by the workstation, asked by the lab at 21:09; the simulator run of its turn stages is going). The
+- R12 (done 21:30 by the workstation, asked by the lab at 21:09; simulated, see the end of this item). The
   builder now checks every 0.5 deg step of each slide, roll and twist as `run_turns` moves them, with all parts against
   the cell (`turn_poses`). In tcp2, twist-0-1.0N's turn put the mount's fork on the indenter's homing key. On tcp2's own
   poses and homing, the cell model puts the fork 5.6 mm from the key at the pressed pose, 3.0 mm at -3.3 deg and 0 at
@@ -270,14 +274,22 @@ push that answers it arrives.
   with the same twist and order. Of the turn stages, 4 slides of 7, 2 rolls of 4 and all 8 twists clear. shear-1, -2
   and -4 and roll-1 and -2 come to 2.87 to 2.99 mm of the 3 mm that the mount needs.
 
+  Simulated at 21:18 (`211803-sim-turns`: preflight, homing, shear, roll and twist): all 14 turn actions ended ok.
+  `lab/check_arm_samples.py --cell --every 25` finds no sample outside homing that breaks a rule. The least clearances
+  of the mount and the finger are 3.0 and 3.0 mm in the slides, 4.7 and 4.7 in the rolls, and 3.7 and 4.0 in the twists.
+  Joint 5 came to 30.9 deg in shear-5-1N, against the program's limit of 30. The builder now keeps joint 5 1 deg inside
+  the program's window (`WRIST_MARGIN`). That drops shear-5-1N alone, and the plan has 142 actions; every other action
+  is unchanged, so the simulated run covers them.
+
 - R13 (21:20; the workstation's analysis after sphere2's register). tcp2's three presses met the sphere 0.72, 0.83 and
   0.76 mm before the planned contact: ref-00 on the face, grid-052 and grid-053 on the flank. Each onset is the start of
   the push along the approach, fitted as for the touch-offs. Read as a shift of the pad, the three give (0.72, 0.10,
   1.07) mm in P: 0.7 mm along the face normal and 1.1 mm along the finger. The two flank points see the finger's
   direction through their normals, 0.44 and 0.30 along z_P. A uniform offset of the pad's surface by 0.77 mm fits the
-  three as well. The registration fits T_EM, T_MP and the sphere's centre as rigid transforms, with priors of 0.25 to
-  0.6 mm, and has no offset term. A shift shows in sphere2's registration as a TCP change of about 1.3 mm. An offset
-  shows as touch residuals of opposite sign on the two flanks.
+  three as well. Every touch and press approaches the sphere's top vertically, so a uniform offset changes every gap
+  alike, as a higher sphere would. The registration then takes it as the sphere's centre above the homing's, against
+  that prior's 0.12 mm. A shift of the pad shows as a change of the TCP instead. sphere2's first 12 onsets (lab, 21:21)
+  are 0.64 to 1.19 mm early, close to uniform.
 
   The twist's turn added 0.29, 0.47 and 0.63 N along the finger at 5, 10 and 20 deg, after the HEX-E's creep of
   0.08 N/min is removed. Its axis therefore passed off the contact across the finger, by 0.25 mm at the FE's stuck-contact
