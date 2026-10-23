@@ -90,6 +90,36 @@ The plan builder now takes the seating's joints (`--q-seed`), keeps joint 5 at l
 needs 15 mm between the tool (port included) and the forearm and wrist links (93e9c7db). The mount stage stays out of
 tonight's runs (owner: "that straight pointing down orientation---not a fan of it").
 
+### 20:25, sphere1 (preflight, homing, gravity, pad, register, grid; a segment of 12 grid presses) at 30 %: stopped in gravity when the HEX-E restarted
+
+Folder `20261022-202551-sphere1/`. Plan `20261022-plan_sphere_lab_wrist_twist_segment1.json`: gravity, the 32 pad
+touch-offs and the first 12 grid presses of the plan with the wrist limit, the joint 6 order and twisted touch-offs.
+The owner asked for a short segment first ("just collect some initial data that we think is going to be good/safe, and
+see if the whole pipeline from that point on works"). Options `--gravity-expect-N 1.567 --gravity-max-rms 0.2`.
+
+- Preflight passed: noise 0.034, 0.016 and 0.245 N, no timed-out reads.
+- Gravity: grav-00 to grav-12 in the new order ended ok, until the stream stopped at 20:27:40.1. The sample counter went
+  from 18754 to 2 with a reading of +1862 N in Fz, then nothing. grav-07, grav-02 and grav-01 aborted with no sample, and
+  the program stopped at 20:28:20. The arm stood near home with joint 6 at 92 deg.
+- The same plan in the simulator (sim-final) stopped at pad-edge-06. Its touch-off twisted by −60 deg needs joint 5 at
+  149 deg, which the program's window (30 to 100 deg) refused. The builder now keeps every pose inside the same window.
+- Two simulator runs went on during this run, at up to 11 cores. The restart at 20:27:40 was the sensor's own (its
+  counter went to 2 and the box lost it), but from now on no simulator or analysis runs during a robot run.
+
+The sensor was back at 20:29:11. The workstation then advised dropping the twisted touch-offs (in five simulated
+truths they helped in two and hurt in two), and the plan was rebuilt without them:
+`20261022-plan_sphere_lab_window_untwisted.json` (148 actions, the mount stage dropped by the window, 0 travel paths
+short). Its segment of 32 touch-offs, 6 pivots and 12 grid presses passed the simulator (sim-seg1: no aborts; pad touches
+0.012 mm rms; joint 5 from 36.8 to 85.3 deg and the port at least 48.5 mm from the arm in every tenth sample).
+
+### 20:46, tcp1 (preflight, homing, 3 grid presses, 8 twists) at 30 %: stopped at preflight, no HEX-E
+
+Folder `20261022-204657-tcp1/`. The owner asked for presses and twists to judge the TCP by eye ("can you just do some
+presses and twists so i can tell you whether the TCP is correct or not"), with no gravity sweep ("the utility we got from
+these big joint movements in this gravity tests are SO MARGINAL"). The HEX-E gave no samples (42 timed-out reads), and
+the box listed no sensor. The arm had not moved since 20:28:20, so the connection failed with nothing turning. Nothing
+moved in this run.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

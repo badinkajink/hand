@@ -1,0 +1,17 @@
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 360 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0339 0.0156 0.245  0.0028 0.0032 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+== homing
+homing: from the recorded seating docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:left_indenter_seated (no freedrive, nothing moves)
+homing: 1 seatings within 0.000 mm, 0.000 deg of their mean
+  indenter at (-139.0, -595.6, 71.1) mm, yaw -92.3 deg, tilt 0.71 deg; the plan has (-138, -596, 71) mm, yaw -92 deg
+== gravity
+  grav-07: ABORT no HEX-E sample for 100 ms
+  grav-02: ABORT no HEX-E sample for 100 ms
+  grav-01: ABORT no HEX-E sample for 100 ms
+HEX-E: 10807 samples, 771 timed out, 0 late datagrams dropped, 0 gaps over 0.5 s
+session in /home/will/workspace/hand/logs/20261022-tip_calibration/202551-sphere1
+three aborts in a row: stopping the session (--resume continues it)
+exit 1 at 20:28:20

@@ -1,0 +1,8 @@
+== preflight
+preflight: HEX-E 0 Hz (asked 100 Hz, filter 3), board 356 records/s, robot 124 Hz
+  HEX-E reads: 42 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+HEX-E: 0 samples, 42 timed out, 0 late datagrams dropped, 0 gaps over 0.5 s
+session in /home/will/workspace/hand/logs/20261022-tip_calibration/204657-tcp1
+a stream is missing or slow: check the HEX-E's DAQ (IP, power) and the board's USB
+exit 1 at 20:47:02
