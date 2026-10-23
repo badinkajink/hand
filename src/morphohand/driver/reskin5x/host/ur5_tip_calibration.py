@@ -517,6 +517,11 @@ class OptoForceStream(threading.Thread):
     way). So configure() stops the DAQ and empties the socket, and each polled request first empties it again;
     n_late counts the datagrams dropped.
 
+    A gap of over 0.5 s between samples goes into `gaps` as (host time before, after, sequence before, after, change of
+    Fz in N). On 2026-10-22 the sensor dropped out twice while joint 6 turned; after the first gap its sample counter
+    had restarted (13702, then 102) and its tare was lost (Fz from 0.3 to 645.5 N). The session treats an action with a
+    gap as aborted.
+
     The DAQ hands out single samples, so a slower poll alone leaves the noise as it is; its low-pass lowers it. Polled at
     100 Hz on 2026-10-22 (lab computer, arm off), Fz's noise per sample was 0.53 N with no filter (as at 250 and 500 Hz),
     0.35, 0.21 and 0.13 N with filters 2, 3 and 4 (owner: "100-200 is a better range. at 500 things are really noise")."""
@@ -532,7 +537,7 @@ class OptoForceStream(threading.Thread):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(0.05)
         self.sock.connect(self.addr)
-        self.last_seq = None
+        self.last_seq, self.last_t, self.last_v, self.last_seq_kept, self.gaps = None, None, None, None, []
 
     def _cmd(self, cid, value, wait=0.02):
         self.sock.send(struct.pack("!HHI", 0x1234, cid, value))
@@ -593,6 +598,9 @@ class OptoForceStream(threading.Thread):
             else:
                 self.last_seq = seq
                 v = np.array([u[3] / 1e4, u[4] / 1e4, u[5] / 1e4, u[6] / 1e5, u[7] / 1e5, u[8] / 1e5])
+                if self.last_t is not None and t - self.last_t > 0.5:
+                    self.gaps.append((self.last_t, t, self.last_seq_kept, seq, float(v[2] - self.last_v[2])))
+                self.last_t, self.last_v, self.last_seq_kept = t, v, seq
                 self.ring.add(t, v)
                 self.n += 1
                 rows.append([t, seq, u[2], *v])
@@ -1090,8 +1098,16 @@ class Session:
         if self.args.step:
             self.be.operator(f"next: {a['id']} ({a['kind']})", kind="step")
         self.log.event(event="start", id=a["id"], stage=a["stage"], kind=a["kind"])
+        gaps = getattr(self.be.ft, "gaps", [])
+        n_gap = len(gaps)
         try:
             rec = fn(a)
+            if len(gaps) > n_gap:                                # e.g. in a blocking joint move: the zero may have moved
+                for g in gaps[n_gap:]:
+                    self.log.event(event="ft_gap", id=a["id"], t0=g[0], t1=g[1], seq0=g[2], seq1=g[3], dFz_N=g[4])
+                g = max(gaps[n_gap:], key=lambda g: g[1] - g[0])
+                raise Abort(f"the HEX-E stream stopped for {g[1] - g[0]:.1f} s during the action (Fz then changed by "
+                            f"{g[4]:+.1f} N)")
         except Abort as e:
             self.log.event(event="end", id=a["id"], status="abort", why=str(e))
             print(f"  {a['id']}: ABORT {e}", flush=True)
@@ -1219,6 +1235,9 @@ class Session:
         acts = self.actions(stage)
         if not acts:
             return
+        fresh = any(a["id"] not in self.done for a in acts)     # one sweep, one zero: a resume re-tares the HEX-E
+        if fresh:
+            self.done -= {a["id"] for a in acts}
         R, F, Tq, B = [], [], [], []
         for a in acts:
             def one(a):
@@ -1237,7 +1256,7 @@ class Session:
                 return dict(R_BE=self.be.robot.pose()[:3, :3], ft=m, ft_std=s, n=n, t=[t0, self.now()],
                             board=vb.mean(axis=0) if len(vb) else None)
             rec = self.act(a, one)
-            if rec is None:
+            if rec is None and not fresh:                        # the whole sweep ended ok in an earlier run
                 for e in self.log.records("end"):
                     if e.get("id") == a["id"] and e.get("status") == "ok":
                         rec = e["rec"]
@@ -1253,6 +1272,15 @@ class Session:
         print(f"{stage}: weight {fit['weight_N']:.3f} N ({fit['mass_kg'] * 1e3:.0f} g), centre of mass {np.round(fit['com_mm'], 1)} mm "
               f"(from the HEX-E's origin), sign {fit['sign']:+.0f}, HEX-E axes turned {fit['z_turn_deg']:+.2f} deg about the "
               f"tool axis ({fit['turn_deg']:.2f} in all), residual {fit['rms_f_N']:.4f} N, {fit['rms_t_Nm']:.5f} N m")
+        lim = float(getattr(self.args, "gravity_max_rms", 0.1))
+        if fit["rms_f_N"] > lim:
+            self.reg.notes[f"{stage}_failed"] = {k: fit[k] for k in ("weight_N", "rms_f_N", "rms_t_Nm")}
+            self.save_reg()
+            msg = (f"{stage}: residual {fit['rms_f_N']:.3f} N over {lim:.3f} N (Table 2: under 0.02 N): a cable pulls "
+                   "on the tool, or the HEX-E's zero moved during the sweep")
+            if stage == "gravity":
+                raise SystemExit(msg + "; stopping before any contact")
+            print("WARNING " + msg, flush=True)
         if stage == "gravity":
             self.reg.grav = {k: fit[k] for k in ("A", "of", "Bt", "ot")}
             self.reg.K, self.reg.Kt = fit["K"], fit["Kt"]
@@ -1525,6 +1553,8 @@ def main(argv=None):
     ap.add_argument("--home-from", default=None, help="FILE:LABEL, a recorded seating on the key (JSON lines with label "
                     "and T_tcp_mm) in place of the three freedrive seatings: for runs with nobody at the robot")
     ap.add_argument("--stages", default=",".join(STAGES))
+    ap.add_argument("--gravity-max-rms", type=float, default=0.1, help="N: the gravity sweep's force residual past which "
+                    "the session stops before any contact (Table 2 expects under 0.02 N)")
     ap.add_argument("--resume", default=None)
     ap.add_argument("--dry", type=float, default=0.0, help="mm added to every standoff: no contact")
     ap.add_argument("--step", action="store_true")
@@ -1565,8 +1595,10 @@ def main(argv=None):
         log.save("registration.json", ses.reg.to_json())
         ft = getattr(be, "ft", None)
         if hasattr(ft, "n_late"):
-            log.event(event="ft_reads", n=ft.n, timeouts=ft.n_timeout, late=ft.n_late, repeats=ft.n_repeat)
-            print(f"HEX-E: {ft.n} samples, {ft.n_timeout} timed out, {ft.n_late} late datagrams dropped")
+            gaps = [list(g) for g in getattr(ft, "gaps", [])]
+            log.event(event="ft_reads", n=ft.n, timeouts=ft.n_timeout, late=ft.n_late, repeats=ft.n_repeat, gaps=gaps)
+            print(f"HEX-E: {ft.n} samples, {ft.n_timeout} timed out, {ft.n_late} late datagrams dropped, "
+                  f"{len(gaps)} gaps over 0.5 s" + "".join(f"; {g[1] - g[0]:.1f} s, Fz {g[4]:+.1f} N" for g in gaps))
         be.close()
         log.close()
         print(f"session in {log.dir}")
