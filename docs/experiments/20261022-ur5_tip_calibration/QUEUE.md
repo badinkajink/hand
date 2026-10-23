@@ -512,5 +512,15 @@ push that answers it arrives.
     sphere2. Left on the workstation: the FE comparison against a cylinder (`ur5_tip_calibration_fe.py` knows only a
     sphere).
 
+- R20 (planned on the workstation at 08:18 on 10-23; the owner, 10-23 morning: "the only way to permanently fix the
+  HEX-E robot is to calibrate one of our uncalibrated ATI sensors"). Plan and parts:
+  `docs/experiments/20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html`. The calibration needs a weighed
+  mass at five hook points of a printed cross, at eight tool orientations each, with and without the mass. Presses on
+  the sphere alone excite three of six wrench directions and are the cross-check only. Nothing for the lab before the
+  owner has measured the Mini45 and printed the parts. Then the steps are:
+  - the ATI between v3's adapter and the fork (the tool 44.7 mm longer: plans rebuilt for it);
+  - `scripts/ati_netft_logger.py --ip <box> --out <session folder>` beside the program;
+  - eight checked poses per hook point (`move_guarded.py`), the cross's 70 mm arms checked against the robot's links.
+
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
