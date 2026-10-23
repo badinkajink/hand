@@ -181,9 +181,9 @@ def sections():
              "into the same session folder with host time stamps.",
              "Print the base, the top and the hook cross; press the brass inserts into the top.",
              "Assemble the stack with the hook cross. For each of the five hook points, run the plan's gravity stations "
-             "once without the mass and once with the weighed mass on its hook. With the cross on, the 16 stations of "
-             "the lab's plan keep the tool 63.7 mm from the robot's links and 67 mm from the cell "
-             "(scripts/ati_gravity_pose_check.py); a hanging mass must not swing within those distances.",
+             "once without the mass and once with the weighed mass on its hook. With the cross on, the tool stays "
+             "63.7 mm from the robot's links and 67 mm from the cell at all 16 stations of the lab's plan "
+             "(scripts/ati_gravity_pose_check.py). A hanging mass must not swing within those distances.",
              "Fit with scripts/ati_calibration_fit.py on the pairs (mass-on minus mass-off at each orientation) and check "
              "the held-out poses; the same pairs give the HEX-E's gains.",
              "Swap the cross for the fork and finger; run the sphere plan rebuilt for the 44.7 mm stack; compare the ATI "
