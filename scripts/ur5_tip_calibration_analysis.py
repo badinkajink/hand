@@ -75,7 +75,14 @@ def load(sd):
     truth = None
     if (sd / "sim_truth.bin").exists():
         truth = np.fromfile(sd / "sim_truth.bin", "<f8").reshape(-1, 19)
-    return dict(plan=json.loads((sd / "plan.json").read_text()), reg=json.loads((sd / "registration.json").read_text()),
+    plan = json.loads((sd / "plan.json").read_text())
+    have = {a["id"] for a in plan["actions"]}
+    for f in sorted(sd.glob("plan_resume_*.json")):              # a resume on a newer plan: its new actions (same geometry)
+        for a in json.loads(f.read_text())["actions"]:
+            if a["id"] not in have:
+                plan["actions"].append(a)
+                have.add(a["id"])
+    return dict(plan=plan, reg=json.loads((sd / "registration.json").read_text()),
                 ev=ev, ft=ft, t_b=bd["t"], r_b=bd["r"].reshape(-1, 5, 4).astype(float), rb=rb, truth=truth,
                 sim=json.loads((sd / "sim_truth.json").read_text()) if (sd / "sim_truth.json").exists() else None)
 

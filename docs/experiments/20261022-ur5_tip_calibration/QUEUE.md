@@ -237,7 +237,7 @@ push that answers it arrives.
   The program's gap guard (20bfc6e7) keeps the data safe: an action with a gap aborts, and `--resume` continues the
   session. A link that fails every few minutes still ends each run within its first stage.
 
-  Added 21:53: in sphere2r the box stopped answering for 1.4, 2.8 and 1.7 s, with 118 timed-out reads and no counter
+  Added 21:54: in sphere2r the box stopped answering for 1.4, 2.8 and 1.7 s, with 118 timed-out reads and no counter
   restart, and pad-flank-09, -08 and -04 aborted (lab, 21:52). The reader was polling, so the pause was the link's.
 
 - R11 (open, 21:00; the lab, the next runs). Leave the gravity stage out until the cables are routed. The five stations
@@ -327,7 +327,7 @@ push that answers it arrives.
   2.98 mm of the mount's 3 mm. On tcp2's real poses the model was about 1.2 mm conservative, and the 10 N abort stops a
   press that touches.
 
-- R15 (open, 21:53; the lab, before the next pivot stage). All six pivots of sphere2r held 1.5 and 3.0 N, and then
+- R15 (open, 21:54; the lab, before the next pivot stage). All six pivots of sphere2r held 1.5 and 3.0 N, and then
   `stage_pivot` stopped on a TypeError: `board_level` returned None for the reference press. The cause is the 180 s
   ring buffer (`Ring(keep_s=180)`). The stage reads every press's board samples only after the sixth press, and at 30 %
   speed pivot-0's samples have left the buffer by then. A check for None would skip the pivot check on every real run.
@@ -340,6 +340,28 @@ push that answers it arrives.
   stiffness (13 to 15 N/mm at 1.3 N) and by about 1 mm at the stiffness of the presses (about 3 N/mm at 1.2 N). The flank
   touches measure that direction. The 1.1 N in Fy that the lab read at the first step is the twist's own press to 1 N:
   the mount's -92 deg turn puts the pad's normal along the sensor's y.
+
+- R16 (open, 22:05; the owner, in daylight). The first analysis of sphere2 (pad, pivots and 12 grid presses as of
+  22:02; `data/20261022-210852-sphere2/`, `--gravity-from` first2) finds the chain from the board to the HEX-E softer than
+  the model. At the sphere's positions from the registration, the measured normal force is 0.25 of the FE pad's at every
+  level from 0.5 to 5 N and in every region. The compliance scale that fits would be about 4, outside the fit's grid
+  of 0.6 to 1.8. tcp2's presses, timed from their own onsets, give the same without the registration: 0.83 mm of
+  travel at 2 N on the face, where the FE pad indents about 0.27 mm. The board's force, read through the FE model,
+  matches the HEX-E: its slope against the measured force is 1.11 on the face, 0.92 on the edges and 1.00 on the flanks.
+  The pad itself therefore deforms about as the FE says, and its magnets do not move against the chips by the extra
+  0.5 mm. The extra travel lies between the board and the HEX-E: the DIP link's clamp in the fork, the printed mount
+  with its inserts, or the arm. The ground truth takes that chain as rigid apart from the HEX-E, so the depth of a press
+  and the place of its contact carry the error. Check by hand whether the DIP link moves in the fork when the pad is
+  pressed, and with a dial indicator on the link if one is at hand. The grid's reference presses give the trend
+  through the night.
+
+  In the same analysis, the board's estimator places contacts within 1.2 to 1.6 mm (median) from 1 N up, and at 9.6 mm
+  under 1 N (0.05 mm from 2 N in the simulator). Its force is within 10 to 20 % of the HEX-E's (median) from 1 N up. At
+  3 N and over, its mean location error against the registration is (0.10, -0.31, 0.42) mm in P, with standard errors
+  of 0.05, 0.16 and 0.26 mm. The offline pivot check (`pivot_check`) places the four offset presses about two centres
+  0.42 mm apart, and the press turned 15 deg 2.0 mm off with a fit residual of 12 uT, against 3 to 4.5 uT for the offsets.
+  The board's linear map from four offsets does not carry over to a turned press, so that turn does not test the
+  registration.
 
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
