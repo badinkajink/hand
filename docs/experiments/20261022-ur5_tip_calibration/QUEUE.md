@@ -34,6 +34,81 @@ in the simulator before it runs on the robot (README rule 2): `$PY $P --plan <fi
 Each request names what to run, why, and the result that would change the next step. Its status changes here when the
 push that answers it arrives.
 
-- R1 (open, 2026-10-22 19:30). Push the session folder of every run as above, beginning with `first`. The workstation
+- R1 (standing, 2026-10-22 19:30). Push the session folder of every run as above, beginning with `first`. The workstation
   compares each with Table 2 of the README and with the simulated session 151114-sim, and answers here within about
-  10 minutes of the push.
+  10 minutes of the push. First answered by `lab/20261022-192715-first/` (ffc6ed71).
+
+- R2 (done by the lab in 20bfc6e7, 19:40, by another route). A stream gap over 0.5 s aborts the action it falls in
+  and is logged as `ft_gap`. An orientation read after a lost tare makes the sweep's residual exceed 0.1 N, which stops
+  the session before any contact, and the resume re-tares the HEX-E and sweeps again whole. The offsets per restart
+  proposed below are therefore not needed. The request as written at 19:55: make the HEX-E's restarts visible, and keep
+  the gravity fit through one. In `first` the stream stopped for 7.22 s (19:27:40.36 to 19:27:47.59) while joint 6 turned from 69.0 deg
+  at 5.1 deg/s. The DAQ's sample counter then went from 13702 to 102, and the readings came back 645.2 N higher in Fz
+  with status 0x40000. grav-02 and grav-03 ended ok with that offset, so the sweep mixed two zeros. The change proposed:
+  1. `OptoForceStream` counts a restart when a sequence number is lower than the one before, and the session logs an
+     event `ft_restart` with its time, the sequence numbers before and after, and the status after.
+  2. `check_ft` aborts an action during which the restart count changed, with the reason "HEX-E restarted".
+  3. `stage_gravity` stores the restart count in each record, and `fit_gravity` fits one offset per count. A restart
+     then costs only the orientation it interrupts.
+
+  Test it in the simulator with a restart injected (a 7 s gap, then an offset step) once during gravity and once
+  during a press. The presses already abort on such a step, through the 10 N limit, so their data are safe without
+  the change.
+
+- R3 (open, 19:55; the plan, recommended before the next run). Order each stage's actions by joint 6. Solved as the
+  program solves them (IK nearest the homing joints, joint 6 at 1.8 deg), this plan turns joint 6 through about
+  4,300 deg in all, and every turn moves the HEX-E's cable:
+
+  | Stage | Actions | Joint 6 span (deg) | Travel in plan order (deg) | Travel sorted (deg) | Steps over 90 deg |
+  |---|---|---|---|---|---|
+  | Gravity | 12 | -178 to 122 | 989 | 300 | 2 |
+  | Pad | 32 | -65 to 72 | 1425 | 137 | 6 |
+  | Grid | 74 | -65 to 72 | 1062 | 137 | 1 |
+  | Final gravity | 4 | -178 to 62 | 460 | 240 | 2 |
+  | Mount, pivot, shear, roll, twist, final | 27 | -62 to 26 | 367 | 367 | 0 |
+
+  Sorted by joint 6, the same actions need about 1,300 deg. The flank touch-offs alternate sides, so the pad stage
+  turns 130 deg six times. The robot's own IK put grav-03 at +166.6 deg, 22.8 deg off its target orientation (the fit
+  uses the reached orientation), so grav-03 to grav-04 turned 285 deg. The builder's clearance checks must cover each
+  action's new neighbours, so the order belongs in `scripts/ur5_tip_calibration_plan.py` (an option such as
+  `--order joint6`), with the grid's reference presses kept at their places in time. A new plan then runs in the
+  simulator.
+
+  Amended 20:05: the gravity sweeps go out and back, and only the pad and grid stages are sorted. Out and back means
+  every other station, in order of joint 6, on the way out and the rest on the way back. For the 12 stations of
+  `gravity` that is 559 deg of travel, against 959 deg in plan order and 285 deg sorted. When the stations are
+  sorted, the direction of gravity changes in step with time, and a drift term (R6) is then poorly separated from the
+  gravity map. With 5 mN of noise, the 1-sigma of the map's columns is 2.66 mN per g in plan order, 3.68 sorted and
+  2.72 out and back.
+
+- R4 (open, 19:55; the owner, before the next run). Test the HEX-E's cable on the robot. The dropouts began at joint 6
+  = 69.0 deg turning at +5.1 deg/s and at 23.5 deg turning at -6.9 deg/s. Both angles lie inside the span of the
+  presses, and both came mid-turn. That fits a connection that opens when the cable moves, more than a cable drawn
+  tight at one end of the span. Reseat both connectors of the cable and relieve its strain at the sensor. Then, with
+  the program stopped, turn joint 6 from -180 to +170 deg and back three times at 10 deg/s, 150 mm above the
+  indenter, while one reader logs the stream. It passes with no gap over 100 ms and no counter restart.
+
+- R5 (open, 19:55; the owner, when at the robot, not blocking). Check the HEX-E's force gain with a known mass. Its
+  raw zero is at about 645 N on a 200 N sensor, and the analysis takes every force from its gain. Run the gravity
+  stage twice, with a mass of 100 to 200 g (weighed to 0.1 g) taped to the mount and without it:
+  `tipcal_run.sh gainA --stages preflight,homing,gravity`, then `gainB`. The change of the fitted weight against
+  m g gives the gain to about 1 %.
+
+- R6 (open, 20:05; the program's gravity fit, before the next run). Fit the HEX-E's drift during the sweep. With the
+  arm still, `lab/sensor_watch.py` measured the untared Fz creeping 0.4 N in 5 min, 0.08 N/min. That drift was added
+  along the sensor's z to the gravity records of the simulated session 151114-sim, and the plain fit was biased:
+
+  | Sweep | Residual, plain fit (mN) | Map A off, plain fit | Weight off, plain fit | Residual, with drift term (mN) | Map A off, with drift term |
+  |---|---|---|---|---|---|
+  | Full speed, 94 s | 19.1 | 1.3 % | 0.6 % | 4.0 | 0.3 % |
+  | 30 % speed, 243 s | 50.3 | 3.3 % | 1.6 % | 4.0 | 0.3 % |
+
+  A is the HEX-E's map from the flange frame, and every force of the analysis goes through it. The drift term is one
+  more column in the fit: the force reads A g_E + o_f + v (t - t_mean), with t each record's time (`rec["t"]`, already
+  stored) and v the drift per axis, reported in N/min. The torques take the same column. With the term, the residual
+  is again a test for cables pulling on the tool, and Table 2's 0.02 N applies to it. The final sweep has 4
+  orientations in this plan and gets no fit, because the program needs 6. Its changes between orientations are
+  compared with the first fit's prediction on the workstation instead.
+
+The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
+messages at 19:45; the lab confirmed them at 19:58.
