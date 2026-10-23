@@ -1210,8 +1210,8 @@ def sections(R, F):
                 "sphere2's registration, as the other sections do."
                 + (f" Paired by target and level, the two runs' registered contact points lie a median "
                    f"{st['point_apart_mm']['median']:.2f} mm apart." if st and "point_apart_mm" in st else "")
-                + " The physical model and the snap of the predicted points keep sphere2's fit of the field at rest, as a "
-                "calibration made one night and used the next day would.</p>")
+                + " The physical model and the snap of the predicted points keep sphere2's fit of the field at rest. A "
+                "calibration made one night and used the next day would do the same.</p>")
         if st:
             both = [L for L in sorted(set(sl) & set(rl), key=float) if float(L) >= 1.0]
             lo_, hi_ = min(sl, key=float), max(sl, key=float)
@@ -1219,9 +1219,10 @@ def sections(R, F):
             day_pct = ands([f"{sl[L]['board_rel_change'] * 100:.0f}" for L in both])
             night_pct = ands([f"{rl[L]['board_rel_change'] * 100:.0f}" for L in both])
             body += ("<p>"
-                     + (f"At {ands([f'{float(L):g}' for L in both])} N, the board change a day later differs from the "
-                        f"night's at the same target by {day_pct} % of its size (medians, Table 14, Fig. 7a). Between the "
-                        f"night's own repeats of the reference press it differed by {night_pct} %. " if both else "")
+                     + (f"The board change was compared at the same target and force level (Table 14, Fig. 7a). At "
+                        f"{ands([f'{float(L):g}' for L in both])} N, the day's differs from the night's by {day_pct} % of its "
+                        f"size (medians). Between the night's own repeats of the reference press it differed by "
+                        f"{night_pct} %. " if both else "")
                      + f"The difference is {sl[lo_]['board_rel_change'] * 100:.0f} % at {float(lo_):g} N and "
                      f"{sl[hi_]['board_rel_change'] * 100:.0f} % at {float(hi_):g} N.</p>"
                      f"<p>A day later the pad met the sphere earlier. At the same force its registered indentation is a "
