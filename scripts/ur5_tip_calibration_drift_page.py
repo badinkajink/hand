@@ -47,12 +47,12 @@ def fig_zero(R, out):
     ax.plot(t, s["learned"], "-", lw=1.4, color="#b06010", label="Learned steps and drift")
     ax.plot(t, s["time_only"], "--", lw=1.4, color="#7a5c99", label="Drift in time alone")
     ax.axvline(R["t_split_min"], color="0.4", lw=1, ls=":")
-    ax.text(R["t_split_min"] + 1, ax.get_ylim()[1] * 0.95, "tested from here", va="top", fontsize=12, color="0.3")
+    ax.text(R["t_split_min"] + 1, ax.get_ylim()[1] * 0.97, "tested from here", va="top", fontsize=12, color="0.3")
     ax.set_xlabel("Time from the session's first rest (min)")
     ax.set_ylabel("Change from the first rest,\nall 15 components (µT)")
-    ax.legend(loc="upper left", fontsize=10)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=2, fontsize=11, frameon=False)
     fig.tight_layout()
-    fig.savefig(out, dpi=150)
+    fig.savefig(out, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -68,7 +68,7 @@ def fig_steps(R, out):
                     "o", ms=4, color=col[reg], label=reg.capitalize(), alpha=0.8)
     a1.set_xlabel("The action's top force (N)")
     a1.set_ylabel("Rest after less rest before (µT)")
-    a1.legend(loc="upper left", fontsize=11)
+    a1.legend(loc="upper center", fontsize=11)
     kk = [r for r in R["step_rows"] if r.get("keep") is not None]
     a2.plot([r["gap_s"] for r in kk], [r["keep"] for r in kk], "o", ms=4, color="0.3", alpha=0.7)
     a2.axhline(1.0, color="#b03030", lw=1, ls="--")
@@ -96,9 +96,10 @@ def fig_scores(R, out):
     a1.set_ylabel("Contact point's error (mm, median)")
     a2.set_ylabel("Normal force's error (N, median)")
     a2.axhline(0.0, color="0.4", lw=1)
-    a1.legend(fontsize=10, loc="upper right")
+    h, lab = a1.get_legend_handles_labels()
     fig.tight_layout()
-    fig.savefig(out, dpi=150)
+    fig.legend(h, lab, loc="upper center", bbox_to_anchor=(0.5, 0.0), ncol=3, fontsize=11, frameon=False)
+    fig.savefig(out, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
