@@ -577,6 +577,16 @@ push that answers it arrives.
     truth 1, whose tool turns 2.8 deg. The pivot presses cannot pick between them: the board's offsets between pivots
     stay the same to 0.01 mm under every registration. So rod1g is analysed with the joint fit at the program's
     priors, and the ×4 fit is run beside it as the spread.
+  - 12:39, after rod1t (lab 0bc6e0f7; my two peer messages before this were stamped 12:41 and 12:47, ahead of the
+    clock). rod1t's 22 onsets are clean (−1.34 to −2.48 mm at a 5.0 mm standoff), but the program's fit is 0.201 mm
+    rms, with the rod's centre 4.05 mm from homing. One touch-off causes it: pad-edge-01, +0.66 mm. Without it the
+    cylinder fit is 40.4 µm rms over 21, the rod's centre moves 1.17 mm and the TCP 1.60 mm and 4.66 deg from
+    nominal. That fit's TCP lies 2.67 mm and 3.68 deg from the program's. At edge-01's onset the pad is 1.38 mm from
+    the rod and no modelled part is nearer than the fork's 1.40 mm. Its joint 6 stands at +45.5 deg, the most of the 22
+    (next +31.7). A load through the HEX-E's cable, as on last night's flank presses at 70 to 72 deg, would explain
+    it; rod1t's streams will show the force's direction. In rod1g, grid-039 and grid-040 ran above 35 deg (42.9 and
+    45.5) and are checked against the board's reading. The joint fit leaves edge-01 out
+    (`ur5_tip_calibration_rod_registration.py --exclude`).
 
 - R20 (moved out of this channel at 10:51 on 10-23 at the owner's request; nothing in it is for the lab session. It continues
   in its own conversation from `docs/handoff/20261023-ati_ft_calibration.md`, and its requests to the lab will go in

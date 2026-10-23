@@ -231,6 +231,9 @@ def main():
                                                           "cylinder-free, joint-homing, joint-free")
     ap.add_argument("--joint", default=None, help="a sphere session with the same tool: fit one mount and pad to both")
     ap.add_argument("--only-joint", action="store_true", help="skip the single-session fits")
+    ap.add_argument("--exclude", default="", help="touch-off ids of this session to leave out, comma-separated (rod1t: "
+                    "pad-edge-01, which met the rod 0.66 mm before the modelled pad)")
+    ap.add_argument("--exclude-joint", default="", help="touch-off ids of the --joint session to leave out")
     ap.add_argument("--prior-scale", type=float, default=1.0, help="multiply the mount's and pad's prior sigmas (the "
                     "program's REG_SIGMA) by this")
     a = ap.parse_args()
@@ -241,7 +244,10 @@ def main():
     sd = Path(a.session)
     plan = json.loads((sd / "plan.json").read_text())
     reg_d = json.loads((sd / "registration.json").read_text())
-    touches = json.loads((sd / "touches.json").read_text())
+    excl = {x for x in a.exclude.split(",") if x}
+    touches = [t for t in json.loads((sd / "touches.json").read_text()) if t["id"] not in excl]
+    if excl:
+        print(f"left out of {sd.name}: {', '.join(sorted(excl))}")
     geo = C.Geometry(plan)
     prog = reg_d.get("notes", {}).get("register")
     T_EP_prog = np.array(prog["T_EM"]) @ np.array(prog["T_MP"]) if prog else None
@@ -257,7 +263,10 @@ def main():
         pj = json.loads((sj / "plan.json").read_text())
         gj = C.Geometry(pj)
         rj = json.loads((sj / "registration.json").read_text())
-        tj = json.loads((sj / "touches.json").read_text())
+        exj = {x for x in a.exclude_joint.split(",") if x}
+        tj = [t for t in json.loads((sj / "touches.json").read_text()) if t["id"] not in exj]
+        if exj:
+            print(f"left out of {sj.name}: {', '.join(sorted(exj))}")
         for axis in ("homing", "free"):
             f = joint_fit([(geo, start(geo, reg_d), touches), (gj, start(gj, rj), tj)], axis)
             s0, s1 = f["sessions"]
