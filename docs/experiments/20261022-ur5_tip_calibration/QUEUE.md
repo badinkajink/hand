@@ -257,7 +257,7 @@ push that answers it arrives.
   down along its z. At each pose, read 10 s, hang a weighed 100 to 200 g mass from the mount, read 10 s, take it off
   and read 10 s. The change against m g gives that axis's gain to about 1 %.
 
-- R12 (done 21:30 by the workstation, asked by the lab at 21:09; simulated, see the end of this item). The
+- R12 (done 21:24 by the workstation, asked by the lab at 21:09; simulated, see the end of this item). The
   builder now checks every 0.5 deg step of each slide, roll and twist as `run_turns` moves them, with all parts against
   the cell (`turn_poses`). In tcp2, twist-0-1.0N's turn put the mount's fork on the indenter's homing key. On tcp2's own
   poses and homing, the cell model puts the fork 5.6 mm from the key at the pressed pose, 3.0 mm at -3.3 deg and 0 at
@@ -281,7 +281,7 @@ push that answers it arrives.
   the program's window (`WRIST_MARGIN`). That drops shear-5-1N alone, and the plan has 142 actions; every other action
   is unchanged, so the simulated run covers them.
 
-- R13 (21:20; the workstation's analysis after sphere2's register). tcp2's three presses met the sphere 0.72, 0.83 and
+- R13 (21:19; the workstation's analysis after sphere2's register). tcp2's three presses met the sphere 0.72, 0.83 and
   0.76 mm before the planned contact: ref-00 on the face, grid-052 and grid-053 on the flank. Each onset is the start of
   the push along the approach, fitted as for the touch-offs. Read as a shift of the pad, the three give (0.72, 0.10,
   1.07) mm in P: 0.7 mm along the face normal and 1.1 mm along the finger. The two flank points see the finger's
@@ -291,7 +291,7 @@ push that answers it arrives.
   that prior's 0.12 mm. A shift of the pad shows as a change of the TCP instead. sphere2's first 12 onsets (lab, 21:21)
   are 0.64 to 1.19 mm early, close to uniform.
 
-  Tested at 21:35 on the 32 touch-offs of the simulated session 202109-sim-real-t0, with every onset pose raised 0.9 mm
+  Tested at 21:25 on the 32 touch-offs of the simulated session 202109-sim-real-t0, with every onset pose raised 0.9 mm
   along z_I and the registration fitted again. The sphere's centre rose 0.92 mm and moved 0.41 mm across the finger.
   The pad frame moved 0.05 mm, the TCP's turn changed 0.4 deg, and the touch residual went from 10 to 12 um rms. At
   the touches, the sphere's centre in P moved 0.12 mm across the finger on average, and at most 0.17 mm on any axis. A
