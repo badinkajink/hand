@@ -289,9 +289,18 @@ class Session:
                 if not len(bb):
                     continue
                 rest, drift = self.rest_board(rec, 0.5 * (t0 + t1))
+                # inputs besides the board for the predictors (scripts/ur5_tip_calibration_predict.py): gravity in the pad
+                # frame, the chips' temperatures at the hold and their change since the rest before, the time since it
+                Tc = self.win(self.d["t_b"], self.T_chip, t0, t1)
+                Tc0 = self.win(self.d["t_b"], self.T_chip, *rec["t_rest0"])
+                g_P = (gt["T_BE"] @ self.T_EP)[:3, :3].T @ np.array([0.0, 0.0, -1.0])
                 row = dict(id=aid, stage=a["stage"], kind=a["kind"], role=a.get("role"), region=a["target"].get("region"),
                            target=np.array(a["target"]["p"], float), twist=a.get("twist", 0.0), t=0.5 * (t0 + t1),
-                           n_rec=len(bb), d_board=bb.mean(axis=0) - rest, rest_drift_uT=drift, **meta, **gt)
+                           n_rec=len(bb), d_board=bb.mean(axis=0) - rest, rest_drift_uT=drift, g_P=g_P,
+                           R_BE=gt["T_BE"][:3, :3].ravel(),
+                           T_chip=Tc.mean(axis=0) if len(Tc) else np.full(5, np.nan),
+                           dT_chip=(Tc.mean(axis=0) - Tc0.mean(axis=0)) if len(Tc) and len(Tc0) else np.full(5, np.nan),
+                           dt_zero=0.5 * (t0 + t1) - float(np.mean(rec["t_rest0"])), **meta, **gt)
                 row["truth"] = self.truth(t0, t1)
                 out.append(row)
         out.sort(key=lambda r: r["t"])
@@ -478,12 +487,15 @@ def pivot_check(ses, N=None):
 
 
 def save(holds, path):
-    keys = ["t", "level_N", "turn_deg", "twist", "f_n", "depth", "tn", "rest_drift_uT", "n_rec", "deflection_mm", "ft_rest_drift_N"]
+    keys = ["t", "level_N", "turn_deg", "twist", "f_n", "depth", "tn", "rest_drift_uT", "n_rec", "deflection_mm", "ft_rest_drift_N",
+            "dt_zero"]
     arr = {k: np.array([h[k] if h[k] is not None else np.nan for h in holds], float) for k in keys}
-    for k in ("p", "n", "f", "f_t", "c_P", "target", "d_board"):
+    for k in ("p", "n", "f", "f_t", "c_P", "target", "d_board", "g_P", "R_BE", "T_chip", "dT_chip"):
         arr[k] = np.array([h[k] for h in holds], float)
     arr["id"] = np.array([h["id"] for h in holds])
     arr["kind"] = np.array([h["kind"] for h in holds])
+    arr["stage"] = np.array([h["stage"] for h in holds])
+    arr["role"] = np.array([h["role"] or "" for h in holds])
     arr["region"] = np.array([h["region"] or "" for h in holds])
     arr["est_contact"] = np.array([bool(h["est"].get("contact")) for h in holds])
     arr["est_p"] = np.array([h["est"].get("p", [np.nan] * 3) for h in holds], float)
@@ -538,6 +550,7 @@ def main():
     out = Path(a.out or OUT / Path(a.session).name)
     out.mkdir(parents=True, exist_ok=True)
     save(holds, out / "holds.npz")
+    cal.save(out / "calib_rest.json")                 # the estimator's magnets fitted to the first rest (the predictors' start)
     (out / "summary.json").write_text(json.dumps(S, indent=1, default=C.jsonable))
     print(json.dumps({k: v for k, v in S.items() if k not in ("reference_press_1N",)}, indent=1, default=C.jsonable)[:4000])
     print(f"{len(holds)} holds -> {out}")
