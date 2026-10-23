@@ -1,18 +1,112 @@
 Status: active
 Task (owner, 2026-10-22): "make a pass over the hand docs ... it's really important when explaining math to people not as familiar with the math to follow these communicability guidelines"; then "we can lower the model quality if we can automate the checks well. but we can also offload work onto this login, and then find a good stopping point and start back up when weekly reset hits". Queued behind the contact decks' pass (contact-20261022-plain-language-decks).
 Read first: docs/handoff/20261022-plain-language-hand-procedure.md (the per-page procedure and the judge's prompt); ~/.claude/CLAUDE.md section Writing and ~/.claude/writing_reference.md; CLAUDE.md sections Writing and Result pages; the docstrings of scripts/prose_lint.py and scripts/prose_gate.py; commit 2c763cf6 (the contact overview's pass, the worked example).
-State (2026-10-22 15:50, window): nothing started. The contact overview is done (2c763cf6: mean 26.9 to 16.7 words a sentence, over 30 words 34.9 to 3.9 %). Baseline of the pages below in docs/handoff/plain-language-hand/20261022-run_table.md.
-Next:
-1. docs/overviews/rl_policies.html (scripts/overview_policies_text.py; topic_overview_page.py policies), per the procedure.
-2. docs/overviews/printed_fingertips.html (scripts/overview_fingertip_text.py; key fingertip), per the procedure.
-3. docs/overviews/hand_plant_bench.html (scripts/overview_hardware_text.py; key hardware), per the procedure.
-4. docs/overviews/grasp_to_gait_chain.html (scripts/overview_chain_text.py; key chain), per the procedure.
-5. docs/overviews/reorientation.html (scripts/overview_mechanisms_text.py; key mechanisms), per the procedure.
-6. docs/overviews/morphology_design.html (scripts/overview_design_text.py; key design), per the procedure.
-7. docs/overviews/code_and_methods.html (scripts/overview_code_text.py; key code), per the procedure.
-8. docs/index.html (scripts/docs_home_page.py), per the procedure.
-9. Result pages: run `python3 scripts/prose_lint.py --stats` on every page under docs/experiments/*/ into the run table, then add one step per page that is above target with `ap step add`, the pages the topic overviews link first and the densest first within them.
-10. Close: the run table's totals, one sentence in CLAUDE.md section Writing, Status done.
+State (2026-10-22 18:50, colorado): steps 1-9 done and pushed; result-page steps 14-101 are done except: 40 (status page, curated status.json), 54, 57, 61, 83 (dated snapshots of the contact overview), 60 (contact bed page: a rebuild changes numbers through the shared contact text) are waiting on the owner; 78, 86, 87, 89, 90, 92-97 and 10 are open (86 and 87 are rebuilt and with the judge). Seven pages already under the length targets were left unedited and the table says so. Per-page rows in docs/handoff/plain-language-hand/20261022-run_table.md. Next: the lowest open id in `ap steps`; step 10 (close) after the last page step: totals from the run table, one sentence in CLAUDE.md section Writing, Status done, ap disarm (refuses while a step is open; waiting steps count as open, so disarm needs the owner's answers or `ap step` cancellation). Method as before; pages with a build.sh or a .src.html source are edited in the source and rebuilt.
+<!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
+Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
+- [x] 1. docs/overviews/rl_policies.html (scripts/overview_policies_text.py; topic_overview_page.py policies), per the… Done 10-22 17:27: rl_policies done: mean 16.2, 2.0 % over 30, judge 17/18 better
+- [x] 2. docs/overviews/printed_fingertips.html (scripts/overview_fingertip_text.py; key fingertip), per the procedure. Done 10-22 17:29: printed_fingertips done: mean 17.7, 7.0 % over 30, judge 34/40 better, 2 repaired
+- [x] 3. docs/overviews/hand_plant_bench.html (scripts/overview_hardware_text.py; key hardware), per the procedure. Done 10-22 17:29: hand_plant_bench done: mean 15.1, 1.2 % over 30, judge 12/14 better
+- [x] 4. docs/overviews/grasp_to_gait_chain.html (scripts/overview_chain_text.py; key chain), per the procedure. Done 10-22 17:31: grasp_to_gait_chain done: mean 16.8, 5.0 % over 30, judge 9/10 better, 1 repaired
+- [x] 5. docs/overviews/reorientation.html (scripts/overview_mechanisms_text.py; key mechanisms), per the procedure. Done 10-22 17:32: reorientation done: mean 16.9, 1.3 % over 30, judge 14/15 better, 1 repaired
+- [x] 6. docs/overviews/morphology_design.html (scripts/overview_design_text.py; key design), per the procedure. Done 10-22 17:33: morphology_design done: mean 15.8, 2.9 % over 30, judge 8/10 better, 1 repaired
+- [x] 7. docs/overviews/code_and_methods.html (scripts/overview_code_text.py; key code), per the procedure. Done 10-22 17:33: code_and_methods done: mean 15.1, 1.3 % over 30, judge 13/13 better
+- [x] 8. docs/index.html (scripts/docs_home_page.py), per the procedure. Done 10-22 17:34: index done: mean 18.1, 9.3 % over 30 (newest-page summaries remain), judge 9/10 better, 1 repaired
+- [x] 9. Result pages: run `python3 scripts/prose_lint.py --stats` on every page under docs/experiments/*/ into the ru… Done 10-22 17:35: stats of 91 result pages in the run table; 88 above target, added as steps 14 onward, 84 of them linked from an overview
+- [ ] 10. Close: the run table's totals, one sentence in CLAUDE.md section Writing, Status done.
+- [x] 14. Result page docs/experiments/20260906-pad_elevation/20260906-pad_elevation.html (mean 20.8, 21.7 % over 30, a… Done 10-22 17:40: done: see run table
+- [x] 15. Result page docs/experiments/20261011-servo_plant_policies/20261011-servo_plant_contact_model_policies.html (… Done 10-22 17:40: done: see run table
+- [x] 16. Result page docs/experiments/20260920-robust_tranche/20260920-robust_reorient_policies.html (mean 25.1, 27.4 … Done 10-22 17:40: done: see run table
+- [x] 17. Result page docs/experiments/20261011-bench_plan/20261011-bench_plan_finger_spacing.html (mean 26.1, 37.6 % o… Done 10-22 17:41: bench_plan done: mean 21.6, 24.3 % over 30
+- [x] 18. Result page docs/experiments/20261015-curved_tips/20261015-capsule_and_ellipsoid_fingertips.html (mean 27.5, … Done 10-22 17:44: done: see run table
+- [x] 19. Result page docs/experiments/20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html (… Done 10-22 17:44: done: see run table
+- [x] 20. Result page docs/experiments/20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.ht… Done 10-22 17:44: done: see run table
+- [x] 21. Result page docs/experiments/20260919-hands_tranche/20260919-reorient_policies_across_hands.html (mean 27.2, … Done 10-22 17:46: done: see run table
+- [x] 22. Result page docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration.html (mean 30.5,… Done 10-22 17:48: done: see run table
+- [x] 23. Result page docs/experiments/20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html (mean 30.7… Done 10-22 17:48: done: see run table
+- [x] 24. Result page docs/experiments/20261014-pad_usability/20261014-sphere_pad_cost_and_control.html (mean 29.2, 44.… Done 10-22 17:49: done: see run table
+- [x] 25. Result page docs/experiments/20261012-sprung_skin/20261012-sprung_skin_presliding.html (mean 28.0, 43.1 % ove… Done 10-22 17:49: done: see run table
+- [x] 26. Result page docs/experiments/20261016-sim2real_fingertip_readiness/20261016-cad_hand_fingertip_deployment_rea… Done 10-22 17:52: done: see run table
+- [x] 27. Result page docs/experiments/20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html (mean 27.2, 38.9 … Done 10-22 17:52: done: see run table
+- [x] 28. Result page docs/experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html (mean 25.8, 36.… Done 10-22 17:53: done: see run table
+- [x] 29. Result page docs/experiments/20260921-workshop_briefing/20260921-sr2_hand_program_record.html (mean 25.4, 35.… Done 10-22 17:53: done: see run table
+- [x] 30. Result page docs/experiments/20261020-ur5_calibration_mount_v2/20261020-dip_link_b_v3_and_ur5_mount_v2.html (… Done 10-22 17:55: done: see run table
+- [x] 31. Result page docs/experiments/20261018-ur5_calibration_mount/20261018-ur5_calibration_mount.html (mean 28.2, 4… Done 10-22 17:55: done: see run table
+- [x] 32. Result page docs/experiments/20261007-native_compliance/20261007-native_presliding_compliance.html (mean 23.1… Done 10-22 17:56: done: see run table
+- [x] 33. Result page docs/experiments/20260916-swing_reorient/20260916-swing_reorient.html (mean 22.3, 29.0 % over 30,… Done 10-22 17:56: done: see run table
+- [x] 34. Result page docs/experiments/20261011-diffmjx_audit/20261011-diffmjx_gradient_probe_audit.html (mean 24.0, 26… Done 10-22 17:58: done: see run table
+- [x] 35. Result page docs/experiments/20261008-contact_model_policies/20261008-fingertip_contact_model_policies.html (… Done 10-22 17:58: done: see run table
+- [x] 36. Result page docs/experiments/20261021-ur5_calibration_mount_v3/20261021-ur5_calibration_mount_v3.html (mean 2… Done 10-22 17:59: done: see run table
+- [x] 37. Result page docs/experiments/20261021-dip_link_b_v4/20261021-dip_link_b_v4_and_wall_heights.html (mean 26.4, … Done 10-22 17:59: done: see run table
+- [x] 38. Result page docs/experiments/20261013-contact_feedback/20261013-contact_parameter_sensitivity.html (mean 23.6… Done 10-22 18:01: done: see run table
+- [x] 39. Result page docs/experiments/20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html (m… Done 10-22 18:03: done: see run table
+- [?] 40. Result page docs/experiments/20261018-printed_fingertip_status/20261018-printed_fingertip_and_dip_link_status… Waiting on owner: The status page's prose is the curated rows of docs/experiments/20261018-printed_fingertip_status/status.json (the owner's requests with dates, findings, decisions waiting on the owner), which other windows and autopilot jobs update; a plain-language pass would reword those rows. Do you want it done there, or should the page stay as the log it is?
+- [x] 41. Result page docs/experiments/20261007-newton_hydro_tests/20261007-newton_hydroelastic_friction_reduction_edge… Done 10-22 18:01: done: see run table
+- [x] 42. Result page docs/experiments/20261019-dip_link_fit_prints_b/20261019-dip_link_fit_prints_b.html (mean 31.2, 4… Done 10-22 18:03: done: see run table
+- [x] 43. Result page docs/experiments/20261008-hand_object_scale/20261008-finger_spacing_object_size.html (mean 23.8, … Done 10-22 18:04: done: see run table
+- [x] 44. Result page docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html (mean 2… Done 10-22 18:04: done: see run table
+- [x] 45. Result page docs/experiments/20261013-servo_identification/20261013-servo_identification_protocol.html (mean … Done 10-22 18:06: done: see run table
+- [x] 46. Result page docs/experiments/20260827-real_v1/20260827-real_v1_routes_to_vertical.html (mean 22.5, 25.4 % ove… Done 10-22 18:06: done: see run table
+- [x] 47. Result page docs/experiments/20261014-scale_turn_cad_v1/20261014-scale_turn_cad_v1.html (mean 25.3, 32.6 % ov… Done 10-22 18:07: done: see run table
+- [x] 48. Result page docs/experiments/20260916-tip_gait/20260916-bench_partial_reorientation.html (mean 24.5, 31.2 % o… Done 10-22 18:07: done: see run table
+- [x] 49. Result page docs/experiments/20261021-spherical_magnets/20261021-spherical_and_disc_magnets.html (mean 23.6, … Done 10-22 18:09: done: see run table
+- [x] 50. Result page docs/experiments/20261001-hom_contact_patch/20261001-hom_pinch_contact_models.html (mean 20.2, 19… Done 10-22 18:09: done: see run table
+- [x] 51. Result page docs/experiments/20260923-chain_handover_gait/20260923-chain_handover_gait.html (mean 22.4, 26.4 … Done 10-22 18:12: done: see run table
+- [x] 52. Result page docs/experiments/20261013-scale_turn_controllers/20261013-scale_turn_hom_mpc.html (mean 24.5, 30.… Done 10-22 18:12: done: see run table
+- [x] 53. Result page docs/experiments/20260910-karma_metric/20260910-karma_metric_evaluation.html (mean 21.1, 24.5 % o… Done 10-22 18:14: done: see run table
+- [?] 54. Result page docs/experiments/20261008-contact_overview/20261008-sphere_pad_contact_model.html (mean 23.7, 24.… Waiting on owner: This page is a dated snapshot of the contact overview (CLAUDE.md: the dated revisions of 2026-10-05 to 10-09 stay in docs/experiments/ as snapshots); the live overview was passed at 2c763cf6. Reword the snapshot too, or leave it as the record of that day?
+- [x] 55. Result page docs/experiments/20261006-fingertip_backends/20261006-fingertip_contact_backends.html (mean 24.4,… Done 10-22 18:14: done: see run table
+- [x] 56. Result page docs/experiments/20261007-contact-gait/20261007-contact_release_real_v1.html (mean 15.2, 1.8 % ov… Done 10-22 18:17: no edit: mean 15.2, 1.8 % over 30 already meet the length targets; flags are one-clause animacy
+- [?] 57. Result page docs/experiments/20261007-contact_overview/20261007-sphere_pad_contact_model.html (mean 23.3, 23.… Waiting on owner: This page is a dated snapshot of the contact overview (CLAUDE.md: the dated revisions of 2026-10-05 to 10-09 stay in docs/experiments/ as snapshots); the live overview was passed at 2c763cf6. Reword the snapshot too, or leave it as the record of that day?
+- [x] 58. Result page docs/experiments/20261013-eflesh_printability/20261013-eflesh_lattice_printability.html (mean 23.… Done 10-22 18:15: done: see run table
+- [x] 59. Result page docs/experiments/20260904-real_v1_bench/20260904-real_v1_bench_geometry.html (mean 22.1, 19.4 % o… Done 10-22 18:15: done: see run table
+- [?] 60. Result page docs/experiments/20261005-contact_bed/20261005-contact_model_bed.html (mean 21.0, 21.4 % over 30,… Waiting on owner: Rebuilding the contact bed page changes numbers and formulas, not only wording (the shared text blocks of scripts/contact_overview_text.py were revised after its last build: gate lists 23 lost numbers and two formulas). A wording pass would need either a rebuild with that content change or direct edits of the built page. Which do you want?
+- [?] 61. Result page docs/experiments/20261009-contact_overview/20261009-sphere_pad_contact_model.html (mean 22.9, 23.… Waiting on owner: This page is a dated snapshot of the contact overview (CLAUDE.md: the dated revisions of 2026-10-05 to 10-09 stay in docs/experiments/ as snapshots); the live overview was passed at 2c763cf6. Reword the snapshot too, or leave it as the record of that day?
+- [x] 62. Result page docs/experiments/20260906-control_diagnosis/20260906-control_diagnosis.html (mean 22.6, 32.1 % ov… Done 10-22 18:20: done: see run table
+- [x] 63. Result page docs/experiments/20260917-d6_cal_60M/20260917-d6_reorient_policy_60M.html (mean 23.6, 29.3 % over… Done 10-22 18:20: done: see run table
+- [x] 64. Result page docs/experiments/20261021-hom_framework/20261021-hom_tasks_across_object_sizes.html (mean 26.7, 3… Done 10-22 18:20: done: see run table
+- [x] 65. Result page docs/experiments/20260818-perp_review_page/20260818-perp_reorientation.html (mean 20.4, 18.7 % ov… Done 10-22 18:23: done: see run table
+- [x] 66. Result page docs/experiments/20260903-real_v1_chain/20260903-real_v1_chain_and_countersink.html (mean 21.7, 2… Done 10-22 18:23: done: see run table
+- [x] 67. Result page docs/experiments/20261019-dip_link_fit_prints/20261019-dip_link_fit_prints.html (mean 26.4, 32.9 … Done 10-22 18:23: done: see run table
+- [x] 68. Result page docs/experiments/20260830-real_v1-budget-rescreen/20260830-real_v1_budget_rescreen.html (mean 21.… Done 10-22 18:24: done: see run table
+- [x] 69. Result page docs/experiments/20260902-servo-sysid/20260902-servo_sysid.html (mean 22.5, 21.7 % over 30, any 4… Done 10-22 18:24: done: see run table
+- [x] 70. Result page docs/experiments/20260903-sim2real-gates/20260903-sim2real_gates.html (mean 22.2, 23.1 % over 30,… Done 10-22 18:25: done: see run table
+- [x] 71. Result page docs/experiments/20261004-codex/20261004-controller_timestep.html (mean 20.6, 20.0 % over 30, any… Done 10-22 18:25: done: see run table
+- [x] 72. Result page docs/experiments/20261021-hom_framework/20261021-hom_controller_method_and_implementation.html (m… Done 10-22 18:28: done: see run table
+- [x] 73. Result page docs/experiments/20260908-compute_budget/20260908-compute_budget.html (mean 17.9, 10.0 % over 30,… Done 10-22 18:28: done: see run table
+- [x] 74. Result page docs/experiments/20260916-turn_mechanism/20260916-turn_mechanism.html (mean 21.9, 22.7 % over 30,… Done 10-22 18:28: done: see run table
+- [x] 75. Result page docs/experiments/20260902-real_v1_gait/20260902-real_v1_gaiting_open_problems.html (mean 22.4, 19… Done 10-22 18:29: done: see run table
+- [x] 76. Result page docs/experiments/20260827-real_v1/20260827-real_v1_first_night.html (mean 20.6, 16.0 % over 30, a… Done 10-22 18:29: done: see run table
+- [x] 77. Result page docs/experiments/20260903-real_v1_handover/20260903-real_v1_relay_handover.html (mean 20.2, 20.0 … Done 10-22 18:30: done: see run table
+- [ ] 78. Result page docs/experiments/20261004-codex/20261004-contact_research_asides.html (mean 19.5, 14.4 % over 30, any 423): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [x] 79. Result page docs/experiments/20260902-real_v1_gait/20260902-real_v1_gaiting.html (mean 21.7, 24.3 % over 30, … Done 10-22 18:30: done: see run table
+- [x] 80. Result page docs/experiments/20260828-real_v1_search/20260828-real_v1_design_search.html (mean 19.2, 14.3 % o… Done 10-22 18:32: done: see run table
+- [x] 81. Result page docs/experiments/20260827-real_v1/20260827-real_v1_rotational_lock.html (mean 20.7, 19.0 % over 3… Done 10-22 18:34: done: see run table
+- [x] 82. Result page docs/experiments/20261001-drake-port/20261001-drake_sr2_planning.html (mean 20.5, 15.2 % over 30,… Done 10-22 18:34: done: see run table
+- [?] 83. Result page docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html (mean 19.7, 13.… Waiting on owner: Dated snapshot of the contact overview (2026-10-05); same question as steps 54, 57 and 61: reword the snapshot or keep it as the record of that day?
+- [x] 84. Result page docs/experiments/20261007-diffmjx/20261007-contact_gradients_real_v1.html (mean 14.8, 3.9 % over … Done 10-22 18:33: no edit: already within the length targets
+- [x] 85. Result page docs/experiments/20261004-codex/20261004-distributed_contact.html (mean 14.8, 4.2 % over 30, any … Done 10-22 18:33: no edit: already within the length targets
+- [ ] 86. Result page docs/experiments/20260904-real_v1_held/20260904-real_v1_table_stand.html (mean 18.1, 20.0 % over 30, any 367): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [ ] 87. Result page docs/experiments/20261013-cad_v1_finger/20261013-cad_v1_finger_model.html (mean 22.5, 21.3 % over 30, any 367): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [x] 88. Result page docs/experiments/20261004-codex/20261004-articulated_contact_transfer.html (mean 14.3, 1.0 % over… Done 10-22 18:33: no edit: already within the length targets
+- [ ] 89. Result page docs/experiments/20260916-basketball/20260916-basketball_grasp.html (mean 18.1, 13.1 % over 30, any 361): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [ ] 90. Result page docs/experiments/20261001-hom_hand_brake/20261001-hom_hand_brake.html (mean 19.5, 15.6 % over 30, any 356): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [x] 91. Result page docs/experiments/20261004-codex/20261004-contact_videos.html (mean 8.3, 1.4 % over 30, any 347): … Done 10-22 18:33: no edit: already within the length targets
+- [ ] 92. Result page docs/experiments/20261002-hom_chain/20261002-hom_screwdriver_chain.html (mean 16.6, 6.1 % over 30, any 343): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [ ] 93. Result page docs/experiments/20260908-reorientation_journey/20260908-reorientation_journey.html (mean 16.9, 10.2 % over 30, any 336): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [ ] 94. Result page docs/experiments/20260831-real_v1-object-tracking/20260831-real_v1_object_tracking.html (mean 18.0, 14.1 % over 30, any 328): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [ ] 95. Result page docs/experiments/20260906-screen_vs_chain/20260906-screen_vs_chain.html (mean 16.7, 9.0 % over 30, any 328): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [ ] 96. Result page docs/experiments/20260916-calibrated_plant_chain/20260916-calibrated_plant_chain.html (mean 17.6, 14.9 % over 30, any 313): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [ ] 97. Result page docs/experiments/20261018-fingertip_print_procedure/20261018-siraya85a_fingertip_print_procedure.html (mean 20.6, 19.2 % over 30, any 278): the procedure per page, sources = the builder its byline names, its template and its _text module; judge on Opus; row in the run table.
+- [x] 98. Result page docs/experiments/20260818-perp_review_page/page.src.html (mean 20.5, 18.7 % over 30, any 449): th… Done 10-22 18:31: source synced with the edited page; rebuilt through build.sh, same output
+- [x] 99. Result page docs/experiments/20261004-codex/20261004-distributed_contact_spec.html (mean 16.0, 3.7 % over 30,… Done 10-22 18:33: no edit: already within the length targets
+- [x] 100. Result page docs/experiments/20260828-real_v1_search/report_search.src.html (mean 19.2, 14.3 % over 30, any 4… Done 10-22 18:32: done: see run table
+- [x] 101. Result page docs/experiments/20261004-codex/20261004-task_contact_benchmark.html (mean 14.6, 4.5 % over 30, a… Done 10-22 18:33: no edit: already within the length targets
+Standing directions (for every step):
+- Model and checks (owner, 2026-10-22: 'we can lower the model quality if we can automate the checks well'): this job runs on Sonnet at medium effort. Before a page's commit, scripts/prose_gate.py prints PASS for it (procedure step 4) and the judge runs on Opus (Agent tool, model: opus) with the gate's notes. A gate failure, or a pair judged meaning or broken, is repaired or restored before the commit.
+- Stopping (owner, 2026-10-22: 'offload work onto this login, and then find a good stopping point and start back up when weekly reset hits'): the job runs on the colorado and personal logins in turn and waits for the resets. At a usage line with the 5-hour window above 75 % or the week above 85 %, start no new page and no new judge: finish the checks of the page in hand, commit it (or restore it if it fails its gate), update State and end the session.
+- Spend tokens sparingly (owner, 2026-10-22): read only the lines prose_lint --top names and their paragraphs, never a whole builder; edit with exact replacements; the judge reads only the pairs file.
+<!-- /ap:steps -->
 Claimed: scripts/overview_*_text.py, docs/overviews/ except contact_model.html, scripts/docs_home_page.py, docs/index.html, docs/handoff/plain-language-hand/, and the builder, template, text module and page of the result-page step in hand.
 Waiting on owner: republishing the edited pages' artifacts (they belong to the personal login; this job builds local pages only); the owner's reading of the contact overview (2c763cf6): if its style is wrong, the owner disarms this job before it starts.
 Do not: change a number, computation, claim, link, formula's meaning, figure or table value; rebuild pages other than the step's; run GPU jobs; force-push; edit the contact repository.
