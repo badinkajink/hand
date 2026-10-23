@@ -283,13 +283,22 @@ class Registration:
 
 
 # ------------------------------------------------------------------------------------------- fits
-def fit_gravity(R_BE, f_S, t_S, g_B=(0.0, 0.0, -1.0)):
+def fit_gravity(R_BE, f_S, t_S, g_B=(0.0, 0.0, -1.0), t=None):
     """Payload sweep: f_S = A g_E + of and tau_S = Bt g_E + ot, g_E the unit gravity in the flange frame (R_BE^T g_B).
     A = m K with K the HEX-E's map from flange-frame force to its reading (axes, sign, gains, crosstalk); m is taken
     as A's mean singular value (the HEX-E's factory gain kept). Bt = m Kt [c]x gives the centre of mass c (from the
-    sensor's moment origin, flange axes) when Kt is the rotation and sign of K."""
+    sensor's moment origin, flange axes) when Kt is the rotation and sign of K.
+
+    With t (s, each record's time) the HEX-E's drift during the sweep is fitted as well: f_S and tau_S gain a term
+    v (t - t_mean), v_f in N/min and v_t in N m/min, and of and ot are the offsets at t_mean. With the arm still, the
+    lab's untared Fz crept 0.08 N/min on 2026-10-22; added to a simulated sweep, that drift put A 3.3 % off in a 4 min
+    sweep at 30 % speed without the term, and 0.3 % off with it (QUEUE.md R6)."""
     gE = np.einsum("kji,j->ki", np.asarray(R_BE), np.asarray(g_B, float))          # (k, 3) = R^T g
     X = np.c_[gE, np.ones(len(gE))]
+    if t is not None:
+        t = np.asarray(t, float)
+        t_mean = float(t.mean())
+        X = np.c_[X, (t - t_mean) / 60.0]
     sol_f, *_ = np.linalg.lstsq(X, np.asarray(f_S), rcond=None)
     sol_t, *_ = np.linalg.lstsq(X, np.asarray(t_S), rcond=None)
     A, of = sol_f[:3].T, sol_f[3]
@@ -307,10 +316,13 @@ def fit_gravity(R_BE, f_S, t_S, g_B=(0.0, 0.0, -1.0)):
     res_t = np.asarray(t_S) - X @ sol_t
     ang = math.degrees(float(np.linalg.norm(log_so3(R_SE))))
     z_turn = math.degrees(math.atan2(R_SE[1, 0], R_SE[0, 0]))
-    return dict(A=A, of=of, Bt=Bt, ot=ot, K=K, Kt=Kt, R_SE=R_SE, sign=sign, weight_N=m_N, mass_kg=m_N / G,
-                com_mm=c_m * 1e3, sv=s, rms_f_N=float(np.sqrt(np.mean(res_f ** 2))),
-                rms_t_Nm=float(np.sqrt(np.mean(res_t ** 2))), turn_deg=ang, z_turn_deg=z_turn,
-                skew_of_K=float(np.linalg.norm(K - K.T) / np.linalg.norm(K)), n=len(gE))
+    out = dict(A=A, of=of, Bt=Bt, ot=ot, K=K, Kt=Kt, R_SE=R_SE, sign=sign, weight_N=m_N, mass_kg=m_N / G,
+               com_mm=c_m * 1e3, sv=s, rms_f_N=float(np.sqrt(np.mean(res_f ** 2))),
+               rms_t_Nm=float(np.sqrt(np.mean(res_t ** 2))), turn_deg=ang, z_turn_deg=z_turn,
+               skew_of_K=float(np.linalg.norm(K - K.T) / np.linalg.norm(K)), n=len(gE))
+    if t is not None:
+        out.update(v_f=sol_f[4], v_t=sol_t[4], t_mean=t_mean)
+    return out
 
 
 def fit_onset(s, y, y_max, p_set=(1.0, 1.25, 1.5, 1.75, 2.0), step=0.002, win=25, span_mm=0.5):
@@ -1238,7 +1250,7 @@ class Session:
         fresh = any(a["id"] not in self.done for a in acts)     # one sweep, one zero: a resume re-tares the HEX-E
         if fresh:
             self.done -= {a["id"] for a in acts}
-        R, F, Tq, B = [], [], [], []
+        R, F, Tq, B, Tt = [], [], [], [], []
         for a in acts:
             def one(a):
                 T_IP = Tm(rot(a["axis"], a["deg"]) @ self.geo.R_IP([1.0, 0.0, 0.0], 0.0), None)
@@ -1262,16 +1274,19 @@ class Session:
                         rec = e["rec"]
             if rec is not None:
                 R.append(np.array(rec["R_BE"]))
+                Tt.append(float(np.mean(rec["t"])))
                 F.append(np.array(rec["ft"])[:3])
                 Tq.append(np.array(rec["ft"])[3:])
                 B.append(rec.get("board"))
         if len(R) < 6:
             print(f"{stage}: only {len(R)} orientations, no fit")
             return
-        fit = fit_gravity(np.array(R), np.array(F), np.array(Tq))
+        fit = fit_gravity(np.array(R), np.array(F), np.array(Tq), t=np.array(Tt))
         print(f"{stage}: weight {fit['weight_N']:.3f} N ({fit['mass_kg'] * 1e3:.0f} g), centre of mass {np.round(fit['com_mm'], 1)} mm "
               f"(from the HEX-E's origin), sign {fit['sign']:+.0f}, HEX-E axes turned {fit['z_turn_deg']:+.2f} deg about the "
-              f"tool axis ({fit['turn_deg']:.2f} in all), residual {fit['rms_f_N']:.4f} N, {fit['rms_t_Nm']:.5f} N m")
+              f"tool axis ({fit['turn_deg']:.2f} in all), residual {fit['rms_f_N']:.4f} N, {fit['rms_t_Nm']:.5f} N m; "
+              f"drift during the {max(Tt) - min(Tt):.0f} s sweep {np.round(fit['v_f'], 3)} N/min, "
+              f"{np.round(fit['v_t'], 4)} N m/min")
         lim = float(getattr(self.args, "gravity_max_rms", 0.1))
         if fit["rms_f_N"] > lim:
             self.reg.notes[f"{stage}_failed"] = {k: fit[k] for k in ("weight_N", "rms_f_N", "rms_t_Nm")}
@@ -1282,13 +1297,13 @@ class Session:
                 raise SystemExit(msg + "; stopping before any contact")
             print("WARNING " + msg, flush=True)
         if stage == "gravity":
-            self.reg.grav = {k: fit[k] for k in ("A", "of", "Bt", "ot")}
+            self.reg.grav = {k: fit[k] for k in ("A", "of", "Bt", "ot", "v_f", "v_t", "t_mean")}
             self.reg.K, self.reg.Kt = fit["K"], fit["Kt"]
             self.reg.T_ES = Tm(fit["R_SE"].T, self.reg.T_ES[:3, 3])
             self.reg.notes["gravity"] = {k: fit[k] for k in ("weight_N", "mass_kg", "com_mm", "sign", "turn_deg", "z_turn_deg",
-                                                              "rms_f_N", "rms_t_Nm", "skew_of_K", "sv", "n")}
+                                                              "rms_f_N", "rms_t_Nm", "skew_of_K", "sv", "n", "v_f", "v_t")}
         else:
-            self.reg.notes[stage] = {k: fit[k] for k in ("weight_N", "com_mm", "z_turn_deg", "rms_f_N", "rms_t_Nm")}
+            self.reg.notes[stage] = {k: fit[k] for k in ("weight_N", "com_mm", "z_turn_deg", "rms_f_N", "rms_t_Nm", "v_f", "v_t")}
         self.save_reg()
 
     def touch(self, a, kind):
