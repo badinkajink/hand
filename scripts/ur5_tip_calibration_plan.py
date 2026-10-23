@@ -197,7 +197,7 @@ class Checker:
         worst = {}
         for k, v in cl.items():
             grp = ("robot" if k in ROBOT_LINKS else "hex_e" if k == "hex_e" else
-                   "mount" if k in ("adapter", "fork", "clamp_plate") else "pad" if k == "pad" else "finger")
+                   "mount" if k in ("adapter", "fork", "clamp_plate", "stop_wedge") else "pad" if k == "pad" else "finger")
             worst[grp] = min(worst.get(grp, 1e9), v)
         ok = all(worst[g] >= need[g] + extra for g in worst if not (g == "pad" and self.kind == "rod"))   # line contact
         return ok, dict(clear={k: round(v, 2) for k, v in worst.items()}, self={k: round(v, 1) for k, v in sc.items()},
@@ -248,7 +248,7 @@ def tip_reachable(geo, kind, idx, twist=0.0):
     # against the rod (12.5 mm radius) a flat stretch of the pad touches along a line through the target, so the pad
     # meets the rod beyond the 4 mm round the target by design: only the finger's other parts and the mount count
     ok = ((kind == "rod" or out["pad"] >= -0.05) and min(out[k] for k in ("dip_link", "cover", "cap")) >= CLEAR["finger"]
-          and min(out[k] for k in ("fork", "clamp_plate")) >= CLEAR["mount"])
+          and min(out[k] for k in ("fork", "clamp_plate", "stop_wedge") if k in out) >= CLEAR["mount"])   # stop_wedge: mount v5
     return ok, out
 
 

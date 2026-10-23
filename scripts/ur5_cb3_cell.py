@@ -30,8 +30,10 @@ UR_DESC = next((p for p in (Path.home() / "Programs/rh56_controller/magpie_force
                 if p.exists()), Path.home() / "Programs/rh56_controller/magpie_force_control/src/ur_description")
 URDF = UR_DESC / "ur5.urdf"
 # The mount: v3 of 2026-10-21 by default; UR5_MOUNT=v4 takes v4 of 2026-10-23 (v3 with the stop plate behind the tongue,
-# the same frames and PIP_M), whose parts the builder writes to their own folder
-_MOUNT_STEM = {"v3": "20261021-ur5_calibration_mount_v3", "v4": "20261023-ur5_calibration_mount_v4"}[os.environ.get("UR5_MOUNT", "v3")]
+# the same frames and PIP_M), whose parts the builder writes to their own folder; UR5_MOUNT=v5 takes v4's parts and the PLA
+# wedge in the stop plate's gap, as the space it takes over all its seats (stop_wedge_swept)
+_MOUNT_STEM = {"v3": "20261021-ur5_calibration_mount_v3", "v4": "20261023-ur5_calibration_mount_v4",
+               "v5": "20261023-ur5_calibration_mount_v5"}[os.environ.get("UR5_MOUNT", "v3")]
 MOUNT = ROOT / "docs/experiments" / _MOUNT_STEM / "cad"
 FINGER = ROOT / "docs/experiments/20261018-dip_link_board_mount/v4/b/cad"
 TOOL_PARTS = {   # name: (file, frame)
@@ -43,6 +45,8 @@ TOOL_PARTS = {   # name: (file, frame)
     "cap": (FINGER / "20261021-dip_link_v4b_tip_cap_TW15H3.stl", "F"),
     "pad": (FINGER / "20261021-dip_link_v4b_pad_ell11_5.stl", "F"),
 }
+if (MOUNT / f"{_MOUNT_STEM}_stop_wedge_swept.stl").exists():
+    TOOL_PARTS["stop_wedge"] = (MOUNT / f"{_MOUNT_STEM}_stop_wedge_swept.stl", "M")
 INDENTER_STL = {"sphere": MOUNT / f"{_MOUNT_STEM}_indenter_sphere.stl",
                 "rod": MOUNT / f"{_MOUNT_STEM}_indenter_rod.stl"}
 HEX = dict(height_mm=35.0, diameter_mm=70.0, across_connector_mm=78.5, mass_kg=0.260)   # OptoForce HEX-E V1.0 data sheet
@@ -154,7 +158,7 @@ def tool_points(spacing=2.0):
     out = {}
     for name in TOOL_PARTS:
         m = finger_mesh(name)
-        sp = 1.0 if name in ("pad", "cover", "cap") else spacing
+        sp = 1.0 if name in ("pad", "cover", "cap") else 0.5 if name == "stop_wedge" else spacing
         n = int(min(12000, max(300, m.area / sp ** 2)))
         p, _ = trimesh.sample.sample_surface_even(m, n, seed=0)
         out[name] = p

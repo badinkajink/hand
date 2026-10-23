@@ -479,6 +479,9 @@ class Check:
         G = dict(nominal=(T_BI_home, geo.T_EM0, geo.T_MP0), registered=(T_BI, T_EM, T_MP))
         TP = CELL.tool_points()
         groups = dict(mount=("adapter", "fork", "clamp_plate"), finger=("dip_link", "cover", "cap"), hex_e=("hex_e",))
+        if "stop_wedge" in TP:                          # mount v5 (UR5_MOUNT=v5): the wedge's space, on the mount's margin
+            groups["stop_wedge"] = ("stop_wedge",)
+            need.setdefault("stop_wedge", need["mount"])
         least = {lab: {g: (1e9, None) for g in groups} for lab in G}
         per = {}                                                # action -> group -> least clearance, registered
         for a in plan["actions"]:

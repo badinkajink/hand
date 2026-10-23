@@ -53,6 +53,8 @@ V3M = REPO / "docs/experiments/20261021-ur5_calibration_mount_v3"
 UP3 = "20261021-ur5_calibration_mount_v3"
 V4M = REPO / "docs/experiments/20261023-ur5_calibration_mount_v4"
 UP4 = "20261023-ur5_calibration_mount_v4"
+V5M = REPO / "docs/experiments/20261023-ur5_calibration_mount_v5"
+UP5 = "20261023-ur5_calibration_mount_v5"
 ATI = REPO / "docs/experiments/20261023-ati_ft_calibration"
 UP = "20261020-ur5_calibration_mount_v2"
 COVERS = {"W00": 0.0, "W10": 0.10, "W20": 0.20}        # wall clearance per cover, mm
@@ -90,6 +92,7 @@ def covers():
 
 
 R_ADAPTER = [[1.0, 0, 0], [0, -1.0, 0], [0, 0, -1.0]]     # tool face on the bed, the dowel up
+R_WEDGE = [[0, 0, 1.0], [0, 1.0, 0], [-1.0, 0, 0]]       # mount v5's wedge: its flat face (x_F 8.0) on the bed, the fin up
 PLATES = {
     "calibration": [
         ("U2", "UR5 standoff-fork v2", UR5 / f"{UP}_standoff_fork.stl", np.eye(3), V.MOUNT_SOLID),
@@ -167,6 +170,12 @@ PLATES = {
     "mount_v4_fork": [
         ("U2", "UR5 standoff-fork v4, stop plate behind the tongue", V4M / f"cad/{UP4}_standoff_fork.stl", np.eye(3),
          dict(STANDARD, wall_loops="6"))],
+    # 2026-10-23: mount v5's wedge (scripts/ur5_calibration_mount.py with UR5M_REV=v5), two copies for v4's fork as printed: flat
+    # face on the bed, so the incline prints as 0.1 mm steps of 0.57 mm along it; solid at 0.1 mm with six walls like the covers
+    # (four left a fill ratio of 0.81)
+    "mount_v5_wedge": [(f"SW{k}", "UR5 mount v5 wedge, 10 deg, 1.2-2.9 mm", V5M / f"cad/{UP5}_stop_wedge.stl", R_WEDGE,
+                        dict(V.SOLID, wall_loops="6"))
+                       for k in (1, 2)],
     # 2026-10-23: the ATI Mini45's stack on the HEX-E and the hook cross (scripts/ati_stack_mount.py; the Mini45's hole clocking,
     # thread depth and height to be measured first), flat as modelled, six walls
     "ati_stack": [
@@ -190,6 +199,7 @@ PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"
              "fit2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit2"),
              "snug": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_snug"),
              "mount_v4_fork": (V4M / "print", f"{UP4}_p1s_pla"),
+             "mount_v5_wedge": (V5M / "print", f"{UP5}_p1s_pla_wedge"),
              "ati_stack": (ATI / "print", "20261023-ati_stack_p1s_pla")}
 
 
@@ -219,6 +229,7 @@ def main():
                    "fit2": "DIP link b: covers 2T, caps TW15H2",
                    "snug": "DIP link b: snug covers 3S, 2S and caps",
                    "mount_v4_fork": "UR5 mount v4: standoff-fork with a stop plate behind the DIP link's tongue",
+                   "mount_v5_wedge": "UR5 mount v5: two PLA wedges for the stop plate's gap",
                    "ati_stack": "ATI Mini45 on the HEX-E: base, top and hook cross (draft, the ATI unmeasured)"}[plate]
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
@@ -250,6 +261,9 @@ def main():
                       "make sure to size the bore correctly for the brass insert'" if plate in ("mount_v3", "mount_v3_adapter") else "")
                    + ("; 2026-10-23 (through the lab session): the DIP link moves a little in the fork when the pad is pressed "
                       "hard; a mount that fastens the link more rigidly" if plate == "mount_v4_fork" else "")
+                   + ("; 2026-10-23: 'i dont have any of that hardware except for the heat inserts. we can try devising a "
+                      "constraining v5 that doesnt require so many fasteners. brass hardware is not really stocked in the lab'"
+                      if plate == "mount_v5_wedge" else "")
                    + ("; 2026-10-22 11:30: 'the middle setting (3mm on the top cover, whatever it is on the cassette) is a good middle "
                       "ground ... widen the top edge of the trapezoid of the rail ... undersize the slot and oversize the rail just a "
                       "little bit ... a PLA print with three new cassettes and top covers'" if plate == "fit3" else ""))

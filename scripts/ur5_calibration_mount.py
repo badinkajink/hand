@@ -28,6 +28,13 @@ in M.
     $RG .venv/bin/python scripts/ur5_calibration_mount.py render   # figures -> media/
     $RG $E scripts/ur5_calibration_mount.py print         # PrusaSlicer project for the XL, sliced and checked -> print/
     $E scripts/ur5_calibration_mount.py docs              # parts list, assembly steps -> assembly.json, README.md
+    $RG $E scripts/ur5_calibration_mount.py payload       # mass and centre of gravity past the flange -> payload.json
+    $RG $E scripts/ur5_calibration_mount.py clearance     # v4 on: the lab plans' clearances with this mount -> clearance.json
+
+UR5M_REV picks the revision (v1 when unset). v5 (2026-10-23) is v4's fork as printed with a PLA wedge in the stop plate's
+gap: build writes stop_wedge (seated at the nominal gap) and stop_wedge_swept (all its seats, for the clearance checks);
+check adds the wedge's seats, overlaps, path in, friction and the plate's bending; its print plate is
+scripts/v3b_ur5v2_pla_plate.py mount_v5_wedge.
 """
 from __future__ import annotations
 
@@ -58,11 +65,13 @@ sys.path.insert(0, str(REPO / "src"))
 # above the foot 11 mm higher than v2. 2026-10-22: v3's adapter takes brass heat-set inserts for the foot's M3 (m3_seat
 # "insert"; `inserts` checks the bores); UR5M_ONLY=adapter rebuilds that part alone.
 REV = os.environ.get("UR5M_REV", "v1")
-V2UP = REV in ("v2", "v3", "v4")
-V3UP = REV in ("v3", "v4")      # v4 (2026-10-23) is v3 with a stop behind the DIP link's tongue (stop_* in its P block)
-DATE = {"v1": "20261018", "v2": "20261020", "v3": "20261021", "v4": "20261023"}[REV]
+V2UP = REV in ("v2", "v3", "v4", "v5")
+V3UP = REV in ("v3", "v4", "v5")   # v4 (2026-10-23) is v3 with a stop behind the DIP link's tongue (stop_* in its P block);
+#                                    v5 (2026-10-23) is v4's fork as printed with a PLA wedge in place of the set screws
+DATE = {"v1": "20261018", "v2": "20261020", "v3": "20261021", "v4": "20261023", "v5": "20261023"}[REV]
 PFX = {"v1": "20261018-ur5_calibration_mount", "v2": "20261020-ur5_calibration_mount_v2",
-       "v3": "20261021-ur5_calibration_mount_v3", "v4": "20261023-ur5_calibration_mount_v4"}[REV]
+       "v3": "20261021-ur5_calibration_mount_v3", "v4": "20261023-ur5_calibration_mount_v4",
+       "v5": "20261023-ur5_calibration_mount_v5"}[REV]
 OUT = REPO / "docs/experiments" / PFX
 CAD, MEDIA, PRINT = OUT / "cad", OUT / "media", OUT / "print"
 WORK = REPO / "logs" / PFX
@@ -247,7 +256,7 @@ if V3UP:
     SCREWS["M3_insert"] = dict(qty=4, what="M3 x 5.7 brass heat-set insert, 4.6 mm across the knurls (CNC Kitchen's M3 x 5.7 or "
                                            "the like), in the adapter's 4.0 mm bores", mass_g=0.4)   # mass from its size
 
-if REV == "v4":
+if REV in ("v4", "v5"):
     # 2026-10-23 (the owner, through the lab session, after a hand check: the DIP link moves a little in v3's fork when the
     # pad is pressed hard; the UR5 run sphere2 measured 0.33 mm + 0.20 mm/N of travel beyond the FE pad, 0.21 mm/N on the
     # face; docs/experiments/20261022-ur5_tip_calibration/QUEUE.md R16, R18). In v3 the legs alone hold the link: their walls
@@ -277,6 +286,26 @@ if REV == "v4":
                                          "nut as jam nut, turned onto the tongue's back through the stop plate", mass_g=0.9)
     SCREWS["M3_insert_stop"] = dict(qty=4, what="M3 x 5.7 brass heat-set insert (4.6 mm across the knurls): three in the stop "
                                                "plate, one in the inner block for the slotted arm's screw", mass_g=0.4)
+if REV == "v5":
+    # 2026-10-23 (owner, after sending v4's fork to the P1S: "i dont have any of that hardware except for the heat inserts. we can
+    # try devising a constraining v5 that doesnt require so many fasteners. brass hardware is not really stocked in the lab. but
+    # i think this rigid stop should work well already"): v4's fork as printed, its three stop bores left empty, and a PLA wedge
+    # pushed into the 1.95 mm gap between the stop plate and the tongue's back from the tip end. The wedge's flat face lies on
+    # the tongue's back (x_F 8.0, flat over |y_F| <= 10 from z_F -77.05 to the tongue's end at -98.46); its inclined face meets
+    # the plate's lower edge (x_F 9.95, z_F -92.0), where the wedge jams, at whatever thickness the gap has. A 10 deg taper over
+    # 9.5 mm takes gaps of 1.2 to 2.9 mm (the plate's print, and the link anywhere in its 1 deg of play) and locks by friction
+    # (tan 10 deg = 0.18 against 0.4 to 0.8 for PLA on PLA at both faces). No metal near the board's chips.
+    P.update(
+        wedge_y=9.0,                # half-width (y_F); the plate's inner face is flat over |y_F| <= 8.5, rounded to 9.5
+        wedge_t0=1.2,               # thickness at the leading end, mm
+        wedge_deg=10.0,             # taper of the inclined face against the flat one
+        wedge_len=9.5,              # length of the incline (z_F): 1.2 to 2.875 mm thick
+        wedge_fin_len=2.5,          # the fin at the trailing end, pushed by a finger and pulled by its edges (z_F)
+        wedge_fin_x=13.5,           # the fin's dorsal face (x_F), inside the plate's outer face (16.0)
+    )
+    del SCREWS["M3_stop"]
+    SCREWS["M3_insert_stop"] = dict(qty=1, what="M3 x 5.7 brass heat-set insert (4.6 mm across the knurls) in the inner block "
+                                               "for the slotted arm's screw; the stop plate's three bores stay empty", mass_g=0.4)
 
 
 def fname(stem, ext="stl", sub=CAD):
@@ -721,6 +750,26 @@ def stop_bores(K, p=P):
         out.append(K.cyl("x", (y, z), p["stop_clear"] / 2, x0 - 1.0, x1 - L - 0.49))
     return out
 
+
+def wedge_seat(t_edge, p=P):
+    """v5: z_F of the wedge's leading end when its thickness at the plate's lower edge is t_edge (mm)."""
+    return p["stop_bot_z"] + (t_edge - p["wedge_t0"]) / math.tan(math.radians(p["wedge_deg"]))
+
+
+def stop_wedge(K, p=P, t_edge=None, lift=0.0):
+    """v5: the wedge in F, its flat face lift above the tongue's back (x_F 8.0), seated where its inclined face meets the
+    plate's lower edge (x_F stop_x[0], z_F stop_bot_z); t_edge None: at the gap of the nominal link (1.95 mm less lift).
+    The profile in x-z (leading end toward the PIP axis, the fin at the tip end) is extruded over |y_F| <= wedge_y."""
+    xb = B_LINK["tongue_back"] + lift
+    t_edge = p["stop_x"][0] - xb if t_edge is None else t_edge
+    tan_a = math.tan(math.radians(p["wedge_deg"]))
+    t0, L, fl = p["wedge_t0"], p["wedge_len"], p["wedge_fin_len"]
+    z0 = wedge_seat(t_edge, p)
+    zh = z0 - L
+    poly = [(xb, z0), (xb + t0, z0), (xb + t0 + L * tan_a, zh), (p["wedge_fin_x"], zh), (p["wedge_fin_x"], zh - fl), (xb, zh - fl)]
+    return K.prism_xz(poly, -p["wedge_y"], p["wedge_y"])
+
+
 def standoff_fork_v2_ears(K, p=P):
     """v2, fork_style "ears" and "mold": v1's foot, column, hub and inner block, the DIP link sliding on along the tool axis
     between the two ears as in v1, without the key: the ears' inner faces ear_gap from the bridge's palmar and dorsal faces
@@ -901,7 +950,7 @@ def homing(kind):
 
 
 PARTS = (("adapter", "standoff_fork", "clamp_plate") if REV == "v1" or P.get("fork_style") in ("ears", "mold")
-         else ("adapter", "standoff_fork"))
+         else ("adapter", "standoff_fork")) + (("stop_wedge",) if "wedge_t0" in P else ())
 TABLE_PARTS = ("indenter_sphere", "indenter_rod")
 MOLD = V2UP and P.get("fork_style") == "mold"
 
@@ -913,7 +962,8 @@ ONLY = tuple(s for s in os.environ.get("UR5M_ONLY", "").split(",") if s)   # e.g
 def build_parts(K, p=P):
     """The printed parts in M (and the indenters in their table frame)."""
     out = {}
-    for nm, fn in (("adapter", adapter), ("standoff_fork", standoff_fork), ("clamp_plate", clamp_plate)):
+    for nm, fn in (("adapter", adapter), ("standoff_fork", standoff_fork), ("clamp_plate", clamp_plate),
+                   ("stop_wedge", stop_wedge)):     # v5: the wedge seated at the nominal link's gap
         if nm in PARTS and (not ONLY or nm in ONLY):
             out[nm] = K.transform(fn(K, p), T_M_FROM_F)
     for kind in ("sphere", "rod"):
@@ -1086,6 +1136,16 @@ def cmd_build(a):
                        watertight=bool(tm.is_watertight), triangles=int(len(tm.faces)), status=str(s.status()),
                        frame="M" if nm in PARTS else "table (z up, base on the table)")
         print(f"{nm}: {s.volume():.0f} mm3, bounds {np.round(b, 2).tolist()}", flush=True)
+    if "stop_wedge" in parts:                            # v5: every seat the wedge can take, for the clearance checks
+        t1 = P["wedge_t0"] + P["wedge_len"] * math.tan(math.radians(P["wedge_deg"]))
+        sw = K.union([stop_wedge(K, P, t_edge=t) for t in np.linspace(P["wedge_t0"], t1, 9)])
+        tm = to_trimesh(K.transform(sw, T_M_FROM_F))
+        dst = fname("stop_wedge_swept")
+        tm.export(dst)
+        rec["stop_wedge_swept"] = dict(file=rel(dst), volume_mm3=round(float(sw.volume()), 1),
+                                       bounds=np.round(tm.bounds, 3).tolist(), watertight=bool(tm.is_watertight), frame="M",
+                                       note=f"the wedge at nine seats, thickness at the plate's edge {P['wedge_t0']:.2f} to "
+                                            f"{t1:.3f} mm: the space it can take, for the clearance checks; not a part")
     rec = _merge_parts(OUT / f"{PFX}_parts.json", rec)
     (OUT / f"{PFX}_parts.json").write_text(json.dumps(dict(parameters=P, frame=dict(
         F="finger frame of the DIP study", M="mount frame: origin at the flange face's centre, z along the tool axis toward "
@@ -1276,6 +1336,67 @@ def _rot(axis, ang):
     return np.eye(3) + math.sin(ang) * K_ + (1 - math.cos(ang)) * K_ @ K_
 
 
+WEDGE_MU = (0.2, 0.3, 0.4)        # PLA on PLA, dry: the range for the wedge's friction at both faces
+
+
+def wedge_mechanics(alpha_deg, mu):
+    """v5: the wedge pushed in along +z_F with force F onto the tongue (normal N1, friction mu) and the plate's edge (normal
+    N2 on the incline, friction mu): N1 per newton of push, and the pull that takes it out again per newton of N1 (> 0:
+    it locks)."""
+    a = math.radians(alpha_deg)
+    c, s = math.cos(a), math.sin(a)
+    n1_per_push = (c - mu * s) / (s + 2 * mu * c - mu * mu * s)
+    pull_per_n1 = (mu * c - s + mu * (c + mu * s)) / (c + mu * s)
+    return dict(mu=mu, preload_per_push=round(n1_per_push, 3), pull_out_per_preload=round(pull_per_n1, 3))
+
+
+def wedge_checks(K, sf):
+    """v5: the wedge's seats over its range of gaps, its overlaps at the nominal seat with DIP link b v4 (cover 3S, pad, tip
+    cap TW15H3S), the fork and the clamp plate, its path in from 25 mm beyond the seat, its friction and the plate's bending."""
+    import trimesh
+    V4B = DIP / "v4/b/cad"
+    lk = {k_: from_trimesh(trimesh.load(V4B / f, force="mesh")) for k_, f in (
+        ("dip_link", "20261021-dip_link_v4b_dip_link.stl"), ("cover_3S", "20261022-dip_link_v4b_cover_I15H3_3S.stl"),
+        ("pad", "20261021-dip_link_v4b_pad_block5.stl"), ("cap_TW15H3S", "20261022-dip_link_v4b_tip_cap_TW15H3S.stl"))}
+    lk["fork"] = sf
+    lk["clamp_plate"] = K.transform(from_trimesh(_load_part("clamp_plate")), np.linalg.inv(T_M_FROM_F))
+    tan_a = math.tan(math.radians(P["wedge_deg"]))
+    t0, L = P["wedge_t0"], P["wedge_len"]
+    t1 = t0 + L * tan_a
+    gap0 = P["stop_x"][0] - B_LINK["tongue_back"]
+    z_end_finger = -100.06                               # the tip cap's end, the finger's last point toward the tip (z_F)
+    seats = []
+    for lab, t in (("thinnest gap", t0), ("nominal link", gap0), ("thickest gap", t1)):
+        z0 = wedge_seat(t)
+        zf = z0 - L - P["wedge_fin_len"]
+        seats.append(dict(case=lab, gap_at_edge_mm=round(t, 3), leading_end_z_F=round(z0, 2), fin_end_z_F=round(zf, 2),
+                          leading_end_short_of_neck_step_mm=round(B_LINK["mount_z"] - z0, 2),
+                          past_plate_end_mm=round(P["stop_bot_z"] - zf, 2), past_finger_end_mm=round(z_end_finger - zf, 2)))
+    wd = stop_wedge(K, P, lift=0.02)
+    over = {k_: round(float((wd ^ m).volume()), 4) for k_, m in lk.items()}
+    # the path in: 0.03 mm off the tongue and 0.03 mm short of the plate's edge at the seat, from 25 mm out
+    w3 = stop_wedge(K, P, t_edge=P["stop_x"][0] - B_LINK["tongue_back"] - 0.06, lift=0.03)
+    obst = K.union(list(lk.values()))
+    path = [(round(float(d), 2), round(float((w3.translate([0.0, 0.0, -d]) ^ obst).volume()), 4)) for d in np.arange(0.0, 25.01, 0.25)]
+    # the plate as a cantilever from the dorsal ear (z_F -67.5) to its edge, loaded there; E of printed PLA 2 GPa (v4's estimate)
+    E, b, h = 2000.0, 2 * P["stop_y"], P["stop_x"][1] - P["stop_x"][0]
+    Lc = P["ear_z_low"] - P["stop_bot_z"]
+    k_plate = Lc ** 3 / (3 * E * b * h ** 3 / 12)
+    arm_c, arm_w = -62.0 - B_LINK["z_contact"], -62.0 - P["stop_bot_z"]      # about the bridge's middle (turn_play's centre)
+    rec = dict(geometry=dict(width_mm=2 * P["wedge_y"], t0_mm=t0, t1_mm=round(t1, 3), taper_deg=P["wedge_deg"], incline_mm=L,
+                             fin_len_mm=P["wedge_fin_len"], fin_x_F=P["wedge_fin_x"], gap_nominal_mm=round(gap0, 3)),
+               seats=seats, overlaps_at_seat_mm3=over,
+               path_in_overlaps=[x for x in path if x[1] > 1e-4], path_in_clear=all(x[1] <= 1e-4 for x in path),
+               friction=[wedge_mechanics(P["wedge_deg"], mu) for mu in WEDGE_MU],
+               plate=dict(cantilever_mm=round(Lc, 2), width_mm=b, thickness_mm=round(h, 2), E_MPa=E,
+                          bend_at_edge_mm_per_N=round(k_plate, 5),
+                          contact_travel_mm_per_N=round(k_plate * (arm_c / arm_w) ** 2, 5),
+                          note="the edge's load per newton of a face press at the contact point is arm_c / arm_w about the "
+                               "bridge's middle (z_F -62); the contact moves arm_c / arm_w of the edge's bend"))
+    print("wedge", json.dumps(rec, default=float), flush=True)
+    return rec
+
+
 def cmd_check_v2(a):
     """v2: the b links in the mount (overlap, the insertion along +x_F, gaps at each datum), the foot's screws, the homing
     socket and posts, and the mount, link and pad against each indenter at the homing and the touching poses."""
@@ -1331,6 +1452,11 @@ def cmd_check_v2(a):
             r["overlap_set_screws_mm3"] = round(float((dm ^ scr).volume()), 4)
             r["turn_to_contact_deg_screws_set"] = turn_play(dm, K.union([sf, scr]))
             print(k, "turn with the stop screws set", r["turn_to_contact_deg_screws_set"], flush=True)
+        if "wedge_t0" in P:                              # v5: the wedge 0.02 mm off the tongue, its incline on the plate's edge
+            wd = stop_wedge(K, P, lift=0.02)
+            r["overlap_wedge_mm3"] = round(float((dm ^ wd).volume()), 4)
+            r["turn_to_contact_deg_wedge_set"] = turn_play(dm, K.union([sf, wd]))
+            print(k, "turn with the wedge set", r["turn_to_contact_deg_wedge_set"], flush=True)
         res[k] = r
         print(k, "overlap", r["overlap_fork_mm3"], "insertion clear", r["insertion_clear"], r["gaps_by_region_mm"],
               "turn", r["turn_to_contact_deg"], flush=True)
@@ -1353,6 +1479,8 @@ def cmd_check_v2(a):
     # the mount, the link and the pad against each indenter, at homing and touching (table frame)
     T_FM = T_M_FROM_F
     parts_M = {"standoff_fork": _load_part("standoff_fork"), "adapter": _load_part("adapter")}
+    if "wedge_t0" in P:                                  # v5: every seat of the wedge
+        parts_M["stop_wedge_swept"] = _load_part("stop_wedge_swept")
     for k_, m in (("link_v3b", links["v3b"]), ("cover_v3b", extra["cover_v3b"]), ("pad", extra["pad"])):
         t = m.copy()
         t.apply_transform(T_FM)
@@ -1387,7 +1515,8 @@ def cmd_check_v2(a):
                  rail=P["cr_rail_t"], lip_thread_mm=round(P["cr_lip_t"] - (L["tongue_back"] + P["cr_clear_x"] - P["cr_screw_x"]), 2),
                  inner_block_height=round(P["hub_z0"] - P["ib_flat_z"], 2),
                  socket_to_column_side=round(P["fp_x"] - P["home_depth"], 2))
-    rec = dict(rev=REV, b_links=res, hex_key_access=acc, foot_screw_heads=heads, poses_table=poses, walls_mm=walls,
+    rec = dict(wedge=wedge_checks(K, sf)) if "wedge_t0" in P else {}
+    rec.update(rev=REV, b_links=res, hex_key_access=acc, foot_screw_heads=heads, poses_table=poses, walls_mm=walls,
                note="F frame for the links; table frame for the poses (x along the tool axis toward the tip, z up, the palmar "
                     "side down); overlaps by manifold3d booleans of the meshes (the pad's overlap at 'touch' is the contact's "
                     "tessellation); gaps by nearest neighbours between surface samples 0.1 mm apart",
@@ -1473,8 +1602,9 @@ def cmd_payload_v2(a):
     if V3UP:                                            # v3's adapter and fork from their own plate; the clamp plate is v2's
         v3p = REPO / "docs/experiments/20261021-ur5_calibration_mount_v3/print/20261021-ur5_calibration_mount_v3_p1s_pla.json"
         fill.update({o["id"]: o["fill_ratio"] for o in json.loads(v3p.read_text())["objects"]})
-        if REV == "v4" and (PRINT / f"{PFX}_p1s_pla.json").exists():          # v4's fork from its own plate
-            fill.update({o["id"]: o["fill_ratio"] for o in json.loads((PRINT / f"{PFX}_p1s_pla.json").read_text())["objects"]})
+        p4 = REPO / "docs/experiments/20261023-ur5_calibration_mount_v4/print/20261023-ur5_calibration_mount_v4_p1s_pla.json"
+        if REV in ("v4", "v5") and p4.exists():          # v4's fork from its own plate (v5 is v4's fork as printed)
+            fill.update({o["id"]: o["fill_ratio"] for o in json.loads(p4.read_text())["objects"]})
     ev = json.loads((DIP / "v3/b/evaluation.json").read_text())["mass_g"]
     items = []
     for nm, pid in (("adapter", "U1"), ("standoff_fork", "U2")) + ((("clamp_plate", "U3"),) if "clamp_plate" in PARTS else ()):
@@ -1498,6 +1628,13 @@ def cmd_payload_v2(a):
               ("hex_e", 347.0, np.array([0.0, 5.0, -50.0 + 20.0]))]
     if P.get("m3_seat") == "insert":
         items.append(("m3_inserts", 4 * SCREWS["M3_insert"]["mass_g"], np.array([0.0, 0.0, P["ad_t"] - P["ins_len"] / 2])))
+    if "wedge_t0" in P:                                  # v5: the wedge at its plate's fill, the slotted arm's insert
+        wp = json.loads((PRINT / f"{PFX}_p1s_pla_wedge.json").read_text())
+        tw = _load_part("stop_wedge")
+        items.append(("stop_wedge", float(tw.volume) * 1e-3 * MATERIAL["pla_density_g_cm3"] * wp["objects"][0]["fill_ratio"],
+                      np.asarray(tw.center_mass)))
+        items.append(("slotted_arm_insert", SCREWS["M3_insert_stop"]["mass_g"],
+                      F_to_M(np.array([0.0, P["ib_y"][1] - P["stop_ins_len"] / 2, PIP_ZF]))))
     m = sum(i[1] for i in items)
     cog_M = sum(i[1] * i[2] for i in items) / m
     rec = dict(items=[dict(item=n, mass_g=round(w, 1), cog_M_mm=np.round(c, 1).tolist()) for n, w, c in items],
@@ -1509,6 +1646,39 @@ def cmd_payload_v2(a):
                when=time.strftime("%Y-%m-%d %H:%M"))
     (OUT / f"{PFX}_payload.json").write_text(json.dumps(rec, indent=1, default=float))
     print(json.dumps({k: rec[k] for k in ("total_g", "cog_from_ur_flange_mm", "tcp_contact_from_ur_flange_mm")}), flush=True)
+
+
+CLEARANCE_RUNS = (   # the lab's sessions and the plans they ran (docs/experiments/20261022-ur5_tip_calibration/lab)
+    ("sphere2", "20261022-210852-sphere2", "20261022-plan_sphere_lab_turns_checked_reg2144.json"),
+    ("rod1", "20261023-104526-rod1", "20261023-plan_rod_lab_reg_rod1.json"))
+
+
+def cmd_clearance(a):
+    """v4 and later: the least clearance of each tool group (v5: the wedge's space over all its seats as its own group) to
+    the indenter, the cell and the other indenter over each lab plan, with its session's registration and nominal, through
+    scripts/ur5_tip_calibration_check.py --clearance with UR5_MOUNT set to this revision."""
+    import re
+    import subprocess
+    lab = REPO / "docs/experiments/20261022-ur5_tip_calibration/lab"
+    pat = re.compile(r"^\s+(\w+)\s+least\s+([-\d.]+) mm registered \(([\w-]+)\),\s+([-\d.]+) nominal \(([\w-]+)\); needs ([\d.]+)")
+    rec = dict(note=f"scripts/ur5_tip_calibration_check.py SESSION --clearance PLAN with UR5_MOUNT={REV}: press poses at rest "
+                    "and 1 mm past contact, every 1 deg of every turn; tool parts sampled about 2 mm apart, the wedge's "
+                    "space 0.5 mm apart", plans={}, when=time.strftime("%Y-%m-%d %H:%M"))
+    for name, sess, plan in CLEARANCE_RUNS:
+        r = subprocess.run([str(REPO / ".venv/bin/python"), str(REPO / "scripts/ur5_tip_calibration_check.py"), str(lab / sess),
+                            "--clearance", str(lab / plan)], capture_output=True, text=True, env=dict(os.environ, UR5_MOUNT=REV),
+                           cwd=REPO, check=True)
+        groups, under = {}, None
+        for ln in r.stdout.splitlines():
+            m = pat.match(ln)
+            if m:
+                groups[m.group(1)] = dict(registered_mm=float(m.group(2)), registered_at=m.group(3),
+                                          nominal_mm=float(m.group(4)), nominal_at=m.group(5), needs_mm=float(m.group(6)))
+            if "under the margins with the registration" in ln:
+                under = ln.strip()
+        rec["plans"][name] = dict(session=rel(lab / sess), plan=rel(lab / plan), groups=groups, under=under)
+        print(name, json.dumps(groups), under, flush=True)
+    (OUT / f"{PFX}_clearance.json").write_text(json.dumps(rec, indent=1) + "\n")
 
 
 def _dist_m(r1, a1, r2, a2):
@@ -2582,6 +2752,97 @@ def cmd_render_v4(a):
         shutil.copy(Path(tmp) / "f000.png", MEDIA / f"{PFX}_turntable.png")
     print("render v4:", MEDIA / f"{PFX}_stop.png", MEDIA / f"{PFX}_stop_sections.png", film, flush=True)
 
+def cmd_render_v5(a):
+    """v5 figures: the wedge seated in the stop plate's gap (the nominal link), seen from the dorsal side; a section through
+    the middle of the link with a close view of the plate's edge on the incline; a film of the wedge going in."""
+    import subprocess
+    import tempfile
+    import shutil
+    import trimesh
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    C_ = dict(COLORS, cover="0.36 0.52 0.86 1", wedge="0.92 0.42 0.12 1")
+    parts = {nm: trimesh.load(fname(nm), force="mesh") for nm in PARTS}
+    V4B = DIP / "v4/b/cad"
+    dip = {}
+    for k_, f in (("dip_link", "20261021-dip_link_v4b_dip_link.stl"), ("cover", "20261022-dip_link_v4b_cover_I15H3_3S.stl"),
+                  ("tip", "20261021-dip_link_v4b_pad_block5.stl"), ("cap", "20261022-dip_link_v4b_tip_cap_TW15H3S.stl")):
+        t = trimesh.load(V4B / f, force="mesh")
+        t.apply_transform(T_M_FROM_F)
+        dip[k_] = t
+    wedge = parts["stop_wedge"]
+
+    def asm(dz=0.0, tag="v5"):
+        w = wedge.copy()
+        w.apply_translation([0.0, 0.0, dz])                 # +z_M: back out toward the tip
+        return [(parts["adapter"], C_["adapter"], f"{tag}_ad"), (parts["standoff_fork"], C_["standoff_fork"], f"{tag}_sf"),
+                (parts["clamp_plate"], C_["clamp_plate"], f"{tag}_cp"), (w, C_["wedge"], f"{tag}_w"),
+                (dip["dip_link"], C_["dip_link"], f"{tag}_link"), (dip["cover"], C_["cover"], f"{tag}_cover"),
+                (dip["tip"], C_["tip"], f"{tag}_tip"), (dip["cap"], "0.30 0.60 0.40 1", f"{tag}_cap")]
+    cam = (F_to_M(np.array([12.0, 0.0, -84.0])), 230, -35, -12)
+    img = _render(asm(), cam, MEDIA / f"{PFX}_wedge.png")
+    x1 = P["stop_x"][1]
+    _annotate(img, cam, [
+        ("Stop plate of v4's fork as printed; its three insert bores stay empty", F_to_M(np.array([x1, 7.5, -80.0]))),
+        ("PLA wedge, pushed in from the tip end until it stops", F_to_M(np.array([9.6, 5.0, -95.5]))),
+        ("Fin to push the wedge in and to pull it out", F_to_M(np.array([P["wedge_fin_x"], -4.0, -98.5]))),
+        ("Legs in their walls and the clamp plate, as in v3", F_to_M(np.array([0.0, -27.0, -60.0]))),
+        ("Pad and cover of DIP link b v4", F_to_M(np.array([-6.0, 7.4, -86.0])))],
+        title="Mount v5: a PLA wedge in the stop plate's gap, from the dorsal side")
+    # section through the link's middle (y_F 0): the whole tool end, and the plate's edge on the incline
+    plt.rcParams.update({"font.family": "serif", "font.size": 13})
+    fig, axs = plt.subplots(1, 2, figsize=(11.0, 6.4), dpi=110, gridspec_kw=dict(width_ratios=(1.0, 1.0)))
+    cols = {"standoff_fork": "#5b8fd9", "clamp_plate": "#3c6fb5", "dip_link": "#d8d8d2", "cover": "#5c84db", "tip": "#ebc78c",
+            "cap": "#4d9966", "stop_wedge": "#eb6b1f"}
+    meshes = dict(standoff_fork=parts["standoff_fork"], clamp_plate=parts["clamp_plate"], dip_link=dip["dip_link"],
+                  cover=dip["cover"], tip=dip["tip"], cap=dip["cap"], stop_wedge=wedge)
+    zc = F_to_M(np.array([-10.55, 0.0, B_LINK["z_contact"]]))
+    edge = F_to_M(np.array([P["stop_x"][0], 0.0, P["stop_bot_z"]]))
+    for ax, (xl, zl) in zip(axs, (((-24, 24), (55, 112)), ((-15.5, -5.5), (91.0, 104.0)))):
+        for nm, m in meshes.items():
+            sec = m.section(plane_origin=[0.0, -Y_AXIS, 0.0], plane_normal=[0.0, 1.0, 0.0])
+            if sec is None:
+                continue
+            for e in sec.entities:
+                q = sec.vertices[e.points]
+                ax.fill(q[:, 0], q[:, 2], color=cols[nm], ec="k", lw=0.5)
+        ax.set_xlim(*xl)
+        ax.set_ylim(*zl)
+        ax.set_aspect("equal")
+        ax.grid(alpha=0.3)
+        ax.set_xlabel("x$_M$ (mm), palmar side to the right")
+    axs[0].annotate("", xy=(zc[0], zc[2]), xytext=(zc[0] + 9.0, zc[2]), arrowprops=dict(arrowstyle="-|>", color="#b03030", lw=2.0))
+    axs[0].text(zc[0] + 1.0, zc[2] + 2.0, "Press on the face", color="#b03030", fontsize=12)
+    axs[0].add_patch(plt.Rectangle((-15.5, 91.0), 10.0, 13.0, fill=False, ec="#b03030", lw=1.2, ls="--"))
+    axs[0].set_title("Through y$_F$ = 0: the wedge in the gap")
+    axs[0].set_ylabel("z$_M$ (mm), along the tool axis")
+    axs[1].plot([edge[0]], [edge[2]], "o", ms=9, mfc="none", mec="#b03030", mew=2.0)
+    axs[1].annotate("plate's edge on the incline", xy=(edge[0], edge[2]), xytext=(edge[0] - 5.2, edge[2] + 4.4),
+                    color="#b03030", fontsize=12, arrowprops=dict(arrowstyle="-", color="#b03030", lw=1.0))
+    axs[1].annotate("tongue's back", xy=(-8.0, 100.5), xytext=(-7.6, 102.6), fontsize=12,
+                    arrowprops=dict(arrowstyle="-", color="k", lw=0.8))
+    axs[1].set_title("The jam at the plate's lower edge")
+    fig.tight_layout()
+    fig.savefig(MEDIA / f"{PFX}_wedge_sections.png")
+    plt.close(fig)
+    # the film: the wedge from 18 mm beyond its seat to the seat, then held; 960 x 720 at 12 frames per second
+    cam_f = (F_to_M(np.array([10.0, 0.0, -88.0])), 170, -40, -10)
+    dzs = list(np.linspace(18.0, 0.0, 36)) + [0.0] * 12
+    with tempfile.TemporaryDirectory() as tmp:
+        for k, dz in enumerate(dzs):
+            if k > 36:                                   # the held frames repeat the last render
+                shutil.copy(Path(tmp) / "f035.png", Path(tmp) / f"f{k:03d}.png")
+                continue
+            _render(asm(dz, tag=f"v5f{k}"), cam_f, Path(tmp) / f"f{k:03d}.png", w=960, h=720)
+        film = MEDIA / f"{PFX}_wedge_in.mp4"
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", "12", "-i", str(Path(tmp) / "f%03d.png"),
+                        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "24", str(film)], check=True)
+        shutil.copy(Path(tmp) / "f035.png", MEDIA / f"{PFX}_wedge_in.png")
+    print("render v5:", MEDIA / f"{PFX}_wedge.png", MEDIA / f"{PFX}_wedge_sections.png", film, flush=True)
+
+
 def cmd_sections_v3(a):
     """v3: sections through the M6 axes in the x-z plane of M, y_M +17.68 (the two screws on the slotted-arm side, a straight
     key) and -17.68 (the two under the column's corners, a ball-end key), the screws seated and lifted."""
@@ -2889,10 +3150,10 @@ def main():
         return
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("cmd", choices=["interfaces", "build", "check", "estimate", "render", "sections", "print", "docs", "payload",
-                                    "screws", "inserts"])
+                                    "screws", "inserts", "clearance"])
     a = ap.parse_args()
-    {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else (cmd_render_v4 if REV == "v4" else cmd_render_v3 if V3UP else cmd_render_v2_ears if P.get("fork_style") in ("ears", "mold") else cmd_render_v2),
-     "sections": cmd_sections_v3 if V3UP else cmd_sections, "print": cmd_print, "docs": cmd_docs, "payload": cmd_payload_v2, "screws": cmd_check_v3_screws,
+    {"interfaces": cmd_interfaces, "build": cmd_build, "check": cmd_check if REV == "v1" else cmd_check_v2, "estimate": cmd_estimate, "render": cmd_render if REV == "v1" else (cmd_render_v4 if REV == "v4" else cmd_render_v5 if REV == "v5" else cmd_render_v3 if V3UP else cmd_render_v2_ears if P.get("fork_style") in ("ears", "mold") else cmd_render_v2),
+     "sections": cmd_sections_v3 if V3UP else cmd_sections, "print": cmd_print, "docs": cmd_docs, "payload": cmd_payload_v2, "screws": cmd_check_v3_screws, "clearance": cmd_clearance,
      "inserts": cmd_inserts}[a.cmd](a)
 
 
