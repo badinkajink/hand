@@ -281,8 +281,8 @@ complete every seed with <b>{K["FREE_RELAY"]}&nbsp;% of the task uncontacted</b>
 table.</figcaption></figure><figure>{c_deg}<figcaption>Shaft rotation per cycle for the same cells.</figcaption></figure></div>
 
 <p>The relay turns the tool <b>{K["DEG_RELAY"]}&#176; per cycle against {K["DEG_FULL"]}&#176;</b>, {K["RATIO"]}&nbsp;%
-of the rate, because its ring is the reachable one and two stance fingers make a shorter stroke than three: over 40
-cycles, {K["TURNS_RELAY"]} turns against {K["TURNS_FULL"]}, with a standard deviation of {K["SD_RELAY"]} turns over three
+of the rate, because its ring is the reachable one and two stance fingers make a shorter stroke than three. Over 40
+cycles the relay makes {K["TURNS_RELAY"]} turns against {K["TURNS_FULL"]}, with a standard deviation of {K["SD_RELAY"]} turns over three
 seeds against {K["SD_FULL"]}.</p>
 
 <figure><video src="{vid_relay}" controls muted loop playsinline preload="metadata"></video>
@@ -293,20 +293,20 @@ finger leaves, travels around the shaft at the open radius and closes while the 
 boundaries. Rows 2 and 3 are the hand-over, one finger per frame.</figcaption></figure>
 
 <p>Gaiting from the carry&rsquo;s grasp with no hand-over completes {nrel[False]["k"]} of 6 with a synchronous release
-and {nrel[True]["k"]} of 6 with a relay, at {nrel[True]["deg"]:.1f}&#176; per cycle; it opens all three fingers to
+and {nrel[True]["k"]} of 6 with a relay, at {nrel[True]["deg"]:.1f}&#176; per cycle. The gait opens all three fingers to
 reach its ring ({nrel[True]["free"] * 100:.0f}&nbsp;% uncontacted), and its grasp is not a tripod.</p>
 </div></section>
 
 <section><div class="col">
 <h2>Grip after the relay</h2>
-<p>A relay places each pad 2&nbsp;mm inside the surface, but the tool moves as each finger arrives: across one hand-over
-the pad forces went 7.6, 4.9 and 0.3&nbsp;N, the first pad relieved by the time the third landed. One relative squeeze
+<p>A relay places each pad 2&nbsp;mm inside the surface, but the tool moves as each finger arrives. Across one hand-over
+the pad forces went 7.6, 4.9 and 0.3&nbsp;N, and the first pad was relieved by the time the third arrived. One relative squeeze
 after the last pad sets the grip. It is computed from the commanded pose, since the achieved pose includes the
 deflection under load; reissuing a constant command from the achieved pose lost 18.4&nbsp;N of grip over
 seven reissues on the bench.</p>
 
 <figure>{c_grip}<figcaption>Rotation per cycle and final tilt against the squeeze. Below 1&nbsp;mm the tool rocks and is
-lost ({grip[0.5]["k"]} of 6, {grip[0.5]["tilt"]:.0f}&#176; final tilt); above 2&nbsp;mm the gait stalls, as the
+lost ({grip[0.5]["k"]} of 6, {grip[0.5]["tilt"]:.0f}&#176; final tilt). Above 2&nbsp;mm the gait stalls, as the
 ground-supported gait does at 75&nbsp;N, reaching {grip[3.0]["deg"]:.1f}&#176; per cycle at 3&nbsp;mm with the tool
 held.</figcaption></figure>
 </div></section>
@@ -321,9 +321,9 @@ tan&nbsp;&theta;&nbsp;&gt;&nbsp;r/h, at 14.0&#176;.</p>
 of the static limit because the gait adds its own disturbance.</figcaption></figure><figure>{c_seat}<figcaption>In a
 45&#176; countersink. The release chain fails at 16&#176;; the relay holds to 30&#176;.</figcaption></figure></div>
 
-<p>On a flat floor the relay fails at the same load as the release chain. Its grip holds the tool upright and unloads
+<p>On a flat floor the relay fails at the same load as the release chain. Its grip keeps the tool upright and unloads
 the floor ({gait[("relay", True)]["gnd"] * 100:.0f}&nbsp;% of the window with ground contact, against
-{gait[("full", False)]["gnd"] * 100:.0f}&nbsp;%), which removes the restoring moment behind the 14&#176; limit; three pads
+{gait[("full", False)]["gnd"] * 100:.0f}&nbsp;%), which removes the restoring moment behind the 14&#176; limit. Three pads
 on a 21&nbsp;mm ring stabilise the tool less than its 12.5&nbsp;mm foot on the floor.</p>
 
 <p>In the countersink the tool cannot translate, so only rotation about the seated tip remains, which a hand that keeps
