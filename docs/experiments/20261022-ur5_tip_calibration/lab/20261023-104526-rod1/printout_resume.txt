@@ -1,0 +1,65 @@
+resumed logs/20261023-tip_calibration/104526-rod1: 24 actions done, 22 touches
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 362 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0218 0.0326 0.2347 0.0031 0.0038 0.0009]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+== pivot
+== grid
+  ref-00 (1/51): to 2.00 N
+  grid-049 (2/51): to 3.00 N
+  grid-048 (3/51): to 3.00 N
+  grid-044 (4/51): to 3.00 N
+  grid-047 (5/51): to 3.00 N
+  grid-045 (6/51): to 3.00 N
+  grid-046 (7/51): to 3.00 N
+  grid-043 (8/51): to 3.00 N
+  grid-021 (9/51): to 5.00 N
+  grid-051 (10/51): to 3.00 N
+  grid-019 (11/51): to 5.00 N
+  grid-018 (12/51): to 5.00 N
+  grid-022 (13/51): to 5.00 N
+  grid-020 (14/51): to 5.00 N
+  grid-016 (15/51): to 5.00 N
+  ref-01 (16/51): to 2.00 N
+  grid-023 (17/51): to 5.00 N
+  grid-017 (18/51): to 5.00 N
+  grid-015 (19/51): to 5.00 N
+  grid-014 (20/51): to 5.00 N
+  grid-027 (21/51): to 5.00 N
+  grid-042 (22/51): to 3.00 N
+  grid-026 (23/51): to 5.00 N
+  grid-028 (24/51): to 5.00 N
+  grid-013 (25/51): to 5.00 N
+  grid-000 (26/51): to 5.00 N
+  grid-001 (27/51): to 5.00 N
+  grid-002 (28/51): to 5.00 N
+  grid-012 (29/51): to 5.00 N
+  ref-02 (30/51): to 2.00 N
+  grid-003 (31/51): to 5.00 N
+  grid-041 (32/51): to 3.00 N
+  grid-011 (33/51): to 5.00 N
+  grid-036 (34/51): to 3.00 N
+  grid-007 (35/51): to 5.00 N
+  grid-004 (36/51): to 5.00 N
+  grid-037 (37/51): to 3.00 N
+  grid-008 (38/51): to 5.00 N
+  grid-035 (39/51): to 3.00 N
+  grid-010 (40/51): to 5.00 N
+  grid-009 (41/51): to 5.00 N
+  grid-033 (42/51): to 3.00 N
+  grid-038 (43/51): to 3.00 N
+  ref-03 (44/51): to 2.00 N
+  grid-034 (45/51): to 3.00 N
+  grid-032 (46/51): to 3.00 N
+  grid-031 (47/51): to 3.00 N
+  grid-030 (48/51): to 3.00 N
+  grid-039 (49/51): to 3.00 N
+  grid-040 (50/51): to 3.00 N
+  ref-04 (51/51): to 2.00 N
+== roll
+  roll-0 (1/2): to 1.50 N
+  roll-3 (2/2): to 1.50 N
+HEX-E: 299532 samples, 0 timed out, 0 late datagrams dropped, 0 gaps over 0.5 s
+session in logs/20261023-tip_calibration/104526-rod1
+exit 0 at 11:47:53
