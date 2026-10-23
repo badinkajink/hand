@@ -55,6 +55,10 @@ WRIST_SIN = 0.5
 # Joint 5 inside the program's --wrist-window on the robot's branch (deg). With joint 5 past about 100 deg the tool folds
 # back toward the forearm; the twisted touch-offs reached 149 deg, which the program refuses.
 WRIST_WINDOW = (30.0, 100.0)
+# The program turns a slide, roll or twist in contact in steps of this many degrees (run_turns' step_deg), and the builder
+# checks every step. On 2026-10-22 (tcp2) twist-0-1.0N's turn toward -10 deg put the mount's fork on the indenter's key
+# at -8.6 deg (8 N); the builder had checked the press poses only.
+TURN_STEP = 0.5
 
 
 def nominal(kind, mount_turn_deg=0.0):
@@ -336,6 +340,31 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
         T_lift = lifted(geo, T_BI, T_rest, chk.T_EP, 60.0)
         return [T_lift, T_rest, T_deep]
 
+    def turn_poses(a):
+        """press_poses, then the pressed pose (the deep pose) turned through every step of the program's run_turns:
+        a slide about the sphere's centre, a roll about the same axis through the sphere's top, a twist about the
+        vertical through the top; each move returns to 0 at its end."""
+        P = press_poses(a)
+        T0 = P[2]
+        c_B = C.apply(T_BI, geo.c_I)
+        top_B = C.apply(T_BI, geo.c_I + geo.R * C.EZ)
+        out = list(P)
+        for mv in a["moves"]:
+            ang = math.radians(mv.get("dir_deg", 0.0))
+            u_I = np.array([math.cos(ang), math.sin(ang), 0.0])
+            if a["kind"] == "slide":
+                centre, axis = c_B, T_BI[:3, :3] @ np.cross(C.EZ, u_I)
+            elif a["kind"] == "roll":
+                centre, axis = top_B, T_BI[:3, :3] @ np.cross(C.EZ, u_I)
+            else:
+                centre, axis = top_B, T_BI[:3, :3] @ C.EZ
+            cur = 0.0
+            for d in list(mv["degs"]) + [0.0]:
+                n = max(1, int(math.ceil(abs(d - cur) / TURN_STEP)))
+                out += [C.turn_about(T0, centre, axis, cur + (d - cur) * j / n) for j in range(1, n + 1)]
+                cur = d
+        return out
+
     def tgt(i, region=None):
         return dict(frame="P", p=[round(float(v), 4) for v in geo.pts[i]], n=[round(float(v), 5) for v in geo.nrm[i]],
                     index=int(i), region=region or str(reg[i]))
@@ -466,14 +495,25 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
             moves = [dict(dir_deg=float(dd), degs=s_deg) for dd in range(0, 360, 45)]
             moves += [dict(dir_deg=0.0, degs=slip_deg + [-slip_deg[-1]]), dict(dir_deg=90.0, degs=slip_deg + [-slip_deg[-1]])]
             add(dict(id=f"shear-{k}-{F:.0f}N", stage="shear", kind="slide", target=tgt(i), twist=None, standoff=1.5, press_N=F,
-                     moves=moves, hold_s=0.4), press_poses, contact_P=geo.pts[i])
+                     moves=moves, hold_s=0.4), turn_poses, contact_P=geo.pts[i])
     for k, i in enumerate(shear_pts[:4]):
         add(dict(id=f"roll-{k}", stage="roll", kind="roll", target=tgt(i), twist=None, standoff=1.5, press_N=1.5,
                  moves=[dict(dir_deg=0.0, degs=[3.0, 6.0, -3.0, -6.0]), dict(dir_deg=90.0, degs=[3.0, 6.0, -3.0, -6.0])],
-                 hold_s=0.4), press_poses, contact_P=geo.pts[i])
+                 hold_s=0.4), turn_poses, contact_P=geo.pts[i])
         for F in (1.0, 2.5):
-            add(dict(id=f"twist-{k}-{F:.1f}N", stage="twist", kind="twist", target=tgt(i), twist=None, standoff=1.5, press_N=F,
-                     moves=[dict(degs=[5.0, 10.0, 20.0, -5.0, -10.0, -20.0])], hold_s=0.5), press_poses, contact_P=geo.pts[i])
+            # one side of the turn, out and back. The friction's torsion changes sign with the direction of turning and
+            # the push's moment follows the pose, so half the difference between the way out and the way back at 5 and
+            # 10 deg is the torsion. Turning both ways put the mount's fork on the indenter's key at the face (tcp2,
+            # 2026-10-22: contact at -8.6 deg); the other side is tried when the first does not clear. 15 deg, since at
+            # 20 deg joint 5 came within 1.2 deg of the wrist window (31.2 deg on the robot, 31.0 in the builder).
+            tw_a = dict(id=f"twist-{k}-{F:.1f}N", stage="twist", kind="twist", target=tgt(i), twist=None, standoff=1.5,
+                        press_N=F, hold_s=0.5)
+            for sg in (1.0, -1.0):
+                if add(dict(tw_a, moves=[dict(degs=[sg * d for d in (5.0, 10.0, 15.0, 10.0, 5.0)])]), turn_poses,
+                       contact_P=geo.pts[i]):
+                    if sg < 0:
+                        dropped.pop()                      # the first side's entry: the action is in the plan
+                    break
     # 9. final: the reference press and six gravity orientations
     add(dict(ref, id="final-ref", stage="final"), press_poses, contact_P=geo.pts[i_ref])
     for k, (tilt, roll, ax, ang) in enumerate([grav[j] for j in (0, 1, 3, 6, 8, 11)]):
