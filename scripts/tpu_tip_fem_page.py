@@ -475,10 +475,10 @@ def arm_section(X: Data):
            f"{1 / c50['Ex']:.0f} at 50&#8202;% (Table&#160;[[tab:cells]]).") if c20 and c50 else ""
     w20, w05, wef = (film_rails(n) for n in ("whole_g20x", "whole_g05x", "whole_eflesh_open"))
     if w20 and w05 and wef and w20["arm"]:                 # the whole tip of the print plan, from its films (owner, 2026-10-13)
-        txt = (f"<p>The walls carry the edges of the face like rails (Figure&#160;[[fig:films]]): at 1&#8202;N, {f0(100 * w20['fe'])}&#8202;% of "
+        txt = (f"<p>The walls bear the edges of the face like rails (Figure&#160;[[fig:films]]). At 1&#8202;N, {f0(100 * w20['fe'])}&#8202;% of "
                f"the force on the whole 20&#8202;% tip lies on the outer 1.2&#8202;mm of its 9.4&#8202;mm flat face and on the fillets, and "
-               f"{f0(100 * w05['fe'])}&#8202;% on the 5&#8202;% tip, against {f0(100 * w20['law'])}&#8202;% for the pressure law on the same nodes; "
-               f"the eFlesh lattice puts {f0(100 * wef['fe'])}&#8202;% there. Load at the ends of the contact line lengthens the twist arm: at "
+               f"{f0(100 * w05['fe'])}&#8202;% on the 5&#8202;% tip, against {f0(100 * w20['law'])}&#8202;% for the pressure law on the same nodes. "
+               f"The eFlesh lattice puts {f0(100 * wef['fe'])}&#8202;% there. Load at the ends of the contact line lengthens the twist arm: at "
                f"3&#8202;N it is {f2(w20['arm'])}&#8202;mm on the whole 20&#8202;% tip and {f2(g['arm'][3.0])}&#8202;mm on the insert&#8217;s "
                f"homogenized core (Figure&#160;{FIG[0] + 1}), against {f2(X.pads_arm(g['E_best']))}&#8202;mm for the pads at the insert&#8217;s "
                f"\\(E^*\\). The pads approach the insert&#8217;s arm only at {min(X.B):g}&#8202;MPa ({f2(X.pads_arm(min(X.B)))}&#8202;mm), a fifth "
@@ -545,8 +545,8 @@ def recipes_section(X: Data):
     full = [r["err"] for r in rows if r["full"]]
     txt = (f"<p>The approach error of the best single modulus is {f0(min(full))}&#8211;{f0(max(full))}&#8202;% for "
            f"every print loaded to 3&#8202;N, so Table&#160;{TAB[0]} ranks the prints by the twist arm. At equal contact stiffness the softer TPU at higher infill "
-           f"wins both pairs: 85A at 50&#8202;% against 95A at 20&#8202;% ({f1(k['s85_50_across'])} and {f1(k['g20_across'])}&#8202;N/mm; arm error "
-           f"{pct(ae['s85_50_across'], 1)} against {pct(ae['g20_across'], 1)}&#8202;%), and 85A at 30&#8202;% against 95A at 10&#8202;% "
+           f"wins both pairs. The first pair is 85A at 50&#8202;% against 95A at 20&#8202;% ({f1(k['s85_50_across'])} and {f1(k['g20_across'])}&#8202;N/mm; arm error "
+           f"{pct(ae['s85_50_across'], 1)} against {pct(ae['g20_across'], 1)}&#8202;%). The second is 85A at 30&#8202;% against 95A at 10&#8202;% "
            f"({f1(k['s85_30_across'])} and {f1(k['g10_across'])}&#8202;N/mm; {pct(ae['s85_30_across'], 1)} against {pct(ae['g10_across'], 1)}&#8202;%). "
            f"Printing the layers along the load softens the 20&#8202;% tip by {f0((R['g20z_s0']['delta_um'][1.0] / R['g20x_s0']['delta_um'][1.0] - 1) * 100)}&#8202;% "
            f"(resolved) and lengthens its arm further ({pct(ae['g20_along'], 1)}&#8202;%); at 50&#8202;% the orientation changes the approach by "
@@ -621,7 +621,7 @@ def checks_section(X: Data):
         d0, a0, b0 = nl[0]
         txt += (f"<p>With a compressible Neo-Hookean solid the force on the resolved 5&#8202;% tip is {(1 - a0['F'] / b0['F']) * 100:.0f}&#8202;% "
                 f"below the linear model&#8217;s at {d0 * 1e3:.0f}&#8202;&#181;m and {(1 - a['F'] / b['F']) * 100:.0f}&#8202;% below at {d * 1e3:.0f}&#8202;&#181;m "
-                f"({a['F']:.2f} against {b['F']:.2f}&#8202;N); its twist arm moves from {b['arm']:.2f} to {a['arm']:.2f}&#8202;mm, and no element loses "
+                f"({a['F']:.2f} against {b['F']:.2f}&#8202;N). Its twist arm moves from {b['arm']:.2f} to {a['arm']:.2f}&#8202;mm, and no element loses "
                 f"more than {(1 - a['J_min']) * 100:.0f}&#8202;% of its volume. The GPU solver for this check reproduces PolyFEM&#8217;s Neo-Hookean "
                 f"block within 0.3&#8202;% (Table&#160;{TAB[0] + 1}).</p>")
         enl = [(X.nl_row("eflesh_c8" + A.SUFFIX, "neohookean", dd), X.nl_row("eflesh_c8" + A.SUFFIX, "linear", dd)) for dd in (0.4, 0.7, 1.0)]
@@ -630,7 +630,7 @@ def checks_section(X: Data):
             dd, a_, b_ = enl[-1]
             txt = txt.replace("</p>", f" On the eFlesh lattice at {dd * 1e3:.0f}&#8202;&#181;m the change is {sgn((a_['F'] / b_['F'] - 1) * 100, 0)}.</p>", 1)
     if pc and sp and sh:
-        txt += (f"<p>The plate stiffness depends on the discretization: for the solid insert the two hexahedral models give "
+        txt += (f"<p>The plate stiffness depends on the discretization. For the solid insert the two hexahedral models give "
                 f"{1 / sh[0]['delta_mm']:.0f} and {sp[0]['F'] / sp[0]['delta_mm']:.0f}&#8202;N/mm and quadratic tetrahedra "
                 f"{pc[0]['k_N_per_mm']:.0f} and {pc[-1]['k_N_per_mm']:.0f}&#8202;N/mm on two meshes, while under the cylinder the hexahedral models "
                 f"agree within 3&#8202;%. This page therefore fits the modulus and states the bench prediction under the cylinder.</p>")
@@ -715,7 +715,7 @@ def lede(X: Data):
             f"N52 magnet {PP.PLAN_DEPTH:g}&#8202;mm under the contact point, and the reference without a magnet. Each maps to one modulus of the sphere "
             f"pads, {f1(Es[0])}&#8211;{f1(Es[-1])}&#8202;MPa for the magnet tips; the magnet stiffens the face above it, from "
             f"{f1(g0['E_best_MPa'])} to {f1(g3['E_best_MPa'])}&#8202;MPa on the reference. Before measurement a tip&#8217;s stiffness is "
-            "known within the factor of 2.6 between 95A datasheets and its friction not at all; an indentation and a pull test fix "
+            "known within the factor of 2.6 between 95A datasheets, and its friction is not known at all. An indentation and a pull test fix "
             f"both and leave three model errors: {f0(min(er))}&#8211;{f0(max(er))}&#8202;% in approach over 0.5&#8211;3&#8202;N, a pad twist arm "
             f"{f0(min(ae))}&#8211;{f0(max(ae))}&#8202;% shorter than the tip&#8217;s, and the tip&#8217;s tangential compliance, which no pad model "
             "represents. Under "

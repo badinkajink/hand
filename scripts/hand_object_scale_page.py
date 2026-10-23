@@ -353,7 +353,7 @@ def family_section(L, R, O):
            "compact (" + im("t=1") + ", 40 and 50&#8202;mm); " + im(r"t \in [0, 1]") + " is "
            "<code>real_v1_compact_design(t, t, t)</code>. Each of the 105 layouts studied (the family at 17 values of "
            + im("t") + ", each separation alone at 17 values, and a 9 &#215; 9 grid) sits inside the measured gantry "
-           "travel: <code>HandPlan</code>&#8217;s mount check reports no violation, and the generator bakes each into a "
+           "travel. <code>HandPlan</code>&#8217;s mount check reports no violation, and the generator bakes each into a "
            "real_v1 scene. Figure&#160;1 draws five of them.</p>",
            figure(svg_layouts(R), "Five layouts of the family over the gantry boxes (palm frame, top view, mm). Mount colour "
                                   "darkens with " + im("t") + "; the legend gives " + im("x_s") + ", " + im("y_s")
@@ -362,15 +362,15 @@ def family_section(L, R, O):
            "scene to 0.000&#8202;mm, and its clearances against <code>mj_geomDistance</code> to 0.014&#8202;mm on 150 grasps) "
            "scans every palm height and straddle for an equator grasp. Over the family, cylinders are graspable from "
            f"{min(allc):g} to {max(allc):g}&#8202;mm and spheres from {min(alls):g} to {max(alls):g}&#8202;mm, and each "
-           "layout holds a band of diameters that moves with it: cylinders "
+           "layout holds a band of diameters that moves with it. The bands are cylinders "
            f"{bc['cylinder'][0]:g}&#8211;{bc['cylinder'][1]:g}&#8202;mm on the compact tripod, "
            f"{b0['cylinder'][0]:g}&#8211;{b0['cylinder'][1]:g} on the nominal one"
            + (f" and none on the widest" if bw["cylinder"] is None else
               f" and {bw['cylinder'][0]:g}&#8211;{bw['cylinder'][1]:g} on the widest")
            + "; spheres "
            f"{bc['sphere'][0]:g}&#8211;{bc['sphere'][1]:g}, {b0['sphere'][0]:g}&#8211;{b0['sphere'][1]:g} and "
-           f"{bw['sphere'][0]:g}&#8211;{bw['sphere'][1]:g}&#8202;mm. The pair opening acts against the cylinder: at "
-           + im("x_s = 100") + " widening " + im("y_s") + f" from 50 to 170&#8202;mm cuts the largest graspable cylinder "
+           f"{bw['sphere'][0]:g}&#8211;{bw['sphere'][1]:g}&#8202;mm. The pair opening acts against the cylinder. At "
+           + im("x_s = 100") + ", widening " + im("y_s") + f" from 50 to 170&#8202;mm cuts the largest graspable cylinder "
            f"from {yb[50.0][1]:g}&#8202;mm to " + (f"{yb[170.0][1]:g}&#8202;mm" if yb.get(170.0) else
                                                      f"{yb[max(k for k, v in yb.items() if v)][1]:g}&#8202;mm at "
                                                      + im(f"y_s = {max(k for k, v in yb.items() if v):g}")
@@ -854,7 +854,7 @@ def tasks_section(L):
            f"{tq['sphere']['n']} sphere grips, a median {f(tq['cylinder']['med_mNm'], 0)} and {f(tq['sphere']['med_mNm'], 0)}"
            f"&#8202;mN&#8202;m, or {f(tq['cylinder']['med_per_r_N'], 1)} and {f(tq['sphere']['med_per_r_N'], 1)}&#8202;N at the "
            "object&#8217;s radius. "
-           f"The controller held the object in {held_c} of {n_c} cylinder turns and {held_s} of {n_s} sphere turns; "
+           f"The controller held the object in {held_c} of {n_c} cylinder turns and {held_s} of {n_s} sphere turns. "
            f"{stops.get('governor', 0)} of {ns} turns ended at its governor (a pad losing force or the object lagging) "
            f"and {stops.get('joint limit', 0)} at a joint limit.</p>",
            figure(svg_heat(L, "hold", "Grasp robustness", vfmt="{:.2f}", unit=" N"),
@@ -901,7 +901,7 @@ def tasks_section(L):
         out.append(f"<p>Point contact on the same TPU block (one convex mesh) ranks the layouts nearly as the pads do. Over the "
                    f"{h_['n_cells']} feasible cells of the coarse 5 &#215; 5 grid (" + im(r"t \in \{-1, -0.5, 0, 0.5, 1\}")
                    + "), the cell scores of the two models correlate at Spearman "
-                   f"{f(h_['spearman'], 2)} for robustness and {f(t_['spearman'], 2)} for the turn, and each object&#8217;s "
+                   f"{f(h_['spearman'], 2)} for robustness and {f(t_['spearman'], 2)} for the turn. Each object&#8217;s "
                    f"best coarse layout is the same for {h_['same_best']} of {h_['n_objects']} objects (robustness) and "
                    f"{t_['same_best']} of {t_['n_objects']} (turn). Point contact scores robustness at a median "
                    f"{f(h_['median_ratio'], 2)} and the turn at {f(t_['median_ratio'], 2)} of the pads&#8217; values.</p>")
@@ -971,10 +971,10 @@ def bench_section(prot, O):
            "feasible bench layouts within one bench step (15&#8202;mm of thumb&#8211;pair span) of each simulated ridge, "
            f"so each ridge is bracketed by three measurements: turn trials at the cells around the turn ridge, ballast "
            f"series at the cells around the robustness ridge, {len(cells)} cells over {len(objs)} objects "
-           f"(Table&#160;{TAB[0] + 1}). A core set of four cylinders and four spheres, each with both simulated ridges "
-           "short of the gantries&#8217; end of the family and spread evenly in log diameter ("
+           f"(Table&#160;{TAB[0] + 1}). A core set of four cylinders and four spheres takes "
+           f"{f(H.get('core_trials_only'), 1)} hours of trials. Each object has both simulated ridges short of the gantries&#8217; end of the family, and the objects are spread evenly in log diameter ("
            + ", ".join(f"{s_}s {', '.join(f'{d:g}' for d in prot['core'][s_])}&#8202;mm" for s_ in ("cylinder", "sphere"))
-           + f"), takes {f(H.get('core_trials_only'), 1)} hours of trials; the other objects fill the rest of the week. "
+           + f"). The other objects fill the rest of the week. "
            f"<code>{REL}/protocol.json</code> lists the cells with the grasp, the predicted scores and the day plan.</p>",
            "<ul>"
            "<li><b>Configuration per cell.</b> The six gantry targets of the layout, the cell&#8217;s palm pose and the "
@@ -1102,10 +1102,10 @@ def lede(L, R, prot):
     return ("Over 17 simulated layouts of the SR2 tripod and 18 objects, the layout with the largest fixed-contact "
             f"workspace puts the mounts the object radius plus {f(fc['beta_mm'] if fc else None, 0)}&#8202;mm "
             f"(cylinders) or {f(fs['beta_mm'] if fs else None, 0)}&#8202;mm (spheres) from its axis, about half the "
-            "68&#8202;mm finger. The task moves the optimum: a cylinder is held best at the radius plus "
+            "68&#8202;mm finger. The task moves the optimum. A cylinder is held best at the radius plus "
             f"{f(fh['beta_mm'] if fh else None, 0)}&#8202;mm and turned furthest at the radius plus "
-            f"{f(ft['beta_mm'] if ft else None, 0)}&#8202;mm; for spheres robustness peaks at the compact edge of the feasible "
-            f"band ({sh['compact']} of {sh['n']}), the turn at the wide edge ({st_['wide']} of {st_['n']}). "
+            f"{f(ft['beta_mm'] if ft else None, 0)}&#8202;mm. For spheres robustness peaks at the compact edge of the feasible "
+            f"band ({sh['compact']} of {sh['n']}) and the turn at the wide edge ({st_['wide']} of {st_['n']}). "
             f"A bench protocol of {len(prot['cells']) if prot else '&#8211;'} cells ({f(H.get('total'), 0)}&#8202;h) is "
             "written.")
 
