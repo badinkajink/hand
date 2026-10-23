@@ -375,7 +375,23 @@ push that answers it arrives.
   on the HEX-E, the sphere's block on the 2x4. Both fits are in Fig. 1 of
   `20261022-ur5_tip_ground_truth_and_predictors.html` (b34784f6), which is rebuilt on the whole run.
 
-- R17 (in progress 22:21 on the workstation; the owner asked at 22:10 through the lab). Predictors of the contact point
+  Update 23:38, the whole session (bf3aa417; 373 press holds over 0.2 N, d42db5bf). The best scale is 4.75 (median
+  force error 20 %; 412 % at the FE's own compliance), and the measured force is 0.19 to 0.21 of the FE pad's by region.
+  The indentation beyond the FE pad is 0.30 mm + 0.21 mm/N (rms 170 um). By region the slope is 0.212 +- 0.006 mm/N on
+  the face, 0.168 +- 0.014 on the edges and 0.23 +- 0.05 on the flanks. The 22:02 slopes (0.22, 0.16, 0.09) came from
+  8 flank holds; with 64 the flanks' slope matches the face's, and the conclusion of 22:51 that the regions point to
+  the tool's side is withdrawn. The FE model's own error may differ by region too. The arm's joints are in the chain
+  as well: a deflection under load that the encoders do not report adds to the depth. The board's force is now 0.83,
+  0.78 and 0.96 of the HEX-E's on face, edges and flanks, so the pad is not 4.75 times softer. The hand check stays as
+  above; a dial indicator on the sphere's block while a rigid part of the tool presses it would split the indenter's
+  side from the tool's. At four flank holds of 0.25 N (grid-061, -065, -066, -067) the registered sphere stands 0.47 to
+  0.78 mm clear of the pad while the HEX-E measured contact, so the registration is off there along the normal. At 3 N
+  and over, the estimator's mean location error is (-0.33, -1.21, 0.72) mm in P, standard errors 0.07, 0.16 and
+  0.14 mm over 85 holds: a systematic offset of 1.4 mm, of the registered points or of the model's magnets. Between
+  the rests around a press the board's rest field changes by 7.1 uT (median); a 1 N reference press changes it by 16
+  to 24 uT. Below 1 N the two are of the same size, and the estimator fails there (9.7 to 9.9 mm).
+
+- R17 (answered 23:38 on the whole session; begun 22:21 on the workstation; the owner asked at 22:10 through the lab). Predictors of the contact point
   and the normal force from the board, trained on a session's presses in time order:
   `scripts/ur5_tip_calibration_predict.py <analysis output folder>`, outputs in `data/<session>/predict/predict.json`.
   Every fourth grid press is held out. The predictors are the viewer's estimator with its compliance scale fitted (the
@@ -400,6 +416,28 @@ push that answers it arrives.
   model's prediction, while the free estimator matches the force within 10 %. Either the registered points are off by
   about 2 mm, or the model's response over the pad differs from the real pad's; the full grid separates the two. The
   study runs again on the whole folder after the run, and on the turn holds once the turns have run.
+
+  Update 23:38, the whole session (d42db5bf; 62 training presses, 16 held out with 84 holds, and 78 turn holds of the
+  two rolls and eight twists; every press trains the models scored on turns). Medians:
+
+  | sphere2 whole session, predictor | Held-out presses: location (mm) | force (N) | Turns: location (mm) | force (N) |
+  |---|---|---|---|---|
+  | Viewer's estimator, untrained | 3.79 | 0.395 | 2.44 | 0.430 |
+  | Physical model, compliance fitted (c 0.55) | 3.44 | 0.307 | 2.46 | 0.320 |
+  | GP, board | 0.88 | 0.087 | 2.25 | 0.199 |
+  | GP, board and temperature change | 1.30 | 0.121 | | |
+  | GP, board, temperature change and time since rest | 1.17 | 0.093 | | |
+  | GP, the above and orientation (leaks the target) | 0.34 | 0.070 | 2.15 | 1.476 |
+  | Ridge, board | 2.46 | 0.093 | 7.58 | 0.511 |
+  | Physical model and residual GP, board | 3.49 | 0.195 | 2.31 | 0.242 |
+
+  The board alone is the best input on this night: the temperature change and the time since the rest raise the GP's
+  location error from 0.88 to 1.30 and 1.17 mm. Below 1 N the GP places held-out contacts within 2.7 mm at 0.25 N and
+  1.1 mm at 0.5 N, where the untrained estimator is 9.9 mm off. Its error is still falling at 62 presses. On the turns
+  it does not carry over: 2.25 mm against 2.44 mm for the untrained estimator (rolls 2.15 against 5.36 mm, twists 2.25
+  against 2.34 mm). The physical model's compliance scale stays at 0.55, below the board's force scale of 0.78 to
+  0.96. In its fit the contact points are the registered ones, a median of 2.0 mm from the estimator's from 1 N up (see
+  R16's offset). Page: `20261022-ur5_tip_ground_truth_and_predictors.html`, Section 6.
 
 The Writing section of `~/.claude/CLAUDE.md` and `~/.claude/writing_reference.md` went to the lab session in three
 messages at 19:45; the lab confirmed them at 19:58.
