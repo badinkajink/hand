@@ -555,6 +555,14 @@ push that answers it arrives.
     So R16's extra indentation stands, and the contact locations behind R17 may carry a bias of about 0.5 mm. rod1g is
     analysed with the joint fit ×4 of `rod1t` and `sph3t`. If `sph3t`'s own registration matches sphere2's (the same
     tool since last night), sphere2 is analysed again with that joint fit, and R17's predictors rerun.
+  - 12:04, asked by the lab at 11:57: `ur5_tip_calibration_check.py --clearance` covers the touch-offs as a fresh
+    session runs them (9a5ce959). The rest pose is planned with the nominal tool; the tool and the indenter sit where
+    the registration puts them; the approach is stepped until the registered pad meets the indenter. `--home-from
+    FILE:LABEL` places the indenter from a recorded seating with the session's registered mount.
+  - 12:09, the lab's question: `sph3t` at 3.5 mm (`plan/20261023-plan_sphere_lab_touch35.json`, about 41 min at the
+    30 % slider, against 56 min at 5.0 mm), if the check with rod1t's registration and `--home-from
+    lab/poses.jsonl:left_indenter_seated` predicts every onset at −2.5 mm or later (1 mm of free approach);
+    otherwise 5.0 mm. The touch-offs that the check lists under the margins are dropped.
 
 - R20 (moved out of this channel at 10:51 on 10-23 at the owner's request; nothing in it is for the lab session. It continues
   in its own conversation from `docs/handoff/20261023-ati_ft_calibration.md`, and its requests to the lab will go in
