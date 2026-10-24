@@ -1326,8 +1326,19 @@ def build(session, data=None, day_data=None):
         fig_day(R, MEDIA / "20261023-sphere2_day_repeat.png")
     F = dict(fig=P.fig, table=P.table, link=P.link, code=P.code)
     S, lede, summary = sections(R, F)
-    toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
-    secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S, 1))
+    toc = '<li><a href="#comparison-example">What the UR5 presses compare</a></li>\n' + "\n".join(
+        f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
+    secs = ("<section id='comparison-example'><h2>What the UR5 presses compare</h2>"
+            "<p>The UR5 pushes the fingertip onto a fixed sphere or rod. At each force level, the HEX-E sensor "
+            "measures the applied force. The robot pose and the indenter geometry give the contact point. "
+            "These measurements are the references for the pad model and the magnetic estimate.</p>"
+            "<p>The finite-element model predicts how far the pad deforms at that force. The five-chip board "
+            "estimates force and contact point from the magnets&#8217; motion. Force ratios compare the board or "
+            "model with the HEX-E reading; location error is the distance from an estimated point to the "
+            "registered point. A learned correction is trained on some presses and tested on other presses.</p>"
+            "</section>\n" + "\n".join(
+                f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>'
+                for k, (sid, hd, body) in enumerate(S, 1)))
     built = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     byline = (f"Workstation analysis of the lab's run {P.esc(session)}, built {built} from "
               f"{P.code('data/' + (data or session) + '/')}"

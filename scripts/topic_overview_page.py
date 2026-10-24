@@ -296,7 +296,10 @@ def build(key: str, refresh: bool = False) -> str:
         size += nbytes
         return h.replace("{N}", str(fig_n[name]))
 
-    toc = ["<li><a href='#terms'>Terms</a></li>"]
+    intro = getattr(M, "INTRO", "")
+    intro_title = getattr(M, "INTRO_TITLE", "Physical example")
+    toc = ([f"<li><a href='#example'>{intro_title}</a></li>"] if intro else [])
+    toc.append("<li><a href='#terms'>Terms</a></li>")
     body = []
     for sid, head, html in M.SECTIONS:
         toc.append(f"<li><a href='#{sid}'>{head}</a></li>")
@@ -326,6 +329,7 @@ def build(key: str, refresh: bool = False) -> str:
 <p class="lede">{M.LEDE}</p>
 </header>
 <nav class="toc"><ol>{"".join(toc)}</ol></nav>
+{f"<section id='example'><h2>{intro_title}</h2>{intro}</section>" if intro else ""}
 <section id="terms"><h2>Terms</h2><dl class="glossary">{terms}</dl></section>
 {body_html}
 <section id="future"><h2>Future work</h2><ol>{future}</ol></section>

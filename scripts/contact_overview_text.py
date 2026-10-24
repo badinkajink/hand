@@ -63,9 +63,10 @@ def lede(ctx):
     CPU core, per GPU world-step in the trainer's MuJoCo-Warp build and per training iteration, from the hand-level rows.
     Plain-language pass of 2026-10-22: one comparison per sentence."""
     M = ctx["M"]
-    parts = ["A soft fingertip touches a tool over a patch, and friction across the patch resists twisting. MuJoCo&#8217;s "
-             "point contact has no such torque. Covering the fingertip with 1&#8202;mm contact spheres restores it: each sphere "
-             "is an ordinary MuJoCo contact, and together they reproduce the pressure law of Drake&#8217;s hydroelastic contact."]
+    parts = ["A soft fingertip touches a tool over an area called the contact patch. Friction across that area resists "
+             "twisting. MuJoCo&#8217;s point contact has no torque about the contact normal. A grid of small spheres, spaced "
+             "1&#8202;mm apart on the fingertip, restores that torque. Each sphere makes an ordinary MuJoCo contact; "
+             "together they reproduce the pressure law of Drake&#8217;s hydroelastic contact."]
     a5_p, a5_d = _get(M, "arm at spin onset, 0.5", "mj_pads1"), _get(M, "arm at spin onset, 0.5", "drake_hydro")
     a3_p, a3_d = _get(M, "arm at spin onset, 3", "mj_pads1"), _get(M, "arm at spin onset, 3", "drake_hydro")
     if a5_p and a5_d and a3_p and a3_d:

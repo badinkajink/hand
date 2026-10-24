@@ -11,6 +11,7 @@
 
 <nav class="toc"><div class="col">
 <ol>
+<li><a href="#press-example">A press in the print model</a></li>
 <li><a href="#terms">Terms and metrics</a></li>
 <li><a href="#plan">Prints to send and the pad modulus of each</a></li>
 <li><a href="#magnet">Magnet embedded in the gyroid tip</a></li>
@@ -28,6 +29,17 @@
 <li><a href="#open">Future work</a></li>
 </ol>
 </div></nav>
+
+<section id="press-example"><div class="col">
+<h2>A press in the print model</h2>
+<p>A screwdriver shaft pushes on the printed fingertip. The outer walls, solid surface layers and gyroid infill
+all deform. Their stiffness determines how far the shaft moves under a given force. It also determines which parts
+of the face press hardest on the shaft. That pressure distribution sets the friction torque that resists a twist.</p>
+<p>Finite-element analysis divides the tip into small pieces and solves their shared deformation. The calculations
+below compare several print recipes under the same shaft load. The sphere-pad simulation then uses a contact
+modulus fitted to each print model. This page records the whole-tip designs studied in October 2026; the
+<a href="../../overviews/printed_fingertips.html">printed-fingertip overview</a> follows the pad that was built.</p>
+</div></section>
 
 <section id="terms"><div class="col">
 <h2>Terms and metrics</h2>

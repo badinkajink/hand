@@ -37,13 +37,13 @@ CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330"
 <text x="251" y="54" text-anchor="middle" font-size="13.5">wall, skin, gyroid core,</text>
 <text x="251" y="72" text-anchor="middle" font-size="13.5">magnet (0.05&#8202;mm grid)</text>
 <rect x="346" y="14" width="150" height="70" fill="#fff" stroke="#000"/>
-<text x="421" y="36" text-anchor="middle" font-size="15" font-weight="bold">Gyroid homogenized</text>
-<text x="421" y="54" text-anchor="middle" font-size="13.5">periodic slicer cell &#8594;</text>
-<text x="421" y="72" text-anchor="middle" font-size="13.5">6&#215;6 stiffness tensor</text>
+<text x="421" y="36" text-anchor="middle" font-size="15" font-weight="bold">Gyroid stiffness</text>
+<text x="421" y="54" text-anchor="middle" font-size="13.5">one repeating cell &#8594;</text>
+<text x="421" y="72" text-anchor="middle" font-size="13.5">bulk stiffness</text>
 <rect x="516" y="14" width="150" height="70" fill="#fff" stroke="#000"/>
 <text x="591" y="36" text-anchor="middle" font-size="15" font-weight="bold">Finite elements</text>
-<text x="591" y="54" text-anchor="middle" font-size="13.5">hexahedra, K u = f,</text>
-<text x="591" y="72" text-anchor="middle" font-size="13.5">cut face fixed</text>
+<text x="591" y="54" text-anchor="middle" font-size="13.5">small 3D cells,</text>
+<text x="591" y="72" text-anchor="middle" font-size="13.5">force &#8594; motion</text>
 <rect x="686" y="14" width="136" height="70" fill="#fff" stroke="#000"/>
 <text x="754" y="36" text-anchor="middle" font-size="15" font-weight="bold">Magnet motions</text>
 <text x="754" y="54" text-anchor="middle" font-size="13.5">per newton at 812</text>
@@ -61,13 +61,13 @@ CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330"
 <text x="421" y="168" text-anchor="middle" font-size="13.5">5 magnets &#215; 72 dipoles</text>
 <text x="421" y="186" text-anchor="middle" font-size="13.5">at the 5 chips</text>
 <rect x="516" y="128" width="150" height="70" fill="#fff" stroke="#000"/>
-<text x="591" y="150" text-anchor="middle" font-size="15" font-weight="bold">Sensitivity S(p)</text>
-<text x="591" y="168" text-anchor="middle" font-size="13.5">readings per newton</text>
+<text x="591" y="150" text-anchor="middle" font-size="15" font-weight="bold">Signals per newton</text>
+<text x="591" y="168" text-anchor="middle" font-size="13.5">15 reading changes</text>
 <text x="591" y="186" text-anchor="middle" font-size="13.5">at each surface point</text>
 <rect x="686" y="128" width="136" height="70" fill="#fff" stroke="#000"/>
 <text x="754" y="150" text-anchor="middle" font-size="15" font-weight="bold">Design check</text>
 <text x="754" y="168" text-anchor="middle" font-size="13.5">force resolution</text>
-<text x="754" y="186" text-anchor="middle" font-size="13.5">(Cram&#233;r&#8211;Rao)</text>
+<text x="754" y="186" text-anchor="middle" font-size="13.5">from signal and noise</text>
 <rect x="176" y="244" width="150" height="70" fill="#fff" stroke="#000"/>
 <text x="251" y="266" text-anchor="middle" font-size="15" font-weight="bold">Readings, live</text>
 <text x="251" y="284" text-anchor="middle" font-size="13.5">15 components,</text>
@@ -75,7 +75,7 @@ CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330"
 <rect x="516" y="244" width="150" height="70" fill="#fff" stroke="#000"/>
 <text x="591" y="266" text-anchor="middle" font-size="15" font-weight="bold">Estimator</text>
 <text x="591" y="284" text-anchor="middle" font-size="13.5">point, force, 1-sigma</text>
-<text x="591" y="302" text-anchor="middle" font-size="13.5">(marginal likelihood)</text>
+<text x="591" y="302" text-anchor="middle" font-size="13.5">best fit on the surface</text>
 <rect x="686" y="244" width="136" height="70" fill="#fff" stroke="#000"/>
 <text x="754" y="266" text-anchor="middle" font-size="15" font-weight="bold">Browser viewer</text>
 <text x="754" y="284" text-anchor="middle" font-size="13.5">deformation, pad</text>
@@ -96,18 +96,28 @@ CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330"
 </svg>"""
 
 LEDE = (
-    "The printed fingertip is a pad of Siraya Tech 85A TPU over the five-chip MLX90393 board of ReSkin, with five "
-    "3&#8202;&#215;&#8202;2&#8202;mm magnets inside. One chain of models runs from the slicer&#8217;s rules to the chip "
-    "readings: finite elements of the printed structure, the magnets&#8217; motion under any surface load, and a field "
-    "model of the chips. Run forward, the chain ranked the designs; concept b&#8217;s pad, the one built, resolves "
-    "0.028&#8211;0.031&#8202;N per sample with N52 magnets. Run inverted, it estimates contact point and force without "
-    "training. On the UR5 against the HEX-E force sensor, with today&#8217;s weaker magnets, the board&#8217;s force under "
-    "a sphere was 0.78 to 1.05 times the HEX-E&#8217;s. From 1&#8202;N up the untrained estimate lay 1.6 to 2.6&#8202;mm from the "
-    "contact; a Gaussian process trained on 59 presses brought this to 0.84&#8202;mm. On a second pad with two magnets "
-    "reversed, the model rebuilt from its rest reading placed six presses within 0.9&#8202;mm of their mean. Below "
-    "1&#8202;N the untrained estimate fails. Under the sphere the presses travel 0.20&#8202;mm/N beyond the FE pad; rod "
-    "presses put at most half of that in series with the pad and the rest at the sphere&#8217;s contact, where the print "
-    "is softer than its model.")
+    "The printed fingertip has five magnets in a soft thermoplastic polyurethane (TPU) pad and five magnetic sensors "
+    "behind it. A press deforms "
+    "the pad, moves the magnets and changes the sensors&#8217; readings. We model that sequence to estimate where the "
+    "tool presses and with how much force. In UR5 presses above 1&#8202;N, the untrained location estimate missed by "
+    "1.6&#8211;2.6&#8202;mm. A statistical correction trained on 59 presses reduced the error to 0.84&#8202;mm. The force "
+    "estimated from the board was 0.78&#8211;1.05 times the HEX-E reference sensor. Below 1&#8202;N the untrained estimate "
+    "fails. The printed pad deforms more "
+    "than its finite-element model predicts under the sphere.")
+
+INTRO_TITLE = "One press through the model"
+INTRO = (
+    "<p>At rest, the five chips measure the field from the magnets inside the pad. Each chip measures the field in "
+    "three directions, giving 15 numbers. A press moves the magnets by a few micrometres and changes those numbers. "
+    "The change depends on both the contact point and the force, so one chip alone cannot generally separate them.</p>"
+    "<p>Finite-element analysis divides the printed walls, solid skins and gyroid infill into small pieces. It predicts "
+    "how a force at each candidate point moves the magnets. A magnetic-field model then predicts the 15 readings. "
+    "For a live press, the estimator searches for the point and force whose predicted change fits the measured one. "
+    "The <a href='../experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html'>print model</a>, "
+    "<a href='../experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html'>board readout</a>, "
+    "<a href='../experiments/20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html'>estimator</a> "
+    "and <a href='../experiments/20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html'>UR5 presses</a> "
+    "give the calculations and measurements.</p>")
 
 TERMS = [
     ("Approach", "Travel of a rigid indenter into the tip from first touch under a given normal force, in &#181;m; the "

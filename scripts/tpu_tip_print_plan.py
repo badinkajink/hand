@@ -437,14 +437,17 @@ def plan_text(H, X):
     if not (g0 and gp):
         return "<p>Runs in progress.</p>"
     fp = field(gp, GAPS[0])
-    txt = ("<p>Five tips cover the choice (Table&#160;[[tab:plan]]): 95A at 20&#8202;% gyroid, the reference, which prints most "
-           "easily; 85A at 50&#8202;%, as stiff, whose twist arm the pads reproduce best; 85A at 30&#8202;% and 95A at 10&#8202;%, softer, for a "
-           "larger magnet signal; and the reference without a magnet, which separates the magnet&#8217;s effect on the contact. "
+    txt = ("<p>Five tips cover the print choice (Table&#160;[[tab:plan]]). The 95A tip at 20&#8202;% gyroid is the "
+           "reference and prints most easily. The 85A tip at 50&#8202;% is about as stiff; its twist arm is "
+           "reproduced best by the pads. The 85A tip at 30&#8202;% and 95A tip at 10&#8202;% are softer and give "
+           "a larger magnet signal. The fifth tip is the reference without a magnet, which separates the "
+           "magnet&#8217;s effect on contact. "
            f"Without its mount slot the whole 95A tip at 20&#8202;% infill has a pad modulus of {H.f1(g0['E_best_MPa'])}&#8202;MPa, the "
-           f"insert&#8217;s 13.0 within 3&#8202;%. The magnet&#8217;s top lies {PLAN_DEPTH:g}&#8202;mm under the face, the depth that changes the "
-           f"contact least and gives the least force noise of the three tried: it raises the reference&#8217;s modulus to "
-           f"{H.f1(gp['E_best_MPa'])}&#8202;MPa, so a scene of a magnet tip takes the magnet tip&#8217;s modulus, and an MLX90393 1&#8202;mm "
-           f"behind the back face reads the magnet with {H.f1(fp['S_normal_norm'])}&#8202;&#181;T/N, a force noise of "
+           f"insert&#8217;s 13.0 within 3&#8202;%. The magnet&#8217;s top lies {PLAN_DEPTH:g}&#8202;mm under the face. "
+           "Of the three depths tried, this one changes the contact least and gives the least force noise. "
+           f"It raises the reference&#8217;s fitted modulus to {H.f1(gp['E_best_MPa'])}&#8202;MPa. A scene with a magnet "
+           "tip uses that tip&#8217;s fitted modulus. An MLX90393 1&#8202;mm behind the back face detects "
+           f"{H.f1(fp['S_normal_norm'])}&#8202;&#181;T per newton of load. Its force noise is "
            f"{H.f2(fp['sigF_normal_N'])}&#8202;N per 141&#8202;Hz sample.")
     if sp:
         fs = field(sp, GAPS[0])
@@ -495,21 +498,24 @@ def magnet_section(H, X):
         if r:
             dep.append((d, (r["E_best_MPa"] / g0["E_best_MPa"] - 1) * 100, field(r, GAPS[0])["sigF_normal_N"]))
     rng = lambda v, f: f(min(v)) if f(min(v)) == f(max(v)) else f"{f(min(v))}&#8211;{f(max(v))}"  # noqa: E731
-    deps = (f"with the magnet at {', '.join(f'{d:g}' for d, _, _ in dep[:-1])} and {dep[-1][0]:g}&#8202;mm the pad modulus rises by "
-            f"{', '.join(H.f0(e) for _, e, _ in dep[:-1])} and {H.f0(dep[-1][1])}&#8202;% and the force noise is "
-            f"{', '.join(H.f2(n) for _, _, n in dep[:-1])} and {H.f2(dep[-1][2])}&#8202;N")
-    txt = ("<p>eFlesh embeds N52 disc magnets in a printed microstructure through lip-sealed pockets, closed after a print pause, "
-           "and reads them with the MLX90393 boards of ReSkin and AnySkin; its fingertip magnets are 3/16 &#215; 1/16&#8202;in "
-           "(4.76 &#215; 1.59&#8202;mm), and its cut cells are 0.001&#8211;0.002 times the filament&#8217;s modulus. The gyroid core of the tips "
+    deps = (f"At depths of {', '.join(f'{d:g}' for d, _, _ in dep[:-1])} and {dep[-1][0]:g}&#8202;mm, "
+            f"the fitted modulus rises by {', '.join(H.f0(e) for _, e, _ in dep[:-1])} and "
+            f"{H.f0(dep[-1][1])}&#8202;%, respectively. At the same depths, the force noise is "
+            f"{', '.join(H.f2(n) for _, _, n in dep[:-1])} and {H.f2(dep[-1][2])}&#8202;N.")
+    txt = ("<p>eFlesh embeds N52 disc magnets in lip-sealed pockets that are closed after a print pause. "
+           "MLX90393 boards from ReSkin and AnySkin read the magnets. The eFlesh magnets are 3/16 &#215; 1/16&#8202;in "
+           "(4.76 &#215; 1.59&#8202;mm). The stiffness of its cut cells is 0.001&#8211;0.002 times the filament&#8217;s modulus. The gyroid core of the tips "
            "here is 0.03&#8211;0.23 times it (Table&#160;[[tab:cells]]), so the same magnet moves tens of micrometres per newton, not "
-           f"hundreds. With its top {PLAN_DEPTH:g}&#8202;mm under the face it moves {rng(trav, H.f1)}&#8202;&#181;m toward "
-           "the back face under 1&#8202;N across the four prints, and an MLX90393 1&#8202;mm behind the 95A 20&#8202;% tip reads it with a noise "
-           f"of {H.f2(fp['sigF_normal_N'])}&#8202;N per 141&#8202;Hz sample, {H.f2(fp4['sigF_normal_N'])}&#8202;N with the chip behind a "
-           "3&#8202;mm plate (Figure&#160;[[fig:magres]], Table&#160;[[tab:magnet]]); averaging ten samples divides the noise by 3.2. "
+           f"hundreds. With its top {PLAN_DEPTH:g}&#8202;mm under the face, the magnet moves "
+           f"{rng(trav, H.f1)}&#8202;&#181;m toward the back face under 1&#8202;N across the four prints. "
+           "An MLX90393 1&#8202;mm behind the 95A 20&#8202;% tip reads that motion with "
+           f"{H.f2(fp['sigF_normal_N'])}&#8202;N of force noise per 141&#8202;Hz sample. "
+           f"The noise is {H.f2(fp4['sigF_normal_N'])}&#8202;N with the chip behind a 3&#8202;mm plate "
+           "(Figure&#160;[[fig:magres]], Table&#160;[[tab:magnet]]). Averaging ten samples divides the noise by 3.2. "
            "Shear along the finger moves the magnet a third as far as shear across it, because the mount face holds the block at "
            "one end.</p>"
-           "<p>The magnet stiffens the face above it, and a deeper magnet sits closer to the chip, so depth helps both: on the "
-           f"95A 20&#8202;% tip, {deps}. A chip set into the back of the tip raises "
+           "<p>The magnet stiffens the face above it. A deeper magnet sits closer to the chip and changes the contact "
+           f"less. On the 95A 20&#8202;% tip, {deps} A chip set into the back of the tip raises "
            "the signal further until the static field passes the 4.8&#8202;mT that the MLX90393 reads at its highest gain "
            "(Figure&#160;[[fig:magres]]b).</p>")
     out.append(txt)

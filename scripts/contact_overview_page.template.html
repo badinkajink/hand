@@ -21,6 +21,7 @@
 
 <nav class="toc"><div class="col">
 <ol>
+<li><a href="#pinch-example">Twisting a tool between two fingertips</a></li>
 <li><a href="#terms">Terms and metrics</a></li>
 <li><a href="#problem">Components of a fingertip contact model</a></li>
 <li><a href="#mechanics">Contact mechanics of a soft fingertip</a></li>
@@ -33,6 +34,17 @@
 <li><a href="#index">Index of linked pages</a></li>
 </ol>
 </div></nav>
+
+<section id="pinch-example"><div class="col">
+<h2>Twisting a tool between two fingertips</h2>
+<p>In a pinch, each fingertip presses on the screwdriver over a small area. Friction at the edge of that area has a
+lever arm about its centre. The friction forces can cancel as a sideways push while their twisting torques add. At
+1&#8202;N of normal force per fingertip, the two contact patches resist up to {{HINGE_CAP1}}&#8202;mN&#8202;m on the test bed.
+One mN&#8202;m is the torque of 1&#8202;N acting 1&#8202;mm from an axis.</p>
+<p>A single point contact has no lever arm about its normal, so it cannot resist this twist. The sphere pad spreads
+contacts across the area. Each small sphere contributes force and torque through MuJoCo&#8217;s usual contact solver.
+The model can then be used for the same pinch in a CPU planner and in GPU training.</p>
+</div></section>
 
 <section id="terms"><div class="col">
 <h2>Terms and metrics</h2>
@@ -85,21 +97,51 @@ beyond the overlap.</figcaption>
 <h2>Contact mechanics of a soft fingertip</h2>
 
 <h3><span class="step">1</span>Friction torque of a contact patch</h3>
-<p>A pad pressed on the tool resists twisting up to a torque \(T=\mu F\bar r\). Here \(\mu\) is the friction coefficient,
-\(F\) the normal force and \(\bar r\) a lever arm, the friction arm, that is a fraction of the patch radius.</p>
-<p>The pad presses with normal force \(F\), which spreads over a contact patch \(A\) as a pressure \(p\). When the tool
-turns about the contact normal, each small piece \(dA\) of the patch slides along a circle around the patch centre. Its
-friction force \(\mu p\,dA\) acts at the distance \(\rho\) from the centre, so it adds the torque \(\mu p\rho\,dA\).
-Summing over the patch gives</p>
-<div class="eq">\[F=\int_A p\,dA,\qquad T=\mu\int_A p\,\rho\,dA=\mu F\,\bar r,\qquad \bar r=\frac{\int_A p\,\rho\,dA}{\int_A p\,dA}.\]<span class="eqno">(1)</span></div>
-<p>\(T\) is the largest torque the contact can resist before the tool spins. The friction arm \(\bar r\) is the mean
-distance of the patch from its centre, weighted by pressure. Friction on opposite sides of the centre turns the tool the
-same way. The arm is therefore not zero when the pressure is centred.</p>
-<p>For a disc of radius \(a\) under a uniform pressure \(p\), the patch is a set of rings of area \(2\pi\rho\,d\rho\), and
-(1) gives</p>
-<div class="eq">\[F=\int_0^a p\,2\pi\rho\,d\rho=p\,\pi a^2,\qquad T=\mu\int_0^a p\,\rho\,2\pi\rho\,d\rho=\mu p\,\frac{2\pi a^3}{3},\qquad \bar r=\frac{2a}{3}.\]</div>
-<p>The patch radius \(a\) sets the scale of the arm. The shape of the pressure sets the fraction of \(a\). With
-\(u=\rho/a\) the distance as a fraction of the radius, the arm is</p>
+<p>Pressure is force divided by area. Let \(p\) be the pressure at one place on the contact patch \(A\), in
+N/mm&#178;. A small piece of area \(dA\) presses with normal force \(p\,dA\), in N. Its greatest friction force
+is \(\mu p\,dA\), where \(\mu\) is the friction coefficient.</p>
+<p>Let \(r\) be the distance of that piece from the centre of the patch, in mm. During a twist, its friction acts
+along a circle around the centre. The force is perpendicular to its lever, so its torque is \(r\mu p\,dA\), in
+mN&#8202;m. For example, put two 0.5&#8202;N pieces 1&#8202;mm on opposite sides of the centre and set \(\mu=1\).
+Their sideways friction forces cancel, while their torques add to 1&#8202;mN&#8202;m.</p>
+<div class="diagram">
+<svg viewBox="0 0 640 220" width="640" height="220" role="img" aria-label="Top view of two equal contact forces at opposite sides of a circular patch. The friction arrows point in opposite directions but both turn the patch about its centre.">
+<defs><marker id="patch-force-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#175b43"/></marker></defs>
+<circle cx="320" cy="110" r="76" fill="#f5f5f5" stroke="#000" stroke-width="1.5"/>
+<circle cx="320" cy="110" r="3" fill="#000"/>
+<text x="326" y="105" font-size="16">centre</text>
+<line x1="246" y1="110" x2="315" y2="110" stroke="#555" stroke-width="1.2"/>
+<line x1="325" y1="110" x2="394" y2="110" stroke="#555" stroke-width="1.2"/>
+<text x="273" y="130" font-size="16">1 mm</text><text x="354" y="130" font-size="16">1 mm</text>
+<circle cx="245" cy="110" r="10" fill="#d9e6f4" stroke="#164b78"/>
+<circle cx="395" cy="110" r="10" fill="#d9e6f4" stroke="#164b78"/>
+<path d="M240 105 L250 115 M250 105 L240 115 M390 105 L400 115 M400 105 L390 115" stroke="#164b78" stroke-width="1.5"/>
+<line x1="245" y1="62" x2="245" y2="93" stroke="#175b43" stroke-width="2.5" marker-end="url(#patch-force-arrow)"/>
+<line x1="395" y1="158" x2="395" y2="127" stroke="#175b43" stroke-width="2.5" marker-end="url(#patch-force-arrow)"/>
+<text x="17" y="76" font-size="16">Friction, 0.5 N</text><line x1="145" y1="72" x2="238" y2="72" stroke="#175b43" stroke-width="1"/>
+<text x="461" y="154" font-size="16">Friction, 0.5 N</text><line x1="403" y1="149" x2="457" y2="149" stroke="#175b43" stroke-width="1"/>
+<text x="180" y="205" font-size="16">Blue crosses: normal forces into the page</text>
+</svg>
+<p class="tnote">Top view of the two-piece example. The friction forces point in opposite directions. Each has a
+1&#8202;mm lever about the centre, so both torques turn the tool the same way.</p>
+</div>
+<p>Adding the pieces gives the total normal force \(F\) and the largest torque \(T\) before the whole patch spins.
+The integral sign means this sum as the pieces become smaller:</p>
+<div class="eq">\[F=\int_A p\,dA,\qquad T=\mu\int_A p\,r\,dA=\mu F\,\bar r,\qquad
+\bar r=\frac{\int_A p\,r\,dA}{\int_A p\,dA}.\]<span class="eqno">(1)</span></div>
+<p>The friction arm \(\bar r\) is the average lever length, with each place weighted by its normal force.
+Pressure near the edge gives a longer arm than the same force near the centre. Opposite sides add torque in the
+same direction during a twist.</p>
+<p>For a circular patch of radius \(a\) with uniform pressure, add the patch as thin rings. A ring at distance
+\(r\) has circumference \(2\pi r\), so its area is \(2\pi r\,dr\). Multiplying by \(p\) gives its normal
+force; multiplying again by \(\mu r\) gives its torque:</p>
+<div class="eq">\[F=\int_0^a p\,2\pi r\,dr=p\,\pi a^2,\qquad
+T=\mu\int_0^a p\,r\,2\pi r\,dr=\mu p\,\frac{2\pi a^3}{3}.\]</div>
+<p>For the force integral, adding \(r\,dr\) from 0 to \(a\) gives \(a^2/2\). The extra lever \(r\) in
+the torque integral changes that sum to \(a^3/3\). The factors of \(p\), \(\mu\) and \(2\pi\) stay fixed.</p>
+<p>Dividing the torque by \(\mu F\) gives \(\bar r=2a/3\). The average lever is more than half the radius
+because the outer rings have more area. With \(u=r/a\), the distance as a fraction of the radius, other pressure
+shapes give these friction arms:</p>
 <ul>
 <li>\(a/2\) under a cone of pressure, \(1-u\);</li>
 <li>\(8a/15=0.533\,a\) under the paraboloid \(1-u^2\) of a Winkler foundation (step&#160;2);</li>
@@ -107,11 +149,13 @@ same way. The arm is therefore not zero when the pressure is centred.</p>
 <li>\(2a/3\) under a uniform pressure;</li>
 <li>\(a\) when all the pressure lies in a ring at the rim.</li>
 </ul>
-<p>A point contact has no patch (\(\rho=0\)), so it resists no twist. Two point contacts that pinch a tool therefore act
-as a free hinge about the line through them. The screwdriver&#8217;s centre of mass lies \(d\)&#8202;=&#8202;{{HINGE_D}}&#8202;mm from that
-line. Gravity therefore twists the tool about the line with the torque \(mgd\cos\varphi\), where \(\varphi\) is the tool&#8217;s
-angle below horizontal and \(mgd\)&#8202;=&#8202;{{HINGE_MGD}}&#8202;mN&#8202;m. Two pads keep the tool still while their friction torque
-exceeds the gravity torque:</p>
+<p>A point contact acts at \(r=0\), so it resists no twist. Two point contacts make a hinge about the line through
+them. The screwdriver&#8217;s centre of mass is \(d\)&#8202;=&#8202;{{HINGE_D}}&#8202;mm from that line when the tool is
+horizontal. Its weight \(mg\) pulls downward, giving a torque of \(mgd\)&#8202;=&#8202;{{HINGE_MGD}}&#8202;mN&#8202;m.
+At an angle \(\varphi\) below horizontal, the perpendicular lever of the weight is \(d\cos\varphi\).</p>
+<p>Each pad can resist up to \(\mu F\bar r(F)\) before spinning. Two pads keep the tool still when their combined
+torque is at least the torque from gravity. A still tool has zero net torque: gravity tries to turn it down,
+and friction can oppose that turn.</p>
 <div class="eq">\[2\mu F\,\bar r(F)\ \ge\ mgd\cos\varphi .\]</div>
 <p>At 1&#8202;N per pad the arm on the screwdriver is {{HINGE_ARM1}}&#8202;mm (step&#160;2), so the two pads resist up to
 {{HINGE_CAP1}}&#8202;mN&#8202;m with \(\mu=1\). The tool then comes to rest at \(\varphi\)&#8202;=&#8202;{{HINGE_PHI1}}&#176;. It stays horizontal
@@ -122,19 +166,26 @@ hold the tool only hanging straight down, at 90&#176;.</p>
 <h3><span class="step">2</span>Winkler foundation and the hydroelastic pressure field</h3>
 <p>A layer of independent springs, the Winkler foundation, gives a friction arm that grows as the fourth root of the force.
 Drake&#8217;s hydroelastic contact is such a layer.</p>
-<p>In a Winkler foundation each point of the surface is a spring that pushes back in proportion to its own compression
-\(\delta\): \(p=k_w\delta\). For a layer of modulus \(E\) and thickness \(h\) the spring constant per unit area is
-\(k_w=E/h\), in N/m&#179;. Drake&#8217;s hydroelastic contact (Elandt et al., 2019) works the same way. Each soft body has a
-pressure field that grows with depth below its surface. The pressure at a point of the contact surface depends only on how
-deep that point lies inside the undeformed body. For a sphere of radius \(R\) the field is \(p=E\,\delta/R\), a Winkler
-layer of thickness \(h=R\).</p>
-<p>Press the sphere a depth \(\delta_0\) into a flat face. At the distance \(\rho\) from its lowest point, the sphere&#8217;s
-surface lies \(R-\sqrt{R^2-\rho^2}\approx\rho^2/2R\) higher. The spring there is therefore compressed by
-\(\delta_0-\rho^2/2R\), and the patch ends where this reaches zero, at \(a=\sqrt{2R\delta_0}\). Adding up the rings of the
-patch gives the force:</p>
-<div class="eq">\[F=2\pi k_w\int_0^a\Bigl(\delta_0-\frac{\rho^2}{2R}\Bigr)\rho\,d\rho=2\pi k_w\Bigl(\frac{\delta_0a^2}{2}-\frac{a^4}{8R}\Bigr)=\pi k_wR\,\delta_0^2 .\]<span class="eqno">(2)</span></div>
+<p>Imagine a bed of separate vertical springs under the fingertip surface. Each spring pushes back in proportion
+to its own compression \(\delta\). The pressure is \(p=k_w\delta\), where \(k_w=E/h\) is the stiffness per
+unit area of a layer with modulus \(E\) and thickness \(h\). With lengths in mm, \(E\) is in MPa
+(N/mm&#178;) and \(k_w\) is in N/mm&#179;. Neighbouring springs do not share
+load in this model. Drake&#8217;s hydroelastic pressure field (Elandt et al., 2019) follows this rule. For a
+fingertip sphere of radius \(R\), its field uses \(h=R\).</p>
+<p>Press the sphere into a flat tool by \(\delta_0\) at its centre. Farther from the centre, the sphere curves
+away from the tool. Pythagoras gives a height of \(R-\sqrt{R^2-r^2}\) at distance \(r\) from the centre.
+Close to the centre, that height is about \(r^2/(2R)\). That spring compresses by
+\(\delta_0-r^2/(2R)\), if this value is positive. At the patch edge the compression reaches zero. Solving
+\(\delta_0-a^2/(2R)=0\) gives the patch radius \(a=\sqrt{2R\delta_0}\).</p>
+<p>The pressure at each distance is \(k_w\) times that local compression. Each thin ring has area \(2\pi r\,dr\),
+as in step&#160;1. Adding the forces of the rings gives:</p>
+<div class="eq">\[F=2\pi k_w\int_0^a\Bigl(\delta_0-\frac{r^2}{2R}\Bigr)r\,dr
+=2\pi k_w\Bigl(\frac{\delta_0a^2}{2}-\frac{a^4}{8R}\Bigr)
+=\pi k_wR\,\delta_0^2 .\]<span class="eqno">(2)</span></div>
+<p>The first equality adds the force from each ring. The second evaluates the integral. Substituting
+\(a^2=2R\delta_0\) then gives the final expression for \(F\).</p>
 <p>The force grows as \(\delta_0^2\) because two things grow in proportion to \(\delta_0\): the patch area
-\(2\pi R\delta_0\) and the mean pressure \(k_w\delta_0/2\). The pressure \(k_w\delta_0(1-\rho^2/a^2)\) is the paraboloid of
+\(2\pi R\delta_0\) and the mean pressure \(k_w\delta_0/2\). The pressure \(k_w\delta_0(1-r^2/a^2)\) is the paraboloid of
 step&#160;1, so \(\bar r=8a/15\). Equation (2) gives \(a^4=4R^2\delta_0^2=4RF/(\pi k_w)\), and substituting it writes the arm
 as a power of the force:</p>
 <div class="eq">\[\bar r_W=\frac{8}{15}\Bigl(\frac{4R}{\pi k_w}\Bigr)^{1/4}F^{1/4}=c\,F^{1/4},\qquad T=\mu c\,F^{5/4}.\]<span class="eqno">(3)</span></div>
@@ -155,7 +206,7 @@ pressure is zero outside the overlap.</p>
 <p>A homogeneous elastic body passes load sideways through shear. Its surface therefore deflects outside the loaded region,
 and the pressure takes the Hertz form. For a sphere on a rigid flat, with \(E^\ast=E/(1-\nu^2)\) and \(\nu\) Poisson&#8217;s
 ratio,</p>
-<div class="eq">\[a^3=\frac{3FR}{4E^\ast},\qquad p(\rho)=\frac{3F}{2\pi a^2}\sqrt{1-\frac{\rho^2}{a^2}},\qquad \bar r_H=\frac{3\pi}{16}\,a\;\propto\;F^{1/3}.\]<span class="eqno">(4)</span></div>
+<div class="eq">\[a^3=\frac{3FR}{4E^\ast},\qquad p(r)=\frac{3F}{2\pi a^2}\sqrt{1-\frac{r^2}{a^2}},\qquad \bar r_H=\frac{3\pi}{16}\,a\;\propto\;F^{1/3}.\]<span class="eqno">(4)</span></div>
 <p>At the same approach an elastic solid touches over a smaller patch than the foundation: \(a^2=R\delta\) against
 \(2R\delta\). Its mean pressure also grows with the strain \(a/R\). Together these give \(F\propto\delta^{3/2}\) and
 \(a\propto F^{1/3}\).</p>
@@ -198,7 +249,7 @@ its share of the area. Pressed on a flat with 1&#8202;N, the 1&#8202;mm pad&#821
 <p>The pad replaces the pressure field with \(n\) spheres of radius \(r_s\). The spheres sit inside the fingertip, and their
 outer surfaces trace its shape. Each sphere is an ordinary MuJoCo contact with condim&#160;3: a normal force and friction in
 two directions. The pad&#8217;s force and torque are sums over the spheres that touch the tool:</p>
-<div class="eq">\[F\approx\sum_i N_i,\qquad T\approx\sum_i \rho_i\,f_{t,i},\qquad \lVert f_{t,i}\rVert\le\mu N_i .\]<span class="eqno">(7)</span></div>
+<div class="eq">\[F\approx\sum_i N_i,\qquad T\approx\sum_i r_i\,f_{t,i},\qquad \lVert f_{t,i}\rVert\le\mu N_i .\]<span class="eqno">(7)</span></div>
 <p>Each sphere is a spring with the foundation&#8217;s stiffness \(E/R\) times its share \(A_s\) of the pad&#8217;s area. One
 correction is made for the sphere radius. A sphere touches the tool at the point under its centre, and the centres lie on a sphere of
 radius \(R-r_s\). Seen from the tool, the lattice is therefore shrunk by \((R-r_s)/R\) in each direction. Its contact points

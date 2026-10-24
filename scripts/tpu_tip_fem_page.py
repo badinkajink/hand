@@ -710,17 +710,19 @@ def lede(X: Data):
     Es = sorted(r["E_best_MPa"] for r in sc)
     ae = [-X.arm_err(r["E_best_MPa"], r["per_force"]["3"]["arm_mm"]) for r in sc + [g0]
           if X.arm_err(r["E_best_MPa"], r["per_force"]["3"]["arm_mm"]) is not None]
-    return ("Five whole tips are ready to print (Table&#160;[[tab:plan]]): 95A at 20&#8202;% gyroid as the reference, 85A at 50&#8202;%, the "
-            "print whose twist arm the pads match best, the softer 85A at 30&#8202;% and 95A at 10&#8202;%, each with a 4.76 &#215; 1.59&#8202;mm "
-            f"N52 magnet {PP.PLAN_DEPTH:g}&#8202;mm under the contact point, and the reference without a magnet. Each maps to one modulus of the sphere "
-            f"pads, {f1(Es[0])}&#8211;{f1(Es[-1])}&#8202;MPa for the magnet tips; the magnet stiffens the face above it, from "
-            f"{f1(g0['E_best_MPa'])} to {f1(g3['E_best_MPa'])}&#8202;MPa on the reference. Before measurement a tip&#8217;s stiffness is "
-            "known within the factor of 2.6 between 95A datasheets, and its friction is not known at all. An indentation and a pull test fix "
-            f"both and leave three model errors: {f0(min(er))}&#8211;{f0(max(er))}&#8202;% in approach over 0.5&#8211;3&#8202;N, a pad twist arm "
-            f"{f0(min(ae))}&#8211;{f0(max(ae))}&#8202;% shorter than the tip&#8217;s, and the tip&#8217;s tangential compliance, which no pad model "
-            "represents. Under "
-            f"1&#8202;N the magnet moves {f0(min(trav))}&#8211;{f0(max(trav))}&#8202;&#181;m, which an MLX90393 1&#8202;mm behind the tip reads "
-            f"with {f2(min(sig))}&#8211;{f2(max(sig))}&#8202;N of noise per 141&#8202;Hz sample.")
+    return ("Finite-element models compare five whole-tip prints under the same screwdriver load (Table&#160;[[tab:plan]]). "
+            "Four have a 4.76 &#215; 1.59&#8202;mm N52 magnet whose top lies "
+            f"{PP.PLAN_DEPTH:g}&#8202;mm below the face. The fifth is the 95A, 20&#8202;% gyroid reference without a magnet. "
+            "The fitted sphere-pad moduli of the magnet tips range from "
+            f"{f1(Es[0])} to {f1(Es[-1])}&#8202;MPa. On the reference, the magnet raises that modulus from "
+            f"{f1(g0['E_best_MPa'])} to {f1(g3['E_best_MPa'])}&#8202;MPa. A single modulus leaves "
+            f"{f0(min(er))}&#8211;{f0(max(er))}&#8202;% error in approach over 0.5&#8211;3&#8202;N. "
+            f"The pad twist arm is {f0(min(ae))}&#8211;{f0(max(ae))}&#8202;% shorter than the modelled tip&#8217;s. "
+            "The pads also lack the tip&#8217;s tangential compliance. At 1&#8202;N the magnet moves "
+            f"{f0(min(trav))}&#8211;{f0(max(trav))}&#8202;&#181;m. The predicted force noise is "
+            f"{f2(min(sig))}&#8211;{f2(max(sig))}&#8202;N for one 141&#8202;Hz MLX90393 sample "
+            "with the chip 1&#8202;mm behind the tip. The 95A datasheets differ in modulus by a factor of 2.6. "
+            "An indentation and a pull test will set the printed tip&#8217;s stiffness and friction.")
 
 
 def open_items(X: Data):

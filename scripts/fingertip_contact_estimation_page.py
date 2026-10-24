@@ -376,18 +376,18 @@ def build():
     seat = th["seat_0959"]
     moved = [q_ for q_ in seat if q_["offset_uT"] > 20]
     before = th["shown"]
-    lede = (f"A model of the five-chip board, calibrated at rest, turns the 15 field components into a contact point and "
-            f"force anywhere on the pad's surface through an FE basis at the {fs['pads']} sphere pads of the simulations; on "
-            f"simulated presses with N52 magnets the median errors are {s52['all']['pos_median_mm']:.2f}&#8202;mm and "
-            f"{s52['all']['press_abs_median_N']:.2f}&#8202;N ({saf['all']['pos_median_mm']:.2f}&#8202;mm and "
-            f"{saf['all']['press_abs_median_N']:.2f}&#8202;N with today's magnets). On the board the rest reading drifts by "
-            f"{k_lo:.2f}&#8211;{k_hi:.2f}&#8202;% of the field per &#176;C of chip temperature and moves by "
-            f"{min(q_['offset_uT'] for q_ in moved):.0f}&#8211;{max(r['offset_uT'] for r in big):.0f}&#8202;&#181;T when a "
-            f"touch shifts the pad in its seat. A temperature correction, a {th['floor_uT']:.0f}&#8202;&#181;T noise floor and "
-            f"a re-zero after 3&#8202;s at rest stop the viewer showing a contact at rest, which it did "
-            f"{before['warm-up, uncorrected, floor 0 uT']['share_pct']:.0f}&#8211;"
-            f"{before['night, uncorrected, floor 0 uT']['share_pct']:.0f}&#8202;% of the time. No estimate has been compared "
-            f"with a reference force.")
+    lede = ("After a rest calibration, the five-chip board's 15 magnetic readings give an estimated contact point "
+            f"and force anywhere on the pad. The model uses finite-element responses at {fs['pads']} surface points. "
+            f"On simulated presses with N52 magnets, the median errors are {s52['all']['pos_median_mm']:.2f}&#8202;mm "
+            f"and {s52['all']['press_abs_median_N']:.2f}&#8202;N. With the magnets in the pad today they are "
+            f"{saf['all']['pos_median_mm']:.2f}&#8202;mm and {saf['all']['press_abs_median_N']:.2f}&#8202;N. "
+            f"On the board, the rest reading drifts {k_lo:.2f}&#8211;{k_hi:.2f}&#8202;% of the field per "
+            f"&#176;C of chip temperature. A touch that shifts the pad leaves a "
+            f"{min(q_['offset_uT'] for q_ in moved):.0f}&#8211;{max(r['offset_uT'] for r in big):.0f}&#8202;&#181;T "
+            f"offset. The viewer previously showed contact at rest {before['warm-up, uncorrected, floor 0 uT']['share_pct']:.0f}&#8211;"
+            f"{before['night, uncorrected, floor 0 uT']['share_pct']:.0f}&#8202;% of the time. A temperature correction, "
+            f"a {th['floor_uT']:.0f}&#8202;&#181;T noise floor and re-zero after 3&#8202;s at rest remove those false "
+            "contacts. This study has no comparison with a reference force.")
 
     terms = ('<dl class="terms">'
              "<dt>Tip frame</dt><dd>$x$ along the pad's normal toward the palmar face, $y$ across the finger, $z$ along it "

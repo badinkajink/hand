@@ -377,7 +377,7 @@ def svg_models():
               "(e) sphere lattice (CSLC)"]
     notes = [("no torque about n", "one Coulomb cone"),
              ("τ ≤ μt N", "μt = μ c N<tspan dy='-5' font-size='0.8em'>1/4</tspan><tspan dy='5'>, each step</tspan>"),
-             ("a soft contact per sphere", "T = Σ ρᵢ fₜᵢ"),
+             ("a soft contact per sphere", "T = Σ rᵢ fₜᵢ"),
              ("p = E·δ/R", "summed over the surface"),
              ("anchor + side springs", "spread past the overlap")]
     Rr, yl = 62.0, 150.0                     # fingertip radius (px) and tool surface
