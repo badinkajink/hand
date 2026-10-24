@@ -698,8 +698,28 @@ push that answers it arrives.
     the board changes by 51 uT (median) against 36 uT for today's pad; sphere2's correction gives 1.26 mm and a GP
     retrained on the new tip 0.98 mm. With N52 magnets they give 0.79 and 0.58 mm
     (`data/20261022-210852-sphere2/predict/magnet_transfer_sim_ADE.json`).
+  - 19:47, the owner (workstation chat): mount v5 goes on the robot with the first checkerboard tip ("the new dip link
+    mount and alternating polarities fingertip"). v5 is v4's fork with the PLA wedge behind the link's tongue
+    (`docs/experiments/20261023-ur5_calibration_mount_v5/`). Its frames are v3's, so the plans keep their poses.
+    - Pull first. Both plans now set v5's payload at preflight: 0.3993 kg with its centre 34.3 mm from the flange (v3's
+      entry was 0.3839 kg at 32.5 mm).
+    - Pass 1 runs the stages preflight, homing, gravity, pad and register. The gravity sweep measures the new payload,
+      and the analysis then needs no other session's fit. Expect about 1.72 N: first2's 1.567 N plus v5's 15.4 g. Pass
+      `--gravity-expect-N 1.72` or leave it out. First2's 1.57 N would stop the session at the 5 % check.
+    - Run every clearance check with `UR5_MOUNT=v5`, after
+      `git lfs pull --include "docs/experiments/20261023-ur5_calibration_mount_v5/cad/*"`.
+    - Checked with v5 and sphere2's registration over pad, grid and final (19:46). The wedge's space stays at least
+      8.72 mm from the sphere and the cell as a fresh session runs the touch-offs, and 9.45 mm as planned with the
+      registration. The mount's least clearance is 2.50 mm as run and 2.84 mm registered; with v3 it is 2.52 and 2.75 mm.
+      The same eight touch-offs fall under the margins as with v3 and are dropped. grid-025, -027 and -028 come 0.01 to
+      0.16 mm inside the mount's 3.0 mm with sphere2's registration; pass 2's check with the new registration decides them.
+    - The owner notes the wedge fin's distance from the plate's end before and after the session (Section 7 of the v5
+      page).
+    - The magnet grade does not change the plan. At rest, N52 magnets in this checkerboard put at most 19.7 mT on a chip
+      and today's magnets 6.7 mT. The board's range is 38.4 mT. The rest fit gives the strength and the poles.
 
-- R23 (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
+- R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
+  returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
   back on after the ATI work: `plan/20261023-plan_sphere_lab_check6_sph3t.json`, six of sph3t's 19 touch-offs at its
   5.0 mm standoff (pad-face-00, -08, pad-edge-00, -04, -06, pad-flank-07), renamed `chk-*` so that a resume on sph3t
   runs them. They were chosen for residuals within 40 um of sph3t's registration, joint 6 within 52 deg, and both sides
