@@ -345,6 +345,15 @@ the lab session ("go") at about 15:36.
   So when the finger is back, about six sphere touch-offs at 5.0 mm (some 12 min) are compared with sph3t's onsets,
   which repeated last night's to within 0.06 mm. Within about 0.1 mm, the sessions resume on sph3t's registration;
   otherwise the touch-offs are redone. No rehoming unless an indenter moves.
+- 16:5x to 18:00, the ATI Mini45's Net box (NETBA). It is on PoE from a Netgear GS305PP switch, which plugs into port 4
+  of the lab's router. The box never appeared on the network: 192.168.0.x showed only the router, UR5, corvus and the
+  HEX-E box; nothing answered at 192.168.1.1 or anywhere in 192.168.1.x, 169.254.x.x or IPv6; and the owner's sudo
+  tcpdump saw no frame from ATI's MAC prefix 00:16:BD. The switch shows a PoE fault (yellow) on the box's port, so the
+  box is unpowered. ATI's manual: DHCP on by default, with 192.168.1.1 as the fallback after 30 s; PoE IEEE 802.3af
+  class 0, Mode A only, 6 W at most; or 11 to 25 V DC on the M12 Pwr/CAN connector. To reach 192.168.1.x without
+  losing the internet, corvus takes a live extra address, `nmcli device modify enp3s0 +ipv4.addresses
+  192.168.1.100/24` (no sudo; undone with `-ipv4.addresses`). Never set the connection's IPv4 method to Manual: that
+  drops the DHCP address and the internet with it.
 
 ## The lab clone and git-lfs
 
