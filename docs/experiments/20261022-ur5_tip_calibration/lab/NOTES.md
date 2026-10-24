@@ -383,6 +383,23 @@ the lab session ("go") at about 15:36.
   - Fallback put to the workstation: with the load point known (the indenter), a press has 3 unknowns. Five gauges
     fitted to the weighed masses can solve them.
 
+## State at 19:00 on 2026-10-23 (for a session after a compaction)
+
+- The robot stands at home, idle. All of today's sessions are pushed whole: rod1 (and rod1g), rod1t, and sph3t (with
+  R21's sph3g appended).
+- The ATI work has stopped. Its Net box has a dead gauge-5 input: both the Mini45 and the Mini40 read gauge 5 at +32767
+  under the default settings. The notes are in `../../20261023-ati_ft_calibration/lab/NOTES.md`. corvus still holds
+  the live 192.168.123.100/24, which is harmless and goes on a reboot.
+- Next is R22, the first checkerboard tip. The owner takes the ATI out, puts the mount back on the HEX-E as before
+  (−92.15 deg), fits the tip and plugs in its board. Nothing runs before the owner's go in the lab session.
+- The lab's steps then:
+  1. Pull R22's plans, and build the run plan with sph3t's drops (8 under the margins as run, and the 5 flanks with
+     joint 6 above +60 deg).
+  2. Simulate it with the seated truth, and check the samples in the cell.
+  3. Check the robot, the HEX-E and the board.
+  4. Run the plain touch-offs at 5.0 mm, with no rehoming.
+  5. Then the as-run clearance check of the offset plan, the offset touch-offs, and the grid.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
