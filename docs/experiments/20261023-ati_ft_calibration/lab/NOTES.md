@@ -25,6 +25,10 @@
 - The calibration slots:
   - **#1**, FT35796 SI-125-3: the Axia80's, per the owner. Gains `calggn` 0x5B, 0x5B, 0x55, 0x5D, 0x57, 0x59 and
     hardware offsets `calgof` 0x7D46, 0x8088, 0x7B69, 0x7CBC, 0x7E11, 0x81E8.
+    - Correction (19:10): its ranges (`calmr` 125, 125, 500 N and 3, 3, 3 N m), its part number and its date
+      (2021-07-22) fit a **Nano25** calibration, not an Axia80's. An Axia80 has its own electronics and needs no Net
+      box. The calibration carries the box's own serial, so it is likely the transducer this box was sold with. Where
+      these notes say "the Axia80's tuning", read the Nano25's.
   - **#16**, FT0000 "Identity" (the raw-gauge mode A1 asks for): identity matrix, counts per unit 1, and the **same
     gains and offsets as #1**.
   - **#2 to #15**, FT0000 "empty": zero matrix, counts per unit 1, and factory-default gains 0x0200 and offsets 0x8000
@@ -72,6 +76,35 @@
 - **Two different transducers pinned on gauge 5 point to the box's gauge 5 input**: its transducer connector pin, or the
   channel's front end. A shared extension cable or adapter, if there is one, would also fit. If it is the box, both
   sensors may be fine, and another NETBA or ATI DAQ would read all six gauges.
+
+### 19:10: what five gauges could still measure (the lab's estimate)
+
+- FT11452 has no matrix here, so the estimate takes the shape of its sensitivities from another Mini45's Net F/T matrix,
+  FT32816 (SI-290-10, section 2.3 of the hand-off). `five_gauge_check.py` in this folder prints every number below.
+- Without gauge 5 (G4), one load is invisible. It is almost exactly a pure force (pitch 0.035 mm) along the sensor's z
+  axis, on a line 19.0 mm off the axis at 60° in the sensor's frame, through gauge 5's beam. Every other load still
+  moves the five gauges.
+- A press is a force at a known point: 3 unknowns, or 4 with a twist's torsion, against 5 gauges. The force is
+  `f = (A'B(r))^+ (g' − g0')`. With the finger on the ATI's top (the pad apex at (−0.89, −2.06, 78.49) mm in the ATI's
+  frame, from sph3t's registration and the stack's 46.7 mm), the force noise against a healthy Mini45 read the factory
+  way is:
+
+  | contact | Fx | Fy | Fz |
+  |---|---:|---:|---:|
+  | the apex | 0.55× | 0.90× | 2.57× |
+  | the apex, torsion as a fourth unknown | 0.55× | 0.90× | 2.58× |
+  | worst within 8 mm of the apex | 0.82× | 0.92× | 4.17× |
+
+  The apex lies on the side away from the invisible line (−113° against 60°). Only contacts 15 to 20 mm off the axis
+  toward the line are bad, at up to 39× in Fz.
+- The contact point must be known to about 0.5 mm. In a 5 N press with 0.6 N of shear, a 0.5 mm error moves Fz by up
+  to 0.12 N (2 %). A contact moment of 1 N mm that the model leaves out moves Fz by 0.04 N.
+- The box's own Fz with gauge 5 frozen reads 3.4 N of a 5 N on-axis push and 2.2 N of that press at the pad. So a Z
+  force that moves under a press, as in July, does not show that gauge 5 worked then.
+- What it would take: the mass run (A3), with the five rows fitted each on its own, and a change to
+  `scripts/ati_calibration_session.py`. That program stops on any status but 0 or 0x80010000, and gauge 5 sets the
+  saturation bit (0x00020000) in every sample. It should stop only when one of the five working gauges reaches its
+  limit. If the box's own Nano25 is in the lab, its factory matrix gives the five rows with no mass run.
 
 ### Open, for the ATI conversation and the owner
 
