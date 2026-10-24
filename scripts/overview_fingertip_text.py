@@ -414,30 +414,13 @@ force was measured, so the correction is not yet scored on this pad
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
 Each pad has stiffness \(K_i=E\,a_i/h_i\). In builder v2, the default since 2026-10-15, \(h_i\) is the pad&#8217;s depth
-below the tip&#8217;s volume centroid. One modulus misses the FE&#8217;s approach by 20&#8211;28&#8202;%, because the FE&#8217;s
-force grows as \(\delta^{1.07}\) and the law&#8217;s as \(\delta^{1.5}\): the walls and skins spread the load over the core.
-A stiff local modulus behind a series spring fits the 11/22 tip, with
-\(a(F)=F/k_s+a_{\mathrm{loc}}(F;E_{\mathrm{loc}})\) and \(k_s=9.7\)&#8202;N/mm. The RMS approach error is 5.2&#8202;% in
-Drake&#8217;s hydroelastic field and 5.6&#8202;% in 0.5&#8202;mm pads. No single spring fits the capsule
-([calibration to the finite elements](exp:20261018-fe_contact_calibration/20261018-fe_contact_calibration.html)). With the
-spring in both simulators, the same servo commands end the tool&#8217;s turn 6.3&#176; apart in place of 18.6&#176;. Their
-contact forces still differ by 0.37&#8202;N against a 0.25&#8202;N bound
-([v2 fingertip checks](exp:20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html)). The estimator
-reports its forces at the same pads the simulations use, so a measured contact and a simulated one can be compared pad
-by pad. Through the board&#8217;s force, the UR5 session puts the printed pad&#8217;s bulk within about 22&#8202;% of the FE
-model. Rod presses put at least 0.10&#8202;mm/N of the extra indentation at the sphere&#8217;s contact, where the FE pad is
-stiffer than the print. The pads, calibrated to that FE, are as stiff there.</p>
-<p>The sphere pads were also run against sphere2&#8217;s 357 press holds, on the 812 surface points of the FE basis
-([UR5 ground truth and predictors](exp:20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html),
-Section 7). With a spring in series, pads fitted to the FE pad (5.4&#8202;MPa) follow the measured indentation as closely
-as the FE pad does, 135 against 133&#8202;&#181;m RMS. One modulus of 0.90&#8202;MPa without a spring gives the measured
-force within a median 19&#8202;%. That modulus is 11 times below the RL scenes&#8217; 10&#8202;MPa, because it also takes up
-the extra indentation. The pads&#8217; force grows faster with depth than the FE pad&#8217;s: it is 0.73 of the FE
-pad&#8217;s at 0.25&#8202;N and 1.51 at 5&#8202;N. Stiffer pads at 153&#8202;MPa behind a spring of 8.45&#8202;N/mm follow the
-FE pad&#8217;s depth within 12&#8202;&#181;m RMS. Under the rod, pads fitted to the FE pad (5.2&#8202;MPa) leave
-56&#8202;&#181;m RMS with a spring in series, against 58&#8202;&#181;m for the FE pad. The pads place the contact&#8217;s centre a median 125&#8202;&#181;m from the
-FE pad&#8217;s. Under the holds&#8217; measured shear the sphere slides on the pads at 1.79&#8202;mm/s at impratio 1, and at
-0.121 and 0.012&#8202;mm/s at impratio 10 and 100.</p>"""),
+below the tip&#8217;s volume centroid. A stiff local modulus behind a series spring of 9.7&#8202;N/mm fits the FE model of
+the 11/22 tip within 5.6&#8202;% RMS in approach. With a spring in series, pads fitted to the FE pad follow the indentation
+measured on the UR5 within 135&#8202;&#181;m RMS, against 133&#8202;&#181;m for the FE pad. From the board&#8217;s force, the
+printed pad&#8217;s bulk is within about 22&#8202;% of the FE model. The estimator reports its forces at the same pads the
+simulations use, so a measured contact and a simulated one can be compared pad by pad. The fits, the turn they change in
+two simulators, the rod presses and the pads&#8217; creep under the measured shear are in the contact overview
+(<a href="contact_model.html#pad-calibration">calibration of the pads</a>).</p>"""),
     ("hardware", "Hardware built and measured",
      r"""<p>The DIP link holds the board against the pad. Three concepts were drawn: the window plate with a clamp (a), a
 cover that clamps the board behind the pad on rails (b) and a board printed over (c). On 2026-10-20 the owner chose b

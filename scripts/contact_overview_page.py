@@ -712,7 +712,7 @@ def creep_text(pull, creep, tip_pull=None):
                 out.append(f"On the printed TPU block at 1&#8202;N and 1&#8202;ms the factor is "
                            f"{tb['creep_mm_s'] / td['creep_mm_s']:.0f} (Table&#160;3).")
         out.append("A damper moves the tool by the time integral of its load, so a held tool does not come back when the "
-                   "load is removed (task&#160;8, Figure&#160;14).")
+                   "load is removed (task&#160;8, Figure&#160;15).")
     return " ".join(out).replace(" </p><p> ", "</p><p>")
 
 
@@ -1826,6 +1826,10 @@ def _url(path):
 
 
 RELATED = [  # (group, date, title, path relative to the repository, contents)
+    ("Results on other pages", "2026-10-22", "UR5 fingertip ground truth",
+     "docs/experiments/20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html",
+     "357 UR5 presses on the printed pad against the FE model and the sphere pads; rod presses; the board against "
+     "the HEX-E; contact-point predictors"),
     ("Results on other pages", "2026-10-18",
      "Calibration of Drake's hydroelastic field and the 1 mm pads to finite elements of the printed 85A fingertips",
      "docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration.html",
@@ -1974,6 +1978,69 @@ def render_tex(t):
              for m in TEX_RE.finditer(t)]
     svgs = iter(texsvg.render(items, cache_path=TEX_CACHE, scale=TEX_SCALE))
     return TEX_RE.sub(lambda m: next(svgs), t), len(items)
+
+
+UR5_CAL_DIR = "docs/experiments/20261022-ur5_tip_calibration"
+
+
+def pad_calibration_section():
+    """The pads against the FE model of the printed tip (2026-10-18 and 10-19) and against the UR5 presses of
+    2026-10-22. The numbers are quoted from Sections 3, 7 and 8 of the UR5 ground-truth page and from the two
+    calibration pages it links."""
+    def a(rel, text):
+        return f'<a href="{os.path.relpath(os.path.join(ROOT, rel), os.path.dirname(OUT))}">{text}</a>'
+    fe = a("docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration.html",
+           "calibration to the finite elements")
+    v2 = a("docs/experiments/20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html", "v2 fingertip checks")
+    ur5 = a(f"{UR5_CAL_DIR}/20261022-ur5_tip_ground_truth_and_predictors.html", "UR5 ground truth and predictors")
+    fig = R.data_uri(os.path.join(ROOT, UR5_CAL_DIR, "media/20261022-sphere2_sphere_pads_against_hexe.png"), "image/png")
+    return (
+        '<section id="pad-calibration"><div class="col">\n'
+        "<h2>Calibration of the pads to the FE model and to UR5 presses</h2>\n"
+        "<p>Sphere pads fitted to a finite-element (FE) model of the printed tip follow the indentation measured on a "
+        "UR5 arm as closely as the FE model does. With a spring in series, the depth residual is 135&#8202;&#181;m RMS for "
+        "the pads and 133&#8202;&#181;m for the FE model, over 357 presses. Both models are stiffer than the print: at the "
+        "registered positions the FE force is 5.1 times the measured force. The depth residual starts from the "
+        "difference between the measured and the modelled indentation at the measured force. An offset and a series "
+        "compliance are fitted to that difference, and the residual is the RMS of what remains.</p>\n"
+        r"<p>The pads were first fitted to the FE model of the 11/22 half-ellipsoid tip. One modulus \(E\) in "
+        r"\(K_i=E\,a_i/h_i\) misses the FE approach by 20&#8211;28&#8202;%. The FE force grows as \(\delta^{1.07}\) with "
+        r"the approach \(\delta\), and a law with one modulus grows as \(\delta^{1.5}\). The printed walls and skins "
+        r"spread the load over the core. A stiff local modulus behind a spring of stiffness \(k_{\mathrm{ser}}\) in "
+        r"series fits the FE approach: \(\delta(F)=F/k_{\mathrm{ser}}+\delta_{\mathrm{loc}}(F;E_{\mathrm{loc}})\), with "
+        r"\(k_{\mathrm{ser}}=9.7\)&#8202;N/mm. The RMS approach error is then 5.2&#8202;% in Drake&#8217;s hydroelastic "
+        "field and 5.6&#8202;% in 0.5&#8202;mm pads (" + fe + "). With the spring in both simulators, the same servo "
+        "commands end the tool&#8217;s turn 6.3&#176; apart. Without it they end 18.6&#176; apart (" + v2 + ").</p>\n"
+        "<p>The FE model and the pads were then compared with presses on the UR5. On the night of 2026-10-22 the arm "
+        "pressed the printed fingertip and a sphere indenter together, at force levels from 0.25 to 5&#8202;N. An "
+        "OptoForce HEX-E six-axis sensor read the force. The ground truth is 357 presses at registered positions ("
+        + ur5 + ", Sections 3, 7 and 8). On the face the measured indentation exceeds the FE model&#8217;s by "
+        "0.32&#8202;mm plus 0.212&#8202;mm/N. In presses with a rod, at least 0.10&#8202;mm/N of the extra indentation "
+        "arises at the sphere&#8217;s contact, where the FE model is stiffer than the print.</p>\n"
+        "<p>The 812 pads stand on the surface points of the FE model, so both models share one surface. In a MuJoCo rig "
+        "the measured normal force pushes the sphere into the fixed pads for 0.4&#8202;s. At rest the sphere&#8217;s "
+        "position agrees with the pads&#8217; spring law within 0.04&#8202;&#181;m. At the modulus that fits the FE model "
+        "best, 5.4&#8202;MPa, the pad force is 0.73 of the FE force at 0.25&#8202;N and 1.51 times it at 5&#8202;N "
+        "(Figure&#160;14a). With a stiffer modulus of 153&#8202;MPa behind a spring of 8.45&#8202;N/mm, the pad depth is "
+        "within 12&#8202;&#181;m RMS of the FE depth.</p>\n"
+        "<p>Without a series spring, the single modulus that fits the measurement best is 0.90&#8202;MPa. The pad force "
+        "is then within a median 19&#8202;% of the measured force. That modulus is 11 times below the 10&#8202;MPa of the "
+        "RL scenes, because the extra indentation is folded into it. Under the rod, the depth residual with a spring in "
+        "series is 56&#8202;&#181;m for pads at 5.2&#8202;MPa and 58&#8202;&#181;m for the FE model. The contact centre on "
+        "the pads lies a median 125&#8202;&#181;m from the centre on the FE model.</p>\n"
+        "<p>The measured shear in a press is a median 0.16&#8202;N, 0.14 of the normal force. Under it the sphere creeps "
+        "along the pads, as derived in step&#160;8 (Figure&#160;14b). At 5.4&#8202;MPa the median speed is "
+        "1.79&#8202;mm/s at impratio 1. It falls to 0.121&#8202;mm/s at impratio 10 and to 0.012&#8202;mm/s at impratio "
+        "100. Over the median press of 2.3&#8202;s the sphere moves 4.1&#8202;mm at impratio 1 and 27&#8202;&#181;m at "
+        "impratio 100.</p>\n"
+        f'<figure><img src="{fig}" width="1100" style="max-width:100%;height:auto" alt="Force ratios of the pads, the '
+        'FE model and the measurement by force level, and the sliding speed of the sphere on the pads by impratio">'
+        "<figcaption>Figure&#160;14. Sphere pads against the UR5 presses of 2026-10-22 (Fig.&#160;5 of the UR5 "
+        "ground-truth page). (a) Median force ratio at the registered positions by force level: pads at 5.4&#8202;MPa "
+        "over the FE model, measured over pads at 0.90&#8202;MPa, and measured over the FE model made 4.75 times softer. "
+        "(b) Sliding speed of the sphere on the pads under the measured shear against MuJoCo&#8217;s impratio. The "
+        "dashed line is 0.1&#8202;mm over a 2.3&#8202;s press.</figcaption></figure>\n"
+        "</div></section>\n")
 
 
 def usability_section():
@@ -2152,6 +2219,7 @@ def main():
     v["CHAIN_POSTER"] = R.data_uri(os.path.join(CHAIN_D, "media/20261002-chain_six_models_poster.png"), "image/png")
     v["RELATED"] = related()
     v["USABILITY"] = usability_section()
+    v["PAD_CALIBRATION"] = pad_calibration_section()
     v["GLOSSARY"] = glossary_html(extra=GLOSSARY_RL)
     ctx = dict(T=T, M=M, cost=cost, cal=cal, stab=stab, step_rows=step_rows, gpu_pads=gpu_pads, gpu_newton=gpu_newton,
                tor=tor, have_onset=have_onset, curves=curves, batched=batched, deviations=deviations(M), bed_url=u, skin_X=SX,

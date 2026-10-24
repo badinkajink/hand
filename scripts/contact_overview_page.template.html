@@ -27,6 +27,7 @@
 <li><a href="#pads">Sphere-packed pads in MuJoCo</a></li>
 <li><a href="#references">Reference models</a></li>
 <li><a href="#evidence">Comparison with the reference models</a></li>
+<li><a href="#pad-calibration">Calibration of the pads to the FE model and to UR5 presses</a></li>
 <li><a href="#skin">Presliding compliance with a sprung skin</a></li>
 <li><a href="#open">Future work</a></li>
 <li><a href="#index">Index of linked pages</a></li>
@@ -466,13 +467,14 @@ and insertion.</figcaption>
 </figure>
 {{USABILITY}}
 </div></section>
+{{PAD_CALIBRATION}}
 
 <section id="skin"><div class="col">
 <h2>Presliding compliance with a sprung skin</h2>
 <p>{{SKIN_SUMMARY}}</p>
 <figure class="diagram">
 {{FIG_T8}}
-<figcaption>Figure&#160;14. Task&#160;8 at 1&#8202;N per pad: an axial force on the tool of 0, +1, &#8722;1, +1 and 0&#8202;N, half the slip
+<figcaption>Figure&#160;15. Task&#160;8 at 1&#8202;N per pad: an axial force on the tool of 0, +1, &#8722;1, +1 and 0&#8202;N, half the slip
 force each way, with Mindlin&#8217;s closed form dashed. (a) The tool&#8217;s axial displacement against the force, at the test
 bed&#8217;s settings and a 1&#8202;ms step. The pads creep while the force is positive and keep the displacement. The skin goes out
 and back along Mindlin&#8217;s initial slope, with the thin loop of the 1&#8202;ms step (2.58&#8202;&#181;J at 0.025&#8202;ms). The bristle model
