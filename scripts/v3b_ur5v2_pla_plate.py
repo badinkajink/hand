@@ -220,6 +220,14 @@ PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"
              "ati_mass": (ATI / "print", "20261023-ati_mass_holder_p1s_pla"),
              "ati_mass_cap": (ATI / "print", "20261023-ati_mass_cap2_p1s_pla"),
              "ati_stack_mini40": (ATI / "print", "20261023-ati_stack_mini40_p1s_pla")}
+# 2026-10-23 evening: mount v6 (scripts/ur5_calibration_mount.py with UR5M_REV=v6), v3's fork with a thin plate whose pad presses
+# on the DIP link's tongue, one plate per interference (0.10 to 0.55 mm, 1 to 4 notches in the pad); six walls as v4's fork
+V6M = REPO / "docs/experiments/20261023-ur5_calibration_mount_v6"
+UP6 = "20261023-ur5_calibration_mount_v6"
+for _i in ("10", "25", "40", "55"):
+    PLATES[f"mount_v6_i{_i}"] = [("U2", f"UR5 standoff-fork v6, pad 0.{_i} mm into the tongue", V6M / f"cad/{UP6}_standoff_fork_i{_i}.stl",
+                                  np.eye(3), dict(STANDARD, wall_loops="6"))]
+    PLATE_OUT[f"mount_v6_i{_i}"] = (V6M / "print", f"{UP6}_p1s_pla_i{_i}")
 
 
 def main():
@@ -252,7 +260,8 @@ def main():
                    "ati_stack": "ATI Mini45 on the HEX-E: base, top and hook cross (ATI drawing 9230-05-1094)",
                    "ati_mass": "ATI calibration: holder for the 100 g weight, cup and cap 2",
                    "ati_mass_cap": "ATI calibration: cap 2 of the 100 g weight's holder (knob 14 x 11 mm, tie hole)",
-                   "ati_stack_mini40": "ATI Mini40 on the HEX-E: base and top (ATI drawings 9230-05-1278, 9230-05-1314)"}[plate]
+                   "ati_stack_mini40": "ATI Mini40 on the HEX-E: base and top (ATI drawings 9230-05-1278, 9230-05-1314)"}.get(
+            plate, f"UR5 mount v6: standoff-fork with a pad 0.{plate[-2:]} mm into the DIP link's tongue")
         V.OWNER = ("2026-10-20 (owner): the UR5e calibration first; the 30 mm spigot off the adapter; the finger on the tool "
                    "axis; an exterior mold in place of the key; homing to the indenters; concept b with side walls on the "
                    "cassette, a column under the pad and an open cable channel"
@@ -286,6 +295,9 @@ def main():
                    + ("; 2026-10-23: 'i dont have any of that hardware except for the heat inserts. we can try devising a "
                       "constraining v5 that doesnt require so many fasteners. brass hardware is not really stocked in the lab'"
                       if plate == "mount_v5_wedge" else "")
+                   + ("; 2026-10-23 evening: 'all you really needed to do was to make the back surface flush with the fingertip/"
+                      "magnetometer backing'; 'generate a few versions that require a variable amount of squishing in'"
+                      if plate.startswith("mount_v6") else "")
                    + ("; 2026-10-23 12:52: 'a 100g mass on a 25mm diameter 25mm height form factor. theres a little knobby "
                       "thing coming out. i think we'd need to built a tight-fit enclosure. i also dont have a hook'"
                       if plate == "ati_mass" else "")

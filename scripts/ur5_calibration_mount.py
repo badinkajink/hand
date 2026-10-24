@@ -65,13 +65,13 @@ sys.path.insert(0, str(REPO / "src"))
 # above the foot 11 mm higher than v2. 2026-10-22: v3's adapter takes brass heat-set inserts for the foot's M3 (m3_seat
 # "insert"; `inserts` checks the bores); UR5M_ONLY=adapter rebuilds that part alone.
 REV = os.environ.get("UR5M_REV", "v1")
-V2UP = REV in ("v2", "v3", "v4", "v5")
-V3UP = REV in ("v3", "v4", "v5")   # v4 (2026-10-23) is v3 with a stop behind the DIP link's tongue (stop_* in its P block);
+V2UP = REV in ("v2", "v3", "v4", "v5", "v6")
+V3UP = REV in ("v3", "v4", "v5", "v6")   # v4 (2026-10-23) is v3 with a stop behind the DIP link's tongue (stop_* in its P block);
 #                                    v5 (2026-10-23) is v4's fork as printed with a PLA wedge in place of the set screws
-DATE = {"v1": "20261018", "v2": "20261020", "v3": "20261021", "v4": "20261023", "v5": "20261023"}[REV]
+DATE = {"v1": "20261018", "v2": "20261020", "v3": "20261021", "v4": "20261023", "v5": "20261023", "v6": "20261023"}[REV]
 PFX = {"v1": "20261018-ur5_calibration_mount", "v2": "20261020-ur5_calibration_mount_v2",
        "v3": "20261021-ur5_calibration_mount_v3", "v4": "20261023-ur5_calibration_mount_v4",
-       "v5": "20261023-ur5_calibration_mount_v5"}[REV]
+       "v5": "20261023-ur5_calibration_mount_v5", "v6": "20261023-ur5_calibration_mount_v6"}[REV]
 OUT = REPO / "docs/experiments" / PFX
 CAD, MEDIA, PRINT = OUT / "cad", OUT / "media", OUT / "print"
 WORK = REPO / "logs" / PFX
@@ -306,6 +306,49 @@ if REV == "v5":
     del SCREWS["M3_stop"]
     SCREWS["M3_insert_stop"] = dict(qty=1, what="M3 x 5.7 brass heat-set insert (4.6 mm across the knurls) in the inner block "
                                                "for the slotted arm's screw; the stop plate's three bores stay empty", mass_g=0.4)
+
+
+if REV == "v6":
+    # 2026-10-23 evening (owner, after v5's wedge failed: "the brass inserts were not a good idea at all. all you really needed
+    # to do was to make the back surface flush with the fingertip/magnetometer backing ... we could've wiggled it in to be flush
+    # + added a fillet ... v3 was almost fine"; "generate a few versions that require a variable amount of squishing in"): v3's
+    # fork (no inserts in it, the slotted arm's 2.75 mm self-forming hole) with a thin plate hanging from the dorsal ear whose
+    # lower pad presses on the tongue's back with flush_interf of interference. The neck is 1.45 mm proud of the tongue's back
+    # and the legs are in their walls when it passes, so the plate bends 1.45 mm + flush_interf as the link slides on: the pad
+    # sits low (z_F -90 to -96) on a 2.5 mm plate, where that bend keeps the root's stress near 26 MPa (beam estimate), with a
+    # 45 deg lead-in at its lower edge and a fillet at the plate's root on its outer side. flush_set: the printed variants,
+    # told apart by 1 to 4 notches in the pad's outer face.
+    P.update(
+        flush_y=9.5,                # the plate's half-width (y_F), as v4's
+        flush_x_in=9.65,            # the plate's inner face above the pad: the dorsal ear's inner face (0.2 mm off the neck)
+        flush_h=2.5,                # the plate's thickness (x_F), the part that bends
+        flush_top_z=-67.0,          # 0.5 mm into the dorsal ear (its bottom at ear_z_low -67.5)
+        flush_pad_z=(-96.0, -90.0), # the pad on the tongue's back (flat at x_F 8.0 from z_F -77.05 to -98.46)
+        flush_interf=0.25,          # pad's face at x_F 8.0 - flush_interf
+        flush_set=(0.1, 0.25, 0.4, 0.55),
+        flush_root_r=3.0,           # fillet between the plate's outer face and the ear's bottom face
+    )
+
+
+def flush_plate(K, p=P):
+    """v6: the plate from the dorsal ear and its pad (F), the pad's 45 deg lead-in at its lower edge, the root fillet."""
+    x_in, h, yh = p["flush_x_in"], p["flush_h"], p["flush_y"]
+    x_out = x_in + h
+    zb, zt = p["flush_pad_z"]
+    x_f = B_LINK["tongue_back"] - p["flush_interf"]
+    upper = K.box((x_in, -yh, zt - 0.01), (x_out, yh, p["flush_top_z"]))
+    pad = K.prism_xz([(x_out, zb), (x_out, zt), (x_f, zt), (x_f, zb + (x_in - x_f)), (x_in, zb)], -yh, yh)
+    R, z0 = p["flush_root_r"], p["ear_z_low"]
+    fillet = K.sub(K.box((x_out - 0.01, -yh, z0 - R), (x_out + R, yh, z0 + 0.01)), K.cyl("y", (x_out + R, z0 - R), R, -yh - 1, yh + 1))
+    return [upper, pad, fillet]
+
+
+def flush_notches(K, p=P):
+    """v6: one notch per step of flush_set in the pad's outer face, 0.6 mm deep: the variant's index + 1."""
+    x_out = p["flush_x_in"] + p["flush_h"]
+    k = list(p["flush_set"]).index(p["flush_interf"]) if p["flush_interf"] in p["flush_set"] else 0
+    zb = p["flush_pad_z"][0]
+    return [K.box((x_out - 0.6, -4.5 + 3.0 * j - 0.6, zb - 1.0), (x_out + 1.0, -4.5 + 3.0 * j + 0.6, zb + 3.0)) for j in range(k + 1)]
 
 
 def fname(stem, ext="stl", sub=CAD):
@@ -792,14 +835,16 @@ def standoff_fork_v2_ears(K, p=P):
     ext = {"horn_outer": (0.0, 0.02), "horn_slot": (0.0, 0.02), "horn_inner": (0.0, 0.05), "slotted": (-0.05, 0.0)}
     walls = [K.prism_xz(poly, ly["walls_y"][0] + ext[ly["name"]][0], ly["walls_y"][1] + ext[ly["name"]][1])
              for ly in leg_molds(p) for poly in ly["polys"]] if mold else []
-    stop = stop_plate(K, p) if "stop_x" in p else []
+    stop = (stop_plate(K, p) if "stop_x" in p else []) + (flush_plate(K, p) if "flush_h" in p else [])
     s = K.union([foot, top, ears, ib] + walls + stop)
     cut = []
     cy = p["cab_y"]
     # the cable slot through the dorsal ear; with the stop plate below the ear it ends at the ear's bottom
     cut.append(K.box((p["cab_x0"], -cy, p["ear_z_low"] - (0.01 if stop else 2)), (fx + 1, cy, p["cab_top"])))
-    if stop:
+    if "stop_x" in p:
         cut += stop_bores(K, p)
+    if "flush_h" in p:
+        cut += flush_notches(K, p)
     cut.append(K.box((p["groove_x0"], -cy, p["cab_top"] - 0.01), (fx + 1, cy, z_foot1 + 1)))
     cut.append(K.box((p["groove_x0"], -cy, z_foot0 - 0.01), (p["ad_d"], cy, z_foot1 + 1)))
     for zm in p["tie_zm"]:
@@ -1136,6 +1181,25 @@ def cmd_build(a):
                        watertight=bool(tm.is_watertight), triangles=int(len(tm.faces)), status=str(s.status()),
                        frame="M" if nm in PARTS else "table (z up, base on the table)")
         print(f"{nm}: {s.volume():.0f} mm3, bounds {np.round(b, 2).tolist()}", flush=True)
+    if "flush_set" in P and (not ONLY or "standoff_fork" in ONLY):     # v6: one fork per interference
+        E_, b_, h_ = 2000.0, 2 * P["flush_y"], P["flush_h"]
+        I_ = b_ * h_ ** 3 / 12
+        zb, zt = P["flush_pad_z"]
+        L_top, L_mid = P["ear_z_low"] - zt, P["ear_z_low"] - 0.5 * (zt + zb + (P["flush_x_in"] - 8.0))
+        for i in P["flush_set"]:
+            s = K.transform(standoff_fork(K, dict(P, flush_interf=i)), T_M_FROM_F)
+            tm = to_trimesh(s)
+            nm = f"standoff_fork_i{round(i * 100):02d}"
+            tm.export(fname(nm))
+            d_in = B_LINK["neck_back"] - B_LINK["tongue_back"] + i          # the pad's bend as the neck passes it
+            rec[nm] = dict(file=rel(fname(nm)), volume_mm3=round(float(s.volume()), 1), watertight=bool(tm.is_watertight),
+                           interference_mm=i, notches=list(P["flush_set"]).index(i) + 1,
+                           preload_N=round(3 * E_ * I_ / L_mid ** 3 * i, 1),
+                           push_on_N=round(3 * E_ * I_ / L_top ** 3 * d_in, 1),
+                           root_stress_MPa=round(3 * E_ * h_ * d_in / (2 * L_top ** 2), 1),
+                           note="beam estimates, E 2 GPa: preload at the flush face's middle; push-on force and root stress "
+                                "with the neck on the pad's top edge")
+            print(nm, rec[nm], flush=True)
     if "stop_wedge" in parts:                            # v5: every seat the wedge can take, for the clearance checks
         t1 = P["wedge_t0"] + P["wedge_len"] * math.tan(math.radians(P["wedge_deg"]))
         sw = K.union([stop_wedge(K, P, t_edge=t) for t in np.linspace(P["wedge_t0"], t1, 9)])

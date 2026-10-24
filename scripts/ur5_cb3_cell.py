@@ -33,7 +33,7 @@ URDF = UR_DESC / "ur5.urdf"
 # the same frames and PIP_M), whose parts the builder writes to their own folder; UR5_MOUNT=v5 takes v4's parts and the PLA
 # wedge in the stop plate's gap, as the space it takes over all its seats (stop_wedge_swept)
 _MOUNT_STEM = {"v3": "20261021-ur5_calibration_mount_v3", "v4": "20261023-ur5_calibration_mount_v4",
-               "v5": "20261023-ur5_calibration_mount_v5"}[os.environ.get("UR5_MOUNT", "v3")]
+               "v5": "20261023-ur5_calibration_mount_v5", "v6": "20261023-ur5_calibration_mount_v6"}[os.environ.get("UR5_MOUNT", "v3")]
 MOUNT = ROOT / "docs/experiments" / _MOUNT_STEM / "cad"
 FINGER = ROOT / "docs/experiments/20261018-dip_link_board_mount/v4/b/cad"
 TOOL_PARTS = {   # name: (file, frame)
