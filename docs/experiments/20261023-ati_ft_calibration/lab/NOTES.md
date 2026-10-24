@@ -65,8 +65,10 @@
   powered. ATI's start-up order is transducer first, then power, so swaps should happen with the box off.
 - The Mini40's unbiased gauges under #2 (18:54): 7255, 25827, −4891, −7121, **32767**, 10341, status 0x80028000. Only
   gauge 5 is at the rail, the same channel as on the Mini45.
-- The owner saw 4 of 6 gauges saturated. That came from the bias vector, 24865, 32767, −26090, −32768, 32767, 32767,
-  likely set while the gauges railed during the plug-in. It should be zeroed (all six to 0 on the Settings page).
+- The owner saw 4 of 6 gauges saturated. That is real under calibration #1: at 18:55 with #1 selected, the Mini40's
+  unbiased gauges read 23567, 32767, −26568, −32768, 32767, 32767, because the Axia80's tuning fits the Mini40 still
+  worse. (I first put it down to the bias vector, which was taken in that state: 24865, 32767, −26090, −32768, 32767,
+  32767. It should be zeroed.) Under #2's defaults only gauge 5 rails.
 - **Two different transducers pinned on gauge 5 point to the box's gauge 5 input**: its transducer connector pin, or the
   channel's front end. A shared extension cable or adapter, if there is one, would also fit. If it is the box, both
   sensors may be fine, and another NETBA or ATI DAQ would read all six gauges.
