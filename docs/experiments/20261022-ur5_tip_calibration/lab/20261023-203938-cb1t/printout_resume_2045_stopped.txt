@@ -1,0 +1,13 @@
+resumed logs/20261023-tip_calibration/203938-cb1t: 4 actions done, 2 touches
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 362 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.6464 0.555  0.3685 0.0265 0.0326 0.0135]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+== homing
+== pad
+
+interrupted: stopping the robot
+HEX-E: 1218 samples, 0 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 1.2 s, Fz -0.2 N
+session in logs/20261023-tip_calibration/203938-cb1t
+exit 0 at 20:45:35

@@ -433,6 +433,36 @@ the lab session ("go") at about 15:36.
   end with joint 6 from −57.2 to +51.6 deg. Pass 2's simulation with the new registration gives the real values.
 - Still to come: the owner's go and the tip's name. The board was not on USB at 19:5x.
 
+### 20:20 to 21:28, cb1t: pass 1 on mount v3 after a cable fix
+
+- 20:2x, the owner's go. The owner put back the fork that ran on 10-22 and in sph3t (mount v3; v5's wedge did not work)
+  and fitted the first checkerboard tip. The gravity sweep was dropped at the owner's request ("that's how we knocked
+  out the hex e sensor last time"). The workstation (20:23) analyses cb1t with first2's gravity fit: with no rolls or
+  twists, every hold is compared with a rest at the same orientation. The plan got v3's payload, 0.3839 kg at 32.5 mm.
+- The HEX-E sent no samples (120 timed-out reads in 6 s) until the owner replugged it at 20:25:40; its untared Fz was
+  then 645 N, as always. The tip's board, a new QT Py (b4:3a:45:b0:d9:94), came on USB at 20:25:50. Its first 5 s read
+  had corrupt records just after it was plugged in; the next read, 1867 records, had none.
+- 20:31, the first attempt (folder `20261023-203123-cb1t/`): pad-flank-05 and pad-edge-06 aborted with no contact onset.
+  - In flank-05 the force rose 0.36 N over 3 mm of free approach, then jumped at 4.2 mm.
+  - In edge-06 it jumped 0.5 N after 0.54 mm, with the sphere still about 4 mm away.
+  - In sph3t the same approaches stayed within 0.15 N until contact.
+  - I stopped the program at 20:34:35, before a third. The owner found the board's USB cable catching on something.
+- 20:39, a diagnostic of the same two touch-offs (`lab/20261023-plan_sphere_lab_r22_diag2.json`) started the session
+  `20261023-203938-cb1t/`. Both were clean: flank-05 −0.366 mm (fit 82 mN) and edge-06 −0.411 mm (67 mN), against
+  sph3t's −0.760 and −0.910 mm.
+- 20:45, the guarded move home stopped at the HEX-E's 3 N limit (3.11 N) while the owner taped the cable. My command
+  started the resume regardless, and I stopped it in preflight before it moved; its HEX-E noise was 20 times normal
+  while the owner worked. From now on the resume starts only after the move prints "home: reached".
+- 20:46:47 to 21:26:56, the resume on the pass 1 plan ran the other 17 touch-offs with no abort.
+  - The onsets ran from −0.758 to +0.475 mm, 0.0 to 0.5 mm later than sph3t's, from the new tip and the refitted fork.
+  - The fits were 30 to 129 mN.
+  - The registration fitted the 19 at 0.052 mm rms. It moved the TCP 1.568 mm and 1.318 deg, and the sphere's centre
+    0.951 mm (sph3t: 1.62 mm, 1.93 deg and 1.43 mm).
+  - The HEX-E had 239,951 samples, no timeout, and one gap of 1.0 s. Exit 0; home at 21:28.
+- Pass 2's clearance with cb1t's registration on v3 put no action under the margins over pad, grid and final (mount
+  ≥ 3.20 mm, finger ≥ 0.90 mm). The plan is `lab/20261023-plan_sphere_lab_r22_pass2.json`: the 12 offset touch-offs, 65
+  grid presses with ref-00 to -05, and final-ref. It has no gravity orientations, pivots, rolls or twists.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
