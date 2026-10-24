@@ -348,8 +348,12 @@ the lab session ("go") at about 15:36.
 - 16:5x to 18:00, the ATI Mini45's Net box (NETBA). It is on PoE from a Netgear GS305PP switch, which plugs into port 4
   of the lab's router. The box never appeared on the network: 192.168.0.x showed only the router, UR5, corvus and the
   HEX-E box; nothing answered at 192.168.1.1 or anywhere in 192.168.1.x, 169.254.x.x or IPv6; and the owner's sudo
-  tcpdump saw no frame from ATI's MAC prefix 00:16:BD. The switch shows a PoE fault (yellow) on the box's port, so the
-  box is unpowered. ATI's manual: DHCP on by default, with 192.168.1.1 as the fallback after 30 s; PoE IEEE 802.3af
+  tcpdump saw no frame from ATI's MAC prefix 00:16:BD. I read the switch's yellow light as a PoE fault, which was
+  wrong. At 18:1x the workstation found the box, powered, at a static 192.168.123.50/24 (MAC 00:16:BD:00:2D:E4,
+  firmware F/T BNI v2.2.59). It used ATI's RTA discovery: a broadcast to UDP 255.255.255.255:51000, with the reply on
+  multicast 224.0.5.128:28250 (`~/Programs/ati_ft_sensor/demos/ati_gui/netft_gui.py` on the workstation). The yellow
+  light was link traffic. None of the scans had covered 192.168.123.x. For a box at an unknown address, use the
+  discovery broadcast. ATI's manual: DHCP on by default, with 192.168.1.1 as the fallback after 30 s; PoE IEEE 802.3af
   class 0, Mode A only, 6 W at most; or 11 to 25 V DC on the M12 Pwr/CAN connector. To reach 192.168.1.x without
   losing the internet, corvus takes a live extra address, `nmcli device modify enp3s0 +ipv4.addresses
   192.168.1.100/24` (no sudo; undone with `-ipv4.addresses`). Never set the connection's IPv4 method to Manual: that
