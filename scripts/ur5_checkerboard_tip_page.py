@@ -51,7 +51,7 @@ MAIN_PAGE = D / "20261022-ur5_tip_ground_truth_and_predictors.html"
 SECOND_PAGE = ROOT / "docs/experiments/20261023-second_fingertip_transfer/20261023-second_fingertip_transfer.html"
 QUEUE = D / "QUEUE.md"
 NOTES = LAB / "NOTES.md"
-PLANNED = (1, -1, 1, -1, 1)          # the print procedure's checkerboard (2026-10-22): the centre and one diagonal one way
+PLANNED = (1, -1, 1, -1, 1)          # the owner's "N S (bottom) / N / S N (top)" read from the palm, north toward the palm
 
 
 def J(p):
@@ -95,25 +95,24 @@ def fig_poles(R, fits, out):
     plt = P.plt_setup()
     row = W.fe_row(R["cb"]["cal"]["case"])
     yz = np.array([[m[2], m[3]] for m in row["magnets"]], float)
-    fig = plt.figure(figsize=(11, 4.6))
-    gs = fig.add_gridspec(2, 2, width_ratios=[1.0, 1.25], hspace=0.55, wspace=0.55)
-    ax = [fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[:, 1])]
-    for a, (pl, title) in zip(ax[:2], ((PLANNED, "(a) Planned"), (tuple(R["cb"]["cal"]["poles"]), "(b) Fitted at rest"))):
+    fig = plt.figure(figsize=(11, 4.8))
+    ax = [fig.add_axes([0.07, 0.14, 0.2, 0.74]), fig.add_axes([0.30, 0.14, 0.2, 0.74]),
+          fig.add_axes([0.77, 0.14, 0.21, 0.74])]
+    for a, (pl, title) in zip(ax[:2], ((PLANNED, "(a) Plan, palm view"), (tuple(R["cb"]["cal"]["poles"]), "(b) Fitted at rest"))):
         for j, (y, z) in enumerate(yz):
             col = "#c0392b" if pl[j] > 0 else "#1f5fbf"
-            a.add_patch(plt.Circle((z, y), 1.5, color=col, alpha=0.85))
-            a.text(z, y, "+" if pl[j] > 0 else "\u2212", ha="center", va="center", color="white", fontsize=16, weight="bold")
-        a.set_xlim(2.5, 18.5), a.set_ylim(-5, 5), a.set_aspect("equal")
-        a.set_ylabel("y (mm)"), a.set_title(title)
-    ax[1].set_xlabel("z, along the finger (mm)")
+            a.add_patch(plt.Circle((y, z), 1.5, color=col, alpha=0.85))
+            a.text(y, z, "N" if pl[j] > 0 else "S", ha="center", va="center", color="white", fontsize=14, weight="bold")
+        a.set_xlim(-5, 5), a.set_ylim(2.5, 18.5), a.set_aspect("equal"), a.set_xticks([-4, 0, 4])
+        a.set_xlabel("y (mm)"), a.set_title(title)
+    ax[0].set_ylabel("z, toward the tip end (mm)")
     lab = [("(" + ", ".join("+1" if v > 0 else "\u22121" for v in f["poles"]) + ")"
-            + ("  planned" if tuple(f["poles"]) == PLANNED else "")) for f in fits]
+            + ("  plan (palm)" if tuple(f["poles"]) == PLANNED else ("  fitted" if i == 0 else ""))) for i, f in enumerate(fits)]
     y = np.arange(len(fits))
     ax[2].barh(y, [f["rms_mT"] for f in fits], color=["#2e8b57" if i == 0 else ("#c0392b" if tuple(f["poles"]) == PLANNED
                                                                                else "#7f7f7f") for i, f in enumerate(fits)])
     ax[2].set_yticks(y, lab, fontsize=12), ax[2].invert_yaxis()
     ax[2].set_xlabel("Residual at rest (mT rms)"), ax[2].set_title("(c) Residual of each pattern")
-    fig.subplots_adjust(left=0.07, right=0.98, top=0.92, bottom=0.13)
     fig.savefig(out, dpi=100)
     plt.close(fig)
 
@@ -204,7 +203,7 @@ def sections(R, fits, F):
     # ---- terms
     terms = [
         ("Press, hold and turn hold", "A press moves the pad onto the indenter, a sphere of radius 5 mm, along the normal at a "
-         "target point of the pad, and stops at force levels from 0.25 to 5 N for about 1.5 s each. A hold is one level of "
+         "target point of the pad. It stops at force levels from 0.25 to 5 N for about 1.5 s each. A hold is one level of "
          "a press. A turn hold is a level of a roll or a twist, where the tool turns while it presses."),
         ("Touch-off and registration", "A touch-off approaches the sphere slowly and records where the force begins. A plain "
          "touch-off aims at a point of the pad along its normal; an offset touch-off aims beside it, so that the sphere "
@@ -218,9 +217,9 @@ def sections(R, fits, F):
          "(two at each end of the pad and one at its centre). The magnets of sphere2's tip are all $+1$."),
         ("Strength $k$", "The magnets' magnetization over that of an N52 magnet of the model's size (3 mm diameter, 2 mm "
          "long) at the model's position."),
-        ("Rest fit", "The model of the five chips' field at rest fitted to the reading at rest, with the chips' frames kept "
-         "from the board's calibration: strength $k$, offsets $d_x, d_y, d_z$ of the magnets (mm, $x$ along the pad's "
-         "depth), and a uniform field. Its residual is the rms over the 15 components of the reading minus the model, in "
+        ("Rest fit", "The model of the five chips' field at rest, fitted to the reading at rest. The chips' frames are "
+         "kept from the board's calibration. The fit gives the strength $k$, the magnets' offsets $d_x, d_y, d_z$ (mm, $x$ "
+         "along the pad's depth) and a uniform field. Its residual is the rms over the 15 components of the reading minus the model, in "
          "mT. Each of the 32 pole patterns gets its own fit."),
         ("Board change and response", "The board change is the mean field of the five chips over a hold minus the field at "
          "rest, 15 values in µT. The response is the length of the board change over $f_n$, in µT/N."),
@@ -263,8 +262,8 @@ def sections(R, fits, F):
             "<p>Pass 1 ran 19 plain touch-offs from 20:46 to 21:27. Pass 2 ran 12 offset touch-offs from 21:56 to 22:27. "
             "From 22:40 to 23:58 it ran 59 grid presses, six reference presses, 2 rolls, 6 twists and a final reference "
             "press, with no abort. Eight grid presses with joint 6 above +60 deg were left out. The new registration put "
-            "six actions within the mount's 3.0 mm margin (grid-002, -007, -024, -025 and twist-1 at 1.0 and 2.5 N), and "
-            "the simulator's cell check two more (grid-027, -028); all eight were dropped.</p>"
+            "six actions within the mount's 3.0 mm margin: grid-002, -007, -024, -025 and twist-1 at 1.0 and 2.5 N. The "
+            "simulator's cell check put two more there (grid-027, -028), and all eight were dropped.</p>"
             f"<p>Between the two rests of a press the HEX-E's zero moved a median {ft_c[0]:.3f} N and at most "
             f"{ft_c[1]:.3f} N (Table 1). A cable pulling through a press would move it further. The reference press met the "
             f"sphere 1.552 to 1.631 mm past its rest, a drift of +0.054 mm over 77 min.</p>"
@@ -272,23 +271,29 @@ def sections(R, fits, F):
     S_.append(("session", "Session and tip", body))
 
     # ---- poles
-    t2 = [["(" + ", ".join("+1" if v > 0 else "&#8722;1" for v in f["poles"]) + ")" + (" planned" if tuple(f["poles"]) == PLANNED else ""),
+    t2 = [["(" + ", ".join("+1" if v > 0 else "&#8722;1" for v in f["poles"]) + ")" + (" plan read from the palm" if tuple(f["poles"]) == PLANNED else ""),
            f2(f["rms_mT"], 3), f2(f["k"], 3), ", ".join(f2(v) for v in f["d"])] for f in fits]
     body = (f"<p>Fitted to the field at rest, the pattern (+1, &#8722;1, &#8722;1, &#8722;1, +1) leaves {best['rms_mT']:.3f} mT "
-            f"rms (Table 2, Fig. 1). The next pattern leaves {nxt:.3f} mT. The planned checkerboard leaves {plan['rms_mT']:.3f} mT, "
-            f"with its strength and offsets at the bounds of the fit. In the fitted pattern the four corner magnets follow "
-            f"the planned diagonals. The centre magnet points like the second diagonal, so it is reversed from the plan.</p>"
+            f"rms (Table 2, Fig. 1). The next pattern leaves {nxt:.3f} mT. In the model, +1 is a north pole toward the palm, "
+            f"as in all of sphere2's magnets. Seen from the palm with the tip end up, the bottom-left and top-right magnets "
+            f"face the palm with north, and the centre, bottom-right and top-left magnets with south.</p>"
+            f"<p>The plan was &#8220;N S&#8221; at the bottom, &#8220;N&#8221; in the middle and &#8220;S N&#8221; at the top. "
+            f"Read from the palm, with the poles toward the palm, it is (+1, &#8722;1, +1, &#8722;1, +1). That pattern leaves "
+            f"{plan['rms_mT']:.3f} mT, with its strength and offsets at the bounds of the fit, and it differs from the fitted "
+            f"one at the centre magnet. Read from the board's side, with the poles toward the board, the plan is the fitted "
+            f"pattern. The centre magnet is therefore reversed only if the plan was read from the palm.</p>"
             f"<p>The fitted strength is $k$ = {rc['k']:.3f}, {k_ratio:.2f} times the {s2['cal']['k']:.3f} of sphere2's "
             f"magnets. The fit also moves the magnets {rc['dx']:.2f} mm along the pad's depth, against {s2['cal']['dx']:.2f} "
             f"mm on sphere2's tip. The largest field at a chip is {bmax(rc):.1f} mT, against {bmax(s2['cal']):.1f} mT on "
             f"sphere2's tip. Next to a magnet of opposite pole, part of each magnet's field at the chips cancels.</p>"
             + P.table(["Pole pattern", "Residual (mT rms)", "Strength k", "Offsets d_x, d_y, d_z (mm)"], t2, num_cols=(1, 2),
                       caption="The field at rest of cb1t's tip fitted with the five best patterns of the linear prescreen "
-                              "and the planned checkerboard (fingertip_wrench_model.calibrate_frames_fixed).", n=2)
+                              "and the plan read from the palm (fingertip_wrench_model.calibrate_frames_fixed).", n=2)
             + F["fig"](1, MEDIA / "20261024-cb1t_pole_pattern.png",
-                       "Pole pattern of cb1t's tip. (a) The planned checkerboard and (b) the pattern fitted to the field at "
-                       "rest, in the pad frame; +1 is the direction of sphere2's magnets. (c) Residual of the rest fit for "
-                       "the five best patterns and the planned one."))
+                       "Pole pattern of cb1t's tip, seen from the palm with the tip end up; N (red) is a north pole toward "
+                       "the palm, the direction of all of sphere2's magnets. (a) The plan read from the palm and (b) the "
+                       "pattern fitted to the field at rest. (c) Residual of the rest fit for the five best patterns and the "
+                       "plan read from the palm."))
     S_.append(("poles", "Pole pattern and magnet strength from the field at rest", body))
 
     # ---- registration
@@ -425,7 +430,7 @@ def sections(R, fits, F):
             f"predictors on magnet motions miss by {sc(A_['heldout'], 'gp motions')[0]:.2f} mm (Gaussian process) and "
             f"{sc(A_['heldout'], 'mlp motions')[0]:.2f} mm (MLP ensemble). Sphere2's correction of the physical model "
             f"takes cb1t's error from {TR['physical']['heldout']['loc_mm']['median']:.2f} to {pg[0]:.2f} mm.</p>"
-            f"<p>The simulation of the planned checkerboard ({F['code']('scripts/fingertip_magnet_transfer_sim.py')}) "
+            f"<p>The simulation of the pattern (+1, &#8722;1, +1, &#8722;1, +1) ({F['code']('scripts/fingertip_magnet_transfer_sim.py')}) "
             f"predicted the failures of the other three. It also predicted that the correction lowers the error, to "
             f"{simE['physical+gp (trained on A)']['loc_mm']:.2f} mm with today's magnets. In the simulation, sphere2's offset "
             f"between the board's point and the registered one was part of the pad. At 3 N and over that offset was "
@@ -438,11 +443,12 @@ def sections(R, fits, F):
                f"cb1t's own presses alone give the lowest errors.</p>" if b10 and b20 else "")
             + P.table(["Predictor", "Trained on sphere2, cb1t held out (mm)", "Trained on sphere2, all of cb1t (mm)"]
                       + [f"N = {n}, fine-tuned / cb1t alone (mm)" for n in Ns]
-                      + ["Simulated, planned pattern, today's magnets (mm)", "Simulated, planned pattern, N52 (mm)"],
+                      + ["Simulated checkerboard, today's magnets (mm)", "Simulated checkerboard, N52 (mm)"],
                       rows6, num_cols=tuple(range(1, 6 + len(Ns) - 1)),
                       caption="Median location error on cb1t's held-out holds unless marked, for predictors trained on "
                               "sphere2's presses, fine-tuned with cb1t's first N, or trained on cb1t's alone; and the "
-                              "simulation's prediction for the planned pattern (sets E and D of "
+                              "simulation's prediction for the pattern (+1, &#8722;1, +1, &#8722;1, +1), which differs "
+                              "from cb1t's at the centre magnet (sets E and D of "
                               "magnet_transfer_sim_ADE.json).", n=6)
             + F["fig"](3, MEDIA / "20261024-cb1t_fine_tuning.png",
                        "Median location error on cb1t's held-out holds against the number of cb1t's training presses: "
@@ -450,16 +456,20 @@ def sections(R, fits, F):
     S_.append(("transfer", "Transfer of sphere2's predictors and fine-tuning", body))
 
     # ---- limitations, future work
-    body = (f"<p>One checkerboard tip was pressed, and its centre magnet differs from the plan. The held-out set has "
+    body = (f"<p>One checkerboard tip was pressed. Whether its centre magnet follows the plan depends on the side from "
+            f"which the plan's poles were named (Section 3). The held-out set has "
             f"{cb['PR']['n_test_presses']} presses ({cb['PR']['n_test_holds']} holds). The {n_turn} turn holds take the tool's "
             "weight from first2's gravity fit, made on 2026-10-22 with another tip and without the USB cable taped to the "
-            f"tool. Along the pad's depth, the rest fit moves the magnets {rc['dx']:.2f} mm from the model's position "
-            f"and the fit to the presses {pp['dx']:.2f} mm, so part of the physical model's error is in its geometry.</p>")
+            f"tool. Along the pad's depth, the rest fit moves the magnets {rc['dx']:.2f} mm from the model's position, "
+            f"and the fit to the presses {pp['dx']:.2f} mm. Part of the physical model's error is therefore in its "
+            f"geometry.</p>")
     S_.append(("limits", "Limitations", body))
     fw = [
-        "Turn the centre magnet to the planned pole, or build the next tip with it, and fit the field at rest again (the "
-        "viewer's recalibration). The planned pattern should then fit near 0.24 mT and the present one above 1.5 mT. A "
-        "residual above 0.5 mT for every pattern would put the error in the model's magnet geometry.",
+        "Check each magnet's pole at the palm face with a compass. The fit predicts north toward the palm at the "
+        "bottom-left and top-right magnets, seen from the palm with the tip end up, and south at the other three. Any other "
+        "result means that the chips' frames of the board's calibration are wrong. If the plan meant north at the centre "
+        "seen from the palm, turn the centre magnet and fit the field at rest again. The pattern (+1, &#8722;1, +1, "
+        "&#8722;1, +1) should then fit near 0.24 mT.",
         "Run the 12 offset touch-offs in every session (" + F["code"]("scripts/ur5_tip_calibration_offset_touches.py")
         + "). If sphere2's tip is pressed again with them, an offset between the board's point and the registered one "
         "below 0.8 mm, down from 1.4 mm, would place sphere2's offset in its registration.",
@@ -476,8 +486,8 @@ def sections(R, fits, F):
 
     lede = (f"<p>The first checkerboard fingertip was pressed on the UR5 on 2026-10-23 (session cb1t), at {int(press.sum())} "
             f"press holds and {n_turn} turn holds against the HEX-E. Of the 32 pole patterns, one fits its field at rest to "
-            f"{best['rms_mT']:.2f} mT, and in it the centre magnet is reversed from the plan. The planned pattern leaves "
-            f"{plan['rms_mT']:.2f} mT.</p>"
+            f"{best['rms_mT']:.2f} mT, and the next leaves {nxt:.2f} mT. It is the planned checkerboard if the plan's poles "
+            f"were named from the board's side. Named from the palm, the plan has the centre magnet the other way round.</p>"
             f"<p>Built from that fit alone, the physical model places held-out contacts a median "
             f"{vw['loc_mm']['median']:.2f} mm from the registered points, against {vw2['loc_mm']['median']:.2f} mm on "
             f"sphere2's tip. At 2 N and over the error is {min(hi(cb['S'])):.1f} to {max(hi(cb['S'])):.1f} mm. Predictors "
@@ -485,8 +495,9 @@ def sections(R, fits, F):
             f"{max(sc(A_['heldout'], k)[0] for k, _, _ in names):.1f} mm. Trained on {lastc['N']} of cb1t's own presses, a "
             f"Gaussian process reaches {lastc['gp:board']['loc_mm']['median']:.2f} mm and an MLP ensemble "
             f"{lastc['mlp:board']['loc_mm']['median']:.2f} mm.</p>")
-    summary = (f"On the first checkerboard fingertip (UR5 session cb1t, 2026-10-23), one pole pattern fits the field at rest, "
-               f"with the centre magnet reversed from the plan. Built from that fit alone, its physical model places held-out contacts "
+    summary = (f"On the first checkerboard fingertip (UR5 session cb1t, 2026-10-23), one pole pattern fits the field at rest: "
+               f"the planned checkerboard if its poles were named from the board's side, or the plan with its centre magnet "
+               f"reversed if they were named from the palm. Built from that fit alone, its physical model places held-out contacts "
                f"within {vw['loc_mm']['median']:.2f} mm (sphere2's tip {vw2['loc_mm']['median']:.2f} mm); sphere2's predictors "
                f"miss by {min(sc(A_['heldout'], k)[0] for k, _, _ in names):.1f} to "
                f"{max(sc(A_['heldout'], k)[0] for k, _, _ in names):.1f} mm, and {lastc['N']} of its own presses give "

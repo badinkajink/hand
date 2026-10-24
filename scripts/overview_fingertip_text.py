@@ -100,7 +100,10 @@ LEDE = (
     "behind it. A press deforms "
     "the pad, moves the magnets and changes the sensors&#8217; readings. We model that sequence to estimate where the "
     "tool presses and with how much force. In UR5 presses above 1&#8202;N, the untrained location estimate missed by "
-    "1.6&#8211;2.6&#8202;mm. A statistical correction trained on 59 presses reduced the error to 0.84&#8202;mm. The force "
+    "1.6&#8211;2.6&#8202;mm. A statistical correction trained on 59 presses reduced the error to 0.84&#8202;mm. On a second "
+    "tip with its magnets in a checkerboard, the estimate rebuilt from the field at rest missed by 1.1&#8211;1.2&#8202;mm "
+    "above 2&#8202;N. Corrections learned on the first tip did not transfer, and 47 of the second tip&#8217;s own presses "
+    "gave 0.42&#8211;0.71&#8202;mm. The force "
     "estimated from the board was 0.78&#8211;1.05 times the HEX-E reference sensor. Below 1&#8202;N the untrained estimate "
     "fails. The printed pad deforms more "
     "than its finite-element model predicts under the sphere.")
@@ -420,7 +423,19 @@ aimed at by eye, at 2.9 to 4.4&#8202;N. For all six presses sphere2&#8217;s GP o
 point. Its MLP put them 9.9&#8202;mm away. Sphere2&#8217;s correction moved the points 2.3&#8202;mm toward the mount end. No
 force was measured, so the correction is not yet scored on this pad
 ([second fingertip](exp:20261023-second_fingertip_transfer/20261023-second_fingertip_transfer.html)).</p>
-{{FIG real_presses}}"""),
+{{FIG real_presses}}
+<p>The first checkerboard tip was then pressed on the UR5 against the HEX-E (session cb1t, on the evening of 2026-10-23:
+302 press holds and 64 turn holds). One pole pattern fits its field at rest, at 0.24&#8202;mT against 0.87&#8202;mT for the
+next. It is the planned checkerboard if the plan&#8217;s poles were named from the board&#8217;s side; named from the palm,
+the centre magnet is reversed. Built from that fit alone, the physical model placed held-out contacts within 2.06&#8202;mm
+and 0.28&#8202;N, against 3.79&#8202;mm and 0.38&#8202;N on sphere2&#8217;s tip. At 2&#8202;N and over its error was 1.1 to
+1.2&#8202;mm. Trained on sphere2&#8217;s presses, no learned model came closer. The GP on the raw board change missed by
+5.3&#8202;mm, and sphere2&#8217;s correction of the physical estimate raised the error to 2.5&#8202;mm, where the simulation
+had lowered it. Sphere2&#8217;s offset between the board&#8217;s point and the registered one, 1.4&#8202;mm, is 0.7&#8202;mm in
+another direction on this tip. Trained on 47 of cb1t&#8217;s own presses, the GP reached 0.71&#8202;mm and the MLP
+0.42&#8202;mm ([checkerboard fingertip](exp:20261022-ur5_tip_calibration/20261024-checkerboard_fingertip_on_the_ur5.html),
+Sections 3, 6 and 8).</p>
+{{FIG checkerboard}}"""),
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
 Each pad has stiffness \(K_i=E\,a_i/h_i\). In builder v2, the default since 2026-10-15, \(h_i\) is the pad&#8217;s depth
@@ -462,8 +477,9 @@ hard, the DIP link turns a little in the fork. Mount v4 adds a stop plate behind
 screws. Mount v5 replaces the screws by a PLA wedge, since the lab has no brass set screws. In the model either cuts the
 link&#8217;s turn under a face press from 1.0&#176; to 0.05&#176;
 ([mount v4](exp:20261023-ur5_calibration_mount_v4/20261023-ur5_calibration_mount_v4.html),
-[mount v5](exp:20261023-ur5_calibration_mount_v5/20261023-ur5_calibration_mount_v5.html)). Neither has been measured on
-the robot.</p>"""),
+[mount v5](exp:20261023-ur5_calibration_mount_v5/20261023-ur5_calibration_mount_v5.html)). On 2026-10-23 the owner found
+v5&#8217;s wedge unusable, and cb1t ran on v3&#8217;s fork. Mount v6, a plate pressed onto the tongue&#8217;s back at four
+depths, waits on the owner&#8217;s choice.</p>"""),
     ("open", "Open questions",
      r"""<ol>
 <li><b>The softness at a small contact.</b> Under the sphere the presses travel 0.33&#8202;mm plus 0.20&#8202;mm/N
@@ -477,7 +493,10 @@ of it along the finger. Every touch-off met the indenter at its top, with a vert
 a horizontal shift of the indenter; that place rests on the homing seating. Twelve touch-offs aimed 3&#8202;mm beside the
 sphere&#8217;s top meet curved parts of the pad off the top. In the simulator, with the seating 0.6&#8202;mm off, they cut
 the contact error at the presses from 0.23 to 0.17&#8202;mm and from 1.36 to 0.04&#8202;mm under two sets of tool errors.
-They are planned for the checkerboard tips (QUEUE.md R22).</li>
+On the checkerboard tip they moved the fitted sphere centre 1.96&#8202;mm and turned the pad&#8217;s frame 1.93&#176;. With
+that registration the grid presses&#8217; indentation beyond the FE pad fits within 108&#8202;&#181;m RMS, against
+142&#8202;&#181;m before, and the board&#8217;s point lies 0.72&#8202;mm from the registered one, against 1.54&#8202;mm.
+Sphere2 and sph3t were registered with plain touch-offs only.</li>
 <li><b>Light presses.</b> Below 1&#8202;N the untrained estimator places contacts about 10&#8202;mm away. The step of about
 7&#8202;&#181;T that each press leaves on the rest is the size of a 0.3&#8202;N press. Learned models give 1.1 to
 2.5&#8202;mm there.</li>
@@ -485,11 +504,13 @@ They are planned for the checkerboard tips (QUEUE.md R22).</li>
 out; an ATI Mini45, once calibrated, is to replace it. The FE takes Siraya 85A at 12&#8202;MPa from a NinjaFlex datasheet. Through the
 board&#8217;s force, the UR5 session puts the printed pad within about 22&#8202;% of it.</li>
 <li><b>The magnets.</b> Today&#8217;s magnets have 0.34&#8211;0.37 of an N52 magnet&#8217;s moment, and the N52 magnets are
-on order. The models predict 0.028&#8211;0.031&#8202;N with N52, about 0.039&#8202;N at the measured noise. Four magnets
+on order. The checkerboard tip&#8217;s magnets fit at 0.57, with the magnets 1.9&#8202;mm off the model along the pad&#8217;s
+depth. The models predict 0.028&#8211;0.031&#8202;N with N52, about 0.039&#8202;N at the measured noise. Four magnets
 (0.051&#8202;N) or five (0.029&#8202;N) waits on the owner.</li>
-<li><b>Transfer of learned models.</b> The physical model transfers to a new pad through its rest calibration. The GP
-correction transfers in simulation. On the second fingertip it has not yet been scored against known points and
-forces.</li>
+<li><b>Transfer of learned models.</b> The physical model transfers to a new pad through its rest calibration: on the
+checkerboard tip it placed contacts within 2.06&#8202;mm without a press. The GP correction learned on sphere2 does not, and
+raised that error to 2.48&#8202;mm. Fine-tuned with 20 of the new tip&#8217;s presses it gives 1.59&#8202;mm; the tip&#8217;s
+own 47 presses give 0.42&#8211;0.71&#8202;mm.</li>
 <li><b>Disturbances in the hand.</b> The other fingers&#8217; magnets (5.16&#8202;N equivalent at 25&#8211;30&#8202;mm on the
 first tip) are modelled but not measured. Steel touched to the face reads as a press of 9 to 17.5&#8202;N. The test against
 fields from outside the pad removes most of those frames, but the first half second of a touch and fields of 40 to
@@ -567,6 +588,14 @@ FIGURES = {
                                  "recorded with the fingertip fixed to the desk. The viewer calibrated on the "
                                  "recording&#8217;s first 2&#8202;s at rest and found the pad&#8217;s reversed magnets "
                                  "itself. Arrow: the estimated force; colour: the sphere pads&#8217; pressure."),
+    "checkerboard": dict(image="docs/experiments/20261022-ur5_tip_calibration/media/20261024-cb1t_fine_tuning.png",
+                         width=760, page="20261022-ur5_tip_calibration/20261024-checkerboard_fingertip_on_the_ur5.html", n=3,
+                         source="checkerboard fingertip on the UR5",
+                         alt="Location error on the checkerboard tip against its training presses, with and without sphere2's.",
+                         caption="The checkerboard tip&#8217;s held-out location error against the number of its own "
+                                 "training presses: trained on sphere2&#8217;s presses and the tip&#8217;s (solid) and on "
+                                 "the tip&#8217;s alone (dashed). The dotted line is the physical model rebuilt from the "
+                                 "rest fit, with no press."),
     "hand": dict(image="docs/experiments/20261020-fingertip_contact_estimation/media/20261020-presses_by_hand.png",
                  width=760, alt="The owner's first presses by hand: reading change, estimate, and the offset left by the pad.",
                  caption="The owner&#8217;s first presses by hand (2026-10-20 19:39). The top panel shows the reading change "
@@ -580,7 +609,8 @@ FIGURES = {
 FUTURE = [
     'Compliance in series (QUEUE.md R16): put a dial indicator on the sphere&#8217;s block. Press a rigid part of the tool, the HEX-E&#8217;s adapter or the fork, on the sphere at 1 to 5&#8202;N. Travel of the block puts the compliance on the indenter&#8217;s side. Travel beyond the HEX-E&#8217;s data sheet with a still block puts it in the arm or the mount. Travel near the data sheet&#8217;s leaves the DIP link&#8217;s clamp for the series part, at most 0.10&#8202;mm/N.',
     'Softness at the sphere: press the FE pad&#8217;s printed twin with a 5&#8202;mm sphere on a bench under a dial indicator, the pad clamped on a rigid block, at 0.5 to 5&#8202;N. Travel near the sphere&#8217;s local part (UR5 results page, Section 8) confirms that the FE pad is too stiff under a sphere. Travel near the FE pad&#8217;s own places that part in the robot&#8217;s tool.',
-    'Mount v5: seat the wedge, then repeat the rod&#8217;s touch-offs, registration and presses. A slope that stays at 0.10&#8202;mm/N under the rod rules out the link&#8217;s turn in the fork as the series part.',
+    'Mount v6 (four squish depths, on the owner&#8217;s choice): print one, then repeat the rod&#8217;s touch-offs, registration and presses. A slope that stays at 0.10&#8202;mm/N under the rod rules out the link&#8217;s turn in the fork as the series part.',
+    'Checkerboard tip&#8217;s poles: check each magnet&#8217;s pole at the palm face with a compass. The rest fit predicts north toward the palm at the bottom-left and top-right magnets, seen from the palm with the tip end up, and south at the other three. Any other result means wrong chip frames in the board&#8217;s calibration.',
     'ATI Mini45 (the ATI plan&#8217;s QUEUE.md, A1): run the box check, print the stack and run the 39 stations with the 100&#8202;g weight in its printed holder, or with 0.5&#8202;kg. Then repeat a grid of presses against the ATI. A board force outside 0.78&#8211;1.05 of the ATI&#8217;s means that the HEX-E&#8217;s gain biased sphere2&#8217;s comparison.',
     'Untrained estimator under the rod: score the viewer&#8217;s estimator on rod1&#8217;s 279 holds, as Table 3 of the UR5 results page scores it on sphere2&#8217;s. A location error well above the sphere&#8217;s 1.6&#8211;2.6&#8202;mm means that the estimator&#8217;s point-load basis misses line contacts.',
     'Second fingertip with known points and forces: clamp it in a printed jig with sphere seats at the reference point and 4&#8202;mm from it toward &#177;y and &#177;z. Press through a kitchen scale at about 1, 2 and 4&#8202;N. Run <code>scripts/fingertip_second_tip_transfer.py --landmarks</code> on the stretch. A GP correction whose median location error exceeds the physical model&#8217;s by more than 0.9&#8202;mm does not transfer across pole patterns.',
@@ -623,6 +653,8 @@ PAGES = [
      "The board&#8217;s zero over sphere2: Earth&#8217;s field, the steps a press leaves, learned zeros"),
     ("Calibration", "20261023-second_fingertip_transfer/20261023-second_fingertip_transfer.html",
      "Sphere2&#8217;s calibration on a second fingertip with two magnets reversed"),
+    ("Calibration", "20261022-ur5_tip_calibration/20261024-checkerboard_fingertip_on_the_ur5.html",
+     "The first checkerboard fingertip on the UR5: pole pattern, offset touch-offs, physical model, sphere2&#8217;s predictors"),
     ("Calibration", "20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html",
      "Calibration of the lab&#8217;s ATI Mini45 with a weighed mass, to replace the HEX-E"),
     ("Hardware", "20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html",

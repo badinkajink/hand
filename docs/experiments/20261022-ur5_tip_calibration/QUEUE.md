@@ -735,6 +735,22 @@ push that answers it arrives.
     has no turns, so each hold and its rests share one orientation. The gravity term then vanishes whatever the payload.
     For v4 the plan's v5 payload entry is within 1 g; for v3 it is set to 0.3839 kg at 32.5 mm. Without the wedge or
     screws, v4's fork lets the link turn as in v3. cb1t's travel beyond the FE pad should then compare with sphere2's.
+  - Done (lab, 10-23 20:46 to 23:58; pushed 19ed9e25 and a1ad8d74). Workstation, 10-24 00:29: analysed. Page
+    `20261024-checkerboard_fingertip_on_the_ur5.html`, analysis in `data/20261023-203938-cb1t/`. The turns added at the
+    owner's request use first2's gravity fit as well.
+    - The lab's question, pass 2's registration: kept. Three measurements that neither fit used agree better with it.
+      With pass 1's registration (`data/20261023-203938-cb1t-pass1reg/`), the grid's indentation beyond the FE pad
+      leaves 142 um rms, and with pass 2's 108 um. The FE force error falls from 23.5 to 16.0 %. The board's point lies a
+      mean 1.54 mm from the registered one with pass 1's and 0.72 mm with pass 2's. The 1.96 mm move of the sphere's
+      centre is 5.4 times pass 1's sideways standard deviation, so plain touch-offs alone leave that much loose. Every
+      session should run the offset touch-offs.
+    - Poles: (+1, -1, -1, -1, +1) fits the rest at 0.24 mT, the next pattern 0.87 mT, k 0.568. That is the plan if its
+      poles were named from the board's side. Read from the palm, the plan is (+1, -1, +1, -1, +1), which leaves 1.81 mT:
+      the centre magnet is reversed. The owner is asked which side the plan used.
+    - Physical model from the rest fit: 2.06 mm and 0.279 N on the held-out presses (sphere2's tip 3.79 mm), 1.1 to 1.2
+      mm at 2 N and over. Sphere2's predictors miss by 2.5 to 8.6 mm; 47 of cb1t's presses give 0.71 mm (GP) and 0.42
+      mm (MLP). Series compliance 0.188 mm/N on v3's fork (sphere2 0.203).
+    - The HEX-E's zero moved at most 0.254 N between a press's rests, so the taped cable pulled through no press.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
