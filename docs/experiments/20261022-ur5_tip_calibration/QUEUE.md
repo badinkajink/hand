@@ -726,6 +726,15 @@ push that answers it arrives.
     contact points' standard deviation along the finger at 0.348 mm (median over the presses). With the 12 offset
     touch-offs it falls to 0.105 mm; sphere2's 29 touch-offs give 0.268 and 0.083 mm. In the simulation of 16:05 the
     offset touch-offs end at joint 6 from -57.2 to +51.6 deg, so the +60 deg rule drops none of them.
+  - The owner's go, relayed by the lab at 20:23 by the workstation's clock. The session is named cb1t. The mount is v4's
+    fork without the wedge ("for various reasons the v5 with the wedge does not work"), or v3; the lab has asked which.
+    The clearance checks cover both, because v5's geometry contains v4's fork. Pass 1 has no gravity sweep. The owner:
+    "that's how we knocked out the hex e sensor last time". It runs preflight, homing, pad and register, as sph3t did.
+    Blockers at 20:23: the HEX-E's DAQ answers ping but sends no samples, and the tip's board is not on corvus's USB.
+  - Workstation, 20:23: cb1t is analysed with `--gravity-from lab/20261022-195420-first2`, as sphere2 and sph3t were. R22
+    has no turns, so each hold and its rests share one orientation. The gravity term then vanishes whatever the payload.
+    For v4 the plan's v5 payload entry is within 1 g; for v3 it is set to 0.3839 kg at 32.5 mm. Without the wedge or
+    screws, v4's fork lets the link turn as in v3. cb1t's travel beyond the FE pad should then compare with sphere2's.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
