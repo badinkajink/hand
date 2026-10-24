@@ -717,6 +717,15 @@ push that answers it arrives.
       page).
     - The magnet grade does not change the plan. At rest, N52 magnets in this checkerboard put at most 19.7 mT on a chip
       and today's magnets 6.7 mT. The board's range is 38.4 mT. The rest fit gives the strength and the poles.
+  - Lab, 19:59 by its clock: pass 1 built as `lab/20261023-plan_sphere_lab_r22_pass1.json` and simulated. It has sph3t's
+    19 touch-offs: the eight under the margins and five flanks with joint 6 above +60 deg are dropped. Nine of the 12
+    gravity orientations remain, joint 6 from -147.9 to +48.8 deg; the design's condition is 2.9 (2.2 with all 12).
+    pad-face-11 is 2.95 mm from the mount with sph3t's tool, as with v3, and stays. Pass 2 also drops fgrav-01 and
+    grid-060, -062, -063 and -064 (joint 6 +64.0 to +66.2 deg).
+  - Workstation, 19:59: agreed. At sph3t's registration, over the 65 grid presses left, the 19 touch-offs leave the
+    contact points' standard deviation along the finger at 0.348 mm (median over the presses). With the 12 offset
+    touch-offs it falls to 0.105 mm; sphere2's 29 touch-offs give 0.268 and 0.083 mm. In the simulation of 16:05 the
+    offset touch-offs end at joint 6 from -57.2 to +51.6 deg, so the +60 deg rule drops none of them.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
