@@ -365,6 +365,23 @@ the lab session ("go") at about 15:36.
   1823, 1917 and 701. With no tare, the forces read 13.4, 26.4 and 273.5 N and the torques −2.12, 1.39 and 0.16 N m.
   The box's calibration is FT35796, SI-125-3, rated 125, 125 and 500 N and 3, 3 and 3 N m. The owner was asked to check
   the transducer cable and the mount for a load. Nothing was tared or changed on the box.
+- 18:3x to 18:4x, gauge 5. The owner had seen the same error on the workstation, so it predates the remount.
+  - Loosening the mount's screws moved gauges 2, 4 and 6 by 270 to 400 counts but not gauge 5. A power cycle with the
+    cables reseated changed nothing; during its start-up the box briefly showed 0x88008010 with every gauge at 65535.
+  - Hand presses from 18:37 to 18:40 (519 reads) moved gauge 1 over 1935 counts and gauge 3 over 1235, while gauge 5
+    stayed at 32767.
+  - The owner: the box's calibration is an Axia80's, and the Mini45's own (US-120-160) is not available. ATI's
+    calibration is too expensive.
+  - The box holds one calibration (slot #1, FT35796 SI-125-3; #2 to #16 empty). Its per-gauge gains `calggn` (0x5B,
+    0x5B, 0x55, 0x5D, 0x57, 0x59) and hardware offsets `calgof` (0x7D46, 0x8088, 0x7B69, 0x7CBC, 0x7E11, 0x81E8) are
+    readable in `netftcalapi.xml`. None of the box's interfaces writes them (setting, config, comm, moncon, rundata
+    .cgi; ATI's Java tool only reads them). `setbias<n>` is a software bias applied after the A/D, so it cannot recover
+    a clipped gauge.
+  - Asked of the owner: a cable wiggle test while corvus watches gauge 5, a resistance check of gauge 5's bridge at
+    the connector, and July's logs, whose RDT status words would show whether gauge 5 was already stuck. The Fz row of
+    the box's matrix weights gauges 1, 3 and 5 equally, so Fz follows a Z press at about 2/3 scale without gauge 5.
+  - Fallback put to the workstation: with the load point known (the indenter), a press has 3 unknowns. Five gauges
+    fitted to the weighed masses can solve them.
 
 ## The lab clone and git-lfs
 
