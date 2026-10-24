@@ -45,17 +45,27 @@
   `setbias<n>` is a software bias applied after the A/D, so it cannot recover a clipped gauge.
 - A1 cannot pass on #16 as it stands, because gauge 5 would stay at the rail with #1's tuning.
 
+### 18:49 to 18:51: a software bias, then the slot #2 test (the owner, in the web page)
+
+- 18:49, a software bias was set at the gauges of that moment: `setbias` 331, −4763, 1694, 2289, 32767, 955. The
+  biased `runsg` then read about 0, but `unbiasedsg` kept gauge 5 at 32767 and the status stayed 0x80020000. A bias
+  only subtracts a constant after the A/D. corvus now watches `unbiasedsg`.
+- 18:50:40, calibration #2 ("empty": gain 0x0200, offset 0x8000 on every gauge) was selected for the active
+  configuration.
+  - The unbiased gauges went from 371, −4779, 1736, 2339, 32767, 1034 under #1 to −383, −1026, −403, −1, 32767, 567
+    under #2. The other five all moved, so the new settings were applied.
+  - **Gauge 5 stayed at +32767.** The status was 0x80028000; bit 15 is "reserved" in Table 17.1.
+  - **So the Axia80's tuning is not the cause.** Gauge 5's channel stays at the rail under either offset and gain,
+    which points to an open lead or a broken bridge arm on gauge 5.
+  - The owner was asked to select calibration #1 again, to restore the state as found.
+
 ### Open, for the ATI conversation and the owner
 
 1. **The owner's checks:** wiggle the transducer cable while corvus watches gauge 5 (an intermittent lead can be
    repaired). Measure gauge 5's bridge resistance against the others at the connector. Look in July's logs: an RDT
    status word of 0x80020000 there would mean gauge 5 was already stuck when the golem data were taken.
-2. **A test, not yet run (the owner's go).** Select an "empty" calibration (#2) for the active configuration on the
-   Configurations page, read `runsg` in `netftapi2.xml`, then switch back to #1. With the factory-default offsets and
-   gains, gauge 5 may land in range: that would show its channel alive and the Axia80's tuning the cause. The
-   catch: under an empty calibration RDT outputs zeros (zero matrix). Raw gauges would come only from polling
-   `netftapi2.xml`, which is slow but may do for the static mass stations.
-3. **A fallback if gauge 5 stays out** (the workstation, 18:4x). Fit gauges 1–4 and 6, each row on its own (six
+2. ~~The slot #2 test~~: done at 18:50 (above). Gauge 5 stays at the rail, so the polling mode is not needed for it.
+3. **The fallback, which is now the plan unless the checks in 1 find a repairable fault** (the workstation, 18:4x). Fit gauges 1–4 and 6, each row on its own (six
    coefficients and an offset), against the weighed-mass poses; the plan already spans all six wrench directions. Use
    `F = (A' B(r))^+ (g' − g0')` with `B(r) = [I; [r]x]` and r from the registration: 5 equations for 3 unknowns. Check
    `cond(A' B(r))` for the pad's contact points right after the calibration run. This covers presses, not twists.
