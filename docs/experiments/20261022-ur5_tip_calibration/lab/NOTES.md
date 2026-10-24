@@ -358,6 +358,13 @@ the lab session ("go") at about 15:36.
   losing the internet, corvus takes a live extra address, `nmcli device modify enp3s0 +ipv4.addresses
   192.168.1.100/24` (no sudo; undone with `-ipv4.addresses`). Never set the connection's IPv4 method to Manual: that
   drops the DHCP address and the internet with it.
+- 18:29, after the owner put the box back on the lab router, `scripts/ati_netft_discover.py` found it at
+  192.168.123.50. corvus held 192.168.123.100/24 live. Ping took 0.4 ms, the web page answered, and one RDT sample
+  came back. But the box reports status 0x80020000: an error, with bit 17 set ("Transducer Saturation or A/D operation
+  error"). Strain gauge 5 reads 32767, the top of the A/D range, in every sample; the other five read 354, −5035,
+  1823, 1917 and 701. With no tare, the forces read 13.4, 26.4 and 273.5 N and the torques −2.12, 1.39 and 0.16 N m.
+  The box's calibration is FT35796, SI-125-3, rated 125, 125 and 500 N and 3, 3 and 3 N m. The owner was asked to check
+  the transducer cable and the mount for a load. Nothing was tared or changed on the box.
 
 ## The lab clone and git-lfs
 
