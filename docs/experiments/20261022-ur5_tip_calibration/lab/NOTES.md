@@ -400,6 +400,39 @@ the lab session ("go") at about 15:36.
   4. Run the plain touch-offs at 5.0 mm, with no rehoming.
   5. Then the as-run clearance check of the offset plan, the offset touch-offs, and the grid.
 
+## 2026-10-23 evening: R22 on mount v5, the first checkerboard tip
+
+### 19:48 to 20:10, pass 1 prepared (nothing moved)
+
+- 19:48, pulled 907edf13. The owner puts mount v5 on the robot with the first checkerboard tip. Both R22 plans set v5's
+  payload, 0.3993 kg with its centre 34.3 mm from the flange. Pass 1 adds the gravity sweep, which should weigh about
+  1.72 N. v5's CAD came with `git lfs pull --include "docs/experiments/20261023-ur5_calibration_mount_v5/cad/*"`.
+- Pass 1's plan is `lab/20261023-plan_sphere_lab_r22_pass1.json`, for the stages preflight, homing, gravity, pad and
+  register.
+  - Touch-offs: sph3t's 19. The plain plan's touch-offs are identical to sph3t's source, so the same 13 are dropped: 8
+    under the margins with sphere2's registration, and 5 flanks with joint 6 above +60 deg.
+  - Gravity: 9 of the 12 orientations. grav-07 (+100.8 deg), grav-02 (+152.2) and grav-01 (+92.2) are out by the same
+    joint 6 rule. On 10-22 the HEX-E dropped out in two of three sweeps, both at large positive joint 6. The 9 run
+    joint 6 from −147.9 to +48.8 deg. The fit stays well posed: its design [g, 1] has a condition number of 2.9, against
+    2.2 with all 12. The workstation agreed at 20:03; its analysis needs only the weight and the 3 × 3 map.
+- Clearance of the touch-offs with `UR5_MOUNT=v5`, placed from the stored seating as a fresh session runs them
+  (`--clearance-stages pad --home-from ...:left_indenter_seated`):
+  - with sphere2's tool, the mount keeps at least 3.12 mm, the finger 1.75 mm and the wedge 11.26 mm;
+  - with sph3t's tool, pad-face-11 comes 2.95 mm from the mount, 0.05 mm inside the margin. It is the same with v3, and
+    face-11 ran clean in sph3t, so it stays.
+- The simulator ran pass 1 from 19:55 to 19:59 with no abort. It had the sphere where the stored seating puts it, the
+  payload at 1.72 N, and `--gravity-expect-N 1.72`. The sweep weighed 1.725 N with a residual of 0.0064 N, and the 19
+  touch-offs fitted at 0.012 mm rms. The cell check passed:
+  - joint 5 from 57.5 to 90.5 deg in the sweep and from 47.5 to 80.0 deg at the touch-offs;
+  - joint 6 from −148.4 to +48.3 deg in the sweep, and at most +54.8 deg at the touch-offs;
+  - the mount at least 3.3 mm from the cell, the finger 2.3 mm and the wedge 11.7 mm; the wrist links at least 11 mm.
+- `check_arm_samples.py` had left the wedge out: its list of parts predates v5. The wedge now counts on the mount's
+  margin, and the script stops on any part of the tool it does not place in a group.
+- Pass 2's drops, agreed with the workstation: fgrav-01 (+92.2 deg) from the final stage, and grid-060 to -067 (joint 6
+  from +64.0 to +72.1 deg, the workstation's four among them). In the workstation's simulation the offset touch-offs
+  end with joint 6 from −57.2 to +51.6 deg. Pass 2's simulation with the new registration gives the real values.
+- Still to come: the owner's go and the tip's name. The board was not on USB at 19:5x.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

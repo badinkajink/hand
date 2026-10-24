@@ -31,7 +31,9 @@ ap.add_argument("--cell", action="store_true", help="also the tool against the c
 a = ap.parse_args()
 CELL_NEED = dict(hex_e=6.0, mount=3.0, finger=0.8)                # the plan builder's clearances (CLEAR)
 GROUP = dict(hex_e="hex_e", adapter="mount", fork="mount", clamp_plate="mount", dip_link="finger", cover="finger",
-             cap="finger")
+             cap="finger", stop_wedge="mount")                  # v5's wedge (UR5_MOUNT=v5) on the mount's margin
+if set(CELL.TOOL_PARTS) - set(GROUP) - {"pad"}:                  # a new mount's part must not drop out of the check
+    raise SystemExit(f"tool parts with no group here: {sorted(set(CELL.TOOL_PARTS) - set(GROUP) - {'pad'})}")
 sd = Path(a.session)
 lo, hi = (float(v) for v in a.window.split(","))
 r = np.fromfile(sd / "robot.bin", "<f8").reshape(-1, 15)
@@ -74,7 +76,8 @@ for i in range(0, len(t), a.every):
     if a.cell:
         cl = CELL.clearance(q[i], CELL.SIM.fk(q[i]), T_BI, T_EM, KIND)
         for part, g in GROUP.items():
-            cb[g] = min(cb.get(g, 1e9), cl[part])
+            if part in cl:                                      # the wedge only with UR5_MOUNT=v5
+                cb[g] = min(cb.get(g, 1e9), cl[part])
         for g, v in cb.items():
             d["cell"][g] = min(d["cell"].get(g, 1e9), v)
     if (not (lo <= q5 <= hi) or any(sc[k] < CELL.SELF_CLEAR[k] for k in CELL.SELF_CLEAR)
