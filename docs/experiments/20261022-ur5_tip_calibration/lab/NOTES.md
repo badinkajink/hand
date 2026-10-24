@@ -463,6 +463,37 @@ the lab session ("go") at about 15:36.
   ≥ 3.20 mm, finger ≥ 0.90 mm). The plan is `lab/20261023-plan_sphere_lab_r22_pass2.json`: the 12 offset touch-offs, 65
   grid presses with ref-00 to -05, and final-ref. It has no gravity orientations, pivots, rolls or twists.
 
+### 21:3x to 23:58, cb1t: pass 2 (the offset touch-offs, the grid, rolls and twists)
+
+- 21:3x, the owner asked for the turns: "are we also still doing twists and rolls? the contact pose (direction of
+  contact) is pretty important". roll-0, roll-3 and the 8 twists of last night's checked turns went back into the pass 2
+  plan. Their joint 6 runs from −23.3 to +26.5 deg, and with cb1t's registration the mount keeps 3.78 mm and the
+  finger 3.68 mm.
+- The simulator resumed a copy of cb1t, with its truth at cb1t's registered tool and sphere
+  (`sim_from_reg.py` in the lab session's scratchpad). Pass 2 ran with no abort. The 31 touch-offs fitted at 0.040 mm
+  rms. The cell check flagged grid-027 and -028: the mount came 2.7 to 3.0 mm from the cell at their deepest, so both
+  were dropped. The turns alone passed the cell check (mount ≥ 3.4 mm, finger ≥ 3.4 mm).
+- 21:56:11 to 22:27:34, pass 2a, stages pad and register: the 12 offset touch-offs with no abort.
+  - The onsets ran from −0.002 to +0.468 mm. The simulator gave +0.08 to +0.32 mm.
+  - The registration fitted all 31 at 0.054 mm rms. Against pass 1's fit it turned the TCP 1.934 deg (moving it 0.081
+    mm) and moved the sphere's centre 1.958 mm. The simulator had predicted 0.894 deg and 0.268 mm. The plain touch-offs
+    leave this combination loose, and resolving it is what the offset touch-offs are for.
+  - The HEX-E had 187,505 samples, no timeout and no gap.
+- The clearance check with that registration put six actions under the mount's 3.0 mm, and they were dropped: grid-025
+  (2.56 mm), grid-002 and -007 (2.70), twist-1-1.0N and -2.5N (2.85), and grid-024 (2.99). The simulator then ran the
+  grid, the turns and final-ref with its truth at the new registration: no abort, and the cell check passed (mount
+  ≥ 3.2 mm, finger ≥ 2.0 mm, joint 6 from −65.8 to +56.7 deg).
+- 22:40:05 to 23:57:43, pass 2b, stages grid, roll, twist and final. It ran the 59 grid presses (with ref-00 to -05),
+  roll-0 and roll-3, the 6 twists left and final-ref, with no abort, warning or error. The plan of this run is
+  `plan_resume_2156_2240.json`; the run at 21:56 had the same plan with the six dropped actions still in it, outside its
+  stages.
+  - The reference presses, as onset and depth change from ref-00 (1.654 mm at 0.1 N, depth 0.619 mm): ref-01
+    +0.044/−0.009, ref-02 +0.050/+0.048, ref-03 +0.037/−0.002, ref-04 +0.004/+0.030, and ref-05 (23:32)
+    +0.024/+0.005 mm. All are inside the stop rule (0.3 mm and 0.1 mm), with no trend.
+  - The HEX-E had 464,911 samples, no timeout, and one gap of 0.6 s. Home at 23:59.
+- The session folder is `20261023-203938-cb1t/`: the session's files, the streams, every printout, and the plans of
+  each resume. The first attempt is `20261023-203123-cb1t/`.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
