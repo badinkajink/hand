@@ -85,6 +85,13 @@ will serve — three of the four plans sitting on the CB1 in 2026-09 were ones t
 *excluded* for finger interpenetration. A plan's `chord` and its `_traj.csv` are **different
 paths**; the gate passes them separately and a plan can clear one and not the other.
 
+**The UR5 lab computer `corvus`** (192.168.0.5 by DHCP on the lab router; its own clone; no passwordless sudo) drives
+the UR5, the HEX-E and the ATI Net box. Its runbook is `docs/experiments/20261022-ur5_tip_calibration/lab/README.md`,
+with the addresses and a section *Network on corvus*. To reach a device on another subnet without losing the internet,
+add a live second address (`nmcli device modify enp3s0 +ipv4.addresses ...`); never set the IPv4 method to Manual.
+Find an ATI box at an unknown address with `scripts/ati_netft_discover.py`, ATI's discovery broadcast; subnet sweeps
+miss it. The Mini45's box sits at 192.168.123.50.
+
 ## Writing
 
 Prose rules for every page, report, commit message and runbook are the **Writing** section of the

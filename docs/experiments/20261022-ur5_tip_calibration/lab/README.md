@@ -34,9 +34,41 @@ file alone. The runbook of the session is `../README.md`. Its protocol page is
 | Robot | UR5 CB3 at 192.168.0.4, PolyScope 3.15.8; RTDE at 125 Hz; the payload on the pendant was 0.41 kg (preflight sets the plan's 0.384 kg) |
 | HEX-E DAQ | OnRobot Compute Box at **192.168.0.6**, DHCP on (`GET http://192.168.0.6/api/cfg/network/ip`), MAC b8:27:eb:25:4a:6e. The program's default `--ft 192.168.0.5` is this computer, so every run passes `--ft 192.168.0.6` |
 | HEX-E | serial HEXEA478, firmware 208. After a power cycle of the box re-find it: ping-sweep 192.168.0.0/24, then send the 0x1234/0x0002 request to UDP 49152 |
+| ATI Net box | NETBA for the Mini45, MAC 00:16:BD:00:2D:E4, firmware F/T BNI v2.2.59, **static 192.168.123.50/24** (set by an earlier user, not ATI's default). PoE from the Netgear GS305PP switch, whose uplink goes to the router's port 4. corvus reaches it through a live second address; see *Network on corvus* below |
 | Board | QT Py ESP32-S3, `/dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:9c:d0-if00` (`/dev/ttyACM0`); 5 MLX90393 at 0xC, 0x11, 0x12, 0x13, 0x10; 369 records/s (Table 2 of the runbook says 140: this firmware streams faster; preflight needs 50) |
 | Overhead camera | RealSense D435, serial 836612071918, on the USB hub; views the indenters when the arm is clear. Its rough hand-eye calibration (z the best part, owner) is named in `~/workspace/rh56_controller/configs/tabletop_vision_lab.yaml` |
 | Python | `/usr/bin/python3` (3.10). Its numpy 1.26.4, scipy 1.12.0, pyserial, ur_rtde 1.5.7, aiohttp, pyrealsense2 and trimesh live in `~/.local/lib/python3.10`: never delete that folder wholesale |
+
+## Network on corvus, and reaching the ATI Net box
+
+corvus has one wired port, `enp3s0`, which takes 192.168.0.5 from the lab router by DHCP (NetworkManager profile
+"ASUS Router"). That port carries the internet, and with it every Claude session on this computer.
+
+- **Never set that profile's IPv4 method to Manual.** ATI's guide and similar instructions say to, but they assume a
+  computer wired only to the box. Manual drops the DHCP address, the default route and the DNS, and the internet with
+  them.
+- **To reach a device on another subnet, add a live second address** (no sudo: NetworkManager allows this user
+  network control):
+
+      nmcli device modify enp3s0 +ipv4.addresses 192.168.123.100/24     # undo: -ipv4.addresses 192.168.123.100/24
+      ip route get 1.1.1.1                                              # must still say src 192.168.0.5
+
+  The profile does not keep it, so a reboot or a reconnect drops it. On 2026-10-23 the internet stayed up throughout.
+- **Find an ATI box at an unknown address with ATI's discovery**, not with sweeps:
+
+      /usr/bin/python3 scripts/ati_netft_discover.py --iface-ip 192.168.0.5
+
+  It broadcasts to UDP 51000, and each box answers on the multicast group 224.0.5.128:28250 with its address, mask and
+  MAC. On 2026-10-23, sweeps of 192.168.0.x, 192.168.1.x, 169.254.x.x and IPv6 all missed the box at 192.168.123.50,
+  and the workstation found it this way.
+- **Then check the box:** `ping 192.168.123.50` and `curl http://192.168.123.50/`. Its web pages hold the settings;
+  `comm.htm` has DHCP and RDT. Pass the address to both ATI tools, which default to 192.168.1.1:
+  `scripts/ati_netft_logger.py --ip 192.168.123.50` and `scripts/ati_calibration_session.py --ati 192.168.123.50`.
+- **ATI's defaults** (manual 9620-05-NET FT-23): DHCP on, falling back to the static 192.168.1.1 after 30 s with no
+  DHCP answer. DIP switch 9 on forces 192.168.1.1. PoE is IEEE 802.3af class 0, Mode A only (power on the data pairs),
+  6 W at most; the alternative is 11 to 25 V DC on the M12 Pwr/CAN connector. The box is up when its MS and Xdcr
+  lights turn green, about 20 s after power-up. A flickering yellow light on the switch's port was traffic, not a
+  fault.
 
 ## The HEX-E: rate, filter, drift
 
