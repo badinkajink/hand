@@ -115,8 +115,8 @@ def main():
                f"&#8202;N on v3's column. " if have_fe else "")
             + f"From a sweep of 2&#8211;4{MM} walls and blocks the owner chose 3{MM}. Rails "
               f"{fit3['rail']['interference_per_flank_mm']['at_cover_face']:.2f}&#8211;{fit3['rail']['interference_per_flank_mm']['at_rail_top']:.2f}{MM} "
-              f"tighter per flank then locked the pad in so tightly that it no longer sat flush; snug sets at zero interference replace "
-              f"them.")
+              f"tighter per flank lock the pad in so tightly that it no longer sits flush; the owner kept them for the retention "
+              f"(2026-10-23).")
 
     S = []
     S.append(("terms", "Terms and metrics", f"""
@@ -399,15 +399,18 @@ its STL and STEP read back as one valid solid. {code(ROOT / psn['project'])}: th
 TW15H2S on the P1S, solid at 0.1{MM}, {ptime(psn)}, {psn['filament_g']:.1f}&#8202;g. Each TW15H2S is flagged at a fill ratio of
 {[o for o in psn['objects'] if o['id'].startswith('T2S')][0]['fill_ratio']:.3f}, as TW15H2 was.</p>
 {table(["Quantity", "3T and 2T sets on pad B05R", "16:37: snug sets 3S and 2S on pad B05R"], t10,
-       caption="The tight sets of 11:30 and 16:17 against the snug sets on the same pads.", n=10)}"""))
+       caption="The tight sets of 11:30 and 16:17 against the snug sets on the same pads.", n=10)}
+<p>The owner, 2026-10-23 19:19: &#8220;in the end, i thinkt eh interference fits are quite important. we will have to ilve with the
+squish. so we are still using the 3mm side wall settings.&#8221; The design is the 3T set: cover 3T, cap TW15H3 and pad B05R with
+M2 x 8 screws, the rails pressing {fi['at_cover_face']:.2f}&#8211;{fi['at_rail_top']:.2f}{MM} per flank into the grooves. The pad's
+stand-off from the cover's face is not yet measured (Future work). The 2T and snug sets stay on file and are not used.</p>"""))
 
     S.append(("future", "Future work", f"""
 <ul>
-<li>Fit test of the snug sets; with the 3T set the pad was locked in too tightly to sit flush (owner, 2026-10-22 16:37). Snap
-each B05R onto cover 3S and fit cap TW15H3S. The pad must sit flush on the cover's face: a 0.05{MM} feeler gauge must not enter
-between them. Then push the pad sideways at its apex ten times, and repeat with 2S and TW15H2S. If the pads stay on 2S, the height is 2{MM}. If
-a pad pops off 3S, the next set has half the base interference of 3T: <code>rail_grow</code> 0 in <code>FIT3S</code> of
-{code(ROOT / 'scripts/dip_b_v4.py')}, 0.05{MM} per flank against B05R along the whole flank.</li>
+<li>Stand-off of the pad on cover 3T, since it no longer sits flush (owner, 2026-10-22 16:37): on each finger, measure the gap
+between the pad's mount face and the cover's face at the proximal and the distal end with feeler gauges. The pad's apex then lies that
+much farther palmar than in the CAD; add the mean gap to the contact point's x_F in the UR5e mount's TCP and in the FE pad's position
+before comparing readouts. A gap over 0.3{MM} at one end means its rail did not snap in along its length: refit that pad.</li>
 <li>Read the five chips with pad B00R on v4 while pressing the pad's palmar face with the UR5e 1{MM} from its mount face at 0.5, 1 and
 3&#8202;N, ten times each, and once at the contact point; Table 5 predicts a spread at the edge
 {f"{rim['bm_five_d75_cap_colv4'] / c0['bm_five_d75_cap_colv4']:.1f} times" if have_fe else "several times"} that at the contact point.
@@ -457,8 +460,8 @@ holds.</p>"""))
                f"and 2 mm walls and caps with 4, 3 and 2 mm blocks at 0.15 mm went to the owner's height test; the owner chose 3 mm, and "
                f"the set of 2026-10-22 adds rails {fit3['rail']['interference_per_flank_mm']['at_cover_face']:.2f}-"
                f"{fit3['rail']['interference_per_flank_mm']['at_rail_top']:.2f} mm tighter per flank and a {fit3['pin']['hole_d_mm']:.1f} mm pin hole, "
-               f"which held the pad so tightly that it no longer sat flush; the snug sets 3S and 2S fit the same B05R pads at zero "
-               f"interference on the rails and the pin.")
+               f"which lock the pad in so tightly that it no longer sits flush; the owner kept that set for the retention on 2026-10-23, "
+               f"and the snug sets at zero interference are not used.")
     out = docs_index.tag(out, topic="fingertip", summary=summary, date="2026-10-21")
     out = retro_style.apply(out)
     D.mkdir(parents=True, exist_ok=True)

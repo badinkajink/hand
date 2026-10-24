@@ -155,6 +155,12 @@ Outputs in `v4/b/`: `cad/20261022-dip_link_v4b_cover_I15H3_3S.{stl,step}`, `_cov
 `print/20261022-dip_link_v4b_p1s_pla_snug.3mf` (three of each part on the P1S, 1 h 12 min), checks in `20261022-dip_link_v4b_fit3s.json`
 and `_fit2s.json`; Table 10 of the v4 page.
 
+### Design as of 2026-10-23
+
+The owner kept the 3T set ("in the end, i thinkt eh interference fits are quite important. we will have to ilve with the squish. so
+we are still using the 3mm side wall settings", 10-23 19:19): cover 3T, cap TW15H3 and pad B05R with M2 x 8 screws. The 2T and snug
+sets are not used; their files stay for the record.
+
 ## Opening the STEP files in Inventor
 
 1. Unzip a `.step.zip` first; the plain `.step` files open as they are.
