@@ -41,11 +41,23 @@ as an object comes near, some frames still show about 3.5 N. A press made with a
 object's field dominates the reading. The
 test rejected none of 737 press and turn holds on the UR5 (docs/experiments/20261023-foreign_field_rejection).
 
+Correction learned on the UR5 (2026-10-25). --correction names a UR5 session's data folder (holds.npz, calib_rest.json
+under docs/experiments/20261022-ur5_tip_calibration/data). At start a Gaussian process is fitted to that session's
+press holds: its inputs are the physical estimate's contact point and press, its outputs their errors against the
+robot's ground truth (scripts/fingertip_second_tip_transfer.py, train_sphere2). Inputs and outputs are in the pad's
+units, so the correction applies to another pad of the same design once its model is rebuilt from its rest. A shown
+contact then moves to the corrected point, put back on the nearest surface candidate, and takes the corrected press;
+the decision to show it stays with the physical estimate. On cb1t's own held-out presses at 2 N and over it cut the
+miss from 1.16 to 0.55 mm; below 1 N the model and its correction fail
+(docs/experiments/20261022-ur5_tip_calibration/20261024-checkerboard_fingertip_on_the_ur5.html, Section 7). sphere2's
+correction moved the second fingertip's points further from the reference press on 2026-10-23 (3.71 against 3.07 mm),
+so on another pad it is a trial (key g).
+
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py [--port /dev/ttyACM0] [--http 8790]
         [--board-cal docs/experiments/20261020-fingertip_contact_estimation/data/20261020-calib_pad_as_found.json]
-        [--poles 1 1 1 1 1] [--replay rec.csv] [--no-log] [--foreign-gate]
+        [--poles 1 1 1 1 1] [--replay rec.csv] [--no-log] [--foreign-gate] [--correction <UR5 session data folder>]
 then open http://localhost:8790. Keys: b new baseline, c recalibrate at rest (keep the pad untouched), r record,
-z re-zero at rest on or off, f the test for fields from outside the pad on or off.
+z re-zero at rest on or off, f the test for fields from outside the pad on or off, g the UR5 correction on or off.
 """
 from __future__ import annotations
 
@@ -173,6 +185,10 @@ class App:
         self.rz = W.RestZero(hold_s=a.auto_zero if a.auto_zero > 0 else 3.0)
         self.auto = a.auto_zero > 0
         self.foreign, self.ff, self.n_foreign = a.foreign_gate, None, 0
+        self.corr_on, self.gp, self.corr_name, self.n_corr = False, None, None, 0
+        self._ctree, self._ctree_est = None, None
+        if a.correction:
+            threading.Thread(target=self.train_correction, args=(a.correction,), daemon=True).start()
         self.T_cal = None
         self.est = self.base = self.cal = None
         self.pad_off, self.pad_still, self.cal_lock = False, W.RestZero(hold_s=3.0), threading.Lock()
@@ -277,13 +293,44 @@ class App:
             self.est.floor = self.floor
             self.est.set_noise_scale(1 / np.sqrt(WIN_S * 140))
 
+    def train_correction(self, folder):
+        """The GP correction of the physical estimate learned on a UR5 session's press holds (docstring, "Correction
+        learned on the UR5")."""
+        import ur5_tip_calibration_predict as PR
+        t0 = time.time()
+        H, _, cal0 = PR.load(folder)
+        Pv, Fv = PR.Physical(cal0, W.load_basis(PR.BASIS)).predict(H, np.arange(len(H["id"])))
+        ok = np.all(np.isfinite(Pv), axis=1) & np.isfinite(Fv)
+        self.gp = PR.GP().fit(np.c_[Pv, Fv][ok], np.c_[H["p"][ok] - Pv[ok], H["f_n"][ok] - Fv[ok]],
+                              np.array([0.2, 0.2, 0.2, 0.05]))
+        self.corr_name, self.corr_on = Path(folder).name, True
+        print(f"UR5 correction of {self.corr_name} learned on {int(ok.sum())} press holds in {time.time() - t0:.1f} s "
+              "(g turns it off)", flush=True)
+
+    def corrected(self, e):
+        """The estimate e with its contact point and press corrected by the GP; the point is put back on the nearest
+        surface candidate, whose normal and tangents replace the estimate's, and the shear keeps its components."""
+        if self._ctree_est is not self.est:
+            self._ctree, self._ctree_est = cKDTree(self.est.C), self.est
+        c = self.gp.predict(np.r_[e["p"], e["f_n"]][None])[0]
+        k = int(self._ctree.query(np.asarray(e["p"]) + c[:3])[1])
+        n, t1, t2 = self.est.Cn[k], self.est.T1[k], self.est.T2[k]
+        fn = max(float(e["f_n"] + c[3]), 0.0)
+        f = -fn * n + e["f_t"][0] * t1 + e["f_t"][1] * t2
+        return dict(e, p=self.est.C[k].tolist(), n=n.tolist(), t1=t1.tolist(), t2=t2.tolist(), f=f.tolist(), f_n=fn,
+                    index=k)
+
     def settings(self):
         th = (f"temperature correction on (chip gains -{-self.kappa.max() * 100:.2f} to -{-self.kappa.min() * 100:.2f} % "
               f"per C)" if self.kappa is not None else "temperature correction off")
         az = f"re-zero after {self.rz.hold_s:.0f} s at rest: on, {self.rz.count} so far" if self.auto else "re-zero at rest: off"
         ff = (f"fields from outside the pad rejected above {self.a.foreign_lambda:.0f} in chi-square, {self.n_foreign} frames "
               "so far" if self.foreign else "fields from outside the pad: not tested")
-        return f"{th}; noise floor {self.floor:.2f} uT; shown above {self.min_force:.2f} N; {az}; {ff}"
+        if self.gp is None:
+            co = "UR5 correction: " + ("being learned" if self.a.correction else "none")
+        else:
+            co = f"UR5 correction of {self.corr_name}: {'on' if self.corr_on else 'off'} (g), {self.n_corr} frames so far"
+        return f"{th}; noise floor {self.floor:.2f} uT; shown above {self.min_force:.2f} N; {az}; {ff}; {co}"
 
     def drain(self):
         """Records since the last frame into the stream log and, while recording, into the recording."""
@@ -378,6 +425,10 @@ class App:
                 out["status"] = (f"a field from outside the pad (steel or a magnet near the tip?): the reading changed "
                                  f"{np.linalg.norm(d):.0f} uT and a field across the board explains it better than a "
                                  f"contact by {lam:.0f} in chi-square, so no contact is shown (f turns the test off)")
+        if contact and self.corr_on and self.gp is not None:
+            e = self.corrected(e)
+            self.n_corr += 1
+            out["corrected"] = True
         self.shown_prev = bool(contact)
         out["contact"] = bool(contact)
         if contact:
@@ -439,6 +490,8 @@ async def ws_handler(request):
                 app.auto = bool(cmd.get("on", not app.auto))
                 app.rz.t_still = None
                 app.scene_dirty = True
+            elif cmd.get("cmd") == "correction":
+                app.corr_on = bool(cmd.get("on", not app.corr_on)) and app.gp is not None
             elif cmd.get("cmd") == "foreign":
                 app.foreign = bool(cmd.get("on", not app.foreign))
                 app.scene_dirty = True
@@ -495,6 +548,8 @@ def main():
     ap.add_argument("--foreign-gate", action="store_true", help="show no contact when a field from outside the pad (steel, "
                                                                 "a magnet) explains the reading better (key f)")
     ap.add_argument("--foreign-lambda", type=float, default=25.0, help="chi-square margin of that test")
+    ap.add_argument("--correction", default=None, help="a UR5 session's data folder (holds.npz, calib_rest.json): its GP "
+                    "correction of the physical estimate, on from the start; key g turns it off and on")
     ap.add_argument("--thermal", default=str(W.THERMAL), help="the chips' temperature coefficients (study thermal)")
     ap.add_argument("--no-thermal", action="store_true", help="do not correct the readings for the chips' temperature")
     ap.add_argument("--replay", default=None, help="a recording to play instead of the board (reskin5x_plot.py --out "

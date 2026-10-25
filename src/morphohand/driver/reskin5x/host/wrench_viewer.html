@@ -266,6 +266,7 @@ window.addEventListener('keydown', e => {
   if (e.key === 'b') send({ cmd: 'baseline' }); if (e.key === 'c') send({ cmd: 'calibrate' }); if (e.key === 'r') send({ cmd: 'record' });
   if (e.key === 'z') { az.checked = !az.checked; send({ cmd: 'autozero', on: az.checked }); }
   if (e.key === 'f') { ff.checked = !ff.checked; send({ cmd: 'foreign', on: ff.checked }); }
+  if (e.key === 'g') send({ cmd: 'correction' });
 });
 
 function resize() { const w = view.clientWidth, h = view.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
