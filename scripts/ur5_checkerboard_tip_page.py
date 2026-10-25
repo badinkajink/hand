@@ -73,6 +73,7 @@ def load():
     R["reg"]["p1"] = R["p1"]["reg"]
     R["S3FE"] = J(DATA / f"{S3}-s2reg/fe.json")
     R["K"] = {k: J(DATA / s / "k_check.json") for k, s in (("cb", CB), ("s2", S2))}   # ur5_tip_calibration_k_check.py
+    R["EC"] = J(DATA / CB / "estimator_checks.json")                                       # ur5_tip_calibration_estimator_checks.py
     return R
 
 
@@ -255,8 +256,8 @@ def sections(R, fits, F):
            f"{int(press.sum())} ({len(np.unique(H['id'][press]))})"],
           ["Turn holds", f"{int(np.isin(s2['H']['kind'], ['roll', 'twist', 'slide']).sum())}", f"{n_turn}"],
           ["HEX-E zero between rests, median and largest (N)", f"{f2(ft_s[0], 3)}, {f2(ft_s[1], 3)}", f"{f2(ft_c[0], 3)}, {f2(ft_c[1], 3)}"]]
-    body = ("<p>The robot ran mount v3's fork, the one of sphere2 and sph3t, with the first checkerboard tip, v1 ID 1 in "
-            "the owner's labels, on the workstation's board d9:94 (" + F["link"](NOTES, "lab notes") + ", sections on cb1t). The gravity sweep was "
+    body = ("<p>The robot ran mount v3's fork, the one of sphere2 and sph3t. The tip was the first checkerboard tip, v1 ID "
+            "1 in the owner's labels, on the workstation's board d9:94 (" + F["link"](NOTES, "lab notes") + ", sections on cb1t). The gravity sweep was "
             "left out at the owner's request. The first attempt aborted twice when the board's USB cable pulled on the "
             "tool, and the owner freed it.</p>"
             "<p>Pass 1 ran 19 plain touch-offs from 20:46 to 21:27. Pass 2 ran 12 offset touch-offs from 21:56 to 22:27. "
@@ -287,8 +288,8 @@ def sections(R, fits, F):
             f"Read from the palm, with the poles toward the palm, it is (+1, &#8722;1, +1, &#8722;1, +1). That pattern leaves "
             f"{plan['rms_mT']:.3f} mT, with its strength and offsets at the bounds of the fit, and it differs from the fitted "
             f"one at the centre magnet. Read from the board's side, with the poles toward the board, the plan is the fitted "
-            f"pattern. On 2026-10-25 the owner judged the board's side the likely one (&#8220;it was probably S N S N S "
-            f"then&#8221;), so the tip follows the plan.</p>"
+            f"pattern. On 2026-10-25 the owner judged the board's side the likely one: &#8220;it was probably S N S N S "
+            f"then&#8221;. The tip was therefore built to the plan.</p>"
             f"<p>The field at rest fixes the magnets' strength and depth only together. Its best fit, $k$ = {rc['k']:.3f} with "
             f"the magnets {rc['dx']:.2f} mm off the model's depth, leaves {best['rms_mT']:.3f} mT. From $k$ = 0.40 to 0.65 the "
             f"residual stays within {max(kprof[0.4]['rms_mT'], kprof[0.65]['rms_mT']):.3f} mT. The magnets are those of "
@@ -436,8 +437,8 @@ def sections(R, fits, F):
                  f"{gr['loc_mm_2N']:.2f} mm for the Gaussian process on the board (Table 6). The turn holds have orientations "
                  f"that no press had. There, at 2 N and over, the corrected model misses by {tg['loc_mm_2N']:.2f} mm and the "
                  f"Gaussian process on the board by {tr_['loc_mm_2N']:.2f} mm.</p>"
-                 f"<p>Below 2 N the physical model misses by {min(lo1):.1f} to {max(lo1):.1f} mm at 0.25 to 1 N, and the "
-                 f"correction does not bring those points back. Over all levels the corrected model misses by "
+                 f"<p>At 0.25 to 1 N the physical model misses by {min(lo1):.1f} to {max(lo1):.1f} mm. Those points are not "
+                 f"brought back by the correction. Over all levels the corrected model misses by "
                  f"{pg['loc_mm']['median']:.2f} mm, against {gr['loc_mm']['median']:.2f} mm. A correction of four numbers is "
                  f"one offset of the contact point and one gain on the force. It misses by {po['loc_mm_2N']:.2f} mm at 2 N and "
                  f"over, so the physical model's error changes over the pad.</p>"
@@ -476,8 +477,8 @@ def sections(R, fits, F):
             f"predictors on magnet motions miss by {sc(A_['heldout'], 'gp motions')[0]:.2f} mm (Gaussian process) and "
             f"{sc(A_['heldout'], 'mlp motions')[0]:.2f} mm (MLP ensemble). Sphere2's correction of the physical model "
             f"takes cb1t's error from {TR['physical']['heldout']['loc_mm']['median']:.2f} to {pg[0]:.2f} mm.</p>"
-            f"<p>The simulation of the pattern (+1, &#8722;1, +1, &#8722;1, +1) ({F['code']('scripts/fingertip_magnet_transfer_sim.py')}) "
-            f"predicted the failures of the other three. It also predicted that the correction lowers the error, to "
+            f"<p>The failures of the other three were predicted by the simulation of the pattern (+1, &#8722;1, +1, &#8722;1, +1) "
+            f"({F['code']('scripts/fingertip_magnet_transfer_sim.py')}). It also predicted that the correction lowers the error, to "
             f"{simE['physical+gp (trained on A)']['loc_mm']:.2f} mm with today's magnets. In the simulation, sphere2's offset "
             f"between the board's point and the registered one was part of the pad. At 3 N and over that offset was "
             f"({', '.join(f2(v) for v in bms2)}) mm on sphere2 and is ({', '.join(f2(v) for v in bm2)}) mm on cb1t. A "
@@ -501,6 +502,62 @@ def sections(R, fits, F):
                        "trained on sphere2's presses and cb1t's (solid) and on cb1t's alone (dashed)."))
     S_.append(("transfer", "Transfer of sphere2's predictors and fine-tuning", body))
 
+    # ---- estimator checks: uncertainty, geometry, wrench
+    EC = R["EC"]
+    ga, dsn, sh, to = EC["gate_all"], EC["distortion"], EC["shear"], EC["torsion"]
+    bl, g2, g1 = ga["by_level"], ga["gates"]["2"]["by_level"], ga["gates"]["1"]["by_level"]
+    Ls = sorted(bl, key=float)
+    rep = lambda g, lo, hi: [g[L]["reported"] * 100 for L in Ls if lo <= float(L) < hi]                   # noqa: E731
+    t8 = [[f"{float(L):g}", f"{g2[L]['n']}", f2(bl[L]["sigma_mm"]), f2(bl[L]["loc_mm"]), f"{g2[L]['reported'] * 100:.0f}",
+           f2(g2[L]["loc_mm"]) if g2[L]["loc_mm"] is not None else "&#8211;", f"{g1[L]['reported'] * 100:.0f}",
+           f2(g1[L]["loc_mm"]) if g1[L]["loc_mm"] is not None else "&#8211;"] for L in Ls]
+    lo_rep = [g2[L]["loc_mm"] for L in Ls if float(L) < 2 and g2[L]["loc_mm"] is not None]
+    t9 = [[name, f"{d['n']}", f2(d["true_N"], 3), f2(d["est_N"], 3), f2(d["err_N"], 3)]
+          for name, d in (("Physical model, press holds", sh["press"]), ("Physical model, turn holds", sh["turn"]),
+                          ("Gaussian process on the board, held-out presses", sh["gp_press_heldout"]),
+                          ("Gaussian process on the board, turn holds", sh["gp_turn"]))]
+    tp = to.get("twist_pairs", {})
+    body = (f"<p>The estimator reports a covariance of its contact point. Its position sigma follows its location error "
+            f"with a rank correlation of {ga['spearman']:.2f}. The median sigma is {bl[Ls[0]]['sigma_mm']:.1f} mm at "
+            f"{float(Ls[0]):g} N, {bl['1']['sigma_mm']:.1f} mm at 1 N and {min(bl[L]['sigma_mm'] for L in Ls if float(L) >= 2):.2f} "
+            f"to {max(bl[L]['sigma_mm'] for L in Ls if float(L) >= 2):.2f} mm at 2 N and over (Table 8). A gate at a sigma of "
+            f"2 mm keeps the contact point at {min(rep(g2, 2, 99)):.0f} to {max(rep(g2, 2, 99)):.0f} % of the "
+            f"holds at 2 N and over. Below 2 N it keeps {min(rep(g2, 0, 2)):.0f} to {max(rep(g2, 0, 2)):.0f} %. The holds below 2 N "
+            f"that pass still miss by {min(lo_rep):.1f} to {max(lo_rep):.1f} mm, so the gate removes most failures but not "
+            f"all. Above the gate, the viewer can show a contact without a point.</p>"
+            f"<p>At 2 N and over the error is mostly a global distortion of the model's geometry. An affine map from the "
+            f"estimated to the true points, fitted on the {dsn['n_train']} training holds at 2 N and over, takes the held-out "
+            f"error from {dsn['none']['test_mm']:.2f} to {dsn['affine']['test_mm']:.2f} mm. A similarity, one scale, one "
+            f"turn and one shift, takes it to {dsn['similarity']['test_mm']:.2f} mm, with a scale of "
+            f"{dsn['similarity_scale']:.2f} and a turn of {dsn['similarity_turn_deg']:.1f} deg. The model spreads the "
+            f"contacts {1 / dsn['similarity_scale']:.2f} times too wide.</p>"
+            f"<p>For a point contact the wrench about any frame follows from the contact point and the 3D force, so it needs "
+            f"the shear as well as the normal force. At 1 N and over the HEX-E measures a median {sh['press']['true_N']:.2f} N "
+            f"of shear on the presses. The physical estimator reports {sh['press']['est_N']:.2f} N, an error of "
+            f"{sh['press']['err_N']:.2f} N (Table 9). Trained on the 3D force, the Gaussian process on the board misses the "
+            f"held-out presses' shear by {sh['gp_press_heldout']['err_N']:.2f} N. On the turn holds it misses by "
+            f"{sh['gp_turn']['err_N']:.2f} N, more than the {sh['gp_turn']['true_N']:.2f} N of shear there.</p>"
+            f"<p>Torsion about the normal is the one wrench component that a point contact lacks. On the twists it is "
+            f"resolved by the HEX-E as half the difference between the outbound and the return hold at the same angle. "
+            f"The median is "
+            f"{tp.get('hexe_abs_median', float('nan')):.1f} N mm, up to "
+            f"{max(abs(q['hexe']) for q in tp.get('pairs', [{'hexe': float('nan')}])):.1f} N mm at 2.5 N. On plain presses, "
+            f"where it should be zero, the HEX-E's torsion has a median size of {to['press']['hexe_abs_median']:.1f} N mm; "
+            f"the half-difference removes that offset. A point torque modelled as the curl of the FE shear response does not "
+            f"recover the twists' torsion from the board. Against the HEX-E its slope is {tp.get('slope', float('nan')):.2f} "
+            f"and its correlation {tp.get('r', float('nan')):.2f} over {tp.get('n', 0)} pairs. The board's change between "
+            f"outbound and return, 6 to 14 µT, follows the change of the HEX-E's shear (r 0.77) more than the torsion "
+            f"(r 0.66).</p>"
+            + P.table(["Level (N)", "Holds", "Position sigma (mm)", "Location error (mm)", "Kept below 2 mm (%)",
+                       "Their error (mm)", "Kept below 1 mm (%)", "Their error (mm)"], t8, num_cols=tuple(range(8)),
+                      caption="The physical model's position sigma and location error over cb1t's press holds, and the "
+                              "share kept by a gate on the sigma. Medians (scripts/ur5_tip_calibration_estimator_checks.py).",
+                      n=8)
+            + P.table(["Estimate", "Holds at 1 N and over", "HEX-E shear (N)", "Estimated shear (N)", "Shear error (N)"],
+                      t9, num_cols=(1, 2, 3, 4), caption="Shear of the contact force: the physical model's estimate and the "
+                      "Gaussian process trained on the board's 3D force, against the HEX-E. Medians.", n=9))
+    S_.append(("checks", "Uncertainty, geometry and the contact wrench of the physical model", body))
+
     # ---- limitations, future work
     body = (f"<p>One checkerboard tip was pressed. The held-out set has "
             f"{cb['PR']['n_test_presses']} presses ({cb['PR']['n_test_holds']} holds). The {n_turn} turn holds take the tool's "
@@ -517,9 +574,16 @@ def sections(R, fits, F):
         "below 0.8 mm, down from 1.4 mm, would place sphere2's offset in its registration.",
         "On the next tip of this pattern (v1 ID 2), fit the magnets' depth to the rest and the presses together with $k$ "
         "held at 0.336 (" + F["code"]("scripts/ur5_tip_calibration_k_check.py") + " and the physical model of "
-        + F["code"]("scripts/ur5_tip_calibration_predict.py") + "). If the untrained model then misses by less than the "
-        "rest fit's 1.1 to 1.2 mm at 2 N and over, the known strength helps; if it misses by more, the model's magnet "
-        "geometry is off.",
+        + F["code"]("scripts/ur5_tip_calibration_predict.py") + "). An untrained error below the rest fit's 1.1 to 1.2 mm "
+        "at 2 N and over would show that the known strength helps. A larger error would put the fault in the model's "
+        "magnet geometry.",
+        "Fit the pad's turn about its depth axis and the magnets' spacing in the physical model, the two parameters the "
+        "similarity map points to (scale 0.68, turn 14.7 deg). If the untrained error at 2 N and over falls from 1.16 mm "
+        "toward the affine map's 0.60 mm, the model's geometry is the cause, and the high-force error needs no learned "
+        "correction.",
+        "Twist at 5 N on a fixture that puts the face's normal along the HEX-E's axis, with ten or more twists. The torsion "
+        "then falls on the sensor's own torque axis. A learned or physical torsion estimate from the board that misses by "
+        "more than half the measured torsion means that the board does not sense it.",
         "Rest the tool at the four orientations of the rolls, with joint 6 within &#177;30 deg, in the next session. A "
         "difference above 0.05 N between the HEX-E and first2's gravity fit would call for the tool's own fit before the "
         "turn holds' forces are used.",
