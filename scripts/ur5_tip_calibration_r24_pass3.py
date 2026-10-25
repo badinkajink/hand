@@ -78,8 +78,13 @@ def twins(grid, pts, nrm):
     return out
 
 
-TURN_V = dict(tv004=0.004, tv040=0.04)          # rad/s on the CB3: 0.23 and 2.3 deg/s; cb2t's plans run 0.016 (0.92 deg/s)
-PRESS_V = dict(v015=0.00015, v200=0.002)        # m/s in contact; the grid's presses run 0.0005
+# Every speed is scaled by the controller's speed slider, 0.30 in every session so far (2026-10-25), so the actual rates are
+# 0.3 times these. Turns: the plan's 0.004 (0.07 deg/s actual) and these; presses: the grid's 0.0005 (0.15 mm/s) and these.
+TURN_V = dict(tv016=0.016, tv040=0.04, tv133=0.133)      # 0.28, 0.69 and 2.3 deg/s actual
+PRESS_V = dict(v015=0.00015, v200=0.002, v667=0.0067)    # 0.045, 0.6 and 2.0 mm/s actual
+CB2T_TRAVEL = dict(speed=2.0, fast_v=0.005, slow_mm_touch=1.5, slow_mm_press=0.5)
+CB2T_PAYLOAD = dict(kg=0.403, cog_mm=[0.0, -0.5, 34.3], note="mount v7 (R24, workstation 10-25: v6's 0.399 kg and v7's fork "
+                    "5.9 % larger by volume, about 3.8 g) + OptoForce HEX-E 260 g")
 RATE_POINTS = ((8.5, 0.0, 10.9), (8.0, 3.0, 10.9), (8.0, -3.0, 10.9), (8.0, 0.0, 14.5), (6.0, 4.5, 13.0), (6.0, -4.5, 13.0))
 
 
@@ -101,6 +106,56 @@ def rates(pass2, rest):
         for tag, v in PRESS_V.items():
             out.append(dict(clean(g), id=f"rate-{g['id'][5:]}-{tag}", v=v, levels=[0.25, 0.5, 1.0, 2.0], stop_N=2.0))
     return out
+
+
+def write_pass5(p3, pass2, full, a, per3, under3, jt3, geo, reg):
+    """Pass 5 of cb2t (owner, 10-25: "we have time to run a big suite"): pass 2's grid again at 4 times the contact speed
+    (v 0.002, 0.6 mm/s actual against 0.15), so that the whole face is pressed at two rates; and the slides that clear
+    (shear-0, shear-3) at more forces, at the plan's turn speed. Checked as pass 3."""
+    grid = [x for x in pass2["actions"] if x["stage"] == "grid"]
+    acts = [dict(clean(x), id=f"fast-{x['id']}", v=0.002) for x in grid if x.get("role") != "ref"]
+    sh = {x["id"]: x for x in full["actions"] if x["stage"] == "shear"}
+    for sid, levels in (("shear-0-1N", (0.5, 1.5, 3.0)), ("shear-3-1N", (2.0,))):
+        for F in levels:
+            s = clean(sh[sid])
+            s["moves"] = [m for m in s["moves"] if max(abs(d) for d in m["degs"]) < 4.0]
+            s.update(id=f"{sid[:-3]}-{F:g}N", press_N=F, turn_v=0.016)      # 0.28 deg/s actual: 3 min a slide, not 13
+            acts.append(s)
+    # slides at the rate set's six points and at the twins' (both sides), 0.1 and 0.2 mm in eight directions at 1 and 2 N:
+    # on cb1r a GP trained on the presses and the other slides put the shear within 0.10 N and the force's direction
+    # within 5.7 deg, against 0.24 N and 13.2 deg trained on the presses alone (data/20261025-114653-cb1r/checks.json)
+    grid2 = [x for x in pass2["actions"] if x["stage"] == "grid" and x.get("role") != "ref"]
+    pts = [min(grid2, key=lambda x: np.linalg.norm(np.array(x["target"]["p"]) - q)) for q in RATE_POINTS]
+    pts += [t for t in p3["actions"] if "twin_of" in t]
+    for g in pts:
+        for F in (1.0, 2.0):
+            s = clean(sh["shear-0-1N"])
+            s.update(id=f"slide-{g['id'].replace('grid-', '')}-{F:g}N", target=copy.deepcopy(g["target"]),
+                     twist=float(g.get("twist", 0.0) or 0.0), press_N=F, turn_v=0.04,     # 0.69 deg/s actual: about 1 min
+                     moves=[dict(dir_deg=float(dd), degs=[1.146, 2.292]) for dd in range(0, 360, 45)])
+            acts.append(s)
+    fr = clean([x for x in pass2["actions"] if x["id"] == "final-ref"][0])
+    fr["id"] = "final-ref-p5"
+    acts.append(fr)
+    probe = {k: copy.deepcopy(v) for k, v in p3.items() if k != "actions"}
+    probe["actions"] = acts
+    per, under = clearance(probe, a.check_session, a.mount)
+    keep = []
+    for x in acts:
+        j = joints(geo, reg, x, x.get("twist", 0.0) or 0.0)
+        if x["id"] in under or x["id"] not in per or j is None or not (J5[0] <= j[0] and j[1] <= J5[1] and J6[0] <= j[2]
+                                                                      and j[3] <= J6[1]):
+            print(f"  pass 5: {x['id']} dropped: clearance {per.get(x['id'])}, joints {j}")
+            continue
+        keep.append(x)
+    probe["actions"] = keep
+    probe["notes"] = list(p3.get("notes") or [])[:-1] + [
+        "2026-10-25, workstation: R24 pass 5 for cb2t (scripts/ur5_tip_calibration_r24_pass3.py): pass 2's grid at v 0.002 "
+        "(fast-grid-*), shear-0 at 0.5, 1.5 and 3 N and shear-3 at 2 N with their pre-sliding steps, final-ref-p5; the "
+        f"clearance on {a.mount} ({Path(a.check_session).name}'s registration) and joints 5 and 6 checked as pass 3."]
+    out = Path(a.out).with_name(Path(a.out).name.replace("pass3", "pass5"))
+    out.write_text(json.dumps(probe, indent=1) + "\n")
+    print(f"pass 5: {len(keep)} of {len(acts)} actions -> {out}")
 
 
 def joints(geo, reg, a, turn):
@@ -189,6 +244,9 @@ def run(a):
                   - {c["twin_of"] for c in cand})
     plan = {k: copy.deepcopy(v) for k, v in base.items() if k != "actions"}
     plan["actions"] = acts
+    if a.mount == "v7":
+        plan.update(payload=CB2T_PAYLOAD, speed_slider=0.30, travel={**plan.get("travel", {}), **CB2T_TRAVEL})
+        write_pass5(plan, pass2, full, a, per, under, jt, geo, reg)
     plan["notes"] = list(base.get("notes") or []) + [
         f"2026-10-25, workstation: R24 pass 3 for mount {a.mount} (scripts/ur5_tip_calibration_r24_pass3.py): {len(best)} "
         f"twins, each in the turn about the vertical that keeps joint 5 within {J5[0]:.0f} to {J5[1]:.0f} deg and joint 6 "

@@ -835,6 +835,25 @@ push that answers it arrives.
     touch-off margin of 2.5 mm, and every press and turn of passes 2 and 3 clears 3.0 mm (pass 3 at least 3.39 mm). v7's
     fork is 5.9 % larger by volume than v6's (97,621 against 92,179 mm3), about 3.8 g at v6's 63.7 g, so set the payload
     to 0.403 kg at 34.3 mm, or weigh the fork. The link seats where v6's does, so the frames do not change.
+  - Tonight's suite on cb2t, unattended (owner, 15:0x: "we can just do speed settings now, cant we? im about to put on
+    id 2 and go home anyway, so we have time to run a big suite"; the owner never set the pendant's slider).
+    - Program: a plan's `speed_slider` is set on the controller (RTDE IO) and read back at the start of every run. A
+      difference over 0.02 stops the run before any motion; if the controller refuses the input, a warning is printed
+      and the value is checked. cb2t's plans from 2b on carry `speed_slider` 0.30, the value every session so far ran
+      at, so cb2t's rates match ID 1's. Simulated: "speed slider 0.30 (the plan's 0.30)", then a touch-off pass, a
+      press and two slides, no abort.
+    - Order: 1 and 2a (prepared, 1ed52366); 2b, R22's grid, rolls and twists with the travel block and `speed_slider`;
+      3, `lab/20261025-plan_sphere_lab_r24_pass3_cb2t.json`; 5, `lab/20261025-plan_sphere_lab_r24_pass5_cb2t.json`.
+    - Pass 3 has 56 actions: 19 twins, the 3 slides, the 3 twists at 5 N, the rate set at four speeds, and final-ref-p3.
+      Pass 5 has 103: the grid again at v 0.002 (fast-grid-*), shear-0 at 0.5, 1.5 and 3 N and shear-3 at 2 N at
+      `turn_v` 0.016, 46 slides at 23 points on both sides at 1 and 2 N with 0.1 and 0.2 mm steps at `turn_v` 0.04, and
+      final-ref-p5.
+    - At the slider's 0.30 the actual rates are 0.045, 0.15, 0.6 and 2.0 mm/s for presses and 0.07, 0.28, 0.69 and 2.3
+      deg/s for turns. Every kept action clears the margins on v7 with cb1t's registration, and the joint windows with
+      cb1r's. At cb1t's pace the suite takes about 6 h.
+    - Why pass 5 has so many slides: on cb1r a GP trained on the presses and the other slides put the slides' shear
+      within 0.10 N and the force's direction within 5.7 deg. Trained on the presses alone, it was 0.24 N and 13.2 deg;
+      the physical model gives 0.98 N and 57 deg (`data/20261025-114653-cb1r/checks.json`).
   - The owner, 13:2x: "we can afford to drop pass 2 right? it was just a repeat of friday's run?". cb1r drops pass 2b
     (its grid, rolls and twists repeat cb1t's). Pass 2a's offset touch-offs and registration stay, because pass 3 runs on
     that registration. After pass 3 and 3b the lab homes the robot for the swap.

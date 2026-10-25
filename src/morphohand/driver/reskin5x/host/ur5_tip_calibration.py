@@ -704,6 +704,7 @@ class URRobot:
     def __init__(self, ip, appender=None, rate=125.0):
         import rtde_control
         import rtde_receive
+        self.ip = ip
         self.c = rtde_control.RTDEControlInterface(ip)
         self.r = rtde_receive.RTDEReceiveInterface(ip, rate)
         self.c.setTcp([0.0] * 6)
@@ -772,6 +773,18 @@ class URRobot:
         if e[0] > 1.0 or e[1] > 0.5:
             return None
         return np.array(q)
+
+    def speed_fraction(self):
+        """The controller's speed slider, 0 to 1 (2026-10-25: 0.30 since at least 10-22, set by no one here)."""
+        return float(self.r.getTargetSpeedFraction())
+
+    def set_speed_fraction(self, f):
+        import rtde_io
+        io = rtde_io.RTDEIOInterface(self.ip)
+        try:
+            return io.setSpeedSlider(float(f))
+        finally:
+            io.disconnect()
 
     def stopped(self):
         return bool(self.r.isProtectiveStopped() or self.r.isEmergencyStopped())
@@ -1655,7 +1668,26 @@ class Session:
         return r
 
     # ---------------------------------------------------------------- the whole
+    def speed_slider(self):
+        """The plan's speed_slider: set on the controller and read back before any motion. Every speed of the program and
+        the plan is scaled by it; sessions before 2026-10-25 ran at 0.30 without knowing it."""
+        f = self.plan.get("speed_slider")
+        if f is None:
+            return
+        f = float(f)
+        try:
+            self.be.robot.set_speed_fraction(f)
+        except Exception as e:                                   # noqa: BLE001  (a controller without the input)
+            print(f"WARNING the speed slider could not be set ({e}); checking its value", flush=True)
+        self.sleep(0.3)
+        got = self.be.robot.speed_fraction()
+        self.log.event(event="speed_slider", id="run", rec=dict(set=f, read=got))
+        print(f"speed slider {got:.2f} (the plan's {f:.2f})", flush=True)
+        if abs(got - f) > 0.02:
+            raise SystemExit(f"the speed slider reads {got:.2f} and the plan asks {f:.2f}: stopping before any motion")
+
     def run(self, stages):
+        self.speed_slider()
         for s in stages:
             print(f"== {s}", flush=True)
             if s == "preflight":

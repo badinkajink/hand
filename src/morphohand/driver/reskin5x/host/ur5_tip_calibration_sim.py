@@ -578,6 +578,13 @@ class SimRobot:
             return None
         return q
 
+    def speed_fraction(self):
+        return getattr(self, "_slider", 1.0)                 # the simulator moves at the plan's speeds whatever the slider
+
+    def set_speed_fraction(self, f):
+        self._slider = float(f)
+        return True
+
     def stopped(self):
         return self.w.prot
 
