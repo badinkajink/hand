@@ -18,7 +18,14 @@ itself when the pad changes. The magnitude of the reading over its 15 components
 9 to 13 mT with the pads of 2026-10-22. Below 0.5 mT no contact is shown, and once a pad has been on the board and still
 for 3 s it is calibrated. After the board is plugged in again it is calibrated as well, since the pad may have been
 changed while it was unplugged. A re-zero that would move the rest by more than 10 % of the calibrated rest's
-magnitude also calibrates, because the pad was set down in another place or pose. All 32 pole patterns are searched
+magnitude also calibrates, because the pad was set down in another place or pose. The pad's model is then kept, and
+the reading only re-zeroed, when that model with a field from outside the pad (a uniform field and a linear gradient
+across the board, fingertip_wrench_model.far_field_basis) fits the new rest at least as well as the new calibration
+does (2026-10-25). Another fingertip laid against this one moved a rest by 0.94 mT, 11 %: the kept model fitted it at
+0.29 mT and a new calibration at 0.43 mT, which had taken the neighbour's field into the magnets' strength (0.49 to 0.64
+of N52). A reseated tip (0.95 against 0.33 mT) and a pad lifted off (0.75 against 0.13 mT) went to the new calibration.
+--calib starts from a saved calibration in the same way, so a pad calibrated apart keeps its model when the viewer is
+started with other fingertips against it. All 32 pole patterns are searched
 (fingertip_wrench_model.calibrate_frames_fixed), so each magnet may be inserted either way. The status line gives the
 poles row by row, tip end first, and every calibration is saved to logs/20261020-contact_estimation/calib/<time>-calib.json.
 
@@ -56,6 +63,7 @@ so on another pad it is a trial (key g).
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py [--port /dev/ttyACM0] [--http 8790]
         [--board-cal docs/experiments/20261020-fingertip_contact_estimation/data/20261020-calib_pad_as_found.json]
         [--poles 1 1 1 1 1] [--replay rec.csv] [--no-log] [--foreign-gate] [--correction <UR5 session data folder>]
+        [--calib logs/20261020-contact_estimation/calib/<time>-calib.json]
 then open http://localhost:8790. Keys: b new baseline, c recalibrate at rest (keep the pad untouched), r record,
 z re-zero at rest on or off, f the test for fields from outside the pad on or off, g the UR5 correction on or off.
 """
@@ -190,7 +198,7 @@ class App:
         if a.correction:
             threading.Thread(target=self.train_correction, args=(a.correction,), daemon=True).start()
         self.T_cal = None
-        self.est = self.base = self.cal = None
+        self.est = self.base = self.cal = self.rest_ref = None
         self.pad_off, self.pad_still, self.cal_lock = False, W.RestZero(hold_s=3.0), threading.Lock()
         self.clients, self.R_ind, self.status = set(), 8.0, "starting"
         self.rec, self.rec_rows = False, []
@@ -223,7 +231,26 @@ class App:
             b = W.thermal_correct(b, r_T[:, :, 0].mean(0), self.kappa)
         return b.reshape(len(rr), 15)
 
-    def calibrate(self, why=None):
+    def saved_model(self, path):
+        """(calibration, model, estimator, steel test) of a saved calibration (--calib)."""
+        cal = W.Calib.load(path)
+        model = W.Model(cal, self.row)
+        est = W.SurfaceEstimator(model, self.basis, floor_uT=self.floor)
+        est.set_noise_scale(1 / np.sqrt(WIN_S * 140))
+        return cal, model, est, W.ForeignField(est, self.a.foreign_lambda)
+
+    def kept_fit(self, model, b_rest):
+        """rms (mT) of `model`'s rest against b_rest with a field from outside the pad (uniform and linear gradient
+        across the board) fitted to the difference."""
+        r = b_rest.ravel() - np.ravel(model.rest_uT(g_uT=(0.0, 0.0, 0.0)))
+        A = W.far_field_basis(model)
+        r = r - A @ np.linalg.lstsq(A, r, rcond=None)[0]
+        return float(np.sqrt(np.mean(r ** 2))) / 1e3
+
+    def calibrate(self, why=None, prev=None):
+        """Fit the pad at rest. prev = (calibration, model, estimator, steel test) of the pad before a rest move, or of
+        a saved calibration (--calib): kept, with the reading re-zeroed, when it fits the new rest with a field from
+        outside the pad at least as well as the new calibration (docstring, "Pad changes")."""
         if not self.cal_lock.acquire(blocking=False):         # a calibration is already running
             return
         try:
@@ -244,7 +271,21 @@ class App:
             self.T_cal = r[:, :, 0].mean(0)
             t0 = time.time()
             cal = W.calibrate_frames_fixed(b_rest, self.board, poles=tuple(self.a.poles) if self.a.poles else None)
-            self.cal = cal
+            if prev is not None:
+                kept = self.kept_fit(prev[1], b_rest)
+                if kept <= cal.rms_mT:
+                    self.cal, self.model, self.est, self.ff = prev
+                    self.base, self.rest_ref, self.pad_off = b_rest.ravel(), b_rest.ravel(), False
+                    self.rz.t_still = None
+                    self.scene_dirty = True
+                    self.status = (f"the pad's model kept (poles {self.pole_rows(self.cal.poles)}, strength {self.cal.k:.2f} "
+                                   f"of N52): with a field from outside the pad it fits this rest at {kept:.2f} mT, a new "
+                                   f"calibration at {cal.rms_mT:.2f} mT; the reading is re-zeroed")
+                    print(self.status, flush=True)
+                    return
+                print(f"a new calibration fits this rest better than the pad's model with a field from outside the pad "
+                      f"({cal.rms_mT:.2f} against {kept:.2f} mT)", flush=True)
+            self.cal, self.rest_ref = cal, b_rest.ravel()
             self.model = W.Model(cal, self.row)
             est = W.SurfaceEstimator(self.model, self.basis, floor_uT=self.floor)
             est.set_noise_scale(1 / np.sqrt(WIN_S * 140))
@@ -267,11 +308,13 @@ class App:
         finally:
             self.cal_lock.release()
 
-    def start_calibration(self, why):
-        """Calibrate in the background after the pad or the board changed, showing no contacts until it is done."""
+    def start_calibration(self, why, keep=False):
+        """Calibrate in the background after the pad or the board changed, showing no contacts until it is done; with
+        keep, the pad's present model is a candidate to keep."""
+        prev = (self.cal, self.model, self.est, self.ff) if keep and self.est is not None else None
         self.est, self.scene_dirty = None, True
         self.status = f"{why}: calibrating, keep the pad untouched for {REST_S:.0f} s"
-        threading.Thread(target=self.calibrate, args=(why,), daemon=True).start()
+        threading.Thread(target=self.calibrate, args=(why, prev), daemon=True).start()
 
     def pole_rows(self, poles):
         """The poles row by row along the finger, tip end first, each row from -y to +y: '+ + / + / - -'."""
@@ -399,10 +442,11 @@ class App:
         if self.auto:
             last = t > t[-1] - self.rz.span_s
             nb = self.rz.update(t[last], self.fields(r[last], r), self.base)
-            ref = np.ravel(self.cal.b_rest_uT)
+            ref = self.rest_ref if self.rest_ref is not None else np.ravel(self.cal.b_rest_uT)
             if nb is not None and np.linalg.norm(nb - ref) > REST_MOVED * np.linalg.norm(ref):
                 # the pad was set down in another place or pose: a new calibration in place of a re-zero
-                self.start_calibration(f"the rest moved {np.linalg.norm(nb - ref) / 1e3:.1f} mT from the calibrated one")
+                self.start_calibration(f"the rest moved {np.linalg.norm(nb - ref) / 1e3:.1f} mT from the calibrated one",
+                                       keep=True)
                 return dict(type="status", status=self.status)
             if nb is not None:
                 d = d + self.base - nb
@@ -548,6 +592,9 @@ def main():
     ap.add_argument("--foreign-gate", action="store_true", help="show no contact when a field from outside the pad (steel, "
                                                                 "a magnet) explains the reading better (key f)")
     ap.add_argument("--foreign-lambda", type=float, default=25.0, help="chi-square margin of that test")
+    ap.add_argument("--calib", default=None, help="a saved calibration (logs/20261020-contact_estimation/calib/*.json) to "
+                    "start from: kept when, with a field from outside the pad, it fits the rest at start at least as well "
+                    "as a new calibration")
     ap.add_argument("--correction", default=None, help="a UR5 session's data folder (holds.npz, calib_rest.json): its GP "
                     "correction of the physical estimate, on from the start; key g turns it off and on")
     ap.add_argument("--thermal", default=str(W.THERMAL), help="the chips' temperature coefficients (study thermal)")
@@ -559,7 +606,8 @@ def main():
     ap.add_argument("--no-log", action="store_true", help="do not write the stream log")
     a = ap.parse_args()
     app = App(a)
-    threading.Thread(target=app.calibrate, daemon=True).start()
+    prev = app.saved_model(a.calib) if a.calib else None
+    threading.Thread(target=app.calibrate, kwargs=dict(prev=prev), daemon=True).start()
     web_app = web.Application()
     web_app["app"] = app
     web_app.router.add_get("/", index)
