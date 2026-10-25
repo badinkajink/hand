@@ -813,9 +813,15 @@ push that answers it arrives.
       that far before the expected surface. A push over 0.3 N on the way sends the tool back to the rest pose, and the
       approach then runs slowly from there, as before.
     - `turn_v` sets the turns' speed in contact (default 0.004, as before).
-    - Put `"speed": 2.0, "fast_v": 0.005, "slow_mm_touch": 1.5, "slow_mm_press": 0.5` in every cb2t plan, and leave
-      `turn_v` out unless the owner asks. Motions in contact do not change. Pass 1's onsets came within 0.84 mm of the
-      expected on cb1r, so 1.5 mm leaves at least 0.66 mm of slow travel before contact.
+    - Put `"speed": 2.0, "fast_v": 0.005, "slow_mm_touch": 1.5, "slow_mm_press": 0.5, "turn_v": 0.016` in every cb2t
+      plan. The owner, 13:2x: "we should add the rolls, twists, slides speedup in addition to the current speed. we can
+      save that for id2". On the CB3 the turns' speed acts as rad/s, so rolls, twists and slides turn at about 0.9 deg/s
+      instead of 0.23 deg/s, and a turn hold takes about 7 s instead of 25 s. Presses and holds do not change. Pass 1's
+      onsets came within 0.84 mm of the expected on cb1r, so 1.5 mm leaves at least 0.66 mm of slow travel before
+      contact.
+  - The owner, 13:2x: "we can afford to drop pass 2 right? it was just a repeat of friday's run?". cb1r drops pass 2b
+    (its grid, rolls and twists repeat cb1t's). Pass 2a's offset touch-offs and registration stay, because pass 3 runs on
+    that registration. After pass 3 and 3b the lab homes the robot for the swap.
     - At cb1t's timings a touch-off takes about 65 s instead of 142 s, and a press about 39 s instead of 54 s. The 31
       touch-offs of passes 1 and 2a then take about 35 min instead of 73.
     - In the simulator, 19 touch-offs took 18.7 s each against 43.1 s (median). The registration fitted at 0.013 against
