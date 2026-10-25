@@ -775,6 +775,32 @@ push that answers it arrives.
   - The session's name is the lab's choice; its notes record v1 ID 2. The workstation analyses it as cb1t, scores
     cb1t's predictors on it, and compares the series compliance with cb1t's 0.188 mm/N to measure v6's effect on the
     bending.
+  - The owner's go, 10-25 at about 11:55 (workstation chat): "i give my approval for all the current and subsequent
+    passes". Passes 1, 2a, 2b and 3 run one after another, each after its clearance check and simulation, with no
+    further go. Actions that a check drops need no go either.
+  - Pass 3, after pass 2b. The owner asked for "a very comprehensive, dialed in test ... registration, touchoffs, grid,
+    roll/twists, and more wrench calibration at the end of all this". On the viewer, the owner sees contact detection
+    "pretty good on the fingertip's right side, but pretty bad on the left", and "the contact direction is in general
+    pretty noisy". The plan is `lab/20261025-plan_sphere_lab_r24_pass3.json`, written by
+    `scripts/ur5_tip_calibration_r24_pass3.py`. Its stages are grid, shear, twist and final, with 31 actions:
+    - 24 twin presses, `twin-NNN-tT`. Each is the mirror about y = 0 of a builder grid target whose mirror had no
+      target within 1 mm. A twin keeps the original's levels and takes the first turn about the vertical that clears
+      (0, +30, -30, +60, -60 deg). The builder's grid has 30 targets at y < -1.5 mm and 19 at y > 1.5 mm; with the
+      twins both sides are pressed alike.
+    - 3 slides: shear-0-1N, shear-0-2N and shear-3-1N. Each slides the pad over the sphere in the builder's eight
+      directions at 0.1, 0.2 and 0.3 mm, without the slip steps of 0.5 and 1 mm. With the slip steps, six of the seven
+      slides fell under the margins on v6; without them, four still do. No slide has run on the robot yet, so simulate
+      them, run shear-0-1N first, and look at its HEX-E tangential force before running the other two. The presses
+      carry 0.1 to 0.45 N of shear, so the slides give the shear calibration that the force direction needs.
+    - 3 twists at 5 N at pass 2's face points 0, 2 and 3: one side, out and back at 5, 10 and 15 deg, with 1 s holds.
+      On cb1t the torsion at 2.5 N, half the difference between the way out and the way back, was 3 to 10 N mm.
+    - final-ref.
+  - Workstation check with `UR5_MOUNT=v6` and cb1t's registration (`scripts/ur5_tip_calibration_check.py --clearance`):
+    every kept action clears the mount by 3.0 mm, the finger by 0.8 mm and the HEX-E by 6 mm. Joint 6 was not checked.
+    Drop the actions above +60 deg, as in R22, and redo the clearance check with ID 2's registration. With cb1t's
+    timings (70 s a grid press, 2.8 min a twist, about 25 s a turn hold), pass 3 takes about 75 minutes.
+  - The workstation compares each twin's errors with its original's at the same levels, and trains the force estimate
+    on the presses and the slides.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
