@@ -58,6 +58,7 @@ HERE = Path(__file__).resolve().parent
 PLAN_VERSION = 1
 G = 9.80665
 EZ = np.array([0.0, 0.0, 1.0])
+FAST_STOP_N = 0.3                   # N of push that ends a fast approach early (the simulator's HEX-E noise reached 0.16 N over 8 samples)
 
 
 # ------------------------------------------------------------------------------------------- rigid motions (mm, rad)
@@ -983,7 +984,7 @@ class Session:
         p = apply(inv(self.reg.T_BI), T[:3, 3])
         return np.all(np.abs(p[:2]) < self.safety["box_mm"]) and -20.0 < p[2] < self.safety["box_mm"]
 
-    def goto(self, T, v=0.02, a=0.2, joint=False):
+    def goto(self, T, v=0.02, a=0.2, joint=False, jv=0.4, ja=0.6):
         if not self.in_box(T):
             raise Abort("target outside the box around the indenter")
         _, w0 = self.be.ft.ring.latest()
@@ -993,7 +994,7 @@ class Session:
             if q is None:
                 raise Abort("no IK solution")
             self.check_wrist(q, target=True)
-            self.be.robot.moveJ(q, 0.4, 0.6, asynchronous=True)
+            self.be.robot.moveJ(q, jv, ja, asynchronous=True)
         else:
             self.be.robot.moveL(T, v, a, asynchronous=True)
         t0 = self.now()
@@ -1034,21 +1035,24 @@ class Session:
         """From wherever the tool is to T_target near the indenter, as the plan checked it: up 10 mm, across, down; or,
         when the tool turns more than travel.turn_deg or moves more than travel.far_mm, up until the pad is travel.lift_mm
         above the indenter's top, across (in joint space when the turn exceeds travel.joint_deg), down."""
-        cfg = dict(turn_deg=20.0, far_mm=60.0, lift_mm=60.0, joint_deg=45.0)
+        cfg = dict(turn_deg=20.0, far_mm=60.0, lift_mm=60.0, joint_deg=45.0, speed=1.0)
         cfg.update(self.plan.get("travel", {}))
+        k = float(cfg["speed"])             # travel.speed scales the moves' speeds and accelerations (joints at most 1.5x)
+        kj = min(k, 1.5)
         Tc = self.be.robot.pose()
         mm, deg = pose_error(Tc, T_target)
         if mm < 1e-3 and deg < 1e-3:
             return
         if deg > cfg["turn_deg"] or mm > cfg["far_mm"]:
-            self.goto(self.lifted(Tc, cfg["lift_mm"]), 0.03)
-            self.goto(self.lifted(T_target, cfg["lift_mm"]), 0.03, joint=deg > cfg["joint_deg"])
-            self.goto(self.lifted(T_target, 0.0), 0.02)
+            self.goto(self.lifted(Tc, cfg["lift_mm"]), 0.03 * k, 0.2 * k)
+            self.goto(self.lifted(T_target, cfg["lift_mm"]), 0.03 * k, 0.2 * k, joint=deg > cfg["joint_deg"], jv=0.4 * kj,
+                      ja=0.6 * kj)
+            self.goto(self.lifted(T_target, 0.0), 0.02 * k, 0.2 * k)
         else:
             up = self.reg.T_BI[:3, :3] @ EZ
-            self.goto(Tm(Tc[:3, :3], Tc[:3, 3] + up * 10.0), 0.02)
-            self.goto(Tm(T_target[:3, :3], T_target[:3, 3] + up * 10.0), 0.02)
-        self.goto(T_target, 0.01)
+            self.goto(Tm(Tc[:3, :3], Tc[:3, 3] + up * 10.0), 0.02 * k, 0.2 * k)
+            self.goto(Tm(T_target[:3, :3], T_target[:3, 3] + up * 10.0), 0.02 * k, 0.2 * k)
+        self.goto(T_target, 0.01 * k, 0.2 * k)
 
     def target_pose(self, a, standoff):
         """(flange pose at the action's rest, approach direction) for a plan action."""
@@ -1063,9 +1067,12 @@ class Session:
         return self.T_BE_for(T_IP), self.approach_dir()
 
     # ---------------------------------------------------------------- the press primitive
-    def press(self, a, T_rest, d_B, levels=(), stop_N=0.5, max_mm=3.0, v=0.0005, hold_s=0.6, rest_s=0.5, keep=False):
+    def press(self, a, T_rest, d_B, levels=(), stop_N=0.5, max_mm=3.0, v=0.0005, hold_s=0.6, rest_s=0.5, keep=False,
+              fast_mm=0.0, v_fast=0.005):
         """From T_rest along d_B at v (m/s) until the push passes each level (hold there), or stop_N, or max_mm; then
-        back to T_rest (unless keep, which leaves the pad pressed). Returns the record of times."""
+        back to T_rest (unless keep, which leaves the pad pressed). With fast_mm, the first fast_mm of free travel go at
+        v_fast, and the slow approach (t_move0) starts there; a push over FAST_STOP_N on the way sends the tool back to
+        T_rest, and the whole approach then runs at v. Returns the record of times."""
         rec = dict(id=a["id"], levels=[], t_rest0=None)
         tare_v, _, _ = self.mean_ft(rest_s)
         rec["t_rest0"] = [self.now() - rest_s, self.now()]
@@ -1076,6 +1083,8 @@ class Session:
         if not lv or stop_N > lv[-1] + 1e-9:
             lv.append(float(stop_N))
         k = 0
+        if fast_mm > 0.0:
+            rec["fast"] = self.fast_approach(T_rest, d_B, fast_mm, v_fast, tare_v)
         t_start = self.now()
         rec["t_move0"] = t_start
         self.be.robot.moveL(T_end, v, 0.05, asynchronous=True)
@@ -1116,6 +1125,47 @@ class Session:
         rec["t_rest1"] = [t0, self.now()]
         return rec
 
+    def fast_approach(self, T_rest, d_B, fast_mm, v_fast, tare_v):
+        """The free travel from T_rest to fast_mm along d_B at v_fast (m/s), watching the push (2026-10-25: the touch-offs
+        crossed 5 mm of air at 0.05 mm/s, two minutes each). Returns the record."""
+        R_BE = T_rest[:3, :3]
+        T_f = Tm(R_BE, T_rest[:3, 3] + d_B * fast_mm)
+        out = dict(mm=float(fast_mm), v=float(v_fast), t=[self.now(), None], contact=False)
+        f_hist = deque(maxlen=8)
+        self.be.robot.moveL(T_f, v_fast, 0.1, asynchronous=True)
+        t0 = self.now()
+        while True:
+            self.sleep(0.004)
+            self.check_ft(tare_v)
+            _, val = self.be.ft.ring.latest()
+            f_hist.append(self.push_force(val, tare_v, d_B, R_BE))
+            if float(np.mean(f_hist)) > FAST_STOP_N:
+                self.be.robot.stopL(0.5)
+                self.wait_steady()
+                self.be.robot.moveL(T_rest, 0.002, 0.05)
+                out["contact"] = True
+                print(f"  contact before the slow approach ({float(np.mean(f_hist)):.2f} N): back to the rest pose, "
+                      "the approach at its slow speed", flush=True)
+                break
+            if self.be.robot.steady() and pose_error(self.be.robot.pose(), T_f)[0] < 0.02:
+                break
+            if self.now() - t0 > 10.0 + fast_mm / (v_fast * 1e3):
+                self.be.robot.stopL(0.5)
+                raise Abort("the fast approach did not end")
+        self.wait_steady()
+        out["t"][1] = self.now()
+        return out
+
+    def fast_mm(self, a, standoff, kind):
+        """(mm of the standoff crossed fast, its speed m/s) from the plan's travel block: slow_mm_touch or slow_mm_press
+        is the distance before the expected surface where the slow approach starts. Without them, (0, -): the whole
+        standoff at the slow speed, as before 2026-10-25."""
+        cfg = self.plan.get("travel", {})
+        slow = cfg.get("slow_mm_touch" if kind == "touch" else "slow_mm_press")
+        if slow is None:
+            return 0.0, 0.005
+        return max(0.0, float(standoff) - float(slow)), float(cfg.get("fast_v", 0.005))
+
     def hold(self, dur, tare_v):
         t0 = self.now()
         while self.now() - t0 < dur:
@@ -1141,7 +1191,8 @@ class Session:
         for d in degs:
             n = max(1, int(math.ceil(abs(d - cur) / step_deg)))
             path = [turn_about(T0, centre_B, axis_B, cur + (d - cur) * j / n) for j in range(1, n + 1)]
-            self.be.robot.moveL_path(path, 0.004, 0.05, 0.0002, asynchronous=True)
+            self.be.robot.moveL_path(path, float(self.plan.get("travel", {}).get("turn_v", 0.004)), 0.05, 0.0002,
+                                     asynchronous=True)       # travel.turn_v: on the CB3 the turn's rad/s, 0.23 deg/s
             t_m = self.now()
             self.sleep(0.05)
             while not self.be.robot.steady() or (self.now() - t_m < 0.2 and pose_error(self.be.robot.pose(), path[-1])[0] > 0.05):
@@ -1370,8 +1421,10 @@ class Session:
         st = float(a.get("standoff", 1.5))
         T_rest, d = self.target_pose(a, st)
         self.travel(T_rest)
+        fm, fv = self.fast_mm(a, st, "touch")
         rec = self.press(a, T_rest, d, levels=(), stop_N=float(a.get("stop_N", 0.5)),
-                         max_mm=st + float(a.get("beyond_mm", 1.2)), v=float(a.get("v", 0.00015)), hold_s=0.0, rest_s=0.5)
+                         max_mm=st + float(a.get("beyond_mm", 1.2)), v=float(a.get("v", 0.00015)), hold_s=0.0, rest_s=0.5,
+                         fast_mm=fm, v_fast=fv)
         if self.dry:                                             # no contact by design: the approach is the record
             return rec
         t0, t1 = rec["t_move0"], rec["t_stop"]
@@ -1543,9 +1596,10 @@ class Session:
     def grid_press(self, a):
         T_rest, d = self.target_pose(a, float(a.get("standoff", 1.5)))
         self.travel(T_rest)
+        fm, fv = self.fast_mm(a, float(a.get("standoff", 1.5)), "press")
         r = self.press(a, T_rest, d, levels=a.get("levels", (0.25, 0.5, 1.0, 2.0)), stop_N=a.get("stop_N", max(a.get("levels", [2.0]))),
                        max_mm=float(a.get("standoff", 1.5)) + float(a.get("max_depth_mm", 2.5)), v=float(a.get("v", 0.0005)),
-                       hold_s=float(a.get("hold_s", 0.6)))
+                       hold_s=float(a.get("hold_s", 0.6)), fast_mm=fm, v_fast=fv)
         r["T_rest"] = T_rest
         return r
 
@@ -1570,7 +1624,9 @@ class Session:
         st = float(a.get("standoff", 1.5))
         T_rest, d = self.target_pose(a, st)
         self.travel(T_rest)
-        r = self.press(a, T_rest, d, levels=(a["press_N"],), stop_N=a["press_N"], max_mm=st + 3.0, v=0.0004, hold_s=0.5, keep=True)
+        fm, fv = self.fast_mm(a, st, "press")
+        r = self.press(a, T_rest, d, levels=(a["press_N"],), stop_N=a["press_N"], max_mm=st + 3.0, v=0.0004, hold_s=0.5, keep=True,
+                       fast_mm=fm, v_fast=fv)
         I = self.reg.T_BI
         c_B = apply(I, self.geo.c_I)
         top_B = apply(I, self.geo.c_I + self.geo.R * EZ)
