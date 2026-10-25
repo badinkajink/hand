@@ -1,0 +1,37 @@
+resumed logs/20261025-tip_calibration/114653-cb1r: 34 actions done, 31 touches
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 361 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0397 0.     0.2252 0.0032 0.0038 0.0012]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.384 kg at [0.0, -0.5, 32.5] mm from the flange
+== grid
+  twin-014-t+0 (1/18): to 5.00 N
+  twin-024-t+0 (2/18): to 5.00 N
+  twin-037-t+0 (3/18): to 3.00 N
+  twin-041-t+0 (4/18): to 3.00 N
+  twin-050-t+0 (5/18): to 3.00 N
+  twin-051-t+0 (6/18): to 3.00 N
+  twin-006-t+10 (7/18): to 5.00 N
+  twin-007-t+10 (8/18): to 5.00 N
+  twin-008-t+10 (9/18): to 5.00 N
+  twin-027-t+10 (10/18): to 5.00 N
+  twin-028-t+10 (11/18): to 5.00 N
+  twin-043-t+15 (12/18): to 3.00 N
+  twin-047-t+10 (13/18): to 3.00 N
+  twin-062-t+15 (14/18): to 2.00 N
+  twin-063-t+15 (15/18): to 2.00 N
+  twin-064-t+15 (16/18): to 2.00 N
+  twin-065-t+15 (17/18): to 2.00 N
+  twin-066-t+15 (18/18): to 2.00 N
+== shear
+  shear-0-2N (2/3): to 2.00 N
+  shear-3-1N (3/3): to 1.00 N
+== twist
+  twist-0-5.0N (1/3): to 5.00 N
+  twist-2-5.0N (2/3): to 5.00 N
+  twist-3-5.0N (3/3): to 5.00 N
+== final
+  final-ref-p3 (1/1): to 2.00 N
+HEX-E: 215289 samples, 0 timed out, 0 late datagrams dropped, 0 gaps over 0.5 s
+session in logs/20261025-tip_calibration/114653-cb1r
+exit 0 at 14:07:48

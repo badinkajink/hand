@@ -553,6 +553,39 @@ the lab session ("go") at about 15:36.
     quiet 2 s window every Fy sample sat on one level. sph3t and cb1t show the same steps, so this is the sensor's
     resolution and not a fault. The tangential forces of the slides come from 0.1 N steps; only means over the holds,
     smoothed by the noise, resolve finer.
+- 14:07:48, passes 3 and 3b ended (exit 0): every action ok, no abort. The HEX-E gave 215,289 samples, none timed out,
+  with no gap.
+
+### 14:06 to 15:0x, cb1r: pass 4, the rate test, on the new program
+
+- Pass 4 (`lab/20261025-plan_sphere_lab_r24_pass4_cb1r.json`) is the first run of the new program (cea8b477, ba5de833).
+  It was simulated with pass 2a's registration twice: once in the plan's stage order, then in the run's order (twist,
+  roll, shear, grid, final). No action aborted. The cell check on v3 was clean: mount ≥ 3.5 mm, finger ≥ 2.7 mm,
+  HEX-E ≥ 34.1 mm, joint 5 39.9 to 70.8 deg. The 2 mm/s presses peaked at 2.51 to 2.71 N in the simulator.
+- 14:17:58 to 14:52:13, pass 4 on the robot: 28 of 29 actions ok. The HEX-E gave 204,892 samples, none timed out, with
+  no gap.
+  - Every fast approach crossed its 1.0 mm of air without meeting the pad early.
+  - The presses to 2 N peaked at 2.20 to 2.46 N at the 0.15 mm/s setting, 2.22 to 2.34 N at 0.5 mm/s and 2.47 to
+    2.57 N at 2 mm/s.
+  - roll-0-tv004 aborted at 14:33:52 without contact: "the fast approach did not end". The arm had reached its
+    target. The loop waited for a pose within 0.02 mm, but the CB3 settles about 0.03 mm away and its reported pose
+    jitters by about 0.025 mm. The 8 approaches before it had waited 0.4 to 1.4 s for a lucky sample.
+  - The fix (207bd7c8): the approach ends when the arm is steady after 0.2 s, as the travel and the turns already do.
+    The simulator reports the commanded pose exactly, so it could not show the failure.
+- **The pendant's speed slider is at 30 %.** move_guarded read 0.30 from the controller at 14:13, and the arm's own
+  data agree.
+  - The presses' air crossings ran at 0.30 of their set speed in sphere2 (10-22), rod1 (10-23) and cb1r. Pass 4's
+    fast approach, set to 5 mm/s, peaked at 1.6 mm/s.
+  - So every speed in every session so far ran at 0.3 times the plan's value. The grid presses ran at 0.15 mm/s, the
+    touch-offs at 0.045 mm/s, and the turns at 0.07 deg/s for turn_v 0.004.
+  - Pass 4's rates are therefore 0.045, 0.15 and 0.6 mm/s for the presses, and 0.07, 0.28 and 0.69 deg/s for the
+    turns.
+  - The analysis should take speeds from robot.bin, not from the plans.
+- 14:53:10 to 14:57:05, roll-0-tv004 again on the fixed program (`--resume`, stages preflight and roll): ok, its fast
+  approach 1.42 s. The HEX-E's one gap (0.6 s) came at the start, before the preflight, as at 13:22. All 29 actions of
+  pass 4 are now ok, and cb1r is done.
+- The session is in `lab/20261025-114653-cb1r/`: the small files, each run's printout and plan (`printout_resume_HHMM`,
+  `plan_resume_HHMM`), then the streams in a separate commit.
 
 ## The lab clone and git-lfs
 
