@@ -829,6 +829,12 @@ push that answers it arrives.
     Rate then varies at a fixed point, force and angle. In the simulator the press at 2 mm/s peaked at 2.46 N against
     2.20 N at 0.15 mm/s, and every action ended ok. On the robot the set takes about 22 min, most of it the four turns
     at 0.23 deg/s.
+  - Mount v7 for ID 2, if the owner chooses it over v6 (13:4x: "i might also be able to get id 2 on the v7 dip link
+    fork"). The cell model takes `UR5_MOUNT=v7`. With cb1t's registration as the stand-in, pass 1's and pass 2's
+    closest actions are pad-face-07 at 2.68 mm and pad-face-11 at 2.70 mm (v6: 2.66 and 2.70). Both stay under the
+    touch-off margin of 2.5 mm, and every press and turn of passes 2 and 3 clears 3.0 mm (pass 3 at least 3.39 mm). v7's
+    fork is 5.9 % larger by volume than v6's (97,621 against 92,179 mm3), about 3.8 g at v6's 63.7 g, so set the payload
+    to 0.403 kg at 34.3 mm, or weigh the fork. The link seats where v6's does, so the frames do not change.
   - The owner, 13:2x: "we can afford to drop pass 2 right? it was just a repeat of friday's run?". cb1r drops pass 2b
     (its grid, rolls and twists repeat cb1t's). Pass 2a's offset touch-offs and registration stay, because pass 3 runs on
     that registration. After pass 3 and 3b the lab homes the robot for the swap.
