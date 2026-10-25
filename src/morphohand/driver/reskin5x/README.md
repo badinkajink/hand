@@ -18,7 +18,9 @@ and builds with `RESKIN5X_FQBN=esp32:esp32:adafruit_qtpy_esp32s3_nopsram`; an im
   record of 80 bytes a board plus `\r\n` per sweep (section on three boards).
 - `host/reskin5x_mux.py`: splits that stream into one 82-byte stream a board, each on a pseudo-terminal linked at
   `/tmp/reskin5x_mux/ch<channel>` that `host/wrench_viewer.py --port` reads, and logs all boards; `host/reskin5x_mux_check.py`
-  gives a log's record rate, each chip's noise and the boards' separation.
+  gives a log's record rate, each chip's noise and the boards' separation, `host/reskin5x_mux_rest.py` each board's rest
+  over time (split into a uniform field and the rest of the change), and `host/reskin5x_mux_soak.py` the viewer's frames
+  replayed over fingers left at rest.
 - `firmware/bench_three_board_sweep/`, `firmware/bench_conversion_period/`: timing sketches behind the numbers in the
   sections on rates and on three boards; they print `STAT`, `CONV` and `NACK` lines. Build and upload one with
   `RESKIN5X_SKETCH=<name> host/flash.sh`, and put `reskin5x_stream` back afterwards.
