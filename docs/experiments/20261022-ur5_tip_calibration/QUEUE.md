@@ -775,7 +775,7 @@ push that answers it arrives.
   - The session's name is the lab's choice; its notes record v1 ID 2. The workstation analyses it as cb1t, scores
     cb1t's predictors on it, and compares the series compliance with cb1t's 0.188 mm/N to measure v6's effect on the
     bending.
-  - The owner's go, 10-25 at about 11:55 (workstation chat): "i give my approval for all the current and subsequent
+  - The owner's go, 10-25 by 11:41 (workstation chat): "i give my approval for all the current and subsequent
     passes". Passes 1, 2a, 2b and 3 run one after another, each after its clearance check and simulation, with no
     further go. Actions that a check drops need no go either.
   - Pass 3, after pass 2b. The owner asked for "a very comprehensive, dialed in test ... registration, touchoffs, grid,
