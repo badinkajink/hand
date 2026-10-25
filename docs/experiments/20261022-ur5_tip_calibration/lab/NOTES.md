@@ -587,6 +587,38 @@ the lab session ("go") at about 15:36.
 - The session is in `lab/20261025-114653-cb1r/`: the small files, each run's printout and plan (`printout_resume_HHMM`,
   `plan_resume_HHMM`), then the streams in a separate commit.
 
+## 2026-10-25 evening: R24 on v1 ID 2 (cb2t), mount v7, unattended
+
+### 15:0x to 15:29, prepared
+
+- The owner mounted ID 2 on mount v7. Its board, a QT Py ESP32-S3 (MAC b4:3a:45:b0:9c:d0), still ran the mux firmware
+  and sent only "[ERROR] no I2C mux at 0x70 to 0x77 on the STEMMA QT port".
+- Reflashed here with `reskin5x_stream` through `host/flash.sh`: arduino-cli 1.1.1 in `~/.local/bin`, the esp32 core
+  3.3.2 as on the workstation, and the eFlesh submodule initialised. The board then streamed 376 records/s of 80 bytes,
+  with no zero records.
+- Plans:
+  - passes 1 and 2a from R22's (1ed52366); pass 2b from R22's pass 2 (d97834a3);
+  - passes 3 and 5 from the workstation (b43e752d);
+  - all with v7's payload (0.403 kg at 34.3 mm) and the travel block; 2b, 3 and 5 with `speed_slider` 0.30.
+- Checked on v7 with cb1t's registration:
+  - passes 1 and 2a clear the mount by 3.48 mm and the finger by 1.15 mm;
+  - passes 2b, 3 and 5 clear the mount by 3.14 mm and the finger by 1.42 mm;
+  - three actions reach joint 6 at −65.4 to −65.8 deg: grid-052, and twin-067-t+15 with its slides.
+- Passes 1 and 2a, simulated from cb1t's registration on 207bd7c8: no abort, and the cell check on v7 clean.
+- The owner's go came at 15:2x: "be thorough, get these variable speeds on the presses and rotational movements, and
+  lets get as good a sensor as possible!" The owner left at 15:3x, after the first two touch-offs.
+
+### 15:29:20 to 15:48:19, cb2t pass 1
+
+- 19 touch-offs, no abort. Onsets came −0.77 to +0.49 mm from the expected (median −0.39 mm); the fast part of every
+  approach ended before contact.
+- The registration fit at 0.051 mm rms. The TCP moved 1.43 mm and 1.93 deg; the sphere's centre moved 0.67 mm.
+- The HEX-E gave 113,303 samples, none timed out, with no gap.
+- Pass 2a, rechecked with this registration, clears the mount by 3.16 mm and the finger by 1.20 mm, with every joint
+  inside its window. In the simulator nothing aborted, and the cell check was clean: mount ≥ 4.1 mm, finger ≥ 2.0 mm.
+
+### 15:52:48, cb2t pass 2a (the 12 offset touch-offs)
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
