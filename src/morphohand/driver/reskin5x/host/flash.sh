@@ -5,6 +5,8 @@
 #   host/flash.sh PORT       compile, then upload to PORT
 #   host/flash.sh build      compile only
 #   RESKIN5X_SKETCH=bench_three_board_sweep host/flash.sh    build and upload another sketch under firmware/
+#   RESKIN5X_FQBN=esp32:esp32:sparkfun_esp32c6_thing_plus RESKIN5X_SKETCH=reskin5x_mux_stream host/flash.sh PORT
+#                            the mux firmware on a SparkFun Thing Plus ESP32-C6
 # Uses arduino-cli (on PATH, $ARDUINO_CLI, or the copy inside the Arduino IDE 2 flatpak), the esp32:esp32 core in
 # ~/.arduino15, and the MLX90393 library of the external/eFlesh submodule. A board in the ROM bootloader (BOOT held while
 # RESET is pressed; USB 303a:1001) is flashed without the 1200-baud touch, which would reset it out of the bootloader.
@@ -23,7 +25,7 @@ if [ ! -f "$LIB/MLX90393.h" ]; then
 fi
 
 SKETCH=${RESKIN5X_SKETCH:-reskin5x_stream}
-BUILD=$BUILD/$SKETCH
+BUILD=$BUILD/$SKETCH-${FQBN##*:}
 "$CLI" compile --fqbn "$FQBN" --library "$LIB" --jobs 4 --build-path "$BUILD" "$HERE/firmware/$SKETCH"
 [ "${1:-}" = build ] && exit 0
 
@@ -37,7 +39,12 @@ if [ $ROM = 0 ]; then
 fi
 "$CLI" upload -p "$PORT" --fqbn "$FQBN" --input-dir "$BUILD" \
   --upload-property upload.use_1200bps_touch=false --upload-property upload.wait_for_upload_port=false
-# The RTS reset after the upload re-enters the ROM bootloader, whose BOOT strap stays latched; a watchdog reset boots the app.
-ET=$(find ~/.arduino15/packages/esp32/tools/esptool_py -maxdepth 2 -type f -name esptool -perm -u+x | sort -V | tail -1)
-sleep 1
-"$ET" --chip esp32s3 --port "$PORT" --before no-reset --after watchdog-reset read-mac
+# On the QT Py the RTS reset after the upload re-enters the ROM bootloader, whose BOOT strap stays latched; a watchdog reset
+# boots the app. The ESP32-C6's USB serial unit is 303a:1001 in its app too, so it always takes this path, and its reset
+# after the upload boots the app.
+case "$FQBN" in
+  *esp32s3*)
+    ET=$(find ~/.arduino15/packages/esp32/tools/esptool_py -maxdepth 2 -type f -name esptool -perm -u+x | sort -V | tail -1)
+    sleep 1
+    "$ET" --chip esp32s3 --port "$PORT" --before no-reset --after watchdog-reset read-mac ;;
+esac

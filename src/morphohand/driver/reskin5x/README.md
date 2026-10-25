@@ -119,6 +119,18 @@ and the re-zeros took up 7.7 to 13.0 µT of drift.
 
 Start the viewers at least a second apart: each names its stream log by the second it starts.
 
+The same firmware runs on a SparkFun Thing Plus ESP32-C6, whose Qwiic connector is `Wire` on GPIO6 and GPIO7, a bus it
+shares with the board's LiPo fuel gauge at 0x36 (2026-10-25). Its mux answered at 0x71. With one finger on channel 0 it
+streams 537 records/s in the one-board format, so `host/wrench_viewer.py --port` reads its port with no splitter. The
+noise per conversion is 1.88 µT on x and y and 2.89 µT on z, as on the QT Py. Its USB serial unit enumerates as
+303a:1001 in the app as well, and `host/flash.sh` uploads to it without the 1200-baud touch:
+
+    RESKIN5X_FQBN=esp32:esp32:sparkfun_esp32c6_thing_plus RESKIN5X_SKETCH=reskin5x_mux_stream \
+        src/morphohand/driver/reskin5x/host/flash.sh /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_<MAC>-if00
+
+The sketch that was on the C6 before, an older port of the one-board stream, took the fuel gauge and the mux for
+magnetometers and crashed on the null bus that `firmware/reskin5x_stream` fixes.
+
 ## Pad on the board
 
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/reskin5x_plot.py

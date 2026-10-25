@@ -1,6 +1,7 @@
 /*
   Several ReSkin 5X boards behind an I2C mux (PCA9548 or TCA9548A, 0x70 to 0x77) on the STEMMA QT port of an Adafruit
-  QT Py ESP32-S3, streamed as one record per sweep (owner, 2026-10-25: three fingers on mux channels 0, 1 and 3).
+  QT Py ESP32-S3 or the Qwiic port of a SparkFun Thing Plus ESP32-C6, streamed as one record per sweep (owner,
+  2026-10-25: three fingers on mux channels 0, 1 and 3 of the QT Py; one finger on channel 0 of a mux at 0x71 on the C6).
 
   Every board of this design answers at the same five addresses (U1 at 0x0C, U2 to U5 at 0x10 to 0x13), so each board
   has a mux channel of its own. At start-up the sketch finds the mux, then the chips on each of its eight channels, and
@@ -21,7 +22,15 @@
 #include <Wire.h>
 #include <MLX90393.h>
 
-#define SENSOR_BUS Wire1  // STEMMA QT connector: SDA1 = GPIO41, SCL1 = GPIO40
+#if defined(ARDUINO_ADAFRUIT_QTPY_ESP32S3_N4R2) || defined(ARDUINO_ADAFRUIT_QTPY_ESP32S3_NOPSRAM)
+#define SENSOR_BUS Wire1  // QT Py ESP32-S3: STEMMA QT connector on SDA1 = GPIO41, SCL1 = GPIO40
+#define SENSOR_SDA SDA1
+#define SENSOR_SCL SCL1
+#else
+#define SENSOR_BUS Wire   // SparkFun Thing Plus ESP32-C6 (2026-10-25): Qwiic connector on SDA = GPIO6, SCL = GPIO7, a bus
+#define SENSOR_SDA SDA    // shared with the board's LiPo fuel gauge at 0x36; the variant's SDA and SCL on other boards
+#define SENSOR_SCL SCL
+#endif
 
 static const uint8_t GAIN_SEL = 1;
 static const uint8_t RES_XYZ  = 1;
@@ -55,7 +64,7 @@ bool selectChannel(uint8_t ch) {
 void setup() {
   Serial.begin(115200);
   while (!Serial) { delay(5); }
-  SENSOR_BUS.begin(SDA1, SCL1);
+  SENSOR_BUS.begin(SENSOR_SDA, SENSOR_SCL);
   SENSOR_BUS.setClock(400000);
   delay(10);
 
