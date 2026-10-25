@@ -107,6 +107,12 @@ to 0.01 mm and 0.003 in strength. A faster processor or FreeRTOS tasks would not
 is bus time at the MLX90393's 400 kHz limit, and the conversion sets the rate of new data. A higher rate needs a shorter
 conversion (DIG_FILT 4: 4.0 ms at 1.4 times the noise) and the second I2C controller for part of the boards.
 
+The same day the three fingers were stacked against each other and left for 39 minutes (11:39:30 to 12:18). The stack
+moved the rests by 991, 293 and 210 µT on channels 1, 0 and 3; without a re-zero each would read as an 8 to 11 N contact.
+Replayed through the viewer's logic (`host/reskin5x_mux_soak.py`), no contact was shown at rest in 23,264 frames a finger.
+The change the viewer reads stayed at a median of 4.0 to 4.7 µT and at most 12.3 µT, while the dies cooled 0.8 to 1.4 °C
+and the re-zeros took up 7.7 to 13.0 µT of drift.
+
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/reskin5x_mux.py &
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py --port /tmp/reskin5x_mux/ch0 --http 8790
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/reskin5x_mux_check.py logs/<date>-three_finger_mux/<start>-mux.bin
