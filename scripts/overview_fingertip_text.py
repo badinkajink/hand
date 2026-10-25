@@ -433,7 +433,10 @@ and 0.28&#8202;N, against 3.79&#8202;mm and 0.38&#8202;N on sphere2&#8217;s tip.
 had lowered it. Sphere2&#8217;s offset between the board&#8217;s point and the registered one, 1.4&#8202;mm, is 0.7&#8202;mm in
 another direction on this tip. Trained on 47 of cb1t&#8217;s own presses, the GP reached 0.71&#8202;mm and the MLP
 0.42&#8202;mm ([checkerboard fingertip](exp:20261022-ur5_tip_calibration/20261024-checkerboard_fingertip_on_the_ur5.html),
-Sections 3, 6 and 8).</p>
+Sections 3, 6, 7 and 8). Corrected by a GP whose inputs are its own estimate, trained on the same presses, the physical
+model missed by 0.55&#8202;mm at 2&#8202;N and over. On turn holds at orientations that no press had it missed by
+0.71&#8202;mm, where the GP on the board missed by 1.03&#8202;mm. Below 1&#8202;N the model and its correction both
+fail.</p>
 {{FIG checkerboard}}"""),
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.

@@ -420,6 +420,33 @@ def sections(R, fits, F):
                       caption=f"Each tip's predictors trained on its own presses (sphere2 {lasts['N']}, cb1t {lastc['N']}) "
                               f"and scored on its held-out presses ({s2['PR']['n_test_holds']} and {cb['PR']['n_test_holds']} "
                               "holds). Medians.", n=5))
+    TRc, TRt = R["TR"]["curve"][-1]["B_only"], R["TR"].get("turns")
+    if TRt:
+        ph0, tph = R["TR"]["physical"]["heldout"], TRt["physical"]
+        pg, po, gr = TRc["physical+gp"], TRc["physical+offset"], TRc["gp raw"]
+        tg, to, tr_ = TRt["B_all"]["physical+gp"], TRt["B_all"]["physical+offset"], TRt["B_all"]["gp raw"]
+        lo1 = [v["loc_mm"]["median"] for L, v in pg["by_level"].items() if float(L) <= 1.0]
+        rows6 = [[name, f2(a["loc_mm"]["median"]), f2(a["loc_mm_2N"]), f2(a["force_N"]["median"], 3), f2(b["loc_mm"]["median"]),
+                  f2(b["loc_mm_2N"])]
+                 for name, a, b in (("Physical model from the rest fit", ph0, tph), ("Physical model, offset and gain", po, to),
+                                    ("Physical model and its correction", pg, tg), ("Gaussian process on the board", gr, tr_))]
+        body += (f"<p>At 2 N and over the physical model misses the held-out contacts by {ph0['loc_mm_2N']:.2f} mm. Its correction "
+                 f"is a Gaussian process whose inputs are the model's own estimate, trained on the "
+                 f"{R['TR']['curve'][-1]['N']} presses. Corrected, the model misses by {pg['loc_mm_2N']:.2f} mm, against "
+                 f"{gr['loc_mm_2N']:.2f} mm for the Gaussian process on the board (Table 6). The turn holds have orientations "
+                 f"that no press had. There, at 2 N and over, the corrected model misses by {tg['loc_mm_2N']:.2f} mm and the "
+                 f"Gaussian process on the board by {tr_['loc_mm_2N']:.2f} mm.</p>"
+                 f"<p>Below 2 N the physical model misses by {min(lo1):.1f} to {max(lo1):.1f} mm at 0.25 to 1 N, and the "
+                 f"correction does not bring those points back. Over all levels the corrected model misses by "
+                 f"{pg['loc_mm']['median']:.2f} mm, against {gr['loc_mm']['median']:.2f} mm. A correction of four numbers is "
+                 f"one offset of the contact point and one gain on the force. It misses by {po['loc_mm_2N']:.2f} mm at 2 N and "
+                 f"over, so the physical model's error changes over the pad.</p>"
+                 + P.table(["Predictor", "Held-out presses, location (mm)", "At 2 N and over (mm)", "Force (N)",
+                            "Turn holds, location (mm)", "At 2 N and over (mm)"], rows6, num_cols=(1, 2, 3, 4, 5),
+                           caption=f"The physical model and its corrections on cb1t. Trained on its {R['TR']['curve'][-1]['N']} "
+                                   f"training presses, they are scored on its {R['TR']['n_B_test_holds']} held-out press "
+                                   f"holds. Trained on all its presses, they are scored on its {TRt['n_holds']} turn holds "
+                                   f"(scripts/ur5_tip_calibration_tip_transfer.py). Medians.", n=6))
     S_.append(("own", "Predictors trained on the tip's own presses", body))
 
     # ---- transfer
@@ -444,7 +471,7 @@ def sections(R, fits, F):
     b10, b20 = cur.get(10), cur.get(20)
     mlpc = {r["N"]: r["mlp:board"]["loc_mm"]["median"] for r in cb["PR"]["curve"]}
     body = (f"<p>Trained on sphere2's {TR['n_A_holds']} press holds alone, no learned predictor places cb1t's contacts "
-            f"closer than the physical model's {TR['physical']['heldout']['loc_mm']['median']:.2f} mm (Table 6). On the "
+            f"closer than the physical model's {TR['physical']['heldout']['loc_mm']['median']:.2f} mm (Table 7). On the "
             f"held-out holds the Gaussian process on the board misses by {sc(A_['heldout'], 'gp raw')[0]:.2f} mm. The "
             f"predictors on magnet motions miss by {sc(A_['heldout'], 'gp motions')[0]:.2f} mm (Gaussian process) and "
             f"{sc(A_['heldout'], 'mlp motions')[0]:.2f} mm (MLP ensemble). Sphere2's correction of the physical model "
@@ -468,7 +495,7 @@ def sections(R, fits, F):
                               "sphere2's presses, fine-tuned with cb1t's first N, or trained on cb1t's alone; and the "
                               "simulation's prediction for the pattern (+1, &#8722;1, +1, &#8722;1, +1), which differs "
                               "from cb1t's at the centre magnet (sets E and D of "
-                              "magnet_transfer_sim_ADE.json).", n=6)
+                              "magnet_transfer_sim_ADE.json).", n=7)
             + F["fig"](3, MEDIA / "20261024-cb1t_fine_tuning.png",
                        "Median location error on cb1t's held-out holds against the number of cb1t's training presses: "
                        "trained on sphere2's presses and cb1t's (solid) and on cb1t's alone (dashed)."))

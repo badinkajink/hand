@@ -16,6 +16,8 @@ alone also on all of B's press holds.
                       (contact point, normal force) and whose outputs are the corrections; trained on the holds that the
                       physical estimate placed within 2 mm, so a correction learned on A applies to any tip whose physical
                       model is rebuilt from its rest
+  physical+offset     the physical estimate moved by one constant offset (mm) and its normal force times one gain: four
+                      numbers, fitted by least squares on the same holds as physical+gp
   gp/mlp motions      a Gaussian process or an MLP ensemble from the five magnets' translations (um), solved from the
                       board's change through each session's own field model (translations only, 15 x 15)
 
@@ -40,7 +42,7 @@ sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
 import fingertip_wrench_model as W  # noqa: E402
 import ur5_tip_calibration_predict as PR  # noqa: E402
 
-PRED = ("gp raw", "physical+gp", "gp motions", "mlp motions")
+PRED = ("gp raw", "physical+gp", "physical+offset", "gp motions", "mlp motions")
 FLOOR_EST = np.array([0.2, 0.2, 0.2, 0.05])          # mm, mm, mm, N: the physical estimate's resolution
 
 
@@ -51,9 +53,18 @@ def motions(H, cal):
     return H["d_board"] @ np.linalg.pinv(Jt).T
 
 
+class Holds:
+    """Holds with the viewer's estimate and the magnet motions of each."""
+    def __init__(self, H, cal, phys):
+        self.H, self.cal, self.phys = H, cal, phys
+        self.P, self.F = phys.predict(H, np.arange(len(H["id"])))
+        self.U = motions(H, cal)
+
+
 class Session:
     def __init__(self, folder, basis):
-        self.H, _, self.cal = PR.load(folder)
+        self.H, T, self.cal = PR.load(folder)
+        self.T = T if len(T["id"]) else None                           # turn holds: rolls, twists, slides
         self.folder = str(folder)
         allr = np.arange(len(self.H["id"]))
         self.phys = PR.Physical(self.cal, basis)
@@ -63,6 +74,7 @@ class Session:
         ok = np.all(np.isfinite(self.P), axis=1)
         ok[ok] &= np.linalg.norm(self.H["p"][ok] - self.P[ok], axis=1) < 2.0
         self.near = ok                                                # holds the physical estimate placed within 2 mm
+        self.turns = Holds(self.T, self.cal, self.phys) if self.T is not None else None
 
 
 def train(parts):
@@ -75,13 +87,18 @@ def train(parts):
     m = {"gp raw": PR.GP().fit(D, Y, PR.floors(0)), "gp motions": PR.GP().fit(U, Y, np.full(15, 0.05)),
          "mlp motions": PR.MLP().fit(U, Y, np.full(15, 0.05))}
     m["physical+gp"] = PR.GP(center=True).fit(X, R, FLOOR_EST) if len(X) >= 3 else None
+    m["physical+offset"] = ((R[:, :3].mean(0), float(np.sum((X[:, 3] + R[:, 3]) * X[:, 3]) / np.sum(X[:, 3] ** 2)))
+                            if len(X) >= 1 else None)
     return m
 
 
 def score(m, B, idx, snap):
     out = {}
     for name in PRED:
-        if name == "physical+gp":
+        if name == "physical+offset":
+            b, g = m[name] if m[name] is not None else (np.zeros(3), 1.0)
+            P, F = snap(B.P[idx] + b), g * B.F[idx]
+        elif name == "physical+gp":
             if m[name] is None:
                 P, F = B.P[idx], B.F[idx]
             else:
@@ -94,7 +111,16 @@ def score(m, B, idx, snap):
             Yp = m[name].predict((B.H["d_board"] if name == "gp raw" else B.U)[idx])
             P, F = snap(Yp[:, :3]), Yp[:, 3]
         out[name] = PR.scores(B.H, idx, P, F)
+        out[name]["loc_mm_2N"] = loc_2n(B, idx, P)
     return out
+
+
+def loc_2n(B, idx, P):
+    """Median location error (mm) over the holds of idx at force levels of 2 N and over."""
+    n, dp = B.H["n"][idx], P - B.H["p"][idx]
+    loc = np.linalg.norm(dp - np.sum(dp * n, axis=1)[:, None] * n, axis=1)
+    m = (B.H["level_N"][idx] >= 2.0) & np.isfinite(loc)
+    return float(np.median(loc[m])) if m.any() else None
 
 
 def short(s):
@@ -114,6 +140,8 @@ def run(fa, fb, out, sizes):
                cal_A=dict(k=A.cal.k, poles=list(A.cal.poles), rms_mT=A.cal.rms_mT),
                cal_B=dict(k=B.cal.k, poles=list(B.cal.poles), rms_mT=B.cal.rms_mT),
                physical=dict(heldout=PR.scores(B.H, te, B.P[te], B.F[te]), all=PR.scores(B.H, allB, B.P, B.F)))
+    for part, idx in (("heldout", te), ("all", allB)):
+        res["physical"][part]["loc_mm_2N"] = loc_2n(B, idx, B.P[idx])
     print(f"A {A.folder}: {len(allA)} holds, k {A.cal.k:.3f}, poles {A.cal.poles}; B {B.folder}: {len(allB)} holds, "
           f"k {B.cal.k:.3f}, poles {B.cal.poles}; B held out {len(testB)} presses ({len(te)} holds)", flush=True)
     print(f"  physical on B's rest fit: held out {short(res['physical']['heldout'])}; all {short(res['physical']['all'])}",
@@ -123,6 +151,15 @@ def run(fa, fb, out, sizes):
     for name in PRED:
         print(f"  {name:12s} trained on A: held out {short(res['A_only']['heldout'][name])}; all "
               f"{short(res['A_only']['all'][name])}", flush=True)
+    if B.turns is not None:                       # every press of B trains; scored on B's turn holds, at new orientations
+        tt = np.arange(len(B.turns.H["id"]))
+        res["turns"] = dict(n_holds=int(len(tt)), physical=PR.scores(B.turns.H, tt, B.turns.P, B.turns.F, group="kind"),
+                            B_all=score(train([(B, allB)]), B.turns, tt, snap))
+        res["turns"]["physical"]["loc_mm_2N"] = loc_2n(B.turns, tt, B.turns.P)
+        print(f"  turn holds ({len(tt)}), trained on all of B's presses: physical "
+              f"{res['turns']['physical']['loc_mm']['median']:.2f} / {res['turns']['physical']['loc_mm_2N']:.2f} mm (all / "
+              f">= 2 N); " + "; ".join(f"{k} {v['loc_mm']['median']:.2f} / {v['loc_mm_2N']:.2f}"
+                                      for k, v in res["turns"]["B_all"].items()), flush=True)
     res["curve"] = []
     for N in sorted(set([s for s in sizes if s < len(trainB)] + [len(trainB)])):
         rB = np.nonzero(np.isin(B.H["id"], trainB[:N]))[0]
