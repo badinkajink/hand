@@ -494,6 +494,21 @@ the lab session ("go") at about 15:36.
 - The session folder is `20261023-203938-cb1t/`: the session's files, the streams, every printout, and the plans of
   each resume. The first attempt is `20261023-203123-cb1t/`.
 
+## 2026-10-25: R24, the second checkerboard tip (v1 ID 2) on mount v6
+
+### 10:5x, pass 1 prepared (nothing moved)
+
+- Pulled 88f961d9. v6's CAD is in its folder. The cell model takes `UR5_MOUNT=v6` with the plain
+  `standoff_fork.stl`; the `_i10` to `_i55` forks beside it are not used.
+- Pass 1's plan, `lab/20261025-plan_sphere_lab_r24_pass1.json`, is cb1t's pass 1 with v6's payload (0.399 kg at
+  34.3 mm). Its stages are preflight, homing, pad and register, with no gravity sweep. The session will be `cb2t`.
+- Clearance with `UR5_MOUNT=v6`, cb1t's last registration and the stored seating: pad-face-11 at 2.66 mm and pad-face-07
+  at 2.70 mm from the mount. Both clear the touch-off margin of 2.5 mm (owner, 10-25), so all 19 stay.
+- `check_arm_samples.py --cell` with v6 over cb1t's whole recorded motion (pass 1, 2a and 2b) breaks no rule. The mount
+  stays at least 4.9 mm from the cell at the touch-offs, 4.5 mm in the grid, and 5.6 to 6.0 mm in the turns; the finger
+  stays at least 1.8 mm.
+- Waiting for the owner's go. The board's USB cable is to be taped before the first touch-off.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
