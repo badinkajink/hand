@@ -284,7 +284,9 @@ The firmware sets the gain at GAIN_SEL&#8202;1, RES&#8202;1. That gives 1.20&#82
 \(z\), and a range of 38.4&#8202;mT. This gain is used because b&#8217;s five magnets put 27.5&#8202;mT on the nearest chip,
 and the most sensitive gain covers only 4.8&#8202;mT. At rest the measured noise per sample is 1.54&#8211;1.76&#8202;&#181;T on \(x\) and \(y\) and 2.32&#8211;2.59&#8202;&#181;T on
 \(z\), 1.4 times the datasheet model for this gain. Three fingers&#8217; boards answer at the same addresses and need an
-I&#178;C multiplexer; a sweep of 15 chips takes 6.74&#8202;ms, inside one conversion
+I&#178;C multiplexer. Three fingers on one multiplexer were read together on 2026-10-25 at 152 records a second, so every
+conversion of the 15 chips is read. Each chip&#8217;s noise matched that of the same finger read alone to within 2&#8202;%, and
+the boards&#8217; readings did not correlate (at most 0.031)
 ([magnetometer readout](exp:20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html),
 <code>src/morphohand/driver/reskin5x/README.md</code>).</p>
 {{FIG board}}
