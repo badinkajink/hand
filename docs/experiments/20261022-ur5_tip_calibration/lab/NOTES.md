@@ -617,7 +617,19 @@ the lab session ("go") at about 15:36.
 - Pass 2a, rechecked with this registration, clears the mount by 3.16 mm and the finger by 1.20 mm, with every joint
   inside its window. In the simulator nothing aborted, and the cell check was clean: mount ≥ 4.1 mm, finger ≥ 2.0 mm.
 
-### 15:52:48, cb2t pass 2a (the 12 offset touch-offs)
+### 15:52:48 to 16:08:02, cb2t pass 2a (the 12 offset touch-offs)
+
+- No abort. The registration over all 31 touch-offs fit at 0.046 mm rms. The TCP turned 1.88 deg and moved 0.28 mm, and
+  the sphere's centre moved 0.80 mm. cb1t (1.93 deg) and cb1r (1.62 deg) turned the same way.
+- The HEX-E gave 90,794 samples, none timed out, with no gap.
+- Passes 2b, 3 and 5, rechecked on v7 with this registration, have no action under the margins. The mount clears by at
+  least 3.74 mm, the finger by 1.07 mm and the HEX-E by 30.9 mm.
+- Four actions go past the −65 deg of joint 6 that cb1t's run reached. They were dropped, since the suite runs
+  unattended:
+  - grid-052 in pass 2b, at −65.1 deg;
+  - twin-067-t+15 in pass 3, at −66.1 deg;
+  - its two slides in pass 5, also at −66.1 deg.
+- That leaves 67 actions in pass 2b, 55 in pass 3 and 101 in pass 5.
 
 ## The lab clone and git-lfs
 
