@@ -1147,7 +1147,9 @@ class Session:
                 print(f"  contact before the slow approach ({float(np.mean(f_hist)):.2f} N): back to the rest pose, "
                       "the approach at its slow speed", flush=True)
                 break
-            if self.be.robot.steady() and pose_error(self.be.robot.pose(), T_f)[0] < 0.02:
+            # the CB3 settles about 0.03 mm from T_f and reports its pose with 0.025 mm of jitter: at 0.02 mm roll-0-tv004
+            # waited out the timeout (2026-10-25 14:33). As in goto and the turns, steady after 0.2 s is arrived
+            if self.be.robot.steady() and (self.now() - t0 > 0.2 or pose_error(self.be.robot.pose(), T_f)[0] < 0.1):
                 break
             if self.now() - t0 > 10.0 + fast_mm / (v_fast * 1e3):
                 self.be.robot.stopL(0.5)
