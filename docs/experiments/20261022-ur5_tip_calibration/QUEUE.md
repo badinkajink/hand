@@ -819,6 +819,16 @@ push that answers it arrives.
       instead of 0.23 deg/s, and a turn hold takes about 7 s instead of 25 s. Presses and holds do not change. Pass 1's
       onsets came within 0.84 mm of the expected on cb1r, so 1.5 mm leaves at least 0.66 mm of slow travel before
       contact.
+  - The rate set in cb2t's pass 3 (owner, 13:3x: "id2 should have fast and slow turns (ideally more than two
+    configurations), isn't this what we need to do to have robust contact poses and ideally wrenches?"). An action's own
+    `turn_v` now overrides the plan's. The set has 14 actions:
+    - twist-0 at 2.5 and 5 N, roll-0 and shear-0-1N, each at `turn_v` 0.004 (0.23 deg/s) and 0.04 (2.3 deg/s), beside
+      their copies at the plan's 0.016;
+    - six grid points (grid-000, -009, -015, -023, -032, -043) pressed to 2 N at 0.15 and 2 mm/s, beside the grid's 0.5
+      mm/s.
+    Rate then varies at a fixed point, force and angle. In the simulator the press at 2 mm/s peaked at 2.46 N against
+    2.20 N at 0.15 mm/s, and every action ended ok. On the robot the set takes about 22 min, most of it the four turns
+    at 0.23 deg/s.
   - The owner, 13:2x: "we can afford to drop pass 2 right? it was just a repeat of friday's run?". cb1r drops pass 2b
     (its grid, rolls and twists repeat cb1t's). Pass 2a's offset touch-offs and registration stay, because pass 3 runs on
     that registration. After pass 3 and 3b the lab homes the robot for the swap.

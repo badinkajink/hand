@@ -1191,8 +1191,8 @@ class Session:
         for d in degs:
             n = max(1, int(math.ceil(abs(d - cur) / step_deg)))
             path = [turn_about(T0, centre_B, axis_B, cur + (d - cur) * j / n) for j in range(1, n + 1)]
-            self.be.robot.moveL_path(path, float(self.plan.get("travel", {}).get("turn_v", 0.004)), 0.05, 0.0002,
-                                     asynchronous=True)       # travel.turn_v: on the CB3 the turn's rad/s, 0.23 deg/s
+            tv = float(a.get("turn_v", self.plan.get("travel", {}).get("turn_v", 0.004)))   # the action's own, else the plan's
+            self.be.robot.moveL_path(path, tv, 0.05, 0.0002, asynchronous=True)   # on the CB3 the turn's rad/s: 0.004 = 0.23 deg/s
             t_m = self.now()
             self.sleep(0.05)
             while not self.be.robot.steady() or (self.now() - t_m < 0.2 and pose_error(self.be.robot.pose(), path[-1])[0] > 0.05):

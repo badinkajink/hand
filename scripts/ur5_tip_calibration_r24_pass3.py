@@ -78,6 +78,31 @@ def twins(grid, pts, nrm):
     return out
 
 
+TURN_V = dict(tv004=0.004, tv040=0.04)          # rad/s on the CB3: 0.23 and 2.3 deg/s; cb2t's plans run 0.016 (0.92 deg/s)
+PRESS_V = dict(v015=0.00015, v200=0.002)        # m/s in contact; the grid's presses run 0.0005
+RATE_POINTS = ((8.5, 0.0, 10.9), (8.0, 3.0, 10.9), (8.0, -3.0, 10.9), (8.0, 0.0, 14.5), (6.0, 4.5, 13.0), (6.0, -4.5, 13.0))
+
+
+def rates(pass2, rest):
+    """The rate set (owner, 2026-10-25: "id2 should have fast and slow turns (ideally more than two configurations)"):
+    twist-0 at 2.5 and 5 N, roll-0 and shear-0-1N at two more turn speeds, and six grid presses up to 2 N at two more
+    press speeds, each beside its copy at the plan's own speed, so that the rate is varied at a fixed point, force and
+    angle."""
+    out = []
+    src = {x["id"]: x for x in pass2["actions"]} | {x["id"]: x for x in rest}
+    for aid in ("twist-0-2.5N", "twist-0-5.0N", "roll-0", "shear-0-1N"):
+        for tag, tv in TURN_V.items():
+            out.append(dict(clean(src[aid]), id=f"{aid}-{tag}", turn_v=tv))
+    grid = [x for x in pass2["actions"] if x["stage"] == "grid" and x.get("role") != "ref"]
+    used = set()
+    for q in RATE_POINTS:
+        g = min((x for x in grid if x["id"] not in used), key=lambda x: np.linalg.norm(np.array(x["target"]["p"]) - q))
+        used.add(g["id"])
+        for tag, v in PRESS_V.items():
+            out.append(dict(clean(g), id=f"rate-{g['id'][5:]}-{tag}", v=v, levels=[0.25, 0.5, 1.0, 2.0], stop_N=2.0))
+    return out
+
+
 def joints(geo, reg, a, turn):
     """(least and largest joint 5, least and largest joint 6), deg, over the press's rest and deep poses."""
     tg, st = a["target"], float(a.get("standoff", 1.5))
@@ -100,7 +125,7 @@ def clearance(plan, session, mount):
         pp.write_text(json.dumps(plan))
         env = dict(os.environ, UR5_MOUNT=mount, NUMPY_MADVISE_HUGEPAGE="0")
         subprocess.run([sys.executable, str(ROOT / "scripts/ur5_tip_calibration_check.py"), str(session), "--clearance",
-                        str(pp), "--clearance-stages", "grid,shear,twist,final", "--json", str(out)], env=env, check=True,
+                        str(pp), "--clearance-stages", "grid,shear,roll,twist,final", "--json", str(out)], env=env, check=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         c = json.loads(out.read_text())
     return c["clearance_per_action"], set(c["clearance_under"])
@@ -134,6 +159,7 @@ def run(a):
         t = clean(tw2.get(f"twist-{k}-2.5N") or twf[f"twist-{k}-2.5N"])
         t.update(id=f"twist-{k}-5.0N", press_N=5.0, hold_s=1.0, moves=[dict(degs=[5.0, 10.0, 15.0, 10.0, 5.0])])
         rest.append(t)
+    rest += rates(pass2, rest)
     fr = clean([x for x in pass2["actions"] if x["id"] == "final-ref"][0])
     fr["id"] = "final-ref-p3"                            # pass 2 runs a final-ref in the same session
     rest.append(fr)
