@@ -1,0 +1,81 @@
+resumed logs/20261025-tip_calibration/152920-cb2t: 33 actions done, 31 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0343 0.0466 0.2225 0.003  0.0039 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  ref-00 (1/58): to 2.00 N
+  grid-053 (2/58): to 2.00 N
+  grid-033 (3/58): to 3.00 N
+  grid-032 (4/58): to 3.00 N
+  grid-051 (5/58): to 3.00 N
+  grid-034 (6/58): to 3.00 N
+  grid-031 (7/58): to 3.00 N
+  grid-035 (8/58): to 3.00 N
+  grid-036 (9/58): to 3.00 N
+  grid-030 (10/58): to 3.00 N
+  grid-029 (11/58): to 5.00 N
+  grid-009 (12/58): to 5.00 N
+  grid-013 (13/58): to 5.00 N
+  ref-01 (14/58): to 2.00 N
+  grid-012 (15/58): to 5.00 N
+  grid-008 (16/58): to 5.00 N
+  grid-011 (17/58): to 5.00 N
+  grid-006 (18/58): to 5.00 N
+  grid-010 (19/58): to 5.00 N
+  grid-014 (20/58): to 5.00 N
+  grid-015 (21/58): to 5.00 N
+  grid-026 (22/58): to 5.00 N
+  grid-037 (23/58): to 3.00 N
+  grid-005 (24/58): to 5.00 N
+  grid-020 (25/58): to 5.00 N
+  grid-038 (26/58): to 3.00 N
+  grid-000 (27/58): to 5.00 N
+  grid-004 (28/58): to 5.00 N
+  ref-02 (29/58): to 2.00 N
+  grid-016 (30/58): to 5.00 N
+  grid-019 (31/58): to 5.00 N
+  grid-001 (32/58): to 5.00 N
+  grid-018 (33/58): to 5.00 N
+  grid-003 (34/58): to 5.00 N
+  grid-017 (35/58): to 5.00 N
+  grid-040 (36/58): to 3.00 N
+  grid-022 (37/58): to 5.00 N
+  grid-021 (38/58): to 5.00 N
+  grid-039 (39/58): to 3.00 N
+  grid-023 (40/58): to 5.00 N
+  ref-03 (41/58): to 2.00 N
+  grid-041 (42/58): to 3.00 N
+  grid-054 (43/58): to 2.00 N
+  grid-042 (44/58): to 3.00 N
+  grid-049 (45/58): to 3.00 N
+  grid-047 (46/58): to 3.00 N
+  grid-043 (47/58): to 3.00 N
+  grid-055 (48/58): to 2.00 N
+  grid-056 (49/58): to 2.00 N
+  grid-048 (50/58): to 3.00 N
+  grid-044 (51/58): to 3.00 N
+  grid-046 (52/58): to 3.00 N
+  grid-057 (53/58): to 2.00 N
+  grid-045 (54/58): to 3.00 N
+  grid-058 (55/58): to 2.00 N
+  grid-059 (56/58): to 2.00 N
+  ref-04 (57/58): to 2.00 N
+  ref-05 (58/58): to 2.00 N
+== roll
+  roll-0 (1/2): to 1.50 N
+  roll-3 (2/2): to 1.50 N
+== twist
+  twist-0-1.0N (1/6): to 1.00 N
+  twist-0-2.5N (2/6): to 2.50 N
+  twist-2-1.0N (3/6): to 1.00 N
+  twist-2-2.5N (4/6): to 2.50 N
+  twist-3-1.0N (5/6): to 1.00 N
+  twist-3-2.5N (6/6): to 2.50 N
+== final
+  final-ref (1/1): to 2.00 N
+HEX-E: 358770 samples, 0 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz +0.0 N
+session in logs/20261025-tip_calibration/152920-cb2t
+exit 0 at 17:23:54

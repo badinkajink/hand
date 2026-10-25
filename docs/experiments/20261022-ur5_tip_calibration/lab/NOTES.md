@@ -631,6 +631,20 @@ the lab session ("go") at about 15:36.
   - its two slides in pass 5, also at −66.1 deg.
 - That leaves 67 actions in pass 2b, 55 in pass 3 and 101 in pass 5.
 
+### 16:23:58 to 17:23:54, cb2t pass 2b (R22's grid, rolls and twists)
+
+- Simulated first on cb2t's registration: no abort. The cell check on v7 was clean: mount ≥ 3.7 mm, finger ≥ 1.5 mm.
+- The run printed "speed slider 0.30 (the plan's 0.30)" with no warning: the controller took the input and read the same
+  value back.
+- All 67 actions were ok: 58 grid presses, 2 rolls, 6 twists and the final reference press.
+- The HEX-E gave 358,770 samples, none timed out. Its one gap (0.7 s) came at the start, before the preflight, as in
+  earlier runs.
+- Passes 3 and 5, simulated on cb2t's registration: no abort, and the cell checks on v7 were clean.
+  - Pass 3: mount ≥ 4.0 mm, finger ≥ 1.4 mm.
+  - Pass 5: mount ≥ 3.7 mm, finger ≥ 1.5 mm.
+
+### 17:24:50, cb2t pass 3 (twins, slides, twists at 5 N, the rate set at four speeds)
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
