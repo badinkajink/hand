@@ -35,6 +35,8 @@ UR5M_REV picks the revision (v1 when unset). v5 (2026-10-23) is v4's fork as pri
 gap: build writes stop_wedge (seated at the nominal gap) and stop_wedge_swept (all its seats, for the clearance checks);
 check adds the wedge's seats, overlaps, path in, friction and the plate's bending; its print plate is
 scripts/v3b_ur5v2_pla_plate.py mount_v5_wedge.
+v7 (2026-10-25) has a rigid back below the dorsal ear with its face on the tongue and each leg's channel widened
+palmar except its last relief_dw mm; build adds v7_checks (the link's way in, the back's stiffness) to parts.json.
 """
 from __future__ import annotations
 
@@ -65,13 +67,14 @@ sys.path.insert(0, str(REPO / "src"))
 # above the foot 11 mm higher than v2. 2026-10-22: v3's adapter takes brass heat-set inserts for the foot's M3 (m3_seat
 # "insert"; `inserts` checks the bores); UR5M_ONLY=adapter rebuilds that part alone.
 REV = os.environ.get("UR5M_REV", "v1")
-V2UP = REV in ("v2", "v3", "v4", "v5", "v6")
-V3UP = REV in ("v3", "v4", "v5", "v6")   # v4 (2026-10-23) is v3 with a stop behind the DIP link's tongue (stop_* in its P block);
+V2UP = REV in ("v2", "v3", "v4", "v5", "v6", "v7")
+V3UP = REV in ("v3", "v4", "v5", "v6", "v7")   # v4 (2026-10-23) is v3 with a stop behind the DIP link's tongue (stop_* in its P block);
 #                                    v5 (2026-10-23) is v4's fork as printed with a PLA wedge in place of the set screws
-DATE = {"v1": "20261018", "v2": "20261020", "v3": "20261021", "v4": "20261023", "v5": "20261023", "v6": "20261023"}[REV]
+DATE = {"v1": "20261018", "v2": "20261020", "v3": "20261021", "v4": "20261023", "v5": "20261023", "v6": "20261023", "v7": "20261025"}[REV]
 PFX = {"v1": "20261018-ur5_calibration_mount", "v2": "20261020-ur5_calibration_mount_v2",
        "v3": "20261021-ur5_calibration_mount_v3", "v4": "20261023-ur5_calibration_mount_v4",
-       "v5": "20261023-ur5_calibration_mount_v5", "v6": "20261023-ur5_calibration_mount_v6"}[REV]
+       "v5": "20261023-ur5_calibration_mount_v5", "v6": "20261023-ur5_calibration_mount_v6",
+       "v7": "20261025-ur5_calibration_mount_v7"}[REV]
 OUT = REPO / "docs/experiments" / PFX
 CAD, MEDIA, PRINT = OUT / "cad", OUT / "media", OUT / "print"
 WORK = REPO / "logs" / PFX
@@ -351,6 +354,45 @@ def flush_notches(K, p=P):
     return [K.box((x_out - 0.6, -4.5 + 3.0 * j - 0.6, zb - 1.0), (x_out + 1.0, -4.5 + 3.0 * j + 0.6, zb + 3.0)) for j in range(k + 1)]
 
 
+if REV == "v7":
+    # 2026-10-25 (owner, after v6: "this lip wont do very much ... we need more flush surface ... as long as there is some gap
+    # at the bottom to allow the dip link to snap in at the wider base ... extend down another full 8-10mm ... heavily shore
+    # up the back, extending the supporting beams/volume to better prevent flex"): v3's fork with a solid back below the
+    # dorsal ear, as thick as the ear and as wide as the fork, whose face lies on the tongue's back from z_F -97.5 to -83.5
+    # (v6's pad: 3.9 mm flat), with a relief above it for the neck. The neck is 1.45 mm proud of the tongue over the
+    # tongue's full width and the face does not bend, so the link goes on held toward the palmar ear (the bridge has 4.3 mm
+    # there): each leg's channel in the walls is widened palmar by relief_s, except for its last relief_dw mm, which the
+    # legs enter only after the neck is above the face's upper chamfer. The legs then stop; the link is pushed onto the face
+    # and up the last relief_dw mm.
+    P.update(
+        back_x=(9.65, 17.0),        # the back: the dorsal ear's inner face (0.2 mm off the neck) to its outer face
+        back_taper=(-85.0, 12.0),   # its outer face runs from x_F 17 at z_F -85 to 12 at its bottom
+        face_y=10.5,                # the face spans the tongue's width (flat at x_F 8.0 over |y_F| <= 10.5)
+        face_z=(-97.5, -83.5),      # the flat face; 45 deg chamfers below (lead-in) and above (to the relief), printable
+        face_interf=0.2,            # the face at x_F 8.0 - face_interf: the link turns palmar by it in the legs' channels
+        relief_s=2.5,               # each leg's channel widened palmar by this
+        relief_margin=0.75,         # the legs reach the channel's narrow part this far (travel) before the neck clears the face
+    )
+    _zch = P["face_z"][1] + P["back_x"][0] - (B_LINK["tongue_back"] - P["face_interf"])
+    P["relief_dw"] = round(B_LINK["mount_z"] - _zch - P["relief_margin"], 2)
+
+
+def back_block(K, p=P):
+    """v7: the back below the dorsal ear (as wide as the fork, its outer edges rounded as the ears') and its face on the
+    tongue's back, with 45 deg chamfers to the relief at both ends (F)."""
+    x0, x1 = p["back_x"]
+    xf = B_LINK["tongue_back"] - p["face_interf"]
+    zb, zt = p["face_z"]
+    zch, zbot = zt + (x0 - xf), zb - (x0 - xf)
+    zt0, xbot = p["back_taper"]
+    fy0, fy1 = p["fp_y"]
+    zr = p["ear_z_low"] + 0.01
+    back = K.inter(K.prism_xz([(x0, zbot), (xbot, zbot), (x1, zt0), (x1, zr), (x0, zr)], fy0, fy1),
+                   K.rbox_z(-p["fp_x"], p["fp_x"], fy0, fy1, zbot - 1, zr + 1, p["fp_r"]))
+    face = K.prism_xz([(x0 + 0.5, zbot), (x0 + 0.5, zch), (x0, zch), (xf, zt), (xf, zb), (x0, zbot)], -p["face_y"], p["face_y"])
+    return [back, face]
+
+
 def fname(stem, ext="stl", sub=CAD):
     return sub / f"{PFX}_{stem}.{ext}"
 
@@ -612,6 +654,8 @@ def leg_molds(p=P):
     path = CAD / f"{PFX}_leg_molds.json"
     key = dict(gap=p["mold_gap"], short=p["mold_short"], close=p["mold_close"], z=list(p["mold_z"]), fp_x=p["fp_x"],
                slot_filled=True)
+    if "relief_s" in p:
+        key.update(relief_s=p["relief_s"], relief_dw=p["relief_dw"])
     if path.exists():
         d = json.loads(path.read_text())
         if d.get("params") == key:
@@ -653,6 +697,19 @@ def leg_molds(p=P):
                 if abs(b_[0] - a_[0]) > 1e-9:
                     sweep.append(Polygon([tuple(a_), tuple(b_), (b_[0], b_[1] - drop), (a_[0], a_[1] - drop)]).buffer(0))
         S = unary_union(sweep).buffer(p["mold_gap"], join_style=1)
+        if "relief_s" in p:     # v7: the channel widened palmar (-x_F) by relief_s below relief_dw under the leg's top
+            low = S.intersection(sbox(-p["fp_x"] - 5.0, z0 - drop - 1.0, p["fp_x"] + 5.0, U.bounds[3] - p["relief_dw"]))
+            swept = [S]
+            for g in (low.geoms if hasattr(low, "geoms") else [low]):
+                ext = np.asarray(g.exterior.coords)
+                swept.append(affinity.translate(g, -p["relief_s"], 0.0))
+                for a_, b_ in zip(ext[:-1], ext[1:]):
+                    if abs(b_[1] - a_[1]) > 1e-9:
+                        swept.append(Polygon([tuple(a_), tuple(b_), (b_[0] - p["relief_s"], b_[1]),
+                                              (a_[0] - p["relief_s"], a_[1])]).buffer(0))
+            S = unary_union(swept)
+            print(f"leg mold {name}: channel widened palmar by {p['relief_s']} mm below z_F "
+                  f"{U.bounds[3] - p['relief_dw']:.2f} (leg's top {U.bounds[3]:.2f})", flush=True)
         walls = sbox(-p["fp_x"], z0, p["fp_x"], z1).difference(S)
         polys = []
         for g in (walls.geoms if hasattr(walls, "geoms") else [walls]):
@@ -835,7 +892,8 @@ def standoff_fork_v2_ears(K, p=P):
     ext = {"horn_outer": (0.0, 0.02), "horn_slot": (0.0, 0.02), "horn_inner": (0.0, 0.05), "slotted": (-0.05, 0.0)}
     walls = [K.prism_xz(poly, ly["walls_y"][0] + ext[ly["name"]][0], ly["walls_y"][1] + ext[ly["name"]][1])
              for ly in leg_molds(p) for poly in ly["polys"]] if mold else []
-    stop = (stop_plate(K, p) if "stop_x" in p else []) + (flush_plate(K, p) if "flush_h" in p else [])
+    stop = ((stop_plate(K, p) if "stop_x" in p else []) + (flush_plate(K, p) if "flush_h" in p else [])
+            + (back_block(K, p) if "back_x" in p else []))
     s = K.union([foot, top, ears, ib] + walls + stop)
     cut = []
     cy = p["cab_y"]
@@ -1166,6 +1224,71 @@ def cmd_interfaces(a):
           {k: v["max_deviation_mm"] for k, v in same.items()}, "mm", flush=True)
 
 
+def v7_checks(K, hold=2.0):
+    """v7: overlap volumes (mm3) of the fork (F) with the DIP link and with its cover, pad and cap together, the assembly
+    lowered d mm along the tool axis: held `hold` mm toward the palmar ear while d > relief_dw, at its place below that; and
+    not held. Beam estimates of the stiffness at the contact (E 2 GPa, solid sections, a cantilever from the hub's bottom
+    through the dorsal ear without its cable slot) of v7's back and of v6's plate (load at its pad's middle)."""
+    import trimesh
+    p = P
+    fork = standoff_fork(K, p)
+    v4b = DIP / "v4/b/cad"
+    link = from_trimesh(trimesh.load(v4b / "20261021-dip_link_v4b_dip_link.stl", force="mesh"))
+    rest = K.union([from_trimesh(trimesh.load(v4b / f, force="mesh")) for f in (
+        "20261022-dip_link_v4b_cover_I15H3_3S.stl", "20261021-dip_link_v4b_pad_block5.stl", "20261022-dip_link_v4b_tip_cap_TW15H3S.stl")])
+    out = dict(hold_mm=hold, relief_dw_mm=p["relief_dw"], paths={})
+    for path in ("held", "not_held"):
+        rows = []
+        for d in np.round(np.arange(0.0, 26.01, 0.25), 2):
+            dx = -hold if (path == "held" and d > p["relief_dw"]) else 0.0
+            v = [float(K.inter(fork, m.translate([dx, 0.0, -d])).volume()) for m in (link, rest)]
+            rows.append([float(d), round(v[0], 2), round(v[1], 2)])
+        out["paths"][path] = rows
+        hit = [r for r in rows if r[1] > 0.05 or r[2] > 0.05]
+        print(f"v7 path {path}: overlap at d {[r[0] for r in hit][:1]}..{[r[0] for r in hit][-1:]} mm, link max "
+              f"{max(r[1] for r in rows):.1f} mm3, cover/pad/cap max {max(r[2] for r in rows):.2f} mm3; at d 0: {rows[0][1:]}",
+              flush=True)
+
+    def I_of(rects):              # (x0, x1, width): bending with the deflection along x
+        A = sum((b - a) * w for a, b, w in rects)
+        xc = sum((b - a) * w * (a + b) / 2 for a, b, w in rects) / A
+        return sum(w * (b - a) ** 3 / 12 + (b - a) * w * ((a + b) / 2 - xc) ** 2 for a, b, w in rects)
+
+    def k_at(I, z_load, z_root=p["hub_z0"], E=2000.0, n=600):
+        a = z_root - z_load
+        u = np.linspace(0.0, a, n)
+        trap = getattr(np, "trapezoid", None) or np.trapz
+        return 1.0 / trap((a - u) ** 2 / (E * np.array([I(z_root - x) for x in u])), u)
+
+    w_ear, w_fork = p["fp_y"][1] - p["fp_y"][0] - 2 * p["cab_y"], p["fp_y"][1] - p["fp_y"][0]
+    x0, x1 = p["back_x"]
+    xf = B_LINK["tongue_back"] - p["face_interf"]
+    zb, zt = p["face_z"]
+    zch = zt + (x0 - xf)
+    zt0, xbot = p["back_taper"]
+    zbot = zb - (x0 - xf)
+
+    def I7(z):
+        if z > p["ear_z_low"]:
+            return I_of([(x0, x1, w_ear)])
+        xo = x1 if z >= zt0 else xbot + (x1 - xbot) * (z - zbot) / (zt0 - zbot)
+        r = [(x0, xo, w_fork)]
+        if z < zch:
+            r.append((max(xf, x0 - (zch - z)), x0, 2 * p["face_y"]))
+        return I_of(r)
+
+    def I6(z):                    # v6: the plate x_F 9.65..12.15, |y_F| <= 9.5, below the ear
+        return I_of([(x0, x1, w_ear)]) if z > p["ear_z_low"] else I_of([(9.65, 12.15, 19.0)])
+    zc = B_LINK["z_contact"]
+    out["beam"] = dict(v7_at_contact_N_per_mm=round(k_at(I7, zc), 1), v7_at_face_bottom_N_per_mm=round(k_at(I7, zb), 1),
+                       v6_at_pad_N_per_mm=round(k_at(I6, -92.05), 1),
+                       note="E 2 GPa, solid sections, cantilever from the hub's bottom (z_F -53.2) through the dorsal ear "
+                            "(cable slot removed); v7 at the contact z_F -87.91 and the face's lower end; v6 at its pad's "
+                            "flat middle")
+    print("v7 beam", out["beam"], flush=True)
+    return out
+
+
 def cmd_build(a):
     K = MeshK()
     t0 = time.time()
@@ -1200,6 +1323,8 @@ def cmd_build(a):
                            note="beam estimates, E 2 GPa: preload at the flush face's middle; push-on force and root stress "
                                 "with the neck on the pad's top edge")
             print(nm, rec[nm], flush=True)
+    if "back_x" in P and (not ONLY or "standoff_fork" in ONLY):      # v7: the link's way in and the back's stiffness
+        rec["v7_checks"] = v7_checks(K)
     if "stop_wedge" in parts:                            # v5: every seat the wedge can take, for the clearance checks
         t1 = P["wedge_t0"] + P["wedge_len"] * math.tan(math.radians(P["wedge_deg"]))
         sw = K.union([stop_wedge(K, P, t_edge=t) for t in np.linspace(P["wedge_t0"], t1, 9)])
