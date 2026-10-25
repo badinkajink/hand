@@ -114,7 +114,10 @@ def report(path):
 
 # ---- sentences and flags (spaCy) ---------------------------------------------------------------------------------
 
-SPACY = ["uv", "run", "--no-project", "--python", "3.12", "--with", "spacy==3.8.7", "--with", "textstat", "--with",
+# spaCy 3.8.7's compiled tokenizer fails to load (OverflowError in _flush_specials) with preshed 3.0.14, cymem 2.0.16 and
+# murmurhash 1.0.16 of 2026-10 (env rebuilt 10-25); the versions of 10-22 are pinned
+SPACY = ["uv", "run", "--no-project", "--python", "3.12", "--with", "spacy==3.8.7", "--with", "preshed==3.0.13", "--with",
+         "cymem==2.0.13", "--with", "murmurhash==1.0.15", "--with", "srsly==2.5.4", "--with", "textstat", "--with",
          "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/"
          "en_core_web_sm-3.8.0-py3-none-any.whl", "python", "-I"]
 

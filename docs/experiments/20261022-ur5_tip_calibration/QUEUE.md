@@ -751,6 +751,30 @@ push that answers it arrives.
       mm at 2 N and over. Sphere2's predictors miss by 2.5 to 8.6 mm; 47 of cb1t's presses give 0.71 mm (GP) and 0.42
       mm (MLP). Series compliance 0.188 mm/N on v3's fork (sphere2 0.203).
     - The HEX-E's zero moved at most 0.254 N between a press's rests, so the taped cable pulled through no press.
+    - Owner, 10-25: "ok, it was probably S N S N S then", so the plan's poles were named from the board's side and the
+      tip follows the plan. Its magnets are sphere2's ("the exact same as the past tip"). The rest field fixes their
+      strength and depth only together: k 0.336 with the magnets 0.71 mm off the model's depth leaves 0.33 mT, against
+      0.24 mT at k 0.568 and 1.87 mm (`data/20261023-203938-cb1t/k_check.json`, `scripts/ur5_tip_calibration_k_check.py`).
+      Labels: cb1t is v1 ID 1.
+
+- R24 (10:51 on 10-25; owner: "are we prepared for the next fingertip? this will be the same polarities, labeled v1 ID
+  2 ... i am printing out the new ur5 mount and will try with that to reduce the bending the effect"). The second
+  checkerboard tip, v1 ID 2, on mount v6, as R22 ran on cb1t.
+  - Mount v6 (`docs/experiments/20261023-ur5_calibration_mount_v6/`): `UR5_MOUNT=v6` in every clearance check. Its parts
+    are the adapter, the fork and the clamp plate, which `check_arm_samples.py` already groups.
+  - Payload: about 0.399 kg at 34.3 mm from the flange (v5's record without the wedge and the slotted arm's insert; v6's
+    fork slices at 63.7 g).
+  - Pass 1: `lab/20261023-plan_sphere_lab_r22_pass1.json` (19 plain touch-offs, then register). Pass 2: the offset plan
+    with the rolls and twists, as `lab/20261023-plan_sphere_lab_r22_pass2.json`. Put back the actions dropped for cb1t's
+    registration, and check them all again with ID 2's registration.
+  - Margins on v6 (owner, 10-25, about the rod plan's pad-face-05 at 2.57 mm: "i think we can allow this tolerance"):
+    2.5 mm at the mount for touch-offs; 3.0 mm kept for presses at 3.5 and 5 N. At 5 N cb1t's presses went 1.89 mm into
+    the pad, and the check looks 1 mm past contact. With cb1t's registration as the stand-in, v6's closest actions
+    are touch-offs: pad-face-11 2.66, pad-face-07 2.70 and pad-off-04 2.86 mm (on v3 2.70, 2.70 and 2.96 mm).
+  - No gravity sweep. Tape the board's USB cable as in cb1t's resume before the first touch-off.
+  - The session's name is the lab's choice; its notes record v1 ID 2. The workstation analyses it as cb1t, scores
+    cb1t's predictors on it, and compares the series compliance with cb1t's 0.188 mm/N to measure v6's effect on the
+    bending.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes

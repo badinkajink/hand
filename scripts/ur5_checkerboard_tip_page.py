@@ -72,6 +72,7 @@ def load():
     R["reg"] = {k: J(LAB / s / "registration.json") for k, s in (("s2", S2), ("s3", S3), ("cb", CB))}
     R["reg"]["p1"] = R["p1"]["reg"]
     R["S3FE"] = J(DATA / f"{S3}-s2reg/fe.json")
+    R["K"] = {k: J(DATA / s / "k_check.json") for k, s in (("cb", CB), ("s2", S2))}   # ur5_tip_calibration_k_check.py
     return R
 
 
@@ -175,7 +176,6 @@ def sections(R, fits, F):
     rc = cb["cal"]
     best, plan = fits[0], next(f for f in fits if tuple(f["poles"]) == PLANNED)
     nxt = fits[1]["rms_mT"]
-    k_ratio = rc["k"] / s2["cal"]["k"]
     bmax = lambda c: max(np.linalg.norm(v) for v in c["b_rest_uT"]) / 1e3          # noqa: E731
     fe_c, fe_s, fe_1 = cb["FE"]["series"], s2["FE"]["series"], R["p1"]["FE"]["series"]
     s3s = R["S3FE"]["series"]
@@ -255,8 +255,8 @@ def sections(R, fits, F):
            f"{int(press.sum())} ({len(np.unique(H['id'][press]))})"],
           ["Turn holds", f"{int(np.isin(s2['H']['kind'], ['roll', 'twist', 'slide']).sum())}", f"{n_turn}"],
           ["HEX-E zero between rests, median and largest (N)", f"{f2(ft_s[0], 3)}, {f2(ft_s[1], 3)}", f"{f2(ft_c[0], 3)}, {f2(ft_c[1], 3)}"]]
-    body = ("<p>The robot ran mount v3's fork, the one of sphere2 and sph3t, with the first checkerboard tip on the "
-            "workstation's board d9:94 (" + F["link"](NOTES, "lab notes") + ", sections on cb1t). The gravity sweep was "
+    body = ("<p>The robot ran mount v3's fork, the one of sphere2 and sph3t, with the first checkerboard tip, v1 ID 1 in "
+            "the owner's labels, on the workstation's board d9:94 (" + F["link"](NOTES, "lab notes") + ", sections on cb1t). The gravity sweep was "
             "left out at the owner's request. The first attempt aborted twice when the board's USB cable pulled on the "
             "tool, and the owner freed it.</p>"
             "<p>Pass 1 ran 19 plain touch-offs from 20:46 to 21:27. Pass 2 ran 12 offset touch-offs from 21:56 to 22:27. "
@@ -273,6 +273,12 @@ def sections(R, fits, F):
     # ---- poles
     t2 = [["(" + ", ".join("+1" if v > 0 else "&#8722;1" for v in f["poles"]) + ")" + (" plan read from the palm" if tuple(f["poles"]) == PLANNED else ""),
            f2(f["rms_mT"], 3), f2(f["k"], 3), ", ".join(f2(v) for v in f["d"])] for f in fits]
+    kh = R["K"]["cb"]["k_held"]
+    t2.insert(1, ["(+1, &#8722;1, &#8722;1, &#8722;1, +1), k held at sphere2's", f2(kh["rms_mT"], 3), f2(R["K"]["cb"]["k_known"], 3),
+                  ", ".join(f2(v) for v in kh["d_mm"])])
+    kprof = {round(q["k"], 3): q for q in R["K"]["cb"]["profile"]}
+    ks2 = {round(q["k"], 3): q for q in R["K"]["s2"]["profile"]}
+    pat2 = R["K"]["cb"]["patterns_at_k"][1]["rms_mT"]
     body = (f"<p>Fitted to the field at rest, the pattern (+1, &#8722;1, &#8722;1, &#8722;1, +1) leaves {best['rms_mT']:.3f} mT "
             f"rms (Table 2, Fig. 1). The next pattern leaves {nxt:.3f} mT. In the model, +1 is a north pole toward the palm, "
             f"as in all of sphere2's magnets. Seen from the palm with the tip end up, the bottom-left and top-right magnets "
@@ -281,11 +287,17 @@ def sections(R, fits, F):
             f"Read from the palm, with the poles toward the palm, it is (+1, &#8722;1, +1, &#8722;1, +1). That pattern leaves "
             f"{plan['rms_mT']:.3f} mT, with its strength and offsets at the bounds of the fit, and it differs from the fitted "
             f"one at the centre magnet. Read from the board's side, with the poles toward the board, the plan is the fitted "
-            f"pattern. The centre magnet is therefore reversed only if the plan was read from the palm.</p>"
-            f"<p>The fitted strength is $k$ = {rc['k']:.3f}, {k_ratio:.2f} times the {s2['cal']['k']:.3f} of sphere2's "
-            f"magnets. The fit also moves the magnets {rc['dx']:.2f} mm along the pad's depth, against {s2['cal']['dx']:.2f} "
-            f"mm on sphere2's tip. The largest field at a chip is {bmax(rc):.1f} mT, against {bmax(s2['cal']):.1f} mT on "
-            f"sphere2's tip. Next to a magnet of opposite pole, part of each magnet's field at the chips cancels.</p>"
+            f"pattern. On 2026-10-25 the owner judged the board's side the likely one (&#8220;it was probably S N S N S "
+            f"then&#8221;), so the tip follows the plan.</p>"
+            f"<p>The field at rest fixes the magnets' strength and depth only together. Its best fit, $k$ = {rc['k']:.3f} with "
+            f"the magnets {rc['dx']:.2f} mm off the model's depth, leaves {best['rms_mT']:.3f} mT. From $k$ = 0.40 to 0.65 the "
+            f"residual stays within {max(kprof[0.4]['rms_mT'], kprof[0.65]['rms_mT']):.3f} mT. The magnets are those of "
+            f"sphere2's tip (owner, 2026-10-25), whose rest fit gave $k$ = {s2['cal']['k']:.3f}. Held at that strength, the "
+            f"fit moves the magnets {kh['d_mm'][0]:.2f} mm and leaves {kh['rms_mT']:.3f} mT, against {pat2:.3f} mT for the "
+            f"next pattern (Table 2). That residual is below the {ks2[0.336]['rms_mT']:.3f} mT of sphere2's own best fit. "
+            f"On sphere2's tip, $k$ = 0.568 leaves {ks2[0.568]['rms_mT']:.3f} mT.</p>"
+            f"<p>The largest field at a chip is {bmax(rc):.1f} mT, against {bmax(s2['cal']):.1f} mT on sphere2's tip. Next "
+            f"to a magnet of opposite pole, part of each magnet's field at the chips cancels.</p>"
             + P.table(["Pole pattern", "Residual (mT rms)", "Strength k", "Offsets d_x, d_y, d_z (mm)"], t2, num_cols=(1, 2),
                       caption="The field at rest of cb1t's tip fitted with the five best patterns of the linear prescreen "
                               "and the plan read from the palm (fingertip_wrench_model.calibrate_frames_fixed).", n=2)
@@ -371,6 +383,13 @@ def sections(R, fits, F):
             f"with a compliance scale of {pp['c']:.2f}. Its location error grows to {lastc['physical']['loc_mm']['median']:.2f} mm, "
             f"and its force error is {lastc['physical']['force_N']['median']:.3f} N. On sphere2 the same fit took the error "
             f"from {vw2['loc_mm']['median']:.2f} to {lasts['physical']['loc_mm']['median']:.2f} mm.</p>"
+            f"<p>Held at sphere2's $k$ = {R['K']['cb']['k_known']:.3f}, the fit to the presses gives $d_x$ = "
+            f"{R['K']['cb']['scores']['k held']['fitted_params']['dx']:.2f} mm and $c$ = "
+            f"{R['K']['cb']['scores']['k held']['fitted_params']['c']:.2f}, and the same "
+            f"{R['K']['cb']['scores']['k held']['fitted']['loc_mm']['median']:.2f} mm. The presses fix the depth and the "
+            f"product $k\\,c$, {pp['k'] * pp['c']:.2f}, and leave $k$ itself free. Untrained at that strength, the physical "
+            f"model misses by {R['K']['cb']['scores']['k held']['heldout']['loc_mm']['median']:.2f} mm, against "
+            f"{vw['loc_mm']['median']:.2f} mm at the rest fit's own $k$.</p>"
             + F["fig"](2, MEDIA / "20261024-cb1t_physical_model_by_level.png",
                        "Physical model built from each tip's rest fit, over all press holds, by force level: (a) median "
                        "location error, (b) median relative force error."))
@@ -456,26 +475,24 @@ def sections(R, fits, F):
     S_.append(("transfer", "Transfer of sphere2's predictors and fine-tuning", body))
 
     # ---- limitations, future work
-    body = (f"<p>One checkerboard tip was pressed. Whether its centre magnet follows the plan depends on the side from "
-            f"which the plan's poles were named (Section 3). The held-out set has "
+    body = (f"<p>One checkerboard tip was pressed. The held-out set has "
             f"{cb['PR']['n_test_presses']} presses ({cb['PR']['n_test_holds']} holds). The {n_turn} turn holds take the tool's "
             "weight from first2's gravity fit, made on 2026-10-22 with another tip and without the USB cable taped to the "
-            f"tool. Along the pad's depth, the rest fit moves the magnets {rc['dx']:.2f} mm from the model's position, "
-            f"and the fit to the presses {pp['dx']:.2f} mm. Part of the physical model's error is therefore in its "
-            f"geometry.</p>")
+            f"tool. The untrained physical model takes a strength that the field at rest does not fix (Section 3); at the "
+            f"magnets' known strength its error triples.</p>")
     S_.append(("limits", "Limitations", body))
     fw = [
         "Check each magnet's pole at the palm face with a compass. The fit predicts north toward the palm at the "
         "bottom-left and top-right magnets, seen from the palm with the tip end up, and south at the other three. Any other "
-        "result means that the chips' frames of the board's calibration are wrong. If the plan meant north at the centre "
-        "seen from the palm, turn the centre magnet and fit the field at rest again. The pattern (+1, &#8722;1, +1, "
-        "&#8722;1, +1) should then fit near 0.24 mT.",
+        "result means that the chips' frames of the board's calibration are wrong.",
         "Run the 12 offset touch-offs in every session (" + F["code"]("scripts/ur5_tip_calibration_offset_touches.py")
         + "). If sphere2's tip is pressed again with them, an offset between the board's point and the registered one "
         "below 0.8 mm, down from 1.4 mm, would place sphere2's offset in its registration.",
-        "Fit the depth and spacing of the new pad's magnets to the rest and the presses together, in the physical model of "
-        + F["code"]("scripts/ur5_tip_calibration_predict.py") + " with d_x free. If its error at 2 N and over falls below "
-        "0.8 mm, the remaining error of the physical model is in its geometry.",
+        "On the next tip of this pattern (v1 ID 2), fit the magnets' depth to the rest and the presses together with $k$ "
+        "held at 0.336 (" + F["code"]("scripts/ur5_tip_calibration_k_check.py") + " and the physical model of "
+        + F["code"]("scripts/ur5_tip_calibration_predict.py") + "). If the untrained model then misses by less than the "
+        "rest fit's 1.1 to 1.2 mm at 2 N and over, the known strength helps; if it misses by more, the model's magnet "
+        "geometry is off.",
         "Rest the tool at the four orientations of the rolls, with joint 6 within &#177;30 deg, in the next session. A "
         "difference above 0.05 N between the HEX-E and first2's gravity fit would call for the tool's own fit before the "
         "turn holds' forces are used.",
@@ -486,8 +503,8 @@ def sections(R, fits, F):
 
     lede = (f"<p>The first checkerboard fingertip was pressed on the UR5 on 2026-10-23 (session cb1t), at {int(press.sum())} "
             f"press holds and {n_turn} turn holds against the HEX-E. Of the 32 pole patterns, one fits its field at rest to "
-            f"{best['rms_mT']:.2f} mT, and the next leaves {nxt:.2f} mT. It is the planned checkerboard if the plan's poles "
-            f"were named from the board's side. Named from the palm, the plan has the centre magnet the other way round.</p>"
+            f"{best['rms_mT']:.2f} mT, and the next leaves {nxt:.2f} mT. It is the planned checkerboard, whose poles the "
+            f"owner had named from the board's side.</p>"
             f"<p>Built from that fit alone, the physical model places held-out contacts a median "
             f"{vw['loc_mm']['median']:.2f} mm from the registered points, against {vw2['loc_mm']['median']:.2f} mm on "
             f"sphere2's tip. At 2 N and over the error is {min(hi(cb['S'])):.1f} to {max(hi(cb['S'])):.1f} mm. Predictors "
@@ -495,9 +512,8 @@ def sections(R, fits, F):
             f"{max(sc(A_['heldout'], k)[0] for k, _, _ in names):.1f} mm. Trained on {lastc['N']} of cb1t's own presses, a "
             f"Gaussian process reaches {lastc['gp:board']['loc_mm']['median']:.2f} mm and an MLP ensemble "
             f"{lastc['mlp:board']['loc_mm']['median']:.2f} mm.</p>")
-    summary = (f"On the first checkerboard fingertip (UR5 session cb1t, 2026-10-23), one pole pattern fits the field at rest: "
-               f"the planned checkerboard if its poles were named from the board's side, or the plan with its centre magnet "
-               f"reversed if they were named from the palm. Built from that fit alone, its physical model places held-out contacts "
+    summary = (f"On the first checkerboard fingertip (UR5 session cb1t, 2026-10-23), one pole pattern fits the field at rest, "
+               f"the planned checkerboard. Built from that fit alone, its physical model places held-out contacts "
                f"within {vw['loc_mm']['median']:.2f} mm (sphere2's tip {vw2['loc_mm']['median']:.2f} mm); sphere2's predictors "
                f"miss by {min(sc(A_['heldout'], k)[0] for k, _, _ in names):.1f} to "
                f"{max(sc(A_['heldout'], k)[0] for k, _, _ in names):.1f} mm, and {lastc['N']} of its own presses give "

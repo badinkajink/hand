@@ -426,8 +426,7 @@ force was measured, so the correction is not yet scored on this pad
 {{FIG real_presses}}
 <p>The first checkerboard tip was then pressed on the UR5 against the HEX-E (session cb1t, on the evening of 2026-10-23:
 302 press holds and 64 turn holds). One pole pattern fits its field at rest, at 0.24&#8202;mT against 0.87&#8202;mT for the
-next. It is the planned checkerboard if the plan&#8217;s poles were named from the board&#8217;s side; named from the palm,
-the centre magnet is reversed. Built from that fit alone, the physical model placed held-out contacts within 2.06&#8202;mm
+next. It is the planned checkerboard: the owner had named its poles from the board&#8217;s side. Built from that fit alone, the physical model placed held-out contacts within 2.06&#8202;mm
 and 0.28&#8202;N, against 3.79&#8202;mm and 0.38&#8202;N on sphere2&#8217;s tip. At 2&#8202;N and over its error was 1.1 to
 1.2&#8202;mm. Trained on sphere2&#8217;s presses, no learned model came closer. The GP on the raw board change missed by
 5.3&#8202;mm, and sphere2&#8217;s correction of the physical estimate raised the error to 2.5&#8202;mm, where the simulation
@@ -504,8 +503,8 @@ Sphere2 and sph3t were registered with plain touch-offs only.</li>
 out; an ATI Mini45, once calibrated, is to replace it. The FE takes Siraya 85A at 12&#8202;MPa from a NinjaFlex datasheet. Through the
 board&#8217;s force, the UR5 session puts the printed pad within about 22&#8202;% of it.</li>
 <li><b>The magnets.</b> Today&#8217;s magnets have 0.34&#8211;0.37 of an N52 magnet&#8217;s moment, and the N52 magnets are
-on order. The checkerboard tip&#8217;s magnets fit at 0.57, with the magnets 1.9&#8202;mm off the model along the pad&#8217;s
-depth. The models predict 0.028&#8211;0.031&#8202;N with N52, about 0.039&#8202;N at the measured noise. Four magnets
+on order. The checkerboard tip has the same magnets, and its field at rest fixes their strength and depth only together:
+0.57 with the magnets 1.9&#8202;mm off the model&#8217;s depth, or 0.34 at 0.7&#8202;mm, 0.09&#8202;mT apart. The models predict 0.028&#8211;0.031&#8202;N with N52, about 0.039&#8202;N at the measured noise. Four magnets
 (0.051&#8202;N) or five (0.029&#8202;N) waits on the owner.</li>
 <li><b>Transfer of learned models.</b> The physical model transfers to a new pad through its rest calibration: on the
 checkerboard tip it placed contacts within 2.06&#8202;mm without a press. The GP correction learned on sphere2 does not, and
