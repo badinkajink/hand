@@ -801,6 +801,29 @@ push that answers it arrives.
     timings (70 s a grid press, 2.8 min a twist, about 25 s a turn hold), pass 3 takes about 75 minutes.
   - The workstation compares each twin's errors with its original's at the same levels, and trains the force estimate
     on the presses and the slides.
+  - 10-25 by 13:2x (the lab's messages and the workstation's replies): R24's passes run first on v1 ID 1 on v3 as
+    session cb1r (the owner's choice). The owner wants ID 2 on v6 by 14:30, so cb1r runs pass 3 after 2a, then pass
+    3b, then pass 2b's grid until 14:20; pass 2b's rolls and twists are skipped. On the robot, the +30 deg twins put
+    joint 5 at 17.7 to 27.6 deg, outside the 30 to 100 deg wrist window: pass 3 kept 7 twins. Pass 3b,
+    `lab/20261025-plan_sphere_lab_r24_pass3b_cb1r.json`, has 12 of the other 17 turned +10 or +15 deg.
+  - Speed for cb2t (owner, 10-25: "it would be nice to run them faster ... speed up motion in between trials"). The
+    program at cea8b477 reads these keys of the plan's travel block. Without them a plan runs as before.
+    - `speed` scales the speeds and accelerations of the moves between actions (joints at most 1.5 times).
+    - `slow_mm_touch` and `slow_mm_press`: an approach crosses its standoff at `fast_v` (m/s) and starts its slow speed
+      that far before the expected surface. A push over 0.3 N on the way sends the tool back to the rest pose, and the
+      approach then runs slowly from there, as before.
+    - `turn_v` sets the turns' speed in contact (default 0.004, as before).
+    - Put `"speed": 2.0, "fast_v": 0.005, "slow_mm_touch": 1.5, "slow_mm_press": 0.5` in every cb2t plan, and leave
+      `turn_v` out unless the owner asks. Motions in contact do not change. Pass 1's onsets came within 0.84 mm of the
+      expected on cb1r, so 1.5 mm leaves at least 0.66 mm of slow travel before contact.
+    - At cb1t's timings a touch-off takes about 65 s instead of 142 s, and a press about 39 s instead of 54 s. The 31
+      touch-offs of passes 1 and 2a then take about 35 min instead of 73.
+    - In the simulator, 19 touch-offs took 18.7 s each against 43.1 s (median). The registration fitted at 0.013 against
+      0.016 mm rms, and every press reached its levels.
+  - Pass 3 for cb2t is `lab/20261025-plan_sphere_lab_r24_pass3_cb2t.json`, built by the pass 3 builder that now checks
+    the joints. It has 20 twins, 3 slides, 3 twists at 5 N and final-ref-p3. By the simulator's IK on cb1r's
+    registration, joint 5 runs from 35.7 to 75.8 deg and joint 6 from -64.3 to +31.5 deg. On v6 with cb1t's
+    registration the mount clears by at least 3.6 mm. Recheck it with cb2t's registration.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
