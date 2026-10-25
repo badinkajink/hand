@@ -14,6 +14,11 @@ and builds with `RESKIN5X_FQBN=esp32:esp32:adafruit_qtpy_esp32s3_nopsram`; an im
 - `firmware/reskin5x_stream/reskin5x_stream.ino`: the port of `external/eFlesh/arduino/5X_eflesh_stream/5X_eflesh_stream.ino`.
   The STEMMA QT connector is the board's `Wire1` (SDA1 GPIO41, SCL1 GPIO40), `Serial` is the TinyUSB CDC port, and the
   register settings are those below; the header comment lists every change.
+- `firmware/reskin5x_mux_stream/reskin5x_mux_stream.ino`: several boards behind an I2C mux on the STEMMA QT port, one
+  record of 80 bytes a board plus `\r\n` per sweep (section on three boards).
+- `host/reskin5x_mux.py`: splits that stream into one 82-byte stream a board, each on a pseudo-terminal linked at
+  `/tmp/reskin5x_mux/ch<channel>` that `host/wrench_viewer.py --port` reads, and logs all boards; `host/reskin5x_mux_check.py`
+  gives a log's record rate, each chip's noise and the boards' separation.
 - `firmware/bench_three_board_sweep/`, `firmware/bench_conversion_period/`: timing sketches behind the numbers in the
   sections on rates and on three boards; they print `STAT`, `CONV` and `NACK` lines. Build and upload one with
   `RESKIN5X_SKETCH=<name> host/flash.sh`, and put `reskin5x_stream` back afterwards.
@@ -88,6 +93,23 @@ firmware writes the mux channel before each board's reads and sends 15 chips a r
 `num_mags=15`); `viz_eflesh.py` draws one board, so three boards need a view with three board images. The QT Py's other
 I2C controller, on the SDA and SCL pads (GPIO7, GPIO6), can take a second board without a mux, and a third would still
 need a mux or a third pin pair.
+
+Measured on 2026-10-25 with three fingers on the channels 0, 1 and 3 of a mux at 0x70 on the workstation's QT Py
+(`firmware/reskin5x_mux_stream`, `host/reskin5x_mux.py`, `host/reskin5x_mux_check.py`): 152 records/s, so each 7.0 ms
+conversion of all 15 chips is read, and no zero records. Each chip's noise from one conversion to the next is 1.88 µT on
+x and y and 2.89 µT on z (median of the 15 chips). The channel-3 finger gave 1.88 and 2.95 µT on its own board on
+2026-10-23, chip by chip within 2 %, so the mux adds no noise. Between boards the readings' changes correlate by 0.007
+(median over component pairs) and at most 0.031, under the 0.036 that independent noise reaches over 12,338 records, and
+no board repeated another's values. The rest fit of the channel-3 finger through the mux matches its fit on its own board
+to 0.01 mm and 0.003 in strength. A faster processor or FreeRTOS tasks would not raise the rate: 6.0 of the 6.6 ms sweep
+is bus time at the MLX90393's 400 kHz limit, and the conversion sets the rate of new data. A higher rate needs a shorter
+conversion (DIG_FILT 4: 4.0 ms at 1.4 times the noise) and the second I2C controller for part of the boards.
+
+    ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/reskin5x_mux.py &
+    ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py --port /tmp/reskin5x_mux/ch0 --http 8790
+    ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/reskin5x_mux_check.py logs/<date>-three_finger_mux/<start>-mux.bin
+
+Start the viewers at least a second apart: each names its stream log by the second it starts.
 
 ## Pad on the board
 
