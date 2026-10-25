@@ -509,6 +509,51 @@ the lab session ("go") at about 15:36.
   stays at least 1.8 mm.
 - Waiting for the owner's go. The board's USB cable is to be taped before the first touch-off.
 
+### 11:46 to 14:1x, cb1r: R24's tests on v1 ID 1, still on mount v3
+
+- The owner (lab session, 11:3x): the workstation's tasks are for the v1 ID 1 tip still on the UR5, with "full approval
+  ... once we've done the typical checks". Then: "let's make sure we do all the tests intended for v1 id 2 on the v6
+  mount on this actual current v1 id1 on the v3 mount. the information we get should all be usable". The fork was
+  untouched since cb1t, and the board on USB was ID 1's (QT Py b4:3a:45:b0:d9:94). The robot, the HEX-E (0.047, 0.024
+  and 0.229 N) and the board passed their checks.
+- 11:46:53 to 12:31:18, pass 1 (`lab/20261023-plan_sphere_lab_r22_pass1.json`, no gravity sweep): 19 touch-offs with no
+  abort.
+  - The onsets repeat cb1t's to within 0.18 mm, and most to within 0.08 mm.
+  - The registration fitted them at 0.046 mm rms (cb1t: 0.052). It moved the TCP 1.509 mm and 1.316 deg, and the
+    sphere's centre 0.902 mm (cb1t: 1.568 mm, 1.318 deg and 0.951 mm).
+- Pass 2's plan, `lab/20261025-plan_sphere_lab_r24_pass2_cb1r.json`, is cb1t's with the actions dropped for cb1t's
+  registration put back. All of them cleared pass 1's registration.
+  - The simulator's cell check again found grid-027 and -028 with the mount 2.8 to 3.0 mm from the cell at full depth
+    (153 samples, as for cb1t), so both were dropped.
+- 12:49:27 to 13:20:49, pass 2a: the 12 offset touch-offs with no abort, then the registration of all 31 at 0.048 mm
+  rms. It turned the TCP 1.620 deg and moved the sphere's centre 1.574 mm from pass 1's fit (cb1t: 1.934 deg and
+  1.958 mm), so the offset touch-offs move the fit the same way on both days.
+- With that registration grid-025 (2.37 mm), -002 (2.53), -007 (2.65) and -024 (2.84) fell under the mount's 3.0 mm, as
+  for cb1t. Pass 2b was then dropped altogether: the owner (relayed 13:2x) wants ID 2 on v6 by 14:30, and 2b repeats
+  cb1t's.
+- Pass 3 (`lab/20261025-plan_sphere_lab_r24_pass3_cb1r.json`, v3's payload, final-ref renamed final-ref-p3):
+  - In the simulator, 17 of its 18 twins turned +30 deg put joint 5 at 17.7 to 27.6 deg, outside the wrist window
+    (30 to 100 deg); the first three aborted.
+  - twin-057-t+30 cleared the window, but its joint 6 reached −84.7 deg, past the −65 deg of cb1t's run.
+  - All 18 were dropped, leaving the 6 unturned twins. The workstation rebuilt 12 of them at +10 or +15 deg as pass 3b
+    (`..._pass3b_cb1r.json`, 92438a5a): joint 5 35.7 to 47.0 deg.
+  - A helper (`joints_check.py` in the lab session's scratchpad) now checks joints 5 and 6 at each rest pose by the
+    simulator's IK before a run.
+- 13:22:31 to 13:27:39, shear-0-1N alone, the first slide on the robot, with no abort. It pressed to 1 N, then slid
+  0.1, 0.2 and 0.3 mm in eight directions.
+  - At the holds the normal force stayed between 0.61 and 1.24 N and the tangential force between 0.07 and 0.70 N
+    (ratio at most about 0.6).
+  - The peak was 1.94 N in one sample (1.60 N over 0.1 s), and the torque at most 113 N mm.
+  - The tangential force does not grow steadily from 0.1 to 0.3 mm in every direction, and it carries an offset of
+    about +0.3 N along x_I. That is for the analysis.
+- 13:31:50, passes 3 and 3b in one run (`..._pass3_3b_cb1r.json`): 18 twins, the other two slides, the 3 twists at 5 N
+  and final-ref-p3. Checked with pass 2a's registration (joints, clearance on v3: mount ≥ 3.53 mm) and simulated with it
+  (no abort, cell check clean).
+  - Its preflight printed a noise of 0.000 N on Fy. The HEX-E reports Fx and Fy in steps of 0.1 N; Fz is finer. In a
+    quiet 2 s window every Fy sample sat on one level. sph3t and cb1t show the same steps, so this is the sensor's
+    resolution and not a fault. The tangential forces of the slides come from 0.1 N steps; only means over the holds,
+    smoothed by the noise, resolve finer.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
