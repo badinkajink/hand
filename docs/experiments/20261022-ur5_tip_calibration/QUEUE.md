@@ -917,6 +917,35 @@ push that answers it arrives.
     peak near 6 N. Faster presses need a stronger stop in the program first (`stopL` decelerates at 0.05 m/s^2).
   - About 1.5 h in all. Passes 2b to 6 follow as planned.
 
+- R27 (15:05 on 10-26; owner: "i think it can't hurt to get higher resolution + some data parity on the rod ... might
+  as well design and tack it on. we can do rolls, twists, shear, variable speeds/forces on it too. if it truly is
+  redundant, we'll find out!"). A rod session on v1 ID 3, with the owner present, after R26 and before cb3t's pass 2b.
+  On the first tip on 10-23, a GP trained on sphere presses placed rod contacts within 0.50 mm at 1.5 N and over, and
+  within 1.61 mm under 1.5 N. With rod presses in training the errors were 0.41 and 1.14 mm. The rod's give beyond the
+  FE model was 0.10 mm/N, against the sphere's 0.20. The lab builds both plans, because the workstation's weekly usage
+  is above 90 %.
+  - Rod pass 1, the registration: R19's `plan/20261023-plan_rod_lab_touch35.json`, with homing on the rod's key, 22 pad
+    touch-offs at a 3.5 mm standoff, 5 pivot presses and the gravity sweeps. Take v7's `T_EM`, `T_MP`, payload, travel
+    block and `speed_slider` 0.30 from cb3t's pass 1; keep R19's indenter block, key and placement. Check it on v7 with
+    134522-cb3t's registration as the stand-in, simulate it, and run it as a new session.
+  - Rod pass 2, on rod pass 1's registration, every ID starting with `rod-`:
+    - R19's 53 grid targets, and up to 30 more by farthest-point sampling of the FE surface away from them, at 0.15
+      mm/s to 8 N on the face, 6 N on the edges and 4 N on the flanks, with the standard levels below those;
+    - at six targets spread over the face, presses to 2 N at 0.045, 0.6 and 2.0 mm/s (v 0.00015, 0.002, 0.0067), and to
+      1 and 3 N at about 4 mm/s (v 0.0133);
+    - slides around the rod at `dir_deg` 0 and 180 only, with `degs` 0.458 and 0.917 (0.1 and 0.2 mm on R 12.5 mm), at
+      1, 2 and 4 N at eight targets with `turn_v` 0.04, and at 2 N with `turn_v` 0.4. The rod is straight along its axis,
+      so a turn at `dir_deg` 90 would tilt the pad over the contact line;
+    - twists about the vertical at 2.5 and 5 N to 15 deg with `turn_v` 0.016, and at 5 N with `turn_v` 0.4;
+    - rolls at `dir_deg` 0 (about the contact line), 3 and 6 deg each way, at 1.5 and 4 N, and at 1.5 N with `turn_v`
+      0.4;
+    - the rod's reference press at the start and at the end.
+  - Checks as in R26: margins raised by each action's depth at its largest force less 1 mm, with the sphere's fit as the
+    bound (the rod went in less); joint 5 at 34 deg or more; joint 6 within -65 and +50 deg. Simulate the whole pass.
+    `scripts/ur5_tip_calibration_hard_pass.py` shows the target selection, the margins and the joint checks; its plan
+    head and turn moves need the rod's.
+  - About 30 min for pass 1 and 2.5 h for pass 2. cb3t then resumes at pass 2b.
+
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
   back on after the ATI work: `plan/20261023-plan_sphere_lab_check6_sph3t.json`, six of sph3t's 19 touch-offs at its
