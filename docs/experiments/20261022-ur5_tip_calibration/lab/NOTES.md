@@ -677,7 +677,20 @@ the lab session ("go") at about 15:36.
 - Simulated again on cb2t's registration: no abort. The cell check on v7 was clean: mount ≥ 3.4 mm, finger ≥ 1.4 mm,
   joint 5 from 36.2 to 95.6 deg.
 
-### 21:17:47, cb2t pass 6
+### 21:17:47 to 23:42:10, cb2t pass 6
+
+- "speed slider 0.30 (the plan's 0.30)". All 73 actions were ok: 37 presses, 33 slides, 2 twists and the final
+  reference press. A slide took 3.2 to 3.75 min.
+- The HEX-E gave 865,212 samples, none timed out. Its one gap (0.7 s) came at the start, before the preflight.
+- The robot was homed afterwards (23:4x), and it stands there.
+
+### cb2t in all
+
+- 329 actions over passes 1, 2a, 2b, 3, 5 and 6, from 15:29 to 23:42, and not one aborted. Every run's HEX-E stream had
+  no timeout; the only gaps came at program start.
+- 8 actions were dropped before their runs, past joint 6's −65 deg or under the margins on v7.
+- The session is in `lab/20261025-152920-cb2t/`: the small files, each run's printout and plan (`printout_resume_HHMM`,
+  `plan_resume_HHMM`), then the streams in a separate commit.
 
 ## The lab clone and git-lfs
 

@@ -1,0 +1,87 @@
+resumed logs/20261025-tip_calibration/152920-cb2t: 256 actions done, 31 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 338 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0453 0.0172 0.2241 0.0028 0.0037 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  dense-795-t+15 (1/37): to 3.50 N
+  dense-656-t+15 (2/37): to 3.00 N
+  dense-419-t+15 (3/37): to 2.00 N
+  dense-596-t+15 (4/37): to 2.00 N
+  dense-699-t+10 (5/37): to 3.50 N
+  dense-780-t+10 (6/37): to 3.50 N
+  dense-554-t+15 (7/37): to 2.00 N
+  dense-804-t+10 (8/37): to 3.50 N
+  dense-611-t+5 (9/37): to 3.00 N
+  dense-664-t+15 (10/37): to 2.00 N
+  dense-542-t+15 (11/37): to 2.00 N
+  dense-464-t-5 (12/37): to 2.00 N
+  dense-678-t+15 (13/37): to 3.00 N
+  dense-748-t+10 (14/37): to 3.00 N
+  dense-750-t+10 (15/37): to 3.00 N
+  dense-613-t+10 (16/37): to 3.00 N
+  dense-594-t+15 (17/37): to 2.00 N
+  dense-527-t+15 (18/37): to 2.00 N
+  dense-633-t+0 (19/37): to 3.00 N
+  dense-658-t+15 (20/37): to 3.00 N
+  dense-782-t+15 (21/37): to 3.50 N
+  dense-721-t+10 (22/37): to 3.50 N
+  dense-735-t+10 (23/37): to 3.50 N
+  dense-665-t+15 (24/37): to 2.00 N
+  dense-615-t+10 (25/37): to 3.00 N
+  dense-793-t+10 (26/37): to 3.50 N
+  dense-749-t+10 (27/37): to 3.00 N
+  dense-597-t+10 (28/37): to 2.00 N
+  dense-751-t+15 (29/37): to 3.00 N
+  dense-555-t+15 (30/37): to 2.00 N
+  dense-736-t+10 (31/37): to 3.50 N
+  dense-614-t+10 (32/37): to 3.00 N
+  dense-657-t+15 (33/37): to 3.00 N
+  dense-700-t+10 (34/37): to 3.50 N
+  dense-781-t+10 (35/37): to 3.50 N
+  dense-655-t+15 (36/37): to 3.00 N
+  dense-595-t+15 (37/37): to 2.00 N
+== shear
+  slide-dense-795-t+15-1N (1/33): to 1.00 N
+  slide-dense-656-t+15-1N (2/33): to 1.00 N
+  slide-dense-596-t+15-1N (3/33): to 1.00 N
+  slide-dense-699-t+10-1N (4/33): to 1.00 N
+  slide-dense-780-t+10-1N (5/33): to 1.00 N
+  slide-dense-554-t+15-1N (6/33): to 1.00 N
+  slide-dense-804-t+10-1N (7/33): to 1.00 N
+  slide-dense-611-t+5-1N (8/33): to 1.00 N
+  slide-dense-664-t+15-1N (9/33): to 1.00 N
+  slide-dense-678-t+15-1N (10/33): to 1.00 N
+  slide-dense-748-t+10-1N (11/33): to 1.00 N
+  slide-dense-750-t+10-1N (12/33): to 1.00 N
+  slide-dense-613-t+10-1N (13/33): to 1.00 N
+  slide-dense-594-t+15-1N (14/33): to 1.00 N
+  slide-dense-527-t+15-1N (15/33): to 1.00 N
+  slide-dense-633-t+0-1N (16/33): to 1.00 N
+  slide-dense-658-t+15-1N (17/33): to 1.00 N
+  slide-dense-782-t+15-1N (18/33): to 1.00 N
+  slide-dense-721-t+10-1N (19/33): to 1.00 N
+  slide-dense-735-t+10-1N (20/33): to 1.00 N
+  slide-dense-665-t+15-1N (21/33): to 1.00 N
+  slide-dense-615-t+10-1N (22/33): to 1.00 N
+  slide-dense-793-t+10-1N (23/33): to 1.00 N
+  slide-dense-749-t+10-1N (24/33): to 1.00 N
+  slide-dense-751-t+15-1N (25/33): to 1.00 N
+  slide-dense-555-t+15-1N (26/33): to 1.00 N
+  slide-dense-736-t+10-1N (27/33): to 1.00 N
+  slide-dense-614-t+10-1N (28/33): to 1.00 N
+  slide-dense-657-t+15-1N (29/33): to 1.00 N
+  slide-dense-700-t+10-1N (30/33): to 1.00 N
+  slide-dense-781-t+10-1N (31/33): to 1.00 N
+  slide-dense-655-t+15-1N (32/33): to 1.00 N
+  slide-dense-595-t+15-1N (33/33): to 1.00 N
+== twist
+  twist-3-2.5N-20deg (1/2): to 2.50 N
+  twist-3-5.0N-20deg (2/2): to 5.00 N
+== final
+  final-ref-p6 (1/1): to 2.00 N
+HEX-E: 865212 samples, 0 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz +0.2 N
+session in logs/20261025-tip_calibration/152920-cb2t
+exit 0 at 23:42:10
