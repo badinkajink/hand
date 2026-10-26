@@ -272,7 +272,7 @@ def sections(N):
     # 4. skin
     sz = N["skin_sizing"]
     tab3 = P.table(
-        ["Model, impratio", "Give (&#181;m/N), 1 / 2&#8202;N", "Friction coefficient, 1 / 2&#8202;N", "RMS to measured (N), 1 / 2&#8202;N",
+        ["Model, impratio", "Give (&#181;m/N), 1 / 2&#8202;N", "Slip limit along the travel, 1 / 2&#8202;N", "RMS to measured (N), 1 / 2&#8202;N",
          "Shear left at the return (N), 1 / 2&#8202;N", "&#181;s per step"],
         [[f"{'Pads' if m_ == 'pads' else 'Sized skin'}, {x}",
           f"{K[f'{m_}_ir{x}_1N']['give_um_N']:.0f} / {K[f'{m_}_ir{x}_2N']['give_um_N']:.0f}",
