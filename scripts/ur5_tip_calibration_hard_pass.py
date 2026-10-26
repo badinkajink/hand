@@ -89,7 +89,7 @@ def run(a):
             r = x["target"]["region"]
             lv = LEVELS[r]
             presses.append(mk(x["id"], f"hard-{x['id']}", levels=lv, stop_N=lv[-1], v=0.0005, max_depth_mm=4.0, hold_s=0.6))
-    fast = [mk(g, f"fast-{g}", levels=[1.0, 3.0], stop_N=3.0, v=FAST_V, max_depth_mm=3.5, hold_s=0.6) for g in RATE_POINTS]
+    fast = [mk(g, f"fast4-{g}", levels=[1.0, 3.0], stop_N=3.0, v=FAST_V, max_depth_mm=3.5, hold_s=0.6) for g in RATE_POINTS]
     slides = sorted({x["id"].rsplit("-", 1)[0] for x in p5["actions"] if x["kind"] == "slide" and x["id"].startswith("slide-")})
     hs = [mk(f"{s}-1N", f"hard-{s}-4N", press_N=4.0) for s in slides]
     fs = [mk(f"{s}-1N", f"fast-{s}-2N", press_N=2.0, turn_v=FAST_TURN) for s in slides]
