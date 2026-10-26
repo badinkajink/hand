@@ -271,10 +271,103 @@ def sd_capped_cone(P, z0, z1, r0, r1):
     return s * np.sqrt(np.minimum(cax ** 2 + cay ** 2, cbx ** 2 + cby ** 2))
 
 
+# The tall indenter of 2026-10-26 (docs/experiments/20261026-tall_indenter, scripts/tall_indenter.py builds it from these
+# numbers): a 5 mm sphere on a neck of radius neck_r that widens at taper_deg into a column of radius col_r, on a base plate
+# screwed to the 2x4; the homing seat on a strut, its mouth plane mouth_below under the sphere's centre and key_y to +y.
+# I frame: z up from the base's underside (the 2x4's top), x along the tool axis toward the tip at homing.
+TALL = dict(H=160.0, R=5.0, neck_r=3.0, neck_z=4.0, taper_deg=15.0, col_r=30.0,
+            base=(-40.0, 40.0, -45.0, 70.0, 8.0),       # x0, x1, y0, y1, thickness
+            key_y=40.0, mouth_below=55.0,
+            a_M=(10.55, 0.0, 93.36), mouth_M=(17.0, 0.0, 49.0))   # the pad's contact point and the socket's mouth in M
+
+
+def tall_frame(t=None):
+    """The homing geometry of the tall indenter (I frame): the socket's mouth, the contact point at homing and the map
+    from M at homing (z_M -> x_I, y_M -> y_I, x_M -> -z_I)."""
+    t = dict(TALL, **(t or {}))
+    a = np.array(t["a_M"])
+    m = np.array(t["mouth_M"])
+    mouth = np.array([0.0, t["key_y"], t["H"] - t["mouth_below"]])
+    mouth[0] = m[2] - a[2]                                  # -44.36: the mouth this far behind the contact along x_I
+    contact = mouth + np.array([a[2] - m[2], 0.0, m[0] - a[0]])
+    R = np.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]])
+    T_IM = np.eye(4)
+    T_IM[:3, :3] = R
+    T_IM[:3, 3] = contact - R @ a
+    return dict(mouth=mouth, contact=contact, T_IM_home=T_IM)
+
+
+def tall_boxes(t=None):
+    """The tall indenter's homing seat as boxes and convex solids in I (shared by the SDF and the CAD): the seat block, its
+    floor recessed 0.6 mm under three lands, the guide walls along the mount's column, the strut to the column and the key."""
+    t = dict(TALL, **(t or {}))
+    f = tall_frame(t)
+    mx, my, mz = f["mouth"]
+    xM = lambda zm: zm - t["mouth_M"][2] + mx          # noqa: E731  (z_M -> x_I at homing)
+    land = 2.0                                          # half-size of a land
+    lands = [(xM(36.0), my - 16.5), (xM(36.0), my + 9.0), (xM(66.0), my - 3.5)]
+    gap, wt, wh = 0.4, 2.4, 4.0                         # guide walls: clearance to the column, thickness, height
+    y_lo, y_hi = my - 23.45 - wt, my + 17.6 + wt
+    out = dict(
+        block=((xM(31.0), y_lo, mz - 10.0), (xM(70.5), y_hi, mz - 0.6)),
+        lands=[((x - land, y - land, mz - 0.61), (x + land, y + land, mz)) for x, y in lands],
+        walls=[((xM(31.0), my - 21.0 - gap - wt, mz - 0.61), (xM(45.5), my - 21.0 - gap, mz + wh)),
+               ((xM(31.0), my + 13.3 + gap, mz - 0.61), (xM(45.5), my + 13.3 + gap + wt, mz + wh)),
+               ((xM(46.5), y_lo, mz - 0.61), (xM(59.5), my - 23.05 - gap, mz + wh)),   # the clamp plate from z_M 60.4
+               ((xM(46.5), my + 17.2 + gap, mz - 0.61), (xM(70.5), y_hi, mz + wh))],
+        strut=[(x, y, mz - 9.5) for x, y in ((xM(31.0), y_lo), (xM(70.5), y_lo), (xM(70.5), y_hi), (xM(31.0), y_hi))]
+              + [(x, y, mz - 85.0) for x, y in ((-18.0, 0.0), (2.0, 0.0), (2.0, 20.0), (-18.0, 20.0))],
+        lands_xy=lands, mouth=f["mouth"])
+    return out
+
+
+def key_halves(d, t=None):
+    """Half-sizes (along x_I, along y_I) of the tall indenter's key d mm above the mouth plane: the mount's socket (8 x 18 mm
+    at the mouth, drafted 20 deg; scripts/ur5_calibration_mount.py home_halves) less 0.05 mm on every face."""
+    tn = math.tan(math.radians(20.0))
+    return (9.0 - d * tn - 0.05, 4.0 - d * tn - 0.05)
+
+
+def _convex_sdf(P, pts):
+    """Lower bound of the signed distance to the convex hull of pts (the largest of its faces' plane distances)."""
+    from scipy.spatial import ConvexHull
+    eq = ConvexHull(np.asarray(pts, float)).equations          # n . p + d <= 0 inside, n unit
+    return (P @ eq[:, :3].T + eq[:, 3]).max(axis=1)
+
+
+def key_points(t=None):
+    """The key's frustum: its section at the seat's floor (0.6 mm under the mouth plane) and at its top (4.5 mm above)."""
+    mx, my, mz = tall_frame(t)["mouth"]
+    out = []
+    for d in (-0.61, 4.5):
+        hx, hy = key_halves(d, t)
+        out += [(mx + sx * hx, my + sy * hy, mz + d) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    return out
+
+
+def tall_sdf(P, tip=True, t=None):
+    t = dict(TALL, **(t or {}))
+    H, tn = t["H"], math.tan(math.radians(t["taper_deg"]))
+    z_neck = H - t["neck_z"]                                         # the neck meets the sphere here (radius neck_r)
+    z_col = z_neck - (t["col_r"] - t["neck_r"]) / tn                 # the cone reaches col_r here
+    x0, x1, y0, y1, tb = t["base"]
+    b = tall_boxes(t)
+    parts = [sd_box(P, (x0, y0, 0.0), (x1, y1, tb)),
+             sd_cyl_z(P, t["col_r"], tb - 0.01, z_col),
+             sd_capped_cone(P, z_col, z_neck + 0.5, t["col_r"], t["neck_r"] - 0.5 * tn),
+             sd_box(P, *b["block"]), _convex_sdf(P, b["strut"]), _convex_sdf(P, key_points(t))]
+    parts += [sd_box(P, lo, hi) for lo, hi in b["lands"] + b["walls"]]
+    if tip:
+        parts.append(np.linalg.norm(P - np.array([0.0, 0.0, H]), axis=1) - t["R"])
+    return np.min(np.stack(parts), axis=0)
+
+
 def indenter_sdf(P, kind="sphere", tip=True):
     """Signed distance (mm) to the printed indenter (I frame); tip=False leaves out the part that presses (the sphere,
     or the rod's round top), for the pad's points around its contact."""
     P = np.asarray(P, float)
+    if kind == "tall":
+        return tall_sdf(P, tip)
     parts = [sd_box(P, (-35.0, -12.0, 0.0), (35.0, 12.0, 6.0)),                 # base
              sd_box(P, (-56.58, -12.0, 0.0), (-30.22, 12.0, 6.0)),               # arm to the homing post
              sd_box(P, (-56.58, 12.0, 0.0), (-32.14, 22.63, 6.0)),
@@ -291,6 +384,8 @@ def indenter_sdf(P, kind="sphere", tip=True):
 
 
 def tip_sdf(P, kind="sphere"):
+    if kind == "tall":
+        return np.linalg.norm(P - np.array([0.0, 0.0, TALL["H"]]), axis=1) - TALL["R"]
     if kind == "sphere":
         return np.linalg.norm(P - np.array([0.0, 0.0, 41.0]), axis=1) - 5.0
     return sd_cyl_y(P, 12.5, -10.0, 10.0)

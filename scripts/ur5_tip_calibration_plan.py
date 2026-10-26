@@ -11,7 +11,7 @@ clear of the indenter, chosen by farthest-point sampling in four regions (face: 
 |n_y| > 0.7; tip end: n_z > 0.7). Each target turns about the vertical through its contact (twist) until the robot reaches
 all its poses and clears the cell.
 
-    .venv/bin/python scripts/ur5_tip_calibration_plan.py [--indenter sphere|rod] [--placement x,y,z,yaw] [--order joint6]
+    .venv/bin/python scripts/ur5_tip_calibration_plan.py [--indenter sphere|rod|tall] [--placement x,y,z,yaw] [--order joint6]
             [--gravity-roll-offset 30]
         placement: the indenter's base in the robot's base frame (mm, deg; x_I points away from the robot)
         gravity-roll-offset: deg added to every roll of the gravity stations; with 30 none sits half a turn from the
@@ -75,6 +75,9 @@ def nominal(kind, mount_turn_deg=0.0):
     T_IM[:3, 3] = np.array([0.0, 30.0, top + 5.0]) - T_IM[:3, :3] @ a_M      # homing: contact 30 mm to +y, 5 mm up
     ind = (dict(kind="sphere", centre=[0.0, 0.0, 41.0], radius=5.0) if kind == "sphere"
            else dict(kind="rod", centre=[0.0, 0.0, 30.0], radius=12.5, axis=[0.0, 1.0, 0.0], half_length=10.0))
+    if kind == "tall":       # the tall indenter (ur5_cb3_cell.TALL): a sphere to the program, its key on a strut below it
+        T_IM = CELL.tall_frame()["T_IM_home"]
+        ind = dict(kind="sphere", centre=[0.0, 0.0, CELL.TALL["H"]], radius=CELL.TALL["R"])
     return dict(
         T_EM=C.Tm(C.rot(C.EZ, mount_turn_deg), [0.0, 0.0, CELL.HEX["height_mm"]]), T_MP=CELL.T_M_FROM_P,
         T_ES=C.Tm(None, [0.0, 0.0, CELL.HEX["height_mm"]]),
@@ -629,7 +632,7 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--indenter", default="sphere", choices=("sphere", "rod"))
+    ap.add_argument("--indenter", default="sphere", choices=("sphere", "rod", "tall"))
     ap.add_argument("--placement", default="0,-450,56,-90", help="x,y,z (mm), yaw (deg) of the indenter's base in the "
                     "robot's base frame (z: above the table the robot stands on)")
     ap.add_argument("--block", type=float, default=38.0, help="mm of block under the indenter on the plywood")
