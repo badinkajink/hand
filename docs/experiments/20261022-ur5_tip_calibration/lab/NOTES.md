@@ -653,7 +653,31 @@ the lab session ("go") at about 15:36.
   - 2.43 to 2.56 N at v 0.002 (0.6 mm/s);
   - 2.95 to 3.28 N at v 0.00667 (2.0 mm/s).
 
-### 18:40:37, cb2t pass 5 (the grid at 4 times the contact speed, slides at more forces and points)
+### 18:40:37 to 21:16:54, cb2t pass 5 (the grid at 4 times the contact speed, slides at more forces and points)
+
+- "speed slider 0.30 (the plan's 0.30)". All 101 actions were ok: 52 fast-grid presses, 48 slides and the final
+  reference press. A slide took about 3.2 min.
+- The HEX-E gave 936,524 samples, none timed out. Its one gap (0.7 s) came at the start, before the preflight.
+
+### Pass 6, prepared during pass 5
+
+- The workstation added pass 6 (776b0f88) under the owner's request of 16:3x: "improvisationally devise more tests ...
+  (more speeds, more variations, more locations/location density), torsion, contact wrenches". It has 77 actions:
+  - 38 new press targets, each at one of four contact speeds;
+  - 36 slides at 1 N on those targets;
+  - twist-3 at 2.5 and 5 N out to 20 deg;
+  - final-ref-p6.
+- Rechecked on v7 with cb2t's registration, four actions were under the margins:
+  - dense-574-t+10 and its slide, with the finger at 0.79 mm;
+  - slide-dense-464-t-5-1N, with the mount at 2.87 mm;
+  - slide-dense-597-t+10-1N, with the mount at 2.82 mm. In the simulator 23 of its samples came within 2.9 to
+    3.0 mm, the only samples of the pass that broke a rule.
+- The four were dropped (a991ac00). The 73 left clear the mount by 3.25 mm and the finger by 1.13 mm, with every joint
+  inside its window.
+- Simulated again on cb2t's registration: no abort. The cell check on v7 was clean: mount ≥ 3.4 mm, finger ≥ 1.4 mm,
+  joint 5 from 36.2 to 95.6 deg.
+
+### 21:17:47, cb2t pass 6
 
 ## The lab clone and git-lfs
 
