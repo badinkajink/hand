@@ -720,6 +720,45 @@ the lab session ("go") at about 15:36.
 - Joint 6 goes above +50 deg at 2 rest poses in pass 2a, 7 in 2b, none in 3, 7 in 5 and 6 in 6 (up to 59.3 deg). All
   of them ran clean on cb2t.
 
+### 13:31:28 to 13:31:56, pass 2a stopped: the HEX-E fell off its DAQ
+
+- pad-edge-07 ran first, at joint 6 +54.5 deg. The HEX-E's stream stopped at 13:31:45 and stayed down.
+- pad-off-00 and pad-off-01 aborted at once on "no HEX-E sample for 100 ms". After three aborts in a row the program
+  stopped the session (exit 1).
+- The DAQ box still answered ping, but its status showed no sensor: empty serial number, sample counter 0, status
+  131072. This is the failure of 10-22, the HEX-E's connector.
+- The arm stood in free air about 15 mm off the pad, lifted after each abort. The guarded move needs the HEX-E, so it
+  stayed there.
+- The workstation proposed capping joint 6 at +50 deg for the rest of cb3t. The owner chose to try the pose again
+  first: "i see that the motion does slightly jostle the DAQ cable, which is unfortunate, but i dont want to lose data
+  parity".
+
+### 13:35 to 13:44, the owner's cable work and a retry
+
+- At 13:35:48 the DAQ showed the sensor again (HEXEA478, its sample counter running). Polled for 20 s, the HEX-E gave
+  2,001 samples with no timeout.
+- The retry (`lab/20261026-plan_sphere_lab_r25_retry_cb3t.json`, on pass 1's registration) ran three repeats of pass 1's
+  touch-offs, then pad-edge-07, with the owner watching the cable:
+  - the repeats came +0.127, +0.061 and +0.110 mm from the expected, where pass 1's residuals there were under
+    0.043 mm;
+  - pad-edge-07 ran clean at joint 6 +54 deg. The HEX-E gave 28,347 samples, none timed out.
+- The repeats, all late by about 0.1 mm, say the pad moved slightly during the cable work. Pass 1 was redone in a fresh
+  session.
+
+### 13:45:22 to 14:05:43, cb3t pass 1 again (session 134522-cb3t)
+
+- All 19 touch-offs were ok, pad-edge-07 among them at joint 6 +54 deg. The HEX-E gave 121,423 samples, none timed
+  out.
+- The registration fit at 0.034 mm rms. Against the first registration, the pad on the flange moved 0.077 mm and
+  turned 0.21 deg, and the sphere moved 0.107 mm: the shift that the repeats showed.
+- The suite continues in this session. The first session (`130546-cb3t`) keeps its touch-offs, the two dropouts and
+  the retry, as data.
+- Pass 2a, rechecked with this registration, clears the mount by 3.49 mm and the finger by 1.69 mm. In the simulator
+  nothing aborted, the cell check on v7 was clean, and joint 6 peaked at 51.2 deg.
+- The actions above joint 6's +50 deg stay in, for parity with cb2t (the owner).
+
+### 14:10:11, cb3t pass 2a
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

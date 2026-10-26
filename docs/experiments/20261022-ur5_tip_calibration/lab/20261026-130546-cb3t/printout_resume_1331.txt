@@ -1,0 +1,15 @@
+resumed logs/20261026-tip_calibration/130546-cb3t: 20 actions done, 18 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0456 0.0247 0.2461 0.003  0.004  0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== pad
+  pad-edge-07: ABORT no HEX-E sample for 100 ms
+  pad-off-00: ABORT no HEX-E sample for 100 ms
+  pad-off-01: ABORT no HEX-E sample for 100 ms
+HEX-E: 1521 samples, 156 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.6 s, Fz +0.0 N; 0.7 s, Fz -0.3 N
+session in logs/20261026-tip_calibration/130546-cb3t
+three aborts in a row: stopping the session (--resume continues it)
+exit 1 at 13:31:56
