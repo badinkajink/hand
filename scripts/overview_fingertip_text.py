@@ -97,16 +97,18 @@ CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330"
 
 LEDE = (
     "The printed fingertip has five magnets in a soft thermoplastic polyurethane (TPU) pad and five magnetic sensors "
-    "behind it. A press deforms "
-    "the pad, moves the magnets and changes the sensors&#8217; readings. We model that sequence to estimate where the "
-    "tool presses and with how much force. In UR5 presses above 1&#8202;N, the untrained location estimate missed by "
-    "1.6&#8211;2.6&#8202;mm. A statistical correction trained on 59 presses reduced the error to 0.84&#8202;mm. On a second "
-    "tip with its magnets in a checkerboard, the estimate rebuilt from the field at rest missed by 1.1&#8211;1.2&#8202;mm "
-    "above 2&#8202;N. Corrections learned on the first tip did not transfer, and 47 of the second tip&#8217;s own presses "
-    "gave 0.42&#8211;0.71&#8202;mm. The force "
-    "estimated from the board was 0.78&#8211;1.05 times the HEX-E reference sensor. Below 1&#8202;N the untrained estimate "
-    "fails. The printed pad deforms more "
-    "than its finite-element model predicts under the sphere.")
+    "behind it. A press deforms the pad, moves the magnets and changes the sensors&#8217; readings. We model that "
+    "sequence to estimate where the tool presses and with how much force. On a UR5 arm, with a six-axis force sensor as "
+    "the reference, the untrained model placed presses of 2&#8202;N and more within 0.9&#8211;2.4&#8202;mm. Its force was "
+    "0.78&#8211;1.31 of the reference, and below 1&#8202;N it fails. Trained on a tip&#8217;s own presses, a Gaussian process "
+    "placed presses at new points within 0.37&#8211;0.53&#8202;mm at 1.5&#8202;N and over, and their force within "
+    "0.06&#8211;0.07&#8202;N. A model learned on one tip misses on another. Under a small sphere the printed pad sinks "
+    "further than its finite-element model predicts. Three pages explain this in order: the "
+    "<a href='../experiments/20261026-fingertip_physical_model/20261026-fingertip_physical_model.html'>physical model</a> "
+    "of the pad and its readout, the "
+    "<a href='../experiments/20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html'>calibration "
+    "on the UR5</a>, and the first part of the <a href='contact_model.html#chain'>contact overview</a>, which compares the "
+    "print with the simulations&#8217; sphere pads.")
 
 INTRO_TITLE = "One press through the model"
 INTRO = (
