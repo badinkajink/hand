@@ -26,6 +26,7 @@ assets/mjcf/experimental/20261013-cad_v1/meshes/*.obj filter=lfs diff=lfs merge=
 # cad_v2: the DIP link, fingertip and bench fixtures (owner, 2026-10-26)
 assets/cad_v2/**/*.stl filter=lfs diff=lfs merge=lfs -text
 assets/cad_v2/**/*.step filter=lfs diff=lfs merge=lfs -text
+assets/cad_v2/**/*.3mf filter=lfs diff=lfs merge=lfs -text
 docs/experiments/20261025-ur5_calibration_mount_v7/cad/*.step filter=lfs diff=lfs merge=lfs -text
 # binary streams of the UR5 calibration sessions pushed from the lab computer (2026-10-22)
 docs/**/*.bin filter=lfs diff=lfs merge=lfs -text

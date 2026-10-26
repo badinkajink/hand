@@ -161,6 +161,30 @@ The owner kept the 3T set ("in the end, i thinkt eh interference fits are quite 
 we are still using the 3mm side wall settings", 10-23 19:19): cover 3T, cap TW15H3 and pad B05R with M2 x 8 screws. The 2T and snug
 sets are not used; their files stay for the record.
 
+### Four magnets in a compact square (2026-10-26)
+
+The owner asked for the same three pads with four magnet slots in place of five ("can you prepare a 3mf for the prusa xl 5t
+with the same 3 fingertips, but with only 4 magnet pouches"), with the advice "Keep the four compact and symmetric about the
+centre chip. The field that's left after cancelling grows with the magnets' spacing, roughly with its square." The tip of
+`scripts/dip_b_four_compact_tip.py` puts four magnets in a 5.0 mm square centred on U1 (y_F = 0, z_F = -78.16 mm), at the
+five's depth (7.5 mm under the apex) and seat (2.9 mm). A 4.9 mm square left 1.76 mm between slots, under the 1.8 mm rule.
+Pad 05R4 is cut from it with B05R's grooves, raised seats and 1.6 mm hole (pad set `v4_four`, variant `four_compact`). Its
+slots are 2.8 mm from the grooves, 3.36 mm from the screw-head notches and 3.76 mm from the pin hole (B05R: 2.8, 2.32 and
+2.27 mm). The owner dropped the engraved B the same day ("we dont need the B carve marking anymore"), so 05R is B05R with
+the ID centred on the face. Both projects name the checkerboard poles slot by slot (`--poles checkerboard`).
+
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/dip_b_four_compact_tip.py
+    for v in "four_compact --pid 05R4" "five --pid 05R"; do
+        $RG ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_pad_b00_magnets_xl.py --magnets $v --poles checkerboard \
+            --id-x -0.6 --pin-hole --raised-seats --groove-fit 0.05 --hole-d 1.6 --copies 3 \
+            --out docs/experiments/20261018-dip_link_board_mount/v4/b/print --date 20261026
+    done
+
+Outputs in `v4/b/`: `20261026-dip_link_v4b_four_compact_tip.json`; the tip
+`print/20261026-siraya85a_tcd_ell7p4x8p5x11x22_four_y2p5_z5_d3x2_depth7p5_seat2p9.stl` with its sheet; for each pad
+`print/20261026-dip_link_print_pad_ell11_{4c_05R4,5_05R}_x3_85a_t2_g30.{3mf,json}` (three pads, 1 h 17 min and 1 h 19 min)
+and `print/20261026-dip_link_pad_ell11_{4c_05R4,5_05R}_print.stl`, copied to `assets/cad_v2/fingertip_prints/`.
+
 ## Opening the STEP files in Inventor
 
 1. Unzip a `.step.zip` first; the plain `.step` files open as they are.

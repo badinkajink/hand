@@ -26,7 +26,8 @@ Commands, from the repository root:
              env -u VIRTUAL_ENV -u PYTHONPATH PATH=/usr/bin:/bin UR5M_REV=v7 UR5M_ONLY=standoff_fork UR5M_CMD=step \\
                  UR5M_REPO=$PWD freecadcmd scripts/ur5_calibration_mount.py
   check  each new solid against the mesh it stands for: volumes and surface distances both ways -> assets/cad_v2/checks.json
-  copy   the print STLs, the other STEP files and the meshes from their experiment folders, then each file's source, sha256
+  copy   the print STLs and 3MFs, the other STEP files and the meshes from their experiment folders, and the original
+         fingertip parts from assets/cad_v1 into cad_v1/, then each file's source, sha256
          and STEP face census -> assets/cad_v2/manifest.json; copy --check lists the copies whose source has changed
 
 Frames: the DIP-link parts are in frame D, the coordinates of assets/cad_v1/fingertip_mount_DIP_link.stl (the PIP axis is the
@@ -75,7 +76,15 @@ COPIES = [
     ("dip_link_v4b_print.stl", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl"),
     ("cassette_3T_print.stl", V4 / "print/20261022-dip_link_v4b_cover_I15H3_3T_pla_bambu.stl"),
     ("top_cover_TW15H3_print.stl", V4 / "print/20261021-dip_link_v4b_tip_cap_TW15H3_pla_bambu.stl"),
-    ("pad_B05R_print.stl", V4 / "print/20261022-dip_link_pad_ell11_5_B05R_print.stl"),
+    # the TPU pads (owner, 2026-10-26: the 3MFs of the four- and five-magnet pads in fingertip_prints/, IDs without the B)
+    ("fingertip_prints/pads_05R_five_magnets_x3_xl.3mf", V4 / "print/20261026-dip_link_print_pad_ell11_5_05R_x3_85a_t2_g30.3mf"),
+    ("fingertip_prints/pads_05R4_four_magnets_x3_xl.3mf", V4 / "print/20261026-dip_link_print_pad_ell11_4c_05R4_x3_85a_t2_g30.3mf"),
+    ("fingertip_prints/pad_05R_print.stl", V4 / "print/20261026-dip_link_pad_ell11_5_05R_print.stl"),
+    ("fingertip_prints/pad_05R4_print.stl", V4 / "print/20261026-dip_link_pad_ell11_4c_05R4_print.stl"),
+    # the original fingertip parts, unaltered (owner, 2026-10-26)
+    ("cad_v1/fingertip.stl", REPO / "assets/cad_v1/fingertip.stl"),
+    ("cad_v1/fingertip_mount_DIP_link.stl", REPO / "assets/cad_v1/fingertip_mount_DIP_link.stl"),
+    ("cad_v1/fingertip_and_DIP_link.stl", REPO / "assets/cad_v1/fingertip_and_DIP_link.stl"),
     ("ur5_mount/standoff_fork_v7.step", V7M / "cad/20261025-ur5_calibration_mount_v7_standoff_fork.step"),
     ("ur5_mount/standoff_fork_v7.stl", V7M / "cad/20261025-ur5_calibration_mount_v7_standoff_fork.stl"),
 ] + [(f"ur5_mount/{p}.{e}", V3M / f"cad/20261021-ur5_calibration_mount_v3_{p}.{e}")    # v7's are byte-identical to v3's
@@ -426,7 +435,7 @@ def cmd_copy(check=False):
         shutil.copy2(src, OUT / dest)
     built = json.loads((WORK / "step.json").read_text())["files"]
     files = {}
-    for f in sorted(p for p in OUT.rglob("*") if p.is_file() and p.suffix in (".step", ".stl")):
+    for f in sorted(p for p in OUT.rglob("*") if p.is_file() and p.suffix in (".step", ".stl", ".3mf")):
         k = str(f.relative_to(OUT))
         src = dict(COPIES).get(k)
         e = dict(bytes=f.stat().st_size, sha256=sha(f))

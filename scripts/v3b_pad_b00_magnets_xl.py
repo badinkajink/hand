@@ -28,6 +28,12 @@ rail per flank, the pin hole that wide, the ID, and the pad as that many instanc
 project is sliced and checked pocket by pocket as before (in the work folder); the plate of copies takes the same pauses, and
 its G-code is checked for the pauses, one label per copy, tool 2 only and the filament against the one-pad slice
 (n times it, less up to 0.3 g a copy for the purge line and skirt they share).
+--magnets four_compact (owner, 2026-10-26: "the same 3 fingertips, but with only 4 magnet pouches"; "Keep the four compact and
+symmetric about the centre chip") cuts the pad from the tip of scripts/dip_b_four_compact_tip.py: four magnets in a 5.0 mm
+square centred on U1, at the five's depth and seat (pad set v4_four). --poles checkerboard writes each pause's poles slot by
+slot: +1 (north toward the palmar face) where y_F < 0 in a proximal row and y_F > 0 in a distal row, -1 elsewhere, +1 on the
+centre line; the corners of the five-magnet checkerboard (fingertip_contact_estimation_study.POLE_PATTERNS) follow the same
+rule. In the print the slots of a row lie along the bed's y axis, y_F < 0 toward the back of the plate.
 
     unset VIRTUAL_ENV
     ~/.claude/bin/resguard.sh run --mem 4G --cpu 200 -- taskset -c 14,15 env NUMPY_MADVISE_HUGEPAGE=0 OMP_NUM_THREADS=1 \\
@@ -62,6 +68,9 @@ VARIANTS = {   # --magnets: pad set, key in it, engraved ID, file key, the owner
              "2026-10-20 16:20: 'prepare a print for the b00 fingertip with the pauses back in? i want to try to get sensing today'"),
     "four": ("seat2p9", "ell11", "B4", "ell11_4",
              "2026-10-20 18:10: 'can you also re-prepare the 4 magnets configuration?'"),
+    "four_compact": ("v4_four", "ell11_4c", "B4C", "ell11_4c",
+                     "2026-10-26: 'can you prepare a 3mf for the prusa xl 5t with the same 3 fingertips, but with only 4 magnet "
+                     "pouches instead of [5]?'; 'Keep the four compact and symmetric about the centre chip.'"),
 }
 OUT = V2.B_DIR / "print"
 SETTINGS = dict(perimeters=2, fill_density="30%", fill_pattern="gyroid", top_solid_layers=4, bottom_solid_layers=4)
@@ -134,6 +143,14 @@ def main():
     ap.add_argument("--copies", type=int, default=1, help="instances of the pad on the plate, 30 mm apart along x")
     ap.add_argument("--out", default=None, help="output folder (default: v3/b/print)")
     ap.add_argument("--date", default=None, help="date prefix of the files (default: the variant's)")
+    ap.add_argument("--id-x", type=float, default=None,
+                    help="the engraved ID's centre x in the centred print frame, mm (default v2_tip_fit_sizes_xl.X_TEXT, 2.5, where "
+                         "the first character of a four-letter ID runs off the curved end of the face; 0.5 keeps five on it)")
+    ap.add_argument("--id-cap", type=float, default=None,
+                    help="the engraved ID's cap height, mm (default v2_tip_fit_sizes_xl.CAP, 2.5; 2.2 leaves a five-letter ID "
+                         "0.9 mm from both ends of the face)")
+    ap.add_argument("--poles", choices=("north", "checkerboard"), default="north",
+                    help="the poles each pause asks for: all north toward the palmar face, or the checkerboard slot by slot")
     a = ap.parse_args()
     new = a.groove_fit != FIT or a.hole_d is not None or a.copies > 1 or a.pid is not None
     if a.raised_seats and not a.pin_hole:
@@ -141,13 +158,13 @@ def main():
     pset, key, pid, fkey, owner = VARIANTS[a.magnets]
     w1 = a.pocket_walls == 1
     if w1:
-        pid = {"five": "5W1", "four": "4W1"}[a.magnets]
+        pid = {"five": "5W1", "four": "4W1"}.get(a.magnets, pid + "W1")
         owner += "; 18:35: 'is it possible to run just one wall around the magnets instead of 2?'"
     if a.pin_hole:
-        pid = {"five": "B00P", "four": "B4P"}[a.magnets] if not w1 else pid + "P"
+        pid = {"five": "B00P", "four": "B4P"}.get(a.magnets, pid + "P") if not w1 else pid + "P"
         owner += "; 20:36: 'sure we can go with your recommendation' (the caps over the tip end, with a pin into the pad)"
     if a.raised_seats:
-        pid = {"five": "B00R", "four": "B4R"}[a.magnets] if not w1 else pid[:-1] + "R"
+        pid = {"five": "B00R", "four": "B4R"}.get(a.magnets, pid[:-1] + "R") if not w1 else pid[:-1] + "R"
         owner += ("; 2026-10-21: 'boost the bottom screws up a little bit' (cover I05-I15: the proximal heads 3 mm up, so the "
                   "pad's proximal notches are 3 mm deeper)")
     tag = ("_pocketwalls1" if w1 else "") + ("_pin" if a.pin_hole else "") + ("_raised" if a.raised_seats else "")
@@ -201,6 +218,10 @@ def main():
             raise SystemExit(f"pin hole {hole['to_pocket_mm']} mm from a pocket")
     tp = B.pad_print_frame(tm, orient)                          # the tip's sheet frame: its pockets apply as they are
     tc, (_, t) = PP.to_print(tp)                                # centred as on the fit-size plate, engraved, moved back
+    if a.id_x is not None:
+        FS.X_TEXT = a.id_x
+    if a.id_cap is not None:
+        FS.CAP = a.id_cap
     me, removed = FS.engrave_bed_face(tc, pid)
     part = trimesh.Trimesh(np.asarray(me.vertices) - t, np.asarray(me.faces), process=False)
     sheet_path = B.pad_source(f"{tip_name}_g30.json")
@@ -226,6 +247,26 @@ def main():
                         z_mm=[mod_layers[0][0], mod_layers[-1][1]], volume_mm3=round(float(mod.volume), 1))
 
     prow = MP.pauses(pockets, sheet["tip"])
+    poles = None
+    if a.poles == "checkerboard":                               # +1: north pole toward the palmar face
+        zc = 0.5 * (min(q["z_mm"] for q in pockets) + max(q["z_mm"] for q in pockets))
+        sign = lambda q: 1 if abs(q["y_mm"]) < 1e-6 else (-1 if q["y_mm"] > 0 else 1) * (1 if q["z_mm"] < zc else -1)  # noqa: E731
+        poles = [dict(y_F=round(q["y_mm"], 3), z_tip_mm=round(q["z_mm"], 3), pole=sign(q),
+                      bed=("centre" if abs(q["y_mm"]) < 1e-6 else "back" if q["y_mm"] < 0 else "front")) for q in pockets]
+        word = {1: "north", -1: "south"}
+        for r in prow:
+            mags = [poles[i] for i in r["magnets"]]
+            row = "proximal" if all(pockets[i]["z_mm"] < zc for i in r["magnets"]) else \
+                "distal" if all(pockets[i]["z_mm"] > zc for i in r["magnets"]) else "centre"
+            if len(mags) == 1:
+                r["message"] = (f"Press the magnet ({row}) down its slot to the floor, {word[mags[0]['pole']]} pole toward the "
+                                "curved palmar side (checkerboard), and resume")
+            else:
+                slots = sorted(mags, key=lambda m: m["bed"] != "back")
+                r["message"] = (f"Press the {({2: 'two', 3: 'three'}).get(len(mags), len(mags))} magnets ({row}) down their slots "
+                                "to the floor in a checkerboard: "
+                                + ", ".join(f"in the slot toward the {m['bed']} of the plate the {word[m['pole']]} pole"
+                                            for m in slots) + " toward the curved palmar side; then resume")
     if a.copies > 1:
         each = {2: "both pads", 3: "each of the three pads", 4: "each of the four pads"}.get(a.copies, f"each of the {a.copies} pads")
         for q in prow:
@@ -272,10 +313,11 @@ def main():
         problems += copies["problems"]
     rec = dict(owner=owner, magnets=a.magnets, layout=sheet.get("layout"), project=PP.rel(proj), stl=PP.rel(stl),
                params=os.environ["DLV2_PARAMS_B"], groove_fit_per_flank_mm=a.groove_fit, id=pid,
-               engraving_removed_mm3=round(removed, 2), copies=copies,
+               engraving_removed_mm3=round(removed, 2), id_centre_x_mm=FS.X_TEXT, id_cap_mm=FS.CAP, copies=copies,
                volume_mm3=round(float(part.volume), 1), size_mm=np.round(part.extents, 2).tolist(), r4=rule,
                good_project=PP.rel(FS.GOOD), object_settings=dict(SETTINGS, layer_height="0.1"), sheet=PP.rel(sheet_path),
-               magnet=sheet["magnet"], pocket_wall_min_mm=sheet.get("wall_min_mm"), chip_field_sheet=sheet.get("chip_field"),
+               magnet=sheet["magnet"], poles=poles, pocket_wall_min_mm=sheet.get("wall_min_mm"),
+               chip_field_sheet=sheet.get("chip_field"),
                pocket_walls=a.pocket_walls, modifier=mod_info, loops=loops, pin_hole=hole,
                proximal_notch_depth_mm=round(B.HEAD_NOTCH_H + (B.rp("seat_raise") if a.raised_seats else 0.0), 2),
                pauses=prow, gcode=PP.rel(gc), summary={k: v for k, v in summ.items() if k != "labels"}, check=ck, material=mt,

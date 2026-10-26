@@ -3,8 +3,10 @@
 This folder has the parts made since `assets/cad_v1`, in the versions used on 2026-10-26. The DIP link b v4 and its
 fingertip parts replace the original DIP link and fingertip. The bench fixtures are the UR5e calibration mount v7 and the
 parts that calibrate an ATI Mini45 or Mini40 on the UR5e. Every rigid part has an exact STEP file for CAD and an STL. The
-STEP files are made of planes, cylinders and cones, with a few B-spline faces; the TPU pad has its print STL only. The other
+STEP files are made of planes, cylinders and cones, with a few B-spline faces; the TPU pads have their print files in
+[`fingertip_prints/`](fingertip_prints). The other
 finger parts (yaw and MCP links, carriage, SCS0009 servo) are unchanged and stay in [`assets/cad_v1`](../cad_v1).
+Unaltered copies of the original fingertip and DIP link are in [`cad_v1/`](cad_v1).
 [`manifest.json`](manifest.json) gives each file's source in `docs/experiments/` and its SHA-256. [`checks.json`](checks.json) compares the STEP files
 built for this folder with the meshes they replace.
 
@@ -18,7 +20,7 @@ oriented for printing, with the part's ID engraved.
 | `dip_link_v4b.step`, `dip_link_v4b_print.stl` | DIP link b v4 | PLA, Bambu Lab P1S | [DIP link b v4](../../docs/experiments/20261021-dip_link_b_v4/20261021-dip_link_b_v4_and_wall_heights.html) |
 | `cassette_3T.step`, `cassette_3T_print.stl` | Cassette 3T (cover I15H3 3T on the pages) | PLA, P1S | same page, section "Chosen heights and tighter rails" |
 | `top_cover_TW15H3.step`, `top_cover_TW15H3_print.stl` | Top cover TW15H3 (tip cap on the pages) | PLA, P1S | same section |
-| `pad_B05R_print.stl` | Fingertip pad B05R | Siraya Tech 85A on the Prusa XL; magnets at pauses 7.3, 12.2 and 17.1 mm | same section |
+| `fingertip_prints/` | Fingertip pads 05R (five magnets) and 05R4 (four) | Siraya Tech 85A, Prusa XL | Fingertip pad prints, below |
 
 Four M2 x 8 screws fasten the set. The fit-test plates and print settings are in the
 [DIP runbook](../../docs/experiments/20261018-dip_link_board_mount/README.md).
@@ -47,14 +49,47 @@ The fingertip is now three parts on the tongue:
   run along the pad's flanks. Its dovetail rails press 0.10 mm into each wall of the pad's grooves at the cassette and
   0.16 mm at their top. The pad is locked in and stands slightly proud of the cassette; the owner kept this fit for the
   retention.
-- The pad B05R is a half-ellipsoid of TPU, the 11/22 tip of the curved-tip study, with five 3 x 2 mm magnets set at print
-  pauses. It slides onto the rails from the tip end.
+- The pad is a half-ellipsoid of TPU, the 11/22 tip of the curved-tip study, with five or four 3 x 2 mm magnets set at
+  print pauses: pads 05R and 05R4. 05R is B05R without the engraved B. It slides onto the rails from the tip end.
 - The top cover TW15H3 closes the tip end. It has an end plate and 3 mm side blocks along the pad's distal flanks. The two distal
   screws pass through its ears, and its 2.0 mm pin enters the pad's 1.6 mm hole.
 
 The concepts, their force resolution and the cable route are on the
 [DIP page](../../docs/experiments/20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html); v3's side
 walls and column are on the [v3 page](../../docs/experiments/20261020-ur5_calibration_mount_v2/20261020-dip_link_b_v3_and_ur5_mount_v2.html).
+
+## Fingertip pad prints (`fingertip_prints/`)
+
+Each project prints three pads in Siraya Tech 85A on the Prusa XL's tool 2, with 0.1 mm layers, two perimeters, 30 % gyroid
+and the global settings of the owner's good print of 2026-10-18. Both pads have B05R's grooves (0.05 mm inside the nominal
+rail per flank), raised seats and 1.6 mm pin hole, and differ in their magnets. The printer pauses before each row of slots is
+bridged over.
+
+| File | Pads | Magnets | Pauses | Three pads |
+|---|---|---|---|---|
+| `pads_05R_five_magnets_x3_xl.3mf` | 05R | Five: corners at y_F = +-2.5 mm and 4.9 mm along the finger either side of a centre magnet, 0.5 mm proximal of U1 | 7.3, 12.2, 17.1 mm | 7.22 g, 1 h 19 min |
+| `pads_05R4_four_magnets_x3_xl.3mf` | 05R4 | Four: a 5.0 mm square centred on the board's centre chip U1 | 10.2, 15.2 mm | 7.05 g, 1 h 17 min |
+
+- The four magnets sit as close together as the rule of 1.8 mm of TPU between slots allows; a 4.9 mm square left 1.76 mm.
+  Each magnet lies 3.54 mm from U1. The square follows the advice of 2026-10-26 to keep the four compact and symmetric
+  about the centre chip, because the field left after cancelling grows roughly with the square of their spacing.
+- Each pause names the poles slot by slot, in a checkerboard. North faces the curved palmar side in the slot at y_F < 0 of
+  the proximal row and at y_F > 0 of the distal row, south in the other two, and north for the five's centre magnet. In the
+  print, y_F < 0 is the slot toward the back of the plate. For the five this is the checkerboard (1, -1, 1, -1, 1) of the
+  tips calibrated on the UR5; four magnets in a checkerboard have no net moment.
+- The ID (05R, 05R4) is engraved in the face that lies on the bed and reads from below. B05R's B ran off the face's curved
+  end, so the B is dropped and the ID centred on the face (owner, 2026-10-26: "we dont need the B carve marking anymore").
+- `pad_05R_print.stl` and `pad_05R4_print.stl` are the pads in the projects' print orientation.
+
+The tip that 05R4 is cut from, the checks and the commands are in the
+[DIP runbook](../../docs/experiments/20261018-dip_link_board_mount/README.md), section "Four magnets in a compact square".
+The project of 2026-10-22 (B05R, all magnets north toward the palmar side) stays in `v4/b/print/` as printed.
+
+## Original fingertip parts (`cad_v1/`)
+
+`fingertip_mount_DIP_link.stl`, `fingertip.stl` and `fingertip_and_DIP_link.stl` are unaltered copies of the files in
+`assets/cad_v1`: the original DIP link, its TPU block, and the two together. They sit beside the new parts for comparison.
+The DIP link's file defines frame D; the block has its own frame, with z from its mount face.
 
 ## UR5e calibration mount (`ur5_mount/`)
 
@@ -127,7 +162,7 @@ sits on the adapter, coaxial with the tool axis, and was drawn to ATI's drawings
   in this file, so up to 0.37 mm of extra material sits there, over 0.12 % of the surface.
 - The cassette and top cover are the pipeline's exact STEP files, moved into frame D. Their walls follow the pad's
   elliptical outline in flat facets, as the pipeline draws them, and the engraved IDs are left out.
-- The pad has no STEP file. Its dome is an ellipsoid, and it prints from the STL. A faceted STEP of the nominal pad is
+- The pads have no STEP file. Their dome is an ellipsoid, and they print from the projects. A faceted STEP of the nominal pad is
   `docs/experiments/20261018-dip_link_board_mount/v4/b/cad/20261021-dip_link_v4b_pad_ell11_5.step.zip`.
 - The v7 fork comes from the mount script's exact export of 2026-10-26. Its walls around the legs are flat facets, 349 of its
   383 faces, cut around the link's legs.
@@ -161,6 +196,7 @@ Parametric parts in Onshape would mean porting each generator to FeatureScript, 
     ~/miniconda3/envs/femtip/bin/python scripts/cad_v2_assets.py check
     python3 scripts/cad_v2_assets.py copy
 
-`python3 scripts/cad_v2_assets.py copy --check` lists the copies whose source in `docs/experiments/` has changed since. The
+The pad projects come from the commands in the DIP runbook's section "Four magnets in a compact square"; build them
+before `copy`. `python3 scripts/cad_v2_assets.py copy --check` lists the copies whose source in `docs/experiments/` has changed since. The
 `arms` step reads the arms as the concept b pipeline cut them, `logs/20261021-dip_link/v4/b/arm_*.stl`; the v4 build in the
 [DIP runbook](../../docs/experiments/20261018-dip_link_board_mount/README.md) writes them again.

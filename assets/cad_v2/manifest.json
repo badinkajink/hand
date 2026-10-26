@@ -1,5 +1,5 @@
 {
- "when": "2026-10-26 12:51",
+ "when": "2026-10-26 16:49",
  "built_by": "scripts/cad_v2_assets.py",
  "files": {
   "ati_mini40_45/hook_cross.step": {
@@ -118,6 +118,24 @@
    "source": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_ati_top.stl",
    "source_sha256": "475aaeccc82ac126751dc6ac0f1a67ebaf31eb0128df329b3578b3f69cfc64b9"
   },
+  "cad_v1/fingertip.stl": {
+   "bytes": 326284,
+   "sha256": "bb248153c83269ceea3f180bff77f20ac258d055e362c913aa1b9fbddbfe5f81",
+   "source": "assets/cad_v1/fingertip.stl",
+   "source_sha256": "bb248153c83269ceea3f180bff77f20ac258d055e362c913aa1b9fbddbfe5f81"
+  },
+  "cad_v1/fingertip_and_DIP_link.stl": {
+   "bytes": 1348984,
+   "sha256": "d6a390261379351c6899c25ea9999b5ec357e72dab05d04844894ca092802994",
+   "source": "assets/cad_v1/fingertip_and_DIP_link.stl",
+   "source_sha256": "d6a390261379351c6899c25ea9999b5ec357e72dab05d04844894ca092802994"
+  },
+  "cad_v1/fingertip_mount_DIP_link.stl": {
+   "bytes": 1022584,
+   "sha256": "080a1692273362acfab5ffc03cf4d258a8f0a444db4d1853860ea5592cf7211b",
+   "source": "assets/cad_v1/fingertip_mount_DIP_link.stl",
+   "source_sha256": "080a1692273362acfab5ffc03cf4d258a8f0a444db4d1853860ea5592cf7211b"
+  },
   "cassette_3T.step": {
    "bytes": 975356,
    "sha256": "3e6fb1c9f1373449432d56537feba72ae2e3cb4c144a88e154f6c85141829c16",
@@ -150,11 +168,29 @@
    "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261021-dip_link_v4b_dip_link_pla_bambu.stl",
    "source_sha256": "8d1d5a17b76f29cd7b180b529d96142bb5786630a538628fbe396ea73ea3efda"
   },
-  "pad_B05R_print.stl": {
-   "bytes": 2714284,
-   "sha256": "09b78b7ac1be1784e221a0935943d0b1858d31832475e03b80478c6a02d425f7",
-   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261022-dip_link_pad_ell11_5_B05R_print.stl",
-   "source_sha256": "09b78b7ac1be1784e221a0935943d0b1858d31832475e03b80478c6a02d425f7"
+  "fingertip_prints/pad_05R4_print.stl": {
+   "bytes": 2686284,
+   "sha256": "09e381eb6cbfb2356c83c75406b5179da169b54a36e046b975f5d5e05b14f47d",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-dip_link_pad_ell11_4c_05R4_print.stl",
+   "source_sha256": "09e381eb6cbfb2356c83c75406b5179da169b54a36e046b975f5d5e05b14f47d"
+  },
+  "fingertip_prints/pad_05R_print.stl": {
+   "bytes": 2709284,
+   "sha256": "679d5c850ee7a23581abbace510ab6bc676c115c1b2445686d2a520cf823fc15",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-dip_link_pad_ell11_5_05R_print.stl",
+   "source_sha256": "679d5c850ee7a23581abbace510ab6bc676c115c1b2445686d2a520cf823fc15"
+  },
+  "fingertip_prints/pads_05R4_four_magnets_x3_xl.3mf": {
+   "bytes": 669159,
+   "sha256": "e3b44849a36457e73621a97450e6b238ec5068b3bc27f25ad057a12dab4c195f",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-dip_link_print_pad_ell11_4c_05R4_x3_85a_t2_g30.3mf",
+   "source_sha256": "e3b44849a36457e73621a97450e6b238ec5068b3bc27f25ad057a12dab4c195f"
+  },
+  "fingertip_prints/pads_05R_five_magnets_x3_xl.3mf": {
+   "bytes": 674734,
+   "sha256": "accdf148f75e4df44d325e5271e88fd5ac952028d95cece6a7b29e74008008de",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-dip_link_print_pad_ell11_5_05R_x3_85a_t2_g30.3mf",
+   "source_sha256": "accdf148f75e4df44d325e5271e88fd5ac952028d95cece6a7b29e74008008de"
   },
   "top_cover_TW15H3.step": {
    "bytes": 1293388,
