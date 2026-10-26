@@ -142,11 +142,9 @@ def fig_indentation(H, first, allf, depth, G, Fe):
     a1.plot(d_m3, Fq, color=BLUE, lw=2.0, ls=(0, (5, 3, 1, 3)), label=f"Pads, {E3:.0f} MPa + {k3:.2f} N/mm spring", zorder=5)
     a1.set_title("(a) The models as computed", fontsize=13)
     a1.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), frameon=False, fontsize=12, handlelength=2.4)
-    a2.plot(d_fe + a_fe + c_fe * Fq, Fq, color="black", lw=2.2,
-            label=f"FE pad, {a_fe:.2f} mm + {c_fe:.2f} mm/N added", zorder=4)
-    a2.plot(d_pad[E_tpu] + a_p + c_p * Fq, Fq, color=ORANGE, lw=2.2,
-            label=f"Pads, 10 MPa, {a_p:.2f} mm + {c_p:.2f} mm/N added", zorder=3)
-    a2.plot(d_pad[E_meas], Fq, color=ORANGE, lw=2.0, ls=":", label=f"Pads, {E_meas:.2f} MPa alone", zorder=3)
+    a2.plot(d_pad[E_meas], Fq, color=ORANGE, lw=2.8, label=f"Pads, {E_meas:.2f} MPa (fit to the presses)", zorder=4)
+    a2.plot(d_pad[E_tpu] + a_p + c_p * Fq, Fq, color=GREY, lw=2.0, ls="--",
+            label=f"Comparison: pads, 10 MPa, {a_p:.2f} mm + {c_p:.2f} mm/N added", zorder=3)
     a2.set_title("(b) Fitted to the measured presses", fontsize=13)
     a2.legend(handles=a2.get_legend_handles_labels()[0][1:], loc="upper center", bbox_to_anchor=(0.5, -0.17), frameon=False, fontsize=12, handlelength=2.4)
     fig.tight_layout()
@@ -217,8 +215,8 @@ def fig_models(num):
     gw, gh, gy = 31.0, 22.5, 1.0
     gaps = [("Print against FE", "At the measured depth the\nFE force is 5.1 times the\nmeasured; board force\n"
              "0.78\u20131.31 of the HEX-E"),
-            ("FE against the law", "One modulus: approach\n13\u201324 % RMS off; a stiff\nmodulus and 9.7 N/mm in\n"
-             "series: 5\u20136 % RMS"),
+            ("FE against the law", "One modulus: approach\n13\u201324 % RMS off;\nthe print spreads a load,\n"
+             "a local law does not"),
             ("Pads against Drake", "Spin-onset torque 0.94;\nhand\u2019s turn within 3\u00b0 on\n22\u201323 of 24 placements;\n"
              "creep 9\u2013155 times at 1 N")]
     for xm, gx, (t, b) in zip(mids, (0.6, 34.5, 68.4), gaps):
@@ -227,9 +225,11 @@ def fig_models(num):
     # the pads compared with the presses directly, over the top
     c0, c2 = xs[0] + w / 2, xs[2] + w / 2
     arrow(c0, y + h + 0.7, c2, y + h + 0.7, rad=-0.16, lw=1.2, ls="--")
-    ex = num["extra_all_holds"]
-    ax.text((c0 + c2) / 2, y + h + 5.6, f"Pads against the presses: {num['moduli_MPa']['E_meas']:.2f} MPa alone, or\n10 MPa "
-            f"with {ex['pads_10MPa'][1]:.2f} mm/N in series: {ex['rms_mm'][1] * 1e3:.0f} \u00b5m RMS", ha="center", va="bottom", fontsize=12, style="italic", linespacing=1.35)
+    rod = json.loads((ROD / "pads.json").read_text())
+    sph = json.loads((S2 / "pads.json").read_text())
+    ax.text((c0 + c2) / 2, y + h + 5.6, f"Pads fitted to the presses: {sph['E_meas_MPa']:.2f} MPa under the sphere,\n"
+            f"{rod['E_meas_MPa']:.1f} MPa under the rod; {sph['delta_E_meas']['law']['rms_mm'] * 1e3:.0f} and "
+            f"{rod['delta_E_meas']['law']['rms_mm'] * 1e3:.0f} \u00b5m RMS", ha="center", va="bottom", fontsize=12, style="italic", linespacing=1.35)
     save(fig, "contact_chain_models.png")
 
 
