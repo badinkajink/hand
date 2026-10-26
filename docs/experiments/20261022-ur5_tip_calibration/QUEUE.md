@@ -879,6 +879,19 @@ push that answers it arrives.
     registration, joint 5 runs from 35.7 to 75.8 deg and joint 6 from -64.3 to +31.5 deg. On v6 with cb1t's
     registration the mount clears by at least 3.6 mm. Recheck it with cb2t's registration.
 
+- R25 (12:24 on 10-26; owner: "we ready to put on id 3?"). The third checkerboard tip, v1 ID 3, goes on mount v7 in
+  place of ID 2, as session cb3t. It runs cb2t's suite unchanged, so that the three tips are compared on the same actions.
+  - Plans: `lab/20261026-plan_sphere_lab_r25_<pass>_cb3t.json` for passes 1, 2a, 2b, 3, 5 and 6, with 28, 31, 67, 55,
+    101 and 73 actions. Each is cb2t's plan as it ran, after the lab's drops. Passes 1 and 2a now set `speed_slider` to
+    0.30, as the later passes do. One simulator run of pass 1 checks that key (README rule 2).
+  - Payload: 0.403 kg at 34.3 mm, as for ID 2. If ID 3's finger differs from ID 2's in its board or cable, weigh it.
+  - Order: 1, 2a, 2b, 3, 5, 6, then home the robot. After 2a, check passes 2b to 6 with cb3t's registration on
+    `UR5_MOUNT=v7` and drop what fails, as on cb2t. The margins stay at 2.5 mm for touch-offs and 3.0 mm for presses
+    and turns.
+  - On cb2t the suite ran from 15:29 to 23:42 with no abort. Push after each pass, and the streams at the end.
+  - The workstation then analyses cb3t with cb2t's checks and compares the three tips, including ID 1's and ID 2's
+    models applied to ID 3.
+
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
   back on after the ATI work: `plan/20261023-plan_sphere_lab_check6_sph3t.json`, six of sph3t's 19 touch-offs at its
