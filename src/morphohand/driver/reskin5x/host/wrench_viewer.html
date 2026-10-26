@@ -68,6 +68,7 @@
         <tr><th>Press, shear t1, t2 (N)</th><td class="fp">-</td><td class="f1">-</td><td class="f2">-</td></tr>
         <tr><th>1-sigma of the physical model</th><td class="sfp">-</td><td class="sf1">-</td><td class="sf2">-</td></tr>
         <tr><th>Contact point x, y, z (mm)</th><td colspan="3" class="pxyz">-</td></tr>
+        <tr><th>Force direction x, y, z; from normal</th><td colspan="2" class="fdir">-</td><td class="fang" title="angle between the force and the inward surface normal">-</td></tr>
         <tr><th>Point 1-sigma t1, t2; peak</th><td class="sp1">-</td><td class="sp2">-</td><td class="pk">-</td></tr>
         <tr><th>Chi-square explained; shown above</th><td class="ee">-</td><td colspan="2" class="thr">-</td></tr>
         <tr><th>Chips since calibration; background</th><td class="tt">-</td><td colspan="2" class="gg">-</td></tr>
@@ -207,16 +208,19 @@ class Board {
       }
       this.ellGeo.attributes.position.needsUpdate = true; this.ell.visible = m.mode === 'physical';
       this.ind.scale.setScalar(+rr.value); this.ind.position.copy(T([0, 1, 2].map(c => m.p[c] + +rr.value * m.n[c]))); this.ind.visible = $('showind').checked;
-      this.q('.contact').textContent = `Contact, ${m.fn.toFixed(2)} N pressing`;
+      this.q('.contact').textContent = `Contact, ${m.fn.toFixed(2)} N pressing` + (m.gp_w !== undefined ? `; GP weight ${m.gp_w.toFixed(2)}` : '');
       this.q('.wh').textContent = m.where;
       for (const [cl, v] of [['.fp', m.fn], ['.f1', m.ft[0]], ['.f2', m.ft[1]]]) this.q(cl).textContent = fmt(v);
       this.q('.pxyz').textContent = m.p.map(v => v.toFixed(1)).join(', ');
+      const fl = Math.hypot(...m.f);
+      this.q('.fdir').textContent = fl > 0 ? m.f.map(v => (v / fl).toFixed(2)).join(', ') : '-';
+      this.q('.fang').textContent = fl > 0 ? `${(Math.acos(Math.min(1, Math.max(-1, m.fn / fl))) * 180 / Math.PI).toFixed(0)} deg` : '-';
       for (const [cl, j] of [['.sfp', 0], ['.sf1', 1], ['.sf2', 2], ['.sp1', 3], ['.sp2', 4]]) this.q(cl).textContent = m.sd[j].toFixed(2);
       this.q('.pk').textContent = `${m.pmax.toFixed(0)} kPa`;
     } else {
       pos.array.set(rest); cA.array.fill(0.85); this.arrow.visible = false; this.ell.visible = false; this.ind.visible = false;
       this.q('.contact').textContent = m.foreign ? 'No contact: a field from outside the pad' : 'No contact';
-      for (const cl of ['.wh', '.fp', '.f1', '.f2', '.pxyz', '.sfp', '.sf1', '.sf2', '.sp1', '.sp2', '.pk']) this.q(cl).textContent = '-';
+      for (const cl of ['.wh', '.fp', '.f1', '.f2', '.pxyz', '.fdir', '.fang', '.sfp', '.sf1', '.sf2', '.sp1', '.sp2', '.pk']) this.q(cl).textContent = '-';
     }
     this.q('.ee').textContent = m.e.toFixed(0);
     if (m.g) this.q('.gg').textContent = m.g.map(v => v.toFixed(0)).join(', ') + ' uT';

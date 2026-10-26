@@ -123,7 +123,11 @@ Since 2026-10-26 one viewer shows every board on the mux, with no splitter: each
 pad and its readout, and its own stream log and calibrations named after it. `--board-gp` adds the GP from the board's
 change to the contact point and force, pooled over ID 1's and ID 2's UR5 holds (`scripts/ur5_tip_calibration_board_gp.py`,
 3,813 presses and slides of cb1t, cb1r and cb2t; the fit equals `ur5_tip_calibration_predict.GP`'s to 3e-13 on a
-300-hold subset). Each panel's menu, and key g for every board, picks the estimate shown.
+300-hold subset). Each panel's menu, and key g for every board, picks the estimate shown. No UR5 hold pressed harder
+than 5.1 N, and beyond the holds the GP returns to their mean, a 1.06 N press; on the owner's presses of 2026-10-26 it
+read 1.1 to 1.3 N where the physical model read 4 to 25 N. Its estimate is therefore weighted by w, one minus its
+posterior variance, against the physical model's: w was 0.8 to 0.98 between 1 and 4 N and 0 to 0.07 above 5 N. The
+contact line gives w, and the table gives the force's direction in the tip frame and its angle from the inward normal.
 
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py --mux /dev/serial/by-id/<board>-if00 \
         --names "ID 1" "ID 2" --calib <ID 1 calib_rest.json> <ID 2 calib_rest.json> --correction <cb1t folder> <cb2t folder> \

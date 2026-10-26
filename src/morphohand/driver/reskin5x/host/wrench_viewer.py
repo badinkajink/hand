@@ -68,6 +68,13 @@ fitted on UR5 presses and slides of several tips (scripts/ur5_tip_calibration_bo
 the calibration coordinator's pooled model of 2026-10-26). Each panel's menu picks the estimate shown: the physical
 model, the physical model with the correction, or the GP; g moves every board to its next one. The decision to show a
 contact stays with the physical estimate; the GP gives the point (put on the nearest surface candidate) and the force.
+No UR5 hold pressed harder than 5.1 N, and 3 % of them pressed over 4 N. Far from every hold the GP's estimate returns
+to the holds' mean, a press of 1.06 N: on the owner's presses of 2026-10-26 it read 1.1 to 1.3 N while the physical
+model read 4 to 25 N. The GP's point and force are therefore weighted by w, one minus the GP's posterior variance of
+its standardized outputs, and the physical estimate's by 1 - w. w is 1 at a hold and 0 far from all of them; it is
+conditioned on the 256 holds of largest kernel weight, which leaves it 0.011 to 0.015 under the value on all 3,813 on
+average. On those presses w was 0.8 to 0.98 between 1 and 4 N and 0 to 0.07 above 5 N. The panel's contact line gives
+w, and the table gives the force's direction and its angle from the inward normal.
 
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py [--port /dev/ttyACM0] [--http 8790]
         [--board-cal docs/experiments/20261020-fingertip_contact_estimation/data/20261020-calib_pad_as_found.json]
@@ -90,6 +97,7 @@ from pathlib import Path
 
 import numpy as np
 from aiohttp import web, WSMsgType
+from scipy.linalg import cho_factor, cho_solve
 from scipy.spatial import cKDTree
 
 HERE = Path(__file__).resolve().parent
@@ -187,18 +195,25 @@ class BoardGP:
     """The GP from the board's change to the contact point (mm) and the 3D force (N), pad frame, pooled over UR5 sessions
     and saved by scripts/ur5_tip_calibration_board_gp.py (--board-gp)."""
 
-    def __init__(self, path):
+    def __init__(self, path, m=256):
         z = np.load(path)
         self.mx, self.sx, self.my, self.sy, self.Z, self.a = (z[k] for k in ("mx", "sx", "my", "sy", "Z", "a"))
-        self.ell = float(z["ell"])
+        self.ell, self.nz = float(z["ell"]), float(z["nz"])
+        self.m = min(m, len(self.Z) - 1)
+        self.sq = (self.Z ** 2).sum(1)
         self.name = "GP of " + ", ".join(s.split("-")[-1] for s in z["sessions"].astype(str))
         self.n = int(z["n_holds"])
 
     def predict(self, d):
+        """Contact point (mm), force (N) and the weight w = 1 - the posterior variance of the standardized outputs, given
+        the m holds of largest kernel weight (docstring, "Several fingertips and the pooled GP")."""
         q = (np.asarray(d, float) - self.mx) / self.sx
         k = np.exp(-0.5 * ((self.Z - q) ** 2).sum(1) / self.ell ** 2)
         y = k @ self.a * self.sy + self.my
-        return y[:3], y[3:]
+        s = np.argpartition(-k, self.m)[:self.m]
+        Ks = np.exp(-0.5 * np.maximum(self.sq[s][:, None] + self.sq[s][None] - 2 * self.Z[s] @ self.Z[s].T, 0) / self.ell ** 2)
+        w = float(np.clip(k[s] @ cho_solve(cho_factor(Ks + self.nz ** 2 * np.eye(self.m), lower=True), k[s]), 0.0, 1.0))
+        return y[:3], y[3:], w
 
 
 def slug(name):
@@ -408,15 +423,18 @@ class App:
                     index=k)
 
     def from_board_gp(self, e, d):
-        """The pooled GP's contact point and force for the change d in place of the physical estimate's; the point is put
-        on the nearest surface candidate, whose normal and tangents give the press and the shear."""
+        """The pooled GP's contact point and force for the change d, weighted by w against the physical estimate e's (w
+        from BoardGP.predict); the point is put on the nearest surface candidate, whose normal and tangents give the
+        press and the shear."""
         if self._ctree_est is not self.est:
             self._ctree, self._ctree_est = cKDTree(self.est.C), self.est
-        p, f = self.board_gp.predict(d)
+        pg, fg, w = self.board_gp.predict(d)
+        p = w * pg + (1 - w) * np.asarray(e["p"], float)
+        f = w * fg + (1 - w) * np.asarray(e["f"], float)
         k = int(self._ctree.query(p)[1])
         n, t1, t2 = self.est.Cn[k], self.est.T1[k], self.est.T2[k]
         return dict(e, p=self.est.C[k].tolist(), n=n.tolist(), t1=t1.tolist(), t2=t2.tolist(), f=f.tolist(),
-                    f_n=float(-f @ n), f_t=[float(f @ t1), float(f @ t2)], index=k)
+                    f_n=float(-f @ n), f_t=[float(f @ t1), float(f @ t2)], index=k, gp_w=w)
 
     def settings(self):
         th = (f"temperature correction on (chip gains -{-self.kappa.max() * 100:.2f} to -{-self.kappa.min() * 100:.2f} % "
@@ -545,6 +563,7 @@ class App:
         elif contact and self.mode == "board gp" and self.board_gp is not None:
             e = self.from_board_gp(e, d)
             self.n_board_gp += 1
+            out["gp_w"] = round(e["gp_w"], 2)
         out["mode"] = self.mode
         self.shown_prev = bool(contact)
         out["contact"] = bool(contact)
