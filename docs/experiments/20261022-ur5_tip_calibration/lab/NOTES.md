@@ -692,6 +692,34 @@ the lab session ("go") at about 15:36.
 - The session is in `lab/20261025-152920-cb2t/`: the small files, each run's printout and plan (`printout_resume_HHMM`,
   `plan_resume_HHMM`), then the streams in a separate commit.
 
+## 2026-10-26: R25 on v1 ID 3 (cb3t), mount v7, cb2t's suite unchanged
+
+### 12:3x to 13:05, prepared
+
+- R25's plans (2abab229) are cb2t's as they ran after the lab's drops. Passes 1 and 2a now carry `speed_slider` 0.30 too.
+- Passes 1 and 2a, simulated from cb2t's registration: no abort, "speed slider 0.30 (the plan's 0.30)". On v7 they
+  clear the mount by 3.10 mm and the finger by 1.16 mm, and the cell check was clean.
+- The owner mounted ID 3 at 13:0x and gave the go. ID 3 reads through the same QT Py as ID 2 (b4:3a:45:b0:9c:d0), still
+  on the non-mux firmware: 376 records/s, noise 1.5 to 2.8 µT on all five chips. Chip 3's Z sits near 0 µT at rest,
+  so a third of its readings are exactly 0.0; that is the reading's step, not a fault.
+
+### 13:05:46 to 13:25:02, cb3t pass 1
+
+- Onsets came −0.64 to +0.87 mm from the expected (median −0.26 mm).
+- pad-edge-07 aborted at 13:24:50: "no HEX-E sample for 100 ms".
+  - The HEX-E sent nothing for 2.8 s (55 timed-out reads) and then resumed. Fz was the same on both sides of the gap,
+    so the sensor did not restart and lose its tare as on 10-22.
+  - The machine was idle (load 0.8). Joint 6 stood at +55.0 deg, the highest of the pass and 5 deg below the cable's
+    +60, with the arm creeping in at 0.15 mm/s.
+  - The same touch-off ran clean on cb2t. The HEX-E's cable may sit tighter since the swap.
+  - Polled alone afterwards for 40 s, the HEX-E gave 4,002 samples with no timeout.
+- The registration over the other 18 fit at 0.045 mm rms. The TCP moved 1.19 mm and 1.17 deg; the sphere's centre moved
+  0.81 mm.
+- Pass 2a re-runs pad-edge-07, since a resume repeats every action that did not end ok. Rechecked with this
+  registration, it clears the mount by 3.35 mm and the finger by 1.64 mm, with every joint inside its window.
+- Joint 6 goes above +50 deg at 2 rest poses in pass 2a, 7 in 2b, none in 3, 7 in 5 and 6 in 6 (up to 59.3 deg). All
+  of them ran clean on cb2t.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
