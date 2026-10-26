@@ -7,12 +7,14 @@
 
 <div class="wrap">
 <header>
-  <div class="eyebrow"><a href="../index.html">SR&#178; Hand documentation</a> &#183; <a href="../pages.html">index of result pages</a> &#183; topic overview: fingertip contact model &#183; 1&#8211;14 October 2026 &#183; built {{BUILT}}</div>
+  <div class="eyebrow"><a href="../index.html">SR&#178; Hand documentation</a> &#183; <a href="../pages.html">index of result pages</a> &#183; topic overview: fingertip contact model &#183; 1&#8211;26 October 2026 &#183; built {{BUILT}}</div>
   <h1>Sphere-packed fingertip pads as a distributed contact model for dexterous manipulation in MuJoCo</h1>
   <p class="lede">{{LEDE}}</p>
   <div class="byline">Tool: the real_v1 screwdriver, radius 12.5&#8202;mm and mass 24.5&#8202;g, pinched between two fingertips.
   Fingertips: the 10.55&#8202;mm sphere of the test bed, which has an analytic solution, and the printed TPU block with
-  2.7&#8202;mm fillets, the default fingertip since 13 October. Friction coefficient \(\mu=1\), modulus \(E=10\)&#8202;MPa.
+  2.7&#8202;mm fillets, the default fingertip since 13 October. In the first part, the printed half-ellipsoid pad of DIP link b
+  (Siraya 85A, 30&#8202;% gyroid) pressed by a UR5 arm on 22&#8211;25 October. Friction coefficient \(\mu=1\), modulus
+  \(E=10\)&#8202;MPa.
   Simulators: MuJoCo 3.6 on the CPU, MuJoCo-Warp on the GPU, Drake 1.57 with its SAP solver, and Newton {{NEWTON_REV}}.
   Builder: <code>scripts/contact_overview_page.py</code>; equations are LaTeX rendered to SVG by <code>scripts/texsvg.py</code>.
   Task results: the test-bed page (<code>{{BED_PATH}}</code>{{BED_LINK}}) and the chain page (<code>{{CHAIN_PATH}}</code>,
@@ -21,19 +23,26 @@
 
 <nav class="toc"><div class="col">
 <ol>
-<li><a href="#pinch-example">Twisting a tool between two fingertips</a></li>
 <li><a href="#terms">Terms and metrics</a></li>
+<li><a href="#chain">From the printed fingertip to the simulated contact</a></li>
+<li><a href="#pinch-example">Twisting a tool between two fingertips</a></li>
 <li><a href="#problem">Components of a fingertip contact model</a></li>
 <li><a href="#mechanics">Contact mechanics of a soft fingertip</a></li>
 <li><a href="#pads">Sphere-packed pads in MuJoCo</a></li>
 <li><a href="#references">Reference models</a></li>
 <li><a href="#evidence">Comparison with the reference models</a></li>
-<li><a href="#pad-calibration">Calibration of the pads to the FE model and to UR5 presses</a></li>
 <li><a href="#skin">Presliding compliance with a sprung skin</a></li>
 <li><a href="#open">Future work</a></li>
 <li><a href="#index">Index of linked pages</a></li>
 </ol>
 </div></nav>
+
+<section id="terms"><div class="col">
+<h2>Terms and metrics</h2>
+{{GLOSSARY}}
+</div></section>
+
+{{CHAIN}}
 
 <section id="pinch-example"><div class="col">
 <h2>Twisting a tool between two fingertips</h2>
@@ -44,11 +53,6 @@ One mN&#8202;m is the torque of 1&#8202;N acting 1&#8202;mm from an axis.</p>
 <p>A single point contact has no lever arm about its normal, so it cannot resist this twist. The sphere pad spreads
 contacts across the area. Each small sphere contributes force and torque through MuJoCo&#8217;s usual contact solver.
 The model can then be used for the same pinch in a CPU planner and in GPU training.</p>
-</div></section>
-
-<section id="terms"><div class="col">
-<h2>Terms and metrics</h2>
-{{GLOSSARY}}
 </div></section>
 
 <section id="problem"><div class="col">
@@ -66,10 +70,9 @@ the tool swings down under its own weight. The torque is needed in two maneuvers
 (arXiv 2609.25619). In the pinch brake, the hand lowers its pinch force so that the tool swings down slowly. In the wield, a tool that stands
 in a hole is turned about its axis by repeated pinch, twist and release cycles.</p>
 <p>The fingertip is a printed TPU block, 17.0&#8202;mm deep, with a 14.8&#8202;mm wide palmar face and 2.7&#8202;mm fillets. The
-planned prints have a gyroid infill. Since 13 October the scenes model the block with 1&#8202;mm pads. Its modulus, damping,
-shear compliance and friction have not been measured yet. Finite-element models of the planned prints are on the
-printed-tip page (index below). Until the measurements exist, the contact model is compared with reference models and
-analytic limits on the metrics of whole tasks. It is also checked for consistency across time steps and sphere spacings,
+planned prints have a gyroid infill. Since 13 October the scenes model the block with 1&#8202;mm pads. The normal compliance of
+a printed pad was measured on the UR5 (first part of this page). Its damping, shear compliance and friction have not been
+measured. The contact model is therefore compared with reference models and analytic limits on the metrics of whole tasks. It is also checked for consistency across time steps and sphere spacings,
 and its cost is measured. A controller that replans from measured state corrects a consistent model error, as long as
 the model contains the friction torque and the slip that the task depends on.</p>
 <p>The task scenes that use point contact run MuJoCo&#8217;s elliptic friction cone at impratio 10, with soft contacts on the
@@ -79,11 +82,11 @@ fingertips, the tool and the floor (solref 0.006, solimp 0.97&#8211;0.995).</p>
 of 1&#8202;ms. On one CPU core it is given on the test bed (task&#160;1, &#8220;bed&#8221;) and for the open-loop turn replay on the
 real_v1 hand (&#8220;hand&#8221;). The hand&#8217;s cost is the median over the {{HAND_N}} D1&#8211;D8 placements that Drake also ran,
 with the TPU block as 1&#8202;mm pads or as one convex mesh with point contact. For the GPU models the cost is given on the
-SR2 holding fixture of Figure&#160;10, for one world alone and per world-step at the batch size of highest throughput. The
+SR2 holding fixture of Figure&#160;12, for one world alone and per world-step at the batch size of highest throughput. The
 pads&#8217; GPU numbers are MuJoCo-Warp&#8217;s. Table&#160;4 gives the costs on the hand and in training. {{CAP_NOTE}}</p>
 <figure class="diagram">
 {{FIG_MODELS}}
-<figcaption>Figure&#160;1. Five models of a fingertip pressed on the tool. (a) A point contact transmits a normal force and
+<figcaption>Figure&#160;3. Five models of a fingertip pressed on the tool. (a) A point contact transmits a normal force and
 friction at one point, and no torque about the normal. (b) MuJoCo&#8217;s condim&#160;4 adds a torsional friction coefficient at
 that point; the coefficient is reset every step from a fit to Drake&#8217;s torque. (c) The sphere pad replaces the fingertip
 surface with small spheres. Each sphere that touches is a soft contact with its own Coulomb cone, and the friction torque
@@ -233,7 +236,7 @@ model when \(\ell\) is much larger. {{CSLC_MECH}} The asides page describes how 
 tip ({{ASIDES_REF}}).</p>
 <figure class="diagram">
 {{FIG_SCALING}}
-<figcaption>Figure&#160;2. Friction arm against pad force. Grey: the foundation law (3) integrated over the screwdriver&#8217;s
+<figcaption>Figure&#160;4. Friction arm against pad force. Grey: the foundation law (3) integrated over the screwdriver&#8217;s
 patch. Dashed: a Hertz arm (4) equal to it at 1&#8202;N. Markers: the arm at spin onset in task&#160;2 on the test bed (a torque
 ramp about the pinch axis), \(\bar r=\tau_\text{onset}/2\mu N\). {{SCALING_NOTE}}</figcaption>
 </figure>
@@ -258,11 +261,11 @@ are \((R/(R-r_s))^2\)&#8202;=&#8202;{{PAD_DENS}} times as dense as on the finger
 <p>The same geometry makes the pad a foundation of curvature radius \(R-r_s\), slightly smaller than \(R\). At equal force
 its arm is \(((R-r_s)/R)^{1/4}\)&#8202;=&#8202;{{PAD_ARMFAC}} times the foundation&#8217;s.</p>
 <p>On the test bed the 1&#8202;mm pad covers a {{BED_CAP}}&#176; cap of the fingertip sphere with \(n\)&#8202;=&#8202;{{BED_N}} spheres of
-\(k_s\)&#8202;=&#8202;{{BED_KS}}&#8202;N/m. The chain&#8217;s thumb pad, shown in Figures&#160;3 and 4, covers a {{CH_CAP}}&#176; cap with {{CH_N}}
+\(k_s\)&#8202;=&#8202;{{BED_KS}}&#8202;N/m. The chain&#8217;s thumb pad, shown in Figures&#160;5 and 6, covers a {{CH_CAP}}&#176; cap with {{CH_N}}
 spheres of {{CH_KS}}&#8202;N/m. Pressed on a flat with 1&#8202;N, {{FLAT_N}} of the test bed pad&#8217;s spheres touch. Their arm is
 {{FLAT_ARM}}&#8202;mm, against {{FLAT_BED}}&#8202;mm for the foundation and {{FLAT_PRED}}&#8202;mm for a foundation of curvature
 \(R-r_s\). Halving the spacing gives four times as many spheres, each a quarter as stiff, so the stiffness per unit area
-stays \(k_w\). Figure&#160;3 shows the sphere forces sampling the field&#8217;s pressure at 3&#8202;N. Figure&#160;4 shows the patches at
+stays \(k_w\). Figure&#160;5 shows the sphere forces sampling the field&#8217;s pressure at 3&#8202;N. Figure&#160;6 shows the patches at
 3 and 0.5&#8202;N.</p>
 <p>The spacing must stay small compared with the patch radius, which is {{PATCH_A}}&#8202;mm at 0.5&#8211;3&#8202;N on a flat. A 2&#8202;mm
 pad is too coarse at 0.5&#8202;N, where it touches with {{PL2_N}} spheres. Tilting its lattice by 0&#8211;8&#176; before pressing then
@@ -271,14 +274,14 @@ moves its arm {{PL2}} the foundation&#8217;s. Under the same tilts the 1&#8202;m
 {{P2_KIN_DEV}}&#8202;% below it while spinning.</p>
 <figure class="diagram">
 {{FIG_SECTION}}
-<figcaption>Figure&#160;3. Section along the tool&#8217;s axis through one contact at 3&#8202;N, true scale (from the chain page).
+<figcaption>Figure&#160;5. Section along the tool&#8217;s axis through one contact at 3&#8202;N, true scale (from the chain page).
 Left: Drake overlaps the undeformed fingertip with the rigid tool and applies p&#8202;=&#8202;E&#183;d/R over the overlap (shaded); the
 pressure on the tool&#8217;s surface is plotted beneath. Right: the 1&#8202;mm pad&#8217;s spheres along the same line. Each overlap is one
 spring. Its force divided by the sphere&#8217;s share of the pad&#8217;s area (bars) samples the field&#8217;s pressure (dashed).</figcaption>
 </figure>
 <figure class="diagram">
 {{FIG_PATCH}}
-<figcaption>Figure&#160;4. The contact area seen through the tool at 3 and 0.5&#8202;N; x runs along the tool&#8217;s axis. Left: the
+<figcaption>Figure&#160;6. The contact area seen through the tool at 3 and 0.5&#8202;N; x runs along the tool&#8217;s axis. Left: the
 field&#8217;s pressure contours. Right: the sphere centres of the 2, 1 and 0.5&#8202;mm pads, where a touching sphere&#8217;s disc area is
 proportional to its force. The dotted circle is the friction arm.</figcaption>
 </figure>
@@ -328,7 +331,7 @@ returns as \((1+t/t_c)\,e^{-t/t_c}\). It is within 5&#8202;% of rest after \({{R
 <h3><span class="step">7</span>Inverse-inertia calibration</h3>
 <p>The sphere stiffness in (10) depends on the masses of the pad and the tool through \(\hat\Lambda\). The impedance \(d_0\) is
 therefore computed from the compiled model for each pad and object, and the arm then no longer depends on the tool&#8217;s
-mass (Figure&#160;5).</p>
+mass (Figure&#160;7).</p>
 <p>The value \(k\) of <code>solref</code> is an acceleration per metre, in s\(^{-2}\). Dividing it by \(R_i\), in
 kg\(^{-1}\), turns it into a force per metre. That is how the bodies&#8217; masses enter (10). Solved for the impedance,</p>
 <div class="eq">\[d_0=1-\frac{1}{k_s\hat\Lambda t_c^2},\qquad 0<d_0<1\iff t_c>(k_s\hat\Lambda)^{-1/2}.\]</div>
@@ -351,7 +354,7 @@ shortens by {{ARMF_BED}} and {{ARMF_TH}}&#8202;%. A wrong tool mass matters most
 {{MASS_TEXT}}</p>
 <figure class="diagram">
 {{FIG_MASS}}
-<figcaption>Figure&#160;5. Friction arm of the 1&#8202;mm pad against tool mass, in a two-pad pinch at 0.5 and 3&#8202;N
+<figcaption>Figure&#160;7. Friction arm of the 1&#8202;mm pad against tool mass, in a two-pad pinch at 0.5 and 3&#8202;N
 (<code>scripts/pad_mass_calibration.py</code>). Dashed: inverse inertia fixed at its value for the nominal tool. Solid:
 inverse inertia computed from the compiled model for each pad and object at load. Grey: the hydroelastic law. With the
 fixed value the arm moves by \(k_s^{-1/4}\) of the stiffness error, (11).</figcaption>
@@ -402,7 +405,7 @@ alone. Deck&#160;23 of the contact tutorial checks (14) numerically (repository 
 MuJoCo&#8217;s one-step map for this pad on an undamped slide. The radius crosses 1 at the bound to within \(10^{-4}t_c\), at 24
 pairs of \(t_c\) and \(d_0\). For the 1&#8202;mm pads of these pages (\(t_c\)&#8202;=&#8202;{{TC_MS}}&#8202;ms, \(d_0\)&#8202;=&#8202;{{SB_D0S}}) the bound
 falls from {{SB_ONE}}&#8202;ms for one touching sphere to {{SB_LIM}}&#8202;ms for many.</p>
-<p>In Codex&#8217;s 50&#8202;Hz sweep the pads gave the same task results at steps from 50&#8202;&#181;s to 10&#8202;ms (Figure&#160;8). Codex&#8217;s earlier
+<p>In Codex&#8217;s 50&#8202;Hz sweep the pads gave the same task results at steps from 50&#8202;&#181;s to 10&#8202;ms (Figure&#160;10). Codex&#8217;s earlier
 per-contact mapping set \(d_0=10^{-4}\) to impose each sphere&#8217;s spring and damper exactly. Then \(q\approx1/n\), and the
 damping rate is \(\beta\approx nc_s\hat\Lambda\), with \(c_s\)&#8202;=&#8202;24.5&#8202;N&#8202;s/m per sphere. Stability then holds only
 for \(\Delta t<2/(nc_s\hat\Lambda)\), which is 60&#8211;90&#8202;&#181;s for 20&#8211;30 spheres. Those runs diverged at every step from 0.5 to
@@ -411,7 +414,7 @@ this collective motion.</p>
 <p>{{STAB_TEXT}}</p>
 <figure class="diagram">
 {{FIG_STAB}}
-<figcaption>Figure&#160;6. Largest stable step of a 1&#8202;mm pad holding the tool against gravity at 1&#8202;N, against the bound (14)
+<figcaption>Figure&#160;8. Largest stable step of a 1&#8202;mm pad holding the tool against gravity at 1&#8202;N, against the bound (14)
 (task&#160;7 on the test bed, <code>scripts/contact_bed_stability.py</code>). Each bar is one (\(d_0\), \(t_c\)) pair; the
 diagonal is equality with (14). {{STAB_NOTE}}</figcaption>
 </figure>
@@ -455,7 +458,7 @@ at 0.5&#8202;N, so the onset arm starts at 1&#8202;N.</p>
 <p>{{AGREE_SIM_TEXT}}</p>
 <figure class="diagram">
 {{FIG_AGREE_SIM}}
-<figcaption>Figure&#160;7. Agreement with Drake hydroelastic under one control method, open-loop replay. The first columns
+<figcaption>Figure&#160;9. Agreement with Drake hydroelastic under one control method, open-loop replay. The first columns
 are the twist on the test bed (onset torque at 0.5, 1 and 3&#8202;N, as a ratio to Drake&#8217;s) and the brake (largest swing, as
 a difference from Drake&#8217;s), both with the 10.55&#8202;mm sphere. The last columns are the plan replay of the three-finger
 turn on D1&#8211;D8 with the printed TPU block of 2.7&#8202;mm fillets: tool turn and grip force at the hold, 24 placements paired
@@ -470,7 +473,7 @@ about its normal; its twist markers are the onset protocol&#8217;s offset (Table
 <p>{{STEP_TEXT}}</p>
 <figure class="diagram ifig" id="contact-step">
 {{FIG_STEP}}
-<figcaption>Figure&#160;8. Codex&#8217;s sweep of the Exp&#160;2 twist sequence on the SR2 hand with a 50&#8202;Hz controller
+<figcaption>Figure&#160;10. Codex&#8217;s sweep of the Exp&#160;2 twist sequence on the SR2 hand with a 50&#8202;Hz controller
 (<code>scripts/distributed_contact_timestep.py</code>). (a) The tool&#8217;s angle about the pinch axis at the end of the sequence,
 against the physics step; an open marker at the top marks a diverged run. (b) Physics wall time per simulated second on one
 core.</figcaption>
@@ -490,12 +493,12 @@ the CAD hand have MorphIt spheres on its links. Rows: <code>docs/experiments/202
 <code>run_costs.jsonl</code> of <code>20261011-servo_plant_policies</code> and <code>20261008-contact_model_policies</code>.</p>
 <figure class="diagram">
 {{FIG_COST}}
-<figcaption>Figure&#160;9. Agreement against cost on the test bed: each model&#8217;s median absolute deviation from Drake over the
+<figcaption>Figure&#160;11. Agreement against cost on the test bed: each model&#8217;s median absolute deviation from Drake over the
 metrics of Table&#160;2, against the cost of one physics step of 1&#8202;ms. {{COST_NOTE}}</figcaption>
 </figure>
 <figure class="diagram ifig" id="contact-gpu">
 {{FIG_GPU}}
-<figcaption>Figure&#160;10. Batched GPU throughput on one RTX 4070 Ti SUPER (16&#8202;GB), on the SR2 holding fixture of thumb and
+<figcaption>Figure&#160;12. Batched GPU throughput on one RTX 4070 Ti SUPER (16&#8202;GB), on the SR2 holding fixture of thumb and
 index, at a 1&#8202;ms step unless marked (<code>scripts/gpu_scaling_mjwarp.py</code>{{GPU_NEWTON_SCRIPT}}). Simulated seconds per
 wall second equal world-steps per second times the step. {{GPU_NOTE}}</figcaption>
 </figure>
@@ -507,25 +510,24 @@ models insert the tool. With point contact the hand drops it. The films below ar
 (<code>{{CHAIN_PATH}}</code>, <a href="{{CHAIN_URL}}">artifact</a>).</p>
 <figure>
 <video src="{{CLOSEUP_FILM}}" poster="{{CLOSEUP_POSTER}}" controls muted loop playsinline preload="metadata"></video>
-<figcaption>Figure&#160;11. The thumb pad through the nominal chain, in real time. Left to right: Drake hydroelastic (the faces
+<figcaption>Figure&#160;13. The thumb pad through the nominal chain, in real time. Left to right: Drake hydroelastic (the faces
 of its contact surface), MuJoCo sphere pads of 0.5, 1 and 2&#8202;mm (the collision spheres), and condim&#160;4 (one contact
 point). Faces and spheres share one colour scale, 0&#8211;0.3&#8202;MPa; the black dot is the centre of pressure.</figcaption>
 </figure>
 <figure>
 <video src="{{CHAIN_FILM}}" poster="{{CHAIN_POSTER}}" controls muted loop playsinline preload="metadata"></video>
-<figcaption>Figure&#160;12. The nominal chain in six contact models, in real time: pick, closed-loop brake to vertical, squeeze
+<figcaption>Figure&#160;14. The nominal chain in six contact models, in real time: pick, closed-loop brake to vertical, squeeze
 and insertion.</figcaption>
 </figure>
 {{USABILITY}}
 </div></section>
-{{PAD_CALIBRATION}}
 
 <section id="skin"><div class="col">
 <h2>Presliding compliance with a sprung skin</h2>
 <p>{{SKIN_SUMMARY}}</p>
 <figure class="diagram">
 {{FIG_T8}}
-<figcaption>Figure&#160;15. Task&#160;8 at 1&#8202;N per pad: an axial force on the tool of 0, +1, &#8722;1, +1 and 0&#8202;N, half the slip
+<figcaption>Figure&#160;16. Task&#160;8 at 1&#8202;N per pad: an axial force on the tool of 0, +1, &#8722;1, +1 and 0&#8202;N, half the slip
 force each way, with Mindlin&#8217;s closed form dashed. (a) The tool&#8217;s axial displacement against the force, at the test
 bed&#8217;s settings and a 1&#8202;ms step. The pads creep while the force is positive and keep the displacement. The skin goes out
 and back along Mindlin&#8217;s initial slope, with the thin loop of the 1&#8202;ms step (2.58&#8202;&#181;J at 0.025&#8202;ms). The bristle model

@@ -198,6 +198,21 @@ GLOSSARY = [
             "5&#8202;% of rest in \\(4.74\\,t_c\\)."),
 ]
 
+# terms of the first part (the printed fingertip, its FE model and the UR5 presses), shown on this page only
+GLOSSARY_CHAIN = [
+    ("UR5 presses, HEX-E", "A UR5 arm pressed the printed pad of DIP link b onto a sphere of radius 5&#8202;mm or a rod of "
+            "radius 12.5&#8202;mm at registered points. Each press stopped at force levels of 0.25&#8211;5&#8202;N, each held for "
+            "about 1.5&#8202;s (a hold). An OptoForce HEX-E six-axis force-torque sensor between the arm&#8217;s flange and the "
+            "finger measured the force."),
+    ("registered indentation", "The depth of the indenter below the pad&#8217;s nominal surface, from the robot&#8217;s pose and "
+            "the registration of the tool and the indenter, in mm."),
+    ("FE pad", "The finite-element model of the printed pad: walls and skins of solid TPU at 12&#8202;MPa around a homogenized "
+            "gyroid core, pressed by a frictionless rigid indenter."),
+    ("approach", "The travel of an indenter into a fingertip from first touch at a given normal force, in &#181;m or mm."),
+    ("series spring", "A spring between the finger and the fingertip&#8217;s contact model along the palmar normal, of stiffness "
+            "\\(k_s\\) in N/mm or compliance \\(1/k_s\\) in mm/N. The approach of the contact and \\(F/k_s\\) add."),
+]
+
 # terms of the policy and cost paragraphs, shown on this page only (other pages import GLOSSARY)
 GLOSSARY_RL = [
     ("world-step", "One physics step of one world in a GPU batch. Its cost is the wall time of the batch step divided by "
@@ -214,8 +229,8 @@ GLOSSARY_RL = [
 ]
 
 
-def glossary_html(keys=None, extra=()):
-    items = [g for g in list(GLOSSARY) + list(extra) if keys is None or g[0] in keys]
+def glossary_html(keys=None, extra=(), first=()):
+    items = [g for g in list(first) + list(GLOSSARY) + list(extra) if keys is None or g[0] in keys]
     return ('<dl class="glossary">' + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in items) + "</dl>")
 
 
@@ -605,7 +620,7 @@ def mass_text(cal):
             f"compiling is therefore the one the solver uses. With it the arm is {_rng(lo)}&#8202;mm at 0.5&#8202;N and "
             f"{_rng(hi)}&#8202;mm at 3&#8202;N for all three masses, {abs(statistics.mean(lo) / lawlo - 1) * 100:.0f} and "
             f"{abs(statistics.mean(hi) / lawhi - 1) * 100:.0f}&#8202;% under the hydroelastic law. With the fixed value the arm "
-            f"moves by {num(d025, '+.0f')} and {num(d4, '+.0f')}&#8202;% (Figure&#160;5).")
+            f"moves by {num(d025, '+.0f')} and {num(d4, '+.0f')}&#8202;% (Figure&#160;7).")
 
 
 # ------------------------------------------------------------------------------------------ creep and stability text
@@ -712,7 +727,7 @@ def creep_text(pull, creep, tip_pull=None):
                 out.append(f"On the printed TPU block at 1&#8202;N and 1&#8202;ms the factor is "
                            f"{tb['creep_mm_s'] / td['creep_mm_s']:.0f} (Table&#160;3).")
         out.append("A damper moves the tool by the time integral of its load, so a held tool does not come back when the "
-                   "load is removed (task&#160;8, Figure&#160;15).")
+                   "load is removed (task&#160;8, Figure&#160;16).")
     return " ".join(out).replace(" </p><p> ", "</p><p>")
 
 
@@ -954,7 +969,7 @@ def step_text(rows):
             f"from 0.5&#8202;ms up. The {len(mok)} that finished, at 50&#8202;&#181;s, ended at "
             f"{num(min(r['pinch_angle_end_deg'] for r in mok), '.0f')} to {num(max(r['pinch_angle_end_deg'] for r in mok), '.0f')}"
             f"&#176;. At equal step the pad costs {cost(dk, 0.001) / cost(leg, 0.001):.0f}&#215; less than Drake at 1&#8202;ms and "
-            f"{cost(dk, 0.01) / cost(leg, 0.01):.0f}&#215; less at 10&#8202;ms (Figure&#160;8).")
+            f"{cost(dk, 0.01) / cost(leg, 0.01):.0f}&#215; less at 10&#8202;ms (Figure&#160;10).")
 
 
 # ------------------------------------------------------------------------------------------ Table 2: agreement
@@ -1826,6 +1841,14 @@ def _url(path):
 
 
 RELATED = [  # (group, date, title, path relative to the repository, contents)
+    ("Results on other pages", "2026-10-26", "Calibration of the magnetic fingertip on the UR5 against a six-axis force sensor",
+     "docs/experiments/20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html",
+     "The UR5 sessions on three printed tips: motions, registration, ground truth of a hold, learned maps from the "
+     "magnetometer readings to the contact point and the force, pooling across tips"),
+    ("Results on other pages", "2026-10-19", "Checks of the v2 11/22 fingertip and the 9.75 mm longer DIP link",
+     "docs/experiments/20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html",
+     "The series spring in Drake and the pads: their turns 6.3&#176; RMS apart against 18.6&#176; without it; "
+     "under-extrusion; resolved gyroid beads"),
     ("Results on other pages", "2026-10-22", "UR5 fingertip ground truth",
      "docs/experiments/20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html",
      "357 UR5 presses on the printed pad against the FE model and the sphere pads; rod presses; the board against "
@@ -1899,6 +1922,11 @@ RELATED = [  # (group, date, title, path relative to the repository, contents)
      "docs/experiments/20261001-hom_contact_patch/20261001-hom_pinch_contact_models.html", "First two-pad rig"),
     ("Results on other pages", "2026-10-01", "Pinch-brake loading on the SR2 hand",
      "docs/experiments/20261001-hom_hand_brake/20261001-hom_hand_brake.html", "Brake in Drake and MuJoCo on the hand"),
+    ("Printed fingertips (topic overview: printed_fingertips.html)", "2026-10-26",
+     "Elasticity, magnet motion and magnetic readout of the printed fingertip",
+     "docs/experiments/20261026-fingertip_physical_model/20261026-fingertip_physical_model.html",
+     "Finite elements of the printed pad, the magnets&#8217; field, the readings a load gives, the estimator, and the "
+     "untrained model on the UR5 presses"),
     ("Printed fingertips (topic overview: printed_fingertips.html)", "2026-10-09",
      "Stiffness, sphere-pad calibration and embedded magnet of the printed TPU fingertip",
      "docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html",
@@ -1980,69 +2008,6 @@ def render_tex(t):
     return TEX_RE.sub(lambda m: next(svgs), t), len(items)
 
 
-UR5_CAL_DIR = "docs/experiments/20261022-ur5_tip_calibration"
-
-
-def pad_calibration_section():
-    """The pads against the FE model of the printed tip (2026-10-18 and 10-19) and against the UR5 presses of
-    2026-10-22. The numbers are quoted from Sections 3, 7 and 8 of the UR5 ground-truth page and from the two
-    calibration pages it links."""
-    def a(rel, text):
-        return f'<a href="{os.path.relpath(os.path.join(ROOT, rel), os.path.dirname(OUT))}">{text}</a>'
-    fe = a("docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration.html",
-           "calibration to the finite elements")
-    v2 = a("docs/experiments/20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html", "v2 fingertip checks")
-    ur5 = a(f"{UR5_CAL_DIR}/20261022-ur5_tip_ground_truth_and_predictors.html", "UR5 ground truth and predictors")
-    fig = R.data_uri(os.path.join(ROOT, UR5_CAL_DIR, "media/20261022-sphere2_sphere_pads_against_hexe.png"), "image/png")
-    return (
-        '<section id="pad-calibration"><div class="col">\n'
-        "<h2>Calibration of the pads to the FE model and to UR5 presses</h2>\n"
-        "<p>Sphere pads fitted to a finite-element (FE) model of the printed tip follow the indentation measured on a "
-        "UR5 arm as closely as the FE model does. With a spring in series, the depth residual is 135&#8202;&#181;m RMS for "
-        "the pads and 133&#8202;&#181;m for the FE model, over 357 presses. Both models are stiffer than the print: at the "
-        "registered positions the FE force is 5.1 times the measured force. The depth residual starts from the "
-        "difference between the measured and the modelled indentation at the measured force. An offset and a series "
-        "compliance are fitted to that difference, and the residual is the RMS of what remains.</p>\n"
-        r"<p>The pads were first fitted to the FE model of the 11/22 half-ellipsoid tip. One modulus \(E\) in "
-        r"\(K_i=E\,a_i/h_i\) misses the FE approach by 20&#8211;28&#8202;%. The FE force grows as \(\delta^{1.07}\) with "
-        r"the approach \(\delta\), and a law with one modulus grows as \(\delta^{1.5}\). The printed walls and skins "
-        r"spread the load over the core. A stiff local modulus behind a spring of stiffness \(k_{\mathrm{ser}}\) in "
-        r"series fits the FE approach: \(\delta(F)=F/k_{\mathrm{ser}}+\delta_{\mathrm{loc}}(F;E_{\mathrm{loc}})\), with "
-        r"\(k_{\mathrm{ser}}=9.7\)&#8202;N/mm. The RMS approach error is then 5.2&#8202;% in Drake&#8217;s hydroelastic "
-        "field and 5.6&#8202;% in 0.5&#8202;mm pads (" + fe + "). With the spring in both simulators, the same servo "
-        "commands end the tool&#8217;s turn 6.3&#176; apart. Without it they end 18.6&#176; apart (" + v2 + ").</p>\n"
-        "<p>The FE model and the pads were then compared with presses on the UR5. On the night of 2026-10-22 the arm "
-        "pressed the printed fingertip and a sphere indenter together, at force levels from 0.25 to 5&#8202;N. An "
-        "OptoForce HEX-E six-axis sensor read the force. The ground truth is 357 presses at registered positions ("
-        + ur5 + ", Sections 3, 7 and 8). On the face the measured indentation exceeds the FE model&#8217;s by "
-        "0.32&#8202;mm plus 0.212&#8202;mm/N. In presses with a rod, at least 0.10&#8202;mm/N of the extra indentation "
-        "arises at the sphere&#8217;s contact, where the FE model is stiffer than the print.</p>\n"
-        "<p>The 812 pads stand on the surface points of the FE model, so both models share one surface. In a MuJoCo rig "
-        "the measured normal force pushes the sphere into the fixed pads for 0.4&#8202;s. At rest the sphere&#8217;s "
-        "position agrees with the pads&#8217; spring law within 0.04&#8202;&#181;m. At the modulus that fits the FE model "
-        "best, 5.4&#8202;MPa, the pad force is 0.73 of the FE force at 0.25&#8202;N and 1.51 times it at 5&#8202;N "
-        "(Figure&#160;14a). With a stiffer modulus of 153&#8202;MPa behind a spring of 8.45&#8202;N/mm, the pad depth is "
-        "within 12&#8202;&#181;m RMS of the FE depth.</p>\n"
-        "<p>Without a series spring, the single modulus that fits the measurement best is 0.90&#8202;MPa. The pad force "
-        "is then within a median 19&#8202;% of the measured force. That modulus is 11 times below the 10&#8202;MPa of the "
-        "RL scenes, because the extra indentation is folded into it. Under the rod, the depth residual with a spring in "
-        "series is 56&#8202;&#181;m for pads at 5.2&#8202;MPa and 58&#8202;&#181;m for the FE model. The contact centre on "
-        "the pads lies a median 125&#8202;&#181;m from the centre on the FE model.</p>\n"
-        "<p>The measured shear in a press is a median 0.16&#8202;N, 0.14 of the normal force. Under it the sphere creeps "
-        "along the pads, as derived in step&#160;8 (Figure&#160;14b). At 5.4&#8202;MPa the median speed is "
-        "1.79&#8202;mm/s at impratio 1. It falls to 0.121&#8202;mm/s at impratio 10 and to 0.012&#8202;mm/s at impratio "
-        "100. Over the median press of 2.3&#8202;s the sphere moves 4.1&#8202;mm at impratio 1 and 27&#8202;&#181;m at "
-        "impratio 100.</p>\n"
-        f'<figure><img src="{fig}" width="1100" style="max-width:100%;height:auto" alt="Force ratios of the pads, the '
-        'FE model and the measurement by force level, and the sliding speed of the sphere on the pads by impratio">'
-        "<figcaption>Figure&#160;14. Sphere pads against the UR5 presses of 2026-10-22 (Fig.&#160;5 of the UR5 "
-        "ground-truth page). (a) Median force ratio at the registered positions by force level: pads at 5.4&#8202;MPa "
-        "over the FE model, measured over pads at 0.90&#8202;MPa, and measured over the FE model made 4.75 times softer. "
-        "(b) Sliding speed of the sphere on the pads under the measured shear against MuJoCo&#8217;s impratio. The "
-        "dashed line is 0.1&#8202;mm over a 2.3&#8202;s press.</figcaption></figure>\n"
-        "</div></section>\n")
-
-
 def usability_section():
     """The paragraph and film of the 2026-10-14 usability study (U1-U5) on the real_v1 hand, from its summaries."""
     def js(rel):
@@ -2094,7 +2059,7 @@ def usability_section():
     film = os.path.join(USE_DIR, "rl/media/20261014-rl_cross_kp036.mp4")
     poster = os.path.join(USE_DIR, "rl/media/20261014-rl_cross_kp036.jpg")
     if os.path.exists(film) and os.path.exists(poster):
-        s += film_tag(film, poster, "Figure&#160;13. Half servo gain (0.36&#8202;N&#183;m/rad), closed loop. Top: the TPU-mesh "
+        s += film_tag(film, poster, "Figure&#160;15. Half servo gain (0.36&#8202;N&#183;m/rad), closed loop. Top: the TPU-mesh "
                       "policy seed 0 on its own plant and on the 1&#8202;mm pad plant. Bottom: the 1&#8202;mm pad policy seed 0 on its "
                       "own plant and on the TPU-mesh plant. Each panel is the median world of 128; the pad policy drops the "
                       "tool on the mesh plant (U5 of the usability page).")
@@ -2107,22 +2072,8 @@ def usability_section():
               "1&#8202;rad/s on the printed 2.7&#8202;mm fillet. MuJoCo&#8217;s elliptic cone adds a slip term to a sliding pad&#8217;s "
               "normal force, and the change to the friction rows that removes it breaks the hand&#8217;s closed-loop turns "
               "(<a href=\"" + link2 + "\">fingertip co-design page</a>" + (f", <a href=\"{url2}\">artifact</a>" if url2 else "")
-              + ")." + _builder_sentence() + _curved_sentence() + _calibration_sentence() + "</p>")
+              + ")." + _builder_sentence() + _curved_sentence() + "</p>")
     return s
-
-
-def _calibration_sentence():
-    """The calibration of Drake's field and the pads to the finite elements of the four printed 85A tips (2026-10-18)."""
-    cp = "docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration.html"
-    if not os.path.exists(os.path.join(ROOT, cp)):
-        return ""
-    link = os.path.relpath(os.path.join(ROOT, cp), os.path.dirname(OUT))
-    url = _url(os.path.join(ROOT, "docs/experiments/20261018-fe_contact_calibration/artifact_url.txt"))
-    return (" The finite elements of the printed tips were also used for calibration. There a stiff modulus behind a "
-            "9.7&#8202;N/mm series spring reproduces the approach of the 11/22 half-ellipsoid tip, within 5.2&#8202;% RMS in Drake "
-            "and 5.6&#8202;% in 0.5&#8202;mm pads. On the same servo commands, however, the two end the tool&#8217;s turn 27&#8211;57&#176; apart on the 25&#8202;mm "
-            "cell, and one spring cannot fit the capsule tip (<a href=\"" + link + "\">calibration page</a>"
-            + (f", <a href=\"{url}\">artifact</a>" if url else "") + ").")
 
 
 def _curved_sentence():
@@ -2202,7 +2153,7 @@ def main():
     v["MASS_TEXT"] = mass_text(cal)
     v["CREEP_TEXT"] = creep_text(T["pull"], T["creep"], B["T1"])
     v["FIG_STAB"] = svg_stab(stab)
-    v["STAB_TEXT"] = stab_text(stab, tail=True)
+    v["STAB_TEXT"] = stab_text(stab, fig=8, tail=True)
     v["FIG_STEP"] = ifig_step(step_rows).inner() if step_rows else svg_step(step_rows)
     v["STEP_TEXT"] = step_text(step_rows)
     v["AGREE_TABLE"] = agree_table(M)
@@ -2219,8 +2170,7 @@ def main():
     v["CHAIN_POSTER"] = R.data_uri(os.path.join(CHAIN_D, "media/20261002-chain_six_models_poster.png"), "image/png")
     v["RELATED"] = related()
     v["USABILITY"] = usability_section()
-    v["PAD_CALIBRATION"] = pad_calibration_section()
-    v["GLOSSARY"] = glossary_html(extra=GLOSSARY_RL)
+    v["GLOSSARY"] = glossary_html(extra=GLOSSARY_RL, first=GLOSSARY_CHAIN)
     ctx = dict(T=T, M=M, cost=cost, cal=cal, stab=stab, step_rows=step_rows, gpu_pads=gpu_pads, gpu_newton=gpu_newton,
                tor=tor, have_onset=have_onset, curves=curves, batched=batched, deviations=deviations(M), bed_url=u, skin_X=SX,
                B=B, hand=hc, rl=rc, state=sc, creep_x=creep_x)
