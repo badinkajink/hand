@@ -71,6 +71,12 @@ VARIANTS = {   # --magnets: pad set, key in it, engraved ID, file key, the owner
     "four_compact": ("v4_four", "ell11_4c", "B4C", "ell11_4c",
                      "2026-10-26: 'can you prepare a 3mf for the prusa xl 5t with the same 3 fingertips, but with only 4 magnet "
                      "pouches instead of [5]?'; 'Keep the four compact and symmetric about the centre chip.'"),
+    "five_snap": ("v4_snap", "ell11_5s", "05S", "ell11_5s",
+                  "2026-10-26: 'i want to try having the pockets have a little more bite to them ... have the pocket come up "
+                  "past the diameter of the disc'"),
+    "four_snap": ("v4_snap", "ell11_4s", "05S4", "ell11_4s",
+                  "2026-10-26: 'i want to try having the pockets have a little more bite to them ... have the pocket come up "
+                  "past the diameter of the disc'"),
 }
 OUT = V2.B_DIR / "print"
 SETTINGS = dict(perimeters=2, fill_density="30%", fill_pattern="gyroid", top_solid_layers=4, bottom_solid_layers=4)

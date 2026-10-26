@@ -1,5 +1,5 @@
 {
- "when": "2026-10-26 16:49",
+ "when": "2026-10-26 17:26",
  "built_by": "scripts/cad_v2_assets.py",
  "files": {
   "ati_mini40_45/hook_cross.step": {
@@ -191,6 +191,30 @@
    "sha256": "accdf148f75e4df44d325e5271e88fd5ac952028d95cece6a7b29e74008008de",
    "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-dip_link_print_pad_ell11_5_05R_x3_85a_t2_g30.3mf",
    "source_sha256": "accdf148f75e4df44d325e5271e88fd5ac952028d95cece6a7b29e74008008de"
+  },
+  "fingertip_prints/snap_fit/pad_05S4_print.stl": {
+   "bytes": 2692884,
+   "sha256": "7ab92928fd0607d0ec3959038b8ad6cbb63ac92a8af24fdf361432e7beb09e6d",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-dip_link_pad_ell11_4s_05S4_print.stl",
+   "source_sha256": "7ab92928fd0607d0ec3959038b8ad6cbb63ac92a8af24fdf361432e7beb09e6d"
+  },
+  "fingertip_prints/snap_fit/pad_05S_print.stl": {
+   "bytes": 2716684,
+   "sha256": "5cef38c315c5f3f83517d3017fb532665808a8373263dfe6d931a3a3462e9174",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-dip_link_pad_ell11_5s_05S_print.stl",
+   "source_sha256": "5cef38c315c5f3f83517d3017fb532665808a8373263dfe6d931a3a3462e9174"
+  },
+  "fingertip_prints/snap_fit/pads_05S4_four_magnets_x3_xl.3mf": {
+   "bytes": 670689,
+   "sha256": "219d86cb3abbfdc9e2875521fc744c45d41aab6087c0e2265e8b93e595ae3ab9",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-dip_link_print_pad_ell11_4s_05S4_x3_85a_t2_g30.3mf",
+   "source_sha256": "219d86cb3abbfdc9e2875521fc744c45d41aab6087c0e2265e8b93e595ae3ab9"
+  },
+  "fingertip_prints/snap_fit/pads_05S_five_magnets_x3_xl.3mf": {
+   "bytes": 676321,
+   "sha256": "7941e86dfbd32cf8f36a01a0b5ceb226521dd4074f221dcc562a127244b3a6a5",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-dip_link_print_pad_ell11_5s_05S_x3_85a_t2_g30.3mf",
+   "source_sha256": "7941e86dfbd32cf8f36a01a0b5ceb226521dd4074f221dcc562a127244b3a6a5"
   },
   "top_cover_TW15H3.step": {
    "bytes": 1293388,

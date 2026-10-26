@@ -185,6 +185,27 @@ Outputs in `v4/b/`: `20261026-dip_link_v4b_four_compact_tip.json`; the tip
 `print/20261026-dip_link_print_pad_ell11_{4c_05R4,5_05R}_x3_85a_t2_g30.{3mf,json}` (three pads, 1 h 17 min and 1 h 19 min)
 and `print/20261026-dip_link_pad_ell11_{4c_05R4,5_05R}_print.stl`, copied to `assets/cad_v2/fingertip_prints/`.
 
+## Snap-fit magnet slots (2026-10-26)
+
+The owner asked for slots that grip the magnets harder: "i want to try having the pockets have a little more bite to them
+... have the pocket come up past the diameter of the disc". The seat's circle now continues 0.5 mm above its centre, and the
+slot's walls rise from there 2.72 mm apart (`metric_magnet_prints.SNAP`; 0 builds the earlier slots, 2.9 mm apart).
+`scripts/dip_b_snap_fit_tips.py` rebuilds the tips of 05R and 05R4 with it. Their slots are at least 1.91 and 1.81 mm apart,
+and the G-code check found no beads inside a slot. Pads 05S and 05S4 are cut from them as 05R and 05R4 were (pad set
+`v4_snap`, variants `five_snap` and `four_snap`), with the same pauses.
+
+    $RG ~/miniconda3/envs/femtip/bin/python -u scripts/dip_b_snap_fit_tips.py
+    for v in "four_snap --pid 05S4" "five_snap --pid 05S"; do
+        $RG ~/miniconda3/envs/femtip/bin/python -u scripts/v3b_pad_b00_magnets_xl.py --magnets $v --poles checkerboard \
+            --id-x -0.6 --pin-hole --raised-seats --groove-fit 0.05 --hole-d 1.6 --copies 3 \
+            --out docs/experiments/20261018-dip_link_board_mount/v4/b/print --date 20261026
+    done
+
+Outputs in `v4/b/`: `20261026-dip_link_v4b_snap_fit_tips.json`; the tips
+`print/20261026-siraya85a_tcd_ell7p4x8p5x11x22_{five_y2p5_z9p8_s0p5,four_y2p5_z5}_d3x2_depth7p5_seat2p9_snap0p5.stl` with
+their sheets; the pads `print/20261026-dip_link_print_pad_ell11_{5s_05S,4s_05S4}_x3_85a_t2_g30.{3mf,json}` and
+`print/20261026-dip_link_pad_ell11_{5s_05S,4s_05S4}_print.stl`, copied to `assets/cad_v2/fingertip_prints/snap_fit/`.
+
 ## Opening the STEP files in Inventor
 
 1. Unzip a `.step.zip` first; the plain `.step` files open as they are.

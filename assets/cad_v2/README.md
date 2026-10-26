@@ -85,6 +85,21 @@ The tip that 05R4 is cut from, the checks and the commands are in the
 [DIP runbook](../../docs/experiments/20261018-dip_link_board_mount/README.md), section "Four magnets in a compact square".
 The project of 2026-10-22 (B05R, all magnets north toward the palmar side) stays in `v4/b/print/` as printed.
 
+### Snap-fit slots (`fingertip_prints/snap_fit/`)
+
+The projects in `snap_fit/` print the same pads with slots that close over the magnet: 05S has five magnets and 05S4 four.
+In 05R and 05R4 the seat is a half circle 2.9 mm across, and above its centre the walls rise straight, 2.9 mm apart. The
+3.0 mm magnet is squeezed by 0.05 mm a side. In 05S and 05S4 the seat's circle continues 0.5 mm above its centre, and the
+walls rise from there 2.72 mm apart. The magnet is pressed through this throat to the floor, and the throat keeps it in
+place (owner, 2026-10-26: "have the pocket come up past the diameter of the disc"). The pauses, the poles and the ID's
+position are those of 05R and 05R4. Three 05S take 7.21 g and 1 h 20 min; three 05S4 take 7.04 g and 1 h 17 min. The tips,
+checks and commands are in the DIP runbook, section "Snap-fit magnet slots".
+
+| File | Pads | Magnets | Pauses |
+|---|---|---|---|
+| `snap_fit/pads_05S_five_magnets_x3_xl.3mf` | 05S | As 05R | 7.3, 12.2, 17.1 mm |
+| `snap_fit/pads_05S4_four_magnets_x3_xl.3mf` | 05S4 | As 05R4 | 10.2, 15.2 mm |
+
 ## Original fingertip parts (`cad_v1/`)
 
 `fingertip_mount_DIP_link.stl`, `fingertip.stl` and `fingertip_and_DIP_link.stl` are unaltered copies of the files in

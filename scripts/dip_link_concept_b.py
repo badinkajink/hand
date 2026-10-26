@@ -108,6 +108,11 @@ PAD_SETS = {   # printed 85A tips cut into pads: print STL, orientation, magnets
     # 2026-10-26: four magnets in a 5.0 mm square centred on U1 (scripts/dip_b_four_compact_tip.py), the tip of pad B05R4
     "v4_four": {"ell11_4c": ("docs/experiments/20261018-dip_link_board_mount/v4/b/print/"
                              "20261026-siraya85a_tcd_ell7p4x8p5x11x22_four_y2p5_z5_d3x2_depth7p5_seat2p9", "upright", -1.05)},
+    # 2026-10-26: the tips of 05R and 05R4 with snap-fit slots, the seat's circle 0.5 mm past its centre (dip_b_snap_fit_tips.py)
+    "v4_snap": {"ell11_5s": ("docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-siraya85a_tcd_ell7p4x8p5x11x22_"
+                             "five_y2p5_z9p8_s0p5_d3x2_depth7p5_seat2p9_snap0p5", "upright", -1.05),
+                "ell11_4s": ("docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261026-siraya85a_tcd_ell7p4x8p5x11x22_"
+                             "four_y2p5_z5_d3x2_depth7p5_seat2p9_snap0p5", "upright", -1.05)},
 }
 
 

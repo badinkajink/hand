@@ -81,6 +81,12 @@ COPIES = [
     ("fingertip_prints/pads_05R4_four_magnets_x3_xl.3mf", V4 / "print/20261026-dip_link_print_pad_ell11_4c_05R4_x3_85a_t2_g30.3mf"),
     ("fingertip_prints/pad_05R_print.stl", V4 / "print/20261026-dip_link_pad_ell11_5_05R_print.stl"),
     ("fingertip_prints/pad_05R4_print.stl", V4 / "print/20261026-dip_link_pad_ell11_4c_05R4_print.stl"),
+    # the same pads with snap-fit slots (owner, 2026-10-26: "have the pocket come up past the diameter of the disc")
+    ("fingertip_prints/snap_fit/pads_05S_five_magnets_x3_xl.3mf", V4 / "print/20261026-dip_link_print_pad_ell11_5s_05S_x3_85a_t2_g30.3mf"),
+    ("fingertip_prints/snap_fit/pads_05S4_four_magnets_x3_xl.3mf",
+     V4 / "print/20261026-dip_link_print_pad_ell11_4s_05S4_x3_85a_t2_g30.3mf"),
+    ("fingertip_prints/snap_fit/pad_05S_print.stl", V4 / "print/20261026-dip_link_pad_ell11_5s_05S_print.stl"),
+    ("fingertip_prints/snap_fit/pad_05S4_print.stl", V4 / "print/20261026-dip_link_pad_ell11_4s_05S4_print.stl"),
     # the original fingertip parts, unaltered (owner, 2026-10-26)
     ("cad_v1/fingertip.stl", REPO / "assets/cad_v1/fingertip.stl"),
     ("cad_v1/fingertip_mount_DIP_link.stl", REPO / "assets/cad_v1/fingertip_mount_DIP_link.stl"),

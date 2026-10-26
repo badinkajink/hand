@@ -54,6 +54,7 @@ MAGNET_SRC = "AplysiaTech N52 disc 3 x 2 mm, axially magnetized, nickel coated, 
 DEPTH = 5.0                         # palmar reach to the magnet's top face, mm
 GAP = 0.10                          # air above the seated magnet (upright: and across its thickness), mm
 WALL_MIN = 1.8                      # four 0.45 mm perimeters: two of the outer wall and two of the pocket's, mm
+SNAP = 0.0                          # upright: the seat's circle runs this far above its centre before the walls rise, mm
 CURVED = ["tcd_ell7.4x8.5x16x32", "tcd_cap8.5", "tcd_ell7.4x8.5x11x22"]
 TIPS = ["block"] + CURVED
 LABEL = {"block": "block", "tcd_ell7.4x8.5x16x32": "half-ellipsoid 7.4 x 8.5 x 16/32 mm",
@@ -123,7 +124,8 @@ def upright_xy(y, z):
 
 def upright_slots(centres, seat, depth=DEPTH):
     """Slots of curved_tips_print.slot at each centre: the magnet on its edge, a seat of the slot's width closed by its
-    lower half circle, walls running up to the slot's own pause, the magnet's thickness plus GAP across x."""
+    lower half circle, walls running up to the slot's own pause, the magnet's thickness plus GAP across x. With SNAP > 0 the
+    circle runs SNAP mm above its centre and the walls rise from there, a throat narrower than the magnet (a snap fit)."""
     import manifold3d as M
     import curved_tips_print as CP
     Dm, t = MAGNET
@@ -136,9 +138,10 @@ def upright_slots(centres, seat, depth=DEPTH):
         top = zp + Dm / 2 + (Dm / 2 - r) + GAP                # the magnet sits (D/2 - r) above the seat's centre
         n_pause, z_bot, z_print = CP.pause_layer(top)
         disc = M.Manifold.cylinder(x_hi - x_lo, r, r, 128).rotate([0.0, 90.0, 0.0]).translate([x_lo, yp, zp])
-        box = M.Manifold.cube([x_hi - x_lo, 2 * r, z_bot - zp]).translate([x_lo, yp - r, zp])
+        hw = math.sqrt(r * r - SNAP * SNAP)                  # the walls' half spacing: r without the snap fit
+        box = M.Manifold.cube([x_hi - x_lo, 2 * hw, z_bot - zp - SNAP]).translate([x_lo, yp - hw, zp + SNAP])
         out.append(dict(solid=disc + box, y_mm=y, z_mm=z, centre_print_mm=[round(yp, 3), round(zp, 3)], kind="slot",
-                        seat_diameter_mm=seat, slot_x_mm=[round(x_lo, 3), round(x_hi, 3)], seat_bottom_mm=round(zp - r, 3),
+                        seat_diameter_mm=seat, snap_mm=SNAP, throat_mm=round(2 * hw, 3), slot_x_mm=[round(x_lo, 3), round(x_hi, 3)], seat_bottom_mm=round(zp - r, 3),
                         slot_top_needed_mm=round(top, 3), slot_top_mm=z_bot, magnet_top_depth_mm=depth,
                         magnet_top_print_mm=round(zp + Dm - r, 3), air_above_magnet_mm=round(z_bot - (zp + Dm - r), 3),
                         pause_print_z=z_print, pause_layer=n_pause))
@@ -459,7 +462,8 @@ def section_mask(p, z_slice, X, Y, shrink=0.10):
     r = p["seat_diameter_mm"] / 2
     if not (p["seat_bottom_mm"] < z_slice < p["slot_top_mm"]):
         return None
-    w = r if z_slice >= zp else math.sqrt(max(r * r - (z_slice - zp) ** 2, 0.0))
+    h = p.get("snap_mm", 0.0)                             # snap fit: the circle runs h above the centre, then the throat
+    w = math.sqrt(max(r * r - (z_slice - zp) ** 2, 0.0)) if z_slice < zp + h else math.sqrt(r * r - h * h)
     if w <= shrink:
         return None
     x0, x1 = p["slot_x_mm"]
