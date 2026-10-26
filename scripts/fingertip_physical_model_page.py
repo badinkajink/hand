@@ -35,7 +35,7 @@ L = dict(
     v2=EXP / "20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html",
     steel=EXP / "20261023-foreign_field_rejection/20261023-foreign_field_rejection.html",
     gt=EXP / "20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html",
-    cal=EXP / "20261022-ur5_tip_calibration/20261024-checkerboard_fingertip_on_the_ur5.html",
+    cal=EXP / "20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html",
     overview=ROOT / "docs/overviews/printed_fingertips.html",
     contact=ROOT / "docs/overviews/contact_model.html",
 )
