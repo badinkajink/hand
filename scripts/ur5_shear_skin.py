@@ -84,14 +84,14 @@ def frame(n, v):
     return n, v, np.cross(n, v)
 
 
-def build(pads, row, skin, ir):
+def build(pads, row, skin, ir, mu=None):
     """MJCF of the rig for one slide (its first direction's frame: contact point, normal and the tangent plane)."""
     import mujoco
     n, t1, t2 = frame(row["n_P"], row["v_P"])
     pc = np.asarray(row["p_P"], float) * 1e-3
     cP = np.asarray(row["c_P"], float) * 1e-3
     geoms = "\n".join(f'<geom name="pad{i}" type="sphere" size="{0.75e-3:.6g}" pos="{c[0] * 1e-3:.7f} {c[1] * 1e-3:.7f} '
-                      f'{c[2] * 1e-3:.7f}" condim="3" priority="1" friction="{MU:g} 0 0"/>' for i, c in enumerate(pads.C))
+                      f'{c[2] * 1e-3:.7f}" condim="3" priority="1" friction="{mu or MU:g} 0 0"/>' for i, c in enumerate(pads.C))
     ax = lambda u: f"{u[0]:.7f} {u[1]:.7f} {u[2]:.7f}"  # noqa: E731
     if skin:
         kt, kth = skin["kt_N_m"], skin["kth_N_m_rad"]
@@ -220,7 +220,8 @@ def cmd_slides(a):
                 if (aid, model, ir) in have:
                     continue
                 t0 = time.time()
-                m, fr = build(pads, R[0], skin if model == "skin" else None, ir)
+                mu = a.mu_by_level.get(R[0]["press_N"], MU) if a.mu_by_level else MU
+                m, fr = build(pads, R[0], skin if model == "skin" else None, ir, mu)
                 sims, us, ok = replay(m, fr, dirs)
                 res = []
                 for (r, tr), sm in zip(dirs, sims):
@@ -234,7 +235,7 @@ def cmd_slides(a):
                                                                  z_back_N=r["z_back_N"], rms_N=r["epp"]["rms_N"]),
                                     trace=dict(t=np.round(sm["t"], 3).tolist(), d=np.round(sm["d"], 2).tolist(),
                                                s=np.round(sm["s"], 4).tolist())))
-                row = dict(action=aid, region=R[0]["region"], press_N=R[0]["press_N"], model=model, ir=ir, mu=MU,
+                row = dict(action=aid, region=R[0]["region"], press_N=R[0]["press_N"], model=model, ir=ir, mu=mu,
                            E_MPa=E_SPHERE, skin=skin if model == "skin" else None, rig=dict(A=fr["A"], d0=fr["d0"]),
                            us_per_step_median=us, finite=bool(ok), directions=res, script=SCRIPT,
                            when=time.strftime("%Y-%m-%d %H:%M"))
@@ -261,7 +262,10 @@ def main():
     s.add_argument("--levels", nargs="+", type=float, default=[1.0, 2.0])
     s.add_argument("--max-slides", type=int, default=1000)
     s.add_argument("--out", default=None, help="rows file name under the study's data/ (one per process)")
+    s.add_argument("--mu", nargs="*", default=None, help="friction per press level, as level=mu (e.g. 1=0.37 2=0.44)")
     a = ap.parse_args()
+    if a.cmd == "slides":
+        a.mu_by_level = {float(x.split("=")[0]): float(x.split("=")[1]) for x in (a.mu or [])}
     {"size": cmd_size, "slides": cmd_slides}[a.cmd](a)
 
 

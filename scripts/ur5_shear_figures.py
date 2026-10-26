@@ -102,7 +102,7 @@ def numbers():
     # skin on the slides
     K = []
     for ir in (10, 100, 1000):
-        K += rows(f"20261026-skin_slides_ir{ir}.jsonl")
+        K += rows(f"20261026-skin_slides_mu_ir{ir}.jsonl") or rows(f"20261026-skin_slides_ir{ir}.jsonl")
     sk = {}
     for model in ("pads", "skin"):
         for ir in (10.0, 100.0, 1000.0):
@@ -121,13 +121,43 @@ def numbers():
                     z_back_measured_N=float(np.median([x["measured"]["z_back_N"] for x in dirs if x["measured"]["z_back_N"] is not None])),
                     us=float(np.median([r["us_per_step_median"] for r in X])))
     N["skin_slides"] = sk
+    # friction from the vector fit of each slide (ur5_shear_slides.py vector)
+    V = rows("20261026-ur5_slides_vector_cb2t.jsonl")
+    vec = {}
+    for F in (1.0, 2.0):
+        X = [v for v in V if v["press_N"] == F]
+        mx = [x for v in X for x in v["max_ft_over_fn_by_dir"]]
+        vec[f"{F:g}"] = dict(n=len(X), **{f"mu_{m}": dict(median=float(np.median([v["fits"][m]["mu"] for v in X])),
+                                                        p25=float(np.percentile([v["fits"][m]["mu"] for v in X], 25)),
+                                                        p75=float(np.percentile([v["fits"][m]["mu"] for v in X], 75)))
+                                         for m in ("none", "const", "prop")},
+                             b_over_fn=float(np.median([v["fits"]["const"]["b_over_fn"] for v in X])),
+                             slip_share=float(np.median([v["fits"]["const"]["slip_share"] for v in X])),
+                             give_um_N=float(np.median([v["fits"]["const"]["give_um_N"] for v in X])),
+                             max_ft_over_fn=dict(median=float(np.median(mx)), p10=float(np.percentile(mx, 10)),
+                                                 p90=float(np.percentile(mx, 90))))
+    pairs = {}
+    for v in V:
+        pairs.setdefault(v["action"].rsplit("-", 1)[0], {})[v["press_N"]] = v
+    rat, ang = [], []
+    for p_ in pairs.values():
+        if 1.0 in p_ and 2.0 in p_:
+            b1, b2 = np.array(p_[1.0]["fits"]["const"]["b"]), np.array(p_[2.0]["fits"]["const"]["b"])
+            rat.append(np.linalg.norm(b2) / max(np.linalg.norm(b1), 1e-9))
+            ang.append(math.degrees(math.acos(np.clip(b1 @ b2 / np.linalg.norm(b1) / np.linalg.norm(b2), -1, 1))))
+    S1 = [json.loads(l) for l in open(DATA / "20261026-ur5_slides_cb2t.jsonl")]
+    st = [r["start"]["f_t_N"] / r["start"]["f_n_N"] for r in S1 if r["from_rest"]]
+    vec["offset_pairs"] = dict(n=len(rat), ratio_median=float(np.median(rat)), ratio_p25=float(np.percentile(rat, 25)),
+                               ratio_p75=float(np.percentile(rat, 75)), angle_median_deg=float(np.median(ang)))
+    vec["press_ft_over_fn"] = float(np.median(st))
+    N["vector"] = vec
     # torsion
     T = rows("20261026-torsion_pads.jsonl")
     tor = {}
     for F in (1.0, 2.5, 5.0):
         X = [r for r in T if r["F_N"] == F and r.get("tau_on_Nmm")]
         if X:
-            tor[f"{F:g}"] = dict(n=len(X), tau_on_Nmm=[r["tau_on_Nmm"] for r in X], arm_mm=[r["arm_on_mm"] for r in X],
+            tor[f"{F:g}"] = dict(n=len(X), mu=X[0]["mu"], tau_on_Nmm=[r["tau_on_Nmm"] for r in X], arm_mm=[r["arm_on_mm"] for r in X],
                                  hertz_Nmm=X[0]["hertz"]["tau_Nmm"], measured=X[0]["measured_cb2t"])
     N["torsion"] = tor
     (DATA / "20261026-numbers.json").write_text(json.dumps(N, indent=1) + "\n")
@@ -138,7 +168,7 @@ def numbers():
 
 def fig_impratio(N):
     plt = plt_setup()
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(14.0, 5.0), gridspec_kw=dict(width_ratios=(1.0, 1.15)))
+    fig, (a1, a2) = plt.subplots(2, 1, figsize=(10.0, 10.0), gridspec_kw=dict(height_ratios=(1.25, 1.0)))
     ir = np.array([10.0, 100.0, 300.0])
     C = N["creep"]
     for key, lab, col, mk in (("sphere2_E0.9008", "UR5 rig, 5 mm sphere, 0.90 MPa", ORANGE, "o"),
@@ -165,7 +195,7 @@ def fig_impratio(N):
     a1.set_xlabel("Impratio")
     a1.set_ylabel("Creep (\N{MICRO SIGN}m/s)")
     a1.set_title("(a) Creep under the trainer's solver", loc="left")
-    a1.legend(loc="lower left", frameon=False, fontsize=10.5)
+    a1.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), frameon=False, fontsize=11)
     # (b) outcomes of the 24 D1-D8 replays per setting
     labels, H, Dr, Dv = [], [], [], []
     for E in (10.0, 2.0):
@@ -191,7 +221,7 @@ def fig_impratio(N):
     a2.set_ylabel("D1-D8 replays (of 24)")
     a2.set_xlabel("Pad modulus and impratio")
     a2.set_title("(b) Outcomes of the D1-D8 replays", loc="left")
-    a2.legend(loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, -0.2))
+    a2.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), frameon=False, fontsize=11)
     fig.tight_layout()
     save(fig, "20261026-impratio.png")
 
@@ -200,7 +230,7 @@ def fig_skin(N):
     plt = plt_setup()
     K = []
     for ir in (10, 100, 1000):
-        K += rows(f"20261026-skin_slides_ir{ir}.jsonl")
+        K += rows(f"20261026-skin_slides_mu_ir{ir}.jsonl") or rows(f"20261026-skin_slides_ir{ir}.jsonl")
     if not K:
         return
     S = {(json.loads(l)["action"], json.loads(l)["dir_index"]): json.loads(l)
@@ -210,7 +240,7 @@ def fig_skin(N):
     aid, k = "slide-000-1N", 2
     i = next(j for j, m in enumerate(meta) if m["action"] == aid and m["dir_index"] == k)
     off = S[(aid, k)]["epp"]["s_off_N"]
-    fig, axs = plt.subplots(1, 3, figsize=(15.0, 4.6), sharey=True)
+    fig, axs = plt.subplots(1, 3, figsize=(10.0, 4.4), sharey=True)
     for ax, ir in zip(axs, (10.0, 100.0, 1000.0)):
         ax.plot(Z[f"d_{i}"] * 1e3, Z[f"s_{i}"] - off, "-", color="0.75", lw=1.0, label="Measured")
         for model, col, lab in (("pads", ORANGE, "1 mm pads"), ("skin", BLUE, "Pads on the sized skin")):
@@ -221,9 +251,11 @@ def fig_skin(N):
             ax.plot(np.array(tr["d"]), np.array(tr["s"]), "-", color=col, lw=1.5, label=lab)
         ax.axhline(0.0, color="0.88", lw=0.8, zorder=0)
         ax.set_title(f"({'abc'[[10.0, 100.0, 1000.0].index(ir)]}) Impratio {ir:g}", loc="left")
-        ax.set_xlabel("Travel of the pad (\N{MICRO SIGN}m)")
+        ax.set_xticks([0, 100, 200])
+        ax.set_xlabel("Travel (\N{MICRO SIGN}m)")
     axs[0].set_ylabel("Shear against the travel (N)")
-    axs[0].legend(loc="upper left", frameon=False)
+    h, l_ = axs[0].get_legend_handles_labels()
+    fig.legend(h, l_, loc="lower center", ncol=3, frameon=False, bbox_to_anchor=(0.5, -0.06))
     fig.tight_layout()
     save(fig, "20261026-skin_slides.png")
 
@@ -236,8 +268,9 @@ def fig_torsion(N):
     fig, ax = plt.subplots(figsize=(8.0, 4.8))
     F = np.linspace(0.5, 5.5, 50)
     import ur5_shear_torsion as TO
-    ax.plot(F, [TO.hertz_torque_Nmm(f)[0] for f in F], "-", color="black", lw=1.2,
-            label="Hertz patch, \N{GREEK SMALL LETTER MU} 0.35, 0.90 MPa")
+    for mu_, ls in ((0.37, ":"), (0.44, "-")):
+        ax.plot(F, [TO.hertz_torque_Nmm(f, mu=mu_)[0] for f in F], ls, color="black", lw=1.2,
+                label="Hertz patch, \N{GREEK SMALL LETTER MU} " + f"{mu_:.2f}, 0.90 MPa")
     for k, (Fk, v) in enumerate(sorted(T.items(), key=lambda kv: float(kv[0]))):
         f = float(Fk)
         ax.plot([f] * len(v["tau_on_Nmm"]), v["tau_on_Nmm"], "o", color=BLUE, ms=7, label="1 mm pads, spin onset" if k == 0 else None)

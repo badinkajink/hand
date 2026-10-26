@@ -111,6 +111,23 @@ V2_PAGE = "docs/experiments/20261019-v2_tip_fe_checks/20261019-v2_fingertip_stif
 SENS_PAGE = "docs/experiments/20261013-contact_feedback/20261013-contact_parameter_sensitivity.html"
 CHAIN_FIGS = ("docs/overviews/media/contact_chain_models.png", "docs/overviews/media/contact_chain_indentation.png")
 CHAIN_NUM = "docs/overviews/media/contact_chain_numbers.json"
+SHEAR_PAGE = ("docs/experiments/20261026-shear_friction_impratio/"
+              "20261026-shear_friction_and_impratio_of_the_printed_fingertip.html")
+SHEAR_NUM = "docs/experiments/20261026-shear_friction_impratio/data/20261026-numbers.json"
+
+
+def _shear():
+    """The numbers of the shear page (scripts/ur5_shear_figures.py): the UR5 slides' give and friction, impratio under the
+    trainer's numerics, the skin on the slides and the friction torque."""
+    N = json.load(open(P.os.path.join(P.ROOT, SHEAR_NUM)))
+    b = N["slides"]["cb2t"]["by_level"]
+    V, R, G, K, T = N["vector"], N["replays"], N["grasp"], N["skin_slides"], N["torsion"]
+    return dict(give1=b["1"]["give_um_N"]["median"], give2=b["2"]["give_um_N"]["median"], mu1=V["1"]["mu_const"]["median"],
+                mu2=V["2"]["mu_const"]["median"], off=V["1"]["b_over_fn"], cr10=R["d1d8_E10_ir10"]["creep_um_s"],
+                cr100=R["d1d8_E10_ir100"]["creep_um_s"], div100=R["d1d8_E10_ir100"]["diverged"],
+                cpu100=G["cpu_pads_E10_ir100"], mjw100=G["mjw_pads_E10_ir100"], skin_rms=K["skin_ir1000_1N"]["rms_N"],
+                skin_cpu100=G["cpu_skin_E10_ir100"], skin_mjw100=G["mjw_skin_E10_ir100"],
+                tq={F: (min(v["tau_on_Nmm"]), max(v["tau_on_Nmm"]), v["measured"]["median_Nmm"]) for F, v in T.items()})
 
 
 def _a(rel, text):
@@ -248,8 +265,11 @@ def chain_section(ctx):
         f"{U['sphere']['E']:.2f}&#8202;MPa under the 5&#8202;mm sphere and {U['rod']['E']:.1f}&#8202;MPa under the 12.5&#8202;mm rod, "
         "against the scenes&#8217; 10&#8202;MPa (Figure&#160;2b). The pads&#8217; depth then differs from the registered indentation "
         f"by {U['sphere']['rms']:.0f} and {U['rod']['rms']:.0f}&#8202;&#181;m RMS. With an offset and a series compliance added, "
-        f"the residual falls only to {U['sphere']['rms_spring']:.0f} and {U['rod']['rms_spring']:.0f}&#8202;&#181;m, because the "
-        "scatter of the registration dominates. One modulus misses the trend with load. Under the rod the measured force is "
+        f"the residual falls only to {U['sphere']['rms_spring']:.0f} and {U['rod']['rms_spring']:.0f}&#8202;&#181;m. The give beyond "
+        "the FE pad is 0.20&#8202;mm/N under the sphere and 0.10&#8202;mm/N under the rod, on the same tip and mount. A spring of "
+        "fixed stiffness adds the same give under both indenters, so it cannot follow a give that depends on the size of the "
+        "contact. Only one fit of a modulus and a spring to both indenters at once could justify the spring. One modulus misses "
+        "the trend with load. Under the rod the measured force is "
         f"{U['rod']['lo']:.2f} times the pads&#8217; at 0.25&#8202;N and {U['rod']['hi']:.2f} times at 5&#8202;N. The sphere&#8217;s "
         "modulus is lower than the rod&#8217;s, because the extra indentation of the small contact is part of it.</p>")
     o.append(f'<figure><img src="{img(CHAIN_FIGS[1])}" width="1200" style="max-width:100%;height:auto" alt="Normal force '
@@ -282,16 +302,25 @@ def chain_section(ctx):
         s += (f" Under a held load below slip the pads creep {cx[0]:.0f} times as fast as Drake on the test bed&#8217;s sphere "
               f"and {cx[1]:.0f} times on the printed block (step&#160;8).")
     o.append(s + " The tasks behind these numbers are under Comparison with the reference models.</p>")
+    sh = _shear()
+    shp = _a(SHEAR_PAGE, "shear page")
     o.append("<h3>Shear compliance, rate and friction</h3>")
     o.append(
-        "<p>Three properties of the print are missing from the simulated contact. The first is compliance before slip. In "
-        "the FE model the face moves 48&#8211;177&#8202;&#181;m/N sideways under the 12.5&#8202;mm rod before anything slides. "
-        "Drake&#8217;s field and the pads have no tangential compliance, and under a load below slip they creep instead "
-        "(step&#160;8). The sprung skin of the last part adds such a compliance. The second is rate. The FE model is elastic, "
+        "<p>Three properties of the print are missing from the simulated contact. The first is compliance before slip. On "
+        f"the UR5 slides the pad moves {sh['give1']:.0f}&#8202;&#181;m per newton of shear at 1&#8202;N and {sh['give2']:.0f}&#8202;"
+        f"&#181;m/N at 2&#8202;N before it slips ({shp}). In the FE model the face moves 48&#8211;177&#8202;&#181;m/N under the "
+        "12.5&#8202;mm rod. Drake&#8217;s field and the pads have no tangential compliance, and under a load below slip they creep "
+        "instead (step&#160;8). Pads on a skin sized from the slides follow the measured loops within "
+        f"{sh['skin_rms']:.2f}&#8202;N RMS at impratio 1000. At impratio 100 and 10 the friction rows creep through those loops. "
+        "The second is rate. The FE model is elastic, "
         "and the damping of Drake and of the pads is a solver setting. On the UR5 the board&#8217;s change at the same point and "
         "force level grew 1.24 times at 0.6&#8202;mm/s against 0.15&#8202;mm/s. At 2&#8202;mm/s it grew 1.79 times, and the "
-        f"overshoot of the force explains about half of that growth ({cal}). The third is friction. The friction coefficient of Siraya "
-        "85A has not been measured, and the scenes use 1.</p>")
+        f"overshoot of the force explains about half of that growth ({cal}). The third is friction. On the slides the "
+        f"coefficient of the 85A pad on a printed PLA sphere is {sh['mu1']:.2f} at 1&#8202;N and {sh['mu2']:.2f} at 2&#8202;N, from the "
+        "magnitude of the shear at slip. The scenes are run with 1. At these coefficients the pads&#8217; friction torque under "
+        f"the 5&#8202;mm sphere is {sh['tq']['1'][0]:.2f}&#8211;{sh['tq']['5'][1]:.1f}&#8202;N&#8202;mm at 1&#8211;5&#8202;N. The "
+        "HEX-E&#8217;s torque noise of 1&#8211;2&#8202;N&#8202;mm, and its crosstalk from the push&#8217;s moment, leave this torque "
+        "unmeasured.</p>")
     o.append("<h3>Consequences for the simulated hand</h3>")
     o.append(
         f"<p>Through the servos each fingertip is a spring of {sv['servo_N_per_m']:.0f}&#8202;N/m along its palmar normal, at the "
@@ -319,7 +348,10 @@ def chain_section(ctx):
         f"{U['sphere']['E']:.2f}&#8202;MPa creep {cr['impratio10_E_meas']:.2f}&#8202;mm/s at impratio 10 and "
         f"{cr['impratio100_E_meas'] * 1e3:.0f}&#8202;&#181;m/s at impratio 100. At {U['sphere']['E_fe']:.1f}&#8202;MPa they creep "
         f"{cr['impratio10_E_FE']:.2f}&#8202;mm/s and {cr['impratio100_E_FE'] * 1e3:.0f}&#8202;&#181;m/s, so a softer modulus needs "
-        "a higher impratio. A series slide joint, the FE calibration&#8217;s recipe, is kept as a comparison. It slides along "
+        "a higher impratio. Under the trainer&#8217;s numerics impratio 100 lowers the creep of the held D1&#8211;D8 replays from "
+        f"{sh['cr10']:.0f} to {sh['cr100']:.0f}&#8202;&#181;m/s. All {sh['div100']} replays that drop the tool then diverge, and "
+        f"{sh['cpu100']['nonfinite']} of 16 scripted grasps diverge on the CPU. In MuJoCo-Warp {sh['mjw100']['held_placements']} of "
+        f"64 placements are held at the same cost ({shp}). A series slide joint, the FE calibration&#8217;s recipe, is kept as a comparison. It slides along "
         "the palmar normal only, while the FE and UR5 fits let the spring act along each press&#8217;s own normal. In the CPU "
         "replays of 18 October it cost 13&#8202;% per step, 112 against 99&#8202;&#181;s. The recipe also ran on 0.5&#8202;mm pads, at "
         "3.3 times the per-step cost of 1&#8202;mm pads, 99 against 30&#8202;&#181;s. The replay that sets the scenes&#8217; modulus "
@@ -617,9 +649,12 @@ def open_list(ctx):
                     f"{held[100.0][1]} seeds at impratio 100 and 10,000 (backends page)." if len(held) == 2 else "")
                  + " The wield of arXiv 2609.25619 has not been run at a higher impratio. Rerun it at 100 and 1000, and "
                  "compare the rotation that the tool loses at each release with Drake&#8217;s.")
+    sh = _shear()
+    shp = _a(SHEAR_PAGE, "shear page")
     items = [
-        ("Friction coefficient of the printed tip.", "Pinch the bench cylinder between two printed 95A 20&#8202;% gyroid tips at "
-         "0.5, 1 and 2&#8202;N per tip. Pull it along its axis until it slips, five times per load, and fit \\(\\mu=F/2N\\) with "
+        ("Friction coefficient on the tool.", f"On the UR5 slides the friction coefficient of the 85A pad on a printed PLA sphere "
+         f"is {sh['mu1']:.2f} at 1&#8202;N and {sh['mu2']:.2f} at 2&#8202;N ({shp}). Pinch the bench cylinder between two printed tips at 0.5, 1 and 2&#8202;N per "
+         "tip. Pull it along its axis until it slips, five times per load, and fit \\(\\mu=F/2N\\) with "
          "<code>scripts/tpu_tip_calibrate.py fit --pull</code>. The scenes are run with \\(\\mu=1\\), and the RL friction "
          "randomisation spans &#215;0.55&#8211;1.15. If the measured \\(\\mu\\) is below 0.55, retrain with a wider range."),
         ("Fingertip stiffness and overload trip.", "Run the push test of the bench plan (<code>docs/experiments/20261011-bench_plan/"
@@ -654,12 +689,14 @@ def open_list(ctx):
          "commands and D1&#8211;D8 from three start placements at 10&#8202;MPa, at the UR5 modulus and, as the comparison, with the "
          f"series spring ({_ur5_c():.2f}&#8202;mm/N behind 10&#8202;MPa). The scenes take the UR5 modulus unless the tool&#8217;s "
          "orientation or the fingertips&#8217; normal forces move beyond the spread between placements. The spring enters only "
-         "if it alone closes such a gap."),
+         "if it alone closes such a gap. The replays at the trainer&#8217;s numerics are on the shear page: at 2.0&#8202;MPa, with "
+         "a 20&#8202;ms time constant, 11 of 24 D1&#8211;D8 replays are held at impratio 10 and 100, against 9 and 8 at 10&#8202;MPa. "
+         "The spring and the comparison of trajectories remain."),
         ("Friction torque of the print on the force sensor&#8217;s axis.", "Clamp the finger on the UR5 with the face&#8217;s "
          "normal along the force sensor&#8217;s axis and twist at 1, 2.5 and 5&#8202;N, so the torsion is read without the "
-         "push&#8217;s moment (calibration page, Future work). Compare it with the pads&#8217; friction torque at the UR5 modulus "
-         "and the same normal force. A torque outside the pads&#8217; range at the measured friction coefficient falsifies "
-         "the pads&#8217; friction torque."),
+         "push&#8217;s moment (calibration page, Future work). At the slides&#8217; friction coefficients the pads start to spin "
+         f"at {sh['tq']['1'][1]:.2f}, {sh['tq']['2.5'][1]:.2f} and {sh['tq']['5'][1]:.1f}&#8202;N&#8202;mm ({shp}). A torque outside "
+         "half to twice these falsifies the pads&#8217; friction torque."),
         ("Step bound on the hand.", "Bisect the spectral radius of MuJoCo&#8217;s one-step map (<code>mjd_transitionFD</code>) "
          "about the held pinch of task&#160;7 on the test bed, for its 21 pad pairs and 3 point-contact pairs. Do it with the "
          "rails&#8217; damping on and off, and then about the hand&#8217;s grip. Record whether the unstable mode lies in the friction "
@@ -684,15 +721,18 @@ SKIN_PAGE = "docs/experiments/20261012-sprung_skin/20261012-sprung_skin_preslidi
 def skin_future(ctx):
     """Future-work items on presliding, shared by the overview's list and the skin page."""
     return [
-        ("Presliding of the printed tip.", "Cycle an axial force at half the slip force on the printed tip under a fixed "
-         "pinch (task&#160;8 of the test bed, on the bench), and record the displacement against the force. If about "
-         "40&#8202;&#181;m return, a contact model with presliding is required, such as the sprung skin at a high impratio. If "
-         "the loop area is near Mindlin&#8217;s, the bristle model is required. If no presliding can be measured, both models are retired."),
-        ("The skin at the trainer&#8217;s settings.", "The trainer&#8217;s solver (10 iterations, 2&#8202;ms step) holds a grasp on "
-         "the skin only at impratio 10. There the friction rows creep twice as far as the springs deflect "
-         f"({_f8(ctx)}), so no policy has yet trained with the skin&#8217;s presliding. Rerun the scripted-grasp check of "
-         "<code>scripts/make_work_plant_runs.py</code> on the skin scene of the servo plant at impratio 100, 300 and 1000, "
-         "with more solver iterations or a 1&#8202;ms step. Train the skin arm at the first setting that holds 64 of 64. If its "
+        ("Presliding of the printed tip.", f"The UR5 slides measure a give before slip of {_shear()['give1']:.0f}&#8202;&#181;m/N at 1&#8202;N on the "
+         "printed pad, and a skin sized from them follows the slides at impratio 1000 (shear page, "
+         "<code>docs/experiments/20261026-shear_friction_impratio/</code>). Cycle an axial force at half the slip force on the "
+         "printed tip under a fixed pinch of the tool (task&#160;8 of the test bed, on the bench), and record the displacement "
+         "against the force. If about 40&#8202;&#181;m return, a contact model with presliding is required, such as the sprung skin "
+         "at a high impratio. If no presliding can be measured under the pinch, the skin is retired."),
+        ("The skin at the trainer&#8217;s settings.", "At impratio 10 the trainer&#8217;s friction rows creep twice as far as the "
+         f"skin&#8217;s springs deflect ({_f8(ctx)}), so no policy has yet trained with the skin&#8217;s presliding. At impratio 100, "
+         "6 of 16 placements of the scripted grasp on the servo plant&#8217;s skin scene are held on the CPU, and 7 diverge. In "
+         "MuJoCo-Warp all 64 are held (shear page, <code>docs/experiments/20261026-shear_friction_impratio/</code>). Repeat it in "
+         "MuJoCo-Warp with 2,048 worlds and log the springs&#8217; deflection against the tool&#8217;s slip. Train the skin arm only "
+         "if the tool is held in all worlds and the deflection exceeds the slip. If its "
          "held cosine, open-loop replays and robustness under jitter stay within the seed spread of the pad arm, retire the "
          "skin (the impratio-10 arm on the servo plant: <code>docs/experiments/20261011-servo_plant_policies/"
          "20261011-servo_plant_contact_model_policies.html</code>, section on the sprung skin)."),

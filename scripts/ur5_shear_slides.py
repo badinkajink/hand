@@ -111,6 +111,87 @@ def fit_epp(d, s, fn):
                 z_top_N=float(z[i_top]), z_end_N=float(z[-1]), n_bins=int(len(d)))
 
 
+def vplay(X, fn, k, mu, z0):
+    """The vector form of epp: a 2D spring k (N/mm) in series with an isotropic Coulomb slider of radius mu f_n, driven by
+    the 2D travel X (mm); past the limit the shear is returned radially to the circle."""
+    Z = np.empty_like(X)
+    z = np.array(z0, float)
+    for i in range(len(X)):
+        if i:
+            z = z + k * (X[i] - X[i - 1])
+        lim = mu * fn[i]
+        m = math.hypot(z[0], z[1])
+        if m > lim:
+            z = z * (lim / m)
+        Z[i] = z
+    return Z
+
+
+def fit_vec(X, G, fn, offset="const"):
+    """Least squares of the measured 2D shear G against b + vplay(X): the spring's give, the friction coefficient from the
+    magnitude of the shear at slip, the stored shear at the start, and an in-plane offset b per slide. offset: 'none'
+    (b = 0), 'const' (b fixed) or 'prop' (b = beta f_n, the tangential part of a normal force read along a tilted normal)."""
+    from scipy.optimize import least_squares
+    fn = np.maximum(fn, 0.05)
+
+    def bvec(p):
+        if offset == "none":
+            return np.zeros(2)
+        return np.array(p[2:4]) * (fn[:, None] if offset == "prop" else 1.0)
+
+    def res(p):
+        Z = vplay(X, fn, math.exp(p[0]), p[1], p[4:6])
+        return (G - bvec(p) - Z).ravel()
+
+    best = None
+    for k0 in (2.5, 6.0):
+        for mu0 in (0.35, 0.6, 1.0):
+            r = least_squares(res, [math.log(k0), mu0, 0.0, 0.0, 0.0, 0.0],
+                              bounds=([math.log(0.3), 0.02, -2.0, -2.0, -2.0, -2.0], [math.log(200.0), 3.0, 2.0, 2.0, 2.0, 2.0]),
+                              diff_step=1e-3, max_nfev=800)
+            if best is None or r.cost < best.cost:
+                best = r
+    p = best.x
+    k, mu = math.exp(p[0]), p[1]
+    Z = vplay(X, fn, k, mu, p[4:6])
+    at_lim = np.abs(np.hypot(Z[:, 0], Z[:, 1]) - mu * fn) < 1e-6
+    b = bvec(p)
+    bm = float(np.mean(np.hypot(*(b.T if b.ndim == 2 else b[:, None])))) if offset != "none" else 0.0
+    return dict(offset=offset, k_N_mm=k, give_um_N=1e3 / k, mu=mu, b=[float(p[2]), float(p[3])] if offset != "none" else [0.0, 0.0],
+                b_over_fn=bm / float(np.mean(fn)), rms_N=float(np.sqrt(np.mean(res(p) ** 2))), slip_share=float(at_lim.mean()),
+                n_bins=int(len(X)))
+
+
+def cmd_vector(a):
+    """Per slide of cb2t, the 2D shear against the 2D travel over its eight directions in sequence, fitted with the vector
+    spring and slider without an offset, with a constant offset and with an offset proportional to the normal force; and
+    the largest |f_t| / f_n of each direction's holds."""
+    rows = load_rows("cb2t")
+    Z = np.load(OUT / "20261026-ur5_slide_traces_cb2t.npz")
+    meta = json.loads(str(Z["meta"]))
+    out = OUT / "20261026-ur5_slides_vector_cb2t.jsonl"
+    with open(out, "w") as f:
+        for aid in sorted({r["action"] for r in rows}):
+            R = sorted([r for r in rows if r["action"] == aid], key=lambda r: r["dir_index"])
+            idx = [i for i, m in enumerate(meta) if m["action"] == aid]
+            ta = np.concatenate([Z[f"ta_{i}"] for i in idx]).astype(float)
+            o = np.argsort(ta, kind="stable")
+            keep = np.r_[True, np.diff(np.round(ta[o], 2)) > 0]
+            sel = o[keep]
+            X = np.c_[np.concatenate([Z[f"x1_{i}"] for i in idx]), np.concatenate([Z[f"x2_{i}"] for i in idx])][sel].astype(float)
+            G = np.c_[np.concatenate([Z[f"g1_{i}"] for i in idx]), np.concatenate([Z[f"g2_{i}"] for i in idx])][sel].astype(float)
+            fn = np.concatenate([Z[f"fn_{i}"] for i in idx])[sel].astype(float)
+            fits = {m: fit_vec(X, G, fn, m) for m in ("none", "const", "prop")}
+            mx = [max(h["f_t_N"] / h["f_n_N"] for h in (r["holds"] + ([r["back"]] if r["back"] else []))) for r in R]
+            row = dict(action=aid, region=R[0]["region"], press_N=R[0]["press_N"], target_P=R[0]["target_P"],
+                       fn_mean_N=float(np.mean(fn)), fits=fits, max_ft_over_fn_by_dir=mx,
+                       epp_mu_by_dir=[r["epp"]["mu"] for r in R])
+            f.write(json.dumps(row) + "\n")
+            print(f"{aid:28s} {R[0]['press_N']:g} N: mu none {fits['none']['mu']:.3f} const {fits['const']['mu']:.3f} prop "
+                  f"{fits['prop']['mu']:.3f}; |b|/fn {fits['const']['b_over_fn']:.3f}; rms {fits['none']['rms_N']:.3f} "
+                  f"{fits['const']['rms_N']:.3f} {fits['prop']['rms_N']:.3f}; max|ft|/fn {np.median(mx):.3f}", flush=True)
+
+
 def slope(B, m):
     """Least-squares slope of the shear against the travel over the bins m, N/mm (None for too few bins or travel)."""
     if m.sum() < 5 or np.ptp(B["d"][m]) < 0.02:
@@ -196,6 +277,18 @@ class Slides:
             windows += [tuple(tu["t"]) for tu in mv["turns"]]
         rows, traces = [], []
         w_prev = tuple(lv["t"])
+        # a fixed basis of the tangent plane for the whole slide: e1 along the first direction's travel, e2 = n x e1, and
+        # the contact point's position at the press, for the 2D travel and shear of the vector fit
+        sp = self.samples(rec, T_rest, lv["t"][0], lv["t"][1])
+        xp_ = (np.einsum("kij,j->ki", sp["T_BP"][:, :3, :3], p_c) + sp["T_BP"][:, :3, 3]).mean(0)
+        n0 = np.einsum("kij,j->ki", sp["T_BP"][:, :3, :3], n_c).mean(0)
+        n0 /= np.linalg.norm(n0)
+        mv0 = moves[0]
+        e1 = np.cross(np.array(mv0["axis_B"], float), xp_ - np.array(mv0["centre_B"], float))
+        e1 -= (e1 @ n0) * n0
+        e1 /= np.linalg.norm(e1)
+        e2 = np.cross(n0, e1)
+        t_act = float(lv["t"][0])
         for k, mv in enumerate(moves):
             turns = mv["turns"]
             t_end = turns[-1]["t"][1]
@@ -245,7 +338,11 @@ class Slides:
             ib = np.floor(tb / BIN_S).astype(int)
             nb = np.bincount(ib)
             okb = nb > 0
-            B = {nm: (np.bincount(ib, w) / np.maximum(nb, 1))[okb] for nm, w in (("t", tb), ("d", d), ("s", s), ("fn", fn), ("ft", ft_mag))}
+            X2 = (x - xp_) @ np.c_[e1, e2]                       # mm, travel in the slide's fixed tangent basis
+            G2 = -(smp["f_B"] @ np.c_[e1, e2])                  # N, the force on the pad against the travel
+            B = {nm: (np.bincount(ib, w) / np.maximum(nb, 1))[okb]
+                 for nm, w in (("t", tb), ("d", d), ("s", s), ("fn", fn), ("ft", ft_mag), ("x1", X2[:, 0]), ("x2", X2[:, 1]),
+                               ("g1", G2[:, 0]), ("g2", G2[:, 1]), ("ta", smp["t"] - t_act))}
             t_rev = turns[-2]["t"][1] - smp["t"][0] if len(turns) > 1 else None
             fit = fit_epp(B["d"], B["s"], B["fn"])
             k_unl = slope(B, (B["t"] >= t_rev) & (B["d"] >= B["d"][B["t"] >= t_rev][0] - SLOPE_UM * 1e-3)) if t_rev else None
@@ -291,7 +388,7 @@ def cmd_rows(a):
                 f.write(json.dumps(r) + "\n")
         np.savez_compressed(OUT / f"20261026-ur5_slide_traces_{name}.npz",
                             **{f"{k}_{i}": np.asarray(tr[k], np.float32) for i, tr in enumerate(traces)
-                               for k in ("t", "d", "s", "fn", "ft")},
+                               for k in ("t", "d", "s", "fn", "ft", "x1", "x2", "g1", "g2", "ta")},
                             meta=json.dumps([dict(action=tr["action"], dir_deg=tr["dir_deg"], dir_index=tr["dir_index"],
                                                   t_rev=tr["t_rev"]) for tr in traces]))
         print(f"{name}: {len(ids)} slides, {len(rows)} directions -> {p.relative_to(ROOT)} ({time.time() - t0:.0f} s)",
@@ -304,9 +401,12 @@ def main():
     r = sub.add_parser("rows")
     r.add_argument("--sessions", nargs="+", default=list(SESSIONS))
     sub.add_parser("figure")
+    sub.add_parser("vector")
     a = ap.parse_args()
     if a.cmd == "rows":
         cmd_rows(a)
+    elif a.cmd == "vector":
+        cmd_vector(a)
     else:
         cmd_figure(a)
 
@@ -381,7 +481,10 @@ def cmd_figure(a):
     (OUT / "20261026-ur5_slides_summary.json").write_text(json.dumps(S, indent=1) + "\n")
     Z = np.load(OUT / "20261026-ur5_slide_traces_cb2t.npz")
     meta = json.loads(str(Z["meta"]))
-    fig, (a1, a2, a3) = plt.subplots(1, 3, figsize=(15.0, 4.9), gridspec_kw=dict(width_ratios=(1.15, 1.0, 1.0)))
+    fig = plt.figure(figsize=(10.0, 8.6))
+    gs = fig.add_gridspec(2, 2, height_ratios=(1.0, 1.0))
+    a1 = fig.add_subplot(gs[0, :])
+    a2, a3 = fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1])
     # (a) one face slide at 1 N, its eight directions: shear less the fitted offset against the travel
     aid = "slide-000-1N"
     R1 = {r["dir_deg"]: r for r in rows["cb2t"] if r["action"] == aid}
@@ -414,15 +517,12 @@ def cmd_figure(a):
         g = np.array([r["epp"]["give_um_N"] for r in R])
         mu = np.array([r["epp"]["mu"] for r in R])
         a2.scatter(fn, g, s=9, alpha=0.35, color=colors[nm], lw=0, rasterized=True)
-        a3.scatter(fn, mu, s=9, alpha=0.35, color=colors[nm], lw=0, rasterized=True)
         for F, v in S[nm]["by_level"].items():
             if v["n"] < 8:
                 continue
             x = v["f_n_N"]["median"]
             a2.errorbar([x], [v["give_um_N"]["median"]], yerr=[[v["give_um_N"]["median"] - v["give_um_N"]["p25"]],
                                                                 [v["give_um_N"]["p75"] - v["give_um_N"]["median"]]],
-                        fmt="o", ms=7, color=colors[nm], mec="white", mew=1.2, capsize=3, zorder=5)
-            a3.errorbar([x], [v["mu"]["median"]], yerr=[[v["mu"]["median"] - v["mu"]["p25"]], [v["mu"]["p75"] - v["mu"]["median"]]],
                         fmt="o", ms=7, color=colors[nm], mec="white", mew=1.2, capsize=3, zorder=5)
         a2.plot([], [], "o", color=colors[nm], ms=7, label=labels[nm])
     P = np.linspace(0.3, 3.0, 100)
@@ -435,13 +535,28 @@ def cmd_figure(a):
     a2.set_xlabel("Normal force during the slide (N)")
     a2.set_ylabel("Give before slip (\N{MICRO SIGN}m/N)")
     a2.set_title("(b) Give before slip", loc="left")
-    a2.legend(loc="upper right", frameon=False)
+    a2.legend(loc="upper right", frameon=False, fontsize=10.5)
+    V = [json.loads(l) for l in open(OUT / "20261026-ur5_slides_vector_cb2t.jsonl")] if (OUT / "20261026-ur5_slides_vector_cb2t.jsonl").exists() else []
+    if V:
+        fnv = np.array([v["fn_mean_N"] for v in V])
+        muv = np.array([v["fits"]["const"]["mu"] for v in V])
+        mx = np.array([np.median(v["max_ft_over_fn_by_dir"]) for v in V])
+        a3.scatter(fnv, mx, s=16, marker="s", facecolor="none", edgecolor="0.55", lw=0.8, label="Largest shear over normal force of a direction")
+        a3.scatter(fnv, muv, s=16, color=colors["cb2t"], alpha=0.6, lw=0, label="Vector fit with an offset, per slide")
+        for F in sorted({v["press_N"] for v in V}):
+            sel = np.array([v["press_N"] == F for v in V])
+            if sel.sum() < 8:
+                continue
+            m_, lo, hi = np.median(muv[sel]), np.percentile(muv[sel], 25), np.percentile(muv[sel], 75)
+            a3.errorbar([np.median(fnv[sel])], [m_], yerr=[[m_ - lo], [hi - m_]], fmt="o", ms=7, color=colors["cb2t"], mec="white",
+                        mew=1.2, capsize=3, zorder=5)
+        a3.legend(loc="upper right", frameon=False, fontsize=10.5)
     a3.axhspan(0.55, 1.15, color="0.88", lw=0, zorder=0)
-    a3.text(0.1, 0.85, "RL friction range", fontsize=11, color="0.3")
+    a3.text(1.95, 0.74, "RL friction range", fontsize=11, color="0.3")
     a3.axhline(1.0, color="black", lw=1.0, ls="--")
-    a3.text(2.05, 1.02, "Scenes' \N{GREEK SMALL LETTER MU} = 1", fontsize=11, color="0.3", va="bottom")
+    a3.text(0.1, 1.02, "Scenes' \N{GREEK SMALL LETTER MU} = 1", fontsize=11, color="0.3", va="bottom")
     a3.set_xlim(0.0, 3.2)
-    a3.set_ylim(0, 1.3)
+    a3.set_ylim(0, 1.6)
     a3.set_xlabel("Normal force during the slide (N)")
     a3.set_ylabel("Friction coefficient \N{GREEK SMALL LETTER MU}")
     a3.set_title("(c) Friction coefficient", loc="left")

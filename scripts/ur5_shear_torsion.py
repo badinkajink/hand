@@ -107,7 +107,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--forces", nargs="+", type=float, default=[1.0, 2.5, 5.0])
     ap.add_argument("--ir", type=float, default=100.0)
+    ap.add_argument("--mu", nargs="+", type=float, default=None,
+                    help="friction coefficient per force (one value, or one per --forces); default the module's MU")
+    ap.add_argument("--out", default="20261026-torsion_pads.jsonl")
     a = ap.parse_args()
+    global MU
     H = np.load(UR5 / "data/20261025-152920-cb2t/holds.npz", allow_pickle=False)
     tw = H["kind"] == "twist"
     targets = {}
@@ -116,14 +120,17 @@ def main():
         targets.setdefault(key, (H["region"][i], H["p"][i], H["n"][i]))
     pads = UP.Pads()
     checks = json.loads((UR5 / "data/20261025-152920-cb2t/checks.json").read_text())["twists"]
-    out = OUT / "20261026-torsion_pads.jsonl"
+    out = OUT / a.out
     rows = []
+    mus = a.mu or [MU]
+    mu_of = {F: (mus[k] if len(mus) == len(a.forces) else mus[0]) for k, F in enumerate(a.forces)}
     for key, (region, p, n) in sorted(targets.items()):
-        m = rig(pads, p, n, a.ir)
         for F in a.forces:
+            MU = mu_of[F]
+            m = rig(pads, p, n, a.ir)
             t0 = time.time()
             res, rec = onset(m, F)
-            th, aH = hertz_torque_Nmm(F)
+            th, aH = hertz_torque_Nmm(F, mu=MU)
             meas = checks.get(f"{F:g}N", {})
             row = dict(target_P=list(key), region=str(region), F_N=F, ir=a.ir, mu=MU, E_MPa=E_SPHERE, **res,
                        arm_on_mm=(res["tau_on_Nmm"] / (MU * F)) if res.get("tau_on_Nmm") else None,

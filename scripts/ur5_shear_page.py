@@ -63,10 +63,12 @@ def sections(N):
     r10, r100, r300 = (R[f"d1d8_E10_ir{x}"] for x in (10, 100, 300))
     q10, q100, q300 = (R[f"d1d8_E2_ir{x}"] for x in (10, 100, 300))
     g = lambda k: G[k]  # noqa: E731
+    V = N["vector"]
+    v1, v2 = V["1"], V["2"]
 
     lede = (
         f"On 87 UR5 slides of one printed fingertip, the friction coefficient of the 85A pad on a printed PLA sphere is "
-        f"{b1['mu']['median']:.2f} at 1 and 2&#8202;N. Before slip the pad moves {f0(b1['give_um_N']['median'])}&#8202;&#181;m per "
+        f"{v1['mu_const']['median']:.2f} at 1&#8202;N and {v2['mu_const']['median']:.2f} at 2&#8202;N. Before slip the pad moves {f0(b1['give_um_N']['median'])}&#8202;&#181;m per "
         f"newton of shear at 1&#8202;N and {f0(b2['give_um_N']['median'])}&#8202;&#181;m/N at 2&#8202;N. In the finite-element model "
         "it moves 48&#8211;177&#8202;&#181;m/N under the 12.5&#8202;mm rod. Under the policy trainer&#8217;s solver, impratio 100 lowers "
         f"the 1&#8202;mm pads&#8217; creep from {f0(r10['creep_um_s'])} to {f0(r100['creep_um_s'])}&#8202;&#181;m/s in the D1&#8211;D8 "
@@ -76,7 +78,8 @@ def sections(N):
         "At impratio 100 creep flattens their loops. The pads&#8217; friction torque, "
         f"{tq['1'][0]:.1f}&#8211;{tq['5'][1]:.1f}&#8202;N&#8202;mm at 1&#8211;5&#8202;N, is below the HEX-E&#8217;s resolution.")
     summary = (
-        f"UR5 slides of the printed fingertip: friction coefficient {b1['mu']['median']:.2f} (PLA sphere on 85A, 1 and 2 N), "
+        f"UR5 slides of the printed fingertip: friction coefficient {v1['mu_const']['median']:.2f} and {v2['mu_const']['median']:.2f} "
+        "(PLA sphere on 85A, 1 and 2 N, from the magnitude of the shear at slip), "
         f"give before slip {f0(b1['give_um_N']['median'])} and {f0(b2['give_um_N']['median'])} um/N at 1 and 2 N; under the "
         f"trainer's solver impratio 100 cuts the pads' creep {r10['creep_um_s'] / r100['creep_um_s']:.1f}x but replays that "
         f"drop the tool diverge and 7 of 16 CPU grasps hold (MuJoCo-Warp 63/64); a slide-sized skin matches the loops only at "
@@ -97,8 +100,12 @@ def sections(N):
          "offset along the direction."),
         ("Give before slip", "The fitted compliance $1/k_t$, in &#181;m/N: the travel per newton of shear while the contact "
          "sticks. In the finite-element (FE) model the pad moves 48&#8211;177&#8202;&#181;m/N under the 12.5&#8202;mm rod."),
-        ("Friction coefficient $\\mu$", "The slider&#8217;s limit over the normal force, from the same fit. The scenes are run "
-         "with 1."),
+        ("Vector fit", "The same model in the tangent plane, fitted to the 2D shear of a slide&#8217;s eight directions in "
+         "sequence: a spring of stiffness $k_t$ and an isotropic slider whose shear vector is returned to the circle of radius "
+         "$\\mu f_n$, plus one constant in-plane offset per slide."),
+        ("Friction coefficient $\\mu$", "The slider&#8217;s radius over the normal force in the vector fit: the magnitude of the "
+         "shear at slip. The scenes are run with 1."),
+        ("In-plane offset", "The fitted constant part of a slide&#8217;s shear vector, given over the mean normal force."),
         ("Shear left at the return", "$z$ at the end of a direction, when the turn is back at 0&#176;, in N. Negative values oppose "
          "the outward travel."),
         ("Impratio $\\kappa$", "MuJoCo&#8217;s ratio of the friction rows&#8217; impedance to the normal rows&#8217;. Below the friction "
@@ -131,24 +138,44 @@ def sections(N):
     # 2. slides
     tab1 = P.table(
         ["Tip, press level", "Directions", "Normal force (N)", "Give before slip (&#181;m/N)", "First 50&#8202;&#181;m (&#181;m/N)",
-         "Friction coefficient", "Shear left at the return (N)"],
+         "Shear left at the return (N)"],
         [[f"Tip {t}, {F}&#8202;N", v["n"], f"{v['f_n_N']['median']:.2f}",
           f"{v['give_um_N']['median']:.0f} ({v['give_um_N']['p25']:.0f}&#8211;{v['give_um_N']['p75']:.0f})",
-          f"{v['give_load50_um_N']['median']:.0f}",
-          f"{v['mu']['median']:.2f} ({v['mu']['p25']:.2f}&#8211;{v['mu']['p75']:.2f})", f"{v['z_back_N']['median']:+.2f}"]
+          f"{v['give_load50_um_N']['median']:.0f}", f"{v['z_back_N']['median']:+.2f}"]
          for t, F, v in ((2, "0.5", S1["by_level"]["0.5"]), (2, "1", b1), (2, "1.5", S1["by_level"]["1.5"]), (2, "2", b2),
                          (2, "3", S1["by_level"]["3"]), (1, "1", c1), (1, "2", c2))],
-        num_cols=(1, 2, 3, 4, 5, 6), n=1,
-        caption="The slides of tip 2 (cb2t, 2026-10-25) and tip 1 (cb1r), by press level: medians and quartiles over the "
-                "directions. The normal force is the mean during the slide; the press stopped at the level.")
+        num_cols=(1, 2, 3, 4, 5), n=1,
+        caption="Give before slip on the slides of tip 2 (cb2t, 2026-10-25) and tip 1 (cb1r), by press level: medians and "
+                "quartiles over the directions of the spring-and-slider fit along the travel. The normal force is the mean "
+                "during the slide; the press stopped at the level.")
+    tabF = P.table(
+        ["Press level", "Slides", "Friction coefficient, vector fit", "Without offset", "Offset / normal force",
+         "Largest |shear| / normal force", "Along the travel only"],
+        [[f"{F}&#8202;N", v["n"], f"{v['mu_const']['median']:.2f} ({v['mu_const']['p25']:.2f}&#8211;{v['mu_const']['p75']:.2f})",
+          f"{v['mu_none']['median']:.2f}", f"{v['b_over_fn']:.2f}",
+          f"{v['max_ft_over_fn']['median']:.2f} ({v['max_ft_over_fn']['p10']:.2f}&#8211;{v['max_ft_over_fn']['p90']:.2f})",
+          f"{bb['mu']['median']:.2f}"] for F, v, bb in (("1", v1, b1), ("2", v2, b2))],
+        num_cols=(1, 2, 3, 4, 5, 6), n=2,
+        caption="Friction coefficient of tip 2 on the PLA sphere. Vector fit: an isotropic slider and spring with one in-plane "
+                "offset per slide, median and quartiles over slides. Largest |shear| / normal force: the largest ratio over the "
+                "holds of one direction, median with the 10th and 90th percentiles over directions. Along the travel only: the "
+                "slider&#8217;s limit in the fit of each direction&#8217;s component along its travel.")
     slides = (
-        f"<p>The pad&#8217;s friction coefficient on the printed PLA sphere is {b1['mu']['median']:.2f} at 1&#8202;N and "
-        f"{b2['mu']['median']:.2f} at 2&#8202;N on tip 2. Over all {S1['mu_all']['n']} directions it grows only as "
-        f"$f_n^{{{S1['mu_power_law']['exponent']:.2f}}}$, and it lies between "
-        f"{min(v['mu']['median'] for v in S1['by_direction'].values()):.2f} and "
-        f"{max(v['mu']['median'] for v in S1['by_direction'].values()):.2f} in each of the eight directions. Tip 1 gives "
-        f"{c1['mu']['median']:.2f} and {c2['mu']['median']:.2f}. The scenes are run with 1. In training the friction is "
-        "randomised over 0.55&#8211;1.15 of it (Figure&#160;1c).</p>"
+        f"<p>The pad&#8217;s friction coefficient on the printed PLA sphere is {v1['mu_const']['median']:.2f} at 1&#8202;N and "
+        f"{v2['mu_const']['median']:.2f} at 2&#8202;N on tip 2 (Table&#160;2). It is the magnitude of the shear at slip over the normal "
+        "force, from a vector fit of each slide&#8217;s eight directions. In that fit an isotropic slider sits in series with a "
+        "sideways spring, and one in-plane offset is fitted per slide. The offset is "
+        f"{v1['b_over_fn']:.2f} of the normal force at 1&#8202;N and {v2['b_over_fn']:.2f} at 2&#8202;N. The presses show the same "
+        f"part before any turn, {V['press_ft_over_fn']:.2f} of the normal force. Between the 1 and 2&#8202;N slides at one target "
+        f"it grows {V['offset_pairs']['ratio_median']:.1f} times, a median {V['offset_pairs']['angle_median_deg']:.0f}&#176; apart. "
+        "It is therefore read as the tangential part of the normal force along a normal tilted by about 8&#176;, and not as "
+        f"friction. Without the offset the fit gives {v1['mu_none']['median']:.2f} and {v2['mu_none']['median']:.2f}.</p>"
+        "<p>The largest ratio of the shear vector&#8217;s magnitude to the normal force in a direction has a median of "
+        f"{v1['max_ft_over_fn']['median']:.2f} at 1&#8202;N and {v2['max_ft_over_fn']['median']:.2f} at 2&#8202;N. It bounds the "
+        "coefficient from below only if all of the shear is friction. Here it is close to the coefficient plus the offset. "
+        "The component of the shear along the travel alone gives "
+        f"{b1['mu']['median']:.2f} and {b2['mu']['median']:.2f}, because shear stored across the travel is left out of it. The "
+        f"scenes are run with 1. In training the friction is randomised over 0.55&#8211;1.15 of it (Figure&#160;1c).</p>"
         f"<p>Before slip the pad moves {f0(b1['give_um_N']['median'])}&#8202;&#181;m per newton of shear at 1&#8202;N and "
         f"{f0(b2['give_um_N']['median'])}&#8202;&#181;m/N at 2&#8202;N (Table&#160;1). The give falls as "
         f"$f_n^{{{S1['give_power_law']['exponent']:.2f}}}$ with the normal force. Mindlin&#8217;s compliance of an elastic "
@@ -157,8 +184,9 @@ def sections(N):
         "under the 12.5&#8202;mm rod, a larger contact. A straight line through the first 50&#8202;&#181;m of travel gives "
         f"{f0(b1['give_load50_um_N']['median'])} and {f0(b2['give_load50_um_N']['median'])}&#8202;&#181;m/N, since the fitted "
         "slider slips at once where the real contact slips gradually.</p>"
-        f"<p>The contact slips both ways in {sum(v['slip_both'] for v in S1['by_level'].values())} of "
-        f"{S1['mu_all']['n']} directions. Each turn of 0.2&#8202;mm reaches the friction limit, and each return slides back. At "
+        f"<p>In the fit along the travel the slider reaches its limit both ways in {sum(v['slip_both'] for v in S1['by_level'].values())} "
+        f"of {S1['mu_all']['n']} directions. In the vector fit the shear is at the slip limit for {100 * v1['slip_share']:.0f}&#8202;% of "
+        f"the time at 1&#8202;N and {100 * v2['slip_share']:.0f}&#8202;% at 2&#8202;N. At "
         f"the return to 0&#176; a shear of {abs(b1['z_back_N']['median']):.2f}&#8202;N is left at 1&#8202;N and "
         f"{abs(b2['z_back_N']['median']):.2f}&#8202;N at 2&#8202;N. It is about {abs(b1['z_back_over_fn']['median']):.2f} of the "
         "normal force and opposes the outward travel. The next direction starts from that shear. At 1.146&#176; the robot "
@@ -171,8 +199,10 @@ def sections(N):
                              "spring and slider dashed. (b) Give before slip of every direction against the mean normal force "
                              "during the slide, with medians and quartiles per press level. Lines: Mindlin&#8217;s compliance under "
                              "the 5&#8202;mm sphere at 2.0 and 0.9&#8202;MPa; grey: the FE pad&#8217;s range under the 12.5&#8202;mm rod. "
-                             "(c) Friction coefficient, with the scenes&#8217; 1 and the trainer&#8217;s randomisation range. "
-                             "Script: <code>scripts/ur5_shear_slides.py</code>.") + tab1))
+                             "(c) Friction coefficient of each slide from the vector fit (blue; medians and quartiles per level) "
+                             "and the largest shear over normal force of each slide&#8217;s directions, as a median (grey squares), "
+                             "with the scenes&#8217; 1 and the trainer&#8217;s randomisation range. "
+                             "Script: <code>scripts/ur5_shear_slides.py</code>.") + tabF + tab1))
 
     # 3. impratio
     tab2 = P.table(
@@ -191,7 +221,7 @@ def sections(N):
             f"{R[f'icem_E2_ir{x}']['held']} of 6", "&#8211;", "&#8211;", "&#8211;",
             f"{100 * R[f'd1d8_E2_ir{x}']['cap_share_max']:.1f}", f"{R[f'd1d8_E2_ir{x}']['us_held']:.0f}"]
            for x in (10, 100, 300)],
-        num_cols=(1, 2, 3, 4, 5, 6, 7, 8, 9), n=2,
+        num_cols=(1, 2, 3, 4, 5, 6, 7, 8, 9), n=3,
         caption="Impratio under the trainer&#8217;s numerics. UR5 rig: the 812 pads under the sphere presses&#8217; forces at 10&#8202;MPa "
                 "(10&#8202;MPa rows) and under the rod presses&#8217; at 2.0&#8202;MPa. D1&#8211;D8: 24 replays per setting on the UR5 "
                 "pad&#8217;s shape. Readiness: the two logged pinned-iCEM runs from three placements. Grasp: the scripted close and "
@@ -226,7 +256,7 @@ def sections(N):
         f"the iteration cap. In MuJoCo-Warp, in float32, {g('mjw_pads_E10_ir10')['held_placements']} and "
         f"{g('mjw_pads_E10_ir100')['held_placements']} of 64 placements are held. The tool slips on the fingertips at "
         f"{f0(g('mjw_pads_E10_ir10')['slip_um_s'])} and {f0(g('mjw_pads_E10_ir100')['slip_um_s'])}&#8202;&#181;m/s. A world-step "
-        f"costs {g('mjw_pads_E10_ir10')['us']:.1f} and {g('mjw_pads_E10_ir100')['us']:.1f}&#8202;&#181;s at 256 worlds (Table&#160;2). "
+        f"costs {g('mjw_pads_E10_ir10')['us']:.1f} and {g('mjw_pads_E10_ir100')['us']:.1f}&#8202;&#181;s at 256 worlds (Table&#160;3). "
         "The film shows D1, which keeps the tool at both impratios, and D2, whose replay at 100 diverges after the drop.</p>")
     S.append(("impratio", "Impratio under the trainer's solver",
               imp + P.fig(2, MEDIA / "20261026-impratio.png",
@@ -253,9 +283,9 @@ def sections(N):
         + [["Measured", f"{K['skin_ir1000_1N']['give_measured_um_N']:.0f} / {K['skin_ir1000_2N']['give_measured_um_N']:.0f}",
             f"{K['skin_ir1000_1N']['mu_measured']:.2f} / {K['skin_ir1000_2N']['mu_measured']:.2f}", "&#8211;",
             f"{K['skin_ir1000_1N']['z_back_measured_N']:+.2f} / {K['skin_ir1000_2N']['z_back_measured_N']:+.2f}", "&#8211;"]],
-        num_cols=(1, 2, 3, 4, 5), n=3,
+        num_cols=(1, 2, 3, 4, 5), n=4,
         caption="The 38 face slides at 1 and 2&#8202;N (304 directions) replayed on the UR5 rig&#8217;s pads, plain and on the sized "
-                "skin, at friction 0.35 and the bed&#8217;s numerics; each simulated direction fitted like the measured one. RMS: "
+                "skin, at the slides&#8217; friction coefficients (0.37 at 1&#8202;N, 0.44 at 2&#8202;N) and the bed&#8217;s numerics; each simulated direction fitted like the measured one. RMS: "
                 "the simulated shear against the measured shear less its fitted offset. Medians over directions.")
     skin = (
         f"<p>The skin&#8217;s sideways springs were sized from the slides: {sz['kt_N_m'] / 1e3:.2f}&#8202;kN/m, the measured "
@@ -292,8 +322,8 @@ def sections(N):
 
     # 5. torsion
     tor = (
-        "<p>The pads were twisted at the slides&#8217; friction coefficient and 0.90&#8202;MPa, at three face targets of "
-        "cb2t&#8217;s twists. Under the 5&#8202;mm sphere they start to spin at "
+        "<p>The pads were twisted at the slides&#8217; friction coefficient, 0.37 at 1&#8202;N and 0.44 at 2.5 and 5&#8202;N, and "
+        "at 0.90&#8202;MPa, at three face targets of cb2t&#8217;s twists. Under the 5&#8202;mm sphere they start to spin at "
         f"{tq['1'][0]:.2f}&#8211;{tq['1'][1]:.2f}&#8202;N&#8202;mm at 1&#8202;N and {tq['2.5'][0]:.2f}&#8211;{tq['2.5'][1]:.2f}&#8202;N&#8202;mm at "
         f"2.5&#8202;N. At 5&#8202;N they spin at {tq['5'][0]:.1f}&#8211;{tq['5'][1]:.1f}&#8202;N&#8202;mm (Figure&#160;5). "
         "Hertz&#8217;s patch under the same sphere gives $\\tau=\\mu f_n\\,\\tfrac{3\\pi}{16}a$: "
@@ -317,7 +347,9 @@ def sections(N):
     S.append(("limits", "Limitations", (
         "<p>The sphere is printed PLA, and the friction coefficient is that of PLA on the 85A pad, from slides at "
         "0.07&#8211;0.7&#176;/s. The robot&#8217;s pose is logged in steps of 10&#8202;&#181;m and the HEX-E&#8217;s force in steps of "
-        "0.1&#8202;N. The HEX-E&#8217;s channel along the tool axis has 0.25&#8202;N of noise per sample. The fit removes an offset per "
+        "0.1&#8202;N. The HEX-E&#8217;s channel along the tool axis has 0.25&#8202;N of noise per sample. The shear includes an "
+        f"in-plane part of {v1['b_over_fn']:.2f} of the normal force that the friction coefficient leaves out. The vector fit "
+        "assumes isotropic friction and one spring, and its slider is at the limit for a small share of each slide. The fit removes an offset per "
         "direction, up to 0.4&#8202;N, so the shear left at the return is read from the fitted loop. The arm, the mount and the "
         "indenter&#8217;s stand are taken as rigid sideways. The spring and slider has one stiffness; the real loop slips "
         "gradually, so its first 50&#8202;&#181;m are 13&#8211;19&#8202;% stiffer than the fit. The D1&#8211;D8 replays put the UR5 "
