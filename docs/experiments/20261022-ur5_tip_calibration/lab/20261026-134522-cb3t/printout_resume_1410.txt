@@ -1,0 +1,26 @@
+resumed logs/20261026-tip_calibration/134522-cb3t: 21 actions done, 19 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0415 0.0218 0.2298 0.0032 0.0036 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== pad
+  pad-off-00: onset +0.251 mm from the expected (power 1.00, fit 80.6 mN)
+  pad-off-01: onset +0.219 mm from the expected (power 1.75, fit 64.3 mN)
+  pad-off-02: onset +0.074 mm from the expected (power 2.00, fit 77.1 mN)
+  pad-off-03: onset +0.412 mm from the expected (power 1.00, fit 64.0 mN)
+  pad-off-04: onset +0.128 mm from the expected (power 1.75, fit 51.1 mN)
+  pad-off-05: onset +0.125 mm from the expected (power 1.50, fit 54.9 mN)
+  pad-off-06: onset +0.057 mm from the expected (power 1.25, fit 41.8 mN)
+  pad-off-07: onset +0.253 mm from the expected (power 1.25, fit 49.4 mN)
+  pad-off-08: onset +0.092 mm from the expected (power 1.50, fit 35.6 mN)
+  pad-off-09: onset +0.326 mm from the expected (power 2.00, fit 98.6 mN)
+  pad-off-10: ABORT no HEX-E sample for 100 ms
+  pad-off-11: ABORT no HEX-E sample for 100 ms
+== register
+register: pad touches 0.042 mm rms (29), face nan mm (0); TCP moved 0.123 mm, 1.253 deg; sphere centre moved 0.567 mm
+  TCP of the pad frame on the flange (for the pendant): 0.00044, -0.00315, 0.11814, -0.02696, 0.00047, -1.58959  (m, rotation vector)
+HEX-E: 74235 samples, 331 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz -0.1 N
+session in logs/20261026-tip_calibration/134522-cb3t
+exit 0 at 14:22:56
