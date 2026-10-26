@@ -1,0 +1,24 @@
+resumed logs/20261026-tip_calibration/134522-cb3t: 37 actions done, 35 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0509 0.0314 0.262  0.0029 0.0035 0.0012]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== pad
+  chk3-face-00: onset +0.060 mm from the expected (power 1.75, fit 39.4 mN)
+  chk3-face-03: onset +0.037 mm from the expected (power 1.25, fit 53.5 mN)
+  chk3-edge-00: onset +0.038 mm from the expected (power 2.00, fit 40.7 mN)
+  swing3-flank-05-1: onset +0.152 mm from the expected (power 1.00, fit 88.9 mN)
+  swing3-edge-07-1: onset +0.020 mm from the expected (power 1.75, fit 38.3 mN)
+  swing3-flank-05-2: onset +0.055 mm from the expected (power 2.00, fit 82.6 mN)
+  swing3-edge-07-2: onset +0.030 mm from the expected (power 1.50, fit 34.6 mN)
+  swing3-flank-05-3: onset +0.020 mm from the expected (power 2.00, fit 82.2 mN)
+  swing3-edge-07-3: onset +0.046 mm from the expected (power 1.50, fit 33.8 mN)
+  swing3-flank-05-4: onset +0.031 mm from the expected (power 2.00, fit 83.8 mN)
+  swing3-edge-07-4: onset +0.013 mm from the expected (power 1.75, fit 32.9 mN)
+  swing3-flank-05-5: onset +0.066 mm from the expected (power 2.00, fit 84.2 mN)
+  swing3-edge-07-5: onset +0.030 mm from the expected (power 1.75, fit 35.7 mN)
+HEX-E: 99479 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.7 s, Fz -0.2 N; 0.7 s, Fz -0.5 N
+session in logs/20261026-tip_calibration/134522-cb3t
+exit 0 at 15:40:52

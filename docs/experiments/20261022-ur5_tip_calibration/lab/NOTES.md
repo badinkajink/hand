@@ -757,7 +757,82 @@ the lab session ("go") at about 15:36.
   nothing aborted, the cell check on v7 was clean, and joint 6 peaked at 51.2 deg.
 - The actions above joint 6's +50 deg stay in, for parity with cb2t (the owner).
 
-### 14:10:11, cb3t pass 2a
+### 14:10:11 to 14:22:56, cb3t pass 2a
+
+- Preflight passed: noise 0.042, 0.022, 0.230 N, no timeout.
+- Of the ten offset touch-offs, eight ended ok, 0.057 to 0.412 mm from the expected. At 14:22:36 the HEX-E fell off its
+  DAQ again, at joint 6 +43 deg at the end of a swing from −41 deg. pad-off-10 and pad-off-11 aborted with no HEX-E
+  sample for 100 ms. The DAQ answered ping but showed no sensor (serial "", sample counter 0, status 131072).
+- The registration fit the 29 touches at 0.042 mm rms. It moved the TCP 0.123 mm and 1.25 deg, and the sphere
+  0.567 mm.
+- The HEX-E gave 74,235 samples; 331 timed out.
+
+### 14:2x to 14:43, the owner's second cable fix
+
+- The owner fixed the cable a second time. The DAQ showed HEXEA478 again; polled for 20 s, the HEX-E gave 2,002 samples
+  with no timeout.
+
+### 14:43:09 to 14:50:56, the check and the swing test (`lab/20261026-plan_sphere_lab_r25_check2_cb3t.json`)
+
+- Three repeats of pass 1's touch-offs came +0.041, +0.066 and +0.050 mm from the expected: the pad had not moved.
+- pad-off-10 and pad-off-11 ended ok (+0.200 and +0.138 mm). Pass 2a is complete.
+- swing-flank-05-a ended ok at joint 6 −62 deg. On the swing to swing-edge-07-a, the HEX-E fell off its DAQ at
+  14:50:45, at joint 6 +53.1 deg. The two next swings aborted too, and the session stopped after three aborts in a row
+  (exit 1). The HEX-E gave 45,294 samples; 156 timed out.
+- The owner traced the dropouts to the cable striking the table during the swings.
+
+### 15:1x, the third cable fix: a slack chain at the wrist
+
+- The owner reseated the HEX-E connector and fastened a slack chain to the wrist, so the cable cannot reach the table.
+- The DAQ showed HEXEA478 with its counter running; polled for 15 s, the HEX-E gave 1,502 samples with no timeout.
+
+### 15:24:11, five swings of joint 6 (`lab/20261026-plan_sphere_lab_r25_check3_cb3t.json`)
+
+- Three repeats of pass 1's touch-offs came +0.060, +0.037 and +0.038 mm from the expected.
+- Five swings followed, each from pad-flank-05 at joint 6 −62.5 deg to pad-edge-07 at +53.1 deg. All ten touch-offs
+  ended ok: flank-05 +0.020 to +0.152 mm from the expected, edge-07 +0.013 to +0.046 mm. The HEX-E gave 99,479
+  samples, none timed out. Its two gaps of 0.7 s, with no timeout, appear in clean runs too (cb2t's passes). Exit 0
+  at 15:40:52.
+
+### 15:45, the cap on joint 6 for the rest of the day: +45 deg
+
+- The rule agreed with the workstation before the swings: five clean swings cap joint 6 at +45 deg for R26, R27 and
+  cb3t's passes 2b, 3, 5 and 6; any dropout caps it at +35 deg.
+- Each action's joint 6 was taken at its own poses, from the arrival at its rest pose to its end (`rec.t_rest0`). For
+  passes 2b to 6 this came from cb2t's run of the same actions on v7; for R26, from its simulation on cb3t's pass 1
+  registration. No action falls between +43 and +45 deg, so ID 3's small difference from ID 2 cannot carry one over.
+- 27 actions over +45 deg were dropped:
+  - pass 2b (67 to 60): grid-044, -045, -046, -048, -057, -058 and -059, at +49.5 to +57.1 deg;
+  - pass 5 (101 to 94): the same seven as fast-grid-*;
+  - pass 6 (73 to 62): dense-554-t+15, -555-t+15, -613-t+10, -614-t+10 and -615-t+10, and the slides
+    slide-dense-554-t+15-1N, -555-t+15-1N, -611-t+5-1N, -613-t+10-1N, -614-t+10-1N and -615-t+10-1N, at +45.5 to
+    +61.0 deg;
+  - R26 hard2 (57 to 55): hard-grid-049 and hard-dense-614-t+10, at +48.4 deg;
+  - pass 3 keeps all 55; its highest is +38.0 deg.
+- Each plan's `notes` lists its drops and the reason.
+- R26 on the final registration (pass 2a's): hard1 clears the mount by 5.34 mm, hard2 by 4.26 mm, the finger by 1.82
+  mm and the HEX-E by 28.2 mm.
+
+### R27 pass 1 (the rod), checked here
+
+- `lab/20261026-plan_rod_lab_r27_pass1_rod3t.json` is the workstation's `plan/20261023-plan_rod_lab_touch35.json`
+  with the payload, travel block and `speed_slider` of cb3t's pass 1. It runs stages preflight, homing, pad, pivot and
+  register in a fresh session, from the rod's seating (`poses.jsonl:right_indenter_seated`).
+- With cb3t's registered tool and the rod at its seating, the static check predicts onsets −0.45 to +0.70 mm from
+  the expected, and no rest pose in contact. The mount clears the rod by 2.79 mm on the touch-offs (needs 2.5).
+- The first simulation (15:08) took the rod from the plan's `sim.T_BI`, which the workstation had set on 10-23 to
+  reproduce ID 1's tool error. Its onsets came 1.4 to 2.2 mm early and its clearances down to 1.6 mm. Those reflect
+  the stand-in rod, not ID 3.
+- Two more simulations used cb3t's registered tool and a fitted rod:
+  - the rod where the workstation's joint fit of R19 put it (0.77 mm above the seating): no abort; the onsets came
+    0.87 to 2.09 mm early, 12 of 22 in the fast approach, which falls back to the slow one. The mount cleared the
+    rod by 3.28 mm or more (pad-edge-01), the finger by 2.76 mm;
+  - the rod where rod1's own fit put it (1.1 mm further along its axis): pad-edge-01, pad-face-04, pad-edge-04 and
+    pad-edge-06 brought the mount to 1.47 to 2.10 mm of the rod. Nobody has measured the rod's position along its
+    axis; touches on its curved face leave that unconstrained.
+- pad-edge-01 was dropped (22 to 21 touch-offs). It sits at joint 6 +44.7 deg, against the cap of +45. It was R19's
+  outlier (rod1t, +0.66 mm), which the joint fit leaves out. It is also the mount's closest approach in both
+  simulations. The other touch-offs clear by 3.30 mm or more with the joint fit's rod.
 
 ## The lab clone and git-lfs
 
