@@ -813,6 +813,24 @@ the lab session ("go") at about 15:36.
 - R26 on the final registration (pass 2a's): hard1 clears the mount by 5.34 mm, hard2 by 4.26 mm, the finger by 1.82
   mm and the HEX-E by 28.2 mm.
 
+### 16:00:54 to 16:26:19, the parity actions past the cap, with the owner present
+
+- The owner, through the workstation at about 15:50: "im still in person though. can we just try those 27 dropped
+  actions first, now, so that we can get the risky data while im in person?" The workstation asked for the 25 parity
+  actions in one plan in session 134522-cb3t, with their original IDs, lowest joint 6 first. R26's two actions go back
+  into hard2, which runs after hard1. The cap at +45 deg stays for the unattended passes.
+- `lab/20261026-plan_sphere_lab_r25_parity45_cb3t.json` holds pass 2b's 7, pass 5's 7 and pass 6's 11 from before
+  the cap. Within each stage they are ordered by joint 6 at their own poses in cb2t's run.
+- On the final registration, slide-dense-555-t+15-1N cleared the mount by 2.84 mm (needs 3.0). In the simulator its
+  least was 2.87 mm. It is also the highest of the set (joint 6 +61.0 deg), so it was left out. The other 24 clear the
+  mount by 3.18 mm or more and the finger by 2.25 mm. Simulated on the final registration: no abort.
+- All 24 ended ok: 19 presses at joint 6 +45.7 to +57.6 deg, then 5 slides up to +60.3 deg. The HEX-E gave 151,887
+  samples, none timed out. The slack chain held the cable past the +53 deg of the test swings. Exit 0 at 16:26:19.
+- hard2 is back to 57 actions. It passes the static check on the final registration (mount 4.26 mm, finger 1.82 mm).
+  R26's simulation on that registration (hard2 without the two) had no abort. Its cell check was clean (mount 4.2 mm,
+  finger 1.9 mm), and its presses peaked at 8.8 N. hard-ref-c's apparent 8.3 N is the ramp of hard1: the two runs
+  share one session copy, and their simulated clocks overlap.
+
 ### R27 pass 1 (the rod), checked here
 
 - `lab/20261026-plan_rod_lab_r27_pass1_rod3t.json` is the workstation's `plan/20261023-plan_rod_lab_touch35.json`
