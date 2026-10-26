@@ -892,6 +892,31 @@ push that answers it arrives.
   - The workstation then analyses cb3t with cb2t's checks and compares the three tips, including ID 1's and ID 2's
     models applied to ID 3.
 
+- R26 (14:1x on 10-26; owner: "maybe we can add harder (much harder?) presses on id 3 ... we can build up to it
+  gradually ... ill be here all day ... we have the 10N limit anyway"). Hard and fast contacts on cb3t, with the owner
+  present, after pass 2a and before pass 2b. The viewer rejects presses past 3.5 to 4 N, because the calibration stops at
+  5 N on the face, 3 N on the edges and 2 N on the flanks. Built by `scripts/ur5_tip_calibration_hard_pass.py`.
+  - hard1, `lab/20261026-plan_sphere_lab_r26_hard1_cb3t.json`: the reference press (0.5, 1 and 2 N), a press at the
+    reference point to 1, 2, 3.5, 5, 6, 7 and 8 N at 0.15 mm/s, and the reference press again. Compare the two reference
+    presses' board changes at each level with the spread of ref-00 to ref-05 in cb2t's pass 2b. A difference several
+    times that spread means the pad moved in its seat: stop and tell the owner.
+  - hard2, `lab/20261026-plan_sphere_lab_r26_hard2_cb3t.json`, 57 actions in order of force:
+    - 28 presses at 0.15 mm/s: 6 on the flanks to 4 N, 10 on the edges to 6 N, 12 on the face to 8 N;
+    - 6 presses at the rate set's points to 1 and 3 N at v 0.0133. The run-up of 0.5 mm limits the speed at contact to
+      about 4 mm/s, twice cb2t's fastest;
+    - slides at 4 N at 6 points, and at 2 N with turns at 6.9 deg/s (`turn_v` 0.4) at the same points;
+    - shear-0 at 4.5 N, shear-3 at 4 N, roll-0 at 4 N, twist-0 to 15 deg and twist-3 to 20 deg at 6 N;
+    - roll-0 at 1.5 N, and twist-0 at 2.5 and 5 N, with turns at 6.9 deg/s;
+    - the reference press after the presses and at the end.
+  - Checks, on 134522-cb3t's registration and v7. On cb2t a press went 0.461 F^0.782 mm past contact (2.34 mm at 8 N by
+    the fit), and the clearance check looks 1 mm past contact. Each action's margins therefore exceed the usual ones
+    (mount 3.0, finger 0.8, HEX-E 6.0 mm) by its depth at its largest force less 1 mm. The closest mount margin is 4.06
+    mm. Presses may go 4 mm past the expected surface (`max_depth_mm` 4.0). Joint 5 stays at 34 deg or more, joint 6
+    within -65 and +50 deg. The abort stays at 10 N. Run both plans in the simulator first (README rule 2).
+  - At 2 mm/s cb2t's presses overshot their level by 0.65 N. At 4 mm/s expect up to about 3 N, so the 3 N level may
+    peak near 6 N. Faster presses need a stronger stop in the program first (`stopL` decelerates at 0.05 m/s^2).
+  - About 1.5 h in all. Passes 2b to 6 follow as planned.
+
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
   back on after the ATI work: `plan/20261023-plan_sphere_lab_check6_sph3t.json`, six of sph3t's 19 touch-offs at its
