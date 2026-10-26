@@ -854,6 +854,19 @@ push that answers it arrives.
     - Why pass 5 has so many slides: on cb1r a GP trained on the presses and the other slides put the slides' shear
       within 0.10 N and the force's direction within 5.7 deg. Trained on the presses alone, it was 0.24 N and 13.2 deg;
       the physical model gives 0.98 N and 57 deg (`data/20261025-114653-cb1r/checks.json`).
+  - Pass 6 for cb2t, after pass 5 (owner, 16:3x: "improvisationally devise more tests ... (more speeds, more variations,
+    more locations/location density), torsion, contact wrenches"): `lab/20261025-plan_sphere_lab_r24_pass6_cb2t.json`,
+    written by `scripts/ur5_tip_calibration_pass6.py`. It has 77 actions:
+    - 38 new press targets, by farthest-point sampling at least 1.5 mm from every target of passes 2b, 3 and 5: 9 at y
+      < -1.5 mm, 7 between, 22 at y > 1.5 mm; 11 on the face, 15 on edges, 12 on flanks. Each is pressed once at one of
+      four contact speeds in turn: 0.15, 0.6, 0.045 and 2.0 mm/s actual.
+    - 36 of them slid at 1 N, 0.1 and 0.2 mm in eight directions (`turn_v` 0.04).
+    - twist-3 at 2.5 and 5 N out to 20 deg and back. twist-0 at 20 deg and the 25 deg twists bring joint 5 under 34 deg.
+    - final-ref-p6.
+    For an unattended run, joint 5 keeps 4 deg above the window for presses and twists and 8 deg for slides, on cb2t's
+    registration. The first build lost a slide and twist-0 at 20 deg to the window in the simulator. The mount clears
+    by at least 3.03 mm on v7 (cb1t's registration). The whole pass ran in the simulator with no abort. It takes about
+    85 min at cb1t's pace.
   - The owner, 13:2x: "we can afford to drop pass 2 right? it was just a repeat of friday's run?". cb1r drops pass 2b
     (its grid, rolls and twists repeat cb1t's). Pass 2a's offset touch-offs and registration stay, because pass 3 runs on
     that registration. After pass 3 and 3b the lab homes the robot for the swap.
