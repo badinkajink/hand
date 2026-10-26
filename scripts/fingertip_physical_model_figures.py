@@ -219,13 +219,13 @@ def fig_chain():
     fwd = "#eef3fa"
     inv = "#fbf1e4"
     box(0.6, 31, 22.6, 19, "Printed pad", "Siraya 85A TPU\n2 walls, 4 skins\n30 % gyroid core\n5 magnets, 3 × 2 mm", fwd)
-    box(25.9, 31, 22.6, 19, "Finite elements", "Voxel classes, 0.05 mm\nhomogenized core\n119,061 unknowns\n812 points × 3 loads", fwd)
+    box(25.9, 31, 22.6, 19, "Finite elements", "Voxels of 0.05 mm\nhomogenized core\n119,061 unknowns\n812 points × 3 loads", fwd)
     box(51.2, 31, 22.6, 19, "Magnet motion", "M(p): translation and\nturn of each magnet\nper newton at point p\n30 numbers a load", fwd)
     box(76.5, 31, 22.6, 19, "Field model", "72 dipoles a magnet\nJ: change of the 15\nreadings per µm\nand per mrad", fwd)
     arrow(23.6, 40.5, 25.5, 40.5)
     arrow(48.9, 40.5, 50.8, 40.5)
     arrow(74.2, 40.5, 76.1, 40.5)
-    box(62.5, 3, 36.6, 19, "Estimator", "S(p) = J M(p), the change per newton\nΔb = S(p) f + Earth's field + noise\nbest p and f by the marginal\nlikelihood over 12,581 points", inv)
+    box(62.5, 3, 36.6, 19, "Estimator", "S(p) = J M(p): change per newton\nΔb = S(p) f + Earth's field + noise\nbest p and f by the marginal\nlikelihood over 12,581 points", inv)
     ax.annotate("", xy=(84, 22.6), xytext=(88, 30.6), arrowprops=dict(arrowstyle="-|>", lw=1.4))
     box(0.6, 3, 27, 19, "Rest calibration", "2 s untouched: the 15\nreadings at rest fix the\npoles, the strength k,\nthe chip map and offsets", inv)
     ax.annotate("", xy=(79.0, 30.6), xytext=(14.0, 22.6), arrowprops=dict(arrowstyle="-|>", lw=1.2, ls="--",
@@ -250,7 +250,7 @@ def fig_fe():
     loads = [("press1", "(a) Press, 1 N along the normal"), ("shear_z", "(b) Shear, 1 N along the finger"),
              ("shear_y", "(c) Shear, 1 N across the finger")]
     fig = plt.figure(figsize=(10.0, 12.6))
-    gs = fig.add_gridspec(3, 4, width_ratios=(2.25, 0.08, 0.30, 1.0), wspace=0.06, hspace=0.32)
+    gs = fig.add_gridspec(3, 4, width_ratios=(2.25, 0.08, 0.62, 1.0), wspace=0.06, hspace=0.32)   # room for the colorbar label
     mc = Z["magnet_nodes_centre"]
     out = pad_outline_yz()
     mag_cells = np.argwhere(cls == 2)
