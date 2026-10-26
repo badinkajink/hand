@@ -60,12 +60,23 @@ miss from 1.16 to 0.55 mm; below 1 N the model and its correction fail
 correction moved the second fingertip's points further from the reference press on 2026-10-23 (3.71 against 3.07 mm),
 so on another pad it is a trial (key g).
 
+Several fingertips and the pooled GP (2026-10-26). With --mux the viewer reads a board running
+firmware/reskin5x_mux_stream and gives every board on the mux a row of the page: its pad on the left, its readout on
+the right, with --names, --calib and --correction given board by board (- for none) and the shared settings in the
+bar at the top. --board-gp adds an estimate of its own, the GP from the board's change to the contact point and force
+fitted on UR5 presses and slides of several tips (scripts/ur5_tip_calibration_board_gp.py; on ID 1's and ID 2's holds,
+the calibration coordinator's pooled model of 2026-10-26). Each panel's menu picks the estimate shown: the physical
+model, the physical model with the correction, or the GP; g moves every board to its next one. The decision to show a
+contact stays with the physical estimate; the GP gives the point (put on the nearest surface candidate) and the force.
+
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py [--port /dev/ttyACM0] [--http 8790]
         [--board-cal docs/experiments/20261020-fingertip_contact_estimation/data/20261020-calib_pad_as_found.json]
         [--poles 1 1 1 1 1] [--replay rec.csv] [--no-log] [--foreign-gate] [--correction <UR5 session data folder>]
         [--calib logs/20261020-contact_estimation/calib/<time>-calib.json]
-then open http://localhost:8790. Keys: b new baseline, c recalibrate at rest (keep the pad untouched), r record,
-z re-zero at rest on or off, f the test for fields from outside the pad on or off, g the UR5 correction on or off.
+    ... --mux /dev/serial/by-id/<mux board> --names "ID 1" "ID 2" --calib <cal 1> <cal 2> --correction <folder 1> <folder 2>
+        --board-gp docs/experiments/20261022-ur5_tip_calibration/data/20261026-board_gp_id1_id2.npz
+then open http://localhost:8790. Keys (every board): b new baseline, c recalibrate at rest (keep the pad untouched),
+r record, z re-zero at rest on or off, f the test for fields from outside the pad on or off, g the next estimate.
 """
 from __future__ import annotations
 
@@ -86,7 +97,7 @@ ROOT = HERE.parents[4]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(HERE))
 import fingertip_wrench_model as W  # noqa: E402
-from reskin5x_plot import Reader, ADDRS  # noqa: E402
+from reskin5x_plot import Reader, MuxReader, ADDRS  # noqa: E402
 
 DATA = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data"
 BASIS = DATA / "20261020-b_v2_surface_basis.npz"
@@ -172,9 +183,36 @@ def region(n):
     return side if n[0] < 0.3 else f"face edge, {side}"
 
 
+class BoardGP:
+    """The GP from the board's change to the contact point (mm) and the 3D force (N), pad frame, pooled over UR5 sessions
+    and saved by scripts/ur5_tip_calibration_board_gp.py (--board-gp)."""
+
+    def __init__(self, path):
+        z = np.load(path)
+        self.mx, self.sx, self.my, self.sy, self.Z, self.a = (z[k] for k in ("mx", "sx", "my", "sy", "Z", "a"))
+        self.ell = float(z["ell"])
+        self.name = "GP of " + ", ".join(s.split("-")[-1] for s in z["sessions"].astype(str))
+        self.n = int(z["n_holds"])
+
+    def predict(self, d):
+        q = (np.asarray(d, float) - self.mx) / self.sx
+        k = np.exp(-0.5 * ((self.Z - q) ** 2).sum(1) / self.ell ** 2)
+        y = k @ self.a * self.sy + self.my
+        return y[:3], y[3:]
+
+
+def slug(name):
+    return "".join(c if c.isalnum() else "_" for c in name).strip("_").lower()
+
+
 class App:
-    def __init__(self, a):
+    def __init__(self, a, src=None, name=None, calib=None, correction=None, board_gp=None):
+        """One board: src a Reader-like source (default: --replay or --port), name its label (stream logs and
+        calibrations get it as a suffix), calib a saved calibration to start from, correction a UR5 session folder
+        for the GP correction, board_gp a BoardGP shared by every board."""
         self.a = a
+        self.name, self.calib_arg, self.correction_arg, self.board_gp = name, calib, correction, board_gp
+        self.tag = f"-{slug(name)}" if name else ""
         self.basis = W.load_basis(a.basis)
         self.row = W.fe_row(str(self.basis["case"]))
         self.tris = self.basis["tris"]
@@ -182,7 +220,9 @@ class App:
                          self.basis["node_centroid"])
         self.tree = cKDTree(self.basis["pts"])
         self.disp_u = self.basis["disp_u"]
-        if a.replay:
+        if src is not None:
+            self.src = src
+        elif a.replay:
             self.src = Replay(a.replay, keep=3.0, speed=a.speed, seconds=a.replay_seconds)
         else:
             self.src = Reader(a.port, keep=3.0)
@@ -194,9 +234,10 @@ class App:
         self.auto = a.auto_zero > 0
         self.foreign, self.ff, self.n_foreign = a.foreign_gate, None, 0
         self.corr_on, self.gp, self.corr_name, self.n_corr = False, None, None, 0
+        self.mode, self.n_board_gp = ("board gp" if board_gp is not None else "physical"), 0
         self._ctree, self._ctree_est = None, None
-        if a.correction:
-            threading.Thread(target=self.train_correction, args=(a.correction,), daemon=True).start()
+        if correction:
+            threading.Thread(target=self.train_correction, args=(correction,), daemon=True).start()
         self.T_cal = None
         self.est = self.base = self.cal = self.rest_ref = None
         self.pad_off, self.pad_still, self.cal_lock = False, W.RestZero(hold_s=3.0), threading.Lock()
@@ -207,7 +248,7 @@ class App:
         self.log = None
         if not a.replay and not a.no_log:
             (REC_DIR / "stream").mkdir(parents=True, exist_ok=True)
-            self.log_path = REC_DIR / "stream" / time.strftime("%Y%m%d-%H%M%S-stream.bin")
+            self.log_path = REC_DIR / "stream" / (time.strftime("%Y%m%d-%H%M%S") + f"{self.tag}-stream.bin")
             self.log = open(self.log_path, "ab")
             print(f"stream log {self.log_path.relative_to(ROOT)}", flush=True)
         self.t_flush = time.time()
@@ -296,7 +337,7 @@ class App:
             saved = ""
             if not self.a.replay and not self.a.no_log:
                 (REC_DIR / "calib").mkdir(parents=True, exist_ok=True)
-                path = REC_DIR / "calib" / time.strftime("%Y%m%d-%H%M%S-calib.json")
+                path = REC_DIR / "calib" / (time.strftime("%Y%m%d-%H%M%S") + f"{self.tag}-calib.json")
                 cal.save(path)
                 saved = f"; saved to {path.relative_to(ROOT)}"
             self.status = (f"calibrated in {time.time() - t0:.1f} s: poles {self.pole_rows(cal.poles)}, magnet strength "
@@ -346,7 +387,10 @@ class App:
         ok = np.all(np.isfinite(Pv), axis=1) & np.isfinite(Fv)
         self.gp = PR.GP().fit(np.c_[Pv, Fv][ok], np.c_[H["p"][ok] - Pv[ok], H["f_n"][ok] - Fv[ok]],
                               np.array([0.2, 0.2, 0.2, 0.05]))
-        self.corr_name, self.corr_on = Path(folder).name, True
+        self.corr_name = Path(folder).name
+        if self.mode == "physical":
+            self.mode = "correction"
+        self.scene_dirty = True                               # the page's list of estimates gains the correction
         print(f"UR5 correction of {self.corr_name} learned on {int(ok.sum())} press holds in {time.time() - t0:.1f} s "
               "(g turns it off)", flush=True)
 
@@ -363,17 +407,42 @@ class App:
         return dict(e, p=self.est.C[k].tolist(), n=n.tolist(), t1=t1.tolist(), t2=t2.tolist(), f=f.tolist(), f_n=fn,
                     index=k)
 
+    def from_board_gp(self, e, d):
+        """The pooled GP's contact point and force for the change d in place of the physical estimate's; the point is put
+        on the nearest surface candidate, whose normal and tangents give the press and the shear."""
+        if self._ctree_est is not self.est:
+            self._ctree, self._ctree_est = cKDTree(self.est.C), self.est
+        p, f = self.board_gp.predict(d)
+        k = int(self._ctree.query(p)[1])
+        n, t1, t2 = self.est.Cn[k], self.est.T1[k], self.est.T2[k]
+        return dict(e, p=self.est.C[k].tolist(), n=n.tolist(), t1=t1.tolist(), t2=t2.tolist(), f=f.tolist(),
+                    f_n=float(-f @ n), f_t=[float(f @ t1), float(f @ t2)], index=k)
+
     def settings(self):
         th = (f"temperature correction on (chip gains -{-self.kappa.max() * 100:.2f} to -{-self.kappa.min() * 100:.2f} % "
               f"per C)" if self.kappa is not None else "temperature correction off")
         az = f"re-zero after {self.rz.hold_s:.0f} s at rest: on, {self.rz.count} so far" if self.auto else "re-zero at rest: off"
         ff = (f"fields from outside the pad rejected above {self.a.foreign_lambda:.0f} in chi-square, {self.n_foreign} frames "
               "so far" if self.foreign else "fields from outside the pad: not tested")
-        if self.gp is None:
-            co = "UR5 correction: " + ("being learned" if self.a.correction else "none")
-        else:
-            co = f"UR5 correction of {self.corr_name}: {'on' if self.corr_on else 'off'} (g), {self.n_corr} frames so far"
-        return f"{th}; noise floor {self.floor:.2f} uT; shown above {self.min_force:.2f} N; {az}; {ff}; {co}"
+        return f"{th}; noise floor {self.floor:.2f} uT; shown above {self.min_force:.2f} N; {az}; {ff}; {self.mode_text()}"
+
+    def modes(self):
+        """The estimates this board can show: the physical model, with the UR5 correction once it is learned, and the
+        pooled GP on the board's change when --board-gp is given."""
+        return ["physical"] + (["correction"] if self.gp is not None else []) + (["board gp"] if self.board_gp else [])
+
+    def mode_names(self):
+        return {"physical": "physical model", "correction": f"physical model + correction of {self.corr_name}",
+                "board gp": f"{self.board_gp.name} ({self.board_gp.n} holds)" if self.board_gp else ""}
+
+    def mode_text(self):
+        names = self.mode_names()
+        extra = (", correction being learned" if self.correction_arg and self.gp is None else "")
+        return f"estimate: {names[self.mode]} (g cycles{extra})"
+
+    def cycle_mode(self, mode=None):
+        ms = self.modes()
+        self.mode = mode if mode in ms else ms[(ms.index(self.mode) + 1) % len(ms)] if self.mode in ms else ms[0]
 
     def drain(self):
         """Records since the last frame into the stream log and, while recording, into the recording."""
@@ -469,10 +538,14 @@ class App:
                 out["status"] = (f"a field from outside the pad (steel or a magnet near the tip?): the reading changed "
                                  f"{np.linalg.norm(d):.0f} uT and a field across the board explains it better than a "
                                  f"contact by {lam:.0f} in chi-square, so no contact is shown (f turns the test off)")
-        if contact and self.corr_on and self.gp is not None:
+        if contact and self.mode == "correction" and self.gp is not None:
             e = self.corrected(e)
             self.n_corr += 1
             out["corrected"] = True
+        elif contact and self.mode == "board gp" and self.board_gp is not None:
+            e = self.from_board_gp(e, d)
+            self.n_board_gp += 1
+        out["mode"] = self.mode
         self.shown_prev = bool(contact)
         out["contact"] = bool(contact)
         if contact:
@@ -506,71 +579,84 @@ class App:
                                 U=W.U_ORDER[self.cal.perm[i]] if self.est is not None else "") for i in range(5)],
                     threshold=self.a.threshold, R=self.R_ind, x_cut=float(self.basis["x_cut"]), min_force=self.min_force,
                     floor=self.floor, auto=self.auto, hold_s=self.rz.hold_s, thermal=self.kappa is not None,
-                    foreign=self.foreign)
+                    foreign=self.foreign, name=self.name, mode=self.mode, modes=self.modes(), mode_names=self.mode_names())
+
+
+async def handle(app, cmd):
+    """One command of the page for one board."""
+    c = cmd.get("cmd")
+    if c == "baseline":
+        app.baseline()
+    elif c == "calibrate":
+        await asyncio.get_running_loop().run_in_executor(None, app.calibrate)
+    elif c == "indenter":
+        app.R_ind = float(cmd["R"])
+    elif c == "minforce":
+        app.min_force = max(0.0, float(cmd["N"]))
+    elif c == "floor":
+        await asyncio.get_running_loop().run_in_executor(None, app.set_floor, float(cmd["uT"]))
+    elif c == "autozero":
+        app.auto = bool(cmd.get("on", not app.auto))
+        app.rz.t_still = None
+        app.scene_dirty = True
+    elif c in ("mode", "correction"):
+        app.cycle_mode(cmd.get("mode"))
+        app.scene_dirty = True
+    elif c == "foreign":
+        app.foreign = bool(cmd.get("on", not app.foreign))
+        app.scene_dirty = True
+    elif c == "record" and hasattr(app.src, "all"):
+        if not app.rec:
+            app.rec_rows = []
+            app.rec, app.status = True, "recording the stream (r stops)"
+        else:
+            app.rec = False
+            rows = app.rec_rows
+            REC_DIR.mkdir(parents=True, exist_ok=True)
+            path = REC_DIR / (time.strftime("%Y%m%d-%H%M%S") + f"{app.tag}-viewer_session.csv")
+            np.savetxt(path, np.array([np.r_[t, r.ravel()] for t, r in rows]), fmt="%.4f",
+                       header="host_time " + " ".join(f"{q}{c}" for c in range(5) for q in "txyz"))
+            app.status = f"recorded {len(rows)} records ({rows[-1][0] - rows[0][0]:.0f} s) to {path.relative_to(ROOT)}" \
+                if rows else "nothing recorded"
+            print(app.status, flush=True)
 
 
 async def ws_handler(request):
-    app = request.app["app"]
+    apps, clients = request.app["apps"], request.app["clients"]
     ws = web.WebSocketResponse()
     await ws.prepare(request)
-    app.clients.add(ws)
-    await ws.send_str(json.dumps(app.scene()))
+    clients.add(ws)
+    await ws.send_str(json.dumps(dict(type="boards", names=[ap.name or "fingertip" for ap in apps])))
+    for k, ap in enumerate(apps):
+        await ws.send_str(json.dumps(dict(ap.scene(), board=k)))
     try:
         async for msg in ws:
             if msg.type != WSMsgType.TEXT:
                 continue
             cmd = json.loads(msg.data)
-            if cmd.get("cmd") == "baseline":
-                app.baseline()
-            elif cmd.get("cmd") == "calibrate":
-                await asyncio.get_running_loop().run_in_executor(None, app.calibrate)
-            elif cmd.get("cmd") == "indenter":
-                app.R_ind = float(cmd["R"])
-            elif cmd.get("cmd") == "minforce":
-                app.min_force = max(0.0, float(cmd["N"]))
-            elif cmd.get("cmd") == "floor":
-                await asyncio.get_running_loop().run_in_executor(None, app.set_floor, float(cmd["uT"]))
-            elif cmd.get("cmd") == "autozero":
-                app.auto = bool(cmd.get("on", not app.auto))
-                app.rz.t_still = None
-                app.scene_dirty = True
-            elif cmd.get("cmd") == "correction":
-                app.corr_on = bool(cmd.get("on", not app.corr_on)) and app.gp is not None
-            elif cmd.get("cmd") == "foreign":
-                app.foreign = bool(cmd.get("on", not app.foreign))
-                app.scene_dirty = True
-            elif cmd.get("cmd") == "record" and hasattr(app.src, "all"):
-                if not app.rec:
-                    app.rec_rows = []
-                    app.rec, app.status = True, "recording the stream (r stops)"
-                else:
-                    app.rec = False
-                    rows = app.rec_rows
-                    REC_DIR.mkdir(parents=True, exist_ok=True)
-                    path = REC_DIR / time.strftime("%Y%m%d-%H%M%S-viewer_session.csv")
-                    np.savetxt(path, np.array([np.r_[t, r.ravel()] for t, r in rows]), fmt="%.4f",
-                               header="host_time " + " ".join(f"{q}{c}" for c in range(5) for q in "txyz"))
-                    app.status = f"recorded {len(rows)} records ({rows[-1][0] - rows[0][0]:.0f} s) to {path.relative_to(ROOT)}" \
-                        if rows else "nothing recorded"
-                    print(app.status, flush=True)
+            b = cmd.get("board")
+            for app in (apps if b is None or b == "all" else apps[int(b):int(b) + 1] if int(b) >= 0 else []):
+                await handle(app, cmd)
     finally:
-        app.clients.discard(ws)
+        clients.discard(ws)
     return ws
 
 
 async def pump(app_web):
-    app = app_web["app"]
+    apps, clients = app_web["apps"], app_web["clients"]
     while True:
         t0 = time.time()
-        if app.clients:
-            if app.scene_dirty:
-                app.scene_dirty = False
-                sc = json.dumps(app.scene())
-                await asyncio.gather(*(c.send_str(sc) for c in list(app.clients)), return_exceptions=True)
-            msg = json.dumps(app.frame())
-            await asyncio.gather(*(c.send_str(msg) for c in list(app.clients)), return_exceptions=True)
+        if clients:
+            for k, app in enumerate(apps):
+                if app.scene_dirty:
+                    app.scene_dirty = False
+                    sc = json.dumps(dict(app.scene(), board=k))
+                    await asyncio.gather(*(c.send_str(sc) for c in list(clients)), return_exceptions=True)
+                msg = json.dumps(dict(app.frame(), board=k))
+                await asyncio.gather(*(c.send_str(msg) for c in list(clients)), return_exceptions=True)
         else:
-            app.drain()
+            for app in apps:
+                app.drain()
         await asyncio.sleep(max(0.0, FRAME_S - (time.time() - t0)))
 
 
@@ -580,7 +666,12 @@ async def index(request):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--port", default=None, help="serial port of the QT Py")
+    ap.add_argument("--port", default=None, help="serial port of the QT Py (one board, firmware/reskin5x_stream)")
+    ap.add_argument("--mux", default=None, help="serial port of a board running firmware/reskin5x_mux_stream: every board on "
+                    "the mux gets its own view and panel")
+    ap.add_argument("--names", nargs="+", default=None, help="labels of the boards, in the order of the mux channels")
+    ap.add_argument("--board-gp", default=None, help="a pooled GP from the board's change to the contact point and force "
+                    "(scripts/ur5_tip_calibration_board_gp.py): an estimate of its own, shown from the start (g cycles)")
     ap.add_argument("--http", type=int, default=8790)
     ap.add_argument("--basis", default=str(BASIS), help="FE surface basis (scripts/fingertip_wrench_fe.py --surface)")
     ap.add_argument("--board-cal", default=str(BOARD_CAL), help="a full calibration of this board (chip frames)")
@@ -592,10 +683,10 @@ def main():
     ap.add_argument("--foreign-gate", action="store_true", help="show no contact when a field from outside the pad (steel, "
                                                                 "a magnet) explains the reading better (key f)")
     ap.add_argument("--foreign-lambda", type=float, default=25.0, help="chi-square margin of that test")
-    ap.add_argument("--calib", default=None, help="a saved calibration (logs/20261020-contact_estimation/calib/*.json) to "
+    ap.add_argument("--calib", nargs="+", default=None, help="one per board (- for none): a saved calibration (logs/20261020-contact_estimation/calib/*.json) to "
                     "start from: kept when, with a field from outside the pad, it fits the rest at start at least as well "
                     "as a new calibration")
-    ap.add_argument("--correction", default=None, help="a UR5 session's data folder (holds.npz, calib_rest.json): its GP "
+    ap.add_argument("--correction", nargs="+", default=None, help="one per board (- for none): a UR5 session's data folder (holds.npz, calib_rest.json): its GP "
                     "correction of the physical estimate, on from the start; key g turns it off and on")
     ap.add_argument("--thermal", default=str(W.THERMAL), help="the chips' temperature coefficients (study thermal)")
     ap.add_argument("--no-thermal", action="store_true", help="do not correct the readings for the chips' temperature")
@@ -605,11 +696,24 @@ def main():
     ap.add_argument("--replay-seconds", type=float, default=None, help="replay only the first this many seconds")
     ap.add_argument("--no-log", action="store_true", help="do not write the stream log")
     a = ap.parse_args()
-    app = App(a)
-    prev = app.saved_model(a.calib) if a.calib else None
-    threading.Thread(target=app.calibrate, kwargs=dict(prev=prev), daemon=True).start()
+    gp = BoardGP(a.board_gp) if a.board_gp else None
+
+    def pick(values, k):
+        return None if not values or k >= len(values) or values[k] in ("-", "none") else values[k]
+    if a.mux:
+        mr = MuxReader(a.mux, keep=3.0)
+        names = a.names or []
+        apps = [App(a, src=b, name=names[k] if k < len(names) else f"channel {b.channel}", calib=pick(a.calib, k),
+                    correction=pick(a.correction, k), board_gp=gp) for k, b in enumerate(mr.boards)]
+        mr.start()
+        print(f"{mr.port}: boards on mux channels {mr.channels}: " + ", ".join(ap.name for ap in apps), flush=True)
+    else:
+        apps = [App(a, name=pick(a.names, 0), calib=pick(a.calib, 0), correction=pick(a.correction, 0), board_gp=gp)]
+    for app in apps:
+        prev = app.saved_model(app.calib_arg) if app.calib_arg else None
+        threading.Thread(target=app.calibrate, kwargs=dict(prev=prev), daemon=True).start()
     web_app = web.Application()
-    web_app["app"] = app
+    web_app["apps"], web_app["clients"] = apps, set()
     web_app.router.add_get("/", index)
     web_app.router.add_get("/ws", ws_handler)
 

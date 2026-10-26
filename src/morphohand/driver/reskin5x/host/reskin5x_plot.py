@@ -119,6 +119,132 @@ class Reader(threading.Thread):
             return np.array(self.t), (np.array(self.r) if self.r else np.zeros((0, N_CHIPS, 4)))
 
 
+class MuxBoard:
+    """One board of a MuxReader, with Reader's interface: snapshot(), lock, all, connected, reconnects, port."""
+
+    def __init__(self, parent, channel, keep):
+        self.parent, self.channel, self.keep = parent, channel, keep
+        self.lock, self.all = threading.Lock(), []
+        self.t, self.r = deque(), deque()
+
+    @property
+    def connected(self):
+        return self.parent.connected
+
+    @property
+    def reconnects(self):
+        return self.parent.reconnects
+
+    @property
+    def port(self):
+        return f"{self.parent.port}, mux channel {self.channel}"
+
+    def start(self):
+        """The MuxReader's thread reads for every board."""
+
+    def push(self, ts, rs):
+        with self.lock:
+            for t, r in zip(ts, rs):
+                self.t.append(t)
+                self.r.append(r)
+                self.all.append((t, r))
+            while self.t and ts[-1] - self.t[0] > self.keep:
+                self.t.popleft()
+                self.r.popleft()
+
+    def snapshot(self):
+        with self.lock:
+            return np.array(self.t), (np.array(self.r) if self.r else np.zeros((0, N_CHIPS, 4)))
+
+
+class MuxReader(threading.Thread):
+    """Reads firmware/reskin5x_mux_stream (several boards behind an I2C mux, 80 bytes a board and \\r\\n a record). It
+    sends 'i' for the channels and the record length, then splits every record; boards[k] is the board on the k-th
+    channel found, with Reader's interface. Records of one read get times spread evenly since the previous read. When
+    the board is unplugged it waits for it and asks again; the channels found must be the same."""
+
+    def __init__(self, port, keep):
+        super().__init__(daemon=True)
+        self.port_arg = port
+        self.port = port or find_port()
+        if self.port is None:
+            raise SystemExit("no serial port of the board: plug it in (looked for " + ", ".join(PORT_GLOBS) + ")")
+        self.s = serial.Serial(self.port, 115200, timeout=0.05)
+        self.buf = bytearray()
+        self.channels, self.frame = self._info()
+        self.boards = [MuxBoard(self, c, keep) for c in self.channels]
+        self.connected, self.reconnects, self.stop, self.synced, self.t_last = True, 0, False, False, time.time()
+
+    def _info(self, wait_s=3.0):
+        import re
+        self.s.reset_input_buffer()
+        self.s.write(b"i")
+        buf, t0 = bytearray(), time.time()
+        while time.time() - t0 < wait_s:
+            buf += self.s.read(4096)
+            m = re.search(rb"Boards on mux channels: ([0-9 ]*)\r?\nRecord bytes: (\d+)\r?\n", buf)
+            if m:
+                self.buf = bytearray(buf[m.end():])
+                return [int(c) for c in m.group(1).split()], int(m.group(2))
+        raise SystemExit(f"no answer to 'i' on {self.port}: is firmware/reskin5x_mux_stream on the board?")
+
+    def _reopen(self):
+        try:
+            self.s.close()
+        except (serial.SerialException, OSError):
+            pass
+        self.connected, self.synced = False, False
+        self.buf.clear()
+        while not self.stop:
+            time.sleep(0.5)
+            port = self.port_arg if self.port_arg and os.path.exists(self.port_arg) else find_port()
+            if port is None:
+                continue
+            try:
+                self.s = serial.Serial(port, 115200, timeout=0.05)
+                chans, frame = self._info()
+            except (serial.SerialException, OSError, SystemExit):
+                continue
+            if chans != self.channels:
+                print(f"the mux channels changed from {self.channels} to {chans}: restart the viewer", flush=True)
+                continue
+            self.port, self.frame, self.connected = port, frame, True
+            self.reconnects += 1
+            return
+
+    def run(self):
+        F, n = self.frame, len(self.channels)
+        while not self.stop:
+            try:
+                chunk = self.s.read(16384)
+            except (serial.SerialException, OSError):
+                self._reopen()
+                F = self.frame
+                continue
+            self.buf += chunk
+            recs = []
+            while len(self.buf) >= 2 * F:
+                if not self.synced:
+                    if self.buf[F - 2:F] == b"\r\n" and self.buf[2 * F - 2:2 * F] == b"\r\n":
+                        self.synced = True
+                    else:
+                        del self.buf[:1]
+                        continue
+                if self.buf[F - 2:F] != b"\r\n":
+                    self.synced = False
+                    continue
+                recs.append(np.frombuffer(bytes(self.buf[:F - 2]), "<f4").reshape(n, N_CHIPS, 4).astype(float))
+                del self.buf[:F]
+            if not recs:
+                continue
+            now = time.time()
+            ts = self.t_last + (now - self.t_last) * (np.arange(1, len(recs) + 1) / len(recs))
+            self.t_last = now
+            for k, b in enumerate(self.boards):
+                b.push(ts, [r[k] for r in recs])
+        self.s.close()
+
+
 def field(r):
     """Fields (n, chips, 3) with chips whose reading is zeros set to NaN."""
     b = r[:, :, 1:].copy()

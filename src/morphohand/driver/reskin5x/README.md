@@ -119,6 +119,16 @@ and the re-zeros took up 7.7 to 13.0 µT of drift.
 
 Start the viewers at least a second apart: each names its stream log by the second it starts.
 
+Since 2026-10-26 one viewer shows every board on the mux, with no splitter: each board gets a row of the page with its
+pad and its readout, and its own stream log and calibrations named after it. `--board-gp` adds the GP from the board's
+change to the contact point and force, pooled over ID 1's and ID 2's UR5 holds (`scripts/ur5_tip_calibration_board_gp.py`,
+3,813 presses and slides of cb1t, cb1r and cb2t; the fit equals `ur5_tip_calibration_predict.GP`'s to 3e-13 on a
+300-hold subset). Each panel's menu, and key g for every board, picks the estimate shown.
+
+    ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py --mux /dev/serial/by-id/<board>-if00 \
+        --names "ID 1" "ID 2" --calib <ID 1 calib_rest.json> <ID 2 calib_rest.json> --correction <cb1t folder> <cb2t folder> \
+        --board-gp docs/experiments/20261022-ur5_tip_calibration/data/20261026-board_gp_id1_id2.npz
+
 The same firmware runs on a SparkFun Thing Plus ESP32-C6, whose Qwiic connector is `Wire` on GPIO6 and GPIO7, a bus it
 shares with the board's LiPo fuel gauge at 0x36 (2026-10-25). Its mux answered at 0x71. With one finger on channel 0 it
 streams 537 records/s in the one-board format, so `host/wrench_viewer.py --port` reads its port with no splitter. The
