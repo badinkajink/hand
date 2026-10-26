@@ -1,0 +1,268 @@
+{
+ "when": "2026-10-26 12:51",
+ "built_by": "scripts/cad_v2_assets.py",
+ "files": {
+  "ati_mini40_45/hook_cross.step": {
+   "bytes": 228286,
+   "sha256": "5f1ba52ce1018d12773171bd3005de74cfdf850316291a5162ef021aa1c0f5dd",
+   "source": "built here: ati_stack_mount hook_cross (mini45, clock 114 deg)",
+   "step": {
+    "faces": 62,
+    "plane": 44,
+    "cylinder": 18
+   }
+  },
+  "ati_mini40_45/hook_cross.stl": {
+   "bytes": 299884,
+   "sha256": "11612e5b0d8911894b556a840569b2f1bee1c27b48219d171c5e79fe7adc45cc",
+   "source": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_hook_cross.stl",
+   "source_sha256": "11612e5b0d8911894b556a840569b2f1bee1c27b48219d171c5e79fe7adc45cc"
+  },
+  "ati_mini40_45/mass_cap.step": {
+   "bytes": 65840,
+   "sha256": "a95f6a0252a0f7e6d33687d2e190aed15c828bd3cf1218187b989854be3dbdec",
+   "source": "built here: ati_stack_mount holder_cap",
+   "step": {
+    "faces": 19,
+    "plane": 8,
+    "cylinder": 10,
+    "cone": 1
+   }
+  },
+  "ati_mini40_45/mass_cap.stl": {
+   "bytes": 163784,
+   "sha256": "36a1746246c0e7a00c778d697b4d23227cefcbc2438a42cd358745b3960968b3",
+   "source": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_mass_cap.stl",
+   "source_sha256": "36a1746246c0e7a00c778d697b4d23227cefcbc2438a42cd358745b3960968b3"
+  },
+  "ati_mini40_45/mass_cup.step": {
+   "bytes": 83461,
+   "sha256": "22cbf59dfa48263c3ca8062e953066342443a7d80a10eba7f269ceb12b802fb4",
+   "source": "built here: ati_stack_mount holder_cup",
+   "step": {
+    "faces": 23,
+    "plane": 11,
+    "cylinder": 10,
+    "cone": 2
+   }
+  },
+  "ati_mini40_45/mass_cup.stl": {
+   "bytes": 143484,
+   "sha256": "75a3c3b52bf47e485f867345f2279fe05953b90217b175b31a59b33820b29497",
+   "source": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_mass_cup.stl",
+   "source_sha256": "75a3c3b52bf47e485f867345f2279fe05953b90217b175b31a59b33820b29497"
+  },
+  "ati_mini40_45/mini40_base.step": {
+   "bytes": 150722,
+   "sha256": "6308fbe8c776700af4c6528ed087c411c3c50fa5373165e4e5354d88c3be9dec",
+   "source": "built here: ati_stack_mount base (mini40, clock 76 deg)",
+   "step": {
+    "faces": 50,
+    "plane": 28,
+    "cylinder": 22
+   }
+  },
+  "ati_mini40_45/mini40_base.stl": {
+   "bytes": 424584,
+   "sha256": "b7026e441b5e403d356f3bfd3fe9470197c44385ae0d9298fe7df170925231d0",
+   "source": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_mini40_ati_base.stl",
+   "source_sha256": "b7026e441b5e403d356f3bfd3fe9470197c44385ae0d9298fe7df170925231d0"
+  },
+  "ati_mini40_45/mini40_top.step": {
+   "bytes": 63545,
+   "sha256": "6605269bcf4ca766db66fd7a3cb3bf28a71c25ce21562d76592425cb64a44739",
+   "source": "built here: ati_stack_mount top (mini40, clock 76 deg)",
+   "step": {
+    "faces": 28,
+    "plane": 11,
+    "cylinder": 13,
+    "cone": 4
+   }
+  },
+  "ati_mini40_45/mini40_top.stl": {
+   "bytes": 288484,
+   "sha256": "939e560b0f27cd5b6b0e38bd0f6c89403a8064e817fac66ce6fcb974057ed12a",
+   "source": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_mini40_ati_top.stl",
+   "source_sha256": "939e560b0f27cd5b6b0e38bd0f6c89403a8064e817fac66ce6fcb974057ed12a"
+  },
+  "ati_mini40_45/mini45_base.step": {
+   "bytes": 185236,
+   "sha256": "671a5cdd9ec40312e8e5cc75329da150e8d4137884d07c897987b0bf01dad294",
+   "source": "built here: ati_stack_mount base (mini45, clock 114 deg)",
+   "step": {
+    "faces": 58,
+    "plane": 30,
+    "cylinder": 28
+   }
+  },
+  "ati_mini40_45/mini45_base.stl": {
+   "bytes": 517484,
+   "sha256": "fddbc8864e96ed9d3122885f55fd660fe4d8ae070f8c9a1888c6fc4f677e1bdc",
+   "source": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_ati_base.stl",
+   "source_sha256": "fddbc8864e96ed9d3122885f55fd660fe4d8ae070f8c9a1888c6fc4f677e1bdc"
+  },
+  "ati_mini40_45/mini45_top.step": {
+   "bytes": 88032,
+   "sha256": "a3f895e6f2658593b8a922d18bfbd1016d215cd1d865af225eb3d1d5fa075494",
+   "source": "built here: ati_stack_mount top (mini45, clock 114 deg)",
+   "step": {
+    "faces": 37,
+    "plane": 14,
+    "cylinder": 19,
+    "cone": 4
+   }
+  },
+  "ati_mini40_45/mini45_top.stl": {
+   "bytes": 404284,
+   "sha256": "475aaeccc82ac126751dc6ac0f1a67ebaf31eb0128df329b3578b3f69cfc64b9",
+   "source": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_ati_top.stl",
+   "source_sha256": "475aaeccc82ac126751dc6ac0f1a67ebaf31eb0128df329b3578b3f69cfc64b9"
+  },
+  "cassette_3T.step": {
+   "bytes": 975356,
+   "sha256": "3e6fb1c9f1373449432d56537feba72ae2e3cb4c144a88e154f6c85141829c16",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/cad/20261022-dip_link_v4b_cover_I15H3_3T.step moved into frame D",
+   "step": {
+    "faces": 252,
+    "plane": 248,
+    "cylinder": 4
+   }
+  },
+  "cassette_3T_print.stl": {
+   "bytes": 124384,
+   "sha256": "1993006bf1508dbb4de255a7d432a086e5311570c979d36b80014e4d74599d63",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261022-dip_link_v4b_cover_I15H3_3T_pla_bambu.stl",
+   "source_sha256": "1993006bf1508dbb4de255a7d432a086e5311570c979d36b80014e4d74599d63"
+  },
+  "dip_link_v4b.step": {
+   "bytes": 2030436,
+   "sha256": "4f659a034de46b88d600b2189ffcf320fbf466db862c7aab93f71b7a08acdb4a",
+   "source": "built here: fitted arms + concept b body (v4 parameters)",
+   "step": {
+    "faces": 481,
+    "plane": 268,
+    "cylinder": 213
+   }
+  },
+  "dip_link_v4b_print.stl": {
+   "bytes": 767884,
+   "sha256": "8d1d5a17b76f29cd7b180b529d96142bb5786630a538628fbe396ea73ea3efda",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261021-dip_link_v4b_dip_link_pla_bambu.stl",
+   "source_sha256": "8d1d5a17b76f29cd7b180b529d96142bb5786630a538628fbe396ea73ea3efda"
+  },
+  "pad_B05R_print.stl": {
+   "bytes": 2714284,
+   "sha256": "09b78b7ac1be1784e221a0935943d0b1858d31832475e03b80478c6a02d425f7",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261022-dip_link_pad_ell11_5_B05R_print.stl",
+   "source_sha256": "09b78b7ac1be1784e221a0935943d0b1858d31832475e03b80478c6a02d425f7"
+  },
+  "top_cover_TW15H3.step": {
+   "bytes": 1293388,
+   "sha256": "0859686f1c13c8add6d815e9cd043d21c0d15c8c1e9a6db97ababa1a8840c3d3",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/cad/20261021-dip_link_v4b_tip_cap_TW15H3.step moved into frame D",
+   "step": {
+    "faces": 329,
+    "plane": 324,
+    "cylinder": 3,
+    "cone": 2
+   }
+  },
+  "top_cover_TW15H3_print.stl": {
+   "bytes": 113984,
+   "sha256": "3770aaccb69dbb3441f629f1d5ebcd4c0e2dfea7d9781adffe67df4fb1392bbb",
+   "source": "docs/experiments/20261018-dip_link_board_mount/v4/b/print/20261021-dip_link_v4b_tip_cap_TW15H3_pla_bambu.stl",
+   "source_sha256": "3770aaccb69dbb3441f629f1d5ebcd4c0e2dfea7d9781adffe67df4fb1392bbb"
+  },
+  "ur5_mount/adapter.step": {
+   "bytes": 64328,
+   "sha256": "6e8a9d13e702971e0c3881934512d3742b8741a7142712c32ee2c2367d011680",
+   "source": "docs/experiments/20261021-ur5_calibration_mount_v3/cad/20261021-ur5_calibration_mount_v3_adapter.step",
+   "source_sha256": "6e8a9d13e702971e0c3881934512d3742b8741a7142712c32ee2c2367d011680",
+   "step": {
+    "faces": 26,
+    "plane": 7,
+    "cylinder": 10,
+    "cone": 9
+   }
+  },
+  "ur5_mount/adapter.stl": {
+   "bytes": 279084,
+   "sha256": "17963590b86a53b60590ccf39ff64da9f05b56baec6a84f8205dd9b7392ec53c",
+   "source": "docs/experiments/20261021-ur5_calibration_mount_v3/cad/20261021-ur5_calibration_mount_v3_adapter.stl",
+   "source_sha256": "17963590b86a53b60590ccf39ff64da9f05b56baec6a84f8205dd9b7392ec53c"
+  },
+  "ur5_mount/clamp_plate.step": {
+   "bytes": 62243,
+   "sha256": "48041070906165a514959e58dbf2925807e5e4b9c4800bce025380736d5e46bf",
+   "source": "docs/experiments/20261021-ur5_calibration_mount_v3/cad/20261021-ur5_calibration_mount_v3_clamp_plate.step",
+   "source_sha256": "48041070906165a514959e58dbf2925807e5e4b9c4800bce025380736d5e46bf",
+   "step": {
+    "faces": 16,
+    "plane": 8,
+    "cylinder": 8
+   }
+  },
+  "ur5_mount/clamp_plate.stl": {
+   "bytes": 95284,
+   "sha256": "42c98732b62ccc42c60a2e38881c7a60593534feac058541c5d5a5cafd5ebbab",
+   "source": "docs/experiments/20261021-ur5_calibration_mount_v3/cad/20261021-ur5_calibration_mount_v3_clamp_plate.stl",
+   "source_sha256": "42c98732b62ccc42c60a2e38881c7a60593534feac058541c5d5a5cafd5ebbab"
+  },
+  "ur5_mount/indenter_rod.step": {
+   "bytes": 129075,
+   "sha256": "10e14d2a58e30b9b215c4712582d4bc9a2c403d8ae606fe60492859d715953f2",
+   "source": "docs/experiments/20261021-ur5_calibration_mount_v3/cad/20261021-ur5_calibration_mount_v3_indenter_rod.step",
+   "source_sha256": "10e14d2a58e30b9b215c4712582d4bc9a2c403d8ae606fe60492859d715953f2",
+   "step": {
+    "faces": 34,
+    "plane": 21,
+    "cylinder": 9,
+    "b-spline": 4
+   }
+  },
+  "ur5_mount/indenter_rod.stl": {
+   "bytes": 75584,
+   "sha256": "25d03954d5fa8f3673e9ece36528e63cf96061d367c6e4e8f4ad51d67d4d2565",
+   "source": "docs/experiments/20261021-ur5_calibration_mount_v3/cad/20261021-ur5_calibration_mount_v3_indenter_rod.stl",
+   "source_sha256": "25d03954d5fa8f3673e9ece36528e63cf96061d367c6e4e8f4ad51d67d4d2565"
+  },
+  "ur5_mount/indenter_sphere.step": {
+   "bytes": 118106,
+   "sha256": "67890a5fcce58acb62ad51065c94a3c8fa3d051d18d2bb8439cea29b8c02a9da",
+   "source": "docs/experiments/20261021-ur5_calibration_mount_v3/cad/20261021-ur5_calibration_mount_v3_indenter_sphere.step",
+   "source_sha256": "67890a5fcce58acb62ad51065c94a3c8fa3d051d18d2bb8439cea29b8c02a9da",
+   "step": {
+    "faces": 32,
+    "plane": 17,
+    "cylinder": 9,
+    "cone": 1,
+    "sphere": 1,
+    "b-spline": 4
+   }
+  },
+  "ur5_mount/indenter_sphere.stl": {
+   "bytes": 203684,
+   "sha256": "4476cc5cced78fb326a06e6f1e7e4b959555bd47a616825d9ed2c84f1f297d6e",
+   "source": "docs/experiments/20261021-ur5_calibration_mount_v3/cad/20261021-ur5_calibration_mount_v3_indenter_sphere.stl",
+   "source_sha256": "4476cc5cced78fb326a06e6f1e7e4b959555bd47a616825d9ed2c84f1f297d6e"
+  },
+  "ur5_mount/standoff_fork_v7.step": {
+   "bytes": 1567274,
+   "sha256": "c6bd6c508c079907e0e0c7ef8fca31cc97f346d8ab32c14055f9f2ad87767f14",
+   "source": "docs/experiments/20261025-ur5_calibration_mount_v7/cad/20261025-ur5_calibration_mount_v7_standoff_fork.step",
+   "source_sha256": "c6bd6c508c079907e0e0c7ef8fca31cc97f346d8ab32c14055f9f2ad87767f14",
+   "step": {
+    "faces": 383,
+    "plane": 349,
+    "cylinder": 30,
+    "b-spline": 4
+   }
+  },
+  "ur5_mount/standoff_fork_v7.stl": {
+   "bytes": 516984,
+   "sha256": "ccd41672c57fb530283dde561617f625bbface4247092a77874f40e904cc4671",
+   "source": "docs/experiments/20261025-ur5_calibration_mount_v7/cad/20261025-ur5_calibration_mount_v7_standoff_fork.stl",
+   "source_sha256": "ccd41672c57fb530283dde561617f625bbface4247092a77874f40e904cc4671"
+  }
+ }
+}

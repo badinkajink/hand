@@ -1,0 +1,142 @@
+{
+ "when": "2026-10-26 12:51",
+ "note": "distances in mm between the new solid's fine STL and the mesh it stands for, from 20000 points on each surface; volumes in mm3",
+ "parts": {
+  "dip_link_v4b_F.stl": {
+   "reference": "docs/experiments/20261018-dip_link_board_mount/v4/b/cad/20261021-dip_link_v4b_dip_link.stl",
+   "volume_new": 6404.3,
+   "volume_reference": 6403.16,
+   "new_to_reference": {
+    "max": 0.3661,
+    "p99": 0.0014
+   },
+   "reference_to_new": {
+    "max": 0.253,
+    "p99": 0.0012
+   },
+   "share_over_0p05mm": 0.00122,
+   "over_0p05mm_bounds_new_frame": [
+    [
+     -3.53,
+     -17.62,
+     -69.97
+    ],
+    [
+     3.32,
+     -17.06,
+     -67.93
+    ]
+   ],
+   "reference_over_0p05mm_bounds": [
+    [
+     -3.38,
+     -17.65,
+     -69.77
+    ],
+    [
+     3.21,
+     -17.12,
+     -68.06
+    ]
+   ]
+  },
+  "mini45_base.stl": {
+   "reference": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_ati_base.stl",
+   "volume_new": 65208.11,
+   "volume_reference": 65164.62,
+   "new_to_reference": {
+    "max": 0.0186,
+    "p99": 0.0177
+   },
+   "reference_to_new": {
+    "max": 0.0186,
+    "p99": 0.0178
+   },
+   "share_over_0p05mm": 0.0
+  },
+  "mini45_top.stl": {
+   "reference": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_ati_top.stl",
+   "volume_new": 32732.86,
+   "volume_reference": 32712.45,
+   "new_to_reference": {
+    "max": 0.0168,
+    "p99": 0.0158
+   },
+   "reference_to_new": {
+    "max": 0.0168,
+    "p99": 0.0157
+   },
+   "share_over_0p05mm": 0.0
+  },
+  "mini40_base.stl": {
+   "reference": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_mini40_ati_base.stl",
+   "volume_new": 65293.92,
+   "volume_reference": 65251.17,
+   "new_to_reference": {
+    "max": 0.0187,
+    "p99": 0.0177
+   },
+   "reference_to_new": {
+    "max": 0.0187,
+    "p99": 0.0178
+   },
+   "share_over_0p05mm": 0.0
+  },
+  "mini40_top.stl": {
+   "reference": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_mini40_ati_top.stl",
+   "volume_new": 33253.93,
+   "volume_reference": 33233.36,
+   "new_to_reference": {
+    "max": 0.0168,
+    "p99": 0.0158
+   },
+   "reference_to_new": {
+    "max": 0.0168,
+    "p99": 0.0159
+   },
+   "share_over_0p05mm": 0.0
+  },
+  "hook_cross.stl": {
+   "reference": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_stack_hook_cross.stl",
+   "volume_new": 86310.91,
+   "volume_reference": 86295.26,
+   "new_to_reference": {
+    "max": 0.0167,
+    "p99": 0.0133
+   },
+   "reference_to_new": {
+    "max": 0.0166,
+    "p99": 0.0131
+   },
+   "share_over_0p05mm": 0.0
+  },
+  "mass_cup.stl": {
+   "reference": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_mass_cup.stl",
+   "volume_new": 8456.34,
+   "volume_reference": 8453.31,
+   "new_to_reference": {
+    "max": 0.0081,
+    "p99": 0.0074
+   },
+   "reference_to_new": {
+    "max": 0.0081,
+    "p99": 0.0075
+   },
+   "share_over_0p05mm": 0.0
+  },
+  "mass_cap.stl": {
+   "reference": "docs/experiments/20261023-ati_ft_calibration/cad/20261023-ati_mass_cap.stl",
+   "volume_new": 4591.83,
+   "volume_reference": 4589.97,
+   "new_to_reference": {
+    "max": 0.0081,
+    "p99": 0.0065
+   },
+   "reference_to_new": {
+    "max": 0.0081,
+    "p99": 0.0067
+   },
+   "share_over_0p05mm": 0.0
+  }
+ }
+}
