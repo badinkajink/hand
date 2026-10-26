@@ -643,7 +643,17 @@ the lab session ("go") at about 15:36.
   - Pass 3: mount ≥ 4.0 mm, finger ≥ 1.4 mm.
   - Pass 5: mount ≥ 3.7 mm, finger ≥ 1.5 mm.
 
-### 17:24:50, cb2t pass 3 (twins, slides, twists at 5 N, the rate set at four speeds)
+### 17:24:50 to 18:39:44, cb2t pass 3 (twins, slides, twists at 5 N, the rate set at four speeds)
+
+- "speed slider 0.30 (the plan's 0.30)" again. All 55 actions were ok: 36 grid actions (the twins and the rate presses),
+  6 slides, 9 twists, 3 rolls and the final reference press.
+- The HEX-E gave 448,540 samples, none timed out. Its one gap (0.7 s) came at the start, before the preflight.
+- The rate presses to 2 N peaked higher the faster they went:
+  - 2.11 to 2.36 N at v 0.00015 (0.045 mm/s at the slider's 0.30);
+  - 2.43 to 2.56 N at v 0.002 (0.6 mm/s);
+  - 2.95 to 3.28 N at v 0.00667 (2.0 mm/s).
+
+### 18:40:37, cb2t pass 5 (the grid at 4 times the contact speed, slides at more forces and points)
 
 ## The lab clone and git-lfs
 
