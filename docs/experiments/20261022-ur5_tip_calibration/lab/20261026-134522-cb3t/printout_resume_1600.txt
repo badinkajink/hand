@@ -1,0 +1,36 @@
+resumed logs/20261026-tip_calibration/134522-cb3t: 50 actions done, 48 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0454 0.0353 0.2401 0.003  0.0038 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  dense-613-t+10 (1/19): to 3.00 N
+  dense-614-t+10 (2/19): to 3.00 N
+  dense-615-t+10 (3/19): to 3.00 N
+  grid-048 (4/19): to 3.00 N
+  fast-grid-048 (5/19): to 3.00 N
+  grid-044 (6/19): to 3.00 N
+  fast-grid-044 (7/19): to 3.00 N
+  grid-057 (8/19): to 2.00 N
+  fast-grid-057 (9/19): to 2.00 N
+  fast-grid-058 (10/19): to 2.00 N
+  grid-058 (11/19): to 2.00 N
+  fast-grid-046 (12/19): to 3.00 N
+  grid-046 (13/19): to 3.00 N
+  fast-grid-045 (14/19): to 3.00 N
+  grid-045 (15/19): to 3.00 N
+  dense-554-t+15 (16/19): to 2.00 N
+  fast-grid-059 (17/19): to 2.00 N
+  grid-059 (18/19): to 2.00 N
+  dense-555-t+15 (19/19): to 2.00 N
+== shear
+  slide-dense-611-t+5-1N (1/5): to 1.00 N
+  slide-dense-613-t+10-1N (2/5): to 1.00 N
+  slide-dense-614-t+10-1N (3/5): to 1.00 N
+  slide-dense-615-t+10-1N (4/5): to 1.00 N
+  slide-dense-554-t+15-1N (5/5): to 1.00 N
+HEX-E: 151887 samples, 0 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz +0.4 N
+session in logs/20261026-tip_calibration/134522-cb3t
+exit 0 at 16:26:19
