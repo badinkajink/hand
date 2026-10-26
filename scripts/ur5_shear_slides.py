@@ -255,6 +255,8 @@ class Slides:
                 action=aid, kind=a["kind"], region=a["target"].get("region"), target_P=a["target"]["p"],
                 twist=float(a.get("twist") or 0.0), press_N=float(a.get("press_N") or 0.0), turn_v=a.get("turn_v"),
                 dir_deg=float(mv.get("dir_deg", 0.0)), dir_index=k, from_rest=(k == 0), v_B=v.tolist(),
+                v_P=(smp["T_BP"][i0][0][:3, :3].T @ v).tolist(), n_P=np.asarray(n_c).tolist(), p_P=np.asarray(p_c).tolist(),
+                c_P=np.asarray(gt0["c_P"]).tolist(),
                 start=hold[0], holds=out, back=back, sub=sub, give_first_um_N=sub[0]["give_um_N"] if sub else None,
                 stops_growing=stops, epp=fit,
                 k_load_N_mm=k_load, k_unload_N_mm=k_unl,
