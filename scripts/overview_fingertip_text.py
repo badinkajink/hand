@@ -290,7 +290,9 @@ I&#178;C multiplexer. Three fingers on one multiplexer were read together on 202
 conversion of the 15 chips is read. Each chip&#8217;s noise matched that of the same finger read alone to within 2&#8202;%, and
 the boards&#8217; readings did not correlate (at most 0.031)
 ([magnetometer readout](exp:20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html),
-<code>src/morphohand/driver/reskin5x/README.md</code>).</p>
+<code>src/morphohand/driver/reskin5x/README.md</code>). Three v1 fingertips left at rest on one multiplexer for
+8.4&#8202;h on 2026-10-26/27 were read without a gap, and the viewer showed no contact at its 2&#8202;&#181;T floor
+([three fingertips at rest](exp:20261027-three_v1_fingers_overnight/20261027-three_v1_fingertips_at_rest_overnight.html)).</p>
 {{FIG board}}
 <p>The design studies rank layouts by force resolution. The FE gives each magnet&#8217;s translation and rotation per newton
 of a patch load. The field model turns that into the change of the 15 readings, which is the sensitivity \(S\). The noise

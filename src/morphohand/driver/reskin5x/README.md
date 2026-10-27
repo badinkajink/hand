@@ -145,6 +145,16 @@ noise per conversion is 1.88 µT on x and y and 2.89 µT on z, as on the QT Py. 
 The sketch that was on the C6 before, an older port of the one-board stream, took the fuel gauge and the mux for
 magnetometers and crashed on the null bus that `firmware/reskin5x_stream` fixes.
 
+Three v1 fingertips (ID 1, ID 2 and ID 3 on mux channels 0, 1 and 2) were left at rest on the C6 from 19:33 on
+2026-10-26, with `host/reskin5x_mux.py` logging every record. From 19:35 to 04:00 the log has 4,937,833 records at
+163.0 records/s, no gap over 0.1 s and 28 malformed single records, which the viewer drops. The noise stayed at 1.88 µT
+on x and y and 2.90 µT on z, and the boards' noise did not correlate. Replayed through the viewer's logic, the
+fingertips showed no contact at the 2 µT floor, and one 0.1 s frame of 0.9 N at 1 µT in 25 finger-hours. Over the
+night's cooling of about 1 °C, the thermal correction left under 0.1 %/°C on 10 of the 15 chips. It adds noise at
+averaging times of 1 to 20 s. The tools are `host/reskin5x_mux_check.py --scan`, `_rest.py`, `_soak.py --floor`,
+`_allan.py`, `_steps.py` and `_recovery.py`; the results are on
+`docs/experiments/20261027-three_v1_fingers_overnight/20261027-three_v1_fingertips_at_rest_overnight.html`.
+
 ## Pad on the board
 
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/reskin5x_plot.py
