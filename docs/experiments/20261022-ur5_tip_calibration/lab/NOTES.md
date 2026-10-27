@@ -1103,6 +1103,19 @@ the lab session ("go") at about 15:36.
   3.83 deg from its own. The program fits the rod as a sphere at one point, and both tips show the same offset.
 - The HEX-E gave 107,643 samples, none timed out. Exit 0.
 
+### Rod pass 2 for v2 ID 1, checked here (`lab/20261027-plan_rod_lab_r27_pass2_v2id1.json`)
+
+- `scripts/ur5_tip_calibration_rod_pass2.py logs/20261027-tip_calibration/095303-rodv2id1 --j6-max 45` built it on
+  rod pass 1's registration: 135 actions. That covers 66 presses (47 of R19's 48 targets, 19 more; 37 on the face, 29
+  on the edges), rates at six face targets, slides at eight, 6 rolls, the twists at rod-grid-019 and the reference
+  presses. rod-grid-040 was dropped: joint 6 reaches +46.7 deg there.
+- The builder's least clearance of the mount is 3.05 mm (rod-more-686), with the margins raised by each press's depth.
+- In the simulator (the tool where v2 ID 1's sphere registration put it, the rod at the joint fit of R19) all 135
+  ended ok. The mount stayed 3.1 mm or more from the rod, the finger 1.5 mm, the HEX-E 31 mm. Joint 5 stayed at
+  35.7 deg or more, and joint 6 within −44 and +44 deg. The simulated time was 0.42 h.
+- The simulator's fast presses (to 3 N at about 4 mm/s) peaked at 8.9 to 9.4 N. On ID 3's rod it gave 7.9 to 9.0 N
+  where the robot measured 4.65 to 5.13 N.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
