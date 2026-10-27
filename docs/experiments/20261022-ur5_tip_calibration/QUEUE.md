@@ -946,6 +946,23 @@ push that answers it arrives.
     head and turn moves need the rod's.
   - About 30 min for pass 1 and 2.5 h for pass 2. cb3t then resumes at pass 2b.
 
+- R28 (18:47 on 10-26; owner: "i am about to halt the v1 id 3 calibration and place on the 4 n52 magnet tip on. i am
+  calling this v3 id 1 ... until the 4am reset, you and the other session will be focused on just running the full
+  calibration procedure (the one we are about to cut short on v1 id 3) on v3 id 1"). The tip v3 ID 1 has four N52
+  magnets in an alternating square, on mount v7, as session `v3id1`.
+  - Stop cb3t at the end of its current action or plan, home the robot and push its files.
+  - Run cb3t's plan files in cb3t's order: pass 1, pass 2a, then passes 2b, 3, 5 and 6 with joint 6 capped at +45 deg.
+    While the owner is present, run the 24 actions above the cap as on cb3t (lowest joint 6 first). Otherwise they wait
+    for the owner. After pass 6, run R26 (hard1, then hard2 if the two reference presses agree). Run R27's rod passes
+    only if they are built and checked without long work; otherwise they wait for the reset.
+  - Before pass 1: confirm with the owner that the pad's outer shape is B00's, as on ID 1 to 3, since the plans' targets
+    come from its FE surface. In pass 1, compare each chip's field at rest and at 5 N with the chips' range at the
+    board's gain. N52 raises the field, and a clipped chip would spoil the run.
+  - The run only records the board. The physical model's pole search assumes five magnets and is fixed after the
+    reset; nothing in the run depends on it.
+  - Until the reset at 04:00, both sessions keep their reasoning short. Planning or debugging that needs more goes to
+    an autopilot job on the personal account (owner).
+
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
   back on after the ATI work: `plan/20261023-plan_sphere_lab_check6_sph3t.json`, six of sph3t's 19 touch-offs at its
