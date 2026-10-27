@@ -1,7 +1,7 @@
 # Five-magnet N52 tip (v2 ID 1) and better contact sensing: work after the weekly reset
 
 Owner, 2026-10-26 18:4x: until the 04:00 reset (10-27) the workstation and the lab session only run the calibration of
-v3 ID 1 (R28 in `docs/experiments/20261022-ur5_tip_calibration/QUEUE.md`); planning or debugging that needs more goes to
+v2 ID 1 (R28 in `docs/experiments/20261022-ur5_tip_calibration/QUEUE.md`); planning or debugging that needs more goes to
 an autopilot job on the personal account. After the reset: "full license to do all the analysis and further calibration
 test development and deployment" within the envelope of forces, joint limits and speeds defined so far.
 
