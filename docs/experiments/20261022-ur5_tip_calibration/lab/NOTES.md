@@ -983,6 +983,10 @@ the lab session ("go") at about 15:36.
 - The chips under load: over pass 2b's first presses (up to 5 N), chip 0's largest component reached 0.358 of the
   range (0.349 at rest). The largest change on a chip was 191 µT. N52 leaves the chips far from clipping.
 
+### 20:57:54 to 22:12:57, pass 3 (55 actions)
+
+- All ended ok. The HEX-E gave 449,475 samples, none timed out. Pass 5 started at 22:13:42.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

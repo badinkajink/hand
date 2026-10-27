@@ -1,0 +1,70 @@
+resumed logs/20261026-tip_calibration/192158-v2id1: 93 actions done, 31 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0336 0.0496 0.2424 0.0033 0.004  0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  twin-006-t+10 (1/36): to 5.00 N
+  twin-007-t+10 (2/36): to 5.00 N
+  twin-008-t+10 (3/36): to 5.00 N
+  twin-014-t+5 (4/36): to 5.00 N
+  twin-024-t+5 (5/36): to 5.00 N
+  twin-027-t+10 (6/36): to 5.00 N
+  twin-028-t+10 (7/36): to 5.00 N
+  twin-037-t+5 (8/36): to 3.00 N
+  twin-041-t+5 (9/36): to 3.00 N
+  twin-043-t+15 (10/36): to 3.00 N
+  twin-047-t+10 (11/36): to 3.00 N
+  twin-050-t+10 (12/36): to 3.00 N
+  twin-051-t-20 (13/36): to 3.00 N
+  twin-062-t+15 (14/36): to 2.00 N
+  twin-063-t+15 (15/36): to 2.00 N
+  twin-064-t+15 (16/36): to 2.00 N
+  twin-065-t+15 (17/36): to 2.00 N
+  twin-066-t+10 (18/36): to 2.00 N
+  rate-000-v015 (19/36): to 2.00 N
+  rate-000-v200 (20/36): to 2.00 N
+  rate-000-v667 (21/36): to 2.00 N
+  rate-009-v015 (22/36): to 2.00 N
+  rate-009-v200 (23/36): to 2.00 N
+  rate-009-v667 (24/36): to 2.00 N
+  rate-023-v015 (25/36): to 2.00 N
+  rate-023-v200 (26/36): to 2.00 N
+  rate-023-v667 (27/36): to 2.00 N
+  rate-015-v015 (28/36): to 2.00 N
+  rate-015-v200 (29/36): to 2.00 N
+  rate-015-v667 (30/36): to 2.00 N
+  rate-032-v015 (31/36): to 2.00 N
+  rate-032-v200 (32/36): to 2.00 N
+  rate-032-v667 (33/36): to 2.00 N
+  rate-043-v015 (34/36): to 2.00 N
+  rate-043-v200 (35/36): to 2.00 N
+  rate-043-v667 (36/36): to 2.00 N
+== shear
+  shear-0-1N (1/6): to 1.00 N
+  shear-0-2N (2/6): to 2.00 N
+  shear-3-1N (3/6): to 1.00 N
+  shear-0-1N-tv016 (4/6): to 1.00 N
+  shear-0-1N-tv040 (5/6): to 1.00 N
+  shear-0-1N-tv133 (6/6): to 1.00 N
+== twist
+  twist-0-5.0N (1/9): to 5.00 N
+  twist-2-5.0N (2/9): to 5.00 N
+  twist-3-5.0N (3/9): to 5.00 N
+  twist-0-2.5N-tv016 (4/9): to 2.50 N
+  twist-0-2.5N-tv040 (5/9): to 2.50 N
+  twist-0-2.5N-tv133 (6/9): to 2.50 N
+  twist-0-5.0N-tv016 (7/9): to 5.00 N
+  twist-0-5.0N-tv040 (8/9): to 5.00 N
+  twist-0-5.0N-tv133 (9/9): to 5.00 N
+== roll
+  roll-0-tv016 (1/3): to 1.50 N
+  roll-0-tv040 (2/3): to 1.50 N
+  roll-0-tv133 (3/3): to 1.50 N
+== final
+  final-ref-p3 (1/1): to 2.00 N
+HEX-E: 449475 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 1.0 s, Fz -0.4 N; 0.7 s, Fz -0.3 N
+session in logs/20261026-tip_calibration/192158-v2id1
+exit 0 at 22:12:57
