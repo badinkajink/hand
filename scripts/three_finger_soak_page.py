@@ -81,9 +81,9 @@ def hours_since(t, t0):
     return (np.asarray(t) - t0) / 3600.0
 
 
-def clock_ticks(ax, t0, h_max):
+def clock_ticks(ax, t0, h_max, step=None):
     """Clock times (HH:MM) on the whole hours of an axis of hours since t0 (every second hour past 10 h)."""
-    step = 2.0 if h_max > 10 else 1.0
+    step = step or (2.0 if h_max > 10 else 1.0)
     first = (np.ceil(t0 / 3600.0) * 3600.0 - t0) / 3600.0
     ticks = np.arange(first, h_max + 0.01, step)
     ax.set_xticks(ticks)
@@ -128,7 +128,7 @@ def fig_rest(out):
         ax[2, b].plot(h, np.linalg.norm(G, axis=1), color="#1f5fbf", lw=1.0, label="Uniform field")
         ax[2, b].plot(h, np.linalg.norm(Lf, axis=1), color="#e8a35c", lw=1.0, label="Part left")
         ax[0, b].set_title(NAMES[b])
-        clock_ticks(ax[2, b], t0, h[-1])
+        clock_ticks(ax[2, b], t0, h[-1], step=2.0)
         for k in range(3):
             ax[k, b].grid(alpha=0.3)
     ax[0, 0].set_ylabel("Die temperature (\u00b0C)")
@@ -525,10 +525,9 @@ def sections(N):
         + f" from {pre['ID 1'][0]['start']} to {p_end}. In the same hours the uniform field fell from "
         + lst([f"{pre[n][0]['uniform_uT']:.1f} to {pre[n][-1]['uniform_uT']:.1f}{u} on {nm[n]}" for n in NAMES[:2]], "{}")
         + ". The uniform field also changes with the room&#8217;s field.</p>"
-        "<p>The boards were moved at about 19:30. The part left was higher in the first hour after the move than in the "
-        "last hour before it, by "
-        + lst([f"{post[n][0]['left_uT'] - pre[n][-1]['left_uT']:.1f}{u} on {nm[n]}" for n in NAMES[:2]], "{}")
-        + ". Through the night it rose from "
+        "<p>ID&#8202;1&#8217;s part left rose by about 7&#8202;\u00b5T between 18:50 and 19:12, across a stretch of bins "
+        "that are not at rest, before the boards were moved at about 19:30. ID&#8202;2&#8217;s uniform field fell in two "
+        "steps, at about 16:25 and 18:30, each across such a stretch. Through the night the part left rose from "
         + lst([f"{post[n][0]['left_uT']:.1f} to {post[n][-1]['left_uT']:.1f}{u} on {nm[n]}" for n in NAMES[:2]], "{}")
         + ". Over the same hours the boards&#8217; mean die temperature fell by "
         + lst([post[n][0]["die_C"] - post[n][-1]["die_C"] for n in NAMES[:2]]) + f"{dg}.</p>"
