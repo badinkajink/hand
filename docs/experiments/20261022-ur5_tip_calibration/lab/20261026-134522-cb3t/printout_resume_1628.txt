@@ -1,0 +1,14 @@
+resumed logs/20261026-tip_calibration/134522-cb3t: 74 actions done, 48 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0451 0.0499 0.251  0.0029 0.0039 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  hard-ref-a (1/3): to 2.00 N
+  hard-ramp-ref (2/3): to 8.00 N
+  hard-ref-b (3/3): to 2.00 N
+HEX-E: 10367 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 1.2 s, Fz +0.4 N; 0.7 s, Fz -0.1 N
+session in logs/20261026-tip_calibration/134522-cb3t
+exit 0 at 16:30:32

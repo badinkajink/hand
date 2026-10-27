@@ -831,6 +831,40 @@ the lab session ("go") at about 15:36.
   finger 1.9 mm), and its presses peaked at 8.8 N. hard-ref-c's apparent 8.3 N is the ramp of hard1: the two runs
   share one session copy, and their simulated clocks overlap.
 
+### 16:28:43 to 16:30:32, R26 hard1, the canary
+
+- The owner, at 16:27: "go ahead".
+- hard-ref-a pressed the reference point to 2 N. hard-ramp-ref pressed the same point to 8 N at 0.15 mm/s. hard-ref-b
+  repeated the 2 N press. Nothing aborted.
+- The board's change at each level was taken as its hold mean less its rest mean, over the 20 channels. At 2 N,
+  hard-ref-b differed from hard-ref-a by 9.4 % of the change. cb2t's ten reference presses differ by 8.2 % (median)
+  and 13.8 % at most.
+- Right after the ramp, the pad reached 2 N 72 µm deeper. By hard-ref-c, 1.8 min later, it was within 11 µm. The
+  difference was the pad recovering from 8 N.
+
+### 16:31:38 to 18:03:14, R26 hard2
+
+- All 57 actions ended ok, with no abort. The HEX-E gave 548,674 samples; none timed out.
+- The presses to 8 N peaked at 8.4 N at most. The fast presses (to 3 N at 4 mm/s) peaked at 4.03 to 4.65 N; the
+  simulator had 6.7 to 7.7 N.
+- hard-ref-d came after all the presses. Its board change differed from hard-ref-a's by 7.3 %, and the pad reached
+  2 N within 25 µm.
+- hard-final-ref came after the slides, rolls and twists (6 N, up to 20 deg). Its board change differed by 15.7 %,
+  past cb2t's 13.8 %, and the pad reached 2 N 0.22 mm deeper.
+- hard2 took 1.53 h on the robot, against 0.30 h in the simulator.
+
+### 18:04:28 to 18:08:42, the repeat check after R26 (`lab/20261026-plan_sphere_lab_r26_check4_cb3t.json`)
+
+- The three repeats of pass 1's touch-offs came +0.216 (face-00), +0.055 (face-03) and +0.104 mm (edge-00) from the
+  expected. At 15:24 they came +0.060, +0.037 and +0.038 mm.
+- hard-ref-e, 5 min after hard-final-ref, reached 2 N 95 µm deeper than hard-ref-a. Its board change differed by
+  10.0 %, within cb2t's spread.
+- The hard contacts left a dent near the reference point that is still recovering: face-00 lies nearest that point,
+  and face-03 did not move. The pad as a whole did not shift. Before passes 2b to 6 resume on this registration, the
+  repeats must come back within 0.1 mm; otherwise pass 1 is redone.
+- The owner, at 18:0x: the tip with four N52 magnets will be ready in about 40 min. Until then, rod tests on ID 3;
+  then the new tip's calibration.
+
 ### R27 pass 1 (the rod), checked here
 
 - `lab/20261026-plan_rod_lab_r27_pass1_rod3t.json` is the workstation's `plan/20261023-plan_rod_lab_touch35.json`
