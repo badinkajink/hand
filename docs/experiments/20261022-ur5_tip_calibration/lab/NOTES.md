@@ -1091,6 +1091,18 @@ the lab session ("go") at about 15:36.
 - The static check, with the rod at its seating, puts the mount 2.88 mm from it at pad-face-04 and 2.91 mm at
   pad-edge-06. ID 3's least there was 2.79 mm, and its run was clean.
 
+### 09:53:03 to 10:11:06, rod pass 1 on v2 ID 1 (session `095303-rodv2id1`)
+
+- Stages preflight, homing, pad, pivot and register in a fresh session, from the rod's seating. Homing put the rod
+  where it put it for ID 3: (−289.0, −584.6, 69.0) mm, yaw −94.1 deg, tilt 1.43 deg.
+- All 21 touch-offs ended ok, none in the fast approach. The onsets came −1.07 to −1.93 mm from the expected (ID 3:
+  −0.97 to −1.95 mm); pad-face-01 came at −1.52 mm. The five pivot presses ended ok.
+- The registration fit the 21 touches at 0.030 mm rms (ID 3: 0.051 mm). It moved the TCP 1.04 mm and 2.55 deg, and
+  the rod's centre 1.30 mm from the seating, to (−289.39, −585.09, 70.16) mm: 0.20 mm from where ID 3's put it.
+- This TCP lies 0.83 mm and 4.22 deg from v2 ID 1's sphere registration; ID 3's rod registration lay 0.85 mm and
+  3.83 deg from its own. The program fits the rod as a sphere at one point, and both tips show the same offset.
+- The HEX-E gave 107,643 samples, none timed out. Exit 0.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
