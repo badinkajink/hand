@@ -16,11 +16,17 @@ sensing components. seems like contact density is a big one. i will mount the ta
 1. Analyse v2id1 with the cb2t checks and the density curve (`scripts/ur5_tip_calibration_density_curve.py --session`),
    and pool it with ID 1 to 3 after scaling its board change by the strength fitted at rest (same layout, so the field
    scales by one factor): data from other tips filled ID 1's gaps on 10-26 (`scripts/ur5_tip_calibration_pooled_checks.py`).
-2. Contact density: the face and edges level off near 1 mm spacing (0.36 mm against a 0.22 mm floor); the flanks are
+2. The pause layer's seam (owner, 19:10: "see if there are any points on or near the pause layers in the fingertip prints,
+   and see if the increased seam in the n52 magnet prints has impacted deformation/physical properties due to the
+   slightly worse print"). Find each print's pause height in its G-code (the pause for the magnets; the 85A print
+   procedure of 10-18 describes it), map the seam onto the FE surface with the tip's orientation on the bed, and list
+   the targets within 1 mm of it. Compare the depth per newton and the GP's errors at those targets with the rest of
+   the pad, and v2 ID 1's (N52, larger seam) with ID 1 to 3's at the same targets.
+3. Contact density: the face and edges level off near 1 mm spacing (0.36 mm against a 0.22 mm floor); the flanks are
    thin (74 to 79 % of their FE points over 1.5 mm from a press). The tall indenter mounts on 10-27: give it its
    cell-model kind and a reach map (spec `docs/experiments/20261026-tall_indenter/20261026-tall_indenter_spec.md`), then
    a pass of flank and edge presses and slides.
-3. Then: contact pose, its smoothness in motion, variable forces and speeds (R26), the rod (R27, rod pass 2's builder
+4. Then: contact pose, its smoothness in motion, variable forces and speeds (R26), the rod (R27, rod pass 2's builder
    `scripts/ur5_tip_calibration_rod_pass2.py`), the simulation models; a results page for cb1r, cb2t, cb3t and v2id1, and
    `docs/overviews/printed_fingertips.html`.
 
