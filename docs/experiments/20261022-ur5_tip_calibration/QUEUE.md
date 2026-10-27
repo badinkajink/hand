@@ -977,6 +977,9 @@ push that answers it arrives.
   - Push pass 1's session when it is done; the plan follows within minutes and is simulated on that registration
     before it runs. Pass 1 is admitted by the README's marks: within 0.05 mm rms, and a series compliance within
     0.01 mm/N of cb3t's.
+  - 14:26 on 10-27, owner: "we can allow the +60 j6, i am here for the next ~5 hours so can debug as needed". The plan
+    is built with joint 6 up to +60 deg and runs while the owner is present (until about 19:00); the actions over +45
+    deg go first among the presses, so that what is left after 19:00 stays under the cap.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes

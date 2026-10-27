@@ -18,7 +18,7 @@ farthest-point sampling until none lies within --spacing mm (1.0) of another.
 Actions, at the plan builder's levels by region (face 0.25 to 5 N, edge 0.25 to 3 N, flank 0.25 to 2 N) and the grid's
 speed (0.15 mm/s actual at the slider's 0.30):
   ref     the reference press at the face's centre first, after the presses and last (final-ref);
-  press   each target at its turn, ordered by joint 6 at the rest pose;
+  press   each target at its turn; those whose joint 6 passes --cap (45 deg, unattended runs) first, then by joint 6;
   slide   each target at 1 N: eight directions, turns of 1.146 and 2.292 deg about the sphere's centre (0.1 and 0.2 mm), a
           slide's turned poses checked as its press;
   twist   to 20 deg in steps of 5 deg and back at 2.5 N and 0.28 deg/s actual (turn_v 0.016; the plan's default 0.07 deg/s
@@ -195,14 +195,17 @@ def run(a):
         r = reg_of[i]
         s, tw, worst, j = reached[i]
         lv = LEVELS[r]
-        presses.append((j[2], action("press", f"tall-{r}-{i:03d}", pts[i], nrm[i], i, r, tw, levels=lv, stop_N=lv[-1],
+        key = (0 if j[3] > a.cap else 1, j[2])         # past the unattended cap first, then by joint 6
+        presses.append((key, action("press", f"tall-{r}-{i:03d}", pts[i], nrm[i], i, r, tw, levels=lv, stop_N=lv[-1],
                                      max_depth_mm=2.5 if lv[-1] <= 2.0 else 3.0, hold_s=0.6)))
         if cell.slide_ok(pts[i], nrm[i], tw):
-            slides.append((j[2], action("slide", f"tall-slide-{r}-{i:03d}-1N", pts[i], nrm[i], i, r, tw, press_N=1.0,
+            slides.append((key, action("slide", f"tall-slide-{r}-{i:03d}-1N", pts[i], nrm[i], i, r, tw, press_N=1.0,
                                         moves=[dict(dir_deg=float(d), degs=SLIDE_DEGS) for d in range(0, 360, 45)],
                                         hold_s=0.4, turn_v=0.04)))
     print(f"{len(reached)} reached, {len(keep)} kept at {a.spacing} mm, {len(slides)} slides, {time.time() - t0:.0f} s", flush=True)
-    # twists at face and edge points (any point the tall indenter reaches, not only uncovered ones)
+    # twists at face and edge points (any point the tall indenter reaches, not only uncovered ones), under the unattended
+    # cap, since they run late in the plan
+    cell.j6 = (-65.0, min(a.j6_max, a.cap))
     tw_acts = []
     for r in ("face", "edge"):
         pool = [i for i in range(len(pts)) if reg_of[i] == r]
@@ -284,5 +287,6 @@ if __name__ == "__main__":
     ap.add_argument("--spacing", type=float, default=1.0)
     ap.add_argument("--twists", type=int, default=6)
     ap.add_argument("--j6-max", type=float, default=45.0)
+    ap.add_argument("--cap", type=float, default=45.0, help="actions whose joint 6 passes this go first (owner present)")
     ap.add_argument("--out", default=str(LAB / "20261027-plan_tall_lab_r29_v2id1.json"))
     run(ap.parse_args())
