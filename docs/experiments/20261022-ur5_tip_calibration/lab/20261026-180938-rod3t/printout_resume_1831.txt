@@ -1,0 +1,39 @@
+resumed logs/20261026-tip_calibration/180938-rod3t: 28 actions done, 21 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0496 0.0158 0.2355 0.0031 0.0042 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  rod-ref-a (1/26): to 2.00 N
+  rod-rate-026-v015 (2/26): to 2.00 N
+  rod-rate-026-v200 (3/26): to 2.00 N
+  rod-rate-026-v667 (4/26): to 2.00 N
+  rod-fast4-026 (5/26): to 3.00 N
+  rod-rate-017-v015 (6/26): to 2.00 N
+  rod-rate-017-v200 (7/26): to 2.00 N
+  rod-rate-017-v667 (8/26): to 2.00 N
+  rod-fast4-017 (9/26): to 3.00 N
+  rod-rate-021-v015 (10/26): to 2.00 N
+  rod-rate-021-v200 (11/26): to 2.00 N
+  rod-rate-021-v667 (12/26): to 2.00 N
+  rod-fast4-021 (13/26): to 3.00 N
+  rod-rate-010-v015 (14/26): to 2.00 N
+  rod-rate-010-v200 (15/26): to 2.00 N
+  rod-rate-010-v667 (16/26): to 2.00 N
+  rod-fast4-010 (17/26): to 3.00 N
+  rod-rate-000-v015 (18/26): to 2.00 N
+  rod-rate-000-v200 (19/26): to 2.00 N
+  rod-rate-000-v667 (20/26): to 2.00 N
+  rod-fast4-000 (21/26): to 3.00 N
+  rod-rate-022-v015 (22/26): to 2.00 N
+  rod-rate-022-v200 (23/26): to 2.00 N
+  rod-rate-022-v667 (24/26): to 2.00 N
+  rod-fast4-022 (25/26): to 3.00 N
+  rod-ref-b (26/26): to 2.00 N
+== final
+  rod-final-ref (1/1): to 2.00 N
+HEX-E: 67504 samples, 0 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz +0.2 N
+session in logs/20261026-tip_calibration/180938-rod3t
+exit 0 at 18:42:55

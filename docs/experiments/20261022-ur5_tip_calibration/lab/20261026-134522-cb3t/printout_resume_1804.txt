@@ -1,0 +1,16 @@
+resumed logs/20261026-tip_calibration/134522-cb3t: 134 actions done, 48 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0458 0.0186 0.2486 0.0031 0.0038 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== pad
+  chk4-face-00: onset +0.216 mm from the expected (power 1.75, fit 27.1 mN)
+  chk4-face-03: onset +0.055 mm from the expected (power 2.00, fit 57.8 mN)
+  chk4-edge-00: onset +0.104 mm from the expected (power 2.00, fit 52.5 mN)
+== grid
+  hard-ref-e (1/1): to 2.00 N
+HEX-E: 24872 samples, 0 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz +0.0 N
+session in logs/20261026-tip_calibration/134522-cb3t
+exit 0 at 18:08:42

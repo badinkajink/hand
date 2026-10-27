@@ -1,0 +1,72 @@
+resumed logs/20261026-tip_calibration/134522-cb3t: 77 actions done, 48 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0338 0.0485 0.2146 0.0029 0.004  0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  hard-ref-c (1/36): to 2.00 N
+  hard-dense-664-t+15 (2/36): to 4.00 N
+  hard-grid-055 (3/36): to 4.00 N
+  hard-dense-464-t-5 (4/36): to 4.00 N
+  hard-dense-542-t+15 (5/36): to 4.00 N
+  hard-grid-053 (6/36): to 4.00 N
+  hard-dense-594-t+15 (7/36): to 4.00 N
+  hard-grid-030 (8/36): to 6.00 N
+  hard-dense-614-t+10 (9/36): to 6.00 N
+  hard-grid-049 (10/36): to 6.00 N
+  hard-dense-658-t+15 (11/36): to 6.00 N
+  hard-grid-033 (12/36): to 6.00 N
+  hard-grid-037 (13/36): to 6.00 N
+  hard-grid-041 (14/36): to 6.00 N
+  hard-dense-748-t+10 (15/36): to 6.00 N
+  hard-grid-035 (16/36): to 6.00 N
+  hard-dense-611-t+5 (17/36): to 6.00 N
+  hard-grid-000 (18/36): to 8.00 N
+  hard-grid-020 (19/36): to 8.00 N
+  hard-dense-736-t+10 (20/36): to 8.00 N
+  hard-grid-029 (21/36): to 8.00 N
+  hard-grid-021 (22/36): to 8.00 N
+  hard-dense-780-t+10 (23/36): to 8.00 N
+  hard-grid-015 (24/36): to 8.00 N
+  hard-grid-005 (25/36): to 8.00 N
+  hard-grid-003 (26/36): to 8.00 N
+  hard-grid-008 (27/36): to 8.00 N
+  hard-grid-010 (28/36): to 8.00 N
+  hard-grid-013 (29/36): to 8.00 N
+  fast4-grid-000 (30/36): to 3.00 N
+  fast4-grid-009 (31/36): to 3.00 N
+  fast4-grid-015 (32/36): to 3.00 N
+  fast4-grid-023 (33/36): to 3.00 N
+  fast4-grid-032 (34/36): to 3.00 N
+  fast4-grid-043 (35/36): to 3.00 N
+  hard-ref-d (36/36): to 2.00 N
+== shear
+  hard-shear-0-4.5N (1/14): to 4.50 N
+  hard-shear-3-4N (2/14): to 4.00 N
+  hard-slide-twin-008-t+10-4N (3/14): to 4.00 N
+  hard-slide-twin-014-t+5-4N (4/14): to 4.00 N
+  hard-slide-twin-028-t+10-4N (5/14): to 4.00 N
+  hard-slide-twin-024-t+5-4N (6/14): to 4.00 N
+  hard-slide-twin-006-t+10-4N (7/14): to 4.00 N
+  hard-slide-015-4N (8/14): to 4.00 N
+  fast-slide-twin-008-t+10-2N (9/14): to 2.00 N
+  fast-slide-twin-014-t+5-2N (10/14): to 2.00 N
+  fast-slide-twin-028-t+10-2N (11/14): to 2.00 N
+  fast-slide-twin-024-t+5-2N (12/14): to 2.00 N
+  fast-slide-twin-006-t+10-2N (13/14): to 2.00 N
+  fast-slide-015-2N (14/14): to 2.00 N
+== roll
+  hard-roll-0-4N (1/2): to 4.00 N
+  fast-roll-0-1.5N-tv400 (2/2): to 1.50 N
+== twist
+  hard-twist-0-6N (1/4): to 6.00 N
+  hard-twist-3-6N-20deg (2/4): to 6.00 N
+  fast-twist-0-2.5N-tv400 (3/4): to 2.50 N
+  fast-twist-0-5N-tv400 (4/4): to 5.00 N
+== final
+  hard-final-ref (1/1): to 2.00 N
+HEX-E: 548674 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.6 s, Fz +0.1 N; 0.7 s, Fz +0.3 N
+session in logs/20261026-tip_calibration/134522-cb3t
+exit 0 at 18:03:14

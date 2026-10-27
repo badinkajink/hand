@@ -831,6 +831,40 @@ the lab session ("go") at about 15:36.
   finger 1.9 mm), and its presses peaked at 8.8 N. hard-ref-c's apparent 8.3 N is the ramp of hard1: the two runs
   share one session copy, and their simulated clocks overlap.
 
+### 16:28:43 to 16:30:32, R26 hard1, the canary
+
+- The owner, at 16:27: "go ahead".
+- hard-ref-a pressed the reference point to 2 N. hard-ramp-ref pressed the same point to 8 N at 0.15 mm/s. hard-ref-b
+  repeated the 2 N press. Nothing aborted.
+- The board's change at each level was taken as its hold mean less its rest mean, over the 20 channels. At 2 N,
+  hard-ref-b differed from hard-ref-a by 9.4 % of the change. cb2t's ten reference presses differ by 8.2 % (median)
+  and 13.8 % at most.
+- Right after the ramp, the pad reached 2 N 72 µm deeper. By hard-ref-c, 1.8 min later, it was within 11 µm. The
+  difference was the pad recovering from 8 N.
+
+### 16:31:38 to 18:03:14, R26 hard2
+
+- All 57 actions ended ok, with no abort. The HEX-E gave 548,674 samples; none timed out.
+- The presses to 8 N peaked at 8.4 N at most. The fast presses (to 3 N at 4 mm/s) peaked at 4.03 to 4.65 N; the
+  simulator had 6.7 to 7.7 N.
+- hard-ref-d came after all the presses. Its board change differed from hard-ref-a's by 7.3 %, and the pad reached
+  2 N within 25 µm.
+- hard-final-ref came after the slides, rolls and twists (6 N, up to 20 deg). Its board change differed by 15.7 %,
+  past cb2t's 13.8 %, and the pad reached 2 N 0.22 mm deeper.
+- hard2 took 1.53 h on the robot, against 0.30 h in the simulator.
+
+### 18:04:28 to 18:08:42, the repeat check after R26 (`lab/20261026-plan_sphere_lab_r26_check4_cb3t.json`)
+
+- The three repeats of pass 1's touch-offs came +0.216 (face-00), +0.055 (face-03) and +0.104 mm (edge-00) from the
+  expected. At 15:24 they came +0.060, +0.037 and +0.038 mm.
+- hard-ref-e, 5 min after hard-final-ref, reached 2 N 95 µm deeper than hard-ref-a. Its board change differed by
+  10.0 %, within cb2t's spread.
+- The hard contacts left a dent near the reference point that is still recovering: face-00 lies nearest that point,
+  and face-03 did not move. The pad as a whole did not shift. Before passes 2b to 6 resume on this registration, the
+  repeats must come back within 0.1 mm; otherwise pass 1 is redone.
+- The owner, at 18:0x: the tip with four N52 magnets will be ready in about 40 min. Until then, rod tests on ID 3;
+  then the new tip's calibration.
+
 ### R27 pass 1 (the rod), checked here
 
 - `lab/20261026-plan_rod_lab_r27_pass1_rod3t.json` is the workstation's `plan/20261023-plan_rod_lab_touch35.json`
@@ -851,6 +885,39 @@ the lab session ("go") at about 15:36.
 - pad-edge-01 was dropped (22 to 21 touch-offs). It sits at joint 6 +44.7 deg, against the cap of +45. It was R19's
   outlier (rod1t, +0.66 mm), which the joint fit leaves out. It is also the mount's closest approach in both
   simulations. The other touch-offs clear by 3.30 mm or more with the joint fit's rod.
+
+### 18:09:37 to 18:27:30, R27 rod pass 1 (session `180938-rod3t`)
+
+- The owner, at 18:0x: "run as many rod tests as we can before then", meaning before the tip with four N52 magnets
+  is ready (about 40 min).
+- `lab/20261026-plan_rod_lab_r27_pass1_rod3t.json`, stages preflight, homing, pad, pivot and register, from the
+  rod's seating. Homing put the rod at (−289.0, −584.6, 69.0) mm, yaw −94.1 deg, tilt 1.43 deg.
+- All 21 touch-offs ended ok. The onsets came −0.97 to −1.95 mm from the expected (median −1.48). Nine met the rod
+  in the fast approach and fell back to the slow one, as the simulation with the workstation's joint-fit rod
+  predicted (−0.87 to −2.09 mm). The five pivot presses ended ok.
+- The registration fit the 21 touches at 0.051 mm rms (R19's rod1: 0.122 mm). It moved the TCP 1.10 mm and
+  2.75 deg, and the rod's centre 1.46 mm from the seating, to (−289.31, −585.17, 70.33) mm. The program fits the rod
+  as a sphere at one point, so this TCP lies 0.85 mm and 3.83 deg from cb3t's sphere registration; the cylinder fit
+  of `scripts/ur5_tip_calibration_rod_registration.py` should judge it.
+- The HEX-E gave 106,641 samples, none timed out. Exit 0 at 18:27:30.
+
+### 18:31:35, R27 rod pass 2a: the rate set alone
+
+- `scripts/ur5_tip_calibration_rod_pass2.py` built rod pass 2 on a simulated stand-in of rod pass 1 (the tool
+  where cb3t's registration put it, the rod where the joint fit put it): 132 actions. That covers 63 presses (47 of
+  R19's 48 targets, 16 more), 24 rate presses at six face targets, 32 slides at eight, 6 rolls, 3 twists and four
+  reference presses. It simulated with no abort and the mount at 3.1 mm or more. Its rod pass 2 needs about 1.7 h.
+- Twists go to +15 deg at rod-grid-019. At the reference point a turn about the vertical moves joint 5: +15 deg takes
+  it to 26 deg. A negative turn swings the mount into the rod (−5.9 mm at −15 deg).
+- In the 15 min left, the rate set ran alone: `lab/20261026-plan_rod_lab_r27_pass2a_rod3t.json`, 27 actions on
+  rod pass 1's registration. The mount clears by 5.16 mm and the finger by 4.17 mm. In the simulator there was no
+  abort; joint 5 stayed within 42 to 49 deg and joint 6 within −29 to +15 deg. The simulator's fast presses peaked at
+  7.9 to 9.0 N. On the sphere it gave 6.7 to 7.7 N where the robot measured 4.0 to 4.7 N.
+- All 27 ended ok, 18:31:35 to 18:42:55. The fast presses (to 3 N at 4 mm/s) peaked at 4.65 to 5.13 N, the 2 mm/s
+  presses at 3.51 N at most. At 2 N, the reference presses after the set reached within 54 µm of rod-ref-a's flange
+  position. The HEX-E gave 67,504 samples, none timed out. The arm went home for the tip swap.
+- The rest of rod pass 2 (presses to 8 N, slides, rolls, twists) has not run on ID 3. It needs a rebuild on
+  rod3t's registration (`scripts/ur5_tip_calibration_rod_pass2.py logs/20261026-tip_calibration/180938-rod3t`).
 
 ## The lab clone and git-lfs
 
