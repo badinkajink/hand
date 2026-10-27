@@ -987,6 +987,10 @@ the lab session ("go") at about 15:36.
 
 - All ended ok. The HEX-E gave 449,475 samples, none timed out. Pass 5 started at 22:13:42.
 
+### 22:13:42 to 00:46:50, pass 5 (94 actions)
+
+- All ended ok. The HEX-E gave 917,547 samples, none timed out. Pass 6 started at 00:47:33.
+
 ### R26 for v2 ID 1, prepared during pass 5
 
 - The owner, 23:5x: "sure you can run the harder presses. just, as always, be careful." R26 runs unattended after
