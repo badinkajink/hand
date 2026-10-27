@@ -886,6 +886,39 @@ the lab session ("go") at about 15:36.
   outlier (rod1t, +0.66 mm), which the joint fit leaves out. It is also the mount's closest approach in both
   simulations. The other touch-offs clear by 3.30 mm or more with the joint fit's rod.
 
+### 18:09:37 to 18:27:30, R27 rod pass 1 (session `180938-rod3t`)
+
+- The owner, at 18:0x: "run as many rod tests as we can before then", meaning before the tip with four N52 magnets
+  is ready (about 40 min).
+- `lab/20261026-plan_rod_lab_r27_pass1_rod3t.json`, stages preflight, homing, pad, pivot and register, from the
+  rod's seating. Homing put the rod at (−289.0, −584.6, 69.0) mm, yaw −94.1 deg, tilt 1.43 deg.
+- All 21 touch-offs ended ok. The onsets came −0.97 to −1.95 mm from the expected (median −1.48). Nine met the rod
+  in the fast approach and fell back to the slow one, as the simulation with the workstation's joint-fit rod
+  predicted (−0.87 to −2.09 mm). The five pivot presses ended ok.
+- The registration fit the 21 touches at 0.051 mm rms (R19's rod1: 0.122 mm). It moved the TCP 1.10 mm and
+  2.75 deg, and the rod's centre 1.46 mm from the seating, to (−289.31, −585.17, 70.33) mm. The program fits the rod
+  as a sphere at one point, so this TCP lies 0.85 mm and 3.83 deg from cb3t's sphere registration; the cylinder fit
+  of `scripts/ur5_tip_calibration_rod_registration.py` should judge it.
+- The HEX-E gave 106,641 samples, none timed out. Exit 0 at 18:27:30.
+
+### 18:31:35, R27 rod pass 2a: the rate set alone
+
+- `scripts/ur5_tip_calibration_rod_pass2.py` built rod pass 2 on a simulated stand-in of rod pass 1 (the tool
+  where cb3t's registration put it, the rod where the joint fit put it): 132 actions. That covers 63 presses (47 of
+  R19's 48 targets, 16 more), 24 rate presses at six face targets, 32 slides at eight, 6 rolls, 3 twists and four
+  reference presses. It simulated with no abort and the mount at 3.1 mm or more. Its rod pass 2 needs about 1.7 h.
+- Twists go to +15 deg at rod-grid-019. At the reference point a turn about the vertical moves joint 5: +15 deg takes
+  it to 26 deg. A negative turn swings the mount into the rod (−5.9 mm at −15 deg).
+- In the 15 min left, the rate set ran alone: `lab/20261026-plan_rod_lab_r27_pass2a_rod3t.json`, 27 actions on
+  rod pass 1's registration. The mount clears by 5.16 mm and the finger by 4.17 mm. In the simulator there was no
+  abort; joint 5 stayed within 42 to 49 deg and joint 6 within −29 to +15 deg. The simulator's fast presses peaked at
+  7.9 to 9.0 N. On the sphere it gave 6.7 to 7.7 N where the robot measured 4.0 to 4.7 N.
+- All 27 ended ok, 18:31:35 to 18:42:55. The fast presses (to 3 N at 4 mm/s) peaked at 4.65 to 5.13 N, the 2 mm/s
+  presses at 3.51 N at most. At 2 N, the reference presses after the set reached within 54 µm of rod-ref-a's flange
+  position. The HEX-E gave 67,504 samples, none timed out. The arm went home for the tip swap.
+- The rest of rod pass 2 (presses to 8 N, slides, rolls, twists) has not run on ID 3. It needs a rebuild on
+  rod3t's registration (`scripts/ur5_tip_calibration_rod_pass2.py logs/20261026-tip_calibration/180938-rod3t`).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
