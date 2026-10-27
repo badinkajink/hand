@@ -1059,6 +1059,76 @@ the lab session ("go") at about 15:36.
   0.21 and 0.67), edges 0.30 and 0.67 (0.32 and 0.80), flanks 0.45 and 0.58 (0.53 and 0.79). Over 1.5 N they are
   symmetric about the middle: 0.28, 0.23 and 0.29 mm at y < −1.5, the middle and y > 1.5 (ID 2: 0.28, 0.22 and 0.28).
 
+## 2026-10-27 morning: v2 ID 1's parity actions and the rod, with the owner present
+
+- The owner, at 09:1x: "yes run the rod pass and the parity actions". Asked which tip the rod pass runs on: v2 ID 1 as
+  mounted.
+
+### 09:17:39 to 09:21:04, the repeat check (`lab/20261027-plan_sphere_lab_check_v2id1.json`)
+
+- Three repeats of pass 1's touch-offs (chk-face-00, chk-face-03, chk-edge-00) came +0.074, −0.041 and −0.028 mm from
+  the expected: the pad had not moved since pass 1. The HEX-E gave 20,026 samples, none timed out.
+
+### 09:23:08 to 09:51:40, the parity actions past the cap (`lab/20261027-plan_sphere_lab_r25_parity45_v2id1.json`)
+
+- The 24 of ID 3's parity run, and slide-dense-555-t+15-1N, which ID 3 left out (mount 2.84 mm on its
+  registration). On v2 ID 1's registration it clears the mount by 3.35 mm; the 24 others clear it by 3.56 mm or more,
+  the finger by 2.14 mm. These 25 are the set ID 2 ran before the cap.
+- In the simulator on v2 ID 1's registration, none aborted. The mount stayed 3.4 mm or more from the sphere, the finger
+  2.3 mm or more. Joint 5 stayed at 41.9 deg or more, and joint 6 reached at most +59.8 deg.
+- All 25 ended ok, with joint 6 from +39.7 to +60.0 deg. The HEX-E gave 170,603 samples, none timed out. v2 ID 1
+  now has the full sphere suite that ID 2 ran.
+
+### Rod pass 1 for v2 ID 1, checked here (`lab/20261027-plan_rod_lab_r27_pass1_v2id1.json`)
+
+- R27's rod pass 1, with the touch-offs' slow approach starting 2.5 mm before the expected surface instead of
+  1.5 mm. Simulated with v2 ID 1's sphere registration and the rod where the workstation's joint fit of R19 put it,
+  pad-face-01 met the rod at the end of the fast approach. Its slow approach then had too few samples and it aborted,
+  twice. On ID 3 the real onset of pad-face-01 came at −1.44 mm, at that hand-over.
+- With 2.5 mm the simulation had no abort and no contact in the fast approach. The onsets came −1.02 to −1.96 mm from
+  the expected, and the registration fit all 21. The mount stayed 3.38 mm or more from the rod (pad-face-04), the
+  finger 3.00 mm, the HEX-E 31.9 mm. Joint 6 stayed within −46 and +31 deg.
+- The static check, with the rod at its seating, puts the mount 2.88 mm from it at pad-face-04 and 2.91 mm at
+  pad-edge-06. ID 3's least there was 2.79 mm, and its run was clean.
+
+### 09:53:03 to 10:11:06, rod pass 1 on v2 ID 1 (session `095303-rodv2id1`)
+
+- Stages preflight, homing, pad, pivot and register in a fresh session, from the rod's seating. Homing put the rod
+  where it put it for ID 3: (−289.0, −584.6, 69.0) mm, yaw −94.1 deg, tilt 1.43 deg.
+- All 21 touch-offs ended ok, none in the fast approach. The onsets came −1.07 to −1.93 mm from the expected (ID 3:
+  −0.97 to −1.95 mm); pad-face-01 came at −1.52 mm. The five pivot presses ended ok.
+- The registration fit the 21 touches at 0.030 mm rms (ID 3: 0.051 mm). It moved the TCP 1.04 mm and 2.55 deg, and
+  the rod's centre 1.30 mm from the seating, to (−289.39, −585.09, 70.16) mm: 0.20 mm from where ID 3's put it.
+- This TCP lies 0.83 mm and 4.22 deg from v2 ID 1's sphere registration; ID 3's rod registration lay 0.85 mm and
+  3.83 deg from its own. The program fits the rod as a sphere at one point, and both tips show the same offset.
+- The HEX-E gave 107,643 samples, none timed out. Exit 0.
+
+### Rod pass 2 for v2 ID 1, checked here (`lab/20261027-plan_rod_lab_r27_pass2_v2id1.json`)
+
+- `scripts/ur5_tip_calibration_rod_pass2.py logs/20261027-tip_calibration/095303-rodv2id1 --j6-max 45` built it on
+  rod pass 1's registration: 135 actions. That covers 66 presses (47 of R19's 48 targets, 19 more; 37 on the face, 29
+  on the edges), rates at six face targets, slides at eight, 6 rolls, the twists at rod-grid-019 and the reference
+  presses. rod-grid-040 was dropped: joint 6 reaches +46.7 deg there.
+- The builder's least clearance of the mount is 3.05 mm (rod-more-686), with the margins raised by each press's depth.
+- In the simulator (the tool where v2 ID 1's sphere registration put it, the rod at the joint fit of R19) all 135
+  ended ok. The mount stayed 3.1 mm or more from the rod, the finger 1.5 mm, the HEX-E 31 mm. Joint 5 stayed at
+  35.7 deg or more, and joint 6 within −44 and +44 deg. The simulated time was 0.42 h.
+- The simulator's fast presses (to 3 N at about 4 mm/s) peaked at 8.9 to 9.4 N. On ID 3's rod it gave 7.9 to 9.0 N
+  where the robot measured 4.65 to 5.13 N.
+
+### 10:36:36 to 12:10:46, rod pass 2 on v2 ID 1
+
+- Stages preflight, grid, shear, roll, twist and final, resumed on rod pass 1's session. All 135 ended ok in 1.57 h.
+  Joint 6 stayed within −43.6 and +44.3 deg.
+- The presses reached their planned tops: 23 at 8 N, 3 at 6.5 N, 19 at 6 N, the rest at 2 to 5 N. No slow press
+  passed its top by more than 0.76 N. The fast presses to 3 N at about 4 mm/s peaked at 5.02 to 5.53 N (ID 3's
+  rate set: 4.65 to 5.13 N).
+- The reference presses rod-ref-b, rod-ref-c and rod-final-ref differed from rod-ref-a's board change at 2 N by 6.5,
+  6.9 and 9.1 % (ID 2's sphere repeats: median 8.2 %, at most 13.8 %). At 2 N the flange stopped within 46 µm of
+  rod-ref-a's, after the twists too: the rod's twists did not leave the pad deeper, as the sphere's did.
+- The HEX-E gave 564,108 samples, none timed out. Exit 0. The arm went home.
+- v2 ID 1 now has the rod set ID 3 lacks: rod pass 1, the rate set, and the presses to 8 N, slides, rolls and twists.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
