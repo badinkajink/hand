@@ -1116,6 +1116,19 @@ the lab session ("go") at about 15:36.
 - The simulator's fast presses (to 3 N at about 4 mm/s) peaked at 8.9 to 9.4 N. On ID 3's rod it gave 7.9 to 9.0 N
   where the robot measured 4.65 to 5.13 N.
 
+### 10:36:36 to 12:10:46, rod pass 2 on v2 ID 1
+
+- Stages preflight, grid, shear, roll, twist and final, resumed on rod pass 1's session. All 135 ended ok in 1.57 h.
+  Joint 6 stayed within −43.6 and +44.3 deg.
+- The presses reached their planned tops: 23 at 8 N, 3 at 6.5 N, 19 at 6 N, the rest at 2 to 5 N. No slow press
+  passed its top by more than 0.76 N. The fast presses to 3 N at about 4 mm/s peaked at 5.02 to 5.53 N (ID 3's
+  rate set: 4.65 to 5.13 N).
+- The reference presses rod-ref-b, rod-ref-c and rod-final-ref differed from rod-ref-a's board change at 2 N by 6.5,
+  6.9 and 9.1 % (ID 2's sphere repeats: median 8.2 %, at most 13.8 %). At 2 N the flange stopped within 46 µm of
+  rod-ref-a's, after the twists too: the rod's twists did not leave the pad deeper, as the sphere's did.
+- The HEX-E gave 564,108 samples, none timed out. Exit 0. The arm went home.
+- v2 ID 1 now has the rod set ID 3 lacks: rod pass 1, the rate set, and the presses to 8 N, slides, rolls and twists.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
