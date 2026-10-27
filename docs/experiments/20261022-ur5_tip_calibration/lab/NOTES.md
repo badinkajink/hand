@@ -1188,6 +1188,26 @@ the lab session ("go") at about 15:36.
   0.047 mm over 31 touches. It moved the TCP 1.50 mm and 2.59 deg, and the sphere's centre 1.25 mm from the seating.
 - The HEX-E gave 207,467 samples, none timed out. Exit 0.
 
+### R29 on the tall indenter (`lab/20261027-plan_tall_lab_r29_v2id1.json`, the workstation's, ec08a7aa)
+
+- The owner confirmed joint 6 to +60 deg for R29 (16:3x: "yea thats good with me").
+- Simulated on tall pass 1's registration: all 122 ended ok. The mount stayed 3.06 mm or more from the indenter, the
+  finger 2.03 mm, the HEX-E 22.5 mm. Joint 6 stayed within −61.5 and +57.5 deg. The simulated time was 0.66 h. The
+  static check on the session agrees: mount 3.25 mm, finger 1.54 mm, HEX-E 22.1 mm.
+- 16:38:01 to 17:06:25: 45 of the 59 presses ended ok, the 8 past +45 deg first (joint 6 +48.4 to +55.4 deg). Then
+  the HEX-E fell off its DAQ: tall-face-702, tall-face-690 and tall-edge-627 aborted with no HEX-E sample, at joint 6
+  +18.5 deg, and the session stopped after three aborts in a row. The DAQ showed no sensor (serial "", counter 0,
+  status 131072). The HEX-E gave 169,072 samples; 158 timed out. The arm was stopped with the pad 67 mm from anything.
+- By 17:2x the sensor was back by itself (serial HEXEA478, its counter restarted; 1001 samples in 10 s, none timed out).
+  The owner had not reseated it; the slack loop at the wrist was not tight. An intermittent contact in the connector
+  or the cable is the likely cause.
+- 17:23:43 to 17:28:17, three repeats of pass 1's touch-offs (`lab/20261027-plan_tall_lab_check_v2id1.json`):
+  chk-face-03 −0.081 mm and chk-edge-00 −0.055 mm from the expected, chk-face-00 −0.166 mm, outside the 0.1 mm mark.
+  pad-face-00 is the face's centre (index 788), where R29's reference presses go.
+- The owner asked for lower lifts between actions ("maybe dont go up quite as much on these lift offs"):
+  `lab/20261027-plan_tall_lab_r29_lift30_v2id1.json` is R29 with the travel's lift at 30 mm instead of 60, being
+  simulated on the session's registration.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
