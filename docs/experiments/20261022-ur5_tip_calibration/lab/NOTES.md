@@ -987,6 +987,25 @@ the lab session ("go") at about 15:36.
 
 - All ended ok. The HEX-E gave 449,475 samples, none timed out. Pass 5 started at 22:13:42.
 
+### R26 for v2 ID 1, prepared during pass 5
+
+- The owner, 23:5x: "sure you can run the harder presses. just, as always, be careful." R26 runs unattended after
+  pass 6.
+- On v2 ID 1's registration, R26's margins tighten. The pad sits about 1 mm differently on the mount: the reference
+  point clears the mount by 4.02 mm, against 5.34 mm on ID 3.
+- With R26's margins (each raised by the press's depth at its peak, less 1 mm), 14 of its actions fail. hard1's 8 N
+  ramp at the reference point needs 4.49 mm.
+- `lab/20261027-plan_sphere_lab_r26_hard1_v2id1.json`: the reference presses stay at the reference point. The 8 N
+  ramp moves to hard-grid-020's target, where 8 N passes.
+- `lab/20261027-plan_sphere_lab_r26_hard2_v2id1.json` has 44 actions. It is hard2 under the cap of +45 deg (no
+  hard-grid-049 or hard-dense-614-t+10), with hard-grid-053 lowered to 3 N and hard-grid-030 to 5 N.
+- Dropped from it: hard-grid-000, -003, -005 and -008, whose passing level is no higher than pass 2b's own 5 N on the
+  face. Also fast4-grid-000, -009, -023 and -032, hard-shear-0-4.5N, hard-roll-0-4N and hard-twist-0-6N.
+- Simulated on v2 ID 1's registration: no abort. The cell check was clean (mount 3.4 mm, finger 1.9 mm, HEX-E 27 mm).
+  Joint 5 stayed within 37 to 95 deg and joint 6 within −62.5 to +42.2 deg. Peaks reached 8.8 N.
+- hard2 runs only if hard1's reference presses agree: the board's change at 2 N within cb2t's repeat spread
+  (13.8 %), and the flange's position within about 0.1 mm once the pad has recovered.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
