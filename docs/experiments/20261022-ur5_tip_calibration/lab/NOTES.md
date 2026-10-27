@@ -919,6 +919,146 @@ the lab session ("go") at about 15:36.
 - The rest of rod pass 2 (presses to 8 N, slides, rolls, twists) has not run on ID 3. It needs a rebuild on
   rod3t's registration (`scripts/ur5_tip_calibration_rod_pass2.py logs/20261026-tip_calibration/180938-rod3t`).
 
+### 19:2x, how well the three v1 tips sense (owner: "run a thorough set of analysis on the v1 id 3 data that we did get ... and see how good (ideally) the sensing for the three v1 fingertips are")
+
+- ID 3's sessions were analysed from their lab folders, where the plans of their resumes are
+  (`scripts/ur5_tip_calibration_analysis.py lab/20261026-134522-cb3t --gravity-from logs/20261022-tip_calibration/
+  195420-first2`, as the workstation analysed ID 1 and ID 2). That gives 813 holds on the sphere (270 presses up to
+  7.8 N, 491 slide, 30 twist and 22 roll holds) and 103 on the rod: `data/20261026-134522-cb3t/`,
+  `data/20261026-180938-rod3t/`.
+- `scripts/ur5_tip_calibration_v1_tips.py` (`data/20261026-v1_tips.json`) scores each tip's sphere presses. ID 1 has
+  98 press actions, ID 2 187 and ID 3 60. Median location error over 1.5 N, then under 1.5 N (mm):
+
+  | estimator | ID 1 | ID 2 | ID 3 |
+  |---|---|---|---|
+  | physical (viewer) | 1.29, 9.64 | 1.35, 8.31 | 1.99, 8.23 |
+  | GP, own presses (5 folds) | 0.40, 0.88 | 0.25, 0.72 | 0.46, 1.48 |
+  | GP, own, thinned to ID 3's 48 training actions | 0.54, 0.97 | 0.48, 1.09 | 0.51, 1.44 |
+  | GP, the other two tips only | 0.74, 1.19 | 0.96, 1.42 | 1.44, 1.79 |
+  | GP, the other tips and own (pooled) | 0.29, 0.99 | 0.24, 0.75 | 0.48, 1.10 |
+
+- The GP's force error over 1.5 N on a tip's own presses is 0.20, 0.16 and 0.25 N.
+- By region, over 1.5 N (the GP from the other two tips, then the physical estimator):
+  - face: 0.65 and 1.32 mm on ID 1, 0.81 and 1.08 mm on ID 2, 0.43 and 1.37 mm on ID 3;
+  - edges: 0.83 and 1.45 mm on ID 1, 1.12 and 1.41 mm on ID 2, 1.68 and 2.81 mm on ID 3;
+  - flanks: 0.94 and 0.84 mm on ID 1, 1.43 and 2.88 mm on ID 2, 1.72 and 3.50 mm on ID 3.
+- On its own presses, ID 3's edges come to 0.55 mm (ID 1 0.57, ID 2 0.32).
+- So ID 3's face senses like ID 1 and ID 2. Its edges and flanks respond differently from theirs: a model of ID 1
+  and ID 2 misses them by about twice its error between those two. Calibrated on its own presses at the same density,
+  ID 3 is as good as the others over 1.5 N (0.51 against 0.54 and 0.48 mm).
+- Under 1.5 N, ID 3 is worse (1.44 mm thinned). It has few light presses (76 holds, against 285 and 548), because
+  passes 2b to 6 did not run.
+- Two cautions. ID 3's presses are mostly on edges and flanks: 37 % of its holds over 1.5 N lie on the face, against
+  61 % and 56 %. And 50 of its 194 holds over 1.5 N are R26's 5 to 8 N, beyond the 1 and 3 holds over 5 N of ID 1 and
+  ID 2. Over 5 N, the GP from the other tips misses the force by 3.9 N (extrapolation); ID 3's own GP misses it by
+  0.36 N.
+
+## 2026-10-26 evening: R28 on v2 ID 1 (five N52 magnets in the checkerboard, mount v7), session `v2id1`
+
+- The owner swapped tips at about 19:00. The workstation's R28 (QUEUE.md): cb3t's plan files in cb3t's order, the cap at
+  +45 deg on passes 2b to 6, the 24 actions above it only with the owner present, R26 after pass 6.
+- The board check at rest (19:2x, `reskin5x_check.py`): 375 records/s from all five chips, noise 1.6 to 3.0 µT. The
+  largest component is chip 0's Bz, −13.4 mT, 34.9 % of the 38.4 mT range. ID 3's chip 0 read 3.6 mT, and ID 3's
+  presses to 8 N changed a chip's field by 0.14 mT at most.
+
+### 19:21:57 to 19:42:50, pass 1
+
+- All 19 touch-offs ended ok. The onsets came −0.69 to +0.87 mm from the expected: the nominal tool against a pad
+  that sits tilted in its seat (ID 3's first pass 1 had +0.85 mm at pad-edge-07). pad-edge-07 ran at joint 6 +54 deg
+  with no gap.
+- The registration fit the 19 touches at 0.050 mm rms (ID 3: 0.034, ID 2: 0.046). It moved the TCP 1.04 mm and
+  1.71 deg, and the sphere 0.83 mm.
+- The HEX-E gave 124,596 samples, none timed out.
+- The poles fitted at rest (`fingertip_wrench_model.calibrate_frames_fixed`, with the board's earlier chip frames,
+  from the rest before pad-flank-05) are (+1, −1, −1, −1, +1), as on ID 1, ID 2 and ID 3. That fit leaves 0.36 mT
+  rms; the next pattern leaves 2.64 mT. The strength k is 0.96 (ID 2: 0.47, ID 3: 0.20). The largest components are
+  0.349, 0.096, 0.089, 0.217 and 0.221 of the range.
+
+### 19:44:04 to 19:59:06, pass 2a; 20:00:15 to 20:57:07, pass 2b (capped, 60 actions)
+
+- Pass 2a: all touch-offs ok, pad-off-10 and -11 after their swing among them. The registration fit 31 touches at
+  0.047 mm rms; it moved the TCP 0.324 mm and 1.40 deg, the sphere 0.657 mm.
+- The owner did not answer whether they would be at the robot for the 24 parity actions, so those wait.
+- Pass 2b: all 60 actions ended ok. The HEX-E gave 340,474 samples, none timed out.
+- The chips under load: over pass 2b's first presses (up to 5 N), chip 0's largest component reached 0.358 of the
+  range (0.349 at rest). The largest change on a chip was 191 µT. N52 leaves the chips far from clipping.
+
+### 20:57:54 to 22:12:57, pass 3 (55 actions)
+
+- All ended ok. The HEX-E gave 449,475 samples, none timed out. Pass 5 started at 22:13:42.
+
+### 22:13:42 to 00:46:50, pass 5 (94 actions)
+
+- All ended ok. The HEX-E gave 917,547 samples, none timed out. Pass 6 started at 00:47:33.
+
+### R26 for v2 ID 1, prepared during pass 5
+
+- The owner, 23:5x: "sure you can run the harder presses. just, as always, be careful." R26 runs unattended after
+  pass 6.
+- On v2 ID 1's registration, R26's margins tighten. The pad sits about 1 mm differently on the mount: the reference
+  point clears the mount by 4.02 mm, against 5.34 mm on ID 3.
+- With R26's margins (each raised by the press's depth at its peak, less 1 mm), 14 of its actions fail. hard1's 8 N
+  ramp at the reference point needs 4.49 mm.
+- `lab/20261027-plan_sphere_lab_r26_hard1_v2id1.json`: the reference presses stay at the reference point. The 8 N
+  ramp moves to hard-grid-020's target, where 8 N passes.
+- `lab/20261027-plan_sphere_lab_r26_hard2_v2id1.json` has 44 actions. It is hard2 under the cap of +45 deg (no
+  hard-grid-049 or hard-dense-614-t+10), with hard-grid-053 lowered to 3 N and hard-grid-030 to 5 N.
+- Dropped from it: hard-grid-000, -003, -005 and -008, whose passing level is no higher than pass 2b's own 5 N on the
+  face. Also fast4-grid-000, -009, -023 and -032, hard-shear-0-4.5N, hard-roll-0-4N and hard-twist-0-6N.
+- Simulated on v2 ID 1's registration: no abort. The cell check was clean (mount 3.4 mm, finger 1.9 mm, HEX-E 27 mm).
+  Joint 5 stayed within 37 to 95 deg and joint 6 within −62.5 to +42.2 deg. Peaks reached 8.8 N.
+- hard2 runs only if hard1's reference presses agree: the board's change at 2 N within cb2t's repeat spread
+  (13.8 %), and the flange's position within about 0.1 mm once the pad has recovered.
+
+### 00:47:33 to 02:44:22, pass 6 (62 actions); 02:45:07 to 02:47:26, R26 hard1
+
+- Pass 6: all ended ok. The HEX-E gave 699,846 samples, none timed out. v2 ID 1's suite under the cap is complete;
+  the 24 parity actions wait for the owner.
+- hard1: the 8 N ramp at hard-grid-020's target peaked at 8.31 N. Nothing aborted.
+- At 2 N, hard-ref-b's board change differed from hard-ref-a's by 8.8 % of the change (94.9 µT; N52 roughly doubles
+  cb2t's 44.4). That is within cb2t's repeat spread of 8.2 % (median) and 13.8 % (max); ID 3 gave 9.4 %. v2 ID 1's own
+  ref-00 and ref-05 of pass 2b, an hour apart, differ by 3.6 %.
+- The flange at 2 N moved 25 µm. The ramp pressed another point, and the reference point shows no dent.
+- hard2 started at 02:48:32.
+
+### 02:48:32 to 04:03:20, R26 hard2 (44 actions)
+
+- All ended ok. The HEX-E gave 447,943 samples, none timed out. The presses peaked at 8.41 N and the twists at 6.17 N.
+- hard-ref-c and hard-ref-d bracketed the presses. Their board change at 2 N differed from hard-ref-a's by 4.3 % and
+  3.6 % (v2 ID 1's own repeat: 3.6 %). The flange at 2 N moved under 30 µm. The hard presses left the pad unchanged.
+- hard-final-ref came after the slides, the roll and the twists, the last two at the reference point at 5 N with fast
+  turns. Its board change differed by 4.6 % at 2 N, but the pad reached 2 N 0.24 mm deeper. ID 3 showed the same
+  after its twists (0.22 mm, 0.095 mm after 5 min).
+- Before the 24 parity actions run on this registration, the repeats of pass 1's touch-offs should come within
+  0.1 mm.
+- The arm went home. v2 ID 1's suite under the cap (passes 1 to 6) and R26 are complete. The 24 parity actions wait
+  for the owner.
+
+### 04:2x, v2 ID 1 against the v1 tips (the owner's worry, 19:2x: the larger seam "has caused some atypical loading patterns")
+
+- v2 ID 1's session was analysed as ID 3's (`lab/20261026-192158-v2id1`, first2's gravity fit): 3,620 holds, in
+  `data/20261026-192158-v2id1/`.
+- `scripts/ur5_tip_calibration_v1_tips.py --v2` (`data/20261027-v1_v2_tips.json`); v2 ID 1 has 198 press actions.
+  Median location error over 1.5 N, then under 1.5 N (mm):
+
+  | estimator | v1 tips (ID 1, ID 2, ID 3) | v2 ID 1 |
+  |---|---|---|
+  | GP, own presses (5 folds) | 0.40, 0.25, 0.46; 0.88, 0.72, 1.48 | 0.25; 0.66 |
+  | GP, own, thinned to 48 training actions | 0.54, 0.48, 0.51; 0.97, 1.09, 1.44 | 0.51; 0.98 |
+  | physical (viewer) | 1.29, 1.35, 1.99; 9.64, 8.31, 8.23 | 1.57; 2.02 |
+  | GP trained on the v1 tips | – | 2.52; 0.90 |
+  | pooled | 0.29, 0.24, 0.48; 0.99, 0.75, 1.10 | 0.29; 0.69 |
+
+- Calibrated on its own presses, v2 ID 1 is as good as the best v1 tip (ID 2), and at one density it equals all
+  three. Its force error over 1.5 N is 0.19 N.
+- The physical estimator reads its light presses within 2.0 mm, against 8 to 10 mm on the v1 tips. The N52 field
+  roughly doubles the board's change at a given press.
+- A GP trained on the v1 tips misses v2 ID 1's contacts by 2.5 mm and its force by 1.9 N over 1.5 N. The stronger
+  magnets change the board's response, so a v2 tip needs its own calibration.
+- No sign of atypical loading from the seam. By region, v2 ID 1's own errors match ID 2's: face 0.23 and 0.68 mm (ID 2
+  0.21 and 0.67), edges 0.30 and 0.67 (0.32 and 0.80), flanks 0.45 and 0.58 (0.53 and 0.79). Over 1.5 N they are
+  symmetric about the middle: 0.28, 0.23 and 0.29 mm at y < −1.5, the middle and y > 1.5 (ID 2: 0.28, 0.22 and 0.28).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

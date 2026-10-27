@@ -1,0 +1,107 @@
+resumed logs/20261026-tip_calibration/192158-v2id1: 148 actions done, 31 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0272 0.0449 0.233  0.0026 0.0036 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  fast-grid-053 (1/45): to 2.00 N
+  fast-grid-033 (2/45): to 3.00 N
+  fast-grid-032 (3/45): to 3.00 N
+  fast-grid-051 (4/45): to 3.00 N
+  fast-grid-034 (5/45): to 3.00 N
+  fast-grid-031 (6/45): to 3.00 N
+  fast-grid-035 (7/45): to 3.00 N
+  fast-grid-036 (8/45): to 3.00 N
+  fast-grid-030 (9/45): to 3.00 N
+  fast-grid-029 (10/45): to 5.00 N
+  fast-grid-009 (11/45): to 5.00 N
+  fast-grid-013 (12/45): to 5.00 N
+  fast-grid-012 (13/45): to 5.00 N
+  fast-grid-008 (14/45): to 5.00 N
+  fast-grid-011 (15/45): to 5.00 N
+  fast-grid-006 (16/45): to 5.00 N
+  fast-grid-010 (17/45): to 5.00 N
+  fast-grid-014 (18/45): to 5.00 N
+  fast-grid-015 (19/45): to 5.00 N
+  fast-grid-026 (20/45): to 5.00 N
+  fast-grid-037 (21/45): to 3.00 N
+  fast-grid-005 (22/45): to 5.00 N
+  fast-grid-020 (23/45): to 5.00 N
+  fast-grid-038 (24/45): to 3.00 N
+  fast-grid-000 (25/45): to 5.00 N
+  fast-grid-004 (26/45): to 5.00 N
+  fast-grid-016 (27/45): to 5.00 N
+  fast-grid-019 (28/45): to 5.00 N
+  fast-grid-001 (29/45): to 5.00 N
+  fast-grid-018 (30/45): to 5.00 N
+  fast-grid-003 (31/45): to 5.00 N
+  fast-grid-017 (32/45): to 5.00 N
+  fast-grid-040 (33/45): to 3.00 N
+  fast-grid-022 (34/45): to 5.00 N
+  fast-grid-021 (35/45): to 5.00 N
+  fast-grid-039 (36/45): to 3.00 N
+  fast-grid-023 (37/45): to 5.00 N
+  fast-grid-041 (38/45): to 3.00 N
+  fast-grid-054 (39/45): to 2.00 N
+  fast-grid-042 (40/45): to 3.00 N
+  fast-grid-049 (41/45): to 3.00 N
+  fast-grid-047 (42/45): to 3.00 N
+  fast-grid-043 (43/45): to 3.00 N
+  fast-grid-055 (44/45): to 2.00 N
+  fast-grid-056 (45/45): to 2.00 N
+== shear
+  shear-0-0.5N (1/48): to 0.50 N
+  shear-0-1.5N (2/48): to 1.50 N
+  shear-0-3N (3/48): to 3.00 N
+  shear-3-2N (4/48): to 2.00 N
+  slide-000-1N (5/48): to 1.00 N
+  slide-000-2N (6/48): to 2.00 N
+  slide-023-1N (7/48): to 1.00 N
+  slide-023-2N (8/48): to 2.00 N
+  slide-015-1N (9/48): to 1.00 N
+  slide-015-2N (10/48): to 2.00 N
+  slide-043-1N (11/48): to 1.00 N
+  slide-043-2N (12/48): to 2.00 N
+  slide-twin-006-t+10-1N (13/48): to 1.00 N
+  slide-twin-006-t+10-2N (14/48): to 2.00 N
+  slide-twin-007-t+10-1N (15/48): to 1.00 N
+  slide-twin-007-t+10-2N (16/48): to 2.00 N
+  slide-twin-008-t+10-1N (17/48): to 1.00 N
+  slide-twin-008-t+10-2N (18/48): to 2.00 N
+  slide-twin-014-t+5-1N (19/48): to 1.00 N
+  slide-twin-014-t+5-2N (20/48): to 2.00 N
+  slide-twin-024-t+5-1N (21/48): to 1.00 N
+  slide-twin-024-t+5-2N (22/48): to 2.00 N
+  slide-twin-027-t+10-1N (23/48): to 1.00 N
+  slide-twin-027-t+10-2N (24/48): to 2.00 N
+  slide-twin-028-t+10-1N (25/48): to 1.00 N
+  slide-twin-028-t+10-2N (26/48): to 2.00 N
+  slide-twin-037-t+5-1N (27/48): to 1.00 N
+  slide-twin-037-t+5-2N (28/48): to 2.00 N
+  slide-twin-041-t+5-1N (29/48): to 1.00 N
+  slide-twin-041-t+5-2N (30/48): to 2.00 N
+  slide-twin-043-t+15-1N (31/48): to 1.00 N
+  slide-twin-043-t+15-2N (32/48): to 2.00 N
+  slide-twin-047-t+10-1N (33/48): to 1.00 N
+  slide-twin-047-t+10-2N (34/48): to 2.00 N
+  slide-twin-050-t+10-1N (35/48): to 1.00 N
+  slide-twin-050-t+10-2N (36/48): to 2.00 N
+  slide-twin-051-t-20-1N (37/48): to 1.00 N
+  slide-twin-051-t-20-2N (38/48): to 2.00 N
+  slide-twin-062-t+15-1N (39/48): to 1.00 N
+  slide-twin-062-t+15-2N (40/48): to 2.00 N
+  slide-twin-063-t+15-1N (41/48): to 1.00 N
+  slide-twin-063-t+15-2N (42/48): to 2.00 N
+  slide-twin-064-t+15-1N (43/48): to 1.00 N
+  slide-twin-064-t+15-2N (44/48): to 2.00 N
+  slide-twin-065-t+15-1N (45/48): to 1.00 N
+  slide-twin-065-t+15-2N (46/48): to 2.00 N
+  slide-twin-066-t+10-1N (47/48): to 1.00 N
+  slide-twin-066-t+10-2N (48/48): to 2.00 N
+== final
+  final-ref-p5 (1/1): to 2.00 N
+HEX-E: 917547 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 1.0 s, Fz +0.2 N; 0.7 s, Fz -0.5 N
+session in logs/20261026-tip_calibration/192158-v2id1
+exit 0 at 00:46:50
