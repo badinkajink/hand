@@ -56,30 +56,30 @@ def save(fig, name):
 
 # ------------------------------------------------------------------------------------------------ figure: motions
 def fig_motions():
-    """Six panels: the pad (face down, an arc of its section) over the 5 mm sphere, and the motion of each kind of action."""
+    """Six panels: a section through the pad, its face down, over the 5 mm sphere, and the motion of each kind of action.
+    The sphere is drawn over the pad, so that a pressed pad shows the sphere's dent."""
     plt = plt_setup()
-    from matplotlib.patches import Circle, FancyArrowPatch, Arc, Polygon
-    R = 5.0
+    from matplotlib.patches import Circle, Arc, Polygon
+    R, A, B = 5.0, 6.5, 7.0                  # sphere radius; the pad section's half-width and depth (mm)
     fig, axes = plt.subplots(2, 3, figsize=(10.0, 7.4))
 
-    def pad(ax, dx=0.0, dy=0.0, ang=0.0, indent=0.0, alpha=1.0):
-        """The pad's section as a filled half-ellipse, face down, apex at (dx, dy - indent), turned by ang (deg) about
-        its apex."""
-        t = np.linspace(0, math.pi, 120)
-        a, b = 6.5, 7.0
-        x = a * np.cos(t)
-        y = b * np.sin(t)
-        y = y - 0.0
-        P = np.c_[x, y + 0.0]
-        th = math.radians(ang)
-        Rm = np.array([[math.cos(th), -math.sin(th)], [math.sin(th), math.cos(th)]])
-        P = P @ Rm.T + np.array([dx, dy - indent])
+    def pad(ax, dx=0.0, dy=0.0, ang=0.0, pivot=None, indent=0.0, alpha=1.0):
+        """The pad's section as a filled half-ellipse with its face down: apex at (dx, dy - indent) and the flat back
+        B above it, turned by ang (deg, counter-clockwise) about pivot (default the apex)."""
+        t = np.linspace(0, math.pi, 160)
+        apex = np.array([dx, dy - indent])
+        P = np.c_[A * np.cos(t), B * (1.0 - np.sin(t))] + apex
+        if ang:
+            c = apex if pivot is None else np.asarray(pivot, float)
+            th = math.radians(ang)
+            Rm = np.array([[math.cos(th), -math.sin(th)], [math.sin(th), math.cos(th)]])
+            P = (P - c) @ Rm.T + c
         ax.add_patch(Polygon(P, closed=True, fc=PAD_COL, ec="#8a6d45", lw=1.4, alpha=alpha, zorder=2))
         return P
 
     def sphere(ax, cx=0.0, cy=-R):
-        ax.add_patch(Circle((cx, cy), R, fc=SPH_COL, ec="#555555", lw=1.2, zorder=1))
-        ax.plot([cx], [cy], "+", color="#555555", ms=8, zorder=3)
+        ax.add_patch(Circle((cx, cy), R, fc=SPH_COL, ec="#555555", lw=1.2, zorder=3))
+        ax.plot([cx], [cy], "+", color="#555555", ms=8, zorder=4)
 
     def arrow(ax, x0, y0, x1, y1, col="black", lw=2.0):
         ax.annotate("", xy=(x1, y1), xytext=(x0, y0), arrowprops=dict(arrowstyle="-|>", lw=lw, color=col), zorder=5)
@@ -91,7 +91,7 @@ def fig_motions():
         ax.annotate("", xy=(x - 0.01 * math.sin(t) * r, y + 0.01 * math.cos(t) * r), xytext=(x + 0.25 * math.sin(t), y - 0.25 * math.cos(t)),
                     arrowprops=dict(arrowstyle="-|>", lw=2.2, color=col), zorder=5)
 
-    # (a) touch-off: straight down along the normal until the push reaches 0.5 N
+    # (a) touch-off: the pad comes straight down onto the sphere's top until the push reaches 0.5 N
     ax = axes[0, 0]
     sphere(ax)
     pad(ax, dy=1.5)
@@ -100,14 +100,21 @@ def fig_motions():
     ax.set_title("(a) Touch-off on the top", fontsize=12.5)
     ax.text(0.5, -0.02, "Registers the pad and the sphere:\nonset of the push at zero force", transform=ax.transAxes,
             ha="center", va="top", fontsize=11.5)
-    # (b) offset touch-off: 3 mm beside the top, the contact normal tilted
+    # (b) offset touch-off: the apex 3 mm beside the sphere's top, so the first touch is where the normal is tilted
     ax = axes[0, 1]
     sphere(ax)
-    pad(ax, dx=3.0, dy=0.6)
-    th = math.asin(3.0 / 6.0)
-    cx, cy = 3.0 * 0.5, 0.0
-    arrow(ax, 8.5, 6.0, 8.5, 2.0)
-    ax.plot([0, 6 * math.sin(th) * 1.2], [-R, -R + 6 * math.cos(th) * 1.2], ":", color="#c0392b", lw=1.6, zorder=4)
+    dx = 3.0
+    t = np.linspace(0, math.pi, 1441)
+    xp, yp = dx + A * np.cos(t), B * (1.0 - np.sin(t))
+    on = np.abs(xp) < R
+    lift = -R + np.sqrt(R ** 2 - xp[on] ** 2) - yp[on]     # apex height at which each point of the face touches
+    k = int(np.argmax(lift))
+    h, xc = float(lift[k]), float(xp[on][k])
+    yc = -R + math.sqrt(R ** 2 - xc ** 2)
+    pad(ax, dx=dx, dy=h)
+    u = np.array([xc, yc + R]) / R
+    ax.plot([0, xc + 2.8 * u[0]], [-R, yc + 2.8 * u[1]], ":", color="#c0392b", lw=1.8, zorder=6)
+    arrow(ax, 11.0, 6.5, 11.0, 2.5)
     ax.set_title("(b) Offset touch-off, 3 mm aside", fontsize=12.5)
     ax.text(0.5, -0.02, "Tilted normal: fixes the place\nalong the finger", transform=ax.transAxes, ha="center", va="top",
             fontsize=11.5)
@@ -120,23 +127,23 @@ def fig_motions():
     ax.set_title("(c) Press along the normal", fontsize=12.5)
     ax.text(0.5, -0.02, "Board change against contact\npoint and normal force", transform=ax.transAxes, ha="center",
             va="top", fontsize=11.5)
-    # (d) slide: turn about the sphere's centre, constant indentation
+    # (d) slide: the pressed pad turns about the sphere's centre, so its apex moves over the sphere at constant indentation
     ax = axes[1, 0]
     sphere(ax)
-    pad(ax, ang=-10.0, indent=0.6, dx=0.0)
     pad(ax, indent=0.6, alpha=0.25)
+    pad(ax, indent=0.6, ang=12.0, pivot=(0.0, -R))
     ax.plot([0], [-R], "o", color="#c0392b", ms=7, zorder=6)
     curl(ax, 0, -R, 8.4, 70, 110)
     ax.set_title("(d) Slide: turn about the centre", fontsize=12.5)
     ax.text(0.5, -0.02, "Contact slides at constant\nindentation: shear, then slip", transform=ax.transAxes, ha="center",
             va="top", fontsize=11.5)
-    # (e) roll: turn about the contact point
+    # (e) roll: the pressed pad turns about the contact point
     ax = axes[1, 1]
     sphere(ax)
-    pad(ax, ang=-12.0, indent=0.6)
     pad(ax, indent=0.6, alpha=0.25)
-    ax.plot([0], [-0.6], "o", color="#c0392b", ms=7, zorder=6)
-    curl(ax, 0, -0.6, 3.0, 40, 140)
+    pad(ax, indent=0.6, ang=12.0, pivot=(0.0, 0.0))
+    ax.plot([0], [0], "o", color="#c0392b", ms=7, zorder=6)
+    curl(ax, 0, 0, 3.0, 40, 140)
     ax.set_title("(e) Roll: turn about the contact", fontsize=12.5)
     ax.text(0.5, -0.02, "Contact moves over both surfaces;\npresses at new tool orientations", transform=ax.transAxes,
             ha="center", va="top", fontsize=11.5)
@@ -144,8 +151,7 @@ def fig_motions():
     ax = axes[1, 2]
     sphere(ax)
     pad(ax, indent=0.6)
-    ax.plot([0, 0], [-0.6, 9.0], "--", color="#c0392b", lw=1.4, zorder=4)
-    from matplotlib.patches import Ellipse
+    ax.plot([0, 0], [0.0, 9.0], "--", color="#c0392b", lw=1.4, zorder=5)
     ax.add_patch(Arc((0, 8.0), 6.0, 1.6, theta1=200, theta2=340, color="#c0392b", lw=2.2, zorder=6))
     ax.annotate("", xy=(2.85, 7.75), xytext=(2.4, 7.5), arrowprops=dict(arrowstyle="-|>", lw=2.2, color="#c0392b"), zorder=6)
     ax.set_title("(f) Twist: turn about the normal", fontsize=12.5)

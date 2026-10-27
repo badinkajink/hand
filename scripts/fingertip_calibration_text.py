@@ -107,8 +107,9 @@ def sections(N, F, P, link, L):
         "the pad is. Presses map the readings against the point and the normal force. Slides add shear, rolls new tool "
         "orientations, and twists torsion. Reference presses at the face centre, repeated every 15 presses, show drift. "
         "The session cb2t of 2026-10-25 ran the full suite in six passes on tip 2 (Table 3).</p>"
-        + P.fig(2, F["motions"], "The six motions, drawn in a section through the pad (face down) and the 5 mm sphere. "
-                "The red dot is the centre of each turn.")
+        + P.fig(2, F["motions"], "The six motions, drawn in a section through the pad, face down, and the 5 mm sphere. "
+                "In (b) the dotted line is the tilted contact normal. In (d) and (e) the red dot is the centre of the "
+                "turn, and in (f) the dashed line is the twist's axis, the contact normal.")
         + P.table(["Action", "Motion", "What it measures", "On cb2t"], [
             ["Homing", "The mount's socket seated on the indenter's key by hand", "The indenter's pose, to about 0.2 mm",
              "1"],
