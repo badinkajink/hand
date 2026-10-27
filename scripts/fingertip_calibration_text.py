@@ -12,6 +12,11 @@ def sections(N, F, P, link, L):
     cov = N["coverage_cb2t"]
     ps = N["pooling_shear"]
     tr = N["transfer"]
+    import json
+    from pathlib import Path
+    # v1 tips' presses scaled by the magnets' strength fitted at rest, applied to v2 ID 1 (2026-10-27, commit 2bbedb0b)
+    st = json.loads((Path(__file__).resolve().parents[1] / "docs/experiments/20261022-ur5_tip_calibration/data/"
+                     "20261026-192158-v2id1/scaled_transfer.json").read_text())
 
     lede = (
         "Three printed fingertips were pressed onto a 5 mm sphere by the lab's UR5, with an OptoForce HEX-E force-torque "
@@ -294,8 +299,18 @@ def sections(N, F, P, link, L):
         f"{tr['gp_id1']['over_1p5N']:.2f} mm at 1.5 N and over (Figure 8a). Tip 2's own GP gives "
         f"{tr['gp_own_5fold']['over_1p5N']:.2f} mm, and tip 2's physical model from its rest fit "
         f"{tr['physical_own_rest']['over_1p5N']:.2f} mm. Two tips with the same magnets and pole pattern still differ in the magnets' places and seating. "
-        "Pooling helps where one tip has no data. Tip 1's own GP missed its twins by 1.64 and 2.09 mm on the two sides; "
-        "with tip 2's presses added it missed them by 0.75 and 0.40 mm (Figure 8b). Tip 2's slides took the direction error of tip 1's shear "
+        "Pooling helps where one tip has few presses, once the tips' board changes are put on one scale. Each change is "
+        "divided by its magnets' strength as fitted at rest: 0.98 of an N52's for v2 ID 1, with five N52 magnets, and "
+        f"{min(st['k'][k] for k in st['k'] if 'v2id1' not in k):.2f}–{max(st['k'][k] for k in st['k'] if 'v2id1' not in k):.2f} "
+        f"for the v1 tips. A GP of the v1 tips' {st['n_v1_holds']:,} holds then places v2 ID 1's contacts within "
+        f"{st['v1_scaled']['over_1p5N']:.2f} mm at 1.5 N and over, against {st['v1_raw']['over_1p5N']:.2f} mm unscaled. "
+        f"With 12 or 24 of v2 ID 1's {st['n_actions']} press actions added, the error is "
+        f"{st['thinned']['12']['own_and_v1_scaled']['over_1p5N']:.2f} and {st['thinned']['24']['own_and_v1_scaled']['over_1p5N']:.2f} mm, "
+        f"against {st['thinned']['12']['own']['over_1p5N']:.2f} and {st['thinned']['24']['own']['over_1p5N']:.2f} mm from those "
+        f"presses alone; all {st['n_actions']} give {st['thinned']['all']['own']['over_1p5N']:.2f} mm "
+        "(<code>scripts/ur5_tip_calibration_scaled_transfer.py</code>). Between tips 1 and 2, whose magnets match, tip 1's "
+        "own GP missed its twins by 1.64 and 2.09 mm on the two sides, and with tip 2's presses added by 0.75 and 0.40 mm "
+        "(Figure 8b). Tip 2's slides took the direction error of tip 1's shear "
         f"from {ps['id1_presses']['angle_deg']:.1f}° to {ps['id1_presses_and_id2_slides']['angle_deg']:.1f}°. The GP that "
         "corrects the physical estimate does not transfer either. Trained on tip 0, it raised tip 1's error from 2.06 to "
         "2.48 mm. Trained on 47 of tip 1's own presses, it gave 0.55 mm at 2 N and over ("

@@ -100,9 +100,12 @@ LEDE = (
     "behind it. A press deforms the pad, moves the magnets and changes the sensors&#8217; readings. We model that "
     "sequence to estimate where the tool presses and with how much force. On a UR5 arm, with a six-axis force sensor as "
     "the reference, the untrained model placed presses of 2&#8202;N and more within 0.9&#8211;2.4&#8202;mm. Its force was "
-    "0.78&#8211;1.31 of the reference, and below 1&#8202;N it fails. Trained on a tip&#8217;s own presses, a Gaussian process "
-    "placed presses at new points within 0.37&#8211;0.53&#8202;mm at 1.5&#8202;N and over, and their force within "
-    "0.06&#8211;0.07&#8202;N. A model learned on one tip misses on another. Under a small sphere the printed pad sinks "
+    "0.78&#8211;1.31 of the reference. Below 1.5&#8202;N it placed presses 8&#8211;10&#8202;mm off with the first tips&#8217; weak "
+    "magnets, and within 2.0&#8202;mm with five N52 magnets. Trained on a tip&#8217;s own presses, a Gaussian process placed "
+    "presses at new points within 0.25&#8211;0.53&#8202;mm at 1.5&#8202;N and over. It gave the force&#8217;s direction within "
+    "2.1&#8211;2.5&#176; on the face. A model learned on one tip misses on another by 1.4&#8211;2.5&#8202;mm, and by 0.64&#8202;mm "
+    "once each board change is scaled by its magnets&#8217; strength. A neighbouring fingertip&#8217;s magnets change a board by "
+    "up to 4,162&#8202;&#181;T, against 23&#8202;&#181;T for a 0.5&#8202;N press. Under a small sphere the printed pad sinks "
     "further than its finite-element model predicts. Three pages explain this in order: the "
     "<a href='../experiments/20261026-fingertip_physical_model/20261026-fingertip_physical_model.html'>physical model</a> "
     "of the pad and its readout, the "
@@ -443,7 +446,27 @@ Sections 3, 6, 7 and 8). Corrected by a GP whose inputs are its own estimate, tr
 model missed by 0.55&#8202;mm at 2&#8202;N and over. On turn holds at orientations that no press had it missed by
 0.71&#8202;mm, where the GP on the board missed by 1.03&#8202;mm. Below 1&#8202;N the model and its correction both
 fail.</p>
-{{FIG checkerboard}}"""),
+{{FIG checkerboard}}
+<p>The tip v2 ID 1 has five N52 magnets, fitted at rest at 0.98 of an N52&#8217;s strength (UR5 sessions of 2026-10-26
+and 27). Trained on its own 198 press actions, the GP places held-out contacts within 0.25&#8202;mm at 1.5&#8202;N and over
+and 0.66&#8202;mm below, as on tip 2. The physical model places presses under 1.5&#8202;N within 2.0&#8202;mm, where the v1
+tips&#8217; weaker magnets gave 8&#8211;10&#8202;mm (rows <code>20261027-v1_v2_tips.json</code>). A GP of the v1 tips misses
+v2 ID 1&#8217;s contacts by 2.52&#8202;mm. It misses by 0.64&#8202;mm once each board change is scaled by its magnets&#8217;
+strength ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html),
+Section 9). On the four checkerboard tips the own-press GP gives the force&#8217;s direction within 2.1&#8211;2.5&#176; on the
+face at 1.5&#8202;N and over. On the edges it is within 3.1&#8211;4.6&#176;, and on the flanks, where fewer presses were made,
+within 4.9&#8211;8.5&#176; (rows <code>20261027-direction_by_region.json</code>). A GP trained on v2 ID 1&#8217;s presses on the
+12.5&#8202;mm rod places their contacts within 0.29 and 0.73&#8202;mm over and under 1.5&#8202;N. Its forces are within
+0.22&#8202;N and 2.7&#176; (rows <code>rod_tips.json</code>).</p>
+<p>On the hand the other fingertips&#8217; magnets add their field to each board. In v2 ID 1&#8217;s field model a
+five-magnet neighbour adds 513&#8202;&#181;T with the pads facing and touching, and 4,162&#8202;&#181;T side by side. A
+0.5&#8202;N press changes the board by 23&#8202;&#181;T. Subtracting the field predicted from a pose 0.3&#8202;mm and 0.3&#176;
+off leaves 23 and 457&#8202;&#181;T. When the neighbour&#8217;s pose is fitted from both boards, with the joint angles as a
+1&#8202;mm, 1&#176; prior, the bound on a press at the face&#8217;s centre is 0.147&#8211;0.149&#8202;N facing and
+0.158&#8211;0.176&#8202;N side by side. With the pose known it is 0.147&#8202;N
+([magnetic crosstalk](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html)).
+The field of a second tip has not been measured.</p>
+{{FIG crosstalk}}"""),
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
 Each pad has stiffness \(K_i=E\,a_i/h_i\). In builder v2, the default since 2026-10-15, \(h_i\) is the pad&#8217;s depth
@@ -505,7 +528,8 @@ On the checkerboard tip they moved the fitted sphere centre 1.96&#8202;mm and tu
 that registration the grid presses&#8217; indentation beyond the FE pad fits within 108&#8202;&#181;m RMS, against
 142&#8202;&#181;m before, and the board&#8217;s point lies 0.72&#8202;mm from the registered one, against 1.54&#8202;mm.
 Sphere2 and sph3t were registered with plain touch-offs only.</li>
-<li><b>Light presses.</b> Below 1&#8202;N the untrained estimator places contacts about 10&#8202;mm away. The step of about
+<li><b>Light presses.</b> With the v1 magnets the untrained estimator places contacts below 1&#8202;N about 10&#8202;mm away.
+With five N52 magnets it places those under 1.5&#8202;N within 2.0&#8202;mm. The step of about
 7&#8202;&#181;T that each press leaves on the rest is the size of a 0.3&#8202;N press. Learned models give 1.1 to
 2.5&#8202;mm there. On the checkerboard tip the estimator&#8217;s own position sigma flags most of these misses: 18&#8202;mm at
 0.25&#8202;N, 3&#8202;mm at 1&#8202;N. A gate at 2&#8202;mm keeps 95&#8211;100&#8202;% of the holds at 2&#8202;N and over and
@@ -513,16 +537,17 @@ Sphere2 and sph3t were registered with plain touch-offs only.</li>
 <li><b>The force reference.</b> The HEX-E&#8217;s Fz gain is 0.78&#8211;0.87 of its other axes&#8217;, and its link drops
 out; an ATI Mini45, once calibrated, is to replace it. The FE takes Siraya 85A at 12&#8202;MPa from a NinjaFlex datasheet. Through the
 board&#8217;s force, the UR5 session puts the printed pad within about 22&#8202;% of it.</li>
-<li><b>The magnets.</b> Today&#8217;s magnets have 0.34&#8211;0.37 of an N52 magnet&#8217;s moment, and the N52 magnets are
-on order. The checkerboard tip has the same magnets, and its field at rest fixes their strength and depth only together:
-0.57 with the magnets 1.9&#8202;mm off the model&#8217;s depth, or 0.34 at 0.7&#8202;mm, 0.09&#8202;mT apart. The models predict 0.028&#8211;0.031&#8202;N with N52, about 0.039&#8202;N at the measured noise. Four magnets
-(0.051&#8202;N) or five (0.029&#8202;N) waits on the owner.</li>
+<li><b>The magnets.</b> The v1 tips&#8217; magnets have 0.20&#8211;0.57 of an N52 magnet&#8217;s moment as fitted at rest, and
+v2 ID 1&#8217;s five N52 magnets 0.98. The models predict 0.028&#8211;0.031&#8202;N with N52, about 0.039&#8202;N at the measured
+noise. Four magnets (0.051&#8202;N) or five (0.029&#8202;N) waits on the owner. A touching neighbour that faces the pad adds
+38&#8202;&#181;T at the board with four magnets, against 513&#8202;&#181;T with five.</li>
 <li><b>Transfer of learned models.</b> The physical model transfers to a new pad through its rest calibration: on the
 checkerboard tip it placed contacts within 2.06&#8202;mm without a press. The GP correction learned on sphere2 does not, and
 raised that error to 2.48&#8202;mm. Fine-tuned with 20 of the new tip&#8217;s presses it gives 1.59&#8202;mm; the tip&#8217;s
-own 47 presses give 0.42&#8211;0.71&#8202;mm.</li>
-<li><b>Disturbances in the hand.</b> The other fingers&#8217; magnets (5.16&#8202;N equivalent at 25&#8211;30&#8202;mm on the
-first tip) are modelled but not measured. Steel touched to the face reads as a press of 9 to 17.5&#8202;N. The test against
+own 47 presses give 0.42&#8211;0.71&#8202;mm. Scaled by the magnets&#8217; strength fitted at rest, the v1 tips&#8217; presses
+place v2 ID 1&#8217;s contacts within 0.64&#8202;mm, against 2.52&#8202;mm unscaled.</li>
+<li><b>Disturbances in the hand.</b> The other fingers&#8217; magnets are modelled but not measured. Side by side and
+touching, a five-magnet neighbour adds 4,162&#8202;&#181;T, and its pose must be fitted from the boards. Steel touched to the face reads as a press of 9 to 17.5&#8202;N. The test against
 fields from outside the pad removes most of those frames, but the first half second of a touch and fields of 40 to
 90&#8202;&#181;T still show 1 to 9&#8202;N. The chips&#8217; temperature drift is measured,
 0.65&#8211;0.70&#8202;% per &#176;C, and the correction from each chip&#8217;s temperature leaves 9 of 70&#8202;&#181;T over a
@@ -564,6 +589,16 @@ FIGURES = {
                      caption="The first study&#8217;s whole tip at 20&#8202;% gyroid under the 12.5&#8202;mm shaft: the section "
                              "through the contact point, displacement magnified 15 times and coloured by its size, beside the "
                              "pressure on the palmar face, as the approach grows. The walls take the edges of the patch."),
+    "crosstalk": dict(image="docs/experiments/20261027-fingertip_crosstalk/media/20261027-crosstalk_budget.png", width=900,
+                      page="20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html", n=1,
+                      source="magnetic crosstalk",
+                      alt="A neighbouring fingertip's field at the board against the gap, facing and side by side, before and "
+                          "after subtraction, with a 0.5 N press for scale.",
+                      caption="Change at v2 ID 1&#8217;s board caused by a neighbouring fingertip, in its field model: (a) pads "
+                              "facing across a gap W, (b) side by side with a gap g between the flanks. Solid: the "
+                              "neighbour&#8217;s field. Dashed: what is left after subtracting the field predicted at a pose "
+                              "0.3&#8202;mm and 0.3&#176; off. Blue: five N52 magnets; orange: four. Dashed black: a 0.5&#8202;N "
+                              "face press; grey band: presses of 0.2&#8211;3&#8202;N."),
     "board": dict(page="20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html", n=2, source="magnetometer readout",
                   alt="The five-chip board under the tip, from the back face and in section.",
                   caption="The five-chip board under a tip: the chips U1&#8211;U5 under the back face in a plus 7&#8202;mm "
@@ -670,6 +705,8 @@ PAGES = [
      "Sphere2&#8217;s calibration on a second fingertip with two magnets reversed"),
     ("Calibration", "20261022-ur5_tip_calibration/20261024-checkerboard_fingertip_on_the_ur5.html",
      "The first checkerboard fingertip on the UR5: pole pattern, offset touch-offs, physical model, sphere2&#8217;s predictors"),
+    ("Calibration", "20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html",
+     "A neighbouring fingertip&#8217;s field at the board, its subtraction from the joint angles and from both boards"),
     ("Calibration", "20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html",
      "Calibration of the lab&#8217;s ATI Mini45 with a weighed mass, to replace the HEX-E"),
     ("Hardware", "20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html",
