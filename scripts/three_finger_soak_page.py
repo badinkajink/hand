@@ -82,8 +82,10 @@ def hours_since(t, t0):
 
 
 def clock_ticks(ax, t0, h_max):
-    """Clock times (HH:MM) on an axis of hours since t0."""
-    ticks = np.arange(0, h_max + 0.01, 1.0)
+    """Clock times (HH:MM) on the whole hours of an axis of hours since t0 (every second hour past 10 h)."""
+    step = 2.0 if h_max > 10 else 1.0
+    first = (np.ceil(t0 / 3600.0) * 3600.0 - t0) / 3600.0
+    ticks = np.arange(first, h_max + 0.01, step)
     ax.set_xticks(ticks)
     ax.set_xticklabels([time.strftime("%H:%M", time.localtime(t0 + 3600 * h)) for h in ticks], rotation=0)
 
@@ -215,13 +217,13 @@ def fig_recovery(out, R):
         ax[b].set_ylabel("Change from 13:42 (\u00b5T)")
         ax[b].text(0.005, 0.88, name, transform=ax[b].transAxes, fontsize=13)
         ax[b].grid(alpha=0.3)
-        ax[b].set_yscale("symlog", linthresh=10)
+        ax[b].set_ylim(0, None)
     for b in range(2):
         p0, p1 = (hours_since(clock_on(R["presses"][k], t0), t0) for k in range(2))
         ax[b].axvspan(p0, p1, color="#cccccc", alpha=0.6, lw=0)
         mv = hours_since(clock_on("19:32", t0), t0)
         ax[b].axvline(mv, color="#000000", lw=0.8, ls="--")
-    ax[0].legend(frameon=False, loc="upper right")
+    ax[0].legend(frameon=False, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.16))
     clock_ticks(ax[1], t0, h[-1])
     ax[1].set_xlabel("Clock time (grey: the presses; dashed: the boards moved and ID 3 plugged in)")
     fig.tight_layout()
