@@ -963,6 +963,21 @@ push that answers it arrives.
   - Until the reset at 04:00, both sessions keep their reasoning short. Planning or debugging that needs more goes to
     an autopilot job on the personal account (owner).
 
+- R29 (13:23 on 10-27; owner, 10-26: "seems like contact density is a big one. i will mount the taller indenter tmw
+  too"; the lab asked the workstation for the tall indenter's next plan, the README's draft request). v2 ID 1 on the
+  tall indenter, after its pass 1 (three seatings, pass 1 with `--indenter tall --home-from` the first, as the lab planned).
+  - The workstation builds the plan on pass 1's session: `scripts/ur5_tip_calibration_tall_pass.py --session
+    lab/<tall pass 1> --base-plan <its plan.json>`. Targets are the points with no sphere press of v2 ID 1 within 1 mm
+    that the tall indenter reaches, 1 mm apart. Each gets a press at the grid's levels (face 0.25 to 5 N, edge to 3 N,
+    flank to 2 N) and a slide at 1 N (eight directions, 0.1 and 0.2 mm). Twists to 20 deg at 2.5 N and 0.28 deg/s run
+    at six face and six edge points. Reference presses go first, after the presses and last.
+  - Built on v2 ID 1's sphere registration as a check, it has 137 actions with joint 6 capped at +45 deg. They are 68
+    presses (18 face, 26 edge, 24 flank), 53 slides and 12 twists; the least mount margin is 3.01 mm. With joint 6 to
+    +60 deg (owner present) it has 161 actions, 13 more flank presses, most of them on the -y side.
+  - Push pass 1's session when it is done; the plan follows within minutes and is simulated on that registration
+    before it runs. Pass 1 is admitted by the README's marks: within 0.05 mm rms, and a series compliance within
+    0.01 mm/N of cb3t's.
+
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
   back on after the ATI work: `plan/20261023-plan_sphere_lab_check6_sph3t.json`, six of sph3t's 19 touch-offs at its
