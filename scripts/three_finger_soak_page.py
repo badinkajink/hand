@@ -288,7 +288,7 @@ def sections(N):
         "ID&#8202;3&#8217;s channel from that calibration. Its rule keeps a saved model when, with a field from outside the pad, "
         "the model fits the present rest as well as a new calibration. The 10-25 model fitted at 0.18&#8202;mT and a new "
         "calibration at 0.31&#8202;mT, so it was kept: poles + &#8722; &#8722; &#8722; +, strength 0.20 of N52.</p>"
-        "<pre class=\"cmd\">" + P.esc(COMMANDS) + "</pre>")
+        "<pre class=\"cmd\">" + P.esc(COMMANDS).replace("$", "&#36;") + "</pre>")     # no dollar for the TeX pass
     S.append(("setup", "Fingertips, mux and log", setup))
     # 3. readout
     rows = []
@@ -460,7 +460,7 @@ def build():
     for k, v in {"TITLE": "Three v1 fingertips at rest overnight on the ESP32-C6 mux",
                  "H1": "Three v1 fingertips at rest overnight on the ESP32-C6 mux",
                  "EYEBROW": "Printed fingertips &#183; 2026-10-27", "LEDE": lede, "BYLINE": byline, "FILM": "",
-                 "TOC": toc, "SECTIONS": secs, "FOOTER": str(PAGE.relative_to(ROOT)), "TEXCSS": texsvg.CSS}.items():
+                 "TOC": toc, "SECTIONS": secs, "FOOTER": str((D / PAGE.name).relative_to(ROOT)), "TEXCSS": texsvg.CSS}.items():
         page = page.replace("{{" + k + "}}", v)
     items = [((m.group(1) if m.group(1) is not None else m.group(2)).strip(), m.group(1) is not None)
              for m in P.TEX_RE.finditer(page)]
@@ -469,7 +469,7 @@ def build():
     page = retro_style.apply(page)
     page = docs_index.tag(page, topic="fingertip", summary=summary, date="2026-10-27")
     PAGE.write_text(page)
-    print(f"{PAGE.relative_to(ROOT)}: {PAGE.stat().st_size / 1e6:.2f} MB, {len(items)} formulas", flush=True)
+    print(f"{PAGE}: {PAGE.stat().st_size / 1e6:.2f} MB, {len(items)} formulas", flush=True)
 
 
 if __name__ == "__main__":
