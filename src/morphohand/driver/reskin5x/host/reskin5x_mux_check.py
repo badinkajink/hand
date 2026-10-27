@@ -15,7 +15,8 @@ malformed   records that the viewer drops (wrench_viewer.App.records: a chip who
             records whose bytes after the first 64 made no sense, though the record ended in CR LF. Noise and
             separation leave them out.
 
-The log is read as a memory map, and only the window is loaded. --out writes the numbers as JSON.
+The log is read as a memory map, and only the window is loaded. --out writes the numbers as JSON; --scan gives only the
+rate, the gaps and the malformed records, for a whole night.
 
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/reskin5x_mux_check.py LOG.bin [--boards 3]
         [--since 11:15 --until 11:20] [--single stream.bin --single-since 19:32 --single-until 19:38] [--out check.json]
@@ -97,12 +98,16 @@ def main():
     ap.add_argument("--single-since", default=None)
     ap.add_argument("--single-until", default=None)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--scan", action="store_true", help="only the rate, the gaps and the malformed records")
     a = ap.parse_args()
-    t, r = load(a.log, a.boards, a.since, a.until)
+    t, r = window(a.log, a.boards, a.since, a.until)
+    if not a.scan:
+        r = r.astype(float)
     span = t[-1] - t[0]
     dt = np.diff(t)
     gaps = dt[dt > 0.1]
-    ok = valid(r).all(axis=1)
+    okb = np.concatenate([valid(r[i:i + (1 << 20)]) for i in range(0, len(r), 1 << 20)])
+    ok = okb.all(axis=1)
     print(f"{len(t)} records over {span:.0f} s from {time.strftime('%H:%M:%S', time.localtime(t[0]))}: "
           f"{len(t) / span:.1f} records/s; {len(gaps)} gaps over 0.1 s (longest {dt.max():.3f} s); "
           f"{int((~ok).sum())} malformed records" + "".join(
@@ -112,6 +117,13 @@ def main():
                rate=round(len(t) / span, 2), gaps_over_0p1s=int(len(gaps)), longest_step_s=round(float(dt.max()), 3),
                malformed=int((~ok).sum()), malformed_at=[time.strftime("%H:%M:%S", time.localtime(v)) for v in t[~ok]],
                boards=[])
+    if a.scan:
+        out["malformed_by_board"] = (~okb).sum(0).tolist()
+        print(f"malformed by board {out['malformed_by_board']}; times {out['malformed_at']}")
+        if a.out:
+            Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+            Path(a.out).write_text(json.dumps(out, indent=1) + "\n")
+        return
     t, r = t[ok], r[ok]
     N = []
     for b in range(a.boards):
