@@ -288,7 +288,7 @@ def tall_frame(t=None):
     a = np.array(t["a_M"])
     m = np.array(t["mouth_M"])
     mouth = np.array([0.0, t["key_y"], t["H"] - t["mouth_below"]])
-    mouth[0] = m[2] - a[2]                                  # -44.36: the mouth this far behind the contact along x_I
+    mouth[0] = t.get("mouth_x", m[2] - a[2])                # -44.36: the mouth this far behind the contact along x_I
     contact = mouth + np.array([a[2] - m[2], 0.0, m[0] - a[0]])
     R = np.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]])
     T_IM = np.eye(4)
@@ -362,12 +362,110 @@ def tall_sdf(P, tip=True, t=None):
     return np.min(np.stack(parts), axis=0)
 
 
+# The fingertip holder of 2026-10-27 (docs/experiments/20261027-fingertip_holder; scripts/fingertip_holder.py builds it from
+# these numbers): a second v2 tip (pad, cassette 3T and top cover TW15H3, no board) screwed by its four M2 screws to a station
+# block that stands out from a column on an arm. The tip faces up from the block's top face (mode "up": the pads facing) or
+# down from its underside (mode "down": side by side); the block's four 1.9 mm holes pass through it. The homing seat is the
+# tall indenter's, on a tower of its own, its mouth at (mouth_x, key_y, mouth_z). TIP_F gives the tip in the DIP link's frame
+# F: the cassette's back face (where the board's component face was) at x_F 3.80, the face's centre at z_F -87.91.
+TIPHOLD = dict(mode="up", x_s=0.0, y_s=-28.5, z_bot=40.0, T=12.0, col_r=14.0, base=(-40.0, 40.0, -30.0, 76.0, 8.0),
+               key_y=52.0, mouth_x=-22.0, mouth_z=30.0)
+TIP_F = dict(x_seat=3.80, z_c=-87.91, apex_x=-10.55, z_ends=(-98.46, -77.05), y_half=10.5,
+             holes=((8.0, -79.82), (-8.0, -79.82), (8.0, -95.82), (-8.0, -95.82)))
+
+
+def tiphold_T_IF(t=None):
+    """The held tip's frame F in I: pad up on the station's top face, or down from its underside."""
+    t = dict(TIPHOLD, **(t or {}))
+    zc, xs = TIP_F["z_c"], TIP_F["x_seat"]
+    T = np.eye(4)
+    if t["mode"] == "up":                                  # x_F -> -z_I, y_F -> -y_I, z_F -> -x_I
+        T[:3, :3] = [[0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [-1.0, 0.0, 0.0]]
+        T[:3, 3] = (t["x_s"] + zc, t["y_s"], t["z_bot"] + t["T"] + xs)
+    else:                                                  # x_F -> z_I, y_F -> y_I, z_F -> -x_I
+        T[:3, :3] = [[0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]]
+        T[:3, 3] = (t["x_s"] + zc, t["y_s"], t["z_bot"] - xs)
+    return T
+
+
+def tiphold_parts(t=None):
+    """The holder in I as boxes and convex solids (shared by the SDF and the CAD): the station and its arm into the column,
+    a 45 deg gusset under the arm, the column, and the tall indenter's seat (block, lands, walls, key) on a tower."""
+    t = dict(TIPHOLD, **(t or {}))
+    ts = dict(TALL, H=t["mouth_z"] + TALL["mouth_below"], key_y=t["key_y"], mouth_x=t["mouth_x"])
+    b = tall_boxes(ts)
+    tb = t["base"][4]
+    xs, ys, zb, zt = t["x_s"], t["y_s"], t["z_bot"], t["z_bot"] + t["T"]
+    zc, (zd, zp), yh = TIP_F["z_c"], TIP_F["z_ends"], TIP_F["y_half"]
+    sx0, sx1 = xs - (zp - zc), xs - (zd - zc) - 0.1        # the cassette's ends; 0.1 mm short of the cover's end plate
+    ya = -0.4 * t["col_r"]                                  # the arm and gusset reach this far into the column
+    (bx0, by0, _), (bx1, by1, bz1) = b["block"]
+    return dict(station=((sx0, ys - yh, zb), (sx1, ys + yh, zt)), arm=((sx0, ys + yh - 0.1, zb), (sx1, ya, zt)),
+                gusset=[(x, y, z) for x in (sx0, sx1) for y, z in ((ys + yh, zb + 0.5), (ya, zb + 0.5),
+                                                                   (ya, zb - (ya - ys - yh)), (ys + yh, zb))],
+                holes=[(xs - (z - zc), ys + (y if t["mode"] == "down" else -y)) for y, z in TIP_F["holes"]],
+                z_top=zt, block=b["block"], lands=b["lands"], walls=b["walls"], key=key_points(ts),
+                strut=[(x, y, z) for z in (tb - 0.01, b["block"][0][2] + 0.5)
+                       for x, y in ((bx0, by0), (bx1, by0), (bx1, by1), (bx0, by1))],
+                lands_xy=b["lands_xy"], mouth=b["mouth"], frame=tall_frame(ts))
+
+
+_HELD = {}
+
+
+def _held_tip():
+    """Surface samples (F) of the held tip's cassette, top cover and pad, with their normals, in a k-d tree."""
+    if not _HELD:
+        import trimesh
+        from scipy.spatial import cKDTree
+        pts, nrm = [], []
+        for name in ("cover", "cap", "pad"):
+            m = _load(TOOL_PARTS[name][0])
+            n = int(min(20000, max(500, m.area / 0.4 ** 2)))
+            p, fi = trimesh.sample.sample_surface_even(m, n, seed=1)
+            pts.append(p)
+            nrm.append(m.face_normals[fi])
+        _HELD.update(p=np.vstack(pts), n=np.vstack(nrm))
+        _HELD["tree"] = cKDTree(_HELD["p"])
+    return _HELD
+
+
+def held_tip_sdf(P_I, t=None):
+    """Signed distance (mm, I) to the held tip. Beyond 3 mm of its bounding box, the distance to the box (a lower bound);
+    nearer, the distance to the nearest surface sample, signed by the eight nearest samples' normals together."""
+    T = tiphold_T_IF(t)
+    PF = (np.asarray(P_I, float) - T[:3, 3]) @ T[:3, :3]
+    zd, zp = TIP_F["z_ends"]
+    out = sd_box(PF, (-10.6, -10.5, zd - 1.6), (8.0, 10.5, zp))
+    near = out < 3.0
+    if near.any():
+        h = _held_tip()
+        Q = PF[near]
+        d, i = h["tree"].query(Q, k=8)
+        s = np.einsum("ijk,ijk->i", Q[:, None, :] - h["p"][i], h["n"][i])
+        out[near] = d[:, 0] * np.where(s < 0.0, -1.0, 1.0)
+    return out
+
+
+def tiphold_sdf(P, t=None):
+    t = dict(TIPHOLD, **(t or {}))
+    g = tiphold_parts(t)
+    x0, x1, y0, y1, tb = t["base"]
+    parts = [sd_box(P, (x0, y0, 0.0), (x1, y1, tb)), sd_cyl_z(P, t["col_r"], tb - 0.01, g["z_top"]),
+             sd_box(P, *g["station"]), sd_box(P, *g["arm"]), _convex_sdf(P, g["gusset"]), sd_box(P, *g["block"]),
+             _convex_sdf(P, g["strut"]), _convex_sdf(P, g["key"]), held_tip_sdf(P, t)]
+    parts += [sd_box(P, lo, hi) for lo, hi in g["lands"] + g["walls"]]
+    return np.min(np.stack(parts), axis=0)
+
+
 def indenter_sdf(P, kind="sphere", tip=True):
     """Signed distance (mm) to the printed indenter (I frame); tip=False leaves out the part that presses (the sphere,
     or the rod's round top), for the pad's points around its contact."""
     P = np.asarray(P, float)
     if kind == "tall":
         return tall_sdf(P, tip)
+    if kind == "tiphold":                                  # no contact: the held tip stays in
+        return tiphold_sdf(P)
     parts = [sd_box(P, (-35.0, -12.0, 0.0), (35.0, 12.0, 6.0)),                 # base
              sd_box(P, (-56.58, -12.0, 0.0), (-30.22, 12.0, 6.0)),               # arm to the homing post
              sd_box(P, (-56.58, 12.0, 0.0), (-32.14, 22.63, 6.0)),
@@ -384,6 +482,8 @@ def indenter_sdf(P, kind="sphere", tip=True):
 
 
 def tip_sdf(P, kind="sphere"):
+    if kind == "tiphold":
+        return held_tip_sdf(P)
     if kind == "tall":
         return np.linalg.norm(P - np.array([0.0, 0.0, TALL["H"]]), axis=1) - TALL["R"]
     if kind == "sphere":
