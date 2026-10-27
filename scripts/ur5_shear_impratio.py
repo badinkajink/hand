@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """Impratio of the 1 mm sphere pads under the policy trainer's solver: whether impratio 100 or 300 keeps the hand's
 replays and the scripted grasp stable at 10 solver iterations and a 2 ms step, how far it lowers the creep, and what it
-costs. No training.
+costs. No training. 2026-10-27 (hand-off 20261027-docs_update_impratio): the sweep 10, 20, 30, 50, 70, 100 and noslip
+(MuJoCo's noslip_iterations 3 and 10 at impratio 10, CPU only: MuJoCo-Warp's put_model refuses noslip), and `divergence`.
+
+divergence  The CPU grasps that diverge at impratio 100 and two D1-D8 replays that diverge after the drop, at 10 MPa: every
+         step's solver iterations and last improvement, largest qacc and its joint, constraint rows by kind and contact pair,
+         contacts in the cone state and the tool's speed; the step that flings the tool (spin first above 50 rad/s) and the
+         failing step recomputed from the states saved before them; reruns at 20 and 50 iterations and a 1 ms step.
 
 replays  CPU MuJoCo with the trainer's numerics (pad_usability_backends 'rl': 2 ms, implicitfast, elliptic cone, Newton,
          10 iterations, 20 line-search iterations, tolerance 1e-8) at impratio 10, 100 and 300. The fingertips are 1 mm
@@ -33,6 +39,9 @@ line per run; `replays` and `creep` resume by key. Scenes are cached under logs/
     ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- .venv/bin/python scripts/ur5_shear_impratio.py replays --E 10
     WARP_CACHE_PATH=$(mktemp -d) .venv/bin/python scripts/ur5_shear_impratio.py mjw
     .venv/bin/python scripts/ur5_shear_impratio.py creep
+    ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- .venv/bin/python scripts/ur5_shear_impratio.py replays --E 10 2 \
+        --ir 20 30 50 70 --sets d1d8 icem          # the sweep; --ir 10 --noslip 3 10 for noslip
+    .venv/bin/python scripts/ur5_shear_impratio.py mjw --ir 20 30 50 70 --E 10           # and --E 2 --tc 0.02 --sims cpu
 """
 from __future__ import annotations
 
@@ -54,6 +63,7 @@ OUT = ROOT / "docs/experiments/20261026-shear_friction_impratio/data"
 LOGS = ROOT / "logs/20261026-shear_friction_impratio"
 TIP = "ell11_g30"
 IRS = (10.0, 100.0, 300.0)
+SWEEP = (10.0, 20.0, 30.0, 50.0, 70.0, 100.0)    # 2026-10-27
 TRS = (0.02, 0.03, 0.04)                 # s: solref relaxation times tried, tc = tr / 2
 RL_OPT = dict(timestep=0.002, iterations=10, ls_iterations=20, tolerance=1e-8)
 FINGERS = ("thumb", "index", "middle")
@@ -92,8 +102,9 @@ def diverged(d):
     return int(d.warning[mujoco.mjtWarning.mjWARN_BADQACC].number) > 0
 
 
-def set_rl(m, ir):
+def set_rl(m, ir, noslip=0):
     import mujoco
+    m.opt.noslip_iterations = int(noslip)
     m.opt.timestep = RL_OPT["timestep"]
     m.opt.iterations = RL_OPT["iterations"]
     m.opt.ls_iterations = RL_OPT["ls_iterations"]
@@ -119,12 +130,12 @@ def with_tr(fn):
     raise last
 
 
-def run_d1d8(scene, meta, plan, traj, seed, ir):
+def run_d1d8(scene, meta, plan, traj, seed, ir, noslip=0):
     """RB.run_mujoco's bench replay at the trainer's numerics, with the iteration cap and per-finger forces."""
     import mujoco
     import reorient_backends as RB
     m = mujoco.MjModel.from_xml_path(str(scene))
-    set_rl(m, ir)
+    set_rl(m, ir, noslip)
     d = mujoco.MjData(m)
     tb = m.body(RB.OBJ).id
     qa = m.jnt_qposadr[m.body_jntadr[tb]]
@@ -216,7 +227,7 @@ def cmd_replays(a):
     import fe_contact_calibration_sim as FS
     import reorient_backends as RB
     out = OUT / "20261026-impratio_replays.jsonl"
-    have = {(r["set"], r["plan"], r["E_MPa"], r["ir"], r["seed"]) for r in rows_of(out)
+    have = {(r["set"], r["plan"], r["E_MPa"], r["ir"], r["seed"], r.get("noslip", 0)) for r in rows_of(out)
             if r.get("status") in ("complete", "ejected", "ok", "unstable")}
     key = FS.spec_of(TIP)["key"]
     for E_MPa in a.E:
@@ -226,7 +237,7 @@ def cmd_replays(a):
             FS.ARMS[arm] = dict(sim="mujoco", numerics="rl", ir=ir, mu="1.0")
             if "d1d8" in a.sets:
                 for hand in a.hands:
-                    todo = [s for s in a.seeds if ("d1d8", hand, E_MPa, ir, s) not in have]
+                    todo = [(s, ns) for ns in a.noslip for s in a.seeds if ("d1d8", hand, E_MPa, ir, s, ns) not in have]
                     if not todo:
                         continue
                     plan, traj = RB.load_plan(hand)
@@ -241,18 +252,18 @@ def cmd_replays(a):
                         print(f"{hand} E {E_MPa} ir {ir}: scene failed {e!r}", flush=True)
                         traceback.print_exc()
                         continue
-                    for sd in todo:
+                    for sd, ns in todo:
                         t0 = time.time()
-                        row = dict(set="d1d8", plan=hand, tip=TIP, key=key, E_MPa=E_MPa, ir=ir, tr_s=tr, seed=sd,
+                        row = dict(set="d1d8", plan=hand, tip=TIP, key=key, E_MPa=E_MPa, ir=ir, noslip=ns, tr_s=tr, seed=sd,
                                    numerics="rl", opt=RL_OPT, plant=FS.SERVO, scene=str(Path(scene).relative_to(ROOT)),
                                    pad_d0=meta.get("pad_d0"))
                         try:
-                            row.update(run_d1d8(scene, meta, plan, traj, sd, ir))
+                            row.update(run_d1d8(scene, meta, plan, traj, sd, ir, ns))
                         except Exception as e:
                             row.update(status="failed", error=repr(e), tb=traceback.format_exc()[-1500:])
                         row.update(script=SCRIPT, wall_s=round(time.time() - t0, 2), when=time.strftime("%Y-%m-%d %H:%M"))
                         append(out, row)
-                        print(f"d1d8 {hand} E {E_MPa:g} ir {ir:g} tr {tr:g} s{sd}: {row.get('status')} held "
+                        print(f"d1d8 {hand} E {E_MPa:g} ir {ir:g} ns {ns} tr {tr:g} s{sd}: {row.get('status')} held "
                               f"{row.get('held_end')} turn {row.get('turn_end_deg', float('nan')):+.1f} creep "
                               f"{row.get('creep_um_s')} cap {row.get('cap_share', float('nan')):.3f} "
                               f"{row.get('us_per_step_median', float('nan')):.0f} us {row['wall_s']:.1f} s", flush=True)
@@ -261,7 +272,7 @@ def cmd_replays(a):
                 for pid, tip, cs, ci, log, logged in FS.icem_plans():
                     if tip != TIP:
                         continue
-                    todo = [s for s in a.seeds if ("icem", pid, E_MPa, ir, s) not in have]
+                    todo = [(s, ns) for ns in a.noslip for s in a.seeds if ("icem", pid, E_MPa, ir, s, ns) not in have]
                     if not todo:
                         continue
 
@@ -275,7 +286,6 @@ def cmd_replays(a):
                         print(f"{pid} E {E_MPa} ir {ir}: build failed {e!r}", flush=True)
                         traceback.print_exc()
                         continue
-                    set_rl(plant.m, ir)
                     stats = dict(W=[], NI=[])
 
                     def advance(t1, plant=plant, stats=stats):
@@ -288,12 +298,13 @@ def cmd_replays(a):
                             if diverged(plant.d):
                                 raise FloatingPointError(f"unstable at t {t_prev:.3f} s (MuJoCo reset the state)")
                     plant.advance = advance
-                    for sd in todo:
+                    for sd, ns in todo:
+                        set_rl(plant.m, ir, ns)
                         stats["W"].clear()
                         stats["NI"].clear()
                         t0 = time.time()
-                        row = dict(set="icem", plan=pid, tip=tip, cell=cs, cand=ci, E_MPa=E_MPa, ir=ir, tr_s=tr, seed=sd,
-                                   numerics="rl", opt=RL_OPT, plant=FS.SERVO, logged=logged)
+                        row = dict(set="icem", plan=pid, tip=tip, cell=cs, cand=ci, E_MPa=E_MPa, ir=ir, noslip=ns, tr_s=tr,
+                                   seed=sd, numerics="rl", opt=RL_OPT, plant=FS.SERVO, logged=logged)
                         try:
                             res, tr_ = FS.replay(plant, meta, log, sd)
                             NI = np.array(stats["NI"])
@@ -312,7 +323,7 @@ def cmd_replays(a):
                             row.update(status="failed", error=repr(e), tb=traceback.format_exc()[-1500:])
                         row.update(script=SCRIPT, when=time.strftime("%Y-%m-%d %H:%M"))
                         append(out, row)
-                        print(f"icem {pid} E {E_MPa:g} ir {ir:g} tr {tr:g} s{sd}: {row.get('status')} held {row.get('held')} "
+                        print(f"icem {pid} E {E_MPa:g} ir {ir:g} ns {ns} tr {tr:g} s{sd}: {row.get('status')} held {row.get('held')} "
                               f"turn {row.get('turn_end_deg', float('nan')):+.1f} (logged {logged['turn_end_deg']:+.1f}) cap "
                               f"{row.get('cap_share', float('nan')):.3f} {row.get('us_per_step_median', float('nan')):.0f} us "
                               f"{time.time() - t0:.1f} s", flush=True)
@@ -328,13 +339,13 @@ T_LIFT, T_END = (0.48, 0.64), 2.0          # s: the palm rises 0.1 m over T_LIFT
 T_CREEP = 1.0                               # s: the tool's slip against the fingertips is read from here to T_END
 
 
-def rl_scene(E_MPa, ir, min_d0=0.05, skin_k=None):
+def rl_scene(E_MPa, ir, min_d0=0.05, skin_k=None, tc_force=None, noslip=0):
     """The servo plant's pad scene of the RL runs at the trainer's numerics, its pads rescaled from 10 MPa to E_MPa
     (each pad's K = 1 / (tc^2 (1 - d0) A), A the tip's and the tool's inverse weights; d0 re-solved at the shortest
     time constant of TRS / 2 that keeps d0 >= 0.05)."""
     import mujoco
     m = mujoco.MjModel.from_xml_path(str(SERVO_RUN / "frozen_scene.xml"))
-    set_rl(m, ir)
+    set_rl(m, ir, noslip)
     tool = m.body("screwdriver_medium").id
     pads = [i for i in range(m.ngeom) if "_pad" in m.geom(i).name]
     tc_used = float(m.geom_solref[pads[0], 0])
@@ -343,7 +354,7 @@ def rl_scene(E_MPa, ir, min_d0=0.05, skin_k=None):
         K = np.array([1.0 / (m.geom_solref[i, 0] ** 2 * (1.0 - m.geom_solimp[i, 0]) * A[m.geom(i).name.split("_")[0]])
                       for i in pads]) * (E_MPa / 10.0)
         Af = np.array([A[m.geom(i).name.split("_")[0]] for i in pads])
-        for tc in (0.01, 0.0125, 0.015, 0.0175, 0.02):
+        for tc in ((tc_force,) if tc_force else (0.01, 0.0125, 0.015, 0.0175, 0.02)):
             d0 = 1.0 - 1.0 / (tc ** 2 * K * Af)
             if d0.min() >= min_d0:
                 break
@@ -433,13 +444,14 @@ def fingers_on_tool(geom_pairs, worlds, nw, tool_geoms, finger_of):
     return on.sum(1)
 
 
-def grasp_row(sim, E_MPa, ir, info, nw, n_pl, z0, ze, ra, rb_, fin, nf, run="pads"):
+def grasp_row(sim, E_MPa, ir, info, nw, n_pl, z0, ze, ra, rb_, fin, nf, run="pads", noslip=0):
     """Held: the tool rose with the palm (within 20 mm) and at least two fingers touch it at the end. Slip: the median
     over the three fingertips of the tool centre's speed in the fingertip's frame from T_CREEP to T_END, um/s."""
     held = fin & (ze - z0 > 0.08) & (nf >= 2)
     slip = np.median(np.linalg.norm(rb_ - ra, axis=2), axis=1) / (T_END - T_CREEP) * 1e6
     sh = slip[held]
-    return dict(sim=sim, run=run, E_MPa=E_MPa, ir=ir, scene=str(RUNS[run].relative_to(ROOT)), **info, opt=RL_OPT, n=nw,
+    return dict(sim=sim, run=run, E_MPa=E_MPa, ir=ir, noslip=noslip, scene=str(RUNS[run].relative_to(ROOT)), **info,
+                opt=RL_OPT, n=nw,
                 n_placements=n_pl, held=int(held.sum()), held_placements=int(held[:n_pl].sum()), nonfinite=int((~fin).sum()),
                 slip_um_s=dict(median=float(np.median(sh)) if len(sh) else None,
                                p90=float(np.percentile(sh, 90)) if len(sh) else None),
@@ -454,13 +466,13 @@ def cmd_mjw(a):
     import mujoco
     out = OUT / "20261026-impratio_mjw.jsonl"
     for E_MPa in (a.E if a.run == "pads" else [10.0]):
-        for ir in a.ir:
+        for ir, ns in [(x, k) for x in a.ir for k in a.noslip]:
             if a.run == "skin" and a.skin_from_slides:
                 import ur5_shear_skin as SK
                 skin_k = SK.sizing(a.skin_from_slides)
             else:
                 skin_k = None
-            m, info = rl_scene(E_MPa, ir, a.min_d0, skin_k) if a.run == "pads" else rl_scene_run(a.run, ir, skin_k)
+            m, info = (rl_scene(E_MPa, ir, a.min_d0, skin_k, a.tc, ns) if a.run == "pads" else rl_scene_run(a.run, ir, skin_k))
             d, c0, bfc, fa, pz, tool, palm = grasp_setup(m, RUNS[a.run])
             tips = [m.body(f"{f}_tip").id for f in FINGERS]
             tool_geoms = {i for i in range(m.ngeom) if m.geom_bodyid[i] == tool}
@@ -499,11 +511,11 @@ def cmd_mjw(a):
                         nf[s] = fingers_on_tool([tuple(c.geom) for c in dd.contact[:dd.ncon]], [0] * dd.ncon, 1,
                                                 tool_geoms, finger_of)[0]
                 NI = np.array(NI)
-                row = grasp_row("cpu", E_MPa, ir, info, n, n, z0, ze, ra, rb_, fin, nf, a.run)
+                row = grasp_row("cpu", E_MPa, ir, info, n, n, z0, ze, ra, rb_, fin, nf, a.run, ns)
                 row.update(cap_share=float(np.mean(NI >= m.opt.iterations)), niter_mean=float(NI.mean()),
                            nefc_max=int(max(NE)), us_per_step_median=float(np.median(W) * 1e6))
                 append(out, row)
-                print(f"cpu {a.run} E {E_MPa:g} ir {ir:g} tc {info['tc_s']:g}: held {row['held']}/{n}, nonfinite {row['nonfinite']}, slip "
+                print(f"cpu {a.run} E {E_MPa:g} ir {ir:g} ns {ns} tc {info['tc_s']:g}: held {row['held']}/{n}, nonfinite {row['nonfinite']}, slip "
                       f"{row['slip_um_s']['median']} um/s, dz {row['dz_mm']['median']} mm, cap {row['cap_share']:.3f}, nefc max "
                       f"{row['nefc_max']}, {row['us_per_step_median']:.0f} us/step", flush=True)
             if "mjw" in a.sims:
@@ -511,7 +523,13 @@ def cmd_mjw(a):
                 import warp as wp
                 nw = a.n_gpu
                 njmax = a.njmax if abs(E_MPa - 10.0) < 1e-9 else a.njmax_soft
-                wm = mjw.put_model(m)
+                try:
+                    wm = mjw.put_model(m)
+                except NotImplementedError as e:          # noslip: mujoco_warp/_src/io.py refuses it
+                    append(out, dict(sim="mjw", run=a.run, E_MPa=E_MPa, ir=ir, noslip=ns, status="unsupported",
+                                     error=f"NotImplementedError: {e}", script=SCRIPT, when=time.strftime("%Y-%m-%d %H:%M")))
+                    print(f"mjw noslip {ns}: put_model refused it ({e})", flush=True)
+                    continue
                 wd = mjw.make_data(m, nworld=nw, nconmax=a.nconmax, njmax=njmax)
                 Qg = np.tile(Q, (int(math.ceil(nw / len(Q))), 1))[:nw]
                 wd.qpos.assign(Qg.astype(np.float32))
@@ -542,7 +560,7 @@ def cmd_mjw(a):
                 nf = fingers_on_tool([tuple(g) for g in wd.contact.geom.numpy()[:nc]], wd.contact.worldid.numpy()[:nc], nw,
                                      tool_geoms, finger_of)
                 NIg, NEg = np.array(NIg), np.array(NEg)
-                row = grasp_row("mjw", E_MPa, ir, info, nw, len(Q), z0, xp[:, tool, 2], ra, rb_, fin, nf, a.run)
+                row = grasp_row("mjw", E_MPa, ir, info, nw, len(Q), z0, xp[:, tool, 2], ra, rb_, fin, nf, a.run, ns)
                 row.update(cap_share=float(np.mean(NIg >= m.opt.iterations)), nefc_max=int(NEg.max()),
                            nefc_over_njmax_share=float(np.mean(NEg > njmax)), us_per_world_step=float(t_run / n_steps / nw * 1e6),
                            nconmax=a.nconmax, njmax=njmax, nacon_end=nc)
@@ -553,6 +571,328 @@ def cmd_mjw(a):
                       f"{row['us_per_world_step']:.2f} us/world-step", flush=True)
                 del wm, wd
                 gc.collect()
+
+
+# ------------------------------------------------------------------------------------------------ divergence
+
+CNSTR_STATE = ("satisfied", "quadratic", "linearneg", "linearpos", "cone")
+BAD = ("mjWARN_BADQPOS", "mjWARN_BADQVEL", "mjWARN_BADQACC")
+PAIRS = ("pad-tool", "tool-table", "link-tool", "finger-finger", "other")
+# The cases of step 2 (hand-off 20261027): the CPU grasps that diverge at impratio 100 (10 MPa, 10-26 rows) and two D1-D8
+# replays that drop the tool and then diverge (10 MPa, impratio 100).
+DIV_GRASPS = (1, 4, 5, 8, 11, 14)
+DIV_REPLAYS = (("D2", 0), ("D6", 0))
+DIV_SETTINGS = {"base": {}, "it20": dict(iterations=20), "it50": dict(iterations=50), "dt1ms": dict(timestep=0.001),
+                "implicit": dict(integrator=2)}   # mjINT_IMPLICIT: the Coriolis and centrifugal derivatives that implicitfast drops
+
+
+class Probe:
+    """Solver and constraint statistics of every step, and the state before every step. At a bad-state warning (MuJoCo
+    then resets mjData) and at the kick (the step with contacts that adds the most kinetic energy to the tool) the saved
+    state is restored and the step recomputed with mj_forward, so that step's own accelerations, solver iterations and
+    constraint rows are read."""
+
+    def __init__(self, m, tool):
+        import mujoco
+        self.mj, self.m, self.tool = mujoco, m, tool
+        self.cls = np.zeros(m.ngeom, int)            # 0 other, 1 pad, 2 tool, 3 static (floor, table, post), 4 finger
+        self.fing = np.full(m.ngeom, -1)
+        for i in range(m.ngeom):
+            b = int(m.geom_bodyid[i])
+            bn = m.body(b).name
+            f = next((k for k, f in enumerate(FINGERS) if bn.startswith(f + "_")), -1)
+            self.fing[i] = f
+            if b == tool:
+                self.cls[i] = 2
+            elif "_pad" in m.geom(i).name:
+                self.cls[i] = 1
+            elif int(m.body_weldid[b]) == 0:
+                self.cls[i] = 3
+            elif f >= 0:
+                self.cls[i] = 4
+        self.dof_name = [m.joint(int(m.dof_jntid[k])).name or m.body(int(m.dof_bodyid[k])).name + f"[{k - int(m.jnt_dofadr[m.dof_jntid[k]])}]"
+                         for k in range(m.nv)]
+        self.spec = mujoco.mjtState.mjSTATE_INTEGRATION
+        self.size = mujoco.mj_stateSize(m, self.spec)
+        self.states, self.S = [], {k: [] for k in ("t", "niter", "improvement", "qacc_max", "qacc_dof", "qvel_max", "ncon",
+                                                   "nefc", "other_rows", "tool_v_mm_s", "tool_w_rad_s", "tool_z_mm")}
+        for c in PAIRS:
+            for k in ("n_", "f_", "cone_", "fn_"):
+                self.S[k + c] = []
+        self.bad = [int(getattr(mujoco.mjtWarning, w)) for w in BAD]
+        self.tool_dof = int(m.jnt_dofadr[int(m.body_jntadr[tool])])
+        self.tool_m, self.tool_I = float(m.body_mass[tool]), float(np.mean(m.body_inertia[tool]))
+
+    def pair(self, g):
+        """Pair class of contacts from their geom pairs (ncon, 2)."""
+        c1, c2 = self.cls[g[:, 0]], self.cls[g[:, 1]]
+        lo, hi = np.minimum(c1, c2), np.maximum(c1, c2)
+        out = np.full(len(g), "other", dtype=object)
+        out[(lo == 1) & (hi == 2)] = "pad-tool"
+        out[(lo == 2) & (hi == 3)] = "tool-table"
+        out[(lo == 2) & (hi == 4)] = "link-tool"
+        f1, f2 = self.fing[g[:, 0]], self.fing[g[:, 1]]
+        out[(f1 >= 0) & (f2 >= 0) & (f1 != f2)] = "finger-finger"
+        return out
+
+    def before(self, d):
+        st = np.empty(self.size)
+        self.mj.mj_getState(self.m, d, st, self.spec)
+        self.states.append(st)
+
+    def warned(self, d):
+        return any(int(d.warning[w].number) > 0 for w in self.bad)
+
+    def stats(self, d, full=False):
+        m, mj = self.m, self.mj
+        nis = max(1, int(d.nisland))
+        ni = np.asarray(d.solver_niter[:nis])
+        k = int(np.argmax(ni))
+        n = int(ni[k])
+        NS = mj.mjNSOLVER
+        qa = np.abs(np.asarray(d.qacc))
+        qa = np.where(np.isfinite(qa), qa, np.inf)
+        j = int(np.argmax(qa))
+        ncon = int(d.ncon)
+        g = np.asarray(d.contact.geom[:ncon]).reshape(-1, 2)
+        adr = np.asarray(d.contact.efc_address[:ncon])
+        dim = np.asarray(d.contact.dim[:ncon])
+        ok = adr >= 0
+        pc = self.pair(g) if ncon else np.array([], dtype=object)
+        st = np.asarray(d.efc_state)
+        fo = np.asarray(d.efc_force)
+        v = np.asarray(d.qvel[self.tool_dof:self.tool_dof + 6])
+        out = dict(t=round(float(d.time), 4), niter=n, improvement=float(d.solver.improvement[k * NS + n - 1]) if n else 0.0,
+                   qacc_max=float(qa[j]), qacc_dof=j, qvel_max=float(np.max(np.abs(d.qvel))), ncon=ncon, nefc=int(d.nefc),
+                   tool_v_mm_s=float(np.linalg.norm(v[:3])) * 1e3, tool_w_rad_s=float(np.linalg.norm(v[3:])),
+                   tool_z_mm=float(d.xpos[self.tool, 2]) * 1e3)
+        n_rows = 0
+        for c in PAIRS:
+            sel = ok & (pc == c)
+            out["n_" + c] = int(sel.sum())
+            out["f_" + c] = int((dim[sel] - 1).sum())
+            out["cone_" + c] = int((st[adr[sel]] == 4).sum())
+            out["fn_" + c] = float(fo[adr[sel]].sum())
+            n_rows += out["n_" + c] + out["f_" + c]
+        out["other_rows"] = int(d.nefc) - n_rows
+        if full:
+            out["island"], out["nisland"] = k, nis
+            out["qacc_joint"] = self.dof_name[j]
+            order = np.argsort(-qa)[:6]
+            out["qacc_top"] = [[self.dof_name[i], float(np.asarray(d.qacc)[i])] for i in order]
+            out["improvement_trace"] = [float(d.solver.improvement[k * NS + i]) for i in range(n)]
+            out["gradient_trace"] = [float(d.solver.gradient[k * NS + i]) for i in range(n)]
+            big = []
+            if ncon:
+                idx = np.nonzero(ok)[0]
+                idx = idx[np.argsort(-np.abs(fo[adr[idx]]))][:8]
+                for i in idx:
+                    a0, dm = int(adr[i]), int(dim[i])
+                    big.append(dict(pair=str(pc[i]), geoms=[m.geom(int(g[i, 0])).name or str(g[i, 0]), m.geom(int(g[i, 1])).name or str(g[i, 1])],
+                                    dist_mm=round(float(d.contact.dist[i]) * 1e3, 4), state=CNSTR_STATE[int(st[a0])],
+                                    force=[float(x) for x in fo[a0:a0 + dm]], R=[float(x) for x in d.efc_R[a0:a0 + dm]],
+                                    D=[float(x) for x in d.efc_D[a0:a0 + dm]]))
+            out["contacts_top"] = big
+        return out
+
+    def after(self, d):
+        for k, v in self.stats(d).items():
+            self.S[k].append(v)
+
+    def recompute(self, i):
+        """Step i (0-based) recomputed from the state saved before it."""
+        d = self.mj.MjData(self.m)
+        self.mj.mj_setState(self.m, d, self.states[i], self.spec)
+        self.mj.mj_forward(self.m, d)
+        return self.stats(d, full=True)
+
+    def report(self, d=None, t_fail=None):
+        """The series, the kick and its neighbours recomputed, and (after a warning) the failing step."""
+        out = dict(series={k: (np.round(np.asarray(v, float), 6).tolist() if k not in ("qacc_dof",) else v)
+                           for k, v in self.S.items()}, dof_names=self.dof_name)
+        v, w = np.asarray(self.S["tool_v_mm_s"]) * 1e-3, np.asarray(self.S["tool_w_rad_s"])
+        ke = 0.5 * self.tool_m * v ** 2 + 0.5 * self.tool_I * w ** 2
+        gain = np.diff(ke, prepend=ke[0])
+        gain[np.asarray(self.S["ncon"]) == 0] = -np.inf
+        if len(gain) and np.isfinite(gain.max()):
+            k = int(np.argmax(gain))
+            out["kick_step"], out["kick_t_s"], out["kick_dKE_mJ"] = k, self.S["t"][k], float(gain[k]) * 1e3
+            out["kick"] = {str(i): self.recompute(i) for i in range(max(0, k - 2), min(len(self.states), k + 2))}
+        if d is not None:
+            which = [w_ for w_, i in zip(BAD, self.bad) if int(d.warning[i].number) > 0]
+            info = [int(d.warning[i].lastinfo) for i in self.bad if int(d.warning[i].number) > 0]
+            out.update(warning=which, lastinfo_dof=[self.dof_name[i] if 0 <= i < self.m.nv else None for i in info],
+                       failing=self.recompute(len(self.states) - 1), t_fail_s=t_fail)
+        return out
+
+
+def opt_apply(m, ov):
+    for k, v in ov.items():
+        setattr(m.opt, k, v)
+
+
+def grasp_probe(m, Q_s, c0, bfc, fa, pz, tool, tips, probe):
+    """One scripted grasp on the CPU (cmd_mjw's loop) with the probe; held, slip and cost as in grasp_row."""
+    import mujoco
+    dd = mujoco.MjData(m)
+    dd.qpos[:] = Q_s
+    dd.ctrl[:] = c0
+    mujoco.mj_forward(m, dd)
+    z0 = float(dd.xpos[tool, 2])
+    n_steps = int(round(T_END / m.opt.timestep))
+    k_creep = int(round(T_CREEP / m.opt.timestep))
+    W, NI, fail, ra = [], [], None, None
+    for i in range(n_steps):
+        dd.ctrl[:] = ctrl_at(i * m.opt.timestep, c0, bfc, fa, pz)
+        if probe:
+            probe.before(dd)
+        w0 = time.perf_counter()
+        mujoco.mj_step(m, dd)
+        W.append(time.perf_counter() - w0)
+        if probe and probe.warned(dd):
+            fail = probe.report(dd, round((i + 1) * m.opt.timestep, 4))
+            break
+        if not probe and diverged(dd):
+            fail = dict(t_fail_s=round((i + 1) * m.opt.timestep, 4))
+            break
+        NI.append(niter(dd))
+        if probe:
+            probe.after(dd)
+        if i + 1 == k_creep:
+            ra = tool_in_tips(dd.xpos[None], dd.xmat[None], tool, tips)[0]
+    res = dict(diverged=fail is not None, us_per_step_median=float(np.median(W) * 1e6), n_steps=len(W),
+               cap_share=float(np.mean(np.array(NI) >= m.opt.iterations)) if NI else None)
+    if fail is None:
+        rb_ = tool_in_tips(dd.xpos[None], dd.xmat[None], tool, tips)[0]
+        tool_geoms = {i for i in range(m.ngeom) if m.geom_bodyid[i] == tool}
+        finger_of = {i: f for i in range(m.ngeom) for f in FINGERS if m.body(m.geom_bodyid[i]).name.startswith(f + "_")}
+        nf = int(fingers_on_tool([tuple(c.geom) for c in dd.contact[:dd.ncon]], [0] * dd.ncon, 1, tool_geoms, finger_of)[0])
+        res.update(dz_mm=(float(dd.xpos[tool, 2]) - z0) * 1e3, fingers_on_tool=nf,
+                   slip_um_s=float(np.median(np.linalg.norm(rb_ - ra, axis=1)) / (T_END - T_CREEP) * 1e6))
+        res["held"] = bool(res["dz_mm"] > 80.0 and nf >= 2)          # grasp_row's criterion
+        if probe:
+            res["probe"] = probe.report()
+    else:
+        res.update(held=False, fail=fail)
+    return res
+
+
+def replay_probe(scene, meta, plan, traj, seed, ir, ov, probe_on=True):
+    """run_d1d8's loop with the probe, the solver options of the setting `ov`, and the time of the drop."""
+    import mujoco
+    import reorient_backends as RB
+    m = mujoco.MjModel.from_xml_path(str(scene))
+    set_rl(m, ir)
+    opt_apply(m, ov)
+    d = mujoco.MjData(m)
+    tb = m.body(RB.OBJ).id
+    qa = m.jnt_qposadr[m.body_jntadr[tb]]
+    tool7 = np.asarray(meta["tool7"], float)
+    dx, dy, dyaw = RB.jitter(seed)
+    d.qpos[qa:qa + 3] = tool7[:3] + [dx, dy, 0.0]
+    d.qpos[qa + 3:qa + 7] = RB._yaw_quat(tool7[3:], dyaw)
+    act = {}
+    for f in RB.FINGERS:
+        for j in RB.JOINTS:
+            n = f"{f}_{j}"
+            d.qpos[m.jnt_qposadr[m.joint(n).id]] = meta["q0"][n]
+            act[n] = m.actuator(f"a_{n}").id
+    mujoco.mj_forward(m, d)
+    probe = Probe(m, tb) if probe_on else None
+    segs = RB.schedule(plan, traj)
+    W, NI, step, fail = [], [], 0, None
+    z_grip, t_drop, z_hold = None, None, None
+    t_hold = [e for e, _, k in segs if k == "hold"][-1]
+    for t_end, tgt, _ in segs:
+        for n_, a in act.items():
+            d.ctrl[a] = tgt[n_]
+        while step * m.opt.timestep < t_end - 1e-9:
+            if probe:
+                probe.before(d)
+            w0 = time.perf_counter()
+            mujoco.mj_step(m, d)
+            W.append(time.perf_counter() - w0)
+            step += 1
+            t = step * m.opt.timestep
+            if (probe.warned(d) if probe else diverged(d)):
+                fail = probe.report(d, round(t, 4)) if probe else dict(t_fail_s=round(t, 4))
+                break
+            NI.append(niter(d))
+            if probe:
+                probe.after(d)
+            z = float(d.qpos[qa + 2])
+            if z_grip is None and t >= RB.T_GRIP - 1e-9:
+                z_grip = z
+            if z_grip is not None and t_drop is None and z < z_grip - 0.020:
+                t_drop = t
+            if z_hold is None and t >= t_hold - 1e-9:
+                z_hold, p_hold = z, d.qpos[qa:qa + 3].copy()
+        if fail:
+            break
+    res = dict(diverged=fail is not None, t_drop_s=t_drop, z_grip_mm=z_grip * 1e3 if z_grip else None,
+               us_per_step_median=float(np.median(W) * 1e6), n_steps=step,
+               cap_share=float(np.mean(np.array(NI) >= m.opt.iterations)) if NI else None)
+    if fail is None:
+        res.update(held_end=bool(t_drop is None), t_end_s=step * m.opt.timestep,
+                   creep_um_s=(float(np.linalg.norm(d.qpos[qa:qa + 3] - p_hold)) * 1e6 / (step * m.opt.timestep - t_hold))
+                   if t_drop is None else None)
+        if probe:
+            res["probe"] = probe.report()
+    else:
+        res.update(held_end=False, fail=fail)
+    return res
+
+
+def cmd_divergence(a):
+    import fe_contact_calibration_sim as FS
+    import reorient_backends as RB
+    out = OUT / "20261027-divergence.jsonl"
+    have = {(r["case"], r["setting"]) for r in rows_of(out)}
+    ir = 100.0
+    if "grasp" in a.sets:
+        m, info = rl_scene(10.0, ir)
+        d, c0, bfc, fa, pz, tool, palm = grasp_setup(m)
+        tips = [m.body(f"{f}_tip").id for f in FINGERS]
+        Q = placements(m, d, 16)
+        for pl in a.placements:
+            for name in a.settings:
+                case = f"grasp_p{pl}"
+                if (case, name) in have:
+                    continue
+                m2, _ = rl_scene(10.0, ir)
+                opt_apply(m2, DIV_SETTINGS[name])
+                t0 = time.time()
+                res = grasp_probe(m2, Q[pl], c0, bfc, fa, pz, tool, tips, Probe(m2, tool) if name == "base" else None)
+                row = dict(case=case, set="grasp", placement=pl, setting=name, E_MPa=10.0, ir=ir,
+                           opt=dict(RL_OPT, **DIV_SETTINGS[name]), **res, wall_s=round(time.time() - t0, 2),
+                           script=SCRIPT, when=time.strftime("%Y-%m-%d %H:%M"))
+                append(out, row)
+                f = res.get("fail") or {}
+                print(f"{case} {name}: diverged {res['diverged']} at {f.get('t_fail_s')} {f.get('warning')} held {res['held']} "
+                      f"slip {res.get('slip_um_s')} cap {res['cap_share']} {res['us_per_step_median']:.0f} us", flush=True)
+    if "d1d8" in a.sets:
+        key = FS.spec_of(TIP)["key"]
+        arm = f"rl{ir:g}"
+        FS.ARMS[arm] = dict(sim="mujoco", numerics="rl", ir=ir, mu="1.0")
+        RB.PAD_TR = 0.02
+        FS.LOGS = LOGS / "tr0.02"
+        for hand, sd in DIV_REPLAYS:
+            scene, meta = FS.d1d8_scene(TIP, key, arm, 10e6, 0.001, None, hand)
+            plan, traj = RB.load_plan(hand)
+            for name in a.settings:
+                case = f"d1d8_{hand}_s{sd}"
+                if (case, name) in have:
+                    continue
+                t0 = time.time()
+                res = replay_probe(scene, meta, plan, traj, sd, ir, DIV_SETTINGS[name], probe_on=(name == "base"))
+                row = dict(case=case, set="d1d8", plan=hand, seed=sd, setting=name, E_MPa=10.0, ir=ir,
+                           opt=dict(RL_OPT, **DIV_SETTINGS[name]), **res, wall_s=round(time.time() - t0, 2),
+                           script=SCRIPT, when=time.strftime("%Y-%m-%d %H:%M"))
+                append(out, row)
+                f = res.get("fail") or {}
+                print(f"{case} {name}: drop {res['t_drop_s']} diverged {res['diverged']} at {f.get('t_fail_s')} {f.get('warning')} "
+                      f"held {res['held_end']} creep {res.get('creep_um_s')} cap {res['cap_share']} "
+                      f"{res['us_per_step_median']:.0f} us", flush=True)
 
 
 # ------------------------------------------------------------------------------------------------ creep
@@ -653,6 +993,7 @@ def main():
     r.add_argument("--sets", nargs="+", default=["d1d8", "icem"])
     r.add_argument("--hands", nargs="+", default=[f"D{k}" for k in range(1, 9)])
     r.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
+    r.add_argument("--noslip", nargs="+", type=int, default=[0], help="MuJoCo noslip_iterations (0: off, the trainer's)")
     g = sub.add_parser("mjw")
     g.add_argument("--E", nargs="+", type=float, default=[10.0, 2.0])
     g.add_argument("--ir", nargs="+", type=float, default=[10.0, 100.0])
@@ -665,17 +1006,25 @@ def main():
     g.add_argument("--njmax-soft", type=int, default=8192, help="per world at a softer modulus")
     g.add_argument("--run", choices=list(RUNS), default="pads", help="the RL run whose frozen scene is gripped")
     g.add_argument("--min-d0", type=float, default=0.05, help="the softened pads' smallest d0 (picks the time constant)")
+    g.add_argument("--tc", type=float, default=None, help="the softened pads' time constant, s (else the shortest with d0 >= min-d0)")
+    g.add_argument("--noslip", nargs="+", type=int, default=[0], help="MuJoCo noslip_iterations (CPU; MuJoCo-Warp refuses it)")
     g.add_argument("--skin-from-slides", type=float, default=None,
                    help="re-size the skin's springs from the UR5 slides at this fingertip force, N (ur5_shear_skin.sizing)")
     c = sub.add_parser("creep")
     c.add_argument("--sessions", nargs="+", default=list(CREEP_SESSIONS))
     c.add_argument("--ir", nargs="+", type=float, default=list(IRS))
     c.add_argument("--every", type=int, default=3)
+    v = sub.add_parser("divergence")
+    v.add_argument("--sets", nargs="+", default=["grasp", "d1d8"])
+    v.add_argument("--placements", nargs="+", type=int, default=list(DIV_GRASPS))
+    v.add_argument("--settings", nargs="+", default=list(DIV_SETTINGS))
     a = ap.parse_args()
     if a.cmd == "replays":
         cmd_replays(a)
     elif a.cmd == "mjw":
         cmd_mjw(a)
+    elif a.cmd == "divergence":
+        cmd_divergence(a)
     else:
         cmd_creep(a)
 

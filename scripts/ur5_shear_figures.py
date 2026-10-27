@@ -53,6 +53,58 @@ def save(fig, name):
 
 # ------------------------------------------------------------------------------------------------ numbers
 
+IRS_ALL = (10.0, 20.0, 30.0, 50.0, 70.0, 100.0, 300.0)
+
+
+def drop_to_div(r):
+    """Seconds from the drop (the tool 20 mm below its height at the end of the grip, RB.T_GRIP, in the row's trace every
+    0.1 s) to the divergence."""
+    import reorient_backends as RB
+    tr = r.get("trace") or []
+    if r.get("t_unstable_s") is None or not tr:
+        return None
+    z0 = next((e[3] for e in tr if e[0] >= RB.T_GRIP - 1e-9), None)
+    t_drop = None if z0 is None else next((e[0] for e in tr if e[0] > RB.T_GRIP and e[3] < z0 - 20.0), None)
+    return None if t_drop is None or t_drop > r["t_unstable_s"] else round(r["t_unstable_s"] - t_drop, 3)
+
+
+def divergence_summary():
+    """Per case of ur5_shear_impratio.py divergence: the outcome and cost of each setting, and for the probed base run the
+    times the tool leaves the pads, is kicked and flies free, its spin then, the spin's e-folding time in free flight,
+    the warning and its joint, and the grip's solver statistics while a pad touches the tool."""
+    out = {}
+    for r in rows("20261027-divergence.jsonl"):
+        c = out.setdefault(r["case"], dict(set=r["set"], settings={}))
+        f = r.get("fail") or {}
+        c["settings"][r["setting"]] = dict(diverged=r["diverged"], t_fail_s=f.get("t_fail_s"), held=r.get("held", r.get("held_end")),
+                                           us=r["us_per_step_median"], cap=r.get("cap_share"), slip_um_s=r.get("slip_um_s"),
+                                           t_drop_s=r.get("t_drop_s"))
+        if r["setting"] != "base" or not f:
+            continue
+        S = {k: np.asarray(v) for k, v in f["series"].items()}
+        t, w = S["t"], S["tool_w_rad_s"]
+        pt, nc = S["n_pad-tool"], S["ncon"]
+        lastc, lastpt = np.nonzero(nc > 0)[0], np.nonzero(pt > 0)[0]
+        i0 = int(lastc[-1]) + 1 if len(lastc) else 0
+        free = i0 < len(t) - 5
+        g = slice(0, int(lastpt[-1]) + 1) if len(lastpt) else slice(0, 0)
+        ks = (f.get("kick") or {}).get(str(f.get("kick_step")), {})
+        c.update(warning=f.get("warning"), warning_dof=(f.get("lastinfo_dof") or [None])[0], t_fail_s=f.get("t_fail_s"),
+                 t_drop_s=r.get("t_drop_s"), t_leave_s=float(t[lastpt[-1]]) if len(lastpt) else None,
+                 kick_t_s=f.get("kick_t_s"), kick_dKE_J=(f.get("kick_dKE_mJ") or 0) * 1e-3,
+                 kick_pairs={p: ks.get("n_" + p) for p in ("pad-tool", "tool-table", "link-tool", "finger-finger", "other") if ks.get("n_" + p)},
+                 kick_niter=ks.get("niter"), kick_improvement=ks.get("improvement"),
+                 t_free_s=float(t[i0]) if free else None, w_free=float(w[i0]) if free else None,
+                 efold_ms=(1e3 * (t[-1] - t[i0]) / math.log(w[-1] / w[i0])) if free and w[-1] > w[i0] > 0 else None,
+                 w_max_grip=float(w[g].max()) if len(lastpt) else None,
+                 v_max_grip_mm_s=float(S["tool_v_mm_s"][g].max()) if len(lastpt) else None,
+                 cap_grip=float((S["niter"][g] >= 10).mean()) if len(lastpt) else None,
+                 improvement_max_grip=float(S["improvement"][g].max()) if len(lastpt) else None,
+                 cone_share_grip=float(S["cone_pad-tool"][g].sum() / max(1, S["n_pad-tool"][g].sum())) if len(lastpt) else None,
+                 floor_cone_share=float(S["cone_tool-table"].sum() / max(1, S["n_tool-table"].sum())))
+    return out
+
+
 def numbers():
     N = {}
     S = json.loads((DATA / "20261026-ur5_slides_summary.json").read_text())
@@ -61,20 +113,22 @@ def numbers():
     N["creep"] = {f"{r['session']}_E{r['E_MPa']:g}_{r['numerics']}_ir{r['ir']:g}": dict(
         median_um_s=r["creep_mm_s"]["median"] * 1e3, p90_um_s=r["creep_mm_s"]["p90"] * 1e3, cap=r["cap_share"],
         us=r["us_per_step_median"], n=r["n"]) for r in rows("20261026-impratio_creep.jsonl")}
-    # replays
+    # replays (2026-10-27: the sweep 10-100 and noslip at impratio 10; keys of noslip rows end in _ns3, _ns10)
     R = rows("20261026-impratio_replays.jsonl")
     rep = {}
-    for st in ("d1d8", "icem"):
-        for E in (10.0, 2.0):
-            for ir in (10.0, 100.0, 300.0):
-                X = [r for r in R if r["set"] == st and r["E_MPa"] == E and r["ir"] == ir]
+    for st, E, ir, ns in [(st, E, ir, ns) for st in ("d1d8", "icem") for E in (10.0, 2.0) for ns in (0, 3, 10)
+                          for ir in IRS_ALL]:
+        if True:
+            if True:
+                X = [r for r in R if r["set"] == st and r["E_MPa"] == E and r["ir"] == ir and r.get("noslip", 0) == ns]
                 if not X:
                     continue
+                key = f"{st}_E{E:g}_ir{ir:g}" + (f"_ns{ns}" if ns else "")
                 if st == "d1d8":
                     held = [r for r in X if r.get("held_end")]
                     div = [r for r in X if r["status"] != "complete"]
                     early = [r for r in div if r.get("t_unstable_s") is not None and r["t_unstable_s"] < 2.0]
-                    rep[f"{st}_E{E:g}_ir{ir:g}"] = dict(
+                    rep[key] = dict(
                         n=len(X), held=len(held), diverged=len(div), diverged_before_2s=len(early),
                         dropped=len(X) - len(held) - len(div), tr_s=X[0]["tr_s"],
                         creep_um_s=float(np.median([r["creep_um_s"] for r in held])) if held else None,
@@ -83,22 +137,28 @@ def numbers():
                         cap_share=float(np.mean([r.get("cap_share") or 0 for r in X])),
                         cap_share_max=float(np.max([r.get("cap_share") or 0 for r in X])),
                         us_held=float(np.median([r["us_per_step_median"] for r in held])) if held else None,
+                        us_all=float(np.median([r["us_per_step_median"] for r in X if r.get("us_per_step_median")])),
+                        drop_to_div_s=[x for x in (drop_to_div(r) for r in div) if x is not None] or None,
                         hands_held=sorted({r["plan"] for r in held}))
                 else:
                     held = [r for r in X if r.get("held")]
-                    rep[f"{st}_E{E:g}_ir{ir:g}"] = dict(
+                    rep[key] = dict(
                         n=len(X), held=len(held), unstable=sum(r["status"] == "unstable" for r in X),
                         turn_deg=[r.get("turn_end_deg") for r in X], logged=[r["logged"]["turn_end_deg"] for r in X],
                         cap_share=float(np.mean([r.get("cap_share") or 0 for r in X])),
                         us=float(np.median([r["us_per_step_median"] for r in X if r.get("us_per_step_median")])))
     N["replays"] = rep
-    # grasp check
+    # grasp check (the softened pads' keys carry their time constant, _tc15 or _tc20; noslip rows end in _ns3, _ns10)
     G = rows("20261026-impratio_mjw.jsonl")
-    N["grasp"] = {f"{r['sim']}_{r.get('run', 'pads')}{'_slides' if r.get('skin_k') else ''}_E{r['E_MPa']:g}_ir{r['ir']:g}": dict(
+    N["grasp"] = {(f"{r['sim']}_{r.get('run', 'pads')}{'_slides' if r.get('skin_k') else ''}_E{r['E_MPa']:g}"
+                   + (f"_tc{round(r['tc_s'] * 1e3):d}" if r["E_MPa"] != 10.0 else "") + f"_ir{r['ir']:g}"
+                   + (f"_ns{r['noslip']}" if r.get("noslip") else "")): dict(
         n=r["n"], held=r["held"], held_placements=r.get("held_placements"), nonfinite=r["nonfinite"],
         slip_um_s=r["slip_um_s"]["median"], cap=r.get("cap_share"), tc_s=r.get("tc_s"),
         us=r.get("us_per_step_median") or r.get("us_per_world_step"), nefc_max=r.get("nefc_max"))
-        for r in G}
+        for r in G if r.get("status") != "unsupported"}
+    N["mjw_noslip"] = next((r["error"] for r in G if r.get("status") == "unsupported"), None)
+    N["divergence"] = divergence_summary()
     # skin on the slides
     K = []
     for ir in (10, 100, 1000):
@@ -167,63 +227,135 @@ def numbers():
 # ------------------------------------------------------------------------------------------------ figures
 
 def fig_impratio(N):
+    """(a) Creep against impratio under the trainer's numerics, with noslip at impratio 10; (b) runs that diverged."""
     plt = plt_setup()
-    fig, (a1, a2) = plt.subplots(2, 1, figsize=(10.0, 10.0), gridspec_kw=dict(height_ratios=(1.25, 1.0)))
-    ir = np.array([10.0, 100.0, 300.0])
-    C = N["creep"]
+    fig, (a1, a2) = plt.subplots(2, 1, figsize=(10.0, 10.5), gridspec_kw=dict(height_ratios=(1.25, 1.0)))
+    C, R, g = N["creep"], N["replays"], N["grasp"]
+    ir3 = np.array([10.0, 100.0, 300.0])
     for key, lab, col, mk in (("sphere2_E0.9008", "UR5 rig, 5 mm sphere, 0.90 MPa", ORANGE, "o"),
-                              ("rod1_E1.9974", "UR5 rig, 12.5 mm rod, 2.0 MPa", BLUE, "s"),
-                              ("sphere2_E10", "UR5 rig, 5 mm sphere, 10 MPa", ORANGE, "^"),
-                              ("rod1_E10", "UR5 rig, 12.5 mm rod, 10 MPa", BLUE, "v")):
-        y = [C.get(f"{key}_rl_ir{x:g}", {}).get("median_um_s") for x in ir]
-        if None in y:
-            continue
-        a1.plot(ir, y, "-" + mk, color=col, ms=7, lw=1.4, mfc="white" if "E10" in key else col, label=lab)
-    R = N["replays"]
-    for E, mk in ((10.0, "D"), (2.0, "d")):
-        y = [R.get(f"d1d8_E{E:g}_ir{x:g}", {}).get("creep_um_s") for x in ir]
-        a1.plot(ir, y, "--" + mk, color=GREEN, ms=7, lw=1.4, mfc="white" if E == 10.0 else GREEN,
-                label=f"D1-D8 replays, held, {E:g} MPa")
-    g = N["grasp"]
-    y = [g.get(f"mjw_pads_E10_ir{x:g}", {}).get("slip_um_s") for x in (10.0, 100.0)]
-    a1.plot([10.0, 100.0], y, ":x", color="black", ms=8, lw=1.4, label="Scripted grasp, MuJoCo-Warp, 10 MPa")
-    a1.plot(ir, 300.0 * 10.0 / ir, "-", color="0.8", lw=4, zorder=0, label="Slope of 1/impratio")
+                              ("rod1_E1.9974", "UR5 rig, 12.5 mm rod, 2.0 MPa", "#8a6fb0", "s")):
+        y = [C.get(f"{key}_rl_ir{x:g}", {}).get("median_um_s") for x in ir3]
+        if None not in y:
+            a1.plot(ir3, y, "-" + mk, color=col, ms=6, lw=1.2, label=lab)
+    for E, mk, ls in ((10.0, "D", "-"), (2.0, "d", "--")):
+        xs = [x for x in IRS_ALL if (R.get(f"d1d8_E{E:g}_ir{x:g}") or {}).get("creep_um_s")]
+        a1.plot(xs, [R[f"d1d8_E{E:g}_ir{x:g}"]["creep_um_s"] for x in xs], ls + mk, color=GREEN, ms=7, lw=1.6,
+                mfc="white" if E == 10.0 else GREEN, label=f"D1-D8 replays, held, {E:g} MPa")
+    for key, lab, ls, mk, col in (("mjw_pads_E10", "Scripted grasp, MuJoCo-Warp, 10 MPa", "-", "x", "black"),
+                                  ("cpu_pads_E10", "Scripted grasp, CPU, 10 MPa", ":", "o", "black"),
+                                  ("cpu_pads_E2_tc20", "Scripted grasp, CPU, 2.0 MPa", ":", "s", BLUE)):
+        xs = [x for x in IRS_ALL if (g.get(f"{key}_ir{x:g}") or {}).get("slip_um_s")]
+        a1.plot(xs, [g[f"{key}_ir{x:g}"]["slip_um_s"] for x in xs], ls + mk, color=col, ms=7, lw=1.4,
+                mfc="white" if mk != "x" else col, label=lab)
+    # noslip at impratio 10, drawn just left of 10
+    for key, src, col, mk, dx in (("d1d8_E10_ir10", R, GREEN, "D", 0.86), ("cpu_pads_E10_ir10", g, "black", "o", 0.80),
+                                  ("cpu_pads_E2_tc20_ir10", g, BLUE, "s", 0.74), ("d1d8_E2_ir10", R, GREEN, "d", 0.92)):
+        for ns, fill in ((3, "0.75"), (10, "0.25")):
+            v = (src.get(f"{key}_ns{ns}") or {})
+            y = v.get("creep_um_s", v.get("slip_um_s"))
+            if y:
+                a1.plot([10.0 * dx], [y], mk, color=col, mfc=fill, ms=8, mew=1.4)
+    a1.plot([], [], "o", color="0.3", mfc="0.75", ms=8, label="Noslip 3 at impratio 10 (left of 10)")
+    a1.plot([], [], "o", color="0.3", mfc="0.25", ms=8, label="Noslip 10 at impratio 10")
+    a1.plot(ir3, 300.0 * 10.0 / ir3, "-", color="0.85", lw=4, zorder=0, label="Slope of 1/impratio")
     a1.set_xscale("log")
     a1.set_yscale("log")
-    a1.set_xticks(ir)
-    a1.set_xticklabels([f"{x:g}" for x in ir])
+    a1.set_xticks(IRS_ALL)
+    a1.set_xticklabels([f"{x:g}" for x in IRS_ALL])
+    a1.minorticks_off()
+    a1.set_xlim(6.5, 360)
     a1.set_xlabel("Impratio")
     a1.set_ylabel("Creep (\N{MICRO SIGN}m/s)")
     a1.set_title("(a) Creep under the trainer's solver", loc="left")
     a1.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), frameon=False, fontsize=11)
-    # (b) outcomes of the 24 D1-D8 replays per setting
-    labels, H, Dr, Dv = [], [], [], []
-    for E in (10.0, 2.0):
-        for x in ir:
-            r = R.get(f"d1d8_E{E:g}_ir{x:g}")
-            if not r:
-                continue
-            labels.append(f"{E:g} MPa\n{x:g}")
-            H.append(r["held"])
-            Dr.append(r["dropped"])
-            Dv.append(r["diverged"])
-    xs = np.arange(len(labels))
-    a2.bar(xs, H, 0.7, color=BLUE, label="Held")
-    a2.bar(xs, Dr, 0.7, bottom=H, color="0.8", label="Dropped")
-    a2.bar(xs, Dv, 0.7, bottom=np.add(H, Dr), color=ORANGE, label="Diverged")
-    for x_, h_, d_, v_ in zip(xs, H, Dr, Dv):
-        a2.text(x_, h_ / 2, str(h_), ha="center", va="center", color="white", fontsize=12)
-        if v_:
-            a2.text(x_, h_ + d_ + v_ / 2, str(v_), ha="center", va="center", color="white", fontsize=12)
-    a2.set_xticks(xs)
-    a2.set_xticklabels(labels)
-    a2.set_ylim(0, 26)
-    a2.set_ylabel("D1-D8 replays (of 24)")
-    a2.set_xlabel("Pad modulus and impratio")
-    a2.set_title("(b) Outcomes of the D1-D8 replays", loc="left")
+    # (b) runs that diverged, as a share
+    for key, n, lab, col, mk, ls in (("d1d8_E10", 24, "D1-D8 replays, 10 MPa (of 24)", GREEN, "D", "-"),
+                                     ("d1d8_E2", 24, "D1-D8 replays, 2.0 MPa (of 24)", GREEN, "d", "--")):
+        xs = [x for x in IRS_ALL if R.get(f"{key}_ir{x:g}")]
+        a2.plot(xs, [100.0 * R[f"{key}_ir{x:g}"]["diverged"] / n for x in xs], ls + mk, color=col, ms=7, lw=1.6,
+                mfc="white" if "E10" in key else col, label=lab)
+    for key, lab, col, mk in (("cpu_pads_E10", "Scripted grasp, CPU, 10 MPa (of 16)", "black", "o"),
+                              ("cpu_pads_E2_tc20", "Scripted grasp, CPU, 2.0 MPa (of 16)", BLUE, "s"),
+                              ("mjw_pads_E10", "Scripted grasp, MuJoCo-Warp, 10 MPa (of 256)", "black", "x")):
+        xs = [x for x in IRS_ALL if g.get(f"{key}_ir{x:g}")]
+        a2.plot(xs, [100.0 * g[f"{key}_ir{x:g}"]["nonfinite"] / g[f"{key}_ir{x:g}"]["n"] for x in xs],
+                ":" + mk, color=col, ms=7, lw=1.4, mfc="white" if mk != "x" else col, label=lab)
+    a2.set_xscale("log")
+    a2.set_xticks(IRS_ALL)
+    a2.set_xticklabels([f"{x:g}" for x in IRS_ALL])
+    a2.minorticks_off()
+    a2.set_xlim(6.5, 360)
+    a2.set_ylim(-3, 75)
+    a2.set_xlabel("Impratio")
+    a2.set_ylabel("Runs that diverged (%)")
+    a2.set_title("(b) Divergence", loc="left")
     a2.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), frameon=False, fontsize=11)
     fig.tight_layout()
     save(fig, "20261026-impratio.png")
+
+
+def fig_divergence(N):
+    """Grasp placement 1 and the D2 replay at impratio 100: the tool's spin, the contacts on it by pair and the solver's
+    iterations, with the times the tool is kicked, flies free and MuJoCo warns."""
+    plt = plt_setup()
+    from matplotlib.lines import Line2D
+    rr = {r["case"]: r for r in rows("20261027-divergence.jsonl") if r["setting"] == "base"}
+    cases = (("grasp_p1", "Scripted grasp, placement 1"), ("d1d8_D2_s0", "D2 replay, placement 0"))
+    fig, axs = plt.subplots(3, 2, figsize=(12.0, 9.8), sharex="col", gridspec_kw=dict(height_ratios=(1.3, 1.0, 1.0)))
+    D = N["divergence"]
+    PURPLE = "#8a6fb0"
+    for col, (case, title) in enumerate(cases):
+        S = {k: np.asarray(v) for k, v in rr[case]["fail"]["series"].items()}
+        t = S["t"]
+        a, b, c = axs[0, col], axs[1, col], axs[2, col]
+        a.semilogy(t, np.maximum(S["tool_w_rad_s"], 1e-2), "-", color=BLUE, lw=1.3)
+        a.semilogy(t, np.maximum(S["tool_v_mm_s"] * 1e-3, 1e-3), "-", color=ORANGE, lw=1.1)
+        a.set_ylim(1e-3, 1e8)
+        a.set_title(f"({'ab'[col]}) {title}", loc="left")
+        b.plot(t, S["n_pad-tool"], "-", color=GREEN, lw=1.1)
+        b.set_ylim(-10, 340)
+        b2 = b.twinx()
+        b2.plot(t, S["n_tool-table"], "-", color=PURPLE, lw=1.1)
+        b2.set_ylim(-0.25, 8.5)
+        it = S["niter"]
+        c.plot(t, it, ".", color="0.6", ms=2.5)
+        cap = it >= 10
+        c.plot(t[cap], it[cap], ".", color="black", ms=4)
+        c2 = c.twinx()
+        imp = S["improvement"]
+        c2.semilogy(t[imp > 0], imp[imp > 0], ".", color=ORANGE, ms=3)
+        c2.set_ylim(1e-10, 1e12)
+        c.set_ylim(-0.5, 10.8)
+        c.set_xlabel("Time (s)")
+        d = D[case]
+        for ax in (a, b, c):
+            for tt, ls in ((d.get("kick_t_s"), "--"), (d.get("t_free_s"), ":"), (d.get("t_fail_s"), "-")):
+                if tt is not None:
+                    ax.axvline(tt, color="0.3", ls=ls, lw=1.0)
+            if case.startswith("d1d8") and d.get("t_drop_s"):
+                ax.axvline(d["t_drop_s"], color=GREEN, ls="-.", lw=1.0)
+        if col == 0:
+            a.set_ylabel("Tool's spin and speed")
+            b.set_ylabel("Pads on the tool")
+            c.set_ylabel("Solver iterations")
+        else:
+            b2.set_ylabel("Tool on the floor", color=PURPLE)
+            c2.set_ylabel("Last improvement", color=ORANGE)
+        for tw in (b2, c2):
+            tw.spines[["top"]].set_visible(False)
+        a.set_xlim(2.3 if case.startswith("d1d8") else 0.0, d["t_fail_s"] + 0.03)
+    hs = [Line2D([], [], color=BLUE, lw=1.3, label="Spin (rad/s)"), Line2D([], [], color=ORANGE, lw=1.1, label="Speed (m/s)"),
+          Line2D([], [], color=GREEN, lw=1.1, label="Pad contacts on the tool"),
+          Line2D([], [], color=PURPLE, lw=1.1, label="Tool contacts on the floor"),
+          Line2D([], [], color="0.6", marker=".", ls="", ms=8, label="Iterations used"),
+          Line2D([], [], color="black", marker=".", ls="", ms=9, label="At the cap of 10"),
+          Line2D([], [], color=ORANGE, marker=".", ls="", ms=8, label="Last improvement"),
+          Line2D([], [], color="0.3", ls="--", label="Kick (largest gain of kinetic energy)"),
+          Line2D([], [], color="0.3", ls=":", label="Free flight from"), Line2D([], [], color="0.3", ls="-", label="MuJoCo's warning"),
+          Line2D([], [], color=GREEN, ls="-.", label="Drop")]
+    fig.legend(handles=hs, loc="lower center", ncol=4, frameon=False, bbox_to_anchor=(0.5, -0.005), fontsize=11.5)
+    fig.tight_layout(rect=(0, 0.085, 1, 1))
+    save(fig, "20261027-divergence.png")
 
 
 def fig_skin(N):
@@ -408,6 +540,7 @@ def cmd_film(a):
 def cmd_figures(a):
     N = numbers()
     fig_impratio(N)
+    fig_divergence(N)
     fig_skin(N)
     fig_torsion(N)
 

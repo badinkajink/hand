@@ -47,6 +47,18 @@ def f0(x):
     return f"{x:.0f}"
 
 
+WORDS = ("none", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten")
+
+
+def sig2(x):
+    """Two significant figures with thousands separators: 493578 -> 490,000."""
+    from math import floor, log10
+    if x == 0:
+        return "0"
+    d = 10 ** (floor(log10(abs(x))) - 1)
+    return f"{round(x / d) * d:,.0f}"
+
+
 def sections(N):
     S1 = N["slides"]["cb2t"]
     T1 = N["slides"]["cb1r"]
@@ -65,15 +77,30 @@ def sections(N):
     g = lambda k: G[k]  # noqa: E731
     V = N["vector"]
     v1, v2 = V["1"], V["2"]
+    SW = (10, 20, 30, 50, 70, 100, 300)
+    div10 = [R[f"d1d8_E10_ir{x}"]["diverged"] for x in SW[1:]]
+    div2 = [R[f"d1d8_E2_ir{x}"]["diverged"] for x in SW[1:-1]]
+    held2 = [R[f"d1d8_E2_ir{x}"]["held"] for x in SW[:-1]]
+    d2d = [x for k in SW[1:] for x in (R[f"d1d8_E10_ir{k}"]["drop_to_div_s"] or [])]
+    ns10, ns3 = R["d1d8_E10_ir10_ns10"], R["d1d8_E10_ir10_ns3"]
+    ns10q, ns3q = R["d1d8_E2_ir10_ns10"], R["d1d8_E2_ir10_ns3"]
+    mjw = [G[f"mjw_pads_E10_ir{x}"] for x in SW[:-1]]
+    DV = N["divergence"]
+    gp = [DV[f"grasp_p{k}"] for k in (1, 4, 5, 8, 11, 14)]
+    rp = [DV["d1d8_D2_s0"], DV["d1d8_D6_s0"]]
+    held_rr = lambda st: [c for c in gp if c["settings"][st]["held"]]  # noqa: E731
 
     lede = (
         f"On 87 UR5 slides of one printed fingertip, the friction coefficient of the 85A pad on a printed PLA sphere is "
         f"{v1['mu_const']['median']:.2f} at 1&#8202;N and {v2['mu_const']['median']:.2f} at 2&#8202;N. Before slip the pad moves {f0(b1['give_um_N']['median'])}&#8202;&#181;m per "
         f"newton of shear at 1&#8202;N and {f0(b2['give_um_N']['median'])}&#8202;&#181;m/N at 2&#8202;N. In the finite-element model "
-        "it moves 48&#8211;177&#8202;&#181;m/N under the 12.5&#8202;mm rod. Under the policy trainer&#8217;s solver, impratio 100 lowers "
-        f"the 1&#8202;mm pads&#8217; creep from {f0(r10['creep_um_s'])} to {f0(r100['creep_um_s'])}&#8202;&#181;m/s in the D1&#8211;D8 "
-        f"replays. Every replay that drops the tool then diverges, as do {g('cpu_pads_E10_ir100')['nonfinite']} of 16 CPU grasps. "
-        f"In MuJoCo-Warp {g('mjw_pads_E10_ir100')['held_placements']} of 64 placements are held at the same cost. Pads on a skin "
+        "it moves 48&#8211;177&#8202;&#181;m/N under the 12.5&#8202;mm rod. Under the policy trainer&#8217;s solver every impratio from "
+        f"20 to 100 makes {min(div10)}&#8211;{max(div10)} of the 24 D1&#8211;D8 replays diverge after they drop the tool. In MuJoCo-Warp "
+        f"the scripted grasp keeps {min(x['held_placements'] for x in mjw)}&#8211;{max(x['held_placements'] for x in mjw)} of 64 "
+        f"placements up to impratio 100, and the tool&#8217;s slip falls from {f0(mjw[0]['slip_um_s'])} to "
+        f"{f0(mjw[-1]['slip_um_s'])}&#8202;&#181;m/s. The divergence is the flung tool&#8217;s spin growing in free flight under the "
+        f"implicitfast integrator. Noslip at impratio 10 lowers the replays&#8217; creep from {f0(r10['creep_um_s'])} to "
+        f"{f0(ns10['creep_um_s'])}&#8202;&#181;m/s without divergence. MuJoCo-Warp has no noslip. Pads on a skin "
         f"sized from the slides match the measured shear within {K['skin_ir1000_1N']['rms_N']:.2f}&#8202;N RMS at impratio 1000. "
         "At impratio 100 creep flattens their loops. The pads&#8217; friction torque, "
         f"{tq['1'][0]:.1f}&#8211;{tq['5'][1]:.1f}&#8202;N&#8202;mm at 1&#8211;5&#8202;N, is below the HEX-E&#8217;s resolution.")
@@ -81,9 +108,12 @@ def sections(N):
         f"UR5 slides of the printed fingertip: friction coefficient {v1['mu_const']['median']:.2f} and {v2['mu_const']['median']:.2f} "
         "(PLA sphere on 85A, 1 and 2 N, from the magnitude of the shear at slip), "
         f"give before slip {f0(b1['give_um_N']['median'])} and {f0(b2['give_um_N']['median'])} um/N at 1 and 2 N; under the "
-        f"trainer's solver impratio 100 cuts the pads' creep {r10['creep_um_s'] / r100['creep_um_s']:.1f}x but replays that "
-        f"drop the tool diverge and 7 of 16 CPU grasps hold (MuJoCo-Warp 63/64); a slide-sized skin matches the loops only at "
-        "impratio 1000; the friction torque is below the HEX-E's resolution.")
+        f"trainer's solver every impratio from 20 to 100 makes {min(div10)}-{max(div10)} of 24 D1-D8 replays diverge after the "
+        f"drop (CPU), the CPU grasp diverges from 50 and the MuJoCo-Warp grasp never (slip {f0(mjw[0]['slip_um_s'])} to "
+        f"{f0(mjw[-1]['slip_um_s'])} um/s at 10 to 100); the divergence is the flung tool's spin running away under "
+        f"implicitfast; noslip 10 at impratio 10 cuts the replays' creep {f0(r10['creep_um_s'])} to {f0(ns10['creep_um_s'])} "
+        "um/s (CPU only); a slide-sized skin matches the loops only at impratio 1000; the friction torque is below the HEX-E's "
+        "resolution.")
 
     S = []
     terms = [
@@ -120,8 +150,16 @@ def sections(N):
         ("Held", "D1&#8211;D8: at the end the tool is less than 20&#8202;mm below its grip height and touched by at least two "
          "fingertips. Readiness commands: the same, with two fingertips each pressing with the tool&#8217;s weight. Scripted "
          "grasp: the tool rose with the palm to within 20&#8202;mm and two fingertips touch it."),
-        ("Diverged", "MuJoCo found a non-finite or huge acceleration and reset the state (warning BADQACC), or a MuJoCo-Warp "
-         "world became non-finite."),
+        ("Diverged", "MuJoCo found a non-finite acceleration or one above $10^{10}$ and reset the state (warning BADQACC), or a "
+         "MuJoCo-Warp world became non-finite."),
+        ("Noslip", "MuJoCo&#8217;s second pass over the friction rows after the main solve: a projected Gauss&#8211;Seidel sweep "
+         "without their regulariser, repeated <code>noslip_iterations</code> times. The trainer runs without it."),
+        ("Cone state", "A contact whose force lies on the surface of its friction cone, so that it slides (MuJoCo&#8217;s "
+         "constraint state CONE)."),
+        ("Last improvement", "The fall of the solver&#8217;s cost in its last iteration of a step, as MuJoCo reports it "
+         "(<code>mjSolverStat.improvement</code>). The solver stops when it falls below the tolerance, or at the cap."),
+        ("Kick", "Of the steps with a contact on the tool, the one that adds the most kinetic energy to the tool."),
+        ("Free flight", "Steps on which nothing touches the tool."),
         ("Placement", "The tool&#8217;s start offset of a run: none for seed 0, else 2&#8202;mm and 2&#176; standard deviation."),
         ("Sprung skin", "The pads on a 2&#8202;g body joined to the fingertip by two sideways slides and a twist hinge, each with "
          "a spring and critical damping (" + link(L["skin"], "skin page") + ")."),
@@ -204,30 +242,36 @@ def sections(N):
                              "with the scenes&#8217; 1 and the trainer&#8217;s randomisation range. "
                              "Script: <code>scripts/ur5_shear_slides.py</code>.") + tabF + tab1))
 
-    # 3. impratio
+    # 3. impratio (2026-10-27: the sweep 10-300, noslip and the divergence)
+    def cell(d, k, fmt="{:.0f}"):
+        v = (d or {}).get(k)
+        return "&#8211;" if v is None else fmt.format(v)
+
+    def trow(E, x, ns=0):
+        sfx = f"_ns{ns}" if ns else ""
+        r = R.get(f"d1d8_E{E}_ir{x}{sfx}")
+        ic = R.get(f"icem_E{E}_ir{x}{sfx}")
+        gc = G.get(f"cpu_pads_E{E}{'' if E == 10 else '_tc20'}_ir{x}{sfx}")
+        gm = G.get(f"mjw_pads_E{E}_ir{x}") if E == 10 and not ns else None
+        rig = C.get(f"{'sphere2_E10' if E == 10 else 'rod1_E1.9974'}_rl_ir{x}") if not ns else None
+        lab = f"{'10' if E == 10 else '2.0'}&#8202;MPa, {x}" + (f", noslip {ns}" if ns else "")
+        return [lab, cell(rig, "median_um_s", "{:.1f}") + (" (rod)" if rig and E != 10 else ""),
+                f"{r['held']} / {r['diverged']}", cell(r, "creep_um_s"), f"{ic['held']} of 6" if ic else "&#8211;",
+                f"{gc['held']} / {gc['nonfinite']}" if gc else "&#8211;", f"{gm['held_placements']} of 64" if gm else "&#8211;",
+                cell(gc, "slip_um_s"), cell(gm, "slip_um_s"), cell(r, "us_held")]
     tab2 = P.table(
         ["Pads, impratio", "UR5 rig creep, sphere (&#181;m/s)", "D1&#8211;D8 held / diverged", "Creep of held (&#181;m/s)",
-         "Readiness held", "Grasp CPU held / diverged", "Grasp MuJoCo-Warp held", "Slip (&#181;m/s)", "Cap (%)", "&#181;s per step"],
-        [[f"10&#8202;MPa, {x}", f"{C[f'sphere2_E10_rl_ir{x}']['median_um_s']:.1f}",
-          f"{R[f'd1d8_E10_ir{x}']['held']} / {R[f'd1d8_E10_ir{x}']['diverged']}", f"{R[f'd1d8_E10_ir{x}']['creep_um_s']:.0f}",
-          f"{R[f'icem_E10_ir{x}']['held']} of 6",
-          (f"{G[f'cpu_pads_E10_ir{x}']['held']} / {G[f'cpu_pads_E10_ir{x}']['nonfinite']}" if f'cpu_pads_E10_ir{x}' in G else "&#8211;"),
-          (f"{G[f'mjw_pads_E10_ir{x}']['held_placements']} of 64" if f'mjw_pads_E10_ir{x}' in G else "&#8211;"),
-          (f"{G[f'mjw_pads_E10_ir{x}']['slip_um_s']:.0f}" if f'mjw_pads_E10_ir{x}' in G else "&#8211;"),
-          f"{100 * R[f'd1d8_E10_ir{x}']['cap_share_max']:.1f}", f"{R[f'd1d8_E10_ir{x}']['us_held']:.0f}"]
-         for x in (10, 100, 300)]
-        + [[f"2.0&#8202;MPa, {x}", f"{C[f'rod1_E1.9974_rl_ir{x}']['median_um_s']:.1f} (rod)",
-            f"{R[f'd1d8_E2_ir{x}']['held']} / {R[f'd1d8_E2_ir{x}']['diverged']}", f"{R[f'd1d8_E2_ir{x}']['creep_um_s']:.0f}",
-            f"{R[f'icem_E2_ir{x}']['held']} of 6", "&#8211;", "&#8211;", "&#8211;",
-            f"{100 * R[f'd1d8_E2_ir{x}']['cap_share_max']:.1f}", f"{R[f'd1d8_E2_ir{x}']['us_held']:.0f}"]
-           for x in (10, 100, 300)],
+         "Readiness held", "Grasp CPU held / diverged", "Grasp MuJoCo-Warp held", "Slip CPU (&#181;m/s)",
+         "Slip MuJoCo-Warp (&#181;m/s)", "&#181;s per step"],
+        [trow(E, x) for E in (10, 2) for x in SW] + [trow(E, 10, ns) for E in (10, 2) for ns in (3, 10)],
         num_cols=(1, 2, 3, 4, 5, 6, 7, 8, 9), n=3,
-        caption="Impratio under the trainer&#8217;s numerics. UR5 rig: the 812 pads under the sphere presses&#8217; forces at 10&#8202;MPa "
-                "(10&#8202;MPa rows) and under the rod presses&#8217; at 2.0&#8202;MPa. D1&#8211;D8: 24 replays per setting on the UR5 "
-                "pad&#8217;s shape. Readiness: the two logged pinned-iCEM runs from three placements. Grasp: the scripted close and "
-                "lift on the servo plant&#8217;s pad scene of the RL runs, 16 placements on the CPU and 64 in MuJoCo-Warp. Cap: the "
-                "largest share of steps at the iteration cap over the D1&#8211;D8 replays. &#181;s per step: the held D1&#8211;D8 replays "
-                "on one core.")
+        caption="Impratio and noslip under the trainer&#8217;s numerics. UR5 rig: the 812 pads under the sphere presses&#8217; "
+                "forces at 10&#8202;MPa (10&#8202;MPa rows) and under the rod presses&#8217; at 2.0&#8202;MPa. D1&#8211;D8: 24 replays per "
+                "setting on the UR5 pad&#8217;s shape, at a 20&#8202;ms time constant for 2.0&#8202;MPa. Readiness: the two logged "
+                "pinned-iCEM runs from three placements. Grasp: the scripted close and lift on the servo plant&#8217;s pad scene "
+                "of the RL runs, 16 placements on the CPU (2.0&#8202;MPa at 20&#8202;ms) and 64 in MuJoCo-Warp. Slip: median over "
+                "the held grasps. &#181;s per step: the held D1&#8211;D8 replays on one core. Noslip rows: impratio 10 with "
+                "<code>noslip_iterations</code> 3 or 10, on the CPU only.")
     imp = (
         f"<p>Under the trainer&#8217;s numerics the pads&#8217; creep falls as $1/\\kappa$ in the UR5 rig. At the sphere presses&#8217; "
         f"0.90&#8202;MPa it is {cr(sph, 10):.0f}, {cr(sph, 100):.0f} and {cr(sph, 300):.0f}&#8202;&#181;m/s at impratio 10, 100 and 300. "
@@ -235,39 +279,103 @@ def sections(N):
         "bed&#8217;s numerics, 1&#8202;ms and 100 iterations, give the same speeds, and no step reaches the iteration cap "
         "(Figure&#160;2a).</p>"
         "<p>On the hand the replays decide. The D1&#8211;D8 plans were replayed open loop from three placements on 1&#8202;mm pads of "
-        f"the UR5 pad&#8217;s shape. At 10&#8202;MPa they hold the tool in {r10['held']}, {r100['held']} and {r300['held']} of 24 "
-        f"at impratio 10, 100 and 300, on hands {', '.join(r10['hands_held'])}. The creep of the held tool falls from "
-        f"{f0(r10['creep_um_s'])} to {f0(r100['creep_um_s'])} and {f0(r300['creep_um_s'])}&#8202;&#181;m/s, three and nine times less. "
-        "The thumb presses with 1.8&#8211;1.9&#8202;N and the middle fingertip with 1.6&#8211;1.9&#8202;N at all three. At impratio 10 the other "
-        f"{r10['dropped']} replays drop the tool. At 100 and 300 those replays diverge 0.3&#8211;1&#8202;s after the drop, and "
-        f"{r300['diverged_before_2s']} at 300 diverge during the grip (Figure&#160;2b). MuJoCo then resets the state, and a replay loop "
-        "that watches only the simulated time never ends. The loops of these scripts stop at the reset.</p>"
-        f"<p>At 2.0&#8202;MPa {q10['held']}, {q100['held']} and {q300['held']} of the 24 replays are held. The creep is "
-        f"{f0(q10['creep_um_s'])}, {f0(q100['creep_um_s'])} and {f0(q300['creep_um_s'])}&#8202;&#181;m/s. A pad this soft needs a "
-        "longer time constant: at 10&#8202;ms its impedance $d_0$ falls to 0.05, the floor of the pad builder. The D1&#8211;D8 "
-        "replays at 2.0&#8202;MPa therefore run at 20&#8202;ms. On the RL scene, rescaled to 2.0&#8202;MPa at 10&#8202;ms "
-        "($d_0=0.055$), every CPU grasp and every MuJoCo-Warp world diverged. At 15&#8202;ms "
-        f"{g('cpu_pads_E2_ir10')['held']} and {g('cpu_pads_E2_ir100')['held']} of 16 CPU grasps are held at impratio 10 and 100. "
-        "In MuJoCo-Warp all 64 placements are held at both. The readiness commands, two logged pinned-iCEM runs from three placements, hold 6, 3 and 1 of 6 at "
-        "10&#8202;MPa, and 6, 6 and 1 at 2.0&#8202;MPa.</p>"
-        "<p>The trainer steps the scripted grasp in MuJoCo-Warp. On the servo plant&#8217;s pad scene of the RL runs, "
-        f"{g('cpu_pads_E10_ir10')['held']} of 16 CPU grasps are held at impratio 10 and {g('cpu_pads_E10_ir100')['held']} at 100. "
-        f"At 100, {g('cpu_pads_E10_ir100')['nonfinite']} diverge, and {100 * g('cpu_pads_E10_ir100')['cap']:.1f}&#8202;% of steps reach "
-        f"the iteration cap. In MuJoCo-Warp, in float32, {g('mjw_pads_E10_ir10')['held_placements']} and "
-        f"{g('mjw_pads_E10_ir100')['held_placements']} of 64 placements are held. The tool slips on the fingertips at "
-        f"{f0(g('mjw_pads_E10_ir10')['slip_um_s'])} and {f0(g('mjw_pads_E10_ir100')['slip_um_s'])}&#8202;&#181;m/s. A world-step "
-        f"costs {g('mjw_pads_E10_ir10')['us']:.1f} and {g('mjw_pads_E10_ir100')['us']:.1f}&#8202;&#181;s at 256 worlds (Table&#160;3). "
-        "The film shows D1, which keeps the tool at both impratios, and D2, whose replay at 100 diverges after the drop.</p>")
+        "the UR5 pad&#8217;s shape, at impratio 10, 20, 30, 50, 70, 100 and 300 (Table&#160;3). At 10&#8202;MPa 8 or 9 of the 24 "
+        f"replays keep the tool at every impratio, on hands {', '.join(r10['hands_held'][:-1])} and {r10['hands_held'][-1]}. The "
+        "others drop it. At impratio 10 no "
+        f"replay diverges. From 20 on, the replays that drop the tool diverge {min(d2d):.2f}&#8211;{max(d2d):.1f}&#8202;s after the "
+        f"drop: {div10[0]} of 24 at 20, {div10[1]} at 30 and {min(div10[2:])}&#8211;{max(div10[2:])} from 50 to 300 (Figure&#160;2b). "
+        f"The held tool creeps at {f0(r10['creep_um_s'])}&#8202;&#181;m/s at impratio 10 and {f0(R['d1d8_E10_ir20']['creep_um_s'])}"
+        f"&#8202;&#181;m/s at 20. Its creep falls to {f0(r100['creep_um_s'])}&#8202;&#181;m/s at 100 and {f0(r300['creep_um_s'])}"
+        "&#8202;&#181;m/s at 300.</p>"
+        "<p>At 2.0&#8202;MPa the replays run at a 20&#8202;ms time constant. A pad this soft needs it: at 10&#8202;ms its impedance "
+        f"$d_0$ falls to 0.05, the floor of the pad builder. Here {min(held2)}&#8211;{max(held2)} of the 24 replays are held from "
+        f"impratio 10 to 100. {'One replay' if q10['diverged'] == 1 else str(q10['diverged']) + ' replays'} diverge"
+        f"{'s' if q10['diverged'] == 1 else ''} at impratio 10, and {min(div2)}&#8211;{max(div2)} from 20 to 100. The held "
+        f"tool&#8217;s creep falls from {f0(q10['creep_um_s'])}&#8202;&#181;m/s at impratio 10 to {f0(q100['creep_um_s'])}&#8202;&#181;m/s "
+        "at 100. The readiness commands, two logged pinned-iCEM runs from three placements, keep the tool in 6 of 6 up to "
+        f"impratio 50 at both moduli. At 100 they keep it in {R['icem_E10_ir100']['held']} of 6 at 10&#8202;MPa and "
+        f"{R['icem_E2_ir100']['held']} of 6 at 2.0&#8202;MPa.</p>"
+        "<p>The trainer steps the scripted grasp in MuJoCo-Warp, on the servo plant&#8217;s pad scene of the RL runs. There "
+        f"{mjw[0]['held_placements']} of 64 placements are held at impratio 10 to 70, and {mjw[-1]['held_placements']} at 100. No "
+        f"world diverges at any setting. The tool slips on the fingertips at {f0(mjw[0]['slip_um_s'])}&#8202;&#181;m/s at impratio 10 "
+        f"and {f0(mjw[-1]['slip_um_s'])}&#8202;&#181;m/s at 100. A world-step costs {min(x['us'] for x in mjw):.0f}&#8211;"
+        f"{max(x['us'] for x in mjw):.0f}&#8202;&#181;s at 256 worlds. On the CPU all 16 grasps are held at impratio 10, 20 and 30. "
+        f"At 50, {g('cpu_pads_E10_ir50')['nonfinite']} of 16 diverge, and at 100, {g('cpu_pads_E10_ir100')['nonfinite']}. Pads rescaled "
+        "to 2.0&#8202;MPa at 10&#8202;ms ($d_0=0.055$) diverged in every CPU grasp and every MuJoCo-Warp world. At 20&#8202;ms no CPU "
+        f"grasp diverges up to impratio 30, and {g('cpu_pads_E2_tc20_ir50')['nonfinite']}&#8211;{g('cpu_pads_E2_tc20_ir100')['nonfinite']} "
+        f"diverge from 50 to 100. At 15&#8202;ms MuJoCo-Warp keeps all 64 placements at impratio 10 and 100.</p>"
+        "<p>Noslip lowers the creep at the trainer&#8217;s impratio. With 10 noslip iterations at impratio 10 the held D1&#8211;D8 "
+        f"replays creep at {f0(ns10['creep_um_s'])}&#8202;&#181;m/s at 10&#8202;MPa and {f0(ns10q['creep_um_s'])}&#8202;&#181;m/s at "
+        f"2.0&#8202;MPa. With 3 iterations they creep at {f0(ns3['creep_um_s'])} and {f0(ns3q['creep_um_s'])}&#8202;&#181;m/s. With 10 "
+        f"iterations no replay diverges at either modulus, and {ns10['held']} of 24 are held at 10&#8202;MPa. A step of a held "
+        f"replay then costs {f0(ns10['us_held'])}&#8202;&#181;s, against {f0(r10['us_held'])}&#8202;&#181;s without noslip. The "
+        f"scripted grasp on the CPU slips at {f0(g('cpu_pads_E10_ir10_ns10')['slip_um_s'])}&#8202;&#181;m/s with 10 iterations, "
+        f"against {f0(g('cpu_pads_E10_ir10')['slip_um_s'])}&#8202;&#181;m/s without, at {f0(g('cpu_pads_E10_ir10_ns10')['us'])} "
+        f"against {f0(g('cpu_pads_E10_ir10')['us'])}&#8202;&#181;s per step. MuJoCo-Warp has no noslip: its <code>put_model</code> "
+        "raises <code>NotImplementedError</code> for any <code>noslip_iterations</code> above zero.</p>"
+        "<p>The largest setting with no divergence therefore depends on the test. For the D1&#8211;D8 replays on the CPU it is "
+        f"impratio 10, where the held tool creeps at {f0(r10['creep_um_s'])}&#8202;&#181;m/s. For the scripted grasp on the CPU it is "
+        f"impratio 30, with a slip of {f0(g('cpu_pads_E10_ir30')['slip_um_s'])}&#8202;&#181;m/s. For the grasp in MuJoCo-Warp it is "
+        f"impratio 100, the largest tried, with a slip of {f0(mjw[-1]['slip_um_s'])}&#8202;&#181;m/s. Noslip with 10 iterations at "
+        f"impratio 10 diverges in neither CPU test, and the held replays creep at {f0(ns10['creep_um_s'])}&#8202;&#181;m/s.</p>")
+    dvt = (
+        "<p>The divergence is a runaway of the tool&#8217;s spin (Figure&#160;3). The six CPU grasps that diverge at impratio 100, and "
+        "the replays of D2 and D6 from placement 0, were run again with every step recorded. While the fingers close, "
+        f"{100 * min(c['cone_share_grip'] for c in gp):.0f}&#8211;{100 * max(c['cone_share_grip'] for c in gp):.0f}&#8202;% of the "
+        "pad contacts on the tool are in the cone state. The solver uses all 10 iterations on "
+        f"{100 * min(c['cap_grip'] for c in gp):.0f}&#8211;{100 * max(c['cap_grip'] for c in gp):.0f}&#8202;% of these steps. Its last "
+        f"iteration still lowers the cost by up to {sig2(min(c['improvement_max_grip'] for c in gp))}&#8211;"
+        f"{sig2(max(c['improvement_max_grip'] for c in gp))}. The tool rattles between the fingertips at up to "
+        f"{min(c['v_max_grip_mm_s'] for c in gp) / 1e3:.1f}&#8211;{max(c['v_max_grip_mm_s'] for c in gp) / 1e3:.1f}&#8202;m/s and "
+        f"{sig2(min(c['w_max_grip'] for c in gp))}&#8211;{sig2(max(c['w_max_grip'] for c in gp))}&#8202;rad/s. It leaves the pads "
+        f"{min(c['t_leave_s'] for c in gp):.2f}&#8211;{max(c['t_leave_s'] for c in gp):.2f}&#8202;s into the run and falls to the "
+        "floor. In the two replays the dropped tool lies between the closing fingertips and the floor. There a single floor "
+        "contact in the cone state, pushing with 43&#8211;74&#8202;N, kicks it to "
+        f"{rp[0]['w_free']:,.0f} and {rp[1]['w_free']:,.0f}&#8202;rad/s. The friction rows of that contact have a regulariser of "
+        "0.002, a hundredth of its normal row&#8217;s 0.2, as impratio 100 sets.</p>"
+        "<p>In free flight the spin then grows exponentially. In grasp 1 it grows from "
+        f"{gp[0]['w_free']:.0f}&#8202;rad/s at {gp[0]['t_free_s']:.2f}&#8202;s by a factor $e$ every {gp[0]['efold_ms']:.0f}&#8202;ms. In "
+        f"the replays it grows by $e$ every {rp[0]['efold_ms']:.0f} and {rp[1]['efold_ms']:.0f}&#8202;ms. At 17&#8211;30&#8202;rad/s "
+        "the free tool&#8217;s spin stays steady (grasp 4, 0.60&#8211;0.84&#8202;s). In the last 0.2&#8202;s before the warning the tool "
+        "is in the air on 61&#8211;100&#8202;% of the steps. In five grasps it touches the floor while it spins above "
+        "1,000&#8202;rad/s, and those contacts push with 3.6&#8202;kN to 9.1&#8202;MN. The warning fires when an acceleration of the "
+        f"tool&#8217;s free joint passes $10^{{10}}$, {min(c['t_fail_s'] for c in gp):.2f}&#8211;{max(c['t_fail_s'] for c in gp):.2f}"
+        f"&#8202;s into the grasps and {rp[0]['t_fail_s'] - rp[0]['t_drop_s']:.2f} and {rp[1]['t_fail_s'] - rp[1]['t_drop_s']:.2f}"
+        "&#8202;s after the drops.</p>"
+        "<p>The integrator decides the last stage. The implicitfast integrator of the trainer leaves the derivative of the "
+        "Coriolis and centrifugal forces out of its implicit step. With MuJoCo&#8217;s full implicit integrator none of the eight "
+        f"runs reaches the warning. {WORDS[6 - len(held_rr('implicit'))].capitalize()} of the six grasps still fling the tool, and "
+        "the two replays end "
+        f"without a warning. More iterations act on the grip. With 20 iterations {len(held_rr('it20'))} of the 6 grasps are held, "
+        "no step reaches the cap, and 50 iterations give the same runs. Grasp 1 still diverges, at "
+        f"{gp[0]['settings']['it20']['t_fail_s']:.2f}&#8202;s. A step of the held grasps costs "
+        f"{min(c['settings']['it20']['us'] for c in held_rr('it20')):.0f}&#8211;{max(c['settings']['it20']['us'] for c in held_rr('it20')):.0f}"
+        f"&#8202;&#181;s at 20 iterations, against {f0(g('cpu_pads_E10_ir10')['us'])}&#8202;&#181;s at impratio 10. At a 1&#8202;ms "
+        f"step all {WORDS[len(held_rr('dt1ms'))]} grasps are held, at {min(c['settings']['dt1ms']['us'] for c in gp):.0f}&#8211;"
+        f"{max(c['settings']['dt1ms']['us'] for c in gp):.0f}&#8202;&#181;s per step and twice the steps per second. The two replays "
+        "diverge at 20 and 50 iterations and at 1&#8202;ms as well. MuJoCo-Warp offers Euler, RK4 and implicitfast, and no full "
+        "implicit integrator.</p>")
     S.append(("impratio", "Impratio under the trainer's solver",
               imp + P.fig(2, MEDIA / "20261026-impratio.png",
-                          "Impratio under the trainer&#8217;s numerics. (a) Creep against impratio. Orange and blue: the UR5 rig "
-                          "under the measured forces of the 5&#8202;mm sphere and the 12.5&#8202;mm rod, open marks at 10&#8202;MPa. Green: "
-                          "the held D1&#8211;D8 replays. Black: the scripted grasp in MuJoCo-Warp. Grey: the slope of $1/\\kappa$. (b) The 24 D1&#8211;D8 replays per pad modulus and impratio: held, dropped and "
-                          "diverged. Scripts: <code>scripts/ur5_shear_impratio.py</code>, <code>scripts/ur5_shear_figures.py</code>.")
-              + P.film(3, MEDIA / "20261026-impratio_replays.mp4", MEDIA / "20261026-impratio_replays.png",
+                          "Impratio under the trainer&#8217;s numerics. (a) Creep against impratio. Orange and purple: the UR5 rig "
+                          "under the measured forces of the 5&#8202;mm sphere at 0.90&#8202;MPa and the 12.5&#8202;mm rod at 2.0&#8202;MPa. "
+                          "Green: the held D1&#8211;D8 replays at 10&#8202;MPa (open) and 2.0&#8202;MPa (filled). Black: the scripted grasp "
+                          "at 10&#8202;MPa in MuJoCo-Warp (crosses) and on the CPU (circles). Blue: on the CPU at 2.0&#8202;MPa. Marks "
+                          "left of 10: noslip with 3 (light) and 10 (dark) iterations at impratio 10. Grey: the slope of $1/\\kappa$. "
+                          "(b) The share of runs that diverged. Scripts: <code>scripts/ur5_shear_impratio.py</code>, "
+                          "<code>scripts/ur5_shear_figures.py</code>.")
+              + tab2 + dvt
+              + P.fig(3, MEDIA / "20261027-divergence.png",
+                      "The divergence at impratio 100 on 10&#8202;MPa pads, every step recorded. (a) The scripted grasp from "
+                      "placement 1. (b) The D2 replay from placement 0, from 2.3&#8202;s. Top: the tool&#8217;s spin and speed. "
+                      "Middle: the pad contacts on the tool (left axis) and the tool&#8217;s contacts on the floor (right axis). "
+                      "Bottom: the solver&#8217;s iterations per step, at the cap in black, and its last improvement (right axis). "
+                      "Lines mark the drop, the kick, the start of free flight and MuJoCo&#8217;s warning. Script: "
+                      "<code>scripts/ur5_shear_impratio.py divergence</code>.")
+              + P.film(4, MEDIA / "20261026-impratio_replays.mp4", MEDIA / "20261026-impratio_replays.png",
                        "D1 (top) and D2 (bottom) replayed open loop at the trainer&#8217;s numerics on 10&#8202;MPa pads, impratio 10 "
                        "(left) and 100 (right), placement 0, at real speed. D1 keeps the tool at both. D2 drops it at both, and at "
-                       "100 the simulation diverges 0.5&#8202;s after the drop.") + tab2))
+                       "100 the simulation diverges 0.5&#8202;s after the drop.")))
 
     # 4. skin
     sz = N["skin_sizing"]
@@ -296,14 +404,14 @@ def sections(N):
         "travel, and the sphere is pushed with the measured normal force, both smoothed over 0.7&#8202;s.</p>"
         f"<p>At impratio 1000 the skin gives {f0(K['skin_ir1000_1N']['give_um_N'])}&#8202;&#181;m/N at 1&#8202;N, against the measured "
         f"{f0(K['skin_ir1000_1N']['give_measured_um_N'])}. It keeps {abs(K['skin_ir1000_1N']['s_back_N']):.2f}&#8202;N at the return, "
-        f"as measured, and its shear is within {K['skin_ir1000_1N']['rms_N']:.2f}&#8202;N RMS of the measurement (Figure&#160;4c). "
+        f"as measured, and its shear is within {K['skin_ir1000_1N']['rms_N']:.2f}&#8202;N RMS of the measurement (Figure&#160;5c). "
         "Plain pads stick rigidly at this impratio, with no give, and the sign of their shear flips at every small reversal of "
         f"the travel ({K['pads_ir1000_1N']['rms_N']:.2f}&#8202;N RMS). At 2&#8202;N the springs sized at 1&#8202;N give "
         f"{f0(K['skin_ir1000_2N']['give_um_N'])} against {f0(K['skin_ir1000_2N']['give_measured_um_N'])}&#8202;&#181;m/N. A linear "
         "spring follows one normal force, and the measured give falls as $f_n^{-0.53}$.</p>"
         "<p>At impratio 100 the friction rows creep through the loops, and the shear stays below "
         f"{K['skin_ir100_1N']['mu']:.2f} of the normal force. At 10 it stays below 0.02 of it, with or without the skin "
-        f"(Figure&#160;4a&#8211;b). On the CPU the skin costs {K['skin_ir1000_1N']['us']:.0f} against "
+        f"(Figure&#160;5a&#8211;b). On the CPU the skin costs {K['skin_ir1000_1N']['us']:.0f} against "
         f"{K['pads_ir1000_1N']['us']:.0f}&#8202;&#181;s per step of the rig.</p>"
         "<p>The servo plant&#8217;s RL skin scene has springs of 52.3&#8202;kN/m, from Mindlin at 5&#8202;N, and 0.26&#8202;kg of "
         "armature on each slide. Under the trainer&#8217;s numerics at impratio 100, "
@@ -315,7 +423,7 @@ def sections(N):
         f"{f0(g('mjw_skin_E10_ir100')['slip_um_s'])}&#8202;&#181;m/s at impratio 100, against "
         f"{f0(g('mjw_pads_E10_ir100')['slip_um_s'])}&#8202;&#181;m/s on the pads.</p>")
     S.append(("skin", "The sprung skin on the UR5 slides",
-              skin + P.fig(4, MEDIA / "20261026-skin_slides.png",
+              skin + P.fig(5, MEDIA / "20261026-skin_slides.png",
                            "One direction of slide-000-1N, across the finger, replayed on the UR5 rig at impratio 10, 100 and 1000. "
                            "Grey: the measured shear less its offset. Orange: plain pads. Blue: pads on the sized skin. "
                            "Script: <code>scripts/ur5_shear_skin.py</code>.") + tab3))
@@ -325,7 +433,7 @@ def sections(N):
         "<p>The pads were twisted at the slides&#8217; friction coefficient, 0.37 at 1&#8202;N and 0.44 at 2.5 and 5&#8202;N, and "
         "at 0.90&#8202;MPa, at three face targets of cb2t&#8217;s twists. Under the 5&#8202;mm sphere they start to spin at "
         f"{tq['1'][0]:.2f}&#8211;{tq['1'][1]:.2f}&#8202;N&#8202;mm at 1&#8202;N and {tq['2.5'][0]:.2f}&#8211;{tq['2.5'][1]:.2f}&#8202;N&#8202;mm at "
-        f"2.5&#8202;N. At 5&#8202;N they spin at {tq['5'][0]:.1f}&#8211;{tq['5'][1]:.1f}&#8202;N&#8202;mm (Figure&#160;5). "
+        f"2.5&#8202;N. At 5&#8202;N they spin at {tq['5'][0]:.1f}&#8211;{tq['5'][1]:.1f}&#8202;N&#8202;mm (Figure&#160;6). "
         "Hertz&#8217;s patch under the same sphere gives $\\tau=\\mu f_n\\,\\tfrac{3\\pi}{16}a$: "
         f"{tq['1'][2]:.2f}, {tq['2.5'][2]:.2f} and {tq['5'][2]:.2f}&#8202;N&#8202;mm. On cb2t the HEX-E read a median torsion of "
         f"{tq['1'][3]['median_Nmm']:.2f}, {tq['2.5'][3]['median_Nmm']:.2f} and {tq['5'][3]['median_Nmm']:.2f}&#8202;N&#8202;mm, with single "
@@ -337,7 +445,7 @@ def sections(N):
         "not the crosstalk&#8217;s change with pose. A clean measurement clamps the finger with the face&#8217;s normal along the "
         "sensor&#8217;s axis (Future work).</p>")
     S.append(("torsion", "Friction torque about the contact normal",
-              tor + P.fig(5, MEDIA / "20261026-torsion.png",
+              tor + P.fig(6, MEDIA / "20261026-torsion.png",
                           "Friction torque about the normal under the 5&#8202;mm sphere. Blue: the 1&#8202;mm pads at spin onset, three "
                           "targets. Line: Hertz&#8217;s patch at the same friction and modulus. Orange: the torsion of cb2t&#8217;s twists "
                           "read by the HEX-E, median and range. Grey: the HEX-E&#8217;s torque noise. Script: "
@@ -353,7 +461,8 @@ def sections(N):
         "direction, up to 0.4&#8202;N, so the shear left at the return is read from the fitted loop. The arm, the mount and the "
         "indenter&#8217;s stand are taken as rigid sideways. The spring and slider has one stiffness; the real loop slips "
         "gradually, so its first 50&#8202;&#181;m are 13&#8211;19&#8202;% stiffer than the fit. The D1&#8211;D8 replays put the UR5 "
-        "pad&#8217;s shape on the bench hands. At 2.0&#8202;MPa they run at a 20&#8202;ms time constant.</p>")))
+        "pad&#8217;s shape on the bench hands. At 2.0&#8202;MPa they run at a 20&#8202;ms time constant. The divergence was traced "
+        "on the CPU, in six grasps and two replays; the D1&#8211;D8 drops were not run in MuJoCo-Warp.</p>")))
 
     # 7. future work
     fw = [
@@ -365,9 +474,13 @@ def sections(N):
         ("Friction on the tool&#8217;s surface.", "Repeat four slides at 1 and 2&#8202;N on an indenter of the screwdriver&#8217;s "
          "handle material, or pull the bench cylinder between two printed tips (<code>scripts/tpu_tip_calibrate.py fit "
          "--pull</code>). A coefficient below 0.55 puts the tool outside the trainer&#8217;s friction range."),
-        ("Impratio 100 in the trainer.", "Run the trainer&#8217;s environment for one iteration of 2,048 worlds at impratio 100 "
-         "with its drop termination, and count the worlds that become non-finite before they terminate. More than the "
-         "impratio-10 run&#8217;s count, or any during the grip, keeps the trainer at 10. The decision waits on the owner."),
+        ("Impratio above 10 in the trainer.", "Run the trainer&#8217;s environment for one iteration of 2,048 worlds at impratio "
+         "30 and 100 with its drop termination, and count the worlds that become non-finite before they terminate. Replay the "
+         "D1&#8211;D8 drops in MuJoCo-Warp at the same settings, with the spin of the dropped tool logged. More non-finite worlds "
+         "than at impratio 10, or any during the grip, keeps the trainer at 10. The decision waits on the owner."),
+        ("Task outcomes against creep.", "Replay the D1&#8211;D8 plans and the readiness commands at impratio 10 with and without "
+         "10 noslip iterations on the CPU, and compare the tool&#8217;s turn and the held count. A change of more than 5&#176; in the "
+         "median turn or of more than two held replays shows that the trainer&#8217;s creep changes the task."),
         ("A give that falls with load.", "Replay the 2&#8202;N slides with springs sized at 2&#8202;N, 5.5&#8202;kN/m. If the "
          "measured loops at both loads match within 0.15&#8202;N RMS only with a stiffness that grows as $f_n^{0.53}$, a linear "
          "skin cannot represent the contact. A stiffness scheduled on the normal force is then needed."),
