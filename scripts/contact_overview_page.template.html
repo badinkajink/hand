@@ -78,12 +78,12 @@ the model contains the friction torque and the slip that the task depends on.</p
 <p>The task scenes that use point contact run MuJoCo&#8217;s elliptic friction cone at impratio 10, with soft contacts on the
 fingertips, the tool and the floor (solref 0.006, solimp 0.97&#8211;0.995).</p>
 <div class="tw">{{CAP_TABLE}}</div>
-<p class="tnote">Table&#160;1. Contact quantities that each model represents. The cost is the wall time of one physics step
+<p class="tnote">Table&#160;2. Contact quantities that each model represents. The cost is the wall time of one physics step
 of 1&#8202;ms. On one CPU core it is given on the test bed (task&#160;1, &#8220;bed&#8221;) and for the open-loop turn replay on the
 real_v1 hand (&#8220;hand&#8221;). The hand&#8217;s cost is the median over the {{HAND_N}} D1&#8211;D8 placements that Drake also ran,
 with the TPU block as 1&#8202;mm pads or as one convex mesh with point contact. For the GPU models the cost is given on the
 SR2 holding fixture of Figure&#160;12, for one world alone and per world-step at the batch size of highest throughput. The
-pads&#8217; GPU numbers are MuJoCo-Warp&#8217;s. Table&#160;4 gives the costs on the hand and in training. {{CAP_NOTE}}</p>
+pads&#8217; GPU numbers are MuJoCo-Warp&#8217;s. Table&#160;5 gives the costs on the hand and in training. {{CAP_NOTE}}</p>
 <figure class="diagram">
 {{FIG_MODELS}}
 <figcaption>Figure&#160;3. Five models of a fingertip pressed on the tool. (a) A point contact transmits a normal force and
@@ -442,17 +442,17 @@ derives the brake that uses it (<code>{{CHAIN_PATH}}</code>, steps&#160;3 and 5)
 <h2>Comparison with the reference models</h2>
 <p>{{EVIDENCE_LEAD}}</p>
 <div class="tw">{{AGREE_TABLE}}</div>
-<p class="tnote">Table&#160;2. Task metrics on the test bed (<code>{{BED_PATH}}</code>{{BED_LINK}}); the terms are defined at
+<p class="tnote">Table&#160;3. Task metrics on the test bed (<code>{{BED_PATH}}</code>{{BED_LINK}}); the terms are defined at
 the top of the page. The shading compares each model with Drake hydroelastic: within 10&#8202;% (dark), 10&#8211;25&#8202;% (light),
 25&#8211;50&#8202;% (amber), and beyond 50&#8202;% or a failed case (red). {{AGREE_NOTE}}</p>
 {{EVIDENCE_TASKS}}
 <h3>Printed TPU block, the default fingertip</h3>
 <p>{{BLOCK_TEXT}}</p>
 <div class="tw">{{BLOCK_TABLE}}</div>
-<p class="tnote">Table&#160;3. Tasks 1, 2 and 5 on the test bed with the printed TPU block of 2.7&#8202;mm fillets. The
+<p class="tnote">Table&#160;4. Tasks 1, 2 and 5 on the test bed with the printed TPU block of 2.7&#8202;mm fillets. The
 1&#8202;mm pads in MuJoCo are compared with Drake hydroelastic, at a 1&#8202;ms step unless named
 (<code>docs/experiments/20261006-fingertip_backends/tip_T1.jsonl</code>, <code>tip_T2.jsonl</code>, <code>tip_T5.jsonl</code>).
-The shading compares the pads with Drake as in Table&#160;2. The twist ramp, set from the sphere&#8217;s law, spins neither model
+The shading compares the pads with Drake as in Table&#160;3. The twist ramp, set from the sphere&#8217;s law, spins neither model
 at 0.5&#8202;N, so the onset arm starts at 1&#8202;N.</p>
 <h3>Agreement of the pads with Drake across MuJoCo, MuJoCo-Warp and Newton</h3>
 <p>{{AGREE_SIM_TEXT}}</p>
@@ -464,7 +464,7 @@ a difference from Drake&#8217;s), both with the 10.55&#8202;mm sphere. The last 
 turn on D1&#8211;D8 with the printed TPU block of 2.7&#8202;mm fillets: tool turn and grip force at the hold, 24 placements paired
 with Drake. The blue line is
 Drake, and the band is &#177;3&#176; or &#177;10&#8202;%. Hollow markers dropped or released the tool. Point contact transmits no torque
-about its normal; its twist markers are the onset protocol&#8217;s offset (Table&#160;2). Rows and script:
+about its normal; its twist markers are the onset protocol&#8217;s offset (Table&#160;3). Rows and script:
 <code>docs/experiments/20261006-simulator_agreement/</code>, <code>scripts/simulator_agreement_figure.py</code>.</figcaption>
 </figure>
 <h3>Reorientation policies on the pads and on point contact</h3>
@@ -481,7 +481,7 @@ core.</figcaption>
 <h3>Cost</h3>
 <p>{{COST_TEXT}}</p>
 <div class="tw">{{COST_TABLE}}</div>
-<p class="tnote">Table&#160;4. Cost of the fingertip models. The columns are one physics step of 1&#8202;ms on one CPU core
+<p class="tnote">Table&#160;5. Cost of the fingertip models. The columns are one physics step of 1&#8202;ms on one CPU core
 (&#181;s), and one world-step in a GPU batch (&#181;s, the trainer&#8217;s 2&#8202;ms step on the RL state). They are followed by one PPO
 iteration at 2,048 envs (s) and the GPU memory (GB). On
 the test bed, point contact is condim&#160;3. On the hand and in training it is the TPU block as one convex mesh. Both models of
@@ -494,7 +494,7 @@ the CAD hand have MorphIt spheres on its links. Rows: <code>docs/experiments/202
 <figure class="diagram">
 {{FIG_COST}}
 <figcaption>Figure&#160;11. Agreement against cost on the test bed: each model&#8217;s median absolute deviation from Drake over the
-metrics of Table&#160;2, against the cost of one physics step of 1&#8202;ms. {{COST_NOTE}}</figcaption>
+metrics of Table&#160;3, against the cost of one physics step of 1&#8202;ms. {{COST_NOTE}}</figcaption>
 </figure>
 <figure class="diagram ifig" id="contact-gpu">
 {{FIG_GPU}}

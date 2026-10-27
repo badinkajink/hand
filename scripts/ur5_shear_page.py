@@ -481,6 +481,11 @@ def sections(N):
         ("Task outcomes against creep.", "Replay the D1&#8211;D8 plans and the readiness commands at impratio 10 with and without "
          "10 noslip iterations on the CPU, and compare the tool&#8217;s turn and the held count. A change of more than 5&#176; in the "
          "median turn or of more than two held replays shows that the trainer&#8217;s creep changes the task."),
+        ("Creep against the bench holds.", "Read the tool&#8217;s drift over the hold after the turn from the AprilTag tracks of "
+         "the 177 tracked bench runs (<code>logs/tracker/*_track.csv</code>, about 28 frames per second for 3&#8211;6&#8202;s), "
+         "with the tracker&#8217;s noise from its still frames. Compare it with the held D1&#8211;D8 replays&#8217; "
+         f"{f0(r10['creep_um_s'])}&#8202;&#181;m/s at impratio 10. A measured drift of a tenth of that or less, above the noise, "
+         "shows a creep that the print does not have."),
         ("A give that falls with load.", "Replay the 2&#8202;N slides with springs sized at 2&#8202;N, 5.5&#8202;kN/m. If the "
          "measured loops at both loads match within 0.15&#8202;N RMS only with a stiffness that grows as $f_n^{0.53}$, a linear "
          "skin cannot represent the contact. A stiffness scheduled on the normal force is then needed."),

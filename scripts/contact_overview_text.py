@@ -127,7 +127,15 @@ def _shear():
                 cr100=R["d1d8_E10_ir100"]["creep_um_s"], div100=R["d1d8_E10_ir100"]["diverged"],
                 cpu100=G["cpu_pads_E10_ir100"], mjw100=G["mjw_pads_E10_ir100"], skin_rms=K["skin_ir1000_1N"]["rms_N"],
                 skin_cpu100=G["cpu_skin_E10_ir100"], skin_mjw100=G["mjw_skin_E10_ir100"],
-                tq={F: (min(v["tau_on_Nmm"]), max(v["tau_on_Nmm"]), v["measured"]["median_Nmm"]) for F, v in T.items()})
+                tq={F: (min(v["tau_on_Nmm"]), max(v["tau_on_Nmm"]), v["measured"]["median_Nmm"]) for F, v in T.items()},
+                # 2026-10-27: impratio 10-300 and noslip under the trainer's numerics, and the traced divergences
+                cr300=R["d1d8_E10_ir300"]["creep_um_s"],
+                div=[R[f"d1d8_E10_ir{x}"]["diverged"] for x in (20, 30, 50, 70, 100)],
+                cpu50=G["cpu_pads_E10_ir50"]["nonfinite"], cpu100n=G["cpu_pads_E10_ir100"]["nonfinite"],
+                mjw=[G[f"mjw_pads_E10_ir{x}"] for x in (10, 20, 30, 50, 70, 100)],
+                ns10=R["d1d8_E10_ir10_ns10"]["creep_um_s"],
+                efold=[c["efold_ms"] for c in N["divergence"].values() if c.get("efold_ms")],
+                n_traced=len(N["divergence"]))
 
 
 def _a(rel, text):
@@ -218,7 +226,7 @@ def chain_section(ctx):
              "1&#8202;N. For the print it is the registered depth, from a power-law fit over the 204 face holds. For the FE pad "
              f"and the scenes&#8217; pads at 10&#8202;MPa it is the median over the {C['sphere2_face_targets']} face targets. The dashed "
              f"arc compares the pads with the presses without the FE. Sources: {gt}, Sections 3, 4 and 7; {fec}; "
-             "Table&#160;2 and Figure&#160;9 of this page.</figcaption></figure>")
+             "Table&#160;3 and Figure&#160;9 of this page.</figcaption></figure>")
     o.append("<h3>The print against its finite elements</h3>")
     o.append(
         "<p>On the UR5 the depth of the sphere below the pad&#8217;s nominal surface, the registered indentation, is "
@@ -294,7 +302,7 @@ def chain_section(ctx):
     o.append("<h3>The pads against Drake</h3>")
     s = "<p>Drake and the pads integrate the same law."
     if on:
-        s += f" On the test bed&#8217;s two-pad pinch the pads start to spin at {_r1(on, 2)} of Drake&#8217;s torque (Table&#160;2)."
+        s += f" On the test bed&#8217;s two-pad pinch the pads start to spin at {_r1(on, 2)} of Drake&#8217;s torque (Table&#160;3)."
     if w:
         s += (f" On the real_v1 hand their open-loop turn ends within 3&#176; of Drake&#8217;s on {w[0]}&#8211;{w[1]} of {w[2]} "
               "placements (Figure&#160;9).")
@@ -306,21 +314,22 @@ def chain_section(ctx):
     shp = _a(SHEAR_PAGE, "shear page")
     o.append("<h3>Shear compliance, rate and friction</h3>")
     o.append(
-        "<p>Three properties of the print are missing from the simulated contact. The first is compliance before slip. On "
-        f"the UR5 slides the pad moves {sh['give1']:.0f}&#8202;&#181;m per newton of shear at 1&#8202;N and {sh['give2']:.0f}&#8202;"
-        f"&#181;m/N at 2&#8202;N before it slips ({shp}). In the FE model the face moves 48&#8211;177&#8202;&#181;m/N under the "
+        "<p>Three properties of the print are missing from the simulated contact (Table&#160;1). The first is compliance before "
+        f"slip, measured on the UR5 slides ({shp}). In the FE model the face moves 48&#8211;177&#8202;&#181;m/N under the "
         "12.5&#8202;mm rod. Drake&#8217;s field and the pads have no tangential compliance, and under a load below slip they creep "
         "instead (step&#160;8). Pads on a skin sized from the slides follow the measured loops within "
         f"{sh['skin_rms']:.2f}&#8202;N RMS at impratio 1000. At impratio 100 and 10 the friction rows creep through those loops. "
         "The second is rate. The FE model is elastic, "
         "and the damping of Drake and of the pads is a solver setting. On the UR5 the board&#8217;s change at the same point and "
         "force level grew 1.24 times at 0.6&#8202;mm/s against 0.15&#8202;mm/s. At 2&#8202;mm/s it grew 1.79 times, and the "
-        f"overshoot of the force explains about half of that growth ({cal}). The third is friction. On the slides the "
-        f"coefficient of the 85A pad on a printed PLA sphere is {sh['mu1']:.2f} at 1&#8202;N and {sh['mu2']:.2f} at 2&#8202;N, from the "
-        "magnitude of the shear at slip. The scenes are run with 1. At these coefficients the pads&#8217; friction torque under "
-        f"the 5&#8202;mm sphere is {sh['tq']['1'][0]:.2f}&#8211;{sh['tq']['5'][1]:.1f}&#8202;N&#8202;mm at 1&#8211;5&#8202;N. The "
-        "HEX-E&#8217;s torque noise of 1&#8211;2&#8202;N&#8202;mm, and its crosstalk from the push&#8217;s moment, leave this torque "
-        "unmeasured.</p>")
+        f"overshoot of the force explains about half of that growth ({cal}). The third is friction: the slides give "
+        f"{sh['mu1']:.2f} and {sh['mu2']:.2f} at 1 and 2&#8202;N, and the scenes are run with 1.</p>")
+    o.append(
+        "<p>The friction torque about the contact normal is unmeasured. At the slides&#8217; coefficients the pads start to spin "
+        f"at {sh['tq']['1'][0]:.2f}&#8202;N&#8202;mm under 1&#8202;N and {sh['tq']['5'][1]:.1f}&#8202;N&#8202;mm under 5&#8202;N. On the UR5 "
+        "the face&#8217;s normal lies across the HEX-E&#8217;s axis, so a 2.5&#8202;N push bends the sensor with about "
+        "230&#8202;N&#8202;mm. Its crosstalk of up to 11&#8202;N&#8202;mm exceeds the predicted torque. The lab has been asked for twists "
+        f"with the face&#8217;s normal along the sensor&#8217;s axis ({shp}, Future work).</p>")
     o.append("<h3>Consequences for the simulated hand</h3>")
     o.append(
         f"<p>Through the servos each fingertip is a spring of {sv['servo_N_per_m']:.0f}&#8202;N/m along its palmar normal, at the "
@@ -339,20 +348,55 @@ def chain_section(ctx):
         "drop it on the mesh plant (section &#8220;Cost and control outcomes on the real_v1 hand&#8221;). Contact models are therefore "
         "compared on the tool&#8217;s trajectory and the fingertips&#8217; forces, with the spread between start placements. The "
         "same 1&#8202;mm pads are used for training, planning and evaluation (owner, 2026-10-15).</p>")
-    o.append("<h3>Calibration of the pads in the scenes</h3>")
     o.append(
-        f"<p>The pads are the MuJoCo model of the print. Fitted to the UR5 presses, their modulus is {U['rod']['E']:.1f}&#8202;MPa "
-        f"under the 12.5&#8202;mm rod, the size of the screwdriver, and {U['sphere']['E']:.2f}&#8202;MPa under the 5&#8202;mm sphere. "
-        "The scenes still run 10&#8202;MPa (<code>E_TPU</code> in <code>scripts/reorient_backends.py</code>, pad builder v2). "
-        "Impratio is a solver setting. Under the measured hold forces the pads at "
-        f"{U['sphere']['E']:.2f}&#8202;MPa creep {cr['impratio10_E_meas']:.2f}&#8202;mm/s at impratio 10 and "
-        f"{cr['impratio100_E_meas'] * 1e3:.0f}&#8202;&#181;m/s at impratio 100. At {U['sphere']['E_fe']:.1f}&#8202;MPa they creep "
-        f"{cr['impratio10_E_FE']:.2f}&#8202;mm/s and {cr['impratio100_E_FE'] * 1e3:.0f}&#8202;&#181;m/s, so a softer modulus needs "
-        "a higher impratio. Under the trainer&#8217;s numerics impratio 100 lowers the creep of the held D1&#8211;D8 replays from "
-        f"{sh['cr10']:.0f} to {sh['cr100']:.0f}&#8202;&#181;m/s. All {sh['div100']} replays that drop the tool then diverge, and "
-        f"{sh['cpu100']['nonfinite']} of 16 scripted grasps diverge on the CPU. In MuJoCo-Warp {sh['mjw100']['held_placements']} of "
-        f"64 placements are held at the same cost ({shp}). A series slide joint, the FE calibration&#8217;s recipe, is kept as a comparison. It slides along "
-        "the palmar normal only, while the FE and UR5 fits let the spring act along each press&#8217;s own normal. In the CPU "
+        "<p>The pads also creep under the grasp&#8217;s own forces. In MuJoCo a steady tangential force at a contact needs "
+        "sliding, since below the friction limit the friction rows act as dampers (step&#160;8). A squeeze has tangential parts "
+        "wherever the fingertips do not press along one line, and the servos push sideways. The tool and the fingertips move "
+        "until these parts vanish. On the print, static friction would keep them at rest. Under the trainer&#8217;s numerics the held "
+        f"tool of the D1&#8211;D8 replays drifts at {sh['cr10']:.0f}, {sh['cr100']:.0f} and {sh['cr300']:.0f}&#8202;&#181;m/s at "
+        f"impratio 10, 100 and 300. In the scripted grasp it slips at {sh['mjw'][0]['slip_um_s']:.0f} and "
+        f"{sh['mjw'][-1]['slip_um_s']:.0f}&#8202;&#181;m/s at 10 and 100. Two tests bound the consequence before hardware. In the "
+        "first, task outcomes at the trainer&#8217;s setting are compared with those at the largest stable setting or with "
+        "noslip. In the second, the simulated drift is compared with the tool&#8217;s drift in the bench holds, tracked by "
+        "AprilTags in 177 runs ({shp}, Future work).</p>")
+    o.append(
+        "<p>A higher impratio lowers this creep, but the CPU runs then diverge. From impratio 20 on, "
+        f"{min(sh['div'])}&#8211;{max(sh['div'])} of the 24 D1&#8211;D8 replays diverge after they drop the tool, and the scripted "
+        f"grasp diverges from 50. In MuJoCo-Warp it keeps {min(x['held_placements'] for x in sh['mjw'])}&#8211;"
+        f"{max(x['held_placements'] for x in sh['mjw'])} of 64 placements up to 100. In each traced divergence the tool is "
+        f"flung, and in free flight its spin grows by a factor \\(e\\) every {min(sh['efold']):.0f}&#8211;{max(sh['efold']):.0f}"
+        "&#8202;ms. The trainer&#8217;s implicitfast integrator leaves out the derivative of the Coriolis and centrifugal forces. "
+        f"With the full implicit integrator none of the {('eight' if sh['n_traced'] == 8 else sh['n_traced'])} traced runs diverges. With 10 noslip iterations at impratio 10 "
+        f"no CPU run diverges, and the replays creep at {sh['ns10']:.0f}&#8202;&#181;m/s. MuJoCo-Warp has neither option "
+        f"({shp}, Section&#160;3).</p>")
+    o.append("<h3>Calibration of the pads in the scenes</h3>")
+    o.append("<p>The pads are the MuJoCo model of the print. Table&#160;1 lists their calibration against it so far.</p>")
+    cal_rows = [
+        ("Pad modulus", f"{U['sphere']['E']:.2f}&#8202;MPa under the 5&#8202;mm sphere, {U['rod']['E']:.1f}&#8202;MPa under the "
+         "12.5&#8202;mm rod", f"UR5 presses ({gt})", "10&#8202;MPa"),
+        ("Give before slip", f"{sh['give1']:.0f}&#8202;&#181;m/N at 1&#8202;N, {sh['give2']:.0f}&#8202;&#181;m/N at 2&#8202;N",
+         f"UR5 slides ({shp})", "None"),
+        ("Friction coefficient", f"{sh['mu1']:.2f} at 1&#8202;N, {sh['mu2']:.2f} at 2&#8202;N, on printed PLA",
+         f"UR5 slides ({shp})", "1, randomised over 0.55&#8211;1.15 of it"),
+        ("Creep below slip", "None: the pad sticks", f"UR5 slides ({shp})",
+         f"{sh['cr10']:.0f}&#8202;&#181;m/s in the held D1&#8211;D8 replays, {sh['mjw'][0]['slip_um_s']:.0f}&#8202;&#181;m/s in the "
+         "scripted grasp (impratio 10)"),
+        ("Friction torque about the normal", "Unmeasured: within the HEX-E&#8217;s noise and crosstalk", f"UR5 twists ({shp})",
+         f"{sh['tq']['1'][0]:.2f}&#8211;{sh['tq']['5'][1]:.1f}&#8202;N&#8202;mm at spin onset, 1&#8211;5&#8202;N, 5&#8202;mm sphere"),
+    ]
+    o.append("<div class=\"tw\"><table class='cap'><thead><tr><th>Quantity</th><th>Print, measured</th><th>Source</th>"
+             "<th>Pads in the scenes</th></tr></thead><tbody>"
+             + "".join(f"<tr><td>{a}</td><td>{b}</td><td>{c}</td><td>{d}</td></tr>" for a, b, c, d in cal_rows)
+             + "</tbody></table></div>")
+    o.append("<p class=\"tnote\">Table&#160;1. Calibration of the 1&#8202;mm pads against the printed fingertip, 2026-10-27. "
+             "Print: measured on the UR5 with the HEX-E. Pads: the scenes&#8217; setting, or simulated under the trainer&#8217;s "
+             "numerics at impratio 10.</p>")
+    o.append(
+        "<p>The scenes still run 10&#8202;MPa (<code>E_TPU</code> in <code>scripts/reorient_backends.py</code>, pad builder v2). "
+        f"Under the measured hold forces the pads creep {cr['impratio10_E_meas']:.2f}&#8202;mm/s at impratio 10 at "
+        f"{U['sphere']['E']:.2f}&#8202;MPa and {cr['impratio10_E_FE']:.2f}&#8202;mm/s at {U['sphere']['E_fe']:.1f}&#8202;MPa. A softer "
+        "modulus therefore needs a higher impratio. A series slide joint, the FE calibration&#8217;s recipe, is kept as a comparison. It slides along "
+        "the palmar normal only, while in the FE and UR5 fits the spring acts along each press&#8217;s own normal. In the CPU "
         "replays of 18 October it cost 13&#8202;% per step, 112 against 99&#8202;&#181;s. The recipe also ran on 0.5&#8202;mm pads, at "
         "3.3 times the per-step cost of 1&#8202;mm pads, 99 against 30&#8202;&#181;s. The replay that sets the scenes&#8217; modulus "
         "is listed under Future work.</p>")
@@ -421,7 +465,7 @@ def refs_text(ctx):
     dk_cr = [r["creep_mm_s"] * 1e3 for r in dk if r.get("creep_mm_s")]
     hand = (ctx.get("hand") or {}).get("drake_hydro")
     drake_cost = (f"It costs {min(dk_us) / 1e3:.1f}&#8211;{max(dk_us) / 1e3:.1f}&#8202;ms per step on one core on the test bed"
-                  + (f" and {hand / 1e3:.1f}&#8202;ms on the hand (Table&#160;4)." if hand else ".") if dk_us
+                  + (f" and {hand / 1e3:.1f}&#8202;ms on the hand (Table&#160;5)." if hand else ".") if dk_us
                   else "It costs 1&#8211;2&#8202;ms per step on one core.")
     drake_creep = (f" Under half the slip load on the test bed it creeps {min(dk_cr):.2f}&#8211;{max(dk_cr):.2f}&#8202;&#181;m/s "
                    "(step&#160;8)." if dk_cr else "")
@@ -492,7 +536,7 @@ def evidence_lead(ctx):
     return (f"The test bed runs five tasks with the 10.55&#8202;mm sphere as the fingertip, at 1 and 5&#8202;ms steps ({n} cases). "
             "In the pull and the twist the pinch is loaded until the tool slides or spins. In the roll one pad moves, so that "
             "the tool rolls between the pads. In the shake the held tool is driven at 5&#8202;Hz under gravity. In the brake the "
-            "pinch force falls until the tool swings toward hanging. Table&#160;2 lists one or two metrics per task.")
+            "pinch force falls until the tool swings toward hanging. Table&#160;3 lists one or two metrics per task.")
 
 
 def evidence_tasks(ctx):
@@ -556,7 +600,7 @@ def evidence_tasks(ctx):
         rho = [r(k)["rho"] for k in have]
         out.append("<p><b>Roll.</b> Moving one pad 10&#8202;mm along the tool at 10&#8202;mm/s rolls the tool between the pads in "
                    f"every model, at 0.5 to 3&#8202;N and both steps. At 1&#8202;N the rolling ratio lies between {min(rho):.4f} and "
-                   f"{max(rho):.4f} across the {len(have)} models (Table&#160;2). No-slip rolling between the spheres gives "
+                   f"{max(rho):.4f} across the {len(have)} models (Table&#160;3). No-slip rolling between the spheres gives "
                    f"{r('drake_hydro')['rho_noslip_geom']:.4f}. The differences follow the depth of the contact point: the "
                    f"pad&#8217;s lies {12.5 - r('mj_pads1')['r_contact_L_mm']:.2f}&#8202;mm inside the tool&#8217;s surface and "
                    f"Drake&#8217;s {12.5 - r('drake_hydro')['r_contact_L_mm']:.2f}&#8202;mm. A contact at a smaller radius turns the "
@@ -906,7 +950,7 @@ def rl_text(ctx):
         if pm[1] and mp[1]:
             s += (f" Closed loop on each other&#8217;s tip, the pad policies held {100 * pm[0] / pm[1]:.0f}&#8202;% of the rollouts on "
                   f"the TPU mesh, and the mesh policies {100 * mp[0] / mp[1]:.0f}&#8202;% on the pads.")
-        out.append(s + f" (<code>{POLICY_PAGE}</code>). Table&#160;4 gives the training cost.")
+        out.append(s + f" (<code>{POLICY_PAGE}</code>). Table&#160;5 gives the training cost.")
     return "</p><p>".join(out)
 
 
@@ -925,7 +969,7 @@ def scale_text(ctx):
 
 def block_text(ctx):
     """The printed TPU block, the default fingertip since 2026-10-13: its pads and tasks 1, 2 and 5 on the test bed against
-    Drake (Table 3), from the backends study's tip rows and the pad rig's laws (pad_laws.json of the sensitivity study)."""
+    Drake (Table 4), from the backends study's tip rows and the pad rig's laws (pad_laws.json of the sensitivity study)."""
     B = ctx.get("B") or {}
     if not B.get("T2"):
         return P.pending("The block rows are missing.")
@@ -950,7 +994,7 @@ def block_text(ctx):
             f"{hr[0]:.1f}&#8211;{hr[1]:.1f}&#8202;mm over the block."
             if npads and L.get("pad_K") and L.get("h_m") else "")
     return (f"Since 13 October the scenes model the printed TPU fingertip as 1&#8202;mm pads.{pads} The 10.55&#8202;mm sphere of "
-            "Table&#160;2 stays as the analytic check of steps 1&#8211;10. On the block the screwdriver presses a line across the "
+            "Table&#160;3 stays as the analytic check of steps 1&#8211;10. On the block the screwdriver presses a line across the "
             "flat palmar face. The arm is then set by the length of the line, and it grows little with load: from 1 to 3&#8202;N "
             f"the onset arm grows {gr(pk):.2f} times with the pads and {gr(dk):.2f} times in Drake. The pads&#8217; onset arm is "
             f"{(on[0] - 1) * 100:.1f} and {(on[1] - 1) * 100:.1f}&#8202;% above Drake&#8217;s at 1 and 3&#8202;N. Their arm while "
@@ -958,11 +1002,11 @@ def block_text(ctx):
             f"braked tool passes 45&#176; at a pinch {(1 - b45[0] / b45[1]) * 100:.0f}&#8202;% below Drake&#8217;s ({b45[0]:.3f} "
             f"against {b45[1]:.3f}&#8202;N per pad), and it ends at {end[0]:.1f}&#176; against {end[1]:.1f}&#176;. The pads creep "
             f"{cr[0] / cr[1]:.0f} times faster than Drake at 1&#8202;N, and they cost {us[1] / us[0]:.0f} times less per step "
-            f"(Table&#160;3; <code>{P.TIP_PATH}</code>).")
+            f"(Table&#160;4; <code>{P.TIP_PATH}</code>).")
 
 
 def cost_text(ctx):
-    """The cost paragraphs above Table 4: the CPU ratios on the test bed, the block and the hand; the GPU world-step on the
+    """The cost paragraphs above Table 5: the CPU ratios on the test bed, the block and the hand; the GPU world-step on the
     fixture and on one held RL state in the trainer's MuJoCo-Warp 3.6, then in 3.14 beside Newton's pipeline with the same
     pads (owner 2026-10-14: no framing of the pads as cheaper than Newton hydroelastic); the RL cost, the zero-action
     throughput against the TPU mesh like the PPO ratio, and what each 4,096-env pad attempt recorded."""
@@ -970,7 +1014,7 @@ def cost_text(ctx):
     hc, rl = ctx.get("hand") or {}, ctx.get("rl") or {}
     us, _mem = ctx.get("state") or ({}, {})
     B = ctx.get("B") or {}
-    out = ["Table&#160;4 lists the cost of one physics step on the test bed, on the hand and in training."]
+    out = ["Table&#160;5 lists the cost of one physics step on the test bed, on the hand and in training."]
     if cost.get("mj_pads1") and cost.get("mj_point3") and hc.get("mj_pads1") and hc.get("mj_point3"):
         cad = hc.get("cad") or {}
         out.append(f"On one CPU core a pad step costs {cost['mj_pads1'] / cost['mj_point3']:.1f} times a point contact&#8217;s on "
@@ -985,7 +1029,7 @@ def cost_text(ctx):
                    f"{blk[1] / blk[0]:.1f} times on the printed block and {hc['drake_hydro'] / hc['mj_pads1']:.0f} times on the "
                    "hand.")
     out.append("Figure&#160;11 plots the test bed&#8217;s costs against each model&#8217;s deviation from Drake over the metrics of "
-               "Table&#160;2.")
+               "Table&#160;3.")
     out.append("</p><p>")
     gpu = [k for k in P.GPU_MODELS if k in cost]
     curves = ctx.get("curves") or {}
@@ -1311,7 +1355,7 @@ def skin_rl_servo(ctx):
 
 
 def agree_note(ctx):
-    """Table 2 caption: point contact's torque about the normal is zero; its onset values are the protocol's offset."""
+    """Table 3 caption: point contact's torque about the normal is zero; its onset values are the protocol's offset."""
     tw = ctx["T"]["twist"]
     pt = [P.pick(tw, "mj_point3", N=N, dt_ms=1.0) or {} for N in (0.5, 3.0)]
     on = [r["rbar_onset_mm"] for r in pt if r.get("rbar_onset_mm")]

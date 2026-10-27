@@ -93,7 +93,7 @@ MODELS = {
     "newton_pads1": ("Newton 1 mm sphere pad", "var(--c-sphere)", "diamond", True),
 }
 ORDER = ["mj_point3", "mj_point4s", "mj_pads1", "drake_hydro", "newton_hydro_mc"]
-# Table 2 and Figure 9: the same pads stepped by MuJoCo-Warp and by Newton (bed rows of 20261006-simulator_agreement/)
+# Table 3 and Figure 9: the same pads stepped by MuJoCo-Warp and by Newton (bed rows of 20261006-simulator_agreement/)
 TABLE_ORDER = ["mj_point3", "mj_point4s", "mj_pads1", "mjw_pads1", "newton_pads1", "drake_hydro", "newton_hydro_mc"]
 GPU_MODELS = ("mjw_pads1", "newton_pads1", "newton_hydro_mc")
 HTML_LBL = {
@@ -211,6 +211,13 @@ GLOSSARY_CHAIN = [
     ("approach", "The travel of an indenter into a fingertip from first touch at a given normal force, in &#181;m or mm."),
     ("series spring", "A spring between the finger and the fingertip&#8217;s contact model along the palmar normal, of stiffness "
             "\\(k_s\\) in N/mm or compliance \\(1/k_s\\) in mm/N. The approach of the contact and \\(F/k_s\\) add."),
+    ("give before slip", "The pad&#8217;s travel per newton of shear while the contact sticks, from a spring-and-slider fit to "
+            "the UR5 slides, in &#181;m/N."),
+    ("trainer&#8217;s numerics", "The policy trainer&#8217;s step and solver: 2&#8202;ms, the implicitfast integrator, the "
+            "elliptic cone and Newton&#8217;s method with 10 iterations."),
+    ("cone state", "A contact whose force lies on the surface of its friction cone, so that it slides."),
+    ("noslip", "MuJoCo&#8217;s second pass over the friction rows after the main solve, which removes their regularised "
+            "sliding. <code>noslip_iterations</code> sets the number of its sweeps."),
 ]
 
 # terms of the policy and cost paragraphs, shown on this page only (other pages import GLOSSARY)
@@ -725,7 +732,7 @@ def creep_text(pull, creep, tip_pull=None):
             td = pick(tip_pull, "drake_tpu2p7", N=1.0, dt_ms=1.0)
             if tb and td:
                 out.append(f"On the printed TPU block at 1&#8202;N and 1&#8202;ms the factor is "
-                           f"{tb['creep_mm_s'] / td['creep_mm_s']:.0f} (Table&#160;3).")
+                           f"{tb['creep_mm_s'] / td['creep_mm_s']:.0f} (Table&#160;4).")
         out.append("A damper moves the tool by the time integral of its load, so a held tool does not come back when the "
                    "load is removed (task&#160;8, Figure&#160;16).")
     return " ".join(out).replace(" </p><p> ", "</p><p>")
@@ -972,7 +979,7 @@ def step_text(rows):
             f"{cost(dk, 0.01) / cost(leg, 0.01):.0f}&#215; less at 10&#8202;ms (Figure&#160;10).")
 
 
-# ------------------------------------------------------------------------------------------ Table 2: agreement
+# ------------------------------------------------------------------------------------------ Table 3: agreement
 
 def metrics(T):
     """(group, label, unit, nd, model -> value) for every bed metric with data."""
@@ -1168,7 +1175,7 @@ def svg_cost(M, cost, batched=None):
     yt = [v for v in (1, 10, 100, 1000) if v <= ytop]
     fx, fy = _panel(out, 80, 46, 540, 280, (0.5, 5000.0), (1.0, ytop), (1, 10, 100, 1000), yt,
                     "cost of one physics step at 1 ms (µs), log scale",
-                    "median |deviation from Drake| over the metrics of Table 2 (%), log scale", True, True, yfmt="{:g}")
+                    "median |deviation from Drake| over the metrics of Table 3 (%), log scale", True, True, yfmt="{:g}")
     if "drake_hydro" in cost:
         x = fx(cost["drake_hydro"])
         out.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="46" y2="326" style="stroke:var(--c-drake);stroke-dasharray:6 5"/>'
@@ -1337,7 +1344,7 @@ def tip_rows():
 
 
 def block_metrics(B):
-    """Table 3: (label, unit, decimals, pads, Drake) on the 2.7 mm block, 1 ms step unless named."""
+    """Table 4: (label, unit, decimals, pads, Drake) on the 2.7 mm block, 1 ms step unless named."""
     g = lambda t, k, **kw: pick(B[t], k, **kw) or {}  # noqa: E731
     out = []
     for N in (1.0, 3.0):
@@ -1442,7 +1449,7 @@ def state_cost():
 
 
 def cost_table(cost, batched, hand, rl, state, B):
-    """Table 4: cost of one physics step on the bed and on the hand (one CPU core), per world-step on the GPU, and of a
+    """Table 5: cost of one physics step on the bed and on the hand (one CPU core), per world-step on the GPU, and of a
     PPO iteration, for point contact, the 1 mm pads, Drake and Newton hydroelastic."""
     f = lambda x, fm=",.1f": num(x, fm) if isinstance(x, (int, float)) else "&#8211;"  # noqa: E731
     pair = lambda d, fm=".2f": (f"{d[1024]:{fm}}, {d[2048]:{fm}}" if d and 1024 in d and 2048 in d  # noqa: E731
@@ -1786,7 +1793,7 @@ def skin_data():
 
 
 def skin_table(X):
-    """Table 3: what each presliding candidate adds (task 8 at 1 N) and keeps (tasks 1, 2, 5), and its cost."""
+    """Table 4: what each presliding candidate adds (task 8 at 1 N) and keeps (tasks 1, 2, 5), and its cost."""
     import native_compliance_page as NC
     gp, cp = X.gpu("mj_pads1_ir1000"), X.cpu("mj_pads1_ir1000")
     head = ["Model", "Presliding (&#181;m)", "Recovered (&#181;m)", "Loop (&#181;J)", "Effective &#956;", "Twist arm / law",
@@ -1901,7 +1908,7 @@ RELATED = [  # (group, date, title, path relative to the repository, contents)
      "Mindlin presliding, the skin&#8217;s construction and sizing, task 8 at the bed&#8217;s and the trainer&#8217;s settings, policies "
      "trained on the skin"),
     ("Results on other pages", "2026-10-05", "Contact comparison bed", "BED",
-     "Five tasks on the two-pad rig for every model, with films and the numbers of Table 2"),
+     "Five tasks on the two-pad rig for every model, with films and the numbers of Table 3"),
     ("Results on other pages", "2026-10-06", "Servo plant refit and the three-finger turn", "HT3",
      "Hand-object control of the turn, agreement across simulators, effective mass, pad cost in RL"),
     ("Results on other pages", "2026-10-07", "Newton hydroelastic tests",
