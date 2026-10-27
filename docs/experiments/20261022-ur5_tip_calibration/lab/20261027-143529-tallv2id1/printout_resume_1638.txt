@@ -1,0 +1,60 @@
+resumed logs/20261027-tip_calibration/143529-tallv2id1: 23 actions done, 21 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0488 0.0481 0.2369 0.003  0.0037 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  tall-ref-a (1/59): to 2.00 N
+  tall-flank-601 (2/59): to 2.00 N
+  tall-flank-562 (3/59): to 2.00 N
+  tall-flank-564 (4/59): to 2.00 N
+  tall-flank-507 (5/59): to 2.00 N
+  tall-flank-547 (6/59): to 2.00 N
+  tall-flank-551 (7/59): to 2.00 N
+  tall-flank-545 (8/59): to 2.00 N
+  tall-flank-556 (9/59): to 2.00 N
+  tall-flank-535 (10/59): to 2.00 N
+  tall-flank-482 (11/59): to 2.00 N
+  tall-flank-525 (12/59): to 2.00 N
+  tall-flank-526 (13/59): to 2.00 N
+  tall-flank-543 (14/59): to 2.00 N
+  tall-flank-590 (15/59): to 2.00 N
+  tall-flank-589 (16/59): to 2.00 N
+  tall-flank-591 (17/59): to 2.00 N
+  tall-flank-531 (18/59): to 2.00 N
+  tall-flank-580 (19/59): to 2.00 N
+  tall-flank-532 (20/59): to 2.00 N
+  tall-flank-582 (21/59): to 2.00 N
+  tall-flank-583 (22/59): to 2.00 N
+  tall-flank-585 (23/59): to 2.00 N
+  tall-edge-754 (24/59): to 3.00 N
+  tall-edge-643 (25/59): to 3.00 N
+  tall-edge-644 (26/59): to 3.00 N
+  tall-edge-637 (27/59): to 3.00 N
+  tall-edge-645 (28/59): to 3.00 N
+  tall-face-732 (29/59): to 5.00 N
+  tall-edge-647 (30/59): to 3.00 N
+  tall-face-738 (31/59): to 5.00 N
+  tall-edge-740 (32/59): to 3.00 N
+  tall-edge-718 (33/59): to 3.00 N
+  tall-face-725 (34/59): to 5.00 N
+  tall-face-792 (35/59): to 5.00 N
+  tall-face-785 (36/59): to 5.00 N
+  tall-face-716 (37/59): to 5.00 N
+  tall-face-774 (38/59): to 5.00 N
+  tall-face-772 (39/59): to 5.00 N
+  tall-face-708 (40/59): to 5.00 N
+  tall-face-766 (41/59): to 5.00 N
+  tall-face-764 (42/59): to 5.00 N
+  tall-face-710 (43/59): to 5.00 N
+  tall-face-770 (44/59): to 5.00 N
+  tall-edge-696 (45/59): to 3.00 N
+  tall-face-702: ABORT no HEX-E sample for 100 ms
+  tall-face-690: ABORT no HEX-E sample for 100 ms
+  tall-edge-627: ABORT no HEX-E sample for 100 ms
+HEX-E: 169072 samples, 158 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz +0.3 N
+session in logs/20261027-tip_calibration/143529-tallv2id1
+three aborts in a row: stopping the session (--resume continues it)
+exit 1 at 17:06:25
