@@ -1010,6 +1010,17 @@ the lab session ("go") at about 15:36.
 - hard2 runs only if hard1's reference presses agree: the board's change at 2 N within cb2t's repeat spread
   (13.8 %), and the flange's position within about 0.1 mm once the pad has recovered.
 
+### 00:47:33 to 02:44:22, pass 6 (62 actions); 02:45:07 to 02:47:26, R26 hard1
+
+- Pass 6: all ended ok. The HEX-E gave 699,846 samples, none timed out. v2 ID 1's suite under the cap is complete;
+  the 24 parity actions wait for the owner.
+- hard1: the 8 N ramp at hard-grid-020's target peaked at 8.31 N. Nothing aborted.
+- At 2 N, hard-ref-b's board change differed from hard-ref-a's by 8.8 % of the change (94.9 µT; N52 roughly doubles
+  cb2t's 44.4). That is within cb2t's repeat spread of 8.2 % (median) and 13.8 % (max); ID 3 gave 9.4 %. v2 ID 1's own
+  ref-00 and ref-05 of pass 2b, an hour apart, differ by 3.6 %.
+- The flange at 2 N moved 25 µm. The ramp pressed another point, and the reference point shows no dent.
+- hard2 started at 02:48:32.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
