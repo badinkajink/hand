@@ -14,9 +14,12 @@ For each tip's sphere presses, the location error (mm, along the surface) and th
   others     a GP trained on the other two tips' presses alone (transfer to a tip it has not seen);
   pooled     the other tips' presses plus this tip's other folds: the best the data allow.
 
-Errors are medians, at 1.5 N and over and under 1.5 N. With --by-force, also over 5 N (ID 3's R26 presses reach 8 N).
+Errors are medians, at 1.5 N and over and under 1.5 N, and over 5 N where a tip has such presses (R26 reaches 8 N).
 
-    /usr/bin/python3 scripts/ur5_tip_calibration_v1_tips.py [--out data/20261026-v1_tips.json]
+With --v2, v2 ID 1 (five N52 magnets in the same checkerboard, R28, 2026-10-26/27) joins as a fourth tip. Its "others"
+is the three v1 tips (does it respond like them?); the v1 tips' "others" stay the other v1 tips.
+
+    /usr/bin/python3 scripts/ur5_tip_calibration_v1_tips.py [--v2] [--out data/20261026-v1_tips.json]
 """
 from __future__ import annotations
 
@@ -34,6 +37,7 @@ import ur5_tip_calibration_cb1r_checks as K  # noqa: E402
 D = K.EXP / "data"
 TIPS = {"ID 1": ("20261023-203938-cb1t", "20261025-114653-cb1r"), "ID 2": ("20261025-152920-cb2t",),
         "ID 3": ("20261026-134522-cb3t",)}
+V2 = {"v2 ID 1": ("20261026-192158-v2id1",)}
 
 
 def presses(sessions):
@@ -81,12 +85,12 @@ def cv(train, H, keep=None, rng=None):
 
 
 def run(a):
-    P = {t: presses(s) for t, s in TIPS.items()}
+    P = {t: presses(s) for t, s in (dict(TIPS, **V2) if a.v2 else TIPS).items()}
     n3 = int(len(np.unique(P["ID 3"]["id"].astype(str))) * 4 // 5)    # ID 3's training actions in a five-fold split
     res = {"n_actions": {t: int(len(np.unique(H["id"].astype(str)))) for t, H in P.items()},
            "n_holds": {t: int(len(H["id"])) for t, H in P.items()}, "thinned_to_actions": n3, "tips": {}}
     for t, H in P.items():
-        others = K.cat(*[P[o] for o in P if o != t])
+        others = K.cat(*[P[o] for o in TIPS if o != t])        # the v1 tips other than t
         r = dict(physical=score(H, np.c_[H["est_p"], H["est_f"]]), own=score(H, cv(None, H)),
                  others=score(H, K.gp(others).predict(H["d_board"])), pooled=score(H, cv(others, H)))
         draws = [score(H, cv(None, H, keep=n3, rng=np.random.default_rng(s))) for s in range(a.draws)]
@@ -100,5 +104,6 @@ def run(a):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--draws", type=int, default=8)
+    ap.add_argument("--v2", action="store_true", help="add v2 ID 1 as a fourth tip")
     ap.add_argument("--out", default=str(D / "20261026-v1_tips.json"))
     run(ap.parse_args())

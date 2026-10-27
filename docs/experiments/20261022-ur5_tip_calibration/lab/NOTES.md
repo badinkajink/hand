@@ -1034,6 +1034,31 @@ the lab session ("go") at about 15:36.
 - The arm went home. v2 ID 1's suite under the cap (passes 1 to 6) and R26 are complete. The 24 parity actions wait
   for the owner.
 
+### 04:2x, v2 ID 1 against the v1 tips (the owner's worry, 19:2x: the larger seam "has caused some atypical loading patterns")
+
+- v2 ID 1's session was analysed as ID 3's (`lab/20261026-192158-v2id1`, first2's gravity fit): 3,620 holds, in
+  `data/20261026-192158-v2id1/`.
+- `scripts/ur5_tip_calibration_v1_tips.py --v2` (`data/20261027-v1_v2_tips.json`); v2 ID 1 has 198 press actions.
+  Median location error over 1.5 N, then under 1.5 N (mm):
+
+  | estimator | v1 tips (ID 1, ID 2, ID 3) | v2 ID 1 |
+  |---|---|---|
+  | GP, own presses (5 folds) | 0.40, 0.25, 0.46; 0.88, 0.72, 1.48 | 0.25; 0.66 |
+  | GP, own, thinned to 48 training actions | 0.54, 0.48, 0.51; 0.97, 1.09, 1.44 | 0.51; 0.98 |
+  | physical (viewer) | 1.29, 1.35, 1.99; 9.64, 8.31, 8.23 | 1.57; 2.02 |
+  | GP trained on the v1 tips | – | 2.52; 0.90 |
+  | pooled | 0.29, 0.24, 0.48; 0.99, 0.75, 1.10 | 0.29; 0.69 |
+
+- Calibrated on its own presses, v2 ID 1 is as good as the best v1 tip (ID 2), and at one density it equals all
+  three. Its force error over 1.5 N is 0.19 N.
+- The physical estimator reads its light presses within 2.0 mm, against 8 to 10 mm on the v1 tips. The N52 field
+  roughly doubles the board's change at a given press.
+- A GP trained on the v1 tips misses v2 ID 1's contacts by 2.5 mm and its force by 1.9 N over 1.5 N. The stronger
+  magnets change the board's response, so a v2 tip needs its own calibration.
+- No sign of atypical loading from the seam. By region, v2 ID 1's own errors match ID 2's: face 0.23 and 0.68 mm (ID 2
+  0.21 and 0.67), edges 0.30 and 0.67 (0.32 and 0.80), flanks 0.45 and 0.58 (0.53 and 0.79). Over 1.5 N they are
+  symmetric about the middle: 0.28, 0.23 and 0.29 mm at y < −1.5, the middle and y > 1.5 (ID 2: 0.28, 0.22 and 0.28).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
