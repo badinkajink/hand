@@ -953,6 +953,27 @@ the lab session ("go") at about 15:36.
   ID 2. Over 5 N, the GP from the other tips misses the force by 3.9 N (extrapolation); ID 3's own GP misses it by
   0.36 N.
 
+## 2026-10-26 evening: R28 on v2 ID 1 (five N52 magnets in the checkerboard, mount v7), session `v2id1`
+
+- The owner swapped tips at about 19:00. The workstation's R28 (QUEUE.md): cb3t's plan files in cb3t's order, the cap at
+  +45 deg on passes 2b to 6, the 24 actions above it only with the owner present, R26 after pass 6.
+- The board check at rest (19:2x, `reskin5x_check.py`): 375 records/s from all five chips, noise 1.6 to 3.0 µT. The
+  largest component is chip 0's Bz, −13.4 mT, 34.9 % of the 38.4 mT range. ID 3's chip 0 read 3.6 mT, and ID 3's
+  presses to 8 N changed a chip's field by 0.14 mT at most.
+
+### 19:21:57 to 19:42:50, pass 1
+
+- All 19 touch-offs ended ok. The onsets came −0.69 to +0.87 mm from the expected: the nominal tool against a pad
+  that sits tilted in its seat (ID 3's first pass 1 had +0.85 mm at pad-edge-07). pad-edge-07 ran at joint 6 +54 deg
+  with no gap.
+- The registration fit the 19 touches at 0.050 mm rms (ID 3: 0.034, ID 2: 0.046). It moved the TCP 1.04 mm and
+  1.71 deg, and the sphere 0.83 mm.
+- The HEX-E gave 124,596 samples, none timed out.
+- The poles fitted at rest (`fingertip_wrench_model.calibrate_frames_fixed`, with the board's earlier chip frames,
+  from the rest before pad-flank-05) are (+1, −1, −1, −1, +1), as on ID 1, ID 2 and ID 3. That fit leaves 0.36 mT
+  rms; the next pattern leaves 2.64 mT. The strength k is 0.96 (ID 2: 0.47, ID 3: 0.20). The largest components are
+  0.349, 0.096, 0.089, 0.217 and 0.221 of the range.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
