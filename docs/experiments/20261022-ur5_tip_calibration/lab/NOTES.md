@@ -974,6 +974,15 @@ the lab session ("go") at about 15:36.
   rms; the next pattern leaves 2.64 mT. The strength k is 0.96 (ID 2: 0.47, ID 3: 0.20). The largest components are
   0.349, 0.096, 0.089, 0.217 and 0.221 of the range.
 
+### 19:44:04 to 19:59:06, pass 2a; 20:00:15 to 20:57:07, pass 2b (capped, 60 actions)
+
+- Pass 2a: all touch-offs ok, pad-off-10 and -11 after their swing among them. The registration fit 31 touches at
+  0.047 mm rms; it moved the TCP 0.324 mm and 1.40 deg, the sphere 0.657 mm.
+- The owner did not answer whether they would be at the robot for the 24 parity actions, so those wait.
+- Pass 2b: all 60 actions ended ok. The HEX-E gave 340,474 samples, none timed out.
+- The chips under load: over pass 2b's first presses (up to 5 N), chip 0's largest component reached 0.358 of the
+  range (0.349 at rest). The largest change on a chip was 191 µT. N52 leaves the chips far from clipping.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
