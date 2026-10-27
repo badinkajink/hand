@@ -1059,6 +1059,38 @@ the lab session ("go") at about 15:36.
   0.21 and 0.67), edges 0.30 and 0.67 (0.32 and 0.80), flanks 0.45 and 0.58 (0.53 and 0.79). Over 1.5 N they are
   symmetric about the middle: 0.28, 0.23 and 0.29 mm at y < −1.5, the middle and y > 1.5 (ID 2: 0.28, 0.22 and 0.28).
 
+## 2026-10-27 morning: v2 ID 1's parity actions and the rod, with the owner present
+
+- The owner, at 09:1x: "yes run the rod pass and the parity actions". Asked which tip the rod pass runs on: v2 ID 1 as
+  mounted.
+
+### 09:17:39 to 09:21:04, the repeat check (`lab/20261027-plan_sphere_lab_check_v2id1.json`)
+
+- Three repeats of pass 1's touch-offs (chk-face-00, chk-face-03, chk-edge-00) came +0.074, −0.041 and −0.028 mm from
+  the expected: the pad had not moved since pass 1. The HEX-E gave 20,026 samples, none timed out.
+
+### 09:23:08 to 09:51:40, the parity actions past the cap (`lab/20261027-plan_sphere_lab_r25_parity45_v2id1.json`)
+
+- The 24 of ID 3's parity run, and slide-dense-555-t+15-1N, which ID 3 left out (mount 2.84 mm on its
+  registration). On v2 ID 1's registration it clears the mount by 3.35 mm; the 24 others clear it by 3.56 mm or more,
+  the finger by 2.14 mm. These 25 are the set ID 2 ran before the cap.
+- In the simulator on v2 ID 1's registration, none aborted. The mount stayed 3.4 mm or more from the sphere, the finger
+  2.3 mm or more. Joint 5 stayed at 41.9 deg or more, and joint 6 reached at most +59.8 deg.
+- All 25 ended ok, with joint 6 from +39.7 to +60.0 deg. The HEX-E gave 170,603 samples, none timed out. v2 ID 1
+  now has the full sphere suite that ID 2 ran.
+
+### Rod pass 1 for v2 ID 1, checked here (`lab/20261027-plan_rod_lab_r27_pass1_v2id1.json`)
+
+- R27's rod pass 1, with the touch-offs' slow approach starting 2.5 mm before the expected surface instead of
+  1.5 mm. Simulated with v2 ID 1's sphere registration and the rod where the workstation's joint fit of R19 put it,
+  pad-face-01 met the rod at the end of the fast approach. Its slow approach then had too few samples and it aborted,
+  twice. On ID 3 the real onset of pad-face-01 came at −1.44 mm, at that hand-over.
+- With 2.5 mm the simulation had no abort and no contact in the fast approach. The onsets came −1.02 to −1.96 mm from
+  the expected, and the registration fit all 21. The mount stayed 3.38 mm or more from the rod (pad-face-04), the
+  finger 3.00 mm, the HEX-E 31.9 mm. Joint 6 stayed within −46 and +31 deg.
+- The static check, with the rod at its seating, puts the mount 2.88 mm from it at pad-face-04 and 2.91 mm at
+  pad-edge-06. ID 3's least there was 2.79 mm, and its run was clean.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
