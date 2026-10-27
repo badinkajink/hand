@@ -919,6 +919,40 @@ the lab session ("go") at about 15:36.
 - The rest of rod pass 2 (presses to 8 N, slides, rolls, twists) has not run on ID 3. It needs a rebuild on
   rod3t's registration (`scripts/ur5_tip_calibration_rod_pass2.py logs/20261026-tip_calibration/180938-rod3t`).
 
+### 19:2x, how well the three v1 tips sense (owner: "run a thorough set of analysis on the v1 id 3 data that we did get ... and see how good (ideally) the sensing for the three v1 fingertips are")
+
+- ID 3's sessions were analysed from their lab folders, where the plans of their resumes are
+  (`scripts/ur5_tip_calibration_analysis.py lab/20261026-134522-cb3t --gravity-from logs/20261022-tip_calibration/
+  195420-first2`, as the workstation analysed ID 1 and ID 2). That gives 813 holds on the sphere (270 presses up to
+  7.8 N, 491 slide, 30 twist and 22 roll holds) and 103 on the rod: `data/20261026-134522-cb3t/`,
+  `data/20261026-180938-rod3t/`.
+- `scripts/ur5_tip_calibration_v1_tips.py` (`data/20261026-v1_tips.json`) scores each tip's sphere presses. ID 1 has
+  98 press actions, ID 2 187 and ID 3 60. Median location error over 1.5 N, then under 1.5 N (mm):
+
+  | estimator | ID 1 | ID 2 | ID 3 |
+  |---|---|---|---|
+  | physical (viewer) | 1.29, 9.64 | 1.35, 8.31 | 1.99, 8.23 |
+  | GP, own presses (5 folds) | 0.40, 0.88 | 0.25, 0.72 | 0.46, 1.48 |
+  | GP, own, thinned to ID 3's 48 training actions | 0.54, 0.97 | 0.48, 1.09 | 0.51, 1.44 |
+  | GP, the other two tips only | 0.74, 1.19 | 0.96, 1.42 | 1.44, 1.79 |
+  | GP, the other tips and own (pooled) | 0.29, 0.99 | 0.24, 0.75 | 0.48, 1.10 |
+
+- The GP's force error over 1.5 N on a tip's own presses is 0.20, 0.16 and 0.25 N.
+- By region, over 1.5 N (the GP from the other two tips, then the physical estimator):
+  - face: 0.65 and 1.32 mm on ID 1, 0.81 and 1.08 mm on ID 2, 0.43 and 1.37 mm on ID 3;
+  - edges: 0.83 and 1.45 mm on ID 1, 1.12 and 1.41 mm on ID 2, 1.68 and 2.81 mm on ID 3;
+  - flanks: 0.94 and 0.84 mm on ID 1, 1.43 and 2.88 mm on ID 2, 1.72 and 3.50 mm on ID 3.
+- On its own presses, ID 3's edges come to 0.55 mm (ID 1 0.57, ID 2 0.32).
+- So ID 3's face senses like ID 1 and ID 2. Its edges and flanks respond differently from theirs: a model of ID 1
+  and ID 2 misses them by about twice its error between those two. Calibrated on its own presses at the same density,
+  ID 3 is as good as the others over 1.5 N (0.51 against 0.54 and 0.48 mm).
+- Under 1.5 N, ID 3 is worse (1.44 mm thinned). It has few light presses (76 holds, against 285 and 548), because
+  passes 2b to 6 did not run.
+- Two cautions. ID 3's presses are mostly on edges and flanks: 37 % of its holds over 1.5 N lie on the face, against
+  61 % and 56 %. And 50 of its 194 holds over 1.5 N are R26's 5 to 8 N, beyond the 1 and 3 holds over 5 N of ID 1 and
+  ID 2. Over 5 N, the GP from the other tips misses the force by 3.9 N (extrapolation); ID 3's own GP misses it by
+  0.36 N.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
