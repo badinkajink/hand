@@ -1,0 +1,59 @@
+resumed logs/20261026-tip_calibration/192158-v2id1: 307 actions done, 31 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0332 0.05   0.2473 0.003  0.0035 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  hard-ref-c (1/26): to 2.00 N
+  hard-dense-664-t+15 (2/26): to 4.00 N
+  hard-grid-055 (3/26): to 4.00 N
+  hard-dense-464-t-5 (4/26): to 4.00 N
+  hard-dense-542-t+15 (5/26): to 4.00 N
+  hard-grid-053 (6/26): to 3.00 N
+  hard-dense-594-t+15 (7/26): to 4.00 N
+  hard-grid-030 (8/26): to 5.00 N
+  hard-dense-658-t+15 (9/26): to 6.00 N
+  hard-grid-033 (10/26): to 6.00 N
+  hard-grid-037 (11/26): to 6.00 N
+  hard-grid-041 (12/26): to 6.00 N
+  hard-dense-748-t+10 (13/26): to 6.00 N
+  hard-grid-035 (14/26): to 6.00 N
+  hard-dense-611-t+5 (15/26): to 6.00 N
+  hard-grid-020 (16/26): to 8.00 N
+  hard-dense-736-t+10 (17/26): to 8.00 N
+  hard-grid-029 (18/26): to 8.00 N
+  hard-grid-021 (19/26): to 8.00 N
+  hard-dense-780-t+10 (20/26): to 8.00 N
+  hard-grid-015 (21/26): to 8.00 N
+  hard-grid-010 (22/26): to 8.00 N
+  hard-grid-013 (23/26): to 8.00 N
+  fast4-grid-015 (24/26): to 3.00 N
+  fast4-grid-043 (25/26): to 3.00 N
+  hard-ref-d (26/26): to 2.00 N
+== shear
+  hard-shear-3-4N (1/13): to 4.00 N
+  hard-slide-twin-008-t+10-4N (2/13): to 4.00 N
+  hard-slide-twin-014-t+5-4N (3/13): to 4.00 N
+  hard-slide-twin-028-t+10-4N (4/13): to 4.00 N
+  hard-slide-twin-024-t+5-4N (5/13): to 4.00 N
+  hard-slide-twin-006-t+10-4N (6/13): to 4.00 N
+  hard-slide-015-4N (7/13): to 4.00 N
+  fast-slide-twin-008-t+10-2N (8/13): to 2.00 N
+  fast-slide-twin-014-t+5-2N (9/13): to 2.00 N
+  fast-slide-twin-028-t+10-2N (10/13): to 2.00 N
+  fast-slide-twin-024-t+5-2N (11/13): to 2.00 N
+  fast-slide-twin-006-t+10-2N (12/13): to 2.00 N
+  fast-slide-015-2N (13/13): to 2.00 N
+== roll
+  fast-roll-0-1.5N-tv400 (1/1): to 1.50 N
+== twist
+  hard-twist-3-6N-20deg (1/3): to 6.00 N
+  fast-twist-0-2.5N-tv400 (2/3): to 2.50 N
+  fast-twist-0-5N-tv400 (3/3): to 5.00 N
+== final
+  hard-final-ref (1/1): to 2.00 N
+HEX-E: 447943 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 1.0 s, Fz +0.0 N; 0.7 s, Fz -0.4 N
+session in logs/20261026-tip_calibration/192158-v2id1
+exit 0 at 04:03:20

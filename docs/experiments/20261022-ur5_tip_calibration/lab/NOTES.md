@@ -1021,6 +1021,19 @@ the lab session ("go") at about 15:36.
 - The flange at 2 N moved 25 µm. The ramp pressed another point, and the reference point shows no dent.
 - hard2 started at 02:48:32.
 
+### 02:48:32 to 04:03:20, R26 hard2 (44 actions)
+
+- All ended ok. The HEX-E gave 447,943 samples, none timed out. The presses peaked at 8.41 N and the twists at 6.17 N.
+- hard-ref-c and hard-ref-d bracketed the presses. Their board change at 2 N differed from hard-ref-a's by 4.3 % and
+  3.6 % (v2 ID 1's own repeat: 3.6 %). The flange at 2 N moved under 30 µm. The hard presses left the pad unchanged.
+- hard-final-ref came after the slides, the roll and the twists, the last two at the reference point at 5 N with fast
+  turns. Its board change differed by 4.6 % at 2 N, but the pad reached 2 N 0.24 mm deeper. ID 3 showed the same
+  after its twists (0.22 mm, 0.095 mm after 5 min).
+- Before the 24 parity actions run on this registration, the repeats of pass 1's touch-offs should come within
+  0.1 mm.
+- The arm went home. v2 ID 1's suite under the cap (passes 1 to 6) and R26 are complete. The 24 parity actions wait
+  for the owner.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
