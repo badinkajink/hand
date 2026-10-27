@@ -263,8 +263,8 @@ def sections(N):
     # 1. terms and metrics
     terms = [
         ("Board, chip", "The ReSkin 5X board under each fingertip has five MLX90393 magnetometers, chips 0 to 4 in "
-         "streaming order (0x0C, 0x11, 0x12, 0x13, 0x10); chip 0 is U1 at the centre. Each chip gives its die temperature "
-         "and the field along x, y and z, so a board gives 15 field components."),
+         "streaming order (0x0C, 0x11, 0x12, 0x13, 0x10); chip 0 is U1 at the centre. Each chip measures its die temperature "
+         "and the field along x, y and z, so a board has 15 field components."),
         ("Record", "One sweep of the 15 chips of the three boards, 242 bytes on the USB serial port. The splitter "
          "<code>reskin5x_mux.py</code> stamps each record with the host time and logs it (248 bytes)."),
         ("Noise", r"The standard deviation of the difference of consecutive new conversions of one axis, divided by "
@@ -273,7 +273,7 @@ def sections(N):
         ("Correlation between boards", r"The largest absolute correlation of the record-to-record differences between a "
          r"component of one board and a component of another. For $n$ records of independent noise it stays under the "
          r"bound $4/\sqrt{n}$."),
-        ("Malformed record", "A record that the viewer drops: a chip whose field reads zero, a value that is not finite or "
+        ("Malformed record", "A record that the viewer drops: a chip whose field is zero, a value that is not finite or "
          "exceeds 10<sup>5</sup>, or a die temperature outside &#8722;40 to 125&#8202;&#176;C."),
         ("Thermal correction", r"Each chip&#8217;s reading $b$ is divided by its gain at its die temperature $T$ (&#176;C), "
          r"$b_{\mathrm{c}} = b\,/\,[1 + \kappa\,(T - 25)]$, with $T$ averaged over the last 450 records (2.8&#8202;s). "
@@ -290,9 +290,9 @@ def sections(N):
          "With the correction on, it is the coefficient that the correction leaves; the correction is taken as valid when "
          "it is under 0.1&#8202;%/&#176;C. On the swings, the same fit is made to the bins&#8217; deviations from their "
          "60-minute running mean."),
-        ("Viewer soak", "The frames of the contact viewer replayed over the log at 10 frames a second: a 50&#8202;ms "
-         "window, a new baseline after 3&#8202;s at rest, and a contact shown when its explained chi-square exceeds 25 and "
-         "its force 0.25&#8202;N. The noise floor is added to the chips&#8217; noise in the estimator: 2&#8202;&#181;T by "
+        ("Viewer soak", "The frames of the contact viewer replayed over the log at 10 frames a second. Each frame "
+         "averages a 50&#8202;ms window, and a new baseline is taken after 3&#8202;s at rest. A contact is shown when its "
+         "explained chi-square exceeds 25 and its force 0.25&#8202;N. The noise floor is added to the chips&#8217; noise in the estimator: 2&#8202;&#181;T by "
          "default, 1&#8202;&#181;T in the owner&#8217;s viewer since 2026-10-26 14:00. The force before the gates is the "
          "normal force fitted to every frame, shown or not."),
         ("Allan deviation", r"At averaging time $\tau$, $\sigma(\tau) = \sqrt{\langle(\bar b_{k+1} - \bar b_k)^2\rangle/2}$, "
@@ -314,8 +314,8 @@ def sections(N):
         "19:30 on 2026-10-26 and left the three fingers apart on the desk. From 19:33:14 the splitter logged every record "
         f"to <code>{LOG}</code>. The analysis covers 19:35 to {N['until']}, {Nt['span_s'] / 3600:.1f}&#8202;h in which "
         "nothing touched the fingers.</p>"
-        "<p>The replays use ID&#8202;1&#8217;s calibration of 10-26 13:42, ID&#8202;2&#8217;s rest calibration of the UR5 "
-        "session cb2t and ID&#8202;3&#8217;s of 10-25 on the QT Py. ID&#8202;3&#8217;s was checked at 02:42 by starting the viewer "
+        "<p>For the replays, ID&#8202;1&#8217;s calibration of 10-26 13:42, ID&#8202;2&#8217;s rest calibration of the UR5 "
+        "session cb2t and ID&#8202;3&#8217;s of 10-25 on the QT Py were used. ID&#8202;3&#8217;s was checked at 02:42 by starting the viewer "
         "on its channel. A saved model is kept when, with a field from outside the pad, it fits the present rest as well "
         "as a new calibration does. The 10-25 model fitted at 0.18&#8202;mT and a new calibration at 0.31&#8202;mT, so the "
         "10-25 model was kept.</p>"
@@ -338,7 +338,7 @@ def sections(N):
         "independent noise. No zero record appeared, and no chip reading repeated on another board.</p>"
         f"<p>Over the whole night {Nt['records']:,} records arrived at {Nt['rate']:.2f} records/s. The longest step "
         f"between records was {Nt['longest_step_s'] * 1e3:.0f}&#8202;ms. The splitter ran {ran} from {M['first']} to "
-        f"{M['last']}, and its minute lines gave {M['rate_min']:.1f} to {M['rate_max']:.1f} records/s.</p>"
+        f"{M['last']}. Its minute lines report {M['rate_min']:.1f} to {M['rate_max']:.1f} records/s.</p>"
         f"<p>The log has {Nt['malformed']} malformed records in {Nt['span_s'] / 3600:.1f}&#8202;h, each a single record. In "
         "each, the first 64 bytes are valid and the rest are not, though the record ends in CR&#8202;LF; the next record is "
         f"valid again. The viewer drops them, and every tool on this page leaves them out ({BAD_EXAMPLE} is the first).</p>"
@@ -495,7 +495,7 @@ def sections(N):
         f"{St['min_uT']:g}{u} appeared on all three boards within {St['within_s']:g}&#8202;s in {hours:.1f}&#8202;h, and "
         f"{'none' if sh15['count'] == 0 else sh15['count']} over {St15['min_uT']:g}{u} (Figure&#8202;3). Over 2&#8202;s the "
         f"uniform field changed by a median of {lst([b['change_2s_median_uT'] for b in B], '{:.2f}')}{u} on ID&#8202;1, "
-        f"ID&#8202;2 and ID&#8202;3, with a p99 of {lst([b['change_2s_p99_uT'] for b in B], '{:.2f}')}{u}. {big_txt} Over "
+        f"ID&#8202;2 and ID&#8202;3. Its p99 was {lst([b['change_2s_p99_uT'] for b in B], '{:.2f}')}{u}. {big_txt} Over "
         f"{St15['min_uT']:g}{u} the boards had {lst([b['steps'] for b in B15], '{}')} steps"
         f"{', none of them on all three' if sh15['count'] == 0 else ''}. The part that the uniform field leaves changed by "
         f"a median of {min(b['left_change_2s_median_uT'] for b in B):.1f} to {max(b['left_change_2s_median_uT'] for b in B):.1f}"
@@ -525,12 +525,12 @@ def sections(N):
         + f" from {pre['ID 1'][0]['start']} to {p_end}. In the same hours the uniform field fell from "
         + lst([f"{pre[n][0]['uniform_uT']:.1f} to {pre[n][-1]['uniform_uT']:.1f}{u} on {nm[n]}" for n in NAMES[:2]], "{}")
         + ". The uniform field also changes with the room&#8217;s field.</p>"
-        "<p>The boards were moved at about 19:30. In the first hour after the move the part left was "
-        + lst([f"{post[n][0]['left_uT'] - pre[n][-1]['left_uT']:.1f}{u} higher than in the last hour before it on {nm[n]}"
-               for n in NAMES[:2]], "{}")
+        "<p>The boards were moved at about 19:30. The part left was higher in the first hour after the move than in the "
+        "last hour before it, by "
+        + lst([f"{post[n][0]['left_uT'] - pre[n][-1]['left_uT']:.1f}{u} on {nm[n]}" for n in NAMES[:2]], "{}")
         + ". Through the night it rose from "
         + lst([f"{post[n][0]['left_uT']:.1f} to {post[n][-1]['left_uT']:.1f}{u} on {nm[n]}" for n in NAMES[:2]], "{}")
-        + ", while the boards&#8217; mean die temperature fell by "
+        + ". Over the same hours the boards&#8217; mean die temperature fell by "
         + lst([post[n][0]["die_C"] - post[n][-1]["die_C"] for n in NAMES[:2]]) + f"{dg}.</p>"
         + P.fig(4, MEDIA / "recovery.png", "Rest of ID&#8202;1 and ID&#8202;2 after the presses, in 60&#8202;s bins at rest, "
                 "thermally corrected. Orange: the part left; blue: the uniform field. Script: "
@@ -545,25 +545,25 @@ def sections(N):
     S.append(("limits", "Limitations", (
         "<p>The night tests one desk, one room and a cooling of about 1&#8202;&#176;C. The thermal coefficients were fitted "
         "on the desk board on 2026-10-21. A slow creep of a pad that runs alongside the cooling enters the gain fit as a "
-        "temperature coefficient, and the drift of ID&#8202;3&#8217;s chips 0 and 4 cannot be split from it. The swings "
+        "temperature coefficient. The drift of ID&#8202;3&#8217;s chips 0 and 4 cannot be split from such a creep. The swings "
         "about the running mean are a few hundredths of a degree. The viewer soak replays the viewer&#8217;s logic at 10 "
         "frames a second, without its recalibration on a large move of the rest. The pads&#8217; recovery is measured "
         "against a rest 7&#8202;min before the presses, and the fingers were handled between the presses and 19:30.</p>")))
     # 10. future work
     fw = [
-        ("Each board&#8217;s own thermal coefficients.", "Warm each finger by 3&#8202;&#176;C (a desk lamp, or the warm-up "
-         "after plugging in) and fit &#954; per chip with <code>reskin5x_mux_rest.py --tempfit --no-thermal</code>, on "
+        ("Each board&#8217;s own thermal coefficients.", "Warm each finger by 3&#8202;&#176;C, with a desk lamp or the "
+         "warm-up after plugging in. Fit &#954; per chip with <code>reskin5x_mux_rest.py --tempfit --no-thermal</code>, on "
          "the first 10&#8202;min and on the last hour. A coefficient more than 0.1&#8202;%/&#176;C from the desk "
-         "board&#8217;s falsifies a shared correction; a fast coefficient near half the slow one, as on this night&#8217;s "
+         "board&#8217;s falsifies a shared correction. A fast coefficient near half the slow one, as on this night&#8217;s "
          "swings, calls for a lag in the correction."),
         ("A longer average of the die temperature.", "Average T over 60&#8202;s in place of 450 records in "
          "<code>reskin5x_mux_rest.smoothed_T</code> and in the viewer&#8217;s <code>fields</code>, and rerun "
          "<code>reskin5x_mux_allan.py</code> on this log. The x and y minimum on ID&#8202;1 and ID&#8202;2 should fall to the "
-         "uncorrected 0.10&#8211;0.11&#8202;µT; a minimum still above 0.15&#8202;µT falsifies the temperature&#8217;s "
+         "uncorrected 0.10&#8211;0.11&#8202;µT. A minimum still above 0.15&#8202;µT falsifies the temperature&#8217;s "
          "fluctuation as the source of the added noise."),
         ("A floor set from the deviation.", "Run <code>reskin5x_mux_soak.py --floor</code> at 0.5, 1 and 2&#8202;µT on "
-         "this log and on a log with presses; the lowest floor that shows no contact at rest and keeps every press sets "
-         "the viewer&#8217;s default."),
+         "this log and on a log with presses. The viewer&#8217;s default becomes the lowest floor at which no contact is "
+         "shown at rest and every press is shown."),
         ("Recovery after controlled presses.", "Press ID&#8202;1 and ID&#8202;2 on the UR5 at 10&#8211;15&#8202;N with 10&#8202;min at "
          "rest after each press, logged through <code>reskin5x_mux.py</code>, and rerun "
          "<code>reskin5x_mux_recovery.py</code>. A part left that returns under 2&#8202;µT within an hour falsifies a "
@@ -599,9 +599,11 @@ def sections(N):
 def build():
     MEDIA.mkdir(parents=True, exist_ok=True)
     N = dict(checks={k: j(f"check_{k}.json") for k in ("1935", "2300", "0350")}, mux=mux_log_summary(), rest=j("rest.json"),
-             rest_raw=j("rest_raw.json"), soak2=j("soak_floor2.json"), soak1=j("soak_floor1.json"), allan=j("allan.json"), allan_raw=j("allan_raw.json"),
+             rest_raw=j("rest_raw.json"), soak2=j("soak_floor2.json"), soak1=j("soak_floor1.json"), allan=j("allan.json"),
+             allan_raw=j("allan_raw.json"),
              steps=j("steps.json"), steps15=j("steps_1p5.json"), recovery=j("recovery.json"), night=j("check_night.json"))
-    N["until"] = N["night"]["until"][:5]
+    N["until"] = time.strftime("%H:%M", time.gmtime(sum(int(v) * w for v, w in zip(N["night"]["until"].split(":"),
+                                                                                   (3600, 60, 1))) + 1))
     fig_rest(MEDIA / "rest.png")
     fig_allan(MEDIA / "allan.png", N["allan"], N["allan_raw"])
     fig_steps(MEDIA / "steps.png", N["steps"])
