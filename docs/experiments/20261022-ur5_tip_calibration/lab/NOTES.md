@@ -1129,6 +1129,65 @@ the lab session ("go") at about 15:36.
 - The HEX-E gave 564,108 samples, none timed out. Exit 0. The arm went home.
 - v2 ID 1 now has the rod set ID 3 lacks: rod pass 1, the rate set, and the presses to 8 N, slides, rolls and twists.
 
+## 2026-10-27 afternoon: v2 ID 1 on the tall indenter
+
+- The owner, 12:2x: "im going to get the taller indenter mounted first and we can calibrate v2 id 1 on that in the
+  interim". The workstation took R29, the pass after pass 1 (QUEUE.md).
+
+### 13:37 to 13:51, the tall indenter and three seatings on its key
+
+- The owner put the tall indenter on a second 2x4, clamped, about 104 mm further from the robot than the sphere
+  fixture. The sphere fixture and the rod stay where they were, and so do their seatings. The second 2x4's top is about
+  2 mm higher, since the board bows a little under the clamps.
+- Three seatings by hand in teach mode (`lab/teach_hold.py`), recorded with `lab/record_pose.py` as
+  `tall_indenter_seated`, `_2` and `_3`. By the plan's homing geometry the first puts the base at (−34.8, −699.4,
+  73.0) mm, yaw −93.7 deg, tilt 1.75 deg.
+- The spheres the seatings imply lie 0.94 mm (first and second), 0.55 mm (first and third) and 1.47 mm (second and
+  third) apart. The second sat 1.0 mm higher at the flange than the others. The flange turned 0.39 to 0.80 deg between
+  seatings; the README's seat check asks for 0.15 deg in roll and 0.05 mm along the tool axis.
+
+### 13:52 to 13:58, the mount's fork on the sphere
+
+- After the third seating, `lab/move_guarded.py go home` lifted off the key, then went home in a straight line. Its
+  cell model has no tall indenter. 19 mm along the line the HEX-E guard stopped the arm at 3.2 N. The owner: "the top
+  right side of the dip link / fork is touching the left side of the sphere". With the tall indenter in the model,
+  the fork stood 0.5 mm from the sphere's +y_I side at the stop.
+- At rest the fork pushed the sphere with about 5.5 N. The neck should take 35 to 70 N.
+- A guarded move back along the same line released the contact. The first try stopped after 0.3 mm, because the
+  push falling from 5.5 to 3.2 N passed the 3 N change rule. The second let the push fall and would have stopped on a
+  rise of 1 N. Then the arm went 80 mm toward the robot along −x_I, up 40 mm, and home; no move changed the HEX-E's
+  force by more than 1 N.
+- `lab/leave_tall_key.py` now takes that route from the key: up 10 mm and 15 mm, 80 mm along −x_I, up 40 mm, then
+  home. It checks every segment against the cell with the tall indenter, and refuses unless the arm is at a seating.
+
+### Pass 1 on the tall indenter, checked here (`lab/20261027-plan_tall_lab_pass1_v2id1.json`)
+
+- `scripts/ur5_tip_calibration_plan.py --indenter tall` built it with the first seating's placement, and the sphere
+  fixture and the rod as obstacles (the plan's notes give the command). Of the 159 actions built, the 32 touch-offs
+  were kept, and 9 dropped for joint 6 outside −65 to +45 deg.
+- Every touch-off starts 5.0 mm off the surface (the builder's 1.5 mm; cb3t's pass 1: 5.0 mm), with the slow approach
+  from 2.5 mm before it. Payload, travel speeds and speed slider are cb3t's pass 1's.
+- On v2 ID 1's registration, with the indenter from the first seating, the static check puts the mount 3.52 mm from
+  it, the finger 1.56 mm and the HEX-E 21.4 mm. It predicts onsets of −0.45 to +0.90 mm.
+- Simulated with the tool of v2 ID 1's sphere registration and the sphere where each seating puts it:
+  - pad-flank-02 brought the finger's cap within 0.17 mm of the sphere at contact (0.00 mm with the second seating's
+    sphere), and pad-flank-06 took joint 6 to −66.3 deg. Both were dropped, leaving 21.
+  - With the second seating's sphere, pad-edge-02 and pad-flank-02 found no contact within 1.2 mm past the expected
+    surface. Every touch-off now runs to 2.0 mm past it.
+- The three simulations then had no abort. The registration fit 0.020 to 0.023 mm rms, the mount cleared by 3.11 mm
+  or more and the finger by 0.94 mm or more, and joint 6 stayed within −64.3 and +35.0 deg.
+
+### 14:35:29 to 15:10:13, pass 1 on the tall indenter (session `143529-tallv2id1`)
+
+- Stages preflight, homing, pad and register from the first seating, with the owner's go. Homing put the base at
+  (−33.3, −699.2, 72.4) mm, yaw −93.4 deg, tilt 1.83 deg.
+- All 21 touch-offs ended ok, none in the fast approach. The onsets came −0.24 to +1.25 mm from the expected (median
+  +0.35), and grew through the run, which goes in order of joint 6. pad-edge-02 came at +1.25 mm, past the 1.2 mm
+  limit of the first build.
+- The registration fit the 21 touches at 0.054 mm rms. The README's mark is 0.05 mm; v2 ID 1 on the sphere fit
+  0.047 mm over 31 touches. It moved the TCP 1.50 mm and 2.59 deg, and the sphere's centre 1.25 mm from the seating.
+- The HEX-E gave 207,467 samples, none timed out. Exit 0.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
