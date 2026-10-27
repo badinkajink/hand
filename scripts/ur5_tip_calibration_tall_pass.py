@@ -8,10 +8,11 @@ Targets. The FE surface points (20261020-b_v2_surface_basis.npz) of the face, ed
 sphere session (20261026-192158-v2id1) within --gap mm (1.0; on ID 2 the GP's error was 0.36 mm with the nearest press
 1 mm away and 1.15 mm at 1.9 mm). A point is reached when some turn about the vertical in -20 to +40 deg (steps of 5)
 keeps joint 5 within 34 to 98 deg and joint 6 within -65 deg and --j6-max (45: the cap for unattended runs since the
-HEX-E's dropouts of 10-26) at the rest and deep poses, by the simulator's IK on the session's registration, and the
-clearances of the cell model (ur5_cb3_cell.clearance, mount v7, the tall indenter as an obstacle) exceed mount 3.0,
-finger 0.8, HEX-E 6.0, pad 0.3 and robot links 8.0 mm, the first three raised by the press's depth at its largest force
-less 1 mm (cb2t: 0.461 F^0.782 mm past contact, plus 0.15 mm). Of the turns that pass, the one with the larger of the
+HEX-E's dropouts of 10-26; --j6-min -62, three degrees over the program's limit) at the rest and deep poses, by the
+simulator's IK on the session's registration, and the clearances of the cell model (ur5_cb3_cell.clearance, mount v7, the
+tall indenter and the base plan's other indenters as obstacles) exceed mount 3.0, finger 0.8 (1.5 on the flanks and in
+the twists: --finger-flank), HEX-E 6.0, pad 0.3 and robot links 8.0 mm, the first three raised by the press's depth at its largest
+force less 1 mm (cb2t: 0.461 F^0.782 mm past contact, plus 0.15 mm). Of the turns that pass, the one with the larger of the
 mount's margin and a fifth of joint 5's degrees over 30 is taken (as R24 pass 3). The reached points are thinned by
 farthest-point sampling until none lies within --spacing mm (1.0) of another.
 
@@ -89,7 +90,7 @@ def fps(P, k):
 
 
 class Cell:
-    def __init__(self, base, session, j6_max):
+    def __init__(self, base, session, j6_max, j6_min=-62.0, finger_flank=1.5):
         ck = base["checks"]
         CELL.BOARD.update(ck["board"])
         CELL.BOARD["half_mm"] = 400.0                 # the mat table under the wrist (top at z_B 32.8), as the reach map
@@ -99,9 +100,10 @@ class Cell:
         self.reg = C.Registration(self.geo).load(json.loads((Path(session) / "registration.json").read_text()))
         self.qh = np.asarray(self.reg.q_home, float)
         self.T_EP = self.reg.T_EM @ self.reg.T_MP
-        self.j6 = (-65.0, float(j6_max))
+        self.j6 = (float(j6_min), float(j6_max))
+        self.finger_flank = float(finger_flank)
 
-    def pose(self, T_BE, contact_P, raise_mm):
+    def pose(self, T_BE, contact_P, raise_mm, finger=None):
         """(ok, worst clearance per group, (joint 5, joint 6) deg) at flange pose T_BE."""
         q = CELL.SIM.ik(T_BE, self.qh)
         if q is None:
@@ -118,16 +120,18 @@ class Cell:
             g = next((gn for gn, names in GROUPS.items() if k in names), "robot")
             worst[g] = min(worst.get(g, 1e9), v)
         need = {g: NEED[g] + (raise_mm if g in ("mount", "finger", "hex_e") else 0.0) for g in NEED}
+        if finger is not None:
+            need["finger"] = max(need["finger"], finger + raise_mm)
         return all(worst[g] >= need[g] for g in worst), worst, (j5, j6)
 
     def deep(self, p, n, turn, st=1.5):
         T_IP = self.geo.T_IP(p, n, float(turn), st)
         return [self.reg.T_BI @ C.Tm(T_IP[:3, :3], T_IP[:3, 3] - C.EZ * dz) @ C.inv(self.T_EP) for dz in (0.0, st + 1.0)]
 
-    def press_ok(self, p, n, turn, top_N):
+    def press_ok(self, p, n, turn, top_N, finger=None):
         out, js = [], []
         for T in self.deep(p, n, turn):
-            ok, worst, j = self.pose(T, p, extra(top_N))
+            ok, worst, j = self.pose(T, p, extra(top_N), finger)
             if not ok:
                 return None
             out.append(worst)
@@ -135,18 +139,18 @@ class Cell:
         worst = {g: min(w[g] for w in out) for g in out[0]}
         return worst, (min(j[0] for j in js), max(j[0] for j in js), min(j[1] for j in js), max(j[1] for j in js))
 
-    def slide_ok(self, p, n, turn, F=1.0):
+    def slide_ok(self, p, n, turn, F=1.0, finger=None):
         deep = self.deep(p, n, turn)[1]
         c_B = C.apply(self.reg.T_BI, self.geo.c_I)
         for d in range(0, 360, 45):
             u = self.reg.T_BI[:3, :3] @ np.cross(C.EZ, [math.cos(math.radians(d)), math.sin(math.radians(d)), 0.0])
             for dg in SLIDE_DEGS:
-                if not self.pose(C.turn_about(deep, c_B, u, dg), p, extra(F))[0]:
+                if not self.pose(C.turn_about(deep, c_B, u, dg), p, extra(F), finger)[0]:
                     return False
         return True
 
     def twist_ok(self, p, n, turn, F=2.5):
-        return all(self.press_ok(p, n, turn + t, F) is not None for t in (0.0, 10.0, 20.0))
+        return all(self.press_ok(p, n, turn + t, F, self.finger_flank) is not None for t in (0.0, 10.0, 20.0))
 
 
 def action(kind, aid, p, n, i, region, turn, **kw):
@@ -161,7 +165,7 @@ def run(a):
     t0 = time.time()
     base = json.loads(Path(a.base_plan).read_text())
     hdr = json.loads(HEADER_FROM.read_text())
-    cell = Cell(base, a.session, a.j6_max)
+    cell = Cell(base, a.session, a.j6_max, a.j6_min, a.finger_flank)
     b = np.load(P3.BASIS)
     pts, nrm = b["pts"], b["normals"]
     reg_of = [P3.region(v) or "" for v in nrm]
@@ -176,7 +180,7 @@ def run(a):
         r = reg_of[i]
         best = None
         for tw in TURNS:
-            res = cell.press_ok(pts[i], nrm[i], tw, LEVELS[r][-1])
+            res = cell.press_ok(pts[i], nrm[i], tw, LEVELS[r][-1], cell.finger_flank if r == "flank" else None)
             if res is None:
                 continue
             worst, j = res
@@ -198,14 +202,14 @@ def run(a):
         key = (0 if j[3] > a.cap else 1, j[2])         # past the unattended cap first, then by joint 6
         presses.append((key, action("press", f"tall-{r}-{i:03d}", pts[i], nrm[i], i, r, tw, levels=lv, stop_N=lv[-1],
                                      max_depth_mm=2.5 if lv[-1] <= 2.0 else 3.0, hold_s=0.6)))
-        if cell.slide_ok(pts[i], nrm[i], tw):
+        if cell.slide_ok(pts[i], nrm[i], tw, finger=cell.finger_flank if r == "flank" else None):
             slides.append((key, action("slide", f"tall-slide-{r}-{i:03d}-1N", pts[i], nrm[i], i, r, tw, press_N=1.0,
                                         moves=[dict(dir_deg=float(d), degs=SLIDE_DEGS) for d in range(0, 360, 45)],
                                         hold_s=0.4, turn_v=0.04)))
     print(f"{len(reached)} reached, {len(keep)} kept at {a.spacing} mm, {len(slides)} slides, {time.time() - t0:.0f} s", flush=True)
     # twists at face and edge points (any point the tall indenter reaches, not only uncovered ones), under the unattended
     # cap, since they run late in the plan
-    cell.j6 = (-65.0, min(a.j6_max, a.cap))
+    cell.j6 = (a.j6_min, min(a.j6_max, a.cap))
     tw_acts = []
     for r in ("face", "edge"):
         pool = [i for i in range(len(pts)) if reg_of[i] == r]
@@ -236,7 +240,7 @@ def run(a):
             + [x for _, x in sorted(slides, key=lambda q: q[0])] + tw_acts + [refs[2], fin])
     plan = {k: copy.deepcopy(v) for k, v in base.items() if k != "actions"}
     for k in ("payload", "travel", "speed_slider", "safety"):
-        if k in hdr:
+        if k in hdr and k not in plan:
             plan[k] = copy.deepcopy(hdr[k])
     plan["actions"] = acts
     # the lab's check: --clearance on the session, each action's margins raised by its depth
@@ -246,7 +250,9 @@ def run(a):
     for x in acts:
         m = per.get(x["id"])
         top = float(x.get("press_N") or x.get("stop_N") or 2.0)
-        bad = x["id"] in under or m is None or any(g in m and m[g] < NEED[g] + extra(top) for g in ("mount", "finger", "hex_e"))
+        fl = a.finger_flank if (x["target"]["region"] == "flank" or x["kind"] == "twist") else NEED["finger"]
+        need = dict(mount=NEED["mount"], finger=fl, hex_e=NEED["hex_e"])
+        bad = x["id"] in under or m is None or any(g in m and m[g] < need[g] + extra(top) for g in need)
         (dropped if bad else kept).append(x if not bad else (x["id"], m))
     plan["actions"] = kept
     n_by = {r: sum(x["kind"] == "press" and x["target"]["region"] == r and x.get("role") != "ref" for x in kept) for r in LEVELS}
@@ -287,6 +293,10 @@ if __name__ == "__main__":
     ap.add_argument("--spacing", type=float, default=1.0)
     ap.add_argument("--twists", type=int, default=6)
     ap.add_argument("--j6-max", type=float, default=45.0)
+    ap.add_argument("--j6-min", type=float, default=-62.0, help="3 deg over the program's -65: the simulator took a "
+                    "nominal -64.8 to -66.3 deg (lab, 10-27)")
+    ap.add_argument("--finger-flank", type=float, default=1.5, help="the finger's margin (mm) on flank actions: the "
+                    "simulator brought the cap within 0.17 mm of the tall indenter's sphere at a flank touch (lab, 10-27)")
     ap.add_argument("--cap", type=float, default=45.0, help="actions whose joint 6 passes this go first (owner present)")
     ap.add_argument("--out", default=str(LAB / "20261027-plan_tall_lab_r29_v2id1.json"))
     run(ap.parse_args())

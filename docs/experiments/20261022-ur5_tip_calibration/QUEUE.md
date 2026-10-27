@@ -980,6 +980,14 @@ push that answers it arrives.
   - 14:26 on 10-27, owner: "we can allow the +60 j6, i am here for the next ~5 hours so can debug as needed". The plan
     is built with joint 6 up to +60 deg and runs while the owner is present (until about 19:00); the actions over +45
     deg go first among the presses, so that what is left after 19:00 stays under the cap.
+  - 15:29 on 10-27: built on pass 1 (`lab/20261027-143529-tallv2id1`, its registration and plan header with the sphere
+    and the rod as obstacles): `lab/20261027-plan_tall_lab_r29_v2id1.json`, 122 actions. They are 56 presses (15 face,
+    19 edge, 22 flank; 20 at y < -1.5 mm, 24 at y > 1.5 mm), 50 slides, 12 twists and 4 reference presses. Built with
+    joint 6 within -62 and +58 deg (the lab's sim overshot a nominal -64.8 to -66.3), joint 5 from 37.7 deg. The
+    finger keeps 1.5 mm on flank actions and twists (the lab's cap at 0.17 mm on pad-flank-02), 0.8 mm elsewhere. By
+    `--clearance` on the session the least margins are mount 3.25, finger 1.54 and HEX-E 22.1 mm. The 15 actions past
+    +45 deg (8 presses, 7 slides, up to +55.1 deg) all lie within the first 65; no twist passes +45.
+  - Simulate on the session's registration, then run with the owner's go.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
