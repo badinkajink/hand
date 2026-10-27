@@ -299,23 +299,32 @@ def tall_frame(t=None):
 
 def tall_boxes(t=None):
     """The tall indenter's homing seat as boxes and convex solids in I (shared by the SDF and the CAD): the seat block, its
-    floor recessed 0.6 mm under three lands, the guide walls along the mount's column, the strut to the column and the key."""
+    floor recessed 0.6 mm under three lands, the guide walls along the mount's column, the strut to the column and the key.
+    Optional keys of t (the fingertip holder's seat): wall_gap and wall_h, the walls' clearance and their four heights over
+    the mouth plane (-y and +y below z_M 45.5, -y and +y above); stop, a wall facing the fork's palmar end at z_M 72.95
+    (dict of gap, thickness t and height h), the block running under it."""
     t = dict(TALL, **(t or {}))
     f = tall_frame(t)
     mx, my, mz = f["mouth"]
     xM = lambda zm: zm - t["mouth_M"][2] + mx          # noqa: E731  (z_M -> x_I at homing)
     land = 2.0                                          # half-size of a land
     lands = [(xM(36.0), my - 16.5), (xM(36.0), my + 9.0), (xM(66.0), my - 3.5)]
-    gap, wt, wh = 0.4, 2.4, 4.0                         # guide walls: clearance to the column, thickness, height
-    y_lo, y_hi = my - 23.45 - wt, my + 17.6 + wt
+    gap, wt = t.get("wall_gap", 0.4), 2.4               # guide walls: clearance to the column, thickness
+    wh = t.get("wall_h", (4.0, 4.0, 4.0, 4.0))
+    stop = t.get("stop")
+    y_lo, y_hi = my - 23.05 - gap - wt, my + 17.2 + gap + wt
+    x_end = xM(72.95 + stop["gap"] + stop["t"]) if stop else xM(70.5)
+    walls = [((xM(31.0), my - 21.0 - gap - wt, mz - 0.61), (xM(45.0), my - 21.0 - gap, mz + wh[0])),   # the column
+             ((xM(31.0), my + 13.3 + gap, mz - 0.61), (xM(45.0), my + 13.3 + gap + wt, mz + wh[1])),    # steps out at 45.45
+             ((xM(46.5), y_lo, mz - 0.61), (xM(59.5), my - 23.05 - gap, mz + wh[2])),   # the clamp plate from z_M 60.4
+             ((xM(46.5), my + 17.2 + gap, mz - 0.61), (x_end, y_hi, mz + wh[3]))]
+    if stop:
+        walls.append(((xM(72.95 + stop["gap"]), y_lo, mz - 0.61), (x_end, y_hi, mz + stop["h"])))
     out = dict(
-        block=((xM(31.0), y_lo, mz - 10.0), (xM(70.5), y_hi, mz - 0.6)),
+        block=((xM(31.0), y_lo, mz - 10.0), (x_end, y_hi, mz - 0.6)),
         lands=[((x - land, y - land, mz - 0.61), (x + land, y + land, mz)) for x, y in lands],
-        walls=[((xM(31.0), my - 21.0 - gap - wt, mz - 0.61), (xM(45.5), my - 21.0 - gap, mz + wh)),
-               ((xM(31.0), my + 13.3 + gap, mz - 0.61), (xM(45.5), my + 13.3 + gap + wt, mz + wh)),
-               ((xM(46.5), y_lo, mz - 0.61), (xM(59.5), my - 23.05 - gap, mz + wh)),   # the clamp plate from z_M 60.4
-               ((xM(46.5), my + 17.2 + gap, mz - 0.61), (xM(70.5), y_hi, mz + wh))],
-        strut=[(x, y, mz - 9.5) for x, y in ((xM(31.0), y_lo), (xM(70.5), y_lo), (xM(70.5), y_hi), (xM(31.0), y_hi))]
+        walls=walls,
+        strut=[(x, y, mz - 9.5) for x, y in ((xM(31.0), y_lo), (x_end, y_lo), (x_end, y_hi), (xM(31.0), y_hi))]
               + [(x, y, mz - 85.0) for x, y in ((-18.0, 0.0), (2.0, 0.0), (2.0, 20.0), (-18.0, 20.0))],
         lands_xy=lands, mouth=f["mouth"])
     return out
@@ -336,12 +345,22 @@ def _convex_sdf(P, pts):
 
 
 def key_points(t=None):
-    """The key's frustum: its section at the seat's floor (0.6 mm under the mouth plane) and at its top (4.5 mm above)."""
+    """The key's frustum: its section at the seat's floor (0.6 mm under the mouth plane) and at its top (key_top, default
+    4.5 mm above). With key_r its four edges along the socket's axis are rounded to that radius (7 points a corner), so that
+    the faces bear in a printed socket whose corners are rounded."""
+    t = dict(TALL, **(t or {}))
     mx, my, mz = tall_frame(t)["mouth"]
+    r = t.get("key_r", 0.0)
     out = []
-    for d in (-0.61, 4.5):
+    for d in (-0.61, t.get("key_top", 4.5)):
         hx, hy = key_halves(d, t)
-        out += [(mx + sx * hx, my + sy * hy, mz + d) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+        if r <= 0.0:
+            out += [(mx + sx * hx, my + sy * hy, mz + d) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+            continue
+        for k, (sx, sy) in enumerate(((1, 1), (-1, 1), (-1, -1), (1, -1))):     # corners counter-clockwise
+            for j in range(7):
+                a = math.radians(90.0 * k + 15.0 * j)
+                out.append((mx + sx * (hx - r) + r * math.cos(a), my + sy * (hy - r) + r * math.sin(a), mz + d))
     return out
 
 
@@ -363,48 +382,59 @@ def tall_sdf(P, tip=True, t=None):
 
 
 # The fingertip holder of 2026-10-27 (docs/experiments/20261027-fingertip_holder; scripts/fingertip_holder.py builds it from
-# these numbers): a second v2 tip (pad, cassette 3T and top cover TW15H3, no board) screwed by its four M2 screws to a station
-# block that stands out from a column on an arm. The tip faces up from the block's top face (mode "up": the pads facing) or
-# down from its underside (mode "down": side by side); the block's four 1.9 mm holes pass through it. The homing seat is the
-# tall indenter's, on a tower of its own, its mouth at (mouth_x, key_y, mouth_z). TIP_F gives the tip in the DIP link's frame
-# F: the cassette's back face (where the board's component face was) at x_F 3.80, the face's centre at z_F -87.91.
-TIPHOLD = dict(mode="up", x_s=0.0, y_s=-28.5, z_bot=40.0, T=12.0, col_r=14.0, base=(-40.0, 40.0, -30.0, 76.0, 8.0),
-               key_y=52.0, mouth_x=-22.0, mouth_z=30.0)
+# these numbers): two v2 tips (pad, cassette 3T and top cover TW15H3, no board), each screwed by its four M2 screws to a
+# station block, the two blocks opposite each other on arms from one column (a T). On the -y station the tip faces down from
+# the block's underside (side by side); on the +y station it faces up from the top face (the pads facing). Each block's four
+# 1.9 mm holes pass through it, so either face takes a tip. The homing seat is the tall indenter's with the seat options of
+# tall_boxes (taller and closer walls, a stop at the fork's palmar end, a key with rounded edges reaching 5.0 mm into the
+# socket), on a tower of its own, its mouth at (mouth_x, key_y, mouth_z). TIP_F gives the tip in the DIP link's frame F: the
+# cassette's back face (where the board's component face was) at x_F 3.80, the face's centre at z_F -87.91.
+TIPHOLD = dict(stations=((-28.5, "down"), (28.5, "up")), x_s=0.0, z_bot=40.0, T=12.0, col_r=14.0,
+               base=(-40.0, 40.0, -30.0, 98.0, 8.0), key_y=75.0, mouth_x=-22.0, mouth_z=30.0,
+               seat=dict(wall_gap=0.2, wall_h=(14.0, 14.0, 11.5, 9.5), stop=dict(gap=0.1, t=4.0, h=9.5),
+                         key_r=0.8, key_top=5.0))
 TIP_F = dict(x_seat=3.80, z_c=-87.91, apex_x=-10.55, z_ends=(-98.46, -77.05), y_half=10.5,
              holes=((8.0, -79.82), (-8.0, -79.82), (8.0, -95.82), (-8.0, -95.82)))
 
 
-def tiphold_T_IF(t=None):
-    """The held tip's frame F in I: pad up on the station's top face, or down from its underside."""
+def tiphold_T_IF(t=None, i=0):
+    """The frame F of the tip on station i in I: pad up on the block's top face, or down from its underside."""
     t = dict(TIPHOLD, **(t or {}))
+    ys, mode = t["stations"][i]
     zc, xs = TIP_F["z_c"], TIP_F["x_seat"]
     T = np.eye(4)
-    if t["mode"] == "up":                                  # x_F -> -z_I, y_F -> -y_I, z_F -> -x_I
+    if mode == "up":                                       # x_F -> -z_I, y_F -> -y_I, z_F -> -x_I
         T[:3, :3] = [[0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [-1.0, 0.0, 0.0]]
-        T[:3, 3] = (t["x_s"] + zc, t["y_s"], t["z_bot"] + t["T"] + xs)
+        T[:3, 3] = (t["x_s"] + zc, ys, t["z_bot"] + t["T"] + xs)
     else:                                                  # x_F -> z_I, y_F -> y_I, z_F -> -x_I
         T[:3, :3] = [[0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]]
-        T[:3, 3] = (t["x_s"] + zc, t["y_s"], t["z_bot"] - xs)
+        T[:3, 3] = (t["x_s"] + zc, ys, t["z_bot"] - xs)
     return T
 
 
 def tiphold_parts(t=None):
-    """The holder in I as boxes and convex solids (shared by the SDF and the CAD): the station and its arm into the column,
-    a 45 deg gusset under the arm, the column, and the tall indenter's seat (block, lands, walls, key) on a tower."""
+    """The holder in I as boxes and convex solids (shared by the SDF and the CAD): each station with its arm into the column
+    and a 45 deg gusset under the arm, the column, and the seat (block, lands, walls, stop, key) on a tower."""
     t = dict(TIPHOLD, **(t or {}))
-    ts = dict(TALL, H=t["mouth_z"] + TALL["mouth_below"], key_y=t["key_y"], mouth_x=t["mouth_x"])
+    ts = dict(TALL, H=t["mouth_z"] + TALL["mouth_below"], key_y=t["key_y"], mouth_x=t["mouth_x"], **t["seat"])
     b = tall_boxes(ts)
     tb = t["base"][4]
-    xs, ys, zb, zt = t["x_s"], t["y_s"], t["z_bot"], t["z_bot"] + t["T"]
+    xs, zb, zt = t["x_s"], t["z_bot"], t["z_bot"] + t["T"]
     zc, (zd, zp), yh = TIP_F["z_c"], TIP_F["z_ends"], TIP_F["y_half"]
     sx0, sx1 = xs - (zp - zc), xs - (zd - zc) - 0.1        # the cassette's ends; 0.1 mm short of the cover's end plate
-    ya = -0.4 * t["col_r"]                                  # the arm and gusset reach this far into the column
-    (bx0, by0, _), (bx1, by1, bz1) = b["block"]
-    return dict(station=((sx0, ys - yh, zb), (sx1, ys + yh, zt)), arm=((sx0, ys + yh - 0.1, zb), (sx1, ya, zt)),
-                gusset=[(x, y, z) for x in (sx0, sx1) for y, z in ((ys + yh, zb + 0.5), (ya, zb + 0.5),
-                                                                   (ya, zb - (ya - ys - yh)), (ys + yh, zb))],
-                holes=[(xs - (z - zc), ys + (y if t["mode"] == "down" else -y)) for y, z in TIP_F["holes"]],
-                z_top=zt, block=b["block"], lands=b["lands"], walls=b["walls"], key=key_points(ts),
+    ya = 0.4 * t["col_r"]                                   # the arms and gussets reach this far into the column
+    stations = []
+    for ys, mode in t["stations"]:
+        sg = 1.0 if ys > 0 else -1.0
+        yi = ys - sg * yh                                   # the block's inner side, toward the column
+        stations.append(dict(
+            y_s=ys, mode=mode, block=((sx0, ys - yh, zb), (sx1, ys + yh, zt)),
+            arm=((sx0, min(yi + sg * 0.1, sg * ya), zb), (sx1, max(yi + sg * 0.1, sg * ya), zt)),
+            gusset=[(x, y, z) for x in (sx0, sx1) for y, z in ((yi, zb + 0.5), (sg * ya, zb + 0.5),
+                                                               (sg * ya, zb - abs(yi - sg * ya)), (yi, zb))],
+            holes=[(xs - (z - zc), ys + y) for y, z in TIP_F["holes"]]))
+    (bx0, by0, _), (bx1, by1, _) = b["block"]
+    return dict(stations=stations, z_top=zt, block=b["block"], lands=b["lands"], walls=b["walls"], key=key_points(ts),
                 strut=[(x, y, z) for z in (tb - 0.01, b["block"][0][2] + 0.5)
                        for x, y in ((bx0, by0), (bx1, by0), (bx1, by1), (bx0, by1))],
                 lands_xy=b["lands_xy"], mouth=b["mouth"], frame=tall_frame(ts))
@@ -431,20 +461,24 @@ def _held_tip():
 
 
 def held_tip_sdf(P_I, t=None):
-    """Signed distance (mm, I) to the held tip. Beyond 3 mm of its bounding box, the distance to the box (a lower bound);
-    nearer, the distance to the nearest surface sample, signed by the eight nearest samples' normals together."""
-    T = tiphold_T_IF(t)
-    PF = (np.asarray(P_I, float) - T[:3, 3]) @ T[:3, :3]
+    """Signed distance (mm, I) to the held tips. Beyond 3 mm of a tip's bounding box, the distance to the box (a lower
+    bound); nearer, the distance to the nearest surface sample, signed by the eight nearest samples' normals together."""
+    t = dict(TIPHOLD, **(t or {}))
     zd, zp = TIP_F["z_ends"]
-    out = sd_box(PF, (-10.6, -10.5, zd - 1.6), (8.0, 10.5, zp))
-    near = out < 3.0
-    if near.any():
-        h = _held_tip()
-        Q = PF[near]
-        d, i = h["tree"].query(Q, k=8)
-        s = np.einsum("ijk,ijk->i", Q[:, None, :] - h["p"][i], h["n"][i])
-        out[near] = d[:, 0] * np.where(s < 0.0, -1.0, 1.0)
-    return out
+    best = None
+    for i in range(len(t["stations"])):
+        T = tiphold_T_IF(t, i)
+        PF = (np.asarray(P_I, float) - T[:3, 3]) @ T[:3, :3]
+        out = sd_box(PF, (-10.6, -10.5, zd - 1.6), (8.0, 10.5, zp))
+        near = out < 3.0
+        if near.any():
+            h = _held_tip()
+            Q = PF[near]
+            d, j = h["tree"].query(Q, k=8)
+            s = np.einsum("ijk,ijk->i", Q[:, None, :] - h["p"][j], h["n"][j])
+            out[near] = d[:, 0] * np.where(s < 0.0, -1.0, 1.0)
+        best = out if best is None else np.minimum(best, out)
+    return best
 
 
 def tiphold_sdf(P, t=None):
@@ -452,8 +486,9 @@ def tiphold_sdf(P, t=None):
     g = tiphold_parts(t)
     x0, x1, y0, y1, tb = t["base"]
     parts = [sd_box(P, (x0, y0, 0.0), (x1, y1, tb)), sd_cyl_z(P, t["col_r"], tb - 0.01, g["z_top"]),
-             sd_box(P, *g["station"]), sd_box(P, *g["arm"]), _convex_sdf(P, g["gusset"]), sd_box(P, *g["block"]),
-             _convex_sdf(P, g["strut"]), _convex_sdf(P, g["key"]), held_tip_sdf(P, t)]
+             sd_box(P, *g["block"]), _convex_sdf(P, g["strut"]), _convex_sdf(P, g["key"]), held_tip_sdf(P, t)]
+    for st in g["stations"]:
+        parts += [sd_box(P, *st["block"]), sd_box(P, *st["arm"]), _convex_sdf(P, st["gusset"])]
     parts += [sd_box(P, lo, hi) for lo, hi in g["lands"] + g["walls"]]
     return np.min(np.stack(parts), axis=0)
 

@@ -59,7 +59,8 @@ tool axis and 30 mm along it. The flats set the depth, the roll and the pitch. T
 and stands 0.05 mm inside the socket on all four faces at the flats' plane. It sets the place along and across the tool
 axis and the turn about the socket's axis, within ±0.05 mm. Walls 2.4 mm thick and 4 mm high run along both sides of
 the mount's column at 0.4 mm and guide it onto the flats. The wall on the -y side stops at z_M 59.5, where the clamp
-plate begins. The seat was built from the v7 fork's STL: its palmar face is flat at x_M 17.0 from z_M 28 to 73.
+plate begins. Along the column's narrow part the walls end at z_M 45.0, 0.45 mm before it widens (until 2026-10-27 they
+ended at 45.5 and overlapped the fork by 0.05 mm). The seat was built from the v7 fork's STL: its palmar face is flat at x_M 17.0 from z_M 28 to 73.
 
 At homing on the tall indenter, cb3t's branch puts the joints at (61.0, -82.1, 117.0, -35.4, 63.4, 2.1) deg. The robot,
 the HEX-E, the finger and the pad then clear the indenter and the cell by 38.1, 17.8, 6.6 and 14.6 mm.
