@@ -10,7 +10,10 @@ to read". Takeaways: (1) one chain of models runs from the print recipe to the c
 estimate, and on the UR5 against the HEX-E the board's force agrees within 0.78-1.05 while the untrained estimate is
 1.6-2.6 mm off from 1 N up (a GP trained on 59 presses: 0.84 mm); (2) what each design choice does to stiffness and force
 resolution, and why concept b's pad with five magnets; (3) what is still open: the print's softness under a small
-indenter (rod presses put at most 0.10 of sphere2's 0.20 mm/N in series), presses below 1 N, the force reference, the N52 magnets, the transfer of learned corrections. Budget: about 3,600 words
+indenter (rod presses put at most 0.10 of sphere2's 0.20 mm/N in series), presses below 1 N, the force reference, four
+magnets or five, the transfer of learned corrections. Owner, 2026-10-28: "i think we shouldve updated at least the 10/27
+results and preliminary v3 id1 4 n52 magnet calibration" (v2 ID 1's hard presses and tall indenter, v3 ID 1 against v2
+ID 1, mount v7; step 13 of docs/handoff/20261027-crosstalk_feed_poller.md). Budget: about 3,600 words
 of prose. Sources: the pages in PAGES and the fact sheets of 2026-10-20 (FE and printing; readout and hardware), each
 number as its page gives it.
 """
@@ -96,14 +99,17 @@ CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330"
 </svg>"""
 
 LEDE = (
-    "The printed fingertip has five magnets in a soft thermoplastic polyurethane (TPU) pad and five magnetic sensors "
+    "The printed fingertip has four or five magnets in a soft thermoplastic polyurethane (TPU) pad and five magnetic sensors "
     "behind it. A press deforms the pad, moves the magnets and changes the sensors&#8217; readings. We model that "
     "sequence to estimate where the tool presses and with how much force. On a UR5 arm, with a six-axis force sensor as "
     "the reference, the untrained model placed presses of 2&#8202;N and more within 0.9&#8211;2.4&#8202;mm. Its force was "
     "0.78&#8211;1.31 of the reference. Below 1.5&#8202;N it placed presses 8&#8211;10&#8202;mm off with the first tips&#8217; weak "
     "magnets, and within 2.0&#8202;mm with five N52 magnets. Trained on a tip&#8217;s own presses, a Gaussian process placed "
     "presses at new points within 0.25&#8211;0.53&#8202;mm at 1.5&#8202;N and over. It gave the force&#8217;s direction within "
-    "2.1&#8211;2.5&#176; on the face. A model learned on one tip misses on another by 1.4&#8211;2.5&#8202;mm, and by 0.64&#8202;mm "
+    "2.1&#8211;2.5&#176; on the face. A second Gaussian process is given only the direction of the board&#8217;s change. "
+    "Trained up to 2&#8202;N, it placed harder presses, up to 8&#8202;N, within 0.25&#8211;0.31&#8202;mm. It gave their force "
+    "within 5.1&#8211;6.2&#8202;%. The board&#8217;s change per newton with four N52 magnets is half that with five. The "
+    "calibrated location errors are 0.26 and 0.28&#8202;mm. A model learned on one tip misses on another by 1.4&#8211;2.5&#8202;mm, and by 0.64&#8202;mm "
     "once each board change is scaled by its magnets&#8217; strength. A neighbouring fingertip&#8217;s magnets change a board by "
     "up to 4,162&#8202;&#181;T, against 23&#8202;&#181;T for a 0.5&#8202;N press. Under a small sphere the printed pad sinks "
     "further than its finite-element model predicts. Three pages explain this in order: the "
@@ -163,6 +169,12 @@ TERMS = [
     ("Location error", "The distance in mm from an estimated contact point to the true one, tangential to the pad; a "
      "median over holds."),
     ("Physical model", "The estimator of this page on a pad&#8217;s rest calibration, with no training."),
+    ("Board GP, direction GP", "Gaussian processes (GP) trained on a tip&#8217;s own holds. The board GP maps the "
+     "board&#8217;s change of 15 components to the contact point and the force. The input of the direction GP is only the "
+     "change&#8217;s direction. It returns the point and the force per unit change, and that force is scaled by the "
+     "change&#8217;s size."),
+    ("Noise-equivalent force", "The force whose change at the board equals the noise of one record, one reading of the "
+     "five chips, in mN. It is the record noise divided by the median change per newton of the presses at 1 to 2&#8202;N."),
     ("Tip frame", "\\(x\\) along the pad&#8217;s normal toward the palmar face, \\(y\\) across the finger, \\(z\\) from the "
      "mount toward the tip end, in mm."),
 ]
@@ -453,16 +465,37 @@ and 0.66&#8202;mm below, as on tip 2. The physical model places presses under 1.
 tips&#8217; weaker magnets gave 8&#8211;10&#8202;mm (rows <code>20261027-v1_v2_tips.json</code>). A GP of the v1 tips misses
 v2 ID 1&#8217;s contacts by 2.52&#8202;mm. It misses by 0.64&#8202;mm once each board change is scaled by its magnets&#8217;
 strength ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html),
-Section 9). On the four checkerboard tips the own-press GP gives the force&#8217;s direction within 2.1&#8211;2.5&#176; on the
+Sections 9 and 10). On the four checkerboard tips the own-press GP gives the force&#8217;s direction within 2.1&#8211;2.5&#176; on the
 face at 1.5&#8202;N and over. On the edges it is within 3.1&#8211;4.6&#176;, and on the flanks, where fewer presses were made,
 within 4.9&#8211;8.5&#176; (rows <code>20261027-direction_by_region.json</code>). A GP trained on v2 ID 1&#8217;s presses on the
 12.5&#8202;mm rod places their contacts within 0.29 and 0.73&#8202;mm over and under 1.5&#8202;N. Its forces are within
 0.22&#8202;N and 2.7&#176; (rows <code>rod_tips.json</code>).</p>
+<p>v2 ID 1 was also pressed at 2 to 8&#8202;N, at actions outside its training. Trained on its holds of 2&#8202;N and under,
+the board GP places those presses 1.04&#8211;3.84&#8202;mm off. Its force is 45&#8211;87&#8202;% too small there. With the
+direction GP, which is given only the direction of the board&#8217;s change, the same presses are placed within
+0.25&#8211;0.31&#8202;mm and their force within 5.1&#8211;6.2&#8202;%. The tall indenter is a 5&#8202;mm sphere 160&#8202;mm
+above its base, where the robot reaches more of the edges and flanks. The GP of the low sphere&#8217;s presses places its
+points 0.98&#8211;1.21&#8202;mm off at 1.5&#8202;N and over. The tall indenter&#8217;s forces have a shear along the finger
+of 0.08&#8211;0.13&#8202;N per newton. On the low sphere it is &#8722;0.02 to 0.02&#8202;N per newton
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v2id1),
+Section 10).</p>
+<p>In the tip v3 ID 1, four N52 magnets lie in a 5.0&#8202;mm square under pad 05R4. On the night of 2026-10-27 the tip ran
+the grid stage of v2 ID 1&#8217;s suite on the low sphere. That stage has 160 press actions with 818 holds. The HEX-E fell
+off its acquisition at 02:54, after 40 of the next stage&#8217;s 84 slides, and the session stopped. The board&#8217;s
+change is 28.3&#8202;&#181;T per newton at 1 to 2&#8202;N with four magnets. With five, on v2 ID 1&#8217;s presses of the same actions,
+it is 52.3&#8202;&#181;T. The record noise is alike, 1.77 and 1.83&#8202;&#181;T. The noise-equivalent force is
+therefore 63&#8202;mN with four magnets and 35&#8202;mN with five. The same ratio, 1.8, was predicted by the readout model. The
+calibrated errors stay alike. With the direction GP, contacts are placed within 0.26 and 0.28&#8202;mm, and the force errs
+by 5.0 and 5.1&#8202;%. On the 40 slides, a board GP trained with the other slides gives the shear within 0.123&#8202;N
+with four magnets and 0.140&#8202;N with five. The physical model on pad 05R4&#8217;s FE basis places contacts within
+2.64&#8202;mm with four magnets and 1.61&#8202;mm with five
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id1),
+Section 11).</p>
 <p>On the hand the other fingertips&#8217; magnets add their field to each board. In v2 ID 1&#8217;s field model a
 five-magnet neighbour adds 513&#8202;&#181;T with the pads facing and touching, and 4,162&#8202;&#181;T side by side. A
 0.5&#8202;N press changes the board by 23&#8202;&#181;T. Subtracting the field predicted from a pose 0.3&#8202;mm and 0.3&#176;
-off leaves 23 and 457&#8202;&#181;T. When the neighbour&#8217;s pose is fitted from both boards, with the joint angles as a
-1&#8202;mm, 1&#176; prior, the bound on a press at the face&#8217;s centre is 0.147&#8211;0.149&#8202;N facing and
+off leaves 23 and 457&#8202;&#181;T. The neighbour&#8217;s pose can be fitted from both boards, with the joint angles as a
+1&#8202;mm, 1&#176; prior. The bound on a press at the face&#8217;s centre is then 0.147&#8211;0.149&#8202;N facing and
 0.158&#8211;0.176&#8202;N side by side. With the pose known it is 0.147&#8202;N
 ([magnetic crosstalk](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html)).
 Between two four-magnet v3 tips on the UR5 the field was measured. Touching, they changed each other&#8217;s boards by 39
@@ -513,8 +546,11 @@ screws. Mount v5 replaces the screws by a PLA wedge, since the lab has no brass 
 link&#8217;s turn under a face press from 1.0&#176; to 0.05&#176;
 ([mount v4](exp:20261023-ur5_calibration_mount_v4/20261023-ur5_calibration_mount_v4.html),
 [mount v5](exp:20261023-ur5_calibration_mount_v5/20261023-ur5_calibration_mount_v5.html)). On 2026-10-23 the owner found
-v5&#8217;s wedge unusable, and cb1t ran on v3&#8217;s fork. Mount v6, a plate pressed onto the tongue&#8217;s back at four
-depths, waits on the owner&#8217;s choice.</p>"""),
+v5&#8217;s wedge unusable, and cb1t ran on v3&#8217;s fork. In mount v6 a 2.5&#8202;mm plate pressed onto the tongue&#8217;s
+back, 9.3&#8202;N/mm at the contact by a beam estimate. The owner judged that it still flexed (2026-10-25: &#8220;flex is
+still a big problem&#8221;). Mount v7 is v3&#8217;s fork, leg walls included, with a solid back whose 14&#8202;mm face
+presses on the tongue. By the same estimate it is 141.5&#8202;N/mm. v7 has been on the robot since 2026-10-25
+(<code>docs/experiments/20261025-ur5_calibration_mount_v7/</code>).</p>"""),
     ("open", "Open questions",
      r"""<ol>
 <li><b>The softness at a small contact.</b> Under the sphere the presses travel 0.33&#8202;mm plus 0.20&#8202;mm/N
@@ -534,16 +570,23 @@ that registration the grid presses&#8217; indentation beyond the FE pad fits wit
 Sphere2 and sph3t were registered with plain touch-offs only.</li>
 <li><b>Light presses.</b> With the v1 magnets the untrained estimator places contacts below 1&#8202;N about 10&#8202;mm away.
 With five N52 magnets it places those under 1.5&#8202;N within 2.0&#8202;mm. The step of about
-7&#8202;&#181;T that each press leaves on the rest is the size of a 0.3&#8202;N press. Learned models give 1.1 to
-2.5&#8202;mm there. On the checkerboard tip the estimator&#8217;s own position sigma flags most of these misses: 18&#8202;mm at
+7&#8202;&#181;T that each press leaves on the rest is the size of a 0.3&#8202;N press. On the v1 tips learned models give
+1.1 to 2.5&#8202;mm there. Under 1&#8202;N, contacts placed by the direction GP are off by 0.59&#8202;mm with four N52
+magnets and 0.75&#8202;mm with five. On the checkerboard tip the estimator&#8217;s own position sigma flags most of these misses: 18&#8202;mm at
 0.25&#8202;N, 3&#8202;mm at 1&#8202;N. A gate at 2&#8202;mm keeps 95&#8211;100&#8202;% of the holds at 2&#8202;N and over and
 2&#8211;13&#8202;% below, where a few misses still pass.</li>
 <li><b>The force reference.</b> The HEX-E&#8217;s Fz gain is 0.78&#8211;0.87 of its other axes&#8217;, and its link drops
 out; an ATI Mini45, once calibrated, is to replace it. The FE takes Siraya 85A at 12&#8202;MPa from a NinjaFlex datasheet. Through the
-board&#8217;s force, the UR5 session puts the printed pad within about 22&#8202;% of it.</li>
+board&#8217;s force, sphere2&#8217;s session puts the printed pad within about 22&#8202;% of it. Fitted on pad 05R4&#8217;s FE
+basis to the presses with four N52 magnets and with five, the modulus is 16.9 and 16.3&#8202;MPa. The registered
+indentation of those presses grows by 291&#8211;316 and 282&#8211;336&#8202;&#181;m/N. In the FE pad the slope is
+135&#8211;137&#8202;&#181;m/N, so the printed pads sink 2.1&#8211;2.5 times as far per newton.</li>
 <li><b>The magnets.</b> The v1 tips&#8217; magnets have 0.20&#8211;0.57 of an N52 magnet&#8217;s moment as fitted at rest, and
 v2 ID 1&#8217;s five N52 magnets 0.98. The models predict 0.028&#8211;0.031&#8202;N with N52, about 0.039&#8202;N at the measured
-noise. Four magnets (0.051&#8202;N) or five (0.029&#8202;N) waits on the owner. In the field model a touching neighbour
+noise. On the UR5 the noise-equivalent force was 63&#8202;mN with four magnets and 35&#8202;mN with five. That is the
+ratio of 1.8 between the readout model&#8217;s 0.051 and 0.029&#8202;N.
+With the direction GP, the two tips&#8217; contacts were placed within 0.26 and 0.28&#8202;mm. The choice between four and five magnets waits on
+the owner. In the field model a touching neighbour
 that faces the pad adds 38&#8202;&#181;T at the board with four magnets, against 513&#8202;&#181;T with five. Between two
 four-magnet v3 tips on the UR5, 39 to 60&#8202;&#181;T were measured at contact.</li>
 <li><b>Transfer of learned models.</b> The physical model transfers to a new pad through its rest calibration: on the
@@ -665,7 +708,7 @@ FIGURES = {
 FUTURE = [
     'Compliance in series (QUEUE.md R16): put a dial indicator on the sphere&#8217;s block. Press a rigid part of the tool, the HEX-E&#8217;s adapter or the fork, on the sphere at 1 to 5&#8202;N. Travel of the block puts the compliance on the indenter&#8217;s side. Travel beyond the HEX-E&#8217;s data sheet with a still block puts it in the arm or the mount. Travel near the data sheet&#8217;s leaves the DIP link&#8217;s clamp for the series part, at most 0.10&#8202;mm/N.',
     'Softness at the sphere: press the FE pad&#8217;s printed twin with a 5&#8202;mm sphere on a bench under a dial indicator, the pad clamped on a rigid block, at 0.5 to 5&#8202;N. Travel near the sphere&#8217;s local part (UR5 results page, Section 8) confirms that the FE pad is too stiff under a sphere. Travel near the FE pad&#8217;s own places that part in the robot&#8217;s tool.',
-    'Mount v6 (four squish depths, on the owner&#8217;s choice): print one, then repeat the rod&#8217;s touch-offs, registration and presses. A slope that stays at 0.10&#8202;mm/N under the rod rules out the link&#8217;s turn in the fork as the series part.',
+    'Series compliance on mount v7: fit the registered indentation under the rod against the force, by region, as <code>depth</code> in <code>scripts/ur5_tip_calibration_fe_calibration.py</code> fits it under the sphere. v2 ID 1 ran its rod presses on v7, and v3 ID 1 is queued for the same. On mount v3 rod1 travelled 0.07&#8202;mm plus 0.10&#8202;mm/N beyond the FE pad. A slope that stays at 0.10&#8202;mm/N on v7 rules out the link&#8217;s turn in v3&#8217;s fork as the series part.',
     'Checkerboard tip&#8217;s poles: check each magnet&#8217;s pole at the palm face with a compass. The rest fit predicts north toward the palm at the bottom-left and top-right magnets, seen from the palm with the tip end up, and south at the other three. Any other result means wrong chip frames in the board&#8217;s calibration.',
     'ATI Mini45 (the ATI plan&#8217;s QUEUE.md, A1): run the box check, print the stack and run the 39 stations with the 100&#8202;g weight in its printed holder, or with 0.5&#8202;kg. Then repeat a grid of presses against the ATI. A board force outside 0.78&#8211;1.05 of the ATI&#8217;s means that the HEX-E&#8217;s gain biased sphere2&#8217;s comparison.',
     'Untrained estimator under the rod: score the viewer&#8217;s estimator on rod1&#8217;s 279 holds, as Table 3 of the UR5 results page scores it on sphere2&#8217;s. A location error well above the sphere&#8217;s 1.6&#8211;2.6&#8202;mm means that the estimator&#8217;s point-load basis misses line contacts.',
