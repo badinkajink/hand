@@ -1038,6 +1038,16 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 13:39 on 10-28, the owner at 13:2x: "ok i dont want to take the rod fixture or turn the tip pad down, so we can
+    just go ahead with the tall plans first. also you can go ahead with the top edge plan, i am here and ready to debug
+    as needed". The side-by-side map waits; the rod fixture stays on and both held tips stay up. After rod stage 2 and
+    morning6 the lab runs tall stage 2, the tall morning plan, the top edge and the sphere morning plan, at
+    travel.speed 1.0 (`*_ts1_*` copies, checks.other from `lab/cell.json`, f4faa32e and the lab's 13:3x push). Checked
+    with the rod on at 102701 and both tips up (`lab/20261028-paths_*_rodon.json`), no clearance falls under a margin,
+    and the numbers equal the rod-off checks. Tall stage 2: tall-flank-525 at joint 6 -63.9 deg only. Tall morning:
+    joint 6 to +57.0 deg. Top edge (34): 0 flagged, joint 6 -61.9 to +42.0 deg. Sphere morning on 225213: 31 of 43
+    actions past +45, joint 6 to +59.0 deg; mount 3.11, finger 1.26, HEX-E 26.6 mm at least. From the tall morning on,
+    the plans need the owner present.
   - 12:42 on 10-28, tall pass 1, the tall checks and the twists. Tall pass 1 ran from 11:49 to 12:21
     (114908-tallv3id1, c6e4014d). Its 19 touch-offs met the indenter -0.41 to +0.96 mm from the expected contact, and
     the registration's residual is 0.045 mm rms. It puts the indenter 0.91 mm from 143529's estimate. `lab/cell.json`
