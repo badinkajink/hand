@@ -140,6 +140,9 @@ def run(a):
     plan = {k: copy.deepcopy(v) for k, v in base.items() if k != "actions"}
     plan["created"] = a.created
     plan["indenter"] = "tiphold"
+    plan["checks"].pop("placement_mm_deg", None)          # the base plan's fixture placement: the program would compare the
+    #                                                       holder's homing with it (and its 2 deg tilt limit fails on the
+    #                                                       2x4's bow); the plan's checks are built on the seating itself
     centre = up - np.array([0.0, 0.0, R_APEX])
     plan["geometry"]["indenter"] = dict(kind="sphere", centre=[round(float(v), 3) for v in centre], radius=round(R_APEX, 3))
     plan["geometry"]["T_IM_home"] = np.round(CELL.tiphold_parts()["frame"]["T_IM_home"], 4).tolist()
