@@ -14,10 +14,11 @@ joint 6 capped at +45 or +58 deg, the cap trimmed at x_F -0.10 (ur5_cb3_cell.CAP
 evaluated once; the finger's clearance is taken with either cap's samples. --validate N compares N points' verdicts with
 Cell.press_ok itself.
 
-The four M2 x 8 cheese heads (3.8 mm across, 1.3 mm tall, seated at x_F -0.10 on the cassette's walls and the cap's
-blocks, as scripts/dip_b_v4.py screws_sweep models them) are not among the cell's tool parts. They stand 1.3 mm palmar of
-the trimmed cap's face, so their clearance is reported beside the checks, and a third set of counts, "trimmed_heads", adds
-them to the finger's group.
+The four M2 x 8 heads, seated at x_F -0.10 on the cassette's walls and the cap's blocks, stand up to 1.3 mm palmar of the
+trimmed cap's face. They are left out of the cell's cap here (UR5_SCREW_HEADS=none), their clearance is reported beside
+the checks, and a third set of counts, "trimmed_heads", adds them to the finger's group: button heads (ur5_cb3_cell.
+HEAD_KINDS, the owner's screws, 3.5 mm across, domed) by default, or with --heads cheese the flat 3.8 mm DIN 84 heads of
+the run of 2026-10-27 18:50.
 
     ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- env NUMPY_MADVISE_HUGEPAGE=0 .venv/bin/python \\
         scripts/ur5_tip_calibration_trimmed_cap_reach.py [--session lab/20261027-143529-tallv2id1] [--validate 12]
@@ -33,6 +34,7 @@ import time
 from pathlib import Path
 
 os.environ.setdefault("UR5_MOUNT", "v7")
+os.environ["UR5_SCREW_HEADS"] = "none"                     # the cell's cap bare: the heads are the third set's (--heads)
 import numpy as np  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,18 +53,15 @@ J6_CAPS = (45.0, 58.0)
 CAPS = ("trimmed", "old", "trimmed_heads")
 FINGER = ("dip_link", "cover")                              # with the cap: the finger's group
 MOUNT = ("adapter", "fork", "clamp_plate")
-HEADS = dict(d=3.8, h=1.3, seat_x_F=-0.10)                 # DIN 84 M2: dk 3.8, k 1.3; dip_link_concept_b HEAD_D, HEAD_H
+HEADS = CELL.HEAD_KINDS["button"]                          # set from --heads in main
 
 
 def heads_points(spacing=0.5):
-    """Surface samples (M) of the four M2 cheese heads, axes along x_F at the holes of ur5_cb3_cell.TIP_F."""
+    """Surface samples (M) of the four M2 heads (HEADS), axes along x_F at the holes of ur5_cb3_cell.TIP_F."""
     import trimesh
     out = []
-    for y, z in CELL.TIP_F["holes"]:
-        m = trimesh.creation.cylinder(radius=HEADS["d"] / 2, height=HEADS["h"], sections=36)
-        m.apply_transform(trimesh.transformations.rotation_matrix(math.pi / 2, [0.0, 1.0, 0.0]))     # axis along x
-        m.apply_translation([HEADS["seat_x_F"] - HEADS["h"] / 2, y, z])
-        out.append(trimesh.sample.sample_surface_even(m, int(m.area / spacing ** 2), seed=0)[0])
+    for m in CELL.heads_mesh_F(HEADS).split(only_watertight=False):
+        out.append(trimesh.sample.sample_surface_even(m, max(8, int(m.area / spacing ** 2)), seed=0)[0])
     return C.apply(CELL.T_M_FROM_F, np.vstack(out))
 
 
@@ -232,5 +231,9 @@ if __name__ == "__main__":
     ap.add_argument("--j6-min", type=float, default=-62.0)
     ap.add_argument("--limit", type=int, default=0, help="about this many points (a quick look)")
     ap.add_argument("--validate", type=int, default=0, help="compare this many points with Cell.press_ok")
+    ap.add_argument("--heads", default="button", choices=tuple(CELL.HEAD_KINDS),
+                    help="the screws' heads of the third set: button (owner, 20:2x) or cheese (the run of 18:50)")
     ap.add_argument("--out", default=str(OUT))
-    main(ap.parse_args())
+    args = ap.parse_args()
+    HEADS = CELL.HEAD_KINDS[args.heads]
+    main(args)

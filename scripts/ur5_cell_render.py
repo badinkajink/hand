@@ -11,23 +11,27 @@ Three images at 1600 x 1000 go to docs/experiments/20261027-v3_tip_calibration_a
   20261027-ur5_cell_holder_hover.png    the fingertip holder, the robot's pad 2 mm over the +y held tip (pose 2)
   20261027-ur5_cell_holder_seated.png   the same camera, the mount's socket seated on the holder's key (pose 1)
 
-Sources (mm; B the robot's base frame, I a fixture's frame, E the flange, M the mount, F the finger):
-  low sphere fixture   T_BI of lab/20261026-192158-v2id1/registration.json; ur5_cb3_cell.INDENTER_STL["sphere"]
-  rod fixture          T_BI of lab/20261027-rod-seed/registration.json (its new place, seated by hand at 19:36, 95 mm
-                       further along -x_B than before), or --rod-T-json; ur5_cb3_cell.INDENTER_STL["rod"]
-  tall indenter        T_BI of lab/20261027-143529-tallv2id1/registration.json; 20261026-tall_indenter/cad/*.stl
-  fingertip holder     T_BI and T_EM of lab/20261027-holder-seed-seat2/registration.json; 20261027-fingertip_holder/cad/
-                       *.stl; each held tip's cassette (cover), trimmed cap, screw heads and pad from ur5_cb3_cell.part_F
+Sources (mm; B the robot's base frame, I a fixture's frame, E the flange, M the mount, F the finger). Each fixture's T_BI
+comes from the registration that lab/cell.json names for it (owner, 2026-10-27: renders that follow the registrations
+through the night), the tool's T_EM and q_home from its "tool" entry; on 2026-10-27 at 20:43:
+  low sphere fixture   lab/20261026-192158-v2id1 (touch-offs); ur5_cb3_cell.INDENTER_STL["sphere"]
+  rod fixture          lab/20261027-rod-seed_3 (seated by hand at 19:42, 96 mm further along -x_B than before), or
+                       --rod-T-json; ur5_cb3_cell.INDENTER_STL["rod"]
+  tall indenter        lab/20261027-143529-tallv2id1 (touch-offs); 20261026-tall_indenter/cad/*.stl
+  fingertip holder     lab/20261027-holder-apex-plusy (level, through the +y apex that touch-offs measured);
+                       20261027-fingertip_holder/cad/*.stl; each held tip's cassette (cover), trimmed cap, screw heads
+                       (button heads) and pad from ur5_cb3_cell.part_F
                        placed by tiphold_T_IF(i) (both tips up, the +y one turned 180 deg about the vertical: TIPHOLD's
                        stations and turn_deg, owner 19:4x and 20:00), its board (FR-4, J1, plug, ribbon stub) from
                        held_board_boxes_F
   robot                the visual meshes (.dae, read here) of the URDF that ur5_cb3_cell.urdf_model() reads, posed by
                        link_frames(q); the HEX-E (hex_e_mesh) and its cable port (PORT), and TOOL_PARTS by finger_mesh()
                        placed by T_BE T_EM; the finger's own board as the held ones
-  pose 1 (seated)      holder_seated_2 of lab/poses.jsonl: the joints that put the URDF's flange at its T_tcp_mm (IK from
-                       its q_rad, at most 0.23 deg from it), as the holder's T_BI was made from T_tcp_mm
-  pose 2 (hover)       hov-f-W2-t+0 of lab/20261027-plan_holder_lab_map_norod_v3id1.json: T_BE = T_BI T_IF(at_I, twist)
-                       T_FM T_ME (fingertip_holder.T_IF_moving), joints by ur5_cb3_cell.SIM.ik from the seed's q_home
+  pose 1 (seated)      cell.json's "seated" of lab/poses.jsonl (holder_seated_5): the joints that put the URDF's flange at
+                       its T_tcp_mm (IK from its q_rad)
+  pose 2 (hover)       cell.json's "hover" of its "hover_plan": T_BE = T_BI T_IF(at_I, twist) T_FM T_ME
+                       (fingertip_holder.T_IF_moving) with T_BI the frame the program homes to (the plan's holder
+                       registration), joints by ur5_cb3_cell.SIM.ik from the tool's q_home
   2x4s, clamps, mat    from the lab's overhead D435 frames of 2026-10-22 18:30 (lab/1830_after_rotation_color.png) and
                        2026-10-27 19:49 (logs/corvus/cellcam/cell_1949_color.png), read through the fixtures' known
                        places: 38 x 89 mm pine, the near one from x_B -545 to +85 (top z_B 70.35, the low sphere's and the
@@ -80,16 +84,15 @@ C = CELL.C
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
 MEDIA = ROOT / "docs/experiments/20261027-v3_tip_calibration_and_crosstalk/media"
 STEM = "20261027-ur5_cell"
-SRC = dict(sphere=LAB / "20261026-192158-v2id1/registration.json",
-           rod_plan=LAB / "20261027-plan_sphere_lab_check_shear_v2id1.json",
-           rod_seed=LAB / "20261027-rod-seed/registration.json",
-           tall=LAB / "20261027-143529-tallv2id1/registration.json",
-           holder=LAB / "20261027-holder-seed-seat2/registration.json",
-           poses=LAB / "poses.jsonl",
-           map_plan=LAB / "20261027-plan_holder_lab_map_norod_v3id1.json")
+CELL_JSON = LAB / "cell.json"                         # each fixture's registration, updated as fixtures are registered
+SRC = dict(rod_plan=LAB / "20261027-plan_sphere_lab_check_shear_v2id1.json", poses=LAB / "poses.jsonl")
 TALL_STL = ROOT / "docs/experiments/20261026-tall_indenter/cad/20261026-tall_indenter.stl"
 HOLDER_STL = ROOT / "docs/experiments/20261027-fingertip_holder/cad/20261027-fingertip_holder.stl"
-SEATED, HOVER = "holder_seated_2", "hov-f-W2-t+0"
+
+
+def registry():
+    """lab/cell.json: each fixture's registration, the tool's, and the seating and the hover that pose the robot."""
+    return json.loads(CELL_JSON.read_text())
 
 # The 2x4s, their clamps, the mat board and the table (mm, B); see the docstring for where each number comes from
 LUMBER = dict(w=89.0, h=38.0)
@@ -128,15 +131,16 @@ def load_T(path, key="T_BI"):
 
 
 def fixtures(rod_json=None):
-    """T_BI of the four fixtures, the rod's place before 19:3x (rod_old, which with the low sphere's places the near 2x4)
-    and the holder seed's registration (T_EM, q_home)."""
+    """T_BI of the four fixtures (lab/cell.json), the rod's place before 19:3x (rod_old, which with the low sphere's places
+    the near 2x4) and the tool's registration (T_EM, q_home)."""
+    cell = registry()
+    fx = {k: load_T(LAB / v["registration"]) for k, v in cell["fixtures"].items()}
+    if rod_json:
+        fx["rod"] = load_T(rod_json)
     plan = json.loads(SRC["rod_plan"].read_text())
-    rod_old = np.array(next(o for o in plan["checks"]["other"] if o["kind"] == "rod")["T_BI"], float)
-    rod = load_T(rod_json or SRC["rod_seed"])
-    reg = json.loads(SRC["holder"].read_text())
-    return dict(sphere=load_T(SRC["sphere"]), rod=rod, rod_old=rod_old, tall=load_T(SRC["tall"]),
-                holder=np.array(reg["T_BI"], float), T_EM=np.array(reg["T_EM"], float),
-                q_home=np.array(reg["q_home"], float))
+    fx["rod_old"] = np.array(next(o for o in plan["checks"]["other"] if o["kind"] == "rod")["T_BI"], float)
+    tool = json.loads((LAB / cell["tool"]["registration"]).read_text())
+    return dict(fx, T_EM=np.array(tool["T_EM"], float), q_home=np.array(tool["q_home"], float))
 
 
 def robot_poses(fx):
@@ -146,17 +150,23 @@ def robot_poses(fx):
         if line.strip():
             r = json.loads(line)
             poses[r["label"]] = r
-    p = poses[SEATED]
+    cell = registry()
+    seated, hover = cell["seated"], cell["hover"]
+    p = poses[seated]
     T1 = np.array(p["T_tcp_mm"], float)
     q1 = CELL.SIM.ik(T1, np.array(p["q_rad"], float))
     if q1 is None:
-        raise RuntimeError(f"no IK for {SEATED}'s T_tcp_mm")
-    act = next(a for a in json.loads(SRC["map_plan"].read_text())["actions"] if a["id"] == HOVER)
+        raise RuntimeError(f"no IK for {seated}'s T_tcp_mm")
+    plan = json.loads((LAB / cell["hover_plan"]).read_text())
+    act = next(a for a in plan["actions"] if a["id"] == hover)
+    T_prog = fx["holder"]                                   # the frame the program homes to and the plan's at_I is in
+    if plan.get("holder", {}).get("registration"):
+        T_prog = load_T(ROOT / plan["holder"]["registration"] / "registration.json")
     T_IM = FH.T_IF_moving(act["at_I"], act["twist"]) @ np.linalg.inv(CELL.T_M_FROM_F)
-    T2 = fx["holder"] @ T_IM @ C.inv(fx["T_EM"])
+    T2 = T_prog @ T_IM @ C.inv(fx["T_EM"])
     q2 = CELL.SIM.ik(T2, fx["q_home"])
     if q2 is None:
-        raise RuntimeError(f"no IK for {HOVER}")
+        raise RuntimeError(f"no IK for {hover}")
     return dict(seated=dict(q=q1, T_BE=T1, q_rec=np.array(p["q_rad"], float)), hover=dict(q=q2, T_BE=T2, act=act))
 
 
@@ -750,7 +760,7 @@ def set_pose(m, d, q):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--rod-T-json", default=None, help="JSON with the rod fixture's 4x4 T_BI in mm (a bare list or under "
-                    "'T_BI'); default: lab/20261027-rod-seed/registration.json")
+                    "'T_BI'); default: lab/cell.json's rod entry")
     ap.add_argument("--views", default="overview,hover,seated")
     ap.add_argument("--overview-pose", default="hover", choices=("seated", "hover"),
                     help="the robot's pose in the overview: hover (pose 2, default) or seated (pose 1); at the rod's place "
@@ -794,11 +804,12 @@ def main():
         p = poses[k]
         print(f"pose {k}: joints {np.round(np.degrees(p['q']), 2).tolist()} deg, "
               f"flange {np.round(p['T_BE'][:3, 3], 1).tolist()}")
-    print("q_rad of", SEATED, np.round(np.degrees(poses["seated"]["q_rec"]), 2).tolist())
+    print("q_rad of", registry()["seated"], np.round(np.degrees(poses["seated"]["q_rec"]), 2).tolist())
     for k, v in log.items():
         if not k.endswith("_link"):
             print(k, v)
-    print(f"rod T_BI from {a.rod_T_json or SRC['rod_seed'].relative_to(ROOT)}; {time.time() - t0:.1f} s")
+    print("fixtures from", a.rod_T_json or "", {k: v["registration"] for k, v in registry()["fixtures"].items()},
+          f"{time.time() - t0:.1f} s")
     if tmp is not None:
         tmp.cleanup()
 

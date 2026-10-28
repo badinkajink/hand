@@ -201,22 +201,39 @@ def trim_x(m, x0, sign=1.0, h=0.1, grid=0.3):
     return trimesh.Trimesh(np.vstack([k.vertices, capV]), np.vstack([k.faces, tri + len(k.vertices)]), process=True)
 
 
-# The four M2 x 8 cheese heads (DIN 84: 3.8 mm across, 1.3 mm tall) that hold the cassette and the cap, seated on the
-# walls' and the cap's palmar faces at x_F -0.10, so they stand 1.3 mm proud of the trimmed cap (found 2026-10-27,
-# scripts/ur5_tip_calibration_trimmed_cap_reach.py). They go with the cap's mesh and so with the finger's group in every
-# check; UR5_SCREW_HEADS=none leaves them out, to recheck a plan built before 2026-10-27 as it was built.
-SCREW_HEADS = None if os.environ.get("UR5_SCREW_HEADS", "on").strip().lower() in ("", "none", "off") else \
-    dict(d=3.8, h=1.3, seat_x_F=-0.10)
+# The four M2 x 8 screws that hold the cassette and the cap have button heads (owner, 2026-10-27 20:2x: "they are
+# buttonheads"; ISO 7380-1, 3.5 mm across and 1.3 mm tall in Accu's listing of SSB-M2), seated on the walls' and the cap's
+# palmar faces at x_F -0.10, so their domes stand up to 1.3 mm proud of the trimmed cap (found 2026-10-27,
+# scripts/ur5_tip_calibration_trimmed_cap_reach.py). Each is drawn as a spherical cap over its base. They go with the
+# cap's mesh and so with the finger's group in every check. UR5_SCREW_HEADS=cheese gives the flat DIN 84 heads (3.8 x 1.3
+# mm) that the checks of 2026-10-27 before 20:30 used, a cylinder around the dome; none leaves them out, to recheck a
+# plan built before 5049f2c5 as it was built.
+HEAD_KINDS = dict(button=dict(kind="button", d=3.5, h=1.3, seat_x_F=-0.10),
+                  cheese=dict(kind="cheese", d=3.8, h=1.3, seat_x_F=-0.10))
+_HEADS = os.environ.get("UR5_SCREW_HEADS", "button").strip().lower()
+SCREW_HEADS = None if _HEADS in ("", "none", "off") else HEAD_KINDS["button" if _HEADS == "on" else _HEADS]
 
 
-def heads_mesh_F():
-    """The four screw heads as one mesh in F, their axes along x_F at TIP_F's holes."""
+def heads_mesh_F(spec=None):
+    """The four screw heads (spec, default SCREW_HEADS) as one mesh in F, their axes along x_F at TIP_F's holes, each
+    rising toward -x_F from its seat."""
     import trimesh
+    s = spec or SCREW_HEADS
+    a, h = s["d"] / 2, s["h"]
+    if s.get("kind") == "button":           # a spherical cap: its sphere's radius from the base's radius and the height
+        R = (a * a + h * h) / (2 * h)
+        phi = np.linspace(math.asin(a / R), 0.0, 13)
+        head = trimesh.creation.revolve(np.r_[[[0.0, 0.0]], np.c_[R * np.sin(phi), h - R + R * np.cos(phi)]], sections=36)
+        head.apply_transform(trimesh.transformations.rotation_matrix(-math.pi / 2, [0.0, 1.0, 0.0]))   # z to -x
+        x0 = s["seat_x_F"]
+    else:
+        head = trimesh.creation.cylinder(radius=a, height=h, sections=36)
+        head.apply_transform(trimesh.transformations.rotation_matrix(math.pi / 2, [0.0, 1.0, 0.0]))    # axis along x
+        x0 = s["seat_x_F"] - h / 2
     out = []
     for y, z in TIP_F["holes"]:
-        c = trimesh.creation.cylinder(radius=SCREW_HEADS["d"] / 2, height=SCREW_HEADS["h"], sections=36)
-        c.apply_transform(trimesh.transformations.rotation_matrix(math.pi / 2, [0.0, 1.0, 0.0]))     # axis along x
-        c.apply_translation([SCREW_HEADS["seat_x_F"] - SCREW_HEADS["h"] / 2, y, z])
+        c = head.copy()
+        c.apply_translation([x0, y, z])
         out.append(c)
     return trimesh.util.concatenate(out)
 

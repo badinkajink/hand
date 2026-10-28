@@ -1049,6 +1049,22 @@ push that answers it arrives.
     <session>` on their onsets gives the apex's true place; then -y touch-offs with a short reach, and the map rebuilt
     with --z-offset and the six watched hovers first (--first hov-f-W1-x+3,hov-f-W0.5-t+10,hov-f-W0.5-t-20,
     hov-fm-W2-t-20,hov-fm-W2-t+10,hov-fm-W15-t+10).
+  - 20:45 on 10-27: the apex search (202426-holdapexv3id1, five contacts) put the +y apex 2.86 mm lower and 2.50 mm
+    toward -y_I than the plan, in the program's frame (onsets +2.87 to +4.04 mm, fit rms 0.024 mm). The touches 3 mm along
+    x came 0.04 and 0.07 mm deeper than the apex, so the fit is flat along x (`--flat-x`). A level frame through the
+    apex, `lab/20261027-holder-apex-plusy/registration.json`, puts the holder's base at z_B 71.35 (the tall indenter's on
+    the same 2x4: 71.2). It puts the -y apex 7.13 mm below the plan's; a holder tilted as seated would put it 4.27 mm
+    higher. Pushed `lab/20261027-plan_holder_lab_map_apex_v3id1.json`, run like the apex search (--home-from
+    lab/poses.jsonl:holder_seated_5, --held-board): five touch-offs on the -y apex, starting 9.5 mm above the level
+    prediction and reaching 3 mm past it; 49 facing hovers over +y, hov-f-W1-x+3, hov-f-W0.5-t+10 and hov-f-W0.5-t-20
+    first, then hov-fm-W15-t+10; 21 over -y at W 10 mm and over; 20 repeats; about 45 min. Paths
+    (`lab/20261027-holder_paths_apex_level.json`, `_tilted.json`; each touch-off stops at its first contact, as in the
+    program): 0 of 95 flagged with the holder level or tilted as seated; joint 5 at least 9.0 deg inside its window, the
+    wrist 519 mm from joint 1's axis, mount 5.3, finger 4.1, HEX-E 24.5 mm. The -y onsets should read about 0 mm past
+    the expected contact if the holder is level, about -4.3 mm (early) if tilted as seated. Next, on the -y onsets:
+    `scripts/ur5_tip_calibration_holder_apex_fit.py <session> --flat-x --frame lab/20261027-holder-apex-plusy/registration.json
+    --out lab/20261027-holder-apex-both`, then a second plan with the close -y hovers (W 0.5 to 5 mm, hov-fm-W2-t-20 and
+    hov-fm-W2-t+10 first) on that frame.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes

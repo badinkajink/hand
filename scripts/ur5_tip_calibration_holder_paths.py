@@ -3,10 +3,13 @@
 cell's clearances (owner, 2026-10-27, through the lab: "a lot of the rotated motions where the wrist links rotate out
 right will be really close to a singularity/joint limit where the rod indenter currently is").
 
-From the homing pose, each action's travel follows the program's travel(): up 10 mm, across, down; or, past travel's
-turn_deg or far_mm, up until the pad stands travel.lift_mm over the indenter's top, across (a joint move past
-joint_deg), down. A hover then goes straight down to its pose and back up; a touch-off goes from its rest to 1.2 mm past
-the expected contact. Straight moves are sampled every 2 mm and 1 deg, joint moves every 1 deg of the largest joint's
+From the homing pose lifted 12 mm out of the key (where the program's freedrive homing leaves the robot), each action's
+travel follows the program's travel(): up 10 mm, across, down; or, past travel's turn_deg or far_mm, up until the pad
+stands travel.lift_mm over the indenter's top, across (a joint move past joint_deg), down. A hover then goes straight
+down to its pose and back up. A touch-off goes from its rest toward beyond_mm past the expected contact and stops where
+the robot's pad first meets the held pad (the program stops at the contact's onset), found by bisection on the pad's
+clearance with the holder where --true-frame puts it; contact_mm in each row is that depth below the rest. The first
+action's first move, out of the seating where the mount rests on the key, is left out of the clearances. Straight moves are sampled every 2 mm and 1 deg, joint moves every 1 deg of the largest joint's
 travel, the inverse kinematics continued from sample to sample. Per action, over its travel and its own moves:
 
   sin5      the least |sin q5|: the wrist singularity at q5 = 0 or 180 deg
@@ -152,6 +155,30 @@ def metrics(q):
                 j5_margin=min(j5 - J5_WIN[0], J5_WIN[1] - j5), j6_margin=min(j6 - J6_WIN[0], J6_WIN[1] - j6))
 
 
+def to_contact(seg, q0, reg):
+    """The approach segment cut at the first contact of the robot's pad with the holder (reg.T_BI), and its depth (mm)."""
+    _, T0, T1 = seg
+
+    def pad(s):
+        T = slerp_T(T0, T1, s)
+        qq = SIM.ik(T, q0)
+        return 1e9 if qq is None else clear_groups(qq, T, reg, None).get("pad", 1e9)
+
+    L = float(np.linalg.norm(T1[:3, 3] - T0[:3, 3]))
+    if pad(1.0) > 0.0:
+        return seg, None
+    if pad(0.0) <= 0.0:
+        return ("L", T0, T0), 0.0
+    lo, hi = 0.0, 1.0
+    for _ in range(14):
+        mid = 0.5 * (lo + hi)
+        if pad(mid) <= 0.0:
+            hi = mid
+        else:
+            lo = mid
+    return ("L", T0, slerp_T(T0, T1, hi)), hi * L
+
+
 def clear_groups(q, T, reg, contact_P):
     cl = CELL.clearance(q, T, reg.T_BI, reg.T_EM, "tiphold", contact_P=contact_P)
     g = {}
@@ -176,15 +203,25 @@ def run(a):
     if a.only:
         other = [o for o in other if o["kind"] in a.only]
     CELL.OTHER[:] = [(np.array(o["T_BI"], float), o["kind"]) for o in other]
+    T_true = np.array(json.loads(Path(a.true_frame).read_text())["T_BI"], float) if a.true_frame else \
+        np.array(plan.get("holder", {}).get("T_BI_true") or reg.T_BI, float)
+    reg_true = copy.copy(reg)                               # the holder where it stands; the moves stay in the program's I
+    reg_true.T_BI = T_true
     q = np.asarray(reg.q_home, float)
     T_prev = np.asarray(reg.T_BE_home, float)
+    T_prev = C.Tm(T_prev[:3, :3], T_prev[:3, 3] + T_prev[:3, :3] @ reg.T_EM[:3, :3] @ np.array([-12.0, 0.0, 0.0]))
+    q = SIM.ik(T_prev, q)
     rows, flagged = [], []
-    for act in plan["actions"]:
+    for ai, act in enumerate(plan["actions"]):
         segs, T_end, cP = mv.action_moves(act, T_prev)
         m = dict(sin5=9.0, q3=999.0, shoulder=1e9, lim=999.0, j5_margin=999.0, j6_margin=999.0)
         cl = {}
         bad = None
+        depth = None
         for si, seg in enumerate(segs):
+            if act["kind"] == "touch" and si == len(segs) - 2:     # the approach stops at the first contact
+                seg, depth = to_contact(seg, q, reg_true)
+                segs[-1] = ("L", seg[2], segs[-1][2])
             sm = samples(seg, q)
             if sm is None:
                 bad = f"no IK on segment {si}"
@@ -194,9 +231,9 @@ def run(a):
                 mk = metrics(qq)
                 for key in m:
                     m[key] = min(m[key], mk[key])
-                if k % 5 == 0 or k == len(sm) - 1:
+                if (k % 5 == 0 or k == len(sm) - 1) and (ai, si) != (0, 0):
                     TT = T if T is not None else SIM.fk(qq)
-                    g = clear_groups(qq, TT, reg, cP if own else None)
+                    g = clear_groups(qq, TT, reg_true, cP if own else None)
                     for key, v in g.items():
                         cl[key] = min(cl.get(key, 1e9), v)
             q = sm[-1][1]
@@ -216,6 +253,8 @@ def run(a):
                 why.append(f"{key} {cl[key]:.2f} mm")
         row = dict(id=act["id"], **{k: round(v, 3) for k, v in m.items()}, clear={k: round(v, 2) for k, v in cl.items()},
                    flags=why)
+        if act["kind"] == "touch":
+            row["contact_mm"] = None if depth is None else round(depth, 2)
         rows.append(row)
         if why:
             flagged.append(act["id"])
@@ -229,7 +268,7 @@ def run(a):
             lc[k] = min(lc.get(k, 1e9), v)
     print(f"{len(rows)} actions, {len(flagged)} flagged; least over all: "
           + ", ".join(f"{k} {v:.2f}" for k, v in least.items()) + "; clear " + str({k: round(v, 2) for k, v in lc.items()}))
-    out = dict(plan=str(a.plan), session=str(a.session), other=[dict(kind=o["kind"],
+    out = dict(plan=str(a.plan), session=str(a.session), holder_T_BI=np.round(T_true, 5).tolist(), other=[dict(kind=o["kind"],
                origin_B=np.round(np.array(o["T_BI"])[:3, 3], 1).tolist()) for o in other], least=least, least_clear=lc,
                rows=rows, flagged=flagged)
     Path(a.out).write_text(json.dumps(out, indent=1) + "\n")
@@ -252,5 +291,7 @@ if __name__ == "__main__":
     ap.add_argument("--other", action="append", default=[], help="kind:folder[,folder...] (each folder's registration T_BI)")
     ap.add_argument("--out", default=str(ROOT / "logs/20261027-holder_paths.json"))
     ap.add_argument("--filtered", default=None)
+    ap.add_argument("--true-frame", default=None, help="a registration.json whose T_BI places the holder (default: the "
+                    "plan's holder.T_BI_true, else the program's frame); to check another hypothesis of where it stands")
     ap.add_argument("--only", action="append", default=[], help="keep only these fixture kinds (the rod alone: --only rod)")
     run(ap.parse_args())

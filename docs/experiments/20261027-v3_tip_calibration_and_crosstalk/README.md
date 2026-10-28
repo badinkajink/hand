@@ -70,10 +70,26 @@ the first 20 repeated: about 41 min. Twist +20 deg fails on joint 5 (30.5 deg). 
 20.95, mount 3.49, finger 3.48, pad 0.58 (at W 0.5 mm) and HEX-E 21.6 mm. With the rod in place, 25 facing hovers and 1
 side-by-side hover keep every margin.
 
-The three seatings tilt the holder's frame 4.3 to 4.9 deg from level and put its base 6.5 mm above the other 2x4s' tops.
-If the holder leans that much, the plan stands. If it sits level, the fork rests 4.6 deg off in the seat, and the held
-apexes, about 100 mm from the seat, would lie up to 7 to 8 mm from where the plan puts them; the touch-offs show that as a
-wrong height or a miss. The hovers are rebuilt with `--z-offset` from the touch-offs and the homed registration.
+The seatings tilt the holder's frame 4.3 to 4.9 deg from level and put its base 5 to 6.5 mm above the 2x4's top. The
+fixtures registered by touch-offs stand within 0.7 to 1.8 deg of level, and the owner finds the plywood level. The
+program computes the holder's frame from the homing pose, so homing again keeps the error. Three touch-offs found no
+contact 1.2 mm past the expected +y apex (200536-holdv3id1). Five touch-offs reaching 6 mm past it (202426-holdapexv3id1)
+found the apex 2.86 mm lower and 2.50 mm toward -y_I, in the program's frame (fit rms 0.024 mm). The touches 3 mm along x
+came only 0.04 and 0.07 mm deeper than the one at the apex, so the two pads meet flat along x, and the fit keeps x as
+planned (`--flat-x`). A level frame through the measured apex puts the holder's base at z_B 71.35 mm. The tall indenter's
+base on the same 2x4 stands at 71.2 mm. That frame is `lab/20261027-holder-apex-plusy/registration.json`
+(`scripts/ur5_tip_calibration_holder_apex_fit.py --out`). It puts the -y apex 7.13 mm below the plan's; a holder tilted as
+seated would put it 4.27 mm higher.
+
+The plan builder places every apex and hover by that frame (`--true-frame`) and writes them in the program's frame. Its
+checks put the holder there. The pad keeps the program's orientation, 4.3 deg from the holder's vertical.
+`lab/20261027-plan_holder_lab_map_apex_v3id1.json` starts with five touch-offs on the -y apex (`--touch-station -y`).
+They start 9.5 mm above the level frame's prediction and reach 3 mm past it, so they meet the apex under either
+hypothesis. Then come 49 facing hovers over the +y tip, with the owner's three +y watched hovers first. Next are 21 hovers
+over the -y tip at W 10 mm and over, which clear it under either hypothesis, and 20 repeats: about 45 min. The path
+checker stops each touch-off at its first contact, as the program does. With the holder level, none of the 95 actions is
+flagged: joint 5 stays 9.0 deg inside its window, the wrist 519 mm from joint 1's axis, the mount 5.3, the finger 4.1 and
+the HEX-E 24.5 mm from everything. With the holder tilted as seated, none is flagged either: the touch-offs meet the apex 5.1 to 5.5 mm into their approach in place of 9.4 to 9.9 mm, and the mount keeps 5.6 mm and the finger 4.2 mm. The close hovers over the -y tip follow after its fit, as a second plan.
 
 A run with the stations empty would remove the background of the cell and the robot from the robot board's changes. The
 held tips went on before the map, so the far poses (W 45 mm; g 40 mm failed the mount's margin) and the repeats measure
@@ -130,8 +146,9 @@ session. If they agree, the tall indenter alone can carry v3's face, edges and f
 With the cap trimmed flush at x_F -0.10, the tall indenter reaches 14 of the 88 FE points of the tip's end (none
 before), 9 of them at 1 mm spacing, and 19 to 24 more edge points (`scripts/ur5_tip_calibration_trimmed_cap_reach.py`).
 It reaches one more flank point: 346 of the 402 flank points it misses fail on joints 5 and 6 at every turn. The four M2
-cheese heads stand 1.3 mm proud of the trimmed face and cost 11 to 14 flank points. Low heads or countersunk screws
-would recover them. This pass runs last, the next morning, with joint 6 to +58 deg while the owner is present; it needs
+screws beside the pad have button heads (owner, 20:2x), 3.5 mm across and domed, 1.3 mm proud of the trimmed face. They
+cost 4 flank points with the finger's margin at 0.8 mm and 12 at 1.5 mm; flat 3.8 mm cheese heads, as the model had
+them before, cost 11 and 13 to 14. This pass runs last, the next morning, with joint 6 to +58 deg while the owner is present; it needs
 its own force levels for the tip region.
 
 ## Code
@@ -152,11 +169,11 @@ Still needed:
 ## Answers and open questions
 
 The owner answered on 2026-10-27. The tip on the robot is v3 ID 1, read by the ESP32-C3. All pads have B00's shape. The
-owner tells the lab when to stop and when to change fixtures. The five-magnet check of the model at 1 % is tabled.
+owner tells the lab when to stop and when to change fixtures. The five-magnet check of the model at 1 % is tabled. All
+three v3 tips have the trimmed cap, as the model has them. The rod fixture stays on the cell at its new place. The plywood
+is level across the table, and the holder's tilt is its seating's (the apex search above). The screws beside the pad are
+M2 button heads.
 
-Open:
-1. Which tips have the trimmed cap: v3 ID 1 only, or the held tips too (the model trims all three).
-2. The rod fixture off the cell for the map, or the 26 hovers that clear it.
-3. The holder's 4.6 deg tilt: the holder or the seat (a level on the holder's base settles it).
-4. Low-profile or countersunk M2 screws beside the pad, for the 11 to 14 flank points.
-5. One indenter or two, after the six shared points.
+Whether the suite needs both indenters is not the owner's to answer: the six shared points decide it (the suite's last
+paragraph). Open for the owner: whether the program's faster travel (slider 1.0, 5.0 h of the 15.0 h) runs without
+anyone at the robot.
