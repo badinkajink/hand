@@ -18,6 +18,11 @@ Scores, per tip, under five folds grouped by action (the same actions in the sam
   noise_uT      the board's single-record noise at the holds: the standard deviation of each of the 15 components over
                 the central 0.4 s of a hold after a linear trend is removed, the median over components and holds;
   nef_N         noise_uT / gain_uT_per_N: the force whose signal equals one record's noise.
+Slides (when both sessions have at least five matched slides): the turns' holds of each slide at 1 N, scored on the
+shear, the part of the measured 3D force across the contact normal. Each GP is trained on the tip's matched presses
+(presses) and, one slide left out at a time, on those and the tip's other slides (presses_and_other_slides), as
+scripts/ur5_tip_calibration_cb1r_checks.slides does: shear_err_N the median norm of the estimated shear less the
+measured, angle_deg the median angle between the estimated and the measured force.
 Bins of f_n: (0, 1], (1, 2], (2, 3.5] and (3.5, 8] N; regions face, edge and flank.
 
     .venv/bin/python scripts/ur5_tip_calibration_four_vs_five.py V3_HOLDS_DIR --v3-session SESSION [--out FILE]
@@ -43,11 +48,36 @@ BINS = ((0.0, 1.0), (1.0, 2.0), (2.0, 3.5), (3.5, 8.0))
 REGIONS = ("face", "edge", "flank")
 
 
-def presses(folder):
+def holds(folder, kind="press"):
     H = K.load(Path(folder))
-    m = ((H["kind"] == "press") & np.isfinite(H["d_board"]).all(1) & np.isfinite(H["p"]).all(1)
+    m = ((H["kind"] == kind) & np.isfinite(H["d_board"]).all(1) & np.isfinite(H["p"]).all(1)
          & np.isfinite(H["f"]).all(1) & np.isfinite(H["f_n"]) & (H["f_n"] > 0.05))
     return K.sub(H, m)
+
+
+def shear(F, n):
+    return F - np.sum(F * n, axis=1)[:, None] * n
+
+
+def slide_scores(Hp, Hs):
+    ft = shear(Hs["f"], Hs["n"])
+
+    def sc(F):
+        e = np.linalg.norm(shear(F, Hs["n"]) - ft, axis=1)
+        return dict(shear_err_N=float(np.nanmedian(e)), shear_est_N=float(np.nanmedian(np.linalg.norm(shear(F, Hs["n"]), axis=1))),
+                    angle_deg=float(np.nanmedian(K.angle(F, Hs["f"]))))
+    out = dict(n_holds=int(len(Hs["id"])), n_slides=int(len(np.unique(Hs["id"]))),
+               hexe_shear_N=float(np.median(np.linalg.norm(ft, axis=1))))
+    for name, fitter in (("gp", HX.fit_gp), ("gp_direction", HX.fit_gp_direction)):
+        pred, _ = fitter(Hp, {})
+        out[f"{name}_presses"] = sc(pred(Hs)[1])
+        F = np.full((len(Hs["id"]), 3), np.nan)
+        for sid in np.unique(Hs["id"]):
+            m = Hs["id"] == sid
+            pred, _ = fitter(K.cat(Hp, K.sub(Hs, ~m)), {})
+            F[m] = pred(K.sub(Hs, m))[1]
+        out[f"{name}_presses_and_other_slides"] = sc(F)
+    return out
 
 
 def cv(H, fitter):
@@ -112,7 +142,7 @@ def main():
     ap.add_argument("--v3-session", required=True, help="v3 ID 1's session folder (its board.bin, for the noise)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
-    H3, H2 = presses(a.v3), presses(V2)
+    H3, H2 = holds(a.v3), holds(V2)
     ids = sorted(set(H3["id"].astype(str)) & set(H2["id"].astype(str)))
     H3 = K.sub(H3, np.isin(H3["id"].astype(str), ids))
     H2 = K.sub(H2, np.isin(H2["id"].astype(str), ids))
@@ -127,6 +157,15 @@ def main():
                 print(f"{name:13s} {key:8s} n {r3['n']:4d}/{r2['n']:4d}  loc {r3['loc_mm']:.3f} / {r2['loc_mm']:.3f} mm  "
                       f"force {100 * r3['force_rel_err']:.1f} / {100 * r2['force_rel_err']:.1f} %  "
                       f"angle {r3['angle_deg']:.1f} / {r2['angle_deg']:.1f} deg   (four / five)")
+    S3, S2 = holds(a.v3, "slide"), holds(V2, "slide")
+    sids = sorted(set(S3["id"].astype(str)) & set(S2["id"].astype(str)))
+    if len(sids) >= 5:
+        S3, S2 = (K.sub(S, np.isin(S["id"].astype(str), sids)) for S in (S3, S2))
+        res["slides"] = dict(four_v3id1=slide_scores(H3, S3), five_v2id1=slide_scores(H2, S2))
+        for k in ("gp_presses", "gp_presses_and_other_slides", "gp_direction_presses", "gp_direction_presses_and_other_slides"):
+            r3, r2 = res["slides"]["four_v3id1"][k], res["slides"]["five_v2id1"][k]
+            print(f"slides {k:38s} shear error {r3['shear_err_N']:.3f} / {r2['shear_err_N']:.3f} N, angle "
+                  f"{r3['angle_deg']:.1f} / {r2['angle_deg']:.1f} deg (four / five; {len(sids)} slides)")
     for key, v3 in res["four_v3id1"]["gain_uT_per_N"].items():
         v2 = res["five_v2id1"]["gain_uT_per_N"].get(key)
         n3, n2 = res["four_v3id1"]["nef_N"][key], res["five_v2id1"]["nef_N"].get(key)
