@@ -46,11 +46,18 @@ TWISTS = (-20, -10, 0, 10, 20)
 WIDTH = 14.8                                               # the pads' width: centre lines 14.8 + g apart side by side
 
 
-def setup(session, base):
+def setup(session, base, add_other=(), drop_other=()):
     ck = base["checks"]
     CELL.BOARD.update(ck["board"])
     CELL.BOARD["half_mm"] = 400.0                          # the mat table under the wrist, as the reach maps
-    CELL.OTHER[:] = [(np.array(o["T_BI"], float), o["kind"]) for o in ck.get("other", [])]
+    other = [o for o in ck.get("other", [])]
+    for spec in add_other:                                 # kind:session, the fixture at that session's registered T_BI
+        kind, ses = spec.split(":", 1)
+        T = json.loads((Path(ses) / "registration.json").read_text())["T_BI"]
+        other = [o for o in other if o["kind"] != kind] + [dict(kind=kind, T_BI=T)]
+    other = [o for o in other if o["kind"] not in drop_other]
+    base["checks"]["other"] = other
+    CELL.OTHER[:] = [(np.array(o["T_BI"], float), o["kind"]) for o in other]
     geo = C.Geometry(base)
     reg = C.Registration(geo).load(json.loads((Path(session) / "registration.json").read_text()))
     return reg, np.asarray(reg.q_home, float)
@@ -63,6 +70,16 @@ def check(reg, qh, p, tw):
     return TI._pose_ok(CELL, C, CELL.SIM, reg, "tiphold", T_BE, None, qh)
 
 
+def rel(path):
+    p = Path(path).resolve()
+    return str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else str(p)
+
+
+def plan_other(base):
+    return [dict(kind=o["kind"], origin_B=np.round(np.array(o["T_BI"], float)[:3, 3], 1).tolist())
+            for o in base["checks"]["other"]]
+
+
 def hover(aid, p, tw, dwell, ref_up):
     return dict(id=aid, stage="hover", kind="hover", target=dict(frame="P", p=APEX_P, n=N_P, index=-1, region="face"),
                 at_I=[round(float(v), 3) for v in p], twist=float(tw), ref_up_mm=float(ref_up), slow_mm=5.0, v_mm_s=10.0,
@@ -71,7 +88,7 @@ def hover(aid, p, tw, dwell, ref_up):
 
 def run(a):
     base = json.loads(Path(a.base_plan).read_text())
-    reg, qh = setup(a.session, base)
+    reg, qh = setup(a.session, base, a.add_other, a.drop_other)
     TI.J6 = (a.j6_min, a.j6_max)
     up = FH.held_apex(CELL, 1) + np.array([0.0, 0.0, a.z_offset])       # +y station, tip up
     down = FH.held_apex(CELL, 0)                                          # -y station, tip down
@@ -89,7 +106,7 @@ def run(a):
             g, s, tw = r["g"], r["s"], r["tw"]
             cand.append((f"hov-s-g{g:g}-s{s:g}-t{tw:+d}", down + [s, -(WIDTH + g), 0.0], tw, 6.0 if g >= 20 else 2.0))
     cand.append(("hov-s-g40-far", down + [0.0, -(WIDTH + 40.0), 0.0], 0, 6.0))
-    acts, dropped, least = [], [], {}
+    acts, dropped, least, links = [], [], {}, {}
     for aid, p, tw, dwell in cand:
         ok, worst, j = check(reg, qh, p, tw)
         if not ok:
@@ -102,6 +119,14 @@ def run(a):
             continue
         act = hover(aid, p, tw, dwell, ref)
         act["check"] = dict(clear={k: round(v, 2) for k, v in worst.items()}, joints_56=[round(v, 1) for v in j])
+        for T in (p, p + [0.0, 0.0, ref]):                  # the robot's links one by one, at the pose and the reference
+            T_IM = FH.T_IF_moving(T, tw) @ np.linalg.inv(CELL.T_M_FROM_F)
+            T_BE = reg.T_BI @ T_IM @ C.inv(reg.T_EM)
+            q = CELL.SIM.ik(T_BE, qh)
+            for k, v in CELL.clearance(q, T_BE, reg.T_BI, reg.T_EM, "tiphold").items():
+                if k.endswith("_link"):
+                    if v < links.get(k, (1e9, ""))[0]:
+                        links[k] = (round(float(v), 2), aid)
         acts.append(act)
         for k, v in worst.items():
             least[k] = min(least.get(k, 1e9), v)
@@ -119,9 +144,10 @@ def run(a):
     plan["geometry"]["indenter"] = dict(kind="sphere", centre=[round(float(v), 3) for v in centre], radius=round(R_APEX, 3))
     plan["geometry"]["T_IM_home"] = np.round(CELL.tiphold_parts()["frame"]["T_IM_home"], 4).tolist()
     plan["holder"] = dict(held_apex_up_I=np.round(up, 3).tolist(), held_apex_down_I=np.round(down, 3).tolist(),
-                          z_offset_mm=a.z_offset, registration=str(Path(a.session).resolve().relative_to(ROOT)),
+                          z_offset_mm=a.z_offset, registration=rel(a.session),
                           cap_trim_x_F=CELL.CAP_TRIM_X, screw_heads=CELL.SCREW_HEADS, held_board=CELL.HELD_BOARD,
                           j6=[a.j6_min, a.j6_max], least_clearance_mm={k: round(v, 2) for k, v in least.items()},
+                          least_link_clearance_mm={k: list(v) for k, v in links.items()}, obstacles=plan_other(base),
                           dropped=dropped)
     plan["notes"] = list(plan.get("notes", [])) + [
         f"{a.created}, workstation: scripts/ur5_tip_calibration_holder_plan.py on {Path(a.session).name}'s registration. "
@@ -136,9 +162,10 @@ def run(a):
     print(f"{len(touches)} touch-offs, {n_f} facing and {n_s} side-by-side hovers, {len(reps)} repeats; "
           f"{len(dropped)} dropped; about {t_est:.0f} min of hovers")
     print("least clearances (mm):", {k: round(v, 2) for k, v in least.items()})
+    print("least clearance of each robot link (mm, action):", links)
     for d in dropped:
         print("  dropped", d)
-    print("->", Path(a.out).relative_to(ROOT))
+    print("->", rel(a.out))
 
 
 if __name__ == "__main__":
@@ -146,6 +173,9 @@ if __name__ == "__main__":
     ap.add_argument("--session", default=str(LAB / "20261027-sphchk-b-hybrid"),
                     help="a folder whose registration.json gives the robot's mount and pad and the holder's place (T_BI)")
     ap.add_argument("--base-plan", default=str(LAB / "20261027-plan_sphere_lab_check_shear_v2id1.json"))
+    ap.add_argument("--add-other", action="append", default=[], help="kind:session, a fixture on the cell at that session's "
+                    "registered T_BI (the low sphere: sphere:<192158-v2id1's folder>)")
+    ap.add_argument("--drop-other", action="append", default=[], help="a fixture kind taken off the cell for this plan")
     ap.add_argument("--z-offset", type=float, default=0.0, help="mm added to the +y held apex's height (touch-offs)")
     ap.add_argument("--j6-min", type=float, default=-62.0)
     ap.add_argument("--j6-max", type=float, default=45.0)
