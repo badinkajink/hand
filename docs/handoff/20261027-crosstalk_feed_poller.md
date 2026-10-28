@@ -7,8 +7,8 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-28 02:10: all 16 feed lines (to 01:51) and the 6
-"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json); watch loop relaunched 02:10.
+State: armed 2026-10-27 21:00 from the colorado window. 10-28 02:58: all 17 feed lines (to 02:44) and the 6
+"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json); watch loop relaunched 02:58.
 Crosstalk page b50e44b4: Section 3 "Neighbour field measured on the fingertip holder" has the touch-offs (Figure 2,
 Table 2), the 137 hovers against the net moments (Figure 3, Table 3: 97 % at either held board), and since line 15
 (01:28, owner's sharpie question) the change as a face force (Figure 4, Table 4: W 7-11 mm 0.31 and 0.64 N, after the
@@ -20,8 +20,8 @@ owner's morning (c810bcdd). The builder reads the coordinator's v3 files AT HEAD
 since (no quoted crosstalk number changed). Remaining on the holder: the five-fold pose fit (fingertip_crosstalk.py,
 coordinator), the side-by-side hovers (morning), the pinch plan.
 Calibration page 41747b29 (step 9, done 02:05; the ledger's "02:2x" is wrong): Sections 10 (v2 ID 1) and 11 (v3 ID 1,
-with line 16's FE calibration as Table 8); direction 11 sends later calibration lines there (stage 2's slides, rolls
-and twists about 06:00, the tall about 09:00, the rod about 11:00).
+with line 16's FE calibration as Table 8, and line 17's "Where the magnets sit" in 1d775a10); direction 11 sends later
+calibration lines there (stage 2's slides, rolls and twists about 06:00, the tall about 09:00, the rod about 11:00).
 For the owner: the 21:44 line's "matches the robot's board within 10 % to W 5 mm" is not in its bins (model +4 % at
 contact, -10 to -22 % from W 0.3 to 5 mm), so the page leaves it out; the 20:45 feed line says twists to +20 deg, the
 plan file stops at +10; the 22:52 line's "at most 0.4 N on the HEX-E" is 0.455 N in the file (the page says below the
