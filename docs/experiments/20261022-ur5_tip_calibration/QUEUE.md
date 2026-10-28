@@ -1041,6 +1041,14 @@ push that answers it arrives.
     paths (`scripts/ur5_tip_calibration_holder_paths.py`, the rod's three seatings) keep |sin q5| 0.63, q3 81 deg, the
     wrist 518 mm from joint 1's axis and 261 deg to any limit. Next: the touch-offs with the owner watching, then the
     hovers rebuilt with --z-offset.
+  - 20:14 on 10-27: hold-touch-a and -b (session 200536-holdv3id1, held boards on d9:94) found no contact 1.2 mm past
+    the expected +y apex. Likely cause: the seatings' frame (base z_B 76.3, 4.3 deg tilt; the tall indenter on the same
+    2x4 at z_B 71.2) with the fork on the seat's walls; a level holder puts the +y apex 2.8 to 3.5 mm lower and 3 to 5 mm
+    off across the tip, the -y apex about 7 mm lower. Pushed cabe4a31: `lab/20261027-plan_holder_lab_apexsearch_seat5_v3id1.json`,
+    five touch-offs at the +y apex and 3 mm along and across, 6 mm past. Next: `scripts/ur5_tip_calibration_holder_apex_fit.py
+    <session>` on their onsets gives the apex's true place; then -y touch-offs with a short reach, and the map rebuilt
+    with --z-offset and the six watched hovers first (--first hov-f-W1-x+3,hov-f-W0.5-t+10,hov-f-W0.5-t-20,
+    hov-fm-W2-t-20,hov-fm-W2-t+10,hov-fm-W15-t+10).
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
