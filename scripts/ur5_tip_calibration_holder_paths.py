@@ -172,6 +172,8 @@ def run(a):
         other = [o for o in other if o["kind"] != kind]
         for f in folders.split(","):
             other.append(dict(kind=kind, T_BI=json.loads((Path(f) / "registration.json").read_text())["T_BI"]))
+    if a.only:
+        other = [o for o in other if o["kind"] in a.only]
     CELL.OTHER[:] = [(np.array(o["T_BI"], float), o["kind"]) for o in other]
     q = np.asarray(reg.q_home, float)
     T_prev = np.asarray(reg.T_BE_home, float)
@@ -249,4 +251,5 @@ if __name__ == "__main__":
     ap.add_argument("--other", action="append", default=[], help="kind:folder[,folder...] (each folder's registration T_BI)")
     ap.add_argument("--out", default=str(ROOT / "logs/20261027-holder_paths.json"))
     ap.add_argument("--filtered", default=None)
+    ap.add_argument("--only", action="append", default=[], help="keep only these fixture kinds (the rod alone: --only rod)")
     run(ap.parse_args())
