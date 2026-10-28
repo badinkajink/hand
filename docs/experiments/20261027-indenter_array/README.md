@@ -1,7 +1,7 @@
 # Indenter array with three homing keys for the UR5 cell
 
 One PLA print puts the four indenters and three homing keys on a single base (owner, 2026-10-27). It is 220 x 236 mm,
-180 mm tall and 1003 cm³ solid. The robot homes on every key on cb3t's registration with at least 42.2 mm of robot
+180 mm tall and 1122.5 cm³ solid. The robot homes on every key on cb3t's registration with at least 42.2 mm of robot
 clearance and 18.7 mm at the HEX-E. In front, the 5 mm sphere and the 12.5 mm half rod have their tops at 120 mm. At the
 back, a 12.5 mm sphere and the fingertip holder's two stations have their tops at 180 mm. The keys are mount v3's wedge key,
 which homed with less scatter than the walled seat of the tall indenter and the holder (owner, 2026-10-27).
@@ -33,7 +33,7 @@ which homed with less scatter than the walled seat of the tall indenter and the 
 | 5 mm sphere | -15, -42 | 120 | neck r 3 mm, 15 deg cone to r 24 mm |
 | Half rod, R 12.5 mm | -15, 45 | 120 | 20 mm long along y on a 25 x 20 mm block, cone to r 24 mm |
 | 12.5 mm sphere | 70, -45 | 180 | neck r 7.5 mm, 15 deg cone to r 26 mm |
-| Fingertip holder | 70, 50 | 180 (held apexes) | both stations up, turned 0 and 180 deg (`ur5_cb3_cell.TIPHOLD`) |
+| Fingertip holder | 70, 50 | 180 (held apexes) | both stations up, turned 0 and 180 deg (`ur5_cb3_cell.TIPHOLD`); each station block a 21 x 21 mm pillar from the base |
 
 The 12.5 mm sphere replaces the tall indenter's second 5 mm sphere. It has the rod's radius, so sphere and cylinder
 contact can be compared at one radius, and two sphere radii at one shape. The yaws are the ends of the ranges where joint 5
@@ -67,10 +67,12 @@ used a 4 mm contact zone on the pad).
 
 ## Print and fitting
 
-- One P1S plate, base down, PLA. The holder's station blocks need support under them. The part was not sliced here.
+- One P1S plate, base down, PLA, without supports: the holder's station blocks stand on pillars to the base (owner, 10-27).
+  The part was not sliced here.
 - Six wood screws (4 x 25 mm) through the counterbored holes into the 2x4s, with the keys' edge toward the robot.
 - The held tips go on as in `docs/experiments/20261027-fingertip_holder/README.md`: M2 screws through the cassette and the
-  board, forming their threads in the 1.9 mm holes.
+  board, forming their threads in the 1.9 mm holes. The holes are blind, 10 mm deep from the block's top; M2 x 8 reaches
+  4.1 mm into the block.
 - Homing: seat the mount on each key in turn and record the flange pose; each key gives the array's pose.
 
 ## Future work

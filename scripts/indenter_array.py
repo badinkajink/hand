@@ -99,10 +99,13 @@ def geometry(a=None):
     g = CELL.tiphold_parts(t)
     hx, hy = h["c"]
     sh = lambda p: (p[0] + hx, p[1] + hy, p[2])                         # noqa: E731
-    h["stations"] = [dict(y_s=st["y_s"] + hy, block=[sh(st["block"][0]), sh(st["block"][1])],
+    lo = lambda p: (p[0] + hx, p[1] + hy, tb - 0.01)                   # noqa: E731  (owner, 10-27: the blocks down to the
+    #                                                                   plate, so they print without support)
+    h["stations"] = [dict(y_s=st["y_s"] + hy, block=[lo(st["block"][0]), sh(st["block"][1])],
                           arm=[sh(st["arm"][0]), sh(st["arm"][1])], gusset=[sh(p) for p in st["gusset"]],
                           holes=[(x + hx, y + hy) for x, y in st["holes"]]) for st in g["stations"]]
     h["z_top"], h["col_r"], h["tiphold"] = g["z_top"], t["col_r"], dict(z_bot=h["z_bot"])
+    h["hole_depth"] = 10.0                                             # blind M2 holes from the top: M2 x 8 reaches 4.1 mm
     h["apex"] = [((CELL.tiphold_T_IF(t, i) @ np.r_[-10.55, 0.0, -87.91, 1.0])[:3] + [hx, hy, 0.0]).round(3).tolist()
                  for i in range(len(t["stations"]))]
     out["holder"] = h
@@ -147,7 +150,7 @@ def solid(K, g):
     parts += [K.cyl("z", (hx, hy), h["col_r0"], tb - 0.01, zc, r1=h["col_r"]), K.cyl("z", (hx, hy), h["col_r"], zc - 0.01, zt)]
     for st in h["stations"]:
         s = K.union([K.box(*st["block"]), K.box(*st["arm"]), K.hull(st["gusset"])])
-        parts.append(K.cut_all(s, [K.cyl("z", (x, y), g["hole_d"] / 2, zb - 1.0, zt + 1.0) for x, y in st["holes"]]))
+        parts.append(K.cut_all(s, [K.cyl("z", (x, y), g["hole_d"] / 2, zt - 10.0, zt + 1.0) for x, y in st["holes"]]))
     return K.union(parts)
 
 
