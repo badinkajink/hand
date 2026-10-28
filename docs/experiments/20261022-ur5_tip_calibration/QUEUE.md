@@ -1083,6 +1083,13 @@ push that answers it arrives.
     05R4's four magnets), `docs/experiments/20261020-fingertip_contact_estimation/data/20261028-b_05R4_surface_basis.npz`
     (98 s, 2.1 GB). fingertip_wrench_model.basis_path gives each layout its basis, so the session analysis now estimates
     v3's holds with the physical model.
+  - 01:51 on 10-28, the FE calibrated to the two tips (`scripts/ur5_tip_calibration_fe_calibration.py`, data
+    `docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data/20261028-fe_calibration.json`). The compliance
+    scale c of the FE basis fitted to the holds up to 3.5 N is 0.710 with four magnets and 0.735 with five: a modulus of
+    16.9 and 16.3 MPa against the FE's 12. The indentation slope is 282 to 336 um/N on both tips, where the FE gives 135
+    to 137 um/N. The fitted c leaves the physical model's location error at 1.61 mm (five) and 2.64 mm (four) under five
+    folds (untrained 1.65 and 2.07 mm), against the direction GP's 0.28 and 0.26 mm. The four-magnet rest fit is
+    degenerate in strength and board offset (k at its bound 2.0, dx 2.69 mm); calibrate_frames_fixed now takes dx_range.
   - 00:59 on 10-28, four magnets against five on stage 2's whole grid (done 00:56; 160 press actions matched by id,
     818 holds each; `docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data/20261028-four_vs_five_grid.json`).
     The board's change per newton is 28.3 uT/N with four magnets and 52.3 with five at 1 to 2 N; with the same record
