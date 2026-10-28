@@ -160,6 +160,9 @@ def run(a):
         acts.append(act)
         for k, v in worst.items():
             least[k] = min(least.get(k, 1e9), v)
+    if a.keep:                                            # a part of the map: the hovers whose ids match
+        import re
+        acts = [x for x in acts if re.search(a.keep, x["id"])]
     if a.first:                                           # the watched run: these hovers first, in this order
         first = [x for f in a.first.split(",") for x in acts if x["id"] == f]
         acts = first + [x for x in acts if x not in first]
@@ -228,6 +231,8 @@ if __name__ == "__main__":
                     "touch-offs' measured apex height, 3 mm (the seatings' 1 mm and 1 deg spread, the pad's 0.5 mm)")
     ap.add_argument("--min-w-other", type=float, default=2.0, help="the least facing gap on the -y station (mm), whose "
                     "height comes from the +y touch-offs: the -y tip's own board and screws add about 0.5 mm")
+    ap.add_argument("--keep", default="", help="keep only the hovers whose ids match this regular expression (a part of "
+                    "the map, e.g. the close -y hovers: '^hov-fm-W(0.5|1|2|3|5)-')")
     ap.add_argument("--first", default="", help="hover ids to run first, comma-separated (the owner's watched run)")
     ap.add_argument("--touch-offsets", default="", help="dx,dy;... (mm in the program's I) of the touch-offs from the "
                     "touched apex (default three at the apex)")
