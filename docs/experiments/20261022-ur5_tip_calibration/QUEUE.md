@@ -1066,6 +1066,23 @@ push that answers it arrives.
     The lab's simulator agrees (00:54): at lift 20 the elbow stays 26.3 deg from straight, 0 aborts, mount 4.43 mm
     (top-tip-459), joint 6 -61.6 to +42.6 deg; at lift 60 the elbow comes within 3.7 deg of straight on the same two
     actions.
+  - 01:49 on 10-28, side-by-side crosstalk map for the owner's morning (owner, 01:3x: "let's try to run some
+    side-by-side crosstalk tests, ideally overnight ... but if it's risky we can wait"). It cannot run before the owner
+    is in: the holder's side-by-side poses need the -y held tip mounted pad-down under its block (both face up now).
+    With the rod's fixture on the cell only 2 poses pass (robot links 5 to 6 mm into it at 13 and 14 mm gaps), so the
+    plan assumes the rod is taken off after its stage 2: `lab/20261028-plan_holder_lab_side_norod_v3id1.json`, 45
+    hovers (27 poses at gaps g 13, 14, 15, 20 and 25 mm between the pads' flanks, offsets s 0, 2 and 5 mm along the
+    finger, twists -10 to +10 deg, a far pose at g 40 mm; 18 repeats), about 22 min at tonight's map's 28 to 32 s a
+    hover. Homing and seed as tonight's maps (holder_seated_5, `lab/20261027-holder-seed-seat5`, the both-apex frame);
+    checks.other the tall and the sphere. The plan's holder.stations is [-y down, +y up]; the cell model takes it from
+    UR5_TIPHOLD_STATIONS=down,up (scripts/ur5_cb3_cell.py) and the path checker from the plan. Path check
+    (`lab/20261028-paths_holder_side_norod_v3id1.json`): 0 flagged after 4 hovers at g 15 mm and -10 deg were dropped
+    (mount 2.26 mm on the way in); mount 4.32, finger 2.93, links 34.3 mm; joint 6 -6.5 to -2.9 deg.
+  - 01:49 on 10-28, the FE surface basis of pad 05R4 (owner: "sure, rebuild the FE surface basis ... let's try to
+    calibrate the FE to the real tips"): FE case b_05R4 (scripts/v2_tip_fe_checks.py: b_v2's grid, depth and body with
+    05R4's four magnets), `docs/experiments/20261020-fingertip_contact_estimation/data/20261028-b_05R4_surface_basis.npz`
+    (98 s, 2.1 GB). fingertip_wrench_model.basis_path gives each layout its basis, so the session analysis now estimates
+    v3's holds with the physical model.
   - 00:59 on 10-28, four magnets against five on stage 2's whole grid (done 00:56; 160 press actions matched by id,
     818 holds each; `docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data/20261028-four_vs_five_grid.json`).
     The board's change per newton is 28.3 uT/N with four magnets and 52.3 with five at 1 to 2 N; with the same record

@@ -40,7 +40,21 @@ THERMAL = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20
 T_REF_C = 25.0
 
 
-REST_ONLY = {   # layouts with magnets and no FE surface basis: their rest fit works, the SurfaceEstimator does not
+SURFACE_BASES = {   # FE surface bases by layout (scripts/fingertip_wrench_fe.py --surface; the b_v2 FE case for b_v2,
+    # its four-magnet twin b_05R4 for pad 05R4, built 2026-10-28 on the same grid and depth)
+    "b_v2": ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261020-b_v2_surface_basis.npz",
+    "four_05R4": ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261028-b_05R4_surface_basis.npz",
+}
+
+
+def basis_path(case="b_v2"):
+    """The layout's FE surface basis, or None when it has none."""
+    q = SURFACE_BASES.get(case)
+    return q if q is not None and Path(q).exists() else None
+
+
+REST_ONLY = {   # layouts whose sensing row is b_v2's with other magnets; without a surface basis the rest fit works and
+    # the SurfaceEstimator does not
     # pad 05R4 (v3, 2026-10-27; scripts/dip_b_four_compact_tip.py, four_y2p5_z5): four N52 in a 5.0 mm square centred on
     # U1 at the five-magnet tip's depth, proximal row first, -y before +y; the checkerboard is poles (1, -1, -1, 1)
     "four_05R4": ("b_v2", [[3.0, 2.0, sy * 2.5, TD.Z_C + sz * 2.5] for sz in (-1, 1) for sy in (-1, 1)]),
@@ -51,7 +65,7 @@ def fe_row(case="b_v2"):
     if case in REST_ONLY:
         base, mags = REST_ONLY[case]
         r = dict(fe_row(base))
-        r.update(case=case, magnets=[list(m) for m in mags], fe_basis=False)
+        r.update(case=case, magnets=[list(m) for m in mags], fe_basis=basis_path(case) is not None)
         return r
     for line in open(FE_ROWS):
         try:
@@ -282,15 +296,19 @@ def prescreen_poles(b, row, board: Calib, offsets=PRESCREEN_OFFSETS):
     return sorted(best.values(), key=lambda q: q[0])
 
 
-def calibrate_frames_fixed(b_rest_uT, board: Calib, case=None, poles=None, keep=6):
+def calibrate_frames_fixed(b_rest_uT, board: Calib, case=None, poles=None, keep=6, dx_range=None):
     """Fit poles, strength and offsets with the chip frames and assignment of `board` (a previous full calibration of
     the same board) kept: seconds instead of a minute, for a new pad or new magnets. Unless `poles` is given, all 32
     patterns are searched, the centre magnet's pole included (the board's chip axes fix the field's sign): the linear
     prescreen_poles ranks them and the nonlinear fit runs on the `keep` best. rms_next_mT is the residual of the best
-    other pattern fitted."""
+    other pattern fitted. dx_range (lo, hi) bounds the board's offset along x: with four magnets in a checkerboard the
+    rest field leaves the strength k and dx nearly interchangeable (v3 ID 1, 2026-10-28: k at its bound 2.0 with dx
+    2.69 mm), and the board's mount fixes dx to a few tenths of a millimetre."""
     row = fe_row(case or board.case)
     b = np.asarray(b_rest_uT, float)
     bounds = ([0.1, -3, -4, -4, -100, -100, -100], [2.0, 8, 4, 4, 100, 100, 100])
+    if dx_range is not None:
+        bounds[0][1], bounds[1][1] = float(dx_range[0]), float(dx_range[1])
     if poles is not None:
         starts = [(tuple(poles), x0 + [0, 0, 0]) for x0 in ([1.0, 0, 0, 0], [0.4, 0, 0, 0])]
     else:
@@ -298,6 +316,8 @@ def calibrate_frames_fixed(b_rest_uT, board: Calib, case=None, poles=None, keep=
                   for _, pl, k, off, g in prescreen_poles(b, row, board)[:keep]]
     fits = {}
     for pl, x0 in starts:
+        x0 = list(x0)
+        x0[1] = float(np.clip(x0[1], bounds[0][1] + 1e-6, bounds[1][1] - 1e-6))
         r = least_squares(lambda p: _resid(b, row, pl, board.s, board.perm, p, theta0=board.theta0), x0, bounds=bounds)
         if pl not in fits or r.cost < fits[pl].cost:
             fits[pl] = r

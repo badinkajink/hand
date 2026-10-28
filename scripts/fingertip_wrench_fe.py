@@ -173,7 +173,7 @@ def surface_basis(a):
             print(f"  loads {s + len(blk)}/{len(loads)}, {time.time() - t0:.0f} s", flush=True)
 
     OUT.mkdir(parents=True, exist_ok=True)
-    out = OUT / f"20261020-{a.case}_surface_basis.npz"
+    out = Path(a.out).resolve() if a.out else OUT / f"20261020-{a.case}_surface_basis.npz"
     np.savez_compressed(out, case=a.case, key=V.KEY, pts=pts, normals=nrm, pad_area=pad_area, dirs=np.eye(3), motions=mot,
                         load_u=load_u, n_load_nodes=n_nodes, disp_X=pts, disp_u=ud, tris=tris,
                         magnet_centres=np.array([model.X[n].mean(0) for n in mn]), node_centroid=model.X.mean(0),
@@ -188,6 +188,7 @@ def main():
     ap.add_argument("--step", type=float, default=1.0, help="patch grid step (mm)")
     ap.add_argument("--block", type=int, default=48, help="load cases per solve")
     ap.add_argument("--surface", action="store_true", help="patches at the sphere pads over the whole free surface")
+    ap.add_argument("--out", default=None, help="the surface basis file (default data/20261020-<case>_surface_basis.npz)")
     a = ap.parse_args()
     if a.surface:
         return surface_basis(a)

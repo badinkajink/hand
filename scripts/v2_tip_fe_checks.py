@@ -62,6 +62,14 @@ def five(a=2.5, p=9.8, shift=0.5):
     return [(FE.MAGNET[0], FE.MAGNET[1], y, z) for y, z in sorted(cs, key=lambda c: (c[1], c[0]))]
 
 
+def four_05R4(a=2.5, p=5.0):
+    """Pad 05R4's four N52 (v3, 2026-10-27; scripts/dip_b_four_compact_tip.py four_y2p5_z5): a 5.0 mm square centred on
+    the board's centre chip U1 (tpu_tip_design.Z_C), as (diameter, thickness, y, z), proximal row first, -y before +y."""
+    import tpu_tip_design as TD
+    cs = [(sy * a, TD.Z_C + sz * p / 2) for sy in (-1, 1) for sz in (-1, 1)]
+    return [(FE.MAGNET[0], FE.MAGNET[1], y, z) for y, z in sorted(cs, key=lambda c: (c[1], c[0]))]
+
+
 CASES = {   # name: grid, magnet depth (mm), magnets (None: the calibration's four), recipe changes, wall/skin changes
     "cal4_fine": dict(grid="fine", depth=7.0, mags=None),
     "v2_5": dict(grid="base", depth=7.5, mags="five"),
@@ -74,6 +82,9 @@ CASES = {   # name: grid, magnet depth (mm), magnets (None: the calibration's fo
     "v2_5_skin07": dict(grid="base", depth=7.5, mags="five", n_skin=7, layer=0.1),
     "a_v2": dict(grid="base", depth=7.5, mags="five", body="a"),
     "b_v2": dict(grid="base", depth=7.5, mags="five", body="b"),
+    # 2026-10-28 (owner: "sure, rebuild the FE surface basis ... let's try to calibrate the FE to the real tips"): b's pad
+    # with pad 05R4's four magnets (the v3 tips), on b_v2's grid and depth so that the two bases compare directly
+    "b_05R4": dict(grid="base", depth=7.5, mags="05R4", body="b"),
     # 2026-10-20: b's pad with the v3 cover's side walls (owner: "if we add side volume to mold/constrain around the finger,
     # that should help with the shear force detachment"): the flank's nodes held in y from the cut face to wall_h toward the
     # palmar side, from the mount face to the apex's z (the pad's widest section); a bilateral hold, so the bound on how much
@@ -245,6 +256,8 @@ def layout_of(c):
         return FE.layout(c["depth"])
     if c["mags"] == "none":
         return dict(depth=c["depth"], mags=[])
+    if c["mags"] == "05R4":
+        return dict(depth=c["depth"], mags=four_05R4())
     return dict(depth=c["depth"], mags=five())
 
 

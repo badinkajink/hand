@@ -241,6 +241,9 @@ def run(a):
     DEPTH, TURNS = a.depth, not a.no_turns
     plan = json.loads(Path(a.plan).read_text())
     KIND = plan.get("indenter", "tiphold")
+    st = (plan.get("holder") or {}).get("stations")
+    if st:                                                  # the held tips as the plan stands them (up, or -y down)
+        CELL.TIPHOLD["stations"] = tuple((float(y), str(m)) for y, m in st)
     mv = Moves(plan, a.session)
     reg = mv.reg
     CELL.BOARD.update(plan["checks"]["board"])

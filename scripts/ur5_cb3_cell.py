@@ -517,6 +517,12 @@ TIPHOLD = dict(stations=((-28.5, "up"), (28.5, "up")), turn_deg=(0.0, 180.0), x_
                base=(-40.0, 40.0, -30.0, 98.0, 8.0), key_y=75.0, mouth_x=-22.0, mouth_z=30.0,
                seat=dict(wall_gap=0.2, wall_h=(14.0, 14.0, 11.5, 9.5), stop=dict(gap=0.1, t=4.0, h=9.5),
                          key_r=0.8, key_top=5.0))
+# UR5_TIPHOLD_STATIONS="down,up" (the -y station's tip, then the +y station's) sets the stations for a process: the
+# side-by-side plan of 2026-10-28 has the -y tip under its block (scripts/ur5_tip_calibration_holder_paths.py takes them
+# from a plan's holder.stations).
+_ST = [x.strip().lower() for x in os.environ.get("UR5_TIPHOLD_STATIONS", "up,up").split(",")]
+if len(_ST) == 2 and set(_ST) <= {"up", "down"}:
+    TIPHOLD["stations"] = ((-28.5, _ST[0]), (28.5, _ST[1]))
 TIP_F = dict(x_seat=3.80, z_c=-87.91, apex_x=-10.55, z_ends=(-98.46, -77.05), y_half=10.5,
              holes=((8.0, -79.82), (-8.0, -79.82), (8.0, -95.82), (-8.0, -95.82)))
 # The held tips' ReSkin 5X boards (owner, 2026-10-27: "ive added the magnetometer board and will have their data streaming

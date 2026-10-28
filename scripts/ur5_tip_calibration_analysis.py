@@ -355,7 +355,7 @@ def estimator(ses, holds, mask=None):
     if not W.fe_row(CASE).get("fe_basis", True):      # a layout without an FE surface basis (pad 05R4): the rest fit only
         return cal, None
     model = W.Model(cal)
-    est = W.SurfaceEstimator(model, W.load_basis(BASIS), floor_uT=2.0, mask=mask)
+    est = W.SurfaceEstimator(model, W.load_basis(W.basis_path(CASE) or BASIS), floor_uT=2.0, mask=mask)
     return cal, est
 
 
@@ -564,7 +564,7 @@ def main():
     ap.add_argument("--ref-drift", action="store_true", help="move the sphere along the approach by the reference "
                     "presses' onset drift, interpolated in time")
     ap.add_argument("--case", default="b_v2", help="the pad's magnet layout: b_v2 (five magnets) or four_05R4 (pad 05R4's "
-                    "four, v3; no FE surface basis, so the holds get the rest fit and no physical estimates)")
+                    "four, v3; its FE surface basis b_05R4 since 2026-10-28, without it the rest fit only)")
     a = ap.parse_args()
     global ZERO, GRAVITY_FROM, REF_DRIFT, BOARD_ZERO, REG_FROM, CASE
     CASE = a.case
