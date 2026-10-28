@@ -1,6 +1,25 @@
 """Prose of the page on the fingertip's calibration on the UR5 (scripts/fingertip_calibration_page.py), kept apart from the
-plotting. Numbers come from the page's numbers.json and from the sessions' analysis outputs named in the text."""
+plotting. Numbers come from the page's numbers.json and from the sessions' analysis outputs named in the text; the UR5
+coordinator's analysis files of v2 ID 1 and v3 ID 1 are read as committed at HEAD (at_head)."""
 from __future__ import annotations
+
+import json
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+UR5D = ROOT / "docs/experiments/20261022-ur5_tip_calibration/data"
+V3D = ROOT / "docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data"
+
+
+def at_head(path):
+    """A file as committed at HEAD, LFS pointers resolved: the coordinator may be rewriting its working copy mid-analysis."""
+    rel = str(Path(path).resolve().relative_to(ROOT))
+    blob = subprocess.run(["git", "-C", str(ROOT), "show", f"HEAD:{rel}"], capture_output=True, check=True).stdout
+    if blob.startswith(b"version https://git-lfs.github.com/spec/v1"):
+        blob = subprocess.run(["git", "-C", str(ROOT), "lfs", "smudge", "--", rel], input=blob, capture_output=True,
+                              check=True).stdout
+    return blob
 
 
 def sections(N, F, P, link, L):
@@ -12,28 +31,48 @@ def sections(N, F, P, link, L):
     cov = N["coverage_cb2t"]
     ps = N["pooling_shear"]
     tr = N["transfer"]
-    import json
-    from pathlib import Path
     # v1 tips' presses scaled by the magnets' strength fitted at rest, applied to v2 ID 1 (2026-10-27, commit 2bbedb0b)
-    st = json.loads((Path(__file__).resolve().parents[1] / "docs/experiments/20261022-ur5_tip_calibration/data/"
-                     "20261026-192158-v2id1/scaled_transfer.json").read_text())
+    st = json.loads((UR5D / "20261026-192158-v2id1/scaled_transfer.json").read_text())
+    # v2 ID 1 and v3 ID 1: the UR5 coordinator's analysis files, as committed at HEAD
+    jl = lambda p: json.loads(at_head(p))  # noqa: E731
+    TP = jl(UR5D / "20261027-v1_v2_tips.json")["tips"]
+    HX = jl(UR5D / "20261027-hard_extrapolation_v2id1.json")
+    SV = jl(UR5D / "20261027-suite_value_v2id1.json")
+    TL = jl(UR5D / "20261027-143529-tallv2id1/r29_tall_vs_sphere.json")
+    RD = jl(UR5D / "20261027-095303-rodv2id1/rod_tips.json")
+    G = jl(V3D / "20261028-four_vs_five_grid.json")
+    hx = HX["splits"]["2N"]["estimators"]
+    HB = ("2-3.5", "3.5-5", "5-8")
+    strict = lambda est, key, k=1: [k * hx[est]["test_strict"][b][key] for b in HB]  # noqa: E731
+    rg = lambda xs, f="{:.2f}": f"{f.format(min(xs))}–{f.format(max(xs))}"  # noqa: E731
+    g4, g5 = G["four_v3id1"], G["five_v2id1"]
+    e4, e5 = g4["gp_direction"], g5["gp_direction"]
+    acc = gp_hi + [TP["ID 3"]["own"]["over_1p5N"], TP["v2 ID 1"]["own"]["over_1p5N"]]
+    n_hold = sum(v["press_holds"] + v["turn_holds"] for v in N["sessions"].values()) + G["holds"]["v3"]
+    dloc, dfe = strict("gp_direction", "loc_mm"), strict("gp_direction", "force_rel_err", 100)
+    bloc, bfe = strict("gp", "loc_mm"), strict("gp", "force_rel_err", 100)
 
     lede = (
-        "Three printed fingertips were pressed onto a 5 mm sphere by the lab's UR5, with an OptoForce HEX-E force-torque "
-        "sensor between the flange and the fingertip as the force reference. In four sessions they gave 4,579 holds. The "
-        "registered robot pose gives each hold's contact point, and the HEX-E its force. Trained on a tip's own presses, "
-        "a Gaussian process from the 15 magnetometer readings locates presses at new points within "
-        f"{min(gp_hi):.2f}–{max(gp_hi):.2f} mm at 1.5 N and over. It gives their normal force within "
-        f"{min(fn_err):.2f}–{max(fn_err):.2f} N. The untrained physical model gives 0.9–2.4 mm. The error grows with "
-        "the distance to the nearest training press, from 0.32 mm within 1 mm to 6 mm beyond 4 mm. With slides in "
-        "training, the shear is within 0.12 N and its direction within 6°. Torsion is not recovered. A model learned on "
-        "one tip misses on another, and pooling two tips' presses helps where one tip has few.")
+        "Six printed fingertips were pressed onto 5 mm spheres and a rod by the lab's UR5. The reference force was "
+        "measured by an OptoForce HEX-E force-torque sensor between the flange and the fingertip. In eleven sessions "
+        f"they gave {n_hold:,} holds. Trained on a tip's own presses, a Gaussian process (GP) from the 15 "
+        f"magnetometer readings locates presses at new points within {rg(acc)} mm at 1.5 N and over. On tips 0 to 2 it "
+        f"gives their normal force within {min(fn_err):.2f}–{max(fn_err):.2f} N. On v2 ID 1, with five N52 magnets, a GP "
+        "from the direction of the readings' change was trained on holds of 2 N and under. It places presses of 2 to 8 N "
+        f"within {rg(dloc)} mm and {rg(dfe, '{:.0f}')} % of their force. With four N52 magnets (v3 ID 1) the signal per "
+        f"newton is half that of five, {g4['gain_uT_per_N']['1-2']:.1f} against {g5['gain_uT_per_N']['1-2']:.1f} µT/N at 1–2 N. "
+        f"The same GP places the two tips' contacts within {e4['all']['loc_mm']:.2f} and {e5['all']['loc_mm']:.2f} mm. Torsion is "
+        "not recovered, and a model learned on one tip misses on another.")
     summary = (
-        f"UR5 + HEX-E calibration of three printed magnetic fingertips (4,579 holds): a GP from the 15 readings locates new "
-        f"points within {min(gp_hi):.2f}-{max(gp_hi):.2f} mm at 1.5 N and over and the normal force within "
-        f"{min(fn_err):.2f}-{max(fn_err):.2f} N (physical model untrained 0.9-2.4 mm); error grows with distance to the "
-        "nearest training press (0.32 mm within 1 mm, 6 mm beyond 4 mm); shear 0.12 N and 6 deg with slides in training; "
-        "torsion not recovered; a GP trained on another tip gives 1.42 mm against 0.39 mm.")
+        f"UR5 + HEX-E calibration of six printed magnetic fingertips ({n_hold:,} holds, 2026-10-22 to 10-28): a GP from the "
+        f"15 readings locates new points within {rg(acc).replace('–', '-')} mm at 1.5 N and over on a tip's own presses "
+        f"(normal force within {min(fn_err):.2f}-{max(fn_err):.2f} N on tips 0-2); on v2 ID 1 (five N52) a GP from the "
+        f"direction of the change, trained at 2 N and under, places 2-8 N presses within {rg(dloc).replace('–', '-')} mm and "
+        f"{rg(dfe, '{:.0f}').replace('–', '-')} % of the force (board GP {rg(bloc, '{:.1f}').replace('–', '-')} mm, "
+        f"{rg(bfe, '{:.0f}').replace('–', '-')} %); four N52 magnets (v3 ID 1) give half the signal per newton "
+        f"({g4['gain_uT_per_N']['1-2']:.1f} against {g5['gain_uT_per_N']['1-2']:.1f} uT/N) and the same calibrated "
+        f"errors ({e4['all']['loc_mm']:.2f} and {e5['all']['loc_mm']:.2f} mm); torsion not recovered; a GP trained on "
+        "another tip gives 1.42 mm against 0.39 mm.")
     film = P.film(0, F["film"], F["film_poster"],
                   "The first UR5 session, sphere2, from the overhead camera: one frame every 2 s of its first touch-offs, "
                   "played at 12 frames a second. The pad touches the sphere on the right-hand fixture; the left-hand fixture "
@@ -66,9 +105,24 @@ def sections(N, F, P, link, L):
          "dipole model inverted, fitted only to the pad's readings at rest."),
         ("Gaussian process (GP), MLP", "Regressions from the board change to the contact point and the force, trained on "
          "holds (Section 8). MLP: a multilayer perceptron, here an ensemble of five."),
+        ("Board GP, direction GP", "The board GP is the GP of Section 8, from the board change $\\mathbf d$ to the point "
+         "and the force. In the direction GP the input is the change's direction $\\mathbf d/\\lVert\\mathbf d\\rVert$. "
+         "It predicts the point and the force per unit change, and its force is that times $\\lVert\\mathbf d\\rVert$."),
+        ("Signal per newton, noise-equivalent force", "The signal per newton is the median of "
+         "$\\lVert\\mathbf d\\rVert/f_n$ over a tip's press holds, in µT/N. The record noise is the standard deviation of "
+         "one board record during a hold, after a linear trend is removed, as a median over the 15 components. The "
+         "noise-equivalent force is the record noise divided by the signal per newton, in mN."),
+        ("Force error, force angle, normal angle", "The force error is the median of "
+         "$\\bigl|\\lVert\\hat{\\mathbf f}\\rVert-\\lVert\\mathbf f\\rVert\\bigr|$ as a share of "
+         "$\\lVert\\mathbf f\\rVert$, in %. The force angle is the median angle between the estimated and the measured force. "
+         "The normal angle is the median angle between the pad's normals at the estimated and the registered point."),
+        ("Compliance scale $c$", "A factor on every displacement of the FE basis, fitted to the board's change. The FE "
+         "is linear in one TPU, so the fitted modulus is the FE's 12 MPa divided by $c$."),
         ("Pooling", "Training one model on the holds of more than one tip."),
-        ("Tips 0, 1, 2", "Tip 0 has its magnets all one way (session sphere2); tips 1 and 2 have the checkerboard of "
-         "poles (sessions cb1t, cb1r and cb2t). All have the same magnets, at 0.34–0.57 of an N52's strength."),
+        ("Tips 0 to 3, v2 ID 1, v3 ID 1", "Tip 0 has its magnets all one way (session sphere2). Tips 1 to 3 are the v1 "
+         "tips ID 1 to ID 3, with the checkerboard of poles. The magnets of tips 0 to 3 have 0.20–0.57 of an N52's "
+         "strength. v2 ID 1 has five N52 magnets in the checkerboard, at 0.98 of an N52's strength. v3 ID 1 has four N52 "
+         "magnets in an alternating 5.0 mm square, under pad 05R4."),
     ]
     S.append(("terms", "Terms and metrics", '<dl class="terms">' + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in terms)
               + "</dl>"))
@@ -79,7 +133,7 @@ def sections(N, F, P, link, L):
         "grip. The ratio of shear to normal force, against the friction coefficient, is the margin to slip. The torsion "
         "resists a tool turning between two fingertips, as derived in " + link(L["contact"], "the contact overview")
         + ". The point says where the object lies in the hand.</p>"
-        "<p>The board measures none of these. It measures the field of five magnets that a load moves. The physical "
+        "<p>The board measures none of these. It measures the field of the pad's magnets, which a load moves. The physical "
         "model predicts the readings from finite elements and a dipole model. Untrained, it places presses 0.9–2.4 mm "
         "off at 2 N and over, and it fails below 1 N. The calibration therefore records the readings together with a "
         "reference for all six numbers, over the whole surface and the range of forces a grasp uses. A robot gives the "
@@ -209,21 +263,40 @@ def sections(N, F, P, link, L):
     )
     S.append(("truth", "Ground truth of a hold", body))
 
+    ses = N["sessions"]
+
+    def srow(name, key, tip, mount, date):
+        s = ses[key]
+        return [name, tip, mount, date, f"{s['press_holds']:,} ({s['presses']})",
+                f"{s['turn_holds']:,} ({s['turns']})" if s["turns"] else "–"]
     rows = [
-        ["sphere2", "0, magnets one way", "v3", "2026-10-22 night", "357 (74)", "78 (10)"],
-        ["rod1", "0, rod of radius 12.5 mm", "v3", "2026-10-23", "279", "–"],
-        ["cb1t", "1, checkerboard", "v3", "2026-10-23 evening", "302 (60)", "64 (8)"],
-        ["cb1r", "1, checkerboard", "v3", "2026-10-25", "170 (38)", "254 (16)"],
-        ["cb2t", "2, checkerboard", "v7", "2026-10-25", "921 (187)", "2,433 (109)"],
-        ["cb3t", "3, checkerboard", "v7", "2026-10-26", "running", "running"],
+        srow("sphere2", "20261022-210852-sphere2", "0, magnets one way", "v3", "2026-10-22 night"),
+        srow("rod1", "20261023-104526-rod1-joint", "0, rod of radius 12.5 mm", "v3", "2026-10-23"),
+        srow("cb1t", "20261023-203938-cb1t", "1, checkerboard", "v3", "2026-10-23 evening"),
+        srow("cb1r", "20261025-114653-cb1r", "1, checkerboard", "v3", "2026-10-25"),
+        srow("cb2t", "20261025-152920-cb2t", "2, checkerboard", "v7", "2026-10-25"),
+        srow("cb3t", "20261026-134522-cb3t", "3, checkerboard", "v7", "2026-10-26"),
+        srow("rod3t", "20261026-180938-rod3t", "3, rod", "v7", "2026-10-26"),
+        srow("v2id1", "20261026-192158-v2id1", "v2 ID 1, five N52", "v7", "2026-10-26 night"),
+        srow("rodv2id1", "20261027-095303-rodv2id1", "v2 ID 1, rod", "v7", "2026-10-27"),
+        srow("tallv2id1", "20261027-143529-tallv2id1", "v2 ID 1, tall indenter", "v7", "2026-10-27"),
+        ["spherev3id1", "v3 ID 1, four N52", "v7", "2026-10-27 night", f"{G['holds']['v3']:,} ({G['actions']}), grid stage",
+         "running"],
     ]
     body = (
-        "<p>Table 4 lists the sessions. Tip 0 and tip 1's first session ran early plans with few slides. Tip 2's session "
-        "cb2t has most of the data: 104 press points in 921 holds, and 87 slides. Its coverage is in Figure 3. The face "
+        "<p>Table 4 lists the sessions. Tip 0 and tip 1's first session ran early plans with few slides. From cb2t on, "
+        "each tip ran the same suite of six passes on the low sphere, and from cb3t on presses to 8 N (R26). Tip 3 ran "
+        "passes 1 and 2a, the actions past joint 6's cap and R26, and was then swapped for v2 ID 1. v2 ID 1 ran the whole "
+        "suite, the rod and part of a pass on the tall indenter (Section 10). v3 ID 1's suite was running on 2026-10-28 "
+        "(Section 11). Tip 2's session "
+        "cb2t has 104 press points in 921 holds, and 87 slides. Its coverage is in Figure 3. The face "
         "and edges are covered within about 1.5 mm. The flanks are reached only above the cover's walls, and 74–79 % of "
         "their FE surface points lie more than 1.5 mm from any press.</p>"
         + P.table(["Session", "Tip, indenter", "Mount", "Date", "Press holds (presses)", "Turn holds (turns)"], rows,
-                  caption="Sessions on the UR5. Turn holds are those of slides, rolls and twists.", n=4)
+                  caption="Sessions on the UR5. Turn holds are those of slides, rolls and twists. Counts from each session's "
+                          "<code>holds.npz</code> in <code>docs/experiments/20261022-ur5_tip_calibration/data/</code>; v3 ID 1's "
+                          "grid stage from the comparison of Section 11. The tall indenter's 26 slides of 2026-10-27 are not "
+                          "analysed yet.", n=4)
         + P.fig(3, F["coverage"], "Press targets of cb2t on the pad, by pass. Light grey: FE surface points within 1.5 mm of "
                 "a press; dark grey: farther. The flanks' lower part lies behind the cover's walls, and the tip end under "
                 "the cap.")
@@ -325,16 +398,188 @@ def sections(N, F, P, link, L):
                 "trained on tip 1, and tip 2's own GP over five folds. (b) Location error on tip 1's 18 twin presses at "
                 "1.5 N and over, by side, for GPs trained on four sets of presses.")
     )
-    S.append(("results", "Results on three tips", body))
+    S.append(("results", "Results on tips 0, 1 and 2", body))
+
+    # 10. v2 ID 1 (five N52): the coordinator's analyses of 2026-10-27
+    cp = lambda rel: f"<code>docs/experiments/20261022-ur5_tip_calibration/data/{rel}</code>"  # noqa: E731
+    REG = ("face", "edge", "flank")
+    v2 = TP["v2 ID 1"]
+    phys = [TP[k]["physical"]["under_1p5N"] for k in ("ID 1", "ID 2", "ID 3")]
+    mloc, mfe = strict("mlp", "loc_mm"), strict("mlp", "force_rel_err", 100)
+    ploc, pfe = strict("physical", "loc_mm"), strict("physical", "force_rel_err", 100)
+    sens = [b["sensitivity_over_own_1_2N"] for b in HX["linearity"]["by_bin"].values()]
+    rod = {k: RD["presses"][k]["all"] for k in ("rod", "sphere", "sphere_rod")}
+    tt, lo, sa, cv = TL["transfer"], TL["loto"], TL["shear"], TL["coverage_1p5mm"]
+    bd = lambda k: next(r["loc_mm"] for r in TL["by_distance"][k] if r["d_lo"] == 1.0 and r["band"] == "over_1p5N")  # noqa: E731
+    sz = lambda k: [sa[k][r][2] for r in REG]  # noqa: E731
+    sgn = lambda x: f"{x:.2f}".replace("-", "−")  # noqa: E731
+    pl, tsp = SV["plan"], list(SV["times"]["turn_speed_deg_s"].values())
+    th = pl["total_h"]
+    t5 = P.table(["Estimator", "Tip 1", "Tip 2", "Tip 3", "v2 ID 1"], [
+        [name] + [f"{TP[k][est]['over_1p5N']:.2f} / {TP[k][est]['under_1p5N']:.2f}" for k in ("ID 1", "ID 2", "ID 3", "v2 ID 1")]
+        for est, name in (("own", "Board GP, own presses"), ("own_thinned", "Board GP, own presses thinned to 48 actions"),
+                          ("others", "Board GP, the other tips' presses"), ("pooled", "Board GP, own and the other tips' presses"),
+                          ("physical", "Physical model, untrained"))],
+        caption="Median location error in mm at 1.5 N and over / under 1.5 N, on each tip's sphere presses, under five "
+                "folds grouped by action. Thinned: the tip's own training set cut to 48 press actions, as many as tip 3 "
+                "has. The other tips: a GP of the v1 tips other than the one scored, all three for v2 ID 1. The tips have "
+                "98, 187, 60 and 198 press actions. Rows in " + cp("20261027-v1_v2_tips.json") + " ("
+                + P.code("scripts/ur5_tip_calibration_v1_tips.py --v2") + ").", n=5)
+    t6 = P.table(["Region", "Tall press actions (holds)", "Sphere GP (mm)", "With the other tall presses (mm)",
+                  "Shear along the finger, tall / low sphere (N/N)", "FE points within 1.5 mm, sphere / with tall (%)"],
+                 [[nm, f"{tt[r]['n_actions']} ({tt[r]['n_holds']})", f"{tt[r]['loc_mm_over_1p5N']:.2f}",
+                   f"{lo[r]['loc_mm_over_1p5N']:.2f}", f"{sgn(sa['tall'][r][2])} / {sgn(sa['sphere'][r][2])}",
+                   f"{100 * cv[r]['sphere']:.0f} / {100 * cv[r]['sphere_and_tall']:.0f}"]
+                  for r, nm in zip(REG, ("Face", "Edges", "Flanks"))],
+                 caption="v2 ID 1's presses on the tall indenter at 1.5 N and over, by region. Location error of a board GP "
+                         "of the sphere presses, and of one with the other tall presses added, one tall press action left "
+                         "out at a time. Shear along the finger: the median shear component along $z$ of the pad frame per "
+                         "newton of normal force. FE points: the share of the region's FE surface points within 1.5 mm of a "
+                         "press. Rows in " + cp("20261027-143529-tallv2id1/r29_tall_vs_sphere.json") + " ("
+                         + P.code("scripts/ur5_tip_calibration_tall_r29.py") + ").", n=6)
+    t7 = P.table(["Stage", "At v2 ID 1's settings (h)", "Cut suite (h)"],
+                 [[nm, f"{pl['by_stage'][k]['h']:.2f}", f"{pl['by_stage'][k]['h_reduced']:.2f}"]
+                  for k, nm in (("1 sphere pass 1", "Low sphere, pass 1"), ("2 sphere", "Low sphere, the other passes"),
+                                ("3 rod", "Rod"), ("4 tall", "Tall indenter"))]
+                 + [["Total", f"{th['as_run']:.1f}", f"{th['reduced']:.1f}"]],
+                 caption="Robot time of each stage of v2 ID 1's suite at its program settings, from the timed actions of its "
+                         "sessions, and after the cut. The tall stage is R29 as planned; v2 ID 1 stopped 37 of its actions "
+                         "short of the end. Rows in " + cp("20261027-suite_value_v2id1.json") + ".", n=7)
+    body = (
+        f"<p>v2 ID 1 has five N52 magnets in the checkerboard; fitted at rest, they have {RD['k']['v2 ID 1']:.2f} of an "
+        "N52's strength. On 2026-10-26 and 10-27 it ran the whole suite on the low sphere, two passes on the rod and part "
+        "of a pass on the tall indenter (Table 4). Calibrated on its own presses, a board GP places new points within "
+        f"{v2['own']['over_1p5N']:.2f} mm at 1.5 N and over and {v2['own']['under_1p5N']:.2f} mm under (Table 5). Tip 2, "
+        f"the best v1 tip, gives {TP['ID 2']['own']['over_1p5N']:.2f} and {TP['ID 2']['own']['under_1p5N']:.2f} mm. v2 ID "
+        f"1's force errs by {v2['own']['force_err_N_over_1p5N']:.2f} N at 1.5 N and over. Untrained, the physical model "
+        f"places its presses under 1.5 N within {v2['physical']['under_1p5N']:.2f} mm, against {rg(phys, '{:.1f}')} mm on "
+        f"the v1 tips. A GP of the v1 tips' presses misses v2 ID 1's contacts by {v2['others']['over_1p5N']:.2f} mm, so a "
+        "v2 tip is calibrated on its own presses.</p>"
+        + t5
+        + "<p><b>Presses beyond the training force.</b> The estimators were trained on v2 ID 1's holds of 2 N and under. "
+        "They were scored on its presses of 2 to 8 N, at actions outside training (Figure 9). The board GP misses those "
+        f"presses by {rg(bloc)} mm and gives {rg(bfe, '{:.0f}')} % too little force. Far from its training holds a GP "
+        f"returns toward the training mean (Section 8). The direction GP places the same presses within {rg(dloc)} mm and "
+        f"their force within {rg(dfe, '{:.1f}')} %. The MLP ensemble gives the force within {rg(mfe, '{:.1f}')} %, and it "
+        f"misses the point by {rg(mloc)} mm. The physical model misses by {rg(ploc)} mm and {rg(pfe, '{:.0f}')} %. Within "
+        "the training range, at 1.5 N and over, the direction GP's location error is 0.17, 0.23 and 0.23 mm on the face, "
+        "edges and flanks. The board GP's is 0.23, 0.32 and 0.49 mm there (" + link(L["v3"], "v3 plan") + "). From 0.25 to 8 N, v2 ID 1's "
+        f"signal per newton stays within {min(sens):.2f}–{max(sens):.2f} of its value at 1–2 N.</p>"
+        + P.fig(9, F["hard"], "Location and force error of v2 ID 1's estimators, trained on its press holds of 2 N and "
+                "under. White band: five folds over actions within that range. Grey band: presses of 2 to 8 N at actions "
+                "outside training. The number under each force bin is its count of holds. Rows in "
+                + cp("20261027-hard_extrapolation_v2id1.json") + " ("
+                + P.code("scripts/ur5_tip_calibration_hard_extrapolation.py") + ").")
+        + "<p><b>Rod.</b> On the rod of radius 12.5 mm, a board GP was trained on v2 ID 1's own rod presses. It places new "
+        f"points within {rod['rod']['loc_over_1p5N']:.2f} mm at 1.5 N and over and {rod['rod']['loc_under_1p5N']:.2f} mm under. Its "
+        f"force errs by {rod['rod']['force_err_over_1p5N']:.2f} N and {rod['rod']['angle_over_1p5N']:.1f}°. A GP of the "
+        f"sphere presses alone misses the rod's points by {rod['sphere']['loc_over_1p5N']:.2f} and "
+        f"{rod['sphere']['loc_under_1p5N']:.2f} mm, and their force by {rod['sphere']['force_err_over_1p5N']:.2f} N. With "
+        f"both indenters in training the error is {rod['sphere_rod']['loc_over_1p5N']:.2f} and "
+        f"{rod['sphere_rod']['loc_under_1p5N']:.2f} mm (" + cp("20261027-095303-rodv2id1/rod_tips.json") + ").</p>"
+        "<p><b>Tall indenter.</b> The tall indenter is a 5 mm sphere 160 mm above its 2x4, where the robot reaches more of "
+        "the edges and flanks. Its pass 1 registered the tool at 0.054 mm rms over 21 touch-offs. R29 then pressed 45 "
+        "points that had no sphere press within 1 mm, until the HEX-E dropped out at joint 6 +18.5°. Its resume added 12 "
+        "presses and 26 of 50 slides before the tip was swapped. A board GP of the sphere presses misses the tall "
+        f"indenter's points by {rg([tt[r]['loc_mm_over_1p5N'] for r in REG])} mm at 1.5 N and over (Table 6). With the "
+        f"other tall presses in training it gives {rg([lo[r]['loc_mm_over_1p5N'] for r in REG])} mm. At 1.0–1.25 mm from "
+        f"the nearest training press, the tall presses err by {bd('tall'):.2f} mm and the sphere's by {bd('sphere'):.2f} mm. "
+        f"The tall indenter's forces have a shear along the finger of {rg(sz('tall'))} N per newton. On the low sphere it "
+        f"is {sgn(min(sz('sphere')))} to {sgn(max(sz('sphere')))} N per newton.</p>"
+        + t6
+        + "<p><b>Twists.</b> In v2 ID 1's twists, half the board's out-and-back difference is 12 to 21 µT. Once the change "
+        "from the force's own difference is removed, 5 to 8 µT remain. Their correlation with the HEX-E's torsion is 0.84, "
+        "0.47 and 0.00 at the three points twisted most (" + cp("20261026-192158-v2id1/twist_board.json")
+        + ", commit d92e0e03).</p>"
+        f"<p><b>Suite time.</b> v2 ID 1's suite took {th['as_run']:.1f} h of robot time (Table 7). Four program changes "
+        f"save {th['as_run'] - th['all_program']:.1f} h without changing the data. They are faster travel, turn waypoints "
+        "every 1.4° in place of 0.5°, slide holds of 0.2 s and a 30 mm travel lift. Dropping the 23 turn-speed variants and the "
+        "rod's 24 rate presses, and thinning the sphere's rate set and the tall twists, saves "
+        f"{th['all_program'] - th['reduced']:.1f} h more. The robot turned at "
+        f"{rg([v['mean_deg_s'] for v in tsp])}°/s for planned speeds of {min(v['planned_deg_s'] for v in tsp):.2f}–"
+        f"{max(v['planned_deg_s'] for v in tsp):.1f}°/s, so the "
+        "turn-speed variants differed little. Every press target, force level, hard press, slide and touch-off stays in "
+        f"the cut suite of {th['reduced']:.1f} h. Without the slides the board GP places slide contacts within 0.96 mm and "
+        "their shear's direction within 15.4°; with them, within 0.43 mm and 6.6°. Without the hard presses its error at "
+        "3 N and over rises 48 % (" + link(L["v3"], "v3 plan") + ", "
+        + P.code("scripts/ur5_tip_calibration_suite_value.py") + ").</p>"
+        + t7
+    )
+    S.append(("v2id1", "Calibration of the five-magnet tip v2 ID 1", body))
+
+    # 11. v3 ID 1 (four N52) against v2 ID 1 (five), the grid stage of 2026-10-27/28
+    nef = [1000 * g["nef_N"]["1-2"] for g in (g4, g5)]
+    gn = lambda k: (g4["gain_uT_per_N"][k], g5["gain_uT_per_N"][k])  # noqa: E731
+    FE = jl(V3D / "20261028-fe_calibration.json")
+    f4, f5 = FE["four_v3id1"], FE["five_v2id1"]
+    dep = lambda f: [f["depth"][r]["slope_um_per_N"] for r in REG]  # noqa: E731
+    fe_give = [f["depth"][r]["fe_give_um_per_N"] for f in (f4, f5) for r in REG]
+    body = (
+        "<p>v3 ID 1 has four N52 magnets in an alternating 5.0 mm square under pad 05R4. In the readout model of "
+        + link(L["overview"], "the fingertip overview") + ", four magnets give 1.8 times the noise-equivalent force of "
+        "five, 0.051 against 0.029 N. On 2026-10-27 from 22:52, 18 touch-offs on the low sphere registered v3 ID 1 at "
+        "0.049 mm rms. Against v2 ID 1's registration, the sphere's frame moved 0.51 mm and 0.68°, and the pad's frame in "
+        f"the mount 0.47 mm and 1.55°. Stage 2 of its suite began at 23:14. Its grid stage of {G['actions']} press actions "
+        "ended at 00:56 on 2026-10-28, and the stage's slides, rolls and twists came next.</p>"
+        f"<p>Both tips were scored on the same {G['actions']} press actions of the grid stage, paired by action, with "
+        f"{G['holds']['v3']} holds each (Figure 10). With four magnets the signal per newton is about half: "
+        f"{gn('1-2')[0]:.1f} against {gn('1-2')[1]:.1f} µT/N at 1 to 2 N. On the face it is {gn('face')[0]:.1f} against "
+        f"{gn('face')[1]:.1f} µT/N, and on the flanks {gn('flank')[0]:.1f} against {gn('flank')[1]:.1f}. The record noise "
+        f"is {g4['noise_uT']:.2f} and {g5['noise_uT']:.2f} µT. The noise-equivalent force at 1 to 2 N is therefore "
+        f"{nef[0]:.0f} against {nef[1]:.0f} mN, the ratio of {nef[0] / nef[1]:.1f} predicted by the readout model.</p>"
+        "<p>The calibrated errors stay alike. Under five folds grouped by action, the direction GP places contacts within "
+        f"{e4['all']['loc_mm']:.2f} mm with four magnets and {e5['all']['loc_mm']:.2f} mm with five. Its force errs by "
+        f"{100 * e4['all']['force_rel_err']:.1f} and {100 * e5['all']['force_rel_err']:.1f} %. Under 1 N the location errs "
+        f"by {e4['0-1']['loc_mm']:.2f} and {e5['0-1']['loc_mm']:.2f} mm, and between 2 and 3.5 N by "
+        f"{e4['2-3.5']['loc_mm']:.2f} and {e5['2-3.5']['loc_mm']:.2f} mm. On the flanks it errs by "
+        f"{e4['flank']['loc_mm']:.2f} and {e5['flank']['loc_mm']:.2f} mm. The force angle is {e4['all']['angle_deg']:.1f} "
+        f"and {e5['all']['angle_deg']:.1f}°, and the normal angle {e4['all']['normal_deg']:.1f} and "
+        f"{e5['all']['normal_deg']:.1f}° (" + P.code(str((V3D / "20261028-four_vs_five_grid.json").relative_to(ROOT)))
+        + ", " + P.code("scripts/ur5_tip_calibration_four_vs_five.py") + ").</p>"
+        + P.fig(10, F["four_five"], "Four N52 magnets (v3 ID 1, orange) against five (v2 ID 1, blue) on the same press "
+                f"actions of the low sphere's grid stage, {G['holds']['v3']} holds each. (a, b) Signal per newton by normal "
+                "force and by region. (c, d) Location and force error of the direction GP, five folds grouped by action.")
+        + "<p><b>Physical model of pad 05R4.</b> Pad 05R4's FE case and surface basis were built on 2026-10-28 on b_v2's "
+        f"grid and depth, with the four magnets. On the same {FE['actions']} grid actions, the magnets' strength, the "
+        f"board's offsets and the compliance scale $c$ were fitted to the holds up to {f4['fit']['max_n']:g} N (Table 8). "
+        f"The fit gives $c$ = {f4['fit']['c']:.3f} with four magnets and {f5['fit']['c']:.3f} with five. The fitted "
+        f"modulus is therefore {f4['fit']['E_fit_MPa']:.1f} and {f5['fit']['E_fit_MPa']:.1f} MPa, "
+        f"against the FE's {FE['E_FE_MPa']:g} MPa. The registered indentation grows by {rg(dep(f4), '{:.0f}')} µm/N with "
+        f"four magnets and {rg(dep(f5), '{:.0f}')} µm/N with five, more than twice the FE's "
+        f"{rg(fe_give, '{:.0f}')} µm/N. The fitted scale does not improve the contact location. Under five folds grouped by "
+        f"action, the physical model errs by {f5['cv']['table']['all']['loc_mm']:.2f} mm with five magnets "
+        f"({f5['untrained']['all']['loc_mm']:.2f} mm untrained). With four it errs by "
+        f"{f4['cv']['table']['all']['loc_mm']:.2f} mm ({f4['untrained']['all']['loc_mm']:.2f} mm untrained). With four "
+        "magnets, the rest field leaves the magnets' strength and the board's offset along $x$ nearly interchangeable. A "
+        "free fit puts the strength at its bound of 2.0 and the offset at 2.69 mm. With the offset held near v2 ID 1's "
+        f"0.73 mm, it goes to its bound of {f4['rest']['dx']:.2f} mm and the strength to {f4['rest']['k']:.2f}.</p>"
+        + P.table(["Tip, FE case", "Compliance scale $c$", "Fitted modulus (MPa)",
+                   "Indentation, face / edges / flanks (µm/N)", "Location error, untrained (mm)",
+                   "Location error, $c$ fitted (mm)", "Under 1 N, $c$ fitted (mm)"],
+                  [[nm, f"{f['fit']['c']:.3f}", f"{f['fit']['E_fit_MPa']:.1f}",
+                    " / ".join(f"{f['depth'][r]['slope_um_per_N']:.0f}" for r in REG),
+                    f"{f['untrained']['all']['loc_mm']:.2f}", f"{f['cv']['table']['all']['loc_mm']:.2f}",
+                    f"{f['cv']['table']['0-1']['loc_mm']:.2f}"]
+                   for f, nm in ((f4, "v3 ID 1, b_05R4"), (f5, "v2 ID 1, b_v2"))],
+                  caption=f"The physical model of each pad on the same {FE['actions']} grid actions, {f4['holds']} holds "
+                          "each. The fitted modulus is the FE's 12 MPa divided by $c$. The indentation per newton is the "
+                          f"slope of the registered indentation against the normal force; the FE gives {rg(fe_give, '{:.0f}')} "
+                          "µm/N. Location errors are medians under five folds grouped by action. Rows in "
+                          + P.code(str((V3D / "20261028-fe_calibration.json").relative_to(ROOT))) + " ("
+                          + P.code("scripts/ur5_tip_calibration_fe_calibration.py") + ").", n=8)
+    )
+    S.append(("v3id1", "Four N52 magnets against five on v3 ID 1", body))
 
     body = (
         "<p>The HEX-E is a weak reference. Its $F_z$ channel reads 0.78–0.87 of its other axes' gain in two gravity fits. "
-        "Its link dropped out in three of the first night's runs and once on 2026-10-26. The arm, the mount and the "
-        "indenter's stand are taken as rigid; the rod presses bound their compliance at 0.10 mm/N. The registration "
-        "fixes the place along the finger less well than across it. The tips' magnets have 0.34–0.57 of an N52's "
-        "strength. A press below 1 N therefore changes the readings by less than the step of about 7 µT that a press "
-        "leaves at rest. Every model here is trained and scored on one cell, one indenter shape and one night's seating of the "
-        "tip.</p>"
+        "Its link dropped out in three of the first night's runs, once on 2026-10-26 and once in R29 on 10-27. The arm, the "
+        "mount and the indenter's stand are taken as rigid; the rod presses bound their compliance at 0.10 mm/N. The "
+        "registration fixes the place along the finger less well than across it. The magnets of tips 0 to 3 have "
+        "0.20–0.57 of an N52's strength. A press below 1 N therefore changes their readings by less than the step of about "
+        "7 µT that a press leaves at rest. The tall indenter's forces have a shear along the finger that the low sphere's "
+        "lack. It comes from the finger or from the indenter's neck; the sphere check that would separate the two did not "
+        "run before v2 ID 1 came off. v3 ID 1's results cover its grid stage alone. Every model here is trained and scored "
+        "on one cell and one seating of each tip.</p>"
     )
     S.append(("limits", "Limitations", body))
     items = [
@@ -346,9 +591,15 @@ def sections(N, F, P, link, L):
         "the sensor's would make torsion a calibrated output.",
         "Flank coverage: add press targets on the flanks above the cover's walls until no reachable FE point lies more "
         "than 1 mm from a press (" + P.code("scripts/ur5_tip_calibration_density_curve.py") + " reports the share). "
-        "The density curve predicts 0.3–0.6 mm there.",
-        "N52 magnets: repeat cb2t's suite with N52 magnets in the checkerboard. The physical model should reach about "
-        "1.4 mm untrained (transfer simulation), and the light presses should then move above the rest step.",
+        "The density curve predicts 0.3–0.6 mm there. On v2 ID 1 the tall indenter took the flanks' FE points within "
+        f"1.5 mm of a press from {100 * cv['flank']['sphere']:.0f} to {100 * cv['flank']['sphere_and_tall']:.0f} %.",
+        "Six shared points: v3 ID 1's stage 4 presses six points on the low sphere and on the tall indenter in one "
+        "session (" + link(L["v3"], "v3 plan") + "). If their errors agree within their repeat spread, the tall indenter "
+        "alone covers the face, edges and flanks, and the sphere stage is dropped; a larger difference keeps both.",
+        "Four-magnet rest fit: measure the board's offset in v3 ID 1's DIP link, hold it, and refit the magnets' strength "
+        "at rest (" + P.code("scripts/ur5_tip_calibration_fe_calibration.py") + "). A physical-model error on the grid "
+        f"still above v2 ID 1's {f5['cv']['table']['all']['loc_mm']:.2f} mm would place the fault in the four-magnet "
+        "field model.",
         "Random order: run one grid in random order, so that clock time and absolute temperature stop following the "
         "target, and score the temperature inputs again.",
     ]

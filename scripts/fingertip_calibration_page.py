@@ -3,7 +3,8 @@
 process, what motions we initiated, geometry of the calibration and the desired sensing result ... formalizes and
 justifies, mathematically and experimentally, the protocol ... the learning architecture, data processing/pooling across
 sensors"): what the calibration measures, the cell and frames, the motions and what each identifies, the registration,
-the ground truth of a hold, the sessions and their coverage, the learned models, and the results on three tips.
+the ground truth of a hold, the sessions and their coverage, the learned models, the results on tips 0 to 2, the five-magnet tip v2 ID 1 and four
+magnets against five on v3 ID 1 (step 9 of docs/handoff/20261027-crosstalk_feed_poller.md, owner 2026-10-28).
 Reads the figures and numbers of scripts/fingertip_calibration_figures.py; writes
 docs/experiments/20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html.
 
@@ -42,6 +43,7 @@ L = dict(
     overview=ROOT / "docs/overviews/printed_fingertips.html",
     tall=EXP / "20261026-tall_indenter/README.md",
     crosstalk=EXP / "20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html",
+    v3=EXP / "20261027-v3_tip_calibration_and_crosstalk/README.md",
 )
 
 
@@ -56,12 +58,15 @@ def build():
              coverage=MEDIA / "20261026-coverage.png", learning=MEDIA / "20261026-learning.png",
              by_level=MEDIA / "20261026-error_by_level.png", density=MEDIA / "20261026-density.png",
              shear=MEDIA / "20261026-shear.png", transfer=MEDIA / "20261026-transfer_pooling.png",
+             hard=MEDIA / "20261028-hard_presses_v2id1.png", four_five=MEDIA / "20261028-four_vs_five.png",
              film=UR5 / "media/20261022-lab_sphere2_overhead.mp4", film_poster=UR5 / "media/20261022-lab_sphere2_overhead.png")
     S, lede, summary, film_html = sections(N, F, P, link, L)
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S, 1))
-    byline = ("Sessions sphere2, rod1, cb1t, cb1r and cb2t on the lab's UR5 with the OptoForce HEX-E, 2026-10-22 to 10-25, "
-              "analysed on the workstation (" + link(UR5, "docs/experiments/20261022-ur5_tip_calibration/") + "). Figures by "
+    byline = ("Sessions sphere2 to cb3t of tips 0 to 3, v2id1, rodv2id1 and tallv2id1 of v2 ID 1, and spherev3id1 of v3 ID 1, "
+              "on the lab's UR5 with the OptoForce HEX-E, 2026-10-22 to 10-28, analysed on the workstation ("
+              + link(UR5, "docs/experiments/20261022-ur5_tip_calibration/") + "). v2 ID 1's and v3 ID 1's analyses are the UR5 "
+              "coordinator's (commits 0a487cf5 to 05dea908), read as committed. Figures by "
               + P.code("scripts/fingertip_calibration_figures.py") + "; page by " + P.code("scripts/fingertip_calibration_page.py")
               + ". Read " + link(L["phys"], "the physical model of the fingertip") + " first; the topic overview is "
               + link(L["overview"], "printed fingertips and force sensing") + ".")

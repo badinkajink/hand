@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Figures and numbers of the page on the fingertip's calibration on the UR5 (docs/experiments/20261026-fingertip_calibration/):
 the six motions of a session, the press targets on the pad, the learning set-up, location error by force level, location
-error against the distance to the nearest training press, shear on the slides, and transfer and pooling across tips.
+error against the distance to the nearest training press, shear on the slides, transfer and pooling across tips, the
+sessions' hold counts, v2 ID 1's hard presses and four magnets against five on v3 ID 1. The last two are drawn from the UR5
+coordinator's analysis files as committed at HEAD (fingertip_calibration_text.at_head), without refitting.
 
 Reads the sessions' analysis outputs in docs/experiments/20261022-ur5_tip_calibration/data/ (holds.npz, summary.json,
 checks.json, density_curve.json, pooled_checks.json) and the estimator's surface basis; the Gaussian process is the one
@@ -416,12 +418,119 @@ def fig_transfer():
     NUM["transfer"] = t
 
 
+# ------------------------------------------------------------------------------------------------ sessions, v2 ID 1, v3 ID 1
+SESSIONS = ["20261022-210852-sphere2", "20261023-104526-rod1-joint", "20261023-203938-cb1t", "20261025-114653-cb1r",
+            "20261025-152920-cb2t", "20261026-134522-cb3t", "20261026-180938-rod3t", "20261026-192158-v2id1",
+            "20261027-095303-rodv2id1", "20261027-143529-tallv2id1"]
+HARD = UR5 / "20261027-hard_extrapolation_v2id1.json"
+FVF = ROOT / "docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data/20261028-four_vs_five_grid.json"
+FOUR, FIVE = "#b06010", "#2e5fa8"
+
+
+def sessions():
+    """Press and turn holds, and their actions, of every analysed session (holds.npz), for the page's session table."""
+    out = {}
+    for s in SESSIONS:
+        H = K.load(UR5 / s)
+        kind, aid = np.asarray(H["kind"]).astype(str), np.asarray(H["id"]).astype(str)
+        press, turn = kind == "press", np.isin(kind, ("slide", "roll", "twist"))
+        out[s] = dict(press_holds=int(press.sum()), presses=len(set(aid[press])), turn_holds=int(turn.sum()),
+                      turns=len(set(aid[turn])))
+    NUM["sessions"] = out
+
+
+def log_ticks(a, ticks):
+    a.set_yticks(ticks)
+    a.set_yticklabels([f"{t:g}" for t in ticks])
+    a.minorticks_off()
+
+
+def fig_hard():
+    """v2 ID 1's estimators trained on its press holds under 2 N (the coordinator's scripts/ur5_tip_calibration_hard_extrapolation.py):
+    location and force error in the training range, under five folds over actions, and on the presses of 2 to 8 N at
+    actions that no training hold shares."""
+    from fingertip_calibration_text import at_head
+    plt = plt_setup()
+    E = json.loads(at_head(HARD))["splits"]["2N"]["estimators"]
+    bins = [("in_range", "0-1"), ("in_range", "1-2"), ("test_strict", "2-3.5"), ("test_strict", "3.5-5"), ("test_strict", "5-8")]
+    ests = [("gp", "Board GP", "black", "-", "o"), ("gp_direction", "Direction GP", FIVE, "-", "s"),
+            ("mlp", "MLP ensemble", FOUR, "-", "^"), ("physical", "Physical model", "0.45", "--", "D")]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(9.6, 4.9))
+    x = np.arange(len(bins))
+    for k, lab, col, ls, mk in ests:
+        a1.plot(x, [E[k][part][b]["loc_mm"] for part, b in bins], ls=ls, marker=mk, color=col, lw=1.8, ms=7, label=lab)
+        a2.plot(x, [100 * E[k][part][b]["force_rel_err"] for part, b in bins], ls=ls, marker=mk, color=col, lw=1.8, ms=7)
+    n = [E["gp"][part][b]["n"] for part, b in bins]
+    labels = [f"{b.replace('-', '–')}\n{m}" for (_, b), m in zip(bins, n)]
+    for a, yl, tt, ticks, lo in ((a1, "Location error, median (mm)", "(a) Contact point", (0.2, 0.5, 1, 2, 5), 0.12),
+                                 (a2, "Force error, median (% of the force)", "(b) Force", (2, 5, 10, 20, 50, 100), 1.4)):
+        a.set_yscale("log")
+        log_ticks(a, ticks)
+        a.axvspan(1.5, len(bins) - 0.4, color="0.9", zorder=0)
+        a.set_xticks(x)
+        a.set_xticklabels(labels)
+        a.set_xlim(-0.4, len(bins) - 0.6)
+        a.set_xlabel("Normal force (N) and holds")
+        a.set_ylabel(yl)
+        a.set_title(tt)
+        a.text(3.0, lo * 1.12, "Not in training", ha="center", va="bottom", fontsize=12, color="0.3")
+        a.set_ylim(lo, ticks[-1] * 1.12)
+    fig.legend(loc="lower center", ncol=4, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    save(fig, "20261028-hard_presses_v2id1.png")
+
+
+def fig_four_five():
+    """Four N52 magnets (v3 ID 1) against five (v2 ID 1) on the same press actions of the low sphere's grid stage (the
+    coordinator's scripts/ur5_tip_calibration_four_vs_five.py): the board's change per newton by force and by region,
+    and the direction GP's location and force error by force under five folds over actions."""
+    from fingertip_calibration_text import at_head
+    plt = plt_setup()
+    G = json.loads(at_head(FVF))
+    tips = [("four_v3id1", "Four N52 magnets (v3 ID 1)", FOUR), ("five_v2id1", "Five N52 magnets (v2 ID 1)", FIVE)]
+    fb, rg = ["0-1", "1-2", "2-3.5", "3.5-8"], ["face", "edge", "flank"]
+    fig, ((a, b), (c, d)) = plt.subplots(2, 2, figsize=(9.6, 8.6))
+    w = 0.38
+    for j, (k, lab, col) in enumerate(tips):
+        g, e = G[k]["gain_uT_per_N"], G[k]["gp_direction"]
+        for ax, keys in ((a, fb), (b, rg)):
+            xs = np.arange(len(keys)) + (j - 0.5) * w
+            ax.bar(xs, [g[x] for x in keys], w, color=col, label=lab if ax is a else None)
+            for xx, kk in zip(xs, keys):
+                ax.text(xx, g[kk] + 1.0, f"{g[kk]:.0f}", ha="center", va="bottom", fontsize=11)
+        c.plot(range(len(fb)), [e[x]["loc_mm"] for x in fb], marker="o", color=col, lw=1.8, ms=7)
+        d.plot(range(len(fb)), [100 * e[x]["force_rel_err"] for x in fb], marker="o", color=col, lw=1.8, ms=7)
+    flab = [x.replace("-", "–") for x in fb]
+    for ax, ttl in ((a, "(a) Signal per newton by force"), (b, "(b) Signal per newton by region")):
+        ax.set_ylabel("Signal per newton (µT/N)")
+        ax.set_ylim(0, 92)
+        ax.set_title(ttl)
+    a.set_xticks(range(len(fb)))
+    a.set_xticklabels(flab)
+    a.set_xlabel("Normal force (N)")
+    b.set_xticks(range(len(rg)))
+    b.set_xticklabels(["Face", "Edges", "Flanks"])
+    b.set_xlabel("Region, holds at 0.5 to 3.5 N")
+    for ax, yl, ttl, top in ((c, "Location error, median (mm)", "(c) Direction GP, contact point", 0.85),
+                             (d, "Force error, median (% of the force)", "(d) Direction GP, force", 12.5)):
+        ax.set_xticks(range(len(fb)))
+        ax.set_xticklabels(flab)
+        ax.set_xlabel("Normal force (N)")
+        ax.set_ylabel(yl)
+        ax.set_ylim(0, top)
+        ax.set_title(ttl)
+    fig.legend(loc="lower center", ncol=2, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    save(fig, "20261028-four_vs_five.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
     a = ap.parse_args()
     figs = dict(motions=fig_motions, coverage=fig_coverage, learning=fig_learning, by_level=fig_by_level,
-                density=fig_density, shear=fig_shear, transfer=fig_transfer)
+                density=fig_density, shear=fig_shear, transfer=fig_transfer, sessions=sessions, hard=fig_hard,
+                four_five=fig_four_five)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)
