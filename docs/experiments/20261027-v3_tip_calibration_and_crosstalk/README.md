@@ -1,155 +1,153 @@
 # Calibration and crosstalk plan for the four-magnet v3 tips on the UR5 cell
 
-This plan takes one four-magnet tip, v3, through every action that v2 ID 1 ran on the sphere fixture, the rod and the tall
-indenter. It then measures two more v3 tips on the fingertip holder. Three results come out of it. The first is v3's
-location, force and direction errors against v2 ID 1's at the same targets and forces. The second is the field that a v3
-neighbour adds at the robot tip's chips at known poses, against the dipole model. The third is the robot tip's contact
-estimate in a pinch between two v3 tips. The robot time is about 18 h over two to three days. Nothing runs before the
-owner's answers to the decisions at the end.
+This plan measures the four-magnet tip v3 ID 1 on the robot. It runs in three parts. First comes the crosstalk map on the
+fingertip holder, where two more v3 tips with their own boards stand at the two stations. Next comes v2 ID 1's suite on
+the sphere fixture, the rod and the tall indenter, cut from 15.0 h of robot time to 9.1 h. Last comes a pass on the top
+edge, which the trimmed cap opens. The map takes about 1 h with its touch-offs. Its plan is built (`lab/20261027-plan_holder_lab_map_v3id1.json`)
+and waits on the owner's homing on the holder: the owner stopped R29 at 19:00 on 2026-10-27 to put v3 ID 1 on. Before
+the suite, the lab program needs the speed changes listed under Code.
 
 ## Terms and metrics
 
-- v3 is a fingertip pad 05R4 (`assets/cad_v2/fingertip_prints/`) with four N52 magnets of 3 x 2 mm. They sit in a 5.0 mm
-  square centred over the board's centre chip U1, at the five-magnet pad's depth of 7.5 mm. Alike poles lie on the
-  square's diagonals, so the four have no net moment. IDs are given as the tips go on: v3 ID 1 on the robot, v3 ID 2 and
-  ID 3 on the holder.
-- The robot tip is the tip on mount v7, whose board streams. A held tip is a pad unit (pad, cassette 3T, top cover TW15H3)
-  without a board on one of the holder's two stations (`../20261027-fingertip_holder/README.md`).
-- Location error is the distance along the surface between the estimated and the registered contact point (mm). Angle error
-  is the angle between the estimated and the measured force (deg). Force error is the norm of their difference (N). Each is
-  a median by region (face, edge, flank) at 1.5 N and over and under 1.5 N. The estimates come from a GP of the tip's own
-  presses in five folds grouped by action, as in `scripts/ur5_tip_calibration_direction.py`.
-- Coverage is the share of a region's FE surface points within 1.5 mm of a press.
-- W, g and s are the holder's pose parameters. W is the gap between the two apexes with the pads facing. g is the gap
-  between the flanks side by side, with the apexes level. s shifts the robot tip toward its own tip end. A twist turns the
-  robot tip about the vertical through its apex.
-- The neighbour field at a pose is the change in the robot tip's 15 chip components when it moves from a reference 40 mm
-  above to the pose. The same change measured with the stations empty is subtracted from it. It is given in uT, as the norm
-  over the 15 components.
-- The model residual is the norm of the measured minus the modelled neighbour field at poses left out of the fit. It is
-  given in uT and as a share of the measured field.
+- v3 is a pad 05R4 (`assets/cad_v2/fingertip_prints/`) with four N52 magnets of 3 x 2 mm in a 5.0 mm square centred
+  over the board's centre chip U1, 7.5 mm under the apex. Alike poles lie on the square's diagonals, so the four have no
+  net moment. v3 ID 1 is the tip on the robot, read by the ESP32-C3 (`--board`). The two held tips stream through the
+  QT Py's mux (`--held-board`, `held.bin`); they get IDs when they go on the robot.
+- A held tip is a whole fingertip (pad, cassette 3T, top cover TW15H3 trimmed, board) screwed to one of the holder's two
+  stations (`../20261027-fingertip_holder/README.md`): tip up on +y, tip down on -y.
+- W is the gap between the two apexes with the pads facing, on the +y station. g is the gap between the flanks side by
+  side, with the apexes level, on the -y station; s shifts the robot tip toward its own end. A twist turns the robot tip
+  about the vertical through its apex.
+- A hover is the program's no-contact action (85ddc425). The robot pad's apex is held at a point in I with its normal
+  down. It dwells there between two dwells at a reference straight above, and the HEX-E guards it at 0.5 N.
+- The neighbour field at a pose is the change of a board's 15 chip components between the reference and the pose (uT,
+  norm over the 15). It is read on the robot's board for the held tips' magnets, and on the held boards for the robot's.
+- Location error is the distance along the surface between the estimated and the registered contact point (mm). Angle
+  error is the angle between the estimated and the measured force (deg). Force error is the norm of their difference
+  (N), or its magnitude as a share of the force. All are medians by region, under five folds grouped by action.
+- The direction GP is a GP from the direction of the board change, d/|d|, to the contact point and to the force per unit
+  change; its force is that times |d|. The board GP is the GP from d to the point and the force used so far.
 
-## What the plan measures
+## Crosstalk map on the holder
 
-v2 ID 1's own errors are the reference. At 1.5 N and over, its GP places contacts within 0.23 mm on the face, 0.32 mm on
-the edges and 0.49 mm on the flanks (`../20261022-ur5_tip_calibration/data/20261027-143529-tallv2id1/r29_tall_vs_sphere.json`,
-`sphere_alone`). Its angle errors there are 2.5, 3.3 and 4.9 deg. The readout model resolved 0.029 N at the contact with
-five magnets. For an earlier, wider four-magnet layout it resolved 0.051 N (`../20261020-ur5_calibration_mount_v2/`); it
-has no figure for 05R4's square. Stages 1 to 4 run v2 ID 1's plans unchanged on v3's registration, so the comparison uses
-the same targets, force ladders and density.
-
-The model of the crosstalk budget (`scripts/fingertip_crosstalk.py`) gives the field of a neighbour at the robot tip's
-chips, at twist 0 and s 0:
+The held tips' field at the robot's chips, from the model of `scripts/fingertip_crosstalk.py`, is in the table below. The
+other station's tip adds at most 0.31 uT. The magnets' pull between the tips is at most 1.0 mN at these poses
+(`fingertip_crosstalk.py pull`), against the HEX-E's noise of 50 mN in x and y and 240 mN in z.
 
 | Pose | Four N52 (v3), uT | Five N52 (v2), uT |
 |---|---|---|
 | Facing, W 0.5 mm | 33.7 | 483 |
-| Facing, W 2 mm | 24.2 | 406 |
 | Facing, W 5 mm | 13.1 | 295 |
-| Facing, W 10 mm | 5.3 | 185 |
 | Facing, W 20 mm | 1.2 | 86 |
 | Side by side, g 13 mm | 38.9 | 231 |
-| Side by side, g 20 mm | 8.2 | 102 |
 | Side by side, g 25 mm | 3.4 | 65 |
 
-A press of 0.4 to 0.7 N changes v2 ID 1's board by 23 uT. The other station's v3 tip adds at most 0.31 uT, so both
-stations take a tip for the whole run. Side by side and touching, four magnets still give 2,928 uT in the model. The
-holder reaches side by side from g 13 mm only, because v7's fork meets the station block below that.
+The board's noise is 1.9 uT per component and record (median of the preflight of 143529-tallv2id1). Averaged over a 2 s
+dwell at the chips' 140 conversions a second, a neighbour field carries about 0.6 uT as a norm over 15 components. Facing
+to W 10 mm and side by side to g 20 mm read at five times that or more. The farther poses dwell 6 s, and the held tips'
+boards read the robot's field in the same dwells.
 
-The board's noise sets which poses are informative. In the preflight of `lab/20261027-143529-tallv2id1` it was 1.6 to
-3.0 uT per component and record, with a median of 1.9 uT. The chips convert about 140 times a second, so a 2 s dwell
-averages about 280 conversions per chip. If the noise averages down as white noise, that gives 0.11 uT per component.
-The neighbour field takes the difference of four such means, which gives 0.23 uT per component and 0.9 uT as a norm over
-15. Facing poses to W 10 mm and side poses to g 20 mm then give five times the noise or more. The farther poses dwell
-6 s, and the repeated poses measure the noise that is left.
+The plan (`scripts/ur5_tip_calibration_holder_plan.py`) starts with three touch-offs of the robot apex on the +y held
+apex. Their onsets give the held apex's height, which the CAD knows only to the boards' 0.6 mm of FR-4 (the owner
+confirmed it) and the screws' 0.2 mm of play. The owner's three seatings on the holder (19:13 to 19:19) put it on the
+tall indenter's 2x4, about 100 mm behind the low sphere and the rod; in the holder's frame the rod stands at x -104,
+y -28.5 mm, in front of the -y station. With all four fixtures on the cell, 64 of the plan's 89 hovers fail, all on the
+rod: wrist 3 comes within 0.7 to 2.6 mm of it at the touch-offs and facing W 0 to 3 mm, and side by side the HEX-E, the
+adapter and wrists 2 and 3 run into it. The low sphere keeps wrist 3 7.4 to 8.3 mm away at the seatings.
 
-## Stages
+With the rod fixture off, `lab/20261027-plan_holder_lab_map_norod_v3id1.json` (on holder_seated_2) keeps 49 facing hovers
+(W 0.5 to 30 mm at twists -20 to +10 deg, the twelve offsets, W 45 mm) and 32 side-by-side hovers (g 13 to 25 mm), with
+the first 20 repeated: about 41 min. Twist +20 deg fails on joint 5 (30.5 deg). Its least clearances are wrist 2
+20.95, mount 3.49, finger 3.48, pad 0.58 (at W 0.5 mm) and HEX-E 21.6 mm. With the rod in place, 25 facing hovers and 1
+side-by-side hover keep every margin.
 
-In v2 ID 1's sessions a press took 37 s and a slide 185 s, in eight directions at two amplitudes. A twist took 144 s, a
-roll 182 s and a touch-off 46 to 97 s.
+The three seatings tilt the holder's frame 4.3 to 4.9 deg from level and put its base 6.5 mm above the other 2x4s' tops.
+If the holder leans that much, the plan stands. If it sits level, the fork rests 4.6 deg off in the seat, and the held
+apexes, about 100 mm from the seat, would lie up to 7 to 8 mm from where the plan puts them; the touch-offs show that as a
+wrong height or a miss. The hovers are rebuilt with `--z-offset` from the touch-offs and the homed registration.
 
-| Stage | Fixture | Actions | Robot time | Owner present for |
-|---|---|---|---|---|
-| 0 | none | v3 ID 1's pad unit on the finger's board on mount v7 | none | the change of pads |
-| 1 | sphere | pass 1: preflight, homing, 34 touch-offs, registration | 0.7 h | the pole check |
-| 2 | sphere | v2 ID 1's sphere plans: 212 presses with the hard presses to 8 N, 100 slides, 20 twists, 6 rolls, the final references | 8.5 h | the actions past +45 deg |
-| 3 | rod | v2 ID 1's rod passes 1 and 2 | 1.9 h | none |
-| 4 | tall | pass 1; R29's targets (60 presses with the references, 50 slides, 12 twists); six points pressed on both indenters | 4.5 h | the actions past +45 deg |
-| 5 | holder | homing; field map with the stations empty; v3 ID 2 and ID 3 mounted; field map; pinch presses | 2 h | the homing and the change of tips |
+A run with the stations empty would remove the background of the cell and the robot from the robot board's changes. The
+held tips went on before the map, so the far poses (W 45 mm; g 40 mm failed the mount's margin) and the repeats measure
+the background and the drift instead. The held boards do not move, so their background is constant.
 
-In stage 1, each chip's field at rest and at 5 N is compared with its range at the board's gain, as for v2 ID 1. The
-poles are then fitted at rest. The checkerboard (+1, -1, -1, +1) in the slots' order is expected. Its exact reverse can be
-undone in software. Any other pattern stops the run for the owner.
+Pinch presses on the +y held apex follow the map as their own plan: 0.25 to 3 N, robot targets 2 and 4 mm off its apex
+across and along, twists of -20 to +20 deg, the apex press first, in the middle and last.
 
-Stage 4 adds six points that are pressed on both the sphere fixture and the tall indenter in one session. They are the
-face's centre (index 788), two edge points and three flank points that both reach. On v2 ID 1, the tall indenter's forces
-had a shear part along the finger of 0.08 to 0.13 N per newton of normal force
-(`../20261022-ur5_tip_calibration/data/20261027-143529-tallv2id1/r29_tall_vs_sphere.json`). On the sphere fixture it was
--0.02 to +0.02 N per newton. The shared points measure that difference on v3 in one session.
+## The suite, cut to 9.1 h
 
-## Field map and pinch presses on the holder
+The suite-value analysis (`scripts/ur5_tip_calibration_suite_value.py`, `../20261022-ur5_tip_calibration/data/20261027-suite_value_v2id1.json`)
+timed v2 ID 1's actions and measured what each part adds to the held-out errors. v2 ID 1's actions took 15.0 h. Program
+changes that leave the data as they are save 5.0 h:
 
-The poses:
+| Change | Saves |
+|---|---|
+| Slider 1.0 for travel, the fast approach and the retreat, with the press and turn speeds kept | 2.2 h |
+| Turn waypoints every 1.4 deg in place of 0.5 deg, turn_v 0.016 or more | 2.5 h |
+| Slide holds of 0.2 s in place of 0.4 s | 0.2 h |
+| Travel lift 30 mm | 0.1 h |
 
-- Facing, on the +y station: nine gaps W (0.5, 1, 2, 3, 5, 10, 15, 20 and 30 mm) at five twists (-20 to +20 deg in steps
-  of 10 deg). All 45 poses pass the holder's reach check. Twelve more, at W 1, 3 and 10 mm and twist 0, move the robot
-  apex 3 mm across or along the held tip. Their reach is still to be checked.
-- Side by side, on the -y station: the 31 poses that pass the holder's reach check, at g 13 to 25 mm and s 0, 2 and 5 mm.
+Cutting the 23 turn-speed variants and the rod's 24 rate presses, and thinning the sphere's rate set to 6 presses and the
+tall twists to 4, saves 0.9 h more. The commanded turn speeds ran at 0.23 to 0.36 deg/s, against the 0.07 to 6.9 deg/s
+the plans assumed, so the turn-rate variants had compared little. Every press target, force level, hard press, slide and
+touch-off stays.
 
-Each pose is a no-contact action. The robot tip dwells 1.5 s at the reference 40 mm above the pose, with the pose's
-orientation. It then dwells 2 s at the pose and 1.5 s at the reference again. At W 15 mm and over and g 20 mm and over it
-dwells 6 s at the pose. The action aborts as a contact if the HEX-E reads over 0.1 N at the pose. Each held tip's place is
-known from the CAD to about ±0.2 mm. So a touch-off of the robot apex on the held apex at 0.1 N sets W = 0 before the
-facing poses.
+| Stage | As v2 ID 1 ran it | Cut |
+|---|---|---|
+| Sphere pass 1 | 0.65 h | 0.49 h |
+| Sphere | 8.44 h | 4.89 h |
+| Rod | 1.87 h | 1.10 h |
+| Tall | 4.06 h | 2.66 h |
+| Total | 15.0 h | 9.1 h |
 
-The empty run comes first, with both stations bare. The owner then mounts v3 ID 2 on the +y station (facing up) and v3
-ID 3 under the -y station (facing down), and the same poses run again. Each run repeats its first 20 poses at its end,
-which gives the drift. A run takes about 20 min.
+The slides are worth their time. Without them the board GP places slide contacts at 0.96 mm and their shear's direction
+at 15.4 deg; with them, at 0.43 mm and 6.6 deg. Halving them in any way (directions, amplitudes or count) raises some
+slide median by 15 to 20 %. The 42 actions past joint 6 +45 deg take 0.6 h and run with the owner present.
 
-The pinch presses then put the robot apex on the held apex on the +y station at 0.25, 0.5, 1, 2 and 3 N. Eight actions
-shift the robot apex by ±2 and ±4 mm across and along, and four turn it by -20, -10, +10 and +20 deg. The apex press
-repeats first, in the middle and last. That is 16 actions and 80 holds. Under the press the held pad's magnets move with
-its surface, so the neighbour field changes with force. The difference between the apex press and the field at W 0.5 mm
-gives that change.
+The hard presses matter to the board GP: without them its location error at 3 N and over rises 48 %. The direction GP
+needs them much less. Trained at 2 N and under, it places presses of 2 to 8 N within 0.25 to 0.31 mm and 5 to 6 % of the
+force on actions it never saw. The board GP misses them by 1.0 to 3.8 mm and 45 to 87 %
+(`scripts/ur5_tip_calibration_hard_extrapolation.py`). It also does better in range: on v2 ID 1's sphere session it gives
+0.17, 0.23 and 0.23 mm at 1.5 N and over on the face, edges and flanks, against 0.23, 0.32 and 0.49 mm. On the tall
+indenter's new points it does no better than the board GP. The hard presses stay in the cut suite as test data.
 
-## Analysis on the workstation
+Whether the suite needs both spheres is open. On v2 ID 1 the tall indenter's forces had a shear part along the finger of
+0.08 to 0.13 N per newton, against -0.02 to +0.02 on the sphere fixture, and its presses erred twice as much at the same
+distance to the nearest training press (0.82 against 0.36 mm). The sphere check that would have separated the finger
+from the indenter did not run before v2 ID 1 came off. On v3 ID 1, stage 4 presses six points on both indenters in one
+session. If they agree, the tall indenter alone can carry v3's face, edges and flanks, and the sphere stage goes.
 
-- The neighbour field is fitted with each held tip's six pose parameters and its magnets' strength, in five folds by pose.
-  The residual at held-out poses is reported in uT and as a share of the field. At W 5 mm and under, a residual over 10 %
-  of the field (3.4 uT at W 0.5 mm) means the model cannot be subtracted to the board's noise.
-- In the pinch, the robot tip's contact is estimated by the GP of its sphere presses in three ways. The board change is
-  taken raw, with the modelled field at the commanded pose subtracted, and with the held tip's pose fitted from the board.
-  The truth is the contact of the two FE surfaces at the registered poses. The errors are compared with the robot tip's
-  sphere presses at the same levels.
-- v3 is compared with v2 ID 1 by the errors by region and force band, the coverage and the board change per newton at the
-  face's centre. The rod and the tall indenter's transfers are compared as in `scripts/ur5_tip_calibration_rod_tips.py`
-  and `scripts/ur5_tip_calibration_tall_r29.py`.
+## The top edge and the flanks at the end
 
-## Code needed before the stages
+With the cap trimmed flush at x_F -0.10, the tall indenter reaches 14 of the 88 FE points of the tip's end (none
+before), 9 of them at 1 mm spacing, and 19 to 24 more edge points (`scripts/ur5_tip_calibration_trimmed_cap_reach.py`).
+It reaches one more flank point: 346 of the 402 flank points it misses fail on joints 5 and 6 at every turn. The four M2
+cheese heads stand 1.3 mm proud of the trimmed face and cost 11 to 14 flank points. Low heads or countersunk screws
+would recover them. This pass runs last, the next morning, with joint 6 to +58 deg while the owner is present; it needs
+its own force levels for the tip region.
 
-1. Before stage 1's pole check: `fingertip_wrench_model.calibrate` searches the magnet orders of five magnets. It needs
-   05R4's layout, the square of `fingertip_crosstalk.four_row`; the FE row `b_v2_four` is the earlier 6 x 7 mm layout.
-   `scripts/ur5_tip_calibration_analysis.py` needs a `--case` flag.
-2. Before stage 4: R29's targets on v3's tall registration (`scripts/ur5_tip_calibration_tall_pass.py --session <v3's
-   tall pass 1>`), with the six shared points added to both indenters' plans.
-3. Before stage 5:
-   - a holder plan builder for the poses above, with the clearances of `ur5_cb3_cell` (`TIPHOLD`, `TIP_F`). The holder's
-     reach check had the rod fixture in the cell; it is rerun with the tall indenter on its second 2x4 as well;
-   - a `hover` action in `src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py`: reference, pose and reference, with
-     the 0.1 N contact guard;
-   - a `tip` indenter kind for the pinch presses, with the approach along the held apex's normal and the held pad's
-     surface for the clearance. Both new kinds run first in the lab's simulator;
-   - `scripts/fingertip_crosstalk.py` subcommands for the map's fit and the pinch's estimates.
+## Code
 
-## Decisions for the owner
+Done:
+- the four-magnet rest fit (fe04ef46): `fingertip_wrench_model.fe_row("four_05R4")`, and `--case four_05R4` in
+  `scripts/ur5_tip_calibration_analysis.py`;
+- the hover action and the held boards' stream in the lab program (85ddc425);
+- the cell with the held boards, the trimmed cap and the screw heads (5049f2c5); the map's plan (d86bdebd).
 
-1. IDs and places: v3 ID 1 on the robot; ID 2 on the +y station, facing up; ID 3 under the -y station, facing down.
-2. The pads: 05R4's outer shape is B00's, as on ID 1 to 3 and v2 ID 1, since the plans' targets come from its FE surface.
-   The poles went in as each pause named them. The glue sits only on the slots' floors, as the note of 10-26 asked.
-3. Order: stages 1 to 4 first (about 15.6 h), then the holder. The holder's field map needs only pass 1, so it could run
-   first. The pinch's analysis waits for the calibration either way.
-4. Slides: v2 ID 1's 100 slides are 5.1 h of stage 2, and R29's 50 are 2.6 h of stage 4. All of them keep the comparison
-   whole; one amplitude halves the time.
-5. A five-magnet tip on the +y station for about 30 min. Its 483 uT at W 0.5 mm tests the model at 1 % (4.8 uT). At v3's
-   34 uT, 1 % is 0.34 uT, about the noise.
-6. v2 ID 1 first finishes R29: 77 actions in about 3.2 h, among them 7 slides past +45 deg.
+Still needed:
+- the map rebuilt after the touch-offs, and the pinch plan;
+- in the lab program, for the suite's speed: the travel at slider 1.0 with the press and turn speeds kept, step_deg
+  as a plan field, the turn acceleration scaled with the slider, and the clearance checks rerun for the 30 mm lift;
+- the cut suite's plan files on v3 ID 1's registration, with the six shared points;
+- the direction GP as the analysis's default predictor, and the crosstalk map's fit (`fingertip_crosstalk.py`).
+
+## Answers and open questions
+
+The owner answered on 2026-10-27. The tip on the robot is v3 ID 1, read by the ESP32-C3. All pads have B00's shape. The
+owner tells the lab when to stop and when to change fixtures. The five-magnet check of the model at 1 % is tabled.
+
+Open:
+1. Which tips have the trimmed cap: v3 ID 1 only, or the held tips too (the model trims all three).
+2. The rod fixture off the cell for the map, or the 26 hovers that clear it.
+3. The holder's 4.6 deg tilt: the holder or the seat (a level on the holder's base settles it).
+4. Low-profile or countersunk M2 screws beside the pad, for the 11 to 14 flank points.
+5. One indenter or two, after the six shared points.

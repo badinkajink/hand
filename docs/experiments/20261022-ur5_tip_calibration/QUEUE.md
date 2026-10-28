@@ -1017,6 +1017,18 @@ push that answers it arrives.
   field map, with the stations empty and then mounted, and for pinch presses (stage 5, about 2 h). Nothing runs before
   the owner answers the README's six decisions. The workstation writes the four-magnet rest fit, the holder's plan
   builder and the `hover` action and `tip` indenter kind for the lab's simulator first.
+  - 19:20 on 10-27: the owner stopped R29 at 19:00 for v3 ID 1, and the holder comes first. Done since 18:01: the
+    four-magnet rest fit (fe04ef46), the hover action and held boards in the program (85ddc425, the lab), the cell with
+    the held boards, the trimmed cap and the M2 heads (5049f2c5), the map's plan (d86bdebd: 3 touch-offs on the +y held
+    apex, 58 facing and 31 side-by-side hovers, 20 repeats, about 44 min). Next: the lab homes on the holder with the
+    owner's seatings and runs stages preflight, homing and pad in a folder seeded with the hybrid registration; the
+    workstation rebuilds the hovers with --z-offset from the touch-offs and the homed registration. The suite after the
+    map is cut to 9.1 h (README, "The suite, cut to 9.1 h"), with program changes in the lab first.
+  - 19:23 on 10-27: d86bdebd is held. Its checks had the holder where the sphere fixture stood and no low sphere. The
+    seatings put the holder behind the low sphere and the rod, and the rod blocks 64 of 89 hovers (wrist 3 0.7 to
+    2.6 mm from it at the touch-offs). Without the rod: `lab/20261027-plan_holder_lab_map_norod_v3id1.json` (178b27b5,
+    on holder_seated_2), 49 facing and 32 side-by-side hovers, 41 min, wrist 2 20.95 and HEX-E 21.6 mm at least. Open:
+    the owner's choice (rod off, move the holder, or the 26 hovers that clear), and the seatings' 4.3 to 4.9 deg tilt.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
