@@ -117,7 +117,15 @@ class Moves:
         off = a.get("offset", (0.0, 0.0))                  # the program moves the contact point by -offset in I
         at = self.top_I + EZ * st - np.array([off[0], off[1], 0.0])
         T_rest = self.T_BE(tg["p"], tg["n"], a.get("twist", 0.0), at)
-        deep = float(a.get("beyond_mm", 1.2)) if a["kind"] == "touch" else float(a.get("max_depth_mm", 2.0))
+        if a["kind"] == "touch":
+            deep = float(a.get("beyond_mm", 1.2))
+        elif DEPTH == "max":
+            deep = float(a.get("max_depth_mm", 2.0))
+        else:                                                  # the depth at the action's largest force, and 0.3 mm
+            F = float(a.get("stop_N") or a.get("press_N") or max(a.get("levels") or [2.0]))
+            reg_ = (tg.get("region") or "flank")
+            d_top, f_top = PRESS_DEPTH.get(reg_, PRESS_DEPTH["flank"])
+            deep = min(float(a.get("max_depth_mm", 2.5)), d_top * (F / f_top) ** (2.0 / 3.0) + 0.3)
         T_deep = self.up(T_rest, -(st + deep))
         return self.travel(T_prev, T_rest) + [("L", T_rest, T_deep), ("L", T_deep, T_rest)], T_rest, tg["p"]
 
@@ -183,6 +191,10 @@ def to_contact(seg, q0, reg):
 
 
 KIND = "tiphold"                                            # the plan's indenter kind (plan["indenter"]), set in run
+DEPTH = "model"                                             # --depth: "model" (the force's depth) or "max" (max_depth_mm)
+# the pad's depth (mm) at a force (N) by region, as R29's builder took it (scripts/ur5_tip_calibration_tall_pass.py: the
+# depth at the largest force), scaled as F^(2/3) to other forces
+PRESS_DEPTH = dict(face=(1.773, 5.0), edge=(1.238, 3.0), flank=(1.0, 2.0), tip=(1.0, 2.0))
 
 
 def clear_groups(q, T, reg, contact_P):
@@ -195,7 +207,8 @@ def clear_groups(q, T, reg, contact_P):
 
 
 def run(a):
-    global KIND
+    global KIND, DEPTH
+    DEPTH = a.depth
     plan = json.loads(Path(a.plan).read_text())
     KIND = plan.get("indenter", "tiphold")
     mv = Moves(plan, a.session)
@@ -229,6 +242,7 @@ def run(a):
         m = dict(sin5=9.0, q3=999.0, shoulder=1e9, lim=999.0, j5_margin=999.0, j6_margin=999.0)
         cl = {}
         bad = None
+        j6r = [1e9, -1e9]
         depth = None
         for si, seg in enumerate(segs):
             if act["kind"] == "touch" and si == len(segs) - 2:     # the approach stops at the first contact
@@ -243,6 +257,7 @@ def run(a):
                 mk = metrics(qq)
                 for key in m:
                     m[key] = min(m[key], mk[key])
+                j6r = [min(j6r[0], math.degrees(qq[5])), max(j6r[1], math.degrees(qq[5]))]
                 if (k % 5 == 0 or k == len(sm) - 1) and (ai, si) != (0, 0):
                     TT = T if T is not None else SIM.fk(qq)
                     g = clear_groups(qq, TT, reg_true, cP if own else None)
@@ -265,6 +280,7 @@ def run(a):
                 why.append(f"{key} {cl[key]:.2f} mm")
         row = dict(id=act["id"], **{k: round(v, 3) for k, v in m.items()}, clear={k: round(v, 2) for k, v in cl.items()},
                    flags=why)
+        row["j6_deg"] = [round(j6r[0], 1), round(j6r[1], 1)]
         if act["kind"] == "touch":
             row["contact_mm"] = None if depth is None else round(depth, 2)
         rows.append(row)
@@ -307,6 +323,8 @@ if __name__ == "__main__":
     ap.add_argument("--other", action="append", default=[], help="kind:folder[,folder...] (each folder's registration T_BI)")
     ap.add_argument("--out", default=str(ROOT / "logs/20261027-holder_paths.json"))
     ap.add_argument("--filtered", default=None)
+    ap.add_argument("--depth", default="model", choices=("model", "max"), help="a press's replayed depth: at its largest "
+                    "force by PRESS_DEPTH and 0.3 mm (model), or its max_depth_mm (max)")
     ap.add_argument("--true-frame", default=None, help="a registration.json whose T_BI places the holder (default: the "
                     "plan's holder.T_BI_true, else the program's frame); to check another hypothesis of where it stands")
     ap.add_argument("--only", action="append", default=[], help="keep only these fixture kinds (the rod alone: --only rod)")

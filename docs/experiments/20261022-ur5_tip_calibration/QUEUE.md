@@ -1009,6 +1009,34 @@ push that answers it arrives.
     HEX-E 35.5 and 36.5 mm. Shear along z_P in both sets means the finger or mount changed; in b alone, the tall
     registration's orientation; in neither, the tall indenter's flex or the arm's pose.
 
+- R31 (22:11 on 10-27; the owner's go to the lab at 21:5x: "sure, we can run the v3 id 1 registration and suite ... the rod
+  has changed position, yes, but everything else is the same"; joint 6 at +45 deg or less without the owner). v3 ID 1's
+  suite, built by  from v2 ID 1's sessions as they ran, with
+  's cuts, in this order; each plan's checks.other holds the tall indenter, the rod at its three
+  seatings and the holder with both held tips (kind tiphold). Times are v2 ID 1's at the program's present speeds.
+  1.  (10ebbb01): 9 gravity poses and 18 touch-offs, about 0.6 h.
+  2.  (c60d6458): 264 actions, about 6.8 h, resumed on pass 1's
+     registration. 19 presses keep the mount 2.38 to 2.92 mm from the sphere's own fixture at 2.5 mm, as on v2 ID 1.
+  3. : v2 ID 1's 21 touch-offs on the tall indenter (to 2.0 mm past); all
+     ran there on v2 ID 1 within the program's windows (joint 5 to 98.4 deg, joint 6 to -64 deg).
+  4. : R29 with 4 of its 12 twists and six shared points after tall-ref-a
+     (tall-shared-728, -730, -719 on the face, -581, -576, -640 on the edges, at the levels of sphere grid-029, -009,
+     -013, -032, -051 and -034), 103 actions. Path check with presses at their largest force's depth: finger 0.94, mount
+     2.80, HEX-E 17.7 mm at least; 4 actions reach joint 6 -61 to -63 deg.
+  The owner's morning:  (55 actions, 1.1 h: joint 6 past +44 deg in
+  v2 ID 1's run, and grid-055, fast-grid-055 and hard-grid-055, the finger within 0.36 mm of the sphere),
+   (17, joint 6 to +55 deg), pad-edge-07 of sphere pass 1, and the rod:
+  - : 21 touch-offs from 8 mm above the expected contact to 5 mm past
+    it, slow all the way, and 5 pivots. With the program homing on rod_indenter_seated_3 and the rod at each of its three
+    seatings, every touch-off meets the rod 7.6 to 9.5 mm into its approach, but at contact 8 to 13 of them keep the
+    mount only 1.25 to 2.85 mm from the rod's fixture.
+  -  (98 actions, 1.2 h;  2 more): on each seating's frame 34 to
+    37 actions keep the mount 1.5 to 3 mm from the rod; 17 presses bring an M2 button head to the rod at the depth of
+    their largest force (1 without the heads), so their forces would be shared with the head.
+  The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
+  built. Path checks:  (: touch-offs to
+  first contact, presses to their largest force's depth, turns left to the lab's simulator).
+
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
   them v3, no ids yet). then we could run a super complete calibration suite + crosstalk analysis"). The plan is
