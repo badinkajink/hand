@@ -584,7 +584,11 @@ With five N52 magnets it places those under 1.5&#8202;N within 2.0&#8202;mm. The
 1.1 to 2.5&#8202;mm there. Under 1&#8202;N, contacts placed by the direction GP are off by 0.59&#8202;mm with four N52
 magnets and 0.75&#8202;mm with five. On the checkerboard tip the estimator&#8217;s own position sigma flags most of these misses: 18&#8202;mm at
 0.25&#8202;N, 3&#8202;mm at 1&#8202;N. A gate at 2&#8202;mm keeps 95&#8211;100&#8202;% of the holds at 2&#8202;N and over and
-2&#8211;13&#8202;% below, where a few misses still pass.</li>
+2&#8211;13&#8202;% below, where a few misses still pass. At the face centre, with the pressed points left out of
+training, the direction GP&#8217;s error under 1&#8202;N is 0.65&#8202;mm with four magnets and 0.55&#8202;mm with five.
+With one board record&#8217;s noise added, it doubles. Elsewhere on the face a training press closer than 1&#8202;mm gives no smaller
+error than one 1 to 1.5&#8202;mm away ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id1),
+Section 11).</li>
 <li><b>The force reference.</b> The HEX-E&#8217;s Fz gain is 0.78&#8211;0.87 of its other axes&#8217;, and its link drops
 out; an ATI Mini45, once calibrated, is to replace it. The FE takes Siraya 85A at 12&#8202;MPa from a NinjaFlex datasheet. Through the
 board&#8217;s force, sphere2&#8217;s session puts the printed pad within about 22&#8202;% of it. Fitted on pad 05R4&#8217;s FE
