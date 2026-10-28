@@ -42,7 +42,9 @@ through the night), the tool's T_EM and q_home from its "tool" entry; on 2026-10
                        blue bar clamps at the far one's; an 18 x 24 in grey mat with a 10 mm white grid on a board whose
                        top is the near 2x4's underside (z_B 32.35)
   table                (owner, 19:4x) narrow, just wider than the mat board, the robot's base on one corner: top at z_B 0,
-                       its edges 10 mm past the mat board and 15 mm past the base; blue frame; floor 762 mm below the top
+                       its edges 10 mm past the mat board and 15 mm past the base; blue frame; floor 762 mm below the top.
+                       The mat board and the table are square to the 2x4s (owner, 20:2x: the plywood runs straight across
+                       the table), turned by the 2x4s' mean yaw in B (-2.9 deg) about the mat's centre
 Colours (owner, 2026-10-27 19:33 and 19:4x): the four fixtures and the mount (adapter, standoff fork, clamp plate) purple
 PLA; the fingertips on the robot and on the holder (DIP link, cassette, cap, pad) black; the boards green FR-4 with white
 connectors; the HEX-E dark grey; the UR5 aluminium with the light blue joint caps and black rings of its visual meshes;
@@ -698,9 +700,15 @@ def build(work, fx, w, h):
         clamps += bar_clamp(T, jaw, bar, T[2, 3] + TABLE["thick"])
     for mat in sorted({m for _, m in clamps}):
         S.mesh(trimesh.util.concatenate([m for m, mm in clamps if mm == mat]), mat, name=f"clamps_{mat}", smooth_deg=40.0)
-    # the mat board and the table
+    # the mat board and the table, square to the 2x4s (owner, 2026-10-27 20:2x: the plywood runs straight across the
+    # table): both turned about the vertical through the mat's centre by the 2x4s' mean yaw in B, the robot standing
+    # turned on the table by as much
     mb = MAT_BOARD
     z_mat = boards["near"][0][2, 3] - Hh
+    psi = float(np.mean([math.atan2(boards[k][0][1, 0], boards[k][0][0, 0]) for k in ("near", "far")]))
+    cmb = np.array([(mb["x"][0] + mb["x"][1]) / 2, (mb["y"][0] + mb["y"][1]) / 2, 0.0])
+    Rp = np.array([[math.cos(psi), -math.sin(psi), 0.0], [math.sin(psi), math.cos(psi), 0.0], [0.0, 0.0, 1.0]])
+    T_BU = C.Tm(Rp, cmb - Rp @ cmb)
     tex["mat"] = (cutting_mat(work / "mat.png"), 0.10, 0.25, "")
     mw, mh = mb["x"][1] - mb["x"][0], mb["y"][1] - mb["y"][0]
 
@@ -710,9 +718,11 @@ def build(work, fx, w, h):
         return np.full((4, 2), 0.004)
 
     S.obj(box_obj(work / "mat_board.obj", (mb["x"][0], mb["y"][0], 0.0), (mb["x"][1], mb["y"][1], z_mat), uv_mat),
-          "mat")
-    log["mat_board"] = dict(x=mb["x"], y=mb["y"], top=round(float(z_mat), 2))
-    tx, ty = table_extent(base_xy)
+          "mat", T=T_BU)
+    log["mat_board"] = dict(x=mb["x"], y=mb["y"], top=round(float(z_mat), 2), yaw_deg=round(math.degrees(psi), 2))
+    (bx0, by0), (bx1, by1) = base_xy
+    corners_U = C.apply(C.inv(T_BU), np.array([[x, y, 0.0] for x in (bx0, bx1) for y in (by0, by1)]))[:, :2]
+    tx, ty = table_extent((corners_U.min(0), corners_U.max(0)))
     tw, th = tx[1] - tx[0], ty[1] - ty[0]
     tex["birch"] = (birch(work / "birch.png", 21, tw, th), 0.14, 0.30, "")
 
@@ -723,9 +733,11 @@ def build(work, fx, w, h):
             return np.c_[(q[:, 0] - tx[0]) / tw, 0.30 + (q[:, 2] + TABLE["thick"]) / th * 0.25]
         return np.c_[0.40 + (q[:, 2] + TABLE["thick"]) / tw * 0.25, (q[:, 1] - ty[0]) / th]
 
-    S.obj(box_obj(work / "table_top.obj", (tx[0], ty[0], -TABLE["thick"]), (tx[1], ty[1], 0.0), uv_table), "birch")
-    S.mesh(table_frame(tx, ty), "frame_blue", name="table_frame", smooth_deg=10.0)
-    log["table"] = dict(x=np.round(tx, 1).tolist(), y=np.round(ty, 1).tolist(), base_xy=np.round(base_xy, 1).tolist())
+    S.obj(box_obj(work / "table_top.obj", (tx[0], ty[0], -TABLE["thick"]), (tx[1], ty[1], 0.0), uv_table), "birch",
+          T=T_BU)
+    S.mesh(table_frame(tx, ty).apply_transform(T_BU), "frame_blue", name="table_frame", smooth_deg=10.0)
+    log["table"] = dict(x_U=np.round(tx, 1).tolist(), y_U=np.round(ty, 1).tolist(), yaw_deg=round(math.degrees(psi), 2),
+                        base_xy=np.round(base_xy, 1).tolist())
     # the room: cement floor, green walls with baseboards
     tex["floor"] = (cement(work / "cement.png"), 0.08, 0.20, 'texuniform="true" texrepeat="1.3333 1.3333"')
     f = TABLE["floor"] * 1e-3
