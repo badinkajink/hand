@@ -90,11 +90,17 @@ def sections(N, F, P, link, L):
     body = (
         "<p>The fingertip, its DIP link and the calibration mount sit on the HEX-E, which sits on the UR5's flange. The "
         "finger points along the tool axis, so the face's normal lies across it. The indenter is a printed sphere of "
-        "radius 5 mm on a post clamped to the table; a rod of radius 12.5 mm stands beside it (Figure 1). The pad's face "
-        "centre lies 128.4 mm from the flange.</p>"
-        + P.fig(1, F["cell"], "The cell in the simulated session: a touch-off on the face (top) and on the flank (bottom). "
-                "Grey: the UR5 and the HEX-E; blue: the mount; cream: the DIP link; dark grey: its cover and cap; orange: "
-                "the pad. From " + link(L["protocol"], "the protocol page") + ".")
+        "radius 5 mm on a post, on a 2x4 clamped to the table. A second fixture beside it has a rod of radius 12.5 mm "
+        "(Figure 1). The pad's face centre lies 128.4 mm from the flange. By 2026-10-27 the cell had two more fixtures. "
+        "On " + link(L["tall"], "the tall indenter") + ", a sphere of the same radius 160 mm above its 2x4, the robot "
+        "reaches more of the pad's edges and flanks. Two more fingertips stand on the fingertip holder for "
+        + link(L["crosstalk"], "the crosstalk map") + " of the v3 tips.</p>"
+        + P.fig(1, F["cell"], "The cell as it stood on 2026-10-27, rendered in MuJoCo from the fixtures' registered poses. "
+                "(a) The UR5 with the HEX-E, the mount and the fingertip, at a face touch-off on the low sphere. (b, c) The "
+                "pad at the contact onset of a face and a flank touch-off of v2 ID 1's sphere session; the flange poses are "
+                "those recorded at the onsets. Purple: the printed fixtures and the mount; black: the fingertips; green: "
+                "their boards. Scene by " + P.code("scripts/ur5_cell_render.py") + ", stills by "
+                + P.code("scripts/fingertip_calibration_cell_render.py") + ".")
         + P.table(["Frame", "Origin and axes"], [
             ["B", "The robot's base, as the controller reports poses."],
             ["E", "The robot's flange."],

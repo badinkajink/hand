@@ -40,6 +40,8 @@ L = dict(
     phys=EXP / "20261026-fingertip_physical_model/20261026-fingertip_physical_model.html",
     contact=ROOT / "docs/overviews/contact_model.html",
     overview=ROOT / "docs/overviews/printed_fingertips.html",
+    tall=EXP / "20261026-tall_indenter/README.md",
+    crosstalk=EXP / "20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html",
 )
 
 
@@ -50,7 +52,7 @@ def link(p, text):
 def build():
     from fingertip_calibration_text import sections
     N = json.loads((DATA / "20261026-numbers.json").read_text())
-    F = dict(cell=UR5 / "media/20261022-cell_stills.png", motions=MEDIA / "20261026-motions.png",
+    F = dict(cell=MEDIA / "20261027-cell.png", motions=MEDIA / "20261026-motions.png",
              coverage=MEDIA / "20261026-coverage.png", learning=MEDIA / "20261026-learning.png",
              by_level=MEDIA / "20261026-error_by_level.png", density=MEDIA / "20261026-density.png",
              shear=MEDIA / "20261026-shear.png", transfer=MEDIA / "20261026-transfer_pooling.png",
