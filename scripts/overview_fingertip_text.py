@@ -490,7 +490,7 @@ of 0.08&#8211;0.13&#8202;N per newton. On the low sphere it is &#8722;0.02 to 0.
 Section 10).</p>
 <p>In the tip v3 ID 1, four N52 magnets lie in a 5.0&#8202;mm square under pad 05R4. On the night of 2026-10-27 the tip ran
 the grid stage of v2 ID 1&#8217;s suite on the low sphere. That stage has 160 press actions with 818 holds. The HEX-E fell
-off its acquisition at 02:54, after 40 of the next stage&#8217;s 84 slides, and the session stopped. The board&#8217;s
+off its acquisition at 02:54, after 40 of the next stage&#8217;s 84 slides. The board&#8217;s
 change is 28.3&#8202;&#181;T per newton at 1 to 2&#8202;N with four magnets. With five, on v2 ID 1&#8217;s presses of the same actions,
 it is 52.3&#8202;&#181;T. The record noise is alike, 1.77 and 1.83&#8202;&#181;T. The noise-equivalent force is
 therefore 63&#8202;mN with four magnets and 35&#8202;mN with five. The same ratio, 1.8, was predicted by the readout model. The
@@ -620,7 +620,9 @@ neither simulator. On the checkerboard tip the estimator reports 1.08&#8202;N of
 0.25&#8202;N. A GP trained on the 3D force gets the shear within 0.12&#8202;N on held-out presses, but misses by 0.31&#8202;N at
 the turns&#8217; new orientations. The twists&#8217; torsion, half the difference between outbound and return, measures a median
 2.9&#8202;N&#8202;mm and up to 9.9&#8202;N&#8202;mm at 2.5&#8202;N; a point torque in the physical model does not recover it
-from the board. On the UR5 the face&#8217;s normal lies across the
+from the board. On the twists of v2 ID 1 and v3 ID 1, a board GP&#8217;s torsion correlates with the HEX-E&#8217;s at 0.38
+and 0.42 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id1),
+Section 11). On the UR5 the face&#8217;s normal lies across the
 tool axis. The torsion then lies under a push moment of
 about 230&#8202;N&#8202;mm on the HEX-E ([calibration protocol](exp:20261022-ur5_tip_calibration/20261022-ur5_tip_calibration_protocol.html)).</li>
 <li><b>The simulators.</b> Calibrated to the FE, the pads and Drake agree on approach within 6&#8202;%. They end a turn
