@@ -7,17 +7,18 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-28 00:36: all 12 feed lines (to 00:18) and the 6
-"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json). Page a86135e0: Section 3 "Neighbour
+State: armed 2026-10-27 21:00 from the colorado window. 10-28 01:11: all 13 feed lines (to 00:59) and the 6
+"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json). Page cacda5fe: Section 3 "Neighbour
 field measured on the fingertip holder" has the touch-off approaches (Figure 2, Table 2), the map's 89 hovers and the 48
 close -y hovers against the net moments fitted on the touch-offs (Figure 3, Table 3, -y pooled: held boards 97.4 and
 97.0 %, robot's 91 and 94 %); lede and summary lead with 97 % at either held board in 137 hovers; Figure 5 the hover
 render (re-made 23:13 with the tool by v3 ID 1's sphere registration, looked at); numbering by SEC/FIG/TAB in the
-builder. Line 12 (00:18, four magnets against five, partial): v3 ID 1's face press signal, 22.4 uT/N against v2 ID 1's
-51.4, is the lede's and summary's yardstick for the 39 to 60 uT at contact and is in Section 3 and the Press signal term,
-read at HEAD from FVF (data/20261028-four_vs_five_partial.json); the full comparison is due when stage 2 ends, about
-06:00: point FVF at its file (press_gain drops "the first" when the note no longer says partial). Overview: crosstalk
-paragraph and two bullets (fd38e26c to dc8b6478), unchanged by line 12 (its quoted crosstalk numbers stand). The builder
+builder. Lines 12 and 13 (00:18 and 00:59, four magnets against five): v3 ID 1's face press signal, 21.9 uT/N against
+v2 ID 1's 48.1 over stage 2's whole grid (160 press actions, 818 holds), is the lede's and summary's yardstick for the
+39 to 60 uT at contact and is in Section 3 and the Press signal term, read at HEAD from FVF
+(data/20261028-four_vs_five_grid.json); the slides, rolls and twists follow when stage 2 ends, about 06:00 (press
+gains need no change unless a new file replaces the grid's). Overview: crosstalk paragraph and two bullets (fd38e26c to
+dc8b6478), unchanged by lines 12 and 13 (its quoted crosstalk numbers stand). The builder
 reads the coordinator's v3 files AT HEAD (at_head) and warns when the holder file's "made" differs from HOLD_MADE
 (22:50): its hand-written sentences then need the newest line. Remaining on the holder: the five-fold pose fit
 (fingertip_crosstalk.py, coordinator), then the pinch plan; neither is in R31's night queue (the v3 ID 1 suite).
@@ -25,9 +26,9 @@ For the owner: the 21:44 line's "matches the robot's board within 10 % to W 5 mm
 contact, -10 to -22 % from W 0.3 to 5 mm), so the page leaves it out; the 20:45 feed line says twists to +20 deg, the
 plan file stops at +10; the 22:52 line's "at most 0.4 N on the HEX-E" is 0.455 N in the file, and the page says the
 hovers stayed below the 0.5 N guard. The overview's magnets bullet ("Four magnets (0.051 N) or five (0.029 N) waits on
-the owner") now has a measured partial counterpart (one record's noise equals 61 and 32 mN at 1 to 2 N); it is not a
-crosstalk sentence, so this job leaves it. Line 11 (23:13, the sphere registration) was acked without a page change.
-Watch loop relaunched 00:36.
+the owner") now has a measured counterpart (00:59: one record's noise equals 63 and 35 mN at 1 to 2 N, the predicted
+ratio of 1.8; the calibrated errors are alike); it is not a crosstalk sentence, so this job leaves it. Line 11 (23:13,
+the sphere registration) was acked without a page change. Watch loop relaunched 01:11.
 Before each --ack, run crosstalk_feed_watch.py --once and check HEAD shows only the lines handled (ack takes all of HEAD).
 Commits of this job start "Fingertip crosstalk page:", never "Crosstalk:" (the watcher keys on that prefix).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
