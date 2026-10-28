@@ -166,6 +166,14 @@ Still needed:
 - the cut suite's plan files on v3 ID 1's registration, with the six shared points;
 - the direction GP as the analysis's default predictor, and the crosstalk map's fit (`fingertip_crosstalk.py`).
 
+## Results feed for the doc-writing session
+
+The owner's doc-writing session (2026-10-27, 20:50) writes the crosstalk pages from what the workstation's session
+pushes overnight. Each update is one JSON line appended to `feed.jsonl` in this folder: `time` (from `date`), `kind`
+(session, registration, plan, analysis, figure), `summary` (the outcome with its numbers), `files` (repository paths:
+data under `data/`, figures under `media/`, scripts) and `commit`. Lines are only appended. Commits that add crosstalk
+results start with "Crosstalk:". Every push goes to `main`; data and figures are LFS files.
+
 ## Answers and open questions
 
 The owner answered on 2026-10-27. The tip on the robot is v3 ID 1, read by the ESP32-C3. All pads have B00's shape. The
