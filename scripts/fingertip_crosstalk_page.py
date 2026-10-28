@@ -3,16 +3,21 @@
 owner 2026-10-27: "crosstalk is going to be problem, so itd be helpful to present some compelling results on that").
 Reads the rows of scripts/fingertip_crosstalk.py (data/budget.json: v2 ID 1's field model under a five- or four-magnet
 neighbour; data/sharpie.json: the owner's sharpie pinch with v1 ID 2 and ID 3) and, once, the multi-board viewer's
-streams of that pinch for Figure 2's trace (kept in media/20261027-sharpie_trace.json, since logs/ is not tracked).
-Figure 3 is the UR5 cell render of the holder map (scripts/ur5_cell_render.py, in the v3 plan folder's media/). Writes docs/experiments/20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html.
+streams of that pinch for the trace of its figure (kept in media/20261027-sharpie_trace.json, since logs/ is not tracked).
+The measured section reads the UR5 coordinator's analysis of the holder sessions (scripts/fingertip_crosstalk_holder.py,
+data/20261027-crosstalk_touchoffs.json in the v3 plan folder, as committed at HEAD) and draws its figure from that file's
+bins; its numbers follow the coordinator's lines in that folder's feed.jsonl. The last figure is the UR5 cell render of the holder map
+(scripts/ur5_cell_render.py, in the v3 plan folder's media/). Writes docs/experiments/20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html.
 
     ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- .venv/bin/python scripts/fingertip_crosstalk_page.py
 """
 from __future__ import annotations
 
+import io
 import json
 import math
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -32,7 +37,12 @@ TEMPLATE = ROOT / "scripts/ur5_tip_calibration_page.template.html"
 TEX_CACHE = D / "texsvg_cache.json"
 TRACE = MEDIA / "20261027-sharpie_trace.json"
 EXP = ROOT / "docs/experiments"
-HOVER = EXP / "20261027-v3_tip_calibration_and_crosstalk/media/20261027-ur5_cell_holder_hover.png"
+V3 = EXP / "20261027-v3_tip_calibration_and_crosstalk"
+HOVER = V3 / "media/20261027-ur5_cell_holder_hover.png"
+HOLD = V3 / "data/20261027-crosstalk_touchoffs.json"
+SEC = dict(terms=1, field=2, holder=3, subtract=4, fit=5, sharpie=6, limits=7, future=8)
+FIG = dict(budget=1, holder=2, sharpie=3, render=4)
+TAB = dict(field=1, holder=2, crb=3)
 L = dict(
     overview=ROOT / "docs/overviews/printed_fingertips.html",
     cal=EXP / "20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html",
@@ -44,6 +54,22 @@ L = dict(
 BLUE, ORANGE, GREY = "#2e5fa8", "#b06010", "0.45"
 FACING_W = (0, 5, 10, 15, 20, 30)
 SIDE_G = (0, 2, 5, 10, 20)
+
+
+def at_head(path):
+    """A file of the coordinator's v3 folder as committed at HEAD, LFS pointers resolved. Its working copy can be mid-analysis
+    (on 2026-10-27 at 22:13 the holder file was rewritten before its commit and feed line); the page follows the commits."""
+    rel = str(Path(path).relative_to(ROOT))
+    blob = subprocess.run(["git", "-C", str(ROOT), "show", f"HEAD:{rel}"], capture_output=True, check=True).stdout
+    if blob.startswith(b"version https://git-lfs.github.com/spec/v1"):
+        blob = subprocess.run(["git", "-C", str(ROOT), "lfs", "smudge", "--", rel], input=blob, capture_output=True,
+                              check=True).stdout
+    return blob
+
+
+def count(n):
+    """Counts under ten in words."""
+    return "one two three four five six seven eight nine".split()[n - 1] if 0 < n < 10 else str(n)
 
 
 def link(p, text):
@@ -198,9 +224,146 @@ def fig_sharpie(S, T, Sn):
     return out
 
 
+def fig_holder(H):
+    """The touch-off approaches between v3 tips on the holder: each board's change against W, from the bins of the
+    coordinator's net-moment fit (measured, the nominal model times its gain, with the source tip's net moment, left)."""
+    plt = P.plt_setup()
+    from matplotlib.ticker import FuncFormatter
+    nm = H["net_moment"]
+    panels = (("(a) Held board, +y station", nm["robot_tip"]["bins"]["held0"]),
+              ("(b) Held board, \N{MINUS SIGN}y station", nm["robot_tip"]["bins"]["held3"]),
+              ("(c) Robot tip\N{RIGHT SINGLE QUOTATION MARK}s board over the +y tip", nm["held_tip_+y"]["bins"]),
+              ("(d) Robot tip\N{RIGHT SINGLE QUOTATION MARK}s board over the \N{MINUS SIGN}y tip", nm["held_tip_-y"]["bins"]))
+    fig, axs = plt.subplots(2, 2, figsize=(9.6, 8.4), sharex=True, sharey=True)
+    for ax, (title, rows) in zip(axs.flat, panels):
+        w = [r["W_mm"] for r in rows]
+        ax.semilogy(w, [r["meas_uT"] for r in rows], "-o", color="black", ms=4.5, lw=1.6, label="Measured")
+        ax.semilogy(w, [r["model_uT"] for r in rows], "--s", color=BLUE, ms=4.5, lw=1.4, label="Nominal dipole model")
+        ax.semilogy(w, [r["model_moment_uT"] for r in rows], "-", color=ORANGE, lw=2.0,
+                    label="Model with the source tip\N{RIGHT SINGLE QUOTATION MARK}s net moment")
+        ax.semilogy(w, [r["left_uT"] for r in rows], ":^", color=GREY, ms=4.5, lw=1.6,
+                    label="Left after the model with the net moment")
+        ax.set_title(title, loc="left")
+        ax.set_xlim(-1.5, 20.5)
+        ax.set_xticks((0, 5, 10, 15, 20))
+        ax.set_ylim(0.2, 100)
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+        ax.grid(True, which="major", color="0.88", lw=0.8)
+        ax.spines[["top", "right"]].set_visible(False)
+    for ax in axs[1]:
+        ax.set_xlabel("Gap W between the apexes (mm)")
+    for ax in axs[:, 0]:
+        ax.set_ylabel("Change at the board (\N{MICRO SIGN}T)")
+    h, l_ = axs[0, 0].get_legend_handles_labels()
+    fig.legend(h, l_, loc="lower center", ncol=2, frameon=False, bbox_to_anchor=(0.5, -0.08), fontsize=13)
+    fig.tight_layout()
+    out = MEDIA / "20261027-holder_touchoffs.png"
+    fig.savefig(out, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ text
 
-def sections(B, S, Sn, f1, f2):
+HOLD_MADE = "2026-10-27 21:46"   # the holder analysis that the measured section's written sentences quote (feed 21:44, 21:47)
+
+
+def holder_numbers(H):
+    """The measured section's numbers, read from the coordinator's holder file: each board's change at contact (the bin
+    nearest W 0), at W 4.75 and 12.5 mm, the nominal model there, its gain and explained share (the 21:44 analysis), the
+    net moments (21:47) and the first hovers."""
+    near = lambda rows, w: min(rows, key=lambda r: abs(r["W_mm"] - w))  # noqa: E731
+    b, nm = H["boards"], H["net_moment"]
+    at = {k: {w: near(b[k]["bins"], w) for w in (0.0, 4.75, 12.5)} for k in ("held0", "held3", "robot")}
+    rt, hp, hm = nm["robot_tip"], nm["held_tip_+y"], nm["held_tip_-y"]
+    m_rt = 1e3 * np.asarray(rt["moment_Am2"])
+    cross = [1e3 * np.asarray(c["moment_Am2"]) for c in rt["cross"].values()]
+    hov = [h for h in H["hovers"] if h["W_mm"] <= 1.05]
+    under = [v["meas_uT"] for h in hov for k, v in h["boards"].items() if v.get("station") == h["station"]]
+    other = [v["meas_uT"] for h in hov for k, v in h["boards"].items() if v.get("station") not in (None, h["station"])]
+    return dict(
+        at=at, gain={k: b[k]["gain"] for k in at}, expl={k: 100 * b[k]["explained_near"] for k in at},
+        n_touch=len(H["touches"]), sessions=[s["name"] for s in H["sessions"]], n_hover=len(H["hovers"]),
+        hov_w=(min(h["W_mm"] for h in hov), max(h["W_mm"] for h in hov)), hov_under=under, hov_other=other,
+        hov_robot=[h["boards"]["robot"]["meas_uT"] for h in hov],
+        drift=[v["ref_drift_uT"] for h in H["hovers"] for v in h["boards"].values()],
+        m_rt=m_rt, m1=float(np.linalg.norm(m_rt)) / rt["share_of_one_magnet"],
+        share=dict(robot=100 * rt["share_of_one_magnet"], plus=100 * hp["share_of_one_magnet"], minus=100 * hm["share_of_one_magnet"]),
+        with_m=dict(held0=100 * rt["explained"]["held0"]["model_and_moment"], held3=100 * rt["explained"]["held3"]["model_and_moment"],
+                    plus=100 * hp["explained"]["model_and_moment"], minus=100 * hm["explained"]["model_and_moment"]),
+        cross_diff=float(np.max(np.abs(cross[0] - cross[1]))),
+        cross_pred=sorted(100 * c["explained_with_moment"] for c in rt["cross"].values()))
+
+
+def holder_section(H, hn, fh):
+    """Section 'Neighbour field measured on the fingertip holder', with its table and figure."""
+    at, g, e, sh, wm = hn["at"], hn["gain"], hn["expl"], hn["share"], hn["with_m"]
+    c = lambda k, w: at[k][w]["meas_uT"]  # noqa: E731
+    ses = hn["sessions"]
+    low = [100 * (1 - at[k][0.0]["model_uT"] / c(k, 0.0)) for k in ("held0", "held3")]
+    left12 = [at[k][12.5]["left_uT"] for k in at]
+    rng = lambda xs, f="{:.0f}": f"{f.format(min(xs))} to {f.format(max(xs))}"  # noqa: E731
+    mx, my, mz = hn["m_rt"]
+    body = (
+        f"<p>On 2026-10-27 the UR5 moved v3 ID 1 through {hn['n_touch']} touch-off approaches onto the two held v3 tips, in "
+        f"sessions {', '.join(ses[:-1])} and {ses[-1]}. It then made the map&#8217;s first {count(hn['n_hover'])} hovers. All three boards "
+        "streamed throughout. Both pads were placed by the holder&#8217;s frame measured with the touch-offs, and each board&#8217;s "
+        f"change is compared with the nominal dipole model (Figure&#160;{FIG['holder']}, Table&#160;{TAB['holder']}).</p>"
+        f"<p>Under the robot tip a held board changed by {rng([c('held0', 0.0), c('held3', 0.0)])}&#8202;&#181;T at contact. At "
+        f"W 4.75&#8202;mm it changed by {rng([c('held0', 4.75), c('held3', 4.75)])}&#8202;&#181;T, and at W 12.5&#8202;mm by "
+        f"{rng([c('held0', 12.5), c('held3', 12.5)])}&#8202;&#181;T. The robot tip&#8217;s board changed by {c('robot', 0.0):.0f}, "
+        f"{c('robot', 4.75):.0f} and {c('robot', 12.5):.0f}&#8202;&#181;T at these gaps. In the hovers at W "
+        f"{hn['hov_w'][0]:.1f} to {hn['hov_w'][1]:.0f}&#8202;mm the held board read {rng(hn['hov_under'])}&#8202;&#181;T, and the "
+        f"robot tip&#8217;s board {rng(hn['hov_robot'])}&#8202;&#181;T. The board of the other station read "
+        f"{rng(hn['hov_other'], '{:.1f}')}&#8202;&#181;T. The two reference dwells 40&#8202;mm above a hover differed by "
+        f"{rng(hn['drift'], '{:.1f}')}&#8202;&#181;T.</p>"
+        f"<p>The nominal model&#8217;s gains are {g['robot']:.2f} on the robot tip&#8217;s board, and {g['held0']:.2f} and "
+        f"{g['held3']:.2f} on the +y and &#8722;y held boards. On the robot tip&#8217;s board {e['robot']:.0f}&#8202;% of the "
+        "change&#8217;s energy below W 10&#8202;mm is explained by the model. On the held boards it is "
+        f"{low[0]:.0f} and {low[1]:.0f}&#8202;% low at contact, and its explained share is {e['held0']:.0f} and "
+        f"{e['held3']:.0f}&#8202;%. Beyond W 5&#8202;mm every board&#8217;s change falls more slowly than the model&#8217;s. At "
+        f"W 12.5&#8202;mm, {rng(left12)}&#8202;&#181;T is left after the scaled model.</p>"
+        "<p>The four magnets of a v3 tip do not cancel fully. Besides the nominal model, each tip was fitted with a net moment, "
+        f"one point dipole at its magnets&#8217; centroid. The net moments are {rng(list(sh.values()))}&#8202;% of one magnet&#8217;s "
+        f"moment, {hn['m1']:.1f}&#8202;mA&#8202;m&#178;. The robot tip&#8217;s moment, fitted on both held boards, is "
+        f"({mx:.2f}, {my:.2f}, {mz:.2f})&#8202;mA&#8202;m&#178; in its pad frame. With it the explained share on the held "
+        f"boards rises to {wm['held0']:.0f} and {wm['held3']:.0f}&#8202;%. Fitted on either held board alone, the two moments "
+        f"agree within {hn['cross_diff']:.2f}&#8202;mA&#8202;m&#178; in each component. The moment fitted on one held board gives "
+        f"an explained share of {hn['cross_pred'][0]:.0f} and {hn['cross_pred'][1]:.0f}&#8202;% on the other. The held tips&#8217; "
+        f"moments, fitted on the robot tip&#8217;s board, are {sh['plus']:.1f} and {sh['minus']:.1f}&#8202;% of a magnet. With "
+        f"them its explained share rises from {e['robot']:.0f}&#8202;% to {wm['plus']:.0f} and {wm['minus']:.0f}&#8202;%.</p>"
+        "<p>After the net moment, about 10&#8202;&#181;T is left on the held boards at contact and 1 to 2&#8202;&#181;T at W "
+        "10&#8202;mm. On the robot tip&#8217;s board 3 to 5&#8202;&#181;T is left beyond W 8&#8202;mm, which is explained by "
+        "neither held tip&#8217;s moment. Its own motion through the room&#8217;s field is the likely source. The moments lie "
+        "mostly in the face&#8217;s plane, along y and z of the pad frame. A tilt of the magnets in their pockets gives a moment "
+        "in that plane; a spread of their strengths gives one along the normal, x.</p>".replace("(-", "(&#8722;").replace(", -", ", &#8722;"))
+    rows = []
+    for k, name, src in (("held0", "Held, +y station", "Robot tip"), ("held3", "Held, &#8722;y station", "Robot tip"),
+                         ("robot", "Robot tip&#8217;s", "+y and &#8722;y held tips")):
+        ms = f"{sh['robot']:.0f}" if k != "robot" else f"{sh['plus']:.1f} and {sh['minus']:.1f}"
+        we = f"{wm[k]:.0f}" if k != "robot" else f"{wm['plus']:.0f} and {wm['minus']:.0f}"
+        rows.append([name, src, f"{c(k, 0.0):.1f}", f"{c(k, 4.75):.1f}", f"{c(k, 12.5):.1f}", f"{at[k][0.0]['model_uT']:.1f}",
+                     f"{g[k]:.2f}", f"{e[k]:.0f}", ms, we])
+    w0 = [at[k][0.0]["W_mm"] for k in at]
+    tab = P.table(
+        ["Receiving board", "Source tip", "Change at contact (&#181;T)", "Change at W 4.75&#8202;mm (&#181;T)",
+         "Change at W 12.5&#8202;mm (&#181;T)", "Nominal model at contact (&#181;T)", "Gain", "Explained, nominal model (%)",
+         "Source&#8217;s net moment (% of a magnet)", "Explained with it (%)"],
+        rows, num_cols=tuple(range(2, 10)), n=TAB["holder"],
+        caption="Change of each board through the touch-off approaches between v3 tips on the holder, and the share of its "
+                "energy below W 10&#8202;mm that is explained by the nominal dipole model and with the source tip&#8217;s net "
+                f"moment. Contact is the bin nearest W 0 (W {min(w0):.2f} to {max(w0):.2f}&#8202;mm). Rows in "
+                f"<code>{HOLD.relative_to(ROOT)}</code>; analysis <code>scripts/fingertip_crosstalk_holder.py</code>.".replace("W -", "W &#8722;").replace("to -", "to &#8722;"))
+    fig = P.fig(FIG["holder"], fh,
+                "Change of each board through the touch-off approaches between v3 tips on the holder, against the gap W, in "
+                "bins of 0.5 to 1&#8202;mm. In (a) and (b) the held boards under the robot tip are shown, in (c) and (d) the robot "
+                "tip&#8217;s board over each held tip. Black: measured. Dashed blue: the nominal dipole model, scaled by one gain per board. "
+                "Orange: the model with the source tip&#8217;s net moment. Grey dotted: what is left after it. Bins of the "
+                f"net-moment fit in the file of Table&#160;{TAB['holder']}.")
+    return body + fig + tab
+
+
+def sections(B, S, Sn, H, f1, f2, fh):
     rb = rows_by(B)
     r5 = lambda kind, x: rb[("five N52", kind, float(x))]  # noqa: E731
     r4 = lambda kind, x: rb[("four N52", kind, float(x))]  # noqa: E731
@@ -217,26 +380,31 @@ def sections(B, S, Sn, f1, f2):
     later = Sn[1:]
     g_med = [float(np.median([w["g0"][j] for w in Sn])) for j in (0, 1)]
 
+    hn = holder_numbers(H)
+    con = [hn["at"][k][0.0]["meas_uT"] for k in hn["at"]]
+    far = [hn["at"][k][12.5]["meas_uT"] for k in hn["at"]]
+    ex, exm, shr = list(hn["expl"].values()), list(hn["with_m"].values()), list(hn["share"].values())
+    bound = cf + cs
+
     lede = (
-        "A neighbouring fingertip&#8217;s magnets change the reading of a magnetic fingertip&#8217;s board far more than a press "
-        f"does. In v2 ID 1&#8217;s field model a five-magnet neighbour adds {r5('facing', 0)['norm_uT']:.0f}&#8202;&#181;T with the "
-        f"pads facing and touching. Side by side it adds {r5('side', 0)['norm_uT']:,.0f}&#8202;&#181;T. A 0.5&#8202;N press changes "
-        f"the board by {p05:.0f}&#8202;&#181;T. Subtracting the field predicted from a pose 0.3&#8202;mm and 0.3&#176; off leaves "
-        f"{k3(r5('facing', 0))['residual_uT_median']:.0f} and {k3(r5('side', 0))['residual_uT_median']:.0f}&#8202;&#181;T. The "
-        "neighbour&#8217;s pose can instead be fitted from both boards, with the joint angles as a 1&#8202;mm, 1&#176; prior. The "
-        f"Cram&#233;r&#8211;Rao bound on a press at the face&#8217;s centre is then {min(cf):.3f}&#8211;{max(cf):.3f}&#8202;N facing and "
-        f"{min(cs):.3f}&#8211;{max(cs):.3f}&#8202;N side by side, against {known:.3f}&#8202;N with the pose known. In the owner&#8217;s "
-        "pinch of a marker pen between two v1 tips, such a fit explained the first window. It lowered the estimated forces from "
-        f"{w0['f0'][0]:.1f} and {w0['f0'][1]:.1f}&#8202;N to {w0['f1'][0]:.1f} and {w0['f1'][1]:.1f}&#8202;N.")
+        "A neighbouring fingertip&#8217;s magnets change the reading of a magnetic fingertip&#8217;s board by more than a press "
+        "does. On the UR5, two four-magnet v3 tips with their pads touching changed each other&#8217;s boards by "
+        f"{min(con):.0f} to {max(con):.0f}&#8202;&#181;T. A 0.5&#8202;N press changed v2 ID 1&#8217;s board by {p05:.0f}&#8202;&#181;T. "
+        f"At a 12.5&#8202;mm gap the change was still {min(far):.0f} to {max(far):.0f}&#8202;&#181;T. Of the change&#8217;s energy at "
+        f"gaps under 10&#8202;mm, {min(ex):.0f} to {max(ex):.0f}&#8202;% is explained by the dipole model fixed before these data. "
+        f"With a net moment of {min(shr):.0f} to {max(shr):.0f}&#8202;% of one magnet fitted for each tip, the share rises to "
+        f"{min(exm):.0f} to {max(exm):.0f}&#8202;%. In v2 ID 1&#8217;s field model a five-magnet neighbour adds "
+        f"{r5('facing', 0)['norm_uT']:.0f}&#8202;&#181;T facing and {r5('side', 0)['norm_uT']:,.0f}&#8202;&#181;T side by side, "
+        "touching. When the neighbour&#8217;s pose is fitted from both boards, the Cram&#233;r&#8211;Rao bound on a press is "
+        f"{min(bound):.3f}&#8211;{max(bound):.3f}&#8202;N, against {known:.3f}&#8202;N with the pose known.")
     summary = (
-        f"Magnetic crosstalk between neighbouring fingertips (v2 ID 1's field model): a five-N52 neighbour adds "
-        f"{r5('facing', 0)['norm_uT']:.0f} uT facing and {r5('side', 0)['norm_uT']:,.0f} uT side by side when touching, against "
-        f"{p05:.0f} uT for a 0.5 N press; subtracting the field at a pose 0.3 mm and 0.3 deg off leaves "
-        f"{k3(r5('facing', 0))['residual_uT_median']:.0f} and {k3(r5('side', 0))['residual_uT_median']:.0f} uT; fitting the pose from "
-        f"both boards with a 1 mm, 1 deg prior keeps the press bound at {min(cf):.3f}-{max(cf):.3f} N facing and "
-        f"{min(cs):.3f}-{max(cs):.3f} N side by side ({known:.3f} N known); the sharpie pinch's first window fitted from both "
-        f"boards (chi-square {sum(w0['chi0']):,.0f} to {sum(w0['chi1']):.0f}; {w0['f0'][0]:.1f} and {w0['f0'][1]:.1f} N to "
-        f"{w0['f1'][0]:.1f} and {w0['f1'][1]:.1f} N).")
+        "Magnetic crosstalk between neighbouring fingertips: on the UR5 two four-magnet v3 tips touching changed each other's "
+        f"boards by {min(con):.0f}-{max(con):.0f} uT ({min(far):.0f}-{max(far):.0f} uT at a 12.5 mm gap), against {p05:.0f} uT "
+        f"for a 0.5 N press on v2 ID 1; the dipole model fixed before the data explains {min(ex):.0f}-{max(ex):.0f} % of the "
+        f"change within 10 mm, and {min(exm):.0f}-{max(exm):.0f} % with a net moment of {min(shr):.0f}-{max(shr):.0f} % of one "
+        f"magnet fitted per tip. In v2 ID 1's field model a five-N52 neighbour adds {r5('facing', 0)['norm_uT']:.0f} uT facing "
+        f"and {r5('side', 0)['norm_uT']:,.0f} uT side by side when touching; fitting its pose from both boards keeps the press "
+        f"bound at {min(bound):.3f}-{max(bound):.3f} N ({known:.3f} N with the pose known).")
 
     S_ = []
     terms = [
@@ -249,12 +417,35 @@ def sections(B, S, Sn, f1, f2):
         ("Press signal", "The norm of the change under a face press of v2 ID 1 on the UR5, median over the presses in a band of "
          f"force. It is {press['0.2-0.4 N']:.0f}&#8202;&#181;T at 0.2&#8211;0.4&#8202;N and {p05:.0f}&#8202;&#181;T at 0.4&#8211;0.7&#8202;N. "
          f"At 0.7&#8211;1.5&#8202;N it is {press['0.7-1.5 N']:.0f}&#8202;&#181;T, and at 1.5&#8211;3&#8202;N {press['1.5-3 N']:.0f}&#8202;&#181;T."),
-        ("Receiving tip, neighbour", "The receiving tip is v2 ID 1, five N52 magnets, with its field model fitted at rest in UR5 "
-         "session 20261026-192158-v2id1. The neighbour is the same five-magnet tip, or four N52 magnets in an alternating "
-         "5.0&#8202;mm square (pad 05R4), both at v2 ID 1&#8217;s magnet strength."),
+        ("Receiving tip, neighbour", f"In the field model of Sections {SEC['field']}, {SEC['subtract']} and {SEC['fit']} the "
+         "receiving tip is v2 ID 1, with five N52 magnets. Its field model was fitted at rest in UR5 session "
+         "20261026-192158-v2id1. "
+         "The neighbour is the same five-magnet tip, or four N52 magnets in an alternating 5.0&#8202;mm square (pad 05R4), both "
+         "at v2 ID 1&#8217;s magnet strength."),
         ("Facing, W", "The pads face each other across a gap W between their apexes, as in a pinch, in mm. The apex is the "
-         "centre of a pad&#8217;s face."),
+         "centre of a pad&#8217;s face. On the holder W is the robot apex&#8217;s height above the held apex; it is negative "
+         "when the pads press into each other."),
         ("Side by side, g", "The tips lie side by side with their apexes level and a gap g between their flanks, in mm."),
+        ("v3 tips, robot tip, held tips", "Three fingertips with pad 05R4: four N52 magnets of 3 &#215; 2&#8202;mm in an "
+         "alternating 5.0&#8202;mm square, 7.5&#8202;mm under the apex. The robot tip, v3 ID 1, is on the UR5. The two held tips "
+         "face up on the +y and &#8722;y stations of the T-shaped fingertip holder (" + link(L["holder"], "holder README")
+         + "), 57&#8202;mm apart, each with its own board."),
+        ("Touch-off, hover", "In a touch-off the robot lowers its apex onto a held apex until the force sensor detects contact. "
+         "Its approach runs from the top of the travel to that onset. In a hover the robot apex dwells at a gap W over a held "
+         "apex without contact, between two dwells at a reference 40&#8202;mm above."),
+        ("Measured change", "The change of a board&#8217;s 15 components caused by the other tip, as a norm in &#181;T. In a "
+         "touch-off it is taken from the board&#8217;s reading with the robot far; in a hover, from the mean of the two "
+         "reference dwells."),
+        ("Nominal dipole model, gain", "The field model of Section " + str(SEC["field"]) + " for four N52 magnets at their "
+         "nominal places with alternating poles (<code>scripts/fingertip_crosstalk.py budget</code>). It has v2 ID 1&#8217;s "
+         "chip geometry and magnet strength and was fixed before the measurement. The gain is one factor per "
+         "receiving board by which the model is scaled to the measured change; 1 means the model&#8217;s strength is right."),
+        ("Explained share", "The share of the measured change&#8217;s energy that the scaled model accounts for, "
+         "$1 - \\sum_k \\lVert M_k - g\\,P_k \\rVert^2 \\big/ \\sum_k \\lVert M_k \\rVert^2$, over the samples k at W under "
+         "10&#8202;mm. $M_k$ is the measured change and $P_k$ the model&#8217;s, each with 15 components, and $g$ the gain."),
+        ("Net moment", "The vector sum of a tip&#8217;s four magnetic moments, in mA&#8202;m&#178;, in the tip&#8217;s pad frame: "
+         "x along the face&#8217;s normal, y and z in its plane. The nominal alternating square has none. It is given as a share "
+         "of one magnet&#8217;s moment."),
         ("Viewer, phantom contact", "The multi-board viewer&#8217;s estimator shows a contact when its fit explains a "
          "&#967;&#178; of more than 25 and the force is at least 0.25&#8202;N. It uses a 2&#8202;&#181;T floor and 50&#8202;ms of "
          "samples. A phantom contact is one shown with nothing pressing."),
@@ -293,7 +484,7 @@ def sections(B, S, Sn, f1, f2):
         ["Neighbour", "Pose", "Field at the board (&#181;T)", "Left after the far-field fit (&#181;T)", "Contact shown (N)",
          "Shown with the steel test (N)", "Residual, 0.1&#8202;mm, 0.1&#176; (&#181;T)", "Residual, 0.3&#8202;mm, 0.3&#176; (&#181;T)",
          "Residual, 1&#8202;mm, 1&#176; (&#181;T)", "Phantoms at 0.3&#8202;mm, 0.3&#176; (%)", "Gradient (&#181;T/mm)"],
-        [brow(r) for r in B["rows"]], num_cols=tuple(range(2, 11)), n=1,
+        [brow(r) for r in B["rows"]], num_cols=tuple(range(2, 11)), n=TAB["field"],
         caption=f"The neighbour&#8217;s field at v2 ID 1&#8217;s board by pose, and what is left after subtracting the field "
                 f"predicted at an erroneous pose. A 0.5&#8202;N press changes the board by {p05:.0f}&#8202;&#181;T. Gradient: the "
                 "largest change of the field per mm of the neighbour&#8217;s position. Script: "
@@ -322,19 +513,22 @@ def sections(B, S, Sn, f1, f2):
         + " Much of the side-by-side field is not a far field: "
         f"{r5('side', 0)['after_far_uT']:,.0f}&#8202;&#181;T of it is left after the steel test&#8217;s far-field fit at contact.</p>")
     S_.append(("field", "Field of a neighbouring fingertip at the board",
-               field + P.fig(1, f1, "Change at v2 ID 1&#8217;s board caused by a neighbouring fingertip, in its field model. (a) Pads "
+               field + P.fig(FIG["budget"], f1, "Change at v2 ID 1&#8217;s board caused by a neighbouring fingertip, in its field model. (a) Pads "
                              "facing across a gap W. (b) Side by side with a gap g between the flanks. Solid: the neighbour&#8217;s "
                              "field. Dashed: the median left after subtracting the field predicted at a pose 0.3&#8202;mm and "
                              "0.3&#176; off. Blue: a five-magnet neighbour like v2 ID 1. Orange: four N52 magnets in an "
                              "alternating 5.0&#8202;mm square. Dashed black line: a 0.5&#8202;N face press; grey band: presses of "
                              "0.2&#8211;3&#8202;N. Script: <code>scripts/fingertip_crosstalk.py budget</code>.") + tab1))
 
-    # 3. subtraction from the joint angles
+    # 3. measured on the holder
+    S_.append(("holder", "Neighbour field measured on the fingertip holder", holder_section(H, hn, fh)))
+
+    # 4. subtraction from the joint angles
     sub = (
         "<p>The joint angles give the neighbour&#8217;s pose, so its field can be predicted and subtracted. The SR2 hand&#8217;s "
         "SCS0009 servos read 0.29&#176; per tick, 0.2&#8211;0.35&#8202;mm at the fingertip. With pose errors of 0.1&#8202;mm and "
         f"0.1&#176;, {k1(r5('facing', 0))['residual_uT_median']:.1f}&#8202;&#181;T is left facing and touching, and "
-        f"{k1(r5('side', 0))['residual_uT_median']:.0f}&#8202;&#181;T side by side (Table&#160;1). At 0.3&#8202;mm and 0.3&#176; the "
+        f"{k1(r5('side', 0))['residual_uT_median']:.0f}&#8202;&#181;T side by side (Table&#160;{TAB['field']}). At 0.3&#8202;mm and 0.3&#176; the "
         f"residuals are {k3(r5('facing', 0))['residual_uT_median']:.0f} and {k3(r5('side', 0))['residual_uT_median']:.0f}&#8202;&#181;T. "
         f"Facing, the residual stays below a 0.5&#8202;N press from 5&#8202;mm on ({k3(r5('facing', 5))['residual_uT_median']:.0f}"
         f"&#8202;&#181;T). Side by side it equals that press at 10&#8202;mm ({k3(r5('side', 10))['residual_uT_median']:.0f}&#8202;&#181;T) "
@@ -352,7 +546,7 @@ def sections(B, S, Sn, f1, f2):
         "Subtraction from the joint angles alone therefore works beyond about 5&#8202;mm facing and 10&#8202;mm side by side.</p>")
     S_.append(("subtract", "Subtracting the field predicted from the joint angles", sub))
 
-    # 4. two-board pose fit
+    # 5. two-board pose fit
     def crow(kind, x):
         r = r5(kind, x)
         c = r["crb"]
@@ -362,7 +556,7 @@ def sections(B, S, Sn, f1, f2):
     tab2 = P.table(
         ["Pose of a five-magnet neighbour", "Pose known", "One board, 0.3&#8202;mm, 0.3&#176; prior", "One board, 1&#8202;mm, 1&#176; prior",
          "One board, no prior", "Two boards, 0.3&#8202;mm, 0.3&#176; prior", "Two boards, 1&#8202;mm, 1&#176; prior", "Two boards, no prior"],
-        [crow("facing", x) for x in FACING_W] + [crow("side", x) for x in SIDE_G], num_cols=tuple(range(1, 8)), n=2,
+        [crow("facing", x) for x in FACING_W] + [crow("side", x) for x in SIDE_G], num_cols=tuple(range(1, 8)), n=TAB["crb"],
         caption="Cram&#233;r&#8211;Rao bound on a press along the face normal at v2 ID 1&#8217;s face centre, in N, with the "
                 "neighbour&#8217;s pose estimated with the press. One board: v2 ID 1&#8217;s alone. Two boards: the neighbour&#8217;s "
                 "board as well, whose reading v2 ID 1&#8217;s magnets change. Prior: the joint angles&#8217; standard deviation per axis.")
@@ -370,7 +564,7 @@ def sections(B, S, Sn, f1, f2):
         "<p>The pose can also be estimated together with the press, from the boards themselves. The neighbour&#8217;s field "
         "then adds six unknowns, and the joint angles constrain them as a prior. With both boards and a 1&#8202;mm, 1&#176; prior, "
         f"the bound on a press at the face&#8217;s centre is {min(cf):.3f}&#8211;{max(cf):.3f}&#8202;N facing. Side by side it is "
-        f"{min(cs):.3f}&#8211;{max(cs):.3f}&#8202;N, against {known:.3f}&#8202;N with the pose known (Table&#160;2). With v2 "
+        f"{min(cs):.3f}&#8211;{max(cs):.3f}&#8202;N, against {known:.3f}&#8202;N with the pose known (Table&#160;{TAB['crb']}). With v2 "
         f"ID 1&#8217;s board alone and the same prior it is {min(r5('facing', x)['crb']['1']['one_board'] for x in FACING_W):.3f}&#8211;"
         f"{max(r5('facing', x)['crb']['1']['one_board'] for x in FACING_W):.3f}&#8202;N facing and "
         f"{min(r5('side', x)['crb']['1']['one_board'] for x in SIDE_G):.3f}&#8211;{max(r5('side', x)['crb']['1']['one_board'] for x in SIDE_G):.3f}"
@@ -380,14 +574,15 @@ def sections(B, S, Sn, f1, f2):
         f"{max(r5(k, x)['crb']['free']['two_boards'] for k, xs in (('facing', FACING_W), ('side', SIDE_G)) for x in xs):.3f}&#8202;N.</p>"
         "<p>The bound holds only if the field of the neighbour is modelled well. At contact side by side the field is "
         f"{r5('side', 0)['norm_uT']:,.0f}&#8202;&#181;T, so a model error of 1&#8202;% leaves {r5('side', 0)['norm_uT'] / 100:.0f}"
-        "&#8202;&#181;T, close to a 0.2&#8202;N press. The field model of each tip has been fitted at rest only, and its error at a few "
-        "millimetres from a second tip has not been measured.</p>")
+        "&#8202;&#181;T, close to a 0.2&#8202;N press. On the holder, two v3 tips facing each other changed the held boards by 55 "
+        "to 60&#8202;&#181;T at contact. The model with each tip&#8217;s net moment left about 10&#8202;&#181;T of that "
+        f"(Section&#160;{SEC['holder']}).</p>")
     S_.append(("fit", "Fitting the neighbour's pose from both boards", fit + tab2))
 
-    # 5. sharpie
+    # 6. sharpie
     sh = (
         "<p>On 27 October at 12:18 the owner pinched a marker pen between v1 ID 2 and ID 3, with both boards streaming to the "
-        "multi-board viewer (Figure&#160;2). The two tips were held by hand. Over the eight windows of the pinch, ID 2&#8217;s "
+        f"multi-board viewer (Figure&#160;{FIG['sharpie']}). The two tips were held by hand. Over the eight windows of the pinch, ID 2&#8217;s "
         f"board changed by {min(w['d'][0] for w in Sn):.0f}&#8211;{max(w['d'][0] for w in Sn):.0f}&#8202;&#181;T from rest, and "
         f"ID 3&#8217;s by {min(w['d'][1] for w in Sn):.0f}&#8211;{max(w['d'][1] for w in Sn):.0f}&#8202;&#181;T. Most of each change is a "
         f"uniform field, a median {g_med[0]:.0f}&#8202;&#181;T at ID 2 and {g_med[1]:.0f}&#8202;&#181;T at ID 3 per chip. The tips "
@@ -408,52 +603,48 @@ def sections(B, S, Sn, f1, f2):
         f"{max(max(abs(a - b) for a, b in zip(w['f0'], w['f1'])) for w in later):.1f}&#8202;N. The pose is not determined in "
         "this steady part of the hold, so its forces are not corrected.</p>")
     S_.append(("sharpie", "The owner's pinch of a marker pen between two v1 tips",
-               sh + P.fig(2, f2, "The owner&#8217;s pinch of a marker pen between v1 ID 2 (blue) and ID 3 (orange), 2026-10-27, "
+               sh + P.fig(FIG["sharpie"], f2, "The owner&#8217;s pinch of a marker pen between v1 ID 2 (blue) and ID 3 (orange), 2026-10-27, "
                           "from the multi-board viewer&#8217;s streams. (a) Each board&#8217;s change from rest, the norm over its 15 "
                           "components in bins of 0.2&#8202;s. Diamonds: the estimator&#8217;s uniform field in each window, as its "
                           "norm over the five chips. (b) The force of each board&#8217;s contact per window: the viewer&#8217;s "
                           "estimate (open) and with the two-board pose fit (filled). Grey: the eight windows. Script: "
                           "<code>scripts/fingertip_crosstalk.py sharpie</code>; rows in <code>data/sharpie.json</code>.")))
 
-    # 6. limitations
+    # 7. limitations
     S_.append(("limits", "Limitations", (
-        "<p>Figure&#160;1, Tables&#160;1 and 2 come from the dipole model of v2 ID 1&#8217;s magnets, fitted at rest on the UR5. No "
-        "field of a second tip has been measured at a known pose. The neighbour has v2 ID 1&#8217;s magnet strength. The bound "
-        "assumes an exact field model and the noise of a 50&#8202;ms window, and it is the bound for one press at the face&#8217;s "
-        "centre. In the pinch the two v1 tips were held by hand, so neither the pose nor the force is known. The pinch&#8217;s "
-        "boards use the fits of ID 2 on the UR5 and of ID 3 on the bench.</p>")))
+        f"<p>Figure&#160;{FIG['budget']} and Tables&#160;{TAB['field']} and {TAB['crb']} come from the dipole model of v2 ID 1&#8217;s "
+        "magnets, fitted at rest on the UR5. The neighbour has v2 ID 1&#8217;s magnet strength. The measured field of "
+        f"Section&#160;{SEC['holder']} is between four-magnet v3 tips facing each other, through {hn['n_touch']} touch-off "
+        f"approaches and {count(hn['n_hover'])} hovers; no side-by-side pose has been measured. The bound assumes an exact field model "
+        "and the noise of a 50&#8202;ms window, and it is the bound for one press at the face&#8217;s centre. In the pinch the two "
+        "v1 tips were held by hand, so neither the pose nor the force is known. The pinch&#8217;s boards use the fits of ID 2 on "
+        "the UR5 and of ID 3 on the bench.</p>")))
 
-    # 7. future work
+    # 8. future work
     fw = [
-        ("The neighbour&#8217;s field on the holder.", "It is mapped without contact by the "
-         + link(L["v3"], "plan for the four-magnet v3 tips") + ". Two more v3 tips with their own boards face up on the two "
-         "stations of the T-shaped holder, +y and &#8722;y, 57&#8202;mm apart (" + link(L["holder"], "holder README") + "). The "
-         "+y tip is turned 180&#176; about the vertical (Figure&#160;3). On 2026-10-27 the +y apex was located by five "
-         "touch-offs of v3 ID 1 (session 202426-holdapexv3id1). It stands 2.86&#8202;mm lower and 2.50&#8202;mm closer to the "
-         "&#8722;y station than in the holder&#8217;s frame from homing. The holder stands level, and the frame from homing is "
-         "tilted by 4.3&#176;. The map starts with five touch-offs on the &#8722;y apex. The robot tip then dwells at 49 "
-         "facing poses over the +y tip, at W 0.5&#8211;45&#8202;mm and twists of &#8722;20 to +10&#176;. At W 1, 3 and "
-         "10&#8202;mm it is also shifted 3&#8202;mm along and across the tip, in 12 of these poses. It dwells at 21 poses over "
-         "the &#8722;y tip, at W 10&#8202;mm and over. Twenty poses are repeated, and the map takes about 45&#8202;min. Both "
-         "tips face up, so there are no side-by-side poses. The tips went on before the map, so there is no run with the "
-         "stations empty. The background and the drift are measured at W 45&#8202;mm and by the repeats. Each held tip&#8217;s "
-         "pose and strength are fitted in five folds by pose. A held-out residual above 10&#8202;% of the field at W 5&#8202;mm "
-         "and under (3.4&#8202;&#181;T at W 0.5&#8202;mm) means the model cannot be subtracted to the board&#8217;s noise. At "
-         "these poses the held tips&#8217; magnets pull on the robot tip with at most 0.69&#8202;mN "
-         "(<code>scripts/fingertip_crosstalk.py pull</code>)."),
+        ("The neighbour&#8217;s field on the holder.", "The frame through both held apexes, measured by touch-offs, tilts by "
+         "0.25&#176; with a residual of 0.087&#8202;mm rms (session 212131-holdmapv3id1). Of the 90 hovers of the "
+         + link(L["v3"], "plan for the four-magnet v3 tips") + f" (Figure&#160;{FIG['render']}), the first four ran "
+         f"(Section&#160;{SEC['holder']}). The other 86 remain, over the +y tip at W 0.5&#8211;45&#8202;mm and over the &#8722;y "
+         "tip at W 10&#8202;mm and over, at twists of &#8722;20 to +10&#176;. A second plan dwells at 28 poses over the "
+         "&#8722;y tip at W 0.5&#8211;5&#8202;mm and repeats 20 of them, in about 18&#8202;min. The background and the drift are "
+         "measured at W 45&#8202;mm and by the repeats. Each held tip&#8217;s pose and strength are then fitted in five folds by "
+         "pose. At W 5&#8202;mm and under, a held-out residual above 10&#8202;% of the field means the model cannot be "
+         "subtracted to the board&#8217;s noise. At W 0.5&#8202;mm that is about 5&#8202;&#181;T. At these poses the held tips&#8217; "
+         "magnets pull on the robot tip with at most 0.69&#8202;mN (<code>scripts/fingertip_crosstalk.py pull</code>)."),
         ("A pinch between two v3 tips.", "A plan of its own follows the map. The robot apex presses the held apex on the +y "
          "station at 0.25&#8211;3&#8202;N. The robot&#8217;s target is also shifted 2 and 4&#8202;mm off its apex, across and "
          "along, and turned by &#8722;20 to +20&#176;. The apex press comes first, in the middle and last. The robot "
          "tip&#8217;s contact is estimated from the raw change, with the modelled field at the commanded pose subtracted, and with "
          "the held tip&#8217;s pose fitted from the board. With the fitted pose, a force error above 0.2&#8202;N at 0.5&#8202;N "
-         "contradicts the one-board bound of Table&#160;2."),
+         f"contradicts the one-board bound of Table&#160;{TAB['crb']}."),
         ("A five-magnet neighbour.", "The owner tabled this check on 2026-10-27. It takes about 30&#8202;min with a five-magnet "
          "tip on the +y station. Its 483&#8202;&#181;T at W 0.5&#8202;mm tests the model at 1&#8202;% (4.8&#8202;&#181;T); at "
          "v3&#8217;s 34&#8202;&#181;T, 1&#8202;% is about the board&#8217;s noise. A misfit above 1&#8202;% at the closest poses "
-         "means the bounds of Table&#160;2 do not apply."),
+         f"means the bounds of Table&#160;{TAB['crb']} do not apply."),
     ]
     S_.append(("future", "Future work", "<ul class=\"open\">" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in fw) + "</ul>"
-               + P.fig(3, HOVER, "Geometry of the crosstalk map on the UR5 cell, rendered in MuJoCo from the fixtures&#8217; "
+               + P.fig(FIG["render"], io.BytesIO(at_head(HOVER)), "Geometry of the crosstalk map on the UR5 cell, rendered in MuJoCo from the fixtures&#8217; "
                        "registrations. The fingertip holder (centre) stands level on the 2x4, with both held tips facing up. The "
                        "pad of v3 ID 1 on the robot hovers 2&#8202;mm over the +y held tip at twist 0, pose "
                        "<code>hov-f-W2-t+0</code> of the plan. The homing seat stands in front of the holder&#8217;s column. "
@@ -466,13 +657,21 @@ def build():
     S = json.loads((DATA / "sharpie.json").read_text())
     T = sharpie_trace()
     Sn = sharpie_numbers(S)
+    H = json.loads(at_head(HOLD))
+    if H.get("made") != HOLD_MADE:
+        print(f"fingertip_crosstalk_page: {HOLD.name} was remade at {H.get('made')} (the page's sentences quote {HOLD_MADE}); "
+              "check the measured section against the coordinator's newest feed line", flush=True)
     f1 = fig_budget(B)
     f2 = fig_sharpie(S, T, Sn)
-    S_, lede, summary = sections(B, S, Sn, f1, f2)
+    fh = fig_holder(H)
+    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh)
+    assert [sid for sid, _, _ in S_] == list(SEC), [sid for sid, _, _ in S_]
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S_, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S_, 1))
     byline = ("Field model of v2 ID 1 (five N52) fitted at rest in UR5 session 20261026-192158-v2id1; the owner&#8217;s pinch with "
-              "v1 ID 2 and ID 3 on 2026-10-27 at 12:18. Analysis <code>scripts/fingertip_crosstalk.py</code> (commit bc508a6e); "
+              "v1 ID 2 and ID 3 on 2026-10-27 at 12:18; three v3 tips on the UR5&#8217;s fingertip holder in sessions 200536-holdv3id1, "
+              "202426-holdapexv3id1 and 212131-holdmapv3id1 on 2026-10-27, analysed by <code>scripts/fingertip_crosstalk_holder.py</code> "
+              "(commits 53993cbc and 1114cb94). Analysis <code>scripts/fingertip_crosstalk.py</code> (commit bc508a6e); "
               "page by <code>scripts/fingertip_crosstalk_page.py</code>; rows in " + link(DATA, "data/") + ". The fingertip and its "
               "calibration are described on " + link(L["overview"], "the fingertip overview") + " and "
               + link(L["cal"], "the calibration page") + ".")
