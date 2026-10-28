@@ -1015,7 +1015,7 @@ push that answers it arrives.
   `suite_value.SUITE`'s cuts, in this order; each plan's checks.other holds the tall indenter, the rod at its three
   seatings and the holder with both held tips (kind tiphold). Times are v2 ID 1's at the program's present speeds.
   1. `lab/20261027-plan_sphere_lab_pass1_v3id1.json`: 18 touch-offs, stages preflight, homing, pad and register, about
-     0.5 h. Its 9 gravity poses swing joint 6 from -148.4 to +48.3 deg in the lab's simulator and moved to the morning.
+     0.5 h. No gravity sweeps (owner, 10-23, and again at 22:3x on 10-27); v2 ID 1's plan file still listed 9.
   2. `lab/20261027-plan_sphere_lab_stage2_v3id1.json` (c60d6458): 264 actions, about 6.8 h, resumed on pass 1's
      registration. 19 presses keep the mount 2.38 to 2.92 mm from the sphere's own fixture at 2.5 mm, as on v2 ID 1.
   3. `lab/20261027-plan_tall_lab_pass1_v3id1.json`: v2 ID 1's 21 touch-offs on the tall indenter (to 2.0 mm past); all
@@ -1024,7 +1024,7 @@ push that answers it arrives.
      (tall-shared-728, -730, -719 on the face, -581, -576, -640 on the edges, at the levels of sphere grid-029, -009,
      -013, -032, -051 and -034), 103 actions. Path check with presses at their largest force's depth: finger 0.94, mount
      2.80, HEX-E 17.7 mm at least; 4 actions reach joint 6 -61 to -63 deg.
-  The owner's morning: `lab/20261027-plan_sphere_lab_morning_v3id1.json` (pass 1's 9 gravity poses, then 55 actions, 1.1 h: joint 6 past +44 deg in
+  The owner's morning: `lab/20261027-plan_sphere_lab_morning_v3id1.json` (55 actions, 1.1 h: joint 6 past +44 deg in
   v2 ID 1's run, and grid-055, fast-grid-055 and hard-grid-055, the finger within 0.36 mm of the sphere),
   `lab/20261027-plan_tall_lab_morning_v3id1.json` (17, joint 6 to +55 deg), pad-edge-07 of sphere pass 1, and the rod:
   - `lab/20261027-plan_rod_lab_pass1_search_v3id1.json`: 21 touch-offs from 8 mm above the expected contact to 5 mm past
