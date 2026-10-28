@@ -158,7 +158,63 @@ def shear(S, T, Yt, rod="20261027-095303-rodv2id1"):
     return out
 
 
+def slide_table(H, Y):
+    """Location, force and shear-direction errors of slide holds, medians by region (shear direction where both the
+    measured and the estimated shear exceed 0.1 N)."""
+    loc, ang = K.loc_err(H, Y[:, :3]), K.angle(Y[:, 3:], H["f"])
+    st, se = K.shear(H["f"], H["n"]), K.shear(Y[:, 3:], H["n"])
+    ok = (np.linalg.norm(st, axis=1) > 0.1) & (np.linalg.norm(se, axis=1) > 0.1)
+    sd = K.angle(se, st)
+    out = {}
+    for r in REGIONS:
+        m = H["region"].astype(str) == r
+        out[r] = dict(n_holds=int(m.sum()), n_actions=int(len(np.unique(H["id"][m]))), loc_mm=K.med(loc[m]),
+                      angle_deg=K.med(ang[m]), shear_dir_deg=K.med(sd[m & ok]), n_shear=int((m & ok).sum()))
+    return out
+
+
+def slides(a, S):
+    """The tall indenter's slides against the sphere session's: a GP of the sphere's presses and slides on them, and the
+    same with the tall presses and the other tall slides added (five folds by action); the sphere's own slides in five
+    folds by action as the reference."""
+    def sel(H, kinds):
+        m = np.isin(H["kind"].astype(str), kinds) & np.isfinite(H["d_board"]).all(1) & np.isfinite(H["p"]).all(1) \
+            & np.isfinite(H["f"]).all(1)
+        return K.sub(H, m)
+    SA, TA = sel(K.load(D / SPH), ["press", "slide"]), sel(K.load(Path(a.holds or D / a.tall)), ["press", "slide"])
+    Ss, Ts = (K.sub(H, H["kind"].astype(str) == "slide") for H in (SA, TA))
+    Tp = K.sub(TA, TA["kind"].astype(str) == "press")
+    if not len(Ts["id"]):
+        return None
+    out = dict(n_tall_slide_holds=int(len(Ts["id"])), n_tall_slide_actions=int(len(np.unique(Ts["id"]))))
+    out["transfer"] = slide_table(Ts, K.gp(SA).predict(Ts["d_board"]))
+    f = folds(Ts["id"].astype(str))
+    Y = np.full((len(f), 6), np.nan)
+    for q in range(5):
+        m = f == q
+        Y[m] = K.gp(K.cat(SA, Tp, K.sub(Ts, ~m))).predict(Ts["d_board"][m])
+    out["with_tall"] = slide_table(Ts, Y)
+    f = folds(Ss["id"].astype(str))
+    Y = np.full((len(f), 6), np.nan)
+    sp = K.sub(SA, SA["kind"].astype(str) == "press")
+    for q in range(5):
+        m = f == q
+        Y[m] = K.gp(K.cat(sp, K.sub(Ss, ~m))).predict(Ss["d_board"][m])
+    out["sphere_own"] = slide_table(Ss, Y)
+    return out
+
+
 def run(a):
+    if a.slides:
+        res = json.loads(Path(a.out).read_text()) if a.out and Path(a.out).exists() else {}
+        res["slides"] = slides(a, None)
+        print("slides", json.dumps(res["slides"]), flush=True)
+        out = Path(a.out or D / a.tall / "r29_tall_vs_sphere.json")
+        if a.out is None and out.exists():
+            res = dict(json.loads(out.read_text()), slides=res["slides"])
+        out.write_text(json.dumps(res, indent=1, default=float) + "\n")
+        print("->", out)
+        return
     S, T = presses(SPH), presses(a.tall)
     print(f"sphere {len(S['id'])} press holds ({len(np.unique(S['id']))} actions), "
           f"tall {len(T['id'])} ({len(np.unique(T['id']))} actions)", flush=True)
@@ -220,4 +276,6 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--tall", default="20261027-143529-tallv2id1")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--holds", default=None, help="a holds folder in place of data/<tall> (a session copied mid-run)")
+    ap.add_argument("--slides", action="store_true", help="only the slides' comparison, added to the output file")
     run(ap.parse_args())

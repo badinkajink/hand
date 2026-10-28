@@ -361,6 +361,48 @@ def sharpie(args):
     print("wrote", path)
 
 
+def pull(args):
+    """The magnetic force between two tips at the holder's test poses (the HEX-E reads it as a contact force): the
+    gradient of the robot tip's magnets' energy in the held tip's field, by central differences of 1 um, at twist 0 and
+    +-20 deg (facing, the turn about the common normal) and side by side at s 0. Both tips at v2 ID 1's strength k."""
+    cal = W.Calib.load(V2 / "calib_rest.json")
+    tips = {"five": (five_row(), cal.poles), "four": (four_row(), FOUR_POLES)}
+    pairs = [("five", "four"), ("four", "four"), ("five", "five")]
+    rows = []
+    h = 1e-3                                                         # mm
+
+    def energy(src_r, src_n, R, t):
+        pts, mom = src_r
+        pn, mn = src_n
+        B = W.dipole_field(pts, pn @ R.T + t, mn @ R.T)              # T at the robot tip's quadrature points
+        return float(np.sum(mom * B))                                # -U, J
+
+    for robot, held in pairs:
+        sr, sn = source(*tips[robot], cal.k), source(*tips[held], cal.k)
+        cases = [("facing", w, tw) for w in (0.5, 1, 2, 3, 5, 10) for tw in (-20, 0, 20)]
+        cases += [("side", g, 0) for g in (0, 5, 10, 13, 15, 20, 25)]
+        for test, gap, tw in cases:
+            if test == "facing":
+                R = Rotation.from_euler("x", tw, degrees=True).as_matrix() @ FACING
+                apex = np.array([TD.X_FACE, 0.0, TD.Z_C])            # the held apex gap mm off the robot apex, turned
+                t = apex + np.array([gap, 0.0, 0.0]) - R @ apex          # about the common normal through the apexes
+            else:
+                R, t = np.eye(3), np.array([0.0, 2 * TD.Y_HALF + gap, 0.0])
+            F = np.zeros(3)
+            for e in range(3):
+                d = np.zeros(3)
+                d[e] = h
+                F[e] = (energy(sr, sn, R, t - d) - energy(sr, sn, R, t + d)) / (2 * h * 1e-3)   # force on the robot tip, N
+            rows.append(dict(robot=robot, held=held, test=test, gap_mm=gap, twist_deg=tw, F_N=F.round(5).tolist(),
+                             F_abs_N=float(np.linalg.norm(F))))
+            print(f"{robot}/{held} {test} gap {gap:g} tw {tw:+d}: |F| {np.linalg.norm(F) * 1e3:.2f} mN "
+                  f"(along the normal {F[0] * 1e3:+.2f})", flush=True)
+    path = EXP / "data" / "20261027-pull.json"
+    path.write_text(json.dumps(dict(model="fingertip_crosstalk pull: v2 ID 1's k, quadrature dipoles", rows=rows),
+                               indent=1) + "\n")
+    print("wrote", path)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -369,8 +411,9 @@ def main():
     b.add_argument("--presses", type=int, default=30)
     s = sub.add_parser("sharpie")
     s.add_argument("--random-starts", type=int, default=16)
+    sub.add_parser("pull")
     a = ap.parse_args()
-    {"budget": budget, "sharpie": sharpie}[a.cmd](a)
+    {"budget": budget, "sharpie": sharpie, "pull": pull}[a.cmd](a)
 
 
 if __name__ == "__main__":
