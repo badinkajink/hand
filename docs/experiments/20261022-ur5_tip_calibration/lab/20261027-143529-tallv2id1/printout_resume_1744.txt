@@ -1,0 +1,54 @@
+resumed logs/20261027-tip_calibration/143529-tallv2id1: 71 actions done, 24 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0396 0.0099 0.2294 0.0028 0.0038 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  tall-face-702 (46/59): to 5.00 N
+  tall-face-690 (47/59): to 5.00 N
+  tall-edge-627 (48/59): to 3.00 N
+  tall-edge-694 (49/59): to 3.00 N
+  tall-edge-626 (50/59): to 3.00 N
+  tall-edge-668 (51/59): to 3.00 N
+  tall-edge-670 (52/59): to 3.00 N
+  tall-edge-666 (53/59): to 3.00 N
+  tall-edge-625 (54/59): to 3.00 N
+  tall-edge-622 (55/59): to 3.00 N
+  tall-edge-610 (56/59): to 3.00 N
+  tall-edge-604 (57/59): to 3.00 N
+  tall-ref-b (58/59): to 2.00 N
+  tall-ref-c (59/59): to 2.00 N
+== shear
+  tall-slide-flank-601-1N (1/50): to 1.00 N
+  tall-slide-flank-562-1N (2/50): to 1.00 N
+  tall-slide-flank-507-1N (3/50): to 1.00 N
+  tall-slide-flank-547-1N (4/50): to 1.00 N
+  tall-slide-flank-551-1N (5/50): to 1.00 N
+  tall-slide-flank-545-1N (6/50): to 1.00 N
+  tall-slide-flank-556-1N (7/50): to 1.00 N
+  tall-slide-flank-590-1N (8/50): to 1.00 N
+  tall-slide-flank-589-1N (9/50): to 1.00 N
+  tall-slide-flank-591-1N (10/50): to 1.00 N
+  tall-slide-flank-531-1N (11/50): to 1.00 N
+  tall-slide-flank-580-1N (12/50): to 1.00 N
+  tall-slide-flank-532-1N (13/50): to 1.00 N
+  tall-slide-flank-582-1N (14/50): to 1.00 N
+  tall-slide-flank-583-1N (15/50): to 1.00 N
+  tall-slide-flank-585-1N (16/50): to 1.00 N
+  tall-slide-edge-754-1N (17/50): to 1.00 N
+  tall-slide-edge-643-1N (18/50): to 1.00 N
+  tall-slide-edge-644-1N (19/50): to 1.00 N
+  tall-slide-edge-637-1N (20/50): to 1.00 N
+  tall-slide-edge-645-1N (21/50): to 1.00 N
+  tall-slide-face-732-1N (22/50): to 1.00 N
+  tall-slide-edge-647-1N (23/50): to 1.00 N
+  tall-slide-face-738-1N (24/50): to 1.00 N
+  tall-slide-edge-740-1N (25/50): to 1.00 N
+  tall-slide-edge-718-1N (26/50): to 1.00 N
+
+interrupted: stopping the robot
+HEX-E: 455600 samples, 0 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz -0.5 N
+session in logs/20261027-tip_calibration/143529-tallv2id1
+exit 0 at 19:00:27
