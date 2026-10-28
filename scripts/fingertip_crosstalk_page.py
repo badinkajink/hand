@@ -904,10 +904,12 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
          f"&#8202;&#181;T at W 0.5&#8202;mm, {min(hn['cl_at'][0.5]['held3']['left']):.0f} to "
          f"{max(hn['cl_at'][0.5]['held3']['left']):.0f}&#8202;&#181;T is left. At these poses the held tips&#8217; magnets pull "
          "on the robot tip with at most 0.69&#8202;mN (<code>scripts/fingertip_crosstalk.py pull</code>)."),
-        ("Side by side on the holder.", "The plan for the owner&#8217;s morning of 2026-10-28 (commit c810bcdd, "
+        ("Side by side on the holder.", "The plan for the owner&#8217;s morning of 2026-10-28 (commit 85c0eab6, "
          "<code>docs/experiments/20261022-ur5_tip_calibration/lab/20261028-plan_holder_lab_side_norod_v3id1.json</code>) hovers "
-         "the robot tip beside the &#8722;y tip, turned pad-down under its block. It has 27 poses at gaps of 13 to 25&#8202;mm "
-         "and 18 repeats, about 22&#8202;min, with the rod&#8217;s fixture off the cell. In the field model four magnets give "
+         "the robot tip beside the &#8722;y tip, turned pad-down under its block. It has 18 poses at gaps of 14 to 25&#8202;mm "
+         "and one at 40&#8202;mm. Each is hovered twice, 38 hovers in about 19&#8202;min, with the rod&#8217;s fixture off the cell. "
+         "On the robot&#8217;s mount, v7, the standoff fork comes within 2.09&#8202;mm of the holder at a 13&#8202;mm gap. That "
+         "is under the 3&#8202;mm margin, and the 13&#8202;mm gap was dropped. In the field model four magnets give "
          f"{r4('side', 10)['norm_uT']:.0f}&#8202;&#181;T at a 10&#8202;mm gap and {r4('side', 20)['norm_uT']:.0f}&#8202;&#181;T "
          "at 20&#8202;mm. If the model with the net moments fitted facing explains less than 90&#8202;% of the side-by-side "
          "change, the side-by-side pose needs a fit of its own."),
