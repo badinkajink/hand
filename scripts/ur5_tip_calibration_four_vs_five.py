@@ -13,7 +13,10 @@ Scores, per tip, under five folds grouped by action (the same actions in the sam
   gp            a Gaussian process from the board's 15 components to p and f (scripts/ur5_tip_calibration_cb1r_checks.gp);
   gp_direction  a GP from the change's direction d/|d| to p and f/|d| (ur5_tip_calibration_hard_extrapolation);
   loc_mm        the median location error along the surface (mm); force_rel_err the median of |f_est| - |f| over |f|;
-  angle_deg     the median angle between the estimated and the measured force;
+  angle_deg     the median angle between the estimated and the measured force (deg);
+  normal_deg    the median angle between the pad's surface normal at the estimated point and at the registered contact
+                point (deg), each interpolated from the four nearest FE surface nodes: the error of the contact's
+                direction (normal_p90_deg its 90th percentile);
   gain_uT_per_N the median of |d_board| / f_n over the holds of a bin: the board's signal per newton;
   noise_uT      the board's single-record noise at the holds: the standard deviation of each of the 15 components over
                 the central 0.4 s of a hold after a linear trend is removed, the median over components and holds;
@@ -80,6 +83,24 @@ def slide_scores(Hp, Hs):
     return out
 
 
+def normal_err(H, P, k=4):
+    """Angle (deg) between the pad's surface normal at the estimated point and at the registered contact point, each
+    the inverse-distance mean of the k nearest FE surface nodes' normals (the nodes lie about 1 mm apart)."""
+    from scipy.spatial import cKDTree
+    b = np.load(HX.PR.BASIS)
+    tree, nrm = cKDTree(b["pts"]), b["normals"]
+
+    def smooth(X):
+        d, idx = tree.query(X, k=k)
+        v = np.einsum("nk,nkj->nj", 1.0 / np.maximum(d, 1e-6), nrm[idx])
+        return v / np.linalg.norm(v, axis=1, keepdims=True)
+    ok = np.isfinite(P).all(1)
+    out = np.full(len(P), np.nan)
+    c = np.clip(np.sum(smooth(P[ok]) * smooth(H["p"][ok]), axis=1), -1.0, 1.0)
+    out[ok] = np.degrees(np.arccos(c))
+    return out
+
+
 def cv(H, fitter):
     fo = HX.folds(H)
     P, F = np.full((len(fo), 3), np.nan), np.full((len(fo), 3), np.nan)
@@ -117,15 +138,23 @@ def score(H, session):
     for name, fitter in (("gp", HX.fit_gp), ("gp_direction", HX.fit_gp_direction)):
         P, F = cv(H, fitter)
         E = HX.errors(H, P, F)
-        rows = {"all": HX.stats(E, np.ones(len(H["id"]), bool))}
+        nd = normal_err(H, P)
+
+        def st(m):
+            row = HX.stats(E, m)
+            x = nd[m & np.isfinite(nd)]
+            row["normal_deg"] = float(np.median(x)) if len(x) else None
+            row["normal_p90_deg"] = float(np.percentile(x, 90)) if len(x) else None
+            return row
+        rows = {"all": st(np.ones(len(H["id"]), bool))}
         for lo, hi in BINS:
             m = HX.in_bin(H, lo, hi)
             if m.any():
-                rows[f"{lo:g}-{hi:g}"] = HX.stats(E, m)
+                rows[f"{lo:g}-{hi:g}"] = st(m)
         for r in REGIONS:
             m = H["region"] == r
             if m.any():
-                rows[r] = HX.stats(E, m)
+                rows[r] = st(m)
         out[name] = rows
     out["gain_uT_per_N"] = {f"{lo:g}-{hi:g}": float(np.median(gain[HX.in_bin(H, lo, hi)]))
                             for lo, hi in BINS if HX.in_bin(H, lo, hi).any()}
@@ -156,7 +185,8 @@ def main():
             if r3 and r2:
                 print(f"{name:13s} {key:8s} n {r3['n']:4d}/{r2['n']:4d}  loc {r3['loc_mm']:.3f} / {r2['loc_mm']:.3f} mm  "
                       f"force {100 * r3['force_rel_err']:.1f} / {100 * r2['force_rel_err']:.1f} %  "
-                      f"angle {r3['angle_deg']:.1f} / {r2['angle_deg']:.1f} deg   (four / five)")
+                      f"angle {r3['angle_deg']:.1f} / {r2['angle_deg']:.1f} deg  normal {r3['normal_deg']:.1f} / "
+                      f"{r2['normal_deg']:.1f} deg   (four / five)")
     S3, S2 = holds(a.v3, "slide"), holds(V2, "slide")
     sids = sorted(set(S3["id"].astype(str)) & set(S2["id"].astype(str)))
     if len(sids) >= 5:
