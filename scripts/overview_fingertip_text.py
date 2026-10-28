@@ -465,7 +465,10 @@ off leaves 23 and 457&#8202;&#181;T. When the neighbour&#8217;s pose is fitted f
 1&#8202;mm, 1&#176; prior, the bound on a press at the face&#8217;s centre is 0.147&#8211;0.149&#8202;N facing and
 0.158&#8211;0.176&#8202;N side by side. With the pose known it is 0.147&#8202;N
 ([magnetic crosstalk](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html)).
-The field of a second tip has not been measured.</p>
+Between two four-magnet v3 tips on the UR5 the field was measured. Touching, they changed each other&#8217;s boards by 39
+to 60&#8202;&#181;T. Of the change within 10&#8202;mm, 37 to 63&#8202;% is explained by the dipole model fixed before the
+data. With a net moment of 7 to 16&#8202;% of one magnet fitted for each tip, the share rises to 85 to 95&#8202;%
+([measured on the holder](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#holder)).</p>
 {{FIG crosstalk}}"""),
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
@@ -539,15 +542,18 @@ out; an ATI Mini45, once calibrated, is to replace it. The FE takes Siraya 85A a
 board&#8217;s force, the UR5 session puts the printed pad within about 22&#8202;% of it.</li>
 <li><b>The magnets.</b> The v1 tips&#8217; magnets have 0.20&#8211;0.57 of an N52 magnet&#8217;s moment as fitted at rest, and
 v2 ID 1&#8217;s five N52 magnets 0.98. The models predict 0.028&#8211;0.031&#8202;N with N52, about 0.039&#8202;N at the measured
-noise. Four magnets (0.051&#8202;N) or five (0.029&#8202;N) waits on the owner. A touching neighbour that faces the pad adds
-38&#8202;&#181;T at the board with four magnets, against 513&#8202;&#181;T with five.</li>
+noise. Four magnets (0.051&#8202;N) or five (0.029&#8202;N) waits on the owner. In the field model a touching neighbour
+that faces the pad adds 38&#8202;&#181;T at the board with four magnets, against 513&#8202;&#181;T with five. Between two
+four-magnet v3 tips on the UR5, 39 to 60&#8202;&#181;T were measured at contact.</li>
 <li><b>Transfer of learned models.</b> The physical model transfers to a new pad through its rest calibration: on the
 checkerboard tip it placed contacts within 2.06&#8202;mm without a press. The GP correction learned on sphere2 does not, and
 raised that error to 2.48&#8202;mm. Fine-tuned with 20 of the new tip&#8217;s presses it gives 1.59&#8202;mm; the tip&#8217;s
 own 47 presses give 0.42&#8211;0.71&#8202;mm. Scaled by the magnets&#8217; strength fitted at rest, the v1 tips&#8217; presses
 place v2 ID 1&#8217;s contacts within 0.64&#8202;mm, against 2.52&#8202;mm unscaled.</li>
-<li><b>Disturbances in the hand.</b> The other fingers&#8217; magnets are modelled but not measured. Side by side and
-touching, a five-magnet neighbour adds 4,162&#8202;&#181;T, and its pose must be fitted from the boards. Steel touched to the face reads as a press of 9 to 17.5&#8202;N. The test against
+<li><b>Disturbances in the hand.</b> Between two facing v3 tips on the UR5 the held boards changed by 55 to
+60&#8202;&#181;T at contact. The dipole model with each tip&#8217;s net moment leaves about 10&#8202;&#181;T of that
+([magnetic crosstalk](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#holder)). Side by side and touching, a five-magnet neighbour adds 4,162&#8202;&#181;T in the
+model, and its pose must be fitted from the boards. Steel touched to the face reads as a press of 9 to 17.5&#8202;N. The test against
 fields from outside the pad removes most of those frames, but the first half second of a touch and fields of 40 to
 90&#8202;&#181;T still show 1 to 9&#8202;N. The chips&#8217; temperature drift is measured,
 0.65&#8211;0.70&#8202;% per &#176;C, and the correction from each chip&#8217;s temperature leaves 9 of 70&#8202;&#181;T over a
@@ -706,7 +712,7 @@ PAGES = [
     ("Calibration", "20261022-ur5_tip_calibration/20261024-checkerboard_fingertip_on_the_ur5.html",
      "The first checkerboard fingertip on the UR5: pole pattern, offset touch-offs, physical model, sphere2&#8217;s predictors"),
     ("Calibration", "20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html",
-     "A neighbouring fingertip&#8217;s field at the board, its subtraction from the joint angles and from both boards"),
+     "A neighbouring fingertip&#8217;s field at the board, measured between v3 tips on the UR5, and its subtraction from the joint angles and from both boards"),
     ("Calibration", "20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html",
      "Calibration of the lab&#8217;s ATI Mini45 with a weighed mass, to replace the HEX-E"),
     ("Hardware", "20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html",
