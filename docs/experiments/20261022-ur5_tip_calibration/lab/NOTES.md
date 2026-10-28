@@ -1274,6 +1274,23 @@ at about 340 records/s). The holder's two v3 tips read through the mux board `b4
   with the robot at that press's rest pose. It resumed at 00:35:50 without both
   (`lab/20261027-plan_sphere_lab_stage2_resume_v3id1.json`, 262 actions; `logs/20261028-003550-tipcal-spherev3id1.log`).
   The simulator ran both new transitions first: mount 5.43 mm in the grid, 5.30 mm in the shear stage.
+- The grid ended with all 160 actions ok, and 40 of the 84 slides after it. At 02:54:23.9 the HEX-E fell off its DAQ
+  in the joint-space travel into `slide-twin-051-t-20-2N`, while joint 6 swung from -35.5 to +13 deg with the tool at
+  z 235 mm and nothing in contact. That slide and both `slide-twin-063-t+15` slides aborted on "no HEX-E sample for
+  100 ms", and the session stopped after three aborts in a row (exit 1 at 02:54:35). The DAQ answered ping but showed
+  no sensor (serial "", counter 0, status 131072), as on 10-26 and in R29. The arm stood in free air, its safety mode
+  normal.
+
+### The owner's decisions at about 01:05 and 01:20
+
+- The rod runs without the owner, through the usual process ("can the rod plans run without my checking? i trust the
+  registration process"): pass 1 simulated on the rod's three seatings from home, stage 2 re-checked on pass 1's own
+  registration, actions under the margins left out.
+- The +45 deg cap on joint 6 is lifted for the two morning plans tonight ("yea, let's lift the cap. ill be in at ~9am
+  anyway"); the lab holds them to +60 deg. The sphere's (`lab/20261028-plan_sphere_lab_morning_unattended_v3id1.json`)
+  keeps 43 of its 55 actions after simulating it from home on v3 ID 1's registration: the three `*grid-055` (finger
+  0.36 mm), `dense-419-t+15`, `dense-464-t-5` and `hard-dense-464-t-5` (finger 0.49 to 0.78 mm), two slides past
+  +60 deg and four past -65 deg are left out. The 43: mount 3.22 mm, finger 1.66 mm, joint 6 -63.3 to +59.0 deg.
 
 ## The lab clone and git-lfs
 
