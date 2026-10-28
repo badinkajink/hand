@@ -1038,6 +1038,18 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 17:42 on 10-28, the HEX-E's losses since 10-25. Tall stage 2's 58 ran from 14:56 to 17:08 and the tall morning
+    plan from 17:09 to 17:41, all ok. The owner reports that the cable is clamped 3 to 5 cm from the connector with
+    slack, as R10 asked. Each session's `ft_reads` time-outs and `ft.bin` gaps give 7 losses in 40.8 h of actions,
+    none on 10-25: 13:24:50, 13:31:45, 14:22:36 and 14:50:45 on 10-26 (cb3t), 17:06:14 on 10-27 (143529-tallv2id1),
+    02:54:23 and 14:32:30 on 10-28. Each was followed by three aborts and the session's stop. The last five each came
+    within a second of the robot stopping (under 0.7 deg/s) at the end of a travel. Four followed a large wrist turn:
+    joint 6 from -41 to +43 deg and from -62.5 to +53 deg at 21 deg/s on 10-26, wrist 1 from -45 to +5 deg at 02:54
+    and from -23 to +25 deg at 14:32. One of R10's losses came with the arm still. At one loss per 6 to 9 h, the
+    11.7 h night suite runs without a loss with a probability of 13 to 27 %. Proposed to the owner and the lab (not
+    adopted): after a stream gap the program keeps the robot still and polls for up to about 10 min before it counts
+    the next abort. On 10-22 the stream came back by itself after 1.4 to 2.8 s three times, after 7.2 s once and after
+    about 2 min once.
   - 15:03 on 10-28, the tall plans at a 20 mm lift. `lab/20261028-paths_tall_stage2_l20_v3id1.json` and
     `lab/20261028-paths_tall_morning_l20_v3id1.json` check the lab's l20 files, with the rod on, tall 114908 and both
     held tips up. Stage 2 flags only tall-flank-525, its 9th action, which ran before the dropout. On the 58 actions
