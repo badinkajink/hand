@@ -1038,6 +1038,17 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 11:54 on 10-28, rod pass 1 and stage 2's path check. Rod pass 1 ran from 10:27 to 11:46 (102701-rodv3id1,
+    4bc0d15e). Its 21 search touch-offs met the rod -0.44 to +0.24 mm from the expected contact, and the registration's
+    residual over them is 0.042 mm rms. The TCP moved 1.160 mm and 2.471 deg, as on v2 ID 1's rod pass (1.035 mm and
+    2.546 deg), and the rod 0.850 mm. Its pivots.json is empty, as v2 ID 1's and rod3t's were. Stage 2's path check on
+    this registration is `lab/20261028-paths_rod_stage2_v3id1_pass1reg.json`. It ran on mount v7 with the button heads
+    and the turns, presses to their largest force's depth, and the other fixtures from cell.json. It flags 4 of 98
+    presses under the finger's 0.8 mm margin: a head comes 0.48, 0.61 and 0.67 mm from the rod at rod-grid-049, -035 and
+    -048, and the cover 0.52 mm at rod-more-606. The mount stays 3.52 mm or more from every fixture, joint 5 comes 0.28
+    deg inside its window, and joint 6 spans -56.3 to +30.6 deg. The lab drops the four by the owner's rule of 01:05
+    (actions under the margins are left out), with any that its own simulation adds. Stage 2 runs at travel.speed 1.0
+    from `lab/20261028-plan_rod_lab_stage2_v7_v3id1.json`.
   - 07:38 on 10-28, correction to the night's path checks: `scripts/ur5_tip_calibration_holder_paths.py` and the holder
     builder loaded the cell model's default mount, v3. The robot has carried v7 since R25. On v7 the standoff fork
     reaches about 5.8 mm further toward a neighbour side by side: at g 13 mm it clears the holder by 2.09 mm, against
