@@ -154,6 +154,7 @@ def analyse(sessions, frame_path, stem, model="nominal"):
     out = dict(script="scripts/fingertip_crosstalk_holder.py", made=time.strftime("%Y-%m-%d %H:%M"), frame=frame_rel, model=model,
                sessions=[], touches=[], boards={})
     samples = {}                                  # receiving board -> list of (W, lateral, meas (15), model (15), touch)
+    rel = {}                                      # receiving board -> approaches with relative poses, for the dipole fit
     for sd in sessions:
         ses = load(sd)
         T_EP = np.array(ses["reg"]["T_EM"]) @ np.array(ses["reg"]["T_MP"])
@@ -252,6 +253,11 @@ def analyse(sessions, frame_path, stem, model="nominal"):
                 r0 = rr[:100].mean(0)
                 samples.setdefault(b, []).append((ap_I[j, 2] - apex_I[stk][2], ap_I[j, :2] - apex_I[stk][:2], rr - r0,
                                                   pr - p0, tid))
+                q = slice(None, None, 4)
+                Tq = np.linalg.inv(T_B_Pheld[stk])[None] @ T_B_Prob[j[q]]
+                T0 = np.linalg.inv(T_B_Pheld[stk]) @ T_B_Prob[appr[0]]
+                rel.setdefault(b, []).append(dict(source="robot", W=ap_I[j[q], 2] - apex_I[stk][2], T=Tq, T0=T0,
+                                                  M=(rr - r0)[q], P=(pr - p0)[q], cal=cals[b], session=ses["name"]))
                 rec["boards"][b] = dict(n=int(len(rr)),
                                         meas_at_onset_uT=round(float(np.linalg.norm((rr - r0)[-50:].mean(0))), 2),
                                         model_at_onset_uT=round(float(np.linalg.norm((pr - p0)[-50:].mean(0))), 2))
@@ -272,6 +278,12 @@ def analyse(sessions, frame_path, stem, model="nominal"):
                 r0 = rb[:70].mean(0)
                 samples.setdefault("robot", []).append((ap_I[j, 2] - apex_I[stk][2], ap_I[j, :2] - apex_I[stk][:2],
                                                         rb - r0, prs - p0, tid))
+                q = slice(None, None, 4)
+                Tq = np.linalg.inv(T_B_Prob[j[q]]) @ T_B_Pheld[stk][None]
+                T0 = np.linalg.inv(T_B_Prob[appr[0]]) @ T_B_Pheld[stk]
+                rel.setdefault("robot", []).append(dict(source=stk, W=ap_I[j[q], 2] - apex_I[stk][2], T=Tq, T0=T0,
+                                                        M=(rb - r0)[q], P=(prs - p0)[q], cal=cals["robot"],
+                                                        session=ses["name"]))
                 rec["boards"]["robot"] = dict(n=int(len(rb)),
                                               meas_at_onset_uT=round(float(np.linalg.norm((rb - r0)[-50:].mean(0))), 2),
                                               model_at_onset_uT=round(float(np.linalg.norm((prs - p0)[-50:].mean(0))), 2))
@@ -360,6 +372,7 @@ def analyse(sessions, frame_path, stem, model="nominal"):
                                                bins=bins)
         print(f"{b}: g {g:+.3f}, explains {r2:.3f} of the change's energy over {int(near.sum())} samples at W < "
               f"{NEAR_W:g} mm", flush=True)
+    out["net_moment"] = net_moment(rel)
     data = V3 / "data" / f"{stem}.json"
     data.parent.mkdir(parents=True, exist_ok=True)
     data.write_text(json.dumps(out, indent=1) + "\n")
@@ -368,30 +381,155 @@ def analyse(sessions, frame_path, stem, model="nominal"):
     return out
 
 
+M1 = W.BR * np.pi * (3.0 / 2e3) ** 2 * (2.0 / 1e3) / (4e-7 * np.pi)   # one N52 3 x 2 mm magnet's moment, A m^2
+
+
+def dipole_basis(cal, T, T0):
+    """Change (uT, (n, 15, 3)) at the receiving chips per A m^2 of a point dipole at the source tip's magnets' centroid,
+    moment along the source pad's x, y, z, between the source poses T (n, 4, 4) and T0, both in the receiver's pad frame."""
+    model = W.Model(cal, W.fe_row("four_05R4"))
+    c = W.magnets(W.fe_row("four_05R4"))[0].mean(0)
+
+    def one(Ti):
+        return np.stack([XT.reading(model, (c[None], e[None]), Ti[:3, :3], Ti[:3, 3]) for e in np.eye(3)], 1)
+    A0 = one(T0)
+    return np.stack([one(Ti) - A0 for Ti in T])
+
+
+def net_moment(rel, w_max=NEAR_W):
+    """The source tips' net moments (A m^2, in each source's pad frame) that, added to the checkerboard's model, best
+    explain the measured changes at W under w_max, by linear least squares with one gain on the model per receiving
+    board. The robot tip is seen by both held boards: fitted on each alone (and the other predicted) and on both. The
+    held tips are seen by the robot's board, one fit per station. Reports each moment's size as a share of one magnet's
+    nominal moment, and the share of the change's energy explained with and without it."""
+    res = {}
+
+    def stack(items):
+        rows = []
+        for it in items:
+            k = it["W"] < w_max
+            if k.sum() < 10:
+                continue
+            A = dipole_basis(it["cal"], it["T"][k], it["T0"])
+            rows.append((it["M"][k], it["P"][k], A))
+        return rows
+
+    def fit(rows_by_board):
+        names = list(rows_by_board)
+        Ms = np.concatenate([np.concatenate([r[0] for r in rows_by_board[b]]).ravel() for b in names])
+        cols = []
+        for i, b in enumerate(names):
+            Pb = np.concatenate([np.concatenate([r[1] for r in rows_by_board[bb]]).ravel() if bb == b else
+                                 np.zeros(sum(r[0].size for r in rows_by_board[bb])) for bb in names])
+            cols.append(Pb)
+        A = np.concatenate([np.concatenate([r[2] for r in rows_by_board[b]]).reshape(-1, 3) for b in names])
+        X = np.column_stack(cols + [A[:, 0], A[:, 1], A[:, 2]])
+        x, *_ = np.linalg.lstsq(X, Ms, rcond=None)
+        return dict(zip(names, x[:len(names)])), x[len(names):]
+
+    edges = np.r_[np.arange(-1.0, 5.0, 0.5), np.arange(5.0, 21.0, 1.0)]
+
+    def binned(items, g, m):
+        """Per W bin over every approach (all W): the measured change, g times the model, and with the moment added."""
+        out_ = []
+        Wv = np.concatenate([it["W"] for it in items])
+        M = np.concatenate([it["M"] for it in items])
+        P = np.concatenate([it["P"] for it in items])
+        A = np.concatenate([dipole_basis(it["cal"], it["T"], it["T0"]) for it in items])
+        F = g * P + A @ m
+        for lo, hi in zip(edges[:-1], edges[1:]):
+            k = (Wv >= lo) & (Wv < hi)
+            if k.sum() < 5:
+                continue
+            out_.append(dict(W_mm=round(float(Wv[k].mean()), 2), meas_uT=round(float(np.linalg.norm(M[k].mean(0))), 2),
+                             model_uT=round(float(np.linalg.norm(g * P[k].mean(0))), 2),
+                             model_moment_uT=round(float(np.linalg.norm(F[k].mean(0))), 2),
+                             left_uT=round(float(np.linalg.norm((M[k] - F[k]).mean(0))), 2)))
+        return out_
+
+    def explained(rows, g, m):
+        M = np.concatenate([r[0] for r in rows])
+        P = np.concatenate([r[1] for r in rows])
+        A = np.concatenate([r[2] for r in rows])
+        e0 = 1.0 - np.sum((M - g * P) ** 2) / np.sum(M ** 2)
+        e1 = 1.0 - np.sum((M - g * P - A @ m) ** 2) / np.sum(M ** 2)
+        return round(float(e0), 3), round(float(e1), 3)
+
+    held = {b: stack([it for it in v if it["source"] == "robot"]) for b, v in rel.items() if b.startswith("held")}
+    held = {b: v for b, v in held.items() if v}
+    if held:
+        g, m = fit(held)
+        r = dict(fit_on=list(held), moment_Am2=np.round(m, 6).tolist(), share_of_one_magnet=round(float(np.linalg.norm(m) / M1), 4),
+                 gains={b: round(float(v), 3) for b, v in g.items()},
+                 explained={b: dict(zip(("model", "model_and_moment"), explained(held[b], g[b], m))) for b in held})
+        res["robot_tip"] = r
+        for b in held:
+            r.setdefault("bins", {})[b] = binned([it for it in rel[b] if it["source"] == "robot"], g[b], m)
+        print(f"robot tip's net moment from {list(held)}: {np.round(m * 1e3, 3).tolist()} mA m^2 "
+              f"({100 * r['share_of_one_magnet']:.1f} % of one magnet); explained {r['explained']}", flush=True)
+        if len(held) == 2:                                  # fit on one held board, predict the other
+            cross = {}
+            for b in held:
+                o = [bb for bb in held if bb != b][0]
+                g1, m1 = fit({b: held[b]})
+                go, _ = fit({o: held[o]}) if False else (None, None)
+                M = np.concatenate([r_[0] for r_ in held[o]])
+                P = np.concatenate([r_[1] for r_ in held[o]])
+                A = np.concatenate([r_[2] for r_ in held[o]])
+                gp = float(np.sum((M - A @ m1) * P) / np.sum(P ** 2))      # the other board's gain on the model only
+                e0 = 1.0 - np.sum((M - float(np.sum(M * P) / np.sum(P ** 2)) * P) ** 2) / np.sum(M ** 2)
+                e1 = 1.0 - np.sum((M - gp * P - A @ m1) ** 2) / np.sum(M ** 2)
+                cross[f"fit {b}, predict {o}"] = dict(moment_Am2=np.round(m1, 6).tolist(), explained_model=round(float(e0), 3),
+                                                      explained_with_moment=round(float(e1), 3))
+                print(f"  fit on {b} ({np.round(m1 * 1e3, 3).tolist()} mA m^2), predict {o}: explained {e0:.3f} -> {e1:.3f}",
+                      flush=True)
+            res["robot_tip"]["cross"] = cross
+    rob = [it for it in rel.get("robot", [])]
+    for stn in sorted({it["source"] for it in rob}):
+        rows = stack([it for it in rob if it["source"] == stn])
+        if not rows:
+            continue
+        g, m = fit({"robot": rows})
+        e = explained(rows, g["robot"], m)
+        res[f"held_tip_{stn}"] = dict(moment_Am2=np.round(m, 6).tolist(), share_of_one_magnet=round(float(np.linalg.norm(m) / M1), 4),
+                                      gain=round(float(g["robot"]), 3), explained=dict(zip(("model", "model_and_moment"), e)),
+                                      bins=binned([it for it in rob if it["source"] == stn], g["robot"], m))
+        print(f"held tip {stn}'s net moment from the robot's board: {np.round(m * 1e3, 3).tolist()} mA m^2 "
+              f"({100 * np.linalg.norm(m) / M1:.1f} % of one magnet); explained {e}", flush=True)
+    return res
+
+
 def figure(out, samples, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    boards = [b for b in ("held0", "held3", "held1", "held2", "robot") if b in out["boards"] and out["boards"][b].get("bins")]
-    if not boards:
+    nm = out.get("net_moment", {})
+    panels = []
+    for b in ("held0", "held3", "held1", "held2"):
+        if b in nm.get("robot_tip", {}).get("bins", {}):
+            panels.append((f"held board, {out['boards'][b].get('station')} station: the robot tip's field",
+                           nm["robot_tip"]["bins"][b], nm["robot_tip"]["explained"][b], "robot tip"))
+    for stn in ("+y", "-y"):
+        r = nm.get(f"held_tip_{stn}")
+        if r:
+            panels.append((f"robot tip's board: the {stn} held tip's field", r["bins"], r["explained"], f"{stn} tip"))
+    if not panels:
         return
-    fig, axs = plt.subplots(1, len(boards), figsize=(5.2 * len(boards), 4.2), squeeze=False)
-    for ax, b in zip(axs[0], boards):
-        bins = out["boards"][b]["bins"]
+    fig, axs = plt.subplots(1, len(panels), figsize=(5.0 * len(panels), 4.3), squeeze=False)
+    for ax, (title, bins, ex, who) in zip(axs[0], panels):
         Wb = [x["W_mm"] for x in bins]
-        v = out["boards"][b]
         ax.plot(Wb, [x["meas_uT"] for x in bins], "o-", color="k", ms=4, label="measured")
-        ax.plot(Wb, [x["model_uT"] for x in bins], "s--", color="tab:blue", ms=3, label="dipole model")
-        ax.plot(Wb, [x["left_uT"] for x in bins], "^:", color="tab:red", ms=3,
-                label=f"left after {v['gain']:+.2f} x model ({100 * v['explained_near']:.0f} % explained)")
-        st = out["boards"][b].get("station", "")
-        who = "robot tip's board (v3 ID 1)" if b == "robot" else f"held board, {st} station"
-        ax.set_title(f"{who}", fontsize=13)
+        ax.plot(Wb, [x["model_uT"] for x in bins], "s--", color="tab:blue", ms=3,
+                label=f"checkerboard model ({100 * ex['model']:.0f} %)")
+        ax.plot(Wb, [x["model_moment_uT"] for x in bins], "d-", color="tab:green", ms=3,
+                label=f"with the {who}'s net moment ({100 * ex['model_and_moment']:.0f} %)")
+        ax.plot(Wb, [x["left_uT"] for x in bins], "^:", color="tab:red", ms=3, label="left after the second")
+        ax.set_title(title, fontsize=13)
         ax.set_xlabel("W, robot apex above the held apex (mm)", fontsize=13)
         ax.set_ylabel("change, norm of 15 components (uT)", fontsize=13)
         ax.set_yscale("log")
         ax.grid(alpha=0.3)
-        ax.legend(fontsize=11)
+        ax.legend(fontsize=10, title="share of the change's energy below W 10 mm", title_fontsize=9)
     fig.tight_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=130)
