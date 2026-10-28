@@ -80,6 +80,7 @@ simulation lineage.
 | Read the submission | [`paper/`](paper/). The `transfer_*.tex` files are the hardware-transfer sections |
 | Know what any script does | [`scripts/README.md`](scripts/README.md), the map of the active scripts by role |
 | Drive the real hand | [`docs/hardware_control_station.md`](docs/hardware_control_station.md) |
+| Restart the fingertip viewer | [Fingertip viewer on the workstation](#fingertip-viewer-on-the-workstation), below |
 | Reproduce the transfer study | [`docs/experiments/20260831-real_v1-transfer-protocol/`](docs/experiments/20260831-real_v1-transfer-protocol/) for the protocol, [`20260901-real_v1-transfer-firstpass/`](docs/experiments/20260901-real_v1-transfer-firstpass/) for the first-pass analysis |
 | Learn the conventions before editing | [`CLAUDE.md`](CLAUDE.md), which records the failure modes that were expensive to find |
 | Read the RL history | [`docs/rl/reorientation.md`](docs/rl/reorientation.md). [`docs/RESEARCH_STATE.md`](docs/RESEARCH_STATE.md) is a handoff frozen at 2026-06-22 and describes no current work |
@@ -240,6 +241,58 @@ Five things about the bench:
   simulator's floor through the fingertip datum.
 - Query the board before theorising. A read-only `STATALL` has settled several hardware hypotheses
   here. A load pinned at exactly 200 is servo overload protection, which is a configuration value.
+
+---
+
+## Fingertip viewer on the workstation
+
+The ReSkin 5X fingertips plug into an I2C mux, and the mux into a board running
+[`firmware/reskin5x_mux_stream`](src/morphohand/driver/reskin5x/firmware/reskin5x_mux_stream/). One viewer reads that
+board and shows every fingertip on the mux at `http://localhost:8790`. On 2026-10-27 two boards on the workstation had
+this firmware. The mux on the SparkFun Thing Plus ESP32-C6 answered at 0x71, and the one on the QT Py ESP32-S3
+b4:3a:45:b0:d9:94 at 0x70. `ls -l /dev/serial/by-id/` lists the boards plugged in.
+
+The firmware scans the mux channels for fingertips once, when a program first opens the port after power-up. After a
+fingertip is plugged in or unplugged, press the board's RESET button or replug its USB cable before starting the viewer.
+
+To restart the viewer, stop the running one first, with Ctrl-C in its terminal or `kill -INT` on its PID. Its web server
+then waits up to 60 s for open connections to close. Start the new viewer once `pgrep -af wrench_viewer.py` lists none:
+two viewers on one board split its stream between them, and the second cannot open port 8790. A viewer whose board is
+unplugged reopens on a QT Py's port if one is plugged in, else on the first `/dev/ttyACM*`. Stop it before plugging in
+another board. Then, from the repository root and with the fingertips untouched:
+
+```bash
+pgrep -af wrench_viewer.py      # a running viewer: kill -INT the PID of its python line
+cd ~/Programs/hand
+BOARD=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_40:4C:CA:4C:49:C4-if00            # C6, mux 0x71
+# BOARD=/dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00 # QT Py, mux 0x70
+ARGS=(--mux "$BOARD" --http 8790 --floor 1.0 --names "ID 1" "ID 2" "ID 3"
+      --calib logs/20261020-contact_estimation/calib/20261026-134217-id_1-calib.json
+              docs/experiments/20261022-ur5_tip_calibration/data/20261025-152920-cb2t/calib_rest.json
+              logs/20261020-contact_estimation/calib/20261025-112147-calib.json
+      --correction docs/experiments/20261022-ur5_tip_calibration/data/20261023-203938-cb1t
+                   docs/experiments/20261022-ur5_tip_calibration/data/20261025-152920-cb2t -
+      --board-gp docs/experiments/20261022-ur5_tip_calibration/data/20261026-board_gp_id1_id2.npz)
+~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py "${ARGS[@]}"
+```
+
+A Claude session starts the viewer with the same `ARGS`, detached and under the memory guard, so that it outlives the
+session:
+
+```bash
+nohup setsid ~/.claude/bin/resguard.sh run --mem 3G --cpu 200 -- ~/miniconda3/bin/python -u \
+    src/morphohand/driver/reskin5x/host/wrench_viewer.py "${ARGS[@]}" > logs/$(date +%Y%m%d-%H%M%S)-viewer.log 2>&1 &
+```
+
+Names, calibrations and UR5 corrections go one per board, in the order of the mux channels, with `-` for none. The
+arguments above are the three v1 fingertips of 2026-10-26, ID 1, ID 2 and ID 3 on channels 0, 1 and 2 of the C6's mux.
+At start the viewer prints the channels with a board and the name given to each, as
+`boards on mux channels [0, 1, 2]: ID 1, ID 2, ID 3`. A board without a name is labelled by its channel. Each
+fingertip's rest is calibrated in its first 2 s, so the pads stay untouched then. On 2026-10-27 the two UR5 corrections
+were learned in 8 and 21 s. `--floor 1.0` sets the noise floor to 1 µT; the default is 2 µT. The two calibrations under
+`logs/` exist only on this workstation, because `logs/` is not tracked by git. Stream logs and new calibrations are
+written to `logs/20261020-contact_estimation/stream/` and `calib/`. The flags, the one-board firmware and the estimates
+are described in [`src/morphohand/driver/reskin5x/README.md`](src/morphohand/driver/reskin5x/README.md).
 
 ---
 
