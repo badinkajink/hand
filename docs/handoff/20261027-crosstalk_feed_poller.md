@@ -8,7 +8,9 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
 State: armed 2026-10-27 21:00 from the colorado window. 10-28 03:25: all 18 feed lines (to 03:13) and the 6
-"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json); watch loop relaunched 03:25.
+"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json). Last check 07:15: no news since 03:13.
+The coordinator's queue for 09:00 (README, 1d3b2519 to f20e76ad) gives the side-by-side map as the page's item does (45
+hovers at HEAD, 0.4 h, rod fixture off, after the HEX-E check), so neither page changed; watch loop relaunched 07:17.
 Crosstalk page b50e44b4: Section 3 "Neighbour field measured on the fingertip holder" has the touch-offs (Figure 2,
 Table 2), the 137 hovers against the net moments (Figure 3, Table 3: 97 % at either held board), and since line 15
 (01:28, owner's sharpie question) the change as a face force (Figure 4, Table 4: W 7-11 mm 0.31 and 0.64 N, after the
