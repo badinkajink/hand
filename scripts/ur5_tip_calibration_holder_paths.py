@@ -150,6 +150,8 @@ class Moves:
             deep = float(a.get("beyond_mm", 1.2))
         elif DEPTH == "max":
             deep = float(a.get("max_depth_mm", 2.0))
+        elif a["id"] in DEPTH_FROM:                            # the depth this action reached when it ran, and 0.3 mm
+            deep = DEPTH_FROM[a["id"]] + 0.3
         else:                                                  # the depth at the action's largest force, and 0.3 mm
             F = float(a.get("stop_N") or a.get("press_N") or max(a.get("levels") or [2.0]))
             reg_ = (tg.get("region") or "flank")
@@ -223,6 +225,7 @@ def to_contact(seg, q0, reg):
 
 KIND = "tiphold"                                            # the plan's indenter kind (plan["indenter"]), set in run
 DEPTH = "model"                                             # --depth: "model" (the force's depth) or "max" (max_depth_mm)
+DEPTH_FROM = {}                                             # --depth-from: action id -> the deepest hold it reached (mm)
 TURNS = True                                                # --no-turns: slides, rolls and twists without their turns
 # the pad's depth (mm) at a force (N) by region, as R29's builder took it (scripts/ur5_tip_calibration_tall_pass.py: the
 # depth at the largest force), scaled as F^(2/3) to other forces
@@ -241,6 +244,12 @@ def clear_groups(q, T, reg, contact_P):
 def run(a):
     global KIND, DEPTH, TURNS
     DEPTH, TURNS = a.depth, not a.no_turns
+    if a.depth_from:                                        # holds.npz of scripts/ur5_tip_calibration_analysis.py
+        H = np.load(a.depth_from, allow_pickle=True)
+        for aid, d in zip(H["id"].astype(str), H["depth"].astype(float)):
+            if np.isfinite(d):
+                DEPTH_FROM[aid] = max(DEPTH_FROM.get(aid, 0.0), d)
+        print(f"depths of {len(DEPTH_FROM)} actions from {a.depth_from}")
     plan = json.loads(Path(a.plan).read_text())
     KIND = plan.get("indenter", "tiphold")
     st = (plan.get("holder") or {}).get("stations")
@@ -335,7 +344,9 @@ def run(a):
         print(f"{len(skipped)} actions of other kinds not replayed: {sorted(set(x.split('-')[0] for x in skipped))}")
     out = dict(plan=str(a.plan), session=str(a.session), kind=KIND, skipped=skipped,
                replay=f"touch-offs to first contact; presses, slides, twists and rolls to the depth at their largest force "
-                      f"({DEPTH}), {'with' if TURNS else 'without'} the turns of slides, rolls and twists", holder_T_BI=np.round(T_true, 5).tolist(), other=[dict(kind=o["kind"],
+                      f"({DEPTH}), {'with' if TURNS else 'without'} the turns of slides, rolls and twists"
+                      + (f"; the actions that ran in {a.depth_from} to the deepest hold they reached and 0.3 mm"
+                         if a.depth_from else ""), holder_T_BI=np.round(T_true, 5).tolist(), other=[dict(kind=o["kind"],
                origin_B=np.round(np.array(o["T_BI"])[:3, 3], 1).tolist()) for o in other], least=least, least_clear=lc,
                rows=rows, flagged=flagged)
     Path(a.out).write_text(json.dumps(out, indent=1) + "\n")
@@ -364,4 +375,6 @@ if __name__ == "__main__":
     ap.add_argument("--true-frame", default=None, help="a registration.json whose T_BI places the holder (default: the "
                     "plan's holder.T_BI_true, else the program's frame); to check another hypothesis of where it stands")
     ap.add_argument("--only", action="append", default=[], help="keep only these fixture kinds (the rod alone: --only rod)")
+    ap.add_argument("--depth-from", default=None, help="a session's holds.npz (scripts/ur5_tip_calibration_analysis.py): "
+                    "each action that ran there presses to the deepest hold it reached and 0.3 mm; the rest as --depth")
     run(ap.parse_args())

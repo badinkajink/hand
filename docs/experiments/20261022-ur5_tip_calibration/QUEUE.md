@@ -1038,6 +1038,17 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 12:04 on 10-28, the lab's rod stage 2 file and the measured depths. `lab/20261028-plan_rod_lab_stage2_v7_v3id1.json`
+    (9247c347, 94 actions at travel.speed 1.0) flags nothing on 102701's registration
+    (`lab/20261028-paths_rod_stage2_v7_v3id1.json`): mount 3.52, finger 0.85, HEX-E 32.5 mm at least, joint 5 0.82 deg
+    inside its window. Its three new transitions keep the mount 5.05 to 7.11 mm and the finger 1.11 to 2.58 mm away. The
+    checker's model depth is the sphere's, 1.773 mm at 5 N on the face scaled as F^(2/3), plus 0.3 mm: about 2.3 mm at
+    6 N. On the rod, v2 ID 1's presses went 1.20 to 1.36 mm at 6 N. `--depth-from HOLDS.npz` now presses each action
+    that ran in a session to its deepest hold there plus 0.3 mm. With v2 ID 1's rod holds all 98 actions of the
+    original stage 2 clear (`lab/20261028-paths_rod_stage2_v3id1_pass1reg_measured_depth.json`), the four dropped
+    presses with the finger 1.11 to 1.33 mm from the rod. The rod morning plan clears at either depth except rod-grid-039
+    at the model depth (finger 0.54 mm; 1.36 mm at the measured depth); joint 6 runs -37.7 to +38.3 deg. Sent to the lab
+    with the suggestion to append the four to the morning plan if it wants them back.
   - 11:54 on 10-28, rod pass 1 and stage 2's path check. Rod pass 1 ran from 10:27 to 11:46 (102701-rodv3id1,
     4bc0d15e). Its 21 search touch-offs met the rod -0.44 to +0.24 mm from the expected contact, and the registration's
     residual over them is 0.042 mm rms. The TCP moved 1.160 mm and 2.471 deg, as on v2 ID 1's rod pass (1.035 mm and
