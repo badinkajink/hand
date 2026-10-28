@@ -1,0 +1,30 @@
+resumed logs/20261028-tip_calibration/114908-tallv3id1: 123 actions done, 19 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0493 0.0388 0.2442 0.0028 0.0039 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  tall-flank-601 (1/9): to 2.00 N
+  tall-flank-562 (2/9): to 2.00 N
+  tall-flank-564 (3/9): to 2.00 N
+  tall-flank-507 (4/9): to 2.00 N
+  tall-flank-547 (5/9): to 2.00 N
+  tall-flank-551 (6/9): to 2.00 N
+  tall-flank-545 (7/9): to 2.00 N
+  tall-flank-556 (8/9): to 2.00 N
+  tall-flank-535 (9/9): to 2.00 N
+== shear
+  tall-slide-flank-601-1N (1/9): to 1.00 N
+  tall-slide-flank-562-1N (2/9): to 1.00 N
+  tall-slide-flank-507-1N (3/9): to 1.00 N
+  tall-slide-flank-547-1N (4/9): to 1.00 N
+  tall-slide-flank-551-1N (5/9): to 1.00 N
+  tall-slide-flank-545-1N (6/9): to 1.00 N
+  tall-slide-flank-556-1N (7/9): to 1.00 N
+  tall-slide-flank-590-1N (8/9): to 1.00 N
+  tall-slide-edge-604-1N (9/9): to 1.00 N
+HEX-E: 187835 samples, 0 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz +0.7 N
+session in logs/20261028-tip_calibration/114908-tallv3id1
+exit 0 at 17:41:06

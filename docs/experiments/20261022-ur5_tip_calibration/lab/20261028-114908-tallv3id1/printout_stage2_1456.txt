@@ -1,0 +1,73 @@
+resumed logs/20261028-tip_calibration/114908-tallv3id1: 65 actions done, 19 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0349 0.0279 0.2264 0.003  0.0035 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  tall-edge-627 (45/56): to 3.00 N
+  tall-edge-694 (46/56): to 3.00 N
+  contact before the slow approach (0.31 N): back to the rest pose, the approach at its slow speed
+  tall-edge-626 (47/56): to 3.00 N
+  tall-edge-668 (48/56): to 3.00 N
+  tall-edge-670 (49/56): to 3.00 N
+  tall-edge-666 (50/56): to 3.00 N
+  tall-edge-625 (51/56): to 3.00 N
+  tall-edge-622 (52/56): to 3.00 N
+  tall-edge-610 (53/56): to 3.00 N
+  tall-edge-604 (54/56): to 3.00 N
+  tall-ref-b (55/56): to 2.00 N
+  tall-ref-c (56/56): to 2.00 N
+== shear
+  tall-slide-flank-589-1N (1/41): to 1.00 N
+  tall-slide-flank-591-1N (2/41): to 1.00 N
+  tall-slide-flank-531-1N (3/41): to 1.00 N
+  tall-slide-flank-580-1N (4/41): to 1.00 N
+  tall-slide-flank-532-1N (5/41): to 1.00 N
+  tall-slide-flank-582-1N (6/41): to 1.00 N
+  tall-slide-flank-583-1N (7/41): to 1.00 N
+  tall-slide-flank-585-1N (8/41): to 1.00 N
+  tall-slide-edge-754-1N (9/41): to 1.00 N
+  tall-slide-edge-643-1N (10/41): to 1.00 N
+  tall-slide-edge-644-1N (11/41): to 1.00 N
+  tall-slide-edge-637-1N (12/41): to 1.00 N
+  tall-slide-edge-645-1N (13/41): to 1.00 N
+  tall-slide-face-732-1N (14/41): to 1.00 N
+  tall-slide-edge-647-1N (15/41): to 1.00 N
+  tall-slide-face-738-1N (16/41): to 1.00 N
+  tall-slide-edge-740-1N (17/41): to 1.00 N
+  tall-slide-edge-718-1N (18/41): to 1.00 N
+  tall-slide-face-725-1N (19/41): to 1.00 N
+  tall-slide-face-792-1N (20/41): to 1.00 N
+  tall-slide-face-785-1N (21/41): to 1.00 N
+  tall-slide-face-716-1N (22/41): to 1.00 N
+  tall-slide-face-774-1N (23/41): to 1.00 N
+  tall-slide-face-772-1N (24/41): to 1.00 N
+  tall-slide-face-708-1N (25/41): to 1.00 N
+  tall-slide-face-766-1N (26/41): to 1.00 N
+  tall-slide-face-764-1N (27/41): to 1.00 N
+  tall-slide-face-710-1N (28/41): to 1.00 N
+  tall-slide-face-770-1N (29/41): to 1.00 N
+  tall-slide-edge-696-1N (30/41): to 1.00 N
+  tall-slide-face-702-1N (31/41): to 1.00 N
+  tall-slide-face-690-1N (32/41): to 1.00 N
+  tall-slide-edge-627-1N (33/41): to 1.00 N
+  tall-slide-edge-694-1N (34/41): to 1.00 N
+  tall-slide-edge-626-1N (35/41): to 1.00 N
+  tall-slide-edge-668-1N (36/41): to 1.00 N
+  tall-slide-edge-670-1N (37/41): to 1.00 N
+  tall-slide-edge-666-1N (38/41): to 1.00 N
+  tall-slide-edge-625-1N (39/41): to 1.00 N
+  tall-slide-edge-622-1N (40/41): to 1.00 N
+  tall-slide-edge-610-1N (41/41): to 1.00 N
+== twist
+  tall-twist-face-684-2.5N-20deg (1/4): to 2.50 N
+  tall-twist-face-690-2.5N-20deg (2/4): to 2.50 N
+  tall-twist-edge-605-2.5N-20deg (3/4): to 2.50 N
+  tall-twist-edge-610-2.5N-20deg (4/4): to 2.50 N
+== final
+  tall-final-ref (1/1): to 2.00 N
+HEX-E: 794166 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.6 s, Fz -0.5 N; 0.7 s, Fz +0.0 N
+session in logs/20261028-tip_calibration/114908-tallv3id1
+exit 0 at 17:08:55

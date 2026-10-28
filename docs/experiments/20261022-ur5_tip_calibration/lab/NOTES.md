@@ -1369,12 +1369,42 @@ The clearances in this section and the one before it are on mount v3. The next s
   0.3 deg inside its window at `rod-more-606`, now in the morning plan; in the 94 it keeps 0.82 deg (the workstation's
   check).
 
+### 12:23 to 17:41
+
+- 12:23:03 to 13:45:44, rod stage 2: 94 of 94 ok. 13:47:10 to 13:52:47, the rod morning plan: 6 of 6 ok, the four
+  presses back from stage 2 among them.
+- 13:54:15, tall stage 2 at travel.speed 1.0 (`lab/20261028-plan_tall_lab_stage2_ts1_v3id1.json`). 44 actions ended ok.
+  At 14:32:30.25 the HEX-E fell off its DAQ again, in the travel into `tall-edge-627`. `tall-edge-627`, `-694` and
+  `-626` aborted, and the session stopped at 14:32:40 with the arm in free air at z 373 mm.
+- At the last sample, wrist 1 was swinging from -28.5 to +24.7 deg, wrist 2 from 65.8 to 91.9 and the elbow from 98.4
+  to 70.7. Joint 6 moved only from 23.1 to 27.1 deg. At 02:54 wrist 1 had swung from -45 to +3 deg, wrist 2 from 46 to
+  67 and joint 6 from -35 to +13. So both losses came as wrist 1 swung from negative to positive with wrist 2 rising: a
+  bend of the cable across the wrist, not a turn of joint 6. Before the loss the session had swung wrist 1 by more than
+  45 deg in 15 travels, up to 68 deg, without a loss. The connector is marginal, and a wrist bend unseats it.
+- The owner reseated the connector and the sensor came back at 14:39:22. A 20 s stream was clean, and the check
+  (`lab/20261028-plan_sphere_lab_check2_v3id1.json`, the same touch-offs under new names) gave +0.045, +0.008 and
+  +0.066 mm.
+- The owner: "maybe dont go up so high on these tall indenter moves". The remaining 58 actions and the tall morning
+  plan ran with travel.lift_mm 20 (from 60): `lab/20261028-plan_tall_lab_stage2_l20_v3id1.json` and
+  `..._morning_l20_v3id1.json`. Simulated from home first: mount at least 3.78 mm, finger 2.56 mm, the elbow 70.6 deg
+  from straight. The TCP stays at z 333 mm at most, against 373. Wrist 1's largest swing drops only from 69 to 64 deg,
+  because the tool must turn between actions at any height.
+- 14:56:22 to 17:08:55, the 58: all ok, no HEX-E time-out. `tall-edge-626` met 0.31 N in its fast approach. The
+  program backed off and finished it at its slow speed.
+- 17:09:42 to 17:41:06, the tall morning plan: 18 of 18 ok, joint 6 up to +57 deg with the owner present.
+- Between runs, each next plan started only after an exit 0 with no ABORT line, a clean home path check and a reached
+  home. A small script did these steps from 13:45 on.
+
 ### The owner's decisions on 10-28
 
 - "ok reseated can we gogogogo?", and through the workstation "sure the remaining sphere twists sound good": the
   check, then the twists.
-- "let's run the rod block now yea": rod pass 1 and stage 2 now. The rod fixture comes off after them, and the -y held
-  tip turns pad-down, for the side map.
+- "let's run the rod block now yea": rod pass 1 and stage 2 now.
+- Through the workstation at 13:25: the rod fixture stays on and both held tips stay up, so the side map is off for
+  now. The tall plans come next, and the top edge may run with the owner present. The lab asked for the owner's go in
+  its own session for the top edge.
+- Through the workstation at 13:42 and 14:49: today's runs end before 19:00. Then the owner swaps v3 ID 1 for the next
+  four-magnet tip, and the night suite starts on it.
 
 ## The lab clone and git-lfs
 
