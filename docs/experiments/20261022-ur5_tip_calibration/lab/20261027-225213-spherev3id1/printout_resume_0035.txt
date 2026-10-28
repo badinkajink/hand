@@ -1,0 +1,83 @@
+resumed logs/20261027-tip_calibration/225213-spherev3id1: 153 actions done, 18 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0405 0.0171 0.2167 0.003  0.004  0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  dense-781-t+10 (134/160): to 3.50 N
+  dense-655-t+15 (135/160): to 3.00 N
+  dense-595-t+15 (136/160): to 2.00 N
+  hard-ref-a (137/160): to 2.00 N
+  hard-ramp-020 (138/160): to 8.00 N
+  hard-ref-b (139/160): to 2.00 N
+  hard-ref-c (140/160): to 2.00 N
+  hard-dense-664-t+15 (141/160): to 4.00 N
+  hard-grid-030 (142/160): to 5.00 N
+  hard-dense-658-t+15 (143/160): to 6.00 N
+  hard-grid-033 (144/160): to 6.00 N
+  hard-grid-037 (145/160): to 6.00 N
+  hard-grid-041 (146/160): to 6.00 N
+  hard-dense-748-t+10 (147/160): to 6.00 N
+  hard-grid-035 (148/160): to 6.00 N
+  hard-dense-611-t+5 (149/160): to 6.00 N
+  hard-grid-020 (150/160): to 8.00 N
+  hard-dense-736-t+10 (151/160): to 8.00 N
+  hard-grid-029 (152/160): to 8.00 N
+  hard-grid-021 (153/160): to 8.00 N
+  hard-dense-780-t+10 (154/160): to 8.00 N
+  hard-grid-015 (155/160): to 8.00 N
+  hard-grid-010 (156/160): to 8.00 N
+  hard-grid-013 (157/160): to 8.00 N
+  fast4-grid-015 (158/160): to 3.00 N
+  fast4-grid-043 (159/160): to 3.00 N
+  hard-ref-d (160/160): to 2.00 N
+== shear
+  shear-0-1N (1/84): to 1.00 N
+  shear-0-2N (2/84): to 2.00 N
+  shear-3-1N (3/84): to 1.00 N
+  shear-0-1N-tv016 (4/84): to 1.00 N
+  shear-0-1N-tv040 (5/84): to 1.00 N
+  shear-0-1N-tv133 (6/84): to 1.00 N
+  shear-0-0.5N (7/84): to 0.50 N
+  shear-0-1.5N (8/84): to 1.50 N
+  shear-0-3N (9/84): to 3.00 N
+  shear-3-2N (10/84): to 2.00 N
+  slide-000-1N (11/84): to 1.00 N
+  slide-000-2N (12/84): to 2.00 N
+  slide-023-1N (13/84): to 1.00 N
+  slide-023-2N (14/84): to 2.00 N
+  slide-015-1N (15/84): to 1.00 N
+  slide-015-2N (16/84): to 2.00 N
+  slide-043-1N (17/84): to 1.00 N
+  slide-043-2N (18/84): to 2.00 N
+  slide-twin-006-t+10-1N (19/84): to 1.00 N
+  slide-twin-006-t+10-2N (20/84): to 2.00 N
+  slide-twin-007-t+10-1N (21/84): to 1.00 N
+  slide-twin-007-t+10-2N (22/84): to 2.00 N
+  slide-twin-008-t+10-1N (23/84): to 1.00 N
+  slide-twin-008-t+10-2N (24/84): to 2.00 N
+  slide-twin-014-t+5-1N (25/84): to 1.00 N
+  slide-twin-014-t+5-2N (26/84): to 2.00 N
+  slide-twin-024-t+5-1N (27/84): to 1.00 N
+  slide-twin-024-t+5-2N (28/84): to 2.00 N
+  slide-twin-027-t+10-1N (29/84): to 1.00 N
+  slide-twin-027-t+10-2N (30/84): to 2.00 N
+  slide-twin-028-t+10-1N (31/84): to 1.00 N
+  slide-twin-028-t+10-2N (32/84): to 2.00 N
+  slide-twin-037-t+5-1N (33/84): to 1.00 N
+  slide-twin-037-t+5-2N (34/84): to 2.00 N
+  slide-twin-041-t+5-1N (35/84): to 1.00 N
+  slide-twin-041-t+5-2N (36/84): to 2.00 N
+  slide-twin-043-t+15-1N (37/84): to 1.00 N
+  slide-twin-043-t+15-2N (38/84): to 2.00 N
+  slide-twin-047-t+10-1N (39/84): to 1.00 N
+  slide-twin-047-t+10-2N (40/84): to 2.00 N
+  slide-twin-051-t-20-2N: ABORT no HEX-E sample for 100 ms
+  slide-twin-063-t+15-1N: ABORT no HEX-E sample for 100 ms
+  slide-twin-063-t+15-2N: ABORT no HEX-E sample for 100 ms
+HEX-E: 830504 samples, 164 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz -0.2 N
+session in logs/20261027-tip_calibration/225213-spherev3id1
+three aborts in a row: stopping the session (--resume continues it)
+exit 1 at 02:54:35
