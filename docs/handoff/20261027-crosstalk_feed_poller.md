@@ -7,20 +7,27 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 23:07: all 10 feed lines (to 22:52) and the 6 "Crosstalk:"
-commits are on the page and acked (logs/crosstalk_feed_watch/state.json). Page dc8b6478: Section 3 "Neighbour field
-measured on the fingertip holder" has the touch-off approaches (Figure 2, Table 2), the map's 89 hovers and the 48
+State: armed 2026-10-27 21:00 from the colorado window. 10-28 00:36: all 12 feed lines (to 00:18) and the 6
+"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json). Page a86135e0: Section 3 "Neighbour
+field measured on the fingertip holder" has the touch-off approaches (Figure 2, Table 2), the map's 89 hovers and the 48
 close -y hovers against the net moments fitted on the touch-offs (Figure 3, Table 3, -y pooled: held boards 97.4 and
 97.0 %, robot's 91 and 94 %); lede and summary lead with 97 % at either held board in 137 hovers; Figure 5 the hover
-render; numbering by SEC/FIG/TAB in the builder. Overview: crosstalk paragraph and two bullets (fd38e26c to dc8b6478).
-The builder reads the coordinator's v3 files AT HEAD (at_head) and warns when the holder file's "made" differs from
-HOLD_MADE (22:50): its hand-written sentences then need the newest line. Remaining on the holder: the five-fold pose fit
+render (re-made 23:13 with the tool by v3 ID 1's sphere registration, looked at); numbering by SEC/FIG/TAB in the
+builder. Line 12 (00:18, four magnets against five, partial): v3 ID 1's face press signal, 22.4 uT/N against v2 ID 1's
+51.4, is the lede's and summary's yardstick for the 39 to 60 uT at contact and is in Section 3 and the Press signal term,
+read at HEAD from FVF (data/20261028-four_vs_five_partial.json); the full comparison is due when stage 2 ends, about
+06:00: point FVF at its file (press_gain drops "the first" when the note no longer says partial). Overview: crosstalk
+paragraph and two bullets (fd38e26c to dc8b6478), unchanged by line 12 (its quoted crosstalk numbers stand). The builder
+reads the coordinator's v3 files AT HEAD (at_head) and warns when the holder file's "made" differs from HOLD_MADE
+(22:50): its hand-written sentences then need the newest line. Remaining on the holder: the five-fold pose fit
 (fingertip_crosstalk.py, coordinator), then the pinch plan; neither is in R31's night queue (the v3 ID 1 suite).
 For the owner: the 21:44 line's "matches the robot's board within 10 % to W 5 mm" is not in its bins (model +4 % at
 contact, -10 to -22 % from W 0.3 to 5 mm), so the page leaves it out; the 20:45 feed line says twists to +20 deg, the
-plan file stops at +10. 23:32: line 11 (23:13, v3 ID 1's sphere registration for the suite) is not crosstalk: acked
-without a page change; the hover render it re-made (tool by the sphere registration) reaches Figure 5 at the next
-rebuild, to be looked at then. Watch loop relaunched 23:32.
+plan file stops at +10; the 22:52 line's "at most 0.4 N on the HEX-E" is 0.455 N in the file, and the page says the
+hovers stayed below the 0.5 N guard. The overview's magnets bullet ("Four magnets (0.051 N) or five (0.029 N) waits on
+the owner") now has a measured partial counterpart (one record's noise equals 61 and 32 mN at 1 to 2 N); it is not a
+crosstalk sentence, so this job leaves it. Line 11 (23:13, the sphere registration) was acked without a page change.
+Watch loop relaunched 00:36.
 Before each --ack, run crosstalk_feed_watch.py --once and check HEAD shows only the lines handled (ack takes all of HEAD).
 Commits of this job start "Fingertip crosstalk page:", never "Crosstalk:" (the watcher keys on that prefix).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
@@ -30,6 +37,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 5. Feed lines of 21:34-21:47 (commits 53993cbc, 1114cb94): results section 'Neighbour field measured on the fing… Done 10-27 22:17: Section 3 'Neighbour field measured on the fingertip holder' (Figure 2 from the file's bins, Table 2), lede, summary, numbering, limitations, holder item to the both-apex frame + 86 hovers + close -y plan (e96bf3f3); overview's 3 crosstalk sentences (fd38e26c); acked 8 lines, 3 commits. Builder now reads the coordinator's files at HEAD. The 21:44 'within 10 % to W 5 mm' left out (bins disagree)
 - [x] 6. Feed line of 22:25 (commits 88fc93b5, 70dcfb11): the holder map's 89 hovers in Section 3 (net moments from th… Done 10-27 22:47: Hovers in Section 3: Figure 3 drawn from the file (2 x 2), Table 3 explained shares; lede/summary lead with the held-out 97 and 94 %; holder item = close -y plan + five-fold fit; overview +1 sentence; 7a66bfc9; acked 9 lines, 5 commits
 - [x] 7. Feed line of 22:52 (commit d4fa2c07): the close -y hovers (222640-holdclosev3id1, 28 hovers + 20 repeats at W… Done 10-27 23:07: Close -y hovers in Section 3 (map and close session apart, -y pooled in Figure 3/Table 3: 97.0 % held, 94 % robot); lede 97 % at either held board in 137 hovers; holder item = five-fold fit; overview sentence; dc8b6478; acked 10 lines, 6 commits
+- [x] 8. Feed line of 00:18 (four magnets against five, partial; c5fe7775): v3 ID 1's change per newton (face 22.4 aga… Done 10-28 00:36: Done 10-28 00:37: v3 ID 1's face press signal 22.4 uT/N (v2 ID 1 51.4) from the partial four-vs-five file at HEAD: lede and summary yardstick for the 39-60 uT at contact, the Press signal term, two sentences in Section 3; byline + close session; Figure 5's re-made render looked at; a86135e0; overview unchanged (its quoted crosstalk numbers stand); acked 12 lines, 6 commits
 Standing directions (for every step):
 - What goes on the crosstalk page, by the feed line's kind. plan and registration: the future-work items on the holder map and the pinch follow the current plan, a sentence or two each. session: the item says what ran (date, counts) until its analysis arrives; a partial or aborted run gets one sentence. analysis: a results section ('Neighbour field measured on the fingertip holder', later 'Pinch between two v3 tips') with the coordinator's numbers as given and its files cited by path, a table for more than four numbers, its figure or one drawn in the builder from its data files (sentence case, text 13 px or more as displayed, looked at before committing); the lede, the docs-summary and the figure and table numbers follow, and the future-work item becomes what remains, with its falsification criterion. figure: use it only when it shows a result or the measurement's geometry. When an analysis changes a number that the fingertip overview quotes on crosstalk, update that sentence in scripts/overview_fingertip_text.py and rebuild the overview.
 - Writing and compute: the Writing rules of ~/.claude/CLAUDE.md, with ~/.claude/writing_reference.md read once per session; every build line within the prose targets (scripts/prose_lint.py --top 20 PAGE lists the sentences to fix); anything over a minute or more than one core goes through ~/.claude/bin/resguard.sh run with a measured --mem; commit after each page change, with the refreshed indices, and only the files you changed.
