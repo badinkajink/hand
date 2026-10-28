@@ -70,6 +70,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--poll", type=float, default=120.0)
     ap.add_argument("--max", type=float, default=3600.0)
+    ap.add_argument("--no-stages", action="store_true", help="do not wake on a change of stage (a long run that interleaves "
+                    "its stages, as a suite's stage 2)")
     a = ap.parse_args()
     t0 = time.time()
     s0, h0 = None, lab_commits()
@@ -118,7 +120,7 @@ def main():
             except ValueError:
                 continue
             if ev.get("event") == "start" and ev.get("stage"):
-                if stage is not None and ev["stage"] != stage:
+                if stage is not None and ev["stage"] != stage and not a.no_stages:
                     print(f"{stamp} {s['session']}: stage {stage} -> {ev['stage']} at {ev.get('id')} "
                           f"({s['touches']} touches)")
                     return 0
