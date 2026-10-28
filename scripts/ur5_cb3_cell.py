@@ -491,7 +491,9 @@ def tall_sdf(P, tip=True, t=None):
 # rounded edges reaching 5.0 mm into the socket), on a tower of its own, its mouth at (mouth_x, key_y, mouth_z). TIP_F gives
 # the tip in the DIP link's frame F: the cassette's back face (the board's component face) at x_F 3.80, the face's centre at
 # z_F -87.91.
-TIPHOLD = dict(stations=((-28.5, "down"), (28.5, "up")), x_s=0.0, z_bot=40.0, T=12.0, col_r=14.0,
+# Both held tips stand on their blocks' top faces, facing up (owner, 2026-10-27 19:50: "neither is underneath"); the design
+# put the -y tip under its block for side-by-side poses, which "down" restores.
+TIPHOLD = dict(stations=((-28.5, "up"), (28.5, "up")), x_s=0.0, z_bot=40.0, T=12.0, col_r=14.0,
                base=(-40.0, 40.0, -30.0, 98.0, 8.0), key_y=75.0, mouth_x=-22.0, mouth_z=30.0,
                seat=dict(wall_gap=0.2, wall_h=(14.0, 14.0, 11.5, 9.5), stop=dict(gap=0.1, t=4.0, h=9.5),
                          key_r=0.8, key_top=5.0))

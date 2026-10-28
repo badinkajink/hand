@@ -90,22 +90,31 @@ def run(a):
     base = json.loads(Path(a.base_plan).read_text())
     reg, qh = setup(a.session, base, a.add_other, a.drop_other)
     TI.J6 = (a.j6_min, a.j6_max)
-    up = FH.held_apex(CELL, 1) + np.array([0.0, 0.0, a.z_offset])       # +y station, tip up
-    down = FH.held_apex(CELL, 0)                                          # -y station, tip down
+    st = CELL.TIPHOLD["stations"]
+    apex = {i: FH.held_apex(CELL, i) + np.array([0.0, 0.0, a.z_offset]) for i in range(len(st))}
+    up = apex[1]                                                          # the touch-offs' station: +y, tip up
     cand = []                                                             # (id, p, tw, dwell)
-    for tw in TWISTS:
-        for W in sorted((w for w in FACING_W if w >= a.min_w), reverse=True):
-            cand.append((f"hov-f-W{W:g}-t{tw:+d}", up + [0.0, 0.0, W], tw, 6.0 if W >= 15 else 2.0))
-    for W in (w for w in (1, 3, 10) if w >= a.min_w):
-        for dx, dy, nm in ((3, 0, "x+3"), (-3, 0, "x-3"), (0, 3, "y+3"), (0, -3, "y-3")):
-            cand.append((f"hov-f-W{W:g}-{nm}", up + [dx, dy, W], 0, 2.0))
-    cand.append(("hov-f-W45-far", up + [0.0, 0.0, 45.0], 0, 6.0))
-    side = json.loads((FH.OUT / "data" / f"{FH.STEM}_reach_side.json").read_text())["poses"]
-    for r in side:
-        if r["ok"]:
-            g, s, tw = r["g"], r["s"], r["tw"]
-            cand.append((f"hov-s-g{g:g}-s{s:g}-t{tw:+d}", down + [s, -(WIDTH + g), 0.0], tw, 6.0 if g >= 20 else 2.0))
-    cand.append(("hov-s-g40-far", down + [0.0, -(WIDTH + 40.0), 0.0], 0, 6.0))
+    for i in sorted(range(len(st)), key=lambda k: -st[k][0]):            # +y first
+        ys, mode = st[i]
+        if mode != "up":
+            continue
+        tag = "" if i == 1 else "m"                                       # hov-f-... on +y, hov-fm-... on -y
+        mw = a.min_w if i == 1 else max(a.min_w, a.min_w_other)          # no touch-offs on -y: its height from +y's
+        for tw in TWISTS:
+            for W in sorted((w for w in FACING_W if w >= mw), reverse=True):
+                cand.append((f"hov-f{tag}-W{W:g}-t{tw:+d}", apex[i] + [0.0, 0.0, W], tw, 6.0 if W >= 15 else 2.0))
+        for W in (w for w in (1, 3, 10) if w >= mw):
+            for dx, dy, nm in ((3, 0, "x+3"), (-3, 0, "x-3"), (0, 3, "y+3"), (0, -3, "y-3")):
+                cand.append((f"hov-f{tag}-W{W:g}-{nm}", apex[i] + [dx, dy, W], 0, 2.0))
+        cand.append((f"hov-f{tag}-W45-far", apex[i] + [0.0, 0.0, 45.0], 0, 6.0))
+    if st[0][1] == "down":                                                # side by side needs the -y tip under its block
+        down = apex[0] - np.array([0.0, 0.0, a.z_offset])
+        side = json.loads((FH.OUT / "data" / f"{FH.STEM}_reach_side.json").read_text())["poses"]
+        for r in side:
+            if r["ok"]:
+                g, s_, tw = r["g"], r["s"], r["tw"]
+                cand.append((f"hov-s-g{g:g}-s{s_:g}-t{tw:+d}", down + [s_, -(WIDTH + g), 0.0], tw, 6.0 if g >= 20 else 2.0))
+        cand.append(("hov-s-g40-far", down + [0.0, -(WIDTH + 40.0), 0.0], 0, 6.0))
     acts, dropped, least, links = [], [], {}, {}
     for aid, p, tw, dwell in cand:
         ok, worst, j = check(reg, qh, p, tw)
@@ -146,7 +155,8 @@ def run(a):
     centre = up - np.array([0.0, 0.0, R_APEX])
     plan["geometry"]["indenter"] = dict(kind="sphere", centre=[round(float(v), 3) for v in centre], radius=round(R_APEX, 3))
     plan["geometry"]["T_IM_home"] = np.round(CELL.tiphold_parts()["frame"]["T_IM_home"], 4).tolist()
-    plan["holder"] = dict(held_apex_up_I=np.round(up, 3).tolist(), held_apex_down_I=np.round(down, 3).tolist(),
+    plan["holder"] = dict(held_apex_I={("+y" if st[i][0] > 0 else "-y"): np.round(apex[i], 3).tolist() for i in apex},
+                          stations=[list(x) for x in st],
                           z_offset_mm=a.z_offset, registration=rel(a.session),
                           cap_trim_x_F=CELL.CAP_TRIM_X, screw_heads=CELL.SCREW_HEADS, held_board=CELL.HELD_BOARD,
                           j6=[a.j6_min, a.j6_max], least_clearance_mm={k: round(v, 2) for k, v in least.items()},
@@ -159,10 +169,11 @@ def run(a):
         "map; plan['indenter'] tiphold names the cell's model for the checks."]
     plan["actions"] = touches + acts + reps
     Path(a.out).write_text(json.dumps(plan, indent=1, default=C.jsonable) + "\n")
-    n_f = sum(x["id"].startswith("hov-f") for x in acts)
+    n_f = sum(x["id"].startswith("hov-f-") for x in acts)
+    n_fm = sum(x["id"].startswith("hov-fm-") for x in acts)
     n_s = sum(x["id"].startswith("hov-s") for x in acts)
     t_est = sum(1.5 + 1.5 + x["dwell_s"] + 2 * ((x["ref_up_mm"] - 5) / 10 + 5 / 2) + 6 for x in acts + reps) / 60
-    print(f"{len(touches)} touch-offs, {n_f} facing and {n_s} side-by-side hovers, {len(reps)} repeats; "
+    print(f"{len(touches)} touch-offs, {n_f} facing hovers on +y and {n_fm} on -y, {n_s} side-by-side, {len(reps)} repeats; "
           f"{len(dropped)} dropped; about {t_est:.0f} min of hovers")
     print("least clearances (mm):", {k: round(v, 2) for k, v in least.items()})
     print("least clearance of each robot link (mm, action):", links)
@@ -181,6 +192,8 @@ if __name__ == "__main__":
     ap.add_argument("--drop-other", action="append", default=[], help="a fixture kind taken off the cell for this plan")
     ap.add_argument("--min-w", type=float, default=0.0, help="facing gaps under this (mm) are left out: without the "
                     "touch-offs' measured apex height, 3 mm (the seatings' 1 mm and 1 deg spread, the pad's 0.5 mm)")
+    ap.add_argument("--min-w-other", type=float, default=2.0, help="the least facing gap on the -y station (mm), whose "
+                    "height comes from the +y touch-offs: the -y tip's own board and screws add about 0.5 mm")
     ap.add_argument("--no-touch", action="store_true", help="no touch-offs (the rod fixture in place: wrist 3 at 0.7 mm)")
     ap.add_argument("--z-offset", type=float, default=0.0, help="mm added to the +y held apex's height (touch-offs)")
     ap.add_argument("--j6-min", type=float, default=-62.0)
