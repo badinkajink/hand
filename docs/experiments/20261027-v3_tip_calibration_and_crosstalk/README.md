@@ -14,7 +14,8 @@ the suite, the lab program needs the speed changes listed under Code.
   net moment. v3 ID 1 is the tip on the robot, read by the ESP32-C3 (`--board`). The two held tips stream through the
   QT Py's mux (`--held-board`, `held.bin`); they get IDs when they go on the robot.
 - A held tip is a whole fingertip (pad, cassette 3T, top cover TW15H3 trimmed, board) screwed to one of the holder's two
-  stations (`../20261027-fingertip_holder/README.md`): tip up on +y, tip down on -y.
+  stations (`../20261027-fingertip_holder/README.md`). Both stand on their blocks' top faces, facing up; the +y tip is
+  turned 180 deg about the vertical, its connector toward +x_I (owner, 2026-10-27 19:50 and 19:59).
 - W is the gap between the two apexes with the pads facing, on the +y station. g is the gap between the flanks side by
   side, with the apexes level, on the -y station; s shifts the robot tip toward its own end. A twist turns the robot tip
   about the vertical through its apex.
@@ -54,6 +55,14 @@ tall indenter's 2x4, about 100 mm behind the low sphere and the rod; in the hold
 y -28.5 mm, in front of the -y station. With all four fixtures on the cell, 64 of the plan's 89 hovers fail, all on the
 rod: wrist 3 comes within 0.7 to 2.6 mm of it at the touch-offs and facing W 0 to 3 mm, and side by side the HEX-E, the
 adapter and wrists 2 and 3 run into it. The low sphere keeps wrist 3 7.4 to 8.3 mm away at the seatings.
+
+The owner then moved the rod about 96 mm along -x_B instead of taking it off, both held tips turned out to face up, and
+the holder was reseated (holder_seated_5). The plan for that cell, `lab/20261027-plan_holder_lab_map_seat5_v3id1.json`,
+has the three touch-offs, 49 facing hovers over the +y tip and 37 over the -y tip at W 2 mm and over, and 20 repeats:
+about 43 min, wrist 3 17.2 mm and the HEX-E 22.9 mm at least. With no tip under a block there is no side-by-side map.
+Along every move the paths keep joint 5 39 deg or more from its singular angles, the elbow 81 deg or more from straight
+and the wrist 518 mm or more from joint 1's axis (`scripts/ur5_tip_calibration_holder_paths.py`). The earlier
+plans follow.
 
 With the rod fixture off, `lab/20261027-plan_holder_lab_map_norod_v3id1.json` (on holder_seated_2) keeps 49 facing hovers
 (W 0.5 to 30 mm at twists -20 to +10 deg, the twelve offsets, W 45 mm) and 32 side-by-side hovers (g 13 to 25 mm), with

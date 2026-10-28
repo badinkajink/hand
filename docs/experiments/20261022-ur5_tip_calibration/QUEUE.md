@@ -1033,6 +1033,14 @@ push that answers it arrives.
     no-rod plan. Fallback if the rod stays (78d65621): `lab/20261027-plan_holder_lab_map_rodin_v3id1.json`, no
     touch-offs, 21 facing hovers at W 3 mm and over and the far poses W 45 and g 40 mm, 20 repeats, about 18 min, wrist 3
     8.11 mm at least; no side-by-side map with the rod in.
+  - 20:04 on 10-27: the owner moved the rod to a new home (rod_indenter_seated to _3, about 96 mm along -x_B), both
+    held tips are on their blocks' top faces, and the +y tip is turned 180 deg about the vertical (connector toward +x_I):
+    all in ur5_cb3_cell. The holder was reseated (holder_seated_4 to _6; homing on _5). Plan d527eb39,
+    `lab/20261027-plan_holder_lab_map_seat5_v3id1.json`: 3 touch-offs on the +y apex, 49 facing hovers on +y and 37 on -y
+    (W 2 mm and over), 20 repeats, about 43 min; no side-by-side map (no tip underneath). Wrist 3 17.2 mm at least; the
+    paths (`scripts/ur5_tip_calibration_holder_paths.py`, the rod's three seatings) keep |sin q5| 0.63, q3 81 deg, the
+    wrist 518 mm from joint 1's axis and 261 deg to any limit. Next: the touch-offs with the owner watching, then the
+    hovers rebuilt with --z-offset.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
