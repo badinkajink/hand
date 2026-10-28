@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+"""UR5 plan on the fingertip holder (owner, 2026-10-27): the crosstalk field map, with the robot tip's apex held without
+contact at known poses off two held tips that carry their own boards, and the touch-offs that fix its height. The held
+tips and their boards are ur5_cb3_cell's (TIPHOLD, TIP_F, HELD_BOARD), the poses scripts/fingertip_holder.py's, the
+hover action the lab program's (85ddc425: the robot pad's target point held at at_I with its normal down, turned twist
+about the vertical, between two dwells at a reference ref_up_mm above).
+
+Stages of the plan:
+  pad    three touch-offs of the robot apex on the +y held apex (tip up). A sphere of the pad's apex radius across the tip
+         (7.4^2 / 8.5 = 6.44 mm) stands in for it, its top at the held apex, so that the program's touch-off runs as on an
+         indenter. Their onsets give the held apex's height: rebuild with --z-offset (onset minus expected, mm).
+  hover  facing on the +y station: W 0.5 to 30 mm at twists -20 to +20 deg, twelve offsets of 3 mm across or along at
+         W 1, 3 and 10 mm, and W 45 mm as a far pose; side by side on the -y station: the poses of the holder's reach
+         check that pass (g 13 to 25 mm, s 0, 2 and 5 mm) and g 40 mm as a far pose. The first 20 repeat at the end.
+         Each pose dwells 2 s, 6 s at W 15 mm and over or g 20 mm and over; the reference dwells 1.5 s, 40 mm above,
+         lowered where the cell needs it. The contact guard stays at 0.5 N: the magnets' pull between the tips is at most
+         1.0 mN at these poses (fingertip_crosstalk.py pull).
+
+Each pose and its reference are checked with tall_indenter._pose_ok on the cell's "tiphold" kind (holder, held tips and
+boards, the robot's trimmed cap and screw heads), with joint 6 within --j6-min and --j6-max and joint 5 within 34 to 98.
+
+    .venv/bin/python scripts/ur5_tip_calibration_holder_plan.py --session <registration folder> [--z-offset 0]
+"""
+from __future__ import annotations
+
+import argparse
+import copy
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+import fingertip_holder as FH  # noqa: E402
+import tall_indenter as TI  # noqa: E402
+import ur5_cb3_cell as CELL  # noqa: E402
+
+C = CELL.C
+LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
+APEX_P, N_P = [8.5, 0.0, 10.86], [1.0, 0.0, 0.0]          # the robot pad's apex and its normal, pad frame P
+R_APEX = 7.4 ** 2 / 8.5                                    # the pad's radius of curvature at the apex, across the tip
+FACING_W = (0.5, 1, 2, 3, 5, 10, 15, 20, 30)
+TWISTS = (-20, -10, 0, 10, 20)
+WIDTH = 14.8                                               # the pads' width: centre lines 14.8 + g apart side by side
+
+
+def setup(session, base):
+    ck = base["checks"]
+    CELL.BOARD.update(ck["board"])
+    CELL.BOARD["half_mm"] = 400.0                          # the mat table under the wrist, as the reach maps
+    CELL.OTHER[:] = [(np.array(o["T_BI"], float), o["kind"]) for o in ck.get("other", [])]
+    geo = C.Geometry(base)
+    reg = C.Registration(geo).load(json.loads((Path(session) / "registration.json").read_text()))
+    return reg, np.asarray(reg.q_home, float)
+
+
+def check(reg, qh, p, tw):
+    """(ok, least clearance per group, joints 5 and 6) with the robot apex at p (I) turned tw."""
+    T_IM = FH.T_IF_moving(p, tw) @ np.linalg.inv(CELL.T_M_FROM_F)
+    T_BE = reg.T_BI @ T_IM @ C.inv(reg.T_EM)
+    return TI._pose_ok(CELL, C, CELL.SIM, reg, "tiphold", T_BE, None, qh)
+
+
+def hover(aid, p, tw, dwell, ref_up):
+    return dict(id=aid, stage="hover", kind="hover", target=dict(frame="P", p=APEX_P, n=N_P, index=-1, region="face"),
+                at_I=[round(float(v), 3) for v in p], twist=float(tw), ref_up_mm=float(ref_up), slow_mm=5.0, v_mm_s=10.0,
+                v_slow_mm_s=2.0, dwell_ref_s=1.5, dwell_s=float(dwell), contact_N=0.5)
+
+
+def run(a):
+    base = json.loads(Path(a.base_plan).read_text())
+    reg, qh = setup(a.session, base)
+    TI.J6 = (a.j6_min, a.j6_max)
+    up = FH.held_apex(CELL, 1) + np.array([0.0, 0.0, a.z_offset])       # +y station, tip up
+    down = FH.held_apex(CELL, 0)                                          # -y station, tip down
+    cand = []                                                             # (id, p, tw, dwell)
+    for tw in TWISTS:
+        for W in sorted(FACING_W, reverse=True):
+            cand.append((f"hov-f-W{W:g}-t{tw:+d}", up + [0.0, 0.0, W], tw, 6.0 if W >= 15 else 2.0))
+    for W in (1, 3, 10):
+        for dx, dy, nm in ((3, 0, "x+3"), (-3, 0, "x-3"), (0, 3, "y+3"), (0, -3, "y-3")):
+            cand.append((f"hov-f-W{W:g}-{nm}", up + [dx, dy, W], 0, 2.0))
+    cand.append(("hov-f-W45-far", up + [0.0, 0.0, 45.0], 0, 6.0))
+    side = json.loads((FH.OUT / "data" / f"{FH.STEM}_reach_side.json").read_text())["poses"]
+    for r in side:
+        if r["ok"]:
+            g, s, tw = r["g"], r["s"], r["tw"]
+            cand.append((f"hov-s-g{g:g}-s{s:g}-t{tw:+d}", down + [s, -(WIDTH + g), 0.0], tw, 6.0 if g >= 20 else 2.0))
+    cand.append(("hov-s-g40-far", down + [0.0, -(WIDTH + 40.0), 0.0], 0, 6.0))
+    acts, dropped, least = [], [], {}
+    for aid, p, tw, dwell in cand:
+        ok, worst, j = check(reg, qh, p, tw)
+        if not ok:
+            dropped.append(dict(id=aid, why="pose", joints_56=None if j is None else [round(v, 1) for v in j],
+                                clear=worst and {k: round(v, 2) for k, v in worst.items()}))
+            continue
+        ref = next((h for h in (40.0, 30.0, 20.0, 10.0) if check(reg, qh, p + [0.0, 0.0, h], tw)[0]), None)
+        if ref is None:
+            dropped.append(dict(id=aid, why="reference"))
+            continue
+        act = hover(aid, p, tw, dwell, ref)
+        act["check"] = dict(clear={k: round(v, 2) for k, v in worst.items()}, joints_56=[round(v, 1) for v in j])
+        acts.append(act)
+        for k, v in worst.items():
+            least[k] = min(least.get(k, 1e9), v)
+    reps = [dict(copy.deepcopy(x), id=x["id"] + "-rep") for x in acts[:20]]
+    touches = []
+    for k in "abc":
+        t = dict(id=f"hold-touch-{k}", stage="pad", kind="touch", target=dict(frame="P", p=APEX_P, n=N_P, index=-1,
+                                                                            region="face"),
+                 twist=0.0, standoff=5.0, beyond_mm=1.2, v=0.00015, stop_N=0.5, fit_N=0.4)
+        touches.append(t)
+    plan = {k: copy.deepcopy(v) for k, v in base.items() if k != "actions"}
+    plan["created"] = a.created
+    plan["indenter"] = "tiphold"
+    centre = up - np.array([0.0, 0.0, R_APEX])
+    plan["geometry"]["indenter"] = dict(kind="sphere", centre=[round(float(v), 3) for v in centre], radius=round(R_APEX, 3))
+    plan["geometry"]["T_IM_home"] = np.round(CELL.tiphold_parts()["frame"]["T_IM_home"], 4).tolist()
+    plan["holder"] = dict(held_apex_up_I=np.round(up, 3).tolist(), held_apex_down_I=np.round(down, 3).tolist(),
+                          z_offset_mm=a.z_offset, registration=str(Path(a.session).resolve().relative_to(ROOT)),
+                          cap_trim_x_F=CELL.CAP_TRIM_X, screw_heads=CELL.SCREW_HEADS, held_board=CELL.HELD_BOARD,
+                          j6=[a.j6_min, a.j6_max], least_clearance_mm={k: round(v, 2) for k, v in least.items()},
+                          dropped=dropped)
+    plan["notes"] = list(plan.get("notes", [])) + [
+        f"{a.created}, workstation: scripts/ur5_tip_calibration_holder_plan.py on {Path(a.session).name}'s registration. "
+        "Stage pad: three touch-offs of the robot apex on the +y held apex (a 6.44 mm sphere stands in for the held pad, "
+        "its top at the apex); rebuild with --z-offset from their onsets before the hovers. Stage hover: the crosstalk "
+        "map; plan['indenter'] tiphold names the cell's model for the checks."]
+    plan["actions"] = touches + acts + reps
+    Path(a.out).write_text(json.dumps(plan, indent=1, default=C.jsonable) + "\n")
+    n_f = sum(x["id"].startswith("hov-f") for x in acts)
+    n_s = sum(x["id"].startswith("hov-s") for x in acts)
+    t_est = sum(1.5 + 1.5 + x["dwell_s"] + 2 * ((x["ref_up_mm"] - 5) / 10 + 5 / 2) + 6 for x in acts + reps) / 60
+    print(f"{len(touches)} touch-offs, {n_f} facing and {n_s} side-by-side hovers, {len(reps)} repeats; "
+          f"{len(dropped)} dropped; about {t_est:.0f} min of hovers")
+    print("least clearances (mm):", {k: round(v, 2) for k, v in least.items()})
+    for d in dropped:
+        print("  dropped", d)
+    print("->", Path(a.out).relative_to(ROOT))
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--session", default=str(LAB / "20261027-sphchk-b-hybrid"),
+                    help="a folder whose registration.json gives the robot's mount and pad and the holder's place (T_BI)")
+    ap.add_argument("--base-plan", default=str(LAB / "20261027-plan_sphere_lab_check_shear_v2id1.json"))
+    ap.add_argument("--z-offset", type=float, default=0.0, help="mm added to the +y held apex's height (touch-offs)")
+    ap.add_argument("--j6-min", type=float, default=-62.0)
+    ap.add_argument("--j6-max", type=float, default=45.0)
+    ap.add_argument("--created", default="2026-10-27")
+    ap.add_argument("--out", default=str(LAB / "20261027-plan_holder_lab_map_v3id1.json"))
+    run(ap.parse_args())
