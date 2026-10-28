@@ -47,6 +47,7 @@ GRAVITY_FROM = None     # a session (or its registration.json) whose gravity fit
 REG_FROM = None         # a session (or its registration.json) whose registration replaces this session's (--registration-from):
 #                         the same tool and indenter, not touched between them (rod1, 2026-10-23: its touch-offs began in
 #                         contact, so its presses take the registration of touch-offs run after them, QUEUE.md R19)
+CASE = "b_v2"           # the pad's magnet layout (--case): b_v2 the five magnets, four_05R4 pad 05R4's four (rest fit only)
 REF_DRIFT = False       # move the sphere along the approach by the ref presses' onset drift, interpolated in time (--ref-drift)
 BOARD_ZERO = "both"     # the board's zero for each hold: the rests before and after the action interpolated in time, or the
 #                         rest before alone (--board-zero before; the lab's drift study of 2026-10-23: a press leaves a step
@@ -350,7 +351,9 @@ def estimator(ses, holds, mask=None):
     first = ses.ends[ref[0]["id"]]["rec"] if ref else ses.ends[holds[0]["id"]]["rec"]
     b_rest = ses.win(ses.d["t_b"], ses.b, *first["t_rest0"]).mean(axis=0).reshape(5, 3)
     board = W.Calib.load(BOARD_CAL)
-    cal = W.calibrate_frames_fixed(b_rest, board)
+    cal = W.calibrate_frames_fixed(b_rest, board, case=CASE)
+    if not W.fe_row(CASE).get("fe_basis", True):      # a layout without an FE surface basis (pad 05R4): the rest fit only
+        return cal, None
     model = W.Model(cal)
     est = W.SurfaceEstimator(model, W.load_basis(BASIS), floor_uT=2.0, mask=mask)
     return cal, est
@@ -560,8 +563,11 @@ def main():
                     "(T_EM, T_MP, T_BI) replaces this session's: same tool and indenter, untouched between the two")
     ap.add_argument("--ref-drift", action="store_true", help="move the sphere along the approach by the reference "
                     "presses' onset drift, interpolated in time")
+    ap.add_argument("--case", default="b_v2", help="the pad's magnet layout: b_v2 (five magnets) or four_05R4 (pad 05R4's "
+                    "four, v3; no FE surface basis, so the holds get the rest fit and no physical estimates)")
     a = ap.parse_args()
-    global ZERO, GRAVITY_FROM, REF_DRIFT, BOARD_ZERO, REG_FROM
+    global ZERO, GRAVITY_FROM, REF_DRIFT, BOARD_ZERO, REG_FROM, CASE
+    CASE = a.case
     ZERO = a.zero
     BOARD_ZERO = a.board_zero
     GRAVITY_FROM = a.gravity_from
@@ -570,9 +576,13 @@ def main():
     ses = Session(a.session)
     holds = ses.holds()
     cal, est = estimator(ses, holds)
-    evaluate(holds, est)
-    _, estm = estimator(ses, holds, mask=covered)
-    evaluate(holds, estm, "est_masked")
+    if est is None:
+        for h in holds:
+            h["est"] = {}
+    else:
+        evaluate(holds, est)
+        _, estm = estimator(ses, holds, mask=covered)
+        evaluate(holds, estm, "est_masked")
     S = summarize(ses, holds)
     S["estimator_calibration"] = dict(k=cal.k, poles=cal.poles, dx=cal.dx, dy=cal.dy, dz=cal.dz, rms_mT=cal.rms_mT)
     S["pivot_check"] = pivot_check(ses)

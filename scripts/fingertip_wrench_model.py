@@ -40,7 +40,19 @@ THERMAL = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20
 T_REF_C = 25.0
 
 
+REST_ONLY = {   # layouts with magnets and no FE surface basis: their rest fit works, the SurfaceEstimator does not
+    # pad 05R4 (v3, 2026-10-27; scripts/dip_b_four_compact_tip.py, four_y2p5_z5): four N52 in a 5.0 mm square centred on
+    # U1 at the five-magnet tip's depth, proximal row first, -y before +y; the checkerboard is poles (1, -1, -1, 1)
+    "four_05R4": ("b_v2", [[3.0, 2.0, sy * 2.5, TD.Z_C + sz * 2.5] for sz in (-1, 1) for sy in (-1, 1)]),
+}
+
+
 def fe_row(case="b_v2"):
+    if case in REST_ONLY:
+        base, mags = REST_ONLY[case]
+        r = dict(fe_row(base))
+        r.update(case=case, magnets=[list(m) for m in mags], fe_basis=False)
+        return r
     for line in open(FE_ROWS):
         try:
             r = json.loads(line)
@@ -194,10 +206,17 @@ def _resid(b_rest, row, poles, s, perm, p, theta0=None):
 
 def calibrate(b_rest_uT, case="b_v2", poles=None, top=24, verbose=True):
     """Fit the model to the reading at rest (uT, (5, 3), streaming order). poles=None searches the 16 patterns with the
-    centre magnet's pole +1 (the global sign goes into s). Returns the best Calib and the ranked fits."""
+    centre magnet's pole +1 (the global sign goes into s); for another number of magnets n, the 2^(n-1) patterns with the
+    first magnet's pole +1. Returns the best Calib and the ranked fits."""
     row = fe_row(case)
     b = np.asarray(b_rest_uT, float)
-    pole_set = [poles] if poles is not None else [(c[0], c[1], 1, c[2], c[3]) for c in itertools.product((1, -1), repeat=4)]
+    nm = len(row["magnets"])
+    if poles is not None:
+        pole_set = [tuple(poles)]
+    elif nm == 5:
+        pole_set = [(c[0], c[1], 1, c[2], c[3]) for c in itertools.product((1, -1), repeat=4)]
+    else:
+        pole_set = [(1,) + c for c in itertools.product((1, -1), repeat=nm - 1)]
     # stage 1: rotation-invariant features (normal component, in-plane magnitude) choose the candidates
     cand = []
     for pl in pole_set:
