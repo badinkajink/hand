@@ -1,0 +1,20 @@
+resumed logs/20261027-tip_calibration/202426-holdapexv3id1: 0 actions done, 0 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 206 records/s, mux channel 3 206 records/s
+  HEX-E noise (1 sigma) N, N m: [0.0436 0.0421 0.2357 0.0028 0.0036 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== homing
+homing: from the recorded seating docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:holder_seated_5 (no freedrive, nothing moves)
+homing: 1 seatings within 0.000 mm, 0.000 deg of their mean
+== pad
+  hold-touch-a: onset +3.058 mm from the expected (power 1.25, fit 29.3 mN)
+  hold-touch-b-x+0-y+3: onset +4.037 mm from the expected (power 1.25, fit 35.4 mN)
+  hold-touch-c-x+0-y-3: onset +2.873 mm from the expected (power 1.25, fit 34.5 mN)
+  hold-touch-d-x+3-y+0: onset +3.097 mm from the expected (power 1.50, fit 39.9 mN)
+  hold-touch-e-x-3-y+0: onset +3.132 mm from the expected (power 2.00, fit 39.6 mN)
+HEX-E: 70133 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.6 s, Fz +0.0 N; 0.7 s, Fz +0.4 N
+session in logs/20261027-tip_calibration/202426-holdapexv3id1
+exit 0 at 20:36:13
