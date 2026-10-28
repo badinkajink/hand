@@ -1292,6 +1292,29 @@ at about 340 records/s). The holder's two v3 tips read through the mux board `b4
   0.36 mm), `dense-419-t+15`, `dense-464-t-5` and `hard-dense-464-t-5` (finger 0.49 to 0.78 mm), two slides past
   +60 deg and four past -65 deg are left out. The 43: mount 3.22 mm, finger 1.66 mm, joint 6 -63.3 to +59.0 deg.
 
+### Rod pass 1 for v3 ID 1, checked here (`lab/20261027-plan_rod_lab_pass1_search_v3id1.json`)
+
+- The simulator ran pass 1 (21 touch-offs, 5 pivots) from the home pose on each of the rod's three seatings. It used
+  v3 ID 1's tool frames from 225213's registration. All three ended with 0 aborts and registered to 0.012 to 0.015 mm
+  rms.
+- The mount cleared by at least 3.31, 2.67 and 3.31 mm on seatings 1, 2 and 3; the touch-off margin is 2.5 mm. The
+  finger cleared by at least 1.77 mm, the HEX-E by 32 mm and the links by 40 mm.
+- On all three seatings joint 6 ran from -51.1 to +29.3 deg and joint 5 from 33.2 to 49.1 deg, 3.2 deg inside its
+  window. The elbow stayed at least 73.1 deg from straight.
+- These checks took every fifth sample. On seating 2, the closest, the 11 nearest touch-offs were checked again at
+  every sample. They gave the same 2.67 mm, at `pad-edge-06`.
+- The workstation's path check first gave 1.25 to 2.85 mm, because it used v2 ID 1's tool frames. With v3 ID 1's it
+  gives 2.68 mm on seating 2.
+- The rod fixture comes off for the side-by-side hovers in the morning. After it goes back on, the owner records
+  `rod_indenter_seated_4`. If that seating lies outside seatings 1 to 3, pass 1 is simulated again before it runs.
+
+### The morning's other plans, simulated here from the home pose
+
+- The side-by-side hovers (`lab/20261028-plan_holder_lab_side_norod_v3id1.json`, 45 hovers, with the -y tip
+  pad-down): mount 4.14 mm, finger 2.70 mm, joint 6 -6.5 to +6.4 deg, the elbow at least 82.5 deg from straight.
+- The sphere's twists, rolls and final references (`lab/20261028-plan_sphere_lab_stage2_twists_v3id1.json`, 18
+  actions): mount 4.06 mm, finger 4.70 mm, joint 6 -17.0 to +25.2 deg, the elbow at least 102.9 deg from straight.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
