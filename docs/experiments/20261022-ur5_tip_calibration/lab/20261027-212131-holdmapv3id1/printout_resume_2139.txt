@@ -1,0 +1,100 @@
+resumed logs/20261027-tip_calibration/212131-holdmapv3id1: 11 actions done, 5 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 338 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 206 records/s, mux channel 3 206 records/s
+  HEX-E noise (1 sigma) N, N m: [0.0426 0.0498 0.2182 0.003  0.0036 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== homing
+== pad
+== hover
+  hov-f-W30-t-20 (5/90): held 6 s, |F| at most 0.33 N
+  hov-f-W20-t-20 (6/90): held 6 s, |F| at most 0.37 N
+  hov-f-W15-t-20 (7/90): held 6 s, |F| at most 0.34 N
+  hov-f-W10-t-20 (8/90): held 2 s, |F| at most 0.33 N
+  hov-f-W5-t-20 (9/90): held 2 s, |F| at most 0.36 N
+  hov-f-W3-t-20 (10/90): held 2 s, |F| at most 0.32 N
+  hov-f-W2-t-20 (11/90): held 2 s, |F| at most 0.26 N
+  hov-f-W1-t-20 (12/90): held 2 s, |F| at most 0.28 N
+  hov-f-W30-t-10 (13/90): held 6 s, |F| at most 0.40 N
+  hov-f-W20-t-10 (14/90): held 6 s, |F| at most 0.35 N
+  hov-f-W15-t-10 (15/90): held 6 s, |F| at most 0.38 N
+  hov-f-W10-t-10 (16/90): held 2 s, |F| at most 0.31 N
+  hov-f-W5-t-10 (17/90): held 2 s, |F| at most 0.31 N
+  hov-f-W3-t-10 (18/90): held 2 s, |F| at most 0.29 N
+  hov-f-W2-t-10 (19/90): held 2 s, |F| at most 0.30 N
+  hov-f-W1-t-10 (20/90): held 2 s, |F| at most 0.26 N
+  hov-f-W0.5-t-10 (21/90): held 2 s, |F| at most 0.36 N
+  hov-f-W30-t+0 (22/90): held 6 s, |F| at most 0.37 N
+  hov-f-W20-t+0 (23/90): held 6 s, |F| at most 0.33 N
+  hov-f-W15-t+0 (24/90): held 6 s, |F| at most 0.38 N
+  hov-f-W10-t+0 (25/90): held 2 s, |F| at most 0.32 N
+  hov-f-W5-t+0 (26/90): held 2 s, |F| at most 0.28 N
+  hov-f-W3-t+0 (27/90): held 2 s, |F| at most 0.30 N
+  hov-f-W2-t+0 (28/90): held 2 s, |F| at most 0.28 N
+  hov-f-W1-t+0 (29/90): held 2 s, |F| at most 0.36 N
+  hov-f-W0.5-t+0 (30/90): held 2 s, |F| at most 0.24 N
+  hov-f-W30-t+10 (31/90): held 6 s, |F| at most 0.43 N
+  hov-f-W20-t+10 (32/90): held 6 s, |F| at most 0.43 N
+  hov-f-W15-t+10 (33/90): held 6 s, |F| at most 0.26 N
+  hov-f-W10-t+10 (34/90): held 2 s, |F| at most 0.31 N
+  hov-f-W5-t+10 (35/90): held 2 s, |F| at most 0.28 N
+  hov-f-W3-t+10 (36/90): held 2 s, |F| at most 0.38 N
+  hov-f-W2-t+10 (37/90): held 2 s, |F| at most 0.38 N
+  hov-f-W1-t+10 (38/90): held 2 s, |F| at most 0.24 N
+  hov-f-W1-x-3 (39/90): held 2 s, |F| at most 0.28 N
+  hov-f-W1-y+3 (40/90): held 2 s, |F| at most 0.30 N
+  hov-f-W1-y-3 (41/90): held 2 s, |F| at most 0.31 N
+  hov-f-W3-x+3 (42/90): held 2 s, |F| at most 0.36 N
+  hov-f-W3-x-3 (43/90): held 2 s, |F| at most 0.36 N
+  hov-f-W3-y+3 (44/90): held 2 s, |F| at most 0.35 N
+  hov-f-W3-y-3 (45/90): held 2 s, |F| at most 0.28 N
+  hov-f-W10-x+3 (46/90): held 2 s, |F| at most 0.34 N
+  hov-f-W10-x-3 (47/90): held 2 s, |F| at most 0.27 N
+  hov-f-W10-y+3 (48/90): held 2 s, |F| at most 0.33 N
+  hov-f-W10-y-3 (49/90): held 2 s, |F| at most 0.45 N
+  hov-f-W45-far (50/90): held 6 s, |F| at most 0.37 N
+  hov-fm-W30-t-20 (51/90): held 6 s, |F| at most 0.31 N
+  hov-fm-W20-t-20 (52/90): held 6 s, |F| at most 0.31 N
+  hov-fm-W15-t-20 (53/90): held 6 s, |F| at most 0.31 N
+  hov-fm-W10-t-20 (54/90): held 2 s, |F| at most 0.30 N
+  hov-fm-W30-t-10 (55/90): held 6 s, |F| at most 0.34 N
+  hov-fm-W20-t-10 (56/90): held 6 s, |F| at most 0.26 N
+  hov-fm-W15-t-10 (57/90): held 6 s, |F| at most 0.35 N
+  hov-fm-W10-t-10 (58/90): held 2 s, |F| at most 0.29 N
+  hov-fm-W30-t+0 (59/90): held 6 s, |F| at most 0.35 N
+  hov-fm-W20-t+0 (60/90): held 6 s, |F| at most 0.42 N
+  hov-fm-W15-t+0 (61/90): held 6 s, |F| at most 0.27 N
+  hov-fm-W10-t+0 (62/90): held 2 s, |F| at most 0.32 N
+  hov-fm-W30-t+10 (63/90): held 6 s, |F| at most 0.30 N
+  hov-fm-W20-t+10 (64/90): held 6 s, |F| at most 0.37 N
+  hov-fm-W10-t+10 (65/90): held 2 s, |F| at most 0.25 N
+  hov-fm-W10-x+3: ABORT contact: 0.52 N on the HEX-E (contact_N 0.5)
+  hov-fm-W10-x-3 (67/90): held 2 s, |F| at most 0.25 N
+  hov-fm-W10-y+3 (68/90): held 2 s, |F| at most 0.26 N
+  hov-fm-W10-y-3 (69/90): held 2 s, |F| at most 0.30 N
+  hov-fm-W45-far (70/90): held 6 s, |F| at most 0.46 N
+  hov-f-W1-x+3-rep (71/90): held 2 s, |F| at most 0.31 N
+  hov-f-W0.5-t+10-rep (72/90): held 2 s, |F| at most 0.42 N
+  hov-f-W0.5-t-20-rep (73/90): held 2 s, |F| at most 0.32 N
+  hov-fm-W15-t+10-rep (74/90): held 6 s, |F| at most 0.30 N
+  hov-f-W30-t-20-rep (75/90): held 6 s, |F| at most 0.33 N
+  hov-f-W20-t-20-rep (76/90): held 6 s, |F| at most 0.34 N
+  hov-f-W15-t-20-rep (77/90): held 6 s, |F| at most 0.42 N
+  hov-f-W10-t-20-rep (78/90): held 2 s, |F| at most 0.26 N
+  hov-f-W5-t-20-rep (79/90): held 2 s, |F| at most 0.29 N
+  hov-f-W3-t-20-rep (80/90): held 2 s, |F| at most 0.33 N
+  hov-f-W2-t-20-rep (81/90): held 2 s, |F| at most 0.31 N
+  hov-f-W1-t-20-rep (82/90): held 2 s, |F| at most 0.26 N
+  hov-f-W30-t-10-rep (83/90): held 6 s, |F| at most 0.38 N
+  hov-f-W20-t-10-rep (84/90): held 6 s, |F| at most 0.29 N
+  hov-f-W15-t-10-rep (85/90): held 6 s, |F| at most 0.35 N
+  hov-f-W10-t-10-rep (86/90): held 2 s, |F| at most 0.25 N
+  hov-f-W5-t-10-rep (87/90): held 2 s, |F| at most 0.30 N
+  hov-f-W3-t-10-rep (88/90): held 2 s, |F| at most 0.29 N
+  hov-f-W2-t-10-rep (89/90): held 2 s, |F| at most 0.35 N
+  hov-f-W1-t-10-rep (90/90): held 2 s, |F| at most 0.41 N
+HEX-E: 258986 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 1.2 s, Fz +0.0 N; 0.7 s, Fz +0.1 N
+session in logs/20261027-tip_calibration/212131-holdmapv3id1
+exit 0 at 22:22:55

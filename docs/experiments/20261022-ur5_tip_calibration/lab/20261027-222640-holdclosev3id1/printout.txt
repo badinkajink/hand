@@ -1,0 +1,63 @@
+resumed logs/20261027-tip_calibration/222640-holdclosev3id1: 0 actions done, 0 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 206 records/s, mux channel 3 206 records/s
+  HEX-E noise (1 sigma) N, N m: [0.0396 0.0496 0.2254 0.0028 0.0035 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== homing
+homing: from the recorded seating docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:holder_seated_5 (no freedrive, nothing moves)
+homing: 1 seatings within 0.000 mm, 0.000 deg of their mean
+== hover
+  hov-fm-W2-t-20 (1/48): held 2 s, |F| at most 0.30 N
+  hov-fm-W2-t+10 (2/48): held 2 s, |F| at most 0.44 N
+  hov-fm-W5-t-20 (3/48): held 2 s, |F| at most 0.28 N
+  hov-fm-W3-t-20 (4/48): held 2 s, |F| at most 0.33 N
+  hov-fm-W1-t-20 (5/48): held 2 s, |F| at most 0.37 N
+  hov-fm-W0.5-t-20 (6/48): held 2 s, |F| at most 0.30 N
+  hov-fm-W5-t-10 (7/48): held 2 s, |F| at most 0.27 N
+  hov-fm-W3-t-10 (8/48): held 2 s, |F| at most 0.29 N
+  hov-fm-W2-t-10 (9/48): held 2 s, |F| at most 0.30 N
+  hov-fm-W1-t-10 (10/48): held 2 s, |F| at most 0.26 N
+  hov-fm-W0.5-t-10 (11/48): held 2 s, |F| at most 0.28 N
+  hov-fm-W5-t+0 (12/48): held 2 s, |F| at most 0.27 N
+  hov-fm-W3-t+0 (13/48): held 2 s, |F| at most 0.28 N
+  hov-fm-W2-t+0 (14/48): held 2 s, |F| at most 0.32 N
+  hov-fm-W1-t+0 (15/48): held 2 s, |F| at most 0.34 N
+  hov-fm-W0.5-t+0 (16/48): held 2 s, |F| at most 0.40 N
+  hov-fm-W5-t+10 (17/48): held 2 s, |F| at most 0.45 N
+  hov-fm-W3-t+10 (18/48): held 2 s, |F| at most 0.34 N
+  hov-fm-W1-t+10 (19/48): held 2 s, |F| at most 0.37 N
+  hov-fm-W0.5-t+10 (20/48): held 2 s, |F| at most 0.43 N
+  hov-fm-W1-x+3 (21/48): held 2 s, |F| at most 0.41 N
+  hov-fm-W1-x-3 (22/48): held 2 s, |F| at most 0.45 N
+  hov-fm-W1-y+3 (23/48): held 2 s, |F| at most 0.32 N
+  hov-fm-W1-y-3 (24/48): held 2 s, |F| at most 0.28 N
+  hov-fm-W3-x+3 (25/48): held 2 s, |F| at most 0.33 N
+  hov-fm-W3-x-3 (26/48): held 2 s, |F| at most 0.37 N
+  hov-fm-W3-y+3 (27/48): held 2 s, |F| at most 0.45 N
+  hov-fm-W3-y-3 (28/48): held 2 s, |F| at most 0.33 N
+  hov-fm-W2-t-20-rep (29/48): held 2 s, |F| at most 0.29 N
+  hov-fm-W2-t+10-rep (30/48): held 2 s, |F| at most 0.28 N
+  hov-fm-W5-t-20-rep (31/48): held 2 s, |F| at most 0.28 N
+  hov-fm-W3-t-20-rep (32/48): held 2 s, |F| at most 0.35 N
+  hov-fm-W1-t-20-rep (33/48): held 2 s, |F| at most 0.29 N
+  hov-fm-W0.5-t-20-rep (34/48): held 2 s, |F| at most 0.34 N
+  hov-fm-W5-t-10-rep (35/48): held 2 s, |F| at most 0.33 N
+  hov-fm-W3-t-10-rep (36/48): held 2 s, |F| at most 0.24 N
+  hov-fm-W2-t-10-rep (37/48): held 2 s, |F| at most 0.33 N
+  hov-fm-W1-t-10-rep (38/48): held 2 s, |F| at most 0.27 N
+  hov-fm-W0.5-t-10-rep (39/48): held 2 s, |F| at most 0.24 N
+  hov-fm-W5-t+0-rep (40/48): held 2 s, |F| at most 0.27 N
+  hov-fm-W3-t+0-rep (41/48): held 2 s, |F| at most 0.30 N
+  hov-fm-W2-t+0-rep (42/48): held 2 s, |F| at most 0.34 N
+  hov-fm-W1-t+0-rep (43/48): held 2 s, |F| at most 0.31 N
+  hov-fm-W0.5-t+0-rep (44/48): held 2 s, |F| at most 0.30 N
+  hov-fm-W5-t+10-rep (45/48): held 2 s, |F| at most 0.27 N
+  hov-fm-W3-t+10-rep (46/48): held 2 s, |F| at most 0.26 N
+  hov-fm-W1-t+10-rep (47/48): held 2 s, |F| at most 0.28 N
+  hov-fm-W0.5-t+10-rep (48/48): held 2 s, |F| at most 0.25 N
+HEX-E: 139231 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 1.2 s, Fz +0.1 N; 0.7 s, Fz -0.5 N
+session in logs/20261027-tip_calibration/222640-holdclosev3id1
+exit 0 at 22:50:00
