@@ -66,7 +66,7 @@ def build():
     byline = ("Sessions sphere2 to cb3t of tips 0 to 3, v2id1, rodv2id1 and tallv2id1 of v2 ID 1, and spherev3id1 of v3 ID 1, "
               "on the lab's UR5 with the OptoForce HEX-E, 2026-10-22 to 10-28, analysed on the workstation ("
               + link(UR5, "docs/experiments/20261022-ur5_tip_calibration/") + "). v2 ID 1's and v3 ID 1's analyses are the UR5 "
-              "coordinator's (commits 0a487cf5 to 05dea908), read as committed. Figures by "
+              "coordinator's (commits 0a487cf5 to a4b101ef), read as committed. Figures by "
               + P.code("scripts/fingertip_calibration_figures.py") + "; page by " + P.code("scripts/fingertip_calibration_page.py")
               + ". Read " + link(L["phys"], "the physical model of the fingertip") + " first; the topic overview is "
               + link(L["overview"], "printed fingertips and force sensing") + ".")
