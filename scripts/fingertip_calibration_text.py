@@ -43,6 +43,15 @@ def sections(N, F, P, link, L):
     G = jl(V3D / "20261028-four_vs_five_grid.json")
     # the first 40 slides of v3 ID 1's stage 2, before the HEX-E fell off its DAQ at 02:54 (feed line of 03:13)
     SL = jl(V3D / "20261028-four_vs_five_slides40.json")["slides"]
+    # press coverage of the pad by region (owner, 10-28, on the density of coverage; scripts/ur5_tip_calibration_coverage.py)
+    CV = jl(V3D / "20261028-press_coverage_by_region.json")
+    C2, V2S, V2T, V2R, V3S = ("cb2t (10-25)", "v2 ID 1 sphere", "v2 ID 1 sphere + tall", "v2 ID 1 sphere + tall + rod",
+                              "v3 ID 1 sphere so far")
+    # rounded half up, as the coordinator quotes them (0.885 is 89 %)
+    cvp = lambda k, r, d=10: str(int(100 * CV[k][r]["within_1mm" if d == 10 else "within_1p5mm"] + 0.5 + 1e-9))  # noqa: E731
+    # sphere presses held out with the presses near them left out of training, at 1.5 N and over, by distance bin
+    bdb = lambda lo: next(r["loc_mm"] for r in TL["by_distance"]["sphere"]  # noqa: E731
+                          if r["d_lo"] == lo and r["band"] == "over_1p5N")
     hx = HX["splits"]["2N"]["estimators"]
     HB = ("2-3.5", "3.5-5", "5-8")
     strict = lambda est, key, k=1: [k * hx[est]["test_strict"][b][key] for b in HB]  # noqa: E731
@@ -104,6 +113,10 @@ def sections(N, F, P, link, L):
          "before and after the press, interpolated to the hold's time."),
         ("Location error", "Distance in mm between an estimated contact point and the ground truth, in the tangent "
          "plane; a median over holds."),
+        ("Region, press target, coverage", "The regions split the 812 points of the FE pad's surface basis by their "
+         "normal: the tip end where $n_z>0.7$, the flanks where $|n_y|>0.7$, the face where $n_x>0.9$ and the edges where "
+         "$0.5<n_x\\le 0.9$. A press target is the mean contact point of one press action's holds. The coverage of a "
+         "region is the share of its points within 1 mm, or 1.5 mm, of a target."),
         ("Physical model", "The estimator of " + link(L["phys"], "the physical-model page") + ": finite elements and a "
          "dipole model inverted, fitted only to the pad's readings at rest."),
         ("Gaussian process (GP), MLP", "Regressions from the board change to the contact point and the force, trained on "
@@ -286,23 +299,53 @@ def sections(N, F, P, link, L):
         ["spherev3id1", "v3 ID 1, four N52", "v7", "2026-10-27 night", f"{G['holds']['v3']:,} ({G['actions']}), grid stage",
          f"{SL['four_v3id1']['n_holds']:,} ({SL['four_v3id1']['n_slides']}), stage 2 stopped"],
     ]
+    t5 = P.table(["Sessions and indenters", "Press actions"]
+                 + [f"{nm} ({CV[C2][r]['n']} points)" for r, nm in (("face", "Face"), ("edge", "Edges"), ("flank", "Flanks"))],
+                 [[nm, str(CV[k]["targets"])] + [f"{cvp(k, r)} / {cvp(k, r, 15)}" for r in ("face", "edge", "flank")]
+                  for k, nm in ((C2, "cb2t (tip 2), low sphere"), (V2S, "v2 ID 1, low sphere"),
+                                (V2T, "v2 ID 1, low sphere and tall indenter"),
+                                (V2R, "v2 ID 1, low sphere, tall indenter and rod"),
+                                (V3S, "v3 ID 1, the low sphere's grid stage"))],
+                 caption="Coverage of the pad's regions: the share of a region's points within 1 mm and within 1.5 mm of a "
+                         f"press target, in %. No target lies within 1.5 mm of the tip end's {CV[C2]['tip']['n']} points. "
+                         "Rows in " + P.code("docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data/"
+                                             "20261028-press_coverage_by_region.json")
+                         + " (" + P.code("scripts/ur5_tip_calibration_coverage.py") + ").", n=5)
     body = (
         "<p>Table 4 lists the sessions. Tip 0 and tip 1's first session ran early plans with few slides. From cb2t on, "
         "each tip ran the same suite of six passes on the low sphere, and from cb3t on presses to 8 N (R26). Tip 3 ran "
         "passes 1 and 2a, the actions past joint 6's cap and R26, and was then swapped for v2 ID 1. v2 ID 1 ran the whole "
         "suite, the rod and part of a pass on the tall indenter (Section 10). v3 ID 1's stage 2 stopped at 02:54 on "
         "2026-10-28, after 40 of its 84 slides, when the HEX-E fell off its acquisition (Section 11). Tip 2's session "
-        "cb2t has 104 press points in 921 holds, and 87 slides. Its coverage is in Figure 3. The face "
-        "and edges are covered within about 1.5 mm. The flanks are reached only above the cover's walls, and 74–79 % of "
-        "their FE surface points lie more than 1.5 mm from any press.</p>"
+        "cb2t has 104 press points in 921 holds, and 87 slides.</p>"
         + P.table(["Session", "Tip, indenter", "Mount", "Date", "Press holds (presses)", "Turn holds (turns)"], rows,
                   caption="Sessions on the UR5. Turn holds are those of slides, rolls and twists. Counts from each session's "
                           "<code>holds.npz</code> in <code>docs/experiments/20261022-ur5_tip_calibration/data/</code>; v3 ID 1's "
                           "grid stage and first 40 slides from the comparisons of Section 11. The tall indenter's 26 slides of 2026-10-27 are not "
                           "analysed yet.", n=4)
-        + P.fig(3, F["coverage"], "Press targets of cb2t on the pad, by pass. Light grey: FE surface points within 1.5 mm of "
-                "a press; dark grey: farther. The flanks' lower part lies behind the cover's walls, and the tip end under "
-                "the cap.")
+        + f"<p><b>Coverage of the pad.</b> With the tall indenter and the rod, {cvp(V2R, 'face')} % of v2 ID 1's face "
+        "lies within 1 mm of a press target (Figure 3). On the low sphere alone the share is "
+        f"{cvp(V2S, 'face')} %, as on cb2t ({cvp(C2, 'face')} %, Table 5). With the tall indenter's "
+        f"presses added it is {cvp(V2T, 'face')} %. Within 1.5 mm, the face's share rose from {cvp(V2S, 'face', 15)} to "
+        f"{cvp(V2T, 'face', 15)} % with the tall indenter. On the edges, the share within 1 mm rose from "
+        f"{cvp(V2S, 'edge')} to {cvp(V2T, 'edge')} % with the tall indenter and {cvp(V2R, 'edge')} % with the rod. The "
+        "flanks are pressed only above "
+        f"the cover's walls. Of their points, {cvp(V2S, 'flank', 15)} % lie within 1.5 mm of a target on the low sphere, "
+        f"and {cvp(V2R, 'flank', 15)} % with all three indenters. No target lies within 1.5 mm of the tip end, whose "
+        f"median point is {CV[V2R]['tip']['median_mm']:.2f} mm from the nearest target. After v3 ID 1's grid stage, "
+        f"{cvp(V3S, 'face')} % of the face lies within 1 mm of a target.</p>"
+        "<p>The location error grows with the distance to the nearest training press. For 60 of v2 ID 1's sphere press "
+        "actions, a board GP was trained without the sphere presses within 1 to 3 mm of the action. At 1.5 N and over, those "
+        f"actions' contacts are placed within {bdb(1.0):.2f} mm at 1.0–1.25 mm from the nearest training press. The error "
+        f"is {rg([bdb(1.25), bdb(1.5)])} mm at 1.25–2 mm. It is {bdb(2.0):.2f} mm at 2–3 mm. Beyond 3 mm, where the "
+        f"median flank point lies, it is {bdb(3.0):.2f} mm (rows in "
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261027-143529-tallv2id1/r29_tall_vs_sphere.json")
+        + "). cb2t's curve is in Figure 6.</p>"
+        + P.fig(3, F["coverage"], "Press targets of v2 ID 1 on the pad, by indenter. Light grey: FE surface points within "
+                "1 mm of a target; mid grey: 1 to 1.5 mm; dark grey: farther. The flanks' lower part lies behind the "
+                "cover's walls. The tip end lies under the cap, and its rim forms the top rows of (a). Drawn from each "
+                "session's <code>holds.npz</code>.")
+        + t5
     )
     S.append(("data", "Sessions and coverage of the pad", body))
 
@@ -412,7 +455,7 @@ def sections(N, F, P, link, L):
     ploc, pfe = strict("physical", "loc_mm"), strict("physical", "force_rel_err", 100)
     sens = [b["sensitivity_over_own_1_2N"] for b in HX["linearity"]["by_bin"].values()]
     rod = {k: RD["presses"][k]["all"] for k in ("rod", "sphere", "sphere_rod")}
-    tt, lo, sa, cv = TL["transfer"], TL["loto"], TL["shear"], TL["coverage_1p5mm"]
+    tt, lo, sa = TL["transfer"], TL["loto"], TL["shear"]
     bd = lambda k: next(r["loc_mm"] for r in TL["by_distance"][k] if r["d_lo"] == 1.0 and r["band"] == "over_1p5N")  # noqa: E731
     sz = lambda k: [sa[k][r][2] for r in REG]  # noqa: E731
     sgn = lambda x: f"{x:.2f}".replace("-", "−")  # noqa: E731
@@ -427,19 +470,17 @@ def sections(N, F, P, link, L):
                 "folds grouped by action. Thinned: the tip's own training set cut to 48 press actions, as many as tip 3 "
                 "has. The other tips: a GP of the v1 tips other than the one scored, all three for v2 ID 1. The tips have "
                 "98, 187, 60 and 198 press actions. Rows in " + cp("20261027-v1_v2_tips.json") + " ("
-                + P.code("scripts/ur5_tip_calibration_v1_tips.py --v2") + ").", n=5)
+                + P.code("scripts/ur5_tip_calibration_v1_tips.py --v2") + ").", n=6)
     t6 = P.table(["Region", "Tall press actions (holds)", "Sphere GP (mm)", "With the other tall presses (mm)",
-                  "Shear along the finger, tall / low sphere (N/N)", "FE points within 1.5 mm, sphere / with tall (%)"],
+                  "Shear along the finger, tall / low sphere (N/N)"],
                  [[nm, f"{tt[r]['n_actions']} ({tt[r]['n_holds']})", f"{tt[r]['loc_mm_over_1p5N']:.2f}",
-                   f"{lo[r]['loc_mm_over_1p5N']:.2f}", f"{sgn(sa['tall'][r][2])} / {sgn(sa['sphere'][r][2])}",
-                   f"{100 * cv[r]['sphere']:.0f} / {100 * cv[r]['sphere_and_tall']:.0f}"]
+                   f"{lo[r]['loc_mm_over_1p5N']:.2f}", f"{sgn(sa['tall'][r][2])} / {sgn(sa['sphere'][r][2])}"]
                   for r, nm in zip(REG, ("Face", "Edges", "Flanks"))],
                  caption="v2 ID 1's presses on the tall indenter at 1.5 N and over, by region. Location error of a board GP "
                          "of the sphere presses, and of one with the other tall presses added, one tall press action left "
                          "out at a time. Shear along the finger: the median shear component along $z$ of the pad frame per "
-                         "newton of normal force. FE points: the share of the region's FE surface points within 1.5 mm of a "
-                         "press. Rows in " + cp("20261027-143529-tallv2id1/r29_tall_vs_sphere.json") + " ("
-                         + P.code("scripts/ur5_tip_calibration_tall_r29.py") + ").", n=6)
+                         "newton of normal force. Rows in " + cp("20261027-143529-tallv2id1/r29_tall_vs_sphere.json") + " ("
+                         + P.code("scripts/ur5_tip_calibration_tall_r29.py") + ").", n=7)
     t7 = P.table(["Stage", "At v2 ID 1's settings (h)", "Cut suite (h)"],
                  [[nm, f"{pl['by_stage'][k]['h']:.2f}", f"{pl['by_stage'][k]['h_reduced']:.2f}"]
                   for k, nm in (("1 sphere pass 1", "Low sphere, pass 1"), ("2 sphere", "Low sphere, the other passes"),
@@ -447,12 +488,12 @@ def sections(N, F, P, link, L):
                  + [["Total", f"{th['as_run']:.1f}", f"{th['reduced']:.1f}"]],
                  caption="Robot time of each stage of v2 ID 1's suite at its program settings, from the timed actions of its "
                          "sessions, and after the cut. The tall stage is R29 as planned; v2 ID 1 stopped 37 of its actions "
-                         "short of the end. Rows in " + cp("20261027-suite_value_v2id1.json") + ".", n=7)
+                         "short of the end. Rows in " + cp("20261027-suite_value_v2id1.json") + ".", n=8)
     body = (
         f"<p>v2 ID 1 has five N52 magnets in the checkerboard; fitted at rest, they have {RD['k']['v2 ID 1']:.2f} of an "
         "N52's strength. On 2026-10-26 and 10-27 it ran the whole suite on the low sphere, two passes on the rod and part "
         "of a pass on the tall indenter (Table 4). Calibrated on its own presses, a board GP places new points within "
-        f"{v2['own']['over_1p5N']:.2f} mm at 1.5 N and over and {v2['own']['under_1p5N']:.2f} mm under (Table 5). Tip 2, "
+        f"{v2['own']['over_1p5N']:.2f} mm at 1.5 N and over and {v2['own']['under_1p5N']:.2f} mm under (Table 6). Tip 2, "
         f"the best v1 tip, gives {TP['ID 2']['own']['over_1p5N']:.2f} and {TP['ID 2']['own']['under_1p5N']:.2f} mm. v2 ID "
         f"1's force errs by {v2['own']['force_err_N_over_1p5N']:.2f} N at 1.5 N and over. Untrained, the physical model "
         f"places its presses under 1.5 N within {v2['physical']['under_1p5N']:.2f} mm, against {rg(phys, '{:.1f}')} mm on "
@@ -484,7 +525,7 @@ def sections(N, F, P, link, L):
         "the edges and flanks. Its pass 1 registered the tool at 0.054 mm rms over 21 touch-offs. R29 then pressed 45 "
         "points that had no sphere press within 1 mm, until the HEX-E dropped out at joint 6 +18.5°. Its resume added 12 "
         "presses and 26 of 50 slides before the tip was swapped. A board GP of the sphere presses misses the tall "
-        f"indenter's points by {rg([tt[r]['loc_mm_over_1p5N'] for r in REG])} mm at 1.5 N and over (Table 6). With the "
+        f"indenter's points by {rg([tt[r]['loc_mm_over_1p5N'] for r in REG])} mm at 1.5 N and over (Table 7). With the "
         f"other tall presses in training it gives {rg([lo[r]['loc_mm_over_1p5N'] for r in REG])} mm. At 1.0–1.25 mm from "
         f"the nearest training press, the tall presses err by {bd('tall'):.2f} mm and the sphere's by {bd('sphere'):.2f} mm. "
         f"The tall indenter's forces have a shear along the finger of {rg(sz('tall'))} N per newton. On the low sphere it "
@@ -494,7 +535,7 @@ def sections(N, F, P, link, L):
         "from the force's own difference is removed, 5 to 8 µT remain. Their correlation with the HEX-E's torsion is 0.84, "
         "0.47 and 0.00 at the three points twisted most (" + cp("20261026-192158-v2id1/twist_board.json")
         + ", commit d92e0e03).</p>"
-        f"<p><b>Suite time.</b> v2 ID 1's suite took {th['as_run']:.1f} h of robot time (Table 7). Four program changes "
+        f"<p><b>Suite time.</b> v2 ID 1's suite took {th['as_run']:.1f} h of robot time (Table 8). Four program changes "
         f"save {th['as_run'] - th['all_program']:.1f} h without changing the data. They are faster travel, turn waypoints "
         "every 1.4° in place of 0.5°, slide holds of 0.2 s and a 30 mm travel lift. Dropping the 23 turn-speed variants and the "
         "rod's 24 rate presses, and thinning the sphere's rate set and the tall twists, saves "
@@ -549,7 +590,7 @@ def sections(N, F, P, link, L):
                 "force and by region. (c, d) Location and force error of the direction GP, five folds grouped by action.")
         + "<p><b>Shear on the slides.</b> Before the stop, v3 ID 1 ran 40 slides at 1 and 2 N, and v2 ID 1 ran the same "
         f"slides, with {SL['four_v3id1']['n_holds']:,} turn holds each. The HEX-E measured a median shear of "
-        f"{rg([SL[t]['hexe_shear_N'] for t in SL])} N on both tips (Table 8). A board GP trained on each tip's presses "
+        f"{rg([SL[t]['hexe_shear_N'] for t in SL])} N on both tips (Table 9). A board GP trained on each tip's presses "
         f"alone estimates the shear within {sl4('gp_presses')['shear_err_N']:.3f} N with four magnets and "
         f"{sl5('gp_presses')['shear_err_N']:.3f} N with five. With the other slides in training, one slide left out at a "
         f"time, it errs by {sl4('gp_presses_and_other_slides')['shear_err_N']:.3f} and "
@@ -569,10 +610,10 @@ def sections(N, F, P, link, L):
                           "slides of v2 ID 1: the median length of the error of the estimated shear, and the force angle. "
                           "With the other slides, one slide is left out of training at a time. Rows in "
                           + P.code(str((V3D / "20261028-four_vs_five_slides40.json").relative_to(ROOT))) + " ("
-                          + P.code("scripts/ur5_tip_calibration_four_vs_five.py") + ").", n=8)
+                          + P.code("scripts/ur5_tip_calibration_four_vs_five.py") + ").", n=9)
         + "<p><b>Physical model of pad 05R4.</b> Pad 05R4's FE case and surface basis were built on 2026-10-28 on b_v2's "
         f"grid and depth, with the four magnets. On the same {FE['actions']} grid actions, the magnets' strength, the "
-        f"board's offsets and the compliance scale $c$ were fitted to the holds up to {f4['fit']['max_n']:g} N (Table 9). "
+        f"board's offsets and the compliance scale $c$ were fitted to the holds up to {f4['fit']['max_n']:g} N (Table 10). "
         f"The fit gives $c$ = {f4['fit']['c']:.3f} with four magnets and {f5['fit']['c']:.3f} with five. The fitted "
         f"modulus is therefore {f4['fit']['E_fit_MPa']:.1f} and {f5['fit']['E_fit_MPa']:.1f} MPa, "
         f"against the FE's {FE['E_FE_MPa']:g} MPa. The registered indentation grows by {rg(dep(f4), '{:.0f}')} µm/N with "
@@ -603,7 +644,7 @@ def sections(N, F, P, link, L):
                           f"slope of the registered indentation against the normal force; the FE gives {rg(fe_give, '{:.0f}')} "
                           "µm/N. Location errors are medians under five folds grouped by action. Rows in "
                           + P.code(str((V3D / "20261028-fe_calibration.json").relative_to(ROOT))) + " ("
-                          + P.code("scripts/ur5_tip_calibration_fe_calibration.py") + ").", n=9)
+                          + P.code("scripts/ur5_tip_calibration_fe_calibration.py") + ").", n=10)
     )
     S.append(("v3id1", "Four N52 magnets against five on v3 ID 1", body))
 
@@ -627,9 +668,9 @@ def sections(N, F, P, link, L):
         "5 N, so the torsion is read without the push's moment. A correlation above 0.8 between the GP's torsion and "
         "the sensor's would make torsion a calibrated output.",
         "Flank coverage: add press targets on the flanks above the cover's walls until no reachable FE point lies more "
-        "than 1 mm from a press (" + P.code("scripts/ur5_tip_calibration_density_curve.py") + " reports the share). "
-        "The density curve predicts 0.3–0.6 mm there. On v2 ID 1 the tall indenter took the flanks' FE points within "
-        f"1.5 mm of a press from {100 * cv['flank']['sphere']:.0f} to {100 * cv['flank']['sphere_and_tall']:.0f} %.",
+        "than 1 mm from a target (" + P.code("scripts/ur5_tip_calibration_coverage.py") + " reports the share by "
+        f"region). With v2 ID 1's three indenters, {cvp(V2R, 'flank', 15)} % of the flanks' points lie within 1.5 mm of "
+        "a target (Table 5). The density curve predicts 0.3–0.6 mm there.",
         "Six shared points: v3 ID 1's stage 4 presses six points on the low sphere and on the tall indenter in one "
         "session (" + link(L["v3"], "v3 plan") + "). If their errors agree within their repeat spread, the tall indenter "
         "alone covers the face, edges and flanks, and the sphere stage is dropped; a larger difference keeps both.",

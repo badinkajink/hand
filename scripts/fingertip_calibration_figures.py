@@ -169,43 +169,68 @@ def fig_motions():
 
 
 # ------------------------------------------------------------------------------------------------ figure: coverage
-KINDS = [("grid", "Grid presses (pass 2b)", "#2e5fa8", "o"), ("twin", "Twins, mirrored in y (pass 3)", "#b06010", "D"),
-         ("dense", "New targets (pass 6)", "#2a9d5c", "^"), ("ref", "Reference presses", "#000000", "*")]
+KINDS = ("grid", "twin", "dense", "ref")  # cb2t's passes counted for Table 3
+
+
+V2_INDENTERS = [("20261026-192158-v2id1", "Low sphere", "#2e5fa8", "o", 30),
+                ("20261027-143529-tallv2id1", "Tall indenter", "#c0392b", "^", 46),
+                ("20261027-095303-rodv2id1", "Rod", "#2a9d5c", "s", 30)]
+
+
+def press_targets(session):
+    """One target per press action, the mean contact point of its holds, and the mean normal; the targets of the
+    coordinator's scripts/ur5_tip_calibration_coverage.py."""
+    H = K.load(UR5 / session)
+    m = (H["kind"].astype(str) == "press") & np.isfinite(H["p"]).all(axis=1)
+    ids, p, n = H["id"][m].astype(str), H["p"][m], H["n"][m]
+    acts = np.unique(ids)
+    return np.array([p[ids == a].mean(axis=0) for a in acts]), np.array([n[ids == a].mean(axis=0) for a in acts])
 
 
 def fig_coverage():
+    """Press targets of v2 ID 1's three indenters on the pad, with the FE surface points shaded by the distance to the
+    nearest target (owner, 2026-10-28, on the density of coverage). Also counts cb2t's press actions by pass for Table 3."""
+    from matplotlib.lines import Line2D
+    from scipy.spatial import cKDTree
     plt = plt_setup()
-    H = K.load(UR5 / "20261025-152920-cb2t")
-    P = K.sub(H, H["kind"] == "press")
-    ids = P["id"].astype(str)
     b = np.load(BASIS)
     pts, nrm = b["pts"], b["normals"]
-    d = DC.nearest(pts, P["p"])
-    fig, axes = plt.subplots(1, 3, figsize=(10.0, 5.6), gridspec_kw=dict(width_ratios=(1.0, 1.25, 1.25)))
+    T = {s: press_targets(s) for s, *_ in V2_INDENTERS}
+    d = cKDTree(np.vstack([p for p, _ in T.values()])).query(pts)[0]
+    tones = [("FE point within 1 mm of a target", d <= 1.0, "0.85"), ("Within 1 to 1.5 mm", (d > 1.0) & (d <= 1.5), "0.58"),
+             ("Farther than 1.5 mm", d > 1.5, "0.2")]
+    # one scale in all three views: the widths follow the coordinate spans and z is shared
+    lim = {1: (-7.9, 7.9), 0: (-5.3, 9.3)}
+    fig, axes = plt.subplots(1, 3, figsize=(10.0, 6.1), sharey=True,
+                             gridspec_kw=dict(width_ratios=(lim[1][1] - lim[1][0], *[lim[0][1] - lim[0][0]] * 2)))
     views = [("(a) Face, seen from the palm", nrm[:, 0] > 0.3, 1, 2, "y (mm)", "z (mm)"),
              ("(b) +y flank", nrm[:, 1] > 0.3, 0, 2, "x (mm)", "z (mm)"),
              ("(c) −y flank", nrm[:, 1] < -0.3, 0, 2, "x (mm)", "z (mm)")]
     for ax, (title, m, i, j, xl, yl) in zip(axes, views):
-        far = m & (d > 1.5)
-        ax.scatter(pts[m & ~far, i], pts[m & ~far, j], s=9, c="0.82", zorder=1)
-        ax.scatter(pts[far, i], pts[far, j], s=9, c="0.45", zorder=1)
-        for key, lab, col, mk in KINDS:
-            acts = np.unique(ids[np.char.startswith(ids, key)])
-            c = np.array([np.median(P["p"][ids == a], axis=0) for a in acts]) if len(acts) else np.zeros((0, 3))
-            nc = np.array([np.median(P["n"][ids == a], axis=0) for a in acts]) if len(acts) else np.zeros((0, 3))
-            if len(c):
-                sel = (nc[:, 0] > 0.3) if i == 1 else ((nc[:, 1] > 0.3) if "+y" in title else (nc[:, 1] < -0.3))
-                ax.scatter(c[sel, i], c[sel, j], s=58 if mk == "*" else 34, marker=mk, c=col, ec="black", lw=0.5, zorder=3,
-                           label=lab if ax is axes[0] else None)
-        ax.set_title(title, fontsize=12.5)
+        ax.set_xlim(*lim[i])
+        ax.set_ylim(-0.5, 22.4)
+        for _, sel, col in tones:
+            ax.scatter(pts[m & sel, i], pts[m & sel, j], s=10, c=col, zorder=1)
+        for s, _, col, mk, sz in V2_INDENTERS:
+            c, nc = T[s]
+            sel = (nc[:, 0] > 0.3) if i == 1 else ((nc[:, 1] > 0.3) if "+y" in title else (nc[:, 1] < -0.3))
+            ax.scatter(c[sel, i], c[sel, j], s=sz, marker=mk, c=col, ec="black", lw=0.5, zorder=3)
+        ax.set_title(title, fontsize=13)
         ax.set_aspect("equal")
         ax.set_xlabel(xl)
-        ax.set_ylabel(yl)
-    axes[0].scatter([], [], s=9, c="0.45", label="FE surface point over 1.5 mm from any press")
-    fig.legend(loc="lower center", ncol=3, fontsize=11.5, frameon=False, bbox_to_anchor=(0.5, -0.06))
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    axes[0].set_ylabel("z (mm)")
+    hs = []
+    for (s, lab, col, mk, sz), (tl, _, tc) in zip(V2_INDENTERS, tones):
+        hs += [Line2D([], [], ls="", marker=mk, ms=sz ** 0.5, mfc=col, mec="black", mew=0.5,
+                      label=f"{lab}, {len(T[s][0])} presses"),
+               Line2D([], [], ls="", marker="o", ms=10 ** 0.5, mfc=tc, mec=tc, label=tl)]
+    fig.legend(handles=hs, loc="lower center", ncol=3, fontsize=12, frameon=False, bbox_to_anchor=(0.5, -0.07))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
     save(fig, "20261026-coverage.png")
-    NUM["coverage_cb2t"] = {k: int(len(np.unique(ids[np.char.startswith(ids, k)]))) for k, _, _, _ in KINDS}
+    NUM["coverage_v2id1"] = {s: int(len(T[s][0])) for s, *_ in V2_INDENTERS}
+    H = K.load(UR5 / "20261025-152920-cb2t")
+    ids = H["id"][H["kind"] == "press"].astype(str)
+    NUM["coverage_cb2t"] = {k: int(len(np.unique(ids[np.char.startswith(ids, k)]))) for k in KINDS}
     NUM["coverage_cb2t"]["fast_grid"] = int(len(np.unique(ids[np.char.startswith(ids, "fast")])))
     NUM["coverage_cb2t"]["rate"] = int(len(np.unique(ids[np.char.startswith(ids, "rate")])))
     NUM["coverage_cb2t"]["press_holds"] = int(len(ids))
