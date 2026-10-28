@@ -7,7 +7,7 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-28 01:11: all 13 feed lines (to 00:59) and the 6
+State: armed 2026-10-27 21:00 from the colorado window. 10-28 01:25: all 14 feed lines (to 01:13) and the 6
 "Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json). Page cacda5fe: Section 3 "Neighbour
 field measured on the fingertip holder" has the touch-off approaches (Figure 2, Table 2), the map's 89 hovers and the 48
 close -y hovers against the net moments fitted on the touch-offs (Figure 3, Table 3, -y pooled: held boards 97.4 and
@@ -27,8 +27,9 @@ contact, -10 to -22 % from W 0.3 to 5 mm), so the page leaves it out; the 20:45 
 plan file stops at +10; the 22:52 line's "at most 0.4 N on the HEX-E" is 0.455 N in the file, and the page says the
 hovers stayed below the 0.5 N guard. The overview's magnets bullet ("Four magnets (0.051 N) or five (0.029 N) waits on
 the owner") now has a measured counterpart (00:59: one record's noise equals 63 and 35 mN at 1 to 2 N, the predicted
-ratio of 1.8; the calibrated errors are alike); it is not a crosstalk sentence, so this job leaves it. Line 11 (23:13,
-the sphere registration) was acked without a page change. Watch loop relaunched 01:11.
+ratio of 1.8; the calibrated errors are alike); it is not a crosstalk sentence, so this job leaves it. Lines 11 (23:13,
+the sphere registration) and 14 (01:13, direction errors of the grid comparison; the grid file's press gains unchanged at
+ebe144e8) were acked without a page change. Watch loop relaunched 01:25.
 Before each --ack, run crosstalk_feed_watch.py --once and check HEAD shows only the lines handled (ack takes all of HEAD).
 Commits of this job start "Fingertip crosstalk page:", never "Crosstalk:" (the watcher keys on that prefix).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
