@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+/* Page of the indenter plate layout for the UR5 calibration cell. The retro sheet (scripts/retro_style.py) is added after this block. */
+:root { color-scheme: light; }
+body { background: #fff; color: #000; margin: 0; }
+body .wrap { max-width: 860px !important; margin: 0 auto !important; padding: 16px 16px 48px !important; }
+figure { margin: 18px 0 !important; text-align: center; }
+figure img, figure video { max-width: 100%; height: auto; }
+figcaption { text-align: left; font-size: 16px !important; }
+.tw { overflow-x: auto; }
+table { border-collapse: collapse; }
+td, th { vertical-align: top; padding: 2px 6px; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+nav.toc ol { list-style: none; padding-left: 0; }
+dl.terms dt { font-weight: bold; margin-top: 6px; }
+dl.terms dd { margin: 0 0 4px 0; }
+pre.cmd { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+{{TEXCSS}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="eyebrow">{{EYEBROW}}</div>
+<h1>{{H1}}</h1>
+<p class="lede">{{LEDE}}</p>
+<div class="byline">{{BYLINE}}</div>
+</header>
+{{FILM}}
+<nav class="toc"><ol>
+{{TOC}}
+</ol></nav>
+{{SECTIONS}}
+<footer><p>{{FOOTER}}</p></footer>
+</div>
+</body>
+</html>
