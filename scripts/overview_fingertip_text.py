@@ -467,8 +467,9 @@ off leaves 23 and 457&#8202;&#181;T. When the neighbour&#8217;s pose is fitted f
 ([magnetic crosstalk](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html)).
 Between two four-magnet v3 tips on the UR5 the field was measured. Touching, they changed each other&#8217;s boards by 39
 to 60&#8202;&#181;T. Of the change within 10&#8202;mm, 37 to 63&#8202;% is explained by the dipole model fixed before the
-data. With a net moment of 7 to 16&#8202;% of one magnet fitted for each tip, the share rises to 85 to 95&#8202;%
-([measured on the holder](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#holder)).</p>
+data. With a net moment of 7 to 16&#8202;% of one magnet fitted for each tip, the share rises to 85 to 95&#8202;%.
+Fitted on those touch-offs alone, the moments explain 97 and 94&#8202;% of the change at the two held boards in a map of
+89 hovers ([measured on the holder](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#holder)).</p>
 {{FIG crosstalk}}"""),
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
