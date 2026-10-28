@@ -4,7 +4,7 @@ owner 2026-10-27: "crosstalk is going to be problem, so itd be helpful to presen
 Reads the rows of scripts/fingertip_crosstalk.py (data/budget.json: v2 ID 1's field model under a five- or four-magnet
 neighbour; data/sharpie.json: the owner's sharpie pinch with v1 ID 2 and ID 3) and, once, the multi-board viewer's
 streams of that pinch for Figure 2's trace (kept in media/20261027-sharpie_trace.json, since logs/ is not tracked).
-Writes docs/experiments/20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html.
+Figure 3 is the UR5 cell render of the holder map (scripts/ur5_cell_render.py, in the v3 plan folder's media/). Writes docs/experiments/20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html.
 
     ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- .venv/bin/python scripts/fingertip_crosstalk_page.py
 """
@@ -32,6 +32,7 @@ TEMPLATE = ROOT / "scripts/ur5_tip_calibration_page.template.html"
 TEX_CACHE = D / "texsvg_cache.json"
 TRACE = MEDIA / "20261027-sharpie_trace.json"
 EXP = ROOT / "docs/experiments"
+HOVER = EXP / "20261027-v3_tip_calibration_and_crosstalk/media/20261027-ur5_cell_holder_hover.png"
 L = dict(
     overview=ROOT / "docs/overviews/printed_fingertips.html",
     cal=EXP / "20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html",
@@ -424,25 +425,39 @@ def sections(B, S, Sn, f1, f2):
 
     # 7. future work
     fw = [
-        ("The neighbour&#8217;s field on the holder.", "The " + link(L["v3"], "plan for the four-magnet v3 tips")
-         + " maps it without contact. The robot tip v3 ID 1 dwells at 45 facing poses (W 0.5&#8211;30&#8202;mm, twists "
-         "&#8722;20 to +20&#176;) and 31 side-by-side poses (g 13&#8211;25&#8202;mm). It does so once with both stations of the "
-         "T-shaped holder (" + link(L["holder"], "holder README") + ") empty, and once with v3 ID 2 and ID 3 on them. Each held "
-         "tip&#8217;s pose and strength are fitted in five folds by pose. A held-out residual above 10&#8202;% of the field at "
-         "W 5&#8202;mm and under (3.4&#8202;&#181;T at W 0.5&#8202;mm) means the model cannot be subtracted to the board&#8217;s "
-         "noise. At these poses the held tips&#8217; magnets pull on the robot tip with at most 0.69&#8202;mN "
+        ("The neighbour&#8217;s field on the holder.", "It is mapped without contact by the "
+         + link(L["v3"], "plan for the four-magnet v3 tips") + ". Two more v3 tips with their own boards face up on the two "
+         "stations of the T-shaped holder, +y and &#8722;y, 57&#8202;mm apart (" + link(L["holder"], "holder README") + "). The "
+         "+y tip is turned 180&#176; about the vertical (Figure&#160;3). On 2026-10-27 the +y apex was located by five "
+         "touch-offs of v3 ID 1 (session 202426-holdapexv3id1). It stands 2.86&#8202;mm lower and 2.50&#8202;mm closer to the "
+         "&#8722;y station than in the holder&#8217;s frame from homing. The holder stands level, and the frame from homing is "
+         "tilted by 4.3&#176;. The map starts with five touch-offs on the &#8722;y apex. The robot tip then dwells at 49 "
+         "facing poses over the +y tip, at W 0.5&#8211;45&#8202;mm and twists of &#8722;20 to +10&#176;. At W 1, 3 and "
+         "10&#8202;mm it is also shifted 3&#8202;mm along and across the tip, in 12 of these poses. It dwells at 21 poses over "
+         "the &#8722;y tip, at W 10&#8202;mm and over. Twenty poses are repeated, and the map takes about 45&#8202;min. Both "
+         "tips face up, so there are no side-by-side poses. The tips went on before the map, so there is no run with the "
+         "stations empty. The background and the drift are measured at W 45&#8202;mm and by the repeats. Each held tip&#8217;s "
+         "pose and strength are fitted in five folds by pose. A held-out residual above 10&#8202;% of the field at W 5&#8202;mm "
+         "and under (3.4&#8202;&#181;T at W 0.5&#8202;mm) means the model cannot be subtracted to the board&#8217;s noise. At "
+         "these poses the held tips&#8217; magnets pull on the robot tip with at most 0.69&#8202;mN "
          "(<code>scripts/fingertip_crosstalk.py pull</code>)."),
-        ("A pinch between two v3 tips.", "The robot apex presses the held apex on the +y station at 0.25&#8211;3&#8202;N, also "
-         "shifted by &#177;2 and &#177;4&#8202;mm and turned by &#177;10 and &#177;20&#176; (16 actions, 80 holds). The robot "
+        ("A pinch between two v3 tips.", "A plan of its own follows the map. The robot apex presses the held apex on the +y "
+         "station at 0.25&#8211;3&#8202;N. The robot&#8217;s target is also shifted 2 and 4&#8202;mm off its apex, across and "
+         "along, and turned by &#8722;20 to +20&#176;. The apex press comes first, in the middle and last. The robot "
          "tip&#8217;s contact is estimated from the raw change, with the modelled field at the commanded pose subtracted, and with "
          "the held tip&#8217;s pose fitted from the board. With the fitted pose, a force error above 0.2&#8202;N at 0.5&#8202;N "
          "contradicts the one-board bound of Table&#160;2."),
-        ("A five-magnet neighbour.", "Decision 5 of the plan, about 30&#8202;min with a five-magnet tip on the +y station. Its "
-         "483&#8202;&#181;T at W 0.5&#8202;mm tests the model at 1&#8202;% (4.8&#8202;&#181;T); at v3&#8217;s 34&#8202;&#181;T, "
-         "1&#8202;% is about the board&#8217;s noise. A misfit above 1&#8202;% at the closest poses means the bounds of "
-         "Table&#160;2 do not apply."),
+        ("A five-magnet neighbour.", "The owner tabled this check on 2026-10-27. It takes about 30&#8202;min with a five-magnet "
+         "tip on the +y station. Its 483&#8202;&#181;T at W 0.5&#8202;mm tests the model at 1&#8202;% (4.8&#8202;&#181;T); at "
+         "v3&#8217;s 34&#8202;&#181;T, 1&#8202;% is about the board&#8217;s noise. A misfit above 1&#8202;% at the closest poses "
+         "means the bounds of Table&#160;2 do not apply."),
     ]
-    S_.append(("future", "Future work", "<ul class=\"open\">" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in fw) + "</ul>"))
+    S_.append(("future", "Future work", "<ul class=\"open\">" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in fw) + "</ul>"
+               + P.fig(3, HOVER, "Geometry of the crosstalk map on the UR5 cell, rendered in MuJoCo from the fixtures&#8217; "
+                       "registrations. The fingertip holder (centre) stands level on the 2x4, with both held tips facing up. The "
+                       "pad of v3 ID 1 on the robot hovers 2&#8202;mm over the +y held tip at twist 0, pose "
+                       "<code>hov-f-W2-t+0</code> of the plan. The homing seat stands in front of the holder&#8217;s column. "
+                       "Image: <code>" + str(HOVER.relative_to(ROOT)) + "</code>, by <code>scripts/ur5_cell_render.py</code>.")))
     return S_, lede, summary
 
 
