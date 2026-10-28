@@ -988,7 +988,7 @@ push that answers it arrives.
     `--clearance` on the session the least margins are mount 3.25, finger 1.54 and HEX-E 22.1 mm. The 15 actions past
     +45 deg (8 presses, 7 slides, up to +55.1 deg) all lie within the first 65; no twist passes +45.
   - Simulate on the session's registration, then run with the owner's go.
-  - 18:10 on 10-27, the workstation on the 45 presses of a6fe16be (`scripts/ur5_tip_calibration_tall_r29.py`,
+  - 17:50 on 10-27, the workstation on the 45 presses of a6fe16be (`scripts/ur5_tip_calibration_tall_r29.py`,
     `data/20261027-143529-tallv2id1/r29_tall_vs_sphere.json`). Flank FE points within 1.5 mm of a press go from 23 to
     29 %, edges from 83 to 93 %, the face from 89 to 99 %. A GP of the sphere presses places the new points at 0.98, 1.04
     and 1.21 mm (face, edge, flank, at 1.5 N and over). With the other tall presses in training these are 0.65, 0.94 and
@@ -999,7 +999,7 @@ push that answers it arrives.
     the sphere, rod and tall sessions within 0.01 mm. Resuming is fine from the data side. Proposed while the owner is
     present: three reference presses at index 788 on the sphere fixture, with its centre from 192158-v2id1 and the pad's
     pose from 143529. Shear there means the finger or mount changed; none means the tall indenter or the arm's pose.
-  - 18:55 on 10-27, built after the owner's yes (18:2x: "we can build it and try to run it after r29 finishes ...
+  - 18:01 on 10-27, built after the owner's yes (about 17:55, through the lab: "we can build it and try to run it after r29 finishes ...
     whatever we find can be used to back-calibrate the data"), with the lab's two points: the tall indenter as an obstacle
     (kind "tall", 143529's T_BI) and a set on 192158's own registration. `scripts/ur5_tip_calibration_sphere_check.py`
     writes `lab/20261027-plan_sphere_lab_check_shear_v2id1.json` (three presses as ref-00 at index 788, 0.5, 1 and 2 N;
@@ -1009,7 +1009,7 @@ push that answers it arrives.
     HEX-E 35.5 and 36.5 mm. Shear along z_P in both sets means the finger or mount changed; in b alone, the tall
     registration's orientation; in neither, the tall indenter's flex or the arm's pose.
 
-- R30 (draft, 18:40 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
+- R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
   them v3, no ids yet). then we could run a super complete calibration suite + crosstalk analysis"). The plan is
   `docs/experiments/20261027-v3_tip_calibration_and_crosstalk/README.md`. One v3 tip runs v2 ID 1's sphere, rod and tall

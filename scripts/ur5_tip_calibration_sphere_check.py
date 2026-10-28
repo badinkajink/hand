@@ -39,13 +39,13 @@ def main():
     ref = next(a for a in base["actions"] if a["id"] == "ref-00")
     tall_reg = json.loads((TALL / "registration.json").read_text())
     plan = {k: copy.deepcopy(v) for k, v in base.items() if k != "actions"}
-    plan["created"] = "2026-10-27 18:50"
+    plan["created"] = "2026-10-27 18:00"
     plan["travel"]["lift_mm"] = 30.0
     other = [o for o in plan["checks"].get("other", []) if o["kind"] != "tall"]
     other.append(dict(kind="tall", T_BI=tall_reg["T_BI"]))
     plan["checks"]["other"] = other
     plan["notes"] = list(plan.get("notes", [])) + [
-        "2026-10-27 18:50, workstation: scripts/ur5_tip_calibration_sphere_check.py. Three presses at index 788 as the sphere "
+        "2026-10-27 18:00, workstation: scripts/ur5_tip_calibration_sphere_check.py. Three presses at index 788 as the sphere "
         "session's ref-00, run in two session folders: 20261027-sphchk-a-v2id1reg (192158's registration) and "
         "20261027-sphchk-b-hybrid (T_EM and T_MP from 143529). Stages preflight and grid only: no homing or touch-offs, so "
         "each folder's registration stays as written. The tall indenter is an obstacle at 143529's T_BI; travel lift 30 mm."]
@@ -65,7 +65,7 @@ def main():
             r["T_EM"], r["T_MP"] = tall_reg["T_EM"], tall_reg["T_MP"]
             r.setdefault("notes", {})
             if isinstance(r["notes"], dict):
-                r["notes"]["hybrid"] = ("2026-10-27 18:50: T_EM and T_MP from 20261027-143529-tallv2id1's registration; "
+                r["notes"]["hybrid"] = ("2026-10-27 18:00: T_EM and T_MP from 20261027-143529-tallv2id1's registration; "
                                         "T_BI and the rest from 20261026-192158-v2id1's")
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "registration.json").write_text(json.dumps(r, indent=1) + "\n")
