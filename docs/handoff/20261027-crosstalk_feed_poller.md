@@ -17,7 +17,7 @@ Table 2), the 137 hovers against the net moments (Figure 3, Table 3: 97 % at eit
 model 0.23 and 0.12 N, five-N52 model 3.8 N; the W 7-11 medians are computed from the hover file and match the line).
 Lede and summary lead with the sharpie width; press signal per newton from data/20261028-four_vs_five_grid.json (21.9
 against 48.1 uT/N); Figure 6 the hover render; numbering by SEC/FIG/TAB; future work has the side-by-side plan of the
-owner's morning (c810bcdd). The builder reads the coordinator's v3 files AT HEAD and warns when the holder file's
+owner's morning (85c0eab6, rebuilt on mount v7). The builder reads the coordinator's v3 files AT HEAD and warns when the holder file's
 "made" differs from HOLD_MADE (22:50). Overview: crosstalk paragraph and two bullets (fd38e26c to dc8b6478), unchanged
 since (no quoted crosstalk number changed). Remaining on the holder: the five-fold pose fit (fingertip_crosstalk.py,
 coordinator), the side-by-side hovers (morning), the pinch plan.
