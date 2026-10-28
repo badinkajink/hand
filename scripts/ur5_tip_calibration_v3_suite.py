@@ -250,17 +250,17 @@ def cmd_tall1(a):
 
 
 def replay_ok(plan, session, act, j6_max=J6_MAX):
-    """(ok, flags, clearances) of one action's travel from 60 mm above its rest, its approach and its depth, by the
-    holder path checker's replay (ur5_tip_calibration_holder_paths)."""
+    """(ok, flags, clearances) of one action's travel from 60 mm above its rest, its approach, its depth and the turns
+    of a slide, roll or twist, by the holder path checker's replay (ur5_tip_calibration_holder_paths)."""
     import ur5_tip_calibration_holder_paths as HP
     HP.KIND = plan.get("indenter", "tall")
     HP.J6_WIN = (J6_MIN, j6_max)
     mv = HP.Moves(plan, session)
     reg = mv.reg
-    segs, _, cP = mv.action_moves(act, np.asarray(reg.T_BE_home, float))
-    T_rest = segs[-2][1]
+    segs, _, cP, i_own = mv.action_moves(act, np.asarray(reg.T_BE_home, float))
+    T_rest = segs[i_own][1]
     T_top = mv.up(T_rest, 60.0)
-    segs = [("L", T_top, T_rest)] + segs[-2:]
+    segs = [("L", T_top, T_rest)] + segs[i_own:]
     q = HP.SIM.ik(T_top, np.asarray(reg.q_home, float))
     if q is None:
         return False, ["no IK above"], {}

@@ -6,8 +6,10 @@ right will be really close to a singularity/joint limit where the rod indenter c
 From the homing pose lifted 12 mm out of the key (where the program's freedrive homing leaves the robot), each action's
 travel follows the program's travel(): up 10 mm, across, down; or, past travel's turn_deg or far_mm, up until the pad
 stands travel.lift_mm over the indenter's top, across (a joint move past joint_deg), down. A hover then goes straight
-down to its pose and back up. A press, slide, twist or roll goes from its rest (standoff, 1.5 mm when absent) to max_depth_mm below the expected
-contact (2 mm when absent) and back; its turns are left to the lab's simulator. A touch-off goes from its rest toward
+down to its pose and back up. A press, slide, twist or roll goes from its rest (standoff, 1.5 mm when absent) to the
+depth at its largest force (--depth) and back. A slide, roll or twist makes its turns at that depth as the program's
+contact_turns does (lab, 2026-10-28 00:00: a slide's turns of 2.3 deg took joint 6 about 2 deg past its press; --no-turns
+leaves them out). A touch-off goes from its rest toward
 beyond_mm past the expected contact and stops where
 the robot's pad first meets the held pad (the program stops at the contact's onset), found by bisection on the pad's
 clearance with the holder where --true-frame puts it; contact_mm in each row is that depth below the rest. The first
@@ -76,7 +78,8 @@ class Moves:
         self.T_EP = self.reg.T_EM @ self.reg.T_MP
         self.R_ref = np.asarray(plan["geometry"]["T_IM_home"], float)[:3, :3]
         ind = plan["geometry"]["indenter"]
-        self.top_I = np.asarray(ind["centre"], float) + float(ind["radius"]) * EZ
+        self.c_I = np.asarray(ind["centre"], float)
+        self.top_I = self.c_I + float(ind["radius"]) * EZ
         self.cfg = dict(turn_deg=20.0, far_mm=60.0, lift_mm=60.0, joint_deg=45.0)
         self.cfg.update(plan.get("travel", {}))
         self.pts_P = np.asarray(plan["geometry"]["surface"]["pts"], float)
@@ -105,14 +108,38 @@ class Moves:
         a, b = self.up(Tc, 10.0), self.up(Tt, 10.0)
         return [("L", Tc, a), ("L", a, b), ("L", b, Tt)]
 
+    def turns(self, a, T0):
+        """The straight steps of the program's contact_turns from the pressed pose T0: for each of a['moves'], turns to each
+        of its degs and back to 0 in steps of at most 0.5 deg (run_turns), about the sphere's centre and the horizontal
+        across dir_deg (slide), the same axis through the top (roll) or the vertical through the top (twist)."""
+        R_BI = self.reg.T_BI[:3, :3]
+        c_B, top_B = C.apply(self.reg.T_BI, self.c_I), C.apply(self.reg.T_BI, self.top_I)
+        segs, T = [], T0
+        for mv in a.get("moves", []):
+            ang = math.radians(mv.get("dir_deg", 0.0))
+            u_I = np.array([math.cos(ang), math.sin(ang), 0.0])
+            centre, axis = dict(slide=(c_B, R_BI @ np.cross(EZ, u_I)), roll=(top_B, R_BI @ np.cross(EZ, u_I)))\
+                .get(a["kind"], (top_B, R_BI @ EZ))
+            cur = 0.0
+            for d in list(mv["degs"]) + [0.0]:
+                n = max(1, int(math.ceil(abs(d - cur) / 0.5)))
+                for j in range(1, n + 1):
+                    T1 = C.turn_about(T0, centre, axis, cur + (d - cur) * j / n)
+                    segs.append(("L", T, T1))
+                    T = T1
+                cur = d
+        return segs
+
     def action_moves(self, a, T_prev):
-        """(the action's segments including its travel, the pose it ends at, the contact point in P or None)."""
+        """(the action's segments including its travel, the pose it ends at, the contact point in P or None, the index of
+        the action's first own segment after its travel)."""
         tg = a["target"]
         if a["kind"] == "hover":
             T_pose = self.T_BE(tg["p"], tg["n"], a.get("twist", 0.0), a["at_I"])
             h = float(a.get("ref_up_mm", 40.0))
             T_ref = self.up(T_pose, h)
-            return self.travel(T_prev, T_ref) + [("L", T_ref, T_pose), ("L", T_pose, T_ref)], T_ref, None
+            tr = self.travel(T_prev, T_ref)
+            return tr + [("L", T_ref, T_pose), ("L", T_pose, T_ref)], T_ref, None, len(tr)
         st = float(a.get("standoff", 5.0 if a["kind"] == "touch" else 1.5))
         off = a.get("offset", (0.0, 0.0))                  # the program moves the contact point by -offset in I
         at = self.top_I + EZ * st - np.array([off[0], off[1], 0.0])
@@ -127,7 +154,9 @@ class Moves:
             d_top, f_top = PRESS_DEPTH.get(reg_, PRESS_DEPTH["flank"])
             deep = min(float(a.get("max_depth_mm", 2.5)), d_top * (F / f_top) ** (2.0 / 3.0) + 0.3)
         T_deep = self.up(T_rest, -(st + deep))
-        return self.travel(T_prev, T_rest) + [("L", T_rest, T_deep), ("L", T_deep, T_rest)], T_rest, tg["p"]
+        tr = self.travel(T_prev, T_rest)
+        own = [("L", T_rest, T_deep)] + (self.turns(a, T_deep) if TURNS and a["kind"] in ("slide", "roll", "twist") else [])
+        return tr + own + [("L", T_deep, T_rest)], T_rest, tg["p"], len(tr)
 
 
 def slerp_T(T0, T1, s):
@@ -192,6 +221,7 @@ def to_contact(seg, q0, reg):
 
 KIND = "tiphold"                                            # the plan's indenter kind (plan["indenter"]), set in run
 DEPTH = "model"                                             # --depth: "model" (the force's depth) or "max" (max_depth_mm)
+TURNS = True                                                # --no-turns: slides, rolls and twists without their turns
 # the pad's depth (mm) at a force (N) by region, as R29's builder took it (scripts/ur5_tip_calibration_tall_pass.py: the
 # depth at the largest force), scaled as F^(2/3) to other forces
 PRESS_DEPTH = dict(face=(1.773, 5.0), edge=(1.238, 3.0), flank=(1.0, 2.0), tip=(1.0, 2.0))
@@ -207,8 +237,8 @@ def clear_groups(q, T, reg, contact_P):
 
 
 def run(a):
-    global KIND, DEPTH
-    DEPTH = a.depth
+    global KIND, DEPTH, TURNS
+    DEPTH, TURNS = a.depth, not a.no_turns
     plan = json.loads(Path(a.plan).read_text())
     KIND = plan.get("indenter", "tiphold")
     mv = Moves(plan, a.session)
@@ -238,21 +268,21 @@ def run(a):
         if act["kind"] not in ("touch", "hover", "press", "slide", "twist", "roll"):   # gravity poses: the lab's simulator
             skipped.append(act["id"])
             continue
-        segs, T_end, cP = mv.action_moves(act, T_prev)
+        segs, T_end, cP, i_own = mv.action_moves(act, T_prev)
         m = dict(sin5=9.0, q3=999.0, shoulder=1e9, lim=999.0, j5_margin=999.0, j6_margin=999.0)
         cl = {}
         bad = None
         j6r = [1e9, -1e9]
         depth = None
         for si, seg in enumerate(segs):
-            if act["kind"] == "touch" and si == len(segs) - 2:     # the approach stops at the first contact
+            if act["kind"] == "touch" and si == i_own:            # the approach stops at the first contact
                 seg, depth = to_contact(seg, q, reg_true)
                 segs[-1] = ("L", seg[2], segs[-1][2])
             sm = samples(seg, q)
             if sm is None:
                 bad = f"no IK on segment {si}"
                 break
-            own = si >= len(segs) - 2                       # the action's own moves; the contact is excluded there
+            own = si >= i_own                               # the action's own moves; the contact is excluded there
             for k, (T, qq) in enumerate(sm):
                 mk = metrics(qq)
                 for key in m:
@@ -299,8 +329,8 @@ def run(a):
     if skipped:
         print(f"{len(skipped)} actions of other kinds not replayed: {sorted(set(x.split('-')[0] for x in skipped))}")
     out = dict(plan=str(a.plan), session=str(a.session), kind=KIND, skipped=skipped,
-               replay="touch-offs to first contact; presses, slides, twists and rolls to max_depth_mm (2 mm when absent) "
-                      "below the contact, without their turns", holder_T_BI=np.round(T_true, 5).tolist(), other=[dict(kind=o["kind"],
+               replay=f"touch-offs to first contact; presses, slides, twists and rolls to the depth at their largest force "
+                      f"({DEPTH}), {'with' if TURNS else 'without'} the turns of slides, rolls and twists", holder_T_BI=np.round(T_true, 5).tolist(), other=[dict(kind=o["kind"],
                origin_B=np.round(np.array(o["T_BI"])[:3, 3], 1).tolist()) for o in other], least=least, least_clear=lc,
                rows=rows, flagged=flagged)
     Path(a.out).write_text(json.dumps(out, indent=1) + "\n")
@@ -325,6 +355,7 @@ if __name__ == "__main__":
     ap.add_argument("--filtered", default=None)
     ap.add_argument("--depth", default="model", choices=("model", "max"), help="a press's replayed depth: at its largest "
                     "force by PRESS_DEPTH and 0.3 mm (model), or its max_depth_mm (max)")
+    ap.add_argument("--no-turns", action="store_true", help="replay slides, rolls and twists without their turns")
     ap.add_argument("--true-frame", default=None, help="a registration.json whose T_BI places the holder (default: the "
                     "plan's holder.T_BI_true, else the program's frame); to check another hypothesis of where it stands")
     ap.add_argument("--only", action="append", default=[], help="keep only these fixture kinds (the rod alone: --only rod)")

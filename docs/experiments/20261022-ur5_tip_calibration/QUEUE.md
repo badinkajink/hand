@@ -1038,6 +1038,23 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 00:18 on 10-28 (the lab at 23:59: "Please add slides' tilts to the builder's joint-6 check"). The path checker now
+    makes the turns of slides, rolls and twists as the program's contact_turns does: from the pressed pose, about the
+    sphere's centre across dir_deg (slide), the same axis through the top (roll) or the vertical through the top
+    (twist), in steps of 0.5 deg; `--no-turns` leaves them out. The v3 builder's replay_ok uses it too. On 143529's
+    registration, tall-slide-edge-604-1N goes from 41.5 to 46.3 deg on joint 6, as in the lab's simulator; the next
+    slides reach 43.8 (edge-610) and 41.7 deg (edge-622), and the twists' turns lower joint 6. tall-slide-edge-604-1N
+    is moved to `lab/20261027-plan_tall_lab_morning_v3id1.json` (18 actions); the tall stage keeps 102. The lab's
+    sphere decision of 23:59 stands: dense-700-t+10 and slide-dense-700-t+10-1N are left out
+    (`lab/20261027-plan_sphere_lab_stage2_resume_v3id1.json`, 734d1860).
+  - 00:18 on 10-28, four magnets against five on the first 74 press actions of v3 ID 1's stage 2 (to 00:02), matched
+    by id with v2 ID 1's sphere session (`scripts/ur5_tip_calibration_four_vs_five.py`, holds from
+    `scripts/ur5_tip_calibration_analysis.py ... --case four_05R4 --gravity-from lab/20261022-195420-first2`; data
+    `docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data/20261028-four_vs_five_partial.json`). The board's
+    change per newton is 29.1 uT/N with four magnets and 56.6 with five at 1 to 2 N. The record noise is 1.77 and
+    1.83 uT, so the force whose signal equals one record's noise is 61 and 32 mN. Under five folds grouped by action
+    the direction GP places the contact 0.41 and 0.45 mm from the registered point (median) and its force errs by 7.2
+    and 5.5 %; under 1 N by 13.8 and 10.2 %. The full comparison follows when stage 2 ends.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
