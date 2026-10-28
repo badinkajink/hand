@@ -44,8 +44,10 @@ HOVER = V3 / "media/20261027-ur5_cell_holder_hover.png"
 HOLD = V3 / "data/20261027-crosstalk_touchoffs.json"
 FVF = V3 / "data/20261028-four_vs_five_grid.json"   # feed 2026-10-28 00:59: stage 2's whole grid (the 00:18 file had its first 74 actions)
 SEC = dict(terms=1, field=2, holder=3, subtract=4, fit=5, sharpie=6, limits=7, future=8)
-FIG = dict(budget=1, holder=2, hovers=3, sharpie=4, render=5)
-TAB = dict(field=1, holder=2, hovers=3, crb=4)
+FIG = dict(budget=1, holder=2, hovers=3, force=4, sharpie=5, render=6)
+TAB = dict(field=1, holder=2, hovers=3, force=4, crb=5)
+SHIFTED = ("-x+", "-x-", "-y+", "-y-")   # hover ids of the apex shifted 3 mm; the others are centred
+SHARPIE_W = (7.0, 11.0)   # about a sharpie's width (the coordinator's 01:28 line)
 L = dict(
     overview=ROOT / "docs/overviews/printed_fingertips.html",
     cal=EXP / "20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html",
@@ -327,7 +329,18 @@ def holder_numbers(H):
         far_meas=[h["boards"][under(h)]["meas_uT"] for h in far], far_model=[h["boards"][under(h)]["model_moment_uT"] for h in far])
 
 
-def holder_section(H, hn, fh, fv, pg):
+def force_numbers(H, B):
+    """The median change at the centred hovers of W 7 to 11 mm, measured and left after the model with the net moments,
+    on the held board under the robot tip and on the robot tip's board (uT); and the field model's five-N52 neighbour
+    at W 10 mm (uT). The coordinator's line of 2026-10-28 01:28 divides them by the tips' face signal per newton."""
+    cen = [h for h in H["hovers"] if not any(t in h["id"] for t in SHIFTED) and SHARPIE_W[0] <= h["W_mm"] <= SHARPIE_W[1]]
+    held = lambda h: "held0" if h["station"] == "+y" else "held3"  # noqa: E731
+    med = lambda b, k: float(np.median([h["boards"][b(h)][k] for h in cen]))  # noqa: E731
+    sw = {k: (med(b, "meas_uT"), med(b, "left_uT")) for k, b in (("held", held), ("robot", lambda h: "robot"))}
+    return dict(sw=sw, five10=rows_by(B)[("five N52", "facing", 10.0)]["norm_uT"], n=len(cen))
+
+
+def holder_section(H, hn, fh, fv, pg, B, ff):
     """Section 'Neighbour field measured on the fingertip holder', with its tables and figures; pg is press_gain()."""
     at, g, e, sh, wm, hx = hn["at"], hn["gain"], hn["expl"], hn["share"], hn["with_m"], hn["hx"]
     c = lambda k, w: at[k][w]["meas_uT"]  # noqa: E731
@@ -455,7 +468,49 @@ def holder_section(H, hn, fh, fv, pg):
                   "together. Open squares: the robot apex shifted 3&#8202;mm along or across the tip. Orange dashes: the model "
                   "with the net moments fitted on the touch-off approaches. Blue dashes: the nominal dipole model with the same "
                   f"gains. Rows in the file of Table&#160;{TAB['holder']}.")
-    return body + fig + tab + fig_h + tab_h
+
+    # the change as a face force (the coordinator's line of 2026-10-28 01:28; its gaps under 0.25 N as given)
+    fn = force_numbers(H, B)
+    sw, five10, cen7 = fn["sw"], fn["five10"], fn["n"]
+    N = lambda uT, g=pg["v3"]: f"{uT / g:.2f}"  # noqa: E731
+    w7 = f"W {SHARPIE_W[0]:.0f} to {SHARPIE_W[1]:.0f}&#8202;mm"
+    par_f = (
+        f"<p><b>As a face force.</b> At {w7}, about a sharpie&#8217;s width, a facing v3 neighbour changed a v3 board as "
+        f"much as a face press of {N(sw['robot'][0])} to {N(sw['held'][0])}&#8202;N would. The force, shown against the "
+        f"gap in Figure&#160;{FIG['force']} and Table&#160;{TAB['force']}, is the change divided by v3 ID 1&#8217;s face "
+        f"signal per newton, {pg['v3']:.1f}&#8202;&#181;T/N. The held boards changed by {sw['held'][0]:.1f}&#8202;&#181;T and the robot "
+        f"tip&#8217;s board by {sw['robot'][0]:.1f}&#8202;&#181;T, since the robot tip has the largest net moment. After "
+        f"the model with each tip&#8217;s net moment, {sw['held'][1]:.1f} and {sw['robot'][1]:.1f}&#8202;&#181;T are left, "
+        f"{N(sw['held'][1])} and {N(sw['robot'][1])}&#8202;N. That is the floor of the test: far hovers read 2.3 to "
+        "2.9&#8202;&#181;T, and repeats differ by 1.3 to 1.8&#8202;&#181;T. The change falls under the viewer&#8217;s "
+        "0.25&#8202;N, 5.5&#8202;&#181;T, beyond about 25&#8202;mm on the held boards and 14&#8202;mm on the robot "
+        "tip&#8217;s board. After the model it stays under 0.25&#8202;N from W 5&#8202;mm on. No five-magnet neighbour was "
+        f"measured. In the field model of Section&#160;{SEC['field']}, a five-N52 neighbour changes v2 ID 1&#8217;s board "
+        f"by {five10:.0f}&#8202;&#181;T at W 10&#8202;mm, {five10 / pg['v2']:.1f}&#8202;N at its "
+        f"{pg['v2']:.1f}&#8202;&#181;T/N. It falls under 0.25&#8202;N, 12&#8202;&#181;T, only beyond about 47&#8202;mm.</p>")
+    fig_f = P.fig(FIG["force"], ff,
+                  "The neighbour&#8217;s change at the centred hovers as the face force that gives the same change on v3 ID 1, "
+                  "against the gap W. Centred hovers have the robot apex over the held apex, at every twist. (a) The held "
+                  "board under the robot tip, (b) the robot tip&#8217;s board. Black: measured. Orange circles: left after "
+                  "the model with the net moments. Blue: the five-N52 neighbour of the field model on v2 ID 1, over its "
+                  f"{pg['v2']:.1f}&#8202;&#181;T/N. Dashed: the viewer&#8217;s 0.25&#8202;N. Grey band: about a "
+                  "sharpie&#8217;s width.")
+    tab_f = P.table(
+        ["Board", f"Change at {w7} (&#181;T)", "Face force (N)", "Left after the model (&#181;T)",
+         "Face force after the model (N)", "Under 0.25&#8202;N beyond W (mm)", "After the model, from W (mm)"],
+        [["Held board under the robot tip", f"{sw['held'][0]:.1f}", N(sw["held"][0]), f"{sw['held'][1]:.1f}",
+          N(sw["held"][1]), "25", "5"],
+         ["Robot tip&#8217;s board", f"{sw['robot'][0]:.1f}", N(sw["robot"][0]), f"{sw['robot'][1]:.1f}",
+          N(sw["robot"][1]), "14", "5"],
+         ["Five-N52 neighbour, field model on v2 ID 1, W 10&#8202;mm", f"{five10:.0f}", f"{five10 / pg['v2']:.1f}", "&#8211;",
+          "&#8211;", "47", "&#8211;"]],
+        num_cols=tuple(range(1, 7)), n=TAB["force"],
+        caption=f"The neighbour&#8217;s change at the {cen7} centred hovers at {w7}, median, and the face force "
+                f"that gives the same change: the change over v3 ID 1&#8217;s {pg['v3']:.1f}&#8202;&#181;T/N, and over v2 "
+                f"ID 1&#8217;s {pg['v2']:.1f}&#8202;&#181;T/N for the five-magnet model. The gaps are the "
+                "coordinator&#8217;s (feed line of 2026-10-28 01:28). Rows in the file of "
+                f"Table&#160;{TAB['holder']} and in <code>data/budget.json</code>.")
+    return body + fig + tab + fig_h + tab_h + par_f + fig_f + tab_f
 
 
 def fig_hovers(H):
@@ -505,7 +560,55 @@ def fig_hovers(H):
     return out
 
 
-def sections(B, S, Sn, H, f1, f2, fh, fv, pg):
+def fig_force(H, B, pg):
+    """The centred hovers' change as the face force that gives the same change on v3 ID 1 (the change over its face
+    signal per newton; the coordinator's line of 2026-10-28 01:28), measured and left after the model with the net
+    moments, with the field model's five-N52 neighbour on v2 ID 1 over its signal per newton."""
+    plt = P.plt_setup()
+    from matplotlib.lines import Line2D
+    from matplotlib.ticker import FuncFormatter, NullFormatter
+    rb = rows_by(B)
+    five = [(w, rb[("five N52", "facing", float(w))]["norm_uT"] / pg["v2"]) for w in FACING_W if w > 0]
+    cen = [h for h in H["hovers"] if not any(t in h["id"] for t in SHIFTED)]
+    panels = (("(a) Held board under the robot tip", lambda h: "held0" if h["station"] == "+y" else "held3"),
+              ("(b) Robot tip\N{RIGHT SINGLE QUOTATION MARK}s board", lambda h: "robot"))
+    fig, axs = plt.subplots(1, 2, figsize=(9.6, 4.9), sharey=True)
+    for ax, (title, board) in zip(axs, panels):
+        ax.axvspan(*SHARPIE_W, color="0.9", zorder=0)
+        ax.axhline(0.25, color="0.35", ls="--", lw=1.3, zorder=1)
+        ax.plot([w for w, _ in five], [f for _, f in five], "-", marker="D", ms=6, color=BLUE, lw=1.8, zorder=2)
+        W = [h["W_mm"] for h in cen]
+        ax.plot(W, [h["boards"][board(h)]["meas_uT"] / pg["v3"] for h in cen], "o", ms=6, color="black", zorder=4)
+        ax.plot(W, [h["boards"][board(h)]["left_uT"] / pg["v3"] for h in cen], "o", ms=6, color=ORANGE, mfc="white",
+                mew=1.4, zorder=3)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlim(0.4, 60)
+        ax.set_ylim(0.04, 12)
+        ax.set_xticks((0.5, 1, 2, 5, 10, 20, 45))
+        ax.set_yticks((0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10))
+        for a in (ax.xaxis, ax.yaxis):
+            a.set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
+            a.set_minor_formatter(NullFormatter())
+        ax.text(sum(SHARPIE_W) / 2, 9.5, "Sharpie", ha="center", va="top", fontsize=12, color="0.3")
+        ax.set_title(title, loc="left")
+        ax.set_xlabel("Gap W between the apexes (mm)")
+        ax.spines[["top", "right"]].set_visible(False)
+    axs[0].set_ylabel("Face force with the same change (N)")
+    h = [Line2D([], [], color="black", marker="o", ls="", ms=6),
+         Line2D([], [], color=ORANGE, marker="o", mfc="white", mew=1.4, ls="", ms=6),
+         Line2D([], [], color=BLUE, marker="D", ms=6, lw=1.8), Line2D([], [], color="0.35", ls="--", lw=1.3)]
+    l_ = ["Measured, v3 neighbour", "Left after the model with the net moments", "Five N52 neighbour, field model",
+          "The viewer\N{RIGHT SINGLE QUOTATION MARK}s 0.25 N"]
+    fig.legend(h, l_, loc="lower center", ncol=2, frameon=False, bbox_to_anchor=(0.5, -0.12), fontsize=13)
+    fig.tight_layout()
+    out = MEDIA / "20261028-holder_force.png"
+    fig.savefig(out, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return out
+
+
+def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
     rb = rows_by(B)
     r5 = lambda kind, x: rb[("five N52", kind, float(x))]  # noqa: E731
     r4 = lambda kind, x: rb[("four N52", kind, float(x))]  # noqa: E731
@@ -537,26 +640,33 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg):
         a, b = f(xs[0]), f(xs[1])
         return f"{a}{pct}" if a == b else f"{a} and {b}{pct}"
     board = "either held board" if f"{hov_held[0]:.0f}" == f"{hov_held[1]:.0f}" else "the two held boards"
+    fn = force_numbers(H, B)
+    fsh = sorted(v[0] / pg["v3"] for v in fn["sw"].values())
+    fsl = sorted(v[1] / pg["v3"] for v in fn["sw"].values())
+    f5 = fn["five10"] / pg["v2"]
     lede = (
         "A neighbouring fingertip&#8217;s magnets change the reading of a magnetic fingertip&#8217;s board by more than a press "
         "does. On the UR5, two four-magnet v3 tips with their pads touching changed each other&#8217;s boards by "
         f"{min(con):.0f} to {max(con):.0f}&#8202;&#181;T. Per newton of face press, v3 ID 1&#8217;s board changes by "
-        f"{pg['v3']:.1f}&#8202;&#181;T and the five-magnet v2 ID 1&#8217;s by {pg['v2']:.1f}&#8202;&#181;T. "
+        f"{pg['v3']:.1f}&#8202;&#181;T and the five-magnet v2 ID 1&#8217;s by {pg['v2']:.1f}&#8202;&#181;T. At W "
+        f"{SHARPIE_W[0]:.0f} to {SHARPIE_W[1]:.0f}&#8202;mm, about a sharpie&#8217;s width, a v3 neighbour changes a v3 board "
+        f"as much as a face press of {fsh[0]:.2f} to {fsh[1]:.2f}&#8202;N. In v2 ID 1&#8217;s field model a five-magnet "
+        f"neighbour at W 10&#8202;mm equals {f5:.1f}&#8202;N. "
         f"The four magnets of a tip do not cancel fully: each tip has a net moment of {min(shr):.0f} to {max(shr):.0f}&#8202;% of "
         "one magnet&#8217;s. With these moments, fitted on touch-offs, the dipole model explains "
-        f"{both(hov_held)} of the change at {board} in {hn['n_hover']} hovers. Without them it explains "
-        f"{both(hov_nom, neg)}. In v2 ID 1&#8217;s field model a "
-        f"five-magnet neighbour adds {r5('facing', 0)['norm_uT']:.0f}&#8202;&#181;T facing and "
-        f"{r5('side', 0)['norm_uT']:,.0f}&#8202;&#181;T side by side, touching. When the neighbour&#8217;s pose is fitted from both "
+        f"{both(hov_held)} of the change at {board} in {hn['n_hover']} hovers, against {both(hov_nom, neg)} without. At a "
+        f"sharpie&#8217;s width it leaves {fsl[0]:.2f} to {fsl[1]:.2f}&#8202;N, the floor of the test. When the "
+        "neighbour&#8217;s pose is fitted from both "
         f"boards, the Cram&#233;r&#8211;Rao bound on a press is {min(bound):.3f}&#8211;{max(bound):.3f}&#8202;N, against "
         f"{known:.3f}&#8202;N with the pose known.")
     summary = (
         "Magnetic crosstalk between neighbouring fingertips: on the UR5 two four-magnet v3 tips touching changed each other's "
         f"boards by {min(con):.0f}-{max(con):.0f} uT, against {pg['v3']:.1f} uT per newton of face press on v3 ID 1 "
-        f"({pg['v2']:.1f} uT/N on the five-magnet v2 ID 1); each tip has a net "
-        f"moment of {min(shr):.0f}-{max(shr):.0f} % of one magnet, and with these moments, fitted on touch-offs, the dipole model "
-        f"explains {both(hov_held, pct=' %')} of the change at {board} in {hn['n_hover']} hovers "
-        f"({both(hov_nom, pct=' %')} without). In v2 ID 1's field model a five-N52 neighbour adds "
+        f"({pg['v2']:.1f} uT/N on the five-magnet v2 ID 1); at a sharpie's width (W {SHARPIE_W[0]:.0f}-{SHARPIE_W[1]:.0f} mm) "
+        f"the change equals a {fsh[0]:.2f}-{fsh[1]:.2f} N face press, {fsl[0]:.2f}-{fsl[1]:.2f} N after the dipole model with "
+        f"each tip's net moment ({min(shr):.0f}-{max(shr):.0f} % of one magnet), which explains "
+        f"{both(hov_held, pct=' %')} of the change at {board} in {hn['n_hover']} hovers ({both(hov_nom, pct=' %')} "
+        f"without). In v2 ID 1's field model a five-N52 neighbour equals {f5:.1f} N at W 10 mm and adds "
         f"{r5('facing', 0)['norm_uT']:.0f} uT facing and {r5('side', 0)['norm_uT']:,.0f} uT side by side when touching; fitting "
         f"its pose from both boards keeps the press bound at {min(bound):.3f}-{max(bound):.3f} N ({known:.3f} N with the pose "
         "known).")
@@ -681,7 +791,7 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg):
                              "0.2&#8211;3&#8202;N. Script: <code>scripts/fingertip_crosstalk.py budget</code>.") + tab1))
 
     # 3. measured on the holder
-    S_.append(("holder", "Neighbour field measured on the fingertip holder", holder_section(H, hn, fh, fv, pg)))
+    S_.append(("holder", "Neighbour field measured on the fingertip holder", holder_section(H, hn, fh, fv, pg, B, ff)))
 
     # 4. subtraction from the joint angles
     sub = (
@@ -794,6 +904,13 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg):
          f"&#8202;&#181;T at W 0.5&#8202;mm, {min(hn['cl_at'][0.5]['held3']['left']):.0f} to "
          f"{max(hn['cl_at'][0.5]['held3']['left']):.0f}&#8202;&#181;T is left. At these poses the held tips&#8217; magnets pull "
          "on the robot tip with at most 0.69&#8202;mN (<code>scripts/fingertip_crosstalk.py pull</code>)."),
+        ("Side by side on the holder.", "The plan for the owner&#8217;s morning of 2026-10-28 (commit c810bcdd, "
+         "<code>docs/experiments/20261022-ur5_tip_calibration/lab/20261028-plan_holder_lab_side_norod_v3id1.json</code>) hovers "
+         "the robot tip beside the &#8722;y tip, turned pad-down under its block. It has 27 poses at gaps of 13 to 25&#8202;mm "
+         "and 18 repeats, about 22&#8202;min, with the rod&#8217;s fixture off the cell. In the field model four magnets give "
+         f"{r4('side', 10)['norm_uT']:.0f}&#8202;&#181;T at a 10&#8202;mm gap and {r4('side', 20)['norm_uT']:.0f}&#8202;&#181;T "
+         "at 20&#8202;mm. If the model with the net moments fitted facing explains less than 90&#8202;% of the side-by-side "
+         "change, the side-by-side pose needs a fit of its own."),
         ("A pinch between two v3 tips.", "A plan of its own follows the map. The robot apex presses the held apex on the +y "
          "station at 0.25&#8211;3&#8202;N. The robot&#8217;s target is also shifted 2 and 4&#8202;mm off its apex, across and "
          "along, and turned by &#8722;20 to +20&#176;. The apex press comes first, in the middle and last. The robot "
@@ -828,7 +945,8 @@ def build():
     fh = fig_holder(H)
     fv = fig_hovers(H)
     pg = press_gain(json.loads(at_head(FVF)))
-    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh, fv, pg)
+    ff = fig_force(H, B, pg)
+    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff)
     assert [sid for sid, _, _ in S_] == list(SEC), [sid for sid, _, _ in S_]
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S_, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S_, 1))
