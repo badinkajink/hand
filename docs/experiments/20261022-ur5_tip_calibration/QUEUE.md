@@ -1063,6 +1063,15 @@ push that answers it arrives.
     straight (pressing the tip's end stretches the arm). The path check with turns flags nothing
     (`lab/20261028-paths_tall_top_edge_v3id1_on143529.json`): the elbow stays 26.3 deg or more from straight, the
     finger clears by 1.52 mm and the mount by 4.32 mm. Not to run before the owner says so.
+    The lab's simulator agrees (00:54): at lift 20 the elbow stays 26.3 deg from straight, 0 aborts, mount 4.43 mm
+    (top-tip-459), joint 6 -61.6 to +42.6 deg; at lift 60 the elbow comes within 3.7 deg of straight on the same two
+    actions.
+  - 00:59 on 10-28, four magnets against five on stage 2's whole grid (done 00:56; 160 press actions matched by id,
+    818 holds each; `docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data/20261028-four_vs_five_grid.json`).
+    The board's change per newton is 28.3 uT/N with four magnets and 52.3 with five at 1 to 2 N; with the same record
+    noise (1.77 and 1.83 uT) the noise-equivalent force is 63 and 35 mN, the readout model's ratio of 1.8. The direction
+    GP places the contact 0.26 and 0.28 mm from the registered point and errs 5.0 and 5.1 % in force (five folds
+    grouped by action); under 1 N 0.59 and 0.75 mm, 10.8 and 9.4 %.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
