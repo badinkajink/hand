@@ -697,6 +697,45 @@ class BoardStream(threading.Thread):
         return self.reader.connected
 
 
+class HeldBoardStream(threading.Thread):
+    """The boards of the tips on the holder (2026-10-27: two v3 tips beside the robot's, for the crosstalk maps) through
+    reskin5x_plot.MuxReader (firmware/reskin5x_mux_stream, the boards behind an I2C mux): every board's records are
+    drained every 0.2 s into held.bin (host time, the board's mux channel, 5 chips x [T, x, y, z]) and a ring per
+    channel."""
+
+    DTYPE = np.dtype([("t", "<f8"), ("b", "<u1"), ("r", "<f4", (20,))])
+
+    def __init__(self, port, appender=None):
+        super().__init__(daemon=True)
+        sys.path.insert(0, str(HERE))
+        import reskin5x_plot as RP
+        self.reader = RP.MuxReader(port, keep=5.0)
+        self.channels = list(self.reader.channels)
+        self.rings = {c: Ring() for c in self.channels}
+        self.n = {c: 0 for c in self.channels}
+        self.app, self.stop = appender, False
+
+    def run(self):
+        self.reader.start()
+        while not self.stop:
+            time.sleep(0.2)
+            rows = []
+            for b in self.reader.boards:
+                with b.lock:
+                    recs, b.all = b.all, []
+                for t, r in recs:
+                    rows.append((t, b.channel, r.ravel()))
+                    self.rings[b.channel].add(t, r.ravel())
+                self.n[b.channel] += len(recs)
+            if rows and self.app is not None:
+                rows.sort(key=lambda x: x[0])
+                out = np.zeros(len(rows), self.DTYPE)
+                for k, row in enumerate(rows):
+                    out[k] = row
+                self.app.write(out)
+        self.reader.stop = True
+
+
 class URRobot:
     """ur_rtde on the CB3: flange poses (the controller's TCP set to zero), mm and 4 x 4 here, m and rotation vectors
     there. A thread logs t_host, t_controller, q (6), flange pose (6, m and rad), safety mode at 125 Hz."""
@@ -813,6 +852,12 @@ class RealBackend:
         self.ft.start()
         self.board = BoardStream(args.board, appender=log.appender("board.bin", BoardStream.DTYPE))
         self.board.start()
+        self.held = None
+        if args.held_board:
+            if os.path.realpath(args.held_board) == os.path.realpath(self.board.reader.port):
+                raise SystemExit(f"--held-board {args.held_board} is the robot tip's board ({self.board.reader.port})")
+            self.held = HeldBoardStream(args.held_board, appender=log.appender("held.bin", HeldBoardStream.DTYPE))
+            self.held.start()
         self.robot = URRobot(args.robot, appender=log.appender("robot.bin"))
 
     def now(self):
@@ -827,6 +872,8 @@ class RealBackend:
     def close(self):
         self.ft.stop = True
         self.board.stop = True
+        if self.held is not None:
+            self.held.stop = True
         self.robot.close()
 
 
@@ -1274,6 +1321,13 @@ class Session:
                    board_std_uT=vb.reshape(-1, 5, 4)[:, :, 1:].std(axis=0) if len(vb) else None)
         print(f"preflight: HEX-E {out['ft_hz']:.0f} Hz (asked {self.args.ft_rate} Hz, filter {self.args.ft_filter}), "
               f"board {out['board_hz']:.0f} records/s, robot {out['robot_hz']:.0f} Hz")
+        held = getattr(self.be, "held", None)
+        if held is not None:
+            out["held_hz"] = {c: len(held.rings[c].since(t1 - 2.0)[0]) / 2.0 for c in held.channels}
+            print(f"  held boards on {held.reader.port}: "
+                  + ", ".join(f"mux channel {c} {r:.0f} records/s" for c, r in out["held_hz"].items()))
+            if not out["held_hz"] or min(out["held_hz"].values()) < 10:
+                raise SystemExit("a held tip's board is missing or slow: check the holder's boards and their USB")
         if len(vf):
             print("  HEX-E noise (1 sigma) N, N m:", np.round(vf.std(axis=0), 4))
         ft = self.be.ft
@@ -1667,6 +1721,82 @@ class Session:
         r["T_rest"] = T_rest
         return r
 
+    def stage_hover(self):
+        acts = self.actions("hover")
+        for k, a in enumerate(acts):
+            if a["kind"] != "hover":
+                continue
+            r = self.act(a, self.hover)
+            if r is not None:
+                print(f"  {a['id']} ({k + 1}/{len(acts)}): held {a.get('dwell_s', 2.0):g} s, "
+                      f"|F| at most {r['peak_N']:.2f} N", flush=True)
+
+    def hover(self, a):
+        """No contact (2026-10-27, the crosstalk maps with the tips on the holder): the pad's target point (a['target'],
+        P frame) held at a['at_I'] (mm, frame I) with its normal down, turned a['twist'] about the vertical, as a press
+        would hold it at contact. From the reference, ref_up_mm above the pose along z_I, the tool goes straight down to
+        the pose and back: the outer part at v_mm_s, the last slow_mm at v_slow_mm_s (actual speeds at the plan's speed
+        slider), dwelling dwell_ref_s at the reference before and after and dwell_s at the pose. A change of the HEX-E's
+        force from the first dwell's tare, the length of its last 10 samples' mean over contact_N (default 0.5 N: the
+        HEX-E's z noise is 0.24 N at one sigma, 0.08 N over 10 samples, and the simulator's reached 0.30 N), in a move
+        or a dwell, is a contact: abort. Near a held tip the magnets pull or push on the robot's tip and the HEX-E reads
+        that force too: an action near one sets contact_N above it. The record gives the dwells' windows (t_ref0,
+        t_pose, t_ref1), the moves' (t_down, t_up) and peak_N, the largest such change over the action."""
+        tg = a["target"]
+        R = self.geo.R_IP(tg["n"], a.get("twist", 0.0))
+        at = np.asarray(a["at_I"], float)
+        T_pose = self.T_BE_for(Tm(R, at - R @ np.asarray(tg["p"], float)))
+        up_B = self.reg.T_BI[:3, :3] @ EZ
+        h = float(a.get("ref_up_mm", 40.0))
+        slow = min(float(a.get("slow_mm", 5.0)), h)
+        T_ref = Tm(T_pose[:3, :3], T_pose[:3, 3] + up_B * h)
+        T_slow = Tm(T_pose[:3, :3], T_pose[:3, 3] + up_B * slow)
+        for T in (T_ref, T_pose):
+            if not self.in_box(T):
+                raise Abort("hover pose outside the box around the indenter")
+        k = float(self.plan.get("speed_slider") or 1.0)
+        v_fast, v_slow = float(a.get("v_mm_s", 10.0)) / k * 1e-3, float(a.get("v_slow_mm_s", 2.0)) / k * 1e-3
+        lim = float(a.get("contact_N", 0.5))
+        self.travel(T_ref)
+        rec = dict(id=a["id"], T_ref=T_ref, T_pose=T_pose, contact_N=lim)
+        tare, _, _ = self.mean_ft(0.5)
+        rec["tare"] = tare
+        peak = [0.0]
+
+        def watch(T=None, dur=0.0, v=None):
+            """Hold for dur s (T None), or move to T at v m/s; either way the HEX-E is watched."""
+            hist, t0 = deque(maxlen=10), self.now()
+            if T is not None:
+                self.be.robot.moveL(T, v, 0.1, asynchronous=True)
+            while True:
+                self.sleep(0.01)
+                self.check_ft(tare)
+                _, v = self.be.ft.ring.latest()
+                hist.append(v[:3] - tare[:3])
+                f = float(np.linalg.norm(np.mean(hist, axis=0)))     # the mean first: |noise| alone averages 0.26 N
+                if len(hist) < hist.maxlen:
+                    continue
+                peak[0] = max(peak[0], f)
+                if f > lim:
+                    self.be.robot.stopL(3.0)
+                    raise Abort(f"contact: {f:.2f} N on the HEX-E (contact_N {lim:g})")
+                if T is None:
+                    if self.now() - t0 >= dur:
+                        return [t0, self.now()]
+                elif self.be.robot.steady() and self.now() - t0 > 0.3:
+                    e = pose_error(self.be.robot.pose(), T)
+                    if e[0] > 0.5 or e[1] > 0.2:
+                        raise Abort(f"the robot stopped {e[0]:.2f} mm, {e[1]:.2f} deg from its target")
+                    return [t0, self.now()]
+
+        rec["t_ref0"] = watch(dur=float(a.get("dwell_ref_s", 1.5)))
+        rec["t_down"] = [watch(T_slow, v=v_fast)[0], watch(T_pose, v=v_slow)[1]]
+        rec["t_pose"] = watch(dur=float(a.get("dwell_s", 2.0)))
+        rec["t_up"] = [watch(T_slow, v=v_slow)[0], watch(T_ref, v=v_fast)[1]]
+        rec["t_ref1"] = watch(dur=float(a.get("dwell_ref_s", 1.5)))
+        rec["peak_N"] = peak[0]
+        return rec
+
     # ---------------------------------------------------------------- the whole
     def speed_slider(self):
         """The plan's speed_slider: set on the controller and read back before any motion. Every speed of the program and
@@ -1709,12 +1839,15 @@ class Session:
             elif s == "final":
                 self.stage_presses("final")
                 self.stage_gravity("final_gravity")
+            elif s == "hover":
+                self.stage_hover()
             else:
                 raise SystemExit(f"unknown stage {s}")
         self.log.save("registration.json", self.reg.to_json())
 
 
-STAGES = ("preflight", "homing", "gravity", "mount", "pad", "register", "pivot", "grid", "shear", "roll", "twist", "final")
+STAGES = ("preflight", "homing", "gravity", "mount", "pad", "register", "pivot", "grid", "shear", "roll", "twist", "hover",
+          "final")
 
 
 def main(argv=None):
@@ -1727,6 +1860,8 @@ def main(argv=None):
                     "2 150 Hz, 3 50 Hz (default: nothing above the 100 Hz poll's 50 Hz folds in), 4 15 Hz, 5 5 Hz, 6 1.5 Hz")
     ap.add_argument("--ft-stream", action="store_true", help="ask the DAQ to stream instead of polling it")
     ap.add_argument("--board", default=None, help="serial port of the board (default: found by id)")
+    ap.add_argument("--held-board", default=None, help="serial port of the held tips' boards (firmware/"
+                    "reskin5x_mux_stream behind an I2C mux), recorded into held.bin; give --board too when it is set")
     ap.add_argument("--home-from", default=None, help="FILE:LABEL, a recorded seating on the key (JSON lines with label "
                     "and T_tcp_mm) in place of the three freedrive seatings: for runs with nobody at the robot")
     ap.add_argument("--stages", default=",".join(STAGES))
@@ -1763,7 +1898,8 @@ def main(argv=None):
     log.save("session.json", dict(args=vars(a), started=time.strftime("%Y-%m-%d %H:%M:%S"), stages=a.stages,
                                   ft_columns="t_host seq status Fx Fy Fz Tx Ty Tz (N, N m)",
                                   robot_columns="t_host t_ctrl q0..q5 (rad) x y z (m) rx ry rz safety_mode",
-                                  board_dtype="t <f8, r <f4 x 20 (5 chips x [T C, x, y, z uT])"))
+                                  board_dtype="t <f8, r <f4 x 20 (5 chips x [T C, x, y, z uT])",
+                                  held_dtype="t <f8, b <u1 (mux channel), r <f4 x 20 (5 chips x [T C, x, y, z uT])"))
     ses = Session(plan, be, log, a)
     try:
         ses.run([s for s in a.stages.split(",") if s])
