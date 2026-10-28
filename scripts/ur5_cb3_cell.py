@@ -53,6 +53,14 @@ INDENTER_STL = {"sphere": MOUNT / f"{_MOUNT_STEM}_indenter_sphere.stl",
 HEX = dict(height_mm=35.0, diameter_mm=70.0, across_connector_mm=78.5, mass_kg=0.260)   # OptoForce HEX-E V1.0 data sheet
 T_M_FROM_F = np.array([[-1.0, 0, 0, 0], [0, 1.0, 0, 0], [0, 0, -1.0, 5.45], [0, 0, 0, 1.0]])   # mount v3 (PIP_M 57)
 T_M_FROM_P = C.Tm(None, [2.05, 0.0, 82.50])                      # the pad's tip frame in M (b v4 on mount v3)
+# The tip cap trimmed flush with the cassette's side walls (owner, 2026-10-27: "i trimmed the top cap so that there is no
+# "fingertip" coming out to the surface of the fingertip now, the top cap is more or less flush across the surface of the
+# side walls"): the part of TW15H3 at x_F < CAP_TRIM_X is removed, the tongue over the pad's distal end (|y_F| < 2.9 mm,
+# x_F -5.26 to -0.10, z_F -100.06 to -98.46), and the cut is closed by a face in the plane. None takes the cap as printed
+# before 10-27, to recheck a plan as it was built; UR5_CAP_TRIM=none (or an x_F in mm) sets it for a process.
+_CAP_TRIM = os.environ.get("UR5_CAP_TRIM", "-0.10").strip().lower()
+CAP_TRIM_X = None if _CAP_TRIM in ("", "none", "old") else float(_CAP_TRIM)
+_AS_SET = object()
 
 
 def rpy_R(r, p, y):
@@ -135,11 +143,102 @@ def robot_points(spacing=6.0):
     return out
 
 
-def finger_mesh(name):
-    """A finger or mount part as a mesh in M."""
-    f, frame = TOOL_PARTS[name]
-    m = _load(f)
-    if frame == "F":
+def _inside_2d(Q, S):
+    """Even-odd test of points Q (k, 2) against the closed boundary given as segments S (m, 2, 2)."""
+    a, b = S[:, 0], S[:, 1]
+    za, zb = a[None, :, 1], b[None, :, 1]
+    cross = (za > Q[:, None, 1]) != (zb > Q[:, None, 1])
+    with np.errstate(divide="ignore", invalid="ignore"):
+        y = a[None, :, 0] + (Q[:, None, 1] - za) * (b[None, :, 0] - a[None, :, 0]) / (zb - za)
+    return (cross & (y > Q[:, None, 0])).sum(axis=1) % 2 == 1
+
+
+def _seg_dist_2d(Q, S):
+    """Least distance of points Q (k, 2) to segments S (m, 2, 2)."""
+    a, d = S[:, 0], S[:, 1] - S[:, 0]
+    t = np.clip(np.einsum("kmj,mj->km", Q[:, None, :] - a[None], d) / np.maximum((d * d).sum(1), 1e-18)[None], 0.0, 1.0)
+    return np.linalg.norm(Q[:, None, :] - (a[None] + t[..., None] * d[None]), axis=2).min(axis=1)
+
+
+def trim_x(m, x0, sign=1.0, h=0.1, grid=0.3):
+    """The part of the closed mesh m at sign (x - x0) >= 0, closed by its cut face in the plane x = x0. The cut face is
+    triangulated from the boundary that the cut leaves, divided into pieces of at most h mm, and a grid of points inside it
+    (grid mm apart, h or more from the boundary): of their Delaunay triangles, those whose centroids lie inside the boundary
+    (even-odd). With every boundary piece shorter than any point's distance to it, each piece is an edge of the triangulation."""
+    import trimesh
+    from scipy.spatial import Delaunay
+    from trimesh.intersections import slice_faces_plane
+    nrm = np.array([sign, 0.0, 0.0])
+    dots = (m.vertices[:, 0] - x0) * sign
+    dots[np.abs(dots) < 1e-5] = 0.0                     # an STL's float32 -0.1 lies on the plane x = -0.10
+    V, F, _ = slice_faces_plane(m.vertices, m.faces, nrm, np.array([x0, 0.0, 0.0]), cached_dots=dots)
+    k = trimesh.Trimesh(V, F, process=True)
+    E, n_use = np.unique(k.edges_sorted, axis=0, return_counts=True)
+    E = E[n_use == 1]
+    E = E[(np.abs(k.vertices[E, 0] - x0) < 1e-4).all(axis=1)]
+    if not len(E):
+        return k
+    S = k.vertices[E][:, :, 1:]                        # (y, z) of the boundary's segments
+    pts = [S[:, 0], S[:, 1]]
+    for a, b in S:
+        n = int(math.ceil(np.linalg.norm(b - a) / h))
+        if n > 1:
+            pts.append(a + (b - a) * (np.arange(1, n) / n)[:, None])
+    lo, hi = S.reshape(-1, 2).min(0), S.reshape(-1, 2).max(0)
+    G = np.stack(np.meshgrid(np.arange(lo[0] + grid / 2, hi[0], grid), np.arange(lo[1] + grid / 2, hi[1], grid),
+                             indexing="ij"), -1).reshape(-1, 2)
+    if len(G):
+        G = G[_inside_2d(G, S)]
+        G = G[_seg_dist_2d(G, S) >= h] if len(G) else G
+    Q = np.unique(np.round(np.vstack(pts + [G]), 7), axis=0)
+    tri = Delaunay(Q).simplices
+    tri = tri[_inside_2d(Q[tri].mean(axis=1), S)]
+    a, b, c = Q[tri[:, 0]], Q[tri[:, 1]], Q[tri[:, 2]]
+    cr = (b[:, 0] - a[:, 0]) * (c[:, 1] - a[:, 1]) - (b[:, 1] - a[:, 1]) * (c[:, 0] - a[:, 0])   # x of the normal
+    flip = sign * cr > 0.0                              # the cut face's normal points out of the kept part, -sign x
+    tri[flip] = tri[flip][:, ::-1]
+    capV = np.c_[np.full(len(Q), float(x0)), Q]
+    return trimesh.Trimesh(np.vstack([k.vertices, capV]), np.vstack([k.faces, tri + len(k.vertices)]), process=True)
+
+
+# The four M2 x 8 cheese heads (DIN 84: 3.8 mm across, 1.3 mm tall) that hold the cassette and the cap, seated on the
+# walls' and the cap's palmar faces at x_F -0.10, so they stand 1.3 mm proud of the trimmed cap (found 2026-10-27,
+# scripts/ur5_tip_calibration_trimmed_cap_reach.py). They go with the cap's mesh and so with the finger's group in every
+# check; UR5_SCREW_HEADS=none leaves them out, to recheck a plan built before 2026-10-27 as it was built.
+SCREW_HEADS = None if os.environ.get("UR5_SCREW_HEADS", "on").strip().lower() in ("", "none", "off") else \
+    dict(d=3.8, h=1.3, seat_x_F=-0.10)
+
+
+def heads_mesh_F():
+    """The four screw heads as one mesh in F, their axes along x_F at TIP_F's holes."""
+    import trimesh
+    out = []
+    for y, z in TIP_F["holes"]:
+        c = trimesh.creation.cylinder(radius=SCREW_HEADS["d"] / 2, height=SCREW_HEADS["h"], sections=36)
+        c.apply_transform(trimesh.transformations.rotation_matrix(math.pi / 2, [0.0, 1.0, 0.0]))     # axis along x
+        c.apply_translation([SCREW_HEADS["seat_x_F"] - SCREW_HEADS["h"] / 2, y, z])
+        out.append(c)
+    return trimesh.util.concatenate(out)
+
+
+def part_F(name, trim=_AS_SET):
+    """A tool part as a mesh in its own frame (F for the finger's parts, M for the mount's), the cap trimmed at x_F
+    CAP_TRIM_X and carrying the four screw heads (SCREW_HEADS); trim gives another plane, or None for the cap as printed
+    before 2026-10-27."""
+    m = _load(TOOL_PARTS[name][0])
+    x0 = CAP_TRIM_X if trim is _AS_SET else trim
+    if name == "cap" and x0 is not None:
+        m = trim_x(m, float(x0))
+    if name == "cap" and SCREW_HEADS is not None:
+        import trimesh
+        m = trimesh.util.concatenate([m, heads_mesh_F()])
+    return m
+
+
+def finger_mesh(name, trim=_AS_SET):
+    """A finger or mount part as a mesh in M (the cap trimmed as part_F)."""
+    m = part_F(name, trim)
+    if TOOL_PARTS[name][1] == "F":
         m.apply_transform(T_M_FROM_F)
     return m
 
@@ -152,17 +251,19 @@ def hex_e_mesh(T_EM):
     return m
 
 
+def part_points(name, m, spacing=2.0):
+    """Surface samples of tool part `name` given as mesh m (as tool_points samples it)."""
+    import trimesh
+    sp = 1.0 if name in ("pad", "cover", "cap") else 0.5 if name == "stop_wedge" else spacing
+    n = int(min(12000, max(300, m.area / sp ** 2)))
+    return trimesh.sample.sample_surface_even(m, n, seed=0)[0]
+
+
 @lru_cache(maxsize=4)
 def tool_points(spacing=2.0):
-    """Surface samples of the tool parts (M, mm), the pad's from the FE surface's own points too."""
+    """Surface samples of the tool parts (M, mm), the cap trimmed at CAP_TRIM_X (its cut face sampled as surface)."""
     import trimesh
-    out = {}
-    for name in TOOL_PARTS:
-        m = finger_mesh(name)
-        sp = 1.0 if name in ("pad", "cover", "cap") else 0.5 if name == "stop_wedge" else spacing
-        n = int(min(12000, max(300, m.area / sp ** 2)))
-        p, _ = trimesh.sample.sample_surface_even(m, n, seed=0)
-        out[name] = p
+    out = {name: part_points(name, finger_mesh(name), spacing) for name in TOOL_PARTS}
     hm = hex_e_mesh(None)
     out["hex_e"], _ = trimesh.sample.sample_surface_even(hm, 1500, seed=0)
     return out
@@ -382,26 +483,71 @@ def tall_sdf(P, tip=True, t=None):
 
 
 # The fingertip holder of 2026-10-27 (docs/experiments/20261027-fingertip_holder; scripts/fingertip_holder.py builds it from
-# these numbers): two v2 tips (pad, cassette 3T and top cover TW15H3, no board), each screwed by its four M2 screws to a
-# station block, the two blocks opposite each other on arms from one column (a T). On the -y station the tip faces down from
-# the block's underside (side by side); on the +y station it faces up from the top face (the pads facing). Each block's four
-# 1.9 mm holes pass through it, so either face takes a tip. The homing seat is the tall indenter's with the seat options of
-# tall_boxes (taller and closer walls, a stop at the fork's palmar end, a key with rounded edges reaching 5.0 mm into the
-# socket), on a tower of its own, its mouth at (mouth_x, key_y, mouth_z). TIP_F gives the tip in the DIP link's frame F: the
-# cassette's back face (where the board's component face was) at x_F 3.80, the face's centre at z_F -87.91.
+# these numbers): two tips (pad, cassette 3T, top cover TW15H3 trimmed as CAP_TRIM_X, and the board), each screwed by its
+# four M2 screws to a station block, the two blocks opposite each other on arms from one column (a T). On the -y station the
+# tip faces down from the block's underside (side by side); on the +y station it faces up from the top face (the pads
+# facing). Each block's four 1.9 mm holes pass through it, so either face takes a tip. The homing seat is the tall
+# indenter's with the seat options of tall_boxes (taller and closer walls, a stop at the fork's palmar end, a key with
+# rounded edges reaching 5.0 mm into the socket), on a tower of its own, its mouth at (mouth_x, key_y, mouth_z). TIP_F gives
+# the tip in the DIP link's frame F: the cassette's back face (the board's component face) at x_F 3.80, the face's centre at
+# z_F -87.91.
 TIPHOLD = dict(stations=((-28.5, "down"), (28.5, "up")), x_s=0.0, z_bot=40.0, T=12.0, col_r=14.0,
                base=(-40.0, 40.0, -30.0, 98.0, 8.0), key_y=75.0, mouth_x=-22.0, mouth_z=30.0,
                seat=dict(wall_gap=0.2, wall_h=(14.0, 14.0, 11.5, 9.5), stop=dict(gap=0.1, t=4.0, h=9.5),
                          key_r=0.8, key_top=5.0))
 TIP_F = dict(x_seat=3.80, z_c=-87.91, apex_x=-10.55, z_ends=(-98.46, -77.05), y_half=10.5,
              holes=((8.0, -79.82), (-8.0, -79.82), (8.0, -95.82), (-8.0, -95.82)))
+# The held tips' ReSkin 5X boards (owner, 2026-10-27: "ive added the magnetometer board and will have their data streaming
+# to the ur5 computer ... model the slightly extra height, as well as the qwiic connector port sticking out"). Each board
+# lies between its station block and the cassette as on the finger's tongue: its component face (chips, J1) at the
+# cassette's back face x_F 3.80, its bare face on the block t mm further, so the tip stands t higher on the +y station and
+# t lower on the -y station. Board frame (u, v, w) of the fabrication files (scripts/dip_link_geometry.py board): u = y_F,
+# v = z_u1 - z_F (U2 toward the tip's end, the tab with J1 toward the PIP joint), w out of the component face, x_F = x_comp -
+# w. The outline, J1's body and the chips are from the fabrication files (docs/experiments/20261018-dip_link_board_mount/
+# spec.json, board); J1's header with the mated SHR-04V-S-B (7.0 mm across the tab, 2.0 mm out of the header, 2.96 mm
+# tall) as dip_link_concept_a.j1_parts_board; the cable's first 3 mm as the flat 4 x 1 mm ribbon (owner, 2026-10-19) at
+# the wires' mid-height. FR-4 0.6 mm is the ReSkin README's rigid order, not measured on the owner's boards; the chips'
+# sensing points 0.42 mm under the package top (MLX90393 data sheet), the package 0.9 mm (the cassette's web). HELD_BOARD
+# None models the tips without boards, as the holder was designed.
+HELD_BOARD = dict(t=0.6, x_comp=3.80, z_u1=-87.91, chip_h=0.9, sense_below_top=0.42,
+                  boxes=(("pcb", (-10.0, -10.10, -0.6), (10.0, 10.05, 0.0)),
+                         ("pcb_tab", (-5.0, -19.10, -0.6), (5.0, -10.10, 0.0)),
+                         ("j1", (-2.95, -18.09, 0.0), (3.05, -13.14, 2.9)),
+                         ("plug", (-3.45, -20.09, 0.0), (3.55, -18.09, 2.96)),
+                         ("cable", (-1.95, -23.09, 0.9), (2.05, -20.09, 1.9))),
+                  chips=(("U1", 0.0, 0.0), ("U2", 0.0, 7.0), ("U3", 7.0, 0.0), ("U4", 0.0, -7.0), ("U5", -7.0, 0.05)))
+
+
+def board_to_F(uvw, b=None):
+    """Board coordinates (u, v, w) to F for a board at HELD_BOARD's place (as on the finger)."""
+    b = b or HELD_BOARD
+    uvw = np.asarray(uvw, float)
+    return np.stack([b["x_comp"] - uvw[..., 2], uvw[..., 0], b["z_u1"] - uvw[..., 1]], axis=-1)
+
+
+def held_board_boxes_F(b=None):
+    """The board's parts as (name, lo, hi) boxes in F."""
+    b = b or HELD_BOARD
+    out = []
+    for name, lo, hi in b["boxes"]:
+        c = board_to_F(np.array([[x, y, z] for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])]), b)
+        out.append((name, c.min(0), c.max(0)))
+    return out
+
+
+def held_chips_F(b=None):
+    """The sensing points of U1-U5 in F."""
+    b = b or HELD_BOARD
+    w = b["chip_h"] - b["sense_below_top"]
+    return {u: board_to_F([cu, cv, w], b) for u, cu, cv in b["chips"]}
 
 
 def tiphold_T_IF(t=None, i=0):
-    """The frame F of the tip on station i in I: pad up on the block's top face, or down from its underside."""
+    """The frame F of the tip on station i in I: pad up on the block's top face, or down from its underside; with
+    HELD_BOARD the board's thickness between the block and the cassette."""
     t = dict(TIPHOLD, **(t or {}))
     ys, mode = t["stations"][i]
-    zc, xs = TIP_F["z_c"], TIP_F["x_seat"]
+    zc, xs = TIP_F["z_c"], TIP_F["x_seat"] + (HELD_BOARD["t"] if HELD_BOARD else 0.0)
     T = np.eye(4)
     if mode == "up":                                       # x_F -> -z_I, y_F -> -y_I, z_F -> -x_I
         T[:3, :3] = [[0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [-1.0, 0.0, 0.0]]
@@ -444,13 +590,14 @@ _HELD = {}
 
 
 def _held_tip():
-    """Surface samples (F) of the held tip's cassette, top cover and pad, with their normals, in a k-d tree."""
+    """Surface samples (F) of the held tip's cassette, top cover (trimmed as CAP_TRIM_X) and pad, with their normals, in
+    a k-d tree."""
     if not _HELD:
         import trimesh
         from scipy.spatial import cKDTree
         pts, nrm = [], []
         for name in ("cover", "cap", "pad"):
-            m = _load(TOOL_PARTS[name][0])
+            m = part_F(name)
             n = int(min(20000, max(500, m.area / 0.4 ** 2)))
             p, fi = trimesh.sample.sample_surface_even(m, n, seed=1)
             pts.append(p)
@@ -461,8 +608,9 @@ def _held_tip():
 
 
 def held_tip_sdf(P_I, t=None):
-    """Signed distance (mm, I) to the held tips. Beyond 3 mm of a tip's bounding box, the distance to the box (a lower
-    bound); nearer, the distance to the nearest surface sample, signed by the eight nearest samples' normals together."""
+    """Signed distance (mm, I) to the held tips and their boards. Beyond 3 mm of a tip's bounding box, the distance to the
+    box (a lower bound); nearer, the distance to the nearest surface sample, signed by the eight nearest samples' normals
+    together. The board's FR-4, J1, its plug and the cable's start are boxes (HELD_BOARD)."""
     t = dict(TIPHOLD, **(t or {}))
     zd, zp = TIP_F["z_ends"]
     best = None
@@ -477,6 +625,8 @@ def held_tip_sdf(P_I, t=None):
             d, j = h["tree"].query(Q, k=8)
             s = np.einsum("ijk,ijk->i", Q[:, None, :] - h["p"][j], h["n"][j])
             out[near] = d[:, 0] * np.where(s < 0.0, -1.0, 1.0)
+        if HELD_BOARD:
+            out = np.min(np.stack([out] + [sd_box(PF, lo, hi) for _, lo, hi in held_board_boxes_F()]), axis=0)
         best = out if best is None else np.minimum(best, out)
     return best
 
@@ -594,6 +744,9 @@ def check():
         Td = SIM.fk(q)
         print("URDF tool0 vs DH:", np.round(C.pose_error(Tu, Td), 6))
     print({k: len(v) for k, v in robot_points().items()}, {k: len(v) for k, v in tool_points().items()})
+    old, cut = part_F("cap", None), part_F("cap")
+    print(f"cap trimmed at x_F {CAP_TRIM_X}: volume {old.volume:.1f} -> {cut.volume:.1f} mm^3, x_F from "
+          f"{old.bounds[0, 0]:.2f} -> {cut.bounds[0, 0]:.2f}, area {old.area:.1f} -> {cut.area:.1f} mm^2")
 
 
 if __name__ == "__main__":

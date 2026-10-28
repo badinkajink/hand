@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-"""Fingertip holder for the UR5 cell (owner, 2026-10-27): two v2 fingertips (pad, cassette 3T and top cover TW15H3, no
-board) held still while v2 ID 1 moves around them without contact, to measure the crosstalk between tips at known poses.
-Each tip's four M2 screws form their threads in 1.9 mm holes that pass through a station block. The two blocks stand
-opposite each other on arms from one column (a T): on the -y station the tip faces down (side by side), on the +y station
-it faces up (the pads facing), so a night run needs no change of tips. The homing seat is the tall indenter's
-(docs/experiments/20261026-tall_indenter) with taller and closer walls, a stop at the fork's palmar end and a key with
-rounded edges, on a tower of its own. The numbers are ur5_cb3_cell.TIPHOLD and TIP_F, which the cell's clearance checks
-read as well.
+"""Fingertip holder for the UR5 cell (owner, 2026-10-27): two fingertips (pad, cassette 3T, top cover TW15H3 trimmed
+flush with the walls, and the ReSkin 5X board) held still while v2 ID 1 moves around them without contact, to measure the
+crosstalk between tips at known poses; the held tips' boards stream too. Each tip's four M2 screws pass through the cassette
+and the board and form their threads in 1.9 mm holes that pass through a station block. The two blocks stand opposite each
+other on arms from one column (a T): on the -y station the tip faces down (side by side), on the +y station it faces up (the
+pads facing), so a night run needs no change of tips. The board lies between the block and the cassette as on the finger's
+tongue, so each tip stands its thickness off the block, and its tab with J1, the plug and the Qwiic cable stands out past
+the block's end. The homing seat is the tall indenter's (docs/experiments/20261026-tall_indenter) with taller and closer
+walls, a stop at the fork's palmar end and a key with rounded edges, on a tower of its own. The numbers are
+ur5_cb3_cell.TIPHOLD, TIP_F and HELD_BOARD, which the cell's clearance checks read as well.
 
     E=~/miniconda3/envs/femtip/bin/python
     RG="$HOME/.claude/bin/resguard.sh run --mem 3G --"
     $RG $E scripts/fingertip_holder.py build                    # STL and parts.json
     $RG env -u PYTHONPATH -u VIRTUAL_ENV PATH=/usr/bin:/bin FHOLD_CMD=step FHOLD_REPO=$PWD freecadcmd scripts/fingertip_holder.py
+    $RG .venv/bin/python scripts/fingertip_holder.py boards      # the held boards in parts.json (chips, J1, screws)
     $RG env UR5_MOUNT=v7 .venv/bin/python scripts/fingertip_holder.py reach --test facing|side
     $RG env UR5_MOUNT=v7 .venv/bin/python scripts/fingertip_holder.py homing
     $RG env UR5_MOUNT=v7 .venv/bin/python scripts/fingertip_holder.py farfield
@@ -99,8 +102,90 @@ def cmd_build(a):
     rec = dict(geometry=g, stl=str(dst.relative_to(REPO)), volume_cm3=round(vol / 1e3, 1),
                mass_g_solid=round(vol / 1e3 * 1.24, 0), bounds_mm=np.round(tm.bounds, 2).tolist(),
                watertight=bool(tm.is_watertight), when=time.strftime("%Y-%m-%d %H:%M"))
+    if PARTS_JSON.exists() and "held_boards" in json.loads(PARTS_JSON.read_text()):
+        rec["held_boards"] = json.loads(PARTS_JSON.read_text())["held_boards"]
     PARTS_JSON.write_text(json.dumps(rec, indent=1))
-    print(json.dumps({k: v for k, v in rec.items() if k != "geometry"}, indent=1))
+    print(json.dumps({k: v for k, v in rec.items() if k not in ("geometry", "held_boards")}, indent=1))
+
+
+# ------------------------------------------------------------------------------------------------ the held tips' boards
+def _first_hit_x(m, y, z, r, n=12, x0=-20.0):
+    """Least x_F at which rays along +x_F, on a circle of radius r about the line (y, z), first enter mesh m."""
+    tri = m.triangles
+    v0, e1, e2 = tri[:, 0], tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]
+    d = np.array([1.0, 0.0, 0.0])
+    p = np.cross(d, e2)
+    det = (e1 * p).sum(1)
+    ok = np.abs(det) > 1e-12
+    inv = np.where(ok, 1.0 / np.where(ok, det, 1.0), 0.0)
+    best = np.inf
+    for a in np.radians(np.arange(n) * 360.0 / n):
+        s = np.array([x0, y + r * math.cos(a), z + r * math.sin(a)]) - v0
+        u = (s * p).sum(1) * inv
+        q = np.cross(s, e1)
+        v = (q @ d) * inv
+        t = (e2 * q).sum(1) * inv
+        hit = ok & (u >= 0) & (v >= 0) & (u + v <= 1) & (t > 1e-9)
+        if hit.any():
+            best = min(best, x0 + float(t[hit].min()))
+    return best
+
+
+def held_boards():
+    """The held tips' boards in I (mm): the FR-4, J1, its plug and the cable's start as boxes, the five chips' sensing
+    points and the board's axes, the tip frame P, where J1 stands past the station block, and the M2 x 8 screws' reach."""
+    import ur5_cb3_cell as CELL
+    b = CELL.HELD_BOARD
+    g = CELL.tiphold_parts()
+    T_FP = np.linalg.inv(T_PF)
+    head_r = 1.6                                    # between the 2.4 mm hole and the cheese head's 3.8 mm
+    seats = []
+    for y, z in CELL.TIP_F["holes"]:
+        x = min(_first_hit_x(CELL.part_F(n), y, z, head_r) for n in ("cover", "cap"))
+        seats.append(dict(y_F=y, z_F=z, head_seat_x_F=round(x, 3), tip_x_F=round(x + 8.0, 3),
+                          into_block_mm=round(x + 8.0 - (b["x_comp"] + b["t"]), 2),
+                          into_block_without_board_mm=round(x + 8.0 - b["x_comp"], 2)))
+    out = dict(
+        source="ur5_cb3_cell.HELD_BOARD: outline, J1 and chips from the ReSkin 5X fabrication files "
+               "(docs/experiments/20261018-dip_link_board_mount/spec.json, board); J1's header, the mated SHR-04V-S-B and the "
+               "cable's first 3 mm as dip_link_concept_a.j1_parts_board, the cable as a flat 4 x 1 mm ribbon; FR-4 0.6 mm "
+               "nominal (ReSkin README, rigid order), not measured on the owner's boards",
+        thickness_mm=b["t"], board_frame="u = y_F, v = z_u1 - z_F (U2 toward the tip's end, the tab toward the PIP joint), "
+                                         "w out of the component face toward the pad; x_F = x_comp - w",
+        sensing_points="0.42 mm under each MLX90393's top, the package 0.9 mm tall on the component face (x_F 3.32)",
+        screws=dict(length_mm=8.0, holes=seats), stations=[])
+    for i, st in enumerate(g["stations"]):
+        T = CELL.tiphold_T_IF(i=i)
+        R = T[:3, :3]
+        boxes = {}
+        for name, lo, hi in CELL.held_board_boxes_F():
+            c = np.array([[x, y, z] for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])])
+            cI = CELL.C.apply(T, c)
+            boxes[name] = [np.round(cI.min(0), 3).tolist(), np.round(cI.max(0), 3).tolist()]
+        (bx0, _, bz0), (bx1, _, bz1) = st["block"]
+        j1x = (boxes["j1"][0][0], boxes["j1"][1][0])
+        out["stations"].append(dict(
+            y_s=st["y_s"], mode=st["mode"], T_IF=np.round(T, 4).tolist(), T_IP=np.round(T @ T_FP, 4).tolist(),
+            chips_I={u: np.round(CELL.C.apply(T, p[None])[0], 3).tolist() for u, p in CELL.held_chips_F().items()},
+            board_axes_I=dict(u=np.round(R @ [0.0, 1.0, 0.0], 3).tolist(), v=np.round(R @ [0.0, 0.0, -1.0], 3).tolist(),
+                              w=np.round(R @ [-1.0, 0.0, 0.0], 3).tolist()),
+            boxes_I=boxes,
+            block_I=dict(x=[round(bx0, 3), round(bx1, 3)], z=[round(bz0, 3), round(bz1, 3)]),
+            past_block_end_mm=dict(
+                end=("-x_I (toward the seat tower and the robot)" if boxes["pcb_tab"][0][0] < bx0 else "+x_I"),
+                tab=round(bx0 - boxes["pcb_tab"][0][0], 2), j1_from=round(bx0 - j1x[1], 2), j1_to=round(bx0 - j1x[0], 2),
+                plug_rear_face=round(bx0 - boxes["plug"][0][0], 2), cable_stub=round(bx0 - boxes["cable"][0][0], 2)),
+            connector_z_I=[min(boxes[k][0][2] for k in ("j1", "plug")), max(boxes[k][1][2] for k in ("j1", "plug"))],
+            apex_I=np.round(held_apex(CELL, i), 3).tolist()))
+    return out
+
+
+def cmd_boards(a):
+    rec = json.loads(PARTS_JSON.read_text())
+    rec["held_boards"] = held_boards()
+    rec["held_boards"]["when"] = time.strftime("%Y-%m-%d %H:%M")
+    PARTS_JSON.write_text(json.dumps(rec, indent=1))
+    print(json.dumps(rec["held_boards"], indent=1))
 
 
 def freecad_step():
@@ -270,10 +355,26 @@ def cmd_farfield(a):
 
 
 # ------------------------------------------------------------------------------------------------ figure
+BOARD_COLOURS = dict(pcb="#228833", pcb_tab="#228833", j1="#e8e8e8", plug="#f4f4f4", cable="#555555")
+
+
+def board_meshes(CELL, T_IF):
+    """A held tip's board (FR-4, J1, plug, cable's start) as meshes in I, faces at most 1 mm across for the clip."""
+    import trimesh
+    out = []
+    for name, lo, hi in (CELL.held_board_boxes_F() if CELL.HELD_BOARD else []):
+        m = trimesh.creation.box(extents=np.subtract(hi, lo))
+        m.apply_translation((np.asarray(lo) + np.asarray(hi)) / 2)
+        m = trimesh.Trimesh(*trimesh.remesh.subdivide_to_size(m.vertices, m.faces, max_edge=1.0))
+        m.apply_transform(T_IF)
+        out.append((m, BOARD_COLOURS[name]))
+    return out
+
+
 def cmd_figures(a):
     """The holder with both held tips; the pads facing 2 mm apart on the +y station; side by side at the least gap that
     passes with s 0 and tw 0 on the -y station. v2 ID 1's finger in blue with its fork cut at z_M 60, the held tips in
-    orange."""
+    orange with their boards in green and J1 with its plug in white."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -294,9 +395,10 @@ def cmd_figures(a):
         for i in range(len(CELL.TIPHOLD["stations"])):
             T_IF = CELL.tiphold_T_IF(i=i)
             for name in ("cover", "cap", "pad"):
-                m = CELL._load(CELL.TOOL_PARTS[name][0])
+                m = CELL.part_F(name)
                 m.apply_transform(T_IF)
                 meshes.append((m, "#ee7733"))
+            meshes += board_meshes(CELL, T_IF)
         if test is not None:
             apex = held_apex(CELL, TESTS[test])
             p = apex + (np.array([0.0, 0.0, gap]) if test == "facing" else np.array([0.0, -(14.8 + gap), 0.0]))
@@ -332,7 +434,8 @@ if os.environ.get("FHOLD_CMD") == "step":           # freecadcmd runs the file a
     freecad_step()
 elif __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("cmd", choices=("build", "reach", "homing", "farfield", "figures"))
+    ap.add_argument("cmd", choices=("build", "boards", "reach", "homing", "farfield", "figures"))
     ap.add_argument("--test", default="facing", choices=tuple(TESTS))
     a = ap.parse_args()
-    dict(build=cmd_build, reach=cmd_reach, homing=cmd_homing, farfield=cmd_farfield, figures=cmd_figures)[a.cmd](a)
+    dict(build=cmd_build, boards=cmd_boards, reach=cmd_reach, homing=cmd_homing, farfield=cmd_farfield,
+         figures=cmd_figures)[a.cmd](a)
