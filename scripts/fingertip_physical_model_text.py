@@ -261,11 +261,11 @@ def sections(N, F, P, link, L):
                 "board, red toward the palm and blue toward the board. The arrow is the change in the board's plane. "
                 "The star marks the load, and the orange arrow the shear's direction. The number is the length of the "
                 "15-component change. Keys in (a): an arrow and a circle of 50 µT.")
-        + "<p>The magnets in the tips today are weaker than N52. Their rest calibrations give strengths of 0.34 on tip 0 "
+        + "<p>The magnets in tips 0 to 2 are weaker than N52. Their rest calibrations give strengths of 0.34 on tip 0 "
         "and 0.47–0.57 on tips 1 and 2. On the checkerboard tips they also put the chips 1.1–1.9 mm farther from the "
         "magnets than the design. A press at the face centre of tip 2 changes the readings by "
         f"{pr['as_built_tip2']:.0f} µT per newton, a quarter of the N52 checkerboard's {pr['checker_N52']:.0f} µT. "
-        "N52 magnets are on order.</p>"
+        "The tip v2 ID 1 has five N52 magnets, and its rest fit gives 0.98 of an N52's strength.</p>"
     )
     S.append(("patterns", "How a reading encodes the contact point and the force", body))
 
@@ -316,6 +316,8 @@ def sections(N, F, P, link, L):
         "0.78–1.31 of the HEX-E's by region. At 0.25 and 0.5 N it places contacts a median 8.7–11.7 mm away. On tip 0 "
         "each press left the reading at rest about 7 µT off, the change of a 0.3 N press. Below 1 N that step is as "
         "large as the press itself.</p>"
+        "<p>The tip v2 ID 1, with N52 magnets, was pressed on 2026-10-26 and 27. Under 1.5 N the model places its presses a "
+        "median 2.0 mm away, against 8.2–9.6 mm for tips 0 to 2 (rows " + P.code("20261027-v1_v2_tips.json") + ").</p>"
         + P.fig(8, F["ur5"], "The untrained model on the UR5 sessions. (a) Median location error by force level. (b) The "
                 "model's normal force over the HEX-E's, by region. Tip 0 (session sphere2) has its magnets all one way; tips "
                 "1 and 2 have the checkerboard. Tip 1 ran twice, on 2026-10-23 and 2026-10-25.")

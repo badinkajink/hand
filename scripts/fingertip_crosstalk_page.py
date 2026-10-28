@@ -37,6 +37,7 @@ L = dict(
     cal=EXP / "20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html",
     steel=EXP / "20261023-foreign_field_rejection",
     holder=EXP / "20261027-fingertip_holder/README.md",
+    v3=EXP / "20261027-v3_tip_calibration_and_crosstalk/README.md",
     gt=EXP / "20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html",
 )
 BLUE, ORANGE, GREY = "#2e5fa8", "#b06010", "0.45"
@@ -423,18 +424,23 @@ def sections(B, S, Sn, f1, f2):
 
     # 7. future work
     fw = [
-        ("The crosstalk test on the UR5.", "Mount the T-shaped holder (" + link(L["holder"], "holder README")
-         + ", <code>scripts/fingertip_holder.py</code>) with a five-magnet v2 tip on each station. Move v2 ID 1 without contact "
-         "through the 45 facing poses (W 0.5&#8211;30&#8202;mm, twists &#8722;20 to +20&#176;) and the side-by-side poses from "
-         "g 13&#8202;mm. Log the board and the robot&#8217;s pose. Compare the measured change with the model at the robot&#8217;s "
-         "pose. A misfit above 1&#8202;% of the field at the closest poses means the model cannot support subtraction, and the "
-         "bounds of Table&#160;2 do not apply."),
-        ("A press beside a neighbour.", "At W 5 and 10&#8202;mm, press v2 ID 1&#8217;s face at 0.5 and 2&#8202;N with the sphere. Fit "
-         "the neighbour&#8217;s pose from v2 ID 1&#8217;s board, with the robot&#8217;s pose as a 0.3&#8202;mm, 0.3&#176; prior. A force "
-         "error above 0.2&#8202;N at 0.5&#8202;N contradicts the one-board bound."),
-        ("Four magnets beside the board.", "Repeat the facing poses with a four-magnet held tip (pad 05R4). The model gives "
-         f"{r4('facing', 0)['norm_uT']:.0f}&#8202;&#181;T at contact; a measured change above twice that rejects the four-magnet "
-         "layout&#8217;s advantage in a pinch."),
+        ("The neighbour&#8217;s field on the holder.", "The " + link(L["v3"], "plan for the four-magnet v3 tips")
+         + " maps it without contact. The robot tip v3 ID 1 dwells at 45 facing poses (W 0.5&#8211;30&#8202;mm, twists "
+         "&#8722;20 to +20&#176;) and 31 side-by-side poses (g 13&#8211;25&#8202;mm). It does so once with both stations of the "
+         "T-shaped holder (" + link(L["holder"], "holder README") + ") empty, and once with v3 ID 2 and ID 3 on them. Each held "
+         "tip&#8217;s pose and strength are fitted in five folds by pose. A held-out residual above 10&#8202;% of the field at "
+         "W 5&#8202;mm and under (3.4&#8202;&#181;T at W 0.5&#8202;mm) means the model cannot be subtracted to the board&#8217;s "
+         "noise. At these poses the held tips&#8217; magnets pull on the robot tip with at most 0.69&#8202;mN "
+         "(<code>scripts/fingertip_crosstalk.py pull</code>)."),
+        ("A pinch between two v3 tips.", "The robot apex presses the held apex on the +y station at 0.25&#8211;3&#8202;N, also "
+         "shifted by &#177;2 and &#177;4&#8202;mm and turned by &#177;10 and &#177;20&#176; (16 actions, 80 holds). The robot "
+         "tip&#8217;s contact is estimated from the raw change, with the modelled field at the commanded pose subtracted, and with "
+         "the held tip&#8217;s pose fitted from the board. With the fitted pose, a force error above 0.2&#8202;N at 0.5&#8202;N "
+         "contradicts the one-board bound of Table&#160;2."),
+        ("A five-magnet neighbour.", "Decision 5 of the plan, about 30&#8202;min with a five-magnet tip on the +y station. Its "
+         "483&#8202;&#181;T at W 0.5&#8202;mm tests the model at 1&#8202;% (4.8&#8202;&#181;T); at v3&#8217;s 34&#8202;&#181;T, "
+         "1&#8202;% is about the board&#8217;s noise. A misfit above 1&#8202;% at the closest poses means the bounds of "
+         "Table&#160;2 do not apply."),
     ]
     S_.append(("future", "Future work", "<ul class=\"open\">" + "".join(f"<li><b>{a}</b> {b}</li>" for a, b in fw) + "</ul>"))
     return S_, lede, summary
