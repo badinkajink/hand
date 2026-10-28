@@ -1051,8 +1051,8 @@ push that answers it arrives.
       dense-700-t+10's slide at 23:58. dense-795-t+15 (2.90 mm) ran at 00:20 without an abort.
     - Tall stage 2, tall morning, the top edge and the sphere twists flag nothing new (mount at least 3.27, 3.26, 4.47
       and 3.72 mm). The rod's pass-1 touch-offs move by 0.2 mm at most.
-    The three scripts (holder_paths, holder_plan, v3_suite) now set UR5_MOUNT=v7 unless it is given. The cell model's
-    own default is still v3.
+    The three scripts (holder_paths, holder_plan, v3_suite) now set UR5_MOUNT=v7 unless it is given, and the lab made v7
+    the cell model's own default at 07:41 (d79eeca4); UR5_MOUNT=v3 still loads v3.
   - 03:12 on 10-28, correction to the rod items above: their mount margins (1.25 to 2.85 mm at contact) were computed on
     the rod seeds, which carry v2 ID 1's tool frames. On v3 ID 1's own (225213: the pad turned 1.55 deg in the mount) the
     fork clears 2.68 mm at seating 2 and 3.45 mm at seating 1 on pad-face-05 (1.25 and 1.98 on v2's), as the lab's
