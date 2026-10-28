@@ -247,7 +247,7 @@ class Physical:
         d.update(k=float(th[0]), dx=float(th[1]), dy=float(th[2]), dz=float(th[3]))
         return W.Calib(**d)
 
-    def fit(self, H, idx, iters=25):
+    def fit(self, H, idx, iters=25, prior_sd=None):
         P, F, D = H["p"][idx], H["f"][idx], H["d_board"][idx]
         M = self.rbf(P).reshape(len(P), 3, self.nm * 6)                   # basis motions per newton at the true points
         sig = np.sqrt((np.tile(np.asarray(W.NOISE_UT, float), 5)[None] / np.sqrt(np.maximum(H["n_rec"][idx], 1))[:, None]) ** 2
@@ -257,7 +257,7 @@ class Physical:
         # point (the pivots): k and the offsets keep priors around the rest's fit (5 %, 0.2 mm), which the rest field
         # determines; the compliance scale is free
         th0 = np.array([self.cal0.k, self.cal0.dx, self.cal0.dy, self.cal0.dz])
-        sd0 = np.array([0.05 * self.cal0.k, 0.2, 0.2, 0.2])
+        sd0 = np.array([0.05 * self.cal0.k, 0.2, 0.2, 0.2]) if prior_sd is None else np.asarray(prior_sd, float)
 
         def resid(th):
             mod = W.Model(self.cal(th))

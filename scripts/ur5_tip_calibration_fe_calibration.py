@@ -15,6 +15,8 @@ grid actions that both ran (matched by id, as scripts/ur5_tip_calibration_four_v
           and the rest fit alone, c = 1).
 The four magnets' rest field leaves their strength k and the board's offset dx nearly interchangeable (the free fit put
 k at its bound 2.0 and dx at 2.69 mm); v3's rest fit is redone with dx within --dx-tol of v2 ID 1's, the same board mount.
+  prior   the fit again from the free and the bounded rest fits, with the priors of predict.Physical and with loose ones:
+          where the presses put the board (dx) and what they fix (the product k c).
   depth   the registered indentation (depth, mm: the sphere's radius less its distance from the pad's centre of
           curvature) against f_n by region, a line fitted per region; the FE's own give at the contact is the normal
           component of the basis's load-weighted displacement per newton (load_u, um/N). The difference of the slopes is
@@ -144,6 +146,33 @@ def run_tip(t, max_n, ids):
     return res
 
 
+def prior_scan(tips, ids, max_n):
+    """Where the presses put the board (owner, 2026-10-28: "i am pretty sure the magnet positions are pretty locked in in
+    the print"): the fit from each tip's rest calibration with the priors of predict.Physical (5 % on k, 0.2 mm on the
+    offsets) and with loose ones (50 %, 2.0 mm along x, 1.0 mm along y and z), each scored under five folds."""
+    out = {}
+    for name, t in tips:
+        H = K.sub(t["H"], np.isin(t["H"]["id"].astype(str), ids))
+        tr = np.nonzero(H["f_n"] <= max_n)[0]
+        fo = HX.folds(H)
+        for pri, sd in (("tight", None), ("loose", [0.5 * t["cal0"].k, 2.0, 1.0, 1.0])):
+            th = PR.Physical(t["cal0"], t["basis"]).fit(H, tr, prior_sd=sd).theta
+            P, Fn = np.full((len(H["id"]), 3), np.nan), np.full(len(H["id"]), np.nan)
+            for k in range(HX.FOLDS):
+                te = np.nonzero(fo == k)[0]
+                phk = PR.Physical(t["cal0"], t["basis"]).fit(H, np.nonzero((fo != k) & (H["f_n"] <= max_n))[0], prior_sd=sd)
+                P[te], Fn[te] = phk.predict(H, te)
+            loc, _, fr = loc_fn(H, np.arange(len(H["id"])), P, Fn)
+            out[f"{name}/{pri}"] = dict(start=dict(k=float(t["cal0"].k), dx=float(t["cal0"].dx)), k=float(th[0]),
+                                        dx=float(th[1]), dy=float(th[2]), dz=float(th[3]), c=float(math.exp(th[4])),
+                                        k_times_c=float(th[0] * math.exp(th[4])), loc_mm=float(np.nanmedian(loc)),
+                                        fn_rel=float(np.nanmedian(fr)))
+            r = out[f"{name}/{pri}"]
+            print(f"{name:18s} {pri:5s}: from k {r['start']['k']:.3f}, dx {r['start']['dx']:.2f} -> k {r['k']:.3f}, dx "
+                  f"{r['dx']:.2f}, c {r['c']:.3f}, k c {r['k_times_c']:.3f}; CV loc {r['loc_mm']:.2f} mm", flush=True)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("v3")
@@ -160,6 +189,8 @@ def main():
                actions=len(ids), E_FE_MPa=E_FE_MPA, made=time.strftime("%Y-%m-%d %H:%M"))
     res["four_v3id1"] = run_tip(t3, a.max_n, ids)
     res["five_v2id1"] = run_tip(t2, a.max_n, ids)
+    t3_free = tip("four (v3 ID 1), free rest fit", a.v3, "four_05R4")
+    res["prior_scan"] = prior_scan((("five", t2), ("four_from_free", t3_free), ("four_from_bounded", t3)), ids, a.max_n)
     for name in ("four_v3id1", "five_v2id1"):
         r = res[name]
         for key in ("all", "0-1", "1-2", "2-3.5", "3.5-8"):

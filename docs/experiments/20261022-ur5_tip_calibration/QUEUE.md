@@ -1090,6 +1090,11 @@ push that answers it arrives.
     to 137 um/N. The fitted c leaves the physical model's location error at 1.61 mm (five) and 2.64 mm (four) under five
     folds (untrained 1.65 and 2.07 mm), against the direction GP's 0.28 and 0.26 mm. The four-magnet rest fit is
     degenerate in strength and board offset (k at its bound 2.0, dx 2.69 mm); calibrate_frames_fixed now takes dx_range.
+  - 02:44 on 10-28, where the magnets sit (owner: "pretty sure the magnet positions are pretty locked in"): the presses
+    put the board's offset dx at 0.74 to 0.75 mm on the four-magnet tip from either rest fit and with loose priors
+    (five: 0.49 mm), and fix only k c (0.758 and 0.719). The physical model's location error (2.65 and 1.61 mm) is the
+    same in every variant: it is the model's residual (4.5 and 4.75 uT per hold), not the magnets' places
+    (predict.Physical.fit takes prior_sd; prior_scan in the FE calibration script).
   - 00:59 on 10-28, four magnets against five on stage 2's whole grid (done 00:56; 160 press actions matched by id,
     818 holds each; `docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data/20261028-four_vs_five_grid.json`).
     The board's change per newton is 28.3 uT/N with four magnets and 52.3 with five at 1 to 2 N; with the same record
