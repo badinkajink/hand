@@ -1038,7 +1038,27 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
-  - 12:13 on 10-28, the four presses back. On the sphere grid's 818 press holds, matched by action and level, v3 ID 1's
+  - 12:42 on 10-28, tall pass 1, the tall checks and the twists. Tall pass 1 ran from 11:49 to 12:21
+    (114908-tallv3id1, c6e4014d). Its 19 touch-offs met the indenter -0.41 to +0.96 mm from the expected contact, and
+    the registration's residual is 0.045 mm rms. It puts the indenter 0.91 mm from 143529's estimate. `lab/cell.json`
+    now places the tall indenter by this pass and the rod by rod pass 1. On this registration, with the rod off and the
+    holder's -y tip pad-down or up (the two agree):
+    - Tall stage 2: 1 of 102 flagged, tall-flank-525 with joint 6 at -63.9 deg against the checker's -62 (-63.3 on
+      143529). The -62 is the margin set at 15:29 on 10-27 for the simulator's overshoot of a nominal -64.8 deg; the
+      lab's simulation now gives -63.9 as well, inside the program's -65, and the lab keeps the press. Mount 3.57,
+      finger 1.33 and HEX-E 22.8 mm at least
+      (`lab/20261028-paths_tall_stage2_v3id1_tallreg_rodoff_*.json`).
+    - Tall morning: no clearance under a margin (mount 3.58, finger 1.68 mm); joint 6 past +45 on all 18, by up to 12.0
+      deg, as built for the owner.
+    - Top edge, rebuilt by `scripts/ur5_tip_calibration_top_edge_pass.py --session lab/20261028-114908-tallv3id1`: 36
+      actions. Presses top-tip-402 and -397 put the finger 0.65 and 0.72 mm from the indenter and are left out; their
+      1 N slides stay. The 34 left clear: mount 3.09, finger 0.85 and HEX-E 27.1 mm, joint 6 -61.9 to +42.0 deg, about
+      0.82 h (`lab/20261028-plan_tall_lab_top_edge_v3id1.json`). It waits for the owner's word.
+    Four magnets against five on the 12 twists (`data/20261028-four_vs_five_twists.json` in the v3 folder; the script
+    now scores twists). The HEX-E's torsion, half the out-back difference at an angle, is 1.26, 1.40 and 2.06 N mm at 1,
+    2.5 and 5 N with four magnets, and 2.53, 4.02 and 3.11 N mm with five. A GP from the board, one twist left out,
+    correlates with it at r 0.42 and 0.38; its error is 82 and 74 % of the torsion's RMS.
+  - 12:09 on 10-28, the four presses back. On the sphere grid's 818 press holds, matched by action and level, v3 ID 1's
     pad goes 0.013 mm deeper than v2 ID 1's at the median (10th to 90th percentile -0.11 to +0.10 mm), and 0.048 mm
     shallower at top levels of 5 N and over. So v2 ID 1's rod depths stand for v3 ID 1. The lab appended the four to
     the rod morning plan (`lab/20261028-plan_rod_lab_morning6_v3id1.json`, 83805231, after stage 2). At the measured
@@ -1046,7 +1066,8 @@ push that answers it arrives.
     (`lab/20261028-paths_rod_morning6_v3id1_measured_depth.json`). The morning files' checks.other still lists the rod at
     its three hand seatings of 10-27, up to 1.2 mm from rod pass 1's registration, and no sphere. Kept as obstacles,
     those seatings put rod-grid-035 0.36 mm closer; the checks above drop them (`--only sphere --only tall --only
-    tiphold`). The lab was asked to correct the files.
+    tiphold`). The lab corrected the files at 12:11 (062be437); its simulation of morning6 gives mount 4.63 and finger
+    1.57 mm.
   - 12:04 on 10-28, the lab's rod stage 2 file and the measured depths. `lab/20261028-plan_rod_lab_stage2_v7_v3id1.json`
     (9247c347, 94 actions at travel.speed 1.0) flags nothing on 102701's registration
     (`lab/20261028-paths_rod_stage2_v7_v3id1.json`): mount 3.52, finger 0.85, HEX-E 32.5 mm at least, joint 5 0.82 deg

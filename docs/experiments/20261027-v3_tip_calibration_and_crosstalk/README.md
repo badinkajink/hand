@@ -5,32 +5,32 @@ fingertip holder, where two more v3 tips with their own boards stand at the two 
 the sphere fixture, the rod and the tall indenter, cut from 15.0 h of robot time to 9.1 h. Last comes a pass on the top
 edge, which the trimmed cap opens. The map ran on 2026-10-27 from 21:21 to 22:52. The suite ran from 22:52 until the HEX-E
 came off its DAQ at 02:54 on 10-28, in sphere stage 2 after its grid and 40 of its 84 slides. On 10-28 the HEX-E streamed
-again from 09:33. The check after its reseat and the sphere twists ran from 09:41 to 10:25 (18 of 18 ok), and rod pass 1
-from 10:27 to 11:46 (registration 0.042 mm rms). The queue below is what is left.
+again from 09:33. The check after its reseat and the sphere twists ran from 09:41 to 10:25 (18 of 18 ok), rod pass 1
+from 10:27 to 11:46 (registration 0.042 mm rms) and tall pass 1 from 11:49 to 12:21 (0.045 mm rms). The queue below is
+what is left.
 
-## Queue for 2026-10-28 from 11:49
+## Queue for 2026-10-28 from 12:23
 
 Robot times are v2 ID 1's measured durations of the same actions; the side-by-side map's are the holder map's, 28 to 32 s
-a hover. Plan files are in `docs/experiments/20261022-ur5_tip_calibration/lab/`. The lab runs the first four rows in this
-order; the rest have no time yet.
+a hover. Plan files are in `docs/experiments/20261022-ur5_tip_calibration/lab/`. The lab runs the first three rows in this
+order; the rest have no time yet. Every plan below was path-checked on its indenter's v3 ID 1 registration (QUEUE.md R31).
 
 | Block | Plan file | Actions | Robot time | Needs first | What it measures |
 |---|---|---|---|---|---|
-| Tall pass 1, running since 11:49 | `20261028-plan_tall_lab_pass1_19_v3id1.json` | 19 | 0.6 h | | the tall indenter's registration for v3 ID 1 |
-| Rod stage 2 | `20261028-plan_rod_lab_stage2_v7_v3id1.json`, the lab's copy without the four presses that bring a screw head or the cover within 0.8 mm of the rod | 94 or fewer | 1.1 h | rod pass 1 | a contact of radius 12.5 mm; with the sphere's it separates the FE's missing compliance into local and series parts |
+| Rod stage 2, running since 12:23, then the rod morning plan | `20261028-plan_rod_lab_stage2_v7_v3id1.json`, `20261028-plan_rod_lab_morning6_v3id1.json` | 94 + 6 | 1.4 h | rod pass 1 | a contact of radius 12.5 mm; with the sphere's it separates the FE's missing compliance into local and series parts |
 | Side by side | `20261028-plan_holder_lab_side_norod30_v3id1.json` | 30 | 0.25 h | the rod fixture off, the -y held tip pad-down | crosstalk between neighbouring fingers at gaps of 15, 20, 25 and 40 mm, with mount v7 3 mm or more from the holder |
 | Tall stage 2 and its morning plan | `20261027-plan_tall_lab_stage2_v3id1.json`, `20261027-plan_tall_lab_morning_v3id1.json` | 102 + 18 | 3.0 h | tall pass 1 | edges and flanks, 6 points pressed by both indenters, and flank presses with joint 6 up to 57.5 deg |
 | Sphere stage 2, the slides left | `20261028-plan_sphere_lab_stage2_resume3_v3id1.json`, resumed on 225213 | 43 | 2.3 h | | 43 of the 44 slides left; slide-dense-795-t+15-1N is out (mount 2.88 mm from the fixture on v7) |
-| Top edge | `20261028-plan_tall_lab_top_edge_v3id1.json`, rebuilt on tall pass 1 | 27 | 0.65 h | tall pass 1, the owner's word | 9 points of the tip's end and 4 edge points; joint 6 at most 42.6 deg |
+| Top edge | `20261028-plan_tall_lab_top_edge_v3id1.json`, rebuilt on tall pass 1 | 34 | 0.82 h | the owner's word | 16 presses and 15 slides on the tip's end, its edge and one flank point; joint 6 at most 42.0 deg |
 | Sphere morning | `20261028-plan_sphere_lab_morning_unattended_v3id1.json` | 43 | 0.75 h | | sphere presses with joint 6 up to 59 deg |
 
-The first four rows take about 5.0 h of robot time, and the last three 3.7 h more. Rod stage 2 is the last block with the
-rod fixture on. Before the side-by-side map, one visit takes the rod fixture off and turns the -y held tip pad-down under
+The first three rows take about 4.7 h of robot time, and the last three 3.9 h more. Rod stage 2 and its morning plan are
+the last blocks with the rod fixture on. Before the side-by-side map, one visit takes the rod fixture off and turns the -y held tip pad-down under
 its block. Turn the tip over about its own long axis, so that its board's connector still points toward -x_I, away from
 the +y tip's. The cell model's pad-down pose (`ur5_cb3_cell.tiphold_T_IF`) has it that way, and the plan's clearances and
 the analysis were computed with it. The map's cell checks need `UR5_TIPHOLD_STATIONS=down,up`, and so does its analysis
-(`scripts/fingertip_crosstalk_holder.py` places the held pads by that model). The tall plans' path checks placed both
-held tips pad-up.
+(`scripts/fingertip_crosstalk_holder.py` places the held pads by that model). The tall plans clear with the -y tip
+pad-down or up, so it can stay down after the map.
 
 ## Terms and metrics
 

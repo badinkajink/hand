@@ -26,6 +26,12 @@ shear, the part of the measured 3D force across the contact normal. Each GP is t
 (presses) and, one slide left out at a time, on those and the tip's other slides (presses_and_other_slides), as
 scripts/ur5_tip_calibration_cb1r_checks.slides does: shear_err_N the median norm of the estimated shear less the
 measured, angle_deg the median angle between the estimated and the measured force.
+Twists (when both sessions have at least five matched twists): the torsion about the contact normal, tn (N mm), scored
+as scripts/ur5_tip_calibration_cb1r_checks.twists does on half the difference between the way out and the way back at
+every angle a twist reached twice (the torsional friction). hexe_* is the HEX-E's by force (1, 2.5 and 5 N); a GP from
+the board's 15 components to tn, one twist left out at a time, is trained on the tip's other twists (gp_twists) or on
+those and its matched presses (gp_presses_and_twists): r its correlation with the HEX-E's half differences, rms_Nmm the
+RMS of its error, hexe_rms_Nmm the RMS of the HEX-E's.
 Bins of f_n: (0, 1], (1, 2], (2, 3.5] and (3.5, 8] N; regions face, edge and flank.
 
     .venv/bin/python scripts/ur5_tip_calibration_four_vs_five.py V3_HOLDS_DIR --v3-session SESSION [--out FILE]
@@ -80,6 +86,25 @@ def slide_scores(Hp, Hs):
             pred, _ = fitter(K.cat(Hp, K.sub(Hs, ~m)), {})
             F[m] = pred(K.sub(Hs, m))[1]
         out[f"{name}_presses_and_other_slides"] = sc(F)
+    return out
+
+
+def twist_scores(Hp, T):
+    pr = K.pairs(T)
+    out = dict(n_holds=int(len(T["id"])), n_twists=int(len(np.unique(T["id"]))), n_pairs=len(pr))
+    for lo, hi, name in ((0.0, 1.5, "1N"), (1.5, 3.5, "2.5N"), (3.5, 9.0, "5N")):
+        h = [abs(p[3]) for p in pr if lo <= p[2] < hi]
+        out[f"hexe_{name}"] = dict(n_pairs=len(h), median_Nmm=K.med(h))
+    x = np.array([p[3] for p in pr])
+    for name, base in (("gp_twists", None), ("gp_presses_and_twists", Hp)):
+        pred = np.full(len(T["id"]), np.nan)
+        for aid in np.unique(T["id"]):
+            m = T["id"] == aid
+            Tr = K.sub(T, ~m) if base is None else K.cat(base, K.sub(T, ~m))
+            pred[m] = K.PR.GP().fit(Tr["d_board"], Tr["tn"][:, None], K.PR.floors(0)[:15]).predict(T["d_board"][m])[:, 0]
+        y = np.array([(pred[p[4][0]] - pred[p[4][1]]) / 2 for p in pr])
+        out[name] = dict(r=float(np.corrcoef(x, y)[0, 1]), rms_Nmm=float(np.sqrt(np.mean((y - x) ** 2))),
+                         hexe_rms_Nmm=float(np.sqrt(np.mean(x ** 2))))
     return out
 
 
@@ -196,6 +221,19 @@ def main():
             r3, r2 = res["slides"]["four_v3id1"][k], res["slides"]["five_v2id1"][k]
             print(f"slides {k:38s} shear error {r3['shear_err_N']:.3f} / {r2['shear_err_N']:.3f} N, angle "
                   f"{r3['angle_deg']:.1f} / {r2['angle_deg']:.1f} deg (four / five; {len(sids)} slides)")
+    T3, T2 = holds(a.v3, "twist"), holds(V2, "twist")
+    tids = sorted(set(T3["id"].astype(str)) & set(T2["id"].astype(str)))
+    if len(tids) >= 5:
+        T3, T2 = (K.sub(T, np.isin(T["id"].astype(str), tids) & np.isfinite(T["tn"])) for T in (T3, T2))
+        res["twists"] = dict(ids=tids, four_v3id1=twist_scores(H3, T3), five_v2id1=twist_scores(H2, T2))
+        t3, t2 = res["twists"]["four_v3id1"], res["twists"]["five_v2id1"]
+        for k in ("1N", "2.5N", "5N"):
+            print(f"twists HEX-E torsion at {k:4s} {t3['hexe_' + k]['median_Nmm']} / {t2['hexe_' + k]['median_Nmm']} N mm "
+                  f"({t3['hexe_' + k]['n_pairs']} / {t2['hexe_' + k]['n_pairs']} pairs; four / five)")
+        for k in ("gp_twists", "gp_presses_and_twists"):
+            print(f"twists {k:22s} r {t3[k]['r']:.2f} / {t2[k]['r']:.2f}, rms {t3[k]['rms_Nmm']:.2f} / {t2[k]['rms_Nmm']:.2f} "
+                  f"N mm against the HEX-E's {t3[k]['hexe_rms_Nmm']:.2f} / {t2[k]['hexe_rms_Nmm']:.2f} (four / five; "
+                  f"{len(tids)} twists)")
     for key, v3 in res["four_v3id1"]["gain_uT_per_N"].items():
         v2 = res["five_v2id1"]["gain_uT_per_N"].get(key)
         n3, n2 = res["four_v3id1"]["nef_N"][key], res["five_v2id1"]["nef_N"].get(key)
