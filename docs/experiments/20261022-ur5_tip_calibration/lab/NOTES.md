@@ -1246,6 +1246,32 @@ at about 340 records/s). The holder's two v3 tips read through the mux board `b4
 - The first four hovers ran at 21:28 to 21:30 in the same session (the watched cut of
   `lab/20261027-plan_holder_lab_map_apex_v3id1.json`): all held, the HEX-E's change at most 0.24 to 0.33 N.
 - The owner left at about 21:00 with the go for the rest unattended ("i told you to just send it ... be careful").
+- 21:39:37, the rest of the map, resumed in the same folder (`logs/20261027-213937-tipcal-holdmapv3id1.log`): 85
+  hovers held, the HEX-E's |F| at most 0.46 N; exit 0 at 22:22:55.
+- One false abort: `hov-fm-W10-x+3`, 10 mm from the -y tip, stopped at 0.52 N on the HEX-E against its contact_N of
+  0.5 N. The far hovers run 0.45 to 0.52 N from the HEX-E's noise and the arm's inertia alone. Retried alone at 22:24:33
+  with contact_N 1.0 (`lab/20261027-plan_holder_lab_map_apex_retry_v3id1.json`): held, at most 0.38 N. The map is
+  complete: 90/90 hovers and the five -y touch-offs.
+
+### The close hovers over the -y tip
+
+- 22:26:40, `20261027-222640-holdclosev3id1`, the workstation's `lab/20261027-plan_holder_lab_map_close_my_v3id1.json`
+  (48 hovers, down to 0.5 mm from the tip): 48/48 held, |F| at most 0.45 N; exit 0 at 22:50:00. Checked in the cell
+  model first with the level frame `lab/20261027-holder-apex-both` (base z_B 71.23).
+
+### v3 ID 1's registration on the sphere
+
+- 22:52:13, `20261027-225213-spherev3id1`, the workstation's `lab/20261027-plan_sphere_lab_pass1_v3id1.json`: 18/18
+  touch-offs, onsets -0.56 to +0.82 mm from the expected, 0.049 mm rms; exit 0 at 23:12:09.
+- Against v2 ID 1's registration (192158): the sphere 0.51 mm and 0.68 deg apart, the tool 0.38 mm and 0.52 deg, the
+  pad frame 0.47 mm and 1.55 deg; the pad points within 0.45 mm.
+- Stage 2 (`lab/20261027-plan_sphere_lab_stage2_v3id1.json`, 264 actions) resumed the same folder at 23:14:27
+  (`logs/20261027-231427-tipcal-spherev3id1.log`). The simulator ran it first in four chunks on v2 ID 1's
+  registration, then again on this pass 1's: 0 aborts, joint 6 -61.7 to +43.9 deg, joint 5 at least 5.1 deg inside its
+  window. Two actions came under the mount's 3.0 mm margin on v3 ID 1's registration: `dense-700-t+10` (2.97 mm in the
+  workstation's path check, 99a8132e; 3.05 mm in the lab's simulation) and `slide-dense-700-t+10-1N` (2.87 mm in the
+  lab's simulation). The run is to stop after `dense-657-t+15` and resume without both
+  (`lab/20261027-plan_sphere_lab_stage2_resume_v3id1.json`, 262 actions).
 
 ## The lab clone and git-lfs
 
