@@ -18,7 +18,7 @@ import os
 
 os.environ.setdefault("MUJOCO_GL", "egl")
 os.environ.setdefault("NUMPY_MADVISE_HUGEPAGE", "0")
-os.environ.setdefault("UR5_MOUNT", "v7")            # the mount on the robot since R25 (2026-10-26)
+os.environ.setdefault("UR5_MOUNT", "v7")            # the mount on the robot since R24 (cb2t, 2026-10-25; lab NOTES)
 
 import argparse  # noqa: E402
 import json  # noqa: E402
