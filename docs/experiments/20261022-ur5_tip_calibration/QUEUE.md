@@ -1038,6 +1038,13 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 13:49 on 10-28: rod stage 2 ended at 13:45 with 94 of 94 ok, no aborts and no HEX-E time-outs (6e6a5225); morning6
+    runs from 13:47. The owner wants the day's runs done before 19:00, to put the other four-magnet tips on. The lab's
+    projected ends at travel.speed 1.0: tall stage 2 about 16:50, the tall morning plan 17:20, the top edge 18:10; the
+    sphere morning plan only if it fits, and resume3's slides wait. The face-centre question of 13:4x is answered in
+    the v3 feed (`scripts/ur5_tip_calibration_centre_coverage.py`, target points left out of training): at the centre
+    four magnets err 0.65, 0.37 and 0.43 mm under 1 N, at 1 to 2 N and over 2 N, five 0.55, 0.24 and 0.23 mm. On the
+    rest of the face a training press 0.5 to 1 mm away gives the same error as one 1 to 1.5 mm away (0.38 mm).
   - 13:39 on 10-28, the owner at 13:2x: "ok i dont want to take the rod fixture or turn the tip pad down, so we can
     just go ahead with the tall plans first. also you can go ahead with the top edge plan, i am here and ready to debug
     as needed". The side-by-side map waits; the rod fixture stays on and both held tips stay up. After rod stage 2 and
