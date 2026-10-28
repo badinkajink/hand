@@ -329,6 +329,8 @@ def analyse(sessions, frame_path, stem, model="nominal"):
                     continue
                 pp = predict(cals[b], cals["robot"], T_B_Pheld[st_b], np.stack([Tp, Tr]))
                 d = mp - 0.5 * (m0 + m1)
+                hv.setdefault("_rel", {})[b] = ("robot", cals[b], np.linalg.inv(T_B_Pheld[st_b]) @ Tp,
+                                               np.linalg.inv(T_B_Pheld[st_b]) @ Tr)
                 hv["boards"][b] = dict(station=st_b, meas=np.round(d, 2).tolist(), meas_uT=round(float(np.linalg.norm(d)), 2),
                                        model_uT=round(float(np.linalg.norm(pp[0] - pp[1])), 2),
                                        model=np.round(pp[0] - pp[1], 2).tolist(),
@@ -343,6 +345,8 @@ def analyse(sessions, frame_path, stem, model="nominal"):
                         Ti = np.linalg.inv(T_) @ T_B_Pheld[k]
                         pm += sign * XT.reading(model_r, sq, Ti[:3, :3], Ti[:3, 3])
                 d = mp - 0.5 * (m0 + m1)
+                hv.setdefault("_rel", {})["robot"] = [(k, cals["robot"], np.linalg.inv(Tp) @ T_B_Pheld[k],
+                                                       np.linalg.inv(Tr) @ T_B_Pheld[k]) for k in held_st]
                 hv["boards"]["robot"] = dict(meas=np.round(d, 2).tolist(), meas_uT=round(float(np.linalg.norm(d)), 2),
                                              model_uT=round(float(np.linalg.norm(pm)), 2), model=np.round(pm, 2).tolist(),
                                              ref_drift_uT=round(float(np.linalg.norm(m1 - m0)), 2))
@@ -373,11 +377,13 @@ def analyse(sessions, frame_path, stem, model="nominal"):
         print(f"{b}: g {g:+.3f}, explains {r2:.3f} of the change's energy over {int(near.sum())} samples at W < "
               f"{NEAR_W:g} mm", flush=True)
     out["net_moment"] = net_moment(rel)
+    hover_moments(out)
     data = V3 / "data" / f"{stem}.json"
     data.parent.mkdir(parents=True, exist_ok=True)
     data.write_text(json.dumps(out, indent=1) + "\n")
     print("->", data.relative_to(ROOT))
     figure(out, samples, V3 / "media" / f"{stem}.png")
+    figure_map(out, V3 / "media" / f"{stem}_hovers.png")
     return out
 
 
@@ -497,6 +503,91 @@ def net_moment(rel, w_max=NEAR_W):
         print(f"held tip {stn}'s net moment from the robot's board: {np.round(m * 1e3, 3).tolist()} mA m^2 "
               f"({100 * np.linalg.norm(m) / M1:.1f} % of one magnet); explained {e}", flush=True)
     return res
+
+
+def hover_moments(out):
+    """Each hover's prediction with the fitted net moments added (the robot tip's for the held boards, the held tips'
+    for the robot's board), and the share of the hovers' measured change it explains, by station and board."""
+    nm = out.get("net_moment", {})
+    m_rob = np.array(nm["robot_tip"]["moment_Am2"]) if "robot_tip" in nm else None
+    tot = {}
+    for hv in out.get("hovers", []):
+        rels = hv.pop("_rel", {})
+        for b, v in hv["boards"].items():
+            add = np.zeros(15)
+            if b.startswith("held") and m_rob is not None and b in rels:
+                _, cal, Tp, Tr = rels[b]
+                add = dipole_basis(cal, Tp[None], Tr)[0] @ m_rob
+                g = nm["robot_tip"]["gains"].get(b, 1.0)
+            elif b == "robot" and "robot" in rels:
+                g = 1.0
+                for k, cal, Tp, Tr in rels["robot"]:
+                    r = nm.get(f"held_tip_{k}")
+                    if r:
+                        add = add + dipole_basis(cal, Tp[None], Tr)[0] @ np.array(r["moment_Am2"])
+                        g = r["gain"]
+            else:
+                continue
+            pm = g * np.array(v["model"]) + add
+            v["model_moment"] = np.round(pm, 2).tolist()
+            v["model_moment_uT"] = round(float(np.linalg.norm(pm)), 2)
+            v["left_uT"] = round(float(np.linalg.norm(np.array(v["meas"]) - pm)), 2)
+            key = (b, hv["station"] if b.startswith("held") else hv["station"])
+            t = tot.setdefault(key, [0.0, 0.0, 0.0])
+            M = np.array(v["meas"])
+            t[0] += float(M @ M)
+            t[1] += float((M - g * np.array(v["model"])) @ (M - g * np.array(v["model"])))
+            t[2] += float((M - pm) @ (M - pm))
+    out["hover_explained"] = {f"{b} at {st}": dict(model=round(1 - t[1] / t[0], 3), model_and_moment=round(1 - t[2] / t[0], 3))
+                              for (b, st), t in tot.items() if t[0] > 0}
+    for k, v in out["hover_explained"].items():
+        print(f"hovers, {k}: explained {v}", flush=True)
+
+
+def figure_map(out, path):
+    """The hover map: each board's change against W, by station and twist, measured (points) and with the moments
+    (open markers)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    hv = [h for h in out.get("hovers", []) if not h["id"].endswith("-rep")]
+    if not hv:
+        return
+    panels = [(b, st) for st in ("+y", "-y") for b in ("held0", "held3", "robot")
+              if any(b in h["boards"] and h["station"] == st and (b == "robot" or out["boards"].get(b, {}).get("station") == st)
+                     for h in hv)]
+    fig, axs = plt.subplots(1, len(panels), figsize=(4.8 * len(panels), 4.3), squeeze=False)
+    cmap = {-20: "tab:purple", -10: "tab:blue", 0: "k", 10: "tab:orange", 20: "tab:red"}
+    for ax, (b, st) in zip(axs[0], panels):
+        hs = [h for h in hv if h["station"] == st and b in h["boards"]]
+        base = {}
+        for h in hs:
+            if abs(h["lateral_mm"][0]) < 1 and abs(h["lateral_mm"][1]) < 1:
+                base.setdefault(round(h["W_mm"]), []).append(h["heading_deg"])
+        h0 = np.median([h["heading_deg"] for h in hs if "t+0" in h["id"]] or [0.0])
+        for h in hs:
+            tw = int(round((h["heading_deg"] - h0) / 10.0) * 10)
+            off = abs(h["lateral_mm"][0]) > 1 or abs(h["lateral_mm"][1]) > 1
+            c = cmap.get(tw, "grey")
+            v = h["boards"][b]
+            ax.plot(h["W_mm"], v["meas_uT"], "s" if off else "o", color=c, ms=5, mfc="none" if off else c)
+            if "model_moment_uT" in v:
+                ax.plot(h["W_mm"], v["model_moment_uT"], "_", color=c, ms=10)
+        who = "robot tip's board" if b == "robot" else f"held board at {st}"
+        ax.set_title(f"{who}, robot over {st}", fontsize=13)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlabel("W, robot apex above the held apex (mm)", fontsize=13)
+        ax.set_ylabel("change at the hover, norm (uT)", fontsize=13)
+        ax.grid(alpha=0.3, which="both")
+    from matplotlib.lines import Line2D
+    handles = [Line2D([], [], marker="o", color=c, ls="", label=f"twist {t:+d} deg") for t, c in cmap.items()]
+    handles += [Line2D([], [], marker="s", color="k", mfc="none", ls="", label="3 mm offset"),
+                Line2D([], [], marker="_", color="k", ls="", ms=10, label="model with net moments")]
+    axs[0][0].legend(handles=handles, fontsize=10)
+    fig.tight_layout()
+    fig.savefig(path, dpi=130)
+    print("->", path.relative_to(ROOT))
 
 
 def figure(out, samples, path):
