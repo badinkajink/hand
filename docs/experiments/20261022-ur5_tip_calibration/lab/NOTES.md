@@ -1315,6 +1315,67 @@ at about 340 records/s). The holder's two v3 tips read through the mux board `b4
 - The sphere's twists, rolls and final references (`lab/20261028-plan_sphere_lab_stage2_twists_v3id1.json`, 18
   actions): mount 4.06 mm, finger 4.70 mm, joint 6 -17.0 to +25.2 deg, the elbow at least 102.9 deg from straight.
 
+The clearances in this section and the one before it are on mount v3. The next section has them on v7.
+
+## 2026-10-28: v3 ID 1 after the HEX-E's reseat
+
+### The cell model's mount
+
+- The lab's cell checks from the evening of 10-27 to 07:40 on 10-28 placed mount v3's parts. The robot has carried v7
+  since R25. The workstation found it at about 07:40; its own path checks had the same default.
+- The cell model (`scripts/ur5_cb3_cell.py`) now loads v7 when `UR5_MOUNT` is unset (d79eeca4). v7's standoff fork
+  reaches about 5.8 mm further toward a neighbour side by side. Elsewhere the two mounts give nearly the same clearances.
+- The simulated paths don't depend on the mount, so only the checks ran again, on v7:
+  - Rod pass 1: 3.35, 2.70 and 3.28 mm on seatings 1, 2 and 3.
+  - The twists plan: 4.28 mm. The check plan: 5.37 mm. The sphere morning plan: 3.13 mm.
+  - The sphere's remaining 62: at least 3.57 mm, except `slide-dense-795-t+15-1N` at 2.88 mm. It is left out of
+    `lab/20261028-plan_sphere_lab_stage2_resume3_v3id1.json`, which holds the 43 slides still to do.
+- Tall pass 1 homed on seating 2 brought `pad-face-01` and `pad-face-04` to 2.34 and 2.35 mm, under 2.5 mm. Without
+  them (`lab/20261028-plan_tall_lab_pass1_19_v3id1.json`, 19 touch-offs) the mount clears by 3.35, 2.63 and 3.76 mm.
+- The workstation rebuilt the side map on v7 (85c0eab6, 38 hovers). In the lab's simulation 8 of them came under
+  3.0 mm: g 14 mm at twist 0, and g 15 mm with s 5 at twist +10, each with its repeat (2.76 to 2.90 mm). Without them
+  (`lab/20261028-plan_holder_lab_side_norod30_v3id1.json`, 30 hovers) the mount clears by 3.75 mm. The map needs the
+  rod fixture off and the -y held tip pad-down; with the rod on, only 4 side poses clear it.
+
+### 09:33 to 12:23
+
+- The HEX-E came back at 09:33:31, after the owner reseated its connector. A 20 s stream gave 2001 samples, no
+  time-outs and no gaps. Untared Fz read 645 N, the sensor's offset after a restart.
+- 09:36:12, the check: `chk-face-00`, `chk-face-03` and `chk-edge-00` met the sphere +0.031, +0.025 and +0.034 mm from
+  the registration's prediction.
+- 09:41:50 to 10:25:26, the twists plan: 2 rolls, 12 twists and 4 final references, all ok.
+- 10:27:01 to 11:46:46, rod pass 1 (`20261028-102701-rodv3id1`): 21 search touch-offs, onsets -0.44 to +0.24 mm,
+  0.042 mm rms, and 5 pivots. The search approaches slowly over 13 mm, about 3.7 min a touch-off.
+- 11:49:08 to 12:21:39, tall pass 1 (`20261028-114908-tallv3id1`): 19 touch-offs, onsets -0.41 to +0.96 mm,
+  0.045 mm rms.
+- 12:23:03, rod stage 2 resumed on rod pass 1's session: 94 actions
+  (`lab/20261028-plan_rod_lab_stage2_v7_v3id1.json`). The rod morning plan follows it with 6 actions
+  (`lab/20261028-plan_rod_lab_morning6_v3id1.json`).
+- Each run's HEX-E summary shows one 0.7 s gap. It falls at the stream's start, while the program configures and
+  tares the DAQ, before preflight.
+- Every plan of the day travels at speed 1.0, as the sphere has since the dropout at 02:54. The paths are the same,
+  so the simulations stand.
+
+### Rod stage 2's four presses
+
+- On rod pass 1's registration the workstation's path check put an M2 head or the cover inside the finger's 0.8 mm
+  margin at `rod-grid-049` (0.48 mm), `rod-more-606` (0.52), `rod-grid-035` (0.61) and `rod-grid-048` (0.67). That
+  check presses to a model depth: the sphere's, scaled as F^(2/3), plus 0.3 mm.
+- At the depths v2 ID 1 reached on the rod, plus 0.3 mm, the four clear by 1.11 to 1.33 mm. v3 ID 1's pad presses
+  within 0.05 mm of v2 ID 1's on the sphere (818 holds; 0.315 against 0.331 mm/N). So the four left stage 2 and joined
+  the morning plan, with `rod-grid-039` (1.36 mm at the measured depth).
+- The lab's simulation of the 94 from home: mount at least 3.52 mm, finger 1.58 mm, joint 6 -56.2 to +30.6 deg. The
+  morning plan's 6: mount 4.63 mm, finger 1.57 mm, joint 6 -53.2 to +38.3 deg, under the +45 deg cap. Joint 5 comes
+  0.3 deg inside its window at `rod-more-606`, now in the morning plan; in the 94 it keeps 0.82 deg (the workstation's
+  check).
+
+### The owner's decisions on 10-28
+
+- "ok reseated can we gogogogo?", and through the workstation "sure the remaining sphere twists sound good": the
+  check, then the twists.
+- "let's run the rod block now yea": rod pass 1 and stage 2 now. The rod fixture comes off after them, and the -y held
+  tip turns pad-down, for the side map.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
