@@ -1207,6 +1207,13 @@ the lab session ("go") at about 15:36.
 - The owner asked for lower lifts between actions ("maybe dont go up quite as much on these lift offs"):
   `lab/20261027-plan_tall_lab_r29_lift30_v2id1.json` is R29 with the travel's lift at 30 mm instead of 60, being
   simulated on the session's registration.
+- 17:44:27 to 19:00:24, the resume on the lift-30 plan (`printout_resume_1744.txt`; `plan_resume_1744.json` is that
+  plan): the preflight, 12 presses, 2 reference presses and slides 1 to 26 of 50, all ok, no aborts.
+- The owner stopped R29 there to put on the next tip ("i would like to go home and swap now please"). SIGINT came as
+  slide 27 started, before it moved. Not done: 24 slides, the 12 twists and the final reference, 37 of 122 actions.
+- The sphere check (`lab/20261027-plan_sphere_lab_check_shear_v2id1.json`, sets a and b) was not run.
+- Home at 19:01:24, on a path checked against the tall indenter. The pad started 1.8 mm from the sphere; no part came
+  closer.
 
 ## The lab clone and git-lfs
 
