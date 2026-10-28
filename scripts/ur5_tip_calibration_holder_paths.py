@@ -109,7 +109,8 @@ class Moves:
             T_ref = self.up(T_pose, h)
             return self.travel(T_prev, T_ref) + [("L", T_ref, T_pose), ("L", T_pose, T_ref)], T_ref, None
         st = float(a.get("standoff", 5.0))
-        at = self.top_I + EZ * st
+        off = a.get("offset", (0.0, 0.0))                  # the program moves the contact point by -offset in I
+        at = self.top_I + EZ * st - np.array([off[0], off[1], 0.0])
         T_rest = self.T_BE(tg["p"], tg["n"], a.get("twist", 0.0), at)
         T_deep = self.up(T_rest, -(st + float(a.get("beyond_mm", 1.2))))
         return self.travel(T_prev, T_rest) + [("L", T_rest, T_deep), ("L", T_deep, T_rest)], T_rest, tg["p"]

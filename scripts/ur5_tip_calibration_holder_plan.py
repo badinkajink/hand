@@ -144,11 +144,15 @@ def run(a):
         acts = first + [x for x in acts if x not in first]
     reps = [dict(copy.deepcopy(x), id=x["id"] + "-rep") for x in acts[:20]]
     touches = []
-    for k in ("" if a.no_touch else "abc"):
-        t = dict(id=f"hold-touch-{k}", stage="pad", kind="touch", target=dict(frame="P", p=APEX_P, n=N_P, index=-1,
-                                                                            region="face"),
-                 twist=0.0, standoff=5.0, beyond_mm=1.2, v=0.00015, stop_N=0.5, fit_N=0.4)
+    offs = [tuple(float(v) for v in o.split(",")) for o in a.touch_offsets.split(";")] if a.touch_offsets else \
+        [(0.0, 0.0)] * (0 if a.no_touch else 3)
+    for k, (dx, dy) in enumerate(offs):                    # the program's offset moves the contact point by -offset in I
+        t = dict(id=f"hold-touch-{'abcdefghijkl'[k]}" + (f"-x{dx:+g}-y{dy:+g}" if (dx or dy) else ""), stage="pad",
+                 kind="touch", target=dict(frame="P", p=APEX_P, n=N_P, index=-1, region="face"), twist=0.0, standoff=5.0,
+                 beyond_mm=float(a.touch_beyond), v=0.00015, stop_N=0.5, fit_N=0.4, offset=[-dx, -dy])
         touches.append(t)
+    if a.touch_only:
+        acts, reps = [], []
     plan = {k: copy.deepcopy(v) for k, v in base.items() if k != "actions"}
     plan["created"] = a.created
     plan["indenter"] = "tiphold"
@@ -198,6 +202,10 @@ if __name__ == "__main__":
     ap.add_argument("--min-w-other", type=float, default=2.0, help="the least facing gap on the -y station (mm), whose "
                     "height comes from the +y touch-offs: the -y tip's own board and screws add about 0.5 mm")
     ap.add_argument("--first", default="", help="hover ids to run first, comma-separated (the owner's watched run)")
+    ap.add_argument("--touch-offsets", default="", help="dx,dy;... (mm in I) of the touch-offs from the +y apex; the -y apex "
+                    "is dy -57 (default three at the apex)")
+    ap.add_argument("--touch-beyond", type=float, default=1.2, help="mm past the expected contact a touch-off goes")
+    ap.add_argument("--touch-only", action="store_true", help="only the touch-offs (the apexes' search)")
     ap.add_argument("--no-touch", action="store_true", help="no touch-offs (the rod fixture in place: wrist 3 at 0.7 mm)")
     ap.add_argument("--z-offset", type=float, default=0.0, help="mm added to the +y held apex's height (touch-offs)")
     ap.add_argument("--j6-min", type=float, default=-62.0)
