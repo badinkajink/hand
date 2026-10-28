@@ -16,7 +16,7 @@ side-by-side map's are the holder map's, 28 to 32 s a hover. Plan files are in `
 | Block | Plan file | Actions | Robot time | Needs first | What it measures |
 |---|---|---|---|---|---|
 | Check after the reseat | `20261028-plan_sphere_lab_check_v3id1.json` | 3 | 5 min | the HEX-E streaming | the sphere's registration, within 0.1 mm |
-| Side by side | `20261028-plan_holder_lab_side_norod_v3id1.json` | 45 | 0.4 h | the -y held tip pad-down, the rod fixture off | crosstalk between neighbouring fingers at gaps of 13 to 25 mm |
+| Side by side | `20261028-plan_holder_lab_side_norod_v3id1.json` | 38 | 0.3 h | the -y held tip pad-down, the rod fixture off | crosstalk between neighbouring fingers at gaps of 14 to 25 mm; at 13 mm mount v7 comes within 2.1 mm of the holder |
 | Sphere stage 2, twists | `20261028-plan_sphere_lab_stage2_twists_v3id1.json` | 18 | 0.7 h | | torsion with four magnets against five: 12 twists, 2 rolls, 4 final references |
 | Sphere stage 2, all that is left | `20261028-plan_sphere_lab_stage2_resume2_v3id1.json` | 62 | 3.1 h | | the twists above and 44 more slides; the 40 that ran give 0.12 against 0.14 N of shear error |
 | Tall pass 1 | `20261027-plan_tall_lab_pass1_v3id1.json` | 21 | 0.6 h | | the tall indenter's registration for v3 ID 1 |
@@ -32,7 +32,7 @@ The whole queue is about 10 h. One order needs a single hands-on visit at 09:00:
    fixture off. Turn the tip over about its own long axis, so that its board's connector still points toward -x_I, away
    from the +y tip's: the cell model's pad-down pose (`ur5_cb3_cell.tiphold_T_IF`) has it that way, and the plan's
    clearances and the analysis assume it.
-2. The check, then the side-by-side map, about 09:15 to 09:45. Its cell checks need `UR5_TIPHOLD_STATIONS=down,up`, and
+2. The check, then the side-by-side map, about 09:15 to 09:40. Its cell checks need `UR5_TIPHOLD_STATIONS=down,up`, and
    so does its analysis (`scripts/fingertip_crosstalk_holder.py` places the held pads by that model).
 3. Turn the -y tip back up, put the rod fixture back, and record a fresh hand seating of the rod (rod_indenter_seated_4,
    about 2 min with teach_hold and record_pose). Rod pass 1 homes on it. If it lies within seatings 1 to 3's spread

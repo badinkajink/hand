@@ -38,6 +38,7 @@ import argparse
 import copy
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -45,6 +46,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+os.environ.setdefault("UR5_MOUNT", "v7")            # the mount on the robot since R25 (2026-10-26)
 import ur5_cb3_cell as CELL  # noqa: E402
 
 C = CELL.C

@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -42,6 +43,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+os.environ.setdefault("UR5_MOUNT", "v7")            # the mount on the robot since R25 (2026-10-26)
 import fingertip_holder as FH  # noqa: E402
 import tall_indenter as TI  # noqa: E402
 import ur5_cb3_cell as CELL  # noqa: E402

@@ -40,6 +40,7 @@ import collections
 import copy
 import glob
 import json
+import os
 import re
 import sys
 import time
@@ -49,6 +50,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+os.environ.setdefault("UR5_MOUNT", "v7")            # the mount on the robot since R25 (2026-10-26)
 import ur5_tip_calibration_suite_value as SV  # noqa: E402
 
 LAB = SV.LAB

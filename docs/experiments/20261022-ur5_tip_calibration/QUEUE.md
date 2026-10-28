@@ -1038,6 +1038,21 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 07:38 on 10-28, correction to the night's path checks: `scripts/ur5_tip_calibration_holder_paths.py` and the holder
+    builder loaded the cell model's default mount, v3. The robot has carried v7 since R25. On v7 the standoff fork
+    reaches about 5.8 mm further toward a neighbour side by side: at g 13 mm it clears the holder by 2.09 mm, against
+    7.92 mm on v3. Rerun on v7:
+    - Side by side: 8 of the 27 poses fall under the mount's 3 mm margin (the three at g 13 mm, and g 14 and 15 mm at
+      twist +10 deg; 1.61 to 2.97 mm). The plan is rebuilt on v7 under the same name,
+      `lab/20261028-plan_holder_lab_side_norod_v3id1.json`: 38 hovers (19 poses at g 14, 15, 20, 25 and 40 mm, 19
+      repeats), about 19 min; path check 0 flagged, mount 3.04 mm, finger 3.60 mm.
+    - Sphere stage 2 (`lab/20261028-paths_sphere_stage2_v3id1_turns.json`, with the turns): slide-dense-795-t+15-1N,
+      not yet run, keeps the mount 2.73 mm from the sphere's fixture, under the 3.0 mm margin that dropped
+      dense-700-t+10's slide at 23:58. dense-795-t+15 (2.90 mm) ran at 00:20 without an abort.
+    - Tall stage 2, tall morning, the top edge and the sphere twists flag nothing new (mount at least 3.27, 3.26, 4.47
+      and 3.72 mm). The rod's pass-1 touch-offs move by 0.2 mm at most.
+    The three scripts (holder_paths, holder_plan, v3_suite) now set UR5_MOUNT=v7 unless it is given. The cell model's
+    own default is still v3.
   - 03:12 on 10-28, correction to the rod items above: their mount margins (1.25 to 2.85 mm at contact) were computed on
     the rod seeds, which carry v2 ID 1's tool frames. On v3 ID 1's own (225213: the pad turned 1.55 deg in the mount) the
     fork clears 2.68 mm at seating 2 and 3.45 mm at seating 1 on pad-face-05 (1.25 and 1.98 on v2's), as the lab's
