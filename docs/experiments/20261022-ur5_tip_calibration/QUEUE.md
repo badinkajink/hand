@@ -1055,6 +1055,14 @@ push that answers it arrives.
     1.83 uT, so the force whose signal equals one record's noise is 61 and 32 mN. Under five folds grouped by action
     the direction GP places the contact 0.41 and 0.45 mm from the registered point (median) and its force errs by 7.2
     and 5.5 %; under 1 N by 13.8 and 10.2 %. The full comparison follows when stage 2 ends.
+  - 00:43 on 10-28: the top-edge pass, for the owner's morning (`scripts/ur5_tip_calibration_top_edge_pass.py`). On
+    143529's registration it has 27 actions, about 0.64 h (`lab/20261028-plan_tall_lab_top_edge_v3id1_on143529.json`,
+    a stand-in until v3 ID 1's tall pass 1 registers). It presses 9 points of the tip's end at 0.25 to 2 N and 4 edge
+    points at 0.25 to 3 N, with 11 slides at 1 N and 3 reference presses (ids top-*). Joint 6 stays at 42.6 deg or
+    less. The plan sets travel.lift_mm to 20 mm: at 60 mm the lifted travel brought the elbow within 3.7 deg of
+    straight (pressing the tip's end stretches the arm). The path check with turns flags nothing
+    (`lab/20261028-paths_tall_top_edge_v3id1_on143529.json`): the elbow stays 26.3 deg or more from straight, the
+    finger clears by 1.52 mm and the mount by 4.32 mm. Not to run before the owner says so.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call

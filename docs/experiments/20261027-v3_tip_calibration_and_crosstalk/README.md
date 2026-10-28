@@ -148,8 +148,25 @@ before), 9 of them at 1 mm spacing, and 19 to 24 more edge points (`scripts/ur5_
 It reaches one more flank point: 346 of the 402 flank points it misses fail on joints 5 and 6 at every turn. The four M2
 screws beside the pad have button heads (owner, 20:2x), 3.5 mm across and domed, 1.3 mm proud of the trimmed face. They
 cost 4 flank points with the finger's margin at 0.8 mm and 12 at 1.5 mm; flat 3.8 mm cheese heads, as the model had
-them before, cost 11 and 13 to 14. This pass runs last, the next morning, with joint 6 to +58 deg while the owner is present; it needs
-its own force levels for the tip region.
+them before, cost 11 and 13 to 14. This pass runs last, the next morning, with the owner present.
+
+`scripts/ur5_tip_calibration_top_edge_pass.py` builds it on the tall indenter's registration. Its targets are the
+points of the tip's end, the edges and the flanks that no press target of v3 ID 1's plans comes within 1.0 mm of,
+thinned to 1.0 mm. The tip's end takes the flanks' levels, 0.25 to 2 N. On 143529's registration (v2 ID 1's tall pass 1,
+standing in until v3 ID 1's), the pass has 27 actions and about 0.64 h of robot time
+(`lab/20261028-plan_tall_lab_top_edge_v3id1_on143529.json`):
+
+| Actions | Tip's end | Edges | Flanks |
+|---|---|---|---|
+| Presses | 9 | 4 | 0 |
+| Slides at 1 N | 8 | 3 | 0 |
+
+Three reference presses at the face's centre complete it. No flank point beyond the plans' own is reached, even with
+joint 6 allowed to +58 deg. Joint 6 stays at 42.6 deg or less. Pressing the tip's end points the finger down at the
+indenter, so the arm stands stretched. The program's lifted travel at the plans' 60 mm brought the elbow within 3.7 deg
+of straight. The pass therefore sets travel.lift_mm to 20 mm, and its path check flags nothing: the elbow stays 26.3 deg
+or more from straight, the finger clears by 1.52 mm and the mount by 4.32 mm. The plan is rebuilt on v3 ID 1's own tall
+pass 1.
 
 ## Code
 
