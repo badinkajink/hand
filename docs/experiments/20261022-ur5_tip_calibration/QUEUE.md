@@ -1038,6 +1038,29 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 14:46 on 10-28, the HEX-E and the next tip's night. The HEX-E stopped at 14:32:30 in the travel into tall-edge-627
+    (DAQ: no sensor). Tall stage 2 stopped after three aborts with 44 of its 102 actions done. Both dropouts came while
+    wrist 1 swung from negative to positive with wrist 2 rising (14:32: wrist 1 -28.5 to +24.7 deg, wrist 2 65.8 to
+    91.9; 02:54: -45 to +3 and 46 to 67), so the lab reads a marginal connector that the cable's bend across wrists 1
+    and 2 unseats. After the owner's fix the lab checks the stream, goes home, runs the 3 sphere check touch-offs and
+    resumes the 58.
+    The night suite for the next four-magnet tip (v3id2 until it has an ID), `scripts/ur5_tip_calibration_next_tip_suite.py`,
+    about 11.7 h at travel.speed 1.0, checks.other from `lab/cell.json`, in this order:
+    1. `lab/20261028-plan_sphere_lab_pass1_night_v3id2.json`: 18 touch-offs, its registration.
+    2. `lab/20261028-plan_sphere_lab_stage2_night_v3id2.json`: 211 actions, about 6.1 h. It is v3 ID 1's stage 2 without
+       the 53 speed variants and the four actions under the mount's margin on v7 (dense-700-t+10, dense-795-t+15 and
+       their slides), with centre-799, -775, -777 and -765 after the grid. These are presses at 0.25 to 5 N on the only
+       FE nodes within 2 mm of the apex that no press targets. On 225213 with the rod on, 0 flagged; mount 3.15, finger
+       0.95, HEX-E 25.7 mm at least (`lab/20261028-paths_sphere_stage2_night_v3id2_on225213.json`).
+    3. Tall pass 1 and stage 2 night: today's 19 and 102.
+    4. `lab/20261028-plan_rod_lab_pass1_night_v3id2.json`: the 21 touch-offs with the normal approach (3.5 mm above to
+       1.2 mm past; 16 min on v2 ID 1 against 76 min for today's search) and the 5 pivots. The program resumes a seed
+       folder from `scripts/ur5_tip_calibration_seed_registration.py --tool <the tip's sphere pass 1>/registration.json
+       --fixture lab/20261028-102701-rodv3id1/registration.json --out lab/<date>-rod-seed-<tip>` with --stages
+       preflight,pad,pivot,register; `--no-home` if the mount came off the flange during the swap. On a seed of 225213's
+       tool, 0 of 26 flagged, mount 3.32 mm.
+    5. `lab/20261028-plan_rod_lab_stage2_night_v3id2.json`: the 94 and morning6's six before rod-final-ref; 0 of 100
+       flagged at v2 ID 1's measured depths.
   - 13:49 on 10-28: rod stage 2 ended at 13:45 with 94 of 94 ok, no aborts and no HEX-E time-outs (6e6a5225); morning6
     runs from 13:47. The owner wants the day's runs done before 19:00, to put the other four-magnet tips on. The lab's
     projected ends at travel.speed 1.0: tall stage 2 about 16:50, the tall morning plan 17:20, the top edge 18:10; the
