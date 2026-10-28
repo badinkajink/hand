@@ -179,8 +179,11 @@ def to_contact(seg, q0, reg):
     return ("L", T0, slerp_T(T0, T1, hi)), hi * L
 
 
+KIND = "tiphold"                                            # the plan's indenter kind (plan["indenter"]), set in run
+
+
 def clear_groups(q, T, reg, contact_P):
-    cl = CELL.clearance(q, T, reg.T_BI, reg.T_EM, "tiphold", contact_P=contact_P)
+    cl = CELL.clearance(q, T, reg.T_BI, reg.T_EM, KIND, contact_P=contact_P)
     g = {}
     for k, v in cl.items():
         grp = next((n for n, names in GROUPS.items() if k in names), "robot")
@@ -189,7 +192,9 @@ def clear_groups(q, T, reg, contact_P):
 
 
 def run(a):
+    global KIND
     plan = json.loads(Path(a.plan).read_text())
+    KIND = plan.get("indenter", "tiphold")
     mv = Moves(plan, a.session)
     reg = mv.reg
     CELL.BOARD.update(plan["checks"]["board"])
@@ -212,7 +217,11 @@ def run(a):
     T_prev = C.Tm(T_prev[:3, :3], T_prev[:3, 3] + T_prev[:3, :3] @ reg.T_EM[:3, :3] @ np.array([-12.0, 0.0, 0.0]))
     q = SIM.ik(T_prev, q)
     rows, flagged = [], []
+    skipped = []
     for ai, act in enumerate(plan["actions"]):
+        if act["kind"] not in ("touch", "hover"):          # presses, turns and gravity poses: the lab's simulator
+            skipped.append(act["id"])
+            continue
         segs, T_end, cP = mv.action_moves(act, T_prev)
         m = dict(sin5=9.0, q3=999.0, shoulder=1e9, lim=999.0, j5_margin=999.0, j6_margin=999.0)
         cl = {}
@@ -268,7 +277,9 @@ def run(a):
             lc[k] = min(lc.get(k, 1e9), v)
     print(f"{len(rows)} actions, {len(flagged)} flagged; least over all: "
           + ", ".join(f"{k} {v:.2f}" for k, v in least.items()) + "; clear " + str({k: round(v, 2) for k, v in lc.items()}))
-    out = dict(plan=str(a.plan), session=str(a.session), holder_T_BI=np.round(T_true, 5).tolist(), other=[dict(kind=o["kind"],
+    if skipped:
+        print(f"{len(skipped)} actions of other kinds not replayed: {sorted(set(x.split('-')[0] for x in skipped))}")
+    out = dict(plan=str(a.plan), session=str(a.session), kind=KIND, skipped=skipped, holder_T_BI=np.round(T_true, 5).tolist(), other=[dict(kind=o["kind"],
                origin_B=np.round(np.array(o["T_BI"])[:3, 3], 1).tolist()) for o in other], least=least, least_clear=lc,
                rows=rows, flagged=flagged)
     Path(a.out).write_text(json.dumps(out, indent=1) + "\n")
