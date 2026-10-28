@@ -1029,6 +1029,10 @@ push that answers it arrives.
     2.6 mm from it at the touch-offs). Without the rod: `lab/20261027-plan_holder_lab_map_norod_v3id1.json` (178b27b5,
     on holder_seated_2), 49 facing and 32 side-by-side hovers, 41 min, wrist 2 20.95 and HEX-E 21.6 mm at least. Open:
     the owner's choice (rod off, move the holder, or the 26 hovers that clear), and the seatings' 4.3 to 4.9 deg tilt.
+  - 19:25 on 10-27: the owner reads the tilt as the 2x4's bow, so the lab homes on holder_seated_2 and simulates the
+    no-rod plan. Fallback if the rod stays (78d65621): `lab/20261027-plan_holder_lab_map_rodin_v3id1.json`, no
+    touch-offs, 21 facing hovers at W 3 mm and over and the far poses W 45 and g 40 mm, 20 repeats, about 18 min, wrist 3
+    8.11 mm at least; no side-by-side map with the rod in.
 
 - R23 (lapsed at 19:47 on 10-23: sph3t's registration was made on mount v3, and v5 replaces it. Today's finger, when it
   returns, gets its own touch-offs and registration on v5.) (16:34 on 10-23; the lab's request of 16:35, and the owner: no rehoming). The check of today's finger when it goes
