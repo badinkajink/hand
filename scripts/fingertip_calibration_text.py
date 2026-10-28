@@ -46,6 +46,9 @@ def sections(N, F, P, link, L):
     # v3 ID 1's 12 twists of 2026-10-28, 09:41 to 10:25, against v2 ID 1's of the same ids (feed line of 12:25)
     TW = jl(V3D / "20261028-four_vs_five_twists.json")["twists"]
     tw4, tw5 = TW["four_v3id1"], TW["five_v2id1"]
+    # the face centre's error with the press targets in folds, four magnets against five (owner, 10-28 13:4x; feed line
+    # of 13:48)
+    CC = jl(V3D / "20261028-centre_coverage_by_target.json")
     # press coverage of the pad by region (owner, 10-28, on the density of coverage; scripts/ur5_tip_calibration_coverage.py)
     CV = jl(V3D / "20261028-press_coverage_by_region.json")
     C2, V2S, V2T, V2R, V3S = ("cb2t (10-25)", "v2 ID 1 sphere", "v2 ID 1 sphere + tall", "v2 ID 1 sphere + tall + rod",
@@ -572,6 +575,17 @@ def sections(N, F, P, link, L):
     ps4 = lambda k: [v[k] for n, v in FE["prior_scan"].items() if n.startswith("four")]  # noqa: E731
     ps5 = lambda k: [v[k] for n, v in FE["prior_scan"].items() if n.startswith("five")]  # noqa: E731
     fe_give = [f["depth"][r]["fe_give_um_per_N"] for f in (f4, f5) for r in REG]
+    # the direction GP by region and force, and on the rest of the face by the distance to the nearest training target
+    c4, c5 = CC["four_v3id1"]["gp_direction"], CC["five_v2id1"]["gp_direction"]
+    cb = lambda c, reg, b, key="loc_mm": c["by_force"][f"{reg} {b} N"][key]  # noqa: E731
+    cn = lambda c, b: c["by_nearest_training_press"][f"rest_of_face nearest {b} mm"]  # noqa: E731
+    CB = ("0-1", "1-2", "2-8")
+    n_cen = sum(cb(c4, "centre", b, "n") for b in CB)
+    cen_near = [k for k in c4["by_nearest_training_press"] if k.startswith("centre")]
+    assert cen_near == ["centre nearest 1-1.5 mm"] and c4["by_nearest_training_press"][cen_near[0]]["n"] == n_cen
+    n_cc = sum(r["n"] for r in c4["by_force"].values())
+    near5 = [cn(c5, b)["loc_mm"] for b in ("0.5-1", "1-1.5", "1.5-2.5")]
+    assert n_cc == sum(r["n"] for r in c5["by_force"].values()) and n_cen == sum(cb(c5, "centre", b, "n") for b in CB)
     body = (
         "<p>v3 ID 1 has four N52 magnets in an alternating 5.0 mm square under pad 05R4. In the readout model of "
         + link(L["overview"], "the fingertip overview") + ", four magnets give 1.8 times the noise-equivalent force of "
@@ -580,8 +594,9 @@ def sections(N, F, P, link, L):
         f"the mount 0.47 mm and 1.55°. Stage 2 of its suite began at 23:14. Its grid stage of {G['actions']} press actions "
         "ended at 00:56 on 2026-10-28, and the stage's slides came next. At 02:54 the HEX-E fell off its acquisition after 40 "
         "of the 84 slides, and the stage stopped. The owner reseated the sensor's connector, and it read again from 09:33. "
-        "From 09:41 to 10:25 the stage's 2 rolls, 12 twists and 4 final reference presses ran. Its remaining slides are "
-        "still to run.</p>"
+        "From 09:41 to 10:25 the stage's 2 rolls, 12 twists and 4 final reference presses ran. The touch-offs on the rod "
+        "and on the tall indenter followed, from 10:27 to 12:21. Stage 2 on the rod then ran all 94 of its actions, from "
+        "12:23 to 13:45. The sphere's remaining slides are still to run.</p>"
         f"<p>Both tips were scored on the same {G['actions']} press actions of the grid stage, paired by action, with "
         f"{G['holds']['v3']} holds each (Figure 10). With four magnets the signal per newton is about half: "
         f"{gn('1-2')[0]:.1f} against {gn('1-2')[1]:.1f} µT/N at 1 to 2 N. On the face it is {gn('face')[0]:.1f} against "
@@ -600,9 +615,52 @@ def sections(N, F, P, link, L):
         + P.fig(10, F["four_five"], "Four N52 magnets (v3 ID 1, orange) against five (v2 ID 1, blue) on the same press "
                 f"actions of the low sphere's grid stage, {G['holds']['v3']} holds each. (a, b) Signal per newton by normal "
                 "force and by region. (c, d) Location and force error of the direction GP, five folds grouped by action.")
+        + "<p><b>Error at the face centre.</b> The face centre is the apex over the board's centre chip U1, at "
+        f"$(y, z) = ({CC['apex_yz_mm'][0]:g}, {CC['apex_yz_mm'][1]:g})$ mm in the pad frame. Face holds whose contact lies "
+        f"within 2 mm of it count as central. Both tips ran {CC['actions']} press actions of the same ids on the low sphere, "
+        f"{n_cc:,} holds each, and {n_cen} of each tip's holds are central. For Table 9 the press targets were split into "
+        "five folds, and each fold was left out of training in turn. Each estimate is therefore of a point that no "
+        "training hold pressed. The folds by action of Figure 10 keep the other actions at the same point in training. "
+        f"Under 1 N central holds are placed by the direction GP within {cb(c4, 'centre', '0-1'):.2f} mm with four magnets "
+        f"and {cb(c5, 'centre', '0-1'):.2f} mm with five. From 1 N up, four magnets give "
+        f"{rg([cb(c4, 'centre', b) for b in CB[1:]])} mm. With five the error is "
+        f"{rg([cb(c5, 'centre', b) for b in CB[1:]])} mm. On the rest of the face, under 1 N, four magnets give "
+        f"{cb(c4, 'rest_of_face', '0-1'):.2f} mm against {cb(c5, 'rest_of_face', '0-1'):.2f} mm with five. At the centre "
+        f"the board changes by {rg([cb(c4, 'centre', b, 'gain_uT_per_N') for b in CB], '{:.1f}')} µT/N with four magnets, "
+        f"against {rg([cb(c5, 'centre', b, 'gain_uT_per_N') for b in CB], '{:.1f}')} with five. Untrained, the physical "
+        "model of Table 12 places the four-magnet tip's holds of 1 N and over within "
+        f"{rg([f4['untrained'][b]['loc_mm'] for b in ('1-2', '2-3.5', '3.5-8')], '{:.1f}')} mm.</p>"
+        "<p>Every central hold has a training target 1 to 1.5 mm from its own. On the rest of the face, with four "
+        f"magnets, holds whose nearest training target is 0.5 to 1 mm away err by {cn(c4, '0.5-1')['loc_mm']:.2f} mm, "
+        f"over {cn(c4, '0.5-1')['n']} holds. Those at 1 to 1.5 mm err by {cn(c4, '1-1.5')['loc_mm']:.2f} mm as well, "
+        f"over {cn(c4, '1-1.5')['n']} holds. At 1.5 to 2.5 mm the error is {cn(c4, '1.5-2.5')['loc_mm']:.2f} mm, over "
+        f"{cn(c4, '1.5-2.5')['n']} holds. With five magnets the same three groups give {near5[0]:.2f}, {near5[1]:.2f} "
+        f"and {near5[2]:.2f} mm. The record noise was then added once to each held-out board change, as "
+        f"Gaussian noise of {g4['noise_uT']:.2f} and {g5['noise_uT']:.2f} µT. The centre's error under 1 N doubles, to "
+        f"{cb(c4, 'centre', '0-1', 'loc_one_record_mm'):.2f} mm with four magnets and "
+        f"{cb(c5, 'centre', '0-1', 'loc_one_record_mm'):.2f} mm with five ("
+        + P.code(str((V3D / "20261028-centre_coverage_by_target.json").relative_to(ROOT))) + ", "
+        + P.code("scripts/ur5_tip_calibration_centre_coverage.py") + ").</p>"
+        + P.table(["Region", "Normal force", "Holds, four / five", "Location error, four magnets (mm)",
+                   "Location error, five magnets (mm)", "With record noise, four / five (mm)",
+                   "Signal per newton, four / five (µT/N)"],
+                  [[rn if b == CB[0] else "", bn, f"{cb(c4, rk, b, 'n')} / {cb(c5, rk, b, 'n')}", f"{cb(c4, rk, b):.2f}",
+                    f"{cb(c5, rk, b):.2f}",
+                    f"{cb(c4, rk, b, 'loc_one_record_mm'):.2f} / {cb(c5, rk, b, 'loc_one_record_mm'):.2f}",
+                    f"{cb(c4, rk, b, 'gain_uT_per_N'):.1f} / {cb(c5, rk, b, 'gain_uT_per_N'):.1f}"]
+                   for rk, rn in (("centre", "Centre"), ("rest_of_face", "Rest of the face"),
+                                  ("edge_and_flank", "Edges and flanks"))
+                   for b, bn in zip(CB, ("Under 1 N", "1 to 2 N", "2 to 8 N"))],
+                  caption=f"Location error of the direction GP by region and normal force on the {CC['actions']} press "
+                          f"actions of the low sphere, {n_cc:,} holds on each tip: medians over the holds. The press "
+                          "targets were split into five folds, each left out of training in turn. Central holds lie "
+                          "within 2 mm of the apex over chip U1. With record noise: Gaussian noise with the record noise as its standard deviation, "
+                          f"{g4['noise_uT']:.2f} and {g5['noise_uT']:.2f} µT, added to each held-out board change. Rows "
+                          "in " + P.code(str((V3D / "20261028-centre_coverage_by_target.json").relative_to(ROOT))) + " ("
+                          + P.code("scripts/ur5_tip_calibration_centre_coverage.py") + ").", n=9)
         + "<p><b>Shear on the slides.</b> Before the stop, v3 ID 1 ran 40 slides at 1 and 2 N, and v2 ID 1 ran the same "
         f"slides, with {SL['four_v3id1']['n_holds']:,} turn holds each. The HEX-E measured a median shear of "
-        f"{rg([SL[t]['hexe_shear_N'] for t in SL])} N on both tips (Table 9). A board GP trained on each tip's presses "
+        f"{rg([SL[t]['hexe_shear_N'] for t in SL])} N on both tips (Table 10). A board GP trained on each tip's presses "
         f"alone estimates the shear within {sl4('gp_presses')['shear_err_N']:.3f} N with four magnets and "
         f"{sl5('gp_presses')['shear_err_N']:.3f} N with five. With the other slides in training, one slide left out at a "
         f"time, it errs by {sl4('gp_presses_and_other_slides')['shear_err_N']:.3f} and "
@@ -622,7 +680,7 @@ def sections(N, F, P, link, L):
                           "slides of v2 ID 1: the median length of the error of the estimated shear, and the force angle. "
                           "With the other slides, one slide is left out of training at a time. Rows in "
                           + P.code(str((V3D / "20261028-four_vs_five_slides40.json").relative_to(ROOT))) + " ("
-                          + P.code("scripts/ur5_tip_calibration_four_vs_five.py") + ").", n=9)
+                          + P.code("scripts/ur5_tip_calibration_four_vs_five.py") + ").", n=10)
         + "<p><b>Torsion on the twists.</b> On the 12 twists, the torsion estimated by a board GP correlates with the "
         f"HEX-E's at $r$ = {tw4['gp_twists']['r']:.2f} with four magnets and {tw5['gp_twists']['r']:.2f} with five. v2 ID 1's "
         f"twists of the same ids are the comparison, with {tw4['n_holds']} holds on each tip. The twists reached "
@@ -637,7 +695,7 @@ def sections(N, F, P, link, L):
         f"{tw4['gp_presses_and_twists']['r']:.2f} and {tw5['gp_presses_and_twists']['r']:.2f}. On v3 ID 1 the torsion's "
         f"median magnitude is {tw4['hexe_1N']['median_Nmm']:.2f} N mm at 1 N and {tw4['hexe_5N']['median_Nmm']:.2f} N mm "
         f"at 5 N. On v2 ID 1 it is {tw5['hexe_1N']['median_Nmm']:.2f} and {tw5['hexe_5N']['median_Nmm']:.2f} N mm "
-        "(Table 10).</p>"
+        "(Table 11).</p>"
         + P.table(["Quantity", "Four magnets, v3 ID 1", "Five magnets, v2 ID 1"],
                   [[f"Median torsion at {f} N (N mm)", f"{tw4['hexe_' + k]['median_Nmm']:.2f}",
                     f"{tw5['hexe_' + k]['median_Nmm']:.2f}"] for f, k in (("1", "1N"), ("2.5", "2.5N"), ("5", "5N"))]
@@ -653,10 +711,10 @@ def sections(N, F, P, link, L):
                           "estimate of zero. $r$ is the correlation between the half difference of the GP's estimates and "
                           "the HEX-E's torsion, with one twist left out of training at a time. Rows in "
                           + P.code(str((V3D / "20261028-four_vs_five_twists.json").relative_to(ROOT))) + " ("
-                          + P.code("scripts/ur5_tip_calibration_four_vs_five.py") + ").", n=10)
+                          + P.code("scripts/ur5_tip_calibration_four_vs_five.py") + ").", n=11)
         + "<p><b>Physical model of pad 05R4.</b> Pad 05R4's FE case and surface basis were built on 2026-10-28 on b_v2's "
         f"grid and depth, with the four magnets. On the same {FE['actions']} grid actions, the magnets' strength, the "
-        f"board's offsets and the compliance scale $c$ were fitted to the holds up to {f4['fit']['max_n']:g} N (Table 11). "
+        f"board's offsets and the compliance scale $c$ were fitted to the holds up to {f4['fit']['max_n']:g} N (Table 12). "
         f"The fit gives $c$ = {f4['fit']['c']:.3f} with four magnets and {f5['fit']['c']:.3f} with five. The fitted "
         f"modulus is therefore {f4['fit']['E_fit_MPa']:.1f} and {f5['fit']['E_fit_MPa']:.1f} MPa, "
         f"against the FE's {FE['E_FE_MPa']:g} MPa. The registered indentation grows by {rg(dep(f4), '{:.0f}')} µm/N with "
@@ -687,7 +745,7 @@ def sections(N, F, P, link, L):
                           f"slope of the registered indentation against the normal force; the FE gives {rg(fe_give, '{:.0f}')} "
                           "µm/N. Location errors are medians under five folds grouped by action. Rows in "
                           + P.code(str((V3D / "20261028-fe_calibration.json").relative_to(ROOT))) + " ("
-                          + P.code("scripts/ur5_tip_calibration_fe_calibration.py") + ").", n=11)
+                          + P.code("scripts/ur5_tip_calibration_fe_calibration.py") + ").", n=12)
     )
     S.append(("v3id1", "Four N52 magnets against five on v3 ID 1", body))
 
