@@ -36,6 +36,7 @@ L = dict(
     steel=EXP / "20261023-foreign_field_rejection/20261023-foreign_field_rejection.html",
     gt=EXP / "20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html",
     cal=EXP / "20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html",
+    xt=EXP / "20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html",
     overview=ROOT / "docs/overviews/printed_fingertips.html",
     contact=ROOT / "docs/overviews/contact_model.html",
 )
@@ -54,11 +55,17 @@ def build():
              likelihood=MEDIA / "20261026-likelihood_maps.png", ur5=MEDIA / "20261026-ur5_untrained_model.png",
              film=EXP / "20261020-fingertip_contact_estimation/media/20261020-viewer_surface_presses.mp4",
              film_poster=EXP / "20261020-fingertip_contact_estimation/media/20261020-viewer_surface_presses.png")
+    # the four-magnet pad 05R4 leads (owner, 2026-10-28); the five-magnet figures above follow in collapsed blocks
+    F.update({k + "4": MEDIA / f"20261028-{n}_four.png" for k, n in (
+        ("anatomy", "fingertip_anatomy"), ("chain", "model_chain"), ("fe", "fe_sections"), ("field", "magnet_field"),
+        ("patterns", "press_patterns"), ("likelihood", "likelihood_maps"), ("ur5", "ur5_untrained_model"))})
     S, lede, summary, film_html = sections(N, F, P, link, L)
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S, 1))
-    byline = ("Models of the pad B05R on DIP link b v4 (FE case b_v2), the five-chip ReSkin 5X board and the UR5 sessions "
-              "sphere2, cb1t, cb1r and cb2t. Figures by " + P.code("scripts/fingertip_physical_model_figures.py")
+    byline = ("Models of the pads 05R4 (four magnets, FE case b_05R4) and B05R (five, b_v2) on DIP link b v4, the "
+              "five-chip ReSkin 5X board and the UR5 sessions sphere2, cb1t, cb1r and cb2t of tips 0 to 2 and the grid "
+              "stage of v3 ID 1 and v2 ID 1. The four-magnet layout was chosen on 2026-10-28; each five-magnet figure "
+              "follows its four-magnet one under \u201cView with 5 magnets\u201d. Figures by " + P.code("scripts/fingertip_physical_model_figures.py")
               + " from the FE of " + P.code("scripts/fingertip_physical_model_fe.py") + "; page by "
               + P.code("scripts/fingertip_physical_model_page.py") + ". The topic overview is "
               + link(L["overview"], "printed fingertips and force sensing") + "; the sphere pads that represent this "

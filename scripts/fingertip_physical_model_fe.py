@@ -14,8 +14,11 @@ and U2) and y = 2.5 mm (through two corner magnets), the material class of the c
 motion.
 
     ~/.claude/bin/resguard.sh run --mem 4G --cpu 300 -- ~/miniconda3/envs/femtip/bin/python \
-        scripts/fingertip_physical_model_fe.py
-writes docs/experiments/20261026-fingertip_physical_model/data/20261026-fe_sections.npz
+        scripts/fingertip_physical_model_fe.py [--case b_05R4] [--classes]
+writes docs/experiments/20261026-fingertip_physical_model/data/20261026-fe_sections.npz (--classes: the slicer's classes in
+the two sections, 20261026-aux_class_sections.npz). --case b_05R4 solves pad 05R4 with its four magnets in a 5.0 mm
+square, the layout the owner chose on 2026-10-28 ("i think we will stick with the 4 magnet config"), and writes
+20261028-fe_sections_05R4.npz and 20261028-aux_class_sections_05R4.npz; there the section y = 2.5 mm cuts two magnets.
 """
 from __future__ import annotations
 
@@ -28,20 +31,22 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-OUT = ROOT / "docs/experiments/20261026-fingertip_physical_model/data/20261026-fe_sections.npz"
+DATA = ROOT / "docs/experiments/20261026-fingertip_physical_model/data"
+OUT = {"b_v2": DATA / "20261026-fe_sections.npz", "b_05R4": DATA / "20261028-fe_sections_05R4.npz"}
+AUX = {"b_v2": DATA / "20261026-aux_class_sections.npz", "b_05R4": DATA / "20261028-aux_class_sections_05R4.npz"}
 R_SPHERE = 5.0
 APEX_YZ = (0.5, 10.36)                    # the pad's apex (y, z) in the tip frame, mm (the surface basis's highest point)
 SECTIONS = (0.0, 2.5)                     # y of the two sections, mm
 
 
-def main():
+def main(case="b_v2"):
     import fe_contact_calibration_fe as FE
     import tpu_tip_fem_tip as T
     import tpu_tip_magnet as TM
     import v2_tip_fe_checks as V
 
     t0 = time.time()
-    c = V.CASES["b_v2"]
+    c = V.CASES[case]
     sh, G, mat_id, mats, lay, counts, recipe = V.mat_ids(c)
     # material class of every cell in each section: -1 void, 0 wall and skin (solid TPU), 1 core, 2 magnet
     jsec = [int(np.argmin(np.abs(G.cy - y))) for y in SECTIONS]
@@ -71,7 +76,7 @@ def main():
     W = model.compliance(nodes[cand], block=100)
     out = dict(sections_y=np.array(SECTIONS), xs=G.xs, zs=G.zs, cy=G.cy[jsec], cls=cls_sec,
                magnet_nodes_centre=np.array([model.X[i].mean(0) for i in mn]), sphere_R=R_SPHERE, sphere_xc_first_touch=xc,
-               apex_yz=np.array(APEX_YZ), n_dof=len(model.free), recipe=str(recipe))
+               apex_yz=np.array(APEX_YZ), n_dof=len(model.free), recipe=str(recipe), case=case)
     sec_nodes = [np.where(np.abs(model.X[:, 1] - G.ys[np.argmin(np.abs(G.ys - y))]) < 1e-9)[0] for y in SECTIONS]
     for k, ids in enumerate(sec_nodes):
         out[f"sec{k}_X"] = model.X[ids]
@@ -94,7 +99,7 @@ def main():
         out[f"{name}_approach_um"] = 1e3 * d
         out[f"{name}_contact_X"] = model.X[ids]
         out[f"{name}_contact_p"] = pa
-        out[f"{name}_magnets"] = mot                    # (5, 6): translation (um) and rotation (mrad)
+        out[f"{name}_magnets"] = mot                    # (magnets, 6): translation (um) and rotation (mrad)
         for k, sids in enumerate(sec_nodes):
             out[f"{name}_sec{k}_u"] = (1e3 * u[sids]).astype(np.float32)   # um
         surf_u = 1e3 * u[nodes]
@@ -102,14 +107,15 @@ def main():
         out[f"{name}_face_u"] = surf_u.astype(np.float32)
         print(f"{name}: approach {1e3 * d:.1f} um, contact nodes {len(ids)}, magnet travel "
               f"{np.round(np.linalg.norm(mot[:, :3], axis=1), 2)} um", flush=True)
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(OUT, **out)
+    path = OUT[case]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(path, **out)
     peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6
-    print(f"wrote {OUT.relative_to(ROOT)} ({OUT.stat().st_size / 1e6:.1f} MB), {time.time() - t0:.0f} s, peak RSS "
+    print(f"wrote {path.relative_to(ROOT)} ({path.stat().st_size / 1e6:.1f} MB), {time.time() - t0:.0f} s, peak RSS "
           f"{peak:.2f} GB", flush=True)
 
 
-def aux_classes():
+def aux_classes(case="b_v2"):
     """The slicer's material classes on the 0.05 mm auxiliary grid (0 void, 1 wall, 2 skin, 3 core, 4 magnet) in the two
     sections, as v2_tip_fe_checks.mat_ids computes them before sampling them onto the FE cells."""
     import curved_tips_fe as CF
@@ -118,7 +124,7 @@ def aux_classes():
     import tpu_tip_fem_tip as T
     import tpu_tip_magnet as TM
     import v2_tip_fe_checks as V
-    c = V.CASES["b_v2"]
+    c = V.CASES[case]
     sh = V.TG.shape(V.KEY)
     CF.install(sh)
     lay = V.layout_of(c)
@@ -130,7 +136,7 @@ def aux_classes():
         TD.inside_body = inside
     h = TM.H_AUX
     js = [int(round((y - o[1]) / h - 0.5)) for y in SECTIONS]
-    out = OUT.with_name("20261026-aux_class_sections.npz")
+    out = AUX[case]
     np.savez_compressed(out, cls=np.stack([cls[:, j, :] for j in js]), origin=np.array(o), h=h,
                         y=np.array([o[1] + (j + 0.5) * h for j in js]), shape=np.array(cls.shape))
     print(f"wrote {out.relative_to(ROOT)}: classes {cls.shape}, sections at y {[o[1] + (j + 0.5) * h for j in js]}",
@@ -138,7 +144,12 @@ def aux_classes():
 
 
 if __name__ == "__main__":
-    if "--classes" in sys.argv:
-        aux_classes()
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--case", default="b_v2", choices=sorted(OUT))
+    ap.add_argument("--classes", action="store_true", help="the slicer's material classes in the two sections")
+    a = ap.parse_args()
+    if a.classes:
+        aux_classes(a.case)
     else:
-        main()
+        main(a.case)
