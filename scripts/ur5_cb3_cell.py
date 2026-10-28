@@ -29,12 +29,14 @@ UR_DESC = next((p for p in (Path.home() / "Programs/rh56_controller/magpie_force
                             Path.home() / "workspace/rh56_controller/magpie_force_control/src/ur_description")   # UR5's PC
                 if p.exists()), Path.home() / "Programs/rh56_controller/magpie_force_control/src/ur_description")
 URDF = UR_DESC / "ur5.urdf"
-# The mount: v3 of 2026-10-21 by default; UR5_MOUNT=v4 takes v4 of 2026-10-23 (v3 with the stop plate behind the tongue,
-# the same frames and PIP_M), whose parts the builder writes to their own folder; UR5_MOUNT=v5 takes v4's parts and the PLA
-# wedge in the stop plate's gap, as the space it takes over all its seats (stop_wedge_swept)
+# The mount: v7 of 2026-10-25 by default, the robot's since R25 (until 2026-10-28 the default was v3, and checks run
+# without UR5_MOUNT placed v3's fork); UR5_MOUNT=v3 takes v3 of 2026-10-21; UR5_MOUNT=v4 takes v4 of 2026-10-23 (v3 with
+# the stop plate behind the tongue, the same frames and PIP_M), whose parts the builder writes to their own folder;
+# UR5_MOUNT=v5 takes v4's parts and the PLA wedge in the stop plate's gap, as the space it takes over all its seats
+# (stop_wedge_swept)
 _MOUNT_STEM = {"v3": "20261021-ur5_calibration_mount_v3", "v4": "20261023-ur5_calibration_mount_v4",
                "v5": "20261023-ur5_calibration_mount_v5", "v6": "20261023-ur5_calibration_mount_v6",
-               "v7": "20261025-ur5_calibration_mount_v7"}[os.environ.get("UR5_MOUNT", "v3")]
+               "v7": "20261025-ur5_calibration_mount_v7"}[os.environ.get("UR5_MOUNT", "v7")]
 MOUNT = ROOT / "docs/experiments" / _MOUNT_STEM / "cad"
 FINGER = ROOT / "docs/experiments/20261018-dip_link_board_mount/v4/b/cad"
 TOOL_PARTS = {   # name: (file, frame)
