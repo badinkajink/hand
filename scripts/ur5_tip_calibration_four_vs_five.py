@@ -35,6 +35,7 @@ RMS of its error, hexe_rms_Nmm the RMS of the HEX-E's.
 Bins of f_n: (0, 1], (1, 2], (2, 3.5] and (3.5, 8] N; regions face, edge and flank.
 
     .venv/bin/python scripts/ur5_tip_calibration_four_vs_five.py V3_HOLDS_DIR --v3-session SESSION [--out FILE]
+    the rod: ... V3_ROD_HOLDS_DIR --v3-session SESSION --v2 data/20261027-095303-rodv2id1 --v2-session lab/20261027-095303-rodv2id1
 """
 from __future__ import annotations
 
@@ -194,16 +195,20 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("v3")
     ap.add_argument("--v3-session", required=True, help="v3 ID 1's session folder (its board.bin, for the noise)")
+    ap.add_argument("--v2", default=str(V2), help="v2 ID 1's holds (default its sphere session; the rod's: "
+                    "data/20261027-095303-rodv2id1)")
+    ap.add_argument("--v2-session", default=str(V2_SESSION), help="v2 ID 1's session folder (its board.bin)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
-    H3, H2 = holds(a.v3), holds(V2)
+    v2, v2_session = Path(a.v2).resolve(), Path(a.v2_session)
+    H3, H2 = holds(a.v3), holds(v2)
     ids = sorted(set(H3["id"].astype(str)) & set(H2["id"].astype(str)))
     H3 = K.sub(H3, np.isin(H3["id"].astype(str), ids))
     H2 = K.sub(H2, np.isin(H2["id"].astype(str), ids))
-    res = dict(script="scripts/ur5_tip_calibration_four_vs_five.py", v3=str(a.v3), v2=str(V2.relative_to(ROOT)),
+    res = dict(script="scripts/ur5_tip_calibration_four_vs_five.py", v3=str(a.v3), v2=str(v2.relative_to(ROOT)),
                actions=len(ids), holds=dict(v3=len(H3["id"]), v2=len(H2["id"])),
                regions={r: int(len(set(H3["id"][H3["region"] == r].astype(str)))) for r in REGIONS})
-    res["four_v3id1"], res["five_v2id1"] = score(H3, a.v3_session), score(H2, V2_SESSION)
+    res["four_v3id1"], res["five_v2id1"] = score(H3, a.v3_session), score(H2, v2_session)
     for name in ("gp", "gp_direction"):
         for key in ["all"] + [f"{lo:g}-{hi:g}" for lo, hi in BINS] + list(REGIONS):
             r3, r2 = res["four_v3id1"][name].get(key), res["five_v2id1"][name].get(key)
@@ -212,7 +217,7 @@ def main():
                       f"force {100 * r3['force_rel_err']:.1f} / {100 * r2['force_rel_err']:.1f} %  "
                       f"angle {r3['angle_deg']:.1f} / {r2['angle_deg']:.1f} deg  normal {r3['normal_deg']:.1f} / "
                       f"{r2['normal_deg']:.1f} deg   (four / five)")
-    S3, S2 = holds(a.v3, "slide"), holds(V2, "slide")
+    S3, S2 = holds(a.v3, "slide"), holds(v2, "slide")
     sids = sorted(set(S3["id"].astype(str)) & set(S2["id"].astype(str)))
     if len(sids) >= 5:
         S3, S2 = (K.sub(S, np.isin(S["id"].astype(str), sids)) for S in (S3, S2))
@@ -221,7 +226,7 @@ def main():
             r3, r2 = res["slides"]["four_v3id1"][k], res["slides"]["five_v2id1"][k]
             print(f"slides {k:38s} shear error {r3['shear_err_N']:.3f} / {r2['shear_err_N']:.3f} N, angle "
                   f"{r3['angle_deg']:.1f} / {r2['angle_deg']:.1f} deg (four / five; {len(sids)} slides)")
-    T3, T2 = holds(a.v3, "twist"), holds(V2, "twist")
+    T3, T2 = holds(a.v3, "twist"), holds(v2, "twist")
     tids = sorted(set(T3["id"].astype(str)) & set(T2["id"].astype(str)))
     if len(tids) >= 5:
         T3, T2 = (K.sub(T, np.isin(T["id"].astype(str), tids) & np.isfinite(T["tn"])) for T in (T3, T2))
