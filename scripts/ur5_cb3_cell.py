@@ -493,7 +493,10 @@ def tall_sdf(P, tip=True, t=None):
 # z_F -87.91.
 # Both held tips stand on their blocks' top faces, facing up (owner, 2026-10-27 19:50: "neither is underneath"); the design
 # put the -y tip under its block for side-by-side poses, which "down" restores.
-TIPHOLD = dict(stations=((-28.5, "up"), (28.5, "up")), x_s=0.0, z_bot=40.0, T=12.0, col_r=14.0,
+# The +y tip is turned 180 deg about the vertical, its end toward -x_I and its board's connector toward +x_I (owner,
+# 2026-10-27 19:59: "the left side fingertip, the one closer to the sphere indenters, needs to be rotated 180 degrees about
+# the Z axis"); tiphold_T_IF turns it about its screw pattern's centre (0.09 mm from the face's centre).
+TIPHOLD = dict(stations=((-28.5, "up"), (28.5, "up")), turn_deg=(0.0, 180.0), x_s=0.0, z_bot=40.0, T=12.0, col_r=14.0,
                base=(-40.0, 40.0, -30.0, 98.0, 8.0), key_y=75.0, mouth_x=-22.0, mouth_z=30.0,
                seat=dict(wall_gap=0.2, wall_h=(14.0, 14.0, 11.5, 9.5), stop=dict(gap=0.1, t=4.0, h=9.5),
                          key_r=0.8, key_top=5.0))
@@ -557,6 +560,14 @@ def tiphold_T_IF(t=None, i=0):
     else:                                                  # x_F -> z_I, y_F -> y_I, z_F -> -x_I
         T[:3, :3] = [[0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]]
         T[:3, 3] = (t["x_s"] + zc, ys, t["z_bot"] - xs)
+    turn = float((t.get("turn_deg") or (0.0,) * len(t["stations"]))[i])
+    if turn:                                               # about x_F (the vertical) through the screw pattern's centre
+        th = math.radians(turn)
+        Rx = np.array([[1.0, 0.0, 0.0], [0.0, math.cos(th), -math.sin(th)], [0.0, math.sin(th), math.cos(th)]])
+        c = np.array([0.0, 0.0, float(np.mean([z for _, z in TIP_F["holes"]]))])
+        Tc = np.eye(4)
+        Tc[:3, :3], Tc[:3, 3] = Rx, c - Rx @ c
+        T = T @ Tc
     return T
 
 
