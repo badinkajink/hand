@@ -496,7 +496,9 @@ it is 52.3&#8202;&#181;T. The record noise is alike, 1.77 and 1.83&#8202;&#181;T
 therefore 63&#8202;mN with four magnets and 35&#8202;mN with five. The same ratio, 1.8, was predicted by the readout model. The
 calibrated errors stay alike. With the direction GP, contacts are placed within 0.26 and 0.28&#8202;mm, and the force errs
 by 5.0 and 5.1&#8202;%. On the 40 slides, a board GP trained with the other slides gives the shear within 0.123&#8202;N
-with four magnets and 0.140&#8202;N with five. The physical model on pad 05R4&#8217;s FE basis places contacts within
+with four magnets and 0.140&#8202;N with five. On 2026-10-28 the tip ran stage 2 on the 12.5&#8202;mm rod. On the 75
+press actions that v2 ID 1 also ran there, contacts are placed by the direction GP within 0.36&#8202;mm with four magnets and 0.33&#8202;mm
+with five. The physical model on pad 05R4&#8217;s FE basis places contacts within
 2.64&#8202;mm with four magnets and 1.61&#8202;mm with five
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id1),
 Section 11).</p>
