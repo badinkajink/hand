@@ -1215,6 +1215,38 @@ the lab session ("go") at about 15:36.
 - Home at 19:01:24, on a path checked against the tall indenter. The pad started 1.8 mm from the sphere; no part came
   closer.
 
+## 2026-10-27 evening: v3 ID 1 on the robot, the tip holder
+
+The owner put v3 ID 1 on the robot at about 19:05. The robot's board is still the S3 `b4:3a:45:b0:9c:d0` (five chips
+at about 340 records/s). The holder's two v3 tips read through the mux board `b4:3a:45:b0:d9:94`, channels 0 and 3, at
+206 records/s each. Runs pass both ports by id (`--board`, `--held-board`).
+
+### Seatings by hand
+
+- The holder: `holder_seated` to `_3` (19:13 to 19:19) and, after the owner doubted the tilt, `_4` to `_6` (19:51 to
+  19:54). All six tilt the holder 3.2 to 4.9 deg and differ by up to 4.9 mm and 3.5 deg at the flange. At the seat
+  the HEX-E passes about 2 mm from the low sphere; the owner saw the wrist "just barely" clear it.
+- The rod blocked most of the holder's map, so the owner moved it about 97 mm along -x_B and re-homed it:
+  `rod_indenter_seated` to `_3` (19:36 to 19:42). Its seatings differ by up to 4 deg, mostly a roll about the tool axis.
+- The runs home on `holder_seated_5`, the middle of the last three.
+
+### Touch-offs on the held tips
+
+- 20:05:36, `20261027-200536-holdv3id1`, three touch-offs on the +y tip's planned apex: all three found nothing. The
+  robot's apex went 1.24 mm below the planned apex, within 0.1 mm of it sideways.
+- 20:24:26, `20261027-202426-holdapexv3id1`, the workstation's apex search (five touch-offs reaching 6 mm past): all
+  found contact, 2.87 to 4.04 mm below the plan. The workstation's fit puts the +y apex 2.86 mm low and 2.50 mm toward
+  -y_I, flat along x (rms 0.024 mm). A level holder through that apex sits at z_B 71.35, beside the tall indenter's
+  71.2 on the same 2x4.
+- 21:21:31, `20261027-212131-holdmapv3id1`, the five -y touch-offs of the level frame's plan: onsets +0.15 to +0.62 mm
+  from its prediction. The holder is level; the hand seatings sat about 4 deg off in the seat.
+
+### The crosstalk map
+
+- The first four hovers ran at 21:28 to 21:30 in the same session (the watched cut of
+  `lab/20261027-plan_holder_lab_map_apex_v3id1.json`): all held, the HEX-E's change at most 0.24 to 0.33 N.
+- The owner left at about 21:00 with the go for the rest unattended ("i told you to just send it ... be careful").
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
