@@ -3,9 +3,40 @@
 This plan measures the four-magnet tip v3 ID 1 on the robot. It runs in three parts. First comes the crosstalk map on the
 fingertip holder, where two more v3 tips with their own boards stand at the two stations. Next comes v2 ID 1's suite on
 the sphere fixture, the rod and the tall indenter, cut from 15.0 h of robot time to 9.1 h. Last comes a pass on the top
-edge, which the trimmed cap opens. The map takes about 1 h with its touch-offs. Its plan is built (`lab/20261027-plan_holder_lab_map_v3id1.json`)
-and waits on the owner's homing on the holder: the owner stopped R29 at 19:00 on 2026-10-27 to put v3 ID 1 on. Before
-the suite, the lab program needs the speed changes listed under Code.
+edge, which the trimmed cap opens. The map ran on 2026-10-27 from 21:21 to 22:52. The suite ran from 22:52 until the HEX-E
+came off its DAQ at 02:54 on 10-28, in sphere stage 2 after its grid and 40 of its 84 slides. The queue below is what is
+left.
+
+## Queue for 2026-10-28 from 09:00
+
+Everything waits for the HEX-E. R29's dropout of 10-26 cleared by itself and this one did not, so its connector may need
+strain relief and not only a reseat (lab, 03:58). Robot times are v2 ID 1's measured durations of the same actions; the
+side-by-side map's are the holder map's, 28 to 32 s a hover. Plan files are in `docs/experiments/20261022-ur5_tip_calibration/lab/`.
+
+| Block | Plan file | Actions | Robot time | Needs first | What it measures |
+|---|---|---|---|---|---|
+| Check after the reseat | `20261028-plan_sphere_lab_check_v3id1.json` | 3 | 5 min | the HEX-E streaming | the sphere's registration, within 0.1 mm |
+| Side by side | `20261028-plan_holder_lab_side_norod_v3id1.json` | 45 | 0.4 h | the -y held tip pad-down, the rod fixture off | crosstalk between neighbouring fingers at gaps of 13 to 25 mm |
+| Sphere stage 2, twists | `20261028-plan_sphere_lab_stage2_twists_v3id1.json` | 18 | 0.7 h | | torsion with four magnets against five: 12 twists, 2 rolls, 4 final references |
+| Sphere stage 2, all that is left | `20261028-plan_sphere_lab_stage2_resume2_v3id1.json` | 62 | 3.1 h | | the twists above and 44 more slides; the 40 that ran give 0.12 against 0.14 N of shear error |
+| Tall pass 1 | `20261027-plan_tall_lab_pass1_v3id1.json` | 21 | 0.6 h | | the tall indenter's registration for v3 ID 1 |
+| Top edge | `20261028-plan_tall_lab_top_edge_v3id1.json`, rebuilt on tall pass 1 | 27 | 0.65 h | tall pass 1, the owner's word | 9 points of the tip's end and 4 edge points; joint 6 at most 42.6 deg |
+| Tall stage 2 | `20261027-plan_tall_lab_stage2_v3id1.json` | 102 | 2.5 h | tall pass 1 | edges and flanks, and 6 points pressed by both indenters |
+| Tall morning | `20261027-plan_tall_lab_morning_v3id1.json` | 18 | 0.5 h | tall pass 1 | flank presses with joint 6 up to 57.5 deg |
+| Rod | `20261027-plan_rod_lab_pass1_search_v3id1.json`, then `..._stage2_v3id1.json` | 26 + 98 | 1.5 h and the lab's re-check | the rod fixture on | a contact of radius 12.5 mm; with the sphere's it separates the FE's missing compliance into local and series parts |
+| Sphere morning | `20261028-plan_sphere_lab_morning_unattended_v3id1.json` | 43 | 0.75 h | | sphere presses with joint 6 up to 59 deg |
+
+The whole queue is about 10 h. One order needs a single hands-on visit at 09:00:
+
+1. Reseat the HEX-E's connector with strain relief, turn the -y held tip pad-down under its block, and take the rod
+   fixture off.
+2. The check, then the side-by-side map, about 09:15 to 09:45. Its cell checks need `UR5_TIPHOLD_STATIONS=down,up`.
+3. Turn the -y tip back up and put the rod fixture back; rod pass 1 searches its new seating.
+4. From about 09:55 unattended: the sphere twists (to about 10:35), tall pass 1 (11:10), the top edge (11:50), tall stage 2
+   and its morning plan (14:45), the rod (16:15 and the re-check), the sphere morning plan (17:00). Running all 62 sphere
+   actions in place of the twists alone moves the end to about 19:25.
+
+Leaving out both morning plans as well ends the day near 15:45.
 
 ## Terms and metrics
 
