@@ -18,9 +18,14 @@ model 0.23 and 0.12 N, five-N52 model 3.8 N; the W 7-11 medians are computed fro
 Lede and summary lead with the sharpie width; press signal per newton from data/20261028-four_vs_five_grid.json (21.9
 against 48.1 uT/N); Figure 6 the hover render; numbering by SEC/FIG/TAB; future work has the side-by-side plan of the
 owner's morning (85c0eab6, rebuilt on mount v7). The builder reads the coordinator's v3 files AT HEAD and warns when the holder file's
-"made" differs from HOLD_MADE (22:50). Overview: crosstalk paragraph and two bullets (fd38e26c to dc8b6478), unchanged
-since (no quoted crosstalk number changed). Remaining on the holder: the five-fold pose fit (fingertip_crosstalk.py,
+"made" differs from HOLD_MADE (22:50). Remaining on the holder: the five-fold pose fit (fingertip_crosstalk.py,
 coordinator), the side-by-side hovers (morning), the pinch plan.
+Overview (docs/overviews/printed_fingertips.html): crosstalk paragraph and two bullets (fd38e26c to dc8b6478); step 13
+(09:56, e6f9b9b1 and 57830be8, owner 09:3x) brought it up to the night's calibration: lede, terms (board GP, direction
+GP, noise-equivalent force), the v2 ID 1 hard-press and tall paragraph and a v3 ID 1 paragraph in "Transfer to other
+magnets" (links #v2id1, #v3id1), the open questions on light presses, the force reference and the magnets, mount v7 in
+Hardware and Future work. Prose 538 sentences, 17.1 mean, 2.8 % over 30, 266/1000. Direction 14: later calibration
+results that change those sentences update the overview after the calibration page.
 Calibration page 41747b29 (step 9, done 02:05; the ledger's "02:2x" is wrong): Sections 10 (v2 ID 1) and 11 (v3 ID 1,
 with line 16's FE calibration as Table 9, line 17's "Where the magnets sit" in 1d775a10, and line 18's shear on the
 first 40 slides as Table 8 in 6f782848); v3 ID 1's stage 2 stopped at 02:54 (HEX-E off its DAQ after 40 of 84
@@ -29,9 +34,11 @@ the tall, the rod; the comparison is rerun at the stage's end).
 For the owner: the 21:44 line's "matches the robot's board within 10 % to W 5 mm" is not in its bins (model +4 % at
 contact, -10 to -22 % from W 0.3 to 5 mm), so the page leaves it out; the 20:45 feed line says twists to +20 deg, the
 plan file stops at +10; the 22:52 line's "at most 0.4 N on the HEX-E" is 0.455 N in the file (the page says below the
-0.5 N guard). The overview's magnets bullet ("Four magnets (0.051 N) or five (0.029 N) waits on the owner") now has a
-measured counterpart (63 and 35 mN at 1 to 2 N, ratio 1.8; calibrated errors alike); it is not a crosstalk sentence,
-so this job leaves it. Lines 11 and 14 were acked without a page change.
+0.5 N guard). Step 13 said mount v7 is on the robot "since R25" (so do d79eeca4 and QUEUE R31), but lab/NOTES.md
+records R24, cb2t on 2026-10-25 from 15:29, on v7; the overview says since 2026-10-25. Step 13's "indentation 2.2-2.5
+times the FE's" is 2.1-2.5 in data/20261028-fe_calibration.json (edges and flanks 2.06-2.17), which the overview uses.
+The status page still lists four or five magnets under decisions waiting on the owner, and so does the overview. Lines
+11 and 14 were acked without a page change.
 Before each --ack, run crosstalk_feed_watch.py --once and check HEAD shows only the lines handled (ack takes all of HEAD).
 Commits of this job start "Fingertip crosstalk page:", never "Crosstalk:" (the watcher keys on that prefix).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
@@ -45,13 +52,16 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 9. Calibration page up to 10-27 and the v3 tips (owner, 10-28 01:5x, through the coordinator: "are the calibrati… Done 10-28 02:05: Done 10-28 02:2x: calibration page 41747b29: session table from holds.npz (11 sessions, 11,513 holds; cb3t done, v3 grid stage), Section 10 v2 ID 1 (Table 5 tips, Figure 9 hard presses, rod, Table 6 tall vs sphere, twists, Table 7 suite 15.0 -> 9.1 h), Section 11 v3 ID 1 (Figure 10 four vs five, Table 8 physical model on pad 05R4's FE basis from feed line 16), lede/summary/terms/limits/future; prose 309 sentences, 17.0 mean, 2.3 % over 30, 275/1000
 - [x] 10. Feed line of 01:28 (owner, 01:2x: 'at what distances do the effects resolve, compared to the 5 n52 magnets? a… Done 10-28 02:10: Done 10-28 02:10: crosstalk page b50e44b4: Figure 4 (centred hovers as face force on 21.9 uT/N, five-N52 model on 48.1), Table 4 (W 7-11 mm: 0.31 and 0.64 N, after the model 0.23 and 0.12 N; five-N52 3.8 N), lede and summary on the sharpie width, side-by-side future item (c810bcdd); overview unchanged; acked 16 lines with line 16 (calibration page 41747b29)
 - [x] 12. Coordinator 07:4x 10-28 (85c0eab6): the side-by-side plan was rebuilt on mount v7, the mount on the robot (th… Done 10-28 07:46: crosstalk page 393f3477: side-by-side item on the v7 plan (85c0eab6): 18 poses at g 14-25 mm and one at 40 mm, each twice (38 hovers, about 19 min), 13 mm dropped (fork 2.09 mm from the holder, 3 mm margin); no other page names 13 mm; prose 245 sentences, mean 17, 0 % over 30, 188/1000
+- [x] 13. Fingertip overview up to the night's calibration (owner, 10-28 09:3x, in window 220623e7: 'did we update the … Done 10-28 09:56: overview e6f9b9b1 + 57830be8: lede (four or five magnets; direction GP 0.25-0.31 mm and 5.1-6.2 % at 2-8 N; four N52 half the change per newton, 0.26 and 0.28 mm), terms Board GP/direction GP and noise-equivalent force, v2 ID 1 hard presses + tall paragraph and a v3 ID 1 paragraph (links #v2id1, #v3id1), open questions (light presses 0.59/0.75 mm; force reference 16.9/16.3 MPa and indentation 2.1-2.5x the FE's, the file's ratio; magnets 63/35 mN, choice still waiting per the status page), hardware v6 -> v7 and the future item on v7's rod slope; v7 on the robot since cb2t 2026-10-25 (lab NOTES R24, not R25); prose 538 sentences, 17.1 mean, 2.8 % over 30, 266/1000
 Standing directions (for every step):
 - What goes on the crosstalk page, by the feed line's kind. plan and registration: the future-work items on the holder map and the pinch follow the current plan, a sentence or two each. session: the item says what ran (date, counts) until its analysis arrives; a partial or aborted run gets one sentence. analysis: a results section ('Neighbour field measured on the fingertip holder', later 'Pinch between two v3 tips') with the coordinator's numbers as given and its files cited by path, a table for more than four numbers, its figure or one drawn in the builder from its data files (sentence case, text 13 px or more as displayed, looked at before committing); the lede, the docs-summary and the figure and table numbers follow, and the future-work item becomes what remains, with its falsification criterion. figure: use it only when it shows a result or the measurement's geometry. When an analysis changes a number that the fingertip overview quotes on crosstalk, update that sentence in scripts/overview_fingertip_text.py and rebuild the overview.
 - Writing and compute: the Writing rules of ~/.claude/CLAUDE.md, with ~/.claude/writing_reference.md read once per session; every build line within the prose targets (scripts/prose_lint.py --top 20 PAGE lists the sentences to fix); anything over a minute or more than one core goes through ~/.claude/bin/resguard.sh run with a measured --mem; commit after each page change, with the refreshed indices, and only the files you changed.
 - Calibration feed lines (kind calibration, and analyses of v3 ID 1's suite: stage 2's slides, rolls and twists about 06:00, the tall about 09:00, the rod about 11:00, the physical model) extend the calibration page (scripts/fingertip_calibration_text.py Sections 10 and 11, Table 4's v3 row, figures in scripts/fingertip_calibration_figures.py drawn from the coordinator's files at HEAD, looked at before committing); lede and summary follow; commits start 'Calibration page:'
+- Calibration results reach the fingertip overview too: when a feed line or an analysis of v3 ID 1's suite (or a later tip's) changes a number or claim that docs/overviews/printed_fingertips.html states (its lede, the v2 ID 1 and v3 ID 1 paragraphs, the open questions on the magnets, the force reference and light presses), update that sentence in scripts/overview_fingertip_text.py and rebuild the overview after the calibration page.
 <!-- /ap:steps -->
 Claimed: scripts/fingertip_crosstalk_page.py, docs/experiments/20261027-fingertip_crosstalk/, scripts/crosstalk_feed_watch.py,
-logs/crosstalk_feed_watch/, scripts/overview_fingertip_text.py (its crosstalk sentences only), docs/overviews/printed_fingertips.html,
+logs/crosstalk_feed_watch/, scripts/overview_fingertip_text.py (its crosstalk sentences, and its calibration sentences
+by step 13 and direction 14), docs/overviews/printed_fingertips.html,
 scripts/fingertip_calibration_page.py, scripts/fingertip_calibration_figures.py, scripts/fingertip_calibration_text.py (its
 prose), docs/experiments/20261026-fingertip_calibration/ (step 9)
 Waiting on owner: none
