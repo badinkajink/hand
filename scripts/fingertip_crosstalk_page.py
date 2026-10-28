@@ -6,7 +6,9 @@ neighbour; data/sharpie.json: the owner's sharpie pinch with v1 ID 2 and ID 3) a
 streams of that pinch for the trace of its figure (kept in media/20261027-sharpie_trace.json, since logs/ is not tracked).
 The measured section reads the UR5 coordinator's analysis of the holder sessions (scripts/fingertip_crosstalk_holder.py,
 data/20261027-crosstalk_touchoffs.json in the v3 plan folder, as committed at HEAD) and draws its figure from that file's
-bins; its numbers follow the coordinator's lines in that folder's feed.jsonl. The last figure is the UR5 cell render of the holder map
+bins; its numbers follow the coordinator's lines in that folder's feed.jsonl. The press signal per newton of v3 ID 1 and v2 ID 1
+comes from the coordinator's comparison of four magnets with five (scripts/ur5_tip_calibration_four_vs_five.py, data/ in the
+same folder, at HEAD). The last figure is the UR5 cell render of the holder map
 (scripts/ur5_cell_render.py, in the v3 plan folder's media/). Writes docs/experiments/20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html.
 
     ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- .venv/bin/python scripts/fingertip_crosstalk_page.py
@@ -40,6 +42,7 @@ EXP = ROOT / "docs/experiments"
 V3 = EXP / "20261027-v3_tip_calibration_and_crosstalk"
 HOVER = V3 / "media/20261027-ur5_cell_holder_hover.png"
 HOLD = V3 / "data/20261027-crosstalk_touchoffs.json"
+FVF = V3 / "data/20261028-four_vs_five_partial.json"   # feed 2026-10-28 00:18; the full comparison follows when stage 2 ends
 SEC = dict(terms=1, field=2, holder=3, subtract=4, fit=5, sharpie=6, limits=7, future=8)
 FIG = dict(budget=1, holder=2, hovers=3, sharpie=4, render=5)
 TAB = dict(field=1, holder=2, hovers=3, crb=4)
@@ -268,6 +271,13 @@ def fig_holder(H):
 HOLD_MADE = "2026-10-27 22:50"   # the holder analysis that the measured section's written sentences quote (feed 21:44 to 22:52)
 
 
+def press_gain(F):
+    """Change per newton of a face press (uT/N, the median of |d_board| / f_n over face holds at 0.5 to 3.5 N) of v3 ID 1
+    (four magnets) and v2 ID 1 (five) on the same press actions of the low sphere, from the coordinator's comparison."""
+    return dict(v3=F["four_v3id1"]["gain_uT_per_N"]["face"], v2=F["five_v2id1"]["gain_uT_per_N"]["face"],
+                actions=F["actions"], holds=F["holds"]["v3"], partial=F.get("note", "").startswith("partial"))
+
+
 def holder_numbers(H):
     """The measured section's numbers, read from the coordinator's holder file: each board's change at contact (the bin
     nearest W 0), at W 4.75 and 12.5 mm, the nominal model there, its gain and explained share (the analysis of 21:44),
@@ -317,8 +327,8 @@ def holder_numbers(H):
         far_meas=[h["boards"][under(h)]["meas_uT"] for h in far], far_model=[h["boards"][under(h)]["model_moment_uT"] for h in far])
 
 
-def holder_section(H, hn, fh, fv):
-    """Section 'Neighbour field measured on the fingertip holder', with its tables and figures."""
+def holder_section(H, hn, fh, fv, pg):
+    """Section 'Neighbour field measured on the fingertip holder', with its tables and figures; pg is press_gain()."""
     at, g, e, sh, wm, hx = hn["at"], hn["gain"], hn["expl"], hn["share"], hn["with_m"], hn["hx"]
     c = lambda k, w: at[k][w]["meas_uT"]  # noqa: E731
     ses = hn["sessions"]
@@ -350,7 +360,11 @@ def holder_section(H, hn, fh, fv):
         f"(Figure&#160;{FIG['holder']}, Table&#160;{TAB['holder']}). At W 4.75&#8202;mm it changed by "
         f"{rng([c('held0', 4.75), c('held3', 4.75)])}&#8202;&#181;T, and at W 12.5&#8202;mm by "
         f"{rng([c('held0', 12.5), c('held3', 12.5)])}&#8202;&#181;T. The robot tip&#8217;s board changed by {c('robot', 0.0):.0f}, "
-        f"{c('robot', 4.75):.0f} and {c('robot', 12.5):.0f}&#8202;&#181;T at these gaps.</p>"
+        f"{c('robot', 4.75):.0f} and {c('robot', 12.5):.0f}&#8202;&#181;T at these gaps. Per newton of face press, v3 ID 1&#8217;s "
+        f"board changes by {pg['v3']:.1f}&#8202;&#181;T and v2 ID 1&#8217;s by {pg['v2']:.1f}&#8202;&#181;T. These are medians over "
+        f"{'the first ' if pg['partial'] else ''}{pg['actions']} press actions of v3 ID 1&#8217;s calibration on the UR5&#8217;s "
+        f"low sphere, with {pg['holds']} holds. v2 ID 1&#8217;s come from the same actions of its sphere session "
+        f"(<code>{FVF.relative_to(ROOT)}</code>, <code>scripts/ur5_tip_calibration_four_vs_five.py</code>).</p>"
         f"<p>The nominal model&#8217;s gains are {g['robot']:.2f} on the robot tip&#8217;s board, and {g['held0']:.2f} and "
         f"{g['held3']:.2f} on the +y and &#8722;y held boards. On the robot tip&#8217;s board {e['robot']:.0f}&#8202;% of the "
         "change&#8217;s energy below W 10&#8202;mm is explained by the model. On the held boards it is "
@@ -491,7 +505,7 @@ def fig_hovers(H):
     return out
 
 
-def sections(B, S, Sn, H, f1, f2, fh, fv):
+def sections(B, S, Sn, H, f1, f2, fh, fv, pg):
     rb = rows_by(B)
     r5 = lambda kind, x: rb[("five N52", kind, float(x))]  # noqa: E731
     r4 = lambda kind, x: rb[("four N52", kind, float(x))]  # noqa: E731
@@ -526,7 +540,8 @@ def sections(B, S, Sn, H, f1, f2, fh, fv):
     lede = (
         "A neighbouring fingertip&#8217;s magnets change the reading of a magnetic fingertip&#8217;s board by more than a press "
         "does. On the UR5, two four-magnet v3 tips with their pads touching changed each other&#8217;s boards by "
-        f"{min(con):.0f} to {max(con):.0f}&#8202;&#181;T. A 0.5&#8202;N press changed v2 ID 1&#8217;s board by {p05:.0f}&#8202;&#181;T. "
+        f"{min(con):.0f} to {max(con):.0f}&#8202;&#181;T. Per newton of face press, v3 ID 1&#8217;s board changes by "
+        f"{pg['v3']:.1f}&#8202;&#181;T and the five-magnet v2 ID 1&#8217;s by {pg['v2']:.1f}&#8202;&#181;T. "
         f"The four magnets of a tip do not cancel fully: each tip has a net moment of {min(shr):.0f} to {max(shr):.0f}&#8202;% of "
         "one magnet&#8217;s. With these moments, fitted on touch-offs, the dipole model explains "
         f"{both(hov_held)} of the change at {board} in {hn['n_hover']} hovers. Without them it explains "
@@ -537,7 +552,8 @@ def sections(B, S, Sn, H, f1, f2, fh, fv):
         f"{known:.3f}&#8202;N with the pose known.")
     summary = (
         "Magnetic crosstalk between neighbouring fingertips: on the UR5 two four-magnet v3 tips touching changed each other's "
-        f"boards by {min(con):.0f}-{max(con):.0f} uT, against {p05:.0f} uT for a 0.5 N press on v2 ID 1; each tip has a net "
+        f"boards by {min(con):.0f}-{max(con):.0f} uT, against {pg['v3']:.1f} uT per newton of face press on v3 ID 1 "
+        f"({pg['v2']:.1f} uT/N on the five-magnet v2 ID 1); each tip has a net "
         f"moment of {min(shr):.0f}-{max(shr):.0f} % of one magnet, and with these moments, fitted on touch-offs, the dipole model "
         f"explains {both(hov_held, pct=' %')} of the change at {board} in {hn['n_hover']} hovers "
         f"({both(hov_nom, pct=' %')} without). In v2 ID 1's field model a five-N52 neighbour adds "
@@ -553,7 +569,10 @@ def sections(B, S, Sn, H, f1, f2, fh, fv):
          "change is the reading less the reading at rest, corrected for temperature."),
         ("Field at the board", "The norm of the neighbour&#8217;s field over the 15 components, in &#181;T, from the dipole model of "
          "the magnets. The largest chip is the largest single component."),
-        ("Press signal", "The norm of the change under a face press of v2 ID 1 on the UR5, median over the presses in a band of "
+        ("Press signal, change per newton", "The change per newton is the median, over a tip&#8217;s face presses at 0.5 "
+         "to 3.5&#8202;N, of the change&#8217;s norm divided by the normal force, in &#181;T/N. It was measured for v3 ID 1 and "
+         "v2 ID 1 with the same press actions on the UR5&#8217;s low sphere. "
+         "The press signal is the norm of the change under a face press of v2 ID 1 on the UR5, median over the presses in a band of "
          f"force. It is {press['0.2-0.4 N']:.0f}&#8202;&#181;T at 0.2&#8211;0.4&#8202;N and {p05:.0f}&#8202;&#181;T at 0.4&#8211;0.7&#8202;N. "
          f"At 0.7&#8211;1.5&#8202;N it is {press['0.7-1.5 N']:.0f}&#8202;&#181;T, and at 1.5&#8211;3&#8202;N {press['1.5-3 N']:.0f}&#8202;&#181;T."),
         ("Receiving tip, neighbour", f"In the field model of Sections {SEC['field']}, {SEC['subtract']} and {SEC['fit']} the "
@@ -662,7 +681,7 @@ def sections(B, S, Sn, H, f1, f2, fh, fv):
                              "0.2&#8211;3&#8202;N. Script: <code>scripts/fingertip_crosstalk.py budget</code>.") + tab1))
 
     # 3. measured on the holder
-    S_.append(("holder", "Neighbour field measured on the fingertip holder", holder_section(H, hn, fh, fv)))
+    S_.append(("holder", "Neighbour field measured on the fingertip holder", holder_section(H, hn, fh, fv, pg)))
 
     # 4. subtraction from the joint angles
     sub = (
@@ -808,14 +827,18 @@ def build():
     f2 = fig_sharpie(S, T, Sn)
     fh = fig_holder(H)
     fv = fig_hovers(H)
-    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh, fv)
+    pg = press_gain(json.loads(at_head(FVF)))
+    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh, fv, pg)
     assert [sid for sid, _, _ in S_] == list(SEC), [sid for sid, _, _ in S_]
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S_, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S_, 1))
     byline = ("Field model of v2 ID 1 (five N52) fitted at rest in UR5 session 20261026-192158-v2id1; the owner&#8217;s pinch with "
               "v1 ID 2 and ID 3 on 2026-10-27 at 12:18; three v3 tips on the UR5&#8217;s fingertip holder in sessions 200536-holdv3id1, "
-              "202426-holdapexv3id1 and 212131-holdmapv3id1 on 2026-10-27, analysed by <code>scripts/fingertip_crosstalk_holder.py</code> "
-              "(commits 53993cbc and 1114cb94). Analysis <code>scripts/fingertip_crosstalk.py</code> (commit bc508a6e); "
+              "202426-holdapexv3id1, 212131-holdmapv3id1 and 222640-holdclosev3id1 on 2026-10-27, analysed by "
+              "<code>scripts/fingertip_crosstalk_holder.py</code> (commits 53993cbc to d4fa2c07); v3 ID 1&#8217;s presses on the low "
+              "sphere in session 225213-spherev3id1 against v2 ID 1&#8217;s, compared by "
+              "<code>scripts/ur5_tip_calibration_four_vs_five.py</code> (commit c5fe7775). Analysis "
+              "<code>scripts/fingertip_crosstalk.py</code> (commit bc508a6e); "
               "page by <code>scripts/fingertip_crosstalk_page.py</code>; rows in " + link(DATA, "data/") + ". The fingertip and its "
               "calibration are described on " + link(L["overview"], "the fingertip overview") + " and "
               + link(L["cal"], "the calibration page") + ".")
