@@ -44,7 +44,8 @@ def sections(N, F, P, link, L):
     hx = HX["splits"]["2N"]["estimators"]
     HB = ("2-3.5", "3.5-5", "5-8")
     strict = lambda est, key, k=1: [k * hx[est]["test_strict"][b][key] for b in HB]  # noqa: E731
-    rg = lambda xs, f="{:.2f}": f"{f.format(min(xs))}–{f.format(max(xs))}"  # noqa: E731
+    rg = lambda xs, f="{:.2f}": (f.format(min(xs)) if f.format(min(xs)) == f.format(max(xs))  # noqa: E731
+                                 else f"{f.format(min(xs))}–{f.format(max(xs))}")
     g4, g5 = G["four_v3id1"], G["five_v2id1"]
     e4, e5 = g4["gp_direction"], g5["gp_direction"]
     acc = gp_hi + [TP["ID 3"]["own"]["over_1p5N"], TP["v2 ID 1"]["own"]["over_1p5N"]]
@@ -513,6 +514,9 @@ def sections(N, F, P, link, L):
     FE = jl(V3D / "20261028-fe_calibration.json")
     f4, f5 = FE["four_v3id1"], FE["five_v2id1"]
     dep = lambda f: [f["depth"][r]["slope_um_per_N"] for r in REG]  # noqa: E731
+    # the refits to the presses from each rest fit (feed line of 2026-10-28 02:44)
+    ps4 = lambda k: [v[k] for n, v in FE["prior_scan"].items() if n.startswith("four")]  # noqa: E731
+    ps5 = lambda k: [v[k] for n, v in FE["prior_scan"].items() if n.startswith("five")]  # noqa: E731
     fe_give = [f["depth"][r]["fe_give_um_per_N"] for f in (f4, f5) for r in REG]
     body = (
         "<p>v3 ID 1 has four N52 magnets in an alternating 5.0 mm square under pad 05R4. In the readout model of "
@@ -549,10 +553,16 @@ def sections(N, F, P, link, L):
         f"{rg(fe_give, '{:.0f}')} µm/N. The fitted scale does not improve the contact location. Under five folds grouped by "
         f"action, the physical model errs by {f5['cv']['table']['all']['loc_mm']:.2f} mm with five magnets "
         f"({f5['untrained']['all']['loc_mm']:.2f} mm untrained). With four it errs by "
-        f"{f4['cv']['table']['all']['loc_mm']:.2f} mm ({f4['untrained']['all']['loc_mm']:.2f} mm untrained). With four "
-        "magnets, the rest field leaves the magnets' strength and the board's offset along $x$ nearly interchangeable. A "
-        "free fit puts the strength at its bound of 2.0 and the offset at 2.69 mm. With the offset held near v2 ID 1's "
-        f"0.73 mm, it goes to its bound of {f4['rest']['dx']:.2f} mm and the strength to {f4['rest']['k']:.2f}.</p>"
+        f"{f4['cv']['table']['all']['loc_mm']:.2f} mm ({f4['untrained']['all']['loc_mm']:.2f} mm untrained).</p>"
+        "<p><b>Where the magnets sit.</b> With four magnets, the magnets' strength and the board's offset along $x$ are "
+        "nearly interchangeable in the rest field: a free rest fit puts the strength at its bound of 2.0 and the offset at "
+        "2.69 mm. The offset is fixed by the presses. Refitted to them from either rest fit, with the offset's prior loosened to "
+        f"2.0 mm, it goes to {rg(ps4('dx'))} mm on the four-magnet tip. On the five-magnet tip it goes to "
+        f"{rg(ps5('dx'))} mm, against {FE['prior_scan']['five/tight']['start']['dx']:.2f} mm in its rest fit. Only "
+        f"the product of the strength and the compliance scale is fixed by them: {rg(ps4('k_times_c'), '{:.3f}')} with four magnets "
+        f"and {rg(ps5('k_times_c'), '{:.3f}')} with five. In every variant the location error stays at "
+        f"{rg(ps4('loc_mm'))} mm with four magnets and {rg(ps5('loc_mm'))} mm with five. At the registered contact, "
+        f"{f4['fit']['rms_uT']:.2f} and {f5['fit']['rms_uT']:.2f} µT per hold are left after the field model.</p>"
         + P.table(["Tip, FE case", "Compliance scale $c$", "Fitted modulus (MPa)",
                    "Indentation, face / edges / flanks (µm/N)", "Location error, untrained (mm)",
                    "Location error, $c$ fitted (mm)", "Under 1 N, $c$ fitted (mm)"],
@@ -596,10 +606,6 @@ def sections(N, F, P, link, L):
         "Six shared points: v3 ID 1's stage 4 presses six points on the low sphere and on the tall indenter in one "
         "session (" + link(L["v3"], "v3 plan") + "). If their errors agree within their repeat spread, the tall indenter "
         "alone covers the face, edges and flanks, and the sphere stage is dropped; a larger difference keeps both.",
-        "Four-magnet rest fit: measure the board's offset in v3 ID 1's DIP link, hold it, and refit the magnets' strength "
-        "at rest (" + P.code("scripts/ur5_tip_calibration_fe_calibration.py") + "). A physical-model error on the grid "
-        f"still above v2 ID 1's {f5['cv']['table']['all']['loc_mm']:.2f} mm would place the fault in the four-magnet "
-        "field model.",
         "Random order: run one grid in random order, so that clock time and absolute temperature stop following the "
         "target, and score the temperature inputs again.",
     ]
