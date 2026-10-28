@@ -29,8 +29,11 @@ side-by-side map's are the holder map's, 28 to 32 s a hover. Plan files are in `
 The whole queue is about 10 h. One order needs a single hands-on visit at 09:00:
 
 1. Reseat the HEX-E's connector with strain relief, turn the -y held tip pad-down under its block, and take the rod
-   fixture off.
-2. The check, then the side-by-side map, about 09:15 to 09:45. Its cell checks need `UR5_TIPHOLD_STATIONS=down,up`.
+   fixture off. Turn the tip over about its own long axis, so that its board's connector still points toward -x_I, away
+   from the +y tip's: the cell model's pad-down pose (`ur5_cb3_cell.tiphold_T_IF`) has it that way, and the plan's
+   clearances and the analysis assume it.
+2. The check, then the side-by-side map, about 09:15 to 09:45. Its cell checks need `UR5_TIPHOLD_STATIONS=down,up`, and
+   so does its analysis (`scripts/fingertip_crosstalk_holder.py` places the held pads by that model).
 3. Turn the -y tip back up and put the rod fixture back; rod pass 1 searches its new seating.
 4. From about 09:55 unattended: the sphere twists (to about 10:35), tall pass 1 (11:10), the top edge (11:50), tall stage 2
    and its morning plan (14:45), the rod (16:15 and the re-check), the sphere morning plan (17:00). Running all 62 sphere
