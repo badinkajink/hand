@@ -6,7 +6,7 @@ scripts/corvus_pull.sh does, and reads the newest session folder under ~/workspa
 
 It exits on: a new session folder; a change of stage in the newest session (an action starts in another stage than the
 one before it, as the hovers after the touch-offs, whose onsets are then in touches.json); a session's end (the
-program's closing "ft_reads" event); an action that ends in "abort" or "error"; a commit on origin/main that this workstation did not push; or, as a
+program's closing "ft_reads" event); an action that ends in "abort" or "error"; a commit of the lab's on origin/main ("UR5 lab ..."); or, as a
 heartbeat, --max seconds without any of these. Run it in the background and act on its last line.
 
     .venv/bin/python scripts/corvus_watch.py [--poll 120] [--max 3600]
@@ -55,13 +55,15 @@ def probe():
         return None
 
 
-def origin_head():
+def lab_commits():
+    """The lab's commits on origin/main that this clone does not have yet (subjects starting "UR5 lab")."""
     try:
-        r = subprocess.run(["git", "-C", str(ROOT), "ls-remote", "origin", "refs/heads/main"], capture_output=True,
+        subprocess.run(["git", "-C", str(ROOT), "fetch", "-q", "origin"], capture_output=True, timeout=120)
+        r = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%h %s", "HEAD..origin/main"], capture_output=True,
                            text=True, timeout=60)
-        return r.stdout.split()[0] if r.stdout else None
+        return {x for x in r.stdout.splitlines() if x.split(" ", 1)[-1].startswith("UR5 lab")}
     except Exception:
-        return None
+        return set()
 
 
 def main():
@@ -70,7 +72,7 @@ def main():
     ap.add_argument("--max", type=float, default=3600.0)
     a = ap.parse_args()
     t0 = time.time()
-    s0, h0 = None, origin_head()
+    s0, h0 = None, lab_commits()
     while s0 is None and time.time() - t0 < 600:
         s0 = probe()
         if s0 is None:
@@ -121,14 +123,10 @@ def main():
                           f"({s['touches']} touches)")
                     return 0
                 stage = ev["stage"]
-        h = origin_head()
-        if h and h0 and h != h0:
-            mine = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-            if h == mine:                                   # pushed from this workstation
-                h0 = h
-            else:
-                print(f"{stamp} new commit on origin/main {h[:8]} ({s['session']}: {s['events']} events)")
-                return 0
+        new_lab = lab_commits() - h0
+        if new_lab:
+            print(f"{stamp} the lab pushed: {sorted(new_lab)} ({s['session']}: {s['events']} events)")
+            return 0
         s0 = s
         if time.time() - t0 > a.max:
             print(f"{stamp} heartbeat: {s['session']}, {s['touches']} touches, {s['events']} events, last "
