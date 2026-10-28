@@ -6,7 +6,7 @@ scripts/corvus_pull.sh does, and reads the newest session folder under ~/workspa
 
 It exits on: a new session folder; a change of stage in the newest session (an action starts in another stage than the
 one before it, as the hovers after the touch-offs, whose onsets are then in touches.json); a session's end (the
-program's closing "ft_reads" event); an action that ends in "abort" or "error"; a new commit on origin/main; or, as a
+program's closing "ft_reads" event); an action that ends in "abort" or "error"; a commit on origin/main that this workstation did not push; or, as a
 heartbeat, --max seconds without any of these. Run it in the background and act on its last line.
 
     .venv/bin/python scripts/corvus_watch.py [--poll 120] [--max 3600]
@@ -123,8 +123,12 @@ def main():
                 stage = ev["stage"]
         h = origin_head()
         if h and h0 and h != h0:
-            print(f"{stamp} new commit on origin/main {h[:8]} ({s['session']}: {s['events']} events)")
-            return 0
+            mine = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+            if h == mine:                                   # pushed from this workstation
+                h0 = h
+            else:
+                print(f"{stamp} new commit on origin/main {h[:8]} ({s['session']}: {s['events']} events)")
+                return 0
         s0 = s
         if time.time() - t0 > a.max:
             print(f"{stamp} heartbeat: {s['session']}, {s['touches']} touches, {s['events']} events, last "
