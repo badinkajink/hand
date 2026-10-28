@@ -19,7 +19,9 @@ touch-offs on the rod, starting 8 mm above the expected contact (3.5 before), re
 approach over the whole distance (travel.slow_mm_touch 13 mm), then the 5 pivot presses; no gravity poses (owner,
 10-23). The program's registration of the rod from those onsets replaces the seating's frame for rod2, the rest of v2 ID
 1's rod session with the suite's cuts. seeds writes one registration folder per rod seating (v2 ID 1's sphere
-registration with that seating's T_BI, flange pose and joints) for the path checks.
+registration with that seating's T_BI, flange pose and joints) for the path checks; --base-reg and --seating LABEL=FOLDER
+make one for a seating recorded later on v3 ID 1's own tool frames (the lab, 2026-10-28 04:2x: a fresh seating after the
+rod's fixture goes back on).
 
 The tall indenter (stage 4): tall1 is v2 ID 1's pass 1 on it as it ran (143529-tallv2id1, 21 touch-offs to 2.0 mm past).
 tall2 is R29 (lab/20261027-plan_tall_lab_r29_v2id1.json: its presses, 50 slides, 4 of its 12 twists by the seed-0
@@ -160,15 +162,18 @@ ROD_SEATINGS = {"rod_indenter_seated": "20261027-rod-seed", "rod_indenter_seated
 
 
 def cmd_seeds(a):
-    reg = json.loads((LAB / SV.SESSIONS["sphere"] / "registration.json").read_text())
+    base = Path(a.base_reg) if a.base_reg else LAB / SV.SESSIONS["sphere"] / "registration.json"
+    reg = json.loads(base.read_text())
     poses = {json.loads(x)["label"]: json.loads(x) for x in (LAB / "poses.jsonl").read_text().splitlines() if x.strip()}
-    for label, folder in ROD_SEATINGS.items():
+    seatings = dict(x.split("=", 1) for x in a.seating) if a.seating else ROD_SEATINGS
+    for label, folder in seatings.items():
         r = copy.deepcopy(reg)
         r["T_BI"] = json.loads((LAB / folder / "registration.json").read_text())["T_BI"]
         r["T_BE_home"] = poses[label]["T_tcp_mm"]
         r["q_home"] = poses[label]["q_rad"]
-        r["notes"] = dict(r.get("notes", {}), seed=f"{a.created}, workstation: v2 ID 1's sphere registration (T_EM, T_MP) with "
-                          f"the rod at {folder}'s T_BI and {label}'s flange pose and joints, for the v3 suite's rod path checks")
+        r["notes"] = dict(r.get("notes", {}), seed=f"{a.created}, workstation: {base.parent.name}'s registration (T_EM, T_MP) "
+                          f"with the rod at {folder}'s T_BI and {label}'s flange pose and joints, for the v3 suite's rod path "
+                          "checks")
         out = LAB / f"{folder}-reg"
         out.mkdir(exist_ok=True)
         (out / "registration.json").write_text(json.dumps(r, indent=1) + "\n")
@@ -343,6 +348,11 @@ def main():
     for name in ("sphere2", "rod1", "rod2", "seeds", "tall1", "tall2"):
         s = sub.add_parser(name)
         s.add_argument("--created", default=time.strftime("%Y-%m-%d %H:%M"))
+        if name == "seeds":                                  # a seating recorded later, on v3 ID 1's own tool frames
+            s.add_argument("--base-reg", default=None, help="the registration.json whose T_EM and T_MP the seeds take "
+                           "(default v2 ID 1's sphere session's)")
+            s.add_argument("--seating", action="append", default=[], help="LABEL=FOLDER: only this seating, its rod frame "
+                           "from lab/FOLDER (scripts/ur5_fixture_from_seating.py)")
     a = ap.parse_args()
     dict(sphere2=cmd_sphere2, rod1=cmd_rod1, rod2=cmd_rod2, seeds=cmd_seeds, tall1=cmd_tall1, tall2=cmd_tall2)[a.cmd](a)
 
