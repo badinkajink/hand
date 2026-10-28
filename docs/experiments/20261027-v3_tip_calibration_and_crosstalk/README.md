@@ -19,14 +19,14 @@ registration with the rod on (QUEUE.md R31).
 
 | Block | Plan file | Actions | Robot time | Needs first | What it measures |
 |---|---|---|---|---|---|
-| Rod stage 2 (12:23 to 13:45, 94 of 94 ok), then the rod morning plan from 13:47 | `20261028-plan_rod_lab_stage2_v7_v3id1.json`, `20261028-plan_rod_lab_morning6_v3id1.json` | 94 + 6 | 1.4 h | rod pass 1 | a contact of radius 12.5 mm; with the sphere's it separates the FE's missing compliance into local and series parts |
-| Tall stage 2 and its morning plan | `20261028-plan_tall_lab_stage2_ts1_v3id1.json`, `20261028-plan_tall_lab_morning_ts1_v3id1.json` | 102 + 18 | 3.0 h | the owner present for the morning plan | edges and flanks, 6 points pressed by both indenters, and flank presses with joint 6 up to 57.0 deg |
+| Rod stage 2 (12:23 to 13:45, 94 of 94 ok) and the rod morning plan (13:47 to 13:52, 6 of 6 ok) | `20261028-plan_rod_lab_stage2_v7_v3id1.json`, `20261028-plan_rod_lab_morning6_v3id1.json` | 94 + 6 | 1.4 h | rod pass 1 | a contact of radius 12.5 mm; with the sphere's it separates the FE's missing compliance into local and series parts |
+| Tall stage 2 (44 of 102 done when the HEX-E stopped at 14:32; the other 58 from 14:56 with a 20 mm lift) and its morning plan | `20261028-plan_tall_lab_stage2_l20_v3id1.json`, `20261028-plan_tall_lab_morning_l20_v3id1.json` | 102 + 18 | 3.0 h | the owner present for the morning plan | edges and flanks, 6 points pressed by both indenters, and flank presses with joint 6 up to 57.0 deg |
 | Top edge | `20261028-plan_tall_lab_top_edge_ts1_v3id1.json`, rebuilt on tall pass 1 | 34 | 0.82 h | the owner's go, given at 13:2x | 16 presses and 15 slides on the tip's end, its edge and one flank point; joint 6 at most 42.0 deg |
 | Sphere morning | `20261028-plan_sphere_lab_morning_unattended_ts1_v3id1.json` | 43 | 0.75 h | the owner present | sphere presses with joint 6 up to 59.0 deg |
 | Sphere stage 2, the slides left | `20261028-plan_sphere_lab_stage2_resume3_v3id1.json`, resumed on 225213 | 43 | 2.3 h | | 43 of the 44 slides left; slide-dense-795-t+15-1N is out (mount 2.88 mm from the fixture on v7) |
 | Side by side, waiting | `20261028-plan_holder_lab_side_norod30_v3id1.json` | 30 | 0.25 h | the rod fixture off, the -y held tip pad-down | crosstalk between neighbouring fingers at gaps of 15, 20, 25 and 40 mm, with mount v7 3 mm or more from the holder |
 
-The first four rows take about 6.0 h of robot time, and the last two 2.6 h more. The owner wants the day's runs done before 19:00, to put the other four-magnet tips on; at travel.speed 1.0 the lab projects tall stage 2 to end about 16:50, the tall morning plan 17:20 and the top edge 18:10, and runs the sphere morning plan only if it fits. For the side-by-side map, one visit
+The first four rows take about 6.0 h of robot time, and the last two 2.6 h more. The owner wants the day's runs done before 19:00, to put the other four-magnet tips on. At travel.speed 1.0 the lab projects (14:58) tall stage 2 to end about 16:40 and the tall morning plan about 17:15. The top edge would end about 18:05 and the sphere morning plan about 18:50, if nothing stops. For the side-by-side map, one visit
 takes the rod fixture off and turns the -y held tip pad-down under its block. Turn the tip over about its own long axis,
 so that its board's connector still points toward -x_I, away from the +y tip's. The cell model's pad-down pose
 (`ur5_cb3_cell.tiphold_T_IF`) has it that way, and the plan's clearances and the analysis were computed with it. The
