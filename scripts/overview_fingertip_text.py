@@ -9,11 +9,13 @@ questions"); owner, 2026-10-23: "make sure our main overview doc for the printed
 to read". Takeaways: (1) one chain of models runs from the print recipe to the chip readings and back to a contact
 estimate, and on the UR5 against the HEX-E the board's force agrees within 0.78-1.05 while the untrained estimate is
 1.6-2.6 mm off from 1 N up (a GP trained on 59 presses: 0.84 mm); (2) what each design choice does to stiffness and force
-resolution, and why concept b's pad with five magnets; (3) what is still open: the print's softness under a small
-indenter (rod presses put at most 0.10 of sphere2's 0.20 mm/N in series), presses below 1 N, the force reference, four
-magnets or five, the transfer of learned corrections. Owner, 2026-10-28: "i think we shouldve updated at least the 10/27
-results and preliminary v3 id1 4 n52 magnet calibration" (v2 ID 1's hard presses and tall indenter, v3 ID 1 against v2
-ID 1, mount v7; step 13 of docs/handoff/20261027-crosstalk_feed_poller.md). Budget: about 3,600 words
+resolution, and why concept b's pad with four N52 magnets in a 5.0 mm square (pad 05R4, the v3 tips), with five as the
+comparison; (3) what is still open: the print's softness under a small indenter (rod presses put at most 0.10 of
+sphere2's 0.20 mm/N in series), presses below 1 N, the force reference, the four magnets' net moment and rest fit, the
+transfer of learned corrections. Owner, 2026-10-28: "i think we shouldve updated at least the 10/27 results and
+preliminary v3 id1 4 n52 magnet calibration" (v2 ID 1's hard presses and tall indenter, v3 ID 1 against v2 ID 1, mount
+v7; step 13 of docs/handoff/20261027-crosstalk_feed_poller.md); "i think we will stick with the 4 magnet config"
+(step 16). Budget: about 3,600 words
 of prose. Sources: the pages in PAGES and the fact sheets of 2026-10-20 (FE and printing; readout and hardware), each
 number as its page gives it.
 """
@@ -61,7 +63,7 @@ CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330"
 <text x="251" y="186" text-anchor="middle" font-size="13.5">poles, strength, offset</text>
 <rect x="346" y="128" width="150" height="70" fill="#fff" stroke="#000"/>
 <text x="421" y="150" text-anchor="middle" font-size="15" font-weight="bold">Field model</text>
-<text x="421" y="168" text-anchor="middle" font-size="13.5">5 magnets &#215; 72 dipoles</text>
+<text x="421" y="168" text-anchor="middle" font-size="13.5">4 magnets &#215; 72 dipoles</text>
 <text x="421" y="186" text-anchor="middle" font-size="13.5">at the 5 chips</text>
 <rect x="516" y="128" width="150" height="70" fill="#fff" stroke="#000"/>
 <text x="591" y="150" text-anchor="middle" font-size="15" font-weight="bold">Signals per newton</text>
@@ -99,7 +101,7 @@ CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330"
 </svg>"""
 
 LEDE = (
-    "The printed fingertip has four or five magnets in a soft thermoplastic polyurethane (TPU) pad and five magnetic sensors "
+    "The printed fingertip has four N52 magnets in a soft thermoplastic polyurethane (TPU) pad and five magnetic sensors "
     "behind it. A press deforms the pad, moves the magnets and changes the sensors&#8217; readings. We model that "
     "sequence to estimate where the tool presses and with how much force. On a UR5 arm, with a six-axis force sensor as "
     "the reference, the untrained model placed presses of 2&#8202;N and more within 0.9&#8211;2.4&#8202;mm. Its force was "
@@ -108,10 +110,13 @@ LEDE = (
     "presses at new points within 0.25&#8211;0.53&#8202;mm at 1.5&#8202;N and over. It gave the force&#8217;s direction within "
     "2.1&#8211;2.5&#176; on the face. A second Gaussian process is given only the direction of the board&#8217;s change. "
     "Trained up to 2&#8202;N, it placed harder presses, up to 8&#8202;N, within 0.25&#8211;0.31&#8202;mm. It gave their force "
-    "within 5.1&#8211;6.2&#8202;%. The board&#8217;s change per newton with four N52 magnets is half that with five. The "
-    "calibrated location errors are 0.26 and 0.28&#8202;mm. A model learned on one tip misses on another by 1.4&#8211;2.5&#8202;mm, and by 0.64&#8202;mm "
-    "once each board change is scaled by its magnets&#8217; strength. A neighbouring fingertip&#8217;s magnets change a board by "
-    "up to 4,162&#8202;&#181;T, against 23&#8202;&#181;T for a 0.5&#8202;N press. Under a small sphere the printed pad sinks "
+    "within 5.1&#8211;6.2&#8202;%. The owner chose four magnets over five on 2026-10-28. With four, a press changes the "
+    "board by 28&#8202;&#181;T per newton, half as much as with five, and the calibrated location errors are alike, 0.26 and "
+    "0.28&#8202;mm. A touching neighbour that faces the pad adds 38&#8202;&#181;T at the board with four magnets in the field "
+    "model, against 513&#8202;&#181;T with five. Side by side it adds 2,928&#8202;&#181;T with four and 4,162&#8202;&#181;T "
+    "with five. A model learned on one tip misses on another by "
+    "1.4&#8211;2.5&#8202;mm, and by 0.64&#8202;mm once each board change is scaled by its magnets&#8217; strength. Under a "
+    "small sphere the printed pad sinks "
     "further than its finite-element model predicts. Three pages explain this in order: the "
     "<a href='../experiments/20261026-fingertip_physical_model/20261026-fingertip_physical_model.html'>physical model</a> "
     "of the pad and its readout, the "
@@ -184,10 +189,13 @@ SECTIONS = [
      r"""<p>The fingertip is concept b of the DIP-link study, which the owner chose after the first prints of 2026-10-20. The pad
 is the front 13.45 of the 17.0&#8202;mm of the 11/22 half-ellipsoid tip of the simulations. It slides into a PLA
 cover on the DIP link, over the ReSkin 5X board. The board&#8217;s chips lie 0.42&#8202;mm below the pad&#8217;s back face; the current link is b v4
-([DIP link b v4](exp:20261021-dip_link_b_v4/20261021-dip_link_b_v4_and_wall_heights.html)). Five
-N52 magnets, a centre one and four corners 7.4&#8202;mm apart, sit with their tops 7.5&#8202;mm under the apex. That is the
-shallowest depth that keeps 1.8&#8202;mm of TPU around every pocket. A press moves the magnets by a few micrometres; the
-chips read the change of their field.</p>
+([DIP link b v4](exp:20261021-dip_link_b_v4/20261021-dip_link_b_v4_and_wall_heights.html)). Four N52
+magnets of 3&#8202;&#215;&#8202;2&#8202;mm sit in a 5.0&#8202;mm square centred over the board&#8217;s centre chip U1, with
+their tops 7.5&#8202;mm under the apex (pad 05R4, the v3 tips). Alike poles lie on the square&#8217;s diagonals, so the
+four moments cancel in the design. The square is the smallest that keeps 1.8&#8202;mm of TPU between the pockets, and
+7.5&#8202;mm is the shallowest depth that keeps 1.8&#8202;mm around every pocket. The earlier tips, v2 ID 1 among them, have five:
+a centre magnet and four corners. A press moves the magnets by a few micrometres; the chips read the change of their
+field.</p>
 """ + CHAIN_SVG + r"""
 <p>Each box is one model with its own check. The finite elements resolve what the printer makes: walls, skins and
 gyroid. The walls take the load at the face&#8217;s edges, and so they set the patch that the pads must reproduce. The field model
@@ -198,8 +206,8 @@ resolution before anything is printed. Inverted, it turns readings into a contac
     ("print", "The printed pad",
      r"""<p>The pads print in Siraya Tech 85A on the Prusa XL&#8217;s tool 2 or the P1S&#8217;s external spool. The nozzle is at
 240&#8202;&#176;C and the bed at 35&#8202;&#176;C. The pad prints upright in 0.1&#8202;mm layers, with two perimeters
-outside and around each pocket, four top and four bottom layers, and gyroid at 30 or 50&#8202;%. The print pauses at 9.2
-and 16.2&#8202;mm of height so that the magnets can be placed, north toward the palmar face. Each magnet sits in a pocket
+outside and around each pocket, four top and four bottom layers, and gyroid at 30 or 50&#8202;%. Pad 05R4&#8217;s print pauses at 10.2
+and 15.2&#8202;mm of height so that each row of two magnets can be placed. Each magnet sits in a pocket
 with a 2.9&#8202;mm seat and is held by press fit (the owner&#8217;s choice from the seat coupon, 2026-10-18). The recipe stays the same on every printer, so one FE describes every pad
 ([print procedure](exp:20261018-fingertip_print_procedure/20261018-siraya85a_fingertip_print_procedure.html)). The
 pads weigh 0.6&#8202;% more TPU than the FE assumes, and concept a&#8217;s tips 3.0&#8202;% less, about 7&#8202;% softer
@@ -290,9 +298,10 @@ resolutions are per sample at the contact point
 <tr><td>Cover walls on b&#8217;s flanks</td><td>Held both ways in the model (an upper bound): 3.0&#8202;mm walls &#8722;0.16&#8202;% approach and 0.030&#8202;N; v3&#8217;s 6&#8202;mm walls 0.0313&#8202;N; with the proposed tip cap 0.0317&#8202;N, with its side walls 0.0332&#8202;N</td></tr>
 <tr><td>Shape</td><td>Of 24 printable fillet shapes none turns the tool better than the as-built block; curved tips cut the twist-onset arm to a third; in 85A at 30&#8202;% all shapes sink 251&#8211;262&#8202;&#181;m under a 2&#8202;mm sphere</td></tr>
 </tbody></table></div>
-<p>Two choices follow from the table. Five magnets are used, because the centre magnet over U1 halves the resolution of four.
-Concept b is used, because the cut pad puts the magnets 3.5&#8202;mm closer to the chips. The cover walls and the cap cost
-at most 16&#8202;% of the resolution, in the bound that fixes the flanks both ways.</p>"""),
+<p>Concept b is used, because the cut pad puts the magnets 3.5&#8202;mm closer to the chips. In the readout model five
+magnets resolve 0.0285&#8202;N and four 0.0513&#8202;N, since the fifth sits over U1. Four are used; the measured
+comparison is under Open questions. The cover walls and the cap cost at most
+16&#8202;% of the resolution, in the bound that fixes the flanks both ways.</p>"""),
     ("readout", "Magnetic readout and force resolution",
      r"""<p>The ReSkin 5X board has five MLX90393 three-axis Hall magnetometers in a plus, U1 at the centre and U2&#8211;U5
 7.00&#8202;mm from it. Each chip senses 0.42&#8202;mm under its package top. The chips are read over the STEMMA QT port of
@@ -491,9 +500,10 @@ with four magnets and 0.140&#8202;N with five. The physical model on pad 05R4&#8
 2.64&#8202;mm with four magnets and 1.61&#8202;mm with five
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id1),
 Section 11).</p>
-<p>On the hand the other fingertips&#8217; magnets add their field to each board. In v2 ID 1&#8217;s field model a
-five-magnet neighbour adds 513&#8202;&#181;T with the pads facing and touching, and 4,162&#8202;&#181;T side by side. A
-0.5&#8202;N press changes the board by 23&#8202;&#181;T. Subtracting the field predicted from a pose 0.3&#8202;mm and 0.3&#176;
+<p>On the hand the other fingertips&#8217; magnets add their field to each board. In the field model a four-magnet
+neighbour adds 38&#8202;&#181;T with the pads facing and touching, and 2,928&#8202;&#181;T side by side. A five-magnet
+neighbour like v2 ID 1 adds 513 and 4,162&#8202;&#181;T. A 0.5&#8202;N press changes v2 ID 1&#8217;s board by
+23&#8202;&#181;T. For the five-magnet neighbour, subtracting the field predicted from a pose 0.3&#8202;mm and 0.3&#176;
 off leaves 23 and 457&#8202;&#181;T. The neighbour&#8217;s pose can be fitted from both boards, with the joint angles as a
 1&#8202;mm, 1&#176; prior. The bound on a press at the face&#8217;s centre is then 0.147&#8211;0.149&#8202;N facing and
 0.158&#8211;0.176&#8202;N side by side. With the pose known it is 0.147&#8202;N
@@ -581,14 +591,16 @@ board&#8217;s force, sphere2&#8217;s session puts the printed pad within about 2
 basis to the presses with four N52 magnets and with five, the modulus is 16.9 and 16.3&#8202;MPa. The registered
 indentation of those presses grows by 291&#8211;316 and 282&#8211;336&#8202;&#181;m/N. In the FE pad the slope is
 135&#8211;137&#8202;&#181;m/N, so the printed pads sink 2.1&#8211;2.5 times as far per newton.</li>
-<li><b>The magnets.</b> The v1 tips&#8217; magnets have 0.20&#8211;0.57 of an N52 magnet&#8217;s moment as fitted at rest, and
-v2 ID 1&#8217;s five N52 magnets 0.98. The models predict 0.028&#8211;0.031&#8202;N with N52, about 0.039&#8202;N at the measured
-noise. On the UR5 the noise-equivalent force was 63&#8202;mN with four magnets and 35&#8202;mN with five. That is the
-ratio of 1.8 between the readout model&#8217;s 0.051 and 0.029&#8202;N.
-With the direction GP, the two tips&#8217; contacts were placed within 0.26 and 0.28&#8202;mm. The choice between four and five magnets waits on
-the owner. In the field model a touching neighbour
-that faces the pad adds 38&#8202;&#181;T at the board with four magnets, against 513&#8202;&#181;T with five. Between two
-four-magnet v3 tips on the UR5, 39 to 60&#8202;&#181;T were measured at contact.</li>
+<li><b>The magnets.</b> The owner chose four N52 magnets over five on 2026-10-28. On the UR5 the noise-equivalent force
+was 63&#8202;mN with four magnets and 35&#8202;mN with five. That is the ratio of 1.8 between the readout model&#8217;s
+0.051 and 0.029&#8202;N. With the direction GP, the two tips&#8217; contacts were placed within 0.26 and 0.28&#8202;mm. In
+the field model a touching neighbour that faces the pad adds 38&#8202;&#181;T at the board with four magnets, against
+513&#8202;&#181;T with five. Between two four-magnet v3 tips on the UR5, 39 to 60&#8202;&#181;T were measured at contact.
+Two points stay open. The four magnets do not cancel fully: each v3 tip has a net moment of 7 to 16&#8202;% of one magnet.
+At rest the magnets&#8217; strength and the board&#8217;s offset along the face&#8217;s normal are nearly
+interchangeable. In a free rest fit of v3 ID 1 the strength goes to its bound of 2.0 and the offset to 2.69&#8202;mm.
+Fitted to its presses, the offset is 0.74&#8211;0.75&#8202;mm ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id1),
+Section 11).</li>
 <li><b>Transfer of learned models.</b> The physical model transfers to a new pad through its rest calibration: on the
 checkerboard tip it placed contacts within 2.06&#8202;mm without a press. The GP correction learned on sphere2 does not, and
 raised that error to 2.48&#8202;mm. Fine-tuned with 20 of the new tip&#8217;s presses it gives 1.59&#8202;mm; the tip&#8217;s
@@ -596,8 +608,8 @@ own 47 presses give 0.42&#8211;0.71&#8202;mm. Scaled by the magnets&#8217; stren
 place v2 ID 1&#8217;s contacts within 0.64&#8202;mm, against 2.52&#8202;mm unscaled.</li>
 <li><b>Disturbances in the hand.</b> Between two facing v3 tips on the UR5 the held boards changed by 55 to
 60&#8202;&#181;T at contact. The dipole model with each tip&#8217;s net moment leaves about 10&#8202;&#181;T of that
-([magnetic crosstalk](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#holder)). Side by side and touching, a five-magnet neighbour adds 4,162&#8202;&#181;T in the
-model, and its pose must be fitted from the boards. Steel touched to the face reads as a press of 9 to 17.5&#8202;N. The test against
+([magnetic crosstalk](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#holder)). Side by side and touching, a four-magnet neighbour adds 2,928&#8202;&#181;T in the
+model, and a five-magnet one 4,162&#8202;&#181;T. The neighbour&#8217;s pose must be fitted from the boards. Steel touched to the face reads as a press of 9 to 17.5&#8202;N. The test against
 fields from outside the pad removes most of those frames, but the first half second of a touch and fields of 40 to
 90&#8202;&#181;T still show 1 to 9&#8202;N. The chips&#8217; temperature drift is measured,
 0.65&#8211;0.70&#8202;% per &#176;C, and the correction from each chip&#8217;s temperature leaves 9 of 70&#8202;&#181;T over a
@@ -657,7 +669,7 @@ FIGURES = {
                     width=828, alt="Press 1-sigma over the pad's surface, two magnet sets, three views.",
                     caption="Model 1-sigma of the pressing force for 1&#8202;N along the normal at each pad point, from 50&#8202;ms "
                             "of samples. The views are from the palm and from both flanks. Two magnet sets are shown: the magnets "
-                            "in the pad today and N52 magnets all one way (log scale). Red circles: magnets; white squares: chips. The mount end "
+                            "of pad B00 as first assembled and N52 magnets all one way (log scale). Red circles: magnets; white squares: chips. The mount end "
                             "and the flanks&#8217; lowest millimetres respond least. From the "
                             "<a href='../experiments/20261020-fingertip_contact_estimation/20261020-model_based_contact_estimation.html'>"
                             "contact estimation</a>, Figure&#160;3."),
@@ -713,7 +725,7 @@ FUTURE = [
     'ATI Mini45 (the ATI plan&#8217;s QUEUE.md, A1): run the box check, print the stack and run the 39 stations with the 100&#8202;g weight in its printed holder, or with 0.5&#8202;kg. Then repeat a grid of presses against the ATI. A board force outside 0.78&#8211;1.05 of the ATI&#8217;s means that the HEX-E&#8217;s gain biased sphere2&#8217;s comparison.',
     'Untrained estimator under the rod: score the viewer&#8217;s estimator on rod1&#8217;s 279 holds, as Table 3 of the UR5 results page scores it on sphere2&#8217;s. A location error well above the sphere&#8217;s 1.6&#8211;2.6&#8202;mm means that the estimator&#8217;s point-load basis misses line contacts.',
     'Second fingertip with known points and forces: clamp it in a printed jig with sphere seats at the reference point and 4&#8202;mm from it toward &#177;y and &#177;z. Press through a kitchen scale at about 1, 2 and 4&#8202;N. Run <code>scripts/fingertip_second_tip_transfer.py --landmarks</code> on the stretch. A GP correction whose median location error exceeds the physical model&#8217;s by more than 0.9&#8202;mm does not transfer across pole patterns.',
-    'N52 magnets: recalibrate in the viewer (key c). A strength of 0.8&#8211;1.2, the poles as inserted and a rest residual below 0.43&#8202;mT confirm the field model. Then repeat the jig presses or a short UR5 grid; the simulation predicts 1.5&#8202;mm for the rebuilt physical model and 0.7&#8202;mm with the GP correction.',
+    'Rest calibration of the four N52 magnets: at rest their strength and the board&#8217;s offset along the face&#8217;s normal are nearly interchangeable. Fitted to v3 ID 1&#8217;s presses, the offset is 0.74&#8211;0.75&#8202;mm. Fit the other v3 tips at rest with the offset held near that value: <code>calibrate_frames_fixed</code> in <code>scripts/fingertip_wrench_model.py</code> takes it as <code>dx_range</code>, and the viewer&#8217;s key c calls it without one. A strength of 0.8&#8211;1.2 of an N52&#8217;s with the poles as inserted confirms the field model for pad 05R4. A strength at its bound with that offset means the offset differs between tips and must come from each tip&#8217;s presses.',
     'Torsion on the HEX-E&#8217;s axis: twist the pad at 5&#8202;N on a fixture that puts the face&#8217;s normal along the tool axis. The torsion is half the difference between the outbound and return holds. A torque outside the sphere pads&#8217; friction torque at the measured friction coefficient falsifies the pads&#8217; torsion.',
     'Sensing rows on the probes&#8217; gap rule: <code>run_sense</code> in <code>scripts/v2_tip_fe_checks.py</code> takes its gaps from <code>tpu_tip_magnet.gaps</code>. That function moves a face node onto the analytic surface only within half a grid cell of it. It gives 150&#8202;&#181;m against the probe rows&#8217; 185 for the same pad at 1&#8202;N. Rerun <code>--sense b_v2</code> with every face node on the surface; a force resolution that moves by more than 5&#8202;% means the DIP page&#8217;s resolutions need the same rerun.',
     'Facing finger: record the board with a second tip&#8217;s magnets at 20&#8211;40&#8202;mm and compare with the dipole prediction before subtracting it from the joint angles.',
