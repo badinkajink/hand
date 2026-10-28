@@ -94,9 +94,9 @@ def run(a):
     down = FH.held_apex(CELL, 0)                                          # -y station, tip down
     cand = []                                                             # (id, p, tw, dwell)
     for tw in TWISTS:
-        for W in sorted(FACING_W, reverse=True):
+        for W in sorted((w for w in FACING_W if w >= a.min_w), reverse=True):
             cand.append((f"hov-f-W{W:g}-t{tw:+d}", up + [0.0, 0.0, W], tw, 6.0 if W >= 15 else 2.0))
-    for W in (1, 3, 10):
+    for W in (w for w in (1, 3, 10) if w >= a.min_w):
         for dx, dy, nm in ((3, 0, "x+3"), (-3, 0, "x-3"), (0, 3, "y+3"), (0, -3, "y-3")):
             cand.append((f"hov-f-W{W:g}-{nm}", up + [dx, dy, W], 0, 2.0))
     cand.append(("hov-f-W45-far", up + [0.0, 0.0, 45.0], 0, 6.0))
@@ -132,7 +132,7 @@ def run(a):
             least[k] = min(least.get(k, 1e9), v)
     reps = [dict(copy.deepcopy(x), id=x["id"] + "-rep") for x in acts[:20]]
     touches = []
-    for k in "abc":
+    for k in ("" if a.no_touch else "abc"):
         t = dict(id=f"hold-touch-{k}", stage="pad", kind="touch", target=dict(frame="P", p=APEX_P, n=N_P, index=-1,
                                                                             region="face"),
                  twist=0.0, standoff=5.0, beyond_mm=1.2, v=0.00015, stop_N=0.5, fit_N=0.4)
@@ -176,6 +176,9 @@ if __name__ == "__main__":
     ap.add_argument("--add-other", action="append", default=[], help="kind:session, a fixture on the cell at that session's "
                     "registered T_BI (the low sphere: sphere:<192158-v2id1's folder>)")
     ap.add_argument("--drop-other", action="append", default=[], help="a fixture kind taken off the cell for this plan")
+    ap.add_argument("--min-w", type=float, default=0.0, help="facing gaps under this (mm) are left out: without the "
+                    "touch-offs' measured apex height, 3 mm (the seatings' 1 mm and 1 deg spread, the pad's 0.5 mm)")
+    ap.add_argument("--no-touch", action="store_true", help="no touch-offs (the rod fixture in place: wrist 3 at 0.7 mm)")
     ap.add_argument("--z-offset", type=float, default=0.0, help="mm added to the +y held apex's height (touch-offs)")
     ap.add_argument("--j6-min", type=float, default=-62.0)
     ap.add_argument("--j6-max", type=float, default=45.0)
