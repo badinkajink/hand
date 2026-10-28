@@ -1038,6 +1038,14 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 15:03 on 10-28, the tall plans at a 20 mm lift. `lab/20261028-paths_tall_stage2_l20_v3id1.json` and
+    `lab/20261028-paths_tall_morning_l20_v3id1.json` check the lab's l20 files, with the rod on, tall 114908 and both
+    held tips up. Stage 2 flags only tall-flank-525, its 9th action, which ran before the dropout. On the 58 actions
+    that resumed at 14:56:22, joint 5 stays 2.6 deg inside its window and joint 6 reaches +43.8 deg. The mount stays at
+    least 3.57 mm and the finger 1.71 mm from the cell. The lower lift raises the least elbow angle of the 58 from 64.9
+    to 70.6 deg and leaves every clearance as at 60 mm. The morning plan keeps its 18 joint-6 flags (to +57 deg, for
+    the owner's presence), and its least elbow angle rises from 72.2 to 77.4 deg. The lab's simulation gives the same
+    joint angles; it counts 13 travels of the 58 that swing wrist 1 past 45 deg, against 15 at 60 mm.
   - 14:46 on 10-28, the HEX-E and the next tip's night. The HEX-E stopped at 14:32:30 in the travel into tall-edge-627
     (DAQ: no sensor). Tall stage 2 stopped after three aborts with 44 of its 102 actions done. Both dropouts came while
     wrist 1 swung from negative to positive with wrist 2 rising (14:32: wrist 1 -28.5 to +24.7 deg, wrist 2 65.8 to
