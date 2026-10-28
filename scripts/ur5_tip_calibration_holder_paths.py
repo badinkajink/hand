@@ -6,7 +6,9 @@ right will be really close to a singularity/joint limit where the rod indenter c
 From the homing pose lifted 12 mm out of the key (where the program's freedrive homing leaves the robot), each action's
 travel follows the program's travel(): up 10 mm, across, down; or, past travel's turn_deg or far_mm, up until the pad
 stands travel.lift_mm over the indenter's top, across (a joint move past joint_deg), down. A hover then goes straight
-down to its pose and back up. A touch-off goes from its rest toward beyond_mm past the expected contact and stops where
+down to its pose and back up. A press, slide, twist or roll goes from its rest (standoff, 1.5 mm when absent) to max_depth_mm below the expected
+contact (2 mm when absent) and back; its turns are left to the lab's simulator. A touch-off goes from its rest toward
+beyond_mm past the expected contact and stops where
 the robot's pad first meets the held pad (the program stops at the contact's onset), found by bisection on the pad's
 clearance with the holder where --true-frame puts it; contact_mm in each row is that depth below the rest. The first
 action's first move, out of the seating where the mount rests on the key, is left out of the clearances. Straight moves are sampled every 2 mm and 1 deg, joint moves every 1 deg of the largest joint's
@@ -111,11 +113,12 @@ class Moves:
             h = float(a.get("ref_up_mm", 40.0))
             T_ref = self.up(T_pose, h)
             return self.travel(T_prev, T_ref) + [("L", T_ref, T_pose), ("L", T_pose, T_ref)], T_ref, None
-        st = float(a.get("standoff", 5.0))
+        st = float(a.get("standoff", 5.0 if a["kind"] == "touch" else 1.5))
         off = a.get("offset", (0.0, 0.0))                  # the program moves the contact point by -offset in I
         at = self.top_I + EZ * st - np.array([off[0], off[1], 0.0])
         T_rest = self.T_BE(tg["p"], tg["n"], a.get("twist", 0.0), at)
-        T_deep = self.up(T_rest, -(st + float(a.get("beyond_mm", 1.2))))
+        deep = float(a.get("beyond_mm", 1.2)) if a["kind"] == "touch" else float(a.get("max_depth_mm", 2.0))
+        T_deep = self.up(T_rest, -(st + deep))
         return self.travel(T_prev, T_rest) + [("L", T_rest, T_deep), ("L", T_deep, T_rest)], T_rest, tg["p"]
 
 
@@ -219,7 +222,7 @@ def run(a):
     rows, flagged = [], []
     skipped = []
     for ai, act in enumerate(plan["actions"]):
-        if act["kind"] not in ("touch", "hover"):          # presses, turns and gravity poses: the lab's simulator
+        if act["kind"] not in ("touch", "hover", "press", "slide", "twist", "roll"):   # gravity poses: the lab's simulator
             skipped.append(act["id"])
             continue
         segs, T_end, cP = mv.action_moves(act, T_prev)
@@ -279,7 +282,9 @@ def run(a):
           + ", ".join(f"{k} {v:.2f}" for k, v in least.items()) + "; clear " + str({k: round(v, 2) for k, v in lc.items()}))
     if skipped:
         print(f"{len(skipped)} actions of other kinds not replayed: {sorted(set(x.split('-')[0] for x in skipped))}")
-    out = dict(plan=str(a.plan), session=str(a.session), kind=KIND, skipped=skipped, holder_T_BI=np.round(T_true, 5).tolist(), other=[dict(kind=o["kind"],
+    out = dict(plan=str(a.plan), session=str(a.session), kind=KIND, skipped=skipped,
+               replay="touch-offs to first contact; presses, slides, twists and rolls to max_depth_mm (2 mm when absent) "
+                      "below the contact, without their turns", holder_T_BI=np.round(T_true, 5).tolist(), other=[dict(kind=o["kind"],
                origin_B=np.round(np.array(o["T_BI"])[:3, 3], 1).tolist()) for o in other], least=least, least_clear=lc,
                rows=rows, flagged=flagged)
     Path(a.out).write_text(json.dumps(out, indent=1) + "\n")
