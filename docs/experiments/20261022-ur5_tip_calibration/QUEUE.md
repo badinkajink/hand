@@ -1038,6 +1038,10 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 03:12 on 10-28, correction to the rod items above: their mount margins (1.25 to 2.85 mm at contact) were computed on
+    the rod seeds, which carry v2 ID 1's tool frames. On v3 ID 1's own (225213: the pad turned 1.55 deg in the mount) the
+    fork clears 2.68 mm at seating 2 and 3.45 mm at seating 1 on pad-face-05 (1.25 and 1.98 on v2's), as the lab's
+    simulator found (2.67 and 3.31; 0 aborts on all three seatings). The rod runs unattended on the owner's word of 01:25.
   - 00:18 on 10-28 (the lab at 23:59: "Please add slides' tilts to the builder's joint-6 check"). The path checker now
     makes the turns of slides, rolls and twists as the program's contact_turns does: from the pressed pose, about the
     sphere's centre across dir_deg (slide), the same axis through the top (roll) or the vertical through the top
