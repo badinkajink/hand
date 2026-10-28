@@ -265,7 +265,7 @@ def fig_holder(H):
 
 # ------------------------------------------------------------------------------------------------ text
 
-HOLD_MADE = "2026-10-27 22:23"   # the holder analysis that the measured section's written sentences quote (feed 21:44 to 22:25)
+HOLD_MADE = "2026-10-27 22:50"   # the holder analysis that the measured section's written sentences quote (feed 21:44 to 22:52)
 
 
 def holder_numbers(H):
@@ -279,31 +279,41 @@ def holder_numbers(H):
     m_rt = 1e3 * np.asarray(rt["moment_Am2"])
     cross = [1e3 * np.asarray(c["moment_Am2"]) for c in rt["cross"].values()]
     hv = H["hovers"]
-    first = {h["id"]: h for h in hv if not h["id"].endswith("-rep")}
-    reps = [h for h in hv if h["id"].endswith("-rep")]
+    hv_ses = list(dict.fromkeys(h["session"] for h in hv))          # the map first, then the close hovers over -y
+    mp = [h for h in hv if h["session"] == hv_ses[0]]
+    cl = [h for h in hv if len(hv_ses) > 1 and h["session"] == hv_ses[1]]
+    first = {h["id"]: h for h in mp if not h["id"].endswith("-rep")}
+    reps = [h for h in mp if h["id"].endswith("-rep")]
     rep_diff = {k: [float(np.linalg.norm(np.subtract(r["boards"][k]["meas"], first[r["id"][:-4]]["boards"][k]["meas"])))
                     for r in reps] for k in ("held0", "held3", "robot")}
-    close = [h for h in hv if h["station"] == "+y" and h["W_mm"] <= 1.05]
-    far = [h for h in hv if h["W_mm"] > 40]
+    close = [h for h in mp if h["station"] == "+y" and h["W_mm"] <= 1.05]
+    far = [h for h in mp if h["W_mm"] > 40]
     under = lambda h: next(k for k, v in h["boards"].items() if v.get("station") == h["station"])  # noqa: E731
-    st_w = lambda st: [h["W_mm"] for h in hv if h["station"] == st]  # noqa: E731
+    st_w = lambda st: [h["W_mm"] for h in mp if h["station"] == st]  # noqa: E731
+    near = lambda w: [h for h in cl if abs(h["W_mm"] - w) < 0.3]  # noqa: E731
+    cl_at = {w: {k: dict(meas=[h["boards"][k]["meas_uT"] for h in near(w)], left=[h["boards"][k]["left_uT"] for h in near(w)])
+                 for k in ("held3", "robot")} for w in (0.5, 5.0)}
+    touch_ses = [x for x in (s["name"] for s in H["sessions"]) if any(t["session"] == x for t in H["touches"])]
     return dict(
         at=at, gain={k: b[k]["gain"] for k in at}, expl={k: 100 * b[k]["explained_near"] for k in at},
-        n_touch=len(H["touches"]), sessions=[s["name"] for s in H["sessions"]],
+        n_touch=len(H["touches"]), sessions=touch_ses,
         m_rt=m_rt, m1=float(np.linalg.norm(m_rt)) / rt["share_of_one_magnet"],
         share=dict(robot=100 * rt["share_of_one_magnet"], plus=100 * hp["share_of_one_magnet"], minus=100 * hm["share_of_one_magnet"]),
         with_m=dict(held0=100 * rt["explained"]["held0"]["model_and_moment"], held3=100 * rt["explained"]["held3"]["model_and_moment"],
                     plus=100 * hp["explained"]["model_and_moment"], minus=100 * hm["explained"]["model_and_moment"]),
         cross_diff=float(np.max(np.abs(cross[0] - cross[1]))),
         cross_pred=sorted(100 * c["explained_with_moment"] for c in rt["cross"].values()),
-        n_hover=len(hv), n_rep=len(reps), map_session=hv[0]["session"],
+        n_hover=len(hv), n_map=len(mp), n_close=len(cl), map_session=hv_ses[0], close_session=hv_ses[1] if cl else None,
+        n_rep=sum(1 for h in hv if h["id"].endswith("-rep")), n_close_rep=sum(1 for h in cl if h["id"].endswith("-rep")),
         n_st={st: len(st_w(st)) for st in ("+y", "-y")}, w_st={st: (min(st_w(st)), max(st_w(st))) for st in ("+y", "-y")},
-        twists=sorted({round(h["heading_deg"]) for h in hv}),
+        n_st_all={st: sum(1 for h in hv if h["station"] == st) for st in ("+y", "-y")},
+        cl_w=(min(h["W_mm"] for h in cl), max(h["W_mm"] for h in cl)) if cl else None, cl_peak=max((h["peak_N"] for h in cl), default=0),
+        cl_at=cl_at, twists=sorted({round(h["heading_deg"]) for h in hv}),
         hx={k: {m: 100 * v[m] for m in v} for k, v in H["hover_explained"].items()},
         close_meas=[h["boards"]["held0"]["meas_uT"] for h in close], close_left=[h["boards"]["held0"]["left_uT"] for h in close],
         close_w=(min(h["W_mm"] for h in close), max(h["W_mm"] for h in close)),
         rep_med=[float(np.median(v)) for v in rep_diff.values()], rep_max=max(max(v) for v in rep_diff.values()),
-        drift_med=float(np.median([v["ref_drift_uT"] for h in hv for v in h["boards"].values()])),
+        drift_med=float(np.median([v["ref_drift_uT"] for h in mp for v in h["boards"].values()])),
         far_meas=[h["boards"][under(h)]["meas_uT"] for h in far], far_model=[h["boards"][under(h)]["model_moment_uT"] for h in far])
 
 
@@ -320,10 +330,21 @@ def holder_section(H, hn, fh, fv):
     mx, my, mz = hn["m_rt"]
     tw = hn["twists"]
     sg = lambda x: f"{x:.0f}".replace("-", "&#8722;")  # noqa: E731
+    ca = hn["cl_at"]
+
+    def robot_shares(vp, vm):
+        """The moments' effect on the robot tip's board over +y and over -y, in one sentence when both go the same way."""
+        up = lambda v: v["model_and_moment"] >= v["model"]  # noqa: E731
+        fr = lambda v: f"from {sg(v['model'])} to {sg(v['model_and_moment'])}&#8202;%"  # noqa: E731
+        verb = lambda v: "raise" if up(v) else "lower"  # noqa: E731
+        if up(vp) == up(vm):
+            return f"On the robot tip&#8217;s board the moments {verb(vp)} the share {fr(vp)} over +y and {fr(vm)} over &#8722;y."
+        return (f"On the robot tip&#8217;s board the moments {verb(vp)} the share {fr(vp)} over +y. Over &#8722;y they "
+                f"{verb(vm)} it {fr(vm)}.")
     body = (
         f"<p>On 2026-10-27 the UR5 moved v3 ID 1 through {hn['n_touch']} touch-off approaches onto the two held v3 tips, in "
         f"sessions {', '.join(ses[:-1])} and {ses[-1]}. In session {hn['map_session']} it also made the map&#8217;s "
-        f"{hn['n_hover']} hovers. All three boards streamed throughout. Both pads were placed by the holder&#8217;s frame "
+        f"{hn['n_map']} hovers, and {hn['n_close']} close hovers over the &#8722;y tip in session {hn['close_session']}. All three boards streamed throughout. Both pads were placed by the holder&#8217;s frame "
         "through both apexes, measured by touch-offs. That frame tilts by 0.25&#176;, with a residual of 0.087&#8202;mm rms.</p>"
         f"<p>Under the robot tip a held board changed by {rng([c('held0', 0.0), c('held3', 0.0)])}&#8202;&#181;T at contact "
         f"(Figure&#160;{FIG['holder']}, Table&#160;{TAB['holder']}). At W 4.75&#8202;mm it changed by "
@@ -350,19 +371,23 @@ def holder_section(H, hn, fh, fv):
         "neither held tip&#8217;s moment. Its own motion through the room&#8217;s field is the likely source. The moments lie "
         "mostly in the face&#8217;s plane, along y and z of the pad frame. A tilt of the magnets in their pockets gives a moment "
         "in that plane; a spread of their strengths gives one along the normal, x.</p>"
-        "<p>The moments were then compared with the map&#8217;s hovers, on which they were not fitted "
-        f"(Figure&#160;{FIG['hovers']}, Table&#160;{TAB['hovers']}). Over the +y tip the robot made {hn['n_st']['+y']} hovers at "
-        f"W {hn['w_st']['+y'][0]:.1f} to {hn['w_st']['+y'][1]:.0f}&#8202;mm, at twists of {tw[0]:+d} to {tw[-1]:+d}&#176; and with "
-        f"3&#8202;mm shifts. Over the &#8722;y tip it made {hn['n_st']['-y']}, at W {hn['w_st']['-y'][0]:.0f}&#8202;mm and over; "
-        f"{hn['n_rep']} of the {hn['n_hover']} hovers repeat earlier poses. On the held board under the robot tip, "
-        f"{hx['held0 at +y']['model_and_moment']:.1f}&#8202;% of the change is explained over +y and "
-        f"{hx['held3 at -y']['model_and_moment']:.1f}&#8202;% over &#8722;y. The nominal model gives "
-        f"{sg(hx['held0 at +y']['model'])} and {sg(hx['held3 at -y']['model'])}&#8202;%. On the robot tip&#8217;s board the moments "
-        f"raise the share from {hx['robot at +y']['model']:.0f} to {hx['robot at +y']['model_and_moment']:.0f}&#8202;% over +y. Over "
-        f"&#8722;y they lower it from {hx['robot at -y']['model']:.0f} to {hx['robot at -y']['model_and_moment']:.0f}&#8202;%.</p>"
+        "<p>The moments were then compared with hovers on which they were not fitted "
+        f"(Figure&#160;{FIG['hovers']}, Table&#160;{TAB['hovers']}). In the map the robot made {hn['n_st']['+y']} hovers over the "
+        f"+y tip at W {hn['w_st']['+y'][0]:.1f} to {hn['w_st']['+y'][1]:.0f}&#8202;mm, at twists of {tw[0]:+d} to {tw[-1]:+d}&#176; "
+        f"and with 3&#8202;mm shifts. Over the &#8722;y tip it made {hn['n_st']['-y']}, at W {hn['w_st']['-y'][0]:.0f}&#8202;mm and "
+        f"over. The {hn['n_close']} close hovers over the &#8722;y tip span W {hn['cl_w'][0]:.1f} to {hn['cl_w'][1]:.0f}&#8202;mm, "
+        f"and all stayed below the hover&#8217;s 0.5&#8202;N contact guard. Of the {hn['n_hover']} hovers, {hn['n_rep']} repeat "
+        f"earlier poses. On the held board under the robot tip, {hx['held0 at +y']['model_and_moment']:.1f}&#8202;% of the change "
+        f"is explained over +y and {hx['held3 at -y']['model_and_moment']:.1f}&#8202;% over &#8722;y. The nominal model gives "
+        f"{sg(hx['held0 at +y']['model'])} and {sg(hx['held3 at -y']['model'])}&#8202;%. "
+        f"{robot_shares(hx['robot at +y'], hx['robot at -y'])}</p>"
         f"<p>At W {hn['close_w'][0]:.1f} to {hn['close_w'][1]:.0f}&#8202;mm the +y board read {rng(hn['close_meas'])}&#8202;&#181;T, "
-        f"and {rng(hn['close_left'])}&#8202;&#181;T is left after the model with the moment. A repeat about 40&#8202;min after its "
-        f"first run differs from it by a median {min(hn['rep_med']):.2f} to {max(hn['rep_med']):.1f}&#8202;&#181;T, and by at most "
+        f"and {rng(hn['close_left'])}&#8202;&#181;T is left after the model with the moment. At W 0.5&#8202;mm the &#8722;y board "
+        f"read {rng(ca[0.5]['held3']['meas'])}&#8202;&#181;T and the robot tip&#8217;s board {rng(ca[0.5]['robot']['meas'])}&#8202;&#181;T. "
+        f"After the model with the moments, {rng(ca[0.5]['held3']['left'])} and {rng(ca[0.5]['robot']['left'])}&#8202;&#181;T are left. At W 5&#8202;mm they read "
+        f"{rng(ca[5.0]['held3']['meas'])} and {rng(ca[5.0]['robot']['meas'])}&#8202;&#181;T, and {rng(ca[5.0]['held3']['left'])} and "
+        f"{rng(ca[5.0]['robot']['left'])}&#8202;&#181;T are left. In the map, a repeat about 40&#8202;min after its first run "
+        f"differs from it by a median {min(hn['rep_med']):.2f} to {max(hn['rep_med']):.1f}&#8202;&#181;T, and by at most "
         f"{hn['rep_max']:.1f}&#8202;&#181;T. The two reference dwells of a hover differ by a median {hn['drift_med']:.1f}&#8202;&#181;T. "
         f"At W 45&#8202;mm the board under the robot tip changed by {rng(hn['far_meas'], '{:.1f}')}&#8202;&#181;T, and the model "
         f"with the moments gives {rng(hn['far_model'], '{:.1f}')}&#8202;&#181;T.</p>"
@@ -400,17 +425,19 @@ def holder_section(H, hn, fh, fv):
                         (other, f"Held, {'&#8722;y' if st == '+y' else '+y'} station, not under the robot tip"),
                         ("robot", "Robot tip&#8217;s")):
             v = hx[f"{k} at {st}"]
-            hrows.append([name, stn, str(n), sign(v["model"]), sign(v["model_and_moment"])])
+            hrows.append([name, stn, str(hn["n_st_all"][st]), sign(v["model"]), sign(v["model_and_moment"])])
     tab_h = P.table(
         ["Board", "Robot tip over", "Hovers", "Explained, nominal model (%)", "Explained, with the net moments (%)"],
         hrows, num_cols=(2, 3, 4), n=TAB["hovers"],
         caption="Share of the hovers&#8217; measured change that is explained by the nominal dipole model and with the net moments "
-                "fitted on the touch-off approaches, by board and by the station the robot tip hovers over. A share below zero "
+                "fitted on the touch-off approaches, by board and by the station the robot tip hovers over. Over &#8722;y the map&#8217;s "
+                "hovers and the close hovers are pooled. A share below zero "
                 "means the scaled model fits worse than a prediction of no change. Rows in the file of "
                 f"Table&#160;{TAB['holder']} (<code>hover_explained</code>).")
     fig_h = P.fig(FIG["hovers"], fv,
                   "Change of each board in the map&#8217;s hovers, against the gap W. In (a) and (b) the robot tip hovers over the "
-                  "+y tip, in (c) and (d) over the &#8722;y tip. Black circles: measured, at twists of &#8722;20 to +10&#176; "
+                  "+y tip, in (c) and (d) over the &#8722;y tip. Over &#8722;y the map&#8217;s hovers and the close hovers are drawn together. "
+                  "Black circles: measured, at twists of &#8722;20 to +10&#176; "
                   "together. Open squares: the robot apex shifted 3&#8202;mm along or across the tip. Orange dashes: the model "
                   "with the net moments fitted on the touch-off approaches. Blue dashes: the nominal dipole model with the same "
                   f"gains. Rows in the file of Table&#160;{TAB['holder']}.")
@@ -491,14 +518,19 @@ def sections(B, S, Sn, H, f1, f2, fh, fv):
     hov_held = [hx["held0 at +y"]["model_and_moment"], hx["held3 at -y"]["model_and_moment"]]
     hov_nom = [hx["held0 at +y"]["model"], hx["held3 at -y"]["model"]]
     neg = lambda x: f"{x:.0f}".replace("-", "&#8722;")  # noqa: E731
+
+    def both(xs, f=lambda x: f"{x:.0f}", pct="&#8202;%"):
+        a, b = f(xs[0]), f(xs[1])
+        return f"{a}{pct}" if a == b else f"{a} and {b}{pct}"
+    board = "either held board" if f"{hov_held[0]:.0f}" == f"{hov_held[1]:.0f}" else "the two held boards"
     lede = (
         "A neighbouring fingertip&#8217;s magnets change the reading of a magnetic fingertip&#8217;s board by more than a press "
         "does. On the UR5, two four-magnet v3 tips with their pads touching changed each other&#8217;s boards by "
         f"{min(con):.0f} to {max(con):.0f}&#8202;&#181;T. A 0.5&#8202;N press changed v2 ID 1&#8217;s board by {p05:.0f}&#8202;&#181;T. "
         f"The four magnets of a tip do not cancel fully: each tip has a net moment of {min(shr):.0f} to {max(shr):.0f}&#8202;% of "
         "one magnet&#8217;s. With these moments, fitted on touch-offs, the dipole model explains "
-        f"{hov_held[0]:.0f} and {hov_held[1]:.0f}&#8202;% of the change at the two held boards in a map of {hn['n_hover']} "
-        f"hovers. Without them it explains {neg(hov_nom[0])} and {neg(hov_nom[1])}&#8202;%. In v2 ID 1&#8217;s field model a "
+        f"{both(hov_held)} of the change at {board} in {hn['n_hover']} hovers. Without them it explains "
+        f"{both(hov_nom, neg)}. In v2 ID 1&#8217;s field model a "
         f"five-magnet neighbour adds {r5('facing', 0)['norm_uT']:.0f}&#8202;&#181;T facing and "
         f"{r5('side', 0)['norm_uT']:,.0f}&#8202;&#181;T side by side, touching. When the neighbour&#8217;s pose is fitted from both "
         f"boards, the Cram&#233;r&#8211;Rao bound on a press is {min(bound):.3f}&#8211;{max(bound):.3f}&#8202;N, against "
@@ -507,8 +539,8 @@ def sections(B, S, Sn, H, f1, f2, fh, fv):
         "Magnetic crosstalk between neighbouring fingertips: on the UR5 two four-magnet v3 tips touching changed each other's "
         f"boards by {min(con):.0f}-{max(con):.0f} uT, against {p05:.0f} uT for a 0.5 N press on v2 ID 1; each tip has a net "
         f"moment of {min(shr):.0f}-{max(shr):.0f} % of one magnet, and with these moments, fitted on touch-offs, the dipole model "
-        f"explains {hov_held[0]:.0f} and {hov_held[1]:.0f} % of the change at the two held boards in a map of {hn['n_hover']} "
-        f"hovers ({hov_nom[0]:.0f} and {hov_nom[1]:.0f} % without). In v2 ID 1's field model a five-N52 neighbour adds "
+        f"explains {both(hov_held, pct=' %')} of the change at {board} in {hn['n_hover']} hovers "
+        f"({both(hov_nom, pct=' %')} without). In v2 ID 1's field model a five-N52 neighbour adds "
         f"{r5('facing', 0)['norm_uT']:.0f} uT facing and {r5('side', 0)['norm_uT']:,.0f} uT side by side when touching; fitting "
         f"its pose from both boards keeps the press bound at {min(bound):.3f}-{max(bound):.3f} N ({known:.3f} N with the pose "
         "known).")
@@ -732,15 +764,17 @@ def sections(B, S, Sn, H, f1, f2, fh, fv):
     # 8. future work
     fw = [
         ("The neighbour&#8217;s field on the holder.", f"The map of the "
-         + link(L["v3"], "plan for the four-magnet v3 tips") + f" ran on 2026-10-27 (Section&#160;{SEC['holder']}); its "
-         f"geometry is drawn in Figure&#160;{FIG['render']}. A second plan dwells at 28 poses over the &#8722;y tip at W "
-         "0.5&#8211;5&#8202;mm and repeats 20 of them, in about 18&#8202;min. Each held tip&#8217;s pose and strength are then "
-         "fitted in five folds by pose. At W 5&#8202;mm and under, a held-out residual above 10&#8202;% of the field means the "
-         "model cannot be subtracted to the board&#8217;s noise. With the net moments fitted on the touch-offs, "
+         + link(L["v3"], "plan for the four-magnet v3 tips") + " and the close hovers over the &#8722;y tip ran on 2026-10-27 "
+         f"(Section&#160;{SEC['holder']}). The map&#8217;s geometry is drawn in Figure&#160;{FIG['render']}. Each held tip&#8217;s "
+         "pose and strength are to be fitted in five folds by pose (<code>scripts/fingertip_crosstalk.py</code>). At W 5&#8202;mm "
+         "and under, a held-out residual above 10&#8202;% of the field means the model cannot be subtracted to the "
+         "board&#8217;s noise. With the net moments fitted on the touch-offs, "
          f"{min(hn['close_left']):.0f} to {max(hn['close_left']):.0f}&#8202;&#181;T of the +y board&#8217;s "
-         f"{min(hn['close_meas']):.0f} to {max(hn['close_meas']):.0f}&#8202;&#181;T is left at W 0.5 to 1&#8202;mm. At these "
-         "poses the held tips&#8217; magnets pull on the robot tip with at most 0.69&#8202;mN "
-         "(<code>scripts/fingertip_crosstalk.py pull</code>)."),
+         f"{min(hn['close_meas']):.0f} to {max(hn['close_meas']):.0f}&#8202;&#181;T is left at W 0.5 to 1&#8202;mm. Of the "
+         f"&#8722;y board&#8217;s {min(hn['cl_at'][0.5]['held3']['meas']):.0f} to {max(hn['cl_at'][0.5]['held3']['meas']):.0f}"
+         f"&#8202;&#181;T at W 0.5&#8202;mm, {min(hn['cl_at'][0.5]['held3']['left']):.0f} to "
+         f"{max(hn['cl_at'][0.5]['held3']['left']):.0f}&#8202;&#181;T is left. At these poses the held tips&#8217; magnets pull "
+         "on the robot tip with at most 0.69&#8202;mN (<code>scripts/fingertip_crosstalk.py pull</code>)."),
         ("A pinch between two v3 tips.", "A plan of its own follows the map. The robot apex presses the held apex on the +y "
          "station at 0.25&#8211;3&#8202;N. The robot&#8217;s target is also shifted 2 and 4&#8202;mm off its apex, across and "
          "along, and turned by &#8722;20 to +20&#176;. The apex press comes first, in the middle and last. The robot "
