@@ -42,7 +42,7 @@ EXP = ROOT / "docs/experiments"
 V3 = EXP / "20261027-v3_tip_calibration_and_crosstalk"
 HOVER = V3 / "media/20261027-ur5_cell_holder_hover.png"
 HOLD = V3 / "data/20261027-crosstalk_touchoffs.json"
-FVF = V3 / "data/20261028-four_vs_five_partial.json"   # feed 2026-10-28 00:18; the full comparison follows when stage 2 ends
+FVF = V3 / "data/20261028-four_vs_five_grid.json"   # feed 2026-10-28 00:59: stage 2's whole grid (the 00:18 file had its first 74 actions)
 SEC = dict(terms=1, field=2, holder=3, subtract=4, fit=5, sharpie=6, limits=7, future=8)
 FIG = dict(budget=1, holder=2, hovers=3, sharpie=4, render=5)
 TAB = dict(field=1, holder=2, hovers=3, crb=4)
@@ -275,7 +275,7 @@ def press_gain(F):
     """Change per newton of a face press (uT/N, the median of |d_board| / f_n over face holds at 0.5 to 3.5 N) of v3 ID 1
     (four magnets) and v2 ID 1 (five) on the same press actions of the low sphere, from the coordinator's comparison."""
     return dict(v3=F["four_v3id1"]["gain_uT_per_N"]["face"], v2=F["five_v2id1"]["gain_uT_per_N"]["face"],
-                actions=F["actions"], holds=F["holds"]["v3"], partial=F.get("note", "").startswith("partial"))
+                actions=F["actions"], holds=F["holds"]["v3"])
 
 
 def holder_numbers(H):
@@ -362,8 +362,8 @@ def holder_section(H, hn, fh, fv, pg):
         f"{rng([c('held0', 12.5), c('held3', 12.5)])}&#8202;&#181;T. The robot tip&#8217;s board changed by {c('robot', 0.0):.0f}, "
         f"{c('robot', 4.75):.0f} and {c('robot', 12.5):.0f}&#8202;&#181;T at these gaps. Per newton of face press, v3 ID 1&#8217;s "
         f"board changes by {pg['v3']:.1f}&#8202;&#181;T and v2 ID 1&#8217;s by {pg['v2']:.1f}&#8202;&#181;T. These are medians over "
-        f"{'the first ' if pg['partial'] else ''}{pg['actions']} press actions of v3 ID 1&#8217;s calibration on the UR5&#8217;s "
-        f"low sphere, with {pg['holds']} holds. v2 ID 1&#8217;s come from the same actions of its sphere session "
+        f"the {pg['actions']} press actions of the grid stage of v3 ID 1&#8217;s calibration on the UR5&#8217;s low sphere, with "
+        f"{pg['holds']} holds. v2 ID 1&#8217;s come from the same actions of its sphere session "
         f"(<code>{FVF.relative_to(ROOT)}</code>, <code>scripts/ur5_tip_calibration_four_vs_five.py</code>).</p>"
         f"<p>The nominal model&#8217;s gains are {g['robot']:.2f} on the robot tip&#8217;s board, and {g['held0']:.2f} and "
         f"{g['held3']:.2f} on the +y and &#8722;y held boards. On the robot tip&#8217;s board {e['robot']:.0f}&#8202;% of the "
@@ -837,7 +837,7 @@ def build():
               "202426-holdapexv3id1, 212131-holdmapv3id1 and 222640-holdclosev3id1 on 2026-10-27, analysed by "
               "<code>scripts/fingertip_crosstalk_holder.py</code> (commits 53993cbc to d4fa2c07); v3 ID 1&#8217;s presses on the low "
               "sphere in session 225213-spherev3id1 against v2 ID 1&#8217;s, compared by "
-              "<code>scripts/ur5_tip_calibration_four_vs_five.py</code> (commit c5fe7775). Analysis "
+              "<code>scripts/ur5_tip_calibration_four_vs_five.py</code> (commit 449464c4). Analysis "
               "<code>scripts/fingertip_crosstalk.py</code> (commit bc508a6e); "
               "page by <code>scripts/fingertip_crosstalk_page.py</code>; rows in " + link(DATA, "data/") + ". The fingertip and its "
               "calibration are described on " + link(L["overview"], "the fingertip overview") + " and "
