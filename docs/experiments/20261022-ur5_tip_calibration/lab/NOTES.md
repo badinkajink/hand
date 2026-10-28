@@ -1270,8 +1270,10 @@ at about 340 records/s). The holder's two v3 tips read through the mux board `b4
   registration, then again on this pass 1's: 0 aborts, joint 6 -61.7 to +43.9 deg, joint 5 at least 5.1 deg inside its
   window. Two actions came under the mount's 3.0 mm margin on v3 ID 1's registration: `dense-700-t+10` (2.97 mm in the
   workstation's path check, 99a8132e; 3.05 mm in the lab's simulation) and `slide-dense-700-t+10-1N` (2.87 mm in the
-  lab's simulation). The run is to stop after `dense-657-t+15` and resume without both
-  (`lab/20261027-plan_sphere_lab_stage2_resume_v3id1.json`, 262 actions).
+  lab's simulation). A SIGINT right after `dense-657-t+15` ended (grid 133/161, 0 aborts) stopped the run at 00:35:21
+  with the robot at that press's rest pose. It resumed at 00:35:50 without both
+  (`lab/20261027-plan_sphere_lab_stage2_resume_v3id1.json`, 262 actions; `logs/20261028-003550-tipcal-spherev3id1.log`).
+  The simulator ran both new transitions first: mount 5.43 mm in the grid, 5.30 mm in the shear stage.
 
 ## The lab clone and git-lfs
 
