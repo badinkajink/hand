@@ -18,7 +18,8 @@ with the same pad (05R4), in the order the lab runs them unattended:
   6 rod stage 2      20261028-plan_rod_lab_stage2_v7_v3id1.json (94) with 20261028-plan_rod_lab_morning6_v3id1.json's 6
                      presses before its final reference
 
-Every plan gets travel.speed 1.0 and checks.other from lab/cell.json without its own indenter. The plans that need the
+Every plan gets travel.speed 1.0 and checks.other from lab/cell.json without its own indenter; the tall plans lift
+20 mm between actions in place of 60 (owner, 2026-10-28 14:4x: "maybe dont go up so high on these tall indenter moves"). The plans that need the
 owner (joint 6 past +45 deg: the tall and sphere morning plans; the top edge) are not part of the night.
 
     .venv/bin/python scripts/ur5_tip_calibration_next_tip_suite.py [--tip v3id2] [--created ...]
@@ -99,6 +100,9 @@ def main():
             note += (": the normal approach (3.5 mm above to 1.2 mm past, slow_mm_touch 2.5) in place of the search; "
                      "run it on a seed folder (scripts/ur5_tip_calibration_seed_registration.py) with --stages "
                      "preflight,pad,pivot,register")
+        if kind == "tall":
+            p.setdefault("travel", {})["lift_mm"] = 20.0
+            note += "; travel.lift_mm 20 (the owner, 14:4x)"
         p["actions"] = acts
         p["created"] = a.created
         p.setdefault("travel", {})["speed"] = 1.0
