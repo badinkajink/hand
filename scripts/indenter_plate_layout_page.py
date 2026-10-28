@@ -56,8 +56,8 @@ def code(s):
     return f"<code>{P.esc(s)}</code>"
 
 
-def run(layout, suite):
-    f = DATA / f"{STEM}_{layout}_{suite}_quick.json"
+def run(layout, suite, quick=True):
+    f = DATA / f"{STEM}_{layout}_{suite}{'_quick' if quick else ''}.json"
     return json.loads(f.read_text()) if f.exists() else None
 
 
@@ -157,10 +157,10 @@ def fig_renders(out, layout):
 
 # ------------------------------------------------------------------------------------------------ text
 def suite_table(layouts, n):
-    head = ["Suite", "Actions"] + [f"Clear on {lab}" for _, lab in layouts] + [f"What stops the rest on {layouts[-1][1]}"]
+    head = ["Suite", "Actions"] + [f"Clear on {lab}" for _, lab, _ in layouts] + [f"What stops the rest, {layouts[-1][1]}"]
     body = []
     for s in SUITES:
-        ds = [run(lay, s) for lay, _ in layouts]
+        ds = [run(lay, s, q) for lay, _, q in layouts]
         if any(d is None for d in ds):
             continue
         cells = [SUITE_NAME[s], str(ds[0]["n"])]
@@ -168,9 +168,10 @@ def suite_table(layouts, n):
             cells.append(f"{d['n'] - d['flagged']}" + (f" ({d['attended']} with the owner)" if d.get("attended") else ""))
         cells.append(P.esc(cause_text(ds[-1])))
         body.append(cells)
-    return P.table(head, body, num_cols=(1, 2, 3), n=n,
-                   caption="Actions of each suite that clear every margin and joint window on each layout. Joint 6 past "
-                           "+45 deg counts as clear with the owner present, as the morning plans run today.")
+    return P.table(head, body, num_cols=tuple(range(1, 2 + len(layouts))), n=n,
+                   caption="Actions of each suite that clear every margin and joint window. The first two columns check "
+                           "each move at its ends (quick), the third every sample of every move with the travel. Joint 6 "
+                           "past +45&#176; counts as clear with the owner present, as for today's morning plans.")
 
 
 def spec_table(g, n):
@@ -210,8 +211,9 @@ to its indenter on the plate by a translation. On the 12.5 mm sphere the plans' 
 kept.</dd>
 <dt>Replay</dt><dd>The moves of <code>scripts/ur5_tip_calibration_holder_paths.py</code>. They are the travel between
 actions, the approach, the depth at the largest force, and the turns of slides, rolls and twists in 0.5&#176; steps.
-Touch-offs stop at first contact. The runs on this page check each action's own moves at the end of every straight step,
-and the travel's joint moves at their ends (<code>--quick</code>).</dd>
+Touch-offs stop at first contact. The quick runs check each action's own moves at the end of every straight step, and
+the travel's joint moves at their ends (<code>--quick</code>). The full runs check every fifth sample of every move and its
+ends, with the travel: straight moves every 2 mm and 1&#176;, joint moves every 1&#176;.</dd>
 <dt>Clear</dt><dd>An action clears when every checked pose keeps the joints and the clearances below. Joint 5 stays in 30
 to 100&#176; and joint 6 in &#8722;65 to +60&#176;. $|\sin q_5|$ stays at 0.5 or more, the elbow 20&#176; from straight,
 and the wrist 150 mm from joint 1's axis. Every joint stays 10&#176; from its limit. The clearances to the plate, the held
@@ -292,10 +294,18 @@ cell gives the share of the suite's actions inside every joint window.</dd>
     ns = N["side_gaps"]
     lay += (f"<p>On the proposed plate, every action that does not clear fails on its own indenter or on a joint window "
             f"(Table 3). The side-by-side map clears every gap from 13 to 40 mm at twist 0. Twists of &#177;10&#176; clear "
-            f"from {ns['pm10']} mm, and &#8722;20 to &#8722;30&#176; from {ns['m20']} mm. The facing hovers clear all 58. "
+            f"from {ns['pm10']} mm, and &#8722;20&#176; from {ns['m20']} mm. The facing hovers clear all 58. "
             f"The tall suite keeps {F['tall5']['n'] - F['tall5']['flagged']} of 168, against "
             f"{A['tall5']['n'] - A['tall5']['flagged']} on the printed plate.</p>")
-    lay += suite_table([("array", "the printed plate"), (FINAL, "the proposed plate")], 3)
+    lay += suite_table([("array", "the printed plate", True), (FINAL, "the proposed plate", True),
+                        (FINAL, "the proposed plate, every sample", False)], 3)
+    Ff = {s_: run(FINAL, s_, False) for s_ in SUITES}
+    lay += (f"<p>At every sample of every move, the travel included, the result on the proposed plate is the same "
+            f"(Table 3, third column). The side-by-side map clears {Ff['side']['n'] - Ff['side']['flagged']} hovers and the "
+            f"tall suite {Ff['tall5']['n'] - Ff['tall5']['flagged']} actions. Every action that fails still fails on its own "
+            f"indenter or on a joint window. The nearest approach to another indenter is the HEX-E's "
+            f"{Ff['side']['least']['hex_e'][0]:.1f} mm to the rod during the side-by-side map. During the tall suite it comes "
+            f"{Ff['tall5']['least']['hex_e'][0]:.1f} mm from the 12.5 mm sphere.</p>")
     if N["renders"]:
         lay += P.fig(5, MEDIA / "renders.png",
                      "The proposed plate in the cell scene of <code>scripts/ur5_cell_render.py</code>, seen from the plate's "
@@ -315,9 +325,6 @@ cell gives the share of the suite's actions inside every joint window.</dd>
     S.append(("print", "Printing and mounting", prn))
 
     fw = f"""<ul>
-<li>Replay every sample of every move on the proposed plate, the travel's straight moves included
-(<code>scripts/indenter_plate_layout.py replay --layout {FINAL} --suite S</code> without <code>--quick</code>). An action
-that clears here and fails there names a travel that the quick runs skip.</li>
 <li>Build plans for the 12.5 mm sphere, as the rod's were built: face and near-face points and the tilts its radius allows.
 The sphere suite's edge and flank presses run the finger or mount into that sphere itself, on either plate.</li>
 <li>Place the plate with A where the low sphere stands today, as the checks assume. Elsewhere, move A in
@@ -327,13 +334,15 @@ apex 41 mm under the pad-up apex.</li>
 </ul>"""
     S.append(("future", "Future work", fw))
 
-    nf = lambda s: F[s]["n"] - F[s]["flagged"]                       # noqa: E731
+    FF = {s_: run(FINAL, s_, False) for s_ in SUITES}
+    nf = lambda s: FF[s]["n"] - FF[s]["flagged"]                     # noqa: E731
     lede = (f"On the plate printed on 2026-10-27, the side-by-side crosstalk map fails. With the &#8722;y tip pad-down, "
             f"only {na} of 162 side hovers clear: the 12.5 mm sphere and the front row stand where the robot's tool and "
             f"wrist pass. Its 5 mm sphere also costs the tall suite {nt} of 168 actions to the joint windows. On the "
             f"proposed plate the 5 mm sphere moves to the back right and the holder to the back left. The 12.5 mm sphere "
             f"and the rod move to the front, at 95 and 100 mm. There {nf('side')} side hovers, {nf('tall5')} tall actions "
-            f"and {nf('sphere5')} of 337 sphere actions clear. The plate prints in one piece on the P1S.")
+            f"and {nf('sphere5')} of 337 sphere actions clear at every sample of their moves. The plate prints in one piece "
+            f"on the P1S.")
     summary = (f"The printed indenter plate blocks the side-by-side map ({na} of 162 hovers clear) and the tall suite ({nt} of "
                f"168 actions out of the joint windows). A layout with the 5 mm sphere back right, the holder back left, and "
                f"the 12.5 mm sphere and the rod in front at 95 and 100 mm clears {nf('side')} side hovers and "
@@ -385,9 +394,9 @@ def build():
     N["parts"] = json.loads((CAD / f"{STEM}_{FINAL}_parts.json").read_text())
     import re as _re
     ok = [tuple(int(v) for v in _re.match(r"hov-s-g(\d+)-s(\d+)-t([+-]\d+)", r_["id"]).groups())
-          for r_ in N["final"]["side"]["rows"] if not r_["flags"]]
+          for r_ in run(FINAL, "side", False)["rows"] if not r_["flags"]]
     N["side_gaps"] = dict(pm10=min(g for g, _, t in ok if abs(t) == 10 and sum(1 for g2, _, t2 in ok if g2 == g and t2 == -t)),
-                          m20=min(g for g, _, t in ok if t <= -20))
+                          m20=min(g for g, _, t in ok if t == -20))
     fig_reach(MEDIA / "reach.png", dict(g=gF))
     N["renders"] = fig_renders(MEDIA / "renders.png", FINAL)
     S, lede, summary = sections(N)
