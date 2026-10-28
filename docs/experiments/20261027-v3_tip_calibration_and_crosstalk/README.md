@@ -34,7 +34,11 @@ The whole queue is about 10 h. One order needs a single hands-on visit at 09:00:
    clearances and the analysis assume it.
 2. The check, then the side-by-side map, about 09:15 to 09:45. Its cell checks need `UR5_TIPHOLD_STATIONS=down,up`, and
    so does its analysis (`scripts/fingertip_crosstalk_holder.py` places the held pads by that model).
-3. Turn the -y tip back up and put the rod fixture back; rod pass 1 searches its new seating.
+3. Turn the -y tip back up, put the rod fixture back, and record a fresh hand seating of the rod (rod_indenter_seated_4,
+   about 2 min with teach_hold and record_pose). Rod pass 1 homes on it. If it lies within seatings 1 to 3's spread
+   (about 4 deg and a few mm), the lab's simulations stand; if not, the lab simulates the rod plans again first (about
+   20 min, while the tall runs). The alternative keeps the rod fixture on and runs the side-by-side map last, with the
+   owner back for the flip.
 4. From about 09:55 unattended: the sphere twists (to about 10:35), tall pass 1 (11:10), the top edge (11:50), tall stage 2
    and its morning plan (14:45), the rod (16:15 and the re-check), the sphere morning plan (17:00). Running all 62 sphere
    actions in place of the twists alone moves the end to about 19:25.
