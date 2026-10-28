@@ -18,7 +18,9 @@ HOLD_MADE (22:50): its hand-written sentences then need the newest line. Remaini
 (fingertip_crosstalk.py, coordinator), then the pinch plan; neither is in R31's night queue (the v3 ID 1 suite).
 For the owner: the 21:44 line's "matches the robot's board within 10 % to W 5 mm" is not in its bins (model +4 % at
 contact, -10 to -22 % from W 0.3 to 5 mm), so the page leaves it out; the 20:45 feed line says twists to +20 deg, the
-plan file stops at +10. Watch loop relaunched 23:08.
+plan file stops at +10. 23:32: line 11 (23:13, v3 ID 1's sphere registration for the suite) is not crosstalk: acked
+without a page change; the hover render it re-made (tool by the sphere registration) reaches Figure 5 at the next
+rebuild, to be looked at then. Watch loop relaunched 23:32.
 Before each --ack, run crosstalk_feed_watch.py --once and check HEAD shows only the lines handled (ack takes all of HEAD).
 Commits of this job start "Fingertip crosstalk page:", never "Crosstalk:" (the watcher keys on that prefix).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
