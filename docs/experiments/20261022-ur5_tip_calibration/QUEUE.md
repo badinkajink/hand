@@ -1038,6 +1038,15 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 12:13 on 10-28, the four presses back. On the sphere grid's 818 press holds, matched by action and level, v3 ID 1's
+    pad goes 0.013 mm deeper than v2 ID 1's at the median (10th to 90th percentile -0.11 to +0.10 mm), and 0.048 mm
+    shallower at top levels of 5 N and over. So v2 ID 1's rod depths stand for v3 ID 1. The lab appended the four to
+    the rod morning plan (`lab/20261028-plan_rod_lab_morning6_v3id1.json`, 83805231, after stage 2). At the measured
+    depths it clears: finger 1.11, mount 4.33, HEX-E 37.8 mm at least, joint 6 -53.2 to +38.3 deg
+    (`lab/20261028-paths_rod_morning6_v3id1_measured_depth.json`). The morning files' checks.other still lists the rod at
+    its three hand seatings of 10-27, up to 1.2 mm from rod pass 1's registration, and no sphere. Kept as obstacles,
+    those seatings put rod-grid-035 0.36 mm closer; the checks above drop them (`--only sphere --only tall --only
+    tiphold`). The lab was asked to correct the files.
   - 12:04 on 10-28, the lab's rod stage 2 file and the measured depths. `lab/20261028-plan_rod_lab_stage2_v7_v3id1.json`
     (9247c347, 94 actions at travel.speed 1.0) flags nothing on 102701's registration
     (`lab/20261028-paths_rod_stage2_v7_v3id1.json`): mount 3.52, finger 0.85, HEX-E 32.5 mm at least, joint 5 0.82 deg
