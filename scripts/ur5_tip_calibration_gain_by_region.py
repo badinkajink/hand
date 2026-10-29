@@ -5,9 +5,11 @@ tip's end, first pressed on v3 ID 2 in the low sphere's top-edge pass of 10-28 1
 The gain of a press hold is |d_board| / f_n: the norm of the board's change (its 15 components, uT) over the HEX-E's
 normal force (N), as scripts/ur5_tip_calibration_four_vs_five.py defines it. Each group reports its median gain over the
 holds with f_n in (0.5, 3.5] N and by the bins (0, 1], (1, 2], (2, 3.5] and (3.5, 8] N. Groups: the presses whose ids
-start with --top (default "sph-top-", the top-edge pass) by region, without its reference presses; the grid presses of
-the other plans by region; the reference presses at the face centre (FE index 788), those of the top-edge pass
-apart. With --per-press the top-edge presses are also listed one by one with their gain at each level.
+start with --top (default "sph-top-", the top-edge pass) by region, without its reference presses; the other presses of
+the grid stage by region, the dense-* presses among them (their plans give them the role "ref"); the reference presses
+at the face centre (FE index 788, target within 0.01 mm of the surface basis's node), those of the top-edge pass apart.
+With --common the grid groups keep only the actions that every session ran. With --per-press the top-edge presses are
+also listed one by one with their gain at each level.
 
 Input: the output folders of scripts/ur5_tip_calibration_analysis.py (holds.npz), as LABEL=DIR.
 
@@ -22,6 +24,9 @@ from pathlib import Path
 
 import numpy as np
 
+ROOT = Path(__file__).resolve().parents[1]
+BASIS = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261020-b_v2_surface_basis.npz"
+CENTRE_P = np.load(BASIS)["pts"][788]                    # the face centre, the reference presses' target
 BINS = ((0.0, 1.0), (1.0, 2.0), (2.0, 3.5), (3.5, 8.0))
 MID = (0.5, 3.5)
 
@@ -30,21 +35,22 @@ def in_bin(f, lo, hi):
     return (f > lo) & (f <= hi)
 
 
-def groups(H, top):
+def groups(H, top, common=None):
     press = H["kind"] == "press"
     is_top = np.char.startswith(H["id"].astype(str), top)
-    ref = H["role"] == "ref"
+    centre = (H["role"] == "ref") & (np.linalg.norm(H["target"] - CENTRE_P, axis=1) < 0.01)
+    keep = np.isin(H["id"].astype(str), sorted(common)) if common is not None else np.ones(len(press), bool)
     g = {}
     for r in ("tip", "edge", "flank", "face"):
-        m = press & is_top & ~ref & (H["region"] == r)
+        m = press & is_top & ~centre & (H["region"] == r)
         if m.any():
             g[f"top-edge pass, {r}"] = m
     for r in ("face", "edge", "flank", "tip"):
-        m = press & ~is_top & ~ref & (H["stage"] == "grid") & (H["region"] == r)
+        m = press & ~is_top & ~centre & (H["stage"] == "grid") & (H["region"] == r) & keep
         if m.any():
             g[f"grid, {r}"] = m
-    for name, m in (("reference presses of the top-edge pass", press & ref & is_top),
-                    ("reference presses, other plans", press & ref & ~is_top)):
+    for name, m in (("face centre, top-edge pass", press & centre & is_top),
+                    ("face centre, other plans", press & centre & ~is_top)):
         if m.any():
             g[name] = m
     return g
@@ -65,15 +71,24 @@ def main():
     ap.add_argument("sessions", nargs="+", help="LABEL=DIR, DIR an analysis output with holds.npz")
     ap.add_argument("--top", default="sph-top-")
     ap.add_argument("--per-press", action="store_true")
+    ap.add_argument("--common", action="store_true", help="grid groups: only the actions that every session ran")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     out = dict(script="scripts/ur5_tip_calibration_gain_by_region.py", gain="median |d_board| / f_n (uT/N)", sessions={})
+    loaded = []
     for s in a.sessions:
         label, d = s.split("=", 1)
-        H = np.load(Path(d) / "holds.npz")
+        loaded.append((label, d, np.load(Path(d) / "holds.npz")))
+    common = None
+    if a.common:
+        common = set.intersection(*(set(H["id"][(H["kind"] == "press") & (H["stage"] == "grid")].astype(str))
+                                    for _, _, H in loaded))
+        out["common_actions"] = len(common)
+        print(f"{len(common)} grid actions in every session")
+    for label, d, H in loaded:
         f = H["f_n"]
         gain = np.linalg.norm(H["d_board"], axis=1) / np.where(f > 0, f, np.nan)
-        res = dict(holds=d, groups={k: stats(gain, f, m) for k, m in groups(H, a.top).items()})
+        res = dict(holds=d, groups={k: stats(gain, f, m) for k, m in groups(H, a.top, common).items()})
         print(f"{label} ({d}):")
         for k, v in res["groups"].items():
             bins = "  ".join(f"{lo:g}-{hi:g} " + (f"{v[f'gain_{lo:g}-{hi:g}']:5.1f}" if v[f"gain_{lo:g}-{hi:g}"] is not None
