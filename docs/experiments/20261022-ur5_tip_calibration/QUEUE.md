@@ -1065,6 +1065,12 @@ push that answers it arrives.
       mount to 2.41 and 2.73 mm. Fixed in bb7c55781 (every 2 mm sample; side map 28 to 24 hovers). The lab reruns the
       side map and ID 3's six plans on corvus with that sampling, into corvus `logs/20261029-recheck_v3id3/`; the
       workstation copies them into `lab/` under the old names and commits them.
+    - 14:4x, the seven rechecks are in `lab/` (`lab/20261029-paths_*_v3id2.json` and `*_v3id3_*.json`, every 2 mm
+      sample). Two actions are new under a margin. rod-ref-a's mount comes to 2.96 mm on its travel from the checker's
+      start pose; the same press as rod-ref-b, -c and -final clears 4.98 to 5.51 mm, so it stays. tall-slide-flank-585-1N's
+      mount comes to 2.97 mm in its own slide turns, where the press at that point (tall-flank-585) clears 3.20 mm; it is
+      dropped from ID 3's tall stage 2 (the owner's rule: actions under the margins are left out). The window flags are
+      the checker's -62 and 100 deg again, inside the lab's -65 and 100.
     - 13:0x, owner, the inverted rig: "designing the adapter, modifying the v2d plate one more time, running the plan
       would be helpful. if the tall back row of the indenter plate is just three mounting spots for the finger, that's
       fine too ... maybe flat surfaces? ... if we invert the tools like we're describing, then we can spam whatever kind
