@@ -1757,6 +1757,14 @@ The clearances in this section and the one before it are on mount v3. The next s
 - At its exit the chain started block 4's simulations on this registration (2 chunks, every 5th sample) and waited for
   block 2's chunks.
 
+### Block 2: ID 3's sphere stage 2 (from 16:34:16)
+
+- Its 4 chunks passed at 16:33:28, simulated on block 1's registration and checked on every 5th sample: the mount
+  3.56 mm and the finger 1.37 mm at least, joint 6 from -63.1 to 42.0 deg, joint 5 6.0 deg inside its window at least.
+  Each chunk's check took about 1.5 to 2 h on every 5th sample, so the arm waited 46 min after block 3.
+- Resumed on block 1's folder, stages preflight,grid,shear,roll,twist,final, after the home path check and go home
+  (0.02 mm). Printout `logs/20261029-163416-tipcal-spherev3id3.log`.
+
 ### The night's plans, after the finer path checks (14:4x)
 
 - The workstation's path checks at every 2 mm sample (bb7c5578) finished here at 14:41. The tall's stage 2 brings the
