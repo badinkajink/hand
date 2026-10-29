@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-28 21:20 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-29 03:25 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -36,7 +36,7 @@ cm from the connector with slack. The fix is a new cable.
 ## Tonight: the next tip's night suite
 
 Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
-State at 20:45: block 1, the top edge and block 3 are done (see `NOTES.md`). Block 2 runs from 20:40:16 (`logs/20261028-204016-tipcal-spherev3id2.log`, resumed on 184415), about 6.1 h. Block 5 follows it on a clean exit (scratchpad `b5_after_b2.sh`: a seed of block 1's tool and the rod at 102701). Then block 4, whose two chunks simulated on block 3's registration came clean (the mount 3.18 mm; joint 5 up to 99.2 deg at tall-shared-576 and -640, which the program aborts past 100), and block 6 once its simulations on block 5's registration pass (scratchpad `night_rest.sh`). Each step stops the chain on an abort or a failed check, and the robot then waits. Order: 3, 2, 5, 4, 6, so that each block's simulations on the registration it needs run during the block before it. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
+State at 03:25: block 1, the top edge, block 3 and block 2 are done (see `NOTES.md`); block 2 took 6.6 h. Block 5 runs from 03:15:59 (`logs/20261029-031559-tipcal-rodv3id2.log`, the seed folder `logs/20261029-tip_calibration/031559-rodv3id2`: block 1's tool and the rod at 102701). Then block 4, whose two chunks simulated on block 3's registration came clean (the mount 3.18 mm; joint 5 up to 99.2 deg at tall-shared-576 and -640, which the program aborts past 100), and block 6 once its simulations on block 5's registration pass (scratchpad `night_rest.sh`). Each step stops the chain on an abort or a failed check, and the robot then waits. Order: 3, 2, 5, 4, 6, so that each block's simulations on the registration it needs run during the block before it. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|
@@ -50,6 +50,13 @@ State at 20:45: block 1, the top edge and block 3 are done (see `NOTES.md`). Blo
 
 After a HEX-E reseat, `20261028-plan_sphere_lab_check2_v3id1.json` repeats three sphere touch-offs; their onsets show
 whether the tool moved.
+
+## v3 ID 2: runs done
+
+| Runs | Session folder | Time | Result |
+|---|---|---|---|
+| Sphere pass 1 (block 1), top edge, stage 2 (block 2) | `20261028-184415-spherev3id2` | 10-28 18:44 to 19:09; 19:21 to 19:30; 20:40 to 10-29 03:15 | 0.044 mm rms; 12 of 12; 211 of 211 |
+| Tall pass 1 (block 3) | `20261028-200508-tallv3id2` | 20:05 to 20:39 | 0.073 mm rms; 19 of 19 |
 
 ## v3 ID 1: runs done
 
