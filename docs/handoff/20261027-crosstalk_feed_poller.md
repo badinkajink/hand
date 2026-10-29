@@ -7,7 +7,7 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-29 13:1x: all 26 feed lines (to 10-29 12:45) and the 6
+State: armed 2026-10-27 21:00 from the colorado window. 10-29 14:0x: all 26 feed lines (to 10-29 12:45) and the 6
 "Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json; HEAD 6fda20d0). Steps 23 and 24 were
 done by 13:17; the ledger's 13:2x and 13:3x are wrong. Step 23, line 26 of 12:45 (9da437e0: what each motion adds on
 v3 ID 1 and ID 2, data/20261029-motion_value.json, the coordinator's page docs/experiments/20261029-calibration_motions/):
@@ -36,8 +36,13 @@ resguard); the screenshot ran pinned to one core (0.7 s, 219 MB). While the gate
 nice 10 with --until-gate (step 20, 177f22ef; 19.5 MB): exit 0 on news, 3 after 230 min, 10 when the gate opens (then
 relaunch it through resguard --mem 200M). It exited 10 at 11:51 (gate open: swap 15.0 GB, 11.9 GB available, PSI 0),
 ran through resguard from 11:52 and exited 0 at 13:00 on line 26. At 13:17 the gate was closed again (swap 15.1 GB,
-PSI 0, 13.0 GB available), so the watcher runs plain with --until-gate from 13:1x. The crosstalk page build takes 5.7 s
-and 851 MB on one core. The watcher found no news on 10-28 at 19:20 and 23:16 and on
+PSI 0, 13.0 GB available), so the watcher ran plain with --until-gate from 13:1x. It exited 10 at 14:04 with no news
+(gate open: swap 15.0 GB, 12.9 GB available, PSI 0) and runs through resguard from 14:0x. The crosstalk page build
+takes 5.7 s and 851 MB on one core. Not feed lines yet: v3 ID 3 is on the robot since about 13:45, its block 1 ran 18
+of 18 at 0.044 mm rms, and the owner gave the go for the top edge, the side map and the night (d5ea5fc9); the 24-hover
+face-up map passes the finer path check at 3.01 mm (47c23daf). The owner's inverted rig (e7b837c8, 996a381b, 4e7b250b:
+a probe on the HEX-E pressing tips held on plate v2e, the 12.5 mm sphere dropped) may replace plate v2d, which the
+calibration page's Section 13 and its future item name; change those when a feed line reports it. The watcher found no news on 10-28 at 19:20 and 23:16 and on
 10-29 at 03:07 and 06:57. fb158b9a moved 78 superseded lab plans to lab/superseded; no builder of this job cites one. Step 19
 (15:30, 9c64f6f4 and 5e9aae4c, line 21 of 15:14): the rod, four magnets against five, in Section 11 with Table 12 (75
 press actions, 462 holds each; direction GP 0.36 and 0.33 mm), so the physical model's table is now 13; Table 4 has a
