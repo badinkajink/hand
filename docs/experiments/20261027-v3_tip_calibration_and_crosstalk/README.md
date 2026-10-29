@@ -191,6 +191,23 @@ the face centre. The end gives 30.2 µT/N at 0.5 to 3.5 N, between the face's 22
 off at the median. With the pass's other presses in training it places them within 0.46 mm, and within 0.23 mm at 2 to
 3.5 N (`data/20261029-top_edge_gp_v3id2.json`).
 
+## v3 ID 2 against v3 ID 1
+
+v3 ID 2 ran the night suite of 10-28 to 10-29. On each fixture its presses are compared with v3 ID 1's on the actions
+both tips ran (`scripts/ur5_tip_calibration_tip_vs_tip.py`, `data/20261029-tip_vs_tip_*`). Each tip is scored on its own
+holds with the direction GP under five folds grouped by action. Location is the median error across the contact normal,
+force the median relative error of the force's magnitude, and gain the median |d_board| / f_n at 1 to 2 N.
+
+| Fixture | Actions | Location (mm), ID 2 / ID 1 | Force, ID 2 / ID 1 | Gain (µT/N), ID 2 / ID 1 |
+|---|---|---|---|---|
+| Sphere | 116 | 0.29 / 0.38 | 5.1 / 5.2 % | 28.2 / 28.8 |
+| Rod | 75 | 0.36 / 0.36 | 6.1 / 5.5 % | 23.6 / 21.6 |
+| Tall indenter | 57 | 1.06 / 0.95 | 9.5 / 14.9 % | 22.2 / 26.0 |
+
+On the tall indenter both boards put the contact 0.75 and 0.98 mm along -y of the registration at 3 N and over. Its
+flanks give 30.7 µT/N on ID 2 and 45.5 on ID 1 at 0.5 to 3.5 N; the sphere's flanks give 57.9 and 60.2
+(`data/20261029-gain_by_region_*`).
+
 ## Code
 
 Done:
