@@ -231,11 +231,19 @@ def load_orients(tool):
     return out
 
 
+FULL = [True]                                          # False when a run at 1.5 mm spacing stands in for the full pad
+
+
 def load_full(tool, orient):
-    """The rows of the run over all of the pad's points (its parts merged), or None."""
+    """The rows of the run over all of the pad's points (its parts merged); without it, the run at 1.5 mm spacing."""
     rows = []
     for f in sorted(DATA.glob(f"{STEM}_reach_full_{orient}_{tool}_part*.json")):
         rows += json.loads(f.read_text())["orients"][orient]["rows"]
+    if not rows:
+        FULL[0] = False
+        suf = "" if tool == "sphere5" else f"_{tool}"
+        f = DATA / f"{STEM}_reach_h160_{orient}{suf}.json"
+        rows = json.loads(f.read_text())["orients"][orient]["rows"] if f.exists() else []
     return sorted(rows, key=lambda r: r["i"]) or None
 
 
@@ -324,29 +332,31 @@ def cnt(rows, rg, key="normal"):
 
 def terms():
     items = [
-        ("Probe", "the tool on the robot in place of the finger: a PLA base on mount v7's adapter disc, which stays "
-                  "on the HEX-E, and an interchangeable tool screwed to the base's top."),
-        ("Seat", "a station block of the fingertip holder (scripts/fingertip_holder.py) on a support on the plate; a tip "
-                 "is screwed to it by its four M2 &#215; 8 with its board between them."),
+        ("Probe", "the tool on the robot in place of the finger. It is a PLA base on mount v7's adapter disc, which stays "
+                  "on the HEX-E, with an interchangeable tool screwed to its top."),
+        ("Seat", "a station block of the fingertip holder (scripts/fingertip_holder.py) on a support on the plate. A tip is "
+                 "screwed to it by its four M2 &#215; 8, with its board between them."),
         ("Pad point, normal", "one of the 808 points of the pad's FE surface that the plan builder sorts into face, "
                               "edges, flanks and the tip's end, with its outward normal $\\mathbf{n}$."),
-        ("Press", "the sphere's centre moves along a push direction $\\mathbf{d}$ from 1.5 mm short of contact to 1.0 mm "
+        ("Press", "the sphere's centre moves along a push direction $\\mathbf{d}$, from 1.5 mm short of contact to 1.0 mm "
                   "past it. For a normal press $\\mathbf{d} = -\\mathbf{n}$."),
         ("Push angle", "the angle $\\theta$ between $\\mathbf{d}$ and $-\\mathbf{n}$. Six pushes at $\\theta$ = 20 and 35 deg "
-                       "are tried at each point, their tangential parts 60 deg apart; with the friction of TPU on PLA the "
-                       "sphere stays put while $\\tan\\theta$ is under the friction coefficient."),
+                       "are tried at each point, their tangential parts 60 deg apart. The sphere does not slip while "
+                       "$\\tan\\theta$ stays under the friction coefficient of TPU on PLA."),
         ("Stem direction", "the unit vector $\\mathbf{u}$ from the sphere's centre toward the HEX-E. A sphere's contact "
-                           "does not depend on $\\mathbf{u}$, so the search tries about 250 stem directions per press "
-                           "and takes the first that passes."),
-        ("Twist", "the pressed sphere turned 15 deg each way about $\\mathbf{n}$ through its centre at its depth."),
-        ("Reached", "a press (or a push, a twist) whose rest and deep poses pass every check: the UR5 on the homing "
-                    "pose's branch with joint 5 in 35 to 97 deg, joint 6 in -62 to +45 deg, the elbow 30 deg from "
-                    "straight, the wrist 150 mm from joint 1's axis; the HEX-E's cable port 15 mm from the arm; the "
-                    "clearances robot links 8, HEX-E 6, adapter and probe base 3, the tool's stem 1.0 and its sphere "
-                    "0.3 mm, from the plate, the seats, the three held tips, the 2x4s and the table."),
+                           "does not depend on $\\mathbf{u}$. The search tries about 250 stem directions per press and "
+                           "takes the first that passes."),
+        ("Twist", "the pressed sphere turned 15 deg each way about $\\mathbf{n}$ through its centre, at its depth."),
+        ("Reached", "a press, push or twist whose rest and deep poses pass every check. The UR5 stays on the homing "
+                    "pose's branch, with joint 5 in 35 to 97 deg and joint 6 in -62 to +45 deg. The elbow stays 30 deg "
+                    "from straight and the wrist 150 mm from joint 1's axis. The HEX-E's cable port stays 15 mm from the "
+                    "arm. The clearances are 8 mm for the robot's links, 6 for the HEX-E, 3 for the adapter and the probe "
+                    "base, 1.0 for the tool's stem and 0.3 for its sphere. They are taken from the plate, the seats, the "
+                    "three held tips, the 2x4s and the table."),
         ("Finger on the robot", "the reach of 2026-10-27 (scripts/ur5_tip_calibration_trimmed_cap_reach.py): presses of "
-                                "the tall indenter's 5 mm sphere on the robot's tip, trimmed cap, finger margin 0.8 mm, "
-                                "joint 6 to +45 deg, a point reached when one of 13 turns passes."),
+                                "the tall indenter's 5 mm sphere on the robot's tip with its trimmed cap. The finger's "
+                                "margin is 0.8 mm and joint 6 goes to +45 deg. A point counts as reached when one of 13 "
+                                "turns about the vertical passes."),
     ]
     return '<dl class="terms">' + "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in items) + "</dl>"
 
@@ -363,45 +373,44 @@ def probe_text(parts):
         q = pr[f"tool_{t}"]
         rows.append([f"Tool: {names[t]}", f"{q['volume_cm3']:.1f}", f"{q['mass_g_solid']:.0f}", f"{q['com_mm'][2]:.1f}",
                      "flange, stem and end; two M3 &#215; 10"])
-    body = (
-        f"<p>The probe base takes the standoff fork's place on mount v7's adapter disc, which stays on the HEX-E with its "
-        f"four M6 &#215; 20. Its foot is v7's: the four M3 &#215; 12 go into the disc's brass inserts, and the M6 heads "
-        f"sit in pockets with a hex key's way over each. Changing the fork for the probe therefore takes four M3 screws. "
-        f"The column has v7's homing socket at z<sub>M</sub> 49 on its +x<sub>M</sub> face, so the plate's keys home the "
-        f"probe as they home the fork, with the same flange-to-mount frame T<sub>EM</sub>.</p>"
-        f"<p>A tool sits on the column's top on a drafted square boss, 10 mm across and 3 mm tall at 20 deg, and is held by "
-        f"two M3 &#215; 10 in self-forming holes. The boss locates it in x, y and its turn, and the faces around it set its "
-        f"height. The column has four pilot holes, so a tool can go on in four turns 90 deg apart. Every tool's end stands "
-        f"at z<sub>M</sub> {p['tip_z']:.0f} mm, 27 mm past the finger's pad apex on mount v7 (Figure 2). The 5 mm sphere "
-        f"and its neck are the tall indenter's. The half rod is the plate's rod, its axis across the tool axis. The flat face "
-        f"is 14 mm across. A 2 mm sphere was added for the flanks by the cassette's walls (section 5).</p>"
-        f"<p>With the 5 mm sphere, the tool beyond the HEX-E weighs about {m_base + tools['sphere5'] + 55:.0f} g with the "
-        f"adapter disc, against 403 g for the fork, the DIP link and the tip. The program's payload must be set to it. "
-        f"A beam estimate of the PLA stem and column, at 2.5 GPa, moves the 5 mm sphere's centre 5.8 &#181;m/N across the "
-        f"tool axis and the 2 mm sphere's 9.3 &#181;m/N. The HEX-E's own data-sheet compliance, 2.5 deg at 10 N m, moves "
-        f"the sphere's centre 77 &#181;m/N at its 132 mm from the sensing element, against 54 &#181;m/N for the finger's "
-        f"pad apex at 111 mm.</p>"
+    return (
+        f"<p>The probe base takes the standoff fork's place on mount v7's adapter disc. The disc stays on the HEX-E with "
+        f"its four M6 &#215; 20. The base's foot is v7's: its four M3 &#215; 12 go into the disc's brass inserts, and the "
+        f"M6 heads sit in pockets with a hex key's way over each. Changing the fork for the probe takes four M3 screws. "
+        f"The column has v7's homing socket at z<sub>M</sub> 49 on its +x<sub>M</sub> face. The plate's keys therefore "
+        f"home the probe as they home the fork, with the same flange-to-mount frame T<sub>EM</sub>.</p>"
+        f"<p>A tool sits on a drafted square boss on the column's top, 10 mm across and 3 mm tall at 20 deg. Two M3 "
+        f"&#215; 10 in self-forming holes fasten it. The boss sets the tool's place and turn, and the faces around it set "
+        f"its height. The column has four pilot holes, so a tool can go on at four turns 90 deg apart. Every tool's end "
+        f"stands at z<sub>M</sub> {p['tip_z']:.0f} mm, 27 mm past the finger's pad apex on mount v7 (Figure 2). The 5 mm "
+        f"sphere and its neck are the tall indenter's. The half rod is the plate's rod, its axis across the tool axis. "
+        f"The flat face is 14 mm across. A 2 mm sphere reaches closer to the cassette's walls (section 5).</p>"
+        f"<p>With the 5 mm sphere and the adapter disc, the tool past the HEX-E weighs about "
+        f"{m_base + tools['sphere5'] + 55:.0f} g. The fork with the DIP link and the tip weighs 403 g, so the program's "
+        f"payload must change. A beam estimate of the PLA stem and column, at 2.5 GPa, moves the 5 mm sphere's centre "
+        f"5.8 &#181;m/N across the tool axis. The 2 mm sphere's centre moves 9.3 &#181;m/N. The HEX-E is the softer part: "
+        f"its data sheet gives 2.5 deg at 10 N m. Taken at the sensor's mid-height, that moves the sphere's centre "
+        f"77 &#181;m/N, 132 mm away. The finger's pad apex, 111 mm away, moves 54 &#181;m/N.</p>"
         + P.table(["Part", "Volume (cm&#179;)", "Mass, solid PLA (g)", "Centre of mass, z<sub>M</sub> (mm)", "What it is"],
-                  rows, (1, 2, 3), "The probe's printed parts (the build's parts file), in the mount frame M.", 1))
-    return body
+                  rows, (1, 2, 3), "The probe's printed parts in the mount frame M, from the build's parts file.", 1))
 
 
 def plate_text(g):
     lay = g["layout"]
     st = g["seats"]
     return (
-        f"<p>Plate v2e keeps v2d's base (220 &#215; 236 mm, 6 mm thick, six wood screws), its three homing keys at the "
-        f"front and its rod at ({lay['rod']['c'][0]:.0f}, {lay['rod']['c'][1]:.0f}) mm with its top at "
-        f"{lay['rod']['top']:.0f} mm. The 5 mm sphere moves to where v2d had the 12.5 mm sphere, ({lay['sphere5']['c'][0]:.0f}, "
-        f"{lay['sphere5']['c'][1]:.0f}) mm, its top at {lay['sphere5']['top']:.0f} mm; the 12.5 mm sphere is left out "
-        f"(owner, 10-29: the rod stands in for it). These keep the finger-on-robot suite of v3 ID 1 to ID 3 possible on the "
-        f"same plate.</p>"
-        f"<p>The back row has three seats, their pads' apexes at x {st[0]['apex'][0]:.0f} mm, y "
-        f"{', '.join(f'{s['apex'][1]:.0f}' for s in st)} mm and {lay['seat_h']:.0f} mm over the base's underside (Figure 3). "
-        f"Each is a station block of the fingertip holder, 12 mm thick behind the tip's board, on a solid support down to "
-        f"the base. Its four 1.9 mm holes take the tip's M2 &#215; 8, as on the holder. A tip faces the robot with its end "
-        f"up, a finger pointing up (section 4 compares six ways of holding it). The plate is 220 &#215; 236 &#215; "
-        f"{g['zmax'] - 25.0:.0f} mm and fits the P1S's bed.</p>")
+        f"<p>Plate v2e keeps v2d's base, 220 &#215; 236 mm and 6 mm thick on six wood screws. It keeps v2d's three "
+        f"homing keys at the front and its rod at ({lay['rod']['c'][0]:.0f}, {lay['rod']['c'][1]:.0f}) mm, its top at "
+        f"{lay['rod']['top']:.0f} mm. The 5 mm sphere moves to the 12.5 mm sphere's place in v2d, "
+        f"({lay['sphere5']['c'][0]:.0f}, {lay['sphere5']['c'][1]:.0f}) mm, with its top at {lay['sphere5']['top']:.0f} mm. "
+        f"The 12.5 mm sphere is left out, since the rod stands in for it (owner, 10-29). With the sphere, the rod and "
+        f"the keys, the finger-on-robot suite of v3 ID 1 to ID 3 still runs on this plate.</p>"
+        f"<p>The back row has three seats. Their pads' apexes stand at x {st[0]['apex'][0]:.0f} mm and y "
+        f"{', '.join(f'{s['apex'][1]:.0f}' for s in st)} mm, {lay['seat_h']:.0f} mm over the base's underside "
+        f"(Figure 3). Each seat is a station block of the fingertip holder, 12 mm thick behind the tip's board. A solid "
+        f"support runs from the block down to the base. The block's four 1.9 mm holes take the tip's M2 &#215; 8, as on "
+        f"the holder. Each tip faces the robot with its end up (section 4 compares six ways of holding it). The plate "
+        f"measures 220 &#215; 236 &#215; {g['zmax'] - 25.0:.0f} mm and fits the P1S's bed.</p>")
 
 
 def orient_table(o5, o2):
@@ -439,37 +448,40 @@ def compare_text(fin, full, figs):
     NF = sum(cnt(fin, r)[0] for r in REGIONS)
     NE = sum(cnt(e, r)[0] for r in REGIONS)
     N = sum(cnt(e, r)[1] for r in REGIONS)
-    tip_f, tip_n = cnt(fin, "tip")
-    tip_e = cnt(e, "tip")[0]
-    fl_f, fl_n = cnt(fin, "flank")
-    fl_e = cnt(e, "flank")[0]
-    body = (
-        f"<p>On the chosen seat, a press of either sphere reaches {NE} of the pad's {N} points, against {NF} for the finger "
-        f"on the robot (Table 3). The gain is on the tip's end, {tip_e} of {tip_n} points against {tip_f}, and on the flanks, "
-        f"{fl_e} of {fl_n} against {fl_f}. On the face and the edges the two reach {cnt(e, 'face')[0]} and {cnt(fin, 'face')[0]} of "
-        f"{cnt(e, 'face')[1]}, and {cnt(e, 'edge')[0]} and {cnt(fin, 'edge')[0]} of {cnt(e, 'edge')[1]} (Figure 4). The finger on "
-        f"the robot pushes only along the normal, with slides of 2.3 deg about the sphere's centre for shear. The probe "
-        f"also pushes 20 and 35 deg off the normal, and the last two columns of Table 3 give the share of those pushes "
-        f"reached.</p>"
-        f"<p>The points no press reaches lie by the cassette's walls and end plate (Figure 5). There the walls stand 3 mm "
-        f"proud of the pad's flanks, and a sphere meets them before it meets the pad. The 2 mm sphere reaches closer to "
-        f"them than the 5 mm one. Its neck, 1.3 mm in radius, is the thinnest printed part of the probe.</p>"
+    (tip_e, tip_n), tip_f = cnt(e, "tip"), cnt(fin, "tip")[0]
+    (fl_e, fl_n), fl_f = cnt(e, "flank"), cnt(fin, "flank")[0]
+    (fa_e, fa_n), fa_f = cnt(e, "face"), cnt(fin, "face")[0]
+    (ed_e, ed_n), ed_f = cnt(e, "edge"), cnt(fin, "edge")[0]
+    xs = [-r["p_P"][0] - 2.05 for r in e if r["region"] == "flank" and not r["normal"]]
+    scope = "all 808 points" if FULL[0] else "the 201 points 1.5 mm apart"
+    return (
+        f"<p>On the chosen seat, a press of either sphere reaches {NE} of the pad's {N} points (Table 3). The finger on "
+        f"the robot reaches {NF}. On the tip's end the probe reaches {tip_e} of {tip_n} points and the finger "
+        f"{tip_f}. On the flanks the probe reaches {fl_e} of {fl_n} and the finger {fl_f}. On the face the two reach "
+        f"{fa_e} and {fa_f} of {fa_n}, and on the edges {ed_e} and {ed_f} of {ed_n} (Figure 4).</p>"
+        f"<p>The finger on the robot pushes along the normal only. For shear it slides, turning 2.3 deg about the "
+        f"sphere's centre. The probe also pushes 20 and 35 deg off the normal, and the last two columns of Table 3 "
+        f"give the share of those pushes reached.</p>"
+        f"<p>The flank points that no press reaches lie at x<sub>F</sub> above {min(xs):.1f} mm, by the cassette's walls "
+        f"(Figure 5). The walls' palmar face stands at x<sub>F</sub> -0.10 mm, 3 mm proud of the pad's flanks, and a sphere "
+        f"meets them before it meets the pad. The tip's end has the same limit at the cassette's end plate. The 2 mm "
+        f"sphere reaches nearer to both than the 5 mm one. Its neck, 1.3 mm in radius, is the thinnest printed part of "
+        f"the probe.</p>"
         + P.table(["Region", "Points", "Finger on the robot", "Probe, 5 mm sphere", "Probe, 2 mm sphere", "Probe, either",
                    "Pushes at 20 deg (%)", "Pushes at 35 deg (%)"], rows, tuple(range(1, 8)),
-                  "Pad points a normal press reaches, all 808 points of the pad's FE surface, the tip held facing the "
-                  "robot with its end up on the middle seat. The push columns give the share of the six pushes reached "
-                  "with either sphere, over all points of the region.", 3)
+                  f"Pad points a normal press reaches, over {scope} of the pad's FE surface. The tip faces the robot with "
+                  f"its end up on the middle seat. The push columns give the share of the six pushes reached with either "
+                  f"sphere, over all points of the region.", 3)
         + P.fig(4, figs["reach"], "Share of each region's pad points that a normal press reaches: the finger on the "
-                "robot pressing the tall indenter (2026-10-27) and the probe on the held tip, by tool.")
+                "robot pressing the tall indenter (2026-10-27), and the probe on the held tip by tool.")
         + P.fig(5, figs["pads"], "The pad's points, filled where a normal press reaches them and open where none does: "
-                "the finger on the robot (top) and the probe with either sphere (bottom). Seen from the palm, from +y, "
-                "and from the tip's end; each view shows the points on its side of the pad."))
-    return body
+                "the finger on the robot (top) and the probe with either sphere (bottom). Each view, from the palm, from "
+                "+y and from the tip's end, shows the points on its side of the pad."))
 
 
 def plan_text(paths):
     if not paths:
-        return "<p>The plan's replay has not run.</p>"
+        return "<p>The plan's replay is running on corvus; this section is filled when it ends.</p>"
     k = paths["kinds"]
     tr = paths.get("travel", {})
     least = paths["least"]
@@ -477,33 +489,33 @@ def plan_text(paths):
             if g in least]
     return (
         f"<p>A plan of {paths['n']} actions on the middle seat's tip was replayed move by move, as the path checker "
-        f"replays the lab's plans: {k.get('press', 0)} normal presses at pad points 2 mm apart, {k.get('oblique', 0)} pushes "
-        f"at 20 and 35 deg off the normal at every third point, {k.get('twist', 0)} twists and {k.get('reference', 0)} "
-        f"reference presses. Between presses the probe backs 12 mm along its stem, moves across and goes in "
-        f"({tr.get('straight', 0)} times). When the stems differ by more than 20 deg it backs 45 mm and makes a joint move "
-        f"({tr.get('joint', 0)} times), by way of a pose over the seat if the joint move would leave a window "
-        f"({tr.get('hub', 0)} times). {paths['flagged']} of the {paths['n']} actions come under a margin or out of a "
-        f"window at any sample. Joint 5 stays in {paths['j5_deg'][0]:.0f} to {paths['j5_deg'][1]:.0f} deg and joint 6 in "
-        f"{paths['j6_deg'][0]:.0f} to {paths['j6_deg'][1]:.0f} deg. The least clearances over the plan are in Table 4.</p>"
+        f"replays the lab's plans. It has {k.get('press', 0)} normal presses at pad points 2 mm apart and "
+        f"{k.get('oblique', 0)} pushes at 20 and 35 deg off the normal at every third point. It also has "
+        f"{k.get('twist', 0)} twists and {k.get('reference', 0)} reference presses. Between presses the probe backs "
+        f"12 mm along its stem, moves across and goes in ({tr.get('straight', 0)} times). When the stems differ by more "
+        f"than 20 deg, it backs 45 mm and makes a joint move ({tr.get('joint', 0)} times). If that move would leave a "
+        f"window, it goes by way of a pose over the seat ({tr.get('hub', 0)} times).</p>"
+        f"<p>{paths['flagged']} of the {paths['n']} actions come under a margin or out of a window at any sample. Joint 5 "
+        f"stays in {paths['j5_deg'][0]:.0f} to {paths['j5_deg'][1]:.0f} deg and joint 6 in {paths['j6_deg'][0]:.0f} to "
+        f"{paths['j6_deg'][1]:.0f} deg. Table 4 gives the least clearances over the plan.</p>"
         + P.table(["Group", "Least clearance (mm)", "Part"], rows, (1,), "Least clearance of each group over the plan's "
-                  "moves, every 2 mm sample of a straight move and every fifth of a joint move.", 4))
+                  "moves, at every 2 mm sample of a straight move and every fifth of a joint move.", 4))
 
 
 def program_text():
     items = [
         "A probe action: the target pad point and its normal in the held tip's frame, the push direction, the stem's "
-        "direction and turn, and the force levels. The robot moves the probe's sphere against a pad that stands still, and a twist turns it "
-        "about the pad's normal through the sphere's centre.",
-        "The held board is the measured board: the program already logs the held boards (--held-board). No board is "
+        "direction and turn, and the force levels. The robot moves the probe's sphere against a pad that stands still. "
+        "A twist turns the sphere about the pad's normal through its centre.",
+        "The held board is the measured board. The program already logs the held boards (--held-board), and no board is "
         "on the robot.",
-        "Registration with the roles swapped: the sphere's centre in M (3 unknowns) and the held pad's pose (6) from "
-        "touch-offs of the probe on the held pad, as pass 1 now finds the pad in M and the sphere on the plate. Homing on "
-        "the plate's keys gives the plate's frame as before.",
+        "A registration with the roles swapped. Its unknowns are the sphere's centre in M (3) and the held pad's pose (6). "
+        "They come from touch-offs of the probe on the held pad, as pass 1 now finds the pad in M and the sphere on the "
+        "plate. Homing on the plate's keys gives the plate's frame, as before.",
         "The payload: about 0.16 kg past the sensing element with the 5 mm sphere, against 0.403 kg now. Each press is "
-        "tared at its rest, as now; the twists turn the payload and need its gravity model, fitted from the rests of the "
-        "plan's own presses (no sweep).",
-        "The force on the pad is the opposite of the HEX-E's reading, turned into the held pad's frame by the "
-        "registration.",
+        "tared at its rest, as now. The twists turn the payload, so they need its gravity model, fitted from the rests "
+        "of the plan's own presses with no sweep.",
+        "The force on the pad: the opposite of the HEX-E's reading, turned into the held pad's frame by the registration.",
     ]
     return ("<p>The lab program drives the finger against fixed indenters. The inverted rig needs these changes:</p>"
             "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>")
@@ -511,18 +523,20 @@ def program_text():
 
 def future_text():
     items = [
-        "Print the probe base and the 5 mm sphere tool on the P1S in PLA, fit them on the adapter disc, and touch the "
-        "plate's keys: the homing pose must match the fork's within 0.1 mm (the registration's T<sub>BE</sub> home).",
-        "Measure the probe's stiffness at the sphere with the HEX-E and a dial indicator at 1 to 5 N across the stem. "
-        "Over 20 &#181;m/N beyond the HEX-E's own means a thicker stem.",
-        "Hover the probe at rest poses around a held tip and log the held board: the field that the moving wrist and "
-        "HEX-E bring to the held chips. Over 1 &#181;T between a press's rest and its depth means the tare must move "
-        "to the depth.",
-        "Run one seat's plan with v3 ID 3 held on it, after the program's probe mode exists, and score the direction GP "
-        "on presses held out: location within 0.3 mm and force within 6 % on the face would match the finger on the "
-        "robot's sphere suite.",
-        "Score what the oblique pushes add to the contact direction: the force's angle error on presses more than 20 deg "
-        "off the normal, with and without the pushes in training (scripts/ur5_tip_calibration_motion_value.py's folds).",
+        "Print the probe base and the 5 mm sphere tool on the P1S in PLA and fit them on the adapter disc. Then home on "
+        "the plate's keys: the homing pose must match the fork's within 0.1 mm.",
+        "Measure the probe's stiffness at the sphere with a dial indicator at 1 to 5 N across the stem. More than "
+        "20 &#181;m/N beyond the HEX-E's own calls for a thicker stem.",
+        "Hover the probe at rest poses around a held tip and log the held board. This measures the field that the "
+        "moving wrist and HEX-E bring to the held chips. More than 1 &#181;T between a press's rest and its depth means "
+        "the tare must move to the depth.",
+        "Once the program has a probe mode, run one seat's plan with v3 ID 3 held on it. Score the direction GP on "
+        "presses held out of training. Within 0.3 mm and 6 % on the face, it matches the finger on the robot's sphere "
+        "suite.",
+        "Score what the pushes off the normal add to the contact direction. Take the force's angle error on presses "
+        "more than 20 deg off the normal, with and without the pushes in training "
+        "(scripts/ur5_tip_calibration_motion_value.py's folds).",
+        "Search the flat face's and the half rod's reach as the spheres' (scripts/ur5_inverted_rig.py reach --tool flat).",
     ]
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
@@ -535,13 +549,13 @@ def lede_text(fin, full):
     (fe, fn), ff = cnt(e, "flank"), cnt(fin, "flank")[0]
     S = summarize(e)
     o35 = 100 * np.mean([S[r]["o35"] for r in ("face", "edge")])
-    lede = (f"A probe on the HEX-E pressing a fingertip held on the plate reaches {NE} of the pad's {N} points, against "
-            f"{NF} for the finger on the robot pressing the tall indenter. On the tip's end it reaches {te} of {tn} points "
-            f"(finger: {tf}) and on the flanks {fe} of {fn} (finger: {ff}). It also pushes 35 deg off the normal, which the "
-            f"finger on the robot cannot: {o35:.0f} % of those pushes are reached on the face and edges. The probe base "
-            f"replaces the fork on mount v7's adapter disc with four M3 screws and homes on the plate's keys; plate v2e "
-            f"has three seats, each with a tip facing the robot. The rest of the pad lies by the cassette's walls, where no sphere fits; "
-            f"the lab program needs a probe mode before the rig can run.")
+    lede = (f"A probe on the HEX-E, pressing a fingertip held on the plate, reaches {NE} of the pad's {N} points. The "
+            f"finger on the robot, pressing the tall indenter, reaches {NF}. On the tip's end the probe reaches {te} of "
+            f"{tn} points against {tf}, and on the flanks {fe} of {fn} against {ff}. It also pushes 35 deg off the "
+            f"normal, which the finger on the robot cannot: {o35:.0f} % of those pushes are reached on the face and "
+            f"edges. The rest of the pad lies by the cassette's walls, where no sphere fits. The probe base replaces the "
+            f"fork on mount v7's adapter disc with four M3 screws and homes on the plate's keys. Plate v2e has three "
+            f"seats, each with a tip facing the robot. The lab program needs a probe mode before the rig can run.")
     summary = (f"Probe on the HEX-E (5 and 2 mm spheres, half rod, flat) pressing tips held on plate v2e's three seats: "
                f"{NE} of {N} pad points reached against {NF} for the finger on the robot; tip's end {te}/{tn} (finger {tf}), "
                f"flanks {fe}/{fn} (finger {ff}); pushes 35 deg off the normal on {o35:.0f} % of face and edge points.")
@@ -554,11 +568,15 @@ def orient_text(o5, o2):
     tot = {o: sum(v[0][r]["normal"] for r in REGIONS) for o, v in o5.items()}
     n = sum(next(iter(o5.values()))[0][r]["n"] for r in REGIONS)
     best = sorted(tot, key=lambda o: -tot[o])
+    top = [o for o in best if tot[o] == tot[best[0]]]
+    rest = [o for o in best if tot[o] < tot[best[0]]]
     return (f"<p>The reach was searched for six ways of holding the tip, on the middle seat with its neighbours in place "
-            f"(Table 2). With the 5 mm sphere, {', '.join(ORIENT_NAME[o].lower() for o in best[:3])} reach "
-            f"{tot[best[2]]} to {tot[best[0]]} of {n} points. The other three reach {min(tot.values())} to "
-            f"{tot[best[3]]}. Facing the robot with the end up is a finger pointing up, and its block stands on a plain "
-            f"upright support, so the tips on plate v2e face the robot with their ends up.</p>")
+            f"(Table 2). With the 5 mm sphere, {len(top)} of them reach {tot[best[0]]} of {n} points: "
+            f"{', '.join(ORIENT_NAME[o].lower() for o in top)}. The other {len(rest)} reach "
+            f"{', '.join(str(tot[o]) for o in rest)}. The joints never limit a press. In a search of the joints alone, "
+            f"every hold reaches every point, normal and off the normal. The clearances set the counts. A tip that faces "
+            f"the robot with its end up is a finger pointing up, and its block stands on a plain upright support. The "
+            f"tips on plate v2e are held that way.</p>")
 
 
 def build(a):

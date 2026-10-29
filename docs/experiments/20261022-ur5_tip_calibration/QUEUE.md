@@ -1075,6 +1075,16 @@ push that answers it arrives.
       plan replay of probe poses around a fixed tip (pad points by approach angle, oblique and from above at the top
       edge) against what the finger on the robot reaches. The 12.5 mm sphere is dropped (the rod has its radius across
       the finger and is the screwdriver handle's shape).
+    - 14:2x, the inverted rig designed and searched (`scripts/ur5_inverted_rig.py`, 996a381b to 5c94866d; page
+      `docs/experiments/20261029-inverted_calibration_rig/20261029-inverted_rig.html`). The probe base takes the fork's
+      place on mount v7's adapter disc (four M3 into its inserts) and keeps v7's homing socket, so the plate's keys home
+      it. Tools: 5 mm and 2 mm spheres, the half rod, a flat 14 mm face, each on two M3 x 10, its end at z_M 120. Plate
+      v2e: v2d's base, keys and rod, the 5 mm sphere at (-15, 60) top 100, three seats at x 75, y -80, 0 and 80, apexes
+      at 160 mm, tips facing the robot with their ends up. STLs in its `cad/`. With the 5 mm sphere on the middle seat
+      (pad points 1.5 mm apart), four holds reach 97 of 201 points: face 23/23, edges 30/30, flanks 38/123, tip's end
+      6/25; the joints never limit a press, the cassette's walls and end plate do. The full pad, both spheres, the flat
+      and the plan replay run on corvus (lab, queued 14:21); the film waits for the workstation's gate (swap 16.0 GB).
+      The lab program needs a probe mode before the rig runs (the page's section 7).
   - 08:19 on 10-29, v3 ID 2's night suite. All 488 actions ended ok between 18:44:15 on 10-28 and 08:13:17, with no
     abort, no early contact and no HEX-E time-out (`lab/NOTES.md`, "The night's suite on ID 2: done"). The suite took
     12.6 h against its estimate of 11.7 h; block 2 ran 0.5 h over. In each run's `ft_reads` the HEX-E's only gaps, 0.7
