@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-29 13:36 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-29 15:14 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -8,12 +8,12 @@ request to the owner must come from this file.
 
 | Item | Now | Registration (folder here) |
 |---|---|---|
-| Tip | v3 ID 2 since the swap at about 18:40: the owner took it from the holder's right-side station and put v3 ID 1 there | tool: block 1 runs (`20261028-184415-spherev3id2`), seeded from `20261027-225213-spherev3id1` |
-| Mount | v7 standoff fork on the HEX-E; stayed on the flange through the swap | homing pose: `20261027-225213-spherev3id1` |
-| Sphere | low sphere, not moved since 10-27 | `20261027-225213-spherev3id1`; with ID 2's tool `20261028-184415-spherev3id2` |
+| Tip | v3 ID 3 since the swap at about 13:3x on 10-29: the owner took it from a holder station and put v3 ID 2 there | tool: block 1 (`20261029-134508-spherev3id3`), seeded from `20261028-184415-spherev3id2` |
+| Mount | v7 standoff fork on the HEX-E; stayed on the flange through both swaps | homing pose: `20261027-225213-spherev3id1` |
+| Sphere | low sphere, not moved since 10-27 | `20261027-225213-spherev3id1`; with ID 2's tool `20261028-184415-spherev3id2`; with ID 3's `20261029-134508-spherev3id3` |
 | Rod | on, at its third seating | `20261028-102701-rodv3id1`; with ID 2's tool `20261029-031559-rodv3id2`, 0.16 mm from 102701's |
 | Tall indenter | on | `20261028-114908-tallv3id1`; with ID 2's tool `20261028-200508-tallv3id2`, 1.85 mm from 114908's along -y, within the pass's own error in y |
-| Holder | both held tips pad-up, seating 5: v3 ID 1 went into the right-side station pad-up (owner, 18:5x: "yes it went pad up") | `20261027-holder-apex-both` |
+| Holder | both held tips pad-up, seating 5: v3 ID 1 in the right-side station since 10-28; v3 ID 2 in the station ID 3 left (owner, 13:4x on 10-29) | `20261027-holder-apex-both` |
 
 `cell.json` holds the same registrations for the path checks and the renders.
 
@@ -33,39 +33,36 @@ cm from the connector with slack. The fix is a new cable.
 - No force control, contact motion or safety threshold is set from a borrowed calibration that was not validated.
 - The workstation reads corvus over SSH and never writes there; plans reach corvus by git.
 
-## Ready: v3 ID 3's suite and the pad-up side map (not run)
+## Today and tonight: v3 ID 3's suite
 
-The workstation built them at 12:00 on 10-29 (62d93424, d6795072; the side map revised in bb7c5578). Each run needs
-the owner's go in the lab's session.
+The workstation built the suite at 12:00 on 10-29 (62d93424, d6795072). The owner's go came in the lab's session at
+13:4x for block 1 ("lets a go mario"), and at 13:5x for the rest: "1. top edge -- lets go for it. add more density if
+anything 2. side map -- sure 3. yea send it".
 
-| Block | Plan | Actions | How it runs |
+| Step | Plan | Actions | State |
 |---|---|---|---|
-| 1 | `20261029-plan_sphere_lab_pass1_night_v3id3.json` | 18 | Resumed on a copy of the seed `20261029-sphere-seed-v3id3` (184415's registration with the homing pose: the fork stays on the flange). Stages preflight,pad,register. |
-| top edge | built on block 1's registration | 12 | With the owner present, after block 1, as for ID 2. |
-| 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Resumed on block 1's registration. |
-| 3 | `20261029-plan_tall_lab_pass1_night_v3id3.json` | 19 | A new session homed on `tall_indenter_seated`. |
-| 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 102 | Resumed on block 3's registration. |
-| 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | A seed of block 1's tool and the rod's registration. Stages preflight,pad,pivot,register. |
-| 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Resumed on block 5's registration. |
+| block 1 | `20261029-plan_sphere_lab_pass1_night_v3id3.json` | 18 | Done 13:45 to 13:59: 18 of 18, 0.044 mm rms (`20261029-134508-spherev3id3`). |
+| top edge | `20261029-plan_sphere_lab_top_edge_v3id3.json` | 26 | Done 14:50 to 15:11: 26 of 26. 24 presses (ID 2 had 10) and two references. |
+| side map | `20261029-plan_holder_lab_side_up_v3id3.json` | 24 | Running from 15:13:34 (`logs/20261029-tip_calibration/151334-sidev3id3`), about 12 min. |
+| block 3 | `20261029-plan_tall_lab_pass1_night_v3id3.json` | 19 | Next: a new session homed on `tall_indenter_seated`. |
+| block 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Then: resumed on block 1's folder. |
+| block 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | Then: a seed of block 1's tool and 031559's rod. Stages preflight,pad,pivot,register. |
+| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | Then: resumed on block 3's folder. tall-slide-flank-585-1N is left out (mount 2.97 mm). |
+| block 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Last: resumed on block 5's folder. |
 
-- The blocks are ID 2's 476 actions, action by action. The 58 touch-offs of blocks 1, 3 and 5 approach at v 0.0005,
-  which is 0.15 mm/s at the slider.
-- The lab simulated blocks 1, 3 and 5 from home on ID 2's registrations. None aborted or made an early contact, and
-  nothing came under a margin on every 2nd sample. The fork came no closer than 3.37 mm. Joint 6 went down to -64.4
-  deg, and joint 5 up to 98.4 deg.
-- Blocks 2, 4 and 6 are simulated on the night, each on ID 3's own pass 1 registration. They are checked on every 5th
-  sample.
-- The side map is `20261029-plan_holder_lab_side_up_v3id2.json`: 24 hovers in about 12 min, with the rod on and both
-  held tips pad-up. It runs on the holder seed `20261029-holder-seed-seat5-v3id2`, which has ID 2's tool. In the
-  simulation it did not abort, and the fork came no closer than 3.01 mm. With ID 3 on the robot, the workstation
-  rebuilds it on ID 3's block 1 registration.
-- The workstation's path checks of the seven plans are being rerun here with its finer sampling, into
-  `logs/20261029-recheck_v3id3/` (`NOTES.md`, "ID 3's suite and the pad-up side map").
+- The night runs in ID 2's order 3, 2, 5, 4, 6, through scratchpad `id3_chain.sh`. That is about 12 h, so it ends
+  around 03:30 on 10-30.
+- Each block starts only after the run before it exits 0 with no ABORT line, and after the simulations that gate it
+  pass. Block 2's 4 chunks run on block 1's registration, block 3 on seat 1, and block 5 on its seed. Blocks 4 and 6
+  run on their pass's registration, checked on every 5th sample. Then come the home path check and go home. If a step
+  fails, the chain stops and the arm waits where the last run left it.
+- The 58 touch-offs of blocks 1, 3 and 5 approach at v 0.0005, which is 0.15 mm/s at the slider.
+- rod-ref-a stays in block 6 unless block 6's simulation puts the mount under 3.0 mm on it.
 
-## Last night: the next tip's night suite, done
+## Last night: v3 ID 2's night suite, done
 
 Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
-Done at 08:13:17: blocks 1 to 6 and the sphere's top edge, 488 actions, all ok, with no abort, no early contact and no HEX-E time-out. They took 12.6 h of robot time; block 2 ran 0.5 h over its estimate. The blocks ran in the order 3, 2, 5, 4, 6 (`NOTES.md`, from "Block 1"). The robot has been idle since 08:13:17, at the rest pose of block 6's last press above the rod. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
+Done at 08:13:17: blocks 1 to 6 and the sphere's top edge, 488 actions, all ok, with no abort, no early contact and no HEX-E time-out. They took 12.6 h of robot time; block 2 ran 0.5 h over its estimate. The blocks ran in the order 3, 2, 5, 4, 6 (`NOTES.md`, from "Block 1"). The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|
@@ -128,13 +125,7 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 
 ## Waiting on the owner
 
-- The arm goes home first. The robot has been idle since 08:13:17 at the rest pose of block 6's last press, with
-  its pad 1.6 mm from the rod. Before a power-off or a tip swap, the arm should go home, which needs the owner's go in
-  the lab's session. The home path from there was checked at 12:07, and the fork stays at least 10.7 mm from anything.
-  After a power cycle, the owner sets the speed slider back to 30 %. The lab's scripts stop unless it reads 0.30.
-- What runs next. The owner asked whether to put v3 ID 3 on first, and the workstation recommended it. ID 3 would run
-  the suite above, with ID 2 going into the station ID 3 leaves, the same way up. The side map takes about 12 min with
-  ID 2 still on the robot. After the swap it waits for its rebuild on ID 3.
+- Nothing for tonight. The owner's go at 13:5x covers the top edge, the side map and the night.
 - When v3 ID 1 goes back on, the three plans above.
 - A new HEX-E cable.
 

@@ -1701,6 +1701,36 @@ The clearances in this section and the one before it are on mount v3. The next s
 - A touch-off took 45.6 s on average (35 to 58 s) at v 0.0005, against 81 s on ID 2's block 1 at v 0.00015.
 - The HEX-E gave 82,737 samples, none timed out, with two gaps of 0.7 s.
 
+### The sphere's top edge on ID 3 (14:49:59 to 15:11:45)
+
+- Built on block 1's registration (scratchpad `te_after_b1_id3.sh`). The path check passed 24 of v3 ID 1's 29
+  candidates; it flagged sph-top-tip-398, -399 and -401 (finger 0.54 to 0.69 mm) and sph-top-edge-520 and -643
+  (joint 6 0.5 deg past -62). The owner asked for density ("add more density if anything"), so all 24 were kept, where
+  ID 2 kept 10.
+- A mistake caught before anything moved: the first build raised the builder's `--max` from 10 to 29, and the builder
+  then filled the plan up to 29 with the 5 flagged candidates. Its path check flagged them (31 actions, 5 flagged). The
+  build was stopped at 14:20 and rebuilt with `--max 24`, the number kept (`te_rebuild_id3.sh`). The script now sets
+  `--max` from the kept count.
+- `lab/20261029-plan_sphere_lab_top_edge_v3id3.json` (527d2390): 24 presses with a reference before and after. Its
+  path check: 26 actions, 0 flagged, the mount at 4.91 mm and the finger at 1.69 mm at least. Simulated from home in 3
+  chunks: no abort, no early contact, the mount 5.11 mm and the finger 2.26 mm at least, joint 6 from -53.3 to 38.5 deg.
+- Run on the owner's go, resumed on block 1's folder with stages preflight,grid (copy:
+  `lab/20261029-134508-spherev3id3/plan_top_edge_1449.json`, `printout_top_edge_1449.txt`). 26 of 26, all ok, no abort,
+  exit 0 at 15:11:45. A press took 49.9 s on average (33 to 62 s). The HEX-E gave 129,962 samples, none timed out,
+  with gaps of 1.0 and 0.7 s.
+
+### The side map on ID 3 (from 15:13:34)
+
+- The workstation's commands of 13:49, run here after block 1 (`side_id3.sh`): the holder seed
+  `lab/20261029-holder-seed-seat5-v3id3` (block 1's tool, seat 5's holder frame and homing), the plan
+  `lab/20261029-plan_holder_lab_side_up_v3id3.json` (12 poses and their repeats, without g13 and g14) and its path
+  check at every 2 mm sample: 24 actions, 0 flagged, the mount at 3.05 mm and the finger at 3.02 mm at least.
+- Simulated from home on the seed: no abort, the mount 3.05 mm at least on every 10th sample (g20-s5), joint 6 from
+  -3.7 to 6.4 deg. Every 10th sample spans under 1 mm of the hovers' slow descents. The run started without waiting for
+  the recheck on every 2nd sample, which had run 32 min by then; on ID 2's side map that recheck changed nothing.
+- Session `logs/20261029-tip_calibration/151334-sidev3id3`, stages preflight,hover, with the held tips' mux board
+  (`--held-board`): channels 0 and 3 at 206 records/s each. The night's chain (`id3_chain.sh`) follows it.
+
 ### The night's plans, after the finer path checks (14:4x)
 
 - The workstation's path checks at every 2 mm sample (bb7c5578) finished here at 14:41. The tall's stage 2 brings the
