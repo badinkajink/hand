@@ -85,7 +85,8 @@ TOOLS = ("sphere5", "sphere2", "rod", "flat")
 SPHERES = dict(sphere5="sphere", sphere2="sphere2")      # the sphere tools and their PROBE entries
 NEED = dict(robot=8.0, hex_e=6.0, mount=3.0, stem=1.0, tip=0.3)
 GROUPS = dict(mount=("adapter", "probe_base"), stem=("tool_stem",), tip=("tool_tip",), hex_e=("hex_e",))
-EXCL = dict(sphere5=4.0, sphere2=2.0, rod=12.0, flat=8.0)               # the tool end's points this near the contact meet the pad
+EXCL = dict(sphere5=4.0, sphere2=3.0, rod=12.0, flat=20.0)              # the tool end's points this near the contact meet the pad
+#                                                         (the 2 mm sphere's 3 mm: a push 35 deg off the normal drags it 0.6 mm)
 J5_WIN, J6_WIN, J6_OWNER = (30.0, 100.0), (-62.0, 45.0), 60.0
 J5_SEARCH = (35.0, 97.0)                                  # a press's own poses keep this much inside joint 5's window
 Q3_SEARCH = 30.0                                          # and the elbow this far from straight (the check's 20 deg)
@@ -351,7 +352,11 @@ def probe_points(tool, sp=1.5):
         fp = p["flat"]
         stem += [_frustum_pts(sr, sr, fl["z1"], tz - fp["ch"], sp, caps=False)]
         tip = np.vstack([_frustum_pts(sr, fp["r"], tz - fp["ch"], tz, 0.5, caps=False), _disc_pts(fp["r"], tz, 0.5)])
-    out["tool_stem"] = np.vstack(stem)
+    stem = np.vstack(stem)
+    if tool in SPHERES:                                  # the neck's end lies inside the sphere: those points are not stem
+        s = p[SPHERES[tool]]
+        stem = stem[np.linalg.norm(stem - [0.0, 0.0, tz - s["R"]], axis=1) > s["R"] + 0.05]
+    out["tool_stem"] = stem
     out["tool_tip"] = tip
     return out
 
@@ -814,6 +819,40 @@ def search_sphere(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=Tru
     return False, dict(why=why, n_u=int(len(cand)))
 
 
+FLAT_OFFSETS = ((0.0, 0.0), (2.5, 0.0), (-2.5, 0.0), (0.0, 2.5), (0.0, -2.5), (4.0, 0.0), (-4.0, 0.0), (0.0, 4.0), (0.0, -4.0))
+
+
+def search_flat(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=True):
+    """A flat press: the face (z_M = -n) tangent to the pad at p, its centre at p or up to 4 mm from it across the face
+    (FLAT_OFFSETS), the tool turned about its axis as the sphere's; the first that passes. The face is left out of the
+    pressed pad's distance (it meets the pad anywhere on it), not out of the tip's body's."""
+    zc = tool_end_z("flat")
+    t1, t2 = tangent_basis(n, np.array([0.0, 0.0, 1.0]))
+    R1 = frames_for(n[None])
+    why, n_try = {}, 0
+    contact = (seat_i, p, EXCL["flat"])
+    for o1, o2 in FLAT_OFFSETS:
+        c = p + o1 * t1 + o2 * t2
+        T_rest = pose_B(ctx, R1, (c - ST * d)[None], zc)[0]
+        T_deep = pose_B(ctx, R1, (c + DEEP * d)[None], zc)[0]
+        ok, info = try_poses(ctx, T_rest, T_deep, True, owner, contact, need_clear)
+        if ok:
+            info.update(u=np.round(n, 3).tolist(), c=c, offset=[o1, o2], n_u=1, tried=n_try + 1)
+            return True, info
+        for w in info.get("why", []):
+            key = w.split(" mm to the ")[0].split()[0] if " mm to the " in w else w.split()[0]
+            why[key] = why.get(key, 0) + 1
+        if "clear" in info:
+            n_try += 1
+            if n_try >= max_clear:
+                break
+    return False, dict(why=why, n_u=len(FLAT_OFFSETS))
+
+
+def search(ctx, seat_i, p, n, d, **kw):
+    return (search_flat if ctx["tool"] == "flat" else search_sphere)(ctx, seat_i, p, n, d, **kw)
+
+
 def twist_ok(ctx, seat_i, p, n, info, deg, owner=False, need_clear=True):
     """A found press turned deg about the pad's normal through the contact at its depth (the sphere spins in place)."""
     R_BA = ctx["T_BA"][:3, :3]
@@ -878,10 +917,13 @@ def cmd_reach(a):
         idx = [i for i in thin_idx(ctx["pts_P"], a.thin) if regs[i]]
         if a.limit:
             idx = idx[::max(1, len(idx) // a.limit)]
+        if a.part:                                       # k/n: every n-th point from the k-th, for parallel jobs
+            k_, n_ = (int(v) for v in a.part.split("/"))
+            idx = idx[k_::n_]
         rows = []
         for m, i in enumerate(idx):
             p, n = P_A[i], N_A[i]
-            ok, info = search_sphere(ctx, a.seat, p, n, -n, need_clear=not a.joints_only)
+            ok, info = search(ctx, a.seat, p, n, -n, need_clear=not a.joints_only)
             row = dict(i=int(i), region=regs[i], p_P=np.round(ctx["pts_P"][i], 3).tolist(), normal=bool(ok),
                        normal_info={k: v for k, v in info.items() if k in ("u", "j5", "j6", "clear", "why", "n_u", "tried")})
             if ok and not a.no_twist:
@@ -894,7 +936,7 @@ def cmd_reach(a):
                 for az in azim:
                     t = math.cos(math.radians(az)) * t1 + math.sin(math.radians(az)) * t2
                     d = -(math.cos(math.radians(th)) * n + math.sin(math.radians(th)) * t)
-                    hits.append(bool(search_sphere(ctx, a.seat, p, n, d, need_clear=not a.joints_only, max_clear=3)[0]))
+                    hits.append(bool(search(ctx, a.seat, p, n, d, need_clear=not a.joints_only, max_clear=3)[0]))
                 obl[f"{th:g}"] = hits
             row["oblique"] = obl
             rows.append(row)
@@ -1153,12 +1195,141 @@ def cmd_replay(a):
     print(f"-> {dst}, {dst2}")
 
 
+# ------------------------------------------------------------------------------------------------ the film
+FILM_PICKS = (("press", "face", 0.0, "Press on the face"), ("press", "edge", 0.0, "Press on an edge"),
+              ("press", "flank", 0.0, "Press on a flank"), ("press", "tip", 0.0, "Press on the tip's end"),
+              ("oblique", "face", 35.0, "Push 35 deg off the normal"), ("twist", None, 0.0, "Twist of 15 deg at depth"))
+
+
+def cell_scene(ctx, w, h, work):
+    """The cell's MuJoCo scene (scripts/ur5_cell_render.py) with plate v2e where the low sphere stood, its three held
+    tips on the seats, and the probe base and its tool on the HEX-E in place of the fork and the finger."""
+    import trimesh
+    import ur5_cell_render as RN
+    cad = OUT / "cad"
+    dummy = work / "dummy.stl"
+    trimesh.creation.box(extents=(0.01, 0.01, 0.01)).apply_translation((0.0, 0.0, -3000.0)).export(dummy)
+    fx = RN.fixtures()
+    fx["sphere"], fx["T_EM"] = ctx["T_BA"], ctx["T_EM"]
+    CELL.INDENTER_STL["sphere"] = cad / f"{STEM}_plate_v2e.stl"
+    CELL.INDENTER_STL["rod"], RN.TALL_STL, RN.HOLDER_STL = dummy, dummy, dummy
+    probe = {"fork": trimesh.load(cad / f"{STEM}_probe_base.stl", force="mesh"),
+             "clamp_plate": trimesh.load(cad / f"{STEM}_tool_{ctx['tool']}.stl", force="mesh"),
+             "dip_link": trimesh.load(dummy, force="mesh")}
+    orig_fm, orig_tp, orig_T, orig_st = CELL.finger_mesh, RN.tip_parts_F, CELL.tiphold_T_IF, CELL.TIPHOLD["stations"]
+    calls = [0]
+
+    def tp():
+        calls[0] += 1
+        return [] if calls[0] == 1 else orig_tp()           # the robot carries no tip; the seats do
+
+    seats = [np.asarray(s["T_AF"], float) for s in ctx["g"]["seats"]]
+    CELL.finger_mesh = lambda name, trim=None: probe[name].copy() if name in probe else orig_fm(name)   # noqa: E731
+    RN.tip_parts_F = tp
+    CELL.TIPHOLD["stations"] = tuple((0.0, "up") for _ in seats)
+    CELL.tiphold_T_IF = lambda t=None, i=0: C.inv(fx["holder"]) @ ctx["T_BA"] @ seats[i]        # noqa: E731
+    apex = np.asarray(ctx["g"]["seats"][ctx["seat"]]["apex"], float)
+    RN.CAMERAS["plate"] = (tuple(C.apply(ctx["T_BA"], np.array([-60.0, -640.0, 430.0]))),
+                           tuple(C.apply(ctx["T_BA"], np.array([0.0, 0.0, 110.0]))), 42.0)
+    RN.CAMERAS["seat"] = (tuple(C.apply(ctx["T_BA"], apex + [-230.0, -300.0, 160.0])), tuple(C.apply(ctx["T_BA"], apex)), 30.0)
+    try:
+        xml, _, _ = RN.build(work, fx, w, h)
+    finally:
+        CELL.finger_mesh, RN.tip_parts_F, CELL.tiphold_T_IF = orig_fm, orig_tp, orig_T
+        CELL.TIPHOLD["stations"] = orig_st
+    return xml, RN
+
+
+def cmd_film(a):
+    """One press of each kind on the middle seat, from the homing pose, every move as the replay makes it, filmed from
+    beside the plate and close to the seat, each under a label bar."""
+    import shutil
+    import subprocess
+    import tempfile
+    import mujoco
+    from PIL import Image, ImageDraw, ImageFont
+    t0 = time.time()
+    ctx = context(dict(orient=a.orient, seat_h=a.h), tool=a.tool)
+    ctx["seat"] = a.seat
+    ctx["hub"] = hub(ctx, a.seat)
+    a.spacing, a.thetas, a.azimuths, a.obl_every, a.joints_only = 3.0, "35", 4, 6, False
+    acts, P_A, N_A = build_plan(ctx, a.seat, a)
+    picks = []
+    for kind, reg, th, label in FILM_PICKS:
+        hit = [x for x in acts if x["kind"] == kind and (reg is None or x["region"] == reg) and x["theta"] == th
+               and x["twist"] >= 0.0]
+        if hit:
+            picks.append((hit[len(hit) // 2], label))
+    print(f"{len(picks)} actions picked in {time.time() - t0:.0f} s", flush=True)
+    work = Path(tempfile.mkdtemp(prefix="inverted_rig_film_"))
+    w, hh = (int(v) for v in a.size.lower().split("x"))
+    xml, RN = cell_scene(ctx, w, hh, work)
+    m = mujoco.MjModel.from_xml_string(xml)
+    d = mujoco.MjData(m)
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 24)
+    except OSError:
+        font = ImageFont.load_default()
+    frames = work / "frames"
+    frames.mkdir()
+    q = np.asarray(ctx["q_home"], float)
+    T_prev, k = None, 0
+    ren = mujoco.Renderer(m, hh, w)
+    try:
+        for x, label in picks:
+            best = None
+            for _, segs in travel_options(ctx, T_prev, q, x):
+                sm, why = sample_all(segs, q, False)
+                if best is None or not why:
+                    best = (sm, why)
+                if not why:
+                    break
+            tsm = best[0]
+            qt = tsm[-1][5] if tsm else q
+            osm, _ = sample_all(own_moves(ctx, x), qt, False)
+            qs = [s[5] for s in tsm[::max(1, len(tsm) // 40)]] + [s[5] for s in osm[::max(1, len(osm) // 40)]] + [osm[-1][5]] * 6
+            for qq in qs:
+                RN.set_pose(m, d, qq)
+                ims = []
+                for cam in ("plate", "seat"):
+                    ren.update_scene(d, camera=cam)
+                    ims.append(Image.fromarray(ren.render()))
+                bar = Image.new("RGB", (2 * w, 40), (255, 255, 255))
+                ImageDraw.Draw(bar).text((12, 6), label, fill=(0, 0, 0), font=font)
+                out = Image.new("RGB", (2 * w, hh + 40), (255, 255, 255))
+                out.paste(bar, (0, 0))
+                out.paste(ims[0], (0, 40))
+                out.paste(ims[1], (w, 40))
+                out.save(frames / f"f{k:05d}.png")
+                k += 1
+            print(f"{label}: {x['id']}, {len(qs)} frames", flush=True)
+            q = osm[-1][5]
+            T_prev = x["T_rest"]
+    finally:
+        ren.close()
+    media = OUT / "media"
+    media.mkdir(parents=True, exist_ok=True)
+    dst = media / f"{STEM}_film.mp4"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(a.fps), "-i", str(frames / "f%05d.png"), "-vf",
+                    f"scale={2 * w}:-2", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "30", str(dst)], check=True)
+    shutil.copy(frames / f"f{k // 2:05d}.png", media / f"{STEM}_film_poster.png")
+    shutil.rmtree(work, ignore_errors=True)
+    print(f"{k} frames -> {dst.relative_to(ROOT)} in {time.time() - t0:.0f} s")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     ik = sub.add_parser("ik-check")
     ik.add_argument("--n", type=int, default=200)
     sub.add_parser("build")
+    fm = sub.add_parser("film")
+    fm.add_argument("--orient", default=LAYOUT["orient"])
+    fm.add_argument("--h", type=float, default=LAYOUT["seat_h"])
+    fm.add_argument("--seat", type=int, default=1)
+    fm.add_argument("--tool", default="sphere5", choices=tuple(SPHERES))
+    fm.add_argument("--size", default="720x560")
+    fm.add_argument("--fps", type=int, default=20)
     rp = sub.add_parser("replay")
     rp.add_argument("--orient", default=LAYOUT["orient"])
     rp.add_argument("--tool", default="sphere5", choices=tuple(SPHERES))
@@ -1173,7 +1344,7 @@ def main():
     rp.add_argument("--out-dir", default="", help="where the plan and its check go (default the experiment's data/)")
     r = sub.add_parser("reach")
     r.add_argument("--orient", default=",".join(ORIENT))
-    r.add_argument("--tool", default="sphere5", choices=tuple(SPHERES))
+    r.add_argument("--tool", default="sphere5", choices=tuple(SPHERES) + ("flat",))
     r.add_argument("--h", type=float, default=LAYOUT["seat_h"], help="the seats' apex height over the base's underside (mm)")
     r.add_argument("--seat", type=int, default=1, help="which seat's tip is pressed (0, 1, 2 from -y)")
     r.add_argument("--thin", type=float, default=1.0, help="pad points at least this far apart (mm); 0 for all 812")
@@ -1184,8 +1355,9 @@ def main():
     r.add_argument("--limit", type=int, default=0)
     r.add_argument("--out", default="")
     r.add_argument("--resume", action="store_true", help="keep the orientations already in --out")
+    r.add_argument("--part", default="", help="k/n: this job's share of the points (merge the parts with merge-reach)")
     a = ap.parse_args()
-    dict(**{"ik-check": cmd_ik_check}, build=cmd_build, reach=cmd_reach, replay=cmd_replay)[a.cmd](a)
+    dict(**{"ik-check": cmd_ik_check}, build=cmd_build, reach=cmd_reach, replay=cmd_replay, film=cmd_film)[a.cmd](a)
 
 
 if __name__ == "__main__":
