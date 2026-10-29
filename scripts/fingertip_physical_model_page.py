@@ -59,14 +59,17 @@ def build():
     F.update({k + "4": MEDIA / f"20261028-{n}_four.png" for k, n in (
         ("anatomy", "fingertip_anatomy"), ("chain", "model_chain"), ("fe", "fe_sections"), ("field", "magnet_field"),
         ("patterns", "press_patterns"), ("likelihood", "likelihood_maps"), ("ur5", "ur5_untrained_model"))})
+    F["gain"] = MEDIA / "20261029-signal_by_region.png"     # v3 ID 2's suite of 2026-10-28/29 beside v3 ID 1 and v2 ID 1
     S, lede, summary, film_html = sections(N, F, P, link, L)
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S, 1))
     byline = ("Models of the pads 05R4 (four magnets, FE case b_05R4) and B05R (five, b_v2) on DIP link b v4, the "
-              "five-chip ReSkin 5X board and the UR5 sessions sphere2, cb1t, cb1r and cb2t of tips 0 to 2 and the grid "
-              "stage of v3 ID 1 and v2 ID 1. The four-magnet layout was chosen on 2026-10-28; each five-magnet figure "
+              "five-chip ReSkin 5X board and the UR5 sessions sphere2, cb1t, cb1r and cb2t of tips 0 to 2, the grid "
+              "stage of v3 ID 1 and v2 ID 1, and the low sphere's session of v3 ID 2 (2026-10-28/29). The four-magnet "
+              "layout was chosen on 2026-10-28; each five-magnet figure "
               "follows its four-magnet one under \u201cView with 5 magnets\u201d. Figures by " + P.code("scripts/fingertip_physical_model_figures.py")
-              + " from the FE of " + P.code("scripts/fingertip_physical_model_fe.py") + "; page by "
+              + " from the FE of " + P.code("scripts/fingertip_physical_model_fe.py") + " and the UR5 check of "
+              + P.code("scripts/fingertip_physical_model_v3_check.py") + "; page by "
               + P.code("scripts/fingertip_physical_model_page.py") + ". The topic overview is "
               + link(L["overview"], "printed fingertips and force sensing") + "; the sphere pads that represent this "
               "pad in simulation are in " + link(L["contact"], "the contact model overview") + ".")

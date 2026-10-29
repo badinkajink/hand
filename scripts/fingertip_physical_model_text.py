@@ -6,6 +6,8 @@ five-magnet figure follows its four-magnet one in a collapsed block (owner: "we 
 maybe just add them to a collapsed section of like 'view with 5 magnets'")."""
 from __future__ import annotations
 
+import math
+
 
 def sections(N, F, P, link, L):
     """(sections, lede, summary, film_html). N: numbers.json; F: media paths; P: page helpers; link(path, text); L: the
@@ -23,6 +25,25 @@ def sections(N, F, P, link, L):
     fn4 = [a4[b]["fn_rel"] for b in hi]
     rng = lambda v: f"{min(v):.1f}–{max(v):.1f}"   # noqa: E731
     cal = link(L["cal"], "calibration page")
+    # the three N52 tips on the press actions they all ran (scripts/fingertip_physical_model_v3_check.py, 2026-10-29)
+    vc = N["v3_check"]
+    ft, rs, gn = vc["fit"], vc["rest"], vc["gain"]
+    FC_, FACE = "face centre, other plans", "grid, face"
+    fit_ok = [abs(r["fitted"] / r["measured"] - 1) for t in gn.values() for g, r in t.items()
+              if g != FC_ and r["measured"] is not None]
+    within = math.ceil(100 * max(fit_ok))
+    cen = {k: gn[k][FC_] for k in gn}
+    TIP3 = (("v3id1", "v3 ID 1, four"), ("v3id2", "v3 ID 2, four"), ("v2id1", "v2 ID 1, five"))
+    BINS4 = ("0-1", "1-2", "2-3.5", "3.5-8")
+    un = lambda k, b: ft[k]["untrained"][b]                       # noqa: E731
+    loc_by = lambda k: [un(k, b)["loc_mm"] for b in hi]           # noqa: E731
+    fn_by = lambda k: [100 * un(k, b)["fn_rel"] for b in hi]      # noqa: E731
+    pct = lambda v: f"{min(v):.0f}–{max(v):.0f}"                  # noqa: E731
+    ratio = lambda k, w: gn[k][FC_][w] / gn[k][FACE][w]           # noqa: E731
+    E_fit = [ft[k]["E_fit_MPa"] for k, _ in TIP3]
+    give = [v["slope_um_per_N"] / v["fe_give_um_per_N"] for t in vc["depth"].values() for v in t.values()]
+    k1, k2 = (f"{rs[k]['at_press_board']['k']:.2f}" for k in ("v3id1", "v3id2"))
+    k_at = f"{k1} on both tips" if k1 == k2 else f"{k1} and {k2}"
 
     def five(n, png, caption):
         """Figure n with five magnets, in a block that opens on a click."""
@@ -32,21 +53,27 @@ def sections(N, F, P, link, L):
 
     lede = (
         "A press on the printed fingertip moves the four magnets inside its pad by a few micrometres. Five magnetometers "
-        "under the pad read the change of the magnets' field. The physical model computes that sequence: finite elements "
-        "give each magnet's motion for a load at any of 812 surface points, and a dipole model gives the 15 readings. "
-        f"Under a 5 mm sphere at 1 N the face sinks {p1['approach_um']:.0f} µm and the magnets move "
-        f"{rng(p1['magnet_travel_um'])} µm. With four N52 magnets in a checkerboard, the layout chosen on 2026-10-28, the "
-        f"readings change by {pr['checker_N52_four']:.0f} µT at the face centre. Five magnets give "
-        f"{pr['checker_N52']:.0f} µT there. Inverted without training, the model placed the four-magnet tip's UR5 presses "
-        f"of 1 N and over within {rng(loc4)} mm (medians by force), and those under 1 N "
-        f"{a4['0-1']['loc_mm']:.1f} mm off.")
+        "under the pad read the change of the magnets' field. The physical model computes that sequence from finite "
+        f"elements and a dipole model. Under a 5 mm sphere at 1 N the face sinks {p1['approach_um']:.0f} µm and the "
+        f"magnets move {rng(p1['magnet_travel_um'])} µm. With four N52 magnets in a checkerboard, the layout chosen on "
+        f"2026-10-28, the readings change by {pr['checker_N52_four']:.0f} µT at the face centre "
+        f"({pr['checker_N52']:.0f} µT with five). Inverted without training, the model placed the four-magnet tip's UR5 "
+        f"presses of 1 N and over within {rng(loc4)} mm, and those under 1 N {a4['0-1']['loc_mm']:.1f} mm off. Fitted to "
+        f"the presses of three N52 tips, it gives the signal per newton of the face, edges, flanks and tip end within "
+        f"{within} %. At the face centre the two four-magnet tips gave {cen['v3id1']['measured']:.1f} and "
+        f"{cen['v3id2']['measured']:.1f} µT/N, against the model's {cen['v3id1']['fitted']:.1f} and "
+        f"{cen['v3id2']['fitted']:.1f}.")
     summary = (
         "FE of the printed pad plus a dipole field model give the 15 magnetometer readings for a load anywhere on the "
         "surface. With four N52 magnets in a 5.0 mm checkerboard (pad 05R4, chosen 2026-10-28), at 1 N under a 5 mm sphere "
         f"the face sinks {p1['approach_um']:.0f} µm, the magnets move {rng(p1['magnet_travel_um'])} µm and the readings "
         f"change by {pr['checker_N52_four']:.0f} µT at the face centre (five magnets: {pr['checker_N52']:.0f} µT). Inverted "
         f"without training it places v3 ID 1's UR5 presses of 1 N and over within {rng(loc4)} mm and their normal force "
-        f"within {100 * min(fn4):.0f}–{100 * max(fn4):.0f} % (medians); under 1 N it fails ({a4['0-1']['loc_mm']:.1f} mm).")
+        f"within {100 * min(fn4):.0f}–{100 * max(fn4):.0f} % (medians); under 1 N it fails ({a4['0-1']['loc_mm']:.1f} mm). "
+        f"Fitted to the presses of v3 ID 1, v3 ID 2 and v2 ID 1, it gives each region's signal per newton within {within} % "
+        f"except the face centre, where the four-magnet tips gave {cen['v3id1']['measured']:.1f} and "
+        f"{cen['v3id2']['measured']:.1f} µT/N against the model's {cen['v3id1']['fitted']:.1f} and "
+        f"{cen['v3id2']['fitted']:.1f}.")
 
     film = P.film(0, F["film"], F["film_poster"],
                   "The contact viewer replays five presses that the model made with the board's measured noise, on the "
@@ -86,7 +113,15 @@ def sections(N, F, P, link, L):
          "along $x$, $y$ and $z$: a 15 × 3 matrix, in µT/N."),
         ("Rest calibration", "The fit of the field model to 2 s of readings with the pad untouched. It finds which chip "
          "address sits at which place, every magnet's pole, the strength $k$ and the chips' offset from the pad."),
+        ("Board offset", "How much farther the chips lie from the magnets than in the design, along $x$, in mm. The "
+         "rest calibration fits it, and so does the fit to the presses."),
         ("Untrained model", "The estimator of this page on a pad's rest calibration, fitted to no press."),
+        ("Fitted model", "The model with the magnets' strength, the board's offsets and a compliance scale $c$ fitted to a "
+         "tip's UR5 presses up to 3.5 N. $c$ multiplies every magnet motion of the finite elements, so the fitted "
+         "modulus is the FE's 12 MPa divided by $c$. Its location error is scored under five folds grouped by action."),
+        ("Signal per newton", "The length of the 15-component reading change over the normal force, "
+         "$|\\Delta\\mathbf b|/f_n$, in µT/N. On the UR5 $f_n$ is the HEX-E's, and the signal is a median over a region's holds "
+         "of 0.5 to 3.5 N."),
         ("HEX-E, hold", "The OptoForce HEX-E six-axis force-torque sensor between the UR5's flange and the fingertip's "
          "mount, the force reference of the calibration sessions. A hold is one force level of a UR5 press, kept for "
          "about 1.5 s."),
@@ -324,8 +359,10 @@ def sections(N, F, P, link, L):
                "the 15-component change. Keys in (a): an arrow and a circle of 50 µT.")
         + "<p>On the built tips the change is smaller than in the design. With v3 ID 1's rest calibration, a strength of "
         "1.07 and the board 1.03 mm farther from the magnets, a press at the face centre changes the readings by "
-        f"{pr['as_built_v3id1']:.0f} µT per newton. On the UR5 the face presses of 1 to 2 N changed them by 21.9 µT per "
-        "newton (" + cal + ", Section 11). Tips 0 to 2 have five magnets weaker than N52. Their strengths from the rest "
+        f"{pr['as_built_v3id1']:.0f} µT per newton. On the UR5 the presses at the face centre changed v3 ID 1's readings "
+        f"by {cen['v3id1']['measured']:.1f} µT per newton, and its other presses on the face by "
+        f"{gn['v3id1'][FACE]['measured']:.1f} (" + '<a href="#ur5">Section 9</a>' + "). Tips 0 to 2 have five magnets "
+        "weaker than N52. Their strengths from the rest "
         "calibrations are 0.34 on tip 0 and 0.47–0.57 on tips 1 and 2. A press at the face centre of tip 2 changes the "
         f"readings by {pr['as_built_tip2']:.0f} µT per newton. v2 ID 1's five N52 magnets fit at 0.98 of an N52's "
         "strength.</p>"
@@ -372,11 +409,19 @@ def sections(N, F, P, link, L):
         "the pad untouched the 15 readings are the magnets' field and Earth's. The fit searches the pole patterns, 8 with "
         "four magnets and 16 with five, the 24 assignments of chip addresses to places and the chips' common turn. For "
         "each it fits the strength, the offset and Earth's field by least squares, and the best reproduces the reading at "
-        "rest. On v3 ID 1 the planned checkerboard fits at 0.27 mT RMS, against 1.66 mT for the next pattern. The rest "
-        "field of four alternating magnets fixes their strength and the board's offset only together. A free fit gives "
-        "a strength at its bound of 2.0 with the board 2.69 mm farther away. With the offset held near v2 ID 1's, on "
-        "the same board mount, the strength is 1.07 at 1.03 mm. Fitted to the presses, the offset goes to 0.75 mm "
-        "(" + cal + ", Section 11). On tip 1, with five magnets, the planned checkerboard fits at 0.24 mT and the next "
+        f"rest. On v3 ID 1 the planned checkerboard fits at {rs['v3id1']['free']['rms_mT']:.2f} mT RMS, against "
+        f"{rs['v3id1']['free']['rms_next_mT']:.2f} mT for the next pattern. On v3 ID 2 it fits at "
+        f"{rs['v3id2']['free']['rms_mT']:.2f} against {rs['v3id2']['free']['rms_next_mT']:.2f} mT. The rest field of four "
+        "alternating magnets fixes their strength and the board's offset only together. A free fit gives a strength at "
+        f"its bound of 2.0, with the board {rs['v3id1']['free']['dx']:.2f} mm farther away on v3 ID 1 and "
+        f"{rs['v3id2']['free']['dx']:.2f} mm on v3 ID 2. With the offset held near v2 ID 1's, on the same board mount, "
+        f"the strengths are {rs['v3id1']['bounded']['k']:.2f} and {rs['v3id2']['bounded']['k']:.2f} at "
+        f"{rs['v3id1']['bounded']['dx']:.2f} mm. Figures 7 and 8 and Table 1 have this calibration. The presses put the "
+        f"boards {ft['v3id1']['board_dx']:.2f} and {ft['v3id2']['board_dx']:.2f} mm farther away "
+        "(" + '<a href="#ur5">Section 9</a>' + "). With the offset held there, the rest fit gives a strength of "
+        f"{k_at}, and its residual "
+        f"grows by {rs['v3id1']['at_press_board']['rms_mT'] - rs['v3id1']['free']['rms_mT']:.3f} and "
+        f"{rs['v3id2']['at_press_board']['rms_mT'] - rs['v3id2']['free']['rms_mT']:.3f} mT. On tip 1, with five magnets, the planned checkerboard fits at 0.24 mT and the next "
         "pattern at 0.87 mT. Its strength and the magnets' depth are also found only together. A strength of 0.57 with "
         "the chips 1.9 mm farther away and one of 0.34 at 0.7 mm fit 0.09 mT apart.</p>"
         "<p>On simulated presses with five N52 magnets all north, 2 % of presses are placed more than 1.5 mm off. The "
@@ -411,6 +456,57 @@ def sections(N, F, P, link, L):
         + five(8, F["ur5"], "The untrained model on the UR5 sessions of tips 0 to 2. (a) Median location error by force "
                "level. (b) The model's normal force over the HEX-E's, by region. Tip 0 (session sphere2) has its magnets "
                "all one way; tips 1 and 2 have the checkerboard. Tip 1 ran twice, on 2026-10-23 and 2026-10-25.")
+        + "<p>The second four-magnet tip, v3 ID 2, ran the suite on the night of 2026-10-28 (" + cal + ", Section 12). "
+        f"On the low sphere it shares {vc['shared_actions']} press actions with v3 ID 1 and v2 ID 1, "
+        f"{ft['v3id2']['holds']} holds on each tip. Figure 8's 160 actions include 47 speed variants and a dense press "
+        "that v3 ID 2 did not run. Table 1 scores the model on the shared holds. From 1 N up the untrained model places "
+        f"v3 ID 2's contacts within {rng(loc_by('v3id2'))} mm, against {rng(loc_by('v3id1'))} mm on v3 ID 1. Under 1 N "
+        f"it places them {un('v3id2', '0-1')['loc_mm']:.1f} and {un('v3id1', '0-1')['loc_mm']:.1f} mm away. Its normal "
+        f"force errs by {pct(fn_by('v3id2'))} % on v3 ID 2 and {pct(fn_by('v3id1'))} % on v3 ID 1. The two tips' readings "
+        f"change by {vc['gain_1_2_tip_vs_tip']['v3id2']:.1f} and {vc['gain_1_2_tip_vs_tip']['v3id1']:.1f} µT per newton "
+        "at 1 to 2 N (" + cal + ", Section 12). Fitted to the presses, v3 ID 2 has a compliance scale of "
+        f"{ft['v3id2']['c']:.2f} against v3 ID 1's {ft['v3id1']['c']:.2f}, a modulus of {ft['v3id2']['E_fit_MPa']:.1f} "
+        f"against {ft['v3id1']['E_fit_MPa']:.1f} MPa. Its board sits {ft['v3id1']['board_dx'] - ft['v3id2']['board_dx']:.2f} "
+        f"mm closer to the magnets, and its strength is {100 * (ft['v3id2']['k'] / ft['v3id1']['k'] - 1):.0f} % higher. "
+        "Under five folds grouped by action, the fitted model's location error over all holds is "
+        f"{ft['v3id1']['cv']['all']['loc_mm']:.2f} and {ft['v3id2']['cv']['all']['loc_mm']:.2f} mm on v3 ID 1 and ID 2. "
+        f"Untrained it is {ft['v3id1']['untrained']['all']['loc_mm']:.2f} and "
+        f"{ft['v3id2']['untrained']['all']['loc_mm']:.2f} mm.</p>"
+        + P.table(["Tip, magnets", "Board offset (mm)", "Strength at rest, board held there", "Compliance scale $c$",
+                   "Location error, untrained, 0–1 / 1–2 / 2–3.5 / 3.5–8 N (mm)",
+                   "Normal force error, untrained, same bins (%)", "Location error, all holds, untrained / fitted (mm)"],
+                  [[nm, f"{ft[k]['board_dx']:.2f}", f"{rs[k]['at_press_board']['k']:.2f}", f"{ft[k]['c']:.2f}",
+                    " / ".join(f"{un(k, b)['loc_mm']:.1f}" for b in BINS4),
+                    " / ".join(f"{100 * un(k, b)['fn_rel']:.0f}" for b in BINS4),
+                    f"{ft[k]['untrained']['all']['loc_mm']:.2f} / {ft[k]['cv']['all']['loc_mm']:.2f}"] for k, nm in TIP3],
+                  num_cols=(1, 2, 3, 4, 5, 6), n=1,
+                  caption=f"The model on the {vc['shared_actions']} press actions of the low sphere that the three N52 "
+                  f"tips ran, {ft['v3id1']['holds']} holds on each tip. Board offset and $c$: the fitted model's. Strength "
+                  "at rest: the rest fit with the board held within 0.02 mm of that offset. Errors are medians, by the "
+                  "hold's normal force. Rows in "
+                  + P.code("docs/experiments/20261026-fingertip_physical_model/data/20261029-v3_tips_model_check.json")
+                  + ", from " + P.code("scripts/fingertip_physical_model_v3_check.py") + ", which runs the UR5 "
+                  "coordinator's fit (" + P.code("scripts/ur5_tip_calibration_fe_calibration.py") + ") on each tip.")
+        .replace("<th class=n>", '<th class=n style="white-space:normal">')
+        + "<p>Figure 9 compares the signal per newton by region of the pad. For each hold the model predicts the reading "
+        "change from the registered contact point and the HEX-E's force. Fitted to the presses, it gives the face, the "
+        f"edges, the flanks and the tip end within {within} % of the measured medians on all three tips. At the face "
+        f"centre the four-magnet tips gave {cen['v3id1']['measured']:.1f} and {cen['v3id2']['measured']:.1f} µT per "
+        f"newton, and the fitted model gives {cen['v3id1']['fitted']:.1f} and {cen['v3id2']['fitted']:.1f}. Their other "
+        f"presses on the face gave {gn['v3id1'][FACE]['measured']:.1f} and {gn['v3id2'][FACE]['measured']:.1f} µT per "
+        f"newton. So the measured centre gives {ratio('v3id1', 'measured'):.2f} and {ratio('v3id2', 'measured'):.2f} of "
+        f"the face's signal, and the model {ratio('v3id1', 'fitted'):.2f} and {ratio('v3id2', 'fitted'):.2f}. The "
+        "cancellation at U1 is deeper in the printed tips than in the model. With five magnets the face centre gave "
+        f"{cen['v2id1']['measured']:.1f} µT per newton, {ratio('v2id1', 'measured'):.2f} times the face's, and the "
+        f"fitted model gives {cen['v2id1']['fitted']:.1f}.</p>"
+        + P.fig(9, F["gain"], "Signal per newton by region of the pad on the low sphere: the median of "
+                "$|\\Delta\\mathbf b|/f_n$ over the holds of 0.5 to 3.5 N. Bars are measured. The black line is the "
+                "fitted model and the dashed line the untrained model; each predicts a hold's change from its "
+                "registered contact point and the HEX-E's force. Face centre: the reference presses at the face's "
+                f"centre. Face, edges and flanks: the grid stage's presses on the {vc['shared_grid_actions']} grid "
+                "actions that all three tips ran. Tip end: v3 ID 2's top-edge pass. Groups as in "
+                + P.code("scripts/ur5_tip_calibration_gain_by_region.py") + "; rows in "
+                + P.code("data/20261029-v3_tips_model_check.json") + ".")
         + "<p>The registered indentation is larger than the FE pad's at the measured force. On tip 0, at the registered "
         "depth, the FE pad would push back with 5.1 times the measured force. A pad that much softer would move its "
         "magnets five times as far per newton, and the board would read five times the HEX-E's force. It reads "
@@ -419,10 +515,9 @@ def sections(N, F, P, link, L):
         "0.07 mm plus 0.10 mm per newton. A spring in series with the pad, in the mount, the arm or the indenter's stand, "
         "would add the same slope under both indenters. So at most 0.10 mm/N lies in series. At least 0.10 mm/N arises "
         "at the sphere's small contact, where the print is softer than the FE pad ("
-        + link(L["gt"], "UR5 ground truth") + ", Sections 3, 4 and 8). On the N52 tips one compliance scale of the FE "
-        "was fitted to the presses up to 3.5 N. The magnets move 0.71 times as far per newton as the FE gives on v3 ID 1 "
-        "and 0.73 times on v2 ID 1, a modulus of 16.9 and 16.3 MPa against the FE's 12 MPa. The registered indentation "
-        "of the same presses grows 2.1 to 2.5 times as fast as the FE pad's (" + cal + ", Section 11).</p>"
+        + link(L["gt"], "UR5 ground truth") + ", Sections 3, 4 and 8). On the three N52 tips the fitted modulus is "
+        f"{min(E_fit):.1f}–{max(E_fit):.1f} MPa, against the FE's 12 MPa (Table 1). The registered indentation of the "
+        f"same presses grows {min(give):.1f} to {max(give):.1f} times as fast as the FE pad's.</p>"
         "<p>At 2 N and over, most of the untrained model's location error is geometric. On tip 1 an affine map of the "
         "estimated points takes the error from 1.16 to 0.60 mm, with a scale of 0.68 and a turn of 14.7°. The magnets' "
         "places and depth, which the rest calibration fixes only jointly with their strength, are the likely source. "
@@ -436,7 +531,7 @@ def sections(N, F, P, link, L):
     # ------------------------------------------------------------------------------------------------ limitations
     body = (
         "<p>The FE gives Siraya 85A the 12 MPa of a NinjaFlex data sheet; fitted to the N52 tips' presses, the modulus "
-        "is 16.3–16.9 MPa. It is linear and frictionless at the indenter. It fixes the pad's cut face, so a pad that shifts in its "
+        f"is {min(E_fit):.1f}–{max(E_fit):.1f} MPa. It is linear and frictionless at the indenter. It fixes the pad's cut face, so a pad that shifts in its "
         "seat is outside the model; the owner's first presses by hand shifted it by 17–23 µm. The contact patch under a "
         "small sphere is resolved by about 15 face nodes at 1 N. The field model assumes the design's magnet places. The "
         "rest fit trades their strength against their depth, and with four alternating magnets against the board's "
@@ -447,18 +542,20 @@ def sections(N, F, P, link, L):
 
     # ------------------------------------------------------------------------------------------------ future work
     items = [
-        "Board offset on the four-magnet tips: measure the gap between the pad's cut face and the board's chips on the "
-        "other v3 tips with feeler gauges, then rerun the rest fit with the offset held there. A strength of 0.9–1.1 "
-        "confirms the field model of four magnets; a strength at the fit's bound of 2.0 puts the offset in the magnets' "
-        "depth.",
-        "Signal at the face centre with four magnets: from v3 ID 1's grid holds, compare the change per newton of the "
-        "face presses within 2 mm of the apex with those 4–6 mm toward either end. A ratio near the model's "
-        f"{pat4['(a) Press at the face centre']['norm_uT']:.0f} against "
-        f"{pat4['(b) Press 5 mm toward the tip end']['norm_uT']:.0f} µT/N confirms the cancellation at U1; a ratio near 1 "
-        "puts the magnets off their square.",
+        "Board offset on the four-magnet tips: measure the gap between the pad's cut face and the board's chips on "
+        "v3 ID 1 and ID 2 with feeler gauges. Convert the gap to the board offset. The presses put the offsets at "
+        f"{ft['v3id1']['board_dx']:.2f} and {ft['v3id2']['board_dx']:.2f} mm, where the rest fit gives a strength of "
+        f"{k_at}. Gauge offsets within "
+        "0.15 mm of these confirm the field model of four magnets. Offsets near the free rest fits' "
+        f"{rs['v3id1']['free']['dx']:.2f} and {rs['v3id2']['free']['dx']:.2f} mm put the error in the magnets' depth.",
+        "Depth of the cancellation at the face centre: in the fit to the presses, let each of the four magnets move by "
+        "up to 0.5 mm in the plane of the square (the fit of Table 1 moves only the board). A fit that brings the face "
+        f"centre within 10 % of the measured {cen['v3id1']['measured']:.1f} and {cen['v3id2']['measured']:.1f} µT/N, "
+        f"with the other regions still within {within} %, places the printed magnets off the design's square. A fit "
+        "that cannot puts the error in the FE's magnet motions near the centre.",
         "Siraya 85A's modulus: press a solid 85A coupon under a dial indicator at 0.5–5 N "
         "(" + P.code("scripts/tpu_tip_calibrate.py fit --indent") + "). A modulus outside 9–15 MPa rescales every FE "
-        "compliance by the same factor, as the N52 tips' 16.3–16.9 MPa would.",
+        f"compliance by the same factor, as the N52 tips' {min(E_fit):.1f}–{max(E_fit):.1f} MPa would.",
         "Softness at a small contact: clamp the pad's printed twin on a rigid block and press it with the 5 mm sphere "
         "under a dial indicator at 0.5–5 N. Travel near the FE pad's 214 µm at 1 N places the UR5's extra "
         "indentation in the robot's tool. Travel near the registered 0.73 mm confirms that the FE pad is too stiff "

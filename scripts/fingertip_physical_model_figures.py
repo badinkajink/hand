@@ -725,6 +725,71 @@ def fig_ur5_four():
     NUM["ur5_four"] = nums
 
 
+V3_CHECK = DATA / "20261029-v3_tips_model_check.json"
+GAIN_GROUPS = (("face centre, other plans", "Face\ncentre"), ("grid, face", "Face"), ("top-edge pass, tip", "Tip\nend"),
+               ("grid, edge", "Edges"), ("grid, flank", "Flanks"))
+
+
+def fig_gain_regions():
+    """The board's signal per newton by region of the pad on the low sphere: measured on v3 ID 1 and v3 ID 2 (four N52)
+    and v2 ID 1 (five N52), and predicted for each hold from its registered point and the HEX-E's force by the model,
+    untrained (rest fit, compliance scale 1) and fitted to the presses (scripts/fingertip_physical_model_v3_check.py)."""
+    plt = plt_setup()
+    G = json.loads(V3_CHECK.read_text())
+    panels = [("(a) Four N52 magnets, pad 05R4", [("v3id1", "v3 ID 1", FOUR_C), ("v3id2", "v3 ID 2", "#e0a35e")]),
+              ("(b) Five N52 magnets, pad B05R", [("v2id1", "v2 ID 1", FIVE_C)])]
+    fig, axes = plt.subplots(1, 2, figsize=(10.0, 4.8), gridspec_kw=dict(width_ratios=(1.5, 1.0)), sharey=True)
+    top = max(max(r[k] for k in ("measured", "untrained", "fitted") if r.get(k) is not None)
+              for t in G["gain"].values() for r in t.values() if r.get("measured") is not None)
+    for ax, (title, tips) in zip(axes, panels):
+        groups = [(g, lab) for g, lab in GAIN_GROUPS
+                  if any((G["gain"][k].get(g) or {}).get("measured") is not None for k, _, _ in tips)]
+        w = 0.8 / len(tips)
+        for j, (key, lab, col) in enumerate(tips):
+            for i, (g, _) in enumerate(groups):
+                r = G["gain"][key].get(g)
+                if not r or r["measured"] is None:
+                    continue
+                x = i + (j - (len(tips) - 1) / 2) * w
+                ax.bar(x, r["measured"], w * 0.9, color=col, label=f"Measured, {lab}" if i == 0 else None)
+                ax.plot([x - w * 0.45, x + w * 0.45], [r["fitted"]] * 2, color="black", lw=2.4,
+                        label="Model fitted to the presses" if (i == 0 and j == len(tips) - 1) else None)
+                ax.plot([x - w * 0.45, x + w * 0.45], [r["untrained"]] * 2, color="0.25", lw=1.6, ls=(0, (2.5, 1.5)),
+                        label="Untrained model" if (i == 0 and j == len(tips) - 1) else None)
+                ax.text(x, 1.5, f"{r['measured']:.0f}", ha="center", va="bottom", fontsize=11, color="white")
+        ax.set_xticks(range(len(groups)))
+        ax.set_xticklabels([lab for _, lab in groups])
+        ax.set_xlim(-0.6, len(groups) - 0.4)
+        ax.set_title(title, fontsize=13)
+        h, lab = ax.get_legend_handles_labels()
+        order = sorted(range(len(lab)), key=lambda i: (not lab[i].startswith("Measured"), i))
+        ax.legend([h[i] for i in order], [lab[i] for i in order], fontsize=11, frameon=False, loc="upper left")
+    axes[0].set_ylabel("Signal per newton, median (µT/N)")
+    axes[0].set_ylim(0, 1.32 * top)
+    fig.tight_layout()
+    save(fig, "20261029-signal_by_region.png")
+    TT = json.loads((FE_CAL.parent / "20261029-tip_vs_tip_sphere_v3id2_v3id1.json").read_text())
+    NUM["v3_check"] = dict(
+        shared_actions=G["shared_actions"], shared_grid_actions=G["shared_grid_actions"],
+        gain_1_2_tip_vs_tip={k: round(TT["tips"][t]["gain_uT_per_N"]["1-2"], 2) for k, t in (("v3id1", "v3 ID 1"),
+                                                                                           ("v3id2", "v3 ID 2"))},
+        depth={k: {g: dict(slope_um_per_N=round(v["slope_um_per_N"], 1), fe_give_um_per_N=round(v["fe_give_um_per_N"], 1))
+                   for g, v in r["depth"].items()} for k, r in G["fit"].items()},
+        rest={k: {n: dict(k=round(v["k"], 3), dx=round(v["dx"], 3), rms_mT=round(v["rms_mT"], 3),
+                          rms_next_mT=round(v["rms_next_mT"], 3)) for n, v in r.items() if n != "dx_bounds"}
+              for k, r in G["rest"].items()},
+        fit={k: dict(k=round(r["fit"]["k"], 3), c=round(r["fit"]["c"], 3), E_fit_MPa=round(r["fit"]["E_fit_MPa"], 1),
+                     board_dx=round(r["fit"]["dx_mm"] + r["rest_used"]["dx"], 3), rms_uT=round(r["fit"]["rms_uT"], 2),
+                     holds=r["holds"],
+                     untrained={b: dict(n=v["n"], loc_mm=round(v["loc_mm"], 3), fn_rel=round(v["fn_rel"], 4))
+                                for b, v in r["untrained"].items() if v["loc_mm"] is not None},
+                     cv={b: dict(n=v["n"], loc_mm=round(v["loc_mm"], 3), fn_rel=round(v["fn_rel"], 4))
+                         for b, v in r["cv"]["table"].items() if v["loc_mm"] is not None})
+             for k, r in G["fit"].items()},
+        gain={k: {g: {n: (round(v, 4) if isinstance(v, float) else v) for n, v in r.items()} for g, r in t.items()}
+              for k, t in G["gain"].items()})
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--layout", default="both", choices=("four", "five", "both"))
@@ -734,10 +799,14 @@ def main():
                 likelihood=fig_likelihood, ur5=fig_ur5)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
+    if a.only is not None and "gain" in a.only:
+        fig_gain_regions()
     for lay in (("four", "five") if a.layout == "both" else (a.layout,)):
         for k, f in figs.items():
             if a.only is None or k in a.only:
                 f(lay)
+    if a.only is None:
+        fig_gain_regions()
     NUMBERS.write_text(json.dumps(NUM, indent=1) + "\n")
     print("wrote", NUMBERS.relative_to(ROOT))
 
