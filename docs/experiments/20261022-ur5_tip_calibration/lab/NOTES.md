@@ -1519,17 +1519,34 @@ The clearances in this section and the one before it are on mount v3. The next s
 - The pivot stage kept no turn presses, so `pivots.json` is empty, as in 102701.
 - The HEX-E: no time-out, and one gap over 0.5 s at 03:16:00, before the first action.
 
-### Block 4: ID 2's tall stage 2 (from 03:58:45)
+### Block 4: ID 2's tall stage 2 (03:58:45 to 06:44:53)
 
-- `lab/20261028-plan_tall_lab_stage2_night_v3id2.json`, resumed on 200508 with stages preflight,grid,shear,twist,final.
-  Its two chunks were simulated from home on block 3's registration. The mount stayed at least 3.18 mm from the cell.
-  Joint 5 came to 99.2 deg at tall-shared-576 and -640, and the program aborts an action past 100.
+- `lab/20261028-plan_tall_lab_stage2_night_v3id2.json`, resumed on 200508 with stages preflight,grid,shear,twist,final
+  (printout: `printout_stage2_0358.txt` in its copy). Its two chunks were simulated from home on block 3's
+  registration. The mount stayed at least 3.18 mm from the cell. Joint 5 came to 99.2 deg at tall-shared-576 and -640,
+  and the program aborts an action past 100.
 - After block 5's exit 0, `night_rest.sh` started block 6's simulations on block 5's registration (two chunks, nice
   19). It then checked the home path from 031559's last pose and went home (0.04 mm from the target), and block 4
   started at 03:58:45.
 - Block 6's two chunks passed the gate at 04:14:53: no abort, the mount at least 3.18 mm and the finger 1.42 mm from the
   cell, joint 6 from -56.1 to +37.3 deg, the elbow at least 66.6 deg from straight. Joint 5 came 0.6 deg inside its
   window, at 30.6 deg.
+- 102 of 102 ok, no abort, no early contact. Grid 56 (03:58:49 to 04:40:06), shear 41 slides (to 06:33:51), twist 4
+  (to 06:44:13) and final 1. It took 2.77 h, against 2.8 h in the suite's estimate.
+- On the robot, joint 5 reached 99.1 deg at tall-shared-576 and -640, as the simulation had it.
+- The HEX-E: 995,507 samples, no time-out. Its two gaps over 0.5 s (1.2 and 0.7 s) came at 03:58:45 to 03:58:47,
+  before the first action.
+- At 2 N, the reference press stopped 2.31 mm along its approach at 03:59, 2.21 and 2.23 mm at 04:39 and 04:40, and
+  2.23 mm at 06:44. So the stop came 0.08 to 0.10 mm earlier after the grid's 40 minutes, then held for two hours.
+  Sideways it moved 0.05 mm at most. Block 2's sphere reference moved 0.10 mm the other way, deeper, in its first 20
+  minutes.
+
+### Block 6: ID 2's rod stage 2 (from 06:45:40)
+
+- `lab/20261028-plan_rod_lab_stage2_night_v3id2.json`, 100 actions, resumed on 031559 with stages
+  preflight,grid,shear,roll,twist,final. Its simulations are in block 4's section.
+- After block 4's exit 0, `night_rest.sh` checked the home path from 200508's last pose and went home (0.02 mm, 0.01
+  deg from the target). Block 6 started at 06:45:40, and its preflight read the HEX-E with no time-out.
 
 ### Faster touch-offs: where the time goes and what speed costs
 
