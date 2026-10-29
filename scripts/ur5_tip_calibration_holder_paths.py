@@ -21,9 +21,10 @@ travel, the inverse kinematics continued from sample to sample. Per action, over
   shoulder  the least distance (mm) of the wrist (wrist_1_link's origin) from joint 1's axis: the shoulder singularity
   limits    the least margin (deg) of any joint to +-360 deg, of joint 5 to the program's wrist window (30 to 100) and of
             joint 6 to the plan's -62 to +45
-  clear     the least clearance (mm) of the robot's links, the mount, the finger and the HEX-E, every 5th sample and at
-            the ends, with every fixture of --other (a kind with several folders, as the rod's three seatings, counts
-            each, so the worst is kept)
+  clear     the least clearance (mm) of the robot's links, the mount, the finger and the HEX-E: at every sample of a
+            straight move (2 mm), every 5th sample of a joint move and at the ends (until 2026-10-29 12:5x, every 5th
+            sample of both, which saw a hover's 40 mm descent only every 10 mm), with every fixture of --other (a kind
+            with several folders, as the rod's three seatings, counts each, so the worst is kept)
 
 An action is flagged when sin5 < 0.5 (q5 within 30 deg of 0 or 180), q3 < 20 deg, the shoulder distance < 150 mm, a
 joint's margin < 10 deg, joint 5 or 6 leaves its window, or a clearance falls under the plan checks' needs (robot 8,
@@ -302,7 +303,9 @@ def run(a):
                 for key in m:
                     m[key] = min(m[key], mk[key])
                 j6r = [min(j6r[0], math.degrees(qq[5])), max(j6r[1], math.degrees(qq[5]))]
-                if (k % 5 == 0 or k == len(sm) - 1) and (ai, si) != (0, 0):
+                straight = seg[0] != "J"                    # straight moves at every sample (lab, 10-29 12:47: a hover's
+                #                                             40 mm descent seen every 10 mm missed the fork's 2.42 mm)
+                if (straight or k % 5 == 0 or k == len(sm) - 1) and (ai, si) != (0, 0):
                     TT = T if T is not None else SIM.fk(qq)
                     g = clear_groups(qq, TT, reg_true, cP if own else None)
                     for key, v in g.items():
