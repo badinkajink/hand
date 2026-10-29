@@ -77,13 +77,15 @@ PROBE = dict(
     flange=dict(z1=70.0, r=17.0), m3_clear=3.4, m3_cb_d=6.5, m3_under=3.0,   # each tool's flange, M3 x 10 on a diagonal
     stem_r=8.0,
     sphere=dict(R=5.0, neck_r=3.0, neck_dz=4.0, taper_deg=15.0),           # the tall indenter's sphere and neck
+    sphere2=dict(R=2.0, neck_r=1.3, neck_dz=1.6, taper_deg=15.0),          # a 2 mm sphere for the flanks by the walls
     rod=dict(R=12.5, half_len=10.0, box_dz=12.5, hull_dz=7.0, hull_half=8.0),   # the plate's rod: axis along y_M
     flat=dict(r=7.0, ch=1.0),       # a face 14 mm across with a 1 mm chamfer, the stem's end
 )
-TOOLS = ("sphere5", "rod", "flat")
+TOOLS = ("sphere5", "sphere2", "rod", "flat")
+SPHERES = dict(sphere5="sphere", sphere2="sphere2")      # the sphere tools and their PROBE entries
 NEED = dict(robot=8.0, hex_e=6.0, mount=3.0, stem=1.0, tip=0.3)
 GROUPS = dict(mount=("adapter", "probe_base"), stem=("tool_stem",), tip=("tool_tip",), hex_e=("hex_e",))
-EXCL = dict(sphere5=4.0, rod=12.0, flat=8.0)               # the tool end's points this near the contact meet the pad
+EXCL = dict(sphere5=4.0, sphere2=2.0, rod=12.0, flat=8.0)               # the tool end's points this near the contact meet the pad
 J5_WIN, J6_WIN, J6_OWNER = (30.0, 100.0), (-62.0, 45.0), 60.0
 J5_SEARCH = (35.0, 97.0)                                  # a press's own poses keep this much inside joint 5's window
 Q3_SEARCH = 30.0                                          # and the elbow this far from straight (the check's 20 deg)
@@ -96,7 +98,7 @@ T_FP = C.inv(CELL.T_M_FROM_F) @ CELL.T_M_FROM_P           # the pad frame P in F
 
 def tool_end_z(tool, p=PROBE):
     """z_M of the tool's reference point: the sphere's centre, the rod's axis, the flat face's centre."""
-    return p["tip_z"] - (p["sphere"]["R"] if tool == "sphere5" else p["rod"]["R"] if tool == "rod" else 0.0)
+    return p["tip_z"] - (p[SPHERES[tool]]["R"] if tool in SPHERES else p["rod"]["R"] if tool == "rod" else 0.0)
 
 
 # ------------------------------------------------------------------------------------------------ the seats (A, mm)
@@ -330,8 +332,8 @@ def probe_points(tool, sp=1.5):
                                      _box_pts((c["x0"], c["y0"], f["z1"]), (c["x1"], c["y1"], c["z1"]), 2.0)]))
     sr, tz = p["stem_r"], p["tip_z"]
     stem = [_frustum_pts(fl["r"], fl["r"], c["z1"], fl["z1"], 1.5)]
-    if tool == "sphere5":
-        s = p["sphere"]
+    if tool in SPHERES:
+        s = p[SPHERES[tool]]
         z_neck = tz - s["neck_dz"]
         z_c0 = z_neck - (sr - s["neck_r"]) / math.tan(math.radians(s["taper_deg"]))
         stem += [_frustum_pts(sr, sr, fl["z1"], z_c0, sp, caps=False), _frustum_pts(sr, s["neck_r"], z_c0, z_neck, 0.7, False)]
@@ -396,8 +398,8 @@ def tool_solid(K, tool):
     sr, tz = p["stem_r"], p["tip_z"]
     t = math.tan(math.radians(b["draft"]))
     parts = [K.cyl("z", (0.0, 0.0), fl["r"], c["z1"], fl["z1"])]
-    if tool == "sphere5":
-        s = p["sphere"]
+    if tool in SPHERES:
+        s = p[SPHERES[tool]]
         z_neck = tz - s["neck_dz"]
         z_c0 = z_neck - (sr - s["neck_r"]) / math.tan(math.radians(s["taper_deg"]))
         parts += [K.cyl("z", (0.0, 0.0), sr, fl["z1"] - 0.01, z_c0 + 0.01), K.cyl("z", (0.0, 0.0), sr, z_c0, z_neck, r1=s["neck_r"]),
@@ -779,8 +781,8 @@ def search_sphere(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=Tru
     """The first stem direction, in the order of preference, at which a sphere press at pad point p (A) with outward
     normal n and push direction d passes. The stems tried point away from the pad (u.n >= -0.2) and not steeply down
     (u_z >= -0.5); the preferred one lies between the normal and U_ROBOT."""
-    zc = tool_end_z("sphere5")
-    c = p + PROBE["sphere"]["R"] * n
+    zc = tool_end_z(ctx["tool"])
+    c = p + PROBE[SPHERES[ctx["tool"]]]["R"] * n
     keep = (U_ALL @ n >= -0.2) & (U_ALL[:, 2] >= -0.5)
     U = U_ALL[keep]
     pref = n + U_ROBOT
@@ -796,7 +798,7 @@ def search_sphere(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=Tru
     if not len(cand):
         return False, dict(why={"j5" if fin.any() else "ik": int(len(U))}, n_u=0)
     why, n_try = {}, 0
-    contact = (seat_i, p, EXCL["sphere5"])
+    contact = (seat_i, p, EXCL[ctx["tool"]])
     for k in cand:
         ok, info = try_poses(ctx, T_rest[k], T_deep[k], True, owner, contact, need_clear)
         if ok:
@@ -824,7 +826,7 @@ def twist_ok(ctx, seat_i, p, n, info, deg, owner=False, need_clear=True):
         return False
     if not need_clear:
         return True
-    return not clear_flags(clearance(qd, ctx, (seat_i, p, EXCL["sphere5"])))
+    return not clear_flags(clearance(qd, ctx, (seat_i, p, EXCL[ctx["tool"]])))
 
 
 def tangent_basis(n, axis):
@@ -853,11 +855,13 @@ def cmd_reach(a):
     orients = a.orient.split(",")
     thetas = [float(v) for v in a.thetas.split(",") if v]
     azim = np.arange(a.azimuths) * 360.0 / a.azimuths
-    res = dict(what="probe presses (5 mm sphere) on the held tip of one seat of plate v2e, by pad point and push direction",
+    res = dict(what=f"probe presses ({a.tool}) on the held tip of one seat of plate v2e, by pad point and push direction",
+               tool=a.tool,
                probe=PROBE, need=NEED, windows=dict(j5=J5_WIN, j6=J6_WIN, j6_owner=J6_OWNER, port_mm=PORT_MM),
                standoff_mm=ST, deep_mm=DEEP, thetas=thetas, azimuths=azim.tolist(), thin_mm=a.thin, seat=a.seat,
                joints_only=bool(a.joints_only), h=a.h, orients={})
-    dst = (Path(a.out) if a.out else OUT / "data" / f"{STEM}_reach{'_joints' if a.joints_only else ''}_h{a.h:g}.json").resolve()
+    tag = ("_joints" if a.joints_only else "") + ("" if a.tool == "sphere5" else f"_{a.tool}")
+    dst = (Path(a.out) if a.out else OUT / "data" / f"{STEM}_reach{tag}_h{a.h:g}.json").resolve()
     dst.parent.mkdir(parents=True, exist_ok=True)
     if dst.exists() and a.resume:
         res["orients"] = json.loads(dst.read_text()).get("orients", {})
@@ -865,7 +869,7 @@ def cmd_reach(a):
         if o in res["orients"]:
             print(f"{o}: done before, kept", flush=True)
             continue
-        ctx = context(dict(orient=o, seat_h=a.h))
+        ctx = context(dict(orient=o, seat_h=a.h), tool=a.tool)
         st = ctx["g"]["seats"][a.seat]
         T = np.asarray(st["T_AF"], float) @ T_FP
         P_A, N_A = C.apply(T, ctx["pts_P"]), ctx["nrm_P"] @ T[:3, :3].T
@@ -1016,7 +1020,7 @@ def own_moves(ctx, act):
     if act["kind"] == "twist":
         n_B = ctx["T_BA"][:3, :3] @ np.asarray(act["n_A"], float)
         TM = Td @ ctx["T_EM"]
-        c_B = TM[:3, 3] + TM[:3, 2] * tool_end_z("sphere5")
+        c_B = TM[:3, 3] + TM[:3, 2] * tool_end_z(ctx["tool"])
         T = Td
         for s in np.linspace(0.0, 1.0, 16)[1:]:
             T1 = C.turn_about(Td, c_B, n_B, act["twist"] * s)
@@ -1068,7 +1072,7 @@ def hub(ctx, seat_i):
     apex = np.asarray(ctx["g"]["seats"][seat_i]["apex"], float)
     for dx, dz, ux in ((-60.0, 90.0, -0.5), (-40.0, 120.0, -0.3), (-80.0, 70.0, -0.7), (0.0, 110.0, 0.0)):
         u = np.array([ux, 0.0, 1.0]) / math.hypot(ux, 1.0)
-        T = pose_B(ctx, frames_for(u[None]), (apex + [dx, 0.0, dz])[None], tool_end_z("sphere5"))[0]
+        T = pose_B(ctx, frames_for(u[None]), (apex + [dx, 0.0, dz])[None], tool_end_z(ctx["tool"]))[0]
         ok, info = try_poses(ctx, T, T, True, False, None, need_clear=False)
         if ok:
             return info["T_rest"], info["q"]
@@ -1079,7 +1083,7 @@ def cmd_replay(a):
     """A probe plan on one seat (build_plan) replayed move by move: the joints at every sample, the clearances at every
     sample of a straight move and every 5th of a joint move."""
     t0 = time.time()
-    ctx = context(dict(orient=a.orient, seat_h=a.h))
+    ctx = context(dict(orient=a.orient, seat_h=a.h), tool=a.tool)
     ctx["seat"] = a.seat
     ctx["hub"] = hub(ctx, a.seat)
     acts, P_A, N_A = build_plan(ctx, a.seat, a)
@@ -1087,7 +1091,7 @@ def cmd_replay(a):
     q = np.asarray(ctx["q_home"], float)
     T_prev, rows, n_way = None, [], {}
     for x in acts:
-        contact = (a.seat, P_A[x["i"]], EXCL["sphere5"])
+        contact = (a.seat, P_A[x["i"]], EXCL[ctx["tool"]])
         best = None
         for w, segs in travel_options(ctx, T_prev, q, x):
             sm, why = sample_all(segs, q, a.owner)
@@ -1127,13 +1131,14 @@ def cmd_replay(a):
         kinds[x["kind"]] = kinds.get(x["kind"], 0) + 1
     plan = dict(version=1, created=time.strftime("%Y-%m-%d"), kind="probe", seat=a.seat, orient=a.orient,
                 seat_apex_A=ctx["g"]["seats"][a.seat]["apex"], T_BA=ctx["T_BA"].round(6).tolist(),
-                T_EM=ctx["T_EM"].round(6).tolist(), probe=PROBE, tool="sphere5",
+                T_EM=ctx["T_EM"].round(6).tolist(), probe=PROBE, tool=ctx["tool"],
                 notes=[f"{time.strftime('%Y-%m-%d %H:%M')}, workstation: scripts/ur5_inverted_rig.py replay. A probe plan for "
                        "the inverted rig, written for the path check and the page; the lab program has no probe mode yet."],
                 actions=[{k: (np.round(v, 5).tolist() if isinstance(v, np.ndarray) else v) for k, v in x.items()}
                          for x in acts])
     odir = Path(a.out_dir).resolve() if a.out_dir else OUT / "data"
-    dst = odir / f"{STEM}_plan_{a.orient}_seat{a.seat + 1}.json"
+    tt = "" if a.tool == "sphere5" else f"_{a.tool}"
+    dst = odir / f"{STEM}_plan_{a.orient}_seat{a.seat + 1}{tt}.json"
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(json.dumps(plan, default=float) + "\n")
     out = dict(plan=str(dst.relative_to(ROOT)) if ROOT in dst.parents else str(dst), n=len(rows), kinds=kinds, flagged=sum(bool(r["flags"]) for r in rows),
@@ -1142,7 +1147,7 @@ def cmd_replay(a):
                j5_deg=[min(r["j5_deg"][0] for r in rows), max(r["j5_deg"][1] for r in rows)],
                j6_deg=[min(r["j6_deg"][0] for r in rows), max(r["j6_deg"][1] for r in rows)],
                seconds=round(time.time() - t0, 1), rows=rows)
-    dst2 = odir / f"{STEM}_paths_{a.orient}_seat{a.seat + 1}{'_joints' if a.joints_only else ''}.json"
+    dst2 = odir / f"{STEM}_paths_{a.orient}_seat{a.seat + 1}{tt}{'_joints' if a.joints_only else ''}.json"
     dst2.write_text(json.dumps(out, default=float) + "\n")
     print(json.dumps({k: v for k, v in out.items() if k != "rows"}), flush=True)
     print(f"-> {dst}, {dst2}")
@@ -1156,6 +1161,7 @@ def main():
     sub.add_parser("build")
     rp = sub.add_parser("replay")
     rp.add_argument("--orient", default=LAYOUT["orient"])
+    rp.add_argument("--tool", default="sphere5", choices=tuple(SPHERES))
     rp.add_argument("--h", type=float, default=LAYOUT["seat_h"])
     rp.add_argument("--seat", type=int, default=1)
     rp.add_argument("--spacing", type=float, default=2.0, help="normal presses at pad points this far apart (mm)")
@@ -1167,6 +1173,7 @@ def main():
     rp.add_argument("--out-dir", default="", help="where the plan and its check go (default the experiment's data/)")
     r = sub.add_parser("reach")
     r.add_argument("--orient", default=",".join(ORIENT))
+    r.add_argument("--tool", default="sphere5", choices=tuple(SPHERES))
     r.add_argument("--h", type=float, default=LAYOUT["seat_h"], help="the seats' apex height over the base's underside (mm)")
     r.add_argument("--seat", type=int, default=1, help="which seat's tip is pressed (0, 1, 2 from -y)")
     r.add_argument("--thin", type=float, default=1.0, help="pad points at least this far apart (mm); 0 for all 812")
