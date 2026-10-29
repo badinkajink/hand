@@ -448,25 +448,30 @@ def rrt(name, dim, max_cand, max_calls, step, dmin, seed, eff_floor=0.01, window
     print(summary, flush=True)
 
 
-def sobol(n, seed):
-    """The same two poses on a scrambled Sobol draw over the gantry box, each from the layout-only guess (no tree)."""
+def sobol(n, seed, shard=0, shards=1, name="sobol6d"):
+    """The same two poses on a scrambled Sobol draw over the gantry box, each from the layout-only guess (no tree).
+    With shards > 1, draws k, k + shards, ... go to rows/<name>_shard<k>.jsonl."""
     from scipy.stats import qmc
     ROWS.mkdir(parents=True, exist_ok=True)
-    path = ROWS / "sobol6d.jsonl"
+    path = ROWS / (f"{name}_shard{shard}.jsonl" if shards > 1 else f"{name}.jsonl")
     if path.exists():
         path.unlink()
     z = qmc.Sobol(6, scramble=True, seed=seed).random(n) - 0.5
     t0 = time.time()
     good = 0
     for k, zz in enumerate(z):
+        if k % shards != shard:
+            continue
         row = attempt(LO6 + (zz + 0.5) * (HI6 - LO6))
         row.update(call=k, z=zz.round(5).tolist(), kind="sobol")
         append(path, row)
         good += row["ok"]
         if (k + 1) % 200 == 0:
             print(f"sobol: {k + 1} draws, {good} reach both poses, {time.time() - t0:.0f} s", flush=True)
-    summary = {"name": "sobol6d", "n": n, "seed": seed, "candidates": good, "seconds": round(time.time() - t0, 1)}
-    (ROWS / "sobol6d_summary.json").write_text(json.dumps(summary, indent=1))
+    summary = {"name": name, "n": n, "seed": seed, "shard": shard, "shards": shards, "candidates": good,
+               "seconds": round(time.time() - t0, 1)}
+    (ROWS / (f"{name}_shard{shard}_summary.json" if shards > 1 else f"{name}_summary.json")).write_text(
+        json.dumps(summary, indent=1))
     print(summary, flush=True)
 
 
@@ -529,6 +534,16 @@ def embed():
     print({k: (v if k in ("n", "pca_var") else "...") for k, v in out.items()}, flush=True)
 
 
+def embed_sobol8k():
+    """t-SNE of the Sobol-8k layouts that reach both poses (rows/sobol8k.jsonl, the merged shards): the unbiased map."""
+    from sklearn.manifold import TSNE
+    rows = [r for r in load("sobol8k") if r["ok"]]
+    Z = np.array([r["z"] for r in rows])
+    Y = TSNE(2, perplexity=30, init="pca", random_state=0).fit_transform(Z)
+    (ROWS / "embed_sobol8k.json").write_text(json.dumps({"d": [r["d"] for r in rows], "tsne": Y.round(4).tolist()}))
+    print("embedded", len(rows), flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -540,20 +555,26 @@ def main():
     p6.add_argument("--calls", type=int, default=20000)
     ps = sub.add_parser("sobol")
     ps.add_argument("--n", type=int, default=1024)
+    ps.add_argument("--shard", type=int, default=0)
+    ps.add_argument("--shards", type=int, default=1)
+    ps.add_argument("--name", default="sobol6d")
     pt = sub.add_parser("one")
     pt.add_argument("d", type=float, nargs=6)
     sub.add_parser("embed")
+    sub.add_parser("embed8k")
     a = ap.parse_args()
     if a.cmd == "run2d":
         rrt("rrt2d", 2, a.max, a.calls, step=0.05, dmin=0.03, seed=1)
     elif a.cmd == "run6d":
         rrt("rrt6d", 6, a.max, a.calls, step=0.10, dmin=0.04, seed=2)
     elif a.cmd == "sobol":
-        sobol(a.n, seed=3)
+        sobol(a.n, seed=3, shard=a.shard, shards=a.shards, name=a.name)
     elif a.cmd == "one":
         print(json.dumps(attempt(np.array(a.d)), indent=1))
     elif a.cmd == "embed":
         embed()
+    elif a.cmd == "embed8k":
+        embed_sobol8k()
 
 
 if __name__ == "__main__":

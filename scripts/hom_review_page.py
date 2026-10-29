@@ -473,7 +473,10 @@ per size, the results were:</p>
 ramp.</li>
 </ul>
 <p>A sampling planner (pinned iCEM) tracked the pinch angle to 0.5 deg. It did so by squeezing with 14 to 22 N per pad,
-against 4 N under HOM.</p>"""
+against 4 N under HOM.</p>
+<p>A batched version of this controller for the roll and the twist runs on MuJoCo-Warp, many hand layouts at once
+(<code>scripts/hom_gpu.py</code>). It is validated against this library on the foundational-pose review page
+(<code>docs/experiments/20261029-foundational_pose_review/</code>).</p>"""
     fl = []
     for stem, cap in (("20261021-hom_pinpush_cylinder25_base", "Pin-push of a 25 mm cylinder under HOM: thumb and index "
                        "pinch, the middle finger drags the cylinder about the pinch axis (seed 0)."),
@@ -704,7 +707,10 @@ range, and fit the field change as a function of orientation. The fit passes if 
 0.5 mm.</li>
 <li>Rerun the calibration-error variants on the SCS0009 plant (0.72 N m/rad, 0.18 N m). Then run them on the chain
 study's screwdriver load step, where the brake's angle depends on the pinch force (Figure 3).</li>
-<li>Mount one tip on the index finger and run the pin-push on the bench with and without the force loop, scoring the
+<li>Port the sensing variants to the GPU controller (<code>scripts/hom_gpu.py</code>), so that Tables 3 and 4 can be
+rerun over thousands of hand layouts.</li>
+<li>Mount one tip on the index finger and run the pin-push on the bench with and without the
+force loop, scoring the
 pinch angle from the tags. The claim of Table 4 fails if the force loop does not lower the force spread across runs.</li>
 </ol>"""
 

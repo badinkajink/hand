@@ -238,12 +238,122 @@ def main():
     which = sys.argv[1:] or ["landscape", "efficiency", "embed", "sobol"]
     out = {}
     for w in which:
-        out[w] = {"landscape": fig_landscape, "efficiency": fig_efficiency, "embed": fig_embed, "sobol": fig_sobol}[w]()
+        out[w] = {"landscape": fig_landscape, "efficiency": fig_efficiency, "embed": fig_embed, "sobol": fig_sobol,
+                  "dyn2d": fig_dyn2d, "dyn6d": fig_dyn6d}[w]()
         print(w, json.dumps(out[w])[:600], flush=True)
     p = ROWS / "figures.json"
     old = json.loads(p.read_text()) if p.exists() else {}
     old.update(out)
     p.write_text(json.dumps(old, indent=1))
+
+
+
+# ------------------------------------------------------------------------------------------------ dynamic (HOM) scores
+def load_hom(name):
+    """GPU rows of scripts/hom_gpu.py, per layout: held fraction and medians over seeds."""
+    rows = load(name)
+    by = {}
+    for r in rows:
+        k = tuple(r["d"]) if "d" in r else (r["x_sep_mm"], r["y_sep_mm"])
+        by.setdefault(k, []).append(r)
+    out = []
+    for k, rr in by.items():
+        held = [r for r in rr if r.get("held")]
+        out.append({"key": k, "kin": rr[0].get("kin"), "kin_pinch": rr[0].get("kin_pinch"), "n": len(rr),
+                    "held": len(held) / len(rr),
+                    "ramp": float(np.median([r.get("ramp_three_pads_max_deg") or 0.0 for r in rr])),
+                    "rmse": float(np.median([r["w_rmse_ratio"] for r in held])) if held else float("nan")})
+    return out
+
+
+def fig_dyn2d():
+    """The 2-D case under HOM on the GPU: the twist's ramp and the roll's error per layout, beside the kinematic range."""
+    plt = plt_setup()
+    tw = {x["key"]: x for x in load_hom("hom2d_gpu_twist")}
+    ro = {x["key"]: x for x in load_hom("hom2d_gpu_roll")}
+    keys = sorted(set(tw) & set(ro))
+    xs = np.array([k[0] for k in keys])
+    ys = np.array([k[1] for k in keys])
+    fig, axs = plt.subplots(1, 3, figsize=(16, 5.4), sharey=True)
+    panels = [(np.array([tw[k]["kin"]["tmr_deg"] for k in keys]), "tripod: kinematic rotation range (deg)", "RdYlBu_r"),
+              (np.array([tw[k]["ramp"] for k in keys]), "twist under HOM: ramp on three pads (deg)", "RdYlBu_r"),
+              (np.array([ro[k]["rmse"] for k in keys]), "roll under HOM: velocity RMSE per step", "RdYlBu")]
+    for ax, (v, title, cm) in zip(axs, panels):
+        lo, hi = np.nanpercentile(v, [5, 95])
+        im = ax.scatter(xs, ys, c=v, cmap=cm, s=26, lw=0, vmin=lo, vmax=hi)
+        drop = np.array([tw[k]["held"] < 0.5 for k in keys])
+        ax.scatter(xs[drop], ys[drop], s=60, marker="x", color="k", lw=1.2)
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
+        ax.set_title(title, fontsize=12.5)
+        ax.set_xlabel("thumb to pair, x_sep (mm)")
+        ax.set_aspect("equal")
+    axs[0].set_ylabel("index to middle, y_sep (mm)")
+    fig.tight_layout()
+    save(fig, "20261029-hom_landscape_2d.png")
+    kin = np.array([tw[k]["kin"]["tmr_deg"] for k in keys])
+    ramp = np.array([tw[k]["ramp"] for k in keys])
+    return {"n": len(keys), "dropped_twist": int(drop.sum()),
+            "spearman_kin_ramp": float(np.corrcoef(np.argsort(np.argsort(kin)), np.argsort(np.argsort(ramp)))[0, 1])}
+
+
+def fig_dyn6d(name_tw="hom6d_gpu_twist", name_ro="hom6d_gpu_roll"):
+    """Six-coordinate layouts under HOM from their foundational poses: kinematic against dynamic scores, the dynamic
+    Pareto front, and the t-SNE map of the Sobol layouts coloured by the twist's ramp."""
+    plt = plt_setup()
+    tw = {x["key"]: x for x in load_hom(name_tw)}
+    ro = {x["key"]: x for x in load_hom(name_ro)}
+    keys = sorted(set(tw) & set(ro))
+    kin = np.array([tw[k]["kin"]["tmr_deg"] for k in keys])
+    smin = np.array([tw[k]["kin"]["smin_mm"] for k in keys])
+    ramp = np.array([tw[k]["ramp"] for k in keys])
+    rmse = np.array([ro[k]["rmse"] for k in keys])
+    held = np.array([min(tw[k]["held"], ro[k]["held"]) for k in keys])
+    ok = held >= 1.0
+    sc = np.stack([ramp, -np.nan_to_num(rmse, nan=9.0)], 1)
+    par = np.ones(len(keys), bool)
+    for i in range(len(keys)):
+        if not ok[i]:
+            par[i] = False
+            continue
+        dom = ok & np.all(sc >= sc[i], 1) & np.any(sc > sc[i], 1)
+        par[i] = not dom.any()
+    fig, axs = plt.subplots(1, 3, figsize=(16.5, 5.4))
+    a, b, c = axs
+    tw_ok = np.array([tw[k]["held"] >= 1.0 for k in keys])
+    a.scatter(kin[~tw_ok], ramp[~tw_ok], s=5, color="#c8c8c8", lw=0, label="twist dropped in a seed")
+    a.scatter(kin[tw_ok], ramp[tw_ok], s=5, alpha=0.6, color=C_THUMB, lw=0, label="twist held in every seed")
+    a.set_xlabel("tripod: kinematic rotation range (deg)")
+    a.set_ylabel("twist under HOM: ramp on three pads (deg)")
+    a.legend(frameon=False, fontsize=11, loc="upper right", markerscale=3)
+    b.scatter(ramp[ok], rmse[ok], s=6, alpha=0.4, color="#888888", lw=0)
+    b.scatter(ramp[par], rmse[par], s=26, color=C_INDEX, lw=0, label=f"Pareto front ({int(par.sum())})")
+    b.set_xlabel("twist: ramp on three pads (deg)")
+    b.set_ylabel("roll: velocity RMSE per step")
+    b.legend(frameon=False, fontsize=11)
+    emb_p = ROWS / "embed_sobol8k.json"
+    info = {}
+    if emb_p.exists():
+        emb = json.loads(emb_p.read_text())
+        pos = {tuple(np.round(d, 3)): xy for d, xy in zip(emb["d"], emb["tsne"])}
+        pts = [(pos.get(tuple(np.round(k, 3))), tw[k]["ramp"], ok[i]) for i, k in enumerate(keys)]
+        pts = [p for p in pts if p[0] is not None]
+        P = np.array([p[0] for p in pts])
+        im = c.scatter(P[:, 0], P[:, 1], c=[p[1] for p in pts], cmap="RdYlBu_r", s=5, lw=0)
+        fig.colorbar(im, ax=c, fraction=0.046, pad=0.02, label="twist ramp (deg)")
+        c.set_title(f"t-SNE of {len(pts)} Sobol layouts", fontsize=12.5)
+        c.set_xticks([])
+        c.set_yticks([])
+        info["tsne_n"] = len(pts)
+    fig.tight_layout()
+    save(fig, "20261029-hom_landscape_6d.png")
+    rank = lambda v: np.argsort(np.argsort(v))  # noqa: E731
+    info.update({"n": len(keys), "held_all": int(ok.sum()), "pareto": int(par.sum()),
+                 "spearman_kin_ramp": float(np.corrcoef(rank(kin[ok]), rank(ramp[ok]))[0, 1]),
+                 "spearman_smin_ramp": float(np.corrcoef(rank(smin[ok]), rank(ramp[ok]))[0, 1]),
+                 "spearman_smin_rmse": float(np.corrcoef(rank(smin[ok]), rank(rmse[ok]))[0, 1]),
+                 "ramp_median": float(np.median(ramp[ok])), "rmse_median": float(np.nanmedian(rmse[ok])),
+                 "pareto_layouts": [list(np.round(keys[i], 1)) for i in np.flatnonzero(par)][:12]})
+    return info
 
 
 if __name__ == "__main__":

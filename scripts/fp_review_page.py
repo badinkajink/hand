@@ -79,6 +79,19 @@ def img(path, caption):
             f'<figcaption>Figure {FIG[0]}. {caption}</figcaption></figure>')
 
 
+FILM = [0]
+
+
+def film(path, caption):
+    if not Path(path).exists():
+        return ""
+    FILM[0] += 1
+    poster = Path(path).with_suffix(".jpg")
+    pa = f' poster="{data_uri(poster, "image/jpeg")}"' if poster.exists() else ""
+    return (f'<figure><video controls muted loop playsinline preload="metadata"{pa} '
+            f'src="{data_uri(path, "video/mp4")}"></video><figcaption>Film {FILM[0]}. {caption}</figcaption></figure>')
+
+
 def table(head, body, caption, num_from=1):
     TAB[0] += 1
     h = "".join(f'<th class="{"n" if i >= num_from else ""}">{c}</th>' for i, c in enumerate(head))
@@ -263,7 +276,7 @@ planner is a kinematic HOM controller with every finger held in contact.</p>
 starting pose and that reaching one is hard. The FP paper supplies poses by design and lists loading a tool into its
 pose as future work, which is what HOM's pinch brake and pusher do.</p>
 <p>For design, this means a foundational pose can be the starting state of a HOM-controlled task, and the HOM
-controller can be the evaluation that follows it. Section 7 asks whether the two halves must be scored together or can be scored one after the other.</p>"""
+controller can be the evaluation that follows it. Section SEC[separate] asks whether the two halves must be scored together or can be scored one after the other.</p>"""
     return t
 
 
@@ -318,7 +331,7 @@ furthest turn at 1.11 r + 31.3 mm, where r is the cylinder's radius.</p>
 grasp search. The layouts are explored by an RRT, and each layout is brought into the task's pose by an SQP. The project has
 one SQP piece already. In the Drake port a joint layout and posture problem was solved with SNOPT, an SQP solver. Six gantry
 offsets and nine finger angles reached three fingertip targets in 1.15 ms, with 3.66 mm of clearance (page
-<code>20261001-drake_sr2_planning</code>). Section 5 runs the whole pipeline on the SR2 hand.</p>"""
+<code>20261001-drake_sr2_planning</code>). Section SEC[toy] runs the whole pipeline on the SR2 hand.</p>"""
     return t
 
 
@@ -383,21 +396,195 @@ candidates on the pinch and <<t6>> % on the tripod.</p>""",
     return t
 
 
+def rank(v):
+    return np.argsort(np.argsort(np.asarray(v, float)))
+
+
+def sp(a, b):
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    ok = np.isfinite(a) & np.isfinite(b)
+    return float(np.corrcoef(rank(a[ok]), rank(b[ok]))[0, 1]) if ok.sum() > 2 else float("nan")
+
+
+def gpu_validation():
+    """CPU (fp_hom_check.py, rows/hom2d_shard*) against GPU (hom_gpu.py, rows/hom2d_gpu_*) on the 2-D layouts."""
+    cpu = {}
+    for q in sorted(ROWS.glob("hom2d_shard*.jsonl")):
+        for r in FF.load(q.stem):
+            if r.get("status") == "ok":
+                cpu[(r["x_sep_mm"], r["y_sep_mm"], r["task"], r["seed"])] = r
+    out = {}
+    for task, key in (("twist", "ramp_three_pads_max_deg"), ("roll", "w_rmse_ratio")):
+        gpu = load(f"hom2d_gpu_{task}")
+        pairs = [(cpu.get((g["x_sep_mm"], g["y_sep_mm"], task, g["seed"])), g) for g in gpu]
+        pairs = [(c, g) for c, g in pairs if c is not None]
+        if not pairs:
+            continue
+        agree = float(np.mean([bool(c["held"]) == bool(g["held"]) for c, g in pairs]))
+        both = [(c, g) for c, g in pairs if c["held"] and g["held"]]
+        a = [c.get(key) or 0.0 for c, g in both]
+        b = [g.get(key) or 0.0 for c, g in both]
+        lay = {}
+        for c, g in both:
+            lay.setdefault((g["x_sep_mm"], g["y_sep_mm"]), []).append((c.get(key) or 0.0, g.get(key) or 0.0))
+        la = [np.mean([x for x, _ in v]) for v in lay.values()]
+        lb = [np.mean([y for _, y in v]) for v in lay.values()]
+        tim = load(f"hom2d_gpu_{task}_timing")
+        out[task] = {"n": len(pairs), "held_cpu": sum(bool(c["held"]) for c, _ in pairs),
+                     "held_gpu": sum(bool(g["held"]) for _, g in pairs), "agree": agree, "key": key,
+                     "sp_roll": sp(a, b), "sp_lay": sp(la, lb), "mad": float(np.median(np.abs(np.subtract(a, b)))),
+                     "ms": (1000 * sum(t["run_s"] for t in tim) / sum(t["worlds"] for t in tim)) if tim else None,
+                     "build_s": sum(t["build_s"] for t in tim) if tim else None,
+                     "run_s": sum(t["run_s"] for t in tim) if tim else None,
+                     "worlds": sum(t["worlds"] for t in tim) if tim else None}
+    cpu_wall = [r["wall_s"] for r in cpu.values() if r.get("wall_s")]
+    out["cpu_ms"] = 1000 * float(np.median(cpu_wall)) if cpu_wall else None
+    return out
+
+
+def dyn_set(name_tw, name_ro):
+    """Per layout: kinematic tripod metrics, the twist's ramp and the roll's error (medians over seeds), held in every
+    seed of both tasks."""
+    tw = {x["key"]: x for x in FF.load_hom(name_tw)}
+    ro = {x["key"]: x for x in FF.load_hom(name_ro)}
+    keys = sorted(set(tw) & set(ro))
+    if not keys:
+        return None
+    kin = np.array([tw[k]["kin"]["tmr_deg"] for k in keys])
+    smin = np.array([tw[k]["kin"]["smin_mm"] for k in keys])
+    ramp = np.array([tw[k]["ramp"] for k in keys])
+    rmse = np.array([ro[k]["rmse"] for k in keys])
+    ok = np.array([tw[k]["held"] >= 1.0 and ro[k]["held"] >= 1.0 for k in keys])
+    rows_tw = load(name_tw)
+    return {"n": len(keys), "runs": len(rows_tw) + len(load(name_ro)), "ok": int(ok.sum()),
+            "held_tw": float(np.mean([tw[k]["held"] >= 1.0 for k in keys])),
+            "held_ro": float(np.mean([ro[k]["held"] >= 1.0 for k in keys])),
+            "ramp_all": float(np.median([tw[k]["ramp"] for k in keys])),
+            "rmse_tw": float(np.nanmedian([tw[k]["rmse"] for k in keys])),
+            "ramp_med": float(np.median(ramp[ok])) if ok.any() else float("nan"),
+            "rmse_med": float(np.nanmedian(rmse[ok])) if ok.any() else float("nan"),
+            "sp_kin_ramp": sp(kin, ramp), "sp_smin_rmse": sp(smin[ok], rmse[ok]),
+            "drop_tw": int(sum(tw[k]["held"] < 1.0 for k in keys))}
+
+
+def sec_gpu(N):
+    V = N["val"]
+    tw, ro = V.get("twist"), V.get("roll")
+    if not tw or not ro:
+        return "<p>GPU_PENDING</p>"
+    big = {"wb": "?", "mtb": "?", "mrb": "?", "gpu": "GPU"}
+    for task, key in (("twist", "mtb"), ("roll", "mrb")):
+        tim = [t_ for t_ in load(f"hom6d_gpu_{task}_timing") if t_["worlds"] >= 1000]
+        if tim:
+            big[key] = f"{1000 * sum(t_['run_s'] for t_ in tim) / sum(t_['worlds'] for t_ in tim):.0f}"
+            big["wb"] = f"{max(t_['worlds'] for t_ in tim):,}"
+            big["gpu"] = tim[0].get("gpu", "GPU").replace("NVIDIA ", "")
+    t = fill(r"""<p>A batched version of the HOM controller runs the roll and the twist on MuJoCo-Warp, at <<mt>> ms per
+twist rollout and <<mr>> ms per roll rollout, against about <<mc>> s on one CPU core (<code>scripts/hom_gpu.py</code>). On
+the <<nt>> rollouts of each task in the 2-D case it agrees with the CPU runner. The held outcome matches in <<at>> % of
+twist rollouts and <<ar>> % of roll rollouts. The twist's ramp on three pads ranks the layouts the same (Spearman
+<<st>>), within a median <<dt>> deg per rollout.</p>
+<p>At <<wb>> worlds per batch, on the Sobol layouts below, a twist rollout takes <<mtb>> ms and a roll rollout
+<<mrb>> ms on one <<gpu>>.</p>
+<p>Three facts make the batch possible:</p>
+<ul>
+<li>The compiled models of two layouts differ only in the positions of the three mount bodies; every other field
+matches. One model therefore serves every layout, with one row of body positions per world. A world is one layout and
+one seed.</li>
+<li>MuJoCo-Warp computes the poses of geoms welded to the world once, when the data is made. The palm and the support
+post are therefore mocap bodies, whose positions are set per world; the post is moved away at the lift. A first
+version without this kept every world's fingers among the reference layout's mount blocks, and the joints sagged by up
+to 17 deg under a constant command.</li>
+<li>The controller is HOM's per-finger step written for all worlds at once in torch. Contact frames come from the centre
+of pressure, which a Warp kernel gathers from the pads' contacts, or from the analytic witness points of the rounded
+fingertip block and the sphere. Eq. (1) uses the joint axes and anchors. Eq. (2)'s bounded least squares is solved
+exactly by trying all 27 patterns of active joint-rate bounds. The filter runs at its minimum gain, as it does on the
+CPU in these tasks, and the servo offsets follow Eq. (7) of the HOM review.</li>
+</ul>
+<p>The physics differs from the CPU runner in float32 arithmetic, a solver tolerance of $10^{-6}$ with 20 iterations,
+and pads that collide only with the sphere.</p>""",
+             mt=f"{tw['ms']:.0f}" if tw["ms"] else "?", mr=f"{ro['ms']:.0f}" if ro["ms"] else "?",
+             mc=f"{V['cpu_ms'] / 1000:.1f}" if V.get("cpu_ms") else "?", nt=tw["n"],
+             at=f"{100 * tw['agree']:.1f}", ar=f"{100 * ro['agree']:.1f}", st=f"{tw['sp_roll']:.3f}",
+             dt=f"{tw['mad']:.2f}", **big)
+    body = []
+    for task, x in (("Twist: ramp (deg)", tw), ("Roll: RMSE/step", ro)):
+        body.append([task, f"{x['held_cpu']} / {x['held_gpu']}", f"{100 * x['agree']:.1f}", f"{x['sp_roll']:.3f}",
+                     f"{x['sp_lay']:.3f}", f"{x['mad']:.3g}", f"{x['ms']:.0f}" if x["ms"] else ""])
+    t += table(["Task: score", "Held,<br>CPU / GPU", "Same<br>outcome (%)", "Spearman,<br>rollouts",
+                "Spearman,<br>layouts", "Median<br>difference", "GPU ms<br>per rollout"], body,
+               f"The GPU evaluator against the CPU runner on the same 212 symmetric tripods, three seeds per task "
+               f"({tw['n']} rollouts each). Spearman correlations of the score over the rollouts that both held and over "
+               "the layouts' means. Rows <code>hom2d_shard*.jsonl</code> (CPU) and <code>hom2d_gpu_*.jsonl</code> (GPU).",
+               num_from=1)
+    return t
+
+
 def sec_check(N):
-    lay = check_stats(N["check"])
-    if not lay:
-        return "<p>CHECK_PENDING</p>"
-    tmr = [x["tmr"] for x in lay]
-    ramp = [x["ramp"] for x in lay]
-    t = N["check_text"]
-    body = [[f"{x['x']:.1f}", f"{x['y']:.1f}", f"{x['tmr']:.0f}", f"{x['mft']:.0f}", f"{x['smin']:.1f}",
-             f"{x['held']}/{x['n']}", f"{x['ramp']:.0f}", "" if x["rmse"] is None else f"{x['rmse']:.2f}"]
-            for x in sorted(lay, key=lambda x: x["tmr"])]
-    t += table(["$x_{sep}$<br>(mm)", "$y_{sep}$<br>(mm)", "Range<br>(deg)", "Torque<br>(mN m)", "Pad s.v.<br>(mm/rad)",
-                "Held", "Ramp, 3 pads<br>(deg)", "RMSE<br>/step"], body,
-               "The tripod's kinematic metrics (rotation range, joint torque, smallest pad singular value) against the "
-               "HOM twist of a 40 mm sphere on the same layouts: held runs of three seeds, and the medians of the ramp "
-               "on three pads and of the velocity RMSE per step. Rows in <code>rows/hom_twist_check.jsonl</code>.", num_from=0)
+    d2, r6, s6 = N.get("dyn2d"), N.get("dynrrt"), N.get("dynsob")
+    t = fill(r"""<p>The toy's scores are kinematic, and the HOM tasks are dynamic. Run on every layout, HOM ranks them
+differently from the kinematic rotation range. The first check, on the CPU, ran the twist on <<nc>> symmetric tripods
+from the 2-D case (<code>scripts/fp_hom_check.py</code>), <<nr>> of which had a grasp. It gave a Spearman correlation
+of <<s1>> between the kinematic range and the twist's ramp on three pads. The GPU evaluator then ran the twist and the
+roll on every 2-D layout and on both six-coordinate populations.</p>""",
+             nc=len({(r["x_sep_mm"], r["y_sep_mm"]) for r in load("hom_twist_check")}),
+             nr=len(check_stats(N["check"])), s1=f"{N['sp_tmr']:.2f}")
+    if d2:
+        t += fill(r"""<p><b>The 2-D case</b> (Figure <<fg>>). <<n>> of the 364 layouts have an equator grasp under the
+task study's rule. On them the kinematic rotation range and the twist's ramp are correlated at Spearman <<sp>>, weakly and
+the wrong way round. The layouts with the largest kinematic range, a wide thumb and a close pair, are where the
+twist drops the sphere. The twist's ramp peaks on a band of wider pairs instead. The roll is held almost everywhere.</p>""",
+                  n=d2["n"], sp=f"{d2['sp_kin_ramp']:.2f}", fg=FIG[0] + 1)
+        t += img(MEDIA / "20261029-hom_landscape_2d.png",
+                 "The 2-D case under HOM on the GPU, every symmetric tripod with an equator grasp, three seeds each. "
+                 "Left: the tripod's kinematic rotation range from the toy. Middle: the twist's ramp on three pads "
+                 "(median over seeds). Right: the roll's velocity RMSE per step. Crosses mark layouts where the twist "
+                 "dropped the sphere in two seeds or more. Colours clipped at the 5th and 95th percentiles. "
+                 "<code>scripts/fp_review_figures.py dyn2d</code>.")
+        fj = ROWS / "film_two_layouts.json"
+        if fj.exists():
+            fi = json.loads(fj.read_text())
+            b, w = fi["best"], fi["dropped"]
+            t += film(MEDIA / "20261029-hom_twist_two_layouts.mp4", fill(
+                "The HOM twist of the 40 mm sphere on two layouts of the 2-D case, CPU runner, seed 0. Left: the layout "
+                "whose twist went furthest on three pads in every seed (x_sep <<bx>> mm, y_sep <<by>> mm; kinematic "
+                "range <<bk>> deg). Right: the layout with the largest kinematic range among those that dropped the "
+                "sphere (x_sep <<wx>> mm, y_sep <<wy>> mm; kinematic range <<wk>> deg). <code>scripts/fp_hom_film.py</code>.",
+                bx=f"{b['x_sep_mm']:.0f}", by=f"{b['y_sep_mm']:.0f}", bk=f"{b['kin_tmr_deg']:.0f}",
+                wx=f"{w['x_sep_mm']:.0f}", wy=f"{w['y_sep_mm']:.0f}", wk=f"{w['kin_tmr_deg']:.0f}"))
+    rows = []
+    for name, x in (("2-D, equator grasp", d2), ("6-D RRT, foundational pose", r6),
+                    ("6-D Sobol, foundational pose", s6)):
+        if x:
+            rows.append([name, f"{x['n']:,}", f"{100 * x['held_tw']:.0f}", f"{100 * x['held_ro']:.0f}",
+                         f"{x['ramp_all']:.0f}", f"{x['rmse_tw']:.2f}", f"{x['rmse_med']:.2f}",
+                         f"{x['sp_kin_ramp']:.2f}", f"{x['sp_smin_rmse']:.2f}"])
+    if rows:
+        nr = sum(x["runs"] for x in (d2, r6, s6) if x)
+        t += table(["Layouts and<br>starting grasp", "Layouts", "Twist<br>held (%)", "Roll<br>held (%)",
+                    "Twist<br>ramp (deg)", "Twist<br>RMSE", "Roll<br>RMSE", "Range vs<br>ramp", "Pad s.v. vs<br>roll RMSE"],
+                   rows,
+                   f"HOM's twist and roll on the GPU, three seeds per layout and task ({nr:,} rollouts), against the "
+                   "toy's kinematic tripod metrics. Held: the share of layouts held in all three seeds. Ramp, twist "
+                   "RMSE and the range-ramp correlation: over all layouts. Roll RMSE and its correlation with the pads' "
+                   "smallest singular value: over the layouts held in every run of both tasks.", num_from=1)
+    if s6 and r6:
+        t += fill(r"""<p><b>The six-coordinate layouts</b> start from the foundational pose that the toy's SQP solved for
+each, the most interior tripod pose. From that start the twist goes further and tracks better than from the task
+study's equator grasp: a median ramp of <<rs>> deg on the Sobol layouts against <<r2>> deg in the 2-D case. The roll
+does worse. It held in every seed on <<hs>> % of the Sobol layouts, against <<h2>> % in the 2-D case. One pose
+therefore does not serve both tasks; in the paper too, each task has its own foundational pose. The kinematic range
+ranks the twist no better than in 2-D (Spearman <<ss>> on the Sobol layouts). The pads' smallest singular value ranks
+the roll's error (<<sm>>).</p>""",
+                  rs=f"{s6['ramp_all']:.0f}", r2=f"{d2['ramp_all']:.0f}" if d2 else "?",
+                  hs=f"{100 * s6['held_ro']:.0f}", h2=f"{100 * d2['held_ro']:.0f}" if d2 else "?",
+                  ss=f"{s6['sp_kin_ramp']:.2f}", sm=f"{s6['sp_smin_rmse']:.2f}")
+        if (MEDIA / "20261029-hom_landscape_6d.png").exists():
+            t += img(MEDIA / "20261029-hom_landscape_6d.png",
+                     "The Sobol layouts under HOM from their foundational poses. Left: the twist's ramp on three pads "
+                     "against the kinematic rotation range; grey where the twist dropped the sphere in a seed. Middle: the dynamic Pareto front of the twist's ramp and the "
+                     "roll's error, over the layouts held in every run. Right: the t-SNE map of the Sobol layouts that "
+                     "reach both poses, coloured by the twist's ramp. <code>scripts/fp_review_figures.py dyn6d</code>.")
     return t
 
 
@@ -428,14 +615,18 @@ search and keeps the design scores comparable.</p>
 <p>A cascade remains useful for cost alone: kinematic poses in milliseconds, dynamic rollouts in seconds, hardware in
 hours. A cascade is safe when each early test is a necessary condition for the later ones. Reaching the foundational
 pose is necessary by construction, because the mechanism must pass through it. A kinematic score is not necessary
-for a good dynamic score; it can only rank. On the twist, the rotation range did not rank (Spearman <<s1>>, Section 6).
-The dynamic rollout therefore has to stay in the loop, and at about 2 s per run it can.</p>"""
-    return fill(t, s1=f"{N['sp_tmr']:.2f}")
+for a good dynamic score; it can only rank. On the twist, the rotation range ranked the layouts weakly the wrong
+way round (Spearman <<s1>> over the 2-D case, Section SEC[check]). The dynamic rollout therefore has to stay in the loop, and at
+about <<ms>> ms per run on the GPU it can.</p>"""
+    d2 = N.get("dyn2d") or {}
+    ms = (N.get("val", {}).get("twist") or {}).get("ms")
+    return fill(t, s1=f"{d2.get('sp_kin_ramp', float('nan')):.2f}", ms=f"{ms:.0f}" if ms else "?")
 
 
 def sec_plan(N):
     r6 = N["rrt6d"]
     pc = r6.get("seconds", 582.0) / max(r6.get("calls", 1), 1)
+    ms_gpu = (N.get("val", {}).get("twist") or {}).get("ms") or 30.0
     rows = [
         ["0. Poses", "Write the HOM tasks as foundational poses: pin-push and press on 16 and 25 mm cylinders, roll and "
          "twist on a 40 mm sphere, the screwdriver's pinch brake and wield", "pose definitions in "
@@ -446,13 +637,14 @@ def sec_plan(N):
         ["2. Kinematic scores", "rotation range, joint torque against the SCS0009's 0.18 N m stall, pad conditioning; "
          "HOM's Eq. (2) along each task's reference twist without dynamics, which gives the paper's sliding speed",
          "the rows of stage 1", "1-2 h on one core", ""],
-        ["3. HOM rollouts", "the four tasks in MuJoCo on the servo plant with sphere pads, three seeds, two drive "
-         "forces", "the 2,500 Sobol layouts that reach every pose", "about 2 s per rollout: "
-         "2,500 x 4 x 3 x 2 = 60,000 runs, 33 CPU h, 3 h on 12 cores", "scores that do not repeat across seeds: rank "
-         "correlation between seed halves below 0.8"],
+        ["3. HOM rollouts", "the four tasks on the GPU evaluator (twist and roll run now; pin-push and press to port), "
+         "three seeds, two drive forces", "the Sobol layouts that reach every pose (4,680 of 8,192 here)",
+         f"about {ms_gpu:.0f} ms per rollout: 4,680 x 4 x 3 x 2 = 112,320 runs, about {112320 * ms_gpu / 3.6e6:.1f} "
+         "h of GPU", "scores that do not repeat across seeds: rank correlation between seed halves below 0.8"],
         ["4. Sensing", "rerun the dynamic Pareto set with the measured fingertip errors and calibration errors "
-         "(variants <code>tip</code>, <code>cal_tipfl</code> of the HOM review)", "about 500 layouts",
-         "6,000 runs, 3.3 CPU h", "the Pareto set changes when sensing is added"],
+         "(variants <code>tip</code>, <code>cal_tipfl</code> of the HOM review), ported to the GPU evaluator",
+         "about 500 layouts", f"6,000 runs, about {6000 * ms_gpu / 60000:.0f} min of GPU",
+         "the Pareto set changes when sensing is added"],
         ["5. Map", "Pareto front over the dynamic scores; t-SNE and PCA of the Sobol-sampled designs, beside a "
          "uniform null", "the scores of stages 3-4", "minutes", "clusters that the uniform null also shows"],
         ["6. Bench", "three to five layouts from different clusters and the front, set on the gantries; the pin-push "
@@ -460,41 +652,46 @@ def sec_plan(N):
          "against simulated ranking, Spearman below 0.5"],
     ]
     t = r"""<p>The paper's dense front and t-SNE map can be rebuilt for the SR2 hand at moderate cost, because the
-expensive part, the controller, is fixed and runs in seconds. Table 3 lists the stages. Each has its input, its cost on
+expensive part, the controller, is fixed and runs in tens of milliseconds on the GPU. Table SEC_TAB_PLAN lists the
+stages. Each has its input, its cost on
 this workstation and the result that would stop the plan.</p>"""
+    t = t.replace("SEC_TAB_PLAN", str(TAB[0] + 1))
     t += table(["Stage", "Work", "Input", "Cost", "Stops the plan"], rows,
                "A plan for a Pareto front and t-SNE map of SR2 layouts under HOM control. Costs from this page's timings "
-               "(fp_sr2_toy.py, fp_hom_check.py) and the HOM review's sensing grid.", num_from=9)
+               "(fp_sr2_toy.py on the CPU, hom_gpu.py on the GPU).", num_from=9)
     t += r"""<p>Three choices differ from the paper and follow from the toy. Sobol replaces the RRT, since on our
-gantry box most layouts reach the poses and the RRT's advantage disappears (Section 5). A Sobol sample is also the
+gantry box most layouts reach the poses and the RRT's advantage disappears (Section SEC[toy]). A Sobol sample is also the
 unbiased population that a t-SNE map needs; an RRT's branches print their own structure. The scores come from dynamic rollouts of the controller that will run on the bench. The
-kinematic stage only gates reachability, since its rotation range did not rank the twist (Section 6). Finally,
+kinematic stage only gates reachability, since its rotation range did not rank the twist (Section SEC[check]). Finally,
 sensing enters as a robustness score on the front, the variants that the HOM review page defines.</p>"""
     return t
 
 
-def sec_limits():
-    return """<ul>
+def sec_limits(N):
+    V = N.get("val", {})
+    ag = min((V.get(k) or {}).get("agree", float("nan")) for k in ("twist", "roll"))
+    return fill("""<ul>
 <li>The toy's two poses are grasps of two HOM tasks. The screwdriver's load and wield, the tasks of both papers, are
 not posed yet.</li>
-<li>Its metrics are kinematic: rotation with fixed contacts, static joint torque, conditioning. Friction cones, servo dynamics and the pads' compliance enter only in Section 6's dynamic
-check.</li>
+<li>The GPU evaluator runs the roll and the twist. The pin-push and the press, whose controller adds the pinch frame and
+the pusher, still run on the CPU only.</li>
+<li>The GPU physics uses float32, a looser solver tolerance and pads that meet only the sphere. Against the CPU runner it
+gives the same held outcome in <<ag>> % or more of the 2-D rollouts, but a single rollout's score can differ.</li>
 <li>The layout space is the gantries' six coordinates. The paper's template also varies link lengths and the thumb's
 rotation, which the SR2 hand cannot change without new parts.</li>
-<li>The dynamic check covers one task on symmetric tripods only.</li>
-</ul>"""
+</ul>""", ag=f"{100 * ag:.1f}")
 
 
 def sec_future():
     return """<ol>
-<li>Pose the screwdriver's pinch brake and wield (the tasks of both papers) as foundational poses in
-<code>fp_sr2_toy.py</code>, and check that the brake's angle law holds on the toy's pinch candidates.</li>
-<li>Run the dynamic check of Section 6 on the pin-push over the 6-D candidates. The plan's premise fails if the
-Spearman correlation between kinematic and dynamic scores falls below 0.5.</li>
-<li>Stage 1 of the plan with the 10-28 finger variants as a seventh coordinate, once their CAD models exist in the
-kinematics module.</li>
-<li>Compare the t-SNE maps of Sobol and RRT candidates against a uniform null with the neighbour-preservation test of
-<code>scripts/paper_morphology_diversity.py</code>.</li>
+<li>Port the pin-push and the press to <code>scripts/hom_gpu.py</code> (the pinch frame of Eq. (3) and the pusher's
+object twist), and validate them against <code>scripts/hom_tasks.py</code> as the twist and roll were: the same held
+outcome in at least 99 % of rollouts.</li>
+<li>Port the sensing variants of the HOM review (fingertip noise, calibration errors, the force loop) to the GPU
+evaluator, and rerun the dynamic Pareto set with them (stage 4 of the plan).</li>
+<li>Pose the screwdriver's pinch brake and wield as foundational poses in <code>fp_sr2_toy.py</code>.</li>
+<li>Compare the t-SNE map of the Sobol layouts' dynamic scores against a uniform null with the neighbour-preservation
+test of <code>scripts/paper_morphology_diversity.py</code>.</li>
 </ol>"""
 
 
@@ -515,6 +712,9 @@ def sec_files():
 
 # ------------------------------------------------------------------------------------------------ assemble
 def assemble(sections, title, h1, eyebrow, lede, byline, summary):
+    num = {sid: k for k, (sid, _hd, _b) in enumerate(sections, 1)}
+    sections = [(sid, hd, re.sub(r"SEC\[(\w+)\]", lambda m_: str(num[m_.group(1)]), body)) for sid, hd, body in sections]
+    lede = re.sub(r"SEC\[(\w+)\]", lambda m_: str(num[m_.group(1)]), lede)
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{body}</section>'
                      for k, (sid, hd, body) in enumerate(sections, 1))
@@ -587,6 +787,10 @@ the maps, have mean scores of <<m0>> to <<m1>> and differ visibly.</p>""",
     N["sp_tmr"] = spearman([x["tmr"] for x in lay], [x["ramp"] for x in lay])
     N["sp_smin_rmse"] = spearman([x["smin"] for x in held], [x["rmse"] for x in held])
     N["sp_smin_ramp"] = spearman([x["smin"] for x in lay], [x["ramp"] for x in lay])
+    N["val"] = gpu_validation()
+    N["dyn2d"] = dyn_set("hom2d_gpu_twist", "hom2d_gpu_roll")
+    N["dynrrt"] = dyn_set("hom6d_rrt_gpu_twist", "hom6d_rrt_gpu_roll")
+    N["dynsob"] = dyn_set("hom6d_gpu_twist", "hom6d_gpu_roll")
     N["check_text"] = fill(r"""<p>The toy's scores are kinematic, and the HOM tasks are dynamic. Table 2 runs the HOM twist of a
 40 mm sphere on <<nl>> symmetric tripods from the 2-D case, chosen evenly by rank of the tripod's kinematic rotation
 range (<code>scripts/fp_hom_check.py</code>). The twist is the task study's: steps of 40 deg/s, then a 30 deg/s ramp,
@@ -613,34 +817,43 @@ the grasp, and for the twist that decides the outcome.</p>""",
         ("two", "The foundational pose and the HOM controller as one method", sec_two_papers()),
         ("ours", "How the project samples SR2 layouts", sec_ours(N)),
         ("toy", "The paper's pipeline on the SR2 hand: RRT, SQP, Pareto front and t-SNE", sec_toy(N)),
+        ("gpu", "HOM on the GPU: many layouts in one batch", sec_gpu(N)),
         ("check", "Kinematic scores against HOM rollouts on the same layouts", sec_check(N)),
         ("separate", "Grasp and in-hand control: one problem or two", sec_separate(N)),
         ("plan", "A plan for a Pareto front of SR2 layouts under HOM control", sec_plan(N)),
-        ("limits", "Limitations", sec_limits()),
+        ("limits", "Limitations", sec_limits(N)),
         ("future", "Future work", sec_future()),
         ("files", "References and files", sec_files()),
     ]
     byline = ("Review and simulation, 2026-10-29. Paper: arXiv 2409.14158v2 [1]. Hand: the CAD-model SR2 hand "
-              "(closed-form kinematics of <code>scripts/hand_object_scale_kin.py</code>; servo plant and 1 mm sphere "
-              "pads in the dynamic check). Builder: <code>scripts/fp_review_page.py</code>.")
+              "(closed-form kinematics of <code>scripts/hand_object_scale_kin.py</code>; the 1 N m servo plant and 1 mm "
+              "sphere pads in the HOM rollouts, on the CPU and on MuJoCo-Warp, <code>scripts/hom_gpu.py</code>). "
+              "Builder: <code>scripts/fp_review_page.py</code>.")
     rate6 = N["rrt6d"]["candidates"] / N["rrt6d"]["calls"]
     rates = N["sobol6d"]["cand"] / max(N["sobol6d"]["n"], 1)
     sec6 = N["rrt6d"]["seconds"] / N["rrt6d"]["calls"]
+    d2, s6 = N.get("dyn2d") or {}, N.get("dynsob") or {}
+    ms = (N.get("val", {}).get("twist") or {}).get("ms") or float("nan")
+    cpu_ms = N.get("val", {}).get("cpu_ms") or float("nan")
+    sob8 = json.loads((ROWS / "sobol8k_summary.json").read_text()) if (ROWS / "sobol8k_summary.json").exists() else {}
     lede = fill("""The foundational-pose paper [1] keeps a hand design if it can reach a few poses that tools are wielded
-from. It then scores how far a kinematic planner moves the tool from each pose; 10,785 of 100,480 sampled hands reached
-its three poses. The project samples SR2 layouts by a Sobol draw and screens grasps in dynamic simulation. With two HOM-task
-grasps as the poses, <<n6>> SR2 layouts were found by the paper's RRT and SQP at <<sc>> s each. Of the calls, <<r6>> %
-yielded a layout, against <<rs>> % for Sobol. In a t-SNE map these layouts form islands that follow the tree's
-branches; Sobol candidates form none.
-On <<nr>> layouts the kinematic rotation range did not rank the HOM twist (Spearman <<sp>>), so the controller has to
-stay in the loop. With HOM fixed, a Pareto front over dynamic rollouts of 2,500 layouts costs about 33 CPU-hours.""",
-                n6=f"{N['rrt6d']['candidates']:,}", sc=f"{sec6:.2f}", r6=f"{100 * rate6:.0f}", rs=f"{100 * rates:.0f}",
-                nr=len(check_stats(N["check"])), sp=f"{N['sp_tmr']:.2f}")
-    summary = fill("""On the SR2 hand the foundational-pose pipeline (RRT, SQP, Pareto front, t-SNE) found <<n6>> layouts at
-<<sc>> s each, but its t-SNE islands are the RRT's branches (Sobol candidates show none), and the kinematic rotation
-range did not rank the HOM twist on <<nr>> layouts (Spearman <<sp>>). With HOM fixed, a Pareto front over dynamic rollouts
-of 2,500 layouts costs about 33 CPU-hours.""", n6=f"{N['rrt6d']['candidates']:,}", sc=f"{sec6:.2f}",
-                   nr=len(check_stats(N["check"])), sp=f"{N['sp_tmr']:.2f}")
+from, then scores how far a kinematic planner moves the tool from each pose; 10,785 of 100,480 sampled hands reached
+its three poses. The project samples SR2 layouts by a Sobol draw and screens grasps in dynamic simulation. Run on the
+SR2 hand with two HOM-task grasps as the poses, the paper's SQP reaches both poses on <<sc>> of <<sn>> Sobol layouts,
+and t-SNE islands like the paper's appear only with its RRT sampler. A GPU version of the HOM controller then ran the twist
+and roll on every layout, at <<ms>> ms per rollout against <<cs>> s on a CPU core. The kinematic rotation range is
+weakly anti-correlated with the twist's ramp (Spearman <<sp>> over 212 layouts), and the layouts with the largest
+range drop the sphere. Grasp and control must therefore be scored together, and on the GPU they can be.""",
+                sc=f"{sob8.get('candidates', 0):,}", sn=f"{sob8.get('n', 0):,}", ms=f"{ms:.0f}", cs=f"{cpu_ms / 1000:.1f}",
+                sp=f"{d2.get('sp_kin_ramp', float('nan')):.2f}")
+    summary = fill("""On the SR2 hand the foundational-pose pipeline reaches both HOM-task poses on <<sc>> of <<sn>> Sobol
+layouts, and its t-SNE islands come from the RRT sampler. A GPU version of the HOM controller, validated against the CPU
+(same held outcome in <<ag>> % of rollouts), runs a rollout in <<ms>> ms; on it the kinematic rotation range was weakly
+anti-correlated with the twist (Spearman <<sp>> over 212 layouts), and the layouts with the largest range dropped the
+sphere.""",
+                   sc=f"{sob8.get('candidates', 0):,}", sn=f"{sob8.get('n', 0):,}", ms=f"{ms:.0f}",
+                   ag=f"{100 * (N.get('val', {}).get('twist') or {}).get('agree', float('nan')):.1f}",
+                   sp=f"{d2.get('sp_kin_ramp', float('nan')):.2f}")
     assemble(sections, "Foundational-pose hand design",
              "Foundational-pose hand design, the project's layout sampling, and a Pareto front for the SR2 hand",
              "Morphology and design search", lede, byline, summary)
