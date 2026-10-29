@@ -59,7 +59,12 @@ def sections(N, F, P, link, L):
     TT = {k: jl(V3D / f"20261029-tip_vs_tip_{k}_v3id2_v3id1.json") for k in FX}
     GR = {k: jl(V3D / f"20261029-gain_by_region_{k}.json") for k in FX}
     TE = jl(V3D / "20261029-top_edge_gp_v3id2.json")
+    # four magnets against five, v3 ID 2 against v2 ID 1 on each indenter's shared actions (feed line of 10-29 10:28), and
+    # v3 ID 1 against v2 ID 1 on the tall indenter (feed line of 10:29)
     G2 = jl(V3D / "20261029-four_vs_five_grid_v3id2.json")
+    F2 = dict(sphere=G2, rod=jl(V3D / "20261029-four_vs_five_rod_v3id2.json"),
+              tall=jl(V3D / "20261029-four_vs_five_tall_v3id2.json"))
+    TA = jl(V3D / "20261029-four_vs_five_tall_v3id1.json")
     C2, V2S, V2T, V2R, V3S = ("cb2t (10-25)", "v2 ID 1 sphere", "v2 ID 1 sphere + tall", "v2 ID 1 sphere + tall + rod",
                               "v3 ID 1 sphere so far")
     # rounded half up, as the coordinator quotes them (0.885 is 89 %)
@@ -75,6 +80,8 @@ def sections(N, F, P, link, L):
     g4, g5 = G["four_v3id1"], G["five_v2id1"]
     e4, e5 = g4["gp_direction"], g5["gp_direction"]
     ro4, ro5 = RO["four_v3id1"]["gp_direction"], RO["five_v2id1"]["gp_direction"]
+    ta4, ta5 = TA["four_v3id1"]["gp_direction"], TA["five_v2id1"]["gp_direction"]
+    RT = ((RO, "four_v3id1"), (RO, "five_v2id1"), (TA, "four_v3id1"), (TA, "five_v2id1"))
     acc = gp_hi + [TP["ID 3"]["own"]["over_1p5N"], TP["v2 ID 1"]["own"]["over_1p5N"]]
     n_hold = (sum(v["press_holds"] + v["turn_holds"] for v in N["sessions"].values()) + G["holds"]["v3"]
               + SL["four_v3id1"]["n_holds"] + tw4["n_holds"] + RO["holds"]["v3"] + RO["slides"]["four_v3id1"]["n_holds"]
@@ -83,6 +90,9 @@ def sections(N, F, P, link, L):
     t2 = {k: TT[k]["tips"]["v3 ID 2"]["gp_direction"] for k in FX}
     t1 = {k: TT[k]["tips"]["v3 ID 1"]["gp_direction"] for k in FX}
     tg = lambda k, t: TT[k]["tips"][t]["gain_uT_per_N"]["1-2"]  # noqa: E731
+    T5 = ("four_v3id2", "five_v2id1")
+    rt2 = lambda k: F2[k]["five_v2id1"]["gain_uT_per_N"]["1-2"] / F2[k]["four_v3id2"]["gain_uT_per_N"]["1-2"]  # noqa: E731
+    f2 = lambda k, t: F2[k][t]["gp_direction"]["all"]["loc_mm"]  # noqa: E731
     dloc, dfe = strict("gp_direction", "loc_mm"), strict("gp_direction", "force_rel_err", 100)
     bloc, bfe = strict("gp", "loc_mm"), strict("gp", "force_rel_err", 100)
 
@@ -99,7 +109,8 @@ def sections(N, F, P, link, L):
         f"low sphere, and within {ro4['all']['loc_mm']:.2f} and {ro5['all']['loc_mm']:.2f} mm on the rod. A second "
         f"four-magnet tip, v3 ID 2, matches v3 ID 1 on the presses both ran. On the sphere its signal per newton is "
         f"{tg('sphere', 'v3 ID 2'):.1f} against {tg('sphere', 'v3 ID 1'):.1f} µT/N, and on the rod both tips' contacts "
-        f"are placed within {max(t2['rod']['all']['loc_mm'], t1['rod']['all']['loc_mm']):.2f} mm. The tip end was first "
+        f"are placed within {max(t2['rod']['all']['loc_mm'], t1['rod']['all']['loc_mm']):.2f} mm. With five magnets the "
+        f"signal per newton is {rg([rt2(k) for k in FX])} times its own on all three indenters. The tip end was first "
         f"pressed on v3 ID 2, in a pass of {TE['pass_presses']} presses. With the pass's other presses in training, "
         f"they are placed within {TE['with_the_pass']['all']['loc_mm']:.2f} mm at the median, against "
         f"{TE['grid_only']['all']['loc_mm']:.2f} mm from the grid alone. Torsion is "
@@ -114,8 +125,10 @@ def sections(N, F, P, link, L):
         f"{rg(bfe, '{:.0f}').replace('–', '-')} %); four N52 magnets (v3 ID 1) give half the signal per newton "
         f"({g4['gain_uT_per_N']['1-2']:.1f} against {g5['gain_uT_per_N']['1-2']:.1f} uT/N) and the same calibrated "
         f"errors ({e4['all']['loc_mm']:.2f} and {e5['all']['loc_mm']:.2f} mm on the sphere, {ro4['all']['loc_mm']:.2f} and "
-        f"{ro5['all']['loc_mm']:.2f} mm on the rod); a second four-magnet tip, v3 ID 2, matches v3 ID 1 on the presses "
-        f"both ran ({tg('sphere', 'v3 ID 2'):.1f} against {tg('sphere', 'v3 ID 1'):.1f} uT/N; "
+        f"{ro5['all']['loc_mm']:.2f} mm on the rod, {ta4['all']['loc_mm']:.2f} and {ta5['all']['loc_mm']:.2f} mm on the tall "
+        "indenter); a second four-magnet tip, v3 ID 2, matches v3 ID 1 on the presses "
+        f"both ran ({tg('sphere', 'v3 ID 2'):.1f} against {tg('sphere', 'v3 ID 1'):.1f} uT/N; the five-magnet signal "
+        f"{rg([rt2(k) for k in FX]).replace('–', '-')} times its own on the three indenters; "
         f"{t2['sphere']['all']['loc_mm']:.2f} and {t1['sphere']['all']['loc_mm']:.2f} mm on the sphere, "
         f"{t2['rod']['all']['loc_mm']:.2f} and {t1['rod']['all']['loc_mm']:.2f} mm on the rod), and its tip end is placed "
         f"within {TE['with_the_pass']['all']['loc_mm']:.2f} mm with the pass's other presses in training "
@@ -775,26 +788,38 @@ def sections(N, F, P, link, L):
         "the other slides in training, the shear is estimated by the direction GP within "
         f"{RO['slides']['four_v3id1']['gp_direction_presses_and_other_slides']['shear_err_N']:.3f} N with four magnets "
         f"and {RO['slides']['five_v2id1']['gp_direction_presses_and_other_slides']['shear_err_N']:.3f} N with five.</p>"
-        + P.table(["Quantity", "Four magnets, v3 ID 1", "Five magnets, v2 ID 1"],
-                  [[f"Location error, {nm} (mm)", f"{ro4[k]['loc_mm']:.2f}", f"{ro5[k]['loc_mm']:.2f}"]
-                   for k, nm in (("all", "all holds"), ("0-1", "under 1 N"), ("1-2", "1 to 2 N"), ("2-3.5", "2 to 3.5 N"),
-                                 ("3.5-8", "3.5 to 8 N"))]
-                  + [["Force error (%)", f"{100 * ro4['all']['force_rel_err']:.1f}",
-                      f"{100 * ro5['all']['force_rel_err']:.1f}"]]
-                  + [[f"Signal per newton {nm} (µT/N)", f"{RO['four_v3id1']['gain_uT_per_N'][k]:.1f}",
-                      f"{RO['five_v2id1']['gain_uT_per_N'][k]:.1f}"] for k, nm in (("1-2", "at 1 to 2 N"), ("face", "on the face"))]
-                  + [["Record noise (µT)", f"{RO['four_v3id1']['noise_uT']:.2f}", f"{RO['five_v2id1']['noise_uT']:.2f}"],
-                     ["Noise-equivalent force at 1 to 2 N (mN)", f"{1000 * RO['four_v3id1']['nef_N']['1-2']:.0f}",
-                      f"{1000 * RO['five_v2id1']['nef_N']['1-2']:.0f}"],
+        "<p><b>Four against five on the tall indenter.</b> On the tall indenter v3 ID 1 and v2 ID 1 share "
+        f"{TA['actions']} press actions, with {TA['holds']['v3']} holds each. v3 ID 1's session ran on 2026-10-28 from "
+        "11:49 to 17:41, and v2 ID 1's in R29 on 10-27. Contacts are placed by the direction GP within "
+        f"{ta4['all']['loc_mm']:.2f} mm with four magnets and {ta5['all']['loc_mm']:.2f} mm with five (Table 12). On the "
+        f"low sphere the two tips gave {e4['all']['loc_mm']:.2f} and {e5['all']['loc_mm']:.2f} mm. The board changes by "
+        f"{TA['four_v3id1']['gain_uT_per_N']['1-2']:.1f} against {TA['five_v2id1']['gain_uT_per_N']['1-2']:.1f} µT/N at 1 "
+        "to 2 N. The noise-equivalent force is therefore "
+        f"{1000 * TA['four_v3id1']['nef_N']['1-2']:.0f} mN with four magnets and "
+        f"{1000 * TA['five_v2id1']['nef_N']['1-2']:.0f} mN with five.</p>"
+        + P.table(["Quantity", "Rod, four magnets", "Rod, five magnets", "Tall indenter, four magnets",
+                   "Tall indenter, five magnets"],
+                  [["Press actions"] + [str(d["actions"]) for d, _ in RT],
+                   ["Holds"] + [str(d["holds"]["v3" if t.startswith("four") else "v2"]) for d, t in RT]]
+                  + [[f"Location error, {nm} (mm)"] + [f"{d[t]['gp_direction'][k]['loc_mm']:.2f}" for d, t in RT]
+                     for k, nm in (("all", "all holds"), ("0-1", "under 1 N"), ("1-2", "1 to 2 N"), ("2-3.5", "2 to 3.5 N"),
+                                   ("3.5-8", "3.5 to 8 N"))]
+                  + [["Force error (%)"] + [f"{100 * d[t]['gp_direction']['all']['force_rel_err']:.1f}" for d, t in RT]]
+                  + [[f"Signal per newton {nm} (µT/N)"] + [f"{d[t]['gain_uT_per_N'][k]:.1f}" for d, t in RT]
+                     for k, nm in (("1-2", "at 1 to 2 N"), ("face", "on the face"))]
+                  + [["Record noise (µT)"] + [f"{d[t]['noise_uT']:.2f}" for d, t in RT],
+                     ["Noise-equivalent force at 1 to 2 N (mN)"] + [f"{1000 * d[t]['nef_N']['1-2']:.0f}" for d, t in RT],
                      ["Shear error on the slides (N)",
                       f"{RO['slides']['four_v3id1']['gp_direction_presses_and_other_slides']['shear_err_N']:.3f}",
-                      f"{RO['slides']['five_v2id1']['gp_direction_presses_and_other_slides']['shear_err_N']:.3f}"]],
-                  caption=f"Four N52 magnets against five on the rod: the {RO['actions']} press actions both tips ran, "
-                          f"{RO['holds']['v3']} holds each. Location and force errors are those of the direction GP under "
-                          "five folds grouped by action. The shear error is the median length of the error of the "
-                          f"estimated shear on the {RO['slides']['four_v3id1']['n_slides']} slides, with the presses and "
-                          "the other slides in training, one slide left out at a time. Rows in "
-                          + P.code(str((V3D / "20261028-four_vs_five_rod.json").relative_to(ROOT))) + " ("
+                      f"{RO['slides']['five_v2id1']['gp_direction_presses_and_other_slides']['shear_err_N']:.3f}", "–", "–"]],
+                  caption="Four N52 magnets (v3 ID 1) against five (v2 ID 1) on the rod and the tall indenter, on the "
+                          "press actions both tips ran there. Location and force errors are those of the direction GP "
+                          "under five folds grouped by action. The shear error is the median length of the error of the "
+                          f"estimated shear on the rod's {RO['slides']['four_v3id1']['n_slides']} slides, with the presses "
+                          "and the other slides in training, one slide left out at a time. No slides were compared on the "
+                          "tall indenter. Rows in "
+                          + P.code(str((V3D / "20261028-four_vs_five_rod.json").relative_to(ROOT))) + " and "
+                          + P.code("20261029-four_vs_five_tall_v3id1.json") + " beside it ("
                           + P.code("scripts/ur5_tip_calibration_four_vs_five.py") + ").", n=12)
         + "<p><b>Physical model of pad 05R4.</b> Pad 05R4's FE case and surface basis were built on 2026-10-28 on b_v2's "
         f"grid and depth, with the four magnets. On the same {FE['actions']} grid actions, the magnets' strength, the "
@@ -899,6 +924,45 @@ def sections(N, F, P, link, L):
                           + ", its rod and tall files, and " + P.code("data/20261029-gain_by_region_*.json") + " beside them ("
                           + P.code("scripts/ur5_tip_calibration_tip_vs_tip.py") + ", "
                           + P.code("scripts/ur5_tip_calibration_gain_by_region.py") + ").", n=14)
+        + "<p><b>Four against five on v3 ID 2.</b> v3 ID 2's presses were also compared with v2 ID 1's of the same "
+        f"actions, on each indenter (Table 15). The shared actions are {F2['sphere']['actions']} on the sphere, "
+        f"{F2['rod']['actions']} on the rod and {F2['tall']['actions']} on the tall indenter. At 1 to 2 N the signal per "
+        f"newton with five magnets is {rt2('sphere'):.2f} times v3 ID 2's on the sphere. It is {rt2('rod'):.2f} times "
+        f"v3 ID 2's on the rod and {rt2('tall'):.2f} times on the tall indenter. "
+        f"On v3 ID 1 the ratio on the sphere was {gn('1-2')[1] / gn('1-2')[0]:.2f}, and the readout model predicts 1.8. "
+        f"The record noise is {rg([F2[k]['four_v3id2']['noise_uT'] for k in FX])} µT with four magnets and "
+        f"{rg([F2[k]['five_v2id1']['noise_uT'] for k in FX])} µT with five. The noise-equivalent force at 1 to 2 N is "
+        f"therefore {rg([1000 * F2[k]['four_v3id2']['nef_N']['1-2'] for k in FX], '{:.0f}')} mN with four magnets and "
+        f"{rg([1000 * F2[k]['five_v2id1']['nef_N']['1-2'] for k in FX], '{:.0f}')} mN with five. The direction GP errs "
+        f"by {f2('sphere', 'four_v3id2'):.2f} and {f2('sphere', 'five_v2id1'):.2f} mm on the sphere. On the rod it errs by "
+        f"{f2('rod', 'four_v3id2'):.2f} and {f2('rod', 'five_v2id1'):.2f} mm, as on v3 ID 1, and on the tall indenter by "
+        f"{f2('tall', 'four_v3id2'):.2f} and {f2('tall', 'five_v2id1'):.2f} mm. The analysis can also move the sphere "
+        "along the approach by the drift of the reference presses' onset, interpolated in time ("
+        + P.code("--ref-drift") + " of " + P.code("scripts/ur5_tip_calibration_analysis.py") + "). On v3 ID 2's sphere "
+        "session this moves the contact points by 0.014 mm at the median and the depths by up to 0.11 mm. The direction "
+        "GP's error stays at 0.29 mm ("
+        + P.code("docs/experiments/20261027-v3_tip_calibration_and_crosstalk/feed.jsonl") + ", 10:28).</p>"
+        + P.table(["Quantity", "Sphere, v3 ID 2", "Sphere, v2 ID 1", "Rod, v3 ID 2", "Rod, v2 ID 1",
+                   "Tall indenter, v3 ID 2", "Tall indenter, v2 ID 1"],
+                  [["Press actions"] + [str(F2[k]["actions"]) for k in FX for t in T5],
+                   ["Holds"] + [str(F2[k]["holds"]["v3" if t.startswith("four") else "v2"]) for k in FX for t in T5]]
+                  + [[f"Location error, {nm} (mm)"] + [f"{F2[k][t]['gp_direction'][b]['loc_mm']:.2f}" for k in FX for t in T5]
+                     for b, nm in (("all", "all holds"), ("0-1", "under 1 N"), ("1-2", "1 to 2 N"), ("2-3.5", "2 to 3.5 N"),
+                                   ("3.5-8", "3.5 to 8 N"))]
+                  + [["Force error (%)"] + [f"{100 * F2[k][t]['gp_direction']['all']['force_rel_err']:.1f}"
+                                            for k in FX for t in T5],
+                     ["Signal per newton at 1 to 2 N (µT/N)"] + [f"{F2[k][t]['gain_uT_per_N']['1-2']:.1f}"
+                                                                 for k in FX for t in T5],
+                     ["Record noise (µT)"] + [f"{F2[k][t]['noise_uT']:.2f}" for k in FX for t in T5],
+                     ["Noise-equivalent force at 1 to 2 N (mN)"] + [f"{1000 * F2[k][t]['nef_N']['1-2']:.0f}"
+                                                                    for k in FX for t in T5]],
+                  caption="Four N52 magnets (v3 ID 2) against five (v2 ID 1) on the press actions that both tips ran "
+                          "on each indenter. Location and force errors are those of the direction GP under five folds "
+                          "grouped by action: medians over the holds. The noise-equivalent force is the record noise "
+                          "divided by the signal per newton. Rows in "
+                          + P.code(str((V3D / "20261029-four_vs_five_grid_v3id2.json").relative_to(ROOT)))
+                          + " and its rod and tall files (" + P.code("scripts/ur5_tip_calibration_four_vs_five.py")
+                          + ").", n=15)
         + "<p><b>Tip end.</b> v3 ID 2 ran the top-edge pass on the low sphere from 19:21 to 19:30 on 2026-10-28, with the "
         "owner watching. The pass pressed the tip end nine times at 0.25 to 2 N, and an edge once to 3 N. A reference "
         "press at the face centre came before the pass and another after it. On the earlier tips no press target lay within 1.5 mm of the "
