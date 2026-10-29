@@ -53,6 +53,13 @@ def sections(N, F, P, link, L):
     RO = jl(V3D / "20261028-four_vs_five_rod.json")
     # press coverage of the pad by region (owner, 10-28, on the density of coverage; scripts/ur5_tip_calibration_coverage.py)
     CV = jl(V3D / "20261028-press_coverage_by_region.json")
+    # v3 ID 2, the second four-magnet tip, against v3 ID 1 on the press actions both ran on each indenter, and v3 ID 2's
+    # top-edge pass on the low sphere (feed lines of 2026-10-29 09:46 and 10:00)
+    FX = ("sphere", "rod", "tall")
+    TT = {k: jl(V3D / f"20261029-tip_vs_tip_{k}_v3id2_v3id1.json") for k in FX}
+    GR = {k: jl(V3D / f"20261029-gain_by_region_{k}.json") for k in FX}
+    TE = jl(V3D / "20261029-top_edge_gp_v3id2.json")
+    G2 = jl(V3D / "20261029-four_vs_five_grid_v3id2.json")
     C2, V2S, V2T, V2R, V3S = ("cb2t (10-25)", "v2 ID 1 sphere", "v2 ID 1 sphere + tall", "v2 ID 1 sphere + tall + rod",
                               "v3 ID 1 sphere so far")
     # rounded half up, as the coordinator quotes them (0.885 is 89 %)
@@ -70,13 +77,18 @@ def sections(N, F, P, link, L):
     ro4, ro5 = RO["four_v3id1"]["gp_direction"], RO["five_v2id1"]["gp_direction"]
     acc = gp_hi + [TP["ID 3"]["own"]["over_1p5N"], TP["v2 ID 1"]["own"]["over_1p5N"]]
     n_hold = (sum(v["press_holds"] + v["turn_holds"] for v in N["sessions"].values()) + G["holds"]["v3"]
-              + SL["four_v3id1"]["n_holds"] + tw4["n_holds"] + RO["holds"]["v3"] + RO["slides"]["four_v3id1"]["n_holds"])
+              + SL["four_v3id1"]["n_holds"] + tw4["n_holds"] + RO["holds"]["v3"] + RO["slides"]["four_v3id1"]["n_holds"]
+              + TT["tall"]["tips"]["v3 ID 1"]["holds"] + sum(TT[k]["tips"]["v3 ID 2"]["holds"] for k in FX)
+              + TE["pass_holds"])
+    t2 = {k: TT[k]["tips"]["v3 ID 2"]["gp_direction"] for k in FX}
+    t1 = {k: TT[k]["tips"]["v3 ID 1"]["gp_direction"] for k in FX}
+    tg = lambda k, t: TT[k]["tips"][t]["gain_uT_per_N"]["1-2"]  # noqa: E731
     dloc, dfe = strict("gp_direction", "loc_mm"), strict("gp_direction", "force_rel_err", 100)
     bloc, bfe = strict("gp", "loc_mm"), strict("gp", "force_rel_err", 100)
 
     lede = (
-        "Six printed fingertips were pressed onto 5 mm spheres and a rod by the lab's UR5. The reference force was "
-        "measured by an OptoForce HEX-E force-torque sensor between the flange and the fingertip. In twelve sessions "
+        "Seven printed fingertips were pressed onto 5 mm spheres and a rod by the lab's UR5. The reference force was "
+        "measured by an OptoForce HEX-E force-torque sensor between the flange and the fingertip. In sixteen sessions "
         f"they gave {n_hold:,} holds. Trained on a tip's own presses, a Gaussian process (GP) from the 15 "
         f"magnetometer readings locates presses at new points within {rg(acc)} mm at 1.5 N and over. On tips 0 to 2 it "
         f"gives their normal force within {min(fn_err):.2f}–{max(fn_err):.2f} N. On v2 ID 1, with five N52 magnets, a GP "
@@ -84,11 +96,17 @@ def sections(N, F, P, link, L):
         f"within {rg(dloc)} mm and {rg(dfe, '{:.0f}')} % of their force. With four N52 magnets (v3 ID 1) the signal per "
         f"newton is half that of five, {g4['gain_uT_per_N']['1-2']:.1f} against {g5['gain_uT_per_N']['1-2']:.1f} µT/N at 1–2 N. "
         f"The same GP places the two tips' contacts within {e4['all']['loc_mm']:.2f} and {e5['all']['loc_mm']:.2f} mm on the "
-        f"low sphere, and within {ro4['all']['loc_mm']:.2f} and {ro5['all']['loc_mm']:.2f} mm on the rod. Torsion is "
+        f"low sphere, and within {ro4['all']['loc_mm']:.2f} and {ro5['all']['loc_mm']:.2f} mm on the rod. A second "
+        f"four-magnet tip, v3 ID 2, matches v3 ID 1 on the presses both ran. On the sphere its signal per newton is "
+        f"{tg('sphere', 'v3 ID 2'):.1f} against {tg('sphere', 'v3 ID 1'):.1f} µT/N, and on the rod both tips' contacts "
+        f"are placed within {max(t2['rod']['all']['loc_mm'], t1['rod']['all']['loc_mm']):.2f} mm. The tip end was first "
+        f"pressed on v3 ID 2, in a pass of {TE['pass_presses']} presses. With the pass's other presses in training, "
+        f"they are placed within {TE['with_the_pass']['all']['loc_mm']:.2f} mm at the median, against "
+        f"{TE['grid_only']['all']['loc_mm']:.2f} mm from the grid alone. Torsion is "
         f"not recovered: on the two tips' twists, a GP's estimate correlates with the measured torsion at "
         f"{tw4['gp_twists']['r']:.2f} and {tw5['gp_twists']['r']:.2f}. A model learned on one tip misses on another.")
     summary = (
-        f"UR5 + HEX-E calibration of six printed magnetic fingertips ({n_hold:,} holds, 2026-10-22 to 10-28): a GP from the "
+        f"UR5 + HEX-E calibration of seven printed magnetic fingertips ({n_hold:,} holds, 2026-10-22 to 10-29): a GP from the "
         f"15 readings locates new points within {rg(acc).replace('–', '-')} mm at 1.5 N and over on a tip's own presses "
         f"(normal force within {min(fn_err):.2f}-{max(fn_err):.2f} N on tips 0-2); on v2 ID 1 (five N52) a GP from the "
         f"direction of the change, trained at 2 N and under, places 2-8 N presses within {rg(dloc).replace('–', '-')} mm and "
@@ -96,7 +114,12 @@ def sections(N, F, P, link, L):
         f"{rg(bfe, '{:.0f}').replace('–', '-')} %); four N52 magnets (v3 ID 1) give half the signal per newton "
         f"({g4['gain_uT_per_N']['1-2']:.1f} against {g5['gain_uT_per_N']['1-2']:.1f} uT/N) and the same calibrated "
         f"errors ({e4['all']['loc_mm']:.2f} and {e5['all']['loc_mm']:.2f} mm on the sphere, {ro4['all']['loc_mm']:.2f} and "
-        f"{ro5['all']['loc_mm']:.2f} mm on the rod); torsion not recovered (GP r "
+        f"{ro5['all']['loc_mm']:.2f} mm on the rod); a second four-magnet tip, v3 ID 2, matches v3 ID 1 on the presses "
+        f"both ran ({tg('sphere', 'v3 ID 2'):.1f} against {tg('sphere', 'v3 ID 1'):.1f} uT/N; "
+        f"{t2['sphere']['all']['loc_mm']:.2f} and {t1['sphere']['all']['loc_mm']:.2f} mm on the sphere, "
+        f"{t2['rod']['all']['loc_mm']:.2f} and {t1['rod']['all']['loc_mm']:.2f} mm on the rod), and its tip end is placed "
+        f"within {TE['with_the_pass']['all']['loc_mm']:.2f} mm with the pass's other presses in training "
+        f"({TE['grid_only']['all']['loc_mm']:.2f} mm from the grid alone); torsion not recovered (GP r "
         f"{tw4['gp_twists']['r']:.2f} and {tw5['gp_twists']['r']:.2f} on the twists); a GP trained on "
         "another tip gives 1.42 mm against 0.39 mm.")
     film = P.film(0, F["film"], F["film_poster"],
@@ -316,7 +339,17 @@ def sections(N, F, P, link, L):
          f"{tw4['n_twists']} twists)"],
         ["rodv3id1", "v3 ID 1, rod", "v7", "2026-10-28", f"{RO['holds']['v3']:,} ({RO['actions']})",
          f"{RO['slides']['four_v3id1']['n_holds']:,} ({RO['slides']['four_v3id1']['n_slides']} slides)"],
+        ["tallv3id1", "v3 ID 1, tall indenter", "v7", "2026-10-28",
+         f"{TT['tall']['tips']['v3 ID 1']['holds']:,} ({TT['tall']['actions']})", "–"],
+        ["spherev3id2", "v3 ID 2, four N52", "v7", "2026-10-28 night",
+         f"{TT['sphere']['tips']['v3 ID 2']['holds']:,} ({TT['sphere']['actions']}); top edge {TE['pass_holds']} "
+         f"({TE['pass_presses']})", "–"],
+        ["tallv3id2", "v3 ID 2, tall indenter", "v7", "2026-10-28 and 10-29",
+         f"{TT['tall']['tips']['v3 ID 2']['holds']:,} ({TT['tall']['actions']})", "–"],
+        ["rodv3id2", "v3 ID 2, rod", "v7", "2026-10-29",
+         f"{TT['rod']['tips']['v3 ID 2']['holds']:,} ({TT['rod']['actions']})", "–"],
     ]
+    assert len(rows) == 16  # the lede's "sixteen sessions"
     t5 = P.table(["Sessions and indenters", "Press actions"]
                  + [f"{nm} ({CV[C2][r]['n']} points)" for r, nm in (("face", "Face"), ("edge", "Edges"), ("flank", "Flanks"))],
                  [[nm, str(CV[k]["targets"])] + [f"{cvp(k, r)} / {cvp(k, r, 15)}" for r in ("face", "edge", "flank")]
@@ -335,14 +368,17 @@ def sections(N, F, P, link, L):
         "passes 1 and 2a, the actions past joint 6's cap and R26, and was then swapped for v2 ID 1. v2 ID 1 ran the whole "
         "suite, the rod and part of a pass on the tall indenter (Section 10). v3 ID 1's stage 2 stopped at 02:54 on "
         "2026-10-28, after 40 of its 84 slides, when the HEX-E fell off its acquisition. The stage's rolls and twists ran "
-        "from 09:41, once the HEX-E was back, and the rod's session from 10:27 (Section 11). Tip 2's session "
+        "from 09:41, once the HEX-E was back, and the rod's session from 10:27 (Section 11). v3 ID 2 ran its suite of "
+        "488 actions from 18:44 on 2026-10-28 to 08:13 on 10-29 (Section 12). Tip 2's session "
         "cb2t has 104 press points in 921 holds, and 87 slides.</p>"
         + P.table(["Session", "Tip, indenter", "Mount", "Date", "Press holds (presses)", "Turn holds (turns)"], rows,
                   caption="Sessions on the UR5. Turn holds are those of slides, rolls and twists. Counts from each session's "
-                          "<code>holds.npz</code> in <code>docs/experiments/20261022-ur5_tip_calibration/data/</code>. v3 ID 1's "
-                          "counts are those of the comparisons of Section 11: its grid stage, first 40 slides and 12 twists "
-                          "on the low sphere, and the presses and slides on the rod that v2 ID 1 also ran. Its rolls are "
-                          "not counted. The tall indenter's 26 slides of 2026-10-27 are not "
+                          "<code>holds.npz</code> in <code>docs/experiments/20261022-ur5_tip_calibration/data/</code>. The "
+                          "v3 tips' counts are those of the comparisons of Sections 11 and 12. For v3 ID 1 these are its "
+                          "grid stage, first 40 slides and 12 twists on the low sphere, the presses and slides on the rod "
+                          "that v2 ID 1 also ran, and the tall indenter's presses that v3 ID 2 also ran. For v3 ID 2 they "
+                          "are the presses that v3 ID 1 also ran, and the top-edge pass. Rolls, the tall indenter's turns "
+                          "and v3 ID 2's turns are not counted. The tall indenter's 26 slides of 2026-10-27 are not "
                           "analysed yet.", n=4)
         + f"<p><b>Coverage of the pad.</b> With the tall indenter and the rod, {cvp(V2R, 'face')} % of v2 ID 1's face "
         "lies within 1 mm of a press target (Figure 3). On the low sphere alone the share is "
@@ -797,6 +833,88 @@ def sections(N, F, P, link, L):
     )
     S.append(("v3id1", "Four N52 magnets against five on v3 ID 1", body))
 
+    # 12. v3 ID 2 (four N52) against v3 ID 1 on the presses both ran, and v3 ID 2's top-edge pass (feed lines of 10-29)
+    T2 = ("v3 ID 2", "v3 ID 1")
+    gr = lambda k, t, g: GR[k]["sessions"][t]["groups"][g]["gain_0.5-3.5"]  # noqa: E731
+    tt = lambda k, t: TT[k]["tips"][t]  # noqa: E731
+    HI = ("1-2", "2-3.5", "3.5-8")
+    tef = TE["with_the_pass"]
+    fe_diff = max(100 * abs(gr(k, T2[0], g) / gr(k, T2[1], g) - 1) for k in FX for g in ("grid, face", "grid, edge"))
+    body = (
+        "<p>v3 ID 2 is the second tip printed with pad 05R4's four N52 magnets. At about 18:40 on 2026-10-28 the owner "
+        "put it on the robot in place of v3 ID 1. Its suite ran on the low sphere, the tall indenter and the rod from "
+        "18:44 to 08:13 on 10-29. All 488 of its actions ran without a HEX-E time-out. From its touch-offs it was registered at 0.044 mm "
+        "rms on the sphere, 0.073 mm on the tall indenter and 0.023 mm on the rod ("
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/lab/STATE.md") + "). Its sessions were analysed on the "
+        "lab computer, corvus, while the robot was idle.</p>"
+        f"<p>On the low sphere both tips ran {TT['sphere']['actions']} press actions, with {tt('sphere', T2[0])['holds']} "
+        f"holds each (Table 14). The board changes by {tg('sphere', T2[0]):.1f} µT/N at 1 to 2 N on v3 ID 2 and "
+        f"{tg('sphere', T2[1]):.1f} µT/N on v3 ID 1. The record noise is {G2['four_v3id2']['noise_uT']:.2f} and "
+        f"{g4['noise_uT']:.2f} µT. Each tip's direction GP was trained on its own holds and scored in five folds grouped "
+        f"by action. v3 ID 2's contacts are placed within {t2['sphere']['all']['loc_mm']:.2f} mm and v3 ID 1's within "
+        f"{t1['sphere']['all']['loc_mm']:.2f} mm. The force errs by {100 * t2['sphere']['all']['force_rel_err']:.1f} and "
+        f"{100 * t1['sphere']['all']['force_rel_err']:.1f} %. From 1 N up the location errs by "
+        f"{rg([t2['sphere'][b]['loc_mm'] for b in HI])} mm on v3 ID 2 and {rg([t1['sphere'][b]['loc_mm'] for b in HI])} mm "
+        "on v3 ID 1. With five magnets, v2 ID 1's errors on the same actions are "
+        f"{G2['five_v2id1']['gp_direction']['all']['loc_mm']:.2f} mm and "
+        f"{100 * G2['five_v2id1']['gp_direction']['all']['force_rel_err']:.1f} %. v3 ID 1's grid stage had 47 speed "
+        "variants and one dense press more, which v3 ID 2's suite left out. With them, on all "
+        f"{G['actions']} actions, v3 ID 1's error is {e4['all']['loc_mm']:.2f} mm (Section 11).</p>"
+        f"<p>On the rod the shared actions are {TT['rod']['actions']}, with {tt('rod', T2[0])['holds']} holds each. Both "
+        f"tips' contacts are placed within {max(t2['rod']['all']['loc_mm'], t1['rod']['all']['loc_mm']):.2f} mm, and the "
+        f"force errs by {100 * t2['rod']['all']['force_rel_err']:.1f} and {100 * t1['rod']['all']['force_rel_err']:.1f} %. "
+        f"On the tall indenter the shared actions are {TT['tall']['actions']}, with {tt('tall', T2[0])['holds']} holds "
+        f"each. There the location errs by {t2['tall']['all']['loc_mm']:.2f} mm on v3 ID 2 and "
+        f"{t1['tall']['all']['loc_mm']:.2f} mm on v3 ID 1, about three times the sphere's. The force errs by "
+        f"{100 * t2['tall']['all']['force_rel_err']:.1f} and {100 * t1['tall']['all']['force_rel_err']:.1f} %. At 3 N and "
+        "over, the contact read from the two tips' boards lies 0.75 and 0.98 mm along −y of the registration on the tall "
+        "indenter. On the sphere it lies 0.39 and 0.12 mm along +y (" + link(L["v3"], "v3 plan") + ", section "
+        "&#8220;v3 ID 2 against v3 ID 1&#8221;). On every indenter the two tips' signals per newton on the face and the "
+        f"edges differ by {fe_diff:.0f} % or less. Presses on the tall indenter's flanks change the board by "
+        f"{gr('tall', T2[0], 'grid, flank'):.1f} µT/N on v3 ID 2 and {gr('tall', T2[1], 'grid, flank'):.1f} µT/N on v3 ID 1. "
+        f"On the sphere's flanks the change is {gr('sphere', T2[0], 'grid, flank'):.1f} and "
+        f"{gr('sphere', T2[1], 'grid, flank'):.1f} µT/N.</p>"
+        + P.table(["Quantity", "Sphere, v3 ID 2", "Sphere, v3 ID 1", "Rod, v3 ID 2", "Rod, v3 ID 1",
+                   "Tall indenter, v3 ID 2", "Tall indenter, v3 ID 1"],
+                  [["Press actions"] + [str(TT[k]["actions"]) for k in FX for t in T2],
+                   ["Holds"] + [str(tt(k, t)["holds"]) for k in FX for t in T2]]
+                  + [[f"Location error, {nm} (mm)"] + [f"{tt(k, t)['gp_direction'][b]['loc_mm']:.2f}" for k in FX for t in T2]
+                     for b, nm in (("all", "all holds"), ("0-1", "under 1 N"), ("1-2", "1 to 2 N"), ("2-3.5", "2 to 3.5 N"),
+                                   ("3.5-8", "3.5 to 8 N"))]
+                  + [["Force error (%)"] + [f"{100 * tt(k, t)['gp_direction']['all']['force_rel_err']:.1f}"
+                                            for k in FX for t in T2],
+                     ["Signal per newton at 1 to 2 N (µT/N)"] + [f"{tg(k, t):.1f}" for k in FX for t in T2]]
+                  + [[f"Signal per newton, {nm} (µT/N)"]
+                     + [(f"{gr(k, t, g):.1f}" if g in GR[k]["sessions"][t]["groups"] else "–") for k in FX for t in T2]
+                     for g, nm in (("grid, face", "face"), ("grid, edge", "edges"), ("grid, flank", "flanks"),
+                                   ("face centre, other plans", "face centre"))],
+                  caption="v3 ID 2 against v3 ID 1 on the press actions that both tips ran on each indenter. Location "
+                          "and force errors are those of each tip's direction GP under five folds grouped by action: "
+                          "medians over the holds. The signal per newton by region is the median over 0.5 to 3.5 N, on "
+                          f"the grid actions of both sessions ({GR['sphere']['common_actions']}, "
+                          f"{GR['rod']['common_actions']} and {GR['tall']['common_actions']} actions). The face centre's "
+                          "row is the reference presses at the apex over chip U1. The rod's "
+                          "presses include no flank. Rows in "
+                          + P.code(str((V3D / "20261029-tip_vs_tip_sphere_v3id2_v3id1.json").relative_to(ROOT)))
+                          + ", its rod and tall files, and " + P.code("data/20261029-gain_by_region_*.json") + " beside them ("
+                          + P.code("scripts/ur5_tip_calibration_tip_vs_tip.py") + ", "
+                          + P.code("scripts/ur5_tip_calibration_gain_by_region.py") + ").", n=14)
+        + "<p><b>Tip end.</b> v3 ID 2 ran the top-edge pass on the low sphere from 19:21 to 19:30 on 2026-10-28, with the "
+        "owner watching. The pass pressed the tip end nine times at 0.25 to 2 N, and an edge once to 3 N. A reference "
+        "press at the face centre came before the pass and another after it. On the earlier tips no press target lay within 1.5 mm of the "
+        "tip end (Table 5). Pressing the tip end changes the board by "
+        f"{gr('sphere', T2[0], 'top-edge pass, tip'):.1f} µT/N at 0.5 to 3.5 N. That lies between the face's "
+        f"{gr('sphere', T2[0], 'grid, face'):.1f} and the edges' {gr('sphere', T2[0], 'grid, edge'):.1f} µT/N. With a "
+        f"direction GP trained on the sphere's grid alone, the pass's {TE['pass_holds']} holds are placed "
+        f"{TE['grid_only']['all']['loc_mm']:.2f} mm off at the median. With the pass's other presses in training as well, "
+        f"they are placed within {tef['all']['loc_mm']:.2f} mm. At 1 to 2 N and at 2 to 3.5 N the error is "
+        f"{tef['1-2']['loc_mm']:.2f} and {tef['2-3.5']['loc_mm']:.2f} mm. The grid's own holds give "
+        f"{TE['grid_five_folds']['1-2']['loc_mm']:.2f} and {TE['grid_five_folds']['2-3.5']['loc_mm']:.2f} mm under five "
+        "folds (" + P.code(str((V3D / "20261029-top_edge_gp_v3id2.json").relative_to(ROOT))) + ", "
+        + P.code("scripts/ur5_tip_calibration_top_edge_gp.py") + ").</p>"
+    )
+    S.append(("v3id2", "Calibration of the second four-magnet tip v3 ID 2", body))
+
     body = (
         "<p>The HEX-E is a weak reference. Its $F_z$ channel reads 0.78–0.87 of its other axes' gain in two gravity fits. "
         "Its link dropped out in three of the first night's runs, once on 2026-10-26 and once in R29 on 10-27. On 10-28 it "
@@ -807,7 +925,8 @@ def sections(N, F, P, link, L):
         "7 µT that a press leaves at rest. The tall indenter's forces have a shear along the finger that the low sphere's "
         "lack. It comes from the finger or from the indenter's neck; the sphere check that would separate the two did not "
         "run before v2 ID 1 came off. v3 ID 1's results cover its grid stage, 40 of its 84 slides, its 12 twists and its "
-        "rod presses. Every model here is trained and scored "
+        "presses on the rod and the tall indenter. v3 ID 2's cover its presses on the three indenters and its top-edge "
+        "pass. Every model here is trained and scored "
         "on one cell and one seating of each tip.</p>"
     )
     S.append(("limits", "Limitations", body))
