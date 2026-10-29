@@ -1500,15 +1500,33 @@ The clearances in this section and the one before it are on mount v3. The next s
   stopped at 2.32 to 2.35 mm, and at 03:13 at 2.35 to 2.38 mm. So the stop moved 0.10 mm deeper in the first 20 minutes,
   then held within 0.05 mm for six hours. Sideways it moved 0.03 mm at most.
 
-### Block 5: ID 2's rod pass 1 from a seed (from 03:15:59)
+### Block 5: ID 2's rod pass 1 from a seed (03:15:59 to 03:57:13)
 
 - Simulated from home on a seed of block 1's tool and 102701's rod: no abort, the mount 3.37 mm and the finger 2.54 mm
   from the cell, joint 6 from -52.4 to +25.8 deg, joint 5 3.6 deg inside its window, the elbow at least 72 deg from
   straight.
 - After block 2's exit 0, the scratchpad script `b5_after_b2.sh` checked the home path from 184415's last pose, went
-  home (0.04 mm from the target) and made the seed `logs/20261029-tip_calibration/031559-rodv3id2`. Resumed there with
-  stages preflight,pad,pivot,register on `lab/20261028-plan_rod_lab_pass1_night_v3id2.json`, seat
-  `rod_indenter_seated_3`.
+  home (0.04 mm from the target) and made the seed `logs/20261029-tip_calibration/031559-rodv3id2` (copy:
+  `lab/20261029-031559-rodv3id2/`). Resumed there with stages preflight,pad,pivot,register on
+  `lab/20261028-plan_rod_lab_pass1_night_v3id2.json`, seat `rod_indenter_seated_3`.
+- 21 of 21 touch-offs and 5 pivot presses ok, no abort, no early contact. Every onset came 0.51 to 0.69 mm later than
+  the seed expected.
+- The touch-off searches 1.2 mm past the expected surface (`beyond_mm`). From the onset to its 0.5 N stop it pressed
+  0.14 to 0.34 mm more, so the stops came 0.27 to 0.37 mm short of that limit.
+- Pad touches 0.023 mm rms (v3 ID 1 on the rod: 0.042). The fit moved the tool 0.57 mm and 0.86 deg from block 1's
+  sphere tool, and the rod 0.16 mm from 102701's. So the late onsets came from the tool as this rod sees it, and the
+  rod did not move.
+- The pivot stage kept no turn presses, so `pivots.json` is empty, as in 102701.
+- The HEX-E: no time-out, and one gap over 0.5 s at 03:16:00, before the first action.
+
+### Block 4: ID 2's tall stage 2 (from 03:58:45)
+
+- `lab/20261028-plan_tall_lab_stage2_night_v3id2.json`, resumed on 200508 with stages preflight,grid,shear,twist,final.
+  Its two chunks were simulated from home on block 3's registration. The mount stayed at least 3.18 mm from the cell.
+  Joint 5 came to 99.2 deg at tall-shared-576 and -640, and the program aborts an action past 100.
+- After block 5's exit 0, `night_rest.sh` started block 6's simulations on block 5's registration (two chunks, nice
+  19). It then checked the home path from 031559's last pose and went home (0.04 mm from the target), and block 4
+  started at 03:58:45.
 
 ## The lab clone and git-lfs
 

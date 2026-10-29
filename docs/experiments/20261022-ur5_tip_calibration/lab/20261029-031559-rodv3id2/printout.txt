@@ -1,0 +1,36 @@
+resumed logs/20261029-tip_calibration/031559-rodv3id2: 0 actions done, 0 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0507 0.0481 0.248  0.003  0.0038 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== pad
+  pad-edge-05: onset +0.593 mm from the expected (power 2.00, fit 73.5 mN)
+  pad-edge-03: onset +0.688 mm from the expected (power 1.00, fit 106.2 mN)
+  pad-edge-07: onset +0.680 mm from the expected (power 2.00, fit 66.5 mN)
+  pad-face-02: onset +0.693 mm from the expected (power 1.50, fit 56.1 mN)
+  pad-edge-00: onset +0.631 mm from the expected (power 2.00, fit 45.0 mN)
+  pad-face-07: onset +0.683 mm from the expected (power 2.00, fit 84.7 mN)
+  pad-face-09: onset +0.626 mm from the expected (power 1.25, fit 30.3 mN)
+  pad-face-11: onset +0.588 mm from the expected (power 1.50, fit 29.5 mN)
+  pad-face-01: onset +0.625 mm from the expected (power 2.00, fit 98.6 mN)
+  pad-face-05: onset +0.554 mm from the expected (power 1.00, fit 28.2 mN)
+  pad-face-06: onset +0.685 mm from the expected (power 1.50, fit 51.4 mN)
+  pad-face-00: onset +0.609 mm from the expected (power 1.25, fit 37.7 mN)
+  pad-edge-02: onset +0.590 mm from the expected (power 2.00, fit 99.7 mN)
+  pad-edge-08: onset +0.559 mm from the expected (power 1.50, fit 67.6 mN)
+  pad-edge-09: onset +0.520 mm from the expected (power 2.00, fit 82.2 mN)
+  pad-face-08: onset +0.531 mm from the expected (power 2.00, fit 48.9 mN)
+  pad-face-10: onset +0.617 mm from the expected (power 1.00, fit 34.5 mN)
+  pad-face-03: onset +0.580 mm from the expected (power 1.00, fit 39.0 mN)
+  pad-edge-04: onset +0.520 mm from the expected (power 1.50, fit 50.9 mN)
+  pad-face-04: onset +0.543 mm from the expected (power 1.25, fit 28.9 mN)
+  pad-edge-06: onset +0.513 mm from the expected (power 1.50, fit 34.7 mN)
+== pivot
+== register
+register: pad touches 0.023 mm rms (21), face nan mm (0); TCP moved 0.570 mm, 0.864 deg; sphere centre moved 0.162 mm
+  TCP of the pad frame on the flange (for the pendant): 0.00054, -0.00232, 0.11793, -0.02450, -0.02339, -1.59168  (m, rotation vector)
+HEX-E: 246524 samples, 0 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz +0.2 N
+session in logs/20261029-tip_calibration/031559-rodv3id2
+exit 0 at 03:57:13
