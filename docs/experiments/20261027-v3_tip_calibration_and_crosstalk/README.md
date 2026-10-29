@@ -12,15 +12,22 @@ its top edge, the tall indenter and the rod ran from 18:44 to 08:13 on 10-29, al
 (`../20261022-ur5_tip_calibration/QUEUE.md`, R31 at 08:19 on 10-29). The cell's current state, the runs done and what
 waits on the owner are in `docs/experiments/20261022-ur5_tip_calibration/lab/STATE.md`, the one place kept current.
 
-## Runs left for v3 ID 1
+## Runs left for v3 ID 1, and the side-by-side map
 
-Four plans need v3 ID 1 back on the robot: the top edge, the sphere morning plan, the 43 slides left of sphere stage 2
-and the side-by-side map. Their files and needs are listed in `lab/STATE.md`. The side-by-side map takes the rod
-fixture off and turns the -y held tip pad-down under its block. Turn the tip over about its own long axis, so that its
-board's connector still points toward -x_I, away from the +y tip's. The cell model's pad-down pose
-(`ur5_cb3_cell.tiphold_T_IF`) has it that way, and the plan's clearances and the analysis were computed with it. The
-map's cell checks need `UR5_TIPHOLD_STATIONS=down,up`, and so does its analysis (`scripts/fingertip_crosstalk_holder.py`
-places the held pads by that model).
+Three plans need v3 ID 1 back on the robot: the top edge, the sphere morning plan and the 43 slides left of sphere
+stage 2. Their files and needs are listed in `lab/STATE.md`.
+
+The rod fixture stays on the cell (owner, 10-29 11:37: "i am not going to move the rod. figure something else out."),
+so the side-by-side map runs with both held tips facing up. The robot's pad faces down beside the -y held tip, its apex
+17 mm under the held apex, so that the two magnet squares stand level; their centres lie 8.5 mm under each apex.
+Turned over about its long axis, the four-magnet square maps onto itself, because alike poles lie on its diagonals. The
+held tip's field at the robot's chips is then the one a held tip facing down would give. The plan
+`lab/20261029-plan_holder_lab_side_up_v3id2.json` (`scripts/ur5_tip_calibration_holder_plan.py --side-up`, on v3 ID 2's
+holder seed) keeps 14 poses and their repeats, about 12 min: g 14 to 25 mm at a twist of -10 deg, g 25 mm at -20 deg
+and a far pose at g 40 mm. At twists 0 and +10 deg the robot's links come up to 7 mm into the rod's fixture. Its path
+check flags nothing, with the mount 3.19 mm and the finger 2.59 mm from everything. Any other tip on the robot needs its
+own seed and a recheck. The pad-down plan without the rod (`lab/20261028-plan_holder_lab_side_norod30_v3id1.json`) is
+off.
 
 ## Terms and metrics
 
@@ -211,6 +218,22 @@ flanks give 30.7 µT/N on ID 2 and 45.5 on ID 1 at 0.5 to 3.5 N; the sphere's fl
 Against the five-magnet v2 ID 1, ID 2 repeats ID 1's result. At 1 to 2 N the five magnets give 1.87, 1.85 and 1.83
 times ID 2's signal per newton on the sphere, the tall indenter and the rod. The noise-equivalent force is 62, 83 and 74
 mN with four magnets, against 35, 47 and 42 mN with five (`data/20261029-four_vs_five_*_v3id2.json`).
+
+## Motions for the calibration
+
+The indenter plate v2d stays off the cell until the calibration's motions are final (owner, 10-29 11:37). What each motion adds on
+both tips is on the page `docs/experiments/20261029-calibration_motions/20261029-calibration_motions_v3.html`
+(`scripts/ur5_tip_calibration_motion_value.py`, `data/20261029-motion_value.json`). Every indenter's presses, the
+tip's end and the slides must be in a tip's training data. Each indenter left out of training is placed 0.57 to 1.80 mm
+off, against 0.25 to 1.05 mm with its own presses, and the rod's forces then read 14 % low. Presses over 3.5 N left out
+are still placed within 0.19 to 0.27 mm. One tip's calibration places the other tip's presses 1.02 and 1.30 mm off,
+against 0.51 and 0.38 mm from their own, so each tip runs its own suite.
+
+At the six shared points the tall indenter and the low sphere differ for the same registered contact. The registered
+points lie 0.06 and 0.15 mm apart and the tool's orientation 2 to 3 deg apart. Yet the board's changes point 8.7 and
+12.9 deg apart, the tall indenter gives 0.83 and 0.82 times the gain, and its shear per newton is twice the sphere's.
+The cause is open. Plate v2d's only 5 mm sphere stands on a 160 mm column, so the comparison is to be repeated there
+before the low sphere goes.
 
 ## Code
 

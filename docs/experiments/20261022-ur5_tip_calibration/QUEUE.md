@@ -1044,6 +1044,23 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 12:4x on 10-29, the owner's answers of 11:37 and what followed (the current state is `lab/STATE.md`).
+    - Touch-offs approach at v 0.0005, 0.15 mm/s at the slider ("we can approach at 0.15mm/s sure, or faster if you
+      want"). Faster was not taken: at 0.58 mm/s the presses' onsets came 0.026 mm early (SE 0.017).
+    - "i am not going to move the rod. figure something else out." The side-by-side map now runs with both held tips
+      facing up (`scripts/ur5_tip_calibration_holder_plan.py --side-up`, 62d934249). The robot's apex stands 17 mm under
+      the held apex, the magnet squares level. `lab/20261029-plan_holder_lab_side_up_v3id2.json` keeps 14 poses and
+      their repeats at twists of -10 and -20 deg; at 0 and +10 deg the links reach into the rod's fixture. Path check:
+      0 flagged, mount 3.19 mm, finger 2.59 mm.
+    - "do you think i should put on v3 id 3 first?" The workstation said yes. ID 3's suite is v3 ID 2's 476 actions
+      with the 58 touch-offs at v 0.0005 (`lab/20261029-plan_*_night_v3id3.json`, block 1's seed
+      `lab/20261029-sphere-seed-v3id3`, d67950729). Its path checks on ID 2's registrations flag only joint windows and
+      one 2.96 mm mount clearance, all on actions that ran on ID 2; the sphere's stage 2 was still running at 12:45. The
+      lab's simulations of blocks 1, 3 and 5 and of the side map ended clean (12:32).
+    - Plate v2d waits until the motions are final. The motion list is the page
+      `docs/experiments/20261029-calibration_motions/20261029-calibration_motions_v3.html` (9da437e01).
+    - Joint temperatures at 12:31:03 (lab, read only), base to wrist 3: 34.4, 34.2, 29.0, 37.9, 40.4 and 40.9 C. The
+      lab asks the owner's go to send the arm home before the swap or a power-off; the pad stands 1.6 mm from the rod's key.
   - 08:19 on 10-29, v3 ID 2's night suite. All 488 actions ended ok between 18:44:15 on 10-28 and 08:13:17, with no
     abort, no early contact and no HEX-E time-out (`lab/NOTES.md`, "The night's suite on ID 2: done"). The suite took
     12.6 h against its estimate of 11.7 h; block 2 ran 0.5 h over. In each run's `ft_reads` the HEX-E's only gaps, 0.7
