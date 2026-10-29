@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-28 18:04 by the workstation. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-28 18:52 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -8,12 +8,12 @@ request to the owner must come from this file.
 
 | Item | Now | Registration (folder here) |
 |---|---|---|
-| Tip | v3 ID 1 (four N52 magnets, pad 05R4) until the swap at about 19:00; then the next four-magnet tip, `v3id2` in file names until the owner names it | tool: `20261027-225213-spherev3id1` |
-| Mount | v7 standoff fork on the HEX-E; stays on the flange through the swap | homing pose: `20261027-225213-spherev3id1` |
+| Tip | v3 ID 2 since the swap at about 18:40: the owner took it from the holder's right-side station and put v3 ID 1 there | tool: block 1 runs (`20261028-184415-spherev3id2`), seeded from `20261027-225213-spherev3id1` |
+| Mount | v7 standoff fork on the HEX-E; stayed on the flange through the swap | homing pose: `20261027-225213-spherev3id1` |
 | Sphere | low sphere, not moved since 10-27 | `20261027-225213-spherev3id1` |
 | Rod | on, at its third seating | `20261028-102701-rodv3id1` |
 | Tall indenter | on | `20261028-114908-tallv3id1` |
-| Holder | both held tips pad-up, seating 5 | `20261027-holder-apex-both` |
+| Holder | both held tips pad-up, seating 5: v3 ID 1 went into the right-side station pad-up (owner, 18:5x: "yes it went pad up") | `20261027-holder-apex-both` |
 
 `cell.json` holds the same registrations for the path checks and the renders.
 
@@ -36,7 +36,7 @@ cm from the connector with slack. The fix is a new cable.
 ## Tonight: the next tip's night suite
 
 Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
-State at 18:04: waiting for the tip swap and the owner's go. The lab is simulating the seeded first block.
+State at 18:52: the owner's go came in the lab's session at 18:3x ("you have the go ahead on the tip top edge plan at the end of the runs if we make it there"). Block 1 runs from 18:44:15 in `logs/20261028-tip_calibration/184415-spherev3id2`. At 18:4x the owner asked for the sphere's top edge while still in the lab ("if the top edge is ready to run on the lower sphere, then let's do that while im still here"). It runs right after block 1, rebuilt and simulated on block 1's registration; then blocks 2 to 6.
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|
@@ -46,6 +46,7 @@ State at 18:04: waiting for the tip swap and the owner's go. The lab is simulati
 | 4 | `20261028-plan_tall_lab_stage2_night_v3id2.json` | 102 | 2.8 | Resumed on block 3's registration. |
 | 5 | `20261028-plan_rod_lab_pass1_night_v3id2.json` | 26 | 0.4 | A seed folder with --tool block 1's registration and --fixture `20261028-102701-rodv3id1/registration.json`. Stages preflight,pad,pivot,register. |
 | 6 | `20261028-plan_rod_lab_stage2_night_v3id2.json` | 100 | 1.4 | Resumed on block 5's registration. |
+| top edge | `20261028-plan_sphere_lab_top_edge_v3id2.json` | 12 | 0.3 | After block 1, with the owner present; resumed on block 1's folder, stage grid. Ten presses on the tip's end and edges and a reference press before and after, built by `scripts/ur5_tip_calibration_sphere_top_edge.py` at the sphere's 60 mm lift. At a 20 mm lift, the joint move into the first top press swept the fork 3.9 mm into the sphere's model. Presses with the cap under 0.8 mm from the sphere are left out. |
 
 After a HEX-E reseat, `20261028-plan_sphere_lab_check2_v3id1.json` repeats three sphere touch-offs; their onsets show
 whether the tool moved.
@@ -72,8 +73,6 @@ These need v3 ID 1 back on the robot.
 
 ## Waiting on the owner
 
-- The go for the night suite, in the lab's session.
-- The new tip's ID.
 - When v3 ID 1 goes back on, the four plans above.
 - Indenter plate v2d: the front row at 95 or 100 mm, a support under the pad-down block, the plate's place and timing,
   and plans for the 12.5 mm sphere.
