@@ -1,0 +1,1183 @@
+#!/usr/bin/env python3
+"""Inverted calibration rig for the UR5 cell: a probe on the HEX-E presses fingertips held still on the indenter plate
+(owner, 2026-10-29 13:0x: "should we consider adding a rigid indenter mount for the ur5 and adding a third seat on the
+fingertip holder to calibrate these contact directions? ... maybe we can get easier, denser testing with that config?";
+"designing the adapter, modifying the v2d plate one more time, running the plan would be helpful. if the tall back row of
+the indenter plate is just three mounting spots for the finger, that's fine too ... maybe flat surfaces? ... if we invert
+the tools like we're describing, then we can spam whatever kind of tool we want").
+
+The probe base takes the standoff fork's place on mount v7's adapter disc: v7's foot (four M3 x 12 into the disc's brass
+inserts, pockets for the four M6 heads with key holes over them), a column with the fork's homing socket, so that the
+plate's keys home the probe as they home the fork, and a tool interface on the column's top: a drafted square boss and
+four M3 pilot holes. A tool has a flange with the matching socket, two M3 x 10 on a diagonal, a stem and its end: a
+5 mm sphere on a neck (the tall indenter's), a half rod R 12.5 across the tool axis, or a flat face. Every tool's end
+stands at z_M = PROBE["tip_z"]. The plate v2e keeps v2d's base, keys and front row (the 5 mm sphere where v2d had the
+12.5 mm sphere; the rod) and has three tip seats in its back row: a station block of the fingertip holder on a support,
+the tip screwed to the block by its four M2 x 8 with its board between them, as on the holder.
+
+Frames (mm): M the mount frame (origin on the HEX-E's tool face, z_M along the tool axis toward the tool's end, x_M
+toward the dowel and the homing socket); A the plate's (z up from the base's underside, x away from the robot, origin at
+the base's centre), where the low sphere's frame stood at v3 ID 1's registration (lab/20261027-225213-spherev3id1), as in
+scripts/indenter_plate_layout.py; F and P the held tip's finger and pad frames (scripts/ur5_cb3_cell.py).
+
+A press: the tool's end moves along a push direction d from a rest standoff mm short of contact to deep mm past it.
+For the sphere, d is the force's direction on the pad: along the inward normal, or theta from it (oblique). The stem's
+direction is free for the sphere and the flat face, so the search tries stem directions in order of preference and takes
+the first whose rest and deep poses pass. For each pose it then turns the tool about its own axis to bring joint 6 inside
+its window. A pose passes when the UR5 (the DH model's analytic inverse kinematics, the branch nearest the homing pose on
+key 2) keeps |sin q5| >= 0.5, |q3| >= 20 deg, the wrist 150 mm from joint 1's axis, every joint 10 deg inside +-360,
+joint 5 in 30..100 deg and joint 6 in -62..45 deg (60 with the owner present). The HEX-E's cable port must stay 15 mm
+from the arm. The clearances must hold against the plate, the seats, the held tips, the 2x4s and the table: robot links
+8, HEX-E 6, adapter and probe base 3, tool stem 1.0 and tool end 0.3 mm. The tool end is checked against everything but
+the pressed pad within 4 mm of the contact (12 for the rod, 8 for the flat).
+
+    RG="$HOME/.claude/bin/resguard.sh run --mem 3G --cpu 200 --"
+    .venv/bin/python scripts/ur5_inverted_rig.py ik-check                       # analytic IK against the simulator's fk
+    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5_inverted_rig.py build    # STL of the probe base, tools, plate v2e
+    $RG .venv/bin/python scripts/ur5_inverted_rig.py reach --orient front_up    # pad points and force directions reached
+    $RG .venv/bin/python scripts/ur5_inverted_rig.py replay                      # a plan of probe presses, every sample
+"""
+from __future__ import annotations
+
+import argparse
+import copy
+import json
+import math
+import os
+import sys
+import time
+from functools import lru_cache
+from pathlib import Path
+
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+os.environ.setdefault("UR5_MOUNT", "v7")
+os.environ.setdefault("UR5M_REV", "v7")
+import ur5_cb3_cell as CELL  # noqa: E402
+import indenter_array as IA  # noqa: E402
+
+C, SIM = CELL.C, CELL.SIM
+LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
+OUT = ROOT / "docs/experiments/20261029-inverted_calibration_rig"
+STEM = "20261029-inverted_rig"
+TOOLREG = LAB / "20261027-225213-spherev3id1/registration.json"
+SURFACE_PLAN = LAB / "20261029-plan_sphere_lab_pass1_night_v3id3.json"      # the pad's FE surface: 812 points in P
+BOARD_PLAN = LAB / "superseded/20261027-plan_sphere_lab_stage2_v3id1.json"   # the 2x4s under the plate (checks.board)
+FINGER_REACH = ROOT / "docs/experiments/20261026-tall_indenter/data/20261027-trimmed_cap_reach.json"
+
+# ------------------------------------------------------------------------------------------------ the probe (M, mm)
+PROBE = dict(
+    tip_z=120.0,                    # every tool's end on the tool axis; the finger's pad apex stands at z_M 93.4, 10.6 off it
+    foot=dict(z0=15.0, z1=28.0, r=35.0),                     # v7's foot on the adapter disc (z_M 0..15)
+    col=dict(x0=-13.0, x1=17.0, y0=-13.0, y1=13.0, z1=64.0, r=3.0),   # x1: the fork's palmar face, where its socket opens
+    boss=dict(side=10.0, draft=20.0, h=3.0, clear=0.05),     # on the column's top; the tool's socket 0.05 mm larger a face
+    screws=((8.5, 8.5), (-8.5, -8.5), (8.5, -8.5), (-8.5, 8.5)), pilot=2.75, pilot_depth=10.0,   # M3, self-forming
+    flange=dict(z1=70.0, r=17.0), m3_clear=3.4, m3_cb_d=6.5, m3_under=3.0,   # each tool's flange, M3 x 10 on a diagonal
+    stem_r=8.0,
+    sphere=dict(R=5.0, neck_r=3.0, neck_dz=4.0, taper_deg=15.0),           # the tall indenter's sphere and neck
+    rod=dict(R=12.5, half_len=10.0, box_dz=12.5, hull_dz=7.0, hull_half=8.0),   # the plate's rod: axis along y_M
+    flat=dict(r=7.0, ch=1.0),       # a face 14 mm across with a 1 mm chamfer, the stem's end
+)
+TOOLS = ("sphere5", "rod", "flat")
+NEED = dict(robot=8.0, hex_e=6.0, mount=3.0, stem=1.0, tip=0.3)
+GROUPS = dict(mount=("adapter", "probe_base"), stem=("tool_stem",), tip=("tool_tip",), hex_e=("hex_e",))
+EXCL = dict(sphere5=4.0, rod=12.0, flat=8.0)               # the tool end's points this near the contact meet the pad
+J5_WIN, J6_WIN, J6_OWNER = (30.0, 100.0), (-62.0, 45.0), 60.0
+J5_SEARCH = (35.0, 97.0)                                  # a press's own poses keep this much inside joint 5's window
+Q3_SEARCH = 30.0                                          # and the elbow this far from straight (the check's 20 deg)
+BR = [None]                                               # the homing pose's branch of the inverse kinematics
+PORT_MM = 15.0
+ST, DEEP = 1.5, 1.0                                       # rest standoff and depth past contact (mm)
+APEX_F = np.array([-10.55, 0.0, -87.91])                  # the pad's apex in F
+T_FP = C.inv(CELL.T_M_FROM_F) @ CELL.T_M_FROM_P           # the pad frame P in F: x_F = -x_P - 2.05, z_F = -77.05 - z_P
+
+
+def tool_end_z(tool, p=PROBE):
+    """z_M of the tool's reference point: the sphere's centre, the rod's axis, the flat face's centre."""
+    return p["tip_z"] - (p["sphere"]["R"] if tool == "sphere5" else p["rod"]["R"] if tool == "rod" else 0.0)
+
+
+# ------------------------------------------------------------------------------------------------ the seats (A, mm)
+_S2 = 1.0 / math.sqrt(2.0)
+ORIENT = dict(   # the pad's face normal and the tip's distal direction in A
+    up_y=((0.0, 0.0, 1.0), (0.0, 1.0, 0.0)),            # pad up, the tip's end toward +y
+    up_xm=((0.0, 0.0, 1.0), (-1.0, 0.0, 0.0)),          # pad up, the tip's end toward the robot
+    front_up=((-1.0, 0.0, 0.0), (0.0, 0.0, 1.0)),       # pad toward the robot, the tip's end up (a finger pointing up)
+    front_y=((-1.0, 0.0, 0.0), (0.0, 1.0, 0.0)),        # pad toward the robot, the tip's end toward +y
+    tilt_up=((-_S2, 0.0, _S2), (_S2, 0.0, _S2)),        # pad 45 deg up from the robot's direction, the tip's end up and back
+    side_up=((0.0, -1.0, 0.0), (0.0, 0.0, 1.0)),        # pad toward -y, the tip's end up
+)
+BLOCK_F = ((4.4, -10.5, -98.36), (16.4, 10.5, -77.05))    # the station block behind the board (0.6 mm) as on the holder
+HOLES_F = ((8.0, -79.82), (-8.0, -79.82), (8.0, -95.82), (-8.0, -95.82))   # (y_F, z_F) of the M2 x 8
+LAYOUT = dict(       # plate v2e: v2d's base, keys and front row (the 5 mm sphere where v2d had the 12.5 mm one), three seats
+    sphere5=dict(c=(-15.0, 60.0), top=100.0), rod=dict(c=(0.0, -85.0), top=100.0),
+    seats=((75.0, -80.0), (75.0, 0.0), (75.0, 80.0)), seat_h=160.0, orient="front_up")
+
+
+def T_AF(orient, apex):
+    """The held tip's frame F in A: its pad's apex at apex, the face and the distal end as ORIENT gives them."""
+    face, end = (np.asarray(v, float) / np.linalg.norm(v) for v in ORIENT[orient])
+    xF, zF = -face, -end
+    R = np.column_stack([xF, np.cross(zF, xF), zF])
+    return C.Tm(R, np.asarray(apex, float) - R @ APEX_F)
+
+
+def plate(layout=None):
+    """Plate v2e in A: indenter_array.geometry's base, keys, 5 mm sphere and rod, and the seats with their tip frames."""
+    lay = dict(LAYOUT, **(layout or {}))
+    a = copy.deepcopy(IA.ARRAY)
+    a["sphere5"] = dict(a["sphere5"], **lay["sphere5"])
+    a["rod"] = dict(a["rod"], **lay["rod"])
+    g = IA.geometry(a)
+    g.pop("sphere12", None)
+    g.pop("holder", None)
+    tb = a["base"][4]
+    seats = []
+    orients = lay["orient"] if isinstance(lay["orient"], (list, tuple)) else [lay["orient"]] * len(lay["seats"])
+    for (x, y), o in zip(lay["seats"], orients):
+        T = T_AF(o, (x, y, lay["seat_h"]))
+        lo, hi = BLOCK_F
+        corners = C.apply(T, np.array([[u, v, w] for u in (lo[0], hi[0]) for v in (lo[1], hi[1]) for w in (lo[2], hi[2])]))
+        foot = np.c_[corners[:, :2], np.full(len(corners), tb - 0.01)]          # the support: the block's hull down to
+        seats.append(dict(apex=[x, y, lay["seat_h"]], orient=o, T_AF=T.round(6).tolist(),   # the base's top
+                          support=np.vstack([corners, foot])))
+    g["seats"], g["layout"] = seats, lay
+    g["zmax"] = float(max([np.max(st["support"][:, 2]) + 25.0 for st in seats] + [g["sphere5"]["top"], g["rod"]["top"]]
+                          + [k["pin_top"] for k in g["keys"]]))     # the highest part (the tips within 25 mm of their blocks)
+    return g
+
+
+# ------------------------------------------------------------------------------------------------ analytic IK (DH model)
+_D, _A_, _AL = SIM.DH_CB3["d"], SIM.DH_CB3["a"], SIM.DH_CB3["alpha"]
+
+
+def _dh(i, th):
+    th = np.asarray(th, float)
+    ct, st = np.cos(th), np.sin(th)
+    ca, sa = math.cos(_AL[i]), math.sin(_AL[i])
+    A = np.zeros(th.shape + (4, 4))
+    A[..., 0, 0], A[..., 0, 1], A[..., 0, 2], A[..., 0, 3] = ct, -st * ca, st * sa, _A_[i] * ct
+    A[..., 1, 0], A[..., 1, 1], A[..., 1, 2], A[..., 1, 3] = st, ct * ca, -ct * sa, _A_[i] * st
+    A[..., 2, 1], A[..., 2, 2], A[..., 2, 3] = sa, ca, _D[i]
+    A[..., 3, 3] = 1.0
+    return A
+
+
+def _inv(T):
+    R, t = T[..., :3, :3], T[..., :3, 3]
+    out = np.zeros_like(T)
+    out[..., :3, :3] = np.swapaxes(R, -1, -2)
+    out[..., :3, 3] = -np.einsum("...ji,...j->...i", R, t)
+    out[..., 3, 3] = 1.0
+    return out
+
+
+def fk_many(Q):
+    """Flange poses (N, 4, 4) of joints Q (N, 6), the DH model's."""
+    Q = np.atleast_2d(Q)
+    T = _dh(0, Q[:, 0])
+    for i in range(1, 6):
+        T = T @ _dh(i, Q[:, i])
+    return T
+
+
+def ik_all(T):
+    """Every solution (N, 8, 6) of the DH model for flange poses T (N, 4, 4) in B; NaN where a branch has none."""
+    T = np.asarray(T, float).reshape(-1, 4, 4)
+    N = len(T)
+    d4, d6, a2, a3 = _D[3], _D[5], _A_[1], _A_[2]
+    Q = np.full((N, 8, 6), np.nan)
+    R, p = T[:, :3, :3], T[:, :3, 3]
+    p05 = p - d6 * R[:, :, 2]
+    r = np.hypot(p05[:, 0], p05[:, 1])
+    ok1 = r > abs(d4) + 1e-9
+    phi = np.arccos(np.clip(abs(d4) / np.maximum(r, 1e-9), -1.0, 1.0))
+    psi = np.arctan2(p05[:, 1], p05[:, 0])
+    k = 0
+    for s1 in (1.0, -1.0):
+        q1 = psi + s1 * phi + math.pi / 2
+        S1, C1 = np.sin(q1), np.cos(q1)
+        c5 = (p[:, 0] * S1 - p[:, 1] * C1 - d4) / d6
+        ok5 = ok1 & (np.abs(c5) <= 1.0)
+        a5 = np.arccos(np.clip(c5, -1.0, 1.0))
+        for s5 in (1.0, -1.0):
+            q5 = s5 * a5
+            S5 = np.sin(q5)
+            S5 = np.where(np.abs(S5) < 1e-9, 1e-9, S5)
+            q6 = np.arctan2((-R[:, 0, 1] * S1 + R[:, 1, 1] * C1) / S5, (R[:, 0, 0] * S1 - R[:, 1, 0] * C1) / S5)
+            T14 = _inv(_dh(0, q1)) @ T @ _inv(_dh(4, q5) @ _dh(5, q6))
+            x, y = T14[:, 0, 3], T14[:, 1, 3]
+            c3 = (x * x + y * y - a2 * a2 - a3 * a3) / (2.0 * a2 * a3)
+            ok3 = ok5 & (np.abs(c3) <= 1.0)
+            b3 = np.arccos(np.clip(c3, -1.0, 1.0))
+            for s3 in (1.0, -1.0):
+                q3 = s3 * b3
+                q2 = np.arctan2(y, x) - np.arctan2(a3 * np.sin(q3), a2 + a3 * np.cos(q3))
+                T34 = _inv(_dh(1, q2) @ _dh(2, q3)) @ T14
+                q4 = np.arctan2(T34[:, 1, 0], T34[:, 0, 0])
+                sol = np.stack([q1, q2, q3, q4, q5, q6], axis=1)
+                sol[~ok3] = np.nan
+                Q[:, k] = sol
+                k += 1
+    return Q
+
+
+def branch_of(q):
+    """The index (0..7) in ik_all's order of the branch (shoulder, wrist, elbow) that joints q lie on."""
+    Q = ik_all(fk_many(np.asarray(q, float)[None]))[0]
+    d = np.abs((Q - q + math.pi) % (2.0 * math.pi) - math.pi).max(axis=1)
+    return int(np.nanargmin(np.where(np.isnan(d), np.inf, d)))
+
+
+def ik_near(T, q_ref, tol=0.01, free6=False, branch=None):
+    """The solution nearest q_ref (largest joint difference, each joint within pi of q_ref's; joints 1 to 5 alone with
+    free6, for a tool that may turn about its axis) for each pose of T; rows of NaN where none exists. Each is checked
+    against the forward kinematics (tol mm)."""
+    T = np.asarray(T, float).reshape(-1, 4, 4)
+    Q = ik_all(T)
+    qr = np.asarray(q_ref, float).reshape(-1, 1, 6)
+    Qw = qr + (Q - qr + math.pi) % (2.0 * math.pi) - math.pi
+    dist = np.abs(Qw - qr)[..., :5 if free6 else 6].max(axis=2)
+    if branch is not None:                              # one branch only: the homing pose's
+        keep = np.zeros(8, bool)
+        keep[branch] = True
+        dist = np.where(keep[None, :], dist, np.inf)
+    dist = np.where(np.isnan(dist), np.inf, dist)
+    best = np.argmin(dist, axis=1)
+    out = Qw[np.arange(len(T)), best]
+    bad = ~np.isfinite(dist[np.arange(len(T)), best])
+    good = ~bad
+    if good.any():
+        err = np.linalg.norm(fk_many(out[good])[:, :3, 3] - T[good, :3, 3], axis=1)
+        idx = np.flatnonzero(good)[err > tol]
+        bad[idx] = True
+    out[bad] = np.nan
+    return out
+
+
+def cmd_ik_check(a):
+    rng = np.random.default_rng(0)
+    worst, n_near = 0.0, 0
+    for _ in range(a.n):
+        q = rng.uniform(-math.pi, math.pi, 6)
+        T = SIM.fk(q)
+        Q = ik_all(T[None])[0]
+        errs = [float(np.linalg.norm(SIM.fk(s) - T)) for s in Q if np.isfinite(s).all()]
+        worst = max(worst, max(errs))
+        qn = ik_near(T[None], q + rng.normal(0, 0.05, 6))[0]
+        n_near += bool(np.allclose(qn, q, atol=1e-6))
+    print(f"{a.n} random poses: worst |fk(ik) - T| {worst:.2e} (8 branches each); ik_near returned the generating joints "
+          f"for {n_near} of {a.n} (start 0.05 rad away)")
+
+
+# ------------------------------------------------------------------------------------------------ the probe's surface
+def _ring_pts(r, z, sp, c=(0.0, 0.0)):
+    nt = max(8, int(math.ceil(2 * math.pi * r / sp)))
+    th = np.linspace(0.0, 2 * math.pi, nt, endpoint=False)
+    return np.c_[c[0] + r * np.cos(th), c[1] + r * np.sin(th), np.full(nt, z)]
+
+
+def _disc_pts(r, z, sp, c=(0.0, 0.0)):
+    out = [np.array([[c[0], c[1], z]])]
+    for rho in np.arange(sp, r + 1e-9, sp):
+        out.append(_ring_pts(rho, z, sp, c))
+    return np.vstack(out)
+
+
+def _frustum_pts(r0, r1, z0, z1, sp, caps=True):
+    nz = max(2, int(math.ceil(abs(z1 - z0) / sp)) + 1)
+    out = [_ring_pts(r0 + (r1 - r0) * s, z0 + (z1 - z0) * s, sp) for s in np.linspace(0.0, 1.0, nz)]
+    if caps:
+        out += [_disc_pts(r0, z0, sp), _disc_pts(r1, z1, sp)]
+    return np.vstack(out)
+
+
+def _box_pts(lo, hi, sp):
+    lo, hi = np.asarray(lo, float), np.asarray(hi, float)
+    ax = [np.linspace(lo[i], hi[i], max(2, int(math.ceil((hi[i] - lo[i]) / sp)) + 1)) for i in range(3)]
+    G = np.stack(np.meshgrid(*ax, indexing="ij"), -1).reshape(-1, 3)
+    on = np.isclose(G, lo).any(axis=1) | np.isclose(G, hi).any(axis=1)
+    return G[on]
+
+
+def _sphere_pts(c, R, sp):
+    n = max(50, int(4 * math.pi * R * R / sp ** 2))
+    i = np.arange(n) + 0.5
+    phi, th = np.arccos(1 - 2 * i / n), math.pi * (1 + 5 ** 0.5) * i
+    return np.asarray(c) + R * np.c_[np.cos(th) * np.sin(phi), np.sin(th) * np.sin(phi), np.cos(phi)]
+
+
+def _cyl_y_pts(xz, R, y0, y1, sp, half=False):
+    nt = max(12, int(math.ceil(2 * math.pi * R / sp)))
+    th = np.linspace(0.0, 2 * math.pi, nt, endpoint=False)
+    if half:
+        th = th[np.sin(th) >= -1e-9]
+    ys = np.linspace(y0, y1, max(2, int(math.ceil((y1 - y0) / sp)) + 1))
+    P = np.array([[xz[0] + R * math.cos(t), y, xz[1] + R * math.sin(t)] for t in th for y in ys])
+    return P
+
+
+@lru_cache(maxsize=8)
+def probe_points(tool, sp=1.5):
+    """Surface samples (M) of the probe by group: the adapter disc, the probe base (foot, column), the tool's stem
+    (flange, stem, neck or the rod's box) and its end (sphere, half rod, flat face), and the HEX-E."""
+    p = PROBE
+    f, c, fl = p["foot"], p["col"], p["flange"]
+    out = dict(hex_e=_frustum_pts(35.0, 35.0, -35.0, 0.0, 3.0), adapter=_frustum_pts(31.5, 31.5, 0.0, 15.0, 3.0),
+               probe_base=np.vstack([_frustum_pts(f["r"], f["r"], f["z0"], f["z1"], 2.5),
+                                     _box_pts((c["x0"], c["y0"], f["z1"]), (c["x1"], c["y1"], c["z1"]), 2.0)]))
+    sr, tz = p["stem_r"], p["tip_z"]
+    stem = [_frustum_pts(fl["r"], fl["r"], c["z1"], fl["z1"], 1.5)]
+    if tool == "sphere5":
+        s = p["sphere"]
+        z_neck = tz - s["neck_dz"]
+        z_c0 = z_neck - (sr - s["neck_r"]) / math.tan(math.radians(s["taper_deg"]))
+        stem += [_frustum_pts(sr, sr, fl["z1"], z_c0, sp, caps=False), _frustum_pts(sr, s["neck_r"], z_c0, z_neck, 0.7, False)]
+        tip = _sphere_pts((0.0, 0.0, tz - s["R"]), s["R"], 0.5)
+    elif tool == "rod":
+        r = p["rod"]
+        za = tz - r["R"]
+        zb0 = za - r["box_dz"]
+        zh0 = zb0 - r["hull_dz"]
+        stem += [_frustum_pts(sr, sr, fl["z1"], zh0, sp, caps=False), _box_pts((-r["hull_half"], -r["hull_half"], zh0),
+                                                                              (r["hull_half"], r["hull_half"], zb0), sp),
+                 _box_pts((-r["R"], -r["half_len"], zb0), (r["R"], r["half_len"], za), sp)]
+        tip = np.vstack([_cyl_y_pts((0.0, za), r["R"], -r["half_len"], r["half_len"], 0.7, half=True)])
+    else:
+        fp = p["flat"]
+        stem += [_frustum_pts(sr, sr, fl["z1"], tz - fp["ch"], sp, caps=False)]
+        tip = np.vstack([_frustum_pts(sr, fp["r"], tz - fp["ch"], tz, 0.5, caps=False), _disc_pts(fp["r"], tz, 0.5)])
+    out["tool_stem"] = np.vstack(stem)
+    out["tool_tip"] = tip
+    return out
+
+
+# ------------------------------------------------------------------------------------------------ the CAD (MeshK, M)
+def _m_xy(r, ang_deg):
+    a = math.radians(ang_deg)
+    return r * math.cos(a), r * math.sin(a)
+
+
+def probe_base_solid(K):
+    """The probe base in M: v7's foot and its cuts for the disc's M3 and M6, the column with v7's homing socket, the boss
+    and the four M3 pilot holes on its top."""
+    import ur5_calibration_mount as UM
+    P, p = UM.P, PROBE
+    f, c, b = p["foot"], p["col"], p["boss"]
+    t = math.tan(math.radians(b["draft"]))
+    h0 = b["side"] / 2
+    parts = [K.cyl("z", (0.0, 0.0), f["r"], f["z0"], f["z1"]),
+             K.rbox_z(c["x0"], c["x1"], c["y0"], c["y1"], f["z1"] - 0.01, c["z1"], c["r"]),
+             UM.frustum(K, "z", (0.0, 0.0), (h0, h0), (h0 - b["h"] * t, h0 - b["h"] * t), c["z1"] - 0.01, c["z1"] + b["h"])]
+    cut = []
+    for ang in UM.m3_angles(P):            # the foot's M3 x 12 into the disc's inserts, counterbored from the foot's top
+        xy = _m_xy(P["m3_r"], ang)
+        cut += [K.cyl("z", xy, P["m3_clear"] / 2, f["z0"] - 1.0, f["z1"] + 1.0),
+                K.cyl("z", xy, P["m3_cb_d"] / 2, P["ad_t"] + P["m3_under"], f["z1"] + 1.0)]
+    for ang in UM.bolt_angles(P):          # pockets round the M6 heads on the disc, a hex key's way over each
+        xy = _m_xy(P["bolt_r"], ang)
+        cut += [K.cyl("z", xy, P["m6_pocket_d"] / 2, f["z0"] - 1.0, P["m6_pocket_top"]),
+                K.cyl("z", xy, P["key_d"] / 2, P["m6_pocket_top"] - 0.5, f["z1"] + 1.0)]
+    for xy in p["screws"]:
+        cut.append(K.cyl("z", xy, p["pilot"] / 2, c["z1"] - p["pilot_depth"], c["z1"] + b["h"] + 1.0))
+    fx = c["x1"]                           # the socket: v7's (8 x 18 mm at the mouth, 20 deg draft, 5.3 deep) at z_M 49
+    cut.append(UM.frustum(K, "x", (0.0, P["home_zm"]), UM.home_halves(-1.0, p=P), UM.home_halves(P["home_depth"], p=P),
+                          fx + 1.0, fx - P["home_depth"]))
+    return K.cut_all(K.union(parts), cut)
+
+
+def tool_solid(K, tool):
+    """A tool in M: its flange with the boss's socket and two counterbored M3 on a diagonal, the stem and the end."""
+    import ur5_calibration_mount as UM
+    p = PROBE
+    c, fl, b = p["col"], p["flange"], p["boss"]
+    sr, tz = p["stem_r"], p["tip_z"]
+    t = math.tan(math.radians(b["draft"]))
+    parts = [K.cyl("z", (0.0, 0.0), fl["r"], c["z1"], fl["z1"])]
+    if tool == "sphere5":
+        s = p["sphere"]
+        z_neck = tz - s["neck_dz"]
+        z_c0 = z_neck - (sr - s["neck_r"]) / math.tan(math.radians(s["taper_deg"]))
+        parts += [K.cyl("z", (0.0, 0.0), sr, fl["z1"] - 0.01, z_c0 + 0.01), K.cyl("z", (0.0, 0.0), sr, z_c0, z_neck, r1=s["neck_r"]),
+                  K.sphere((0.0, 0.0, tz - s["R"]), s["R"])]
+    elif tool == "rod":
+        r = p["rod"]
+        za = tz - r["R"]
+        zb0 = za - r["box_dz"]
+        zh0 = zb0 - r["hull_dz"]
+        hh, R, hl = r["hull_half"], r["R"], r["half_len"]
+        parts += [K.cyl("z", (0.0, 0.0), sr, fl["z1"] - 0.01, zh0 + 0.01),
+                  K.hull([(x, y, zh0) for x, y in ((-hh, -hh), (hh, -hh), (hh, hh), (-hh, hh))]
+                         + [(x, y, zb0 + 0.01) for x, y in ((-R, -hl), (R, -hl), (R, hl), (-R, hl))]),
+                  K.box((-R, -hl, zb0), (R, hl, za)), K.cyl("y", (0.0, za), R, -hl, hl)]
+    else:
+        fp = p["flat"]
+        parts += [K.cyl("z", (0.0, 0.0), sr, fl["z1"] - 0.01, tz - fp["ch"] + 0.01),
+                  K.cyl("z", (0.0, 0.0), sr, tz - fp["ch"], tz, r1=fp["r"])]
+    h0 = b["side"] / 2 + b["clear"]
+    cut = [UM.frustum(K, "z", (0.0, 0.0), (h0 + t, h0 + t), (h0 - (b["h"] + 0.3) * t, h0 - (b["h"] + 0.3) * t),
+                      c["z1"] - 1.0, c["z1"] + b["h"] + 0.3)]
+    for xy in p["screws"][:2]:
+        cut += [K.cyl("z", xy, p["m3_clear"] / 2, c["z1"] - 1.0, fl["z1"] + 1.0),
+                K.cyl("z", xy, p["m3_cb_d"] / 2, c["z1"] + p["m3_under"], fl["z1"] + 1.0)]
+    return K.cut_all(K.union(parts), cut)
+
+
+def plate_solid(K, g):
+    """Plate v2e (A): indenter_array.solid's base, keys, 5 mm sphere and rod, and each seat's block on its support with
+    the four 1.9 mm holes for the tip's M2 x 8 (10 mm deep from the block's face)."""
+    a = g["params"]
+    x0, x1, y0, y1, tb = a["base"]
+    base = K.rbox_z(x0, x1, y0, y1, 0.0, tb, 6.0)
+    d, (cbd, cbh) = a["screw_hole"], a["screw_cb"]
+    holes = []
+    for x, y in a["screws"]:
+        holes += [K.cyl("z", (x, y), d / 2, -1.0, tb + 1.0), K.cyl("z", (x, y), cbd / 2, tb - cbh, tb + 1.0)]
+    parts = [K.cut_all(base, holes)]
+    import ur5_calibration_mount as UM
+    kd = g["key"]
+    bx, by = kd["k0"][0] + kd["margin"], kd["k0"][1] + kd["margin"]
+    for k in g["keys"]:
+        local = K.union([K.rbox_z(-bx, bx, -by, by, tb - 0.01, k["body_top"], 2.0),
+                         UM.frustum(K, "z", (0.0, 0.0), kd["k0"], kd["k1"], k["body_top"] - 0.01, k["pin_top"])])
+        T = np.eye(4)
+        T[:3, :3], T[:3, 3] = IA._Rz(k["yaw"]), [k["c"][0], k["c"][1], 0.0]
+        parts.append(K.transform(local, T))
+    s = g["sphere5"]
+    cc = s["c"]
+    if s["z_col"] > tb:
+        parts.append(K.cyl("z", cc, s["col_r"], tb - 0.01, s["z_col"] + 0.01))
+    parts += [K.cyl("z", cc, s["r_col"], s["z_col"], s["z_neck"], r1=s["neck_r"]), K.sphere((cc[0], cc[1], s["top"] - s["R"]), s["R"])]
+    r = g["rod"]
+    (cx, cy), hl = r["c"], r["half_len"]
+    parts += [K.cyl("z", (cx, cy), r["col_r"], tb - 0.01, r["box_z0"] + 0.01, r1=r["r_top"]),
+              K.box((cx - r["R"], cy - hl, r["box_z0"]), (cx + r["R"], cy + hl, r["z_axis"])),
+              K.cyl("y", (cx, r["z_axis"]), r["R"], cy - hl, cy + hl)]
+    for st in g["seats"]:
+        T = np.asarray(st["T_AF"], float)
+        lo, hi = BLOCK_F
+        blk = K.transform(K.box(lo, hi), T)
+        sup = K.hull([tuple(v) for v in st["support"]])
+        holes = [K.transform(K.cyl("x", (y, z), 0.95, lo[0] - 1.0, lo[0] + 10.0), T) for y, z in HOLES_F]
+        parts.append(K.cut_all(K.union([blk, sup]), holes))
+    return K.union(parts)
+
+
+def cmd_build(a):
+    import ur5_calibration_mount as UM
+    K = UM.MeshK()
+    cad = OUT / "cad"
+    cad.mkdir(parents=True, exist_ok=True)
+    rec = {}
+    solids = dict(probe_base=probe_base_solid(K), **{f"tool_{t}": tool_solid(K, t) for t in TOOLS},
+                  plate_v2e=plate_solid(K, plate()))
+    for name, s in solids.items():
+        tm = UM.to_trimesh(s)
+        dst = cad / f"{STEM}_{name}.stl"
+        tm.export(dst)
+        com = tm.center_mass if tm.is_watertight else tm.centroid
+        rec[name] = dict(stl=str(dst.relative_to(ROOT)), frame="A" if name == "plate_v2e" else "M",
+                         volume_cm3=round(float(tm.volume) / 1e3, 2), mass_g_solid=round(float(tm.volume) / 1e3 * 1.24, 1),
+                         com_mm=np.round(com, 2).tolist(), bounds_mm=np.round(tm.bounds, 2).tolist(),
+                         watertight=bool(tm.is_watertight), bodies=len(tm.split(only_watertight=False)))
+        print(name, json.dumps(rec[name]), flush=True)
+    g = plate()
+    (cad / f"{STEM}_parts.json").write_text(json.dumps(dict(
+        parts=rec, probe=PROBE, layout={k: v for k, v in g["layout"].items()},
+        seats=[{k: v for k, v in s.items() if k in ("apex", "orient", "T_AF")} for s in g["seats"]],
+        when=time.strftime("%Y-%m-%d %H:%M")), indent=1, default=float) + "\n")
+
+
+# ------------------------------------------------------------------------------------------------ the scene's SDF (A)
+_TREES = {}
+_HULLS = {}
+
+
+def tip_trees():
+    """k-d trees of the held tip's surface in F: the pad, and the cassette with the trimmed cap and its screw heads."""
+    if not _TREES:
+        import trimesh
+        from scipy.spatial import cKDTree
+        for key, names in (("pad", ("pad",)), ("body", ("cover", "cap"))):
+            pts, nrm = [], []
+            for name in names:
+                m = CELL.part_F(name)
+                n = int(min(20000, max(500, m.area / 0.4 ** 2)))
+                pp, fi = trimesh.sample.sample_surface_even(m, n, seed=1)
+                pts.append(pp)
+                nrm.append(m.face_normals[fi])
+            P, Nn = np.vstack(pts), np.vstack(nrm)
+            _TREES[key] = (cKDTree(P), P, Nn)
+    return _TREES
+
+
+def _tree_sdf(PF, key):
+    tree, P, Nn = tip_trees()[key]
+    d, j = tree.query(PF, k=8)
+    s = np.einsum("ijk,ijk->i", PF[:, None, :] - P[j], Nn[j])
+    return d[:, 0] * np.where(s < 0.0, -1.0, 1.0)
+
+
+def hull_sdf(P, pts):
+    """ur5_cb3_cell._convex_sdf (a lower bound of the distance to the convex hull of pts), its planes kept between calls."""
+    pts = np.asarray(pts, float)
+    key = pts.round(4).tobytes()
+    eq = _HULLS.get(key)
+    if eq is None:
+        from scipy.spatial import ConvexHull
+        eq = _HULLS[key] = ConvexHull(pts).equations
+    return (P @ eq[:, :3].T + eq[:, 3]).max(axis=1)
+
+
+def seat_sdfs(PA, st, cut_near=None):
+    """Distances (mm) of points PA (A) to one seat: its block and support, its tip's body (cassette, cap, screw heads) with
+    the board, and its pad. cut_near (point in A, radius): the pad's distance left out for points that near the point."""
+    T = np.asarray(st["T_AF"], float)
+    PF = (PA - T[:3, 3]) @ T[:3, :3]
+    out = dict(block=np.minimum(CELL.sd_box(PF, *BLOCK_F), hull_sdf(PA, st["support"])))
+    zd, zp = CELL.TIP_F["z_ends"]
+    box = CELL.sd_box(PF, (-10.8, -10.7, zd - 1.6), (8.0, 10.7, zp))
+    near = box < 3.0
+    body, pad = box.copy(), box.copy()
+    if near.any():
+        body[near] = _tree_sdf(PF[near], "body")
+        pad[near] = _tree_sdf(PF[near], "pad")
+    out["tip body"] = np.min(np.stack([body] + [CELL.sd_box(PF, lo, hi) for _, lo, hi in CELL.held_board_boxes_F()]), axis=0)
+    if cut_near is not None:
+        pad = np.where(np.linalg.norm(PA - cut_near[0], axis=1) < cut_near[1], 1e9, pad)
+    out["pad"] = pad
+    return out
+
+
+def plate_sdfs(PA, g, T_BA, contact=None, reach=20.0):
+    """{part: distances (mm)} of points PA (A) to the plate v2e's parts, the seats and their tips, the 2x4s and the table.
+    contact = (seat index, contact point in A, radius): that seat's pad left out near the contact. Points more than reach
+    mm outside the plate's bounding box get the 2x4s and the table only (1e9 for the rest)."""
+    a = g["params"]
+    x0, x1, y0, y1, tb = a["base"]
+    out = {"2x4s, table": CELL.cell_sdf(PA, T_BA)}
+    m = ((PA[:, 0] > x0 - reach) & (PA[:, 0] < x1 + reach) & (PA[:, 1] > y0 - reach) & (PA[:, 1] < y1 + reach)
+         & (PA[:, 2] < g["zmax"] + reach))
+    if not m.any():
+        return out
+    P = PA[m]
+    parts = dict(base=CELL.sd_box(P, (x0, y0, 0.0), (x1, y1, tb)))
+    kd = g["key"]
+    bx, by = kd["k0"][0] + kd["margin"], kd["k0"][1] + kd["margin"]
+    for i, k in enumerate(g["keys"]):
+        L = (P - [k["c"][0], k["c"][1], 0.0]) @ IA._Rz(k["yaw"])
+        pts = [(sx * hx_, sy * hy_, z) for (hx_, hy_), z in ((kd["k0"], k["body_top"]), (kd["k1"], k["pin_top"]))
+               for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+        parts[f"key {i + 1}"] = np.minimum(CELL.sd_box(L, (-bx, -by, tb), (bx, by, k["body_top"])), hull_sdf(L, pts))
+    s = g["sphere5"]
+    Q = P - [s["c"][0], s["c"][1], 0.0]
+    parts["sphere5"] = np.minimum.reduce([CELL.sd_cyl_z(Q, s["col_r"], tb, s["z_col"]),
+                                          CELL.sd_capped_cone(Q, s["z_col"], s["z_neck"], s["r_col"], s["neck_r"]),
+                                          np.linalg.norm(Q - [0.0, 0.0, s["top"] - s["R"]], axis=1) - s["R"]])
+    r = g["rod"]
+    (cx, cy), hl = r["c"], r["half_len"]
+    Q = P - [cx, cy, 0.0]
+    parts["rod"] = np.minimum.reduce([CELL.sd_capped_cone(Q, tb, r["box_z0"], r["col_r"], r["r_top"]),
+                                      CELL.sd_box(P, (cx - r["R"], cy - hl, r["box_z0"]), (cx + r["R"], cy + hl, r["z_axis"])),
+                                      CELL.sd_cyl_y(P, r["R"], cy - hl, cy + hl, xz=(cx, r["z_axis"]))])
+    for i, st in enumerate(g["seats"]):
+        cut = (contact[1], contact[2]) if contact is not None and contact[0] == i else None
+        for k, v in seat_sdfs(P, st, cut_near=cut).items():
+            parts[f"seat {i + 1} {k}"] = v
+    for k, v in parts.items():
+        full = np.full(len(PA), 1e9)
+        full[m] = v
+        out[k] = full
+    return out
+
+
+# ------------------------------------------------------------------------------------------------ the context
+def context(layout=None, tool="sphere5"):
+    g = plate(layout)
+    reg = json.loads(TOOLREG.read_text())
+    T_BA, T_EM = np.array(reg["T_BI"], float), np.array(reg["T_EM"], float)
+    U_, _, Vt = np.linalg.svd(T_BA[:3, :3])                           # the registration's rotation, rounded in its file,
+    T_BA[:3, :3] = U_ @ Vt                                            # is 8e-5 off orthonormal
+    CELL.BOARD.update(json.loads(BOARD_PLAN.read_text())["checks"]["board"])
+    x0, x1, y0, y1, _ = g["params"]["base"]
+    CELL.BOARD["half_mm"] = 400.0
+    CELL.BOARD["block_half_mm"] = [max(-x0, x1) + 10.0, 500.0]
+    CELL.OTHER[:] = []
+    T_AM = np.array(g["keys"][1]["T_AM_home"], float)                 # homing on key 2, the probe's socket as the fork's
+    T_BE_home = T_BA @ T_AM @ C.inv(T_EM)
+    q_home = SIM.ik(T_BE_home, np.asarray(reg["q_home"], float))
+    BR[0] = branch_of(q_home)
+    surf = json.loads(SURFACE_PLAN.read_text())["geometry"]["surface"]
+    return dict(g=g, T_BA=T_BA, T_EM=T_EM, q_home=q_home, T_BE_home=T_BE_home, tool=tool,
+                pts_P=np.array(surf["pts"], float), nrm_P=np.array(surf["normals"], float))
+
+
+def region(n):
+    """The plan builder's regions of a pad normal in P (scripts/ur5_tip_calibration_r24_pass3.region)."""
+    if n[2] > 0.7:
+        return "tip"
+    if abs(n[1]) > 0.7:
+        return "flank"
+    return "face" if n[0] > 0.9 else ("edge" if n[0] > 0.5 else None)
+
+
+def joint_flags(q, owner=False):
+    """The path checker's limits on joints q (rad): a list of what fails (empty when none)."""
+    j = np.degrees(q)
+    why = []
+    if abs(math.sin(q[4])) < 0.5:
+        why.append("sin5")
+    q3 = abs(math.degrees(math.atan2(math.sin(q[2]), math.cos(q[2]))))
+    if q3 < 20.0:
+        why.append("q3")
+    if float(np.min(360.0 - np.abs(j))) < 10.0:
+        why.append("limit")
+    if not J5_WIN[0] <= j[4] <= J5_WIN[1]:
+        why.append("j5")
+    if not J6_WIN[0] <= j[5] <= (J6_OWNER if owner else J6_WIN[1]):
+        why.append("j6")
+    if not why:
+        w = CELL.link_frames(q)["wrist_1_link"][:3, 3]
+        if math.hypot(w[0], w[1]) < 150.0:
+            why.append("shoulder")
+    return why
+
+
+_ROBOT = {}
+
+
+def robot_pts():
+    if not _ROBOT:
+        _ROBOT.update(CELL.robot_points())
+    return _ROBOT
+
+
+def clearance(q, ctx, contact=None, groups=None):
+    """{group: (least distance (mm), the part)} of the robot's links, the HEX-E, the adapter and probe base, the tool's
+    stem and end at joints q, and the port's distance to the arm."""
+    g, T_BA, T_EM = ctx["g"], ctx["T_BA"], ctx["T_EM"]
+    T_AB = C.inv(T_BA)
+    LF = CELL.link_frames(q)
+    res = {}
+
+    def upd(grp, d):
+        for part, v in d.items():
+            m = float(v.min())
+            if m < res.get(grp, (1e9, ""))[0]:
+                res[grp] = (m, part)
+
+    for ln, p in robot_pts().items():
+        upd("robot", plate_sdfs(C.apply(T_AB @ LF[ln], p), g, T_BA, contact))
+    T_AM = T_AB @ LF["tool0"] @ T_EM
+    for name, p in probe_points(ctx["tool"]).items():
+        grp = next((k for k, v in GROUPS.items() if name in v), "robot")
+        if groups and grp not in groups:
+            continue
+        PA = C.apply(T_AM, p)
+        sd = plate_sdfs(PA, g, T_BA, contact if name == "tool_tip" else None)
+        upd(grp, sd)
+    pe = CELL.port_points()
+    port = min(float(tree.query(C.apply(C.inv(LF[ln]) @ LF["tool0"], pe))[0].min()) for ln, tree in CELL._self_trees().items())
+    res["port"] = (port, "arm")
+    return res
+
+
+def clear_flags(cl):
+    why = [f"{grp} {cl[grp][0]:.2f} mm to the {cl[grp][1]}" for grp, need in NEED.items() if cl.get(grp, (1e9,))[0] < need]
+    if cl.get("port", (1e9,))[0] < PORT_MM:
+        why.append(f"port {cl['port'][0]:.1f} mm to the arm")
+    return why
+
+
+# ------------------------------------------------------------------------------------------------ the search
+def fib_dirs(n=400):
+    i = np.arange(n) + 0.5
+    phi, th = np.arccos(1 - 2 * i / n), math.pi * (1 + 5 ** 0.5) * i
+    return np.c_[np.cos(th) * np.sin(phi), np.sin(th) * np.sin(phi), np.cos(phi)]
+
+
+U_ALL = fib_dirs(400)
+U_ROBOT = np.array([-1.0, 0.0, 1.2]) / math.hypot(1.0, 1.2)     # a stem toward the robot and up
+Q6_TRY = (0.0, -30.0, 30.0, -55.0, 40.0)
+
+
+def frames_for(u, xref=np.array([0.0, 0.0, 1.0])):
+    """Rotations (K, 3, 3) of M in A with z_M = -u and x_M the nearest to xref."""
+    z = -np.atleast_2d(u)
+    x = xref[None, :] - (z @ xref)[:, None] * z
+    bad = np.linalg.norm(x, axis=1) < 1e-6
+    x[bad] = np.array([1.0, 0.0, 0.0]) - (z[bad] @ np.array([1.0, 0.0, 0.0]))[:, None] * z[bad]
+    x /= np.linalg.norm(x, axis=1, keepdims=True)
+    y = np.cross(z, x)
+    return np.stack([x, y, z], axis=2)
+
+
+def pose_B(ctx, R_AM, c_A, zc):
+    """Flange poses (K, 4, 4) in B for M at rotations R_AM with the tool's reference point (z_M zc) at c_A."""
+    K = len(R_AM)
+    T = np.tile(np.eye(4), (K, 1, 1))
+    T[:, :3, :3] = R_AM
+    T[:, :3, 3] = np.asarray(c_A, float).reshape(-1, 3) - R_AM[:, :, 2] * zc
+    return ctx["T_BA"][None] @ T @ C.inv(ctx["T_EM"])[None]
+
+
+def turned(T_BE, T_EM, deg):
+    """The flange pose with the tool turned deg about its own axis z_M (the registered mount stands 0.4 mm and 0.3 deg off
+    the flange's axis, so a turn of joint 6 alone would move the tool's end)."""
+    return T_BE @ T_EM @ C.Tm(C.rot([0.0, 0.0, 1.0], deg)) @ C.inv(T_EM)
+
+
+def try_poses(ctx, T_rest, T_deep, sym, owner, contact, need_clear=True):
+    """Joints and clearances of one press's rest and deep flange poses. sym: the tool may turn about its axis; the turns
+    that bring joint 6 to each of Q6_TRY are tried in that order. (ok, info) with the poses and joints that passed."""
+    q0 = ik_near(T_rest[None], ctx["q_home"], free6=sym, branch=BR[0])[0]
+    if not np.isfinite(q0).all():
+        return False, dict(why=["ik"])
+    targets = Q6_TRY if sym else (math.degrees(q0[5]),)
+    last = None
+    for tgt in targets:
+        tdeg = tgt - math.degrees(q0[5])
+        Tr, Td = (turned(T_rest, ctx["T_EM"], tdeg), turned(T_deep, ctx["T_EM"], tdeg)) if sym else (T_rest, T_deep)
+        ref = q0.copy()
+        ref[5] = math.radians(tgt)
+        qr = ik_near(Tr[None], ref, branch=BR[0])[0]
+        qd = ik_near(Td[None], qr, branch=BR[0])[0] if np.isfinite(qr).all() else qr
+        if not (np.isfinite(qr).all() and np.isfinite(qd).all()):
+            last = dict(why=["ik"])
+            continue
+        why = sorted(set(joint_flags(qr, owner) + joint_flags(qd, owner)))
+        if not why and not all(J5_SEARCH[0] <= math.degrees(v[4]) <= J5_SEARCH[1] for v in (qr, qd)):
+            why = ["j5"]
+        if not why and not all(abs(math.degrees(math.atan2(math.sin(v[2]), math.cos(v[2])))) >= Q3_SEARCH for v in (qr, qd)):
+            why = ["q3"]
+        if why:
+            last = dict(why=why)
+            continue
+        info = dict(T_rest=Tr, T_deep=Td, q=qr, qd=qd, j5=round(math.degrees(qr[4]), 1), j6=round(math.degrees(qr[5]), 1))
+        if not need_clear:
+            return True, info
+        cl, why = {}, []
+        for qq in (qr, qd):
+            for k, v in clearance(qq, ctx, contact).items():
+                if v[0] < cl.get(k, (1e9, ""))[0]:
+                    cl[k] = v
+            why = clear_flags(cl)
+            if why:
+                break
+        info["clear"] = {k: [round(v[0], 2), v[1]] for k, v in cl.items()}
+        if not why:
+            return True, info
+        last = dict(why=why, clear=info["clear"])
+        if not all(w.startswith("port") for w in why):            # another turn of joint 6 moves only the port
+            return False, last
+    return False, last or dict(why=["ik"])
+
+
+def search_sphere(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=True):
+    """The first stem direction, in the order of preference, at which a sphere press at pad point p (A) with outward
+    normal n and push direction d passes. The stems tried point away from the pad (u.n >= -0.2) and not steeply down
+    (u_z >= -0.5); the preferred one lies between the normal and U_ROBOT."""
+    zc = tool_end_z("sphere5")
+    c = p + PROBE["sphere"]["R"] * n
+    keep = (U_ALL @ n >= -0.2) & (U_ALL[:, 2] >= -0.5)
+    U = U_ALL[keep]
+    pref = n + U_ROBOT
+    pref /= np.linalg.norm(pref)
+    U = U[np.argsort(-(U @ pref))]
+    Rs = frames_for(U)
+    T_rest = pose_B(ctx, Rs, np.tile(c - ST * d, (len(U), 1)), zc)
+    T_deep = pose_B(ctx, Rs, np.tile(c + DEEP * d, (len(U), 1)), zc)
+    Q = ik_near(T_rest, ctx["q_home"], free6=True, branch=BR[0])
+    fin = np.isfinite(Q).all(axis=1)
+    j5 = np.degrees(np.where(fin, Q[:, 4], 0.0))
+    cand = np.flatnonzero(fin & (j5 >= J5_SEARCH[0]) & (j5 <= J5_SEARCH[1]))
+    if not len(cand):
+        return False, dict(why={"j5" if fin.any() else "ik": int(len(U))}, n_u=0)
+    why, n_try = {}, 0
+    contact = (seat_i, p, EXCL["sphere5"])
+    for k in cand:
+        ok, info = try_poses(ctx, T_rest[k], T_deep[k], True, owner, contact, need_clear)
+        if ok:
+            info.update(u=np.round(U[k], 3).tolist(), c=c, n_u=int(len(cand)), tried=n_try + 1)
+            return True, info
+        for w in info.get("why", []):
+            key = w.split(" mm to the ")[0].split()[0] if " mm to the " in w else w.split()[0]
+            why[key] = why.get(key, 0) + 1
+        if "clear" in info:
+            n_try += 1
+            if n_try >= max_clear:
+                break
+    return False, dict(why=why, n_u=int(len(cand)))
+
+
+def twist_ok(ctx, seat_i, p, n, info, deg, owner=False, need_clear=True):
+    """A found press turned deg about the pad's normal through the contact at its depth (the sphere spins in place)."""
+    R_BA = ctx["T_BA"][:3, :3]
+    c_B = C.apply(ctx["T_BA"], info["c"] + DEEP * (-n))
+    Td = C.turn_about(info["T_deep"], c_B, R_BA @ n, deg)
+    ref = info["qd"].copy()
+    ref[5] += math.radians(deg) * float(np.sign((R_BA @ n) @ info["T_deep"][:3, 2]) or 1.0)
+    qd = ik_near(Td[None], ref, branch=BR[0])[0]
+    if not np.isfinite(qd).all() or joint_flags(qd, owner):
+        return False
+    if not need_clear:
+        return True
+    return not clear_flags(clearance(qd, ctx, (seat_i, p, EXCL["sphere5"])))
+
+
+def tangent_basis(n, axis):
+    """Two unit tangents at a pad point with outward normal n: along the projection of the tip's axis, and across."""
+    t1 = axis - (axis @ n) * n
+    if np.linalg.norm(t1) < 1e-6:
+        t1 = np.cross(n, [1.0, 0.0, 0.0]) if abs(n[0]) < 0.9 else np.cross(n, [0.0, 1.0, 0.0])
+    t1 /= np.linalg.norm(t1)
+    return t1, np.cross(n, t1)
+
+
+def thin_idx(pts, mm):
+    if mm <= 0:
+        return np.arange(len(pts))
+    keep = []
+    for i, p in enumerate(pts):
+        if all(np.linalg.norm(p - pts[j]) >= mm for j in keep):
+            keep.append(i)
+    return np.array(keep)
+
+
+def cmd_reach(a):
+    """Which pad points and force directions a sphere press reaches on a seat (the middle seat by default) for each
+    orientation of --orient."""
+    t0 = time.time()
+    orients = a.orient.split(",")
+    thetas = [float(v) for v in a.thetas.split(",") if v]
+    azim = np.arange(a.azimuths) * 360.0 / a.azimuths
+    res = dict(what="probe presses (5 mm sphere) on the held tip of one seat of plate v2e, by pad point and push direction",
+               probe=PROBE, need=NEED, windows=dict(j5=J5_WIN, j6=J6_WIN, j6_owner=J6_OWNER, port_mm=PORT_MM),
+               standoff_mm=ST, deep_mm=DEEP, thetas=thetas, azimuths=azim.tolist(), thin_mm=a.thin, seat=a.seat,
+               joints_only=bool(a.joints_only), h=a.h, orients={})
+    dst = (Path(a.out) if a.out else OUT / "data" / f"{STEM}_reach{'_joints' if a.joints_only else ''}_h{a.h:g}.json").resolve()
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if dst.exists() and a.resume:
+        res["orients"] = json.loads(dst.read_text()).get("orients", {})
+    for o in orients:
+        if o in res["orients"]:
+            print(f"{o}: done before, kept", flush=True)
+            continue
+        ctx = context(dict(orient=o, seat_h=a.h))
+        st = ctx["g"]["seats"][a.seat]
+        T = np.asarray(st["T_AF"], float) @ T_FP
+        P_A, N_A = C.apply(T, ctx["pts_P"]), ctx["nrm_P"] @ T[:3, :3].T
+        axis = -np.asarray(st["T_AF"], float)[:3, 2]                     # the tip's distal direction in A
+        regs = [region(v) for v in ctx["nrm_P"]]
+        idx = [i for i in thin_idx(ctx["pts_P"], a.thin) if regs[i]]
+        if a.limit:
+            idx = idx[::max(1, len(idx) // a.limit)]
+        rows = []
+        for m, i in enumerate(idx):
+            p, n = P_A[i], N_A[i]
+            ok, info = search_sphere(ctx, a.seat, p, n, -n, need_clear=not a.joints_only)
+            row = dict(i=int(i), region=regs[i], p_P=np.round(ctx["pts_P"][i], 3).tolist(), normal=bool(ok),
+                       normal_info={k: v for k, v in info.items() if k in ("u", "j5", "j6", "clear", "why", "n_u", "tried")})
+            if ok and not a.no_twist:
+                row["twist"] = [tw for tw in (-15.0, 15.0)
+                                if twist_ok(ctx, a.seat, p, n, info, tw, need_clear=not a.joints_only)]
+            t1, t2 = tangent_basis(n, axis)
+            obl = {}
+            for th in thetas:
+                hits = []
+                for az in azim:
+                    t = math.cos(math.radians(az)) * t1 + math.sin(math.radians(az)) * t2
+                    d = -(math.cos(math.radians(th)) * n + math.sin(math.radians(th)) * t)
+                    hits.append(bool(search_sphere(ctx, a.seat, p, n, d, need_clear=not a.joints_only, max_clear=3)[0]))
+                obl[f"{th:g}"] = hits
+            row["oblique"] = obl
+            rows.append(row)
+            if m % 20 == 0:
+                print(f"{o}: {m + 1}/{len(idx)} points, {time.time() - t0:.0f} s", flush=True)
+        summ = {}
+        for rg in ("face", "edge", "flank", "tip"):
+            sel = [r for r in rows if r["region"] == rg]
+            if not sel:
+                continue
+            s = dict(n=len(sel), normal=sum(r["normal"] for r in sel), twist=sum(len(r.get("twist", [])) == 2 for r in sel))
+            for th in thetas:
+                k = f"{th:g}"
+                s[f"oblique{k}_any"] = sum(any(r["oblique"][k]) for r in sel)
+                s[f"oblique{k}_all"] = sum(all(r["oblique"][k]) for r in sel)
+                s[f"oblique{k}_share"] = round(float(np.mean([np.mean(r["oblique"][k]) for r in sel])), 3)
+            summ[rg] = s
+        res["orients"][o] = dict(seat=st["apex"], summary=summ, rows=rows, seconds=round(time.time() - t0, 1))
+        print(o, json.dumps(summ), flush=True)
+        dst.write_text(json.dumps(res, default=float) + "\n")
+    print(f"-> {dst.relative_to(ROOT)} in {time.time() - t0:.0f} s")
+
+
+# ------------------------------------------------------------------------------------------------ a plan and its moves
+RETRACT, SAFE = 12.0, 45.0          # mm back along the stem between near presses, and before a joint move
+
+
+def _slerp(T0, T1, s):
+    from scipy.spatial.transform import Rotation, Slerp
+    r = Slerp([0.0, 1.0], Rotation.from_matrix([T0[:3, :3], T1[:3, :3]]))(s).as_matrix()
+    return C.Tm(r, (1 - s) * T0[:3, 3] + s * T1[:3, 3])
+
+
+def segment_samples(seg, q0):
+    """Joints along a move ('L' straight in the flange's pose every 2 mm and 1 deg, 'J' in joints every 1 deg of the
+    largest joint's travel), each from the previous; None where the inverse kinematics has no solution."""
+    kind, T0, T1 = seg[:3]
+    if kind == "J":                                     # to the solution nearest the hint (the action's own branch)
+        q1 = ik_near(T1[None], seg[3] if len(seg) > 3 else q0, branch=BR[0])[0]
+        if not np.isfinite(q1).all():
+            return None
+        n = max(2, int(math.ceil(math.degrees(np.max(np.abs(q1 - q0))))) + 1)
+        return [(None, q0 + (q1 - q0) * s) for s in np.linspace(0.0, 1.0, n)]
+    mm, deg = C.pose_error(T0, T1)
+    n = max(2, int(math.ceil(max(mm / 2.0, deg))) + 1)
+    out, q = [], q0
+    for s in np.linspace(0.0, 1.0, n):
+        T = _slerp(T0, T1, s)
+        q = ik_near(T[None], q, branch=BR[0])[0]
+        if not np.isfinite(q).all():
+            return None
+        out.append((T, q))
+    return out
+
+
+def back_along(T_BE, ctx, mm):
+    """The flange pose moved mm back along the tool's axis (toward the HEX-E)."""
+    z_B = (T_BE @ ctx["T_EM"])[:3, 2]
+    return C.Tm(T_BE[:3, :3], T_BE[:3, 3] - z_B * mm)
+
+
+def build_plan(ctx, seat_i, a):
+    """Probe presses on one seat's tip: normal presses at the pad points a.spacing mm apart that a press reaches, oblique
+    presses (a.thetas at a.azimuths) at every a.obl_every-th of them, twists of +-15 deg at every 4th face and edge
+    point, and the reference press at the point nearest the face's apex first, every 25 actions and last."""
+    st = ctx["g"]["seats"][seat_i]
+    T = np.asarray(st["T_AF"], float) @ T_FP
+    P_A, N_A = C.apply(T, ctx["pts_P"]), ctx["nrm_P"] @ T[:3, :3].T
+    axis = -np.asarray(st["T_AF"], float)[:3, 2]
+    regs = [region(v) for v in ctx["nrm_P"]]
+    idx = [i for i in thin_idx(ctx["pts_P"], a.spacing) if regs[i]]
+    i_ref = int(np.argmin(np.linalg.norm(ctx["pts_P"] - [8.5, 0.0, 10.86], axis=1)))
+    thetas = [float(v) for v in a.thetas.split(",") if v]
+    azim = np.arange(a.azimuths) * 360.0 / a.azimuths
+    acts, k_face = [], 0
+
+    def add(aid, kind, i, d, theta=0.0, az=0.0, twist=0.0):
+        ok, info = search_sphere(ctx, seat_i, P_A[i], N_A[i], d, need_clear=not a.joints_only)
+        if not ok or (twist and not twist_ok(ctx, seat_i, P_A[i], N_A[i], info, twist, need_clear=not a.joints_only)):
+            return False
+        acts.append(dict(id=aid, kind=kind, i=int(i), region=regs[i], theta=theta, azimuth=az, twist=twist,
+                         p_P=np.round(ctx["pts_P"][i], 3).tolist(), n_P=np.round(ctx["nrm_P"][i], 4).tolist(),
+                         n_A=np.round(N_A[i], 5).tolist(), d_A=np.round(d, 4).tolist(), u_A=info["u"], T_rest=info["T_rest"], T_deep=info["T_deep"],
+                         q_rest=info["q"],
+                         levels=[0.5, 1.0, 2.0] if regs[i] in ("flank", "tip") else [0.5, 1.0, 2.0, 3.0]))
+        return True
+
+    for m, i in enumerate(idx):
+        n = N_A[i]
+        if not add(f"probe-{regs[i]}-{i:03d}", "press", i, -n):
+            continue
+        t1, t2 = tangent_basis(n, axis)
+        if m % a.obl_every == 0:
+            for th in thetas:
+                for az in azim:
+                    t = math.cos(math.radians(az)) * t1 + math.sin(math.radians(az)) * t2
+                    d = -(math.cos(math.radians(th)) * n + math.sin(math.radians(th)) * t)
+                    add(f"probe-{regs[i]}-{i:03d}-o{th:g}-a{az:g}", "oblique", i, d, th, az)
+        if regs[i] in ("face", "edge"):
+            k_face += 1
+            if k_face % 4 == 0:
+                for tw in (-15.0, 15.0):
+                    add(f"probe-{regs[i]}-{i:03d}-t{tw:+g}", "twist", i, -n, twist=tw)
+    # order: by the stem's direction (its azimuth about the vertical, then its elevation), the reference press between
+    key = [(round(math.degrees(math.atan2(x["u_A"][1], x["u_A"][0])) / 20.0), x["u_A"][2]) for x in acts]
+    acts = [acts[j] for j in sorted(range(len(acts)), key=lambda j: key[j])]
+    ref = acts.pop() if add("probe-ref", "reference", i_ref, -N_A[i_ref]) else None
+    out = []
+    for j, x in enumerate(acts):
+        if ref is not None and j % 25 == 0:
+            out.append(dict(ref, id=f"probe-ref-{j // 25:02d}"))
+        out.append(x)
+    if ref is not None:
+        out.append(dict(ref, id="probe-ref-final"))
+    return out, P_A, N_A
+
+
+def own_moves(ctx, act):
+    """An action's own segments from its rest: the press to its depth, a twist there (about the pad's normal through the
+    sphere's centre, in 16 steps, and back) and back to the rest."""
+    Tr, Td = act["T_rest"], act["T_deep"]
+    segs = [("L", Tr, Td)]
+    if act["kind"] == "twist":
+        n_B = ctx["T_BA"][:3, :3] @ np.asarray(act["n_A"], float)
+        TM = Td @ ctx["T_EM"]
+        c_B = TM[:3, 3] + TM[:3, 2] * tool_end_z("sphere5")
+        T = Td
+        for s in np.linspace(0.0, 1.0, 16)[1:]:
+            T1 = C.turn_about(Td, c_B, n_B, act["twist"] * s)
+            segs.append(("L", T, T1))
+            T = T1
+        segs.append(("L", T, Td))
+    segs.append(("L", Td, Tr))
+    return segs
+
+
+def travel_options(ctx, T_prev, q_prev, act):
+    """The ways from the previous rest (or the homing pose) to an action's rest, in the order they are tried: straight
+    (back RETRACT mm along the stem, across, in) when the stems differ by 20 deg or less and the rests by 30 mm or less; a
+    joint move between poses SAFE mm back along each stem; that joint move by way of the hub over the seat."""
+    Tr, qa = act["T_rest"], act["q_rest"]
+    a1 = back_along(Tr, ctx, SAFE)
+    Th, qh = ctx["hub"]
+    if T_prev is None:
+        T0 = fk_many(q_prev[None])[0]
+        return [("joint", [("J", T0, a1, qa), ("L", a1, Tr)]), ("hub", [("J", T0, Th, qh), ("J", Th, a1, qa), ("L", a1, Tr)])]
+    out = []
+    mm, deg = C.pose_error(T_prev, Tr)
+    if deg <= 20.0 and mm <= 30.0:
+        b0, b1 = back_along(T_prev, ctx, RETRACT), back_along(Tr, ctx, RETRACT)
+        out.append(("straight", [("L", T_prev, b0), ("L", b0, b1), ("L", b1, Tr)]))
+    a0 = back_along(T_prev, ctx, SAFE)
+    out += [("joint", [("L", T_prev, a0), ("J", a0, a1, qa), ("L", a1, Tr)]),
+            ("hub", [("L", T_prev, a0), ("J", a0, Th, qh), ("J", Th, a1, qa), ("L", a1, Tr)])]
+    return out
+
+
+def sample_all(segs, q, owner):
+    """Samples of consecutive segments from joints q: [(segment index, kind, k, n, T or None, q)], the joint flags."""
+    out, why = [], []
+    for si, seg in enumerate(segs):
+        sm = segment_samples(seg, q)
+        if sm is None:
+            return out, why + [f"no IK on segment {si}"]
+        for k, (T, qq) in enumerate(sm):
+            why += [f"{w} on segment {si}" for w in joint_flags(qq, owner)]
+            out.append((si, seg[0], k, len(sm), T, qq))
+        q = sm[-1][1]
+    return out, sorted(set(why))
+
+
+def hub(ctx, seat_i):
+    """A pose over the seat for joint moves that would pass a singularity or leave a window: the sphere's centre 90 mm over
+    the pad's apex and 60 mm toward the robot, the stem up and back toward the robot, joint 6 near 0; (T_BE, q)."""
+    apex = np.asarray(ctx["g"]["seats"][seat_i]["apex"], float)
+    for dx, dz, ux in ((-60.0, 90.0, -0.5), (-40.0, 120.0, -0.3), (-80.0, 70.0, -0.7), (0.0, 110.0, 0.0)):
+        u = np.array([ux, 0.0, 1.0]) / math.hypot(ux, 1.0)
+        T = pose_B(ctx, frames_for(u[None]), (apex + [dx, 0.0, dz])[None], tool_end_z("sphere5"))[0]
+        ok, info = try_poses(ctx, T, T, True, False, None, need_clear=False)
+        if ok:
+            return info["T_rest"], info["q"]
+    raise RuntimeError("no hub pose over the seat")
+
+
+def cmd_replay(a):
+    """A probe plan on one seat (build_plan) replayed move by move: the joints at every sample, the clearances at every
+    sample of a straight move and every 5th of a joint move."""
+    t0 = time.time()
+    ctx = context(dict(orient=a.orient, seat_h=a.h))
+    ctx["seat"] = a.seat
+    ctx["hub"] = hub(ctx, a.seat)
+    acts, P_A, N_A = build_plan(ctx, a.seat, a)
+    print(f"{len(acts)} actions on seat {a.seat + 1} ({a.orient}), built in {time.time() - t0:.0f} s", flush=True)
+    q = np.asarray(ctx["q_home"], float)
+    T_prev, rows, n_way = None, [], {}
+    for x in acts:
+        contact = (a.seat, P_A[x["i"]], EXCL["sphere5"])
+        best = None
+        for w, segs in travel_options(ctx, T_prev, q, x):
+            sm, why = sample_all(segs, q, a.owner)
+            if best is None or not why:
+                best = (w, segs, sm, why)
+            if not why:
+                break
+        w, tsegs, tsm, why = best
+        n_way[w] = n_way.get(w, 0) + 1
+        q_t = tsm[-1][5] if tsm else q
+        osm, why_o = sample_all(own_moves(ctx, x), q_t, a.owner)
+        why = list(why) + [f"{v} (own)" for v in why_o]
+        cl, j5r, j6r = {}, [1e9, -1e9], [1e9, -1e9]
+        for part, sms in (("travel", tsm), ("own", osm)):
+            for si, kind, k, n, T, qq in sms:
+                j5r = [min(j5r[0], math.degrees(qq[4])), max(j5r[1], math.degrees(qq[4]))]
+                j6r = [min(j6r[0], math.degrees(qq[5])), max(j6r[1], math.degrees(qq[5]))]
+                if not a.joints_only and (kind == "L" or k % 5 == 0 or k == n - 1):
+                    for g_, v in clearance(qq, ctx, contact if part == "own" else None).items():
+                        if v[0] < cl.get(g_, (1e9, ""))[0]:
+                            cl[g_] = v
+        q = osm[-1][5] if osm else q_t
+        why = why + clear_flags(cl)
+        rows.append(dict(id=x["id"], kind=x["kind"], region=x["region"], travel=w, flags=why,
+                         clear={k: [round(v[0], 2), v[1]] for k, v in cl.items()},
+                         j5_deg=np.round(j5r, 1).tolist(), j6_deg=np.round(j6r, 1).tolist()))
+        if why:
+            print(f"  {x['id']}: {'; '.join(why)}", flush=True)
+        T_prev = x["T_rest"]
+    least = {}
+    for r in rows:
+        for k, (v, part) in r["clear"].items():
+            if v < least.get(k, (1e9, ""))[0]:
+                least[k] = (v, part)
+    kinds = {}
+    for x in acts:
+        kinds[x["kind"]] = kinds.get(x["kind"], 0) + 1
+    plan = dict(version=1, created=time.strftime("%Y-%m-%d"), kind="probe", seat=a.seat, orient=a.orient,
+                seat_apex_A=ctx["g"]["seats"][a.seat]["apex"], T_BA=ctx["T_BA"].round(6).tolist(),
+                T_EM=ctx["T_EM"].round(6).tolist(), probe=PROBE, tool="sphere5",
+                notes=[f"{time.strftime('%Y-%m-%d %H:%M')}, workstation: scripts/ur5_inverted_rig.py replay. A probe plan for "
+                       "the inverted rig, written for the path check and the page; the lab program has no probe mode yet."],
+                actions=[{k: (np.round(v, 5).tolist() if isinstance(v, np.ndarray) else v) for k, v in x.items()}
+                         for x in acts])
+    dst = OUT / "data" / f"{STEM}_plan_{a.orient}_seat{a.seat + 1}.json"
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(json.dumps(plan, default=float) + "\n")
+    out = dict(plan=str(dst.relative_to(ROOT)), n=len(rows), kinds=kinds, flagged=sum(bool(r["flags"]) for r in rows),
+               travel=n_way,
+               least={k: [round(v[0], 2), v[1]] for k, v in least.items()}, joints_only=bool(a.joints_only),
+               j5_deg=[min(r["j5_deg"][0] for r in rows), max(r["j5_deg"][1] for r in rows)],
+               j6_deg=[min(r["j6_deg"][0] for r in rows), max(r["j6_deg"][1] for r in rows)],
+               seconds=round(time.time() - t0, 1), rows=rows)
+    dst2 = OUT / "data" / f"{STEM}_paths_{a.orient}_seat{a.seat + 1}{'_joints' if a.joints_only else ''}.json"
+    dst2.write_text(json.dumps(out, default=float) + "\n")
+    print(json.dumps({k: v for k, v in out.items() if k != "rows"}), flush=True)
+    print(f"-> {dst.relative_to(ROOT)}, {dst2.relative_to(ROOT)}")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    ik = sub.add_parser("ik-check")
+    ik.add_argument("--n", type=int, default=200)
+    sub.add_parser("build")
+    rp = sub.add_parser("replay")
+    rp.add_argument("--orient", default=LAYOUT["orient"])
+    rp.add_argument("--h", type=float, default=LAYOUT["seat_h"])
+    rp.add_argument("--seat", type=int, default=1)
+    rp.add_argument("--spacing", type=float, default=2.0, help="normal presses at pad points this far apart (mm)")
+    rp.add_argument("--thetas", default="20,35")
+    rp.add_argument("--azimuths", type=int, default=4)
+    rp.add_argument("--obl-every", type=int, default=3)
+    rp.add_argument("--owner", action="store_true", help="joint 6 to +60 deg (the owner present)")
+    rp.add_argument("--joints-only", action="store_true")
+    r = sub.add_parser("reach")
+    r.add_argument("--orient", default=",".join(ORIENT))
+    r.add_argument("--h", type=float, default=LAYOUT["seat_h"], help="the seats' apex height over the base's underside (mm)")
+    r.add_argument("--seat", type=int, default=1, help="which seat's tip is pressed (0, 1, 2 from -y)")
+    r.add_argument("--thin", type=float, default=1.0, help="pad points at least this far apart (mm); 0 for all 812")
+    r.add_argument("--thetas", default="20,35", help="push directions this far from the inward normal (deg)")
+    r.add_argument("--azimuths", type=int, default=6)
+    r.add_argument("--no-twist", action="store_true")
+    r.add_argument("--joints-only", action="store_true", help="joints and windows only, no clearances (no meshes)")
+    r.add_argument("--limit", type=int, default=0)
+    r.add_argument("--out", default="")
+    r.add_argument("--resume", action="store_true", help="keep the orientations already in --out")
+    a = ap.parse_args()
+    dict(**{"ik-check": cmd_ik_check}, build=cmd_build, reach=cmd_reach, replay=cmd_replay)[a.cmd](a)
+
+
+if __name__ == "__main__":
+    main()
