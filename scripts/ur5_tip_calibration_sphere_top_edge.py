@@ -9,7 +9,9 @@ clearances at the rest and 1 mm past the surface. Points within --gap mm of a pr
 out, and the rest are thinned to --spacing mm. Each press takes the turn nearest 10 deg of its reachable ones and the
 tip's levels, 0.25 to 2 N (edges to 3 N). The plan opens with a reference press at the face centre (index 788, as every
 sphere plan), keeps the presses in --order, and closes with the same reference. Ids start with "sph-top-", which no
-earlier plan used. The header (geometry, checks, travel) is --base-plan's, with travel.lift_mm --lift and travel.speed 1.0.
+earlier plan used. The header (geometry, checks, travel) is --base-plan's, with travel.lift_mm --lift (60 mm) and travel.speed 1.0. With --paths, presses the
+check flagged (on the lab's proxy of 19:1x, tip-398, -399 and -401 brought the cap within 0.60 to 0.78 mm of the sphere at
+their 2 N depth) or with the elbow under --elbow-min go, and the next candidates take their places.
 
     .venv/bin/python scripts/ur5_tip_calibration_sphere_top_edge.py REACH.json --base-plan lab/<v3 ID 1 sphere plan> \\
         [--max 10] [--order id1,id2,...] --out lab/<date>-plan_sphere_lab_top_edge_v3id1.json
@@ -58,7 +60,9 @@ def main():
                     "with the elbow under --elbow-min deg go, and the rest run nearest a limit first (the least of the elbow "
                     "over --elbow-min and joint 5's and joint 6's margins)")
     ap.add_argument("--elbow-min", type=float, default=20.0)
-    ap.add_argument("--lift", type=float, default=20.0)
+    ap.add_argument("--lift", type=float, default=60.0, help="travel.lift_mm: 60 as the sphere's plans (the lab, 19:1x: at "
+                    "20 mm the joint move from the reference to the first top press swept the fork 3.9 mm into the sphere's "
+                    "model; 20 mm was the owner's request for the tall plans only)")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     R = json.loads(Path(a.reach).read_text())
@@ -87,12 +91,13 @@ def main():
     ids = [i for i in a.order.split(",") if i in acts] if a.order else []
     if a.paths:
         rows = {r["id"]: r for r in json.loads(Path(a.paths).read_text())["rows"]}
-        low = [i for i in acts if i in rows and rows[i]["q3"] < a.elbow_min]
+        low = [i for i in acts if i in rows and (rows[i]["q3"] < a.elbow_min or rows[i].get("flags"))]
         for i in low:
             acts.pop(i)
         near = lambda i: min(rows[i]["q3"] - a.elbow_min, rows[i]["j5_margin"], rows[i]["j6_margin"])  # noqa: E731
         ids = sorted([i for i in acts if i in rows], key=near)
-        print(f"--paths: {len(low)} presses with the elbow under {a.elbow_min:g} deg left out ({', '.join(low)})")
+        print(f"--paths: {len(low)} presses flagged or with the elbow under {a.elbow_min:g} deg left out ({', '.join(low)}); "
+              f"the next candidates fill to --max and need the check again")
     ids += [i for i in acts if i not in ids]
     ids = ids[: a.max]
     base = json.loads(Path(a.base_plan).read_text())
