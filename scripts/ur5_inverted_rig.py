@@ -911,7 +911,7 @@ def cmd_reach(a):
         res["orients"][o] = dict(seat=st["apex"], summary=summ, rows=rows, seconds=round(time.time() - t0, 1))
         print(o, json.dumps(summ), flush=True)
         dst.write_text(json.dumps(res, default=float) + "\n")
-    print(f"-> {dst.relative_to(ROOT)} in {time.time() - t0:.0f} s")
+    print(f"-> {dst} in {time.time() - t0:.0f} s")
 
 
 # ------------------------------------------------------------------------------------------------ a plan and its moves
@@ -1132,19 +1132,20 @@ def cmd_replay(a):
                        "the inverted rig, written for the path check and the page; the lab program has no probe mode yet."],
                 actions=[{k: (np.round(v, 5).tolist() if isinstance(v, np.ndarray) else v) for k, v in x.items()}
                          for x in acts])
-    dst = OUT / "data" / f"{STEM}_plan_{a.orient}_seat{a.seat + 1}.json"
+    odir = Path(a.out_dir).resolve() if a.out_dir else OUT / "data"
+    dst = odir / f"{STEM}_plan_{a.orient}_seat{a.seat + 1}.json"
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(json.dumps(plan, default=float) + "\n")
-    out = dict(plan=str(dst.relative_to(ROOT)), n=len(rows), kinds=kinds, flagged=sum(bool(r["flags"]) for r in rows),
+    out = dict(plan=str(dst.relative_to(ROOT)) if ROOT in dst.parents else str(dst), n=len(rows), kinds=kinds, flagged=sum(bool(r["flags"]) for r in rows),
                travel=n_way,
                least={k: [round(v[0], 2), v[1]] for k, v in least.items()}, joints_only=bool(a.joints_only),
                j5_deg=[min(r["j5_deg"][0] for r in rows), max(r["j5_deg"][1] for r in rows)],
                j6_deg=[min(r["j6_deg"][0] for r in rows), max(r["j6_deg"][1] for r in rows)],
                seconds=round(time.time() - t0, 1), rows=rows)
-    dst2 = OUT / "data" / f"{STEM}_paths_{a.orient}_seat{a.seat + 1}{'_joints' if a.joints_only else ''}.json"
+    dst2 = odir / f"{STEM}_paths_{a.orient}_seat{a.seat + 1}{'_joints' if a.joints_only else ''}.json"
     dst2.write_text(json.dumps(out, default=float) + "\n")
     print(json.dumps({k: v for k, v in out.items() if k != "rows"}), flush=True)
-    print(f"-> {dst.relative_to(ROOT)}, {dst2.relative_to(ROOT)}")
+    print(f"-> {dst}, {dst2}")
 
 
 def main():
@@ -1163,6 +1164,7 @@ def main():
     rp.add_argument("--obl-every", type=int, default=3)
     rp.add_argument("--owner", action="store_true", help="joint 6 to +60 deg (the owner present)")
     rp.add_argument("--joints-only", action="store_true")
+    rp.add_argument("--out-dir", default="", help="where the plan and its check go (default the experiment's data/)")
     r = sub.add_parser("reach")
     r.add_argument("--orient", default=",".join(ORIENT))
     r.add_argument("--h", type=float, default=LAYOUT["seat_h"], help="the seats' apex height over the base's underside (mm)")
