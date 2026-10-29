@@ -651,6 +651,7 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
     frames = []
     lifted = False
     hist = []
+    tip = cal = None
     w0 = time.perf_counter()
     n_sat = 0
     while t < sch.t_end - 1e-9:
@@ -662,16 +663,32 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
         else:
             sm = s
         meas = H.Measurement(q=sm["q"], obj_pos=sm["pos"], obj_quat=sm["quat"], cop=dict(sm["cop"]))
+        if noise and cal is None:
+            # calibration errors, constant over a rollout: each servo reports and executes about an angle offset from
+            # the model's joint angle, and the tag tracker's object frame is offset from the object
+            if noise.get("q_bias_deg") or noise.get("pos_bias_mm"):
+                cal = {"q": {f: np.radians(rng.normal(size=3) * noise.get("q_bias_deg", 0.0)) for f in FINGERS},
+                       "pos": rng.normal(size=3) * noise.get("pos_bias_mm", 0.0) * 1e-3}
+            else:                                # no draws: the other variants keep their random streams
+                cal = {"q": {f: np.zeros(3) for f in FINGERS}, "pos": np.zeros(3)}
         if noise:
-            meas.obj_pos = sm["pos"] + rng.normal(size=3) * noise.get("pos_mm", 0.0) * 1e-3
+            meas.obj_pos = sm["pos"] + cal["pos"] + rng.normal(size=3) * noise.get("pos_mm", 0.0) * 1e-3
+            meas.q = {f: np.asarray(v) + cal["q"][f] for f, v in sm["q"].items()}
             ax = unit(rng.normal(size=3))
             ang = math.radians(noise.get("rot_deg", 0.0)) * rng.normal()
             dq = np.concatenate([[math.cos(ang / 2)], math.sin(ang / 2) * ax])
             qn = np.zeros(4)
             plant.mj.mju_mulQuat(qn, dq, sm["quat"])
             meas.obj_quat = qn
-            meas.cop = {f: (p + rng.normal(size=3) * noise.get("cop_mm", 0.0) * 1e-3,
-                            max(0.0, F + rng.normal() * noise.get("f_N", 0.0))) for f, (p, F) in sm["cop"].items()}
+            if noise.get("no_tip"):
+                meas.cop = {}                    # no fingertip sensing: every contact frame from the witness points
+            elif noise.get("tip_model"):
+                if tip is None:
+                    tip = tip_errors(noise, rng)
+                meas.cop = tip_reading(sm["cop"], noise, rng, tip)
+            else:
+                meas.cop = {f: (p + rng.normal(size=3) * noise.get("cop_mm", 0.0) * 1e-3,
+                                max(0.0, F + rng.normal() * noise.get("f_N", 0.0))) for f, (p, F) in sm["cop"].items()}
         if t >= T_LIFT and not lifted and task != "expa":
             plant.post_off()
             lifted = True
@@ -703,7 +720,7 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
         if "theta_ref" in info:
             row["theta_ref_deg"] = round(info["theta_ref"], 3)
         rows.append(row)
-        plant.set_targets(q_cmd)
+        plant.set_targets(q_cmd if cal is None else {f: q_cmd[f] - cal["q"][f] for f in q_cmd})
         t += dt
         plant.advance(t)
         if film is not None and (len(rows) - 1) % 4 == 0:
@@ -713,6 +730,40 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
     res = metrics(task, setup, rows, s0, plant.state())
     res.update(wall_s=round(wall, 2), sat_ticks=n_sat, n_ticks=len(rows))
     return res, rows, frames
+
+
+# The magnetic fingertips as measured on the UR5 with the HEX-E (docs/experiments/20261026-fingertip_calibration,
+# 2026-10-22 to 10-29; four-magnet v3 tips, each with a model trained on its own presses): contact location 0.25-0.53 mm
+# at 1.5 N and over, 0.59-0.75 mm under 1 N, 1.10-1.60 mm at 0.5 N and under; normal force within 5-6 %; noise-equivalent
+# force 62-83 mN; contacts are shown above 0.25 N. Latency was not measured; the variants delay every measurement 40 ms.
+TIP_SIGMA_MM = ((1.5, 0.4), (0.5, 0.7), (0.0, 1.3))     # (force band floor N, location error sigma mm)
+TIP_GAIN, TIP_NOISE_N, TIP_BIAS_MM, TIP_F_MIN = 0.05, 0.07, 0.4, 0.25
+
+
+def tip_errors(noise, rng):
+    """Per rollout and finger: a force gain error and a location offset (the trained model's error at a place)."""
+    k = noise["tip_model"]
+    out = {}
+    for f in FINGERS:
+        d = rng.normal(size=3)
+        out[f] = {"gain": rng.normal() * TIP_GAIN * k,
+                  "offset": d / np.linalg.norm(d) * noise.get("cop_bias_mm", TIP_BIAS_MM * k) * 1e-3}
+    return out
+
+
+def tip_reading(cop, noise, rng, tip):
+    """What a fingertip reports for each tip contact (centre of pressure, normal force): the force with its gain error,
+    a bias and noise, dropped below the detection floor; the point with its offset and noise that grows at light
+    force. Errors scale with noise['tip_model']."""
+    k = noise["tip_model"]
+    out = {}
+    for f, (p, F) in cop.items():
+        Fm = F * (1.0 + tip[f]["gain"]) + noise.get("f_bias", 0.0) + rng.normal() * TIP_NOISE_N * k
+        if Fm < noise.get("f_min", TIP_F_MIN):
+            continue
+        sig = next(sg for lo, sg in TIP_SIGMA_MM if F >= lo) * k * 1e-3
+        out[f] = (p + tip[f]["offset"] + rng.normal(size=3) * sig, Fm)
+    return out
 
 
 def pinch_angle(axis) -> float:
@@ -884,6 +935,29 @@ VARIANTS = {
     "gapq": ({"impedance": "gap"}, None),             # the impedance gap at the measured angles, while apart (before 10-22)
     "surface": ({"impedance": "surface"}, None),      # ... and also in contact
     "floop": ({"force_loop_gain": 0.01}, None),       # v_sep += 10 mm/s per N of force error (needs fingertip force)
+    # 2026-10-29, the fingertip sensing review (docs/experiments/20261029-hom_control_review): 50 Hz, the tag tracker
+    # as in "sense" (0.5 mm, 1 deg, every measurement 40 ms late), and the fingertips absent or as measured
+    "notip0": ({"dt": 0.02}, {"no_tip": True}),                            # no fingertips, exact object pose
+    "notip": ({"dt": 0.02}, {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "no_tip": True}),
+    "tip": ({"dt": 0.02, "contact_force_min": TIP_F_MIN},
+            {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0}),
+    "tip3": ({"dt": 0.02, "contact_force_min": TIP_F_MIN},
+             {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 3.0}),
+    "tipbias": ({"dt": 0.02, "contact_force_min": TIP_F_MIN},            # the press-step residual and an untrained model
+                {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "f_bias": 0.3, "cop_bias_mm": 1.5}),
+    "tipfl": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "force_loop_gain": 0.01},
+              {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0}),
+    "tipflb": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "force_loop_gain": 0.01},
+               {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "f_bias": 0.3}),
+    # ... and with calibration errors: each joint off by sigma 1 deg (reported and executed), the object frame off by
+    # sigma 1 mm per axis; without fingertips, with them, and with them closing a force loop
+    "cal_notip": ({"dt": 0.02}, {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "no_tip": True, "q_bias_deg": 1.0,
+                                 "pos_bias_mm": 1.0}),
+    "cal_tip": ({"dt": 0.02, "contact_force_min": TIP_F_MIN},
+                {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "q_bias_deg": 1.0, "pos_bias_mm": 1.0}),
+    "cal_tipfl": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "force_loop_gain": 0.01},
+                  {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "q_bias_deg": 1.0,
+                   "pos_bias_mm": 1.0}),
     "ell5": ({"ell": 0.005}, None),
     "ell100": ({"ell": 0.1}, None),
     "l30": ({}, None),                                # pin-push on the grasps of design --lever 30 / 60
