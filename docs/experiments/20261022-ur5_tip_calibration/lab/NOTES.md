@@ -1486,11 +1486,29 @@ The clearances in this section and the one before it are on mount v3. The next s
 - The robot stood still from 19:30 to 20:05 while the last chunk of block 2's simulation was checked. Block 3 then ran
   before block 2, and the order became 3, 2, 5, 4, 6.
 
-### Block 2: ID 2's sphere stage 2 (from 20:40:16)
+### Block 2: ID 2's sphere stage 2 (20:40:16 to 03:14:45)
 
-- `lab/20261028-plan_sphere_lab_stage2_night_v3id2.json`, resumed on 184415. Its four chunks were simulated from home
-  on block 1's registration. Least clearances: the mount 3.19 mm and the finger 1.46 mm. Joint 6 ran from -63.3 to
-  +42.5 deg, joint 5 stayed 5.3 deg inside its window, and the elbow at least 90 deg from straight.
+- `lab/20261028-plan_sphere_lab_stage2_night_v3id2.json`, resumed on 184415 (printout: `printout_stage2_2040.txt` in
+  its copy). Its four chunks were simulated from home on block 1's registration. Least clearances: the mount 3.19 mm
+  and the finger 1.46 mm. Joint 6 ran from -63.3 to +42.5 deg, joint 5 stayed 5.3 deg inside its window, and the elbow
+  at least 90 deg from straight.
+- 211 of 211 ok, no abort, no early contact. Grid 116 (20:40 to 22:18), shear 77 (to 02:28), roll 2, twist 12 and
+  final 4. It took 6.6 h, against 6.1 h in the suite's estimate.
+- The HEX-E: 2.36 million samples, no time-out. Its two gaps over 0.5 s both came at the start, before the first
+  action.
+- At 2 N, the face-centre reference stopped 2.23 mm along its approach at 20:41 and 20:49. From 21:01 to 21:22 it
+  stopped at 2.32 to 2.35 mm, and at 03:13 at 2.35 to 2.38 mm. So the stop moved 0.10 mm deeper in the first 20 minutes,
+  then held within 0.05 mm for six hours. Sideways it moved 0.03 mm at most.
+
+### Block 5: ID 2's rod pass 1 from a seed (from 03:15:59)
+
+- Simulated from home on a seed of block 1's tool and 102701's rod: no abort, the mount 3.37 mm and the finger 2.54 mm
+  from the cell, joint 6 from -52.4 to +25.8 deg, joint 5 3.6 deg inside its window, the elbow at least 72 deg from
+  straight.
+- After block 2's exit 0, the scratchpad script `b5_after_b2.sh` checked the home path from 184415's last pose, went
+  home (0.04 mm from the target) and made the seed `logs/20261029-tip_calibration/031559-rodv3id2`. Resumed there with
+  stages preflight,pad,pivot,register on `lab/20261028-plan_rod_lab_pass1_night_v3id2.json`, seat
+  `rod_indenter_seated_3`.
 
 ## The lab clone and git-lfs
 
