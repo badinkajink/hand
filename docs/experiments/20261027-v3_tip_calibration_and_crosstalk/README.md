@@ -183,6 +183,14 @@ of straight. The pass therefore sets travel.lift_mm to 20 mm, and its path check
 or more from straight, the finger clears by 1.52 mm and the mount by 4.32 mm. The plan is rebuilt on v3 ID 1's own tall
 pass 1.
 
+On 10-28 the owner stopped the tall indenter's pass at 18:05, near the joint limits, and the top edge moved to the low
+sphere (`scripts/ur5_tip_calibration_sphere_top_edge.py`). On v3 ID 2 the sphere's pass ran 12 of 12 from 19:21 to
+19:30. It pressed the tip's end nine times at 0.25 to 2 N and the edge once to 3 N, between two reference presses at
+the face centre. The end gives 30.2 µT/N at 0.5 to 3.5 N, between the face's 22.9 and the edges' 41.4
+(`data/20261029-gain_by_region_sphere.json`). A direction GP trained on the grid alone places the end's presses 2.98 mm
+off at the median. With the pass's other presses in training it places them within 0.46 mm, and within 0.23 mm at 2 to
+3.5 N (`data/20261029-top_edge_gp_v3id2.json`).
+
 ## Code
 
 Done:
