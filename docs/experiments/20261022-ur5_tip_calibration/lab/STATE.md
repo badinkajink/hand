@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-29 11:51 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-29 13:36 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -32,6 +32,35 @@ cm from the connector with slack. The fix is a new cable.
   0.8 mm, HEX-E 6 mm), and the lab simulates it.
 - No force control, contact motion or safety threshold is set from a borrowed calibration that was not validated.
 - The workstation reads corvus over SSH and never writes there; plans reach corvus by git.
+
+## Ready: v3 ID 3's suite and the pad-up side map (not run)
+
+The workstation built them at 12:00 on 10-29 (62d93424, d6795072; the side map revised in bb7c5578). Each run needs
+the owner's go in the lab's session.
+
+| Block | Plan | Actions | How it runs |
+|---|---|---|---|
+| 1 | `20261029-plan_sphere_lab_pass1_night_v3id3.json` | 18 | Resumed on a copy of the seed `20261029-sphere-seed-v3id3` (184415's registration with the homing pose: the fork stays on the flange). Stages preflight,pad,register. |
+| top edge | built on block 1's registration | 12 | With the owner present, after block 1, as for ID 2. |
+| 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Resumed on block 1's registration. |
+| 3 | `20261029-plan_tall_lab_pass1_night_v3id3.json` | 19 | A new session homed on `tall_indenter_seated`. |
+| 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 102 | Resumed on block 3's registration. |
+| 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | A seed of block 1's tool and the rod's registration. Stages preflight,pad,pivot,register. |
+| 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Resumed on block 5's registration. |
+
+- The blocks are ID 2's 476 actions, action by action. The 58 touch-offs of blocks 1, 3 and 5 approach at v 0.0005,
+  which is 0.15 mm/s at the slider.
+- The lab simulated blocks 1, 3 and 5 from home on ID 2's registrations. None aborted or made an early contact, and
+  nothing came under a margin on every 2nd sample. The fork came no closer than 3.37 mm. Joint 6 went down to -64.4
+  deg, and joint 5 up to 98.4 deg.
+- Blocks 2, 4 and 6 are simulated on the night, each on ID 3's own pass 1 registration. They are checked on every 5th
+  sample.
+- The side map is `20261029-plan_holder_lab_side_up_v3id2.json`: 24 hovers in about 12 min, with the rod on and both
+  held tips pad-up. It runs on the holder seed `20261029-holder-seed-seat5-v3id2`, which has ID 2's tool. In the
+  simulation it did not abort, and the fork came no closer than 3.01 mm. With ID 3 on the robot, the workstation
+  rebuilds it on ID 3's block 1 registration.
+- The workstation's path checks of the seven plans are being rerun here with its finer sampling, into
+  `logs/20261029-recheck_v3id3/` (`NOTES.md`, "ID 3's suite and the pad-up side map").
 
 ## Last night: the next tip's night suite, done
 
@@ -89,21 +118,23 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   0.006) in block 2's presses, and a touch-off takes about 50 s instead of 81 to 108 s (`NOTES.md`, "Faster
   touch-offs"). The workstation advised against going faster: at 0.58 mm/s the onsets came 0.026 mm early (SE 0.017),
   and that saves only 10 to 17 s more per touch-off.
-- The side map: "i am not going to move the rod. figure something else out." The workstation is building a side map
-  with both held tips pad-up. The robot's pad faces down beside the -y held tip, with its apex 15 mm below the held
-  apex, so that the two magnet squares are level and 13 to 25 mm apart. The robot stands about 27 mm higher than in
-  the old poses, which may clear the rod. The map can run with any tip on the robot. The lab builds and checks it here
-  once it is pushed.
+- The side map: "i am not going to move the rod. figure something else out." The workstation built one with both held
+  tips pad-up ("Ready" above). The robot's pad faces down beside the -y held tip, with its apex 17 mm under the held
+  apex. That puts the two magnet squares level and 15 to 25 mm apart, plus a far pose at 40 mm. The robot stands
+  about 25 mm higher than in the old poses, and it clears the rod.
 - Indenter plate v2d waits: "im not sure i plan to put on the indenter plate v2d until we have 100% finalized all the
   motions we need for effective calibration". The workstation is writing the list of motions calibration needs. For
   each it gives the fixture and what the motion adds to the held-out errors on ID 1 and ID 2.
 
 ## Waiting on the owner
 
-- What runs next. The robot has been idle since 08:13:17, and the arm stays where it is until the owner says. The
-  owner asked whether to put v3 ID 3 on first, and the workstation recommended it. ID 3 would run ID 2's suite: block
-  1 seeded from `20261028-184415-spherev3id2`'s registration, the sphere's top edge after block 1 with the owner
-  present, and blocks 2 to 6 overnight. ID 2 would go into the station ID 3 leaves, the same way up.
+- The arm goes home first. The robot has been idle since 08:13:17 at the rest pose of block 6's last press, with
+  its pad 1.6 mm from the rod. Before a power-off or a tip swap, the arm should go home, which needs the owner's go in
+  the lab's session. The home path from there was checked at 12:07, and the fork stays at least 10.7 mm from anything.
+  After a power cycle, the owner sets the speed slider back to 30 %. The lab's scripts stop unless it reads 0.30.
+- What runs next. The owner asked whether to put v3 ID 3 on first, and the workstation recommended it. ID 3 would run
+  the suite above, with ID 2 going into the station ID 3 leaves, the same way up. The side map takes about 12 min with
+  ID 2 still on the robot. After the swap it waits for its rebuild on ID 3.
 - When v3 ID 1 goes back on, the three plans above.
 - A new HEX-E cable.
 
