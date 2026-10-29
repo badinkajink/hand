@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-29 15:32 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-29 15:48 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -44,7 +44,7 @@ anything 2. side map -- sure 3. yea send it".
 | block 1 | `20261029-plan_sphere_lab_pass1_night_v3id3.json` | 18 | Done 13:45 to 13:59: 18 of 18, 0.044 mm rms (`20261029-134508-spherev3id3`). |
 | top edge | `20261029-plan_sphere_lab_top_edge_v3id3.json` | 26 | Done 14:50 to 15:11: 26 of 26. 24 presses (ID 2 had 10) and two references. |
 | side map | `20261029-plan_holder_lab_side_up_v3id3.json` | 24 | Done 15:13 to 15:29: 24 of 24 (`20261029-151334-sidev3id3`). |
-| block 3 | `20261029-plan_tall_lab_pass1_night_v3id3.json` | 19 | Running from 15:30:34: a new session homed on `tall_indenter_seated`. |
+| block 3 | `20261029-plan_tall_lab_pass1_night_v3id3.json` | 19 | Done 15:30 to 15:48: 19 of 19, 0.055 mm rms (`20261029-153034-tallv3id3`). |
 | block 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Then: resumed on block 1's folder. |
 | block 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | Then: a seed of block 1's tool and 031559's rod. Stages preflight,pad,pivot,register. |
 | block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | Then: resumed on block 3's folder. tall-slide-flank-585-1N is left out (mount 2.97 mm). |
