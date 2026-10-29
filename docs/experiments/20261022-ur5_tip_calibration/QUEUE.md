@@ -1110,6 +1110,10 @@ push that answers it arrives.
       probe base and five tools, 6 h 13 min and 178 g; plate b, the plate, 15 h 37 min and 524 g (P1S, PLA, sliced by the
       command line; the owner slices again). Runbook with hardware, assembly, the plate's support on the 2x4s and the
       first session: `docs/experiments/20261029-inverted_calibration_rig/README.md`.
+      16:12, the lab's estimate of the probe mode (`lab/NOTES.md`, "Probe mode for the inverted rig: what the program
+      needs", 4e877666): about 330 lines in `ur5_tip_calibration.py` and 150 to 250 in its simulator, a day of work,
+      then 2 to 3 h of simulations, a --dry run over the plate and the first touch-offs, each robot step with the
+      owner's go.
   - 08:19 on 10-29, v3 ID 2's night suite. All 488 actions ended ok between 18:44:15 on 10-28 and 08:13:17, with no
     abort, no early contact and no HEX-E time-out (`lab/NOTES.md`, "The night's suite on ID 2: done"). The suite took
     12.6 h against its estimate of 11.7 h; block 2 ran 0.5 h over. In each run's `ft_reads` the HEX-E's only gaps, 0.7
