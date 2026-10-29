@@ -1676,6 +1676,31 @@ The clearances in this section and the one before it are on mount v3. The next s
   scratchpad: `go_home_now.sh`, `block1_id3.sh` and `te_after_b1_id3.sh`. The first two stop unless the speed slider
   reads 0.30 (`slider_check.py`). move_guarded.py does not set the slider, and a power cycle may reset it.
 
+## 2026-10-29 afternoon: v3 ID 3
+
+### The swap
+
+- At about 13:3x the owner put v3 ID 3 on the robot and ID 2 into the station ID 3 left, pad-up. The fork stayed on
+  the flange ("yes the fork stayed on"). The robot's board is still `b4:3a:45:b0:9c:d0`.
+- Before the swap, the owner moved the arm by hand from block 6's last rest pose above the rod. It ended at TCP
+  (-114.6, -355.5, 220.9) mm, in free air, and the slider still read 0.30.
+- The owner's go in the lab's session, for block 1: "lets a go mario". Then, for the rest of the day: "1. top edge --
+  lets go for it. add more density if anything 2. side map -- sure 3. yea send it".
+
+### Block 1: ID 3's sphere pass 1 from a seed (13:45:08 to 13:59:02)
+
+- The home path from the owner's pose was clear: the fork stayed at least 126 mm from anything. Go home reached its
+  target within 0.04 mm.
+- `logs/20261029-tip_calibration/134508-spherev3id3` (copy: `lab/20261029-134508-spherev3id3/`) is a copy of the seed
+  `lab/20261029-sphere-seed-v3id3`: 184415's registration with its homing pose. It was resumed with stages
+  preflight,pad,register on `lab/20261029-plan_sphere_lab_pass1_night_v3id3.json`.
+- Preflight: HEX-E 100 Hz, ID 3's board 340 records/s, robot 124 Hz, slider 0.30, payload 0.403 kg.
+- 18 of 18 touch-offs, with no abort and no early contact. The onsets came -0.143 to +0.120 mm from where 184415's
+  registration expected them. Pad touches 0.044 mm rms, as on ID 2's block 1. The TCP moved 0.392 mm and 0.957 deg
+  from ID 2's tool, and the sphere's centre 0.444 mm.
+- A touch-off took 45.6 s on average (35 to 58 s) at v 0.0005, against 81 s on ID 2's block 1 at v 0.00015.
+- The HEX-E gave 82,737 samples, none timed out, with two gaps of 0.7 s.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

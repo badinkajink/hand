@@ -1,0 +1,32 @@
+resumed logs/20261029-tip_calibration/134508-spherev3id3: 0 actions done, 0 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0487 0.0228 0.2447 0.0031 0.0039 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== pad
+  pad-flank-05: onset +0.030 mm from the expected (power 1.50, fit 85.3 mN)
+  pad-edge-06: onset +0.120 mm from the expected (power 1.00, fit 71.1 mN)
+  pad-edge-03: onset -0.143 mm from the expected (power 1.00, fit 125.9 mN)
+  pad-edge-09: onset -0.066 mm from the expected (power 1.25, fit 81.0 mN)
+  pad-edge-00: onset -0.026 mm from the expected (power 2.00, fit 50.9 mN)
+  pad-face-03: onset +0.050 mm from the expected (power 1.00, fit 59.5 mN)
+  pad-face-09: onset -0.010 mm from the expected (power 1.50, fit 43.4 mN)
+  pad-face-07: onset -0.055 mm from the expected (power 2.00, fit 43.4 mN)
+  pad-face-08: onset -0.075 mm from the expected (power 1.50, fit 82.9 mN)
+  pad-edge-05: onset -0.027 mm from the expected (power 1.25, fit 112.4 mN)
+  pad-face-01: onset -0.019 mm from the expected (power 1.00, fit 98.2 mN)
+  pad-face-00: onset -0.060 mm from the expected (power 1.75, fit 35.6 mN)
+  pad-face-06: onset -0.043 mm from the expected (power 2.00, fit 51.2 mN)
+  pad-face-11: onset -0.087 mm from the expected (power 1.25, fit 46.1 mN)
+  pad-face-10: onset -0.091 mm from the expected (power 2.00, fit 53.1 mN)
+  pad-edge-04: onset -0.037 mm from the expected (power 2.00, fit 52.0 mN)
+  pad-edge-08: onset -0.020 mm from the expected (power 1.00, fit 79.7 mN)
+  pad-flank-07: onset -0.038 mm from the expected (power 1.25, fit 73.9 mN)
+== register
+register: pad touches 0.044 mm rms (18), face nan mm (0); TCP moved 0.392 mm, 0.957 deg; sphere centre moved 0.444 mm
+  TCP of the pad frame on the flange (for the pendant): 0.00036, -0.00315, 0.11835, -0.04503, -0.01482, -1.59005  (m, rotation vector)
+HEX-E: 82737 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.7 s, Fz -0.3 N; 0.7 s, Fz +0.3 N
+session in logs/20261029-tip_calibration/134508-spherev3id3
+exit 0 at 13:59:02
