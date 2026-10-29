@@ -4,11 +4,13 @@ fetch results from the ur5 calibration coordinator and update results ... namely
 
 The coordinator appends one JSON line per update to docs/experiments/20261027-v3_tip_calibration_and_crosstalk/feed.jsonl
 (`time`, `kind`, `summary`, `files`, `commit`; the README there, "Results feed for the doc-writing session") and commits
-it; its result commits start with "Crosstalk:". This script only reads git. Every --interval seconds it reads the feed at
-HEAD and the subjects of HEAD's last 300 commits. When the feed has lines past the count in --state, or a "Crosstalk:"
-commit is not in --state, it waits until nothing more arrives for --settle seconds, prints the new lines and commits, and
-exits 0. After --max-wait minutes without news it prints "no news" and exits 3. Commits are keyed by author date and
-subject, which a rebase keeps.
+it; its result commits start with "Crosstalk:". It also commits analyses with no feed line (owner, 2026-10-29 15:2x, when
+the job widened to the calibration of every v3 tip). This script only reads git. Every --interval seconds it reads the
+feed at HEAD and HEAD's last 300 commits with the files each changes. News is a feed line past the count in --state, or a
+commit not in --state that starts with "Crosstalk:" or changes the v3 folder's data/ or README.md and is not this job's
+own (subjects in MINE). When news appears it waits until nothing more arrives for --settle seconds, prints the new lines
+and commits, and exits 0. After --max-wait minutes without news it prints "no news" and exits 3. Commits are keyed by
+author date and subject, which a rebase keeps.
 
     .venv/bin/python scripts/crosstalk_feed_watch.py [--once] [--ack] [--state logs/crosstalk_feed_watch/state.json]
         [--interval 120] [--settle 600] [--max-wait 230] [--until-gate]
@@ -31,8 +33,14 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-FEED = "docs/experiments/20261027-v3_tip_calibration_and_crosstalk/feed.jsonl"
+V3 = "docs/experiments/20261027-v3_tip_calibration_and_crosstalk/"
+FEED = V3 + "feed.jsonl"
 PREFIX = "Crosstalk:"
+# the coordinator also commits analyses without a feed line (owner, 10-29 15:2x): commits that add or change these, unless
+# they are this job's own
+WATCHED = (V3 + "data/", V3 + "README.md")
+MINE = ("Fingertip crosstalk page:", "Calibration page:", "Fingertip overview:", "Physical-model page:",
+        "Crosstalk feed poller note:", "Crosstalk feed poller:")
 
 
 def git(*args):
@@ -54,14 +62,19 @@ def show(path):
 
 
 def snapshot():
-    """The feed's lines and the "Crosstalk:" commits at HEAD."""
+    """The feed's lines, and among HEAD's last 300 commits the "Crosstalk:" ones and the others that change the v3
+    folder's data/ or README.md and are not this job's (merges list no files, so they count only by subject)."""
     head = git("rev-parse", "--short=8", "HEAD").strip()
     lines = [ln for ln in show(FEED).splitlines() if ln.strip()]
     commits = []
-    for row in git("log", "-300", "--format=%h%x09%aI%x09%s").splitlines():
-        h, ad, subj = row.split("\t", 2)
-        if subj.startswith(PREFIX):
-            commits.append(dict(hash=h, key=f"{ad} {subj}", subject=subj, date=ad[5:16].replace("T", " ")))
+    for rec in git("log", "-300", "--format=%x00%h%x09%aI%x09%s", "--name-only").split("\x00"):
+        rows = [r for r in rec.splitlines() if r.strip()]
+        if not rows:
+            continue
+        h, ad, subj = rows[0].split("\t", 2)
+        files = [f for f in rows[1:] if f.startswith(WATCHED)]
+        if subj.startswith(PREFIX) or (files and not subj.startswith(MINE)):
+            commits.append(dict(hash=h, key=f"{ad} {subj}", subject=subj, date=ad[5:16].replace("T", " "), files=files))
     return dict(head=head, lines=lines, commits=commits)
 
 
@@ -102,9 +115,10 @@ def report(snap, nw, first):
     for ln in nw["lines"]:
         print(ln)
     if nw["commits"]:
-        print(f'"{PREFIX}" commits not acknowledged:')
+        print(f'commits not acknowledged ("{PREFIX}", or changing the v3 folder\'s data/ or README.md):')
         for c in nw["commits"]:
-            print(f"  {c['hash']} {c['date']} {c['subject']}")
+            fs = ", ".join(f[len(V3):] for f in c.get("files", [])[:4])
+            print(f"  {c['hash']} {c['date']} {c['subject']}" + (f"  [{fs}]" if fs else ""))
 
 
 def ack(path, snap):
