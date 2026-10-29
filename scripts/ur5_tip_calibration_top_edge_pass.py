@@ -34,7 +34,7 @@ lift_mm to --lift-mm (20): no action flagged, the elbow at 26.3 deg or more and 
 22.9 deg).
 
     ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- .venv/bin/python scripts/ur5_tip_calibration_top_edge_pass.py \\
-        --session lab/<v3 ID 1's tall pass 1 session> [--j6-max 58] [--out lab/20261028-plan_tall_lab_top_edge_v3id1.json]
+        --session lab/<v3 ID 1's tall pass 1 session> [--j6-max 58] [--out lab/superseded/20261028-plan_tall_lab_top_edge_v3id1.json]
 """
 from __future__ import annotations
 
@@ -55,9 +55,9 @@ import ur5_tip_calibration_tall_pass as TP  # noqa: E402
 P3 = TP.P3
 LAB = TP.LAB
 LEVELS = dict(tip=[0.25, 0.5, 1.0, 2.0], edge=TP.LEVELS["edge"], flank=TP.LEVELS["flank"])
-COVER = ("20261027-plan_sphere_lab_stage2_resume_v3id1.json", "20261027-plan_sphere_lab_morning_v3id1.json",
-         "20261027-plan_tall_lab_stage2_v3id1.json", "20261027-plan_tall_lab_morning_v3id1.json")
-BASE = LAB / "20261027-plan_tall_lab_stage2_v3id1.json"
+COVER = ("superseded/20261027-plan_sphere_lab_stage2_resume_v3id1.json", "superseded/20261027-plan_sphere_lab_morning_v3id1.json",
+         "superseded/20261027-plan_tall_lab_stage2_v3id1.json", "superseded/20261027-plan_tall_lab_morning_v3id1.json")
+BASE = LAB / "superseded/20261027-plan_tall_lab_stage2_v3id1.json"
 DURATIONS_FROM = "20261027-143529-tallv2id1"
 
 
@@ -187,5 +187,5 @@ if __name__ == "__main__":
     ap.add_argument("--finger-flank", type=float, default=1.5)
     ap.add_argument("--lift-mm", type=float, default=20.0, help="the plan's travel.lift_mm (60 in the other plans)")
     ap.add_argument("--created", default=time.strftime("%Y-%m-%d %H:%M"))
-    ap.add_argument("--out", default=str(LAB / "20261028-plan_tall_lab_top_edge_v3id1.json"))
+    ap.add_argument("--out", default=str(LAB / "superseded/20261028-plan_tall_lab_top_edge_v3id1.json"))
     run(ap.parse_args())

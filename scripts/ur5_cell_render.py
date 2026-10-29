@@ -36,7 +36,7 @@ through the night), the tool's T_EM and q_home from its "tool" entry; on 2026-10
                        2026-10-27 19:49 (logs/corvus/cellcam/cell_1949_color.png), read through the fixtures' known
                        places: 38 x 89 mm pine, the near one from x_B -545 to +85 (top z_B 70.35, the low sphere's and the
                        rod's bases' far ends at its far edge, the rod at its place before 19:3x, from checks.other of
-                       lab/20261027-plan_sphere_lab_check_shear_v2id1.json), the far one from x_B -527 to +125 (its
+                       lab/superseded/20261027-plan_sphere_lab_check_shear_v2id1.json), the far one from x_B -527 to +125 (its
                        right end is out of the frame; top at the tall indenter's z_B 71.2, centred under the tall
                        indenter and the holder); grey C-clamps at the near one's ends (the owner's "metal handles") and
                        blue bar clamps at the far one's; an 18 x 24 in grey mat with a 10 mm white grid on a board whose
@@ -87,7 +87,7 @@ LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
 MEDIA = ROOT / "docs/experiments/20261027-v3_tip_calibration_and_crosstalk/media"
 STEM = "20261027-ur5_cell"
 CELL_JSON = LAB / "cell.json"                         # each fixture's registration, updated as fixtures are registered
-SRC = dict(rod_plan=LAB / "20261027-plan_sphere_lab_check_shear_v2id1.json", poses=LAB / "poses.jsonl")
+SRC = dict(rod_plan=LAB / "superseded/20261027-plan_sphere_lab_check_shear_v2id1.json", poses=LAB / "poses.jsonl")
 TALL_STL = ROOT / "docs/experiments/20261026-tall_indenter/cad/20261026-tall_indenter.stl"
 HOLDER_STL = ROOT / "docs/experiments/20261027-fingertip_holder/cad/20261027-fingertip_holder.stl"
 

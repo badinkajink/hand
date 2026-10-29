@@ -29,7 +29,7 @@ Afterwards the plan is checked as the lab checks it, by scripts/ur5_tip_calibrat
 and actions under a margin are dropped.
 
     .venv/bin/python scripts/ur5_tip_calibration_tall_pass.py --session lab/<tall pass 1 session>
-        [--base-plan lab/<its plan>.json] [--j6-max 45] [--out lab/20261027-plan_tall_lab_r29_v2id1.json]
+        [--base-plan lab/<its plan>.json] [--j6-max 45] [--out lab/superseded/20261027-plan_tall_lab_r29_v2id1.json]
 """
 from __future__ import annotations
 
@@ -298,5 +298,5 @@ if __name__ == "__main__":
     ap.add_argument("--finger-flank", type=float, default=1.5, help="the finger's margin (mm) on flank actions: the "
                     "simulator brought the cap within 0.17 mm of the tall indenter's sphere at a flank touch (lab, 10-27)")
     ap.add_argument("--cap", type=float, default=45.0, help="actions whose joint 6 passes this go first (owner present)")
-    ap.add_argument("--out", default=str(LAB / "20261027-plan_tall_lab_r29_v2id1.json"))
+    ap.add_argument("--out", default=str(LAB / "superseded/20261027-plan_tall_lab_r29_v2id1.json"))
     run(ap.parse_args())

@@ -6,7 +6,7 @@ comes from the lab's poses.jsonl in the repository, or from corvus's working cop
 password in .dotenv) when it has not been pushed yet.
 
     .venv/bin/python scripts/ur5_fixture_from_seating.py rod_indenter_seated \\
-        --plan docs/experiments/20261022-ur5_tip_calibration/lab/20261027-plan_rod_lab_r27_pass1_v2id1.json \\
+        --plan docs/experiments/20261022-ur5_tip_calibration/lab/superseded/20261027-plan_rod_lab_r27_pass1_v2id1.json \\
         --out docs/experiments/20261022-ur5_tip_calibration/lab/20261027-rod-seed
 """
 from __future__ import annotations

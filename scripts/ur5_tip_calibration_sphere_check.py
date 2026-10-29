@@ -30,7 +30,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
 SPH, TALL = LAB / "20261026-192158-v2id1", LAB / "20261027-143529-tallv2id1"
-PLAN = LAB / "20261027-plan_sphere_lab_check_shear_v2id1.json"
+PLAN = LAB / "superseded/20261027-plan_sphere_lab_check_shear_v2id1.json"
 FOLDERS = dict(a=LAB / "20261027-sphchk-a-v2id1reg", b=LAB / "20261027-sphchk-b-hybrid")
 
 

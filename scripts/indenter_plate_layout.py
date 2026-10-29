@@ -63,12 +63,12 @@ GROUPS = dict(mount=("adapter", "fork", "clamp_plate", "stop_wedge"), finger=("d
 HP.J6_WIN = (-65.0, 60.0)                              # the HEX-E cable's window; past +45 deg the owner is present
 J6_UNATTENDED = 45.0
 
-SPHERE = ("20261027-plan_sphere_lab_pass1_v3id1.json", "20261027-plan_sphere_lab_stage2_v3id1.json",
-          "20261027-plan_sphere_lab_morning_v3id1.json")
-TALL = ("20261027-plan_tall_lab_pass1_v3id1.json", "20261027-plan_tall_lab_stage2_v3id1.json",
-        "20261027-plan_tall_lab_morning_v3id1.json", "20261028-plan_tall_lab_top_edge_v3id1_on143529.json")
-ROD = ("20261027-plan_rod_lab_pass1_search_v3id1.json", "20261027-plan_rod_lab_stage2_v3id1.json")
-HOLDER_BASE = "20261027-plan_holder_lab_map_v3id1.json"
+SPHERE = ("superseded/20261027-plan_sphere_lab_pass1_v3id1.json", "superseded/20261027-plan_sphere_lab_stage2_v3id1.json",
+          "superseded/20261027-plan_sphere_lab_morning_v3id1.json")
+TALL = ("superseded/20261027-plan_tall_lab_pass1_v3id1.json", "superseded/20261027-plan_tall_lab_stage2_v3id1.json",
+        "superseded/20261027-plan_tall_lab_morning_v3id1.json", "superseded/20261028-plan_tall_lab_top_edge_v3id1_on143529.json")
+ROD = ("superseded/20261027-plan_rod_lab_pass1_search_v3id1.json", "superseded/20261027-plan_rod_lab_stage2_v3id1.json")
+HOLDER_BASE = "superseded/20261027-plan_holder_lab_map_v3id1.json"
 SUITES = dict(sphere5=dict(ind="sphere5", plans=SPHERE), tall5=dict(ind="sphere5", plans=TALL),
               sphere12=dict(ind="sphere12", plans=SPHERE, R=12.5), tall12=dict(ind="sphere12", plans=TALL, R=12.5),
               rod=dict(ind="rod", plans=ROD), facing=dict(ind="holder"), side=dict(ind="holder"), keys=dict(ind="keys"))

@@ -70,7 +70,7 @@ LAB, DATA = EXP / "lab", EXP / "data"
 SESSIONS = dict(sphere="20261026-192158-v2id1", rod="20261027-095303-rodv2id1", tall="20261027-143529-tallv2id1")
 OUT = DATA / "20261027-suite_value_v2id1.json"
 CACHE = ROOT / "logs/20261027-suite_value_cache"
-R29_PLAN = LAB / "20261027-plan_tall_lab_r29_v2id1.json"
+R29_PLAN = LAB / "superseded/20261027-plan_tall_lab_r29_v2id1.json"
 SLIDER = 0.30                       # the plans' speed_slider
 STEP_DEG = 0.5                      # run_turns' waypoint spacing
 TOL = 0.10                          # the halving stops when a pooled median grows by more than this

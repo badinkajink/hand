@@ -6,29 +6,16 @@ the sphere fixture, the rod and the tall indenter, cut from 15.0 h of robot time
 edge, which the trimmed cap opens. The map ran on 2026-10-27 from 21:21 to 22:52. The suite ran from 22:52 until the HEX-E
 came off its DAQ at 02:54 on 10-28, in sphere stage 2 after its grid and 40 of its 84 slides. On 10-28 the HEX-E streamed
 again from 09:33. The check after its reseat and the sphere twists ran from 09:41 to 10:25 (18 of 18 ok), rod pass 1
-from 10:27 to 11:46 (registration 0.042 mm rms) and tall pass 1 from 11:49 to 12:21 (0.045 mm rms). The queue below is
-what is left.
+from 10:27 to 11:46 (registration 0.042 mm rms) and tall pass 1 from 11:49 to 12:21 (0.045 mm rms). Rod stage 2 and
+the tall plans ran by 17:41. The cell's current state, tonight's runs and what waits on the owner are in
+`docs/experiments/20261022-ur5_tip_calibration/lab/STATE.md`, the one place kept current.
 
-## Queue for 2026-10-28 from 13:30
+## Runs left for v3 ID 1
 
-The owner keeps the rod fixture on and both held tips up (13:2x), so the side-by-side map waits. Robot times are v2 ID 1's
-measured durations of the same actions; the side-by-side map's are the holder map's, 28 to 32 s a hover. Plan files are in
-`docs/experiments/20261022-ur5_tip_calibration/lab/`. The lab runs the first four rows in this order at travel.speed 1.0,
-with the owner present from the tall morning plan on. Every plan below was path-checked on its indenter's v3 ID 1
-registration with the rod on (QUEUE.md R31).
-
-| Block | Plan file | Actions | Robot time | Needs first | What it measures |
-|---|---|---|---|---|---|
-| Rod stage 2 (12:23 to 13:45, 94 of 94 ok) and the rod morning plan (13:47 to 13:52, 6 of 6 ok) | `20261028-plan_rod_lab_stage2_v7_v3id1.json`, `20261028-plan_rod_lab_morning6_v3id1.json` | 94 + 6 | 1.4 h | rod pass 1 | a contact of radius 12.5 mm; with the sphere's it separates the FE's missing compliance into local and series parts |
-| Tall stage 2 (44 of 102 done when the HEX-E stopped at 14:32; the other 58 from 14:56 to 17:08 with a 20 mm lift, all ok) and its morning plan (17:09 to 17:41, 18 of 18 ok) | `20261028-plan_tall_lab_stage2_l20_v3id1.json`, `20261028-plan_tall_lab_morning_l20_v3id1.json` | 102 + 18 | 3.0 h | the owner present for the morning plan | edges and flanks, 6 points pressed by both indenters, and flank presses with joint 6 up to 57.0 deg |
-| Top edge | `20261028-plan_tall_lab_top_edge_ts1_v3id1.json`, rebuilt on tall pass 1 | 34 | 0.82 h | the owner's go, given at 13:2x | 16 presses and 15 slides on the tip's end, its edge and one flank point; joint 6 at most 42.0 deg |
-| Sphere morning | `20261028-plan_sphere_lab_morning_unattended_ts1_v3id1.json` | 43 | 0.75 h | the owner present | sphere presses with joint 6 up to 59.0 deg |
-| Sphere stage 2, the slides left | `20261028-plan_sphere_lab_stage2_resume3_v3id1.json`, resumed on 225213 | 43 | 2.3 h | | 43 of the 44 slides left; slide-dense-795-t+15-1N is out (mount 2.88 mm from the fixture on v7) |
-| Side by side, waiting | `20261028-plan_holder_lab_side_norod30_v3id1.json` | 30 | 0.25 h | the rod fixture off, the -y held tip pad-down | crosstalk between neighbouring fingers at gaps of 15, 20, 25 and 40 mm, with mount v7 3 mm or more from the holder |
-
-The first four rows take about 6.0 h of robot time, and the last two 2.6 h more. The owner wants the day's runs done before 19:00, to put the other four-magnet tips on. The tall plans ended at 17:41. The top edge (about 55 min) runs only with the owner's go in the lab's session; the sphere morning plan and the 43 slides wait for another day. For the side-by-side map, one visit
-takes the rod fixture off and turns the -y held tip pad-down under its block. Turn the tip over about its own long axis,
-so that its board's connector still points toward -x_I, away from the +y tip's. The cell model's pad-down pose
+Four plans need v3 ID 1 back on the robot: the top edge, the sphere morning plan, the 43 slides left of sphere stage 2
+and the side-by-side map. Their files and needs are listed in `lab/STATE.md`. The side-by-side map takes the rod
+fixture off and turns the -y held tip pad-down under its block. Turn the tip over about its own long axis, so that its
+board's connector still points toward -x_I, away from the +y tip's. The cell model's pad-down pose
 (`ur5_cb3_cell.tiphold_T_IF`) has it that way, and the plan's clearances and the analysis were computed with it. The
 map's cell checks need `UR5_TIPHOLD_STATIONS=down,up`, and so does its analysis (`scripts/fingertip_crosstalk_holder.py`
 places the held pads by that model).
@@ -83,14 +70,14 @@ rod: wrist 3 comes within 0.7 to 2.6 mm of it at the touch-offs and facing W 0 t
 adapter and wrists 2 and 3 run into it. The low sphere keeps wrist 3 7.4 to 8.3 mm away at the seatings.
 
 The owner then moved the rod about 96 mm along -x_B instead of taking it off, both held tips turned out to face up, and
-the holder was reseated (holder_seated_5). The plan for that cell, `lab/20261027-plan_holder_lab_map_seat5_v3id1.json`,
+the holder was reseated (holder_seated_5). The plan for that cell, `lab/superseded/20261027-plan_holder_lab_map_seat5_v3id1.json`,
 has the three touch-offs, 49 facing hovers over the +y tip and 37 over the -y tip at W 2 mm and over, and 20 repeats:
 about 43 min, wrist 3 17.2 mm and the HEX-E 22.9 mm at least. With no tip under a block there is no side-by-side map.
 Along every move the paths keep joint 5 39 deg or more from its singular angles, the elbow 81 deg or more from straight
 and the wrist 518 mm or more from joint 1's axis (`scripts/ur5_tip_calibration_holder_paths.py`). The earlier
 plans follow.
 
-With the rod fixture off, `lab/20261027-plan_holder_lab_map_norod_v3id1.json` (on holder_seated_2) keeps 49 facing hovers
+With the rod fixture off, `lab/superseded/20261027-plan_holder_lab_map_norod_v3id1.json` (on holder_seated_2) keeps 49 facing hovers
 (W 0.5 to 30 mm at twists -20 to +10 deg, the twelve offsets, W 45 mm) and 32 side-by-side hovers (g 13 to 25 mm), with
 the first 20 repeated: about 41 min. Twist +20 deg fails on joint 5 (30.5 deg). Its least clearances are wrist 2
 20.95, mount 3.49, finger 3.48, pad 0.58 (at W 0.5 mm) and HEX-E 21.6 mm. With the rod in place, 25 facing hovers and 1
@@ -109,7 +96,7 @@ seated would put it 4.27 mm higher.
 
 The plan builder places every apex and hover by that frame (`--true-frame`) and writes them in the program's frame. Its
 checks put the holder there. The pad keeps the program's orientation, 4.3 deg from the holder's vertical.
-`lab/20261027-plan_holder_lab_map_apex_v3id1.json` starts with five touch-offs on the -y apex (`--touch-station -y`).
+`lab/superseded/20261027-plan_holder_lab_map_apex_v3id1.json` starts with five touch-offs on the -y apex (`--touch-station -y`).
 They start 9.5 mm above the level frame's prediction and reach 3 mm past it, so they meet the apex under either
 hypothesis. Then come 49 facing hovers over the +y tip, with the owner's three +y watched hovers first. Next are 21 hovers
 over the -y tip at W 10 mm and over, which clear it under either hypothesis, and 20 repeats: about 45 min. The path
@@ -180,7 +167,7 @@ them before, cost 11 and 13 to 14. This pass runs last, the next morning, with t
 points of the tip's end, the edges and the flanks that no press target of v3 ID 1's plans comes within 1.0 mm of,
 thinned to 1.0 mm. The tip's end takes the flanks' levels, 0.25 to 2 N. On 143529's registration (v2 ID 1's tall pass 1,
 standing in until v3 ID 1's), the pass has 27 actions and about 0.64 h of robot time
-(`lab/20261028-plan_tall_lab_top_edge_v3id1_on143529.json`):
+(`lab/superseded/20261028-plan_tall_lab_top_edge_v3id1_on143529.json`):
 
 | Actions | Tip's end | Edges | Flanks |
 |---|---|---|---|

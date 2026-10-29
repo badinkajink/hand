@@ -2,7 +2,7 @@
 """v3 ID 1's calibration suite on the UR5 cell (owner, 2026-10-27 21:5x, to the lab: "sure, we can run the v3 id 1
 registration and suite ... the rod has changed position, yes, but everything else is the same"): v2 ID 1's actions as
 they ran, cut as scripts/ur5_tip_calibration_suite_value.SUITE says, in the order they ran, as plan files the lab
-program runs after v3 ID 1's sphere pass 1 (lab/20261027-plan_sphere_lab_pass1_v3id1.json).
+program runs after v3 ID 1's sphere pass 1 (lab/superseded/20261027-plan_sphere_lab_pass1_v3id1.json).
 
 For a stage, every action of the v2 ID 1 session that ended ok is labelled by family (suite_value.coarse_label) and
 kept, reduced (the first n of a seed-0 permutation of the family's ids, as suite_value.suite_mask) or cut by its SUITE
@@ -24,7 +24,7 @@ make one for a seating recorded later on v3 ID 1's own tool frames (the lab, 202
 rod's fixture goes back on).
 
 The tall indenter (stage 4): tall1 is v2 ID 1's pass 1 on it as it ran (143529-tallv2id1, 21 touch-offs to 2.0 mm past).
-tall2 is R29 (lab/20261027-plan_tall_lab_r29_v2id1.json: its presses, 50 slides, 4 of its 12 twists by the seed-0
+tall2 is R29 (lab/superseded/20261027-plan_tall_lab_r29_v2id1.json: its presses, 50 slides, 4 of its 12 twists by the seed-0
 permutation, the final reference) with six shared points first after the opening reference: tall presses at targets
 that the sphere stage presses too (three on the face, three on the edges, the sphere's force levels), each at the first
 twist of 0, 10, 20, 30, 40, -10 and -20 deg whose replay (ur5_tip_calibration_holder_paths: travel from 60 mm above,
@@ -151,9 +151,9 @@ def cmd_sphere2(a):
             f"the order they ran, with the suite-value cuts (twist and roll rates cut, the rate set reduced to 6); "
             f"{len(morning)} actions whose joint 6 went past +44 deg in v2 ID 1's run are in the morning plan. About {h:.1f} h "
             "at the program's present speeds. Runs after pass 1 on its registration (resume in the same session).")
-    out = LAB / "20261027-plan_sphere_lab_stage2_v3id1.json"
+    out = LAB / "superseded/20261027-plan_sphere_lab_stage2_v3id1.json"
     write_plan(session, kept, out, a.created, note, "2 sphere")
-    outm = LAB / "20261027-plan_sphere_lab_morning_v3id1.json"
+    outm = LAB / "superseded/20261027-plan_sphere_lab_morning_v3id1.json"
     write_plan(session, morning, outm, a.created, note.replace("stage 2 on the low sphere", "stage 2's morning part on the "
                "low sphere, joint 6 past +44 deg (owner present)"), "2 sphere, morning")
     print("->", out.relative_to(ROOT), "and", outm.relative_to(ROOT))
@@ -210,7 +210,7 @@ def cmd_rod1(a):
         "checks.placement_mm_deg is left out because the rod moved."]
     p["suite"] = dict(stage="3 rod, pass 1 (search)", tip="v3 ID 1", source_session=session,
                       script="scripts/ur5_tip_calibration_v3_suite.py")
-    out = LAB / "20261027-plan_rod_lab_pass1_search_v3id1.json"
+    out = LAB / "superseded/20261027-plan_rod_lab_pass1_search_v3id1.json"
     out.write_text(json.dumps(p, indent=1) + "\n")
     print(f"rod pass 1: {len(acts)} actions ->", out.relative_to(ROOT))
 
@@ -227,14 +227,14 @@ def cmd_rod2(a):
             "pivots that ended ok, in the order they ran, with the suite-value cuts (fast grid, rate set, fast slides, roll "
             f"and twist rates); {len(morning)} with joint 6 past +44 deg wait for the owner. About {h:.1f} h at the program's "
             "present speeds. Runs on the rod's registration from pass 1 (resume in the same session).")
-    out = LAB / "20261027-plan_rod_lab_stage2_v3id1.json"
+    out = LAB / "superseded/20261027-plan_rod_lab_stage2_v3id1.json"
     p = write_plan(session, kept, out, a.created, note, "3 rod")
     p["checks"].pop("placement_mm_deg", None)
     p["checks"]["other"] = [o for o in p["checks"]["other"] if o["kind"] != "rod"] + [
         dict(kind="sphere", T_BI=json.loads((LAB / SV.SESSIONS["sphere"] / "registration.json").read_text())["T_BI"])]
     out.write_text(json.dumps(p, indent=1) + "\n")
     if morning:
-        write_plan(session, morning, LAB / "20261027-plan_rod_lab_morning_v3id1.json", a.created,
+        write_plan(session, morning, LAB / "superseded/20261027-plan_rod_lab_morning_v3id1.json", a.created,
                    note.replace("the rod after its pass 1", "the rod's morning part, joint 6 past +44 deg"), "3 rod, morning")
     print("->", out.relative_to(ROOT))
 
@@ -251,7 +251,7 @@ def cmd_tall1(a):
         "v2 ID 1's pass 1 there as it ran (143529-tallv2id1), its touch-offs to 2.0 mm past the expected surface. "
         "checks.other: the low sphere, the rod at its three seatings and the holder with both held tips (tiphold)."]
     p["suite"] = dict(stage="4 tall, pass 1", tip="v3 ID 1", source_session=session, script="scripts/ur5_tip_calibration_v3_suite.py")
-    out = LAB / "20261027-plan_tall_lab_pass1_v3id1.json"
+    out = LAB / "superseded/20261027-plan_tall_lab_pass1_v3id1.json"
     out.write_text(json.dumps(p, indent=1) + "\n")
     print(f"tall pass 1: {len(p['actions'])} actions ->", out.relative_to(ROOT))
 
@@ -294,7 +294,7 @@ def replay_ok(plan, session, act, j6_max=J6_MAX):
 
 def cmd_tall2(a):
     import ur5_tip_calibration_holder_paths as HP
-    r29 = json.loads((LAB / "20261027-plan_tall_lab_r29_v2id1.json").read_text())
+    r29 = json.loads((LAB / "superseded/20261027-plan_tall_lab_r29_v2id1.json").read_text())
     p = {k: copy.deepcopy(v) for k, v in r29.items() if k != "actions"}
     p["created"] = a.created
     p["checks"]["other"] = [o for o in cell_other() if o["kind"] != "tall"] + [
@@ -303,7 +303,7 @@ def cmd_tall2(a):
     keep_tw = set(np.random.default_rng(0).permutation(tw_ids)[:4].tolist())
     acts = [x for x in r29["actions"] if x["kind"] != "twist" or x["id"] in keep_tw]
     # six shared points: sphere stage 2's grid presses on the face and the edges that the tall reaches
-    s2 = json.loads((LAB / "20261027-plan_sphere_lab_stage2_v3id1.json").read_text())
+    s2 = json.loads((LAB / "superseded/20261027-plan_sphere_lab_stage2_v3id1.json").read_text())
     have = {x["target"]["index"] for x in acts if x["kind"] == "press"}
     cand = [x for x in s2["actions"] if x["kind"] == "press" and re.match(r"^(grid|dense)-", x["id"])
             and x["target"]["region"] in ("face", "edge") and x["target"]["index"] not in have]
@@ -337,9 +337,9 @@ def cmd_tall2(a):
         f"12 twists and {len(shared)} shared points after tall-ref-a (tall presses at sphere stage 2's targets, the sphere's "
         "levels; ids tall-shared-<index>, field shared_with). checks.other: the low sphere, the rod at its three seatings "
         "and the holder with both held tips. Actions outside joint 6's unattended window are in the tall's morning plan."]
-    p["suite"] = dict(stage="4 tall", tip="v3 ID 1", source_plan="lab/20261027-plan_tall_lab_r29_v2id1.json",
+    p["suite"] = dict(stage="4 tall", tip="v3 ID 1", source_plan="lab/superseded/20261027-plan_tall_lab_r29_v2id1.json",
                       shared_points=[y["id"] for y in shared], script="scripts/ur5_tip_calibration_v3_suite.py")
-    out = LAB / "20261027-plan_tall_lab_stage2_v3id1.json"
+    out = LAB / "superseded/20261027-plan_tall_lab_stage2_v3id1.json"
     out.write_text(json.dumps(p, indent=1) + "\n")
     print(f"tall stage: {len(acts)} actions ({len(shared)} shared points, {tried} replays) ->", out.relative_to(ROOT))
 

@@ -1,5 +1,11 @@
 # Requests between the workstation and the lab computer for the UR5 calibration of the fingertip
 
+From 2026-10-28 18:0x the cell's current state is in `lab/STATE.md` (owner: "we need to consolidate our documentation
+and calibration runs"): what is mounted with its registrations, the plan file for each run with its status, the rules
+in force and what waits on the owner. The lab session keeps it current at every session start and end, and every
+request to the owner comes from it. This file is the history. The plan and path-check files of 10-27 and 10-28 that are
+no longer current moved to `lab/superseded/` under the same names, so a name below without that folder is found there.
+
 The owner set up two Claude Code sessions on 2026-10-22. The session on the lab computer runs the calibration of
 `README.md` and pushes each run's data to GitHub. The session on the workstation polls GitHub every 30 s, analyses each
 push and asks for further runs in this file. Only the workstation writes this file. The lab session answers in its

@@ -3,19 +3,19 @@
 swap fingertips for the other 4 magnet fingertips"): v3 ID 1's plan files as they ran or were checked on 10-28, for a tip
 with the same pad (05R4), in the order the lab runs them unattended:
 
-  1 sphere pass 1    20261027-plan_sphere_lab_pass1_v3id1.json (18 touch-offs): the tip's registration on the sphere
-  2 sphere stage 2   20261027-plan_sphere_lab_stage2_v3id1.json without its speed variants (fast-*, rate-*: press speed
+  1 sphere pass 1    superseded/20261027-plan_sphere_lab_pass1_v3id1.json (18 touch-offs): the tip's registration on the sphere
+  2 sphere stage 2   superseded/20261027-plan_sphere_lab_stage2_v3id1.json without its speed variants (fast-*, rate-*: press speed
                      from 0.045 to 2 mm/s did not change the GP on cb2t) and without the three actions under the mount's
                      margin on mount v7 (dense-700-t+10, dense-795-t+15 and their slides); after the
                      grid, presses at 0.25 to 5 N on the four FE surface nodes within 2 mm of the apex over U1 that no
                      press of the suite targets (10 of the 14 are targets already)
-  3 tall pass 1      20261028-plan_tall_lab_pass1_19_v3id1.json (19 touch-offs)
-  4 tall stage 2     20261028-plan_tall_lab_stage2_ts1_v3id1.json (102)
-  5 rod pass 1       20261028-plan_rod_lab_pass1_search_ts1_v3id1.json's 21 touch-offs and 5 pivots with the normal
+  3 tall pass 1      superseded/20261028-plan_tall_lab_pass1_19_v3id1.json (19 touch-offs)
+  4 tall stage 2     superseded/20261028-plan_tall_lab_stage2_ts1_v3id1.json (102)
+  5 rod pass 1       superseded/20261028-plan_rod_lab_pass1_search_ts1_v3id1.json's 21 touch-offs and 5 pivots with the normal
                      approach (3.5 mm above to 1.2 mm past, travel.slow_mm_touch 2.5, as v2 ID 1's rod pass 1): the
                      program resumes a seed folder of scripts/ur5_tip_calibration_seed_registration.py (the rod's T_BI
                      from 102701-rodv3id1, the tip's tool from its sphere pass 1) with --stages preflight,pad,pivot,register
-  6 rod stage 2      20261028-plan_rod_lab_stage2_v7_v3id1.json (94) with 20261028-plan_rod_lab_morning6_v3id1.json's 6
+  6 rod stage 2      superseded/20261028-plan_rod_lab_stage2_v7_v3id1.json (94) with superseded/20261028-plan_rod_lab_morning6_v3id1.json's 6
                      presses before its final reference
 
 Every plan gets travel.speed 1.0 and checks.other from lab/cell.json without its own indenter; the tall plans lift
@@ -41,12 +41,12 @@ UNDER_MARGIN_V7 = {"dense-700-t+10", "slide-dense-700-t+10-1N", "slide-dense-795
 BASIS = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261020-b_v2_surface_basis.npz"
 CENTRE_NEW = (799, 775, 777, 765)                       # the free face nodes within 2 mm of the apex, nearest first
 SOURCES = [
-    ("sphere", "pass1", ["20261027-plan_sphere_lab_pass1_v3id1.json"]),
-    ("sphere", "stage2", ["20261027-plan_sphere_lab_stage2_v3id1.json"]),
-    ("tall", "pass1", ["20261028-plan_tall_lab_pass1_19_v3id1.json"]),
-    ("tall", "stage2", ["20261028-plan_tall_lab_stage2_ts1_v3id1.json"]),
-    ("rod", "pass1", ["20261028-plan_rod_lab_pass1_search_ts1_v3id1.json"]),
-    ("rod", "stage2", ["20261028-plan_rod_lab_stage2_v7_v3id1.json", "20261028-plan_rod_lab_morning6_v3id1.json"]),
+    ("sphere", "pass1", ["superseded/20261027-plan_sphere_lab_pass1_v3id1.json"]),
+    ("sphere", "stage2", ["superseded/20261027-plan_sphere_lab_stage2_v3id1.json"]),
+    ("tall", "pass1", ["superseded/20261028-plan_tall_lab_pass1_19_v3id1.json"]),
+    ("tall", "stage2", ["superseded/20261028-plan_tall_lab_stage2_ts1_v3id1.json"]),
+    ("rod", "pass1", ["superseded/20261028-plan_rod_lab_pass1_search_ts1_v3id1.json"]),
+    ("rod", "stage2", ["superseded/20261028-plan_rod_lab_stage2_v7_v3id1.json", "superseded/20261028-plan_rod_lab_morning6_v3id1.json"]),
 ]
 
 

@@ -1,0 +1,88 @@
+# UR5 cell: current state
+
+Updated 2026-10-28 18:05 by the workstation. From the tip swap on, the lab session updates this file at every session
+start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
+request to the owner must come from this file.
+
+## On the robot
+
+| Item | Now | Registration (folder here) |
+|---|---|---|
+| Tip | v3 ID 1 (four N52 magnets, pad 05R4) until the swap at about 19:00; then the next four-magnet tip, `v3id2` in file names until the owner names it | tool: `20261027-225213-spherev3id1` |
+| Mount | v7 standoff fork on the HEX-E; stays on the flange through the swap | homing pose: `20261027-225213-spherev3id1` |
+| Sphere | low sphere, not moved since 10-27 | `20261027-225213-spherev3id1` |
+| Rod | on, at its third seating | `20261028-102701-rodv3id1` |
+| Tall indenter | on | `20261028-114908-tallv3id1` |
+| Holder | both held tips pad-up, seating 5 | `20261027-holder-apex-both` |
+
+`cell.json` holds the same registrations for the path checks and the renders.
+
+The HEX-E's link fails about once per 6 to 9 h of running: 7 losses since 10-25 (`../QUEUE.md` R31, 17:42 on 10-28).
+A loss aborts three actions and stops the session, and the robot then waits for a reseat. The cable is clamped 3 to 5
+cm from the connector with slack. The fix is a new cable.
+
+## Rules in force
+
+- Every robot run needs the owner's go in the lab's session.
+- Joint 6 goes to +45 deg at most without the owner, and to +60 deg with the owner present.
+- No gravity sweeps.
+- travel.speed is 1.0. The tall plans lift 20 mm between actions.
+- Before it runs, every plan is path-checked on the current registrations and `cell.json` with
+  `scripts/ur5_tip_calibration_holder_paths.py` (margins: robot 8 mm, mount 3.0 mm or 2.5 mm for touch-offs, finger
+  0.8 mm, HEX-E 6 mm), and the lab simulates it.
+- No force control, contact motion or safety threshold is set from a borrowed calibration that was not validated.
+- The workstation reads corvus over SSH and never writes there; plans reach corvus by git.
+
+## Tonight: the next tip's night suite
+
+Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
+State at 18:05: waiting for the tip swap and the owner's go. The lab is simulating the seeded first block.
+
+| Block | Plan | Actions | Hours | How it runs |
+|---|---|---|---|---|
+| 1 | `20261028-plan_sphere_lab_pass1_night_v3id2.json` | 18 | 0.5 | A seed folder from `scripts/ur5_tip_calibration_seed_registration.py`, with --tool and --fixture both `20261027-225213-spherev3id1/registration.json` (homing pose kept). Stages preflight,pad,register; no homing. |
+| 2 | `20261028-plan_sphere_lab_stage2_night_v3id2.json` | 211 | 6.1 | Resumed on block 1's registration. |
+| 3 | `20261028-plan_tall_lab_pass1_night_v3id2.json` | 19 | 0.5 | A new session on block 1's tool, as 114908 ran on 225213's. |
+| 4 | `20261028-plan_tall_lab_stage2_night_v3id2.json` | 102 | 2.8 | Resumed on block 3's registration. |
+| 5 | `20261028-plan_rod_lab_pass1_night_v3id2.json` | 26 | 0.4 | A seed folder with --tool block 1's registration and --fixture `20261028-102701-rodv3id1/registration.json`. Stages preflight,pad,pivot,register. |
+| 6 | `20261028-plan_rod_lab_stage2_night_v3id2.json` | 100 | 1.4 | Resumed on block 5's registration. |
+
+After a HEX-E reseat, `20261028-plan_sphere_lab_check2_v3id1.json` repeats three sphere touch-offs; their onsets show
+whether the tool moved.
+
+## v3 ID 1: runs done
+
+| Runs | Session folder | Time | Result |
+|---|---|---|---|
+| Holder touch-offs, apex search, holder map, close map | `20261027-200536-holdv3id1`, `-202426-holdapexv3id1`, `-212131-holdmapv3id1`, `-222640-holdclosev3id1` | 10-27, 20:05 to 22:4x | the held apexes, `20261027-holder-apex-both` |
+| Sphere pass 1, stage 2, twists | `20261027-225213-spherev3id1` | 10-27 22:52 to 10-28 02:54 (HEX-E loss); 09:36 to 10:25 | 0.049 mm rms; 160 grid presses and 40 slides; 12 twists, 2 rolls |
+| Rod pass 1, stage 2, morning6 | `20261028-102701-rodv3id1` | 10:27 to 13:52 | 0.042 mm rms; 94 of 94; 6 of 6 |
+| Tall pass 1, stage 2, morning plan | `20261028-114908-tallv3id1` | 11:49 to 17:41 | 0.045 mm rms; 102 (44, then 58 after the 14:32 loss); 18 of 18 |
+
+## v3 ID 1: not run
+
+These need v3 ID 1 back on the robot.
+
+| Plan | Actions | Needs |
+|---|---|---|
+| `20261028-plan_tall_lab_top_edge_ts1_v3id1.json` | 34 | the owner present |
+| `20261028-plan_sphere_lab_morning_unattended_ts1_v3id1.json` | 43 | the owner present (joint 6 to +59 deg) |
+| `20261028-plan_sphere_lab_stage2_resume3_v3id1.json` | 43 slides | |
+| `20261028-plan_holder_lab_side_norod30_v3id1.json` | 30 hovers | the rod fixture off and the -y held tip pad-down |
+
+## Waiting on the owner
+
+- The go for the night suite, in the lab's session.
+- The new tip's ID.
+- When v3 ID 1 goes back on, the four plans above.
+- Indenter plate v2d: the front row at 95 or 100 mm, a support under the pad-down block, the plate's place and timing,
+  and plans for the 12.5 mm sphere.
+- A new HEX-E cable.
+
+## Where things are
+
+- History: `../QUEUE.md` (R31 covers v3 ID 1) and `NOTES.md` (the lab's log).
+- Results: `docs/experiments/20261027-v3_tip_calibration_and_crosstalk/` (README, `data/`, `feed.jsonl`) and the
+  fingertip calibration page.
+- Plan files that are no longer current, and their path checks: `superseded/`, under the same names. A plan that ran
+  also has a copy in its session folder.

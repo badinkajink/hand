@@ -225,7 +225,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--session", default=str(LAB / "20261027-sphchk-b-hybrid"),
                     help="a folder whose registration.json gives the robot's mount and pad and the holder's place (T_BI)")
-    ap.add_argument("--base-plan", default=str(LAB / "20261027-plan_sphere_lab_check_shear_v2id1.json"))
+    ap.add_argument("--base-plan", default=str(LAB / "superseded/20261027-plan_sphere_lab_check_shear_v2id1.json"))
     ap.add_argument("--add-other", action="append", default=[], help="kind:session, a fixture on the cell at that session's "
                     "registered T_BI (the low sphere: sphere:<192158-v2id1's folder>)")
     ap.add_argument("--drop-other", action="append", default=[], help="a fixture kind taken off the cell for this plan")
@@ -250,5 +250,5 @@ if __name__ == "__main__":
     ap.add_argument("--j6-min", type=float, default=-62.0)
     ap.add_argument("--j6-max", type=float, default=45.0)
     ap.add_argument("--created", default="2026-10-27")
-    ap.add_argument("--out", default=str(LAB / "20261027-plan_holder_lab_map_v3id1.json"))
+    ap.add_argument("--out", default=str(LAB / "superseded/20261027-plan_holder_lab_map_v3id1.json"))
     run(ap.parse_args())
