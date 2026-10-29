@@ -1616,6 +1616,19 @@ The clearances in this section and the one before it are on mount v3. The next s
   touch-off would take about 48 s on the sphere and 55 s on the tall and the rod; rod pass 1's 21 would take 19 min
   instead of 37. The choice is the owner's, and the plans are unchanged.
 
+### The owner's answers (11:37, passed on by the workstation at 11:49)
+
+- Touch-offs: "we can approach at 0.15mm/s sure, or faster if you want". The next tip's plans run the touch-offs' slow
+  approach at v 0.0005. The workstation advised against going faster: the 0.58 mm/s presses' onsets came 0.026 mm
+  early (SE 0.017).
+- The owner asked "do you think i should put on v3 id 3 first?", and the workstation recommended it, on ID 2's suite.
+  It is not decided, and the go comes in the lab's session.
+- The rod stays: "i am not going to move the rod. figure something else out." So the side map without the rod
+  (`20261028-plan_holder_lab_side_norod30_v3id1.json`) is off. The workstation is building a side map with both held
+  tips pad-up.
+- Indenter plate v2d waits until the motions calibration needs are final. The workstation is writing that list.
+- `STATE.md` carries the details.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
