@@ -1728,8 +1728,34 @@ The clearances in this section and the one before it are on mount v3. The next s
 - Simulated from home on the seed: no abort, the mount 3.05 mm at least on every 10th sample (g20-s5), joint 6 from
   -3.7 to 6.4 deg. Every 10th sample spans under 1 mm of the hovers' slow descents. The run started without waiting for
   the recheck on every 2nd sample, which had run 32 min by then; on ID 2's side map that recheck changed nothing.
-- Session `logs/20261029-tip_calibration/151334-sidev3id3`, stages preflight,hover, with the held tips' mux board
-  (`--held-board`): channels 0 and 3 at 206 records/s each. The night's chain (`id3_chain.sh`) follows it.
+- Session `logs/20261029-tip_calibration/151334-sidev3id3` (copy: `lab/20261029-151334-sidev3id3/`; the streams,
+  `held.bin` among them, stay on corvus), stages preflight,hover, with the held tips' mux board (`--held-board`):
+  channels 0 and 3 at 206 records/s each.
+- 24 of 24 hovers, no abort, exit 0 at 15:29:14. Each held 6 s; the HEX-E's largest change in a hover was 0.23 to
+  0.44 N, the magnets' pull. The HEX-E gave 93,426 samples, none timed out, with two gaps of 0.7 s.
+
+### The night's chain (from 15:29)
+
+- `id3_chain.sh` took over at the side map's exit. Block 3's simulation from seat 1 on block 1's tool had passed: the
+  mount 4.77 mm and the finger 1.59 mm at least, joint 6 down to -64.3 deg, joint 5 up to 98.3 deg. Block 5's on its
+  seed: the mount 3.16 mm, joint 6 from -52.2 to 24.7 deg.
+- Block 3 (tall pass 1) started at 15:30:34 after the home path check and go home (0.05 mm), a new session homed on
+  `tall_indenter_seated`. The homing put the tall at (-33.3, -699.2, 72.4) mm, yaw -93.4 deg, as for ID 2.
+- The side map's recheck on every 2nd sample ended at 15:44: 0 under a margin, the mount 3.05 mm at least, the same as
+  on every 10th.
+
+### Block 3: ID 3's tall pass 1 (15:30:34 to 15:48:00)
+
+- `logs/20261029-tip_calibration/153034-tallv3id3` (copy: `lab/20261029-153034-tallv3id3/`), stages
+  preflight,homing,pad,register.
+- 19 of 19 touch-offs, no abort, no early contact. The onsets came -0.253 to +1.288 mm from the homed tall and rose
+  through the pass, as ID 2's did (-0.11 to +1.18 mm); the touch-offs search 2.0 mm past. A touch-off took 54.5 s on
+  average (47 to 71 s), against about 108 s on ID 2's block 3.
+- Pad touches 0.055 mm rms (ID 2: 0.073). The fitted tall stands 1.46 mm along +y_B from 200508's, so 0.39 mm along -y
+  from 114908's; the pass does not fix y well.
+- The HEX-E gave 103,927 samples, none timed out, with gaps of 0.8 and 0.7 s.
+- At its exit the chain started block 4's simulations on this registration (2 chunks, every 5th sample) and waited for
+  block 2's chunks.
 
 ### The night's plans, after the finer path checks (14:4x)
 
