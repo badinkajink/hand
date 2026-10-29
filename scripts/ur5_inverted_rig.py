@@ -116,7 +116,9 @@ BLOCK_F = ((4.4, -10.5, -98.36), (16.4, 10.5, -77.05))    # the station block be
 HOLES_F = ((8.0, -79.82), (-8.0, -79.82), (8.0, -95.82), (-8.0, -95.82))   # (y_F, z_F) of the M2 x 8
 LAYOUT = dict(       # plate v2e: v2d's base, keys and front row (the 5 mm sphere where v2d had the 12.5 mm one), three seats
     sphere5=dict(c=(-15.0, 60.0), top=100.0), rod=dict(c=(0.0, -85.0), top=100.0),
-    seats=((75.0, -80.0), (75.0, 0.0), (75.0, 80.0)), seat_h=160.0, orient="front_up")
+    seats=((70.0, -80.0), (70.0, 0.0), (70.0, 80.0)), seat_h=160.0, orient="front_up",
+    support=dict(depth=35.0, half_w=22.0))   # each seat's support flares to 35 mm deep (x) and 44 mm wide at the base:
+#                                             9 um/N along x at the apex (PLA beam), against 161 for the block's own section
 
 
 def T_AF(orient, apex):
@@ -133,19 +135,27 @@ def plate(layout=None):
     a = copy.deepcopy(IA.ARRAY)
     a["sphere5"] = dict(a["sphere5"], **lay["sphere5"])
     a["rod"] = dict(a["rod"], **lay["rod"])
-    g = IA.geometry(a)
-    g.pop("sphere12", None)
-    g.pop("holder", None)
     tb = a["base"][4]
     seats = []
     orients = lay["orient"] if isinstance(lay["orient"], (list, tuple)) else [lay["orient"]] * len(lay["seats"])
+    sp = lay["support"]
     for (x, y), o in zip(lay["seats"], orients):
         T = T_AF(o, (x, y, lay["seat_h"]))
         lo, hi = BLOCK_F
         corners = C.apply(T, np.array([[u, v, w] for u in (lo[0], hi[0]) for v in (lo[1], hi[1]) for w in (lo[2], hi[2])]))
-        foot = np.c_[corners[:, :2], np.full(len(corners), tb - 0.01)]          # the support: the block's hull down to
-        seats.append(dict(apex=[x, y, lay["seat_h"]], orient=o, T_AF=T.round(6).tolist(),   # the base's top
+        x0 = float(corners[:, 0].min())                 # the support: the block's hull down to a footprint on the base's
+        x1 = max(float(corners[:, 0].max()), x0 + sp["depth"])            # top, from the block's front face back
+        yc = float(corners[:, 1].mean())
+        y0, y1 = min(float(corners[:, 1].min()), yc - sp["half_w"]), max(float(corners[:, 1].max()), yc + sp["half_w"])
+        foot = np.array([[xx, yy, tb - 0.01] for xx in (x0, x1) for yy in (y0, y1)])
+        seats.append(dict(apex=[x, y, lay["seat_h"]], orient=o, T_AF=T.round(6).tolist(),
                           support=np.vstack([corners, foot])))
+    xb = max(a["base"][1], max(float(st["support"][:, 0].max()) for st in seats) + 2.0)
+    a["base"] = (a["base"][0], xb, a["base"][2], a["base"][3], tb)          # the base reaches 2 mm past the supports
+    a["screws"] = tuple(s_ for s_ in a["screws"] if s_[0] < 0) + tuple((xb - 10.0, yy) for yy in (-110.0, -40.0, 40.0, 110.0))
+    g = IA.geometry(a)                                  # the back screws between the supports' footprints
+    g.pop("sphere12", None)
+    g.pop("holder", None)
     g["seats"], g["layout"] = seats, lay
     g["zmax"] = float(max([np.max(st["support"][:, 2]) + 25.0 for st in seats] + [g["sphere5"]["top"], g["rod"]["top"]]
                           + [k["pin_top"] for k in g["keys"]]))     # the highest part (the tips within 25 mm of their blocks)

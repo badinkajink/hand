@@ -182,14 +182,14 @@ def fig_plate(out, g):
             _hull2(a2, tip[:, [0, 2]], "0.25", z=5)
         ap = st["apex"]
         a1.plot(ap[0], ap[1], "o", ms=5, color="#c0392b", zorder=6)
-        a1.text(ap[0] + 32, ap[1], f"seat {i + 1}", va="center", fontsize=12)
+        a1.text(x1 + 3, ap[1], f"seat {i + 1}", va="center", fontsize=12)
     ap = g["seats"][1]["apex"]
     a2.plot(ap[0], ap[2], "o", ms=5, color="#c0392b", zorder=6)
     a2.annotate("pad's apex", (ap[0], ap[2]), (ap[0] - 70, ap[2] + 22), fontsize=12,
                 arrowprops=dict(arrowstyle="-", lw=0.8))
     a1.annotate("", (-150, -100), (-112, -100), arrowprops=dict(arrowstyle="<-", lw=1.0))
     a1.text(-131, -92, "robot", ha="center", fontsize=12)
-    for ax, (xl, yl), lab in ((a1, ((-160, 150), (-135, 135)), ("x (mm), away from the robot", "y (mm)")),
+    for ax, (xl, yl), lab in ((a1, ((-160, 175), (-135, 135)), ("x (mm), away from the robot", "y (mm)")),
                               (a2, ((-160, 150), (-5, 210)), ("x (mm), away from the robot", "z (mm) over the base's underside"))):
         ax.set_xlim(*xl)
         ax.set_ylim(*yl)
@@ -407,9 +407,12 @@ def plate_text(g):
         f"the keys, the finger-on-robot suite of v3 ID 1 to ID 3 still runs on this plate.</p>"
         f"<p>The back row has three seats. Their pads' apexes stand at x {st[0]['apex'][0]:.0f} mm and y "
         f"{', '.join(f'{s['apex'][1]:.0f}' for s in st)} mm, {lay['seat_h']:.0f} mm over the base's underside "
-        f"(Figure 3). Each seat is a station block of the fingertip holder, 12 mm thick behind the tip's board. A solid "
-        f"support runs from the block down to the base. The block's four 1.9 mm holes take the tip's M2 &#215; 8, as on "
-        f"the holder. Each tip faces the robot with its end up (section 4 compares six ways of holding it). The plate "
+        f"(Figure 3). Each seat is a station block of the fingertip holder, 12 mm thick behind the tip's board. The "
+        f"block's four 1.9 mm holes take the tip's M2 &#215; 8, as on the holder. A solid support flares from the block "
+        f"to a footprint 35 mm deep and 44 mm wide on the base. A beam estimate in PLA puts the pad's apex at "
+        f"9.4 &#181;m/N along a face press and 4.9 &#181;m/N across it. The block's own section alone, 12 by 21 mm, would "
+        f"give 161 and 53 &#181;m/N. The base reaches back to x 122 mm, and its four back screws sit between the "
+        f"supports. Each tip faces the robot with its end up (section 4 compares six ways of holding it). The plate "
         f"measures 220 &#215; 236 &#215; {g['zmax'] - 25.0:.0f} mm and fits the P1S's bed.</p>")
 
 
