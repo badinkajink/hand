@@ -98,8 +98,14 @@ def probe_section(ax, tool):
         ax.add_patch(Wedge((0, za), r["R"], 0, 180, fc="#d9cfe9", ec="0.2", lw=1.0, zorder=3))
     else:
         fp = p["flat"]
-        _rect(ax, -sr, sr, fl["z1"], tz - fp["ch"], "#d9cfe9")
-        _poly(ax, [(-sr, tz - fp["ch"]), (sr, tz - fp["ch"]), (fp["r"], tz), (-fp["r"], tz)], "#d9cfe9")
+        zd = tz - fp["t"]
+        zn = zd - fp["neck_l"]
+        zc0 = zn - (sr - fp["neck_r"]) / math.tan(math.radians(30.0))
+        _rect(ax, -sr, sr, fl["z1"], zc0, "#d9cfe9")
+        _poly(ax, [(-sr, zc0), (sr, zc0), (fp["neck_r"], zn), (-fp["neck_r"], zn)], "#d9cfe9")
+        _rect(ax, -fp["neck_r"], fp["neck_r"], zn, zd, "#d9cfe9")
+        _poly(ax, [(-fp["r"], zd), (fp["r"], zd), (fp["r"], tz - fp["ch"]), (fp["r"] - fp["ch"], tz),
+                   (-fp["r"] + fp["ch"], tz), (-fp["r"], tz - fp["ch"])], "#d9cfe9")
     ax.axhline(93.36, color="#c0392b", ls=(0, (4, 3)), lw=1.0, zorder=1)
     ax.set_aspect("equal")
     ax.set_xlim(-48, 48)
@@ -384,7 +390,8 @@ def probe_text(parts):
         f"its height. The column has four pilot holes, so a tool can go on at four turns 90 deg apart. Every tool's end "
         f"stands at z<sub>M</sub> {p['tip_z']:.0f} mm, 27 mm past the finger's pad apex on mount v7 (Figure 2). The 5 mm "
         f"sphere and its neck are the tall indenter's. The half rod is the plate's rod, its axis across the tool axis. "
-        f"The flat face is 14 mm across. A 2 mm sphere reaches closer to the cassette's walls (section 5).</p>"
+        f"The flat face is a disc 14 mm across and 3 mm thick on a 9 mm neck. A 2 mm sphere reaches closer to the "
+        f"cassette's walls (section 5).</p>"
         f"<p>With the 5 mm sphere and the adapter disc, the tool past the HEX-E weighs about "
         f"{m_base + tools['sphere5'] + 55:.0f} g. The fork with the DIP link and the tip weighs 403 g, so the program's "
         f"payload must change. A beam estimate of the PLA stem and column, at 2.5 GPa, moves the 5 mm sphere's centre "
@@ -455,7 +462,7 @@ def compare_text(fin, full, figs):
     (fl_e, fl_n), fl_f = cnt(e, "flank"), cnt(fin, "flank")[0]
     (fa_e, fa_n), fa_f = cnt(e, "face"), cnt(fin, "face")[0]
     (ed_e, ed_n), ed_f = cnt(e, "edge"), cnt(fin, "edge")[0]
-    xs = [-r["p_P"][0] - 2.05 for r in e if r["region"] == "flank" and not r["normal"]]
+    xs = np.array([-r["p_P"][0] - 2.05 for r in e if r["region"] == "flank" and not r["normal"]])
     scope = "all 808 points" if FULL[0] else "the 201 points 1.5 mm apart"
     return (
         f"<p>On the chosen seat, a press of either sphere reaches {NE} of the pad's {N} points (Table 3). The finger on "
@@ -465,9 +472,9 @@ def compare_text(fin, full, figs):
         f"<p>The finger on the robot pushes along the normal only. For shear it slides, turning 2.3 deg about the "
         f"sphere's centre. The probe also pushes 20 and 35 deg off the normal, and the last two columns of Table 3 "
         f"give the share of those pushes reached.</p>"
-        f"<p>The flank points that no press reaches lie at x<sub>F</sub> above {min(xs):.1f} mm, by the cassette's walls "
-        f"(Figure 5). The walls' palmar face stands at x<sub>F</sub> -0.10 mm, 3 mm proud of the pad's flanks, and a sphere "
-        f"meets them before it meets the pad. The tip's end has the same limit at the cassette's end plate. The 2 mm "
+        f"<p>Of the flank points that no press reaches, {100 * np.mean(xs > -3.5):.0f} % lie within 3.4 mm of the cassette's "
+        f"walls, at x<sub>F</sub> above -3.5 mm (Figure 5). The walls' palmar face stands at x<sub>F</sub> -0.10 mm, 3 mm "
+        f"proud of the pad's flanks, and a sphere meets them before it meets the pad. The tip's end has the same limit at the cassette's end plate. The 2 mm "
         f"sphere reaches nearer to both than the 5 mm one. Its neck, 1.3 mm in radius, is the thinnest printed part of "
         f"the probe.</p>"
         + P.table(["Region", "Points", "Finger on the robot", "Probe, 5 mm sphere", "Probe, 2 mm sphere", "Probe, either",
@@ -482,23 +489,42 @@ def compare_text(fin, full, figs):
                 "+y and from the tip's end, shows the points on its side of the pad."))
 
 
+def flat_text(orient):
+    f = DATA / f"{STEM}_reach_h160_{orient}_flat.json"
+    if not f.exists():
+        return ""
+    rows = json.loads(f.read_text())["orients"][orient]["rows"]
+    S = summarize(rows)
+    parts = [f"{S[r]['normal']} of {S[r]['n']} {dict(face='face', edge='edge', flank='flank', tip='tip end')[r]} points"
+             for r in REGIONS if r in S]
+    return (f"<p>The flat face meets the pad tangent to it, so its stem lies along the pad's normal; its centre may sit up "
+            f"to 4 mm from the contact. On the same seat, with the pad's points 1.5 mm apart, it reaches "
+            f"{', '.join(parts[:-1])} and {parts[-1]}. With its stem fixed, the joints stop it where a sphere, free to "
+            f"tilt its stem, still passes: off the face's middle, joint 5 leaves its window or comes within 30 deg of the "
+            f"wrist's singularity.</p>")
+
+
 def plan_text(paths):
     if not paths:
         return "<p>The plan's replay is running on corvus; this section is filled when it ends.</p>"
     k = paths["kinds"]
     tr = paths.get("travel", {})
     least = paths["least"]
-    rows = [[g, f"{least[g][0]:.2f}", P.esc(least[g][1])] for g in ("robot", "hex_e", "mount", "stem", "tip", "port")
-            if g in least]
+    names = dict(robot="Robot's links", hex_e="HEX-E", mount="Adapter and probe base", stem="Tool's stem",
+                 tip="Tool's sphere", port="HEX-E's cable port, from the arm")
+    rows = [[names[g], f"{least[g][0]:.2f}", P.esc(least[g][1])] for g in names if g in least]
     return (
         f"<p>A plan of {paths['n']} actions on the middle seat's tip was replayed move by move, as the path checker "
         f"replays the lab's plans. It has {k.get('press', 0)} normal presses at pad points 2 mm apart and "
         f"{k.get('oblique', 0)} pushes at 20 and 35 deg off the normal at every third point. It also has "
         f"{k.get('twist', 0)} twists and {k.get('reference', 0)} reference presses. Between presses the probe backs "
         f"12 mm along its stem, moves across and goes in ({tr.get('straight', 0)} times). When the stems differ by more "
-        f"than 20 deg, it backs 45 mm and makes a joint move ({tr.get('joint', 0)} times). If that move would leave a "
-        f"window, it goes by way of a pose over the seat ({tr.get('hub', 0)} times).</p>"
-        f"<p>{paths['flagged']} of the {paths['n']} actions come under a margin or out of a window at any sample. Joint 5 "
+        f"than 20 deg, it backs 45 mm and makes a joint move ({tr.get('joint', 0)} times). "
+        + ("No joint move left a window, so none took the way through a pose over the seat that the replay keeps for "
+           "that case.</p>" if not tr.get("hub") else
+           f"When that move would leave a window, it goes by way of a pose over the seat ({tr['hub']} times).</p>")
+        + f"<p>{'None' if paths['flagged'] == 0 else paths['flagged']} of the {paths['n']} actions "
+        f"{'comes' if paths['flagged'] == 0 else 'come'} under a margin or leaves a window at any sample. Joint 5 "
         f"stays in {paths['j5_deg'][0]:.0f} to {paths['j5_deg'][1]:.0f} deg and joint 6 in {paths['j6_deg'][0]:.0f} to "
         f"{paths['j6_deg'][1]:.0f} deg. Table 4 gives the least clearances over the plan.</p>"
         + P.table(["Group", "Least clearance (mm)", "Part"], rows, (1,), "Least clearance of each group over the plan's "
@@ -539,7 +565,8 @@ def future_text():
         "Score what the pushes off the normal add to the contact direction. Take the force's angle error on presses "
         "more than 20 deg off the normal, with and without the pushes in training "
         "(scripts/ur5_tip_calibration_motion_value.py's folds).",
-        "Search the flat face's and the half rod's reach as the spheres' (scripts/ur5_inverted_rig.py reach --tool flat).",
+        "Search the half rod's reach as the spheres' and the flat's: its axis must lie across the pad's normal, so the "
+        "search runs over the rod's turn about the normal and its tilt about its own axis.",
     ]
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
@@ -573,10 +600,11 @@ def orient_text(o5, o2):
     best = sorted(tot, key=lambda o: -tot[o])
     top = [o for o in best if tot[o] == tot[best[0]]]
     rest = [o for o in best if tot[o] < tot[best[0]]]
+    words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+    low = "; ".join(f"{ORIENT_NAME[o].lower()}, {tot[o]}" for o in rest)
     return (f"<p>The reach was searched for six ways of holding the tip, on the middle seat with its neighbours in place "
-            f"(Table 2). With the 5 mm sphere, {len(top)} of them reach {tot[best[0]]} of {n} points: "
-            f"{', '.join(ORIENT_NAME[o].lower() for o in top)}. The other {len(rest)} reach "
-            f"{', '.join(str(tot[o]) for o in rest)}. The joints never limit a press. In a search of the joints alone, "
+            f"(Table 2). With the 5 mm sphere, {words[len(top)]} of them reach {tot[best[0]]} of {n} points. The other "
+            f"{words[len(rest)]} reach fewer ({low}). The joints never limit a press. In a search of the joints alone, "
             f"every hold reaches every point, normal and off the normal. The clearances set the counts. A tip that faces "
             f"the robot with its end up is a finger pointing up, and its block stands on a plain upright support. The "
             f"tips on plate v2e are held that way.</p>")
@@ -613,7 +641,7 @@ def build(a):
           "-y: the keys at the front, the rod and the 5 mm sphere, and the three seats with their tips (dark) facing "
           "the robot.")),
          ("orient", "Reach on six ways of holding the tip", orient_text(o5, o2) + orient_table(o5, o2)),
-         ("compare", "Probe presses against the finger on the robot", compare_text(fin, full, figs)),
+         ("compare", "Probe presses against the finger on the robot", compare_text(fin, full, figs) + flat_text(a.orient)),
          ("plan", "A plan of probe presses on one seat", plan_text(paths)),
          ("program", "What the lab program needs for the probe", program_text()),
          ("future", "Future work", future_text())]

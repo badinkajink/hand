@@ -1082,9 +1082,13 @@ push that answers it arrives.
       v2e: v2d's base, keys and rod, the 5 mm sphere at (-15, 60) top 100, three seats at x 75, y -80, 0 and 80, apexes
       at 160 mm, tips facing the robot with their ends up. STLs in its `cad/`. With the 5 mm sphere on the middle seat
       (pad points 1.5 mm apart), four holds reach 97 of 201 points: face 23/23, edges 30/30, flanks 38/123, tip's end
-      6/25; the joints never limit a press, the cassette's walls and end plate do. The full pad, both spheres, the flat
-      and the plan replay run on corvus (lab, queued 14:21); the film waits for the workstation's gate (swap 16.0 GB).
-      The lab program needs a probe mode before the rig runs (the page's section 7).
+      6/25; the joints never limit a press, the cassette's walls and end plate do. 14:3x, the seats' supports flared to
+      35 x 44 mm on the base (9.4 um/N at the apex, against 161 for the block's section alone), seats at x 70. Over all
+      808 pad points with either sphere the probe reaches 444, the finger on the robot 286: face 104/104 (83), edges
+      124/124 (114), flanks 176/492 (75), tip's end 40/88 (14); pushes 20 and 35 deg off the normal at every face and
+      edge point. The flat reaches 20 of 23 face points (1.5 mm spacing); its stem must follow the normal. A plan of 280
+      actions replayed at every sample: 0 flagged, joint 6 -13 to +14 deg. The lab program needs a probe mode before the
+      rig runs (the page's section 7). The corvus runs were dropped when the workstation's gate reopened (14:27).
   - 08:19 on 10-29, v3 ID 2's night suite. All 488 actions ended ok between 18:44:15 on 10-28 and 08:13:17, with no
     abort, no early contact and no HEX-E time-out (`lab/NOTES.md`, "The night's suite on ID 2: done"). The suite took
     12.6 h against its estimate of 11.7 h; block 2 ran 0.5 h over. In each run's `ft_reads` the HEX-E's only gaps, 0.7

@@ -79,7 +79,7 @@ PROBE = dict(
     sphere=dict(R=5.0, neck_r=3.0, neck_dz=4.0, taper_deg=15.0),           # the tall indenter's sphere and neck
     sphere2=dict(R=2.0, neck_r=1.3, neck_dz=1.6, taper_deg=15.0),          # a 2 mm sphere for the flanks by the walls
     rod=dict(R=12.5, half_len=10.0, box_dz=12.5, hull_dz=7.0, hull_half=8.0),   # the plate's rod: axis along y_M
-    flat=dict(r=7.0, ch=1.0),       # a face 14 mm across with a 1 mm chamfer, the stem's end
+    flat=dict(r=7.0, t=3.0, ch=0.5, neck_r=4.5, neck_l=4.0),   # a disc 14 mm across and 3 mm thick on a 9 mm neck
 )
 TOOLS = ("sphere5", "sphere2", "rod", "flat")
 SPHERES = dict(sphere5="sphere", sphere2="sphere2")      # the sphere tools and their PROBE entries
@@ -360,8 +360,14 @@ def probe_points(tool, sp=1.5):
         tip = np.vstack([_cyl_y_pts((0.0, za), r["R"], -r["half_len"], r["half_len"], 0.7, half=True)])
     else:
         fp = p["flat"]
-        stem += [_frustum_pts(sr, sr, fl["z1"], tz - fp["ch"], sp, caps=False)]
-        tip = np.vstack([_frustum_pts(sr, fp["r"], tz - fp["ch"], tz, 0.5, caps=False), _disc_pts(fp["r"], tz, 0.5)])
+        zd = tz - fp["t"]                                # the disc's back face; the neck behind it, then a cone to the stem
+        zn = zd - fp["neck_l"]
+        zc0 = zn - (sr - fp["neck_r"]) / math.tan(math.radians(30.0))
+        stem += [_frustum_pts(sr, sr, fl["z1"], zc0, sp, caps=False), _frustum_pts(sr, fp["neck_r"], zc0, zn, 0.7, False),
+                 _frustum_pts(fp["neck_r"], fp["neck_r"], zn, zd, 0.7, False)]
+        tip = np.vstack([_frustum_pts(fp["r"], fp["r"], zd, tz - fp["ch"], 0.5, caps=False), _disc_pts(fp["r"], zd, 0.5),
+                         _frustum_pts(fp["r"], fp["r"] - fp["ch"], tz - fp["ch"], tz, 0.5, caps=False),
+                         _disc_pts(fp["r"] - fp["ch"], tz, 0.5)])
     stem = np.vstack(stem)
     if tool in SPHERES:                                  # the neck's end lies inside the sphere: those points are not stem
         s = p[SPHERES[tool]]
@@ -431,8 +437,12 @@ def tool_solid(K, tool):
                   K.box((-R, -hl, zb0), (R, hl, za)), K.cyl("y", (0.0, za), R, -hl, hl)]
     else:
         fp = p["flat"]
-        parts += [K.cyl("z", (0.0, 0.0), sr, fl["z1"] - 0.01, tz - fp["ch"] + 0.01),
-                  K.cyl("z", (0.0, 0.0), sr, tz - fp["ch"], tz, r1=fp["r"])]
+        zd = tz - fp["t"]
+        zn = zd - fp["neck_l"]
+        zc0 = zn - (sr - fp["neck_r"]) / math.tan(math.radians(30.0))
+        parts += [K.cyl("z", (0.0, 0.0), sr, fl["z1"] - 0.01, zc0 + 0.01), K.cyl("z", (0.0, 0.0), sr, zc0, zn + 0.01, r1=fp["neck_r"]),
+                  K.cyl("z", (0.0, 0.0), fp["neck_r"], zn, zd + 0.01), K.cyl("z", (0.0, 0.0), fp["r"], zd, tz - fp["ch"] + 0.01),
+                  K.cyl("z", (0.0, 0.0), fp["r"], tz - fp["ch"], tz, r1=fp["r"] - fp["ch"])]
     h0 = b["side"] / 2 + b["clear"]
     cut = [UM.frustum(K, "z", (0.0, 0.0), (h0 + t, h0 + t), (h0 - (b["h"] + 0.3) * t, h0 - (b["h"] + 0.3) * t),
                       c["z1"] - 1.0, c["z1"] + b["h"] + 0.3)]
@@ -1131,16 +1141,24 @@ def hub(ctx, seat_i):
     raise RuntimeError("no hub pose over the seat")
 
 
+def start_q(ctx):
+    """The joints 12 mm out of key 2 along -x_M, where the program's freedrive homing leaves the robot (as
+    scripts/ur5_tip_calibration_holder_paths.py starts)."""
+    T = np.asarray(ctx["T_BE_home"], float)
+    T = C.Tm(T[:3, :3], T[:3, 3] + T[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-12.0, 0.0, 0.0]))
+    return ik_near(T[None], ctx["q_home"], branch=BR[0])[0]
+
+
 def cmd_replay(a):
     """A probe plan on one seat (build_plan) replayed move by move: the joints at every sample, the clearances at every
-    sample of a straight move and every 5th of a joint move."""
+    sample of a straight move and every 5th of a joint move, from 12 mm out of key 2."""
     t0 = time.time()
     ctx = context(dict(orient=a.orient, seat_h=a.h), tool=a.tool)
     ctx["seat"] = a.seat
     ctx["hub"] = hub(ctx, a.seat)
     acts, P_A, N_A = build_plan(ctx, a.seat, a)
     print(f"{len(acts)} actions on seat {a.seat + 1} ({a.orient}), built in {time.time() - t0:.0f} s", flush=True)
-    q = np.asarray(ctx["q_home"], float)
+    q = start_q(ctx)
     T_prev, rows, n_way = None, [], {}
     for x in acts:
         contact = (a.seat, P_A[x["i"]], EXCL[ctx["tool"]])
@@ -1217,7 +1235,8 @@ def cell_scene(ctx, w, h, work):
     import trimesh
     import ur5_cell_render as RN
     cad = OUT / "cad"
-    dummy = work / "dummy.stl"
+    dummy = ROOT / "logs/20261029-inverted_rig/dummy_0p01mm.stl"     # inside the repository: the render logs paths relative to it
+    dummy.parent.mkdir(parents=True, exist_ok=True)
     trimesh.creation.box(extents=(0.01, 0.01, 0.01)).apply_translation((0.0, 0.0, -3000.0)).export(dummy)
     fx = RN.fixtures()
     fx["sphere"], fx["T_EM"] = ctx["T_BA"], ctx["T_EM"]
@@ -1271,6 +1290,7 @@ def cmd_film(a):
         if hit:
             picks.append((hit[len(hit) // 2], label))
     print(f"{len(picks)} actions picked in {time.time() - t0:.0f} s", flush=True)
+    ctx["q_home"] = start_q(ctx)
     work = Path(tempfile.mkdtemp(prefix="inverted_rig_film_"))
     w, hh = (int(v) for v in a.size.lower().split("x"))
     xml, RN = cell_scene(ctx, w, hh, work)
