@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-29 04:05 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-29 04:19 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -36,7 +36,7 @@ cm from the connector with slack. The fix is a new cable.
 ## Tonight: the next tip's night suite
 
 Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
-State at 04:05: block 1, the top edge, block 3, block 2 and block 5 are done (see `NOTES.md`); block 2 took 6.6 h. Block 4 runs from 03:58:45 (`logs/20261029-035845-tipcal-tallv3id2.log`, resumed on 200508), about 3 h. Its two chunks simulated on block 3's registration came clean (the mount 3.18 mm; joint 5 up to 99.2 deg at tall-shared-576 and -640, which the program aborts past 100). Block 6's simulations on block 5's registration run beside it, and block 6 follows block 4 if they pass (scratchpad `night_rest.sh`). Each step stops the chain on an abort or a failed check, and the robot then waits. Order: 3, 2, 5, 4, 6, so that each block's simulations on the registration it needs run during the block before it. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
+State at 04:19: block 1, the top edge, block 3, block 2 and block 5 are done (see `NOTES.md`); block 2 took 6.6 h. Block 4 runs from 03:58:45 (`logs/20261029-035845-tipcal-tallv3id2.log`, resumed on 200508), about 3 h. Its two chunks simulated on block 3's registration came clean (the mount 3.18 mm; joint 5 up to 99.2 deg at tall-shared-576 and -640, which the program aborts past 100). Block 6's simulations on block 5's registration passed at 04:14:53 (joint 5 0.6 deg inside its window), and block 6 follows block 4 (scratchpad `night_rest.sh`). Each step stops the chain on an abort or a failed check, and the robot then waits. Order: 3, 2, 5, 4, 6, so that each block's simulations on the registration it needs run during the block before it. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|
@@ -81,6 +81,9 @@ These need v3 ID 1 back on the robot.
 
 ## Waiting on the owner
 
+- Faster touch-offs ("can you go faster on the approaches"): their slow approach at v 0.0005 (0.15 mm/s at the
+  slider), as the presses run, moves the onset by 0.000 mm (SE 0.006) in block 2's presses, and a touch-off takes
+  about 50 s instead of 81 to 108 s (`NOTES.md`, "Faster touch-offs"). The plans are unchanged until the owner says.
 - When v3 ID 1 goes back on, the four plans above.
 - Indenter plate v2d: the front row at 95 or 100 mm, a support under the pad-down block, the plate's place and timing,
   and plans for the 12.5 mm sphere.

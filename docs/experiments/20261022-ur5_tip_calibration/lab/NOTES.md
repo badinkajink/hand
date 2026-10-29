@@ -1527,6 +1527,35 @@ The clearances in this section and the one before it are on mount v3. The next s
 - After block 5's exit 0, `night_rest.sh` started block 6's simulations on block 5's registration (two chunks, nice
   19). It then checked the home path from 031559's last pose and went home (0.04 mm from the target), and block 4
   started at 03:58:45.
+- Block 6's two chunks passed the gate at 04:14:53: no abort, the mount at least 3.18 mm and the finger 1.42 mm from the
+  cell, joint 6 from -56.1 to +37.3 deg, the elbow at least 66.6 deg from straight. Joint 5 came 0.6 deg inside its
+  window, at 30.6 deg.
+
+### Faster touch-offs: where the time goes and what speed costs
+
+- The owner, 10-28 at about 19:10: "can you go faster on the approaches. this is excruciating".
+- Where the time goes (`touch_times.py` here): a touch-off took 81 s on the sphere (block 1), 108 s on the tall
+  (block 3) and 106 s on the rod (block 5). The slow approach took 47, 75 and 75 s of that. It runs at the plans' v
+  0.00015 m/s, which is 0.045 mm/s at the slider's 0.30. It covers `slow_mm_touch` (1.5 mm on the sphere, 2.5 mm on
+  the tall and the rod), the late onset and 0.1 to 0.3 mm more to the 0.5 N stop. The travel took about 20 s and the
+  return 8 to 11 s.
+- What speed costs (`onset_vs_speed.py` here, the workstation's design; rows in `20261029-onset_vs_speed_184415.json`).
+  Block 2's 116 grid presses ran at five plan speeds, measured at 0.042 to 1.5 mm/s. Each press's onset was fitted as
+  the touch-offs' are, up to 0.25 N, and compared with 184415's registration (later contact positive). The touch-offs
+  through the same residual give back the fit's 0.044 mm rms.
+- The reference press stopped 0.10 mm deeper over block 2's first 20 minutes, and the rate presses all ran from 21:30
+  to 22:18. So each was compared with the 0.144 mm/s presses run within 10 minutes of it.
+- The 5 presses at 0.042 mm/s against those neighbours: -0.000 mm (SE 0.006). A fit of lag times speed plus a drift
+  over the 108 presses up to 0.58 mm/s gives a lag of -47 ms (SE 40), so -0.005 mm (SE 0.004) for the step from 0.045
+  to 0.15 mm/s. The registration's own rms is 0.044 mm.
+- The fit's window matters more: refitted up to 0.25 N instead of 0.4 N, the touch-offs moved 0.015 mm earlier.
+- At 0.58 mm/s the presses came 0.026 mm earlier (SE 0.017). At 1.2 and 1.5 mm/s they came 0.29 and 0.16 mm earlier.
+  There fit_onset's 25-sample average spans 0.3 to 0.4 mm of travel, so the fitted onset lands before the rise: the
+  push passed 0.15 N 0.29 to 0.34 mm after it, against 0.08 mm at the slow speeds. That comes from the fit, not from
+  the HEX-E.
+- So the touch-offs' slow approach could run at v 0.0005 (0.15 mm/s at the slider), as the presses already do. A
+  touch-off would take about 48 s on the sphere and 55 s on the tall and the rod; rod pass 1's 21 would take 19 min
+  instead of 37. The choice is the owner's, and the plans are unchanged.
 
 ## The lab clone and git-lfs
 
