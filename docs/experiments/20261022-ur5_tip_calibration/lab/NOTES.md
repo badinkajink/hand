@@ -1728,8 +1728,19 @@ The clearances in this section and the one before it are on mount v3. The next s
 - Simulated from home on the seed: no abort, the mount 3.05 mm at least on every 10th sample (g20-s5), joint 6 from
   -3.7 to 6.4 deg. Every 10th sample spans under 1 mm of the hovers' slow descents. The run started without waiting for
   the recheck on every 2nd sample, which had run 32 min by then; on ID 2's side map that recheck changed nothing.
-- Session `logs/20261029-tip_calibration/151334-sidev3id3`, stages preflight,hover, with the held tips' mux board
-  (`--held-board`): channels 0 and 3 at 206 records/s each. The night's chain (`id3_chain.sh`) follows it.
+- Session `logs/20261029-tip_calibration/151334-sidev3id3` (copy: `lab/20261029-151334-sidev3id3/`; the streams,
+  `held.bin` among them, stay on corvus), stages preflight,hover, with the held tips' mux board (`--held-board`):
+  channels 0 and 3 at 206 records/s each.
+- 24 of 24 hovers, no abort, exit 0 at 15:29:14. Each held 6 s; the HEX-E's largest change in a hover was 0.23 to
+  0.44 N, the magnets' pull. The HEX-E gave 93,426 samples, none timed out, with two gaps of 0.7 s.
+
+### The night's chain (from 15:29)
+
+- `id3_chain.sh` took over at the side map's exit. Block 3's simulation from seat 1 on block 1's tool had passed: the
+  mount 4.77 mm and the finger 1.59 mm at least, joint 6 down to -64.3 deg, joint 5 up to 98.3 deg. Block 5's on its
+  seed: the mount 3.16 mm, joint 6 from -52.2 to 24.7 deg.
+- Block 3 (tall pass 1) started at 15:30:34 after the home path check and go home (0.05 mm), a new session homed on
+  `tall_indenter_seated`. The homing put the tall at (-33.3, -699.2, 72.4) mm, yaw -93.4 deg, as for ID 2.
 
 ### The night's plans, after the finer path checks (14:4x)
 
