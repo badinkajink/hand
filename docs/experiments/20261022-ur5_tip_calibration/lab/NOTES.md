@@ -999,10 +999,10 @@ the lab session ("go") at about 15:36.
   point clears the mount by 4.02 mm, against 5.34 mm on ID 3.
 - With R26's margins (each raised by the press's depth at its peak, less 1 mm), 14 of its actions fail. hard1's 8 N
   ramp at the reference point needs 4.49 mm.
-- `lab/20261027-plan_sphere_lab_r26_hard1_v2id1.json`: the reference presses stay at the reference point. The 8 N
-  ramp moves to hard-grid-020's target, where 8 N passes.
-- `lab/20261027-plan_sphere_lab_r26_hard2_v2id1.json` has 44 actions. It is hard2 under the cap of +45 deg (no
-  hard-grid-049 or hard-dense-614-t+10), with hard-grid-053 lowered to 3 N and hard-grid-030 to 5 N.
+- `lab/superseded/20261027-plan_sphere_lab_r26_hard1_v2id1.json`: the reference presses stay at the reference point. The
+  8 N ramp moves to hard-grid-020's target, where 8 N passes.
+- `lab/superseded/20261027-plan_sphere_lab_r26_hard2_v2id1.json` has 44 actions. It is hard2 under the cap of +45 deg
+  (no hard-grid-049 or hard-dense-614-t+10), with hard-grid-053 lowered to 3 N and hard-grid-030 to 5 N.
 - Dropped from it: hard-grid-000, -003, -005 and -008, whose passing level is no higher than pass 2b's own 5 N on the
   face. Also fast4-grid-000, -009, -023 and -032, hard-shear-0-4.5N, hard-roll-0-4N and hard-twist-0-6N.
 - Simulated on v2 ID 1's registration: no abort. The cell check was clean (mount 3.4 mm, finger 1.9 mm, HEX-E 27 mm).
@@ -1064,12 +1064,12 @@ the lab session ("go") at about 15:36.
 - The owner, at 09:1x: "yes run the rod pass and the parity actions". Asked which tip the rod pass runs on: v2 ID 1 as
   mounted.
 
-### 09:17:39 to 09:21:04, the repeat check (`lab/20261027-plan_sphere_lab_check_v2id1.json`)
+### 09:17:39 to 09:21:04, the repeat check (`lab/superseded/20261027-plan_sphere_lab_check_v2id1.json`)
 
 - Three repeats of pass 1's touch-offs (chk-face-00, chk-face-03, chk-edge-00) came +0.074, −0.041 and −0.028 mm from
   the expected: the pad had not moved since pass 1. The HEX-E gave 20,026 samples, none timed out.
 
-### 09:23:08 to 09:51:40, the parity actions past the cap (`lab/20261027-plan_sphere_lab_r25_parity45_v2id1.json`)
+### 09:23:08 to 09:51:40, the parity actions past the cap (`lab/superseded/20261027-plan_sphere_lab_r25_parity45_v2id1.json`)
 
 - The 24 of ID 3's parity run, and slide-dense-555-t+15-1N, which ID 3 left out (mount 2.84 mm on its
   registration). On v2 ID 1's registration it clears the mount by 3.35 mm; the 24 others clear it by 3.56 mm or more,
@@ -1079,7 +1079,7 @@ the lab session ("go") at about 15:36.
 - All 25 ended ok, with joint 6 from +39.7 to +60.0 deg. The HEX-E gave 170,603 samples, none timed out. v2 ID 1
   now has the full sphere suite that ID 2 ran.
 
-### Rod pass 1 for v2 ID 1, checked here (`lab/20261027-plan_rod_lab_r27_pass1_v2id1.json`)
+### Rod pass 1 for v2 ID 1, checked here (`lab/superseded/20261027-plan_rod_lab_r27_pass1_v2id1.json`)
 
 - R27's rod pass 1, with the touch-offs' slow approach starting 2.5 mm before the expected surface instead of
   1.5 mm. Simulated with v2 ID 1's sphere registration and the rod where the workstation's joint fit of R19 put it,
@@ -1103,7 +1103,7 @@ the lab session ("go") at about 15:36.
   3.83 deg from its own. The program fits the rod as a sphere at one point, and both tips show the same offset.
 - The HEX-E gave 107,643 samples, none timed out. Exit 0.
 
-### Rod pass 2 for v2 ID 1, checked here (`lab/20261027-plan_rod_lab_r27_pass2_v2id1.json`)
+### Rod pass 2 for v2 ID 1, checked here (`lab/superseded/20261027-plan_rod_lab_r27_pass2_v2id1.json`)
 
 - `scripts/ur5_tip_calibration_rod_pass2.py logs/20261027-tip_calibration/095303-rodv2id1 --j6-max 45` built it on
   rod pass 1's registration: 135 actions. That covers 66 presses (47 of R19's 48 targets, 19 more; 37 on the face, 29
@@ -1160,7 +1160,7 @@ the lab session ("go") at about 15:36.
 - `lab/leave_tall_key.py` now takes that route from the key: up 10 mm and 15 mm, 80 mm along −x_I, up 40 mm, then
   home. It checks every segment against the cell with the tall indenter, and refuses unless the arm is at a seating.
 
-### Pass 1 on the tall indenter, checked here (`lab/20261027-plan_tall_lab_pass1_v2id1.json`)
+### Pass 1 on the tall indenter, checked here (`lab/superseded/20261027-plan_tall_lab_pass1_v2id1.json`)
 
 - `scripts/ur5_tip_calibration_plan.py --indenter tall` built it with the first seating's placement, and the sphere
   fixture and the rod as obstacles (the plan's notes give the command). Of the 159 actions built, the 32 touch-offs
@@ -1188,7 +1188,7 @@ the lab session ("go") at about 15:36.
   0.047 mm over 31 touches. It moved the TCP 1.50 mm and 2.59 deg, and the sphere's centre 1.25 mm from the seating.
 - The HEX-E gave 207,467 samples, none timed out. Exit 0.
 
-### R29 on the tall indenter (`lab/20261027-plan_tall_lab_r29_v2id1.json`, the workstation's, ec08a7aa)
+### R29 on the tall indenter (`lab/superseded/20261027-plan_tall_lab_r29_v2id1.json`, the workstation's, ec08a7aa)
 
 - The owner confirmed joint 6 to +60 deg for R29 (16:3x: "yea thats good with me").
 - Simulated on tall pass 1's registration: all 122 ended ok. The mount stayed 3.06 mm or more from the indenter, the
@@ -1201,17 +1201,17 @@ the lab session ("go") at about 15:36.
 - By 17:2x the sensor was back by itself (serial HEXEA478, its counter restarted; 1001 samples in 10 s, none timed out).
   The owner had not reseated it; the slack loop at the wrist was not tight. An intermittent contact in the connector
   or the cable is the likely cause.
-- 17:23:43 to 17:28:17, three repeats of pass 1's touch-offs (`lab/20261027-plan_tall_lab_check_v2id1.json`):
+- 17:23:43 to 17:28:17, three repeats of pass 1's touch-offs (`lab/superseded/20261027-plan_tall_lab_check_v2id1.json`):
   chk-face-03 −0.081 mm and chk-edge-00 −0.055 mm from the expected, chk-face-00 −0.166 mm, outside the 0.1 mm mark.
   pad-face-00 is the face's centre (index 788), where R29's reference presses go.
 - The owner asked for lower lifts between actions ("maybe dont go up quite as much on these lift offs"):
-  `lab/20261027-plan_tall_lab_r29_lift30_v2id1.json` is R29 with the travel's lift at 30 mm instead of 60, being
-  simulated on the session's registration.
+  `lab/superseded/20261027-plan_tall_lab_r29_lift30_v2id1.json` is R29 with the travel's lift at 30 mm instead of 60,
+  being simulated on the session's registration.
 - 17:44:27 to 19:00:24, the resume on the lift-30 plan (`printout_resume_1744.txt`; `plan_resume_1744.json` is that
   plan): the preflight, 12 presses, 2 reference presses and slides 1 to 26 of 50, all ok, no aborts.
 - The owner stopped R29 there to put on the next tip ("i would like to go home and swap now please"). SIGINT came as
   slide 27 started, before it moved. Not done: 24 slides, the 12 twists and the final reference, 37 of 122 actions.
-- The sphere check (`lab/20261027-plan_sphere_lab_check_shear_v2id1.json`, sets a and b) was not run.
+- The sphere check (`lab/superseded/20261027-plan_sphere_lab_check_shear_v2id1.json`, sets a and b) was not run.
 - Home at 19:01:24, on a path checked against the tall indenter. The pad started 1.8 mm from the sphere; no part came
   closer.
 
@@ -1244,36 +1244,38 @@ at about 340 records/s). The holder's two v3 tips read through the mux board `b4
 ### The crosstalk map
 
 - The first four hovers ran at 21:28 to 21:30 in the same session (the watched cut of
-  `lab/20261027-plan_holder_lab_map_apex_v3id1.json`): all held, the HEX-E's change at most 0.24 to 0.33 N.
+  `lab/superseded/20261027-plan_holder_lab_map_apex_v3id1.json`): all held, the HEX-E's change at most 0.24 to 0.33 N.
 - The owner left at about 21:00 with the go for the rest unattended ("i told you to just send it ... be careful").
 - 21:39:37, the rest of the map, resumed in the same folder (`logs/20261027-213937-tipcal-holdmapv3id1.log`): 85
   hovers held, the HEX-E's |F| at most 0.46 N; exit 0 at 22:22:55.
-- One false abort: `hov-fm-W10-x+3`, 10 mm from the -y tip, stopped at 0.52 N on the HEX-E against its contact_N of
-  0.5 N. The far hovers run 0.45 to 0.52 N from the HEX-E's noise and the arm's inertia alone. Retried alone at 22:24:33
-  with contact_N 1.0 (`lab/20261027-plan_holder_lab_map_apex_retry_v3id1.json`): held, at most 0.38 N. The map is
-  complete: 90/90 hovers and the five -y touch-offs.
+- One false abort: `hov-fm-W10-x+3`, 10 mm from the -y tip, stopped at 0.52 N on the HEX-E against its contact_N of 0.5
+  N. The far hovers run 0.45 to 0.52 N from the HEX-E's noise and the arm's inertia alone. Retried alone at 22:24:33
+  with contact_N 1.0 (`lab/superseded/20261027-plan_holder_lab_map_apex_retry_v3id1.json`): held, at most 0.38 N. The
+  map is complete: 90/90 hovers and the five -y touch-offs.
 
 ### The close hovers over the -y tip
 
-- 22:26:40, `20261027-222640-holdclosev3id1`, the workstation's `lab/20261027-plan_holder_lab_map_close_my_v3id1.json`
-  (48 hovers, down to 0.5 mm from the tip): 48/48 held, |F| at most 0.45 N; exit 0 at 22:50:00. Checked in the cell
-  model first with the level frame `lab/20261027-holder-apex-both` (base z_B 71.23).
+- 22:26:40, `20261027-222640-holdclosev3id1`, the workstation's
+  `lab/superseded/20261027-plan_holder_lab_map_close_my_v3id1.json` (48 hovers, down to 0.5 mm from the tip): 48/48
+  held, |F| at most 0.45 N; exit 0 at 22:50:00. Checked in the cell model first with the level frame
+  `lab/20261027-holder-apex-both` (base z_B 71.23).
 
 ### v3 ID 1's registration on the sphere
 
-- 22:52:13, `20261027-225213-spherev3id1`, the workstation's `lab/20261027-plan_sphere_lab_pass1_v3id1.json`: 18/18
-  touch-offs, onsets -0.56 to +0.82 mm from the expected, 0.049 mm rms; exit 0 at 23:12:09.
+- 22:52:13, `20261027-225213-spherev3id1`, the workstation's `lab/superseded/20261027-plan_sphere_lab_pass1_v3id1.json`:
+  18/18 touch-offs, onsets -0.56 to +0.82 mm from the expected, 0.049 mm rms; exit 0 at 23:12:09.
 - Against v2 ID 1's registration (192158): the sphere 0.51 mm and 0.68 deg apart, the tool 0.38 mm and 0.52 deg, the
   pad frame 0.47 mm and 1.55 deg; the pad points within 0.45 mm.
-- Stage 2 (`lab/20261027-plan_sphere_lab_stage2_v3id1.json`, 264 actions) resumed the same folder at 23:14:27
-  (`logs/20261027-231427-tipcal-spherev3id1.log`). The simulator ran it first in four chunks on v2 ID 1's
-  registration, then again on this pass 1's: 0 aborts, joint 6 -61.7 to +43.9 deg, joint 5 at least 5.1 deg inside its
-  window. Two actions came under the mount's 3.0 mm margin on v3 ID 1's registration: `dense-700-t+10` (2.97 mm in the
-  workstation's path check, 99a8132e; 3.05 mm in the lab's simulation) and `slide-dense-700-t+10-1N` (2.87 mm in the
-  lab's simulation). A SIGINT right after `dense-657-t+15` ended (grid 133/161, 0 aborts) stopped the run at 00:35:21
-  with the robot at that press's rest pose. It resumed at 00:35:50 without both
-  (`lab/20261027-plan_sphere_lab_stage2_resume_v3id1.json`, 262 actions; `logs/20261028-003550-tipcal-spherev3id1.log`).
-  The simulator ran both new transitions first: mount 5.43 mm in the grid, 5.30 mm in the shear stage.
+- Stage 2 (`lab/superseded/20261027-plan_sphere_lab_stage2_v3id1.json`, 264 actions) resumed the same folder at 23:14:27
+  (`logs/20261027-231427-tipcal-spherev3id1.log`). The simulator ran it first in four chunks on v2 ID 1's registration,
+  then again on this pass 1's: 0 aborts, joint 6 -61.7 to +43.9 deg, joint 5 at least 5.1 deg inside its window. Two
+  actions came under the mount's 3.0 mm margin on v3 ID 1's registration: `dense-700-t+10` (2.97 mm in the workstation's
+  path check, 99a8132e; 3.05 mm in the lab's simulation) and `slide-dense-700-t+10-1N` (2.87 mm in the lab's
+  simulation). A SIGINT right after `dense-657-t+15` ended (grid 133/161, 0 aborts) stopped the run at 00:35:21 with the
+  robot at that press's rest pose. It resumed at 00:35:50 without both
+  (`lab/superseded/20261027-plan_sphere_lab_stage2_resume_v3id1.json`, 262 actions;
+  `logs/20261028-003550-tipcal-spherev3id1.log`). The simulator ran both new transitions first: mount 5.43 mm in the
+  grid, 5.30 mm in the shear stage.
 - The grid ended with all 160 actions ok, and 40 of the 84 slides after it. At 02:54:23.9 the HEX-E fell off its DAQ
   in the joint-space travel into `slide-twin-051-t-20-2N`, while joint 6 swung from -35.5 to +13 deg with the tool at
   z 235 mm and nothing in contact. That slide and both `slide-twin-063-t+15` slides aborted on "no HEX-E sample for
@@ -1287,12 +1289,13 @@ at about 340 records/s). The holder's two v3 tips read through the mux board `b4
   registration process"): pass 1 simulated on the rod's three seatings from home, stage 2 re-checked on pass 1's own
   registration, actions under the margins left out.
 - The +45 deg cap on joint 6 is lifted for the two morning plans tonight ("yea, let's lift the cap. ill be in at ~9am
-  anyway"); the lab holds them to +60 deg. The sphere's (`lab/20261028-plan_sphere_lab_morning_unattended_v3id1.json`)
-  keeps 43 of its 55 actions after simulating it from home on v3 ID 1's registration: the three `*grid-055` (finger
-  0.36 mm), `dense-419-t+15`, `dense-464-t-5` and `hard-dense-464-t-5` (finger 0.49 to 0.78 mm), two slides past
-  +60 deg and four past -65 deg are left out. The 43: mount 3.22 mm, finger 1.66 mm, joint 6 -63.3 to +59.0 deg.
+  anyway"); the lab holds them to +60 deg. The sphere's
+  (`lab/superseded/20261028-plan_sphere_lab_morning_unattended_v3id1.json`) keeps 43 of its 55 actions after simulating
+  it from home on v3 ID 1's registration: the three `*grid-055` (finger 0.36 mm), `dense-419-t+15`, `dense-464-t-5` and
+  `hard-dense-464-t-5` (finger 0.49 to 0.78 mm), two slides past +60 deg and four past -65 deg are left out. The 43:
+  mount 3.22 mm, finger 1.66 mm, joint 6 -63.3 to +59.0 deg.
 
-### Rod pass 1 for v3 ID 1, checked here (`lab/20261027-plan_rod_lab_pass1_search_v3id1.json`)
+### Rod pass 1 for v3 ID 1, checked here (`lab/superseded/20261027-plan_rod_lab_pass1_search_v3id1.json`)
 
 - The simulator ran pass 1 (21 touch-offs, 5 pivots) from the home pose on each of the rod's three seatings. It used
   v3 ID 1's tool frames from 225213's registration. All three ended with 0 aborts and registered to 0.012 to 0.015 mm
@@ -1312,8 +1315,8 @@ at about 340 records/s). The holder's two v3 tips read through the mux board `b4
 
 - The side-by-side hovers (`lab/20261028-plan_holder_lab_side_norod_v3id1.json`, 45 hovers, with the -y tip
   pad-down): mount 4.14 mm, finger 2.70 mm, joint 6 -6.5 to +6.4 deg, the elbow at least 82.5 deg from straight.
-- The sphere's twists, rolls and final references (`lab/20261028-plan_sphere_lab_stage2_twists_v3id1.json`, 18
-  actions): mount 4.06 mm, finger 4.70 mm, joint 6 -17.0 to +25.2 deg, the elbow at least 102.9 deg from straight.
+- The sphere's twists, rolls and final references (`lab/superseded/20261028-plan_sphere_lab_stage2_twists_v3id1.json`,
+  18 actions): mount 4.06 mm, finger 4.70 mm, joint 6 -17.0 to +25.2 deg, the elbow at least 102.9 deg from straight.
 
 The clearances in this section and the one before it are on mount v3. The next section has them on v7.
 
@@ -1330,8 +1333,9 @@ The clearances in this section and the one before it are on mount v3. The next s
   - The twists plan: 4.28 mm. The check plan: 5.37 mm. The sphere morning plan: 3.13 mm.
   - The sphere's remaining 62: at least 3.57 mm, except `slide-dense-795-t+15-1N` at 2.88 mm. It is left out of
     `lab/20261028-plan_sphere_lab_stage2_resume3_v3id1.json`, which holds the 43 slides still to do.
-- Tall pass 1 homed on seating 2 brought `pad-face-01` and `pad-face-04` to 2.34 and 2.35 mm, under 2.5 mm. Without
-  them (`lab/20261028-plan_tall_lab_pass1_19_v3id1.json`, 19 touch-offs) the mount clears by 3.35, 2.63 and 3.76 mm.
+- Tall pass 1 homed on seating 2 brought `pad-face-01` and `pad-face-04` to 2.34 and 2.35 mm, under 2.5 mm. Without them
+  (`lab/superseded/20261028-plan_tall_lab_pass1_19_v3id1.json`, 19 touch-offs) the mount clears by 3.35, 2.63 and 3.76
+  mm.
 - The workstation rebuilt the side map on v7 (85c0eab6, 38 hovers). In the lab's simulation 8 of them came under
   3.0 mm: g 14 mm at twist 0, and g 15 mm with s 5 at twist +10, each with its repeat (2.76 to 2.90 mm). Without them
   (`lab/20261028-plan_holder_lab_side_norod30_v3id1.json`, 30 hovers) the mount clears by 3.75 mm. The map needs the
@@ -1349,8 +1353,8 @@ The clearances in this section and the one before it are on mount v3. The next s
 - 11:49:08 to 12:21:39, tall pass 1 (`20261028-114908-tallv3id1`): 19 touch-offs, onsets -0.41 to +0.96 mm,
   0.045 mm rms.
 - 12:23:03, rod stage 2 resumed on rod pass 1's session: 94 actions
-  (`lab/20261028-plan_rod_lab_stage2_v7_v3id1.json`). The rod morning plan follows it with 6 actions
-  (`lab/20261028-plan_rod_lab_morning6_v3id1.json`).
+  (`lab/superseded/20261028-plan_rod_lab_stage2_v7_v3id1.json`). The rod morning plan follows it with 6 actions
+  (`lab/superseded/20261028-plan_rod_lab_morning6_v3id1.json`).
 - Each run's HEX-E summary shows one 0.7 s gap. It falls at the stream's start, while the program configures and
   tares the DAQ, before preflight.
 - Every plan of the day travels at speed 1.0, as the sphere has since the dropout at 02:54. The paths are the same,
@@ -1373,9 +1377,9 @@ The clearances in this section and the one before it are on mount v3. The next s
 
 - 12:23:03 to 13:45:44, rod stage 2: 94 of 94 ok. 13:47:10 to 13:52:47, the rod morning plan: 6 of 6 ok, the four
   presses back from stage 2 among them.
-- 13:54:15, tall stage 2 at travel.speed 1.0 (`lab/20261028-plan_tall_lab_stage2_ts1_v3id1.json`). 44 actions ended ok.
-  At 14:32:30.25 the HEX-E fell off its DAQ again, in the travel into `tall-edge-627`. `tall-edge-627`, `-694` and
-  `-626` aborted, and the session stopped at 14:32:40 with the arm in free air at z 373 mm.
+- 13:54:15, tall stage 2 at travel.speed 1.0 (`lab/superseded/20261028-plan_tall_lab_stage2_ts1_v3id1.json`). 44 actions
+  ended ok. At 14:32:30.25 the HEX-E fell off its DAQ again, in the travel into `tall-edge-627`. `tall-edge-627`, `-694`
+  and `-626` aborted, and the session stopped at 14:32:40 with the arm in free air at z 373 mm.
 - At the last sample, wrist 1 was swinging from -28.5 to +24.7 deg, wrist 2 from 65.8 to 91.9 and the elbow from 98.4
   to 70.7. Joint 6 moved only from 23.1 to 27.1 deg. At 02:54 wrist 1 had swung from -45 to +3 deg, wrist 2 from 46 to
   67 and joint 6 from -35 to +13. So both losses came as wrist 1 swung from negative to positive with wrist 2 rising: a
@@ -1385,7 +1389,7 @@ The clearances in this section and the one before it are on mount v3. The next s
   (`lab/20261028-plan_sphere_lab_check2_v3id1.json`, the same touch-offs under new names) gave +0.045, +0.008 and
   +0.066 mm.
 - The owner: "maybe dont go up so high on these tall indenter moves". The remaining 58 actions and the tall morning
-  plan ran with travel.lift_mm 20 (from 60): `lab/20261028-plan_tall_lab_stage2_l20_v3id1.json` and
+  plan ran with travel.lift_mm 20 (from 60): `lab/superseded/20261028-plan_tall_lab_stage2_l20_v3id1.json` and
   `..._morning_l20_v3id1.json`. Simulated from home first: mount at least 3.78 mm, finger 2.56 mm, the elbow 70.6 deg
   from straight. The TCP stays at z 333 mm at most, against 373. Wrist 1's largest swing drops only from 69 to 64 deg,
   because the tool must turn between actions at any height.
