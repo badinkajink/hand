@@ -92,7 +92,9 @@ def load(sd):
         truth = np.fromfile(sd / "sim_truth.bin", "<f8").reshape(-1, 19)
     plan = json.loads((sd / "plan.json").read_text())
     have = {a["id"] for a in plan["actions"]}
-    for f in sorted(sd.glob("plan_resume_*.json")):              # a resume on a newer plan: its new actions (same geometry)
+    for f in sorted(sd.glob("plan_*.json")):                     # a resume on a newer plan: its new actions (same geometry);
+                                                                  # the lab's copy is plan_resume_HHMM.json to 10-27 and
+                                                                  # plan_<name>_HHMM.json from 10-28 (plan_stage2_2040.json)
         for a in json.loads(f.read_text())["actions"]:
             if a["id"] not in have:
                 plan["actions"].append(a)
