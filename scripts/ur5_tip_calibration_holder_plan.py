@@ -12,6 +12,11 @@ Stages of the plan:
   hover  facing on the +y station: W 0.5 to 30 mm at twists -20 to +20 deg, twelve offsets of 3 mm across or along at
          W 1, 3 and 10 mm, and W 45 mm as a far pose; side by side on the -y station: the poses of the holder's reach
          check that pass (g 13 to 25 mm, s 0, 2 and 5 mm) and g 40 mm as a far pose. The first 20 repeat at the end.
+         With --side-up (owner, 2026-10-29: "i am not going to move the rod"), side by side beside a held tip that
+         faces up (--side-station, default -y): the robot's apex 17 mm under the held apex (--side-drop), so that the two
+         magnet squares (centres 8.5 mm under each apex) stand level, g mm between the pads' flanks, on the station's
+         outer side; ids hov-su-. Turned over about its long axis, the four-magnet square maps onto itself (alike poles
+         on the diagonals), so the held tip's field at the robot's chips is the one a held tip facing down would give.
          Each pose dwells 2 s, 6 s at W 15 mm and over or g 20 mm and over; the reference dwells 1.5 s, 40 mm above,
          lowered where the cell needs it. The contact guard stays at 0.5 N: the magnets' pull between the tips is at most
          1.0 mN at these poses (fingertip_crosstalk.py pull).
@@ -138,6 +143,18 @@ def run(a):
                 cand.append((f"hov-s-g{g:g}-s{s_:g}-t{tw:+d}", P(down + [s_, -(WIDTH + g), 0.0]), tw,
                              6.0 if g >= 20 else 2.0))
         cand.append(("hov-s-g40-far", P(down + [0.0, -(WIDTH + 40.0), 0.0]), 0, 6.0))
+    if a.side_up:                                                         # beside a tip facing up, the magnets level
+        i = next(k for k in range(len(st)) if (st[k][0] > 0) == (a.side_station == "+y"))
+        if st[i][1] != "up":
+            sys.exit(f"--side-up needs the {a.side_station} tip facing up; the stations are {st}")
+        sg = 1.0 if st[i][0] > 0 else -1.0                                # the station's outer side
+        level = apex_t[i] - np.array([0.0, 0.0, a.side_drop])
+        for k in FH.test_poses("side", level):
+            g, s_, tw = k["g"], k["s"], k["tw"]
+            cand.append((f"hov-su-g{g:g}-s{s_:g}-t{tw:+d}", P(level + [s_, sg * (WIDTH + g), 0.0]), tw,
+                         6.0 if g >= 20 else 2.0))
+        cand.append((f"hov-su-g40-far-t{a.side_far_twist:+d}", P(level + [0.0, sg * (WIDTH + 40.0), 0.0]),
+                     a.side_far_twist, 6.0))
     acts, dropped, least, links = [], [], {}, {}
     for aid, p, tw, dwell in cand:
         ok, worst, j = check(reg, qh, p, tw, reg_true)
@@ -183,6 +200,7 @@ def run(a):
     plan = {k: copy.deepcopy(v) for k, v in base.items() if k != "actions"}
     plan["created"] = a.created
     plan["indenter"] = "tiphold"
+    plan["travel"]["speed"] = a.travel_speed
     plan["checks"].pop("placement_mm_deg", None)          # the base plan's fixture placement: the program would compare the
     #                                                       holder's homing with it (and its 2 deg tilt limit fails on the
     #                                                       2x4's bow); the plan's checks are built on the seating itself
@@ -247,6 +265,14 @@ if __name__ == "__main__":
     ap.add_argument("--true-frame", default=None, help="a registration.json whose T_BI is where the holder stands (the "
                     "apex fit's --out); targets are placed by it and written in the program's frame")
     ap.add_argument("--touch-station", default="+y", choices=("+y", "-y"), help="the held apex the touch-offs search")
+    ap.add_argument("--side-up", action="store_true", help="side-by-side hovers beside the --side-station tip facing up")
+    ap.add_argument("--side-station", default="-y", choices=("+y", "-y"))
+    ap.add_argument("--travel-speed", type=float, default=1.0, help="travel.speed (the cell's rule since the HEX-E's "
+                    "loss in a joint-space travel at 02:54 on 10-28; the base plan has 2.0)")
+    ap.add_argument("--side-far-twist", type=int, default=-10, help="the far pose's twist (deg): with the rod fixture on, "
+                    "twists 0 and +10 bring the robot's links 0 to 7 mm into it (2026-10-29)")
+    ap.add_argument("--side-drop", type=float, default=17.0, help="mm the robot's apex stands under the held apex: twice "
+                    "the magnets' centre depth (8.5 mm, fingertip_crosstalk.four_row), the squares level")
     ap.add_argument("--j6-min", type=float, default=-62.0)
     ap.add_argument("--j6-max", type=float, default=45.0)
     ap.add_argument("--created", default="2026-10-27")
