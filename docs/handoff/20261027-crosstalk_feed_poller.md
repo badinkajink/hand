@@ -7,16 +7,18 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. Last check 10-29 06:57: the watcher found no news in 230 min,
-as at 10-28 19:20 and 23:16 and 10-29 03:07. All 21 feed lines (to 10-28 15:14) and the 6 "Crosstalk:" commits are
-handled and acked (logs/crosstalk_feed_watch/state.json; HEAD efbcffd5). resguard's gate has been closed on swap since
-10-28 19:20 (16.1 GB in use then, 15.2 GB at 06:57, limit 15 GB; PSI 0, 13.2 GB available), so `resguard.sh run`
-refuses the watcher and it would return 3, the watcher's own no-news code. Until the gate opens, the watcher runs plain
-under nice 10 with --until-gate (step 20, 177f22ef; 19.5 MB): exit 0 on news, 3 after 230 min, 10 when the gate opens
-(then relaunch it through resguard). Page builds wait for the gate. Relaunched 06:5x. edfabe38 (03:21, no feed line or
-data file) adds the coordinator's scripts/ur5_tip_calibration_gain_by_region.py for ID 2's top-edge pass; its subject
-gives v3 ID 1's sphere session 23.1, 40.4 and 57.6 uT/N on the face, edges and flanks at 0.5 to 3.5 N, which changes
-no number the pages state.
+State: armed 2026-10-27 21:00 from the colorado window. Last check 10-29 09:44: no news (21 feed lines, the last of
+10-28 15:14), and resguard's gate open again (swap 15.0 GB, 12.9 GB available, PSI 0). All 21 feed lines and the 6
+"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json; HEAD ea51d936). The watcher runs
+through resguard again from 09:44 (--mem 200M). From 10-28 19:20 to 10-29 09:44 the gate was closed on swap (16.1 GB
+at most, limit 15 GB; PSI 0), when `resguard.sh run` refuses the watcher with exit 3, the watcher's own no-news code. If
+it closes again, run the watcher plain under nice 10 with --until-gate (step 20, 177f22ef; 19.5 MB), which exits 10
+when the gate opens, and hold page builds for the gate. The watcher found no news at 19:20, 23:16, 03:07 and 06:57.
+Coordinator analyses without a feed line, which change no number the pages state: scripts/ur5_tip_calibration_gain_by_region.py
+(edfabe38, 03:21; ea51d936, 08:52, reference group the face centre's presses, --common the 112 grid actions every
+session ran) gives v3 ID 2's sphere session (analysed on corvus) 22.9, 41.4 and 57.9 uT/N on the face, edges and flanks
+at 0.5 to 3.5 N against v3 ID 1's 22.3, 41.4 and 60.2, the face centre 13.4 against 12.6, and the tip's end 30.2 uT/N
+over the top-edge pass's 9 presses; f5fdb818 lets four_vs_five name v3 ID 2's entries four_v3id2.
 fb158b9a moved 78 superseded lab plans to lab/superseded; no builder of this job cites one. Step 19
 (15:30, 9c64f6f4 and 5e9aae4c, line 21 of 15:14): the rod, four magnets against five, in Section 11 with Table 12 (75
 press actions, 462 holds each; direction GP 0.36 and 0.33 mm), so the physical model's table is now 13; Table 4 has a
@@ -66,7 +68,8 @@ pass 1 and stage 2, rod pass 1 and stage 2, and a 12-action top edge on the sphe
 (b32e1399), and block 3, the tall pass 1, 19 of 19 at 0.073 mm rms from 20:05 (daea7e7d). Block 2, the sphere's stage 2
 (211 actions, 6.1 h), ran 211 of 211 from 20:40 to 03:14 without an abort (67b32990). Block 5, the rod pass 1, gave 21
 of 21 at 0.023 mm rms (cfd644fe), and block 4, the tall stage 2, ran 102 of 102 from 03:58 to 06:44 (608bf364). Block 6,
-the rod's stage 2 (100 actions, 1.4 h), runs from 06:45, to about 08:10. None of this is a feed line yet, so the pages
+the rod's stage 2, ran 100 of 100 from 06:45 to 08:13, so the suite's 488 actions all ran from 18:44 to 08:13 with no
+HEX-E time-out (3c1c1f21, d85afb42); its analyses are on the lab computer. None of this is a feed line yet, so the pages
 are unchanged. Direction 11 sends later
 calibration lines there (the rest of stage 2, the tall; the comparison is rerun at the stage's end).
 For the owner: the 21:44 line's "matches the robot's board within 10 % to W 5 mm" is not in its bins (model +4 % at
