@@ -1629,6 +1629,53 @@ The clearances in this section and the one before it are on mount v3. The next s
 - Indenter plate v2d waits until the motions calibration needs are final. The workstation is writing that list.
 - `STATE.md` carries the details.
 
+### ID 3's suite and the pad-up side map, checked here (12:05 to 13:36)
+
+- The workstation's plans of 12:00 (62d93424, d6795072): ID 3's six night plans are ID 2's 476 actions, action by
+  action, with the 58 touch-offs at v 0.0005. Block 1's seed, `lab/20261029-sphere-seed-v3id3`, is 184415's
+  registration exactly. The side map, `lab/20261029-plan_holder_lab_side_up_v3id2.json`, keeps the rod on and both
+  held tips pad-up. It runs on the holder seed `lab/20261029-holder-seed-seat5-v3id2`: 184415's tool with
+  holder_seated_5's frame and homing.
+- Simulated from home at nice 19 (scratchpad `i3_sims.sh`, 12:05 to 12:38). No run aborted or made an early contact.
+  - Block 1 ran four times, resumed on the seed. The first run kept the true pad where the seed puts it. The other
+    three moved it by 0.026 rad and 0.6 mm, as for ID 2's block 1. The fits recovered the moves: the TCP moved 0.65 to
+    0.77 mm, with pad rms 0.013 to 0.029 mm. The fork stayed at least 3.63 mm from anything and the finger 2.50 mm.
+    Joint 6 went from -63.0 to 40.7 deg, and joint 5 from 47.1 to 82.2 deg.
+  - Block 3 ran fresh from each of the tall's three seatings, with 184415's tool and 200508's tall. The fork stayed
+    4.74, 4.00 and 5.12 mm away, and the finger at least 1.50 mm. Joint 6 went down to -64.4 deg and joint 5 up to
+    98.4 deg.
+  - Block 5 ran on a seed of 184415's tool and 031559's rod. The fork stayed 3.37 mm away and the finger 2.57 mm. Joint
+    6 went from -52.4 to 25.8 deg.
+  - Rechecked on every 2nd sample (12:47 to 13:35, `fine_checks.sh`): no clearance changed by more than 0.04 mm.
+- Blocks 2, 4 and 6 are ID 2's stage 2 plans action by action, and those ran 413 of 413. As for ID 2, each is
+  simulated on ID 3's own pass 1 registration on the night. Their cell check now takes every 5th sample, not every
+  20th; every 20th spans 5 to 10 mm of fast travel.
+- The side map's first version had 28 hovers. Four of them came under the mount's 3.0 mm: g14-s2 at 2.41 mm and g14-s0
+  at 2.73 mm, with their repeats. There the fork passes the holder 5 to 7 mm above the hover pose, on the straight
+  descent from the reference.
+- The workstation's path check had seen 3.19 mm there. It sampled straight moves every 2 mm but kept every 5th sample,
+  so it saw them every 10 mm. Its own moves at 0.5 mm steps give 2.42 and 2.73 mm (`hover_descent.py` here). The
+  workstation dropped the four hovers and now checks every sample of a straight move (bb7c5578).
+- The 24-hover version, simulated from home: no abort. The fork stayed at least 3.01 mm away (g20-s5), the finger 3.00
+  mm and the links 10.13 mm. Joint 6 went from -3.5 to 6.4 deg.
+- The workstation's memory gate was closed, so its seven path checks ran here at bb7c5578, two at a time at nice 19
+  (`path_rechecks.sh`). The outputs are in `logs/20261029-recheck_v3id3/`.
+  - Side map: 0 flagged, the fork at 3.11 mm.
+  - Sphere pass 1: 2 flagged, with joint 6 1.0 deg past -62.
+  - Tall pass 1: 5 flagged on the joint windows, with joint 6 3.7 deg past -62 and joint 5 1.7 deg past 100. In the
+    simulations joint 6 stays above -64.4 deg and joint 5 below 98.4 deg, and ID 2's runs of the same actions passed.
+  - Rod pass 1: 0 flagged, the fork at 3.77 mm.
+  - Rod stage 2 with measured depths: rod-ref-a at 2.96 mm. This is new with the finer sampling. The workstation (13:37)
+    traced it to the checker's travel from its own start pose: the press itself clears 4.98 to 5.51 mm, as on rod-ref-b,
+    -c and rod-final-ref. On the night, block 6 starts from block 5's last pose. If block 6's simulation then puts the
+    fork under 3.0 mm on rod-ref-a, rod-ref-a is dropped and rod-ref-b becomes the first reference.
+  - The tall's and the sphere's stage 2 are still running.
+- At 12:07, a read-only check of the arm's home path from block 6's last rest pose: the fork stays at least 10.7 mm
+  from anything. At 12:31 the joint temperatures read 29.0 to 40.9 C.
+- Before a power-off or a swap, the arm goes home, on the owner's go here. The scripts for the next steps wait in the
+  scratchpad: `go_home_now.sh`, `block1_id3.sh` and `te_after_b1_id3.sh`. The first two stop unless the speed slider
+  reads 0.30 (`slider_check.py`). move_guarded.py does not set the slider, and a power cycle may reset it.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
