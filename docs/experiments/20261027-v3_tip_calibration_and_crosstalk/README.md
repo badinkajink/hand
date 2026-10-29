@@ -208,6 +208,10 @@ On the tall indenter both boards put the contact 0.75 and 0.98 mm along -y of th
 flanks give 30.7 µT/N on ID 2 and 45.5 on ID 1 at 0.5 to 3.5 N; the sphere's flanks give 57.9 and 60.2
 (`data/20261029-gain_by_region_*`).
 
+Against the five-magnet v2 ID 1, ID 2 repeats ID 1's result. At 1 to 2 N the five magnets give 1.87, 1.85 and 1.83
+times ID 2's signal per newton on the sphere, the tall indenter and the rod. The noise-equivalent force is 62, 83 and 74
+mN with four magnets, against 35, 47 and 42 mN with five (`data/20261029-four_vs_five_*_v3id2.json`).
+
 ## Code
 
 Done:
