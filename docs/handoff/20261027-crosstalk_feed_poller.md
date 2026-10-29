@@ -7,13 +7,13 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. Last check 10-28 23:16: the watcher found no news in 230 min,
-as at 19:20. All 21 feed lines (to 15:14) and the 6 "Crosstalk:" commits are handled and acked
-(logs/crosstalk_feed_watch/state.json; HEAD dbc57d21). resguard's gate has been closed on swap since 19:20 (16.1 GB in
-use then, 15.7 GB at 23:16, limit 15 GB; PSI 0, 13.4 GB available), so `resguard.sh run` refuses the watcher and it
-would return 3, the watcher's own no-news code. Until the gate opens, the watcher runs plain under nice 10 with
---until-gate (step 20, 177f22ef; 19.5 MB): exit 0 on news, 3 after 230 min, 10 when the gate opens (then relaunch it
-through resguard). Page builds wait for the gate. Relaunched 23:1x.
+State: armed 2026-10-27 21:00 from the colorado window. Last check 10-29 03:07: the watcher found no news in 230 min,
+as at 10-28 19:20 and 23:16; the coordinator's last commit is dbc57d21 of 21:20. All 21 feed lines (to 15:14) and the 6
+"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json; HEAD a706127e). resguard's gate has
+been closed on swap since 19:20 (16.1 GB in use then, 15.2 GB at 03:07, limit 15 GB; PSI 0, 13.3 GB available), so
+`resguard.sh run` refuses the watcher and it would return 3, the watcher's own no-news code. Until the gate opens, the
+watcher runs plain under nice 10 with --until-gate (step 20, 177f22ef; 19.5 MB): exit 0 on news, 3 after 230 min, 10
+when the gate opens (then relaunch it through resguard). Page builds wait for the gate. Relaunched 03:0x.
 fb158b9a moved 78 superseded lab plans to lab/superseded; no builder of this job cites one. Step 19
 (15:30, 9c64f6f4 and 5e9aae4c, line 21 of 15:14): the rod, four magnets against five, in Section 11 with Table 12 (75
 press actions, 462 holds each; direction GP 0.36 and 0.33 mm), so the physical model's table is now 13; Table 4 has a
