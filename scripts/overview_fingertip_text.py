@@ -115,7 +115,8 @@ LEDE = (
     "0.28&#8202;mm. A touching neighbour that faces the pad adds 38&#8202;&#181;T at the board with four magnets in the field "
     "model, against 513&#8202;&#181;T with five. Side by side it adds 2,928&#8202;&#181;T with four and 4,162&#8202;&#181;T "
     "with five. A model learned on one tip misses on another by "
-    "1.4&#8211;2.5&#8202;mm, and by 0.64&#8202;mm once each board change is scaled by its magnets&#8217; strength. Under a "
+    "1.0&#8211;2.5&#8202;mm, so each tip is calibrated on its own. With each board change scaled by its magnets&#8217; "
+    "strength, v2 ID 1&#8217;s contacts are placed within 0.64&#8202;mm by a model of the v1 tips. Under a "
     "small sphere the printed pad sinks "
     "further than its finite-element model predicts. Three pages explain this in order: the "
     "<a href='../experiments/20261026-fingertip_physical_model/20261026-fingertip_physical_model.html'>physical model</a> "
@@ -611,7 +612,12 @@ Section 11).</li>
 checkerboard tip it placed contacts within 2.06&#8202;mm without a press. The GP correction learned on sphere2 does not, and
 raised that error to 2.48&#8202;mm. Fine-tuned with 20 of the new tip&#8217;s presses it gives 1.59&#8202;mm; the tip&#8217;s
 own 47 presses give 0.42&#8211;0.71&#8202;mm. Scaled by the magnets&#8217; strength fitted at rest, the v1 tips&#8217; presses
-place v2 ID 1&#8217;s contacts within 0.64&#8202;mm, against 2.52&#8202;mm unscaled.</li>
+place v2 ID 1&#8217;s contacts within 0.64&#8202;mm, against 2.52&#8202;mm unscaled. Between the two four-magnet tips,
+presses are placed 1.02 and 1.30&#8202;mm off by a direction GP trained on the other tip. Each tip&#8217;s own GP places
+them 0.51 and 0.38&#8202;mm off. With 100 of a tip&#8217;s own press actions added to the other
+tip&#8217;s data, its presses are placed 0.54 and 0.53&#8202;mm off
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#motion_value),
+Section 13).</li>
 <li><b>Disturbances in the hand.</b> Between two facing v3 tips on the UR5 the held boards changed by 55 to
 60&#8202;&#181;T at contact. The dipole model with each tip&#8217;s net moment leaves about 10&#8202;&#181;T of that
 ([magnetic crosstalk](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#holder)). Side by side and touching, a four-magnet neighbour adds 2,928&#8202;&#181;T in the
