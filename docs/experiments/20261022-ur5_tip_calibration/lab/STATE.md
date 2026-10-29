@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-28 20:45 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-28 21:20 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -36,7 +36,7 @@ cm from the connector with slack. The fix is a new cable.
 ## Tonight: the next tip's night suite
 
 Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
-State at 20:45: block 1, the top edge and block 3 are done (see `NOTES.md`). Block 2 runs from 20:40:16 (`logs/20261028-204016-tipcal-spherev3id2.log`, resumed on 184415), about 6.1 h. Block 5 follows it on a clean exit (scratchpad `b5_after_b2.sh`: a seed of block 1's tool and the rod at 102701). Then block 4 (simulated now on block 3's registration) and block 6. Order: 3, 2, 5, 4, 6, so that each block's simulations on the registration it needs run during the block before it. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
+State at 20:45: block 1, the top edge and block 3 are done (see `NOTES.md`). Block 2 runs from 20:40:16 (`logs/20261028-204016-tipcal-spherev3id2.log`, resumed on 184415), about 6.1 h. Block 5 follows it on a clean exit (scratchpad `b5_after_b2.sh`: a seed of block 1's tool and the rod at 102701). Then block 4, whose two chunks simulated on block 3's registration came clean (the mount 3.18 mm; joint 5 up to 99.2 deg at tall-shared-576 and -640, which the program aborts past 100), and block 6 once its simulations on block 5's registration pass (scratchpad `night_rest.sh`). Each step stops the chain on an abort or a failed check, and the robot then waits. Order: 3, 2, 5, 4, 6, so that each block's simulations on the registration it needs run during the block before it. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|
