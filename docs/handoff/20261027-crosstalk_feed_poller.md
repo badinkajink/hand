@@ -7,8 +7,9 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-29 10:4x: all 25 feed lines (to 10-29 10:29) and the 6
-"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json; HEAD b37d7727). Step 22 (10:4x,
+State: armed 2026-10-27 21:00 from the colorado window. 10-29 11:5x: all 25 feed lines (to 10-29 10:29) and the 6
+"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json; acked at HEAD b37d7727, no news
+since). 302321b1: the calibration page's byline names the coordinator's commits 0a487cf5 to 2361bf3c. Step 22 (10:4x,
 b37d7727, lines 24 and 25 of 10:28 and 10:29): four magnets against five on v3 ID 1's tall session in Section 11
 (Table 12 widened to rod and tall: 45 shared actions, direction GP 1.21 against 1.10 mm, 29.5 against 49.0 uT/N, 59
 against 37 mN) and repeated on v3 ID 2 in Section 12 (Table 15: five-magnet signal 1.87, 1.83 and 1.85 times v3 ID
@@ -25,7 +26,8 @@ page cites the README. The overview is unchanged: no number or claim it states c
 850 MB on one core, so it ran unguarded under the compute rule (over a minute or more than one core goes through
 resguard); the screenshot ran pinned to one core (0.7 s, 219 MB). While the gate is closed the watcher runs plain under
 nice 10 with --until-gate (step 20, 177f22ef; 19.5 MB): exit 0 on news, 3 after 230 min, 10 when the gate opens (then
-relaunch it through resguard --mem 200M). Relaunched 10:4x. The watcher found no news on 10-28 at 19:20 and 23:16 and on
+relaunch it through resguard --mem 200M). Relaunched plain at 10:4x; it exited 10 at 11:51 (gate open: swap 15.0 GB,
+11.9 GB available, PSI 0), and the watcher runs through resguard from 11:52. The watcher found no news on 10-28 at 19:20 and 23:16 and on
 10-29 at 03:07 and 06:57. fb158b9a moved 78 superseded lab plans to lab/superseded; no builder of this job cites one. Step 19
 (15:30, 9c64f6f4 and 5e9aae4c, line 21 of 15:14): the rod, four magnets against five, in Section 11 with Table 12 (75
 press actions, 462 holds each; direction GP 0.36 and 0.33 mm), so the physical model's table is now 13; Table 4 has a
@@ -76,8 +78,9 @@ pass 1 and stage 2, rod pass 1 and stage 2, and a 12-action top edge on the sphe
 (211 actions, 6.1 h), ran 211 of 211 from 20:40 to 03:14 without an abort (67b32990). Block 5, the rod pass 1, gave 21
 of 21 at 0.023 mm rms (cfd644fe), and block 4, the tall stage 2, ran 102 of 102 from 03:58 to 06:44 (608bf364). Block 6,
 the rod's stage 2, ran 100 of 100 from 06:45 to 08:13, so the suite's 488 actions all ran from 18:44 to 08:13 with no
-HEX-E time-out (3c1c1f21, d85afb42); its analyses are on the lab computer. None of this is a feed line yet, so the pages
-are unchanged. Direction 11 sends later
+HEX-E time-out (3c1c1f21, d85afb42). Its analyses, run on the lab computer, came as feed lines 22 to 25 (10-29 09:46 to
+10:29) and are the calibration page's Section 12 (steps 21 and 22); four_vs_five_grid_v3id2.json also has its 77 slides
+and its twists, which no feed line reports, so the page leaves them out. Direction 11 sends later
 calibration lines there (the rest of stage 2, the tall; the comparison is rerun at the stage's end).
 For the owner: the 21:44 line's "matches the robot's board within 10 % to W 5 mm" is not in its bins (model +4 % at
 contact, -10 to -22 % from W 0.3 to 5 mm), so the page leaves it out; the 20:45 feed line says twists to +20 deg, the
