@@ -1061,6 +1061,20 @@ push that answers it arrives.
       `docs/experiments/20261029-calibration_motions/20261029-calibration_motions_v3.html` (9da437e01).
     - Joint temperatures at 12:31:03 (lab, read only), base to wrist 3: 34.4, 34.2, 29.0, 37.9, 40.4 and 40.9 C. The
       lab asks the owner's go to send the arm home before the swap or a power-off; the pad stands 1.6 mm from the rod's key.
+    - 12:47, the lab: the path checker saw straight moves only every 10 mm, and the side map's g14 descents bring the
+      mount to 2.41 and 2.73 mm. Fixed in bb7c55781 (every 2 mm sample; side map 28 to 24 hovers). The lab reruns the
+      side map and ID 3's six plans on corvus with that sampling, into corvus `logs/20261029-recheck_v3id3/`; the
+      workstation copies them into `lab/` under the old names and commits them.
+    - 13:0x, owner, the inverted rig: "designing the adapter, modifying the v2d plate one more time, running the plan
+      would be helpful. if the tall back row of the indenter plate is just three mounting spots for the finger, that's
+      fine too ... maybe flat surfaces? ... if we invert the tools like we're describing, then we can spam whatever kind
+      of tool we want." The reason: on v3 the force direction errs 3 to 6 deg at 1 N and over near the normal, 9 to 23
+      deg under 1 N, and 10 to 13 deg with the force over 20 deg off the normal (8 and 23 holds); the suite has no angled
+      contacts at the top edge. Next: a probe adapter on the HEX-E taking interchangeable printed tools (5 mm sphere,
+      R 12.5 mm rod, flat); plate v2d's back row as three seats for the tip under calibration; and a reach study with a
+      plan replay of probe poses around a fixed tip (pad points by approach angle, oblique and from above at the top
+      edge) against what the finger on the robot reaches. The 12.5 mm sphere is dropped (the rod has its radius across
+      the finger and is the screwdriver handle's shape).
   - 08:19 on 10-29, v3 ID 2's night suite. All 488 actions ended ok between 18:44:15 on 10-28 and 08:13:17, with no
     abort, no early contact and no HEX-E time-out (`lab/NOTES.md`, "The night's suite on ID 2: done"). The suite took
     12.6 h against its estimate of 11.7 h; block 2 ran 0.5 h over. In each run's `ft_reads` the HEX-E's only gaps, 0.7
