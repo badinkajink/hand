@@ -1044,6 +1044,20 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 20:07 on 10-28, the evening (the current state is `lab/STATE.md`, kept by the lab). At 18:03 `lab/STATE.md` became
+    the one current-state file, and 78 plan and check files went to `lab/superseded/` (fb158b9a). On the tall
+    indenter the owner watched 3 of the top edge's first 8 actions (18:03 to 18:05) and stopped them near the joint
+    limits. The top edge moved to the low sphere (owner, 18:0x): `scripts/tall_indenter.py reach --kind sphere` on
+    225213, with the trimmed cap, mount v7 and the button heads, reaches 17 of the tip's 88 end points (none on 10-26
+    with the cap as printed) and 96 of 124 edge points. `scripts/ur5_tip_calibration_sphere_top_edge.py` builds the
+    pass from it. Its 20 mm lift swept the fork 3.9 mm into the sphere's model in the lab's simulation, so it lifts
+    60 mm, as the sphere's plans (e5b35635). At about 18:40 the owner put v3 ID 2 on the robot from the holder's
+    right-side station and put v3 ID 1 there pad-up; the mount stayed on the flange. ID 2's sphere pass 1, seeded
+    from 225213 without homing, ran 18 of 18 from 18:44 to 19:08 (184415-spherev3id2, 0.044 mm rms). Its sphere top
+    edge (`lab/20261028-plan_sphere_lab_top_edge_v3id2.json`) ran 12 of 12 from 19:21 to 19:30 with the owner
+    watching. In its check the elbow stays at least 68.3 deg from straight, against 21.3 deg on the tall indenter's
+    top edge, and the finger keeps 0.84 mm, the mount 5.36 mm. The night runs blocks 3, 2, 5, 4 and 6 from 20:05 and
+    ends about 07:15 if the HEX-E holds.
   - 17:42 on 10-28, the HEX-E's losses since 10-25. Tall stage 2's 58 ran from 14:56 to 17:08 and the tall morning
     plan from 17:09 to 17:41, all ok. The owner reports that the cable is clamped 3 to 5 cm from the connector with
     slack, as R10 asked. Each session's `ft_reads` time-outs and `ft.bin` gaps give 7 losses in 40.8 h of actions,
