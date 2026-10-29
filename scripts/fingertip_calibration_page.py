@@ -45,6 +45,7 @@ L = dict(
     crosstalk=EXP / "20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html",
     v3=EXP / "20261027-v3_tip_calibration_and_crosstalk/README.md",
     motions=EXP / "20261029-calibration_motions/20261029-calibration_motions_v3.html",
+    rig=EXP / "20261029-inverted_calibration_rig/20261029-inverted_rig.html",
 )
 
 
@@ -69,7 +70,7 @@ def build():
               "HEX-E, 2026-10-22 to 10-29, analysed on the workstation ("
               + link(UR5, "docs/experiments/20261022-ur5_tip_calibration/") + ") and v3 ID 2's on the lab computer. "
               "v2 ID 1's and the v3 tips' analyses are the UR5 "
-              "coordinator's (commits 0a487cf5 to 9da437e0), read as committed. Figures by "
+              "coordinator's (commits 0a487cf5 to 33cfe6f3), read as committed. Figures by "
               + P.code("scripts/fingertip_calibration_figures.py") + "; page by " + P.code("scripts/fingertip_calibration_page.py")
               + ". Read " + link(L["phys"], "the physical model of the fingertip") + " first; the topic overview is "
               + link(L["overview"], "printed fingertips and force sensing") + ".")
