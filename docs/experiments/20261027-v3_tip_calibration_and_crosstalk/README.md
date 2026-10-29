@@ -7,8 +7,10 @@ edge, which the trimmed cap opens. The map ran on 2026-10-27 from 21:21 to 22:52
 came off its DAQ at 02:54 on 10-28, in sphere stage 2 after its grid and 40 of its 84 slides. On 10-28 the HEX-E streamed
 again from 09:33. The check after its reseat and the sphere twists ran from 09:41 to 10:25 (18 of 18 ok), rod pass 1
 from 10:27 to 11:46 (registration 0.042 mm rms) and tall pass 1 from 11:49 to 12:21 (0.045 mm rms). Rod stage 2 and
-the tall plans ran by 17:41. The cell's current state, tonight's runs and what waits on the owner are in
-`docs/experiments/20261022-ur5_tip_calibration/lab/STATE.md`, the one place kept current.
+the tall plans ran by 17:41. At about 18:40 the owner put v3 ID 2 on the robot. Its suite of 488 actions on the sphere,
+its top edge, the tall indenter and the rod ran from 18:44 to 08:13 on 10-29, all ok, with no HEX-E time-out
+(`../20261022-ur5_tip_calibration/QUEUE.md`, R31 at 08:19 on 10-29). The cell's current state, the runs done and what
+waits on the owner are in `docs/experiments/20261022-ur5_tip_calibration/lab/STATE.md`, the one place kept current.
 
 ## Runs left for v3 ID 1
 

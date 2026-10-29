@@ -1044,6 +1044,35 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 08:19 on 10-29, v3 ID 2's night suite. All 488 actions ended ok between 18:44:15 on 10-28 and 08:13:17, with no
+    abort, no early contact and no HEX-E time-out (`lab/NOTES.md`, "The night's suite on ID 2: done"). The suite took
+    12.6 h against its estimate of 11.7 h; block 2 ran 0.5 h over. In each run's `ft_reads` the HEX-E's only gaps, 0.7
+    to 1.9 s, come at the run's start, before its first action. The blocks ran in the order 1, top edge, 3, 2, 5, 4, 6:
+    - Block 1, sphere pass 1, 18:44 to 19:08 (`lab/20261028-184415-spherev3id2`): 18 of 18, 0.044 mm rms.
+    - The top edge, 19:21 to 19:30, in the same session with the owner watching: 12 of 12.
+    - Block 3, tall pass 1, 20:05 to 20:39 (`lab/20261028-200508-tallv3id2`): 19 of 19, 0.073 mm rms. The tall
+      indenter is placed 1.85 mm from 114908's estimate, along -y.
+    - Block 2, sphere stage 2, 20:40:16 to 03:14:45, resumed in 184415: 211 of 211.
+    - Block 5, rod pass 1, 03:16 to 03:57 (`lab/20261029-031559-rodv3id2`): 21 touch-offs and 5 pivots, 0.023 mm rms.
+      The rod is placed 0.16 mm from 102701's estimate. The onsets came 0.51 to 0.69 mm past the expected contact. The
+      0.5 N stops came 0.27 to 0.37 mm before the end of the approach, 1.2 mm past it.
+    - Block 4, tall stage 2, 03:58:49 to 06:44:53, resumed in 200508: 102 of 102. Joint 5 reached 99.1 deg; the
+      program aborts at 100 deg, and the simulation gave 99.2 deg.
+    - Block 6, rod stage 2, 06:45:42 to 08:13:14, resumed in 031559: 100 of 100. Joint 5 came 0.5 deg inside its
+      window at rod-twist-019, where the simulation gave 0.6 deg.
+    The tool fitted on the tall differs from the sphere's by 0.34 mm and 1.13 deg, and the rod's by 0.57 mm and 0.86
+    deg (T_EM T_MP of each registration). On v3 ID 1 the same differences are 0.24 mm and 2.12 deg, and 0.52 mm and
+    2.14 deg. The 2 N reference press stopped 0.10 mm deeper over block 2's first 20 min on the sphere. On the tall it
+    stopped 0.08 to 0.10 mm earlier after block 4's first 40 min. On the rod its four stops agree within 0.03 mm.
+    Touch-off speed (owner, 10-28 at about 19:10: "can you go faster on the approaches. this is excruciating"): in block
+    2's presses an approach at 0.15 mm/s moves the onset by -0.000 mm (SE 0.006) against one at 0.045 mm/s
+    (`lab/NOTES.md`, "Faster touch-offs"; reproduced here). At v 0.0005 a touch-off would take about 48 s on the sphere
+    and 55 s on the tall and the rod, against 81, 108 and 106 s. The plans stay as they are until the owner decides.
+    `scripts/ur5_tip_calibration_next_tip_suite.py` now writes each plan's suite.tip from --tip (efbcffd50). The five
+    night plans that ran keep the template's "v3 ID 1", which no script reads. `scripts/ur5_tip_calibration_analysis.py`
+    now merges the resumed plans under the names the lab gives them in the session folders (ed5495d93). ID 2's
+    analyses run on corvus at nice 19 while the robot is idle, at the lab's offer of 08:15. Here resguard's gate stays
+    closed on swap: 15.2 GB in use, all of it from the desktop's applications.
   - 20:07 on 10-28, the evening (the current state is `lab/STATE.md`, kept by the lab). At 18:03 `lab/STATE.md` became
     the one current-state file, and 78 plan and check files went to `lab/superseded/` (fb158b9a). On the tall
     indenter the owner watched 3 of the top edge's first 8 actions (18:03 to 18:05) and stopped them near the joint
