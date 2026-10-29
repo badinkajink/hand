@@ -238,17 +238,20 @@ before the low sphere goes.
 ## Inverted rig: a probe on the HEX-E
 
 The owner asked at 13:0x on 10-29 for an inverted rig, in which a probe on the HEX-E presses tips held still on the
-plate. The design and its reach are on the page `docs/experiments/20261029-inverted_calibration_rig/20261029-inverted_rig.html`
-(`scripts/ur5_inverted_rig.py`, STLs in that folder's `cad/`). The probe base takes the fork's place on mount v7's
-adapter disc with four M3 screws and keeps v7's homing socket. Its tools are 5 and 2 mm spheres, the half rod and a flat
-14 mm face. Plate v2e keeps v2d's keys and rod and a 5 mm sphere, and its back row has three seats with the tips facing
-the robot, their ends up.
+plate, and approved building it at 15:2x ("let's shore up the plan and get it ready to print tomorrow"). The design,
+its reach and its plans are on the page `docs/experiments/20261029-inverted_calibration_rig/20261029-inverted_rig.html`
+(`scripts/ur5_inverted_rig.py`); the print, hardware, assembly and first session are in that folder's `README.md`. The
+probe base takes the fork's place on mount v7's adapter disc with four M3 screws and keeps v7's homing socket. Its tools
+are 5 and 2 mm spheres, the half rod and two flat 14 mm faces, one turned 30 deg. Plate v2e keeps v2d's keys and rod
+and a 5 mm sphere, and its back row has three seats that hold the tips pad up with their ends toward the robot.
 
-On the middle seat a press of either sphere reaches 444 of the pad's 808 points; the finger on the robot reaches 286.
-The probe reaches all 104 face and 124 edge points, 176 of 492 flank points and 40 of 88 on the tip's end. The finger
-reaches 83, 114, 75 and 14. The probe also pushes 20 and 35 deg off the normal at every face and edge point. The rest of
-the pad lies within about 3.5 mm of the cassette's walls and end plate. The lab program needs a probe mode before the rig
-can run.
+The hold was chosen at 16:00. Four of six holds reach 97 of 201 pad points (1.5 mm apart) with the 5 mm sphere; the
+cassette's walls, which every hold brings along, set the count. Pad up, a face press loads the seat's column along its
+axis (0.2 um/N at the apex, beam estimate as printed), where a tip facing the robot with its end up bends it (13 um/N).
+Over all 808 points either sphere reaches 452 (finger on the robot 286): all 104 face and 124 edge points, 184 of 492
+flank points and 40 of 88 on the tip's end. A plan of about 275 actions replays clean on each of the three seats
+(joint 5 at most 96.8 deg, joint 6 within +-16.3 deg). The print is two P1S plates: the probe base and five tools
+(6 h 13 min, 178 g) and the plate (15 h 37 min, 524 g). The lab program needs a probe mode before the rig can run.
 
 ## Code
 

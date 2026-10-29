@@ -72,7 +72,8 @@ PROBE = dict(
     tip_z=120.0,                    # every tool's end on the tool axis; the finger's pad apex stands at z_M 93.4, 10.6 off it
     foot=dict(z0=15.0, z1=28.0, r=35.0),                     # v7's foot on the adapter disc (z_M 0..15)
     col=dict(x0=-13.0, x1=17.0, y0=-13.0, y1=13.0, z1=64.0, r=3.0),   # x1: the fork's palmar face, where its socket opens
-    boss=dict(side=10.0, draft=20.0, h=3.0, clear=0.05),     # on the column's top; the tool's socket 0.05 mm larger a face
+    boss=dict(side=10.0, draft=20.0, h=3.0, clear=0.05,      # on the column's top; the tool's socket 0.05 mm larger a face,
+              mouth_ch=0.4),                                 # its mouth chamfered 0.4 mm (the screws pull the flange home)
     screws=((8.5, 8.5), (-8.5, -8.5), (8.5, -8.5), (-8.5, 8.5)), pilot=2.75, pilot_depth=10.0,   # M3, self-forming
     flange=dict(z1=70.0, r=17.0), m3_clear=3.4, m3_cb_d=6.5, m3_under=3.0,   # each tool's flange, M3 x 10 on a diagonal
     stem_r=8.0,
@@ -80,12 +81,14 @@ PROBE = dict(
     sphere2=dict(R=2.0, neck_r=1.3, neck_dz=1.6, taper_deg=15.0),          # a 2 mm sphere for the flanks by the walls
     rod=dict(R=12.5, half_len=10.0, box_dz=12.5, hull_dz=7.0, hull_half=8.0),   # the plate's rod: axis along y_M
     flat=dict(r=7.0, t=3.0, ch=0.5, neck_r=4.5, neck_l=4.0),   # a disc 14 mm across and 3 mm thick on a 9 mm neck
-)
-TOOLS = ("sphere5", "sphere2", "rod", "flat")
+    flat_tilt=30.0,                 # flat30: the same disc turned 30 deg about y_M through its face's centre, so that its
+)                                   # stem leans off the pad's normal as a sphere's may (a pad-up face from above)
+TOOLS = ("sphere5", "sphere2", "rod", "flat", "flat30")
+FLATS = dict(flat=0.0, flat30=PROBE["flat_tilt"])         # the flat tools and their face's tilt from the tool axis (deg)
 SPHERES = dict(sphere5="sphere", sphere2="sphere2")      # the sphere tools and their PROBE entries
 NEED = dict(robot=8.0, hex_e=6.0, mount=3.0, stem=1.0, tip=0.3)
 GROUPS = dict(mount=("adapter", "probe_base"), stem=("tool_stem",), tip=("tool_tip",), hex_e=("hex_e",))
-EXCL = dict(sphere5=4.0, sphere2=3.0, rod=12.0, flat=20.0)              # the tool end's points this near the contact meet the pad
+EXCL = dict(sphere5=4.0, sphere2=3.0, rod=12.0, flat=20.0, flat30=20.0)              # the tool end's points this near the contact meet the pad
 #                                                         (the 2 mm sphere's 3 mm: a push 35 deg off the normal drags it 0.6 mm)
 J5_WIN, J6_WIN, J6_OWNER = (30.0, 100.0), (-62.0, 45.0), 60.0
 J5_SEARCH = (35.0, 97.0)                                  # a press's own poses keep this much inside joint 5's window
@@ -116,9 +119,16 @@ BLOCK_F = ((4.4, -10.5, -98.36), (16.4, 10.5, -77.05))    # the station block be
 HOLES_F = ((8.0, -79.82), (-8.0, -79.82), (8.0, -95.82), (-8.0, -95.82))   # (y_F, z_F) of the M2 x 8
 LAYOUT = dict(       # plate v2e: v2d's base, keys and front row (the 5 mm sphere where v2d had the 12.5 mm one), three seats
     sphere5=dict(c=(-15.0, 60.0), top=100.0), rod=dict(c=(0.0, -85.0), top=100.0),
-    seats=((70.0, -80.0), (70.0, 0.0), (70.0, 80.0)), seat_h=160.0, orient="front_up",
-    support=dict(depth=35.0, half_w=22.0))   # each seat's support flares to 35 mm deep (x) and 44 mm wide at the base:
+    seats=((70.0, -80.0), (70.0, 0.0), (70.0, 80.0)), seat_h=160.0, orient="up_xm",   # pad up, end toward the robot
+#                                             (front_up, a finger pointing up, until 2026-10-29 16:00: the same reach, but a
+#                                             face press bent its support at 13 um/N where this one's column takes it along
+#                                             its axis at 0.2 um/N, as printed)
+    support=dict(depth=35.0, half_w=22.0),   # each seat's support flares to 35 mm deep (x) and 44 mm wide at the base:
 #                                             9 um/N along x at the apex (PLA beam), against 161 for the block's own section
+    rail=dict(t=12.0, front=5.0),            # the base 12 mm thick under the seats' row, from 5 mm before the supports
+#                                             to its back edge: 8 times the 6 mm base's stiffness where the supports pull up
+    cable=((3.4, -3.95, -63.91), (44.4, 4.05, -58.91)))   # F: a slot through each support just past the board's plug, so
+#                                             the held board's cable leaves by the support's back, away from the probe
 
 
 def T_AF(orient, apex):
@@ -157,6 +167,8 @@ def plate(layout=None):
     g.pop("sphere12", None)
     g.pop("holder", None)
     g["seats"], g["layout"] = seats, lay
+    g["rail"] = (min(float(st["support"][:, 0].min()) for st in seats) - lay["rail"]["front"], xb, a["base"][2], a["base"][3],
+                 lay["rail"]["t"])                                  # x0, x1, y0, y1, top
     g["zmax"] = float(max([np.max(st["support"][:, 2]) + 25.0 for st in seats] + [g["sphere5"]["top"], g["rod"]["top"]]
                           + [k["pin_top"] for k in g["keys"]]))     # the highest part (the tips within 25 mm of their blocks)
     return g
@@ -333,6 +345,18 @@ def _cyl_y_pts(xz, R, y0, y1, sp, half=False):
 
 
 @lru_cache(maxsize=8)
+def _flat_R(tool):
+    """The turn of a flat tool's disc: FLATS[tool] deg about y_M."""
+    a = math.radians(FLATS.get(tool, 0.0))
+    return np.array([[math.cos(a), 0.0, math.sin(a)], [0.0, 1.0, 0.0], [-math.sin(a), 0.0, math.cos(a)]])
+
+
+def _turn_flat(P, Rt, tz):
+    """Points of the straight flat's disc turned by Rt about the face's centre (0, 0, tz)."""
+    c = np.array([0.0, 0.0, tz])
+    return (np.asarray(P, float) - c) @ Rt.T + c
+
+
 def probe_points(tool, sp=1.5):
     """Surface samples (M) of the probe by group: the adapter disc, the probe base (foot, column), the tool's stem
     (flange, stem, neck or the rod's box) and its end (sphere, half rod, flat face), and the HEX-E."""
@@ -363,11 +387,18 @@ def probe_points(tool, sp=1.5):
         zd = tz - fp["t"]                                # the disc's back face; the neck behind it, then a cone to the stem
         zn = zd - fp["neck_l"]
         zc0 = zn - (sr - fp["neck_r"]) / math.tan(math.radians(30.0))
-        stem += [_frustum_pts(sr, sr, fl["z1"], zc0, sp, caps=False), _frustum_pts(sr, fp["neck_r"], zc0, zn, 0.7, False),
-                 _frustum_pts(fp["neck_r"], fp["neck_r"], zn, zd, 0.7, False)]
-        tip = np.vstack([_frustum_pts(fp["r"], fp["r"], zd, tz - fp["ch"], 0.5, caps=False), _disc_pts(fp["r"], zd, 0.5),
-                         _frustum_pts(fp["r"], fp["r"] - fp["ch"], tz - fp["ch"], tz, 0.5, caps=False),
-                         _disc_pts(fp["r"] - fp["ch"], tz, 0.5)])
+        Rt = _flat_R(tool)
+        neck = _frustum_pts(fp["neck_r"], fp["neck_r"], zn, zd, 0.7, False)
+        stem += [_frustum_pts(sr, sr, fl["z1"], zc0, sp, caps=False), _frustum_pts(sr, fp["neck_r"], zc0, zn, 0.7, False)]
+        if FLATS[tool]:                                  # the neck bends from the cone's top to the turned disc's back
+            ring0, ring1 = _ring_pts(fp["neck_r"], zn, 0.7), _turn_flat(_ring_pts(fp["neck_r"], zd, 0.7), Rt, tz)
+            stem += [ring0 + (ring1 - ring0) * f for f in np.linspace(0.0, 1.0, 8)]
+        else:
+            stem.append(neck)
+        tip = _turn_flat(np.vstack([_frustum_pts(fp["r"], fp["r"], zd, tz - fp["ch"], 0.5, caps=False),
+                                    _disc_pts(fp["r"], zd, 0.5),
+                                    _frustum_pts(fp["r"], fp["r"] - fp["ch"], tz - fp["ch"], tz, 0.5, caps=False),
+                                    _disc_pts(fp["r"] - fp["ch"], tz, 0.5)]), Rt, tz)
     stem = np.vstack(stem)
     if tool in SPHERES:                                  # the neck's end lies inside the sphere: those points are not stem
         s = p[SPHERES[tool]]
@@ -440,12 +471,24 @@ def tool_solid(K, tool):
         zd = tz - fp["t"]
         zn = zd - fp["neck_l"]
         zc0 = zn - (sr - fp["neck_r"]) / math.tan(math.radians(30.0))
-        parts += [K.cyl("z", (0.0, 0.0), sr, fl["z1"] - 0.01, zc0 + 0.01), K.cyl("z", (0.0, 0.0), sr, zc0, zn + 0.01, r1=fp["neck_r"]),
-                  K.cyl("z", (0.0, 0.0), fp["neck_r"], zn, zd + 0.01), K.cyl("z", (0.0, 0.0), fp["r"], zd, tz - fp["ch"] + 0.01),
-                  K.cyl("z", (0.0, 0.0), fp["r"], tz - fp["ch"], tz, r1=fp["r"] - fp["ch"])]
+        disc = K.union([K.cyl("z", (0.0, 0.0), fp["r"], zd, tz - fp["ch"] + 0.01),
+                        K.cyl("z", (0.0, 0.0), fp["r"], tz - fp["ch"], tz, r1=fp["r"] - fp["ch"])])
+        parts += [K.cyl("z", (0.0, 0.0), sr, fl["z1"] - 0.01, zc0 + 0.01), K.cyl("z", (0.0, 0.0), sr, zc0, zn + 0.01, r1=fp["neck_r"])]
+        if FLATS[tool]:                                  # the disc turned about its face's centre; a hull bends the neck
+            Rt = _flat_R(tool)
+            T = np.eye(4)
+            T[:3, :3], T[:3, 3] = Rt, np.array([0.0, 0.0, tz]) - Rt @ np.array([0.0, 0.0, tz])
+            th = np.linspace(0.0, 2 * math.pi, 64, endpoint=False)
+            ring0 = np.c_[fp["neck_r"] * np.cos(th), fp["neck_r"] * np.sin(th), np.full(64, zn - 0.01)]
+            ring1 = _turn_flat(np.c_[fp["neck_r"] * np.cos(th), fp["neck_r"] * np.sin(th), np.full(64, zd + 0.01)], Rt, tz)
+            parts += [K.hull([tuple(v) for v in np.vstack([ring0, ring1])]), K.transform(disc, T)]
+        else:
+            parts += [K.cyl("z", (0.0, 0.0), fp["neck_r"], zn, zd + 0.01), disc]
     h0 = b["side"] / 2 + b["clear"]
+    ch = b["mouth_ch"]                     # 45 deg at the socket's mouth, which prints on the bed: the first layer's squeeze
     cut = [UM.frustum(K, "z", (0.0, 0.0), (h0 + t, h0 + t), (h0 - (b["h"] + 0.3) * t, h0 - (b["h"] + 0.3) * t),
-                      c["z1"] - 1.0, c["z1"] + b["h"] + 0.3)]
+                      c["z1"] - 1.0, c["z1"] + b["h"] + 0.3),
+           UM.frustum(K, "z", (0.0, 0.0), (h0 + ch + 1.0, h0 + ch + 1.0), (h0, h0), c["z1"] - 1.0, c["z1"] + ch)]
     for xy in p["screws"][:2]:
         cut += [K.cyl("z", xy, p["m3_clear"] / 2, c["z1"] - 1.0, fl["z1"] + 1.0),
                 K.cyl("z", xy, p["m3_cb_d"] / 2, c["z1"] + p["m3_under"], fl["z1"] + 1.0)]
@@ -457,11 +500,13 @@ def plate_solid(K, g):
     the four 1.9 mm holes for the tip's M2 x 8 (10 mm deep from the block's face)."""
     a = g["params"]
     x0, x1, y0, y1, tb = a["base"]
-    base = K.rbox_z(x0, x1, y0, y1, 0.0, tb, 6.0)
+    rx0, rx1, ry0, ry1, rt = g["rail"]
+    base = K.union([K.rbox_z(x0, x1, y0, y1, 0.0, tb, 6.0), K.rbox_z(rx0, rx1, ry0, ry1, 0.0, rt, 6.0)])
     d, (cbd, cbh) = a["screw_hole"], a["screw_cb"]
     holes = []
-    for x, y in a["screws"]:
-        holes += [K.cyl("z", (x, y), d / 2, -1.0, tb + 1.0), K.cyl("z", (x, y), cbd / 2, tb - cbh, tb + 1.0)]
+    for x, y in a["screws"]:                   # on the rail: the counterbore from its top, the same PLA under the head
+        top = rt if rx0 <= x <= rx1 else tb
+        holes += [K.cyl("z", (x, y), d / 2, -1.0, top + 1.0), K.cyl("z", (x, y), cbd / 2, tb - cbh, top + 1.0)]
     parts = [K.cut_all(base, holes)]
     import ur5_calibration_mount as UM
     kd = g["key"]
@@ -488,6 +533,8 @@ def plate_solid(K, g):
         blk = K.transform(K.box(lo, hi), T)
         sup = K.hull([tuple(v) for v in st["support"]])
         holes = [K.transform(K.cyl("x", (y, z), 0.95, lo[0] - 1.0, lo[0] + 10.0), T) for y, z in HOLES_F]
+        if st["orient"] == "front_up":             # the cable leaves a pad-up tip away from the robot, over the column
+            holes.append(K.transform(K.box(*g["layout"]["cable"]), T))
         parts.append(K.cut_all(K.union([blk, sup]), holes))
     return K.union(parts)
 
@@ -515,6 +562,66 @@ def cmd_build(a):
         parts=rec, probe=PROBE, layout={k: v for k, v in g["layout"].items()},
         seats=[{k: v for k, v in s.items() if k in ("apex", "orient", "T_AF")} for s in g["seats"]],
         when=time.strftime("%Y-%m-%d %H:%M")), indent=1, default=float) + "\n")
+
+
+def cmd_seat_beam(a):
+    """The seat's compliance at the pad's apex for each hold, by beam theory over the support's height (the hull of the
+    block and its footprint, from the rail's top): bending along x and y with the force at the apex's height (shear
+    neglected) and the axial compliance under the apex. Solid PLA at E 2.5 GPa, and as printed: a shell of a.wall mm (5
+    walls) with the core's sparse infill counted at its density^1.5. Needs trimesh and shapely (the femtip env)."""
+    import trimesh
+    from shapely.geometry import MultiPoint
+
+    def props(poly):
+        x, y = np.asarray(poly.exterior.coords).T
+        cr = x[:-1] * y[1:] - x[1:] * y[:-1]
+        A = 0.5 * cr.sum()
+        cx, cy = ((x[:-1] + x[1:]) * cr).sum() / (6 * A), ((y[:-1] + y[1:]) * cr).sum() / (6 * A)
+        xc, yc = x - cx, y - cy
+        cr = xc[:-1] * yc[1:] - xc[1:] * yc[:-1]
+        Ixx = ((yc[:-1] ** 2 + yc[:-1] * yc[1:] + yc[1:] ** 2) * cr).sum() / 12
+        Iyy = ((xc[:-1] ** 2 + xc[:-1] * xc[1:] + xc[1:] ** 2) * cr).sum() / 12
+        return abs(A), abs(Ixx), abs(Iyy)
+
+    E = 2500.0
+    out = dict(what="the seat's compliance at the pad's apex (um/N) by beam theory over the support, PLA E 2.5 GPa; x is "
+                    "away from the robot, z up; 'printed' a shell of 2 mm with 25 % gyroid inside, counted at 0.25^1.5",
+               E_MPa=E, wall_mm=a.wall, infill=a.infill, holds={})
+    for o in a.orient.split(","):
+        g = plate(dict(orient=o))
+        st = g["seats"][1]
+        apex = np.asarray(st["apex"], float)
+        blk = trimesh.creation.box(bounds=[BLOCK_F[0], BLOCK_F[1]])
+        blk.apply_transform(np.asarray(st["T_AF"], float))
+        hull = trimesh.convex.convex_hull(np.vstack([st["support"], blk.vertices]))
+        zs = np.linspace(g["rail"][4] + 0.25, hull.bounds[1][2] - 0.25, 400)
+        res = {}
+        for label, wall, fill in (("solid", None, 1.0), ("printed", a.wall, a.infill)):
+            c = np.zeros(3)
+            for z0, z1 in zip(zs[:-1], zs[1:]):
+                z = 0.5 * (z0 + z1)
+                sec = hull.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1])
+                if sec is None:
+                    continue
+                poly = MultiPoint([tuple(v[:2]) for v in sec.vertices]).convex_hull
+                A, Ixx, Iyy = props(poly)
+                if wall is not None:
+                    core = poly.buffer(-wall, join_style=2)
+                    if not core.is_empty:
+                        a2, ix2, iy2 = props(core)
+                        k = fill ** 1.5
+                        A, Ixx, Iyy = A - (1 - k) * a2, Ixx - (1 - k) * ix2, Iyy - (1 - k) * iy2
+                arm, dz = max(apex[2] - z, 0.0), z1 - z0
+                c += [arm ** 2 / (E * Iyy) * dz, arm ** 2 / (E * Ixx) * dz, (dz / (E * A) if z < apex[2] else 0.0)]
+            res[label] = dict(zip(("x", "y", "z"), np.round(c * 1e3, 3).tolist()))
+        face = np.asarray(ORIENT[o][0], float)
+        res["face_axis"] = "xyz"[int(np.argmax(np.abs(face)))] if np.max(np.abs(face)) > 0.99 else "tilted"
+        res["support_top_mm"] = round(float(hull.bounds[1][2]), 2)
+        out["holds"][o] = res
+        print(o, json.dumps(res), flush=True)
+    dst = OUT / "data" / f"{STEM}_seat_beam.json"
+    dst.write_text(json.dumps(out, indent=1) + "\n")
+    print(f"-> {dst}")
 
 
 # ------------------------------------------------------------------------------------------------ the scene's SDF (A)
@@ -590,7 +697,8 @@ def plate_sdfs(PA, g, T_BA, contact=None, reach=20.0):
     if not m.any():
         return out
     P = PA[m]
-    parts = dict(base=CELL.sd_box(P, (x0, y0, 0.0), (x1, y1, tb)))
+    rx0, rx1, ry0, ry1, rt = g["rail"]
+    parts = dict(base=np.minimum(CELL.sd_box(P, (x0, y0, 0.0), (x1, y1, tb)), CELL.sd_box(P, (rx0, ry0, 0.0), (rx1, ry1, rt))))
     kd = g["key"]
     bx, by = kd["k0"][0] + kd["margin"], kd["k0"][1] + kd["margin"]
     for i, k in enumerate(g["keys"]):
@@ -846,31 +954,40 @@ def search_flat(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=True)
     """A flat press: the face (z_M = -n) tangent to the pad at p, its centre at p or up to 4 mm from it across the face
     (FLAT_OFFSETS), the tool turned about its axis as the sphere's; the first that passes. The face is left out of the
     pressed pad's distance (it meets the pad anywhere on it), not out of the tip's body's."""
-    zc = tool_end_z("flat")
+    tool = ctx["tool"]
+    zc = tool_end_z(tool)
     t1, t2 = tangent_basis(n, np.array([0.0, 0.0, 1.0]))
-    R1 = frames_for(n[None])
+    R0 = frames_for(n[None])[0]
+    tilt = FLATS[tool]
+    if tilt:                                             # the face's normal is -n; the stem leans tilt deg off n, its
+        Ry = _flat_R(tool).T                             # azimuth about n searched, those toward U_ROBOT first
+        Rs = [C.rot(n, az) @ R0 @ Ry for az in np.arange(0.0, 360.0, 15.0)]
+        Rs.sort(key=lambda R_: -float(-R_[:, 2] @ U_ROBOT))
+    else:
+        Rs = [R0]
     why, n_try = {}, 0
-    contact = (seat_i, p, EXCL["flat"])
-    for o1, o2 in FLAT_OFFSETS:
-        c = p + o1 * t1 + o2 * t2
-        T_rest = pose_B(ctx, R1, (c - ST * d)[None], zc)[0]
-        T_deep = pose_B(ctx, R1, (c + DEEP * d)[None], zc)[0]
-        ok, info = try_poses(ctx, T_rest, T_deep, True, owner, contact, need_clear)
-        if ok:
-            info.update(u=np.round(n, 3).tolist(), c=c, offset=[o1, o2], n_u=1, tried=n_try + 1)
-            return True, info
-        for w in info.get("why", []):
-            key = w.split(" mm to the ")[0].split()[0] if " mm to the " in w else w.split()[0]
-            why[key] = why.get(key, 0) + 1
-        if "clear" in info:
-            n_try += 1
-            if n_try >= max_clear:
-                break
-    return False, dict(why=why, n_u=len(FLAT_OFFSETS))
+    contact = (seat_i, p, EXCL[tool])
+    for R1 in Rs:
+        for o1, o2 in FLAT_OFFSETS:
+            c = p + o1 * t1 + o2 * t2
+            T_rest = pose_B(ctx, R1[None], (c - ST * d)[None], zc)[0]
+            T_deep = pose_B(ctx, R1[None], (c + DEEP * d)[None], zc)[0]
+            ok, info = try_poses(ctx, T_rest, T_deep, not tilt, owner, contact, need_clear)
+            if ok:
+                info.update(u=np.round(-R1[:, 2], 3).tolist(), c=c, offset=[o1, o2], n_u=len(Rs), tried=n_try + 1)
+                return True, info
+            for w in info.get("why", []):
+                key = w.split(" mm to the ")[0].split()[0] if " mm to the " in w else w.split()[0]
+                why[key] = why.get(key, 0) + 1
+            if "clear" in info:
+                n_try += 1
+                if n_try >= max_clear * (2 if tilt else 1):
+                    return False, dict(why=why, n_u=len(Rs) * len(FLAT_OFFSETS))
+    return False, dict(why=why, n_u=len(Rs) * len(FLAT_OFFSETS))
 
 
 def search(ctx, seat_i, p, n, d, **kw):
-    return (search_flat if ctx["tool"] == "flat" else search_sphere)(ctx, seat_i, p, n, d, **kw)
+    return (search_flat if ctx["tool"] in FLATS else search_sphere)(ctx, seat_i, p, n, d, **kw)
 
 
 def twist_ok(ctx, seat_i, p, n, info, deg, owner=False, need_clear=True):
@@ -882,6 +999,8 @@ def twist_ok(ctx, seat_i, p, n, info, deg, owner=False, need_clear=True):
     ref[5] += math.radians(deg) * float(np.sign((R_BA @ n) @ info["T_deep"][:3, 2]) or 1.0)
     qd = ik_near(Td[None], ref, branch=BR[0])[0]
     if not np.isfinite(qd).all() or joint_flags(qd, owner):
+        return False
+    if not J5_SEARCH[0] <= math.degrees(qd[4]) <= J5_SEARCH[1]:          # the press's own margin on joint 5
         return False
     if not need_clear:
         return True
@@ -982,6 +1101,8 @@ def cmd_reach(a):
 
 # ------------------------------------------------------------------------------------------------ a plan and its moves
 RETRACT, SAFE = 12.0, 45.0          # mm back along the stem between near presses, and before a joint move
+LIFT = (30.0, 150.0)                # mm along -x_M (up, out of the key) before the first joint move from the homing:
+#                                     the low lift first, the high one over the seats' blocks when the low one meets them
 
 
 def _slerp(T0, T1, s):
@@ -1100,9 +1221,11 @@ def travel_options(ctx, T_prev, q_prev, act):
     Tr, qa = act["T_rest"], act["q_rest"]
     a1 = back_along(Tr, ctx, SAFE)
     Th, qh = ctx["hub"]
-    if T_prev is None:
+    if T_prev is None:                                  # from the homing: out of the key along -x_M (up) first
         T0 = fk_many(q_prev[None])[0]
-        return [("joint", [("J", T0, a1, qa), ("L", a1, Tr)]), ("hub", [("J", T0, Th, qh), ("J", Th, a1, qa), ("L", a1, Tr)])]
+        up = [C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-mm, 0.0, 0.0])) for mm in LIFT]
+        return ([("joint", [("L", T0, u), ("J", u, a1, qa), ("L", a1, Tr)]) for u in up]
+                + [("hub", [("L", T0, up[-1]), ("J", up[-1], Th, qh), ("J", Th, a1, qa), ("L", a1, Tr)])])
     out = []
     mm, deg = C.pose_error(T_prev, Tr)
     if deg <= 20.0 and mm <= 30.0:
@@ -1126,6 +1249,33 @@ def sample_all(segs, q, owner):
             out.append((si, seg[0], k, len(sm), T, qq))
         q = sm[-1][1]
     return out, sorted(set(why))
+
+
+def clear_of(ctx, sms, contact, joints_only=False):
+    """The least clearance of each group over samples (every straight-move sample, every 5th of a joint move)."""
+    cl = {}
+    if joints_only:
+        return cl
+    for si, kind, k, n, T, qq in sms:
+        if kind == "L" or k % 5 == 0 or k == n - 1:
+            for g_, v in clearance(qq, ctx, contact).items():
+                if v[0] < cl.get(g_, (1e9, ""))[0]:
+                    cl[g_] = v
+    return cl
+
+
+def pick_travel(ctx, T_prev, q, act, owner=False, joints_only=False):
+    """The first of travel_options whose joints and clearances pass (else the first): (way, samples, flags, clearances)."""
+    best = None
+    for w, segs in travel_options(ctx, T_prev, q, act):
+        sm, why = sample_all(segs, q, owner)
+        cl = clear_of(ctx, sm, None, joints_only) if not why else {}
+        why = list(why) + clear_flags(cl)
+        if best is None or not why:
+            best = (w, sm, why, cl)
+        if not why:
+            break
+    return best
 
 
 def hub(ctx, seat_i):
@@ -1162,27 +1312,19 @@ def cmd_replay(a):
     T_prev, rows, n_way = None, [], {}
     for x in acts:
         contact = (a.seat, P_A[x["i"]], EXCL[ctx["tool"]])
-        best = None
-        for w, segs in travel_options(ctx, T_prev, q, x):
-            sm, why = sample_all(segs, q, a.owner)
-            if best is None or not why:
-                best = (w, segs, sm, why)
-            if not why:
-                break
-        w, tsegs, tsm, why = best
+        w, tsm, why, cl = pick_travel(ctx, T_prev, q, x, a.owner, a.joints_only)
         n_way[w] = n_way.get(w, 0) + 1
         q_t = tsm[-1][5] if tsm else q
         osm, why_o = sample_all(own_moves(ctx, x), q_t, a.owner)
-        why = list(why) + [f"{v} (own)" for v in why_o]
-        cl, j5r, j6r = {}, [1e9, -1e9], [1e9, -1e9]
-        for part, sms in (("travel", tsm), ("own", osm)):
+        why = [v for v in why if "mm to" not in v] + [f"{v} (own)" for v in why_o]
+        for g_, v in clear_of(ctx, osm, contact, a.joints_only).items():
+            if v[0] < cl.get(g_, (1e9, ""))[0]:
+                cl[g_] = v
+        j5r, j6r = [1e9, -1e9], [1e9, -1e9]
+        for sms in (tsm, osm):
             for si, kind, k, n, T, qq in sms:
                 j5r = [min(j5r[0], math.degrees(qq[4])), max(j5r[1], math.degrees(qq[4]))]
                 j6r = [min(j6r[0], math.degrees(qq[5])), max(j6r[1], math.degrees(qq[5]))]
-                if not a.joints_only and (kind == "L" or k % 5 == 0 or k == n - 1):
-                    for g_, v in clearance(qq, ctx, contact if part == "own" else None).items():
-                        if v[0] < cl.get(g_, (1e9, ""))[0]:
-                            cl[g_] = v
         q = osm[-1][5] if osm else q_t
         why = why + clear_flags(cl)
         rows.append(dict(id=x["id"], kind=x["kind"], region=x["region"], travel=w, flags=why,
@@ -1307,14 +1449,7 @@ def cmd_film(a):
     ren = mujoco.Renderer(m, hh, w)
     try:
         for x, label in picks:
-            best = None
-            for _, segs in travel_options(ctx, T_prev, q, x):
-                sm, why = sample_all(segs, q, False)
-                if best is None or not why:
-                    best = (sm, why)
-                if not why:
-                    break
-            tsm = best[0]
+            tsm = pick_travel(ctx, T_prev, q, x)[1]            # as the replay moves
             qt = tsm[-1][5] if tsm else q
             osm, _ = sample_all(own_moves(ctx, x), qt, False)
             qs = [s[5] for s in tsm[::max(1, len(tsm) // 40)]] + [s[5] for s in osm[::max(1, len(osm) // 40)]] + [osm[-1][5]] * 6
@@ -1353,6 +1488,10 @@ def main():
     ik = sub.add_parser("ik-check")
     ik.add_argument("--n", type=int, default=200)
     sub.add_parser("build")
+    sb = sub.add_parser("seat-beam")
+    sb.add_argument("--orient", default=",".join(ORIENT))
+    sb.add_argument("--wall", type=float, default=2.0)
+    sb.add_argument("--infill", type=float, default=0.25)
     fm = sub.add_parser("film")
     fm.add_argument("--orient", default=LAYOUT["orient"])
     fm.add_argument("--h", type=float, default=LAYOUT["seat_h"])
@@ -1374,7 +1513,7 @@ def main():
     rp.add_argument("--out-dir", default="", help="where the plan and its check go (default the experiment's data/)")
     r = sub.add_parser("reach")
     r.add_argument("--orient", default=",".join(ORIENT))
-    r.add_argument("--tool", default="sphere5", choices=tuple(SPHERES) + ("flat",))
+    r.add_argument("--tool", default="sphere5", choices=tuple(SPHERES) + tuple(FLATS))
     r.add_argument("--h", type=float, default=LAYOUT["seat_h"], help="the seats' apex height over the base's underside (mm)")
     r.add_argument("--seat", type=int, default=1, help="which seat's tip is pressed (0, 1, 2 from -y)")
     r.add_argument("--thin", type=float, default=1.0, help="pad points at least this far apart (mm); 0 for all 812")
@@ -1387,7 +1526,8 @@ def main():
     r.add_argument("--resume", action="store_true", help="keep the orientations already in --out")
     r.add_argument("--part", default="", help="k/n: this job's share of the points (merge the parts with merge-reach)")
     a = ap.parse_args()
-    dict(**{"ik-check": cmd_ik_check}, build=cmd_build, reach=cmd_reach, replay=cmd_replay, film=cmd_film)[a.cmd](a)
+    dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam}, build=cmd_build, reach=cmd_reach, replay=cmd_replay,
+         film=cmd_film)[a.cmd](a)
 
 
 if __name__ == "__main__":

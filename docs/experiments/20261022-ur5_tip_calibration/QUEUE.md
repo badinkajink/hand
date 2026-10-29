@@ -1095,6 +1095,21 @@ push that answers it arrives.
       edge point. The flat reaches 20 of 23 face points (1.5 mm spacing); its stem must follow the normal. A plan of 280
       actions replayed at every sample: 0 flagged, joint 6 -13 to +14 deg. The lab program needs a probe mode before the
       rig runs (the page's section 7). The corvus runs were dropped when the workstation's gate reopened (14:27).
+    - 16:0x, the owner approved building it (15:2x: "yea, we can build the inverted rod. is that the best orientation for
+      the fingertip? vertical? ... let's shore up the plan and get it ready to print tomorrow"). The hold changed to pad
+      up with the end toward the robot: four holds tie at 97 of 201 points, but a face press bends the vertical hold's
+      support (13 um/N at the apex as printed, beam estimate) and loads the pad-up column along its axis (0.2 um/N);
+      flanks 8 um/N in both (`ur5_inverted_rig.py seat-beam`). Over all 808 points either sphere now reaches 452 (444
+      vertical; flanks 184 against 176). Plans replayed on all three seats: 279, 271 and 277 actions, 0 flagged, joint 5
+      at most 96.8 deg, joint 6 within +-16.3 deg. Fixes on the way: travels are now chosen on clearances as well as
+      joints (the first pad-up move from key 2 had swept the probe through a seat's block), the first move lifts 30 or
+      150 mm out of the key, and twists keep joint 5's 35 to 97 deg margin. The straight flat reaches only 2 of 23 face
+      points pad up (its stem must stand vertical), so a second flat with its disc turned 30 deg was added. Plate v2e:
+      220 x 236 x 145 mm, a 12 mm rail under the seats, tips screwed down from above as on the holder's up station, the
+      cable leaving away from the robot. Print (`scripts/inverted_rig_print.py`, the folder's `print/`): plate a, the
+      probe base and five tools, 6 h 13 min and 178 g; plate b, the plate, 15 h 37 min and 524 g (P1S, PLA, sliced by the
+      command line; the owner slices again). Runbook with hardware, assembly, the plate's support on the 2x4s and the
+      first session: `docs/experiments/20261029-inverted_calibration_rig/README.md`.
   - 08:19 on 10-29, v3 ID 2's night suite. All 488 actions ended ok between 18:44:15 on 10-28 and 08:13:17, with no
     abort, no early contact and no HEX-E time-out (`lab/NOTES.md`, "The night's suite on ID 2: done"). The suite took
     12.6 h against its estimate of 11.7 h; block 2 ran 0.5 h over. In each run's `ft_reads` the HEX-E's only gaps, 0.7
