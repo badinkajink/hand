@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-29 06:48 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-29 08:15 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -33,10 +33,10 @@ cm from the connector with slack. The fix is a new cable.
 - No force control, contact motion or safety threshold is set from a borrowed calibration that was not validated.
 - The workstation reads corvus over SSH and never writes there; plans reach corvus by git.
 
-## Tonight: the next tip's night suite
+## Last night: the next tip's night suite, done
 
 Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
-State at 06:48: block 1, the top edge and blocks 3, 2, 5 and 4 are done (see `NOTES.md`). Block 2 took 6.6 h and block 4 2.77 h, 102 of 102 with no abort. Block 6, the last, runs from 06:45:40 (`logs/20261029-064540-tipcal-rodv3id2.log`, resumed on 031559). At the suite's 1.4 h it ends near 08:10. Its simulations on block 5's registration passed at 04:14:53, with joint 5 0.6 deg inside its window. An abort stops the run, and the robot then waits. The blocks ran in the order 3, 2, 5, 4, 6. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
+Done at 08:13:17: blocks 1 to 6 and the sphere's top edge, 488 actions, all ok, with no abort, no early contact and no HEX-E time-out. They took 12.6 h of robot time; block 2 ran 0.5 h over its estimate. The blocks ran in the order 3, 2, 5, 4, 6 (`NOTES.md`, from "Block 1"). The robot has been idle since 08:13:17, at the rest pose of block 6's last press above the rod. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|
@@ -57,7 +57,7 @@ whether the tool moved.
 |---|---|---|---|
 | Sphere pass 1 (block 1), top edge, stage 2 (block 2) | `20261028-184415-spherev3id2` | 10-28 18:44 to 19:09; 19:21 to 19:30; 20:40 to 10-29 03:15 | 0.044 mm rms; 12 of 12; 211 of 211 |
 | Tall pass 1 (block 3), stage 2 (block 4) | `20261028-200508-tallv3id2` | 20:05 to 20:39; 10-29 03:59 to 06:45 | 0.073 mm rms; 19 of 19; 102 of 102 |
-| Rod pass 1 (block 5) | `20261029-031559-rodv3id2` | 10-29 03:16 to 03:57 | 0.023 mm rms; 21 of 21 and 5 pivots |
+| Rod pass 1 (block 5), stage 2 (block 6) | `20261029-031559-rodv3id2` | 10-29 03:16 to 03:57; 06:46 to 08:13 | 0.023 mm rms; 21 of 21 and 5 pivots; 100 of 100 |
 
 ## v3 ID 1: runs done
 
@@ -81,6 +81,7 @@ These need v3 ID 1 back on the robot.
 
 ## Waiting on the owner
 
+- What runs next. The robot has been idle since 08:13:17, and the arm stays where it is until the owner says.
 - Faster touch-offs ("can you go faster on the approaches"): their slow approach at v 0.0005 (0.15 mm/s at the
   slider), as the presses run, moves the onset by 0.000 mm (SE 0.006) in block 2's presses, and a touch-off takes
   about 50 s instead of 81 to 108 s (`NOTES.md`, "Faster touch-offs"). The plans are unchanged until the owner says.

@@ -1545,12 +1545,27 @@ The clearances in this section and the one before it are on mount v3. The next s
   Sideways it moved 0.05 mm at most. Block 2's sphere reference moved 0.10 mm the other way, deeper, in its first 20
   minutes.
 
-### Block 6: ID 2's rod stage 2 (from 06:45:40)
+### Block 6: ID 2's rod stage 2 (06:45:40 to 08:13:17)
 
 - `lab/20261028-plan_rod_lab_stage2_night_v3id2.json`, 100 actions, resumed on 031559 with stages
-  preflight,grid,shear,roll,twist,final. Its simulations are in block 4's section.
+  preflight,grid,shear,roll,twist,final (printout: `printout_stage2_0645.txt` in its copy). Its simulations are in block
+  4's section.
 - After block 4's exit 0, `night_rest.sh` checked the home path from 200508's last pose and went home (0.02 mm, 0.01
   deg from the target). Block 6 started at 06:45:40, and its preflight read the HEX-E with no time-out.
+- 100 of 100 ok, no abort, no early contact. Grid 69 (06:45:44 to 07:42:22), shear 24 slides (to 08:01:47), roll 4 (to
+  08:08:26), twist 2 (to 08:12:25) and final 1. It took 1.46 h, against 1.4 h in the suite's estimate.
+- On the robot, joint 5 came down to 30.5 deg at rod-twist-019-2.5N and -5N, 0.5 deg inside its window; the simulation
+  had 30.6. Joint 6 ran from -55.4 to +37.8 deg, and the elbow stayed at least 66.5 deg from straight.
+- The HEX-E: 524,846 samples, no time-out. Its one gap over 0.5 s (0.7 s) came at 06:45:41, before the first action.
+- At 2 N, the reference press stopped 2.11 mm along its approach at 06:46, 2.09 and 2.11 mm at 07:36 and 07:37, and 2.14
+  mm at 08:13. So on the rod the stop held within 0.03 mm, and sideways within 0.02 mm.
+
+### The night's suite on ID 2: done
+
+- Blocks 1 to 6 and the sphere's top edge: 488 actions, all ok, no abort, no early contact and no HEX-E time-out.
+- They took 12.6 h of robot time between 18:44:15 and 08:13:17. The suite estimated 11.7 h; block 2 alone ran 0.5 h
+  over.
+- The arm stays at the rest pose of block 6's last press, above the rod. It does not move until the owner says so.
 
 ### Faster touch-offs: where the time goes and what speed costs
 

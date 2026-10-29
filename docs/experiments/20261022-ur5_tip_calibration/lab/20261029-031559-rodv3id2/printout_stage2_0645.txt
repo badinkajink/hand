@@ -1,0 +1,115 @@
+resumed logs/20261029-tip_calibration/031559-rodv3id2: 27 actions done, 21 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.036  0.0271 0.2314 0.0028 0.0039 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  rod-ref-a (1/69): to 2.00 N
+  rod-grid-044 (2/69): to 6.00 N
+  rod-grid-047 (3/69): to 6.00 N
+  rod-grid-045 (4/69): to 6.00 N
+  rod-grid-046 (5/69): to 6.00 N
+  rod-grid-043 (6/69): to 6.00 N
+  rod-grid-051 (7/69): to 6.00 N
+  rod-grid-042 (8/69): to 6.00 N
+  rod-grid-041 (9/69): to 6.00 N
+  rod-grid-036 (10/69): to 6.00 N
+  rod-grid-037 (11/69): to 6.00 N
+  rod-grid-033 (12/69): to 6.00 N
+  rod-grid-038 (13/69): to 6.00 N
+  rod-grid-034 (14/69): to 6.00 N
+  rod-grid-032 (15/69): to 6.00 N
+  rod-grid-031 (16/69): to 6.00 N
+  rod-grid-030 (17/69): to 4.50 N
+  rod-more-630 (18/69): to 3.00 N
+  rod-more-637 (19/69): to 3.00 N
+  rod-more-626 (20/69): to 3.00 N
+  rod-more-743 (21/69): to 4.50 N
+  rod-more-632 (22/69): to 2.00 N
+  rod-more-636 (23/69): to 3.00 N
+  rod-more-672 (24/69): to 2.00 N
+  rod-grid-021 (25/69): to 8.00 N
+  rod-grid-019 (26/69): to 8.00 N
+  rod-grid-018 (27/69): to 8.00 N
+  rod-grid-022 (28/69): to 8.00 N
+  rod-grid-020 (29/69): to 8.00 N
+  rod-grid-016 (30/69): to 8.00 N
+  rod-grid-023 (31/69): to 6.50 N
+  rod-grid-017 (32/69): to 8.00 N
+  rod-grid-015 (33/69): to 8.00 N
+  rod-grid-014 (34/69): to 8.00 N
+  rod-grid-027 (35/69): to 8.00 N
+  rod-grid-026 (36/69): to 8.00 N
+  rod-grid-028 (37/69): to 8.00 N
+  rod-grid-013 (38/69): to 8.00 N
+  rod-grid-000 (39/69): to 8.00 N
+  rod-grid-001 (40/69): to 8.00 N
+  rod-grid-002 (41/69): to 8.00 N
+  rod-grid-012 (42/69): to 8.00 N
+  rod-grid-003 (43/69): to 8.00 N
+  rod-grid-011 (44/69): to 8.00 N
+  rod-grid-007 (45/69): to 8.00 N
+  rod-grid-004 (46/69): to 8.00 N
+  rod-grid-008 (47/69): to 6.50 N
+  rod-grid-010 (48/69): to 8.00 N
+  rod-grid-009 (49/69): to 6.50 N
+  rod-grid-006 (50/69): to 5.00 N
+  rod-grid-029 (51/69): to 3.50 N
+  rod-more-761 (52/69): to 2.00 N
+  rod-more-809 (53/69): to 5.00 N
+  rod-more-811 (54/69): to 3.50 N
+  rod-more-686 (55/69): to 2.00 N
+  rod-more-780 (56/69): to 2.00 N
+  rod-more-758 (57/69): to 3.50 N
+  rod-more-803 (58/69): to 2.00 N
+  rod-more-760 (59/69): to 2.00 N
+  rod-more-792 (60/69): to 3.50 N
+  rod-more-779 (61/69): to 8.00 N
+  rod-ref-b (62/69): to 2.00 N
+  rod-ref-c (63/69): to 2.00 N
+  rod-grid-039 (64/69): to 6.00 N
+  rod-more-634 (65/69): to 2.00 N
+  rod-grid-049 (66/69): to 6.00 N
+  rod-grid-048 (67/69): to 6.00 N
+  rod-grid-035 (68/69): to 6.00 N
+  rod-more-606 (69/69): to 4.50 N
+== shear
+  rod-slide-027-1N (1/24): to 1.00 N
+  rod-slide-027-2N (2/24): to 2.00 N
+  rod-slide-027-4N (3/24): to 4.00 N
+  rod-slide-003-1N (4/24): to 1.00 N
+  rod-slide-003-2N (5/24): to 2.00 N
+  rod-slide-003-4N (6/24): to 4.00 N
+  rod-slide-015-1N (7/24): to 1.00 N
+  rod-slide-015-2N (8/24): to 2.00 N
+  rod-slide-015-4N (9/24): to 4.00 N
+  rod-slide-029-1N (10/24): to 1.00 N
+  rod-slide-029-2N (11/24): to 2.00 N
+  rod-slide-029-4N (12/24): to 4.00 N
+  rod-slide-006-1N (13/24): to 1.00 N
+  rod-slide-006-2N (14/24): to 2.00 N
+  rod-slide-006-4N (15/24): to 4.00 N
+  rod-slide-018-1N (16/24): to 1.00 N
+  rod-slide-018-2N (17/24): to 2.00 N
+  rod-slide-018-4N (18/24): to 4.00 N
+  rod-slide-011-1N (19/24): to 1.00 N
+  rod-slide-011-2N (20/24): to 2.00 N
+  rod-slide-011-4N (21/24): to 4.00 N
+  rod-slide-023-1N (22/24): to 1.00 N
+  rod-slide-023-2N (23/24): to 2.00 N
+  rod-slide-023-4N (24/24): to 4.00 N
+== roll
+  rod-roll-0-1.5N (1/4): to 1.50 N
+  rod-roll-0-4N (2/4): to 4.00 N
+  rod-roll-3-1.5N (3/4): to 1.50 N
+  rod-roll-3-4N (4/4): to 4.00 N
+== twist
+  rod-twist-019-2.5N (1/2): to 2.50 N
+  rod-twist-019-5N (2/2): to 5.00 N
+== final
+  rod-final-ref (1/1): to 2.00 N
+HEX-E: 524846 samples, 0 timed out, 0 late datagrams dropped, 1 gaps over 0.5 s; 0.7 s, Fz +0.1 N
+session in logs/20261029-tip_calibration/031559-rodv3id2
+exit 0 at 08:13:17
