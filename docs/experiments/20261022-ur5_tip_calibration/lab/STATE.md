@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-29 08:15 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-29 11:51 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -77,17 +77,34 @@ These need v3 ID 1 back on the robot.
 | `20261028-plan_tall_lab_top_edge_ts1_v3id1.json` | 34 | the owner present; its first 8 run from 18:03:40 with the owner watching (`20261028-plan_tall_lab_top_edge_first8_v3id1.json`), so that the next tip can run it too |
 | `20261028-plan_sphere_lab_morning_unattended_ts1_v3id1.json` | 43 | the owner present (joint 6 to +59 deg) |
 | `20261028-plan_sphere_lab_stage2_resume3_v3id1.json` | 43 slides | |
-| `20261028-plan_holder_lab_side_norod30_v3id1.json` | 30 hovers | the rod fixture off and the -y held tip pad-down |
+
+The side map without the rod (`20261028-plan_holder_lab_side_norod30_v3id1.json`) is off, because the rod stays on.
+
+## Answered by the owner on 10-29
+
+The owner answered at about 11:37, in the workstation's session, which passed the answers on at 11:49.
+
+- Touch-offs: "we can approach at 0.15mm/s sure, or faster if you want". The next tip's plans run the touch-offs' slow
+  approach at v 0.0005 (0.15 mm/s at the slider), as the presses run. At that speed the onset moved 0.000 mm (SE
+  0.006) in block 2's presses, and a touch-off takes about 50 s instead of 81 to 108 s (`NOTES.md`, "Faster
+  touch-offs"). The workstation advised against going faster: at 0.58 mm/s the onsets came 0.026 mm early (SE 0.017),
+  and that saves only 10 to 17 s more per touch-off.
+- The side map: "i am not going to move the rod. figure something else out." The workstation is building a side map
+  with both held tips pad-up. The robot's pad faces down beside the -y held tip, with its apex 15 mm below the held
+  apex, so that the two magnet squares are level and 13 to 25 mm apart. The robot stands about 27 mm higher than in
+  the old poses, which may clear the rod. The map can run with any tip on the robot. The lab builds and checks it here
+  once it is pushed.
+- Indenter plate v2d waits: "im not sure i plan to put on the indenter plate v2d until we have 100% finalized all the
+  motions we need for effective calibration". The workstation is writing the list of motions calibration needs. For
+  each it gives the fixture and what the motion adds to the held-out errors on ID 1 and ID 2.
 
 ## Waiting on the owner
 
-- What runs next. The robot has been idle since 08:13:17, and the arm stays where it is until the owner says.
-- Faster touch-offs ("can you go faster on the approaches"): their slow approach at v 0.0005 (0.15 mm/s at the
-  slider), as the presses run, moves the onset by 0.000 mm (SE 0.006) in block 2's presses, and a touch-off takes
-  about 50 s instead of 81 to 108 s (`NOTES.md`, "Faster touch-offs"). The plans are unchanged until the owner says.
-- When v3 ID 1 goes back on, the four plans above.
-- Indenter plate v2d: the front row at 95 or 100 mm, a support under the pad-down block, the plate's place and timing,
-  and plans for the 12.5 mm sphere.
+- What runs next. The robot has been idle since 08:13:17, and the arm stays where it is until the owner says. The
+  owner asked whether to put v3 ID 3 on first, and the workstation recommended it. ID 3 would run ID 2's suite: block
+  1 seeded from `20261028-184415-spherev3id2`'s registration, the sphere's top edge after block 1 with the owner
+  present, and blocks 2 to 6 overnight. ID 2 would go into the station ID 3 leaves, the same way up.
+- When v3 ID 1 goes back on, the three plans above.
 - A new HEX-E cable.
 
 ## Where things are
