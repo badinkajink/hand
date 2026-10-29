@@ -11,7 +11,15 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-29 15:2x: the owner widened the job at 15:2x (Task line;
+State: armed 2026-10-27 21:00 from the colorado window. 10-29 16:25: the watcher exited 0 at 16:23 on line 28 (16:10,
+84ea1b72, kind calibration: the inverted rig ready to print, tips held pad up). Calibration page c4e85724: the rig's
+future item has 452 of 808 points against 286, the seat's 0.2 um/N, the two P1S plates, the lab's probe-mode estimate
+(lab/NOTES.md 4e877666: about 330 lines, a day, 2 to 3 h of simulations) and plans of 271 to 279 actions; Section 13
+calls plate v2e ready to print; lede, summary and overview stay (the rig has not run). Acked 28 lines and 44 commits at
+HEAD c4e85724. Lab commits 8d021906 (15:32: v3 ID 3's side map 24 of 24, the night chained) and cc07cb92 (block 3,
+tall pass 1, 19 of 19) change no page by direction 28; the side map's session or analysis line is awaited for the
+crosstalk page. The watcher runs through resguard from 16:2x (gate open: swap 8.9 GB, 18.5 GB available).
+10-29 15:2x: the owner widened the job at 15:2x (Task line;
 directions on the physical-model page and on every v3 tip). Step 29, done 15:27 (the ledger's 15:3x is wrong; 694881484):
 the watcher also wakes on coordinator commits that change the v3 folder's data/ or README.md. Its state holds all 27
 feed lines (to 10-29 14:38) and 43 commits, the 6 "Crosstalk:" ones and the 37 data and README commits of 10-27 to 10-29
