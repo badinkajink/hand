@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-28 18:52 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-28 19:25 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -36,7 +36,7 @@ cm from the connector with slack. The fix is a new cable.
 ## Tonight: the next tip's night suite
 
 Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
-State at 18:52: the owner's go came in the lab's session at 18:3x ("you have the go ahead on the tip top edge plan at the end of the runs if we make it there"). Block 1 runs from 18:44:15 in `logs/20261028-tip_calibration/184415-spherev3id2`. At 18:4x the owner asked for the sphere's top edge while still in the lab ("if the top edge is ready to run on the lower sphere, then let's do that while im still here"). It runs right after block 1, rebuilt and simulated on block 1's registration; then blocks 2 to 6.
+State at 18:52: the owner's go came in the lab's session at 18:3x ("you have the go ahead on the tip top edge plan at the end of the runs if we make it there"). Block 1 runs from 18:44:15 in `logs/20261028-tip_calibration/184415-spherev3id2`. At 18:4x the owner asked for the sphere's top edge while still in the lab ("if the top edge is ready to run on the lower sphere, then let's do that while im still here"). It ran from 19:21 with the owner watching ("ok its looking good. godspeed"); then blocks 2 to 6, each simulated on its own registration first. The owner left at about 19:25: "worst case i can come back at ~9:30 to reseat".
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|
