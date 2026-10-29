@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-28 20:08 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-28 20:45 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -36,7 +36,7 @@ cm from the connector with slack. The fix is a new cable.
 ## Tonight: the next tip's night suite
 
 Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
-State at 20:08: block 1 and the top edge are done (see `NOTES.md`). Block 3 runs from 20:05:08 (`logs/20261028-tip_calibration/200508-tallv3id2`, homed on `tall_indenter_seated`). Block 2 follows it when it exits clean (scratchpad `b2_after_b3.sh`); its four simulated chunks on block 1's registration came clean (the mount at least 3.19 mm, the finger 1.46 mm, joint 6 -63.3 to +42.5 deg). Order from here: 3, 2, 5, 4, 6, so that each block's simulations on the registration it needs run during the block before it. Earlier: the owner's go in the lab's session at 18:3x ("you have the go ahead on the tip top edge plan at the end of the runs if we make it there"); the top edge with the owner present, 19:21 to 19:30; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
+State at 20:45: block 1, the top edge and block 3 are done (see `NOTES.md`). Block 2 runs from 20:40:16 (`logs/20261028-204016-tipcal-spherev3id2.log`, resumed on 184415), about 6.1 h. Block 5 follows it on a clean exit (scratchpad `b5_after_b2.sh`: a seed of block 1's tool and the rod at 102701). Then block 4 (simulated now on block 3's registration) and block 6. Order: 3, 2, 5, 4, 6, so that each block's simulations on the registration it needs run during the block before it. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|

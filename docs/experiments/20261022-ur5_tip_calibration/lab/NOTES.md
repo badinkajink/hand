@@ -1469,6 +1469,29 @@ The clearances in this section and the one before it are on mount v3. The next s
 - The owner watched it: "ok its looking good. godspeed". They left at about 19:25: "worst case i can come back at
   ~9:30 to reseat".
 
+### Block 3: ID 2's tall pass 1 (20:05:08 to 20:39:27)
+
+- Simulated first from each of the tall's three seatings on ID 2's tool (block 1's registration), the tall where 114908
+  put it. The pattern repeated v3 ID 1's. Seat 2 brings the mount 2.13 mm from the tall at pad-face-05 and -08, under
+  the touch-offs' 2.5 mm. Seats 1 and 3 give 2.88 and 3.25 mm. In all three, joint 6 reaches -64.3 deg.
+- `logs/20261028-tip_calibration/200508-tallv3id2` (copy: `lab/20261028-200508-tallv3id2/`): a new session homed on
+  `tall_indenter_seated`, as 114908 was, stages preflight,homing,pad,register. The homing put the indenter at (-33.3,
+  -699.2, 72.4) mm, yaw -93.4 deg.
+- 19 of 19 touch-offs, no abort, no early contact. Onsets -0.11 to +1.18 mm, rising through the pass as 114908's did
+  (-0.41 to +0.96). Pad touches 0.073 mm rms (114908: 0.045). The TCP moved 1.35 mm and 2.91 deg from the plan's
+  nominal tool, and the indenter's centre 1.85 mm.
+- This tool and block 1's sphere tool differ by 0.34 mm and 1.13 deg (v3 ID 1's two: 0.24 mm and 2.12 deg).
+- The fitted tall stands 1.85 mm along -y_B from 114908's. The pass does not fix y well: the simulations from seats 1
+  and 3, with the tall exactly at 114908's, fitted it 1.54 and 1.30 mm along -y. So the tall need not have moved.
+- The robot stood still from 19:30 to 20:05 while the last chunk of block 2's simulation was checked. Block 3 then ran
+  before block 2, and the order became 3, 2, 5, 4, 6.
+
+### Block 2: ID 2's sphere stage 2 (from 20:40:16)
+
+- `lab/20261028-plan_sphere_lab_stage2_night_v3id2.json`, resumed on 184415. Its four chunks were simulated from home
+  on block 1's registration. Least clearances: the mount 3.19 mm and the finger 1.46 mm. Joint 6 ran from -63.3 to
+  +42.5 deg, joint 5 stayed 5.3 deg inside its window, and the elbow at least 90 deg from straight.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
