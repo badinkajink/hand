@@ -19,7 +19,10 @@ with the same pad (05R4), in the order the lab runs them unattended:
                      presses before its final reference
 
 Every plan gets travel.speed 1.0 and checks.other from lab/cell.json without its own indenter; the tall plans lift
-20 mm between actions in place of 60 (owner, 2026-10-28 14:4x: "maybe dont go up so high on these tall indenter moves"). The plans that need the
+20 mm between actions in place of 60 (owner, 2026-10-28 14:4x: "maybe dont go up so high on these tall indenter moves").
+Every touch-off approaches at --touch-v, 0.0005 m/s (0.15 mm/s at the slider's 0.30, the presses' speed; owner, 2026-10-29
+11:37: "we can approach at 0.15mm/s sure"; their onsets moved 0.000 mm, SE 0.006, lab NOTES "Faster touch-offs"); the
+plans until 10-28 approached at 0.00015. Files are named by --created's date and --tip. The plans that need the
 owner (joint 6 past +45 deg: the tall and sphere morning plans; the top edge) are not part of the night.
 
     .venv/bin/python scripts/ur5_tip_calibration_next_tip_suite.py [--tip v3id2] [--created ...]
@@ -64,7 +67,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--tip", default="v3id2")
     ap.add_argument("--created", default=time.strftime("%Y-%m-%d %H:%M"))
+    ap.add_argument("--touch-v", type=float, default=0.0005, help="the touch-offs' approach speed (m/s at slider 1.0)")
     a = ap.parse_args()
+    day = a.created[:10].replace("-", "")
     for n, (kind, stage, files) in enumerate(SOURCES, 1):
         plans = [json.loads((LAB / f).read_text()) for f in files]
         p = copy.deepcopy(plans[0])
@@ -103,6 +108,12 @@ def main():
         if kind == "tall":
             p.setdefault("travel", {})["lift_mm"] = 20.0
             note += "; travel.lift_mm 20 (the owner, 14:4x)"
+        touches = [x for x in acts if x["kind"] == "touch"]
+        if touches:
+            v0 = sorted({x.get("v") for x in touches}, key=str)
+            for x in touches:
+                x["v"] = a.touch_v
+            note += f"; the {len(touches)} touch-offs approach at v {a.touch_v:g} in place of {', '.join(map(str, v0))}"
         p["actions"] = acts
         p["created"] = a.created
         if isinstance(p.get("suite"), dict):            # the template's label ("v3 ID 1") until 2026-10-29; nothing reads it
@@ -113,7 +124,7 @@ def main():
         if not isinstance(p["notes"], list):
             p["notes"] = [p["notes"]]
         p["notes"].append(note)
-        out = LAB / f"20261028-plan_{kind}_lab_{stage}_night_{a.tip}.json"
+        out = LAB / f"{day}-plan_{kind}_lab_{stage}_night_{a.tip}.json"
         out.write_text(json.dumps(p, indent=1) + "\n")
         print(f"{n} {out.name}: {len(acts)} actions")
 
