@@ -1766,6 +1766,54 @@ The clearances in this section and the one before it are on mount v3. The next s
 - rod-ref-a stays (its 2.96 mm is on the checker's travel from its own start pose). The other flags are the checker's
   joint windows of -62 and 100 deg; the lab's simulations keep joint 6 inside -65 deg and joint 5 inside 100 deg.
 
+## Probe mode for the inverted rig: what the program needs (estimate, 10-29 16:1x)
+
+The owner approved building the inverted rig at 15:2x on 10-29, in the workstation's session ("let's shore up the plan
+and get it ready to print tomorrow"). Its page and runbook are in `docs/experiments/20261029-inverted_calibration_rig/`.
+The workstation asked the lab what the probe mode takes in `ur5_tip_calibration.py` (1926 lines) and its simulator
+`ur5_tip_calibration_sim.py` (662 lines). This estimate comes from reading both. Nothing has been written yet, and no
+robot run comes without the owner's go.
+
+The roles swap. Today the indenter is fixed (T_BI) and the pad moves with the flange (T_EP = T_EM T_MP). In probe mode
+the pad is fixed on its seat (T_BP), and the probe's sphere moves with the flange (its centre c_M in M). Most of the
+mathematics carries over, because the program already works in P: a touch gives the sphere's centre in P, and the
+contact and the board are computed in P.
+
+- **The plan and the registration** (about 40 lines). The plan gains a probe geometry: the sphere's radius, its centre
+  and stem in M, and a seat frame per seat on the plate. Registration gains T_BP and c_M, saved and loaded like T_BI.
+- **The target pose** (about 40 lines). A probe action names a pad point and its normal in P, a push direction, the
+  stem's direction and turn, and a twist about the normal through the sphere's centre. The flange pose puts T_EM c_M at
+  T_BP (p + n (R + standoff)). The push direction in B is the action's direction turned by T_BP.
+- **Pass 1 with the roles swapped** (about 70 lines). The touch-off is today's press primitive and onset fit, unchanged,
+  with the new target pose. A new fit takes T_BP (6) and c_M (3), with priors from the plate's homing, the seat's CAD
+  and the probe's CAD. Its residual is today's, the sphere's centre in P against the pad's surface, with q = T_BP^-1
+  T_BE T_EM c_M. The fork's homing on the plate's keys is unchanged.
+- **The force and the board** (about 50 lines). The push along d_B keeps today's formula. The force on the pad is minus
+  the HEX-E's change, turned into P, recorded with each hold. `board_level` reads the seat's mux channel from
+  HeldBoardStream, which already keeps a ring per channel in the robot board's format (5 chips x [T, x, y, z]). The
+  preflight checks that channel's rate.
+- **Gravity from the presses' rests** (about 50 lines; no sweep, owner's rule). `fit_gravity` takes the rest windows
+  before and after each press as its poses, which the twists turn. The payload is set at about 0.11 kg plus the
+  adapter disc.
+- **Safety** (about 40 lines). `in_box` is drawn around the seat (T_BP), not the indenter. `lifted` lifts until the
+  probe's sphere and stem clear the seat: 30 mm, or 150 mm where the workstation's replay found the lower lift sweeps
+  the probe through a seat. The travel abort and the joint 5 and 6 windows are unchanged.
+- **Stages** (about 40 lines): probe touch-offs, probe register, probe presses with levels (then slides and twists),
+  and `--dry` keeping the probe 15 mm off.
+- **The simulator** (about 150 to 250 lines, the largest part). `World.contact` computes in P from T_BP = flange T_EP. In
+  probe mode it takes T_BP fixed and the sphere's centre from the flange, and the HEX-E's compliance moves the sphere,
+  not the pad. The board becomes a held board on a fixed pad, so Earth's field stays constant. The HEX-E's payload
+  becomes 0.11 kg. Truth gains errors on T_BP and c_M, so the fit can be tested as `sim_seed_perturb.sh` tests today's.
+- **Checks** (the lab's scripts). The cell check needs the probe's parts in place of the fork and the tip. The
+  workstation's `scripts/ur5_inverted_rig.py` replay already models those clearances, and the lab's simulations would
+  check the program's real moves against them.
+
+In all, about 330 lines in the program and 150 to 250 in the simulator, plus the lab's check scripts. That is a day of
+work, then 2 to 3 h of simulations: the fit recovering a perturbed T_BP and c_M, and each seat's replay plan (271 to
+279 actions). On the robot, once the parts are printed and mounted, a `--dry` run over the plate comes first (about
+0.5 h, the owner present), then pass 1's touch-offs on one seat with the owner watching. Each of these needs the owner's
+go in the lab's session.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
