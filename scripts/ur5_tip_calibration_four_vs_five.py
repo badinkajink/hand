@@ -198,8 +198,10 @@ def main():
     ap.add_argument("--v2", default=str(V2), help="v2 ID 1's holds (default its sphere session; the rod's: "
                     "data/20261027-095303-rodv2id1)")
     ap.add_argument("--v2-session", default=str(V2_SESSION), help="v2 ID 1's session folder (its board.bin)")
+    ap.add_argument("--v3-key", default="four_v3id1", help="the four-magnet tip's key in the output (four_v3id2 for v3 ID 2)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
+    k3 = a.v3_key
     v2, v2_session = Path(a.v2).resolve(), Path(a.v2_session)
     H3, H2 = holds(a.v3), holds(v2)
     ids = sorted(set(H3["id"].astype(str)) & set(H2["id"].astype(str)))
@@ -208,10 +210,10 @@ def main():
     res = dict(script="scripts/ur5_tip_calibration_four_vs_five.py", v3=str(a.v3), v2=str(v2.relative_to(ROOT)),
                actions=len(ids), holds=dict(v3=len(H3["id"]), v2=len(H2["id"])),
                regions={r: int(len(set(H3["id"][H3["region"] == r].astype(str)))) for r in REGIONS})
-    res["four_v3id1"], res["five_v2id1"] = score(H3, a.v3_session), score(H2, v2_session)
+    res[k3], res["five_v2id1"] = score(H3, a.v3_session), score(H2, v2_session)
     for name in ("gp", "gp_direction"):
         for key in ["all"] + [f"{lo:g}-{hi:g}" for lo, hi in BINS] + list(REGIONS):
-            r3, r2 = res["four_v3id1"][name].get(key), res["five_v2id1"][name].get(key)
+            r3, r2 = res[k3][name].get(key), res["five_v2id1"][name].get(key)
             if r3 and r2:
                 print(f"{name:13s} {key:8s} n {r3['n']:4d}/{r2['n']:4d}  loc {r3['loc_mm']:.3f} / {r2['loc_mm']:.3f} mm  "
                       f"force {100 * r3['force_rel_err']:.1f} / {100 * r2['force_rel_err']:.1f} %  "
@@ -221,17 +223,17 @@ def main():
     sids = sorted(set(S3["id"].astype(str)) & set(S2["id"].astype(str)))
     if len(sids) >= 5:
         S3, S2 = (K.sub(S, np.isin(S["id"].astype(str), sids)) for S in (S3, S2))
-        res["slides"] = dict(four_v3id1=slide_scores(H3, S3), five_v2id1=slide_scores(H2, S2))
+        res["slides"] = {k3: slide_scores(H3, S3), "five_v2id1": slide_scores(H2, S2)}
         for k in ("gp_presses", "gp_presses_and_other_slides", "gp_direction_presses", "gp_direction_presses_and_other_slides"):
-            r3, r2 = res["slides"]["four_v3id1"][k], res["slides"]["five_v2id1"][k]
+            r3, r2 = res["slides"][k3][k], res["slides"]["five_v2id1"][k]
             print(f"slides {k:38s} shear error {r3['shear_err_N']:.3f} / {r2['shear_err_N']:.3f} N, angle "
                   f"{r3['angle_deg']:.1f} / {r2['angle_deg']:.1f} deg (four / five; {len(sids)} slides)")
     T3, T2 = holds(a.v3, "twist"), holds(v2, "twist")
     tids = sorted(set(T3["id"].astype(str)) & set(T2["id"].astype(str)))
     if len(tids) >= 5:
         T3, T2 = (K.sub(T, np.isin(T["id"].astype(str), tids) & np.isfinite(T["tn"])) for T in (T3, T2))
-        res["twists"] = dict(ids=tids, four_v3id1=twist_scores(H3, T3), five_v2id1=twist_scores(H2, T2))
-        t3, t2 = res["twists"]["four_v3id1"], res["twists"]["five_v2id1"]
+        res["twists"] = {"ids": tids, k3: twist_scores(H3, T3), "five_v2id1": twist_scores(H2, T2)}
+        t3, t2 = res["twists"][k3], res["twists"]["five_v2id1"]
         for k in ("1N", "2.5N", "5N"):
             print(f"twists HEX-E torsion at {k:4s} {t3['hexe_' + k]['median_Nmm']} / {t2['hexe_' + k]['median_Nmm']} N mm "
                   f"({t3['hexe_' + k]['n_pairs']} / {t2['hexe_' + k]['n_pairs']} pairs; four / five)")
@@ -239,12 +241,12 @@ def main():
             print(f"twists {k:22s} r {t3[k]['r']:.2f} / {t2[k]['r']:.2f}, rms {t3[k]['rms_Nmm']:.2f} / {t2[k]['rms_Nmm']:.2f} "
                   f"N mm against the HEX-E's {t3[k]['hexe_rms_Nmm']:.2f} / {t2[k]['hexe_rms_Nmm']:.2f} (four / five; "
                   f"{len(tids)} twists)")
-    for key, v3 in res["four_v3id1"]["gain_uT_per_N"].items():
+    for key, v3 in res[k3]["gain_uT_per_N"].items():
         v2 = res["five_v2id1"]["gain_uT_per_N"].get(key)
-        n3, n2 = res["four_v3id1"]["nef_N"][key], res["five_v2id1"]["nef_N"].get(key)
+        n3, n2 = res[k3]["nef_N"][key], res["five_v2id1"]["nef_N"].get(key)
         print(f"gain {key:8s} {v3:.1f} / {v2:.1f} uT/N, noise-equivalent force {1000 * n3:.0f} / {1000 * n2:.0f} mN (four / five)"
               if v2 else f"gain {key:8s} {v3:.1f} uT/N (four)")
-    print(f"noise {res['four_v3id1']['noise_uT']:.2f} / {res['five_v2id1']['noise_uT']:.2f} uT per record (four / five)")
+    print(f"noise {res[k3]['noise_uT']:.2f} / {res['five_v2id1']['noise_uT']:.2f} uT per record (four / five)")
     print(f"{len(ids)} actions; holds {len(H3['id'])} (four) and {len(H2['id'])} (five)")
     if a.out:
         Path(a.out).write_text(json.dumps(res, indent=1) + "\n")
