@@ -1583,7 +1583,12 @@ The clearances in this section and the one before it are on mount v3. The next s
   decimal.
 - The outputs are in `logs/20261029-{spherev3id2,spherev3id2_refdrift,tallv3id2,rodv3id2}/` and
   `logs/20261029-four_vs_five_{grid,tall,rod}_v3id2.json`, with the printouts in `logs/20261029-*-analysis-*.log`.
-  The workstation copies them and reports the results.
+  The workstation copied them at 10:29. Its results are in the v3 feed at 09:46, 10:00 and 10:28, and in the README's
+  section "v3 ID 2 against v3 ID 1" (`docs/experiments/20261027-v3_tip_calibration_and_crosstalk/`).
+- In brief, from those: on each fixture's shared presses the direction GP gives 0.29 / 0.38 mm for ID 2 / ID 1 on the
+  sphere, 0.36 / 0.36 on the rod and 1.06 / 0.95 on the tall. On ID 2, the five-magnet gain is 1.83 to 1.87 times the
+  four's. Both tips' boards sit 0.75 and 0.98 mm along -y of the tall's registration at 3 N and over, so the tall's
+  larger errors come from the tall indenter, not from ID 2.
 
 ### Faster touch-offs: where the time goes and what speed costs
 
