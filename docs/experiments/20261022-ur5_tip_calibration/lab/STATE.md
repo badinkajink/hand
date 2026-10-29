@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-29 03:25 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-29 04:05 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -10,9 +10,9 @@ request to the owner must come from this file.
 |---|---|---|
 | Tip | v3 ID 2 since the swap at about 18:40: the owner took it from the holder's right-side station and put v3 ID 1 there | tool: block 1 runs (`20261028-184415-spherev3id2`), seeded from `20261027-225213-spherev3id1` |
 | Mount | v7 standoff fork on the HEX-E; stayed on the flange through the swap | homing pose: `20261027-225213-spherev3id1` |
-| Sphere | low sphere, not moved since 10-27 | `20261027-225213-spherev3id1` |
-| Rod | on, at its third seating | `20261028-102701-rodv3id1` |
-| Tall indenter | on | `20261028-114908-tallv3id1` |
+| Sphere | low sphere, not moved since 10-27 | `20261027-225213-spherev3id1`; with ID 2's tool `20261028-184415-spherev3id2` |
+| Rod | on, at its third seating | `20261028-102701-rodv3id1`; with ID 2's tool `20261029-031559-rodv3id2`, 0.16 mm from 102701's |
+| Tall indenter | on | `20261028-114908-tallv3id1`; with ID 2's tool `20261028-200508-tallv3id2`, 1.85 mm from 114908's along -y, within the pass's own error in y |
 | Holder | both held tips pad-up, seating 5: v3 ID 1 went into the right-side station pad-up (owner, 18:5x: "yes it went pad up") | `20261027-holder-apex-both` |
 
 `cell.json` holds the same registrations for the path checks and the renders.
@@ -36,7 +36,7 @@ cm from the connector with slack. The fix is a new cable.
 ## Tonight: the next tip's night suite
 
 Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
-State at 03:25: block 1, the top edge, block 3 and block 2 are done (see `NOTES.md`); block 2 took 6.6 h. Block 5 runs from 03:15:59 (`logs/20261029-031559-tipcal-rodv3id2.log`, the seed folder `logs/20261029-tip_calibration/031559-rodv3id2`: block 1's tool and the rod at 102701). Then block 4, whose two chunks simulated on block 3's registration came clean (the mount 3.18 mm; joint 5 up to 99.2 deg at tall-shared-576 and -640, which the program aborts past 100), and block 6 once its simulations on block 5's registration pass (scratchpad `night_rest.sh`). Each step stops the chain on an abort or a failed check, and the robot then waits. Order: 3, 2, 5, 4, 6, so that each block's simulations on the registration it needs run during the block before it. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
+State at 04:05: block 1, the top edge, block 3, block 2 and block 5 are done (see `NOTES.md`); block 2 took 6.6 h. Block 4 runs from 03:58:45 (`logs/20261029-035845-tipcal-tallv3id2.log`, resumed on 200508), about 3 h. Its two chunks simulated on block 3's registration came clean (the mount 3.18 mm; joint 5 up to 99.2 deg at tall-shared-576 and -640, which the program aborts past 100). Block 6's simulations on block 5's registration run beside it, and block 6 follows block 4 if they pass (scratchpad `night_rest.sh`). Each step stops the chain on an abort or a failed check, and the robot then waits. Order: 3, 2, 5, 4, 6, so that each block's simulations on the registration it needs run during the block before it. The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|
@@ -57,6 +57,7 @@ whether the tool moved.
 |---|---|---|---|
 | Sphere pass 1 (block 1), top edge, stage 2 (block 2) | `20261028-184415-spherev3id2` | 10-28 18:44 to 19:09; 19:21 to 19:30; 20:40 to 10-29 03:15 | 0.044 mm rms; 12 of 12; 211 of 211 |
 | Tall pass 1 (block 3) | `20261028-200508-tallv3id2` | 20:05 to 20:39 | 0.073 mm rms; 19 of 19 |
+| Rod pass 1 (block 5) | `20261029-031559-rodv3id2` | 10-29 03:16 to 03:57 | 0.023 mm rms; 21 of 21 and 5 pivots |
 
 ## v3 ID 1: runs done
 
