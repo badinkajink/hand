@@ -7,8 +7,13 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-28 15:30: all 21 feed lines (to 15:14) and the 6
-"Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json); watch loop relaunched 15:31. Step 19
+State: armed 2026-10-27 21:00 from the colorado window. Last check 10-28 19:20: the watcher found no news in 230 min.
+All 21 feed lines (to 15:14) and the 6 "Crosstalk:" commits are handled and acked (logs/crosstalk_feed_watch/state.json;
+HEAD e5b35635). At 19:20 resguard's gate was closed on swap (16.1 GB in use, limit 15 GB; PSI 0, 15.1 GB available),
+so `resguard.sh run` refuses the watcher and it would return 3, the watcher's own no-news code. Until the gate opens, a
+shell waiter runs the watcher's --once (19.5 MB, 0.04 s) every 4 min. It exits 0 on news after 10 quiet minutes, 10
+when the gate opens (then relaunch the watcher through resguard) and 3 after 230 min. Page builds wait for the gate.
+fb158b9a moved 78 superseded lab plans to lab/superseded; no builder of this job cites one. Step 19
 (15:30, 9c64f6f4 and 5e9aae4c, line 21 of 15:14): the rod, four magnets against five, in Section 11 with Table 12 (75
 press actions, 462 holds each; direction GP 0.36 and 0.33 mm), so the physical model's table is now 13; Table 4 has a
 rodv3id1 row and the lede twelve sessions, 13,313 holds; the overview's v3 ID 1 paragraph has the rod. Step 18
@@ -46,11 +51,15 @@ Calibration page 41747b29 (step 9, done 02:05; the ledger's "02:2x" is wrong): S
 with line 16's FE calibration as Table 9, line 17's "Where the magnets sit" in 1d775a10, and line 18's shear on the
 first 40 slides as Table 8 in 6f782848); v3 ID 1's stage 2 stopped at 02:54 (HEX-E off its DAQ after 40 of 84
 slides); the HEX-E read again from 09:33, the stage's rolls and twists ran 09:41-10:25 (step 17), and its other slides
-are still to run (43 actions in the "sphere morning" plan, f4faa32e, projected to end about 18:50); the rod (stage 2
-and six morning presses to 13:52) is analysed (step 19); tall stage 2 stopped at 14:32 with the HEX-E after 44 of 102,
-the other 58 from 14:56 (projected end 16:40, then the tall morning plan, the top edge and the sphere morning; the next
-tip's night suite after the swap at 19:00, 63c0d491); direction 11 sends later calibration lines there (the rest of
-stage 2, the tall; the comparison is rerun at the stage's end).
+are still to run (43 actions in the "sphere morning" plan, f4faa32e; the README of 17:4x, 10324fbd, puts them off to
+another day); the rod (stage 2 and six morning presses to 13:52) is analysed (step 19); tall stage 2 stopped at 14:32
+with the HEX-E after 44 of 102, and the other 58 ran 14:56-17:08, then the tall morning plan 17:09-17:41, 18 of 18
+(10324fbd). The owner stopped the tall top edge after 3 of 8 presses at 18:05, near joint limits (d375e2f7), and the
+top edge moved to the low sphere (d096883d). v3 ID 2 is on the robot since about 18:40, and v3 ID 1 sits pad-up in the
+holder's right-side station (lab/STATE.md, 18:52). ID 2's night suite (about 11.7 h: sphere pass 1 and stage 2, tall
+pass 1 and stage 2, rod pass 1 and stage 2, and a 12-action top edge on the sphere) started at 18:44; block 1 gave 18 of
+18 at 0.044 mm rms (604d31c8). None of this is a feed line yet, so the pages are unchanged. Direction 11 sends later
+calibration lines there (the rest of stage 2, the tall; the comparison is rerun at the stage's end).
 For the owner: the 21:44 line's "matches the robot's board within 10 % to W 5 mm" is not in its bins (model +4 % at
 contact, -10 to -22 % from W 0.3 to 5 mm), so the page leaves it out; the 20:45 feed line says twists to +20 deg, the
 plan file stops at +10; the 22:52 line's "at most 0.4 N on the HEX-E" is 0.455 N in the file (the page says below the
