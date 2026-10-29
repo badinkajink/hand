@@ -1,0 +1,37 @@
+resumed logs/20261029-tip_calibration/134508-spherev3id3: 19 actions done, 18 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0292 0.0392 0.2302 0.003  0.0038 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  sph-top-ref-a (1/26): to 2.00 N
+  sph-top-edge-608 (2/26): to 3.00 N
+  sph-top-edge-648 (3/26): to 3.00 N
+  sph-top-edge-677 (4/26): to 3.00 N
+  sph-top-edge-558 (5/26): to 3.00 N
+  sph-top-edge-604 (6/26): to 3.00 N
+  sph-top-tip-460 (7/26): to 2.00 N
+  sph-top-edge-508 (8/26): to 3.00 N
+  sph-top-edge-668 (9/26): to 3.00 N
+  sph-top-edge-517 (10/26): to 3.00 N
+  sph-top-edge-718 (11/26): to 3.00 N
+  sph-top-edge-652 (12/26): to 3.00 N
+  sph-top-edge-565 (13/26): to 3.00 N
+  sph-top-edge-571 (14/26): to 3.00 N
+  sph-top-edge-637 (15/26): to 3.00 N
+  sph-top-edge-626 (16/26): to 3.00 N
+  sph-top-edge-696 (17/26): to 3.00 N
+  sph-top-tip-453 (18/26): to 2.00 N
+  sph-top-tip-515 (19/26): to 2.00 N
+  sph-top-tip-457 (20/26): to 2.00 N
+  sph-top-tip-514 (21/26): to 2.00 N
+  sph-top-edge-574 (22/26): to 3.00 N
+  sph-top-tip-454 (23/26): to 2.00 N
+  sph-top-tip-512 (24/26): to 2.00 N
+  sph-top-tip-456 (25/26): to 2.00 N
+  sph-top-final-ref (26/26): to 2.00 N
+HEX-E: 129962 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 1.0 s, Fz +0.2 N; 0.7 s, Fz -0.2 N
+session in logs/20261029-tip_calibration/134508-spherev3id3
+exit 0 at 15:11:45
