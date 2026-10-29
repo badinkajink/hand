@@ -11,11 +11,13 @@ exits 0. After --max-wait minutes without news it prints "no news" and exits 3. 
 subject, which a rebase keeps.
 
     .venv/bin/python scripts/crosstalk_feed_watch.py [--once] [--ack] [--state logs/crosstalk_feed_watch/state.json]
-        [--interval 120] [--settle 600] [--max-wait 230]
+        [--interval 120] [--settle 600] [--max-wait 230] [--until-gate]
 
 --once compares once and exits (0 news, 3 none); --ack records what HEAD shows as handled. Without a state file every
 line and commit counts as new. The autopilot job of docs/handoff/20261027-crosstalk_feed_poller.md runs it with
-run_in_background; its exit wakes that session.
+run_in_background; its exit wakes that session. The job runs it through `~/.claude/bin/resguard.sh run`, which refuses
+to launch while the box's launch gate is closed and then also returns 3. --until-gate is for that case (10-28, gate
+closed on swap): the watcher runs plain, at 19.5 MB, and exits 10 once `resguard.sh status` reports the gate open.
 """
 from __future__ import annotations
 
@@ -61,6 +63,15 @@ def snapshot():
         if subj.startswith(PREFIX):
             commits.append(dict(hash=h, key=f"{ad} {subj}", subject=subj, date=ad[5:16].replace("T", " ")))
     return dict(head=head, lines=lines, commits=commits)
+
+
+def gate_open():
+    """resguard's launch gate (`resguard.sh status` exits 0 when it is open)."""
+    try:
+        r = subprocess.run([str(Path.home() / ".claude/bin/resguard.sh"), "status"], capture_output=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return r.returncode == 0
 
 
 def sha(lines):
@@ -118,6 +129,7 @@ def main():
     ap.add_argument("--max-wait", type=float, default=230.0, help="minutes before exiting with no news")
     ap.add_argument("--once", action="store_true")
     ap.add_argument("--ack", action="store_true")
+    ap.add_argument("--until-gate", action="store_true", help="exit 10 once resguard's launch gate is open")
     a = ap.parse_args()
     if a.ack:
         ack(a.state, snapshot())
@@ -146,6 +158,10 @@ def main():
             print(f"no news at HEAD {snap['head']} after {a.max_wait:.0f} min ({len(snap['lines'])} feed lines); "
                   f"{time.strftime('%Y-%m-%d %H:%M')}")
             return 3
+        if a.until_gate and not has and gate_open():
+            print(f"no news at HEAD {snap['head']} ({len(snap['lines'])} feed lines); resguard's launch gate open at "
+                  f"{time.strftime('%Y-%m-%d %H:%M')}")
+            return 10
         time.sleep(a.interval)
 
 
