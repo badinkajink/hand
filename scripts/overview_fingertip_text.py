@@ -502,7 +502,13 @@ press actions that v2 ID 1 also ran there, contacts are placed by the direction 
 with five. The physical model on pad 05R4&#8217;s FE basis places contacts within
 2.64&#8202;mm with four magnets and 1.61&#8202;mm with five
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id1),
-Section 11).</p>
+Section 11). The second print of the design, v3 ID 2, ran the suite on the night of 2026-10-28, and its calibration
+matches the first&#8217;s. On the 116 press actions that both tips ran on the low sphere, its board changes by
+28.2&#8202;&#181;T per newton at 1 to 2&#8202;N, against 28.8&#8202;&#181;T on v3 ID 1. Its contacts are placed by the
+direction GP within 0.29&#8202;mm, against 0.38&#8202;mm on v3 ID 1. With five magnets the signal per newton is
+1.83&#8211;1.87 times v3 ID 2&#8217;s on the three indenters
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id2),
+Section 12).</p>
 <p>On the hand the other fingertips&#8217; magnets add their field to each board. In the field model a four-magnet
 neighbour adds 38&#8202;&#181;T with the pads facing and touching, and 2,928&#8202;&#181;T side by side. A five-magnet
 neighbour like v2 ID 1 adds 513 and 4,162&#8202;&#181;T. A 0.5&#8202;N press changes v2 ID 1&#8217;s board by
@@ -603,11 +609,13 @@ was 63&#8202;mN with four magnets and 35&#8202;mN with five. That is the ratio o
 0.051 and 0.029&#8202;N. With the direction GP, the two tips&#8217; contacts were placed within 0.26 and 0.28&#8202;mm. In
 the field model a touching neighbour that faces the pad adds 38&#8202;&#181;T at the board with four magnets, against
 513&#8202;&#181;T with five. Between two four-magnet v3 tips on the UR5, 39 to 60&#8202;&#181;T were measured at contact.
-Two points stay open. The four magnets do not cancel fully: each v3 tip has a net moment of 7 to 16&#8202;% of one magnet.
-At rest the magnets&#8217; strength and the board&#8217;s offset along the face&#8217;s normal are nearly
+One point stays open: the four magnets do not cancel fully, and each v3 tip has a net moment of 7 to 16&#8202;% of one
+magnet. At rest the magnets&#8217; strength and the board&#8217;s offset along the face&#8217;s normal are nearly
 interchangeable. In a free rest fit of v3 ID 1 the strength goes to its bound of 2.0 and the offset to 2.69&#8202;mm.
-Fitted to its presses, the offset is 0.74&#8211;0.75&#8202;mm ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id1),
-Section 11).</li>
+The presses put the board at 0.77 and 0.63&#8202;mm on v3 ID 1 and ID 2. With each board held there, both tips&#8217;
+rest fits give a strength of 0.98 of an N52&#8217;s. The offset that the rest field leaves free is thus fixed by the
+presses ([physical model](exp:20261026-fingertip_physical_model/20261026-fingertip_physical_model.html#ur5),
+Section 9).</li>
 <li><b>Transfer of learned models.</b> The physical model transfers to a new pad through its rest calibration: on the
 checkerboard tip it placed contacts within 2.06&#8202;mm without a press. The GP correction learned on sphere2 does not, and
 raised that error to 2.48&#8202;mm. Fine-tuned with 20 of the new tip&#8217;s presses it gives 1.59&#8202;mm; the tip&#8217;s
@@ -739,7 +747,8 @@ FUTURE = [
     'ATI Mini45 (the ATI plan&#8217;s QUEUE.md, A1): run the box check, print the stack and run the 39 stations with the 100&#8202;g weight in its printed holder, or with 0.5&#8202;kg. Then repeat a grid of presses against the ATI. A board force outside 0.78&#8211;1.05 of the ATI&#8217;s means that the HEX-E&#8217;s gain biased sphere2&#8217;s comparison.',
     'Untrained estimator under the rod: score the viewer&#8217;s estimator on rod1&#8217;s 279 holds, as Table 3 of the UR5 results page scores it on sphere2&#8217;s. A location error well above the sphere&#8217;s 1.6&#8211;2.6&#8202;mm means that the estimator&#8217;s point-load basis misses line contacts.',
     'Second fingertip with known points and forces: clamp it in a printed jig with sphere seats at the reference point and 4&#8202;mm from it toward &#177;y and &#177;z. Press through a kitchen scale at about 1, 2 and 4&#8202;N. Run <code>scripts/fingertip_second_tip_transfer.py --landmarks</code> on the stretch. A GP correction whose median location error exceeds the physical model&#8217;s by more than 0.9&#8202;mm does not transfer across pole patterns.',
-    'Rest calibration of the four N52 magnets: at rest their strength and the board&#8217;s offset along the face&#8217;s normal are nearly interchangeable. Fitted to v3 ID 1&#8217;s presses, the offset is 0.74&#8211;0.75&#8202;mm. Fit the other v3 tips at rest with the offset held near that value: <code>calibrate_frames_fixed</code> in <code>scripts/fingertip_wrench_model.py</code> takes it as <code>dx_range</code>, and the viewer&#8217;s key c calls it without one. A strength of 0.8&#8211;1.2 of an N52&#8217;s with the poles as inserted confirms the field model for pad 05R4. A strength at its bound with that offset means the offset differs between tips and must come from each tip&#8217;s presses.',
+    'Board offset on the four-magnet tips: measure the gap between the pad&#8217;s cut face and the board&#8217;s chips on v3 ID 1 and ID 2 with feeler gauges. Convert the gap to the board offset. The presses put the offsets at 0.77 and 0.63&#8202;mm ([physical model](exp:20261026-fingertip_physical_model/20261026-fingertip_physical_model.html#ur5), Section 9). If the gauge offsets lie within 0.15&#8202;mm of these, the field model of four magnets is confirmed. With offsets near the free rest fits&#8217; 2.69 and 2.56&#8202;mm, the error lies in the magnets&#8217; depth.',
+    'Face centre of the four-magnet tips: the signal per newton measured there is 12.6 and 13.4&#8202;&#181;T on v3 ID 1 and ID 2. From the model fitted to their presses it is 18.4 and 16.7&#8202;&#181;T. Every other region is within 7&#8202;% of the model. In the fit to the presses (<code>scripts/fingertip_physical_model_v3_check.py</code>), let each of the four magnets move by up to 0.5&#8202;mm in the plane of the square. If the face centre then comes within 10&#8202;% of the measured values, with the other regions still within 7&#8202;%, the printed magnets sit off the design&#8217;s square. Otherwise the error lies in the FE&#8217;s magnet motions near the centre.',
     'Torsion on the HEX-E&#8217;s axis: twist the pad at 5&#8202;N on a fixture that puts the face&#8217;s normal along the tool axis. The torsion is half the difference between the outbound and return holds. A torque outside the sphere pads&#8217; friction torque at the measured friction coefficient falsifies the pads&#8217; torsion.',
     'Sensing rows on the probes&#8217; gap rule: <code>run_sense</code> in <code>scripts/v2_tip_fe_checks.py</code> takes its gaps from <code>tpu_tip_magnet.gaps</code>. That function moves a face node onto the analytic surface only within half a grid cell of it. It gives 150&#8202;&#181;m against the probe rows&#8217; 185 for the same pad at 1&#8202;N. Rerun <code>--sense b_v2</code> with every face node on the surface; a force resolution that moves by more than 5&#8202;% means the DIP page&#8217;s resolutions need the same rerun.',
     'Facing finger: record the board with a second tip&#8217;s magnets at 20&#8211;40&#8202;mm and compare with the dipole prediction before subtracting it from the joint angles.',
