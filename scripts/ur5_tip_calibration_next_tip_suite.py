@@ -105,6 +105,8 @@ def main():
             note += "; travel.lift_mm 20 (the owner, 14:4x)"
         p["actions"] = acts
         p["created"] = a.created
+        if isinstance(p.get("suite"), dict):            # the template's label ("v3 ID 1") until 2026-10-29; nothing reads it
+            p["suite"]["tip"] = a.tip.replace("id", " ID ")
         p.setdefault("travel", {})["speed"] = 1.0
         p.setdefault("checks", {})["other"] = cell_other(p.get("indenter", kind))
         p.setdefault("notes", [])
