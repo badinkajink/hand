@@ -1567,6 +1567,24 @@ The clearances in this section and the one before it are on mount v3. The next s
   over.
 - The arm stays at the rest pose of block 6's last press, above the rod. It does not move until the owner says so.
 
+### ID 2's analyses, run here for the workstation (08:19 to 10:28)
+
+- The workstation's memory gate was closed (swap over 15 GB), and the session streams are here. So the lab ran its
+  commands on corvus while the robot stood idle: `scripts/ur5_tip_calibration_analysis.py --case four_05R4
+  --gravity-from lab/20261022-195420-first2` on each session, and `scripts/ur5_tip_calibration_four_vs_five.py
+  --v3-key four_v3id2` against v2 ID 1. Each ran alone at nice 19 with OMP_NUM_THREADS=2 (scratchpad
+  `id2_analyses.sh`, `id2_queue.sh` and `id2_queue2.sh`).
+- Sphere (184415): 30 min, 5.1 GB peak, 2769 holds. Its four vs five took 53 min, mostly refitting the 77 slides.
+- At 09:47 the workstation asked for the new fixtures first. The `--ref-drift` run had been going 6 min; it was stopped
+  by PID and run again after the rod.
+- Tall (200508): 7.8 min, 2.4 GB, 1343 holds. Rod (031559): 2.9 min, 1.6 GB, 668 holds. Their four vs five took 1 s
+  and 30 s.
+- Sphere with `--ref-drift`: 28 min. It applied 49 reference presses, and the summary did not change past the third
+  decimal.
+- The outputs are in `logs/20261029-{spherev3id2,spherev3id2_refdrift,tallv3id2,rodv3id2}/` and
+  `logs/20261029-four_vs_five_{grid,tall,rod}_v3id2.json`, with the printouts in `logs/20261029-*-analysis-*.log`.
+  The workstation copies them and reports the results.
+
 ### Faster touch-offs: where the time goes and what speed costs
 
 - The owner, 10-28 at about 19:10: "can you go faster on the approaches. this is excruciating".
