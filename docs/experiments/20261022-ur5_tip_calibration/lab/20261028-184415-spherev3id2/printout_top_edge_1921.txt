@@ -1,0 +1,23 @@
+resumed logs/20261028-tip_calibration/184415-spherev3id2: 19 actions done, 18 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 340 records/s, robot 124 Hz
+  HEX-E noise (1 sigma) N, N m: [0.0358 0.0367 0.2359 0.003  0.004  0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  sph-top-ref-a (1/12): to 2.00 N
+  sph-top-tip-460 (2/12): to 2.00 N
+  sph-top-edge-508 (3/12): to 3.00 N
+  sph-top-tip-401 (4/12): to 2.00 N
+  sph-top-tip-515 (5/12): to 2.00 N
+  sph-top-tip-453 (6/12): to 2.00 N
+  sph-top-tip-457 (7/12): to 2.00 N
+  sph-top-tip-514 (8/12): to 2.00 N
+  sph-top-tip-454 (9/12): to 2.00 N
+  sph-top-tip-512 (10/12): to 2.00 N
+  sph-top-tip-456 (11/12): to 2.00 N
+  sph-top-final-ref (12/12): to 2.00 N
+HEX-E: 53766 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.6 s, Fz -0.4 N; 0.7 s, Fz +0.2 N
+session in logs/20261028-tip_calibration/184415-spherev3id2
+exit 0 at 19:30:14

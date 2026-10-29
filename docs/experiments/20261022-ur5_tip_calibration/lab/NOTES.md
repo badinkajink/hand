@@ -1406,6 +1406,69 @@ The clearances in this section and the one before it are on mount v3. The next s
 - Through the workstation at 13:42 and 14:49: today's runs end before 19:00. Then the owner swaps v3 ID 1 for the next
   four-magnet tip, and the night suite starts on it.
 
+## 2026-10-28 evening: the top edge, the swap and v3 ID 2
+
+### The tall top edge's first 8 (18:03 to 18:11)
+
+- 18:03:40, `lab/20261028-plan_tall_lab_top_edge_first8_v3id1.json` resumed on 114908 with the owner watching:
+  top-ref-a, top-tip-401 and top-tip-459 ran ok, 33 to 50 s each. The owner stopped it there: "i think you should do
+  the top edge calbiration on the lower sphere, we are close to joint limits on the tall indenter"; "ohterwise it looks
+  good".
+- From the last pose the home path check refused, with the cap 1.6 mm from the tall. The owner moved the arm in teach
+  mode; the check then passed and the arm went home at 18:11.
+
+### The sphere's top edge, built on v3 ID 1 (18:21 to 18:49)
+
+- The workstation's recipe (d096883d) on 225213's registration: `scripts/tall_indenter.py reach --kind sphere` found
+  113 reachable points on the tip's end and edges, 29 after the cover and the thinning.
+- At the builder's 20 mm lift, the path check flagged the travel from the face-centre reference into the first top
+  press. The joint move swept the fork 3.88 mm into the sphere's model, at a flange height of 158 mm. The 20 mm lift
+  was the owner's request for the tall. At the sphere plans' 60 mm lift the mount keeps 5.36 mm.
+- Three presses (tip-398, -399, -401) put the cap 0.60 to 0.78 mm from the sphere at their depth, under the finger's
+  0.8 mm. A path check of all 29 candidates left the flagged ones out (scratchpad `select_te.py`); 10 were kept, nearest
+  a limit first.
+- The proxy plan on 225213: 12 actions, nothing flagged. Simulated from home: no abort, the mount 5.36 mm and the
+  finger 2.41 mm from the cell, joint 6 from -51.5 to +6.4 deg, the elbow at least 68.7 deg from straight. It is
+  `lab/20261028-plan_sphere_lab_top_edge_v3id1.json`, with its reach and path check.
+- The owner asked whether the checks use MuJoCo. They do not: `scripts/ur5_cb3_cell.py` samples points on the UR5's
+  URDF collision meshes and the tool's CAD meshes, and measures them against signed distances of the fixtures at their
+  registered poses, the plywood and the table.
+
+### The swap
+
+- At about 18:40 the owner put v3 ID 2 on the robot, from the holder's right-side station, and v3 ID 1 into that
+  station pad-up ("yes it went pad up"). The mount stayed on the flange. The robot's board is still
+  `b4:3a:45:b0:9c:d0`.
+- The owner's go in the lab's session, 18:3x: "you have the go ahead on the tip top edge plan at the end of the runs
+  if we make it there".
+
+### Block 1: ID 2's sphere pass 1 from a seed (18:44:15 to 19:08:55)
+
+- `logs/20261028-tip_calibration/184415-spherev3id2` (copy: `lab/20261028-184415-spherev3id2/`): a seed of 225213's
+  registration, tool and fixture with the homing pose, from `scripts/ur5_tip_calibration_seed_registration.py`.
+  Resumed with stages preflight,pad,register on `lab/20261028-plan_sphere_lab_pass1_night_v3id2.json`.
+- 18 of 18 touch-offs, no abort, no early contact. Every onset came 0.18 to 0.50 mm later than 225213's registration
+  expected. Pad touches 0.044 mm rms (225213: 0.049). The TCP moved 0.373 mm and 1.27 deg, the sphere's centre
+  0.69 mm. The seeded simulations had recovered moves of 0.6 mm and 1.5 deg.
+- A touch-off took 81 s on average, 47 s of it in the slow approach: 0.15 mm/s in the plan, 0.045 mm/s at the plan's
+  speed slider of 0.30. The owner: "can you go faster on the approaches. this is excruciating". The lab offered to
+  simulate a faster touch-off approach or a higher slider; nothing has changed yet.
+
+### The sphere top edge on ID 2 (19:21:11 to 19:30:14)
+
+- The owner, 18:4x: "if the top edge is ready to run on the lower sphere, then let's do that while im still here".
+- The same build on 184415's registration (scratchpad `te_after_b1.sh`): 4 of the 29 candidates flagged. tip-398 and
+  tip-399 put the cap 0.79 and 0.61 mm from the sphere. edge-520 and edge-643 took joint 6 to -63 deg, past the path
+  check's -62. 10 kept. Path check of the plan: nothing flagged, the cap 0.84 mm from the sphere at tip-401, the mount
+  5.36 mm. Simulated from home: no abort and one early contact, which the program handled. The mount 5.39 mm and the
+  finger 1.50 mm from the cell, joint 6 from -52.5 to +6.4 deg, joint 5 11.1 deg inside its window, the elbow 68.3 deg
+  from straight.
+- `lab/20261028-plan_sphere_lab_top_edge_v3id2.json` resumed on 184415, stages preflight,grid: 12 of 12 ok (the two
+  references and nine tip presses to 2 N, edge-508 to 3 N), no abort, no early contact. The HEX-E's two gaps over 0.5 s both came at the
+  start, before the first action.
+- The owner watched it: "ok its looking good. godspeed". They left at about 19:25: "worst case i can come back at
+  ~9:30 to reseat".
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
