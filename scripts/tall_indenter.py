@@ -235,7 +235,8 @@ GROUPS = dict(mount=("adapter", "fork", "clamp_plate"), finger=("dip_link", "cov
 
 
 def _setup(kind, H):
-    """The plan geometry for kind on cb3t's registration: the indenter's base where the sphere's base was."""
+    """The plan geometry for kind on cb3t's registration (or --registration's): the indenter's base where the sphere's
+    base was."""
     import ur5_cb3_cell as CELL
     import ur5_tip_calibration_plan as PB
     C = CELL.C
@@ -284,7 +285,7 @@ def cmd_reach(a):
     reg_names = [R24.region(n) or "" for n in geo.nrm]
     qh = np.asarray(reg.q_home, float)
     T_EP = reg.T_EM @ reg.T_MP
-    idx = [i for i in range(len(geo.pts)) if reg_names[i]]
+    idx = [i for i in range(len(geo.pts)) if reg_names[i] and (not a.regions or reg_names[i] in a.regions.split(","))]
     if a.limit:
         idx = idx[::max(1, len(idx) // a.limit)]
     st = 1.5
@@ -334,7 +335,7 @@ def cmd_reach(a):
             print(f"{n_done}/{len(idx)} points, {time.time() - t0:.0f} s", flush=True)
     summ = summarize(rows)
     tag = (a.kind if a.kind == "sphere" else f"tall_H{CELL.TALL['H']:.0f}") + (f"_j6_{J6[0]:.0f}_{J6[1]:.0f}" if a.j6 else "")
-    out = OUT / "data" / f"{STEM}_reach_{tag}.json"
+    out = Path(a.out) if a.out else OUT / "data" / f"{STEM}_reach_{tag}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(dict(kind=a.kind, H=CELL.TALL["H"] if a.kind == "tall" else 41.0, turns=TURNS, J5=J5, J6=J6,
                                    need=NEED, registration=str(REG.relative_to(REPO)), summary=summ, points=rows,
@@ -384,5 +385,13 @@ elif __name__ == "__main__":
     ap.add_argument("--H", type=float, default=None)
     ap.add_argument("--j6", default="", help="reach: joint 6's window, lo,hi deg (default -65,50: the HEX-E's cable)")
     ap.add_argument("--limit", type=int, default=0, help="reach: about this many points (a quick look)")
+    ap.add_argument("--registration", default=None, help="reach: a session's registration.json in place of cb3t's")
+    ap.add_argument("--base-plan", default=None, help="reach: the plan whose checks (board, other indenters) apply")
+    ap.add_argument("--regions", default="", help="reach: only these regions, e.g. tip,edge")
+    ap.add_argument("--out", default=None, help="reach: the output JSON")
     a = ap.parse_args()
+    if a.registration:
+        REG = Path(a.registration).resolve()
+    if a.base_plan:
+        BASE_PLAN = Path(a.base_plan).resolve()
     dict(build=cmd_build, stiffness=cmd_stiffness, reach=cmd_reach, homing=cmd_homing, figures=cmd_figures)[a.cmd](a)
