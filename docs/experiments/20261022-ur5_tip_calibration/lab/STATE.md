@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-28 18:05 by the workstation. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-28 18:04 by the workstation. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -36,7 +36,7 @@ cm from the connector with slack. The fix is a new cable.
 ## Tonight: the next tip's night suite
 
 Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
-State at 18:05: waiting for the tip swap and the owner's go. The lab is simulating the seeded first block.
+State at 18:04: waiting for the tip swap and the owner's go. The lab is simulating the seeded first block.
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|
@@ -65,7 +65,7 @@ These need v3 ID 1 back on the robot.
 
 | Plan | Actions | Needs |
 |---|---|---|
-| `20261028-plan_tall_lab_top_edge_ts1_v3id1.json` | 34 | the owner present |
+| `20261028-plan_tall_lab_top_edge_ts1_v3id1.json` | 34 | the owner present; its first 8 run from 18:03:40 with the owner watching (`20261028-plan_tall_lab_top_edge_first8_v3id1.json`), so that the next tip can run it too |
 | `20261028-plan_sphere_lab_morning_unattended_ts1_v3id1.json` | 43 | the owner present (joint 6 to +59 deg) |
 | `20261028-plan_sphere_lab_stage2_resume3_v3id1.json` | 43 slides | |
 | `20261028-plan_holder_lab_side_norod30_v3id1.json` | 30 hovers | the rod fixture off and the -y held tip pad-down |
