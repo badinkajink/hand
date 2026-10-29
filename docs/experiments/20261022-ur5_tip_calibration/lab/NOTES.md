@@ -1701,6 +1701,15 @@ The clearances in this section and the one before it are on mount v3. The next s
 - A touch-off took 45.6 s on average (35 to 58 s) at v 0.0005, against 81 s on ID 2's block 1 at v 0.00015.
 - The HEX-E gave 82,737 samples, none timed out, with two gaps of 0.7 s.
 
+### The night's plans, after the finer path checks (14:4x)
+
+- The workstation's path checks at every 2 mm sample (bb7c5578) finished here at 14:41. The tall's stage 2 brings the
+  mount to 2.97 mm in tall-slide-flank-585-1N's own 2.3 deg turns at depth; the press at the same point,
+  tall-flank-585, clears 3.20 mm. At the workstation's ask (14:43), the slide is left out of
+  `lab/20261029-plan_tall_lab_stage2_night_v3id3.json`, which now holds 101 actions.
+- rod-ref-a stays (its 2.96 mm is on the checker's travel from its own start pose). The other flags are the checker's
+  joint windows of -62 and 100 deg; the lab's simulations keep joint 6 inside -65 deg and joint 5 inside 100 deg.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
