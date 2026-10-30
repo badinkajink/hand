@@ -1,0 +1,12 @@
+{
+ "cond": "A",
+ "iters": 200,
+ "envs": 512,
+ "seed": 0,
+ "lr": 0.0003,
+ "epochs": 5,
+ "minibatch": 8192,
+ "eval_every": 10,
+ "out": "runs/cpu_grasp/A_palm_s0",
+ "no_palm": false
+}
