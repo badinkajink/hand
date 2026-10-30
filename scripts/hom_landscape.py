@@ -901,6 +901,31 @@ def cmd_valrep(a):
                          key_n=len(d_key), key_change_median=float(np.median(d_key)) if len(d_key) else None)
             out[f"{task}_d{size:g}"] = R
             print(task, size, {k: (round(v, 3) if isinstance(v, float) else v) for k, v in R.items()}, flush=True)
+    fresh = {}                                  # cmd_cross_grid's worst of the four tasks, on seeds 3-5
+    for task, size in DEFAULT.items():
+        if (GRID_ROWS / f"val_{task}_d{size:g}.jsonl").exists():
+            sc, _ = grid_scores(task, size, GRID_ROWS, f"val_{task}_d{size:g}")
+            fresh[task] = {c: (np.mean(sc[(c, 0)]), np.mean(sc[(c, 1)])) for c, j in sc if j == 0 and (c, 1) in sc}
+    if len(fresh) == 4:
+        calls = sorted(set.intersection(*[set(v) for v in fresh.values()]))
+        W = np.array([[[fresh[t][c][k] for t in DEFAULT] for c in calls] for k in (0, 1)]).min(2)
+        out["cross_fresh"] = {"layouts": len(calls), "share_all_above_0.5_fp": float(np.mean(W[0] > 0.5)),
+                              "share_all_above_0.5_best": float(np.mean(W[1] > 0.5)),
+                              "maximin_median_fp": float(np.median(W[0])), "maximin_median_best": float(np.median(W[1]))}
+        print("four tasks, seeds 3-5:", out["cross_fresh"], flush=True)
+    import hom_rows
+    seeds = {}                                  # the foundational pose's mean score per seed (a seed's object offset
+    for task, size in DEFAULT.items():          # and yaw are the same on every layout; seed 0 has none)
+        per = {}
+        for name in (f"{task}_d{size:g}", f"val_{task}_d{size:g}"):
+            p = GRID_ROWS / f"{name}.jsonl"
+            for x in (p.read_text().splitlines() if p.exists() else []):
+                r = hom_rows.rescale_metrics(json.loads(x)) if x.strip() else {}
+                if r.get("status", "ok") == "ok" and r and int(r.get("grasp", 0)) == 0:
+                    per.setdefault(int(r["seed"]), []).append(rollout_score(task, r))
+        seeds[task] = {str(sd): round(float(np.mean(v)), 3) for sd, v in sorted(per.items())}
+    out["fp_seed_means"] = seeds
+    print("foundational pose, mean per seed:", seeds, flush=True)
     (GRID_ROWS / "valrep.json").write_text(json.dumps(out, indent=1))
     return 0
 

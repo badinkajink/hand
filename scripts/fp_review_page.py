@@ -1053,6 +1053,17 @@ def grid_numbers():
     return out
 
 
+def valrep_numbers():
+    """The grid's fresh-seed validation and grasp transfer (hom_landscape.py valrep and derive): per task and size,
+    valrep.json's row with the feasibility of the moved grasps from transfer_feasible.json; empty before they ran."""
+    pv, pf = ROWS / "grid2d_v4b" / "valrep.json", ROWS / "grid2d_v4b" / "transfer_feasible.json"
+    if not pv.exists():
+        return {}
+    f = json.loads(pf.read_text())
+    return {k: dict(r, feas=f.get(k, {})) for k, r in json.loads(pv.read_text()).items()
+            if isinstance(r, dict) and r.get("nb_n")}
+
+
 def sec_v4b(N):
     V = N["v4b"]
     y = V["yield"]
@@ -1188,6 +1199,58 @@ parts clear it. The losing grasps put the contacts high on the sphere or yaw the
     t += img(MEDIA / "20261030-grid_grasps_pinpush_d25.png",
              "Pin-push on the 25 mm cylinder: the foundational pose, the best and the worst grasp of the layouts at "
              "(90, 50) mm, the pin-push's peak on the grid's edge, and (90, 100) mm.", jpeg=True)
+    VR = N["valrep"]
+    if VR:
+        names = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
+        tw, ro, pp, pr = (VR.get(f"{k}_d{d:g}") for k, d in (("twist", 40), ("roll", 40), ("pinpush", 25), ("press", 25)))
+        sd = N["valrep_seeds"]
+        f2 = lambda x: f"{x:.2f}"
+        rng_ = lambda v: max(v.values()) - min(v.values())
+        t += fill(r"""<p>The best of 16 is picked on seeds 0 to 2, so its score there is biased upward. Each layout's
+foundational pose and best grasp therefore ran again on seeds 3 to 5 (Table <<tb>>). On the spheres the gain repeats.
+The best grasp beat the foundational pose on <<tb0>> % of the layouts in the twist and on <<rb0>> % in the roll. Its
+median gain was <<tg>> in the twist and <<rg>> in the roll, against <<tg0>> and <<rg0>> on the seeds it was picked on.
+Its fresh scores rank the layouts against the first seeds' scores at Spearman <<tr>>.</p>
+<p>On the cylinders most of the gain came from picking on three seeds. The median gain fell to <<pg>> in the pin-push
+and <<qg>> in the press, from <<pg0>> and <<qg0>>, and the fresh scores rank the layouts at Spearman <<pr_>> and
+<<qr>>. A seed sets the object's initial offset, up to 1 mm, and its yaw, up to 2 deg; every layout gets the same draw,
+and seed 0 has none. The cylinder tasks depend on that draw. The foundational pose's mean pin-push score over the grid
+was <<s0>>, <<s1>> and <<s2>> on seeds 0, 1 and 2, and <<s3>> to <<s5>> on seeds 3 to 5. The press scored <<q2>> on
+seed 2. The seeds' means differ by at most <<ts>> in the twist and <<rs_>> in the roll.</p>""",
+                  tb=TAB[0] + 1, tb0=f"{100 * tw['best_beats_fp']:.0f}", rb0=f"{100 * ro['best_beats_fp']:.0f}",
+                  tg=f2(tw["gain_fresh_median"]), rg=f2(ro["gain_fresh_median"]), tg0=f2(tw["gain_seeds012_median"]),
+                  rg0=f2(ro["gain_seeds012_median"]), tr=(f"{tw['best_repeat_spearman']:.2f} in both" if f2(tw["best_repeat_spearman"]) == f2(ro["best_repeat_spearman"])
+                      else f"{tw['best_repeat_spearman']:.2f} and {ro['best_repeat_spearman']:.2f}"), 
+                  pg=f2(pp["gain_fresh_median"]), qg=f2(pr["gain_fresh_median"]), pg0=f2(pp["gain_seeds012_median"]),
+                  qg0=f2(pr["gain_seeds012_median"]), pr_=f2(pp["best_repeat_spearman"]),
+                  qr=f2(pr["best_repeat_spearman"]), s0=f2(sd["pinpush"]["0"]), s1=f2(sd["pinpush"]["1"]),
+                  s2=f2(sd["pinpush"]["2"]), s3=f2(min(sd["pinpush"][k] for k in "345")),
+                  s5=f2(max(sd["pinpush"][k] for k in "345")), q2=f2(sd["press"]["2"]), ts=f2(rng_(sd["twist"])),
+                  rs_=f2(rng_(sd["roll"])))
+        D4 = [tw, ro, pp, pr]
+        span4 = lambda f, scale=100.0, fmt="{:.0f}": (fmt.format(min(scale * f(r) for r in D4)) + " to "
+                                                      + fmt.format(max(scale * f(r) for r in D4)))
+        t += fill(r"""<p>Grasps were also moved between layouts as palm-frame keyframes. Of the best grasps of each layout's
+four grid neighbours, <<nf>> % were feasible on the layout. On fresh seeds <<nw>> % of the feasible ones scored within
+0.1 of the layout's own best grasp, at a median change of <<nc>>. The best grasp of each task's peak layout was feasible
+on <<kf>> % of the other layouts.</p>""",
+                  nf=span4(lambda r: r["feas"]["nb"] / r["feas"]["nb_tried"]), nw=span4(lambda r: r["nb_within_0_1"]),
+                  nc=span4(lambda r: r["nb_change_median"], 1.0, "{:+.2f}"),
+                  kf=span4(lambda r: r["feas"]["key"] / r["feas"]["layouts"]))
+        order = {k: i for i, k in enumerate(names)}
+        rows = []
+        for k in sorted(VR, key=lambda k: (order[k.split("_d")[0]], float(k.split("_d")[1]))):
+            r, task = VR[k], k.split("_d")[0]
+            rows.append([f"{names[task]}, {L_SHAPE[task]} {k.split('_d')[1]} mm", str(r["layouts"]),
+                         f"{100 * r['best_beats_fp']:.0f}", f"{r['gain_fresh_median']:+.2f}",
+                         f"{r['gain_seeds012_median']:+.2f}", f"{r['best_repeat_spearman']:.2f}",
+                         f"{100 * r['feas']['nb'] / r['feas']['nb_tried']:.0f}", f"{100 * r['nb_within_0_1']:.0f}",
+                         f"{100 * r['feas']['key'] / r['feas']['layouts']:.0f}", f"{r['key_change_median']:+.2f}"])
+        t += table(["Task and object", "Layouts", "Best beats FP, seeds 3-5 (%)", "Median gain, seeds 3-5",
+                    "Median gain, seeds 0-2", "Spearman of the best, seeds 0-2 and 3-5", "Neighbours' grasps feasible (%)",
+                    "Within 0.1 of own best (%)", "Peak layout's grasp feasible (%)", "Peak layout's grasp, median change"],
+                   rows, "The grid's best grasps on fresh seeds and moved between layouts. Gains are over the "
+                   "foundational pose; changes are against the layout's own best grasp on seeds 3 to 5.", num_from=1)
     return t
 
 
@@ -1483,8 +1546,9 @@ def grid_size_numbers():
     return out
 
 
-def sec_cross():
+def sec_cross(N):
     import hom_landscape as L
+    CF = N.get("cross_fresh")
     c = json.loads((L.SIZE_ROWS / "cross.json").read_text())
     rho, b, mm = c["spearman"], c["best"], c["maximin"]
     cross_rho = [rho[k] for k in ("twist-pinpush", "twist-press", "roll-pinpush", "roll-press")]
@@ -1511,9 +1575,14 @@ middle nearer the centre line.</p>""",
     t += fill(r"""<p>Grasp synthesis changes this picture. On the <<n>> grid layouts that reach all four poses, the worst of a
 layout's four foundational-pose scores has a median of <<mf>>, and no layout scores above 0.5 on all four tasks. With
 each task's best grasp of 16 the median worst score is <<mb>>, and <<sb>> % of the layouts score above 0.5 on all four
-(Figure <<f>>). The best of them, at $x_{sep}$ = <<bx>> mm and $y_{sep}$ = <<by>> mm, scores <<bs>>. With one grasp
-per layout the hand looks specialised; with a grasp per task it is a generalist. The best of 16 is an upper estimate
-until its fresh-seed runs.</p>""", n=cg["layouts"], mf=f"{cg['maximin_median_fp']:.2f}",
+(Figure <<f>>). The best of them, at $x_{sep}$ = <<bx>> mm and $y_{sep}$ = <<by>> mm, scores <<bs>>.<<fresh>></p>""",
+              n=cg["layouts"], mf=f"{cg['maximin_median_fp']:.2f}",
+              fresh=(fill(r""" These scores are on the seeds the grasps were picked on. On seeds 3 to 5, <<fb>> % of
+the layouts score above 0.5 on all four tasks with their best grasps and <<ff>> % with their foundational poses, and
+the median worst score is <<mb2>> and <<mf2>> (Section SEC[grid]).""", fb=f"{100 * CF['share_all_above_0.5_best']:.0f}",
+                          ff=f"{100 * CF['share_all_above_0.5_fp']:.0f}", mb2=f"{CF['maximin_median_best']:.2f}",
+                          mf2=f"{CF['maximin_median_fp']:.2f}") if CF else
+                     " The best of 16 is an upper estimate until its fresh-seed runs."),
               mb=f"{cg['maximin_median_best']:.2f}", sb=f"{100 * cg['share_all_above_0.5_best']:.0f}", f=FIG[0] + 1,
               bx=f"{cg['maximin_best']['xy'][0]:.0f}", by=f"{cg['maximin_best']['xy'][1]:.0f}",
               bs=", ".join(f"{x:.2f}" for x in cg["maximin_best"]["scores"]))
@@ -1685,8 +1754,7 @@ front inherits that noise.</li>
 not run.</li>
 <li>The layout space is the gantries' six coordinates. The paper's template also varies link lengths and the thumb's
 rotation, which the SR2 hand cannot change without new parts.</li>
-<li>The best of 16 is the largest of 16 grasp scores, each a mean over three seeds, so it is biased upward. The gain over
-the foundational pose has not been repeated on fresh seeds.</li>
+<<bestlim>>
 <li>The cylinder tasks keep few grasps held in every seed (median held share <<hp>> in the pin-push and <<hr>> in the
 press), so their maps rank single layouts roughly. The pin-push's peak lies on the grid's edge of the smallest
 index-to-middle spacing, 50 mm; smaller spacings are outside the grid.</li>
@@ -1694,10 +1762,15 @@ index-to-middle spacing, 50 mm; smaller spacings are outside the grid.</li>
 pressed a median 0.27 N, while its joint reference stayed more than the 6 mm gap cut behind the cylinder. The pin-push
 scores include that.</li>
 </ul>""", hp=f"{N['grid']['pinpush']['held_share_median']:.2f}", hr=f"{N['grid']['press']['held_share_median']:.2f}",
+        bestlim=("<li>Grasps were moved only between grid neighbours 5 mm apart and from each task's peak layout at one "
+                 "object size; moves across object sizes were not run.</li>" if N.get("valrep") else
+                 "<li>The best of 16 is the largest of 16 grasp scores, each a mean over three seeds, so it is biased "
+                 "upward. The gain over the foundational pose has not been repeated on fresh seeds.</li>"),
         ag=f"{100 * ag:.1f}", pn=f"{press_latitudes()[0]:,}", pl=f"{100 * press_latitudes()[1]:.0f}")
 
 
-def sec_future():
+def sec_future(N):
+    done = bool(N.get("valrep"))
     return """<ol>
 <li>Rerun the four-task front's layouts with 30 seeds per task on the GPU (<code>scripts/hom_gpu.py run</code> on a
 row file of the front). Keep the layouts whose rank agrees between seed halves at Spearman above 0.8. The front is too
@@ -1714,11 +1787,16 @@ with tags. The simulated ranking fails if the bench ranks the three differently.
 <li>Pose the screwdriver's pinch brake and wield as foundational poses in <code>fp_sr2_toy.py</code>.</li>
 <li>Compare the t-SNE map of the Sobol layouts' dynamic scores against a uniform null with the neighbour-preservation
 test of <code>scripts/paper_morphology_diversity.py</code>.</li>
-<li>Rerun each grid layout's foundational pose and best grasp on seeds 3 to 5. Add the best grasps of its four
-neighbours, moved to it as palm-frame keyframes (<code>logs/20261029-hom_sizes/gpu_queue_v4b_2.sh</code>:
-<code>hom_landscape.py derive</code>, then <code>hom_gpu.py run --layouts grid2dval_size grid2dnb_size</code>). The gain
-of Section SEC[grid] repeats if the best grasp beats the foundational pose on fresh seeds on most layouts. A grasp
-transfers to a neighbouring layout if its score there comes within 0.1 of the layout's own best.</li>
+""" + ("""<li>Move each grid layout's best grasps across object sizes, the 40 mm sphere's to the 30 and 63 mm
+spheres and the 25 mm cylinder's to the 10 and 40 mm cylinders. Keep each grasp's variables, check it with
+<code>hom_landscape.feasible</code> after <code>fp_sr2_toy.set_sizes</code>, and run the feasible ones with
+<code>hom_gpu.py run</code> on seeds 3 to 5. A grasp set transfers across sizes if most moved grasps score within 0.1 of
+the size's own best.</li>""" if done else """<li>Rerun each grid layout's foundational
+pose and best grasp on seeds 3 to 5. Add the best grasps of its four neighbours, moved to it as palm-frame keyframes
+(<code>logs/20261029-hom_sizes/gpu_queue_v4b_2.sh</code>: <code>hom_landscape.py derive</code>, then <code>hom_gpu.py run
+--layouts grid2dval_size grid2dnb_size</code>). The gain of Section SEC[grid] repeats if the best grasp beats the
+foundational pose on fresh seeds on most layouts. A grasp transfers to a neighbouring layout if its score there comes
+within 0.1 of the layout's own best.</li>""") + """
 <li>Refine the best layouts by rollouts in their own neighbourhood. Around each of the 20 best twist layouts, run a
 local Sobol design of 64 layouts within 2 mm, three seeds each (<code>hom_landscape.py moves</code> with a smaller
 radius, then <code>fp_sr2_toy.py poses</code> and <code>hom_gpu.py run</code>). The refinement works if the best of
@@ -1845,6 +1923,10 @@ the maps, have mean scores of <<m0>> to <<m1>> and differ visibly.</p>""",
     N["grad"] = gradient_numbers()
     N["sizes"] = size_numbers()
     N["grid_sizes"] = grid_size_numbers()
+    N["valrep"] = valrep_numbers()
+    vj = ROWS / "grid2d_v4b" / "valrep.json"
+    vfull = json.loads(vj.read_text()) if vj.exists() else {}
+    N["valrep_seeds"], N["cross_fresh"] = vfull.get("fp_seed_means"), vfull.get("cross_fresh")
     N["check_text"] = fill(r"""<p>The toy's scores are kinematic, and the HOM tasks are dynamic. Table 2 runs the HOM twist of a
 40 mm sphere on <<nl>> symmetric tripods from the 2-D case, chosen evenly by rank of the tripod's kinematic rotation
 range (<code>scripts/fp_hom_check.py</code>). The twist is the task study's: steps of 40 deg/s, then a 30 deg/s ramp,
@@ -1878,13 +1960,13 @@ the grasp, and for the twist that decides the outcome.</p>""",
         ("grid", "Grasps synthesized per layout on a grid of symmetric tripods", sec_grid(N)),
         ("gradients", "Design gradients from a model of the HOM scores", sec_gradients(N)),
         ("sizes", "Layouts across object sizes", sec_sizes(N)),
-        ("cross", "The four tasks at their default objects: rank correlation and Pareto set", sec_cross()),
+        ("cross", "The four tasks at their default objects: rank correlation and Pareto set", sec_cross(N)),
         ("separate", "Grasp and in-hand control: one problem or two", sec_separate(N)),
         ("plan", "A plan for a Pareto front of SR2 layouts under HOM control", sec_plan(N)),
         ("related", "Related design studies and how this one builds on them", sec_related()),
         ("history", "Changes to the method on 2026-10-29 and 10-30", sec_history()),
         ("limits", "Limitations", sec_limits(N)),
-        ("future", "Future work", sec_future()),
+        ("future", "Future work", sec_future(N)),
         ("files", "References and files", sec_files()),
     ]
     byline = ("Review and simulation, 2026-10-29 and 10-30. Paper: arXiv 2409.14158v2 [1]. Hand: the CAD-model SR2 hand "
@@ -1895,7 +1977,7 @@ the grasp, and for the twist that decides the outcome.</p>""",
     G = N["grid"]
     lv = [g["lv_best"] for g in G.values()]
     fpb = [g["best_is_fp"] for g in G.values()]
-    cg = json.loads((ROWS / "grid2d_v4b" / "cross_grid.json").read_text())
+    TV, CF = N["valrep"]["twist_d40"], N["cross_fresh"]
     pe = N["grad"]["pk"]["peak"]["radii"]["4"]
     GS = N["grid_sizes"]
     sl = []
@@ -1906,19 +1988,20 @@ the grasp, and for the twist that decides the outcome.</p>""",
     lede = fill("""The foundational-pose paper [1] keeps a hand design if it reaches a few poses that tools are wielded
 from. On the SR2 hand with the calibrated v4b fingertip, a GPU version of the HOM controller scored 8,192 layouts on four
 tasks and four object sizes. With the best of 16 grasps per layout and task, the median twist score of a 625-layout grid
-rose from <<a0>> to <<a1>>. On <<sb>> % of the grid's layouts all four tasks then scored above 0.5, against none with
-the foundational pose. The best layouts move with the object.<<sh>> They sit on peaks a few millimetres wide: moving the
+rose from <<a0>> to <<a1>> on fresh seeds. On <<sb>> % of the grid's layouts all four tasks then scored above 0.5,
+against <<sf>> % with the foundational pose. The best layouts move with the object.<<sh>> They sit on peaks a few millimetres wide: moving the
 mounts 4 mm cost the best twist layouts a median <<c4>>.""",
-                a0=f"{G['twist']['fp_median']:.2f}", a1=f"{G['twist']['best_median']:.2f}",
-                sb=f"{100 * cg['share_all_above_0.5_best']:.0f}", c4=f"{-pe['change_median']:.2f}",
+                a0=f"{TV['fp_fresh_median']:.2f}", a1=f"{TV['best_fresh_median']:.2f}",
+                sb=f"{100 * CF['share_all_above_0.5_best']:.0f}", sf=f"{100 * CF['share_all_above_0.5_fp']:.0f}",
+                c4=f"{-pe['change_median']:.2f}",
                 sh=(f" In three tasks the best distance from the thumb's mount to the other two grows by {min(sl):.1f} to "
                     f"{max(sl):.1f} mm per millimetre of diameter." if len(sl) == 3 else ""))
     summary = fill("""HOM-controller scores of 8,192 SR2 layouts on four tasks and object sizes, v4b fingertip: synthesizing
-the grasp per layout and task raised the grid's median twist score from <<a0>> to <<a1>> and made <<sb>> % of layouts
-score above 0.5 on all four tasks (none with the foundational pose); the best layouts move with object size and sit on
-peaks a few millimetres wide, where a smooth score model's gradient fails.""",
-                   a0=f"{G['twist']['fp_median']:.2f}", a1=f"{G['twist']['best_median']:.2f}",
-                   sb=f"{100 * cg['share_all_above_0.5_best']:.0f}")
+the grasp per layout and task raised the grid's median twist score from <<a0>> to <<a1>> on fresh seeds and made <<sb>> %
+of layouts score above 0.5 on all four tasks (<<sf>> % with the foundational pose); the best layouts move with object
+size and sit on peaks a few millimetres wide, where a smooth score model's gradient fails.""",
+                   a0=f"{TV['fp_fresh_median']:.2f}", a1=f"{TV['best_fresh_median']:.2f}",
+                   sb=f"{100 * CF['share_all_above_0.5_best']:.0f}", sf=f"{100 * CF['share_all_above_0.5_fp']:.0f}")
     assemble(sections, "Foundational-pose hand design",
              "Foundational-pose hand design, the project's layout sampling, and a Pareto front for the SR2 hand",
              "Morphology and design search", lede, byline, summary)
