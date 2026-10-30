@@ -10,7 +10,11 @@ with the same pad (05R4), in the order the lab runs them unattended:
                      grid, presses at 0.25 to 5 N on the four FE surface nodes within 2 mm of the apex over U1 that no
                      press of the suite targets (10 of the 14 are targets already)
   3 tall pass 1      superseded/20261028-plan_tall_lab_pass1_19_v3id1.json (19 touch-offs)
-  4 tall stage 2     superseded/20261028-plan_tall_lab_stage2_ts1_v3id1.json (102)
+  4 tall stage 2     superseded/20261028-plan_tall_lab_stage2_ts1_v3id1.json (102) without tall-slide-flank-585-1N (its turns at
+                     depth bring the mount to 2.97 mm; lab, 2026-10-29 14:4x), each stage's actions reordered within four
+                     places by scripts/ur5_tip_calibration_wrist_order.py on the newest tall session: no travel swings wrist 1
+                     from negative to positive while wrist 2 rises (three HEX-E losses came at the end of such travels,
+                     lab NOTES 00:13 on 10-30)
   5 rod pass 1       superseded/20261028-plan_rod_lab_pass1_search_ts1_v3id1.json's 21 touch-offs and 5 pivots with the normal
                      approach (3.5 mm above to 1.2 mm past, travel.slow_mm_touch 2.5, as v2 ID 1's rod pass 1): the
                      program resumes a seed folder of scripts/ur5_tip_calibration_seed_registration.py (the rod's T_BI
@@ -41,6 +45,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
 SPEED = ("fast-", "rate-")
 UNDER_MARGIN_V7 = {"dense-700-t+10", "slide-dense-700-t+10-1N", "slide-dense-795-t+15-1N", "dense-795-t+15"}
+TALL_UNDER_MARGIN = {"tall-slide-flank-585-1N"}
 BASIS = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261020-b_v2_surface_basis.npz"
 CENTRE_NEW = (799, 775, 777, 765)                       # the free face nodes within 2 mm of the apex, nearest first
 SOURCES = [
@@ -68,6 +73,7 @@ def main():
     ap.add_argument("--tip", default="v3id2")
     ap.add_argument("--created", default=time.strftime("%Y-%m-%d %H:%M"))
     ap.add_argument("--touch-v", type=float, default=0.0005, help="the touch-offs' approach speed (m/s at slider 1.0)")
+    ap.add_argument("--out-dir", default=str(LAB))
     a = ap.parse_args()
     day = a.created[:10].replace("-", "")
     for n, (kind, stage, files) in enumerate(SOURCES, 1):
@@ -108,6 +114,9 @@ def main():
         if kind == "tall":
             p.setdefault("travel", {})["lift_mm"] = 20.0
             note += "; travel.lift_mm 20 (the owner, 14:4x)"
+        if kind == "tall" and stage == "stage2":
+            acts = [x for x in acts if x["id"] not in TALL_UNDER_MARGIN]
+            note += f"; without {', '.join(sorted(TALL_UNDER_MARGIN))} (mount 2.97 mm; lab, 2026-10-29 14:4x)"
         touches = [x for x in acts if x["kind"] == "touch"]
         if touches:
             v0 = sorted({x.get("v") for x in touches}, key=str)
@@ -120,11 +129,21 @@ def main():
             p["suite"]["tip"] = a.tip.replace("id", " ID ")
         p.setdefault("travel", {})["speed"] = 1.0
         p.setdefault("checks", {})["other"] = cell_other(p.get("indenter", kind))
+        if kind == "tall" and stage == "stage2":
+            import ur5_tip_calibration_wrist_order as WO
+            ses = sorted(LAB.glob("2026*-tallv*"))[-1]
+            p, rep = WO.reorder(p, ses)
+            note += (f"; reordered on {ses.name} (scripts/ur5_tip_calibration_wrist_order.py): travels with wrist 1 from "
+                     f"below 0 to above it while wrist 2 rises more than {rep['rise_deg']:g} deg "
+                     f"{len(rep['before']['signatures'])} -> {len(rep['after']['signatures'])}, the wrists' travel "
+                     f"{rep['before']['wrist_travel_deg']:.0f} -> {rep['after']['wrist_travel_deg']:.0f} deg, "
+                     f"{rep['moved']} actions moved, at most {rep['largest_move']} places")
+            acts = p["actions"]
         p.setdefault("notes", [])
         if not isinstance(p["notes"], list):
             p["notes"] = [p["notes"]]
         p["notes"].append(note)
-        out = LAB / f"{day}-plan_{kind}_lab_{stage}_night_{a.tip}.json"
+        out = Path(a.out_dir) / f"{day}-plan_{kind}_lab_{stage}_night_{a.tip}.json"
         out.write_text(json.dumps(p, indent=1) + "\n")
         print(f"{n} {out.name}: {len(acts)} actions")
 

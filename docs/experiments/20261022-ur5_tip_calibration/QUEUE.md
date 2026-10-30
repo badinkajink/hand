@@ -1044,6 +1044,26 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 07:4x on 10-30, workstation: the tall indenter's travels reordered (`scripts/ur5_tip_calibration_wrist_order.py`).
+    Replayed as the path checker replays it, the night plan's travel into tall-edge-626 swings wrist 1 from -36.4 to
+    +24.6 deg and wrist 2 from 54.0 to 96.0 deg; the lab measured -36.6 to +19.3 and 54.2 to 90.5. Tall stage 2 has 12
+    travels in which wrist 1 passes from below 0 to above it while wrist 2 rises by more than 10 deg: six in the grid and
+    the same six in the slides, which repeat the grid's order. The losses of 14:32 on 10-28 and 00:08 on 10-30 came at
+    the end of two of them, into tall-edge-627 and -626. R29's loss on 10-27 came in the travel into tall-face-702, which
+    follows one of them and swings wrist 1 the other way, from +16.3 to -37.7 deg. The script reorders each stage's
+    actions within four places, with the references in place, to remove those travels and shorten the wrists' travel.
+    In the 101 actions it leaves none of the 12, 3 swings of wrist 1 over 40 deg against 23, and 3,131 deg of wrist
+    travel against 5,144. The path check on 153034's registration (sphere 134508, rod 230820) gives the same least
+    margins in both orders: mount 3.73 mm, finger 1.07 mm, HEX-E 22.7 mm, joint 5 0.58 deg inside its window. Each order
+    has one flag: tall-flank-525 at joint 6 -63.6 deg in the old order, tall-flank-482 at -62.6 deg in the new one,
+    against the checker's -62 deg; tall-flank-525 ran on all three tips.
+    - The next tip's suite: `scripts/ur5_tip_calibration_next_tip_suite.py` now reorders tall stage 2 on the newest tall
+      session and leaves out tall-slide-flank-585-1N, as the lab did for ID 3 at 14:4x on 10-29 (mount 2.97 mm).
+    - ID 3's resume: `lab/20261030-plan_tall_lab_stage2_night_wrist_v3id3.json` keeps the 46 actions done in 153034 and
+      reorders the remaining 55 from home. The old order of those 55 has 7 of the 12 travels, the new order none. The path
+      check from home gives the same margins in both (0 flagged; mount 4.09 mm, finger 1.57 mm, joint 5 2.38 deg inside
+      its window; `lab/20261030-paths_tall_stage2_rest55_*`). With --resume on 153034 it runs in place of the night
+      plan. Which plan the resume runs is the owner's choice; the lab simulates it first.
   - 23:13 on 10-29, v3 ID 3's night (lab, e2d0e1d8; `lab/STATE.md`). Block 3, the tall indenter's pass 1, ran 15:30 to
     15:48: 19 of 19, 0.055 mm rms (`lab/20261029-153034-tallv3id3`). Block 2, the sphere's stage 2, ran 16:34:16 to
     23:07:05 on block 1's folder: 211 of 211, no abort, no early contact, every press at its force, 6.55 h (ID 2's
