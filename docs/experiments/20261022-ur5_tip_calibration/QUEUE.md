@@ -1044,6 +1044,25 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 11:2x on 10-30, workstation: the HEX-E's link drops as the arm arrives at a pose. The same poses held the link for
+    minutes at other times. The data are robot.bin and ft.bin of the 23 sessions since 10-25 (62.1 h, copied from
+    corvus; `20261030-hexe_losses/`, `scripts/ur5_hexe_link_losses.py`). A loss is a gap of more than 1 s in the
+    HEX-E's samples while robot.bin runs. There were nine; at 11:02 on 10-30 the link came back after 1.8 s and dropped
+    again 8 s later.
+    - The five tall drops came at base 78.5 to 80.5 deg, wrist 1 +18.0 to +25.7, wrist 2 89.7 to 96.2 and wrist 3 18.5
+      to 31.7. Within 3 deg of the 11:02 pose on all six joints, the arm stood 376 s with the link alive over 11 other
+      visits from 10-27 to 10-29.
+    - The four losses of 10-26 came at wrist 3 43 to 55 deg after travels without the swing. Within 3 deg of the first
+      of them, the arm stood 851 s with the link alive over 25 visits.
+    - Of 138 travels with the swing (wrist 1 from below 0 to above it while wrist 2 rises more than 10 deg), 4 were
+      followed by a loss within 10 s. Of 1,830 other travels, 4 were. R29's loss of 10-27 and the second drop at 11:02
+      came in small motions at the tall pose.
+    - The swing into tall-edge-626's pose ran five times from 10-27 to 10-29 with no loss. On 10-30 the link dropped in
+      both (00:07 and 11:02).
+    - The owner chose the night order at 10:54, and the link dropped on its first travel, home into tall-edge-626
+      (11:02:49). The owner reseated the cable and gave it more slack at 11:09. Block 4 resumed in wrist2's order at
+      11:15:24. Its fifth action, tall-edge-626, ran to 3 N at about 11:20, arriving from tall-edge-604 with wrist 1
+      from +7 to +25 deg.
   - 08:1x on 10-30, workstation: the wrist order searched exactly. The lab's simulation of the first order's 55 (07:57)
     counted one swing of wrist 1 over 40 deg left, a downward one into tall-slide-edge-643-1N (+23.0 to -32.3 deg), the
     kind of R29's loss. `scripts/ur5_tip_calibration_wrist_order.py` now also penalizes a travel in which wrist 1 crosses
