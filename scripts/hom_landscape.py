@@ -853,6 +853,58 @@ def cmd_derive(a):
     return 0
 
 
+def cmd_valrep(a):
+    """Queue 2's rows on fresh seeds (3-5) for each task and object whose rows exist: (val) each layout's foundational
+    pose and best grasp, against the gain the grid's seeds 0-2 gave; (nb) each layout's own best grasp against its
+    neighbours' best grasps and the keyframe grasp moved to it. Writes rows/grid2d_v4b/valrep.json."""
+    import fp_sr2_toy as FP
+    out = {}
+    for task in TASKS:
+        shape = "sphere" if POSE_ROWS[task] == "tripod" else "cylinder"
+        for size in SIZES[task]:
+            vp, npth = GRID_ROWS / f"val_{task}_d{size:g}.jsonl", GRID_ROWS / f"nb_{task}_d{size:g}.jsonl"
+            if not vp.exists():
+                continue
+            sc, _ = grid_scores(task, size, GRID_ROWS, f"val_{task}_d{size:g}")
+            tab = {r["call"]: r for r in grid_table(task, size)}
+            fp_, be, g0 = [], [], []
+            for call, r in tab.items():
+                if (call, 0) in sc and (call, 1) in sc and r.get("n_grasps"):
+                    fp_.append(np.mean(sc[(call, 0)]))
+                    be.append(np.mean(sc[(call, 1)]))
+                    g0.append((r["fp"], r["best"]))
+            fp_, be, g0 = np.array(fp_), np.array(be), np.array(g0)
+            R = {"layouts": len(fp_), "fp_fresh_median": float(np.median(fp_)), "best_fresh_median": float(np.median(be)),
+                 "best_beats_fp": float(np.mean(be > fp_)), "gain_fresh_median": float(np.median(be - fp_)),
+                 "gain_seeds012_median": float(np.median(g0[:, 1] - g0[:, 0])),
+                 "best_repeat_spearman": FR.spearman(g0[:, 1], be),
+                 "best_seeds012_median": float(np.median(g0[:, 1]))}
+            if npth.exists():
+                src = {int(r["call"]): r for r in FR.load(FP.size_name(f"grid2dnb_{task}", shape, size))}
+                sn, _ = grid_scores(task, size, GRID_ROWS, f"nb_{task}_d{size:g}")
+                d_nb, d_key, n_key = [], [], 0
+                for call, row in src.items():
+                    gl = row["fp"][POSE_KEY[task]]["grasps"]
+                    own = sn.get((call, 0))
+                    if own is None:
+                        continue
+                    own = float(np.mean(own))
+                    for j, g in enumerate(gl[1:], 1):
+                        if (call, j) not in sn:
+                            continue
+                        v = float(np.mean(sn[(call, j)]))
+                        (d_key if g["src"] == "keyframe" else d_nb).append(v - own)
+                d_nb, d_key = np.array(d_nb), np.array(d_key)
+                R.update(nb_n=len(d_nb), nb_within_0_1=float(np.mean(d_nb >= -0.1)) if len(d_nb) else None,
+                         nb_change_median=float(np.median(d_nb)) if len(d_nb) else None,
+                         nb_better=float(np.mean(d_nb > 0.02)) if len(d_nb) else None,
+                         key_n=len(d_key), key_change_median=float(np.median(d_key)) if len(d_key) else None)
+            out[f"{task}_d{size:g}"] = R
+            print(task, size, {k: (round(v, 3) if isinstance(v, float) else v) for k, v in R.items()}, flush=True)
+    (GRID_ROWS / "valrep.json").write_text(json.dumps(out, indent=1))
+    return 0
+
+
 T_SHAPE = {"twist": "sphere", "roll": "sphere", "pinpush": "cylinder", "press": "cylinder"}
 TASK_NAME = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
 
@@ -1089,6 +1141,7 @@ def main():
     p.add_argument("--task", choices=TASKS, required=True)
     p.add_argument("--d", type=float, required=True)
     sub.add_parser("cross")
+    sub.add_parser("valrep")
     for name in ("moves", "moves-report"):
         p = sub.add_parser(name)
         p.add_argument("--task", choices=TASKS, required=True)
@@ -1102,7 +1155,8 @@ def main():
     p.add_argument("--out", default="")
     a = ap.parse_args()
     return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
-            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "cross": cmd_cross}[a.cmd](a)
+            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "cross": cmd_cross,
+            "valrep": cmd_valrep}[a.cmd](a)
 
 
 if __name__ == "__main__":
