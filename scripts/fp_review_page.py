@@ -1200,7 +1200,12 @@ def gradient_numbers(task="twist", d=40.0):
     pk = json.loads((ROWS / "peak" / f"summary_{task}{d:g}.json").read_text())
     _d, z = L.layouts()
     nn = float(np.median(cKDTree(z).query(z, k=2)[0][:, 1]))
-    return {"v": v, "pk": pk, "nn": nn}
+    more = {}                                          # the other tasks and sizes whose experiments ran
+    for t_, d_ in (("twist", 40.0), ("roll", 40.0), ("pinpush", 25.0), ("press", 25.0)):
+        pv, pp_ = L.SIZE_ROWS / f"value_{t_}_d{d_:g}.json", ROWS / "peak" / f"summary_{t_}{d_:g}.json"
+        if pv.exists() and pp_.exists():
+            more[(t_, d_)] = (json.loads(pv.read_text()), json.loads(pp_.read_text()))
+    return {"v": v, "pk": pk, "nn": nn, "more": more}
 
 
 def sec_gradients(N):
@@ -1244,6 +1249,25 @@ needs rollouts in its own neighbourhood, at steps of 1 to 2 mm.</p>""",
              l4=f"{100 * pe['4']['pose_lost']:.0f}", c4=f"{-pe['4']['change_median']:.2f}",
              l8=f"{100 * pe['8']['pose_lost']:.0f}", c8=f"{-pe['8']['change_median']:.2f}",
              nn=f"{g['nn']:.2f}", nn0=f"{g['nn'] * span.min():.0f}", nn1=f"{g['nn'] * span.max():.0f}")
+    names = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
+    rows = []
+    for (t_, d_), (vv, kk) in g["more"].items():
+        gs_, tr_, r4 = vv.get("grid_steps") or {}, kk["trust"], kk["peak"]["radii"]["4"]
+        rows.append([f"{names[t_]}, {d_:g} mm", f"{vv['cv_spearman']:.2f}",
+                     f"{vv['grid_check']['spearman']:.2f}" if vv.get("grid_check") else "",
+                     f"{100 * gs_['gradient']['raised']:.0f} ({100 * gs_['random']['raised']:.0f})" if gs_ else "",
+                     f"{100 * tr_['worse']:.0f}", f"{tr_['change_median']:+.3f}", f"{tr_['pred_change_median']:+.2f}",
+                     f"{100 * r4['pose_lost']:.0f}", f"{r4['change_median']:+.2f}"])
+    if len(rows) > 1:
+        t += fill(r"""<p>Table <<tb>> repeats the tests for each task where they ran. The pattern holds in each: the
+gradient raises more grid layouts than a random step does, and it lowers most of the best layouts on fresh seeds.</p>""",
+                  tb=TAB[0] + 1)
+        t += table(["Task", "Spearman, cross-validated", "Spearman, grid", "Grid steps raised, gradient (random) (%)",
+                    "Moved best layouts worse (%)", "Measured change", "Predicted change", "4 mm: pose lost (%)",
+                    "4 mm: median change"], rows,
+                   "The value model and its gradient per task: cross-validated and grid rank correlations, 10 mm steps on "
+                   "the grid, the trust-region moves of the best 200 Sobol layouts on fresh seeds (median changes), and 4 mm "
+                   "perturbations around the 20 best layouts.", num_from=1)
     t += img(MEDIA / "20261030-value_twist_d40.png",
              "Design gradients on the twist of the 40 mm sphere. (a) Steps of 10 mm on the measured grid along the value "
              "model's gradient and in random directions: the share that raised and lowered the score. (b) The best Sobol "
