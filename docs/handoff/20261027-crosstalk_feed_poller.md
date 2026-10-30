@@ -11,7 +11,15 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-30 12:07: the watcher exited 0 at 12:05 on line 31 (11:54,
+State: armed 2026-10-27 21:00 from the colorado window. 10-30 12:41: the watcher exited 0 at 12:39 on line 32 (12:18,
+1690e3df, kind calibration: the seat block alone on the table, owner 12:0x; both indenters, the rod and the holder off;
+homing on two keys between its columns; a sixth tool with a fingertip on its cassette for face-to-face crosstalk; one
+P1S plate, 18 h 26 min). Calibration page 3c4ff18b: the rig item, Section 13 and the tall-against-low-sphere item follow.
+Crosstalk page c28b3adc: the side-by-side item says the map ran on 10-29 (24 of 24 hovers, session 151334-sidev3id3,
+from lab/NOTES.md; no session feed line came), Limitations says it is not yet analysed, and the pinch item moves to the
+rig's fingertip tool over a held tip. Ledes, summaries and overview stay. Acked 32 lines and 32 commits at HEAD
+c28b3adc. Watcher through resguard from 12:4x (gate open: 10.2 GB available, load 4.85).
+10-30 12:07: the watcher exited 0 at 12:05 on line 31 (11:54,
 bb8f63ae, kind calibration: the inverted rig's seat block at plate v2e's place, owner 11:2x and 11:4x). Calibration page
 f6007b50: the rig item holds the tips on the block's three seats (the tall indenter and the holder off, the low sphere
 and the rod on, homing on the low sphere's key; prints 6 h 11 min and 10 h 44 min); Section 13 and the
