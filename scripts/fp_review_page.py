@@ -1401,18 +1401,45 @@ layouts scatter into <<u0>> to <<u1>> smaller ones. Each task and size therefore
 good layouts.</p>""", n0=min(x[0] for x in nb), n1=max(x[0] for x in nb),
                   m0=f"{min(x[2] for x in nb):.0f}", m1=f"{max(x[2] for x in nb):.0f}",
                   u0=f"{min(x[1] for x in nb):.0f}", u1=f"{max(x[1] for x in nb):.0f}")
-    pj = ROWS / "grid2d_v4b" / "peaks_by_size.json"
-    gp = json.loads(pj.read_text()) if pj.exists() else {}
-    moves = []
-    for task, by in gp.items():
-        mains = {float(sz): max(v, key=lambda q: q[3]) for sz, v in by.items() if v}
-        if len(mains) >= 2:
-            seq = ", ".join(f"({m[0]:.0f}, {m[1]:.0f}) mm at {sz:g} mm" for sz, m in sorted(mains.items()))
-            moves.append(f"the {names[task]}'s from {seq}")
-    if moves:
-        t += fill(r"""<p>The 2-D grid shows the same with grasp synthesis. The peak of the largest basin of the smoothed
-best-of-16 map moves with the object: <<mv>> (Figures <<f0>> onward).</p>""", mv="; ".join(moves),
-                  f0=FIG[0] + 1 + len(Z))
+    GS = N["grid_sizes"]
+    by = {}
+    for (task, sz), g in GS.items():
+        by.setdefault(task, {})[sz] = g
+    gp = [task for task in by if len(by[task]) >= 2 and (MEDIA / f"20261030-grid_sizes_{task}.png").exists()]
+    if len(gp) == 4:
+        def shift(task):
+            s = by[task]
+            a, b = min(s), max(s)
+            return s[a]["peak"][0], s[b]["peak"][0], (s[b]["peak"][0] - s[a]["peak"][0]) / (b - a), a, b
+        tw_, pp_, pr_ = shift("twist"), shift("pinpush"), shift("press")
+        k_ = [tw_[2], pp_[2], pr_[2]]
+        fl_r = [g["flat"] for g in by["roll"].values()]
+        fl_t = [g["flat"] for g in by["twist"].values()]
+        f0 = FIG[0] + 1 + len(Z)
+        cyl_ = (f"The pin-push's and the press's both move from {pp_[0]:.0f} to {pp_[1]:.0f} mm"
+                if pp_[:2] == pr_[:2] else f"The pin-push's moves from {pp_[0]:.0f} to {pp_[1]:.0f} mm and the press's "
+                f"from {pr_[0]:.0f} to {pr_[1]:.0f} mm")
+        t += fill(r"""<p>Table <<tb>> repeats the grid of Section SEC[grid] at three sizes per object (Figures <<f0>> to
+<<f1>>). In the twist, the pin-push and the press, the peak of the largest basin moves to a larger $x_{sep}$ as the
+object grows. The twist's moves from <<t0>> to <<t1>> mm between the <<ts0>> and <<ts1>> mm spheres. <<cyl>> between the
+<<cs0>> and <<cs1>> mm cylinders. That is
+<<k0>> to <<k1>> mm of $x_{sep}$ per millimetre of diameter. The thumb and the index-middle pair touch opposite sides
+of the object, so their contacts move apart by the change in diameter.</p>
+<p>The roll's map is flat. On it <<rf0>> to <<rf1>> % of the layouts score within 0.1 of the map's maximum, against
+<<tf0>> to <<tf1>> % in the twist, so its peak has no clear position. Small cylinders are hard to keep: on the
+<<cs0>> mm cylinder the median layout keeps none of its grasps in all three seeds, and on the <<cs1>> mm cylinder it
+keeps all of them.</p>""",
+                  tb=TAB[0] + 1, f0=f0, f1=f0 + len(gp) - 1, cyl=cyl_, t0=f"{tw_[0]:.0f}", t1=f"{tw_[1]:.0f}",
+                  ts0=f"{tw_[3]:g}", ts1=f"{tw_[4]:g}", cs0=f"{pp_[3]:g}", cs1=f"{pp_[4]:g}", k0=f"{min(k_):.1f}", k1=f"{max(k_):.1f}",
+                  rf0=f"{100 * min(fl_r):.0f}", rf1=f"{100 * max(fl_r):.0f}", tf0=f"{100 * min(fl_t):.0f}",
+                  tf1=f"{100 * max(fl_t):.0f}")
+        rows = [[names[task].capitalize(), f"{L_SHAPE[task]} {sz:g} mm", str(g["run"]), f"{g['fp_median']:.2f}",
+                 f"{g['best_median']:.2f}", f"{g['held_share_median']:.2f}", f"{g['peak'][0]:.0f}, {g['peak'][1]:.0f}",
+                 f"{g['peak'][2]:.2f}", f"{100 * g['flat']:.0f}"] for (task, sz), g in GS.items()]
+        t += table(["Task", "Object", "Layouts", "FP median", "Best-of-16 median", "Held share, median",
+                    "Largest basin's peak, x_sep and y_sep (mm)", "Its smoothed score", "Within 0.1 of the maximum (%)"],
+                   rows, "The grid of 625 symmetric tripods at each object size: 16 grasps per layout, seeds 0 to 2, v4b "
+                   "fingertip. The peak and the last column use the best-of-16 map smoothed over 7.5 mm.", num_from=2)
     for task in Z:
         t += img(MEDIA / f"20261030-sizes_{task}.png",
                  f"The {names[task]} across object sizes on the Sobol layouts: (a) rank correlation of the layouts' scores "
@@ -1420,11 +1447,34 @@ best-of-16 map moves with the object: <<mv>> (Figures <<f0>> onward).</p>""", mv
                  "size (standardized: each gantry's travel maps to -0.5 to 0.5); (c) the scores of the layouts that reach "
                  "the pose.")
     for task in gp:
-        if (MEDIA / f"20261030-grid_sizes_{task}.png").exists():
-            t += img(MEDIA / f"20261030-grid_sizes_{task}.png",
-                     f"The {names[task]} on the grid at each object size whose grid ran: the best grasp of 16 per layout, "
-                     "smoothed over 7.5 mm, with the basin peaks (stars) and the largest basin's peak (circle).")
+        t += img(MEDIA / f"20261030-grid_sizes_{task}.png",
+                 f"The {names[task]} on the grid at each object size: the best grasp of 16 per layout, smoothed over "
+                 "7.5 mm, with the basin peaks (stars) and the largest basin's peak (circle).")
     return t
+
+
+L_SHAPE = {"twist": "sphere", "roll": "sphere", "pinpush": "cylinder", "press": "cylinder"}
+
+
+def grid_size_numbers():
+    """The grid at every object size whose rows exist (hom_landscape.py grid): the summary, the peak of the largest
+    basin of the smoothed best-of-16 map, and the share of layouts whose smoothed score lies within 0.1 of the map's
+    maximum."""
+    import hom_landscape as L
+    summ = json.loads((L.GRID_ROWS / "summary.json").read_text())
+    out = {}
+    for task in L.TASKS:
+        for sz in L.SIZES[task]:
+            if f"{task}_d{sz:g}" not in summ:
+                continue
+            xs, ys, M = L.grid_maps(task, sz)
+            sm = L.smooth_map(M["best"])
+            pk, big = L.peaks(sm)
+            q = max(big, key=lambda p: int((pk == p).sum()))
+            v = sm[np.isfinite(sm)]
+            out[(task, sz)] = dict(summ[f"{task}_d{sz:g}"], flat=float(np.mean(v >= v.max() - 0.1)),
+                                   peak=(float(xs[q % len(xs)]), float(ys[q // len(xs)]), float(sm.flat[q])))
+    return out
 
 
 def sec_cross():
@@ -1788,6 +1838,7 @@ the maps, have mean scores of <<m0>> to <<m1>> and differ visibly.</p>""",
     N["grid"] = grid_numbers()
     N["grad"] = gradient_numbers()
     N["sizes"] = size_numbers()
+    N["grid_sizes"] = grid_size_numbers()
     N["check_text"] = fill(r"""<p>The toy's scores are kinematic, and the HOM tasks are dynamic. Table 2 runs the HOM twist of a
 40 mm sphere on <<nl>> symmetric tripods from the 2-D case, chosen evenly by rank of the tripod's kinematic rotation
 range (<code>scripts/fp_hom_check.py</code>). The twist is the task study's: steps of 40 deg/s, then a 30 deg/s ramp,
