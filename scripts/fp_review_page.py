@@ -1272,8 +1272,10 @@ def size_numbers():
                 per = None
                 break
             top = np.argsort(-sc["mean"])[:int(L.TOP * n)]
+            ls_ = land["tasks"][task]["sizes"].get(f"{size:g}", {})
             per[size] = {"reached": len(R), "median": float(np.median(sc["mean"][sorted(R)])),
-                         "top_mm": np.median(d[top], 0)}
+                         "top_mm": np.median(d[top], 0), "nbh": ls_.get("n_neighbourhoods"),
+                         "nbh_null": ls_.get("n_neighbourhoods_null"), "nbh_size": ls_.get("neighbourhood_size_median")}
         if per:
             T_ = land["tasks"][task]
             out[task] = {"sizes": per, "pairs": {k: v["spearman"] for k, v in T_["pairs"].items()},
@@ -1336,6 +1338,16 @@ with the sphere's size, from a median of <<r0>> over the reached layouts at <<s0
                               r0=f"{Z['roll']['sizes'][min(Z['roll']['sizes'])]['median']:.2f}",
                               r1=f"{Z['roll']['sizes'][max(Z['roll']['sizes'])]['median']:.2f}",
                               s0=f"{min(Z['roll']['sizes']):g}", s1=f"{max(Z['roll']['sizes']):g}") if "roll" in Z else ""))
+    nb = [(v["nbh"], v["nbh_null"], v["nbh_size"]) for T_ in Z.values() for v in T_["sizes"].values()
+          if v.get("nbh_null") is not None]
+    if nb:
+        t += fill(r"""<p>The good layouts are grouped. At each size a task's landscape has <<n0>> to <<n1>> high
+neighbourhoods: basins of the score smoothed over each layout's 16 nearest layouts, whose peak lies in the best tenth,
+with 20 layouts or more. They hold a median of <<m0>> to <<m1>> layouts each. The same scores shuffled among the reached
+layouts scatter into <<u0>> to <<u1>> smaller ones. Each task and size therefore has a few dozen separate regions of
+good layouts.</p>""", n0=min(x[0] for x in nb), n1=max(x[0] for x in nb),
+                  m0=f"{min(x[2] for x in nb):.0f}", m1=f"{max(x[2] for x in nb):.0f}",
+                  u0=f"{min(x[1] for x in nb):.0f}", u1=f"{max(x[1] for x in nb):.0f}")
     for task in Z:
         t += img(MEDIA / f"20261030-sizes_{task}.png",
                  f"The {names[task]} across object sizes on the Sobol layouts: (a) rank correlation of the layouts' scores "

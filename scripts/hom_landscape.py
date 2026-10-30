@@ -170,7 +170,16 @@ def cmd_stats(a):
             var = np.where(sc["run"], np.nanvar(sc["per"], 1, ddof=1) / max(1, len(sc["seeds"])), 0.0)
             S.append(sc["mean"])
             V.append(np.nan_to_num(var))
+            rng = np.random.default_rng(0)                    # null: the scores shuffled among the reached layouts
+            Ri = np.array(sorted(R))
+            null = []
+            for _ in range(3):
+                sh = sc["mean"].copy()
+                sh[Ri] = rng.permutation(sh[Ri])
+                null.append(len(neighbourhoods(sh, nb)[0]))
             T["sizes"][f"{size:g}"] = {
+                "n_neighbourhoods_null": float(np.mean(null)),
+                "neighbourhood_size_median": float(np.median([len(m) for _, m, _ in nbh])) if nbh else None,
                 "reached": len(R), "run": int(sc["run"].sum()), "held_all": int(sc["held_all"].sum()),
                 "score_median_reached": float(np.median(sc["mean"][list(R)])) if R else None,
                 "score_p90": float(np.quantile(sc["mean"], 0.9)),
