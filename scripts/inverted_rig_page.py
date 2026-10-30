@@ -556,7 +556,19 @@ def block_text(fig_path):
                  f"{'No case' if nf == 0 else f'{nf} cases'} {'comes' if nf == 0 else 'come'} under a margin. On the "
                  f"three seats {'no action' if fl == 0 else f'{fl} actions'} of the replayed plans "
                  f"{'comes' if fl == 0 else 'come'} under a margin or {'leaves' if fl == 0 else 'leave'} a window "
-                 f"(Table 6).</p>")
+                 f"(Table 6). The lift was checked every 5 mm, which is also the way back to the key.</p>")
+    dc = {}
+    for x in seats:
+        for k, v in (x or {}).get("deep_clear_mm", {}).items():
+            dc[float(k)] = dc.get(float(k), 0) + v
+    if dc:
+        n_all, deep = sum(dc.values()), sum(v for k, v in dc.items() if k >= 1.25)
+        text += (f"<p>The plans are checked with each press 1.0 mm past contact. Each action also records the deepest "
+                 f"press that it clears, in 0.25 mm steps to 2.0 mm, with every step of a twist checked at that depth. "
+                 f"{deep} of the {n_all} actions clear 1.25 mm or more; with the 5 mm sphere on the tall indenter, 3 N "
+                 f"took at most 1.19 mm. The {n_all - deep} that clear only 1.0 mm are flank presses by the cassette's "
+                 f"walls. Checked at 2.0 mm for every action, the plans kept 145, 142 and 133 actions, and 13 twists "
+                 f"brought the sphere's neck into the pad.</p>")
     text += (
         f"<p>A sixth tool takes a fingertip by its cassette, screwed by its four M2 &#215; 8 onto a station block as on "
         f"a seat, with no DIP link. Its palmar face points along the tool axis, so the robot can hold that tip face to "

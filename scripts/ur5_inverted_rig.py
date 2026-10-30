@@ -1326,6 +1326,35 @@ def own_moves(ctx, act):
     return segs
 
 
+def deep_clear(ctx, act, P_A, deep_max=2.0, step=0.25, owner=False):
+    """The deepest press past contact that an action clears: from DEEP in steps of step mm to deep_max, its deep pose (and,
+    for a twist, each step of its turn there) keeps the joint windows and the clearances. The program presses to its force
+    or to this depth, whichever comes first (lab, 14:29 on 10-30: 3 N took up to 1.19 mm with the 5 mm sphere on the tall
+    indenter, so a plan checked to 1.0 mm leaves about 1 press in 10 short of 3 N)."""
+    d_B = ctx["T_BA"][:3, :3] @ np.asarray(act["d_A"], float)
+    n_B = ctx["T_BA"][:3, :3] @ np.asarray(act["n_A"], float)
+    Td = np.asarray(act["T_deep"], float)
+    contact = (ctx["seat"], P_A[act["i"]], EXCL[ctx["tool"]])
+    q = np.asarray(act["q_rest"], float)
+    best = DEEP
+    for depth in np.arange(DEEP + step, deep_max + 1e-9, step):
+        T = Td.copy()
+        T[:3, 3] += (depth - DEEP) * d_B
+        poses = [T]
+        if act["kind"] == "twist":                      # the turn as own_moves makes it, at this depth
+            TM = T @ ctx["T_EM"]
+            c_B = TM[:3, 3] + TM[:3, 2] * tool_end_z(ctx["tool"])
+            poses += [C.turn_about(T, c_B, n_B, act["twist"] * s_) for s_ in np.linspace(0.0, 1.0, 16)[1:]]
+        qq = q
+        for P in poses:
+            qq = ik_near(P[None], qq, branch=BR[0])[0]
+            if not np.isfinite(qq).all() or joint_flags(qq, owner) or clear_flags(clearance(qq, ctx, contact)):
+                return round(float(best), 2)
+        q = ik_near(T[None], q, branch=BR[0])[0]
+        best = depth
+    return round(float(best), 2)
+
+
 def travel_options(ctx, T_prev, q_prev, act):
     """The ways from the previous rest (or the homing pose) to an action's rest, in the order they are tried: straight
     (back RETRACT mm along the stem, across, in) when the stems differ by 20 deg or less and the rests by 30 mm or less; a
@@ -1336,7 +1365,7 @@ def travel_options(ctx, T_prev, q_prev, act):
     if T_prev is None:                                  # from the homing: out of the key along -x_M (up) first
         T0 = fk_many(q_prev[None])[0]
         up = [C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-mm, 0.0, 0.0])) for mm in LIFT]
-        return ([("joint", [("L", T0, u), ("J", u, a1, qa), ("L", a1, Tr)]) for u in up]
+        return ([(f"joint-lift{mm:g}", [("L", T0, u), ("J", u, a1, qa), ("L", a1, Tr)]) for mm, u in zip(LIFT, up)]
                 + [("hub", [("L", T0, up[-1]), ("J", up[-1], Th, qh), ("J", Th, a1, qa), ("L", a1, Tr)])])
     out = []
     mm, deg = C.pose_error(T_prev, Tr)
@@ -1447,6 +1476,8 @@ def cmd_replay(a):
         if why:
             print(f"  {x['id']}: {'; '.join(why)}", flush=True)
         T_prev = x["T_rest"]
+    for x in acts:                                      # each action's own depth limit for the program
+        x["deep_clear_mm"] = DEEP if a.joints_only else deep_clear(ctx, x, P_A, a.deep_max, owner=a.owner)
     least = {}
     for r in rows:
         for k, (v, part) in r["clear"].items():
@@ -1456,6 +1487,7 @@ def cmd_replay(a):
     for x in acts:
         kinds[x["kind"]] = kinds.get(x["kind"], 0) + 1
     plan = dict(version=1, created=time.strftime("%Y-%m-%d"), kind="probe", seat=a.seat, orient=a.orient,
+                standoff_mm=ST, deep_mm=DEEP, lift_mm=list(LIFT),
                 seat_apex_A=ctx["g"]["seats"][a.seat]["apex"], T_BA=ctx["T_BA"].round(6).tolist(),
                 T_EM=ctx["T_EM"].round(6).tolist(), probe=PROBE, tool=ctx["tool"],
                 notes=[f"{time.strftime('%Y-%m-%d %H:%M')}, workstation: scripts/ur5_inverted_rig.py replay. A probe plan for "
@@ -1469,6 +1501,7 @@ def cmd_replay(a):
     dst.write_text(json.dumps(plan, default=float) + "\n")
     out = dict(plan=str(dst.relative_to(ROOT)) if ROOT in dst.parents else str(dst), n=len(rows), kinds=kinds, flagged=sum(bool(r["flags"]) for r in rows),
                travel=n_way,
+               deep_clear_mm={f"{v:g}": sum(x["deep_clear_mm"] == v for x in acts) for v in sorted({x["deep_clear_mm"] for x in acts})},
                least={k: [round(v[0], 2), v[1]] for k, v in least.items()}, joints_only=bool(a.joints_only),
                j5_deg=[min(r["j5_deg"][0] for r in rows), max(r["j5_deg"][1] for r in rows)],
                j6_deg=[min(r["j6_deg"][0] for r in rows), max(r["j6_deg"][1] for r in rows)],
@@ -1490,8 +1523,8 @@ def cmd_home_check(a):
             ctx = context(tool=tool)
             q = start_q(ctx)
             T0 = fk_many(q[None])[0]
-            for mm in (0.0,) + LIFT:
-                T = C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-mm, 0.0, 0.0]))
+            for mm in sorted({0.0, *LIFT, *np.arange(0.0, LIFT[1] + 0.1, 5.0).tolist()}):   # the lift line every 5 mm,
+                T = C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-mm, 0.0, 0.0]))  # also the way back
                 qq = ik_near(T[None], q, branch=BR[0])[0]
                 cl = clearance(qq, ctx) if np.isfinite(qq).all() else {}
                 least = min(((v[0], g_, v[1]) for g_, v in cl.items() if g_ != "port"), default=(None, None, None))
@@ -1654,6 +1687,11 @@ def main():
     rp.add_argument("--owner", action="store_true", help="joint 6 to +60 deg (the owner present)")
     rp.add_argument("--joints-only", action="store_true")
     rp.add_argument("--out-dir", default="", help="where the plan and its check go (default the experiment's data/)")
+    rp.add_argument("--deep", type=float, default=None, help="each press's checked deep pose this far past contact (mm; "
+                    "default DEEP)")
+    rp.add_argument("--deep-max", type=float, default=2.0, help="each action's deep_clear_mm: the deepest pose, in 0.25 mm "
+                    "steps up to this, that still clears (the lab's tall presses with the 5 mm sphere needed up to 1.19 mm "
+                    "for 3 N)")
     r = sub.add_parser("reach")
     r.add_argument("--orient", default=",".join(ORIENT))
     r.add_argument("--tool", default="sphere5", choices=tuple(SPHERES) + tuple(FLATS))
@@ -1673,6 +1711,8 @@ def main():
         global OUT, STEM
         PLATE[0] = "block"
         OUT, STEM = BLOCK_OUT, BLOCK_STEM
+    if getattr(a, "deep", None) is not None:            # the press depth the plans are built and checked to
+        globals()["DEEP"] = a.deep
     if getattr(a, "h", 0.0) is None:                    # the plate's own seat height
         a.h = (SEAT_BLOCK if PLATE[0] == "block" else LAYOUT)["seat_h"]
     dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam, "home-check": cmd_home_check}, build=cmd_build,
