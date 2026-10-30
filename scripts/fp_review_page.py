@@ -1401,12 +1401,29 @@ layouts scatter into <<u0>> to <<u1>> smaller ones. Each task and size therefore
 good layouts.</p>""", n0=min(x[0] for x in nb), n1=max(x[0] for x in nb),
                   m0=f"{min(x[2] for x in nb):.0f}", m1=f"{max(x[2] for x in nb):.0f}",
                   u0=f"{min(x[1] for x in nb):.0f}", u1=f"{max(x[1] for x in nb):.0f}")
+    pj = ROWS / "grid2d_v4b" / "peaks_by_size.json"
+    gp = json.loads(pj.read_text()) if pj.exists() else {}
+    moves = []
+    for task, by in gp.items():
+        mains = {float(sz): max(v, key=lambda q: q[3]) for sz, v in by.items() if v}
+        if len(mains) >= 2:
+            seq = ", ".join(f"({m[0]:.0f}, {m[1]:.0f}) mm at {sz:g} mm" for sz, m in sorted(mains.items()))
+            moves.append(f"the {names[task]}'s from {seq}")
+    if moves:
+        t += fill(r"""<p>The 2-D grid shows the same with grasp synthesis. The peak of the largest basin of the smoothed
+best-of-16 map moves with the object: <<mv>> (Figures <<f0>> onward).</p>""", mv="; ".join(moves),
+                  f0=FIG[0] + 1 + len(Z))
     for task in Z:
         t += img(MEDIA / f"20261030-sizes_{task}.png",
                  f"The {names[task]} across object sizes on the Sobol layouts: (a) rank correlation of the layouts' scores "
                  "between sizes; (b) the median and quartiles of the six mount coordinates of the best tenth of layouts per "
                  "size (standardized: each gantry's travel maps to -0.5 to 0.5); (c) the scores of the layouts that reach "
                  "the pose.")
+    for task in gp:
+        if (MEDIA / f"20261030-grid_sizes_{task}.png").exists():
+            t += img(MEDIA / f"20261030-grid_sizes_{task}.png",
+                     f"The {names[task]} on the grid at each object size whose grid ran: the best grasp of 16 per layout, "
+                     "smoothed over 7.5 mm, with the basin peaks (stars) and the largest basin's peak (circle).")
     return t
 
 
