@@ -1044,6 +1044,12 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 13:2x on 10-30, lab (2c09e4cf): block 4 ended at 13:19:51 with 101 of 101 ok. Its last 55 ran in wrist2's order
+    from 11:15:24 with no abort, no early contact and no HEX-E time-out (745,632 samples; one 0.7 s gap at the
+    start). The arm reached tall-edge-626's pose twice after the 11:09 reseat with more slack, at 11:18:58 and
+    for its slide at 12:42:24, with no loss. Block 6 started at 13:20:39 (`--resume 230820`) and should end about
+    14:45. Nothing follows it tonight. Whether the lab starts the probe mode after block 6 is with the owner (the
+    lab asked at 12:58).
   - 12:5x on 10-30, owner to the workstation: "i think tonight i wont run a calibration, im going to wait until we
     have the new set up going". At 12:56 block 4 stood at 91 of 101; the 46 actions since its 11:15:24 resume all
     ended ok, with no HEX-E loss after the 11:09 reseat. The lab's `resume_id3.sh` starts block 6 (100 rod actions,
@@ -1068,7 +1074,7 @@ push that answers it arrives.
       both (00:07 and 11:02).
     - The owner chose the night order at 10:54, and the link dropped on its first travel, home into tall-edge-626
       (11:02:49). The owner reseated the cable and gave it more slack at 11:09. Block 4 resumed in wrist2's order at
-      11:15:24. Its fifth action, tall-edge-626, ran to 3 N at about 11:20, arriving from tall-edge-604 with wrist 1
+      11:15:24. Its fifth action, tall-edge-626, passed at 11:18:58, arriving from tall-edge-604 with wrist 1
       from +7 to +25 deg.
   - 08:1x on 10-30, workstation: the wrist order searched exactly. The lab's simulation of the first order's 55 (07:57)
     counted one swing of wrist 1 over 40 deg left, a downward one into tall-slide-edge-643-1N (+23.0 to -32.3 deg), the
