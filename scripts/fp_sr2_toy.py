@@ -17,7 +17,9 @@ Reaching a pose is a nonlinear program over the object's pose and the contact co
 by SLSQP and warm-started from the nearest candidate's solution, as the paper's RRT does with fmincon. Its constraints
 are the servo limits less 3 deg, the distal link facing the object within 25 deg and a lever of 40 mm; its objective is
 the smallest singular value of the three pad Jacobians (the HOM task design's ranking score). Finger-to-finger
-clearance (1 mm) and link-to-object clearance (0.5 mm) are checked on the solution.
+clearance (1 mm) and link-to-object clearance (0.5 mm) are checked on the solution. On the v4b hand (SCALE_HAND=cad_v2)
+the finger-to-finger clearance is a constraint of the program and is taken between the plant's collision spheres at its
+touch pose, 2 mm (ff_clearance_v4b, since 2026-10-30).
 
 Three metrics per pose, after the paper's tool motion range (TMR), maximum finger torque (MFT) and sliding:
   tmr_deg    rotation of the object with the contacts fixed on it, both directions summed (about the pinch axis for
@@ -136,14 +138,15 @@ def geometry(fp, v, M=None):
 
 
 def bounds(fp):
+    up = LAT_UP if GROUND else 0.0                 # latitudes above the equator (negative) for grasps clear of the ground
     if fp in PINCHES:
         hl = CYL_L / 2 - 0.010
         return [(-0.07, 0.07), (-0.07, 0.07), (CYL_D / 2 + 0.015, 0.110), (-math.radians(35), math.radians(35)),
-                (-hl, hl), (-hl, hl), (0.0, math.radians(20)),
-                PHM_PRESS if fp == "press" else (0.0, math.radians(20))]
+                (-hl, hl), (-hl, hl), (-up, math.radians(20)),
+                PHM_PRESS if fp == "press" else (-up, math.radians(20))]
     off = math.radians(50)
     return [(-0.07, 0.07), (-0.07, 0.07), (SPH_D / 2 + 0.010, 0.110), (-off, off), (-off, off), (-off, off),
-            (-math.radians(10), math.radians(20))]
+            (-max(math.radians(10), up), math.radians(20))]
 
 
 def initial(fp, d):
@@ -171,7 +174,7 @@ def grid_start(fp, d):
         hl = CYL_L / 2 - 0.010
         psis = np.radians([-20.0, 0.0, 20.0])
         ss = np.linspace(-hl, hl, 9)
-        phs = np.radians([0.0, 10.0, 20.0])
+        phs = np.radians([-30.0, -10.0, 10.0] if GROUND else [0.0, 10.0, 20.0])   # as many as the press's
         phm = np.radians([30.0, 37.5, 45.0]) if fp == "press" else phs     # the middle's latitudes
         X, Y, H, PS, S, PH = np.meshgrid(xs, ys, hs, psis, ss, phs, indexing="ij")
         PHM = np.meshgrid(xs, ys, hs, psis, ss, phm, indexing="ij")[5]
@@ -204,7 +207,7 @@ def grid_start(fp, d):
         im = int(np.argmax(sl["middle"][k[0], k[1], k[2], k[3], k[5]]))
         v = np.array([xs[k[0]], ys[k[1]], hs[k[2]], psis[k[3]], ss[k[4]], ss[k[5]], phs[ip], phm[im]])
         return v, float(tot[k])
-    lats = np.radians([-5.0, 5.0, 15.0])
+    lats = np.radians([-35.0, -20.0, -5.0, 5.0] if GROUND else [-5.0, 5.0, 15.0])
     X, Y, H, L = np.meshgrid(xs, ys, hs, lats, indexing="ij")
     tot = np.full(X.shape, np.inf)
     for f in FINGERS:
@@ -281,15 +284,23 @@ def pad_slack(f, q, n):
     return np.minimum(PAD_Z[1] - PAD_MARGIN - sz, sz - PAD_Z[0] - PAD_MARGIN)
 
 
+def support(f, q, n):
+    """The pad's support distance h (m) from fk's pad point along -n (n the contact normal, object outward): the pad
+    touches a surface h away, the sphere proxy R away. The half-ellipsoid's centre lies 2.05 mm dorsal of the pad point."""
+    _pts, x, y, z = tip_axes(f, q)
+    u = -np.asarray(n, float)
+    ux, uy, uz = (u * x).sum(-1), (u * y).sum(-1), (u * z).sum(-1)
+    az = np.where(uz > 0, ELL[3], ELL[2])
+    return (K.R - ELL[0]) * -ux + np.sqrt((ELL[0] * ux) ** 2 + (ELL[1] * uy) ** 2 + (az * uz) ** 2)
+
+
 def rigid_clearance(f, q, mount, obj, n):
     """Smallest distance (m) from finger f's rigid distal spheres (the DIP link, cassette and cap) to the object, with the
     finger moved along the contact normal n (object outward, as the pad targets) by the sphere proxy's excess over the
     pad's own support distance, R - h(-n): where open_pose puts the finger when the pad itself touches."""
     pts, x, y, z = tip_axes(f, q)
     u = -np.asarray(n, float)
-    ux, uy, uz = (u * x).sum(-1), (u * y).sum(-1), (u * z).sum(-1)
-    az = np.where(uz > 0, ELL[3], ELL[2])
-    h = (K.R - ELL[0]) * -ux + np.sqrt((ELL[0] * ux) ** 2 + (ELL[1] * uy) ** 2 + (az * uz) ** 2)  # centre at -2.05 mm x
+    h = support(f, q, n)
     o = pts["dist_a"] + mount + ((K.R - h)[..., None] * u)
     C = o[..., None, :] + RIGID[:, 0:1] * x[..., None, :] + RIGID[:, 1:2] * y[..., None, :] + RIGID[:, 2:3] * z[..., None, :]
     oc = dict(obj)
@@ -298,6 +309,114 @@ def rigid_clearance(f, q, mount, obj, n):
         if np.ndim(obj.get("axis", 0)) == 2:
             oc["axis"] = np.asarray(obj["axis"])[:, None, :]
     return (K._point_object(C, oc) - RIGID[:, 3]).min(-1)
+
+
+# Finger-to-finger clearance of the v4b hand (2026-10-30): the closed-form skeleton (K.finger_clearance, capsules of
+# radius R) misses the v4b tip's cap and cassette, and a third of the grid's sphere grasps overlapped there at the touch
+# pose (scripts/hom_grasp_overlap.py). The check below takes the plant's own collision spheres (every finger body's
+# sphere pack and the 1,018 pad spheres, exported from the pads model by hom_grasp_overlap.py export) at the plant's
+# touch pose: each pad point on its contact point plus its support distance, as hom_tasks.open_pose places it.
+FF_BODIES = ("mount", "yaw_frame", "mcp_frame", "pip_frame", "tip")
+FF_SPHERES = ROOT / "assets/mjcf/experimental/20261030-cad_v2/finger_spheres.json"
+FF_CAP = 0.020                                  # clearances above this are not resolved (the slack is capped at T_CAP)
+if V4B:
+    FF_CLEAR = 0.002                            # between two fingers' spheres at the touch pose (hom_landscape.GAP_OK)
+_SPH = {}
+# Grasps clear of the ground (owner, 2026-10-30: "only allow grasps that would not penetrate the ground (with a tiny bit
+# of tolerance)"): with set_ground(True) the plant's spheres stay above the plane through the object's lowest point, less
+# GROUND_TOL, at the touch pose and at the open pose OPEN further out along each contact normal (hom_tasks.open_pose, where
+# the pick starts), and the contacts may lie up to LAT_UP above the equator.
+GROUND, GROUND_TOL, LAT_UP, OPEN = False, 0.001, math.radians(40.0), 0.008
+
+
+def set_ground(on=True):
+    global GROUND
+    GROUND = bool(on)
+
+
+def finger_frames(f, q, mount):
+    """(rotation, origin) in the palm frame of finger f's bodies in the pads model at joint angles q (3,): the yaw about x
+    at the mount, the MCP and PIP about FLEX * y, J, J2 and P apart along each frame's -z."""
+    ay = np.array([0.0, K.FLEX[f], 0.0])
+    R0 = rot(np.array([1.0, 0.0, 0.0]), q[0])
+    R1 = R0 @ rot(ay, q[1])
+    R2 = R1 @ rot(ay, q[2])
+    mount = np.asarray(mount, float)
+    p1 = mount + R0 @ np.array([0.0, 0.0, -K.J])
+    p2 = p1 + R1 @ np.array([0.0, 0.0, -K.J2])
+    return {"mount": (np.eye(3), mount), "yaw_frame": (R0, mount), "mcp_frame": (R1, p1), "pip_frame": (R2, p2),
+            "tip": (R2, p2 + R2 @ np.array([0.0, 0.0, -K.P]))}
+
+
+def spheres(f):
+    """Finger f's collidable spheres per body: centres (body frame), radii, a k-d tree of the centres, the bounding
+    sphere's centre and radius, the k nearest centres a query needs (1 when the radii are equal)."""
+    if not _SPH:
+        from scipy.spatial import cKDTree
+        fs = json.loads(FF_SPHERES.read_text())["fingers"]
+        for g in FINGERS:
+            _SPH[g] = {}
+            for b in FF_BODIES:
+                c, r = np.array(fs[g][b]["c"], float), np.array(fs[g][b]["r"], float)
+                mid = 0.5 * (c.min(0) + c.max(0))
+                _SPH[g][b] = (c, r, cKDTree(c), mid, float((np.linalg.norm(c - mid, axis=1) + r).max()),
+                              1 if np.ptp(r) < 1e-9 else 8)
+    return _SPH[f]
+
+
+def ff_pair(fa, Fa, fb, Fb, cap=FF_CAP):
+    """Smallest surface distance (m) between the spheres of fingers fa and fb with body frames Fa and Fb
+    (finger_frames), or cap when it is larger."""
+    Sa, Sb = spheres(fa), spheres(fb)
+    best = cap
+    for ba in FF_BODIES:
+        for bb in FF_BODIES:
+            (Ra, pa), (Rb, pb) = Fa[ba], Fb[bb]
+            ca, ra, ta, ma, rho_a, ka = Sa[ba]
+            cb, rb, tb, mb, rho_b, kb = Sb[bb]
+            if np.linalg.norm(Ra @ ma + pa - Rb @ mb - pb) - rho_a - rho_b >= best:
+                continue
+            if len(cb) > len(ca):                          # query the smaller set in the larger set's tree
+                (Ra, pa, ca, ra, ta, ka), (Rb, pb, cb, rb, kb) = (Rb, pb, cb, rb, tb, kb), (Ra, pa, ca, ra, ka)
+            x = (cb @ Rb.T + pb - pa) @ Ra                 # b's centres in a's body frame
+            dd, ii = ta.query(x, k=ka, distance_upper_bound=best + ra.max() + rb.max())
+            dd, ii = dd.reshape(len(x), -1), ii.reshape(len(x), -1)
+            hit = np.isfinite(dd)
+            if hit.any():
+                best = min(best, float((dd[hit] - np.broadcast_to(rb[:, None], dd.shape)[hit] - ra[ii[hit]]).min()))
+    return best
+
+
+def ff_clearance_v4b(qs, M):
+    """Smallest surface distance (m) between the collidable spheres of any two fingers at joint angles qs, capped at
+    FF_CAP."""
+    F = {f: finger_frames(f, qs[f], M[f]) for f in FINGERS}
+    return min(ff_pair(a, F[a], b, F[b]) for a, b in (("thumb", "index"), ("thumb", "middle"), ("index", "middle")))
+
+
+def ground_clearance_v4b(qs, M, z):
+    """Smallest height (m) of the plant's collision spheres' bottoms above the plane at height z (palm frame, z up) at
+    joint angles qs."""
+    best = np.inf
+    for f in FINGERS:
+        S = spheres(f)
+        for b, (R, p) in finger_frames(f, qs[f], M[f]).items():
+            best = min(best, float((S[b][0] @ R[2] + p[2] - S[b][1]).min()))
+    return best - z
+
+
+def ground_pair(qt, pc, n, M, branch, z):
+    """Ground clearance (m) of the touch pose qt and of the open pose OPEN further out along each contact normal."""
+    qo = {f: finger_state(f, pc[f] + (support(f, qt[f], n[f]) + OPEN) * n[f], M[f], branch[f])[0] for f in FINGERS}
+    return min(ground_clearance_v4b(qt, M, z), ground_clearance_v4b(qo, M, z))
+
+
+def touch_q(f, pc, n, mount, branch, q):
+    """Joint angles of the plant's touch pose: the pad point at pc + h n, h the pad's support distance (hom_tasks.open_pose
+    finds the same point by moving the tip's mesh to touch). pc, n: the contact point and normal (..., 3); q: a start."""
+    for _ in range(2):
+        q = finger_state(f, pc + support(f, q, n)[..., None] * n, mount, branch)[0]
+    return q
 
 
 # scales that make the constraint slacks comparable: joint margins and the reach residual as they are (rad, and
@@ -330,8 +449,8 @@ class Problem:
     def slacks(self, v):
         if self._x is not None and np.array_equal(v, self._x):
             return self._val
-        obj, tg, n, _, _ = geometry(self.fp, v, self.M)
-        cons = []
+        obj, tg, n, pc, _ = geometry(self.fp, v, self.M)
+        cons, qt = [], {}
         for f in FINGERS:
             q, reach, marg = finger_state(f, tg[f], self.M[f], self.branch[f])
             cons += [reach, *marg]
@@ -342,6 +461,12 @@ class Problem:
             if V4B:
                 cons.append(SLACK_PAD * float(pad_slack(f, q, n[f])))
                 cons.append(SLACK_OBJ * (float(rigid_clearance(f, q, self.M[f], obj, n[f])) - OBJ_CLEAR))
+                qt[f] = touch_q(f, pc[f], n[f], self.M[f], self.branch[f], q)
+        if V4B:
+            cons.append(SLACK_OBJ * (ff_clearance_v4b(qt, self.M) - FF_CLEAR))
+            if GROUND:
+                z = float(obj["centre"][2]) - obj["r"]               # the object's lowest point (cylinder lying flat)
+                cons.append(SLACK_OBJ * (min(ground_pair(qt, pc, n, self.M, self.branch, z), FF_CAP) + GROUND_TOL))
         if self.fp in PINCHES:
             cons.append(SLACK_LEVER * (v[4] - v[5] - LEVER))
         self._x, self._val = np.array(v, copy=True), np.array(cons, float)
@@ -365,7 +490,7 @@ class Problem:
             if sl.min() < -1e-6:
                 continue
             clear = clearances(self.fp, v, self.M, self.branch)
-            if clear[0] >= FF_CLEAR and clear[1] >= OBJ_CLEAR:
+            if clear_ok(clear):
                 best = (True, np.array(v, copy=True), res.nit, clear, float(sl.min()))
                 break
         if best is None:
@@ -374,17 +499,25 @@ class Problem:
 
 
 def clearances(fp, v, M, branch):
-    obj, tg, n, _, _ = geometry(fp, v, M)
-    world = {}
+    """Finger-to-finger and finger-to-object clearance (m) of pose v: the skeleton's, or on the v4b hand the plant's
+    spheres at the touch pose (ff_clearance_v4b, capped at FF_CAP) and the rigid parts' distance to the object."""
+    obj, tg, n, pc, _ = geometry(fp, v, M)
+    world, q = {}, {}
     for f in FINGERS:
-        q, _, _ = finger_state(f, tg[f], M[f], branch[f])
-        world[f] = {k: p + M[f] for k, p in K.fk(f, q).items() if k != "palmar"}
-    ff = float(K.finger_clearance(world))
+        q[f] = finger_state(f, tg[f], M[f], branch[f])[0]
+        world[f] = {k: p + M[f] for k, p in K.fk(f, q[f]).items() if k != "palmar"}
     ob = float(min(K.object_clearance(world[f], obj) for f in FINGERS))
-    if V4B:
-        ob = min(ob, min(float(rigid_clearance(f, finger_state(f, tg[f], M[f], branch[f])[0], M[f], obj, n[f]))
-                         for f in FINGERS))
-    return ff, ob
+    if not V4B:
+        return float(K.finger_clearance(world)), ob, np.inf
+    ob = min(ob, min(float(rigid_clearance(f, q[f], M[f], obj, n[f])) for f in FINGERS))
+    qt = {f: touch_q(f, pc[f], n[f], M[f], branch[f], q[f]) for f in FINGERS}
+    return ff_clearance_v4b(qt, M), ob, ground_pair(qt, pc, n, M, branch, float(obj["centre"][2]) - obj["r"])
+
+
+def clear_ok(clear):
+    """A solution's clearances (clearances) pass: the fingers apart, the links off the object and, with set_ground, the
+    hand above the ground."""
+    return clear[0] >= FF_CLEAR and clear[1] >= OBJ_CLEAR and (not GROUND or clear[2] >= -GROUND_TOL)
 
 
 def rot(u, ang):
@@ -409,6 +542,7 @@ def metrics(fp, v, M, branch):
         o2 = dict(obj, centre=cen)
         if fp in PINCHES:
             o2["axis"] = Rm @ obj["axis"]
+        qt = {}
         for f in FINGERS:
             T = (Rm @ (tg[f] - p_ax)) + p_ax                               # pad centres carried with the object
             nn = Rm @ n[f]
@@ -418,12 +552,22 @@ def metrics(fp, v, M, branch):
             ok &= (reach >= 0) & (marg.min(-1) >= -MARGIN) & (face >= FACE_PATH[fp])
             if V4B:
                 ok &= (pad_slack(f, q, nn) >= -PAD_MARGIN) & (rigid_clearance(f, q, M[f], o2, nn) >= 0.0)
+                qt[f] = touch_q(f, (Rm @ (pc[f] - p_ax)) + p_ax, nn, M[f], branch[f], q)
             world[f] = {k: p + M[f] for k, p in pts.items() if k != "palmar"}
             F = F_TRIPOD if fp == "tripod" else (F_DRIVE if f == "middle" else F_PINCH)
             Jp = K.jac_pad(f, q)                                           # (A, 3, 3)
             t = np.einsum("aij,ai->aj", Jp, -F * nn)                       # J^T f, f pressing into the object
             tau = np.maximum(tau, np.abs(t).max(-1))
-        ok &= K.finger_clearance(world) >= 0.0
+        if V4B:                    # the plant's spheres, every 5 deg and then each degree before the first contact
+            k_ok = int(np.argmin(ok)) if not ok.all() else len(ang)
+            coarse = [k for k in range(0, k_ok, 5)] + ([k_ok - 1] if k_ok else [])
+            bad = next((k for k in coarse if ff_clearance_v4b({f: qt[f][k] for f in FINGERS}, M) < 0.0), None)
+            if bad is not None:
+                bad = next(k for k in range(max(0, bad - 4), bad + 1)
+                           if ff_clearance_v4b({f: qt[f][k] for f in FINGERS}, M) < 0.0)
+                ok[bad:] = False
+        else:
+            ok &= K.finger_clearance(world) >= 0.0
         ok &= np.min([K.object_clearance(world[f], o2) for f in FINGERS], axis=0) >= 0.0
         bad = np.flatnonzero(~ok)
         k = int(bad[0]) if bad.size else len(ang)
@@ -457,6 +601,8 @@ def solve_pose(fp, d, starts):
             rec = {"ok": True, "v": [round(float(x), 6) for x in v], "nit": int(nit), "start": k,
                    "slack": round(slack, 4), "ff_mm": round(clear[0] * 1000, 2), "ob_mm": round(clear[1] * 1000, 2),
                    "branch": pr.branch.copy()}
+            if np.isfinite(clear[2]):
+                rec["gr_mm"] = round(clear[2] * 1000, 2)
             rec.update(metrics(fp, v, pr.M, pr.branch))
             return rec
     return {"ok": False}
@@ -662,24 +808,29 @@ def grasp_set(fp, d, rec0, n=16, seed=0, steps=600):
         v, br, sl = feas[i]
         dist[i] = -np.inf
         clear = clearances(fp, v, M, br)
-        if clear[0] >= FF_CLEAR and clear[1] >= OBJ_CLEAR:
+        if clear_ok(clear):
             rec = {"ok": True, "v": [round(float(x), 6) for x in v], "branch": br, "slack": round(sl, 4),
                    "ff_mm": round(clear[0] * 1000, 2), "ob_mm": round(clear[1] * 1000, 2)}
+            if np.isfinite(clear[2]):
+                rec["gr_mm"] = round(clear[2] * 1000, 2)
             rec.update(metrics(fp, v, M, br), gsv=grasp_matrix_smin(fp, v, M))
             out.append(rec)
             dist = np.minimum(dist, np.where(np.isfinite(dist), np.linalg.norm(Z - Z[i], axis=1), dist))
     return out
 
 
-def grid2d(shape, d_mm, n=16, step=5.0, shard=0, shards=1):
+GRID_SRC = "grid2dff"      # grids solved with ff_clearance_v4b (2026-10-30); the grid2d rows hold the skeleton's
+
+
+def grid2d(shape, d_mm, n=16, step=5.0, shard=0, shards=1, src=GRID_SRC):
     """The symmetric tripods (x_sep, y_sep) on a grid of `step` mm over LO2..HI2, with one object of diameter d_mm: the
     foundational pose (the tripod on a sphere; the pinch on a cylinder and the press from it) and up to n grasps per
-    pose family (grasp_set). Rows: rows/grid2d_<tripod|pinch><d>[_shard<k>].jsonl, one per layout, `call` its grid
+    pose family (grasp_set). Rows: rows/<src>_<tripod|pinch><d>[_v4b][_shard<k>].jsonl, one per layout, `call` its grid
     index; each reached pose's record holds its grasps."""
     set_sizes(**({"sph_d_mm": d_mm} if shape == "sphere" else {"cyl_d_mm": d_mm}))
     xs = np.arange(LO2[0], HI2[0] + 1e-9, step)
     ys = np.arange(LO2[1], HI2[1] + 1e-9, step)
-    name = size_name("grid2d", shape, d_mm)
+    name = size_name(src, shape, d_mm)
     path = ROWS / (f"{name}_shard{shard}.jsonl" if shards > 1 else f"{name}.jsonl")
     if path.exists():
         path.unlink()
@@ -714,14 +865,14 @@ def size_name(src, shape, d_mm):
     return f"{src}_{'tripod' if shape == 'sphere' else 'pinch'}{d_mm:g}{'_v4b' if K.HAND == 'cad_v2' else ''}"
 
 
-def poses(shape, d_mm, src="sobol8k", shard=0, shards=1):
+def poses(shape, d_mm, src="sobol8k", shard=0, shards=1, out=None):
     """One object's poses on every layout of rows/<src>.jsonl, reached or not there: the tripod on a sphere of diameter
     d_mm, or the pinch on a cylinder of diameter d_mm and the press from the pinch's solution. A layout needs only this
     object's poses (`attempt` asks for both objects'). The starts are those of `sobol` and `press`, so the toy's sizes
     give their rows' poses again. Rows: rows/<size_name>[_shard<k>].jsonl, one per layout, in its order; `ok` is the
-    first pose's."""
+    first pose's. out: the rows' stem in place of src (sobol8kff: the poses with ff_clearance_v4b)."""
     set_sizes(**({"sph_d_mm": d_mm} if shape == "sphere" else {"cyl_d_mm": d_mm}))
-    name = size_name(src, shape, d_mm)
+    name = size_name(out or src, shape, d_mm)
     path = ROWS / (f"{name}_shard{shard}.jsonl" if shards > 1 else f"{name}.jsonl")
     if path.exists():
         path.unlink()
@@ -854,6 +1005,7 @@ def main():
     po.add_argument("--src", default="sobol8k")
     po.add_argument("--shard", type=int, default=0)
     po.add_argument("--shards", type=int, default=1)
+    po.add_argument("--out", default=None, help="the rows' stem (default --src)")
     pm = sub.add_parser("merge")
     pm.add_argument("name")
     pm.add_argument("--shards", type=int, required=True)
@@ -864,6 +1016,8 @@ def main():
     pg.add_argument("--step", type=float, default=5.0, help="grid step of x_sep and y_sep (mm)")
     pg.add_argument("--shard", type=int, default=0)
     pg.add_argument("--shards", type=int, default=1)
+    pg.add_argument("--src", default=None, help="the rows' name stem (default grid2dff, grid2dgr with --ground)")
+    pg.add_argument("--ground", action="store_true", help="grasps clear of the ground (set_ground)")
     a = ap.parse_args()
     if a.cmd == "run2d":
         rrt("rrt2d", 2, a.max, a.calls, step=0.05, dmin=0.03, seed=1)
@@ -880,11 +1034,12 @@ def main():
     elif a.cmd == "press":
         press(a.name, a.shard, a.shards)
     elif a.cmd == "poses":
-        poses(a.shape, a.d, a.src, a.shard, a.shards)
+        poses(a.shape, a.d, a.src, a.shard, a.shards, a.out)
     elif a.cmd == "merge":
         merge(a.name, a.shards)
     elif a.cmd == "grid2d":
-        grid2d(a.shape, a.d, a.n, a.step, a.shard, a.shards)
+        set_ground(a.ground)
+        grid2d(a.shape, a.d, a.n, a.step, a.shard, a.shards, a.src or ("grid2dgr" if a.ground else GRID_SRC))
 
 
 if __name__ == "__main__":

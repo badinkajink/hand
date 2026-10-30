@@ -455,9 +455,12 @@ class Batch:
         # pads, and the v4b tip's small rigid spheres (cassette, cap, the DIP link's fine ones, r < 2 mm), meet the object
         # only: every other pair of them multiplies the broadphase (447 rigid spheres per finger made a 2,048-world batch
         # about ten times slower); the link spheres of 2 mm and more keep the fingers apart
+        # HOM_GPU_FILTER (2026-10-30, the timing of finger-to-finger contact): "rigid" keeps the small rigid spheres'
+        # contacts with everything, as on the CPU; "none" keeps the pads' too
+        filt = os.environ.get("HOM_GPU_FILTER", "object")
         fine = re.compile(r"_(dip_link|cassette|cap)_s\d+$")
-        pads = np.array([g for g in range(m.ngeom) if "_pad" in (m.geom(g).name or "")
-                         or (fine.search(m.geom(g).name or "") and m.geom_size[g][0] < 0.002)])
+        pads = np.array([g for g in range(m.ngeom) if ("_pad" in (m.geom(g).name or "") and filt != "none")
+                         or (fine.search(m.geom(g).name or "") and m.geom_size[g][0] < 0.002 and filt == "object")], int)
         tool = np.flatnonzero(m.geom_bodyid == self.ob)
         m.geom_contype[pads], m.geom_conaffinity[pads] = 2, 0         # pads meet the object only
         m.geom_conaffinity[tool] = m.geom_conaffinity[tool] | 2
@@ -940,7 +943,6 @@ class Batch:
         twist (W, 6); s_push: Eq. (3)'s speed (rad/s). Returns the servo targets (W, 3, 3)."""
         th, f64, pr = self.torch, self.f64, self.prm
         dt = pr.dt
-        W = self.W
         theta = meas["q"]
         if self.theta_ref is None:
             self.theta_ref = theta.clone()
@@ -1271,6 +1273,7 @@ def batch_child(spec):
         fh.write(json.dumps({"task": task, "d_mm": float(spec["d_mm"]), "dt": spec["dt"], "batch": spec["batch"],
                              "worlds": len(chunk), "build_s": round(t_build, 2), "run_s": round(wall, 2),
                              "score_s": round(t_score, 2), "layouts": spec["layouts"], "njmax": NJMAX,
+                             "filter": os.environ.get("HOM_GPU_FILTER", "object"),
                              "gpu": torch.cuda.get_device_name(0),
                              "max_mem_gb": round(torch.cuda.max_memory_allocated() / 1e9, 2),
                              "when": time.strftime("%Y-%m-%d %H:%M")}) + "\n")

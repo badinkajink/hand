@@ -10,6 +10,8 @@ script solves the touch pose in the model's joints (hom_tasks.open_pose), places
 the object removed, and takes the smallest surface distance between the collidable spheres of each pair of fingers.
 
     ~/.claude/bin/resguard.sh run --mem 3G --cpu 100 -- .venv/bin/python scripts/hom_grasp_overlap.py twist 40 [--part 0 --parts 4]
+    .venv/bin/python scripts/hom_grasp_overlap.py export          # the spheres of fp_sr2_toy.ff_clearance_v4b
+    .venv/bin/python scripts/hom_grasp_overlap.py check twist 40 200   # that check against this script's, 200 grasps
 Rows: docs/experiments/20261029-foundational_pose_review/rows/grid2d_v4b/overlap/<task>_d<d>[_p<part>].jsonl.
 """
 from __future__ import annotations
@@ -82,8 +84,86 @@ def touch_gaps(scene, m, d, setup, mxy, sph=None):
             for p, q in PAIRS}
 
 
+def export_spheres():
+    """Writes fp_sr2_toy.FF_SPHERES, each finger's collidable spheres per body of the pads model (centres in the body
+    frame, radii), and checks fp_sr2_toy.finger_frames against MuJoCo's body poses at 50 random sets of joint angles."""
+    import mujoco
+    import fp_sr2_toy as FP
+    scene = HG.Scene("sphere", 40.0)
+    m = mujoco.MjModel.from_xml_path(str(scene.pads_path))
+    out = {}
+    for f in FINGERS:
+        out[f] = {}
+        for b in FP.FF_BODIES:
+            gs = [g for g in np.flatnonzero(m.geom_bodyid == m.body(f"{f}_{b}").id)
+                  if m.geom_type[g] == mujoco.mjtGeom.mjGEOM_SPHERE and (m.geom_contype[g] or m.geom_conaffinity[g])]
+            out[f][b] = {"c": m.geom_pos[gs].round(7).tolist(), "r": m.geom_size[gs, 0].round(7).tolist()}
+    FP.FF_SPHERES.write_text(json.dumps({"source": str(scene.pads_path.relative_to(ROOT)), "fingers": out}))
+    d = mujoco.MjData(m)
+    rng = np.random.default_rng(0)
+    palm = m.body("palm_pose").id
+    err = 0.0
+    for _ in range(50):
+        qs = {f: rng.uniform(FP.LIM[f][:, 0], FP.LIM[f][:, 1]) for f in FINGERS}
+        for f in FINGERS:
+            d.qpos[[m.jnt_qposadr[m.joint(f"{f}_{j}").id] for j in T.JOINTS]] = qs[f]
+        mujoco.mj_kinematics(m, d)
+        Rp = d.xmat[palm].reshape(3, 3)
+        for f in FINGERS:
+            for b, (R, p) in FP.finger_frames(f, qs[f], m.body_pos[m.body(f"{f}_mount").id]).items():
+                i = m.body(f"{f}_{b}").id
+                err = max(err, float(np.abs(Rp.T @ d.xmat[i].reshape(3, 3) - R).max()),
+                          float(np.abs(Rp.T @ (d.xpos[i] - d.xpos[palm]) - p).max()))
+    n = {f: sum(len(v["r"]) for v in out[f].values()) for f in FINGERS}
+    print(f"{FP.FF_SPHERES.relative_to(ROOT)}: spheres per finger {n}; finger_frames against MuJoCo, largest error {err:.2e}",
+          flush=True)
+
+
+def check_toy(task, size, n):
+    """The toy's touch-pose clearance (fp_sr2_toy.ff_clearance_v4b) against touch_gaps on the plant for n grasps of the
+    grid's grasp sets (every k-th): the largest difference and the counts on each side of FF_CLEAR."""
+    import mujoco
+    import fp_sr2_toy as FP
+    scene = HG.Scene(T.SHAPE[task], size)
+    m = mujoco.MjModel.from_xml_path(str(scene.pads_path))
+    d = mujoco.MjData(m)
+    sph = finger_spheres(m)
+    lays = HG.layout_list(task, "grid2d_size", 0, size)
+    poses = L.grid_poses(task, size)
+    fp = L.POSE_KEY[task]
+    out = []
+    for key, mxy, setup in lays[::max(1, len(lays) // n)]:
+        g = poses[int(key["call"])][2]["grasps"][int(key.get("grasp", 0))]
+        M = FP.mounts6(key["d"])
+        _obj, tg, nn, pc, _ax = FP.geometry(fp, np.asarray(g["v"], float), M)
+        qt = {f: FP.touch_q(f, pc[f], nn[f], M[f], g["branch"][f],
+                            FP.finger_state(f, tg[f], M[f], g["branch"][f])[0]) for f in FINGERS}
+        out.append((1e3 * FP.ff_clearance_v4b(qt, M), min(touch_gaps(scene, m, d, setup, mxy, sph).values())))
+    a = np.array(out)
+    near = a[:, 1] < 1e3 * FP.FF_CAP
+    c = 1e3 * FP.FF_CLEAR
+    res = {"grasps": len(a), "under_cap": int(near.sum()), "median_diff_mm": float(np.median(a[near, 0] - a[near, 1])),
+           "max_abs_diff_mm": float(np.abs(a[near, 0] - a[near, 1]).max()),
+           "both_under": int(((a[:, 0] < c) & (a[:, 1] < c)).sum()), "toy_only": int(((a[:, 0] < c) & (a[:, 1] >= c)).sum()),
+           "plant_only": int(((a[:, 0] >= c) & (a[:, 1] < c)).sum()), "clear_mm": c}
+    jp = HG.ROWS / "grid2dff_v4b" / "toy_check.json"
+    jp.parent.mkdir(parents=True, exist_ok=True)
+    allr = json.loads(jp.read_text()) if jp.exists() else {}
+    allr[f"{task}_d{size:g}"] = res
+    jp.write_text(json.dumps(allr, indent=1))
+    print(f"{task} {size:g} mm, {len(a)} grasps: toy minus plant, median {np.median(a[near, 0] - a[near, 1]):+.3f} mm, "
+          f"largest |.| {np.abs(a[near, 0] - a[near, 1]).max():.3f} mm over {near.sum()} grasps under the cap; "
+          f"both under {c:g} mm {int(((a[:, 0] < c) & (a[:, 1] < c)).sum())}, only the toy "
+          f"{int(((a[:, 0] < c) & (a[:, 1] >= c)).sum())}, only the plant {int(((a[:, 0] >= c) & (a[:, 1] < c)).sum())}",
+          flush=True)
+
+
 def main():
     import mujoco
+    if sys.argv[1:2] == ["export"]:
+        return export_spheres()
+    if sys.argv[1:2] == ["check"]:
+        return check_toy(sys.argv[2], float(sys.argv[3]), int(sys.argv[4]) if len(sys.argv) > 4 else 200)
     ap = argparse.ArgumentParser()
     ap.add_argument("task")
     ap.add_argument("d", type=float)

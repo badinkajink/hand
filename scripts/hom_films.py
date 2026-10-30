@@ -316,8 +316,71 @@ def film_overlap():
     return info
 
 
+def use_ff():
+    """hom_landscape's grid functions on the grids re-solved with the plant's finger clearance (rows grid2dff_v4b)."""
+    L.GRID_SRC, L.GRID_ROWS = "grid2dff", L.ROWS / "grid2dff_v4b"
+
+
+def film_four_ff():
+    """The four tasks on the re-solved grids' best worst-case layout (rows/grid2dff_v4b/rerun.json), each task's best
+    grasp, seed 0; the cylinder tasks hold the object at its start until the grasp closes."""
+    use_ff()
+    x, y = json.loads((L.GRID_ROWS / "rerun.json").read_text())["new"]["cross"]["maximin_xy"]
+    clips, info = [], {"layout": [x, y]}
+    for task, size in (("twist", 40.0), ("roll", 40.0), ("pinpush", 25.0), ("press", 25.0)):
+        call = call_at(task, size, x, y)
+        bg = best_grasp(task, size, call)
+        var = "hold" if T.SHAPE[task] == "cylinder" else "base"
+        obj = f"{size:g} mm {'sphere' if T.SHAPE[task] == 'sphere' else 'cylinder'}"
+        fr, res = clip(task, "grid2dff_size", size, call, bg, f"{NAMES[task]}, {obj}: score {{cpu}} here, "
+                       f"{gpu_mean(task, size, call, bg, L.GRID_ROWS):.2f} on the GPU", var=var)
+        clips.append(fr)
+        info[task] = dict(res_brief(task, res), grasp=bg)
+    compose(clips, MEDIA / "20261030-film_four_ff.mp4", grid=(2, 2))
+    return info
+
+
+def film_contact_ff():
+    """Of the re-solved twist grid's 40 best layouts, the one whose CPU score with all contacts falls furthest below the
+    GPU's (rows/cpu_best/top_twist_d40_ff.jsonl): its index and middle start 2 mm apart and touch during the twist. All
+    contacts against the GPU's collision filter, seed 0."""
+    use_ff()
+    rows = [json.loads(x) for x in (ROWS / "cpu_best" / "top_twist_d40_ff.jsonl").read_text().splitlines() if x.strip()]
+    r = max((r for r in rows if not r["gpu_filter"]), key=lambda r: r["gpu_best"] - r["score"])
+    clips, info = [], {"layout": [r["x_sep"], r["y_sep"]], "call": r["call"], "grasp": r["grasp"], "gpu": r["gpu_best"]}
+    for name, gf in (("all contacts", False), ("pads and small rigid spheres meet the object only", True)):
+        fr, res = clip("twist", "grid2dff_size", 40.0, r["call"], r["grasp"], f"{name}: score {{cpu}}", gpu_filter=gf)
+        clips.append(fr)
+        info[name] = res_brief("twist", res)
+    compose(clips, MEDIA / "20261030-film_contact_ff.mp4")
+    return info
+
+
+def film_sizes_ea(task, sizes):
+    """The best layout found at three object sizes (the live EA's rows, rows/ea_live; the full grid at the default
+    object), each with its best grasp by the GPU's seeds 0-2, seed 0."""
+    use_ff()
+    clips, info = [], {}
+    for size in sizes:
+        rows_dir, name = (L.GRID_ROWS, None) if (L.GRID_ROWS / f"{task}_d{size:g}.jsonl").exists() else \
+            (ROWS / "ea_live", f"{task}_d{size:g}_s0")
+        sc, _ = L.grid_scores(task, size, rows_dir, name)
+        (call, g), m = max(((k, float(np.mean(v))) for k, v in sc.items() if len(v) == 3), key=lambda kv: kv[1])
+        x, y, _r = L.grid_poses(task, size)[call]
+        obj = f"{size:g} mm {'sphere' if T.SHAPE[task] == 'sphere' else 'cylinder'}"
+        fr, res = clip(task, "grid2dff_size", size, call, g, f"{obj}, ({x:.0f}, {y:.0f}) mm: score {{cpu}} here, "
+                       f"{m:.2f} on the GPU", var="hold" if T.SHAPE[task] == "cylinder" else "base")
+        clips.append(fr)
+        info[f"{size:g}"] = dict(res_brief(task, res), layout=[x, y], call=call, grasp=g, gpu=m)
+    compose(clips, MEDIA / f"20261030-film_sizes_{task}.mp4")
+    return info
+
+
 FILMS = {"overlap": film_overlap, "grasp_twist": lambda: film_grasp("twist", 40.0), "grasp_pinpush": lambda: film_grasp("pinpush", 25.0),
-         "post": film_post, "local": film_local, "sizes": film_sizes, "four": film_four, "reanchor": film_reanchor}
+         "post": film_post, "local": film_local, "sizes": film_sizes, "four": film_four, "reanchor": film_reanchor,
+         "four_ff": film_four_ff, "contact_ff": film_contact_ff,
+         "sizes_twist": lambda: film_sizes_ea("twist", (25.0, 45.0, 80.0)),
+         "sizes_pinpush": lambda: film_sizes_ea("pinpush", (13.0, 25.0, 50.0))}
 
 
 def main():

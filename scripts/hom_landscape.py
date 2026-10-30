@@ -456,6 +456,7 @@ def cmd_moves(a):
 EA_POP, EA_DELTA, EA_RUNS, EA_GENS = 16, 30.0, 200, 400     # population, mutation width (mm), runs, generation cap
 EA_TASKS = (("twist", 40.0), ("roll", 40.0), ("pinpush", 25.0), ("press", 25.0))
 EA_EPS = (0.05, 0.02)                                     # score margins below the grid's best
+EA_BUDGETS = (2000, 3000, 4000, 6000, 8000)               # rollouts at which the share of runs within a margin is read
 
 
 def ea_landscape(task, size, ok=None):
@@ -543,6 +544,9 @@ def cmd_ea(a):
     out = {}
     clear = getattr(a, "clear", False)
     for task, size in EA_TASKS:
+        if not (GRID_ROWS / f"{task}_d{size:g}.jsonl").exists():
+            print(f"{task} {size:g} mm: no grid rows in {GRID_ROWS.name}", flush=True)
+            continue
         ok = {k for k, g in overlap_gaps(task, size).items() if g >= GAP_OK} if clear else None
         look, basin, _top, best, total, xs, ys = ea_landscape(task, size, ok)
         best_cell = max(look["best"], key=lambda k: look["best"][k][0])
@@ -581,6 +585,9 @@ def cmd_ea(a):
                 return {"reached": float(np.mean(np.isfinite(v))), "median": pc(50), "q25": pc(25), "q75": pc(75)}
             key = f"{name}_{fit}" + (f"_pop{pop}" if name == "ea" else "")
             res["runs"][key] = {**{f"to_within_{e:g}": q(hits[e]) for e in EA_EPS},
+                                **{f"share_within_{e:g}_by": {str(b): float(np.mean([h is not None and h <= b
+                                                                                     for h in hits[e]]))
+                                                              for b in EA_BUDGETS} for e in EA_EPS},
                                 "final_median": float(np.median(finals)), "final_other_basin": float(np.mean(other)),
                                 "curve": {"rollouts": pts.round(0).tolist(), "median_best": med}}
             r_ = res["runs"][key]
@@ -588,18 +595,19 @@ def cmd_ea(a):
                   + f"; final median {r_['final_median']:.3f}, other basin {r_['final_other_basin']:.2f}; grid {total}",
                   flush=True)
         out[f"{task}_d{size:g}"] = res
-    (ROWS / "ea").mkdir(parents=True, exist_ok=True)
-    (ROWS / "ea" / ("summary_clear.json" if clear else "summary.json")).write_text(json.dumps(
+    EA_DIR.mkdir(parents=True, exist_ok=True)
+    (EA_DIR / ("summary_clear.json" if clear else "summary.json")).write_text(json.dumps(
         {"pop": EA_POP, "delta_mm": EA_DELTA, "runs": EA_RUNS, "clear_gap_mm": GAP_OK if clear else None, **out}, indent=1))
-    fig_ea(out, "_clear" if clear else "")
+    fig_ea(out, ("_clear" if clear else "") + ("_ff" if GRID_SRC == "grid2dff" else ""))
     return 0
 
 
 def cmd_ea_figure(a):
     """The EA figure from rows/ea/summary.json (summary_clear.json with --clear)."""
     clear = getattr(a, "clear", False)
-    d = json.loads((ROWS / "ea" / ("summary_clear.json" if clear else "summary.json")).read_text())
-    fig_ea({k: v for k, v in d.items() if isinstance(v, dict) and "runs" in v}, "_clear" if clear else "")
+    d = json.loads((EA_DIR / ("summary_clear.json" if clear else "summary.json")).read_text())
+    fig_ea({k: v for k, v in d.items() if isinstance(v, dict) and "runs" in v},
+           ("_clear" if clear else "") + ("_ff" if GRID_SRC == "grid2dff" else ""))
     return 0
 
 
@@ -728,6 +736,89 @@ def cmd_overlap(a):
     (OVERLAP / "summary.json").write_text(json.dumps(out, indent=1))
     fig_overlap(clear_sets)
     return 0
+
+
+def cross_block(per_task):
+    """The four tasks at their default objects from {task: (poses, best)}: the share of layouts above 0.5 on every task,
+    the median of the worst task's score, and the best worst-case (maximin) layout with its four scores."""
+    per = [{(poses[c][0], poses[c][1]): m for c, (m, _j) in best.items()} for poses, best in per_task.values()]
+    common = set.intersection(*[set(p) for p in per])
+    worst = {xy: min(p[xy] for p in per) for xy in common}
+    mm = max(worst, key=worst.get)
+    return {"layouts": len(common), "share_all_above_0.5": float(np.mean([v > 0.5 for v in worst.values()])),
+            "maximin_xy": list(mm), "maximin_scores": [p[mm] for p in per],
+            "worst_median": float(np.median(list(worst.values())))}
+
+
+def cmd_rerun(a):
+    """The grids re-solved with the plant's finger clearance (fp_sr2_toy.ff_clearance_v4b; rows grid2dff_v4b) beside
+    the earlier ones (grid2d_v4b, all grasps): per task and size the layouts that reach the pose, the medians of the
+    foundational pose's and the best grasp's scores (seeds 0-2), the best layout and the largest basin's peak; the four
+    tasks at their default objects. Writes rows/grid2dff_v4b/rerun.json."""
+    global GRID_SRC, GRID_ROWS
+    keep = GRID_SRC, GRID_ROWS
+    out = {}
+    for name, src, rows in (("old", "grid2d", ROWS / "grid2d_v4b"), ("new", "grid2dff", ROWS / "grid2dff_v4b")):
+        GRID_SRC, GRID_ROWS = src, rows
+        res, defaults = {}, {}
+        for task in TASKS:
+            for size in SIZES[task]:
+                if not (rows / f"{task}_d{size:g}.jsonl").exists():
+                    continue
+                poses, best, fp = masked_table(task, size)
+                calls = sorted(best)
+                top = max(calls, key=lambda c: best[c][0])
+                res[f"{task}_d{size:g}"] = {
+                    "reached": int(sum(1 for v in poses.values() if v[2] and v[2].get("ok"))), "run": len(calls),
+                    "fp_median": float(np.median([fp[c] for c in calls if c in fp])),
+                    "best_median": float(np.median([best[c][0] for c in calls])),
+                    "best_is_fp": float(np.mean([best[c][1] == 0 for c in calls])),
+                    "best": best[top][0], "best_xy": [poses[top][0], poses[top][1]], "peak": peak_of(poses, best),
+                    "above_0.5": float(np.mean([best[c][0] > 0.5 for c in calls]))}
+                if size == DEFAULT[task]:
+                    defaults[task] = (poses, best)
+        if len(defaults) == 4:
+            res["cross"] = cross_block(defaults)
+        out[name] = res
+        print(name, json.dumps(res, indent=None)[:1500], flush=True)
+    GRID_SRC, GRID_ROWS = keep
+    (ROWS / "grid2dff_v4b").mkdir(parents=True, exist_ok=True)
+    (ROWS / "grid2dff_v4b" / "rerun.json").write_text(json.dumps(out, indent=1))
+    fig_rerun()
+    return 0
+
+
+def fig_rerun():
+    """The best-of-16 maps of the four tasks at their default objects: the earlier grids (top; the toy's skeleton
+    clearance) and the grids re-solved with the plant's finger clearance (bottom); the best layout starred."""
+    global GRID_SRC, GRID_ROWS
+    keep = GRID_SRC, GRID_ROWS
+    plt = FR.plt_setup()
+    fig, axs = plt.subplots(2, 4, figsize=(13.5, 7.4), constrained_layout=True, sharex=True, sharey=True)
+    for i, (src, rows) in enumerate((("grid2d", ROWS / "grid2d_v4b"), ("grid2dff", ROWS / "grid2dff_v4b"))):
+        GRID_SRC, GRID_ROWS = src, rows
+        for j, task in enumerate(("twist", "roll", "pinpush", "press")):
+            ax = axs[i, j]
+            size = DEFAULT[task]
+            if not (rows / f"{task}_d{size:g}.jsonl").exists():
+                ax.set_axis_off()
+                continue
+            xs, ys, M = grid_maps(task, size)
+            ext = [xs[0] - 2.5, xs[-1] + 2.5, ys[0] - 2.5, ys[-1] + 2.5]
+            ax.imshow(np.where(np.isfinite(M["reached"]) & (M["reached"] > 0), np.nan, 0.0), origin="lower", extent=ext,
+                      cmap="Greys", vmin=-1, vmax=1, aspect="equal")
+            im = ax.imshow(M["best"], origin="lower", extent=ext, cmap="viridis", vmin=0, vmax=1, aspect="equal")
+            k = np.nanargmax(M["best"])
+            ax.plot(xs[k % len(xs)], ys[k // len(xs)], "r*", ms=14, mec="k")
+            if i == 0:
+                ax.set_title(f"{TASK_NAME[task]}, {size:g} mm {T_SHAPE[task]}")
+            if i == 1:
+                ax.set_xlabel("x_sep (mm)")
+            if j == 0:
+                ax.set_ylabel(("Before" if i == 0 else "After") + "\ny_sep (mm)")
+    fig.colorbar(im, ax=axs.ravel().tolist(), shrink=0.7, label="Best-of-16 score")
+    GRID_SRC, GRID_ROWS = keep
+    FR.save(fig, "20261030-gridff_maps.png")
 
 
 def fig_overlap(clear_sets):
@@ -1029,22 +1120,24 @@ def fig_value(task, size, out=None):
 
 # ------------------------------------------------------------------------------------------------ the 2-D grid with grasp sets
 
-GRID_ROWS = ROWS / "grid2d_v4b"
+GRID_SRC, GRID_ROWS = "grid2d", ROWS / "grid2d_v4b"   # --grid grid2dff: the grids with the plant's finger clearance
+EA_DIR = ROWS / "ea"
 POSE_KEY = {"twist": "tripod", "roll": "tripod", "pinpush": "pinch", "press": "press"}
 
 
-def grid_poses(task, size, src="grid2d"):
+def grid_poses(task, size, src=None):
     """The grid's layouts for the task's object: {call: (x_sep, y_sep, pose record with its grasps or None)}."""
     import fp_sr2_toy as FP
+    src = src or GRID_SRC
     name = FP.size_name(src, "sphere" if POSE_ROWS[task] == "tripod" else "cylinder", size)
     return {int(r["call"]): (r["xy"][0], r["xy"][1], (r["fp"].get(POSE_KEY[task]) or {}) if r["ok"] else None)
             for r in FR.load(name)}
 
 
-def grid_scores(task, size, rows_dir=GRID_ROWS, name=None):
+def grid_scores(task, size, rows_dir=None, name=None):
     """Per (call, grasp): [score of each seed], and per (call, grasp, seed): held."""
     import hom_rows
-    p = rows_dir / f"{name or f'{task}_d{size:g}'}.jsonl"
+    p = (rows_dir or GRID_ROWS) / f"{name or f'{task}_d{size:g}'}.jsonl"
     sc, held = {}, {}
     for x in (p.read_text().splitlines() if p.exists() else []):
         if not x.strip():
@@ -1756,6 +1849,7 @@ def main():
         p.add_argument("--clear", action="store_true", help=f"only the grasps whose fingers stay {GAP_OK:g} mm apart")
     sub.add_parser("draws")
     sub.add_parser("overlap")
+    sub.add_parser("rerun")
     for name in ("moves", "moves-report", "local-report"):
         p = sub.add_parser(name)
         p.add_argument("--task", choices=TASKS, required=True)
@@ -1767,9 +1861,15 @@ def main():
     p.add_argument("--d", type=float, required=True)
     p.add_argument("--calls", type=int, nargs="+", required=True, help="grid indices (x_sep major, y_sep minor)")
     p.add_argument("--out", default="")
+    for p in sub.choices.values():
+        p.add_argument("--grid", choices=("grid2d", "grid2dff"), default="grid2d",
+                       help="grid2dff: the grids solved with the plant's finger clearance (rows grid2dff_v4b, ea_ff)")
     a = ap.parse_args()
+    if a.grid == "grid2dff":
+        global GRID_SRC, GRID_ROWS, EA_DIR
+        GRID_SRC, GRID_ROWS, EA_DIR = "grid2dff", ROWS / "grid2dff_v4b", ROWS / "ea_ff"
     return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
-            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "local-report": cmd_local_report, "ea": cmd_ea, "ea-figure": cmd_ea_figure, "draws": cmd_draws, "overlap": cmd_overlap,
+            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "local-report": cmd_local_report, "ea": cmd_ea, "ea-figure": cmd_ea_figure, "draws": cmd_draws, "overlap": cmd_overlap, "rerun": cmd_rerun,
             "cross": cmd_cross,
             "valrep": cmd_valrep, "cross-grid": cmd_cross_grid}[a.cmd](a)
 

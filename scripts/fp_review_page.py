@@ -1232,6 +1232,15 @@ SEC[future].</p>""",
                 f"scores {a['score']:.2f}. With the filter they pass through each other, and it scores {b['score']:.2f}. "
                 "<code>scripts/hom_films.py overlap</code>.")
     t += v4b_film("overlap", cap_ov)
+    rj = ROWS / "grid2dff_v4b" / "rerun.json"
+    rn = json.loads(rj.read_text())["new"] if rj.exists() else {}
+    if "twist_d40" in rn and "cross" in rn:
+        t += fill(r"""<p>The overlap is fixed on the page <a href="20261030-hom_layout_trends.html">SR2 layouts across
+object sizes</a>. There the pose toy keeps every two fingers 2 mm apart by the plant's own collision spheres. Re-solved
+that way, the 40 mm twist's median best-of-16 score is <<b>>, against <<bc>> here with the overlapping grasps left out.
+On <<a>> % of the re-solved layouts all four tasks score above 0.5.</p>""",
+                  b=f"{rn['twist_d40']['best_median']:.2f}", bc=f"{tw['best_median_clear']:.2f}",
+                  a=f"{100 * rn['cross']['share_all_above_0.5']:.0f}")
     return t
 
 
@@ -2078,6 +2087,10 @@ def sec_history():
          "every grasp's touch pose", "the films of the best grasps showed them failing on the CPU", "a third of the sphere "
          "grasps overlap two fingers' caps, which the GPU does not see; results with clear grasps only (Section "
          "SEC[v4b])"],
+        ["2026-10-30, 14:30 on", "The pose toy keeps two fingers 2 mm apart by the plant's collision spheres; the grids "
+         "re-solved; the EA run live at 19 object sizes; grasps constrained to clear a table under the object", "the "
+         "overlap of Section SEC[v4b]; the EA's cost against the full grid; the owner's question of grasping from a "
+         "table", 'the page <a href="20261030-hom_layout_trends.html">SR2 layouts across object sizes</a>'],
     ]
     return ("<p>Table SEC_TAB_H lists the changes to the method in order, with their reasons and what they showed."
             "</p>").replace("SEC_TAB_H", str(TAB[0] + 1)) + table(
@@ -2197,9 +2210,10 @@ rotation, which the SR2 hand cannot change without new parts.</li>
 <li>The cylinder tasks keep few grasps held in every seed (median held share <<hp>> in the pin-push and <<hr>> in the
 press), so their maps rank single layouts roughly. The pin-push's peak lies on the grid's edge of the smallest
 index-to-middle spacing, 50 mm; smaller spacings are outside the grid.</li>
-<li>The GPU evaluator lets two fingers' v4b caps and cassettes pass through each other, and the pose toy does not keep
-them apart. A third of the sphere grasps on the 40 mm sphere overlap there (Section SEC[v4b]); every number of Sections
-SEC[grid] to SEC[search] includes them.</li>
+<li>The GPU evaluator lets two fingers' v4b caps and cassettes pass through each other, and the pose toy of this page
+does not keep them apart. A third of the sphere grasps on the 40 mm sphere overlap there (Section SEC[v4b]); every number
+of Sections SEC[grid] to SEC[search] includes them. The grids re-solved with the fingers 2 mm apart are on the page
+<a href="20261030-hom_layout_trends.html">SR2 layouts across object sizes</a>.</li>
 <li>On its 3 mm support post the cylinder rolls during the approach, and the draws that roll it toward the thumb drop most
 layouts (Section SEC[grid]). The cylinder-task numbers of this page come from runs on the post.</li>
 <li>In the pin-push the middle finger presses with less than its commanded 1.5 N. In the code walkthrough's example it
@@ -2216,20 +2230,14 @@ Section 10). The pin-push scores on this page are without the re-anchor.</li>
 
 def sec_future(N):
     done = bool(N.get("valrep"))
-    return """<ol>
-<li>Keep two fingers' v4b parts 2 mm apart in the pose toy. Compute the finger clearance from the sphere packs of the
-cassette, the cap and the DIP link, as <code>fp_sr2_toy.rigid_clearance</code> does against the object. Give the GPU
-evaluator collisions between two fingers' caps and cassettes, a few spheres per finger. Then rerun the grid's grasp sets,
-the Sobol poses and their GPU rollouts. The clear-grasp results of Section SEC[v4b] hold if the rerun's medians and peaks
-match them within the spread between seeds.</li>
+    return """<p>The finger clearance in the pose toy and the hold of the cylinder ran on 2026-10-30 from 14:30; their
+results and the open items they left are on the page <a href="20261030-hom_layout_trends.html">SR2 layouts across object sizes</a>.</p>
+<ol>
 <li>Find why the pin-push's best clear grasp on the grid's peak layout (85, 60) mm holds the cylinder up in the down
 stroke on the CPU runner. On the GPU it tracks the command. Trace every contact of the middle
 finger's pad and links with the cylinder and the other fingers on both runners (<code>scripts/hom_films.py
 grasp_pinpush</code>). The account holds if a contact present on one runner and absent on the other starts when the
 cylinder stops following the command.</li>
-<li>Hold the object at its start until the forces come on in every cylinder-task run, with the variant <code>hold</code>
-or a cradle in place of the 3 mm post. Then rerun the cylinder grids. The draw effect of Section SEC[grid] is gone if
-no draw's held share falls outside the others' range.</li>
 <li>Rerun the four-task front's layouts with 30 seeds per task on the GPU (<code>scripts/hom_gpu.py run</code> on a
 row file of the front). Keep the layouts whose rank agrees between seed halves at Spearman above 0.8. The front is too
 noisy to act on if fewer than half keep their rank.</li>
@@ -2453,6 +2461,8 @@ the grasp, and for the twist that decides the outcome.</p>""",
         szs = sorted(sz for t_, sz in GS if t_ == task)
         if len(szs) >= 2:
             sl.append((GS[(task, szs[-1])]["peak"][0] - GS[(task, szs[0])]["peak"][0]) / (szs[-1] - szs[0]))
+    rj = ROWS / "grid2dff_v4b" / "rerun.json"
+    RN = json.loads(rj.read_text())["new"] if rj.exists() else {}
     lede = fill("""The foundational-pose paper [1] keeps a hand design if it reaches a few poses that tools are wielded
 from. On the SR2 hand with the calibrated v4b fingertip, a GPU version of the HOM controller scored 8,192 layouts on four
 tasks and four object sizes. With the best of 16 grasps per layout and task, the median twist score of a 625-layout grid
@@ -2463,10 +2473,11 @@ mounts 4 mm cost the best twist layouts a median <<c4>>.<<lr>>""",
                 sb=f"{100 * CF['share_all_above_0.5_best']:.0f}", sf=f"{100 * CF['share_all_above_0.5_fp']:.0f}",
                 c4=f"{-pe['change_median']:.2f}",
                 ov=(" In a third of the sphere grasps the index's and middle's fingertip parts overlap, which the GPU "
-                    "evaluator does not detect. Without them the share above 0.5 on all four tasks is "
-                    f"{100 * N['overlap']['summary']['cross']['clear']['share_all_above_0.5']:.0f} % instead of "
-                    f"{100 * N['overlap']['summary']['cross']['all']['share_all_above_0.5']:.0f} %, on the seeds the "
-                    "grasps were picked on (Section 9)." if N.get("overlap") else ""),
+                    "evaluator does not detect. Re-solved with the fingers 2 mm apart, "
+                    f"{100 * RN['cross']['share_all_above_0.5']:.0f} % of the layouts score above 0.5 on all four tasks "
+                    "on the seeds the grasps were picked on (Section 9)." if RN.get("cross") else
+                    " In a third of the sphere grasps the index's and middle's fingertip parts overlap, which the GPU "
+                    "evaluator does not detect (Section 9)."),
                 lr=(" Searching 64 layouts within 2 mm of each of the 20 best found a better one on fresh seeds for "
                     f"{round(N['grad']['local']['best_beats_start_check'] * N['grad']['local']['starts'])}."
                     if N["grad"].get("local") else ""),

@@ -34,9 +34,9 @@ OUT = F.ROWS / "cpu_best"
 FINE = re.compile(r"_(dip_link|cassette|cap)_s\d+$")
 
 
-def run(task, d, call, grasp, seed, gpu_filter):
+def run(task, d, call, grasp, seed, gpu_filter, kind="grid2d_size", hold_s=0.0):
     import mujoco
-    _k, mxy, setup = F.find(task, "grid2d_size", d, call, grasp)
+    _k, mxy, setup = F.find(task, kind, d, call, grasp)
     scene = HG.Scene(T.SHAPE[task], d)
     bm, q_open = scene.prepare(mxy, setup)
     plant = T.Plant(scene.pads_path, setup)
@@ -71,7 +71,8 @@ def run(task, d, call, grasp, seed, gpu_filter):
         for p_ in pairs:
             touch[p_] += 1
     plant.advance = advance
-    res, _tr, _ = T.rollout(task, setup, plant, mirror, q_open, seed, T.PRM, replace(H.HomParams(dt=T.DT_C)))
+    res, _tr, _ = T.rollout(task, setup, plant, mirror, q_open, seed, T.PRM, replace(H.HomParams(dt=T.DT_C)), None,
+                            None, hold_s)
     return res, {f"{a}-{b}": n for (a, b), n in touch.items()}
 
 
@@ -82,15 +83,32 @@ def main():
     ap.add_argument("--n", type=int, default=20)
     ap.add_argument("--part", type=int, default=0)
     ap.add_argument("--parts", type=int, default=1)
+    ap.add_argument("--grid", choices=("grid2d", "grid2dff"), default="grid2d",
+                    help="grid2dff: the grids with the plant's finger clearance, the cylinder held until the grasp closes")
+    ap.add_argument("--ea", action="store_true", help="the top layouts of hom_ea.py's rows (rows/ea_live, seed 0's search) "
+                    "in place of the full grid's; with --grid grid2dff")
     a = ap.parse_args()
-    tab = [r for r in L.grid_table(a.task, a.d) if r.get("n_grasps")]
+    ff = a.grid == "grid2dff"
+    if ff:
+        L.GRID_SRC, L.GRID_ROWS = "grid2dff", L.ROWS / "grid2dff_v4b"
+    hold = T.T_CLOSE if ff and T.SHAPE[a.task] == "cylinder" else 0.0
+    if a.ea:
+        sc, _ = L.grid_scores(a.task, a.d, L.ROWS / "ea_live", f"{a.task}_d{a.d:g}_s0")
+        poses, best = L.grid_poses(a.task, a.d), {}
+        for (c, j), v in sc.items():
+            if len(v) == 3 and np.mean(v) > best.get(c, (-1.0, None))[0]:
+                best[c] = (float(np.mean(v)), j)
+        tab = [{"call": c, "x_sep": poses[c][0], "y_sep": poses[c][1], "best": m, "best_grasp": j}
+               for c, (m, j) in best.items()]
+    else:
+        tab = [r for r in L.grid_table(a.task, a.d) if r.get("n_grasps")]
     top = sorted(tab, key=lambda r: -r["best"])[:a.n][a.part::a.parts]
     OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / f"top_{a.task}_d{a.d:g}.jsonl"
+    path = OUT / f"top_{a.task}_d{a.d:g}{'_ff' if ff else ''}{'_ea' if a.ea else ''}.jsonl"
     for r in top:
         for gf in (False, True):
             t0 = time.time()
-            res, touch = run(a.task, a.d, r["call"], r["best_grasp"], 0, gf)
+            res, touch = run(a.task, a.d, r["call"], r["best_grasp"], 0, gf, f"{a.grid}_size", hold)
             row = {"task": a.task, "d_mm": a.d, "call": r["call"], "x_sep": r["x_sep"], "y_sep": r["y_sep"],
                    "grasp": r["best_grasp"], "gpu_best": r["best"], "seed": 0, "gpu_filter": gf,
                    "finger_touch_periods": touch, "score": L.rollout_score(a.task, res),
