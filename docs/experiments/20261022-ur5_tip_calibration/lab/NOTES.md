@@ -1835,6 +1835,11 @@ The clearances in this section and the one before it are on mount v3. The next s
   00:08:09 and moves nothing more. The scratchpad script `hexe_poll.sh` reads the stream for 10 s every 5 min.
 - Block 6's two chunks simulated clean on block 5's registration at 23:38 (no abort, no early contact). Their cell
   checks on every 5th sample still run.
+- Ready for the owner's go: `lab/20261030-plan_sphere_lab_check_v3id3.json` holds pass 1's touch-offs at sphere nodes
+  788, 728 and 729, renamed chk-*, as the check of 10-28 was for v3 ID 1. Each onset against block 1's registration
+  shows whether the reseat moved the tool. The check and block 4's remaining 55 actions are simulated from home at
+  nice 19 (the remainder's first travel, from home into tall-edge-626, is new). Scratchpad `resume_id3.sh` gates on
+  those simulations and on block 6's chunks, then runs the check, block 4's remainder and block 6.
 
 ### The night's plans, after the finer path checks (14:4x)
 

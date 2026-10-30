@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-30 00:12 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-30 00:15 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -130,8 +130,10 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 ## Waiting on the owner
 
 - **The HEX-E (since 00:08 on 10-30).** If it does not come back by itself, reseat its connector. Then, on the owner's
-  go: the lab checks the stream, goes home on a checked path, repeats three touch-offs to see whether the tool moved,
-  and resumes block 4 (55 actions) and then block 6 (100), about 3.3 h.
+  go, the lab runs scratchpad `resume_id3.sh`. It checks a 20 s stream and goes home on a checked path. It repeats three
+  sphere touch-offs (`20261030-plan_sphere_lab_check_v3id3.json`) in a seed of block 1's registration, and stops if
+  any onset is more than 0.1 mm off, which would mean the tool moved. Then it resumes block 4 (55 actions) and block 6
+  (100), about 3.5 h. The check and block 4's remainder are being simulated from home.
 - When v3 ID 1 goes back on, the three plans above.
 - A new HEX-E cable.
 
