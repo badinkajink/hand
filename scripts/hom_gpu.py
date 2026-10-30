@@ -14,7 +14,9 @@ the world once, in make_data). One batch runs one task on one object size at one
   2d       the symmetric tripods of the toy's 2-D case with the task study's equator grasp (roll and twist);
   2dfp, rrt6d, sobol8k   the toy's layouts (scripts/fp_sr2_toy.py; rows rrt2d, rrt6d, sobol8k) from their
            foundational poses: the tripod pose for the roll and the twist (40 mm sphere), the pinch pose for the
-           pin-push and the press pose for the press (25 mm cylinder).
+           pin-push and the press pose for the press (25 mm cylinder);
+  sobol8k_size   every Sobol layout that reaches the task's pose on the object of --d (fp_sr2_toy.py poses);
+  grid2d_size    the 2-D grid of symmetric tripods with every grasp of each layout's grasp set (fp_sr2_toy.py grid2d).
 
 The controller is hom.HomController.step for every world and finger, in torch:
   - the measurement: the plant's joint angles, object pose and per-finger centre of pressure, delayed, offset and
@@ -187,8 +189,48 @@ def grasp_fp(row):
     return np.asarray(obj["centre"], float), {f: np.asarray(n[f], float) for f in FINGERS}
 
 
+POSE = {"roll": "tripod", "twist": "tripod", "pinpush": "pinch", "press": "press"}
+
+
+def size_layouts(task, src, nmax, d_mm):
+    """The layouts of rows/<src>.jsonl that reach the task's pose on its object of diameter d_mm, from the toy's rows of
+    that size (fp_sr2_toy.size_name: `poses` for the Sobol layouts, `grid2d` for the 2-D grid). A pose with a grasp set
+    (fp_sr2_toy.grasp_set) gives one entry per grasp, `grasp` its index (0, the foundational pose)."""
+    import fp_sr2_toy as FP
+    shape = T.SHAPE[task]
+    FP.set_sizes(**({"sph_d_mm": d_mm} if shape == "sphere" else {"cyl_d_mm": d_mm}))
+    path = ROWS / f"{FP.size_name(src, shape, d_mm)}.jsonl"
+    if not path.exists():
+        raise FileNotFoundError(f"{path.name}: run fp_sr2_toy.py poses or grid2d --shape {shape} --d {d_mm:g} first")
+    out = []
+    for r in (json.loads(x) for x in path.read_text().splitlines() if x.strip()):
+        rec = r["fp"].get(POSE[task]) or {}
+        if not rec.get("ok"):
+            continue
+        mxy = mount_xy(r["d"])
+        for j, g in enumerate(rec.get("grasps") or [rec]):
+            key = {"d": r["d"], "call": r["call"], "kin": {k: g[k] for k in ("tmr_deg", "mft_mNm", "smin_mm")}}
+            if "grasps" in rec:
+                key.update(grasp=j, gsv=g.get("gsv"))
+            if shape == "sphere":
+                obj, _tg, n, _pc, _ax = FP.geometry("tripod", np.asarray(g["v"], float), FP.mounts6(r["d"]))
+                setup = tripod_setup(task, mxy, (np.asarray(obj["centre"], float),
+                                                 {f: np.asarray(n[f], float) for f in FINGERS}), d_mm)
+            else:
+                setup = pinch_setup(task, g["v"], r["d"])
+            out.append((key, mxy, setup))
+        if nmax and len({k["call"] for k, _, _ in out}) >= nmax:
+            break
+    return out
+
+
 def layout_list(task, kind, nmax, d_mm=None):
-    """[(key, mounts xy, setup)] for the requested layouts and task."""
+    """[(key, mounts xy, setup)] for the requested layouts and task. A toy set with the suffix _size (sobol8k_size)
+    takes the poses solved for the object of diameter d_mm; the plain toy sets hold the poses of D_FP only."""
+    if kind.endswith("_size"):
+        return size_layouts(task, kind[:-len("_size")], nmax, d_mm)
+    if kind in FP_ROWS and d_mm is not None and float(d_mm) != D_FP[task]:
+        raise ValueError(f"--layouts {kind} holds poses of the {D_FP[task]:g} mm object; use {kind}_size for {d_mm:g} mm")
     out = []
     if kind == "design":
         _pp, _pt, setup = T.build(task, float(d_mm))
@@ -1168,7 +1210,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("run")
     p.add_argument("--task", nargs="+", choices=TASKS, default=["twist"])
-    p.add_argument("--layouts", default="2d", help="design, 2d, 2dfp, rrt6d or sobol8k")
+    p.add_argument("--layouts", default="2d", help="design, 2d, 2dfp, rrt6d, sobol8k, or sobol8k_size or grid2d_size with --d")
     p.add_argument("--d", type=float, nargs="+", help="object sizes (mm); default the toy's (layouts) or the study's (design)")
     p.add_argument("--max", type=int, default=0)
     p.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])

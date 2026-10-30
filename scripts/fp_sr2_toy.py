@@ -33,8 +33,11 @@ Each metric becomes a score from 0 (worst candidate) to 100 (best), as in the pa
   .venv/bin/python scripts/fp_sr2_toy.py sobol [--n 1024]      # the same solver on a scrambled Sobol draw
   uv run --no-sync --with scikit-learn python scripts/fp_sr2_toy.py embed    # t-SNE and PCA of the 6-D candidates
   .venv/bin/python scripts/fp_sr2_toy.py press --name sobol8k [--shard k --shards K]   # the press pose per candidate
+  .venv/bin/python scripts/fp_sr2_toy.py poses --shape sphere --d 50 [--shard k --shards K]  # one object's poses on
+  .venv/bin/python scripts/fp_sr2_toy.py merge sobol8k_tripod50 --shards K                    # all 8,192 Sobol layouts
 Rows: docs/experiments/20261029-foundational_pose_review/rows/{rrt2d,rrt6d,sobol6d}.jsonl, one fsynced line per RRT
-call that reached the solver; embed writes embed6d.json.
+call that reached the solver; embed writes embed6d.json; poses writes sobol8k_tripod<d>.jsonl or sobol8k_pinch<d>.jsonl
+(the pinch and the press).
 """
 from __future__ import annotations
 
@@ -367,26 +370,45 @@ def metrics(fp, v, M, branch):
 
 # ------------------------------------------------------------------------------------------------ one candidate
 
+def set_sizes(cyl_d_mm=None, sph_d_mm=None):
+    """The objects' diameters (mm) for every pose solved after the call; the defaults are a 25 mm cylinder and a 40 mm
+    sphere."""
+    global CYL_D, SPH_D
+    if cyl_d_mm is not None:
+        CYL_D = cyl_d_mm / 1000.0
+    if sph_d_mm is not None:
+        SPH_D = sph_d_mm / 1000.0
+
+
+def solve_pose(fp, d, starts):
+    """Pose fp on layout d (mm) from each start in turn until one is reached: its record, or {"ok": False}."""
+    pr = Problem(fp, d)
+    for k, v0 in enumerate(starts):
+        ok, v, nit, clear, slack = pr.solve(np.asarray(v0, float))
+        if ok:
+            rec = {"ok": True, "v": [round(float(x), 6) for x in v], "nit": int(nit), "start": k,
+                   "slack": round(slack, 4), "ff_mm": round(clear[0] * 1000, 2), "ob_mm": round(clear[1] * 1000, 2),
+                   "branch": pr.branch.copy()}
+            rec.update(metrics(fp, v, pr.M, pr.branch))
+            return rec
+    return {"ok": False}
+
+
+def press_starts(pinch_v, d):
+    """The press pose's starts: the pinch pose with the middle finger moved to 37.5 deg below the equator, then the grid."""
+    v0 = np.array(pinch_v, float)
+    v0[7] = math.radians(37.5)
+    return v0, grid_start("press", d)[0]
+
+
 def attempt(d, warm=None):
     """Solve both foundational poses for layout d (mm); warm: {fp: v} of the nearest candidate. Returns a row."""
     row = {"d": [round(float(x), 3) for x in d], "fp": {}}
     t0 = time.perf_counter()
     for fp in FPS:
-        pr = Problem(fp, d)
-        tries = [warm[fp]] if warm else []
-        tries.append(grid_start(fp, d)[0])
-        rec = None
-        for k, v0 in enumerate(tries):
-            ok, v, nit, clear, slack = pr.solve(np.asarray(v0, float))
-            if ok:
-                rec = {"ok": True, "v": [round(float(x), 6) for x in v], "nit": int(nit), "start": k,
-                       "slack": round(slack, 4),
-                       "ff_mm": round(clear[0] * 1000, 2), "ob_mm": round(clear[1] * 1000, 2),
-                       "branch": pr.branch.copy()}
-                rec.update(metrics(fp, v, pr.M, pr.branch))
-                break
-        row["fp"][fp] = rec or {"ok": False}
-        if rec is None:
+        rec = solve_pose(fp, d, ([warm[fp]] if warm else []) + [grid_start(fp, d)[0]])
+        row["fp"][fp] = rec
+        if not rec["ok"]:
             break                                              # the paper's candidate must reach every FP
     row["ok"] = all(row["fp"].get(fp, {}).get("ok") for fp in FPS)
     row["ms"] = round(1000 * (time.perf_counter() - t0), 1)
@@ -499,24 +521,171 @@ def press(name, shard=0, shards=1):
             continue
         d = np.asarray(r["d"], float)
         t1 = time.perf_counter()
-        pr = Problem("press", d)
-        v0 = np.array(r["fp"]["pinch"]["v"], float)
-        v0[7] = math.radians(37.5)
-        rec = None
-        for j, start in enumerate((v0, grid_start("press", d)[0])):
-            ok, v, nit, clear, slack = pr.solve(np.asarray(start, float))
-            if ok:
-                rec = {"ok": True, "v": [round(float(x), 6) for x in v], "nit": int(nit), "start": j,
-                       "slack": round(slack, 4), "ff_mm": round(clear[0] * 1000, 2), "ob_mm": round(clear[1] * 1000, 2),
-                       "branch": pr.branch.copy()}
-                rec.update(metrics("press", v, pr.M, pr.branch))
-                break
-        append(path, {"d": r["d"], "idx": k, "fp": {"press": rec or {"ok": False}},
-                      "ms": round(1000 * (time.perf_counter() - t1), 1)})
-        good += rec is not None
+        rec = solve_pose("press", d, press_starts(r["fp"]["pinch"]["v"], d))
+        append(path, {"d": r["d"], "idx": k, "fp": {"press": rec}, "ms": round(1000 * (time.perf_counter() - t1), 1)})
+        good += rec["ok"]
         if (k + 1) % 400 == 0:
             print(f"press {name}: {k + 1} candidates, {good} reached, {time.time() - t0:.0f} s", flush=True)
     print(f"press {name} shard {shard}: {good} reached in {time.time() - t0:.0f} s", flush=True)
+
+
+def grasp_matrix_smin(fp, v, M):
+    """Smallest singular value of the grasp matrix G = [I ... I; [x_1]x ... [x_n]x] of the pose's contact points x_i
+    (m, about the object's centre): the static grasp-quality score of hand-evolution studies (e.g. Yang et al., IEEE
+    TEVC 2026)."""
+    obj, _tg, _n, pc, _ax = geometry(fp, v, M)
+    c = np.asarray(obj["centre"], float)
+    G = np.vstack([np.hstack([np.eye(3)] * 3),
+                   np.hstack([np.array([[0, -x[2], x[1]], [x[2], 0, -x[0]], [-x[1], x[0], 0]]) for x in
+                              (pc[f] - c for f in FINGERS)])])
+    return float(np.linalg.svd(G, compute_uv=False)[-1])
+
+
+def grasp_set(fp, d, rec0, n=16, seed=0, steps=600):
+    """Up to n feasible grasps of pose family fp on layout d (mm): the foundational pose rec0 first, then grasps spread
+    over the feasible set around it. The set is thin in the object's position (a few mm) and wide in the contact
+    coordinates (tens of degrees), so it is explored by a random walk that moves one or two variables per step, each by
+    up to half its feasible width along a line through rec0 (41 points over its bounds, or over a fortieth of them when
+    fewer than three are feasible); a step is kept when every scaled slack stays >= 0. The visited grasps that pass the
+    clearance checks are taken in farthest-point order of the variables divided by those widths. Each record has the
+    pose's metrics and the grasp matrix's smallest singular value (gsv); the first also the widths, their log volume
+    relative to the bounds (logvol, a size of the feasible set) and the walk's acceptance."""
+    rng = np.random.default_rng([int(seed), int(round(abs(float(np.sum(d))) * 1000)) % (2 ** 31)])
+    M = mounts6(d)
+    b = np.array(bounds(fp), float)
+    lo, hi = b[:, 0], b[:, 1]
+    v0 = np.asarray(rec0["v"], float)
+    pr = Problem(fp, d)
+
+    def slack(v):
+        pr.pick_branches(v)
+        return float(pr.slacks(v).min())
+    width = np.zeros(len(v0))
+    for j in range(len(v0)):                                   # feasible width of each variable on a line through v0
+        for frac in (0.5, 0.0125):                             # the bounds' range, then a 40 times finer scan
+            s = np.linspace(-frac, frac, 41) * (hi[j] - lo[j])
+            ok = np.zeros(len(s), bool)
+            for k, x in enumerate(s):
+                if lo[j] <= v0[j] + x <= hi[j]:
+                    v = v0.copy()
+                    v[j] += x
+                    ok[k] = slack(v) >= 0.0
+            width[j] = s[ok].max() - s[ok].min() if ok.sum() > 1 else 0.0
+            if ok.sum() > 2:
+                break
+    width = np.maximum(width, 1e-4 * (hi - lo))
+    feas, v = [], v0.copy()
+    for _ in range(steps):                                     # one or two coordinates per step: the set is thin
+        mask = np.zeros(len(v0))
+        mask[rng.choice(len(v0), size=rng.integers(1, 3), replace=False)] = 1.0
+        w = np.clip(v + mask * rng.uniform(-0.5, 0.5, len(v0)) * width, lo, hi)
+        sl = slack(w)
+        if sl >= 0.0:
+            v = w
+            feas.append((w, dict(pr.branch), sl))
+    out = [dict(rec0, gsv=grasp_matrix_smin(fp, v0, M), widths=[round(float(x), 6) for x in width],
+                logvol=round(float(np.log(width / (hi - lo)).sum()), 3), walk_accept=round(len(feas) / steps, 3))]
+    if not feas:
+        return out
+    Z = np.array([w for w, _, _ in feas]) / width
+    dist = np.linalg.norm(Z - v0 / width, axis=1)
+    while len(out) < n and np.isfinite(dist).any() and dist.max() > 0:
+        i = int(np.argmax(dist))
+        v, br, sl = feas[i]
+        dist[i] = -np.inf
+        clear = clearances(fp, v, M, br)
+        if clear[0] >= FF_CLEAR and clear[1] >= OBJ_CLEAR:
+            rec = {"ok": True, "v": [round(float(x), 6) for x in v], "branch": br, "slack": round(sl, 4),
+                   "ff_mm": round(clear[0] * 1000, 2), "ob_mm": round(clear[1] * 1000, 2)}
+            rec.update(metrics(fp, v, M, br), gsv=grasp_matrix_smin(fp, v, M))
+            out.append(rec)
+            dist = np.minimum(dist, np.where(np.isfinite(dist), np.linalg.norm(Z - Z[i], axis=1), dist))
+    return out
+
+
+def grid2d(shape, d_mm, n=16, step=5.0, shard=0, shards=1):
+    """The symmetric tripods (x_sep, y_sep) on a grid of `step` mm over LO2..HI2, with one object of diameter d_mm: the
+    foundational pose (the tripod on a sphere; the pinch on a cylinder and the press from it) and up to n grasps per
+    pose family (grasp_set). Rows: rows/grid2d_<tripod|pinch><d>[_shard<k>].jsonl, one per layout, `call` its grid
+    index; each reached pose's record holds its grasps."""
+    set_sizes(**({"sph_d_mm": d_mm} if shape == "sphere" else {"cyl_d_mm": d_mm}))
+    xs = np.arange(LO2[0], HI2[0] + 1e-9, step)
+    ys = np.arange(LO2[1], HI2[1] + 1e-9, step)
+    name = size_name("grid2d", shape, d_mm)
+    path = ROWS / (f"{name}_shard{shard}.jsonl" if shards > 1 else f"{name}.jsonl")
+    if path.exists():
+        path.unlink()
+    t0, good = time.time(), 0
+    for k, (x_sep, y_sep) in enumerate((x, y) for x in xs for y in ys):
+        if k % shards != shard:
+            continue
+        d = layout2(x_sep, y_sep)
+        t1 = time.perf_counter()
+        row = {"d": d.round(3).tolist(), "call": k, "xy": [float(x_sep), float(y_sep)], "fp": {}}
+        fps = ("tripod",) if shape == "sphere" else ("pinch", "press")
+        for fp in fps:
+            if fp == "press":
+                if not row["fp"]["pinch"]["ok"]:
+                    break
+                rec = solve_pose("press", d, press_starts(row["fp"]["pinch"]["v"], d))
+            else:
+                rec = solve_pose(fp, d, [grid_start(fp, d)[0]])
+            if rec["ok"]:
+                rec["grasps"] = grasp_set(fp, d, rec, n, seed=k)
+            row["fp"][fp] = rec
+        row["ok"] = next(iter(row["fp"].values()))["ok"]
+        row["ms"] = round(1000 * (time.perf_counter() - t1), 1)
+        append(path, row)
+        good += row["ok"]
+    print(f"{name} shard {shard}: {good} reached in {time.time() - t0:.0f} s", flush=True)
+
+
+def size_name(src, shape, d_mm):
+    """Rows of one object's poses on the layouts of rows/<src>.jsonl: <src>_tripod<d> or <src>_pinch<d>."""
+    return f"{src}_{'tripod' if shape == 'sphere' else 'pinch'}{d_mm:g}"
+
+
+def poses(shape, d_mm, src="sobol8k", shard=0, shards=1):
+    """One object's poses on every layout of rows/<src>.jsonl, reached or not there: the tripod on a sphere of diameter
+    d_mm, or the pinch on a cylinder of diameter d_mm and the press from the pinch's solution. A layout needs only this
+    object's poses (`attempt` asks for both objects'). The starts are those of `sobol` and `press`, so the toy's sizes
+    give their rows' poses again. Rows: rows/<size_name>[_shard<k>].jsonl, one per layout, in its order; `ok` is the
+    first pose's."""
+    set_sizes(**({"sph_d_mm": d_mm} if shape == "sphere" else {"cyl_d_mm": d_mm}))
+    name = size_name(src, shape, d_mm)
+    path = ROWS / (f"{name}_shard{shard}.jsonl" if shards > 1 else f"{name}.jsonl")
+    if path.exists():
+        path.unlink()
+    t0, good = time.time(), 0
+    for k, r in enumerate(load(src)):
+        if k % shards != shard:
+            continue
+        d = np.asarray(r["d"], float)
+        t1 = time.perf_counter()
+        row = {"d": r["d"], "call": r.get("call", k), "z": r.get("z"), "fp": {}}
+        if shape == "sphere":
+            row["fp"]["tripod"] = solve_pose("tripod", d, [grid_start("tripod", d)[0]])
+        else:
+            row["fp"]["pinch"] = rec = solve_pose("pinch", d, [grid_start("pinch", d)[0]])
+            if rec["ok"]:
+                row["fp"]["press"] = solve_pose("press", d, press_starts(rec["v"], d))
+        row["ok"] = next(iter(row["fp"].values()))["ok"]
+        row["ms"] = round(1000 * (time.perf_counter() - t1), 1)
+        append(path, row)
+        good += row["ok"]
+    print(f"{name} shard {shard}: {good} reached in {time.time() - t0:.0f} s", flush=True)
+
+
+def merge(name, shards):
+    """rows/<name>_shard<k>.jsonl, k < shards, into rows/<name>.jsonl in draw order; the shards are removed."""
+    parts = [ROWS / f"{name}_shard{k}.jsonl" for k in range(shards)]
+    rows = sorted((json.loads(x) for p in parts for x in p.read_text().splitlines() if x.strip()), key=lambda r: r["call"])
+    tmp = ROWS / f"{name}.jsonl.tmp"
+    tmp.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    os.replace(tmp, ROWS / f"{name}.jsonl")
+    for p in parts:
+        p.unlink()
+    print(f"{name}: {len(rows)} rows, {sum(r['ok'] for r in rows)} reached", flush=True)
 
 
 # ------------------------------------------------------------------------------------------------ analysis
@@ -610,6 +779,22 @@ def main():
     pp.add_argument("--name", default="sobol8k")
     pp.add_argument("--shard", type=int, default=0)
     pp.add_argument("--shards", type=int, default=1)
+    po = sub.add_parser("poses")
+    po.add_argument("--shape", choices=("sphere", "cylinder"), required=True)
+    po.add_argument("--d", type=float, required=True, help="object diameter (mm)")
+    po.add_argument("--src", default="sobol8k")
+    po.add_argument("--shard", type=int, default=0)
+    po.add_argument("--shards", type=int, default=1)
+    pm = sub.add_parser("merge")
+    pm.add_argument("name")
+    pm.add_argument("--shards", type=int, required=True)
+    pg = sub.add_parser("grid2d")
+    pg.add_argument("--shape", choices=("sphere", "cylinder"), required=True)
+    pg.add_argument("--d", type=float, required=True, help="object diameter (mm)")
+    pg.add_argument("--n", type=int, default=16, help="grasps per pose family, the foundational pose included")
+    pg.add_argument("--step", type=float, default=5.0, help="grid step of x_sep and y_sep (mm)")
+    pg.add_argument("--shard", type=int, default=0)
+    pg.add_argument("--shards", type=int, default=1)
     a = ap.parse_args()
     if a.cmd == "run2d":
         rrt("rrt2d", 2, a.max, a.calls, step=0.05, dmin=0.03, seed=1)
@@ -625,6 +810,12 @@ def main():
         embed_sobol8k()
     elif a.cmd == "press":
         press(a.name, a.shard, a.shards)
+    elif a.cmd == "poses":
+        poses(a.shape, a.d, a.src, a.shard, a.shards)
+    elif a.cmd == "merge":
+        merge(a.name, a.shards)
+    elif a.cmd == "grid2d":
+        grid2d(a.shape, a.d, a.n, a.step, a.shard, a.shards)
 
 
 if __name__ == "__main__":
