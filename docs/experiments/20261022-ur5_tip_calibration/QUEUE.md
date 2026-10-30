@@ -1044,7 +1044,7 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
-  - 08:2x on 10-30, workstation: the wrist order searched exactly. The lab's simulation of the first order's 55 (07:57)
+  - 08:1x on 10-30, workstation: the wrist order searched exactly. The lab's simulation of the first order's 55 (07:57)
     counted one swing of wrist 1 over 40 deg left, a downward one into tall-slide-edge-643-1N (+23.0 to -32.3 deg), the
     kind of R29's loss. `scripts/ur5_tip_calibration_wrist_order.py` now also penalizes a travel in which wrist 1 crosses
     0 with a swing over 40 deg, and it searches exactly, by dynamic programming over the orders that keep each action

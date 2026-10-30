@@ -5,7 +5,7 @@ How to rebuild what QUEUE R31 reports at 07:4x on 10-30. The plan for ID 3's res
 `scripts/ur5_tip_calibration_next_tip_suite.py`.
 
 - `20261030-plan_tall_stage2_v3id3_reordered_exact_full.json`: ID 3's 101 tall stage-2 actions reordered as a whole by
-  the exact search (the script since 08:2x), a test of the reorder only (46 of them ran on 10-29):
+  the exact search (the script since 08:1x), a test of the reorder only (46 of them ran on 10-29):
   `scripts/ur5_tip_calibration_wrist_order.py lab/20261029-plan_tall_lab_stage2_night_v3id3.json --session
   lab/20261029-153034-tallv3id3 --out ...`. `20261030-plan_tall_stage2_v3id3_reordered_full.json` is the first version's
   order (a local search that penalized only the upward travels).
