@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-29 23:11 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-29 23:35 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -11,7 +11,7 @@ request to the owner must come from this file.
 | Tip | v3 ID 3 since the swap at about 13:3x on 10-29: the owner took it from a holder station and put v3 ID 2 there | tool: block 1 (`20261029-134508-spherev3id3`), seeded from `20261028-184415-spherev3id2` |
 | Mount | v7 standoff fork on the HEX-E; stayed on the flange through both swaps | homing pose: `20261027-225213-spherev3id1` |
 | Sphere | low sphere, not moved since 10-27 | `20261027-225213-spherev3id1`; with ID 2's tool `20261028-184415-spherev3id2`; with ID 3's `20261029-134508-spherev3id3` |
-| Rod | on, at its third seating | `20261028-102701-rodv3id1`; with ID 2's tool `20261029-031559-rodv3id2`, 0.16 mm from 102701's |
+| Rod | on, at its third seating | `20261028-102701-rodv3id1`; with ID 2's tool `20261029-031559-rodv3id2`, 0.16 mm from 102701's; with ID 3's `20261029-230820-rodv3id3`, 0.67 mm from 102701's and 0.54 mm lower (NOTES, block 5) |
 | Tall indenter | on | `20261028-114908-tallv3id1`; with ID 2's tool `20261028-200508-tallv3id2`, 1.85 mm from 114908's along -y, within the pass's own error in y |
 | Holder | both held tips pad-up, seating 5: v3 ID 1 in the right-side station since 10-28; v3 ID 2 in the station ID 3 left (owner, 13:4x on 10-29) | `20261027-holder-apex-both` |
 
@@ -46,9 +46,9 @@ anything 2. side map -- sure 3. yea send it".
 | side map | `20261029-plan_holder_lab_side_up_v3id3.json` | 24 | Done 15:13 to 15:29: 24 of 24 (`20261029-151334-sidev3id3`). |
 | block 3 | `20261029-plan_tall_lab_pass1_night_v3id3.json` | 19 | Done 15:30 to 15:48: 19 of 19, 0.055 mm rms (`20261029-153034-tallv3id3`). |
 | block 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Done 16:34 to 23:07: 211 of 211, no abort, no early contact, 6.55 h (resumed on block 1's folder). |
-| block 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | Running from 23:08:21 on a seed of block 1's tool and 031559's rod (`logs/20261029-tip_calibration/230820-rodv3id3`). Stages preflight,pad,pivot,register. |
-| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | Then: resumed on block 3's folder. Its 2 chunks passed (mount 3.73 mm, joint 5 0.6 deg inside its window). tall-slide-flank-585-1N is left out (mount 2.97 mm). |
-| block 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Last: resumed on block 5's folder. |
+| block 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | Done 23:08 to 23:31: 21 of 21 touch-offs and 5 pivot presses, 0.037 mm rms (`20261029-230820-rodv3id3`, a seed of block 1's tool and 031559's rod). |
+| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | Running from 23:33:18, resumed on block 3's folder, about 2.8 h. Its 2 chunks passed (mount 3.73 mm, joint 5 0.6 deg inside its window). tall-slide-flank-585-1N is left out (mount 2.97 mm). |
+| block 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Last: resumed on block 5's folder. Its 2 chunks run from 23:31:51 on block 5's registration. |
 
 - The night runs in ID 2's order 3, 2, 5, 4, 6, through scratchpad `id3_chain.sh`. Block 2 started 46 min late, waiting
   for its simulations, so the night now ends around 04:10 on 10-30.
