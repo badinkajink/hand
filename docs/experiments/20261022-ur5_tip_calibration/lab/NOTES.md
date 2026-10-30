@@ -1777,21 +1777,69 @@ The clearances in this section and the one before it are on mount v3. The next s
   0.05 mm at most. ID 2's reference stepped 0.10 mm deeper in its first 20 minutes. ID 3's scattered over 0.12 mm
   with no step, and ended 0.05 mm deeper after the shear's four hours.
 
-### Block 5: ID 3's rod pass 1 from a seed (from 23:08:21)
+### Block 5: ID 3's rod pass 1 from a seed (23:08:21 to 23:31:41)
 
 - Simulated from home on a seed of block 1's tool and 031559's rod: no abort, the mount 3.16 mm and the finger 2.30 mm
   from the cell, joint 6 from -52.2 to +24.7 deg, joint 5 3.8 deg inside its window, the elbow at least 71 deg from
   straight.
 - After block 2's exit 0, the chain checked the home path from 134508's last pose and went home (0.05 mm from the
-  target). It made the seed `logs/20261029-tip_calibration/230820-rodv3id3` and resumed there with stages
-  preflight,pad,pivot,register on `lab/20261029-plan_rod_lab_pass1_night_v3id3.json`, seat `rod_indenter_seated_3`.
-  Printout `logs/20261029-230821-tipcal-rodv3id3.log`.
-- The first five touch-offs came 0.66 to 0.77 mm later than the seed expected (ID 2: 0.51 to 0.69 mm). From the onset
-  to the 0.5 N stop they pressed 0.25 to 0.36 mm more. So the stops came 0.12 to 0.27 mm short of the search's limit,
-  1.2 mm past the expected surface (`beyond_mm`). ID 2's came 0.15 to 0.44 mm short, the closest at pad-face-02.
+  target). It made the seed `logs/20261029-tip_calibration/230820-rodv3id3` (copy: `lab/20261029-230820-rodv3id3/`)
+  and resumed there with stages preflight,pad,pivot,register on `lab/20261029-plan_rod_lab_pass1_night_v3id3.json`,
+  seat `rod_indenter_seated_3`.
+- 21 of 21 touch-offs and 5 pivot presses ok, no abort, no early contact. Every onset came 0.58 to 0.79 mm later than
+  the seed expected (ID 2: 0.51 to 0.69 mm).
+- From the onset to the 0.5 N stop the touch-offs pressed 0.19 to 0.39 mm more. So the stops came 0.11 to 0.39 mm
+  short of the search's limit, 1.2 mm past the expected surface (`beyond_mm`), and none reached it. ID 2's came 0.15
+  to 0.44 mm short, the closest at pad-face-02.
 - A touch-off that reaches the limit before 0.5 N does not abort. The program records the end of its travel and fits
   the onset to the force it has, up to 0.4 N. Only a touch with no contact onset aborts, after it backs off to its
   rest pose.
+- Pad touches 0.037 mm rms (ID 2 on the rod: 0.023; ID 1: 0.042). The pivot stage kept no turn presses, so
+  `pivots.json` is empty, as for ID 1 and ID 2.
+- The fit moved the tool 0.20 mm and 0.57 deg from block 1's sphere tool. It moved the rod 0.59 mm from 031559's, 0.53
+  mm of it down. This rod now sits 0.67 mm from 102701's, 0.54 mm lower; ID 2's pass kept it within 0.16 mm.
+- ID 2's pass put its late onsets in the tool (0.57 mm), and this pass puts them in the rod. Either the rod sat 0.5 mm
+  lower tonight, or the pass hardly tells the two apart. Its 21 touch-offs all approach within 10 deg of straight down,
+  and along that line a lower rod and a longer tool look alike.
+- Block 6 runs on this registration, and so do its simulations. If the other split is the true one, a press tilted by
+  an angle from straight down lands 0.55 mm times its sine sideways of its target. That is 0.10 mm at 10 deg, the
+  pass's widest tilt, and 0.15 mm with the rolls' 6 deg more. The mount's 3.0 mm margin covers that.
+- The HEX-E: 139,361 samples, no time-out. Its two gaps over 0.5 s (0.8 and 0.7 s) came at 23:08:21 and 23:08:22,
+  before the first action.
+
+### Block 4: ID 3's tall stage 2 (23:33:18 to 00:08:00, stopped by a HEX-E loss)
+
+- `lab/20261029-plan_tall_lab_stage2_night_v3id3.json`, 101 actions, resumed on 153034 with stages
+  preflight,grid,shear,twist,final. Printout `logs/20261029-233318-tipcal-tallv3id3.log`.
+- Its two chunks were simulated from home on block 3's registration and checked on every 5th sample. The mount stayed
+  at least 3.73 mm and the finger 1.61 mm from the cell. Joint 6 ran from -63.6 to +44.1 deg, and the elbow stayed at
+  least 67 deg from straight. Joint 5 came to 99.4 deg, 0.6 deg inside its window; ID 2's block 4 had 99.2 deg in the
+  simulation and 99.1 on the robot.
+- After block 5's exit 0, the chain started block 6's simulations on block 5's registration (two chunks, every 5th
+  sample). It checked the home path from 230820's last pose and went home (0.02 mm, 0.01 deg from the target), and
+  block 4 started at 23:33:18.
+- 46 of 101 ok, all in the grid (tall-ref-a to tall-edge-694, 23:33:22 to 00:07:37), no early contact.
+- At 00:07:49.67 the travel into tall-edge-626 ended, and 30 ms later the program had no HEX-E sample for 100 ms.
+  tall-edge-626, -668 and -670 aborted, and the session stopped after three aborts in a row (exit 1 at 00:08:00). The
+  HEX-E gave 206,752 samples, 158 of them timed out. Its two gaps over 0.5 s came at 23:33:19 and 23:33:20, before the
+  first action.
+- In that travel wrist 1 swung from -36.6 to +19.3 deg, wrist 2 rose from 54.2 to 90.5 deg and the elbow came from 98.9
+  to 74.0 deg; joint 6 moved only from 30.1 to 31.4. The losses at 02:54 and 14:32 on 10-28 had the same signature:
+  wrist 1 from negative to positive with wrist 2 rising, the loss as the robot came to rest.
+- Three of the HEX-E's losses now fall within five travels of tall stage 2's grid, whose order is the same in every
+  tip's plan. They came in the travels into tall-face-702 (R29, 17:06 on 10-27), tall-edge-627 (14:32 on 10-28) and
+  tall-edge-626 (tonight). ID 2's block 4 passed through the stretch without a loss.
+- After the first two aborts the program lifted the pad 5 mm each time. The arm stands with the pad about 12 mm above
+  tall-edge-626's point (its 1.5 mm standoff and the two lifts), joint 5 at 90.5 deg and joint 6 at 31.4 deg.
+- At 00:10 the DAQ answered a ping, but a 10 s read gave no samples, as after the earlier losses. The chain stopped at
+  00:08:09 and moves nothing more. The scratchpad script `hexe_poll.sh` reads the stream for 10 s every 5 min.
+- Block 6's two chunks simulated clean on block 5's registration at 23:38 (no abort, no early contact). Their cell
+  checks on every 5th sample still run.
+- Ready for the owner's go: `lab/20261030-plan_sphere_lab_check_v3id3.json` holds pass 1's touch-offs at sphere nodes
+  788, 728 and 729, renamed chk-*, as the check of 10-28 was for v3 ID 1. Each onset against block 1's registration
+  shows whether the reseat moved the tool. The check and block 4's remaining 55 actions are simulated from home at
+  nice 19 (the remainder's first travel, from home into tall-edge-626, is new). Scratchpad `resume_id3.sh` gates on
+  those simulations and on block 6's chunks, then runs the check, block 4's remainder and block 6.
 
 ### The night's plans, after the finer path checks (14:4x)
 
