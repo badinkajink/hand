@@ -1048,8 +1048,10 @@ push that answers it arrives.
     from 11:15:24 with no abort, no early contact and no HEX-E time-out (745,632 samples; one 0.7 s gap at the
     start). The arm reached tall-edge-626's pose twice after the 11:09 reseat with more slack, at 11:18:58 and
     for its slide at 12:42:24, with no loss. Block 6 started at 13:20:39 (`--resume 230820`) and should end about
-    14:45. Nothing follows it tonight. Whether the lab starts the probe mode after block 6 is with the owner (the
-    lab asked at 12:58).
+    14:45. Nothing follows it tonight. Whether the lab starts the probe mode after block 6 was with the owner (the
+    lab asked at 12:58). At 13:3x the owner said, in the workstation's session, "sure, run the probe mode";
+    relayed to the lab as the go to write and simulate it after block 6, with no robot motion before the
+    parts are printed and the owner's own go for the `--dry` run.
   - 12:5x on 10-30, owner to the workstation: "i think tonight i wont run a calibration, im going to wait until we
     have the new set up going". At 12:56 block 4 stood at 91 of 101; the 46 actions since its 11:15:24 resume all
     ended ok, with no HEX-E loss after the 11:09 reseat. The lab's `resume_id3.sh` starts block 6 (100 rod actions,
