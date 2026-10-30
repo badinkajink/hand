@@ -919,10 +919,10 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
          f"{r4('side', 10)['norm_uT']:.0f}&#8202;&#181;T at a 10&#8202;mm gap and {r4('side', 20)['norm_uT']:.0f}&#8202;&#181;T "
          "at 20&#8202;mm. If the model with the net moments fitted facing explains less than 90&#8202;% of the side-by-side "
          "change, the side-by-side pose needs a fit of its own."),
-        ("A pinch between two v3 tips.", "The holder comes off the table for the inverted rig&#8217;s block of tip seats "
+        ("A pinch between two v3 tips.", "The holder comes off the table for the inverted rig&#8217;s strip of tip seats "
          "(owner, 2026-10-30). On that rig a fingertip is mounted by its cassette on a sixth tool, with no DIP link and "
          "its palmar face along the tool axis. With it the crosstalk is measured face to face over a tip held pad up on "
-         "the block ("
+         "the strip ("
          "<code>docs/experiments/20261030-inverted_rig_seat_block/README.md</code>). The robot apex presses the held apex "
          "at 0.25&#8211;3&#8202;N. The robot&#8217;s target is also shifted 2 and 4&#8202;mm off its apex, across and "
          "along, and turned by &#8722;20 to +20&#176;. The apex press comes first, in the middle and last. The robot "
