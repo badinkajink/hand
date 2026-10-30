@@ -168,15 +168,21 @@ LAYOUT = dict(       # plate v2e: v2d's base, keys and front row (the 5 mm spher
 SEAT_BLOCK = dict(   # --plate block (owner, 2026-10-30): v2e's three seats alone where v2e stood, the only thing on the
 #                      table (11:5x the low sphere and the rod stayed and the probe homed on the low sphere's key; 12:0x
 #                      "add the homing indexers to the sensor blocks. i want to replace everything on the table with just
-#                      three sensor mounts")
-    base=(5.0, 140.0, -110.0, 110.0, 6.0),                  # x0, x1, y0, y1, thickness (A); the rail from 5 mm before the
-#                                                             supports to x1
+#                      three sensor mounts"; 12:3x "we only have about 300g of filament left ... can we drastically reduce the
+#                      height and material usage of these parts? ... there's no need for these fingertip holders to come so
+#                      high up off the ground anymore"). Until 12:3x: a base 135 x 220 mm over both 2x4s, a 12 mm rail under
+#                      the seats, supports 145 mm tall, the keys at x_A 20 mm and seven screws (commit 1690e3df).
+    base=(50.0, 85.0, -108.0, 108.0, 5.0),                  # x0, x1, y0, y1, thickness (A): a strip on the tall's 2x4
+#                                                             (about x_A 55 to 144), its front 5 mm over the joint
+    seat_h=40.0,                                            # the pads' apexes over the strip's underside (160 until 12:3x;
+#                                                             the middle seat's plan replays alike at 40 and 50)
+    support=dict(depth=0.0, half_w=0.0),                    # each seat's station block on a pedestal of its own footprint
     notch=None,
-    keys=((20.0, -40.0, 0.0), (20.0, 40.0, 0.0)),           # v2d's keys between the columns: at homing the tool reaches
-#                                                             between them, and the plate stays one P1S plate with the tools
-    screws=((15.0, -100.0), (15.0, 0.0), (15.0, 100.0),     # into the front 2x4, 44.5 mm in front of the supports, and into
-            (130.0, -100.0), (130.0, -40.0), (130.0, 40.0), (130.0, 100.0)),     # the back one, 35.5 mm behind them: a
-#                                                             drill reaches each one
+    keys=((65.0, -40.0, 0.0), (65.0, 40.0, 0.0)),           # v2d's keys on the strip between the seats: at homing the
+#                                                             probe's column stands between two held tips
+    screws=((75.0, -100.0), (75.0, -21.5), (75.0, 21.5), (75.0, 100.0)),   # all four into the tall's 2x4, 20 mm behind
+#                                                             the joint
+    under_head=3.0,                                         # mm of PLA under each screw's head
     others=())                                              # nothing else stays on the table
 HOME_KEY = [0]                                              # the block's key the probe homes on (the replay takes the
 #                                                             nearer of the seat)
@@ -194,12 +200,13 @@ def T_AF(orient, apex):
 def plate(layout=None):
     """Plate v2e in A: indenter_array.geometry's base, keys, 5 mm sphere and rod, and the seats with their tip frames; with
     --plate block the seats alone on SEAT_BLOCK's base, with no key."""
-    lay = dict(LAYOUT, **(layout or {}))
     block = PLATE[0] == "block"
+    lay = dict(LAYOUT, **({k: SEAT_BLOCK[k] for k in ("seat_h", "support")} if block else {}))
+    lay.update(layout or {})
     a = copy.deepcopy(IA.ARRAY)
     a["sphere5"] = dict(a["sphere5"], **lay["sphere5"])
     a["rod"] = dict(a["rod"], **lay["rod"])
-    tb = a["base"][4]
+    tb = SEAT_BLOCK["base"][4] if block else a["base"][4]
     seats = []
     orients = lay["orient"] if isinstance(lay["orient"], (list, tuple)) else [lay["orient"]] * len(lay["seats"])
     sp = lay["support"]
@@ -216,6 +223,7 @@ def plate(layout=None):
                           support=np.vstack([corners, foot])))
     if block:
         a["base"], a["screws"], a["keys"] = tuple(SEAT_BLOCK["base"]), tuple(SEAT_BLOCK["screws"]), tuple(SEAT_BLOCK["keys"])
+        a["screw_cb"] = (a["screw_cb"][0], tb - SEAT_BLOCK["under_head"])
         xb = a["base"][1]
     else:
         xb = max(a["base"][1], max(float(st["support"][:, 0].max()) for st in seats) + 2.0)
@@ -229,6 +237,8 @@ def plate(layout=None):
     g["seats"], g["layout"] = seats, lay
     g["rail"] = (min(float(st["support"][:, 0].min()) for st in seats) - lay["rail"]["front"], xb, a["base"][2], a["base"][3],
                  lay["rail"]["t"])                                  # x0, x1, y0, y1, top
+    if block:                                                       # the low seats need no rail
+        g["rail"] = tuple(a["base"][:4]) + (tb,)
     g["zmax"] = float(max([np.max(st["support"][:, 2]) + 25.0 for st in seats] + [g[k]["top"] for k in ("sphere5", "rod") if k in g]
                           + [k["pin_top"] for k in g["keys"]]))     # the highest part (the tips within 25 mm of their blocks)
     return g
@@ -839,7 +849,7 @@ def context(layout=None, tool="sphere5"):
     CELL.BOARD.update(json.loads(BOARD_PLAN.read_text())["checks"]["board"])
     x0, x1, y0, y1, _ = g["params"]["base"]
     CELL.BOARD["half_mm"] = 400.0
-    CELL.BOARD["block_half_mm"] = [max(-x0, x1) + 10.0, 500.0]
+    CELL.BOARD["block_half_mm"] = [max(-x0, x1, 145.0) + 10.0, 500.0]      # both 2x4s (x_A about -35 to 144)
     CELL.OTHER[:] = [(np.array(json.loads((LAB / d / "registration.json").read_text())["T_BI"], float), k)
                      for k, d in (SEAT_BLOCK["others"] if PLATE[0] == "block" else ())]
     T_AM = np.array(g["keys"][HOME_KEY[0] if PLATE[0] == "block" else 1]["T_AM_home"], float)   # the probe's socket is the
@@ -1627,7 +1637,7 @@ def main():
     sb.add_argument("--infill", type=float, default=0.25)
     fm = sub.add_parser("film")
     fm.add_argument("--orient", default=LAYOUT["orient"])
-    fm.add_argument("--h", type=float, default=LAYOUT["seat_h"])
+    fm.add_argument("--h", type=float, default=None)
     fm.add_argument("--seat", type=int, default=1)
     fm.add_argument("--tool", default="sphere5", choices=tuple(SPHERES))
     fm.add_argument("--size", default="720x560")
@@ -1635,7 +1645,7 @@ def main():
     rp = sub.add_parser("replay")
     rp.add_argument("--orient", default=LAYOUT["orient"])
     rp.add_argument("--tool", default="sphere5", choices=tuple(SPHERES))
-    rp.add_argument("--h", type=float, default=LAYOUT["seat_h"])
+    rp.add_argument("--h", type=float, default=None)
     rp.add_argument("--seat", type=int, default=1)
     rp.add_argument("--spacing", type=float, default=2.0, help="normal presses at pad points this far apart (mm)")
     rp.add_argument("--thetas", default="20,35")
@@ -1647,7 +1657,7 @@ def main():
     r = sub.add_parser("reach")
     r.add_argument("--orient", default=",".join(ORIENT))
     r.add_argument("--tool", default="sphere5", choices=tuple(SPHERES) + tuple(FLATS))
-    r.add_argument("--h", type=float, default=LAYOUT["seat_h"], help="the seats' apex height over the base's underside (mm)")
+    r.add_argument("--h", type=float, default=None, help="the seats' apex height over the base's underside (mm)")
     r.add_argument("--seat", type=int, default=1, help="which seat's tip is pressed (0, 1, 2 from -y)")
     r.add_argument("--thin", type=float, default=1.0, help="pad points at least this far apart (mm); 0 for all 812")
     r.add_argument("--thetas", default="20,35", help="push directions this far from the inward normal (deg)")
@@ -1663,6 +1673,8 @@ def main():
         global OUT, STEM
         PLATE[0] = "block"
         OUT, STEM = BLOCK_OUT, BLOCK_STEM
+    if getattr(a, "h", 0.0) is None:                    # the plate's own seat height
+        a.h = (SEAT_BLOCK if PLATE[0] == "block" else LAYOUT)["seat_h"]
     dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam, "home-check": cmd_home_check}, build=cmd_build,
          reach=cmd_reach, replay=cmd_replay, film=cmd_film)[a.cmd](a)
 

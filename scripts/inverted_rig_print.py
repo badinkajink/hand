@@ -45,6 +45,12 @@ SOLID = dict(layer_height="0.1", wall_loops="4", top_shell_layers="6", bottom_sh
 BASE = dict(SOLID, layer_height="0.15")                                     # the probe base, solid as v7's standoff-fork
 PLATE = dict(layer_height="0.16", wall_loops="5", top_shell_layers="6", bottom_shell_layers="5", sparse_infill_density="25%",
              sparse_infill_pattern="gyroid", enable_support="0")          # walls 2 mm: the seats' supports bend as shells
+STRIP = dict(layer_height="0.16", wall_loops="3", top_shell_layers="5", bottom_shell_layers="4", sparse_infill_density="15%",
+             sparse_infill_pattern="gyroid", enable_support="0")          # (2026-10-30 12:3x) the low seat strip: its
+#                                                                           pedestals 18 mm tall take a press along their axis
+LEAN = dict(SOLID, sparse_infill_density="50%", sparse_infill_pattern="gyroid")   # 12:3x, about 300 g of PLA left: the
+#                                                                           probe base and the tools at 4 walls and half
+#                                                                           infill; each screw's and nut's hole has 4 walls
 PLATES = {
     "a": dict(title="probe base and tools", parts=[
         ("PB", "probe base", "probe_base", BASE),
@@ -184,15 +190,18 @@ def main():
         CAD, OUT, WORK, STEM = RIG / "cad", RIG / "print", REPO / "logs/20261030-seat_block_print", "20261030-seat_block"
         OWNER = ("2026-10-30 11:2x: 'a smaller ... print out block that screws into the same 2x4 ... (can you space it out "
                  "farther from the fingertip holders so a drill can more easily drive in?)'; 11:4x: 'can we actually create a "
-                 "fastening point on the homing block for different size indenters?'")
+                 "fastening point on the homing block for different size indenters?'; 12:3x: 'we only have about 300g of "
+                 "filament left on the spool ... can we drastically reduce the height and material usage of these parts?'")
         a.plates = "one" if a.plates == "a,b" else a.plates
-        PLATES["one"] = dict(title="seat block, probe base and tools",
-                             parts=[("SB", "seat block", "seat_block", dict(PLATE, brim_type="no_brim"))] + PLATES["a"]["parts"],
+        lean = {pid: (pid, label, name, dict(LEAN, layer_height=st["layer_height"]))
+                for pid, label, name, st in PLATES["a"]["parts"]}
+        PLATES["one"] = dict(title="seat strip, probe base and tools",
+                             parts=[("SB", "seat strip", "seat_block", STRIP)] + list(lean.values()),
                              glob=dict(layer_height="0.1", brim_type="auto_brim"),
-                             at=dict(SB=(24.0, 18.0), PB=(173.0, 8.0),       # each part's lower-left corner on the bed (mm):
-                                     S5=(170.0, 90.0), S2=(212.0, 90.0),    # the block clear of the wiper's corner (x 18,
+                             at=dict(SB=(24.0, 22.0), PB=(173.0, 8.0),       # each part's lower-left corner on the bed (mm):
+                                     S5=(170.0, 90.0), S2=(212.0, 90.0),    # the strip clear of the wiper's corner (x 18,
                                      RD=(170.0, 136.0), FL=(212.0, 136.0),  # y 28) with room for a brim, the small parts in
-                                     F30=(170.0, 182.0), FT=(212.0, 182.0)))   # the 90 mm beside it
+                                     F30=(170.0, 182.0), FT=(212.0, 182.0)))   # the 90 mm at the right
     OUT.mkdir(parents=True, exist_ok=True)
     for key in a.plates.split(","):
         build(key, a)
