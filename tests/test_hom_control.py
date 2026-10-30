@@ -330,6 +330,23 @@ def test_impedance_target_on_the_surface_from_a_lagging_reference():
     assert advance["gap"] == pytest.approx(g.dist + press - behind, rel=1e-3)
 
 
+def test_step_info_parts_sum_to_the_target(mirror):
+    """The step's info holds the period's intermediates: the reference moves by dt u (inside the lead and the limits),
+    and the servo target is that reference plus the gap, force and gravity offsets."""
+    ctl = H.HomController(mirror, H.HomParams(use_filter=False))
+    q = np.array([0.1, 0.2, 0.3])
+    meas = H.Measurement(q={"f": q}, obj_pos=np.array([0.08, 0.0, 0.06]), obj_quat=np.array([1.0, 0, 0, 0]))
+    cmd = H.HandCommand(fingers={"f": H.FingerCommand(force=1.0, v_ref=np.array([0, 0, 0, 0.01, 0, 0]))})
+    out, info = ctl.step(meas, cmd)
+    i = info["f"]
+    lo, hi, lead = mirror.lo["f"], mirror.hi["f"], ctl.prm.lead      # this model's ranges are degrees (+-1, +-1.5 deg)
+    step = np.clip(i["theta_ref_prev"] + ctl.prm.dt * i["u"], q - lead, q + lead)
+    assert i["theta_ref"] == pytest.approx(np.clip(step, lo, hi), abs=1e-12)
+    assert out["f"] == pytest.approx(np.clip(i["theta_ref"] + i["off_gap"] + i["off_force"] + i["off_grav"], lo, hi),
+                                     abs=1e-12)
+    assert i["A"] @ i["u"] + i["b"] == pytest.approx(i["v_plan"])
+
+
 def test_eq2_unbounded_matches_closed_form():
     A = RNG.normal(size=(6, 3))
     b = RNG.normal(size=6) * 0.01

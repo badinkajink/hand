@@ -489,6 +489,7 @@ class HomController:
                 v_ref[SEP] = 0.0                          # anti-windup (Sec. III-C)
             A, b = self.eq1_rows(f, g, V)
             th = np.asarray(meas.q[f], float)
+            tr0 = self.theta_ref[f].copy()
             u = solve_eq2(A, b, v_ref, c.weights, th, self.theta_ref[f], mr.lo[f], mr.hi[f], dt,
                           self.healthy.get(f) if self.healthy else None, prm.w_damp, prm.w_healthy, prm.k_healthy,
                           prm.u_max, scale=np.array([1.0, 1.0, 1.0] + [1.0 / prm.ell] * 3))
@@ -501,7 +502,7 @@ class HomController:
             if flt is not None and prm.use_filter:
                 V_f = (A @ u + b) if prm.filter.source == "planned" else v_ref
                 p_act, n_act = flt.update(mr, f, g, V_f, dt)
-            offset = np.zeros(len(th))
+            off_gap, off_force, off_grav, gap = np.zeros(len(th)), np.zeros(len(th)), np.zeros(len(th)), 0.0
             kp = mr.kp[f]
             if c.force > 0:
                 # the impedance's reference penetration is measured from the object's surface: move the action point
@@ -517,12 +518,17 @@ class HomController:
                     # "gap": at the measured angles, while apart; "surface": also in contact
                     gap = g.dist if prm.impedance == "surface" else max(g.dist, 0.0)
                 if gap != 0.0:
-                    offset += Jp.T @ np.linalg.solve(Jp @ Jp.T + prm.dls ** 2 * np.eye(3), gap * n_act)
-                offset += Jp.T @ (c.force * n_act) / kp
+                    off_gap = Jp.T @ np.linalg.solve(Jp @ Jp.T + prm.dls ** 2 * np.eye(3), gap * n_act)
+                off_force = Jp.T @ (c.force * n_act) / kp
             if prm.gravity_ff:
-                offset += mr.gravity(f) / kp
-            out[f] = np.clip(self.theta_ref[f] + offset, mr.lo[f], mr.hi[f])
+                off_grav = mr.gravity(f) / kp
+            out[f] = np.clip(self.theta_ref[f] + off_gap + off_force + off_grav, mr.lo[f], mr.hi[f])
+            # every intermediate of the period (the code walkthrough page reads them): the GCF, Eq. (1)'s rows, the
+            # reference and weights of Eq. (2), the reference before and after, and the three servo offsets
             info[f] = {"dist": g.dist, "source": g.source, "u": u, "v_plan": A @ u + b, "v_ref": v_ref,
                        "touching": touching, "F": Fm, "p_act": p_act, "n_act": n_act,
-                       "k_filter": flt.k if flt is not None else None}
+                       "k_filter": flt.k if flt is not None else None, "gcf": g, "V": V, "A": A, "b": b,
+                       "weights": np.asarray(c.weights, float), "force": c.force, "theta": th, "theta_ref_prev": tr0,
+                       "theta_ref": self.theta_ref[f].copy(), "gap": gap, "off_gap": off_gap, "off_force": off_force,
+                       "off_grav": off_grav, "q_cmd": out[f]}
         return out, info
