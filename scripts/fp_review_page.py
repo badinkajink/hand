@@ -52,7 +52,17 @@ REFS = [
     '<code>docs/experiments/20261029-hom_control_review/</code>.',
     '[3] D. J. Montana, "The kinematics of contact and grasp", IJRR 7(3), 1988.',
     '[4] L. van der Maaten and G. Hinton, "Visualizing data using t-SNE", JMLR 9, 2008.',
+    '[5] N. Bohlinger and J. Peters, "Shape Your Body: Value Gradients for Multi-Embodiment Robot Design", CoRL 2026, '
+    '<a href="https://arxiv.org/abs/2606.00702">arXiv 2606.00702</a>.',
+    '[6] B. Yang, L. Jiang, W. Wu, M. Cheng and K. Gong, "Evolving Robot Morphology with Manipulation Learning Inspired '
+    'by Human Hand Evolution", IEEE Transactions on Evolutionary Computation, 2026, DOI 10.1109/TEVC.2026.3696420.',
+    '[7] B. Yang, L. Jiang, W. Wu and R. Zhen, "Evolving Robotic Hand Morphology Through Grasping and Learning", IEEE '
+    'Robotics and Automation Letters, 2024, DOI 10.1109/LRA.2024.3440707.',
+    '[8] Z. Xie, Y. Xiang, M. Posa and W. Jin, "Where to Touch, How to Contact: A Hierarchical RL-MPC Framework for '
+    'Geometry-Aware Sim-to-Real Manipulation", <a href="https://arxiv.org/abs/2601.10930">arXiv 2601.10930</a>, 2026.',
 ]
+GRID_TASKS = (("twist", 40.0, "Twist", "40 mm sphere"), ("roll", 40.0, "Roll", "40 mm sphere"),
+              ("pinpush", 25.0, "Pin-push", "25 mm cylinder"), ("press", 25.0, "Press", "25 mm cylinder"))
 FIG, TAB = [0], [0]
 
 
@@ -217,6 +227,24 @@ def sec_terms():
          "fingertips closing a force loop on the pad force."),
         ("Force error", "the mean over the three pads of the difference between a run's mean pad force and the same "
          "seed's under exact sensing (N)."),
+        ("v4b fingertip", "the printed fingertip calibrated on the UR5. Its pad is half an ellipsoid (semi-axes 8.5 mm "
+         "deep, 7.4 mm across, 11 mm toward the tip and 22 mm toward the PIP) in a cassette under a trimmed cap. "
+         "Sections SEC[v4b] and SEC[grid] use it; the earlier sections use the TPU block."),
+        ("Task score", "a rollout's score in [0, 1], 0 when the object is dropped. Twist: the ramp on three pads "
+         "divided by 90 deg. Roll: 1/(1 + velocity RMSE per step). Pin-push and press: 1 minus the pinch-angle RMSE "
+         "over the stroke (15 and 20 deg), at least 0. A grasp's score is the mean over its seeds."),
+        ("Grasp set", "up to 16 grasps of one layout and object: the foundational pose and up to 15 others spread over "
+         "its feasible set (Section SEC[grid])."),
+        ("Best of 16", "a layout's highest grasp score in its grasp set."),
+        ("Held share", "the share of a layout's grasps held in every seed."),
+        ("Feasible log volume", r"$\sum_j \log(w_j / r_j)$ over a pose's variables. Here $w_j$ is the feasible width "
+         r"of variable $j$ on a line through the foundational pose and $r_j$ its bound range. It measures the size of the "
+         r"layout's feasible grasp set and is 0 when every variable is free over its bounds."),
+        ("Grasp-matrix singular value", "the smallest singular value of the grasp matrix at the three contacts, the "
+         "grasp metric of [6], recorded for every grasp of a set."),
+        ("Smoothed map, basin", "the best-of-16 map smoothed by a Gaussian of 7.5 mm. A basin is the set of grid cells "
+         "whose steepest ascent on the smoothed map ends at the same peak. It is kept when it has 8 cells or more and its "
+         "peak rises 0.05 above its lowest cell."),
     ]
     return '<dl class="terms">' + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in terms) + "</dl>"
 
@@ -953,6 +981,250 @@ the medians to <<a2>> and <<b2>> N, and the share of layouts over 1 N to <<a3>> 
     return t
 
 
+def v4b_numbers():
+    """Pose yields of the v4b tip on the 8,192 Sobol layouts per object size, and the load on the rigid parts in the
+    held rollouts of the v4b check (GPU, seed 0)."""
+    out = {"yield": {}}
+    for shape, sizes in (("tripod", (30, 40, 50, 63)), ("pinch", (10, 16, 25, 40))):
+        for d in sizes:
+            rows = load(f"sobol8k_{shape}{d}_v4b")
+            out["yield"][(shape, d)] = {k: sum(1 for r in rows if (r["fp"].get(k) or {}).get("ok"))
+                                        for k in (("tripod",) if shape == "tripod" else ("pinch", "press"))}
+    for t in ("twist_d40_s0", "pinpush_d25_s0"):
+        rr = [json.loads(x) for x in (ROWS / "v4b_check" / f"{t}.jsonl").read_text().splitlines() if x.strip()]
+        lf = np.array([r.get("link_force_max_N", np.nan) for r in rr if r.get("held")], float)
+        out[t] = (len(rr), int(np.isfinite(lf).sum()), float(np.nanmedian(lf)), float(np.nanpercentile(lf, 90)))
+    return out
+
+
+def grid_numbers():
+    """The grid at the default objects: per task the summary of hom_landscape.py grid, the basin peaks of the smoothed
+    best-of-16 map, and Spearman correlations of the feasible log volume and of the grasp-matrix singular value with
+    the scores."""
+    import hom_landscape as L
+    summ = json.loads((L.GRID_ROWS / "summary.json").read_text())
+    out = {}
+    for task, d, _name, _obj in GRID_TASKS:
+        xs, ys, M = L.grid_maps(task, d)
+        sm = L.smooth_map(M["best"])
+        pk, pks = L.peaks(sm)
+        nx = len(xs)
+        peaks = sorted(((float(xs[p % nx]), float(ys[p // nx]), float(sm.flat[p]), int((pk == p).sum())) for p in pks),
+                       key=lambda x: -x[3])
+        tab = [r for r in L.grid_table(task, d) if r.get("n_grasps")]
+        best = np.array([r["best"] for r in tab])
+        lv = np.array([np.nan if r["logvol"] is None else r["logvol"] for r in tab], float)
+        ok = np.isfinite(lv)
+        sc, _held = L.grid_scores(task, d)
+        pairs, within = [], []
+        for call, (_x, _y, rec) in L.grid_poses(task, d).items():
+            if not rec or not rec.get("ok"):
+                continue
+            pr = [(g["gsv"], float(np.mean(sc[(call, j)]))) for j, g in enumerate(rec.get("grasps") or [rec])
+                  if (call, j) in sc and g.get("gsv") is not None]
+            pairs += pr
+            a = np.array(pr)
+            if len(pr) >= 5 and a[:, 0].std() > 0 and a[:, 1].std() > 0:
+                within.append(spearman(a[:, 0], a[:, 1]))
+        a = np.array(pairs)
+        out[task] = dict(summ[f"{task}_d{d:g}"], peaks=peaks, lv_best=spearman(lv[ok], best[ok]),
+                         gsv_all=spearman(a[:, 0], a[:, 1]), gsv_within=float(np.median(within)), n_grasps=len(a))
+        if task == "twist":                     # how the winning grasp differs from the foundational pose
+            byc = {r["call"]: r for r in tab}
+            dv = []
+            for call, (_x, _y, rec) in L.grid_poses(task, d).items():
+                r = byc.get(call)
+                if rec and rec.get("ok") and r and r.get("best_grasp") is not None:
+                    vb, v0 = (np.asarray(rec["grasps"][j]["v"], float) for j in (r["best_grasp"], 0))
+                    dv.append((1e3 * abs(vb[2] - v0[2]), math.degrees(abs(vb[4] - v0[4])), math.degrees(abs(vb[3])),
+                               math.degrees(vb[4]), math.degrees(v0[4])))
+            dv = np.array(dv)
+            out[task]["vars"] = {"depth_mm": float(np.median(dv[:, 0])), "index_turn": np.percentile(dv[:, 1], [25, 75]),
+                                 "thumb_off": float(np.mean(dv[:, 2] > 2.0)), "index_best": np.percentile(dv[:, 3], [25, 75]),
+                                 "index_fp": np.percentile(dv[:, 4], [5, 95])}
+    return out
+
+
+def sec_v4b(N):
+    V = N["v4b"]
+    y = V["yield"]
+    t = fill(r"""<p>Sections SEC[gpu] to SEC[sense] used the printed TPU block as the fingertip. The hand calibrated on the UR5
+has the v4b fingertip. Its pad, half an ellipsoid, sits in a cassette under a cap trimmed at the pad's top edge, on DIP
+link b v4. The pad's semi-axes are 8.5 mm deep, 7.4 mm across, 11 mm toward the tip and 22 mm toward the PIP. Its apex
+lies 10.55 mm from the finger's axis. The tip body sits 36.36 mm below the PIP axis, 9.75 mm lower than the block's. From
+this section on, every pose and rollout uses the v4b fingertip (<code>SCALE_HAND=cad_v2</code>).</p>
+<p><code>scripts/build_cad_v2_finger.py</code> places the cell's v4b parts on the CAD finger. For the plant it packs the
+rigid parts with spheres: 160 on the DIP link, 85 on the cassette and 70 on the cap with its four M2 button heads.
+Spheres were added greedily until 97 % of 60,000 surface samples lay within 1 mm of one; the link reached 73 % at its
+budget of 160. Each pad is 1,018 spheres of 0.75 mm radius, with stiffnesses from pad builder v2 (Figure <<fa>>). In
+the controller the pad is an analytic half-ellipsoid; the code walkthrough of the HOM review page derives its
+closest-point solver.</p>
+<p>The pad covers only part of its ellipsoid, and it is flat toward the PIP. Tilting a contact normal 10 deg toward the
+PIP moves the pad's support point to within 1.5 mm of the pad's end; toward the tip, the same takes 48 deg. The toy's
+poses therefore have two more constraints. The pad-coverage slack keeps the support point along each contact normal at
+least 1.5 mm inside the pad's ends (<code>fp_sr2_toy.pad_slack</code>). The rigid-clearance slack keeps the spheres of
+the link, cassette and cap clear of the object, with the finger placed where the plant's open pose puts it
+(<code>rigid_clearance</code>). Without the two constraints the twist's touch poses put the caps 1.2 to 4.0 mm inside the
+40 mm sphere (Figure <<fb>>). With them the rigid parts clear the sphere by 1.4 mm or more (Figure <<fc>>).</p>""",
+             fa=FIG[0] + 1, fb=FIG[0] + 2, fc=FIG[0] + 3)
+    t += img(MEDIA / "20261030-cad_v2_finger_check.png",
+             "The v4b fingertip on the CAD finger from five sides: top row with the part meshes, bottom row with the "
+             "sphere packs of the rigid parts and the pad's 0.75 mm spheres only.")
+    t += img(MEDIA / "20261030-v4b_touch_check_unconstrained.png",
+             "Touch poses of the twist grasp on the 40 mm sphere for four Sobol layouts, solved without the pad-coverage "
+             "and rigid-clearance constraints. The rigid parts' spheres are drawn; the caps sit inside the sphere.")
+    t += img(MEDIA / "20261030-v4b_touch_twist.png",
+             "Touch poses of the twist grasp for three Sobol layouts with both constraints, from the side, the front "
+             "and below.")
+    rows = []
+    for (shape, d), v in y.items():
+        rows.append([("sphere" if shape == "tripod" else "cylinder") + f" {d} mm", shape if shape == "tripod" else
+                     "pinch", f"{v.get('tripod', v.get('pinch')):,}", f"{v['press']:,}" if "press" in v else ""])
+    nt, nh_t, lt, lt9 = V["twist_d40_s0"]
+    npp, nh_p, lp, lp9 = V["pinpush_d25_s0"]
+    t += fill(r"""<p>Table SEC_TAB_Y gives the layouts that reach each pose with the v4b fingertip. Larger objects are
+reached by more layouts: the tripod pose by <<t30>> of 8,192 on the 30 mm sphere and <<t63>> on the 63 mm sphere. In the
+<<nhp>> held pin-pushes of seed 0, the largest force on the rigid parts had a median of <<lp>> N and a 90th percentile of
+<<lp9>> N. In the twist they touch the sphere at the end of the ramp, when a pad leaves
+it: median <<lt>> N over <<nht>> held twists. The CPU and GPU controllers agree on the held outcome as often as two seeds
+of the GPU controller do (the code walkthrough, Section 13).</p>""",
+              t30=f"{y[('tripod', 30)]['tripod']:,}", t63=f"{y[('tripod', 63)]['tripod']:,}", nhp=f"{nh_p:,}",
+              lp=f"{lp:.1f}", lp9=f"{lp9:.1f}", lt=f"{lt:.1f}", nht=f"{nh_t:,}").replace("SEC_TAB_Y", str(TAB[0] + 1))
+    t += table(["Object", "Pose", "Layouts reaching the pose", "Reaching the press pose"], rows,
+               "Sobol layouts (of 8,192) that reach each pose with the v4b fingertip, per object size.", num_from=2)
+    return t
+
+
+def sec_grid(N):
+    G = N["grid"]
+    tw, ro, pp, pr = (G[t] for t in ("twist", "roll", "pinpush", "press"))
+    t = r"""<p>Until this section a layout's score came from one grasp, its foundational pose. That pose maximizes the
+margin to the kinematic constraints. Whether a grasp survives the task is decided by friction and the servo forces,
+which the margin does not include. Each layout of a grid of symmetric tripods therefore gets a set of up to 16 grasps
+(<code>fp_sr2_toy.py grid2d</code>). The grid spans $x_{sep}$ from 40 to 160 mm and $y_{sep}$ from 50 to 170 mm in steps
+of 5 mm, 625 layouts. Two parameters keep the maps readable; the six coordinates follow in the size
+study.</p>
+<p>The feasible set of a pose is thin. The object's position is free by a few millimetres and the contact coordinates
+by tens of degrees, and uniform perturbations of 35 % of the bounds around the foundational pose were all infeasible.
+The sampler first scans each variable along a line through the foundational pose, at 41 points over its bounds and
+then over a fortieth of them, to find its feasible width. It then walks for 600 steps: each step moves one or two
+variables by up to half their width and is kept when every constraint is met. From the visited grasps that pass the
+clearance checks, 15 are chosen in farthest-point order, in coordinates divided by the widths. The widths also give the
+feasible log volume, the size of the layout's grasp set.</p>"""
+    rows = []
+    for task, d, name, obj in GRID_TASKS:
+        g = G[task]
+        rows.append([name, obj, str(g["run"]), f"{g['fp_median']:.2f}", f"{g['best_median']:.2f}",
+                     f"{100 * g['best_is_fp']:.0f}", f"{g['fp_vs_best_spearman']:.2f}", f"{g['held_share_median']:.2f}",
+                     f"{g['lv_best']:.2f}", f"{g['gsv_within']:.2f}"])
+    t += fill(r"""<p>Every grasp of every reached layout ran the four HOM tasks on the GPU with three seeds (Table
+SEC_TAB_G). The best of 16 raised the median score over the foundational pose in every task: from <<a0>> to <<a1>> in the
+twist and from <<c0>> to <<c1>> in the pin-push. The roll rose from <<b0>> to <<b1>> and the press from <<d0>> to <<d1>>. The foundational
+pose was the best grasp on <<e0>> to <<e1>> % of the layouts. Its score ranks the layouts' best scores only roughly, at
+Spearman <<f0>> to <<f1>>. The grasp therefore has to be searched per layout and per task.</p>""",
+              a0=f"{tw['fp_median']:.2f}", a1=f"{tw['best_median']:.2f}", b0=f"{ro['fp_median']:.2f}",
+              b1=f"{ro['best_median']:.2f}", c0=f"{pp['fp_median']:.2f}", c1=f"{pp['best_median']:.2f}",
+              d0=f"{pr['fp_median']:.2f}", d1=f"{pr['best_median']:.2f}",
+              e0=f"{100 * min(g['best_is_fp'] for g in G.values()):.0f}",
+              e1=f"{100 * max(g['best_is_fp'] for g in G.values()):.0f}",
+              f0=f"{min(g['fp_vs_best_spearman'] for g in G.values()):.2f}",
+              f1=f"{max(g['fp_vs_best_spearman'] for g in G.values()):.2f}").replace("SEC_TAB_G", str(TAB[0] + 1))
+    t += table(["Task", "Object", "Layouts", "FP median", "Best-of-16 median", "FP best (%)", "Spearman, FP and best",
+                "Held share, median", "Spearman, log volume and best", "Spearman, grasp-matrix value and score"], rows,
+               "Grasp sets on the 2-D grid at the default objects, v4b fingertip, seeds 0 to 2. The last column is the "
+               "median over layouts of the rank correlation between a grasp's grasp-matrix singular value and its "
+               "score, within each layout's set.", num_from=2)
+
+    t += fill(r"""<p>The four tasks peak at different layouts (Figures <<f1>> to <<f4>>, bottom right). The twist's largest
+basin peaks at $x_{sep}$ = <<tx>> mm and $y_{sep}$ = <<ty>> mm. The roll's peaks at (<<rx>>, <<ry>>) mm, with the index
+and middle closer together. The pin-push has one basin, with its peak at (<<px>>, <<py>>) mm on the grid's edge of the
+smallest index-to-middle spacing. The press has <<npr>> basins; the largest peaks at (<<p1x>>, <<p1y>>) mm and the highest
+at (<<p2x>>, <<p2y>>) mm. The twist and the roll share a
+sphere and a grasp family, yet their best layouts lie <<dy>> mm apart in $y_{sep}$.</p>
+<p>Two kinematic quantities were tested as predictors. The feasible log volume of a layout's pose ranks its best-of-16
+score at Spearman <<l0>> to <<l1>>: layouts with more room around the foundational pose offer better grasps. The
+earlier kinematic scores, the rotation range among them, did not rank the rollouts (Section SEC[check]). The grasp
+metric of [6] is the smallest singular value of the grasp matrix. Within a layout it ranks the roll's grasps at a median
+Spearman of <<g_ro>>, and the twist's, pin-push's and press's at <<g_tw>>, <<g_pp>> and <<g_pr>>.</p>
+<p>Figure <<f5>> shows which grasp won the twist. The best grasp keeps the sphere's depth within a median <<dd>> mm
+of the foundational pose's. Its index contact sits between <<ib0>> and <<ib1>> deg from the symmetric azimuth on the
+middle half of the layouts, while the foundational pose's spans <<if0>> to <<if1>> deg over 90 % of them. Its thumb contact leaves the
+symmetric position, which every foundational pose keeps, on <<th>> % of the layouts.</p>""",
+              f1=FIG[0] + 1, f4=FIG[0] + 4, f5=FIG[0] + 5,
+              tx=f"{tw['peaks'][0][0]:.0f}", ty=f"{tw['peaks'][0][1]:.0f}", rx=f"{ro['peaks'][0][0]:.0f}",
+              ry=f"{ro['peaks'][0][1]:.0f}", px=f"{pp['peaks'][0][0]:.0f}", py=f"{pp['peaks'][0][1]:.0f}",
+              npr={1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}.get(len(pr["peaks"]), str(len(pr["peaks"]))),
+              p1x=f"{pr['peaks'][0][0]:.0f}", p1y=f"{pr['peaks'][0][1]:.0f}",
+              p2x=f"{max(pr['peaks'], key=lambda q: q[2])[0]:.0f}", p2y=f"{max(pr['peaks'], key=lambda q: q[2])[1]:.0f}",
+              l0=f"{min(g['lv_best'] for g in G.values()):.2f}", l1=f"{max(g['lv_best'] for g in G.values()):.2f}",
+              g_ro=f"{ro['gsv_within']:.2f}", g_tw=f"{tw['gsv_within']:.2f}", g_pp=f"{pp['gsv_within']:.2f}",
+              g_pr=f"{pr['gsv_within']:.2f}", dy=f"{abs(tw['peaks'][0][1] - ro['peaks'][0][1]):.0f}",
+              dd=f"{tw['vars']['depth_mm']:.1f}", ib0=f"{tw['vars']['index_best'][0]:.0f}",
+              ib1=f"{tw['vars']['index_best'][1]:.0f}", if0=f"{tw['vars']['index_fp'][0]:.0f}",
+              if1=f"{tw['vars']['index_fp'][1]:.0f}", th=f"{100 * tw['vars']['thumb_off']:.0f}")
+    cap = ("{name}, {obj}: grid of symmetric tripods every 5 mm, 16 grasps per layout, three seeds (grey: pose not "
+           "reached). Top: the foundational pose's score, the best of 16 and their difference. Bottom: the held share, "
+           "the feasible log volume and the smoothed best of 16 with its gradient and basin peaks (stars).")
+    for task, d, name, obj in GRID_TASKS:
+        t += img(MEDIA / f"20261029-grid_{task}_d{d:g}.png", cap.format(name=name, obj=obj))
+    t += img(MEDIA / "20261029-grid_grasps_twist_d40.png",
+             "Twist on the 40 mm sphere: the variables of each layout's best grasp (top) and of its foundational pose "
+             "(bottom), over the grid.")
+    return t
+
+
+def sec_related():
+    return r"""<p>Four lines of work bear on this design study. Each answers part of the question, with a different
+controller in the loop.</p>
+<ul>
+<li>The foundational-pose paper [1] scores hands by kinematic poses and a kinematic planner. Here the poses keep their
+role as the starting states of the tasks, the controller is HOM [2], and the scores come from dynamic rollouts.</li>
+<li>Bohlinger and Peters [5] train one morphology-conditioned policy and critic with PPO over 50 robots, in 7 to 9 h.
+The frozen critic is then a differentiable model of return over up to 1,177 design parameters. Designs improve by
+gradient ascent with a trust-region penalty, 1,000 designs per batch in 1 to 2 min. HOM needs no
+training per design, so a smooth model fitted to this page's rollouts over the layout coordinates can play the
+critic's role. Its gradient is the design gradient of [5]. On the 2-D grid the smoothed maps' arrows are
+that gradient.</li>
+<li>Yang et al. [6, 7] evolve hand morphologies with an elitist, mutation-only evolutionary algorithm. One
+morphology-aware Transformer policy, trained with PPO, controls the whole population: 22,528 hands, scored by the grasp
+matrix's smallest singular value and by successful reorientations. Their fitness and their outer loop can be run on this page's
+evaluator. Their grasp metric is recorded for every grasp in Section SEC[grid], where it ranked only the roll's grasps.
+The maps of Section SEC[grid] show every basin of a task over the grid.</li>
+<li>In Xie, Xiang, Posa and Jin [8] a policy chooses where to touch: a contact point on the object and an object
+subgoal. A complementarity-free contact-implicit MPC at about 100 Hz then moves a Franka arm's stick through contact.
+The actions are written at the contacts, as HOM's commands are. An MPC over HOM's commands for the SR2 hand is listed
+in Section SEC[future].</li>
+</ul>"""
+
+
+def sec_history():
+    rows = [
+        ["2026-10-29, afternoon", "The paper's pipeline on the SR2 toy: RRT and Sobol layouts, SQP onto two poses, Pareto "
+         "front, t-SNE and PCA", "reproduce [1] on our hand", "the t-SNE islands come from the RRT; Sobol reaches the "
+         "poses on most layouts (Section SEC[toy])"],
+        ["2026-10-29, evening", "HOM on the GPU on every layout's foundational pose; four tasks, sensing variants",
+         "score layouts by the controller that runs on the bench", "kinematic scores do not rank the rollouts "
+         "(Sections SEC[gpu] to SEC[sense])"],
+        ["2026-10-29, 23:00", "Grasps synthesized per layout instead of one keyframe or one pose per layout; the 2-D "
+         "grid of symmetric tripods before the six coordinates", "the in-hand task depends on the grasp it starts "
+         "from; two parameters give readable maps", "Section SEC[grid]"],
+        ["2026-10-29, 23:10", "Width scans and a coordinate walk instead of uniform perturbations", "uniform "
+         "perturbations of 35 % of the bounds were all infeasible: the feasible set is thin", "16 grasps on every "
+         "reached layout"],
+        ["2026-10-29, 23:20", "The v4b fingertip instead of the TPU block, with sphere packs of the rigid parts, the "
+         "trimmed cap and two pose constraints", "the fingertip calibrated on the UR5 is the one the controller must "
+         "match", "every pose and rollout rerun (Section SEC[v4b])"],
+        ["2026-10-30, 00:00 to 02:00", "Checks of the v4b hand: touch keyframes from three sides, rigid-part forces, CPU "
+         "against GPU; faster GPU geometry for the pad", "caps inside the sphere before the constraints; a batch ten "
+         "times slower with the rigid spheres colliding with each other", "36 to 41 ms per rollout"],
+        ["2026-10-30, 02:00", "Feasible log volume and the grasp-matrix value as predictors", "a layout's room for "
+         "grasps as a sample-efficiency score", "log volume ranks the best score at Spearman 0.39 to 0.68"],
+    ]
+    return ("<p>Table SEC_TAB_H lists the changes to the method in order, with their reasons and what they showed."
+            "</p>").replace("SEC_TAB_H", str(TAB[0] + 1)) + table(
+        ["When", "Change", "Reason", "Result"], rows, "Changes to the method on 2026-10-29 and 10-30.", num_from=9)
+
+
 def sec_separate(N):
     t = r"""<p>Choosing a hand with its controller in the loop is a nested problem. For each design $d$, find the best
 controller $\pi$; then pick the design whose best controller scores highest:</p>
@@ -1062,7 +1334,16 @@ front inherits that noise.</li>
 not run.</li>
 <li>The layout space is the gantries' six coordinates. The paper's template also varies link lengths and the thumb's
 rotation, which the SR2 hand cannot change without new parts.</li>
-</ul>""", ag=f"{100 * ag:.1f}", pn=f"{press_latitudes()[0]:,}", pl=f"{100 * press_latitudes()[1]:.0f}")
+<li>The best of 16 is the largest of 16 grasp scores, each a mean over three seeds, so it is biased upward. The gain over
+the foundational pose has not been repeated on fresh seeds.</li>
+<li>The cylinder tasks keep few grasps held in every seed (median held share <<hp>> in the pin-push and <<hr>> in the
+press), so their maps rank single layouts roughly. The pin-push's peak lies on the grid's edge of the smallest
+index-to-middle spacing, 50 mm; smaller spacings are outside the grid.</li>
+<li>In the pin-push the middle finger presses with less than its commanded 1.5 N. In the code walkthrough's example it
+pressed a median 0.27 N, while its joint reference stayed more than the 6 mm gap cut behind the cylinder. The pin-push
+scores include that.</li>
+</ul>""", hp=f"{N['grid']['pinpush']['held_share_median']:.2f}", hr=f"{N['grid']['press']['held_share_median']:.2f}",
+        ag=f"{100 * ag:.1f}", pn=f"{press_latitudes()[0]:,}", pl=f"{100 * press_latitudes()[1]:.0f}")
 
 
 def sec_future():
@@ -1082,6 +1363,17 @@ with tags. The simulated ranking fails if the bench ranks the three differently.
 <li>Pose the screwdriver's pinch brake and wield as foundational poses in <code>fp_sr2_toy.py</code>.</li>
 <li>Compare the t-SNE map of the Sobol layouts' dynamic scores against a uniform null with the neighbour-preservation
 test of <code>scripts/paper_morphology_diversity.py</code>.</li>
+<li>Rerun each grid layout's foundational pose and best grasp on seeds 3 to 5. Add the best grasps of its four
+neighbours, moved to it as palm-frame keyframes (<code>logs/20261029-hom_sizes/gpu_queue_v4b_2.sh</code>:
+<code>hom_landscape.py derive</code>, then <code>hom_gpu.py run --layouts grid2dval_size grid2dnb_size</code>). The gain
+of Section SEC[grid] repeats if the best grasp beats the foundational pose on fresh seeds on most layouts. A grasp
+transfers to a neighbouring layout if its score there comes within 0.1 of the layout's own best.</li>
+<li>Fit a smooth model of each task's score over the six layout coordinates on the size study's Sobol rows
+(<code>rows/sizes_v4b</code>). Follow its gradient from many starts as in [5], and compare the end points with the
+basins of the grid. Run the evolutionary search of [6] on the same evaluator as a baseline, counting rollouts to reach
+the best basin.</li>
+<li>Build a sampling MPC over HOM's commands on MuJoCo-Warp (<code>scripts/hom_mpc_gpu.py</code>) and compare it with
+HOM's fixed schedules on the grid's best layouts. Measure its control rate against real time.</li>
 </ol>"""
 
 
@@ -1098,6 +1390,12 @@ def sec_files():
 2 --batch 2048 --out NAME</code>, with <code>--variants rate50 cal_notip cal_tip cal_tipfl</code> for Section SEC[sense];
 rows <code>hom2d_gpu_*</code>, <code>hom2dfp_gpu_*</code>, <code>hom6d_rrt_gpu_*</code>, <code>hom6d_gpu_*</code> and
 <code>hom6d_gpu_sense_*</code>, each with a <code>_timing</code> file.</li>
+<li>The v4b fingertip: <code>scripts/build_cad_v2_finger.py</code>, <code>assets/mjcf/experimental/20261030-cad_v2</code>;
+poses <code>fp_sr2_toy.py poses</code> and <code>grid2d</code> (rows <code>sobol8k_*_v4b.jsonl</code>,
+<code>grid2d_*_v4b.jsonl</code>); the check <code>logs/20261029-hom_sizes/v4b_check.sh</code> (rows
+<code>v4b_check/</code>).</li>
+<li>Grid of grasp sets: <code>hom_gpu.py run --layouts grid2d_size</code> (rows <code>grid2d_v4b/</code>); maps and
+tables <code>scripts/hom_landscape.py grid</code> and <code>figures</code>.</li>
 <li>Earlier studies: <code>docs/experiments/20260831-real_v1-sobol8192/</code>,
 <code>docs/experiments/20260828-real_v1_search/</code>, <code>docs/experiments/20261008-hand_object_scale/</code>,
 <code>docs/experiments/20261001-drake-port/</code>; the morphology overview <code>docs/overviews/morphology_design.html</code>.</li>
@@ -1189,6 +1487,8 @@ the maps, have mean scores of <<m0>> to <<m1>> and differ visibly.</p>""",
     N["cyl2d"] = cyl_set("hom2dfp_gpu_pinpush", "hom2dfp_gpu_press")
     N["cylrrt"] = cyl_set("hom6d_rrt_gpu_pinpush", "hom6d_rrt_gpu_press")
     N["cylsob"] = cyl_set("hom6d_gpu_pinpush", "hom6d_gpu_press")
+    N["v4b"] = v4b_numbers()
+    N["grid"] = grid_numbers()
     N["check_text"] = fill(r"""<p>The toy's scores are kinematic, and the HOM tasks are dynamic. Table 2 runs the HOM twist of a
 40 mm sphere on <<nl>> symmetric tripods from the 2-D case, chosen evenly by rank of the tripod's kinematic rotation
 range (<code>scripts/fp_hom_check.py</code>). The twist is the task study's: steps of 40 deg/s, then a 30 deg/s ramp,
@@ -1218,44 +1518,42 @@ the grasp, and for the twist that decides the outcome.</p>""",
         ("gpu", "HOM on the GPU: many layouts in one batch", sec_gpu(N)),
         ("check", "Kinematic scores against HOM rollouts on the same layouts", sec_check(N)),
         ("sense", "Sensing errors across the layouts", sec_sense(N)),
+        ("v4b", "The calibrated v4b fingertip in the layout search", sec_v4b(N)),
+        ("grid", "Grasps synthesized per layout on a grid of symmetric tripods", sec_grid(N)),
         ("separate", "Grasp and in-hand control: one problem or two", sec_separate(N)),
         ("plan", "A plan for a Pareto front of SR2 layouts under HOM control", sec_plan(N)),
+        ("related", "Related design studies and how this one builds on them", sec_related()),
+        ("history", "Changes to the method on 2026-10-29 and 10-30", sec_history()),
         ("limits", "Limitations", sec_limits(N)),
         ("future", "Future work", sec_future()),
         ("files", "References and files", sec_files()),
     ]
-    byline = ("Review and simulation, 2026-10-29. Paper: arXiv 2409.14158v2 [1]. Hand: the CAD-model SR2 hand "
-              "(closed-form kinematics of <code>scripts/hand_object_scale_kin.py</code>; the 1 N m servo plant and 1 mm "
-              "sphere pads in the HOM rollouts, on the CPU and on MuJoCo-Warp, <code>scripts/hom_gpu.py</code>). "
+    byline = ("Review and simulation, 2026-10-29 and 10-30. Paper: arXiv 2409.14158v2 [1]. Hand: the CAD-model SR2 hand "
+              "(closed-form kinematics of <code>scripts/hand_object_scale_kin.py</code>; the 1 N m servo plant in the HOM "
+              "rollouts, on the CPU and on MuJoCo-Warp, <code>scripts/hom_gpu.py</code>). Fingertip: the TPU block as "
+              "1 mm sphere pads up to Section 8, the calibrated v4b fingertip from Section 9. "
               "Builder: <code>scripts/fp_review_page.py</code>.")
-    d2 = N.get("dyn2d") or {}
-    ms = (N.get("val", {}).get("twist") or {}).get("ms") or float("nan")
-    sob8 = json.loads((ROWS / "sobol8k_summary.json").read_text()) if (ROWS / "sobol8k_summary.json").exists() else {}
-    fs = N["fig"].get("sense6d") or {}
-    rhos = [fs[t]["cal_tip"]["spearman"] for t in ("twist", "roll", "pinpush", "press") if t in fs]
-    rho0 = [fs[t]["seeds"]["spearman"] for t in ("twist", "roll", "pinpush", "press") if fs.get(t, {}).get("seeds")]
-    ms4 = [x for x in (ms, gpu_ms("hom6d_gpu_pinpush"), gpu_ms("hom6d_gpu_press")) if x and np.isfinite(x)]
-    lede = fill("""The foundational-pose paper [1] keeps a hand design if it can reach a few poses that tools are wielded
-from, then scores how far a kinematic planner moves the tool from each pose. On the SR2 hand, with HOM-task grasps as
-the poses, the paper's SQP reaches them on <<sc>> of <<sn>> Sobol layouts. Islands in the t-SNE map like the paper's
-appear only with its RRT sampler. A GPU version of the HOM controller ran four tasks on every layout, at <<m0>> to <<m1>>
-ms per rollout. Kinematic scores do not rank the dynamic ones: the rotation range and the twist's ramp correlate at
-Spearman <<sp>> over 212 layouts.<<sense>>""",
-                sc=f"{sob8.get('candidates', 0):,}", sn=f"{sob8.get('n', 0):,}", m0=f"{min(ms4):.0f}" if ms4 else "?",
-                m1=f"{max(ms4):.0f}" if ms4 else "?", sp=f"{d2.get('sp_kin_ramp', float('nan')):.2f}",
-                sense=(f" With calibration errors and the measured fingertips, each task keeps the layouts' order only at "
-                       f"Spearman {min(rhos):.2f} to {max(rhos):.2f}, against {min(rho0):.2f} to {max(rho0):.2f} for new "
-                       f"seeds. Layouts must therefore be scored under the sensing the hand will have." if rhos and rho0
-                       else ""))
-    summary = fill("""On the SR2 hand the foundational-pose pipeline reaches the HOM-task poses on <<sc>> of <<sn>> Sobol
-layouts, and its t-SNE islands come from the RRT sampler. A GPU version of the HOM controller, validated against the CPU,
-scored four tasks on every layout at about <<ms>> ms per rollout: kinematic scores do not rank them (Spearman <<sp>> for
-the twist over 212 layouts)<<sense>>.""",
-                   sc=f"{sob8.get('candidates', 0):,}", sn=f"{sob8.get('n', 0):,}",
-                   ms=f"{np.median(ms4):.0f}" if ms4 else "?", sp=f"{d2.get('sp_kin_ramp', float('nan')):.2f}",
-                   sense=(f"; calibration errors with the measured fingertips keep each task's order only at Spearman "
-                          f"{min(rhos):.2f} to {max(rhos):.2f}, against {min(rho0):.2f} to {max(rho0):.2f} for new seeds"
-                          if rhos and rho0 else ""))
+    G = N["grid"]
+    lv = [g["lv_best"] for g in G.values()]
+    fpb = [g["best_is_fp"] for g in G.values()]
+    lede = fill("""The foundational-pose paper [1] keeps a hand design if it reaches a few poses that tools are wielded
+from. On the SR2 hand the paper's SQP reaches HOM-task poses on most Sobol layouts. A GPU version of the HOM
+controller scores a layout in tens of milliseconds per rollout, and kinematic scores do not rank those rollouts. With
+the calibrated v4b fingertip, 16 grasps were synthesized per layout on a 625-layout grid. The best of them raised the
+median twist score from <<a0>> to <<a1>> and the pin-push score from <<c0>> to <<c1>>. The foundational pose was the best
+grasp on <<e0>> to <<e1>> % of layouts. The four tasks peak at different layouts, and the size of a layout's feasible
+grasp set ranks its best score at Spearman <<l0>> to <<l1>>.""",
+                a0=f"{G['twist']['fp_median']:.2f}", a1=f"{G['twist']['best_median']:.2f}",
+                c0=f"{G['pinpush']['fp_median']:.2f}", c1=f"{G['pinpush']['best_median']:.2f}",
+                e0=f"{100 * min(fpb):.0f}", e1=f"{100 * max(fpb):.0f}", l0=f"{min(lv):.2f}", l1=f"{max(lv):.2f}")
+    summary = fill("""On the SR2 hand the foundational-pose pipeline reaches the HOM-task poses on most Sobol layouts, and a
+GPU HOM controller scores every layout; kinematic scores do not rank the rollouts. With the calibrated v4b fingertip and
+16 grasps synthesized per layout of a 625-layout grid, the best grasp raised the median twist score from <<a0>> to <<a1>>
+and the pin-push score from <<c0>> to <<c1>>; the foundational pose was best on <<e0>> to <<e1>> % of layouts, and the
+four tasks peak at different layouts.""",
+                   a0=f"{G['twist']['fp_median']:.2f}", a1=f"{G['twist']['best_median']:.2f}",
+                   c0=f"{G['pinpush']['fp_median']:.2f}", c1=f"{G['pinpush']['best_median']:.2f}",
+                   e0=f"{100 * min(fpb):.0f}", e1=f"{100 * max(fpb):.0f}")
     assemble(sections, "Foundational-pose hand design",
              "Foundational-pose hand design, the project's layout sampling, and a Pareto front for the SR2 hand",
              "Morphology and design search", lede, byline, summary)
