@@ -385,6 +385,87 @@ def cmd_value(a):
     return 0
 
 
+PEAK_RADII, PEAK_DIRS, PEAK_TOP = (2.0, 4.0, 8.0), 10, 20
+
+
+def cmd_moves(a):
+    """Source layouts for fp_sr2_toy.py poses (--src <task>...). kind trust: the value model's trust-region moves of the
+    best 200 Sobol layouts and their starts (rows/valtr_<task><d>.jsonl). kind peak: the PEAK_TOP starts that scored
+    best on the trust rows' fresh seeds, each with PEAK_DIRS random directions at each of PEAK_RADII mm in the six
+    mount coordinates (rows/peak_<task><d>.jsonl)."""
+    import fp_sr2_toy as FP
+    tag = f"{a.task}{a.d:g}"
+    rows = []
+
+    def add(d, **kw):
+        d = np.asarray(d, float)
+        rows.append(dict({"d": d.round(3).tolist(), "call": len(rows),
+                          "z": FP.standard(d, FP.LO6, FP.HI6).round(5).tolist()}, **kw))
+    if a.kind == "trust":
+        v = json.loads((SIZE_ROWS / f"value_{a.task}_d{a.d:g}.json").read_text())
+        for L_ in v["trust"]["layouts"]:
+            add(L_["d"], src_call=L_["call"], role="start", pred=L_["pred"])
+            add(L_["d_new"], src_call=L_["call"], role="moved", pred=L_["pred_new"])
+    else:
+        src = {r["call"]: r for r in FR.load(f"valtr_{tag}")}
+        sc, _ = grid_scores(a.task, a.d, ROWS / "valtr", f"{a.task}_d{a.d:g}_s345")
+        best = sorted(((float(np.mean(s)), c) for (c, _g), s in sc.items() if src[c]["role"] == "start" and len(s) == 3),
+                      reverse=True)[:PEAK_TOP]
+        rng = np.random.default_rng(7)
+        for _s, c in best:
+            d0 = np.asarray(src[c]["d"], float)
+            add(d0, center=c, radius_mm=0.0)
+            for rad in PEAK_RADII:
+                for _ in range(PEAK_DIRS):
+                    u = rng.normal(size=6)
+                    add(np.clip(d0 + rad * u / np.linalg.norm(u), FP.LO6, FP.HI6), center=c, radius_mm=rad)
+    path = ROWS / f"{'valtr' if a.kind == 'trust' else 'peak'}_{tag}.jsonl"
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    print(f"{len(rows)} layouts -> {path.relative_to(ROOT)}", flush=True)
+    return 0
+
+
+def cmd_moves_report(a):
+    """The two move experiments on fresh seeds: the trust-region moves against their starts (seeds 3-5), and the score
+    change around the best layouts by perturbation radius (seeds 6-8; a pose not reached scores 0). Writes
+    rows/peak/summary_<task><d>.json."""
+    from scipy.stats import wilcoxon
+    tag = f"{a.task}{a.d:g}"
+    out = {}
+    src = {r["call"]: r for r in FR.load(f"valtr_{tag}")}
+    sc, _ = grid_scores(a.task, a.d, ROWS / "valtr", f"{a.task}_d{a.d:g}_s345")
+    pairs = {}
+    for (c, _g), s in sc.items():
+        pairs.setdefault(src[c]["src_call"], {})[src[c]["role"]] = (float(np.mean(s)), src[c]["pred"])
+    P = np.array([(v["start"][0], v["moved"][0], v["start"][1], v["moved"][1]) for v in pairs.values()
+                  if "start" in v and "moved" in v])
+    dm, dp = P[:, 1] - P[:, 0], P[:, 3] - P[:, 2]
+    full = scores(a.task, a.d, len(layouts()[0]))["mean"]
+    out["trust"] = {"pairs": len(P), "start_median": float(np.median(P[:, 0])), "moved_median": float(np.median(P[:, 1])),
+                    "better": float(np.mean(dm > 0)), "worse": float(np.mean(dm < 0)), "change_median": float(np.median(dm)),
+                    "pred_change_median": float(np.median(dp)), "pred_vs_measured_r": float(np.corrcoef(dp, dm)[0, 1]),
+                    "wilcoxon_p": float(wilcoxon(dm).pvalue),
+                    "starts_seeds012_median": float(np.median([full[v["src_call"]] for v in src.values()
+                                                               if v["role"] == "start"]))}
+    pk = {r["call"]: r for r in FR.load(f"peak_{tag}")}
+    reach_ = {int(r["call"]): bool((r["fp"].get(POSE_KEY[a.task]) or {}).get("ok"))
+              for r in FR.load(f"peak_{tag}_{'tripod' if POSE_ROWS[a.task] == 'tripod' else 'pinch'}{a.d:g}_v4b")}
+    sp, _ = grid_scores(a.task, a.d, ROWS / "peak", f"{a.task}_d{a.d:g}_s678")
+    s_ = {c: float(np.mean(sp[(c, 0)])) if (c, 0) in sp else 0.0 for c in pk}
+    cent = {pk[c]["center"]: s_[c] for c in pk if pk[c]["radius_mm"] == 0.0}
+    out["peak"] = {"centres": len(cent), "centre_median": float(np.median(list(cent.values()))), "radii": {}}
+    for rad in PEAK_RADII:
+        ids = [c for c in pk if pk[c]["radius_mm"] == rad]
+        ch = np.array([s_[c] - cent[pk[c]["center"]] for c in ids])
+        out["peak"]["radii"][f"{rad:g}"] = {"n": len(ch), "pose_lost": float(np.mean([not reach_.get(c, False) for c in ids])),
+                                            "change_median": float(np.median(ch)), "better": float(np.mean(ch > 0.02)),
+                                            "worse_0.1": float(np.mean(ch < -0.1)), "worse_0.3": float(np.mean(ch < -0.3))}
+    (ROWS / "peak").mkdir(parents=True, exist_ok=True)
+    (ROWS / "peak" / f"summary_{tag}.json").write_text(json.dumps(out, indent=1))
+    print(json.dumps(out, indent=1), flush=True)
+    return 0
+
+
 # ------------------------------------------------------------------------------------------------ the 2-D grid with grasp sets
 
 GRID_ROWS = ROWS / "grid2d_v4b"
@@ -813,6 +894,12 @@ def main():
     p = sub.add_parser("value")
     p.add_argument("--task", choices=TASKS, required=True)
     p.add_argument("--d", type=float, required=True)
+    for name in ("moves", "moves-report"):
+        p = sub.add_parser(name)
+        p.add_argument("--task", choices=TASKS, required=True)
+        p.add_argument("--d", type=float, required=True)
+        if name == "moves":
+            p.add_argument("--kind", choices=("trust", "peak"), required=True)
     p = sub.add_parser("views")
     p.add_argument("--task", choices=TASKS, required=True)
     p.add_argument("--d", type=float, required=True)
@@ -820,7 +907,7 @@ def main():
     p.add_argument("--out", default="")
     a = ap.parse_args()
     return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
-            "value": cmd_value}[a.cmd](a)
+            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report}[a.cmd](a)
 
 
 if __name__ == "__main__":
