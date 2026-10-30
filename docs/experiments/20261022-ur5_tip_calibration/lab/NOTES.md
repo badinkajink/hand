@@ -1834,12 +1834,27 @@ The clearances in this section and the one before it are on mount v3. The next s
 - At 00:10 the DAQ answered a ping, but a 10 s read gave no samples, as after the earlier losses. The chain stopped at
   00:08:09 and moves nothing more. The scratchpad script `hexe_poll.sh` reads the stream for 10 s every 5 min.
 - Block 6's two chunks simulated clean on block 5's registration at 23:38 (no abort, no early contact). Their cell
-  checks on every 5th sample still run.
+  checks on every 5th sample finished at 00:17 and 00:20. The mount stayed at least 3.40 mm (rod-more-743) and
+  3.06 mm (rod-more-686) from the cell, and the finger 1.63 and 1.26 mm. Joint 6 ran from -55.2 to +36.0 deg, joint 5
+  came down to 31.7 deg (1.7 deg inside its window), and the elbow stayed at least 66 deg from straight. rod-ref-a is
+  over 3.06 mm, so it stays in the plan.
 - Ready for the owner's go: `lab/20261030-plan_sphere_lab_check_v3id3.json` holds pass 1's touch-offs at sphere nodes
   788, 728 and 729, renamed chk-*, as the check of 10-28 was for v3 ID 1. Each onset against block 1's registration
   shows whether the reseat moved the tool. The check and block 4's remaining 55 actions are simulated from home at
   nice 19 (the remainder's first travel, from home into tall-edge-626, is new). Scratchpad `resume_id3.sh` gates on
   those simulations and on block 6's chunks, then runs the check, block 4's remainder and block 6.
+- The check simulated clean from home (00:17). The mount stayed at least 5.18 mm from the cell and the finger 5.10 mm,
+  and joint 6 ran from -28.8 to +6.4 deg. Block 4's remainder, 55 actions and the preflight, simulated clean, and its
+  cell check finished at 01:38. The mount stayed at least 4.09 mm from the cell (tall-slide-face-738-1N), the finger
+  2.48 mm, the HEX-E 22.87 mm and the links 29.82 mm. Joint 6 ran from -57.0 to +44.1 deg, joint 5 from 37.3 to
+  97.6 deg (2.4 deg inside its window), and the elbow stayed at least 70.6 deg from straight. A dry run of
+  `resume_id3.sh`'s gate passed all four simulations at 01:39.
+- The HEX-E came back by itself at 01:37:18, 89 min after the loss. Every read from 00:12 to 01:32 gave no samples.
+  At 01:37:18 a 10 s read gave 1001 samples and a 20 s read 2001, with no time-out and no gap. The force read
+  [-0.7, 0.5, -0.2] N with the arm still. After R29's loss on 10-27, the sensor came back by itself in about 15 min.
+- From 01:40 the lab reads the stream for 10 s every 10 min (scratchpad `hexe_stay.sh`) and logs each read. It stops at
+  a loss (two reads 30 s apart, each under half the samples), when a program starts or after 10 h. `resume_id3.sh`
+  now refuses to start while either HEX-E watch runs. The arm waits for the owner's go.
 
 ### The night's plans, after the finer path checks (14:4x)
 
