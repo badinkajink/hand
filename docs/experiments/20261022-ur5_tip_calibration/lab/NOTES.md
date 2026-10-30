@@ -1873,6 +1873,23 @@ The clearances in this section and the one before it are on mount v3. The next s
 - The wrist order's 55 have been simulating from home on 153034's registration since 07:45 (n3b4w, every 5th sample,
   nice 19). `resume_id3.sh` takes a block 4 plan and the simulation that gates it as B4PLAN and B4SIM. The night's
   plan stays the default. The choice is the owner's.
+- The wrist order's 55 simulated clean from home at 07:56 (n3b4w: exit 0, no abort, no early contact). `wrist_sig.py`
+  finds none of the upward travels in it, against 7 in the night order. It has one swing of wrist 1 over 40 deg,
+  against 12. That one is downward, into tall-slide-edge-643-1N: wrist 1 from +23.0 to -32.3 deg, wrist 2 from 88 to
+  65 deg. R29's loss, into tall-face-702 (+16.3 to -37.7 deg), came at the end of a swing of that kind. Five of the
+  night order's 12 are downward, into the slides at flank-532, edge-645, face-725, face-702 and edge-694.
+- The workstation then added the downward crossings to its penalty and searched the orders exactly (21ee5fa8). The
+  result is `lab/20261030-plan_tall_lab_stage2_night_wrist2_v3id3.json`. Checked here like the first: the same 101
+  actions with identical definitions and top-level keys, the 46 done and the references in place, and no action more
+  than 4 places from its own. Its 55 start at tall-edge-625, -622, -610, -604 and -626. They have been simulating
+  from home on 153034's registration since 08:18 (n3b4w2, every 5th sample, nice 19), beside n3b4w's cell check.
+- wrist2's 55 simulated clean from home at 08:29 (n3b4w2: exit 0, no abort, no early contact). They have no upward
+  travel with the signature and no swing of wrist 1 over 40 deg. Wrist 1 crosses 0 in 10 travels, against 12 in wrist
+  and 20 in the night order. The wrists travel 1568 deg in all, against 1746 and 2779 deg.
+- wrist2's largest swing is into tall-slide-edge-718-1N: wrist 1 from -24.0 to +15.9 deg (+39.9), wrist 2 up only
+  5.4 deg. In the travel that lost the sensor at 00:07, wrist 1 swung +56.6 deg and wrist 2 rose 36.3 deg. R29's
+  loss came after a swing of -54.0 deg. In 153034 the travel into tall-edge-627 swung +45.3 deg with wrist 2 up
+  26 deg, and the sensor held. The cell check of n3b4w2 runs and should end about 09:35.
 
 ### The night's plans, after the finer path checks (14:4x)
 
