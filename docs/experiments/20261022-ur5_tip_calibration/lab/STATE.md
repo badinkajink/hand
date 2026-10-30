@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-30 08:18 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-30 09:09 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -47,7 +47,7 @@ anything 2. side map -- sure 3. yea send it".
 | block 3 | `20261029-plan_tall_lab_pass1_night_v3id3.json` | 19 | Done 15:30 to 15:48: 19 of 19, 0.055 mm rms (`20261029-153034-tallv3id3`). |
 | block 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Done 16:34 to 23:07: 211 of 211, no abort, no early contact, 6.55 h (resumed on block 1's folder). |
 | block 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | Done 23:08 to 23:31: 21 of 21 touch-offs and 5 pivot presses, 0.037 mm rms (`20261029-230820-rodv3id3`, a seed of block 1's tool and 031559's rod). |
-| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | **Stopped at 00:08:00 on 10-30** after 46 of 101 ok (grid 46 of 56), on a HEX-E loss: tall-edge-626, -668 and -670 aborted with no HEX-E sample. `--resume` on block 3's folder continues it (55 to do, about 1.9 h). The remainder simulated clean from home: mount 4.09 mm, finger 2.48 mm, joint 5 up to 97.6 deg. Either of the workstation's wrist orders of the same 55 can take its place: `20261030-plan_tall_lab_stage2_night_wrist_v3id3.json` (c5c34f60, simulated clean from home at 07:56, cell check running) or `20261030-plan_tall_lab_stage2_night_wrist2_v3id3.json` (21ee5fa8, simulation from home started at 08:18). |
+| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | **Stopped at 00:08:00 on 10-30** after 46 of 101 ok (grid 46 of 56), on a HEX-E loss: tall-edge-626, -668 and -670 aborted with no HEX-E sample. `--resume` on block 3's folder continues it (55 to do, about 1.9 h). The remainder simulated clean from home: mount 4.09 mm, finger 2.48 mm, joint 5 up to 97.6 deg. Either of the workstation's wrist orders of the same 55 can take its place: `20261030-plan_tall_lab_stage2_night_wrist_v3id3.json` (c5c34f60, simulated clean from home, and passed the gate at 09:09) or `20261030-plan_tall_lab_stage2_night_wrist2_v3id3.json` (21ee5fa8, simulated clean from home at 08:29, cell check running). |
 | block 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Waits for block 4. Its 2 chunks simulated clean on block 5's registration (23:38), and their cell checks passed: mount 3.06 mm, finger 1.26 mm. About 1.4 h. |
 
 - **The night stopped at 00:08 on 10-30 on a HEX-E loss.** At the end of the travel into tall-edge-626, wrist 1 swung
@@ -141,9 +141,10 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   has 12 swings of wrist 1 over 40 deg; R29's loss came after a downward one. The workstation's two reorders keep the
   path-check margins:
   - wrist (c5c34f60): none of the upward travels, but one downward crossing with a 55 deg swing, into
-    tall-slide-edge-643-1N. The lab's simulation found the same; its cell check ends about 09:05.
-  - wrist2 (21ee5fa8): neither, by the workstation's replay. The lab's simulation started at 08:18, and its cell check
-    ends about 09:35.
+    tall-slide-edge-643-1N. The lab's simulation found the same. It passed the gate at 09:09: mount 4.09 mm, finger
+    2.50 mm, joint 5 2.4 deg inside its window, the night order's margins.
+  - wrist2 (21ee5fa8): neither. The lab's simulation from home confirmed it at 08:29: its largest swing is +39.9 deg,
+    with wrist 2 up 5 deg. Its cell check ends about 09:40. The lab recommends wrist2.
   `B4PLAN=<plan> B4SIM=n3b4w resume_id3.sh`, or `B4SIM=n3b4w2` for wrist2, runs the chosen order in place of the
   night's.
 - When v3 ID 1 goes back on, the three plans above.

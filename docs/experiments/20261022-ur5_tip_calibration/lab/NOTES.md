@@ -1890,6 +1890,10 @@ The clearances in this section and the one before it are on mount v3. The next s
   5.4 deg. In the travel that lost the sensor at 00:07, wrist 1 swung +56.6 deg and wrist 2 rose 36.3 deg. R29's
   loss came after a swing of -54.0 deg. In 153034 the travel into tall-edge-627 swung +45.3 deg with wrist 2 up
   26 deg, and the sensor held. The cell check of n3b4w2 runs and should end about 09:35.
+- n3b4w's cell check finished at 09:09, and `resume_id3.sh`'s gate passed it. The mount stayed at least 4.09 mm from
+  the cell (tall-slide-edge-645-1N) and the finger 2.50 mm. Joint 6 ran from -57.0 to +44.1 deg, joint 5 from 37.3
+  to 97.6 deg (2.4 deg inside its window), and the elbow stayed at least 70.8 deg from straight. These are the night
+  order's margins, as the workstation's path check found.
 
 ### The night's plans, after the finer path checks (14:4x)
 
