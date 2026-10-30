@@ -1821,24 +1821,26 @@ the grasp, and for the twist that decides the outcome.</p>""",
     G = N["grid"]
     lv = [g["lv_best"] for g in G.values()]
     fpb = [g["best_is_fp"] for g in G.values()]
+    cg = json.loads((ROWS / "grid2d_v4b" / "cross_grid.json").read_text())
+    Zs = N["sizes"]
+    kept = (Zs["twist"]["kept"].get("30-63") if "twist" in Zs else None)
+    pe = N["grad"]["pk"]["peak"]["radii"]["4"]
     lede = fill("""The foundational-pose paper [1] keeps a hand design if it reaches a few poses that tools are wielded
-from. On the SR2 hand the paper's SQP reaches HOM-task poses on most Sobol layouts. A GPU version of the HOM
-controller scores a layout in tens of milliseconds per rollout, and kinematic scores do not rank those rollouts. With
-the calibrated v4b fingertip, 16 grasps were synthesized per layout on a 625-layout grid. The best of them raised the
-median twist score from <<a0>> to <<a1>> and the pin-push score from <<c0>> to <<c1>>. The foundational pose was the best
-grasp on <<e0>> to <<e1>> % of layouts. The four tasks peak at different layouts, and the size of a layout's feasible
-grasp set ranks its best score at Spearman <<l0>> to <<l1>>.""",
+from. On the SR2 hand with the calibrated v4b fingertip, a GPU version of the HOM controller scored 8,192 layouts on four
+tasks and four object sizes. With the best of 16 grasps per layout and task, the median twist score of a 625-layout grid
+rose from <<a0>> to <<a1>>, and <<sb>> % of its layouts scored above 0.5 on all four tasks, against none with the
+foundational pose. The best layouts change with the object's size and sit on peaks a few
+millimetres wide: moving the mounts 4 mm cost the best twist layouts a median <<c4>>.<<kk>>""",
                 a0=f"{G['twist']['fp_median']:.2f}", a1=f"{G['twist']['best_median']:.2f}",
-                c0=f"{G['pinpush']['fp_median']:.2f}", c1=f"{G['pinpush']['best_median']:.2f}",
-                e0=f"{100 * min(fpb):.0f}", e1=f"{100 * max(fpb):.0f}", l0=f"{min(lv):.2f}", l1=f"{max(lv):.2f}")
-    summary = fill("""On the SR2 hand the foundational-pose pipeline reaches the HOM-task poses on most Sobol layouts, and a
-GPU HOM controller scores every layout; kinematic scores do not rank the rollouts. With the calibrated v4b fingertip and
-16 grasps synthesized per layout of a 625-layout grid, the best grasp raised the median twist score from <<a0>> to <<a1>>
-and the pin-push score from <<c0>> to <<c1>>; the foundational pose was best on <<e0>> to <<e1>> % of layouts, and the
-four tasks peak at different layouts.""",
+                sb=f"{100 * cg['share_all_above_0.5_best']:.0f}", c4=f"{-pe['change_median']:.2f}",
+                kk=(f" The best tenth of twist layouts on a 30 mm sphere overlaps the best tenth on a 63 mm sphere by "
+                    f"{100 * kept:.0f} %, below a random tenth's 10 %." if kept is not None and kept < 0.1 else ""))
+    summary = fill("""HOM-controller scores of 8,192 SR2 layouts on four tasks and object sizes, v4b fingertip: synthesizing
+the grasp per layout and task raised the grid's median twist score from <<a0>> to <<a1>> and made <<sb>> % of layouts
+score above 0.5 on all four tasks (none with the foundational pose); the best layouts move with object size and sit on
+peaks a few millimetres wide, where a smooth score model's gradient fails.""",
                    a0=f"{G['twist']['fp_median']:.2f}", a1=f"{G['twist']['best_median']:.2f}",
-                   c0=f"{G['pinpush']['fp_median']:.2f}", c1=f"{G['pinpush']['best_median']:.2f}",
-                   e0=f"{100 * min(fpb):.0f}", e1=f"{100 * max(fpb):.0f}")
+                   sb=f"{100 * cg['share_all_above_0.5_best']:.0f}")
     assemble(sections, "Foundational-pose hand design",
              "Foundational-pose hand design, the project's layout sampling, and a Pareto front for the SR2 hand",
              "Morphology and design search", lede, byline, summary)
