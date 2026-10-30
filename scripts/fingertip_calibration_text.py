@@ -1127,10 +1127,11 @@ def sections(N, F, P, link, L):
         "about 27 min; " + link(L["ati"], "ATI plan") + "), then repeat a grid of presses. A board force outside "
         "0.78–1.05 of the ATI's means the HEX-E's gain biased the comparisons.",
         "Wrist order and the HEX-E's link: run the next tip's tall stage 2 in the new order of "
-        + P.code("scripts/ur5_tip_calibration_next_tip_suite.py") + ". Each action moves at most four places, and none "
-        "of Section 14's 12 travels is left. Wrist 1 swings more than 40° three times, against 23 in the old order. The "
-        "wrists travel 3,131° in all, against 5,144°. The path check gives the same least margins in both orders (mount "
-        "3.73 mm, finger 1.07 mm). A loss of the link in the new order rules these travels out as its cause.",
+        + P.code("scripts/ur5_tip_calibration_next_tip_suite.py") + ". The order comes from an exact search over the "
+        "orders that move each action at most four places. None of Section 14's 12 travels is left. No travel takes wrist 1 across "
+        "0° with a swing over 40°, against 23 in the old order. The wrists travel 2,701° in all, against 5,144°. The path "
+        "check flags no action in the new order and gives the same least margins (mount 3.73 mm, finger 1.07 mm). A loss "
+        "of the link in the new order rules these travels out as its cause.",
         "Torsion on the sensor's axis: clamp the finger with the face's normal along the force sensor's axis and twist at "
         "5 N, so the torsion is read without the push's moment. A correlation above 0.8 between the GP's torsion and "
         "the sensor's would make torsion a calibrated output.",
