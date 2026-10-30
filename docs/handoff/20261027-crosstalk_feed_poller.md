@@ -11,7 +11,13 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-29 23:35: a third kill at 23:34:54 (PSI full 22.01, 18.4 GB
+State: armed 2026-10-27 21:00 from the colorado window. Last check 10-30 03:25: no news since 10-29 16:25 (watcher exit 3
+at 03:25, HEAD 2dd938d8, 28 feed lines). Lab progress, no page by direction 28: v3 ID 3's block 5 (rod pass 1) 21 of 21
+at 23:35 (d8cbdb6b); block 4 stopped at 00:08 on a HEX-E loss, 46 of 101 ok (1f82b505); the HEX-E back by itself at
+01:37 after 89 min, the resume simulated clean and waiting for the owner's go (1c0a5486, aa01e038). When v3 ID 3's
+analysis lands, its section says block 4 ran 46 of 101 before the loss, and Section 14's HEX-E sentence takes 10-30.
+The watcher runs through resguard from 03:2x (gate open: PSI full 0.00, 15.1 GB available, swap 8.8 GB).
+10-29 23:35: a third kill at 23:34:54 (PSI full 22.01, 18.4 GB
 available), with hand-14's probe of its build (--mem 2G). Step 35 (hand-14's; it replaces its trimesh contains on 300k
 points, the step that spikes memory, before running more) done at 23:35 (the ledger's 23:36 is wrong): no news at HEAD
 701e03a1; the watcher runs through resguard from 23:35 (task bmncnpa4o; PSI full 0.35, 18.5 GB available). If hand-14's
