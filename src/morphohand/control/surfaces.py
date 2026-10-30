@@ -150,29 +150,34 @@ class RoundedBox(Surface):
         return P / self.r                                            # corner: a sphere of radius r
 
 
-def ellipsoid_closest(p, a, it=80):
+def ellipsoid_closest(p, a, it=40):
     """Closest point of the ellipsoid sum (x_i / a_i)^2 = 1 to the point p: x_i = a_i^2 p_i / (a_i^2 + t), with t the
-    root of f(t) = sum (a_i p_i / (a_i^2 + t))^2 - 1. The root lies between t0 = -a_k^2 + a_k |p_k| (f >= 0) and
-    t1 = -a_k^2 + |a p| (f <= 0), a_k the smallest semi-axis; Newton's method from t0 rises monotonically to it (f is
-    convex and decreasing there), and a step that would leave the bracket or gains less than a quarter of it is a
-    bisection. Returns (signed distance, surface point, outward unit normal)."""
+    root of s(t) = sum (a_i p_i / (a_i^2 + t))^2 = 1. The root lies between t0 = -a_k^2 + a_k |p_k| (s >= 1) and
+    t1 = -a_k^2 + |a p| (s <= 1), a_k the smallest semi-axis. Newton's method runs on phi(t) = s^(-1/2) - 1 from t0:
+    phi is nearly linear near the pole of s at -a_k^2, where Newton's method on s itself creeps (40 iterations for a
+    point near the pad; phi takes 3 to 6). A step that would leave the bracket is a bisection. Returns (signed distance,
+    surface point, outward unit normal)."""
     a = np.asarray(a, float)
-    p = np.where(np.abs(p) < 1e-12, 1e-12, np.asarray(p, float))        # off the axes: f has its pole at -a_k^2
+    p = np.where(np.abs(p) < 1e-12, 1e-12, np.asarray(p, float))        # off the axes: s has its pole at -a_k^2
     a2 = a * a
+    c = (a * p) ** 2
     k = int(np.argmin(a))
     lo, hi = -a2[k] + a[k] * abs(p[k]), -a2[k] + float(np.linalg.norm(a * p))
     t = lo
     for _ in range(it):
         d = a2 + t
-        f = float(np.sum((a * p / d) ** 2) - 1.0)
-        if abs(f) < 1e-14:
+        s = float(np.sum(c / d ** 2))
+        phi = s ** -0.5 - 1.0
+        if abs(phi) < 1e-13:
             break
-        if f >= 0:
+        if phi < 0:
             lo = t
         else:
             hi = t
-        tn = t + f / max(2.0 * float(np.sum(a2 * p * p / d ** 3)), 1e-300)
-        t = tn if (lo < tn < hi and tn - lo > 0.25 * (hi - lo)) else 0.5 * (lo + hi)
+        tn = t - phi / (s ** -1.5 * float(np.sum(c / d ** 3)))
+        if tn == t:                                      # the step is below the resolution of t: converged
+            break
+        t = tn if lo < tn < hi else 0.5 * (lo + hi)
     x = a2 * p / (a2 + t)
     g = x / a2
     n = g / np.linalg.norm(g)

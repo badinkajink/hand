@@ -138,8 +138,13 @@ def test_half_ellipsoid_closest_point_is_a_foot():
     dirs = np.stack([np.sqrt(1 - v * v) * np.cos(u), np.sqrt(1 - v * v) * np.sin(u), v], 1)
     surf = dirs * np.array([0.0085, 0.0074, 0.0])
     surf[:, 2] = np.where(dirs[:, 2] < 0, 0.011, 0.022) * dirs[:, 2]
-    for _ in range(40):
-        p = rng.normal(size=3) * 0.015
+    pts = [rng.normal(size=3) * 0.015 for _ in range(40)]
+    for k in range(3):                                   # near an axis plane: the pole of the solver's equation
+        for _ in range(4):
+            p = rng.normal(size=3) * 0.012
+            p[k] = 1e-9
+            pts.append(p)
+    for p in pts:
         d, x, n = E.closest(p)
         az = 0.011 if x[2] < 0 else 0.022
         assert abs((x[0] / 0.0085) ** 2 + (x[1] / 0.0074) ** 2 + (x[2] / az) ** 2 - 1.0) < 1e-9
