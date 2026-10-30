@@ -194,6 +194,197 @@ def cmd_stats(a):
     return 0
 
 
+# ------------------------------------------------------------------------------------------------ value model and gradients
+
+VALUE_LS = (0.1, 0.15, 0.2)            # RBF length scales tried, standardized units (1 = a gantry's travel)
+VALUE_LAM = (0.03, 0.1, 0.3)           # ridge, as a share of the score's variance
+
+
+def rbf(A, B, ls):
+    d2 = (A * A).sum(1)[:, None] + (B * B).sum(1)[None, :] - 2.0 * A @ B.T
+    return np.exp(-0.5 * np.maximum(d2, 0.0) / ls ** 2)
+
+
+class Value:
+    """Kernel ridge regression of a task's score over the standardized layout coordinates, with its gradient: the
+    counterpart, for a training-free controller, of the frozen critic whose design gradient Bohlinger and Peters
+    (arXiv 2606.00702) follow."""
+
+    def __init__(self, Z, y, ls, lam):
+        from scipy.linalg import cho_factor, cho_solve
+        self.Z, self.ls, self.mu = Z, float(ls), float(y.mean())
+        K = rbf(Z, Z, ls)
+        K[np.diag_indices_from(K)] += lam * float(y.var())
+        self.alpha = cho_solve(cho_factor(K, overwrite_a=True), y - self.mu)
+
+    def __call__(self, X):
+        return self.mu + rbf(X, self.Z, self.ls) @ self.alpha
+
+    def grad(self, X):
+        Kx = rbf(X, self.Z, self.ls) * self.alpha[None, :]
+        return (Kx @ self.Z - Kx.sum(1)[:, None] * X) / self.ls ** 2
+
+
+def value_cv(Z, y, folds=5, seed=0):
+    """Held-out R^2 and Spearman of the value model per (length scale, ridge), by k-fold cross-validation."""
+    idx = np.random.default_rng(seed).permutation(len(y)) % folds
+    out = {}
+    for ls in VALUE_LS:
+        for lam in VALUE_LAM:
+            pred = np.zeros(len(y))
+            for k in range(folds):
+                tr = idx != k
+                pred[~tr] = Value(Z[tr], y[tr], ls, lam)(Z[~tr])
+            out[(ls, lam)] = (1.0 - float(((pred - y) ** 2).sum() / ((y - y.mean()) ** 2).sum()),
+                              FR.spearman(pred, y), pred)
+    return out
+
+
+def ascend(V, X, steps=300, step0=0.02, box=0.5, trust=None):
+    """Gradient ascent of the value model from the rows of X inside the standardized box, with a per-start step that
+    halves when a step does not raise the value (a backtracking line search per start). trust: each coordinate stays
+    within this distance of its start (standardized units), as the trust region of Bohlinger and Peters keeps the
+    design where the model was fitted."""
+    X0, X = X.copy(), X.copy()
+    lo, hi = (-box, box) if trust is None else (np.maximum(X0 - trust, -box), np.minimum(X0 + trust, box))
+    f = V(X)
+    st = np.full(len(X), step0)
+    for _ in range(steps):
+        g = V.grad(X)
+        gn = np.linalg.norm(g, axis=1, keepdims=True)
+        Xn = np.clip(X + st[:, None] * g / np.maximum(gn, 1e-12), lo, hi)
+        fn = V(Xn)
+        up = fn > f
+        X[up], f[up] = Xn[up], fn[up]
+        st = np.where(up, np.minimum(st * 1.2, step0), st * 0.5)
+        if (st < 1e-4).all():
+            break
+    return X, f
+
+
+def svgd(V, X, steps=300, eps=0.01, temp=None, box=0.5):
+    """Stein variational gradient descent toward p(x) ~ exp(f(x) / temp): particles climb the value model and repel
+    each other through an RBF kernel of median bandwidth, so they spread over the high-value region instead of
+    collapsing on one peak."""
+    X = X.copy()
+    f0 = V(X)
+    temp = temp or max(float(np.quantile(f0, 0.9) - np.quantile(f0, 0.5)) / 3.0, 1e-3)
+    for _ in range(steps):
+        d2 = ((X[:, None, :] - X[None, :, :]) ** 2).sum(-1)
+        h = max(float(np.median(d2)) / math.log(len(X) + 1.0), 1e-6)
+        Kxx = np.exp(-d2 / h)
+        drive = Kxx @ (V.grad(X) / temp)
+        repel = (Kxx.sum(1)[:, None] * X - Kxx @ X) * (2.0 / h)
+        X = np.clip(X + eps * (drive + repel) / len(X), -box, box)
+    return X, V(X)
+
+
+def modes(X, f, radius=0.05):
+    """Group end points closer than `radius` (standardized) around the best of each group: [(point, value, count)]."""
+    order = np.argsort(-f)
+    used = np.zeros(len(X), bool)
+    out = []
+    for i in order:
+        if used[i]:
+            continue
+        near = (~used) & (np.linalg.norm(X - X[i], axis=1) < radius)
+        used |= near
+        out.append((X[i], float(f[i]), int(near.sum())))
+    return out
+
+
+VALUE_TRUST = 0.1                      # trust region of the local ascent: 0.1 of each gantry's travel (6-11 mm)
+
+
+def grid_gradient_check(V, task, size, step_mm=10.0, seed=0):
+    """The value model's gradient against the measured 2-D grid (foundational poses, mean over seeds): from every
+    reached grid layout, a step of step_mm along the model's gradient within the grid's plane (snapped to the grid)
+    against a step of the same length in a random direction. Returns the share of steps that raised the measured score
+    and the median change, for both."""
+    import fp_sr2_toy as FP
+    tab = [r for r in grid_table(task, size) if r.get("n_grasps")]
+    meas = {(r["x_sep"], r["y_sep"]): r["fp"] for r in tab if np.isfinite(r["fp"])}
+    if not meas:
+        return None
+    rng = np.random.default_rng(seed)
+    rngs = (FP.HI6 - FP.LO6)
+    dz_dx = np.array([-0.5, 0.0, 0.5, 0.0, 0.5, 0.0]) / rngs          # d(standardized coordinates)/d(x_sep) per mm
+    dz_dy = np.array([0.0, 0.0, 0.0, 0.5, 0.0, -0.5]) / rngs
+    keys = list(meas)
+    Z = np.array([FP.standard(np.array(FP.layout2(*k)), FP.LO6, FP.HI6) for k in keys])
+    G = V.grad(Z)
+    g2 = np.stack([G @ dz_dx, G @ dz_dy], 1)                           # d value / d(x_sep, y_sep), per mm
+    out = {}
+    for name, dirs in (("gradient", g2), ("random", rng.normal(size=g2.shape))):
+        u = dirs / np.maximum(np.linalg.norm(dirs, axis=1, keepdims=True), 1e-12)
+        ch = []
+        for k, (x, y_) in enumerate(keys):
+            tgt = (x + 5.0 * round(step_mm * u[k, 0] / 5.0), y_ + 5.0 * round(step_mm * u[k, 1] / 5.0))
+            if tgt != (x, y_) and tgt in meas:
+                ch.append(meas[tgt] - meas[(x, y_)])
+        ch = np.array(ch)
+        out[name] = {"steps": len(ch), "raised": float(np.mean(ch > 0)), "lowered": float(np.mean(ch < 0)),
+                     "median_change": float(np.median(ch))}
+    return out
+
+
+def cmd_value(a):
+    """The value model of one task and object size on the Sobol layouts (mean score over seeds; 0 where the pose is not
+    reached): cross-validated fit, check on the 2-D grid's foundational poses, gradient ascent from every reached layout,
+    and SVGD particles from a random tenth. Writes rows/sizes_v4b/value_<task>_d<size>.json."""
+    import fp_sr2_toy as FP
+    d, z = layouts()
+    sc = scores(a.task, a.d, len(d))
+    if not sc["run"].any():
+        print("no rows yet", flush=True)
+        return 1
+    y = sc["mean"]
+    cv = value_cv(z, y)
+    (ls, lam), (r2, rho, pred) = max(cv.items(), key=lambda kv: kv[1][0])
+    V = Value(z, y, ls, lam)
+    out = {"task": a.task, "d_mm": a.d, "n": len(y), "ls": ls, "lam": lam, "cv_r2": r2, "cv_spearman": rho,
+           "cv": {f"{k[0]}_{k[1]}": [round(v[0], 4), round(v[1], 4)] for k, v in cv.items()}}
+    g = {(round(x, 1), round(y_, 1)): v for x, y_, v in
+         ((r["x_sep"], r["y_sep"], r.get("fp")) for r in grid_table(a.task, a.d)) if v is not None and np.isfinite(v)}
+    if g:
+        Zg = np.array([FP.standard(np.array(FP.layout2(*k)), FP.LO6, FP.HI6) for k in g])
+        out["grid_check"] = {"n": len(g), "spearman": FR.spearman(V(Zg), np.array(list(g.values())))}
+    gc = grid_gradient_check(V, a.task, a.d)
+    if gc:
+        out["grid_steps"] = gc
+    R = sorted(reach(a.task, a.d))
+    top = np.array(R)[np.argsort(-y[R])[:200]]
+    Xt, ft = ascend(V, z[top], trust=VALUE_TRUST)
+    out["trust"] = {"radius": VALUE_TRUST, "starts": len(top), "pred_gain_median": float(np.median(ft - V(z[top]))),
+                    "moves_mm": np.median(np.abs((Xt - z[top]) * (FP.HI6 - FP.LO6)), 0).round(2).tolist(),
+                    "layouts": [{"call": int(c), "d": d[c].round(1).tolist(),
+                                 "d_new": (FP.LO6 + (x + 0.5) * (FP.HI6 - FP.LO6)).round(1).tolist(),
+                                 "pred": round(float(V(z[c:c + 1])[0]), 4), "pred_new": round(float(f_), 4)}
+                                for c, x, f_ in zip(top, Xt, ft)]}
+    Xa, fa = ascend(V, z[R])
+    M = modes(Xa, fa)
+    rng = np.random.default_rng(1)
+    Xs, fs = svgd(V, z[rng.choice(R, size=max(64, len(R) // 10), replace=False)])
+    Ms = modes(Xs, fs, radius=0.1)
+    nb = knn(z)
+    nbh, _sm = neighbourhoods(y, nb)
+    out.update(best_sobol={"call": int(np.argmax(y)), "score": float(y.max()), "d": d[int(np.argmax(y))].round(1).tolist()},
+               ascent={"starts": len(R), "modes": [{"d": (FP.LO6 + (p + 0.5) * (FP.HI6 - FP.LO6)).round(1).tolist(),
+                                                    "value": round(v, 4), "starts": c} for p, v, c in M[:12]],
+                       "n_modes": len(M), "gain_median": float(np.median(fa - V(z[R])))},
+               svgd={"particles": len(Xs), "value_median": float(np.median(fs)),
+                     "modes": [{"d": (FP.LO6 + (p + 0.5) * (FP.HI6 - FP.LO6)).round(1).tolist(), "value": round(v, 4),
+                                "particles": c} for p, v, c in Ms[:12]], "n_modes": len(Ms)},
+               knn_basins=[{"d_peak": d[p].round(1).tolist(), "n": len(m), "score_smoothed": round(v, 4)}
+                           for p, m, v in nbh[:12]])
+    path = SIZE_ROWS / f"value_{a.task}_d{a.d:g}.json"
+    path.write_text(json.dumps(out, indent=1, default=float))
+    print(f"{a.task} {a.d:g} mm: ls {ls} lam {lam} cv R2 {r2:.3f} Spearman {rho:.3f}; grid check "
+          f"{out.get('grid_check')}; ascent {len(R)} starts -> {len(M)} modes, top "
+          f"{[(m['d'], m['value'], m['starts']) for m in out['ascent']['modes'][:3]]}; svgd {len(Ms)} modes", flush=True)
+    return 0
+
+
 # ------------------------------------------------------------------------------------------------ the 2-D grid with grasp sets
 
 GRID_ROWS = ROWS / "grid2d_v4b"
@@ -619,13 +810,17 @@ def main():
     p = sub.add_parser("derive")
     p.add_argument("--d-sphere", type=float, default=40.0)
     p.add_argument("--d-cylinder", type=float, default=25.0)
+    p = sub.add_parser("value")
+    p.add_argument("--task", choices=TASKS, required=True)
+    p.add_argument("--d", type=float, required=True)
     p = sub.add_parser("views")
     p.add_argument("--task", choices=TASKS, required=True)
     p.add_argument("--d", type=float, required=True)
     p.add_argument("--calls", type=int, nargs="+", required=True, help="grid indices (x_sep major, y_sep minor)")
     p.add_argument("--out", default="")
     a = ap.parse_args()
-    return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views}[a.cmd](a)
+    return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
+            "value": cmd_value}[a.cmd](a)
 
 
 if __name__ == "__main__":
