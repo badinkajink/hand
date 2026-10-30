@@ -1873,6 +1873,16 @@ The clearances in this section and the one before it are on mount v3. The next s
 - The wrist order's 55 have been simulating from home on 153034's registration since 07:45 (n3b4w, every 5th sample,
   nice 19). `resume_id3.sh` takes a block 4 plan and the simulation that gates it as B4PLAN and B4SIM. The night's
   plan stays the default. The choice is the owner's.
+- The wrist order's 55 simulated clean from home at 07:56 (n3b4w: exit 0, no abort, no early contact). `wrist_sig.py`
+  finds none of the upward travels in it, against 7 in the night order. It has one swing of wrist 1 over 40 deg,
+  against 12. That one is downward, into tall-slide-edge-643-1N: wrist 1 from +23.0 to -32.3 deg, wrist 2 from 88 to
+  65 deg. R29's loss, into tall-face-702 (+16.3 to -37.7 deg), came at the end of a swing of that kind. Five of the
+  night order's 12 are downward, into the slides at flank-532, edge-645, face-725, face-702 and edge-694.
+- The workstation then added the downward crossings to its penalty and searched the orders exactly (21ee5fa8). The
+  result is `lab/20261030-plan_tall_lab_stage2_night_wrist2_v3id3.json`. Checked here like the first: the same 101
+  actions with identical definitions and top-level keys, the 46 done and the references in place, and no action more
+  than 4 places from its own. Its 55 start at tall-edge-625, -622, -610, -604 and -626. They have been simulating
+  from home on 153034's registration since 08:18 (n3b4w2, every 5th sample, nice 19), beside n3b4w's cell check.
 
 ### The night's plans, after the finer path checks (14:4x)
 
