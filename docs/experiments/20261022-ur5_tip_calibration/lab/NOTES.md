@@ -1900,6 +1900,33 @@ The clearances in this section and the one before it are on mount v3. The next s
   resume would run with it: the check, wrist2's 55 and block 6's two chunks. The HEX-E's reads stayed clean through
   09:40. The lab recommends wrist2 to the owner.
 
+### The resume on 10-30 (from 10:54)
+
+- At 10:54 the owner gave the go: "sure, just finish now with the original order while im here". The lab stopped the
+  HEX-E watch and started `resume_id3.sh` with the night order. The 20 s read was clean, the four simulations passed,
+  the home path check passed from the arm's pose, and the arm went home (0.03 mm, 0.01 deg from the target).
+- The check, `lab/20261030-105538-chkv3id3` (10:55:38 to 10:58:12, a seed of block 1's registration), gave onsets of
+  +0.012 mm (chk-face-00), +0.116 mm (chk-face-03) and +0.037 mm (chk-edge-00). The script stopped on the 0.116 mm.
+- That limit was set on the wrong quantity. Block 1's fit left a residual at each node, and the expected onset carries
+  it: at chk-face-03's node it was -0.068 mm (the residual's sign is opposite to the onset's). Against block 1's
+  residuals at the same nodes, the three changed by -0.023, -0.048 and -0.056 mm. The fit's rms is 0.044 mm, and block
+  2's reference stops scattered 0.12 mm. The tool did not move. Scratchpad `chk_change.py` now makes this comparison,
+  and `resume_id3.sh` gates on it.
+- The HEX-E's noise in the check's preflight, 0.23 N in Fz, matches every session since 10-27 (0.22 to 0.25 N).
+- Under the owner's go the lab went on without repeating the check: `resume_id3.sh` takes a finished check as CHKLOG
+  and CHK. It started again at 11:00:40. The read was clean, the gate passed, and the home path check passed from the
+  check's last pose. The arm went home (0.03 mm), and block 4 resumed at 11:02:12 in the night order
+  (`logs/20261030-110212-tipcal-tallv3id3.log`).
+- **The HEX-E dropped on block 4's first travel, from home into tall-edge-626.** Wrist 1 went from -24.8 to about
+  +25 deg, wrist 2 from 47.3 to 95.9 deg, and the elbow from 109.5 to 70 deg. At 11:02:49, as the travel ended, the
+  program had no sample for 100 ms. tall-edge-626, -668 and -670 aborted, and the session stopped at 11:03:04 (exit 1).
+  The arm stands in free air, its pad about 12 mm above tall-edge-626's point (joints 80.2, -68.0, 71.7, 24.8, 95.7,
+  31.7 deg). At 11:03:35 a 10 s read gave no samples.
+- This is the fourth loss after a swing of this kind, and the second on this travel into tall-edge-626. The simulation
+  from home (n3b4r) had flagged it as the night order's first such travel. The lab asked the owner to reseat the
+  connector and look at the cable's run past the wrist. `hexe_poll.sh` reads every 5 min. After a reseat the lab
+  proposes the check again, with the corrected comparison, then block 4 in wrist2's order, which has no such swing.
+
 ### The night's plans, after the finer path checks (14:4x)
 
 - The workstation's path checks at every 2 mm sample (bb7c5578) finished here at 14:41. The tall's stage 2 brings the

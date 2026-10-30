@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-30 09:43 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-30 11:04 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -47,9 +47,14 @@ anything 2. side map -- sure 3. yea send it".
 | block 3 | `20261029-plan_tall_lab_pass1_night_v3id3.json` | 19 | Done 15:30 to 15:48: 19 of 19, 0.055 mm rms (`20261029-153034-tallv3id3`). |
 | block 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Done 16:34 to 23:07: 211 of 211, no abort, no early contact, 6.55 h (resumed on block 1's folder). |
 | block 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | Done 23:08 to 23:31: 21 of 21 touch-offs and 5 pivot presses, 0.037 mm rms (`20261029-230820-rodv3id3`, a seed of block 1's tool and 031559's rod). |
-| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | **Stopped at 00:08:00 on 10-30** after 46 of 101 ok (grid 46 of 56), on a HEX-E loss: tall-edge-626, -668 and -670 aborted with no HEX-E sample. `--resume` on block 3's folder continues it (55 to do, about 1.9 h). The remainder simulated clean from home: mount 4.09 mm, finger 2.48 mm, joint 5 up to 97.6 deg. Either of the workstation's wrist orders of the same 55 can take its place: `20261030-plan_tall_lab_stage2_night_wrist_v3id3.json` (c5c34f60, simulated clean from home, and passed the gate at 09:09) or `20261030-plan_tall_lab_stage2_night_wrist2_v3id3.json` (21ee5fa8, simulated clean from home, and passed the gate at 09:43). |
+| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | **Stopped again at 11:03:04 on 10-30, by a HEX-E loss on the first travel** (home into tall-edge-626) after the owner's go for the night order at 10:54. Still 46 of 101 ok; tall-edge-626, -668 and -670 aborted with no HEX-E sample, as at 00:08:00. `--resume` on block 3's folder continues it (55 to do, about 1.9 h). The remainder simulated clean from home: mount 4.09 mm, finger 2.48 mm, joint 5 up to 97.6 deg. Either of the workstation's wrist orders of the same 55 can take its place: `20261030-plan_tall_lab_stage2_night_wrist_v3id3.json` (c5c34f60, simulated clean from home, and passed the gate at 09:09) or `20261030-plan_tall_lab_stage2_night_wrist2_v3id3.json` (21ee5fa8, simulated clean from home, and passed the gate at 09:43). |
 | block 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Waits for block 4. Its 2 chunks simulated clean on block 5's registration (23:38), and their cell checks passed: mount 3.06 mm, finger 1.26 mm. About 1.4 h. |
 
+- **The HEX-E dropped again at 11:02:49 on 10-30**, at the end of block 4's first travel: from home into
+  tall-edge-626, wrist 1 from -24.8 to about +25 deg and wrist 2 from 47 to 96 deg. The arm stands in free air with
+  its pad about 12 mm above tall-edge-626's point. A read at 11:03:35 gave no samples, and `hexe_poll.sh` reads every
+  5 min. Before that, the owner's go came at 10:54, and the sphere check (10:55 to 10:58, `20261030-105538-chkv3id3`)
+  showed that the tool had not moved: its onsets were within 0.06 mm of block 1's at the same nodes (NOTES).
 - **The night stopped at 00:08 on 10-30 on a HEX-E loss.** At the end of the travel into tall-edge-626, wrist 1 swung
   from -36.6 to +19.3 deg with wrist 2 rising from 54 to 90 deg, the signature of both losses on 10-28. The DAQ
   answers, but the sensor sends no samples (00:10). The arm stands still in free air, its pad about 12 mm above
@@ -131,11 +136,10 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 
 ## Waiting on the owner
 
-- **The go to resume the night.** The HEX-E is back (01:37 on 10-30) without a reseat; if it drops again, reseat its
-  connector first. On the owner's go, the lab runs scratchpad `resume_id3.sh`. It checks a 20 s stream and goes home
-  on a checked path. It repeats three sphere touch-offs (`20261030-plan_sphere_lab_check_v3id3.json`) in a seed of
-  block 1's registration, and stops if any onset is more than 0.1 mm off, which would mean the tool moved. Then it
-  resumes block 4 (55 actions) and block 6 (100), about 3.5 h. All four of its simulations pass its gate (01:39).
+- **A reseat of the HEX-E's connector (asked at 11:04, the owner on site), then the go.** The lab proposes
+  `B4PLAN=<wrist2 plan> B4SIM=n3b4w2 resume_id3.sh`. It checks a 20 s stream, goes home on a checked path and
+  repeats the three sphere touch-offs. It stops if any moved more than 0.1 mm from block 1's touch-off at the same node
+  (scratchpad `chk_change.py`). Then it runs block 4's 55 in wrist2's order and block 6's 100, about 3.5 h.
 - **Which order for block 4's 55.** In the night's order, 7 of its travels swing wrist 1 from below 0 to above it while
   wrist 2 rises, the signature of the HEX-E's losses: the first, from home into tall-edge-626, and six slides. It also
   has 12 swings of wrist 1 over 40 deg; R29's loss came after a downward one. The workstation's two reorders keep the
