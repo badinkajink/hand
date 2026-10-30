@@ -1543,10 +1543,12 @@ def cmd_home_check(a):
     print("->", dst)
 
 
-WALL = dict(z_F=-99.4, x_F=(1.0, 7.0), standoff=3.5, beyond=0.3, cut=2.5, parts=("tip body", "block"))
+WALL = dict(z_F=-99.75, x_F=(1.0, 7.0), standoff=3.5, beyond=0.3, cut=2.5, parts=("tip body", "block"))
 #   the tip's side walls (lab, 14:55 on 10-30: the seat's turn about z_P, the tip's long axis, is loose in pass 1). The
 #   plane y_F = +-10.5 is flat on the cassette and the cap only 2 to 2.5 mm high over most of the tip's length; at the
-#   distal end the cap's strip z_F -99.75 to -99.0 is flat from x_F 0.5 to 8.0, so two touches there stand 6 mm apart.
+#   distal end the cap's strip z_F -100.04 to -98.46 is flat from x_F 0.5 to 8.0, so two touches there stand 6 mm
+#   apart. At z_F -99.75 (lab, 15:3x: -99.4 left the sphere 0.23 mm off the plane where the station block's coplanar face
+#   starts, z_F -98.36) the margin there is 0.42 mm, and the cap's distal edge is 0.29 mm away.
 #   Rigid PLA stops the probe at its 1 N within about 0.01 mm, so the deep pose is 0.3 mm past the wall; the station
 #   block's side face lies in the same plane and is left out near the contact with the cassette and the cap.
 
@@ -1598,7 +1600,7 @@ def cmd_walls(a):
         try:
             for side in (1, -1):
                 for xf in WALL["x_F"]:
-                    if not _on_face(faces[side], (xf, WALL["z_F"]), margin=0.3):
+                    if not _on_face(faces[side], (xf, WALL["z_F"]), margin=0.25):
                         raise SystemExit(f"no wall face at x_F {xf}, z_F {WALL['z_F']} on side {side}")
                     pF, nF = np.array([xf, side * 10.5, WALL["z_F"]]), np.array([0.0, float(side), 0.0])
                     pA, nA = C.apply(T_AF, pF), T_AF[:3, :3] @ nF
@@ -1648,7 +1650,8 @@ def cmd_pass1_check(a):
         P_A = C.apply(np.asarray(st["T_AF"], float) @ T_FP, ctx["pts_P"])
         byid = {x["id"]: x for x in src["actions"]}
         touches = [x for x in prog["actions"] if x["stage"] == "pad"]
-        nxt = next(x for x in prog["actions"] if x["stage"] != "pad")
+        nxt = next(x for x in prog["actions"] if x["stage"] not in ("pad", "wall"))
+        plan_walls = [x["id"] for x in prog["actions"] if x["stage"] == "wall"]   # the plan's own walls, in its order
         R_BA = ctx["T_BA"][:3, :3]
         q = start_q(ctx)
         T_prev, flagged, least = None, 0, {}
@@ -1664,7 +1667,14 @@ def cmd_pass1_check(a):
 
         seq = [(t, byid["probe-" + t["id"][len("pad-"):]], float(t["standoff"]), float(t["beyond_mm"])) for t in touches]
         wf = OUT / "data" / f"{STEM}_walls.json"
-        walls = json.loads(wf.read_text())["seats"].get(str(seat + 1), {}).get("actions", []) if a.walls and wf.exists() else []
+        wj = {w["id"]: w for w in json.loads(wf.read_text())["seats"].get(str(seat + 1), {}).get("actions", [])} if wf.exists() else {}
+        if plan_walls:
+            missing = [w for w in plan_walls if w not in wj]
+            if missing:
+                raise SystemExit(f"seat {seat + 1}: the plan's walls {missing} are not in {wf.name}")
+            walls = [wj[w] for w in plan_walls]
+        else:
+            walls = list(wj.values()) if a.walls else []
         for w in walls:                                 # after the pad's touch-offs: at the wall's own rest and depth
             x = dict(w, i=None, T_rest=w["T_rest"], T_deep=w["T_deep"])
             seq.append((dict(id=w["id"]), dict(x, _wall=True), float(w["standoff_mm"]), float(w["beyond_mm"])))
