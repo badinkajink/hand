@@ -1,29 +1,48 @@
 #!/usr/bin/env python3
-"""HOM control of the sphere tasks (roll, twist) on MuJoCo-Warp: many hand layouts and seeds as parallel GPU worlds,
-with the controller of src/morphohand/control/hom.py batched in torch on the GPU (owner, 2026-10-29: "can we leverage
-GPU acceleration for higher throughput evaluation, since our mjwarp sphere packed model is ok enough?").
+"""HOM control of the four tasks of scripts/hom_tasks.py (pin-push, press, roll, twist) on MuJoCo-Warp: many hand
+layouts, seeds and sensing variants as parallel GPU worlds, with the controller of src/morphohand/control/hom.py batched
+in torch on the GPU (owner, 2026-10-29: "can we leverage GPU acceleration for higher throughput evaluation, since our
+mjwarp sphere packed model is ok enough?"; the same evening: port the pin-push, the press and the fingertip-sensing
+variants).
 
 The scale study's layouts compile to models that differ only in the positions of the three mount bodies (checked
-field by field, 2026-10-29), so one MuJoCo-Warp model serves every layout: body_pos gets one row per world, carrying
-that world's mounts and palm. Each world is one (layout, seed); a layout's grasp is either the task study's equator
-grasp (symmetric tripods, `--layouts 2d`) or the foundational pose that scripts/fp_sr2_toy.py solved for it (any of the
-six-coordinate layouts, `--layouts rrt6d|sobol6d`).
+field by field, 2026-10-29), so one MuJoCo-Warp model serves every layout of one object: body_pos gets one row per world
+with that world's mounts, and the palm and the post are mocap bodies (MuJoCo-Warp computes the poses of geoms welded to
+the world once, in make_data). One batch runs one task on one object size at one control period; each world is one
+(layout and grasp, seed, sensing variant). The grasps (--layouts):
+  design   the task study's grasp for the task and size (docs/experiments/20261021-hom_framework/design.json);
+  2d       the symmetric tripods of the toy's 2-D case with the task study's equator grasp (roll and twist);
+  2dfp, rrt6d, sobol8k   the toy's layouts (scripts/fp_sr2_toy.py; rows rrt2d, rrt6d, sobol8k) from their
+           foundational poses: the tripod pose for the roll and the twist (40 mm sphere), the pinch pose for the
+           pin-push and the press pose for the press (25 mm cylinder).
 
-The controller is hom.HomController.step for these tasks, per world and finger in torch:
-  - the GCF from the tip's centre of pressure (its pads' contacts with the sphere, normal force from the elliptic
-    cone's first row, gathered by a Warp kernel) at 0.02 N or more, else from the witness points of the rounded TPU
-    block and the sphere (analytic here; the CPU uses mj_geomDistance on the block's convex mesh);
+The controller is hom.HomController.step for every world and finger, in torch:
+  - the measurement: the plant's joint angles, object pose and per-finger centre of pressure, delayed, offset and
+    noised as hom_tasks.rollout does for the variant (hom_tasks.VARIANTS). The draws made once per rollout (calibration
+    offsets, each fingertip's force gain and location offset) are the CPU's: numpy's generator 1000 + seed, in the CPU's
+    order. The draws of every control period come from a torch generator;
+  - a second MuJoCo-Warp data, the mirror, holds the measured state; its kinematics give the tip poses, the joint axes
+    and anchors, and the gravity torques, as hom.Mirror does on the CPU;
+  - the GCF from the measured centre of pressure at contact_force_min or more, else from the witness points of the
+    rounded TPU block and the object: analytic for the sphere, alternating projections between the block's core box and
+    the cylinder (the CPU uses mj_geomDistance on the block's convex mesh);
+  - the pinch frame {M} from the pinching fingers' contact points on the object when the pusher starts, and Eq. (3)'s
+    twist for the pusher;
   - Eq. (1) from the joint axes and anchors; Eq. (2) solved exactly by enumerating the 27 active-bound patterns of the
-    three joint rates (the CPU uses SciPy's BVLS on the same problem);
+    three joint rates (the CPU uses SciPy's BVLS on the same problem); the force loop on v_sep and the anti-windup;
   - the complementary filter at k_min: every commanded roll and slide of these tasks is zero, so Eqs. (4)-(6) reduce to
     a low-pass of the contact point on the block's surface, stepped along the tangent and projected back;
-  - the servo impedance in the 'reference' mode, gravity from qfrc_bias.
+  - the servo impedance in the 'reference' mode with gravity; the plant's servos execute the targets less their
+    calibration offsets.
 The physics differs from the CPU runner in float32, a solver tolerance of 1e-6 with 20 iterations, and pads that
-collide only with the sphere. Scores come from hom_tasks.metrics on the same per-tick rows, so they compare directly.
+collide only with the object. Scores come from hom_tasks.metrics on the same per-period rows, so they compare directly.
 
-  .venv/bin/python scripts/hom_gpu.py run --task twist --layouts 2d --seeds 0 1 2 --out hom2d_gpu
-  .venv/bin/python scripts/hom_gpu.py run --task twist --layouts sobol6d --max 600 --seeds 0 1 2 --out hom6d_sobol_gpu
-Rows: docs/experiments/20261029-foundational_pose_review/rows/<out>.jsonl.
+  .venv/bin/python scripts/hom_gpu.py run --task twist --layouts 2d --seeds 0 1 2 --out hom2d_gpu_twist
+  .venv/bin/python scripts/hom_gpu.py run --task pinpush press --layouts design --d 10 16 25 40 \\
+        --variants rate50 notip0 tip cal_tip --seeds 0 1 2 --out sensing_gpu --rows-dir <dir>
+  .venv/bin/python scripts/hom_gpu.py run --task press --layouts sobol8k --seeds 0 1 2 --out hom6d_gpu_press
+  .venv/bin/python scripts/hom_gpu.py compare --cpu <cpu rows> --gpu <gpu rows>
+Rows: docs/experiments/20261029-foundational_pose_review/rows/<out>.jsonl unless --rows-dir is given.
 """
 from __future__ import annotations
 
@@ -32,6 +51,7 @@ import os
 os.environ.setdefault("SCALE_HAND", "cad_v1")
 
 import argparse  # noqa: E402
+import gc  # noqa: E402
 import json  # noqa: E402
 import math  # noqa: E402
 import sys  # noqa: E402
@@ -49,11 +69,16 @@ import hom_tasks as T  # noqa: E402
 
 S, H, K, G = T.S, T.H, T.K, T.G
 FINGERS, JOINTS = T.FINGERS, T.JOINTS
-D_MM = 40.0
-REF = (92.5, 102.5)                    # the reference layout whose scenes are compiled (the task study's sphere grasp)
+assert tuple(FINGERS) == ("thumb", "index", "middle") and T.PINCH == ("thumb", "index") and T.PUSHER == "middle"
+TASKS = ("pinpush", "press", "roll", "twist")
+D_FP = {"pinpush": 25.0, "press": 25.0, "roll": 40.0, "twist": 40.0}   # the toy's objects
+REF = (92.5, 102.5)                    # the layout whose scenes are compiled (the task study's 40 mm sphere grasp)
 NCONMAX, NJMAX = 1024, 2048
 ROWS = C.ROWS
-W_TASK = np.array([1.0, 0.0, 0.0, 1.0, 1.0, 1.0])     # spin, roll_y, roll_z, sep, slide_y, slide_z (free rolling)
+N_AP = 24                              # alternating projections for the block-cylinder witness points
+DMAX = 4                               # longest measurement delay, control periods
+OVER_OK = {"dt", "contact_force_min", "force_loop_gain"}    # the HomParams a variant may change here
+FP_ROWS = {"2dfp": "rrt2d", "rrt6d": "rrt6d", "sobol8k": "sobol8k", "sobol6d": "sobol6d"}
 
 
 @wp.kernel
@@ -103,16 +128,42 @@ def mount_xy(d_mm):
     return {"thumb": d[0:2], "index": d[2:4], "middle": d[4:6]}
 
 
-def tripod_setup(task, mounts_xy, grasp):
+def sym6(xs, ys):
+    """The six coordinates (mm) of a symmetric tripod (hand_object_scale_kin.mounts)."""
+    return [-xs / 2, 0.0, xs / 2, ys / 2, xs / 2, -ys / 2]
+
+
+def quat_mul(a, b):
+    w1, x1, y1, z1 = a
+    w2, x2, y2, z2 = b
+    return np.array([w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2, w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
+                     w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2, w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2])
+
+
+def tripod_setup(task, mounts_xy, grasp, d_mm=40.0):
     """hom_tasks' setup dict for an equator-type sphere grasp: grasp = (centre in the palm frame, {f: outward normal})."""
     centre, n_out = grasp
-    r = D_MM / 2000.0
-    rr = r + K.R + K.GAP - K.GAP                       # the task study's touching grasp (gap 0; open_pose adds 8 mm)
+    r = d_mm / 2000.0
+    rr = r + K.R                                   # the task study's touching grasp (open_pose adds 8 mm)
     tg = {f: centre + rr * n_out[f] for f in FINGERS}
     palm = np.array([-centre[0], -centre[1], S.Z_OBJ - centre[2]])
     mounts = {f: np.array([mounts_xy[f][0], mounts_xy[f][1], 0.0]) for f in FINGERS}
-    return {"task": task, "shape": "sphere", "d_mm": D_MM, "r": r, "hl": 0.0, "palm": palm,
-            "quat": np.array(T.SPHERE_Q), "design": {}, "targets": tg, "n_out": n_out, "mounts": mounts}
+    return {"task": task, "shape": "sphere", "d_mm": d_mm, "r": r, "hl": 0.0, "palm": palm,
+            "quat": np.array(T.SPHERE_Q), "design": {}, "targets": tg, "n_out": n_out, "mounts": mounts, "psi": 0.0}
+
+
+def pinch_setup(task, v, d6):
+    """hom_tasks' setup dict for the toy's pinch or press pose v of a 25 mm cylinder on layout d6 (mm). The cylinder's
+    axis is palm y yawed by psi = v[3]; its body z points to the middle's side, as in the task study's grasp."""
+    import fp_sr2_toy as FP
+    M = FP.mounts6(d6)
+    obj, tg, n, _pc, _ax = FP.geometry("pinch", np.asarray(v, float), M)
+    c, psi = np.asarray(obj["centre"], float), float(v[3])
+    palm = np.array([-c[0], -c[1], S.Z_OBJ - c[2]])
+    quat = quat_mul([math.cos(psi / 2), 0.0, 0.0, math.sin(psi / 2)], T.SPHERE_Q)
+    return {"task": task, "shape": "cylinder", "d_mm": FP.CYL_D * 1000, "r": FP.CYL_D / 2, "hl": FP.CYL_L / 2,
+            "palm": palm, "quat": quat, "design": {}, "targets": tg, "n_out": {f: np.asarray(n[f], float) for f in FINGERS},
+            "mounts": M, "psi": psi}
 
 
 def grasp_2d(xs, ys):
@@ -121,7 +172,7 @@ def grasp_2d(xs, ys):
     des = C.design(cell)
     if des is None:
         return None, None
-    gg = S.grasp_geometry(cell, "sphere", D_MM, des["h"], des["spread"])
+    gg = S.grasp_geometry(cell, "sphere", C.D_MM, des["h"], des["spread"])
     n_out = {f: np.asarray(gg["n_out"][f], float) for f in FINGERS}
     return (np.asarray(gg["centre_palm"], float), n_out), des
 
@@ -137,44 +188,149 @@ def grasp_fp(row):
     return np.asarray(obj["centre"], float), {f: np.asarray(n[f], float) for f in FINGERS}
 
 
-class Layouts:
-    """Per-layout mounts, palm, grasp and open pose, from one reference pt model whose mount bodies are moved."""
+def layout_list(task, kind, nmax, d_mm=None):
+    """[(key, mounts xy, setup)] for the requested layouts and task."""
+    out = []
+    if kind == "design":
+        _pp, _pt, setup = T.build(task, float(d_mm))
+        des = setup["design"]
+        xs, ys = des["x_sep_mm"], des["y_sep_mm"]
+        setup["psi"] = 0.0
+        return [({"design": T.dkey(task, float(d_mm)), "x_sep_mm": xs, "y_sep_mm": ys}, mount_xy(sym6(xs, ys)), setup)]
+    if kind == "2d":
+        if T.SHAPE[task] != "sphere":
+            raise ValueError("the 2d layouts carry the equator grasp only; use 2dfp for the pin-push and the press")
+        for xs, ys, kin in C.pick_layouts(0, everyone=True):
+            grasp, _des = grasp_2d(xs, ys)
+            if grasp is None:
+                continue
+            mxy = mount_xy(sym6(xs, ys))
+            out.append(({"x_sep_mm": xs, "y_sep_mm": ys, "kin": {k: kin[k] for k in ("tmr_deg", "mft_mNm", "smin_mm")}},
+                        mxy, tripod_setup(task, mxy, grasp)))
+            if nmax and len(out) >= nmax:
+                break
+        return out
+    name = FP_ROWS[kind]
+    rows = [json.loads(x) for x in (ROWS / f"{name}.jsonl").read_text().splitlines() if x.strip()]
+    rows = [r for r in rows if r.get("ok")]
+    press = None
+    if task == "press":
+        pr = [json.loads(x) for x in (ROWS / f"{name}_press.jsonl").read_text().splitlines() if x.strip()]
+        press = {tuple(r["d"]): r["fp"]["press"] for r in pr}
+    for r in rows:
+        kin = {k: r["fp"]["tripod"][k] for k in ("tmr_deg", "mft_mNm", "smin_mm")}
+        kin_p = {k: r["fp"]["pinch"][k] for k in ("tmr_deg", "mft_mNm", "smin_mm")}
+        key = {"d": r["d"], "kin": kin, "kin_pinch": kin_p}
+        mxy = mount_xy(r["d"])
+        if task in ("roll", "twist"):
+            g = grasp_fp(r)
+            if g is None:
+                continue
+            setup = tripod_setup(task, mxy, g)
+        elif task == "pinpush":
+            setup = pinch_setup(task, r["fp"]["pinch"]["v"], r["d"])
+        else:
+            rec = press.get(tuple(r["d"]))
+            if not rec or not rec.get("ok"):
+                continue
+            key["kin_press"] = {k: rec[k] for k in ("tmr_deg", "mft_mNm", "smin_mm")}
+            setup = pinch_setup(task, rec["v"], r["d"])
+        out.append((key, mxy, setup))
+        if nmax and len(out) >= nmax:
+            break
+    return out
 
-    def __init__(self, task):
+
+class Scene:
+    """The reference layout's scenes for one object (shape, size): the pads plant, and the pt model whose mount bodies
+    are moved to each layout to find the open pose (hom_tasks.open_pose)."""
+
+    def __init__(self, shape, d_mm):
         import mujoco
-        self.mj = mujoco
-        self.task = task
-        cell = C.cell_of(*REF)
-        sc = S.cell_scenes(dict(cell), "sphere", D_MM, models=("pads", "pt"))
+        self.shape, self.d_mm = shape, float(d_mm)
+        self.r = self.d_mm / 2000.0
+        self.hl = T.CYL_LEN / 2 if shape == "cylinder" else 0.0
+        sc = S.cell_scenes(dict(C.cell_of(*REF)), shape, self.d_mm, models=("pads", "pt"))
         self.pads_path, self.pt_path = Path(sc["pads"][0]), Path(sc["pt"][0])
         self.m_pt = mujoco.MjModel.from_xml_path(str(self.pt_path))
+        ob = self.m_pt.body(S.OBJ).id
+        og = int(np.flatnonzero(self.m_pt.geom_bodyid == ob)[0])
+        want = [self.r] if shape == "sphere" else [self.r, self.hl]
+        if not np.allclose(self.m_pt.geom_size[og][:len(want)], want, atol=1e-6):
+            raise RuntimeError(f"object size {self.m_pt.geom_size[og]} is not {want}")
         self.mount_bid = {f: self.m_pt.body(f"{f}_mount").id for f in FINGERS}
-        # body_pos of a mount = its nominal position + the layout's palm-frame offset from REAL_V1_MOUNTS
-        ref_xy = mount_xy([-REF[0] / 2, 0.0, REF[0] / 2, REF[1] / 2, REF[0] / 2, -REF[1] / 2])
+        ref_xy = mount_xy(sym6(*REF))
         self.base = {f: self.m_pt.body_pos[self.mount_bid[f]].copy() - np.array([*ref_xy[f], 0.0]) for f in FINGERS}
 
     def body_mounts(self, mxy):
         return {f: self.base[f] + np.array([mxy[f][0], mxy[f][1], 0.0]) for f in FINGERS}
 
-    def prepare(self, mxy, grasp):
-        setup = tripod_setup(self.task, mxy, grasp)
+    def prepare(self, mxy, setup):
         bm = self.body_mounts(mxy)
         for f in FINGERS:
             self.m_pt.body_pos[self.mount_bid[f]] = bm[f]
         q_open, _q_touch = T.open_pose(setup, self.m_pt)
-        return setup, bm, q_open
+        return bm, q_open
 
 
 def check_mounts():
     """The mount positions built from offsets against a scene compiled for another layout."""
     import mujoco
-    L = Layouts("twist")
+    L = Scene("sphere", 40.0)
     for xs, ys in ((70.0, 80.0), (115.0, 140.0)):
-        sc = S.cell_scenes(dict(C.cell_of(xs, ys)), "sphere", D_MM, models=("pt",))
+        sc = S.cell_scenes(dict(C.cell_of(xs, ys)), "sphere", 40.0, models=("pt",))
         m = mujoco.MjModel.from_xml_path(str(sc["pt"][0]))
-        bm = L.body_mounts(mount_xy([-xs / 2, 0.0, xs / 2, ys / 2, xs / 2, -ys / 2]))
+        bm = L.body_mounts(mount_xy(sym6(xs, ys)))
         err = max(float(np.abs(m.body_pos[L.mount_bid[f]] - bm[f]).max()) for f in FINGERS)
         print(f"layout {xs} x {ys}: mount body_pos error {err:.2e} m")
+
+
+# ------------------------------------------------------------------------------------------------ variants
+
+def variant_world(var, seed, dt_default=T.DT_C):
+    """Per-world sensing parameters of hom_tasks.VARIANTS[var], with the draws hom_tasks.rollout makes once per rollout
+    (numpy generator 1000 + seed, in its order: calibration offsets, the first period's pose noise, the fingertips'
+    gains and offsets)."""
+    over, noise = T.VARIANTS[var]
+    bad = set(over) - OVER_OK
+    if bad:
+        raise ValueError(f"variant {var}: {sorted(bad)} not supported on the GPU")
+    dt = over.get("dt", dt_default)
+    hp = H.HomParams()
+    nz = noise or {}
+    if noise is None:
+        mode = 0                                           # exact measurement
+    elif nz.get("no_tip"):
+        mode = 1                                           # no fingertips: witness points only
+    elif nz.get("tip_model"):
+        mode = 2                                           # the measured fingertips
+    else:
+        mode = 3                                           # Gaussian noise on the centre of pressure and force
+    p = {"var": var, "dt": dt, "cfmin": over.get("contact_force_min", hp.contact_force_min),
+         "flg": over.get("force_loop_gain", hp.force_loop_gain), "mode": mode,
+         "pos_mm": nz.get("pos_mm", 0.0), "rot_deg": nz.get("rot_deg", 0.0), "cop_mm": nz.get("cop_mm", 0.0),
+         "f_N": nz.get("f_N", 0.0), "delay": int(round(nz.get("delay_s", 0.0) / dt)), "tip_k": float(nz.get("tip_model", 0.0)),
+         "f_bias": nz.get("f_bias", 0.0), "f_min": nz.get("f_min", T.TIP_F_MIN)}
+    if p["delay"] > DMAX:
+        raise ValueError(f"variant {var}: delay of {p['delay']} periods > {DMAX}")
+    cal_q, cal_pos, gain, off = np.zeros((3, 3)), np.zeros(3), np.zeros(3), np.zeros((3, 3))
+    if noise is not None:
+        rng = np.random.default_rng(1000 + seed)
+        if nz.get("q_bias_deg") or nz.get("pos_bias_mm"):
+            for k in range(3):
+                cal_q[k] = np.radians(rng.normal(size=3) * nz.get("q_bias_deg", 0.0))
+            cal_pos = rng.normal(size=3) * nz.get("pos_bias_mm", 0.0) * 1e-3
+        rng.normal(size=3)                                  # the first period's position noise,
+        rng.normal(size=3)                                  # rotation axis
+        rng.normal()                                        # and angle
+        if mode == 2:
+            k_ = nz["tip_model"]
+            for k in range(3):
+                d = rng.normal(size=3)
+                gain[k] = rng.normal() * T.TIP_GAIN * k_
+                off[k] = d / np.linalg.norm(d) * nz.get("cop_bias_mm", T.TIP_BIAS_MM * k_) * 1e-3
+    p.update(cal_q=cal_q, cal_pos=cal_pos, tip_gain=gain, tip_off=off)
+    return p
 
 
 # ------------------------------------------------------------------------------------------------ the batch
@@ -198,52 +354,75 @@ def mocap_model(path):
         tmp.unlink()
 
 
-class Batch:
-    """nworld (layout, seed) worlds of one task on MuJoCo-Warp with the batched HOM controller."""
+def finger_commands(task, n_out):
+    """Per finger (thumb, index, middle): Eq. (2)'s weights, whether the object's reference twist enters Eq. (1),
+    whether Eq. (3)'s pusher twist does, and the commanded force after the close (hom_tasks.Schedule)."""
+    P = T.PRM
+    if task in ("pinpush", "press"):
+        wpin = [0.0, P["w_roll_pinch"], P["w_roll_pinch"], 1.0, 1.0, 1.0]
+        wpu = [1.0, P["w_roll_push"], P["w_roll_push"], 1.0, 1.0, 1.0]
+        fpu = P["f_drive" if task == "pinpush" else "f_press"]
+        f_thumb = P["f_pinch"] + fpu * max(0.0, -float(n_out["middle"] @ n_out["thumb"]))
+        return (np.array([wpin, wpin, wpu]), np.array([False, False, True]), np.array([False, False, True]),
+                np.array([f_thumb, P["f_pinch"], fpu]))
+    return (np.tile([1.0, 0.0, 0.0, 1.0, 1.0, 1.0], (3, 1)), np.ones(3, bool), np.zeros(3, bool),
+            np.full(3, P["f_tripod"]))
 
-    def __init__(self, L: Layouts, worlds, prm=None):
+
+class Batch:
+    """nworld worlds of one task on one object at one control period, with the batched HOM controller."""
+
+    def __init__(self, scene: Scene, task, worlds, dt, gen_seed=0):
         import mujoco
         import mujoco_warp as mjw
         import torch
         self.mj, self.mjw, self.torch = mujoco, mjw, torch
-        self.L, self.task, self.worlds = L, L.task, worlds
-        self.prm = H.HomParams(dt=T.DT_C) if prm is None else prm
+        self.scene, self.task, self.worlds = scene, task, worlds
+        self.pinch_task = task in ("pinpush", "press")
+        self.prm = H.HomParams(dt=dt)
         W = self.W = len(worlds)
-        m = mocap_model(L.pads_path)
+        m = mocap_model(scene.pads_path)
         self.m = m
         self.ob = m.body(S.OBJ).id
-        self.post_bid = m.body("post").id
         pads = np.array([g for g in range(m.ngeom) if "_pad" in (m.geom(g).name or "")])
         tool = np.flatnonzero(m.geom_bodyid == self.ob)
-        m.geom_contype[pads], m.geom_conaffinity[pads] = 2, 0         # pads meet the sphere only
+        m.geom_contype[pads], m.geom_conaffinity[pads] = 2, 0         # pads meet the object only
         m.geom_conaffinity[tool] = m.geom_conaffinity[tool] | 2
         m.opt.tolerance, m.opt.iterations, m.opt.ls_iterations = 1e-6, 20, 10
         self.wm = mjw.put_model(m)
         self.wm.opt.contact_sensor_maxmatch = max(int(self.wm.opt.contact_sensor_maxmatch), 256)
-        # MuJoCo-Warp computes the poses of geoms welded to the world once, in make_data; the palm and the post are
-        # mocap bodies here (mocap_model), so the mounts' geoms below the palm move with each world's body_pos and
-        # the palm and the post move through mocap_pos
         bp = np.repeat(m.body_pos[None].astype(np.float32), W, 0)
+        mount_bid = {f: m.body(f"{f}_mount").id for f in FINGERS}
         for w, wd_ in enumerate(worlds):
             for f in FINGERS:
-                bp[w, L.mount_bid[f]] = wd_["body_mounts"][f]
+                bp[w, mount_bid[f]] = wd_["body_mounts"][f]
         self.wm.body_pos = wp.array(bp, dtype=wp.vec3)
         self.wd = mjw.make_data(m, nworld=W, nconmax=NCONMAX, njmax=NJMAX)
+        self.wdm = mjw.make_data(m, nworld=W, nconmax=4, njmax=8)            # the mirror: the measured state
         self.mo_palm = int(m.body_mocapid[m.body("palm_pose").id])
-        self.mo_post = int(m.body_mocapid[self.post_bid])
-        # indices
+        self.mo_post = int(m.body_mocapid[m.body("post").id])
         self.qa = int(m.jnt_qposadr[m.body_jntadr[self.ob]])
         self.va = int(m.jnt_dofadr[m.body_jntadr[self.ob]])
         jid = np.array([[m.joint(f"{f}_{j}").id for j in JOINTS] for f in FINGERS])
         self.jid = jid
         self.qadr = np.array([[m.jnt_qposadr[i] for i in r] for r in jid])
-        self.vadr = np.array([[m.jnt_dofadr[i] for i in r] for r in jid])
         self.act = np.array([[m.actuator(f"a_{f}_{j}").id for j in JOINTS] for f in FINGERS])
         self.tip = np.array([m.body(f"{f}_tip").id for f in FINGERS])
-        self.pip = np.array([m.joint(f"{f}_pip").id for f in FINGERS])
         self.lo = m.jnt_range[jid, 0]
         self.hi = m.jnt_range[jid, 1]
         self.kp = np.array([[m.actuator_gainprm[m.actuator(f"a_{f}_{j}").id][0] for j in JOINTS] for f in FINGERS])
+        # gravity on each finger joint from the bodies below it (hom.Mirror.gravity: mj_rne at zero velocity)
+        sub = np.zeros((3, 3, m.nbody))
+        for k in range(3):
+            for j in range(3):
+                b0 = m.jnt_bodyid[jid[k, j]]
+                for b in range(m.nbody):
+                    a = b
+                    while a > 0 and a != b0:
+                        a = m.body_parentid[a]
+                    sub[k, j, b] = float(a == b0)
+        self.grav_sub = sub
+        self.mg = m.body_mass[:, None] * m.opt.gravity[None, :]
         objmask = np.zeros(m.ngeom, np.int32)
         objmask[tool] = 1
         fidx = -np.ones(m.ngeom, np.int32)
@@ -260,12 +439,12 @@ class Batch:
         self.ftip = wp.zeros((W, 3), dtype=float)
         self.ftot = wp.zeros((W, 3), dtype=float)
         self.cops = wp.zeros((W, 3, 3), dtype=float)
-        # fingertip surfaces (hom_tasks.sr2_specs): rounded boxes in each tip body's frame
         specs, _ = T.sr2_specs(worlds[0]["setup"])
         boxes = [sp.surface.s if hasattr(sp.surface, "s") else sp.surface for sp in specs]
         self.box_c = np.array([b.c for b in boxes])
         self.box_a = np.array([b.a for b in boxes])
         self.box_r = float(boxes[0].r)
+        self.gen_seed = gen_seed
         self._init_state()
         self._capture()
 
@@ -287,48 +466,22 @@ class Batch:
             for k, f in enumerate(FINGERS):
                 qpos[w, self.qadr[k]] = wd_["q_open"][f]
                 ctrl[w, self.act[k]] = wd_["q_open"][f]
-        mp = np.repeat(m.body_pos[m.body_mocapid >= 0][None], W, 0)
         mp = np.zeros((W, m.nmocap, 3))
         for b in range(m.nbody):
             if m.body_mocapid[b] >= 0:
                 mp[:, m.body_mocapid[b]] = m.body_pos[b]
         for w, wd_ in enumerate(self.worlds):
             mp[w, self.mo_palm] = wd_["setup"]["palm"]
-        self.wd.mocap_pos.assign(mp.astype(np.float32))
-        self.wd.qpos.assign(qpos.astype(np.float32))
-        self.wd.qvel.zero_()
+        for dd in (self.wd, self.wdm):
+            dd.mocap_pos.assign(mp.astype(np.float32))
+            dd.qpos.assign(qpos.astype(np.float32))
+            dd.qvel.zero_()
         self.wd.ctrl.assign(ctrl.astype(np.float32))
         self.mjw.forward(self.wm, self.wd)
+        self.mjw.kinematics(self.wm, self.wdm)
         wp.synchronize()
 
-    def _capture(self):
-        mjw = self.mjw
-        self.nsub = int(round(self.prm.dt / self.m.opt.timestep))
-        has_kin = hasattr(mjw, "kinematics")
-        self.has_kin = has_kin
-
-        def block():
-            for _ in range(self.nsub):
-                mjw.step(self.wm, self.wd)
-            if has_kin:
-                mjw.kinematics(self.wm, self.wd)
-            self.ftip.zero_()
-            self.ftot.zero_()
-            self.cops.zero_()
-            c = self.wd.contact
-            wp.launch(finger_forces, dim=c.pos.shape[0],
-                      inputs=[self.wd.nacon, c.worldid, c.geom, c.pos, c.efc_address, self.wd.efc.force, self.objmask,
-                              self.fidx, self.tidx, self.ftip, self.ftot, self.cops])
-        block()                                                   # compile every kernel before the capture
-        wp.synchronize()
-        with wp.ScopedCapture() as cap:
-            block()
-        self.graph = cap.graph
-        self._init_state()                                         # the warm-up block moved the state: start again
-        self._forces_now()
-
-    def _forces_now(self):
-        """The finger forces at the present state (before the first control period)."""
+    def _launch_forces(self):
         self.ftip.zero_()
         self.ftot.zero_()
         self.cops.zero_()
@@ -336,23 +489,45 @@ class Batch:
         wp.launch(finger_forces, dim=c.pos.shape[0],
                   inputs=[self.wd.nacon, c.worldid, c.geom, c.pos, c.efc_address, self.wd.efc.force, self.objmask,
                           self.fidx, self.tidx, self.ftip, self.ftot, self.cops])
+
+    def _capture(self):
+        mjw = self.mjw
+        self.nsub = int(round(self.prm.dt / self.m.opt.timestep))
+
+        def block():
+            for _ in range(self.nsub):
+                mjw.step(self.wm, self.wd)
+            mjw.kinematics(self.wm, self.wd)
+            self._launch_forces()
+
+        def mirror():
+            mjw.kinematics(self.wm, self.wdm)
+
+        block()                                                   # compile every kernel before the captures
+        mirror()
+        wp.synchronize()
+        with wp.ScopedCapture() as cap:
+            block()
+        self.graph = cap.graph
+        with wp.ScopedCapture() as cap:
+            mirror()
+        self.graph_m = cap.graph
+        self._init_state()                                         # the warm-up block moved the state: start again
+        self._launch_forces()
         wp.synchronize()
 
-    # ---------------------------------------------------------------- the controller
-    def _rb_closest(self, x, k=None):
-        """Closest point on finger k's rounded box (tip frame) to points x (..., 3), its outward normal and the
-        signed distance; k indexes the finger axis of x when None (x shaped (W, 3, 3))."""
+    # ---------------------------------------------------------------- geometry helpers (torch)
+    def _rb_closest(self, x):
+        """Closest point on each finger's rounded box (tip frame) to points x (W, 3, 3), its outward normal and the
+        signed distance (surfaces.RoundedBox.closest)."""
         th = self.torch
         c, a = self.c_t, self.a_t
-        if k is not None:
-            c, a = c[k], a[k]
         xx = x - c
         core = th.maximum(th.minimum(xx, a), -a)
         d = xx - core
         dist = th.linalg.norm(d, dim=-1, keepdim=True)
         out = dist > 1e-12
         n_out = d / dist.clamp_min(1e-12)
-        # inside the core: the nearest face
         q = xx.abs() - a
         kk = q.argmax(-1, keepdim=True)
         sg = th.where(th.gather(xx, -1, kk) >= 0, 1.0, -1.0).to(x.dtype)
@@ -363,116 +538,307 @@ class Batch:
         sd = th.where(out, dist - self.box_r, th.gather(q, -1, kk) - self.box_r)[..., 0]
         return s, n, sd
 
+    def _cyl_local(self, p):
+        """surfaces.Cylinder.closest for points p (..., 3) in the cylinder's frame: surface point, outward normal,
+        signed distance."""
+        th = self.torch
+        r, hl = self.scene.r, self.scene.hl
+        rho = th.sqrt(p[..., 0] ** 2 + p[..., 1] ** 2)
+        big = rho > 1e-15
+        ex = th.where(big, p[..., 0] / rho.clamp_min(1e-15), th.ones_like(rho))
+        ey = th.where(big, p[..., 1] / rho.clamp_min(1e-15), th.zeros_like(rho))
+        e = th.stack([ex, ey, th.zeros_like(rho)], -1)
+        z = p[..., 2]
+        inside = (rho <= r) & (z.abs() <= hl)
+        side = inside & ((r - rho) <= (hl - z.abs()))
+        sz = th.where(z >= 0, 1.0, -1.0).to(p.dtype)
+        q_side = th.stack([r * ex, r * ey, z], -1)
+        q_cap = th.stack([p[..., 0], p[..., 1], sz * hl], -1)
+        n_cap = th.stack([th.zeros_like(z), th.zeros_like(z), sz], -1)
+        rc = th.minimum(rho, th.full_like(rho, r))
+        q_out = th.stack([rc * ex, rc * ey, z.clamp(-hl, hl)], -1)
+        dd = p - q_out
+        dist = th.linalg.norm(dd, dim=-1)
+        n_out = th.where((dist > 1e-15)[..., None], dd / dist.clamp_min(1e-15)[..., None], e)
+        q = th.where(side[..., None], q_side, th.where(inside[..., None], q_cap, q_out))
+        n = th.where(side[..., None], e, th.where(inside[..., None], n_cap, n_out))
+        sd = th.where(side, -(r - rho), th.where(inside, -(hl - z.abs()), dist))
+        return q, n, sd
+
+    def _obj_closest(self, x, o, Ro):
+        """Closest surface point of the object to world points x (W, 3, 3) and its outward normal (world)."""
+        th = self.torch
+        oo = o[:, None, :]
+        if self.scene.shape == "sphere":
+            n = th.nn.functional.normalize(x - oo, dim=-1)
+            return oo + self.scene.r * n, n
+        loc = th.einsum("wji,wfj->wfi", Ro, x - oo)
+        q, n, _ = self._cyl_local(loc)
+        return oo + th.einsum("wij,wfj->wfi", Ro, q), th.einsum("wij,wfj->wfi", Ro, n)
+
+    def _witness(self, pb, Rb, o, Ro, to_tip, to_world):
+        """GCF from the closest points of the rounded block and the object: p1 (block), p0 (object), x1 (block to
+        object) and the signed distance."""
+        th = self.torch
+        oo = o[:, None, :].expand(-1, 3, -1)
+        rf = self.box_r
+        if self.scene.shape == "sphere":
+            s1, _n, _sd = self._rb_closest(to_tip(oo))
+            p1 = to_world(s1)
+            u = th.nn.functional.normalize(p1 - oo, dim=-1)
+            return p1, oo + self.scene.r * u, -u, th.linalg.norm(p1 - oo, dim=-1) - self.scene.r
+        r, hl = self.scene.r, self.scene.hl
+        c, a = self.c_t, self.a_t
+
+        def cyl_proj(x):                                   # closest point of the solid cylinder
+            loc = th.einsum("wji,wfj->wfi", Ro, x - oo)
+            rho = th.sqrt(loc[..., 0] ** 2 + loc[..., 1] ** 2).clamp_min(1e-15)
+            sc = th.clamp(r / rho, max=1.0)
+            q = th.stack([loc[..., 0] * sc, loc[..., 1] * sc, loc[..., 2].clamp(-hl, hl)], -1)
+            return oo + th.einsum("wij,wfj->wfi", Ro, q)
+
+        def box_proj(y):                                   # closest point of the block's solid core box
+            loc = to_tip(y)
+            return to_world(th.maximum(th.minimum(loc - c, a), -a) + c)
+
+        x = to_world(c.expand(self.W, -1, -1))
+        for _ in range(N_AP):
+            x = box_proj(cyl_proj(x))
+        y = cyl_proj(x)
+        d = y - x
+        dc = th.linalg.norm(d, dim=-1)
+        sep = dc > 1e-9
+        # the core inside the cylinder (the block sunk more than its fillet): the cylinder's normal at the core point
+        q_in, n_in = self._obj_closest(x, o, Ro)
+        x1 = th.where(sep[..., None], d / dc.clamp_min(1e-12)[..., None], -n_in)
+        dist = th.where(sep, dc, -th.linalg.norm(q_in - x, dim=-1)) - rf
+        p1 = x + rf * x1
+        p0 = th.where(sep[..., None], y, q_in)
+        return p1, p0, x1, dist
+
+    @staticmethod
+    def _quat_mat(q):
+        import torch as th
+        w, x, y, z = q.unbind(-1)
+        return th.stack([1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w),
+                         2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w),
+                         2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)], -1).reshape(*q.shape[:-1], 3, 3)
+
+    @staticmethod
+    def _quat_mul(a, b):
+        import torch as th
+        w1, x1, y1, z1 = a.unbind(-1)
+        w2, x2, y2, z2 = b.unbind(-1)
+        return th.stack([w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2, w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
+                         w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2, w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2], -1)
+
+    # ---------------------------------------------------------------- the controller
     def reset_controller(self):
         th = self.torch
-        dev = "cuda"
-        f64 = th.float64
+        dev, f64 = "cuda", th.float64
         self.dev, self.f64 = dev, f64
-        self.c_t = th.tensor(self.box_c, dtype=f64, device=dev)            # (3, 3)
-        self.a_t = th.tensor(self.box_a, dtype=f64, device=dev)
-        self.lo_t = th.tensor(self.lo, dtype=f64, device=dev)              # (3 fingers, 3 joints)
-        self.hi_t = th.tensor(self.hi, dtype=f64, device=dev)
-        self.kp_t = th.tensor(self.kp, dtype=f64, device=dev)
-        q0 = np.array([[wd_["q_open"][f] for f in FINGERS] for wd_ in self.worlds])
-        self.theta_ref = th.tensor(q0, dtype=f64, device=dev)               # (W, 3, 3)
-        self.healthy = self.theta_ref.clone()
+
+        def T_(x, dtype=f64):
+            return th.tensor(np.asarray(x), dtype=dtype, device=dev)
+
+        self.c_t, self.a_t = T_(self.box_c), T_(self.box_a)
+        self.lo_t, self.hi_t, self.kp_t = T_(self.lo), T_(self.hi), T_(self.kp)
+        self.q_open = T_([[wd_["q_open"][f] for f in FINGERS] for wd_ in self.worlds])
+        self.healthy = self.q_open.clone()
+        self.theta_ref = None
         self.c1 = None
+        self.R_bm = self.p_bm = None
         pr = self.prm
-        self.sw = th.tensor(np.sqrt(W_TASK) * np.array([1.0, 1.0, 1.0] + [1.0 / pr.ell] * 3), dtype=f64, device=dev)
+        self.scale = T_([1.0, 1.0, 1.0] + [1.0 / pr.ell] * 3)
         pats = np.array(np.meshgrid([0, 1, 2], [0, 1, 2], [0, 1, 2], indexing="ij")).reshape(3, -1).T
-        self.pats = th.tensor(pats, device=dev)                             # (27, 3): 0 free, 1 lower, 2 upper
-        self.n_out = th.tensor(np.array([[wd_["setup"]["n_out"][f] for f in FINGERS] for wd_ in self.worlds]),
-                               dtype=f64, device=dev)                       # (W, 3, 3) palm = world axes
-        self.r_obj = D_MM / 2000.0
+        self.pats = th.tensor(pats, device=dev)
+        self.n_out = T_([[wd_["setup"]["n_out"][f] for f in FINGERS] for wd_ in self.worlds])
+        cmds = [finger_commands(self.task, wd_["setup"]["n_out"]) for wd_ in self.worlds]
+        self.weights = T_(cmds[0][0])                                          # (3, 6), the same in every world
+        self.follow = T_(cmds[0][1], th.bool)
+        self.pusher = T_(cmds[0][2], th.bool)
+        self.force_on = T_([c[3] for c in cmds])                               # (W, 3)
+        V = [wd_["var"] for wd_ in self.worlds]
+        self.cfmin = T_([v["cfmin"] for v in V])
+        self.flg = T_([v["flg"] for v in V])
+        self.mode = T_([v["mode"] for v in V], th.long)
+        self.delay = T_([v["delay"] for v in V], th.long)
+        for k in ("pos_mm", "rot_deg", "cop_mm", "f_N", "tip_k", "f_bias", "f_min"):
+            setattr(self, k, T_([v[k] for v in V]))
+        self.cal_q = T_([v["cal_q"] for v in V])
+        self.cal_pos = T_([v["cal_pos"] for v in V])
+        self.tip_gain = T_([v["tip_gain"] for v in V])
+        self.tip_off = T_([v["tip_off"] for v in V])
+        self.L = DMAX + 1
+        W = self.W
+        self.buf = {"q": th.zeros((self.L, W, 3, 3), dtype=f64, device=dev),
+                    "pos": th.zeros((self.L, W, 3), dtype=f64, device=dev),
+                    "quat": th.zeros((self.L, W, 4), dtype=f64, device=dev),
+                    "cop": th.zeros((self.L, W, 3, 3), dtype=f64, device=dev),
+                    "F": th.zeros((self.L, W, 3), dtype=f64, device=dev)}
+        self.gen = th.Generator(device=dev)
+        self.gen.manual_seed(int(self.gen_seed))
+        self.qadr_t = th.tensor(self.qadr, device=dev)
+        self.jid_t = th.tensor(self.jid, device=dev)
+        self.act_t = th.tensor(self.act.reshape(-1), device=dev)
+        self.sub_t = T_(self.grav_sub)
+        self.mg_t = T_(self.mg)
 
-    def views(self):
+    def views(self, d):
         to = wp.to_torch
-        return {"qpos": to(self.wd.qpos), "qvel": to(self.wd.qvel), "xpos": to(self.wd.xpos), "xmat": to(self.wd.xmat),
-                "xanchor": to(self.wd.xanchor), "xaxis": to(self.wd.xaxis), "qfrc_bias": to(self.wd.qfrc_bias),
-                "ctrl": to(self.wd.ctrl), "ftip": to(self.ftip), "ftot": to(self.ftot), "cops": to(self.cops),
-                "mocap_pos": to(self.wd.mocap_pos)}
+        return {"qpos": to(d.qpos), "qvel": to(d.qvel), "xpos": to(d.xpos), "xmat": to(d.xmat), "xipos": to(d.xipos),
+                "xanchor": to(d.xanchor), "xaxis": to(d.xaxis), "ctrl": to(d.ctrl), "mocap_pos": to(d.mocap_pos)}
 
-    def control(self, V, t, vw):
-        """One control period: Eq. (1), Eq. (2), the filter and the impedance for every world and finger. V: the
-        object's reference body twist (W, 6). Returns the servo targets (W, 3, 3)."""
+    def _randn(self, *shape):
+        return self.torch.randn(*shape, generator=self.gen, device=self.dev, dtype=self.f64)
+
+    def measure(self, k, true):
+        """What the controller receives in period k: hom_tasks.rollout's delay, calibration offsets, tracker noise and
+        fingertip model applied to the plant's state."""
+        th = self.torch
+        W = self.W
+        slot = k % self.L
+        for key in self.buf:
+            self.buf[key][slot] = true[key]
+        idx = (k - self.delay).clamp(min=0) % self.L
+        ar = th.arange(W, device=self.dev)
+        q, pos, quat, cop, F = (self.buf[key][idx, ar] for key in ("q", "pos", "quat", "cop", "F"))
+        has = F > 0
+        pos_m = pos + self.cal_pos + self._randn(W, 3) * (self.pos_mm * 1e-3)[:, None]
+        ax = th.nn.functional.normalize(self._randn(W, 3), dim=-1)
+        ang = th.deg2rad(self.rot_deg) * self._randn(W)
+        dq = th.cat([th.cos(ang / 2)[:, None], th.sin(ang / 2)[:, None] * ax], -1)
+        quat_m = self._quat_mul(dq, quat)
+        q_m = q + self.cal_q
+        # the fingertip model (hom_tasks.tip_reading) and the Gaussian contact noise of the 'sense' variant
+        F_tip = F * (1.0 + self.tip_gain) + self.f_bias[:, None] + self._randn(W, 3) * (T.TIP_NOISE_N * self.tip_k)[:, None]
+        sig = th.where(F >= T.TIP_SIGMA_MM[0][0], T.TIP_SIGMA_MM[0][1],
+                       th.where(F >= T.TIP_SIGMA_MM[1][0], T.TIP_SIGMA_MM[1][1], T.TIP_SIGMA_MM[2][1]))
+        cop_tip = cop + self.tip_off + self._randn(W, 3, 3) * (sig * self.tip_k[:, None] * 1e-3)[..., None]
+        cop_sn = cop + self._randn(W, 3, 3) * (self.cop_mm * 1e-3)[:, None, None]
+        F_sn = (F + self._randn(W, 3) * self.f_N[:, None]).clamp_min(0.0)
+        md = self.mode[:, None]
+        valid = th.where(md == 1, th.zeros_like(has), th.where(md == 2, has & (F_tip >= self.f_min[:, None]), has))
+        Fsel = th.where(md == 2, F_tip, th.where(md == 3, F_sn, F))
+        csel = th.where((md == 2)[..., None], cop_tip, th.where((md == 3)[..., None], cop_sn, cop))
+        Fm = th.where(valid, Fsel, th.zeros_like(Fsel))
+        return {"q": q_m, "pos": pos_m, "quat": quat_m, "cop": csel, "F": Fm, "valid": valid, "quat_d": quat}
+
+    def mirror(self, meas):
+        """The mirror's kinematics at the measured state; returns its views."""
+        mv = self.mv
+        W = self.W
+        mv["qpos"][:, self.qadr_t.reshape(-1)] = meas["q"].reshape(W, 9).float()
+        mv["qpos"][:, self.qa:self.qa + 3] = meas["pos"].float()
+        mv["qpos"][:, self.qa + 3:self.qa + 7] = meas["quat"].float()
+        wp.capture_launch(self.graph_m)
+        return mv
+
+    def gravity(self, xipos, anc, axs):
+        """Joint torques that hold each finger against its weight at the mirror's posture (mj_rne at zero velocity)."""
+        th = self.torch
+        rel = xipos[:, None, None, :, :] - anc[:, :, :, None, :]                 # (W, 3f, 3j, nbody, 3)
+        tq = th.cross(rel, self.mg_t[None, None, None].expand_as(rel), dim=-1)    # torque of each body's weight
+        tq = (tq * self.sub_t[None, :, :, :, None]).sum(-2)                      # (W, 3f, 3j, 3)
+        return -(tq * axs).sum(-1)
+
+    def control(self, t, meas, mv, V_obj, s_push):
+        """One control period of hom.HomController.step for every world and finger. V_obj: the object's reference body
+        twist (W, 6); s_push: Eq. (3)'s speed (rad/s). Returns the servo targets (W, 3, 3)."""
         th, f64, pr = self.torch, self.f64, self.prm
         dt = pr.dt
-        qpos = vw["qpos"].to(f64)
-        theta = qpos[:, th.tensor(self.qadr, device=self.dev)]                         # (W, 3, 3)
-        xpos, xmat = vw["xpos"].to(f64), vw["xmat"].to(f64)
-        pb, Rb = xpos[:, self.tip], xmat[:, self.tip]                                    # (W, 3, 3), (W, 3, 3, 3)
-        o, Ro = xpos[:, self.ob], xmat[:, self.ob]                                       # (W, 3), (W, 3, 3)
-        anc = vw["xanchor"].to(f64)[:, th.tensor(self.jid, device=self.dev)]             # (W, 3, 3j, 3)
-        axs = vw["xaxis"].to(f64)[:, th.tensor(self.jid, device=self.dev)]
-        Fm = vw["ftip"].to(f64)                                                          # (W, 3)
-        cop = vw["cops"].to(f64) / Fm.clamp_min(1e-12)[..., None]
+        W = self.W
+        theta = meas["q"]
+        if self.theta_ref is None:
+            self.theta_ref = theta.clone()
+        xpos, xmat = mv["xpos"].to(f64), mv["xmat"].to(f64)
+        pb, Rb = xpos[:, self.tip], xmat[:, self.tip]
+        o, Ro = xpos[:, self.ob], xmat[:, self.ob]
+        anc = mv["xanchor"].to(f64)[:, self.jid_t]                                       # (W, 3f, 3j, 3)
+        axs = mv["xaxis"].to(f64)[:, self.jid_t]
+        Fm, valid, cop = meas["F"], meas["valid"], meas["cop"]
         RbT = Rb.transpose(-1, -2)
 
-        def to_tip(p):                                       # world points (W, 3, 3) into each tip frame
+        def to_tip(p):
             return th.einsum("wfij,wfj->wfi", RbT, p - pb)
 
         def to_world(p):
             return pb + th.einsum("wfij,wfj->wfi", Rb, p)
 
         oo = o[:, None, :].expand(-1, 3, -1)
-        # GCF from the centre of pressure
+        # GCF from the centre of pressure (hom.Mirror.gcf_from_cop)
         s1c, n1c, _ = self._rb_closest(to_tip(cop))
         p1c = to_world(s1c)
         n1w = th.einsum("wfij,wfj->wfi", Rb, n1c)
-        n0c = th.nn.functional.normalize(cop - oo, dim=-1)
-        p0c = oo + self.r_obj * n0c
+        p0c, n0c = self._obj_closest(cop, o, Ro)
         x1c = th.nn.functional.normalize(n1w - n0c, dim=-1)
         distc = ((p0c - p1c) * x1c).sum(-1)
-        # GCF from the witness points (block against sphere)
-        s1w, _n1w_, _sd = self._rb_closest(to_tip(oo))
-        p1w = to_world(s1w)
-        u = th.nn.functional.normalize(p1w - oo, dim=-1)
-        p0w = oo + self.r_obj * u
-        distw = th.linalg.norm(p1w - oo, dim=-1) - self.r_obj
-        x1w = -u
-        self.dbg = {"distw": distw, "p1w": p1w, "x1w": x1w, "distc": distc, "Fm": Fm}
-        use_cop = (Fm >= pr.contact_force_min)[..., None]
+        # GCF from the witness points (hom.Mirror.gcf_witness)
+        p1w, p0w, x1w, distw = self._witness(pb, Rb, o, Ro, to_tip, to_world)
+        use_cop = (valid & (Fm >= self.cfmin[:, None]))[..., None]
         p1 = th.where(use_cop, p1c, p1w)
+        p0 = th.where(use_cop, p0c, p0w)
         x1 = th.where(use_cop, x1c, x1w)
         dist = th.where(use_cop[..., 0], distc, distw)
-        # frame: y is the PIP axis laid into the tangent plane
-        ay = axs[:, :, 2]                                                                 # (W, 3, 3) pip axis
+        ay = axs[:, :, 2]                                                                 # the PIP's axis
         y = ay - (ay * x1).sum(-1, keepdim=True) * x1
         y = th.nn.functional.normalize(y, dim=-1)
         z = th.cross(x1, y, dim=-1)
-        R1 = th.stack([x1, y, z], -1)                                                     # columns
-        R1T = R1.transpose(-1, -2)
+        R1T = th.stack([x1, y, z], -1).transpose(-1, -2)
+        # the pinch frame {M}, fixed to the object when the pusher starts (hom.pinch_frame)
+        V = th.zeros((W, 3, 6), dtype=f64, device=self.dev)
+        V[:, self.follow] = V_obj[:, None, :].expand(-1, int(self.follow.sum()), -1)
+        if self.pinch_task and s_push != 0.0 and self.R_bm is None:
+            pa, pb_ = p0[:, 0], p0[:, 1]
+            xm = th.nn.functional.normalize(pb_ - pa, dim=-1)
+            up = th.zeros_like(xm)
+            up[:, 2] = 1.0
+            ym = up - (up * xm).sum(-1, keepdim=True) * xm
+            ym = th.nn.functional.normalize(ym, dim=-1)
+            Rm = th.stack([xm, ym, th.cross(xm, ym, dim=-1)], -1)
+            self.R_bm = Ro.transpose(-1, -2) @ Rm
+            self.p_bm = th.einsum("wji,wj->wi", Ro, 0.5 * (pa + pb_) - o)
+        if self.pinch_task and self.R_bm is not None:
+            xb = self.R_bm[:, :, 0]
+            Vp = s_push * th.cat([xb, th.cross(self.p_bm, xb, dim=-1)], -1)               # Eq. (3)
+            V[:, self.pusher] = V[:, self.pusher] + Vp[:, None, :]
         # Eq. (1)
-        w_o = th.einsum("wij,wj->wi", Ro, V[:, :3])
-        v_o = th.einsum("wij,wj->wi", Ro, V[:, 3:])
-        v_p1 = v_o[:, None] + th.cross(w_o[:, None].expand_as(p1), p1 - oo, dim=-1)
+        w_o = th.einsum("wij,wfj->wfi", Ro, V[..., :3])
+        v_p1 = th.einsum("wij,wfj->wfi", Ro, V[..., 3:]) + th.cross(w_o, p1 - oo, dim=-1)
         Jr = axs.transpose(-1, -2)                                                        # (W, 3, 3xyz, 3j)
         Jp = th.cross(axs, p1[:, :, None, :] - anc, dim=-1).transpose(-1, -2)
         A = th.cat([R1T @ Jr, R1T @ Jp], -2)                                               # (W, 3, 6, 3)
-        b = -th.cat([th.einsum("wfij,wj->wfi", R1T, w_o), th.einsum("wfij,wfj->wfi", R1T, v_p1)], -1)
+        b = -th.cat([th.einsum("wfij,wfj->wfi", R1T, w_o), th.einsum("wfij,wfj->wfi", R1T, v_p1)], -1)
+        # the finger's reference relative twist: the approach, the force loop, the anti-windup
         v_ref = th.zeros_like(b)
         if T.T_OPEN <= t < T.T_CLOSE:
             v_ref[..., 3] = T.V_APPROACH
-        v_ref[..., 3] = th.where((dist < pr.aw_dist) & (v_ref[..., 3] > 0), th.zeros_like(dist), v_ref[..., 3])
+        force = self.force_on if t >= T.T_CLOSE else th.zeros_like(self.force_on)
+        touching = (Fm >= self.cfmin[:, None]) | (dist <= 0.0)
+        floop = (self.flg > 0)[:, None] & touching
+        v_ref[..., 3] = v_ref[..., 3] + th.where(floop & (force > 0), self.flg[:, None] * (force - Fm), th.zeros_like(Fm))
+        aw = (dist < pr.aw_dist) & (v_ref[..., 3] > 0) & ~floop
+        v_ref[..., 3] = th.where(aw, th.zeros_like(dist), v_ref[..., 3])
         # Eq. (2): min |sw (A u + b - v_ref)|^2 + w_damp |u|^2 + w_healthy |k (theta_h - theta) - u|^2, box bounds
-        As = self.sw[:, None] * A
-        rs = self.sw * (v_ref - b)
+        sw = th.sqrt(self.weights) * self.scale                                          # (3, 6)
+        As = sw[None, :, :, None] * A
+        rs = sw[None] * (v_ref - b)
         I3 = th.eye(3, dtype=f64, device=self.dev)
         Hm = As.transpose(-1, -2) @ As + (pr.w_damp + pr.w_healthy) * I3
         g = th.einsum("wfij,wfi->wfj", As, rs) + pr.w_healthy * pr.k_healthy * (self.healthy - theta)
         lb = th.maximum(th.full_like(theta, -pr.u_max), (self.lo_t - self.theta_ref) / dt)
         ub = th.minimum(th.full_like(theta, pr.u_max), (self.hi_t - self.theta_ref) / dt)
         lb, ub = th.minimum(lb, ub - 1e-12), th.maximum(ub, lb + 1e-12)
-        P = self.pats                                                                      # (27, 3)
-        fixed = (P > 0)[:, None, None, :]                                                  # (27, 1, 1, 3)
-        bound = th.where(P[:, None, None, :] == 1, lb[None], ub[None])                    # (27, W, 3, 3)
+        P = self.pats
+        fixed = (P > 0)[:, None, None, :]
+        bound = th.where(P[:, None, None, :] == 1, lb[None], ub[None])
         Mm = th.where(fixed[..., None], I3.expand(27, 1, 1, 3, 3) * 1.0, Hm[None].expand(27, -1, -1, -1, -1))
         cc = th.where(fixed, bound, g[None].expand(27, -1, -1, -1))
-        uu = th.linalg.solve(Mm, cc[..., None])[..., 0]                                    # (27, W, 3, 3)
+        uu = th.linalg.solve(Mm, cc[..., None])[..., 0]
         feas = ((uu >= lb[None] - 1e-9) & (uu <= ub[None] + 1e-9)).all(-1)
         obj = 0.5 * th.einsum("pwfi,wfij,pwfj->pwf", uu, Hm, uu) - (uu * g[None]).sum(-1)
         obj = th.where(feas, obj, th.full_like(obj, float("inf")))
-        best = obj.argmin(0)                                                               # (W, 3)
+        best = obj.argmin(0)
         u_sol = th.gather(uu, 0, best[None, ..., None].expand(1, -1, -1, 3))[0]
         u_sol = th.minimum(th.maximum(u_sol, lb), ub)
         tr = self.theta_ref + dt * u_sol
@@ -489,28 +855,29 @@ class Batch:
         s_act, n_act_l, _ = self._rb_closest(self.c1)
         p_act = to_world(s_act)
         n_act = th.einsum("wfij,wfj->wfi", Rb, n_act_l)
-        # the impedance of the 'reference' mode, with gravity
-        offset = th.zeros_like(theta)
-        if t >= T.T_CLOSE:
-            F = T.PRM["f_tripod"]
-            Ja = th.cross(axs, p_act[:, :, None, :] - anc, dim=-1).transpose(-1, -2)    # (W, 3, 3xyz, 3j)
-            gap = (dist - (n_act * th.einsum("wfij,wfj->wfi", Ja, self.theta_ref - theta)).sum(-1)).clamp(0.0, pr.gap_max)
-            JJ = Ja @ Ja.transpose(-1, -2) + pr.dls ** 2 * I3
-            step = th.linalg.solve(JJ, (gap[..., None] * n_act)[..., None])[..., 0]
-            offset = offset + th.einsum("wfij,wfi->wfj", Ja, step) + th.einsum("wfij,wfi->wfj", Ja, F * n_act) / self.kp_t
+        # the impedance of the 'reference' mode, and gravity
+        Ja = th.cross(axs, p_act[:, :, None, :] - anc, dim=-1).transpose(-1, -2)        # (W, 3, 3xyz, 3j)
+        gap = (dist - (n_act * th.einsum("wfij,wfj->wfi", Ja, self.theta_ref - theta)).sum(-1)).clamp(0.0, pr.gap_max)
+        JJ = Ja @ Ja.transpose(-1, -2) + pr.dls ** 2 * I3
+        step = th.linalg.solve(JJ, (gap[..., None] * n_act)[..., None])[..., 0]
+        imp = th.einsum("wfij,wfi->wfj", Ja, step) + th.einsum("wfij,wfi->wfj", Ja, force[..., None] * n_act) / self.kp_t
+        offset = th.where((force > 0)[..., None], imp, th.zeros_like(imp))
         if pr.gravity_ff:
-            qb = vw["qfrc_bias"].to(f64)[:, th.tensor(self.vadr, device=self.dev)]
-            offset = offset + qb / self.kp_t
+            offset = offset + self.gravity(mv["xipos"].to(f64), anc, axs) / self.kp_t
         return th.minimum(th.maximum(self.theta_ref + offset, self.lo_t), self.hi_t)
 
-    # ---------------------------------------------------------------- the schedule (hom_tasks.Schedule, roll/twist)
+    # ---------------------------------------------------------------- the schedules (hom_tasks.Schedule)
     def schedule(self, t):
-        """The object's reference angular velocity (world, rad/s) and the phase name at time t."""
+        """The object's reference angular velocity (world, rad/s), Eq. (3)'s speed s (rad/s), the commanded angle about
+        the pinch axis (deg, None outside the task) and the phase name at time t."""
         w_ref = np.zeros(3)
         ph = Tsched_phase(t)
         if ph != "task":
-            return w_ref, ph
+            return w_ref, 0.0, None, ph
         tt = t - (T.T_LIFT + 0.4)
+        if self.pinch_task:
+            th_, w, name = self.sch.angle(tt)
+            return w_ref, -math.radians(w), th_, name
         if self.task == "roll":
             seq = [(1, +1), (1, -1), (None, 0), (1, -1), (1, +1), (None, 0)]
             durs = [0.5, 0.5, 0.3, 0.5, 0.5, 0.3]
@@ -524,86 +891,98 @@ class Batch:
             if ax is not None:
                 w_ref[ax] = sg * math.radians(T.PRM["w_step_dps"])
             rep = " 2" if seq[:i].count(seq[i]) else ""
-            return w_ref, ("rest" if ax is None else f"w{'xyz'[ax]} {'+' if sg > 0 else '-'}{rep}")
+            return w_ref, 0.0, None, ("rest" if ax is None else f"w{'xyz'[ax]} {'+' if sg > 0 else '-'}{rep}")
         if self.task == "twist":
             tr = tt - edges[-1]
             if tr < 3.0:
                 w_ref[2] = math.radians(T.PRM["ramp_dps"])
-                return w_ref, "twist ramp"
-        return w_ref, "hold"
-
-    def t_end(self):
-        t_task = {"roll": 2 * 1.3, "twist": 1.3 + 4.0}[self.task]
-        return T.T_LIFT + 0.4 + t_task + (0.3 if self.task == "roll" else 0.5)
+                return w_ref, 0.0, None, "twist ramp"
+        return w_ref, 0.0, None, "hold"
 
     # ---------------------------------------------------------------- one batch
     def run(self):
         th = self.torch
         self.reset_controller()
-        vw = self.views()
+        self.sch = T.Schedule(self.task, self.worlds[0]["setup"], T.PRM)
+        vw, self.mv = self.views(self.wd), self.views(self.wdm)
+        ftip, ftot, cops = wp.to_torch(self.ftip), wp.to_torch(self.ftot), wp.to_torch(self.cops)
         dtc = self.prm.dt
-        n = int(round(self.t_end() / dtc))
+        clock, t = [], 0.0                       # hom_tasks.rollout's accumulated clock: its phases change on the same ticks
+        while t < self.sch.t_end - 1e-9:
+            clock.append(t)
+            t += dtc
+        n = len(clock)
         W = self.W
-        rec_pos = th.zeros((n, W, 3), device=self.dev)
-        rec_w = th.zeros((n, W, 3), device=self.dev)
-        rec_ft = th.zeros((n, W, 3), device=self.dev)
-        rec_fo = th.zeros((n, W, 3), device=self.dev)
-        rec_vr = th.zeros((n, W, 3), device=self.dev)
-        rec_ax = th.zeros((n, W, 3), device=self.dev)
-        phases, wrefs, times = [], [], []
+        rec = {k: th.zeros((n, W, 3), device=self.dev) for k in ("pos", "w", "ft", "fo", "vr", "ax")}
+        rec["cop"] = th.zeros((n, W, 3, 3), device=self.dev)
+        phases, wrefs, times, thref = [], [], [], []
         post_off = False
         t0 = time.perf_counter()
-        for k in range(n):
-            t = round(k * dtc, 6)
-            qpos = vw["qpos"]
-            R = vw["xmat"][:, self.ob].to(self.f64)                                      # (W, 3, 3)
+        for k, t in enumerate(clock):
+            qpos = vw["qpos"].to(self.f64)
+            R = vw["xmat"][:, self.ob].to(self.f64)
+            pos = qpos[:, self.qa:self.qa + 3]
+            F = ftip.to(self.f64)
+            cop = cops.to(self.f64) / F.clamp_min(1e-12)[..., None]
+            cop = th.where((F > 0)[..., None], cop, th.zeros_like(cop))
+            true = {"q": qpos[:, self.qadr_t], "pos": pos, "quat": qpos[:, self.qa + 3:self.qa + 7], "cop": cop, "F": F}
             wl = vw["qvel"][:, self.va + 3:self.va + 6].to(self.f64)
-            ww = th.einsum("wij,wj->wi", R, wl)
-            rec_pos[k] = qpos[:, self.qa:self.qa + 3]
-            rec_w[k] = ww.float()
-            rec_ft[k] = vw["ftip"]
-            rec_fo[k] = vw["ftot"]
-            rec_ax[k] = R[:, :, 2].float()
+            rec["pos"][k] = pos.float()
+            rec["w"][k] = th.einsum("wij,wj->wi", R, wl).float()
+            rec["ft"][k] = ftip
+            rec["fo"][k] = ftot
+            rec["ax"][k] = R[:, :, 2].float()
+            rec["cop"][k] = th.einsum("wji,wfj->wfi", R, cop - pos[:, None, :]).float()
             if t >= T.T_LIFT and not post_off:
                 vw["mocap_pos"][:, self.mo_post, 2] -= 1.0                              # the post goes away
                 post_off = True
-            w_ref, ph = self.schedule(t)
+            meas = self.measure(k, true)
+            mv = self.mirror(meas)
+            w_ref, s_push, th_cmd, ph = self.schedule(t)
             w_ref_t = th.tensor(w_ref, dtype=self.f64, device=self.dev)
             v_ref = th.zeros((W, 3), dtype=self.f64, device=self.dev)
             if self.task == "roll":
-                v_ref = th.cross(w_ref_t.expand(W, 3), -self.r_obj * self.n_out[:, 0], dim=-1)
-            rec_vr[k] = v_ref.float()
-            RT = R.transpose(-1, -2)
-            V = th.cat([th.einsum("wij,j->wi", RT, w_ref_t), th.einsum("wij,wj->wi", RT, v_ref)], -1)
+                v_ref = th.cross(w_ref_t.expand(W, 3), -self.scene.r * self.n_out[:, 0], dim=-1)
+            rec["vr"][k] = v_ref.float()
+            Rd = self._quat_mat(meas["quat_d"])                    # the schedule's frame: the delayed object pose
+            RdT = Rd.transpose(-1, -2)
+            V = th.cat([th.einsum("wij,j->wi", RdT, w_ref_t), th.einsum("wij,wj->wi", RdT, v_ref)], -1)
             phases.append(ph)
             wrefs.append(w_ref)
             times.append(t)
-            q_cmd = self.control(V, t, vw)
-            vw["ctrl"][:, th.tensor(self.act.reshape(-1), device=self.dev)] = q_cmd.reshape(W, 9).float()
+            thref.append(th_cmd)
+            q_cmd = self.control(t, meas, mv, V, s_push)
+            vw["ctrl"][:, self.act_t] = (q_cmd - self.cal_q).reshape(W, 9).float()
             wp.capture_launch(self.graph)
         wp.synchronize()
         wall = time.perf_counter() - t0
-        rec = {"pos": rec_pos.cpu().numpy(), "w": rec_w.cpu().numpy(), "ft": rec_ft.cpu().numpy(),
-               "fo": rec_fo.cpu().numpy(), "vr": rec_vr.cpu().numpy(), "ax": rec_ax.cpu().numpy()}
-        final = {"pos": vw["qpos"][:, self.qa:self.qa + 3].cpu().numpy(), "ftot": vw["ftot"].cpu().numpy()}
-        return rec, final, phases, np.array(wrefs), times, wall
+        out = {k: v.cpu().numpy() for k, v in rec.items()}
+        final = {"pos": vw["qpos"][:, self.qa:self.qa + 3].cpu().numpy(), "ftot": ftot.cpu().numpy()}
+        return out, final, phases, np.array(wrefs), times, thref, wall
 
-    def score(self, rec, final, phases, wrefs, times):
+    def score(self, rec, final, phases, wrefs, times, thref):
         out = []
         for w, wd_ in enumerate(self.worlds):
+            psi = float(wd_["setup"].get("psi", 0.0))
+            Rz = np.array([[math.cos(psi), math.sin(psi), 0.0], [-math.sin(psi), math.cos(psi), 0.0], [0, 0, 1.0]])
+            ax = rec["ax"][:, w] @ Rz.T                          # the axis in the frame where the pinch runs along x
             rows = []
             for k, t in enumerate(times):
-                rows.append({"t": t, "phase": phases[k], "pos_mm": (1e3 * rec["pos"][k, w]).tolist(),
-                             "axis": rec["ax"][k, w].tolist(),
-                             "w_dps": np.degrees(rec["w"][k, w]).tolist(),
-                             "w_ref_dps": np.degrees(wrefs[k]).tolist(),
-                             "v_ref_mms": (1e3 * rec["vr"][k, w]).tolist(),
-                             "F": {f: float(rec["ft"][k, w, i]) for i, f in enumerate(FINGERS)},
-                             "F_link": {f: float(max(0.0, rec["fo"][k, w, i] - rec["ft"][k, w, i]))
-                                        for i, f in enumerate(FINGERS)}})
+                ft = rec["ft"][k, w]
+                row = {"t": round(t, 3), "phase": phases[k], "pos_mm": (1e3 * rec["pos"][k, w]).tolist(), "axis": ax[k].tolist(),
+                       "F": {f: float(ft[i]) for i, f in enumerate(FINGERS)},
+                       "F_link": {f: float(max(0.0, rec["fo"][k, w, i] - ft[i])) for i, f in enumerate(FINGERS)}}
+                if self.pinch_task:
+                    row["cop_obj_mm"] = {f: (1e3 * rec["cop"][k, w, i]).tolist() for i, f in enumerate(FINGERS)
+                                         if ft[i] > 0}
+                    if thref[k] is not None:
+                        row["theta_ref_deg"] = thref[k]
+                else:
+                    row.update(w_dps=np.degrees(rec["w"][k, w]).tolist(), w_ref_dps=np.degrees(wrefs[k]).tolist(),
+                               v_ref_mms=(1e3 * rec["vr"][k, w]).tolist())
+                rows.append(row)
             se = {"pos": final["pos"][w], "Ftot": {f: float(final["ftot"][w, i]) for i, f in enumerate(FINGERS)}}
-            res = T.metrics(self.task, wd_["setup"], rows, {"ok": True}, se)
-            out.append(res)
+            out.append(T.metrics(self.task, wd_["setup"], rows, {"ok": True}, se))
         return out
 
 
@@ -621,73 +1000,127 @@ def Tsched_phase(t):
 
 # ------------------------------------------------------------------------------------------------ commands
 
-def layout_list(kind, nmax):
-    """[(key dict, mounts xy, grasp)] for the requested layouts."""
-    out = []
-    if kind == "2d":
-        for xs, ys, kin in C.pick_layouts(0, everyone=True):
-            grasp, des = grasp_2d(xs, ys)
-            if grasp is None:
-                continue
-            out.append(({"x_sep_mm": xs, "y_sep_mm": ys, "kin": {k: kin[k] for k in ("tmr_deg", "mft_mNm", "smin_mm")}},
-                        mount_xy([-xs / 2, 0.0, xs / 2, ys / 2, xs / 2, -ys / 2]), grasp))
-            if nmax and len(out) >= nmax:
-                break
-    else:
-        rows = [json.loads(x) for x in (ROWS / f"{kind}.jsonl").read_text().splitlines() if x.strip()]
-        for r in rows:
-            if not r.get("ok"):
-                continue
-            g = grasp_fp(r)
-            if g is None:
-                continue
-            kin = r["fp"]["tripod"]
-            out.append(({"d": r["d"], "kin": {k: kin[k] for k in ("tmr_deg", "mft_mNm", "smin_mm")},
-                         "kin_pinch": {k: r["fp"]["pinch"][k] for k in ("tmr_deg", "mft_mNm", "smin_mm")}},
-                        mount_xy(r["d"]), g))
-            if nmax and len(out) >= nmax:
-                break
-    return out
+def batch_child(spec):
+    """One batch in its own process (spawned by cmd_run): build, run, score, and append its rows and timing line,
+    fsynced. The process's exit returns all of its GPU memory; within one process, a finished batch's captured graphs
+    kept enough of it that the next 2,048-world cylinder batch could not allocate (2026-10-29)."""
+    import torch
+    scene = Scene(spec["shape"], spec["d_mm"])
+    chunk, task = spec["worlds"], spec["task"]
+    t1 = time.time()
+    B = Batch(scene, task, chunk, spec["dt"], gen_seed=spec["gen_seed"])
+    t_build = time.time() - t1
+    rec, final, phases, wrefs, times, thref, wall = B.run()
+    t2 = time.time()
+    res = B.score(rec, final, phases, wrefs, times, thref)
+    t_score = time.time() - t2
+    with open(spec["path"], "a") as fh:
+        for wd_, r in zip(chunk, res):
+            row = dict(wd_["key"], task=task, d_mm=float(spec["d_mm"]), seed=wd_["seed"], variant=wd_["var"]["var"],
+                       status="ok", engine="mjwarp", **r)
+            fh.write(json.dumps(row) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+    held = sum(bool(r.get("held")) for r in res)
+    with open(spec["tpath"], "a") as fh:
+        fh.write(json.dumps({"task": task, "d_mm": float(spec["d_mm"]), "dt": spec["dt"], "batch": spec["batch"],
+                             "worlds": len(chunk), "build_s": round(t_build, 2), "run_s": round(wall, 2),
+                             "score_s": round(t_score, 2), "layouts": spec["layouts"],
+                             "gpu": torch.cuda.get_device_name(0),
+                             "max_mem_gb": round(torch.cuda.max_memory_allocated() / 1e9, 2),
+                             "when": time.strftime("%Y-%m-%d %H:%M")}) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+    print(f"{task} {spec['d_mm']:g} mm dt {spec['dt']}: batch {spec['batch']}, {len(chunk)} worlds, build {t_build:.1f} s, "
+          f"run {wall:.1f} s ({wall / len(chunk) * 1000:.0f} ms per rollout), score {t_score:.1f} s, held {held}",
+          flush=True)
 
 
 def cmd_run(a):
-    L = Layouts(a.task)
-    lays = layout_list(a.layouts, a.max)
-    print(f"{len(lays)} layouts with a grasp", flush=True)
-    worlds = []
-    t0 = time.time()
-    for key, mxy, grasp in lays:
-        setup, bm, q_open = L.prepare(mxy, grasp)
-        for sd in a.seeds:
-            worlds.append({"key": key, "seed": sd, "setup": setup, "body_mounts": bm, "q_open": q_open})
-    print(f"{len(worlds)} worlds prepared in {time.time() - t0:.1f} s", flush=True)
-    path = ROWS / f"{a.out}.jsonl"
-    for q in (path, ROWS / f"{a.out}_timing.jsonl"):
-        if q.exists():
-            q.unlink()
-    for b0 in range(0, len(worlds), a.batch):
-        chunk = worlds[b0:b0 + a.batch]
-        t1 = time.time()
-        B = Batch(L, chunk)
-        t_build = time.time() - t1
-        rec, final, phases, wrefs, times, wall = B.run()
-        res = B.score(rec, final, phases, wrefs, times)
-        with open(path, "a") as fh:
-            for wd_, r in zip(chunk, res):
-                row = dict(wd_["key"], task=a.task, seed=wd_["seed"], status="ok", engine="mjwarp", **r)
-                fh.write(json.dumps(row) + "\n")
-            fh.flush()
-            os.fsync(fh.fileno())
-        held = sum(bool(r.get("held")) for r in res)
-        with open(ROWS / f"{a.out}_timing.jsonl", "a") as fh:
-            fh.write(json.dumps({"batch": b0 // a.batch, "worlds": len(chunk), "build_s": round(t_build, 2),
-                                 "run_s": round(wall, 2), "task": a.task, "layouts": a.layouts,
-                                 "gpu": __import__("torch").cuda.get_device_name(0),
-                                 "max_mem_gb": round(__import__("torch").cuda.max_memory_allocated() / 1e9, 2),
-                                 "when": time.strftime("%Y-%m-%d %H:%M")}) + "\n")
-        print(f"batch {b0 // a.batch}: {len(chunk)} worlds, build {t_build:.1f} s, run {wall:.1f} s "
-              f"({wall / len(chunk) * 1000:.0f} ms per rollout), held {held}", flush=True)
-        del B
+    import multiprocessing as mp
+    rows_dir = Path(a.rows_dir) if a.rows_dir else ROWS
+    rows_dir.mkdir(parents=True, exist_ok=True)
+    path = rows_dir / f"{a.out}.jsonl"
+    tpath = rows_dir / f"{a.out}_timing.jsonl"
+    if not a.append:
+        for q in (path, tpath):
+            if q.exists():
+                q.unlink()
+    ctx = mp.get_context("spawn")
+    for task in a.task:
+        sizes = a.d or ([D_FP[task]] if a.layouts != "design" else list(T.SIZES[task]))
+        for d_mm in sizes:
+            t0 = time.time()
+            scene = Scene(T.SHAPE[task], d_mm)
+            lays = layout_list(task, a.layouts, a.max, d_mm)
+            worlds = []
+            for key, mxy, setup in lays:
+                bm, q_open = scene.prepare(mxy, setup)
+                for var in a.variants:
+                    for sd in a.seeds:
+                        worlds.append({"key": key, "seed": sd, "setup": setup, "body_mounts": bm, "q_open": q_open,
+                                       "var": variant_world(var, sd)})
+            print(f"{task} {d_mm:g} mm: {len(lays)} layouts, {len(worlds)} worlds prepared in {time.time() - t0:.1f} s",
+                  flush=True)
+            by_dt = {}
+            for wd_ in worlds:
+                by_dt.setdefault(wd_["var"]["dt"], []).append(wd_)
+            for dt, ws in by_dt.items():
+                for b0 in range(0, len(ws), a.batch):
+                    spec = {"shape": T.SHAPE[task], "d_mm": float(d_mm), "task": task, "worlds": ws[b0:b0 + a.batch],
+                            "dt": dt, "gen_seed": a.gen_seed + b0, "batch": b0 // a.batch, "path": str(path),
+                            "tpath": str(tpath), "layouts": a.layouts}
+                    pr = ctx.Process(target=batch_child, args=(spec,))
+                    pr.start()
+                    pr.join()
+                    if pr.exitcode != 0:
+                        print(f"{task} {d_mm:g} mm dt {dt}: batch {b0 // a.batch} failed (exit {pr.exitcode})", flush=True)
+                        return 1
+    return 0
+
+
+MAIN = {"pinpush": "theta_rmse_deg", "press": "theta_rmse_deg", "roll": "w_rmse_ratio", "twist": "w_rmse_ratio"}
+
+
+def load_rows(p):
+    """Rows by (task, size, variant, seed), scored rows only, rescaled when scored before the integration fix."""
+    import hom_rows
+    out = {}
+    for line in Path(p).read_text().splitlines():
+        if line.strip():
+            r = json.loads(line)
+            if r.get("status") == "ok":
+                out[(r["task"], float(r["d_mm"]), r.get("variant", "base"), r["seed"])] = hom_rows.rescale_metrics(r)
+    return out
+
+
+def cmd_compare(a):
+    """GPU rows against CPU rows of the same (task, size, variant, seed) on the task study's grasps: the share with the
+    same held outcome, the medians of the task's score over held runs, and the rank correlation of the score run by
+    run (both held)."""
+    from scipy.stats import spearmanr
+    cpu, gpu = load_rows(a.cpu), load_rows(a.gpu)
+    common = sorted(set(cpu) & set(gpu))
+    print(f"{len(common)} rollouts in both")
+    by = {}
+    for k in common:
+        by.setdefault((k[0], k[2]), []).append(k)
+    for (task, var), ks in sorted(by.items()):
+        m = MAIN[task]
+        same = np.mean([bool(cpu[k].get("held")) == bool(gpu[k].get("held")) for k in ks])
+        hc = [cpu[k][m] for k in ks if cpu[k].get("held") and cpu[k].get(m) is not None]
+        hg = [gpu[k][m] for k in ks if gpu[k].get("held") and gpu[k].get(m) is not None]
+        both = [(cpu[k][m], gpu[k][m]) for k in ks if cpu[k].get("held") and gpu[k].get("held")
+                and cpu[k].get(m) is not None and gpu[k].get(m) is not None]
+        rho = spearmanr(*np.array(both).T)[0] if len(both) >= 4 else float("nan")
+        line = (f"{task:8s} {var:10s} n {len(ks):3d} held cpu {sum(bool(cpu[k].get('held')) for k in ks):3d} "
+                f"gpu {sum(bool(gpu[k].get('held')) for k in ks):3d} same {same:.2f} | {m} median cpu "
+                f"{np.median(hc) if hc else float('nan'):.2f} gpu {np.median(hg) if hg else float('nan'):.2f} rho {rho:.2f}")
+        if task == "twist":
+            rc = [cpu[k].get("ramp_three_pads_max_deg") for k in ks if cpu[k].get("held")]
+            rg = [gpu[k].get("ramp_three_pads_max_deg") for k in ks if gpu[k].get("held")]
+            line += f" | ramp cpu {np.median([x for x in rc if x is not None]):.0f} gpu {np.median([x for x in rg if x is not None]):.0f}"
+        print(line)
     return 0
 
 
@@ -695,17 +1128,27 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("run")
-    p.add_argument("--task", choices=["twist", "roll"], default="twist")
-    p.add_argument("--layouts", default="2d", help="2d, rrt6d or sobol6d")
+    p.add_argument("--task", nargs="+", choices=TASKS, default=["twist"])
+    p.add_argument("--layouts", default="2d", help="design, 2d, 2dfp, rrt6d or sobol8k")
+    p.add_argument("--d", type=float, nargs="+", help="object sizes (mm); default the toy's (layouts) or the study's (design)")
     p.add_argument("--max", type=int, default=0)
     p.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
+    p.add_argument("--variants", nargs="+", default=["base"], choices=sorted(T.VARIANTS))
     p.add_argument("--batch", type=int, default=1024)
+    p.add_argument("--gen-seed", type=int, default=0, help="seed of the torch generator of the per-period noise")
     p.add_argument("--out", default="hom_gpu")
+    p.add_argument("--rows-dir", default="")
+    p.add_argument("--append", action="store_true")
+    p = sub.add_parser("compare")
+    p.add_argument("--cpu", required=True)
+    p.add_argument("--gpu", required=True)
     sub.add_parser("check-mounts")
     a = ap.parse_args()
     if a.cmd == "check-mounts":
         check_mounts()
         return 0
+    if a.cmd == "compare":
+        return cmd_compare(a)
     return cmd_run(a)
 
 

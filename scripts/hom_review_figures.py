@@ -276,21 +276,24 @@ def fig_filter():
 # ------------------------------------------------------------------------------------------------ sensing variants
 VAR_ORDER = ("rate50", "notip0", "notip", "tip", "tipbias", "tip3", "tipfl", "tipflb", "cal_notip", "cal_tip",
              "cal_tipfl")
-VAR_LABEL = {"rate50": "exact", "notip0": "no tips,\nexact pose", "notip": "no tips", "tip": "tips",
-             "tipbias": "tips,\nbiased", "tip3": "tips,\n3x errors", "tipfl": "tips,\nforce loop",
+VAR_LABEL = {"rate50": "exact", "notip0": "no tips,\nexact\npose", "notip": "no tips", "tip": "tips",
+             "tipbias": "tips,\nbiased", "tip3": "tips,\n3x\nerrors", "tipfl": "tips,\nforce\nloop",
              "tipflb": "loop,\nbiased", "cal_notip": "cal.,\nno tips", "cal_tip": "cal.,\ntips",
-             "cal_tipfl": "cal., tips,\nforce loop"}
+             "cal_tipfl": "cal.,\ntips,\nloop"}
 
 
-def sensing_rows():
-    p = ROWS / "sensing.jsonl"
+def sensing_rows(name="sensing"):
+    """Rows of rows/<name>.jsonl: sensing (the CPU's 528 runs) or sensing_gpu (scripts/hom_gpu.py, 30 seeds), with the
+    angles of rows scored before the integration fix rescaled (hom_rows.rescale_metrics)."""
+    import hom_rows
+    p = ROWS / f"{name}.jsonl"
     rows = {}
     for line in p.read_text().splitlines():
         try:
             r = json.loads(line)
         except json.JSONDecodeError:
             continue
-        rows[(r["task"], r["d_mm"], r["seed"], r["variant"])] = r
+        rows[(r["task"], r["d_mm"], r["seed"], r["variant"])] = hom_rows.rescale_metrics(r)
     return list(rows.values())
 
 
@@ -304,13 +307,16 @@ def task_score(r):
 
 def fig_sensing():
     plt = plt_setup()
-    rows = [r for r in sensing_rows() if r.get("status") == "ok"]
+    name = "sensing_gpu" if (ROWS / "sensing_gpu.jsonl").exists() else "sensing"
+    rows = [r for r in sensing_rows(name) if r.get("status") == "ok"]
+    jit = np.random.default_rng(0)
     ref = {(r["task"], r["d_mm"], r["seed"]): r for r in rows if r["variant"] == "rate50"}
     panels = [("pinpush", "rmse", "pin-push: pinch-angle RMSE (deg)"), ("press", "rmse", "press: pinch-angle RMSE (deg)"),
               ("roll", "rmse", "roll: velocity RMSE per step"), ("twist", "rmse", "twist: velocity RMSE per step"),
               ("pinpush", "force", "pin-push: force error per pad (N)"), ("press", "force", "press: force error per pad (N)")]
     fig, axs = plt.subplots(3, 2, figsize=(17, 12.5), sharex=True)
     x = np.arange(len(VAR_ORDER))
+    cap = {"roll": 2.5, "twist": 2.5}                    # velocity RMSE per step: a few calibration runs reach 12
     for ax, (task, kind, title) in zip(axs.flat, panels):
         for k, var in enumerate(VAR_ORDER):
             rr = [r for r in rows if r["task"] == task and r["variant"] == var]
@@ -328,8 +334,18 @@ def fig_sensing():
                         vals.append(float(np.mean([abs(r["F_mean"][f] - b["F_mean"][f]) for f in b["F_mean"]])))
             if vals:
                 col = C_INDEX if var.startswith("cal") else C_THUMB
-                ax.plot([k] * len(vals), vals, "o", ms=6, mfc="none", mec=col, alpha=0.85)
-                ax.plot([k - 0.3, k + 0.3], [np.median(vals)] * 2, color="k", lw=2.2)
+                many = len(vals) > 30
+                xx = k + (jit.uniform(-0.28, 0.28, len(vals)) if many else np.zeros(len(vals)))
+                top = cap.get(task) if kind == "rmse" else None
+                if top is not None and max(vals) > top:
+                    k_over = sum(v > top for v in vals)
+                    ax.text(k, top * 0.985, f"{k_over} above", ha="center", va="top", fontsize=9.5, color="#555555")
+                    keep = [v <= top for v in vals]
+                    xx, vals_p = xx[keep], [v for v in vals if v <= top]
+                else:
+                    vals_p = vals
+                ax.plot(xx, vals_p, "o", ms=3.5 if many else 6, mfc="none", mec=col, alpha=0.45 if many else 0.85)
+                ax.plot([k - 0.34, k + 0.34], [np.median(vals)] * 2, color="k", lw=2.4)
         ax.set_title(title, pad=18 if kind == "rmse" else 6)
         ax.axvline(7.5, color="#888888", ls=":", lw=1.2)
         ax.grid(axis="y", color="#e2e2e2")
@@ -339,8 +355,11 @@ def fig_sensing():
         ax.set_xticklabels([VAR_LABEL[v] for v in VAR_ORDER], fontsize=10)
     axs[0, 0].set_ylim(0, 26)
     axs[0, 1].set_ylim(0, 20)
+    axs[1, 0].set_ylim(0, cap["roll"])
+    axs[1, 1].set_ylim(0, cap["twist"])
     fig.tight_layout()
     save(fig, "20261029-sensing_variants.png")
+    return {"rows": name, "n": len(rows)}
 
 
 def main():

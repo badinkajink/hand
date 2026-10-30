@@ -29,6 +29,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import docs_index  # noqa: E402
+import hom_rows  # noqa: E402
 import hom_review_figures as HF  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
@@ -117,8 +118,10 @@ def render(page_text, holder):
 
 
 # ------------------------------------------------------------------------------------------------ data
-def sensing_rows():
-    p = ROWS / "sensing.jsonl"
+def sensing_rows(name="sensing"):
+    """Rows of rows/<name>.jsonl by (task, size, seed, variant): sensing (the CPU runner, seeds 0-2), sensing_gpu (the
+    GPU controller, seeds 0-29) or sensing_gpu_val (the GPU controller on the CPU's runs)."""
+    p = ROWS / f"{name}.jsonl"
     if not p.exists():
         return []
     out = {}
@@ -127,7 +130,7 @@ def sensing_rows():
             r = json.loads(line)
         except json.JSONDecodeError:
             continue
-        out[(r["task"], r["d_mm"], r["seed"], r["variant"])] = r
+        out[(r["task"], r["d_mm"], r["seed"], r["variant"])] = hom_rows.rescale_metrics(r)
     return list(out.values())
 
 
@@ -149,10 +152,61 @@ VAR_TEXT = {
 }
 
 
+def table_rows():
+    """The rows of Tables 4 and 5: the GPU controller's 30 seeds when they exist, else the CPU runner's three."""
+    return sensing_rows("sensing_gpu") or sensing_rows()
+
+
+def gpu_check():
+    """The GPU controller (scripts/hom_gpu.py) against the CPU runner (scripts/hom_tasks.py) on the same runs: the
+    528 runs of the sensing variants at 50 Hz (rows/sensing.jsonl, rows/sensing_gpu_val.jsonl), and the pinch tasks at
+    100 Hz with ten seeds per size (rows/cpu_val_base.jsonl, rows/gpu_val_base.jsonl). Per task: runs, the share with
+    the same held outcome, and the median score over held runs on each."""
+    out = []
+    for label, cn, gn in (("50 Hz, eleven variants, seeds 0-2", "sensing", "sensing_gpu_val"),
+                          ("100 Hz, exact sensing, seeds 0-9", "cpu_val_base", "gpu_val_base")):
+        c = {(r["task"], r["d_mm"], r["seed"], r.get("variant", "base")): r for r in sensing_rows(cn)
+             if r.get("status") == "ok"}
+        g = {(r["task"], r["d_mm"], r["seed"], r.get("variant", "base")): r for r in sensing_rows(gn)
+             if r.get("status") == "ok"}
+        for t in TASKS:
+            ks = [k for k in c if k[0] == t and k in g]
+            if not ks:
+                continue
+            same = float(np.mean([bool(c[k].get("held")) == bool(g[k].get("held")) for k in ks]))
+            mc = [score(c[k]) for k in ks if c[k].get("held") and score(c[k]) is not None]
+            mg = [score(g[k]) for k in ks if g[k].get("held") and score(g[k]) is not None]
+            out.append({"set": label, "task": t, "n": len(ks), "same": same,
+                        "held_c": sum(bool(c[k].get("held")) for k in ks), "held_g": sum(bool(g[k].get("held")) for k in ks),
+                        "med_c": st.median(mc) if mc else None, "med_g": st.median(mg) if mg else None})
+    return out
+
+
 def score(r):
     if r["task"] in ("pinpush", "press"):
         return r.get("theta_rmse_deg")
     return r.get("w_rmse_ratio")
+
+
+def force_errors(rows, task, var, seeds=None):
+    """Per run: the mean over the three pads of |mean pad force - the same run's with exact sensing| (N)."""
+    ref = {(r["task"], r["d_mm"], r["seed"]): r for r in rows if r["variant"] == "rate50" and r.get("status") == "ok"}
+    out = []
+    for r in rows:
+        if r["task"] != task or r["variant"] != var or r.get("status") != "ok" or (seeds and r["seed"] not in seeds):
+            continue
+        b = ref.get((task, r["d_mm"], r["seed"]))
+        if b is not None and r.get("F_mean") and b.get("F_mean"):
+            out.append(float(np.mean([abs(r["F_mean"][f] - b["F_mean"][f]) for f in b["F_mean"]])))
+    return out
+
+
+def block_medians(rows, task, var):
+    """The smallest and largest median force error over blocks of three consecutive seeds."""
+    seeds = sorted({r["seed"] for r in rows})
+    meds = [st.median(x) for k in range(0, len(seeds) - 2, 3)
+            if (x := force_errors(rows, task, var, set(seeds[k:k + 3])))]
+    return (min(meds), max(meds)) if meds else (float("nan"), float("nan"))
 
 
 def summary(rows):
@@ -474,8 +528,9 @@ ramp.</li>
 </ul>
 <p>A sampling planner (pinned iCEM) tracked the pinch angle to 0.5 deg. It did so by squeezing with 14 to 22 N per pad,
 against 4 N under HOM.</p>
-<p>A batched version of this controller for the roll and the twist runs on MuJoCo-Warp, many hand layouts at once
-(<code>scripts/hom_gpu.py</code>). It is validated against this library on the foundational-pose review page
+<p>A batched version of this controller runs the four tasks and the sensing variants on MuJoCo-Warp, thousands of
+runs at once (<code>scripts/hom_gpu.py</code>). Tables 3 and 4 come from it; Section 9 compares it with this library on
+the same runs. The foundational-pose review page uses it to score thousands of hand layouts
 (<code>docs/experiments/20261029-foundational_pose_review/</code>).</p>"""
     fl = []
     for stem, cap in (("20261021-hom_pinpush_cylinder25_base", "Pin-push of a 25 mm cylinder under HOM: thumb and index "
@@ -529,7 +584,7 @@ def req_table():
     rows = [
         ["Contact point", "GCF origin; the impedance's action point",
          "0.25-0.53 mm at 1.5 N and above; 0.59-0.75 mm under 1 N; 1.10-1.60 mm at 0.5 N and under (each tip trained on "
-         "its own presses)", "sufficient (Table 3)"],
+         "its own presses)", "sufficient (Table 4)"],
         ["Normal force", "touching (0.02 N in simulation); the optional force loop",
          "5-6 %; noise-equivalent force 62-83 mN; display floor 0.25 N", "sufficient for touch; force loop untested on hardware"],
         ["Normal direction", "not used: the GCF normal comes from the surfaces", "2.2 deg", "not needed"],
@@ -562,7 +617,8 @@ VAR_SHORT = {"rate50": "Exact sensing", "notip0": "No tips, exact pose", "notip"
 
 
 def sim_table(S, variants, caption):
-    head = ["Variant", "Held, of 12:<br>pin-push, press,<br>roll, twist", "Pin-push<br>RMSE<br>(deg)",
+    nr = max((x["n"] for x in S.values()), default=12)
+    head = ["Variant", f"Held, of {nr}:<br>pin-push, press,<br>roll, twist", "Pin-push<br>RMSE<br>(deg)",
             "Press<br>RMSE<br>(deg)", "Roll<br>RMSE<br>/step", "Twist<br>RMSE<br>/step", "Twist<br>ramp<br>(deg)",
             "Pin-push<br>force<br>error (N)", "Press<br>force<br>error (N)"]
     body = []
@@ -592,10 +648,18 @@ def sec_eval(S):
         x = S.get((t, v))
         return "?" if x is None else f"{x['held']} of {x['n']}"
 
-    rows = sensing_rows()
+    rows = table_rows()
+    nrun = S.get(("pinpush", "rate50"), {}).get("n", 12)
+    nseed = len({r["seed"] for r in rows})
     pin_cal = [r for r in rows if r["task"] == "pinpush" and r["variant"] == "cal_notip" and r.get("F_mean")]
     pin_ref = [r for r in rows if r["task"] == "pinpush" and r["variant"] == "rate50" and r.get("F_mean")]
     p90 = lambda v, t: float(np.percentile(S[(t, v)]["dF_all"], 90)) if S.get((t, v), {}).get("dF_all") else float("nan")
+    G = gpu_check()
+    gsame = (sum(x["same"] * x["n"] for x in G if x["set"].startswith("50")) /
+             max(sum(x["n"] for x in G if x["set"].startswith("50")), 1))
+    cpu_s = summary(sensing_rows())
+    cpu3 = (cpu_s.get(("pinpush", "cal_notip")) or {}).get("dF") or float("nan")
+    blk = block_medians(table_rows(), "pinpush", "cal_notip")
     t = fill(r"""<p>For this controller the fingertips' value is force, the one input that its model cannot supply. In
 simulation, the contact point they would add changes little: with the joint angles and the object's pose, the
 controller's own witness points track as well. The force is different. On position servos it is set open loop by Eq.
@@ -613,12 +677,32 @@ corrupts each tip contact's true centre of pressure in three ways:</p>
 <li>The force gets a fixed gain error (σ 5 %) and 0.07 N of noise.</li>
 <li>A contact that reads under 0.25 N is dropped, the floor of the fingertip viewer.</li>
 </ul>
-<p>Every measurement arrives 40 ms late, and the tag tracker adds σ 0.5 mm and 1 deg to the object's pose. Table 3
-gives the outcomes.</p>"""
-    t += sim_table(S, VARIANTS[:8], "The four tasks under simulated sensing at 50 Hz: twelve runs per task (four "
-                   "sizes, three seeds). Held runs out of all runs; medians over held runs of the tracking errors and of the "
-                   "twist's ramp on three pads. The force error is the mean over the three pads of the difference in mean "
-                   "pad force from the same run with exact sensing, median over runs. Rows in <code>rows/sensing.jsonl</code>.")
+<p>Every measurement arrives 40 ms late, and the tag tracker adds σ 0.5 mm and 1 deg to the object's pose.</p>"""
+    t += fill(r"""<p>The tables come from the GPU controller (<code>scripts/hom_gpu.py</code>) with <<ns>> seeds per size,
+<<nr>> runs per task and variant. It draws each run's calibration offsets and fingertip errors as the CPU runner does,
+from the same seeds; only the noise of each control period differs. On the CPU runner's 528 runs it gives the same held
+outcome in <<sa>> % of runs (Table 3). Its medians match the CPU's within the spread between seeds. That spread is large
+for the force error under calibration errors. Its median over the CPU's three seeds is <<c3>> N on the pin-push; over 30
+seeds it is <<c30>> N, and blocks of three seeds give medians from <<blo>> to <<bhi>> N.</p>""",
+              ns=nseed, nr=nrun, sa=f"{100 * gsame:.0f}", c3=f"{cpu3:.2f}", c30=g("pinpush", "cal_notip", "dF", "{:.2f}"),
+              blo=f"{blk[0]:.2f}", bhi=f"{blk[1]:.2f}")
+    vb = []
+    for x in G:
+        nd = 1 if x["task"] in ("pinpush", "press") else 2
+        vb.append([x["set"], TASK_NAME[x["task"]].capitalize(), str(x["n"]), f"{x['held_c']} / {x['held_g']}", f"{100 * x['same']:.0f}",
+                   "" if x["med_c"] is None else f"{x['med_c']:.{nd}f}", "" if x["med_g"] is None else f"{x['med_g']:.{nd}f}"])
+    t += table(["Comparison", "Task", "Runs", "Held,<br>CPU / GPU", "Same<br>held (%)", "Score,<br>CPU", "Score,<br>GPU"], vb,
+               "The GPU controller against the CPU runner on the same runs: the task study's grasps, four sizes per "
+               "task. At 50 Hz the eleven sensing variants with seeds 0 to 2; at 100 Hz exact sensing with seeds 0 to 9. "
+               "Score: the median over held runs of the pinch-angle RMSE (deg) or the velocity RMSE per step. Rows "
+               "<code>rows/sensing.jsonl</code>, <code>sensing_gpu_val.jsonl</code>, <code>cpu_val_base.jsonl</code>, "
+               "<code>gpu_val_base.jsonl</code>.")
+    t += "<p>Table 4 gives the outcomes of the sensing variants.</p>"
+    t += sim_table(S, VARIANTS[:8], f"The four tasks under simulated sensing at 50 Hz on the GPU controller: {nrun} "
+                   f"runs per task (four sizes, {nseed} seeds). Held runs out of all runs; medians over held runs of the "
+                   "tracking errors and of the twist's ramp on three pads, integrated over the 20 ms control period. The "
+                   "force error is the mean over the three pads of the difference in mean pad force from the same run "
+                   "with exact sensing, median over runs. Rows in <code>rows/sensing_gpu.jsonl</code>.")
     t += fill(r"""<p>Three results stand out.</p>
 <ul>
 <li>Without fingertips and with the exact object pose, tracking stays close to exact sensing. The pin-push error is
@@ -631,31 +715,35 @@ pressure.</li>
 deg. A 0.3 N force residual with a 1.5 mm offset raises it to <<a5>> deg.</li>
 </ul>
 <p>Closing the force loop (variant <code>tipfl</code>: 10 mm/s of closing speed per newton of force error) widens the
-twist's ramp on three pads from <<r3>> to <<r6>> deg. It costs the press: <<hp6>> runs held against <<hp3>>.</p>""",
+twist's ramp on three pads from <<r3>> to <<r6>> deg. It costs the press: <<hp6>> runs held against <<hp3>> without the
+loop.</p>""",
               a0=g("pinpush", "rate50"), a1=g("pinpush", "notip0"), b0=g("press", "rate50"), b1=g("press", "notip0"),
               c1=g("roll", "notip0", f="{:.2f}"), d1=g("twist", "notip0", f="{:.2f}"),
               c2=g("roll", "notip", f="{:.2f}"), d2=g("twist", "notip", f="{:.2f}"),
               c3=g("roll", "tip", f="{:.2f}"), d3=g("twist", "tip", f="{:.2f}"),
               a3=g("pinpush", "tip"), a4=g("pinpush", "tip3"), a5=g("pinpush", "tipbias"),
               r3=g("twist", "tip", "ramp", "{:.0f}"), r6=g("twist", "tipfl", "ramp", "{:.0f}"),
-              hp6=h("press", "tipfl"), hp3=h("press", "rate50"))
+              hp6=h("press", "tipfl"), hp3=h("press", "tip"))
     t += img(MEDIA / "20261029-sensing_variants.png",
-             "Every run under the sensing variants (circles; bars mark medians). Top four panels: tracking errors of the "
-             "held runs, with the held count above each column. Bottom two: the pinch tasks' force error per pad against "
-             "the same run with exact sensing. Red columns, right of the dotted line, add calibration errors. "
-             "<code>scripts/hom_review_figures.py sensing</code>.")
-    t += fill(r"""<p>Table 4 adds calibration errors that stay constant within a run. Each joint reports and executes
+             f"Every run of the GPU controller under the sensing variants, {nrun} per column (circles, spread "
+             "sideways; bars mark medians). Top four panels: tracking errors of the held runs, with the held count above "
+             "each column. Bottom two: the pinch tasks' force error per pad against the same run with exact sensing. Red "
+             "columns, right of the dotted line, add calibration errors. <code>scripts/hom_review_figures.py sensing</code>.")
+    t += fill(r"""<p>Table 5 adds calibration errors that stay constant within a run. Each joint reports and executes
 an angle offset by σ 1 deg, and the tracker's object frame is offset by σ 1 mm per axis. The fingertips' location
 estimate cannot see such errors, but their force reading can.</p>
 <ul>
-<li>Without fingertips, the pinch tasks hold as often as before: <<h1>> and <<h2>> runs. Their pad forces are wrong by
-a median <<f1>> N on the pin-push and <<f2>> N on the press, and in the worst tenth of runs by more than <<f1p>> and
-<<f2p>> N. Commanded to about <<th0>> N, the thumb pressed with <<th1>> N on average.</li>
+<li>Without fingertips, the pin-push held in <<h1>> runs, against <<h1r>> with exact sensing, and the press in <<h2>>
+against <<h2r>>. Their pad forces are wrong by a median <<f1>> N on the pin-push and <<f2>> N on the press, and in the
+worst tenth of runs by more than <<f1p>> and <<f2p>> N. The thumb pressed with <<th1>> N on average, against <<th0>> N
+with exact sensing.</li>
 <li>With fingertip contact points but no force loop, the errors stay at <<f3>> and <<f4>> N.</li>
 <li>The force loop on the fingertips' force brings the errors to <<f5>> and <<f6>> N. That is close to the runs without
 calibration errors (<<f7>> and <<f8>> N).</li>
-<li>The same loop drops the sphere in the twist: <<ht>> runs held against <<ht0>> without it. It also raises the
-pin-push error to <<a6>> deg. Its gain and authority need tuning per task before it runs on the bench.</li>
+<li>The loop restores the pin-push's hold: <<hp1>> runs held, against <<hp0>> with the fingertips' contact points alone.
+Its pinch-angle error is <<a6>> deg, against <<a7>>.</li>
+<li>The same loop drops the sphere in the twist: <<ht>> runs held against <<ht0>> without it. It also costs the press:
+<<hq1>> runs held against <<hq0>>. Its gain and authority need tuning per task before it runs on the bench.</li>
 </ul>""",
               h1=h("pinpush", "cal_notip"), h2=h("press", "cal_notip"),
               f1=g("pinpush", "cal_notip", "dF", "{:.2f}"), f2=g("press", "cal_notip", "dF", "{:.2f}"),
@@ -665,9 +753,12 @@ pin-push error to <<a6>> deg. Its gain and authority need tuning per task before
               f3=g("pinpush", "cal_tip", "dF", "{:.2f}"), f4=g("press", "cal_tip", "dF", "{:.2f}"),
               f5=g("pinpush", "cal_tipfl", "dF", "{:.2f}"), f6=g("press", "cal_tipfl", "dF", "{:.2f}"),
               f7=g("pinpush", "tipfl", "dF", "{:.2f}"), f8=g("press", "tipfl", "dF", "{:.2f}"),
-              ht=h("twist", "cal_tipfl"), ht0=h("twist", "cal_tip"), a6=g("pinpush", "cal_tipfl"))
+              ht=h("twist", "cal_tipfl"), ht0=h("twist", "cal_tip"), a6=g("pinpush", "cal_tipfl"),
+              a7=g("pinpush", "cal_tip"), h1r=h("pinpush", "rate50"), h2r=h("press", "rate50"),
+              hp1=h("pinpush", "cal_tipfl"), hp0=h("pinpush", "cal_tip"), hq1=h("press", "cal_tipfl"),
+              hq0=h("press", "cal_tip"))
     t += sim_table(S, VARIANTS[8:], "The four tasks with calibration errors (each joint off by σ 1 deg, the object "
-                   "frame off by σ 1 mm per axis, both constant within a run), as in Table 3.")
+                   "frame off by σ 1 mm per axis, both constant within a run), as in Table 4.")
     t += r"""<p>In simulation, these four tasks tolerate about three times the fingertips' measured static errors. The force reading
 corrects the calibration errors of a real hand. Four gaps remain before a transfer:</p>
 <ul>
@@ -692,13 +783,16 @@ of geometric error gives a smaller force error (Eq. 7).</li>
 friction, mass or servo model.</li>
 <li>The tasks are the four demonstrations with 25 g objects; the paper's screwdriver pick, load and wield is not part of
 this grid.</li>
+<li>Tables 4 and 5 come from the GPU controller: float32 physics, a solver tolerance of 10<sup>-6</sup> with 20
+iterations, and pads that meet only the object. Single runs of the pinch tasks differ between it and the CPU runner more
+than their medians do (Table 3).</li>
 </ul>"""
 
 
 def sec_future():
     return """<ol>
 <li>Measure the fingertip's latency from a UR5 press to the estimate (timestamped RTDE pose against the board's record
-time). Rerun Table 4's force-loop variants with the measured value in place of the assumed 40 ms.</li>
+time). Rerun Table 5's force-loop variants with the measured value in place of the assumed 40 ms.</li>
 <li>Calibrate the zero of a moving fingertip. Record the board while the UR5 turns an untouched tip through the finger's
 range, and fit the field change as a function of orientation. The fit passes if a 90 deg turn then leaves less than
 0.25 N.</li>
@@ -707,11 +801,13 @@ range, and fit the field change as a function of orientation. The fit passes if 
 0.5 mm.</li>
 <li>Rerun the calibration-error variants on the SCS0009 plant (0.72 N m/rad, 0.18 N m). Then run them on the chain
 study's screwdriver load step, where the brake's angle depends on the pinch force (Figure 3).</li>
-<li>Port the sensing variants to the GPU controller (<code>scripts/hom_gpu.py</code>), so that Tables 3 and 4 can be
-rerun over thousands of hand layouts.</li>
+<li>Tune the force loop per task on the GPU controller: its gain from 0.0025 to 0.02 m/s per newton and a cap on its
+closing speed, 30 seeds per point, with calibration errors (<code>scripts/hom_gpu.py run --layouts design</code>). The
+loop is ready for the bench if one setting holds the twist in 95 % of runs while keeping the pin-push's force error
+under 0.5 N.</li>
 <li>Mount one tip on the index finger and run the pin-push on the bench with and without the
 force loop, scoring the
-pinch angle from the tags. The claim of Table 4 fails if the force loop does not lower the force spread across runs.</li>
+pinch angle from the tags. The claim of Table 5 fails if the force loop does not lower the force spread across runs.</li>
 </ol>"""
 
 
@@ -728,6 +824,13 @@ rows <code>{(ROWS / 'sensing.jsonl').relative_to(ROOT)}</code>; run with
 <code>.venv/bin/python scripts/hom_tasks.py run --tasks pinpush press roll twist --seeds 0 1 2 --variants rate50
 notip0 notip tip tip3 tipbias tipfl tipflb cal_notip cal_tip cal_tipfl --rows-file
 ../20261029-hom_control_review/rows/sensing</code>.</li>
+<li>The GPU controller: <code>scripts/hom_gpu.py</code>; Tables 4 and 5 from <code>.venv/bin/python scripts/hom_gpu.py
+run --task pinpush press roll twist --layouts design --variants rate50 notip0 notip tip tipbias tip3 tipfl tipflb
+cal_notip cal_tip cal_tipfl --seeds 0 1 ... 29 --out sensing_gpu --rows-dir
+docs/experiments/20261029-hom_control_review/rows</code> (rows <code>sensing_gpu.jsonl</code>); Table 3 from the same
+command with seeds 0 to 2 (<code>sensing_gpu_val.jsonl</code>) and <code>hom_gpu.py compare</code>. Angles of rows
+scored before the evening of 2026-10-29 are rescaled to their controller period on loading
+(<code>scripts/hom_rows.py</code>).</li>
 <li>Method and task pages of 2026-10-21: <code>docs/experiments/20261021-hom_framework/</code>; contact overview
 <code>docs/overviews/contact_model.html</code>; printed-fingertip overview <code>docs/overviews/printed_fingertips.html</code>;
 calibration page <code>docs/experiments/20261026-fingertip_calibration/</code>.</li>
@@ -772,7 +875,7 @@ def main():
             meas = truth + rng.normal(size=tt.size) * 0.4
             est = HF.filt(meas, gref, dt)
             fres[(commanded, dt)] = float(np.sqrt(np.mean((est - truth) ** 2)))
-    S = summary(sensing_rows())
+    S = summary(table_rows())
     sections = [
         ("terms", "Terms and metrics", sec_terms()),
         ("paper", "The HOM paper: a hand and a tool as one mechanism", sec_paper()),
@@ -795,12 +898,12 @@ position servos and held the object in 11, 7, 12 and 12 of 12 runs of four demon
 fingertip input is one contact point and one normal force. In simulation the contact point matters little: without
 fingertips, the controller's own geometry tracks as well. The force matters. Calibration errors of 1 deg and 1 mm put
 the open-loop pinch force off by a median <<f1>> N. A loop on the magnetic fingertips' measured force cuts that error to
-<<f2>> N. No fingertip is on the hand yet.""", f1=f"{g('pinpush', 'cal_notip'):.1f}", f2=f"{g('pinpush', 'cal_tipfl'):.1f}")
+<<f2>> N. No fingertip is on the hand yet.""", f1=f"{g('pinpush', 'cal_notip'):.2f}", f2=f"{g('pinpush', 'cal_tipfl'):.2f}")
     summary_text = fill("""The HOM controller's MuJoCo version on the SR2 hand tracks as well without fingertip contact points
 as with them. Joint and object calibration errors of 1 deg and 1 mm make its open-loop pinch force wrong by a median
 <<f1>> N; a loop on the magnetic fingertips' measured force (located to 0.25-0.53 mm, force within about 5 %) brings it
-to <<f2>> N, but the same loop dropped the sphere in <<tw>> twist runs.""", f1=f"{g('pinpush', 'cal_notip'):.1f}",
-                        f2=f"{g('pinpush', 'cal_tipfl'):.1f}",
+to <<f2>> N, but the same loop dropped the sphere in <<tw>> twist runs.""", f1=f"{g('pinpush', 'cal_notip'):.2f}",
+                        f2=f"{g('pinpush', 'cal_tipfl'):.2f}",
                         tw=f"{S[('twist', 'cal_tipfl')]['n'] - S[('twist', 'cal_tipfl')]['held']} of "
                            f"{S[('twist', 'cal_tipfl')]['n']}")
     byline = ("Review and simulation, 2026-10-29. Paper: arXiv 2609.25619v2 [1]. Controller: "

@@ -65,6 +65,7 @@ import hand_object_scale_kin as K  # noqa: E402
 import hand_object_scale_sim as S  # noqa: E402
 from morphohand.control import hom as H  # noqa: E402
 from morphohand.control.surfaces import Cylinder, Posed, RoundedBox, Sphere, unit  # noqa: E402
+from hom_rows import rescale_metrics  # noqa: E402,F401  (stored rows scored with the fixed 0.01 s step)
 
 OUT = ROOT / "docs/experiments/20261021-hom_framework"
 ROWS = OUT / "rows"
@@ -815,6 +816,10 @@ def metrics(task, setup, rows, s0, se):
     task_rows = [r for r in rows if r["t"] >= T_LIFT + 0.4 - 1e-9]
     if not task_rows or s0 is None:
         return out
+    # the rows' own period: angles and the centre's reference path are integrated with it (before 2026-10-29 evening a
+    # fixed 0.01 s, which halved them at 50 Hz; rescale_metrics corrects rows scored then)
+    h = round(task_rows[1]["t"] - task_rows[0]["t"], 6) if len(task_rows) > 1 else DT_C
+    out["metrics_dt"] = h
     p0 = np.array(task_rows[0]["pos_mm"])
     a0 = np.array(task_rows[0]["axis"])
     if task in ("pinpush", "press"):
@@ -863,25 +868,25 @@ def metrics(task, setup, rows, s0, se):
                 continue
             ax = "xyz".index(ph[1])
             idx = [i for i, r in enumerate(task_rows) if r["phase"] == ph]
-            ang = float(np.sum(W[idx, ax]) * 0.01)
-            ref = float(np.sum(Wr[idx, ax]) * 0.01)
+            ang = float(np.sum(W[idx, ax]) * h)
+            ref = float(np.sum(Wr[idx, ax]) * h)
             steps.append({"step": ph, "angle_deg": round(ang, 2), "ref_deg": round(ref, 2),
                           "gain": round(ang / ref, 3) if ref else None})
         out["steps"] = steps
         P = np.array([r["pos_mm"] for r in task_rows])
         out["drift_max_mm"] = round(float(np.linalg.norm(P - P[0], axis=1).max()), 2)
         Vr = np.array([r.get("v_ref_mms", [0.0, 0.0, 0.0]) for r in task_rows])
-        Pr = P[0] + np.vstack([np.zeros(3), np.cumsum(Vr[:-1], 0) * 0.01])
+        Pr = P[0] + np.vstack([np.zeros(3), np.cumsum(Vr[:-1], 0) * h])
         out["centre_err_max_mm"] = round(float(np.linalg.norm(P - Pr, axis=1).max()), 2)
         out["centre_travel_ref_mm"] = round(float(np.linalg.norm(Pr - P[0], axis=1).max()), 2)
         if task == "twist":
             ramp = [i for i, r in enumerate(task_rows) if r["phase"] in ("twist ramp", "hold")]
             if ramp:
-                yaw = np.cumsum(W[ramp, 2]) * 0.01
+                yaw = np.cumsum(W[ramp, 2]) * h
                 ok = [i for i in ramp if sum(1 for f in FINGERS if task_rows[i]["F"][f] > 0.05) == 3]
                 out["ramp_max_deg"] = round(float(yaw.max()), 2)
                 out["ramp_three_pads_max_deg"] = round(float(np.cumsum(W[ramp, 2])[[ramp.index(i) for i in ok]].max()
-                                                             * 0.01), 2) if ok else 0.0
+                                                             * h), 2) if ok else 0.0
                 out["ramp_end_deg"] = round(float(yaw[-1]), 2)
     return out
 

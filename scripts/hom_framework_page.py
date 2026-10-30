@@ -27,6 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import docs_index  # noqa: E402
+import hom_rows  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
 
@@ -75,7 +76,8 @@ def rows(name):
             r = json.loads(line)
         except json.JSONDecodeError:
             continue
-        out[(r.get("task"), r.get("d_mm"), r.get("seed"), r.get("variant", "base"), r.get("controller"))] = r
+        out[(r.get("task"), r.get("d_mm"), r.get("seed"), r.get("variant", "base"), r.get("controller"))] = \
+            hom_rows.rescale_metrics(r)
     return list(out.values())
 
 
@@ -86,7 +88,7 @@ def rows_file(p):
     out = []
     for line in p.read_text().splitlines():
         try:
-            out.append(json.loads(line))
+            out.append(hom_rows.rescale_metrics(json.loads(line)))
         except json.JSONDecodeError:
             pass
     return out

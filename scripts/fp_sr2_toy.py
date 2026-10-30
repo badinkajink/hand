@@ -10,6 +10,9 @@ A layout is the six palm-frame mount coordinates of the three fingers (mm), insi
           touches it on the index's side at least 40 mm along the axis (the pin-push grasp: the pinch is a revolute
           joint and the middle finger turns the cylinder about it);
   tripod  three pads on the equator of a 40 mm sphere (the roll and twist grasp).
+A third pose, press, is solved afterwards for the candidates (command press, 2026-10-29): the pinch with the middle
+finger 30 to 45 deg below the cylinder's equator, as in the HOM task study's press grasp, so that its normal force lifts
+the middle's side.
 Reaching a pose is a nonlinear program over the object's pose and the contact coordinates (the paper's theta), solved
 by SLSQP and warm-started from the nearest candidate's solution, as the paper's RRT does with fmincon. Its constraints
 are the servo limits less 3 deg, the distal link facing the object within 25 deg and a lever of 40 mm; its objective is
@@ -29,6 +32,7 @@ Each metric becomes a score from 0 (worst candidate) to 100 (best), as in the pa
   .venv/bin/python scripts/fp_sr2_toy.py run6d [--max 2500]    # six mount coordinates, RRT from the seed layout
   .venv/bin/python scripts/fp_sr2_toy.py sobol [--n 1024]      # the same solver on a scrambled Sobol draw
   uv run --no-sync --with scikit-learn python scripts/fp_sr2_toy.py embed    # t-SNE and PCA of the 6-D candidates
+  .venv/bin/python scripts/fp_sr2_toy.py press --name sobol8k [--shard k --shards K]   # the press pose per candidate
 Rows: docs/experiments/20261029-foundational_pose_review/rows/{rrt2d,rrt6d,sobol6d}.jsonl, one fsynced line per RRT
 call that reached the solver; embed writes embed6d.json.
 """
@@ -60,8 +64,10 @@ LIM = K.limits(False)
 MARGIN = math.radians(3.0)
 # the distal link must face the object: within 25 deg for the pinch (the pin-push design's gate in hom_tasks.py), in
 # the pad's front half (90 deg) for the equator tripod (the scale study's gate, hand_object_scale_kin.grasp_scan)
-COS_FACE = {"pinch": math.cos(math.radians(25.0)), "tripod": 0.0}
-FACE_PATH = {"pinch": math.cos(math.radians(45.0)), "tripod": 0.0}     # along the TMR rotation
+COS_FACE = {"pinch": math.cos(math.radians(25.0)), "press": math.cos(math.radians(25.0)), "tripod": 0.0}
+FACE_PATH = {"pinch": math.cos(math.radians(45.0)), "press": math.cos(math.radians(45.0)), "tripod": 0.0}  # along the TMR
+PINCHES = ("pinch", "press")                    # poses on the cylinder: the same geometry, the middle's latitude differs
+PHM_PRESS = (math.radians(30.0), math.radians(45.0))
 FF_CLEAR, OBJ_CLEAR = 0.001, 0.0005
 CYL_D, CYL_L, SPH_D = 0.025, 0.100, 0.040
 LEVER = 0.040
@@ -96,7 +102,7 @@ def geometry(fp, v, M=None):
     """Object spec, pad-centre targets (palm frame), outward contact normals and the task rotation axis (point, unit)
     for decision variables v. A tripod contact's azimuth is the direction from the sphere's centre to its finger's
     mount (M, the layout's mounts) plus that finger's offset in v."""
-    if fp == "pinch":
+    if fp in PINCHES:
         xc, yc, h, psi, sp, sm, php, phm = v
         r = CYL_D / 2
         a = np.array([-math.sin(psi), math.cos(psi), 0.0])           # cylinder axis (palm y yawed by psi)
@@ -127,10 +133,11 @@ def geometry(fp, v, M=None):
 
 
 def bounds(fp):
-    if fp == "pinch":
+    if fp in PINCHES:
         hl = CYL_L / 2 - 0.010
         return [(-0.07, 0.07), (-0.07, 0.07), (CYL_D / 2 + 0.015, 0.110), (-math.radians(35), math.radians(35)),
-                (-hl, hl), (-hl, hl), (0.0, math.radians(20)), (0.0, math.radians(20))]
+                (-hl, hl), (-hl, hl), (0.0, math.radians(20)),
+                PHM_PRESS if fp == "press" else (0.0, math.radians(20))]
     off = math.radians(50)
     return [(-0.07, 0.07), (-0.07, 0.07), (SPH_D / 2 + 0.010, 0.110), (-off, off), (-off, off), (-off, off),
             (-math.radians(10), math.radians(20))]
@@ -140,11 +147,11 @@ def initial(fp, d):
     """A starting guess from the layout alone: the object under the mounts' centroid, contacts facing the mounts."""
     M = mounts6(d)
     cen = np.mean([M[f] for f in FINGERS], axis=0)
-    if fp == "pinch":
+    if fp in PINCHES:
         sp = 0.5 * (M["thumb"][1] + M["index"][1]) - cen[1]
         return np.array([0.5 * (M["thumb"][0] + M["index"][0]), cen[1], 0.060, 0.0,
                          float(np.clip(sp + 0.015, -0.035, 0.035)), float(np.clip(sp - 0.030, -0.04, 0.04)),
-                         math.radians(10), math.radians(5)])
+                         math.radians(10), math.radians(37.5 if fp == "press" else 5)])
     return np.array([cen[0], cen[1], 0.060, 0.0, 0.0, 0.0, 0.0])
 
 
@@ -156,13 +163,15 @@ def grid_start(fp, d):
     xs = cen[0] + np.linspace(-0.030, 0.030, 7)
     ys = cen[1] + np.linspace(-0.030, 0.030, 7)
     hs = np.linspace(0.035, 0.095, 7)
-    if fp == "pinch":
+    if fp in PINCHES:
         r, rr = CYL_D / 2, K.R + K.GAP
         hl = CYL_L / 2 - 0.010
         psis = np.radians([-20.0, 0.0, 20.0])
         ss = np.linspace(-hl, hl, 9)
         phs = np.radians([0.0, 10.0, 20.0])
+        phm = np.radians([30.0, 37.5, 45.0]) if fp == "press" else phs     # the middle's latitudes
         X, Y, H, PS, S, PH = np.meshgrid(xs, ys, hs, psis, ss, phs, indexing="ij")
+        PHM = np.meshgrid(xs, ys, hs, psis, ss, phm, indexing="ij")[5]
         a = np.stack([-np.sin(PS), np.cos(PS), np.zeros_like(PS)], -1)
         e = np.stack([np.cos(PS), np.sin(PS), np.zeros_like(PS)], -1)
         zz = np.zeros_like(a)
@@ -170,7 +179,8 @@ def grid_start(fp, d):
         c = np.stack([X, Y, -H], -1)
         sl = {}
         for f, side in (("thumb", -1.0), ("index", 1.0), ("middle", 1.0)):
-            n = side * np.cos(PH)[..., None] * e - np.sin(PH)[..., None] * zz
+            P_ = PHM if f == "middle" else PH
+            n = side * np.cos(P_)[..., None] * e - np.sin(P_)[..., None] * zz
             T = c + S[..., None] * a + (r + rr) * n
             best = None
             for b in (1.0, -1.0):
@@ -187,7 +197,7 @@ def grid_start(fp, d):
         k = np.unravel_index(int(np.argmax(tot)), tot.shape)       # (x, y, h, psi, s_p, s_m)
         ip = int(np.argmax(ti[k[0], k[1], k[2], k[3], k[4]]))
         im = int(np.argmax(sl["middle"][k[0], k[1], k[2], k[3], k[5]]))
-        v = np.array([xs[k[0]], ys[k[1]], hs[k[2]], psis[k[3]], ss[k[4]], ss[k[5]], phs[ip], phs[im]])
+        v = np.array([xs[k[0]], ys[k[1]], hs[k[2]], psis[k[3]], ss[k[4]], ss[k[5]], phs[ip], phm[im]])
         return v, float(tot[k])
     lats = np.radians([-5.0, 5.0, 15.0])
     X, Y, H, L = np.meshgrid(xs, ys, hs, lats, indexing="ij")
@@ -266,7 +276,7 @@ class Problem:
             cons.append(SLACK_FACE * (float(pts["palmar"] @ (-n[f])) - COS_FACE[self.fp]))
             world = {k: p + self.M[f] for k, p in pts.items() if k != "palmar"}
             cons.append(SLACK_OBJ * (float(K.object_clearance(world, obj, n=5)) - OBJ_CLEAR))
-        if self.fp == "pinch":
+        if self.fp in PINCHES:
             cons.append(SLACK_LEVER * (v[4] - v[5] - LEVER))
         self._x, self._val = np.array(v, copy=True), np.array(cons, float)
         return self._val
@@ -328,7 +338,7 @@ def metrics(fp, v, M, branch):
         tau = np.zeros(len(ang))
         cen = (Rm @ (obj["centre"] - p_ax)) + p_ax
         o2 = dict(obj, centre=cen)
-        if fp == "pinch":
+        if fp in PINCHES:
             o2["axis"] = Rm @ obj["axis"]
         for f in FINGERS:
             T = (Rm @ (tg[f] - p_ax)) + p_ax                               # pad centres carried with the object
@@ -350,7 +360,7 @@ def metrics(fp, v, M, branch):
         tau_max = max(tau_max, float(tau[:max(k, 1)].max()))
     q0 = {f: finger_state(f, tg[f], M[f], branch[f])[0] for f in FINGERS}
     sm = min(float(smin_pad(f, q0[f])) for f in FINGERS) * 1000.0
-    lever = float(v[4] - v[5]) * 1000.0 if fp == "pinch" else None
+    lever = float(v[4] - v[5]) * 1000.0 if fp in PINCHES else None
     return {"tmr_deg": out["plus"] + out["minus"], "tmr_pm": [out["plus"], out["minus"]], "mft_mNm": tau_max * 1000.0,
             "smin_mm": sm, "lever_mm": lever, "q_deg": {f: np.degrees(q0[f]).round(2).tolist() for f in FINGERS}}
 
@@ -475,6 +485,40 @@ def sobol(n, seed, shard=0, shards=1, name="sobol6d"):
     print(summary, flush=True)
 
 
+def press(name, shard=0, shards=1):
+    """The press pose for every candidate of rows/<name>.jsonl, from its pinch pose with the middle moved to 37.5 deg
+    below the equator, else from the grid. Rows: rows/<name>_press[_shard<k>].jsonl, one per candidate, in its order."""
+    rows = [r for r in load(name) if r["ok"]]
+    path = ROWS / (f"{name}_press_shard{shard}.jsonl" if shards > 1 else f"{name}_press.jsonl")
+    if path.exists():
+        path.unlink()
+    t0 = time.time()
+    good = 0
+    for k, r in enumerate(rows):
+        if k % shards != shard:
+            continue
+        d = np.asarray(r["d"], float)
+        t1 = time.perf_counter()
+        pr = Problem("press", d)
+        v0 = np.array(r["fp"]["pinch"]["v"], float)
+        v0[7] = math.radians(37.5)
+        rec = None
+        for j, start in enumerate((v0, grid_start("press", d)[0])):
+            ok, v, nit, clear, slack = pr.solve(np.asarray(start, float))
+            if ok:
+                rec = {"ok": True, "v": [round(float(x), 6) for x in v], "nit": int(nit), "start": j,
+                       "slack": round(slack, 4), "ff_mm": round(clear[0] * 1000, 2), "ob_mm": round(clear[1] * 1000, 2),
+                       "branch": pr.branch.copy()}
+                rec.update(metrics("press", v, pr.M, pr.branch))
+                break
+        append(path, {"d": r["d"], "idx": k, "fp": {"press": rec or {"ok": False}},
+                      "ms": round(1000 * (time.perf_counter() - t1), 1)})
+        good += rec is not None
+        if (k + 1) % 400 == 0:
+            print(f"press {name}: {k + 1} candidates, {good} reached, {time.time() - t0:.0f} s", flush=True)
+    print(f"press {name} shard {shard}: {good} reached in {time.time() - t0:.0f} s", flush=True)
+
+
 # ------------------------------------------------------------------------------------------------ analysis
 
 KEYS = (("tmr_deg", +1), ("mft_mNm", -1), ("smin_mm", +1))
@@ -562,6 +606,10 @@ def main():
     pt.add_argument("d", type=float, nargs=6)
     sub.add_parser("embed")
     sub.add_parser("embed8k")
+    pp = sub.add_parser("press")
+    pp.add_argument("--name", default="sobol8k")
+    pp.add_argument("--shard", type=int, default=0)
+    pp.add_argument("--shards", type=int, default=1)
     a = ap.parse_args()
     if a.cmd == "run2d":
         rrt("rrt2d", 2, a.max, a.calls, step=0.05, dmin=0.03, seed=1)
@@ -575,6 +623,8 @@ def main():
         embed()
     elif a.cmd == "embed8k":
         embed_sobol8k()
+    elif a.cmd == "press":
+        press(a.name, a.shard, a.shards)
 
 
 if __name__ == "__main__":

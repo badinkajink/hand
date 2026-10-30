@@ -239,7 +239,8 @@ def main():
     out = {}
     for w in which:
         out[w] = {"landscape": fig_landscape, "efficiency": fig_efficiency, "embed": fig_embed, "sobol": fig_sobol,
-                  "dyn2d": fig_dyn2d, "dyn6d": fig_dyn6d}[w]()
+                  "dyn2d": fig_dyn2d, "dyn6d": fig_dyn6d, "four2d": fig_four2d, "four6d": fig_four6d,
+                  "sense6d": fig_sense6d}[w]()
         print(w, json.dumps(out[w])[:600], flush=True)
     p = ROWS / "figures.json"
     old = json.loads(p.read_text()) if p.exists() else {}
@@ -249,21 +250,284 @@ def main():
 
 
 # ------------------------------------------------------------------------------------------------ dynamic (HOM) scores
-def load_hom(name):
-    """GPU rows of scripts/hom_gpu.py, per layout: held fraction and medians over seeds."""
-    rows = load(name)
+def lay_key(r):
+    """A layout's key in the GPU rows: the six coordinates, or (x_sep, y_sep) for the 2-D equator-grasp rows."""
+    return tuple(r["d"]) if "d" in r else (r["x_sep_mm"], r["y_sep_mm"])
+
+
+def sep2(k):
+    """(x_sep, y_sep) of a symmetric layout's six coordinates."""
+    return (round(k[2] - k[0], 1), round(k[3] - k[5], 1)) if len(k) == 6 else k
+
+
+def load_hom(name, variant=None):
+    """GPU rows of scripts/hom_gpu.py, per layout (and the given variant): held fraction and medians over seeds. Sphere
+    tasks: ramp (deg) and rmse (velocity RMSE per step); cylinder tasks: theta (pinch-angle RMSE, deg) and gain (the
+    smallest stroke gain); medians over the held runs."""
+    import hom_rows
+    rows = [hom_rows.rescale_metrics(r) for r in load(name) if r.get("status", "ok") == "ok"
+            and (variant is None or r.get("variant", "base") == variant)]
     by = {}
     for r in rows:
-        k = tuple(r["d"]) if "d" in r else (r["x_sep_mm"], r["y_sep_mm"])
-        by.setdefault(k, []).append(r)
+        by.setdefault(lay_key(r), []).append(r)
     out = []
     for k, rr in by.items():
         held = [r for r in rr if r.get("held")]
-        out.append({"key": k, "kin": rr[0].get("kin"), "kin_pinch": rr[0].get("kin_pinch"), "n": len(rr),
-                    "held": len(held) / len(rr),
+
+        def med(m, src):
+            v = [r.get(m) for r in src if r.get(m) is not None]
+            return float(np.median(v)) if v else float("nan")
+        out.append({"key": k, "kin": rr[0].get("kin"), "kin_pinch": rr[0].get("kin_pinch"),
+                    "kin_press": rr[0].get("kin_press"), "n": len(rr), "held": len(held) / len(rr),
                     "ramp": float(np.median([r.get("ramp_three_pads_max_deg") or 0.0 for r in rr])),
-                    "rmse": float(np.median([r["w_rmse_ratio"] for r in held])) if held else float("nan")})
+                    "rmse": med("w_rmse_ratio", held), "theta": med("theta_rmse_deg", held), "gain": med("gain_min", held)})
     return out
+
+
+TASK_SCORE = {"twist": ("ramp", +1, "twist: ramp on three pads (deg)"),
+              "roll": ("rmse", -1, "roll: velocity RMSE per step"),
+              "pinpush": ("theta", -1, "pin-push: pinch-angle RMSE (deg)"),
+              "press": ("theta", -1, "press: pinch-angle RMSE (deg)")}
+
+
+def task_table(names, variant=None):
+    """{task: {layout key: per-layout dict}} for names = {task: rows name}."""
+    return {t: {x["key"]: x for x in load_hom(n, variant)} for t, n in names.items()}
+
+
+def fig_four2d():
+    """The 2-D case from the toy's foundational poses, four tasks: landscapes over (x_sep, y_sep), and the twist and
+    roll from the foundational pose against the task study's equator grasp on the same layouts."""
+    plt = plt_setup()
+    T4 = task_table({t: f"hom2dfp_gpu_{t}" for t in ("twist", "roll", "pinpush", "press")})
+    fig, axs = plt.subplots(2, 2, figsize=(12.5, 12.0), sharex=True, sharey=True)
+    info = {}
+    for ax, t in zip(axs.flat, ("twist", "roll", "pinpush", "press")):
+        m, sgn, title = TASK_SCORE[t]
+        keys = sorted(T4[t])
+        xy = np.array([sep2(k) for k in keys])
+        v = np.array([T4[t][k][m] for k in keys])
+        held = np.array([T4[t][k]["held"] >= 1.0 for k in keys])
+        drop2 = np.array([T4[t][k]["held"] < 0.5 for k in keys])           # dropped in two seeds or more
+        ok = np.isfinite(v) & ~drop2
+        lo, hi = np.nanpercentile(v[ok], [5, 95])
+        cm = "RdYlBu_r" if sgn > 0 else "RdYlBu"
+        im = ax.scatter(xy[ok, 0], xy[ok, 1], c=v[ok], cmap=cm, s=30, lw=0, vmin=lo, vmax=hi)
+        ax.scatter(xy[drop2, 0], xy[drop2, 1], s=40, marker="x", color="k", lw=1.0)
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
+        ax.set_title(title, fontsize=12.5)
+        ax.set_aspect("equal")
+        near = xy[:, 0] <= 60.0                                             # the thumb within 60 mm of the pair
+        info[t] = {"n": len(keys), "held_all": float(held.mean()), "dropped2": float(drop2.mean()),
+                   "median": float(np.nanmedian(v[np.isfinite(v)])), "n_near": int(near.sum()),
+                   "held_near": float(held[near].mean()), "held_far": float(held[~near].mean())}
+    for ax in axs[1]:
+        ax.set_xlabel("thumb to pair, x_sep (mm)")
+    for ax in axs[:, 0]:
+        ax.set_ylabel("index to middle, y_sep (mm)")
+    fig.tight_layout()
+    save(fig, "20261029-hom_four_tasks_2d.png")
+    # matched grasps: the equator grasp (hom2d_gpu_*) against the foundational pose on the same layouts
+    eq = task_table({"twist": "hom2d_gpu_twist", "roll": "hom2d_gpu_roll"})
+    fig, axs = plt.subplots(1, 2, figsize=(11.5, 5.2))
+    for ax, t in zip(axs, ("twist", "roll")):
+        m, sgn, title = TASK_SCORE[t]
+        fpk = {sep2(k): x for k, x in T4[t].items()}
+        common = sorted(set(eq[t]) & set(fpk))
+        a = np.array([eq[t][k][m] for k in common])
+        b = np.array([fpk[k][m] for k in common])
+        ha = np.array([eq[t][k]["held"] >= 1.0 for k in common])
+        hb = np.array([fpk[k]["held"] >= 1.0 for k in common])
+        both = ha & hb & np.isfinite(a) & np.isfinite(b)
+        ax.scatter(a[~both], b[~both], s=14, color="#c8c8c8", lw=0, label="dropped in a seed from either grasp")
+        ax.scatter(a[both], b[both], s=14, color=C_THUMB, lw=0, alpha=0.75, label="held in every seed from both")
+        lim = np.nanpercentile(np.r_[a, b], [0, 99]) if sgn > 0 else np.nanpercentile(np.r_[a, b], [0, 98])
+        lim = [min(lim[0], float(np.nanmin(np.r_[a, b]))) * (0.95 if sgn < 0 else 1.0), lim[1] * 1.05]
+        ax.plot(lim, lim, color="k", lw=1.0, ls=":")
+        ax.set_xlim(*lim)
+        ax.set_ylim(*lim)
+        ax.set_xlabel("from the equator grasp")
+        ax.set_ylabel("from the foundational pose")
+        ax.set_title(title, fontsize=12.5)
+        better = (b > a) if sgn > 0 else (b < a)
+        info[f"matched_{t}"] = {"n": len(common), "eq_median": float(np.nanmedian(a)), "fp_median": float(np.nanmedian(b)),
+                                "fp_better": float(np.mean(better[np.isfinite(a) & np.isfinite(b)])),
+                                "held_eq": float(ha.mean()), "held_fp": float(hb.mean())}
+    axs[0].legend(frameon=True, framealpha=0.9, edgecolor="none", fontsize=10.5, loc="lower right", markerscale=2)
+    fig.tight_layout()
+    save(fig, "20261029-hom_matched_grasps_2d.png")
+    return info
+
+
+def rank01(v):
+    """Percentile ranks in [0, 1] (ties averaged), NaN kept."""
+    v = np.asarray(v, float)
+    out = np.full(v.shape, np.nan)
+    ok = np.isfinite(v)
+    order = np.argsort(np.argsort(v[ok]))
+    out[ok] = order / max(ok.sum() - 1, 1)
+    return out
+
+
+def spearman(a, b):
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    ok = np.isfinite(a) & np.isfinite(b)
+    if ok.sum() < 3:
+        return float("nan")
+    ra, rb = np.argsort(np.argsort(a[ok])), np.argsort(np.argsort(b[ok]))
+    return float(np.corrcoef(ra, rb)[0, 1])
+
+
+def pareto_mask(sc):
+    """Non-dominated rows of a score matrix, every column maximised."""
+    n = len(sc)
+    keep = np.ones(n, bool)
+    for i in range(n):
+        dom = np.all(sc >= sc[i], axis=1) & np.any(sc > sc[i], axis=1)
+        keep[i] = not dom.any()
+    return keep
+
+
+def fig_four6d(prefix="hom6d_gpu", pop="sobol8k"):
+    """The Sobol layouts under the four tasks from their foundational poses: rank correlations between the kinematic
+    and dynamic scores, the four-task Pareto front, and the t-SNE map coloured by the mean rank over the tasks."""
+    plt = plt_setup()
+    T4 = task_table({t: f"{prefix}_{t}" for t in ("twist", "roll", "pinpush", "press")})
+    keys = sorted(set.intersection(*[set(v) for v in T4.values()]))
+    held = np.array([all(T4[t][k]["held"] >= 1.0 for t in T4) for k in keys])
+    sc = {}
+    for t in T4:
+        m, sgn, _ = TASK_SCORE[t]
+        sc[t] = sgn * np.array([T4[t][k][m] for k in keys])
+    kin = {"tripod range": np.array([T4["twist"][k]["kin"]["tmr_deg"] for k in keys]),
+           "pinch range": np.array([T4["pinpush"][k]["kin_pinch"]["tmr_deg"] for k in keys]),
+           "tripod pad s.v.": np.array([T4["twist"][k]["kin"]["smin_mm"] for k in keys]),
+           "pinch pad s.v.": np.array([T4["pinpush"][k]["kin_pinch"]["smin_mm"] for k in keys])}
+    labels = list(kin) + ["twist ramp", "- roll RMSE", "- pin-push RMSE", "- press RMSE"]
+    cols = list(kin.values()) + [sc["twist"], sc["roll"], sc["pinpush"], sc["press"]]
+    M = np.array([[spearman(a[held], b[held]) for b in cols] for a in cols])
+    S4 = np.stack([sc[t] for t in ("twist", "roll", "pinpush", "press")], 1)
+    good = held & np.all(np.isfinite(S4), 1)
+    par = np.zeros(len(keys), bool)
+    par[np.flatnonzero(good)] = pareto_mask(S4[good])
+    R = np.stack([rank01(np.where(good, S4[:, j], np.nan)) for j in range(4)], 1)
+    mean_rank = np.nanmean(R, 1)
+    fig = plt.figure(figsize=(19, 6.0))
+    gs = fig.add_gridspec(1, 3, width_ratios=[1.05, 1.0, 1.0])
+    a = fig.add_subplot(gs[0])
+    im = a.imshow(M, cmap="RdBu_r", vmin=-1, vmax=1)
+    a.set_xticks(range(len(labels)))
+    a.set_xticklabels(labels, rotation=55, ha="right", fontsize=11)
+    a.set_yticks(range(len(labels)))
+    a.set_yticklabels(labels, fontsize=11)
+    for i in range(len(labels)):
+        for j in range(len(labels)):
+            if i != j:
+                a.text(j, i, f"{M[i, j]:.2f}", ha="center", va="center", fontsize=8.5,
+                       color="white" if abs(M[i, j]) > 0.6 else "black")
+    a.axhline(3.5, color="k", lw=0.8)
+    a.axvline(3.5, color="k", lw=0.8)
+    a.set_title("Spearman over layouts held in every run", fontsize=12.5)
+    fig.colorbar(im, ax=a, fraction=0.046, pad=0.02)
+    b = fig.add_subplot(gs[1])
+    xs = np.arange(4)
+    for i in np.flatnonzero(good & ~par)[::7]:
+        b.plot(xs, R[i], color="#d0d0d0", lw=0.6, alpha=0.5)
+    for i in np.flatnonzero(par):
+        b.plot(xs, R[i], color=C_INDEX, lw=1.1, alpha=0.8)
+    b.set_xticks(xs)
+    b.set_xticklabels(["twist\nramp", "roll\nRMSE", "pin-push\nRMSE", "press\nRMSE"])
+    b.set_ylabel("percentile among held layouts (1 best)")
+    b.set_title(f"four-task Pareto front: {int(par.sum())} of {int(good.sum())} layouts", fontsize=12.5)
+    c = fig.add_subplot(gs[2])
+    info = {}
+    emb_p = ROWS / f"embed_{pop}.json"
+    if emb_p.exists():
+        emb = json.loads(emb_p.read_text())
+        pos = {tuple(np.round(d, 3)): xy for d, xy in zip(emb["d"], emb["tsne"])}
+        P = np.array([pos.get(tuple(np.round(k, 3)), (np.nan, np.nan)) for k in keys], float)
+        okp = np.isfinite(P[:, 0])
+        c.scatter(P[okp & ~good, 0], P[okp & ~good, 1], s=4, color="#d0d0d0", lw=0)
+        im = c.scatter(P[okp & good, 0], P[okp & good, 1], c=mean_rank[okp & good], cmap="RdYlBu_r", s=6, lw=0)
+        c.scatter(P[okp & par, 0], P[okp & par, 1], s=38, facecolor="none", edgecolor="k", lw=1.0)
+        fig.colorbar(im, ax=c, fraction=0.046, pad=0.02, label="mean percentile over the four tasks")
+        c.set_title(f"t-SNE of {int(okp.sum())} Sobol layouts; front ringed", fontsize=12.5)
+        c.set_xticks([])
+        c.set_yticks([])
+        info["tsne_n"] = int(okp.sum())
+    fig.tight_layout()
+    save(fig, "20261029-hom_four_tasks_6d.png")
+    info.update({"n": len(keys), "held_all4": int(held.sum()), "good": int(good.sum()), "pareto": int(par.sum()),
+                 "spearman": {f"{labels[i]} | {labels[j]}": round(float(M[i, j]), 3)
+                              for i in range(len(labels)) for j in range(i + 1, len(labels))},
+                 "held_each": {t: float(np.mean([T4[t][k]["held"] >= 1.0 for k in keys])) for t in T4},
+                 "median_each": {t: float(np.nanmedian([T4[t][k][TASK_SCORE[t][0]] for k in keys])) for t in T4},
+                 "pareto_layouts": [list(np.round(keys[i], 1)) for i in np.flatnonzero(par)][:20]})
+    return info
+
+
+SENSE_VARS = ("rate50", "cal_notip", "cal_tip", "cal_tipfl")
+
+
+def fig_sense6d(prefix="hom6d_gpu_sense"):
+    """The Sobol layouts under the sensing variants at 50 Hz: each layout's score with exact sensing against its score
+    with calibration errors and fingertips, without and with the force loop; and the pinch tasks' force error per
+    layout."""
+    plt = plt_setup()
+    tasks = [t for t in ("twist", "roll", "pinpush", "press") if (ROWS / f"{prefix}_{t}.jsonl").exists()]
+    if not tasks:
+        return {}
+    V = {t: {v: {x["key"]: x for x in load_hom(f"{prefix}_{t}", v)} for v in SENSE_VARS} for t in tasks}
+    fig, axs = plt.subplots(2, len(tasks), figsize=(5.0 * len(tasks), 9.6), squeeze=False)
+    info = {}
+    for j, t in enumerate(tasks):
+        m, sgn, title = TASK_SCORE[t]
+        ref = V[t]["rate50"]
+        info[t] = {}
+        for i, var in enumerate(("cal_tip", "cal_tipfl")):
+            ax = axs[i, j]
+            oth = V[t][var]
+            keys = sorted(set(ref) & set(oth))
+            a = np.array([ref[k][m] for k in keys])
+            b = np.array([oth[k][m] for k in keys])
+            ha = np.array([ref[k]["held"] >= 1.0 for k in keys])
+            hb = np.array([oth[k]["held"] >= 1.0 for k in keys])
+            both = ha & hb & np.isfinite(a) & np.isfinite(b)
+            ax.scatter(a[both], b[both], s=4, color=C_THUMB if var == "cal_tip" else C_INDEX, lw=0, alpha=0.5)
+            lo, hi = np.nanpercentile(np.r_[a[both], b[both]], [1, 99])
+            ax.plot([lo, hi], [lo, hi], color="k", lw=1.0, ls=":")
+            ax.set_xlim(lo, hi)
+            ax.set_ylim(lo, hi)
+            rho = spearman(a[both], b[both])
+            name = "calibration errors, fingertips" if var == "cal_tip" else "the same with the force loop"
+            ax.set_title(f"{title.split(':')[0]}: {name}\nSpearman {rho:.2f}; held {100 * hb.mean():.0f} % "
+                         f"(exact {100 * ha.mean():.0f} %)", fontsize=11.5)
+            ax.set_xlabel(f"exact sensing: {title.split(': ')[1]}", fontsize=11.5)
+            ax.set_ylabel(name.split(",")[0] if var == "cal_tip" else "with the force loop", fontsize=11.5)
+            top = both & (rank01(np.where(both, sgn * a, np.nan)) >= 0.9)
+            keep_top = float(np.mean(rank01(np.where(both, sgn * b, np.nan))[top] >= 0.9)) if top.any() else float("nan")
+            info[t][var] = {"n": len(keys), "spearman": rho, "held_exact": float(ha.mean()), "held": float(hb.mean()),
+                            "median_exact": float(np.nanmedian(a[both])), "median": float(np.nanmedian(b[both])),
+                            "top10_kept": keep_top}
+    fig.tight_layout()
+    save(fig, "20261029-hom_sensing_6d.png")
+    # the pinch tasks' force error per layout (mean over pads of |mean pad force - the same seed's with exact sensing|)
+    out = {}
+    for t in [t for t in tasks if t in ("pinpush", "press")]:
+        rows = [r for r in load(f"{prefix}_{t}") if r.get("status", "ok") == "ok" and r.get("F_mean")]
+        ref = {(lay_key(r), r["seed"]): r for r in rows if r["variant"] == "rate50"}
+        per = {}
+        for r in rows:
+            b0 = ref.get((lay_key(r), r["seed"]))
+            if b0 is None or r["variant"] == "rate50":
+                continue
+            dF = float(np.mean([abs(r["F_mean"][f] - b0["F_mean"][f]) for f in b0["F_mean"]]))
+            per.setdefault(r["variant"], {}).setdefault(lay_key(r), []).append(dF)
+        out[t] = {v: {"layout_median": float(np.median([np.median(x) for x in d.values()])),
+                      "layouts_over_1N": float(np.mean([np.median(x) > 1.0 for x in d.values()])),
+                      "run_p90": float(np.percentile([y for x in d.values() for y in x], 90))} for v, d in per.items()}
+    info["force"] = out
+    return info
 
 
 def fig_dyn2d():
