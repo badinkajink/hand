@@ -11,7 +11,16 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-30 12:41: the watcher exited 0 at 12:39 on line 32 (12:18,
+State: armed 2026-10-27 21:00 from the colorado window. 10-30 13:09: the watcher exited 0 at 13:08 on lines 33 (12:49,
+ac021c3d: the seats on a low strip, pads 40 mm over it, one P1S plate in 9 h 56 min, plans 280/280/279 clean) and 34
+(12:57, 3ce83b74: the owner runs no calibration tonight and waits for the inverted rig; v3 ID 3's block 4 at 91 of 101
+with no HEX-E loss since the 11:09 reseat, block 6 of 100 rod actions next, the suite ending near 14:50). Calibration
+page 0d058859: the rig item follows the strip (the reach of 452 is from v2e's seats, which the strip keeps; the seat's
+beam estimate for v2e's columns left out), the next runs wait for the rig, and the wrist-order item has 45 of the 55
+reordered actions run with no loss by 12:56. Crosstalk page ceb7393d: the pinch item names the strip. Overview's
+index row followed the rig page. Acked 34 lines and 30 commits at HEAD ceb7393d. Next: v3 ID 3's analysis after its
+suite ends (a section as Section 12, Table 4's rows, overview, physical-model page by direction 28).
+10-30 12:41: the watcher exited 0 at 12:39 on line 32 (12:18,
 1690e3df, kind calibration: the seat block alone on the table, owner 12:0x; both indenters, the rod and the holder off;
 homing on two keys between its columns; a sixth tool with a fingertip on its cassette for face-to-face crosstalk; one
 P1S plate, 18 h 26 min). Calibration page 3c4ff18b: the rig item, Section 13 and the tall-against-low-sphere item follow.
