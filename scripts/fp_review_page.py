@@ -83,10 +83,18 @@ def data_uri(p, mime):
     return f"data:{mime};base64,{base64.b64encode(Path(p).read_bytes()).decode()}"
 
 
-def img(path, caption):
+def img(path, caption, jpeg=False):
+    """A figure; jpeg=True embeds a render as a JPEG of quality 85 (a third to a fifth of the PNG's size)."""
     FIG[0] += 1
-    return (f'<figure><img src="{data_uri(path, "image/png")}" alt="">'
-            f'<figcaption>Figure {FIG[0]}. {caption}</figcaption></figure>')
+    if jpeg:
+        import io
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.open(path).convert("RGB").save(buf, "JPEG", quality=85)
+        uri = f"data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode()}"
+    else:
+        uri = data_uri(path, "image/png")
+    return f'<figure><img src="{uri}" alt=""><figcaption>Figure {FIG[0]}. {caption}</figcaption></figure>'
 
 
 FILM = [0]
@@ -1069,13 +1077,13 @@ the link, cassette and cap clear of the object, with the finger placed where the
              fa=FIG[0] + 1, fb=FIG[0] + 2, fc=FIG[0] + 3)
     t += img(MEDIA / "20261030-cad_v2_finger_check.png",
              "The v4b fingertip on the CAD finger from five sides: top row with the part meshes, bottom row with the "
-             "sphere packs of the rigid parts and the pad's 0.75 mm spheres only.")
+             "sphere packs of the rigid parts and the pad's 0.75 mm spheres only.", jpeg=True)
     t += img(MEDIA / "20261030-v4b_touch_check_unconstrained.png",
              "Touch poses of the twist grasp on the 40 mm sphere for four Sobol layouts, solved without the pad-coverage "
-             "and rigid-clearance constraints. The rigid parts' spheres are drawn; the caps sit inside the sphere.")
+             "and rigid-clearance constraints. The rigid parts' spheres are drawn; the caps sit inside the sphere.", jpeg=True)
     t += img(MEDIA / "20261030-v4b_touch_twist.png",
              "Touch poses of the twist grasp for three Sobol layouts with both constraints, from the side, the front "
-             "and below.")
+             "and below.", jpeg=True)
     rows = []
     for (shape, d), v in y.items():
         rows.append([("sphere" if shape == "tripod" else "cylinder") + f" {d} mm", shape if shape == "tripod" else
@@ -1170,6 +1178,16 @@ symmetric position, which every foundational pose keeps, on <<th>> % of the layo
     t += img(MEDIA / "20261029-grid_grasps_twist_d40.png",
              "Twist on the 40 mm sphere: the variables of each layout's best grasp (top) and of its foundational pose "
              "(bottom), over the grid.")
+    t += fill(r"""<p>Figures <<f1>> and <<f2>> show the foundational pose, the best and the worst grasp of two layouts per
+task at the touch pose, from the side, the front and below. In every keyframe the pads touch the object and the rigid
+parts clear it. The losing grasps put the contacts high on the sphere or yaw the cylinder away from the pinch.</p>""",
+              f1=FIG[0] + 1, f2=FIG[0] + 2)
+    t += img(MEDIA / "20261030-grid_grasps_twist_peak_d40.png",
+             "Twist on the 40 mm sphere: the foundational pose, the best and the worst grasp of the layouts at (105, 100) "
+             "mm, the twist's peak, and (95, 75) mm, with their scores; touch pose, v4b fingertip.", jpeg=True)
+    t += img(MEDIA / "20261030-grid_grasps_pinpush_d25.png",
+             "Pin-push on the 25 mm cylinder: the foundational pose, the best and the worst grasp of the layouts at "
+             "(90, 50) mm, the pin-push's peak on the grid's edge, and (90, 100) mm.", jpeg=True)
     return t
 
 
