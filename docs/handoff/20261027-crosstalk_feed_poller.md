@@ -11,7 +11,15 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. Last check 10-30 07:16: no news since 10-29 16:25 (watcher exit 3
+State: armed 2026-10-27 21:00 from the colorado window. 10-30 08:02: the watcher exited 0 at 08:00 on line 29 (07:45,
+c5c34f60, kind calibration: tall stage 2 reordered for the wrist). Calibration page 1b19f7f9: Section 14 adds the HEX-E's
+stop at 00:08 on 10-30 (46 of v3 ID 3's 101 tall stage-2 actions; back by itself at 01:37) and the losses at the end of
+travels taking wrist 1 across 0 deg while wrist 2 rises (12 in tall stage 2, docs/experiments/20261022-ur5_tip_calibration/
+20261030-wrist_order/); a future item runs the next tip's tall stage 2 in the new order, a loss in it ruling the travels
+out. Lede, summary and overview stay (the overview's "its link drops out" holds). docs/pages.html's file count is left
+to whoever commits next. Acked 29 lines and 37 commits at HEAD 1b19f7f9 (the 300-commit window moved past older ones).
+v3 ID 3's resume waits for the owner's choice of order (lab 7728938b: the HEX-E clean from 01:39 to 07:40).
+Last check 10-30 07:16: no news since 10-29 16:25 (watcher exit 3
 at 07:16, HEAD 65a0633e, 28 feed lines; no lab commit since 01:41, the arm waiting for the owner's go). The gate was
 closed at 07:1x on load (21.47 on 20 cores); the plain --until-gate watcher exited 10 at 07:22 with no news, and the
 watcher runs through resguard from 07:22 (task bb1rj4vxj; load 11.96, 18.5 GB available).
