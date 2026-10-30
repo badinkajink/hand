@@ -66,7 +66,14 @@ bed's left edge, clear of the wiper's corner. Until 12:3x the probe base and the
    socket is 0.11 mm smaller a face than the boss's taper, so the tapered faces seat and the flange stops about 0.3 mm
    over the column's top. A flange that sits on the top means the taper printed loose.
 5. Screw each tip pad up onto its seat, its end toward the robot. Its cable leaves away from the robot and drops behind
-   the strip onto the 2x4.
+   the strip onto the 2x4. Each tip keeps its side of the bench and goes on the held tips' mux board
+   (`b4:3a:45:b0:d9:94`, `--held-board`; owner, 10-30 14:3x):
+
+   | seat | y_A (mm) | as the owner faces the bench | tip | mux channel |
+   |---|---|---|---|---|
+   | 1 | -80 | right | v3 ID 1 | 3 |
+   | 2 | 0 | middle | v3 ID 3 | 1 |
+   | 3 | 80 | left | v3 ID 2 | 0 |
 
 ## First session
 
