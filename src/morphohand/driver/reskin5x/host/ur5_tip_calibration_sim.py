@@ -144,6 +144,8 @@ class Truth:
     warm_C: float = 1.3
     warm_tau_s: float = 200.0
     seat_shift_um: float = 0.0                                       # a rigid shift of the pad after presses over 3 N
+    probe_err_mm: tuple = (0.12, -0.08, 0.20)                        # probe mode: the sphere's centre against its CAD (M)
+    seat_pose_err: tuple = (0.006, -0.004, 0.012, 0.30, -0.25, 0.20)  # probe mode: the held pad on its seat (rad, mm; P)
     seed: int = 0
 
 
@@ -156,10 +158,13 @@ class World:
         self.t_start = self.t
         g = self.geo
         e = truth
+        self.probe = getattr(g, "probe", None) is not None   # probe mode: the pad held still on its seat, the sphere on the HEX-E
         self.T_EM = C.perturb(g.T_EM0, np.r_[e.em_err[:3], e.em_err[3:]])
         self.T_EM[:3, 3] += self.T_EM[:3, :3] @ np.array([0.0, 0.0, e.hex_height_err_mm])
         self.T_MP = C.perturb(g.T_MP0, np.r_[e.mp_err[:3], e.mp_err[3:]])
         self.T_EP = self.T_EM @ self.T_MP
+        if self.probe:
+            self.c_M = g.c_M + np.array(e.probe_err_mm, float)
         R_ES = C.rot(C.EZ, e.hex_turn_deg)
         self.T_ES = C.Tm(R_ES, g.T_ES0[:3, 3] + np.array([0.0, 0.0, e.hex_height_err_mm]))
         X = self.rng.normal(0.0, e.crosstalk, (2, 3, 3))
@@ -169,8 +174,13 @@ class World:
         Tb = np.array(plan["sim"]["T_BI"], float)
         dI = np.array(e.indenter_err, float)
         Tlev = C.Tm(C.exp_so3([e.level_err[0], e.level_err[1], 0.0]))
-        self.T_BI = Tlev @ C.Tm(C.rot(C.EZ, math.degrees(dI[2])), np.r_[dI[3:5], dI[5]]) @ Tb
-        self.c_B = C.apply(self.T_BI, g.c_I)
+        self.T_BI = Tlev @ C.Tm(C.rot(C.EZ, math.degrees(dI[2])), np.r_[dI[3:5], dI[5]]) @ Tb   # probe mode: the strip's A
+        if self.probe:
+            self.T_AP = C.perturb(g.T_AP0, np.array(e.seat_pose_err, float))
+            self.T_BP = self.T_BI @ self.T_AP
+            self.c_B = None
+        else:
+            self.c_B = C.apply(self.T_BI, g.c_I)
         rd = self.rng.normal(0.0, e.dh_err, (4, 6))
         self.dh_true = dict(d=list(np.array(DH_CB3["d"]) + rd[0] * 1.0), a=list(np.array(DH_CB3["a"]) + rd[1] * 1.0),
                             alpha=list(np.array(DH_CB3["alpha"]) + rd[2] * 1e-3), off=list(rd[3] * 1e-3))
@@ -186,13 +196,7 @@ class World:
         t1 = np.cross(np.where(np.abs(self.N[:, 2:3]) > 0.9, [[0.0, 1.0, 0.0]], [[0.0, 0.0, 1.0]]), self.N)
         t1 /= np.linalg.norm(t1, axis=1, keepdims=True)
         self.Tg = np.stack([t1, np.cross(self.N, t1)], axis=2)      # (n, 3, 2) tangent bases
-        self.o_P = C.apply(C.inv(self.T_EP) @ self.T_ES, np.zeros(3))   # the HEX-E's origin in P
-        R_PS = (C.inv(self.T_EP) @ self.T_ES)[:3, :3]
-        cw = np.r_[HEX_COMPLIANCE["r_rad_Nmm"], HEX_COMPLIANCE["f_mm_N"]]
-        Cw = np.zeros((6, 6))
-        Cw[:3, :3] = R_PS @ np.diag(cw[:3]) @ R_PS.T
-        Cw[3:, 3:] = R_PS @ np.diag(cw[3:]) @ R_PS.T
-        self.Cw = Cw
+        self.o_P, self.Cw = self.hex_in_P(C.inv(self.T_EP))             # the HEX-E's origin and compliance in P
         self.anchor = None
         self.cache = None
         self.t_solve = -1.0
@@ -217,6 +221,18 @@ class World:
         self.ft_next = self.board_next = self.robot_next = self.t
         self.ft_rate, self.hex_noise = 500.0, np.array(HEX_NOISE)     # SimBackend sets the program's
         self.streams = None
+
+    def hex_in_P(self, T_PE):
+        """The HEX-E's origin (mm, P) and its datasheet compliance as a rigid motion (6 x 6: rad, mm per N mm, N; P axes)
+        with the flange at T_PE in P: fixed in tip mode, where the pad rides on the HEX-E; in probe mode the pad stands
+        still and the probe moves on the HEX-E, which gives the same relative motion."""
+        T_PS = T_PE @ self.T_ES
+        R_PS = T_PS[:3, :3]
+        cw = np.r_[HEX_COMPLIANCE["r_rad_Nmm"], HEX_COMPLIANCE["f_mm_N"]]
+        Cw = np.zeros((6, 6))
+        Cw[:3, :3] = R_PS @ np.diag(cw[:3]) @ R_PS.T
+        Cw[3:, 3:] = R_PS @ np.diag(cw[3:]) @ R_PS.T
+        return T_PS[:3, 3].copy(), Cw
 
     # ---------------------------------------------------------------- robot motion
     def flange_true(self):
@@ -290,15 +306,21 @@ class World:
         """Nodal contact forces (pad frame) for the present pose; cached while the pad and the indenter stay put."""
         if self.cache is not None and self.t - self.t_solve < 0.0015:
             return                                                     # the board's sample takes the HEX-E's solve
-        T_BP = self.flange_true() @ self.T_EP
+        Tf = self.flange_true()
+        T_BP = self.T_BP if self.probe else Tf @ self.T_EP
         T_PB = C.inv(T_BP)
-        key = np.round(T_BP[:3, :], 7).tobytes()
+        key = np.round((Tf if self.probe else T_BP)[:3, :], 7).tobytes()
         self.t_solve = self.t
         if self.cache is not None and self.cache[0] == key:
             return
         g = self.geo
         X = self.X + self.shift
-        if g.kind == "sphere":
+        if self.probe:
+            T_PI = T_PB @ Tf @ self.T_EM                               # the probe's mount in P (the indenter's frame)
+            c = C.apply(T_PI, self.c_M)
+            r = X - c
+            self.o_P, self.Cw = self.hex_in_P(T_PB @ Tf)
+        elif g.kind == "sphere":
             c = C.apply(T_PB, self.c_B)
             r = X - c
         else:
@@ -318,10 +340,11 @@ class World:
             self.truth_row = np.zeros(12)
             self.anchor = None
             self.cache = (key,)
-            if g.kind == "sphere":
+            if g.kind == "sphere" and not self.probe:
                 self.face_contact(T_PB)
             return
-        T_PI = T_PB @ self.T_BI
+        if not self.probe:
+            T_PI = T_PB @ self.T_BI
         if self.anchor is None:
             self.anchor = T_PI.copy()
         K = cand
@@ -419,9 +442,14 @@ class World:
     # ---------------------------------------------------------------- sensors
     def hex_reading(self):
         Tf = self.flange_true()
-        R_SP = (C.inv(self.T_ES) @ self.T_EP)[:3, :3]
-        f_S = R_SP @ self.wrench_P[:3]
-        t_S = R_SP @ self.wrench_P[3:] * 1e-3                          # N m
+        if self.probe:                                                 # the probe takes the pad's push back
+            R_SP = (C.inv(self.T_ES) @ C.inv(Tf) @ self.T_BP)[:3, :3]
+            f_S = -(R_SP @ self.wrench_P[:3])
+            t_S = -(R_SP @ self.wrench_P[3:]) * 1e-3
+        else:
+            R_SP = (C.inv(self.T_ES) @ self.T_EP)[:3, :3]
+            f_S = R_SP @ self.wrench_P[:3]
+            t_S = R_SP @ self.wrench_P[3:] * 1e-3                      # N m
         R_SE = self.T_ES[:3, :3].T
         gE = Tf[:3, :3].T @ np.array([0.0, 0.0, -C.G * self.tr.payload_kg])
         f_S = f_S + R_SE @ gE
@@ -431,7 +459,7 @@ class World:
 
     def board_reading(self):
         Tf = self.flange_true()
-        R_PB = (Tf @ self.T_EP)[:3, :3].T
+        R_PB = (self.T_BP if self.probe else Tf @ self.T_EP)[:3, :3].T     # probe mode: the held tip's board, still
         g = R_PB @ np.array(self.tr.earth_uT, float)
         b = self.model.rest_uT(g_uT=g)
         if len(self.Fidx):
@@ -612,9 +640,12 @@ class SimBackend:
         self.streams = SimStreams()
         self.w.streams = self.streams
         start = plan["sim"]["start"]
-        T_BP = self.w.T_BI @ self.w.geo.T_IP(start["p"], start["n"], 0.0, start["standoff"])
-        T_BE = T_BP @ C.inv(self.w.geo.T_EM0 @ self.w.geo.T_MP0)
-        q = ik(T_BE, np.array(plan["sim"]["q_seed"], float))
+        if plan["sim"].get("q_start") is not None:                    # probe mode: the joints of a pose the plan checked
+            q = np.array(plan["sim"]["q_start"], float)
+        else:
+            T_BP = self.w.T_BI @ self.w.geo.T_IP(start["p"], start["n"], 0.0, start["standoff"])
+            T_BE = T_BP @ C.inv(self.w.geo.T_EM0 @ self.w.geo.T_MP0)
+            q = ik(T_BE, np.array(plan["sim"]["q_seed"], float))
         if q is None:
             raise SystemExit("the simulator's start pose is out of reach")
         self.w.q = q
@@ -631,7 +662,8 @@ class SimBackend:
                                         "normal (3), torsion (N mm), contact points, kind (0 none, 1 pad, 2 column face), true flange "
                                         "pose (6, m, rotation vector)", T_EM=self.w.T_EM, T_MP=self.w.T_MP, T_ES=self.w.T_ES,
                                         T_BI=self.w.T_BI, c_B=self.w.c_B, T_EP=self.w.T_EP, Kf=self.w.Kf, Kt=self.w.Kt,
-                                        dh_true=self.w.dh_true))
+                                        dh_true=self.w.dh_true,
+                                        **(dict(T_AP=self.w.T_AP, T_BP=self.w.T_BP, c_M=self.w.c_M) if self.w.probe else {})))
 
     def now(self):
         return self.w.t

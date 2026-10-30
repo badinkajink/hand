@@ -31,6 +31,14 @@ robot.bin. A session started again with --resume <session> skips the actions tha
 registration. --dry 15 shifts every target 15 mm away from the indenter along its approach (no contact: reach, cables).
 --step asks before each action. Ctrl-C stops the robot (stopL) and closes the files.
 
+Probe mode (a plan with geometry.probe, from scripts/ur5_probe_plan.py; the inverted rig of 2026-10-30): a sphere on the
+HEX-E presses a fingertip held still on a seat of the strip. Frame I is then the strip's frame A (homing seats the probe's
+socket, the fork's, on a key of the strip), the pad stands at T_AP in A and the sphere's centre at c_M in M. A target gives
+the pad point, its normal, the push direction and the mount's rotation in P; the sphere's centre goes to
+T_BI T_AP (p + R n - standoff d). The travels are the plan's (travel.probe: straight, joint or by way of the hub, as the
+workstation's replay checked them), the pad touch-offs fit T_AP and c_M (register), and the board is the seat's (its mux
+channel geometry.seat.held_channel on --held-board). The gravity, mount, pivot and hover stages are the tip mode's.
+
     python ur5_tip_calibration.py --plan plan.json --robot 192.168.0.4 --ft 192.168.0.5
     python ur5_tip_calibration.py --plan plan.json --sim                 the same session against the simulator
     ... --stages preflight,homing,gravity     a subset, in the order given
@@ -207,12 +215,21 @@ class Geometry:
         self.T_EM0 = np.array(g["T_EM"], float)
         self.T_MP0 = np.array(g["T_MP"], float)
         self.T_ES0 = np.array(g["T_ES"], float)
-        self.T_IM_home = np.array(g["T_IM_home"], float)
-        ind = g["indenter"]
-        self.kind = ind["kind"]
-        self.c_I = np.array(ind["centre"], float)          # sphere: centre; rod: a point on its axis
-        self.R = float(ind["radius"])
-        self.rod_axis = np.array(ind.get("axis", [0.0, 1.0, 0.0]), float)
+        self.T_IM_home = np.array(g["T_IM_home"], float)   # probe mode: the strip key's T_AM_home (I is the strip's A)
+        self.probe = g.get("probe")
+        if self.probe is not None:                          # probe mode: the sphere on the HEX-E, the pad on its seat
+            self.kind = self.probe.get("kind", "sphere")
+            self.c_M = np.array(self.probe["centre_M"], float)
+            self.R = float(self.probe["radius"])
+            self.c_I, self.rod_axis = None, None
+            self.seat = g["seat"]
+            self.T_AP0 = np.array(self.seat["T_AP"], float)
+        else:
+            ind = g["indenter"]
+            self.kind = ind["kind"]
+            self.c_I = np.array(ind["centre"], float)          # sphere: centre; rod: a point on its axis
+            self.R = float(ind["radius"])
+            self.rod_axis = np.array(ind.get("axis", [0.0, 1.0, 0.0]), float)
         s = g["surface"]
         self.pts = np.array(s["pts"], float)
         self.nrm = np.array(s["normals"], float)
@@ -264,9 +281,15 @@ class Registration:
         self.K = np.eye(3)                  # f_S = K f_E: the HEX-E's force axes, sign and gains on the flange
         self.Kt = np.eye(3)                 # torques likewise (the rotation and sign of K)
         self.notes = {}
+        self.T_AP = geo.T_AP0.copy() if geo.probe is not None else None   # probe mode: the held pad on its seat (A)
+        self.c_M = geo.c_M.copy() if geo.probe is not None else None      # probe mode: the sphere's centre (M)
 
     def T_EP(self):
         return self.T_EM @ self.T_MP
+
+    def T_BP(self):
+        """Probe mode: the held pad in the base."""
+        return self.T_BI @ self.T_AP
 
     def to_json(self):
         d = {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in self.__dict__.items() if k != "grav"}
@@ -454,6 +477,45 @@ def fit_registration(geo: Geometry, reg: Registration, touches, pivots=(), sig=R
     out["tcp_change_mm_deg"] = pose_error(T_EP0, T_EP1)
     out["centre_change_mm"] = float(np.linalg.norm(c - c0))
     return out
+
+
+REG_SIGMA_PROBE = dict(pad_mm=0.03, seat_rot_deg=(1.0, 1.0, 0.5), seat_t_mm=(0.5, 0.5, 0.5), probe_mm=(0.3, 0.3, 0.3))
+# the roll about z_P, the tip's long axis: four M2 on a 16 mm square clamp it, 0.05-0.1 mm of print across them rolls it
+# 0.2-0.4 deg (workstation, 10-30 15:0x); the touches barely see it, so the prior holds most of it
+PUSH_AVG = dict(tip=8, probe=20)    # the push's running mean: the tip mode's over the last 8 passes of its 250 Hz loop (about
+#                                     3 HEX-E samples), the probe mode's over 20 HEX-E samples (0.2 s), tested only when
+#                                     full. A probe pushes along the HEX-E's z (0.21 N a sample at --ft-filter 3, five times x
+#                                     and y), and the tip mode's mean crossed 0.3 N in free air (the simulator, 10-30)
+
+
+def fit_probe_registration(geo: Geometry, reg: Registration, touches, sig=REG_SIGMA_PROBE):
+    """Probe mode: the held pad on its seat (T_AP, in the strip's frame A, which homing put at T_BI) and the sphere's
+    centre on the probe (c_M) from the pad touches (flange pose at the onset of contact), with the seat's and the probe's
+    CAD as priors. The residual is the tip mode's, the sphere's centre in P against the pad's surface, with
+    q = (T_BI T_AP)^-1 T_BE T_EM c_M. Turns of the probe about the pad's normal leave it alike, so c_M comes from touches
+    whose stems lean differently. Returns a dict with the new T_AP and c_M and the residuals."""
+    pad = [t for t in touches if t["kind"] == "pad"]
+    T_AP0, c_M0 = reg.T_AP.copy(), reg.c_M.copy()
+    T_BA, T_EM = reg.T_BI, reg.T_EM
+    sd = np.r_[np.radians(sig["seat_rot_deg"]), sig["seat_t_mm"], sig["probe_mm"]]
+    Ts = [np.array(t["T_BE"], float) @ T_EM for t in pad]
+
+    def unpack(x):
+        return perturb(T_AP0, x[0:6]), c_M0 + x[6:9]
+
+    def resid(x):
+        T_AP, c_M = unpack(x)
+        T_PB = inv(T_BA @ T_AP)
+        r = [(geo.surface_distance(apply(T_PB @ T, c_M))[0] - geo.R) / sig["pad_mm"] for T in Ts]
+        return np.r_[r, x / sd]
+
+    x, r, cov = lm(resid, np.zeros(9))
+    T_AP, c_M = unpack(x)
+    n = len(pad)
+    return dict(T_AP=T_AP, c_M=c_M, x=x, sd=np.sqrt(np.clip(np.diag(cov), 0, None)),
+                rms_pad_mm=float(np.sqrt(np.mean((r[:n] * sig["pad_mm"]) ** 2))) if n else float("nan"), n_pad=n,
+                chi2=float(r @ r), dof=int(len(r) - 9), seat_change_mm_deg=pose_error(T_AP0, T_AP),
+                probe_change_mm=float(np.linalg.norm(c_M - c_M0)))
 
 
 # ------------------------------------------------------------------------------------------- streams (real hardware)
@@ -845,16 +907,20 @@ class URRobot:
 
 
 class RealBackend:
-    def __init__(self, args, log):
+    def __init__(self, args, log, probe=False):
+        if probe and not args.held_board:
+            raise SystemExit("probe mode reads the seat's board among the held ones: give --held-board")
         self.ft = OptoForceStream(args.ft, rate=args.ft_rate, appender=log.appender("ft.bin"), stream=args.ft_stream,
                                   filt=args.ft_filter)
         self.ft.configure()
         self.ft.start()
-        self.board = BoardStream(args.board, appender=log.appender("board.bin", BoardStream.DTYPE))
-        self.board.start()
+        self.board = None                                   # probe mode: no tip on the robot unless --board names one
+        if args.board or not probe:
+            self.board = BoardStream(args.board, appender=log.appender("board.bin", BoardStream.DTYPE))
+            self.board.start()
         self.held = None
         if args.held_board:
-            if os.path.realpath(args.held_board) == os.path.realpath(self.board.reader.port):
+            if self.board is not None and os.path.realpath(args.held_board) == os.path.realpath(self.board.reader.port):
                 raise SystemExit(f"--held-board {args.held_board} is the robot tip's board ({self.board.reader.port})")
             self.held = HeldBoardStream(args.held_board, appender=log.appender("held.bin", HeldBoardStream.DTYPE))
             self.held.start()
@@ -871,7 +937,8 @@ class RealBackend:
 
     def close(self):
         self.ft.stop = True
-        self.board.stop = True
+        if self.board is not None:
+            self.board.stop = True
         if self.held is not None:
             self.held.stop = True
         self.robot.close()
@@ -955,6 +1022,12 @@ class Session:
         self.touches, self.pivots = [], []
         self.n_abort = 0
         self.dry = float(args.dry or 0.0)
+        self.probe = self.geo.probe is not None
+        self.last_d = None              # probe mode: the last target's push direction (base), for the recovery
+        self.from_homing = False        # probe mode: the robot stands where the homing left it (out of the key)
+        self.prev_ok = None             # the last action that ended ok in this run
+        ids = [a["id"] for a in plan["actions"]]
+        self.prev_in_plan = dict(zip(ids[1:], ids[:-1]))
         self.done = log.done() if args.resume else set()
         reg_path = log.dir / "registration.json"
         if args.resume and reg_path.exists():
@@ -980,7 +1053,11 @@ class Session:
         return t, v.reshape(-1, 6) if len(t) else np.zeros((0, 6))
 
     def board_since(self, t0, t1=None):
-        t, v = self.be.board.ring.since(t0, t1)
+        held = getattr(self.be, "held", None)
+        if self.probe and held is not None:                       # probe mode: the held tip's board on its mux channel
+            t, v = held.rings[int(self.geo.seat["held_channel"])].since(t0, t1)
+        else:
+            t, v = self.be.board.ring.since(t0, t1)
         return t, v.reshape(-1, 20) if len(t) else np.zeros((0, 20))
 
     def robot_since(self, t0, t1=None):
@@ -1080,6 +1157,8 @@ class Session:
         return self.reg.T_BI @ T_IM @ inv(self.reg.T_EM)
 
     def approach_dir(self):
+        if self.probe and self.last_d is not None:                # probe mode: each press has its own direction
+            return self.last_d
         return -(self.reg.T_BI[:3, :3] @ EZ)
 
     def lifted(self, T, h_mm):
@@ -1091,10 +1170,52 @@ class Session:
         dz = max(10.0, h_mm + top - float(pts[:, 2].min()))
         return Tm(T[:3, :3], T[:3, 3] + I[:3, :3] @ EZ * dz)
 
-    def travel(self, T_target):
+    def back_along(self, T, mm):
+        """Probe mode: the flange pose moved mm back along the tool's axis z_M (toward the HEX-E, away from the pad)."""
+        return Tm(T[:3, :3], T[:3, 3] - (T @ self.reg.T_EM)[:3, 2] * mm)
+
+    def travel_probe(self, T_target, a):
+        """Probe mode: the ways of the workstation's replay (scripts/ur5_inverted_rig.py travel_options), the one it
+        checked for this action (a['travel_ws']): straight (back travel.probe.retract_mm along the stem, across, in), joint
+        (back safe_mm, a joint move to safe_mm back from the target, in) or hub (the joint move by way of the hub pose over
+        the seat). From the homing, out of the key along -x_M by a['homing_lift_mm'] first, then the joint move. A straight
+        way only follows the action the replay had before it; any other start takes the joint move."""
+        cfg = dict(speed=1.0)
+        cfg.update(self.plan.get("travel", {}))
+        pr = cfg.get("probe", {})
+        k = float(cfg["speed"])
+        kj = min(k, 1.5)
+        Tc = self.be.robot.pose()
+        mm, deg = pose_error(Tc, T_target)
+        if mm < 1e-3 and deg < 1e-3:
+            return
+        way = a.get("travel_ws", "joint")
+        safe, ret = float(pr.get("safe_mm", 45.0)), float(pr.get("retract_mm", 12.0))
+        if self.from_homing:
+            up = Tc[:3, :3] @ (self.reg.T_EM[:3, :3] @ np.array([-1.0, 0.0, 0.0]))
+            self.goto(Tm(Tc[:3, :3], Tc[:3, 3] + up * float(a.get("homing_lift_mm", 30.0))), 0.02 * k, 0.2 * k)
+            self.from_homing = False
+            way = "hub" if way == "hub" else "joint"
+        elif way == "straight" and self.prev_ok == self.prev_in_plan.get(a["id"]) and deg <= 20.0 and mm <= 30.0:
+            self.goto(self.back_along(Tc, ret), 0.02 * k, 0.2 * k)
+            self.goto(self.back_along(T_target, ret), 0.02 * k, 0.2 * k)
+            self.goto(T_target, 0.01 * k, 0.2 * k)
+            return
+        else:
+            way = "hub" if way == "hub" else "joint"
+            self.goto(self.back_along(Tc, safe), 0.03 * k, 0.2 * k)
+        if way == "hub":
+            self.goto(np.array(pr["hub"]["T_BE"], float), joint=True, jv=0.4 * kj, ja=0.6 * kj)
+        self.goto(self.back_along(T_target, safe), joint=True, jv=0.4 * kj, ja=0.6 * kj)
+        self.goto(T_target, 0.01 * k, 0.2 * k)
+
+    def travel(self, T_target, a=None):
         """From wherever the tool is to T_target near the indenter, as the plan checked it: up 10 mm, across, down; or,
         when the tool turns more than travel.turn_deg or moves more than travel.far_mm, up until the pad is travel.lift_mm
-        above the indenter's top, across (in joint space when the turn exceeds travel.joint_deg), down."""
+        above the indenter's top, across (in joint space when the turn exceeds travel.joint_deg), down. Probe mode:
+        travel_probe."""
+        if self.probe:
+            return self.travel_probe(T_target, a or {})
         cfg = dict(turn_deg=20.0, far_mm=60.0, lift_mm=60.0, joint_deg=45.0, speed=1.0)
         cfg.update(self.plan.get("travel", {}))
         k = float(cfg["speed"])             # travel.speed scales the moves' speeds and accelerations (joints at most 1.5x)
@@ -1118,6 +1239,13 @@ class Session:
         """(flange pose at the action's rest, approach direction) for a plan action."""
         tg = a["target"]
         st = standoff + self.dry
+        if self.probe:                  # the sphere's centre st back along d from where it meets p, the mount at R_PM
+            T_BP = self.reg.T_BP()
+            d_P = np.asarray(tg["d"], float) / np.linalg.norm(tg["d"])
+            c_B = apply(T_BP, np.asarray(tg["p"], float) + self.geo.R * np.asarray(tg["n"], float) - st * d_P)
+            R_BM = T_BP[:3, :3] @ np.asarray(tg["R_PM"], float)
+            self.last_d = T_BP[:3, :3] @ d_P
+            return Tm(R_BM, c_B - R_BM @ self.reg.c_M) @ inv(self.reg.T_EM), self.last_d
         if tg["frame"] == "M":
             R = rot(EZ, a.get("twist", 0.0)) @ self.geo.R_ref @ rot_from_to(tg["n"], [1.0, 0.0, 0.0])
             c = self.geo.contact_point_I(st, tg.get("y_rod", 0.0))
@@ -1148,14 +1276,16 @@ class Session:
         t_start = self.now()
         rec["t_move0"] = t_start
         self.be.robot.moveL(T_end, v, 0.05, asynchronous=True)
-        f_hist = deque(maxlen=8)
+        f_hist, t_last = deque(maxlen=PUSH_AVG["probe" if self.probe else "tip"]), None
         while True:
             self.sleep(0.004)
             self.check_ft(tare_v)
             t, val = self.be.ft.ring.latest()
-            f_hist.append(self.push_force(val, tare_v, d_B, R_BE))
+            if not self.probe or t != t_last:       # probe mode: each HEX-E sample once (this loop runs at 250 Hz), and
+                f_hist.append(self.push_force(val, tare_v, d_B, R_BE))   # no level until the mean holds its samples
+                t_last = t
             f = float(np.mean(f_hist))
-            if k < len(lv) and f >= lv[k]:
+            if k < len(lv) and (not self.probe or len(f_hist) == f_hist.maxlen) and f >= lv[k]:
                 self.be.robot.stopL(0.05)
                 self.wait_steady()
                 if k == len(lv) - 1:
@@ -1191,15 +1321,17 @@ class Session:
         R_BE = T_rest[:3, :3]
         T_f = Tm(R_BE, T_rest[:3, 3] + d_B * fast_mm)
         out = dict(mm=float(fast_mm), v=float(v_fast), t=[self.now(), None], contact=False)
-        f_hist = deque(maxlen=8)
+        f_hist, t_last = deque(maxlen=PUSH_AVG["probe" if self.probe else "tip"]), None
         self.be.robot.moveL(T_f, v_fast, 0.1, asynchronous=True)
         t0 = self.now()
         while True:
             self.sleep(0.004)
             self.check_ft(tare_v)
-            _, val = self.be.ft.ring.latest()
-            f_hist.append(self.push_force(val, tare_v, d_B, R_BE))
-            if float(np.mean(f_hist)) > FAST_STOP_N:
+            t, val = self.be.ft.ring.latest()
+            if not self.probe or t != t_last:       # probe mode: as in press
+                f_hist.append(self.push_force(val, tare_v, d_B, R_BE))
+                t_last = t
+            if (not self.probe or len(f_hist) == f_hist.maxlen) and float(np.mean(f_hist)) > FAST_STOP_N:
                 self.be.robot.stopL(0.5)
                 self.wait_steady()
                 self.be.robot.moveL(T_rest, 0.002, 0.05)
@@ -1292,11 +1424,13 @@ class Session:
             self.n_abort += 1
             if self.n_abort >= 3:
                 raise SystemExit("three aborts in a row: stopping the session (--resume continues it)")
+            self.prev_ok = None
             self.recover()
             return None
         self.n_abort = 0
         self.log.event(event="end", id=a["id"], status="ok", rec=rec)
         self.done.add(a["id"])
+        self.prev_ok = a["id"]
         return rec
 
     def recover(self):
@@ -1328,6 +1462,9 @@ class Session:
                   + ", ".join(f"mux channel {c} {r:.0f} records/s" for c, r in out["held_hz"].items()))
             if not out["held_hz"] or min(out["held_hz"].values()) < 10:
                 raise SystemExit("a held tip's board is missing or slow: check the holder's boards and their USB")
+            if self.probe and int(self.geo.seat["held_channel"]) not in held.channels:
+                raise SystemExit(f"the seat's board (mux channel {self.geo.seat['held_channel']}) is not among the held "
+                                 f"boards ({held.channels}): check geometry.seat.held_channel and the seat's cable")
         if len(vf):
             print("  HEX-E noise (1 sigma) N, N m:", np.round(vf.std(axis=0), 4))
         ft = self.be.ft
@@ -1338,7 +1475,8 @@ class Session:
         if pl:
             self.be.robot.set_payload(pl["kg"], pl["cog_mm"])
             print(f"  payload set: {pl['kg']:.3f} kg at {pl['cog_mm']} mm from the flange")
-        if out["ft_hz"] < 0.8 * self.args.ft_rate or out["board_hz"] < 50:      # a 100 Hz poll counts 99.5-100.5
+        board_min = 10 if self.probe and held is not None else 50                # a held board shares its mux
+        if out["ft_hz"] < 0.8 * self.args.ft_rate or out["board_hz"] < board_min:   # a 100 Hz poll counts 99.5-100.5
             raise SystemExit("a stream is missing or slow: check the HEX-E's DAQ (IP, power) and the board's USB")
         self.log.event(event="end", id="preflight", status="ok", rec=out)
 
@@ -1362,10 +1500,12 @@ class Session:
             poses = [self.home_from_file()]
             n = 0
             print(f"homing: from the recorded seating {self.args.home_from} (no freedrive, nothing moves)", flush=True)
+        what = (f"seat the probe's socket on the strip's key {int(self.plan.get('homing', {}).get('key', 0)) + 1} (palmar "
+                "face down, the tool along the strip's +x)" if self.probe else
+                "seat the mount's socket on the indenter's key (palmar face down, the finger along the indenter's +x)")
         for k in range(n):
             self.be.robot.teach(True)
-            self.be.operator(f"homing {k + 1}/{n}: in freedrive, seat the mount's socket on the indenter's key "
-                             "(palmar face down, the finger along the indenter's +x), hold it seated", kind="seat")
+            self.be.operator(f"homing {k + 1}/{n}: in freedrive, {what}, hold it seated", kind="seat")
             t0 = self.now()
             self.sleep(1.0)
             tr, vr = self.robot_since(t0)
@@ -1387,6 +1527,7 @@ class Session:
         self.save_reg()
         self.log.event(event="end", id="homing", status="ok", rec=dict(T_BE_home=Th, poses=poses, spread=spread))
         self.done.add("homing")
+        self.from_homing = self.probe and n > 0               # the robot stands 12 mm out of the key
 
     def check_placement(self, max_mm=20.0, max_yaw=5.0, max_tilt=2.0):
         """The plan's reach and clearance checks hold for the placement it was built on (checks.placement_mm_deg: x, y, z
@@ -1489,7 +1630,7 @@ class Session:
     def touch(self, a, kind):
         st = float(a.get("standoff", 1.5))
         T_rest, d = self.target_pose(a, st)
-        self.travel(T_rest)
+        self.travel(T_rest, a)
         fm, fv = self.fast_mm(a, st, "touch")
         rec = self.press(a, T_rest, d, levels=(), stop_N=float(a.get("stop_N", 0.5)),
                          max_mm=st + float(a.get("beyond_mm", 1.2)), v=float(a.get("v", 0.00015)), hold_s=0.0, rest_s=0.5,
@@ -1531,6 +1672,17 @@ class Session:
             return
         if not self.touches:
             print("register: no touches")
+            return
+        if self.probe:
+            fit = fit_probe_registration(self.geo, self.reg, self.touches)
+            self.reg.T_AP, self.reg.c_M = fit["T_AP"], fit["c_M"]
+            self.reg.notes["register_probe"] = {k: fit[k] for k in ("rms_pad_mm", "n_pad", "seat_change_mm_deg",
+                                                                     "probe_change_mm", "sd", "x")}
+            print(f"register (probe): pad touches {fit['rms_pad_mm']:.3f} mm rms ({fit['n_pad']}); the seat's pad moved "
+                  f"{fit['seat_change_mm_deg'][0]:.3f} mm, {fit['seat_change_mm_deg'][1]:.3f} deg; the sphere's centre moved "
+                  f"{fit['probe_change_mm']:.3f} mm, to {np.round(fit['c_M'], 3)} in M (sd {np.round(fit['sd'][6:9], 3)} mm)")
+            self.save_reg()
+            self.log.event(event="fit", id="register_probe", rec=fit)
             return
         piv = self.pivots if use_pivots else ()
         fit = fit_registration(self.geo, self.reg, self.touches, piv)
@@ -1664,7 +1816,7 @@ class Session:
 
     def grid_press(self, a):
         T_rest, d = self.target_pose(a, float(a.get("standoff", 1.5)))
-        self.travel(T_rest)
+        self.travel(T_rest, a)
         fm, fv = self.fast_mm(a, float(a.get("standoff", 1.5)), "press")
         r = self.press(a, T_rest, d, levels=a.get("levels", (0.25, 0.5, 1.0, 2.0)), stop_N=a.get("stop_N", max(a.get("levels", [2.0]))),
                        max_mm=float(a.get("standoff", 1.5)) + float(a.get("max_depth_mm", 2.5)), v=float(a.get("v", 0.0005)),
@@ -1689,22 +1841,31 @@ class Session:
         """Press to a['press_N'] and hold, then the moves in turn, each back to the pressed pose at its end: slide =
         turns about the sphere's centre (the contact slides along dir_deg in I at constant indentation, R deg / 57.3 mm
         per degree), roll = the same axis through the contact point (the contact rolls), twist = about the vertical
-        through the contact (torsion)."""
+        through the contact (torsion). Probe mode: twist only, the sphere turned about the pad's normal at the target
+        through its own centre, as the workstation's replay turned it (at most standoff + max_depth_mm along the push)."""
         st = float(a.get("standoff", 1.5))
         T_rest, d = self.target_pose(a, st)
-        self.travel(T_rest)
+        if self.probe and a["kind"] != "twist":
+            raise Abort(f"a {a['kind']} is the tip mode's")
+        self.travel(T_rest, a)
         fm, fv = self.fast_mm(a, st, "press")
-        r = self.press(a, T_rest, d, levels=(a["press_N"],), stop_N=a["press_N"], max_mm=st + 3.0, v=0.0004, hold_s=0.5, keep=True,
-                       fast_mm=fm, v_fast=fv)
-        I = self.reg.T_BI
-        c_B = apply(I, self.geo.c_I)
-        top_B = apply(I, self.geo.c_I + self.geo.R * EZ)
+        r = self.press(a, T_rest, d, levels=(a["press_N"],), stop_N=a["press_N"],
+                       max_mm=st + (float(a.get("max_depth_mm", 1.0)) if self.probe else 3.0), v=0.0004, hold_s=0.5,
+                       keep=True, fast_mm=fm, v_fast=fv)
+        if self.probe:
+            n_B = self.reg.T_BP()[:3, :3] @ np.asarray(a["target"]["n"], float)
+        else:
+            I = self.reg.T_BI
+            c_B = apply(I, self.geo.c_I)
+            top_B = apply(I, self.geo.c_I + self.geo.R * EZ)
         r["moves"] = []
         try:
             for mv in a["moves"]:
                 ang = math.radians(mv.get("dir_deg", 0.0))
                 u_I = np.array([math.cos(ang), math.sin(ang), 0.0])
-                if a["kind"] == "slide":
+                if self.probe:
+                    centre, axis = apply(np.array(r["T_stop"]) @ self.reg.T_EM, self.reg.c_M), n_B / np.linalg.norm(n_B)
+                elif a["kind"] == "slide":
                     centre, axis = c_B, I[:3, :3] @ np.cross(EZ, u_I)
                 elif a["kind"] == "roll":
                     centre, axis = top_B, I[:3, :3] @ np.cross(EZ, u_I)
@@ -1893,7 +2054,7 @@ def main(argv=None):
         be.attach(log)
     else:
         log = SessionLog(a.logs, a.name, a.resume)
-        be = RealBackend(a, log)
+        be = RealBackend(a, log, probe=plan["geometry"].get("probe") is not None)
     log.save("plan.json", plan) if not a.resume else None
     log.save("session.json", dict(args=vars(a), started=time.strftime("%Y-%m-%d %H:%M:%S"), stages=a.stages,
                                   ft_columns="t_host seq status Fx Fy Fz Tx Ty Tz (N, N m)",

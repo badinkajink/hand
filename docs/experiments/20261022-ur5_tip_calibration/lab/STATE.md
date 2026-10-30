@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-30 14:51 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-30 15:03 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -52,6 +52,11 @@ anything 2. side map -- sure 3. yea send it".
 
 - **ID 3's suite is done.** The owner said no calibration runs tonight. The next runs use the inverted rig on the
   low seat strip (ac021c3dd), with the probe mode (below). Everything comes off the table after this suite. The arm stands at rod-final-ref's rest over the rod (joints 32.9, -61.1, 97.5, -33.1, 36.4, -6.8 deg).
+- **The probe mode is in the program and the simulator** (NOTES, "Probe mode for the inverted rig: written and
+  simulated"). `scripts/ur5_probe_plan.py` turns the workstation's seat plans into program plans. The tip mode is
+  unchanged: HEAD and the new code print the same simulated session line for line. Pass 1 needs the mount seeded
+  from a tip-mode registration and touch-offs at 1 N, and its 3.5 mm rests wait for the workstation's check.
+  Simulated: 20 of 20 touch-offs; presses then miss by about 0.1 mm along the normal and 0.13 to 0.27 mm across.
 - **The HEX-E's losses on 10-30** came at 00:08 and 11:03 (NOTES), both on arriving at tall-edge-626's pose, where all
   five tall losses came. The sensor came back by itself at 01:37 and held at that pose all morning. The owner reseated
   the connector with more cable slack at 11:09. Since then the arm has reached that pose twice (11:18:58 and
@@ -132,7 +137,7 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 
 ## Waiting on the owner
 
-- The probe mode: the owner's yes came by way of the workstation (13:2x: "sure, run the probe mode"), for code and simulations. The dry run and the first touch-offs on the robot each need the owner's go in the lab's session.
+- The probe mode on the robot: a dry run (--dry 15, about 0.5 h, the owner present) and then pass 1's touch-offs on one seat, each on the owner's go in the lab's session, once the strip and the probe are printed and mounted. The owner's yes for the code came by way of the workstation (13:2x: "sure, run the probe mode").
 - When v3 ID 1 goes back on, the three plans above.
 - A new HEX-E cable.
 

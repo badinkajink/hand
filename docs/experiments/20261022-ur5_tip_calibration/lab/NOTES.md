@@ -2021,6 +2021,64 @@ work, then 2 to 3 h of simulations: the fit recovering a perturbed T_BP and c_M,
 0.5 h, the owner present), then pass 1's touch-offs on one seat with the owner watching. Each of these needs the owner's
 go in the lab's session.
 
+## Probe mode for the inverted rig: written and simulated (10-30, from 13:4x)
+
+The owner said yes in the workstation's session (13:2x: "sure, run the probe mode"), for code and simulations. On
+leaving at 13:4x they added: "even if this aborts ... you can run the sim anyway". The dry run and the first touch-offs on
+the robot each need the owner's go in the lab's session. The program was edited only after block 6 had exited (14:49);
+until then the work ran in a scratchpad copy.
+
+- **The program** (`ur5_tip_calibration.py`, probe mode when the plan's geometry has `probe`):
+  - Frame I is the strip's A. Homing seats the probe's socket on a key of the strip, with T_IM_home that key's
+    T_AM_home, and gives T_BI = T_BA.
+  - Registration gains T_AP (the held pad on its seat) and c_M (the sphere's centre). `fit_probe_registration` fits
+    both from pad touches, with priors of 1, 1 and 0.5 deg (the roll about z_P), 0.5 mm and 0.3 mm. Its residual is
+    the tip mode's: the sphere's centre in P against the pad's surface.
+  - A target gives p, n, d and the mount's rotation R_PM in P. The sphere's centre goes to T_BP (p + R n - standoff d)
+    from the registered T_BP and c_M.
+  - Travel follows the workstation's replay: straight (back 12 mm along the stem), joint (back 45 mm, a joint move) or
+    by way of the hub. From the homing it first lifts 30 or 150 mm out of the key. A straight move only follows the
+    action the replay had before it.
+  - A twist turns about the pad's normal through the sphere's centre.
+  - The board is the seat's, its mux channel on --held-board. Without --board no robot board is opened.
+  - The push's running mean takes each of the last 20 HEX-E samples once, and the press tests it only when it is full.
+    The tip mode's mean is over the last 8 passes of its 250 Hz loop, about 3 samples. A probe pushes along the HEX-E's
+    z, and in the simulator that shorter mean crossed 0.3 N in free air: a dry run's fast approaches stopped as if in
+    contact, and once a press counted 0.5 N in air.
+  - Gravity, mount, pivot and hover stay the tip mode's.
+- **The simulator** (`ur5_tip_calibration_sim.py`): the pad stands still at T_BI T_AP, and the sphere rides on the flange.
+  The HEX-E's compliance acts on the probe (`hex_in_P`), and the HEX-E reads the push back. The held board's Earth field
+  stays constant. The truth gains `probe_err_mm` and `seat_pose_err`.
+- **The tip mode is unchanged.** HEAD's program and simulator and the new ones print the same session line for line on
+  v3 ID 3's sphere pass 1 (seed 0, stages preflight, homing, mount, pad, register).
+- **Plans**: `scripts/ur5_probe_plan.py` turns the workstation's seat plans (1912b479, with deep_clear_mm) into program
+  plans:
+  - Each press may go deep_clear_mm past contact.
+  - Each twist presses to 3 N, turns with 1 s holds, then repeats at 1 N at the same rest.
+  - Travels come from the _paths_ rows.
+  - The mux channels are the owner's: seat 1 on 3, seat 2 on 1, seat 3 on 0.
+  - Pass 1 is 20 of the presses as touch-offs, chosen greedily on the expected miss of every press.
+  - The rest poses come out within 1.9 um of the replay's.
+- **Touch-offs at 1 N.** At 0.5 N and 0.4 N, 2 of 20 touch-offs found no onset or too few samples. A probe pushes
+  along the HEX-E's z, whose noise (0.21 N a sample) is five times x's and y's, along which the tip mode's touches
+  push. At 1.0 N and 0.8 N, 20 of 20 found their onsets.
+- **Pass 1 needs the mount seeded, or a larger standoff.** Unseeded, the simulator's 0.9 deg turn of the mount about the
+  tool axis tilts the homed strip. Seats 2 and 3 then stood 1.4 mm rms (1.9 mm at most) off their CAD along the normal.
+  Rests at 1.5 mm were inside the pad, and two travels met it at 8.2 and 8.9 N. Both fixes worked:
+  - A seed with the mount as a tip-mode registration gives it: 20 of 20 and 19 of 20 at 1.5 mm.
+  - A standoff of 3.5 mm: 20 of 20 on both seats, unseeded.
+  The plans use both. The 3.5 mm rests stand 2 mm back along the push from the replay's checked rest, so they need the
+  workstation's check.
+- **Accuracy.** After pass 1 the fits leave 0.010 to 0.021 mm rms. Against the simulator's truth, the presses miss by
+  0.08 to 0.12 mm rms along the normal and 0.13 to 0.27 mm across. The across part is the roll about z_P, which the
+  pad's shape barely shows. All 280 presses as touches would still leave 0.55 deg at a 1 deg prior. At the
+  workstation's 0.5 deg the expected miss is 0.13 mm rms. Touch-offs on the cassette's flat side walls would measure the
+  roll; the workstation offered to add them.
+- **The program's own moves**, checked with the workstation's clearance and joint checks at the simulator's true cell
+  (scratchpad `probe_cell_check.py`), are clean in pass 1 apart from the homing. Seated on a key, wrist_3_link stands
+  4.03 mm from the low sphere's 2x4 (need 8). The workstation confirmed it (d52b1998b): about 5.5 mm in the real cell,
+  and about 40 mm with that 2x4 off the table.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
