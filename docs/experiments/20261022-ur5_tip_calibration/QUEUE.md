@@ -1044,6 +1044,13 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 12:5x on 10-30, owner to the workstation: "i think tonight i wont run a calibration, im going to wait until we
+    have the new set up going". At 12:56 block 4 stood at 91 of 101; the 46 actions since its 11:15:24 resume all
+    ended ok, with no HEX-E loss after the 11:09 reseat. The lab's `resume_id3.sh` starts block 6 (100 rod actions,
+    about 1.4 h) when block 4 ends clean, so v3 ID 3's suite should end near 14:50, and no night queue follows. The
+    next runs use the inverted rig: its seat strip, probe base and six tools print on one P1S plate (9 h 56 min,
+    189 g; ac021c3d), and the lab program needs the probe mode that `lab/NOTES.md` sizes at about a day of work and
+    2 to 3 h of simulations, then a `--dry` run and pass 1's touch-offs with the owner present.
   - 11:2x on 10-30, workstation: the HEX-E's link drops as the arm arrives at a pose. The same poses held the link for
     minutes at other times. The data are robot.bin and ft.bin of the 23 sessions since 10-25 (62.1 h, copied from
     corvus; `20261030-hexe_losses/`, `scripts/ur5_hexe_link_losses.py`). A loss is a gap of more than 1 s in the
