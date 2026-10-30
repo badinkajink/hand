@@ -446,7 +446,8 @@ def cmd_moves_report(a):
                     "pred_change_median": float(np.median(dp)), "pred_vs_measured_r": float(np.corrcoef(dp, dm)[0, 1]),
                     "wilcoxon_p": float(wilcoxon(dm).pvalue),
                     "starts_seeds012_median": float(np.median([full[v["src_call"]] for v in src.values()
-                                                               if v["role"] == "start"]))}
+                                                               if v["role"] == "start"])),
+                    "data": P.round(4).tolist()}
     pk = {r["call"]: r for r in FR.load(f"peak_{tag}")}
     reach_ = {int(r["call"]): bool((r["fp"].get(POSE_KEY[a.task]) or {}).get("ok"))
               for r in FR.load(f"peak_{tag}_{'tripod' if POSE_ROWS[a.task] == 'tripod' else 'pinch'}{a.d:g}_v4b")}
@@ -459,11 +460,60 @@ def cmd_moves_report(a):
         ch = np.array([s_[c] - cent[pk[c]["center"]] for c in ids])
         out["peak"]["radii"][f"{rad:g}"] = {"n": len(ch), "pose_lost": float(np.mean([not reach_.get(c, False) for c in ids])),
                                             "change_median": float(np.median(ch)), "better": float(np.mean(ch > 0.02)),
-                                            "worse_0.1": float(np.mean(ch < -0.1)), "worse_0.3": float(np.mean(ch < -0.3))}
+                                            "worse_0.1": float(np.mean(ch < -0.1)), "worse_0.3": float(np.mean(ch < -0.3)),
+                                            "changes": ch.round(4).tolist()}
     (ROWS / "peak").mkdir(parents=True, exist_ok=True)
     (ROWS / "peak" / f"summary_{tag}.json").write_text(json.dumps(out, indent=1))
-    print(json.dumps(out, indent=1), flush=True)
+    print({k: {k2: v2 for k2, v2 in v.items() if k2 not in ("data", "radii")} for k, v in out.items()}, flush=True)
     return 0
+
+
+def fig_value(task, size, out=None):
+    """Design gradients on one task and object, three panels: steps of 10 mm on the measured 2-D grid along the value
+    model's gradient and in random directions; the trust-region moves of the best Sobol layouts on fresh seeds, measured
+    against predicted change; the score change around the best layouts by perturbation radius, with the share of
+    perturbations that lose the pose."""
+    plt = FR.plt_setup()
+    tag = f"{task}{size:g}"
+    v = json.loads((SIZE_ROWS / f"value_{task}_d{size:g}.json").read_text())
+    pk = json.loads((ROWS / "peak" / f"summary_{tag}.json").read_text())
+    fig, axs = plt.subplots(1, 3, figsize=(16.5, 5.0), constrained_layout=True)
+    ax = axs[0]
+    gs = v["grid_steps"]
+    for k, (name, lab) in enumerate((("gradient", "along the gradient"), ("random", "random direction"))):
+        ax.bar([k - 0.18], [gs[name]["raised"]], 0.34, color="#2ca02c", label="raised" if k == 0 else None)
+        ax.bar([k + 0.18], [gs[name]["lowered"]], 0.34, color="#d62728", label="lowered" if k == 0 else None)
+        ax.text(k, max(gs[name]["raised"], gs[name]["lowered"]) + 0.03, f"median {gs[name]['median_change']:+.3f}\n"
+                f"n = {gs[name]['steps']}", ha="center", fontsize=11)
+    ax.set_xticks([0, 1], ["along the gradient", "random direction"])
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("share of 10 mm steps")
+    ax.set_title("(a) grid: measured score after a step")
+    ax.legend(loc="upper right")
+    ax = axs[1]
+    P = np.array(pk["trust"]["data"])
+    ax.scatter(P[:, 3] - P[:, 2], P[:, 1] - P[:, 0], s=14, color="k", alpha=0.6, lw=0)
+    ax.axhline(0, color="0.5", lw=0.8)
+    ax.axvline(0, color="0.5", lw=0.8)
+    ax.set_xlabel("predicted change of the score")
+    ax.set_ylabel("measured change, fresh seeds")
+    ax.set_title(f"(b) best Sobol layouts moved 3-5 mm ({pk['trust']['pairs']} pairs)")
+    ax = axs[2]
+    rad = [0.0] + [float(r) for r in pk["peak"]["radii"]]
+    med = [0.0] + [pk["peak"]["radii"][r]["change_median"] for r in pk["peak"]["radii"]]
+    q1 = [0.0] + [float(np.percentile(pk["peak"]["radii"][r]["changes"], 25)) for r in pk["peak"]["radii"]]
+    q3 = [0.0] + [float(np.percentile(pk["peak"]["radii"][r]["changes"], 75)) for r in pk["peak"]["radii"]]
+    ax.fill_between(rad, q1, q3, color="#1f77b4", alpha=0.2, lw=0, label="quartiles")
+    ax.plot(rad, med, "o-", color="#1f77b4", label="median")
+    ax.set_xlabel("perturbation of the mounts (mm)")
+    ax.set_ylabel("score change against the centre")
+    ax2 = ax.twinx()
+    ax2.bar(rad[1:], [pk["peak"]["radii"][r]["pose_lost"] for r in pk["peak"]["radii"]], 0.8, color="0.6", alpha=0.6)
+    ax2.set_ylim(0, 1)
+    ax2.set_ylabel("share losing the pose (bars)")
+    ax.set_title(f"(c) around the best {pk['peak']['centres']} layouts")
+    ax.legend(loc="upper right")
+    FR.save(fig, out or f"20261030-value_{task}_d{size:g}.png")
 
 
 # ------------------------------------------------------------------------------------------------ the 2-D grid with grasp sets
@@ -795,6 +845,8 @@ def cmd_figures(a):
         for size in SIZES[task]:
             if (GRID_ROWS / f"{task}_d{size:g}.jsonl").exists():
                 fig_grid(task, size)
+            if (ROWS / "peak" / f"summary_{task}{size:g}.json").exists():
+                fig_value(task, size)
     return 0
 
 

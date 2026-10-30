@@ -1173,6 +1173,68 @@ symmetric position, which every foundational pose keeps, on <<th>> % of the layo
     return t
 
 
+def gradient_numbers(task="twist", d=40.0):
+    """The value model, its gradient check on the grid, the trust-region moves and the peak widths (hom_landscape.py
+    value, moves, moves-report), and the median nearest-neighbour spacing of the Sobol layouts."""
+    import hom_landscape as L
+    from scipy.spatial import cKDTree
+    v = json.loads((L.SIZE_ROWS / f"value_{task}_d{d:g}.json").read_text())
+    pk = json.loads((ROWS / "peak" / f"summary_{task}{d:g}.json").read_text())
+    _d, z = L.layouts()
+    nn = float(np.median(cKDTree(z).query(z, k=2)[0][:, 1]))
+    return {"v": v, "pk": pk, "nn": nn}
+
+
+def sec_gradients(N):
+    import fp_sr2_toy as FP
+    g = N["grad"]
+    v, pk = g["v"], g["pk"]
+    tr, pe = pk["trust"], pk["peak"]["radii"]
+    span = FP.HI6 - FP.LO6
+    t = fill(r"""<p>Bohlinger and Peters [5] follow the gradient of a learned critic with respect to the design. Without
+RL training the same gradient comes from a smooth model of the HOM scores over the six layout coordinates.
+<code>hom_landscape.py value</code> fits kernel ridge regression with a Gaussian kernel to the twist scores of the
+8,192 Sobol layouts on the 40 mm sphere: the foundational pose, three seeds, and 0 where the pose is not reached. By
+five-fold cross-validation it predicts held-out layouts at R<sup>2</sup> <<r2>> and Spearman <<cvs>>, with a length
+scale of <<ls>> of each gantry's travel (<<ls0>> to <<ls1>> mm). On the 506 layouts of the grid, which it never saw,
+its predictions rank the measured scores at Spearman <<gs>>.</p>
+<p>At the scale of the grid the gradient points uphill (Figure <<fa>>a). From each grid layout, a 10 mm step along the
+gradient, projected onto the grid's plane, raised the measured score on <<up>> % of <<ns>> steps (median change
+<<um>>). A step of the same length in a random direction raised it on <<ru>> % (median <<rm>>).</p>
+<p>Near the best layouts the gradient fails. The best 200 Sobol layouts were moved along it inside a trust region of 0.1
+of each travel, by a median of <<m0>> to <<m1>> mm per coordinate. The moved layouts and their starts then ran again on
+fresh seeds (Figure <<fa>>b). The moves lowered the score in <<wo>> % of the <<np>> pairs that reached their pose (median
+change <<cm>>, Wilcoxon p = <<wp>>). The model predicted a median gain of <<pg>>, and predicted and measured changes
+correlate at <<pr>>. The starts themselves fell from <<s0>> on the seeds they were chosen on to <<s1>> on fresh
+ones.</p>
+<p>The best layouts sit on peaks a few millimetres wide (Figure <<fa>>c). Each of the <<nc>> best starts was perturbed in
+ten random directions by 2, 4 and 8 mm of the six mount coordinates, its foundational pose solved again, and run on three
+more seeds. At 2 mm, <<l2>> % of the perturbed layouts lost the pose and the median score fell by <<c2>>. At 4 mm the
+figures were <<l4>> % and <<c4>>, and at 8 mm <<l8>> % and <<c8>>. Neighbouring Sobol layouts lie a median <<nn>> of each
+travel apart, <<nn0>> to <<nn1>> mm, so a model fitted to them cannot resolve such peaks. Refining a layout therefore
+needs rollouts in its own neighbourhood, at steps of 1 to 2 mm.</p>""",
+             r2=f"{v['cv_r2']:.2f}", cvs=f"{v['cv_spearman']:.2f}", ls=f"{v['ls']:g}", ls0=f"{v['ls'] * span.min():.0f}",
+             ls1=f"{v['ls'] * span.max():.0f}", gs=f"{v['grid_check']['spearman']:.2f}", fa=FIG[0] + 1,
+             up=f"{100 * v['grid_steps']['gradient']['raised']:.0f}", ns=v["grid_steps"]["gradient"]["steps"],
+             um=f"{v['grid_steps']['gradient']['median_change']:+.3f}",
+             ru=f"{100 * v['grid_steps']['random']['raised']:.0f}", rm=f"{v['grid_steps']['random']['median_change']:+.3f}".replace("+0.000", "0"),
+             m0=f"{min(v['trust']['moves_mm']):.1f}", m1=f"{max(v['trust']['moves_mm']):.1f}",
+             wo=f"{100 * tr['worse']:.0f}", np=tr["pairs"], cm=f"{tr['change_median']:+.3f}",
+             wp=f"{tr['wilcoxon_p']:.0e}", pg=f"{tr['pred_change_median']:+.2f}", pr=f"{tr['pred_vs_measured_r']:.2f}",
+             s0=f"{tr['starts_seeds012_median']:.2f}", s1=f"{tr['start_median']:.2f}", nc=pk["peak"]["centres"],
+             l2=f"{100 * pe['2']['pose_lost']:.0f}", c2=f"{-pe['2']['change_median']:.2f}",
+             l4=f"{100 * pe['4']['pose_lost']:.0f}", c4=f"{-pe['4']['change_median']:.2f}",
+             l8=f"{100 * pe['8']['pose_lost']:.0f}", c8=f"{-pe['8']['change_median']:.2f}",
+             nn=f"{g['nn']:.2f}", nn0=f"{g['nn'] * span.min():.0f}", nn1=f"{g['nn'] * span.max():.0f}")
+    t += img(MEDIA / "20261030-value_twist_d40.png",
+             "Design gradients on the twist of the 40 mm sphere. (a) Steps of 10 mm on the measured grid along the value "
+             "model's gradient and in random directions: the share that raised and lowered the score. (b) The best Sobol "
+             "layouts moved inside the trust region, on fresh seeds: measured against predicted change. (c) Score change "
+             "around the best layouts by perturbation radius (median and quartiles; a pose not reached scores 0), with "
+             "the share of perturbations that lose the foundational pose.")
+    return t
+
+
 def sec_related():
     return r"""<p>Four lines of work bear on this design study. Each answers part of the question, with a different
 controller in the loop.</p>
@@ -1368,10 +1430,12 @@ neighbours, moved to it as palm-frame keyframes (<code>logs/20261029-hom_sizes/g
 <code>hom_landscape.py derive</code>, then <code>hom_gpu.py run --layouts grid2dval_size grid2dnb_size</code>). The gain
 of Section SEC[grid] repeats if the best grasp beats the foundational pose on fresh seeds on most layouts. A grasp
 transfers to a neighbouring layout if its score there comes within 0.1 of the layout's own best.</li>
-<li>Fit a smooth model of each task's score over the six layout coordinates on the size study's Sobol rows
-(<code>rows/sizes_v4b</code>). Follow its gradient from many starts as in [5], and compare the end points with the
-basins of the grid. Run the evolutionary search of [6] on the same evaluator as a baseline, counting rollouts to reach
-the best basin.</li>
+<li>Refine the best layouts by rollouts in their own neighbourhood: around each of the 20 best twist layouts, a
+local Sobol design of 64 layouts within 2 mm, three seeds each (<code>hom_landscape.py moves</code> with a smaller
+radius, then <code>fp_sr2_toy.py poses</code> and <code>hom_gpu.py run</code>). The refinement works if the best of
+the 64 beats its centre on three further seeds for most of the 20.</li>
+<li>Run the evolutionary search of [6] on the same evaluator as a baseline, counting rollouts to reach the best basin of
+the grid.</li>
 <li>Build a sampling MPC over HOM's commands on MuJoCo-Warp (<code>scripts/hom_mpc_gpu.py</code>) and compare it with
 HOM's fixed schedules on the grid's best layouts. Measure its control rate against real time.</li>
 </ol>"""
@@ -1489,6 +1553,7 @@ the maps, have mean scores of <<m0>> to <<m1>> and differ visibly.</p>""",
     N["cylsob"] = cyl_set("hom6d_gpu_pinpush", "hom6d_gpu_press")
     N["v4b"] = v4b_numbers()
     N["grid"] = grid_numbers()
+    N["grad"] = gradient_numbers()
     N["check_text"] = fill(r"""<p>The toy's scores are kinematic, and the HOM tasks are dynamic. Table 2 runs the HOM twist of a
 40 mm sphere on <<nl>> symmetric tripods from the 2-D case, chosen evenly by rank of the tripod's kinematic rotation
 range (<code>scripts/fp_hom_check.py</code>). The twist is the task study's: steps of 40 deg/s, then a 30 deg/s ramp,
@@ -1520,6 +1585,7 @@ the grasp, and for the twist that decides the outcome.</p>""",
         ("sense", "Sensing errors across the layouts", sec_sense(N)),
         ("v4b", "The calibrated v4b fingertip in the layout search", sec_v4b(N)),
         ("grid", "Grasps synthesized per layout on a grid of symmetric tripods", sec_grid(N)),
+        ("gradients", "Design gradients from a model of the HOM scores", sec_gradients(N)),
         ("separate", "Grasp and in-hand control: one problem or two", sec_separate(N)),
         ("plan", "A plan for a Pareto front of SR2 layouts under HOM control", sec_plan(N)),
         ("related", "Related design studies and how this one builds on them", sec_related()),
