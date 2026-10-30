@@ -1516,7 +1516,8 @@ The clearances in this section and the one before it are on mount v3. The next s
 - 21 of 21 touch-offs and 5 pivot presses ok, no abort, no early contact. Every onset came 0.51 to 0.69 mm later than
   the seed expected.
 - The touch-off searches 1.2 mm past the expected surface (`beyond_mm`). From the onset to its 0.5 N stop it pressed
-  0.14 to 0.34 mm more, so the stops came 0.27 to 0.37 mm short of that limit.
+  0.14 to 0.36 mm more, so the stops came 0.15 to 0.44 mm short of that limit. (Corrected at 23:12 on 10-29; this line
+  said 0.27 to 0.37 mm.)
 - Pad touches 0.023 mm rms (v3 ID 1 on the rod: 0.042). The fit moved the tool 0.57 mm and 0.86 deg from block 1's
   sphere tool, and the rod 0.16 mm from 102701's. So the late onsets came from the tool as this rod sees it, and the
   rod did not move.
@@ -1757,13 +1758,40 @@ The clearances in this section and the one before it are on mount v3. The next s
 - At its exit the chain started block 4's simulations on this registration (2 chunks, every 5th sample) and waited for
   block 2's chunks.
 
-### Block 2: ID 3's sphere stage 2 (from 16:34:16)
+### Block 2: ID 3's sphere stage 2 (16:34:16 to 23:07:05)
 
+- `lab/20261029-plan_sphere_lab_stage2_night_v3id3.json`, resumed on 134508 with stages
+  preflight,grid,shear,roll,twist,final (printout: `printout_stage2_1634.txt` in its copy). The chain checked the home
+  path and went home first (0.02 mm from the target).
 - Its 4 chunks passed at 16:33:28, simulated on block 1's registration and checked on every 5th sample: the mount
   3.56 mm and the finger 1.37 mm at least, joint 6 from -63.1 to 42.0 deg, joint 5 6.0 deg inside its window at least.
   Each chunk's check took about 1.5 to 2 h on every 5th sample, so the arm waited 46 min after block 3.
-- Resumed on block 1's folder, stages preflight,grid,shear,roll,twist,final, after the home path check and go home
-  (0.02 mm). Printout `logs/20261029-163416-tipcal-spherev3id3.log`.
+- 211 of 211 ok, no abort, no early contact, and every press reached its force. Grid 116 (16:34 to 18:11), shear 77
+  (to 22:23), roll 2, twist 12 and final 4. It took 6.55 h; ID 2's took 6.6 h.
+- On the robot, joint 6 ran from -62.8 to +42.3 deg, and joint 5 came 6.1 deg inside its window, as the simulation
+  had it. The elbow stayed at least 89 deg from straight.
+- The HEX-E: 2.35 million samples, no time-out. Its one gap over 0.5 s (0.7 s) came at 16:34:17, before the first
+  action.
+- At 2 N, the face-centre reference stopped 2.19 to 2.32 mm along its approach in the grid's ten reference presses
+  (16:35 to 18:12, mean 2.26 mm). At 23:05 to 23:07 it stopped at 2.29 to 2.35 mm (mean 2.31 mm). Sideways it moved
+  0.05 mm at most. ID 2's reference stepped 0.10 mm deeper in its first 20 minutes. ID 3's scattered over 0.12 mm
+  with no step, and ended 0.05 mm deeper after the shear's four hours.
+
+### Block 5: ID 3's rod pass 1 from a seed (from 23:08:21)
+
+- Simulated from home on a seed of block 1's tool and 031559's rod: no abort, the mount 3.16 mm and the finger 2.30 mm
+  from the cell, joint 6 from -52.2 to +24.7 deg, joint 5 3.8 deg inside its window, the elbow at least 71 deg from
+  straight.
+- After block 2's exit 0, the chain checked the home path from 134508's last pose and went home (0.05 mm from the
+  target). It made the seed `logs/20261029-tip_calibration/230820-rodv3id3` and resumed there with stages
+  preflight,pad,pivot,register on `lab/20261029-plan_rod_lab_pass1_night_v3id3.json`, seat `rod_indenter_seated_3`.
+  Printout `logs/20261029-230821-tipcal-rodv3id3.log`.
+- The first five touch-offs came 0.66 to 0.77 mm later than the seed expected (ID 2: 0.51 to 0.69 mm). From the onset
+  to the 0.5 N stop they pressed 0.25 to 0.36 mm more. So the stops came 0.12 to 0.27 mm short of the search's limit,
+  1.2 mm past the expected surface (`beyond_mm`). ID 2's came 0.15 to 0.44 mm short, the closest at pad-face-02.
+- A touch-off that reaches the limit before 0.5 N does not abort. The program records the end of its travel and fits
+  the onset to the force it has, up to 0.4 N. Only a touch with no contact onset aborts, after it backs off to its
+  rest pose.
 
 ### The night's plans, after the finer path checks (14:4x)
 

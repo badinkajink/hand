@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-29 16:34 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-29 23:11 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -45,13 +45,13 @@ anything 2. side map -- sure 3. yea send it".
 | top edge | `20261029-plan_sphere_lab_top_edge_v3id3.json` | 26 | Done 14:50 to 15:11: 26 of 26. 24 presses (ID 2 had 10) and two references. |
 | side map | `20261029-plan_holder_lab_side_up_v3id3.json` | 24 | Done 15:13 to 15:29: 24 of 24 (`20261029-151334-sidev3id3`). |
 | block 3 | `20261029-plan_tall_lab_pass1_night_v3id3.json` | 19 | Done 15:30 to 15:48: 19 of 19, 0.055 mm rms (`20261029-153034-tallv3id3`). |
-| block 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Running from 16:34:16 (resumed on block 1's folder), about 6.5 h. |
-| block 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | Then: a seed of block 1's tool and 031559's rod. Stages preflight,pad,pivot,register. |
-| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | Then: resumed on block 3's folder. tall-slide-flank-585-1N is left out (mount 2.97 mm). |
+| block 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Done 16:34 to 23:07: 211 of 211, no abort, no early contact, 6.55 h (resumed on block 1's folder). |
+| block 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | Running from 23:08:21 on a seed of block 1's tool and 031559's rod (`logs/20261029-tip_calibration/230820-rodv3id3`). Stages preflight,pad,pivot,register. |
+| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | Then: resumed on block 3's folder. Its 2 chunks passed (mount 3.73 mm, joint 5 0.6 deg inside its window). tall-slide-flank-585-1N is left out (mount 2.97 mm). |
 | block 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Last: resumed on block 5's folder. |
 
-- The night runs in ID 2's order 3, 2, 5, 4, 6, through scratchpad `id3_chain.sh`. That is about 12 h, so it ends
-  around 03:30 on 10-30.
+- The night runs in ID 2's order 3, 2, 5, 4, 6, through scratchpad `id3_chain.sh`. Block 2 started 46 min late, waiting
+  for its simulations, so the night now ends around 04:10 on 10-30.
 - Each block starts only after the run before it exits 0 with no ABORT line, and after the simulations that gate it
   pass. Block 2's 4 chunks run on block 1's registration, block 3 on seat 1, and block 5 on its seed. Blocks 4 and 6
   run on their pass's registration, checked on every 5th sample. Then come the home path check and go home. If a step
