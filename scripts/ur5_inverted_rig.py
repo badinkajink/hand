@@ -934,8 +934,11 @@ def clearance(q, ctx, contact=None, groups=None):
     return res
 
 
-def clear_flags(cl):
-    why = [f"{grp} {cl[grp][0]:.2f} mm to the {cl[grp][1]}" for grp, need in NEED.items() if cl.get(grp, (1e9,))[0] < need]
+def clear_flags(cl, extra=None):
+    """What comes under its margin (NEED, plus extra mm per group)."""
+    extra = extra or {}
+    why = [f"{grp} {cl[grp][0]:.2f} mm to the {cl[grp][1]}" for grp, need in NEED.items()
+           if cl.get(grp, (1e9,))[0] < need + extra.get(grp, 0.0)]
     if cl.get("port", (1e9,))[0] < PORT_MM:
         why.append(f"port {cl['port'][0]:.1f} mm to the arm")
     return why
@@ -1329,6 +1332,11 @@ def own_moves(ctx, act):
     return segs
 
 
+DEEP_EXTRA = dict(tip=0.1)   # the k-d tree's distance to the tip body read up to 0.105 mm long by the tool's end next to
+#                              the cassette, against the exact mesh (body-check, 10-30 16:3x): 7 deepest poses stood
+#                              0.26 to 0.295 mm off it where the tree read 0.30 or more
+
+
 def deep_clear(ctx, act, P_A, deep_max=2.0, step=0.25, owner=False):
     """The deepest press past contact that an action clears: from DEEP in steps of step mm to deep_max, its deep pose (and,
     for a twist, each step of its turn there) keeps the joint windows and the clearances. The program presses to its force
@@ -1351,7 +1359,7 @@ def deep_clear(ctx, act, P_A, deep_max=2.0, step=0.25, owner=False):
         qq = q
         for P in poses:
             qq = ik_near(P[None], qq, branch=BR[0])[0]
-            if not np.isfinite(qq).all() or joint_flags(qq, owner) or clear_flags(clearance(qq, ctx, contact)):
+            if not np.isfinite(qq).all() or joint_flags(qq, owner) or clear_flags(clearance(qq, ctx, contact), DEEP_EXTRA):
                 return round(float(best), 2)
         q = ik_near(T[None], q, branch=BR[0])[0]
         best = depth
@@ -1629,6 +1637,101 @@ def cmd_walls(a):
     print("->", dst)
 
 
+def _winding(V, F, P, chunk=256):
+    """The generalized winding number of points P (N, 3) about the triangle mesh (V, F): about 1 inside, 0 outside, also
+    for a mesh with holes (van Oosterom and Strackee's solid angle per triangle)."""
+    tri = V[F]
+    out = np.zeros(len(P))
+    for i in range(0, len(P), chunk):
+        a, b, c = (tri[None, :, k, :] - P[i:i + chunk, None, :] for k in range(3))
+        la, lb, lc = (np.linalg.norm(x, axis=2) for x in (a, b, c))
+        num = np.einsum("ntk,ntk->nt", a, np.cross(b, c))
+        den = la * lb * lc + np.einsum("ntk,ntk->nt", a, b) * lc + np.einsum("ntk,ntk->nt", a, c) * lb \
+            + np.einsum("ntk,ntk->nt", b, c) * la
+        out[i:i + chunk] = np.arctan2(num, den).sum(axis=1) / (2.0 * math.pi)
+    return out
+
+
+def cmd_body_check(a):
+    """The tip body's distance (cassette and cap) to the probe's tool, exact against the k-d tree's estimate that the
+    clearances use (_tree_sdf, its sign from the 8 nearest samples' normals; lab, 16:2x on 10-30: it read a point 6.3 mm
+    outside as 6.4 inside). At every action's deep pose and at its deep_clear_mm, every step of each twist there, and every
+    wall touch's deep pose: the tool's points (end and stem) within 3 mm of the body by either measure, their exact signed
+    distance (nearest point on each mesh; inside by the winding number, which holds for the cap's open mesh too)."""
+    import trimesh
+    t0 = time.time()
+    meshes = [CELL.part_F(n) for n in ("cover", "cap")]
+    walls = json.loads((OUT / "data" / f"{STEM}_walls.json").read_text())["seats"]
+    res = dict(what="the tool's distance to the tip body (cassette and cap): the clearances' k-d tree estimate against the "
+                    "exact signed distance, at each action's deepest poses and the wall touches", need=NEED, seats={})
+    for seat in (0, 1, 2):
+        src = json.loads((OUT / "data" / f"{STEM}_plan_up_xm_seat{seat + 1}.json").read_text())
+        HOME_KEY[0] = 1 if seat == 2 else 0
+        ctx = context(dict(orient=src["orient"], seat_h=SEAT_BLOCK["seat_h"]), tool=src["tool"])
+        st = ctx["g"]["seats"][seat]
+        T_FB = C.inv(np.asarray(st["T_AF"], float)) @ C.inv(ctx["T_BA"])
+        R_BA = ctx["T_BA"][:3, :3]
+        pts = probe_points(ctx["tool"])
+        groups = dict(tip=pts["tool_tip"], stem=pts["tool_stem"])
+        poses = []                                       # (id, T_BE, cut point in F or None)
+        for x in src["actions"]:
+            Td = np.asarray(x["T_deep"], float)
+            d_B = R_BA @ np.asarray(x["d_A"], float)
+            for depth in sorted({src.get("deep_mm", DEEP), float(x.get("deep_clear_mm", DEEP))}):
+                T = Td.copy()
+                T[:3, 3] += (depth - src.get("deep_mm", DEEP)) * d_B
+                poses.append((f"{x['id']}@{depth:g}", T, None))
+                if x["kind"] == "twist":
+                    TM = T @ ctx["T_EM"]
+                    c_B = TM[:3, 3] + TM[:3, 2] * tool_end_z(ctx["tool"])
+                    n_B = R_BA @ np.asarray(x["n_A"], float)
+                    for s_ in np.linspace(0.0, 1.0, 16)[1:]:
+                        poses.append((f"{x['id']}@{depth:g}+{x['twist'] * s_:.0f}", C.turn_about(T, c_B, n_B, x["twist"] * s_), None))
+        for w in walls[str(seat + 1)]["actions"]:
+            pF = C.apply(T_FB @ ctx["T_BA"], np.asarray(w["p_A"], float)) if False else \
+                C.apply(C.inv(np.asarray(st["T_AF"], float)), np.asarray(w["p_A"], float))
+            poses.append((w["id"], np.asarray(w["T_deep"], float), pF))
+        worst = dict(tip=(1e9, ""), stem=(1e9, ""))
+        miss, false_flag, n_pts = [], 0, 0
+        for pid, T_BE, cutF in poses:
+            T_FM = T_FB @ T_BE @ ctx["T_EM"]
+            for grp, P in groups.items():
+                PF = C.apply(T_FM, P)
+                est = _tree_sdf(PF, "body")
+                lo, hi = np.min([m.bounds[0] for m in meshes], axis=0) - 3.0, np.max([m.bounds[1] for m in meshes], axis=0) + 3.0
+                k = (np.abs(est) < 3.0) | np.all((PF > lo) & (PF < hi), axis=1)
+                if cutF is not None:                     # a wall touch: the body left out near its contact, as checked
+                    k &= np.linalg.norm(PF - cutF, axis=1) >= WALL["cut"]
+                if not k.any():
+                    continue
+                Q = PF[k]
+                n_pts += len(Q)
+                ex = np.full(len(Q), 1e9)
+                for m in meshes:
+                    _, dist, _ = trimesh.proximity.closest_point(m, Q)
+                    inside = _winding(m.vertices, m.faces, Q) > 0.5
+                    ex = np.minimum(ex, np.where(inside, -dist, dist))
+                need = NEED["tip" if grp == "tip" else "stem"]
+                e = est[k]
+                j = int(np.argmin(ex))
+                if ex[j] < worst[grp][0]:
+                    worst[grp] = (float(ex[j]), pid)
+                bad = (ex < need) & (e >= need)          # exactly under the margin, read as clear: the dangerous case
+                if bad.any():
+                    i = int(np.argmin(np.where(bad, ex, 1e9)))
+                    miss.append(dict(pose=pid, group=grp, exact_mm=round(float(ex[i]), 3), tree_mm=round(float(e[i]), 3),
+                                     point_F=np.round(Q[i], 3).tolist()))
+                false_flag += int(((e < need) & (ex >= need)).any())
+        res["seats"][str(seat + 1)] = dict(poses=len(poses), points=n_pts, worst_exact={g_: [round(v[0], 3), v[1]] for g_, v in worst.items()},
+                                           missed=miss, poses_with_false_flags=false_flag)
+        print(f"seat {seat + 1}: {len(poses)} poses, {n_pts} points near the body; exact least: tip {worst['tip'][0]:.3f} mm "
+              f"({worst['tip'][1]}), stem {worst['stem'][0]:.3f} mm ({worst['stem'][1]}); read clear but under the margin: "
+              f"{len(miss)}; poses with a false flag: {false_flag}; {time.time() - t0:.0f} s", flush=True)
+    dst = OUT / "data" / f"{STEM}_body_check.json"
+    dst.write_text(json.dumps(res, default=float) + "\n")
+    print("->", dst)
+
+
 def cmd_pass1_check(a):
     """The lab's pass 1 as its converter writes it (scripts/ur5_probe_plan.py PLAN --pass1-standoff MM): the touch-offs in
     their order, each from its rest a.standoff mm back along d to beyond_mm past contact and back, the joint travels
@@ -1859,6 +1962,7 @@ def main():
     pc.add_argument("--owner", action="store_true")
     pc.add_argument("--walls", action="store_true", help="add data/<stem>_walls.json's touch-offs after the pad's")
     sub.add_parser("walls")
+    sub.add_parser("body-check")
     sb = sub.add_parser("seat-beam")
     sb.add_argument("--orient", default=",".join(ORIENT))
     sb.add_argument("--wall", type=float, default=2.0)
@@ -1911,7 +2015,7 @@ def main():
     if getattr(a, "h", 0.0) is None:                    # the plate's own seat height
         a.h = (SEAT_BLOCK if PLATE[0] == "block" else LAYOUT)["seat_h"]
     dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam, "home-check": cmd_home_check,
-            "pass1-check": cmd_pass1_check, "walls": cmd_walls}, build=cmd_build,
+            "pass1-check": cmd_pass1_check, "walls": cmd_walls, "body-check": cmd_body_check}, build=cmd_build,
          reach=cmd_reach, replay=cmd_replay, film=cmd_film)[a.cmd](a)
 
 

@@ -586,9 +586,23 @@ def block_text(fig_path):
         text += (f"<p>The plans are checked with each press 1.0 mm past contact. Each action also records the deepest "
                  f"press that it clears, in 0.25 mm steps to 2.0 mm, with every step of a twist checked at that depth. "
                  f"{deep} of the {n_all} actions clear 1.25 mm or more; with the 5 mm sphere on the tall indenter, 3 N "
-                 f"took at most 1.19 mm. The {n_all - deep} that clear only 1.0 mm are flank presses by the cassette's "
-                 f"walls. Checked at 2.0 mm for every action, the plans kept 145, 142 and 133 actions, and 13 twists "
-                 f"brought the sphere's neck into the pad.</p>")
+                 f"took at most 1.19 mm. The {n_all - deep} that clear only 1.0 mm press the flanks, or an edge, by the "
+                 f"cassette's walls. Checked at 2.0 mm for every action, the plans kept 145, 142 and 133 actions, and 13 "
+                 f"twists brought the sphere's neck into the pad.</p>")
+        bc = BLOCK / "data" / f"{R.BLOCK_STEM}_body_check.json"
+        if bc.exists():
+            bk = json.loads(bc.read_text())["seats"]
+            n_p = sum(v["poses"] for v in bk.values())
+            tip = min(v["worst_exact"]["tip"][0] for v in bk.values())
+            stem = min(v["worst_exact"]["stem"][0] for v in bk.values())
+            nm = sum(len(v["missed"]) for v in bk.values())
+            text += (f"<p>The clearances take the tip body's distance from a k-d tree of surface samples, its sign from the "
+                     f"nearest samples' normals. Against the exact meshes of the cassette and the cap, at every action's "
+                     f"deepest poses, each step of the twists there and the wall touches ({n_p} poses), the tool's end "
+                     f"stays {tip:.2f} mm or more from them and its stem {stem:.2f} mm. The tree had read up to 0.105 mm long "
+                     f"next to the cassette, so each action's deepest press keeps 0.1 mm more on the tool's end; "
+                     f"{'no pose' if nm == 0 else f'{nm} poses'} then {'stands' if nm == 0 else 'stand'} under the margin "
+                     f"by the exact distance.</p>")
     text += (
         f"<p>A sixth tool takes a fingertip by its cassette, screwed by its four M2 &#215; 8 onto a station block as on "
         f"a seat, with no DIP link. Its palmar face points along the tool axis, so the robot can hold that tip face to "
