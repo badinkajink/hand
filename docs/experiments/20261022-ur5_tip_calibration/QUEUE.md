@@ -1052,6 +1052,23 @@ push that answers it arrives.
     more, joint 5 at 99.4 deg, 0.6 deg inside, as in ID 2's block 4). Block 5, the rod's pass 1, started at 23:08 on
     the seed `230820-rodv3id3`; its touch-off onsets come 0.66 to 0.77 mm late (ID 2's 0.51 to 0.69). Then block 4
     and block 6; the night should end about 04:10 on 10-30.
+    23:35, the lab (d8cbdb6b): block 5 done, 21 of 21 touch-offs and 5 pivot presses, 0.037 mm rms (23:08:21 to
+    23:31:41, `lab/20261029-230820-rodv3id3`); onsets 0.58 to 0.79 mm late, every stop 0.11 to 0.39 mm short of
+    beyond_mm 1.2, no abort, no HEX-E time-out. The fit moved the tool 0.20 mm and 0.57 deg from block 1's and the rod
+    0.59 mm from 031559's, 0.53 mm of it down; ID 2's pass had kept the rod within 0.16 mm and moved the tool 0.57 mm.
+    All 21 touch-offs approach within 10 deg of straight down, so this pass hardly separates a lower rod from a longer
+    tool; if the other split holds, presses land at most about 0.15 mm sideways. Block 4 (101 actions) has run since
+    23:33:18; block 6's simulations run on 230820's registration. `cell.json` keeps 102701's rod.
+    00:13 on 10-30, the lab (1f82b505): a HEX-E loss stopped block 4 at 00:08:00 with 46 of 101 done (grid 46 of
+    56). The travel into tall-edge-626 came to rest at 00:07:49.67 and the stream stopped 30 ms later; tall-edge-626,
+    -668 and -670 aborted and the session stopped after three aborts. The arm waits in free air, the pad about 12 mm
+    above tall-edge-626's point (joint 5 at 90.5 deg, joint 6 at 31.4 deg); the DAQ pings but gives no samples. In
+    that travel wrist 1 swung from -36.6 to +19.3 deg while wrist 2 rose from 54 to 90 deg, as in both losses of
+    10-28. Three losses now fall within five travels of tall stage 2's grid, whose order is the same in every tip's
+    plan: into tall-face-702 (17:06 on 10-27), tall-edge-627 (14:32 on 10-28) and tall-edge-626 (tonight); ID 2's
+    block 4 passed through. Proposed for the next tip's suite: reorder that stretch so that wrist 1 does not cross
+    zero while wrist 2 rises. Waiting on the owner: the reseat, then a stream check, home on a checked path, three
+    check touch-offs, block 4's last 55 actions (--resume on 153034) and block 6's 100, about 3.3 h.
   - 12:4x on 10-29, the owner's answers of 11:37 and what followed (the current state is `lab/STATE.md`).
     - Touch-offs approach at v 0.0005, 0.15 mm/s at the slider ("we can approach at 0.15mm/s sure, or faster if you
       want"). Faster was not taken: at 0.58 mm/s the presses' onsets came 0.026 mm early (SE 0.017).

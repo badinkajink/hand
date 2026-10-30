@@ -44,16 +44,20 @@ BASE_SCENE = ROOT / "assets/mjcf/real_v1/scenes/scene_screwdriver_medium.xml"
 # SCALE_HAND=cad_v1 selects the CAD-faithful finger of scripts/build_cad_v1_finger.py (2026-10-14): its MCP link spaces
 # the MCP and PIP axes 30.80 mm apart against real_v1's 20.75 mm; the yaw-to-MCP spacing, the PIP-to-pad-centre distance
 # and the mounts are real_v1's (assets/mjcf/experimental/20261013-cad_v1/assembly.json, report.kinematics_mm).
+# SCALE_HAND=cad_v2 (2026-10-30, owner: "make sure we have sphere-packed the new half ellipsoid fingertips"): the cad_v1
+# finger with the fingertip of the UR5 calibration (scripts/build_cad_v2_finger.py): the DIP link b v4 is 9.75 mm longer,
+# so the pad's centre plane (the half-ellipsoid's apex, 10.55 mm from the finger's axis as the block's palmar face) lies
+# 36.36 mm below the PIP axis.
 HAND = os.environ.get("SCALE_HAND", "real_v1")
-if HAND not in ("real_v1", "cad_v1"):
-    raise SystemExit(f"SCALE_HAND={HAND}: expected real_v1 or cad_v1")
+if HAND not in ("real_v1", "cad_v1", "cad_v2"):
+    raise SystemExit(f"SCALE_HAND={HAND}: expected real_v1, cad_v1 or cad_v2")
 
 # --- CAD geometry (build_real_v1_scenes.py), metres -----------------------------------------
 J = 0.020750                  # yaw axis -> MCP axis (and, on real_v1, MCP axis -> PIP axis)
-J2 = 0.030800 if HAND == "cad_v1" else J    # MCP axis -> PIP axis
-P = 0.026610                  # PIP axis -> pad centre
+J2 = 0.030800 if HAND in ("cad_v1", "cad_v2") else J    # MCP axis -> PIP axis
+P = 0.036360 if HAND == "cad_v2" else 0.026610           # PIP axis -> pad centre
 R = 0.010550                  # phalange radius = pad sphere radius
-CAP_YAW, CAP_MID, CAP_DIST = 0.022900, 0.022900 + (J2 - J), 0.016060   # capsule medial-axis lengths
+CAP_YAW, CAP_MID, CAP_DIST = 0.022900, 0.022900 + (J2 - J), P - 0.010550   # capsule medial-axis lengths (P - R)
 PLATE_BOTTOM = 0.025 - 0.0015  # palm plate underside above the mounting plane
 GAP = 0.001                   # pad surface to object surface at the fitted pose (fit_real_v1_pose default)
 LIMIT_MARGIN = 0.05           # rad; a joint closer than this to its stop is parked (fit_real_v1_pose)
@@ -66,6 +70,9 @@ CHAIN = J2 + P                # MCP -> pad centre, fully extended
 if HAND == "cad_v1":
     BASE_SCENE = ROOT / "assets/mjcf/experimental/20261013-cad_v1/scene_screwdriver_medium.xml"
     OUT_DIR = ROOT / "docs/experiments/20261014-scale_turn_cad_v1/kin"     # reach.json etc. of the CAD hand
+elif HAND == "cad_v2":
+    BASE_SCENE = ROOT / "assets/mjcf/experimental/20261030-cad_v2/scene_screwdriver_medium.xml"
+    OUT_DIR = ROOT / "docs/experiments/20261030-cad_v2_finger/kin"
 
 
 def limits(sim_rom_only: bool = False) -> dict[str, np.ndarray]:

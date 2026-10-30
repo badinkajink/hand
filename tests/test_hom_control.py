@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from morphohand.control import hom as H  # noqa: E402
-from morphohand.control.surfaces import Cylinder, Plane, Posed, RoundedBox, Sphere, unit  # noqa: E402
+from morphohand.control.surfaces import Cylinder, HalfEllipsoid, Plane, Posed, RoundedBox, Sphere, unit  # noqa: E402
 
 RNG = np.random.default_rng(0)
 
@@ -114,6 +114,37 @@ def test_posed_surface():
     ps = Posed(Sphere(0.01), pos=[0.1, 0.0, 0.0], R=R)
     d, q, n = ps.closest(np.array([0.1, 0.0, 0.03]))
     assert d == pytest.approx(0.02) and n == pytest.approx([0, 0, 1.0])
+
+
+def test_half_ellipsoid_reduces_to_sphere():
+    """With every semi-axis r the half-ellipsoid answers as the sphere of radius r, inside and outside."""
+    r = 0.01
+    E, S = HalfEllipsoid(r, r, r, r), Sphere(r)
+    rng = np.random.default_rng(3)
+    for _ in range(50):
+        p = rng.normal(size=3) * rng.uniform(0.002, 0.03)
+        de, xe, ne = E.closest(p)
+        ds, xs, ns = S.closest(p)
+        assert abs(de - ds) < 1e-9 and np.allclose(xe, xs, atol=1e-9) and np.allclose(ne, ns, atol=1e-7)
+        assert np.allclose(E.shape_operator(xe, ne), S.shape_operator(xs, ns), atol=1e-6)
+
+
+def test_half_ellipsoid_closest_point_is_a_foot():
+    """The 11/22 pad: the closest point lies on the half it belongs to, the offset is along the outward normal, and no
+    sampled surface point is nearer."""
+    E = HalfEllipsoid(0.0085, 0.0074, 0.011, 0.022)
+    rng = np.random.default_rng(4)
+    u, v = rng.uniform(0, 2 * math.pi, 4000), rng.uniform(-1, 1, 4000)
+    dirs = np.stack([np.sqrt(1 - v * v) * np.cos(u), np.sqrt(1 - v * v) * np.sin(u), v], 1)
+    surf = dirs * np.array([0.0085, 0.0074, 0.0])
+    surf[:, 2] = np.where(dirs[:, 2] < 0, 0.011, 0.022) * dirs[:, 2]
+    for _ in range(40):
+        p = rng.normal(size=3) * 0.015
+        d, x, n = E.closest(p)
+        az = 0.011 if x[2] < 0 else 0.022
+        assert abs((x[0] / 0.0085) ** 2 + (x[1] / 0.0074) ** 2 + (x[2] / az) ** 2 - 1.0) < 1e-9
+        assert np.allclose(p - x, d * n, atol=1e-8)
+        assert abs(d) <= np.linalg.norm(surf - p, axis=1).min() + 1e-6
 
 
 def test_plane():

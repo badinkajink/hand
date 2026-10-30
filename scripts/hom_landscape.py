@@ -188,13 +188,277 @@ def cmd_stats(a):
     return 0
 
 
+# ------------------------------------------------------------------------------------------------ the 2-D grid with grasp sets
+
+GRID_ROWS = ROWS / "grid2d"
+POSE_KEY = {"twist": "tripod", "roll": "tripod", "pinpush": "pinch", "press": "press"}
+
+
+def grid_poses(task, size, src="grid2d"):
+    """The grid's layouts for the task's object: {call: (x_sep, y_sep, pose record with its grasps or None)}."""
+    import fp_sr2_toy as FP
+    name = FP.size_name(src, "sphere" if POSE_ROWS[task] == "tripod" else "cylinder", size)
+    return {int(r["call"]): (r["xy"][0], r["xy"][1], (r["fp"].get(POSE_KEY[task]) or {}) if r["ok"] else None)
+            for r in FR.load(name)}
+
+
+def grid_scores(task, size, rows_dir=GRID_ROWS, name=None):
+    """Per (call, grasp): [score of each seed], and per (call, grasp, seed): held."""
+    import hom_rows
+    p = rows_dir / f"{name or f'{task}_d{size:g}'}.jsonl"
+    sc, held = {}, {}
+    for x in (p.read_text().splitlines() if p.exists() else []):
+        if not x.strip():
+            continue
+        r = hom_rows.rescale_metrics(json.loads(x))
+        if r.get("status", "ok") != "ok":
+            continue
+        k = (int(r["call"]), int(r.get("grasp", 0)))
+        sc.setdefault(k, []).append(rollout_score(task, r))
+        held[k + (r["seed"],)] = bool(r.get("held"))
+    return sc, held
+
+
+def grid_table(task, size):
+    """Per grid layout: x_sep, y_sep, reached, grasps run, the foundational pose's score (grasp 0, mean over seeds),
+    the best grasp's (max over grasps of the mean), its index, the share of grasps held in every seed, logvol."""
+    poses = grid_poses(task, size)
+    sc, held = grid_scores(task, size)
+    out = []
+    for call, (xs, ys, rec) in sorted(poses.items()):
+        row = {"call": call, "x_sep": xs, "y_sep": ys, "reached": bool(rec and rec.get("ok"))}
+        if row["reached"]:
+            g = {j: float(np.mean(v)) for (c, j), v in sc.items() if c == call}
+            ok = [all(h for (c, j2, _s), h in held.items() if c == call and j2 == j) for j in g]
+            row.update(n_grasps=len(g), fp=g.get(0, np.nan), best=max(g.values()) if g else np.nan,
+                       best_grasp=max(g, key=g.get) if g else None, held_share=float(np.mean(ok)) if ok else np.nan,
+                       logvol=(rec.get("grasps") or [{}])[0].get("logvol"))
+        out.append(row)
+    return out
+
+
+def cmd_grid(a):
+    out = {}
+    for task in TASKS:
+        for size in SIZES[task]:
+            tab = grid_table(task, size)
+            run = [r for r in tab if r.get("n_grasps")]
+            if not run:
+                continue
+            fp, best = np.array([r["fp"] for r in run]), np.array([r["best"] for r in run])
+            out[f"{task}_d{size:g}"] = {
+                "layouts": len(tab), "reached": sum(r["reached"] for r in tab), "run": len(run),
+                "fp_median": round(float(np.nanmedian(fp)), 4), "best_median": round(float(np.nanmedian(best)), 4),
+                "gain_median": round(float(np.nanmedian(best - fp)), 4),
+                "best_is_fp": round(float(np.mean([r["best_grasp"] == 0 for r in run])), 3),
+                "fp_vs_best_spearman": round(FR.spearman(fp, best), 3),
+                "held_share_median": round(float(np.nanmedian([r["held_share"] for r in run])), 3)}
+            print(task, size, out[f"{task}_d{size:g}"], flush=True)
+    GRID_ROWS.mkdir(parents=True, exist_ok=True)
+    (GRID_ROWS / "summary.json").write_text(json.dumps(out, indent=1))
+    return 0
+
+
+def grid_maps(task, size):
+    """The grid's layout table as maps over (x_sep, y_sep) (rows y_sep, columns x_sep; NaN where the pose is not
+    reached or not run), with the axes."""
+    tab = grid_table(task, size)
+    xs = np.unique([r["x_sep"] for r in tab])
+    ys = np.unique([r["y_sep"] for r in tab])
+    maps = {k: np.full((len(ys), len(xs)), np.nan) for k in ("fp", "best", "held_share", "logvol", "reached")}
+    for r in tab:
+        i, j = int(np.searchsorted(ys, r["y_sep"])), int(np.searchsorted(xs, r["x_sep"]))
+        maps["reached"][i, j] = float(r["reached"])
+        for k in ("fp", "best", "held_share", "logvol"):
+            if r.get(k) is not None:
+                maps[k][i, j] = r[k]
+    return xs, ys, maps
+
+
+def grid_ascent(Z):
+    """Steepest ascent of a map over its 8-neighbour grid (NaN cells excluded): the peak cell (flat index) of each
+    cell, -1 for NaN cells."""
+    ny, nx = Z.shape
+    up = -np.ones(Z.size, int)
+    for i in range(ny):
+        for j in range(nx):
+            if not np.isfinite(Z[i, j]):
+                continue
+            best, arg = Z[i, j], i * nx + j
+            for di in (-1, 0, 1):
+                for dj in (-1, 0, 1):
+                    a, b = i + di, j + dj
+                    if 0 <= a < ny and 0 <= b < nx and np.isfinite(Z[a, b]) and Z[a, b] > best:
+                        best, arg = Z[a, b], a * nx + b
+            up[i * nx + j] = arg
+    peak = up.copy()
+    for _ in range(nx * ny):
+        nxt = np.where(peak >= 0, up[np.maximum(peak, 0)], -1)
+        if np.array_equal(nxt, peak):
+            break
+        peak = nxt
+    return peak
+
+
+def smooth_map(Z):
+    """3 x 3 mean over the finite cells."""
+    P = np.pad(Z, 1, constant_values=np.nan)
+    st = np.stack([P[1 + di:P.shape[0] - 1 + di, 1 + dj:P.shape[1] - 1 + dj] for di in (-1, 0, 1) for dj in (-1, 0, 1)])
+    with np.errstate(all="ignore"):
+        out = np.nanmean(st, 0)
+    return np.where(np.isfinite(Z), out, np.nan)
+
+
+def fig_grid(task, size, out=None):
+    """Six maps over the grid for one task and object: the foundational pose's score, the best grasp's, their gain, the
+    share of grasps held in every seed, the feasible log volume of the grasp set, and the best-grasp score smoothed over
+    3 x 3 cells with its gradient and the peaks of its basins."""
+    plt = FR.plt_setup()
+    xs, ys, M = grid_maps(task, size)
+    ext = [xs[0] - 2.5, xs[-1] + 2.5, ys[0] - 2.5, ys[-1] + 2.5]
+    sm = smooth_map(M["best"])
+    gy, gx = np.gradient(sm, ys, xs)
+    peak = grid_ascent(sm)
+    fig, axs = plt.subplots(2, 3, figsize=(15.5, 9.6), constrained_layout=True)
+    panels = (("fp", "foundational pose: score", "viridis", (0, None)), ("best", "best of the grasp set: score", "viridis",
+              (0, None)), ("gain", "best minus foundational pose", "magma", (0, None)),
+              ("held_share", "share of grasps held in every seed", "cividis", (0, 1)),
+              ("logvol", "feasible log volume of the grasp set", "cividis", (None, None)), ("smooth", "best, smoothed;"
+              " gradient and basin peaks", "viridis", (0, None)))
+    vmax = np.nanmax(M["best"]) if np.isfinite(M["best"]).any() else 1.0
+    for ax, (k, title, cmap, (lo, hi)) in zip(axs.flat, panels):
+        Z = {"gain": M["best"] - M["fp"], "smooth": sm}.get(k, M.get(k))
+        if k in ("fp", "best", "smooth"):
+            lo, hi = 0.0, vmax
+        ax.imshow(np.where(np.isfinite(M["reached"]) & (M["reached"] > 0), np.nan, 0.0), origin="lower", extent=ext,
+                  cmap="Greys", vmin=-1, vmax=1, aspect="equal")
+        im = ax.imshow(Z, origin="lower", extent=ext, cmap=cmap, vmin=lo, vmax=hi, aspect="equal")
+        fig.colorbar(im, ax=ax, shrink=0.82)
+        if k == "smooth":
+            X, Y = np.meshgrid(xs, ys)
+            s = (slice(None, None, 2), slice(None, None, 2))
+            ax.quiver(X[s], Y[s], gx[s], gy[s], color="white", angles="xy", scale_units="xy",
+                      scale=np.nanmax(np.hypot(gx, gy)) / 8.0 if np.isfinite(gx).any() else 1.0, width=0.004)
+            pk = np.unique(peak[peak >= 0])
+            big = [p for p in pk if (peak == p).sum() >= 8]
+            ax.plot(X.flat[big], Y.flat[big], "r*", ms=14, mec="k")
+        ax.set_title(title)
+        ax.set_xlabel("thumb-to-pair distance x_sep (mm)")
+        ax.set_ylabel("index-middle spacing y_sep (mm)")
+    obj = f"{'sphere' if T_SHAPE[task] == 'sphere' else 'cylinder'} {size:g} mm"
+    fig.suptitle(f"{TASK_NAME[task]}, {obj}: symmetric tripods every 5 mm, 16 grasps each (grey: pose not reached)")
+    FR.save(fig, out or f"20261029-grid_{task}_d{size:g}.png")
+
+
+T_SHAPE = {"twist": "sphere", "roll": "sphere", "pinpush": "cylinder", "press": "cylinder"}
+TASK_NAME = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
+
+
+def cmd_figures(a):
+    for task in TASKS:
+        for size in SIZES[task]:
+            if (GRID_ROWS / f"{task}_d{size:g}.jsonl").exists():
+                fig_grid(task, size)
+    return 0
+
+
+VIEWS = ((90.0, -12.0), (0.0, -12.0), (45.0, 50.0))          # free camera (azimuth, elevation): side, front, from below
+
+
+def grasp_views(task, size, picks, out, w=360, h=300):
+    """Keyframes of grasps at the touch pose (the TPU block meshes on the object, before the 8 mm opening), each from
+    the three VIEWS, one row per (call, grasp, label) of picks; a PNG at media/<out>."""
+    import mujoco
+    import fp_sr2_toy as FP
+    import hom_contact_rig as HR
+    import hom_gpu as HG
+    T, S = HG.T, HG.S
+    shape = T.SHAPE[task]
+    FP.set_sizes(**({"sph_d_mm": size} if shape == "sphere" else {"cyl_d_mm": size}))
+    scene = HG.Scene(shape, size)
+    m = scene.m_pt
+    poses = grid_poses(task, size)
+    rows = []
+    ren = mujoco.Renderer(m, h, w)
+    try:
+        cam = mujoco.MjvCamera()
+        cam.lookat[:] = [0.0, 0.0, S.Z_OBJ + 0.01]
+        cam.distance = 0.24
+        for call, j, label in picks:
+            xs, ys, rec = poses[call]
+            g = (rec.get("grasps") or [rec])[j]
+            mxy = HG.mount_xy(FP.layout2(xs, ys))
+            if shape == "sphere":
+                obj, _tg, n, _pc, _ax = FP.geometry("tripod", np.asarray(g["v"], float), FP.mounts6(FP.layout2(xs, ys)))
+                setup = HG.tripod_setup(task, mxy, (np.asarray(obj["centre"], float),
+                                                    {f: np.asarray(n[f], float) for f in HG.FINGERS}), size)
+            else:
+                setup = HG.pinch_setup(task, g["v"], FP.layout2(xs, ys))
+            bm = scene.body_mounts(mxy)
+            for f in HG.FINGERS:
+                m.body_pos[scene.mount_bid[f]] = bm[f]
+            S.set_palm(m, setup["palm"])
+            _q_open, q_touch = T.open_pose(setup, m)
+            dd = mujoco.MjData(m)
+            ob = m.body(S.OBJ).id
+            qa = m.jnt_qposadr[m.body_jntadr[ob]]
+            dd.qpos[qa:qa + 7] = [0.0, 0.0, S.Z_OBJ, *setup["quat"]]
+            for f in HG.FINGERS:
+                for k, jn in enumerate(HG.JOINTS):
+                    dd.qpos[m.jnt_qposadr[m.joint(f"{f}_{jn}").id]] = q_touch[f][k]
+            mujoco.mj_forward(m, dd)
+            ims = []
+            for az, el in VIEWS:
+                cam.azimuth, cam.elevation = az, el
+                ren.update_scene(dd, cam)
+                ims.append(ren.render().copy())
+            row = np.concatenate(ims, 1)
+            rows.append(HR.annotate(row, f"x_sep {xs:.0f} mm, y_sep {ys:.0f} mm, grasp {j}: {label}", size=16))
+    finally:
+        ren.close()
+    from PIL import Image
+    FR.MEDIA.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(np.concatenate(rows, 0)).save(FR.MEDIA / out)
+    print("wrote", (FR.MEDIA / out).relative_to(ROOT), flush=True)
+
+
+def cmd_views(a):
+    """Keyframes of the foundational pose, the best and the worst grasp (by the mean score over seeds) on the layouts
+    a.calls; without GPU rows yet, grasps 0, 1 and the last."""
+    sc, _held = grid_scores(a.task, a.d)
+    poses = grid_poses(a.task, a.d)
+    picks = []
+    for call in a.calls:
+        rec = poses[call][2]
+        if not rec or not rec.get("ok"):
+            print(call, "not reached")
+            continue
+        g = {j: float(np.mean(v)) for (c, j), v in sc.items() if c == call}
+        if g:
+            jb, jw = max(g, key=g.get), min(g, key=g.get)
+            picks += [(call, 0, f"foundational pose, score {g.get(0, float('nan')):.2f}"),
+                      (call, jb, f"best, score {g[jb]:.2f}"), (call, jw, f"worst, score {g[jw]:.2f}")]
+        else:
+            n = len(rec.get("grasps") or [rec])
+            picks += [(call, 0, "foundational pose"), (call, 1, "grasp 1"), (call, n - 1, f"grasp {n - 1}")]
+    grasp_views(a.task, a.d, picks, a.out or f"20261029-grid_grasps_{a.task}_d{a.d:g}.png")
+    return 0
+
+
 def main():
     import argparse
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("stats")
+    sub.add_parser("grid")
+    sub.add_parser("figures")
+    p = sub.add_parser("views")
+    p.add_argument("--task", choices=TASKS, required=True)
+    p.add_argument("--d", type=float, required=True)
+    p.add_argument("--calls", type=int, nargs="+", required=True, help="grid indices (x_sep major, y_sep minor)")
+    p.add_argument("--out", default="")
     a = ap.parse_args()
-    return {"stats": cmd_stats}[a.cmd](a)
+    return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "views": cmd_views}[a.cmd](a)
 
 
 if __name__ == "__main__":

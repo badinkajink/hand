@@ -50,7 +50,7 @@ from __future__ import annotations
 
 import os
 
-os.environ.setdefault("SCALE_HAND", "cad_v1")
+os.environ.setdefault("SCALE_HAND", "cad_v2")     # the v4b fingertip (2026-10-30); cad_v1: the TPU block
 
 import argparse  # noqa: E402
 import json  # noqa: E402
@@ -229,6 +229,8 @@ def layout_list(task, kind, nmax, d_mm=None):
     takes the poses solved for the object of diameter d_mm; the plain toy sets hold the poses of D_FP only."""
     if kind.endswith("_size"):
         return size_layouts(task, kind[:-len("_size")], nmax, d_mm)
+    if K.HAND == "cad_v2":
+        raise ValueError(f"--layouts {kind} holds the TPU block's grasps; with the v4b tip use sobol8k_size or grid2d_size")
     if kind in FP_ROWS and d_mm is not None and float(d_mm) != D_FP[task]:
         raise ValueError(f"--layouts {kind} holds poses of the {D_FP[task]:g} mm object; use {kind}_size for {d_mm:g} mm")
     out = []
@@ -481,10 +483,18 @@ class Batch:
         self.ftot = wp.zeros((W, 3), dtype=float)
         self.cops = wp.zeros((W, 3, 3), dtype=float)
         specs, _ = T.sr2_specs(worlds[0]["setup"])
-        boxes = [sp.surface.s if hasattr(sp.surface, "s") else sp.surface for sp in specs]
-        self.box_c = np.array([b.c for b in boxes])
-        self.box_a = np.array([b.a for b in boxes])
-        self.box_r = float(boxes[0].r)
+        surf = [sp.surface for sp in specs]                             # Posed, in each finger's tip frame
+        self.ell = isinstance(surf[0].s, T.HalfEllipsoid)              # cad_v2's pad, else the TPU block
+        if self.ell:
+            e = surf[0].s
+            self.box_c = np.array([sf.pos for sf in surf])              # the ellipsoid's centre per finger
+            self.box_a = np.array([e.ax, e.ay, e.az, e.azp])
+            self.box_r = 0.0
+        else:
+            boxes = [sf.s for sf in surf]
+            self.box_c = np.array([b.c + sf.pos for b, sf in zip(boxes, surf)])
+            self.box_a = np.array([b.a for b in boxes])
+            self.box_r = float(boxes[0].r)
         self.gen_seed = gen_seed
         self._init_state()
         self._capture()
@@ -558,6 +568,54 @@ class Batch:
         wp.synchronize()
 
     # ---------------------------------------------------------------- geometry helpers (torch)
+    def _tip_closest(self, x):
+        """Closest point of each finger's tip surface (tip frame) to points x (W, 3, 3), its outward normal and the
+        signed distance: the half-ellipsoid pad (cad_v2) or the rounded TPU block."""
+        return self._ell_closest(x) if self.ell else self._rb_closest(x)
+
+    @staticmethod
+    def _ell_newton(p, a, it=30):
+        """surfaces.ellipsoid_closest for points p (..., 3) and semi-axes a (3,): Newton's method on the Lagrange
+        multiplier t, kept inside its bracket (bisection when a step leaves it)."""
+        import torch as th
+        a2 = a * a
+        pp = th.where(p.abs() < 1e-12, th.full_like(p, 1e-12), p)
+        lo = th.full(p.shape[:-1], float(-a2.min()) + 1e-18, dtype=p.dtype, device=p.device)
+        hi = (pp.norm(dim=-1) * a.max()).clamp_min(1e-12)
+        t = th.zeros(p.shape[:-1], dtype=p.dtype, device=p.device)
+        for _ in range(it):
+            d = a2 + t[..., None]
+            f = ((a * pp / d) ** 2).sum(-1) - 1.0
+            lo = th.where(f > 0, t, lo)
+            hi = th.where(f > 0, hi, t)
+            tn = t + f / (2.0 * (a2 * pp * pp / d ** 3).sum(-1))
+            t = th.where((tn > lo) & (tn < hi), tn, 0.5 * (lo + hi))
+        x = a2 * pp / (a2 + t[..., None])
+        n = th.nn.functional.normalize(x / a2, dim=-1)
+        dist = (pp - x).norm(dim=-1)
+        return x, n, th.where(((pp / a) ** 2).sum(-1) < 1.0, -dist, dist)
+
+    def _ell_closest(self, x):
+        """surfaces.HalfEllipsoid.closest for points x (W, 3, 3) in the tip frames: both halves queried, the point on
+        its own half kept (the nearer if both are, the distal half's if neither)."""
+        th = self.torch
+        p = x - self.c_t
+        ax, ay, az, azp = self.a_t.unbind(-1)
+        qd, nd, sd_d = self._ell_newton(p, th.stack([ax, ay, az]))
+        qp, np_, sd_p = self._ell_newton(p, th.stack([ax, ay, azp]))
+        ok_d, ok_p = qd[..., 2] <= 1e-12, qp[..., 2] >= -1e-12
+        use_p = ok_p & (~ok_d | (sd_p.abs() < sd_d.abs()))
+        q = th.where(use_p[..., None], qp, qd)
+        n = th.where(use_p[..., None], np_, nd)
+        return q + self.c_t, n, th.where(use_p, sd_p, sd_d)
+
+    def _ell_support(self, u):
+        """The pad's point farthest along unit directions u (W, 3, 3) in the tip frames."""
+        th = self.torch
+        ax, ay, az, azp = self.a_t.unbind(-1)
+        a = th.stack([ax.expand_as(u[..., 0]), ay.expand_as(u[..., 0]), th.where(u[..., 2] < 0, az, azp)], -1)
+        return self.c_t + a * a * u / (a * u).norm(dim=-1, keepdim=True).clamp_min(1e-15)
+
     def _rb_closest(self, x):
         """Closest point on each finger's rounded box (tip frame) to points x (W, 3, 3), its outward normal and the
         signed distance (surfaces.RoundedBox.closest)."""
@@ -623,6 +681,8 @@ class Batch:
         th = self.torch
         oo = o[:, None, :].expand(-1, 3, -1)
         rf = self.box_r
+        if self.ell:
+            return self._ell_witness(pb, Rb, o, Ro, to_tip, to_world)
         if self.scene.shape == "sphere":
             s1, _n, _sd = self._rb_closest(to_tip(oo))
             p1 = to_world(s1)
@@ -655,6 +715,47 @@ class Batch:
         dist = th.where(sep, dc, -th.linalg.norm(q_in - x, dim=-1)) - rf
         p1 = x + rf * x1
         p0 = th.where(sep[..., None], y, q_in)
+        return p1, p0, x1, dist
+
+    def _ell_witness(self, pb, Rb, o, Ro, to_tip, to_world):
+        """GCF from the closest points of the half-ellipsoid pad and the object (hom.Mirror.gcf_witness). Sphere: the
+        pad's point nearest the centre. Cylinder: alternating projections between the solid pad and the solid cylinder
+        while they are apart; overlapping, the pad's support point along the cylinder's inward normal at the overlap and
+        that point's foot on the cylinder."""
+        th = self.torch
+        oo = o[:, None, :].expand(-1, 3, -1)
+        RbT = Rb.transpose(-1, -2)
+        if self.scene.shape == "sphere":
+            p1 = to_world(self._ell_closest(to_tip(oo))[0])
+            u = th.nn.functional.normalize(p1 - oo, dim=-1)
+            return p1, oo + self.scene.r * u, -u, th.linalg.norm(p1 - oo, dim=-1) - self.scene.r
+        r, hl = self.scene.r, self.scene.hl
+
+        def cyl_proj(x):                                   # closest point of the solid cylinder
+            loc = th.einsum("wji,wfj->wfi", Ro, x - oo)
+            rho = th.sqrt(loc[..., 0] ** 2 + loc[..., 1] ** 2).clamp_min(1e-15)
+            sc = th.clamp(r / rho, max=1.0)
+            q = th.stack([loc[..., 0] * sc, loc[..., 1] * sc, loc[..., 2].clamp(-hl, hl)], -1)
+            return oo + th.einsum("wij,wfj->wfi", Ro, q)
+
+        def ell_proj(y):                                   # closest point of the solid pad
+            q, _n, sd = self._ell_closest(to_tip(y))
+            return th.where((sd > 0)[..., None], to_world(q), y)
+
+        x = to_world(self.c_t.expand(self.W, -1, -1))
+        for _ in range(N_AP):
+            x = ell_proj(cyl_proj(x))
+        y = cyl_proj(x)
+        d = y - x
+        dc = th.linalg.norm(d, dim=-1)
+        sep = dc > 1e-9
+        _q, n_in = self._obj_closest(x, o, Ro)              # the cylinder's outward normal near the overlap
+        s_sup = to_world(self._ell_support(th.einsum("wfij,wfj->wfi", RbT, -n_in)))
+        q2, n2 = self._obj_closest(s_sup, o, Ro)
+        p1 = th.where(sep[..., None], x, s_sup)
+        p0 = th.where(sep[..., None], y, q2)
+        x1 = th.where(sep[..., None], d / dc.clamp_min(1e-12)[..., None], -n2)
+        dist = th.where(sep, dc, -th.linalg.norm(q2 - s_sup, dim=-1))
         return p1, p0, x1, dist
 
     @staticmethod
@@ -808,7 +909,7 @@ class Batch:
 
         oo = o[:, None, :].expand(-1, 3, -1)
         # GCF from the centre of pressure (hom.Mirror.gcf_from_cop)
-        s1c, n1c, _ = self._rb_closest(to_tip(cop))
+        s1c, n1c, _ = self._tip_closest(to_tip(cop))
         p1c = to_world(s1c)
         n1w = th.einsum("wfij,wfj->wfi", Rb, n1c)
         p0c, n0c = self._obj_closest(cop, o, Ro)
@@ -888,12 +989,12 @@ class Batch:
         # the filter at k_min: the contact point low-passed on the block's surface
         l1 = to_tip(p1)
         if self.c1 is None:
-            self.c1 = self._rb_closest(l1)[0]
-        q1, n1, _ = self._rb_closest(self.c1)
+            self.c1 = self._tip_closest(l1)[0]
+        q1, n1, _ = self._tip_closest(self.c1)
         e = l1 - q1
         e_t = e - (e * n1).sum(-1, keepdim=True) * n1
-        self.c1 = self._rb_closest(q1 + pr.filter.k_min * dt * e_t)[0]
-        s_act, n_act_l, _ = self._rb_closest(self.c1)
+        self.c1 = self._tip_closest(q1 + pr.filter.k_min * dt * e_t)[0]
+        s_act, n_act_l, _ = self._tip_closest(self.c1)
         p_act = to_world(s_act)
         n_act = th.einsum("wfij,wfj->wfi", Rb, n_act_l)
         # the impedance of the 'reference' mode, and gravity
@@ -1058,7 +1159,7 @@ def batch_child(spec):
     with open(spec["path"], "a") as fh:
         for wd_, r in zip(chunk, res):
             row = dict(wd_["key"], task=task, d_mm=float(spec["d_mm"]), seed=wd_["seed"], variant=wd_["var"]["var"],
-                       status="ok", engine="mjwarp", **r)
+                       status="ok", engine="mjwarp", hand=K.HAND, **r)
             fh.write(json.dumps(row) + "\n")
         fh.flush()
         os.fsync(fh.fileno())

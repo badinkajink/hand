@@ -64,7 +64,7 @@ import fingertip_geometry as G  # noqa: E402
 import hand_object_scale_kin as K  # noqa: E402
 import hand_object_scale_sim as S  # noqa: E402
 from morphohand.control import hom as H  # noqa: E402
-from morphohand.control.surfaces import Cylinder, Posed, RoundedBox, Sphere, unit  # noqa: E402
+from morphohand.control.surfaces import Cylinder, HalfEllipsoid, Posed, RoundedBox, Sphere, unit  # noqa: E402
 from hom_rows import rescale_metrics  # noqa: E402,F401  (stored rows scored with the fixed 0.01 s step)
 
 OUT = ROOT / "docs/experiments/20261021-hom_framework"
@@ -337,13 +337,23 @@ def build(task: str, d_mm: float, models=("pads", "pt"), lever=None):
     return paths["pads"], paths["pt"], setup
 
 
+ELL_PAD = (0.0085, 0.0074, 0.011, 0.022)    # cad_v2's 11/22 pad: depth, across, distal and proximal semi-axes (m)
+
+
+def tip_surface(f):
+    """The analytic surface of finger f's tip in its tip frame: the TPU block (cad_v1, real_v1), or under
+    SCALE_HAND=cad_v2 the half-ellipsoid pad whose apex lies K.R from the finger's axis on the palmar side."""
+    sg = G.FACE_SIGN[f]
+    if K.HAND == "cad_v2":
+        return Posed(HalfEllipsoid(*ELL_PAD), pos=(sg * (K.R - ELL_PAD[0]), 0.0, 0.0))
+    return Posed(RoundedBox(G.HALF, FILLET, centre=np.array([sg * G.CENTRE[0], G.CENTRE[1], G.CENTRE[2]])))
+
+
 def sr2_specs(setup):
     fingers = []
     for f in FINGERS:
-        sg = G.FACE_SIGN[f]
-        ctr = np.array([sg * G.CENTRE[0], G.CENTRE[1], G.CENTRE[2]])
         fingers.append(H.FingerSpec(f, [f"{f}_{j}" for j in JOINTS], f"{f}_tip", f"{f}_tipgeom", f"{f}_pip",
-                                    Posed(RoundedBox(G.HALF, FILLET, centre=ctr))))
+                                    tip_surface(f)))
     surf = Cylinder(setup["r"], setup["hl"]) if setup["shape"] == "cylinder" else Sphere(setup["r"])
     return fingers, H.ObjectSpec(S.OBJ, None, Posed(surf))
 

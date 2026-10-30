@@ -150,6 +150,69 @@ class RoundedBox(Surface):
         return P / self.r                                            # corner: a sphere of radius r
 
 
+def ellipsoid_closest(p, a, it=40):
+    """Closest point of the ellipsoid sum (x_i / a_i)^2 = 1 to the point p: x_i = a_i^2 p_i / (a_i^2 + t), with t the
+    root of f(t) = sum (a_i p_i / (a_i^2 + t))^2 - 1 on (-min a_i^2, inf), found by Newton's method kept inside a
+    bracket (bisection when a step leaves it). Returns (signed distance, surface point, outward unit normal)."""
+    a = np.asarray(a, float)
+    p = np.where(np.abs(p) < 1e-12, 1e-12, np.asarray(p, float))        # off the axes: f has its pole at -min a^2
+    a2 = a * a
+    lo, hi = -a2.min() + 1e-18, max(float(np.linalg.norm(p) * a.max()), 1e-12)
+    t = 0.0
+    for _ in range(it):
+        d = a2 + t
+        f = float(np.sum((a * p / d) ** 2) - 1.0)
+        if abs(f) < 1e-12:
+            break
+        if f > 0:
+            lo = t
+        else:
+            hi = t
+        t_new = t + f / (2.0 * float(np.sum(a2 * p * p / d ** 3)))
+        t = t_new if lo < t_new < hi else 0.5 * (lo + hi)
+    x = a2 * p / (a2 + t)
+    g = x / a2
+    n = g / np.linalg.norm(g)
+    inside = float(np.sum((p / a) ** 2)) < 1.0
+    dist = float(np.linalg.norm(p - x))
+    return (-dist if inside else dist), x, n
+
+
+class HalfEllipsoid(Surface):
+    """The 11/22 half-ellipsoid fingertip pad (tip_codesign_geometry tcd_ell<ay>x<ax>x<az>x<azp>; assets/cad_v2): an
+    ellipsoid with semi-axes ax (depth, x), ay (across, y), az on the distal side (z < 0) and azp on the proximal side
+    (z > 0) of its centre plane, which holds the apex. Both halves are queried and the point on the half it belongs to is
+    kept; the dorsal half (inside the cassette) is part of the shape, so the queries stay smooth behind the equator."""
+
+    def __init__(self, ax: float, ay: float, az: float, azp: float):
+        self.ax, self.ay, self.az, self.azp = float(ax), float(ay), float(az), float(azp)
+
+    def _axes(self, z):
+        return np.array([self.ax, self.ay, self.az if z < 0 else self.azp])
+
+    def closest(self, p):
+        p = np.asarray(p, float)
+        best = None
+        for az, side in ((self.az, -1.0), (self.azp, 1.0)):
+            d, x, n = ellipsoid_closest(p, (self.ax, self.ay, az))
+            if side * x[2] >= -1e-12 and (best is None or abs(d) < abs(best[0])):
+                best = (d, x, n)
+        if best is None:                                  # both halves' points fall on the other side: the seam ellipse
+            phi = math.atan2(p[1] / self.ay, p[0] / self.ax)
+            x = np.array([self.ax * math.cos(phi), self.ay * math.sin(phi), 0.0])
+            n = unit(np.array([x[0] / self.ax ** 2, x[1] / self.ay ** 2, 0.0]))
+            q = (p[0] / self.ax) ** 2 + (p[1] / self.ay) ** 2 + (p[2] / (self.az if p[2] < 0 else self.azp)) ** 2
+            dd = float(np.linalg.norm(p - x))
+            best = (-dd if q < 1.0 else dd, x, n)
+        return best
+
+    def shape_operator(self, q, n):
+        A = 1.0 / self._axes(q[2]) ** 2
+        g = A * q
+        P = np.eye(3) - np.outer(n, n)
+        return P @ np.diag(A) @ P / float(np.linalg.norm(g))
+
+
 class Plane(Surface):
     """Half-space n . p <= offset (the table); the surface is n . p = offset with outward normal n."""
 

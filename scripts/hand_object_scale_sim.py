@@ -97,7 +97,7 @@ def base_scene(shape: str, d_mm: float) -> Path:
         xml = B.build_scene(actuated=False, obj=OBJ)
     finally:
         B.OBJECTS[OBJ] = saved
-    if HAND == "cad_v1":
+    if HAND in ("cad_v1", "cad_v2"):
         root = ET.fromstring(xml)
         cad_fingers(root)
         xml = ET.tostring(root, encoding="unicode")
@@ -195,10 +195,16 @@ SCENES = ROOT / "logs/20261008-hand_object_scale/scenes"    # cell scenes are 0.
 # layout families.
 CAD_DIR = ROOT / "assets/mjcf/experimental/20261013-cad_v1"
 HAND = K.HAND
+TIP = "tpu2.7"                         # replace_tips' key: the TPU block; cad_v2 the 11/22 half-ellipsoid pad
 if HAND == "cad_v1":
     GEN = ROOT / "assets/mjcf/experimental/20261014-hand_object_scale_cad_v1"
     SCENES = ROOT / "logs/20261014-hand_object_scale_cad_v1/scenes"
     cad_tip_block()
+elif HAND == "cad_v2":
+    CAD_DIR = ROOT / "assets/mjcf/experimental/20261030-cad_v2"
+    GEN = ROOT / "assets/mjcf/experimental/20261030-hand_object_scale_cad_v2"
+    SCENES = ROOT / "logs/20261030-hand_object_scale_cad_v2/scenes"
+    TIP = "tcd_ell7.4x8.5x11x22"
 
 
 def candidates(cell: dict, shape: str, d_mm: float) -> list[dict]:
@@ -350,7 +356,7 @@ def cell_scenes(cell: dict, shape: str, d_mm: float, models=("pads", "pt")) -> d
         post = ET.SubElement(root.find("worldbody"), "body", name="post", pos=f"0 0 {hh:.6f}")
         ET.SubElement(post, "geom", name="post", type="cylinder", size=f"{min(POST_R, 0.4 * r):.6f} {hh:.6f}",
                       rgba="0.4 0.4 0.45 1", friction=f"{MU:g} 0.005 0.0001")
-        _, pads_meta = RB.replace_tips(root, "tpu2.7", mdl, MU, out_dir, tool=OBJ, s=RB.PAD_S,
+        _, pads_meta = RB.replace_tips(root, TIP, mdl, MU, out_dir, tool=OBJ, s=RB.PAD_S,
                                        **({"builder": BUILDER} if BUILDER else {}))
         out_dir.mkdir(parents=True, exist_ok=True)
         tmp = path.with_name(path.name + f".{os.getpid()}.tmp")

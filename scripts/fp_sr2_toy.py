@@ -43,7 +43,7 @@ from __future__ import annotations
 
 import os
 
-os.environ.setdefault("SCALE_HAND", "cad_v1")
+os.environ.setdefault("SCALE_HAND", "cad_v2")     # the v4b fingertip (2026-10-30); cad_v1: the TPU block
 
 import argparse  # noqa: E402
 import json  # noqa: E402
@@ -190,6 +190,8 @@ def grid_start(fp, d):
                 q, reach, marg = finger_state(f, T, M[f], b)
                 face = (K.fk(f, q)["palmar"] * (-n)).sum(-1) - COS_FACE[fp]
                 m_ = np.minimum(np.minimum(reach, marg.min(-1)), SLACK_FACE * face)
+                if V4B:
+                    m_ = np.minimum(m_, SLACK_PAD * pad_slack(f, q, n))
                 best = m_ if best is None else np.maximum(best, m_)
             sl[f] = best                                            # (x, y, h, psi, s, phi)
         ti = np.minimum(sl["thumb"], sl["index"])                   # pinch at s_p, latitude phi_p
@@ -214,6 +216,8 @@ def grid_start(fp, d):
             q, reach, marg = finger_state(f, T, M[f], b)
             face = (K.fk(f, q)["palmar"] * (-n)).sum(-1) - COS_FACE[fp]
             m_ = np.minimum(np.minimum(reach, marg.min(-1)), SLACK_FACE * face)
+            if V4B:
+                m_ = np.minimum(m_, SLACK_PAD * pad_slack(f, q, n))
             best = m_ if best is None else np.maximum(best, m_)
         tot = np.minimum(tot, best)
     k = np.unravel_index(int(np.argmax(tot)), tot.shape)
@@ -238,6 +242,62 @@ def finger_state(f, T, mount, branch):
 
 def smin_pad(f, q):
     return np.linalg.svd(K.jac_pad(f, q), compute_uv=False)[..., -1]
+
+
+# The v4b fingertip (SCALE_HAND=cad_v2): the pad covers only part of its half-ellipsoid, and the cassette, the trimmed
+# cap and the DIP link stand around it. Two checks replace the sphere proxy's silence about them: the pad's point whose
+# normal opposes the contact normal (the ellipsoid's support point) must lie on the pad's length, PAD_MARGIN inside its
+# ends; and the rigid parts' collision spheres (scripts/build_cad_v2_finger.py) must clear the object.
+V4B = K.HAND == "cad_v2"
+ELL = (0.0085, 0.0074, 0.011, 0.022)            # depth, across, distal and proximal semi-axes (m)
+PAD_Z = (-0.01055, 0.01086)                     # the pad's ends along the finger, tip frame (m)
+PAD_MARGIN = 0.0015
+SLACK_PAD = 20.0
+RIGID = None
+if V4B:
+    _sp = json.loads((ROOT / "assets/mjcf/experimental/20261030-cad_v2/spheres.json").read_text())["pip_frame"]
+    RIGID = np.array([s for k in ("dip_link", "cassette", "cap") for s in _sp[k]])    # (n, 4): x, y, z, r (m), F axes
+
+
+def tip_axes(f, q):
+    """fk's points and the distal link's axes in the frame of assets/cad_v2 (F): x dorsal (the palmar normal is -x), z up
+    the finger toward the PIP, y = z cross x; (..., 3) each."""
+    pts = K.fk(f, q)
+    d = pts["pad"] - pts["dist_a"]
+    z = -d / np.linalg.norm(d, axis=-1, keepdims=True)
+    x = -pts["palmar"]
+    return pts, x, np.cross(z, x), z
+
+
+def pad_slack(f, q, n):
+    """Distance (m) of the pad's support point for the contact normal n (object outward, ..., 3) inside the pad's ends,
+    less PAD_MARGIN: >= 0 when the contact lies on the pad."""
+    _pts, x, y, z = tip_axes(f, q)
+    u = -np.asarray(n, float)                                     # the pad's outward normal at the contact
+    ux, uy, uz = (u * x).sum(-1), (u * y).sum(-1), (u * z).sum(-1)
+    az = np.where(uz > 0, ELL[3], ELL[2])
+    w = np.sqrt((ELL[0] * ux) ** 2 + (ELL[1] * uy) ** 2 + (az * uz) ** 2)
+    sz = az * az * uz / np.maximum(w, 1e-12)
+    return np.minimum(PAD_Z[1] - PAD_MARGIN - sz, sz - PAD_Z[0] - PAD_MARGIN)
+
+
+def rigid_clearance(f, q, mount, obj, n):
+    """Smallest distance (m) from finger f's rigid distal spheres (the DIP link, cassette and cap) to the object, with the
+    finger moved along the contact normal n (object outward, as the pad targets) by the sphere proxy's excess over the
+    pad's own support distance, R - h(-n): where open_pose puts the finger when the pad itself touches."""
+    pts, x, y, z = tip_axes(f, q)
+    u = -np.asarray(n, float)
+    ux, uy, uz = (u * x).sum(-1), (u * y).sum(-1), (u * z).sum(-1)
+    az = np.where(uz > 0, ELL[3], ELL[2])
+    h = (K.R - ELL[0]) * -ux + np.sqrt((ELL[0] * ux) ** 2 + (ELL[1] * uy) ** 2 + (az * uz) ** 2)  # centre at -2.05 mm x
+    o = pts["dist_a"] + mount + ((K.R - h)[..., None] * u)
+    C = o[..., None, :] + RIGID[:, 0:1] * x[..., None, :] + RIGID[:, 1:2] * y[..., None, :] + RIGID[:, 2:3] * z[..., None, :]
+    oc = dict(obj)
+    if np.ndim(obj["centre"]) == 2:                               # an object moved per angle (metrics' rotation)
+        oc["centre"] = np.asarray(obj["centre"])[:, None, :]
+        if np.ndim(obj.get("axis", 0)) == 2:
+            oc["axis"] = np.asarray(obj["axis"])[:, None, :]
+    return (K._point_object(C, oc) - RIGID[:, 3]).min(-1)
 
 
 # scales that make the constraint slacks comparable: joint margins and the reach residual as they are (rad, and
@@ -279,6 +339,9 @@ class Problem:
             cons.append(SLACK_FACE * (float(pts["palmar"] @ (-n[f])) - COS_FACE[self.fp]))
             world = {k: p + self.M[f] for k, p in pts.items() if k != "palmar"}
             cons.append(SLACK_OBJ * (float(K.object_clearance(world, obj, n=5)) - OBJ_CLEAR))
+            if V4B:
+                cons.append(SLACK_PAD * float(pad_slack(f, q, n[f])))
+                cons.append(SLACK_OBJ * (float(rigid_clearance(f, q, self.M[f], obj, n[f])) - OBJ_CLEAR))
         if self.fp in PINCHES:
             cons.append(SLACK_LEVER * (v[4] - v[5] - LEVER))
         self._x, self._val = np.array(v, copy=True), np.array(cons, float)
@@ -311,13 +374,16 @@ class Problem:
 
 
 def clearances(fp, v, M, branch):
-    obj, tg, _, _, _ = geometry(fp, v, M)
+    obj, tg, n, _, _ = geometry(fp, v, M)
     world = {}
     for f in FINGERS:
         q, _, _ = finger_state(f, tg[f], M[f], branch[f])
         world[f] = {k: p + M[f] for k, p in K.fk(f, q).items() if k != "palmar"}
     ff = float(K.finger_clearance(world))
     ob = float(min(K.object_clearance(world[f], obj) for f in FINGERS))
+    if V4B:
+        ob = min(ob, min(float(rigid_clearance(f, finger_state(f, tg[f], M[f], branch[f])[0], M[f], obj, n[f]))
+                         for f in FINGERS))
     return ff, ob
 
 
@@ -350,6 +416,8 @@ def metrics(fp, v, M, branch):
             pts = K.fk(f, q)
             face = (pts["palmar"] * (-nn)).sum(-1)
             ok &= (reach >= 0) & (marg.min(-1) >= -MARGIN) & (face >= FACE_PATH[fp])
+            if V4B:
+                ok &= (pad_slack(f, q, nn) >= -PAD_MARGIN) & (rigid_clearance(f, q, M[f], o2, nn) >= 0.0)
             world[f] = {k: p + M[f] for k, p in pts.items() if k != "palmar"}
             F = F_TRIPOD if fp == "tripod" else (F_DRIVE if f == "middle" else F_PINCH)
             Jp = K.jac_pad(f, q)                                           # (A, 3, 3)
@@ -641,8 +709,9 @@ def grid2d(shape, d_mm, n=16, step=5.0, shard=0, shards=1):
 
 
 def size_name(src, shape, d_mm):
-    """Rows of one object's poses on the layouts of rows/<src>.jsonl: <src>_tripod<d> or <src>_pinch<d>."""
-    return f"{src}_{'tripod' if shape == 'sphere' else 'pinch'}{d_mm:g}"
+    """Rows of one object's poses on the layouts of rows/<src>.jsonl: <src>_tripod<d> or <src>_pinch<d>, with _v4b for
+    the v4b fingertip (SCALE_HAND=cad_v2; the names without it hold the TPU block's poses)."""
+    return f"{src}_{'tripod' if shape == 'sphere' else 'pinch'}{d_mm:g}{'_v4b' if K.HAND == 'cad_v2' else ''}"
 
 
 def poses(shape, d_mm, src="sobol8k", shard=0, shards=1):

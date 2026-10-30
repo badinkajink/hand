@@ -1,0 +1,1580 @@
+<mujoco model="cad_v1_scene_screwdriver_medium">
+  <compiler angle="radian" autolimits="true" meshdir="meshes" />
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" />
+  <visual>
+    <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1" />
+    <map znear=".01" />
+    <quality shadowsize="2048" />
+    <global elevation="-15" />
+  </visual>
+  <default>
+    <geom friction="1.8 0.15 0.01" solref="0.006 1" solimp="0.97 0.995 0.0005" />
+    <motor ctrlrange="-1 1" ctrllimited="true" />
+    <default class="pose">
+      <joint damping="2.0" armature="0.01" />
+      <position kp="4000" kv="100" forcerange="-1000 1000" />
+    </default>
+    <default class="morph">
+      <joint type="slide" damping="2000" armature="0.0001" />
+    </default>
+    <default class="ctrl">
+      <joint type="hinge" damping="0.5" armature="0.001" />
+      <position kp="30" kv="0.5" gear="1" forcerange="-10 10" ctrlrange="-1 1" />
+    </default>
+    <default class="cad_visual">
+      <geom type="mesh" group="2" contype="0" conaffinity="0" mass="0" />
+    </default>
+    <default class="cad_collision">
+      <geom type="sphere" group="3" rgba="0.95 0.45 0.2 0.45" mass="0" />
+    </default>
+    <default class="cad_pad">
+      <geom type="sphere" group="4" rgba="0.2 0.75 0.35 0.6" mass="0" />
+    </default>
+  </default>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2" />
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.15 0.15 0.15" rgb2="0.25 0.25 0.25" width="256" height="256" />
+    <material name="table_mat" texture="grid" texrepeat="3 3" reflectance="0.2" />
+    <material name="palm_mat" rgba="0.18 0.2 0.24 1" />
+    <material name="finger_mat" rgba="0.8 0.72 0.6 1" />
+    <material name="object_mat" rgba="0.6 0.6 0.6 1" />
+    <material name="cad_link" rgba="0.42 0.32 0.72 1" />
+    <material name="cad_servo" rgba="0.10 0.10 0.11 1" />
+    <material name="cad_tip" rgba="0.72 0.55 0.32 1" />
+    <mesh name="cad_carriage" file="../../20261013-cad_v1/meshes/carriage.stl" />
+    <mesh name="cad_servo_yaw" file="../../20261013-cad_v1/meshes/servo_yaw.stl" />
+    <mesh name="cad_yaw_link" file="../../20261013-cad_v1/meshes/yaw_link.stl" />
+    <mesh name="cad_servo_mcp" file="../../20261013-cad_v1/meshes/servo_mcp.stl" />
+    <mesh name="cad_mcp_link" file="../../20261013-cad_v1/meshes/mcp_link.stl" />
+    <mesh name="cad_servo_pip" file="../../20261013-cad_v1/meshes/servo_pip.stl" />
+    <mesh name="tpu_pos" file="../../20261013-cad_v1/meshes/tpu_tip_r2p7_pos.obj" />
+    <mesh name="tpu_neg" file="../../20261013-cad_v1/meshes/tpu_tip_r2p7_neg.obj" />
+    <mesh name="cad_v4b_dip_link" file="v4b_dip_link.stl" />
+    <mesh name="cad_v4b_cassette" file="v4b_cassette.stl" />
+    <mesh name="cad_v4b_cap" file="v4b_cap.stl" />
+  </asset>
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2" />
+    <light pos="0.5 0.5 1.0" dir="-1 -1 -1" directional="true" diffuse=".4 .4 .4" specular=".1 .1 .1" />
+    <geom name="floor" type="plane" size="1.5 1.5 0.1" material="groundplane" />
+    <body name="screwdriver_medium" pos="0.0 0.0 0.0125" quat="0.70711 0.70711 0 0">
+      <freejoint />
+      <geom type="cylinder" size="0.0125 0.05" density="500" material="object_mat" friction="2.4 0.2 0.02" />
+    </body>
+    <body gravcomp="1" name="palm_pose" pos="0 0 0.062500">
+      <joint class="pose" name="palm_px" type="slide" axis="1 0 0" range="-0.20 0.20" />
+      <joint class="pose" name="palm_py" type="slide" axis="0 1 0" range="-0.20 0.20" />
+      <joint class="pose" name="palm_pz" type="slide" axis="0 0 1" range="-0.15 0.35" />
+      <joint class="pose" name="palm_rx" type="hinge" axis="1 0 0" range="-1.57 1.57" />
+      <joint class="pose" name="palm_ry" type="hinge" axis="0 1 0" range="-1.57 1.57" />
+      <joint class="pose" name="palm_rz" type="hinge" axis="0 0 1" range="-3.14 3.14" />
+      <geom name="palm_plate" type="box" pos="0 0 0.0250" size="0.0850 0.0900 0.0015" material="palm_mat" />
+      <site name="workspace_thumb" type="box" pos="-0.050 0 0.0280" size="0.030 0.055 0.0005" rgba="0.85 0.30 0.30 0.14" />
+      <site name="workspace_index" type="box" pos="0.050 0.055 0.0280" size="0.030 0.030 0.0005" rgba="0.30 0.55 0.85 0.14" />
+      <site name="workspace_middle" type="box" pos="0.050 -0.055 0.0280" size="0.030 0.030 0.0005" rgba="0.30 0.75 0.45 0.14" />
+      <body name="thumb_mount" pos="-0.05 0 0">
+        <inertial pos="-0.003714 -0.000445 0.016276" mass="0.027251" fullinertia="0.000010295 0.000010186 0.00000381 -0.000000007 -0.000001996 -0.000000129" />
+        <joint class="morph" name="thumb_x" axis="1 0 0" range="-0.030000 0.030000" />
+        <joint class="morph" name="thumb_y" axis="0 1 0" range="-0.055000 0.055000" />
+        <geom name="thumb_carriage_visual" class="cad_visual" mesh="cad_carriage" material="cad_link" quat="0 0 0 1" />
+        <geom name="thumb_servo_yaw_visual" class="cad_visual" mesh="cad_servo_yaw" material="cad_servo" quat="0 0 0 1" />
+        <geom name="thumb_mount_s0" class="cad_collision" pos="0.002352 0.017507 0.059825" size="0.008365" />
+        <geom name="thumb_mount_s1" class="cad_collision" pos="0.002896 -0.010622 0.026687" size="0.010545" />
+        <geom name="thumb_mount_s2" class="cad_collision" pos="0.002482 0.012608 0.027125" size="0.010351" />
+        <geom name="thumb_mount_s3" class="cad_collision" pos="0.002455 -0.016342 0.046861" size="0.008685" />
+        <geom name="thumb_mount_s4" class="cad_collision" pos="0.002272 0.016617 0.048319" size="0.008354" />
+        <geom name="thumb_mount_s5" class="cad_collision" pos="0.001043 -0.008169 -0.000468" size="0.007695" />
+        <geom name="thumb_mount_s6" class="cad_collision" pos="0.002125 0.011757 0.035264" size="0.010281" />
+        <geom name="thumb_mount_s7" class="cad_collision" pos="-0.007381 -0.007227 0.00622" size="0.007367" />
+        <geom name="thumb_mount_s8" class="cad_collision" pos="0.005419 -0.004663 0.012687" size="0.007912" />
+        <geom name="thumb_mount_s9" class="cad_collision" pos="0.002661 -0.012264 0.035199" size="0.009850" />
+        <geom name="thumb_mount_s10" class="cad_collision" pos="0.005447 0.003041 0.022746" size="0.008924" />
+        <geom name="thumb_mount_s11" class="cad_collision" pos="-0.002157 -0.016577 0.058953" size="0.006163" />
+        <geom name="thumb_mount_s12" class="cad_collision" pos="-0.008765 -0.005616 0.017359" size="0.006431" />
+        <geom name="thumb_mount_s13" class="cad_collision" pos="0.006679 -0.016689 0.059557" size="0.005997" />
+        <geom name="thumb_mount_s14" class="cad_collision" pos="-0.009373 -0.009059 0.000368" size="0.006191" />
+        <geom name="thumb_mount_s15" class="cad_collision" pos="0.002785 -0.005549 0.039551" size="0.008577" />
+        <geom name="thumb_mount_s16" class="cad_collision" pos="0.002956 0.005002 0.039658" size="0.008360" />
+        <geom name="thumb_mount_s17" class="cad_collision" pos="0.005093 0.008538 0.001918" size="0.005053" />
+        <geom name="thumb_mount_s18" class="cad_collision" pos="0.00618 0.004151 0.010356" size="0.006139" />
+        <geom name="thumb_mount_s19" class="cad_collision" pos="-0.010374 -0.005978 -0.007919" size="0.005514" />
+        <geom name="thumb_mount_s20" class="cad_collision" pos="-0.005533 0.002415 0.021655" size="0.007782" />
+        <geom name="thumb_mount_s21" class="cad_collision" pos="-0.007851 0.005917 -0.008011" size="0.007083" />
+        <geom name="thumb_mount_s22" class="cad_collision" pos="0.003608 0.00767 -0.008288" size="0.006551" />
+        <geom name="thumb_mount_s23" class="cad_collision" pos="0.000607 -0.003821 -0.008491" size="0.007146" />
+        <geom name="thumb_mount_s24" class="cad_collision" pos="-0.002783 0.00018 0.011908" size="0.007792" />
+        <geom name="thumb_mount_s25" class="cad_collision" pos="-0.013485 0.001148 0.012529" size="0.007191" />
+        <geom name="thumb_mount_s26" class="cad_collision" pos="-0.008103 0.00003 -0.000626" size="0.007378" />
+        <geom name="thumb_mount_s27" class="cad_collision" pos="-0.018611 -0.000003 0.00001" size="0.006796" />
+        <geom name="thumb_mount_s28" class="cad_collision" pos="-0.011594 -0.000002 0.009116" size="0.007129" />
+        <geom name="thumb_mount_s29" class="cad_collision" pos="-0.003026 0.000327 0.006102" size="0.007447" />
+        <geom name="thumb_mount_s30" class="cad_collision" pos="-0.01383 -0.000289 0.005579" size="0.007162" />
+        <geom name="thumb_mount_s31" class="cad_collision" pos="-0.01325 -0.000582 0.012304" size="0.007303" />
+        <geom name="thumb_mount_s32" class="cad_collision" pos="-0.014881 0.000203 -0.003932" size="0.006762" />
+        <geom name="thumb_mount_s33" class="cad_collision" pos="-0.015846 -0.000935 0.02179" size="0.004195" />
+        <geom name="thumb_mount_s34" class="cad_collision" pos="-0.015199 0.000752 -0.000378" size="0.006288" />
+        <geom name="thumb_mount_s35" class="cad_collision" pos="-0.001604 0.000037 -0.001027" size="0.007137" />
+        <body name="thumb_yaw_frame">
+          <inertial pos="-0.007945 0.000201 -0.019195" mass="0.021200" fullinertia="0.000001897 0.000003343 0.000003663 -0.000000298 0.000000249 0.000000097" />
+          <joint class="ctrl" name="thumb_yaw" axis="1 0 0" range="-1.483530 1.483530" />
+          <geom name="thumb_yaw_link_visual" class="cad_visual" mesh="cad_yaw_link" material="cad_link" quat="0 0 0 1" />
+          <geom name="thumb_servo_mcp_visual" class="cad_visual" mesh="cad_servo_mcp" material="cad_servo" quat="0 0 0 1" />
+          <geom name="thumb_yaw_frame_s0" class="cad_collision" pos="0.008494 0.002523 -0.012808" size="0.006819" />
+          <geom name="thumb_yaw_frame_s1" class="cad_collision" pos="-0.024204 0.002253 -0.0212" size="0.008594" />
+          <geom name="thumb_yaw_frame_s2" class="cad_collision" pos="-0.026081 -0.009594 -0.014152" size="0.007578" />
+          <geom name="thumb_yaw_frame_s3" class="cad_collision" pos="-0.009322 0.004847 -0.012688" size="0.005619" />
+          <geom name="thumb_yaw_frame_s4" class="cad_collision" pos="-0.007489 -0.01055 -0.022577" size="0.005995" />
+          <geom name="thumb_yaw_frame_s5" class="cad_collision" pos="0.005093 -0.00742 -0.012778" size="0.006396" />
+          <geom name="thumb_yaw_frame_s6" class="cad_collision" pos="-0.012333 -0.013205 -0.012378" size="0.005702" />
+          <geom name="thumb_yaw_frame_s7" class="cad_collision" pos="-0.027291 0.002229 -0.012507" size="0.006258" />
+          <geom name="thumb_yaw_frame_s8" class="cad_collision" pos="-0.019989 0.004176 -0.015191" size="0.006026" />
+          <geom name="thumb_yaw_frame_s9" class="cad_collision" pos="-0.024457 -0.007206 -0.017993" size="0.008088" />
+          <geom name="thumb_yaw_frame_s10" class="cad_collision" pos="-0.000368 -0.002972 -0.030889" size="0.005236" />
+          <geom name="thumb_yaw_frame_s11" class="cad_collision" pos="-0.00576 -0.006895 -0.013778" size="0.005831" />
+          <geom name="thumb_yaw_frame_s12" class="cad_collision" pos="-0.000548 0.00454 -0.030756" size="0.005070" />
+          <geom name="thumb_yaw_frame_s13" class="cad_collision" pos="-0.013679 -0.010752 -0.021624" size="0.005449" />
+          <geom name="thumb_yaw_frame_s14" class="cad_collision" pos="-0.004263 -0.013404 -0.013591" size="0.005050" />
+          <geom name="thumb_yaw_frame_s15" class="cad_collision" pos="-0.028752 0.004254 0.003648" size="0.004832" />
+          <geom name="thumb_yaw_frame_s16" class="cad_collision" pos="-0.026826 -0.005864 -0.021446" size="0.005725" />
+          <geom name="thumb_yaw_frame_s17" class="cad_collision" pos="0.010179 0.002627 -0.000901" size="0.007028" />
+          <geom name="thumb_yaw_frame_s18" class="cad_collision" pos="-0.029051 -0.002749 0.004769" size="0.004579" />
+          <geom name="thumb_yaw_frame_s19" class="cad_collision" pos="0.007134 0.003498 -0.028377" size="0.005491" />
+          <geom name="thumb_yaw_frame_s20" class="cad_collision" pos="0.007667 -0.003381 -0.01588" size="0.005449" />
+          <geom name="thumb_yaw_frame_s21" class="cad_collision" pos="0.008869 0.003176 -0.022686" size="0.005228" />
+          <geom name="thumb_yaw_frame_s22" class="cad_collision" pos="0.007668 -0.002812 -0.001427" size="0.006611" />
+          <geom name="thumb_yaw_frame_s23" class="cad_collision" pos="-0.016092 -0.004173 -0.012637" size="0.005312" />
+          <geom name="thumb_yaw_frame_s24" class="cad_collision" pos="-0.02936 0.003241 -0.00363" size="0.005189" />
+          <geom name="thumb_yaw_frame_s25" class="cad_collision" pos="0.007774 -0.009742 -0.020824" size="0.004897" />
+          <geom name="thumb_yaw_frame_s26" class="cad_collision" pos="-0.029548 -0.006904 -0.003371" size="0.005296" />
+          <geom name="thumb_yaw_frame_s27" class="cad_collision" pos="0.006473 -0.007359 -0.025811" size="0.006404" />
+          <geom name="thumb_yaw_frame_s28" class="cad_collision" pos="-0.021324 -0.008589 -0.023149" size="0.005974" />
+          <geom name="thumb_yaw_frame_s29" class="cad_collision" pos="-0.000383 0.003282 -0.012828" size="0.005533" />
+          <geom name="thumb_yaw_frame_s30" class="cad_collision" pos="-0.027937 -0.009676 -0.022105" size="0.005112" />
+          <geom name="thumb_yaw_frame_s31" class="cad_collision" pos="-0.020655 -0.012995 -0.014268" size="0.005327" />
+          <geom name="thumb_yaw_frame_s32" class="cad_collision" pos="-0.000005 0.011559 -0.021057" size="0.007183" />
+          <geom name="thumb_yaw_frame_s33" class="cad_collision" pos="-0.012578 -0.004612 -0.020764" size="0.007599" />
+          <geom name="thumb_yaw_frame_s34" class="cad_collision" pos="-0.012961 0.00764 -0.020351" size="0.006978" />
+          <geom name="thumb_yaw_frame_s35" class="cad_collision" pos="0.003957 0.007521 -0.020756" size="0.006802" />
+          <geom name="thumb_yaw_frame_s36" class="cad_collision" pos="-0.006658 -0.004162 -0.020993" size="0.007661" />
+          <geom name="thumb_yaw_frame_s37" class="cad_collision" pos="-0.006406 0.00647 -0.020438" size="0.007342" />
+          <geom name="thumb_yaw_frame_s38" class="cad_collision" pos="0.001653 -0.005008 -0.021911" size="0.006154" />
+          <geom name="thumb_yaw_frame_s39" class="cad_collision" pos="-0.01169 -0.000188 -0.020755" size="0.007574" />
+          <geom name="thumb_yaw_frame_s40" class="cad_collision" pos="0.001708 -0.004633 -0.018833" size="0.006005" />
+          <geom name="thumb_yaw_frame_s41" class="cad_collision" pos="0.000782 0.002332 -0.020714" size="0.007401" />
+          <geom name="thumb_yaw_frame_s42" class="cad_collision" pos="-0.001153 -0.001454 -0.020684" size="0.006547" />
+          <geom name="thumb_yaw_frame_s43" class="cad_collision" pos="-0.015239 0.007757 -0.020615" size="0.006424" />
+          <body name="thumb_mcp_frame" pos="0 -0 -0.02075">
+            <inertial pos="-0.005177 0.002878 -0.025365" mass="0.025029" fullinertia="0.000004091 0.000003624 0.000003974 -0.000000058 -0.000000068 -0.000000322" />
+            <joint class="ctrl" name="thumb_mcp" axis="0 -1 0" range="-0.261799 1.605703" />
+            <geom name="thumb_mcp_link_visual" class="cad_visual" mesh="cad_mcp_link" material="cad_link" quat="0 0 0 1" />
+            <geom name="thumb_servo_pip_visual" class="cad_visual" mesh="cad_servo_pip" material="cad_servo" quat="0 0 0 1" />
+            <geom name="thumb_mcp_frame_s0" class="cad_collision" pos="0.005232 -0.005579 -0.019712" size="0.009322" />
+            <geom name="thumb_mcp_frame_s1" class="cad_collision" pos="-0.016132 -0.005664 -0.018685" size="0.009490" />
+            <geom name="thumb_mcp_frame_s2" class="cad_collision" pos="0.004533 0.00678 -0.017547" size="0.009181" />
+            <geom name="thumb_mcp_frame_s3" class="cad_collision" pos="-0.007545 0.014906 -0.017602" size="0.010026" />
+            <geom name="thumb_mcp_frame_s4" class="cad_collision" pos="-0.015447 0.008029 -0.018575" size="0.009009" />
+            <geom name="thumb_mcp_frame_s5" class="cad_collision" pos="-0.015387 0.018171 -0.018161" size="0.008441" />
+            <geom name="thumb_mcp_frame_s6" class="cad_collision" pos="-0.007064 0.001387 -0.017991" size="0.009164" />
+            <geom name="thumb_mcp_frame_s7" class="cad_collision" pos="-0.020634 0.004204 -0.031459" size="0.006377" />
+            <geom name="thumb_mcp_frame_s8" class="cad_collision" pos="0.004088 0.019553 -0.015895" size="0.007436" />
+            <geom name="thumb_mcp_frame_s9" class="cad_collision" pos="0.00733 -0.010692 -0.032971" size="0.005284" />
+            <geom name="thumb_mcp_frame_s10" class="cad_collision" pos="-0.000535 0.00384 -0.04145" size="0.005217" />
+            <geom name="thumb_mcp_frame_s11" class="cad_collision" pos="0.00566 0.023955 -0.006285" size="0.005195" />
+            <geom name="thumb_mcp_frame_s12" class="cad_collision" pos="-0.006244 -0.010931 -0.024949" size="0.005428" />
+            <geom name="thumb_mcp_frame_s13" class="cad_collision" pos="-0.004654 0.023001 -0.006906" size="0.005491" />
+            <geom name="thumb_mcp_frame_s14" class="cad_collision" pos="-0.006054 -0.014206 -0.009734" size="0.004720" />
+            <geom name="thumb_mcp_frame_s15" class="cad_collision" pos="-0.00422 -0.009911 -0.013459" size="0.004962" />
+            <geom name="thumb_mcp_frame_s16" class="cad_collision" pos="0.007637 0.003349 -0.036982" size="0.005058" />
+            <geom name="thumb_mcp_frame_s17" class="cad_collision" pos="-0.009185 -0.007827 -0.015624" size="0.006339" />
+            <geom name="thumb_mcp_frame_s18" class="cad_collision" pos="0.004823 0.013837 -0.018906" size="0.006615" />
+            <geom name="thumb_mcp_frame_s19" class="cad_collision" pos="-0.003403 0.022105 0.005305" size="0.004059" />
+            <geom name="thumb_mcp_frame_s20" class="cad_collision" pos="0.000128 -0.015182 -0.009651" size="0.004567" />
+            <geom name="thumb_mcp_frame_s21" class="cad_collision" pos="0.009595 0.004646 -0.028217" size="0.004625" />
+            <geom name="thumb_mcp_frame_s22" class="cad_collision" pos="-0.018978 -0.01062 -0.033732" size="0.004611" />
+            <geom name="thumb_mcp_frame_s23" class="cad_collision" pos="-0.005179 -0.016217 -0.002753" size="0.003993" />
+            <geom name="thumb_mcp_frame_s24" class="cad_collision" pos="-0.00135 -0.003562 -0.040724" size="0.004460" />
+            <geom name="thumb_mcp_frame_s25" class="cad_collision" pos="0.006045 -0.015002 -0.003069" size="0.004679" />
+            <geom name="thumb_mcp_frame_s26" class="cad_collision" pos="-0.010239 -0.01059 -0.032563" size="0.005104" />
+            <geom name="thumb_mcp_frame_s27" class="cad_collision" pos="-0.018966 -0.002843 -0.032928" size="0.004893" />
+            <geom name="thumb_mcp_frame_s28" class="cad_collision" pos="-0.006463 0.024043 0.000421" size="0.004210" />
+            <geom name="thumb_mcp_frame_s29" class="cad_collision" pos="0.005504 -0.004033 -0.039258" size="0.004985" />
+            <geom name="thumb_mcp_frame_s30" class="cad_collision" pos="0.009061 -0.002412 -0.031988" size="0.004951" />
+            <geom name="thumb_mcp_frame_s31" class="cad_collision" pos="-0.002726 -0.01235 -0.03512" size="0.003921" />
+            <geom name="thumb_mcp_frame_s32" class="cad_collision" pos="-0.018405 -0.009182 -0.026949" size="0.005325" />
+            <geom name="thumb_mcp_frame_s33" class="cad_collision" pos="0.007146 -0.013607 -0.011095" size="0.004660" />
+            <geom name="thumb_mcp_frame_s34" class="cad_collision" pos="-0.018626 0.019949 -0.022754" size="0.004560" />
+            <geom name="thumb_mcp_frame_s35" class="cad_collision" pos="0.007699 0.01918 -0.021384" size="0.004513" />
+            <geom name="thumb_mcp_frame_s36" class="cad_collision" pos="0.003656 0.021141 0.007501" size="0.004362" />
+            <geom name="thumb_mcp_frame_s37" class="cad_collision" pos="0.004517 0.022824 -0.000074" size="0.004306" />
+            <geom name="thumb_mcp_frame_s38" class="cad_collision" pos="-0.000456 -0.014028 0.002642" size="0.004780" />
+            <geom name="thumb_mcp_frame_s39" class="cad_collision" pos="0.003672 0.021658 0.004466" size="0.004179" />
+            <geom name="thumb_mcp_frame_s40" class="cad_collision" pos="-0.012488 -0.004614 -0.030651" size="0.007684" />
+            <geom name="thumb_mcp_frame_s41" class="cad_collision" pos="0.003309 0.007739 -0.030966" size="0.007168" />
+            <geom name="thumb_mcp_frame_s42" class="cad_collision" pos="-0.00024 0.011788 -0.030825" size="0.006885" />
+            <geom name="thumb_mcp_frame_s43" class="cad_collision" pos="-0.007082 0.006184 -0.030713" size="0.007979" />
+            <geom name="thumb_mcp_frame_s44" class="cad_collision" pos="-0.005881 -0.003838 -0.030323" size="0.007763" />
+            <geom name="thumb_mcp_frame_s45" class="cad_collision" pos="-0.015401 0.008211 -0.0324" size="0.005996" />
+            <geom name="thumb_mcp_frame_s46" class="cad_collision" pos="0.000013 0.002045 -0.030842" size="0.007566" />
+            <geom name="thumb_mcp_frame_s47" class="cad_collision" pos="0.001087 -0.001085 -0.029755" size="0.005735" />
+            <geom name="thumb_mcp_frame_s48" class="cad_collision" pos="-0.012081 -0.00015 -0.030768" size="0.007501" />
+            <geom name="thumb_mcp_frame_s49" class="cad_collision" pos="-0.01584 0.007683 -0.027504" size="0.004975" />
+            <geom name="thumb_mcp_frame_s50" class="cad_collision" pos="-0.006896 0.002763 -0.031227" size="0.006219" />
+            <geom name="thumb_mcp_frame_s51" class="cad_collision" pos="0.001205 -0.004913 -0.030783" size="0.007064" />
+            <body name="thumb_len_frame">
+              <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+              <joint class="morph" name="thumb_len" axis="1 0 0" range="0 0" />
+              <body name="thumb_pip_frame" pos="-0 -0 -0.0308">
+                <inertial pos="-0.002967 0.000912 -0.022687" mass="0.009263" fullinertia="0.0000025794 0.0000017135 0.0000011852 -0.0000000108 -0.0000001736 -0.0000000237" />
+                <joint class="ctrl" name="thumb_pip" axis="0 -1 0" range="-0.314159 1.605703" />
+                <geom name="thumb_dip_link_visual" class="cad_visual" mesh="cad_v4b_dip_link" material="cad_link" quat="0 0 0 1" />
+                <geom name="thumb_cassette_visual" class="cad_visual" mesh="cad_v4b_cassette" material="cad_link" quat="0 0 0 1" />
+                <geom name="thumb_cap_visual" class="cad_visual" mesh="cad_v4b_cap" material="cad_link" quat="0 0 0 1" />
+                <geom name="thumb_dip_link_s0" class="cad_collision" pos="0.0012682 0.0085 -0.01466" size="0.001090" />
+                <geom name="thumb_dip_link_s1" class="cad_collision" pos="-0.0057318 -0.0145 -0.00466" size="0.001090" />
+                <geom name="thumb_dip_link_s2" class="cad_collision" pos="-0.0067318 0.01 -0.01566" size="0.002718" />
+                <geom name="thumb_dip_link_s3" class="cad_collision" pos="-0.0062318 0.008 -0.04116" size="0.001768" />
+                <geom name="thumb_dip_link_s4" class="cad_collision" pos="0.0027682 -0.001 -0.01716" size="0.003308" />
+                <geom name="thumb_dip_link_s5" class="cad_collision" pos="-0.0057318 0.0095 -0.04566" size="0.001000" />
+                <geom name="thumb_dip_link_s6" class="cad_collision" pos="-0.0012318 0.0225 -0.01066" size="0.000750" />
+                <geom name="thumb_dip_link_s7" class="cad_collision" pos="-0.0012318 0.018 -0.01316" size="0.000892" />
+                <geom name="thumb_dip_link_s8" class="cad_collision" pos="-0.0077318 -0.0145 -0.00966" size="0.001026" />
+                <geom name="thumb_dip_link_s9" class="cad_collision" pos="-0.0057318 0.009 -0.03516" size="0.001332" />
+                <geom name="thumb_dip_link_s10" class="cad_collision" pos="-0.0067318 -0.008 -0.01916" size="0.002500" />
+                <geom name="thumb_dip_link_s11" class="cad_collision" pos="-0.0062318 0.004 -0.03766" size="0.001768" />
+                <geom name="thumb_dip_link_s12" class="cad_collision" pos="0.0052682 0.013 -0.01416" size="0.001194" />
+                <geom name="thumb_dip_link_s13" class="cad_collision" pos="0.0027682 0.001 -0.02216" size="0.003308" />
+                <geom name="thumb_dip_link_s14" class="cad_collision" pos="-0.0037318 0.022 -0.00816" size="0.001250" />
+                <geom name="thumb_dip_link_s15" class="cad_collision" pos="-0.0027318 0.005 -0.01966" size="0.000541" />
+                <geom name="thumb_dip_link_s16" class="cad_collision" pos="-0.0007318 -0.0125 -0.01466" size="0.001090" />
+                <geom name="thumb_dip_link_s17" class="cad_collision" pos="0.0042682 0.0215 -0.01216" size="0.001701" />
+                <geom name="thumb_dip_link_s18" class="cad_collision" pos="0.0047682 0.0085 -0.01416" size="0.001210" />
+                <geom name="thumb_dip_link_s19" class="cad_collision" pos="-0.0022318 -0.0155 -0.00316" size="0.001093" />
+                <geom name="thumb_dip_link_s20" class="cad_collision" pos="-0.0062318 0 -0.03166" size="0.001768" />
+                <geom name="thumb_dip_link_s21" class="cad_collision" pos="-0.0062318 0.0045 -0.02816" size="0.001768" />
+                <geom name="thumb_dip_link_s22" class="cad_collision" pos="0.0027682 -0.001 -0.02216" size="0.003308" />
+                <geom name="thumb_dip_link_s23" class="cad_collision" pos="-0.0057318 -0.012 -0.01716" size="0.001176" />
+                <geom name="thumb_dip_link_s24" class="cad_collision" pos="0.0022682 -0.002 -0.01966" size="0.002808" />
+                <geom name="thumb_dip_link_s25" class="cad_collision" pos="-0.0062318 0.008 -0.02416" size="0.002219" />
+                <geom name="thumb_dip_link_s26" class="cad_collision" pos="-0.0082318 -0.0045 -0.01216" size="0.000988" />
+                <geom name="thumb_dip_link_s27" class="cad_collision" pos="0.0027682 0.0015 -0.01666" size="0.003127" />
+                <geom name="thumb_dip_link_s28" class="cad_collision" pos="-0.0062318 -0.0085 -0.03616" size="0.001768" />
+                <geom name="thumb_dip_link_s29" class="cad_collision" pos="-0.0027318 0.022 -0.00366" size="0.000750" />
+                <geom name="thumb_dip_link_s30" class="cad_collision" pos="-0.0057318 0.0125 -0.01666" size="0.001782" />
+                <geom name="thumb_dip_link_s31" class="cad_collision" pos="-0.0067318 0.002 -0.02366" size="0.002235" />
+                <geom name="thumb_dip_link_s32" class="cad_collision" pos="0.0047682 0.001 -0.01466" size="0.001650" />
+                <geom name="thumb_dip_link_s33" class="cad_collision" pos="0.0037682 -0.0155 -0.00266" size="0.001900" />
+                <geom name="thumb_dip_link_s34" class="cad_collision" pos="-0.0067318 0.0145 -0.01566" size="0.002570" />
+                <geom name="thumb_dip_link_s35" class="cad_collision" pos="-0.0042318 -0.0155 -0.01316" size="0.001900" />
+                <geom name="thumb_dip_link_s36" class="cad_collision" pos="0.0037682 0.0185 -0.00716" size="0.001061" />
+                <geom name="thumb_dip_link_s37" class="cad_collision" pos="0.0002682 0.0225 -0.00266" size="0.000750" />
+                <geom name="thumb_dip_link_s38" class="cad_collision" pos="-0.0072318 0.0145 -0.01416" size="0.002192" />
+                <geom name="thumb_dip_link_s39" class="cad_collision" pos="0.0017682 0.0025 -0.02316" size="0.002308" />
+                <geom name="thumb_dip_link_s40" class="cad_collision" pos="-0.0017318 0.016 -0.01466" size="0.001090" />
+                <geom name="thumb_dip_link_s41" class="cad_collision" pos="-0.0047318 -0.0055 -0.01566" size="0.001470" />
+                <geom name="thumb_dip_link_s42" class="cad_collision" pos="-0.0062318 -0.0085 -0.04116" size="0.001768" />
+                <geom name="thumb_dip_link_s43" class="cad_collision" pos="-0.0062318 -0.002 -0.02766" size="0.001768" />
+                <geom name="thumb_dip_link_s44" class="cad_collision" pos="-0.0047318 -0.01 -0.01466" size="0.001341" />
+                <geom name="thumb_dip_link_s45" class="cad_collision" pos="-0.0067318 0 -0.01866" size="0.002332" />
+                <geom name="thumb_dip_link_s46" class="cad_collision" pos="-0.0042318 0.0215 -0.01316" size="0.001702" />
+                <geom name="thumb_dip_link_s47" class="cad_collision" pos="-0.0037318 0.0185 -0.01016" size="0.001315" />
+                <geom name="thumb_dip_link_s48" class="cad_collision" pos="-0.0062318 -0.0055 -0.02966" size="0.001768" />
+                <geom name="thumb_dip_link_s49" class="cad_collision" pos="0.0007682 -0.0035 -0.01716" size="0.001308" />
+                <geom name="thumb_dip_link_s50" class="cad_collision" pos="0.0017682 0.0225 0.00084" size="0.000750" />
+                <geom name="thumb_dip_link_s51" class="cad_collision" pos="-0.0022318 0.0045 -0.02266" size="0.000561" />
+                <geom name="thumb_dip_link_s52" class="cad_collision" pos="-0.0062318 0.009 -0.02616" size="0.001376" />
+                <geom name="thumb_dip_link_s53" class="cad_collision" pos="-0.0062318 0.0095 -0.02966" size="0.001000" />
+                <geom name="thumb_dip_link_s54" class="cad_collision" pos="-0.0062318 0.005 -0.04466" size="0.001768" />
+                <geom name="thumb_dip_link_s55" class="cad_collision" pos="-0.0062318 0.0015 -0.02866" size="0.001768" />
+                <geom name="thumb_dip_link_s56" class="cad_collision" pos="0.0052682 0.0055 -0.01416" size="0.001194" />
+                <geom name="thumb_dip_link_s57" class="cad_collision" pos="0.0007682 0.0135 -0.01466" size="0.001090" />
+                <geom name="thumb_dip_link_s58" class="cad_collision" pos="0.0037682 -0.0155 -0.00916" size="0.001900" />
+                <geom name="thumb_dip_link_s59" class="cad_collision" pos="-0.0067318 -0.0065 -0.02116" size="0.002670" />
+                <geom name="thumb_dip_link_s60" class="cad_collision" pos="0.0022682 -0.0155 -0.01366" size="0.001899" />
+                <geom name="thumb_dip_link_s61" class="cad_collision" pos="-0.0032318 0.005 -0.01616" size="0.000894" />
+                <geom name="thumb_dip_link_s62" class="cad_collision" pos="-0.0067318 0.0045 -0.01516" size="0.002718" />
+                <geom name="thumb_dip_link_s63" class="cad_collision" pos="-0.0012318 -0.005 -0.01466" size="0.001050" />
+                <geom name="thumb_dip_link_s64" class="cad_collision" pos="-0.0082318 -0.012 -0.01716" size="0.000890" />
+                <geom name="thumb_dip_link_s65" class="cad_collision" pos="0.0047682 0.016 -0.01416" size="0.001210" />
+                <geom name="thumb_dip_link_s66" class="cad_collision" pos="0.0027682 0.018 -0.00366" size="0.000940" />
+                <geom name="thumb_dip_link_s67" class="cad_collision" pos="0.0012682 0.018 -0.01066" size="0.000919" />
+                <geom name="thumb_dip_link_s68" class="cad_collision" pos="-0.0062318 0.0055 -0.03416" size="0.001768" />
+                <geom name="thumb_dip_link_s69" class="cad_collision" pos="0.0042682 0.0215 -0.01316" size="0.001743" />
+                <geom name="thumb_dip_link_s70" class="cad_collision" pos="-0.0067318 -0.0095 -0.04566" size="0.001000" />
+                <geom name="thumb_dip_link_s71" class="cad_collision" pos="-0.0012318 -0.0155 -0.00766" size="0.001900" />
+                <geom name="thumb_dip_link_s72" class="cad_collision" pos="-0.0027318 0.018 -0.00366" size="0.000940" />
+                <geom name="thumb_dip_link_s73" class="cad_collision" pos="-0.0062318 -0.0055 -0.03366" size="0.001768" />
+                <geom name="thumb_dip_link_s74" class="cad_collision" pos="-0.0012318 0.018 -0.00816" size="0.000940" />
+                <geom name="thumb_dip_link_s75" class="cad_collision" pos="-0.0032318 -0.0155 -0.01066" size="0.001817" />
+                <geom name="thumb_dip_link_s76" class="cad_collision" pos="-0.0057318 -0.009 -0.03266" size="0.001332" />
+                <geom name="thumb_dip_link_s77" class="cad_collision" pos="-0.0072318 -0.0035 -0.01866" size="0.002218" />
+                <geom name="thumb_dip_link_s78" class="cad_collision" pos="-0.0042318 0.019 -0.01316" size="0.001702" />
+                <geom name="thumb_dip_link_s79" class="cad_collision" pos="-0.0082318 -0.0025 -0.01216" size="0.000950" />
+                <geom name="thumb_dip_link_s80" class="cad_collision" pos="-0.0062318 -0.0055 -0.04516" size="0.001708" />
+                <geom name="thumb_dip_link_s81" class="cad_collision" pos="-0.0067318 -0.0075 -0.02316" size="0.002662" />
+                <geom name="thumb_dip_link_s82" class="cad_collision" pos="-0.0062318 0.003 -0.04166" size="0.001768" />
+                <geom name="thumb_dip_link_s83" class="cad_collision" pos="-0.0022318 0.0045 -0.02466" size="0.000561" />
+                <geom name="thumb_dip_link_s84" class="cad_collision" pos="-0.0007318 0.018 -0.01666" size="0.000940" />
+                <geom name="thumb_dip_link_s85" class="cad_collision" pos="-0.0072318 0.0095 -0.02966" size="0.000768" />
+                <geom name="thumb_dip_link_s86" class="cad_collision" pos="0.0042682 -0.0155 0.00084" size="0.001449" />
+                <geom name="thumb_dip_link_s87" class="cad_collision" pos="-0.0067318 -0.003 -0.02316" size="0.002332" />
+                <geom name="thumb_dip_link_s88" class="cad_collision" pos="-0.0017318 -0.0155 0.00384" size="0.001587" />
+                <geom name="thumb_dip_link_s89" class="cad_collision" pos="0.0042682 0.0025 -0.02416" size="0.001337" />
+                <geom name="thumb_dip_link_s90" class="cad_collision" pos="-0.0012318 -0.0085 -0.01466" size="0.001090" />
+                <geom name="thumb_dip_link_s91" class="cad_collision" pos="-0.0027318 -0.0145 -0.00366" size="0.001090" />
+                <geom name="thumb_dip_link_s92" class="cad_collision" pos="-0.0022318 0.022 -0.01666" size="0.000893" />
+                <geom name="thumb_dip_link_s93" class="cad_collision" pos="-0.0072318 0.001 -0.02316" size="0.002218" />
+                <geom name="thumb_dip_link_s94" class="cad_collision" pos="-0.0082318 -0.012 -0.01216" size="0.000988" />
+                <geom name="thumb_dip_link_s95" class="cad_collision" pos="-0.0012318 -0.0155 -0.01366" size="0.001900" />
+                <geom name="thumb_dip_link_s96" class="cad_collision" pos="0.0007682 -0.0035 -0.02366" size="0.001308" />
+                <geom name="thumb_dip_link_s97" class="cad_collision" pos="-0.0077318 -0.0085 -0.01816" size="0.001718" />
+                <geom name="thumb_dip_link_s98" class="cad_collision" pos="-0.0047318 -0.006 -0.01466" size="0.001633" />
+                <geom name="thumb_dip_link_s99" class="cad_collision" pos="-0.0062318 -0.0085 -0.03866" size="0.001768" />
+                <geom name="thumb_dip_link_s100" class="cad_collision" pos="-0.0062318 0.0085 -0.03816" size="0.001768" />
+                <geom name="thumb_dip_link_s101" class="cad_collision" pos="0.0012682 -0.0155 -0.00766" size="0.001900" />
+                <geom name="thumb_dip_link_s102" class="cad_collision" pos="-0.0062318 0.0085 -0.03216" size="0.001768" />
+                <geom name="thumb_dip_link_s103" class="cad_collision" pos="0.0052682 -0.007 -0.01416" size="0.001194" />
+                <geom name="thumb_dip_link_s104" class="cad_collision" pos="0.0042682 -0.001 -0.02366" size="0.001840" />
+                <geom name="thumb_dip_link_s105" class="cad_collision" pos="-0.0067318 0.0075 -0.02066" size="0.002718" />
+                <geom name="thumb_dip_link_s106" class="cad_collision" pos="-0.0027318 -0.005 -0.02416" size="0.000541" />
+                <geom name="thumb_dip_link_s107" class="cad_collision" pos="-0.0062318 -0.0045 -0.03766" size="0.001768" />
+                <geom name="thumb_dip_link_s108" class="cad_collision" pos="0.0017682 -0.0025 -0.01566" size="0.002210" />
+                <geom name="thumb_dip_link_s109" class="cad_collision" pos="-0.0087318 0.0025 -0.01166" size="0.000718" />
+                <geom name="thumb_dip_link_s110" class="cad_collision" pos="-0.0062318 -0.0085 -0.03116" size="0.001768" />
+                <geom name="thumb_dip_link_s111" class="cad_collision" pos="-0.0057318 -0.009 -0.03366" size="0.001332" />
+                <geom name="thumb_dip_link_s112" class="cad_collision" pos="-0.0062318 -0.001 -0.04466" size="0.001768" />
+                <geom name="thumb_dip_link_s113" class="cad_collision" pos="0.0047682 -0.012 -0.01416" size="0.001210" />
+                <geom name="thumb_dip_link_s114" class="cad_collision" pos="0.0017682 0.0025 -0.01916" size="0.002308" />
+                <geom name="thumb_dip_link_s115" class="cad_collision" pos="-0.0047318 -0.012 -0.01466" size="0.001341" />
+                <geom name="thumb_dip_link_s116" class="cad_collision" pos="-0.0062318 0.006 -0.03016" size="0.001768" />
+                <geom name="thumb_dip_link_s117" class="cad_collision" pos="-0.0012318 0.005 -0.01466" size="0.001090" />
+                <geom name="thumb_dip_link_s118" class="cad_collision" pos="-0.0087318 -0.015 -0.01116" size="0.000900" />
+                <geom name="thumb_dip_link_s119" class="cad_collision" pos="-0.0062318 0.0005 -0.03616" size="0.001768" />
+                <geom name="thumb_dip_link_s120" class="cad_collision" pos="-0.0017318 0.012 -0.01466" size="0.001090" />
+                <geom name="thumb_dip_link_s121" class="cad_collision" pos="-0.0067318 -0.0095 -0.04316" size="0.000911" />
+                <geom name="thumb_dip_link_s122" class="cad_collision" pos="0.0017682 -0.011 -0.01466" size="0.001090" />
+                <geom name="thumb_dip_link_s123" class="cad_collision" pos="0.0022682 -0.0055 -0.01466" size="0.001090" />
+                <geom name="thumb_dip_link_s124" class="cad_collision" pos="0.0017682 0.018 -0.00666" size="0.000940" />
+                <geom name="thumb_dip_link_s125" class="cad_collision" pos="-0.0062318 -0.0085 -0.02566" size="0.001698" />
+                <geom name="thumb_dip_link_s126" class="cad_collision" pos="-0.0037318 0.0185 -0.00666" size="0.000984" />
+                <geom name="thumb_dip_link_s127" class="cad_collision" pos="-0.0067318 0.0035 -0.01916" size="0.002332" />
+                <geom name="thumb_dip_link_s128" class="cad_collision" pos="-0.0052318 -0.0095 -0.04566" size="0.000832" />
+                <geom name="thumb_dip_link_s129" class="cad_collision" pos="-0.0062318 -0.0055 -0.04266" size="0.001768" />
+                <geom name="thumb_dip_link_s130" class="cad_collision" pos="0.0017682 -0.0155 0.00384" size="0.001571" />
+                <geom name="thumb_dip_link_s131" class="cad_collision" pos="-0.0002318 -0.015 0.00434" size="0.001453" />
+                <geom name="thumb_dip_link_s132" class="cad_collision" pos="-0.0062318 -0.0015 -0.04116" size="0.001768" />
+                <geom name="thumb_dip_link_s133" class="cad_collision" pos="-0.0062318 0.003 -0.03266" size="0.001768" />
+                <geom name="thumb_dip_link_s134" class="cad_collision" pos="-0.0082318 0.011 -0.01216" size="0.000988" />
+                <geom name="thumb_dip_link_s135" class="cad_collision" pos="-0.0017318 0.0045 -0.02066" size="0.000485" />
+                <geom name="thumb_dip_link_s136" class="cad_collision" pos="-0.0017318 -0.0165 -0.00616" size="0.000900" />
+                <geom name="thumb_dip_link_s137" class="cad_collision" pos="-0.0017318 0.022 -0.00616" size="0.000750" />
+                <geom name="thumb_dip_link_s138" class="cad_collision" pos="-0.0062318 -0.0005 -0.03866" size="0.001768" />
+                <geom name="thumb_dip_link_s139" class="cad_collision" pos="-0.0012318 0.0225 0.00184" size="0.000750" />
+                <geom name="thumb_dip_link_s140" class="cad_collision" pos="0.0047682 0.011 -0.01416" size="0.001210" />
+                <geom name="thumb_dip_link_s141" class="cad_collision" pos="-0.0057318 -0.0075 -0.04616" size="0.000750" />
+                <geom name="thumb_dip_link_s142" class="cad_collision" pos="-0.0082318 -0.008 -0.01216" size="0.000988" />
+                <geom name="thumb_dip_link_s143" class="cad_collision" pos="0.0037682 0.022 -0.00816" size="0.001250" />
+                <geom name="thumb_dip_link_s144" class="cad_collision" pos="0.0037682 0.0205 -0.00666" size="0.000948" />
+                <geom name="thumb_dip_link_s145" class="cad_collision" pos="-0.0062318 0.006 -0.04216" size="0.001768" />
+                <geom name="thumb_dip_link_s146" class="cad_collision" pos="-0.0067318 0.0075 -0.01516" size="0.002718" />
+                <geom name="thumb_dip_link_s147" class="cad_collision" pos="-0.0067318 0.0095 -0.04316" size="0.000911" />
+                <geom name="thumb_dip_link_s148" class="cad_collision" pos="0.0037682 -0.0155 -0.00566" size="0.001900" />
+                <geom name="thumb_dip_link_s149" class="cad_collision" pos="-0.0027318 0.018 -0.00566" size="0.000940" />
+                <geom name="thumb_dip_link_s150" class="cad_collision" pos="0.0017682 0.0225 -0.01466" size="0.000750" />
+                <geom name="thumb_dip_link_s151" class="cad_collision" pos="-0.0067318 0.0075 -0.02316" size="0.002662" />
+                <geom name="thumb_dip_link_s152" class="cad_collision" pos="0.0037682 0.0185 -0.01066" size="0.001363" />
+                <geom name="thumb_dip_link_s153" class="cad_collision" pos="-0.0087318 0.016 -0.01166" size="0.000718" />
+                <geom name="thumb_dip_link_s154" class="cad_collision" pos="-0.0067318 -0.008 -0.02216" size="0.002500" />
+                <geom name="thumb_dip_link_s155" class="cad_collision" pos="-0.0022318 0.0225 -0.00066" size="0.000750" />
+                <geom name="thumb_dip_link_s156" class="cad_collision" pos="-0.0067318 0.013 -0.01566" size="0.002718" />
+                <geom name="thumb_dip_link_s157" class="cad_collision" pos="-0.0067318 -0.0065 -0.01916" size="0.002670" />
+                <geom name="thumb_dip_link_s158" class="cad_collision" pos="0.0022682 0.0185 -0.01666" size="0.000868" />
+                <geom name="thumb_dip_link_s159" class="cad_collision" pos="0.0007682 -0.0155 -0.01066" size="0.001900" />
+                <geom name="thumb_cassette_s0" class="cad_collision" pos="-0.00215 0.00875 -0.03166" size="0.001650" />
+                <geom name="thumb_cassette_s1" class="cad_collision" pos="-0.00115 -0.00925 -0.02666" size="0.000830" />
+                <geom name="thumb_cassette_s2" class="cad_collision" pos="-0.00215 -0.00875 -0.03266" size="0.001574" />
+                <geom name="thumb_cassette_s3" class="cad_collision" pos="-0.00215 0.00875 -0.03316" size="0.001290" />
+                <geom name="thumb_cassette_s4" class="cad_collision" pos="-0.00315 -0.00425 -0.02766" size="0.000633" />
+                <geom name="thumb_cassette_s5" class="cad_collision" pos="-0.00315 -0.00425 -0.03116" size="0.000633" />
+                <geom name="thumb_cassette_s6" class="cad_collision" pos="-0.00315 0.00425 -0.02766" size="0.000633" />
+                <geom name="thumb_cassette_s7" class="cad_collision" pos="-0.00265 0.00425 -0.04066" size="0.000630" />
+                <geom name="thumb_cassette_s8" class="cad_collision" pos="-0.00265 0.00425 -0.03266" size="0.000630" />
+                <geom name="thumb_cassette_s9" class="cad_collision" pos="-0.00315 0.00425 -0.03616" size="0.000633" />
+                <geom name="thumb_cassette_s10" class="cad_collision" pos="-0.00315 -0.00425 -0.04116" size="0.000633" />
+                <geom name="thumb_cassette_s11" class="cad_collision" pos="-0.00215 0.00875 -0.03116" size="0.001650" />
+                <geom name="thumb_cassette_s12" class="cad_collision" pos="-0.00265 0.00975 -0.02716" size="0.000750" />
+                <geom name="thumb_cassette_s13" class="cad_collision" pos="-0.00265 -0.00425 -0.03666" size="0.000630" />
+                <geom name="thumb_cassette_s14" class="cad_collision" pos="-0.00215 -0.00875 -0.03116" size="0.001650" />
+                <geom name="thumb_cassette_s15" class="cad_collision" pos="-0.00315 0.00425 -0.03016" size="0.000633" />
+                <geom name="thumb_cassette_s16" class="cad_collision" pos="-0.00315 0.00425 -0.03816" size="0.000633" />
+                <geom name="thumb_cassette_s17" class="cad_collision" pos="-0.00265 -0.00725 -0.02616" size="0.000660" />
+                <geom name="thumb_cassette_s18" class="cad_collision" pos="-0.00115 -0.00975 -0.02916" size="0.000707" />
+                <geom name="thumb_cassette_s19" class="cad_collision" pos="-0.00265 -0.00425 -0.02966" size="0.000630" />
+                <geom name="thumb_cassette_s20" class="cad_collision" pos="-0.00315 -0.00425 -0.02866" size="0.000633" />
+                <geom name="thumb_cassette_s21" class="cad_collision" pos="-0.00315 0.00775 -0.03166" size="0.000650" />
+                <geom name="thumb_cassette_s22" class="cad_collision" pos="-0.00315 -0.00425 -0.03416" size="0.000633" />
+                <geom name="thumb_cassette_s23" class="cad_collision" pos="-0.00315 0.00825 -0.02616" size="0.000650" />
+                <geom name="thumb_cassette_s24" class="cad_collision" pos="-0.00065 -0.00725 -0.02666" size="0.000569" />
+                <geom name="thumb_cassette_s25" class="cad_collision" pos="-0.00115 0.00925 -0.02666" size="0.000830" />
+                <geom name="thumb_cassette_s26" class="cad_collision" pos="-0.00315 -0.00975 -0.02866" size="0.000597" />
+                <geom name="thumb_cassette_s27" class="cad_collision" pos="-0.00165 0.00875 -0.03316" size="0.001290" />
+                <geom name="thumb_cassette_s28" class="cad_collision" pos="-0.00315 -0.00975 -0.02616" size="0.000650" />
+                <geom name="thumb_cassette_s29" class="cad_collision" pos="-0.00265 0.00725 -0.02666" size="0.000569" />
+                <geom name="thumb_cassette_s30" class="cad_collision" pos="-0.00315 -0.00475 -0.02766" size="0.000456" />
+                <geom name="thumb_cassette_s31" class="cad_collision" pos="-0.00265 -0.00425 -0.03866" size="0.000630" />
+                <geom name="thumb_cassette_s32" class="cad_collision" pos="-0.00315 0.00475 -0.04166" size="0.000422" />
+                <geom name="thumb_cassette_s33" class="cad_collision" pos="-0.00165 0.00825 -0.03066" size="0.001214" />
+                <geom name="thumb_cassette_s34" class="cad_collision" pos="-0.00265 0.00975 -0.02916" size="0.000750" />
+                <geom name="thumb_cassette_s35" class="cad_collision" pos="-0.00265 -0.00825 -0.03066" size="0.001150" />
+                <geom name="thumb_cassette_s36" class="cad_collision" pos="-0.00065 0.00725 -0.02616" size="0.000660" />
+                <geom name="thumb_cassette_s37" class="cad_collision" pos="-0.00165 0.00725 -0.02666" size="0.000569" />
+                <geom name="thumb_cassette_s38" class="cad_collision" pos="-0.00315 -0.00975 -0.03366" size="0.000650" />
+                <geom name="thumb_cassette_s39" class="cad_collision" pos="-0.00315 0.00425 -0.03466" size="0.000633" />
+                <geom name="thumb_cassette_s40" class="cad_collision" pos="-0.00065 -0.00775 -0.03016" size="0.000716" />
+                <geom name="thumb_cassette_s41" class="cad_collision" pos="-0.00265 -0.00425 -0.03266" size="0.000630" />
+                <geom name="thumb_cassette_s42" class="cad_collision" pos="-0.00315 -0.00475 -0.03216" size="0.000456" />
+                <geom name="thumb_cassette_s43" class="cad_collision" pos="-0.00315 -0.00475 -0.04166" size="0.000422" />
+                <geom name="thumb_cassette_s44" class="cad_collision" pos="-0.00315 -0.00475 -0.03966" size="0.000456" />
+                <geom name="thumb_cassette_s45" class="cad_collision" pos="-0.00315 0.00425 -0.04166" size="0.000422" />
+                <geom name="thumb_cassette_s46" class="cad_collision" pos="-0.00265 -0.00425 -0.04066" size="0.000630" />
+                <geom name="thumb_cassette_s47" class="cad_collision" pos="-0.00315 0.00475 -0.03866" size="0.000456" />
+                <geom name="thumb_cassette_s48" class="cad_collision" pos="-0.00115 0.00975 -0.02916" size="0.000707" />
+                <geom name="thumb_cassette_s49" class="cad_collision" pos="-0.00265 -0.00425 -0.02766" size="0.000630" />
+                <geom name="thumb_cassette_s50" class="cad_collision" pos="-0.00165 -0.00875 -0.03316" size="0.001290" />
+                <geom name="thumb_cassette_s51" class="cad_collision" pos="-0.00315 -0.00675 -0.02616" size="0.000421" />
+                <geom name="thumb_cassette_s52" class="cad_collision" pos="-0.00315 0.00775 -0.03016" size="0.000650" />
+                <geom name="thumb_cassette_s53" class="cad_collision" pos="-0.00315 0.00675 -0.02616" size="0.000421" />
+                <geom name="thumb_cassette_s54" class="cad_collision" pos="-0.00315 0.00425 -0.03716" size="0.000633" />
+                <geom name="thumb_cassette_s55" class="cad_collision" pos="-0.00315 0.00925 -0.03366" size="0.000650" />
+                <geom name="thumb_cassette_s56" class="cad_collision" pos="-0.00315 0.00475 -0.03116" size="0.000456" />
+                <geom name="thumb_cassette_s57" class="cad_collision" pos="-0.00115 0.00825 -0.03066" size="0.001214" />
+                <geom name="thumb_cassette_s58" class="cad_collision" pos="-0.00265 0.00975 -0.02616" size="0.000660" />
+                <geom name="thumb_cassette_s59" class="cad_collision" pos="-0.00315 -0.00475 -0.03066" size="0.000456" />
+                <geom name="thumb_cassette_s60" class="cad_collision" pos="-0.00315 -0.00425 -0.02966" size="0.000633" />
+                <geom name="thumb_cassette_s61" class="cad_collision" pos="-0.00315 -0.00475 -0.03466" size="0.000456" />
+                <geom name="thumb_cassette_s62" class="cad_collision" pos="-0.00265 0.00425 -0.03116" size="0.000630" />
+                <geom name="thumb_cassette_s63" class="cad_collision" pos="-0.00265 0.00825 -0.03366" size="0.000608" />
+                <geom name="thumb_cassette_s64" class="cad_collision" pos="-0.00265 0.00425 -0.02916" size="0.000630" />
+                <geom name="thumb_cassette_s65" class="cad_collision" pos="-0.00315 0.00475 -0.04016" size="0.000456" />
+                <geom name="thumb_cassette_s66" class="cad_collision" pos="-0.00265 -0.00825 -0.03366" size="0.000790" />
+                <geom name="thumb_cassette_s67" class="cad_collision" pos="-0.00315 -0.00725 -0.02666" size="0.000569" />
+                <geom name="thumb_cassette_s68" class="cad_collision" pos="-0.00315 -0.00475 -0.02966" size="0.000456" />
+                <geom name="thumb_cassette_s69" class="cad_collision" pos="-0.00315 -0.00775 -0.03016" size="0.000650" />
+                <geom name="thumb_cassette_s70" class="cad_collision" pos="-0.00315 0.00475 -0.03016" size="0.000456" />
+                <geom name="thumb_cassette_s71" class="cad_collision" pos="-0.00315 -0.00475 -0.03316" size="0.000456" />
+                <geom name="thumb_cassette_s72" class="cad_collision" pos="-0.00315 -0.00475 -0.03366" size="0.000456" />
+                <geom name="thumb_cassette_s73" class="cad_collision" pos="-0.00315 0.00825 -0.03366" size="0.000550" />
+                <geom name="thumb_cassette_s74" class="cad_collision" pos="-0.00315 -0.00425 -0.03766" size="0.000633" />
+                <geom name="thumb_cassette_s75" class="cad_collision" pos="-0.00115 0.00825 -0.03366" size="0.000790" />
+                <geom name="thumb_cassette_s76" class="cad_collision" pos="-0.00265 0.00775 -0.03016" size="0.000716" />
+                <geom name="thumb_cassette_s77" class="cad_collision" pos="-0.00315 -0.00475 -0.03216" size="0.000456" />
+                <geom name="thumb_cassette_s78" class="cad_collision" pos="-0.00315 0.00475 -0.02766" size="0.000456" />
+                <geom name="thumb_cassette_s79" class="cad_collision" pos="-0.00265 0.00475 -0.03466" size="0.000440" />
+                <geom name="thumb_cassette_s80" class="cad_collision" pos="-0.00265 -0.00425 -0.03566" size="0.000630" />
+                <geom name="thumb_cassette_s81" class="cad_collision" pos="-0.00265 0.00425 -0.03566" size="0.000630" />
+                <geom name="thumb_cassette_s82" class="cad_collision" pos="-0.00315 0.00975 -0.03366" size="0.000650" />
+                <geom name="thumb_cassette_s83" class="cad_collision" pos="-0.00315 -0.00775 -0.03216" size="0.000650" />
+                <geom name="thumb_cassette_s84" class="cad_collision" pos="-0.00315 0.00425 -0.03166" size="0.000633" />
+                <geom name="thumb_cap_s0" class="cad_collision" pos="-0.0014937 -0.00875 -0.04676" size="0.001406" />
+                <geom name="thumb_cap_s1" class="cad_collision" pos="-0.0054937 -0.00925 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s2" class="cad_collision" pos="-0.0014937 0.00475 -0.04676" size="0.001406" />
+                <geom name="thumb_cap_s3" class="cad_collision" pos="-0.0014937 -0.00525 -0.04676" size="0.001406" />
+                <geom name="thumb_cap_s4" class="cad_collision" pos="-0.0014937 0.00875 -0.04676" size="0.001406" />
+                <geom name="thumb_cap_s5" class="cad_collision" pos="-0.0069937 -0.00075 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s6" class="cad_collision" pos="-0.0064937 -0.00425 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s7" class="cad_collision" pos="-0.0009937 0.00675 -0.04276" size="0.000754" />
+                <geom name="thumb_cap_s8" class="cad_collision" pos="-0.0014937 0.00925 -0.04226" size="0.001160" />
+                <geom name="thumb_cap_s9" class="cad_collision" pos="-0.0069937 0.00225 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s10" class="cad_collision" pos="-0.0014937 -0.00875 -0.03976" size="0.001406" />
+                <geom name="thumb_cap_s11" class="cad_collision" pos="-0.0034937 0.00025 -0.04776" size="0.000688" />
+                <geom name="thumb_cap_s12" class="cad_collision" pos="-0.0014937 0.00875 -0.03976" size="0.001406" />
+                <geom name="thumb_cap_s13" class="cad_collision" pos="-0.0019937 0.00625 -0.04376" size="0.000620" />
+                <geom name="thumb_cap_s14" class="cad_collision" pos="-0.0064937 -0.00675 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s15" class="cad_collision" pos="-0.0014937 -0.00975 -0.04326" size="0.000750" />
+                <geom name="thumb_cap_s16" class="cad_collision" pos="-0.0014937 -0.00375 -0.04726" size="0.001250" />
+                <geom name="thumb_cap_s17" class="cad_collision" pos="-0.0039937 -0.00575 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s18" class="cad_collision" pos="-0.0014937 0.00025 -0.04726" size="0.001045" />
+                <geom name="thumb_cap_s19" class="cad_collision" pos="-0.0054937 0.00925 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s20" class="cad_collision" pos="-0.0014937 -0.00775 -0.04176" size="0.001314" />
+                <geom name="thumb_cap_s21" class="cad_collision" pos="-0.0054937 0.00575 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s22" class="cad_collision" pos="-0.0014937 -0.00575 -0.04526" size="0.001224" />
+                <geom name="thumb_cap_s23" class="cad_collision" pos="-0.0034937 0.00725 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s24" class="cad_collision" pos="-0.0069937 0.00675 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s25" class="cad_collision" pos="-0.0069937 -0.00925 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s26" class="cad_collision" pos="-0.0044937 -0.00225 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s27" class="cad_collision" pos="-0.0014937 0.00775 -0.04176" size="0.001314" />
+                <geom name="thumb_cap_s28" class="cad_collision" pos="-0.0039937 0.00275 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s29" class="cad_collision" pos="-0.0059937 -0.00325 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s30" class="cad_collision" pos="-0.0014937 -0.00825 -0.03976" size="0.001336" />
+                <geom name="thumb_cap_s31" class="cad_collision" pos="-0.0069937 0.00925 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s32" class="cad_collision" pos="-0.0014937 -0.00175 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s33" class="cad_collision" pos="-0.0029937 0.00975 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s34" class="cad_collision" pos="-0.0014937 0.00325 -0.04726" size="0.000993" />
+                <geom name="thumb_cap_s35" class="cad_collision" pos="-0.0014937 0.00575 -0.04676" size="0.001406" />
+                <geom name="thumb_cap_s36" class="cad_collision" pos="-0.0069937 0.00425 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s37" class="cad_collision" pos="-0.0014937 0.00025 -0.04526" size="0.000731" />
+                <geom name="thumb_cap_s38" class="cad_collision" pos="-0.0014937 0.00875 -0.04726" size="0.001250" />
+                <geom name="thumb_cap_s39" class="cad_collision" pos="-0.0014937 0.00975 -0.04476" size="0.000620" />
+                <geom name="thumb_cap_s40" class="cad_collision" pos="-0.0044937 0.00425 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s41" class="cad_collision" pos="-0.0014937 0.00575 -0.04526" size="0.001224" />
+                <geom name="thumb_cap_s42" class="cad_collision" pos="-0.0069937 -0.00425 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s43" class="cad_collision" pos="-0.0049937 0.00075 -0.04776" size="0.000540" />
+                <geom name="thumb_cap_s44" class="cad_collision" pos="-0.0014937 -0.00725 -0.04726" size="0.001250" />
+                <geom name="thumb_cap_s45" class="cad_collision" pos="-0.0034937 -0.00925 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s46" class="cad_collision" pos="-0.0064937 0.00225 -0.04776" size="0.000750" />
+                <geom name="thumb_cap_s47" class="cad_collision" pos="-0.0014937 -0.00975 -0.04526" size="0.000750" />
+                <geom name="thumb_cap_s48" class="cad_collision" pos="-0.0009937 0.00975 -0.04476" size="0.000620" />
+                <geom name="thumb_cap_s49" class="cad_collision" pos="-0.0014937 -0.00675 -0.04276" size="0.000754" />
+                <geom name="thumb_cap_s50" class="cad_collision" pos="-0.0004937 -0.00625 -0.04326" size="0.000580" />
+                <geom name="thumb_cap_s51" class="cad_collision" pos="-0.0019937 -0.00575 -0.04476" size="0.000906" />
+                <geom name="thumb_cap_s52" class="cad_collision" pos="-0.0014937 -0.00875 -0.04176" size="0.001406" />
+                <geom name="thumb_cap_s53" class="cad_collision" pos="0.00065 0.0085 -0.02827" size="0.000550" />
+                <geom name="thumb_cap_s54" class="cad_collision" pos="0.00065 -0.008 -0.04427" size="0.000550" />
+                <geom name="thumb_cap_s55" class="cad_collision" pos="0.00065 -0.008 -0.02827" size="0.000550" />
+                <geom name="thumb_cap_s56" class="cad_collision" pos="0.00065 0.008 -0.04427" size="0.000550" />
+                <geom name="thumb_cap_s57" class="cad_collision" pos="0.00065 0.0075 -0.02827" size="0.000550" />
+                <geom name="thumb_cap_s58" class="cad_collision" pos="0.00065 -0.0075 -0.04427" size="0.000550" />
+                <geom name="thumb_cap_s59" class="cad_collision" pos="0.00065 -0.008 -0.02777" size="0.000550" />
+                <geom name="thumb_cap_s60" class="cad_collision" pos="0.00065 0.0075 -0.04377" size="0.000534" />
+                <geom name="thumb_cap_s61" class="cad_collision" pos="0.00065 -0.0085 -0.02877" size="0.000534" />
+                <geom name="thumb_cap_s62" class="cad_collision" pos="0.00065 0.008 -0.02877" size="0.000550" />
+                <geom name="thumb_cap_s63" class="cad_collision" pos="0.00065 0.0085 -0.04477" size="0.000534" />
+                <geom name="thumb_cap_s64" class="cad_collision" pos="0.00065 -0.0075 -0.02827" size="0.000550" />
+                <geom name="thumb_cap_s65" class="cad_collision" pos="0.00065 -0.0085 -0.04477" size="0.000534" />
+                <geom name="thumb_cap_s66" class="cad_collision" pos="0.00065 0.008 -0.02777" size="0.000550" />
+                <geom name="thumb_cap_s67" class="cad_collision" pos="0.00065 -0.008 -0.04477" size="0.000550" />
+                <geom name="thumb_cap_s68" class="cad_collision" pos="0.00065 -0.008 -0.04377" size="0.000550" />
+                <geom name="thumb_cap_s69" class="cad_collision" pos="0.00065 0.0085 -0.04377" size="0.000534" />
+                <body name="thumb_tip" pos="0 0 -0.03636">
+                  <inertial pos="0.002908 -0 0.001001" mass="0.003654" fullinertia="0.0000001631 0.0000001569 0.0000000903 -0 -0.0000000051 0" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="index_mount" pos="0.05 0.055 0">
+        <inertial pos="0.003714 0.000445 0.016276" mass="0.027251" fullinertia="0.000010295 0.000010186 0.00000381 -0.000000007 0.000001996 0.000000129" />
+        <joint class="morph" name="index_x" axis="1 0 0" range="-0.030000 0.030000" />
+        <joint class="morph" name="index_y" axis="0 1 0" range="-0.030000 0.030000" />
+        <geom name="index_carriage_visual" class="cad_visual" mesh="cad_carriage" material="cad_link" />
+        <geom name="index_servo_yaw_visual" class="cad_visual" mesh="cad_servo_yaw" material="cad_servo" />
+        <geom name="index_mount_s0" class="cad_collision" pos="-0.002352 -0.017507 0.059825" size="0.008365" />
+        <geom name="index_mount_s1" class="cad_collision" pos="-0.002896 0.010622 0.026687" size="0.010545" />
+        <geom name="index_mount_s2" class="cad_collision" pos="-0.002482 -0.012608 0.027125" size="0.010351" />
+        <geom name="index_mount_s3" class="cad_collision" pos="-0.002455 0.016342 0.046861" size="0.008685" />
+        <geom name="index_mount_s4" class="cad_collision" pos="-0.002272 -0.016617 0.048319" size="0.008354" />
+        <geom name="index_mount_s5" class="cad_collision" pos="-0.001043 0.008169 -0.000468" size="0.007695" />
+        <geom name="index_mount_s6" class="cad_collision" pos="-0.002125 -0.011757 0.035264" size="0.010281" />
+        <geom name="index_mount_s7" class="cad_collision" pos="0.007381 0.007227 0.00622" size="0.007367" />
+        <geom name="index_mount_s8" class="cad_collision" pos="-0.005419 0.004663 0.012687" size="0.007912" />
+        <geom name="index_mount_s9" class="cad_collision" pos="-0.002661 0.012264 0.035199" size="0.009850" />
+        <geom name="index_mount_s10" class="cad_collision" pos="-0.005447 -0.003041 0.022746" size="0.008924" />
+        <geom name="index_mount_s11" class="cad_collision" pos="0.002157 0.016577 0.058953" size="0.006163" />
+        <geom name="index_mount_s12" class="cad_collision" pos="0.008765 0.005616 0.017359" size="0.006431" />
+        <geom name="index_mount_s13" class="cad_collision" pos="-0.006679 0.016689 0.059557" size="0.005997" />
+        <geom name="index_mount_s14" class="cad_collision" pos="0.009373 0.009059 0.000368" size="0.006191" />
+        <geom name="index_mount_s15" class="cad_collision" pos="-0.002785 0.005549 0.039551" size="0.008577" />
+        <geom name="index_mount_s16" class="cad_collision" pos="-0.002956 -0.005002 0.039658" size="0.008360" />
+        <geom name="index_mount_s17" class="cad_collision" pos="-0.005093 -0.008538 0.001918" size="0.005053" />
+        <geom name="index_mount_s18" class="cad_collision" pos="-0.00618 -0.004151 0.010356" size="0.006139" />
+        <geom name="index_mount_s19" class="cad_collision" pos="0.010374 0.005978 -0.007919" size="0.005514" />
+        <geom name="index_mount_s20" class="cad_collision" pos="0.005533 -0.002415 0.021655" size="0.007782" />
+        <geom name="index_mount_s21" class="cad_collision" pos="0.007851 -0.005917 -0.008011" size="0.007083" />
+        <geom name="index_mount_s22" class="cad_collision" pos="-0.003608 -0.00767 -0.008288" size="0.006551" />
+        <geom name="index_mount_s23" class="cad_collision" pos="-0.000607 0.003821 -0.008491" size="0.007146" />
+        <geom name="index_mount_s24" class="cad_collision" pos="0.002783 -0.00018 0.011908" size="0.007792" />
+        <geom name="index_mount_s25" class="cad_collision" pos="0.013485 -0.001148 0.012529" size="0.007191" />
+        <geom name="index_mount_s26" class="cad_collision" pos="0.008103 -0.00003 -0.000626" size="0.007378" />
+        <geom name="index_mount_s27" class="cad_collision" pos="0.018611 0.000003 0.00001" size="0.006796" />
+        <geom name="index_mount_s28" class="cad_collision" pos="0.011594 0.000002 0.009116" size="0.007129" />
+        <geom name="index_mount_s29" class="cad_collision" pos="0.003026 -0.000327 0.006102" size="0.007447" />
+        <geom name="index_mount_s30" class="cad_collision" pos="0.01383 0.000289 0.005579" size="0.007162" />
+        <geom name="index_mount_s31" class="cad_collision" pos="0.01325 0.000582 0.012304" size="0.007303" />
+        <geom name="index_mount_s32" class="cad_collision" pos="0.014881 -0.000203 -0.003932" size="0.006762" />
+        <geom name="index_mount_s33" class="cad_collision" pos="0.015846 0.000935 0.02179" size="0.004195" />
+        <geom name="index_mount_s34" class="cad_collision" pos="0.015199 -0.000752 -0.000378" size="0.006288" />
+        <geom name="index_mount_s35" class="cad_collision" pos="0.001604 -0.000037 -0.001027" size="0.007137" />
+        <body name="index_yaw_frame">
+          <inertial pos="0.007945 -0.000201 -0.019195" mass="0.021200" fullinertia="0.000001897 0.000003343 0.000003663 -0.000000298 -0.000000249 -0.000000097" />
+          <joint class="ctrl" name="index_yaw" axis="1 0 0" range="-1.483530 1.483530" />
+          <geom name="index_yaw_link_visual" class="cad_visual" mesh="cad_yaw_link" material="cad_link" />
+          <geom name="index_servo_mcp_visual" class="cad_visual" mesh="cad_servo_mcp" material="cad_servo" />
+          <geom name="index_yaw_frame_s0" class="cad_collision" pos="-0.008494 -0.002523 -0.012808" size="0.006819" />
+          <geom name="index_yaw_frame_s1" class="cad_collision" pos="0.024204 -0.002253 -0.0212" size="0.008594" />
+          <geom name="index_yaw_frame_s2" class="cad_collision" pos="0.026081 0.009594 -0.014152" size="0.007578" />
+          <geom name="index_yaw_frame_s3" class="cad_collision" pos="0.009322 -0.004847 -0.012688" size="0.005619" />
+          <geom name="index_yaw_frame_s4" class="cad_collision" pos="0.007489 0.01055 -0.022577" size="0.005995" />
+          <geom name="index_yaw_frame_s5" class="cad_collision" pos="-0.005093 0.00742 -0.012778" size="0.006396" />
+          <geom name="index_yaw_frame_s6" class="cad_collision" pos="0.012333 0.013205 -0.012378" size="0.005702" />
+          <geom name="index_yaw_frame_s7" class="cad_collision" pos="0.027291 -0.002229 -0.012507" size="0.006258" />
+          <geom name="index_yaw_frame_s8" class="cad_collision" pos="0.019989 -0.004176 -0.015191" size="0.006026" />
+          <geom name="index_yaw_frame_s9" class="cad_collision" pos="0.024457 0.007206 -0.017993" size="0.008088" />
+          <geom name="index_yaw_frame_s10" class="cad_collision" pos="0.000368 0.002972 -0.030889" size="0.005236" />
+          <geom name="index_yaw_frame_s11" class="cad_collision" pos="0.00576 0.006895 -0.013778" size="0.005831" />
+          <geom name="index_yaw_frame_s12" class="cad_collision" pos="0.000548 -0.00454 -0.030756" size="0.005070" />
+          <geom name="index_yaw_frame_s13" class="cad_collision" pos="0.013679 0.010752 -0.021624" size="0.005449" />
+          <geom name="index_yaw_frame_s14" class="cad_collision" pos="0.004263 0.013404 -0.013591" size="0.005050" />
+          <geom name="index_yaw_frame_s15" class="cad_collision" pos="0.028752 -0.004254 0.003648" size="0.004832" />
+          <geom name="index_yaw_frame_s16" class="cad_collision" pos="0.026826 0.005864 -0.021446" size="0.005725" />
+          <geom name="index_yaw_frame_s17" class="cad_collision" pos="-0.010179 -0.002627 -0.000901" size="0.007028" />
+          <geom name="index_yaw_frame_s18" class="cad_collision" pos="0.029051 0.002749 0.004769" size="0.004579" />
+          <geom name="index_yaw_frame_s19" class="cad_collision" pos="-0.007134 -0.003498 -0.028377" size="0.005491" />
+          <geom name="index_yaw_frame_s20" class="cad_collision" pos="-0.007667 0.003381 -0.01588" size="0.005449" />
+          <geom name="index_yaw_frame_s21" class="cad_collision" pos="-0.008869 -0.003176 -0.022686" size="0.005228" />
+          <geom name="index_yaw_frame_s22" class="cad_collision" pos="-0.007668 0.002812 -0.001427" size="0.006611" />
+          <geom name="index_yaw_frame_s23" class="cad_collision" pos="0.016092 0.004173 -0.012637" size="0.005312" />
+          <geom name="index_yaw_frame_s24" class="cad_collision" pos="0.02936 -0.003241 -0.00363" size="0.005189" />
+          <geom name="index_yaw_frame_s25" class="cad_collision" pos="-0.007774 0.009742 -0.020824" size="0.004897" />
+          <geom name="index_yaw_frame_s26" class="cad_collision" pos="0.029548 0.006904 -0.003371" size="0.005296" />
+          <geom name="index_yaw_frame_s27" class="cad_collision" pos="-0.006473 0.007359 -0.025811" size="0.006404" />
+          <geom name="index_yaw_frame_s28" class="cad_collision" pos="0.021324 0.008589 -0.023149" size="0.005974" />
+          <geom name="index_yaw_frame_s29" class="cad_collision" pos="0.000383 -0.003282 -0.012828" size="0.005533" />
+          <geom name="index_yaw_frame_s30" class="cad_collision" pos="0.027937 0.009676 -0.022105" size="0.005112" />
+          <geom name="index_yaw_frame_s31" class="cad_collision" pos="0.020655 0.012995 -0.014268" size="0.005327" />
+          <geom name="index_yaw_frame_s32" class="cad_collision" pos="0.000005 -0.011559 -0.021057" size="0.007183" />
+          <geom name="index_yaw_frame_s33" class="cad_collision" pos="0.012578 0.004612 -0.020764" size="0.007599" />
+          <geom name="index_yaw_frame_s34" class="cad_collision" pos="0.012961 -0.00764 -0.020351" size="0.006978" />
+          <geom name="index_yaw_frame_s35" class="cad_collision" pos="-0.003957 -0.007521 -0.020756" size="0.006802" />
+          <geom name="index_yaw_frame_s36" class="cad_collision" pos="0.006658 0.004162 -0.020993" size="0.007661" />
+          <geom name="index_yaw_frame_s37" class="cad_collision" pos="0.006406 -0.00647 -0.020438" size="0.007342" />
+          <geom name="index_yaw_frame_s38" class="cad_collision" pos="-0.001653 0.005008 -0.021911" size="0.006154" />
+          <geom name="index_yaw_frame_s39" class="cad_collision" pos="0.01169 0.000188 -0.020755" size="0.007574" />
+          <geom name="index_yaw_frame_s40" class="cad_collision" pos="-0.001708 0.004633 -0.018833" size="0.006005" />
+          <geom name="index_yaw_frame_s41" class="cad_collision" pos="-0.000782 -0.002332 -0.020714" size="0.007401" />
+          <geom name="index_yaw_frame_s42" class="cad_collision" pos="0.001153 0.001454 -0.020684" size="0.006547" />
+          <geom name="index_yaw_frame_s43" class="cad_collision" pos="0.015239 -0.007757 -0.020615" size="0.006424" />
+          <body name="index_mcp_frame" pos="0 -0 -0.02075">
+            <inertial pos="0.005177 -0.002878 -0.025365" mass="0.025029" fullinertia="0.000004091 0.000003624 0.000003974 -0.000000058 0.000000068 0.000000322" />
+            <joint class="ctrl" name="index_mcp" axis="0 1 0" range="-0.261799 1.605703" />
+            <geom name="index_mcp_link_visual" class="cad_visual" mesh="cad_mcp_link" material="cad_link" />
+            <geom name="index_servo_pip_visual" class="cad_visual" mesh="cad_servo_pip" material="cad_servo" />
+            <geom name="index_mcp_frame_s0" class="cad_collision" pos="-0.005232 0.005579 -0.019712" size="0.009322" />
+            <geom name="index_mcp_frame_s1" class="cad_collision" pos="0.016132 0.005664 -0.018685" size="0.009490" />
+            <geom name="index_mcp_frame_s2" class="cad_collision" pos="-0.004533 -0.00678 -0.017547" size="0.009181" />
+            <geom name="index_mcp_frame_s3" class="cad_collision" pos="0.007545 -0.014906 -0.017602" size="0.010026" />
+            <geom name="index_mcp_frame_s4" class="cad_collision" pos="0.015447 -0.008029 -0.018575" size="0.009009" />
+            <geom name="index_mcp_frame_s5" class="cad_collision" pos="0.015387 -0.018171 -0.018161" size="0.008441" />
+            <geom name="index_mcp_frame_s6" class="cad_collision" pos="0.007064 -0.001387 -0.017991" size="0.009164" />
+            <geom name="index_mcp_frame_s7" class="cad_collision" pos="0.020634 -0.004204 -0.031459" size="0.006377" />
+            <geom name="index_mcp_frame_s8" class="cad_collision" pos="-0.004088 -0.019553 -0.015895" size="0.007436" />
+            <geom name="index_mcp_frame_s9" class="cad_collision" pos="-0.00733 0.010692 -0.032971" size="0.005284" />
+            <geom name="index_mcp_frame_s10" class="cad_collision" pos="0.000535 -0.00384 -0.04145" size="0.005217" />
+            <geom name="index_mcp_frame_s11" class="cad_collision" pos="-0.00566 -0.023955 -0.006285" size="0.005195" />
+            <geom name="index_mcp_frame_s12" class="cad_collision" pos="0.006244 0.010931 -0.024949" size="0.005428" />
+            <geom name="index_mcp_frame_s13" class="cad_collision" pos="0.004654 -0.023001 -0.006906" size="0.005491" />
+            <geom name="index_mcp_frame_s14" class="cad_collision" pos="0.006054 0.014206 -0.009734" size="0.004720" />
+            <geom name="index_mcp_frame_s15" class="cad_collision" pos="0.00422 0.009911 -0.013459" size="0.004962" />
+            <geom name="index_mcp_frame_s16" class="cad_collision" pos="-0.007637 -0.003349 -0.036982" size="0.005058" />
+            <geom name="index_mcp_frame_s17" class="cad_collision" pos="0.009185 0.007827 -0.015624" size="0.006339" />
+            <geom name="index_mcp_frame_s18" class="cad_collision" pos="-0.004823 -0.013837 -0.018906" size="0.006615" />
+            <geom name="index_mcp_frame_s19" class="cad_collision" pos="0.003403 -0.022105 0.005305" size="0.004059" />
+            <geom name="index_mcp_frame_s20" class="cad_collision" pos="-0.000128 0.015182 -0.009651" size="0.004567" />
+            <geom name="index_mcp_frame_s21" class="cad_collision" pos="-0.009595 -0.004646 -0.028217" size="0.004625" />
+            <geom name="index_mcp_frame_s22" class="cad_collision" pos="0.018978 0.01062 -0.033732" size="0.004611" />
+            <geom name="index_mcp_frame_s23" class="cad_collision" pos="0.005179 0.016217 -0.002753" size="0.003993" />
+            <geom name="index_mcp_frame_s24" class="cad_collision" pos="0.00135 0.003562 -0.040724" size="0.004460" />
+            <geom name="index_mcp_frame_s25" class="cad_collision" pos="-0.006045 0.015002 -0.003069" size="0.004679" />
+            <geom name="index_mcp_frame_s26" class="cad_collision" pos="0.010239 0.01059 -0.032563" size="0.005104" />
+            <geom name="index_mcp_frame_s27" class="cad_collision" pos="0.018966 0.002843 -0.032928" size="0.004893" />
+            <geom name="index_mcp_frame_s28" class="cad_collision" pos="0.006463 -0.024043 0.000421" size="0.004210" />
+            <geom name="index_mcp_frame_s29" class="cad_collision" pos="-0.005504 0.004033 -0.039258" size="0.004985" />
+            <geom name="index_mcp_frame_s30" class="cad_collision" pos="-0.009061 0.002412 -0.031988" size="0.004951" />
+            <geom name="index_mcp_frame_s31" class="cad_collision" pos="0.002726 0.01235 -0.03512" size="0.003921" />
+            <geom name="index_mcp_frame_s32" class="cad_collision" pos="0.018405 0.009182 -0.026949" size="0.005325" />
+            <geom name="index_mcp_frame_s33" class="cad_collision" pos="-0.007146 0.013607 -0.011095" size="0.004660" />
+            <geom name="index_mcp_frame_s34" class="cad_collision" pos="0.018626 -0.019949 -0.022754" size="0.004560" />
+            <geom name="index_mcp_frame_s35" class="cad_collision" pos="-0.007699 -0.01918 -0.021384" size="0.004513" />
+            <geom name="index_mcp_frame_s36" class="cad_collision" pos="-0.003656 -0.021141 0.007501" size="0.004362" />
+            <geom name="index_mcp_frame_s37" class="cad_collision" pos="-0.004517 -0.022824 -0.000074" size="0.004306" />
+            <geom name="index_mcp_frame_s38" class="cad_collision" pos="0.000456 0.014028 0.002642" size="0.004780" />
+            <geom name="index_mcp_frame_s39" class="cad_collision" pos="-0.003672 -0.021658 0.004466" size="0.004179" />
+            <geom name="index_mcp_frame_s40" class="cad_collision" pos="0.012488 0.004614 -0.030651" size="0.007684" />
+            <geom name="index_mcp_frame_s41" class="cad_collision" pos="-0.003309 -0.007739 -0.030966" size="0.007168" />
+            <geom name="index_mcp_frame_s42" class="cad_collision" pos="0.00024 -0.011788 -0.030825" size="0.006885" />
+            <geom name="index_mcp_frame_s43" class="cad_collision" pos="0.007082 -0.006184 -0.030713" size="0.007979" />
+            <geom name="index_mcp_frame_s44" class="cad_collision" pos="0.005881 0.003838 -0.030323" size="0.007763" />
+            <geom name="index_mcp_frame_s45" class="cad_collision" pos="0.015401 -0.008211 -0.0324" size="0.005996" />
+            <geom name="index_mcp_frame_s46" class="cad_collision" pos="-0.000013 -0.002045 -0.030842" size="0.007566" />
+            <geom name="index_mcp_frame_s47" class="cad_collision" pos="-0.001087 0.001085 -0.029755" size="0.005735" />
+            <geom name="index_mcp_frame_s48" class="cad_collision" pos="0.012081 0.00015 -0.030768" size="0.007501" />
+            <geom name="index_mcp_frame_s49" class="cad_collision" pos="0.01584 -0.007683 -0.027504" size="0.004975" />
+            <geom name="index_mcp_frame_s50" class="cad_collision" pos="0.006896 -0.002763 -0.031227" size="0.006219" />
+            <geom name="index_mcp_frame_s51" class="cad_collision" pos="-0.001205 0.004913 -0.030783" size="0.007064" />
+            <body name="index_len_frame">
+              <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+              <joint class="morph" name="index_len" axis="1 0 0" range="0 0" />
+              <body name="index_pip_frame" pos="-0 -0 -0.0308">
+                <inertial pos="0.002967 -0.000912 -0.022687" mass="0.009263" fullinertia="0.0000025794 0.0000017135 0.0000011852 -0.0000000108 0.0000001736 0.0000000237" />
+                <joint class="ctrl" name="index_pip" axis="0 1 0" range="-0.314159 1.605703" />
+                <geom name="index_dip_link_visual" class="cad_visual" mesh="cad_v4b_dip_link" material="cad_link" />
+                <geom name="index_cassette_visual" class="cad_visual" mesh="cad_v4b_cassette" material="cad_link" />
+                <geom name="index_cap_visual" class="cad_visual" mesh="cad_v4b_cap" material="cad_link" />
+                <geom name="index_dip_link_s0" class="cad_collision" pos="-0.0012682 -0.0085 -0.01466" size="0.001090" />
+                <geom name="index_dip_link_s1" class="cad_collision" pos="0.0057318 0.0145 -0.00466" size="0.001090" />
+                <geom name="index_dip_link_s2" class="cad_collision" pos="0.0067318 -0.01 -0.01566" size="0.002718" />
+                <geom name="index_dip_link_s3" class="cad_collision" pos="0.0062318 -0.008 -0.04116" size="0.001768" />
+                <geom name="index_dip_link_s4" class="cad_collision" pos="-0.0027682 0.001 -0.01716" size="0.003308" />
+                <geom name="index_dip_link_s5" class="cad_collision" pos="0.0057318 -0.0095 -0.04566" size="0.001000" />
+                <geom name="index_dip_link_s6" class="cad_collision" pos="0.0012318 -0.0225 -0.01066" size="0.000750" />
+                <geom name="index_dip_link_s7" class="cad_collision" pos="0.0012318 -0.018 -0.01316" size="0.000892" />
+                <geom name="index_dip_link_s8" class="cad_collision" pos="0.0077318 0.0145 -0.00966" size="0.001026" />
+                <geom name="index_dip_link_s9" class="cad_collision" pos="0.0057318 -0.009 -0.03516" size="0.001332" />
+                <geom name="index_dip_link_s10" class="cad_collision" pos="0.0067318 0.008 -0.01916" size="0.002500" />
+                <geom name="index_dip_link_s11" class="cad_collision" pos="0.0062318 -0.004 -0.03766" size="0.001768" />
+                <geom name="index_dip_link_s12" class="cad_collision" pos="-0.0052682 -0.013 -0.01416" size="0.001194" />
+                <geom name="index_dip_link_s13" class="cad_collision" pos="-0.0027682 -0.001 -0.02216" size="0.003308" />
+                <geom name="index_dip_link_s14" class="cad_collision" pos="0.0037318 -0.022 -0.00816" size="0.001250" />
+                <geom name="index_dip_link_s15" class="cad_collision" pos="0.0027318 -0.005 -0.01966" size="0.000541" />
+                <geom name="index_dip_link_s16" class="cad_collision" pos="0.0007318 0.0125 -0.01466" size="0.001090" />
+                <geom name="index_dip_link_s17" class="cad_collision" pos="-0.0042682 -0.0215 -0.01216" size="0.001701" />
+                <geom name="index_dip_link_s18" class="cad_collision" pos="-0.0047682 -0.0085 -0.01416" size="0.001210" />
+                <geom name="index_dip_link_s19" class="cad_collision" pos="0.0022318 0.0155 -0.00316" size="0.001093" />
+                <geom name="index_dip_link_s20" class="cad_collision" pos="0.0062318 0 -0.03166" size="0.001768" />
+                <geom name="index_dip_link_s21" class="cad_collision" pos="0.0062318 -0.0045 -0.02816" size="0.001768" />
+                <geom name="index_dip_link_s22" class="cad_collision" pos="-0.0027682 0.001 -0.02216" size="0.003308" />
+                <geom name="index_dip_link_s23" class="cad_collision" pos="0.0057318 0.012 -0.01716" size="0.001176" />
+                <geom name="index_dip_link_s24" class="cad_collision" pos="-0.0022682 0.002 -0.01966" size="0.002808" />
+                <geom name="index_dip_link_s25" class="cad_collision" pos="0.0062318 -0.008 -0.02416" size="0.002219" />
+                <geom name="index_dip_link_s26" class="cad_collision" pos="0.0082318 0.0045 -0.01216" size="0.000988" />
+                <geom name="index_dip_link_s27" class="cad_collision" pos="-0.0027682 -0.0015 -0.01666" size="0.003127" />
+                <geom name="index_dip_link_s28" class="cad_collision" pos="0.0062318 0.0085 -0.03616" size="0.001768" />
+                <geom name="index_dip_link_s29" class="cad_collision" pos="0.0027318 -0.022 -0.00366" size="0.000750" />
+                <geom name="index_dip_link_s30" class="cad_collision" pos="0.0057318 -0.0125 -0.01666" size="0.001782" />
+                <geom name="index_dip_link_s31" class="cad_collision" pos="0.0067318 -0.002 -0.02366" size="0.002235" />
+                <geom name="index_dip_link_s32" class="cad_collision" pos="-0.0047682 -0.001 -0.01466" size="0.001650" />
+                <geom name="index_dip_link_s33" class="cad_collision" pos="-0.0037682 0.0155 -0.00266" size="0.001900" />
+                <geom name="index_dip_link_s34" class="cad_collision" pos="0.0067318 -0.0145 -0.01566" size="0.002570" />
+                <geom name="index_dip_link_s35" class="cad_collision" pos="0.0042318 0.0155 -0.01316" size="0.001900" />
+                <geom name="index_dip_link_s36" class="cad_collision" pos="-0.0037682 -0.0185 -0.00716" size="0.001061" />
+                <geom name="index_dip_link_s37" class="cad_collision" pos="-0.0002682 -0.0225 -0.00266" size="0.000750" />
+                <geom name="index_dip_link_s38" class="cad_collision" pos="0.0072318 -0.0145 -0.01416" size="0.002192" />
+                <geom name="index_dip_link_s39" class="cad_collision" pos="-0.0017682 -0.0025 -0.02316" size="0.002308" />
+                <geom name="index_dip_link_s40" class="cad_collision" pos="0.0017318 -0.016 -0.01466" size="0.001090" />
+                <geom name="index_dip_link_s41" class="cad_collision" pos="0.0047318 0.0055 -0.01566" size="0.001470" />
+                <geom name="index_dip_link_s42" class="cad_collision" pos="0.0062318 0.0085 -0.04116" size="0.001768" />
+                <geom name="index_dip_link_s43" class="cad_collision" pos="0.0062318 0.002 -0.02766" size="0.001768" />
+                <geom name="index_dip_link_s44" class="cad_collision" pos="0.0047318 0.01 -0.01466" size="0.001341" />
+                <geom name="index_dip_link_s45" class="cad_collision" pos="0.0067318 0 -0.01866" size="0.002332" />
+                <geom name="index_dip_link_s46" class="cad_collision" pos="0.0042318 -0.0215 -0.01316" size="0.001702" />
+                <geom name="index_dip_link_s47" class="cad_collision" pos="0.0037318 -0.0185 -0.01016" size="0.001315" />
+                <geom name="index_dip_link_s48" class="cad_collision" pos="0.0062318 0.0055 -0.02966" size="0.001768" />
+                <geom name="index_dip_link_s49" class="cad_collision" pos="-0.0007682 0.0035 -0.01716" size="0.001308" />
+                <geom name="index_dip_link_s50" class="cad_collision" pos="-0.0017682 -0.0225 0.00084" size="0.000750" />
+                <geom name="index_dip_link_s51" class="cad_collision" pos="0.0022318 -0.0045 -0.02266" size="0.000561" />
+                <geom name="index_dip_link_s52" class="cad_collision" pos="0.0062318 -0.009 -0.02616" size="0.001376" />
+                <geom name="index_dip_link_s53" class="cad_collision" pos="0.0062318 -0.0095 -0.02966" size="0.001000" />
+                <geom name="index_dip_link_s54" class="cad_collision" pos="0.0062318 -0.005 -0.04466" size="0.001768" />
+                <geom name="index_dip_link_s55" class="cad_collision" pos="0.0062318 -0.0015 -0.02866" size="0.001768" />
+                <geom name="index_dip_link_s56" class="cad_collision" pos="-0.0052682 -0.0055 -0.01416" size="0.001194" />
+                <geom name="index_dip_link_s57" class="cad_collision" pos="-0.0007682 -0.0135 -0.01466" size="0.001090" />
+                <geom name="index_dip_link_s58" class="cad_collision" pos="-0.0037682 0.0155 -0.00916" size="0.001900" />
+                <geom name="index_dip_link_s59" class="cad_collision" pos="0.0067318 0.0065 -0.02116" size="0.002670" />
+                <geom name="index_dip_link_s60" class="cad_collision" pos="-0.0022682 0.0155 -0.01366" size="0.001899" />
+                <geom name="index_dip_link_s61" class="cad_collision" pos="0.0032318 -0.005 -0.01616" size="0.000894" />
+                <geom name="index_dip_link_s62" class="cad_collision" pos="0.0067318 -0.0045 -0.01516" size="0.002718" />
+                <geom name="index_dip_link_s63" class="cad_collision" pos="0.0012318 0.005 -0.01466" size="0.001050" />
+                <geom name="index_dip_link_s64" class="cad_collision" pos="0.0082318 0.012 -0.01716" size="0.000890" />
+                <geom name="index_dip_link_s65" class="cad_collision" pos="-0.0047682 -0.016 -0.01416" size="0.001210" />
+                <geom name="index_dip_link_s66" class="cad_collision" pos="-0.0027682 -0.018 -0.00366" size="0.000940" />
+                <geom name="index_dip_link_s67" class="cad_collision" pos="-0.0012682 -0.018 -0.01066" size="0.000919" />
+                <geom name="index_dip_link_s68" class="cad_collision" pos="0.0062318 -0.0055 -0.03416" size="0.001768" />
+                <geom name="index_dip_link_s69" class="cad_collision" pos="-0.0042682 -0.0215 -0.01316" size="0.001743" />
+                <geom name="index_dip_link_s70" class="cad_collision" pos="0.0067318 0.0095 -0.04566" size="0.001000" />
+                <geom name="index_dip_link_s71" class="cad_collision" pos="0.0012318 0.0155 -0.00766" size="0.001900" />
+                <geom name="index_dip_link_s72" class="cad_collision" pos="0.0027318 -0.018 -0.00366" size="0.000940" />
+                <geom name="index_dip_link_s73" class="cad_collision" pos="0.0062318 0.0055 -0.03366" size="0.001768" />
+                <geom name="index_dip_link_s74" class="cad_collision" pos="0.0012318 -0.018 -0.00816" size="0.000940" />
+                <geom name="index_dip_link_s75" class="cad_collision" pos="0.0032318 0.0155 -0.01066" size="0.001817" />
+                <geom name="index_dip_link_s76" class="cad_collision" pos="0.0057318 0.009 -0.03266" size="0.001332" />
+                <geom name="index_dip_link_s77" class="cad_collision" pos="0.0072318 0.0035 -0.01866" size="0.002218" />
+                <geom name="index_dip_link_s78" class="cad_collision" pos="0.0042318 -0.019 -0.01316" size="0.001702" />
+                <geom name="index_dip_link_s79" class="cad_collision" pos="0.0082318 0.0025 -0.01216" size="0.000950" />
+                <geom name="index_dip_link_s80" class="cad_collision" pos="0.0062318 0.0055 -0.04516" size="0.001708" />
+                <geom name="index_dip_link_s81" class="cad_collision" pos="0.0067318 0.0075 -0.02316" size="0.002662" />
+                <geom name="index_dip_link_s82" class="cad_collision" pos="0.0062318 -0.003 -0.04166" size="0.001768" />
+                <geom name="index_dip_link_s83" class="cad_collision" pos="0.0022318 -0.0045 -0.02466" size="0.000561" />
+                <geom name="index_dip_link_s84" class="cad_collision" pos="0.0007318 -0.018 -0.01666" size="0.000940" />
+                <geom name="index_dip_link_s85" class="cad_collision" pos="0.0072318 -0.0095 -0.02966" size="0.000768" />
+                <geom name="index_dip_link_s86" class="cad_collision" pos="-0.0042682 0.0155 0.00084" size="0.001449" />
+                <geom name="index_dip_link_s87" class="cad_collision" pos="0.0067318 0.003 -0.02316" size="0.002332" />
+                <geom name="index_dip_link_s88" class="cad_collision" pos="0.0017318 0.0155 0.00384" size="0.001587" />
+                <geom name="index_dip_link_s89" class="cad_collision" pos="-0.0042682 -0.0025 -0.02416" size="0.001337" />
+                <geom name="index_dip_link_s90" class="cad_collision" pos="0.0012318 0.0085 -0.01466" size="0.001090" />
+                <geom name="index_dip_link_s91" class="cad_collision" pos="0.0027318 0.0145 -0.00366" size="0.001090" />
+                <geom name="index_dip_link_s92" class="cad_collision" pos="0.0022318 -0.022 -0.01666" size="0.000893" />
+                <geom name="index_dip_link_s93" class="cad_collision" pos="0.0072318 -0.001 -0.02316" size="0.002218" />
+                <geom name="index_dip_link_s94" class="cad_collision" pos="0.0082318 0.012 -0.01216" size="0.000988" />
+                <geom name="index_dip_link_s95" class="cad_collision" pos="0.0012318 0.0155 -0.01366" size="0.001900" />
+                <geom name="index_dip_link_s96" class="cad_collision" pos="-0.0007682 0.0035 -0.02366" size="0.001308" />
+                <geom name="index_dip_link_s97" class="cad_collision" pos="0.0077318 0.0085 -0.01816" size="0.001718" />
+                <geom name="index_dip_link_s98" class="cad_collision" pos="0.0047318 0.006 -0.01466" size="0.001633" />
+                <geom name="index_dip_link_s99" class="cad_collision" pos="0.0062318 0.0085 -0.03866" size="0.001768" />
+                <geom name="index_dip_link_s100" class="cad_collision" pos="0.0062318 -0.0085 -0.03816" size="0.001768" />
+                <geom name="index_dip_link_s101" class="cad_collision" pos="-0.0012682 0.0155 -0.00766" size="0.001900" />
+                <geom name="index_dip_link_s102" class="cad_collision" pos="0.0062318 -0.0085 -0.03216" size="0.001768" />
+                <geom name="index_dip_link_s103" class="cad_collision" pos="-0.0052682 0.007 -0.01416" size="0.001194" />
+                <geom name="index_dip_link_s104" class="cad_collision" pos="-0.0042682 0.001 -0.02366" size="0.001840" />
+                <geom name="index_dip_link_s105" class="cad_collision" pos="0.0067318 -0.0075 -0.02066" size="0.002718" />
+                <geom name="index_dip_link_s106" class="cad_collision" pos="0.0027318 0.005 -0.02416" size="0.000541" />
+                <geom name="index_dip_link_s107" class="cad_collision" pos="0.0062318 0.0045 -0.03766" size="0.001768" />
+                <geom name="index_dip_link_s108" class="cad_collision" pos="-0.0017682 0.0025 -0.01566" size="0.002210" />
+                <geom name="index_dip_link_s109" class="cad_collision" pos="0.0087318 -0.0025 -0.01166" size="0.000718" />
+                <geom name="index_dip_link_s110" class="cad_collision" pos="0.0062318 0.0085 -0.03116" size="0.001768" />
+                <geom name="index_dip_link_s111" class="cad_collision" pos="0.0057318 0.009 -0.03366" size="0.001332" />
+                <geom name="index_dip_link_s112" class="cad_collision" pos="0.0062318 0.001 -0.04466" size="0.001768" />
+                <geom name="index_dip_link_s113" class="cad_collision" pos="-0.0047682 0.012 -0.01416" size="0.001210" />
+                <geom name="index_dip_link_s114" class="cad_collision" pos="-0.0017682 -0.0025 -0.01916" size="0.002308" />
+                <geom name="index_dip_link_s115" class="cad_collision" pos="0.0047318 0.012 -0.01466" size="0.001341" />
+                <geom name="index_dip_link_s116" class="cad_collision" pos="0.0062318 -0.006 -0.03016" size="0.001768" />
+                <geom name="index_dip_link_s117" class="cad_collision" pos="0.0012318 -0.005 -0.01466" size="0.001090" />
+                <geom name="index_dip_link_s118" class="cad_collision" pos="0.0087318 0.015 -0.01116" size="0.000900" />
+                <geom name="index_dip_link_s119" class="cad_collision" pos="0.0062318 -0.0005 -0.03616" size="0.001768" />
+                <geom name="index_dip_link_s120" class="cad_collision" pos="0.0017318 -0.012 -0.01466" size="0.001090" />
+                <geom name="index_dip_link_s121" class="cad_collision" pos="0.0067318 0.0095 -0.04316" size="0.000911" />
+                <geom name="index_dip_link_s122" class="cad_collision" pos="-0.0017682 0.011 -0.01466" size="0.001090" />
+                <geom name="index_dip_link_s123" class="cad_collision" pos="-0.0022682 0.0055 -0.01466" size="0.001090" />
+                <geom name="index_dip_link_s124" class="cad_collision" pos="-0.0017682 -0.018 -0.00666" size="0.000940" />
+                <geom name="index_dip_link_s125" class="cad_collision" pos="0.0062318 0.0085 -0.02566" size="0.001698" />
+                <geom name="index_dip_link_s126" class="cad_collision" pos="0.0037318 -0.0185 -0.00666" size="0.000984" />
+                <geom name="index_dip_link_s127" class="cad_collision" pos="0.0067318 -0.0035 -0.01916" size="0.002332" />
+                <geom name="index_dip_link_s128" class="cad_collision" pos="0.0052318 0.0095 -0.04566" size="0.000832" />
+                <geom name="index_dip_link_s129" class="cad_collision" pos="0.0062318 0.0055 -0.04266" size="0.001768" />
+                <geom name="index_dip_link_s130" class="cad_collision" pos="-0.0017682 0.0155 0.00384" size="0.001571" />
+                <geom name="index_dip_link_s131" class="cad_collision" pos="0.0002318 0.015 0.00434" size="0.001453" />
+                <geom name="index_dip_link_s132" class="cad_collision" pos="0.0062318 0.0015 -0.04116" size="0.001768" />
+                <geom name="index_dip_link_s133" class="cad_collision" pos="0.0062318 -0.003 -0.03266" size="0.001768" />
+                <geom name="index_dip_link_s134" class="cad_collision" pos="0.0082318 -0.011 -0.01216" size="0.000988" />
+                <geom name="index_dip_link_s135" class="cad_collision" pos="0.0017318 -0.0045 -0.02066" size="0.000485" />
+                <geom name="index_dip_link_s136" class="cad_collision" pos="0.0017318 0.0165 -0.00616" size="0.000900" />
+                <geom name="index_dip_link_s137" class="cad_collision" pos="0.0017318 -0.022 -0.00616" size="0.000750" />
+                <geom name="index_dip_link_s138" class="cad_collision" pos="0.0062318 0.0005 -0.03866" size="0.001768" />
+                <geom name="index_dip_link_s139" class="cad_collision" pos="0.0012318 -0.0225 0.00184" size="0.000750" />
+                <geom name="index_dip_link_s140" class="cad_collision" pos="-0.0047682 -0.011 -0.01416" size="0.001210" />
+                <geom name="index_dip_link_s141" class="cad_collision" pos="0.0057318 0.0075 -0.04616" size="0.000750" />
+                <geom name="index_dip_link_s142" class="cad_collision" pos="0.0082318 0.008 -0.01216" size="0.000988" />
+                <geom name="index_dip_link_s143" class="cad_collision" pos="-0.0037682 -0.022 -0.00816" size="0.001250" />
+                <geom name="index_dip_link_s144" class="cad_collision" pos="-0.0037682 -0.0205 -0.00666" size="0.000948" />
+                <geom name="index_dip_link_s145" class="cad_collision" pos="0.0062318 -0.006 -0.04216" size="0.001768" />
+                <geom name="index_dip_link_s146" class="cad_collision" pos="0.0067318 -0.0075 -0.01516" size="0.002718" />
+                <geom name="index_dip_link_s147" class="cad_collision" pos="0.0067318 -0.0095 -0.04316" size="0.000911" />
+                <geom name="index_dip_link_s148" class="cad_collision" pos="-0.0037682 0.0155 -0.00566" size="0.001900" />
+                <geom name="index_dip_link_s149" class="cad_collision" pos="0.0027318 -0.018 -0.00566" size="0.000940" />
+                <geom name="index_dip_link_s150" class="cad_collision" pos="-0.0017682 -0.0225 -0.01466" size="0.000750" />
+                <geom name="index_dip_link_s151" class="cad_collision" pos="0.0067318 -0.0075 -0.02316" size="0.002662" />
+                <geom name="index_dip_link_s152" class="cad_collision" pos="-0.0037682 -0.0185 -0.01066" size="0.001363" />
+                <geom name="index_dip_link_s153" class="cad_collision" pos="0.0087318 -0.016 -0.01166" size="0.000718" />
+                <geom name="index_dip_link_s154" class="cad_collision" pos="0.0067318 0.008 -0.02216" size="0.002500" />
+                <geom name="index_dip_link_s155" class="cad_collision" pos="0.0022318 -0.0225 -0.00066" size="0.000750" />
+                <geom name="index_dip_link_s156" class="cad_collision" pos="0.0067318 -0.013 -0.01566" size="0.002718" />
+                <geom name="index_dip_link_s157" class="cad_collision" pos="0.0067318 0.0065 -0.01916" size="0.002670" />
+                <geom name="index_dip_link_s158" class="cad_collision" pos="-0.0022682 -0.0185 -0.01666" size="0.000868" />
+                <geom name="index_dip_link_s159" class="cad_collision" pos="-0.0007682 0.0155 -0.01066" size="0.001900" />
+                <geom name="index_cassette_s0" class="cad_collision" pos="0.00215 -0.00875 -0.03166" size="0.001650" />
+                <geom name="index_cassette_s1" class="cad_collision" pos="0.00115 0.00925 -0.02666" size="0.000830" />
+                <geom name="index_cassette_s2" class="cad_collision" pos="0.00215 0.00875 -0.03266" size="0.001574" />
+                <geom name="index_cassette_s3" class="cad_collision" pos="0.00215 -0.00875 -0.03316" size="0.001290" />
+                <geom name="index_cassette_s4" class="cad_collision" pos="0.00315 0.00425 -0.02766" size="0.000633" />
+                <geom name="index_cassette_s5" class="cad_collision" pos="0.00315 0.00425 -0.03116" size="0.000633" />
+                <geom name="index_cassette_s6" class="cad_collision" pos="0.00315 -0.00425 -0.02766" size="0.000633" />
+                <geom name="index_cassette_s7" class="cad_collision" pos="0.00265 -0.00425 -0.04066" size="0.000630" />
+                <geom name="index_cassette_s8" class="cad_collision" pos="0.00265 -0.00425 -0.03266" size="0.000630" />
+                <geom name="index_cassette_s9" class="cad_collision" pos="0.00315 -0.00425 -0.03616" size="0.000633" />
+                <geom name="index_cassette_s10" class="cad_collision" pos="0.00315 0.00425 -0.04116" size="0.000633" />
+                <geom name="index_cassette_s11" class="cad_collision" pos="0.00215 -0.00875 -0.03116" size="0.001650" />
+                <geom name="index_cassette_s12" class="cad_collision" pos="0.00265 -0.00975 -0.02716" size="0.000750" />
+                <geom name="index_cassette_s13" class="cad_collision" pos="0.00265 0.00425 -0.03666" size="0.000630" />
+                <geom name="index_cassette_s14" class="cad_collision" pos="0.00215 0.00875 -0.03116" size="0.001650" />
+                <geom name="index_cassette_s15" class="cad_collision" pos="0.00315 -0.00425 -0.03016" size="0.000633" />
+                <geom name="index_cassette_s16" class="cad_collision" pos="0.00315 -0.00425 -0.03816" size="0.000633" />
+                <geom name="index_cassette_s17" class="cad_collision" pos="0.00265 0.00725 -0.02616" size="0.000660" />
+                <geom name="index_cassette_s18" class="cad_collision" pos="0.00115 0.00975 -0.02916" size="0.000707" />
+                <geom name="index_cassette_s19" class="cad_collision" pos="0.00265 0.00425 -0.02966" size="0.000630" />
+                <geom name="index_cassette_s20" class="cad_collision" pos="0.00315 0.00425 -0.02866" size="0.000633" />
+                <geom name="index_cassette_s21" class="cad_collision" pos="0.00315 -0.00775 -0.03166" size="0.000650" />
+                <geom name="index_cassette_s22" class="cad_collision" pos="0.00315 0.00425 -0.03416" size="0.000633" />
+                <geom name="index_cassette_s23" class="cad_collision" pos="0.00315 -0.00825 -0.02616" size="0.000650" />
+                <geom name="index_cassette_s24" class="cad_collision" pos="0.00065 0.00725 -0.02666" size="0.000569" />
+                <geom name="index_cassette_s25" class="cad_collision" pos="0.00115 -0.00925 -0.02666" size="0.000830" />
+                <geom name="index_cassette_s26" class="cad_collision" pos="0.00315 0.00975 -0.02866" size="0.000597" />
+                <geom name="index_cassette_s27" class="cad_collision" pos="0.00165 -0.00875 -0.03316" size="0.001290" />
+                <geom name="index_cassette_s28" class="cad_collision" pos="0.00315 0.00975 -0.02616" size="0.000650" />
+                <geom name="index_cassette_s29" class="cad_collision" pos="0.00265 -0.00725 -0.02666" size="0.000569" />
+                <geom name="index_cassette_s30" class="cad_collision" pos="0.00315 0.00475 -0.02766" size="0.000456" />
+                <geom name="index_cassette_s31" class="cad_collision" pos="0.00265 0.00425 -0.03866" size="0.000630" />
+                <geom name="index_cassette_s32" class="cad_collision" pos="0.00315 -0.00475 -0.04166" size="0.000422" />
+                <geom name="index_cassette_s33" class="cad_collision" pos="0.00165 -0.00825 -0.03066" size="0.001214" />
+                <geom name="index_cassette_s34" class="cad_collision" pos="0.00265 -0.00975 -0.02916" size="0.000750" />
+                <geom name="index_cassette_s35" class="cad_collision" pos="0.00265 0.00825 -0.03066" size="0.001150" />
+                <geom name="index_cassette_s36" class="cad_collision" pos="0.00065 -0.00725 -0.02616" size="0.000660" />
+                <geom name="index_cassette_s37" class="cad_collision" pos="0.00165 -0.00725 -0.02666" size="0.000569" />
+                <geom name="index_cassette_s38" class="cad_collision" pos="0.00315 0.00975 -0.03366" size="0.000650" />
+                <geom name="index_cassette_s39" class="cad_collision" pos="0.00315 -0.00425 -0.03466" size="0.000633" />
+                <geom name="index_cassette_s40" class="cad_collision" pos="0.00065 0.00775 -0.03016" size="0.000716" />
+                <geom name="index_cassette_s41" class="cad_collision" pos="0.00265 0.00425 -0.03266" size="0.000630" />
+                <geom name="index_cassette_s42" class="cad_collision" pos="0.00315 0.00475 -0.03216" size="0.000456" />
+                <geom name="index_cassette_s43" class="cad_collision" pos="0.00315 0.00475 -0.04166" size="0.000422" />
+                <geom name="index_cassette_s44" class="cad_collision" pos="0.00315 0.00475 -0.03966" size="0.000456" />
+                <geom name="index_cassette_s45" class="cad_collision" pos="0.00315 -0.00425 -0.04166" size="0.000422" />
+                <geom name="index_cassette_s46" class="cad_collision" pos="0.00265 0.00425 -0.04066" size="0.000630" />
+                <geom name="index_cassette_s47" class="cad_collision" pos="0.00315 -0.00475 -0.03866" size="0.000456" />
+                <geom name="index_cassette_s48" class="cad_collision" pos="0.00115 -0.00975 -0.02916" size="0.000707" />
+                <geom name="index_cassette_s49" class="cad_collision" pos="0.00265 0.00425 -0.02766" size="0.000630" />
+                <geom name="index_cassette_s50" class="cad_collision" pos="0.00165 0.00875 -0.03316" size="0.001290" />
+                <geom name="index_cassette_s51" class="cad_collision" pos="0.00315 0.00675 -0.02616" size="0.000421" />
+                <geom name="index_cassette_s52" class="cad_collision" pos="0.00315 -0.00775 -0.03016" size="0.000650" />
+                <geom name="index_cassette_s53" class="cad_collision" pos="0.00315 -0.00675 -0.02616" size="0.000421" />
+                <geom name="index_cassette_s54" class="cad_collision" pos="0.00315 -0.00425 -0.03716" size="0.000633" />
+                <geom name="index_cassette_s55" class="cad_collision" pos="0.00315 -0.00925 -0.03366" size="0.000650" />
+                <geom name="index_cassette_s56" class="cad_collision" pos="0.00315 -0.00475 -0.03116" size="0.000456" />
+                <geom name="index_cassette_s57" class="cad_collision" pos="0.00115 -0.00825 -0.03066" size="0.001214" />
+                <geom name="index_cassette_s58" class="cad_collision" pos="0.00265 -0.00975 -0.02616" size="0.000660" />
+                <geom name="index_cassette_s59" class="cad_collision" pos="0.00315 0.00475 -0.03066" size="0.000456" />
+                <geom name="index_cassette_s60" class="cad_collision" pos="0.00315 0.00425 -0.02966" size="0.000633" />
+                <geom name="index_cassette_s61" class="cad_collision" pos="0.00315 0.00475 -0.03466" size="0.000456" />
+                <geom name="index_cassette_s62" class="cad_collision" pos="0.00265 -0.00425 -0.03116" size="0.000630" />
+                <geom name="index_cassette_s63" class="cad_collision" pos="0.00265 -0.00825 -0.03366" size="0.000608" />
+                <geom name="index_cassette_s64" class="cad_collision" pos="0.00265 -0.00425 -0.02916" size="0.000630" />
+                <geom name="index_cassette_s65" class="cad_collision" pos="0.00315 -0.00475 -0.04016" size="0.000456" />
+                <geom name="index_cassette_s66" class="cad_collision" pos="0.00265 0.00825 -0.03366" size="0.000790" />
+                <geom name="index_cassette_s67" class="cad_collision" pos="0.00315 0.00725 -0.02666" size="0.000569" />
+                <geom name="index_cassette_s68" class="cad_collision" pos="0.00315 0.00475 -0.02966" size="0.000456" />
+                <geom name="index_cassette_s69" class="cad_collision" pos="0.00315 0.00775 -0.03016" size="0.000650" />
+                <geom name="index_cassette_s70" class="cad_collision" pos="0.00315 -0.00475 -0.03016" size="0.000456" />
+                <geom name="index_cassette_s71" class="cad_collision" pos="0.00315 0.00475 -0.03316" size="0.000456" />
+                <geom name="index_cassette_s72" class="cad_collision" pos="0.00315 0.00475 -0.03366" size="0.000456" />
+                <geom name="index_cassette_s73" class="cad_collision" pos="0.00315 -0.00825 -0.03366" size="0.000550" />
+                <geom name="index_cassette_s74" class="cad_collision" pos="0.00315 0.00425 -0.03766" size="0.000633" />
+                <geom name="index_cassette_s75" class="cad_collision" pos="0.00115 -0.00825 -0.03366" size="0.000790" />
+                <geom name="index_cassette_s76" class="cad_collision" pos="0.00265 -0.00775 -0.03016" size="0.000716" />
+                <geom name="index_cassette_s77" class="cad_collision" pos="0.00315 0.00475 -0.03216" size="0.000456" />
+                <geom name="index_cassette_s78" class="cad_collision" pos="0.00315 -0.00475 -0.02766" size="0.000456" />
+                <geom name="index_cassette_s79" class="cad_collision" pos="0.00265 -0.00475 -0.03466" size="0.000440" />
+                <geom name="index_cassette_s80" class="cad_collision" pos="0.00265 0.00425 -0.03566" size="0.000630" />
+                <geom name="index_cassette_s81" class="cad_collision" pos="0.00265 -0.00425 -0.03566" size="0.000630" />
+                <geom name="index_cassette_s82" class="cad_collision" pos="0.00315 -0.00975 -0.03366" size="0.000650" />
+                <geom name="index_cassette_s83" class="cad_collision" pos="0.00315 0.00775 -0.03216" size="0.000650" />
+                <geom name="index_cassette_s84" class="cad_collision" pos="0.00315 -0.00425 -0.03166" size="0.000633" />
+                <geom name="index_cap_s0" class="cad_collision" pos="0.0014937 0.00875 -0.04676" size="0.001406" />
+                <geom name="index_cap_s1" class="cad_collision" pos="0.0054937 0.00925 -0.04776" size="0.000750" />
+                <geom name="index_cap_s2" class="cad_collision" pos="0.0014937 -0.00475 -0.04676" size="0.001406" />
+                <geom name="index_cap_s3" class="cad_collision" pos="0.0014937 0.00525 -0.04676" size="0.001406" />
+                <geom name="index_cap_s4" class="cad_collision" pos="0.0014937 -0.00875 -0.04676" size="0.001406" />
+                <geom name="index_cap_s5" class="cad_collision" pos="0.0069937 0.00075 -0.04776" size="0.000750" />
+                <geom name="index_cap_s6" class="cad_collision" pos="0.0064937 0.00425 -0.04776" size="0.000750" />
+                <geom name="index_cap_s7" class="cad_collision" pos="0.0009937 -0.00675 -0.04276" size="0.000754" />
+                <geom name="index_cap_s8" class="cad_collision" pos="0.0014937 -0.00925 -0.04226" size="0.001160" />
+                <geom name="index_cap_s9" class="cad_collision" pos="0.0069937 -0.00225 -0.04776" size="0.000750" />
+                <geom name="index_cap_s10" class="cad_collision" pos="0.0014937 0.00875 -0.03976" size="0.001406" />
+                <geom name="index_cap_s11" class="cad_collision" pos="0.0034937 -0.00025 -0.04776" size="0.000688" />
+                <geom name="index_cap_s12" class="cad_collision" pos="0.0014937 -0.00875 -0.03976" size="0.001406" />
+                <geom name="index_cap_s13" class="cad_collision" pos="0.0019937 -0.00625 -0.04376" size="0.000620" />
+                <geom name="index_cap_s14" class="cad_collision" pos="0.0064937 0.00675 -0.04776" size="0.000750" />
+                <geom name="index_cap_s15" class="cad_collision" pos="0.0014937 0.00975 -0.04326" size="0.000750" />
+                <geom name="index_cap_s16" class="cad_collision" pos="0.0014937 0.00375 -0.04726" size="0.001250" />
+                <geom name="index_cap_s17" class="cad_collision" pos="0.0039937 0.00575 -0.04776" size="0.000750" />
+                <geom name="index_cap_s18" class="cad_collision" pos="0.0014937 -0.00025 -0.04726" size="0.001045" />
+                <geom name="index_cap_s19" class="cad_collision" pos="0.0054937 -0.00925 -0.04776" size="0.000750" />
+                <geom name="index_cap_s20" class="cad_collision" pos="0.0014937 0.00775 -0.04176" size="0.001314" />
+                <geom name="index_cap_s21" class="cad_collision" pos="0.0054937 -0.00575 -0.04776" size="0.000750" />
+                <geom name="index_cap_s22" class="cad_collision" pos="0.0014937 0.00575 -0.04526" size="0.001224" />
+                <geom name="index_cap_s23" class="cad_collision" pos="0.0034937 -0.00725 -0.04776" size="0.000750" />
+                <geom name="index_cap_s24" class="cad_collision" pos="0.0069937 -0.00675 -0.04776" size="0.000750" />
+                <geom name="index_cap_s25" class="cad_collision" pos="0.0069937 0.00925 -0.04776" size="0.000750" />
+                <geom name="index_cap_s26" class="cad_collision" pos="0.0044937 0.00225 -0.04776" size="0.000750" />
+                <geom name="index_cap_s27" class="cad_collision" pos="0.0014937 -0.00775 -0.04176" size="0.001314" />
+                <geom name="index_cap_s28" class="cad_collision" pos="0.0039937 -0.00275 -0.04776" size="0.000750" />
+                <geom name="index_cap_s29" class="cad_collision" pos="0.0059937 0.00325 -0.04776" size="0.000750" />
+                <geom name="index_cap_s30" class="cad_collision" pos="0.0014937 0.00825 -0.03976" size="0.001336" />
+                <geom name="index_cap_s31" class="cad_collision" pos="0.0069937 -0.00925 -0.04776" size="0.000750" />
+                <geom name="index_cap_s32" class="cad_collision" pos="0.0014937 0.00175 -0.04776" size="0.000750" />
+                <geom name="index_cap_s33" class="cad_collision" pos="0.0029937 -0.00975 -0.04776" size="0.000750" />
+                <geom name="index_cap_s34" class="cad_collision" pos="0.0014937 -0.00325 -0.04726" size="0.000993" />
+                <geom name="index_cap_s35" class="cad_collision" pos="0.0014937 -0.00575 -0.04676" size="0.001406" />
+                <geom name="index_cap_s36" class="cad_collision" pos="0.0069937 -0.00425 -0.04776" size="0.000750" />
+                <geom name="index_cap_s37" class="cad_collision" pos="0.0014937 -0.00025 -0.04526" size="0.000731" />
+                <geom name="index_cap_s38" class="cad_collision" pos="0.0014937 -0.00875 -0.04726" size="0.001250" />
+                <geom name="index_cap_s39" class="cad_collision" pos="0.0014937 -0.00975 -0.04476" size="0.000620" />
+                <geom name="index_cap_s40" class="cad_collision" pos="0.0044937 -0.00425 -0.04776" size="0.000750" />
+                <geom name="index_cap_s41" class="cad_collision" pos="0.0014937 -0.00575 -0.04526" size="0.001224" />
+                <geom name="index_cap_s42" class="cad_collision" pos="0.0069937 0.00425 -0.04776" size="0.000750" />
+                <geom name="index_cap_s43" class="cad_collision" pos="0.0049937 -0.00075 -0.04776" size="0.000540" />
+                <geom name="index_cap_s44" class="cad_collision" pos="0.0014937 0.00725 -0.04726" size="0.001250" />
+                <geom name="index_cap_s45" class="cad_collision" pos="0.0034937 0.00925 -0.04776" size="0.000750" />
+                <geom name="index_cap_s46" class="cad_collision" pos="0.0064937 -0.00225 -0.04776" size="0.000750" />
+                <geom name="index_cap_s47" class="cad_collision" pos="0.0014937 0.00975 -0.04526" size="0.000750" />
+                <geom name="index_cap_s48" class="cad_collision" pos="0.0009937 -0.00975 -0.04476" size="0.000620" />
+                <geom name="index_cap_s49" class="cad_collision" pos="0.0014937 0.00675 -0.04276" size="0.000754" />
+                <geom name="index_cap_s50" class="cad_collision" pos="0.0004937 0.00625 -0.04326" size="0.000580" />
+                <geom name="index_cap_s51" class="cad_collision" pos="0.0019937 0.00575 -0.04476" size="0.000906" />
+                <geom name="index_cap_s52" class="cad_collision" pos="0.0014937 0.00875 -0.04176" size="0.001406" />
+                <geom name="index_cap_s53" class="cad_collision" pos="-0.00065 -0.0085 -0.02827" size="0.000550" />
+                <geom name="index_cap_s54" class="cad_collision" pos="-0.00065 0.008 -0.04427" size="0.000550" />
+                <geom name="index_cap_s55" class="cad_collision" pos="-0.00065 0.008 -0.02827" size="0.000550" />
+                <geom name="index_cap_s56" class="cad_collision" pos="-0.00065 -0.008 -0.04427" size="0.000550" />
+                <geom name="index_cap_s57" class="cad_collision" pos="-0.00065 -0.0075 -0.02827" size="0.000550" />
+                <geom name="index_cap_s58" class="cad_collision" pos="-0.00065 0.0075 -0.04427" size="0.000550" />
+                <geom name="index_cap_s59" class="cad_collision" pos="-0.00065 0.008 -0.02777" size="0.000550" />
+                <geom name="index_cap_s60" class="cad_collision" pos="-0.00065 -0.0075 -0.04377" size="0.000534" />
+                <geom name="index_cap_s61" class="cad_collision" pos="-0.00065 0.0085 -0.02877" size="0.000534" />
+                <geom name="index_cap_s62" class="cad_collision" pos="-0.00065 -0.008 -0.02877" size="0.000550" />
+                <geom name="index_cap_s63" class="cad_collision" pos="-0.00065 -0.0085 -0.04477" size="0.000534" />
+                <geom name="index_cap_s64" class="cad_collision" pos="-0.00065 0.0075 -0.02827" size="0.000550" />
+                <geom name="index_cap_s65" class="cad_collision" pos="-0.00065 0.0085 -0.04477" size="0.000534" />
+                <geom name="index_cap_s66" class="cad_collision" pos="-0.00065 -0.008 -0.02777" size="0.000550" />
+                <geom name="index_cap_s67" class="cad_collision" pos="-0.00065 0.008 -0.04477" size="0.000550" />
+                <geom name="index_cap_s68" class="cad_collision" pos="-0.00065 0.008 -0.04377" size="0.000550" />
+                <geom name="index_cap_s69" class="cad_collision" pos="-0.00065 -0.0085 -0.04377" size="0.000534" />
+                <body name="index_tip" pos="0 0 -0.03636">
+                  <inertial pos="-0.002908 0 0.001001" mass="0.003654" fullinertia="0.0000001631 0.0000001569 0.0000000903 -0 0.0000000051 -0" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="middle_mount" pos="0.05 -0.055 0">
+        <inertial pos="0.003714 0.000445 0.016276" mass="0.027251" fullinertia="0.000010295 0.000010186 0.00000381 -0.000000007 0.000001996 0.000000129" />
+        <joint class="morph" name="middle_x" axis="1 0 0" range="-0.030000 0.030000" />
+        <joint class="morph" name="middle_y" axis="0 1 0" range="-0.030000 0.030000" />
+        <geom name="middle_carriage_visual" class="cad_visual" mesh="cad_carriage" material="cad_link" />
+        <geom name="middle_servo_yaw_visual" class="cad_visual" mesh="cad_servo_yaw" material="cad_servo" />
+        <geom name="middle_mount_s0" class="cad_collision" pos="-0.002352 -0.017507 0.059825" size="0.008365" />
+        <geom name="middle_mount_s1" class="cad_collision" pos="-0.002896 0.010622 0.026687" size="0.010545" />
+        <geom name="middle_mount_s2" class="cad_collision" pos="-0.002482 -0.012608 0.027125" size="0.010351" />
+        <geom name="middle_mount_s3" class="cad_collision" pos="-0.002455 0.016342 0.046861" size="0.008685" />
+        <geom name="middle_mount_s4" class="cad_collision" pos="-0.002272 -0.016617 0.048319" size="0.008354" />
+        <geom name="middle_mount_s5" class="cad_collision" pos="-0.001043 0.008169 -0.000468" size="0.007695" />
+        <geom name="middle_mount_s6" class="cad_collision" pos="-0.002125 -0.011757 0.035264" size="0.010281" />
+        <geom name="middle_mount_s7" class="cad_collision" pos="0.007381 0.007227 0.00622" size="0.007367" />
+        <geom name="middle_mount_s8" class="cad_collision" pos="-0.005419 0.004663 0.012687" size="0.007912" />
+        <geom name="middle_mount_s9" class="cad_collision" pos="-0.002661 0.012264 0.035199" size="0.009850" />
+        <geom name="middle_mount_s10" class="cad_collision" pos="-0.005447 -0.003041 0.022746" size="0.008924" />
+        <geom name="middle_mount_s11" class="cad_collision" pos="0.002157 0.016577 0.058953" size="0.006163" />
+        <geom name="middle_mount_s12" class="cad_collision" pos="0.008765 0.005616 0.017359" size="0.006431" />
+        <geom name="middle_mount_s13" class="cad_collision" pos="-0.006679 0.016689 0.059557" size="0.005997" />
+        <geom name="middle_mount_s14" class="cad_collision" pos="0.009373 0.009059 0.000368" size="0.006191" />
+        <geom name="middle_mount_s15" class="cad_collision" pos="-0.002785 0.005549 0.039551" size="0.008577" />
+        <geom name="middle_mount_s16" class="cad_collision" pos="-0.002956 -0.005002 0.039658" size="0.008360" />
+        <geom name="middle_mount_s17" class="cad_collision" pos="-0.005093 -0.008538 0.001918" size="0.005053" />
+        <geom name="middle_mount_s18" class="cad_collision" pos="-0.00618 -0.004151 0.010356" size="0.006139" />
+        <geom name="middle_mount_s19" class="cad_collision" pos="0.010374 0.005978 -0.007919" size="0.005514" />
+        <geom name="middle_mount_s20" class="cad_collision" pos="0.005533 -0.002415 0.021655" size="0.007782" />
+        <geom name="middle_mount_s21" class="cad_collision" pos="0.007851 -0.005917 -0.008011" size="0.007083" />
+        <geom name="middle_mount_s22" class="cad_collision" pos="-0.003608 -0.00767 -0.008288" size="0.006551" />
+        <geom name="middle_mount_s23" class="cad_collision" pos="-0.000607 0.003821 -0.008491" size="0.007146" />
+        <geom name="middle_mount_s24" class="cad_collision" pos="0.002783 -0.00018 0.011908" size="0.007792" />
+        <geom name="middle_mount_s25" class="cad_collision" pos="0.013485 -0.001148 0.012529" size="0.007191" />
+        <geom name="middle_mount_s26" class="cad_collision" pos="0.008103 -0.00003 -0.000626" size="0.007378" />
+        <geom name="middle_mount_s27" class="cad_collision" pos="0.018611 0.000003 0.00001" size="0.006796" />
+        <geom name="middle_mount_s28" class="cad_collision" pos="0.011594 0.000002 0.009116" size="0.007129" />
+        <geom name="middle_mount_s29" class="cad_collision" pos="0.003026 -0.000327 0.006102" size="0.007447" />
+        <geom name="middle_mount_s30" class="cad_collision" pos="0.01383 0.000289 0.005579" size="0.007162" />
+        <geom name="middle_mount_s31" class="cad_collision" pos="0.01325 0.000582 0.012304" size="0.007303" />
+        <geom name="middle_mount_s32" class="cad_collision" pos="0.014881 -0.000203 -0.003932" size="0.006762" />
+        <geom name="middle_mount_s33" class="cad_collision" pos="0.015846 0.000935 0.02179" size="0.004195" />
+        <geom name="middle_mount_s34" class="cad_collision" pos="0.015199 -0.000752 -0.000378" size="0.006288" />
+        <geom name="middle_mount_s35" class="cad_collision" pos="0.001604 -0.000037 -0.001027" size="0.007137" />
+        <body name="middle_yaw_frame">
+          <inertial pos="0.007945 -0.000201 -0.019195" mass="0.021200" fullinertia="0.000001897 0.000003343 0.000003663 -0.000000298 -0.000000249 -0.000000097" />
+          <joint class="ctrl" name="middle_yaw" axis="1 0 0" range="-1.483530 1.483530" />
+          <geom name="middle_yaw_link_visual" class="cad_visual" mesh="cad_yaw_link" material="cad_link" />
+          <geom name="middle_servo_mcp_visual" class="cad_visual" mesh="cad_servo_mcp" material="cad_servo" />
+          <geom name="middle_yaw_frame_s0" class="cad_collision" pos="-0.008494 -0.002523 -0.012808" size="0.006819" />
+          <geom name="middle_yaw_frame_s1" class="cad_collision" pos="0.024204 -0.002253 -0.0212" size="0.008594" />
+          <geom name="middle_yaw_frame_s2" class="cad_collision" pos="0.026081 0.009594 -0.014152" size="0.007578" />
+          <geom name="middle_yaw_frame_s3" class="cad_collision" pos="0.009322 -0.004847 -0.012688" size="0.005619" />
+          <geom name="middle_yaw_frame_s4" class="cad_collision" pos="0.007489 0.01055 -0.022577" size="0.005995" />
+          <geom name="middle_yaw_frame_s5" class="cad_collision" pos="-0.005093 0.00742 -0.012778" size="0.006396" />
+          <geom name="middle_yaw_frame_s6" class="cad_collision" pos="0.012333 0.013205 -0.012378" size="0.005702" />
+          <geom name="middle_yaw_frame_s7" class="cad_collision" pos="0.027291 -0.002229 -0.012507" size="0.006258" />
+          <geom name="middle_yaw_frame_s8" class="cad_collision" pos="0.019989 -0.004176 -0.015191" size="0.006026" />
+          <geom name="middle_yaw_frame_s9" class="cad_collision" pos="0.024457 0.007206 -0.017993" size="0.008088" />
+          <geom name="middle_yaw_frame_s10" class="cad_collision" pos="0.000368 0.002972 -0.030889" size="0.005236" />
+          <geom name="middle_yaw_frame_s11" class="cad_collision" pos="0.00576 0.006895 -0.013778" size="0.005831" />
+          <geom name="middle_yaw_frame_s12" class="cad_collision" pos="0.000548 -0.00454 -0.030756" size="0.005070" />
+          <geom name="middle_yaw_frame_s13" class="cad_collision" pos="0.013679 0.010752 -0.021624" size="0.005449" />
+          <geom name="middle_yaw_frame_s14" class="cad_collision" pos="0.004263 0.013404 -0.013591" size="0.005050" />
+          <geom name="middle_yaw_frame_s15" class="cad_collision" pos="0.028752 -0.004254 0.003648" size="0.004832" />
+          <geom name="middle_yaw_frame_s16" class="cad_collision" pos="0.026826 0.005864 -0.021446" size="0.005725" />
+          <geom name="middle_yaw_frame_s17" class="cad_collision" pos="-0.010179 -0.002627 -0.000901" size="0.007028" />
+          <geom name="middle_yaw_frame_s18" class="cad_collision" pos="0.029051 0.002749 0.004769" size="0.004579" />
+          <geom name="middle_yaw_frame_s19" class="cad_collision" pos="-0.007134 -0.003498 -0.028377" size="0.005491" />
+          <geom name="middle_yaw_frame_s20" class="cad_collision" pos="-0.007667 0.003381 -0.01588" size="0.005449" />
+          <geom name="middle_yaw_frame_s21" class="cad_collision" pos="-0.008869 -0.003176 -0.022686" size="0.005228" />
+          <geom name="middle_yaw_frame_s22" class="cad_collision" pos="-0.007668 0.002812 -0.001427" size="0.006611" />
+          <geom name="middle_yaw_frame_s23" class="cad_collision" pos="0.016092 0.004173 -0.012637" size="0.005312" />
+          <geom name="middle_yaw_frame_s24" class="cad_collision" pos="0.02936 -0.003241 -0.00363" size="0.005189" />
+          <geom name="middle_yaw_frame_s25" class="cad_collision" pos="-0.007774 0.009742 -0.020824" size="0.004897" />
+          <geom name="middle_yaw_frame_s26" class="cad_collision" pos="0.029548 0.006904 -0.003371" size="0.005296" />
+          <geom name="middle_yaw_frame_s27" class="cad_collision" pos="-0.006473 0.007359 -0.025811" size="0.006404" />
+          <geom name="middle_yaw_frame_s28" class="cad_collision" pos="0.021324 0.008589 -0.023149" size="0.005974" />
+          <geom name="middle_yaw_frame_s29" class="cad_collision" pos="0.000383 -0.003282 -0.012828" size="0.005533" />
+          <geom name="middle_yaw_frame_s30" class="cad_collision" pos="0.027937 0.009676 -0.022105" size="0.005112" />
+          <geom name="middle_yaw_frame_s31" class="cad_collision" pos="0.020655 0.012995 -0.014268" size="0.005327" />
+          <geom name="middle_yaw_frame_s32" class="cad_collision" pos="0.000005 -0.011559 -0.021057" size="0.007183" />
+          <geom name="middle_yaw_frame_s33" class="cad_collision" pos="0.012578 0.004612 -0.020764" size="0.007599" />
+          <geom name="middle_yaw_frame_s34" class="cad_collision" pos="0.012961 -0.00764 -0.020351" size="0.006978" />
+          <geom name="middle_yaw_frame_s35" class="cad_collision" pos="-0.003957 -0.007521 -0.020756" size="0.006802" />
+          <geom name="middle_yaw_frame_s36" class="cad_collision" pos="0.006658 0.004162 -0.020993" size="0.007661" />
+          <geom name="middle_yaw_frame_s37" class="cad_collision" pos="0.006406 -0.00647 -0.020438" size="0.007342" />
+          <geom name="middle_yaw_frame_s38" class="cad_collision" pos="-0.001653 0.005008 -0.021911" size="0.006154" />
+          <geom name="middle_yaw_frame_s39" class="cad_collision" pos="0.01169 0.000188 -0.020755" size="0.007574" />
+          <geom name="middle_yaw_frame_s40" class="cad_collision" pos="-0.001708 0.004633 -0.018833" size="0.006005" />
+          <geom name="middle_yaw_frame_s41" class="cad_collision" pos="-0.000782 -0.002332 -0.020714" size="0.007401" />
+          <geom name="middle_yaw_frame_s42" class="cad_collision" pos="0.001153 0.001454 -0.020684" size="0.006547" />
+          <geom name="middle_yaw_frame_s43" class="cad_collision" pos="0.015239 -0.007757 -0.020615" size="0.006424" />
+          <body name="middle_mcp_frame" pos="0 -0 -0.02075">
+            <inertial pos="0.005177 -0.002878 -0.025365" mass="0.025029" fullinertia="0.000004091 0.000003624 0.000003974 -0.000000058 0.000000068 0.000000322" />
+            <joint class="ctrl" name="middle_mcp" axis="0 1 0" range="-0.261799 1.605703" />
+            <geom name="middle_mcp_link_visual" class="cad_visual" mesh="cad_mcp_link" material="cad_link" />
+            <geom name="middle_servo_pip_visual" class="cad_visual" mesh="cad_servo_pip" material="cad_servo" />
+            <geom name="middle_mcp_frame_s0" class="cad_collision" pos="-0.005232 0.005579 -0.019712" size="0.009322" />
+            <geom name="middle_mcp_frame_s1" class="cad_collision" pos="0.016132 0.005664 -0.018685" size="0.009490" />
+            <geom name="middle_mcp_frame_s2" class="cad_collision" pos="-0.004533 -0.00678 -0.017547" size="0.009181" />
+            <geom name="middle_mcp_frame_s3" class="cad_collision" pos="0.007545 -0.014906 -0.017602" size="0.010026" />
+            <geom name="middle_mcp_frame_s4" class="cad_collision" pos="0.015447 -0.008029 -0.018575" size="0.009009" />
+            <geom name="middle_mcp_frame_s5" class="cad_collision" pos="0.015387 -0.018171 -0.018161" size="0.008441" />
+            <geom name="middle_mcp_frame_s6" class="cad_collision" pos="0.007064 -0.001387 -0.017991" size="0.009164" />
+            <geom name="middle_mcp_frame_s7" class="cad_collision" pos="0.020634 -0.004204 -0.031459" size="0.006377" />
+            <geom name="middle_mcp_frame_s8" class="cad_collision" pos="-0.004088 -0.019553 -0.015895" size="0.007436" />
+            <geom name="middle_mcp_frame_s9" class="cad_collision" pos="-0.00733 0.010692 -0.032971" size="0.005284" />
+            <geom name="middle_mcp_frame_s10" class="cad_collision" pos="0.000535 -0.00384 -0.04145" size="0.005217" />
+            <geom name="middle_mcp_frame_s11" class="cad_collision" pos="-0.00566 -0.023955 -0.006285" size="0.005195" />
+            <geom name="middle_mcp_frame_s12" class="cad_collision" pos="0.006244 0.010931 -0.024949" size="0.005428" />
+            <geom name="middle_mcp_frame_s13" class="cad_collision" pos="0.004654 -0.023001 -0.006906" size="0.005491" />
+            <geom name="middle_mcp_frame_s14" class="cad_collision" pos="0.006054 0.014206 -0.009734" size="0.004720" />
+            <geom name="middle_mcp_frame_s15" class="cad_collision" pos="0.00422 0.009911 -0.013459" size="0.004962" />
+            <geom name="middle_mcp_frame_s16" class="cad_collision" pos="-0.007637 -0.003349 -0.036982" size="0.005058" />
+            <geom name="middle_mcp_frame_s17" class="cad_collision" pos="0.009185 0.007827 -0.015624" size="0.006339" />
+            <geom name="middle_mcp_frame_s18" class="cad_collision" pos="-0.004823 -0.013837 -0.018906" size="0.006615" />
+            <geom name="middle_mcp_frame_s19" class="cad_collision" pos="0.003403 -0.022105 0.005305" size="0.004059" />
+            <geom name="middle_mcp_frame_s20" class="cad_collision" pos="-0.000128 0.015182 -0.009651" size="0.004567" />
+            <geom name="middle_mcp_frame_s21" class="cad_collision" pos="-0.009595 -0.004646 -0.028217" size="0.004625" />
+            <geom name="middle_mcp_frame_s22" class="cad_collision" pos="0.018978 0.01062 -0.033732" size="0.004611" />
+            <geom name="middle_mcp_frame_s23" class="cad_collision" pos="0.005179 0.016217 -0.002753" size="0.003993" />
+            <geom name="middle_mcp_frame_s24" class="cad_collision" pos="0.00135 0.003562 -0.040724" size="0.004460" />
+            <geom name="middle_mcp_frame_s25" class="cad_collision" pos="-0.006045 0.015002 -0.003069" size="0.004679" />
+            <geom name="middle_mcp_frame_s26" class="cad_collision" pos="0.010239 0.01059 -0.032563" size="0.005104" />
+            <geom name="middle_mcp_frame_s27" class="cad_collision" pos="0.018966 0.002843 -0.032928" size="0.004893" />
+            <geom name="middle_mcp_frame_s28" class="cad_collision" pos="0.006463 -0.024043 0.000421" size="0.004210" />
+            <geom name="middle_mcp_frame_s29" class="cad_collision" pos="-0.005504 0.004033 -0.039258" size="0.004985" />
+            <geom name="middle_mcp_frame_s30" class="cad_collision" pos="-0.009061 0.002412 -0.031988" size="0.004951" />
+            <geom name="middle_mcp_frame_s31" class="cad_collision" pos="0.002726 0.01235 -0.03512" size="0.003921" />
+            <geom name="middle_mcp_frame_s32" class="cad_collision" pos="0.018405 0.009182 -0.026949" size="0.005325" />
+            <geom name="middle_mcp_frame_s33" class="cad_collision" pos="-0.007146 0.013607 -0.011095" size="0.004660" />
+            <geom name="middle_mcp_frame_s34" class="cad_collision" pos="0.018626 -0.019949 -0.022754" size="0.004560" />
+            <geom name="middle_mcp_frame_s35" class="cad_collision" pos="-0.007699 -0.01918 -0.021384" size="0.004513" />
+            <geom name="middle_mcp_frame_s36" class="cad_collision" pos="-0.003656 -0.021141 0.007501" size="0.004362" />
+            <geom name="middle_mcp_frame_s37" class="cad_collision" pos="-0.004517 -0.022824 -0.000074" size="0.004306" />
+            <geom name="middle_mcp_frame_s38" class="cad_collision" pos="0.000456 0.014028 0.002642" size="0.004780" />
+            <geom name="middle_mcp_frame_s39" class="cad_collision" pos="-0.003672 -0.021658 0.004466" size="0.004179" />
+            <geom name="middle_mcp_frame_s40" class="cad_collision" pos="0.012488 0.004614 -0.030651" size="0.007684" />
+            <geom name="middle_mcp_frame_s41" class="cad_collision" pos="-0.003309 -0.007739 -0.030966" size="0.007168" />
+            <geom name="middle_mcp_frame_s42" class="cad_collision" pos="0.00024 -0.011788 -0.030825" size="0.006885" />
+            <geom name="middle_mcp_frame_s43" class="cad_collision" pos="0.007082 -0.006184 -0.030713" size="0.007979" />
+            <geom name="middle_mcp_frame_s44" class="cad_collision" pos="0.005881 0.003838 -0.030323" size="0.007763" />
+            <geom name="middle_mcp_frame_s45" class="cad_collision" pos="0.015401 -0.008211 -0.0324" size="0.005996" />
+            <geom name="middle_mcp_frame_s46" class="cad_collision" pos="-0.000013 -0.002045 -0.030842" size="0.007566" />
+            <geom name="middle_mcp_frame_s47" class="cad_collision" pos="-0.001087 0.001085 -0.029755" size="0.005735" />
+            <geom name="middle_mcp_frame_s48" class="cad_collision" pos="0.012081 0.00015 -0.030768" size="0.007501" />
+            <geom name="middle_mcp_frame_s49" class="cad_collision" pos="0.01584 -0.007683 -0.027504" size="0.004975" />
+            <geom name="middle_mcp_frame_s50" class="cad_collision" pos="0.006896 -0.002763 -0.031227" size="0.006219" />
+            <geom name="middle_mcp_frame_s51" class="cad_collision" pos="-0.001205 0.004913 -0.030783" size="0.007064" />
+            <body name="middle_len_frame">
+              <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6" />
+              <joint class="morph" name="middle_len" axis="1 0 0" range="0 0" />
+              <body name="middle_pip_frame" pos="-0 -0 -0.0308">
+                <inertial pos="0.002967 -0.000912 -0.022687" mass="0.009263" fullinertia="0.0000025794 0.0000017135 0.0000011852 -0.0000000108 0.0000001736 0.0000000237" />
+                <joint class="ctrl" name="middle_pip" axis="0 1 0" range="-0.314159 1.605703" />
+                <geom name="middle_dip_link_visual" class="cad_visual" mesh="cad_v4b_dip_link" material="cad_link" />
+                <geom name="middle_cassette_visual" class="cad_visual" mesh="cad_v4b_cassette" material="cad_link" />
+                <geom name="middle_cap_visual" class="cad_visual" mesh="cad_v4b_cap" material="cad_link" />
+                <geom name="middle_dip_link_s0" class="cad_collision" pos="-0.0012682 -0.0085 -0.01466" size="0.001090" />
+                <geom name="middle_dip_link_s1" class="cad_collision" pos="0.0057318 0.0145 -0.00466" size="0.001090" />
+                <geom name="middle_dip_link_s2" class="cad_collision" pos="0.0067318 -0.01 -0.01566" size="0.002718" />
+                <geom name="middle_dip_link_s3" class="cad_collision" pos="0.0062318 -0.008 -0.04116" size="0.001768" />
+                <geom name="middle_dip_link_s4" class="cad_collision" pos="-0.0027682 0.001 -0.01716" size="0.003308" />
+                <geom name="middle_dip_link_s5" class="cad_collision" pos="0.0057318 -0.0095 -0.04566" size="0.001000" />
+                <geom name="middle_dip_link_s6" class="cad_collision" pos="0.0012318 -0.0225 -0.01066" size="0.000750" />
+                <geom name="middle_dip_link_s7" class="cad_collision" pos="0.0012318 -0.018 -0.01316" size="0.000892" />
+                <geom name="middle_dip_link_s8" class="cad_collision" pos="0.0077318 0.0145 -0.00966" size="0.001026" />
+                <geom name="middle_dip_link_s9" class="cad_collision" pos="0.0057318 -0.009 -0.03516" size="0.001332" />
+                <geom name="middle_dip_link_s10" class="cad_collision" pos="0.0067318 0.008 -0.01916" size="0.002500" />
+                <geom name="middle_dip_link_s11" class="cad_collision" pos="0.0062318 -0.004 -0.03766" size="0.001768" />
+                <geom name="middle_dip_link_s12" class="cad_collision" pos="-0.0052682 -0.013 -0.01416" size="0.001194" />
+                <geom name="middle_dip_link_s13" class="cad_collision" pos="-0.0027682 -0.001 -0.02216" size="0.003308" />
+                <geom name="middle_dip_link_s14" class="cad_collision" pos="0.0037318 -0.022 -0.00816" size="0.001250" />
+                <geom name="middle_dip_link_s15" class="cad_collision" pos="0.0027318 -0.005 -0.01966" size="0.000541" />
+                <geom name="middle_dip_link_s16" class="cad_collision" pos="0.0007318 0.0125 -0.01466" size="0.001090" />
+                <geom name="middle_dip_link_s17" class="cad_collision" pos="-0.0042682 -0.0215 -0.01216" size="0.001701" />
+                <geom name="middle_dip_link_s18" class="cad_collision" pos="-0.0047682 -0.0085 -0.01416" size="0.001210" />
+                <geom name="middle_dip_link_s19" class="cad_collision" pos="0.0022318 0.0155 -0.00316" size="0.001093" />
+                <geom name="middle_dip_link_s20" class="cad_collision" pos="0.0062318 0 -0.03166" size="0.001768" />
+                <geom name="middle_dip_link_s21" class="cad_collision" pos="0.0062318 -0.0045 -0.02816" size="0.001768" />
+                <geom name="middle_dip_link_s22" class="cad_collision" pos="-0.0027682 0.001 -0.02216" size="0.003308" />
+                <geom name="middle_dip_link_s23" class="cad_collision" pos="0.0057318 0.012 -0.01716" size="0.001176" />
+                <geom name="middle_dip_link_s24" class="cad_collision" pos="-0.0022682 0.002 -0.01966" size="0.002808" />
+                <geom name="middle_dip_link_s25" class="cad_collision" pos="0.0062318 -0.008 -0.02416" size="0.002219" />
+                <geom name="middle_dip_link_s26" class="cad_collision" pos="0.0082318 0.0045 -0.01216" size="0.000988" />
+                <geom name="middle_dip_link_s27" class="cad_collision" pos="-0.0027682 -0.0015 -0.01666" size="0.003127" />
+                <geom name="middle_dip_link_s28" class="cad_collision" pos="0.0062318 0.0085 -0.03616" size="0.001768" />
+                <geom name="middle_dip_link_s29" class="cad_collision" pos="0.0027318 -0.022 -0.00366" size="0.000750" />
+                <geom name="middle_dip_link_s30" class="cad_collision" pos="0.0057318 -0.0125 -0.01666" size="0.001782" />
+                <geom name="middle_dip_link_s31" class="cad_collision" pos="0.0067318 -0.002 -0.02366" size="0.002235" />
+                <geom name="middle_dip_link_s32" class="cad_collision" pos="-0.0047682 -0.001 -0.01466" size="0.001650" />
+                <geom name="middle_dip_link_s33" class="cad_collision" pos="-0.0037682 0.0155 -0.00266" size="0.001900" />
+                <geom name="middle_dip_link_s34" class="cad_collision" pos="0.0067318 -0.0145 -0.01566" size="0.002570" />
+                <geom name="middle_dip_link_s35" class="cad_collision" pos="0.0042318 0.0155 -0.01316" size="0.001900" />
+                <geom name="middle_dip_link_s36" class="cad_collision" pos="-0.0037682 -0.0185 -0.00716" size="0.001061" />
+                <geom name="middle_dip_link_s37" class="cad_collision" pos="-0.0002682 -0.0225 -0.00266" size="0.000750" />
+                <geom name="middle_dip_link_s38" class="cad_collision" pos="0.0072318 -0.0145 -0.01416" size="0.002192" />
+                <geom name="middle_dip_link_s39" class="cad_collision" pos="-0.0017682 -0.0025 -0.02316" size="0.002308" />
+                <geom name="middle_dip_link_s40" class="cad_collision" pos="0.0017318 -0.016 -0.01466" size="0.001090" />
+                <geom name="middle_dip_link_s41" class="cad_collision" pos="0.0047318 0.0055 -0.01566" size="0.001470" />
+                <geom name="middle_dip_link_s42" class="cad_collision" pos="0.0062318 0.0085 -0.04116" size="0.001768" />
+                <geom name="middle_dip_link_s43" class="cad_collision" pos="0.0062318 0.002 -0.02766" size="0.001768" />
+                <geom name="middle_dip_link_s44" class="cad_collision" pos="0.0047318 0.01 -0.01466" size="0.001341" />
+                <geom name="middle_dip_link_s45" class="cad_collision" pos="0.0067318 0 -0.01866" size="0.002332" />
+                <geom name="middle_dip_link_s46" class="cad_collision" pos="0.0042318 -0.0215 -0.01316" size="0.001702" />
+                <geom name="middle_dip_link_s47" class="cad_collision" pos="0.0037318 -0.0185 -0.01016" size="0.001315" />
+                <geom name="middle_dip_link_s48" class="cad_collision" pos="0.0062318 0.0055 -0.02966" size="0.001768" />
+                <geom name="middle_dip_link_s49" class="cad_collision" pos="-0.0007682 0.0035 -0.01716" size="0.001308" />
+                <geom name="middle_dip_link_s50" class="cad_collision" pos="-0.0017682 -0.0225 0.00084" size="0.000750" />
+                <geom name="middle_dip_link_s51" class="cad_collision" pos="0.0022318 -0.0045 -0.02266" size="0.000561" />
+                <geom name="middle_dip_link_s52" class="cad_collision" pos="0.0062318 -0.009 -0.02616" size="0.001376" />
+                <geom name="middle_dip_link_s53" class="cad_collision" pos="0.0062318 -0.0095 -0.02966" size="0.001000" />
+                <geom name="middle_dip_link_s54" class="cad_collision" pos="0.0062318 -0.005 -0.04466" size="0.001768" />
+                <geom name="middle_dip_link_s55" class="cad_collision" pos="0.0062318 -0.0015 -0.02866" size="0.001768" />
+                <geom name="middle_dip_link_s56" class="cad_collision" pos="-0.0052682 -0.0055 -0.01416" size="0.001194" />
+                <geom name="middle_dip_link_s57" class="cad_collision" pos="-0.0007682 -0.0135 -0.01466" size="0.001090" />
+                <geom name="middle_dip_link_s58" class="cad_collision" pos="-0.0037682 0.0155 -0.00916" size="0.001900" />
+                <geom name="middle_dip_link_s59" class="cad_collision" pos="0.0067318 0.0065 -0.02116" size="0.002670" />
+                <geom name="middle_dip_link_s60" class="cad_collision" pos="-0.0022682 0.0155 -0.01366" size="0.001899" />
+                <geom name="middle_dip_link_s61" class="cad_collision" pos="0.0032318 -0.005 -0.01616" size="0.000894" />
+                <geom name="middle_dip_link_s62" class="cad_collision" pos="0.0067318 -0.0045 -0.01516" size="0.002718" />
+                <geom name="middle_dip_link_s63" class="cad_collision" pos="0.0012318 0.005 -0.01466" size="0.001050" />
+                <geom name="middle_dip_link_s64" class="cad_collision" pos="0.0082318 0.012 -0.01716" size="0.000890" />
+                <geom name="middle_dip_link_s65" class="cad_collision" pos="-0.0047682 -0.016 -0.01416" size="0.001210" />
+                <geom name="middle_dip_link_s66" class="cad_collision" pos="-0.0027682 -0.018 -0.00366" size="0.000940" />
+                <geom name="middle_dip_link_s67" class="cad_collision" pos="-0.0012682 -0.018 -0.01066" size="0.000919" />
+                <geom name="middle_dip_link_s68" class="cad_collision" pos="0.0062318 -0.0055 -0.03416" size="0.001768" />
+                <geom name="middle_dip_link_s69" class="cad_collision" pos="-0.0042682 -0.0215 -0.01316" size="0.001743" />
+                <geom name="middle_dip_link_s70" class="cad_collision" pos="0.0067318 0.0095 -0.04566" size="0.001000" />
+                <geom name="middle_dip_link_s71" class="cad_collision" pos="0.0012318 0.0155 -0.00766" size="0.001900" />
+                <geom name="middle_dip_link_s72" class="cad_collision" pos="0.0027318 -0.018 -0.00366" size="0.000940" />
+                <geom name="middle_dip_link_s73" class="cad_collision" pos="0.0062318 0.0055 -0.03366" size="0.001768" />
+                <geom name="middle_dip_link_s74" class="cad_collision" pos="0.0012318 -0.018 -0.00816" size="0.000940" />
+                <geom name="middle_dip_link_s75" class="cad_collision" pos="0.0032318 0.0155 -0.01066" size="0.001817" />
+                <geom name="middle_dip_link_s76" class="cad_collision" pos="0.0057318 0.009 -0.03266" size="0.001332" />
+                <geom name="middle_dip_link_s77" class="cad_collision" pos="0.0072318 0.0035 -0.01866" size="0.002218" />
+                <geom name="middle_dip_link_s78" class="cad_collision" pos="0.0042318 -0.019 -0.01316" size="0.001702" />
+                <geom name="middle_dip_link_s79" class="cad_collision" pos="0.0082318 0.0025 -0.01216" size="0.000950" />
+                <geom name="middle_dip_link_s80" class="cad_collision" pos="0.0062318 0.0055 -0.04516" size="0.001708" />
+                <geom name="middle_dip_link_s81" class="cad_collision" pos="0.0067318 0.0075 -0.02316" size="0.002662" />
+                <geom name="middle_dip_link_s82" class="cad_collision" pos="0.0062318 -0.003 -0.04166" size="0.001768" />
+                <geom name="middle_dip_link_s83" class="cad_collision" pos="0.0022318 -0.0045 -0.02466" size="0.000561" />
+                <geom name="middle_dip_link_s84" class="cad_collision" pos="0.0007318 -0.018 -0.01666" size="0.000940" />
+                <geom name="middle_dip_link_s85" class="cad_collision" pos="0.0072318 -0.0095 -0.02966" size="0.000768" />
+                <geom name="middle_dip_link_s86" class="cad_collision" pos="-0.0042682 0.0155 0.00084" size="0.001449" />
+                <geom name="middle_dip_link_s87" class="cad_collision" pos="0.0067318 0.003 -0.02316" size="0.002332" />
+                <geom name="middle_dip_link_s88" class="cad_collision" pos="0.0017318 0.0155 0.00384" size="0.001587" />
+                <geom name="middle_dip_link_s89" class="cad_collision" pos="-0.0042682 -0.0025 -0.02416" size="0.001337" />
+                <geom name="middle_dip_link_s90" class="cad_collision" pos="0.0012318 0.0085 -0.01466" size="0.001090" />
+                <geom name="middle_dip_link_s91" class="cad_collision" pos="0.0027318 0.0145 -0.00366" size="0.001090" />
+                <geom name="middle_dip_link_s92" class="cad_collision" pos="0.0022318 -0.022 -0.01666" size="0.000893" />
+                <geom name="middle_dip_link_s93" class="cad_collision" pos="0.0072318 -0.001 -0.02316" size="0.002218" />
+                <geom name="middle_dip_link_s94" class="cad_collision" pos="0.0082318 0.012 -0.01216" size="0.000988" />
+                <geom name="middle_dip_link_s95" class="cad_collision" pos="0.0012318 0.0155 -0.01366" size="0.001900" />
+                <geom name="middle_dip_link_s96" class="cad_collision" pos="-0.0007682 0.0035 -0.02366" size="0.001308" />
+                <geom name="middle_dip_link_s97" class="cad_collision" pos="0.0077318 0.0085 -0.01816" size="0.001718" />
+                <geom name="middle_dip_link_s98" class="cad_collision" pos="0.0047318 0.006 -0.01466" size="0.001633" />
+                <geom name="middle_dip_link_s99" class="cad_collision" pos="0.0062318 0.0085 -0.03866" size="0.001768" />
+                <geom name="middle_dip_link_s100" class="cad_collision" pos="0.0062318 -0.0085 -0.03816" size="0.001768" />
+                <geom name="middle_dip_link_s101" class="cad_collision" pos="-0.0012682 0.0155 -0.00766" size="0.001900" />
+                <geom name="middle_dip_link_s102" class="cad_collision" pos="0.0062318 -0.0085 -0.03216" size="0.001768" />
+                <geom name="middle_dip_link_s103" class="cad_collision" pos="-0.0052682 0.007 -0.01416" size="0.001194" />
+                <geom name="middle_dip_link_s104" class="cad_collision" pos="-0.0042682 0.001 -0.02366" size="0.001840" />
+                <geom name="middle_dip_link_s105" class="cad_collision" pos="0.0067318 -0.0075 -0.02066" size="0.002718" />
+                <geom name="middle_dip_link_s106" class="cad_collision" pos="0.0027318 0.005 -0.02416" size="0.000541" />
+                <geom name="middle_dip_link_s107" class="cad_collision" pos="0.0062318 0.0045 -0.03766" size="0.001768" />
+                <geom name="middle_dip_link_s108" class="cad_collision" pos="-0.0017682 0.0025 -0.01566" size="0.002210" />
+                <geom name="middle_dip_link_s109" class="cad_collision" pos="0.0087318 -0.0025 -0.01166" size="0.000718" />
+                <geom name="middle_dip_link_s110" class="cad_collision" pos="0.0062318 0.0085 -0.03116" size="0.001768" />
+                <geom name="middle_dip_link_s111" class="cad_collision" pos="0.0057318 0.009 -0.03366" size="0.001332" />
+                <geom name="middle_dip_link_s112" class="cad_collision" pos="0.0062318 0.001 -0.04466" size="0.001768" />
+                <geom name="middle_dip_link_s113" class="cad_collision" pos="-0.0047682 0.012 -0.01416" size="0.001210" />
+                <geom name="middle_dip_link_s114" class="cad_collision" pos="-0.0017682 -0.0025 -0.01916" size="0.002308" />
+                <geom name="middle_dip_link_s115" class="cad_collision" pos="0.0047318 0.012 -0.01466" size="0.001341" />
+                <geom name="middle_dip_link_s116" class="cad_collision" pos="0.0062318 -0.006 -0.03016" size="0.001768" />
+                <geom name="middle_dip_link_s117" class="cad_collision" pos="0.0012318 -0.005 -0.01466" size="0.001090" />
+                <geom name="middle_dip_link_s118" class="cad_collision" pos="0.0087318 0.015 -0.01116" size="0.000900" />
+                <geom name="middle_dip_link_s119" class="cad_collision" pos="0.0062318 -0.0005 -0.03616" size="0.001768" />
+                <geom name="middle_dip_link_s120" class="cad_collision" pos="0.0017318 -0.012 -0.01466" size="0.001090" />
+                <geom name="middle_dip_link_s121" class="cad_collision" pos="0.0067318 0.0095 -0.04316" size="0.000911" />
+                <geom name="middle_dip_link_s122" class="cad_collision" pos="-0.0017682 0.011 -0.01466" size="0.001090" />
+                <geom name="middle_dip_link_s123" class="cad_collision" pos="-0.0022682 0.0055 -0.01466" size="0.001090" />
+                <geom name="middle_dip_link_s124" class="cad_collision" pos="-0.0017682 -0.018 -0.00666" size="0.000940" />
+                <geom name="middle_dip_link_s125" class="cad_collision" pos="0.0062318 0.0085 -0.02566" size="0.001698" />
+                <geom name="middle_dip_link_s126" class="cad_collision" pos="0.0037318 -0.0185 -0.00666" size="0.000984" />
+                <geom name="middle_dip_link_s127" class="cad_collision" pos="0.0067318 -0.0035 -0.01916" size="0.002332" />
+                <geom name="middle_dip_link_s128" class="cad_collision" pos="0.0052318 0.0095 -0.04566" size="0.000832" />
+                <geom name="middle_dip_link_s129" class="cad_collision" pos="0.0062318 0.0055 -0.04266" size="0.001768" />
+                <geom name="middle_dip_link_s130" class="cad_collision" pos="-0.0017682 0.0155 0.00384" size="0.001571" />
+                <geom name="middle_dip_link_s131" class="cad_collision" pos="0.0002318 0.015 0.00434" size="0.001453" />
+                <geom name="middle_dip_link_s132" class="cad_collision" pos="0.0062318 0.0015 -0.04116" size="0.001768" />
+                <geom name="middle_dip_link_s133" class="cad_collision" pos="0.0062318 -0.003 -0.03266" size="0.001768" />
+                <geom name="middle_dip_link_s134" class="cad_collision" pos="0.0082318 -0.011 -0.01216" size="0.000988" />
+                <geom name="middle_dip_link_s135" class="cad_collision" pos="0.0017318 -0.0045 -0.02066" size="0.000485" />
+                <geom name="middle_dip_link_s136" class="cad_collision" pos="0.0017318 0.0165 -0.00616" size="0.000900" />
+                <geom name="middle_dip_link_s137" class="cad_collision" pos="0.0017318 -0.022 -0.00616" size="0.000750" />
+                <geom name="middle_dip_link_s138" class="cad_collision" pos="0.0062318 0.0005 -0.03866" size="0.001768" />
+                <geom name="middle_dip_link_s139" class="cad_collision" pos="0.0012318 -0.0225 0.00184" size="0.000750" />
+                <geom name="middle_dip_link_s140" class="cad_collision" pos="-0.0047682 -0.011 -0.01416" size="0.001210" />
+                <geom name="middle_dip_link_s141" class="cad_collision" pos="0.0057318 0.0075 -0.04616" size="0.000750" />
+                <geom name="middle_dip_link_s142" class="cad_collision" pos="0.0082318 0.008 -0.01216" size="0.000988" />
+                <geom name="middle_dip_link_s143" class="cad_collision" pos="-0.0037682 -0.022 -0.00816" size="0.001250" />
+                <geom name="middle_dip_link_s144" class="cad_collision" pos="-0.0037682 -0.0205 -0.00666" size="0.000948" />
+                <geom name="middle_dip_link_s145" class="cad_collision" pos="0.0062318 -0.006 -0.04216" size="0.001768" />
+                <geom name="middle_dip_link_s146" class="cad_collision" pos="0.0067318 -0.0075 -0.01516" size="0.002718" />
+                <geom name="middle_dip_link_s147" class="cad_collision" pos="0.0067318 -0.0095 -0.04316" size="0.000911" />
+                <geom name="middle_dip_link_s148" class="cad_collision" pos="-0.0037682 0.0155 -0.00566" size="0.001900" />
+                <geom name="middle_dip_link_s149" class="cad_collision" pos="0.0027318 -0.018 -0.00566" size="0.000940" />
+                <geom name="middle_dip_link_s150" class="cad_collision" pos="-0.0017682 -0.0225 -0.01466" size="0.000750" />
+                <geom name="middle_dip_link_s151" class="cad_collision" pos="0.0067318 -0.0075 -0.02316" size="0.002662" />
+                <geom name="middle_dip_link_s152" class="cad_collision" pos="-0.0037682 -0.0185 -0.01066" size="0.001363" />
+                <geom name="middle_dip_link_s153" class="cad_collision" pos="0.0087318 -0.016 -0.01166" size="0.000718" />
+                <geom name="middle_dip_link_s154" class="cad_collision" pos="0.0067318 0.008 -0.02216" size="0.002500" />
+                <geom name="middle_dip_link_s155" class="cad_collision" pos="0.0022318 -0.0225 -0.00066" size="0.000750" />
+                <geom name="middle_dip_link_s156" class="cad_collision" pos="0.0067318 -0.013 -0.01566" size="0.002718" />
+                <geom name="middle_dip_link_s157" class="cad_collision" pos="0.0067318 0.0065 -0.01916" size="0.002670" />
+                <geom name="middle_dip_link_s158" class="cad_collision" pos="-0.0022682 -0.0185 -0.01666" size="0.000868" />
+                <geom name="middle_dip_link_s159" class="cad_collision" pos="-0.0007682 0.0155 -0.01066" size="0.001900" />
+                <geom name="middle_cassette_s0" class="cad_collision" pos="0.00215 -0.00875 -0.03166" size="0.001650" />
+                <geom name="middle_cassette_s1" class="cad_collision" pos="0.00115 0.00925 -0.02666" size="0.000830" />
+                <geom name="middle_cassette_s2" class="cad_collision" pos="0.00215 0.00875 -0.03266" size="0.001574" />
+                <geom name="middle_cassette_s3" class="cad_collision" pos="0.00215 -0.00875 -0.03316" size="0.001290" />
+                <geom name="middle_cassette_s4" class="cad_collision" pos="0.00315 0.00425 -0.02766" size="0.000633" />
+                <geom name="middle_cassette_s5" class="cad_collision" pos="0.00315 0.00425 -0.03116" size="0.000633" />
+                <geom name="middle_cassette_s6" class="cad_collision" pos="0.00315 -0.00425 -0.02766" size="0.000633" />
+                <geom name="middle_cassette_s7" class="cad_collision" pos="0.00265 -0.00425 -0.04066" size="0.000630" />
+                <geom name="middle_cassette_s8" class="cad_collision" pos="0.00265 -0.00425 -0.03266" size="0.000630" />
+                <geom name="middle_cassette_s9" class="cad_collision" pos="0.00315 -0.00425 -0.03616" size="0.000633" />
+                <geom name="middle_cassette_s10" class="cad_collision" pos="0.00315 0.00425 -0.04116" size="0.000633" />
+                <geom name="middle_cassette_s11" class="cad_collision" pos="0.00215 -0.00875 -0.03116" size="0.001650" />
+                <geom name="middle_cassette_s12" class="cad_collision" pos="0.00265 -0.00975 -0.02716" size="0.000750" />
+                <geom name="middle_cassette_s13" class="cad_collision" pos="0.00265 0.00425 -0.03666" size="0.000630" />
+                <geom name="middle_cassette_s14" class="cad_collision" pos="0.00215 0.00875 -0.03116" size="0.001650" />
+                <geom name="middle_cassette_s15" class="cad_collision" pos="0.00315 -0.00425 -0.03016" size="0.000633" />
+                <geom name="middle_cassette_s16" class="cad_collision" pos="0.00315 -0.00425 -0.03816" size="0.000633" />
+                <geom name="middle_cassette_s17" class="cad_collision" pos="0.00265 0.00725 -0.02616" size="0.000660" />
+                <geom name="middle_cassette_s18" class="cad_collision" pos="0.00115 0.00975 -0.02916" size="0.000707" />
+                <geom name="middle_cassette_s19" class="cad_collision" pos="0.00265 0.00425 -0.02966" size="0.000630" />
+                <geom name="middle_cassette_s20" class="cad_collision" pos="0.00315 0.00425 -0.02866" size="0.000633" />
+                <geom name="middle_cassette_s21" class="cad_collision" pos="0.00315 -0.00775 -0.03166" size="0.000650" />
+                <geom name="middle_cassette_s22" class="cad_collision" pos="0.00315 0.00425 -0.03416" size="0.000633" />
+                <geom name="middle_cassette_s23" class="cad_collision" pos="0.00315 -0.00825 -0.02616" size="0.000650" />
+                <geom name="middle_cassette_s24" class="cad_collision" pos="0.00065 0.00725 -0.02666" size="0.000569" />
+                <geom name="middle_cassette_s25" class="cad_collision" pos="0.00115 -0.00925 -0.02666" size="0.000830" />
+                <geom name="middle_cassette_s26" class="cad_collision" pos="0.00315 0.00975 -0.02866" size="0.000597" />
+                <geom name="middle_cassette_s27" class="cad_collision" pos="0.00165 -0.00875 -0.03316" size="0.001290" />
+                <geom name="middle_cassette_s28" class="cad_collision" pos="0.00315 0.00975 -0.02616" size="0.000650" />
+                <geom name="middle_cassette_s29" class="cad_collision" pos="0.00265 -0.00725 -0.02666" size="0.000569" />
+                <geom name="middle_cassette_s30" class="cad_collision" pos="0.00315 0.00475 -0.02766" size="0.000456" />
+                <geom name="middle_cassette_s31" class="cad_collision" pos="0.00265 0.00425 -0.03866" size="0.000630" />
+                <geom name="middle_cassette_s32" class="cad_collision" pos="0.00315 -0.00475 -0.04166" size="0.000422" />
+                <geom name="middle_cassette_s33" class="cad_collision" pos="0.00165 -0.00825 -0.03066" size="0.001214" />
+                <geom name="middle_cassette_s34" class="cad_collision" pos="0.00265 -0.00975 -0.02916" size="0.000750" />
+                <geom name="middle_cassette_s35" class="cad_collision" pos="0.00265 0.00825 -0.03066" size="0.001150" />
+                <geom name="middle_cassette_s36" class="cad_collision" pos="0.00065 -0.00725 -0.02616" size="0.000660" />
+                <geom name="middle_cassette_s37" class="cad_collision" pos="0.00165 -0.00725 -0.02666" size="0.000569" />
+                <geom name="middle_cassette_s38" class="cad_collision" pos="0.00315 0.00975 -0.03366" size="0.000650" />
+                <geom name="middle_cassette_s39" class="cad_collision" pos="0.00315 -0.00425 -0.03466" size="0.000633" />
+                <geom name="middle_cassette_s40" class="cad_collision" pos="0.00065 0.00775 -0.03016" size="0.000716" />
+                <geom name="middle_cassette_s41" class="cad_collision" pos="0.00265 0.00425 -0.03266" size="0.000630" />
+                <geom name="middle_cassette_s42" class="cad_collision" pos="0.00315 0.00475 -0.03216" size="0.000456" />
+                <geom name="middle_cassette_s43" class="cad_collision" pos="0.00315 0.00475 -0.04166" size="0.000422" />
+                <geom name="middle_cassette_s44" class="cad_collision" pos="0.00315 0.00475 -0.03966" size="0.000456" />
+                <geom name="middle_cassette_s45" class="cad_collision" pos="0.00315 -0.00425 -0.04166" size="0.000422" />
+                <geom name="middle_cassette_s46" class="cad_collision" pos="0.00265 0.00425 -0.04066" size="0.000630" />
+                <geom name="middle_cassette_s47" class="cad_collision" pos="0.00315 -0.00475 -0.03866" size="0.000456" />
+                <geom name="middle_cassette_s48" class="cad_collision" pos="0.00115 -0.00975 -0.02916" size="0.000707" />
+                <geom name="middle_cassette_s49" class="cad_collision" pos="0.00265 0.00425 -0.02766" size="0.000630" />
+                <geom name="middle_cassette_s50" class="cad_collision" pos="0.00165 0.00875 -0.03316" size="0.001290" />
+                <geom name="middle_cassette_s51" class="cad_collision" pos="0.00315 0.00675 -0.02616" size="0.000421" />
+                <geom name="middle_cassette_s52" class="cad_collision" pos="0.00315 -0.00775 -0.03016" size="0.000650" />
+                <geom name="middle_cassette_s53" class="cad_collision" pos="0.00315 -0.00675 -0.02616" size="0.000421" />
+                <geom name="middle_cassette_s54" class="cad_collision" pos="0.00315 -0.00425 -0.03716" size="0.000633" />
+                <geom name="middle_cassette_s55" class="cad_collision" pos="0.00315 -0.00925 -0.03366" size="0.000650" />
+                <geom name="middle_cassette_s56" class="cad_collision" pos="0.00315 -0.00475 -0.03116" size="0.000456" />
+                <geom name="middle_cassette_s57" class="cad_collision" pos="0.00115 -0.00825 -0.03066" size="0.001214" />
+                <geom name="middle_cassette_s58" class="cad_collision" pos="0.00265 -0.00975 -0.02616" size="0.000660" />
+                <geom name="middle_cassette_s59" class="cad_collision" pos="0.00315 0.00475 -0.03066" size="0.000456" />
+                <geom name="middle_cassette_s60" class="cad_collision" pos="0.00315 0.00425 -0.02966" size="0.000633" />
+                <geom name="middle_cassette_s61" class="cad_collision" pos="0.00315 0.00475 -0.03466" size="0.000456" />
+                <geom name="middle_cassette_s62" class="cad_collision" pos="0.00265 -0.00425 -0.03116" size="0.000630" />
+                <geom name="middle_cassette_s63" class="cad_collision" pos="0.00265 -0.00825 -0.03366" size="0.000608" />
+                <geom name="middle_cassette_s64" class="cad_collision" pos="0.00265 -0.00425 -0.02916" size="0.000630" />
+                <geom name="middle_cassette_s65" class="cad_collision" pos="0.00315 -0.00475 -0.04016" size="0.000456" />
+                <geom name="middle_cassette_s66" class="cad_collision" pos="0.00265 0.00825 -0.03366" size="0.000790" />
+                <geom name="middle_cassette_s67" class="cad_collision" pos="0.00315 0.00725 -0.02666" size="0.000569" />
+                <geom name="middle_cassette_s68" class="cad_collision" pos="0.00315 0.00475 -0.02966" size="0.000456" />
+                <geom name="middle_cassette_s69" class="cad_collision" pos="0.00315 0.00775 -0.03016" size="0.000650" />
+                <geom name="middle_cassette_s70" class="cad_collision" pos="0.00315 -0.00475 -0.03016" size="0.000456" />
+                <geom name="middle_cassette_s71" class="cad_collision" pos="0.00315 0.00475 -0.03316" size="0.000456" />
+                <geom name="middle_cassette_s72" class="cad_collision" pos="0.00315 0.00475 -0.03366" size="0.000456" />
+                <geom name="middle_cassette_s73" class="cad_collision" pos="0.00315 -0.00825 -0.03366" size="0.000550" />
+                <geom name="middle_cassette_s74" class="cad_collision" pos="0.00315 0.00425 -0.03766" size="0.000633" />
+                <geom name="middle_cassette_s75" class="cad_collision" pos="0.00115 -0.00825 -0.03366" size="0.000790" />
+                <geom name="middle_cassette_s76" class="cad_collision" pos="0.00265 -0.00775 -0.03016" size="0.000716" />
+                <geom name="middle_cassette_s77" class="cad_collision" pos="0.00315 0.00475 -0.03216" size="0.000456" />
+                <geom name="middle_cassette_s78" class="cad_collision" pos="0.00315 -0.00475 -0.02766" size="0.000456" />
+                <geom name="middle_cassette_s79" class="cad_collision" pos="0.00265 -0.00475 -0.03466" size="0.000440" />
+                <geom name="middle_cassette_s80" class="cad_collision" pos="0.00265 0.00425 -0.03566" size="0.000630" />
+                <geom name="middle_cassette_s81" class="cad_collision" pos="0.00265 -0.00425 -0.03566" size="0.000630" />
+                <geom name="middle_cassette_s82" class="cad_collision" pos="0.00315 -0.00975 -0.03366" size="0.000650" />
+                <geom name="middle_cassette_s83" class="cad_collision" pos="0.00315 0.00775 -0.03216" size="0.000650" />
+                <geom name="middle_cassette_s84" class="cad_collision" pos="0.00315 -0.00425 -0.03166" size="0.000633" />
+                <geom name="middle_cap_s0" class="cad_collision" pos="0.0014937 0.00875 -0.04676" size="0.001406" />
+                <geom name="middle_cap_s1" class="cad_collision" pos="0.0054937 0.00925 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s2" class="cad_collision" pos="0.0014937 -0.00475 -0.04676" size="0.001406" />
+                <geom name="middle_cap_s3" class="cad_collision" pos="0.0014937 0.00525 -0.04676" size="0.001406" />
+                <geom name="middle_cap_s4" class="cad_collision" pos="0.0014937 -0.00875 -0.04676" size="0.001406" />
+                <geom name="middle_cap_s5" class="cad_collision" pos="0.0069937 0.00075 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s6" class="cad_collision" pos="0.0064937 0.00425 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s7" class="cad_collision" pos="0.0009937 -0.00675 -0.04276" size="0.000754" />
+                <geom name="middle_cap_s8" class="cad_collision" pos="0.0014937 -0.00925 -0.04226" size="0.001160" />
+                <geom name="middle_cap_s9" class="cad_collision" pos="0.0069937 -0.00225 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s10" class="cad_collision" pos="0.0014937 0.00875 -0.03976" size="0.001406" />
+                <geom name="middle_cap_s11" class="cad_collision" pos="0.0034937 -0.00025 -0.04776" size="0.000688" />
+                <geom name="middle_cap_s12" class="cad_collision" pos="0.0014937 -0.00875 -0.03976" size="0.001406" />
+                <geom name="middle_cap_s13" class="cad_collision" pos="0.0019937 -0.00625 -0.04376" size="0.000620" />
+                <geom name="middle_cap_s14" class="cad_collision" pos="0.0064937 0.00675 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s15" class="cad_collision" pos="0.0014937 0.00975 -0.04326" size="0.000750" />
+                <geom name="middle_cap_s16" class="cad_collision" pos="0.0014937 0.00375 -0.04726" size="0.001250" />
+                <geom name="middle_cap_s17" class="cad_collision" pos="0.0039937 0.00575 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s18" class="cad_collision" pos="0.0014937 -0.00025 -0.04726" size="0.001045" />
+                <geom name="middle_cap_s19" class="cad_collision" pos="0.0054937 -0.00925 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s20" class="cad_collision" pos="0.0014937 0.00775 -0.04176" size="0.001314" />
+                <geom name="middle_cap_s21" class="cad_collision" pos="0.0054937 -0.00575 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s22" class="cad_collision" pos="0.0014937 0.00575 -0.04526" size="0.001224" />
+                <geom name="middle_cap_s23" class="cad_collision" pos="0.0034937 -0.00725 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s24" class="cad_collision" pos="0.0069937 -0.00675 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s25" class="cad_collision" pos="0.0069937 0.00925 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s26" class="cad_collision" pos="0.0044937 0.00225 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s27" class="cad_collision" pos="0.0014937 -0.00775 -0.04176" size="0.001314" />
+                <geom name="middle_cap_s28" class="cad_collision" pos="0.0039937 -0.00275 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s29" class="cad_collision" pos="0.0059937 0.00325 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s30" class="cad_collision" pos="0.0014937 0.00825 -0.03976" size="0.001336" />
+                <geom name="middle_cap_s31" class="cad_collision" pos="0.0069937 -0.00925 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s32" class="cad_collision" pos="0.0014937 0.00175 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s33" class="cad_collision" pos="0.0029937 -0.00975 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s34" class="cad_collision" pos="0.0014937 -0.00325 -0.04726" size="0.000993" />
+                <geom name="middle_cap_s35" class="cad_collision" pos="0.0014937 -0.00575 -0.04676" size="0.001406" />
+                <geom name="middle_cap_s36" class="cad_collision" pos="0.0069937 -0.00425 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s37" class="cad_collision" pos="0.0014937 -0.00025 -0.04526" size="0.000731" />
+                <geom name="middle_cap_s38" class="cad_collision" pos="0.0014937 -0.00875 -0.04726" size="0.001250" />
+                <geom name="middle_cap_s39" class="cad_collision" pos="0.0014937 -0.00975 -0.04476" size="0.000620" />
+                <geom name="middle_cap_s40" class="cad_collision" pos="0.0044937 -0.00425 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s41" class="cad_collision" pos="0.0014937 -0.00575 -0.04526" size="0.001224" />
+                <geom name="middle_cap_s42" class="cad_collision" pos="0.0069937 0.00425 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s43" class="cad_collision" pos="0.0049937 -0.00075 -0.04776" size="0.000540" />
+                <geom name="middle_cap_s44" class="cad_collision" pos="0.0014937 0.00725 -0.04726" size="0.001250" />
+                <geom name="middle_cap_s45" class="cad_collision" pos="0.0034937 0.00925 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s46" class="cad_collision" pos="0.0064937 -0.00225 -0.04776" size="0.000750" />
+                <geom name="middle_cap_s47" class="cad_collision" pos="0.0014937 0.00975 -0.04526" size="0.000750" />
+                <geom name="middle_cap_s48" class="cad_collision" pos="0.0009937 -0.00975 -0.04476" size="0.000620" />
+                <geom name="middle_cap_s49" class="cad_collision" pos="0.0014937 0.00675 -0.04276" size="0.000754" />
+                <geom name="middle_cap_s50" class="cad_collision" pos="0.0004937 0.00625 -0.04326" size="0.000580" />
+                <geom name="middle_cap_s51" class="cad_collision" pos="0.0019937 0.00575 -0.04476" size="0.000906" />
+                <geom name="middle_cap_s52" class="cad_collision" pos="0.0014937 0.00875 -0.04176" size="0.001406" />
+                <geom name="middle_cap_s53" class="cad_collision" pos="-0.00065 -0.0085 -0.02827" size="0.000550" />
+                <geom name="middle_cap_s54" class="cad_collision" pos="-0.00065 0.008 -0.04427" size="0.000550" />
+                <geom name="middle_cap_s55" class="cad_collision" pos="-0.00065 0.008 -0.02827" size="0.000550" />
+                <geom name="middle_cap_s56" class="cad_collision" pos="-0.00065 -0.008 -0.04427" size="0.000550" />
+                <geom name="middle_cap_s57" class="cad_collision" pos="-0.00065 -0.0075 -0.02827" size="0.000550" />
+                <geom name="middle_cap_s58" class="cad_collision" pos="-0.00065 0.0075 -0.04427" size="0.000550" />
+                <geom name="middle_cap_s59" class="cad_collision" pos="-0.00065 0.008 -0.02777" size="0.000550" />
+                <geom name="middle_cap_s60" class="cad_collision" pos="-0.00065 -0.0075 -0.04377" size="0.000534" />
+                <geom name="middle_cap_s61" class="cad_collision" pos="-0.00065 0.0085 -0.02877" size="0.000534" />
+                <geom name="middle_cap_s62" class="cad_collision" pos="-0.00065 -0.008 -0.02877" size="0.000550" />
+                <geom name="middle_cap_s63" class="cad_collision" pos="-0.00065 -0.0085 -0.04477" size="0.000534" />
+                <geom name="middle_cap_s64" class="cad_collision" pos="-0.00065 0.0075 -0.02827" size="0.000550" />
+                <geom name="middle_cap_s65" class="cad_collision" pos="-0.00065 0.0085 -0.04477" size="0.000534" />
+                <geom name="middle_cap_s66" class="cad_collision" pos="-0.00065 -0.008 -0.02777" size="0.000550" />
+                <geom name="middle_cap_s67" class="cad_collision" pos="-0.00065 0.008 -0.04477" size="0.000550" />
+                <geom name="middle_cap_s68" class="cad_collision" pos="-0.00065 0.008 -0.04377" size="0.000550" />
+                <geom name="middle_cap_s69" class="cad_collision" pos="-0.00065 -0.0085 -0.04377" size="0.000534" />
+                <body name="middle_tip" pos="0 0 -0.03636">
+                  <inertial pos="-0.002908 0 0.001001" mass="0.003654" fullinertia="0.0000001631 0.0000001569 0.0000000903 -0 0.0000000051 -0" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <contact>
+    <exclude body1="palm_pose" body2="thumb_yaw_frame" />
+    <exclude body1="palm_pose" body2="thumb_mcp_frame" />
+    <exclude body1="palm_pose" body2="thumb_len_frame" />
+    <exclude body1="palm_pose" body2="thumb_pip_frame" />
+    <exclude body1="palm_pose" body2="thumb_tip" />
+    <exclude body1="thumb_yaw_frame" body2="thumb_pip_frame" />
+    <exclude body1="thumb_mcp_frame" body2="thumb_pip_frame" />
+    <exclude body1="palm_pose" body2="index_yaw_frame" />
+    <exclude body1="palm_pose" body2="index_mcp_frame" />
+    <exclude body1="palm_pose" body2="index_len_frame" />
+    <exclude body1="palm_pose" body2="index_pip_frame" />
+    <exclude body1="palm_pose" body2="index_tip" />
+    <exclude body1="index_yaw_frame" body2="index_pip_frame" />
+    <exclude body1="index_mcp_frame" body2="index_pip_frame" />
+    <exclude body1="palm_pose" body2="middle_yaw_frame" />
+    <exclude body1="palm_pose" body2="middle_mcp_frame" />
+    <exclude body1="palm_pose" body2="middle_len_frame" />
+    <exclude body1="palm_pose" body2="middle_pip_frame" />
+    <exclude body1="palm_pose" body2="middle_tip" />
+    <exclude body1="middle_yaw_frame" body2="middle_pip_frame" />
+    <exclude body1="middle_mcp_frame" body2="middle_pip_frame" />
+    <exclude body1="palm_pose" body2="thumb_mount" />
+    <exclude body1="thumb_mount" body2="thumb_yaw_frame" />
+    <exclude body1="thumb_mount" body2="thumb_pip_frame" />
+    <exclude body1="thumb_mount" body2="thumb_tip" />
+    <exclude body1="thumb_yaw_frame" body2="thumb_tip" />
+    <exclude body1="thumb_mcp_frame" body2="thumb_tip" />
+    <exclude body1="palm_pose" body2="index_mount" />
+    <exclude body1="index_mount" body2="index_yaw_frame" />
+    <exclude body1="index_mount" body2="index_pip_frame" />
+    <exclude body1="index_mount" body2="index_tip" />
+    <exclude body1="index_yaw_frame" body2="index_tip" />
+    <exclude body1="index_mcp_frame" body2="index_tip" />
+    <exclude body1="palm_pose" body2="middle_mount" />
+    <exclude body1="middle_mount" body2="middle_yaw_frame" />
+    <exclude body1="middle_mount" body2="middle_pip_frame" />
+    <exclude body1="middle_mount" body2="middle_tip" />
+    <exclude body1="middle_yaw_frame" body2="middle_tip" />
+    <exclude body1="middle_mcp_frame" body2="middle_tip" />
+  </contact>
+  <actuator>
+    <position class="pose" name="a_palm_px" joint="palm_px" ctrlrange="-0.20 0.20" />
+    <position class="pose" name="a_palm_py" joint="palm_py" ctrlrange="-0.20 0.20" />
+    <position class="pose" name="a_palm_pz" joint="palm_pz" ctrlrange="-0.15 0.35" />
+    <position class="pose" name="a_palm_rx" joint="palm_rx" ctrlrange="-1.57 1.57" />
+    <position class="pose" name="a_palm_ry" joint="palm_ry" ctrlrange="-1.57 1.57" />
+    <position class="pose" name="a_palm_rz" joint="palm_rz" ctrlrange="-3.14 3.14" />
+    <position class="ctrl" name="a_thumb_yaw" joint="thumb_yaw" ctrlrange="-1.483530 1.483530" />
+    <position class="ctrl" name="a_thumb_mcp" joint="thumb_mcp" ctrlrange="-0.261799 1.605703" />
+    <position class="ctrl" name="a_thumb_pip" joint="thumb_pip" ctrlrange="-0.314159 1.605703" />
+    <position class="ctrl" name="a_index_yaw" joint="index_yaw" ctrlrange="-1.483530 1.483530" />
+    <position class="ctrl" name="a_index_mcp" joint="index_mcp" ctrlrange="-0.261799 1.605703" />
+    <position class="ctrl" name="a_index_pip" joint="index_pip" ctrlrange="-0.314159 1.605703" />
+    <position class="ctrl" name="a_middle_yaw" joint="middle_yaw" ctrlrange="-1.483530 1.483530" />
+    <position class="ctrl" name="a_middle_mcp" joint="middle_mcp" ctrlrange="-0.261799 1.605703" />
+    <position class="ctrl" name="a_middle_pip" joint="middle_pip" ctrlrange="-0.314159 1.605703" />
+  </actuator>
+  <keyframe>
+    <key name="open" qpos="0 0 0.0125 0.707107 0.707107 0 0 0 0 0.02005 0 0 0 0 0 0 -0.167745 0 1.20758 0 0 -0.429327 0.0237063 0 0.770516 0 0 0.429327 0.0237063 0 0.770516" ctrl="0 0 0.02005 0 0 0 0 -0.167745 1.20758 -0.429327 0.0237063 0.770516 0.429327 0.0237063 0.770516" />
+  </keyframe>
+</mujoco>
