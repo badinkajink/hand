@@ -870,6 +870,43 @@ the plan. Perturbations of 5 deg/s left it unchanged until the planned turn was 
                rows, f"Wall time of one control period on the {tim['gpu'].replace('NVIDIA GeForce ', '')} with no other "
                "job: the batched controller before the changes of this section, the changed one run eagerly, and the "
                "changed one captured as a CUDA graph.", num_from=0)
+    p2 = mp / "timing_p2ms.json"
+    if p2.exists():                                  # the planner's worlds at a 2 ms physics step (2026-10-30, 12:29)
+        g2 = {r["k"]: r for r in json.loads(p2.read_text())["rows"]}
+        runs = [("1 ms", 2, 0.1, run), ("2 ms", 2, 0.1, json.loads((mp / "twist_call280_g0_k64_p2ms.json").read_text())),
+                ("2 ms", 1, 0.2, json.loads((mp / "twist_call280_g0_k64_p2ms_i1_r2.json").read_text()))]
+
+        def stats(r):
+            tr_ = r["trace"]
+            t0_ = tr_[0]["t"] - 0.01
+            lost = next((x["t"] - t0_ for x in tr_ if min(x["F"]) <= 0.05), None)
+            t45 = next(x["t"] - t0_ for x in tr_ if x["yaw_deg"] >= 45.0)
+            pw_ = float(np.median(r["plan_wall_s"])) if r.get("plan_wall_s") else None
+            return pw_, t45, r["yaw_three_pads_max_deg"], lost, r["yaw_end_deg"]
+        S_ = [(ph, it, iv) + stats(d_["runs"]["mpc_k64"]) for ph, it, iv, d_ in runs]
+        rmp = stats(ramp)
+        a, b, c = S_
+        t += fill(r"""<p>A 2 ms physics step in the planner's worlds, five steps per period, cut a 64-world period from
+<<p1>> to <<p2>> ms (Table <<tb>>). The physics fell from <<f1>> to <<f2>> ms, and the controller's graph stayed at
+<<c2>> ms. The plant kept its 1 ms step. With two iterations every 0.1 s a replanning took <<w2>> s, <<x2>> times real
+time. The plans kept their quality: the sphere reached 45 deg in <<h2>> s, against <<h1>> s with the 1 ms planner, and
+stopped at <<e2>> deg on three pads. With one iteration every 0.2 s a replanning took <<w3>> s, <<x3>> times real time.
+With that slower replanning the plant turned past the three-pad limit. It lost a pad <<l3>> s into the task, at
+<<e3>> deg, and turned on to <<z3>> deg.</p>""",
+                  p1=f"{gr[64]['ms_per_period']:.1f}", p2=f"{g2[64]['ms_per_period']:.1f}",
+                  f1=f"{gr[64]['ms_parts']['physics']:.1f}", f2=f"{g2[64]['ms_parts']['physics']:.1f}",
+                  c2=f"{g2[64]['ms_parts']['controller_graph']:.1f}", tb=TAB[0] + 1, w2=f"{b[3]:.2f}",
+                  x2=f"{b[2] / b[3]:.2f}", h2=f"{b[4]:.2f}", h1=f"{a[4]:.2f}", e2=f"{b[5]:.1f}", w3=f"{c[3]:.2f}",
+                  x3=f"{c[2] / c[3]:.2f}", l3=f"{c[6]:.2f}", e3=f"{c[5]:.1f}", z3=f"{c[7]:.0f}")
+        rows2 = [[ph, str(it), f"{iv:.1f}", f"{pw_:.2f}", f"{iv / pw_:.2f}", f"{t45:.2f}", f"{e3:.1f}",
+                  "&ndash;" if lost is None else f"{lost:.2f}"] for ph, it, iv, pw_, t45, e3, lost, _z in S_]
+        rows2.append(["HOM ramp, 30 deg/s", "&ndash;", "&ndash;", "&ndash;", "&ndash;", f"{rmp[1]:.2f}", f"{rmp[2]:.1f}",
+                      f"{rmp[3]:.2f}"])
+        t += table(["Planner's physics step", "Iterations", "Replanning interval (s)", "Replanning (s)",
+                    "Times real time", "Time to 45 deg (s)", "Turn on three pads (deg)", "First pad lost (s)"], rows2,
+                   "The MPC over HOM's commands on grid layout 280 with 64 samples and a horizon of 0.3 s: the planner's "
+                   "physics step, its iterations and the interval between replannings. Times from the task's start; the "
+                   "replanning is the median wall time.", num_from=1)
     return t
 
 
@@ -889,9 +926,10 @@ study's screwdriver load step, where the brake's angle depends on the pinch forc
 closing speed, 30 seeds per point, with calibration errors (<code>scripts/hom_gpu.py run --layouts design</code>). The
 loop is ready for the bench if one setting holds the twist in 95 % of runs while keeping the pin-push's force error
 under 0.5 N.</li>
-<li>Give the MPC's sample worlds a 2 ms physics step (five per period) and replan every 0.2 s with one
-iteration. The MPC over HOM's commands reaches real time if a replanning of 64 samples over 0.3 s then takes
-under 0.2 s.</li>
+<li>Replan every 0.1 s with one iteration, 32 samples, a 2 ms physics step and a horizon of 0.2 s
+(<code>hom_mpc_gpu.py run --k 32 --phys-ms 2 --iters 1</code> with <code>H_KNOTS</code> 2). By the periods of Table 7 a
+replanning would take about 0.11 s. The setting is good enough if it runs in real time and still stops at the three-pad
+limit of layout 280.</li>
 <li>Give the gradient planner a cost it can follow: a penalty that rises smoothly as a pad's force falls below 0.5 N,
 in place of the count of periods with a pad lost. It is worth keeping if it then stops at the three-pad limit of layout
 280, as the cross-entropy method does, with its 13 worlds per step.</li>

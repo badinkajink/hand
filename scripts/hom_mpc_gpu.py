@@ -317,7 +317,7 @@ def cmd_run(a):
         res[name] = r
         pw = r["plan_wall_s"]
         print(f"{name}: yaw {r['yaw_end_deg']:.1f} deg, on three pads {r['yaw_three_pads_max_deg']:.1f} deg, dropped "
-              f"{r['dropped']}, wall {r['wall_s']} s" + (f", replanning {np.median(pw):.2f} s for {KNOT * T.DT_C:.2f} s "
+              f"{r['dropped']}, wall {r['wall_s']} s" + (f", replanning {np.median(pw):.2f} s for {a.replan * KNOT * T.DT_C:.2f} s "
                                                         f"of control ({a.replan * KNOT * T.DT_C / np.median(pw):.3f} x real time)"
                                                         if pw else ""), flush=True)
     out = {"task": a.task, "d_mm": a.d, "call": a.call, "grasp": a.grasp, "k": a.k, "planner": a.planner, "graph": a.graph,

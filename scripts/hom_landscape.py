@@ -580,7 +580,43 @@ def cmd_ea(a):
     (ROWS / "ea").mkdir(parents=True, exist_ok=True)
     (ROWS / "ea" / "summary.json").write_text(json.dumps({"pop": EA_POP, "delta_mm": EA_DELTA, "runs": EA_RUNS, **out},
                                                          indent=1))
+    fig_ea(out)
     return 0
+
+
+def cmd_ea_figure(a):
+    """The EA figure from rows/ea/summary.json."""
+    d = json.loads((ROWS / "ea" / "summary.json").read_text())
+    fig_ea({k: v for k, v in d.items() if isinstance(v, dict) and "runs" in v})
+    return 0
+
+
+def fig_ea(out):
+    """Per task, the median over runs of the best-of-16 score of the incumbent against rollouts spent, for the EA at
+    two population sizes, random search and the EA with the foundational pose as its fitness; the grid's best score."""
+    plt = FR.plt_setup()
+    names = {"twist": "Twist, 40 mm sphere", "roll": "Roll, 40 mm sphere", "pinpush": "Pin-push, 25 mm cylinder",
+             "press": "Press, 25 mm cylinder"}
+    sty = {f"ea_best_pop{EA_POP}": ("k", "-", f"EA, population {EA_POP}"),
+           f"ea_best_pop{4 * EA_POP}": ("tab:blue", "-", f"EA, population {4 * EA_POP}"),
+           "random_best": ("tab:orange", "--", "random search"),
+           f"ea_fp_pop{EA_POP}": ("0.55", ":", "EA on the foundational pose's score")}
+    fig, axs = plt.subplots(1, 4, figsize=(18, 4.6), sharey=False)
+    for ax, (key, res) in zip(axs, out.items()):
+        for run, (c, ls, lab) in sty.items():
+            cv = res["runs"][run]["curve"]
+            ax.plot(np.array(cv["rollouts"]) / 1e3, cv["median_best"], color=c, ls=ls, lw=1.6, label=lab)
+        ax.axhline(res["grid_best"], color="tab:red", lw=0.9, ls="-.", label="the grid's best")
+        ax.axhline(res["grid_best"] - 0.05, color="tab:red", lw=0.6, ls=":")
+        ax.set_xlim(0, 8)
+        ax.set_ylim(max(0.0, res["grid_best"] - 0.4), res["grid_best"] + 0.03)
+        ax.set_title(names[key.split("_d")[0]])
+        ax.set_xlabel("Rollouts (thousands)")
+    axs[0].set_ylabel("Median best-of-16 score found")
+    axs[0].text(0.98, 0.62, "dotted red: 0.05 below the best", transform=axs[0].transAxes, ha="right", fontsize=10)
+    axs[0].legend(loc="lower right", fontsize=10)
+    fig.tight_layout()
+    FR.save(fig, "20261030-ea_baseline.png")
 
 
 DRAWS = ROWS / "grid2d_v4b_draws12"
@@ -686,7 +722,45 @@ def cmd_local_report(a):
     (ROWS / "local").mkdir(parents=True, exist_ok=True)
     (ROWS / "local" / f"summary_{tag}.json").write_text(json.dumps(summ, indent=1))
     print({k: v for k, v in summ.items() if k != "per_start"}, flush=True)
+    fig_local(a.task, a.d, rows, pick, check, out)
     return 0
+
+
+def fig_local(task, size, rows, pick, check, per):
+    """(a) Every neighbour's score change against its start on the picking seeds, by distance; (b) each start and its
+    best neighbour on the checking seeds."""
+    plt = FR.plt_setup()
+
+    def mean(sc, c):
+        return float(np.mean(sc[(c, 0)])) if (c, 0) in sc else 0.0
+    start = {r["center"]: c for c, r in rows.items() if r["radius_mm"] == 0.0}
+    fig, ax = plt.subplots(1, 2, figsize=(13, 4.8))
+    dist = [r["radius_mm"] for c, r in rows.items() if r["radius_mm"] > 0]
+    chg = [mean(pick, c) - mean(pick, start[r["center"]]) for c, r in rows.items() if r["radius_mm"] > 0]
+    lost = [(c, 0) not in pick for c, r in rows.items() if r["radius_mm"] > 0]
+    ax[0].scatter([d for d, l_ in zip(dist, lost) if not l_], [x for x, l_ in zip(chg, lost) if not l_], s=8, c="k",
+                  alpha=0.4, label="pose reached")
+    ax[0].scatter([d for d, l_ in zip(dist, lost) if l_], [x for x, l_ in zip(chg, lost) if l_], s=10, c="tab:red",
+                  marker="x", alpha=0.6, label="pose lost (score 0)")
+    ax[0].axhline(0.0, color="0.5", lw=0.8)
+    ax[0].set_xlabel("Distance from the start (mm)")
+    ax[0].set_ylabel("Score change, seeds 9-11")
+    ax[0].legend(loc="lower left")
+    ax[0].set_title("(a) The 64 neighbours of each start")
+    order = sorted(per, key=lambda o: o["start_check"])
+    x = np.arange(len(order))
+    for i, o in enumerate(order):
+        ax[1].plot([i, i], [o["start_check"], o["best_check"]], color="0.6", lw=1)
+    ax[1].plot(x, [o["start_check"] for o in order], "o", color="k", label="start")
+    ax[1].plot(x, [o["best_check"] for o in order], "^", color="tab:blue", label="best neighbour (picked on seeds 9-11)")
+    ax[1].set_xticks(x)
+    ax[1].set_xticklabels([str(i + 1) for i in x], fontsize=10)
+    ax[1].set_xlabel("Start, ordered by its score")
+    ax[1].set_ylabel("Twist score, seeds 12-14")
+    ax[1].legend(loc="lower right")
+    ax[1].set_title("(b) Starts and their best neighbours")
+    fig.tight_layout()
+    FR.save(fig, f"20261030-local_{task}{size:g}.png")
 
 
 def cmd_moves_report(a):
@@ -1505,6 +1579,7 @@ def main():
     sub.add_parser("valrep")
     sub.add_parser("cross-grid")
     sub.add_parser("ea")
+    sub.add_parser("ea-figure")
     sub.add_parser("draws")
     for name in ("moves", "moves-report", "local-report"):
         p = sub.add_parser(name)
@@ -1519,7 +1594,7 @@ def main():
     p.add_argument("--out", default="")
     a = ap.parse_args()
     return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
-            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "local-report": cmd_local_report, "ea": cmd_ea, "draws": cmd_draws,
+            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "local-report": cmd_local_report, "ea": cmd_ea, "ea-figure": cmd_ea_figure, "draws": cmd_draws,
             "cross": cmd_cross,
             "valrep": cmd_valrep, "cross-grid": cmd_cross_grid}[a.cmd](a)
 

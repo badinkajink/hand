@@ -75,7 +75,8 @@ assert tuple(FINGERS) == ("thumb", "index", "middle") and T.PINCH == ("thumb", "
 TASKS = ("pinpush", "press", "roll", "twist")
 D_FP = {"pinpush": 25.0, "press": 25.0, "roll": 40.0, "twist": 40.0}   # the toy's objects
 REF = (92.5, 102.5)                    # the layout whose scenes are compiled (the task study's 40 mm sphere grasp)
-NCONMAX, NJMAX = 1024, 2048
+NCONMAX = int(os.environ.get("HOM_GPU_NCONMAX", 1024))  # contact and constraint rows per world; the press with
+NJMAX = int(os.environ.get("HOM_GPU_NJMAX", 2048))      # the v4b pads overflows 2,048 rows in a few steps (10-30)
 ROWS = C.ROWS
 N_AP = 24                              # alternating projections for the block-cylinder witness points
 N_AP_WARM = 4                          # ... per control period for the v4b pad, from the previous period's point
@@ -1258,7 +1259,7 @@ def batch_child(spec):
     with open(spec["tpath"], "a") as fh:
         fh.write(json.dumps({"task": task, "d_mm": float(spec["d_mm"]), "dt": spec["dt"], "batch": spec["batch"],
                              "worlds": len(chunk), "build_s": round(t_build, 2), "run_s": round(wall, 2),
-                             "score_s": round(t_score, 2), "layouts": spec["layouts"],
+                             "score_s": round(t_score, 2), "layouts": spec["layouts"], "njmax": NJMAX,
                              "gpu": torch.cuda.get_device_name(0),
                              "max_mem_gb": round(torch.cuda.max_memory_allocated() / 1e9, 2),
                              "when": time.strftime("%Y-%m-%d %H:%M")}) + "\n")

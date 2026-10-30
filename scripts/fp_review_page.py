@@ -1277,7 +1277,9 @@ def gradient_numbers(task="twist", d=40.0):
         pv, pp_ = L.SIZE_ROWS / f"value_{t_}_d{d_:g}.json", ROWS / "peak" / f"summary_{t_}{d_:g}.json"
         if pv.exists() and pp_.exists():
             more[(t_, d_)] = (json.loads(pv.read_text()), json.loads(pp_.read_text()))
-    return {"v": v, "pk": pk, "nn": nn, "more": more}
+    lp = ROWS / "local" / f"summary_{task}{d:g}.json"
+    local = json.loads(lp.read_text()) if lp.exists() else None
+    return {"v": v, "pk": pk, "nn": nn, "more": more, "local": local}
 
 
 def sec_gradients(N):
@@ -1364,6 +1366,23 @@ peaks are wider: a 4 mm perturbation costs a median of <<c4>> there, against <<s
              "layouts moved inside the trust region, on fresh seeds: measured against predicted change. (c) Score change "
              "around the best layouts by perturbation radius (median and quartiles; a pose not reached scores 0), with "
              "the share of perturbations that lose the foundational pose.")
+    lo = g.get("local")
+    if lo:
+        t += fill(r"""<p>Rollouts in a layout's own neighbourhood do refine it (Figure <<f>>). Around each of the
+<<ns>> best starts, a scrambled Sobol design placed 64 layouts within 2 mm in the six mount coordinates
+(<code>hom_landscape.py moves --kind local</code>). Their foundational poses were solved again, and a median <<rch>> %
+of each start's neighbours reached the pose. Every neighbour and start ran on seeds 9 to 11, and again on seeds 12 to 14.
+The best neighbour of each start was picked on seeds 9 to 11 and scored on seeds 12 to 14. There it beat its start for
+<<nb>> of the <<ns>> starts. The median gain was <<gc>> on the scoring seeds and <<gp>> on the picking seeds (Wilcoxon
+$p$ = <<wp>>). The starts scored a median <<s0>> on seeds 12 to 14, and their best neighbours <<s1>>. The largest gains
+came from the weaker starts.</p>""", f=FIG[0] + 1, ns=lo["starts"], rch=f"{100 * lo['reached_median']:.0f}",
+                  nb=round(lo["best_beats_start_check"] * lo["starts"]), gc=f"{lo['gain_check_median']:+.3f}",
+                  gp=f"{lo['gain_pick_median']:+.3f}", wp=f"{lo['wilcoxon_p']:.3f}", s0=f"{lo['start_check_median']:.2f}",
+                  s1=f"{lo['best_check_median']:.2f}")
+        t += img(MEDIA / "20261030-local_twist40.png",
+                 "Local refinement of the 20 best twist layouts, 40 mm sphere. (a) Each neighbour's score change against "
+                 "its start on seeds 9 to 11, by its distance from the start; a lost pose scores 0. (b) Each start and its "
+                 "best neighbour, picked on seeds 9 to 11 and scored on seeds 12 to 14.")
     return t
 
 
@@ -1602,6 +1621,78 @@ the median worst score is <<mb2>> and <<mf2>> (Section SEC[grid]).""", fb=f"{100
     return t
 
 
+def sec_search(N):
+    """Yang et al.'s evolutionary search on the grid's rollouts (hom_landscape.py ea)."""
+    E = N.get("ea")
+    if not E:
+        return "<p>Not run yet.</p>"
+    names = {"twist": "Twist, 40 mm sphere", "roll": "Roll, 40 mm sphere", "pinpush": "Pin-push, 25 mm cylinder",
+             "press": "Press, 25 mm cylinder"}
+    pop = E["pop"]
+    T_ = {k: v for k, v in E.items() if isinstance(v, dict) and "runs" in v}
+
+    def hit(task, run, eps="0.05"):
+        h = T_[task]["runs"][run][f"to_within_{eps}"]
+        return h["median"], h["reached"]
+
+    def cell(task, run, eps="0.05"):
+        m, r = hit(task, run, eps)
+        return ("&ndash;" if m is None else f"{m:,.0f}") + f" ({100 * r:.0f})"
+    rows = []
+    for k, v in T_.items():
+        rows.append([names[k.split("_d")[0]], f"{v['grid_rollouts']:,}", str(v["layouts_within"]["0.05"]),
+                     cell(k, f"ea_best_pop{pop}"), cell(k, f"ea_best_pop{4 * pop}"), cell(k, "random_best"),
+                     cell(k, f"ea_best_pop{pop}", "0.02"), cell(k, "random_best", "0.02"),
+                     f"{100 * T_[k]['runs'][f'ea_fp_pop{pop}']['to_within_0.05']['reached']:.0f}"])
+    tw, pp, ro, pr = (T_[k] for k in ("twist_d40", "pinpush_d25", "roll_d40", "press_d25"))
+    m_tw = hit("twist_d40", f"ea_best_pop{pop}")[0]
+    big = [hit(k, f"ea_best_pop{4 * pop}")[0] for k in T_]
+    fp_r = [T_[k]["runs"][f"ea_fp_pop{pop}"]["to_within_0.05"]["reached"] for k in T_]
+    miss = {k: 1.0 - hit(k, f"ea_best_pop{pop}")[1] for k in T_}
+
+    def less(k):                                       # the EA's saving in rollouts against random search
+        return 1.0 - hit(k, f"ea_best_pop{pop}")[0] / hit(k, "random_best")[0]
+    t = fill(r"""<p>Yang et al. [6] search hand designs with an elitist, mutation-only evolutionary algorithm (EA). Each
+generation keeps its best half, and its best eighth are the parents. A child is a parent whose design parameters each
+move by a uniform draw of up to half a mutation width either way. The same search ran on the grid of Section SEC[grid],
+with the grid's rollouts as the evaluator (<code>hom_landscape.py ea</code>). A layout's fitness is its best-of-16 score
+on seeds 0 to 2, and evaluating it costs the rollouts of its grasp set, about 48. A child moves by up to <<hw>> mm per
+coordinate and is rounded to the grid's 5 mm. Each search ran <<nr>> times from random populations of <<p1>> and of
+<<p2>> layouts, beside random search over the grid's layouts. A search succeeds when its best layout so far scores
+within 0.05 of the grid's best (Table <<tb>>, Figure <<f>>).</p>
+<p>The EA found such a layout after a median of <<a1>> rollouts on the twist, <<s1>> % of the grid's cost, and random
+search after <<b1>>. Against random search the EA needed <<l1>> % fewer rollouts on the twist and the roll, <<l2>> % fewer
+on the pin-push and <<l3>> % fewer on the press. Within 0.02 of the best its lead was larger on the roll and the
+pin-push, while on the press it reached that margin in only <<pm>> % of runs. With a population of <<p1>> the EA did not
+come within 0.05 of the best in <<mp>> % of the pin-push runs and <<mq>> % of the press runs, and in <<ms>> % or fewer on
+the sphere tasks. The roll and the press have peaks of nearly equal height in separate basins, and the EA ended in
+another basin than the grid's best layout in <<ob1>> and <<ob2>> % of runs. A population of <<p2>> came within 0.05 in
+every run, after a median of <<g0>> to <<g1>> rollouts. With the foundational pose's score as its fitness, the search's
+best layout came within 0.05 of the grid's best in <<f0>> to <<f1>> % of runs. That pose ranks the layouts' best grasps
+too roughly to guide the search (Section SEC[grid]).</p>""",
+             hw=f"{E['delta_mm'] / 2:g}", nr=E["runs"], p1=pop, p2=4 * pop, tb=TAB[0] + 1, f=FIG[0] + 1,
+             a1=f"{m_tw:,.0f}", s1=f"{100 * m_tw / tw['grid_rollouts']:.0f}",
+             b1=f"{hit('twist_d40', 'random_best')[0]:,.0f}",
+             l1=" to ".join(sorted({f"{100 * less(k):.0f}" for k in ("twist_d40", "roll_d40")})),
+             l2=f"{100 * less('pinpush_d25'):.0f}", l3=f"{100 * less('press_d25'):.0f}",
+             pm=f"{100 * hit('press_d25', f'ea_best_pop{pop}', '0.02')[1]:.0f}",
+             mp=f"{100 * miss['pinpush_d25']:.0f}", mq=f"{100 * miss['press_d25']:.0f}",
+             ms=f"{100 * max(miss['twist_d40'], miss['roll_d40']):.0f}",
+             ob1=f"{100 * ro['runs'][f'ea_best_pop{pop}']['final_other_basin']:.0f}",
+             ob2=f"{100 * pr['runs'][f'ea_best_pop{pop}']['final_other_basin']:.0f}",
+             g0=f"{min(big):,.0f}", g1=f"{max(big):,.0f}", f0=f"{100 * min(fp_r):.0f}", f1=f"{100 * max(fp_r):.0f}")
+    t += table(["Task", "Grid rollouts", "Layouts within 0.05", f"EA, {pop}", f"EA, {4 * pop}", "Random search",
+                f"EA, {pop}, within 0.02", "Random, within 0.02", "EA on the foundational pose (%)"], rows,
+               f"Rollouts until the best layout found scores within 0.05 of the grid's best (median over {E['runs']} "
+               "runs; in brackets the share of runs that got there within the grid's rollouts, %); the same within 0.02; "
+               "and the share of EA runs on the foundational pose's score whose best layout came within 0.05.", num_from=1)
+    t += img(MEDIA / "20261030-ea_baseline.png",
+             "The median over runs of the best-of-16 score of the best layout found, against rollouts spent: the EA of "
+             "[6] with two population sizes, random search, and the EA with the foundational pose's score as its "
+             "fitness. Seeds 0 to 2 of the grid; dash-dotted: the grid's best.")
+    return t
+
+
 def sec_related():
     return r"""<p>Four lines of work bear on this design study. Each answers part of the question, with a different
 controller in the loop.</p>
@@ -1616,9 +1707,9 @@ critic's role. Its gradient is the design gradient of [5]. On the 2-D grid the s
 that gradient.</li>
 <li>Yang et al. [6, 7] evolve hand morphologies with an elitist, mutation-only evolutionary algorithm. One
 morphology-aware Transformer policy, trained with PPO, controls the whole population: 22,528 hands, scored by the grasp
-matrix's smallest singular value and by successful reorientations. Their fitness and their outer loop can be run on this page's
-evaluator. Their grasp metric is recorded for every grasp in Section SEC[grid], where it ranked only the roll's grasps.
-The maps of Section SEC[grid] show every basin of a task over the grid.</li>
+matrix's smallest singular value and by successful reorientations. Their outer loop ran on this page's evaluator in
+Section SEC[search]. Their grasp metric is recorded for every grasp in Section SEC[grid], where it ranked only the roll's
+grasps. The maps of Section SEC[grid] show every basin of a task over the grid.</li>
 <li>In Xie, Xiang, Posa and Jin [8] a policy chooses where to touch: a contact point on the object and an object
 subgoal. A complementarity-free contact-implicit MPC at about 100 Hz then moves a Franka arm's stick through contact.
 The actions are written at the contacts, as HOM's commands are. An MPC over HOM's commands for the SR2 hand is listed
@@ -1658,6 +1749,16 @@ def sec_history():
         ["2026-10-30, 08:05", "Each layout's best grasp and foundational pose again on seeds 3 to 5; neighbours' best "
          "grasps moved to each layout", "the best of 16 is picked on seeds 0 to 2", "the spheres keep the gain; on the "
          "cylinders most of it came from three object-pose draws shared by every layout (Section SEC[grid])"],
+        ["2026-10-30, 12:05 to 12:25", "The pin-push middle finger's reference re-anchored to its measured angles when "
+         "its gap exceeds the cut", "the middle pressed a median 0.4 N of its commanded 1.5 N", "its force rose to "
+         "1.1 N, but the cylinder yawed away and the median score fell from 0.57 to 0.53; left off (HOM code "
+         "walkthrough, Section 10)"],
+        ["2026-10-30, 12:15 to 12:30", "Local Sobol designs of 64 layouts within 2 mm of the 20 best twist layouts",
+         "the peaks are narrower than the Sobol layouts' spacing", "a better neighbour on fresh seeds for 17 of 20 "
+         "(Section SEC[gradients])"],
+        ["2026-10-30, 12:20", "The evolutionary search of [6] on the grid's rollouts, beside random search", "the "
+         "literature's search as a baseline for the cost of the full map", "within 0.05 of the best after 5 to 8 % of "
+         "the grid's rollouts on the twist and the pin-push (Section SEC[search])"],
     ]
     return ("<p>Table SEC_TAB_H lists the changes to the method in order, with their reasons and what they showed."
             "</p>").replace("SEC_TAB_H", str(TAB[0] + 1)) + table(
@@ -1778,8 +1879,9 @@ rotation, which the SR2 hand cannot change without new parts.</li>
 press), so their maps rank single layouts roughly. The pin-push's peak lies on the grid's edge of the smallest
 index-to-middle spacing, 50 mm; smaller spacings are outside the grid.</li>
 <li>In the pin-push the middle finger presses with less than its commanded 1.5 N. In the code walkthrough's example it
-pressed a median 0.27 N, while its joint reference stayed more than the 6 mm gap cut behind the cylinder. The pin-push
-scores include that.</li>
+pressed a median 0.27 N, while its joint reference stayed more than the 6 mm gap cut behind the cylinder. Re-anchoring
+the reference raised the force to a median 1.1 N, and the cylinder then yawed away from the finger (the walkthrough,
+Section 10). The pin-push scores on this page are without the re-anchor.</li>
 </ul>""", hp=f"{N['grid']['pinpush']['held_share_median']:.2f}", hr=f"{N['grid']['press']['held_share_median']:.2f}",
         bestlim=("<li>Grasps were moved only between grid neighbours 5 mm apart and from each task's peak layout at one "
                  "object size; moves across object sizes were not run.</li>" if N.get("valrep") else
@@ -1820,12 +1922,11 @@ within 0.1 of the layout's own best.</li>""") + """
 (<code>--layouts grid2dval_pinpush_size grid2dval_press_size</code>) on seeds 6 to 17 with <code>hom_gpu.py
 run</code>. The best grasp's gain over the foundational pose is real if its median stays above the spread of the
 seeds' means; a ranking of layouts on three draws is then replaced by one on twelve.</li>
-<li>Refine the best layouts by rollouts in their own neighbourhood. Around each of the 20 best twist layouts, run a
-local Sobol design of 64 layouts within 2 mm, three seeds each (<code>hom_landscape.py moves</code> with a smaller
-radius, then <code>fp_sr2_toy.py poses</code> and <code>hom_gpu.py run</code>). The refinement works if the best of
-the 64 beats its centre on three further seeds for most of the 20.</li>
-<li>Run the evolutionary search of [6] on the same evaluator as a baseline, counting rollouts to reach the best basin of
-the grid.</li>
+<li>Repeat the local refinement from each best neighbour of Section SEC[gradients], with 64 layouts within 1 mm and
+fresh seeds. The peaks are reached when a round's best neighbour no longer beats its start on fresh seeds for most of
+the 20.</li>
+<li>Run the EA of Section SEC[search] on the six coordinates with grasp synthesis in the loop, counting the CPU time of
+each layout's grasp set beside its rollouts. Compare it with the 8,192-layout Sobol sweep at equal rollouts.</li>
 <li>Build a sampling MPC over HOM's commands on MuJoCo-Warp (<code>scripts/hom_mpc_gpu.py</code>) and compare it with
 HOM's fixed schedules on the grid's best layouts. Measure its control rate against real time.</li>
 </ol>"""
@@ -1850,6 +1951,11 @@ poses <code>fp_sr2_toy.py poses</code> and <code>grid2d</code> (rows <code>sobol
 <code>v4b_check/</code>).</li>
 <li>Grid of grasp sets: <code>hom_gpu.py run --layouts grid2d_size</code> (rows <code>grid2d_v4b/</code>); maps and
 tables <code>scripts/hom_landscape.py grid</code> and <code>figures</code>.</li>
+<li>Local refinement: <code>hom_landscape.py moves --kind local</code> (rows <code>local_twist40.jsonl</code>), poses
+<code>fp_sr2_toy.py poses --src local_twist40</code>, <code>hom_gpu.py run --layouts local_twist40_size</code> on seeds
+9-11 and 12-14 (rows <code>local/</code>), <code>hom_landscape.py local-report</code>; scripts
+<code>logs/20261030-hom_local/poses.sh</code> and <code>queue2.sh</code>.</li>
+<li>Evolutionary search: <code>hom_landscape.py ea</code> on the grid's rows (rows <code>ea/summary.json</code>).</li>
 <li>Earlier studies: <code>docs/experiments/20260831-real_v1-sobol8192/</code>,
 <code>docs/experiments/20260828-real_v1_search/</code>, <code>docs/experiments/20261008-hand_object_scale/</code>,
 <code>docs/experiments/20261001-drake-port/</code>; the morphology overview <code>docs/overviews/morphology_design.html</code>.</li>
@@ -1944,6 +2050,8 @@ the maps, have mean scores of <<m0>> to <<m1>> and differ visibly.</p>""",
     N["v4b"] = v4b_numbers()
     N["grid"] = grid_numbers()
     N["grad"] = gradient_numbers()
+    ep = ROWS / "ea" / "summary.json"
+    N["ea"] = json.loads(ep.read_text()) if ep.exists() else None
     N["sizes"] = size_numbers()
     N["grid_sizes"] = grid_size_numbers()
     N["valrep"] = valrep_numbers()
@@ -1984,6 +2092,7 @@ the grasp, and for the twist that decides the outcome.</p>""",
         ("gradients", "Design gradients from a model of the HOM scores", sec_gradients(N)),
         ("sizes", "Layouts across object sizes", sec_sizes(N)),
         ("cross", "The four tasks at their default objects: rank correlation and Pareto set", sec_cross(N)),
+        ("search", "Evolutionary search on the grid against the full map", sec_search(N)),
         ("separate", "Grasp and in-hand control: one problem or two", sec_separate(N)),
         ("plan", "A plan for a Pareto front of SR2 layouts under HOM control", sec_plan(N)),
         ("related", "Related design studies and how this one builds on them", sec_related()),
@@ -2013,10 +2122,13 @@ from. On the SR2 hand with the calibrated v4b fingertip, a GPU version of the HO
 tasks and four object sizes. With the best of 16 grasps per layout and task, the median twist score of a 625-layout grid
 rose from <<a0>> to <<a1>> on fresh seeds. On <<sb>> % of the grid's layouts all four tasks then scored above 0.5,
 against <<sf>> % with the foundational pose. The best layouts move with the object.<<sh>> They sit on peaks a few millimetres wide: moving the
-mounts 4 mm cost the best twist layouts a median <<c4>>.""",
+mounts 4 mm cost the best twist layouts a median <<c4>>.<<lr>>""",
                 a0=f"{TV['fp_fresh_median']:.2f}", a1=f"{TV['best_fresh_median']:.2f}",
                 sb=f"{100 * CF['share_all_above_0.5_best']:.0f}", sf=f"{100 * CF['share_all_above_0.5_fp']:.0f}",
                 c4=f"{-pe['change_median']:.2f}",
+                lr=(" Searching 64 layouts within 2 mm of each of the 20 best found a better one on fresh seeds for "
+                    f"{round(N['grad']['local']['best_beats_start_check'] * N['grad']['local']['starts'])}."
+                    if N["grad"].get("local") else ""),
                 sh=(f" In three tasks the best distance from the thumb's mount to the other two grows by {min(sl):.1f} to "
                     f"{max(sl):.1f} mm per millimetre of diameter." if len(sl) == 3 else ""))
     summary = fill("""HOM-controller scores of 8,192 SR2 layouts on four tasks and object sizes, v4b fingertip: synthesizing
