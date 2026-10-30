@@ -11,7 +11,13 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-30 13:09: the watcher exited 0 at 13:08 on lines 33 (12:49,
+State: armed 2026-10-27 21:00 from the colorado window. 10-30 13:42: the watcher exited 0 at 13:42 on lines 35 (13:22,
+a502f2c2: v3 ID 3's block 4 done 101 of 101, its last 55 in wrist2's order with no loss, twice at the 11:02 loss pose;
+block 6, 100 rod actions, to about 14:45; nothing runs tonight) and 36 (13:31, fb1aa02c: the owner's go for the probe
+mode; the lab writes and simulates it after block 6; robot motion waits for the parts and the owner's go). Calibration
+page 6db3d196: the wrist-order item has the 55 run with no loss; the rig item has the probe mode approved and the dry
+run waiting for the parts. Acked 36 lines and 29 commits at HEAD 6db3d196. Next: v3 ID 3's analysis after block 6.
+10-30 13:09: the watcher exited 0 at 13:08 on lines 33 (12:49,
 ac021c3d: the seats on a low strip, pads 40 mm over it, one P1S plate in 9 h 56 min, plans 280/280/279 clean) and 34
 (12:57, 3ce83b74: the owner runs no calibration tonight and waits for the inverted rig; v3 ID 3's block 4 at 91 of 101
 with no HEX-E loss since the 11:09 reseat, block 6 of 100 rod actions next, the suite ending near 14:50). Calibration
