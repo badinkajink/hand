@@ -1106,7 +1106,12 @@ def sections(N, F, P, link, L):
     body = (
         "<p>The HEX-E is a weak reference. Its $F_z$ channel reads 0.78–0.87 of its other axes' gain in two gravity fits. "
         "Its link dropped out in three of the first night's runs, once on 2026-10-26 and once in R29 on 10-27. On 10-28 it "
-        "stopped twice, at 02:54 and at 14:32, and read again each time after its connector was reseated. The arm, the "
+        "stopped twice, at 02:54 and at 14:32, and read again each time after its connector was reseated. On 10-30 it "
+        "stopped at 00:08, after 46 of v3 ID 3's 101 tall stage-2 actions, and read again by itself at 01:37. The losses "
+        "of 14:32 and 00:08 each came at the end of a travel that took wrist 1 from below 0° to above it. In both travels "
+        "wrist 2 rose by more than 10°. R29's loss came in the next travel after one of them. That travel swings wrist 1 "
+        "back from +16.3 to −37.7°. Tall stage 2 has 12 such travels, six in the grid and six in the slides ("
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/20261030-wrist_order/") + "). The arm, the "
         "mount and the indenter's stand are taken as rigid; the rod presses bound their compliance at 0.10 mm/N. The "
         "registration fixes the place along the finger less well than across it. The magnets of tips 0 to 3 have "
         "0.20–0.57 of an N52's strength. A press below 1 N therefore changes their readings by less than the step of about "
@@ -1121,6 +1126,11 @@ def sections(N, F, P, link, L):
         "ATI Mini45 as the reference: calibrate it on the UR5 with the 100 g weight in its printed holder (39 stations, "
         "about 27 min; " + link(L["ati"], "ATI plan") + "), then repeat a grid of presses. A board force outside "
         "0.78–1.05 of the ATI's means the HEX-E's gain biased the comparisons.",
+        "Wrist order and the HEX-E's link: run the next tip's tall stage 2 in the new order of "
+        + P.code("scripts/ur5_tip_calibration_next_tip_suite.py") + ". Each action moves at most four places, and none "
+        "of Section 14's 12 travels is left. Wrist 1 swings more than 40° three times, against 23 in the old order. The "
+        "wrists travel 3,131° in all, against 5,144°. The path check gives the same least margins in both orders (mount "
+        "3.73 mm, finger 1.07 mm). A loss of the link in the new order rules these travels out as its cause.",
         "Torsion on the sensor's axis: clamp the finger with the face's normal along the force sensor's axis and twist at "
         "5 N, so the torsion is read without the push's moment. A correlation above 0.8 between the GP's torsion and "
         "the sensor's would make torsion a calibrated output.",
