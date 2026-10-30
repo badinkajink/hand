@@ -1948,6 +1948,22 @@ The clearances in this section and the one before it are on mount v3. The next s
 - The owner told the workstation at 12:5x that no calibration runs tonight. The next runs use the inverted rig, on
   the low seat strip (ac021c3dd). Nothing follows block 6 in the queue.
 
+### Block 6: ID 3's rod stage 2 (13:20:39 to 14:49:02)
+
+- `lab/20261029-plan_rod_lab_stage2_night_v3id3.json`, 100 actions, resumed on 230820 (rod seat 3) after block 4's home
+  path check and go home (0.04 mm, 0.01 deg). Printout `logs/20261030-132039-tipcal-rodv3id3.log`.
+- 100 of 100 ok in 1 h 28 min, with no abort and no early contact. The HEX-E gave 529,491 samples with no time-out, and
+  its one gap over 0.5 s came at the start. Its two chunks had simulated clean on block 5's registration, with the mount
+  at least 3.06 mm and the finger 1.26 mm from the cell.
+- The arm stands at rod-final-ref's rest over the rod (joints 32.9, -61.1, 97.5, -33.1, 36.4, -6.8 deg).
+
+### ID 3's suite: done (14:49 on 10-30)
+
+- Blocks 1 to 6, the top edge and the side map all ended ok. Block 4 ran across two HEX-E losses, at 00:08 and 11:03.
+  The owner then reseated the connector and gave the cable more slack, and its last 55 actions ran in wrist2's order.
+- The owner runs no calibration tonight (via the workstation, 12:5x). The next runs use the inverted rig on the low seat
+  strip. Everything comes off the table after this suite.
+
 ### The night's plans, after the finer path checks (14:4x)
 
 - The workstation's path checks at every 2 mm sample (bb7c5578) finished here at 14:41. The tall's stage 2 brings the

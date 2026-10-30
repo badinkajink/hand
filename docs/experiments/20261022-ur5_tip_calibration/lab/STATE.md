@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-30 13:20 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-30 14:51 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -33,7 +33,7 @@ cm from the connector with slack. The fix is a new cable.
 - No force control, contact motion or safety threshold is set from a borrowed calibration that was not validated.
 - The workstation reads corvus over SSH and never writes there; plans reach corvus by git.
 
-## Today and tonight: v3 ID 3's suite
+## v3 ID 3's suite: done at 14:49 on 10-30
 
 The workstation built the suite at 12:00 on 10-29 (62d93424, d6795072). The owner's go came in the lab's session at
 13:4x for block 1 ("lets a go mario"), and at 13:5x for the rest: "1. top edge -- lets go for it. add more density if
@@ -48,17 +48,17 @@ anything 2. side map -- sure 3. yea send it".
 | block 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Done 16:34 to 23:07: 211 of 211, no abort, no early contact, 6.55 h (resumed on block 1's folder). |
 | block 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | Done 23:08 to 23:31: 21 of 21 touch-offs and 5 pivot presses, 0.037 mm rms (`20261029-230820-rodv3id3`, a seed of block 1's tool and 031559's rod). |
 | block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json`; its last 55 in the order of `20261030-plan_tall_lab_stage2_night_wrist2_v3id3.json` | 101 | Done 23:33 on 10-29 to 13:19:51 on 10-30: 101 of 101 ok, no early contact. HEX-E losses stopped it at 00:08:00 (46 ok) and at 11:03:04, on the night order's first travel (home into tall-edge-626). After the owner's reseat with more cable slack (11:09), the last 55 ran in wrist2's order from 11:15:24, with no abort and no HEX-E time-out. |
-| block 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | **Running since 13:20:39 on 10-30** (`logs/20261030-132039-tipcal-rodv3id3.log`, resumed on block 5's folder). Its 2 chunks simulated clean on block 5's registration: mount 3.06 mm, finger 1.26 mm. About 1.4 h, ending about 14:45. |
+| block 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Done 13:20 to 14:49 on 10-30: 100 of 100 ok, no abort, no early contact, no HEX-E time-out (`logs/20261030-132039-tipcal-rodv3id3.log`, resumed on block 5's folder). |
 
-- **ID 3's suite ends with block 6.** The owner said no calibration runs tonight. The next runs use the inverted rig
-  on the low seat strip (ac021c3dd), once the probe mode is written and simulated. Nothing follows block 6.
+- **ID 3's suite is done.** The owner said no calibration runs tonight. The next runs use the inverted rig on the
+  low seat strip (ac021c3dd), with the probe mode (below). Everything comes off the table after this suite. The arm stands at rod-final-ref's rest over the rod (joints 32.9, -61.1, 97.5, -33.1, 36.4, -6.8 deg).
 - **The HEX-E's losses on 10-30** came at 00:08 and 11:03 (NOTES), both on arriving at tall-edge-626's pose, where all
   five tall losses came. The sensor came back by itself at 01:37 and held at that pose all morning. The owner reseated
   the connector with more cable slack at 11:09. Since then the arm has reached that pose twice (11:18:58 and
   12:42:24), and block 4 ran its last 55 with no time-out.
 - The sphere check of 11:11 (`20261030-111133-chkv3id3`) put the three touch-offs within 0.08 mm of block 1's at the
   same nodes (scratchpad `chk_change.py`), so the reseat did not move the tool.
-- The rest runs through scratchpad `resume_id3.sh`: the check, block 4's 55, then block 6, each gated as before.
+- The rest ran through scratchpad `resume_id3.sh`: the check, block 4's 55, then block 6, each gated as before.
 - Each block starts only after the run before it exits 0 with no ABORT line, and after the simulations that gate it
   pass. Block 2's 4 chunks run on block 1's registration, block 3 on seat 1, and block 5 on its seed. Blocks 4 and 6
   run on their pass's registration, checked on every 5th sample. Then come the home path check and go home. If a step
@@ -132,7 +132,7 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 
 ## Waiting on the owner
 
-- Whether the lab starts the probe mode for the inverted rig once block 6 ends (asked 12:58).
+- The probe mode: the owner's yes came by way of the workstation (13:2x: "sure, run the probe mode"), for code and simulations. The dry run and the first touch-offs on the robot each need the owner's go in the lab's session.
 - When v3 ID 1 goes back on, the three plans above.
 - A new HEX-E cable.
 
