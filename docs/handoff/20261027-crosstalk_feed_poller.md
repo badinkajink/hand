@@ -11,7 +11,10 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-29 16:25: the watcher exited 0 at 16:23 on line 28 (16:10,
+State: armed 2026-10-27 21:00 from the colorado window. Last check 10-29 20:16: no news since 16:25 (watcher exit 3 at
+20:16, HEAD 58cf9f99, 28 feed lines); lab commit 5a7c51bd (16:34: v3 ID 3's block 2, sphere stage 2, running) changes
+no page. The watcher runs again through resguard from 20:1x (gate open: swap 9.0 GB, 13.7 GB available).
+10-29 16:25: the watcher exited 0 at 16:23 on line 28 (16:10,
 84ea1b72, kind calibration: the inverted rig ready to print, tips held pad up). Calibration page c4e85724: the rig's
 future item has 452 of 808 points against 286, the seat's 0.2 um/N, the two P1S plates, the lab's probe-mode estimate
 (lab/NOTES.md 4e877666: about 330 lines, a day, 2 to 3 h of simulations) and plans of 271 to 279 actions; Section 13
