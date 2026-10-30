@@ -1259,9 +1259,26 @@ needs rollouts in its own neighbourhood, at steps of 1 to 2 mm.</p>""",
                      f"{100 * tr_['worse']:.0f}", f"{tr_['change_median']:+.3f}", f"{tr_['pred_change_median']:+.2f}",
                      f"{100 * r4['pose_lost']:.0f}", f"{r4['change_median']:+.2f}"])
     if len(rows) > 1:
-        t += fill(r"""<p>Table <<tb>> repeats the tests for each task where they ran. The pattern holds in each: the
-gradient raises more grid layouts than a random step does, and it lowers most of the best layouts on fresh seeds.</p>""",
-                  tb=TAB[0] + 1)
+        M_ = g["more"]
+        sph = [k for k in M_ if k[0] in ("twist", "roll")]
+        cyl = [k for k in M_ if k[0] in ("pinpush", "press")]
+
+        def rng_(keys, f, scale=100.0, fmt="{:.0f}"):
+            v = [f(*M_[k]) for k in keys]
+            return fmt.format(scale * min(v)) + " to " + fmt.format(scale * max(v))
+        t += fill(r"""<p>Table <<tb>> repeats the tests for each task where they ran. On the sphere tasks the gradient
+raised more grid layouts than random steps did; on the cylinder tasks it raised <<cg>> % against <<cr>> % at random. On
+every task, moving the best layouts along the gradient lowered their fresh-seed scores more often than it raised them
+(<<w>> % of pairs), and the predicted gains did not correlate with the measured changes (<<r>>). The cylinder tasks'
+peaks are wider: a 4 mm perturbation costs a median of <<c4>> there, against <<s4>> on the spheres.</p>""",
+                  tb=TAB[0] + 1,
+                  cg=rng_(cyl, lambda v, k: v["grid_steps"]["gradient"]["raised"]),
+                  cr=rng_(cyl, lambda v, k: v["grid_steps"]["random"]["raised"]),
+                  w=rng_(list(M_), lambda v, k: k["trust"]["worse"]),
+                  r=rng_(list(M_), lambda v, k: k["trust"]["pred_vs_measured_r"], 1.0, "{:.2f}"),
+                  c4=rng_(cyl, lambda v, k: -k["peak"]["radii"]["4"]["change_median"], 1.0, "{:.2f}"),
+                  s4=rng_(sph, lambda v, k: -k["peak"]["radii"]["4"]["change_median"], 1.0, "{:.2f}")) if cyl and sph else \
+            fill(r"""<p>Table <<tb>> repeats the tests for each task where they ran.</p>""", tb=TAB[0] + 1)
         t += table(["Task", "Spearman, cross-validated", "Spearman, grid", "Grid steps raised, gradient (random) (%)",
                     "Moved best layouts worse (%)", "Measured change", "Predicted change", "4 mm: pose lost (%)",
                     "4 mm: median change"], rows,
