@@ -9,6 +9,7 @@ lies in [0, 1] and is 0 when the object dropped:
   pin-push 1 - the pinch-angle RMSE over the 15 deg stroke, at least 0;
   press    1 - the pinch-angle RMSE over the 20 deg stroke, at least 0.
 A layout's score is the mean over its seeds; a layout that does not reach the task's pose on that object scores 0.
+The hand is the CAD hand with the v4b fingertip (SCALE_HAND=cad_v2; the pose rows' names end in _v4b).
 Neighbourhoods are taken on the standardized six coordinates (each gantry's travel mapped to [-0.5, 0.5], the toy's z):
 a layout's smoothed score is the mean over its K nearest layouts, itself included, and a basin is the set of layouts
 whose steepest ascent of the smoothed score over the K-nearest-neighbour graph ends at the same peak.
@@ -29,7 +30,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import fp_review_figures as FR  # noqa: E402
 
 ROWS = FR.ROWS
-SIZE_ROWS = ROWS / "sizes"
+SIZE_ROWS = ROWS / "sizes_v4b"                 # the v4b fingertip (SCALE_HAND=cad_v2, the default of the toy)
 SIZES = {"twist": (30.0, 40.0, 50.0, 63.0), "roll": (30.0, 40.0, 50.0, 63.0), "pinpush": (10.0, 16.0, 25.0, 40.0),
          "press": (10.0, 16.0, 25.0, 40.0)}
 TASKS = tuple(SIZES)
@@ -190,7 +191,7 @@ def cmd_stats(a):
 
 # ------------------------------------------------------------------------------------------------ the 2-D grid with grasp sets
 
-GRID_ROWS = ROWS / "grid2d"
+GRID_ROWS = ROWS / "grid2d_v4b"
 POSE_KEY = {"twist": "tripod", "roll": "tripod", "pinpush": "pinch", "press": "press"}
 
 

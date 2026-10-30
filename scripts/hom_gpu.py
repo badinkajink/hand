@@ -55,6 +55,7 @@ os.environ.setdefault("SCALE_HAND", "cad_v2")     # the v4b fingertip (2026-10-3
 import argparse  # noqa: E402
 import json  # noqa: E402
 import math  # noqa: E402
+import re  # noqa: E402
 import sys  # noqa: E402
 import time  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -77,6 +78,7 @@ REF = (92.5, 102.5)                    # the layout whose scenes are compiled (t
 NCONMAX, NJMAX = 1024, 2048
 ROWS = C.ROWS
 N_AP = 24                              # alternating projections for the block-cylinder witness points
+N_AP_WARM = 4                          # ... per control period for the v4b pad, from the previous period's point
 DMAX = 4                               # longest measurement delay, control periods
 OVER_OK = {"dt", "contact_force_min", "force_loop_gain"}    # the HomParams a variant may change here
 FP_ROWS = {"2dfp": "rrt2d", "rrt6d": "rrt6d", "sobol8k": "sobol8k", "sobol6d": "sobol6d"}
@@ -427,7 +429,12 @@ class Batch:
         m = mocap_model(scene.pads_path)
         self.m = m
         self.ob = m.body(S.OBJ).id
-        pads = np.array([g for g in range(m.ngeom) if "_pad" in (m.geom(g).name or "")])
+        # pads, and the v4b tip's small rigid spheres (cassette, cap, the DIP link's fine ones, r < 2 mm), meet the object
+        # only: every other pair of them multiplies the broadphase (447 rigid spheres per finger made a 2,048-world batch
+        # about ten times slower); the link spheres of 2 mm and more keep the fingers apart
+        fine = re.compile(r"_(dip_link|cassette|cap)_s\d+$")
+        pads = np.array([g for g in range(m.ngeom) if "_pad" in (m.geom(g).name or "")
+                         or (fine.search(m.geom(g).name or "") and m.geom_size[g][0] < 0.002)])
         tool = np.flatnonzero(m.geom_bodyid == self.ob)
         m.geom_contype[pads], m.geom_conaffinity[pads] = 2, 0         # pads meet the object only
         m.geom_conaffinity[tool] = m.geom_conaffinity[tool] | 2
@@ -574,22 +581,26 @@ class Batch:
         return self._ell_closest(x) if self.ell else self._rb_closest(x)
 
     @staticmethod
-    def _ell_newton(p, a, it=30):
-        """surfaces.ellipsoid_closest for points p (..., 3) and semi-axes a (3,): Newton's method on the Lagrange
-        multiplier t, kept inside its bracket (bisection when a step leaves it)."""
+    def _ell_newton(p, a, it=16):
+        """surfaces.ellipsoid_closest for points p (..., 3) and semi-axes a (3,): the root t of f(t) = sum (a_i p_i /
+        (a_i^2 + t))^2 - 1 lies between t0 = -a_k^2 + a_k |p_k| (f >= 0) and t1 = -a_k^2 + |a p| (f <= 0), a_k the
+        smallest semi-axis; Newton's method from t0 rises monotonically to it (f convex and decreasing), and a step that
+        would leave the bracket or gains less than a quarter of it is a bisection."""
         import torch as th
         a2 = a * a
+        k = int(th.argmin(a))
         pp = th.where(p.abs() < 1e-12, th.full_like(p, 1e-12), p)
-        lo = th.full(p.shape[:-1], float(-a2.min()) + 1e-18, dtype=p.dtype, device=p.device)
-        hi = (pp.norm(dim=-1) * a.max()).clamp_min(1e-12)
-        t = th.zeros(p.shape[:-1], dtype=p.dtype, device=p.device)
+        lo = -a2[k] + a[k] * pp[..., k].abs()
+        hi = -a2[k] + (a * pp).norm(dim=-1)
+        t = lo.clone()
         for _ in range(it):
             d = a2 + t[..., None]
             f = ((a * pp / d) ** 2).sum(-1) - 1.0
-            lo = th.where(f > 0, t, lo)
-            hi = th.where(f > 0, hi, t)
-            tn = t + f / (2.0 * (a2 * pp * pp / d ** 3).sum(-1))
-            t = th.where((tn > lo) & (tn < hi), tn, 0.5 * (lo + hi))
+            lo = th.where(f >= 0, t, lo)
+            hi = th.where(f >= 0, hi, t)
+            tn = t + f / (2.0 * (a2 * pp * pp / d ** 3).sum(-1)).clamp_min(1e-300)
+            ok = (tn > lo) & (tn < hi) & (tn - lo > 0.25 * (hi - lo))
+            t = th.where(ok, tn, 0.5 * (lo + hi))
         x = a2 * pp / (a2 + t[..., None])
         n = th.nn.functional.normalize(x / a2, dim=-1)
         dist = (pp - x).norm(dim=-1)
@@ -742,9 +753,10 @@ class Batch:
             q, _n, sd = self._ell_closest(to_tip(y))
             return th.where((sd > 0)[..., None], to_world(q), y)
 
-        x = to_world(self.c_t.expand(self.W, -1, -1))
-        for _ in range(N_AP):
+        x = to_world(self.c_t.expand(self.W, -1, -1)) if self.ap_x is None else self.ap_x
+        for _ in range(N_AP if self.ap_x is None else N_AP_WARM):
             x = ell_proj(cyl_proj(x))
+        self.ap_x = x                                       # the next period starts here
         y = cyl_proj(x)
         d = y - x
         dc = th.linalg.norm(d, dim=-1)
@@ -789,6 +801,7 @@ class Batch:
         self.healthy = self.q_open.clone()
         self.theta_ref = None
         self.c1 = None
+        self.ap_x = None                                   # the ellipsoid-cylinder witness' previous point
         self.R_bm = self.p_bm = None
         pr = self.prm
         self.scale = T_([1.0, 1.0, 1.0] + [1.0 / pr.ell] * 3)

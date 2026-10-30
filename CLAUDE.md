@@ -15,6 +15,11 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
 
 - Python via **`uv`**: `uv run --extra rl --extra gpu python <script>`. `MUJOCO_GL=egl` for
   headless render.
+- **Fingertip on the CAD hand (owner, 2026-10-29): the tip being calibrated on the UR5** — the v4b tip, `SCALE_HAND=cad_v2`
+  (`scripts/build_cad_v2_finger.py`): DIP link b v4, cassette 3T, cap TW15H3 trimmed at x_F -0.10, the 11/22
+  half-ellipsoid pad as 1 mm sphere pads (`tcd_ell7.4x8.5x11x22`), HOM's `surfaces.HalfEllipsoid`. Grasps on it need the
+  pad-coverage and rigid-clearance checks of `fp_sr2_toy.py`; check that pads, not rigid parts, carry the contact.
+  `cad_v1` (the TPU block) only reproduces runs before 2026-10-30.
 - **Default fingertip (owner, 2026-10-13): the printed TPU tip as 1 mm sphere pads** —
   `reorient_backends.replace_tips(root, "tpu2.7", "pads", ...)` in CPU scenes; for RL,
   `scripts/make_pad_morphology_run.py --model pads` on a box-tip run (servo plant:

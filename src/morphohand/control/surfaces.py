@@ -150,26 +150,29 @@ class RoundedBox(Surface):
         return P / self.r                                            # corner: a sphere of radius r
 
 
-def ellipsoid_closest(p, a, it=40):
+def ellipsoid_closest(p, a, it=80):
     """Closest point of the ellipsoid sum (x_i / a_i)^2 = 1 to the point p: x_i = a_i^2 p_i / (a_i^2 + t), with t the
-    root of f(t) = sum (a_i p_i / (a_i^2 + t))^2 - 1 on (-min a_i^2, inf), found by Newton's method kept inside a
-    bracket (bisection when a step leaves it). Returns (signed distance, surface point, outward unit normal)."""
+    root of f(t) = sum (a_i p_i / (a_i^2 + t))^2 - 1. The root lies between t0 = -a_k^2 + a_k |p_k| (f >= 0) and
+    t1 = -a_k^2 + |a p| (f <= 0), a_k the smallest semi-axis; Newton's method from t0 rises monotonically to it (f is
+    convex and decreasing there), and a step that would leave the bracket or gains less than a quarter of it is a
+    bisection. Returns (signed distance, surface point, outward unit normal)."""
     a = np.asarray(a, float)
-    p = np.where(np.abs(p) < 1e-12, 1e-12, np.asarray(p, float))        # off the axes: f has its pole at -min a^2
+    p = np.where(np.abs(p) < 1e-12, 1e-12, np.asarray(p, float))        # off the axes: f has its pole at -a_k^2
     a2 = a * a
-    lo, hi = -a2.min() + 1e-18, max(float(np.linalg.norm(p) * a.max()), 1e-12)
-    t = 0.0
+    k = int(np.argmin(a))
+    lo, hi = -a2[k] + a[k] * abs(p[k]), -a2[k] + float(np.linalg.norm(a * p))
+    t = lo
     for _ in range(it):
         d = a2 + t
         f = float(np.sum((a * p / d) ** 2) - 1.0)
-        if abs(f) < 1e-12:
+        if abs(f) < 1e-14:
             break
-        if f > 0:
+        if f >= 0:
             lo = t
         else:
             hi = t
-        t_new = t + f / (2.0 * float(np.sum(a2 * p * p / d ** 3)))
-        t = t_new if lo < t_new < hi else 0.5 * (lo + hi)
+        tn = t + f / max(2.0 * float(np.sum(a2 * p * p / d ** 3)), 1e-300)
+        t = tn if (lo < tn < hi and tn - lo > 0.25 * (hi - lo)) else 0.5 * (lo + hi)
     x = a2 * p / (a2 + t)
     g = x / a2
     n = g / np.linalg.norm(g)
