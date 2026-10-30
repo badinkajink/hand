@@ -1211,12 +1211,20 @@ foundational pose and best grasp therefore ran again on seeds 3 to 5 (Table <<tb
 The best grasp beat the foundational pose on <<tb0>> % of the layouts in the twist and on <<rb0>> % in the roll. Its
 median gain was <<tg>> in the twist and <<rg>> in the roll, against <<tg0>> and <<rg0>> on the seeds it was picked on.
 Its fresh scores rank the layouts against the first seeds' scores at Spearman <<tr>>.</p>
-<p>On the cylinders most of the gain came from picking on three seeds. The median gain fell to <<pg>> in the pin-push
+<p>On the 25 mm cylinder most of the gain came from picking on three seeds. The median gain fell to <<pg>> in the pin-push
 and <<qg>> in the press, from <<pg0>> and <<qg0>>, and the fresh scores rank the layouts at Spearman <<pr_>> and
 <<qr>>. A seed sets the object's initial offset, up to 1 mm, and its yaw, up to 2 deg; every layout gets the same draw,
 and seed 0 has none. The cylinder tasks depend on that draw. The foundational pose's mean pin-push score over the grid
 was <<s0>>, <<s1>> and <<s2>> on seeds 0, 1 and 2, and <<s3>> to <<s5>> on seeds 3 to 5. The press scored <<q2>> on
-seed 2. The seeds' means differ by at most <<ts>> in the twist and <<rs_>> in the roll.</p>""",
+seed 2. The seeds' means differ by at most <<ts>> in the twist and <<rs_>> in the roll.<<big>></p>""",
+                  big=(fill(r""" On the <<d>> mm cylinder, which every seed keeps in the hand, the gains hold better:
+<<p1>> and <<q1>> against <<p0>> and <<q0>>, at Spearman <<pr1>> and <<qr1>>.""", d="40",
+                            p1=f2(VR["pinpush_d40"]["gain_fresh_median"]), q1=f2(VR["press_d40"]["gain_fresh_median"]),
+                            p0=f2(VR["pinpush_d40"]["gain_seeds012_median"]),
+                            q0=f2(VR["press_d40"]["gain_seeds012_median"]),
+                            pr1=f2(VR["pinpush_d40"]["best_repeat_spearman"]),
+                            qr1=f2(VR["press_d40"]["best_repeat_spearman"]))
+                       if "pinpush_d40" in VR and "press_d40" in VR else ""),
                   tb=TAB[0] + 1, tb0=f"{100 * tw['best_beats_fp']:.0f}", rb0=f"{100 * ro['best_beats_fp']:.0f}",
                   tg=f2(tw["gain_fresh_median"]), rg=f2(ro["gain_fresh_median"]), tg0=f2(tw["gain_seeds012_median"]),
                   rg0=f2(ro["gain_seeds012_median"]), tr=(f"{tw['best_repeat_spearman']:.2f} in both" if f2(tw["best_repeat_spearman"]) == f2(ro["best_repeat_spearman"])
@@ -1245,7 +1253,8 @@ on <<kf>> % of the other layouts.</p>""",
                          f"{100 * r['best_beats_fp']:.0f}", f"{r['gain_fresh_median']:+.2f}",
                          f"{r['gain_seeds012_median']:+.2f}", f"{r['best_repeat_spearman']:.2f}",
                          f"{100 * r['feas']['nb'] / r['feas']['nb_tried']:.0f}", f"{100 * r['nb_within_0_1']:.0f}",
-                         f"{100 * r['feas']['key'] / r['feas']['layouts']:.0f}", f"{r['key_change_median']:+.2f}"])
+                         f"{100 * r['feas']['key'] / r['feas']['layouts']:.0f}",
+                         f"{r['key_change_median']:+.2f}".replace("-0.00", "0.00").replace("+0.00", "0.00")])
         t += table(["Task and object", "Layouts", "Best beats FP, seeds 3-5 (%)", "Median gain, seeds 3-5",
                     "Median gain, seeds 0-2", "Spearman of the best, seeds 0-2 and 3-5", "Neighbours' grasps feasible (%)",
                     "Within 0.1 of own best (%)", "Peak layout's grasp feasible (%)", "Peak layout's grasp, median change"],
@@ -1639,6 +1648,16 @@ def sec_history():
          "times slower with the rigid spheres colliding with each other", "36 to 41 ms per rollout"],
         ["2026-10-30, 02:00", "Feasible log volume and the grasp-matrix value as predictors", "a layout's room for "
          "grasps as a sample-efficiency score", "log volume ranks the best score at Spearman 0.39 to 0.68"],
+        ["2026-10-30, 02:30 to 05:30", "A smooth model of the scores over the six coordinates and its gradient, in place "
+         "of a learned critic's [5]; moves of the best layouts on fresh seeds; perturbations of 2 to 8 mm", "design "
+         "gradients without RL", "the gradient climbs at the grid's scale but lowers the best layouts; their peaks are "
+         "a few millimetres wide (Section SEC[gradients])"],
+        ["2026-10-30, 06:50 to 07:45", "The grid at three sizes per object, beside the Sobol size sweep", "whether the "
+         "best layouts move with the object, with grasp synthesis", "the peak's thumb-to-pair distance grows 1.0 to "
+         "1.2 mm per millimetre of diameter in three tasks (Section SEC[sizes])"],
+        ["2026-10-30, 08:05", "Each layout's best grasp and foundational pose again on seeds 3 to 5; neighbours' best "
+         "grasps moved to each layout", "the best of 16 is picked on seeds 0 to 2", "the spheres keep the gain; on the "
+         "cylinders most of it came from three object-pose draws shared by every layout (Section SEC[grid])"],
     ]
     return ("<p>Table SEC_TAB_H lists the changes to the method in order, with their reasons and what they showed."
             "</p>").replace("SEC_TAB_H", str(TAB[0] + 1)) + table(
@@ -1797,6 +1816,10 @@ pose and best grasp on seeds 3 to 5. Add the best grasps of its four neighbours,
 --layouts grid2dval_size grid2dnb_size</code>). The gain of Section SEC[grid] repeats if the best grasp beats the
 foundational pose on fresh seeds on most layouts. A grasp transfers to a neighbouring layout if its score there comes
 within 0.1 of the layout's own best.</li>""") + """
+<li>Score the pin-push and the press over twelve object-pose draws: the grid's best grasps and foundational poses
+(<code>--layouts grid2dval_pinpush_size grid2dval_press_size</code>) on seeds 6 to 17 with <code>hom_gpu.py
+run</code>. The best grasp's gain over the foundational pose is real if its median stays above the spread of the
+seeds' means; a ranking of layouts on three draws is then replaced by one on twelve.</li>
 <li>Refine the best layouts by rollouts in their own neighbourhood. Around each of the 20 best twist layouts, run a
 local Sobol design of 64 layouts within 2 mm, three seeds each (<code>hom_landscape.py moves</code> with a smaller
 radius, then <code>fp_sr2_toy.py poses</code> and <code>hom_gpu.py run</code>). The refinement works if the best of
