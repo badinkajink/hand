@@ -8,8 +8,10 @@ it; its result commits start with "Crosstalk:". It also commits analyses with no
 the job widened to the calibration of every v3 tip). This script only reads git. Every --interval seconds it reads the
 feed at HEAD and HEAD's last 300 commits with the files each changes. News is a feed line past the count in --state, or a
 commit not in --state that starts with "Crosstalk:" or changes the v3 folder's data/ or README.md and is not this job's
-own (subjects in MINE). When news appears it waits until nothing more arrives for --settle seconds, prints the new lines
-and commits, and exits 0. After --max-wait minutes without news it prints "no news" and exits 3. Commits are keyed by
+own (subjects in MINE). Beside git it lists the coordinator's analysed holds of the v3 tips from ID 3 on
+(logs/*v3idN*/holds.npz, N >= 3; logs/ is not in git), and a holds file not in --state is news too (step 38 of the note,
+10-30). When news appears it waits until nothing more arrives for --settle seconds, prints the new lines, commits and
+holds, and exits 0. After --max-wait minutes without news it prints "no news" and exits 3. Commits are keyed by
 author date and subject, which a rebase keeps.
 
     .venv/bin/python scripts/crosstalk_feed_watch.py [--once] [--ack] [--state logs/crosstalk_feed_watch/state.json]
@@ -27,6 +29,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -39,6 +42,9 @@ PREFIX = "Crosstalk:"
 # the coordinator also commits analyses without a feed line (owner, 10-29 15:2x): commits that add or change these, unless
 # they are this job's own
 WATCHED = (V3 + "data/", V3 + "README.md")
+# the coordinator's analysis folders of a tip's sessions, logs/YYYYMMDD-{sphere,tall,rod}v3idN*/ with holds.npz,
+# calib_rest.json and summary.json; tips from v3 ID 3 on
+HOLDS_RE = re.compile(r"v3id(\d+)")
 MINE = ("Fingertip crosstalk page:", "Calibration page:", "Fingertip overview:", "Physical-model page:",
         "Crosstalk feed poller note:", "Crosstalk feed poller:")
 
@@ -75,7 +81,9 @@ def snapshot():
         files = [f for f in rows[1:] if f.startswith(WATCHED)]
         if subj.startswith(PREFIX) or (files and not subj.startswith(MINE)):
             commits.append(dict(hash=h, key=f"{ad} {subj}", subject=subj, date=ad[5:16].replace("T", " "), files=files))
-    return dict(head=head, lines=lines, commits=commits)
+    holds = sorted(str(p.relative_to(ROOT)) for p in (ROOT / "logs").glob("*v3id*/holds.npz")
+                   if (m := HOLDS_RE.search(p.parent.name)) and int(m.group(1)) >= 3)
+    return dict(head=head, lines=lines, commits=commits, holds=holds)
 
 
 def gate_open():
@@ -105,7 +113,8 @@ def news(snap, st):
     lines = snap["lines"] if rewritten else snap["lines"][n:]
     seen = set(st.get("commit_keys", []))
     commits = [c for c in snap["commits"] if c["key"] not in seen]
-    return dict(lines=lines, rewritten=rewritten, commits=commits)
+    holds = [h for h in snap["holds"] if h not in set(st.get("holds", []))]
+    return dict(lines=lines, rewritten=rewritten, commits=commits, holds=holds)
 
 
 def report(snap, nw, first):
@@ -119,11 +128,15 @@ def report(snap, nw, first):
         for c in nw["commits"]:
             fs = ", ".join(f[len(V3):] for f in c.get("files", [])[:4])
             print(f"  {c['hash']} {c['date']} {c['subject']}" + (f"  [{fs}]" if fs else ""))
+    if nw["holds"]:
+        print("analysed holds not acknowledged:")
+        for h in nw["holds"]:
+            print(f"  {h} ({time.strftime('%m-%d %H:%M', time.localtime((ROOT / h).stat().st_mtime))})")
 
 
 def ack(path, snap):
     st = dict(n_lines=len(snap["lines"]), prefix_sha=sha(snap["lines"]), commit_keys=[c["key"] for c in snap["commits"]],
-              head=snap["head"], acked=time.strftime("%Y-%m-%d %H:%M:%S"))
+              holds=snap["holds"], head=snap["head"], acked=time.strftime("%Y-%m-%d %H:%M:%S"))
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     tmp = p.with_suffix(".tmp")
@@ -132,7 +145,8 @@ def ack(path, snap):
         f.flush()
         os.fsync(f.fileno())
     tmp.replace(p)
-    print(f"acknowledged {st['n_lines']} feed lines and {len(st['commit_keys'])} commits at HEAD {snap['head']}")
+    print(f"acknowledged {st['n_lines']} feed lines, {len(st['commit_keys'])} commits and {len(st['holds'])} holds files "
+          f"at HEAD {snap['head']}")
 
 
 def main():
@@ -153,7 +167,7 @@ def main():
     while True:
         snap = snapshot()
         nw = news(snap, st)
-        has = bool(nw["lines"] or nw["commits"] or nw["rewritten"])
+        has = bool(nw["lines"] or nw["commits"] or nw["rewritten"] or nw["holds"])
         if a.once:
             if has:
                 report(snap, nw, time.strftime("%H:%M:%S"))
@@ -161,7 +175,7 @@ def main():
             print(f"no news at HEAD {snap['head']} ({len(snap['lines'])} feed lines)")
             return 3
         if has:
-            sig = (len(snap["lines"]), len(nw["commits"]), snap["head"])
+            sig = (len(snap["lines"]), len(nw["commits"]), len(nw["holds"]), snap["head"])
             if sig != last_sig:
                 first = first or time.strftime("%H:%M:%S")
                 last_sig, t_sig = sig, time.time()
