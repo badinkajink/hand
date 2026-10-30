@@ -1274,12 +1274,17 @@ def sec_sizes(N):
                      f"{v['pairs'][f'{szs[0]:g}-{szs[-1]:g}']:.2f}", f"{100 * v['variance']['layout']:.0f}",
                      f"{100 * v['variance']['size']:.0f}", f"{100 * v['variance']['interaction']:.0f}",
                      f"{100 * v['variance']['interaction_noise']:.0f}"])
-    t = r"""<p>Every Sobol layout ran each task on four object sizes with the v4b fingertip: the twist and the roll on
-spheres of 30, 40, 50 and 63 mm, the pin-push and the press on cylinders of 10, 16, 25 and 40 mm (foundational poses,
-three seeds, <code>rows/sizes_v4b</code>). Table SEC_TAB_S splits the variance of the layouts' scores over the sizes
+    obj = {"twist": "spheres of 30, 40, 50 and 63 mm", "roll": "spheres of 30, 40, 50 and 63 mm",
+           "pinpush": "cylinders of 10, 16, 25 and 40 mm", "press": "cylinders of 10, 16, 25 and 40 mm"}
+    groups = {}
+    for k in Z:
+        groups.setdefault(obj[k], []).append(f"the {names[k]}")
+    ran = "; ".join(" and ".join(v) + f" on {o}" for o, v in groups.items())
+    t = fill(r"""<p>Every Sobol layout ran each task on four object sizes with the v4b fingertip: <<ran>> (foundational
+poses, three seeds, <code>rows/sizes_v4b</code>). Table <<tb>> splits the variance of the layouts' scores over the sizes
 into a part from the layout, a part from the size and their interaction. The interaction is the part of a layout's score
-that depends on the object. Seed noise alone would give the interaction in the last column.</p>""".replace(
-        "SEC_TAB_S", str(TAB[0] + 1))
+that depends on the object. Seed noise alone would give the interaction in the last column.</p>""", ran=ran,
+             tb=TAB[0] + 1)
     t += table(["Task", "Diameters (mm)", "Spearman, neighbouring sizes", "Spearman, smallest and largest",
                 "Layout (%)", "Size (%)", "Interaction (%)", "Interaction from seed noise (%)"], rows,
                "How the layouts' scores change with the object's size, over the 8,192 Sobol layouts (a layout that does "
@@ -1298,7 +1303,11 @@ layouts moves its thumb and index mounts apart as the sphere grows: the median t
                   tn=f"{100 * Z['twist']['variance']['interaction_noise']:.0f}", s0=f"{s0:g}", s1=f"{s1:g}",
                   se=f"{Z['twist']['pairs'][f'{s0:g}-{s1:g}']:.2f}", x0=f"{xs0:.0f}", x1=f"{xs1:.0f}", f=FIG[0] + 1,
                   roll=(fill(r""" The roll's ranking changes less with size: its interaction is <<ri>> % of the
-variance.""", ri=f"{100 * Z['roll']['variance']['interaction']:.0f}") if "roll" in Z else ""))
+variance. Its scores rise with the sphere's size, from a median of <<r0>> over the reached layouts at <<s0>> mm to
+<<r1>> at <<s1>> mm.""", ri=f"{100 * Z['roll']['variance']['interaction']:.0f}",
+                              r0=f"{Z['roll']['sizes'][min(Z['roll']['sizes'])]['median']:.2f}",
+                              r1=f"{Z['roll']['sizes'][max(Z['roll']['sizes'])]['median']:.2f}",
+                              s0=f"{min(Z['roll']['sizes']):g}", s1=f"{max(Z['roll']['sizes']):g}") if "roll" in Z else ""))
     for task in Z:
         t += img(MEDIA / f"20261030-sizes_{task}.png",
                  f"The {names[task]} across object sizes on the Sobol layouts: (a) rank correlation of the layouts' scores "
