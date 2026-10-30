@@ -5,7 +5,8 @@
 Every one of the 8,192 Sobol layouts of scripts/fp_sr2_toy.py is scored for each task and object size. A rollout's score
 lies in [0, 1] and is 0 when the object dropped:
   twist    the twist reached on three pads over the 90 deg ramp (30 deg/s for 3 s), divided by 90 deg;
-  roll     1 - the angular-velocity RMSE over the 40 deg/s steps, divided by the step (w_rmse_ratio), at least 0;
+  roll     1 / (1 + the angular-velocity RMSE over the 40 deg/s steps divided by the step, w_rmse_ratio): 1 for perfect
+           tracking, 0.5 for an error as large as the step;
   pin-push 1 - the pinch-angle RMSE over the 15 deg stroke, at least 0;
   press    1 - the pinch-angle RMSE over the 20 deg stroke, at least 0.
 A layout's score is the mean over its seeds; a layout that does not reach the task's pose on that object scores 0.
@@ -20,6 +21,7 @@ whose steepest ascent of the smoothed score over the K-nearest-neighbour graph e
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -35,7 +37,7 @@ SIZES = {"twist": (30.0, 40.0, 50.0, 63.0), "roll": (30.0, 40.0, 50.0, 63.0), "p
          "press": (10.0, 16.0, 25.0, 40.0)}
 TASKS = tuple(SIZES)
 POSE_ROWS = {"twist": "tripod", "roll": "tripod", "pinpush": "pinch", "press": "pinch"}
-STROKE = {"roll": 1.0, "pinpush": 15.0, "press": 20.0}          # the score's denominators (w_rmse_ratio is already /step)
+STROKE = {"pinpush": 15.0, "press": 20.0}                     # the pinch tasks' strokes (deg), the score's denominators
 K_NN = 16
 TOP = 0.10                                                     # the best tenth
 
@@ -46,7 +48,10 @@ def rollout_score(task, r):
         return 0.0
     if task == "twist":
         return float(np.clip((r.get("ramp_three_pads_max_deg") or 0.0) / 90.0, 0.0, 1.0))
-    m = r.get("w_rmse_ratio") if task == "roll" else r.get("theta_rmse_deg")
+    if task == "roll":
+        m = r.get("w_rmse_ratio")
+        return 0.0 if m is None else float(1.0 / (1.0 + m))
+    m = r.get("theta_rmse_deg")
     return 0.0 if m is None else float(np.clip(1.0 - m / STROKE[task], 0.0, 1.0))
 
 
@@ -301,13 +306,29 @@ def grid_ascent(Z):
     return peak
 
 
-def smooth_map(Z):
-    """3 x 3 mean over the finite cells."""
-    P = np.pad(Z, 1, constant_values=np.nan)
-    st = np.stack([P[1 + di:P.shape[0] - 1 + di, 1 + dj:P.shape[1] - 1 + dj] for di in (-1, 0, 1) for dj in (-1, 0, 1)])
-    with np.errstate(all="ignore"):
-        out = np.nanmean(st, 0)
-    return np.where(np.isfinite(Z), out, np.nan)
+SMOOTH_CELLS = 1.5                   # Gaussian width of the grid maps' smoothing, cells (7.5 mm)
+
+
+def smooth_map(Z, sigma=SMOOTH_CELLS):
+    """Gaussian smoothing over the finite cells (normalised by the weight of the finite cells in reach)."""
+    from scipy.ndimage import gaussian_filter
+    ok = np.isfinite(Z)
+    num = gaussian_filter(np.where(ok, Z, 0.0), sigma, mode="constant")
+    den = gaussian_filter(ok.astype(float), sigma, mode="constant")
+    return np.where(ok, num / np.maximum(den, 1e-9), np.nan)
+
+
+def peaks(sm, min_cells=8, prominence=0.05):
+    """Basin peaks of a smoothed map: steepest ascent's fixed points whose basin holds min_cells cells or more and whose
+    height stands prominence above the basin's lowest cell."""
+    pk = grid_ascent(sm)
+    out = []
+    for p in np.unique(pk[pk >= 0]):
+        mem = pk == p
+        v = sm.flat[mem]
+        if mem.sum() >= min_cells and sm.flat[p] - np.nanmin(v) >= prominence:
+            out.append(int(p))
+    return pk, out
 
 
 def fig_grid(task, size, out=None):
@@ -319,13 +340,12 @@ def fig_grid(task, size, out=None):
     ext = [xs[0] - 2.5, xs[-1] + 2.5, ys[0] - 2.5, ys[-1] + 2.5]
     sm = smooth_map(M["best"])
     gy, gx = np.gradient(sm, ys, xs)
-    peak = grid_ascent(sm)
     fig, axs = plt.subplots(2, 3, figsize=(15.5, 9.6), constrained_layout=True)
     panels = (("fp", "foundational pose: score", "viridis", (0, None)), ("best", "best of the grasp set: score", "viridis",
               (0, None)), ("gain", "best minus foundational pose", "magma", (0, None)),
               ("held_share", "share of grasps held in every seed", "cividis", (0, 1)),
-              ("logvol", "feasible log volume of the grasp set", "cividis", (None, None)), ("smooth", "best, smoothed;"
-              " gradient and basin peaks", "viridis", (0, None)))
+              ("logvol", "feasible log volume of the grasp set", "cividis", (None, None)), ("smooth", "best, smoothed (7.5 mm);"
+              " gradient, basin peaks", "viridis", (0, None)))
     vmax = np.nanmax(M["best"]) if np.isfinite(M["best"]).any() else 1.0
     for ax, (k, title, cmap, (lo, hi)) in zip(axs.flat, panels):
         Z = {"gain": M["best"] - M["fp"], "smooth": sm}.get(k, M.get(k))
@@ -340,8 +360,7 @@ def fig_grid(task, size, out=None):
             s = (slice(None, None, 2), slice(None, None, 2))
             ax.quiver(X[s], Y[s], gx[s], gy[s], color="white", angles="xy", scale_units="xy",
                       scale=np.nanmax(np.hypot(gx, gy)) / 8.0 if np.isfinite(gx).any() else 1.0, width=0.004)
-            pk = np.unique(peak[peak >= 0])
-            big = [p for p in pk if (peak == p).sum() >= 8]
+            _pk, big = peaks(sm)
             ax.plot(X.flat[big], Y.flat[big], "r*", ms=14, mec="k")
         ax.set_title(title)
         ax.set_xlabel("thumb-to-pair distance x_sep (mm)")
@@ -349,6 +368,150 @@ def fig_grid(task, size, out=None):
     obj = f"{'sphere' if T_SHAPE[task] == 'sphere' else 'cylinder'} {size:g} mm"
     fig.suptitle(f"{TASK_NAME[task]}, {obj}: symmetric tripods every 5 mm, 16 grasps each (grey: pose not reached)")
     FR.save(fig, out or f"20261029-grid_{task}_d{size:g}.png")
+
+
+GRASP_VARS = {   # (index in the pose's variables, label, scale to display units)
+    "tripod": ((2, "sphere depth below the palm (mm)", 1000.0), (6, "contact latitude (deg)", 180 / np.pi),
+               (3, "thumb azimuth offset (deg)", 180 / np.pi), (4, "index azimuth offset (deg)", 180 / np.pi)),
+    "pinch": ((2, "cylinder depth below the palm (mm)", 1000.0), (3, "cylinder yaw (deg)", 180 / np.pi),
+              (None, "lever, middle to pinch (mm)", 1000.0), (6, "pinch latitude (deg)", 180 / np.pi))}
+
+
+def fig_grid_grasps(task, size, out=None):
+    """The best grasp's variables over the grid (top row) against the foundational pose's (bottom row)."""
+    plt = FR.plt_setup()
+    poses = grid_poses(task, size)
+    tab = {r["call"]: r for r in grid_table(task, size)}
+    xs = np.unique([r["x_sep"] for r in tab.values()])
+    ys = np.unique([r["y_sep"] for r in tab.values()])
+    fam = "tripod" if POSE_ROWS[task] == "tripod" else "pinch"
+    spec = GRASP_VARS[fam]
+    maps = np.full((2, len(spec), len(ys), len(xs)), np.nan)
+    for call, (x, y, rec) in poses.items():
+        r = tab.get(call)
+        if not rec or not rec.get("ok") or not r or r.get("best_grasp") is None:
+            continue
+        i, j = int(np.searchsorted(ys, y)), int(np.searchsorted(xs, x))
+        for row, g in enumerate((rec["grasps"][r["best_grasp"]], rec["grasps"][0])):
+            v = np.asarray(g["v"], float)
+            for c, (k, _lab, sc) in enumerate(spec):
+                maps[row, c, i, j] = (v[4] - v[5]) * sc if k is None else v[k] * sc
+    ext = [xs[0] - 2.5, xs[-1] + 2.5, ys[0] - 2.5, ys[-1] + 2.5]
+    fig, axs = plt.subplots(2, len(spec), figsize=(4.4 * len(spec), 8.4), constrained_layout=True)
+    for c, (_k, lab, _sc) in enumerate(spec):
+        lo, hi = np.nanpercentile(maps[:, c], [2, 98])
+        for row, who in enumerate(("best grasp", "foundational pose")):
+            ax = axs[row, c]
+            im = ax.imshow(maps[row, c], origin="lower", extent=ext, cmap="coolwarm", vmin=lo, vmax=hi, aspect="equal")
+            fig.colorbar(im, ax=ax, shrink=0.8)
+            ax.set_title(f"{who}: {lab}", fontsize=12)
+            ax.set_xlabel("x_sep (mm)")
+            ax.set_ylabel("y_sep (mm)")
+    fig.suptitle(f"{TASK_NAME[task]}, {T_SHAPE[task]} {size:g} mm: the grasp that scored best on each layout, and the "
+                 f"foundational pose")
+    FR.save(fig, out or f"20261029-grid_grasps_{task}_d{size:g}.png")
+
+
+def transfer_grasp(fp, v, M_src, M_tgt):
+    """A grasp moved to another layout as a keyframe: the object's pose and the contact points stay fixed in the palm
+    frame (the IK keyframe of the task study). The pinch family's variables are already palm-frame; the tripod's contact
+    azimuths are offsets from each finger's mount direction, so they are re-expressed for the target's mounts."""
+    v = np.asarray(v, float).copy()
+    if fp != "tripod":
+        return v
+    xc, yc = v[0], v[1]
+    for k, f in enumerate(("thumb", "index", "middle")):
+        az = math.atan2(M_src[f][1] - yc, M_src[f][0] - xc) + v[3 + k]
+        v[3 + k] = math.atan2(math.sin(az - math.atan2(M_tgt[f][1] - yc, M_tgt[f][0] - xc)),
+                              math.cos(az - math.atan2(M_tgt[f][1] - yc, M_tgt[f][0] - xc)))
+    return v
+
+
+def feasible(fp, d, v):
+    """The toy's record of grasp v on layout d (mm) if every scaled slack is >= 0 and the clearances hold, else None."""
+    import fp_sr2_toy as FP
+    pr = FP.Problem(fp, d)
+    pr.pick_branches(v)
+    sl = float(pr.slacks(v).min())
+    if sl < 0.0:
+        return None
+    clear = FP.clearances(fp, v, pr.M, pr.branch)
+    if clear[0] < FP.FF_CLEAR or clear[1] < FP.OBJ_CLEAR:
+        return None
+    rec = {"ok": True, "v": [round(float(x), 6) for x in v], "branch": dict(pr.branch), "slack": round(sl, 4)}
+    rec.update(FP.metrics(fp, v, pr.M, pr.branch))
+    return rec
+
+
+def cmd_derive(a):
+    """Grasp sets for the validation and the transfer runs on the grid, from the grid's GPU rows (seeds 0-2):
+      grid2dval_<pose><d>_v4b   each layout's foundational pose and best grasp (to run on fresh seeds);
+      grid2dnb_<pose><d>_v4b    each layout's own best grasp, its four grid neighbours' best grasps and the keyframe
+                                grasp (the best grasp of the layout at the smoothed map's highest peak), each moved as a
+                                palm-frame keyframe (transfer_grasp) and kept when feasible; `src` names each grasp's origin.
+    The pinch family's files hold the pin-push's grasps under 'pinch' and the press's under 'press'."""
+    import fp_sr2_toy as FP
+    fams = {"tripod": ("twist", "roll"), "pinch": ("pinpush", "press")}
+    for fam, tasks in fams.items():
+        shape = "sphere" if fam == "tripod" else "cylinder"
+        size = a.d_sphere if fam == "tripod" else a.d_cylinder
+        FP.set_sizes(**({"sph_d_mm": size} if shape == "sphere" else {"cyl_d_mm": size}))
+        src_rows = {int(r["call"]): r for r in FR.load(FP.size_name("grid2d", shape, size))}
+        val, nb = {}, {}
+        for task in tasks:
+            pose = POSE_KEY[task]
+            tab = {r["call"]: r for r in grid_table(task, size)}
+            if not any(r.get("n_grasps") for r in tab.values()):
+                print(task, size, "no GPU rows yet", flush=True)
+                continue
+            xs = np.unique([r["x_sep"] for r in tab.values()])
+            ys = np.unique([r["y_sep"] for r in tab.values()])
+            ny = len(ys)
+            xs_, ys_, M_ = grid_maps(task, size)
+            sm = smooth_map(M_["best"])
+            top = int(np.nanargmax(sm))
+            key_call = int((top % len(xs)) * ny + top // len(xs))      # grid index: x major, y minor
+            key_g = src_rows[key_call]["fp"][pose]["grasps"][tab[key_call]["best_grasp"]]
+            key_M = FP.mounts6(src_rows[key_call]["d"])
+            n_feas = {"nb": 0, "nb_tried": 0, "key": 0}
+            for call, r in tab.items():
+                row = src_rows[call]
+                rec = row["fp"].get(pose) or {}
+                if not r.get("n_grasps") or not rec.get("ok"):
+                    continue
+                gs = rec["grasps"]
+                vr = val.setdefault(call, {"d": row["d"], "call": call, "xy": row["xy"], "ok": True, "fp": {}})
+                vr["fp"][pose] = dict(gs[0], grasps=[dict(gs[0], src="fp"), dict(gs[r["best_grasp"]], src="best")])
+                d = np.asarray(row["d"], float)
+                M = FP.mounts6(d)
+                out = [dict(gs[r["best_grasp"]], src="own")]
+                ix, iy = call // ny, call % ny
+                for name, (dx, dy) in (("left", (-1, 0)), ("right", (1, 0)), ("down", (0, -1)), ("up", (0, 1))):
+                    jx, jy = ix + dx, iy + dy
+                    if not (0 <= jx < len(xs) and 0 <= jy < ny):
+                        continue
+                    nbr = jx * ny + jy
+                    if not tab.get(nbr, {}).get("n_grasps"):
+                        continue
+                    srow = src_rows[nbr]
+                    g = srow["fp"][pose]["grasps"][tab[nbr]["best_grasp"]]
+                    n_feas["nb_tried"] += 1
+                    f = feasible(pose, d, transfer_grasp(pose, g["v"], FP.mounts6(srow["d"]), M))
+                    if f is not None:
+                        n_feas["nb"] += 1
+                        out.append(dict(f, src=name))
+                f = feasible(pose, d, transfer_grasp(pose, key_g["v"], key_M, M))
+                if f is not None:
+                    n_feas["key"] += 1
+                    out.append(dict(f, src="keyframe"))
+                nr = nb.setdefault(call, {"d": row["d"], "call": call, "xy": row["xy"], "ok": True, "fp": {}})
+                nr["fp"][pose] = dict(gs[0], grasps=out, keyframe_call=key_call)
+            print(task, size, "keyframe layout", key_call, src_rows[key_call]["xy"], n_feas, flush=True)
+        for name, rows in (("grid2dval", val), ("grid2dnb", nb)):
+            p = ROWS / f"{FP.size_name(name, shape, size)}.jsonl"
+            p.write_text("".join(json.dumps(rows[c]) + "\n" for c in sorted(rows)))
+            print("wrote", p.relative_to(ROOT), len(rows), flush=True)
+    return 0
 
 
 T_SHAPE = {"twist": "sphere", "roll": "sphere", "pinpush": "cylinder", "press": "cylinder"}
@@ -453,13 +616,16 @@ def main():
     sub.add_parser("stats")
     sub.add_parser("grid")
     sub.add_parser("figures")
+    p = sub.add_parser("derive")
+    p.add_argument("--d-sphere", type=float, default=40.0)
+    p.add_argument("--d-cylinder", type=float, default=25.0)
     p = sub.add_parser("views")
     p.add_argument("--task", choices=TASKS, required=True)
     p.add_argument("--d", type=float, required=True)
     p.add_argument("--calls", type=int, nargs="+", required=True, help="grid indices (x_sep major, y_sep minor)")
     p.add_argument("--out", default="")
     a = ap.parse_args()
-    return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "views": cmd_views}[a.cmd](a)
+    return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views}[a.cmd](a)
 
 
 if __name__ == "__main__":
