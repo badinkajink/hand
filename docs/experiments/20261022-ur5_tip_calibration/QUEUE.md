@@ -1069,6 +1069,13 @@ push that answers it arrives.
     block 4 passed through. Proposed for the next tip's suite: reorder that stretch so that wrist 1 does not cross
     zero while wrist 2 rises. Waiting on the owner: the reseat, then a stream check, home on a checked path, three
     check touch-offs, block 4's last 55 actions (--resume on 153034) and block 6's 100, about 3.3 h.
+    01:40, the lab (1c0a5486): the HEX-E came back by itself at 01:37:18, 89 min after the loss (10 s gave 1001
+    samples, 20 s gave 2001, no time-out, F within 0.7 N with the arm still). The resume's four simulations pass its
+    gate: the check (mount 5.18, finger 5.10 mm), block 4's remaining 55 (mount 4.09, finger 2.48 mm, joint 5 at most
+    97.6 deg), block 6's two chunks (mount 3.40 and 3.06, finger 1.63 and 1.26 mm; joint 5 down to 31.7 deg); rod-ref-a
+    stays (3.06 mm). On the owner's go, resume_id3.sh runs three sphere check touch-offs (STOP if an onset moves more
+    than 0.1 mm), then block 4's 55 and block 6's 100, about 3.5 h. The reorder of the five tall-grid travels goes into
+    the next tip's suite (workstation).
   - 12:4x on 10-29, the owner's answers of 11:37 and what followed (the current state is `lab/STATE.md`).
     - Touch-offs approach at v 0.0005, 0.15 mm/s at the slider ("we can approach at 0.15mm/s sure, or faster if you
       want"). Faster was not taken: at 0.58 mm/s the presses' onsets came 0.026 mm early (SE 0.017).
