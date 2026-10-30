@@ -65,8 +65,8 @@ def _rect(ax, x0, x1, z0, z1, fc, **kw):
     _poly(ax, [(x0, z0), (x1, z0), (x1, z1), (x0, z1)], fc, **kw)
 
 
-def probe_section(ax, tool):
-    """The tool stack in M cut at y_M = 0: x_M across, z_M up the tool axis."""
+def probe_section(ax, tool, ref=True):
+    """The tool stack in M cut at y_M = 0: x_M across, z_M up the tool axis; ref draws the finger's pad apex on v7."""
     from matplotlib.patches import Circle, Wedge
     p = R.PROBE
     f, c, b, fl = p["foot"], p["col"], p["boss"], p["flange"]
@@ -97,6 +97,13 @@ def probe_section(ax, tool):
         _poly(ax, [(-r["hull_half"], zh0), (r["hull_half"], zh0), (r["R"], zb0), (-r["R"], zb0)], "#d9cfe9")
         _rect(ax, -r["R"], r["R"], zb0, za, "#d9cfe9")
         ax.add_patch(Wedge((0, za), r["R"], 0, 180, fc="#d9cfe9", ec="0.2", lw=1.0, zorder=3))
+    elif tool == "fingertip":
+        blo, bhi = R.fingertip_boxes()
+        tlo, thi = R.fingertip_boxes(tip=True)
+        _poly(ax, [(-sr, fl["z1"]), (sr, fl["z1"]), (bhi[0], blo[2]), (blo[0], blo[2])], "#d9cfe9")
+        _rect(ax, blo[0], bhi[0], blo[2], bhi[2], "#d9cfe9")
+        _rect(ax, tlo[0], thi[0], tlo[2], thi[2], "0.25")
+        ax.plot(0.0, p["fingertip"]["apex_z"], "o", ms=5, color="#c0392b", zorder=6)
     else:
         fp = p["flat"]
         zd = tz - fp["t"]
@@ -110,7 +117,8 @@ def probe_section(ax, tool):
         _poly(ax, [(-fp["neck_r"], zn), (fp["neck_r"], zn), tuple(neck[1]), tuple(neck[0])], "#d9cfe9")
         _poly(ax, turn([(-fp["r"], zd), (fp["r"], zd), (fp["r"], tz - fp["ch"]), (fp["r"] - fp["ch"], tz),
                         (-fp["r"] + fp["ch"], tz), (-fp["r"], tz - fp["ch"])]), "#d9cfe9")
-    ax.axhline(93.36, color="#c0392b", ls=(0, (4, 3)), lw=1.0, zorder=1)
+    if ref:
+        ax.axhline(93.36, color="#c0392b", ls=(0, (4, 3)), lw=1.0, zorder=1)
     ax.set_aspect("equal")
     ax.set_xlim(-48, 48)
     ax.set_ylim(-40, 128)
@@ -388,12 +396,12 @@ def probe_text(parts):
     p = R.PROBE
     pr = parts["parts"]
     m_base = pr["probe_base"]["mass_g_solid"]
-    tools = {t: pr[f"tool_{t}"]["mass_g_solid"] for t in R.TOOLS}
+    tools = {t: pr[f"tool_{t}"]["mass_g_solid"] for t in R.TOOLS if f"tool_{t}" in pr}   # the 10-29 build: five tools
     rows = [["Probe base", f"{pr['probe_base']['volume_cm3']:.1f}", f"{m_base:.0f}",
              f"{pr['probe_base']['com_mm'][2]:.1f}", "v7's foot and homing socket, the tool interface"]]
     names = dict(sphere5="5 mm sphere", sphere2="2 mm sphere", rod="Half rod R 12.5", flat="Flat face, 14 mm",
                  flat30="Flat face at 30 deg, 14 mm")
-    for t in R.TOOLS:
+    for t in tools:
         q = pr[f"tool_{t}"]
         rows.append([f"Tool: {names[t]}", f"{q['volume_cm3']:.1f}", f"{q['mass_g_solid']:.0f}", f"{q['com_mm'][2]:.1f}",
                      "flange, stem and end; two M3 &#215; 10"])
@@ -434,22 +442,20 @@ def block_geometry():
 
 
 def fig_block(out, g):
-    """The seat block in plan: base, notch, rail, the columns and tips, the wood screws with a 35 mm circle round each
-    (a drill's room), and the low sphere's base, which stays."""
+    """Left: the seat block in plan, the wood screws with a 35 mm circle round each (a drill's room) and the two homing
+    keys. Right: the fingertip tool cut at y_M = 0, the tip on its station block, the palmar face along +z_M."""
     from matplotlib.patches import Circle
     plt = P.plt_setup()
-    fig, a1 = plt.subplots(figsize=(9.5, 7.6), constrained_layout=True)
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(12.5, 7.0), constrained_layout=True, gridspec_kw=dict(width_ratios=(1.5, 1.0)))
     x0, x1, y0, y1, tb = g["params"]["base"]
     rx0, rx1, _, _, rt = g["rail"]
     _rect(a1, x0, x1, y0, y1, "0.93", z=0)
     _rect(a1, rx0, rx1, y0, y1, "0.87", z=0)
-    (nx0, nx1), (ny0, ny1) = g["notch"]
-    _rect(a1, nx0, nx1, ny0, ny1, "white", z=1, ec="0.2")
-    for bx0, bx1, by0, by1 in ((-35.0, 35.0, -12.0, 12.0), (-56.58, -30.22, -12.0, 12.0), (-56.58, -32.14, 12.0, 37.37)):
-        _rect(a1, bx0, bx1, by0, by1, PLA, z=2)        # the low sphere's base, arm and homing post (ur5_cb3_cell)
-    a1.add_patch(Circle((0.0, 0.0), 10.0, fc=PLA, ec="0.2", lw=1.0, zorder=3))
-    a1.text(-50.0, -100.0, "low sphere's base,\narm and key (stay)", ha="center", va="top", fontsize=12)
-    a1.annotate("", (-25.0, -14.0), (-50.0, -72.0), arrowprops=dict(arrowstyle="->", lw=0.8))
+    kd = g["key"]
+    bx, by = kd["k0"][0] + kd["margin"], kd["k0"][1] + kd["margin"]
+    for i, k in enumerate(g["keys"]):
+        _rect(a1, k["c"][0] - bx, k["c"][0] + bx, k["c"][1] - by, k["c"][1] + by, "0.75", z=3)
+        a1.text(k["c"][0] - bx - 3, k["c"][1], f"key {i + 1}", ha="right", va="center", fontsize=12)
     for i, st in enumerate(g["seats"]):
         sup = np.asarray(st["support"], float)
         _hull2(a1, sup[:, :2], PLA, z=4)
@@ -459,15 +465,28 @@ def fig_block(out, g):
     for x, y in g["params"]["screws"]:
         a1.add_patch(Circle((x, y), 2.3, fc="white", ec="0.1", lw=1.2, zorder=7))
         a1.add_patch(Circle((x, y), 35.0, fc="none", ec="#2e6da4", lw=1.0, ls="--", zorder=7))
-    a1.text(22.0, y1 + 42.0, "screws into the\nlow sphere's 2x4", ha="center", va="bottom", fontsize=12)
-    a1.text(130.0, y1 + 42.0, "screws into the\ntall indenter's 2x4", ha="center", va="bottom", fontsize=12)
-    a1.annotate("", (-80, -150), (-42, -150), arrowprops=dict(arrowstyle="->", lw=1.0))
-    a1.text(-61, -143, "toward the robot", ha="center", fontsize=12)
+    a1.text(15.0, y1 + 40.0, "screws into the\nfront 2x4", ha="center", va="bottom", fontsize=12)
+    a1.text(130.0, y1 + 40.0, "screws into the\nback 2x4", ha="center", va="bottom", fontsize=12)
+    a1.annotate("", (-75, -150), (-37, -150), arrowprops=dict(arrowstyle="->", lw=1.0))
+    a1.text(-56, -143, "toward the robot", ha="center", fontsize=12)
     a1.set_xlim(-85, 190)
     a1.set_ylim(-160, 185)
     a1.set_aspect("equal")
     a1.set_xlabel("x (mm), away from the robot", fontsize=13)
     a1.set_ylabel("y (mm)", fontsize=13)
+    a1.set_title("Seat block in plan", fontsize=14)
+    probe_section(a2, "fingertip", ref=False)
+    tz = R.PROBE["fingertip"]["apex_z"]
+    a2.annotate("", (0.0, tz + 14.0), (0.0, tz + 1.0), arrowprops=dict(arrowstyle="->", lw=1.2, color="#c0392b"))
+    a2.text(-2.0, tz + 10.0, "palmar face's\nnormal", fontsize=12, color="#c0392b", va="center", ha="right")
+    for z, txt in ((67, "flange"), (95, "stem"), (119, "station block"), (133, "tip")):
+        a2.annotate(txt, (-12.0, z), (-30.0, z), fontsize=12, va="center", ha="left", zorder=6,
+                    bbox=dict(fc="white", ec="none", alpha=0.8, pad=0.5))
+    a2.set_xlim(-32, 32)
+    a2.set_ylim(55, 160)
+    a2.set_xlabel("x$_M$ (mm)", fontsize=13)
+    a2.set_ylabel("z$_M$ along the tool axis (mm)", fontsize=13)
+    a2.set_title("Fingertip tool, cut at y$_M$ = 0", fontsize=14)
     fig.savefig(out, dpi=110)
     plt.close(fig)
 
@@ -478,60 +497,81 @@ def block_text(fig_path):
              for f in (BLOCK / "data" / f"{R.BLOCK_STEM}_paths_up_xm_seat{i}.json" for i in (1, 2, 3))]
     prints = {r["plate"]: r for r in (json.loads(f.read_text()) for f in sorted((BLOCK / "print").glob(f"{R.BLOCK_STEM}_p1s_*.json")))}
     v2e = {r["plate"]: r for r in (json.loads(f.read_text()) for f in sorted(PRINT.glob(f"{STEM}_p1s_*.json")))}
-    parts = json.loads((BLOCK / "cad" / f"{R.BLOCK_STEM}_parts.json").read_text())["parts"]
+    hf = BLOCK / "data" / f"{R.BLOCK_STEM}_homing.json"
+    home = json.loads(hf.read_text())["rows"] if hf.exists() else []
     sup = [np.asarray(st["support"], float) for st in g["seats"]]
     dist = []
     for x, y in g["params"]["screws"]:
         dist.append(min(math.hypot(max(s[:, 0].min() - x, 0.0, x - s[:, 0].max()), max(s[:, 1].min() - y, 0.0, y - s[:, 1].max()))
                         for s in sup))
     x0, x1, y0, y1, tb = g["params"]["base"]
-    b = R.PROBE["boss"]
+    b, ft = R.PROBE["boss"], R.PROBE["fingertip"]
     shrink = b["seat_gap"] * math.tan(math.radians(b["draft"]))
+    blo, _ = R.fingertip_boxes()
     rows, fl = [], 0
     for i, x in enumerate(seats):
         if not x:
             continue
-        kk, le = x["kinds"], x["least"]
+        le = x["least"]
         fl += x["flagged"]
         rows.append([f"{i + 1}", str(x["n"]), str(x["flagged"]), f"{x['j5_deg'][0]:.0f} to {x['j5_deg'][1]:.0f}",
                      f"{x['j6_deg'][0]:.0f} to {x['j6_deg'][1]:.0f}", f"{le['robot'][0]:.0f}", f"{le['hex_e'][0]:.0f}",
                      f"{le['mount'][0]:.1f}", f"{le['stem'][0]:.2f}"])
-    fx = [x["least"]["mount"][0] for x in seats if x and x["least"]["mount"][1] == "fixtures"]
-    pa, pb = prints.get("a"), prints.get("b")
+    keys = ", ".join(f"({k['c'][0]:.0f}, {k['c'][1]:.0f})" for k in g["keys"])
+    fr, bk = len(g["params"]["screws"]) - sum(1 for x, _ in g["params"]["screws"] if x > 100), \
+        sum(1 for x, _ in g["params"]["screws"] if x > 100)
     text = (
         f"<p>On 2026-10-30 the owner asked for a smaller block that holds the tips alone and screws into the 2x4s: \"can "
-        f"you space it out farther from the fingertip holders so a drill can more easily drive in?\" The owner chose "
-        f"plate v2e's place for it. The tall indenter and the holder come off, and the low sphere and the rod stay on the "
-        f"table. The seat block keeps v2e's three seats, their columns and the {g['rail'][4]:.0f} mm rail at the same "
-        f"place in A, so the probe plans keep their poses. Its base measures {x1 - x0:.0f} &#215; {y1 - y0:.0f} mm, "
-        f"against v2e's 232 &#215; 236 mm, and it has no indenters and no keys (Figure 6).</p>"
-        f"<p>Eight wood screws hold it: four at x {g['params']['screws'][0][0]:.0f} mm into the low sphere's 2x4, and four "
-        f"at x {g['params']['screws'][-1][0]:.0f} mm into the tall indenter's. Each stands {min(dist):.1f} to "
+        f"you space it out farther from the fingertip holders so a drill can more easily drive in?\" An hour later the "
+        f"owner cleared the table for it: \"add the homing indexers to the sensor blocks. i want to replace everything "
+        f"on the table with just three sensor mounts.\" The seat block keeps v2e's three seats, their columns and the "
+        f"{g['rail'][4]:.0f} mm rail at the same place in A, so the probe plans keep their poses. Its base measures "
+        f"{x1 - x0:.0f} &#215; {y1 - y0:.0f} mm, against v2e's 232 &#215; 236 mm, and it carries no indenters "
+        f"(Figure 6).</p>"
+        f"<p>Two of v2d's homing keys stand on the base between the columns, at {keys} mm. At homing the probe's tool "
+        f"reaches between the columns, so the keys need no room in front of the seats. Each seat's plan starts from the "
+        f"nearer key. {fr} wood screws go into the front 2x4 and {bk} into the back one. Each stands {min(dist):.1f} to "
         f"{max(dist):.1f} mm from the nearest column, so a drill reaches it from above. v2e's back screws stood 5.5 mm "
-        f"behind the columns. A notch leaves room for the low sphere's base. The probe homes on the low sphere's key, "
-        f"since the probe base's socket is the fork's. The low sphere and the rod are obstacles in the replays, and the "
-        f"probe passes them by {min(fx) if fx else float('nan'):.1f} mm at the least, at the start beside the key "
-        f"(Table 6). {'No action' if fl == 0 else f'{fl} actions'} on the three seats "
-        f"{'comes' if fl == 0 else 'come'} under a margin or {'leaves' if fl == 0 else 'leave'} a window.</p>"
+        f"behind the columns.</p>")
+    if home:
+        w = {mm: min((x for x in home if x["lift_mm"] == mm), key=lambda x: x["least_mm"]) for mm in (0.0,) + tuple(R.LIFT)}
+        nf = sum(bool(x["flags"]) for x in home)
+        text += (f"<p>Homing was checked with each of the {len({x['tool'] for x in home})} tools on both keys. At the "
+                 f"program's start, 12 mm out of the key, the probe is {w[0.0]['least_mm']:.1f} mm from it. After the "
+                 f"first lift of {R.LIFT[0]:.0f} mm the least clearance is {w[R.LIFT[0]]['least_mm']:.1f} mm, the "
+                 f"{'fingertip' if w[R.LIFT[0]]['tool'] == 'fingertip' else w[R.LIFT[0]]['tool']} tool's end to a "
+                 f"column. After {R.LIFT[1]:.0f} mm it is {w[R.LIFT[1]]['least_mm']:.1f} mm. "
+                 f"{'No case' if nf == 0 else f'{nf} cases'} {'comes' if nf == 0 else 'come'} under a margin. On the "
+                 f"three seats {'no action' if fl == 0 else f'{fl} actions'} of the replayed plans "
+                 f"{'comes' if fl == 0 else 'come'} under a margin or {'leaves' if fl == 0 else 'leave'} a window "
+                 f"(Table 6).</p>")
+    text += (
+        f"<p>A sixth tool carries a fingertip by its cassette, screwed by its four M2 &#215; 8 onto a station block as on "
+        f"a seat, with no DIP link. Its palmar face points along the tool axis, so the robot can hold that tip face to "
+        f"face over a held one to measure their crosstalk. The pad's apex stands on the axis at z<sub>M</sub> "
+        f"{ft['apex_z']:.0f} mm, 20 mm past the other tools' ends. The station block then starts {blo[2] - R.PROBE['flange']['z1']:.0f} mm over the flange, "
+        f"so a hex key reaches the flange's M3 at about 5 deg past it. The tip's end points along +x<sub>M</sub>, and its "
+        f"board's cable leaves on the side away from the homing socket.</p>"
         f"<p>The tools seat on a taper. Each tool's socket is the boss's 20 deg taper made {shrink:.2f} mm smaller a "
         f"face, so the two M3 &#215; 10 pull the four tapered faces home. The flange then stops {b['seat_gap']:.1f} mm "
         f"over the column's top. On 10-29's design the socket had 0.05 mm of play a face and the flange sat on the "
         f"column's top. An M3 nut sits captive under each of the column's four holes, slid in from the side, so a tool's "
         f"screws turn in steel however often it is changed. The probe base stays on the adapter disc for the whole "
         f"campaign: a tool change leaves the disc's inserts and the homing alone.</p>")
-    if pa and pb:
-        vb = v2e.get("b")
-        text += (f"<p>Plate a, the probe base and the five tools, prints in {pa['time']} and {pa['filament_g']:.0f} g. "
-                 f"Plate b, the seat block, prints in {pb['time']} and {pb['filament_g']:.0f} g"
-                 + (f", against {vb['time']} and {vb['filament_g']:.0f} g for v2e" if vb else "")
-                 + f". The block is {parts['seat_block']['volume_cm3']:.0f} cm<sup>3</sup>. The projects and the runbook "
-                 f"are in {link(BLOCK, R.BLOCK_OUT.name + '/')}.</p>")
-    text += P.fig(6, fig_path, "The seat block in plan. The three columns (purple) carry the tips pad up, their ends toward "
-                  "the robot. Each wood screw has a dashed circle of 35 mm round it, which no column enters. The low "
-                  "sphere's base, arm and homing post stay in front of the notch.")
+    one = prints.get("one")
+    if one:
+        tv = sum(r["time_s"] for r in v2e.values()) / 3600
+        gv = sum(r["filament_g"] for r in v2e.values())
+        text += (f"<p>The block, the probe base and the six tools print together on one P1S plate, each at its own layer "
+                 f"height, in {one['time']} and {one['filament_g']:.0f} g. v2e's two plates took {tv:.1f} h and "
+                 f"{gv:.0f} g. The project and the runbook are in {link(BLOCK, R.BLOCK_OUT.name + '/')}.</p>")
+    text += P.fig(6, fig_path, "Left: the seat block in plan. The three columns (purple) carry the tips pad up, their "
+                  "ends toward the robot, and the two homing keys (grey) stand between them. Each wood screw has a dashed "
+                  "circle of 35 mm round it, which no column enters. Right: the fingertip tool cut through its axis, the "
+                  "tip (dark) on its station block, its pad's apex (red) on the axis.")
     text += P.table(["Seat", "Actions", "Flagged", "Joint 5 (deg)", "Joint 6 (deg)", "Robot (mm)", "HEX-E (mm)",
                      "Adapter and base (mm)", "Stem (mm)"], rows, tuple(range(0, 9)),
-                    "The plans replayed on the seat block from 12 mm out of the low sphere's key: the actions, those flagged, "
+                    "The plans replayed on the seat block from 12 mm out of the nearer key: the actions, those flagged, "
                     "the joint ranges over every sample and the least clearances of the robot, the HEX-E, the adapter and "
                     "probe base and the tool's stem.", 6)
     return text

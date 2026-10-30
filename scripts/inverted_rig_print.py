@@ -52,8 +52,9 @@ PLATES = {
         ("S2", "tool, 2 mm sphere", "tool_sphere2", SOLID),
         ("RD", "tool, half rod R 12.5", "tool_rod", SOLID),
         ("FL", "tool, flat 14 mm", "tool_flat", SOLID),
-        ("F30", "tool, flat 14 mm at 30 deg", "tool_flat30", dict(SOLID, layer_height="0.08"))],   # its face slopes 30 deg:
+        ("F30", "tool, flat 14 mm at 30 deg", "tool_flat30", dict(SOLID, layer_height="0.08")),    # its face slopes 30 deg:
 #                                                                     the P1S's finest layer keeps the steps 0.08 mm
+        ("FT", "tool, fingertip", "tool_fingertip", SOLID)],      # (2026-10-30) a tip on the probe, face along the axis
         glob=dict(layer_height="0.1", brim_type="auto_brim")),
     "b": dict(title="indenter plate v2e", parts=[("V2E", "indenter plate v2e", "plate_v2e", PLATE)],
               glob=dict(layer_height="0.16", brim_type="no_brim")),   # 232 mm of 256: a brim would reach the wiper's corner
@@ -84,7 +85,10 @@ def build(key, a):
         tm = D.single(tm, pid)
         tm.export(OUT / f"{STEM}_{name}_print.stl")        # the print-oriented STL, centred, on z = 0
         meshes.append(tm)
-    pos = D.layout(meshes, D.P1S_BED, gap=12.0, width=200.0)
+    if "at" in spec:                                       # placed by hand: each part's lower-left corner
+        pos = [np.array(spec["at"][pid]) - tm.bounds[0][:2] for (pid, _, _, _), tm in zip(spec["parts"], meshes)]
+    else:
+        pos = D.layout(meshes, D.P1S_BED, gap=12.0, width=200.0)
     lo = min(tm.bounds[0][0] + p_[0] for tm, p_ in zip(meshes, pos))
     hi = max(tm.bounds[1][0] + p_[0] for tm, p_ in zip(meshes, pos))
     dx = max(0.0, EXCLUDE[0] + 1.0 - lo)               # clear of the P1S's wiper corner (bed_exclude_area 18 x 28 mm)
@@ -181,8 +185,14 @@ def main():
         OWNER = ("2026-10-30 11:2x: 'a smaller ... print out block that screws into the same 2x4 ... (can you space it out "
                  "farther from the fingertip holders so a drill can more easily drive in?)'; 11:4x: 'can we actually create a "
                  "fastening point on the homing block for different size indenters?'")
-        PLATES["b"] = dict(title="seat block", parts=[("SB", "seat block", "seat_block", PLATE)],
-                           glob=dict(layer_height="0.16", brim_type="no_brim"))
+        a.plates = "one" if a.plates == "a,b" else a.plates
+        PLATES["one"] = dict(title="seat block, probe base and tools",
+                             parts=[("SB", "seat block", "seat_block", dict(PLATE, brim_type="no_brim"))] + PLATES["a"]["parts"],
+                             glob=dict(layer_height="0.1", brim_type="auto_brim"),
+                             at=dict(SB=(24.0, 18.0), PB=(173.0, 8.0),       # each part's lower-left corner on the bed (mm):
+                                     S5=(170.0, 90.0), S2=(212.0, 90.0),    # the block clear of the wiper's corner (x 18,
+                                     RD=(170.0, 136.0), FL=(212.0, 136.0),  # y 28) with room for a brim, the small parts in
+                                     F30=(170.0, 182.0), FT=(212.0, 182.0)))   # the 90 mm beside it
     OUT.mkdir(parents=True, exist_ok=True)
     for key in a.plates.split(","):
         build(key, a)

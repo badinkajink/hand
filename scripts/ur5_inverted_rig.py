@@ -90,13 +90,17 @@ PROBE = dict(
     rod=dict(R=12.5, half_len=10.0, box_dz=12.5, hull_dz=7.0, hull_half=8.0),   # the plate's rod: axis along y_M
     flat=dict(r=7.0, t=3.0, ch=0.5, neck_r=4.5, neck_l=4.0),   # a disc 14 mm across and 3 mm thick on a 9 mm neck
     flat_tilt=30.0,                 # flat30: the same disc turned 30 deg about y_M through its face's centre, so that its
-)                                   # stem leans off the pad's normal as a sphere's may (a pad-up face from above)
-TOOLS = ("sphere5", "sphere2", "rod", "flat", "flat30")
+#                                     stem leans off the pad's normal as a sphere's may (a pad-up face from above)
+    fingertip=dict(apex_z=140.0),   # (owner, 2026-10-30) a fingertip on the probe by its cassette, as on a seat: its pad's
+)                                   # apex on the tool axis, the palmar face along +z_M, its end toward +x_M. The apex
+#                                     stands 20 mm past the other tools' ends, so that 43 mm lie between the flange and the
+#                                     station block and a hex key reaches the flange's M3 at about 5 deg past the block
+TOOLS = ("sphere5", "sphere2", "rod", "flat", "flat30", "fingertip")
 FLATS = dict(flat=0.0, flat30=PROBE["flat_tilt"])         # the flat tools and their face's tilt from the tool axis (deg)
 SPHERES = dict(sphere5="sphere", sphere2="sphere2")      # the sphere tools and their PROBE entries
 NEED = dict(robot=8.0, hex_e=6.0, mount=3.0, stem=1.0, tip=0.3)
 GROUPS = dict(mount=("adapter", "probe_base"), stem=("tool_stem",), tip=("tool_tip",), hex_e=("hex_e",))
-EXCL = dict(sphere5=4.0, sphere2=3.0, rod=12.0, flat=20.0, flat30=20.0)              # the tool end's points this near the contact meet the pad
+EXCL = dict(sphere5=4.0, sphere2=3.0, rod=12.0, flat=20.0, flat30=20.0, fingertip=25.0)   # the tool end's points this near the contact meet the pad
 #                                                         (the 2 mm sphere's 3 mm: a push 35 deg off the normal drags it 0.6 mm)
 J5_WIN, J6_WIN, J6_OWNER = (30.0, 100.0), (-62.0, 45.0), 60.0
 J5_SEARCH = (35.0, 97.0)                                  # a press's own poses keep this much inside joint 5's window
@@ -109,8 +113,32 @@ T_FP = C.inv(CELL.T_M_FROM_F) @ CELL.T_M_FROM_P           # the pad frame P in F
 
 
 def tool_end_z(tool, p=PROBE):
-    """z_M of the tool's reference point: the sphere's centre, the rod's axis, the flat face's centre."""
+    """z_M of the tool's reference point: the sphere's centre, the rod's axis, the flat face's centre, the fingertip's
+    pad apex."""
+    if tool == "fingertip":
+        return p["fingertip"]["apex_z"]
     return p["tip_z"] - (p[SPHERES[tool]]["R"] if tool in SPHERES else p["rod"]["R"] if tool == "rod" else 0.0)
+
+
+def fingertip_boxes(tip=False):
+    """(lo, hi) in M of the fingertip tool's station block (BLOCK_F), or of the tip on it (cassette and pad)."""
+    lo, hi = ((-10.8, -10.5, -98.46), (3.8, 10.5, -77.05)) if tip else BLOCK_F
+    P = C.apply(fingertip_T_MF(), np.array([[u, v, w] for u in (lo[0], hi[0]) for v in (lo[1], hi[1]) for w in (lo[2], hi[2])]))
+    return P.min(axis=0), P.max(axis=0)
+
+
+def _toward_box(u, lo, hi):
+    """The point of the rectangle [lo, hi] (2-D, about the origin) in the direction u."""
+    s = min((hi[k] if u[k] > 0 else lo[k]) / u[k] for k in (0, 1) if abs(u[k]) > 1e-9)
+    return u * s
+
+
+def fingertip_T_MF(p=PROBE):
+    """The fingertip tool's tip frame F in M: the pad's apex on the axis at apex_z, the palmar face along +z_M, the tip's
+    end toward +x_M (its board's plug and cable toward -x_M, the side away from the homing socket)."""
+    xF, zF = np.array([0.0, 0.0, -1.0]), np.array([-1.0, 0.0, 0.0])
+    R = np.column_stack([xF, np.cross(zF, xF), zF])
+    return C.Tm(R, np.array([0.0, 0.0, p["fingertip"]["apex_z"]]) - R @ APEX_F)
 
 
 # ------------------------------------------------------------------------------------------------ the seats (A, mm)
@@ -137,15 +165,21 @@ LAYOUT = dict(       # plate v2e: v2d's base, keys and front row (the 5 mm spher
 #                                             to its back edge: 8 times the 6 mm base's stiffness where the supports pull up
     cable=((3.4, -3.95, -63.91), (44.4, 4.05, -58.91)))   # F: a slot through each support just past the board's plug, so
 #                                             the held board's cable leaves by the support's back, away from the probe
-SEAT_BLOCK = dict(   # --plate block (owner, 2026-10-30): v2e's three seats alone, where v2e stood, the tall indenter and the
-#                      holder off and the low sphere and the rod left in place; the probe homes on the low sphere's key
-    base=(10.0, 140.0, -110.0, 110.0, 6.0),                 # x0, x1, y0, y1, thickness (A); the rail from 5 mm before the
+SEAT_BLOCK = dict(   # --plate block (owner, 2026-10-30): v2e's three seats alone where v2e stood, the only thing on the
+#                      table (11:5x the low sphere and the rod stayed and the probe homed on the low sphere's key; 12:0x
+#                      "add the homing indexers to the sensor blocks. i want to replace everything on the table with just
+#                      three sensor mounts")
+    base=(5.0, 140.0, -110.0, 110.0, 6.0),                  # x0, x1, y0, y1, thickness (A); the rail from 5 mm before the
 #                                                             supports to x1
-    notch=((9.0, 41.0), (-20.0, 20.0)),                     # x, y: around the low sphere's base (x <= 35, |y| <= 12)
-    screws=((22.0, -100.0), (22.0, -60.0), (22.0, 60.0), (22.0, 100.0),          # into the low sphere's 2x4, 37.5 mm in
-            (130.0, -100.0), (130.0, -40.0), (130.0, 40.0), (130.0, 100.0)),     # front of the supports, and into the
-#                                                             tall's, 35.5 mm behind them: a drill reaches each one
-    others=(("sphere", "20261027-225213-spherev3id1"), ("rod", "20261029-230820-rodv3id3")))   # fixtures that stay (lab/)
+    notch=None,
+    keys=((20.0, -40.0, 0.0), (20.0, 40.0, 0.0)),           # v2d's keys between the columns: at homing the tool reaches
+#                                                             between them, and the plate stays one P1S plate with the tools
+    screws=((15.0, -100.0), (15.0, 0.0), (15.0, 100.0),     # into the front 2x4, 44.5 mm in front of the supports, and into
+            (130.0, -100.0), (130.0, -40.0), (130.0, 40.0), (130.0, 100.0)),     # the back one, 35.5 mm behind them: a
+#                                                             drill reaches each one
+    others=())                                              # nothing else stays on the table
+HOME_KEY = [0]                                              # the block's key the probe homes on (the replay takes the
+#                                                             nearer of the seat)
 PLATE = ["v2e"]                                             # what build, reach, replay and film take (--plate)
 
 
@@ -181,7 +215,7 @@ def plate(layout=None):
         seats.append(dict(apex=[x, y, lay["seat_h"]], orient=o, T_AF=T.round(6).tolist(),
                           support=np.vstack([corners, foot])))
     if block:
-        a["base"], a["screws"], a["keys"] = tuple(SEAT_BLOCK["base"]), tuple(SEAT_BLOCK["screws"]), ()
+        a["base"], a["screws"], a["keys"] = tuple(SEAT_BLOCK["base"]), tuple(SEAT_BLOCK["screws"]), tuple(SEAT_BLOCK["keys"])
         xb = a["base"][1]
     else:
         xb = max(a["base"][1], max(float(st["support"][:, 0].max()) for st in seats) + 2.0)
@@ -408,6 +442,16 @@ def probe_points(tool, sp=1.5):
                                                                               (r["hull_half"], r["hull_half"], zb0), sp),
                  _box_pts((-r["R"], -r["half_len"], zb0), (r["R"], r["half_len"], za), sp)]
         tip = np.vstack([_cyl_y_pts((0.0, za), r["R"], -r["half_len"], r["half_len"], 0.7, half=True)])
+    elif tool == "fingertip":                            # the stem's hull up to the station block, the block, the tip
+        blo, bhi = fingertip_boxes()
+        th = np.linspace(0.0, 2 * math.pi, 48, endpoint=False)
+        ring = np.c_[sr * np.cos(th), sr * np.sin(th)]
+        rect = np.array([_toward_box(u, blo[:2], bhi[:2]) for u in np.c_[np.cos(th), np.sin(th)]])
+        stem += [np.c_[ring + (rect - ring) * f, np.full(len(th), fl["z1"] + (blo[2] - fl["z1"]) * f)]
+                 for f in np.linspace(0.0, 1.0, 16)]
+        stem.append(_box_pts(blo, bhi, sp))
+        tlo, thi = fingertip_boxes(tip=True)
+        tip = _box_pts(tlo, thi, 0.7)
     else:
         fp = p["flat"]
         zd = tz - fp["t"]                                # the disc's back face; the neck behind it, then a cone to the stem
@@ -500,6 +544,15 @@ def tool_solid(K, tool):
                   K.hull([(x, y, zh0) for x, y in ((-hh, -hh), (hh, -hh), (hh, hh), (-hh, hh))]
                          + [(x, y, zb0 + 0.01) for x, y in ((-R, -hl), (R, -hl), (R, hl), (-R, hl))]),
                   K.box((-R, -hl, zb0), (R, hl, za)), K.cyl("y", (0.0, za), R, -hl, hl)]
+    elif tool == "fingertip":                            # the stem's hull up to the station block, which takes the tip's
+        blo, bhi = fingertip_boxes()                     # four M2 x 8 in 1.9 mm holes as a seat's block does
+        T = fingertip_T_MF()
+        th = np.linspace(0.0, 2 * math.pi, 48, endpoint=False)
+        disc = [(sr * math.cos(a_), sr * math.sin(a_), fl["z1"] - 0.01) for a_ in th]
+        corners = [(x, y, blo[2] + 0.01) for x in (blo[0], bhi[0]) for y in (blo[1], bhi[1])]
+        lo_ = BLOCK_F[0]
+        holes = [K.transform(K.cyl("x", (y, z), 0.95, lo_[0] - 1.0, lo_[0] + 10.0), T) for y, z in HOLES_F]
+        parts.append(K.cut_all(K.union([K.hull(disc + corners), K.box(tuple(blo), tuple(bhi))]), holes))
     else:
         fp = p["flat"]
         zd = tz - fp["t"]
@@ -787,14 +840,10 @@ def context(layout=None, tool="sphere5"):
     x0, x1, y0, y1, _ = g["params"]["base"]
     CELL.BOARD["half_mm"] = 400.0
     CELL.BOARD["block_half_mm"] = [max(-x0, x1) + 10.0, 500.0]
-    if PLATE[0] == "block":                    # homing on the low sphere's key, as the fork does (the same socket)
-        CELL.OTHER[:] = [(np.array(json.loads((LAB / d / "registration.json").read_text())["T_BI"], float), k)
-                         for k, d in SEAT_BLOCK["others"]]
-        T_BE_home = np.array(reg["T_BE_home"], float)
-    else:
-        CELL.OTHER[:] = []
-        T_AM = np.array(g["keys"][1]["T_AM_home"], float)             # homing on key 2, the probe's socket as the fork's
-        T_BE_home = T_BA @ T_AM @ C.inv(T_EM)
+    CELL.OTHER[:] = [(np.array(json.loads((LAB / d / "registration.json").read_text())["T_BI"], float), k)
+                     for k, d in (SEAT_BLOCK["others"] if PLATE[0] == "block" else ())]
+    T_AM = np.array(g["keys"][HOME_KEY[0] if PLATE[0] == "block" else 1]["T_AM_home"], float)   # the probe's socket is the
+    T_BE_home = T_BA @ T_AM @ C.inv(T_EM)                                                      # fork's
     q_home = SIM.ik(T_BE_home, np.asarray(reg["q_home"], float))
     BR[0] = branch_of(q_home)
     surf = json.loads(SURFACE_PLAN.read_text())["geometry"]["surface"]
@@ -1354,8 +1403,10 @@ def start_q(ctx):
 
 def cmd_replay(a):
     """A probe plan on one seat (build_plan) replayed move by move: the joints at every sample, the clearances at every
-    sample of a straight move and every 5th of a joint move, from 12 mm out of key 2."""
+    sample of a straight move and every 5th of a joint move, from 12 mm out of key 2 (on the seat block, out of the key
+    nearer the seat)."""
     t0 = time.time()
+    HOME_KEY[0] = 1 if a.seat == 2 else 0
     ctx = context(dict(orient=a.orient, seat_h=a.h), tool=a.tool)
     ctx["seat"] = a.seat
     ctx["hub"] = hub(ctx, a.seat)
@@ -1416,6 +1467,32 @@ def cmd_replay(a):
     dst2.write_text(json.dumps(out, default=float) + "\n")
     print(json.dumps({k: v for k, v in out.items() if k != "rows"}), flush=True)
     print(f"-> {dst}, {dst2}")
+
+
+def cmd_home_check(a):
+    """Homing with each tool on each of the plate's keys used: the least clearances at the program's start (12 mm out of
+    the key) and after each lift of LIFT, written to data/<stem>_homing.json."""
+    keys = (0, 1) if PLATE[0] == "block" else (1,)
+    rows = []
+    for key in keys:
+        HOME_KEY[0] = key
+        for tool in TOOLS:
+            ctx = context(tool=tool)
+            q = start_q(ctx)
+            T0 = fk_many(q[None])[0]
+            for mm in (0.0,) + LIFT:
+                T = C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-mm, 0.0, 0.0]))
+                qq = ik_near(T[None], q, branch=BR[0])[0]
+                cl = clearance(qq, ctx) if np.isfinite(qq).all() else {}
+                least = min(((v[0], g_, v[1]) for g_, v in cl.items() if g_ != "port"), default=(None, None, None))
+                rows.append(dict(key=key + 1, tool=tool, lift_mm=mm, ik=bool(cl), least_mm=least[0], group=least[1],
+                                 part=least[2], flags=clear_flags(cl) if cl else ["no IK"],
+                                 q_deg=np.round(np.degrees(qq), 1).tolist() if cl else None))
+            print(json.dumps(rows[-1]), flush=True)
+    dst = OUT / "data" / f"{STEM}_homing.json"
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(json.dumps(dict(lift_mm=LIFT, rows=rows), default=float) + "\n")
+    print("->", dst)
 
 
 # ------------------------------------------------------------------------------------------------ the film
@@ -1543,6 +1620,7 @@ def main():
     ik = sub.add_parser("ik-check")
     ik.add_argument("--n", type=int, default=200)
     sub.add_parser("build")
+    sub.add_parser("home-check")
     sb = sub.add_parser("seat-beam")
     sb.add_argument("--orient", default=",".join(ORIENT))
     sb.add_argument("--wall", type=float, default=2.0)
@@ -1585,8 +1663,8 @@ def main():
         global OUT, STEM
         PLATE[0] = "block"
         OUT, STEM = BLOCK_OUT, BLOCK_STEM
-    dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam}, build=cmd_build, reach=cmd_reach, replay=cmd_replay,
-         film=cmd_film)[a.cmd](a)
+    dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam, "home-check": cmd_home_check}, build=cmd_build,
+         reach=cmd_reach, replay=cmd_replay, film=cmd_film)[a.cmd](a)
 
 
 if __name__ == "__main__":
