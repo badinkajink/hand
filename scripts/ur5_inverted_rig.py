@@ -1523,13 +1523,15 @@ def cmd_home_check(a):
             ctx = context(tool=tool)
             q = start_q(ctx)
             T0 = fk_many(q[None])[0]
-            for mm in sorted({0.0, *LIFT, *np.arange(0.0, LIFT[1] + 0.1, 5.0).tolist()}):   # the lift line every 5 mm,
+            for mm in sorted({-12.0, -7.0, 0.0, *LIFT, *np.arange(0.0, LIFT[1] + 0.1, 5.0).tolist()}):   # seated (-12),
+#                                                                     5 mm out (-7), the start and the lift every 5 mm,
                 T = C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-mm, 0.0, 0.0]))  # also the way back
                 qq = ik_near(T[None], q, branch=BR[0])[0]
                 cl = clearance(qq, ctx) if np.isfinite(qq).all() else {}
                 least = min(((v[0], g_, v[1]) for g_, v in cl.items() if g_ != "port"), default=(None, None, None))
                 rows.append(dict(key=key + 1, tool=tool, lift_mm=mm, ik=bool(cl), least_mm=least[0], group=least[1],
                                  part=least[2], flags=clear_flags(cl) if cl else ["no IK"],
+                                 by_group={g_: [round(v[0], 2), v[1]] for g_, v in cl.items()},
                                  q_deg=np.round(np.degrees(qq), 1).tolist() if cl else None))
             print(json.dumps(rows[-1]), flush=True)
     dst = OUT / "data" / f"{STEM}_homing.json"

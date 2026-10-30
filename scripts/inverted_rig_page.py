@@ -546,7 +546,7 @@ def block_text(fig_path):
         f"135 &#215; 220 mm across both 2x4s, with a 12 mm rail under the seats and seven screws.</p>")
     if home:
         w = {mm: min((x for x in home if x["lift_mm"] == mm), key=lambda x: x["least_mm"]) for mm in (0.0,) + tuple(R.LIFT)}
-        nf = sum(bool(x["flags"]) for x in home)
+        nf = sum(bool(x["flags"]) for x in home if x["lift_mm"] >= 0.0)
         who = dict(mount="probe base", stem="tool's stem", tip="tool's end", hex_e="HEX-E", robot="arm")
         text += (f"<p>Homing was checked with each of the {WORDS[len({x['tool'] for x in home})]} tools on both keys. At the "
                  f"program's start, 12 mm out of the key, the probe is {w[0.0]['least_mm']:.1f} mm from it. After the "
@@ -557,6 +557,17 @@ def block_text(fig_path):
                  f"three seats {'no action' if fl == 0 else f'{fl} actions'} of the replayed plans "
                  f"{'comes' if fl == 0 else 'come'} under a margin or {'leaves' if fl == 0 else 'leave'} a window "
                  f"(Table 6). The lift was checked every 5 mm, which is also the way back to the key.</p>")
+        seat = [x for x in home if x["lift_mm"] == -12.0]
+        if seat:
+            rb = min(x["by_group"]["robot"][0] for x in seat if x.get("by_group"))
+            hx = min(x["by_group"]["hex_e"][0] for x in seat if x.get("by_group"))
+            text += (f"<p>Seated on a key, the pose the owner reaches by hand, the arm's last link stands "
+                     f"{rb:.1f} mm over the 2x4s' model, under the path check's 8 mm, and the HEX-E {hx:.0f} mm. "
+                     f"The link's nearest point lies "
+                     f"at x<sub>A</sub> -37 mm, at the front edge of the low sphere's 2x4. That 2x4 stands about 1.5 mm "
+                     f"below the tall's, on which the strip lies, so the real gap is about {rb + 1.5:.1f} mm. With that 2x4 "
+                     f"off the table it is about 40 mm. The keys at x<sub>A</sub> 20 mm of 12:0x put that link over the "
+                     f"table.</p>")
     dc = {}
     for x in seats:
         for k, v in (x or {}).get("deep_clear_mm", {}).items():
