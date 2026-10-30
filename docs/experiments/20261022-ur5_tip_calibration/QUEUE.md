@@ -1044,6 +1044,14 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 23:13 on 10-29, v3 ID 3's night (lab, e2d0e1d8; `lab/STATE.md`). Block 3, the tall indenter's pass 1, ran 15:30 to
+    15:48: 19 of 19, 0.055 mm rms (`lab/20261029-153034-tallv3id3`). Block 2, the sphere's stage 2, ran 16:34:16 to
+    23:07:05 on block 1's folder: 211 of 211, no abort, no early contact, every press at its force, 6.55 h (ID 2's
+    6.6 h). Joint 6 ran -62.8 to +42.3 deg and joint 5 stayed 6.1 deg inside its window (simulated: -63.1 to 42.0 and
+    6.0). The HEX-E gave 2.35 M samples with no time-out. Block 4's two simulation chunks passed (mount 3.73 mm or
+    more, joint 5 at 99.4 deg, 0.6 deg inside, as in ID 2's block 4). Block 5, the rod's pass 1, started at 23:08 on
+    the seed `230820-rodv3id3`; its touch-off onsets come 0.66 to 0.77 mm late (ID 2's 0.51 to 0.69). Then block 4
+    and block 6; the night should end about 04:10 on 10-30.
   - 12:4x on 10-29, the owner's answers of 11:37 and what followed (the current state is `lab/STATE.md`).
     - Touch-offs approach at v 0.0005, 0.15 mm/s at the slider ("we can approach at 0.15mm/s sure, or faster if you
       want"). Faster was not taken: at 0.58 mm/s the presses' onsets came 0.026 mm early (SE 0.017).
