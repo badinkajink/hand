@@ -1807,7 +1807,7 @@ The clearances in this section and the one before it are on mount v3. The next s
 - The HEX-E: 139,361 samples, no time-out. Its two gaps over 0.5 s (0.8 and 0.7 s) came at 23:08:21 and 23:08:22,
   before the first action.
 
-### Block 4: ID 3's tall stage 2 (from 23:33:18)
+### Block 4: ID 3's tall stage 2 (23:33:18 to 00:08:00, stopped by a HEX-E loss)
 
 - `lab/20261029-plan_tall_lab_stage2_night_v3id3.json`, 101 actions, resumed on 153034 with stages
   preflight,grid,shear,twist,final. Printout `logs/20261029-233318-tipcal-tallv3id3.log`.
@@ -1818,6 +1818,23 @@ The clearances in this section and the one before it are on mount v3. The next s
 - After block 5's exit 0, the chain started block 6's simulations on block 5's registration (two chunks, every 5th
   sample). It checked the home path from 230820's last pose and went home (0.02 mm, 0.01 deg from the target), and
   block 4 started at 23:33:18.
+- 46 of 101 ok, all in the grid (tall-ref-a to tall-edge-694, 23:33:22 to 00:07:37), no early contact.
+- At 00:07:49.67 the travel into tall-edge-626 ended, and 30 ms later the program had no HEX-E sample for 100 ms.
+  tall-edge-626, -668 and -670 aborted, and the session stopped after three aborts in a row (exit 1 at 00:08:00). The
+  HEX-E gave 206,752 samples, 158 of them timed out. Its two gaps over 0.5 s came at 23:33:19 and 23:33:20, before the
+  first action.
+- In that travel wrist 1 swung from -36.6 to +19.3 deg, wrist 2 rose from 54.2 to 90.5 deg and the elbow came from 98.9
+  to 74.0 deg; joint 6 moved only from 30.1 to 31.4. The losses at 02:54 and 14:32 on 10-28 had the same signature:
+  wrist 1 from negative to positive with wrist 2 rising, the loss as the robot came to rest.
+- Three of the HEX-E's losses now fall within five travels of tall stage 2's grid, whose order is the same in every
+  tip's plan. They came in the travels into tall-face-702 (R29, 17:06 on 10-27), tall-edge-627 (14:32 on 10-28) and
+  tall-edge-626 (tonight). ID 2's block 4 passed through the stretch without a loss.
+- After the first two aborts the program lifted the pad 5 mm each time. The arm stands with the pad about 12 mm above
+  tall-edge-626's point (its 1.5 mm standoff and the two lifts), joint 5 at 90.5 deg and joint 6 at 31.4 deg.
+- At 00:10 the DAQ answered a ping, but a 10 s read gave no samples, as after the earlier losses. The chain stopped at
+  00:08:09 and moves nothing more. The scratchpad script `hexe_poll.sh` reads the stream for 10 s every 5 min.
+- Block 6's two chunks simulated clean on block 5's registration at 23:38 (no abort, no early contact). Their cell
+  checks on every 5th sample still run.
 
 ### The night's plans, after the finer path checks (14:4x)
 

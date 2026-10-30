@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-29 23:35 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-30 00:12 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -47,11 +47,15 @@ anything 2. side map -- sure 3. yea send it".
 | block 3 | `20261029-plan_tall_lab_pass1_night_v3id3.json` | 19 | Done 15:30 to 15:48: 19 of 19, 0.055 mm rms (`20261029-153034-tallv3id3`). |
 | block 2 | `20261029-plan_sphere_lab_stage2_night_v3id3.json` | 211 | Done 16:34 to 23:07: 211 of 211, no abort, no early contact, 6.55 h (resumed on block 1's folder). |
 | block 5 | `20261029-plan_rod_lab_pass1_night_v3id3.json` | 26 | Done 23:08 to 23:31: 21 of 21 touch-offs and 5 pivot presses, 0.037 mm rms (`20261029-230820-rodv3id3`, a seed of block 1's tool and 031559's rod). |
-| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | Running from 23:33:18, resumed on block 3's folder, about 2.8 h. Its 2 chunks passed (mount 3.73 mm, joint 5 0.6 deg inside its window). tall-slide-flank-585-1N is left out (mount 2.97 mm). |
-| block 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Last: resumed on block 5's folder. Its 2 chunks run from 23:31:51 on block 5's registration. |
+| block 4 | `20261029-plan_tall_lab_stage2_night_v3id3.json` | 101 | **Stopped at 00:08:00 on 10-30** after 46 of 101 ok (grid 46 of 56), on a HEX-E loss: tall-edge-626, -668 and -670 aborted with no HEX-E sample. `--resume` on block 3's folder continues it (55 to do, about 1.9 h). |
+| block 6 | `20261029-plan_rod_lab_stage2_night_v3id3.json` | 100 | Waits for block 4. Its 2 chunks simulated clean on block 5's registration (23:38); their cell checks run. About 1.4 h. |
 
-- The night runs in ID 2's order 3, 2, 5, 4, 6, through scratchpad `id3_chain.sh`. Block 2 started 46 min late, waiting
-  for its simulations, so the night now ends around 04:10 on 10-30.
+- **The night stopped at 00:08 on 10-30 on a HEX-E loss.** At the end of the travel into tall-edge-626, wrist 1 swung
+  from -36.6 to +19.3 deg with wrist 2 rising from 54 to 90 deg, the signature of both losses on 10-28. The DAQ
+  answers, but the sensor sends no samples (00:10). The arm stands still in free air, its pad about 12 mm above
+  tall-edge-626's point (joint 5 90.5 deg, joint 6 31.4 deg). The lab reads the stream for 10 s every 5 min
+  (scratchpad `hexe_poll.sh`) and moves nothing without the owner.
+- The night ran in ID 2's order 3, 2, 5, 4, 6, through scratchpad `id3_chain.sh`, which ended at the stop.
 - Each block starts only after the run before it exits 0 with no ABORT line, and after the simulations that gate it
   pass. Block 2's 4 chunks run on block 1's registration, block 3 on seat 1, and block 5 on its seed. Blocks 4 and 6
   run on their pass's registration, checked on every 5th sample. Then come the home path check and go home. If a step
@@ -125,7 +129,9 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 
 ## Waiting on the owner
 
-- Nothing for tonight. The owner's go at 13:5x covers the top edge, the side map and the night.
+- **The HEX-E (since 00:08 on 10-30).** If it does not come back by itself, reseat its connector. Then, on the owner's
+  go: the lab checks the stream, goes home on a checked path, repeats three touch-offs to see whether the tool moved,
+  and resumes block 4 (55 actions) and then block 6 (100), about 3.3 h.
 - When v3 ID 1 goes back on, the three plans above.
 - A new HEX-E cable.
 
