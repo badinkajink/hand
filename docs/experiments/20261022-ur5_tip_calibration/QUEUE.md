@@ -1044,6 +1044,17 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 08:2x on 10-30, workstation: the wrist order searched exactly. The lab's simulation of the first order's 55 (07:57)
+    counted one swing of wrist 1 over 40 deg left, a downward one into tall-slide-edge-643-1N (+23.0 to -32.3 deg), the
+    kind of R29's loss. `scripts/ur5_tip_calibration_wrist_order.py` now also penalizes a travel in which wrist 1 crosses
+    0 with a swing over 40 deg, and it searches exactly, by dynamic programming over the orders that keep each action
+    within four places. In the 101 actions it leaves none of the 12 upward travels and none of the 23 large swings, and
+    2,701 deg of wrist travel against 5,144. The path check on 153034's registration flags nothing; the night order flags
+    tall-flank-525's joint 6. The least margins stay the same: mount 3.73 mm, finger 1.07 mm, joint 5 0.58 deg inside its
+    window. For ID 3's resume, `lab/20261030-plan_tall_lab_stage2_night_wrist2_v3id3.json` reorders the remaining 55 the
+    same way: no upward travels against 7, no large swings against 12, and the same margins (mount 4.09 mm, finger
+    1.57 mm, joint 5 2.38 deg). The lab chooses which order it simulates for the owner. The next tip's builder uses the
+    exact search.
   - 07:4x on 10-30, workstation: the tall indenter's travels reordered (`scripts/ur5_tip_calibration_wrist_order.py`).
     Replayed as the path checker replays it, the night plan's travel into tall-edge-626 swings wrist 1 from -36.4 to
     +24.6 deg and wrist 2 from 54.0 to 96.0 deg; the lab measured -36.6 to +19.3 and 54.2 to 90.5. Tall stage 2 has 12

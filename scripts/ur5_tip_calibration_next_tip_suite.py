@@ -13,8 +13,8 @@ with the same pad (05R4), in the order the lab runs them unattended:
   4 tall stage 2     superseded/20261028-plan_tall_lab_stage2_ts1_v3id1.json (102) without tall-slide-flank-585-1N (its turns at
                      depth bring the mount to 2.97 mm; lab, 2026-10-29 14:4x), each stage's actions reordered within four
                      places by scripts/ur5_tip_calibration_wrist_order.py on the newest tall session: no travel swings wrist 1
-                     from negative to positive while wrist 2 rises (three HEX-E losses came at the end of such travels,
-                     lab NOTES 00:13 on 10-30)
+                     from negative to positive while wrist 2 rises (two HEX-E losses came at the end of such travels,
+                     lab NOTES 00:13 on 10-30), and as few as the order allows cross 0 with a swing over 40 deg
   5 rod pass 1       superseded/20261028-plan_rod_lab_pass1_search_ts1_v3id1.json's 21 touch-offs and 5 pivots with the normal
                      approach (3.5 mm above to 1.2 mm past, travel.slow_mm_touch 2.5, as v2 ID 1's rod pass 1): the
                      program resumes a seed folder of scripts/ur5_tip_calibration_seed_registration.py (the rod's T_BI
@@ -135,7 +135,9 @@ def main():
             p, rep = WO.reorder(p, ses)
             note += (f"; reordered on {ses.name} (scripts/ur5_tip_calibration_wrist_order.py): travels with wrist 1 from "
                      f"below 0 to above it while wrist 2 rises more than {rep['rise_deg']:g} deg "
-                     f"{len(rep['before']['signatures'])} -> {len(rep['after']['signatures'])}, the wrists' travel "
+                     f"{len(rep['before']['signatures'])} -> {len(rep['after']['signatures'])}, wrist 1 crossing 0 with "
+                     f"a swing over {rep['swing_deg']:g} deg {len(rep['before']['large_swings'])} -> "
+                     f"{len(rep['after']['large_swings'])}, the wrists' travel "
                      f"{rep['before']['wrist_travel_deg']:.0f} -> {rep['after']['wrist_travel_deg']:.0f} deg, "
                      f"{rep['moved']} actions moved, at most {rep['largest_move']} places")
             acts = p["actions"]
