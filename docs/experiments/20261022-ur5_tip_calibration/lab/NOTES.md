@@ -2154,7 +2154,9 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   deep pose. An exact test of the flagged point puts it 6.34 mm outside the cover, 6.52 mm outside the cap and
   0.28 mm inside the pad, where the press indents it. `_tree_sdf` takes the sign from its 8 nearest surface samples'
   normals, and 6 mm from any body surface it read inside. The workstation was told: the opposite error, a point inside
-  the body read as clear, would be the dangerous one.
+  the body read as clear, would be the dangerous one. Over the whole session (every 5th sample) nothing else was
+  flagged: 177 samples in the homing (the seated pose, 4.25 mm from the 2x4s, and the socket on the key) and 73 in
+  probe-flank-476.
 - **The station block's face, a risk the simulator cannot show.** At z_F -99.4 the low touch (x_F 7.0) was 1.04 mm
   from where the station block's coplanar face starts (z_F -98.36). The probe's sphere has a 5 mm radius (`sphere5`,
   the plan's radius 5.0), so there its surface stood only 0.11 mm off the wall's plane. A block face that much proud of
@@ -2172,6 +2174,35 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - pass1-check now reads a plan's own wall stage (stage 2's first action is the first outside pad and wall).
 - **The tip mode is unchanged.** HEAD's program and simulator and the new ones print the same session line for line,
   apart from the session folder's name: 34 lines on v3 ID 3's sphere pass 1 (tipold4 against tipnew6).
+
+## Probe mode: deeper margins, and the dry run along the stem (10-30, from 16:4x)
+
+- **The workstation's exact body check** (bbe38fc93, `ur5_inverted_rig.py body-check`) answers the sign question. It
+  takes the nearest point on the cover's and the cap's meshes, with inside decided by the generalized winding number,
+  at every action's deep pose, every twist step and every wall touch: 3,135 poses. No tool point was inside the body;
+  the exact least was 0.259 mm. Near the surface the tree read up to 0.105 mm long, so deep_clear now keeps 0.1 mm
+  more on the tool's end. The seat plans changed in deep_clear_mm only: 56, 71 and 64 actions, each 0.25 or 0.5 mm
+  shallower.
+- **The plans, rebuilt.** The three lab plans differ from 349ec386's in max_depth_mm on those actions, in one seat-2
+  touch-off's beyond_mm (1.2 to 1.0) and in their notes. Pass 1 and the walls are unchanged, and the workstation's new
+  pass1-check rows match.
+- **The dry run backed off into key 1.** `--dry 15` moved every target 15 mm back along its push. In the tip mode
+  that was straight up. In the probe mode a wall's push is horizontal at the seats' height, and a flank's mostly
+  sideways. Seat 1's dry run with walls (s1dryw) put the stem 4.58 mm and the tool end 5.70 mm inside key 1 at
+  wall-py-lo. The dry rest of pad-flank-449-o35-a180 brought the elbow within 20 deg of straight (the checker's q3).
+  No check had covered the dry poses, and the dry run was to be the first step on the robot.
+- **The program now backs a probe-mode dry run off along the stem,** the way every travel retreats: target_pose
+  moves the rest pose back along z_M by --dry. A non-dry run is unchanged, since a zero move returns the pose as it
+  was. Seat 1's non-dry run through the second register (s1wchk) printed the same lines as s1wf3 on the code before
+  the change, and the tip mode the same 34 lines as HEAD.
+- **Simulated on the rebuilt plans.** The three seats' dry runs with walls (s1dry4, s2dry4, s3dry4: `--dry 15`, the
+  full stages) had no abort and no early contact. Over their whole sessions (every 5th sample, the tip where the
+  simulator had it), nothing is flagged outside the homing. The tool end stays 3.0 mm or more from any tip body and
+  the stem 2.56 mm or more, the q3 flag is gone, and joint 6 stays within -16 and +16 deg. The homing flags 176 to
+  183 samples on each seat: the socket on its key, and the seated pose 3.94 to 4.90 mm from the 2x4s (STATE, the
+  owner's call).
+- The rebuilt plans' whole sessions (s1wf3, s2wf3, s3wf3) print what s1wf2 to s3wf2 printed: every action done, no
+  abort, the same fits and the same true misses. Their walls' moves are clean in the cell as before.
 
 ## The lab clone and git-lfs
 

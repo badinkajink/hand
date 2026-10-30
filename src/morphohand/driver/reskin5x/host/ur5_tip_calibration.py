@@ -28,7 +28,8 @@ flange poses through the registration it measures, stage by stage:
 
 Every action is logged in <session>/events.jsonl as it starts and ends (fsync); the streams go to ft.bin, board.bin and
 robot.bin. A session started again with --resume <session> skips the actions that ended ok and reloads the
-registration. --dry 15 shifts every target 15 mm away from the indenter along its approach (no contact: reach, cables).
+registration. --dry 15 shifts every target 15 mm away from the indenter along its approach (no contact: reach, cables);
+in probe mode back along the stem instead.
 --step asks before each action. Ctrl-C stops the robot (stopL) and closes the files.
 
 Probe mode (a plan with geometry.probe, from scripts/ur5_probe_plan.py; the inverted rig of 2026-10-30): a sphere on the
@@ -1271,13 +1272,15 @@ class Session:
         """(flange pose at the action's rest, approach direction) for a plan action."""
         tg = a["target"]
         st = standoff + self.dry
-        if self.probe:                  # the sphere's centre st back along d from where it meets p, the mount at R_PM
+        if self.probe:                  # the sphere's centre standoff back along d from where it meets p, the mount at R_PM
             T_BP = self.reg.T_BP()
             d_P = np.asarray(tg["d"], float) / np.linalg.norm(tg["d"])
-            c_B = apply(T_BP, np.asarray(tg["p"], float) + self.geo.R * np.asarray(tg["n"], float) - st * d_P)
+            c_B = apply(T_BP, np.asarray(tg["p"], float) + self.geo.R * np.asarray(tg["n"], float) - standoff * d_P)
             R_BM = T_BP[:3, :3] @ np.asarray(tg["R_PM"], float)
             self.last_d = T_BP[:3, :3] @ d_P
-            return Tm(R_BM, c_B - R_BM @ self.reg.c_M) @ inv(self.reg.T_EM), self.last_d
+            # --dry backs off along the stem, as the travels retreat: along the push, a wall's or a flank's dry rest ran
+            # sideways at the seats' height, into key 1 or to the elbow's reach (the simulator, 10-30)
+            return self.back_along(Tm(R_BM, c_B - R_BM @ self.reg.c_M) @ inv(self.reg.T_EM), self.dry), self.last_d
         if tg["frame"] == "M":
             R = rot(EZ, a.get("twist", 0.0)) @ self.geo.R_ref @ rot_from_to(tg["n"], [1.0, 0.0, 0.0])
             c = self.geo.contact_point_I(st, tg.get("y_rod", 0.0))
@@ -2085,7 +2088,8 @@ def main(argv=None):
     ap.add_argument("--gravity-max-rms", type=float, default=0.1, help="N: the gravity sweep's force residual past which "
                     "the session stops before any contact (Table 2 expects under 0.02 N)")
     ap.add_argument("--resume", default=None)
-    ap.add_argument("--dry", type=float, default=0.0, help="mm added to every standoff: no contact")
+    ap.add_argument("--dry", type=float, default=0.0, help="mm added to every standoff, in probe mode back along the "
+                    "stem: no contact")
     ap.add_argument("--step", action="store_true")
     ap.add_argument("--pivot-fit", action="store_true", help="fold the pivot's offsets into the registration (off: a check)")
     ap.add_argument("--logs", default=str(Path.cwd() / "logs"))
