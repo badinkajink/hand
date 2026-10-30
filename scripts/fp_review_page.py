@@ -1362,6 +1362,17 @@ with the sphere's size, from a median of <<r0>> over the reached layouts at <<s0
                               r0=f"{Z['roll']['sizes'][min(Z['roll']['sizes'])]['median']:.2f}",
                               r1=f"{Z['roll']['sizes'][max(Z['roll']['sizes'])]['median']:.2f}",
                               s0=f"{min(Z['roll']['sizes']):g}", s1=f"{max(Z['roll']['sizes']):g}") if "roll" in Z else ""))
+    cyl = [k for k in ("pinpush", "press") if k in Z]
+    if cyl:
+        parts = []
+        for k in cyl:
+            sz_ = sorted(Z[k]["sizes"])
+            parts.append(fill(r"""<<i>> % of the <<n>>'s variance against <<ns>> % from seed noise, with Spearman <<r>> between
+the <<a>> and <<b>> mm cylinders and <<kp>> % of the best tenth kept""", n=names[k], i=f"{100 * Z[k]['variance']['interaction']:.0f}",
+                              ns=f"{100 * Z[k]['variance']['interaction_noise']:.0f}",
+                              r=f"{Z[k]['pairs'][f'{sz_[0]:g}-{sz_[-1]:g}']:.2f}", a=f"{sz_[0]:g}", b=f"{sz_[-1]:g}",
+                              kp=f"{100 * Z[k]['kept'][f'{sz_[0]:g}-{sz_[-1]:g}']:.0f}"))
+        t += "<p>On the cylinders the interaction is " + "; and ".join(parts) + ".</p>"
     nb = [(v["nbh"], v["nbh_null"], v["nbh_size"]) for T_ in Z.values() for v in T_["sizes"].values()
           if v.get("nbh_null") is not None]
     if nb:
