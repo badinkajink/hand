@@ -775,12 +775,14 @@ def feasible(fp, d, v):
 
 
 def cmd_derive(a):
-    """Grasp sets for the validation and the transfer runs on the grid, from the grid's GPU rows (seeds 0-2):
-      grid2dval_<pose><d>_v4b   each layout's foundational pose and best grasp (to run on fresh seeds);
-      grid2dnb_<pose><d>_v4b    each layout's own best grasp, its four grid neighbours' best grasps and the keyframe
-                                grasp (the best grasp of the layout at the smoothed map's highest peak), each moved as a
-                                palm-frame keyframe (transfer_grasp) and kept when feasible; `src` names each grasp's origin.
-    The pinch family's files hold the pin-push's grasps under 'pinch' and the press's under 'press'."""
+    """Grasp sets for the validation and the transfer runs on the grid, one file per task, from the grid's GPU rows
+    (seeds 0-2):
+      grid2dval_<task>_<pose><d>_v4b   each layout's foundational pose and best grasp (to run on fresh seeds);
+      grid2dnb_<task>_<pose><d>_v4b    each layout's own best grasp, its four grid neighbours' best grasps and the
+                                       keyframe grasp (the best grasp of the layout at the smoothed map's highest peak),
+                                       each moved as a palm-frame keyframe (transfer_grasp) and kept when feasible; `src`
+                                       names each grasp's origin.
+    hom_gpu.py reads them as --layouts grid2dval_<task>_size and grid2dnb_<task>_size."""
     import fp_sr2_toy as FP
     fams = {"tripod": ("twist", "roll"), "pinch": ("pinpush", "press")}
     for fam, tasks in fams.items():
@@ -788,8 +790,8 @@ def cmd_derive(a):
         size = a.d_sphere if fam == "tripod" else a.d_cylinder
         FP.set_sizes(**({"sph_d_mm": size} if shape == "sphere" else {"cyl_d_mm": size}))
         src_rows = {int(r["call"]): r for r in FR.load(FP.size_name("grid2d", shape, size))}
-        val, nb = {}, {}
         for task in tasks:
+            val, nb = {}, {}
             pose = POSE_KEY[task]
             tab = {r["call"]: r for r in grid_table(task, size)}
             if not any(r.get("n_grasps") for r in tab.values()):
@@ -838,10 +840,16 @@ def cmd_derive(a):
                 nr = nb.setdefault(call, {"d": row["d"], "call": call, "xy": row["xy"], "ok": True, "fp": {}})
                 nr["fp"][pose] = dict(gs[0], grasps=out, keyframe_call=key_call)
             print(task, size, "keyframe layout", key_call, src_rows[key_call]["xy"], n_feas, flush=True)
-        for name, rows in (("grid2dval", val), ("grid2dnb", nb)):
-            p = ROWS / f"{FP.size_name(name, shape, size)}.jsonl"
-            p.write_text("".join(json.dumps(rows[c]) + "\n" for c in sorted(rows)))
-            print("wrote", p.relative_to(ROOT), len(rows), flush=True)
+            fj = GRID_ROWS / "transfer_feasible.json"
+            allf = json.loads(fj.read_text()) if fj.exists() else {}
+            allf[f"{task}_d{size:g}"] = dict(n_feas, layouts=len(val), keyframe_call=key_call,
+                                              keyframe_xy=src_rows[key_call]["xy"])
+            GRID_ROWS.mkdir(parents=True, exist_ok=True)
+            fj.write_text(json.dumps(allf, indent=1))
+            for name, rows in (("grid2dval", val), ("grid2dnb", nb)):
+                p = ROWS / f"{FP.size_name(f'{name}_{task}', shape, size)}.jsonl"
+                p.write_text("".join(json.dumps(rows[c]) + "\n" for c in sorted(rows)))
+                print("wrote", p.relative_to(ROOT), len(rows), flush=True)
     return 0
 
 
