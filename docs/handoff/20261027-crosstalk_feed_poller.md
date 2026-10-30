@@ -13,7 +13,8 @@ docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/c
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
 State: armed 2026-10-27 21:00 from the colorado window. Last check 10-30 07:16: no news since 10-29 16:25 (watcher exit 3
 at 07:16, HEAD 65a0633e, 28 feed lines; no lab commit since 01:41, the arm waiting for the owner's go). The gate was
-closed at 07:1x on load (21.47 on 20 cores), so the watcher runs plain with --until-gate (exit 10 when it opens).
+closed at 07:1x on load (21.47 on 20 cores); the plain --until-gate watcher exited 10 at 07:22 with no news, and the
+watcher runs through resguard from 07:22 (task bb1rj4vxj; load 11.96, 18.5 GB available).
 Check of 10-30 03:25: no news (exit 3, HEAD 2dd938d8). Lab progress, no page by direction 28: v3 ID 3's block 5 (rod pass 1) 21 of 21
 at 23:35 (d8cbdb6b); block 4 stopped at 00:08 on a HEX-E loss, 46 of 101 ok (1f82b505); the HEX-E back by itself at
 01:37 after 89 min, the resume simulated clean and waiting for the owner's go (1c0a5486, aa01e038). When v3 ID 3's
