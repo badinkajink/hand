@@ -1259,7 +1259,7 @@ def size_numbers():
         if per:
             T_ = land["tasks"][task]
             out[task] = {"sizes": per, "pairs": {k: v["spearman"] for k, v in T_["pairs"].items()},
-                         "variance": T_["variance"]}
+                         "kept": {k: v["top_kept"] for k, v in T_["pairs"].items()}, "variance": T_["variance"]}
     return out
 
 
@@ -1289,6 +1289,9 @@ that depends on the object. Seed noise alone would give the interaction in the l
                 "Layout (%)", "Size (%)", "Interaction (%)", "Interaction from seed noise (%)"], rows,
                "How the layouts' scores change with the object's size, over the 8,192 Sobol layouts (a layout that does "
                "not reach the pose scores 0).", num_from=2)
+    if "roll" in Z:
+        rs = Z["roll"]["sizes"]
+        roll_kept = Z["roll"]["kept"][f"{min(rs):g}-{max(rs):g}"]
     if "twist" in Z:
         tw = Z["twist"]["sizes"]
         s0, s1 = min(tw), max(tw)
@@ -1298,13 +1301,20 @@ that depends on the object. Seed noise alone would give the interaction in the l
 every task listed. In the twist the interaction is <<ti>> % of the variance against <<tn>> % from seed noise, and the
 ranking of layouts on the <<s0>> mm sphere keeps only Spearman <<se>> on the <<s1>> mm sphere. The best tenth of twist
 layouts moves its thumb and index mounts apart as the sphere grows: the median thumb-to-index distance along palm $x$ is
-<<x0>> mm at <<s0>> mm and <<x1>> mm at <<s1>> mm (Figure <<f>>).<<roll>></p>""",
+<<x0>> mm at <<s0>> mm and <<x1>> mm at <<s1>> mm (Figure <<f>>). Of the best tenth of twist layouts on the
+<<s0>> mm sphere, <<k0>> % are in the best tenth on the <<s1>> mm sphere, where a random tenth would give 10 %;
+between neighbouring sizes <<kn0>> to <<kn1>> % are.<<roll>></p>""",
                   ti=f"{100 * Z['twist']['variance']['interaction']:.0f}",
                   tn=f"{100 * Z['twist']['variance']['interaction_noise']:.0f}", s0=f"{s0:g}", s1=f"{s1:g}",
                   se=f"{Z['twist']['pairs'][f'{s0:g}-{s1:g}']:.2f}", x0=f"{xs0:.0f}", x1=f"{xs1:.0f}", f=FIG[0] + 1,
+                  k0=f"{100 * Z['twist']['kept'][f'{s0:g}-{s1:g}']:.0f}",
+                  kn0=f"{100 * min(Z['twist']['kept'][f'{a_:g}-{b_:g}'] for a_, b_ in zip(sorted(tw)[:-1], sorted(tw)[1:])):.0f}",
+                  kn1=f"{100 * max(Z['twist']['kept'][f'{a_:g}-{b_:g}'] for a_, b_ in zip(sorted(tw)[:-1], sorted(tw)[1:])):.0f}",
                   roll=(fill(r""" The roll's ranking changes less with size: its interaction is <<ri>> % of the
-variance. Its scores rise with the sphere's size, from a median of <<r0>> over the reached layouts at <<s0>> mm to
-<<r1>> at <<s1>> mm.""", ri=f"{100 * Z['roll']['variance']['interaction']:.0f}",
+variance, and <<rk>> % of its best tenth on the smallest sphere stay in the best tenth on the largest. Its scores rise
+with the sphere's size, from a median of <<r0>> over the reached layouts at <<s0>> mm to <<r1>> at <<s1>> mm.""",
+                              ri=f"{100 * Z['roll']['variance']['interaction']:.0f}",
+                              rk=f"{100 * roll_kept:.0f}",
                               r0=f"{Z['roll']['sizes'][min(Z['roll']['sizes'])]['median']:.2f}",
                               r1=f"{Z['roll']['sizes'][max(Z['roll']['sizes'])]['median']:.2f}",
                               s0=f"{min(Z['roll']['sizes']):g}", s1=f"{max(Z['roll']['sizes']):g}") if "roll" in Z else ""))
