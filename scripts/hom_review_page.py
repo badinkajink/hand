@@ -495,9 +495,12 @@ def sec_ours():
         ("Palm and object pose", "floating palm; object pose from the simulator", "palm fixed on the gantry; tag tracker on the bench", ""),
     ]
     t = """<p>Our library, <code>src/morphohand/control/hom.py</code> with <code>surfaces.py</code>, implements Eqs. (1) to
-(6) as printed and passes 21 tests (<code>tests/test_hom_control.py</code>). The method page lists every difference
+(6) as printed and passes 24 tests (<code>tests/test_hom_control.py</code>). The method page lists every difference
 from the paper with its reason; Table 1 condenses them. Most follow from two facts about our hand. Its servos accept
-position targets only, and its fingertips are modelled as sphere pads in MuJoCo.</p>"""
+position targets only, and its fingertips are modelled as sphere pads in MuJoCo.</p>
+<p>A subpage follows the code substep by substep, with the numbers of a twist and a pin-push on the v4b fingertip:
+<a href="20261030-hom_controller_code_walkthrough.html">Implementation of the HOM controller on the SR2 hand with the v4b
+fingertip</a> (<code>20261030-hom_controller_code_walkthrough.html</code>).</p>"""
     t += table(["Item", "Paper [1]", "Our library", "Reason"],
                [[a, b, c, d_] for a, b, c, d_ in diffs],
                "Differences between the paper's implementation and ours (condensed from the method page, "
@@ -909,7 +912,8 @@ to <<f2>> N, but the same loop dropped the sphere in <<tw>> twist runs.""", f1=f
     byline = ("Review and simulation, 2026-10-29. Paper: arXiv 2609.25619v2 [1]. Controller: "
               "<code>src/morphohand/control/hom.py</code>. Hand: the CAD-model SR2 hand on the 1 N m plant with 1 mm "
               "sphere pads. Fingertips: the four-magnet v3 tips calibrated on the UR5. Builder: "
-              "<code>scripts/hom_review_page.py</code>.")
+              "<code>scripts/hom_review_page.py</code>. Code walkthrough: "
+              '<a href="20261030-hom_controller_code_walkthrough.html">20261030-hom_controller_code_walkthrough.html</a>.')
     assemble(sections, "HOM control and fingertip sensing",
              "Hand-object mechanism control on the SR2 hand and the fingertip sensing it needs",
              "Reorientation mechanisms and control", lede, byline, summary_text)
