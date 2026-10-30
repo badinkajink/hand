@@ -1044,6 +1044,11 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 14:5x on 10-30, lab (0d7a7a4f): block 6 ended at 14:49:02 with 100 of 100 ok, no abort and no HEX-E time-out,
+    so v3 ID 3's suite is complete. Since the 11:09 reseat, 155 actions ran with no HEX-E loss. The lab installed
+    the probe mode and is simulating it (not yet committed). The homing check now includes the seated pose: the
+    arm's last link stands 4.0 mm over the 2x4s' model there, about 5.5 mm over the low sphere's 2x4 in reality,
+    and about 40 mm with that 2x4 off the table (d52b1998).
   - 13:2x on 10-30, lab (2c09e4cf): block 4 ended at 13:19:51 with 101 of 101 ok. Its last 55 ran in wrist2's order
     from 11:15:24 with no abort, no early contact and no HEX-E time-out (745,632 samples; one 0.7 s gap at the
     start). The arm reached tall-edge-626's pose twice after the 11:09 reseat with more slack, at 11:18:58 and
