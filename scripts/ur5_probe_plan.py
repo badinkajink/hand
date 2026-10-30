@@ -22,7 +22,13 @@ the CAD: each added touch-off is the one that most lowers the expected squared m
 sphere's centre stands in P against where it was aimed), through the fit's posterior covariance. A twist action presses to 3 N, turns, holds 1 s at each angle, and is followed at the same point by the
 same twist at 1 N (owner, 13:4x on 10-30: stronger twists; workstation: hold about 1 s for the Tz noise).
 
+With --walls (the workstation's ur5_inverted_rig.py walls: data/20261030-seat_block_walls.json), stage wall touches the
+cap's flat side walls, two heights 6 mm apart on each, for the seat's turn about z_P. Each wall takes the travel of the
+workstation's pass1-check --walls of these plans (--walls-check: data/20261030-seat_block_pass1_check.json), whose rows
+must list this plan's touch-offs in order; the plan carries the walls' faces in P for the simulator (sim.walls).
+
     /usr/bin/python3 scripts/ur5_probe_plan.py PLAN [--out OUT] [--pass1 N] [--pass1-standoff MM] [--held-channel K]
+        [--walls WALLS --walls-check CHECK]
 """
 from __future__ import annotations
 
@@ -50,7 +56,7 @@ TOUCH_STOP_N, TOUCH_FIT_N = 1.0, 0.8     # a probe pushes mostly along its stem,
 #                                          is five times x's and y's, where the tip mode's touches push: twice its 0.5, 0.4 N
 TWIST_HOLD_S = 1.0
 PRIOR = np.r_[np.radians([1.0, 1.0, 0.5]), [0.5] * 3, [0.3] * 3]            # the program's REG_SIGMA_PROBE
-SIG_PAD = 0.03
+SIG_PAD, SIG_WALL, SIG_WALL_OFFSET = 0.03, 0.02, 0.1
 
 
 def jacobians(acts, T_BA, T_AP, T_EM, c_M, R, geo0):
@@ -98,7 +104,47 @@ def pass1_ids(acts, n, J, G):
         pick.append(best[1])
         H = H + np.outer(J[best[1]], J[best[1]]) / SIG_PAD ** 2
     S = np.linalg.inv(H)
-    return [acts[k]["id"] for k in sorted(pick)], np.sqrt(np.diag(S)), float(np.sqrt(np.trace(S @ M)))
+    return [acts[k]["id"] for k in sorted(pick)], np.sqrt(np.diag(S)), float(np.sqrt(np.trace(S @ M))), H, M
+
+
+def wall_info(walls, T_BA, T_AP, T_EM, c_M, R):
+    """The wall touches' information on the fit's 9 parameters at the CAD, as the program fits them: SIG_WALL a touch and
+    one offset per wall (prior SIG_WALL_OFFSET), which only the touches on that wall share."""
+    T_BP = T_BA @ T_AP
+    by = {}
+    for w in walls:
+        tg = w["target"]
+        p, n = np.asarray(tg["p"], float), np.asarray(tg["n"], float)
+        c = C.apply(T_BP, p + R * n)
+        R_BM = T_BP[:3, :3] @ np.asarray(tg["R_PM"], float)
+        T_on = C.Tm(R_BM, c - R_BM @ c_M) @ C.inv(T_EM)
+
+        def res(x):
+            return (C.apply(C.inv(T_BA @ C.perturb(T_AP, x[:6])) @ T_on @ T_EM, c_M + x[6:9]) - p) @ n - R
+
+        row = np.array([(res(1e-5 * np.eye(9)[j]) - res(np.zeros(9))) / 1e-5 for j in range(9)])
+        by.setdefault((tuple(np.round(n, 3)), round(float(n @ p), 2)), []).append(row)
+    H = np.zeros((9, 9))
+    for rows in by.values():
+        Jw = np.array(rows)
+        H += Jw.T @ np.linalg.solve(SIG_WALL ** 2 * np.eye(len(Jw)) + SIG_WALL_OFFSET ** 2, Jw)
+    return H
+
+
+def wall_faces_P(walls):
+    """The side walls the plan touches, for the simulator: each one's plane and its faces in P (RIG.wall_faces, the
+    cassette's and the cap's outer side faces, on the wall's plane)."""
+    faces, T_PF, out = RIG.wall_faces(), C.inv(RIG.T_FP), []
+    for side in (1, -1):
+        w = next((w for w in walls if w["plane"]["normal_P"][1] * side > 0), None)
+        if w is None:
+            continue
+        y_F = C.apply(RIG.T_FP, np.asarray(w["plane"]["point_P"], float))[1]
+        tri = faces[side]
+        F3 = np.stack([tri[..., 0], np.full(tri.shape[:2], y_F), tri[..., 1]], axis=-1)
+        out.append(dict(point_P=w["plane"]["point_P"], normal_P=w["plane"]["normal_P"],
+                        tris_P=C.apply(T_PF, F3.reshape(-1, 3)).reshape(F3.shape).round(4).tolist()))
+    return out
 
 
 def replay_travel(ws, seat, key):
@@ -132,7 +178,7 @@ def travel_of(name):
     return name, None
 
 
-def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS):
+def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, walls=None, walls_check=None):
     RIG.PLATE[0] = "block"
     g = RIG.plate()
     seat = int(ws["seat"])
@@ -197,7 +243,7 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS):
         raise SystemExit(f"the rest poses from the directions in P stand {worst:.3f} mm off the replay's")
     presses = [a for a in acts if a["kind"] == "press"]
     J, G = jacobians(presses, T_BA, T_AP, T_EM, c_M, R, geo0)
-    p1, sd1, miss1 = pass1_ids(presses, n_pass1, J, G)
+    p1, sd1, miss1, H1, M1 = pass1_ids(presses, n_pass1, J, G)
     p1 = set(p1)
     touches = []
     for a in acts:
@@ -211,6 +257,38 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS):
                 t.pop(k, None)
             touches.append(t)
     touches[0].update(travel_ws=first["way"], homing_lift_mm=first["lift_mm"])   # pass 1 starts from the homing
+    wall_acts, wall_note = [], ""
+    if walls is not None:
+        ww = walls["seats"][str(seat + 1)]
+        if np.abs(np.array(ww["T_AP"], float) - T_AP).max() > 1e-4:
+            raise SystemExit("the walls' T_AP is not this seat's")
+        mine = [r for r in walls_check["rows"] if r["seat"] == seat + 1]
+        want = [t["id"] for t in touches] + [w["id"] for w in ww["actions"]] + [acts[0]["id"]]
+        st_check = {r["id"]: r["standoff_mm"] for r in mine}
+        if [r["id"] for r in mine] != want or any(abs(st_check[t["id"]] - t["standoff"]) > 1e-6 for t in touches):
+            raise SystemExit(f"the walls' check replayed another pass 1 for seat {seat + 1}: run the workstation's "
+                             "pass1-check --walls on these plans")
+        way_w = {r["id"]: r["travel"] for r in mine}
+        for w in ww["actions"]:
+            tg = dict(w["target"])
+            d_P = np.asarray(tg["d"], float)
+            tg["d"] = (d_P / np.linalg.norm(d_P)).round(6).tolist()
+            sto = float(w["standoff_mm"])
+            T_BP = T_BA @ T_AP                                 # the check, as for the presses
+            c = C.apply(T_BP, np.asarray(tg["p"], float) + R * np.asarray(tg["n"], float) - sto * np.asarray(tg["d"]))
+            R_BM = T_BP[:3, :3] @ np.asarray(tg["R_PM"], float)
+            worst = max(worst, C.pose_error(C.Tm(R_BM, c - R_BM @ c_M) @ C.inv(T_EM), np.array(w["T_rest"], float))[0])
+            wall_acts.append(dict(id=w["id"], stage="wall", kind="touch", region="wall", target=tg, standoff=sto,
+                                  beyond_mm=float(w["beyond_mm"]), stop_N=TOUCH_STOP_N, fit_N=TOUCH_FIT_N, v=0.0005,
+                                  q_rest=w["q_rest"], travel_ws=way_w[w["id"]], plane=w["plane"]))
+        S2 = np.linalg.inv(H1 + wall_info(ww["actions"], T_BA, T_AP, T_EM, c_M, R))
+        sd2 = np.sqrt(np.diag(S2))
+        wall_note = (f"; with the {len(wall_acts)} wall touches the turn about z_P would have sd "
+                     f"{math.degrees(sd2[2]):.2f} deg (pass 1 alone {math.degrees(sd1[2]):.2f}) and a press's expected miss "
+                     f"{math.sqrt(np.trace(S2 @ M1)):.3f} mm rms; travels to the walls "
+                     f"{[way_w[w['id']] for w in ww['actions']]}")
+        if worst > 0.01:
+            raise SystemExit(f"the rest poses from the directions in P stand {worst:.3f} mm off the replay's")
     yaw = math.degrees(math.atan2(T_BA[1, 0], T_BA[0, 0]))
     regions = {}
     for t in touches:
@@ -218,8 +296,8 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS):
     note = (f"From {ws.get('source', 'the workstation plan')} (seat {seat + 1}, tool {tool}, mux channel {ch}) by "
             f"scripts/ur5_probe_plan.py: {len(touches)} touch-offs (pass 1: {regions}; at the CAD the fit's sd would be "
             f"{np.degrees(sd1[:3]).round(2).tolist()} deg and {sd1[3:6].round(3).tolist()} mm for the seat, "
-            f"{sd1[6:9].round(3).tolist()} mm for the sphere's centre, a press's expected miss {miss1:.3f} mm rms) and "
-            f"{len(acts)} presses and twists; rest poses "
+            f"{sd1[6:9].round(3).tolist()} mm for the sphere's centre, a press's expected miss {miss1:.3f} mm rms{wall_note}) "
+            f"and {len(acts)} presses and twists; rest poses "
             f"within {worst * 1e3:.1f} um of the replay's at the plan's T_BA and T_EM.")
     plan = dict(
         version=1, mode="probe", created=ws["created"], notes=[note] + list(ws.get("notes", [])),
@@ -235,8 +313,9 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS):
         speed_slider=0.3,
         checks=dict(placement_mm_deg=[float(T_BA[0, 3]), float(T_BA[1, 3]), float(T_BA[2, 3]), yaw],
                     source=ws.get("source")),
-        sim=dict(T_BI=T_BA.tolist(), q_seed=first["q_start"], q_start=first["q_start"], start=None),
-        actions=touches + acts)
+        sim=dict(T_BI=T_BA.tolist(), q_seed=first["q_start"], q_start=first["q_start"], start=None,
+                 walls=wall_faces_P(walls["seats"][str(seat + 1)]["actions"]) if walls is not None else []),
+        actions=touches + wall_acts + acts)
     return plan
 
 
@@ -249,7 +328,12 @@ def main():
                     "the replay's checked rest)")
     ap.add_argument("--held-channel", type=int, default=None, help="the seat's board's mux channel (default HELD_CHANNEL)")
     ap.add_argument("--no-1n-twists", action="store_true", help="the twists at 3 N only (each 1 N twist adds about 2 min)")
+    ap.add_argument("--walls", default=None, help="the workstation's wall touch-offs (ur5_inverted_rig.py walls)")
+    ap.add_argument("--walls-check", default=None, help="the workstation's pass1-check --walls of these plans: the walls' "
+                    "travels")
     a = ap.parse_args()
+    if (a.walls is None) != (a.walls_check is None):
+        raise SystemExit("--walls and --walls-check go together")
     ws = json.loads(Path(a.plan).read_text())
     src = Path(a.plan).resolve()
     ws["source"] = str(src.relative_to(ROOT)) if src.is_relative_to(ROOT) else str(src)
@@ -259,10 +343,13 @@ def main():
     if not paths.exists():
         raise SystemExit(f"no {paths.name}: the replay's travels are needed")
     rows = json.loads(paths.read_text())["rows"]
-    plan = build(ws, rows, a.pass1, a.pass1_standoff, a.held_channel, TWISTS[:1] if a.no_1n_twists else TWISTS)
+    walls = json.loads(Path(a.walls).read_text()) if a.walls else None
+    check = json.loads(Path(a.walls_check).read_text()) if a.walls_check else None
+    plan = build(ws, rows, a.pass1, a.pass1_standoff, a.held_channel, TWISTS[:1] if a.no_1n_twists else TWISTS, walls,
+                 check)
     out = Path(a.out) if a.out else Path(a.plan).with_name(Path(a.plan).stem.replace("_plan_", "_program_plan_") + ".json")
     out.write_text(json.dumps(plan, indent=1))
-    n1 = sum(1 for x in plan["actions"] if x["stage"] == "pad")
+    n1 = sum(1 for x in plan["actions"] if x["stage"] in ("pad", "wall"))
     print(f"{out}: {n1} touch-offs, {len(plan['actions']) - n1} presses and twists; {plan['notes'][0]}")
 
 

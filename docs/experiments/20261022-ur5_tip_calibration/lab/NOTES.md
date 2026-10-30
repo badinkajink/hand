@@ -2079,6 +2079,100 @@ until then the work ran in a scratchpad copy.
   4.03 mm from the low sphere's 2x4 (need 8). The workstation confirmed it (d52b1998b): about 5.5 mm in the real cell,
   and about 40 mm with that 2x4 off the table.
 
+## Probe mode: the tip's side walls (10-30, from 15:1x)
+
+The workstation pushed d37468c18 at 15:13. It holds a check of pass 1 as the converter writes it, and touch-offs on the
+tips' side walls. The lab's answers went to the workstation at 15:37.
+
+- **Pass 1 is clean at 3.5 mm.** `ur5_inverted_rig.py --plate block pass1-check` replays the pad stage in the
+  converter's order. It flies the lift from the homing, each touch-off from 3.5 mm to its beyond_mm and back, the joint
+  travels between them and the travel into stage 2. All three seats pass. The least stem clearances are 3.0, 2.33 and
+  2.41 mm, the tool end's 0.56, 0.54 and 0.47 mm (`data/20261030-seat_block_pass1_check.json`).
+- **probe-ref-00 keeps homing_lift_mm 30 in the plan.** The program takes that lift only straight after the homing:
+  the homing sets `from_homing`, and the first travel clears it. After pass 1, probe-ref-00 flies the joint travel from
+  the last touch-off's rest, as the check flew it. The lift serves a session resumed straight into stage 2.
+- **The walls** (`data/20261030-seat_block_walls.json`). Each seat gets four touch-offs on the cap's distal strip, where
+  the side planes y_F = +-10.5 are flat from x_F 0.5 to 8.0. They sit at x_F 1.0 and 7.0, so the two on a wall stand
+  6 mm apart. Each rests 3.5 mm back and goes at most 0.3 mm past the wall. The walls come after the pad's fit,
+  because the low touch's strip is narrow. They first sat at z_F -99.4 and moved to -99.75 at 15:40 (8ee8556e, below).
+  With the walls after the pad's touch-offs, all three seats run 25 moves each with none flagged (least stem 1.67 mm,
+  tool end 0.36 mm). On seat 1 the move from py-lo to ny-hi goes by the hub.
+- **The program.**
+  - Stage `wall` runs the walls' touch-offs, with a linear onset fit as on the mount's face. A probe session runs
+    `--stages preflight,homing,pad,register,wall,register,grid`. The program refuses a wall stage with no pad fit
+    before it.
+  - `fit_probe_registration` takes a residual per wall touch: the sphere centre's height over the wall's plane, less R,
+    less the wall's offset. Each wall has one offset, with a 0.1 mm prior for the print, and a touch counts 0.02 mm.
+    So the walls' tilt enters the fit and their width mostly does not. A cassette printed wide would otherwise pull the
+    sphere's centre along the stems.
+  - The priors now stand at the plan's T_AP and c_M, not at the last fit, so register can run twice. The first fit is
+    unchanged: a refit of s1full3's touches gives its numbers to the digit.
+  - Register prints the turn about z_P that each wall gives alone, and warns when the two differ by more than 0.8 deg.
+- **The simulator** makes the side walls stiff planes, as it makes the mount's face in the tip mode. Their faces come
+  from the workstation's rig model (`wall_faces`), moved into P by the converter (`sim.walls`). The truth puts the +y
+  wall 0.05 mm out and the -y wall 0.03 mm in. The first run (s1w) stopped on three protective stops: the contact took
+  the far wall, across the tip, as touched. A wall now counts only while the sphere's centre is within R of its plane.
+- **The converter** adds the walls after pass 1 with `--walls` and `--walls-check`. It takes each wall's travel from the
+  check's rows. It stops unless those rows list its touch-offs in order at their standoffs; all three seats match. At
+  the CAD, the walls take the turn's sd from 0.49 to 0.17 or 0.18 deg. A press's expected miss falls from 0.133, 0.127
+  and 0.129 mm rms to 0.094, 0.089 and 0.090 (seats 1, 2 and 3).
+- **Simulated, seat 1, seeded, 3.5 mm rests:**
+  - The dry run of 28c2892c (`--dry 15`, s1dry3) had no abort and no early contact in 24 min.
+  - Without walls (s1full3): 296 of 296, no abort. From the registration (scratchpad `probe_aim.py`) the presses miss
+    by 0.092 mm rms along the normal and 0.270 across. At their true rests, with the robot's kinematic errors kept
+    (scratchpad `probe_land.py`), they miss by 0.018 and 0.165 mm. The fit absorbs part of those errors, so
+    `probe_aim.py` overstates the miss.
+  - With walls at z_F -99.4, through the second register (s1w2): the onsets came -0.027, +0.020, -0.028 and
+    -0.111 mm from the expected, with peaks of 1.9 to 2.6 N. The second fit leaves 0.011 mm rms on the walls, with
+    offsets 0.055 and 0.009 mm (truth +0.05 and -0.03). It turns the seat +0.625 deg about z_P (sd 0.17), against the
+    truth's +0.72 deg. The pad alone gave +0.11 (sd 0.48). From the registration, the across miss falls from 0.270 to
+    0.177 mm rms.
+  - Seats 2 and 3 the same way (s2w, s3w): turns +0.635 and +0.599 deg (pad alone +0.15 and +0.14), across misses
+    0.273 to 0.181 and 0.230 to 0.155 mm rms. No abort.
+  - The walls' offsets (scratchpad `probe_wall_variants.py`, the same touches): pinned at zero, the across misses are
+    0.164, 0.170 and 0.145 mm; free, 0.179, 0.183 and 0.157; with the 0.1 mm prior, 0.177, 0.181 and 0.155. The prior
+    costs little when the print is right.
+- **Simulated on the final code, walls at z_F -99.75, whole sessions** (s1wf2, s2wf2, s3wf2: seeded, 3.5 mm rests,
+  `--stages preflight,homing,pad,register,wall,register,grid`):
+  - 296 of 296, 297 of 297 and 295 of 295 actions, with no abort, no early contact and no warning.
+  - The wall onsets came -0.130 to +0.068 mm from the expected. The second fits leave 0.009, 0.016 and 0.006 mm rms
+    on the walls. They turn the seats +0.542, +0.645 and +0.620 deg (sd 0.17 to 0.18), against the truth's +0.72;
+    each wall alone gives +0.46 to +1.03 deg.
+  - At their true rests (`probe_land.py`), the presses miss by 0.018, 0.023 and 0.027 mm rms along the normal. They
+    miss by 0.072, 0.047 and 0.057 mm rms across (at most 0.132 mm), where seat 1 without walls missed by 0.165.
+  - From the registration alone (`probe_aim.py`) the across misses read 0.191, 0.180 and 0.157 mm. The robot's
+    kinematic errors, which the fit absorbs, make most of the difference.
+  - The walls' moves and the travel into stage 2, every sample, in the cell (`probe_cell_check.py --ids
+    'wall-|probe-ref-00$' --tip-true`): nothing flagged on any seat. The least clearances are 0.38 to 0.40 mm for the
+    tool end, 1.59 to 2.61 mm for the stem, 53 mm for the HEX-E and 59 mm for the arm; joint 6 stays within -17 to
+    +15 deg. `--tip-true` stands the tip where the simulator had it. With the tip at its CAD pose instead, wall-py-lo
+    reads the tool end 0.24 to 0.43 mm inside the tip body, the truth's 0.25 mm and 0.7 deg off the seat's CAD.
+  - Seat 1's dry run with walls (`--dry 15`, s1dryw): no abort and no early contact.
+- **The rig model's tip-body distance can take the wrong sign.** In seat 1's run without walls (s1full3), the cell
+  check flagged probe-flank-476: the tool end 6.44 mm inside seat 1's tip body at 2 N. The workstation's replay has
+  that press clear (tool end 1.04 mm, stem 2.87 mm, both to the pad), and the sim's press stood within 0.9 mm of its
+  deep pose. An exact test of the flagged point puts it 6.34 mm outside the cover, 6.52 mm outside the cap and
+  0.28 mm inside the pad, where the press indents it. `_tree_sdf` takes the sign from its 8 nearest surface samples'
+  normals, and 6 mm from any body surface it read inside. The workstation was told: the opposite error, a point inside
+  the body read as clear, would be the dangerous one.
+- **The station block's face, a risk the simulator cannot show.** At z_F -99.4 the low touch (x_F 7.0) was 1.04 mm
+  from where the station block's coplanar face starts (z_F -98.36). The probe's sphere has a 5 mm radius (`sphere5`,
+  the plan's radius 5.0), so there its surface stood only 0.11 mm off the wall's plane. A block face that much proud of
+  the tip's wall would have met the low touch first. That happens when the tip sits off across y in its seat. A +y
+  low touch 0.12 mm early takes the fitted turn from +0.63 to +0.15 deg: that wall alone gives -0.59 deg, the other
+  +0.90. The workstation answered at 15:40 (8ee8556e):
+  - The cap's strip runs z_F -100.04 to -98.46 there; its coarse map had shown -99.75 to -99.0. Both touches moved
+    to z_F -99.75, where the margin is 0.20 mm: a block face more than 0.20 mm proud still meets the sphere first.
+    The lab's message and the workstation's answer had both taken a 2.5 mm radius (0.23 and 0.42 mm); the lab
+    corrected it at 16:2x. The cap's distal edge is 0.29 mm from the contact, about 3 sd of the pad fit's z.
+  - The seat does not fix the tip across y to 0.1 mm. The M2 sit in 2.4 mm bores, so the tip can shift about 0.2 mm,
+    and both 21 mm widths carry +-0.05 to 0.1 mm of print. At worst the block stands about 0.3 mm proud on one side.
+  - The strip's README now holds a steel rule flat along the block's side and the tip's wall while the M2 are
+    tightened, which makes that side flush to about 0.05 mm.
+  - pass1-check now reads a plan's own wall stage (stage 2's first action is the first outside pad and wall).
+- **The tip mode is unchanged.** HEAD's program and simulator and the new ones print the same session line for line,
+  apart from the session folder's name: 34 lines on v3 ID 3's sphere pass 1 (tipold4 against tipnew6).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

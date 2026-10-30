@@ -12,7 +12,8 @@ Contact: the pad's linear FE model (scripts/fingertip_wrench_fe.py --surface): t
 points (disp_u, the displacement of every point under 1 N at each), scaled by Truth.pad_soft, with the HEX-E's datasheet
 compliance (Fxy 1.7 mm, Fz 0.3 mm, Txy 2.5 deg, Tz 5 deg at 200 N, 10 and 6.5 N m) in series as a rigid motion of the
 pad; normal contact with the sphere (or the rod) as a linear complementarity problem on the points near it, friction
-(Truth.mu) for the motion of the indenter along the pad since the contact began, less its motion along the press.
+(Truth.mu) for the motion of the indenter along the pad since the contact began, less its motion along the press. The
+mount column's palmar face (tip mode) and the cassette's side walls (probe mode, the plan's sim.walls) are stiff planes.
 
 HEX-E: the contact wrench and the payload's weight about the sensor's origin, through its axes (Truth.hex_turn_deg about
 the tool axis, sign), crosstalk, offsets that drift, and its noise per sample at the program's --ft-rate: as measured on
@@ -146,6 +147,8 @@ class Truth:
     seat_shift_um: float = 0.0                                       # a rigid shift of the pad after presses over 3 N
     probe_err_mm: tuple = (0.12, -0.08, 0.20)                        # probe mode: the sphere's centre against its CAD (M)
     seat_pose_err: tuple = (0.006, -0.004, 0.012, 0.30, -0.25, 0.20)  # probe mode: the held pad on its seat (rad, mm; P)
+    wall_err_mm: tuple = (0.05, -0.03)                                 # probe mode: the +y_P and -y_P side walls out along
+    #                                                                    their normals against the CAD (the print)
     seed: int = 0
 
 
@@ -179,6 +182,12 @@ class World:
             self.T_AP = C.perturb(g.T_AP0, np.array(e.seat_pose_err, float))
             self.T_BP = self.T_BI @ self.T_AP
             self.c_B = None
+            self.walls = []                                            # the side walls' planes and faces (P), as printed
+            for w in plan["sim"].get("walls", []):
+                n = np.array(w["normal_P"], float)
+                off = e.wall_err_mm[0 if n[1] > 0 else 1]
+                self.walls.append(dict(n=n, p=np.array(w["point_P"], float) + off * n,
+                                       tris=np.array(w["tris_P"], float) + off * n))
         else:
             self.c_B = C.apply(self.T_BI, g.c_I)
         rd = self.rng.normal(0.0, e.dh_err, (4, 6))
@@ -342,6 +351,8 @@ class World:
             self.cache = (key,)
             if g.kind == "sphere" and not self.probe:
                 self.face_contact(T_PB)
+            elif self.probe and self.walls:
+                self.wall_contact(c)
             return
         if not self.probe:
             T_PI = T_PB @ self.T_BI
@@ -438,6 +449,34 @@ class World:
         F = f * n_P
         self.wrench_P = np.r_[F, np.cross(x_P - self.o_P, F)]
         self.truth_row = np.r_[F, x_P, -n_P, 0.0, 0.0, 2.0]               # kind 2: the column face
+
+    def wall_contact(self, c):
+        """Probe mode: the sphere (centre c, P) on the cassette's flat side walls (the plan's sim.walls: each wall's
+        plane and its faces in P, moved out by Truth.wall_err_mm), stiff as the column face in series with the HEX-E's
+        compliance at the contact; the force acts on the wall along its inward normal."""
+        for w in self.walls:
+            h = float((c - w["p"]) @ w["n"])
+            if not -self.geo.R < h < self.geo.R:                       # the far wall, across the tip, is not this one
+                continue
+            x_P = c - h * w["n"]                                         # the contact point on the wall
+            A, B, D = w["tris"][:, 0], w["tris"][:, 1], w["tris"][:, 2]
+            v0, v1, v2 = D - A, B - A, x_P - A
+            d00, d01, d11 = (v0 * v0).sum(1), (v0 * v1).sum(1), (v1 * v1).sum(1)
+            d20, d21 = (v2 * v0).sum(1), (v2 * v1).sum(1)
+            den = d00 * d11 - d01 ** 2
+            u, v = (d11 * d20 - d01 * d21) / den, (d00 * d21 - d01 * d20) / den
+            if not ((u >= 0) & (v >= 0) & (u + v <= 1)).any():
+                continue
+            n_F = -w["n"]
+            gv = np.r_[np.cross(x_P - self.o_P, n_F), n_F]
+            F = (self.geo.R - h) / (0.004 + float(gv @ self.Cw @ gv)) * n_F
+            self.wrench_P = np.r_[F, np.cross(x_P - self.o_P, F)]
+            self.truth_row = np.r_[F, x_P, w["n"], 0.0, 0.0, 3.0]          # kind 3: a side wall
+            fn = float(np.linalg.norm(F))
+            self.peak_N = max(self.peak_N, fn)
+            if fn > 60.0:
+                self.prot = True
+            return
 
     # ---------------------------------------------------------------- sensors
     def hex_reading(self):
@@ -659,7 +698,7 @@ class SimBackend:
         self.streams.app = dict(ft=log.appender("ft.bin"), board=log.appender("board.bin", C.BoardStream.DTYPE),
                                 robot=log.appender("robot.bin"), truth=log.appender("sim_truth.bin"))
         log.save("sim_truth.json", dict(truth=asdict(self.truth), truth_bin="t, f (3, N, pad frame), centre of pressure (3, mm, P), "
-                                        "normal (3), torsion (N mm), contact points, kind (0 none, 1 pad, 2 column face), true flange "
+                                        "normal (3), torsion (N mm), contact points, kind (0 none, 1 pad, 2 column face, 3 side wall), true flange "
                                         "pose (6, m, rotation vector)", T_EM=self.w.T_EM, T_MP=self.w.T_MP, T_ES=self.w.T_ES,
                                         T_BI=self.w.T_BI, c_B=self.w.c_B, T_EP=self.w.T_EP, Kf=self.w.Kf, Kt=self.w.Kt,
                                         dh_true=self.w.dh_true,

@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-30 15:03 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-30 16:22 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -52,11 +52,19 @@ anything 2. side map -- sure 3. yea send it".
 
 - **ID 3's suite is done.** The owner said no calibration runs tonight. The next runs use the inverted rig on the
   low seat strip (ac021c3dd), with the probe mode (below). Everything comes off the table after this suite. The arm stands at rod-final-ref's rest over the rod (joints 32.9, -61.1, 97.5, -33.1, 36.4, -6.8 deg).
-- **The probe mode is in the program and the simulator** (NOTES, "Probe mode for the inverted rig: written and
-  simulated"). `scripts/ur5_probe_plan.py` turns the workstation's seat plans into program plans. The tip mode is
-  unchanged: HEAD and the new code print the same simulated session line for line. Pass 1 needs the mount seeded
-  from a tip-mode registration and touch-offs at 1 N, and its 3.5 mm rests wait for the workstation's check.
-  Simulated: 20 of 20 touch-offs; presses then miss by about 0.1 mm along the normal and 0.13 to 0.27 mm across.
+- **The probe mode is in the program and the simulator, with touch-offs on the tip's side walls** (NOTES, "Probe mode
+  for the inverted rig: written and simulated" and "Probe mode: the tip's side walls").
+  - `scripts/ur5_probe_plan.py PLAN --pass1-standoff 3.5 --walls WALLS --walls-check CHECK` turns the workstation's
+    seat plans into program plans. The simulated ones are here: `20261030-plan_probe_seat1_walls_v3id1.json`,
+    `20261030-plan_probe_seat2_walls_v3id3.json` and `20261030-plan_probe_seat3_walls_v3id2.json` (the owner's
+    seats and mux channels 3, 1 and 0).
+  - A session runs `--stages preflight,homing,pad,register,wall,register,grid`, with the mount seeded from a tip-mode
+    registration.
+  - The workstation checked pass 1 at 3.5 mm and the walls at z_F -99.75 (8ee8556e): 25 moves per seat, none flagged.
+  - Simulated whole on all three seats: every action done, no abort. The walls find the seat's turn about the tip's
+    long axis, which the pad's touches barely see. Presses then stand 0.02 to 0.03 mm rms off along the normal and
+    0.05 to 0.07 mm across, where seat 1 without walls stood 0.165 mm across.
+  - The tip mode is unchanged: HEAD and the new code print the same simulated session line for line.
 - **The HEX-E's losses on 10-30** came at 00:08 and 11:03 (NOTES), both on arriving at tall-edge-626's pose, where all
   five tall losses came. The sensor came back by itself at 01:37 and held at that pose all morning. The owner reseated
   the connector with more cable slack at 11:09. Since then the arm has reached that pose twice (11:18:58 and
@@ -137,7 +145,8 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 
 ## Waiting on the owner
 
-- The probe mode on the robot: a dry run (--dry 15, about 0.5 h, the owner present) and then pass 1's touch-offs on one seat, each on the owner's go in the lab's session, once the strip and the probe are printed and mounted. The owner's yes for the code came by way of the workstation (13:2x: "sure, run the probe mode").
+- The probe mode on the robot: a dry run (--dry 15, about 0.5 h, the owner present) and then pass 1's touch-offs and the walls on one seat, each on the owner's go in the lab's session, once the strip and the probe are printed and mounted. The owner's yes for the code came by way of the workstation (13:2x: "sure, run the probe mode").
+- When the tips go on the strip: hold a steel rule flat along the station block's side and the tip's wall while tightening the M2 (the strip's README, 8ee8556e). The tip can shift about 0.2 mm across in its bores. A block face more than about 0.35 mm proud would meet the walls' low touch first.
 - When v3 ID 1 goes back on, the three plans above.
 - A new HEX-E cable.
 

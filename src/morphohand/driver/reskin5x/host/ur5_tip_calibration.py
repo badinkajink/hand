@@ -37,7 +37,10 @@ socket, the fork's, on a key of the strip), the pad stands at T_AP in A and the 
 the pad point, its normal, the push direction and the mount's rotation in P; the sphere's centre goes to
 T_BI T_AP (p + R n - standoff d). The travels are the plan's (travel.probe: straight, joint or by way of the hub, as the
 workstation's replay checked them), the pad touch-offs fit T_AP and c_M (register), and the board is the seat's (its mux
-channel geometry.seat.held_channel on --held-board). The gravity, mount, pivot and hover stages are the tip mode's.
+channel geometry.seat.held_channel on --held-board). The wall stage touches the cassette's flat side walls at two heights
+each, for the seat's turn about z_P (the tip's long axis), which the pad's touches barely see; it aims with the pad's fit,
+so a probe session runs --stages preflight,homing,pad,register,wall,register,grid. The gravity, mount, pivot and hover
+stages are the tip mode's.
 
     python ur5_tip_calibration.py --plan plan.json --robot 192.168.0.4 --ft 192.168.0.5
     python ur5_tip_calibration.py --plan plan.json --sim                 the same session against the simulator
@@ -479,9 +482,13 @@ def fit_registration(geo: Geometry, reg: Registration, touches, pivots=(), sig=R
     return out
 
 
-REG_SIGMA_PROBE = dict(pad_mm=0.03, seat_rot_deg=(1.0, 1.0, 0.5), seat_t_mm=(0.5, 0.5, 0.5), probe_mm=(0.3, 0.3, 0.3))
+REG_SIGMA_PROBE = dict(pad_mm=0.03, wall_mm=0.02, wall_offset_mm=0.1, seat_rot_deg=(1.0, 1.0, 0.5),
+                       seat_t_mm=(0.5, 0.5, 0.5), probe_mm=(0.3, 0.3, 0.3))
 # the roll about z_P, the tip's long axis: four M2 on a 16 mm square clamp it, 0.05-0.1 mm of print across them rolls it
-# 0.2-0.4 deg (workstation, 10-30 15:0x); the touches barely see it, so the prior holds most of it
+# 0.2-0.4 deg (workstation, 10-30 15:0x); the pad's touches barely see it, so the prior holds most of it. The side walls
+# see it: two touches 6 mm apart on each flat wall of the cap, 0.02 mm each (the onset on PLA and the face's flatness).
+# Each wall's place along its normal is free within wall_offset_mm (the print), so the walls' tilt enters the fit and
+# their width, which would pull the sphere's centre along the stems, mostly does not
 PUSH_AVG = dict(tip=8, probe=20)    # the push's running mean: the tip mode's over the last 8 passes of its 250 Hz loop (about
 #                                     3 HEX-E samples), the probe mode's over 20 HEX-E samples (0.2 s), tested only when
 #                                     full. A probe pushes along the HEX-E's z (0.21 N a sample at --ft-filter 3, five times x
@@ -490,15 +497,27 @@ PUSH_AVG = dict(tip=8, probe=20)    # the push's running mean: the tip mode's ov
 
 def fit_probe_registration(geo: Geometry, reg: Registration, touches, sig=REG_SIGMA_PROBE):
     """Probe mode: the held pad on its seat (T_AP, in the strip's frame A, which homing put at T_BI) and the sphere's
-    centre on the probe (c_M) from the pad touches (flange pose at the onset of contact), with the seat's and the probe's
-    CAD as priors. The residual is the tip mode's, the sphere's centre in P against the pad's surface, with
-    q = (T_BI T_AP)^-1 T_BE T_EM c_M. Turns of the probe about the pad's normal leave it alike, so c_M comes from touches
-    whose stems lean differently. Returns a dict with the new T_AP and c_M and the residuals."""
+    centre on the probe (c_M) from the touches (flange pose at the onset of contact), with the seat's and the probe's
+    CAD as priors. A pad touch's residual is the tip mode's, the sphere's centre in P against the pad's surface, with
+    q = (T_BI T_AP)^-1 T_BE T_EM c_M; a wall touch's is q's height over the wall's plane (the target's p and n, P) less R
+    and less that wall's offset, a parameter per wall with the prior wall_offset_mm. Turns of the probe about the pad's
+    normal leave the pad's residual alike, so c_M comes from touches whose stems lean differently. The priors stand at the
+    plan's T_AP and c_M, so the fit runs again as touches are added (after the walls). Returns a dict with the new T_AP
+    and c_M and the residuals."""
     pad = [t for t in touches if t["kind"] == "pad"]
-    T_AP0, c_M0 = reg.T_AP.copy(), reg.c_M.copy()
+    wall = [t for t in touches if t["kind"] == "wall"]
+    T_AP0, c_M0 = geo.T_AP0, geo.c_M
     T_BA, T_EM = reg.T_BI, reg.T_EM
-    sd = np.r_[np.radians(sig["seat_rot_deg"]), sig["seat_t_mm"], sig["probe_mm"]]
     Ts = [np.array(t["T_BE"], float) @ T_EM for t in pad]
+    planes, Tw = {}, []
+    for t in wall:                                           # one offset per plane (same normal and height in P)
+        n = np.asarray(t["target"]["n"], float)
+        n = n / np.linalg.norm(n)
+        p = np.asarray(t["target"]["p"], float)
+        k = planes.setdefault((tuple(np.round(n, 3)), round(float(n @ p), 2)), len(planes))
+        Tw.append((np.array(t["T_BE"], float) @ T_EM, p, n, 9 + k))
+    nx = 9 + len(planes)
+    sd = np.r_[np.radians(sig["seat_rot_deg"]), sig["seat_t_mm"], sig["probe_mm"], [sig["wall_offset_mm"]] * len(planes)]
 
     def unpack(x):
         return perturb(T_AP0, x[0:6]), c_M0 + x[6:9]
@@ -507,15 +526,28 @@ def fit_probe_registration(geo: Geometry, reg: Registration, touches, sig=REG_SI
         T_AP, c_M = unpack(x)
         T_PB = inv(T_BA @ T_AP)
         r = [(geo.surface_distance(apply(T_PB @ T, c_M))[0] - geo.R) / sig["pad_mm"] for T in Ts]
+        r += [((apply(T_PB @ T, c_M) - p) @ n - geo.R - x[k]) / sig["wall_mm"] for T, p, n, k in Tw]
         return np.r_[r, x / sd]
 
-    x, r, cov = lm(resid, np.zeros(9))
+    x, r, cov = lm(resid, np.zeros(nx))
     T_AP, c_M = unpack(x)
-    n = len(pad)
+    n, m = len(pad), len(wall)
+    wall_turn_deg = {}                                       # each wall alone: the turn about z_P its own touches give
+    if m:
+        dz = np.zeros(nx)
+        dz[2] = 1e-6
+        rw = r[n:n + m] * sig["wall_mm"]
+        Jz = (resid(x + dz)[n:n + m] * sig["wall_mm"] - rw) / 1e-6
+        for k in planes.values():
+            ix = [i for i, w in enumerate(Tw) if w[3] == 9 + k]
+            if len(ix) >= 2 and np.ptp(Jz[ix]) > 1e-3:
+                slope = np.linalg.lstsq(np.c_[np.ones(len(ix)), Jz[ix]], rw[ix], rcond=None)[0][1]
+                wall_turn_deg[wall[ix[0]]["id"]] = math.degrees(x[2] - slope)
     return dict(T_AP=T_AP, c_M=c_M, x=x, sd=np.sqrt(np.clip(np.diag(cov), 0, None)),
                 rms_pad_mm=float(np.sqrt(np.mean((r[:n] * sig["pad_mm"]) ** 2))) if n else float("nan"), n_pad=n,
-                chi2=float(r @ r), dof=int(len(r) - 9), seat_change_mm_deg=pose_error(T_AP0, T_AP),
-                probe_change_mm=float(np.linalg.norm(c_M - c_M0)))
+                rms_wall_mm=float(np.sqrt(np.mean((r[n:n + m] * sig["wall_mm"]) ** 2))) if m else float("nan"), n_wall=m,
+                wall_offset_mm=x[9:], wall_turn_deg=wall_turn_deg, chi2=float(r @ r), dof=int(len(r) - nx),
+                seat_change_mm_deg=pose_error(T_AP0, T_AP), probe_change_mm=float(np.linalg.norm(c_M - c_M0)))
 
 
 # ------------------------------------------------------------------------------------------- streams (real hardware)
@@ -1647,7 +1679,7 @@ class Session:
         s = np.interp(tf, tr, s_r)
         y = np.array([self.push_force(v, rec["tare"], d, T_rest[:3, :3]) for v in vf])
         fo = fit_onset(s, y, y_max=float(a.get("fit_N", 0.4)),
-                       p_set=(1.0,) if kind == "mount" else (1.0, 1.25, 1.5, 1.75, 2.0))
+                       p_set=(1.0,) if kind in ("mount", "wall") else (1.0, 1.25, 1.5, 1.75, 2.0))
         if fo is None:
             raise Abort("no contact onset in the approach")
         s0, p, rms, nc = fo
@@ -1676,11 +1708,22 @@ class Session:
         if self.probe:
             fit = fit_probe_registration(self.geo, self.reg, self.touches)
             self.reg.T_AP, self.reg.c_M = fit["T_AP"], fit["c_M"]
-            self.reg.notes["register_probe"] = {k: fit[k] for k in ("rms_pad_mm", "n_pad", "seat_change_mm_deg",
-                                                                     "probe_change_mm", "sd", "x")}
-            print(f"register (probe): pad touches {fit['rms_pad_mm']:.3f} mm rms ({fit['n_pad']}); the seat's pad moved "
-                  f"{fit['seat_change_mm_deg'][0]:.3f} mm, {fit['seat_change_mm_deg'][1]:.3f} deg; the sphere's centre moved "
-                  f"{fit['probe_change_mm']:.3f} mm, to {np.round(fit['c_M'], 3)} in M (sd {np.round(fit['sd'][6:9], 3)} mm)")
+            self.reg.notes["register_probe"] = {k: fit[k] for k in ("rms_pad_mm", "n_pad", "rms_wall_mm", "n_wall",
+                                                                     "wall_offset_mm", "wall_turn_deg",
+                                                                     "seat_change_mm_deg", "probe_change_mm", "sd", "x")}
+            wt = fit["wall_turn_deg"]
+            walls = (f", walls {fit['rms_wall_mm']:.3f} mm rms ({fit['n_wall']}; their offsets "
+                     f"{np.round(fit['wall_offset_mm'], 3).tolist()} mm; each wall alone turns it "
+                     + ", ".join(f"{k} {v:+.2f}" for k, v in wt.items()) + " deg)" if fit["n_wall"] else "")
+            if len(wt) >= 2 and np.ptp(list(wt.values())) > 0.8:     # 2 sd at 0.02 mm a touch; e.g. a low touch on
+                #                                                          the station block's face, 0.12 mm early: 1.5 deg
+                print(f"WARNING the walls' turns differ by {np.ptp(list(wt.values())):.2f} deg: one of them may have met "
+                      "something other than the tip's wall (the station block's face beside the low touch)", flush=True)
+            print(f"register (probe): pad touches {fit['rms_pad_mm']:.3f} mm rms ({fit['n_pad']}){walls}; the seat's pad "
+                  f"stands {fit['seat_change_mm_deg'][0]:.3f} mm, {fit['seat_change_mm_deg'][1]:.3f} deg from its CAD (the "
+                  f"turn about z_P {math.degrees(fit['x'][2]):+.3f} deg, sd {math.degrees(fit['sd'][2]):.3f}); the sphere's "
+                  f"centre {fit['probe_change_mm']:.3f} mm, at {np.round(fit['c_M'], 3)} in M (sd "
+                  f"{np.round(fit['sd'][6:9], 3)} mm)")
             self.save_reg()
             self.log.event(event="fit", id="register_probe", rec=fit)
             return
@@ -1978,6 +2021,10 @@ class Session:
             raise SystemExit(f"the speed slider reads {got:.2f} and the plan asks {f:.2f}: stopping before any motion")
 
     def run(self, stages):
+        if ("wall" in stages and not self.dry and "register_probe" not in self.reg.notes
+                and "register" not in stages[:stages.index("wall")]):
+            raise SystemExit("the walls aim with the pad's fit, and the low touch has 0.35 mm of face: "
+                             "--stages ...,pad,register,wall,register,...")
         self.speed_slider()
         for s in stages:
             print(f"== {s}", flush=True)
@@ -1991,6 +2038,10 @@ class Session:
                 self.stage_touch("mount", "mount")
             elif s == "pad":
                 self.stage_touch("pad", "pad")
+            elif s == "wall":
+                if not self.dry and "register_probe" not in self.reg.notes:
+                    raise SystemExit("the walls aim with the pad's fit, and register made none")
+                self.stage_touch("wall", "wall")
             elif s == "register":
                 self.stage_register()
             elif s == "pivot":
