@@ -807,6 +807,9 @@ def sec_mpc():
     pw = float(np.median(mpc["plan_wall_s"]))
     pw_e = float(np.median(run_e["runs"]["mpc_k64"]["plan_wall_s"]))
     gr = {r["k"]: r for r in tim["rows"]}
+    fd = json.loads((mp / "twist_call280_g0_fd.json").read_text())["runs"]["mpc_fd"]
+    fd_lost = next(x["t"] for x in fd["trace"] if min(x["F"]) <= 0.05) - T_TASK0
+    fd_dw = max(abs(p_["knots"][0][0] - 30.0) for p_ in fd["plans"])
     js = []
     for task in ("pinpush", "press", "roll", "twist"):
         rows = [json.loads(x) for x in (FW / "rows" / f"mpc_{task}.jsonl").read_text().splitlines() if x.strip()]
@@ -836,13 +839,19 @@ same plan and the same run. It differs from the sweep's controller in four ways:
 instead of boolean indices, the 3 x 3 systems are solved in closed form, the pad's closest point takes six steps of
 Newton's method on its reformulated equation, and the controller's state is updated in place. With it a replanning
 costs <<pw>> s, <<rt>> times real time. The physics is then the larger part: <<p64>> ms for the ten steps of a period at
-64 worlds.</p>""",
+64 worlds.</p>
+<p>A gradient planner on the same commands did worse. Each step took central differences of the cost over the six plan
+numbers (12 perturbed worlds and the nominal one in one batch) and moved the plan against the gradient. It turned the
+sphere <<fd_end>> deg and lost a pad <<fd_lost>> s into the task, as the ramp did, at <<fd_rt>> times real time. Its
+planned rate stayed within <<fd_dw>> deg/s of 30 deg/s. The cost counts the periods with a pad lost, a step function of
+the plan: perturbations of 5 deg/s left it unchanged until the planned turn was already past the limit.</p>""",
              j0=f"{min(js):,.0f}", j1=f"{max(js):,.0f}", rt0=f"{6.5 / max(js):.3f}", rt1=f"{7.8 / min(js):.3f}",
              f=FIG[0] + 1, r_end=f"{ramp['yaw_end_deg']:.0f}", r_lost=f"{ramp['yaw_three_pads_max_deg']:.0f}",
              m1=f"{t1:.0f}", m_end=f"{mpc['yaw_end_deg']:.0f}", pw=f"{pw:.2f}", rt=f"{0.1 / pw:.3f}",
              pwe=f"{pw_e:.1f}", rte=f"{0.1 / pw_e:.3f}", tb=TAB[0] + 1,
              g64=f"{gr[64]['ms_parts']['controller_graph']:.1f}", g512=f"{gr[512]['ms_parts']['controller_graph']:.1f}",
-             p64=f"{gr[64]['ms_parts']['physics']:.0f}")
+             p64=f"{gr[64]['ms_parts']['physics']:.0f}", fd_end=f"{fd['yaw_end_deg']:.0f}",
+             fd_lost=f"{fd_lost:.2f}", fd_rt=f"{0.1 / float(np.median(fd['plan_wall_s'])):.3f}", fd_dw=f"{fd_dw:.1f}")
     t += img(ROOT / "docs/experiments/20261029-hom_control_review/media/20261030-mpc_twist_call280.png",
              "Twist of the 40 mm sphere on grid layout 280, v4b fingertip: a constant 30 deg/s ramp against the MPC over "
              "HOM's commands (64 samples). Top: the sphere's twist. Middle: the MPC's commanded rate and force scale. "
@@ -879,6 +888,9 @@ under 0.5 N.</li>
 the sweeps gain from it too. Give the MPC's sample worlds a 2 ms physics step (five per period) and replan every 0.2 s
 with one iteration. The MPC over HOM's commands reaches real time if a replanning of 64 samples over 0.3 s then takes
 under 0.2 s.</li>
+<li>Give the gradient planner a cost it can follow: a penalty that rises smoothly as a pad's force falls below 0.5 N,
+in place of the count of periods with a pad lost. It is worth keeping if it then stops at the three-pad limit of layout
+280, as the cross-entropy method does, with its 13 worlds per step.</li>
 <li>Mount one tip on the index finger and run the pin-push on the bench with and without the
 force loop, scoring the
 pinch angle from the tags. The claim of Table 5 fails if the force loop does not lower the force spread across runs.</li>

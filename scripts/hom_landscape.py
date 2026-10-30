@@ -840,6 +840,130 @@ T_SHAPE = {"twist": "sphere", "roll": "sphere", "pinpush": "cylinder", "press": 
 TASK_NAME = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
 
 
+COORD_LABELS = ("thumb x", "thumb y", "index x", "index y", "middle x", "middle y")
+DEFAULT = {"twist": 40.0, "roll": 40.0, "pinpush": 25.0, "press": 25.0}
+
+
+def pareto(F):
+    """Indices of the rows of F (n x m, larger is better) that no other row beats on every column."""
+    order = np.argsort(-F.sum(1))
+    keep = []
+    for i in order:
+        if not any(np.all(F[j] >= F[i]) and np.any(F[j] > F[i]) for j in keep):
+            keep.append(i)
+    return np.array(sorted(keep))
+
+
+def cmd_cross(a):
+    """The four tasks on the Sobol layouts at the default objects (DEFAULT): rank correlation between tasks, the
+    Pareto front over the four scores, each task's best layout scored on the others, and the layout with the best worst
+    score. Writes rows/sizes_v4b/cross.json and media/20261030-cross_tasks.png."""
+    d, z = layouts()
+    n = len(d)
+    S = {}
+    for task, size in DEFAULT.items():
+        sc = scores(task, size, n)
+        R = reach(task, size)
+        if not R or sc["run"].sum() < len(R):
+            print(f"{task} {size:g} mm not complete", flush=True)
+            return 1
+        S[task] = sc["mean"]
+    tasks = list(S)
+    F = np.stack([S[t] for t in tasks], 1)
+    rho = {f"{a_}-{b_}": round(FR.spearman(S[a_], S[b_]), 3) for i, a_ in enumerate(tasks) for b_ in tasks[i + 1:]}
+    P = pareto(F)
+    best = {t: int(np.argmax(S[t])) for t in tasks}
+    mm = int(np.argmax(F.min(1)))
+    out = {"sizes": DEFAULT, "spearman": rho, "pareto_n": len(P), "pareto": [int(i) for i in P],
+           "best": {t: {"call": i, "d": d[i].round(1).tolist(), "scores": F[i].round(3).tolist()} for t, i in best.items()},
+           "maximin": {"call": mm, "d": d[mm].round(1).tolist(), "scores": F[mm].round(3).tolist()},
+           "best_rank_elsewhere": {t: {u: int((S[u] > S[u][i]).sum()) for u in tasks if u != t} for t, i in best.items()}}
+    (SIZE_ROWS / "cross.json").write_text(json.dumps(out, indent=1))
+    plt = FR.plt_setup()
+    fig, axs = plt.subplots(1, 3, figsize=(16.5, 5.0), constrained_layout=True)
+    for ax, (u, v_) in zip(axs[:2], (("twist", "roll"), ("pinpush", "press"))):
+        ax.scatter(S[u], S[v_], s=3, color="0.6", alpha=0.4, lw=0, label="Sobol layouts")
+        ax.scatter(S[u][P], S[v_][P], s=14, color="#d62728", lw=0, label="Pareto set over the four tasks")
+        ax.set_xlabel(f"{TASK_NAME[u]} score ({DEFAULT[u]:g} mm)")
+        ax.set_ylabel(f"{TASK_NAME[v_]} score ({DEFAULT[v_]:g} mm)")
+        ax.set_title(f"Spearman {FR.spearman(S[u], S[v_]):.2f}")
+        ax.legend(loc="upper left", fontsize=10)
+    ax = axs[2]
+    for k, t in enumerate(tasks):
+        top = np.argsort(-S[t])[:int(TOP * n)]
+        ax.errorbar(np.arange(6) + (k - 1.5) * 0.12, np.median(z[top], 0),
+                    yerr=[np.median(z[top], 0) - np.percentile(z[top], 25, 0),
+                          np.percentile(z[top], 75, 0) - np.median(z[top], 0)], fmt="o-", capsize=3, lw=1.4,
+                    label=TASK_NAME[t])
+    ax.axhline(0, color="0.6", lw=0.8)
+    ax.set_xticks(range(6), COORD_LABELS)
+    ax.set_ylim(-0.55, 0.55)
+    ax.set_ylabel("standardized coordinate")
+    ax.set_title("the best tenth of layouts per task")
+    ax.legend(loc="upper right", ncol=2, fontsize=10)
+    FR.save(fig, "20261030-cross_tasks.png")
+    print({k: v for k, v in out.items() if k != "pareto"}, flush=True)
+    return 0
+
+
+def fig_sizes(task, out=None):
+    """The size study of one task over the Sobol layouts: (a) rank correlation of the layouts' scores between object
+    sizes; (b) where the best tenth of layouts sits at each size, as the median of each of the six mount coordinates
+    (standardized; 0 is the centre of a gantry's travel) with its quartiles; (c) the scores of the reached layouts per
+    size."""
+    plt = FR.plt_setup()
+    d, z = layouts()
+    n = len(d)
+    S, sz = [], []
+    for size in SIZES[task]:
+        sc = scores(task, size, n)
+        if sc["run"].any():
+            S.append((sc, sorted(reach(task, size))))
+            sz.append(size)
+    if len(sz) < 2:
+        return
+    fig, axs = plt.subplots(1, 3, figsize=(17.0, 5.0), constrained_layout=True, gridspec_kw={"width_ratios": [1, 1.6, 1]})
+    m = len(sz)
+    C = np.ones((m, m))
+    for i in range(m):
+        for j in range(m):
+            if i != j:
+                C[i, j] = FR.spearman(S[i][0]["mean"], S[j][0]["mean"])
+    ax = axs[0]
+    im = ax.imshow(C, cmap="viridis", vmin=0, vmax=1)
+    for i in range(m):
+        for j in range(m):
+            ax.text(j, i, f"{C[i, j]:.2f}", ha="center", va="center", color="w" if C[i, j] < 0.6 else "k", fontsize=12)
+    ax.set_xticks(range(m), [f"{x:g}" for x in sz])
+    ax.set_yticks(range(m), [f"{x:g}" for x in sz])
+    ax.set_xlabel("object diameter (mm)")
+    ax.set_ylabel("object diameter (mm)")
+    ax.set_title("(a) Spearman of layout scores")
+    fig.colorbar(im, ax=ax, shrink=0.8)
+    ax = axs[1]
+    cols = FR.plt_setup().cm.plasma(np.linspace(0.05, 0.85, m))
+    for k, ((sc, R), size) in enumerate(zip(S, sz)):
+        top = np.argsort(-sc["mean"])[:max(1, int(TOP * n))]
+        med = np.median(z[top], 0)
+        q1, q3 = np.percentile(z[top], [25, 75], 0)
+        x = np.arange(6) + (k - (m - 1) / 2) * 0.12
+        ax.errorbar(x, med, yerr=[med - q1, q3 - med], fmt="o-", color=cols[k], capsize=3, lw=1.4, label=f"{size:g} mm")
+    ax.axhline(0, color="0.6", lw=0.8)
+    ax.set_xticks(range(6), COORD_LABELS)
+    ax.set_ylim(-0.55, 0.55)
+    ax.set_ylabel("standardized coordinate")
+    ax.set_title("(b) the best tenth of layouts: median and quartiles")
+    ax.legend(loc="upper right", ncol=2)
+    ax = axs[2]
+    ax.boxplot([sc["mean"][R] for sc, R in S], showfliers=False)
+    ax.set_xticks(range(1, m + 1), [f"{x:g}" for x in sz])
+    ax.set_xlabel("object diameter (mm)")
+    ax.set_ylabel("score of reached layouts")
+    ax.set_title("(c) scores per size")
+    fig.suptitle(f"{TASK_NAME[task]}: 8,192 Sobol layouts across object sizes, foundational poses, seeds 0-2")
+    FR.save(fig, out or f"20261030-sizes_{task}.png")
+
+
 def cmd_figures(a):
     for task in TASKS:
         for size in SIZES[task]:
@@ -847,6 +971,7 @@ def cmd_figures(a):
                 fig_grid(task, size)
             if (ROWS / "peak" / f"summary_{task}{size:g}.json").exists():
                 fig_value(task, size)
+        fig_sizes(task)
     return 0
 
 
@@ -946,6 +1071,7 @@ def main():
     p = sub.add_parser("value")
     p.add_argument("--task", choices=TASKS, required=True)
     p.add_argument("--d", type=float, required=True)
+    sub.add_parser("cross")
     for name in ("moves", "moves-report"):
         p = sub.add_parser(name)
         p.add_argument("--task", choices=TASKS, required=True)
@@ -959,7 +1085,7 @@ def main():
     p.add_argument("--out", default="")
     a = ap.parse_args()
     return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
-            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report}[a.cmd](a)
+            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "cross": cmd_cross}[a.cmd](a)
 
 
 if __name__ == "__main__":

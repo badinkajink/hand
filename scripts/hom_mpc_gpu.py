@@ -402,14 +402,47 @@ def cem(P, snap, mean, std, rng, k):
     return best, mean
 
 
-def run_plant(scene, task, world, mpc_k=None, seed=0, graph=True):
+FD_H = np.array([5.0, 0.05])          # central-difference steps: deg/s and force scale
+FD_STEP = np.array([15.0, 0.15])      # largest change of a knot per gradient step
+
+
+def fd_plan(P, snap, mean, iters=ITERS):
+    """Gradient steps on the plan: the cost of the plan and of its 2 x H_KNOTS x 2 central-difference perturbations in
+    one batch (P has 1 + 4 H_KNOTS worlds), then a step of at most FD_STEP per variable against the gradient, scaled by
+    the largest component. Returns the best plan seen (plan, cost, turned, lost) and the last plan."""
+    lo, hi = np.array([OMEGA[0], FSCALE[0]]), np.array([OMEGA[1], FSCALE[1]])
+    best, plan = None, mean.copy()
+    for _ in range(iters):
+        plans = [plan]
+        for k in range(H_KNOTS):
+            for j in range(2):
+                for sg in (1.0, -1.0):
+                    q = plan.copy()
+                    q[k, j] += sg * FD_H[j]
+                    plans.append(np.clip(q, lo, hi))
+        plans = np.array(plans)
+        cost, turned, lost = plan_cost(P, plans, snap)
+        if best is None or cost[0] < best[1]:
+            best = (plan.copy(), float(cost[0]), float(turned[0]), float(lost[0]))
+        g = np.zeros_like(plan)
+        i = 1
+        for k in range(H_KNOTS):
+            for j in range(2):
+                g[k, j] = (cost[i] - cost[i + 1]) / (plans[i, k, j] - plans[i + 1, k, j] + 1e-12)
+                i += 2
+        scale = np.abs(g / FD_STEP).max()
+        plan = np.clip(plan - g / max(scale, 1e-12), lo, hi)
+    return best, plan
+
+
+def run_plant(scene, task, world, mpc_k=None, seed=0, graph=True, planner="cem"):
     """The plant from the open pose: the HOM schedule up to the end of the lift, then for TASK_S seconds either the
     schedule's 30 deg/s ramp (mpc_k None) or the MPC with mpc_k samples. Returns the trace and the timing."""
     G = Runner(scene, task, world, 1, graph)
     t_task = T.T_LIFT + 0.4
     while G.t < t_task - 1e-9:
         G.period(schedule=True)
-    P = Runner(scene, task, world, mpc_k, graph) if mpc_k else None
+    P = Runner(scene, task, world, 1 + 4 * H_KNOTS if planner == "fd" else mpc_k, graph) if mpc_k else None
     rng = np.random.default_rng(seed)
     mean = np.tile([30.0, 1.0], (H_KNOTS, 1))
     std = np.tile([20.0, 0.2], (H_KNOTS, 1))
@@ -422,7 +455,7 @@ def run_plant(scene, task, world, mpc_k=None, seed=0, graph=True):
         if mpc_k and p % KNOT == 0:
             w0 = time.perf_counter()
             snap = G.snapshot()
-            best, mean = cem(P, snap, mean, std, rng, mpc_k)
+            best, mean = (fd_plan(P, snap, mean) if planner == "fd" else cem(P, snap, mean, std, rng, mpc_k))
             th.cuda.synchronize()
             walls.append(time.perf_counter() - w0)
             plans.append({"t": round(G.t, 3), "knots": best[0].round(3).tolist(), "cost": round(best[1], 3),
@@ -453,9 +486,9 @@ def cmd_run(a):
     scene, world = world_of(a.task, a.d, a.call, a.grasp)
     OUT.mkdir(parents=True, exist_ok=True)
     res = {}
-    for name, k in (("hom_ramp", None), (f"mpc_k{a.k}", a.k)):
+    for name, k in (("hom_ramp", None), (f"mpc_k{a.k}" if a.planner == "cem" else "mpc_fd", a.k)):
         t0 = time.time()
-        r = run_plant(scene, a.task, world, k, graph=a.graph)
+        r = run_plant(scene, a.task, world, k, graph=a.graph, planner=a.planner)
         r["wall_s"] = round(time.time() - t0, 2)
         res[name] = r
         pw = r["plan_wall_s"]
@@ -463,10 +496,12 @@ def cmd_run(a):
               f"{r['dropped']}, wall {r['wall_s']} s" + (f", replanning {np.median(pw):.2f} s for {KNOT * T.DT_C:.2f} s "
                                                         f"of control ({KNOT * T.DT_C / np.median(pw):.3f} x real time)"
                                                         if pw else ""), flush=True)
-    out = {"task": a.task, "d_mm": a.d, "call": a.call, "grasp": a.grasp, "k": a.k, "graph": a.graph, "knot_s": KNOT * T.DT_C,
+    out = {"task": a.task, "d_mm": a.d, "call": a.call, "grasp": a.grasp, "k": a.k, "planner": a.planner, "graph": a.graph,
+           "knot_s": KNOT * T.DT_C,
            "horizon_knots": H_KNOTS, "iters": ITERS, "elite": ELITE, "task_s": TASK_S,
            "gpu": torch.cuda.get_device_name(0), "when": time.strftime("%Y-%m-%d %H:%M"), "runs": res}
-    path = OUT / f"twist_call{a.call}_g{a.grasp}_k{a.k}{'' if a.graph else '_eager'}.json"
+    path = OUT / (f"twist_call{a.call}_g{a.grasp}_" + (f"k{a.k}" if a.planner == "cem" else "fd")
+                  + ("" if a.graph else "_eager") + ".json")
     path.write_text(json.dumps(out))
     print("wrote", path.relative_to(ROOT), flush=True)
     return 0
@@ -579,6 +614,8 @@ def main():
         p.add_argument("--k", type=int, nargs="+" if name == "timing" else None, default=[64, 256] if name == "timing"
                        else 64)
         p.add_argument("--eager", dest="graph", action="store_false", help="Batch.control without the CUDA graph")
+        p.add_argument("--planner", choices=("cem", "fd"), default="cem",
+                       help="cem: the cross-entropy method; fd: gradient steps from central differences")
     a = ap.parse_args()
     return {"run": cmd_run, "timing": cmd_timing, "figure": cmd_figure}[a.cmd](a)
 

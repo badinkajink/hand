@@ -1235,6 +1235,79 @@ needs rollouts in its own neighbourhood, at steps of 1 to 2 mm.</p>""",
     return t
 
 
+def size_numbers():
+    """The size study per task whose sizes are all complete (every reached layout run with three seeds): reached
+    layouts, Spearman between sizes, the variance shares (hom_landscape.py stats), and the best tenth's median mount
+    coordinates in mm per size."""
+    import fp_sr2_toy as FP
+    import hom_landscape as L
+    d, z = L.layouts()
+    n = len(d)
+    land = json.loads((L.SIZE_ROWS / "landscape.json").read_text())
+    out = {}
+    for task in L.TASKS:
+        per = {}
+        for size in L.SIZES[task]:
+            sc = L.scores(task, size, n)
+            R = L.reach(task, size)
+            if not R or sc["run"].sum() < len(R):
+                per = None
+                break
+            top = np.argsort(-sc["mean"])[:int(L.TOP * n)]
+            per[size] = {"reached": len(R), "median": float(np.median(sc["mean"][sorted(R)])),
+                         "top_mm": np.median(d[top], 0)}
+        if per:
+            T_ = land["tasks"][task]
+            out[task] = {"sizes": per, "pairs": {k: v["spearman"] for k, v in T_["pairs"].items()},
+                         "variance": T_["variance"]}
+    return out
+
+
+def sec_sizes(N):
+    Z = N["sizes"]
+    names = {"twist": "twist", "roll": "roll", "pinpush": "pin-push", "press": "press"}
+    rows = []
+    for task, v in Z.items():
+        szs = list(v["sizes"])
+        adj = [v["pairs"][f"{a:g}-{b:g}"] for a, b in zip(szs[:-1], szs[1:])]
+        rows.append([names[task], ", ".join(f"{s:g}" for s in szs), f"{min(adj):.2f} to {max(adj):.2f}",
+                     f"{v['pairs'][f'{szs[0]:g}-{szs[-1]:g}']:.2f}", f"{100 * v['variance']['layout']:.0f}",
+                     f"{100 * v['variance']['size']:.0f}", f"{100 * v['variance']['interaction']:.0f}",
+                     f"{100 * v['variance']['interaction_noise']:.0f}"])
+    t = r"""<p>Every Sobol layout ran each task on four object sizes with the v4b fingertip: the twist and the roll on
+spheres of 30, 40, 50 and 63 mm, the pin-push and the press on cylinders of 10, 16, 25 and 40 mm (foundational poses,
+three seeds, <code>rows/sizes_v4b</code>). Table SEC_TAB_S splits the variance of the layouts' scores over the sizes
+into a part from the layout, a part from the size and their interaction. The interaction is the part of a layout's score
+that depends on the object. Seed noise alone would give the interaction in the last column.</p>""".replace(
+        "SEC_TAB_S", str(TAB[0] + 1))
+    t += table(["Task", "Diameters (mm)", "Spearman, neighbouring sizes", "Spearman, smallest and largest",
+                "Layout (%)", "Size (%)", "Interaction (%)", "Interaction from seed noise (%)"], rows,
+               "How the layouts' scores change with the object's size, over the 8,192 Sobol layouts (a layout that does "
+               "not reach the pose scores 0).", num_from=2)
+    if "twist" in Z:
+        tw = Z["twist"]["sizes"]
+        s0, s1 = min(tw), max(tw)
+        xs0 = tw[s0]["top_mm"][2] - tw[s0]["top_mm"][0]
+        xs1 = tw[s1]["top_mm"][2] - tw[s1]["top_mm"][0]
+        t += fill(r"""<p>The object's size changes which layouts are best, and it does so by more than seed noise in
+every task listed. In the twist the interaction is <<ti>> % of the variance against <<tn>> % from seed noise, and the
+ranking of layouts on the <<s0>> mm sphere keeps only Spearman <<se>> on the <<s1>> mm sphere. The best tenth of twist
+layouts moves its thumb and index mounts apart as the sphere grows: the median thumb-to-index distance along palm $x$ is
+<<x0>> mm at <<s0>> mm and <<x1>> mm at <<s1>> mm (Figure <<f>>).<<roll>></p>""",
+                  ti=f"{100 * Z['twist']['variance']['interaction']:.0f}",
+                  tn=f"{100 * Z['twist']['variance']['interaction_noise']:.0f}", s0=f"{s0:g}", s1=f"{s1:g}",
+                  se=f"{Z['twist']['pairs'][f'{s0:g}-{s1:g}']:.2f}", x0=f"{xs0:.0f}", x1=f"{xs1:.0f}", f=FIG[0] + 1,
+                  roll=(fill(r""" The roll's ranking changes less with size: its interaction is <<ri>> % of the
+variance.""", ri=f"{100 * Z['roll']['variance']['interaction']:.0f}") if "roll" in Z else ""))
+    for task in Z:
+        t += img(MEDIA / f"20261030-sizes_{task}.png",
+                 f"The {names[task]} across object sizes on the Sobol layouts: (a) rank correlation of the layouts' scores "
+                 "between sizes; (b) the median and quartiles of the six mount coordinates of the best tenth of layouts per "
+                 "size (standardized: each gantry's travel maps to -0.5 to 0.5); (c) the scores of the layouts that reach "
+                 "the pose.")
+    return t
+
+
 def sec_related():
     return r"""<p>Four lines of work bear on this design study. Each answers part of the question, with a different
 controller in the loop.</p>
@@ -1554,6 +1627,7 @@ the maps, have mean scores of <<m0>> to <<m1>> and differ visibly.</p>""",
     N["v4b"] = v4b_numbers()
     N["grid"] = grid_numbers()
     N["grad"] = gradient_numbers()
+    N["sizes"] = size_numbers()
     N["check_text"] = fill(r"""<p>The toy's scores are kinematic, and the HOM tasks are dynamic. Table 2 runs the HOM twist of a
 40 mm sphere on <<nl>> symmetric tripods from the 2-D case, chosen evenly by rank of the tripod's kinematic rotation
 range (<code>scripts/fp_hom_check.py</code>). The twist is the task study's: steps of 40 deg/s, then a 30 deg/s ramp,
@@ -1586,6 +1660,7 @@ the grasp, and for the twist that decides the outcome.</p>""",
         ("v4b", "The calibrated v4b fingertip in the layout search", sec_v4b(N)),
         ("grid", "Grasps synthesized per layout on a grid of symmetric tripods", sec_grid(N)),
         ("gradients", "Design gradients from a model of the HOM scores", sec_gradients(N)),
+        ("sizes", "Layouts across object sizes", sec_sizes(N)),
         ("separate", "Grasp and in-hand control: one problem or two", sec_separate(N)),
         ("plan", "A plan for a Pareto front of SR2 layouts under HOM control", sec_plan(N)),
         ("related", "Related design studies and how this one builds on them", sec_related()),
