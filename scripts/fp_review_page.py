@@ -211,9 +211,10 @@ def sec_terms():
          "steps, divided by the 40 deg/s step."),
         ("Pinch-angle RMSE", "the root-mean-square difference (deg) between the cylinder's angle about the pinch axis "
          "and the command."),
-        ("Sensing variants", "the simulated sensing of the HOM review at the bench's 50 Hz. Exact sensing; calibration "
-         "errors of σ 1 deg per joint and σ 1 mm in the object's pose, constant within a run; the same with the "
-         "fingertips' measured errors; and the same with the fingertips closing a force loop on the pad force."),
+        ("Sensing variants", "the simulated sensing of the HOM review at the bench's 50 Hz. The four used here are exact "
+         "sensing and three with calibration errors of σ 1 deg per joint and σ 1 mm in the object's pose, constant within "
+         "a run. Of those three, one has no fingertips, one has the fingertips' measured errors, and one has the "
+         "fingertips closing a force loop on the pad force."),
         ("Force error", "the mean over the three pads of the difference between a run's mean pad force and the same "
          "seed's under exact sensing (N)."),
     ]
@@ -519,6 +520,39 @@ def gpu_ms(name):
     return 1000 * sum(t_["run_s"] for t_ in tim) / sum(t_["worlds"] for t_ in tim) if tim else None
 
 
+def seed_check():
+    """The pin-push on 40 layouts of the 2-D case from the pinch pose (rows/cpu_check_2dfp_pinpush, CPU runner, seeds 0
+    and 1) against the GPU rows (hom2dfp_gpu_pinpush): the share of layouts with the same held outcome, between engines
+    and between seeds of one engine."""
+    cpu = {(tuple(r["d"]), r["seed"]): r for r in load("cpu_check_2dfp_pinpush")}
+    gpu = {(tuple(r["d"]), r["seed"]): r for r in load("hom2dfp_gpu_pinpush")}
+    lays = sorted({k[0] for k in cpu})
+    if not lays:
+        return None
+
+    def same(A, sa, B, sb):
+        pr = [(A[(d, sa)], B[(d, sb)]) for d in lays if (d, sa) in A and (d, sb) in B]
+        return float(np.mean([bool(a["held"]) == bool(b["held"]) for a, b in pr])) if pr else float("nan")
+    return {"n": len(lays), "cg0": same(cpu, 0, gpu, 0), "cg1": same(cpu, 1, gpu, 1), "cc": same(cpu, 0, cpu, 1),
+            "gg": same(gpu, 0, gpu, 1)}
+
+
+def sphere_check():
+    """The twist and the roll from the foundational poses of 40 Sobol layouts, seed 0: the CPU runner
+    (rows/cpu_check_sobol_*) against the GPU rows (hom6d_gpu_*)."""
+    out = {}
+    for task, m in (("twist", "ramp_three_pads_max_deg"), ("roll", "w_rmse_ratio")):
+        cpu = load(f"cpu_check_sobol_{task}")
+        gpu = {(tuple(r["d"]), r["seed"]): r for r in load(f"hom6d_gpu_{task}")}
+        pr = [(c, gpu[(tuple(c["d"]), c["seed"])]) for c in cpu if (tuple(c["d"]), c["seed"]) in gpu]
+        if not pr:
+            continue
+        both = [(c.get(m) or 0.0, g.get(m) or 0.0) for c, g in pr if c["held"] and g["held"]]
+        out[task] = {"n": len(pr), "same": float(np.mean([bool(c["held"]) == bool(g["held"]) for c, g in pr])),
+                     "sp": sp([x for x, _ in both], [y for _, y in both])}
+    return out
+
+
 def pinch_text():
     v = pinch_validation()
     if not v:
@@ -529,10 +563,29 @@ seeds each, the GPU and CPU runners agree on the held outcome in <<sp>> % of pin
 Their median pinch-angle RMSEs per grasp differ by at most <<dm>> deg (HOM review page, Table 3).""",
              mp=f"{mp:.0f}" if mp else "?", mq=f"{mq:.0f}" if mq else "?", sp=f"{100 * v['pinpush']['same']:.0f}",
              sq=f"{100 * v['press']['same']:.0f}", dm=f"{max(v['pinpush']['dmed'], v['press']['dmed']):.2f}")
+    c = seed_check()
+    if c:
+        t += fill(r"""</p>
+<p>On the toy's poses the pin-push is less repeatable than on the task study's grasps. On <<n>> layouts of the 2-D case,
+the CPU runner and the GPU agree on the held outcome in <<a>> % of layouts with seed 0 and <<b>> % with seed 1. Two
+seeds on the same runner agree in <<c>> % (CPU) and <<d>> % (GPU). The start's jitter of up to 1 mm and 2 deg changes
+whether the friction drive holds. The two runners therefore differ by no more than two seeds of one runner
+do.""", n=c["n"], a=f"{100 * c['cg0']:.0f}", b=f"{100 * c['cg1']:.0f}", c=f"{100 * c['cc']:.0f}", d=f"{100 * c['gg']:.0f}")
+    q = sphere_check()
+    if q.get("twist") and q.get("roll"):
+        t += fill(r""" From the foundational poses of <<n>> Sobol layouts (seed 0), the runners agree on the held outcome in
+<<at>> % of twists and <<ar>> % of rolls. Over the layouts both held, the twist's ramp ranks at Spearman <<st>> and the
+roll's error at <<sr>>.""", n=q["twist"]["n"], at=f"{100 * q['twist']['same']:.0f}", ar=f"{100 * q['roll']['same']:.0f}",
+                  st=f"{q['twist']['sp']:.2f}", sr=f"{q['roll']['sp']:.2f}")
     return t
 
 
 KIN_LABELS = ("tripod range", "pinch range", "tripod pad s.v.", "pinch pad s.v.")
+KIN_PHRASE = {"tripod range": "the tripod's rotation range", "pinch range": "the pinch's rotation range",
+              "tripod pad s.v.": "the tripod's smallest pad singular value",
+              "pinch pad s.v.": "the pinch's smallest pad singular value"}
+DYN_PHRASE = {"twist ramp": "the twist's ramp", "- roll RMSE": "the roll's error", "- pin-push RMSE": "the pin-push's error",
+              "- press RMSE": "the press's error"}
 
 
 def cyl_set(name_pp, name_pr):
@@ -572,10 +625,10 @@ twist rollouts and <<ar>> % of roll rollouts. The twist's ramp on three pads ran
 <<st>>), within a median <<dt>> deg per rollout.</p>
 <p>At <<wb>> worlds per batch, on the Sobol layouts below, a twist rollout takes <<mtb>> ms and a roll rollout
 <<mrb>> ms on one <<gpu>>.<<pinch>></p>
-<p>Three facts make the batch possible:</p>
+<p>Four facts make the batch possible:</p>
 <ul>
 <li>The compiled models of two layouts differ only in the positions of the three mount bodies; every other field
-matches. One model therefore serves every layout, with one row of body positions per world. A world is one layout and
+matches. One model is therefore used for every layout, with one row of body positions per world. A world is one layout and
 one seed.</li>
 <li>MuJoCo-Warp computes the poses of geoms welded to the world once, when the data is made. The palm and the support
 post are therefore mocap bodies, whose positions are set per world; the post is moved away at the lift. A first
@@ -675,6 +728,17 @@ pinch-angle RMSE at Spearman <<sr>>.</p>""",
                  "and the roll, pinch pose for the pin-push, press pose for the press), medians over three seeds. "
                  "Crosses mark layouts where two seeds or more dropped the object. Colours clipped at the 5th and 95th "
                  "percentiles; red is better in every panel. <code>scripts/fp_review_figures.py four2d</code>.")
+        fj2 = ROWS / "film_pinpush_two_layouts.json"
+        if fj2.exists() and (MEDIA / "20261029-hom_pinpush_two_layouts.mp4").exists():
+            fi = json.loads(fj2.read_text().replace("NaN", "null"))
+            h_, d_ = fi["held"], fi["dropped"]
+            t += film(MEDIA / "20261029-hom_pinpush_two_layouts.mp4", fill(
+                "The pin-push of the 25 mm cylinder from the toy's pinch pose on two 2-D layouts, CPU runner, seed 0. "
+                "Left: the thumb close to the pair (x_sep <<hx>> mm, y_sep <<hy>> mm), held in every GPU seed and here, "
+                "pinch-angle RMSE <<hr>> deg. Right: a wide thumb (x_sep <<dx>> mm, y_sep <<dy>> mm), dropped in every "
+                "GPU seed and here. <code>scripts/fp_hom_film.py pinpush</code>.",
+                hx=f"{h_['x_sep_mm']:.0f}", hy=f"{h_['y_sep_mm']:.0f}", hr=f"{h_['cpu_seed0']['theta_rmse_deg']:.1f}",
+                dx=f"{d_['x_sep_mm']:.0f}", dy=f"{d_['y_sep_mm']:.0f}"))
     rows = []
     for name, x in (("2-D, equator grasp", d2), ("2-D, foundational pose", N.get("dyn2dfp")),
                     ("6-D RRT, foundational pose", r6), ("6-D Sobol, foundational pose", s6)):
@@ -709,7 +773,10 @@ smallest singular value ranks the roll's error at <<sm>>.</p>""",
     if cyl:
         t += fill(r"""<p><b>The cylinder tasks</b> (Table <<tb>>) hold less often than the sphere tasks on every
 population. The pinch pose's kinematic range does not rank the pin-push's error either; on the <<pop>> layouts the
-Spearman correlation is <<sr>>.</p>""", tb=TAB[0] + 1, pop=cyl[-1][0], sr=f"{cyl[-1][1]['sp_range']:.2f}")
+Spearman correlation is <<sr>>. With three seeds, a single layout's pin-push score is rough, since two seeds of the
+same runner disagree on the held outcome on a quarter of the layouts (Section SEC[gpu]). Shares over many layouts, such
+as the thumb's distance above, are firmer than any one layout's rank.</p>""", tb=TAB[0] + 1, pop=cyl[-1][0],
+                  sr=f"{cyl[-1][1]['sp_range']:.2f}")
         t += table(["Layouts", "Pin-push<br>layouts", "Press<br>layouts", "Pin-push<br>held (%)", "Press<br>held (%)",
                     "Pin-push<br>RMSE (deg)", "Press<br>RMSE (deg)", "Range vs<br>pin-push", "Pad s.v. vs<br>pin-push"],
                    [[name, f"{x['n_pp']:,}", f"{x['n_pr']:,}", f"{100 * x['held_pp']:.0f}", f"{100 * x['held_pr']:.0f}",
@@ -722,26 +789,70 @@ Spearman correlation is <<sr>>.</p>""", tb=TAB[0] + 1, pop=cyl[-1][0], sr=f"{cyl
     f6 = N["fig"].get("four6d", {})
     if f6.get("pareto") and (MEDIA / "20261029-hom_four_tasks_6d.png").exists():
         spm = f6["spearman"]
-        t += fill(r"""<p><b>Four tasks on the Sobol layouts</b> (Figure <<fg>>). <<ng>> of the <<n>> layouts hold every
-run of all four tasks. Over them the four dynamic scores rank the layouts differently: twist and roll at Spearman
-<<tr>>, pin-push and press at <<pq>>, twist and pin-push at <<tp>>. The four kinematic scores rank none of them above
-<<km>> in absolute value. <<np>> layouts form the four-task Pareto front. In the t-SNE map the front's layouts spread
-over the map; the mean rank changes smoothly across it.</p>""",
+        cl = f6.get("cluster") or {}
+        mg, ma = cl.get("med_good", {}), cl.get("med_all", {})
+        best_kin = max(((k, v) for k, v in spm.items() if k.split(" | ")[0] in KIN_LABELS
+                        and k.split(" | ")[1] not in KIN_LABELS), key=lambda kv: abs(kv[1]))
+        t += fill(r"""<p><b>Four tasks on the Sobol layouts</b> (Figure <<fg>>). Each cylinder task holds in every seed
+on <<hc>> % of the layouts, and <<ng>> of the <<n>> layouts hold every run of all four tasks. The pin-push needs the
+thumb near the index. It held in every seed on <<p60>> % of the <<n60>> layouts with the two mounts within 60 mm. With
+the mounts more than 80 mm apart it held on <<p80>> %.</p>
+<p>The <<ng>> layouts that hold all four tasks lie close together. In the standardized six coordinates their mean
+distance to the nearest other one is <<nn>>, against <<nr>> ± <<ns>> for random sets of the same size. They bring the
+thumb and index mounts toward the palm's centre in $x$: medians <<gtx>> and <<gix>> mm, against <<atx>> and <<aix>> mm
+over all layouts. They also shift the thumb toward the middle finger, to $y$ = <<gty>> mm against <<aty>> mm. In the
+t-SNE map most
+of them fall in three neighbourhoods, and so do most of the <<np>> layouts of the four-task Pareto front.</p>
+<p>Over these layouts the four tasks rank the layouts differently. With every score signed so that larger is better,
+twist and roll correlate at Spearman <<tr>>, roll and pin-push at <<rp>>, pin-push and press at <<pq>>. The best
+kinematic predictor of a dynamic score is <<bk>> (Spearman <<bv>>).</p>""",
                   fg=FIG[0] + 1, ng=f"{f6['good']:,}", n=f"{f6['n']:,}", np=f6["pareto"],
-                  tr=f"{spm['twist ramp | - roll RMSE']:.2f}", pq=f"{spm['- pin-push RMSE | - press RMSE']:.2f}",
-                  tp=f"{spm['twist ramp | - pin-push RMSE']:.2f}",
-                  km=f"{max(abs(v) for k, v in spm.items() if k.split(' | ')[0] in KIN_LABELS and k.split(' | ')[1] not in KIN_LABELS):.2f}")
+                  hc=f"{100 * min(f6['held_each']['pinpush'], f6['held_each']['press']):.0f}" if
+                  abs(f6['held_each']['pinpush'] - f6['held_each']['press']) < 0.01 else
+                  f"{100 * f6['held_each']['pinpush']:.0f} and {100 * f6['held_each']['press']:.0f}",
+                  p60=f"{100 * cl.get('pinpush_held_ti60', float('nan')):.0f}", n60=cl.get("n_ti60", "?"),
+                  p80=f"{100 * cl.get('pinpush_held_ti80', float('nan')):.0f}",
+                  nn=f"{cl.get('nn_good', float('nan')):.3f}", nr=f"{cl.get('nn_rand', float('nan')):.3f}",
+                  ns=f"{cl.get('nn_rand_sd', float('nan')):.3f}",
+                  gtx=f"{mg.get('tx', float('nan')):.0f}", gix=f"{mg.get('ix', float('nan')):.0f}",
+                  atx=f"{ma.get('tx', float('nan')):.0f}", aix=f"{ma.get('ix', float('nan')):.0f}",
+                  gty=f"{mg.get('ty', float('nan')):.0f}", aty=f"{ma.get('ty', float('nan')):.0f}",
+                  tr=f"{spm['twist ramp | - roll RMSE']:.2f}", rp=f"{spm['- roll RMSE | - pin-push RMSE']:.2f}",
+                  pq=f"{spm['- pin-push RMSE | - press RMSE']:.2f}",
+                  bk=f"{KIN_PHRASE[best_kin[0].split(' | ')[0]]} for {DYN_PHRASE[best_kin[0].split(' | ')[1]]}",
+                  bv=f"{best_kin[1]:.2f}")
         t += img(MEDIA / "20261029-hom_four_tasks_6d.png",
                  "The Sobol layouts under the four HOM tasks from their foundational poses, three seeds each. Left: "
                  "Spearman correlations between the toy's kinematic scores (upper left block) and the four dynamic "
                  "scores, signed so that larger is better, over the layouts held in every run. Middle: the four-task "
                  "Pareto front, each layout's percentile per task (red), with every seventh other layout in grey. Right: "
-                 "the t-SNE map coloured by the mean percentile, the front ringed. "
+                 "the t-SNE map of the Sobol layouts; those held in every run of all four tasks are coloured by their "
+                 "mean percentile, the front ringed. "
                  "<code>scripts/fp_review_figures.py four6d</code>.")
     return t
 
 
 TASK_LABEL = {"twist": "twist", "roll": "roll", "pinpush": "pin-push", "press": "press"}
+
+
+def roll_check():
+    """The roll on Sobol layouts held in every seed whose exact-sensing error exceeds 2 per step: GPU medians under
+    exact sensing and calibration errors without fingertips, and the CPU runner's medians on twelve of them under four
+    variants (scripts/fp_roll_sensing_check.py, rows/cpu_check_roll_poor)."""
+    V = {v: {x["key"]: x for x in FF.load_hom("hom6d_gpu_sense_roll", v)} for v in ("rate50", "cal_notip")}
+    if not V["rate50"]:
+        return None
+    poor = [k for k in V["rate50"] if V["rate50"][k]["held"] >= 1 and k in V["cal_notip"]
+            and V["cal_notip"][k]["held"] >= 1 and V["rate50"][k]["rmse"] > 2.0]
+    cpu = load("cpu_check_roll_poor")
+    out = {"n": len(poor), "gpu_exact": float(np.median([V["rate50"][k]["rmse"] for k in poor])),
+           "gpu_cal": float(np.median([V["cal_notip"][k]["rmse"] for k in poor])), "cpu": {}}
+    for v in ("rate50", "notip0", "notip", "cal_notip"):
+        rr = [r for r in cpu if r["variant"] == v]
+        x = [r["w_rmse_ratio"] for r in rr if r["held"]]
+        if rr:
+            out["cpu"][v] = {"n": len(rr), "held": sum(bool(r["held"]) for r in rr), "med": float(np.median(x))}
+    return out
 
 
 def sec_sense(N):
@@ -754,44 +865,79 @@ def sec_sense(N):
     nl = max(f[t]["cal_tip"]["n"] for t in tasks)
     t = fill(r"""<p>A layout chosen in simulation must keep its rank on a hand whose joints and object pose are
 calibrated only to about a degree and a millimetre. The GPU evaluator therefore reran the four tasks on <<nl>> Sobol
-layouts under four of the HOM review's sensing variants: exact sensing, and calibration errors without fingertips, with
-the measured fingertips, and with the fingertips closing the force loop. All run at the bench's 50 Hz, three seeds each
+layouts under four of the HOM review's sensing variants. They are exact sensing, and calibration errors without
+fingertips, with the measured fingertips, and with the fingertips closing the force loop. All run at the bench's 50 Hz, three seeds each
 (<<nr>> rollouts). Each layout's score under exact sensing is set against its score under the calibration errors in
 Figure <<fg>>.</p>""", nl=f"{nl:,}", nr=f"{runs:,}", fg=FIG[0] + 1)
     body = []
     for task in tasks:
         a, b = f[task]["cal_tip"], f[task]["cal_tipfl"]
         nd = 1 if task in ("pinpush", "press") else 2
+        sd = f[task].get("seeds") or {}
         body.append([TASK_LABEL[task].capitalize(), f"{100 * a['held_exact']:.0f}", f"{100 * a['held']:.0f}",
                      f"{100 * b['held']:.0f}", f"{a['median_exact']:.{nd}f}", f"{a['median']:.{nd}f}",
-                     f"{b['median']:.{nd}f}", f"{a['spearman']:.2f}", f"{b['spearman']:.2f}",
+                     f"{b['median']:.{nd}f}", f"{sd.get('spearman', float('nan')):.2f}", f"{a['spearman']:.2f}",
+                     f"{b['spearman']:.2f}", f"{100 * sd.get('top10_kept', float('nan')):.0f}",
                      f"{100 * a['top10_kept']:.0f}", f"{100 * b['top10_kept']:.0f}"])
-    rows = []
-    for task in tasks:
-        a, b = f[task]["cal_tip"], f[task]["cal_tipfl"]
-        rows.append((task, a, b))
-    worst = min(rows, key=lambda x: x[1]["spearman"])
-    best = max(rows, key=lambda x: x[1]["spearman"])
-    t += fill(r"""<p>With calibration errors and the fingertips' contact points, the layouts keep their order best on
-the <<tb>> (Spearman <<sb>> against exact sensing) and worst on the <<tw>> (<<sw>>). Of the best tenth of layouts under
-exact sensing, <<kb>> % stay in the best tenth on the <<tb>> and <<kw>> % on the <<tw>> (Table <<tab>>).</p>""",
-              tb=TASK_LABEL[best[0]], sb=f"{best[1]['spearman']:.2f}", tw=TASK_LABEL[worst[0]],
-              sw=f"{worst[1]['spearman']:.2f}", kb=f"{100 * best[1]['top10_kept']:.0f}",
-              kw=f"{100 * worst[1]['top10_kept']:.0f}", tab=TAB[0] + 1)
+    def lst(vals, fmt):
+        words = [fmt(v) for v in vals]
+        return ", ".join(words[:-1]) + " and " + words[-1] if len(words) > 1 else words[0]
+
+    names = lst([TASK_LABEL[x] for x in tasks], str)
+    pct = lambda v: f"{100 * v:.0f}"  # noqa: E731
+    two = lambda v: f"{v:.2f}"  # noqa: E731
+    t += fill(r"""<p>Calibration errors change which layouts hold (Table <<tab>>). With exact sensing at 50 Hz, the
+<<names>> hold in every seed on <<h0>> % of the layouts. With calibration errors and the fingertips the shares become
+<<h1>> %: the twist loses half its layouts, and the other three tasks gain.</p>""", tab=TAB[0] + 1, names=names,
+              h0=lst([f[x]["cal_tip"]["held_exact"] for x in tasks], pct),
+              h1=lst([f[x]["cal_tip"]["held"] for x in tasks], pct))
+    if all(f[x].get("seeds") for x in tasks):
+        t += fill(r"""<p>They also reorder the layouts that hold, more than a new set of seeds does. Among the layouts
+held under both, the scores keep their order at Spearman <<s1>> for the <<names>>. Exact sensing with new seeds gives
+<<sb>>. Of the best tenth of layouts under exact sensing, <<k1>> % stay in the best tenth with calibration errors.
+With new seeds, <<kb>> % stay. A front chosen under exact sensing would therefore change on a hand with these errors, so the
+scores that select layouts should be computed under the sensing the hand will have.</p>""",
+                  names=names, s1=lst([f[x]["cal_tip"]["spearman"] for x in tasks], two),
+                  sb=lst([f[x]["seeds"]["spearman"] for x in tasks], two),
+                  k1=lst([f[x]["cal_tip"]["top10_kept"] for x in tasks], pct),
+                  kb=lst([f[x]["seeds"]["top10_kept"] for x in tasks], pct))
+    t += fill(r"""<p>With the force loop the shares become <<h2>> %, and the scores keep their order at Spearman
+<<s2>>.</p>""", h2=lst([f[x]["cal_tipfl"]["held"] for x in tasks], pct),
+              s2=lst([f[x]["cal_tipfl"]["spearman"] for x in tasks], two))
     t += table(["Task", "Held (%):<br>exact", "Cal.,<br>tips", "Cal., tips,<br>loop", "Score:<br>exact", "Cal.,<br>tips",
-                "Cal., tips,<br>loop", "Spearman:<br>cal., tips", "Cal., tips,<br>loop", "Best tenth<br>kept (%)",
-                "With<br>loop (%)"], body,
+                "Cal., tips,<br>loop", "Spearman:<br>new seeds", "Cal.,<br>tips", "Cal., tips,<br>loop",
+                "Best tenth<br>kept (%):<br>new seeds", "Cal.,<br>tips", "Cal., tips,<br>loop"], body,
                "The Sobol layouts under sensing variants at 50 Hz, three seeds each. Held: the share of layouts held in "
                "every seed. Score: the median over layouts held in every seed under both variants of the ramp on three "
                "pads (twist, deg), the velocity RMSE per step (roll) or the pinch-angle RMSE (pin-push, press, deg). "
-               "Spearman: each layout's score against its score under exact sensing. Best tenth kept: the share of the "
+               "Spearman: each layout's score against its score under exact sensing with seeds 0 to 2; new seeds is "
+               "exact sensing with seeds 3 to 5, the spread between seed sets alone. Best tenth kept: the share of the "
                "best tenth under exact sensing that stays in the best tenth.", num_from=1)
+    rc = roll_check()
+    if rc and "roll" in f and len(rc["cpu"]) == 4:
+        a = f["roll"]["cal_tip"]
+        t += fill(r"""<p>The roll holds more often under calibration errors too: on <<h1>> % of the layouts against <<h0>> %
+with exact sensing. The layouts that track it poorly with exact sensing also track better. On the <<n>> layouts held in both with an exact-sensing error above 2 per step, the median falls from <<g0>> to
+<<g1>> per step with calibration errors and no fingertips. On the CPU runner, twelve of these layouts in seed 0 give
+<<c0>> with exact sensing and <<c1>> with the exact pose but no fingertips. The tag tracker's noise and 40 ms delay
+alone give <<c2>>, and adding the calibration offsets gives <<c3>> (<code>scripts/fp_roll_sensing_check.py</code>). From
+these foundational poses the roll therefore tracks better with a noisy, late object pose than with the exact one;
+neither the fingertips nor the calibration offsets cause the gain.</p>""",
+                  h1=f"{100 * a['held']:.0f}", h0=f"{100 * a['held_exact']:.0f}", n=rc["n"], g0=f"{rc['gpu_exact']:.2f}",
+                  g1=f"{rc['gpu_cal']:.2f}", c0=f"{rc['cpu']['rate50']['med']:.2f}", c1=f"{rc['cpu']['notip0']['med']:.2f}",
+                  c2=f"{rc['cpu']['notip']['med']:.2f}", c3=f"{rc['cpu']['cal_notip']['med']:.2f}")
     fo = f.get("force") or {}
     if fo.get("pinpush") and fo.get("press"):
-        t += fill(r"""<p>The force error follows the HOM review on every layout. Without fingertips, the pinch force is
-off by a median <<a0>> N on a pin-push layout and <<b0>> N on a press layout, and by more than 1 N on <<a1>> % and <<b1>> %
-of layouts. The force loop on the fingertips' force brings the medians to <<a2>> and <<b2>> N, and the share of layouts
-over 1 N to <<a3>> % and <<b3>> %.</p>""",
+        pc = fo["pinpush"]["cal_notip"]
+        t += fill(r"""<p>On the pinch tasks the calibration errors make the pads press harder. In the pin-push the total
+of the three pads' mean forces rose by a median <<dc>> N over the <<f0>> N of exact sensing, and it rose in <<pp>> % of
+runs. The force loop removes that rise (median <<dl>> N).</p>""", dc=f"{pc['total_change_median']:.1f}",
+                  f0=f"{fo['pinpush']['exact_total_median']:.1f}", pp=f"{100 * pc['total_change_positive']:.0f}",
+                  dl=f"{fo['pinpush']['cal_tipfl']['total_change_median']:.1f}")
+        t += fill(r"""<p>The force error per layout is larger on these poses than on the task study's grasps (HOM
+review, Table 5). Without fingertips, the pinch force is off by a median <<a0>> N on a pin-push layout and <<b0>> N on
+a press layout. It is off by more than 1 N on <<a1>> % and <<b1>> % of layouts. The force loop on the fingertips' force brings
+the medians to <<a2>> and <<b2>> N, and the share of layouts over 1 N to <<a3>> % and <<b3>> %.</p>""",
                   a0=f"{fo['pinpush']['cal_notip']['layout_median']:.2f}", b0=f"{fo['press']['cal_notip']['layout_median']:.2f}",
                   a1=f"{100 * fo['pinpush']['cal_notip']['layouts_over_1N']:.0f}",
                   b1=f"{100 * fo['press']['cal_notip']['layouts_over_1N']:.0f}",
@@ -801,8 +947,8 @@ over 1 N to <<a3>> % and <<b3>> %.</p>""",
     if (MEDIA / "20261029-hom_sensing_6d.png").exists():
         t += img(MEDIA / "20261029-hom_sensing_6d.png",
                  "Each Sobol layout's score under exact sensing (horizontal) against its score with calibration errors "
-                 "and the measured fingertips (top) and with the fingertips closing the force loop (bottom), layouts "
-                 "held in every seed under both; medians over three seeds at 50 Hz. Dotted: equal scores. "
+                 "and the measured fingertips (top) and with the fingertips closing the force loop (bottom). Layouts held "
+                 "in every seed under both; medians over three seeds at 50 Hz. Dotted: equal scores. "
                  "<code>scripts/fp_review_figures.py sense6d</code>.")
     return t
 
@@ -906,10 +1052,14 @@ def sec_limits(N):
 <li>The toy's two poses are grasps of two HOM tasks. The screwdriver's load and wield, the tasks of both papers, are
 not posed yet.</li>
 <li>The GPU physics uses float32, a looser solver tolerance and pads that meet only the object. Against the CPU runner it
-gives the same held outcome in <<ag>> % or more of the 2-D sphere rollouts and in 90 % or more of the cylinder rollouts; a single
-rollout's score can differ, most in the cylinder tasks.</li>
+gives the same held outcome in <<ag>> % or more of the 2-D sphere rollouts and in 90 % or more of the cylinder
+rollouts. A single rollout's score can differ, most in the cylinder tasks.</li>
+<li>The pin-push and the press are seed-sensitive on the toy's poses: two seeds of one runner disagree on the held
+outcome on about a quarter of the 2-D layouts. Three seeds per layout rank single layouts roughly, and the four-task
+front inherits that noise.</li>
 <li>The press pose puts the middle finger at the 30 deg bound, the latitude nearest the pinch, on <<pl>> % of the
-<<pn>> layouts that reach it. Steeper latitudes press harder across the pinch axis and were not run.</li>
+<<pn>> layouts that reach it. At steeper latitudes more of the middle finger's force lifts the cylinder; those were
+not run.</li>
 <li>The layout space is the gantries' six coordinates. The paper's template also varies link lengths and the thumb's
 rotation, which the SR2 hand cannot change without new parts.</li>
 </ul>""", ag=f"{100 * ag:.1f}", pn=f"{press_latitudes()[0]:,}", pl=f"{100 * press_latitudes()[1]:.0f}")
@@ -918,11 +1068,15 @@ rotation, which the SR2 hand cannot change without new parts.</li>
 def sec_future():
     return """<ol>
 <li>Rerun the four-task front's layouts with 30 seeds per task on the GPU (<code>scripts/hom_gpu.py run</code> on a
-row file of the front) and keep the layouts whose rank agrees between seed halves (Spearman above 0.8). The front is
-too noisy to act on if fewer than half keep their rank.</li>
+row file of the front). Keep the layouts whose rank agrees between seed halves at Spearman above 0.8. The front is too
+noisy to act on if fewer than half keep their rank.</li>
 <li>Run the press from latitudes of 37.5 and 45 deg (the toy's <code>press</code> command with the middle's latitude
 fixed) on the Sobol layouts. The 30 deg pose is the right choice if neither raises the share of layouts held in every
 seed.</li>
+<li>Find why the roll from the foundational poses tracks worse with the exact object pose than with the tracker's
+noise and delay (Section SEC[sense]). Trace one layout's commanded and achieved twist at 50 Hz under exact sensing and
+the <code>notip</code> variant, then rerun it with the delay alone and the noise alone. The account holds if one of the
+two alone gives the gain.</li>
 <li>Set three layouts from different parts of the four-task front on the gantries and run the pin-push and the twist
 with tags. The simulated ranking fails if the bench ranks the three differently.</li>
 <li>Pose the screwdriver's pinch brake and wield as foundational poses in <code>fp_sr2_toy.py</code>.</li>
@@ -1074,37 +1228,34 @@ the grasp, and for the twist that decides the outcome.</p>""",
               "(closed-form kinematics of <code>scripts/hand_object_scale_kin.py</code>; the 1 N m servo plant and 1 mm "
               "sphere pads in the HOM rollouts, on the CPU and on MuJoCo-Warp, <code>scripts/hom_gpu.py</code>). "
               "Builder: <code>scripts/fp_review_page.py</code>.")
-    rate6 = N["rrt6d"]["candidates"] / N["rrt6d"]["calls"]
-    rates = N["sobol6d"]["cand"] / max(N["sobol6d"]["n"], 1)
-    sec6 = N["rrt6d"]["seconds"] / N["rrt6d"]["calls"]
-    d2, s6 = N.get("dyn2d") or {}, N.get("dynsob") or {}
+    d2 = N.get("dyn2d") or {}
     ms = (N.get("val", {}).get("twist") or {}).get("ms") or float("nan")
-    cpu_ms = N.get("val", {}).get("cpu_ms") or float("nan")
     sob8 = json.loads((ROWS / "sobol8k_summary.json").read_text()) if (ROWS / "sobol8k_summary.json").exists() else {}
-    f6, fs = N["fig"].get("four6d") or {}, N["fig"].get("sense6d") or {}
-    cs = N.get("cylsob") or N.get("cylrrt") or {}
+    fs = N["fig"].get("sense6d") or {}
     rhos = [fs[t]["cal_tip"]["spearman"] for t in ("twist", "roll", "pinpush", "press") if t in fs]
+    rho0 = [fs[t]["seeds"]["spearman"] for t in ("twist", "roll", "pinpush", "press") if fs.get(t, {}).get("seeds")]
     ms4 = [x for x in (ms, gpu_ms("hom6d_gpu_pinpush"), gpu_ms("hom6d_gpu_press")) if x and np.isfinite(x)]
     lede = fill("""The foundational-pose paper [1] keeps a hand design if it can reach a few poses that tools are wielded
-from, then scores how far a kinematic planner moves the tool from each pose; 10,785 of 100,480 sampled hands reached
-its three poses. On the SR2 hand, with HOM-task grasps as the poses, the paper's SQP reaches them on <<sc>> of <<sn>>
-Sobol layouts, and t-SNE islands like the paper's appear only with its RRT sampler. A GPU version of the HOM controller
-ran four tasks on every layout, at <<m0>> to <<m1>> ms per rollout against <<cs>> s on a CPU core. Kinematic scores do
-not rank the dynamic ones. The rotation range correlates with the twist's ramp at Spearman <<sp>> over 212 layouts, and
-the pinch's range with the pin-push's error at <<spp>>.<<sense>>""",
+from, then scores how far a kinematic planner moves the tool from each pose. On the SR2 hand, with HOM-task grasps as
+the poses, the paper's SQP reaches them on <<sc>> of <<sn>> Sobol layouts. Islands in the t-SNE map like the paper's
+appear only with its RRT sampler. A GPU version of the HOM controller ran four tasks on every layout, at <<m0>> to <<m1>>
+ms per rollout. Kinematic scores do not rank the dynamic ones: the rotation range and the twist's ramp correlate at
+Spearman <<sp>> over 212 layouts.<<sense>>""",
                 sc=f"{sob8.get('candidates', 0):,}", sn=f"{sob8.get('n', 0):,}", m0=f"{min(ms4):.0f}" if ms4 else "?",
-                m1=f"{max(ms4):.0f}" if ms4 else "?", cs=f"{cpu_ms / 1000:.1f}",
-                sp=f"{d2.get('sp_kin_ramp', float('nan')):.2f}", spp=f"{cs.get('sp_range', float('nan')):.2f}",
-                sense=(f" With calibration errors and the measured fingertips, each task keeps the layouts' order at "
-                       f"Spearman {min(rhos):.2f} to {max(rhos):.2f}." if rhos else ""))
+                m1=f"{max(ms4):.0f}" if ms4 else "?", sp=f"{d2.get('sp_kin_ramp', float('nan')):.2f}",
+                sense=(f" With calibration errors and the measured fingertips, each task keeps the layouts' order only at "
+                       f"Spearman {min(rhos):.2f} to {max(rhos):.2f}, against {min(rho0):.2f} to {max(rho0):.2f} for new "
+                       f"seeds. Layouts must therefore be scored under the sensing the hand will have." if rhos and rho0
+                       else ""))
     summary = fill("""On the SR2 hand the foundational-pose pipeline reaches the HOM-task poses on <<sc>> of <<sn>> Sobol
 layouts, and its t-SNE islands come from the RRT sampler. A GPU version of the HOM controller, validated against the CPU,
 scored four tasks on every layout at about <<ms>> ms per rollout: kinematic scores do not rank them (Spearman <<sp>> for
 the twist over 212 layouts)<<sense>>.""",
                    sc=f"{sob8.get('candidates', 0):,}", sn=f"{sob8.get('n', 0):,}",
                    ms=f"{np.median(ms4):.0f}" if ms4 else "?", sp=f"{d2.get('sp_kin_ramp', float('nan')):.2f}",
-                   sense=(f", and calibration errors with the measured fingertips keep each task's order at Spearman "
-                          f"{min(rhos):.2f} to {max(rhos):.2f}" if rhos else ""))
+                   sense=(f"; calibration errors with the measured fingertips keep each task's order only at Spearman "
+                          f"{min(rhos):.2f} to {max(rhos):.2f}, against {min(rho0):.2f} to {max(rho0):.2f} for new seeds"
+                          if rhos and rho0 else ""))
     assemble(sections, "Foundational-pose hand design",
              "Foundational-pose hand design, the project's layout sampling, and a Pareto front for the SR2 hand",
              "Morphology and design search", lede, byline, summary)

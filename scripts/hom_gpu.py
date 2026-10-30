@@ -51,7 +51,6 @@ import os
 os.environ.setdefault("SCALE_HAND", "cad_v1")
 
 import argparse  # noqa: E402
-import gc  # noqa: E402
 import json  # noqa: E402
 import math  # noqa: E402
 import sys  # noqa: E402
@@ -1079,6 +1078,46 @@ def cmd_run(a):
     return 0
 
 
+def cpu_rollout(scene, task, mxy, setup, q_open, seed, var="base"):
+    """The CPU runner (hom_tasks.rollout) on the same layout, grasp and open pose as a GPU world: the reference scenes
+    with the mount bodies moved, in the plant and in the mirror."""
+    import mujoco
+    from dataclasses import replace
+    bm = scene.body_mounts(mxy)
+    plant = T.Plant(scene.pads_path, setup)
+    m_pt = mujoco.MjModel.from_xml_path(str(scene.pt_path))
+    for m in (plant.m, m_pt):
+        for f in FINGERS:
+            m.body_pos[m.body(f"{f}_mount").id] = bm[f]
+    S.set_palm(m_pt, setup["palm"])
+    fs, os_ = T.sr2_specs(setup)
+    mirror = H.Mirror(m_pt, fs, os_)
+    over, noise = T.VARIANTS[var]
+    res, _trace, _ = T.rollout(task, setup, plant, mirror, q_open, seed, T.PRM, replace(H.HomParams(dt=T.DT_C), **over),
+                               None, noise)
+    return res
+
+
+def cmd_cpu_check(a):
+    """The CPU runner on every k-th layout of a population (the GPU rows' layouts and grasps), for the comparison of
+    GPU and CPU on the foundational poses. Rows: rows/<out>.jsonl, fsynced, one per (layout, seed)."""
+    scene = Scene(T.SHAPE[a.task], a.d or D_FP[a.task])
+    lays = layout_list(a.task, a.layouts, 0, a.d or D_FP[a.task])
+    pick = lays[a.offset::max(1, len(lays) // a.n)][:a.n]
+    path = (Path(a.rows_dir) if a.rows_dir else ROWS) / f"{a.out}.jsonl"
+    for key, mxy, setup in pick:
+        _bm, q_open = scene.prepare(mxy, setup)
+        for sd in a.seeds:
+            t0 = time.time()
+            res = cpu_rollout(scene, a.task, mxy, setup, q_open, sd, a.variant)
+            row = dict(key, task=a.task, d_mm=float(a.d or D_FP[a.task]), seed=sd, variant=a.variant, status="ok",
+                       engine="mujoco_cpu", **res)
+            T._append(path, row)
+            print(a.task, key.get("d", key.get("x_sep_mm")), sd, res.get("held"), res.get("theta_rmse_deg"),
+                  res.get("w_rmse_ratio"), f"{time.time() - t0:.1f} s", flush=True)
+    return 0
+
+
 MAIN = {"pinpush": "theta_rmse_deg", "press": "theta_rmse_deg", "roll": "w_rmse_ratio", "twist": "w_rmse_ratio"}
 
 
@@ -1142,6 +1181,16 @@ def main():
     p = sub.add_parser("compare")
     p.add_argument("--cpu", required=True)
     p.add_argument("--gpu", required=True)
+    p = sub.add_parser("cpu-check")
+    p.add_argument("--task", choices=TASKS, default="pinpush")
+    p.add_argument("--layouts", default="2dfp")
+    p.add_argument("--d", type=float, default=None)
+    p.add_argument("--n", type=int, default=40)
+    p.add_argument("--offset", type=int, default=0)
+    p.add_argument("--seeds", type=int, nargs="+", default=[0])
+    p.add_argument("--variant", default="base")
+    p.add_argument("--out", default="cpu_check")
+    p.add_argument("--rows-dir", default="")
     sub.add_parser("check-mounts")
     a = ap.parse_args()
     if a.cmd == "check-mounts":
@@ -1149,6 +1198,8 @@ def main():
         return 0
     if a.cmd == "compare":
         return cmd_compare(a)
+    if a.cmd == "cpu-check":
+        return cmd_cpu_check(a)
     return cmd_run(a)
 
 

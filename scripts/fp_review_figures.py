@@ -447,16 +447,37 @@ def fig_four6d(prefix="hom6d_gpu", pop="sobol8k"):
         pos = {tuple(np.round(d, 3)): xy for d, xy in zip(emb["d"], emb["tsne"])}
         P = np.array([pos.get(tuple(np.round(k, 3)), (np.nan, np.nan)) for k in keys], float)
         okp = np.isfinite(P[:, 0])
-        c.scatter(P[okp & ~good, 0], P[okp & ~good, 1], s=4, color="#d0d0d0", lw=0)
-        im = c.scatter(P[okp & good, 0], P[okp & good, 1], c=mean_rank[okp & good], cmap="RdYlBu_r", s=6, lw=0)
-        c.scatter(P[okp & par, 0], P[okp & par, 1], s=38, facecolor="none", edgecolor="k", lw=1.0)
+        c.scatter(P[okp & ~good, 0], P[okp & ~good, 1], s=4, color="#d6d6d6", lw=0)
+        im = c.scatter(P[okp & good, 0], P[okp & good, 1], c=mean_rank[okp & good], cmap="RdYlBu_r", s=22, lw=0.3,
+                       edgecolor="#555555")
+        c.scatter(P[okp & par, 0], P[okp & par, 1], s=70, facecolor="none", edgecolor="k", lw=1.1)
         fig.colorbar(im, ax=c, fraction=0.046, pad=0.02, label="mean percentile over the four tasks")
-        c.set_title(f"t-SNE of {int(okp.sum())} Sobol layouts; front ringed", fontsize=12.5)
+        c.set_title(f"t-SNE of {int(okp.sum())} Sobol layouts: {int(good.sum())} held in all four tasks "
+                    f"coloured, front ringed", fontsize=11.5)
         c.set_xticks([])
         c.set_yticks([])
         info["tsne_n"] = int(okp.sum())
     fig.tight_layout()
     save(fig, "20261029-hom_four_tasks_6d.png")
+    # are the layouts that hold all four tasks clustered in the standardized six coordinates?
+    D = np.array(keys, float)
+    lo6 = np.array([-80.0, -55.0, 20.0, 25.0, 20.0, -85.0])
+    hi6 = np.array([-20.0, 55.0, 80.0, 85.0, 80.0, -25.0])
+    Z = (D - lo6) / (hi6 - lo6)
+
+    def nn(Zs):
+        dd = np.linalg.norm(Zs[:, None] - Zs[None], axis=-1)
+        np.fill_diagonal(dd, np.inf)
+        return float(dd.min(1).mean())
+    rng = np.random.default_rng(0)
+    rand = [nn(Z[rng.choice(len(Z), int(good.sum()), replace=False)]) for _ in range(50)]
+    ti = np.hypot(D[:, 2] - D[:, 0], D[:, 3] - D[:, 1])
+    pp_held = np.array([T4["pinpush"][k]["held"] >= 1.0 for k in keys])
+    info["cluster"] = {"nn_good": nn(Z[good]), "nn_rand": float(np.mean(rand)), "nn_rand_sd": float(np.std(rand)),
+                       "med_all": {c_: float(np.median(D[:, j])) for j, c_ in enumerate(("tx", "ty", "ix", "iy", "mx", "my"))},
+                       "med_good": {c_: float(np.median(D[good, j])) for j, c_ in enumerate(("tx", "ty", "ix", "iy", "mx", "my"))},
+                       "pinpush_held_ti60": float(pp_held[ti <= 60].mean()), "n_ti60": int((ti <= 60).sum()),
+                       "pinpush_held_ti80": float(pp_held[ti > 80].mean())}
     info.update({"n": len(keys), "held_all4": int(held.sum()), "good": int(good.sum()), "pareto": int(par.sum()),
                  "spearman": {f"{labels[i]} | {labels[j]}": round(float(M[i, j]), 3)
                               for i in range(len(labels)) for j in range(i + 1, len(labels))},
@@ -484,6 +505,20 @@ def fig_sense6d(prefix="hom6d_gpu_sense"):
         m, sgn, title = TASK_SCORE[t]
         ref = V[t]["rate50"]
         info[t] = {}
+        # the seed-noise baseline: exact sensing with seeds 3-5 (rows <prefix>_<task>_s345)
+        new = {x["key"]: x for x in load_hom(f"{prefix}_{t}_s345", "rate50")}
+        if new:
+            keys = sorted(set(ref) & set(new))
+            a = np.array([ref[k][m] for k in keys])
+            b = np.array([new[k][m] for k in keys])
+            both = (np.array([ref[k]["held"] >= 1.0 and new[k]["held"] >= 1.0 for k in keys]) & np.isfinite(a)
+                    & np.isfinite(b))
+            top = both & (rank01(np.where(both, sgn * a, np.nan)) >= 0.9)
+            info[t]["seeds"] = {"n": len(keys), "spearman": spearman(a[both], b[both]),
+                                "held_same": float(np.mean([(ref[k]["held"] >= 1.0) == (new[k]["held"] >= 1.0)
+                                                            for k in keys])),
+                                "top10_kept": float(np.mean(rank01(np.where(both, sgn * b, np.nan))[top] >= 0.9))
+                                if top.any() else float("nan")}
         for i, var in enumerate(("cal_tip", "cal_tipfl")):
             ax = axs[i, j]
             oth = V[t][var]
@@ -526,6 +561,12 @@ def fig_sense6d(prefix="hom6d_gpu_sense"):
         out[t] = {v: {"layout_median": float(np.median([np.median(x) for x in d.values()])),
                       "layouts_over_1N": float(np.mean([np.median(x) > 1.0 for x in d.values()])),
                       "run_p90": float(np.percentile([y for x in d.values() for y in x], 90))} for v, d in per.items()}
+        # the signed change of the total mean pad force against the same seed under exact sensing
+        for v in per:
+            ch = [sum(r["F_mean"].values()) - sum(ref[(lay_key(r), r["seed"])]["F_mean"].values()) for r in rows
+                  if r["variant"] == v and (lay_key(r), r["seed"]) in ref]
+            out[t][v].update(total_change_median=float(np.median(ch)), total_change_positive=float(np.mean(np.array(ch) > 0)))
+        out[t]["exact_total_median"] = float(np.median([sum(r["F_mean"].values()) for r in rows if r["variant"] == "rate50"]))
     info["force"] = out
     return info
 
