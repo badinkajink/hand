@@ -1894,6 +1894,11 @@ The clearances in this section and the one before it are on mount v3. The next s
   the cell (tall-slide-edge-645-1N) and the finger 2.50 mm. Joint 6 ran from -57.0 to +44.1 deg, joint 5 from 37.3
   to 97.6 deg (2.4 deg inside its window), and the elbow stayed at least 70.8 deg from straight. These are the night
   order's margins, as the workstation's path check found.
+- n3b4w2's cell check finished at 09:43 and passed the gate with the same margins. The mount stayed at least 4.09 mm
+  from the cell (tall-slide-edge-647-1N) and the finger 2.48 mm. Joint 6 ran from -57.0 to +44.1 deg, joint 5 to
+  97.6 deg (2.4 deg inside), and the elbow stayed at least 70.8 deg from straight. The gate passed the whole set the
+  resume would run with it: the check, wrist2's 55 and block 6's two chunks. The HEX-E's reads stayed clean through
+  09:40. The lab recommends wrist2 to the owner.
 
 ### The night's plans, after the finer path checks (14:4x)
 
