@@ -321,19 +321,63 @@ def cmd_timing(a):
     return 0
 
 
+def cmd_figure(a):
+    """The run's twist angle, the MPC's commands and the pad forces against the HOM ramp, for the HOM review page."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.size": 11, "font.family": "DejaVu Sans"})
+    d = json.loads((OUT / f"twist_call{a.call}_g{a.grasp}_k{a.k}.json").read_text())
+    runs = d["runs"]
+    fig, axs = plt.subplots(3, 1, figsize=(8.2, 8.4), sharex=True)
+    for name, r, c in (("HOM ramp, 30 deg/s", runs["hom_ramp"], "#e6731a"), (f"MPC, {a.k} samples", runs[f"mpc_k{a.k}"], "k")):
+        t = np.array([x["t"] for x in r["trace"]]) - (T.T_LIFT + 0.4)
+        yaw = np.array([x["yaw_deg"] for x in r["trace"]])
+        F = np.array([x["F"] for x in r["trace"]])
+        axs[0].plot(t, yaw, color=c, lw=1.6, label=name)
+        lost = np.flatnonzero(F.min(1) <= 0.05)
+        if len(lost):
+            axs[0].plot(t[lost[0]], yaw[lost[0]], "o", color=c, ms=8, mfc="none", mew=1.6)
+        for k, f in enumerate(("thumb", "index", "middle")):
+            axs[2].plot(t, F[:, k], color=("#1f77b4", "#d62728", "#2ca02c")[k], lw=1.2, ls="-" if c == "k" else "--",
+                        label=f"{f}" if c == "k" else None)
+    axs[0].set_ylabel("twist of the sphere (deg)")
+    axs[0].legend(loc="lower right", frameon=False)
+    axs[0].text(0.01, 0.92, "circle: first period with a pad under 0.05 N", transform=axs[0].transAxes, fontsize=9)
+    P = runs[f"mpc_k{a.k}"]["plans"]
+    tp = np.array([x["t"] for x in P]) - (T.T_LIFT + 0.4)
+    kn = np.array([x["knots"][0] for x in P])
+    axs[1].step(tp, kn[:, 0], where="post", color="k", lw=1.4, label="commanded rate (deg/s)")
+    axs[1].axhline(30.0, color="#e6731a", lw=1.2, ls="--", label="the ramp's rate")
+    ax2 = axs[1].twinx()
+    ax2.step(tp, kn[:, 1], where="post", color="#9467bd", lw=1.2)
+    ax2.set_ylabel("force scale", color="#9467bd")
+    ax2.set_ylim(0.5, 1.7)
+    axs[1].set_ylabel("rate (deg/s)")
+    axs[1].legend(loc="upper right", frameon=False)
+    axs[2].set_ylabel("pad force (N)")
+    axs[2].set_xlabel("time from the task's start (s)")
+    axs[2].legend(loc="upper left", frameon=False, ncol=3, title="solid: MPC; dashed: ramp", title_fontsize=9)
+    fig.tight_layout()
+    out = ROOT / "docs/experiments/20261029-hom_control_review/media" / f"20261030-mpc_twist_call{a.call}.png"
+    fig.savefig(out, dpi=100)
+    print("wrote", out.relative_to(ROOT), flush=True)
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("run", "timing"):
+    for name in ("run", "timing", "figure"):
         p = sub.add_parser(name)
         p.add_argument("--task", default="twist", choices=("twist",))
         p.add_argument("--d", type=float, default=40.0)
         p.add_argument("--call", type=int, default=280)
         p.add_argument("--grasp", type=int, default=0)
         p.add_argument("--k", type=int, nargs="+" if name == "timing" else None, default=[64, 256] if name == "timing"
-                       else 128)
+                       else 64)
     a = ap.parse_args()
-    return {"run": cmd_run, "timing": cmd_timing}[a.cmd](a)
+    return {"run": cmd_run, "timing": cmd_timing, "figure": cmd_figure}[a.cmd](a)
 
 
 if __name__ == "__main__":

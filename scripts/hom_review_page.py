@@ -42,6 +42,7 @@ TEMPLATE = ROOT / "scripts/hom_review_page.template.html"
 TEX_CACHE = D / "texsvg_cache.json"
 TEX_RE = re.compile(r"\$\$(.+?)\$\$|\$(.+?)\$", re.S)
 FW = ROOT / "docs/experiments/20261021-hom_framework"
+T_TASK0 = 2.0                                    # s: the task phase starts after the lift (hom_tasks)
 CAL = ROOT / "docs/experiments/20261026-fingertip_calibration"
 NB = "&#8202;"
 REFS = [
@@ -792,6 +793,59 @@ than their medians do (Table 3).</li>
 </ul>"""
 
 
+def sec_mpc():
+    """The sampling MPC over HOM's commands (scripts/hom_mpc_gpu.py) against the joint-space MPC of 2026-10-21."""
+    mp = ROOT / "docs/experiments/20261029-foundational_pose_review/rows/mpc_v4b"
+    run = json.loads((mp / "twist_call280_g0_k64.json").read_text())
+    tim = json.loads((mp / "timing.json").read_text())
+    R = run["runs"]
+    ramp, mpc = R["hom_ramp"], R["mpc_k64"]
+    tr = mpc["trace"]
+    t1 = next(x["yaw_deg"] for x in tr if x["t"] >= T_TASK0 + 1.0 - 1e-9)
+    pw = float(np.median(mpc["plan_wall_s"]))
+    js = []
+    for task in ("pinpush", "press", "roll", "twist"):
+        rows = [json.loads(x) for x in (FW / "rows" / f"mpc_{task}.jsonl").read_text().splitlines() if x.strip()]
+        w = [r["wall_s"] for r in rows if r.get("controller") == "mpc" and r.get("wall_s")]
+        if w:
+            js.append(float(np.median(w)))
+    t = fill(r"""<p>The task study of 2026-10-21 also ran a sampling MPC beside HOM: pinned iCEM over the nine servo targets
+at three knots, 64 rollouts of 0.5 s on the CPU every 10 ms (<code>scripts/hom_tasks_mpc.py</code>). Per task it took a median
+<<j0>> to <<j1>> s of computing per rollout of 6.5 to 7.8 s, about <<rt0>> to <<rt1>> times real time, and squeezed with
+14 to 22 N per pad. <code>scripts/hom_mpc_gpu.py</code> samples HOM's commands instead. Per knot of 0.1 s a plan sets the
+sphere's angular velocity about the vertical and a scale of the commanded pad forces: two numbers, against nine servo
+targets. The horizon is three knots. A cross-entropy method with two iterations refits the best 12 of the samples, and
+the previous plan, shifted by one knot, is kept as a sample. Every sample runs in its own MuJoCo-Warp world under the
+batched HOM controller, which turns the commands into servo targets every 10 ms. The plant is a one-world batch of the
+same scene, and before each replanning its full state is copied into every sample's world: MuJoCo-Warp data, contact
+forces and the controller's own state.</p>
+<p>On grid layout 280 with the v4b fingertip (Figure <<f>>), a constant 30 deg/s ramp from the task's start turned the
+40 mm sphere <<r_end>> deg in 3 s and lost a pad at <<r_lost>> deg. The MPC with 64 samples commanded up to 90 deg/s
+while it lowered the force scale to 0.6, reached <<m1>> deg in 1 s, and then held the sphere at <<m_end>> deg with all
+three pads on. On this grasp about 52 deg is the most the sphere turns on three pads, and the MPC reached it in half the
+time. Planning cost <<pw>> s per 0.1 s of control, <<rt>> times real time, with the GPU shared with the size sweep.</p>
+<p>The controller set most of that cost (Table <<tb>>). One period of the batched HOM controller took
+<<c32>> ms at 32 worlds and <<c512>> ms at 512, in thousands of small kernel launches and host synchronisations. The
+ten physics steps of a period took <<p32>> and <<p512>> ms.</p>""",
+             j0=f"{min(js):,.0f}", j1=f"{max(js):,.0f}", rt0=f"{6.5 / max(js):.3f}", rt1=f"{7.8 / min(js):.3f}",
+             f=FIG[0] + 1, r_end=f"{ramp['yaw_end_deg']:.0f}", r_lost=f"{ramp['yaw_three_pads_max_deg']:.0f}",
+             m1=f"{t1:.0f}", m_end=f"{mpc['yaw_end_deg']:.0f}", pw=f"{pw:.1f}", rt=f"{0.1 / pw:.3f}",
+             tb=TAB[0] + 1, c32=f"{tim['rows'][0]['ms_parts']['controller']:.0f}",
+             c512=f"{tim['rows'][-1]['ms_parts']['controller']:.0f}", p32=f"{tim['rows'][0]['ms_parts']['physics']:.1f}",
+             p512=f"{tim['rows'][-1]['ms_parts']['physics']:.1f}")
+    t += img(ROOT / "docs/experiments/20261029-hom_control_review/media/20261030-mpc_twist_call280.png",
+             "Twist of the 40 mm sphere on grid layout 280, v4b fingertip: a constant 30 deg/s ramp against the MPC over "
+             "HOM's commands (64 samples). Top: the sphere's twist. Middle: the MPC's commanded rate and force scale. "
+             "Bottom: pad forces.")
+    rows = [[str(r["k"]), f"{r['ms_per_period']:.1f}", f"{r['ms_parts']['controller']:.1f}",
+             f"{r['ms_parts']['physics']:.1f}", f"{r['ms_parts']['mirror'] + r['ms_parts']['measure']:.1f}"]
+            for r in tim["rows"]]
+    t += table(["Worlds", "Period (ms)", "Controller (ms)", "Physics, 10 steps (ms)", "Mirror and measurement (ms)"],
+               rows, f"Wall time of one control period of the batched HOM controller on the {tim['gpu'].replace('NVIDIA GeForce ', '')}, "
+               "with the GPU shared with the size sweep.", num_from=0)
+    return t
+
+
 def sec_future():
     return """<ol>
 <li>Measure the fingertip's latency from a UR5 press to the estimate (timestamped RTDE pose against the board's record
@@ -808,6 +862,11 @@ study's screwdriver load step, where the brake's angle depends on the pinch forc
 closing speed, 30 seeds per point, with calibration errors (<code>scripts/hom_gpu.py run --layouts design</code>). The
 loop is ready for the bench if one setting holds the twist in 95 % of runs while keeping the pin-push's force error
 under 0.5 N.</li>
+<li>Make the batched controller free of host synchronisations (float masks for the fingers' roles, closed-form 3 x 3
+solves, Newton's method on the pad's reformulated equation with a fixed step count, state updated in place) and capture
+one period as a CUDA graph (<code>hom_gpu.Batch</code>). Then rerun <code>hom_mpc_gpu.py timing</code> and
+<code>run</code>. The MPC over HOM's commands reaches real time if a replanning of 64 samples over 0.3 s takes under
+0.1 s.</li>
 <li>Mount one tip on the index finger and run the pin-push on the bench with and without the
 force loop, scoring the
 pinch angle from the tags. The claim of Table 5 fails if the force loop does not lower the force spread across runs.</li>
@@ -889,6 +948,7 @@ def main():
         ("ours", "The MuJoCo implementation on the SR2 hand", sec_ours()),
         ("sensing", "Contact sensing in simulation and on the bench", sec_sensing()),
         ("eval", "The magnetic fingertips as the controller's contact sensor", sec_eval(S)),
+        ("mpc", "Model-predictive control over HOM's commands", sec_mpc()),
         ("limits", "Limitations", sec_limits()),
         ("future", "Future work", sec_future()),
         ("files", "References and files", sec_files()),
