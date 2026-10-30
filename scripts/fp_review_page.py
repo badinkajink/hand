@@ -1217,7 +1217,8 @@ def sec_gradients(N):
     t = fill(r"""<p>Bohlinger and Peters [5] follow the gradient of a learned critic with respect to the design. Without
 RL training the same gradient comes from a smooth model of the HOM scores over the six layout coordinates.
 <code>hom_landscape.py value</code> fits kernel ridge regression with a Gaussian kernel to the twist scores of the
-8,192 Sobol layouts on the 40 mm sphere: the foundational pose, three seeds, and 0 where the pose is not reached. By
+8,192 Sobol layouts on the 40 mm sphere. The scores are the foundational pose's over three seeds, 0 where the pose is not
+reached. By
 five-fold cross-validation it predicts held-out layouts at R<sup>2</sup> <<r2>> and Spearman <<cvs>>, with a length
 scale of <<ls>> of each gantry's travel (<<ls0>> to <<ls1>> mm). On the 506 layouts of the grid, which it never saw,
 its predictions rank the measured scores at Spearman <<gs>>.</p>
@@ -1268,8 +1269,8 @@ needs rollouts in its own neighbourhood, at steps of 1 to 2 mm.</p>""",
             return fmt.format(scale * min(v)) + " to " + fmt.format(scale * max(v))
         t += fill(r"""<p>Table <<tb>> repeats the tests for each task where they ran. On the sphere tasks the gradient
 raised more grid layouts than random steps did; on the cylinder tasks it raised <<cg>> % against <<cr>> % at random. On
-every task, moving the best layouts along the gradient lowered their fresh-seed scores more often than it raised them
-(<<w>> % of pairs), and the predicted gains did not correlate with the measured changes (<<r>>). The cylinder tasks'
+every task, moving the best layouts along the gradient lowered their fresh-seed scores more often than it raised them,
+in <<w>> % of pairs. The predicted gains did not correlate with the measured changes (<<r>>). The cylinder tasks'
 peaks are wider: a 4 mm perturbation costs a median of <<c4>> there, against <<s4>> on the spheres.</p>""",
                   tb=TAB[0] + 1,
                   cg=rng_(cyl, lambda v, k: v["grid_steps"]["gradient"]["raised"]),
@@ -1359,12 +1360,12 @@ that depends on the object. Seed noise alone would give the interaction in the l
         xs0 = tw[s0]["top_mm"][2] - tw[s0]["top_mm"][0]
         xs1 = tw[s1]["top_mm"][2] - tw[s1]["top_mm"][0]
         t += fill(r"""<p>The object's size changes which layouts are best, and it does so by more than seed noise in
-every task listed. In the twist the interaction is <<ti>> % of the variance against <<tn>> % from seed noise, and the
+every task listed. In the twist the interaction is <<ti>> % of the variance against <<tn>> % from seed noise. The
 ranking of layouts on the <<s0>> mm sphere keeps only Spearman <<se>> on the <<s1>> mm sphere. The best tenth of twist
-layouts moves its thumb and index mounts apart as the sphere grows: the median thumb-to-index distance along palm $x$ is
+layouts spreads its thumb and index mounts as the sphere grows; their median distance along palm $x$ is
 <<x0>> mm at <<s0>> mm and <<x1>> mm at <<s1>> mm (Figure <<f>>). Of the best tenth of twist layouts on the
-<<s0>> mm sphere, <<k0>> % are in the best tenth on the <<s1>> mm sphere, where a random tenth would give 10 %;
-between neighbouring sizes <<kn0>> to <<kn1>> % are.<<roll>></p>""",
+<<s0>> mm sphere, <<k0>> % are in the best tenth on the <<s1>> mm sphere; a random tenth would give 10 %. Between
+neighbouring sizes <<kn0>> to <<kn1>> % are.<<roll>></p>""",
                   ti=f"{100 * Z['twist']['variance']['interaction']:.0f}",
                   tn=f"{100 * Z['twist']['variance']['interaction_noise']:.0f}", s0=f"{s0:g}", s1=f"{s1:g}",
                   se=f"{Z['twist']['pairs'][f'{s0:g}-{s1:g}']:.2f}", x0=f"{xs0:.0f}", x1=f"{xs1:.0f}", f=FIG[0] + 1,
@@ -1394,8 +1395,8 @@ the <<a>> and <<b>> mm cylinders and <<kp>> % of the best tenth kept""", n=names
           if v.get("nbh_null") is not None]
     if nb:
         t += fill(r"""<p>The good layouts are grouped. At each size a task's landscape has <<n0>> to <<n1>> high
-neighbourhoods: basins of the score smoothed over each layout's 16 nearest layouts, whose peak lies in the best tenth,
-with 20 layouts or more. They hold a median of <<m0>> to <<m1>> layouts each. The same scores shuffled among the reached
+neighbourhoods. A high neighbourhood is a basin of the score smoothed over each layout's 16 nearest layouts, with its
+peak in the best tenth and 20 layouts or more. They hold a median of <<m0>> to <<m1>> layouts each. The same scores shuffled among the reached
 layouts scatter into <<u0>> to <<u1>> smaller ones. Each task and size therefore has a few dozen separate regions of
 good layouts.</p>""", n0=min(x[0] for x in nb), n1=max(x[0] for x in nb),
                   m0=f"{min(x[2] for x in nb):.0f}", m1=f"{max(x[2] for x in nb):.0f}",
@@ -1415,15 +1416,15 @@ def sec_cross():
     rho, b, mm = c["spearman"], c["best"], c["maximin"]
     cross_rho = [rho[k] for k in ("twist-pinpush", "twist-press", "roll-pinpush", "roll-press")]
     rk = c["best_rank_elsewhere"]
-    t = fill(r"""<p>The four tasks ran on all 8,192 Sobol layouts at their default objects: the twist and the roll on the
-40 mm sphere, the pin-push and the press on the 25 mm cylinder (foundational poses, three seeds). Tasks on the same object
+    t = fill(r"""<p>The four tasks ran on all 8,192 Sobol layouts at their default objects, with foundational poses and
+three seeds. The twist and the roll used the 40 mm sphere, the pin-push and the press the 25 mm cylinder. Tasks on the same object
 and grasp family rank the layouts alike: Spearman <<tr>> between the twist and the roll, <<pp>> between the pin-push and
 the press. Between a sphere task and a cylinder task the rank correlation is <<c0>> to <<c1>>.</p>
 <p>Each task's best layout is a poor choice for the others (Figure <<f>>). The twist's best layout, with a twist score
 of <<btw>>, ranks <<rk1>> of 8,192 on the roll. The pin-push's best drops the sphere in both sphere tasks. Of the 8,192 layouts, <<npar>>
 (<<ppar>> %) are Pareto-optimal on the four scores. The layout whose worst score is highest reaches <<mm>> on the
 twist, roll, pin-push and press. The best tenth of each task sits in a different part of the mount space (Figure <<f>>,
-right): the roll's has the thumb and the index nearer each other along palm $x$, the twist's has the index and the
+right). The roll's has the thumb and the index nearer each other along palm $x$; the twist's has the index and the
 middle nearer the centre line.</p>""",
              tr=f"{rho['twist-roll']:.2f}", pp=f"{rho['pinpush-press']:.2f}", c0=f"{min(cross_rho):.2f}",
              c1=f"{max(cross_rho):.2f}", f=FIG[0] + 1, btw=f"{b['twist']['scores'][0]:.2f}",
@@ -1433,6 +1434,20 @@ middle nearer the centre line.</p>""",
              "The four tasks on the 8,192 Sobol layouts at the default objects: the twist against the roll and the "
              "pin-push against the press, with the Pareto set over all four scores (red); and the median and quartiles "
              "of the six mount coordinates of each task's best tenth (standardized).")
+    cg = json.loads((L.GRID_ROWS / "cross_grid.json").read_text())
+    t += fill(r"""<p>Grasp synthesis changes this picture. On the <<n>> grid layouts that reach all four poses, the worst of a
+layout's four foundational-pose scores has a median of <<mf>>, and no layout scores above 0.5 on all four tasks. With
+each task's best grasp of 16 the median worst score is <<mb>>, and <<sb>> % of the layouts score above 0.5 on all four
+(Figure <<f>>). The best of them, at $x_{sep}$ = <<bx>> mm and $y_{sep}$ = <<by>> mm, scores <<bs>>. With one grasp
+per layout the hand looks specialised; with a grasp per task it is a generalist. The best of 16 is an upper estimate
+until its fresh-seed runs.</p>""", n=cg["layouts"], mf=f"{cg['maximin_median_fp']:.2f}",
+              mb=f"{cg['maximin_median_best']:.2f}", sb=f"{100 * cg['share_all_above_0.5_best']:.0f}", f=FIG[0] + 1,
+              bx=f"{cg['maximin_best']['xy'][0]:.0f}", by=f"{cg['maximin_best']['xy'][1]:.0f}",
+              bs=", ".join(f"{x:.2f}" for x in cg["maximin_best"]["scores"]))
+    t += img(MEDIA / "20261030-cross_grid.png",
+             "The worst of the four task scores on each grid layout, with the foundational pose for every task (left) and "
+             "with each task's best grasp of 16 (right); circles: the Pareto set over the four scores; star: the best "
+             "worst-case layout.")
     return t
 
 
@@ -1631,7 +1646,7 @@ neighbours, moved to it as palm-frame keyframes (<code>logs/20261029-hom_sizes/g
 <code>hom_landscape.py derive</code>, then <code>hom_gpu.py run --layouts grid2dval_size grid2dnb_size</code>). The gain
 of Section SEC[grid] repeats if the best grasp beats the foundational pose on fresh seeds on most layouts. A grasp
 transfers to a neighbouring layout if its score there comes within 0.1 of the layout's own best.</li>
-<li>Refine the best layouts by rollouts in their own neighbourhood: around each of the 20 best twist layouts, a
+<li>Refine the best layouts by rollouts in their own neighbourhood. Around each of the 20 best twist layouts, run a
 local Sobol design of 64 layouts within 2 mm, three seeds each (<code>hom_landscape.py moves</code> with a smaller
 radius, then <code>fp_sr2_toy.py poses</code> and <code>hom_gpu.py run</code>). The refinement works if the best of
 the 64 beats its centre on three further seeds for most of the 20.</li>

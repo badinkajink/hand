@@ -910,6 +910,39 @@ TASK_NAME = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "
 
 
 COORD_LABELS = ("thumb x", "thumb y", "index x", "index y", "middle x", "middle y")
+
+
+def fig_grid_sizes(task, out=None):
+    """The grid's best-of-16 score of one task at each object size whose grid ran, smoothed (7.5 mm), with its basin
+    peaks (stars; the largest basin's peak circled); one panel per size on a shared colour scale."""
+    sizes = [sz for sz in SIZES[task] if (GRID_ROWS / f"{task}_d{sz:g}.jsonl").exists()]
+    if len(sizes) < 2:
+        return None
+    plt = FR.plt_setup()
+    fig, axs = plt.subplots(1, len(sizes), figsize=(5.2 * len(sizes), 5.0), constrained_layout=True)
+    maps, peaks_out = [], {}
+    for sz in sizes:
+        xs, ys, M = grid_maps(task, sz)
+        maps.append((xs, ys, smooth_map(M["best"])))
+    vmax = max(float(np.nanmax(m)) for _, _, m in maps)
+    for ax, sz, (xs, ys, sm) in zip(np.atleast_1d(axs), sizes, maps):
+        ext = [xs[0] - 2.5, xs[-1] + 2.5, ys[0] - 2.5, ys[-1] + 2.5]
+        im = ax.imshow(sm, origin="lower", extent=ext, cmap="viridis", vmin=0, vmax=vmax, aspect="equal")
+        pk, big = peaks(sm)
+        X, Y = np.meshgrid(xs, ys)
+        ax.plot(X.flat[big], Y.flat[big], "r*", ms=13, mec="k")
+        if big:
+            main = max(big, key=lambda q: int((pk == q).sum()))
+            ax.plot(X.flat[main], Y.flat[main], "o", ms=20, mfc="none", mec="w", mew=2)
+            peaks_out[f"{sz:g}"] = [[float(X.flat[q]), float(Y.flat[q]), float(sm.flat[q]), int((pk == q).sum())]
+                                    for q in big]
+        ax.set_title(f"{sz:g} mm {T_SHAPE[task]}")
+        ax.set_xlabel("x_sep (mm)")
+        ax.set_ylabel("y_sep (mm)")
+    fig.colorbar(im, ax=axs, shrink=0.8, label="best of 16, smoothed")
+    fig.suptitle(f"{TASK_NAME[task]}: the grid's best grasp score across object sizes (circle: the largest basin's peak)")
+    FR.save(fig, out or f"20261030-grid_sizes_{task}.png")
+    return peaks_out
 DEFAULT = {"twist": 40.0, "roll": 40.0, "pinpush": 25.0, "press": 25.0}
 
 
@@ -921,6 +954,48 @@ def pareto(F):
         if not any(np.all(F[j] >= F[i]) and np.any(F[j] > F[i]) for j in keep):
             keep.append(i)
     return np.array(sorted(keep))
+
+
+def cmd_cross_grid(a):
+    """The four tasks on the 2-D grid at the default objects, each with its best grasp of 16: the worst of the four
+    best-of-16 scores per layout (a generalist's map), the Pareto set over the four, and the same with the foundational
+    pose. Writes rows/grid2d_v4b/cross_grid.json and media/20261030-cross_grid.png."""
+    tabs = {t: {r["call"]: r for r in grid_table(t, sz) if r.get("n_grasps")} for t, sz in DEFAULT.items()}
+    calls = sorted(set.intersection(*[set(v) for v in tabs.values()]))
+    tasks = list(DEFAULT)
+    B = np.array([[tabs[t][c]["best"] for t in tasks] for c in calls])
+    Fp = np.array([[tabs[t][c]["fp"] for t in tasks] for c in calls])
+    xy = np.array([[tabs[tasks[0]][c]["x_sep"], tabs[tasks[0]][c]["y_sep"]] for c in calls])
+    Pb, Pf = pareto(B), pareto(Fp)
+    mb, mf = B.min(1), Fp.min(1)
+    ib, if_ = int(np.argmax(mb)), int(np.argmax(mf))
+    out = {"layouts": len(calls), "pareto_best": len(Pb), "pareto_fp": len(Pf),
+           "maximin_best": {"xy": xy[ib].tolist(), "scores": B[ib].round(3).tolist()},
+           "maximin_fp": {"xy": xy[if_].tolist(), "scores": Fp[if_].round(3).tolist()},
+           "maximin_median_best": float(np.median(mb)), "maximin_median_fp": float(np.median(mf)),
+           "share_all_above_0.5_best": float(np.mean(mb > 0.5)), "share_all_above_0.5_fp": float(np.mean(mf > 0.5))}
+    (GRID_ROWS / "cross_grid.json").write_text(json.dumps(out, indent=1))
+    plt = FR.plt_setup()
+    xs, ys = np.unique(xy[:, 0]), np.unique(xy[:, 1])
+    ext = [xs[0] - 2.5, xs[-1] + 2.5, ys[0] - 2.5, ys[-1] + 2.5]
+    fig, axs = plt.subplots(1, 2, figsize=(12.5, 5.4), constrained_layout=True)
+    for ax, (M_, P_, lab) in zip(axs, ((mf, Pf, "foundational pose"), (mb, Pb, "best of 16 per task"))):
+        Z = np.full((len(ys), len(xs)), np.nan)
+        for (x, y_), v in zip(xy, M_):
+            Z[int(np.searchsorted(ys, y_)), int(np.searchsorted(xs, x))] = v
+        im = ax.imshow(Z, origin="lower", extent=ext, cmap="viridis", vmin=0, vmax=max(float(np.nanmax(mb)), 0.01),
+                       aspect="equal")
+        ax.plot(xy[P_, 0], xy[P_, 1], "o", ms=5, mfc="none", mec="r", mew=1.2, label="Pareto set over the four tasks")
+        k = int(np.argmax(M_))
+        ax.plot(*xy[k], "w*", ms=16, mec="k", label="best worst-case score")
+        ax.set_title(f"worst of the four task scores: {lab}")
+        ax.set_xlabel("x_sep (mm)")
+        ax.set_ylabel("y_sep (mm)")
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.13), ncol=2, fontsize=10, frameon=False)
+    fig.colorbar(im, ax=axs, shrink=0.8, label="worst of the four scores")
+    FR.save(fig, "20261030-cross_grid.png")
+    print(out, flush=True)
+    return 0
 
 
 def cmd_cross(a):
@@ -1041,6 +1116,12 @@ def cmd_figures(a):
             if (ROWS / "peak" / f"summary_{task}{size:g}.json").exists():
                 fig_value(task, size)
         fig_sizes(task)
+        pk_ = fig_grid_sizes(task)
+        if pk_:
+            fj = GRID_ROWS / "peaks_by_size.json"
+            allp = json.loads(fj.read_text()) if fj.exists() else {}
+            allp[task] = pk_
+            fj.write_text(json.dumps(allp, indent=1))
     return 0
 
 
@@ -1142,6 +1223,7 @@ def main():
     p.add_argument("--d", type=float, required=True)
     sub.add_parser("cross")
     sub.add_parser("valrep")
+    sub.add_parser("cross-grid")
     for name in ("moves", "moves-report"):
         p = sub.add_parser(name)
         p.add_argument("--task", choices=TASKS, required=True)
@@ -1156,7 +1238,7 @@ def main():
     a = ap.parse_args()
     return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
             "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "cross": cmd_cross,
-            "valrep": cmd_valrep}[a.cmd](a)
+            "valrep": cmd_valrep, "cross-grid": cmd_cross_grid}[a.cmd](a)
 
 
 if __name__ == "__main__":
