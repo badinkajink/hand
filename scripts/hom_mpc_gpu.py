@@ -428,9 +428,55 @@ def cmd_figure(a):
     return 0
 
 
+def cmd_steps_figure(a):
+    """The planner's physics step and replanning on grid layout 280: the sphere's twist against time for the 1 ms and
+    2 ms planners and the HOM ramp, with the first period of a lost pad, and the commanded rates. For the HOM review page."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.family": "serif", "font.size": 13})
+    runs = [r_ for r_ in (("twist_call280_g0_k64.json", "1 ms, 2 iterations every 0.1 s", "k"),
+                          ("twist_call280_g0_k64_p2ms.json", "2 ms, 2 iterations every 0.1 s", "tab:blue"),
+                          ("twist_call280_g0_k64_p2ms_i1.json", "2 ms, 1 iteration every 0.1 s", "tab:purple"),
+                          ("twist_call280_g0_k64_p2ms_r2.json", "2 ms, 2 iterations every 0.2 s", "tab:olive"),
+                          ("twist_call280_g0_k64_p2ms_i1_r2.json", "2 ms, 1 iteration every 0.2 s", "tab:green"))
+            if (OUT / r_[0]).exists()]
+    fig, axs = plt.subplots(1, 2, figsize=(13, 4.6))
+    t0 = T.T_LIFT + 0.4
+    ramp = json.loads((OUT / runs[0][0]).read_text())["runs"]["hom_ramp"]
+    for name, lab, c in [(None, "HOM ramp, 30 deg/s", "#e6731a")] + runs:
+        r = ramp if name is None else json.loads((OUT / name).read_text())["runs"]["mpc_k64"]
+        t = np.array([x["t"] for x in r["trace"]]) - t0
+        yaw = np.array([x["yaw_deg"] for x in r["trace"]])
+        F = np.array([x["F"] for x in r["trace"]])
+        axs[0].plot(t, yaw, color=c, lw=1.6, ls="--" if name is None else "-", label=lab)
+        lost = np.flatnonzero(F.min(1) <= 0.05)
+        if len(lost):
+            axs[0].plot(t[lost[0]], yaw[lost[0]], "o", color=c, ms=9, mfc="none", mew=1.8)
+        if name is not None:
+            P = r["plans"]
+            tp = np.array([x["t"] for x in P]) - t0
+            kn = np.array([x["knots"][0][0] for x in P])
+            axs[1].step(tp, kn, where="post", color=c, lw=1.4, label=lab)
+    axs[1].axhline(30.0, color="#e6731a", lw=1.2, ls="--", label="the ramp's rate")
+    axs[0].set_xlabel("Time from the task's start (s)")
+    axs[0].set_ylabel("Twist of the sphere (deg)")
+    axs[0].legend(loc="lower right", fontsize=11)
+    axs[0].text(0.02, 0.93, "circles: first period with a pad under 0.05 N", transform=axs[0].transAxes, fontsize=11)
+    axs[1].set_xlabel("Time from the task's start (s)")
+    axs[1].set_ylabel("Commanded rate, first knot (deg/s)")
+    axs[1].legend(loc="upper right", fontsize=11)
+    fig.tight_layout()
+    out = ROOT / "docs/experiments/20261029-hom_control_review/media" / "20261030-mpc_planner_step.png"
+    fig.savefig(out, dpi=100)
+    print("wrote", out.relative_to(ROOT), flush=True)
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("steps-figure")
     for name in ("run", "timing", "figure"):
         p = sub.add_parser(name)
         p.add_argument("--task", default="twist", choices=("twist",))
@@ -446,7 +492,7 @@ def main():
         p.add_argument("--iters", type=int, default=ITERS, help="planner iterations per replanning")
         p.add_argument("--replan", type=int, default=1, help="knots between replannings")
     a = ap.parse_args()
-    return {"run": cmd_run, "timing": cmd_timing, "figure": cmd_figure}[a.cmd](a)
+    return {"run": cmd_run, "timing": cmd_timing, "figure": cmd_figure, "steps-figure": cmd_steps_figure}[a.cmd](a)
 
 
 if __name__ == "__main__":

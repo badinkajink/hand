@@ -354,6 +354,7 @@ def variant_world(var, seed, dt_default=T.DT_C):
         mode = 3                                           # Gaussian noise on the centre of pressure and force
     p = {"var": var, "dt": dt, "cfmin": over.get("contact_force_min", hp.contact_force_min),
          "flg": over.get("force_loop_gain", hp.force_loop_gain), "reanchor": float(over.get("reanchor", hp.reanchor)),
+         "hold": float(T.PLANT_VARIANTS.get(var, {}).get("hold_s", 0.0)),
          "mode": mode,
          "pos_mm": nz.get("pos_mm", 0.0), "rot_deg": nz.get("rot_deg", 0.0), "cop_mm": nz.get("cop_mm", 0.0),
          "f_N": nz.get("f_N", 0.0), "delay": int(round(nz.get("delay_s", 0.0) / dt)), "tip_k": float(nz.get("tip_model", 0.0)),
@@ -557,6 +558,7 @@ class Batch:
             dd.qpos.assign(qpos.astype(np.float32))
             dd.qvel.zero_()
         self.wd.ctrl.assign(ctrl.astype(np.float32))
+        self.obj0 = qpos[:, self.qa:self.qa + 7].astype(np.float32)            # the start poses, for the variant hold
         self.mjw.forward(self.wm, self.wd)
         self.mjw.kinematics(self.wm, self.wdm)
         wp.synchronize()
@@ -847,6 +849,9 @@ class Batch:
         self.cfmin = T_([v["cfmin"] for v in V])
         self.flg = T_([v["flg"] for v in V])
         self.ra_w = T_([v["reanchor"] for v in V])
+        self.hold_t = T_([v["hold"] for v in V])
+        self.hold_max = float(max(v["hold"] for v in V))
+        self.obj0_t = th.tensor(self.obj0, device=dev)
         self.ra_any = bool((self.ra_w > 0).any())
         self.n_ra = th.zeros((self.W, 3), dtype=f64, device=dev)            # re-anchored periods per finger
         self.mode = T_([v["mode"] for v in V], th.long)
@@ -1184,6 +1189,12 @@ class Batch:
             q_cmd = self.control_period(t, meas, mv, V, s_push)
             vw["ctrl"][:, self.act_t] = (q_cmd - self.cal_q).reshape(W, 9).float()
             wp.capture_launch(self.graph)
+            if t + dtc <= self.hold_max + 1e-9:          # variant hold: the object back at its start pose, at rest
+                hm = (self.hold_t >= t + dtc - 1e-9)[:, None]
+                q_o = vw["qpos"][:, self.qa:self.qa + 7]
+                q_o.copy_(th.where(hm, self.obj0_t, q_o))
+                v_o = vw["qvel"][:, self.va:self.va + 6]
+                v_o.copy_(th.where(hm, th.zeros_like(v_o), v_o))
         wp.synchronize()
         wall = time.perf_counter() - t0
         out = {k: v.cpu().numpy() for k, v in rec.items()}
@@ -1329,7 +1340,7 @@ def cpu_rollout(scene, task, mxy, setup, q_open, seed, var="base"):
     mirror = H.Mirror(m_pt, fs, os_)
     over, noise = T.VARIANTS[var]
     res, _trace, _ = T.rollout(task, setup, plant, mirror, q_open, seed, T.PRM, replace(H.HomParams(dt=T.DT_C), **over),
-                               None, noise)
+                               None, noise, T.PLANT_VARIANTS.get(var, {}).get("hold_s", 0.0))
     return res
 
 

@@ -458,25 +458,34 @@ EA_TASKS = (("twist", 40.0), ("roll", 40.0), ("pinpush", 25.0), ("press", 25.0))
 EA_EPS = (0.05, 0.02)                                     # score margins below the grid's best
 
 
-def ea_landscape(task, size):
+def ea_landscape(task, size, ok=None):
     """The grid as a lookup evaluator: {(x_sep, y_sep): (fitness, rollouts)} for the fitness 'best' (the best grasp of
     the set, every grasp's three seeds run) and 'fp' (the foundational pose's three seeds); a layout whose pose is not
     reached scores 0 at no rollout. Also each cell's basin on the smoothed best-of-16 map and the best basin's peak (the
     highest smoothed peak), the grid's best score and its total rollouts."""
     tab = grid_table(task, size)
     sc, _ = grid_scores(task, size)
-    n_run, n_fp = {}, {}
+    n_run, n_fp, best, fp = {}, {}, {}, {}
     for (c, j), v in sc.items():
+        if ok is not None and (c, j) not in ok:          # a grasp whose fingers overlap is never run
+            continue
         n_run[c] = n_run.get(c, 0) + len(v)
+        best[c] = max(best.get(c, 0.0), float(np.mean(v)))
         if j == 0:
             n_fp[c] = len(v)
+            fp[c] = float(np.mean(v))
     look = {"best": {}, "fp": {}}
     for r in tab:
         k = (float(r["x_sep"]), float(r["y_sep"]))
-        ok = bool(r.get("n_grasps"))
-        look["best"][k] = (float(r["best"]) if ok else 0.0, n_run.get(r["call"], 0) if ok else 0)
-        look["fp"][k] = (float(r["fp"]) if ok and np.isfinite(r["fp"]) else 0.0, n_fp.get(r["call"], 0) if ok else 0)
+        c = r["call"]
+        look["best"][k] = (best.get(c, 0.0), n_run.get(c, 0))
+        look["fp"][k] = (fp.get(c, 0.0), n_fp.get(c, 0))
     xs, ys, M = grid_maps(task, size)
+    if ok is not None:
+        M["best"] = np.where(np.isfinite(M["best"]), 0.0, np.nan)
+        for r in tab:
+            if r["call"] in best:
+                M["best"][int(np.searchsorted(ys, r["y_sep"])), int(np.searchsorted(xs, r["x_sep"]))] = best[r["call"]]
     sm = smooth_map(M["best"])
     pk, pks = peaks(sm)
     top = max(pks, key=lambda p: sm.flat[p])
@@ -532,8 +541,10 @@ def cmd_ea(a):
     (seeds 0-2): rollouts until the incumbent (the best layout evaluated so far, by its own fitness) scores within 0.05
     and 0.02 of the grid's best best-of-16 score, for populations of EA_POP and 4 EA_POP. Writes rows/ea/summary.json."""
     out = {}
+    clear = getattr(a, "clear", False)
     for task, size in EA_TASKS:
-        look, basin, _top, best, total, xs, ys = ea_landscape(task, size)
+        ok = {k for k, g in overlap_gaps(task, size).items() if g >= GAP_OK} if clear else None
+        look, basin, _top, best, total, xs, ys = ea_landscape(task, size, ok)
         best_cell = max(look["best"], key=lambda k: look["best"][k][0])
         reached = [k for k, (f, n) in look["best"].items() if n > 0]
         res = {"grid_rollouts": total, "grid_best": best, "grid_best_cell": list(best_cell), "layouts_reached": len(reached),
@@ -578,20 +589,21 @@ def cmd_ea(a):
                   flush=True)
         out[f"{task}_d{size:g}"] = res
     (ROWS / "ea").mkdir(parents=True, exist_ok=True)
-    (ROWS / "ea" / "summary.json").write_text(json.dumps({"pop": EA_POP, "delta_mm": EA_DELTA, "runs": EA_RUNS, **out},
-                                                         indent=1))
-    fig_ea(out)
+    (ROWS / "ea" / ("summary_clear.json" if clear else "summary.json")).write_text(json.dumps(
+        {"pop": EA_POP, "delta_mm": EA_DELTA, "runs": EA_RUNS, "clear_gap_mm": GAP_OK if clear else None, **out}, indent=1))
+    fig_ea(out, "_clear" if clear else "")
     return 0
 
 
 def cmd_ea_figure(a):
-    """The EA figure from rows/ea/summary.json."""
-    d = json.loads((ROWS / "ea" / "summary.json").read_text())
-    fig_ea({k: v for k, v in d.items() if isinstance(v, dict) and "runs" in v})
+    """The EA figure from rows/ea/summary.json (summary_clear.json with --clear)."""
+    clear = getattr(a, "clear", False)
+    d = json.loads((ROWS / "ea" / ("summary_clear.json" if clear else "summary.json")).read_text())
+    fig_ea({k: v for k, v in d.items() if isinstance(v, dict) and "runs" in v}, "_clear" if clear else "")
     return 0
 
 
-def fig_ea(out):
+def fig_ea(out, suffix=""):
     """Per task, the median over runs of the best-of-16 score of the incumbent against rollouts spent, for the EA at
     two population sizes, random search and the EA with the foundational pose as its fitness; the grid's best score."""
     plt = FR.plt_setup()
@@ -616,7 +628,144 @@ def fig_ea(out):
     axs[0].text(0.98, 0.62, "dotted red: 0.05 below the best", transform=axs[0].transAxes, ha="right", fontsize=10)
     axs[0].legend(loc="lower right", fontsize=10)
     fig.tight_layout()
-    FR.save(fig, "20261030-ea_baseline.png")
+    FR.save(fig, f"20261030-ea_baseline{suffix}.png")
+
+
+OVERLAP = ROWS / "grid2d_v4b" / "overlap"       # scripts/hom_grasp_overlap.py
+GAP_OK = 2.0                                     # mm: a grasp counts as clear when every two fingers' parts are this far
+
+
+def overlap_gaps(task, size):
+    """{(call, grasp): smallest finger-to-finger gap at the touch pose (mm)} from the overlap rows (all parts)."""
+    out = {}
+    for p in sorted(OVERLAP.glob(f"{task}_d{size:g}*.jsonl")):
+        for x in p.read_text().splitlines():
+            if x.strip():
+                r = json.loads(x)
+                out[(int(r["call"]), int(r["grasp"]))] = float(r["min_mm"])
+    return out
+
+
+def masked_table(task, size, ok=None):
+    """grid_table with only the grasps in ok (a set of (call, grasp)); layouts with none score NaN."""
+    poses = grid_poses(task, size)
+    sc, _ = grid_scores(task, size)
+    best, fp = {}, {}
+    for (c, j), v in sc.items():
+        if ok is not None and (c, j) not in ok:
+            continue
+        m = float(np.mean(v))
+        if m > best.get(c, (-1.0, None))[0]:
+            best[c] = (m, j)
+        if j == 0:
+            fp[c] = m
+    return poses, best, fp
+
+
+def peak_of(poses, best):
+    """The (x_sep, y_sep) of the largest basin's peak on the smoothed map of best."""
+    xs = sorted({v[0] for v in poses.values()})
+    ys = sorted({v[1] for v in poses.values()})
+    Z = np.full((len(ys), len(xs)), np.nan)
+    for c, (m, _j) in best.items():
+        x, y, _r = poses[c]
+        Z[ys.index(y), xs.index(x)] = m
+    sm = smooth_map(Z)
+    pk, pks = peaks(sm)
+    if not pks:
+        return None
+    top = max(pks, key=lambda p: int((pk == p).sum()))
+    return [float(xs[top % len(xs)]), float(ys[top // len(xs)])]
+
+
+def cmd_overlap(a):
+    """The grids' grasps whose fingers' parts overlap at the touch pose (scripts/hom_grasp_overlap.py): shares, and the
+    grid's statistics with only the grasps clear by GAP_OK. Writes rows/grid2d_v4b/overlap/summary.json."""
+    out = {}
+    clear_sets = {}
+    for task in TASKS:
+        for size in SIZES[task]:
+            gaps = overlap_gaps(task, size)
+            if not gaps:
+                continue
+            ok = {k for k, g in gaps.items() if g >= GAP_OK}
+            clear_sets[(task, size)] = ok
+            poses, b_all, f_all = masked_table(task, size)
+            _p, b_ok, f_ok = masked_table(task, size, ok)
+            calls = sorted(b_all)
+            fp_ov = [gaps.get((c, 0), 0.0) < 0.0 for c in calls]
+            best_ov = [gaps.get((c, b_all[c][1]), 0.0) < 0.0 for c in calls]
+            res = {"grasps": len(gaps), "overlap": float(np.mean([g < 0.0 for g in gaps.values()])),
+                   "under_gap_ok": float(np.mean([g < GAP_OK for g in gaps.values()])),
+                   "layouts": len(calls), "fp_overlap": float(np.mean(fp_ov)), "best_overlap": float(np.mean(best_ov)),
+                   "layouts_without_clear_grasp": int(sum(c not in b_ok for c in calls)),
+                   "best_median_all": float(np.median([b_all[c][0] for c in calls])),
+                   "best_median_clear": float(np.median([b_ok[c][0] for c in calls if c in b_ok])),
+                   "fp_median_all": float(np.median([f_all[c] for c in calls if c in f_all])),
+                   "fp_median_clear": float(np.median([f_ok[c] for c in calls if c in f_ok])),
+                   "best_changed": float(np.mean([c in b_ok and b_ok[c][1] != b_all[c][1] for c in calls])),
+                   "peak_all": peak_of(poses, b_all), "peak_clear": peak_of(poses, b_ok)}
+            out[f"{task}_d{size:g}"] = res
+            print(task, size, {k: (round(v, 3) if isinstance(v, float) else v) for k, v in res.items()}, flush=True)
+    # the four tasks at their default objects, with and without the overlapping grasps
+    defaults = (("twist", 40.0), ("roll", 40.0), ("pinpush", 25.0), ("press", 25.0))
+    if all(k in clear_sets for k in defaults):
+        cross = {}
+        for name, use in (("all", False), ("clear", True)):
+            per = []
+            for task, size in defaults:
+                poses, b, _f = masked_table(task, size, clear_sets[(task, size)] if use else None)
+                per.append({(poses[c][0], poses[c][1]): m for c, (m, _j) in b.items()})
+            common = set.intersection(*[set(p) for p in per])
+            worst = {xy: min(p[xy] for p in per) for xy in common}
+            mm = max(worst, key=worst.get)
+            cross[name] = {"layouts": len(common), "share_all_above_0.5": float(np.mean([v > 0.5 for v in worst.values()])),
+                           "maximin_xy": list(mm), "maximin_scores": [p[mm] for p in per],
+                           "worst_median": float(np.median(list(worst.values())))}
+        out["cross"] = cross
+        print("cross", cross, flush=True)
+    OVERLAP.mkdir(parents=True, exist_ok=True)
+    (OVERLAP / "summary.json").write_text(json.dumps(out, indent=1))
+    fig_overlap(clear_sets)
+    return 0
+
+
+def fig_overlap(clear_sets):
+    """Per task at its default object: the share of each layout's grasps whose fingers' parts come within GAP_OK of each
+    other at the touch pose, and the change of the layout's best-of-16 score when those grasps are left out."""
+    plt = FR.plt_setup()
+    defaults = (("twist", 40.0), ("roll", 40.0), ("pinpush", 25.0), ("press", 25.0))
+    names = {"twist": "Twist, 40 mm sphere", "roll": "Roll, 40 mm sphere", "pinpush": "Pin-push, 25 mm cylinder",
+             "press": "Press, 25 mm cylinder"}
+    fig, axs = plt.subplots(2, 4, figsize=(19, 8.6), constrained_layout=True)
+    for k, (task, size) in enumerate(defaults):
+        if (task, size) not in clear_sets:
+            continue
+        gaps = overlap_gaps(task, size)
+        poses, b_all, _ = masked_table(task, size)
+        _p, b_ok, _ = masked_table(task, size, clear_sets[(task, size)])
+        xs = sorted({v[0] for v in poses.values()})
+        ys = sorted({v[1] for v in poses.values()})
+        S_ = np.full((len(ys), len(xs)), np.nan)
+        D_ = np.full((len(ys), len(xs)), np.nan)
+        share = {}
+        for (c, _j), g in gaps.items():
+            share.setdefault(c, []).append(g < GAP_OK)
+        for c, v in share.items():
+            x, y, _r = poses[c]
+            S_[ys.index(y), xs.index(x)] = float(np.mean(v))
+            if c in b_all:
+                D_[ys.index(y), xs.index(x)] = (b_ok[c][0] if c in b_ok else 0.0) - b_all[c][0]
+        ext = [xs[0] - 2.5, xs[-1] + 2.5, ys[0] - 2.5, ys[-1] + 2.5]
+        im0 = axs[0, k].imshow(S_, origin="lower", extent=ext, aspect="auto", cmap="Reds", vmin=0, vmax=1)
+        im1 = axs[1, k].imshow(D_, origin="lower", extent=ext, aspect="auto", cmap="RdBu", vmin=-0.6, vmax=0.6)
+        axs[0, k].set_title(names[task])
+        axs[1, k].set_xlabel("Thumb-to-pair distance (mm)")
+    axs[0, 0].set_ylabel("Index-to-middle distance (mm)")
+    axs[1, 0].set_ylabel("Index-to-middle distance (mm)")
+    fig.colorbar(im0, ax=axs[0, :], shrink=0.85, label=f"Grasps under {GAP_OK:g} mm apart (share)")
+    fig.colorbar(im1, ax=axs[1, :], shrink=0.85, label="Best-of-16 change without them")
+    FR.save(fig, "20261030-grasp_overlap.png")
 
 
 DRAWS = ROWS / "grid2d_v4b_draws12"
@@ -686,7 +835,31 @@ def cmd_draws(a):
                                if not isinstance(v, list)}, flush=True)
     DRAWS.mkdir(parents=True, exist_ok=True)
     (DRAWS / "summary.json").write_text(json.dumps(out, indent=1))
+    fig_draws(out)
     return 0
+
+
+def fig_draws(out):
+    """Per task and size, each seed's mean over the grid of the foundational pose's score and the best grasp's (picked
+    on seeds 0-2), seeds 0-17."""
+    plt = FR.plt_setup()
+    keys = [k for k in ("pinpush_d10", "pinpush_d25", "pinpush_d40", "press_d10", "press_d25", "press_d40") if k in out]
+    names = {"pinpush": "Pin-push", "press": "Press"}
+    fig, axs = plt.subplots(1, len(keys), figsize=(4.3 * len(keys), 4.2), sharey=True, squeeze=False)
+    for ax, k in zip(axs[0], keys):
+        r = out[k]
+        sd = np.array(r["seeds"])
+        ax.axvspan(-0.5, 2.5, color="0.92", zorder=0)
+        ax.plot(sd, r["seed_mean_fp"], "o-", color="0.45", ms=5, lw=1.2, label="foundational pose")
+        ax.plot(sd, r["seed_mean_best"], "^-", color="tab:blue", ms=5, lw=1.2, label="best grasp")
+        task, d = k.split("_d")
+        ax.set_title(f"{names[task]}, {d} mm cylinder")
+        ax.set_xlabel("Seed (shaded: picking seeds)")
+        ax.set_xticks([0, 3, 6, 9, 12, 15])
+    axs[0][0].set_ylabel("Mean score over the grid")
+    axs[0][0].legend(loc="lower left", fontsize=11)
+    fig.tight_layout()
+    FR.save(fig, "20261030-draws12.png")
 
 
 def cmd_local_report(a):
@@ -1578,9 +1751,11 @@ def main():
     sub.add_parser("cross")
     sub.add_parser("valrep")
     sub.add_parser("cross-grid")
-    sub.add_parser("ea")
-    sub.add_parser("ea-figure")
+    for name in ("ea", "ea-figure"):
+        p = sub.add_parser(name)
+        p.add_argument("--clear", action="store_true", help=f"only the grasps whose fingers stay {GAP_OK:g} mm apart")
     sub.add_parser("draws")
+    sub.add_parser("overlap")
     for name in ("moves", "moves-report", "local-report"):
         p = sub.add_parser(name)
         p.add_argument("--task", choices=TASKS, required=True)
@@ -1594,7 +1769,7 @@ def main():
     p.add_argument("--out", default="")
     a = ap.parse_args()
     return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
-            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "local-report": cmd_local_report, "ea": cmd_ea, "ea-figure": cmd_ea_figure, "draws": cmd_draws,
+            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "local-report": cmd_local_report, "ea": cmd_ea, "ea-figure": cmd_ea_figure, "draws": cmd_draws, "overlap": cmd_overlap,
             "cross": cmd_cross,
             "valrep": cmd_valrep, "cross-grid": cmd_cross_grid}[a.cmd](a)
 

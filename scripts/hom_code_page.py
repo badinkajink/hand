@@ -939,7 +939,7 @@ median <<fmid>> N of its commanded 1.5 N (Figure 5).</p>""", ft=f"{p_sq['fingers
                   fm=f"{p_sq['fingers']['middle']['F']:.1f}", yaw=f"{yaw[0] - yaw[1]:.1f}", m0=f"{mcp[0]:.1f}",
                   m1=f"{mcp[1]:.1f}", cap=f"{100 * capped:.0f}", dm=f"{d_mcp:.2f}", fmid=f"{f_mid:.2f}")
     s_imp += fill(r"""<p>Re-anchoring the reference raises the middle finger's force, and the pin-push then tracks worse
-(Figures 6 to 8). With <code>HomParams.reanchor</code>, a finger in contact whose gap exceeds $g_{\max}$ has its reference
+(Figures 6 to 8, Film <<fm>>). With <code>HomParams.reanchor</code>, a finger in contact whose gap exceeds $g_{\max}$ has its reference
 set to its measured angles (<code>HomController.reanchor</code>). The gap step then starts from the surface, and the
 target presses with $F$. The variant <code>reanchor</code> of <code>hom_tasks.VARIANTS</code> runs it on the CPU and on
 the GPU. In the example the middle finger's reference was re-anchored <<nsq>> times in the squeeze, from
@@ -960,7 +960,7 @@ from a median <<sa>> to <<sb>>. It was lower by more than 0.02 in <<wo>> % of th
 $p = <<pw>>$). On the whole grid, seeds 0 to 2, the median best-of-16 score fell from <<b16a>> to <<b16b>>. The
 layouts' best-of-16 scores kept their order at Spearman <<rho>>. The grid's rows without the re-anchor predate the
 CUDA-graph port of Section 13. The re-anchor therefore stays off by default.</p>""",
-                  nsq=n_sq, t0=f"{ra_t[0]:.2f}", ntk=len(ra_t) - n_sq,
+                  nsq=n_sq, t0=f"{ra_t[0]:.2f}", ntk=len(ra_t) - n_sq, fm=FILM[0] + 1,
                   fa=f"{RA['base']['res']['F_mean']['middle']:.2f}", fb=f"{RA['reanchor']['res']['F_mean']['middle']:.2f}",
                   ya=f"{yaw_at('base', 1.6):.0f}", yb=f"{yaw_at('reanchor', 1.6):.0f}", yc=f"{yaw_at('reanchor', 2.5):.0f}",
                   lim=f"{mcp_hi:.1f}", ra=f"{RA['base']['res']['theta_rmse_deg']:.1f}",
@@ -985,6 +985,14 @@ middle finger is curled to its MCP limit. <code>scripts/hom_reanchor_check.py cp
                  "force against its command of 1.5 N (dashed). (b) Its servo gap, cut at 6 mm, with the re-anchored "
                  "periods (triangles). (c) Its MCP angle, measured and reference. (d) The cylinder's yaw from its start. "
                  "(e) Its angle about the pinch axis from the task's start, against the command.", width=760)
+    fv = GRID.parent / "films_v4b.json"
+    if fv.exists() and (MEDIA / "20261030-film_reanchor.mp4").exists():
+        fi = json.loads(fv.read_text())["reanchor"]
+        s_imp += film(MEDIA / "20261030-film_reanchor.mp4",
+                      f"The pin-push example without the re-anchor (left, score {fi['without the re-anchor']['score']:.2f}) "
+                      f"and with it (right, score {fi['with the re-anchor']['score']:.2f}); CPU runner, seed 0. With the "
+                      "re-anchor the middle finger pushes the cylinder's free end round about the vertical. "
+                      "<code>scripts/hom_films.py reanchor</code>.", poster=MEDIA / "20261030-film_reanchor.jpg")
     s_imp += img(MEDIA / "20261030-reanchor_grid.png",
                  "The re-anchor on the GPU, 25 mm pin-push grid. (a) The middle finger's mean pad force over the task "
                  "in the validation worlds held with and without it (seeds 3 to 5). (b) The pin-push score of every "
@@ -1061,16 +1069,24 @@ steps per period run as one captured CUDA graph.</p>""") + table(
         ["CPU (<code>hom.py</code>, <code>hom_tasks.py</code>)", "GPU (<code>hom_gpu.Batch</code>)", "Difference"],
         g_rows, "The batched controller's parts.", num_from=9)
     ct, cp = C["twist"], C["pinpush"]
+    ovp = GRID.parent / "cpu_best" / "summary_twist_d40.json"
+    ovs = ""
+    if ovp.exists():                                   # the CPU runner on 60 layouts' clear and overlapping grasps
+        ov = json.loads(ovp.read_text())
+        ovs = fill(r""" Where they disagree, the twist grasp mostly puts the index's and the middle's v4b parts into each
+other at the touch pose: the GPU lets those parts pass through each other, the CPU plant does not (design page, Section 9).
+On 60 grid layouts of the twist, the grasps whose fingers stay 2 mm apart had the same held outcome on both in every run,
+and the overlapping best grasps in <<so>> %.""", so=f"{100 * ov['best_overlap']['same_held']:.0f}")
     s_gpu += fill(r"""<p>The CPU runner (<code>hom_gpu.py cpu-check</code>) repeated <<n1>> twist and <<n2>> pin-push
 grasps of the 2-D grid at seed 0. It used the GPU queue's layouts, grasps and open poses (Table 9, Figure 9). The held
 outcome agreed on <<s1>> % of the twists and <<s2>> % of the pin-pushes. The task scores had rank correlations of <<r1>>
 and <<r2>>. The GPU's own seeds 0, 1 and 2 start the object up to 1 mm and 2 deg apart. Between them the held outcome
 agreed on <<ss1>> % of the twists and <<ss2>> % of the pin-pushes, with rank correlations of <<sr1>> and <<sr2>>. CPU
-and GPU therefore differ no more than two starts of the same rollout do. The pin-push is the more sensitive task: one
+and GPU therefore differ no more than two starts of the same rollout do.<<ovs>> The pin-push is the more sensitive task: one
 pin-push rollout is a noisy measurement of a grasp, and the grid maps average three seeds. On an <<gpu>>, the GPU took
 <<g1>> ms per twist rollout in batches of <<b>> worlds and <<g2>> ms per pin-push rollout in batches of <<b2>>. One CPU
 core took <<c1>> and <<c2>> s.</p>""",
-                  n1=ct["n"], n2=cp["n"], s1=f"{100 * ct['same']:.0f}", s2=f"{100 * cp['same']:.0f}",
+                  ovs=ovs, n1=ct["n"], n2=cp["n"], s1=f"{100 * ct['same']:.0f}", s2=f"{100 * cp['same']:.0f}",
                   r1=f"{ct['rho']:.2f}", r2=f"{cp['rho']:.2f}",
                   ss1=f"{100 * ct['seed_same'][0]:.0f} to {100 * ct['seed_same'][1]:.0f}",
                   ss2=f"{100 * cp['seed_same'][0]:.0f} to {100 * cp['seed_same'][1]:.0f}",

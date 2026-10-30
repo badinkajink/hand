@@ -38,6 +38,7 @@ import texsvg  # noqa: E402
 D = ROOT / "docs/experiments/20261029-foundational_pose_review"
 MEDIA = D / "media"
 ROWS = D / "rows"
+HOMD = ROOT / "docs/experiments/20261029-hom_control_review"   # the HOM review page's folder (its media)
 OUT = D / "20261029-foundational_pose_hand_design.html"
 TEMPLATE = ROOT / "scripts/fp_review_page.template.html"
 TEX_CACHE = D / "texsvg_cache.json"
@@ -81,6 +82,18 @@ def fill(s, **kw):
 
 def data_uri(p, mime):
     return f"data:{mime};base64,{base64.b64encode(Path(p).read_bytes()).decode()}"
+
+
+FILMS_V4B = ROWS / "films_v4b.json"                # scripts/hom_films.py
+
+
+def v4b_film(name, caption_fn):
+    """Film media/20261030-film_<name>.mp4 with the caption caption_fn(info) from rows/films_v4b.json, or nothing."""
+    path = MEDIA / f"20261030-film_{name}.mp4"
+    if not (path.exists() and FILMS_V4B.exists()):
+        return ""
+    info = json.loads(FILMS_V4B.read_text()).get(name)
+    return film(path, caption_fn(info)) if info else ""
 
 
 def img(path, caption, jpeg=False):
@@ -720,17 +733,6 @@ twist drops the sphere. The twist's ramp peaks on a band of wider pairs instead.
                  "(median over seeds). Right: the roll's velocity RMSE per step. Crosses mark layouts where the twist "
                  "dropped the sphere in two seeds or more. Colours clipped at the 5th and 95th percentiles. "
                  "<code>scripts/fp_review_figures.py dyn2d</code>.")
-        fj = ROWS / "film_two_layouts.json"
-        if fj.exists():
-            fi = json.loads(fj.read_text())
-            b, w = fi["best"], fi["dropped"]
-            t += film(MEDIA / "20261029-hom_twist_two_layouts.mp4", fill(
-                "The HOM twist of the 40 mm sphere on two layouts of the 2-D case, CPU runner, seed 0. Left: the layout "
-                "whose twist went furthest on three pads in every seed (x_sep <<bx>> mm, y_sep <<by>> mm; kinematic "
-                "range <<bk>> deg). Right: the layout with the largest kinematic range among those that dropped the "
-                "sphere (x_sep <<wx>> mm, y_sep <<wy>> mm; kinematic range <<wk>> deg). <code>scripts/fp_hom_film.py</code>.",
-                bx=f"{b['x_sep_mm']:.0f}", by=f"{b['y_sep_mm']:.0f}", bk=f"{b['kin_tmr_deg']:.0f}",
-                wx=f"{w['x_sep_mm']:.0f}", wy=f"{w['y_sep_mm']:.0f}", wk=f"{w['kin_tmr_deg']:.0f}"))
     f2 = N["fig"].get("four2d", {})
     mt, mr = f2.get("matched_twist"), f2.get("matched_roll")
     if mt and mr and (MEDIA / "20261029-hom_matched_grasps_2d.png").exists():
@@ -764,17 +766,6 @@ pinch-angle RMSE at Spearman <<sr>>.</p>""",
                  "and the roll, pinch pose for the pin-push, press pose for the press), medians over three seeds. "
                  "Crosses mark layouts where two seeds or more dropped the object. Colours clipped at the 5th and 95th "
                  "percentiles; red is better in every panel. <code>scripts/fp_review_figures.py four2d</code>.")
-        fj2 = ROWS / "film_pinpush_two_layouts.json"
-        if fj2.exists() and (MEDIA / "20261029-hom_pinpush_two_layouts.mp4").exists():
-            fi = json.loads(fj2.read_text().replace("NaN", "null"))
-            h_, d_ = fi["held"], fi["dropped"]
-            t += film(MEDIA / "20261029-hom_pinpush_two_layouts.mp4", fill(
-                "The pin-push of the 25 mm cylinder from the toy's pinch pose on two 2-D layouts, CPU runner, seed 0. "
-                "Left: the thumb close to the pair (x_sep <<hx>> mm, y_sep <<hy>> mm), held in every GPU seed and here, "
-                "pinch-angle RMSE <<hr>> deg. Right: a wide thumb (x_sep <<dx>> mm, y_sep <<dy>> mm), dropped in every "
-                "GPU seed and here. <code>scripts/fp_hom_film.py pinpush</code>.",
-                hx=f"{h_['x_sep_mm']:.0f}", hy=f"{h_['y_sep_mm']:.0f}", hr=f"{h_['cpu_seed0']['theta_rmse_deg']:.1f}",
-                dx=f"{d_['x_sep_mm']:.0f}", dy=f"{d_['y_sep_mm']:.0f}"))
     rows = []
     for name, x in (("2-D, equator grasp", d2), ("2-D, foundational pose", N.get("dyn2dfp")),
                     ("6-D RRT, foundational pose", r6), ("6-D Sobol, foundational pose", s6)):
@@ -1105,12 +1096,142 @@ the link, cassette and cap clear of the object, with the finger placed where the
 reached by more layouts: the tripod pose by <<t30>> of 8,192 on the 30 mm sphere and <<t63>> on the 63 mm sphere. In the
 <<nhp>> held pin-pushes of seed 0, the largest force on the rigid parts had a median of <<lp>> N and a 90th percentile of
 <<lp9>> N. In the twist they touch the sphere at the end of the ramp, when a pad leaves
-it: median <<lt>> N over <<nht>> held twists. The CPU and GPU controllers agree on the held outcome as often as two seeds
-of the GPU controller do (the code walkthrough, Section 13).</p>""",
+it: median <<lt>> N over <<nht>> held twists. Where the fingers' parts stay clear of each other, the CPU and GPU
+controllers agree on the held outcome (the code walkthrough, Section 13). Where they overlap, they do not (below).</p>""",
               t30=f"{y[('tripod', 30)]['tripod']:,}", t63=f"{y[('tripod', 63)]['tripod']:,}", nhp=f"{nh_p:,}",
               lp=f"{lp:.1f}", lp9=f"{lp9:.1f}", lt=f"{lt:.1f}", nht=f"{nh_t:,}").replace("SEC_TAB_Y", str(TAB[0] + 1))
     t += table(["Object", "Pose", "Layouts reaching the pose", "Reaching the press pose"], rows,
                "Sobol layouts (of 8,192) that reach each pose with the v4b fingertip, per object size.", num_from=2)
+    t += sec_overlap(N)
+    return t
+
+
+def overlap_numbers():
+    """The finger overlap at the touch pose (scripts/hom_grasp_overlap.py, hom_landscape.py overlap) and the CPU checks
+    of it (scripts/hom_top_cpu_check.py; hom_gpu.py cpu-check into rows/cpu_best)."""
+    import hom_landscape as L
+    sp = L.OVERLAP / "summary.json"
+    if not sp.exists():
+        return None
+    out = {"summary": json.loads(sp.read_text())}
+    rows = [json.loads(x) for p_ in sorted(L.OVERLAP.glob("twist_d40_p*.jsonl")) for x in p_.read_text().splitlines()]
+    bands = {"le75": lambda x: x <= 75, "110_130": lambda x: 110 <= x <= 130, "ge145": lambda x: x >= 145}
+    out["bands"] = {k: float(np.mean([r["min_mm"] < 0 for r in rows if f(r["x_sep"])])) for k, f in bands.items()}
+    out["row50"] = float(np.mean([r["min_mm"] < 0 for r in rows if r["y_sep"] == 50.0]))
+
+    def sob(task, d):
+        g = [json.loads(x)["min_mm"] for p_ in sorted(L.OVERLAP.glob(f"sobol8k_{task}_d{d}_p*.jsonl"))
+             for x in p_.read_text().splitlines()]
+        return float(np.mean(np.array(g) < 0)) if g else None
+    out["sobol"] = {"tripod40": sob("twist", 40), "pinch25": sob("pinpush", 25), "press25": sob("press", 25)}
+    cb = ROWS / "cpu_best"
+    out["even"] = json.loads((cb / "summary_twist_d40.json").read_text()) if (cb / "summary_twist_d40.json").exists() else None
+    tp = cb / "top_twist_d40.jsonl"
+    if tp.exists():
+        top = [json.loads(x) for x in tp.read_text().splitlines() if x.strip()]
+        full = [r for r in top if not r["gpu_filter"]]
+        filt = [r for r in top if r["gpu_filter"]]
+        touch = [r for r in full if r["finger_touch_periods"]]
+        clear = [r for r in full if not r["finger_touch_periods"]]
+        per = [sum(r["finger_touch_periods"].values()) for r in touch]
+        out["top"] = {"n": len(full), "touch": len(touch), "touch_median": float(np.median([r["score"] for r in touch])),
+                      "clear_median": float(np.median([r["score"] for r in clear])),
+                      "filter_median": float(np.median([r["score"] for r in filt])),
+                      "gpu_median": float(np.median([r["gpu_best"] for r in full])), "periods": [min(per), max(per)],
+                      "low": sum(r["score"] < 0.2 for r in full)}
+    return out
+
+
+def sec_overlap(N):
+    O = N.get("overlap")
+    if not O:
+        return ""
+    S_ = O["summary"]
+    g = {k: v for k, v in S_.items() if k != "cross"}
+    tw, cr = g["twist_d40"], S_["cross"]
+    ev, tp = O.get("even") or {}, O.get("top") or {}
+    oc = max(g[k]["overlap"] for k in g if k.startswith(("pinpush", "press")))
+    t = fill(r"""<p>In a third of the v4b grasps on the 40 mm sphere, the index's and the
+middle's rigid parts overlap at the touch pose, and the GPU evaluator does not detect it (Table <<tb>>, Figure <<fg>>, Film
+<<fm>>). The pose toy keeps two fingers apart by its closed-form finger skeleton (<code>K.finger_clearance</code>) and keeps
+the v4b parts clear of the object only (<code>rigid_clearance</code>). On the GPU the pads and the rigid spheres under 2 mm
+meet the object only, which made a 2,048-world batch about ten times faster. Two fingers' caps can therefore pass through
+each other on the GPU, where the CPU plant stops them.</p>
+<p>The overlap was measured at each grasp's touch pose with every pad and rigid sphere of the v4b hand
+(<code>scripts/hom_grasp_overlap.py</code>). On the grid, the index and the middle overlap in <<o30>>, <<o40>> and <<o63>> % of
+the tripod grasps on the 30, 40 and 63 mm spheres. They overlap in <<oc>> % or fewer of the pinch and press grasps. The share rises
+with the thumb's distance from the pair. It is <<s75>> % of the twist's grasps at 75 mm or less, <<s110>> % at 110 to 130 mm
+and <<s145>> % at 145 mm or more. On the grid's row with the index and middle mounts 50 mm apart, every grasp of every
+task comes within 2 mm, and <<r50>> % of the twist's grasps overlap. Of the Sobol layouts' tripod foundational poses on the
+40 mm sphere, <<sob>> % overlap; their pinch and press poses do not.</p>""",
+             tb=TAB[0] + 1, fg=FIG[0] + 1, fm=FILM[0] + 1, o30=f"{100 * g['twist_d30']['overlap']:.0f}",
+             o40=f"{100 * tw['overlap']:.0f}", o63=f"{100 * g['twist_d63']['overlap']:.0f}", oc=f"{100 * oc:.0f}",
+             s75=f"{100 * O['bands']['le75']:.0f}", s110=f"{100 * O['bands']['110_130']:.0f}",
+             s145=f"{100 * O['bands']['ge145']:.0f}", sob=f"{100 * O['sobol']['tripod40']:.0f}",
+             r50=f"{100 * O['row50']:.0f}")
+    if ev and tp:
+        t += fill(r"""<p>Where the fingers stay clear, the GPU evaluator matches the CPU runner. On 60 evenly spaced grid
+layouts of the 40 mm twist at seed 0, the clear foundational poses and best grasps had the same held outcome on both in
+every run. Their median scores were <<c1>> and <<c2>> on the CPU against <<g1>> and <<g2>> on the GPU. The overlapping best
+grasps had the same held outcome in <<so>> % of runs and scored a median <<co>> on the CPU against <<go>> on the GPU. The
+grid's 20 best twist layouts show the effect at its largest. In <<nt>> of them the best grasp's index and middle caps
+touched on the CPU plant, for <<p0>> to <<p1>> of about 780 periods. These grasps scored a median <<ct>> there, against
+<<cc>> for the clear ones. <<lo>> of the 20 scored under 0.2. With the GPU's collision filter applied to the CPU plant,
+the 20 scored a median <<cf>>, as on the GPU (<<gm>>; <code>scripts/hom_top_cpu_check.py</code>).</p>""",
+                  c1=f"{ev['fp_clear']['cpu_median']:.2f}", c2=f"{ev['best_clear']['cpu_median']:.2f}",
+                  g1=f"{ev['fp_clear']['gpu_median']:.2f}", g2=f"{ev['best_clear']['gpu_median']:.2f}",
+                  so=f"{100 * ev['best_overlap']['same_held']:.0f}", co=f"{ev['best_overlap']['cpu_median']:.2f}",
+                  go=f"{ev['best_overlap']['gpu_median']:.2f}", nt=tp["touch"], p0=tp["periods"][0], p1=tp["periods"][1],
+                  ct=f"{tp['touch_median']:.2f}", cc=f"{tp['clear_median']:.2f}",
+                  lo={1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five", 6: "Six", 7: "Seven"}.get(tp["low"], str(tp["low"])),
+                  cf=f"{tp['filter_median']:.2f}", gm=f"{tp['gpu_median']:.2f}")
+    t += fill(r"""<p>Left out, the overlapping grasps change the sphere tasks' results and hardly the cylinder tasks'
+(Table <<tb>>). Clear grasps keep every two fingers 2 mm apart or more. With them only, the grid's median best-of-16
+twist score on the 40 mm sphere falls from <<b0>> to <<b1>> on seeds 0 to 2. The foundational pose's median stays at <<f1>>, and <<nn>> of
+the <<nl>> layouts keep no clear grasp. The twist's largest basin peaks at (<<px>>, <<py>>) mm instead of (<<qx>>, <<qy>>)
+mm. On the 30 and 63 mm spheres its peaks lie at <<x30>> and <<x63>> mm of thumb-to-pair distance, <<sl>> mm per millimetre
+of diameter. The share of grid layouts above 0.5 on all four tasks falls from <<a0>> to <<a1>> %, and the best worst-case
+layout moves from (<<mx0>>, <<my0>>) to (<<mx1>>, <<my1>>) mm. Sections SEC[grid] to SEC[search] report every result with all
+grasps, as computed; their sphere-task numbers include the overlapping grasps, and the fix is listed in Section
+SEC[future].</p>""",
+              tb=TAB[0] + 1, b0=f"{tw['best_median_all']:.2f}", b1=f"{tw['best_median_clear']:.2f}",
+              f1=f"{tw['fp_median_clear']:.2f}", nn=tw["layouts_without_clear_grasp"], nl=tw["layouts"],
+              px=f"{tw['peak_clear'][0]:.0f}", py=f"{tw['peak_clear'][1]:.0f}", qx=f"{tw['peak_all'][0]:.0f}",
+              qy=f"{tw['peak_all'][1]:.0f}", x30=f"{g['twist_d30']['peak_clear'][0]:.0f}",
+              x63=f"{g['twist_d63']['peak_clear'][0]:.0f}",
+              sl=f"{(g['twist_d63']['peak_clear'][0] - g['twist_d30']['peak_clear'][0]) / 33.0:.1f}",
+              a0=f"{100 * cr['all']['share_all_above_0.5']:.0f}", a1=f"{100 * cr['clear']['share_all_above_0.5']:.0f}",
+              mx0=f"{cr['all']['maximin_xy'][0]:.0f}", my0=f"{cr['all']['maximin_xy'][1]:.0f}",
+              mx1=f"{cr['clear']['maximin_xy'][0]:.0f}", my1=f"{cr['clear']['maximin_xy'][1]:.0f}")
+    names = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
+    rows = []
+    for k, v in g.items():
+        task, d = k.split("_d")
+        obj = f"{'Sphere' if task in ('twist', 'roll') else 'Cylinder'} {d} mm"
+        pk = (lambda q: f"{q[0]:.0f}, {q[1]:.0f}" if q else "&ndash;")
+        rows.append([names[task], obj, f"{100 * v['overlap']:.0f}", f"{100 * v['fp_overlap']:.0f}",
+                     str(v["layouts_without_clear_grasp"]), f"{v['best_median_all']:.2f} / {v['best_median_clear']:.2f}",
+                     f"{v['fp_median_all']:.2f} / {v['fp_median_clear']:.2f}", f"{pk(v['peak_all'])} / {pk(v['peak_clear'])}"])
+    t += table(["Task", "Object", "Grasps overlapping (%)", "Foundational poses overlapping (%)",
+                "Layouts without a clear grasp", "Best-of-16 median, all / clear", "Foundational pose median, all / clear",
+                "Largest basin's peak (mm), all / clear"], rows,
+               "The grid's grasp sets with the index's and middle's v4b parts overlapping at the touch pose, and the grid's "
+               "statistics on seeds 0 to 2 with all grasps and with the clear ones only (every two fingers 2 mm apart or "
+               "more). <code>scripts/hom_landscape.py overlap</code>.", num_from=2)
+    t += img(MEDIA / "20261030-grasp_overlap.png",
+             "Top: the share of each grid layout's grasps whose fingers come within 2 mm of each other at the touch pose. "
+             "Bottom: the change of the layout's best-of-16 score when those grasps are left out (a layout without a clear "
+             "grasp scores 0). Default objects, seeds 0 to 2.")
+
+    def cap_ov(i):
+        a, b = i["all contacts"], i["pads and small rigid spheres meet the object only"]
+        return (f"The best grasp of the twist's peak layout on the GPU grid (x_sep {i['layout'][0]:.0f} mm, y_sep "
+                f"{i['layout'][1]:.0f} mm; GPU score {i['gpu']:.2f}), CPU runner, seed 0: with all contacts (left) and with "
+                f"the GPU's collision filter (right). The index's and middle's caps overlap by {-a['gap_mm']:.1f} mm at the "
+                f"touch pose. With all contacts they meet, the index loses the sphere in the twist steps, and the run "
+                f"scores {a['score']:.2f}. With the filter they pass through each other, and it scores {b['score']:.2f}. "
+                "<code>scripts/hom_films.py overlap</code>.")
+    t += v4b_film("overlap", cap_ov)
     return t
 
 
@@ -1167,7 +1288,7 @@ metric of [6] is the smallest singular value of the grasp matrix. Within a layou
 Spearman of <<g_ro>>, and the twist's, pin-push's and press's at <<g_tw>>, <<g_pp>> and <<g_pr>>.</p>
 <p>Figure <<f5>> shows which grasp won the twist. The best grasp keeps the sphere's depth within a median <<dd>> mm
 of the foundational pose's. Its index contact sits between <<ib0>> and <<ib1>> deg from the symmetric azimuth on the
-middle half of the layouts, while the foundational pose's spans <<if0>> to <<if1>> deg over 90 % of them. Its thumb contact leaves the
+middle half of the layouts. The foundational pose's spans <<if0>> to <<if1>> deg over 90 % of them. Its thumb contact leaves the
 symmetric position, which every foundational pose keeps, on <<th>> % of the layouts.</p>""",
               f1=FIG[0] + 1, f4=FIG[0] + 4, f5=FIG[0] + 5,
               tx=f"{tw['peaks'][0][0]:.0f}", ty=f"{tw['peaks'][0][1]:.0f}", rx=f"{ro['peaks'][0][0]:.0f}",
@@ -1194,11 +1315,29 @@ task at the touch pose, from the side, the front and below. In every keyframe th
 parts clear it. The losing grasps put the contacts high on the sphere or yaw the cylinder away from the pinch.</p>""",
               f1=FIG[0] + 1, f2=FIG[0] + 2)
     t += img(MEDIA / "20261030-grid_grasps_twist_peak_d40.png",
-             "Twist on the 40 mm sphere: the foundational pose, the best and the worst grasp of the layouts at (105, 100) "
-             "mm, the twist's peak, and (95, 75) mm, with their scores; touch pose, v4b fingertip.", jpeg=True)
+             "Twist on the 40 mm sphere: the foundational pose, the best and the worst grasp of two layouts, with their "
+             "scores. The layouts are (105, 100) mm, the twist's peak, and (95, 75) mm; touch pose, v4b fingertip.",
+             jpeg=True)
     t += img(MEDIA / "20261030-grid_grasps_pinpush_d25.png",
-             "Pin-push on the 25 mm cylinder: the foundational pose, the best and the worst grasp of the layouts at "
-             "(90, 50) mm, the pin-push's peak on the grid's edge, and (90, 100) mm.", jpeg=True)
+             "Pin-push on the 25 mm cylinder: the foundational pose, the best and the worst grasp of two layouts. The "
+             "layouts are (90, 50) mm, the pin-push's peak on the grid's edge, and (90, 100) mm.", jpeg=True)
+
+    def cap_grasp(task, key, obj, size):
+        def f(i):
+            import hom_landscape as L
+            sc, _ = L.grid_scores(key, size)
+            a, b = i["foundational pose"], i["best grasp"]
+            ga, gb = (float(np.mean(sc[(i["call"], x["grasp"])])) for x in (a, b))
+            odd = abs(b["score"] - gb) > 0.3
+            return (f"The {task} of the {obj} on its peak layout of the grid with the overlapping grasps left out (x_sep "
+                    f"{i['layout'][0]:.0f} mm, y_sep {i['layout'][1]:.0f} mm); v4b fingertip, CPU runner, seed 0. Left: the "
+                    f"foundational pose; right: the best clear grasp of 16. The rods are the object's axes. Here "
+                    f"they scored {a['score']:.2f} and {b['score']:.2f}, on the GPU {ga:.2f} and {gb:.2f} (seeds 0 to 2)."
+                    + (" On this best grasp the two runners differ: on the CPU the cylinder stays up through the down "
+                       "stroke (Section SEC[future])." if odd else "") + " <code>scripts/hom_films.py</code>.")
+        return f
+    t += v4b_film("grasp_twist", cap_grasp("twist", "twist", "40 mm sphere", 40.0))
+    t += v4b_film("grasp_pinpush", cap_grasp("pin-push", "pinpush", "25 mm cylinder", 25.0))
     VR = N["valrep"]
     if VR:
         names = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
@@ -1260,6 +1399,117 @@ on <<kf>> % of the other layouts.</p>""",
                     "Within 0.1 of own best (%)", "Peak layout's grasp feasible (%)", "Peak layout's grasp, median change"],
                    rows, "The grid's best grasps on fresh seeds and moved between layouts. Gains are over the "
                    "foundational pose; changes are against the layout's own best grasp on seeds 3 to 5.", num_from=1)
+    t += sec_draws(N)
+    return t
+
+
+def draws_numbers():
+    """The twelve object-pose draws (hom_landscape.py draws) and the variant hold on the 25 mm draws (rows/grid2d_v4b_
+    draws12/hold): per task, the held share per seed and the grid's mean scores, with and without the hold."""
+    import hom_landscape as L
+    sp = L.DRAWS / "summary.json"
+    if not sp.exists():
+        return None
+    out = {"summary": json.loads(sp.read_text()), "hold": {}}
+    for task in ("pinpush", "press"):
+        def rows_of(p_):
+            return {(r["call"], r["grasp"], r["seed"]): r for r in
+                    (json.loads(x) for x in p_.read_text().splitlines() if x.strip())} if p_.exists() else {}
+        base, hold = rows_of(L.DRAWS / f"{task}_d25.jsonl"), rows_of(L.DRAWS / "hold" / f"{task}_d25.jsonl")
+        keys = sorted(set(base) & set(hold))
+        if len(keys) < 100:
+            continue
+        res = {}
+        for name, R in (("base", base), ("hold", hold)):
+            held = {sd: float(np.mean([R[k]["held"] for k in keys if k[2] == sd])) for sd in range(6, 18)}
+            fpm = {sd: float(np.mean([L.rollout_score(task, R[k]) for k in keys if k[2] == sd and k[1] == 0]))
+                   for sd in range(6, 18)}
+            bem = {sd: float(np.mean([L.rollout_score(task, R[k]) for k in keys if k[2] == sd and k[1] == 1]))
+                   for sd in range(6, 18)}
+            res[name] = {"held": held, "fp_mean": fpm, "best_mean": bem, "held_all": float(np.mean([R[k]["held"] for k in keys])),
+                         "fp_sd": float(np.std(list(fpm.values()), ddof=1)),
+                         "gain_median": float(np.median([np.mean([L.rollout_score(task, R[(c, 1, sd)]) - L.rollout_score(task, R[(c, 0, sd)])
+                                                                  for sd in range(6, 18)])
+                                                         for c in sorted({k[0] for k in keys})
+                                                         if all((c, g_, sd) in R for g_ in (0, 1) for sd in range(6, 18))]))}
+        out["hold"][task] = res
+    return out
+
+
+def sec_draws(N):
+    D = N.get("draws")
+    if not D:
+        return ""
+    S_ = D["summary"]
+    pp, pr = S_.get("pinpush_d25"), S_.get("press_d25")
+    if not (pp and pr):
+        return ""
+    fp6 = np.array(pp["seed_mean_fp"][6:])
+    gs = np.array(pp["gain_seed_means_6_17"])
+    t = fill(r"""<p>Twelve more object-pose draws, seeds 6 to 17, separate the grasps from the draws (Figure <<fg>>). Each
+layout's foundational pose and best grasp ran on every draw, at 10, 25 and 40 mm (<code>hom_landscape.py draws</code>). On
+the 25 mm cylinder the grid's mean pin-push score of the foundational pose ranged from <<a>> to <<b>> over the twelve
+draws, a standard deviation of <<sd>>. The best grasp beat the foundational pose on the grid's mean in every draw, by
+<<g0>> to <<g1>>, and over the twelve draws on <<pos>> % of the layouts. Its median gain per layout was <<g12>>, against
+<<g345>> on seeds 3 to 5 and <<g012>> on the seeds it was picked on. Twelve draws rank the layouts consistently: the best
+grasps' scores on seeds 6 to 11 and on seeds 12 to 17 agree at Spearman <<sh>>. The three picking seeds rank the layouts
+against the twelve draws at <<s012>>, and <<tk>> % of their best tenth stays in the best tenth. In the press the gain was
+<<qg>> per layout and positive on <<qpos>> % of the layouts; the halves agree at <<qsh>>.</p>""",
+             fg=FIG[0] + 1, a=f"{fp6.min():.2f}", b=f"{fp6.max():.2f}", sd=f"{pp['fp_seed_sd_6_17']:.2f}",
+             g0=f"{gs.min():+.2f}", g1=f"{gs.max():+.2f}", pos=f"{100 * pp['gain_positive_6_17']:.0f}",
+             g12=f"{pp['gain_median_6_17']:+.2f}", g345=f"{pp['gain_median_345']:+.2f}", g012=f"{pp['gain_median_012']:+.2f}",
+             sh=f"{pp['split_half_best']:.2f}", s012=f"{pp['best_012_vs_6_17']:.2f}", tk=f"{100 * pp['top_tenth_012_kept']:.0f}",
+             qg=f"{pr['gain_median_6_17']:+.2f}", qpos=f"{100 * pr['gain_positive_6_17']:.0f}", qsh=f"{pr['split_half_best']:.2f}")
+    p40, q40 = S_.get("pinpush_d40"), S_.get("press_d40")
+    if p40 and q40:
+        t += fill(r"""<p>On the 40 mm cylinder the draws barely matter. The standard deviation of the grid's mean over the
+twelve draws is <<a>> in the pin-push and <<b>> in the press, against <<c>> and <<d>> on the 25 mm cylinder. The halves of the
+draws agree at Spearman <<e>> and <<f>>.</p>""", a=f"{p40['fp_seed_sd_6_17']:.2f}", b=f"{q40['fp_seed_sd_6_17']:.2f}",
+                  c=f"{pp['fp_seed_sd_6_17']:.2f}", d=f"{pr['fp_seed_sd_6_17']:.2f}", e=f"{p40['split_half_best']:.2f}",
+                  f=f"{q40['split_half_best']:.2f}")
+    t += img(MEDIA / "20261030-draws12.png",
+             "Each seed's mean over the grid of the foundational pose's score and of the best grasp's (picked on seeds 0 to "
+             "2, shaded), seeds 0 to 17, for the pin-push and the press at each cylinder size.")
+    H_ = D.get("hold") or {}
+    hp = H_.get("pinpush")
+    t += fill(r"""<p>Some draws drop most layouts at once: seeds 8 and 12 in every cylinder task, and seed 2 among the
+picking seeds. The object is the same for every layout on a draw, so the cause had to lie in the draw. The pin-push example
+of the code walkthrough holds on seed 7 and drops on seed 8, on the CPU runner as on the GPU. Rendered at each period of the
+approach, the cylinder rolls on its 3 mm support post from the start, with no finger touching it. It accelerates at
+about 22 mm/s<sup>2</sup>. The post's single contact point wanders across the line where the cylinder rests on it. On seed 7 the
+cylinder rolls toward the index and the middle, which catch it, and the thumb closes the pinch. On seed 8 it rolls toward
+the thumb, which arrives first and alone on its side. The cylinder pivots over the thumb's pad and leaves the post at
+0.7 s, before the grasp forces come on (Figures <<f1>> and <<f2>>, Film <<fm>>). The draws that drop most layouts move
+the cylinder 0.35 to 0.5 mm toward the thumb.</p>""",
+              f1=FIG[0] + 1, f2=FIG[0] + 2, fm=FILM[0] + 1)
+    if hp:
+        b8 = [hp["base"]["held"][sd] for sd in (8, 12)]
+        h8 = [hp["hold"]["held"][sd] for sd in (8, 12)]
+        oth_b = [hp["base"]["held"][sd] for sd in range(6, 18) if sd not in (8, 12)]
+        t += fill(r"""<p>Holding the object at its start until the forces come on (the variant <code>hold</code>, a cradle
+in place of the post) removes the draw effect. On the GPU, the 25 mm pin-push held in <<b8a>> and <<b8b>> % of the runs on
+seeds 8 and 12 without the hold. It held in <<o0>> to <<o1>> % on the other draws, and with the hold in <<h8a>> and <<h8b>> % on
+seeds 8 and 12. The
+standard deviation of the foundational pose's grid mean over the twelve draws fell from <<sb>> to <<sh>>. The best
+grasp's median gain per layout was <<gh>>, against <<gb>> without the hold.</p>""",
+                  b8a=f"{100 * b8[0]:.0f}", b8b=f"{100 * b8[1]:.0f}", o0=f"{100 * min(oth_b):.0f}", o1=f"{100 * max(oth_b):.0f}",
+                  h8a=f"{100 * h8[0]:.0f}", h8b=f"{100 * h8[1]:.0f}", sb=f"{hp['base']['fp_sd']:.2f}",
+                  sh=f"{hp['hold']['fp_sd']:.2f}", gh=f"{hp['hold']['gain_median']:+.2f}", gb=f"{hp['base']['gain_median']:+.2f}")
+    t += img(HOMD / "media" / "20261030-seed_trace.png",
+             "The pin-push example (grid layout (95, 75) mm, foundational pose) on seeds 7 and 8, CPU runner. Panels: "
+             "the cylinder's height, its yaw and pinch angle, the pad forces and each finger's distance to it. "
+             "Grey lines: the forces come on, the post is removed, the task starts. <code>scripts/hom_reanchor_check.py "
+             "seeds 7 8</code>.")
+    t += img(HOMD / "media" / "20261030-seed_keyframes.jpg",
+             "The same rollouts at 0.40, 0.55, 0.70 and 0.80 s, seed 7 above seed 8 at each instant, from three sides. On "
+             "seed 8 the cylinder has left the post by 0.80 s.", jpeg=True)
+
+    def cap_post(i):
+        a, b, c = i["seed 7"], i["seed 8"], i["seed 8, object held to 0.8 s"]
+        return (f"The pin-push example on seed 7 (left), on seed 8 (middle) and on seed 8 with the object held at its "
+                f"start until the forces come on (right); CPU runner, v4b fingertip. Scores {a['score']:.2f}, "
+                f"{b['score']:.2f} and {c['score']:.2f}. <code>scripts/hom_films.py post</code>.")
+    t += v4b_film("post", cap_post)
     return t
 
 
@@ -1279,6 +1529,20 @@ def gradient_numbers(task="twist", d=40.0):
             more[(t_, d_)] = (json.loads(pv.read_text()), json.loads(pp_.read_text()))
     lp = ROWS / "local" / f"summary_{task}{d:g}.json"
     local = json.loads(lp.read_text()) if lp.exists() else None
+    if local:                                          # the starts' and neighbours' finger gaps (hom_grasp_overlap.py)
+        gaps = {json.loads(x)["call"]: json.loads(x)["min_mm"]
+                for p_ in sorted(L.OVERLAP.glob(f"local_{task}{d:g}_{task}_d{d:g}_p*.jsonl"))
+                for x in p_.read_text().splitlines() if x.strip()}
+        rows = {r["call"]: r for r in L.FR.load(f"local_{task}{d:g}")}
+        cl = []
+        for o in local["per_start"]:
+            c0 = next(c for c, r in rows.items() if r["center"] == o["center"] and r["radius_mm"] == 0.0)
+            if c0 in gaps and o["best_call"] in gaps:
+                cl.append((gaps[c0], gaps[o["best_call"]], o["best_check"] > o["start_check"]))
+        local["gaps"] = {"overlap_starts": sum(a < 0 for a, _b, _w in cl),
+                         "clear_starts": sum(a >= L.GAP_OK and b >= L.GAP_OK for a, b, _w in cl),
+                         "clear_better": sum(a >= L.GAP_OK and b >= L.GAP_OK and w for a, b, w in cl),
+                         "poses_overlap": float(np.mean([g_ < 0 for g_ in gaps.values()])) if gaps else None}
     return {"v": v, "pk": pk, "nn": nn, "more": more, "local": local}
 
 
@@ -1375,14 +1639,28 @@ of each start's neighbours reached the pose. Every neighbour and start ran on se
 The best neighbour of each start was picked on seeds 9 to 11 and scored on seeds 12 to 14. There it beat its start for
 <<nb>> of the <<ns>> starts. The median gain was <<gc>> on the scoring seeds and <<gp>> on the picking seeds (Wilcoxon
 $p$ = <<wp>>). The starts scored a median <<s0>> on seeds 12 to 14, and their best neighbours <<s1>>. The largest gains
-came from the weaker starts.</p>""", f=FIG[0] + 1, ns=lo["starts"], rch=f"{100 * lo['reached_median']:.0f}",
+came from the weaker starts.<<gp_>></p>""", f=FIG[0] + 1, ns=lo["starts"], rch=f"{100 * lo['reached_median']:.0f}",
+                  gp_=(fill(r""" <<no>> of the <<ns>> starts and <<po>> % of all the local layouts put the index's and the
+middle's v4b parts into each other at the touch pose (Section SEC[v4b]). Of the <<nc>> starts whose fingers and best
+neighbour stay 2 mm apart or more, the best neighbour beat its start for <<nb>>.""", no=lo["gaps"]["overlap_starts"],
+                             ns=lo["starts"], po=f"{100 * lo['gaps']['poses_overlap']:.0f}", nc=lo["gaps"]["clear_starts"],
+                             nb=lo["gaps"]["clear_better"]) if lo.get("gaps") else ""),
                   nb=round(lo["best_beats_start_check"] * lo["starts"]), gc=f"{lo['gain_check_median']:+.3f}",
                   gp=f"{lo['gain_pick_median']:+.3f}", wp=f"{lo['wilcoxon_p']:.3f}", s0=f"{lo['start_check_median']:.2f}",
                   s1=f"{lo['best_check_median']:.2f}")
         t += img(MEDIA / "20261030-local_twist40.png",
                  "Local refinement of the 20 best twist layouts, 40 mm sphere. (a) Each neighbour's score change against "
-                 "its start on seeds 9 to 11, by its distance from the start; a lost pose scores 0. (b) Each start and its "
-                 "best neighbour, picked on seeds 9 to 11 and scored on seeds 12 to 14.")
+                 "its start on seeds 9 to 11, by its distance from the start. A lost pose scores 0. (b) Each start and its "
+                 "best neighbour. The neighbour was picked on seeds 9 to 11 and scored on seeds 12 to 14.")
+
+        def cap_local(i):
+            k = [x for x in i if x.startswith("best neighbour")][0]
+            return (f"The twist of the 40 mm sphere from the start whose best neighbour gained most among the starts "
+                    f"whose fingers stay clear (left), and from that neighbour, {k.split(', ')[1]} (right); foundational "
+                    f"poses, CPU runner, seed 12. Here the start scored {i['start']['score']:.2f} and the neighbour "
+                    f"{i[k]['score']:.2f}; their GPU means over seeds 12 to 14 are in Figure {FIG[0]}. "
+                    "<code>scripts/hom_films.py local</code>.")
+        t += v4b_film("local", cap_local)
     return t
 
 
@@ -1480,8 +1758,8 @@ with the sphere's size, from a median of <<r0>> over the reached layouts at <<s0
 against <<pn>> and <<rn>> % from seed noise. Between the <<a>> and <<b>> mm cylinders the layouts' scores correlate at
 Spearman <<ps>> in the pin-push and <<rs>> in the press. Of the best tenth on the <<a>> mm cylinder, <<pk>> and <<rk>> %
 are in the best tenth on the <<b>> mm cylinder. Small cylinders are hard to keep in the hand. With the foundational
-pose, <<h0>> of the <<n0>> layouts that reach the pin-push pose keep the <<a>> mm cylinder in all three seeds, against
-<<h1>> of <<n1>> with the <<b>> mm cylinder.</p>""",
+pose, <<h0>> of the <<n0>> layouts that reach the pin-push pose keep the <<a>> mm cylinder in all three seeds. With the
+<<b>> mm cylinder, <<h1>> of <<n1>> do.</p>""",
                   pi=f"{100 * P_['variance']['interaction']:.0f}", ri=f"{100 * R_['variance']['interaction']:.0f}",
                   pn=f"{100 * P_['variance']['interaction_noise']:.0f}",
                   rn=f"{100 * R_['variance']['interaction_noise']:.0f}", a=f"{a_:g}", b=f"{b_:g}",
@@ -1539,14 +1817,22 @@ grasps in all three seeds, and on the <<cs1>> mm cylinder it keeps all of them.<
                    "fingertip. The peak and the last column use the best-of-16 map smoothed over 7.5 mm.", num_from=2)
     for task in Z:
         t += img(MEDIA / f"20261030-sizes_{task}.png",
-                 f"The {names[task]} across object sizes on the Sobol layouts: (a) rank correlation of the layouts' scores "
-                 "between sizes; (b) the median and quartiles of the six mount coordinates of the best tenth of layouts per "
-                 "size (standardized: each gantry's travel maps to -0.5 to 0.5); (c) the scores of the layouts that reach "
-                 "the pose.")
+                 f"The {names[task]} across object sizes on the Sobol layouts. (a) Rank correlation of the layouts' scores "
+                 "between sizes. (b) Median and quartiles of the six mount coordinates of each size's best tenth, as shares "
+                 "of the gantries' travel. (c) Scores of the layouts that reach the pose.")
     for task in gp:
         t += img(MEDIA / f"20261030-grid_sizes_{task}.png",
                  f"The {names[task]} on the grid at each object size: the best grasp of 16 per layout, smoothed over "
                  "7.5 mm, with the basin peaks (stars) and the largest basin's peak (circle).")
+
+    def cap_sizes(i):
+        a, b = i["30"], i["63"]
+        return (f"The twist of the 30 mm sphere (left) and of the 63 mm sphere (right). Each runs on its size's peak "
+                f"layout of the grid with the overlapping grasps left out (x_sep {a['layout'][0]:.0f} and "
+                f"{b['layout'][0]:.0f} mm, y_sep {a['layout'][1]:.0f} and {b['layout'][1]:.0f} mm), from its best clear "
+                f"grasp. v4b fingertip, CPU runner, seed 0. Here they scored "
+                f"{a['score']:.2f} and {b['score']:.2f}. <code>scripts/hom_films.py sizes</code>.")
+    t += v4b_film("sizes", cap_sizes)
     return t
 
 
@@ -1596,9 +1882,9 @@ middle nearer the centre line.</p>""",
              rk1=f"{rk['twist']['roll'] + 1:,}", npar=c["pareto_n"], ppar=f"{100 * c['pareto_n'] / 8192:.1f}",
              mm=", ".join(f"{x:.2f}" for x in mm["scores"][:-1]) + f" and {mm['scores'][-1]:.2f}")
     t += img(MEDIA / "20261030-cross_tasks.png",
-             "The four tasks on the 8,192 Sobol layouts at the default objects: the twist against the roll and the "
-             "pin-push against the press, with the Pareto set over all four scores (red); and the median and quartiles "
-             "of the six mount coordinates of each task's best tenth (standardized).")
+             "The four tasks on the 8,192 Sobol layouts at the default objects. Left: the twist against the roll and "
+             "the pin-push against the press, with the Pareto set over all four scores (red). Right: the median and "
+             "quartiles of the six mount coordinates of each task's best tenth (standardized).")
     cg = json.loads((L.GRID_ROWS / "cross_grid.json").read_text())
     t += fill(r"""<p>Grasp synthesis changes this picture. On the <<n>> grid layouts that reach all four poses, the worst of a
 layout's four foundational-pose scores has a median of <<mf>>, and no layout scores above 0.5 on all four tasks. With
@@ -1606,8 +1892,8 @@ each task's best grasp of 16 the median worst score is <<mb>>, and <<sb>> % of t
 (Figure <<f>>). The best of them, at $x_{sep}$ = <<bx>> mm and $y_{sep}$ = <<by>> mm, scores <<bs>>.<<fresh>></p>""",
               n=cg["layouts"], mf=f"{cg['maximin_median_fp']:.2f}",
               fresh=(fill(r""" These scores are on the seeds the grasps were picked on. On seeds 3 to 5, <<fb>> % of
-the layouts score above 0.5 on all four tasks with their best grasps and <<ff>> % with their foundational poses, and
-the median worst score is <<mb2>> and <<mf2>> (Section SEC[grid]).""", fb=f"{100 * CF['share_all_above_0.5_best']:.0f}",
+the layouts score above 0.5 on all four tasks with their best grasps and <<ff>> % with their foundational poses. The
+median worst score is then <<mb2>> and <<mf2>> (Section SEC[grid]).""", fb=f"{100 * CF['share_all_above_0.5_best']:.0f}",
                           ff=f"{100 * CF['share_all_above_0.5_fp']:.0f}", mb2=f"{CF['maximin_median_best']:.2f}",
                           mf2=f"{CF['maximin_median_fp']:.2f}") if CF else
                      " The best of 16 is an upper estimate until its fresh-seed runs."),
@@ -1615,9 +1901,18 @@ the median worst score is <<mb2>> and <<mf2>> (Section SEC[grid]).""", fb=f"{100
               bx=f"{cg['maximin_best']['xy'][0]:.0f}", by=f"{cg['maximin_best']['xy'][1]:.0f}",
               bs=", ".join(f"{x:.2f}" for x in cg["maximin_best"]["scores"]))
     t += img(MEDIA / "20261030-cross_grid.png",
-             "The worst of the four task scores on each grid layout, with the foundational pose for every task (left) and "
-             "with each task's best grasp of 16 (right); circles: the Pareto set over the four scores; star: the best "
+             "The worst of the four task scores on each grid layout. Left: with the foundational pose for every task; "
+             "right: with each task's best grasp of 16. Circles: the Pareto set over the four scores; star: the best "
              "worst-case layout.")
+
+    def cap_four(i):
+        return (f"The four tasks on the best worst-case layout of the grid with the overlapping grasps left out (x_sep "
+                f"{i['layout'][0]:.0f} mm, y_sep {i['layout'][1]:.0f} mm), each from its best clear grasp of 16; v4b "
+                f"fingertip, CPU runner, seed 0. Top: the "
+                f"twist and the roll of the 40 mm sphere; bottom: the pin-push and the press of the 25 mm cylinder. Here "
+                f"they scored {i['twist']['score']:.2f}, {i['roll']['score']:.2f}, {i['pinpush']['score']:.2f} and "
+                f"{i['press']['score']:.2f}. <code>scripts/hom_films.py four</code>.")
+    t += v4b_film("four", cap_four)
     return t
 
 
@@ -1663,9 +1958,9 @@ within 0.05 of the grid's best (Table <<tb>>, Figure <<f>>).</p>
 <p>The EA found such a layout after a median of <<a1>> rollouts on the twist, <<s1>> % of the grid's cost, and random
 search after <<b1>>. Against random search the EA needed <<l1>> % fewer rollouts on the twist and the roll, <<l2>> % fewer
 on the pin-push and <<l3>> % fewer on the press. Within 0.02 of the best its lead was larger on the roll and the
-pin-push, while on the press it reached that margin in only <<pm>> % of runs. With a population of <<p1>> the EA did not
-come within 0.05 of the best in <<mp>> % of the pin-push runs and <<mq>> % of the press runs, and in <<ms>> % or fewer on
-the sphere tasks. The roll and the press have peaks of nearly equal height in separate basins, and the EA ended in
+pin-push, while on the press it reached that margin in only <<pm>> % of runs. With a population of <<p1>> the EA never came
+within 0.05 of the best in <<mp>> % of the pin-push runs and <<mq>> % of the press runs. On the sphere tasks that happened
+in <<ms>> % of runs or fewer. The roll and the press have peaks of nearly equal height in separate basins, and the EA ended in
 another basin than the grid's best layout in <<ob1>> and <<ob2>> % of runs. A population of <<p2>> came within 0.05 in
 every run, after a median of <<g0>> to <<g1>> rollouts. With the foundational pose's score as its fitness, the search's
 best layout came within 0.05 of the grid's best in <<f0>> to <<f1>> % of runs. That pose ranks the layouts' best grasps
@@ -1687,9 +1982,25 @@ too roughly to guide the search (Section SEC[grid]).</p>""",
                "runs; in brackets the share of runs that got there within the grid's rollouts, %); the same within 0.02; "
                "and the share of EA runs on the foundational pose's score whose best layout came within 0.05.", num_from=1)
     t += img(MEDIA / "20261030-ea_baseline.png",
-             "The median over runs of the best-of-16 score of the best layout found, against rollouts spent: the EA of "
-             "[6] with two population sizes, random search, and the EA with the foundational pose's score as its "
-             "fitness. Seeds 0 to 2 of the grid; dash-dotted: the grid's best.")
+             "The median over runs of the best-of-16 score of the best layout found, against rollouts spent. The "
+             "searches are the EA of [6] with two population sizes, random search, and the EA with the foundational "
+             "pose's score as its fitness. Seeds 0 to 2 of the grid; dash-dotted: the grid's best.")
+    cp = ROWS / "ea" / "summary_clear.json"
+    if cp.exists():
+        C_ = {k: v for k, v in json.loads(cp.read_text()).items() if isinstance(v, dict) and "runs" in v}
+
+        def med(k, run):
+            return C_[k]["runs"][run]["to_within_0.05"]["median"]
+        lc = {k: 1.0 - med(k, f"ea_best_pop{pop}") / med(k, "random_best") for k in C_}
+        t += fill(r"""<p>The same searches ran on the grid with the overlapping grasps left out (Section SEC[v4b]): a
+layout's fitness is then its best clear grasp, and only clear grasps cost rollouts. The EA found a layout within 0.05 of
+that grid's best after a median of <<a1>> rollouts on the twist, against <<b1>> for random search. It got there in only
+<<rt>> % of its twist runs. Against random search it needed <<l0>> to <<l1>> % fewer rollouts over the four tasks (Figure <<f>>).</p>""",
+                  a1=f"{med('twist_d40', f'ea_best_pop{pop}'):,.0f}", b1=f"{med('twist_d40', 'random_best'):,.0f}",
+                  rt=f"{100 * C_['twist_d40']['runs'][f'ea_best_pop{pop}']['to_within_0.05']['reached']:.0f}",
+                  l0=f"{100 * min(lc.values()):.0f}", l1=f"{100 * max(lc.values()):.0f}", f=FIG[0] + 1)
+        t += img(MEDIA / "20261030-ea_baseline_clear.png",
+                 "As the previous figure, on the grid with only the grasps whose fingers stay 2 mm apart or more.")
     return t
 
 
@@ -1759,6 +2070,14 @@ def sec_history():
         ["2026-10-30, 12:20", "The evolutionary search of [6] on the grid's rollouts, beside random search", "the "
          "literature's search as a baseline for the cost of the full map", "within 0.05 of the best after 5 to 8 % of "
          "the grid's rollouts on the twist and the pin-push (Section SEC[search])"],
+        ["2026-10-30, 12:30 to 13:15", "Twelve object-pose draws for each grid layout's foundational pose and best grasp; "
+         "the draws that drop most layouts rendered and traced", "on fresh seeds most of the 25 mm cylinder's gain came "
+         "from the draws", "the cylinder rolls on its 3 mm post during the approach; held at its start, every draw holds "
+         "(Section SEC[grid])"],
+        ["2026-10-30, 13:05 to 13:30", "The grid's top twist layouts on the CPU runner; the fingers' v4b parts measured at "
+         "every grasp's touch pose", "the films of the best grasps showed them failing on the CPU", "a third of the sphere "
+         "grasps overlap two fingers' caps, which the GPU does not see; results with clear grasps only (Section "
+         "SEC[v4b])"],
     ]
     return ("<p>Table SEC_TAB_H lists the changes to the method in order, with their reasons and what they showed."
             "</p>").replace("SEC_TAB_H", str(TAB[0] + 1)) + table(
@@ -1878,6 +2197,11 @@ rotation, which the SR2 hand cannot change without new parts.</li>
 <li>The cylinder tasks keep few grasps held in every seed (median held share <<hp>> in the pin-push and <<hr>> in the
 press), so their maps rank single layouts roughly. The pin-push's peak lies on the grid's edge of the smallest
 index-to-middle spacing, 50 mm; smaller spacings are outside the grid.</li>
+<li>The GPU evaluator lets two fingers' v4b caps and cassettes pass through each other, and the pose toy does not keep
+them apart. A third of the sphere grasps on the 40 mm sphere overlap there (Section SEC[v4b]); every number of Sections
+SEC[grid] to SEC[search] includes them.</li>
+<li>On its 3 mm support post the cylinder rolls during the approach, and the draws that roll it toward the thumb drop most
+layouts (Section SEC[grid]). The cylinder-task numbers of this page come from runs on the post.</li>
 <li>In the pin-push the middle finger presses with less than its commanded 1.5 N. In the code walkthrough's example it
 pressed a median 0.27 N, while its joint reference stayed more than the 6 mm gap cut behind the cylinder. Re-anchoring
 the reference raised the force to a median 1.1 N, and the cylinder then yawed away from the finger (the walkthrough,
@@ -1893,6 +2217,19 @@ Section 10). The pin-push scores on this page are without the re-anchor.</li>
 def sec_future(N):
     done = bool(N.get("valrep"))
     return """<ol>
+<li>Keep two fingers' v4b parts 2 mm apart in the pose toy. Compute the finger clearance from the sphere packs of the
+cassette, the cap and the DIP link, as <code>fp_sr2_toy.rigid_clearance</code> does against the object. Give the GPU
+evaluator collisions between two fingers' caps and cassettes, a few spheres per finger. Then rerun the grid's grasp sets,
+the Sobol poses and their GPU rollouts. The clear-grasp results of Section SEC[v4b] hold if the rerun's medians and peaks
+match them within the spread between seeds.</li>
+<li>Find why the pin-push's best clear grasp on the grid's peak layout (85, 60) mm holds the cylinder up in the down
+stroke on the CPU runner. On the GPU it tracks the command. Trace every contact of the middle
+finger's pad and links with the cylinder and the other fingers on both runners (<code>scripts/hom_films.py
+grasp_pinpush</code>). The account holds if a contact present on one runner and absent on the other starts when the
+cylinder stops following the command.</li>
+<li>Hold the object at its start until the forces come on in every cylinder-task run, with the variant <code>hold</code>
+or a cradle in place of the 3 mm post. Then rerun the cylinder grids. The draw effect of Section SEC[grid] is gone if
+no draw's held share falls outside the others' range.</li>
 <li>Rerun the four-task front's layouts with 30 seeds per task on the GPU (<code>scripts/hom_gpu.py run</code> on a
 row file of the front). Keep the layouts whose rank agrees between seed halves at Spearman above 0.8. The front is too
 noisy to act on if fewer than half keep their rank.</li>
@@ -1908,8 +2245,8 @@ with tags. The simulated ranking fails if the bench ranks the three differently.
 <li>Pose the screwdriver's pinch brake and wield as foundational poses in <code>fp_sr2_toy.py</code>.</li>
 <li>Compare the t-SNE map of the Sobol layouts' dynamic scores against a uniform null with the neighbour-preservation
 test of <code>scripts/paper_morphology_diversity.py</code>.</li>
-""" + ("""<li>Move each grid layout's best grasps across object sizes, the 40 mm sphere's to the 30 and 63 mm
-spheres and the 25 mm cylinder's to the 10 and 40 mm cylinders. Keep each grasp's variables, check it with
+""" + ("""<li>Move each grid layout's best grasps across object sizes. Move the 40 mm sphere's to the 30 and 63 mm
+spheres, and the 25 mm cylinder's to the 10 and 40 mm cylinders. Keep each grasp's variables, check it with
 <code>hom_landscape.feasible</code> after <code>fp_sr2_toy.set_sizes</code>, and run the feasible ones with
 <code>hom_gpu.py run</code> on seeds 3 to 5. A grasp set transfers across sizes if most moved grasps score within 0.1 of
 the size's own best.</li>""" if done else """<li>Rerun each grid layout's foundational
@@ -1918,17 +2255,14 @@ pose and best grasp on seeds 3 to 5. Add the best grasps of its four neighbours,
 --layouts grid2dval_size grid2dnb_size</code>). The gain of Section SEC[grid] repeats if the best grasp beats the
 foundational pose on fresh seeds on most layouts. A grasp transfers to a neighbouring layout if its score there comes
 within 0.1 of the layout's own best.</li>""") + """
-<li>Score the pin-push and the press over twelve object-pose draws: the grid's best grasps and foundational poses
-(<code>--layouts grid2dval_pinpush_size grid2dval_press_size</code>) on seeds 6 to 17 with <code>hom_gpu.py
-run</code>. The best grasp's gain over the foundational pose is real if its median stays above the spread of the
-seeds' means; a ranking of layouts on three draws is then replaced by one on twelve.</li>
 <li>Repeat the local refinement from each best neighbour of Section SEC[gradients], with 64 layouts within 1 mm and
 fresh seeds. The peaks are reached when a round's best neighbour no longer beats its start on fresh seeds for most of
 the 20.</li>
 <li>Run the EA of Section SEC[search] on the six coordinates with grasp synthesis in the loop, counting the CPU time of
 each layout's grasp set beside its rollouts. Compare it with the 8,192-layout Sobol sweep at equal rollouts.</li>
-<li>Build a sampling MPC over HOM's commands on MuJoCo-Warp (<code>scripts/hom_mpc_gpu.py</code>) and compare it with
-HOM's fixed schedules on the grid's best layouts. Measure its control rate against real time.</li>
+<li>Run the MPC over HOM's commands on the grid's ten best clear twist layouts against HOM's fixed ramp. Use one
+iteration every 0.1 s at a 2 ms planner step (<code>scripts/hom_mpc_gpu.py</code>; HOM review page, Section 10). The MPC is worth
+keeping if it turns further on three pads on most of them.</li>
 </ol>"""
 
 
@@ -1942,8 +2276,8 @@ def sec_files():
 <code>embed</code>, <code>press --name rrt2d|rrt6d|sobol8k</code>); dynamic check on the CPU:
 <code>scripts/fp_hom_check.py</code>; rows in <code>{ROWS.relative_to(ROOT)}/</code>.</li>
 <li>GPU rollouts: <code>scripts/hom_gpu.py run --task twist roll pinpush press --layouts 2d|2dfp|rrt6d|sobol8k --seeds 0 1
-2 --batch 2048 --out NAME</code>, with <code>--variants rate50 cal_notip cal_tip cal_tipfl</code> for Section SEC[sense];
-rows <code>hom2d_gpu_*</code>, <code>hom2dfp_gpu_*</code>, <code>hom6d_rrt_gpu_*</code>, <code>hom6d_gpu_*</code> and
+2 --batch 2048 --out NAME</code>. Section SEC[sense] adds <code>--variants rate50 cal_notip cal_tip cal_tipfl</code>.
+Rows <code>hom2d_gpu_*</code>, <code>hom2dfp_gpu_*</code>, <code>hom6d_rrt_gpu_*</code>, <code>hom6d_gpu_*</code> and
 <code>hom6d_gpu_sense_*</code>, each with a <code>_timing</code> file.</li>
 <li>The v4b fingertip: <code>scripts/build_cad_v2_finger.py</code>, <code>assets/mjcf/experimental/20261030-cad_v2</code>;
 poses <code>fp_sr2_toy.py poses</code> and <code>grid2d</code> (rows <code>sobol8k_*_v4b.jsonl</code>,
@@ -2050,6 +2384,8 @@ the maps, have mean scores of <<m0>> to <<m1>> and differ visibly.</p>""",
     N["v4b"] = v4b_numbers()
     N["grid"] = grid_numbers()
     N["grad"] = gradient_numbers()
+    N["overlap"] = overlap_numbers()
+    N["draws"] = draws_numbers()
     ep = ROWS / "ea" / "summary.json"
     N["ea"] = json.loads(ep.read_text()) if ep.exists() else None
     N["sizes"] = size_numbers()
@@ -2121,11 +2457,16 @@ the grasp, and for the twist that decides the outcome.</p>""",
 from. On the SR2 hand with the calibrated v4b fingertip, a GPU version of the HOM controller scored 8,192 layouts on four
 tasks and four object sizes. With the best of 16 grasps per layout and task, the median twist score of a 625-layout grid
 rose from <<a0>> to <<a1>> on fresh seeds. On <<sb>> % of the grid's layouts all four tasks then scored above 0.5,
-against <<sf>> % with the foundational pose. The best layouts move with the object.<<sh>> They sit on peaks a few millimetres wide: moving the
+against <<sf>> % with the foundational pose.<<ov>> The best layouts move with the object.<<sh>> They sit on peaks a few millimetres wide: moving the
 mounts 4 mm cost the best twist layouts a median <<c4>>.<<lr>>""",
                 a0=f"{TV['fp_fresh_median']:.2f}", a1=f"{TV['best_fresh_median']:.2f}",
                 sb=f"{100 * CF['share_all_above_0.5_best']:.0f}", sf=f"{100 * CF['share_all_above_0.5_fp']:.0f}",
                 c4=f"{-pe['change_median']:.2f}",
+                ov=(" In a third of the sphere grasps the index's and middle's fingertip parts overlap, which the GPU "
+                    "evaluator does not detect. Without them the share above 0.5 on all four tasks is "
+                    f"{100 * N['overlap']['summary']['cross']['clear']['share_all_above_0.5']:.0f} % instead of "
+                    f"{100 * N['overlap']['summary']['cross']['all']['share_all_above_0.5']:.0f} %, on the seeds the "
+                    "grasps were picked on (Section 9)." if N.get("overlap") else ""),
                 lr=(" Searching 64 layouts within 2 mm of each of the 20 best found a better one on fresh seeds for "
                     f"{round(N['grad']['local']['best_beats_start_check'] * N['grad']['local']['starts'])}."
                     if N["grad"].get("local") else ""),

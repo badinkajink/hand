@@ -420,6 +420,7 @@ class Plant:
         self.post = m.geom("post").id
         self.post0 = (int(m.geom_contype[self.post]), int(m.geom_conaffinity[self.post]))
         self.v6 = np.zeros(6)
+        self.hold_s = 0.0                                  # the object held at its start pose up to this time (s)
 
     def reset(self, q0: dict, seed: int):
         m, d = self.m, self.d
@@ -436,6 +437,7 @@ class Plant:
         for f in FINGERS:
             d.qpos[self.qadr[f]] = q0[f]
             d.ctrl[self.act[f]] = q0[f]
+        self.obj0 = d.qpos[self.qa:self.qa + 7].copy()
         self.mj.mj_forward(m, d)
 
     def post_off(self):
@@ -448,6 +450,12 @@ class Plant:
     def advance(self, t1: float):
         while self.d.time < t1 - 1e-9:
             self.mj.mj_step(self.m, self.d)
+        if self.hold_s and self.d.time <= self.hold_s + 1e-9:
+            # variant hold: the object back at its start pose, at rest (a cradle in place of the post, on which the
+            # cylinder rolls off within the approach: 2026-10-30, scripts/hom_reanchor_check.py seeds)
+            self.d.qpos[self.qa:self.qa + 7] = self.obj0
+            self.d.qvel[self.va:self.va + 6] = 0.0
+            self.mj.mj_forward(self.m, self.d)
 
     def contacts(self):
         """Per finger the centre of pressure and normal force of its tip's pads on the object (what a fingertip sensor
@@ -649,10 +657,12 @@ PRM = {"f_pinch": 3.0, "f_drive": 1.5, "f_press": 0.5, "rot_deg": 15.0, "rot_dps
 
 # ------------------------------------------------------------------------------------------------ rollout
 
-def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, noise=None):
-    """One task from the open pose. `noise` (deployment checks): dict(pos_mm, rot_deg, cop_mm, f_N, delay_s)."""
+def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, noise=None, hold_s=0.0):
+    """One task from the open pose. `noise` (deployment checks): dict(pos_mm, rot_deg, cop_mm, f_N, delay_s).
+    hold_s: the object is held at its start pose up to this time (PLANT_VARIANTS)."""
     sch = Schedule(task, setup, prm)
     plant.reset(q_open, seed)
+    plant.hold_s = hold_s
     ctl = H.HomController(mirror, hom_prm, healthy={f: np.asarray(q_open[f]) for f in FINGERS})
     rng = np.random.default_rng(1000 + seed)
     dt = hom_prm.dt
@@ -951,6 +961,7 @@ VARIANTS = {
     "surface": ({"impedance": "surface"}, None),      # ... and also in contact
     "floop": ({"force_loop_gain": 0.01}, None),       # v_sep += 10 mm/s per N of force error (needs fingertip force)
     "reanchor": ({"reanchor": True}, None),           # a touching finger's reference re-anchored beyond the gap cut
+    "hold": ({}, None),                               # the object held at its start until the forces come on
     # 2026-10-29, the fingertip sensing review (docs/experiments/20261029-hom_control_review): 50 Hz, the tag tracker
     # as in "sense" (0.5 mm, 1 deg, every measurement 40 ms late), and the fingertips absent or as measured
     "notip0": ({"dt": 0.02}, {"no_tip": True}),                            # no fingertips, exact object pose
@@ -980,6 +991,7 @@ VARIANTS = {
     "l60": ({}, None),
 }
 LEVER_VARIANTS = {"l30": 30.0, "l60": 60.0}           # variant -> design --lever (mm)
+PLANT_VARIANTS = {"hold": {"hold_s": T_CLOSE}}        # variant -> plant settings (Plant.hold_s)
 
 
 def cmd_run(a) -> int:
@@ -1018,7 +1030,8 @@ def cmd_run(a) -> int:
                            "hom": {k: v for k, v in vars(hprm).items() if k != "filter"},
                            "filter": vars(hprm.filter), "when": time.strftime("%Y-%m-%d %H:%M")}
                     try:
-                        res, trace, frames = rollout(task, setup, plant, mirror, q_open, seed, PRM, hprm, film, noise)
+                        res, trace, frames = rollout(task, setup, plant, mirror, q_open, seed, PRM, hprm, film, noise,
+                                                     PLANT_VARIANTS.get(var, {}).get("hold_s", 0.0))
                         row.update(res, status="ok")
                         if a.traces or film is not None:
                             row["trace"] = trace[::2]

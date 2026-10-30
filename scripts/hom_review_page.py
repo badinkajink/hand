@@ -536,19 +536,18 @@ against 4 N under HOM.</p>
 runs at once (<code>scripts/hom_gpu.py</code>). Tables 3 and 4 come from it; Section 9 compares it with this library on
 the same runs. The foundational-pose review page uses it to score thousands of hand layouts
 (<code>docs/experiments/20261029-foundational_pose_review/</code>).</p>"""
-    fl = []
-    for stem, cap in (("20261021-hom_pinpush_cylinder25_base", "Pin-push of a 25 mm cylinder under HOM: thumb and index "
-                       "pinch, the middle finger drags the cylinder about the pinch axis (seed 0)."),
-                      ("20261021-hom_press_cylinder25_base", "Press: the middle finger's pad, 30 deg below the equator, "
-                       "lifts its side of the pinched 25 mm cylinder (seed 0)."),
-                      ("20261021-hom_roll_sphere40_base", "Roll of a 40 mm sphere along the thumb's pad, steps of "
-                       "40 deg/s (seed 0)."),
-                      ("20261021-hom_twist_sphere40_base", "Twist of a 40 mm sphere about the vertical, steps and a "
-                       "30 deg/s ramp (seed 0).")):
-        p = FW / "media" / f"{stem}.mp4"
-        fl.append(film(p, cap + " From the task study, <code>20261021-hom_framework/media</code>.",
-                       poster=MEDIA / f"{stem}.jpg"))
-    t += '<div class="films">' + "".join(fl) + "</div>"
+    fd = ROOT / "docs/experiments/20261029-foundational_pose_review"
+    fv = fd / "rows" / "films_v4b.json"
+    ff = fd / "media" / "20261030-film_four.mp4"
+    if fv.exists() and ff.exists():                  # the four tasks with the v4b fingertip (scripts/hom_films.py four)
+        i = json.loads(fv.read_text())["four"]
+        t += film(ff, (f"The four tasks with the calibrated v4b fingertip on one SR2 layout, mounts {i['layout'][0]:.0f} mm "
+                       f"by {i['layout'][1]:.0f} mm apart. Each starts from its best grasp of 16 whose fingers stay 2 mm "
+                       f"apart; CPU runner, seed 0. Top: the twist and the roll of the 40 mm sphere; bottom: the pin-push and the "
+                       f"press of the 25 mm cylinder. Scores {i['twist']['score']:.2f}, {i['roll']['score']:.2f}, "
+                       f"{i['pinpush']['score']:.2f} and {i['press']['score']:.2f}; the rods are the object's axes. "
+                       "Foundational-pose review page, Section 13; <code>scripts/hom_films.py four</code>."),
+                  poster=ff.with_suffix(".jpg"))
     return t
 
 
@@ -822,15 +821,15 @@ def sec_mpc():
         if w:
             js.append(float(np.median(w)))
     t = fill(r"""<p>The task study of 2026-10-21 also ran a sampling MPC beside HOM: pinned iCEM over the nine servo targets
-at three knots, 64 rollouts of 0.5 s on the CPU every 10 ms (<code>scripts/hom_tasks_mpc.py</code>). Per task it took a median
-<<j0>> to <<j1>> s of computing per rollout of 6.5 to 7.8 s, about <<rt0>> to <<rt1>> times real time, and squeezed with
+at three knots. It ran 64 rollouts of 0.5 s on the CPU every 10 ms (<code>scripts/hom_tasks_mpc.py</code>). Per task it took a median
+<<j0>> to <<j1>> s of computing per rollout of 6.5 to 7.8 s, about <<rt0>> to <<rt1>> times real time. It squeezed with
 14 to 22 N per pad. <code>scripts/hom_mpc_gpu.py</code> samples HOM's commands instead. Per knot of 0.1 s a plan sets the
 sphere's angular velocity about the vertical and a scale of the commanded pad forces: two numbers, against nine servo
 targets. The horizon is three knots. A cross-entropy method with two iterations refits the best 12 of the samples, and
 the previous plan, shifted by one knot, is kept as a sample. Every sample runs in its own MuJoCo-Warp world under the
 batched HOM controller, which turns the commands into servo targets every 10 ms. The plant is a one-world batch of the
-same scene, and before each replanning its full state is copied into every sample's world: MuJoCo-Warp data, contact
-forces and the controller's own state.</p>
+same scene. Before each replanning its full state is copied into every sample's world: MuJoCo-Warp data, contact forces
+and the controller's own state.</p>
 <p>Figure <<f>> shows grid layout 280 with the v4b fingertip. A constant 30 deg/s ramp from the task's start turned
 the 40 mm sphere <<r_end>> deg in 3 s and lost a pad at <<r_lost>> deg. The MPC with 64 samples commanded up to 90 deg/s
 and lowered the force scale to 0.6. It reached <<m1>> deg in 1 s and then held the sphere at <<m_end>> deg with all
@@ -873,8 +872,9 @@ the plan. Perturbations of 5 deg/s left it unchanged until the planned turn was 
     p2 = mp / "timing_p2ms.json"
     if p2.exists():                                  # the planner's worlds at a 2 ms physics step (2026-10-30, 12:29)
         g2 = {r["k"]: r for r in json.loads(p2.read_text())["rows"]}
-        runs = [("1 ms", 2, 0.1, run), ("2 ms", 2, 0.1, json.loads((mp / "twist_call280_g0_k64_p2ms.json").read_text())),
-                ("2 ms", 1, 0.2, json.loads((mp / "twist_call280_g0_k64_p2ms_i1_r2.json").read_text()))]
+        cand = [("1 ms", 2, 0.1, "twist_call280_g0_k64.json"), ("2 ms", 2, 0.1, "twist_call280_g0_k64_p2ms.json"),
+                ("2 ms", 1, 0.1, "twist_call280_g0_k64_p2ms_i1.json"), ("2 ms", 2, 0.2, "twist_call280_g0_k64_p2ms_r2.json"),
+                ("2 ms", 1, 0.2, "twist_call280_g0_k64_p2ms_i1_r2.json")]
 
         def stats(r):
             tr_ = r["trace"]
@@ -883,23 +883,36 @@ the plan. Perturbations of 5 deg/s left it unchanged until the planned turn was 
             t45 = next(x["t"] - t0_ for x in tr_ if x["yaw_deg"] >= 45.0)
             pw_ = float(np.median(r["plan_wall_s"])) if r.get("plan_wall_s") else None
             return pw_, t45, r["yaw_three_pads_max_deg"], lost, r["yaw_end_deg"]
-        S_ = [(ph, it, iv) + stats(d_["runs"]["mpc_k64"]) for ph, it, iv, d_ in runs]
+        S_ = {(ph, it, iv): stats(json.loads((mp / f_).read_text())["runs"]["mpc_k64"])
+              for ph, it, iv, f_ in cand if (mp / f_).exists()}
         rmp = stats(ramp)
-        a, b, c = S_
-        t += fill(r"""<p>A 2 ms physics step in the planner's worlds, five steps per period, cut a 64-world period from
-<<p1>> to <<p2>> ms (Table <<tb>>). The physics fell from <<f1>> to <<f2>> ms, and the controller's graph stayed at
+        a, b, c = S_[("1 ms", 2, 0.1)], S_[("2 ms", 2, 0.1)], S_[("2 ms", 1, 0.2)]
+        t += fill(r"""<p>The planner's worlds then ran a 2 ms physics step, five steps per period. A 64-world period
+lasted <<p2>> ms instead of <<p1>> ms (Table <<tb>>). The physics fell from <<f1>> to <<f2>> ms, and the controller's graph stayed at
 <<c2>> ms. The plant kept its 1 ms step. With two iterations every 0.1 s a replanning took <<w2>> s, <<x2>> times real
-time. The plans kept their quality: the sphere reached 45 deg in <<h2>> s, against <<h1>> s with the 1 ms planner, and
+time. Plan quality was unchanged. The sphere reached 45 deg in <<h2>> s, against <<h1>> s with the 1 ms planner, and
 stopped at <<e2>> deg on three pads. With one iteration every 0.2 s a replanning took <<w3>> s, <<x3>> times real time.
-With that slower replanning the plant turned past the three-pad limit. It lost a pad <<l3>> s into the task, at
-<<e3>> deg, and turned on to <<z3>> deg.</p>""",
+Its plans kept the rate near the 30 deg/s that the search starts from, and the plant turned past the three-pad limit
+(Figure <<fg>>). It lost a pad <<l3>> s into the task, at <<e3>> deg, and turned on to <<z3>> deg.</p>""",
                   p1=f"{gr[64]['ms_per_period']:.1f}", p2=f"{g2[64]['ms_per_period']:.1f}",
                   f1=f"{gr[64]['ms_parts']['physics']:.1f}", f2=f"{g2[64]['ms_parts']['physics']:.1f}",
-                  c2=f"{g2[64]['ms_parts']['controller_graph']:.1f}", tb=TAB[0] + 1, w2=f"{b[3]:.2f}",
-                  x2=f"{b[2] / b[3]:.2f}", h2=f"{b[4]:.2f}", h1=f"{a[4]:.2f}", e2=f"{b[5]:.1f}", w3=f"{c[3]:.2f}",
-                  x3=f"{c[2] / c[3]:.2f}", l3=f"{c[6]:.2f}", e3=f"{c[5]:.1f}", z3=f"{c[7]:.0f}")
-        rows2 = [[ph, str(it), f"{iv:.1f}", f"{pw_:.2f}", f"{iv / pw_:.2f}", f"{t45:.2f}", f"{e3:.1f}",
-                  "&ndash;" if lost is None else f"{lost:.2f}"] for ph, it, iv, pw_, t45, e3, lost, _z in S_]
+                  c2=f"{g2[64]['ms_parts']['controller_graph']:.1f}", tb=TAB[0] + 1, w2=f"{b[0]:.2f}",
+                  x2=f"{0.1 / b[0]:.2f}", h2=f"{b[1]:.2f}", h1=f"{a[1]:.2f}", e2=f"{b[2]:.1f}", w3=f"{c[0]:.2f}",
+                  x3=f"{0.2 / c[0]:.2f}", l3=f"{c[3]:.2f}", e3=f"{c[2]:.1f}", z3=f"{c[4]:.0f}", fg=FIG[0] + 1)
+        i1, r2 = S_.get(("2 ms", 1, 0.1)), S_.get(("2 ms", 2, 0.2))
+        if i1 and r2:
+            def went(x):
+                return (f"lost a pad {x[3]:.2f} s into the task and turned on to {x[4]:.0f} deg" if x[3] is not None
+                        else f"stopped at {x[2]:.1f} deg on three pads")
+            cause = ("the single iteration" if i1[3] is not None and r2[3] is None else
+                     "the longer interval" if i1[3] is None and r2[3] is not None else
+                     "either change alone" if i1[3] is not None and r2[3] is not None else None)
+            t += fill(r"""<p>The two changes were then made one at a time. One iteration every 0.1 s <<a1>>, at <<x1>>
+times real time. Two iterations every 0.2 s <<a2>>, at <<x2>> times real time.<<cs>></p>""",
+                      a1=went(i1), x1=f"{0.1 / i1[0]:.2f}", a2=went(r2), x2=f"{0.2 / r2[0]:.2f}",
+                      cs=(f" The overshoot follows {cause}." if cause else " Neither change alone turned past the limit."))
+        rows2 = [[ph, str(it), f"{iv:.1f}", f"{v[0]:.2f}", f"{iv / v[0]:.2f}", f"{v[1]:.2f}", f"{v[2]:.1f}",
+                  "&ndash;" if v[3] is None else f"{v[3]:.2f}"] for (ph, it, iv), v in S_.items()]
         rows2.append(["HOM ramp, 30 deg/s", "&ndash;", "&ndash;", "&ndash;", "&ndash;", f"{rmp[1]:.2f}", f"{rmp[2]:.1f}",
                       f"{rmp[3]:.2f}"])
         t += table(["Planner's physics step", "Iterations", "Replanning interval (s)", "Replanning (s)",
@@ -907,6 +920,9 @@ With that slower replanning the plant turned past the three-pad limit. It lost a
                    "The MPC over HOM's commands on grid layout 280 with 64 samples and a horizon of 0.3 s: the planner's "
                    "physics step, its iterations and the interval between replannings. Times from the task's start; the "
                    "replanning is the median wall time.", num_from=1)
+        t += img(ROOT / "docs/experiments/20261029-hom_control_review/media/20261030-mpc_planner_step.png",
+                 "The planner's physics step and replanning on grid layout 280. Left: the sphere's twist, with the first "
+                 "period in which a pad pressed under 0.05 N (circles). Right: the rate of each plan's first knot.")
     return t
 
 

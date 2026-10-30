@@ -64,7 +64,7 @@ def yaw_pitch(axis, psi):
     return T.pinch_angle(a), math.degrees(math.atan2(a[0], -a[1]))
 
 
-def run(var):
+def run(var, seed=0):
     import mujoco
     task, d_mm, call, grasp = CT.EXAMPLES["pinpush"]
     xs, ys, g, mxy, setup = CT.setup_of(task, d_mm, call, grasp)
@@ -84,8 +84,9 @@ def run(var):
     T.H.HomController = CT.Recorder
     over, _noise = T.VARIANTS[var]
     try:
-        res, trace, _ = T.rollout(task, setup, plant, mirror, q_open, 0, T.PRM, replace(H.HomParams(dt=T.DT_C), **over),
-                                  snap)
+        res, trace, _ = T.rollout(task, setup, plant, mirror, q_open, seed, T.PRM,
+                                  replace(H.HomParams(dt=T.DT_C), **over), snap, None,
+                                  T.PLANT_VARIANTS.get(var, {}).get("hold_s", 0.0))
     finally:
         T.H.HomController = real
     psi = float(setup.get("psi", 0.0))
@@ -94,6 +95,8 @@ def run(var):
         i = rec["info"]["middle"]
         pitch, yaw = yaw_pitch(row["axis"], psi)
         per.append({"t": row["t"], "phase": row["phase"], "F": {f: row["F"][f] for f in FINGERS},
+                    "F_link": {f: row["F_link"][f] for f in FINGERS}, "pos_mm": row["pos_mm"],
+                    "dist": {f: row["dist_mm"][f] for f in FINGERS},
                     "dist_mm": round(1e3 * i["dist"], 3), "gap_mm": round(1e3 * i["gap"], 3),
                     "reanchored": bool(i.get("reanchored")), "theta": np.degrees(i["theta"]).round(3).tolist(),
                     "theta_ref": np.degrees(i["theta_ref"]).round(3).tolist(),
@@ -102,8 +105,11 @@ def run(var):
                     "off_gap": np.degrees(i["off_gap"]).round(3).tolist(),
                     "off_force": np.degrees(i["off_force"]).round(3).tolist()})
     log = [{"theta_ref": {f: r["info"][f]["theta_ref"].copy() for f in FINGERS},
-            "q_cmd": {f: np.asarray(r["info"][f]["q_cmd"]).copy() for f in FINGERS}} for r in CT.Recorder.log]
-    print(f"{var}: held {res.get('held')}, pinch-angle RMSE {res.get('theta_rmse_deg')} deg, middle F_mean "
+            "q_cmd": {f: np.asarray(r["info"][f]["q_cmd"]).copy() for f in FINGERS},
+            "q": {f: np.asarray(r["meas"].q[f], float).copy() for f in FINGERS},
+            "pos": np.asarray(r["meas"].obj_pos, float).copy(), "quat": np.asarray(r["meas"].obj_quat, float).copy()}
+           for r in CT.Recorder.log]
+    print(f"{var}, seed {seed}: held {res.get('held')}, pinch-angle RMSE {res.get('theta_rmse_deg')} deg, middle F_mean "
           f"{res.get('F_mean', {}).get('middle')} N, re-anchored periods {sum(p['reanchored'] for p in per)}", flush=True)
     return {"res": res, "periods": per, "x_sep_mm": xs, "y_sep_mm": ys}, plant, snap, log
 
@@ -158,9 +164,14 @@ def keyframes(var, plant, snap, log, per, times, out=None, w=400, h=330, views=V
     rows = []
     try:
         for label, t in times:
-            k = int(np.argmin([abs(tt - t) for tt, _ in snap.qpos]))
-            tk, q = snap.qpos[k]
-            i = max(0, min(int(round(tk / T.DT_C)) - 1, len(log) - 1))
+            # the period nearest t, its measured state (exact sensing: the plant's) on the nearest stored qpos
+            i = max(0, min(int(round(t / T.DT_C)), len(log) - 1))
+            tk = i * T.DT_C
+            q = snap.qpos[int(np.argmin([abs(tt - tk) for tt, _ in snap.qpos]))][1].copy()
+            for f in FINGERS:
+                q[plant.qadr[f]] = log[i]["q"][f]
+            q[plant.qa:plant.qa + 3] = log[i]["pos"]
+            q[plant.qa + 3:plant.qa + 7] = log[i]["quat"]
             d.qpos[:] = q
             mujoco.mj_forward(m, d)
             ims = []
@@ -375,9 +386,78 @@ def cmd_cpu():
     return 0
 
 
+SEED_ROWS = CT.ROWS / "20261030-seed_check.json"
+
+
+def cmd_seeds():
+    """The example at a seed whose object draw every layout survives and at one that drops most layouts (twelve draws,
+    rows/grid2d_v4b_draws12): traces of the object and the pads, and keyframes at the instants given after --at."""
+    args = sys.argv[2:]
+    at = [float(x) for x in args[args.index("--at") + 1:]] if "--at" in args else []
+    var = args[args.index("--variant") + 1] if "--variant" in args else "base"
+    if "--variant" in args:
+        i = args.index("--variant")
+        args = args[:i] + args[i + 2:]
+    seeds = [int(x) for x in (args[:args.index("--at")] if "--at" in args else args)] or [7, 8]
+    data, keep = {}, {}
+    for sd in seeds:
+        data[sd], plant, snap, log = run(var, sd)
+        keep[sd] = (plant, snap, log)
+    SEED_ROWS.write_text(json.dumps({"seeds": seeds, "when": time.strftime("%Y-%m-%d %H:%M"),
+                                     **{str(k): v for k, v in data.items()}},
+                                    default=lambda o: o.tolist() if hasattr(o, "tolist") else str(o)))
+    print("wrote", SEED_ROWS.relative_to(ROOT), flush=True)
+    seed_trace_figure(data, CT.MEDIA / "20261030-seed_trace.png")
+    if at:
+        from PIL import Image
+        rows = []
+        for t in at:
+            for sd in seeds:
+                plant, snap, log = keep[sd]
+                rows += keyframes(f"seed {sd}", plant, snap, log, data[sd]["periods"], [(f"{t:.2f} s", t)],
+                                  views=VIEWS[1:])
+        path = CT.MEDIA / "20261030-seed_keyframes.jpg"
+        Image.fromarray(np.concatenate(rows, 0)).convert("RGB").save(path, quality=88)
+        print("wrote", path.relative_to(ROOT), flush=True)
+    return 0
+
+
+def seed_trace_figure(data, out):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.family": "serif", "font.size": 13})
+    fig, ax = plt.subplots(4, 1, figsize=(9.5, 11), sharex=True)
+    cols = ["0.45", "tab:red", "tab:blue", "tab:green"]
+    for c, (sd, d) in zip(cols, data.items()):
+        per = d["periods"]
+        t = np.array([p["t"] for p in per])
+        pos = np.array([p["pos_mm"] for p in per])
+        ax[0].plot(t, pos[:, 2] - pos[0, 2], color=c, lw=1.5, label=f"seed {sd}")
+        ax[1].plot(t, [p["yaw_deg"] - per[0]["yaw_deg"] for p in per], color=c, lw=1.5)
+        ax[1].plot(t, [p["pitch_deg"] - per[0]["pitch_deg"] for p in per], color=c, lw=1.0, ls=":")
+        for f, ls in zip(FINGERS, ("-", "--", ":")):
+            ax[2].plot(t, [p["F"][f] for p in per], color=c, lw=1.3, ls=ls, label=f"seed {sd}, {f}" if c == cols[0] else None)
+            ax[3].plot(t, [p["dist"][f] for p in per], color=c, lw=1.2, ls=ls)
+    ax[0].set_ylabel("Object height\nchange (mm)")
+    ax[1].set_ylabel("Yaw (solid) and\npinch angle (dotted), deg")
+    ax[2].set_ylabel("Pad force (N)")
+    ax[3].set_ylabel("GCF distance (mm)")
+    ax[3].set_xlabel("Time (s)")
+    ax[0].legend(loc="lower left", fontsize=11)
+    ax[2].legend(loc="upper right", fontsize=10, ncol=1, title="solid thumb, dashed index, dotted middle", title_fontsize=10)
+    for a in ax:
+        for x in (T.T_CLOSE, T.T_LIFT, T.T_LIFT + 0.4):
+            a.axvline(x, color="0.8", lw=0.8, zorder=0)
+    fig.tight_layout()
+    fig.savefig(out, dpi=110)
+    plt.close(fig)
+    print("wrote", out.relative_to(ROOT), flush=True)
+
+
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "cpu"
-    return {"cpu": cmd_cpu, "grid": cmd_grid}[cmd]()
+    return {"cpu": cmd_cpu, "grid": cmd_grid, "seeds": cmd_seeds}[cmd]()
 
 
 if __name__ == "__main__":
