@@ -62,6 +62,8 @@ C, SIM = CELL.C, CELL.SIM
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
 OUT = ROOT / "docs/experiments/20261029-inverted_calibration_rig"
 STEM = "20261029-inverted_rig"
+BLOCK_OUT = ROOT / "docs/experiments/20261030-inverted_rig_seat_block"   # --plate block
+BLOCK_STEM = "20261030-seat_block"
 TOOLREG = LAB / "20261027-225213-spherev3id1/registration.json"
 SURFACE_PLAN = LAB / "20261029-plan_sphere_lab_pass1_night_v3id3.json"      # the pad's FE surface: 812 points in P
 BOARD_PLAN = LAB / "superseded/20261027-plan_sphere_lab_stage2_v3id1.json"   # the 2x4s under the plate (checks.board)
@@ -72,9 +74,15 @@ PROBE = dict(
     tip_z=120.0,                    # every tool's end on the tool axis; the finger's pad apex stands at z_M 93.4, 10.6 off it
     foot=dict(z0=15.0, z1=28.0, r=35.0),                     # v7's foot on the adapter disc (z_M 0..15)
     col=dict(x0=-13.0, x1=17.0, y0=-13.0, y1=13.0, z1=64.0, r=3.0),   # x1: the fork's palmar face, where its socket opens
-    boss=dict(side=10.0, draft=20.0, h=3.0, clear=0.05,      # on the column's top; the tool's socket 0.05 mm larger a face,
-              mouth_ch=0.4),                                 # its mouth chamfered 0.4 mm (the screws pull the flange home)
-    screws=((8.5, 8.5), (-8.5, -8.5), (8.5, -8.5), (-8.5, 8.5)), pilot=2.75, pilot_depth=10.0,   # M3, self-forming
+    boss=dict(side=10.0, draft=20.0, h=3.0, seat_gap=0.3,    # on the column's top. Since 2026-10-30 the tool's socket is the
+              mouth_ch=0.4),                                 # boss's taper made 0.11 mm smaller a face, so the screws pull
+    #                                                          the four tapered faces home and the flange stops 0.3 mm over
+    #                                                          the column's top (until then 0.05 mm of play a face and the
+    #                                                          flange on the top); its mouth chamfered 0.4 mm
+    screws=((8.5, 8.5), (-8.5, -8.5), (8.5, -8.5), (-8.5, 8.5)), m3_hole=3.4, hole_depth=9.0,
+    nut=dict(af=5.8, t=2.7, below=3.6),     # an M3 nut captive under each screw (pocket 5.8 mm across flats, 2.7 mm high, its
+    #                                         top 3.6 mm under the column's top), slid in from the side: a tool's screws then
+    #                                         turn in steel, not in PLA, however often it is changed
     flange=dict(z1=70.0, r=17.0), m3_clear=3.4, m3_cb_d=6.5, m3_under=3.0,   # each tool's flange, M3 x 10 on a diagonal
     stem_r=8.0,
     sphere=dict(R=5.0, neck_r=3.0, neck_dz=4.0, taper_deg=15.0),           # the tall indenter's sphere and neck
@@ -129,6 +137,16 @@ LAYOUT = dict(       # plate v2e: v2d's base, keys and front row (the 5 mm spher
 #                                             to its back edge: 8 times the 6 mm base's stiffness where the supports pull up
     cable=((3.4, -3.95, -63.91), (44.4, 4.05, -58.91)))   # F: a slot through each support just past the board's plug, so
 #                                             the held board's cable leaves by the support's back, away from the probe
+SEAT_BLOCK = dict(   # --plate block (owner, 2026-10-30): v2e's three seats alone, where v2e stood, the tall indenter and the
+#                      holder off and the low sphere and the rod left in place; the probe homes on the low sphere's key
+    base=(10.0, 140.0, -110.0, 110.0, 6.0),                 # x0, x1, y0, y1, thickness (A); the rail from 5 mm before the
+#                                                             supports to x1
+    notch=((9.0, 41.0), (-20.0, 20.0)),                     # x, y: around the low sphere's base (x <= 35, |y| <= 12)
+    screws=((22.0, -100.0), (22.0, -60.0), (22.0, 60.0), (22.0, 100.0),          # into the low sphere's 2x4, 37.5 mm in
+            (130.0, -100.0), (130.0, -40.0), (130.0, 40.0), (130.0, 100.0)),     # front of the supports, and into the
+#                                                             tall's, 35.5 mm behind them: a drill reaches each one
+    others=(("sphere", "20261027-225213-spherev3id1"), ("rod", "20261029-230820-rodv3id3")))   # fixtures that stay (lab/)
+PLATE = ["v2e"]                                             # what build, reach, replay and film take (--plate)
 
 
 def T_AF(orient, apex):
@@ -140,8 +158,10 @@ def T_AF(orient, apex):
 
 
 def plate(layout=None):
-    """Plate v2e in A: indenter_array.geometry's base, keys, 5 mm sphere and rod, and the seats with their tip frames."""
+    """Plate v2e in A: indenter_array.geometry's base, keys, 5 mm sphere and rod, and the seats with their tip frames; with
+    --plate block the seats alone on SEAT_BLOCK's base, with no key."""
     lay = dict(LAYOUT, **(layout or {}))
+    block = PLATE[0] == "block"
     a = copy.deepcopy(IA.ARRAY)
     a["sphere5"] = dict(a["sphere5"], **lay["sphere5"])
     a["rod"] = dict(a["rod"], **lay["rod"])
@@ -160,16 +180,22 @@ def plate(layout=None):
         foot = np.array([[xx, yy, tb - 0.01] for xx in (x0, x1) for yy in (y0, y1)])
         seats.append(dict(apex=[x, y, lay["seat_h"]], orient=o, T_AF=T.round(6).tolist(),
                           support=np.vstack([corners, foot])))
-    xb = max(a["base"][1], max(float(st["support"][:, 0].max()) for st in seats) + 2.0)
-    a["base"] = (a["base"][0], xb, a["base"][2], a["base"][3], tb)          # the base reaches 2 mm past the supports
-    a["screws"] = tuple(s_ for s_ in a["screws"] if s_[0] < 0) + tuple((xb - 10.0, yy) for yy in (-110.0, -40.0, 40.0, 110.0))
-    g = IA.geometry(a)                                  # the back screws between the supports' footprints
-    g.pop("sphere12", None)
-    g.pop("holder", None)
+    if block:
+        a["base"], a["screws"], a["keys"] = tuple(SEAT_BLOCK["base"]), tuple(SEAT_BLOCK["screws"]), ()
+        xb = a["base"][1]
+    else:
+        xb = max(a["base"][1], max(float(st["support"][:, 0].max()) for st in seats) + 2.0)
+        a["base"] = (a["base"][0], xb, a["base"][2], a["base"][3], tb)      # the base reaches 2 mm past the supports
+        a["screws"] = (tuple(s_ for s_ in a["screws"] if s_[0] < 0)
+                       + tuple((xb - 10.0, yy) for yy in (-110.0, -40.0, 40.0, 110.0)))   # between the supports' footprints
+    g = IA.geometry(a)
+    for k in ("sphere12", "holder") + (("sphere5", "rod") if block else ()):
+        g.pop(k, None)
+    g["notch"] = SEAT_BLOCK["notch"] if block else None
     g["seats"], g["layout"] = seats, lay
     g["rail"] = (min(float(st["support"][:, 0].min()) for st in seats) - lay["rail"]["front"], xb, a["base"][2], a["base"][3],
                  lay["rail"]["t"])                                  # x0, x1, y0, y1, top
-    g["zmax"] = float(max([np.max(st["support"][:, 2]) + 25.0 for st in seats] + [g["sphere5"]["top"], g["rod"]["top"]]
+    g["zmax"] = float(max([np.max(st["support"][:, 2]) + 25.0 for st in seats] + [g[k]["top"] for k in ("sphere5", "rod") if k in g]
                           + [k["pin_top"] for k in g["keys"]]))     # the highest part (the tips within 25 mm of their blocks)
     return g
 
@@ -416,15 +442,16 @@ def _m_xy(r, ang_deg):
 
 def probe_base_solid(K):
     """The probe base in M: v7's foot and its cuts for the disc's M3 and M6, the column with v7's homing socket, the boss
-    and the four M3 pilot holes on its top."""
+    on its top, and the four M3 clearance holes with a captive nut under each, slid in from the column's +-y face."""
     import ur5_calibration_mount as UM
     P, p = UM.P, PROBE
-    f, c, b = p["foot"], p["col"], p["boss"]
+    f, c, b, nt = p["foot"], p["col"], p["boss"], p["nut"]
     t = math.tan(math.radians(b["draft"]))
     h0 = b["side"] / 2
+    zt = c["z1"] - b["seat_gap"]                          # the column's top: the tool's flange stops seat_gap over it
     parts = [K.cyl("z", (0.0, 0.0), f["r"], f["z0"], f["z1"]),
-             K.rbox_z(c["x0"], c["x1"], c["y0"], c["y1"], f["z1"] - 0.01, c["z1"], c["r"]),
-             UM.frustum(K, "z", (0.0, 0.0), (h0, h0), (h0 - b["h"] * t, h0 - b["h"] * t), c["z1"] - 0.01, c["z1"] + b["h"])]
+             K.rbox_z(c["x0"], c["x1"], c["y0"], c["y1"], f["z1"] - 0.01, zt, c["r"]),
+             UM.frustum(K, "z", (0.0, 0.0), (h0, h0), (h0 - b["h"] * t, h0 - b["h"] * t), zt - 0.01, zt + b["h"])]
     cut = []
     for ang in UM.m3_angles(P):            # the foot's M3 x 12 into the disc's inserts, counterbored from the foot's top
         xy = _m_xy(P["m3_r"], ang)
@@ -434,8 +461,15 @@ def probe_base_solid(K):
         xy = _m_xy(P["bolt_r"], ang)
         cut += [K.cyl("z", xy, P["m6_pocket_d"] / 2, f["z0"] - 1.0, P["m6_pocket_top"]),
                 K.cyl("z", xy, P["key_d"] / 2, P["m6_pocket_top"] - 0.5, f["z1"] + 1.0)]
-    for xy in p["screws"]:
-        cut.append(K.cyl("z", xy, p["pilot"] / 2, c["z1"] - p["pilot_depth"], c["z1"] + b["h"] + 1.0))
+    zn1 = zt - nt["below"]
+    zn0 = zn1 - nt["t"]
+    for x, y in p["screws"]:               # the hex's flats face +-x, so the nut slides in along y from the nearer face
+        cut.append(K.cyl("z", (x, y), p["m3_hole"] / 2, zt - p["hole_depth"], zt + b["h"] + 1.0))
+        ye = c["y1"] + 1.0 if y > 0 else c["y0"] - 1.0
+        hexa = K.hull([(x + nt["af"] / 2 * math.cos(math.radians(a_)) / math.cos(math.radians(30.0)),
+                        y + nt["af"] / 2 * math.sin(math.radians(a_)) / math.cos(math.radians(30.0)), z)
+                       for a_ in range(30, 360, 60) for z in (zn0, zn1)])
+        cut += [hexa, K.box((x - nt["af"] / 2, min(y, ye), zn0), (x + nt["af"] / 2, max(y, ye), zn1))]
     fx = c["x1"]                           # the socket: v7's (8 x 18 mm at the mouth, 20 deg draft, 5.3 deep) at z_M 49
     cut.append(UM.frustum(K, "x", (0.0, P["home_zm"]), UM.home_halves(-1.0, p=P), UM.home_halves(P["home_depth"], p=P),
                           fx + 1.0, fx - P["home_depth"]))
@@ -484,7 +518,7 @@ def tool_solid(K, tool):
             parts += [K.hull([tuple(v) for v in np.vstack([ring0, ring1])]), K.transform(disc, T)]
         else:
             parts += [K.cyl("z", (0.0, 0.0), fp["neck_r"], zn, zd + 0.01), disc]
-    h0 = b["side"] / 2 + b["clear"]
+    h0 = b["side"] / 2 - b["seat_gap"] * t     # the boss's half side seat_gap over the column's top: the faces meet there
     ch = b["mouth_ch"]                     # 45 deg at the socket's mouth, which prints on the bed: the first layer's squeeze
     cut = [UM.frustum(K, "z", (0.0, 0.0), (h0 + t, h0 + t), (h0 - (b["h"] + 0.3) * t, h0 - (b["h"] + 0.3) * t),
                       c["z1"] - 1.0, c["z1"] + b["h"] + 0.3),
@@ -504,6 +538,9 @@ def plate_solid(K, g):
     base = K.union([K.rbox_z(x0, x1, y0, y1, 0.0, tb, 6.0), K.rbox_z(rx0, rx1, ry0, ry1, 0.0, rt, 6.0)])
     d, (cbd, cbh) = a["screw_hole"], a["screw_cb"]
     holes = []
+    if g.get("notch"):                         # the seat block: clear of the low sphere's base
+        (nx0, nx1), (ny0, ny1) = g["notch"]
+        holes.append(K.box((nx0 - 1.0, ny0, -1.0), (nx1, ny1, rt + 1.0)))
     for x, y in a["screws"]:                   # on the rail: the counterbore from its top, the same PLA under the head
         top = rt if rx0 <= x <= rx1 else tb
         holes += [K.cyl("z", (x, y), d / 2, -1.0, top + 1.0), K.cyl("z", (x, y), cbd / 2, tb - cbh, top + 1.0)]
@@ -517,16 +554,19 @@ def plate_solid(K, g):
         T = np.eye(4)
         T[:3, :3], T[:3, 3] = IA._Rz(k["yaw"]), [k["c"][0], k["c"][1], 0.0]
         parts.append(K.transform(local, T))
-    s = g["sphere5"]
-    cc = s["c"]
-    if s["z_col"] > tb:
-        parts.append(K.cyl("z", cc, s["col_r"], tb - 0.01, s["z_col"] + 0.01))
-    parts += [K.cyl("z", cc, s["r_col"], s["z_col"], s["z_neck"], r1=s["neck_r"]), K.sphere((cc[0], cc[1], s["top"] - s["R"]), s["R"])]
-    r = g["rod"]
-    (cx, cy), hl = r["c"], r["half_len"]
-    parts += [K.cyl("z", (cx, cy), r["col_r"], tb - 0.01, r["box_z0"] + 0.01, r1=r["r_top"]),
-              K.box((cx - r["R"], cy - hl, r["box_z0"]), (cx + r["R"], cy + hl, r["z_axis"])),
-              K.cyl("y", (cx, r["z_axis"]), r["R"], cy - hl, cy + hl)]
+    if "sphere5" in g:
+        s = g["sphere5"]
+        cc = s["c"]
+        if s["z_col"] > tb:
+            parts.append(K.cyl("z", cc, s["col_r"], tb - 0.01, s["z_col"] + 0.01))
+        parts += [K.cyl("z", cc, s["r_col"], s["z_col"], s["z_neck"], r1=s["neck_r"]),
+                  K.sphere((cc[0], cc[1], s["top"] - s["R"]), s["R"])]
+    if "rod" in g:
+        r = g["rod"]
+        (cx, cy), hl = r["c"], r["half_len"]
+        parts += [K.cyl("z", (cx, cy), r["col_r"], tb - 0.01, r["box_z0"] + 0.01, r1=r["r_top"]),
+                  K.box((cx - r["R"], cy - hl, r["box_z0"]), (cx + r["R"], cy + hl, r["z_axis"])),
+                  K.cyl("y", (cx, r["z_axis"]), r["R"], cy - hl, cy + hl)]
     for st in g["seats"]:
         T = np.asarray(st["T_AF"], float)
         lo, hi = BLOCK_F
@@ -545,14 +585,15 @@ def cmd_build(a):
     cad = OUT / "cad"
     cad.mkdir(parents=True, exist_ok=True)
     rec = {}
+    pname = "seat_block" if PLATE[0] == "block" else "plate_v2e"
     solids = dict(probe_base=probe_base_solid(K), **{f"tool_{t}": tool_solid(K, t) for t in TOOLS},
-                  plate_v2e=plate_solid(K, plate()))
+                  **{pname: plate_solid(K, plate())})
     for name, s in solids.items():
         tm = UM.to_trimesh(s)
         dst = cad / f"{STEM}_{name}.stl"
         tm.export(dst)
         com = tm.center_mass if tm.is_watertight else tm.centroid
-        rec[name] = dict(stl=str(dst.relative_to(ROOT)), frame="A" if name == "plate_v2e" else "M",
+        rec[name] = dict(stl=str(dst.relative_to(ROOT)), frame="A" if name == pname else "M",
                          volume_cm3=round(float(tm.volume) / 1e3, 2), mass_g_solid=round(float(tm.volume) / 1e3 * 1.24, 1),
                          com_mm=np.round(com, 2).tolist(), bounds_mm=np.round(tm.bounds, 2).tolist(),
                          watertight=bool(tm.is_watertight), bodies=len(tm.split(only_watertight=False)))
@@ -692,6 +733,8 @@ def plate_sdfs(PA, g, T_BA, contact=None, reach=20.0):
     a = g["params"]
     x0, x1, y0, y1, tb = a["base"]
     out = {"2x4s, table": CELL.cell_sdf(PA, T_BA)}
+    if CELL.OTHER:                             # the seat block: the low sphere and the rod stay on the table
+        out["fixtures"] = CELL.other_sdf(C.apply(T_BA, PA))
     m = ((PA[:, 0] > x0 - reach) & (PA[:, 0] < x1 + reach) & (PA[:, 1] > y0 - reach) & (PA[:, 1] < y1 + reach)
          & (PA[:, 2] < g["zmax"] + reach))
     if not m.any():
@@ -699,6 +742,9 @@ def plate_sdfs(PA, g, T_BA, contact=None, reach=20.0):
     P = PA[m]
     rx0, rx1, ry0, ry1, rt = g["rail"]
     parts = dict(base=np.minimum(CELL.sd_box(P, (x0, y0, 0.0), (x1, y1, tb)), CELL.sd_box(P, (rx0, ry0, 0.0), (rx1, ry1, rt))))
+    if g.get("notch"):
+        (nx0, nx1), (ny0, ny1) = g["notch"]
+        parts["base"] = np.maximum(parts["base"], -CELL.sd_box(P, (nx0 - 1.0, ny0, -1.0), (nx1, ny1, rt + 1.0)))
     kd = g["key"]
     bx, by = kd["k0"][0] + kd["margin"], kd["k0"][1] + kd["margin"]
     for i, k in enumerate(g["keys"]):
@@ -706,17 +752,19 @@ def plate_sdfs(PA, g, T_BA, contact=None, reach=20.0):
         pts = [(sx * hx_, sy * hy_, z) for (hx_, hy_), z in ((kd["k0"], k["body_top"]), (kd["k1"], k["pin_top"]))
                for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
         parts[f"key {i + 1}"] = np.minimum(CELL.sd_box(L, (-bx, -by, tb), (bx, by, k["body_top"])), hull_sdf(L, pts))
-    s = g["sphere5"]
-    Q = P - [s["c"][0], s["c"][1], 0.0]
-    parts["sphere5"] = np.minimum.reduce([CELL.sd_cyl_z(Q, s["col_r"], tb, s["z_col"]),
-                                          CELL.sd_capped_cone(Q, s["z_col"], s["z_neck"], s["r_col"], s["neck_r"]),
-                                          np.linalg.norm(Q - [0.0, 0.0, s["top"] - s["R"]], axis=1) - s["R"]])
-    r = g["rod"]
-    (cx, cy), hl = r["c"], r["half_len"]
-    Q = P - [cx, cy, 0.0]
-    parts["rod"] = np.minimum.reduce([CELL.sd_capped_cone(Q, tb, r["box_z0"], r["col_r"], r["r_top"]),
-                                      CELL.sd_box(P, (cx - r["R"], cy - hl, r["box_z0"]), (cx + r["R"], cy + hl, r["z_axis"])),
-                                      CELL.sd_cyl_y(P, r["R"], cy - hl, cy + hl, xz=(cx, r["z_axis"]))])
+    if "sphere5" in g:
+        s = g["sphere5"]
+        Q = P - [s["c"][0], s["c"][1], 0.0]
+        parts["sphere5"] = np.minimum.reduce([CELL.sd_cyl_z(Q, s["col_r"], tb, s["z_col"]),
+                                              CELL.sd_capped_cone(Q, s["z_col"], s["z_neck"], s["r_col"], s["neck_r"]),
+                                              np.linalg.norm(Q - [0.0, 0.0, s["top"] - s["R"]], axis=1) - s["R"]])
+    if "rod" in g:
+        r = g["rod"]
+        (cx, cy), hl = r["c"], r["half_len"]
+        Q = P - [cx, cy, 0.0]
+        parts["rod"] = np.minimum.reduce([CELL.sd_capped_cone(Q, tb, r["box_z0"], r["col_r"], r["r_top"]),
+                                          CELL.sd_box(P, (cx - r["R"], cy - hl, r["box_z0"]), (cx + r["R"], cy + hl, r["z_axis"])),
+                                          CELL.sd_cyl_y(P, r["R"], cy - hl, cy + hl, xz=(cx, r["z_axis"]))])
     for i, st in enumerate(g["seats"]):
         cut = (contact[1], contact[2]) if contact is not None and contact[0] == i else None
         for k, v in seat_sdfs(P, st, cut_near=cut).items():
@@ -739,9 +787,14 @@ def context(layout=None, tool="sphere5"):
     x0, x1, y0, y1, _ = g["params"]["base"]
     CELL.BOARD["half_mm"] = 400.0
     CELL.BOARD["block_half_mm"] = [max(-x0, x1) + 10.0, 500.0]
-    CELL.OTHER[:] = []
-    T_AM = np.array(g["keys"][1]["T_AM_home"], float)                 # homing on key 2, the probe's socket as the fork's
-    T_BE_home = T_BA @ T_AM @ C.inv(T_EM)
+    if PLATE[0] == "block":                    # homing on the low sphere's key, as the fork does (the same socket)
+        CELL.OTHER[:] = [(np.array(json.loads((LAB / d / "registration.json").read_text())["T_BI"], float), k)
+                         for k, d in SEAT_BLOCK["others"]]
+        T_BE_home = np.array(reg["T_BE_home"], float)
+    else:
+        CELL.OTHER[:] = []
+        T_AM = np.array(g["keys"][1]["T_AM_home"], float)             # homing on key 2, the probe's socket as the fork's
+        T_BE_home = T_BA @ T_AM @ C.inv(T_EM)
     q_home = SIM.ik(T_BE_home, np.asarray(reg["q_home"], float))
     BR[0] = branch_of(q_home)
     surf = json.loads(SURFACE_PLAN.read_text())["geometry"]["surface"]
@@ -1484,6 +1537,8 @@ def cmd_film(a):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--plate", default="v2e", choices=("v2e", "block"),
+                    help="plate v2e (2026-10-29), or the seat block (2026-10-30, its own folder)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     ik = sub.add_parser("ik-check")
     ik.add_argument("--n", type=int, default=200)
@@ -1526,6 +1581,10 @@ def main():
     r.add_argument("--resume", action="store_true", help="keep the orientations already in --out")
     r.add_argument("--part", default="", help="k/n: this job's share of the points (merge the parts with merge-reach)")
     a = ap.parse_args()
+    if a.plate == "block":
+        global OUT, STEM
+        PLATE[0] = "block"
+        OUT, STEM = BLOCK_OUT, BLOCK_STEM
     dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam}, build=cmd_build, reach=cmd_reach, replay=cmd_replay,
          film=cmd_film)[a.cmd](a)
 

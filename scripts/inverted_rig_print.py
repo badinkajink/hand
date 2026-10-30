@@ -169,9 +169,20 @@ def build(key, a):
 
 
 def main():
+    global RIG, CAD, OUT, WORK, STEM, OWNER
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--plates", default="a,b")
+    ap.add_argument("--block", action="store_true", help="the seat block's folder (2026-10-30): plate a with the tools' "
+                    "taper-seated sockets and the probe base's captive nuts, plate b the seat block")
     a = ap.parse_args()
+    if a.block:
+        RIG = REPO / "docs/experiments/20261030-inverted_rig_seat_block"
+        CAD, OUT, WORK, STEM = RIG / "cad", RIG / "print", REPO / "logs/20261030-seat_block_print", "20261030-seat_block"
+        OWNER = ("2026-10-30 11:2x: 'a smaller ... print out block that screws into the same 2x4 ... (can you space it out "
+                 "farther from the fingertip holders so a drill can more easily drive in?)'; 11:4x: 'can we actually create a "
+                 "fastening point on the homing block for different size indenters?'")
+        PLATES["b"] = dict(title="seat block", parts=[("SB", "seat block", "seat_block", PLATE)],
+                           glob=dict(layer_height="0.16", brim_type="no_brim"))
     OUT.mkdir(parents=True, exist_ok=True)
     for key in a.plates.split(","):
         build(key, a)
