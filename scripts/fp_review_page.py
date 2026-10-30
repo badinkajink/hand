@@ -1357,6 +1357,33 @@ good layouts.</p>""", n0=min(x[0] for x in nb), n1=max(x[0] for x in nb),
     return t
 
 
+def sec_cross():
+    import hom_landscape as L
+    c = json.loads((L.SIZE_ROWS / "cross.json").read_text())
+    rho, b, mm = c["spearman"], c["best"], c["maximin"]
+    cross_rho = [rho[k] for k in ("twist-pinpush", "twist-press", "roll-pinpush", "roll-press")]
+    rk = c["best_rank_elsewhere"]
+    t = fill(r"""<p>The four tasks ran on all 8,192 Sobol layouts at their default objects: the twist and the roll on the
+40 mm sphere, the pin-push and the press on the 25 mm cylinder (foundational poses, three seeds). Tasks on the same object
+and grasp family rank the layouts alike: Spearman <<tr>> between the twist and the roll, <<pp>> between the pin-push and
+the press. Between a sphere task and a cylinder task the rank correlation is <<c0>> to <<c1>>.</p>
+<p>Each task's best layout is a poor choice for the others (Figure <<f>>). The twist's best layout, with a twist score
+of <<btw>>, ranks <<rk1>> of 8,192 on the roll. The pin-push's best drops the sphere in both sphere tasks. Of the 8,192 layouts, <<npar>>
+(<<ppar>> %) are Pareto-optimal on the four scores. The layout whose worst score is highest reaches <<mm>> on the
+twist, roll, pin-push and press. The best tenth of each task sits in a different part of the mount space (Figure <<f>>,
+right): the roll's has the thumb and the index nearer each other along palm $x$, the twist's has the index and the
+middle nearer the centre line.</p>""",
+             tr=f"{rho['twist-roll']:.2f}", pp=f"{rho['pinpush-press']:.2f}", c0=f"{min(cross_rho):.2f}",
+             c1=f"{max(cross_rho):.2f}", f=FIG[0] + 1, btw=f"{b['twist']['scores'][0]:.2f}",
+             rk1=f"{rk['twist']['roll'] + 1:,}", npar=c["pareto_n"], ppar=f"{100 * c['pareto_n'] / 8192:.1f}",
+             mm=", ".join(f"{x:.2f}" for x in mm["scores"][:-1]) + f" and {mm['scores'][-1]:.2f}")
+    t += img(MEDIA / "20261030-cross_tasks.png",
+             "The four tasks on the 8,192 Sobol layouts at the default objects: the twist against the roll and the "
+             "pin-push against the press, with the Pareto set over all four scores (red); and the median and quartiles "
+             "of the six mount coordinates of each task's best tenth (standardized).")
+    return t
+
+
 def sec_related():
     return r"""<p>Four lines of work bear on this design study. Each answers part of the question, with a different
 controller in the loop.</p>
@@ -1710,6 +1737,7 @@ the grasp, and for the twist that decides the outcome.</p>""",
         ("grid", "Grasps synthesized per layout on a grid of symmetric tripods", sec_grid(N)),
         ("gradients", "Design gradients from a model of the HOM scores", sec_gradients(N)),
         ("sizes", "Layouts across object sizes", sec_sizes(N)),
+        ("cross", "The four tasks at their default objects: rank correlation and Pareto set", sec_cross()),
         ("separate", "Grasp and in-hand control: one problem or two", sec_separate(N)),
         ("plan", "A plan for a Pareto front of SR2 layouts under HOM control", sec_plan(N)),
         ("related", "Related design studies and how this one builds on them", sec_related()),

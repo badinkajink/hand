@@ -896,7 +896,7 @@ def cmd_cross(a):
         ax.set_xlabel(f"{TASK_NAME[u]} score ({DEFAULT[u]:g} mm)")
         ax.set_ylabel(f"{TASK_NAME[v_]} score ({DEFAULT[v_]:g} mm)")
         ax.set_title(f"Spearman {FR.spearman(S[u], S[v_]):.2f}")
-        ax.legend(loc="upper left", fontsize=10)
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=2, fontsize=10, frameon=False)
     ax = axs[2]
     for k, t in enumerate(tasks):
         top = np.argsort(-S[t])[:int(TOP * n)]
@@ -909,7 +909,7 @@ def cmd_cross(a):
     ax.set_ylim(-0.55, 0.55)
     ax.set_ylabel("standardized coordinate")
     ax.set_title("the best tenth of layouts per task")
-    ax.legend(loc="upper right", ncol=2, fontsize=10)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=4, fontsize=10, frameon=False)
     FR.save(fig, "20261030-cross_tasks.png")
     print({k: v for k, v in out.items() if k != "pareto"}, flush=True)
     return 0
