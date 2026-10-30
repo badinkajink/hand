@@ -221,6 +221,35 @@ def cpu_gpu(task, d):
             "held_gpu": float(np.mean([bool(g["held"]) for _, g in pairs])), "sc": sc}
 
 
+def port_check(task, d):
+    """The controller captured as a CUDA graph (hom_gpu.Batch since 2026-10-30, 08:50) against the queue's eager one on
+    the same worlds: the grid's validation set on seeds 3 to 5 run again into rows/grid2d_v4b/port_check. The share
+    with the same held outcome, the rank correlation of the per-grasp mean scores and the ms per rollout of each."""
+    import hom_landscape as L
+    import hom_rows
+    from scipy.stats import spearmanr
+
+    def load(q):
+        out = {}
+        for x in (q / f"val_{task}_d{d:g}.jsonl").read_text().splitlines():
+            r = hom_rows.rescale_metrics(json.loads(x)) if x.strip() else None
+            if r and r.get("status", "ok") == "ok":
+                out[(r["call"], r.get("grasp", 0), r["seed"])] = (bool(r.get("held")), L.rollout_score(task, r))
+        return out
+    a, b = load(GRID), load(GRID / "port_check")
+    k = sorted(set(a) & set(b))
+    g = {}
+    for x in k:
+        g.setdefault(x[:2], []).append((a[x][1], b[x][1]))
+    m = np.array([np.mean(v, 0) for v in g.values()])
+    ms = []
+    for q in (GRID, GRID / "port_check"):
+        tl = [json.loads(x) for x in (q / f"val_{task}_d{d:g}_timing.jsonl").read_text().splitlines() if x.strip()]
+        ms.append(1e3 * sum(t["run_s"] for t in tl) / sum(t["worlds"] for t in tl))
+    return {"n": len(k), "same": float(np.mean([a[x][0] == b[x][0] for x in k])),
+            "rho": float(spearmanr(m[:, 0], m[:, 1]).statistic), "ms": ms}
+
+
 # ------------------------------------------------------------------------------------------------ figures
 
 def plt_setup():
@@ -930,8 +959,8 @@ module docstring of <code>scripts/hom_tasks.py</code> and on the review page.</p
          "point nearest the sphere's centre; for the cylinder, alternating projections between the solid pad and the "
          "cylinder, 4 per period from the last period's point", "analytic pad instead of its mesh"],
         ["<code>gcf_from_cop</code>", "the same formulas on tensors", ""],
-        ["<code>ellipsoid_closest</code>, Newton on $\\varphi$", "<code>_ell_newton</code>: 16 steps of Newton on $s$ "
-         "with bisection when a step gains less than a quarter of the bracket", "under 1 &micro;m for points outside "
+        ["<code>ellipsoid_closest</code>, Newton on $\\varphi$", "<code>_ell_newton</code>: six steps of Newton on "
+         "$\\varphi$ from $t_0$, a step leaving the bracket being a bisection", "under 1 &micro;m for points outside "
          "the pad"],
         ["<code>eq1_rows</code> (<code>mj_jac</code>)", "Jacobians from the joint axes and anchors: $J_r$ = axis, "
          "$J_p$ = axis &times; ($p_1$ &minus; anchor)", ""],
@@ -983,6 +1012,17 @@ core took <<c1>> and <<c2>> s.</p>""",
                                        "dropped). Where both held, the rank correlation is <<a>> (twist, <<na>> grasps) "
                                        "and <<b>> (pin-push, <<nb>>).", a=f"{ct['rho_both']:.2f}", na=ct["n_both"],
                                        b=f"{cp['rho_both']:.2f}", nb=cp["n_both"]), width=820)
+    pt, pq = port_check("twist", 40), port_check("pinpush", 25)
+    s_gpu += fill(r"""<p>From the second period of the task phase, <code>Batch.control_period</code> replays the
+controller's period as one captured CUDA graph. The period has no host synchronisation: the fingers' roles enter as
+float masks, the 3 x 3 systems are solved in closed form, the pad's closest point takes six Newton steps, and the
+controller's state is updated in place. On the grid's validation worlds (seeds 3 to 5) it gave the same held outcome as
+the earlier eager controller on <<st>> % of <<nt>> twists and <<sq>> % of <<nq>> pin-pushes. Two seeds of one controller
+agree on <<ss1>> % and <<ss2>> %. A rollout took <<mt1>> ms instead of <<mt0>> in the twist and <<mq1>> ms instead of
+<<mq0>> in the pin-push.</p>""", st=f"{100 * pt['same']:.1f}", nt=f"{pt['n']:,}", sq=f"{100 * pq['same']:.1f}",
+                  nq=f"{pq['n']:,}", ss1=f"{100 * ct['seed_same'][0]:.0f} to {100 * ct['seed_same'][1]:.0f}",
+                  ss2=f"{100 * cp['seed_same'][0]:.0f} to {100 * cp['seed_same'][1]:.0f}", mt0=f"{pt['ms'][0]:.0f}",
+                  mt1=f"{pt['ms'][1]:.0f}", mq0=f"{pq['ms'][0]:.0f}", mq1=f"{pq['ms'][1]:.0f}")
 
     # ---------------------------------------------------------------- 14. map
     mp = [

@@ -77,197 +77,17 @@ def world_of(task, d_mm, call, grasp, seed=0):
 
 
 # The batched controller made free of host synchronisations so that one control period can be captured as a CUDA graph.
-# It lives here until the GPU queues of 2026-10-30 finish; then Batch.control in hom_gpu.py takes these changes.
-
-def solve3(Mm, rhs):
-    """Batched 3x3 solves by the adjugate (no host sync, capturable)."""
-    a, b, c = Mm[..., 0, 0], Mm[..., 0, 1], Mm[..., 0, 2]
-    d, e, f = Mm[..., 1, 0], Mm[..., 1, 1], Mm[..., 1, 2]
-    g, h, i = Mm[..., 2, 0], Mm[..., 2, 1], Mm[..., 2, 2]
-    A_ = e * i - f * h
-    B_ = -(d * i - f * g)
-    C_ = d * h - e * g
-    det = a * A_ + b * B_ + c * C_
-    import torch as th
-    inv = th.stack([th.stack([A_, -(b * i - c * h), b * f - c * e], -1),
-                    th.stack([B_, a * i - c * g, -(a * f - c * d)], -1),
-                    th.stack([C_, -(a * h - b * g), a * e - b * d], -1)], -2) / det[..., None, None]
-    return (inv @ rhs[..., None])[..., 0]
-
-
-class FastBatch(HG.Batch):
-    """hom_gpu.Batch with control_task: Batch.control in the task phase (approach off, forces on, no pusher) with float
-    masks for the fingers' roles, the tip indices on the GPU, closed-form 3 x 3 solves, Newton's method on the pad's
-    s^(-1/2) - 1 with NEWTON_IT steps (surfaces.ellipsoid_closest) and the state updated in place."""
-    NEWTON_IT = 6
-
-    def reset_controller(self):
-        super().reset_controller()
-        th = self.torch
-        ax, ay, az, azp = self.a_t.unbind(-1)
-        self.a_halves = (th.stack([ax, ay, az]), th.stack([ax, ay, azp]))
-        self.k_small = (int(th.argmin(self.a_halves[0])), int(th.argmin(self.a_halves[1])))
-        self.follow_f = self.follow.to(self.f64)
-        self.tip_t = th.tensor(self.tip, device=self.dev)
-        self.graph_c = None
-
-    def _ell_newton_phi(self, p, a, k):
-        th = self.torch
-        a2 = a * a
-        pp = th.where(p.abs() < 1e-12, th.full_like(p, 1e-12), p)
-        c = (a * pp) ** 2
-        lo = -a2[k] + a[k] * pp[..., k].abs()
-        hi = -a2[k] + (a * pp).norm(dim=-1)
-        t = lo.clone()
-        for _ in range(self.NEWTON_IT):
-            d = a2 + t[..., None]
-            s = (c / d ** 2).sum(-1)
-            phi = s.rsqrt() - 1.0
-            lo = th.where(phi < 0, t, lo)
-            hi = th.where(phi < 0, hi, t)
-            tn = t - phi / (s ** -1.5 * (c / d ** 3).sum(-1)).clamp_min(1e-300)
-            ok = (tn > lo) & (tn < hi)
-            t = th.where(ok, tn, 0.5 * (lo + hi))
-        x = a2 * pp / (a2 + t[..., None])
-        n = th.nn.functional.normalize(x / a2, dim=-1)
-        dist = (pp - x).norm(dim=-1)
-        return x, n, th.where(((pp / a) ** 2).sum(-1) < 1.0, -dist, dist)
-
-    def _ell_closest(self, x):
-        th = self.torch
-        p = x - self.c_t
-        qd, nd, sd_d = self._ell_newton_phi(p, self.a_halves[0], self.k_small[0])
-        qp, np_, sd_p = self._ell_newton_phi(p, self.a_halves[1], self.k_small[1])
-        ok_d, ok_p = qd[..., 2] <= 1e-12, qp[..., 2] >= -1e-12
-        use_p = ok_p & (~ok_d | (sd_p.abs() < sd_d.abs()))
-        q = th.where(use_p[..., None], qp, qd)
-        n = th.where(use_p[..., None], np_, nd)
-        return q + self.c_t, n, th.where(use_p, sd_p, sd_d)
-
-    def control_task(self, meas, mv, V_obj):
-        """Batch.control in the task phase (approach off, forces on, no pusher), with in-place state updates, float
-        masks instead of boolean indexing and closed-form 3x3 solves: no host synchronisation."""
-        th, f64, pr = self.torch, self.f64, self.prm
-        dt = pr.dt
-        W = self.W
-        theta = meas["q"]
-        xpos, xmat = mv["xpos"].to(f64), mv["xmat"].to(f64)
-        pb, Rb = xpos[:, self.tip_t], xmat[:, self.tip_t]
-        o, Ro = xpos[:, self.ob], xmat[:, self.ob]
-        anc = mv["xanchor"].to(f64)[:, self.jid_t]
-        axs = mv["xaxis"].to(f64)[:, self.jid_t]
-        Fm, valid, cop = meas["F"], meas["valid"], meas["cop"]
-        RbT = Rb.transpose(-1, -2)
-
-        def to_tip(p):
-            return th.einsum("wfij,wfj->wfi", RbT, p - pb)
-
-        def to_world(p):
-            return pb + th.einsum("wfij,wfj->wfi", Rb, p)
-
-        oo = o[:, None, :].expand(-1, 3, -1)
-        s1c, n1c, _ = self._tip_closest(to_tip(cop))
-        p1c = to_world(s1c)
-        n1w = th.einsum("wfij,wfj->wfi", Rb, n1c)
-        p0c, n0c = self._obj_closest(cop, o, Ro)
-        x1c = th.nn.functional.normalize(n1w - n0c, dim=-1)
-        distc = ((p0c - p1c) * x1c).sum(-1)
-        p1w, p0w, x1w, distw = self._witness(pb, Rb, o, Ro, to_tip, to_world)
-        use_cop = (valid & (Fm >= self.cfmin[:, None]))[..., None]
-        p1 = th.where(use_cop, p1c, p1w)
-        x1 = th.where(use_cop, x1c, x1w)
-        dist = th.where(use_cop[..., 0], distc, distw)
-        ay = axs[:, :, 2]
-        y = ay - (ay * x1).sum(-1, keepdim=True) * x1
-        y = th.nn.functional.normalize(y, dim=-1)
-        z = th.cross(x1, y, dim=-1)
-        R1T = th.stack([x1, y, z], -1).transpose(-1, -2)
-        V = V_obj[:, None, :] * self.follow_f[None, :, None]
-        w_o = th.einsum("wij,wfj->wfi", Ro, V[..., :3])
-        v_p1 = th.einsum("wij,wfj->wfi", Ro, V[..., 3:]) + th.cross(w_o, p1 - oo, dim=-1)
-        Jr = axs.transpose(-1, -2)
-        Jp = th.cross(axs, p1[:, :, None, :] - anc, dim=-1).transpose(-1, -2)
-        A = th.cat([R1T @ Jr, R1T @ Jp], -2)
-        b = -th.cat([th.einsum("wfij,wfj->wfi", R1T, w_o), th.einsum("wfij,wfj->wfi", R1T, v_p1)], -1)
-        v_ref = th.zeros_like(b)
-        force = self.force_on
-        touching = (Fm >= self.cfmin[:, None]) | (dist <= 0.0)
-        floop = (self.flg > 0)[:, None] & touching
-        v_ref[..., 3] = v_ref[..., 3] + th.where(floop & (force > 0), self.flg[:, None] * (force - Fm), th.zeros_like(Fm))
-        aw = (dist < pr.aw_dist) & (v_ref[..., 3] > 0) & ~floop
-        v_ref[..., 3] = th.where(aw, th.zeros_like(dist), v_ref[..., 3])
-        sw = th.sqrt(self.weights) * self.scale
-        As = sw[None, :, :, None] * A
-        rs = sw[None] * (v_ref - b)
-        I3 = th.eye(3, dtype=f64, device=self.dev)
-        Hm = As.transpose(-1, -2) @ As + (pr.w_damp + pr.w_healthy) * I3
-        g = th.einsum("wfij,wfi->wfj", As, rs) + pr.w_healthy * pr.k_healthy * (self.healthy - theta)
-        lb = th.maximum(th.full_like(theta, -pr.u_max), (self.lo_t - self.theta_ref) / dt)
-        ub = th.minimum(th.full_like(theta, pr.u_max), (self.hi_t - self.theta_ref) / dt)
-        lb, ub = th.minimum(lb, ub - 1e-12), th.maximum(ub, lb + 1e-12)
-        P = self.pats
-        fixed = (P > 0)[:, None, None, :]
-        bound = th.where(P[:, None, None, :] == 1, lb[None], ub[None])
-        Mm = th.where(fixed[..., None], I3.expand(27, 1, 1, 3, 3) * 1.0, Hm[None].expand(27, -1, -1, -1, -1))
-        cc = th.where(fixed, bound, g[None].expand(27, -1, -1, -1))
-        uu = solve3(Mm, cc)
-        feas = ((uu >= lb[None] - 1e-9) & (uu <= ub[None] + 1e-9)).all(-1)
-        obj = 0.5 * th.einsum("pwfi,wfij,pwfj->pwf", uu, Hm, uu) - (uu * g[None]).sum(-1)
-        obj = th.where(feas, obj, th.full_like(obj, float("inf")))
-        best = obj.argmin(0)
-        u_sol = th.gather(uu, 0, best[None, ..., None].expand(1, -1, -1, 3))[0]
-        u_sol = th.minimum(th.maximum(u_sol, lb), ub)
-        tr = self.theta_ref + dt * u_sol
-        tr = th.minimum(th.maximum(tr, theta - pr.lead), theta + pr.lead)
-        self.theta_ref.copy_(th.minimum(th.maximum(tr, self.lo_t), self.hi_t))
-        l1 = to_tip(p1)
-        q1, n1, _ = self._tip_closest(self.c1)
-        e = l1 - q1
-        e_t = e - (e * n1).sum(-1, keepdim=True) * n1
-        self.c1.copy_(self._tip_closest(q1 + pr.filter.k_min * dt * e_t)[0])
-        s_act, n_act_l, _ = self._tip_closest(self.c1)
-        p_act = to_world(s_act)
-        n_act = th.einsum("wfij,wfj->wfi", Rb, n_act_l)
-        Ja = th.cross(axs, p_act[:, :, None, :] - anc, dim=-1).transpose(-1, -2)
-        gap = (dist - (n_act * th.einsum("wfij,wfj->wfi", Ja, self.theta_ref - theta)).sum(-1)).clamp(0.0, pr.gap_max)
-        JJ = Ja @ Ja.transpose(-1, -2) + pr.dls ** 2 * I3
-        step = solve3(JJ, gap[..., None] * n_act)
-        imp = th.einsum("wfij,wfi->wfj", Ja, step) + th.einsum("wfij,wfi->wfj", Ja, force[..., None] * n_act) / self.kp_t
-        offset = th.where((force > 0)[..., None], imp, th.zeros_like(imp))
-        if pr.gravity_ff:
-            offset = offset + self.gravity(mv["xipos"].to(f64), anc, axs) / self.kp_t
-        return th.minimum(th.maximum(self.theta_ref + offset, self.lo_t), self.hi_t)
-
-    def capture_control(self, meas, mv, V_obj):
-        """Capture control_task as one CUDA graph on static inputs; returns (graph, static meas, static V, output)."""
-        th = self.torch
-        sm = {k: v.clone() for k, v in meas.items()}
-        sV = V_obj.clone()
-        state = (self.theta_ref.clone(), self.c1.clone())
-        s = th.cuda.Stream()
-        s.wait_stream(th.cuda.current_stream())
-        with th.cuda.stream(s):
-            for _ in range(3):
-                self.control_task(sm, mv, sV)
-        th.cuda.current_stream().wait_stream(s)
-        g = th.cuda.CUDAGraph()
-        with th.cuda.graph(g):
-            out = self.control_task(sm, mv, sV)
-        self.theta_ref.copy_(state[0])
-        self.c1.copy_(state[1])
-        return g, sm, sV, out
-
-
 class Runner:
     """A batch stepped one control period at a time, with the object's reference twist and the pad forces given per
     world, or the HOM schedule's (schedule=True). With graph=True the task phase's control period runs as one captured
-    CUDA graph of FastBatch.control_task; before it, and with graph=False, Batch.control runs eagerly."""
+    CUDA graph (hom_gpu.Batch.control_period); before it, and with graph=False, Batch.control runs eagerly."""
 
     def __init__(self, scene, task, world, n, graph=True):
         import torch
         self.th = torch
-        self.use_graph, self.graph = graph, None
-        self.B = B = FastBatch(scene, task, [world] * n, T.DT_C)
+        self.use_graph = graph
+        self.B = B = HG.Batch(scene, task, [world] * n, T.DT_C)
+        B.CAPTURE = graph
         B.reset_controller()
         B.sch = T.Schedule(task, world["setup"], T.PRM)
         self.vw = B.views(B.wd)
@@ -304,16 +124,7 @@ class Runner:
             w[:, 2] = w_z
         V = th.cat([th.einsum("wji,wj->wi", Rd, w), th.zeros_like(w)], -1)
         B.force_on.copy_(self.f0 * (fscale[:, None] if fscale is not None else 1.0))
-        if self.use_graph and not schedule and t >= T.T_LIFT + 0.4 - 1e-9:
-            if self.graph is None:
-                self.graph = B.capture_control(meas, mv, V)
-            g, sm, sV, q_cmd = self.graph
-            for k_, v in meas.items():
-                sm[k_].copy_(v)
-            sV.copy_(V)
-            g.replay()
-        else:
-            q_cmd = B.control(t, meas, mv, V, 0.0)
+        q_cmd = B.control(t, meas, mv, V, 0.0) if schedule else B.control_period(t, meas, mv, V, 0.0)
         self.vw["ctrl"][:, B.act_t] = (q_cmd - B.cal_q).reshape(W, 9).float()
         wp.capture_launch(B.graph)
         self.k += 1
@@ -508,7 +319,8 @@ def cmd_run(a):
 
 
 def cmd_timing(a):
-    """Wall time of one control period of the planner batch for each world count, from the state after the lift."""
+    """Wall time of one control period of the planner batch for each world count, from the state after the lift; with
+    --eager into timing_eager.json."""
     import torch
     scene, world = world_of(a.task, a.d, a.call, a.grasp)
     G = Runner(scene, a.task, world, 1)
@@ -537,8 +349,8 @@ def cmd_timing(a):
         parts_fn = [("physics", lambda: wp.capture_launch(B.graph)), ("mirror", lambda: B.mirror(meas)),
                     ("controller_eager", lambda: B.control(P.t, meas, mv, V, 0.0)),
                     ("measure", lambda: B.measure(P.k, P.true_state()))]
-        if P.graph is not None:
-            parts_fn.append(("controller_graph", P.graph[0].replay))
+        if B.graph_c is not None:
+            parts_fn.append(("controller_graph", B.graph_c[0].replay))
         for name, fn in parts_fn:
             fn()
             torch.cuda.synchronize()
@@ -553,8 +365,8 @@ def cmd_timing(a):
         del P
         torch.cuda.empty_cache()
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "timing.json").write_text(json.dumps({"gpu": torch.cuda.get_device_name(0), "rows": out,
-                                                 "when": time.strftime("%Y-%m-%d %H:%M")}, indent=1))
+    (OUT / ("timing.json" if a.graph else "timing_eager.json")).write_text(json.dumps(
+        {"gpu": torch.cuda.get_device_name(0), "rows": out, "when": time.strftime("%Y-%m-%d %H:%M")}, indent=1))
     return 0
 
 

@@ -414,8 +414,25 @@ def finger_commands(task, n_out):
             np.full(3, P["f_tripod"]))
 
 
+def solve3(Mm, rhs):
+    """Batched 3 x 3 linear solves by the adjugate: no host synchronisation, so a control period can be captured."""
+    import torch as th
+    a, b, c = Mm[..., 0, 0], Mm[..., 0, 1], Mm[..., 0, 2]
+    d, e, f = Mm[..., 1, 0], Mm[..., 1, 1], Mm[..., 1, 2]
+    g, h, i = Mm[..., 2, 0], Mm[..., 2, 1], Mm[..., 2, 2]
+    A_, B_, C_ = e * i - f * h, f * g - d * i, d * h - e * g
+    inv = th.stack([th.stack([A_, c * h - b * i, b * f - c * e], -1),
+                    th.stack([B_, a * i - c * g, c * d - a * f], -1),
+                    th.stack([C_, b * g - a * h, a * e - b * d], -1)], -2) / (a * A_ + b * B_ + c * C_)[..., None, None]
+    return (inv @ rhs[..., None])[..., 0]
+
+
 class Batch:
-    """nworld worlds of one task on one object at one control period, with the batched HOM controller."""
+    """nworld worlds of one task on one object at one control period, with the batched HOM controller. The controller
+    has no host synchronisation, so the task phase's period runs as one captured CUDA graph (run, capture_control)."""
+
+    NEWTON_IT = 6                          # Newton steps of the pad's closest point (surfaces.ellipsoid_closest)
+    CAPTURE = True                         # run the task phase's control period as a captured CUDA graph
 
     def __init__(self, scene: Scene, task, worlds, dt, gen_seed=0):
         import mujoco
@@ -580,27 +597,25 @@ class Batch:
         signed distance: the half-ellipsoid pad (cad_v2) or the rounded TPU block."""
         return self._ell_closest(x) if self.ell else self._rb_closest(x)
 
-    @staticmethod
-    def _ell_newton(p, a, it=16):
-        """surfaces.ellipsoid_closest for points p (..., 3) and semi-axes a (3,): the root t of f(t) = sum (a_i p_i /
-        (a_i^2 + t))^2 - 1 lies between t0 = -a_k^2 + a_k |p_k| (f >= 0) and t1 = -a_k^2 + |a p| (f <= 0), a_k the
-        smallest semi-axis; Newton's method from t0 rises monotonically to it (f convex and decreasing), and a step that
-        would leave the bracket or gains less than a quarter of it is a bisection."""
-        import torch as th
+    def _ell_newton(self, p, a, k):
+        """surfaces.ellipsoid_closest for points p (..., 3) and semi-axes a (3,), a_k the smallest: the root t of
+        s(t) = sum (a_i p_i / (a_i^2 + t))^2 = 1 lies between t0 = -a_k^2 + a_k |p_k| and t1 = -a_k^2 + |a p|; Newton's
+        method runs NEWTON_IT steps on s^(-1/2) - 1 from t0, a step leaving the bracket being a bisection."""
+        th = self.torch
         a2 = a * a
-        k = int(th.argmin(a))
         pp = th.where(p.abs() < 1e-12, th.full_like(p, 1e-12), p)
+        c = (a * pp) ** 2
         lo = -a2[k] + a[k] * pp[..., k].abs()
         hi = -a2[k] + (a * pp).norm(dim=-1)
         t = lo.clone()
-        for _ in range(it):
+        for _ in range(self.NEWTON_IT):
             d = a2 + t[..., None]
-            f = ((a * pp / d) ** 2).sum(-1) - 1.0
-            lo = th.where(f >= 0, t, lo)
-            hi = th.where(f >= 0, hi, t)
-            tn = t + f / (2.0 * (a2 * pp * pp / d ** 3).sum(-1)).clamp_min(1e-300)
-            ok = (tn > lo) & (tn < hi) & (tn - lo > 0.25 * (hi - lo))
-            t = th.where(ok, tn, 0.5 * (lo + hi))
+            s_ = (c / d ** 2).sum(-1)
+            phi = s_.rsqrt() - 1.0
+            lo = th.where(phi < 0, t, lo)
+            hi = th.where(phi < 0, hi, t)
+            tn = t - phi / (s_ ** -1.5 * (c / d ** 3).sum(-1)).clamp_min(1e-300)
+            t = th.where((tn > lo) & (tn < hi), tn, 0.5 * (lo + hi))
         x = a2 * pp / (a2 + t[..., None])
         n = th.nn.functional.normalize(x / a2, dim=-1)
         dist = (pp - x).norm(dim=-1)
@@ -611,9 +626,8 @@ class Batch:
         its own half kept (the nearer if both are, the distal half's if neither)."""
         th = self.torch
         p = x - self.c_t
-        ax, ay, az, azp = self.a_t.unbind(-1)
-        qd, nd, sd_d = self._ell_newton(p, th.stack([ax, ay, az]))
-        qp, np_, sd_p = self._ell_newton(p, th.stack([ax, ay, azp]))
+        qd, nd, sd_d = self._ell_newton(p, self.a_halves[0], self.k_small[0])
+        qp, np_, sd_p = self._ell_newton(p, self.a_halves[1], self.k_small[1])
         ok_d, ok_p = qd[..., 2] <= 1e-12, qp[..., 2] >= -1e-12
         use_p = ok_p & (~ok_d | (sd_p.abs() < sd_d.abs()))
         q = th.where(use_p[..., None], qp, qd)
@@ -756,7 +770,10 @@ class Batch:
         x = to_world(self.c_t.expand(self.W, -1, -1)) if self.ap_x is None else self.ap_x
         for _ in range(N_AP if self.ap_x is None else N_AP_WARM):
             x = ell_proj(cyl_proj(x))
-        self.ap_x = x                                       # the next period starts here
+        if self.ap_x is None:                               # the next period starts here
+            self.ap_x = x.clone()
+        else:
+            self.ap_x.copy_(x)
         y = cyl_proj(x)
         d = y - x
         dc = th.linalg.norm(d, dim=-1)
@@ -807,11 +824,19 @@ class Batch:
         self.scale = T_([1.0, 1.0, 1.0] + [1.0 / pr.ell] * 3)
         pats = np.array(np.meshgrid([0, 1, 2], [0, 1, 2], [0, 1, 2], indexing="ij")).reshape(3, -1).T
         self.pats = th.tensor(pats, device=dev)
+        self.tip_t = th.tensor(self.tip, device=dev)
+        if self.ell:
+            ax, ay, az, azp = self.a_t.unbind(-1)
+            self.a_halves = (th.stack([ax, ay, az]), th.stack([ax, ay, azp]))
+            self.k_small = tuple(int(h_.argmin()) for h_ in self.a_halves)
+        self.graph_c = None
         self.n_out = T_([[wd_["setup"]["n_out"][f] for f in FINGERS] for wd_ in self.worlds])
         cmds = [finger_commands(self.task, wd_["setup"]["n_out"]) for wd_ in self.worlds]
         self.weights = T_(cmds[0][0])                                          # (3, 6), the same in every world
         self.follow = T_(cmds[0][1], th.bool)
         self.pusher = T_(cmds[0][2], th.bool)
+        self.follow_f, self.pusher_f = self.follow.to(f64), self.pusher.to(f64)
+        self.s_t = th.zeros((), dtype=f64, device=dev)          # Eq. (3)'s speed, the captured period's input
         self.force_on = T_([c[3] for c in cmds])                               # (W, 3)
         V = [wd_["var"] for wd_ in self.worlds]
         self.cfmin = T_([v["cfmin"] for v in V])
@@ -907,7 +932,7 @@ class Batch:
         if self.theta_ref is None:
             self.theta_ref = theta.clone()
         xpos, xmat = mv["xpos"].to(f64), mv["xmat"].to(f64)
-        pb, Rb = xpos[:, self.tip], xmat[:, self.tip]
+        pb, Rb = xpos[:, self.tip_t], xmat[:, self.tip_t]
         o, Ro = xpos[:, self.ob], xmat[:, self.ob]
         anc = mv["xanchor"].to(f64)[:, self.jid_t]                                       # (W, 3f, 3j, 3)
         axs = mv["xaxis"].to(f64)[:, self.jid_t]
@@ -941,9 +966,8 @@ class Batch:
         z = th.cross(x1, y, dim=-1)
         R1T = th.stack([x1, y, z], -1).transpose(-1, -2)
         # the pinch frame {M}, fixed to the object when the pusher starts (hom.pinch_frame)
-        V = th.zeros((W, 3, 6), dtype=f64, device=self.dev)
-        V[:, self.follow] = V_obj[:, None, :].expand(-1, int(self.follow.sum()), -1)
-        if self.pinch_task and s_push != 0.0 and self.R_bm is None:
+        V = V_obj[:, None, :] * self.follow_f[None, :, None]
+        if self.pinch_task and self.R_bm is None and float(s_push) != 0.0:
             pa, pb_ = p0[:, 0], p0[:, 1]
             xm = th.nn.functional.normalize(pb_ - pa, dim=-1)
             up = th.zeros_like(xm)
@@ -956,7 +980,7 @@ class Batch:
         if self.pinch_task and self.R_bm is not None:
             xb = self.R_bm[:, :, 0]
             Vp = s_push * th.cat([xb, th.cross(self.p_bm, xb, dim=-1)], -1)               # Eq. (3)
-            V[:, self.pusher] = V[:, self.pusher] + Vp[:, None, :]
+            V = V + self.pusher_f[None, :, None] * Vp[:, None, :]
         # Eq. (1)
         w_o = th.einsum("wij,wfj->wfi", Ro, V[..., :3])
         v_p1 = th.einsum("wij,wfj->wfi", Ro, V[..., 3:]) + th.cross(w_o, p1 - oo, dim=-1)
@@ -989,7 +1013,7 @@ class Batch:
         bound = th.where(P[:, None, None, :] == 1, lb[None], ub[None])
         Mm = th.where(fixed[..., None], I3.expand(27, 1, 1, 3, 3) * 1.0, Hm[None].expand(27, -1, -1, -1, -1))
         cc = th.where(fixed, bound, g[None].expand(27, -1, -1, -1))
-        uu = th.linalg.solve(Mm, cc[..., None])[..., 0]
+        uu = solve3(Mm, cc)
         feas = ((uu >= lb[None] - 1e-9) & (uu <= ub[None] + 1e-9)).all(-1)
         obj = 0.5 * th.einsum("pwfi,wfij,pwfj->pwf", uu, Hm, uu) - (uu * g[None]).sum(-1)
         obj = th.where(feas, obj, th.full_like(obj, float("inf")))
@@ -998,15 +1022,15 @@ class Batch:
         u_sol = th.minimum(th.maximum(u_sol, lb), ub)
         tr = self.theta_ref + dt * u_sol
         tr = th.minimum(th.maximum(tr, theta - pr.lead), theta + pr.lead)
-        self.theta_ref = th.minimum(th.maximum(tr, self.lo_t), self.hi_t)
+        self.theta_ref.copy_(th.minimum(th.maximum(tr, self.lo_t), self.hi_t))
         # the filter at k_min: the contact point low-passed on the block's surface
         l1 = to_tip(p1)
         if self.c1 is None:
-            self.c1 = self._tip_closest(l1)[0]
+            self.c1 = self._tip_closest(l1)[0].clone()
         q1, n1, _ = self._tip_closest(self.c1)
         e = l1 - q1
         e_t = e - (e * n1).sum(-1, keepdim=True) * n1
-        self.c1 = self._tip_closest(q1 + pr.filter.k_min * dt * e_t)[0]
+        self.c1.copy_(self._tip_closest(q1 + pr.filter.k_min * dt * e_t)[0])
         s_act, n_act_l, _ = self._tip_closest(self.c1)
         p_act = to_world(s_act)
         n_act = th.einsum("wfij,wfj->wfi", Rb, n_act_l)
@@ -1014,12 +1038,48 @@ class Batch:
         Ja = th.cross(axs, p_act[:, :, None, :] - anc, dim=-1).transpose(-1, -2)        # (W, 3, 3xyz, 3j)
         gap = (dist - (n_act * th.einsum("wfij,wfj->wfi", Ja, self.theta_ref - theta)).sum(-1)).clamp(0.0, pr.gap_max)
         JJ = Ja @ Ja.transpose(-1, -2) + pr.dls ** 2 * I3
-        step = th.linalg.solve(JJ, (gap[..., None] * n_act)[..., None])[..., 0]
+        step = solve3(JJ, gap[..., None] * n_act)
         imp = th.einsum("wfij,wfi->wfj", Ja, step) + th.einsum("wfij,wfi->wfj", Ja, force[..., None] * n_act) / self.kp_t
         offset = th.where((force > 0)[..., None], imp, th.zeros_like(imp))
         if pr.gravity_ff:
             offset = offset + self.gravity(mv["xipos"].to(f64), anc, axs) / self.kp_t
         return th.minimum(th.maximum(self.theta_ref + offset, self.lo_t), self.hi_t)
+
+    def capture_control(self, t, meas, mv, V_obj):
+        """One control period of the task phase (approach over, forces on, {M} set) captured as a CUDA graph on static
+        inputs: the measurement, the object's reference twist and Eq. (3)'s speed (self.s_t). The controller's state is
+        left as it was. Returns (graph, measurement inputs, twist input, servo-target output)."""
+        th = self.torch
+        sm = {k: v.clone() for k, v in meas.items()}
+        sV = V_obj.clone()
+        keep = [x.clone() if x is not None else None for x in (self.theta_ref, self.c1, self.ap_x)]
+        st = th.cuda.Stream()
+        st.wait_stream(th.cuda.current_stream())
+        with th.cuda.stream(st):
+            for _ in range(3):
+                self.control(t, sm, mv, sV, self.s_t)
+        th.cuda.current_stream().wait_stream(st)
+        g = th.cuda.CUDAGraph()
+        with th.cuda.graph(g):
+            out = self.control(t, sm, mv, sV, self.s_t)
+        for x, k in zip((self.theta_ref, self.c1, self.ap_x), keep):
+            if x is not None:
+                x.copy_(k)
+        return g, sm, sV, out
+
+    def control_period(self, t, meas, mv, V, s_push):
+        """Batch.control, through the captured graph from the second period of the task phase on."""
+        if not self.CAPTURE or t < T.T_LIFT + 0.4 + self.prm.dt - 1e-9:
+            return self.control(t, meas, mv, V, s_push)
+        self.s_t.fill_(s_push)
+        if self.graph_c is None:
+            self.graph_c = self.capture_control(t, meas, mv, V)
+        g, sm, sV, out = self.graph_c
+        for k, v in meas.items():
+            sm[k].copy_(v)
+        sV.copy_(V)
+        g.replay()
+        return out
 
     # ---------------------------------------------------------------- the schedules (hom_tasks.Schedule)
     def schedule(self, t):
@@ -1106,7 +1166,7 @@ class Batch:
             wrefs.append(w_ref)
             times.append(t)
             thref.append(th_cmd)
-            q_cmd = self.control(t, meas, mv, V, s_push)
+            q_cmd = self.control_period(t, meas, mv, V, s_push)
             vw["ctrl"][:, self.act_t] = (q_cmd - self.cal_q).reshape(W, 9).float()
             wp.capture_launch(self.graph)
         wp.synchronize()

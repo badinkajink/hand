@@ -800,6 +800,9 @@ def sec_mpc():
     run_e = json.loads((mp / "twist_call280_g0_k64_eager.json").read_text())
     tim = json.loads((mp / "timing.json").read_text())
     tim_e = json.loads((mp / "timing_eager.json").read_text())
+    tim_o = json.loads((mp / "timing_eager_preport.json").read_text())
+    sh_t = json.loads((mp / "shared_gpu" / "timing_eager_0250.json").read_text())
+    sh_r = json.loads((mp / "shared_gpu" / "twist_call280_g0_k64_eager.json").read_text())
     R = run["runs"]
     ramp, mpc = R["hom_ramp"], R["mpc_k64"]
     tr = mpc["trace"]
@@ -807,6 +810,8 @@ def sec_mpc():
     pw = float(np.median(mpc["plan_wall_s"]))
     pw_e = float(np.median(run_e["runs"]["mpc_k64"]["plan_wall_s"]))
     gr = {r["k"]: r for r in tim["rows"]}
+    ge = {r["k"]: r for r in tim_e["rows"]}
+    go = {r["k"]: r for r in tim_o["rows"]}
     fd = json.loads((mp / "twist_call280_g0_fd.json").read_text())["runs"]["mpc_fd"]
     fd_lost = next(x["t"] for x in fd["trace"] if min(x["F"]) <= 0.05) - T_TASK0
     fd_dw = max(abs(p_["knots"][0][0] - 30.0) for p_ in fd["plans"])
@@ -826,45 +831,45 @@ the previous plan, shifted by one knot, is kept as a sample. Every sample runs i
 batched HOM controller, which turns the commands into servo targets every 10 ms. The plant is a one-world batch of the
 same scene, and before each replanning its full state is copied into every sample's world: MuJoCo-Warp data, contact
 forces and the controller's own state.</p>
-<p>On grid layout 280 with the v4b fingertip (Figure <<f>>), a constant 30 deg/s ramp from the task's start turned the
-40 mm sphere <<r_end>> deg in 3 s and lost a pad at <<r_lost>> deg. The MPC with 64 samples commanded up to 90 deg/s
-while it lowered the force scale to 0.6, reached <<m1>> deg in 1 s, and then held the sphere at <<m_end>> deg with all
+<p>Figure <<f>> shows grid layout 280 with the v4b fingertip. A constant 30 deg/s ramp from the task's start turned
+the 40 mm sphere <<r_end>> deg in 3 s and lost a pad at <<r_lost>> deg. The MPC with 64 samples commanded up to 90 deg/s
+and lowered the force scale to 0.6. It reached <<m1>> deg in 1 s and then held the sphere at <<m_end>> deg with all
 three pads on. On this grasp about 52 deg is the most the sphere turns on three pads, and the MPC reached it in half the
-time. With the batched controller of the size sweep, planning cost <<pwe>> s per 0.1 s of control, <<rte>> times real
-time, on a GPU shared with that sweep.</p>
-<p>The controller set most of that cost (Table <<tb>>). One period of the sweep's batched controller took about 40 ms at
-any number of worlds, in thousands of small kernel launches and ten host synchronisations a period. A version without
-host synchronisations, captured as one CUDA graph, takes <<g64>> ms at 64 worlds and <<g512>> ms at 512, and gives the
-same plan and the same run. It differs from the sweep's controller in four ways: the fingers' roles enter as float masks
-instead of boolean indices, the 3 x 3 systems are solved in closed form, the pad's closest point takes six steps of
-Newton's method on its reformulated equation, and the controller's state is updated in place. With it a replanning
-costs <<pw>> s, <<rt>> times real time. The physics is then the larger part: <<p64>> ms for the ten steps of a period at
-64 worlds.</p>
+time.</p>
+<p>A replanning cost <<pw>> s per 0.1 s of control with the GPU to itself, <<rt>> times real time (Table <<tb>>). At 64
+worlds a control period takes <<gp64>> ms: <<p64>> ms for the ten physics steps and <<g64>> ms for the controller. From
+the second period of the task phase the controller runs as one captured CUDA graph
+(<code>hom_gpu.Batch.control_period</code>). Four changes made it capturable. The fingers' roles enter as float masks
+instead of boolean indices, and the 3 x 3 systems are solved in closed form. The pad's closest point takes six steps of
+Newton's method on its reformulated equation, and the controller's state is updated in place. The same code run
+eagerly takes <<e64>> ms a period and plans at <<rte>> times real time. Before the changes a period took <<o64>> ms. That
+controller synchronised with the host ten times a period, so it waited for every other job on the GPU. While the size
+sweep shared the GPU, its period took <<sh32>> ms at 32 worlds and it planned at <<rsh>> times real time.</p>
 <p>A gradient planner on the same commands did worse. Each step took central differences of the cost over the six plan
 numbers (12 perturbed worlds and the nominal one in one batch) and moved the plan against the gradient. It turned the
 sphere <<fd_end>> deg and lost a pad <<fd_lost>> s into the task, as the ramp did, at <<fd_rt>> times real time. Its
-planned rate stayed within <<fd_dw>> deg/s of 30 deg/s. The cost counts the periods with a pad lost, a step function of
-the plan: perturbations of 5 deg/s left it unchanged until the planned turn was already past the limit.</p>""",
+planned rate stayed within <<fd_dw>> deg/s of 30 deg/s. The cost is the number of periods with a pad lost, a step function of
+the plan. Perturbations of 5 deg/s left it unchanged until the planned turn was already past the limit.</p>""",
              j0=f"{min(js):,.0f}", j1=f"{max(js):,.0f}", rt0=f"{6.5 / max(js):.3f}", rt1=f"{7.8 / min(js):.3f}",
              f=FIG[0] + 1, r_end=f"{ramp['yaw_end_deg']:.0f}", r_lost=f"{ramp['yaw_three_pads_max_deg']:.0f}",
              m1=f"{t1:.0f}", m_end=f"{mpc['yaw_end_deg']:.0f}", pw=f"{pw:.2f}", rt=f"{0.1 / pw:.3f}",
-             pwe=f"{pw_e:.1f}", rte=f"{0.1 / pw_e:.3f}", tb=TAB[0] + 1,
-             g64=f"{gr[64]['ms_parts']['controller_graph']:.1f}", g512=f"{gr[512]['ms_parts']['controller_graph']:.1f}",
-             p64=f"{gr[64]['ms_parts']['physics']:.0f}", fd_end=f"{fd['yaw_end_deg']:.0f}",
+             rte=f"{0.1 / pw_e:.3f}", tb=TAB[0] + 1, gp64=f"{gr[64]['ms_per_period']:.1f}",
+             g64=f"{gr[64]['ms_parts']['controller_graph']:.1f}", p64=f"{gr[64]['ms_parts']['physics']:.1f}",
+             e64=f"{ge[64]['ms_per_period']:.1f}", o64=f"{go[64]['ms_per_period']:.1f}",
+             sh32=f"{sh_t['rows'][0]['ms_per_period']:.0f}",
+             rsh=f"{0.1 / float(np.median(sh_r['runs']['mpc_k64']['plan_wall_s'])):.3f}", fd_end=f"{fd['yaw_end_deg']:.0f}",
              fd_lost=f"{fd_lost:.2f}", fd_rt=f"{0.1 / float(np.median(fd['plan_wall_s'])):.3f}", fd_dw=f"{fd_dw:.1f}")
     t += img(ROOT / "docs/experiments/20261029-hom_control_review/media/20261030-mpc_twist_call280.png",
              "Twist of the 40 mm sphere on grid layout 280, v4b fingertip: a constant 30 deg/s ramp against the MPC over "
              "HOM's commands (64 samples). Top: the sphere's twist. Middle: the MPC's commanded rate and force scale. "
              "Bottom: pad forces.")
-    ge = {r["k"]: r for r in tim_e["rows"]}
-    rows = [[str(k), f"{ge[k]['ms_per_period']:.1f}" if k in ge else "", f"{ge[k]['ms_parts']['controller']:.1f}"
-             if k in ge else "", f"{r['ms_per_period']:.1f}", f"{r['ms_parts']['controller_graph']:.1f}",
-             f"{r['ms_parts']['physics']:.1f}"] for k, r in sorted(gr.items())]
-    t += table(["Worlds", "Period, sweep's controller (ms)", "Sweep's controller (ms)", "Period, graph (ms)",
+    rows = [[str(k), f"{go[k]['ms_per_period']:.1f}", f"{ge[k]['ms_per_period']:.1f}", f"{r['ms_per_period']:.1f}",
+             f"{r['ms_parts']['controller_graph']:.1f}", f"{r['ms_parts']['physics']:.1f}"] for k, r in sorted(gr.items())]
+    t += table(["Worlds", "Period, before the changes (ms)", "Period, eager (ms)", "Period, graph (ms)",
                 "Controller as a graph (ms)", "Physics, 10 steps (ms)"],
-               rows, f"Wall time of one control period on the {tim['gpu'].replace('NVIDIA GeForce ', '')}, with the GPU "
-               "shared with the size sweep: the batched controller of the sweep, and the version captured as a CUDA graph.",
-               num_from=0)
+               rows, f"Wall time of one control period on the {tim['gpu'].replace('NVIDIA GeForce ', '')} with no other "
+               "job: the batched controller before the changes of this section, the changed one run eagerly, and the "
+               "changed one captured as a CUDA graph.", num_from=0)
     return t
 
 
@@ -884,9 +889,8 @@ study's screwdriver load step, where the brake's angle depends on the pinch forc
 closing speed, 30 seeds per point, with calibration errors (<code>scripts/hom_gpu.py run --layouts design</code>). The
 loop is ready for the bench if one setting holds the twist in 95 % of runs while keeping the pin-push's force error
 under 0.5 N.</li>
-<li>Move the graph-capturable controller from <code>hom_mpc_gpu.FastBatch</code> into <code>hom_gpu.Batch</code>, so
-the sweeps gain from it too. Give the MPC's sample worlds a 2 ms physics step (five per period) and replan every 0.2 s
-with one iteration. The MPC over HOM's commands reaches real time if a replanning of 64 samples over 0.3 s then takes
+<li>Give the MPC's sample worlds a 2 ms physics step (five per period) and replan every 0.2 s with one
+iteration. The MPC over HOM's commands reaches real time if a replanning of 64 samples over 0.3 s then takes
 under 0.2 s.</li>
 <li>Give the gradient planner a cost it can follow: a penalty that rises smoothly as a pad's force falls below 0.5 N,
 in place of the count of periods with a pad lost. It is worth keeping if it then stops at the three-pad limit of layout
