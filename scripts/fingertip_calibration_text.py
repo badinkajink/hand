@@ -1105,12 +1105,15 @@ def sections(N, F, P, link, L):
 
     body = (
         "<p>The HEX-E is a weak reference. Its $F_z$ channel reads 0.78–0.87 of its other axes' gain in two gravity fits. "
-        "Its link dropped out in three of the first night's runs, once on 2026-10-26 and once in R29 on 10-27. On 10-28 it "
-        "stopped twice, at 02:54 and at 14:32, and read again each time after its connector was reseated. On 10-30 it "
-        "stopped at 00:08, after 46 of v3 ID 3's 101 tall stage-2 actions, and read again by itself at 01:37. The losses "
-        "of 14:32 and 00:08 each came at the end of a travel that took wrist 1 from below 0° to above it. In both travels "
-        "wrist 2 rose by more than 10°. R29's loss came in the next travel after one of them. That travel swings wrist 1 "
-        "back from +16.3 to −37.7°. Tall stage 2 has 12 such travels, six in the grid and six in the slides ("
+        "Its link was lost nine times in the robot's logs since 10-25, which cover 62.1 h in 23 sessions ("
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/20261030-hexe_losses/") + "). A loss is a gap of more "
+        "than 1 s in its samples while the arm runs. On 10-30 the link dropped at 00:07, after 46 of v3 ID 3's 101 tall "
+        "stage-2 actions, and read again by itself at 01:37. It dropped again at 11:02, on the first travel of the "
+        "resume, and the owner reseated the cable with more slack. Each loss came as the arm arrived at a pose, and at "
+        "other times the link stayed alive at the same poses. Within 3° of the 11:02 pose the arm had stood for 376 s "
+        "over 11 earlier visits. In an upward travel, wrist 1 passes from below 0° to above it while wrist 2 rises by "
+        "more than 10°. A loss followed 4 of 138 upward travels within 10 s, and 4 of 1,830 other travels. In its old "
+        "order tall stage 2 has 12 upward travels, six in the grid and six in the slides ("
         + P.code("docs/experiments/20261022-ur5_tip_calibration/20261030-wrist_order/") + "). The arm, the "
         "mount and the indenter's stand are taken as rigid; the rod presses bound their compliance at 0.10 mm/N. The "
         "registration fixes the place along the finger less well than across it. The magnets of tips 0 to 3 have "
@@ -1126,12 +1129,15 @@ def sections(N, F, P, link, L):
         "ATI Mini45 as the reference: calibrate it on the UR5 with the 100 g weight in its printed holder (39 stations, "
         "about 27 min; " + link(L["ati"], "ATI plan") + "), then repeat a grid of presses. A board force outside "
         "0.78–1.05 of the ATI's means the HEX-E's gain biased the comparisons.",
-        "Wrist order and the HEX-E's link: run the next tip's tall stage 2 in the new order of "
-        + P.code("scripts/ur5_tip_calibration_next_tip_suite.py") + ". The order comes from an exact search over the "
-        "orders that move each action at most four places. None of Section 14's 12 travels is left. No travel takes wrist 1 across "
-        "0° with a swing over 40°, against 23 in the old order. The wrists travel 2,701° in all, against 5,144°. The path "
-        "check flags no action in the new order and gives the same least margins (mount 3.73 mm, finger 1.07 mm). A loss "
-        "of the link in the new order rules these travels out as its cause.",
+        "Wrist order and the HEX-E's link: run each tall stage 2 in the new order of "
+        + P.code("scripts/ur5_tip_calibration_next_tip_suite.py") + ", and count the losses with "
+        + P.code("scripts/ur5_hexe_link_losses.py") + ". The order comes from an exact search over the orders that move "
+        "each action at most four places. It has no upward travel (Section 14). No travel in it takes wrist 1 across 0° "
+        "with a swing over 40°, against 23 in the old order. The wrists travel 2,701° in all, against 5,144°. The path "
+        "check flags no action and gives the same least margins (mount 3.73 mm, finger 1.07 mm). v3 ID 3's last 55 tall "
+        "actions resumed in this order at 11:15 on 10-30. Other travels were followed by a loss 4 times in 1,830. Losses "
+        "more often than that in the new order would put their cause outside the upward travels. The cable was given "
+        "more slack at 11:09, so a lower rate tests both changes together.",
         "Torsion on the sensor's axis: clamp the finger with the face's normal along the force sensor's axis and twist at "
         "5 N, so the torsion is read without the push's moment. A correlation above 0.8 between the GP's torsion and "
         "the sensor's would make torsion a calibrated output.",
