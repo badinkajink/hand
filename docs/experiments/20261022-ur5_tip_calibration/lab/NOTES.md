@@ -1926,6 +1926,27 @@ The clearances in this section and the one before it are on mount v3. The next s
   from home (n3b4r) had flagged it as the night order's first such travel. The lab asked the owner to reseat the
   connector and look at the cable's run past the wrist. `hexe_poll.sh` reads every 5 min. After a reseat the lab
   proposes the check again, with the corrected comparison, then block 4 in wrist2's order, which has no such swing.
+- At 11:09 the owner reseated the connector and gave the cable more slack: "you have the go ahead to run more". The
+  DAQ had restarted and lost its tare (raw Fz 653 N, as on 10-22). The program tares at its start and before each
+  action, and `move_guarded.py` tares at rest, so this does not matter. With the arm still at the 11:03 pose, a 10 s
+  read gave 1001 samples at 11:09:58.
+- `resume_id3.sh` started at 11:10:25 with wrist2's plan (B4SIM n3b4w2). The 20 s read was clean, the gate passed, and
+  the arm went home from the 11:03 pose (0.06 mm). The check, `lab/20261030-111133-chkv3id3` (11:11:33 to
+  11:14:04), passed on the corrected comparison: +0.013, +0.078 and -0.030 mm from block 1 at the same nodes.
+  chk-face-03's node keeps the largest scatter: -0.068, -0.117 and +0.010 mm over block 1 and the two checks.
+- **Block 4 finished at 13:19:51: 101 of 101 ok.** The last 55 ran in wrist2's order from 11:15:24
+  (`logs/20261030-111524-tipcal-tallv3id3.log`), with no abort and no early contact. The HEX-E gave 745,632 samples
+  with no time-out, and its one gap over 0.5 s came at the start. tall-edge-626 passed at 11:18:58 and
+  tall-slide-edge-626-1N at 12:42:24. These were the arm's first two arrivals at the pose of the five tall losses
+  since the reseat and slack.
+- The workstation's count over every log since 10-25 (QUEUE R31, 11:2x) found 4 losses within 10 s after 138 travels
+  where wrist 1 crosses zero while wrist 2 rises, and 4 after 1,830 other travels. All five tall losses came on
+  arriving at one pose: base 78.5 to 80.5 deg, wrist 1 +18 to +26, wrist 2 90 to 96 and wrist 3 18 to 32. Standing
+  at that pose, the link held: from 01:37 to 10:55, and over 11 other visits.
+- The chain checked the home path from block 4's last pose, and the arm went home (0.04 mm, 0.01 deg from the
+  target). Block 6 started at 13:20:39 (`logs/20261030-132039-tipcal-rodv3id3.log`, `--resume` on 230820, rod seat 3).
+- The owner told the workstation at 12:5x that no calibration runs tonight. The next runs use the inverted rig, on
+  the low seat strip (ac021c3dd). Nothing follows block 6 in the queue.
 
 ### The night's plans, after the finer path checks (14:4x)
 
