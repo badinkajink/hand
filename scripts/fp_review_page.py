@@ -1316,6 +1316,7 @@ def size_numbers():
             top = np.argsort(-sc["mean"])[:int(L.TOP * n)]
             ls_ = land["tasks"][task]["sizes"].get(f"{size:g}", {})
             per[size] = {"reached": len(R), "median": float(np.median(sc["mean"][sorted(R)])),
+                         "held_all": int(sc["held_all"][sorted(R)].sum()),
                          "top_mm": np.median(d[top], 0), "nbh": ls_.get("n_neighbourhoods"),
                          "nbh_null": ls_.get("n_neighbourhoods_null"), "nbh_size": ls_.get("neighbourhood_size_median")}
         if per:
@@ -1332,7 +1333,7 @@ def sec_sizes(N):
     for task, v in Z.items():
         szs = list(v["sizes"])
         adj = [v["pairs"][f"{a:g}-{b:g}"] for a, b in zip(szs[:-1], szs[1:])]
-        rows.append([names[task], ", ".join(f"{s:g}" for s in szs), f"{min(adj):.2f} to {max(adj):.2f}",
+        rows.append([names[task].capitalize(), ", ".join(f"{s:g}" for s in szs), f"{min(adj):.2f} to {max(adj):.2f}",
                      f"{v['pairs'][f'{szs[0]:g}-{szs[-1]:g}']:.2f}", f"{100 * v['variance']['layout']:.0f}",
                      f"{100 * v['variance']['size']:.0f}", f"{100 * v['variance']['interaction']:.0f}",
                      f"{100 * v['variance']['interaction_noise']:.0f}"])
@@ -1341,9 +1342,9 @@ def sec_sizes(N):
     groups = {}
     for k in Z:
         groups.setdefault(obj[k], []).append(f"the {names[k]}")
-    ran = "; ".join(" and ".join(v) + f" on {o}" for o, v in groups.items())
-    t = fill(r"""<p>Every Sobol layout ran each task on four object sizes with the v4b fingertip: <<ran>> (foundational
-poses, three seeds, <code>rows/sizes_v4b</code>). Table <<tb>> splits the variance of the layouts' scores over the sizes
+    ran = " ".join(" and ".join(v).capitalize() + f" ran on {o}." for o, v in groups.items())
+    t = fill(r"""<p>Every Sobol layout ran each task on four object sizes with the v4b fingertip, with foundational poses
+and three seeds (<code>rows/sizes_v4b</code>). <<ran>> Table <<tb>> splits the variance of the layouts' scores over the sizes
 into a part from the layout, a part from the size and their interaction. The interaction is the part of a layout's score
 that depends on the object. Seed noise alone would give the interaction in the last column.</p>""", ran=ran,
              tb=TAB[0] + 1)
@@ -1362,7 +1363,7 @@ that depends on the object. Seed noise alone would give the interaction in the l
         t += fill(r"""<p>The object's size changes which layouts are best, and it does so by more than seed noise in
 every task listed. In the twist the interaction is <<ti>> % of the variance against <<tn>> % from seed noise. The
 ranking of layouts on the <<s0>> mm sphere keeps only Spearman <<se>> on the <<s1>> mm sphere. The best tenth of twist
-layouts spreads its thumb and index mounts as the sphere grows; their median distance along palm $x$ is
+layouts spreads its thumb and index mounts as the sphere grows. Their median distance along palm $x$ is
 <<x0>> mm at <<s0>> mm and <<x1>> mm at <<s1>> mm (Figure <<f>>). Of the best tenth of twist layouts on the
 <<s0>> mm sphere, <<k0>> % are in the best tenth on the <<s1>> mm sphere; a random tenth would give 10 %. Between
 neighbouring sizes <<kn0>> to <<kn1>> % are.<<roll>></p>""",
@@ -1380,17 +1381,23 @@ with the sphere's size, from a median of <<r0>> over the reached layouts at <<s0
                               r0=f"{Z['roll']['sizes'][min(Z['roll']['sizes'])]['median']:.2f}",
                               r1=f"{Z['roll']['sizes'][max(Z['roll']['sizes'])]['median']:.2f}",
                               s0=f"{min(Z['roll']['sizes']):g}", s1=f"{max(Z['roll']['sizes']):g}") if "roll" in Z else ""))
-    cyl = [k for k in ("pinpush", "press") if k in Z]
-    if cyl:
-        parts = []
-        for k in cyl:
-            sz_ = sorted(Z[k]["sizes"])
-            parts.append(fill(r"""<<i>> % of the <<n>>'s variance against <<ns>> % from seed noise, with Spearman <<r>> between
-the <<a>> and <<b>> mm cylinders and <<kp>> % of the best tenth kept""", n=names[k], i=f"{100 * Z[k]['variance']['interaction']:.0f}",
-                              ns=f"{100 * Z[k]['variance']['interaction_noise']:.0f}",
-                              r=f"{Z[k]['pairs'][f'{sz_[0]:g}-{sz_[-1]:g}']:.2f}", a=f"{sz_[0]:g}", b=f"{sz_[-1]:g}",
-                              kp=f"{100 * Z[k]['kept'][f'{sz_[0]:g}-{sz_[-1]:g}']:.0f}"))
-        t += "<p>On the cylinders the interaction is " + "; and ".join(parts) + ".</p>"
+    if "pinpush" in Z and "press" in Z:
+        P_, R_ = Z["pinpush"], Z["press"]
+        a_, b_ = min(P_["sizes"]), max(P_["sizes"])
+        key = f"{a_:g}-{b_:g}"
+        t += fill(r"""<p>On the cylinders the interaction is <<pi>> % of the pin-push's variance and <<ri>> % of the press's,
+against <<pn>> and <<rn>> % from seed noise. Between the <<a>> and <<b>> mm cylinders the layouts' scores correlate at
+Spearman <<ps>> in the pin-push and <<rs>> in the press. Of the best tenth on the <<a>> mm cylinder, <<pk>> and <<rk>> %
+are in the best tenth on the <<b>> mm cylinder. Small cylinders are hard to keep in the hand. With the foundational
+pose, <<h0>> of the <<n0>> layouts that reach the pin-push pose keep the <<a>> mm cylinder in all three seeds, against
+<<h1>> of <<n1>> with the <<b>> mm cylinder.</p>""",
+                  pi=f"{100 * P_['variance']['interaction']:.0f}", ri=f"{100 * R_['variance']['interaction']:.0f}",
+                  pn=f"{100 * P_['variance']['interaction_noise']:.0f}",
+                  rn=f"{100 * R_['variance']['interaction_noise']:.0f}", a=f"{a_:g}", b=f"{b_:g}",
+                  ps=f"{P_['pairs'][key]:.2f}", rs=f"{R_['pairs'][key]:.2f}", pk=f"{100 * P_['kept'][key]:.0f}",
+                  rk=f"{100 * R_['kept'][key]:.0f}", h0=f"{P_['sizes'][a_]['held_all']:,}",
+                  n0=f"{P_['sizes'][a_]['reached']:,}", h1=f"{P_['sizes'][b_]['held_all']:,}",
+                  n1=f"{P_['sizes'][b_]['reached']:,}")
     nb = [(v["nbh"], v["nbh_null"], v["nbh_size"]) for T_ in Z.values() for v in T_["sizes"].values()
           if v.get("nbh_null") is not None]
     if nb:
@@ -1426,9 +1433,8 @@ object grows. The twist's moves from <<t0>> to <<t1>> mm between the <<ts0>> and
 <<k0>> to <<k1>> mm of $x_{sep}$ per millimetre of diameter. The thumb and the index-middle pair touch opposite sides
 of the object, so their contacts move apart by the change in diameter.</p>
 <p>The roll's map is flat. On it <<rf0>> to <<rf1>> % of the layouts score within 0.1 of the map's maximum, against
-<<tf0>> to <<tf1>> % in the twist, so its peak has no clear position. Small cylinders are hard to keep: on the
-<<cs0>> mm cylinder the median layout keeps none of its grasps in all three seeds, and on the <<cs1>> mm cylinder it
-keeps all of them.</p>""",
+<<tf0>> to <<tf1>> % in the twist, so its peak has no clear position. On the grid's <<cs0>> mm cylinder the median layout keeps none of its 16
+grasps in all three seeds, and on the <<cs1>> mm cylinder it keeps all of them.</p>""",
                   tb=TAB[0] + 1, f0=f0, f1=f0 + len(gp) - 1, cyl=cyl_, t0=f"{tw_[0]:.0f}", t1=f"{tw_[1]:.0f}",
                   ts0=f"{tw_[3]:g}", ts1=f"{tw_[4]:g}", cs0=f"{pp_[3]:g}", cs1=f"{pp_[4]:g}", k0=f"{min(k_):.1f}", k1=f"{max(k_):.1f}",
                   rf0=f"{100 * min(fl_r):.0f}", rf1=f"{100 * max(fl_r):.0f}", tf0=f"{100 * min(fl_t):.0f}",
@@ -1890,19 +1896,23 @@ the grasp, and for the twist that decides the outcome.</p>""",
     lv = [g["lv_best"] for g in G.values()]
     fpb = [g["best_is_fp"] for g in G.values()]
     cg = json.loads((ROWS / "grid2d_v4b" / "cross_grid.json").read_text())
-    Zs = N["sizes"]
-    kept = (Zs["twist"]["kept"].get("30-63") if "twist" in Zs else None)
     pe = N["grad"]["pk"]["peak"]["radii"]["4"]
+    GS = N["grid_sizes"]
+    sl = []
+    for task in ("twist", "pinpush", "press"):
+        szs = sorted(sz for t_, sz in GS if t_ == task)
+        if len(szs) >= 2:
+            sl.append((GS[(task, szs[-1])]["peak"][0] - GS[(task, szs[0])]["peak"][0]) / (szs[-1] - szs[0]))
     lede = fill("""The foundational-pose paper [1] keeps a hand design if it reaches a few poses that tools are wielded
 from. On the SR2 hand with the calibrated v4b fingertip, a GPU version of the HOM controller scored 8,192 layouts on four
 tasks and four object sizes. With the best of 16 grasps per layout and task, the median twist score of a 625-layout grid
-rose from <<a0>> to <<a1>>, and <<sb>> % of its layouts scored above 0.5 on all four tasks, against none with the
-foundational pose. The best layouts change with the object's size and sit on peaks a few
-millimetres wide: moving the mounts 4 mm cost the best twist layouts a median <<c4>>.<<kk>>""",
+rose from <<a0>> to <<a1>>. On <<sb>> % of the grid's layouts all four tasks then scored above 0.5, against none with
+the foundational pose. The best layouts move with the object.<<sh>> They sit on peaks a few millimetres wide: moving the
+mounts 4 mm cost the best twist layouts a median <<c4>>.""",
                 a0=f"{G['twist']['fp_median']:.2f}", a1=f"{G['twist']['best_median']:.2f}",
                 sb=f"{100 * cg['share_all_above_0.5_best']:.0f}", c4=f"{-pe['change_median']:.2f}",
-                kk=(f" The best tenth of twist layouts on a 30 mm sphere overlaps the best tenth on a 63 mm sphere by "
-                    f"{100 * kept:.0f} %, below a random tenth's 10 %." if kept is not None and kept < 0.1 else ""))
+                sh=(f" In three tasks the best distance from the thumb's mount to the other two grows by {min(sl):.1f} to "
+                    f"{max(sl):.1f} mm per millimetre of diameter." if len(sl) == 3 else ""))
     summary = fill("""HOM-controller scores of 8,192 SR2 layouts on four tasks and object sizes, v4b fingertip: synthesizing
 the grasp per layout and task raised the grid's median twist score from <<a0>> to <<a1>> and made <<sb>> % of layouts
 score above 0.5 on all four tasks (none with the foundational pose); the best layouts move with object size and sit on
