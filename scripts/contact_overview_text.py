@@ -114,6 +114,9 @@ CHAIN_NUM = "docs/overviews/media/contact_chain_numbers.json"
 SHEAR_PAGE = ("docs/experiments/20261026-shear_friction_impratio/"
               "20261026-shear_friction_and_impratio_of_the_printed_fingertip.html")
 SHEAR_NUM = "docs/experiments/20261026-shear_friction_impratio/data/20261026-numbers.json"
+V3_PAGE = "docs/experiments/20261030-v3_tip_contact_model/20261030-v3_fingertip_contact_models.html"
+V3_JOINT = ("v3id1_low", "v3id2_low", "v3id1_rod", "v3id2_rod")
+_MU = {1.0: 0.37, 2.5: 0.44, 5.0: 0.44}                         # the shear page's friction at 1 N and from 2 N
 
 
 def _shear():
@@ -156,24 +159,37 @@ def _agreement(ctx):
     return [x for x in r if x > 0], w
 
 
+def _v3():
+    """The numbers of the v3 fit (scripts/contact_overview_chain_figures.py from scripts/v3_tip_contact_model.py): one
+    modulus of the pads and of Drake's field, and one scale of the FE, fitted to the forces of the presses of v3 ID 1 and
+    v3 ID 2 under the 5 mm sphere and the 12.5 mm rod (owner, 2026-10-30: one modulus, errors accepted at the extrema)."""
+    return json.load(open(P.os.path.join(P.ROOT, CHAIN_NUM)))
+
+
 def chain_lede(ctx):
     """Opening paragraph (owner, 2026-10-26): the three models of the printed fingertip and the comparison at each link,
-    what the gaps mean for the hand, then the pads against Drake and their use on CPU and GPU (owner, 2026-10-14)."""
-    C = json.load(open(P.os.path.join(P.ROOT, CHAIN_NUM)))
-    U = _ur5_fits()
+    what the gaps mean for the hand, then the pads against Drake and their use on CPU and GPU (owner, 2026-10-14). The UR5
+    numbers are those of the four-magnet v3 tips since 2026-10-30."""
+    C = _v3()
+    J = C["joint"]
     on, w = _agreement(ctx)
     hc = ctx.get("hand") or {}
     sv = C["servo"]
+    fe = C["fe_s1_over_measured"]
+    bl = C["by_level"]["pads"]
     s = ["Three models describe the printed fingertip: the print as pressed by a UR5 arm, its finite elements (FE), and a "
          "local pressure law. Drake&#8217;s hydroelastic contact and MuJoCo&#8217;s 1&#8202;mm sphere pads integrate that law.",
-         "At the indentation measured under a 5&#8202;mm sphere, the FE pushes back with 5.1 times the measured force.",
-         "The magnets inside the pad move within about 30&#8202;% of the FE&#8217;s prediction, so the extra softness of the "
-         "print lies near the contact.",
-         f"Fitted to the presses, one pad modulus is {U['sphere']['E']:.2f}&#8202;MPa under the sphere and "
-         f"{U['rod']['E']:.1f}&#8202;MPa under a 12.5&#8202;mm rod, against the scenes&#8217; 10&#8202;MPa.",
-         f"The pads&#8217; depth then follows the presses within {U['sphere']['rms']:.0f} and {U['rod']['rms']:.0f}&#8202;&#181;m RMS.",
-         f"Through the servos each fingertip is a {sv['servo_N_per_m']:.0f}&#8202;N/m spring, so these errors change the grip "
-         f"force by about {100 * (1 - sv['series_measured_rod_N_per_m'] / sv['series_scene_N_per_m']):.0f}&#8202;%."]
+         f"At the indentation measured on two four-magnet v3 tips, the FE pushes back with {fe['rod']:.1f}&#8211;{fe['sphere']:.1f} "
+         "times the measured force.",
+         "The magnets inside the pad move 0.71&#8211;0.74 times as far as the FE predicts, so the print is softer than the FE "
+         "only near the contact.",
+         f"Fitted to the forces of {J['n']:,} presses under a 5&#8202;mm sphere and a 12.5&#8202;mm rod, one pad modulus is "
+         f"{J['E_pads_MPa']:.2f}&#8202;MPa, against the scenes&#8217; 10&#8202;MPa.",
+         f"At 1&#8211;2&#8202;N the median measured force is {C['mid']['median_pads']:.2f} times the pads&#8217;. At 8&#8202;N the pads "
+         f"push {1 / bl['8']['median']:.1f} times the measured force.",
+         f"Through the servos each fingertip is a {sv['servo_N_per_m']:.0f}&#8202;N/m spring, so the error of the pads&#8217; "
+         f"stiffness changes the grip force by about {100 * (1 - sv['series_measured_rod_N_per_m'] / sv['series_scene_N_per_m']):.0f}"
+         "&#8202;%."]
     if on and w:
         s.append(f"The pads start to spin at {_r1(on, 2)} of Drake&#8217;s torque. The hand&#8217;s open-loop turn on the pads "
                  f"ends within 3&#176; of Drake&#8217;s on {w[0]}&#8211;{w[1]} of {w[2]} placements.")
@@ -186,64 +202,60 @@ def chain_lede(ctx):
 
 def chain_section(ctx):
     """The first part of the overview: the print on the UR5, its FE model, the pressure law and the simulated hand, with
-    the comparison at each link. UR5 numbers from the session sphere2 (pads.json, fe.json) and the chain figure's
-    numbers (scripts/contact_overview_chain_figures.py); the FE calibration's from its page (20261018, Tables 3-4 and
-    the paragraph on tangential compliance) and the v2 checks (Section 8); the servo's stiffness from the contact
-    sensitivity page (2026-10-13); the pads against Drake from this page's rows (ctx)."""
-    C = json.load(open(P.os.path.join(P.ROOT, CHAIN_NUM)))
+    the comparison at each link. UR5 numbers from the v3 fit (contact_chain_numbers.json, 2026-10-30; owner: the figure of
+    the session sphere2 was "8 days old on a fingertip we are not going to use"); the MuJoCo rig check and the creep under
+    shear from tip 0's sphere2 (pads.json); the FE calibration's from its page (20261018, Tables 3-4 and the paragraph on
+    tangential compliance) and the v2 checks (Section 8); the servo's stiffness from the contact sensitivity page
+    (2026-10-13); the pads against Drake from this page's rows (ctx)."""
+    C = _v3()
+    J, Fi = C["joint"], C["fits"]
     pj = json.load(open(P.os.path.join(P.ROOT, S2_DIR, "pads.json")))
-    fj = json.load(open(P.os.path.join(P.ROOT, S2_DIR, "fe.json")))
     on, w = _agreement(ctx)
     cx = ctx.get("creep_x") or (None, None)
     sv, cm, d1 = C["servo"], C["compliance_1N_mm_N"], C["depth_1N_mm"]
-    E_fe, E_meas = pj["E_FE_MPa"], pj["E_meas_MPa"]
-    lv = pj["by_level"]
-    m3 = pj["M3"]
-    fe_x = 1.0 / fj["by_region"]["face"]["ratio_median_s1"]
-    res = sorted((fj["series"]["rms_mm"], pj["delta_E_FE"]["law"]["rms_mm"], pj["delta_E_TPU"]["law"]["rms_mm"]))
-    c_tpu = pj["delta_E_TPU"]["law"]["fit"]["fit"][1]
+    me, fe = C["measured"], C["fe_s1_over_measured"]
+    bl, blf = C["by_level"]["pads"], C["by_level"]["fe"]
     sh = pj["shear"]
     v1, v100 = (sh["runs"][f"impratio{k}_E_FE"]["creep_mm_s"]["median"] for k in (1, 100))
-    U = _ur5_fits()
-    cr = U["sphere"]["creep"]
+    sp = C.get("spring") or {}
+    tw = C["twists"]
+    rb = C["rbar_mm"]
     img = lambda f: R_data(f)  # noqa: E731
     pm, cal, gt = _a(PM_PAGE, "physical-model page"), _a(CAL_PAGE, "calibration page"), _a(GT_PAGE, "UR5 ground truth")
+    v3p = _a(V3_PAGE, "v3 contact-model page")
     fec, v2, sens = _a(FEC_PAGE, "FE calibration"), _a(V2_PAGE, "v2 fingertip checks"), _a(SENS_PAGE, "contact sensitivity page")
+    lo_f, hi_f = C["fe_level_range"]
+    lo_p, hi_p = C["pads_level_range"]
     o = ['<section id="chain"><div class="col">', "<h2>From the printed fingertip to the simulated contact</h2>"]
     o.append(
         "<p>Three models of one fingertip are compared in this part. The first is the print itself. A UR5 arm pressed the "
-        "printed pad of DIP link b onto a 5&#8202;mm sphere. An OptoForce HEX-E force sensor between the arm and the "
-        "finger measured the force. The second is a finite-element (FE) model of the print. The third is the local pressure "
-        "law that Drake&#8217;s hydroelastic contact and the 1&#8202;mm sphere pads integrate. Figure&#160;1 shows the chain and "
-        "the comparison at each link. The presses and the FE model are of the half-ellipsoid pad of DIP link b; the "
-        "hand&#8217;s scenes still model the printed block of 13 October with the same pads. The FE model and the magnetic "
-        f"sensing are explained on the {pm}, and the presses and their ground truth on the {cal}.</p>")
+        "printed pads of two four-magnet fingertips, v3 ID 1 and v3 ID 2, onto a 5&#8202;mm sphere and a 12.5&#8202;mm rod. An "
+        "OptoForce HEX-E force sensor between the arm and the finger measured the force. The second is a finite-element (FE) "
+        "model of the print. The third is the local pressure law that Drake&#8217;s hydroelastic contact and the 1&#8202;mm "
+        "sphere pads integrate. Figure&#160;1 shows the chain and the comparison at each link. The presses and the FE model "
+        "are of the half-ellipsoid pad of DIP link b; the hand&#8217;s scenes still model the printed block of 13 October with "
+        f"the same pads. The FE model and the magnetic sensing are explained on the {pm}. The presses are described on the "
+        f"{cal}, and the fit of the three models on the {v3p}.</p>")
     o.append(f'<figure><img src="{img(CHAIN_FIGS[0])}" width="1200" style="max-width:100%;height:auto" alt="Four boxes '
              'for the print on the UR5, its finite elements, the pressure law and the simulated hand, joined by arrows, with '
              'the comparison of each pair of neighbours in a box below">'
              "<figcaption>Figure&#160;1. Three models of the printed fingertip and the simulated hand, with the comparison at "
              "each link. The last line of each model is the depth of the 5&#8202;mm sphere at the pad&#8217;s face under "
-             "1&#8202;N. For the print it is the registered depth, from a power-law fit over the 204 face holds. For the FE pad "
-             f"and the scenes&#8217; pads at 10&#8202;MPa it is the median over the {C['sphere2_face_targets']} face targets. The dashed "
-             f"arc compares the pads with the presses without the FE. Sources: {gt}, Sections 3, 4 and 7; {fec}; "
-             "Table&#160;3 and Figure&#160;9 of this page.</figcaption></figure>")
+             f"1&#8202;N. For the print it is the registered depth, from a power-law fit over the {me['sphere']['face_holds']} face "
+             "holds of two v3 tips. For the FE pad and the scenes&#8217; 10&#8202;MPa pads it is the median over the face "
+             f"targets. The dashed arc compares the pads with the presses without the FE. Sources: {v3p}; {pm}, Section&#160;8; "
+             f"{fec}; Table&#160;3 and Figure&#160;9 of this page.</figcaption></figure>")
     o.append("<h3>The print against its finite elements</h3>")
     o.append(
-        "<p>On the UR5 the depth of the sphere below the pad&#8217;s nominal surface, the registered indentation, is "
-        f"computed from the robot&#8217;s pose and the registration of the tool. At 1&#8202;N the print sinks {C['measured_depth_1N_mm']:.2f}&#8202;mm "
-        f"at the face, and the FE pad {d1['fe']:.2f}&#8202;mm (Figure&#160;2a). At the registered depth the FE pad pushes back "
-        f"with {fe_x:.1f} times the measured force, as a median over the face. A second comparison tests the FE inside the "
-        "pad. The board&#8217;s force estimate is computed with the FE&#8217;s magnet motion per newton. Over four sessions on three tips it "
-        "is 0.78&#8211;1.31 of the HEX-E&#8217;s force. A pad five times softer than its FE model would move its magnets five "
-        "times as far, and the estimate would be five times the force.</p>")
-    o.append(
-        "<p>Beyond the FE pad the print sinks a further 0.33&#8202;mm plus 0.20&#8202;mm per newton under the sphere. Under a rod "
-        "of radius 12.5&#8202;mm the extra indentation is 0.07&#8202;mm plus 0.10&#8202;mm per newton. A spring in series with the "
-        "pad, in the mount, the arm or the indenter&#8217;s stand, would add the same compliance under both indenters. At most "
-        "0.10&#8202;mm/N therefore lies in series. At least 0.10&#8202;mm/N arises at the sphere&#8217;s small contact, where the "
-        "print is softer than the FE pad. The FE model is thus too stiff at a small contact and within about 30&#8202;% in the "
-        f"bulk that moves the magnets ({gt}, Sections 3, 4 and 8). Its walls and skins have the 12&#8202;MPa of a NinjaFlex "
-        "85A data sheet. The modulus of Siraya 85A has not been measured.</p>")
+        "<p>On the UR5 the depth of the indenter below the pad&#8217;s nominal surface, the registered indentation, is "
+        "computed from the robot&#8217;s pose and the registration of the tool. At 1&#8202;N the print sinks "
+        f"{me['sphere']['depth_1N_mm']:.2f}&#8202;mm at the face under the sphere, and the FE pad {d1['sphere']['fe_s1']:.2f}&#8202;mm "
+        f"(Figure&#160;2a). At the registered depth the FE pad pushes back with {fe['sphere']:.1f} times the measured force under "
+        f"the sphere and {fe['rod']:.1f} times under the rod, as medians over the face. The magnets inside the pad test the FE "
+        "in the bulk. They move 0.71&#8211;0.74 times as far as the FE predicts, which corresponds to a modulus of "
+        f"16.3&#8211;16.9&#8202;MPa against the FE&#8217;s 12&#8202;MPa ({pm}, Section&#160;8). The print is therefore softer than "
+        "its FE at the contact and slightly stiffer in the bulk. The FE&#8217;s walls and skins have the 12&#8202;MPa of a "
+        "NinjaFlex 85A data sheet. The modulus of Siraya 85A has not been measured.</p>")
     o.append("<h3>The finite elements against the pressure law</h3>")
     o.append(
         "<p>In Drake&#8217;s field and in the pads the pressure at a point is set by the overlap at that point alone. Under the "
@@ -251,7 +263,9 @@ def chain_section(ctx):
         "local law grows as \\(F^{0.49}\\) to \\(F^{0.67}\\). A modulus fitted to the approach is therefore too soft at "
         "0.5&#8202;N and too stiff at 3&#8202;N. On four printed tips one modulus leaves an RMS approach error of "
         "21&#8211;24&#8202;% in Drake and 13&#8211;20&#8202;% in the pads. At one load the error reaches 61&#8202;%. The printed walls and "
-        "skins spread a load over the core, and a local law has no such spreading.</p>")
+        "skins spread a load over the core, and a local law has no such spreading. The v3 presses show the same difference "
+        f"(Figure&#160;2c). With one compliance scale the FE gives {lo_f:.2f}&#8211;{hi_f:.2f} of the measured force from 0.25 "
+        f"to 8&#8202;N. With one modulus the pads give {lo_p:.2f}&#8211;{hi_p:.2f} of it.</p>")
     o.append(
         "<p>The FE calibration of 18 October put a stiff local modulus behind a 9.7&#8202;N/mm series spring for the 11/22 "
         "half-ellipsoid tip. The RMS approach error is then 5.2&#8202;% in Drake and 5.6&#8202;% in 0.5&#8202;mm pads. With the spring "
@@ -261,44 +275,54 @@ def chain_section(ctx):
         "in the scenes.</p>")
     o.append('<h3 id="pad-calibration">The pads against the UR5 presses</h3>')   # the anchor of the older section
     o.append(
-        f"<p>For the UR5 comparison the {pj['n_pads']} sphere pads stand on the FE model&#8217;s surface points, so both models "
-        "share one surface. Figure&#160;2a shows each model as computed at the face. The pads at the scenes&#8217; 10&#8202;MPa sink "
-        f"{d1['pads_10MPa']:.2f}&#8202;mm at 1&#8202;N. Their force grows faster with depth than the FE pad&#8217;s. The modulus "
-        f"that fits the FE best is {E_fe:.1f}&#8202;MPa. There the pad force is {lv['0.25']['pads_over_fe']:.2f} of the FE "
-        f"force at 0.25&#8202;N and {lv['5']['pads_over_fe']:.2f} times it at 5&#8202;N. With {m3['E_loc_MPa']:.0f}&#8202;MPa "
-        f"behind an {m3['k_s_N_mm']:.2f}&#8202;N/mm spring, the pads&#8217; depth is within {m3['rms_mm'] * 1e3:.0f}&#8202;&#181;m "
-        "RMS of the FE pad&#8217;s, as in the FE calibration.</p>")
+        f"<p>For the UR5 comparison the {pj['n_pads']} sphere pads stand on the FE model&#8217;s surface points, so all three "
+        "models share one surface. Drake&#8217;s field is integrated on the same surface. Each model is placed at the "
+        "indenter&#8217;s registered position, and one modulus is fitted to the measured force, the median of the log ratio. "
+        f"Over the {J['n']:,} holds of both v3 tips under both indenters, the pads&#8217; modulus is {J['E_pads_MPa']:.2f}&#8202;MPa, "
+        f"against the scenes&#8217; 10&#8202;MPa. Fitted to each indenter alone it is {Fi['v3_low']['E_pads_MPa']:.2f}&#8202;MPa under "
+        f"the sphere and {Fi['v3_rod']['E_pads_MPa']:.2f}&#8202;MPa under the rod. The two tips differ by as much: "
+        f"{Fi['v3id1_low_rod']['E_pads_MPa']:.2f} and {Fi['v3id2_low_rod']['E_pads_MPa']:.2f}&#8202;MPa. On tip 0 the sphere and "
+        f"the rod gave {Fi['old_sphere2']['E_pads_MPa']:.2f} and {Fi['old_rod1']['E_pads_MPa']:.1f}&#8202;MPa. At the joint modulus "
+        f"tip 0&#8217;s sphere session sank {C['depth_resid_um']['old_sphere2'] / 1e3:.1f}&#8202;mm deeper than the pads at every "
+        f"load, and the v3 sessions {min(C['depth_resid_um'][k] for k in V3_JOINT):.0f} to "
+        f"{max(C['depth_resid_um'][k] for k in V3_JOINT):+.0f}&#8202;&#181;m. For Drake&#8217;s field the joint modulus is "
+        f"{J['E_field_MPa']:.2f}&#8202;MPa.</p>")
     o.append(
-        "<p>The UR5 presses are the reference for the simulated contact. Fitted to them, one pad modulus is "
-        f"{U['sphere']['E']:.2f}&#8202;MPa under the 5&#8202;mm sphere and {U['rod']['E']:.1f}&#8202;MPa under the 12.5&#8202;mm rod, "
-        "against the scenes&#8217; 10&#8202;MPa (Figure&#160;2b). The pads&#8217; depth then differs from the registered indentation "
-        f"by {U['sphere']['rms']:.0f} and {U['rod']['rms']:.0f}&#8202;&#181;m RMS. With an offset and a series compliance added, "
-        f"the residual falls only to {U['sphere']['rms_spring']:.0f} and {U['rod']['rms_spring']:.0f}&#8202;&#181;m. The give beyond "
-        "the FE pad is 0.20&#8202;mm/N under the sphere and 0.10&#8202;mm/N under the rod, on the same tip and mount. A spring of "
-        "fixed stiffness adds the same give under both indenters, so it cannot follow a give that depends on the size of the "
-        "contact. Only one fit of a modulus and a spring to both indenters at once could justify the spring. One modulus misses "
-        "the trend with load. Under the rod the measured force is "
-        f"{U['rod']['lo']:.2f} times the pads&#8217; at 0.25&#8202;N and {U['rod']['hi']:.2f} times at 5&#8202;N. The sphere&#8217;s "
-        "modulus is lower than the rod&#8217;s, because the extra indentation of the small contact is part of it.</p>")
+        f"<p>One modulus fits the middle of the load range (Figure&#160;2c). At 1&#8211;2&#8202;N the median measured force is "
+        f"{C['mid']['median_pads']:.2f} times the pads&#8217;, and {100 * C['mid']['within25_pads']:.0f}&#8202;% of the holds lie "
+        f"within 25&#8202;%. At 0.25&#8202;N the measured force is {bl['0.25']['median']:.2f} times the pads&#8217;. At 8&#8202;N it "
+        f"is {bl['8']['median']:.2f} times, so there the pads push {1 / bl['8']['median']:.1f} times as hard. The light end "
+        "depends on the registration: at 0.25&#8202;N the indenter is 0.2&#8211;0.3&#8202;mm deep. The FE pad with one compliance "
+        f"scale, {J['E_fe_MPa']:.1f}&#8202;MPa, stays within {lo_f:.2f}&#8211;{hi_f:.2f} of the measured force at every level.</p>")
+    if sp:
+        o.append(
+            f"<p>A series spring was fitted as the comparison. With one modulus and one spring for both indenters the depth "
+            f"residual falls from {sp['alone']['rms_mm'] * 1e3:.0f} to {sp['rms_mm'] * 1e3:.0f}&#8202;&#181;m RMS. Fitted to each "
+            "indenter alone, the spring is about 0.19&#8202;mm/N under the sphere and 0.12&#8202;mm/N under the rod. A spring in "
+            "the mount, the arm or the DIP link would add the same compliance under both, so most of the extra give arises at "
+            f"the contact. The scenes keep one modulus without a spring ({v3p}, Sections&#160;3&#8211;4).</p>")
     o.append(f'<figure><img src="{img(CHAIN_FIGS[1])}" width="1200" style="max-width:100%;height:auto" alt="Normal force '
-             'against indentation at the pad face: measured holds as grey dots, the FE pad and the sphere pads at several '
-             'moduli as lines, as computed and fitted to the measurement">'
-             "<figcaption>Figure&#160;2. Normal force against indentation at the face of the printed pad under the 5&#8202;mm "
-             f"sphere (UR5 session sphere2, 2026-10-22). Grey dots are the HEX-E&#8217;s force at the registered depth of the "
-             f"{C['sphere2_face_holds']} face holds. The lines are medians over the {C['sphere2_face_targets']} face targets of "
-             "each model&#8217;s force with the sphere at that depth along the target&#8217;s normal. (a) The models as computed: "
-             f"the FE pad, the {pj['n_pads']} pads at 10 and {E_fe:.1f}&#8202;MPa, and the pads of the FE calibration&#8217;s "
-             f"recipe, a stiff modulus behind a spring. (b) The pads with one modulus fitted to the presses, {E_meas:.2f}&#8202;MPa "
-             "(solid). The dashed line is the comparison: the scenes&#8217; 10&#8202;MPa pads with an offset and a series "
-             f"compliance fitted over all {pj['n']} holds added to their depth. Script: <code>scripts/contact_overview_chain_figures.py</code>.</figcaption></figure>")
+             'against indentation at the pad face under a sphere and a rod: measured holds of two v3 tips as grey dots, the '
+             'pads, Drake&#8217;s field and the FE as lines; below, measured over model force by load level">'
+             "<figcaption>Figure&#160;2. Normal force at the face of the printed pads of v3 ID 1 and v3 ID 2 (UR5 sessions of "
+             f"27&#8211;29 October 2026). (a) Under the 5&#8202;mm sphere, {me['sphere']['face_holds']} face holds. (b) Under the "
+             f"12.5&#8202;mm rod, {me['rod']['face_holds']} face holds. Grey dots are the HEX-E&#8217;s force at the registered "
+             "depth. The lines are medians over the face targets of each model&#8217;s force with the indenter at that depth along "
+             f"the target&#8217;s normal. The pads are at {J['E_pads_MPa']:.2f}&#8202;MPa and Drake&#8217;s field at "
+             f"{J['E_field_MPa']:.2f}&#8202;MPa, their joint moduli. The FE is drawn at one compliance scale "
+             f"({J['E_fe_MPa']:.1f}&#8202;MPa) and as computed (12&#8202;MPa); the dotted orange line is the scenes&#8217; pads at "
+             "10&#8202;MPa. (c) Measured over model force at the registered position, by load level: medians and quartiles over "
+             "both tips; grey band within 25&#8202;%. Script: <code>scripts/contact_overview_chain_figures.py</code>, from the "
+             f"fit on the {v3p}.</figcaption></figure>")
     o.append(
-        "<p>In MuJoCo the pads reproduce their spring law. Pushed into fixed pads by the measured force for 0.4&#8202;s, the "
-        f"sphere comes to rest within {pj['delta_E_FE']['mujoco']['law_minus_mujoco_um']['max'] + 0.005:.2f}&#8202;&#181;m of "
-        f"the law&#8217;s depth. The pads place the centre of the contact a median {pj['location']['pads_vs_fe']['median_mm'] * 1e3:.0f}"
-        "&#8202;&#181;m from the FE pad&#8217;s. The presses also had shear, a median "
-        f"{sh['tangential_N']['median']:.2f}&#8202;N or {sh['tangential_over_normal']['median']:.2f} of the normal force. Under "
-        f"it the sphere creeps along the pads at {v1:.2f}&#8202;mm/s at impratio 1 (step&#160;8). At impratio 100 it creeps "
-        f"{v100:.3f}&#8202;mm/s. The robot held the real sphere still ({gt}, Section 7).</p>")
+        "<p>In MuJoCo the pads reproduce their spring law. On tip 0&#8217;s sphere presses, pushed into fixed pads by the "
+        "measured force for 0.4&#8202;s, the sphere comes to rest within "
+        f"{pj['delta_E_FE']['mujoco']['law_minus_mujoco_um']['max'] + 0.005:.2f}&#8202;&#181;m of the law&#8217;s depth. Under the "
+        f"presses&#8217; shear, a median {sh['tangential_over_normal']['median']:.2f} of the normal force, the sphere creeps along "
+        f"the pads at {v1:.2f}&#8202;mm/s at impratio 1 (step&#160;8). At impratio 100 it creeps {v100:.3f}&#8202;mm/s. The robot "
+        f"held the real sphere still ({gt}, Section 7). On the v3 presses the pads place the pressure centre 29&#8211;57&#8202;&#181;m "
+        "from the registered contact point. The measured force lies 6.6&#8211;7.6&#176; from the surface normal, which is the "
+        f"shear the robot held, 0.10 of the normal force ({v3p}, Section&#160;6).</p>")
     o.append("<h3>The pads against Drake</h3>")
     s = "<p>Drake and the pads integrate the same law."
     if on:
@@ -310,7 +334,7 @@ def chain_section(ctx):
         s += (f" Under a held load below slip the pads creep {cx[0]:.0f} times as fast as Drake on the test bed&#8217;s sphere "
               f"and {cx[1]:.0f} times on the printed block (step&#160;8).")
     o.append(s + " The tasks behind these numbers are under Comparison with the reference models.</p>")
-    sh = _shear()
+    shx = _shear()
     shp = _a(SHEAR_PAGE, "shear page")
     o.append("<h3>Shear compliance, rate and friction</h3>")
     o.append(
@@ -318,88 +342,99 @@ def chain_section(ctx):
         f"slip, measured on the UR5 slides ({shp}). In the FE model the face moves 48&#8211;177&#8202;&#181;m/N under the "
         "12.5&#8202;mm rod. Drake&#8217;s field and the pads have no tangential compliance, and under a load below slip they creep "
         "instead (step&#160;8). Pads on a skin sized from the slides follow the measured loops within "
-        f"{sh['skin_rms']:.2f}&#8202;N RMS at impratio 1000. At impratio 100 and 10 the friction rows creep through those loops. "
+        f"{shx['skin_rms']:.2f}&#8202;N RMS at impratio 1000. At impratio 100 and 10 the friction rows creep through those loops. "
         "The second is rate. The FE model is elastic, "
         "and the damping of Drake and of the pads is a solver setting. On the UR5 the board&#8217;s change at the same point and "
         "force level grew 1.24 times at 0.6&#8202;mm/s against 0.15&#8202;mm/s. At 2&#8202;mm/s it grew 1.79 times, and the "
         f"overshoot of the force explains about half of that growth ({cal}). The third is friction: the slides give "
-        f"{sh['mu1']:.2f} and {sh['mu2']:.2f} at 1 and 2&#8202;N, and the scenes are run with 1.</p>")
+        f"{shx['mu1']:.2f} and {shx['mu2']:.2f} at 1 and 2&#8202;N, and the scenes are run with 1.</p>")
+    t5 = tw["low_5"]
     o.append(
-        "<p>The friction torque about the contact normal is unmeasured. At the slides&#8217; coefficients the pads start to spin "
-        f"at {sh['tq']['1'][0]:.2f}&#8202;N&#8202;mm under 1&#8202;N and {sh['tq']['5'][1]:.1f}&#8202;N&#8202;mm under 5&#8202;N. On the UR5 "
-        "the face&#8217;s normal lies across the HEX-E&#8217;s axis, so a 2.5&#8202;N push bends the sensor with about "
-        "230&#8202;N&#8202;mm. Its crosstalk of up to 11&#8202;N&#8202;mm exceeds the predicted torque. The lab has been asked for twists "
-        f"with the face&#8217;s normal along the sensor&#8217;s axis ({shp}, Future work).</p>")
+        "<p>The friction torque about the contact normal is unmeasured. It equals \\(\\mu F\\bar r\\) at full slip, where "
+        "\\(\\bar r\\) is the patch&#8217;s pressure-weighted mean radius. At the joint modulus and the slides&#8217; coefficients "
+        f"the pads spin at {tw['low_1']['pads']:.2f}, {tw['low_2.5']['pads']:.2f} and {t5['pads']:.2f}&#8202;N&#8202;mm at the v3 "
+        f"twists&#8217; forces of {tw['low_1']['f_n']:.1f}, {tw['low_2.5']['f_n']:.1f} and {t5['f_n']:.1f}&#8202;N. The twists of "
+        f"both v3 tips gave a median {t5['M_median']:.2f}&#8202;N&#8202;mm at {t5['f_n']:.1f}&#8202;N, with quartiles of "
+        f"{t5['M_p25']:.2f}&#8211;{t5['M_p75']:.2f}&#8202;N&#8202;mm. The face&#8217;s normal lies across the HEX-E&#8217;s axis in these "
+        "twists, and the torque reading changes by up to 10&#8202;N&#8202;mm between holds 5&#176; apart. In the inverted rig the "
+        "probe sits on the HEX-E and the tip in a seat, so the contact normal lies along the sensor&#8217;s axis "
+        f"({v3p}, Future work).</p>")
     o.append("<h3>Consequences for the simulated hand</h3>")
     o.append(
         f"<p>Through the servos each fingertip is a spring of {sv['servo_N_per_m']:.0f}&#8202;N/m along its palmar normal, at the "
         f"servo plant&#8217;s gain of 0.72&#8202;N&#8202;m/rad ({sens}). The scenes&#8217; pad contact on the tool is "
         f"{sv['pad_scene_N_per_m'] / 1e3:.1f}&#8202;kN/m at 1&#8202;N. In series with the servo the fingertip is then "
         f"{sv['series_scene_N_per_m']:.0f}&#8202;N/m. The print as measured under the 12.5&#8202;mm rod adds "
-        f"{cm['measured_rod']:.2f}&#8202;mm/N at 1&#8202;N, which gives {sv['series_measured_rod_N_per_m']:.0f}&#8202;N/m. The "
-        "servo&#8217;s deflection therefore sets the grip force of a commanded squeeze. The error of the pads&#8217; normal "
+        f"{me['rod']['compliance_1N_mm_N']:.2f}&#8202;mm/N at 1&#8202;N, which gives {sv['series_measured_rod_N_per_m']:.0f}&#8202;N/m. "
+        "The servo&#8217;s deflection therefore sets the grip force of a commanded squeeze. The error of the pads&#8217; normal "
         f"stiffness changes that force by about {100 * (1 - sv['series_measured_rod_N_per_m'] / sv['series_scene_N_per_m']):.0f}"
         "&#8202;%.</p>")
     o.append(
         "<p>Twists, the pinch brake and reorientation depend on the friction torque and on creep. The friction torque is set "
         "by the size of the patch and by its pressure, and the normal law fixes both. With a modulus fitted to the approach "
-        f"alone, the friction arm of the curved printed tips in Drake is 1.16&#8211;1.74 times the FE&#8217;s ({fec}). Policies "
-        "trained on the TPU mesh keep the tool on the pad plant as often as pad-trained policies do. The pad-trained policies "
-        "drop it on the mesh plant (section &#8220;Cost and control outcomes on the real_v1 hand&#8221;). Contact models are therefore "
-        "compared on the tool&#8217;s trajectory and the fingertips&#8217; forces, with the spread between start placements. The "
-        "same 1&#8202;mm pads are used for training, planning and evaluation (owner, 2026-10-15).</p>")
+        f"alone, the friction arm of the curved printed tips in Drake is 1.16&#8211;1.74 times the FE&#8217;s ({fec}). On the v3 "
+        "presses at 5&#8202;N, the mean patch radii of the pads, Drake&#8217;s field and the FE with one scale differ by at most "
+        "23&#8202;%, each fitted to the forces. At 2.5&#8202;N the scenes&#8217; 10&#8202;MPa pads have "
+        f"{rb['sphere']['2.5']['pads_10MPa'] / rb['sphere']['2.5']['pads_fit']:.2f} of the patch radius of the joint modulus "
+        "under the sphere, so their friction torque is lower by that factor. Policies trained on the TPU mesh keep the tool on "
+        "the pad plant as often as pad-trained policies do. The pad-trained policies drop it on the mesh plant (section "
+        "&#8220;Cost and control outcomes on the real_v1 hand&#8221;). Contact models are therefore compared on the tool&#8217;s "
+        "trajectory and the fingertips&#8217; forces, with the spread between start placements. The same 1&#8202;mm pads are used "
+        "for training, planning and evaluation (owner, 2026-10-15).</p>")
     o.append(
         "<p>The pads also creep under the grasp&#8217;s own forces. In MuJoCo a steady tangential force at a contact needs "
         "sliding, since below the friction limit the friction rows act as dampers (step&#160;8). A squeeze has tangential parts "
         "wherever the fingertips do not press along one line, and the servos push sideways. The tool and the fingertips move "
         "until these parts vanish. On the print, static friction would keep them at rest. Under the trainer&#8217;s numerics the held "
-        f"tool of the D1&#8211;D8 replays drifts at {sh['cr10']:.0f}, {sh['cr100']:.0f} and {sh['cr300']:.0f}&#8202;&#181;m/s at "
-        f"impratio 10, 100 and 300. In the scripted grasp it slips at {sh['mjw'][0]['slip_um_s']:.0f} and "
-        f"{sh['mjw'][-1]['slip_um_s']:.0f}&#8202;&#181;m/s at 10 and 100. Two tests bound the consequence before hardware. In the "
+        f"tool of the D1&#8211;D8 replays drifts at {shx['cr10']:.0f}, {shx['cr100']:.0f} and {shx['cr300']:.0f}&#8202;&#181;m/s at "
+        f"impratio 10, 100 and 300. In the scripted grasp it slips at {shx['mjw'][0]['slip_um_s']:.0f} and "
+        f"{shx['mjw'][-1]['slip_um_s']:.0f}&#8202;&#181;m/s at 10 and 100. Two tests bound the consequence before hardware. In the "
         "first, task outcomes at the trainer&#8217;s setting are compared with those at the largest stable setting or with "
         "noslip. In the second, the simulated drift is compared with the tool&#8217;s drift in the bench holds, tracked by "
-        "AprilTags in 177 runs ({shp}, Future work).</p>")
+        f"AprilTags in 177 runs ({shp}, Future work).</p>")
     o.append(
         "<p>A higher impratio lowers this creep, but the CPU runs then diverge. From impratio 20 on, "
-        f"{min(sh['div'])}&#8211;{max(sh['div'])} of the 24 D1&#8211;D8 replays diverge after they drop the tool, and the scripted "
-        f"grasp diverges from 50. In MuJoCo-Warp it keeps {min(x['held_placements'] for x in sh['mjw'])}&#8211;"
-        f"{max(x['held_placements'] for x in sh['mjw'])} of 64 placements up to 100. In each traced divergence the tool is "
-        f"flung, and in free flight its spin grows by a factor \\(e\\) every {min(sh['efold']):.0f}&#8211;{max(sh['efold']):.0f}"
+        f"{min(shx['div'])}&#8211;{max(shx['div'])} of the 24 D1&#8211;D8 replays diverge after they drop the tool, and the scripted "
+        f"grasp diverges from 50. In MuJoCo-Warp it keeps {min(x['held_placements'] for x in shx['mjw'])}&#8211;"
+        f"{max(x['held_placements'] for x in shx['mjw'])} of 64 placements up to 100. In each traced divergence the tool is "
+        f"flung, and in free flight its spin grows by a factor \\(e\\) every {min(shx['efold']):.0f}&#8211;{max(shx['efold']):.0f}"
         "&#8202;ms. The trainer&#8217;s implicitfast integrator leaves out the derivative of the Coriolis and centrifugal forces. "
-        f"With the full implicit integrator none of the {('eight' if sh['n_traced'] == 8 else sh['n_traced'])} traced runs diverges. With 10 noslip iterations at impratio 10 "
-        f"no CPU run diverges, and the replays creep at {sh['ns10']:.0f}&#8202;&#181;m/s. MuJoCo-Warp has neither option "
+        f"With the full implicit integrator none of the {('eight' if shx['n_traced'] == 8 else shx['n_traced'])} traced runs diverges. With 10 noslip iterations at impratio 10 "
+        f"no CPU run diverges, and the replays creep at {shx['ns10']:.0f}&#8202;&#181;m/s. MuJoCo-Warp has neither option "
         f"({shp}, Section&#160;3).</p>")
     o.append("<h3>Calibration of the pads in the scenes</h3>")
     o.append("<p>The pads are the MuJoCo model of the print. Table&#160;1 lists their calibration against it so far.</p>")
+    tq10 = [_MU[F] * F * rb["sphere"][f"{F:g}"]["pads_10MPa"] for F in (1.0, 2.5, 5.0)]
     cal_rows = [
-        ("Pad modulus", f"{U['sphere']['E']:.2f}&#8202;MPa under the 5&#8202;mm sphere, {U['rod']['E']:.1f}&#8202;MPa under the "
-         "12.5&#8202;mm rod", f"UR5 presses ({gt})", "10&#8202;MPa"),
-        ("Give before slip", f"{sh['give1']:.0f}&#8202;&#181;m/N at 1&#8202;N, {sh['give2']:.0f}&#8202;&#181;m/N at 2&#8202;N",
+        ("Pad modulus", f"{J['E_pads_MPa']:.2f}&#8202;MPa over the 5&#8202;mm sphere and the 12.5&#8202;mm rod of two v3 tips "
+         f"({Fi['v3_low']['E_pads_MPa']:.2f} and {Fi['v3_rod']['E_pads_MPa']:.2f}&#8202;MPa alone)", f"UR5 presses ({v3p})",
+         "10&#8202;MPa"),
+        ("Give before slip", f"{shx['give1']:.0f}&#8202;&#181;m/N at 1&#8202;N, {shx['give2']:.0f}&#8202;&#181;m/N at 2&#8202;N",
          f"UR5 slides ({shp})", "None"),
-        ("Friction coefficient", f"{sh['mu1']:.2f} at 1&#8202;N, {sh['mu2']:.2f} at 2&#8202;N, on printed PLA",
+        ("Friction coefficient", f"{shx['mu1']:.2f} at 1&#8202;N, {shx['mu2']:.2f} at 2&#8202;N, on printed PLA",
          f"UR5 slides ({shp})", "1, randomised over 0.55&#8211;1.15 of it"),
         ("Creep below slip", "None: the pad sticks", f"UR5 slides ({shp})",
-         f"{sh['cr10']:.0f}&#8202;&#181;m/s in the held D1&#8211;D8 replays, {sh['mjw'][0]['slip_um_s']:.0f}&#8202;&#181;m/s in the "
+         f"{shx['cr10']:.0f}&#8202;&#181;m/s in the held D1&#8211;D8 replays, {shx['mjw'][0]['slip_um_s']:.0f}&#8202;&#181;m/s in the "
          "scripted grasp (impratio 10)"),
-        ("Friction torque about the normal", "Unmeasured: within the HEX-E&#8217;s noise and crosstalk", f"UR5 twists ({shp})",
-         f"{sh['tq']['1'][0]:.2f}&#8211;{sh['tq']['5'][1]:.1f}&#8202;N&#8202;mm at spin onset, 1&#8211;5&#8202;N, 5&#8202;mm sphere"),
+        ("Friction torque about the normal", f"Unmeasured: twist pairs at {t5['f_n']:.1f}&#8202;N spread "
+         f"{t5['M_p25']:.1f}&#8211;{t5['M_p75']:.1f}&#8202;N&#8202;mm (quartiles)", f"UR5 twists ({v3p})",
+         f"{tq10[0]:.2f}&#8211;{tq10[2]:.1f}&#8202;N&#8202;mm at full slip, 1&#8211;5&#8202;N, 5&#8202;mm sphere"),
     ]
     o.append("<div class=\"tw\"><table class='cap'><thead><tr><th>Quantity</th><th>Print, measured</th><th>Source</th>"
              "<th>Pads in the scenes</th></tr></thead><tbody>"
              + "".join(f"<tr><td>{a}</td><td>{b}</td><td>{c}</td><td>{d}</td></tr>" for a, b, c, d in cal_rows)
              + "</tbody></table></div>")
-    o.append("<p class=\"tnote\">Table&#160;1. Calibration of the 1&#8202;mm pads against the printed fingertip, 2026-10-27. "
+    o.append("<p class=\"tnote\">Table&#160;1. Calibration of the 1&#8202;mm pads against the printed fingertip, 2026-10-30. "
              "Print: measured on the UR5 with the HEX-E. Pads: the scenes&#8217; setting, or simulated under the trainer&#8217;s "
              "numerics at impratio 10.</p>")
     o.append(
         "<p>The scenes still run 10&#8202;MPa (<code>E_TPU</code> in <code>scripts/reorient_backends.py</code>, pad builder v2). "
-        f"Under the measured hold forces the pads creep {cr['impratio10_E_meas']:.2f}&#8202;mm/s at impratio 10 at "
-        f"{U['sphere']['E']:.2f}&#8202;MPa and {cr['impratio10_E_FE']:.2f}&#8202;mm/s at {U['sphere']['E_fe']:.1f}&#8202;MPa. A softer "
-        "modulus therefore needs a higher impratio. A series slide joint, the FE calibration&#8217;s recipe, is kept as a comparison. It slides along "
-        "the palmar normal only, while in the FE and UR5 fits the spring acts along each press&#8217;s own normal. In the CPU "
-        "replays of 18 October it cost 13&#8202;% per step, 112 against 99&#8202;&#181;s. The recipe also ran on 0.5&#8202;mm pads, at "
-        "3.3 times the per-step cost of 1&#8202;mm pads, 99 against 30&#8202;&#181;s. The replay that sets the scenes&#8217; modulus "
-        "is listed under Future work.</p>")
+        "One modulus without a series spring is the model (owner, 2026-10-30). A softer modulus needs a longer time constant "
+        f"and creeps more below slip. On the {shp}, a 20&#8202;ms time constant was needed for pads at 2.0&#8202;MPa. With it, "
+        "11 of 24 D1&#8211;D8 replays held the tool at impratio 10 and 100; at 10&#8202;MPa, 9 and 8 did. A series slide joint, "
+        "the FE calibration&#8217;s recipe, slides along the palmar normal only. In the CPU replays of 18 October it cost "
+        "13&#8202;% per step, 112 against 99&#8202;&#181;s. The replay that sets the scenes&#8217; modulus is listed under Future "
+        "work.</p>")
     o.append("<h3>Relation to Drake&#8217;s discrete hydroelastic contact</h3>")
     o.append(
         "<p>Masterjohn, Guoy, Shepherd and Castro (RA-L 2022) approximate Drake&#8217;s hydroelastic contact surface for its "
@@ -413,26 +448,6 @@ def chain_section(ctx):
         "MuJoCo-Warp and Newton, are listed under Related contact models.</p>")
     o.append("</div></section>")
     return "\n".join(o)
-
-
-def _ur5_fits():
-    """One pad modulus fitted to the UR5 presses under the 5 mm sphere (sphere2) and the 12.5 mm rod (rod1, joint
-    registration), with the depth residual of that modulus and of the pads with a series compliance (owner, 2026-10-26:
-    the UR5 data are the reference), the rod's force ratio at the lightest and heaviest level, and the creep of the sphere
-    under the measured hold forces at impratio 10 and 100 (mm/s) at the fitted modulus and at the FE fit."""
-    out = {}
-    for k, d in (("sphere", S2_DIR), ("rod", ROD_DIR)):
-        pj = json.load(open(P.os.path.join(P.ROOT, d, "pads.json")))
-        out[k] = dict(E=pj["E_meas_MPa"], rms=pj["delta_E_meas"]["law"]["rms_mm"] * 1e3,
-                      rms_spring=pj["delta_E_FE"]["law"]["rms_mm"] * 1e3, E_fe=pj["E_FE_MPa"],
-                      lo=pj["by_level"]["0.25"]["meas_over_pads_E_meas"], hi=pj["by_level"]["5"]["meas_over_pads_E_meas"],
-                      creep=({r: v["creep_mm_s"]["median"] for r, v in pj["shear"]["runs"].items()} if pj.get("shear") else {}))
-    return out
-
-
-def _ur5_c():
-    """Series compliance (mm/N) fitted with the scenes' 10 MPa pads to the 357 holds of the UR5 session sphere2."""
-    return json.load(open(P.os.path.join(P.ROOT, S2_DIR, "pads.json")))["delta_E_TPU"]["law"]["fit"]["fit"][1]
 
 
 def R_data(rel):
@@ -665,7 +680,7 @@ def open_list(ctx):
     """Future work (owner 2026-10-09: actionable items with the measurement named). The bench measurements of the
     assessment of 2026-10-14 first, then the simulation items."""
     v = _block_bench(ctx)
-    U5 = _ur5_fits()
+    C5 = _v3()
     a, fe, b45 = v["arm"], v["fe"], v["b45"]
     pk, dk = P.BLOCK
     twist = ""
@@ -710,10 +725,11 @@ def open_list(ctx):
         ("Twist-onset torque of the printed tip.", "In the same fixture, hang a mass on a 50&#8202;mm lever in 1&#8202;g steps "
          "(0.49&#8202;mN&#8202;m) until the tool spins, five repeats at 1 and 3&#8202;N per tip. The arm is \\(T/(2\\mu N)\\), with "
          "\\(\\mu\\) from the pull test (<code>tpu_tip_calibrate.py fit --twist</code>)." + twist),
-        ("Softness of the print at a small contact.", "Clamp the printed twin of the UR5 pad on a rigid block and press "
+        ("Softness of the print at a small contact.", "Clamp a printed twin of the v3 pad on a rigid block and press "
          "its face with the 5&#8202;mm sphere under a dial indicator at 0.5&#8211;5&#8202;N, three repeats. Travel near the FE "
-         "pad&#8217;s 0.16&#8202;mm at 1&#8202;N puts the UR5&#8217;s extra indentation in the robot&#8217;s tool. Travel near the "
-         "registered 0.69&#8202;mm confirms that the print is softer than its FE model under a small contact."),
+         f"pad&#8217;s {C5['depth_1N_mm']['sphere']['fe_s1']:.2f}&#8202;mm at 1&#8202;N puts the UR5&#8217;s extra indentation in the "
+         f"robot&#8217;s tool. Travel near the registered {C5['measured']['sphere']['depth_1N_mm']:.2f}&#8202;mm confirms that the "
+         "print is softer than its FE model under a small contact."),
         ("Pinch brake on the D6 hand.", "Pinch the bench cylinder between thumb and index, with its centre of mass 15&#8202;mm "
          "off the pinch line. Lower the commanded squeeze by 0.5&#176; per second while the tag is tracked at 30&#8202;Hz, ten "
          "repeats. Before the session, <code>scripts/real_v1_trajectory_clearance.py</code> must pass the brake plan (the chord "
@@ -726,21 +742,21 @@ def open_list(ctx):
          "logs of the CB1 to a dated archive after each session. The 177 tracked runs of 2026-08-31 to 09-02 have no joint "
          "data during the turn and no pose before the grip. Their scatter within one hand, 12.9&#176;, exceeds every "
          "difference between contact models on 6 of the 8 hands."),
-        ("Pads fitted to the UR5 presses.", "Set the scenes&#8217; modulus from the UR5 fit at the tool&#8217;s size: "
-         f"{U5['rod']['E']:.1f}&#8202;MPa for the 12.5&#8202;mm rod, {U5['sphere']['E']:.2f}&#8202;MPa for the 5&#8202;mm sphere "
-         "(<code>pads.json</code> of the sessions rod1 and sphere2). Raise impratio, as far as the trainer tolerates, until the "
-         "pads&#8217; creep under the measured hold forces is at most that of today&#8217;s 10&#8202;MPa pads. Replay the readiness "
-         "commands and D1&#8211;D8 from three start placements at 10&#8202;MPa, at the UR5 modulus and, as the comparison, with the "
-         f"series spring ({_ur5_c():.2f}&#8202;mm/N behind 10&#8202;MPa). The scenes take the UR5 modulus unless the tool&#8217;s "
-         "orientation or the fingertips&#8217; normal forces move beyond the spread between placements. The spring enters only "
-         "if it alone closes such a gap. The replays at the trainer&#8217;s numerics are on the shear page: at 2.0&#8202;MPa, with "
+        ("Pads fitted to the UR5 presses.", "Set the scenes&#8217; modulus from the UR5 fit: "
+         f"{C5['joint']['E_pads_MPa']:.2f}&#8202;MPa over the 5&#8202;mm sphere and the 12.5&#8202;mm rod of two v3 tips "
+         f"({_a(V3_PAGE, 'v3 contact-model page')}). Replay the readiness commands and D1&#8211;D8 from three start placements "
+         f"at 10&#8202;MPa and at {C5['joint']['E_pads_MPa']:.2f}&#8202;MPa with a 20&#8202;ms time constant, at impratio 10 and 100. "
+         "The scenes take the UR5 modulus unless the tool&#8217;s orientation or the fingertips&#8217; normal forces move beyond "
+         "the spread between placements. The replays at the trainer&#8217;s numerics are on the shear page: at 2.0&#8202;MPa, with "
          "a 20&#8202;ms time constant, 11 of 24 D1&#8211;D8 replays are held at impratio 10 and 100, against 9 and 8 at 10&#8202;MPa. "
-         "The spring and the comparison of trajectories remain."),
-        ("Friction torque of the print on the force sensor&#8217;s axis.", "Clamp the finger on the UR5 with the face&#8217;s "
-         "normal along the force sensor&#8217;s axis and twist at 1, 2.5 and 5&#8202;N, so the torsion is read without the "
-         "push&#8217;s moment (calibration page, Future work). At the slides&#8217; friction coefficients the pads start to spin "
-         f"at {sh['tq']['1'][1]:.2f}, {sh['tq']['2.5'][1]:.2f} and {sh['tq']['5'][1]:.1f}&#8202;N&#8202;mm ({shp}). A torque outside "
-         "half to twice these falsifies the pads&#8217; friction torque."),
+         "The comparison of trajectories remains."),
+        ("Friction torque of the print on the force sensor&#8217;s axis.", "In the inverted rig&#8217;s probe mode the probe "
+         "sits on the HEX-E and the tip in a seat. Press the 5&#8202;mm sphere probe on the face centre of a seated v3 tip at 1, "
+         "2.5 and 5&#8202;N, and twist it about the sensor&#8217;s axis 5&#8211;20&#176; out and back, five repeats. The torsion "
+         "is then read without the push&#8217;s moment. At the joint modulus and the slides&#8217; friction coefficients the pads "
+         f"spin at {C5['twists']['low_1']['pads']:.2f}, {C5['twists']['low_2.5']['pads']:.2f} and "
+         f"{C5['twists']['low_5']['pads']:.2f}&#8202;N&#8202;mm at the v3 twists&#8217; forces ({_a(V3_PAGE, 'v3 contact-model page')}). "
+         "A torque outside half to twice these falsifies the pads&#8217; friction torque."),
         ("Step bound on the hand.", "Bisect the spectral radius of MuJoCo&#8217;s one-step map (<code>mjd_transitionFD</code>) "
          "about the held pinch of task&#160;7 on the test bed, for its 21 pad pairs and 3 point-contact pairs. Do it with the "
          "rails&#8217; damping on and off, and then about the hand&#8217;s grip. Record whether the unstable mode lies in the friction "

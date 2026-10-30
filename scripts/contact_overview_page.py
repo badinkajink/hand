@@ -201,7 +201,7 @@ GLOSSARY = [
 # terms of the first part (the printed fingertip, its FE model and the UR5 presses), shown on this page only
 GLOSSARY_CHAIN = [
     ("UR5 presses, HEX-E", "A UR5 arm pressed the printed pad of DIP link b onto a sphere of radius 5&#8202;mm or a rod of "
-            "radius 12.5&#8202;mm at registered points. Each press stopped at force levels of 0.25&#8211;5&#8202;N, each held for "
+            "radius 12.5&#8202;mm at registered points. Each press stopped at force levels of 0.25&#8211;8&#8202;N, each held for "
             "about 1.5&#8202;s (a hold). An OptoForce HEX-E six-axis force-torque sensor between the arm&#8217;s flange and the "
             "finger measured the force."),
     ("registered indentation", "The depth of the indenter below the pad&#8217;s nominal surface, from the robot&#8217;s pose and "
