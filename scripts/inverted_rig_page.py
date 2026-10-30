@@ -574,6 +574,15 @@ def block_text(fig_path):
             dc[float(k)] = dc.get(float(k), 0) + v
     if dc:
         n_all, deep = sum(dc.values()), sum(v for k, v in dc.items() if k >= 1.25)
+        pc = BLOCK / "data" / f"{R.BLOCK_STEM}_pass1_check.json"
+        if pc.exists():
+            pk = json.loads(pc.read_text())["seats"]
+            nfl = sum(v["flagged"] for v in pk.values())
+            text += (f"<p>The lab's program takes 20 of each plan's presses as pass 1's touch-offs, from 3.5 mm back along "
+                     f"the push, and four touch-offs on the tip's flat side walls. On each wall the two touches stand 6 mm "
+                     f"apart in height, on the cap's distal strip, for the tip's turn about its long axis. In the "
+                     f"program's order, with the travels between them, they replay with "
+                     f"{'no move' if nfl == 0 else f'{nfl} moves'} under a margin on the three seats.</p>")
         text += (f"<p>The plans are checked with each press 1.0 mm past contact. Each action also records the deepest "
                  f"press that it clears, in 0.25 mm steps to 2.0 mm, with every step of a twist checked at that depth. "
                  f"{deep} of the {n_all} actions clear 1.25 mm or more; with the 5 mm sphere on the tall indenter, 3 N "

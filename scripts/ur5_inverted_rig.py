@@ -783,9 +783,12 @@ def seat_sdfs(PA, st, cut_near=None):
         body[near] = _tree_sdf(PF[near], "body")
         pad[near] = _tree_sdf(PF[near], "pad")
     out["tip body"] = np.min(np.stack([body] + [CELL.sd_box(PF, lo, hi) for _, lo, hi in CELL.held_board_boxes_F()]), axis=0)
-    if cut_near is not None:
-        pad = np.where(np.linalg.norm(PA - cut_near[0], axis=1) < cut_near[1], 1e9, pad)
     out["pad"] = pad
+    if cut_near is not None:                   # (point, radius[, part or parts]): those left out near the contact
+        parts = cut_near[2] if len(cut_near) > 2 else "pad"
+        near = np.linalg.norm(PA - cut_near[0], axis=1) < cut_near[1]
+        for part in ((parts,) if isinstance(parts, str) else parts):
+            out[part] = np.where(near, 1e9, out[part])
     return out
 
 
@@ -829,7 +832,7 @@ def plate_sdfs(PA, g, T_BA, contact=None, reach=20.0):
                                           CELL.sd_box(P, (cx - r["R"], cy - hl, r["box_z0"]), (cx + r["R"], cy + hl, r["z_axis"])),
                                           CELL.sd_cyl_y(P, r["R"], cy - hl, cy + hl, xz=(cx, r["z_axis"]))])
     for i, st in enumerate(g["seats"]):
-        cut = (contact[1], contact[2]) if contact is not None and contact[0] == i else None
+        cut = tuple(contact[1:]) if contact is not None and contact[0] == i else None
         for k, v in seat_sdfs(P, st, cut_near=cut).items():
             parts[f"seat {i + 1} {k}"] = v
     for k, v in parts.items():
@@ -1022,7 +1025,7 @@ def try_poses(ctx, T_rest, T_deep, sym, owner, contact, need_clear=True):
     return False, last or dict(why=["ik"])
 
 
-def search_sphere(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=True):
+def search_sphere(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=True, cut=None):
     """The first stem direction, in the order of preference, at which a sphere press at pad point p (A) with outward
     normal n and push direction d passes. The stems tried point away from the pad (u.n >= -0.2) and not steeply down
     (u_z >= -0.5); the preferred one lies between the normal and U_ROBOT."""
@@ -1043,7 +1046,7 @@ def search_sphere(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=Tru
     if not len(cand):
         return False, dict(why={"j5" if fin.any() else "ik": int(len(U))}, n_u=0)
     why, n_try = {}, 0
-    contact = (seat_i, p, EXCL[ctx["tool"]])
+    contact = (seat_i, p) + (cut if cut is not None else (EXCL[ctx["tool"]],))
     for k in cand:
         ok, info = try_poses(ctx, T_rest[k], T_deep[k], True, owner, contact, need_clear)
         if ok:
@@ -1540,6 +1543,181 @@ def cmd_home_check(a):
     print("->", dst)
 
 
+WALL = dict(z_F=-99.4, x_F=(1.0, 7.0), standoff=3.5, beyond=0.3, cut=2.5, parts=("tip body", "block"))
+#   the tip's side walls (lab, 14:55 on 10-30: the seat's turn about z_P, the tip's long axis, is loose in pass 1). The
+#   plane y_F = +-10.5 is flat on the cassette and the cap only 2 to 2.5 mm high over most of the tip's length; at the
+#   distal end the cap's strip z_F -99.75 to -99.0 is flat from x_F 0.5 to 8.0, so two touches there stand 6 mm apart.
+#   Rigid PLA stops the probe at its 1 N within about 0.01 mm, so the deep pose is 0.3 mm past the wall; the station
+#   block's side face lies in the same plane and is left out near the contact with the cassette and the cap.
+
+
+def wall_faces():
+    """The cassette's outer side faces in F, per side (+1, -1): their triangles projected on (x_F, z_F)."""
+    out = {}
+    for side in (1, -1):
+        tri = []
+        for name in ("cover", "cap"):
+            m = CELL.part_F(name)
+            k = (m.face_normals[:, 1] * side > 0.98) & (np.abs(m.triangles_center[:, 1] - side * 10.5) < 0.05)
+            tri.append(m.triangles[k][:, :, [0, 2]])
+        out[side] = np.concatenate(tri)
+    return out
+
+
+def _on_face(tri, xz, margin=0.4):
+    """Whether the point xz lies on the faces tri, and every point margin mm round it too."""
+    pts = [np.asarray(xz) + margin * np.array([math.cos(t), math.sin(t)]) for t in np.linspace(0, 2 * math.pi, 9)[:-1]]
+    def inside(q):
+        a, b, c = tri[:, 0], tri[:, 1], tri[:, 2]
+        v0, v1, v2 = c - a, b - a, q - a
+        d00, d01, d11 = (v0 * v0).sum(1), (v0 * v1).sum(1), (v1 * v1).sum(1)
+        d20, d21 = (v2 * v0).sum(1), (v2 * v1).sum(1)
+        den = d00 * d11 - d01 ** 2
+        u, v = (d11 * d20 - d01 * d21) / den, (d00 * d21 - d01 * d20) / den
+        return bool(((u >= -1e-9) & (v >= -1e-9) & (u + v <= 1 + 1e-9)).any())
+    return all(inside(q) for q in [np.asarray(xz)] + pts)
+
+
+def cmd_walls(a):
+    """Touch-offs on the cassette's side walls, two heights per wall on each seat: the plane's point and normal in P and in
+    A, the stem the search finds with the cassette left out within WALL["cut"] mm of the contact, the rest WALL["standoff"]
+    mm back along the push and the deep pose WALL["beyond"] mm past contact; data/<stem>_walls.json."""
+    faces = wall_faces()
+    res = dict(what="touch-offs on the cassette's flat side walls for the seat's turn about z_P: the sphere's centre to the "
+                    "wall's plane, minus R, is the fit's residual", wall=WALL, seats={})
+    for seat in (0, 1, 2):
+        HOME_KEY[0] = 1 if seat == 2 else 0
+        ctx = context(dict(orient=LAYOUT["orient"], seat_h=SEAT_BLOCK["seat_h"]), tool="sphere5")
+        ctx["seat"] = seat
+        st = ctx["g"]["seats"][seat]
+        T_AF = np.asarray(st["T_AF"], float)
+        T_AP = T_AF @ T_FP
+        acts = []
+        st0, dp0 = ST, DEEP
+        globals()["ST"], globals()["DEEP"] = WALL["standoff"], WALL["beyond"]
+        try:
+            for side in (1, -1):
+                for xf in WALL["x_F"]:
+                    if not _on_face(faces[side], (xf, WALL["z_F"]), margin=0.3):
+                        raise SystemExit(f"no wall face at x_F {xf}, z_F {WALL['z_F']} on side {side}")
+                    pF, nF = np.array([xf, side * 10.5, WALL["z_F"]]), np.array([0.0, float(side), 0.0])
+                    pA, nA = C.apply(T_AF, pF), T_AF[:3, :3] @ nF
+                    ok, info = search_sphere(ctx, seat, pA, nA, -nA, cut=(WALL["cut"], WALL["parts"]))
+                    wid = f"wall-{'py' if side > 0 else 'ny'}-{'lo' if xf == max(WALL['x_F']) else 'hi'}"
+                    if not ok:
+                        print(f"seat {seat + 1} {wid}: not reached ({info.get('why')})", flush=True)
+                        continue
+                    pP, nP = C.apply(C.inv(T_AP), pA), T_AP[:3, :3].T @ nA
+                    Tr = info["T_rest"]
+                    R_PM = T_AP[:3, :3].T @ ctx["T_BA"][:3, :3].T @ Tr[:3, :3] @ ctx["T_EM"][:3, :3]
+                    acts.append(dict(id=wid, kind="touch", region="wall", standoff_mm=WALL["standoff"],
+                                     beyond_mm=WALL["beyond"], plane=dict(point_P=pP.round(4).tolist(), normal_P=nP.round(6).tolist(),
+                                     point_A=pA.round(4).tolist(), normal_A=nA.round(6).tolist()),
+                                     target=dict(frame="P", p=pP.round(4).tolist(), n=nP.round(6).tolist(),
+                                                 d=(-nP).round(6).tolist(), R_PM=R_PM.round(7).tolist()),
+                                     p_A=pA.round(4).tolist(), n_A=nA.round(6).tolist(), d_A=(-nA).round(6).tolist(),
+                                     u_A=info["u"], T_rest=Tr.round(6).tolist(), T_deep=info["T_deep"].round(6).tolist(),
+                                     q_rest=np.asarray(info["q"]).round(6).tolist(), j5=info["j5"], j6=info["j6"]))
+                    print(f"seat {seat + 1} {wid}: stem {info['u']}, joint 5 {info['j5']}, joint 6 {info['j6']}", flush=True)
+        finally:
+            globals()["ST"], globals()["DEEP"] = st0, dp0
+        res["seats"][str(seat + 1)] = dict(T_AP=T_AP.round(6).tolist(), actions=acts)
+    dst = OUT / "data" / f"{STEM}_walls.json"
+    dst.write_text(json.dumps(res, default=float) + "\n")
+    print("->", dst)
+
+
+def cmd_pass1_check(a):
+    """The lab's pass 1 as its converter writes it (scripts/ur5_probe_plan.py PLAN --pass1-standoff MM): the touch-offs in
+    their order, each from its rest a.standoff mm back along d to beyond_mm past contact and back, the joint travels
+    between them (back SAFE along the stem, a joint move, in), the first from the homing out of the key, and the travel
+    into the first action after pass 1. Joints at every sample, clearances as cmd_replay takes them."""
+    t0 = time.time()
+    out = dict(what="pass 1 of the lab's program plans replayed: touch-offs with their own standoff and beyond_mm, the "
+                    "travels between them in the converter's order, and the travel into stage 2's first action",
+               program_plans=a.program, rows=[], seats={})
+    for f in a.program:
+        prog = json.loads(Path(f).read_text())
+        src = json.loads((ROOT / prog["checks"]["source"]).read_text())
+        seat = int(src["seat"])
+        HOME_KEY[0] = int(prog["homing"]["key"])
+        ctx = context(dict(orient=src["orient"], seat_h=SEAT_BLOCK["seat_h"]), tool=src["tool"])
+        ctx["seat"] = seat
+        ctx["hub"] = hub(ctx, seat)
+        st = ctx["g"]["seats"][seat]
+        P_A = C.apply(np.asarray(st["T_AF"], float) @ T_FP, ctx["pts_P"])
+        byid = {x["id"]: x for x in src["actions"]}
+        touches = [x for x in prog["actions"] if x["stage"] == "pad"]
+        nxt = next(x for x in prog["actions"] if x["stage"] != "pad")
+        R_BA = ctx["T_BA"][:3, :3]
+        q = start_q(ctx)
+        T_prev, flagged, least = None, 0, {}
+
+        def poses(x, standoff, beyond):
+            if x.get("_wall"):                          # built at its own standoff and depth
+                return np.array(x["T_rest"], float), np.array(x["T_deep"], float)
+            d_B = R_BA @ np.asarray(x["d_A"], float)
+            Tr, Td = np.array(x["T_rest"], float), np.array(x["T_deep"], float)
+            Tr[:3, 3] -= (standoff - src.get("standoff_mm", ST)) * d_B
+            Td[:3, 3] += (beyond - src.get("deep_mm", DEEP)) * d_B
+            return Tr, Td
+
+        seq = [(t, byid["probe-" + t["id"][len("pad-"):]], float(t["standoff"]), float(t["beyond_mm"])) for t in touches]
+        wf = OUT / "data" / f"{STEM}_walls.json"
+        walls = json.loads(wf.read_text())["seats"].get(str(seat + 1), {}).get("actions", []) if a.walls and wf.exists() else []
+        for w in walls:                                 # after the pad's touch-offs: at the wall's own rest and depth
+            x = dict(w, i=None, T_rest=w["T_rest"], T_deep=w["T_deep"])
+            seq.append((dict(id=w["id"]), dict(x, _wall=True), float(w["standoff_mm"]), float(w["beyond_mm"])))
+        seq.append((nxt, byid[nxt["id"]], float(src.get("standoff_mm", ST)), None))
+        for k, (t, x, sto, beyond) in enumerate(seq):
+            Tr, Td = poses(x, sto, beyond if beyond is not None else src.get("deep_mm", DEEP))
+            act = dict(x, T_rest=Tr, q_rest=np.asarray(x["q_rest"], float))
+            if x.get("_wall") and T_prev is not None:   # the walls: the replay's choice (straight, joint, hub)
+                way, tsm, why, cl = pick_travel(ctx, T_prev, q, act, a.owner)
+                why = list(why)
+            else:
+                if T_prev is None:                      # from the homing: the lift the plan names
+                    opts = dict(travel_options(ctx, None, q, act))
+                    segs = opts[f"joint-lift{float(t.get('homing_lift_mm', LIFT[0])):g}"]
+                    way = f"joint-lift{float(t.get('homing_lift_mm', LIFT[0])):g}"
+                else:
+                    a0, a1 = back_along(T_prev, ctx, SAFE), back_along(Tr, ctx, SAFE)
+                    segs, way = [("L", T_prev, a0), ("J", a0, a1, act["q_rest"]), ("L", a1, Tr)], "joint"
+                tsm, why = sample_all(segs, q, a.owner)
+                cl = clear_of(ctx, tsm, None) if not why else {}
+                why = list(why) + clear_flags(cl)
+            q = tsm[-1][5] if tsm else q
+            row = dict(seat=seat + 1, k=k + 1, id=t["id"], travel=way, standoff_mm=sto, beyond_mm=beyond)
+            if beyond is not None:                      # the touch-off itself, to beyond_mm past contact and back
+                osm, why_o = sample_all([("L", Tr, Td), ("L", Td, Tr)], q, a.owner)
+                cut = ((seat, np.asarray(x["p_A"], float), WALL["cut"], WALL["parts"]) if x.get("_wall")
+                       else (seat, P_A[x["i"]], EXCL[ctx["tool"]]))
+                for g_, v in clear_of(ctx, osm, cut).items():
+                    if v[0] < cl.get(g_, (1e9, ""))[0]:
+                        cl[g_] = v
+                why = [w for w in why if "mm to" not in w] + [f"{w} (own)" for w in why_o] + clear_flags(cl)
+                q = osm[-1][5] if osm else q
+            row.update(flags=sorted(set(why)), clear={g_: [round(v[0], 2), v[1]] for g_, v in cl.items()})
+            out["rows"].append(row)
+            flagged += bool(row["flags"])
+            for g_, v in cl.items():
+                if v[0] < least.get(g_, (1e9, ""))[0]:
+                    least[g_] = v
+            if row["flags"]:
+                print(f"  seat {seat + 1} {t['id']}: {'; '.join(row['flags'])}", flush=True)
+            T_prev = Tr
+        out["seats"][str(seat + 1)] = dict(n=len(seq), flagged=flagged,
+                                           walls=[dict(id=r["id"], travel=r["travel"]) for r in out["rows"]
+                                                  if r["seat"] == seat + 1 and r["id"].startswith("wall-")],
+                                           least={g_: [round(v[0], 2), v[1]] for g_, v in least.items()})
+        print(f"seat {seat + 1}: {len(touches)} touch-offs and the travel into {nxt['id']}: {flagged} flagged; least "
+              + json.dumps({g_: round(v[0], 2) for g_, v in least.items()}), flush=True)
+    out["seconds"] = round(time.time() - t0, 1)
+    dst = OUT / "data" / f"{STEM}_pass1_check.json"
+    dst.write_text(json.dumps(out, default=float) + "\n")
+    print("->", dst)
+
+
 # ------------------------------------------------------------------------------------------------ the film
 FILM_PICKS = (("press", "face", 0.0, "Press on the face"), ("press", "edge", 0.0, "Press on an edge"),
               ("press", "flank", 0.0, "Press on a flank"), ("press", "tip", 0.0, "Press on the tip's end"),
@@ -1666,6 +1844,11 @@ def main():
     ik.add_argument("--n", type=int, default=200)
     sub.add_parser("build")
     sub.add_parser("home-check")
+    pc = sub.add_parser("pass1-check")
+    pc.add_argument("program", nargs="+", help="the lab's program plans (scripts/ur5_probe_plan.py PLAN --pass1-standoff MM)")
+    pc.add_argument("--owner", action="store_true")
+    pc.add_argument("--walls", action="store_true", help="add data/<stem>_walls.json's touch-offs after the pad's")
+    sub.add_parser("walls")
     sb = sub.add_parser("seat-beam")
     sb.add_argument("--orient", default=",".join(ORIENT))
     sb.add_argument("--wall", type=float, default=2.0)
@@ -1717,7 +1900,8 @@ def main():
         globals()["DEEP"] = a.deep
     if getattr(a, "h", 0.0) is None:                    # the plate's own seat height
         a.h = (SEAT_BLOCK if PLATE[0] == "block" else LAYOUT)["seat_h"]
-    dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam, "home-check": cmd_home_check}, build=cmd_build,
+    dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam, "home-check": cmd_home_check,
+            "pass1-check": cmd_pass1_check, "walls": cmd_walls}, build=cmd_build,
          reach=cmd_reach, replay=cmd_replay, film=cmd_film)[a.cmd](a)
 
 
