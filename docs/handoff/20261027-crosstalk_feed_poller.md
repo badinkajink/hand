@@ -11,7 +11,13 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-30 11:39: the plain watcher exited 0 at 11:36 on line 30
+State: armed 2026-10-27 21:00 from the colorado window. 10-30 12:07: the watcher exited 0 at 12:05 on line 31 (11:54,
+bb8f63ae, kind calibration: the inverted rig's seat block at plate v2e's place, owner 11:2x and 11:4x). Calibration page
+f6007b50: the rig item holds the tips on the block's three seats (the tall indenter and the holder off, the low sphere
+and the rod on, homing on the low sphere's key; prints 6 h 11 min and 10 h 44 min); Section 13 and the
+tall-against-low-sphere item drop v2e's single sphere (the tall indenter is off while the block is on; rig page Section
+8). The overview's index row for the rig page followed its summary. Acked 31 lines and 34 commits at HEAD f6007b50.
+10-30 11:39: the plain watcher exited 0 at 11:36 on line 30
 (11:22, 99763b9f, kind calibration: the HEX-E's losses against the joints). Calibration page 5046e4ca: Section 14's HEX-E
 sentences follow the analysis (nine losses in 62.1 h over 23 sessions since 10-25, each as the arm arrived at a pose
 that kept the link alive at other times; a loss after 4 of 138 upward travels and 4 of 1,830 others; 00:07 and 11:02 on
