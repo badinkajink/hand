@@ -80,7 +80,7 @@ ROWS = C.ROWS
 N_AP = 24                              # alternating projections for the block-cylinder witness points
 N_AP_WARM = 4                          # ... per control period for the v4b pad, from the previous period's point
 DMAX = 4                               # longest measurement delay, control periods
-OVER_OK = {"dt", "contact_force_min", "force_loop_gain"}    # the HomParams a variant may change here
+OVER_OK = {"dt", "contact_force_min", "force_loop_gain", "reanchor"}    # the HomParams a variant may change here
 FP_ROWS = {"2dfp": "rrt2d", "rrt6d": "rrt6d", "sobol8k": "sobol8k", "sobol6d": "sobol6d"}
 
 
@@ -352,7 +352,8 @@ def variant_world(var, seed, dt_default=T.DT_C):
     else:
         mode = 3                                           # Gaussian noise on the centre of pressure and force
     p = {"var": var, "dt": dt, "cfmin": over.get("contact_force_min", hp.contact_force_min),
-         "flg": over.get("force_loop_gain", hp.force_loop_gain), "mode": mode,
+         "flg": over.get("force_loop_gain", hp.force_loop_gain), "reanchor": float(over.get("reanchor", hp.reanchor)),
+         "mode": mode,
          "pos_mm": nz.get("pos_mm", 0.0), "rot_deg": nz.get("rot_deg", 0.0), "cop_mm": nz.get("cop_mm", 0.0),
          "f_N": nz.get("f_N", 0.0), "delay": int(round(nz.get("delay_s", 0.0) / dt)), "tip_k": float(nz.get("tip_model", 0.0)),
          "f_bias": nz.get("f_bias", 0.0), "f_min": nz.get("f_min", T.TIP_F_MIN)}
@@ -434,7 +435,8 @@ class Batch:
     NEWTON_IT = 6                          # Newton steps of the pad's closest point (surfaces.ellipsoid_closest)
     CAPTURE = True                         # run the task phase's control period as a captured CUDA graph
 
-    def __init__(self, scene: Scene, task, worlds, dt, gen_seed=0):
+    def __init__(self, scene: Scene, task, worlds, dt, gen_seed=0, phys_dt=None):
+        """phys_dt: the physics step (s), the scene's 1 ms when None; a control period takes dt / phys_dt steps."""
         import mujoco
         import mujoco_warp as mjw
         import torch
@@ -444,6 +446,8 @@ class Batch:
         self.prm = H.HomParams(dt=dt)
         W = self.W = len(worlds)
         m = mocap_model(scene.pads_path)
+        if phys_dt is not None:
+            m.opt.timestep = phys_dt
         self.m = m
         self.ob = m.body(S.OBJ).id
         # pads, and the v4b tip's small rigid spheres (cassette, cap, the DIP link's fine ones, r < 2 mm), meet the object
@@ -841,6 +845,9 @@ class Batch:
         V = [wd_["var"] for wd_ in self.worlds]
         self.cfmin = T_([v["cfmin"] for v in V])
         self.flg = T_([v["flg"] for v in V])
+        self.ra_w = T_([v["reanchor"] for v in V])
+        self.ra_any = bool((self.ra_w > 0).any())
+        self.n_ra = th.zeros((self.W, 3), dtype=f64, device=dev)            # re-anchored periods per finger
         self.mode = T_([v["mode"] for v in V], th.long)
         self.delay = T_([v["delay"] for v in V], th.long)
         for k in ("pos_mm", "rot_deg", "cop_mm", "f_N", "tip_k", "f_bias", "f_min"):
@@ -1036,7 +1043,13 @@ class Batch:
         n_act = th.einsum("wfij,wfj->wfi", Rb, n_act_l)
         # the impedance of the 'reference' mode, and gravity
         Ja = th.cross(axs, p_act[:, :, None, :] - anc, dim=-1).transpose(-1, -2)        # (W, 3, 3xyz, 3j)
-        gap = (dist - (n_act * th.einsum("wfij,wfj->wfi", Ja, self.theta_ref - theta)).sum(-1)).clamp(0.0, pr.gap_max)
+        gap = dist - (n_act * th.einsum("wfij,wfj->wfi", Ja, self.theta_ref - theta)).sum(-1)
+        if self.ra_any:                                    # hom.HomParams.reanchor
+            ra = (self.ra_w[:, None] > 0) & touching & (force > 0) & (gap > pr.gap_max)
+            self.theta_ref.copy_(th.where(ra[..., None], theta, self.theta_ref))
+            gap = th.where(ra, dist, gap)
+            self.n_ra.add_(ra.to(f64))
+        gap = gap.clamp(0.0, pr.gap_max)
         JJ = Ja @ Ja.transpose(-1, -2) + pr.dls ** 2 * I3
         step = solve3(JJ, gap[..., None] * n_act)
         imp = th.einsum("wfij,wfi->wfj", Ja, step) + th.einsum("wfij,wfi->wfj", Ja, force[..., None] * n_act) / self.kp_t
@@ -1052,7 +1065,8 @@ class Batch:
         th = self.torch
         sm = {k: v.clone() for k, v in meas.items()}
         sV = V_obj.clone()
-        keep = [x.clone() if x is not None else None for x in (self.theta_ref, self.c1, self.ap_x)]
+        state = (self.theta_ref, self.c1, self.ap_x, self.n_ra)
+        keep = [x.clone() if x is not None else None for x in state]
         st = th.cuda.Stream()
         st.wait_stream(th.cuda.current_stream())
         with th.cuda.stream(st):
@@ -1062,7 +1076,7 @@ class Batch:
         g = th.cuda.CUDAGraph()
         with th.cuda.graph(g):
             out = self.control(t, sm, mv, sV, self.s_t)
-        for x, k in zip((self.theta_ref, self.c1, self.ap_x), keep):
+        for x, k in zip(state, keep):
             if x is not None:
                 x.copy_(k)
         return g, sm, sV, out
@@ -1172,7 +1186,8 @@ class Batch:
         wp.synchronize()
         wall = time.perf_counter() - t0
         out = {k: v.cpu().numpy() for k, v in rec.items()}
-        final = {"pos": vw["qpos"][:, self.qa:self.qa + 3].cpu().numpy(), "ftot": ftot.cpu().numpy()}
+        final = {"pos": vw["qpos"][:, self.qa:self.qa + 3].cpu().numpy(), "ftot": ftot.cpu().numpy(),
+                 "n_ra": self.n_ra.cpu().numpy()}
         return out, final, phases, np.array(wrefs), times, thref, wall
 
     def score(self, rec, final, phases, wrefs, times, thref):
@@ -1197,7 +1212,10 @@ class Batch:
                                v_ref_mms=(1e3 * rec["vr"][k, w]).tolist())
                 rows.append(row)
             se = {"pos": final["pos"][w], "Ftot": {f: float(final["ftot"][w, i]) for i, f in enumerate(FINGERS)}}
-            out.append(T.metrics(self.task, wd_["setup"], rows, {"ok": True}, se))
+            res = T.metrics(self.task, wd_["setup"], rows, {"ok": True}, se)
+            if self.ra_any:
+                res["reanchors"] = {f: int(final["n_ra"][w, i]) for i, f in enumerate(FINGERS)}
+            out.append(res)
         return out
 
 

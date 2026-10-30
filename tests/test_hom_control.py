@@ -335,6 +335,42 @@ def test_impedance_target_on_the_surface_from_a_lagging_reference():
     assert advance["gap"] == pytest.approx(g.dist + press - behind, rel=1e-3)
 
 
+def test_reanchor_in_contact_beyond_the_cut():
+    """HomParams.reanchor: a touching finger whose reference lies more than gap_max behind the surface is set to its
+    measured angles, and the target presses F from the surface; without it the cut leaves the target short by the lag
+    less the cut. Apart from the object the rule does nothing."""
+    mujoco = pytest.importorskip("mujoco")
+    m = mujoco.MjModel.from_xml_string(XML.replace("<mujoco>", '<mujoco><compiler angle="radian"/>', 1))
+    fs = H.FingerSpec("f", ["j0", "j1", "j2"], "tip", "tipgeom", "j2", Posed(Sphere(0.01), pos=[0.03, 0, 0]))
+    mirror = H.Mirror(m, [fs], H.ObjectSpec("obj", "objgeom", Posed(Sphere(0.02))))
+    q, quat = np.zeros(3), np.array([1.0, 0.0, 0.0, 0.0])
+    lag = np.array([0.0, -0.02, 0.0])                       # the reference 1.6 mm behind the finger
+    F, cut = 0.5, 0.0005
+    for z, touching in ((0.0705, True), (0.068, False)):   # the object 0.5 mm into the tip, or 2 mm below it
+        pos = np.array([0.08, 0.0, z])
+        mirror.set_state({"f": q}, pos, quat)
+        g = mirror.gcf_witness("f")
+        assert (g.dist <= 0.0) == touching
+        Jp, _ = mirror.jac("f", g.p1)
+        press = F * float(((Jp.T @ g.x1) ** 2 / mirror.kp["f"]).sum())
+        behind = -g.x1 @ (Jp @ lag)
+        assert g.dist + behind > cut
+        advance = {}
+        for ra in (False, True):
+            ctl = H.HomController(mirror, H.HomParams(use_filter=False, gravity_ff=False, dls=1e-6, gap_max=cut,
+                                                      reanchor=ra))
+            ctl.reset({"f": q + lag})
+            out, info = ctl.step(H.Measurement(q={"f": q}, obj_pos=pos, obj_quat=quat),
+                                 H.HandCommand(fingers={"f": H.FingerCommand(force=F)}))
+            advance[ra] = g.x1 @ (Jp @ (out["f"] - q))
+            assert info["f"]["reanchored"] == (ra and touching)
+        if touching:
+            assert advance[False] == pytest.approx(cut + press - behind, abs=2e-6)
+            assert advance[True] == pytest.approx(press, abs=2e-6)
+        else:
+            assert advance[True] == pytest.approx(advance[False], abs=1e-12)
+
+
 def test_step_info_parts_sum_to_the_target(mirror):
     """The step's info holds the period's intermediates: the reference moves by dt u (inside the lead and the limits),
     and the servo target is that reference plus the gap, force and gravity offsets."""

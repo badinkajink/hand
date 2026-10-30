@@ -950,6 +950,7 @@ VARIANTS = {
     "gapq": ({"impedance": "gap"}, None),             # the impedance gap at the measured angles, while apart (before 10-22)
     "surface": ({"impedance": "surface"}, None),      # ... and also in contact
     "floop": ({"force_loop_gain": 0.01}, None),       # v_sep += 10 mm/s per N of force error (needs fingertip force)
+    "reanchor": ({"reanchor": True}, None),           # a touching finger's reference re-anchored beyond the gap cut
     # 2026-10-29, the fingertip sensing review (docs/experiments/20261029-hom_control_review): 50 Hz, the tag tracker
     # as in "sense" (0.5 mm, 1 deg, every measurement 40 ms late), and the fingertips absent or as measured
     "notip0": ({"dt": 0.02}, {"no_tip": True}),                            # no fingertips, exact object pose

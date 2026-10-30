@@ -7,8 +7,10 @@ with examples with our own hand, matching the hom paper and our own new tasks"; 
 page (a subpage linked out of from the main hom docpage), then so be it".
 
 Reads docs/experiments/20261029-hom_control_review/rows/20261030-code_{twist,pinpush}.json and media/20261030-code_*
-(scripts/hom_code_trace.py), rows/20261030-cpu_{twist_d40,pinpush_d25}.jsonl (hom_gpu.py cpu-check) and the GPU queue's
-grid rows (docs/experiments/20261029-foundational_pose_review/rows/grid2d_v4b). Mathematics through scripts/texsvg.py.
+(scripts/hom_code_trace.py), rows/20261030-cpu_{twist_d40,pinpush_d25}.jsonl (hom_gpu.py cpu-check), the GPU queue's
+grid rows (docs/experiments/20261029-foundational_pose_review/rows/grid2d_v4b), and the re-anchor check
+(scripts/hom_reanchor_check.py: rows/20261030-reanchor_check.json, media/20261030-reanchor_*, and the design page's
+rows/grid2d_v4b_reanchor/summary.json). Mathematics through scripts/texsvg.py.
 
     .venv/bin/python scripts/hom_code_page.py              # figures and page
     .venv/bin/python scripts/hom_code_page.py --numbers    # the numbers the prose quotes
@@ -65,6 +67,12 @@ def fill(s, **kw):
     return s
 
 
+def sci(x):
+    """x in LaTeX as one significant figure times a power of ten."""
+    m, e = f"{x:.0e}".split("e")
+    return f"{float(m):.0f}\\times 10^{{{int(e)}}}"
+
+
 def data_uri(p, mime):
     return f"data:{mime};base64,{base64.b64encode(Path(p).read_bytes()).decode()}"
 
@@ -72,7 +80,8 @@ def data_uri(p, mime):
 def img(path, caption, width=None):
     FIG[0] += 1
     w = f' style="max-width:{width}px"' if width else ""
-    return (f'<figure><img src="{data_uri(path, "image/png")}" alt=""{w}>'
+    mime = "image/jpeg" if Path(path).suffix.lower() in (".jpg", ".jpeg") else "image/png"
+    return (f'<figure><img src="{data_uri(path, mime)}" alt=""{w}>'
             f'<figcaption>Figure {FIG[0]}. {caption}</figcaption></figure>')
 
 
@@ -601,6 +610,21 @@ def build():
     mdl = tw["model"]
     st = {s_["step"]: s_ for s_ in res_tw["steps"]}
     sk = {s_["stroke"]: s_ for s_ in res_pp["strokes"]}
+    RA = json.loads((ROWS / "20261030-reanchor_check.json").read_text())       # scripts/hom_reanchor_check.py cpu
+    RS = json.loads((GRID.parent / "grid2d_v4b_reanchor" / "summary.json").read_text())   # ... grid
+    rv = RS["validation_s345_same_code"]
+    ra_t = [p_["t"] for p_ in RA["reanchor"]["periods"] if p_["reanchored"]]
+    n_sq = sum(1 for t_ in ra_t if t_ < 2.0)
+
+    def yaw_at(var, t):
+        return abs(next(p_["yaw_deg"] for p_ in RA[var]["periods"] if p_["t"] >= t - 1e-9))
+    mcp_hi = math.degrees(pp["limits"]["middle"]["hi"][1])
+    sq_pp = [q for q in pp["periods"] if 0.85 <= q["t"] < 1.6]
+    f_th = float(np.median([q["fingers"]["thumb"]["F"] for q in sq_pp]))
+    f_ix = float(np.median([q["fingers"]["index"]["F"] for q in sq_pp]))
+    r_cyl = 1e3 * pp["setup"]["r"]
+    m_press = 1.5 * lever
+    m_fric = mdl["pad_friction"][0] * (f_th + f_ix) * r_cyl * 1e-3
 
     # ---------------------------------------------------------------- 2. the period
     def ex(f, key, k=1, conv=deg):
@@ -914,6 +938,57 @@ was cut at 6 mm, and the target ended a median <<dm>> deg beyond the measured MC
 median <<fmid>> N of its commanded 1.5 N (Figure 5).</p>""", ft=f"{p_sq['fingers']['thumb']['F']:.1f}", fi=f"{p_sq['fingers']['index']['F']:.1f}",
                   fm=f"{p_sq['fingers']['middle']['F']:.1f}", yaw=f"{yaw[0] - yaw[1]:.1f}", m0=f"{mcp[0]:.1f}",
                   m1=f"{mcp[1]:.1f}", cap=f"{100 * capped:.0f}", dm=f"{d_mcp:.2f}", fmid=f"{f_mid:.2f}")
+    s_imp += fill(r"""<p>Re-anchoring the reference raises the middle finger's force, and the pin-push then tracks worse
+(Figures 6 to 8). With <code>HomParams.reanchor</code>, a finger in contact whose gap exceeds $g_{\max}$ has its reference
+set to its measured angles (<code>HomController.reanchor</code>). The gap step then starts from the surface, and the
+target presses with $F$. The variant <code>reanchor</code> of <code>hom_tasks.VARIANTS</code> runs it on the CPU and on
+the GPU. In the example the middle finger's reference was re-anchored <<nsq>> times in the squeeze, from
+<<t0>> s on, and <<ntk>> times in the task. Its mean force over the task rose from <<fa>> to <<fb>> N. After each re-anchor
+the finger pressed harder, and each harder press pushed the cylinder's free end further sideways. By the lift the
+cylinder had yawed <<yb>> deg, against <<ya>> deg without the re-anchor, and <<yc>> deg in the up stroke. The middle's MCP reached its <<lim>> deg limit.
+The pinch-angle RMSE rose from <<ra>> to <<rb>> deg.</p>
+<p>The middle presses along the pinch axis, <<lev>> mm from it, so its force is a moment about the vertical. Only the
+pinch's friction resists that moment. A 1.5 N press is a moment of <<mp>> N m. The thumb and the index pressed <<fth>>
+and <<fix>> N in the squeeze, on the cylinder's <<rc>> mm radius. At a friction coefficient of <<mu>>, their friction
+resists at most about <<mf>> N m. The cut at $g_{\max}$ held the middle's force near 0.3 N, and that weak press kept the
+yaw at <<ya>> deg.</p>
+<p>On the GPU the variant ran on the 25 mm grid's validation worlds, <<nv>> rollouts. These are each layout's
+foundational pose and best grasp on seeds 3 to 5, and the same code ran them without the re-anchor. The middle finger was re-anchored in <<rm>> % of the
+runs, a median of <<nrm>> times. In the runs held by both, its mean force over the task rose from a median <<gfa>> to
+<<gfb>> N, and it exceeded 1 N in <<o1>> % of them. More runs held: <<hb>> % against <<ha>> %. The pin-push score fell
+from a median <<sa>> to <<sb>>. It was lower by more than 0.02 in <<wo>> % of the runs and higher in <<be>> % (Wilcoxon
+$p = <<pw>>$). On the whole grid, seeds 0 to 2, the median best-of-16 score fell from <<b16a>> to <<b16b>>. The
+layouts' best-of-16 scores kept their order at Spearman <<rho>>. The grid's rows without the re-anchor predate the
+CUDA-graph port of Section 13. The re-anchor therefore stays off by default.</p>""",
+                  nsq=n_sq, t0=f"{ra_t[0]:.2f}", ntk=len(ra_t) - n_sq,
+                  fa=f"{RA['base']['res']['F_mean']['middle']:.2f}", fb=f"{RA['reanchor']['res']['F_mean']['middle']:.2f}",
+                  ya=f"{yaw_at('base', 1.6):.0f}", yb=f"{yaw_at('reanchor', 1.6):.0f}", yc=f"{yaw_at('reanchor', 2.5):.0f}",
+                  lim=f"{mcp_hi:.1f}", ra=f"{RA['base']['res']['theta_rmse_deg']:.1f}",
+                  rb=f"{RA['reanchor']['res']['theta_rmse_deg']:.1f}", lev=f"{1e3 * lever:.0f}", mp=f"{m_press:.2f}",
+                  fth=f"{f_th:.1f}", fix=f"{f_ix:.1f}", rc=f"{r_cyl:.1f}", mu=f"{mdl['pad_friction'][0]:.1f}",
+                  mf=f"{m_fric:.2f}", nv=f"{rv['worlds']:,}", rm=f"{100 * rv['reanchored_middle']:.0f}",
+                  nrm=f"{rv['reanchors_middle_median']:.0f}", gfa=f"{rv['F_middle_a_median']:.2f}",
+                  gfb=f"{rv['F_middle_b_median']:.2f}", o1=f"{100 * rv['F_middle_b_over_1N']:.0f}",
+                  ha=f"{100 * rv['held_a']:.0f}", hb=f"{100 * rv['held_b']:.0f}", sa=f"{rv['score_a_median']:.2f}",
+                  sb=f"{rv['score_b_median']:.2f}", wo=f"{100 * rv['worse']:.0f}", be=f"{100 * rv['better']:.0f}",
+                  pw=sci(rv['wilcoxon_p']), b16a=f"{RS['best16_median'][0]:.2f}", b16b=f"{RS['best16_median'][1]:.2f}",
+                  rho=f"{RS['best16_spearman']:.2f}")
+    s_imp += img(MEDIA / "20261030-reanchor_keyframes.jpg", fill(
+        r"""The pin-push example at the end of the squeeze (1.57 s) and in the up stroke (2.49 s), from three sides.
+The first and third rows are without the re-anchor, the second and fourth with it. The middle finger is drawn at its
+measured angles, at its joint reference (orange) and at its servo target (cyan). Without the re-anchor the reference lies
+behind the finger, and the cylinder has yawed <<ya>> deg. With it the cylinder has yawed <<yb>> and <<yc>> deg, and the
+middle finger is curled to its MCP limit. <code>scripts/hom_reanchor_check.py cpu</code>.""",
+        ya=f"{yaw_at('base', 1.6):.0f}", yb=f"{yaw_at('reanchor', 1.6):.0f}", yc=f"{yaw_at('reanchor', 2.5):.0f}"))
+    s_imp += img(MEDIA / "20261030-reanchor_trace.png",
+                 "The pin-push example without the re-anchor (grey) and with it (blue). (a) The middle finger's pad "
+                 "force against its command of 1.5 N (dashed). (b) Its servo gap, cut at 6 mm, with the re-anchored "
+                 "periods (triangles). (c) Its MCP angle, measured and reference. (d) The cylinder's yaw from its start. "
+                 "(e) Its angle about the pinch axis from the task's start, against the command.", width=760)
+    s_imp += img(MEDIA / "20261030-reanchor_grid.png",
+                 "The re-anchor on the GPU, 25 mm pin-push grid. (a) The middle finger's mean pad force over the task "
+                 "in the validation worlds held with and without it (seeds 3 to 5). (b) The pin-push score of every "
+                 "validation world, 0 when dropped. (c) The change of each layout's best-of-16 score, seeds 0 to 2.")
 
     # ---------------------------------------------------------------- 11. plant
     s_plant = fill(r"""<p><code>hom_tasks.Plant</code> wraps the pads scene in MuJoCo. Each v4b pad is modelled as
@@ -987,7 +1062,7 @@ steps per period run as one captured CUDA graph.</p>""") + table(
         g_rows, "The batched controller's parts.", num_from=9)
     ct, cp = C["twist"], C["pinpush"]
     s_gpu += fill(r"""<p>The CPU runner (<code>hom_gpu.py cpu-check</code>) repeated <<n1>> twist and <<n2>> pin-push
-grasps of the 2-D grid at seed 0. It used the GPU queue's layouts, grasps and open poses (Table 9, Figure 6). The held
+grasps of the 2-D grid at seed 0. It used the GPU queue's layouts, grasps and open poses (Table 9, Figure 9). The held
 outcome agreed on <<s1>> % of the twists and <<s2>> % of the pin-pushes. The task scores had rank correlations of <<r1>>
 and <<r2>>. The GPU's own seeds 0, 1 and 2 start the object up to 1 mm and 2 deg apart. Between them the held outcome
 agreed on <<ss1>> % of the twists and <<ss2>> % of the pin-pushes, with rank correlations of <<sr1>> and <<sr2>>. CPU
@@ -1047,18 +1122,13 @@ agree on <<ss1>> % and <<ss2>> %. A rollout took <<mt1>> ms instead of <<mt0>> i
 
     # ---------------------------------------------------------------- 15. future work, 16. files
     s_fut = fill(r"""<ul>
-<li>In the example the pin-push middle finger pressed <<fmid>> N of its 1.5 N, while its reference stayed more than
-$g_{\max}$ behind the surface. Over the 60 grid grasps of Table 9, the median of its mean force was <<fc>> N (CPU) and
-<<fg>> N (GPU). Re-anchor a finger's reference to its measured angles when its gap exceeds $g_{\max}$ in contact
-(<code>HomController.reanchor</code>). Then rerun the pin-push grid (<code>hom_gpu.py run --task pinpush --layouts
-grid2d_size --d 25</code>) and compare the middle's mean force (<code>F_mean</code>) and the scores. A middle force that
-stays under 1 N after the change would point to the cylinder's yaw as the limit.</li>
-<li>After the running queues finish, replace the GPU's ellipsoid solver by Newton's method on $\varphi$ with 8 steps.
-Then check the held outcome against the current rows of the 40 mm twist grid, and the time per rollout.</li>
+<li>With the re-anchor on, size the middle finger's commanded force to the pinch's yaw capacity: rerun the 25 mm
+validation worlds with drive forces (<code>hom_tasks.PRM["f_drive"]</code>) of 0.5, 0.75 and 1.0 N. The re-anchor is
+worth keeping if one of them holds <<hb>> % of the runs, as the 1.5 N run did, with a median score above <<sa>>, the
+score without the re-anchor.</li>
 <li>The filter runs only at $k_{\min}$ in these tasks. A task with commanded rolling, the paper's Exp. B on the sphere,
 would exercise Eqs. (4) to (6) and $k_{\max}$.</li>
-</ul>""", fmid=f"{f_mid:.2f}", fc=f"{C['pinpush']['f_mid'][0]:.2f}",
-                 fg=f"{C['pinpush']['f_mid'][1]:.2f}")
+</ul>""", hb=f"{100 * rv['held_b']:.0f}", sa=f"{rv['score_a_median']:.2f}")
     s_files = f"""<p>References:</p><ul><li>[1] S. Wang, J. Oh and N. S. Pollard, "Relative Contact Velocity-Controlled
 Hand-Object Mechanism for Dexterous Tool Manipulation", arXiv 2609.25619v2, 2026.
 <a href="https://arxiv.org/abs/2609.25619">arxiv.org/abs/2609.25619</a>.</li></ul>
@@ -1074,6 +1144,10 @@ scripts/hom_code_trace.py</code>, rows <code>{(ROWS / '20261030-code_twist.json'
 <li>CPU against GPU: <code>logs/20261029-hom_sizes/cpu_check_code_page.sh</code> (rows
 <code>{(ROWS / '20261030-cpu_twist_d40.jsonl').relative_to(ROOT)}</code>, <code>20261030-cpu_pinpush_d25.jsonl</code>)
 against <code>{GRID.relative_to(ROOT)}/twist_d40.jsonl</code> and <code>pinpush_d25.jsonl</code>.</li>
+<li>Re-anchor: <code>scripts/hom_reanchor_check.py cpu</code> (rows <code>{(ROWS / '20261030-reanchor_check.json').relative_to(ROOT)}</code>)
+and <code>grid</code> (rows <code>{(GRID.parent / 'grid2d_v4b_reanchor').relative_to(ROOT)}</code>, from
+<code>hom_gpu.py run --variants reanchor</code>, script <code>logs/20261030-hom_reanchor/queue.sh</code>); test
+<code>tests/test_hom_control.py::test_reanchor_in_contact_beyond_the_cut</code>.</li>
 <li>Tasks: <code>scripts/hom_tasks.py</code>; GPU controller <code>scripts/hom_gpu.py</code>; grasps
 <code>scripts/fp_sr2_toy.py</code>; the v4b hand <code>scripts/build_cad_v2_finger.py</code>,
 <code>assets/mjcf/experimental/20261030-cad_v2</code>.</li>
@@ -1103,7 +1177,10 @@ fingertip. It twisted a 40 mm sphere and pin-pushed a 25 mm cylinder, and held b
 first twist step the planned slides of the pads stayed under <<sl>> mm/s, and a spin of <<sp>> deg/s about each contact
 normal was given up. A period takes <<ms>> ms on one CPU core, and a GPU rollout <<g1>> ms. On 60 grid grasps per task the
 GPU controller reached the CPU's held outcome in <<s1>> % of twists and <<s2>> % of pin-pushes, as often as two of its
-own seeds agree.""", sl=f"{slide1:.1f}", sp=f"{spin1:.0f}",
+own seeds agree. Re-anchoring the pin-push middle finger's reference raised its force from <<gfa>> to <<gfb>> N. The
+cylinder then yawed away from it, and the median score fell from <<sa>> to <<sb>>.""", sl=f"{slide1:.1f}", sp=f"{spin1:.0f}",
+                gfa=f"{rv['F_middle_a_median']:.2f}", gfb=f"{rv['F_middle_b_median']:.2f}", sa=f"{rv['score_a_median']:.2f}",
+                sb=f"{rv['score_b_median']:.2f}",
                 ms=f"{N['wall_ms']:.1f}", s1=f"{100 * C['twist']['same']:.0f}", s2=f"{100 * C['pinpush']['same']:.0f}",
                 g1=f"{C['twist']['gpu_ms']:.0f}")
     summary = fill(r"""Walkthrough of the HOM controller's code on the SR2 hand with the v4b fingertip: eleven substeps

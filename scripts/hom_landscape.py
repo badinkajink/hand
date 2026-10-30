@@ -395,13 +395,25 @@ def cmd_value(a):
 
 
 PEAK_RADII, PEAK_DIRS, PEAK_TOP = (2.0, 4.0, 8.0), 10, 20
+LOCAL_RADIUS, LOCAL_N = 2.0, 64
+MOVE_ROWS = {"trust": "valtr", "peak": "peak", "local": "local"}
+
+
+def local_offsets(n, radius, seed):
+    """n scrambled-Sobol points spread evenly over the six-dimensional ball of the given radius (mm): six Sobol
+    coordinates give a direction through the normal quantile function, the seventh the distance (radius u^(1/6))."""
+    from scipy.stats import norm, qmc
+    u = qmc.Sobol(7, scramble=True, seed=seed).random(n)
+    g = norm.ppf(np.clip(u[:, :6], 1e-9, 1.0 - 1e-9))
+    return radius * u[:, 6:] ** (1.0 / 6.0) * g / np.linalg.norm(g, axis=1, keepdims=True)
 
 
 def cmd_moves(a):
     """Source layouts for fp_sr2_toy.py poses (--src <task>...). kind trust: the value model's trust-region moves of the
     best 200 Sobol layouts and their starts (rows/valtr_<task><d>.jsonl). kind peak: the PEAK_TOP starts that scored
     best on the trust rows' fresh seeds, each with PEAK_DIRS random directions at each of PEAK_RADII mm in the six
-    mount coordinates (rows/peak_<task><d>.jsonl)."""
+    mount coordinates (rows/peak_<task><d>.jsonl). kind local: the same starts, each with LOCAL_N layouts of a local
+    Sobol design within LOCAL_RADIUS mm (rows/local_<task><d>.jsonl)."""
     import fp_sr2_toy as FP
     tag = f"{a.task}{a.d:g}"
     rows = []
@@ -415,6 +427,13 @@ def cmd_moves(a):
         for L_ in v["trust"]["layouts"]:
             add(L_["d"], src_call=L_["call"], role="start", pred=L_["pred"])
             add(L_["d_new"], src_call=L_["call"], role="moved", pred=L_["pred_new"])
+    elif a.kind == "local":
+        for k, r in enumerate(x for x in FR.load(f"peak_{tag}") if x["radius_mm"] == 0.0):
+            d0 = np.asarray(r["d"], float)
+            add(d0, center=r["center"], radius_mm=0.0)
+            for off in local_offsets(LOCAL_N, LOCAL_RADIUS, seed=k):
+                d1 = np.clip(d0 + off, FP.LO6, FP.HI6)
+                add(d1, center=r["center"], radius_mm=round(float(np.linalg.norm(d1 - d0)), 3))
     else:
         src = {r["call"]: r for r in FR.load(f"valtr_{tag}")}
         sc, _ = grid_scores(a.task, a.d, ROWS / "valtr", f"{a.task}_d{a.d:g}_s345")
@@ -428,9 +447,245 @@ def cmd_moves(a):
                 for _ in range(PEAK_DIRS):
                     u = rng.normal(size=6)
                     add(np.clip(d0 + rad * u / np.linalg.norm(u), FP.LO6, FP.HI6), center=c, radius_mm=rad)
-    path = ROWS / f"{'valtr' if a.kind == 'trust' else 'peak'}_{tag}.jsonl"
+    path = ROWS / f"{MOVE_ROWS[a.kind]}_{tag}.jsonl"
     path.write_text("".join(json.dumps(r) + "\n" for r in rows))
     print(f"{len(rows)} layouts -> {path.relative_to(ROOT)}", flush=True)
+    return 0
+
+
+EA_POP, EA_DELTA, EA_RUNS, EA_GENS = 16, 30.0, 200, 400     # population, mutation width (mm), runs, generation cap
+EA_TASKS = (("twist", 40.0), ("roll", 40.0), ("pinpush", 25.0), ("press", 25.0))
+EA_EPS = (0.05, 0.02)                                     # score margins below the grid's best
+
+
+def ea_landscape(task, size):
+    """The grid as a lookup evaluator: {(x_sep, y_sep): (fitness, rollouts)} for the fitness 'best' (the best grasp of
+    the set, every grasp's three seeds run) and 'fp' (the foundational pose's three seeds); a layout whose pose is not
+    reached scores 0 at no rollout. Also each cell's basin on the smoothed best-of-16 map and the best basin's peak (the
+    highest smoothed peak), the grid's best score and its total rollouts."""
+    tab = grid_table(task, size)
+    sc, _ = grid_scores(task, size)
+    n_run, n_fp = {}, {}
+    for (c, j), v in sc.items():
+        n_run[c] = n_run.get(c, 0) + len(v)
+        if j == 0:
+            n_fp[c] = len(v)
+    look = {"best": {}, "fp": {}}
+    for r in tab:
+        k = (float(r["x_sep"]), float(r["y_sep"]))
+        ok = bool(r.get("n_grasps"))
+        look["best"][k] = (float(r["best"]) if ok else 0.0, n_run.get(r["call"], 0) if ok else 0)
+        look["fp"][k] = (float(r["fp"]) if ok and np.isfinite(r["fp"]) else 0.0, n_fp.get(r["call"], 0) if ok else 0)
+    xs, ys, M = grid_maps(task, size)
+    sm = smooth_map(M["best"])
+    pk, pks = peaks(sm)
+    top = max(pks, key=lambda p: sm.flat[p])
+    basin = {(float(x), float(y)): int(pk[i * len(xs) + j]) for i, y in enumerate(ys) for j, x in enumerate(xs)}
+    return look, basin, top, float(np.nanmax(M["best"])), sum(n for _f, n in look["best"].values()), xs, ys
+
+
+def ea_search(look, rng, xs, ys, pop=EA_POP, delta=EA_DELTA, budget=None, random=False):
+    """One run of the elitist mutation-only search of Yang et al. (TEVC 2026) on the grid's lattice: the best half of
+    each generation is kept, the best eighth are parents, and each child is a parent moved by U(-delta/2, delta/2) mm
+    per coordinate, rounded to the 5 mm lattice and clipped to the grid. A layout is evaluated once (later visits reuse
+    its score). random=True draws layouts uniformly without replacement instead. Returns [(rollouts so far, layout)]
+    for every new evaluation."""
+    keys = list(look)
+    seen, cost, hist = {}, 0, []
+
+    def ev(k):
+        nonlocal cost
+        if k not in seen:
+            f, n = look[k]
+            seen[k] = f
+            cost += n
+            hist.append((cost, k))
+        return seen[k]
+    if random:
+        for i in rng.permutation(len(keys)):
+            ev(keys[i])
+            if budget and cost >= budget:
+                break
+        return hist, seen
+    lo, hi = np.array([xs[0], ys[0]], float), np.array([xs[-1], ys[-1]], float)
+    P = [keys[i] for i in rng.choice(len(keys), pop, replace=False)]
+    for k in P:
+        ev(k)
+    for _ in range(EA_GENS):
+        if budget and cost >= budget:
+            break
+        P = sorted(P, key=lambda k: -seen[k])
+        keep, parents = P[:pop // 2], P[:max(1, pop // 8)]
+        kids = []
+        for i in range(pop - len(keep)):
+            m = np.asarray(parents[i % len(parents)]) + rng.uniform(-delta / 2, delta / 2, 2)
+            m = np.clip(5.0 * np.round(m / 5.0), lo, hi)
+            kids.append((float(m[0]), float(m[1])))
+        for k in kids:
+            ev(k)
+        P = keep + kids
+    return hist, seen
+
+
+def cmd_ea(a):
+    """The evolutionary search of Yang et al. against random search and the full grid, on the grid's stored rollouts
+    (seeds 0-2): rollouts until the incumbent (the best layout evaluated so far, by its own fitness) scores within 0.05
+    and 0.02 of the grid's best best-of-16 score, for populations of EA_POP and 4 EA_POP. Writes rows/ea/summary.json."""
+    out = {}
+    for task, size in EA_TASKS:
+        look, basin, _top, best, total, xs, ys = ea_landscape(task, size)
+        best_cell = max(look["best"], key=lambda k: look["best"][k][0])
+        reached = [k for k, (f, n) in look["best"].items() if n > 0]
+        res = {"grid_rollouts": total, "grid_best": best, "grid_best_cell": list(best_cell), "layouts_reached": len(reached),
+               "layouts_within": {f"{e:g}": int(sum(look["best"][k][0] >= best - e for k in reached)) for e in EA_EPS},
+               "runs": {}}
+        cases = [("ea", "best", EA_POP), ("ea", "best", 4 * EA_POP), ("random", "best", 0), ("ea", "fp", EA_POP),
+                 ("random", "fp", 0)]
+        for name, fit, pop in cases:
+            hits = {e: [] for e in EA_EPS}
+            finals, other, curves = [], [], []
+            for run in range(EA_RUNS):
+                rng = np.random.default_rng(1000 * run + 7)
+                hist, _seen = ea_search(look[fit], rng, xs, ys, pop=pop or EA_POP, budget=total, random=name == "random")
+                inc, t_hit, curve = None, {e: None for e in EA_EPS}, []
+                for cost, k in hist:
+                    if inc is None or look[fit][k][0] > look[fit][inc][0]:
+                        inc = k
+                    true = look["best"][inc][0]                  # the incumbent's best-of-16 score
+                    curve.append((cost, true))
+                    for e in EA_EPS:
+                        if t_hit[e] is None and true >= best - e:
+                            t_hit[e] = cost
+                for e in EA_EPS:
+                    hits[e].append(t_hit[e])
+                finals.append(look["best"][inc][0])
+                other.append(basin[inc] != basin[best_cell])
+                curves.append(curve)
+            pts = np.linspace(0, total, 61)
+            med = [float(np.median([max([s_ for c, s_ in cv if c <= g] or [0.0]) for cv in curves])) for g in pts]
+
+            def q(h):
+                v = np.sort(np.array([x if x is not None else np.inf for x in h], float))
+                pc = (lambda p: float(np.percentile(v, p)) if np.isfinite(np.percentile(v, p)) else None)
+                return {"reached": float(np.mean(np.isfinite(v))), "median": pc(50), "q25": pc(25), "q75": pc(75)}
+            key = f"{name}_{fit}" + (f"_pop{pop}" if name == "ea" else "")
+            res["runs"][key] = {**{f"to_within_{e:g}": q(hits[e]) for e in EA_EPS},
+                                "final_median": float(np.median(finals)), "final_other_basin": float(np.mean(other)),
+                                "curve": {"rollouts": pts.round(0).tolist(), "median_best": med}}
+            r_ = res["runs"][key]
+            print(f"{task} {size:g} mm {key}: " + ", ".join(f"within {e:g}: {r_[f'to_within_{e:g}']}" for e in EA_EPS)
+                  + f"; final median {r_['final_median']:.3f}, other basin {r_['final_other_basin']:.2f}; grid {total}",
+                  flush=True)
+        out[f"{task}_d{size:g}"] = res
+    (ROWS / "ea").mkdir(parents=True, exist_ok=True)
+    (ROWS / "ea" / "summary.json").write_text(json.dumps({"pop": EA_POP, "delta_mm": EA_DELTA, "runs": EA_RUNS, **out},
+                                                         indent=1))
+    return 0
+
+
+DRAWS = ROWS / "grid2d_v4b_draws12"
+DRAW_SEEDS = tuple(range(6, 18))
+
+
+def seed_scores(task, rows_dir, name):
+    """{(call, grasp): {seed: score}} of a row file."""
+    import hom_rows
+    out = {}
+    p = rows_dir / f"{name}.jsonl"
+    for x in (p.read_text().splitlines() if p.exists() else []):
+        if x.strip():
+            r = hom_rows.rescale_metrics(json.loads(x))
+            if r.get("status", "ok") == "ok":
+                out.setdefault((int(r["call"]), int(r.get("grasp", 0))), {})[int(r["seed"])] = rollout_score(task, r)
+    return out
+
+
+def cmd_draws(a):
+    """The cylinder tasks over twelve object-pose draws (seeds 6-17) of each grid layout's foundational pose and best
+    grasp, the best picked on seeds 0-2: the seeds' grid means, the best grasp's gain over the foundational pose against
+    their spread, and the layouts' ranking on three draws against twelve. Writes rows/grid2d_v4b_draws12/summary.json."""
+    out = {}
+    for task in ("pinpush", "press"):
+        for size in (25.0, 10.0, 40.0):
+            S12 = seed_scores(task, DRAWS, f"{task}_d{size:g}")
+            if not S12:
+                continue
+            S35 = seed_scores(task, GRID_ROWS, f"val_{task}_d{size:g}")
+            S02 = seed_scores(task, GRID_ROWS, f"{task}_d{size:g}")
+            best_g = {r["call"]: r["best_grasp"] for r in grid_table(task, size) if r.get("n_grasps")}
+            calls = sorted(c for c in best_g if all(len(S12.get((c, g), {})) == len(DRAW_SEEDS) for g in (0, 1)))
+
+            def arr(S, g, seeds, picked=False):
+                return np.array([[S[(c, best_g[c] if picked else g)][s] for s in seeds] for c in calls])
+            fp = {"s012": arr(S02, 0, (0, 1, 2)), "s345": arr(S35, 0, (3, 4, 5)), "s6_17": arr(S12, 0, DRAW_SEEDS)}
+            be = {"s012": arr(S02, None, (0, 1, 2), picked=True), "s345": arr(S35, 1, (3, 4, 5)),
+                  "s6_17": arr(S12, 1, DRAW_SEEDS)}
+            seeds = list(range(18))
+            m_fp = np.concatenate([fp["s012"].mean(0), fp["s345"].mean(0), fp["s6_17"].mean(0)])
+            m_be = np.concatenate([be["s012"].mean(0), be["s345"].mean(0), be["s6_17"].mean(0)])
+            gain12 = be["s6_17"].mean(1) - fp["s6_17"].mean(1)
+            g_seed = be["s6_17"].mean(0) - fp["s6_17"].mean(0)
+            top = max(1, int(round(TOP * len(calls))))
+            t012 = set(np.argsort(-be["s012"].mean(1))[:top])
+            t12 = set(np.argsort(-be["s6_17"].mean(1))[:top])
+            res = {"layouts": len(calls), "seed_mean_fp": m_fp.round(4).tolist(), "seed_mean_best": m_be.round(4).tolist(),
+                   "seeds": seeds, "fp_seed_sd_6_17": float(fp["s6_17"].mean(0).std(ddof=1)),
+                   "fp_seed_range_6_17": float(np.ptp(fp["s6_17"].mean(0))),
+                   "gain_median_6_17": float(np.median(gain12)), "gain_positive_6_17": float(np.mean(gain12 > 0)),
+                   "gain_seed_means_6_17": g_seed.round(4).tolist(),
+                   "gain_median_012": float(np.median(be["s012"].mean(1) - fp["s012"].mean(1))),
+                   "gain_median_345": float(np.median(be["s345"].mean(1) - fp["s345"].mean(1))),
+                   "fp_median_6_17": float(np.median(fp["s6_17"].mean(1))),
+                   "best_median_6_17": float(np.median(be["s6_17"].mean(1))),
+                   "split_half_best": FR.spearman(be["s6_17"][:, :6].mean(1), be["s6_17"][:, 6:].mean(1)),
+                   "split_half_fp": FR.spearman(fp["s6_17"][:, :6].mean(1), fp["s6_17"][:, 6:].mean(1)),
+                   "best_012_vs_6_17": FR.spearman(be["s012"].mean(1), be["s6_17"].mean(1)),
+                   "best_345_vs_6_17": FR.spearman(be["s345"].mean(1), be["s6_17"].mean(1)),
+                   "fp_345_vs_6_17": FR.spearman(fp["s345"].mean(1), fp["s6_17"].mean(1)),
+                   "top_tenth_012_kept": float(len(t012 & t12) / top),
+                   "held_all12_fp": float(np.mean((fp["s6_17"] > 0).all(1))),
+                   "held_all12_best": float(np.mean((be["s6_17"] > 0).all(1)))}
+            out[f"{task}_d{size:g}"] = res
+            print(task, size, {k: (round(v, 3) if isinstance(v, float) else v) for k, v in res.items()
+                               if not isinstance(v, list)}, flush=True)
+    DRAWS.mkdir(parents=True, exist_ok=True)
+    (DRAWS / "summary.json").write_text(json.dumps(out, indent=1))
+    return 0
+
+
+def cmd_local_report(a):
+    """The local refinement: per start, the best of its LOCAL_N neighbours on seeds 9-11 against the start, both scored
+    again on seeds 12-14 (a pose not reached scores 0). Writes rows/local/summary_<task><d>.json."""
+    from scipy.stats import wilcoxon
+    tag = f"{a.task}{a.d:g}"
+    rows = {r["call"]: r for r in FR.load(f"local_{tag}")}
+    pick, _ = grid_scores(a.task, a.d, ROWS / "local", f"{a.task}_d{a.d:g}_s91011")
+    check, _ = grid_scores(a.task, a.d, ROWS / "local", f"{a.task}_d{a.d:g}_s121314")
+
+    def mean(sc, c):
+        return float(np.mean(sc[(c, 0)])) if (c, 0) in sc else 0.0
+    out = []
+    for cen in sorted({r["center"] for r in rows.values()}):
+        calls = [c for c, r in rows.items() if r["center"] == cen]
+        c0 = next(c for c in calls if rows[c]["radius_mm"] == 0.0)
+        nb = [c for c in calls if c != c0]
+        best = max(nb, key=lambda c: mean(pick, c))
+        out.append({"center": cen, "d": rows[c0]["d"], "start_pick": mean(pick, c0), "start_check": mean(check, c0),
+                    "best_call": best, "best_d": rows[best]["d"], "best_radius_mm": rows[best]["radius_mm"],
+                    "best_pick": mean(pick, best), "best_check": mean(check, best),
+                    "reached": float(np.mean([(c, 0) in pick for c in nb])),
+                    "nb_pick_median": float(np.median([mean(pick, c) for c in nb])),
+                    "better_than_start_pick": float(np.mean([mean(pick, c) > mean(pick, c0) for c in nb]))})
+    gain = np.array([o["best_check"] - o["start_check"] for o in out])
+    summ = {"starts": len(out), "best_beats_start_check": float(np.mean(gain > 0)), "gain_check_median": float(np.median(gain)),
+            "gain_pick_median": float(np.median([o["best_pick"] - o["start_pick"] for o in out])),
+            "wilcoxon_p": float(wilcoxon(gain).pvalue) if np.any(gain != 0) else 1.0,
+            "start_check_median": float(np.median([o["start_check"] for o in out])),
+            "best_check_median": float(np.median([o["best_check"] for o in out])),
+            "reached_median": float(np.median([o["reached"] for o in out])), "per_start": out}
+    (ROWS / "local").mkdir(parents=True, exist_ok=True)
+    (ROWS / "local" / f"summary_{tag}.json").write_text(json.dumps(summ, indent=1))
+    print({k: v for k, v in summ.items() if k != "per_start"}, flush=True)
     return 0
 
 
@@ -1249,12 +1504,14 @@ def main():
     sub.add_parser("cross")
     sub.add_parser("valrep")
     sub.add_parser("cross-grid")
-    for name in ("moves", "moves-report"):
+    sub.add_parser("ea")
+    sub.add_parser("draws")
+    for name in ("moves", "moves-report", "local-report"):
         p = sub.add_parser(name)
         p.add_argument("--task", choices=TASKS, required=True)
         p.add_argument("--d", type=float, required=True)
         if name == "moves":
-            p.add_argument("--kind", choices=("trust", "peak"), required=True)
+            p.add_argument("--kind", choices=tuple(MOVE_ROWS), required=True)
     p = sub.add_parser("views")
     p.add_argument("--task", choices=TASKS, required=True)
     p.add_argument("--d", type=float, required=True)
@@ -1262,7 +1519,8 @@ def main():
     p.add_argument("--out", default="")
     a = ap.parse_args()
     return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
-            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "cross": cmd_cross,
+            "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "local-report": cmd_local_report, "ea": cmd_ea, "draws": cmd_draws,
+            "cross": cmd_cross,
             "valrep": cmd_valrep, "cross-grid": cmd_cross_grid}[a.cmd](a)
 
 

@@ -82,11 +82,11 @@ class Runner:
     world, or the HOM schedule's (schedule=True). With graph=True the task phase's control period runs as one captured
     CUDA graph (hom_gpu.Batch.control_period); before it, and with graph=False, Batch.control runs eagerly."""
 
-    def __init__(self, scene, task, world, n, graph=True):
+    def __init__(self, scene, task, world, n, graph=True, phys_dt=None):
         import torch
         self.th = torch
         self.use_graph = graph
-        self.B = B = HG.Batch(scene, task, [world] * n, T.DT_C)
+        self.B = B = HG.Batch(scene, task, [world] * n, T.DT_C, phys_dt=phys_dt)
         B.CAPTURE = graph
         B.reset_controller()
         B.sch = T.Schedule(task, world["setup"], T.PRM)
@@ -193,12 +193,12 @@ def plan_cost(P, plans, snap):
     return cost.cpu().numpy(), turned.cpu().numpy(), lost.cpu().numpy()
 
 
-def cem(P, snap, mean, std, rng, k):
-    """ITERS iterations of the cross-entropy method over the knots from the plant's snapshot; the best plan, its
+def cem(P, snap, mean, std, rng, k, iters=ITERS):
+    """iters iterations of the cross-entropy method over the knots from the plant's snapshot; the best plan, its
     cost terms and the refit mean."""
     lo, hi = np.array([OMEGA[0], FSCALE[0]]), np.array([OMEGA[1], FSCALE[1]])
     best = None
-    for _ in range(ITERS):
+    for _ in range(iters):
         plans = np.clip(mean[None] + std[None] * rng.normal(size=(k, H_KNOTS, 2)), lo, hi)
         plans[0] = mean
         if best is not None:
@@ -246,14 +246,17 @@ def fd_plan(P, snap, mean, iters=ITERS):
     return best, plan
 
 
-def run_plant(scene, task, world, mpc_k=None, seed=0, graph=True, planner="cem"):
+def run_plant(scene, task, world, mpc_k=None, seed=0, graph=True, planner="cem", phys_ms=1.0, iters=ITERS, replan=1):
     """The plant from the open pose: the HOM schedule up to the end of the lift, then for TASK_S seconds either the
-    schedule's 30 deg/s ramp (mpc_k None) or the MPC with mpc_k samples. Returns the trace and the timing."""
+    schedule's 30 deg/s ramp (mpc_k None) or the MPC with mpc_k samples. The planner's worlds step their physics at
+    phys_ms (the plant's stays at 1 ms), run `iters` iterations and replan every `replan` knots, whose commands the
+    plant then follows knot by knot. Returns the trace and the timing."""
     G = Runner(scene, task, world, 1, graph)
     t_task = T.T_LIFT + 0.4
     while G.t < t_task - 1e-9:
         G.period(schedule=True)
-    P = Runner(scene, task, world, 1 + 4 * H_KNOTS if planner == "fd" else mpc_k, graph) if mpc_k else None
+    P = (Runner(scene, task, world, 1 + 4 * H_KNOTS if planner == "fd" else mpc_k, graph, phys_dt=1e-3 * phys_ms)
+         if mpc_k else None)
     rng = np.random.default_rng(seed)
     mean = np.tile([30.0, 1.0], (H_KNOTS, 1))
     std = np.tile([20.0, 0.2], (H_KNOTS, 1))
@@ -263,17 +266,18 @@ def run_plant(scene, task, world, mpc_k=None, seed=0, graph=True, planner="cem")
     n_per = int(round(TASK_S / G.B.prm.dt))
     ramp_t0 = 1.3                      # the schedule's ramp starts 1.3 s into the task (after the two steps and rest)
     for p in range(n_per):
-        if mpc_k and p % KNOT == 0:
+        if mpc_k and p % (KNOT * replan) == 0:
             w0 = time.perf_counter()
             snap = G.snapshot()
-            best, mean = (fd_plan(P, snap, mean) if planner == "fd" else cem(P, snap, mean, std, rng, mpc_k))
+            best, mean = (fd_plan(P, snap, mean, iters) if planner == "fd" else cem(P, snap, mean, std, rng, mpc_k, iters))
             th.cuda.synchronize()
             walls.append(time.perf_counter() - w0)
             plans.append({"t": round(G.t, 3), "knots": best[0].round(3).tolist(), "cost": round(best[1], 3),
                           "turned": round(best[2], 2), "lost": best[3]})
-            act = best[0][0]
-            mean = np.concatenate([mean[1:], mean[-1:]])
+            plan, p0 = best[0], p
+            mean = np.concatenate([mean[replan:], np.repeat(mean[-1:], replan, 0)])
         if mpc_k:
+            act = plan[min((p - p0) // KNOT, H_KNOTS - 1)]
             G.period(w_z=th.tensor([math.radians(act[0])], dtype=G.B.f64, device=G.B.dev),
                      fscale=th.tensor([act[1]], dtype=G.B.f64, device=G.B.dev))
         else:
@@ -292,6 +296,14 @@ def run_plant(scene, task, world, mpc_k=None, seed=0, graph=True, planner="cem")
             "dropped": trace[-1]["z_mm"] < trace[0]["z_mm"] - 15.0}
 
 
+def run_tag(a):
+    """The file-name suffix of the options that differ from the first runs': planner physics step, iterations and
+    replanning interval."""
+    tag = "" if a.phys_ms == 1.0 else f"_p{a.phys_ms:g}ms"
+    tag += "" if a.iters == ITERS else f"_i{a.iters}"
+    return tag + ("" if a.replan == 1 else f"_r{a.replan}")
+
+
 def cmd_run(a):
     import torch
     scene, world = world_of(a.task, a.d, a.call, a.grasp)
@@ -299,20 +311,21 @@ def cmd_run(a):
     res = {}
     for name, k in (("hom_ramp", None), (f"mpc_k{a.k}" if a.planner == "cem" else "mpc_fd", a.k)):
         t0 = time.time()
-        r = run_plant(scene, a.task, world, k, graph=a.graph, planner=a.planner)
+        r = run_plant(scene, a.task, world, k, graph=a.graph, planner=a.planner, phys_ms=a.phys_ms, iters=a.iters,
+                      replan=a.replan)
         r["wall_s"] = round(time.time() - t0, 2)
         res[name] = r
         pw = r["plan_wall_s"]
         print(f"{name}: yaw {r['yaw_end_deg']:.1f} deg, on three pads {r['yaw_three_pads_max_deg']:.1f} deg, dropped "
               f"{r['dropped']}, wall {r['wall_s']} s" + (f", replanning {np.median(pw):.2f} s for {KNOT * T.DT_C:.2f} s "
-                                                        f"of control ({KNOT * T.DT_C / np.median(pw):.3f} x real time)"
+                                                        f"of control ({a.replan * KNOT * T.DT_C / np.median(pw):.3f} x real time)"
                                                         if pw else ""), flush=True)
     out = {"task": a.task, "d_mm": a.d, "call": a.call, "grasp": a.grasp, "k": a.k, "planner": a.planner, "graph": a.graph,
-           "knot_s": KNOT * T.DT_C,
-           "horizon_knots": H_KNOTS, "iters": ITERS, "elite": ELITE, "task_s": TASK_S,
+           "knot_s": KNOT * T.DT_C, "phys_ms": a.phys_ms, "replan_knots": a.replan,
+           "horizon_knots": H_KNOTS, "iters": a.iters, "elite": ELITE, "task_s": TASK_S,
            "gpu": torch.cuda.get_device_name(0), "when": time.strftime("%Y-%m-%d %H:%M"), "runs": res}
     path = OUT / (f"twist_call{a.call}_g{a.grasp}_" + (f"k{a.k}" if a.planner == "cem" else "fd")
-                  + ("" if a.graph else "_eager") + ".json")
+                  + ("" if a.graph else "_eager") + run_tag(a) + ".json")
     path.write_text(json.dumps(out))
     print("wrote", path.relative_to(ROOT), flush=True)
     return 0
@@ -329,7 +342,7 @@ def cmd_timing(a):
     snap = G.snapshot()
     out = []
     for k in a.k:
-        P = Runner(scene, a.task, world, k, graph=a.graph)
+        P = Runner(scene, a.task, world, k, graph=a.graph, phys_dt=1e-3 * a.phys_ms)
         P.load(snap)
         w = torch.full((k,), math.radians(30.0), dtype=P.B.f64, device=P.B.dev)
         for _ in range(5):
@@ -365,8 +378,9 @@ def cmd_timing(a):
         del P
         torch.cuda.empty_cache()
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / ("timing.json" if a.graph else "timing_eager.json")).write_text(json.dumps(
-        {"gpu": torch.cuda.get_device_name(0), "rows": out, "when": time.strftime("%Y-%m-%d %H:%M")}, indent=1))
+    (OUT / (("timing" if a.graph else "timing_eager") + run_tag(a) + ".json")).write_text(json.dumps(
+        {"gpu": torch.cuda.get_device_name(0), "phys_ms": a.phys_ms, "rows": out, "when": time.strftime("%Y-%m-%d %H:%M")},
+        indent=1))
     return 0
 
 
@@ -428,6 +442,9 @@ def main():
         p.add_argument("--eager", dest="graph", action="store_false", help="Batch.control without the CUDA graph")
         p.add_argument("--planner", choices=("cem", "fd"), default="cem",
                        help="cem: the cross-entropy method; fd: gradient steps from central differences")
+        p.add_argument("--phys-ms", type=float, default=1.0, help="the planner worlds' physics step (ms)")
+        p.add_argument("--iters", type=int, default=ITERS, help="planner iterations per replanning")
+        p.add_argument("--replan", type=int, default=1, help="knots between replannings")
     a = ap.parse_args()
     return {"run": cmd_run, "timing": cmd_timing, "figure": cmd_figure}[a.cmd](a)
 

@@ -394,6 +394,8 @@ class HomParams:
                                          # and "surface" (at the measured angles: only while apart / also in contact, and
                                          # into the object), the versions before 2026-10-22
     gap_max: float = 0.006               # m: the gap-closing step is cut to this ("reference"); beyond, v_sep closes it
+    reanchor: bool = False               # in contact, a reference more than gap_max behind the surface is set to the
+                                         # measured angles ("reference"; 2026-10-30, the pin-push's middle finger)
     filter: FilterParams = field(default_factory=FilterParams)
 
 
@@ -503,6 +505,7 @@ class HomController:
                 V_f = (A @ u + b) if prm.filter.source == "planned" else v_ref
                 p_act, n_act = flt.update(mr, f, g, V_f, dt)
             off_gap, off_force, off_grav, gap = np.zeros(len(th)), np.zeros(len(th)), np.zeros(len(th)), 0.0
+            reanchored = False
             kp = mr.kp[f]
             if c.force > 0:
                 # the impedance's reference penetration is measured from the object's surface: move the action point
@@ -513,7 +516,13 @@ class HomController:
                     # reference has fallen behind the surface: the target then sits F/k inside the measured surface. A
                     # reference ahead of the surface (a pusher's motion, or an object pushed into the finger) is kept,
                     # so the servo spring pushes or resists there
-                    gap = float(np.clip(g.dist - n_act @ (Jp @ (self.theta_ref[f] - th)), 0.0, prm.gap_max))
+                    gap = float(g.dist - n_act @ (Jp @ (self.theta_ref[f] - th)))
+                    if prm.reanchor and touching and gap > prm.gap_max:
+                        # the object has moved away from a touching finger by more than the cut (the cylinder's yaw
+                        # at the pin-push's squeeze): from the measured angles the target presses with F again
+                        self.reanchor(f, th)
+                        gap, reanchored = float(g.dist), True
+                    gap = float(np.clip(gap, 0.0, prm.gap_max))
                 else:
                     # "gap": at the measured angles, while apart; "surface": also in contact
                     gap = g.dist if prm.impedance == "surface" else max(g.dist, 0.0)
@@ -530,5 +539,5 @@ class HomController:
                        "k_filter": flt.k if flt is not None else None, "gcf": g, "V": V, "A": A, "b": b,
                        "weights": np.asarray(c.weights, float), "force": c.force, "theta": th, "theta_ref_prev": tr0,
                        "theta_ref": self.theta_ref[f].copy(), "gap": gap, "off_gap": off_gap, "off_force": off_force,
-                       "off_grav": off_grav, "q_cmd": out[f]}
+                       "off_grav": off_grav, "q_cmd": out[f], "reanchored": reanchored}
         return out, info
