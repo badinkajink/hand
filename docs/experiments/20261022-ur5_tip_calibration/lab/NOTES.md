@@ -1855,6 +1855,24 @@ The clearances in this section and the one before it are on mount v3. The next s
 - From 01:40 the lab reads the stream for 10 s every 10 min (scratchpad `hexe_stay.sh`) and logs each read. It stops at
   a loss (two reads 30 s apart, each under half the samples), when a program starts or after 10 h. `resume_id3.sh`
   now refuses to start while either HEX-E watch runs. The arm waits for the owner's go.
+- All 37 reads from 01:39 to 07:40 were clean, 1001 samples each with no time-out. The untared Fz settled from
+  -0.1 N at 01:39 to about -1.5 N by 02:19 and has stayed between -1.3 and -2.2 N; Fx and Fy held at -0.7 and 0.4 N.
+  The program tares each action at rest before its approach, so this drift does not enter its forces.
+- At 07:45 the workstation offered a wrist order of the remaining 55: `lab/20261030-plan_tall_lab_stage2_night_wrist_v3id3.json`
+  (c5c34f60, from `scripts/ur5_tip_calibration_wrist_order.py`). It holds the same 101 actions with identical
+  definitions and top-level keys. The 46 done keep their places, and none of the 55 moves more than 4 places. A resumed
+  session runs the plan it is given, in that plan's order, and skips the ids already done. So `--resume 153034` with
+  this plan runs the 55 in the new order.
+- The scratchpad script `wrist_sig.py` compares the joints at each action's start with those at the next action's
+  start. In the night order's 55, simulated from home, it finds 7 travels where wrist 1 passes from below 0 to above
+  it while wrist 2 rises by more than 10 deg. The first runs from home into tall-edge-626 (wrist 1 -24.8 to +24.6 deg,
+  wrist 2 47.3 to 96.0 deg). The other six are the slides at flank-580, edge-637, -718, -696, -627 and -626. The
+  workstation's replay lists the same seven. Session 153034 had seven such travels on the robot: pad-edge-05 in
+  block 3, then tall-flank-580, edge-637, -718, -696, -627 and -626. Only the last lost the sensor. The remainder's
+  first travel is a new path, as noted at 00:15, but it has the losses' signature.
+- The wrist order's 55 have been simulating from home on 153034's registration since 07:45 (n3b4w, every 5th sample,
+  nice 19). `resume_id3.sh` takes a block 4 plan and the simulation that gates it as B4PLAN and B4SIM. The night's
+  plan stays the default. The choice is the owner's.
 
 ### The night's plans, after the finer path checks (14:4x)
 
