@@ -397,16 +397,16 @@ every size.</p>""",
             if src_ is None:
                 continue
             c = v.get("cpu")
-            rows.append([NAMES[task], f"{v['d_mm']:g}", f"{100 * v['reach']:.0f}", "grid" if v.get("grid") else "EA",
-                         f"{src_['best']:.2f}", f"{c['best_cpu']:.2f}" if c else "&ndash;",
-                         f"{src_['best_xy'][0]:.0f}, {src_['best_xy'][1]:.0f}",
-                         f"{src_['near_n']}", f"{src_['near_lo'][0]:.0f}&ndash;{src_['near_hi'][0]:.0f}",
-                         f"{src_['near_lo'][1]:.0f}&ndash;{src_['near_hi'][1]:.0f}"])
+            rows.append([NAMES[task].replace("-", "&#8209;"), f"{v['d_mm']:g}", f"{100 * v['reach']:.0f}",
+                         "grid" if v.get("grid") else "EA", f"{src_['best']:.2f}",
+                         f"{c['best_cpu']:.2f}" if c else "&ndash;",
+                         f"{src_['best_xy'][0]:.0f}, {src_['best_xy'][1]:.0f}", f"{src_['near_n']}"])
     t += table(["Task", "Diameter (mm)", "Reach (%)", "Search", "Best score", "CPU score", "Best layout (mm)",
-                "Near set (layouts)", "Near set $x_{sep}$ (mm)", "Near set $y_{sep}$ (mm)"], rows,
+                "Near set (layouts)"], rows,
                "Per task and object size: the share of layouts that reach the pose; the best layout found by the live EA "
-               "(population 64, 6,000 rollouts) or by the full grid at the default object; its best-of-16 score on "
-               "seeds 0 to 2 and its CPU score; the near set's size and ranges. <code>hom_ea.py report</code>.",
+               "(population 64, 6,000 rollouts) or by the full grid at the default object, as $x_{sep}$, $y_{sep}$; its "
+               "best-of-16 score on seeds 0 to 2 and its CPU score; the number of layouts in its near set, whose ranges "
+               f"are the bars of Figures {P.FIG[0] + 1} and {P.FIG[0] + 2}. <code>hom_ea.py report</code>.",
                num_from=1)
     t += img(MEDIA / "20261030-size_trends_sph.png",
              "Spheres. Top: the best layout's score against the diameter. Middle and bottom: its $x_{sep}$ and $y_{sep}$, "
@@ -774,7 +774,9 @@ def sec_files():
 def assemble(sections, title, h1, eyebrow, lede, byline, summary):
     num = {sid: k for k, (sid, _hd, _b) in enumerate(sections, 1)}
     sub = (lambda s: re.sub(r"SEC\[(\w+)\]", lambda m_: str(num[m_.group(1)]), s))
-    sections = [(sid, hd, sub(body)) for sid, hd, body in sections]
+    unit = (lambda s_: re.sub(r"(\d) (%|mm|deg|MN\b|N\b|ms\b|s\b)", "\\1&nbsp;\\2", s_))  # a number keeps its unit
+    sections = [(sid, hd, unit(sub(body))) for sid, hd, body in sections]
+    lede = unit(lede)
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{body}</section>'
                      for k, (sid, hd, body) in enumerate(sections, 1))
