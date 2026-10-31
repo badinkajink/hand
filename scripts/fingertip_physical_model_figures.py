@@ -731,12 +731,13 @@ GAIN_GROUPS = (("face centre, other plans", "Face\ncentre"), ("grid, face", "Fac
 
 
 def fig_gain_regions():
-    """The board's signal per newton by region of the pad on the low sphere: measured on v3 ID 1 and v3 ID 2 (four N52)
-    and v2 ID 1 (five N52), and predicted for each hold from its registered point and the HEX-E's force by the model,
+    """The board's signal per newton by region of the pad on the low sphere: measured on v3 ID 1 to ID 3 (four N52; ID 3
+    from 10-30) and v2 ID 1 (five N52), and predicted for each hold from its registered point and the HEX-E's force by the model,
     untrained (rest fit, compliance scale 1) and fitted to the presses (scripts/fingertip_physical_model_v3_check.py)."""
     plt = plt_setup()
     G = json.loads(V3_CHECK.read_text())
-    panels = [("(a) Four N52 magnets, pad 05R4", [("v3id1", "v3 ID 1", FOUR_C), ("v3id2", "v3 ID 2", "#e0a35e")]),
+    panels = [("(a) Four N52 magnets, pad 05R4", [("v3id1", "v3 ID 1", FOUR_C), ("v3id2", "v3 ID 2", "#e0a35e"),
+                                                  ("v3id3", "v3 ID 3", "#6e3608")]),
               ("(b) Five N52 magnets, pad B05R", [("v2id1", "v2 ID 1", FIVE_C)])]
     fig, axes = plt.subplots(1, 2, figsize=(10.0, 4.8), gridspec_kw=dict(width_ratios=(1.5, 1.0)), sharey=True)
     top = max(max(r[k] for k in ("measured", "untrained", "fitted") if r.get(k) is not None)

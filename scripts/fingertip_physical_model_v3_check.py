@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""The physical model of the printed fingertip on the second four-magnet tip, v3 ID 2, beside v3 ID 1 and the five-magnet
-v2 ID 1 (2026-10-29, after v3 ID 2's night suite of 10-28/29). Three checks on the low sphere's sessions:
+"""The physical model of the printed fingertip on the four-magnet tips v3 ID 1 to ID 3 beside the five-magnet v2 ID 1
+(2026-10-29, after v3 ID 2's night suite of 10-28/29; v3 ID 3 added on 10-30, after its suite of 10-29/30, from the
+analysis of logs/20261030-spherev3id3). Three checks on the low sphere's sessions:
 
-  rest    v3 ID 2's rest calibration as v3 ID 1's was made: the free fit (the analysis's calib_rest.json), the fit with the
+  rest    each v3 tip's rest calibration as v3 ID 1's was made: the free fit (the analysis's calib_rest.json), the fit with the
           board's offset dx within v2 ID 1's +- 0.3 mm (the same board mount), and, for both v3 tips, the fit with dx held
           at 0.70-0.80 mm, where the presses put v3 ID 1's board (the physical-model page's and the overview's open item).
   fit     scripts/ur5_tip_calibration_fe_calibration.py's run_tip on each tip, on the press actions that all three tips
-          ran: the strength k, the board's offsets and the FE's compliance scale c fitted to the holds up to 3.5 N; the
+          ran (all four from 10-30): the strength k, the board's offsets and the FE's compliance scale c fitted to the holds up to 3.5 N; the
           untrained model (FE and rest calibration, c = 1) and the fitted one under five folds grouped by action.
   gain    the board's signal per newton, |d_board| / f_n, by region of the pad, measured and predicted. The groups are
           scripts/ur5_tip_calibration_gain_by_region.py's (the reference presses at the face centre, FE node 788; the
@@ -16,7 +17,7 @@ v2 ID 1 (2026-10-29, after v3 ID 2's night suite of 10-28/29). Three checks on t
 
 Writes docs/experiments/20261026-fingertip_physical_model/data/20261029-v3_tips_model_check.json.
 
-    ~/.claude/bin/resguard.sh run --mem 3G --cpu 500 -- taskset -c 0-3 .venv/bin/python \\
+    ~/.claude/bin/resguard.sh run --mem 1G --cpu 500 -- taskset -c 0-3 .venv/bin/python \\
         scripts/fingertip_physical_model_v3_check.py
 """
 from __future__ import annotations
@@ -41,6 +42,7 @@ import ur5_tip_calibration_predict as PR  # noqa: E402
 OUT = ROOT / "docs/experiments/20261026-fingertip_physical_model/data/20261029-v3_tips_model_check.json"
 TIPS = (("v3id1", "v3 ID 1", ROOT / "logs/20261028-spherev3id1_twists", "four_05R4"),
         ("v3id2", "v3 ID 2", ROOT / "logs/20261029-spherev3id2", "four_05R4"),
+        ("v3id3", "v3 ID 3", ROOT / "logs/20261030-spherev3id3", "four_05R4"),
         ("v2id1", "v2 ID 1", FV.V2, "b_v2"))
 DX_TOL = 0.3            # the v3 tips' rest offset within v2 ID 1's +- this (mm), as the coordinator's fe_calibration
 DX_PRESS = (0.70, 0.80)  # where v3 ID 1's presses put its board (0.74-0.75 mm in 20261028-fe_calibration.json)
@@ -74,7 +76,7 @@ def main():
     shared = set.intersection(*(set(H["id"][H["kind"] == "press"].astype(str)) for H in raw.values()))
     grid = set.intersection(*(set(H["id"][(H["kind"] == "press") & (H["stage"] == "grid")].astype(str))
                               for H in raw.values()))
-    print(f"{len(shared)} press actions in all three sessions, {len(grid)} of them in the grid stage", flush=True)
+    print(f"{len(shared)} press actions in all {len(TIPS)} sessions, {len(grid)} of them in the grid stage", flush=True)
     out = dict(script="scripts/fingertip_physical_model_v3_check.py", made=time.strftime("%Y-%m-%d %H:%M"),
                sessions={key: rel(d) for key, _, d, _ in TIPS}, shared_actions=len(shared), shared_grid_actions=len(grid),
                max_n=MAX_N, gain_band_N=list(MID), rest={}, fit={}, gain={})

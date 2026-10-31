@@ -25,25 +25,33 @@ def sections(N, F, P, link, L):
     fn4 = [a4[b]["fn_rel"] for b in hi]
     rng = lambda v: f"{min(v):.1f}–{max(v):.1f}"   # noqa: E731
     cal = link(L["cal"], "calibration page")
-    # the three N52 tips on the press actions they all ran (scripts/fingertip_physical_model_v3_check.py, 2026-10-29)
+    # the N52 tips on the press actions they all ran (scripts/fingertip_physical_model_v3_check.py, 2026-10-29; v3 ID 3
+    # from 10-30)
     vc = N["v3_check"]
     ft, rs, gn = vc["fit"], vc["rest"], vc["gain"]
     FC_, FACE = "face centre, other plans", "grid, face"
     fit_ok = [abs(r["fitted"] / r["measured"] - 1) for t in gn.values() for g, r in t.items()
               if g != FC_ and r["measured"] is not None]
     within = math.ceil(100 * max(fit_ok))
+    GLAB = {"grid, face": "the face", "grid, edge": "the edges", "grid, flank": "the flanks", "top-edge pass, tip": "the tip end"}
+    NAME = {"v3id1": "v3 ID 1", "v3id2": "v3 ID 2", "v3id3": "v3 ID 3", "v2id1": "v2 ID 1"}
+    worst = max((abs(r["fitted"] / r["measured"] - 1), f"{NAME[t]}'s {GLAB[g][4:]}") for t, tg in gn.items()
+                for g, r in tg.items() if g != FC_ and r["measured"] is not None)
     cen = {k: gn[k][FC_] for k in gn}
-    TIP3 = (("v3id1", "v3 ID 1, four"), ("v3id2", "v3 ID 2, four"), ("v2id1", "v2 ID 1, five"))
+    TIPS = (("v3id1", "v3 ID 1, four"), ("v3id2", "v3 ID 2, four"), ("v3id3", "v3 ID 3, four"), ("v2id1", "v2 ID 1, five"))
+    V3 = ("v3id1", "v3id2", "v3id3")
+    crng = lambda w: rng([cen[k][w] for k in V3])                  # noqa: E731
+    three = lambda f, d=2: ", ".join(f"{f(k):.{d}f}" for k in V3[:2]) + f" and {f(V3[2]):.{d}f}"   # noqa: E731
     BINS4 = ("0-1", "1-2", "2-3.5", "3.5-8")
     un = lambda k, b: ft[k]["untrained"][b]                       # noqa: E731
     loc_by = lambda k: [un(k, b)["loc_mm"] for b in hi]           # noqa: E731
     fn_by = lambda k: [100 * un(k, b)["fn_rel"] for b in hi]      # noqa: E731
     pct = lambda v: f"{min(v):.0f}–{max(v):.0f}"                  # noqa: E731
     ratio = lambda k, w: gn[k][FC_][w] / gn[k][FACE][w]           # noqa: E731
-    E_fit = [ft[k]["E_fit_MPa"] for k, _ in TIP3]
+    E_fit = [ft[k]["E_fit_MPa"] for k, _ in TIPS]
     give = [v["slope_um_per_N"] / v["fe_give_um_per_N"] for t in vc["depth"].values() for v in t.values()]
-    k1, k2 = (f"{rs[k]['at_press_board']['k']:.2f}" for k in ("v3id1", "v3id2"))
-    k_at = f"{k1} on both tips" if k1 == k2 else f"{k1} and {k2}"
+    ks = [f"{rs[k]['at_press_board']['k']:.2f}" for k in V3]
+    k_at = f"{ks[0]} on all three tips" if len(set(ks)) == 1 else ", ".join(ks[:2]) + f" and {ks[2]}"
 
     def five(n, png, caption):
         """Figure n with five magnets, in a block that opens on a click."""
@@ -59,10 +67,9 @@ def sections(N, F, P, link, L):
         f"2026-10-28, the readings change by {pr['checker_N52_four']:.0f} µT at the face centre "
         f"({pr['checker_N52']:.0f} µT with five). Inverted without training, the model placed the four-magnet tip's UR5 "
         f"presses of 1 N and over within {rng(loc4)} mm, and those under 1 N {a4['0-1']['loc_mm']:.1f} mm off. Fitted to "
-        f"the presses of three N52 tips, it gives the signal per newton of the face, edges, flanks and tip end within "
-        f"{within} %. At the face centre the two four-magnet tips gave {cen['v3id1']['measured']:.1f} and "
-        f"{cen['v3id2']['measured']:.1f} µT/N, against the model's {cen['v3id1']['fitted']:.1f} and "
-        f"{cen['v3id2']['fitted']:.1f}.")
+        f"the presses of four N52 tips, it gives the signal per newton of the face, edges, flanks and tip end within "
+        f"{within} %. At the face centre the three four-magnet tips gave {crng('measured')} µT/N, against the model's "
+        f"{crng('fitted')}.")
     summary = (
         "FE of the printed pad plus a dipole field model give the 15 magnetometer readings for a load anywhere on the "
         "surface. With four N52 magnets in a 5.0 mm checkerboard (pad 05R4, chosen 2026-10-28), at 1 N under a 5 mm sphere "
@@ -70,10 +77,9 @@ def sections(N, F, P, link, L):
         f"change by {pr['checker_N52_four']:.0f} µT at the face centre (five magnets: {pr['checker_N52']:.0f} µT). Inverted "
         f"without training it places v3 ID 1's UR5 presses of 1 N and over within {rng(loc4)} mm and their normal force "
         f"within {100 * min(fn4):.0f}–{100 * max(fn4):.0f} % (medians); under 1 N it fails ({a4['0-1']['loc_mm']:.1f} mm). "
-        f"Fitted to the presses of v3 ID 1, v3 ID 2 and v2 ID 1, it gives each region's signal per newton within {within} % "
-        f"except the face centre, where the four-magnet tips gave {cen['v3id1']['measured']:.1f} and "
-        f"{cen['v3id2']['measured']:.1f} µT/N against the model's {cen['v3id1']['fitted']:.1f} and "
-        f"{cen['v3id2']['fitted']:.1f}.")
+        f"Fitted to the presses of v3 ID 1 to ID 3 and v2 ID 1, it gives each region's signal per newton within {within} % "
+        f"except the face centre, where the four-magnet tips gave {crng('measured')} µT/N against the model's "
+        f"{crng('fitted')}.")
 
     film = P.film(0, F["film"], F["film_poster"],
                   "The contact viewer replays five presses that the model made with the board's measured noise, on the "
@@ -411,17 +417,18 @@ def sections(N, F, P, link, L):
         "each it fits the strength, the offset and Earth's field by least squares, and the best reproduces the reading at "
         f"rest. On v3 ID 1 the planned checkerboard fits at {rs['v3id1']['free']['rms_mT']:.2f} mT RMS, against "
         f"{rs['v3id1']['free']['rms_next_mT']:.2f} mT for the next pattern. On v3 ID 2 it fits at "
-        f"{rs['v3id2']['free']['rms_mT']:.2f} against {rs['v3id2']['free']['rms_next_mT']:.2f} mT. The rest field of four "
-        "alternating magnets fixes their strength and the board's offset only together. A free fit gives a strength at "
-        f"its bound of 2.0, with the board {rs['v3id1']['free']['dx']:.2f} mm farther away on v3 ID 1 and "
-        f"{rs['v3id2']['free']['dx']:.2f} mm on v3 ID 2. With the offset held near v2 ID 1's, on the same board mount, "
-        f"the strengths are {rs['v3id1']['bounded']['k']:.2f} and {rs['v3id2']['bounded']['k']:.2f} at "
+        f"{rs['v3id2']['free']['rms_mT']:.2f} against {rs['v3id2']['free']['rms_next_mT']:.2f} mT, and on v3 ID 3 at "
+        f"{rs['v3id3']['free']['rms_mT']:.2f} against {rs['v3id3']['free']['rms_next_mT']:.2f} mT. The rest field of four "
+        "alternating magnets fixes their strength and the board's offset only together. On v3 ID 1 and ID 2 a free fit "
+        f"gives a strength at its bound of 2.0, with the board {rs['v3id1']['free']['dx']:.2f} and "
+        f"{rs['v3id2']['free']['dx']:.2f} mm farther away. On v3 ID 3 it gives a strength of "
+        f"{rs['v3id3']['free']['k']:.2f}, with the board {rs['v3id3']['free']['dx']:.2f} mm farther away. With the offset held "
+        f"near v2 ID 1's, on the same board mount, the strengths are {three(lambda k: rs[k]['bounded']['k'])} at "
         f"{rs['v3id1']['bounded']['dx']:.2f} mm. Figures 7 and 8 and Table 1 have this calibration. The presses put the "
-        f"boards {ft['v3id1']['board_dx']:.2f} and {ft['v3id2']['board_dx']:.2f} mm farther away "
+        f"boards {three(lambda k: ft[k]['board_dx'])} mm farther away "
         "(" + '<a href="#ur5">Section 9</a>' + "). With the offset held there, the rest fit gives a strength of "
-        f"{k_at}, and its residual "
-        f"grows by {rs['v3id1']['at_press_board']['rms_mT'] - rs['v3id1']['free']['rms_mT']:.3f} and "
-        f"{rs['v3id2']['at_press_board']['rms_mT'] - rs['v3id2']['free']['rms_mT']:.3f} mT. On tip 1, with five magnets, the planned checkerboard fits at 0.24 mT and the next "
+        f"{k_at}. Its residual grows by "
+        f"{three(lambda k: rs[k]['at_press_board']['rms_mT'] - rs[k]['free']['rms_mT'], 3)} mT. On tip 1, with five magnets, the planned checkerboard fits at 0.24 mT and the next "
         "pattern at 0.87 mT. Its strength and the magnets' depth are also found only together. A strength of 0.57 with "
         "the chips 1.9 mm farther away and one of 0.34 at 0.7 mm fit 0.09 mT apart.</p>"
         "<p>On simulated presses with five N52 magnets all north, 2 % of presses are placed more than 1.5 mm off. The "
@@ -472,15 +479,26 @@ def sections(N, F, P, link, L):
         f"{ft['v3id1']['cv']['all']['loc_mm']:.2f} and {ft['v3id2']['cv']['all']['loc_mm']:.2f} mm on v3 ID 1 and ID 2. "
         f"Untrained it is {ft['v3id1']['untrained']['all']['loc_mm']:.2f} and "
         f"{ft['v3id2']['untrained']['all']['loc_mm']:.2f} mm.</p>"
+        "<p>The third four-magnet tip, v3 ID 3, ran the suite from 13:45 on 2026-10-29 to 14:49 on 10-30 (" + cal
+        + ", Section 7). It ran the same " + f"{vc['shared_actions']} press actions on the low sphere. From 1 N up the "
+        f"untrained model places its contacts within {rng(loc_by('v3id3'))} mm, and under 1 N "
+        f"{un('v3id3', '0-1')['loc_mm']:.1f} mm away. Its normal force errs by {pct(fn_by('v3id3'))} %. Fitted to the "
+        f"presses, v3 ID 3 has a compliance scale of {ft['v3id3']['c']:.2f}, a modulus of "
+        f"{ft['v3id3']['E_fit_MPa']:.1f} MPa. Its board sits {ft['v3id1']['board_dx'] - ft['v3id3']['board_dx']:.2f} mm "
+        f"closer to the magnets than v3 ID 1's, and its strength is "
+        f"{100 * (ft['v3id3']['k'] / ft['v3id1']['k'] - 1):.0f} % higher. Under five folds, the fitted model's location "
+        f"error over all holds is {ft['v3id3']['cv']['all']['loc_mm']:.2f} mm, and untrained "
+        f"{ft['v3id3']['untrained']['all']['loc_mm']:.2f} mm. Its holds are from the UR5 coordinator's analysis of "
+        "10-30 in " + P.code("logs/20261030-spherev3id3/") + ", which is not in git.</p>"
         + P.table(["Tip, magnets", "Board offset (mm)", "Strength at rest, board held there", "Compliance scale $c$",
                    "Location error, untrained, 0–1 / 1–2 / 2–3.5 / 3.5–8 N (mm)",
                    "Normal force error, untrained, same bins (%)", "Location error, all holds, untrained / fitted (mm)"],
                   [[nm, f"{ft[k]['board_dx']:.2f}", f"{rs[k]['at_press_board']['k']:.2f}", f"{ft[k]['c']:.2f}",
                     " / ".join(f"{un(k, b)['loc_mm']:.1f}" for b in BINS4),
                     " / ".join(f"{100 * un(k, b)['fn_rel']:.0f}" for b in BINS4),
-                    f"{ft[k]['untrained']['all']['loc_mm']:.2f} / {ft[k]['cv']['all']['loc_mm']:.2f}"] for k, nm in TIP3],
+                    f"{ft[k]['untrained']['all']['loc_mm']:.2f} / {ft[k]['cv']['all']['loc_mm']:.2f}"] for k, nm in TIPS],
                   num_cols=(1, 2, 3, 4, 5, 6), n=1,
-                  caption=f"The model on the {vc['shared_actions']} press actions of the low sphere that the three N52 "
+                  caption=f"The model on the {vc['shared_actions']} press actions of the low sphere that the four N52 "
                   f"tips ran, {ft['v3id1']['holds']} holds on each tip. Board offset and $c$: the fitted model's. Strength "
                   "at rest: the rest fit with the board held within 0.02 mm of that offset. Errors are medians, by the "
                   "hold's normal force. Rows in "
@@ -490,12 +508,13 @@ def sections(N, F, P, link, L):
         .replace("<th class=n>", '<th class=n style="white-space:normal">')
         + "<p>Figure 9 compares the signal per newton by region of the pad. For each hold the model predicts the reading "
         "change from the registered contact point and the HEX-E's force. Fitted to the presses, it gives the face, the "
-        f"edges, the flanks and the tip end within {within} % of the measured medians on all three tips. At the face "
-        f"centre the four-magnet tips gave {cen['v3id1']['measured']:.1f} and {cen['v3id2']['measured']:.1f} µT per "
-        f"newton, and the fitted model gives {cen['v3id1']['fitted']:.1f} and {cen['v3id2']['fitted']:.1f}. Their other "
-        f"presses on the face gave {gn['v3id1'][FACE]['measured']:.1f} and {gn['v3id2'][FACE]['measured']:.1f} µT per "
-        f"newton. So the measured centre gives {ratio('v3id1', 'measured'):.2f} and {ratio('v3id2', 'measured'):.2f} of "
-        f"the face's signal, and the model {ratio('v3id1', 'fitted'):.2f} and {ratio('v3id2', 'fitted'):.2f}. The "
+        f"edges, the flanks and the tip end within {within} % of the measured medians on all four tips. The largest "
+        f"difference, {100 * worst[0]:.0f} %, is at {worst[1]}. At the face centre the three four-magnet tips gave "
+        f"{three(lambda k: cen[k]['measured'], 1)} µT per newton. The fitted model gives "
+        f"{three(lambda k: cen[k]['fitted'], 1)}. Their other presses on the face gave "
+        f"{three(lambda k: gn[k][FACE]['measured'], 1)} µT per newton. So the measured centre gives "
+        f"{three(lambda k: ratio(k, 'measured'))} of the face's signal. The model gives "
+        f"{three(lambda k: ratio(k, 'fitted'))}. The "
         "cancellation at U1 is deeper in the printed tips than in the model. With five magnets the face centre gave "
         f"{cen['v2id1']['measured']:.1f} µT per newton, {ratio('v2id1', 'measured'):.2f} times the face's, and the "
         f"fitted model gives {cen['v2id1']['fitted']:.1f}.</p>"
@@ -504,7 +523,7 @@ def sections(N, F, P, link, L):
                 "fitted model and the dashed line the untrained model; each predicts a hold's change from its "
                 "registered contact point and the HEX-E's force. Face centre: the reference presses at the face's "
                 f"centre. Face, edges and flanks: the grid stage's presses on the {vc['shared_grid_actions']} grid "
-                "actions that all three tips ran. Tip end: v3 ID 2's top-edge pass. Groups as in "
+                "actions that all four tips ran. Tip end: the top-edge passes of v3 ID 2 and ID 3. Groups as in "
                 + P.code("scripts/ur5_tip_calibration_gain_by_region.py") + "; rows in "
                 + P.code("data/20261029-v3_tips_model_check.json") + ".")
         + "<p>The registered indentation is larger than the FE pad's at the measured force. On tip 0, at the registered "
@@ -515,7 +534,7 @@ def sections(N, F, P, link, L):
         "0.07 mm plus 0.10 mm per newton. A spring in series with the pad, in the mount, the arm or the indenter's stand, "
         "would add the same slope under both indenters. So at most 0.10 mm/N lies in series. At least 0.10 mm/N arises "
         "at the sphere's small contact, where the print is softer than the FE pad ("
-        + link(L["gt"], "UR5 ground truth") + ", Sections 3, 4 and 8). On the three N52 tips the fitted modulus is "
+        + link(L["gt"], "UR5 ground truth") + ", Sections 3, 4 and 8). On the four N52 tips the fitted modulus is "
         f"{min(E_fit):.1f}–{max(E_fit):.1f} MPa, against the FE's 12 MPa (Table 1). The registered indentation of the "
         f"same presses grows {min(give):.1f} to {max(give):.1f} times as fast as the FE pad's.</p>"
         "<p>At 2 N and over, most of the untrained model's location error is geometric. On tip 1 an affine map of the "
@@ -543,14 +562,13 @@ def sections(N, F, P, link, L):
     # ------------------------------------------------------------------------------------------------ future work
     items = [
         "Board offset on the four-magnet tips: measure the gap between the pad's cut face and the board's chips on "
-        "v3 ID 1 and ID 2 with feeler gauges. Convert the gap to the board offset. The presses put the offsets at "
-        f"{ft['v3id1']['board_dx']:.2f} and {ft['v3id2']['board_dx']:.2f} mm, where the rest fit gives a strength of "
-        f"{k_at}. Gauge offsets within "
+        "v3 ID 1 to ID 3 with feeler gauges. Convert the gap to the board offset. The presses put the offsets at "
+        f"{three(lambda k: ft[k]['board_dx'])} mm, where the rest fit gives a strength of {k_at}. Gauge offsets within "
         "0.15 mm of these confirm the field model of four magnets. Offsets near the free rest fits' "
-        f"{rs['v3id1']['free']['dx']:.2f} and {rs['v3id2']['free']['dx']:.2f} mm put the error in the magnets' depth.",
+        f"{three(lambda k: rs[k]['free']['dx'])} mm put the error in the magnets' depth.",
         "Depth of the cancellation at the face centre: in the fit to the presses, let each of the four magnets move by "
         "up to 0.5 mm in the plane of the square (the fit of Table 1 moves only the board). A fit that brings the face "
-        f"centre within 10 % of the measured {cen['v3id1']['measured']:.1f} and {cen['v3id2']['measured']:.1f} µT/N, "
+        f"centre within 10 % of the measured {crng('measured')} µT/N, "
         f"with the other regions still within {within} %, places the printed magnets off the design's square. A fit "
         "that cannot puts the error in the FE's magnet motions near the centre.",
         "Siraya 85A's modulus: press a solid 85A coupon under a dial indicator at 0.5–5 N "
