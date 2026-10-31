@@ -401,7 +401,8 @@ def sections(N, F, P, link, L):
         "from 09:41, once the HEX-E was back, and the rod's session from 10:27 (Section 11). v3 ID 2 ran its suite of "
         "488 actions from 18:44 on 2026-10-28 to 08:13 on 10-29 (Section 12). v3 ID 3 ran its suite of 501 actions "
         "from 13:45 on 10-29 to 14:49 on 10-30, all ok. Two HEX-E losses stopped its tall stage 2, which was resumed "
-        "each time (Section 14). Its analysis is to come. Tip 2's session "
+        "each time (Section 14). Its sessions were analysed on 10-30, and the physical model is checked on their holds ("
+        + link(L["phys"], "physical-model page") + ", Section 9). Its learned models are to come. Tip 2's session "
         "cb2t has 104 press points in 921 holds, and 87 slides.</p>"
         + P.table(["Session", "Tip, indenter", "Mount", "Date", "Press holds (presses)", "Turn holds (turns)"], rows,
                   caption="Sessions on the UR5. Turn holds are those of slides, rolls and twists. Counts from each session's "
