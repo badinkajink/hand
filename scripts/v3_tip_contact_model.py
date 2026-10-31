@@ -5,16 +5,19 @@ sphere-packed / hydroelastic contact model in simulation"; "stick to one hydroel
 extrema"; forces matter more than the indentation; "recover the surface area of contact/contact pose").
 
 Holds: every press of the v3 sessions over 0.2 N (logs/<session>/holds.npz of scripts/ur5_tip_calibration_analysis.py):
-v3 ID 1 and v3 ID 2 under the low 5 mm sphere, the tall 5 mm sphere and the 12.5 mm rod, and for comparison the old tip's
-sphere2 and rod1 sessions of 2026-10-22/23, which the contact overview quoted until 2026-10-30. Each hold gives the
+v3 ID 1, ID 2 and ID 3 under the low 5 mm sphere, the tall 5 mm sphere and the 12.5 mm rod, and for comparison the old
+tip's sphere2 and rod1 sessions of 2026-10-22/23, which the contact overview quoted until 2026-10-30. Each hold gives the
 indenter's registered centre c_P in the pad frame (the HEX-E's deflection removed), the contact normal n, the registered
-depth and the HEX-E's force vector.
+depth and the HEX-E's force vector. v3 ID 3's holds were analysed on 2026-10-30 from corvus's session folders
+(scripts/corvus_pull.sh, then the analysis with --case four_05R4 --gravity-from lab/20261022-195420-first2, as for ID 1).
 
 Models, all at the indenter's registered position:
   pads   builder-v2 1 mm sphere pads on the FE surface points (ur5_tip_calibration_pads.Pads): K_i = E a_i / h_i, h_i the
-         depth of the pad's volume centroid below surface point i
-  field  Drake's compliant-convex pressure field p = E (1 - g), g the gauge of the pad's convex surface about the same
-         centroid (the largest (X - c) . n_k / d_k over the surface triangles and the base), integrated over the part of
+         depth of surface point i below the whole tip shape's volume centroid, as reorient_backends.replace_tips builds the
+         scenes' tcd_ell7.4x8.5x11x22 pads (CENTROID; the fit of 2026-10-30 15:19 took the pad solid's own centroid, whose
+         pads push about 1.44 times harder at the presses, and its modulus is kept as E_pads_padcentroid_MPa)
+  field  Drake's compliant-convex pressure field p = E (1 - g), g the gauge of the pad's convex surface about the pad
+         solid's node centroid (the largest (X - c) . n_k / d_k over the surface triangles and the base), integrated over the part of
          the indenter's surface inside the pad (samples about 0.1 mm apart)
   FE     the four-magnet FE pad (b_05R4 surface basis; walls and skins at 12 MPa around the gyroid core), frictionless,
          with its compliance scaled by s; its modulus is quoted as 12 MPa / s
@@ -66,10 +69,15 @@ SESSIONS = [
     ("v3id2_tall", "v3 ID 2", "tall", ROOT / "logs/20261029-tallv3id2", LAB / "20261028-200508-tallv3id2", BASIS4),
     ("v3id1_rod", "v3 ID 1", "rod", ROOT / "logs/20261028-rodv3id1", LAB / "20261028-102701-rodv3id1", BASIS4),
     ("v3id2_rod", "v3 ID 2", "rod", ROOT / "logs/20261029-rodv3id2", LAB / "20261029-031559-rodv3id2", BASIS4),
+    ("v3id3_low", "v3 ID 3", "low", ROOT / "logs/20261030-spherev3id3", LAB / "20261029-134508-spherev3id3", BASIS4),
+    ("v3id3_tall", "v3 ID 3", "tall", ROOT / "logs/20261030-tallv3id3", LAB / "20261029-153034-tallv3id3", BASIS4),
+    ("v3id3_rod", "v3 ID 3", "rod", ROOT / "logs/20261030-rodv3id3", LAB / "20261029-230820-rodv3id3", BASIS4),
     ("old_sphere2", "tip 0", "low", OLD / "20261022-210852-sphere2", LAB / "20261022-210852-sphere2", BASIS5),
     ("old_rod1", "tip 0", "rod", OLD / "20261023-104526-rod1-joint", LAB / "20261023-104526-rod1", BASIS5),
 ]
-JOINT = ("v3id1_low", "v3id2_low", "v3id1_rod", "v3id2_rod")     # the one modulus: low sphere and rod, both v3 tips
+JOINT = ("v3id1_low", "v3id2_low", "v3id3_low", "v3id1_rod", "v3id2_rod", "v3id3_rod")  # one modulus: low sphere, rod
+TIPS = ("v3 ID 1", "v3 ID 2", "v3 ID 3")
+CENTROID = "shape"            # pad depths h_i below the whole tip's centroid, as the scenes' replace_tips (15:19 fit: "pad")
 MIN_N = 0.2
 E_FE_MPA = 12.0                                                 # walls and skins of the FE (NinjaFlex 85A data sheet)
 S_GRID = np.array([0.75, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0])
@@ -81,7 +89,7 @@ SPACING = dict(sphere=0.1, rod=0.15)                            # field samples 
 # ------------------------------------------------------------------------------------------------------------ models
 class Field:
     """Drake's compliant-convex field of the pad: p / E = 1 - g, g = max over the surface triangles' planes and the base
-    plane of (X - c) . n_k / d_k, c the pad solid's node centroid (the pads' c_V)."""
+    plane of (X - c) . n_k / d_k, c the pad solid's node centroid (the pads' c_V until 2026-10-30 15:19)."""
 
     def __init__(self, basis):
         B = np.load(basis)
@@ -275,8 +283,8 @@ def make_ctx(key):
     _, tip, ind, hdir, pdir, basis = next(s for s in SESSIONS if s[0] == key)
     H = np.load(hdir / "holds.npz", allow_pickle=False)
     g = json.loads((pdir / "plan.json").read_text())["geometry"]["indenter"]
-    return dict(R=float(g["radius"]), kind=g.get("kind", "sphere"), H=H, pads=PD.Pads(basis=basis), field=Field(basis),
-                fe=FEPatch(basis))
+    return dict(R=float(g["radius"]), kind=g.get("kind", "sphere"), H=H, pads=PD.Pads(basis=basis, centroid=CENTROID),
+                pads_pad=PD.Pads(basis=basis, centroid="pad"), field=Field(basis), fe=FEPatch(basis))
 
 
 def session_rows(key):
@@ -292,13 +300,14 @@ def session_rows(key):
         dep = float(H["depth"][i])
         pl = field.planes(H["p"][i], kind=kind)
         Fp, cp, npd, rp = pads_contact(pads, c, n, R, ax)
+        Gq = float(pads_contact(ctx["pads_pad"], c, n, R, ax)[0] @ n)
         Ff, cf, af, rf = field_contact(field, c, n, R, ax, max(dep, 0.0) + 0.6, pl)
         fe.n_hold = n
         fe_F = [float(-fe.contact(c, s, R, ax)[0] @ n) for s in S_GRID]
         rows.append(dict(i=int(i), id=str(H["id"][i]), region=str(H["region"][i]), level=float(H["level_N"][i]),
                          f_n=float(H["f_n"][i]), f=H["f"][i].astype(float).tolist(), depth=dep, c=c.tolist(), n=n.tolist(),
                          p=H["p"][i].astype(float).tolist(), axis=None if ax is None else ax.tolist(),
-                         Gp=float(Fp @ n), Gp_vec=Fp.tolist(), cen_p=None if cp is None else cp.tolist(), n_pads=npd, rbar_p=rp,
+                         Gp=float(Fp @ n), Gq=Gq, Gp_vec=Fp.tolist(), cen_p=None if cp is None else cp.tolist(), n_pads=npd, rbar_p=rp,
                          Gf=float(Ff @ n), Gf_vec=Ff.tolist(), cen_f=None if cf is None else cf.tolist(), area_f=af, rbar_f=rf,
                          fe=fe_F))
     print(f"{key}: {len(rows)} presses over {MIN_N} N ({time.time() - t0:.0f} s)", flush=True)
@@ -575,6 +584,7 @@ def main():
         Gf = np.concatenate([[r["Gf"] for r in rows_by[k]] for k in ks])
         lv = np.concatenate([[r["level"] for r in rows_by[k]] for k in ks])
         Ep, mp_ = fit_log(meas, Gp)
+        Eq = fit_log(meas, np.concatenate([[r["Gq"] for r in rows_by[k]] for k in ks]))[0]
         Ef, mf = fit_log(meas, Gf)
         s, mb, cost = fit_fe([r for k in ks for r in rows_by[k]])
         by_level = {}
@@ -582,14 +592,14 @@ def main():
             m = lv == L
             if m.sum() >= 5:
                 by_level[f"{L:g}"] = dict(n=int(m.sum()), E_pads_MPa=fit_log(meas[m], Gp[m])[0], E_field_MPa=fit_log(meas[m], Gf[m])[0])
-        return dict(n=int(len(meas)), E_pads_MPa=Ep, miss_pads=mp_, E_field_MPa=Ef, miss_field=mf, s_fe=s,
+        return dict(n=int(len(meas)), E_pads_MPa=Ep, E_pads_padcentroid_MPa=Eq, miss_pads=mp_, E_field_MPa=Ef, miss_field=mf, s_fe=s,
                     E_fe_MPa=E_FE_MPA / s, fe_median_abs_log=cost, by_level=by_level)
     groups = {k: [k] for k in rows_by}
     for ind in ("low", "tall", "rod"):
         ks = [k for k in rows_by if k.startswith("v3") and meta[k]["indenter"] == ind]
         if ks:
             groups[f"v3_{ind}"] = ks
-    for tip in ("v3 ID 1", "v3 ID 2"):
+    for tip in TIPS:
         ks = [k for k in JOINT if k in rows_by and meta[k]["tip"] == tip]
         if ks:
             groups[f"{tip.replace(' ', '').lower()}_low_rod"] = ks

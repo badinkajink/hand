@@ -2,10 +2,10 @@
 """Figures, film and numbers of the page on one contact-model modulus for the v3 fingertips (scripts/v3_tip_contact_model.py
 writes the data; scripts/v3_tip_contact_model_page.py builds the page).
 
-  force    normal force against registered indentation at the face: (a) the low 5 mm sphere, (b) the 12.5 mm rod, both v3
-           tips' face holds, with the pads and Drake's field at their joint modulus, the FE at s = 1 and at its joint
-           scale, and the scenes' 10 MPa pads
-  ratio    measured over model force at the joint modulus by load level, low sphere and rod, both tips pooled
+  force    normal force against registered indentation at the face: (a) the low 5 mm sphere, (b) the 12.5 mm rod, the v3
+           tips' face holds (ID 1 to 3), with the pads and Drake's field at their joint modulus, the FE at s = 1 and at its joint
+           scale, and the 10 MPa pads of the scenes before 2026-10-30
+  ratio    measured over model force at the joint modulus by load level, low sphere and rod, the three tips pooled
   patch    (a) the patch's pressure-weighted mean radius against normal force at the face under the sphere and the rod,
            three models; (b) the twists' torsion against normal force with the models' mu F r_bar
   film     the three models' contact patches at the face centre under the 5 mm sphere as the force rises from 0.25 to 8 N
@@ -32,7 +32,7 @@ FIT = DATA / "20261030-contact_model_fit.json"
 NUMBERS = DATA / "20261030-numbers.json"
 ORANGE, BLUE, GREY, BLACK = "#BE7514", "#4A7FC4", "#79858E", "#222222"
 E_SCENES = 10.0
-LOW, ROD = ("v3id1_low", "v3id2_low"), ("v3id1_rod", "v3id2_rod")
+LOW, ROD = ("v3id1_low", "v3id2_low", "v3id3_low"), ("v3id1_rod", "v3id2_rod", "v3id3_rod")
 
 
 def plt_setup():
@@ -100,7 +100,7 @@ def fig_force(d):
     fig, axes = plt.subplots(1, 2, figsize=(10.4, 5.2), sharey=True)
     for ax, keys, title, xmax in ((axes[0], LOW, "(a) 5 mm sphere, face", 2.6), (axes[1], ROD, "(b) 12.5 mm rod, face", 1.8)):
         F, Dp, T = face_holds(d, keys)
-        for k, shade in zip(keys, ("0.62", "0.30")):
+        for k, shade in zip(keys, ("0.72", "0.48", "0.24")):
             m = T == k
             ax.scatter(Dp[m], F[m], s=10, color=shade, alpha=0.55, lw=0, zorder=1, label=f"Measured, {d['sessions'][k]['tip']}")
         dep, Gp, Gf, F1, Fs, _ = model_curves(d, keys)
@@ -108,7 +108,7 @@ def fig_force(d):
         ax.plot(dep, Ef * Gf, color=BLUE, lw=2.0, ls=(0, (6, 3)), zorder=4, label=f"Drake’s field, {Ef:.2f} MPa (fitted)")
         ax.plot(dep, Fs, color=BLACK, lw=2.0, zorder=3, label=f"FE, {12.0 / sf:.1f} MPa (one scale, fitted)")
         ax.plot(dep, F1, color=BLACK, lw=1.4, ls=":", zorder=3, label="FE, 12 MPa (as computed)")
-        ax.plot(dep, E_SCENES * Gp, color=ORANGE, lw=1.4, ls=":", zorder=3, label="Pads, 10 MPa (scenes)")
+        ax.plot(dep, E_SCENES * Gp, color=ORANGE, lw=1.4, ls=":", zorder=3, label="Pads, 10 MPa (scenes before 2026-10-30)")
         ax.set_xlim(0, xmax)
         ax.set_ylim(0, 8.6)
         ax.set_xlabel("Registered indentation (mm)")
@@ -116,7 +116,8 @@ def fig_force(d):
         ax.grid(color="0.9", lw=0.6)
     axes[0].set_ylabel("Normal force (N)")
     h, lab = axes[0].get_legend_handles_labels()
-    fig.legend(h[2:] + h[:2], lab[2:] + lab[:2], loc="upper center", bbox_to_anchor=(0.5, 0.02),
+    nm = len(LOW)
+    fig.legend(h[nm:] + h[:nm], lab[nm:] + lab[:nm], loc="upper center", bbox_to_anchor=(0.5, 0.02),
                ncol=2, frameon=False, fontsize=12, handlelength=2.6, markerscale=2.0)
     fig.tight_layout()
     save(fig, "20261030-force_indentation.png")
@@ -201,9 +202,10 @@ def fig_patch(d):
     a1.grid(color="0.9", lw=0.6)
     a1.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=2, frameon=False, fontsize=11)
     S = d["sessions_detail"]
-    for k, mk_, col, lab in (("v3id1_low", "o", "0.35", "5 mm sphere, v3 ID 1"), ("v3id2_low", "o", "0.65", "5 mm sphere, v3 ID 2"),
-                             ("v3id1_rod", "s", "0.35", "12.5 mm rod, v3 ID 1"), ("v3id2_rod", "s", "0.65", "12.5 mm rod, v3 ID 2")):
-        T = S[k]["twists"]
+    for k, mk_, col, lab in (("v3id1_low", "o", "0.72", "5 mm sphere, v3 ID 1"), ("v3id2_low", "o", "0.48", "5 mm sphere, v3 ID 2"),
+                             ("v3id3_low", "o", "0.24", "5 mm sphere, v3 ID 3"), ("v3id1_rod", "s", "0.72", "12.5 mm rod, v3 ID 1"),
+                             ("v3id2_rod", "s", "0.48", "12.5 mm rod, v3 ID 2"), ("v3id3_rod", "s", "0.24", "12.5 mm rod, v3 ID 3")):
+        T = S[k].get("twists") or []
         a2.scatter([t["f_n"] for t in T], [t["M_Nmm"] for t in T], marker=mk_, s=26, color=col, alpha=0.8, lw=0, label=lab, zorder=3)
     dep, Gp, Gf, F1, Fs, rb = model_curves(d, LOW)
     for model, col, F in (("pads", ORANGE, Ep * Gp), ("field", BLUE, Ef * Gf)):

@@ -33,7 +33,13 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   whose frozen scenes keep v1 pads (the servo-plant run above among them). `replace_tips` also builds the CAD-envelope
   tips of `tip_codesign_geometry` (`tcd_*` keys). Training, planning and evaluation use the same pads, the same builder
   and, where the trainer holds the grasp, the same contact numerics; compare contact models on trajectories (tool pose,
-  fingertip normal and friction forces) with seed spread, never on "held" alone (owner, 2026-10-15).
+  fingertip normal and friction forces) with seed spread, never on "held" alone (owner, 2026-10-15). **Pad modulus 2.5 MPa
+  since 2026-10-30 (owner: "change the modulus to match the real setting"):** `reorient_backends.E_TPU`, the one modulus
+  fitted to the UR5 presses of the v3 tips ID 1-3 (2.47 MPa, `docs/experiments/20261030-v3_tip_contact_model/`), with the
+  relaxation time `pad_tr(E)` = 0.02 s x sqrt(10 MPa / E), 0.04 s, so each pad keeps the solimp d0 it had at 10 MPa. No
+  series spring. `E=1e7, tr=0.02` reproduces runs before 2026-10-30, whose frozen and cached scenes keep 10 MPa (the HOM
+  study's `logs/20261030-hand_object_scale_cad_v2/scenes` among them). The scenes' friction (1.0, 2.4 in the deploy
+  scenes) stands for the bench tools' grip tape; the UR5's 0.37-0.44 is TPU on bare PLA.
 - **GPU is single (16 GB).** Train sequentially. **Every Warp process needs its own kernel cache:**
   `WARP_CACHE_PATH=$(mktemp -d)` — a shared cache races and NaNs. After killing a Warp run, wait for
   GPU memory to drop to ~1 GB before relaunching.

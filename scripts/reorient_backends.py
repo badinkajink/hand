@@ -72,8 +72,24 @@ NUMERICS = {"scene": None,                                                      
                         iterations="100", ls_iterations="50", tolerance="1e-10")}
 MU_SCENE = 2.4             # the deploy scenes' finger and tool friction; MuJoCo takes the larger of two geoms'
 DT = 0.001
-E_TPU = 1e7
-PAD_S, PAD_RS, PAD_TR = 0.001, 0.00075, 0.02
+# Pad modulus (owner, 2026-10-30: "seems like we should change the modulus to match the real setting"): the one modulus of
+# the builder-v2 pads, h_i below the whole tip's volume centroid as replace_tips builds them, fitted to the forces of the
+# UR5 presses of the four-magnet v3 tips ID 1-3 under the 5 mm sphere and the 12.5 mm rod, 2.47 MPa over 3,568 holds
+# (docs/experiments/20261030-v3_tip_contact_model/, scripts/v3_tip_contact_model.py), rounded. Runs before 2026-10-30 used
+# E_TPU_BEFORE_1030 with a 0.02 s relaxation time; pass E=1e7 and tr=0.02 to reproduce them (their frozen scenes keep both).
+E_TPU = 2.5e6
+E_TPU_BEFORE_1030, PAD_TR_AT_10MPA = 1e7, 0.02   # the scenes' modulus and the pads' relaxation time before 2026-10-30
+
+
+def pad_tr(E):
+    """The pads' relaxation time 2 tc (s) at modulus E (Pa): 0.02 s at 10 MPa, scaled as 1/sqrt(E). Each pad then keeps
+    the solimp d0 = 1 - 1/(tc^2 K_i diag) it has at 10 MPa, so the solver's regulariser R ~ 1/(tc^2 K_i) stays the same,
+    and so does the creep below slip of a curved tip on a face, F_t / (2 impratio tc sum K_i) with sum K_i ~ sqrt(E)."""
+    return PAD_TR_AT_10MPA * math.sqrt(E_TPU_BEFORE_1030 / E)
+
+
+PAD_S, PAD_RS = 0.001, 0.00075
+PAD_TR = round(pad_tr(E_TPU), 4)
 # Pad stiffness builder (owner, 2026-10-15). 'v2': each pad its own K_i = E a_i / h_i, h_i = n_i . (p_i - c_V) the local
 # depth of its surface point below the tip's volume centroid (Drake's pressure field to first order). 'v1': one K per
 # finger, the median of E a_i / h with h = 8.5 mm, as every run before 2026-10-15; pass builder='v1' (or set
@@ -255,11 +271,11 @@ def build_scene(hand: str, tip: str, model: str, plant: str, numerics: str, ir: 
 
 
 def replace_tips(root, tip: str, model: str, MU: float, out_dir: Path, tool: str = OBJ, s: float = PAD_S,
-                 rs: float = PAD_RS, tr: float = PAD_TR, E: float = E_TPU, region=None, tool_only: bool = False,
+                 rs: float = PAD_RS, tr: float | None = None, E: float = E_TPU, region=None, tool_only: bool = False,
                  builder: str | None = None):
     """Replace each fingertip of a parsed real_v1 scene by `tip` ('legacy' keeps the geoms, 'sphere', 'tpu<r>', or a
     CAD-envelope key of tip_codesign_geometry such as 'tcd_rs3_re3_p0.2') as `model` ('pt' one geom, 'pads' sphere pads
-    at spacing `s`, radius `rs`, relaxation `tr`). `region(C, N, sign)` optionally masks the pads (C centres, N normals
+    at spacing `s`, radius `rs`, relaxation `tr`, pad_tr(E) when None). `region(C, N, sign)` optionally masks the pads (C centres, N normals
     in the tip frame, sign = the palmar face's x direction). Pad stiffness K_i = E a_i / h_i (pad_set; `builder` 'v2' by
     default, 'v1' for runs before 2026-10-15) is reached at load through solimp d0_i = 1 - 1/(tc^2 K_i diag), diag =
     inverse weights of the tip body and `tool`; v1 gives a finger's pads one d0.
@@ -270,6 +286,7 @@ def replace_tips(root, tip: str, model: str, MU: float, out_dir: Path, tool: str
     builder = builder or PAD_BUILDER
     if builder not in PAD_BUILDERS:
         raise ValueError(f"pad builder {builder!r}: one of {PAD_BUILDERS}")
+    tr = pad_tr(E) if tr is None else tr
     r = tip_r(tip)
     sh = tip_shape(tip)
     meshes = {}
