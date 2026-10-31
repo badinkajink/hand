@@ -2197,10 +2197,20 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   the change, and the tip mode the same 34 lines as HEAD.
 - **Simulated on the rebuilt plans.** The three seats' dry runs with walls (s1dry4, s2dry4, s3dry4: `--dry 15`, the
   full stages) had no abort and no early contact. Over their whole sessions (every 5th sample, the tip where the
-  simulator had it), nothing is flagged outside the homing. The tool end stays 3.0 mm or more from any tip body and
-  the stem 2.56 mm or more, the q3 flag is gone, and joint 6 stays within -16 and +16 deg. The homing flags 176 to
-  183 samples on each seat: the socket on its key, and the seated pose 3.94 to 4.90 mm from the 2x4s (STATE, the
-  owner's call).
+  simulator had it), nothing is flagged outside the homing. The q3 flag is gone, the stem stays 2.56 mm or more from
+  anything, and joint 6 stays within -16 and +16 deg. The homing flags 176 to 183 samples on each seat: the socket on
+  its key, and the seated pose 3.94 to 4.90 mm from the 2x4s (STATE, the owner's call).
+- **The workstation's replay of the dry run** (f8f4159e, `ur5_inverted_rig.py --plate block dry-check`, 18:0x) follows
+  `travel_probe` move by move, with no pad left out. It runs from 12 mm out of the key through every dry travel, press
+  and twist. Seats 1 to 3 give 320, 321 and 319 actions, none flagged; joint 6 stays within -16.5 and +15.8 deg and the
+  stem 5.56 mm or more from anything. Four travels turn from straight to joint in the dry run (probe-edge-569 on each
+  seat, probe-flank-593 on seat 1), because their dry rests stand over 30 mm apart; both ways are clean.
+- **The tool end's 3.0 mm is a floor.** For a point more than 3 mm outside the tip's bounding box, `seat_sdfs`
+  returns the box's distance. Measured exactly against the cover, cap and pad meshes (`dry-exact`), the sphere stays
+  8.82, 7.80 and 8.17 mm or more from its tip on seats 1, 2 and 3.
+- **The old dry run, replayed** (`--along-push`), confirms the lab's finding on seat 1: at wall-py-lo the stem stood
+  4.75 mm and the tool end 6.25 mm inside key 1 (the lab had 4.58 and 5.70). It flags three more: wall-py-hi and
+  wall-ny-hi also ran into key 1, and pad-flank-591 also took the elbow to q3.
 - The rebuilt plans' whole sessions (s1wf3, s2wf3, s3wf3) print what s1wf2 to s3wf2 printed: every action done, no
   abort, the same fits and the same true misses. Their walls' moves are clean in the cell as before.
 
