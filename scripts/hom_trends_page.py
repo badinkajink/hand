@@ -196,10 +196,16 @@ def table_numbers():
             for tb in (False, True):
                 rr = [r for r in rows if r["src"] == src and r["table"] == tb]
                 if rr:
+                    on = [r for r in rr if r["table_touch_periods"]]
+                    off = [r for r in rr if not r["table_touch_periods"]]
                     res[f"{src}_{'table' if tb else 'post'}"] = {
                         "n": len(rr), "held": sum(1 for r in rr if r["held"]),
                         "median": float(np.median([r["score"] for r in rr])),
-                        "touch": sum(1 for r in rr if r["table_touch_periods"]),
+                        "touch": len(on), "touch_dropped": sum(1 for r in on if not r["held"]),
+                        "touch_force": [min((r["table_force_max_N"] for r in on), default=0.0),
+                                        max((r["table_force_max_N"] for r in on), default=0.0)],
+                        "free": len(off), "free_held": sum(1 for r in off if r["held"]),
+                        "free_median": float(np.median([r["score"] for r in off])) if off else None,
                         "gpu_median": float(np.median([r["gpu_best"] for r in rr]))}
         out[task] = res
     return out
@@ -607,20 +613,33 @@ against <<s0>> % without it, and <<q1>> % of the pin-push's, against <<q0>> %.</
             cell = (lambda k: f"{v[k]['held']} of {v[k]['n']}, {v[k]['median']:.2f}" if k in v else "&ndash;")
             rows.append([NAMES[task], cell("grid2dff_post"), cell("grid2dff_table"), cell("grid2dgr_post"),
                          cell("grid2dgr_table")])
-        said = []
-        for task in ("twist", "roll", "pinpush"):
-            v = TB.get(task) or {}
-            if not all(k in v for k in ("grid2dff_post", "grid2dff_table", "grid2dgr_post", "grid2dgr_table")):
-                continue
-            a0, a1, b0, b1 = (v[k] for k in ("grid2dff_post", "grid2dff_table", "grid2dgr_post", "grid2dgr_table"))
-            said.append(f"In the {NAMES[task].lower()}, the best layouts of the grid without the constraint scored a "
-                        f"median of {a1['median']:.2f} with the table, against {a0['median']:.2f} on the post alone. A "
-                        f"finger touched the table before the lift in {a1['touch']} of their {a1['n']} runs. The best "
-                        f"layouts of the grid with the constraint scored {b1['median']:.2f} with the table and "
-                        f"{b0['median']:.2f} without it.")
-        t += fill(r"""<p>With a physical table under the object until the lift, the 20 best layouts of each grid ran on
-the CPU plant (Table <<tb>>, <code>scripts/hom_table_check.py</code>). <<said>></p>""", tb=P.TAB[0] + 1,
-                  said=" ".join(said))
+        full = [k for k in ("twist", "roll", "pinpush") if all(
+            x in (TB.get(k) or {}) for x in ("grid2dff_post", "grid2dff_table", "grid2dgr_post", "grid2dgr_table"))]
+        if len(full) == 3:
+            u = {k: TB[k]["grid2dff_table"] for k in full}
+            c = {k: (TB[k]["grid2dgr_post"], TB[k]["grid2dgr_table"]) for k in full}
+            fmax = max(u[k]["touch_force"][1] for k in full)
+            pp = c["pinpush"][1]
+            t += fill(r"""<p>With a physical table under the object until the lift, the 20 best layouts of each grid ran
+on the CPU plant (Table <<tb>>, <code>scripts/hom_table_check.py</code>). In the grids without the table constraint, a
+finger touched the table before the lift in <<ut>> of the 60 runs, with peak forces of <<f00>> N to <<fm>> MN. Most of
+their grasps start inside the table (Table <<tb4>>). Their twist scored a median of <<u_tw>> with the table, against
+<<p_tw>> on the post alone. In the film of the best such layout, the index and the middle never press on the sphere
+together, so no turn is made with all three pads in contact (Film <<fl>>). With the constraint, the twist and the roll
+scored the same with the table and without it, <<c_tw>> and <<c_ro>>.</p>
+<p>The pin-push's layouts clear of the table scored a median of <<c_pp1>> with the table, against <<c_pp0>> on the post
+alone. A finger touched the table before the lift in <<pt>> of the <<pn>> runs, with peak forces of <<f0>> to <<f1>> N,
+and <<pd>> of those <<pt>> runs dropped the cylinder. The <<pf>> runs without table contact all held it, with a median
+score of <<pm>>. The constraint allows 1 mm of penetration at the touch and open poses and does not check the squeeze
+that follows. After the lift, the cylinder of the best such layout swung down about the pinch (Film <<fl2>>).</p>""",
+                      tb=P.TAB[0] + 1, tb4=P.TAB[0], ut=sum(u[k]["touch"] for k in full), fm=f"{fmax / 1e6:.1f}",
+                      f00=f"{min(u[k]['touch_force'][0] for k in full):.0f}",
+                      u_tw=f"{u['twist']['median']:.2f}", p_tw=f"{TB['twist']['grid2dff_post']['median']:.2f}",
+                      c_tw=f"{c['twist'][1]['median']:.2f}", c_ro=f"{c['roll'][1]['median']:.2f}",
+                      c_pp1=f"{pp['median']:.2f}", c_pp0=f"{c['pinpush'][0]['median']:.2f}", pt=pp["touch"],
+                      pn=pp["n"], f0=f"{pp['touch_force'][0]:.0f}", f1=f"{pp['touch_force'][1]:,.0f}",
+                      pd=pp["touch_dropped"], pf=pp["free"], pm=f"{pp['free_median']:.2f}" if pp["free_median"] else "&ndash;",
+                      fl=P.FILM[0] + 1, fl2=P.FILM[0] + 2)
         t += table(["Task", "Unconstrained grid, post", "Unconstrained grid, table", "Table-constrained grid, post",
                     "Table-constrained grid, table"], rows,
                    "The 20 best layouts of each grid at the default object, best grasp, seed 0, CPU plant with every "
@@ -666,6 +685,9 @@ k-means attempt is <code>scripts/hom_proxy_check.py</code>.</li>
 slopes of Section SEC[trends] hold if each lies within that spread of its fit.</li>
 <li>Run <code>hom_top_cpu_check.py</code> on the 10 best layouts per size with scenes rebuilt at 2.5 MPa. The trends hold
 if the best layouts' CPU scores move by less than 0.05.</li>
+<li>Add the squeezed pose to the pose toy's table constraint (<code>fp_sr2_toy.ground_pair</code>) with no penetration
+allowed, re-solve the pinch grid at 25 mm and rerun <code>hom_table_check.py pinpush 25</code>. The account of Section
+SEC[table] holds if the runs with table contact, 14 of 20, and the drops fall together.</li>
 <li>A table in the GPU plant, a box under the object until the lift, to score grasps from a table at grid scale.</li>
 </ul>"""
 
@@ -719,25 +741,28 @@ def lede_and_summary(N):
         return plain, plain
     sx = [St[k]["slope_x"] for k in TASKS]
     n, ok, _bad = cpu_agreement(St)
-    tm = R["timing"]
-    x_lo = min(tm[f"rigid_{k}"]["run_s"] / tm[f"object_{k}"]["run_s"] for k in ("10", "42"))
-    x_hi = max(tm[f"rigid_{k}"]["run_s"] / tm[f"object_{k}"]["run_s"] for k in ("10", "42"))
     G = N["ground"] or {}
     cyl = sorted(d for (pose, d) in G if pose == "pinch")
     p_first = next((d for d in cyl if G[("pinch", d)].get("gr_reached")), None)
     table_s = (f" A table under the object leaves no clear press at any size and no clear pinch of a cylinder under "
                f"{p_first:g} mm." if p_first else "")
+    TB = N.get("table") or {}
+    tw_c, ro_c = (TB.get(k, {}).get("grid2dgr_table") for k in ("twist", "roll"))
+    pp_c = TB.get("pinpush", {}).get("grid2dgr_table")
+    if tw_c and ro_c and pp_c and pp_c["touch"]:
+        table_s += (" With grasps kept clear of it, the twist and the roll score the same with a table under the object "
+                    f"as without one. The pin-push dropped the cylinder in {pp_c['touch_dropped']} of the "
+                    f"{pp_c['touch']} runs in which a finger pressed on the table.")
     lede = fill("""Over 19 object sizes, the best layout of the SR2 hand moves with the object. In all four HOM tasks the
 thumb's mount moves away from the finger pair by <<sx>> mm per millimetre of diameter. The spacing of the index and the
 middle narrows on spheres and widens on cylinders. Each size was searched with Yang et al.'s evolutionary algorithm in
 6,000 rollouts, which came within 0.05 of a full grid's best in every test run. The CPU plant with every contact gave the
-best layout's score within <<tol>> at <<ok>> of <<n>> sizes. The fingers were kept 2 mm apart by the pose solver, because
-finger contact on the GPU costs <<xl>> to <<xh>> times the rollout time.<<tb>>""",
-                sx=span(sx), tol=CPU_TOL, ok=ok, n=n, xl=f"{x_lo:.0f}", xh=f"{x_hi:.0f}", tb=table_s)
+best layout's score within <<tol>> at <<ok>> of <<n>> sizes.<<tb>>""", sx=span(sx), tol=CPU_TOL, ok=ok, n=n, tb=table_s)
     summary = fill("""Across 19 object sizes the SR2 hand's best layout under HOM control moves with the object: the
 thumb's mount moves out <<sx>> mm per mm of diameter in all four tasks, found by an evolutionary search in 6,000 rollouts
 per size and confirmed on the CPU plant at <<ok>> of <<n>> sizes.<<tb>>""", sx=span(sx, "{:.1f}"), ok=ok, n=n,
-                   tb=table_s)
+                   tb=(f" A table under the object leaves no clear press and no clear pinch of a cylinder under "
+                       f"{p_first:g} mm." if p_first else ""))
     return lede, " ".join(summary.split())
 
 

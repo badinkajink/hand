@@ -43,7 +43,8 @@ def table_scene(path, z_top):
     root = ET.parse(path).getroot()
     post = root.find(".//geom[@name='post']")
     body = ET.SubElement(root.find("worldbody"), "body", name="table", pos=f"0 0 {z_top - 0.005:.6f}")
-    ET.SubElement(body, "geom", name="table", type="box", size="0.15 0.15 0.005", rgba="0.55 0.45 0.35 1",
+    ET.SubElement(body, "geom", name="table", type="box", size="0.15 0.15 0.005", rgba="0.55 0.45 0.35 0.3",   # the hand
+                  # shows through it in the films, whose camera looks up from below the table's top
                   friction=post.get("friction", "1 0.005 0.0001"))
     out = Path(path).with_name(f"{Path(path).stem}.table.{os.getpid()}.xml")
     ET.ElementTree(root).write(out)
