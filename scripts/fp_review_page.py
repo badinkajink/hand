@@ -405,7 +405,7 @@ offsets and nine finger angles reached three fingertip targets in 1.15 ms, with 
 
 
 def sec_toy(N):
-    r2, r6, sb = N["rrt2d"], N["rrt6d"], N["sobol6d"]
+    r2, r6 = N["rrt2d"], N["rrt6d"]
     t = r"""<p>The toy reproduces the paper's pipeline on the SR2 hand with two foundational poses taken from the HOM
 tasks (<code>scripts/fp_sr2_toy.py</code>). Each pose is a grasp in which a HOM sub-assembly can move the object both
 ways:</p>
@@ -426,7 +426,6 @@ start, or the nearest candidate's solution does, as in the paper. Each pose has 
 both directions, each capped at 60 deg. The second is the largest joint torque under the task's grasp forces along that
 rotation. The third is the pads' smallest Jacobian singular value. The paper's sliding
 speed is zero here by construction. Two poses and three metrics give six scores.</p>"""
-    eff2 = r2.get("candidates", 0) / max(r2.get("calls", 1), 1)
     t += fill(r"""<p><b>The 2-D case.</b> The RRT over the symmetric tripods ran <<c2>> calls in <<s2>> s and stopped at
 <<n2>> candidates. By then only <<e2>> % of the last 400 calls had yielded a candidate. Most calls late in the
 run fell too close to an existing candidate (closer than 0.03 in standardized units) and were never solved: the
@@ -1686,7 +1685,6 @@ def size_numbers():
     """The size study per task whose sizes are all complete (every reached layout run with three seeds): reached
     layouts, Spearman between sizes, the variance shares (hom_landscape.py stats), and the best tenth's median mount
     coordinates in mm per size."""
-    import fp_sr2_toy as FP
     import hom_landscape as L
     d, z = L.layouts()
     n = len(d)
@@ -2459,9 +2457,6 @@ the grasp, and for the twist that decides the outcome.</p>""",
               "rollouts, on the CPU and on MuJoCo-Warp, <code>scripts/hom_gpu.py</code>). Fingertip: the TPU block as "
               "1 mm sphere pads up to Section 8, the calibrated v4b fingertip from Section 9. "
               "Builder: <code>scripts/fp_review_page.py</code>.")
-    G = N["grid"]
-    lv = [g["lv_best"] for g in G.values()]
-    fpb = [g["best_is_fp"] for g in G.values()]
     TV, CF = N["valrep"]["twist_d40"], N["cross_fresh"]
     pe = N["grad"]["pk"]["peak"]["radii"]["4"]
     GS = N["grid_sizes"]

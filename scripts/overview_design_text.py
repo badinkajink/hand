@@ -68,6 +68,12 @@ turned furthest 31.3&#8202;mm out. For spheres grasp robustness peaks at the com
 ([finger spacing and object size](exp:20261008-hand_object_scale/20261008-finger_spacing_object_size.html)). To be held, a size-7
 basketball needs the widest layout, friction of at least 1.0 and MuJoCo&#8217;s elliptic friction cone
 ([basketball grasp](exp:20260916-basketball/20260916-basketball_grasp.html)).</p>
+<p>Under HOM control on the CAD-model hand with the v4b fingertips, the best layouts follow the same rule in three of
+four tasks. Across 19 object sizes, the thumb-to-pair spacing of the best layouts grows 0.98&#8202;mm per millimetre of
+diameter in the twist and the pin-push and 1.11&#8202;mm in the press. In the roll it grows 0.59&#8202;mm. The
+index-to-middle spacing narrows on spheres and widens on cylinders. Each size was searched by an evolutionary algorithm
+in 6,000 rollouts, a quarter to a third of a full grid
+([layouts across object sizes](exp:20261029-foundational_pose_review/20261030-hom_layout_trends.html)).</p>
 {{FIG scale}}"""),
     ("earlier", "Earlier design studies in simulation",
      """<p>Before the hand was built, designs had nine parameters: the x and y of each finger base and its proximal length.
@@ -128,5 +134,9 @@ PAGES = [
      "Cylinder turns under HOM and sampling MPC"),
     ("Morphology and design search", "20261014-scale_turn_cad_v1/20261014-scale_turn_cad_v1.html",
      "Cylinder turns on the CAD-model hand"),
+    ("Morphology and design search", "20261029-foundational_pose_review/20261029-foundational_pose_hand_design.html",
+     "HOM scores of 8,192 layouts"),
+    ("Morphology and design search", "20261029-foundational_pose_review/20261030-hom_layout_trends.html",
+     "Best layouts across object sizes"),
     ("Related pages", "20260921-workshop_briefing/20260921-sr2_hand_program_record.html", "Funnel, bench counts"),
 ]

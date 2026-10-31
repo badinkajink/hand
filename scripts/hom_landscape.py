@@ -1490,7 +1490,7 @@ def cmd_valrep(a):
             if npth.exists():
                 src = {int(r["call"]): r for r in FR.load(FP.size_name(f"grid2dnb_{task}", shape, size))}
                 sn, _ = grid_scores(task, size, GRID_ROWS, f"nb_{task}_d{size:g}")
-                d_nb, d_key, n_key = [], [], 0
+                d_nb, d_key = [], []
                 for call, row in src.items():
                     gl = row["fp"][POSE_KEY[task]]["grasps"]
                     own = sn.get((call, 0))
