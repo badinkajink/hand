@@ -1831,6 +1831,214 @@ def cmd_pass1_check(a):
     print("->", dst)
 
 
+def program_rest(prog, ctx, x, standoff):
+    """A probe-mode action's rest pose as the lab program aims it at the plan's registration (Session.target_pose without
+    --dry): the sphere's centre standoff mm back along d from where it meets p, the mount at R_PM. (T_BE, d_B, n_B)."""
+    geo = prog["geometry"]
+    T_BP = ctx["T_BA"] @ np.asarray(geo["seat"]["T_AP"], float)
+    tg = x["target"]
+    d_P = np.asarray(tg["d"], float) / np.linalg.norm(tg["d"])
+    n_P = np.asarray(tg["n"], float)
+    c_B = C.apply(T_BP, np.asarray(tg["p"], float) + float(geo["probe"]["radius"]) * n_P - standoff * d_P)
+    R_BM = T_BP[:3, :3] @ np.asarray(tg["R_PM"], float)
+    T = C.Tm(R_BM, c_B - R_BM @ np.asarray(geo["probe"]["centre_M"], float)) @ C.inv(ctx["T_EM"])
+    return T, T_BP[:3, :3] @ d_P, T_BP[:3, :3] @ (n_P / np.linalg.norm(n_P))
+
+
+def cmd_dry_check(a):
+    """The lab program's dry run in probe mode (ur5_tip_calibration.py --dry MM, lab 330e5c49), replayed move by move on
+    the program plans. Each rest is the action's rest at its standoff moved a.dry mm back along the stem. The travels run
+    as Session.travel_probe makes them, from where the robot stands: straight (back retract_mm, across, in) when the plan
+    names it and the two poses lie within 20 deg and 30 mm; otherwise back safe_mm, a joint move to the homing's IK
+    branch (by the hub when the plan names it), and in; from the homing, the lift out of the key first. A dry press or
+    touch meets nothing, so it runs its whole standoff plus max_depth_mm or beyond_mm along d and back. A twist turns
+    about n through the sphere's centre at the end of its press and returns st + 0.5 mm along -d. Stages pad, wall and
+    grid in the plan's order, from 12 mm out of the key. Nothing should be touched, so no pad is left out near a target.
+    Joints at every sample, clearances at every straight-move sample and every 5th of a joint move. --along-push: the
+    dry rests a.dry mm back along d instead, as the program made them before 330e5c49."""
+    t0 = time.time()
+    out = dict(what="the lab program's dry run replayed: rests moved back along the "
+                    + ("push" if a.along_push else "stem") + ", the travels between them, each press and touch to its "
+                    "full length in free air, each twist at the end of its press", dry_mm=a.dry,
+               along="push" if a.along_push else "stem", program_plans=a.program, need=NEED, seats={}, rows=[])
+    for f in a.program:
+        prog = json.loads(Path(f).read_text())
+        src = json.loads((ROOT / prog["checks"]["source"]).read_text())
+        seat = int(src["seat"])
+        HOME_KEY[0] = int(prog["homing"]["key"])
+        ctx = context(dict(orient=src["orient"], seat_h=SEAT_BLOCK["seat_h"]), tool=src["tool"])
+        ctx["seat"] = seat
+        e_em = C.pose_error(ctx["T_EM"], np.asarray(prog["geometry"]["T_EM"], float))
+        e_ba = C.pose_error(ctx["T_BA"], np.asarray(prog["sim"]["T_BI"], float))
+        if max(e_em[0], e_ba[0]) > 0.01 or max(e_em[1], e_ba[1]) > 0.01:
+            raise SystemExit(f"seat {seat + 1}: the plan's T_EM ({e_em}) or T_BI ({e_ba}) differs from the replay's")
+        pr = prog["travel"]["probe"]
+        safe, ret = float(pr.get("safe_mm", 45.0)), float(pr.get("retract_mm", 12.0))
+        Th, q_ref = np.asarray(pr["hub"]["T_BE"], float), ctx["q_home"]
+        c_M = np.asarray(prog["geometry"]["probe"]["centre_M"], float)
+        ids = [x["id"] for x in prog["actions"]]
+        prev_in_plan = dict(zip(ids[1:], ids[:-1]))
+        acts = [x for s in ("pad", "wall", "grid") for x in prog["actions"] if x["stage"] == s]
+        q = start_q(ctx)
+        Tc = fk_many(q[None])[0]
+        from_homing, prev_ok = True, None
+        flagged, least, n_way, j6r, own_tip = 0, {}, {}, [1e9, -1e9], (1e9, "", "")
+        for x in acts:
+            st = float(x.get("standoff", 1.5))
+            T_real, d_B, n_B = program_rest(prog, ctx, x, st)
+            T_t = C.Tm(T_real[:3, :3], T_real[:3, 3] - a.dry * d_B) if a.along_push else back_along(T_real, ctx, a.dry)
+            mm, deg = C.pose_error(Tc, T_t)
+            way, segs, T0 = x.get("travel_ws", "joint"), [], None
+            if mm < 1e-3 and deg < 1e-3:
+                way = "none"
+            elif from_homing:                               # out of the key along -x_M, then the joint move
+                T0 = C.Tm(Tc[:3, :3], Tc[:3, 3] + Tc[:3, :3] @ ctx["T_EM"][:3, :3]
+                          @ np.array([-float(x.get("homing_lift_mm", 30.0)), 0.0, 0.0]))
+                segs.append(("L", Tc, T0))
+                from_homing = False
+                way = "hub" if way == "hub" else "joint"
+            elif way == "straight" and prev_ok == prev_in_plan.get(x["id"]) and deg <= 20.0 and mm <= 30.0:
+                b0, b1 = back_along(Tc, ctx, ret), back_along(T_t, ctx, ret)
+                segs = [("L", Tc, b0), ("L", b0, b1), ("L", b1, T_t)]
+            else:
+                way = "hub" if way == "hub" else "joint"
+                T0 = back_along(Tc, ctx, safe)
+                segs.append(("L", Tc, T0))
+            if T0 is not None:
+                if way == "hub":
+                    segs.append(("J", T0, Th, q_ref))
+                    T0 = Th
+                a1 = back_along(T_t, ctx, safe)
+                segs += [("J", T0, a1, q_ref), ("L", a1, T_t)]
+            n_way[way] = n_way.get(way, 0) + 1
+            lim = st + float(x.get("beyond_mm", 1.2) if x["kind"] == "touch"
+                             else x.get("max_depth_mm", 1.0 if x["kind"] == "twist" else 2.5))
+            T_e = C.Tm(T_t[:3, :3], T_t[:3, 3] + lim * d_B)
+            own = [("L", T_t, T_e)]
+            if x["kind"] == "twist":                        # about n through the sphere's centre at the press's end
+                c_B, T = C.apply(T_e @ ctx["T_EM"], c_M), T_e
+                for mv in x["moves"]:
+                    cur = 0.0
+                    for dg in list(mv["degs"]) + [0.0]:
+                        k_ = max(1, int(math.ceil(abs(dg - cur))))
+                        for j in range(1, k_ + 1):
+                            T1 = C.turn_about(T_e, c_B, n_B, cur + (dg - cur) * j / k_)
+                            own.append(("L", T, T1))
+                            T = T1
+                        cur = dg
+                T_after = C.Tm(T[:3, :3], T[:3, 3] - (st + 0.5) * d_B)
+                own.append(("L", T, T_after))
+            else:
+                T_after = T_t
+                own.append(("L", T_e, T_t))
+            tsm, why_t = sample_all(segs, q, a.owner) if segs else ([], [])
+            q_t = tsm[-1][5] if tsm else q
+            osm, why_o = sample_all(own, q_t, a.owner)
+            cl = clear_of(ctx, tsm, None) if tsm and not why_t else {}
+            cl_o = clear_of(ctx, osm, None) if not why_o else {}
+            for g_, v in cl_o.items():
+                if v[0] < cl.get(g_, (1e9, ""))[0]:
+                    cl[g_] = v
+            why = sorted(set(why_t + [f"{w} (own)" for w in why_o] + clear_flags(cl)))
+            for sms in (tsm, osm):
+                for *_, qq in sms:
+                    j6r = [min(j6r[0], math.degrees(qq[5])), max(j6r[1], math.degrees(qq[5]))]
+            if "tip" in cl_o and cl_o["tip"][0] < own_tip[0]:
+                own_tip = (cl_o["tip"][0], cl_o["tip"][1], x["id"])
+            row = dict(seat=seat + 1, id=x["id"], stage=x["stage"], kind=x["kind"], travel=way, flags=why,
+                       clear={g_: [round(v[0], 2), v[1]] for g_, v in cl.items()},
+                       own_tip=[round(cl_o["tip"][0], 2), cl_o["tip"][1]] if "tip" in cl_o else None)
+            out["rows"].append(row)
+            flagged += bool(why)
+            for g_, v in cl.items():
+                if v[0] < least.get(g_, (1e9, ""))[0]:
+                    least[g_] = v
+            if why:
+                print(f"  seat {seat + 1} {x['id']} ({way}): {'; '.join(why)}", flush=True)
+            q = osm[-1][5] if osm else q_t
+            Tc, prev_ok = T_after, x["id"]
+        out["seats"][str(seat + 1)] = dict(n=len(acts), flagged=flagged, travel=n_way, j6_deg=np.round(j6r, 1).tolist(),
+                                           least={g_: [round(v[0], 2), v[1]] for g_, v in least.items()},
+                                           own_tip=[round(own_tip[0], 2), own_tip[1], own_tip[2]])
+        print(f"seat {seat + 1}: {len(acts)} actions, {flagged} flagged; travels {n_way}; joint 6 "
+              f"{j6r[0]:.1f}..{j6r[1]:.1f} deg; least " + json.dumps({g_: [round(v[0], 2), v[1]] for g_, v in least.items()})
+              + f"; the tool's end in the dry presses at least {own_tip[0]:.2f} mm from the {own_tip[1]} ({own_tip[2]}); "
+              f"{time.time() - t0:.0f} s", flush=True)
+    out["seconds"] = round(time.time() - t0, 1)
+    dst = OUT / "data" / f"{STEM}_dry_check{'_along_push' if a.along_push else ''}.json"
+    dst.write_text(json.dumps(out, default=float) + "\n")
+    print("->", dst)
+
+
+def cmd_dry_exact(a):
+    """The sphere's distance to its held tip along each press and touch of the lab program's dry run (rests a.dry mm back
+    along the stem, as dry-check makes them), every 0.25 mm of the press, less the sphere's radius. Each centre's distance
+    is first that of the nearest of the surface samples about 0.4 mm apart (tip_trees: cassette and cap, pad), which is at
+    most the exact one plus about 0.3 mm. The centres within 1 mm of the seat's least are then measured exactly: the
+    nearest point on the cassette's, the cap's and the pad's meshes, 16 centres a call (trimesh's closest_point on all
+    6,400 centres at once took over 3 GB on 10-30 at 18:02: 53,458 pad triangles, most of them candidates for a far
+    point). A centre is inside a part when its generalized winding number is over 0.5. A twist turns about the sphere's
+    centre, so its press gives its distance. dry-check reads the tip body's distance from the k-d tree only within 3 mm
+    of the tip's bounding box and from the box beyond, so its 3.0 mm is a floor."""
+    import trimesh
+    t0 = time.time()
+    meshes = {n: CELL.part_F(n) for n in ("cover", "cap", "pad")}
+    trees = tip_trees()
+    out = dict(what="the sphere's distance to its held tip (cassette, cap, pad) along each dry press and touch: the nearest "
+                    "surface sample's for each, exact for those within 1 mm of the least", dry_mm=a.dry,
+               program_plans=a.program, seats={})
+    for f in a.program:
+        prog = json.loads(Path(f).read_text())
+        src = json.loads((ROOT / prog["checks"]["source"]).read_text())
+        seat = int(src["seat"])
+        HOME_KEY[0] = int(prog["homing"]["key"])
+        ctx = context(dict(orient=src["orient"], seat_h=SEAT_BLOCK["seat_h"]), tool=src["tool"])
+        T_FB = C.inv(np.asarray(ctx["g"]["seats"][seat]["T_AF"], float)) @ C.inv(ctx["T_BA"])
+        c_M, R = np.asarray(prog["geometry"]["probe"]["centre_M"], float), float(prog["geometry"]["probe"]["radius"])
+        pts, ids = [], []
+        for x in (x for s in ("pad", "wall", "grid") for x in prog["actions"] if x["stage"] == s):
+            st = float(x.get("standoff", 1.5))
+            T_real, d_B, _ = program_rest(prog, ctx, x, st)
+            T_t = back_along(T_real, ctx, a.dry)
+            lim = st + float(x.get("beyond_mm", 1.2) if x["kind"] == "touch"
+                             else x.get("max_depth_mm", 1.0 if x["kind"] == "twist" else 2.5))
+            c0 = C.apply(T_t @ ctx["T_EM"], c_M)
+            for s_ in np.r_[np.arange(0.0, lim, 0.25), lim]:
+                pts.append(C.apply(T_FB, c0 + s_ * d_B))
+                ids.append(x["id"])
+        P = np.array(pts)
+        smp = np.min([trees[k][0].query(P)[0] for k in ("body", "pad")], axis=0) - R
+        inside = np.zeros(len(P), bool)
+        for m in meshes.values():
+            inside |= _winding(m.vertices, m.faces, P, chunk=32) > 0.5
+        cand = np.flatnonzero(smp <= smp.min() + 1.0)
+        ex = {}
+        for n, m in meshes.items():
+            e = np.empty(len(cand))
+            for i in range(0, len(cand), 16):
+                e[i:i + 16] = trimesh.proximity.closest_point(m, P[cand[i:i + 16]])[1]
+            ex[n] = e - R
+        least = np.min(np.stack(list(ex.values())), axis=0)
+        k = int(np.argmin(least))
+        part, j = min(ex, key=lambda n: ex[n][k]), int(cand[k])
+        per = {}
+        for i, v in zip(ids, smp):
+            per[i] = min(per.get(i, 1e9), float(v))
+        vals = np.array(list(per.values()))
+        out["seats"][str(seat + 1)] = dict(actions=len(per), centres=len(P), inside=int(inside.sum()),
+                                           exact_least_mm=round(float(least[k]), 2), part=part, id=ids[j],
+                                           exact_centres=len(cand), sample_least_mm=round(float(smp.min()), 2),
+                                           under_mm={f"{v:g}": int((vals < v).sum()) for v in (3.0, 5.0, 8.0)},
+                                           per_action_sample_mm={i: round(v, 2) for i, v in per.items()})
+        print(f"seat {seat + 1}: {len(per)} actions, {len(P)} centres, {int(inside.sum())} inside a part; the sphere at "
+              f"least {least[k]:.2f} mm from the {part} ({ids[j]}, exact over {len(cand)} centres; the samples' least "
+              f"{smp.min():.2f}); actions under 3, 5, 8 mm: {[int((vals < v).sum()) for v in (3.0, 5.0, 8.0)]}; "
+              f"{time.time() - t0:.0f} s", flush=True)
+    dst = OUT / "data" / f"{STEM}_dry_exact.json"
+    dst.write_text(json.dumps(out, default=float) + "\n")
+    print("->", dst)
+
+
 # ------------------------------------------------------------------------------------------------ the film
 FILM_PICKS = (("press", "face", 0.0, "Press on the face"), ("press", "edge", 0.0, "Press on an edge"),
               ("press", "flank", 0.0, "Press on a flank"), ("press", "tip", 0.0, "Press on the tip's end"),
@@ -1961,6 +2169,14 @@ def main():
     pc.add_argument("program", nargs="+", help="the lab's program plans (scripts/ur5_probe_plan.py PLAN --pass1-standoff MM)")
     pc.add_argument("--owner", action="store_true")
     pc.add_argument("--walls", action="store_true", help="add data/<stem>_walls.json's touch-offs after the pad's")
+    dc = sub.add_parser("dry-check")
+    dc.add_argument("program", nargs="+", help="the lab's program plans")
+    dc.add_argument("--dry", type=float, default=15.0, help="mm, as the program's --dry")
+    dc.add_argument("--along-push", action="store_true", help="the dry rests back along d (the program before 330e5c49)")
+    dc.add_argument("--owner", action="store_true")
+    de = sub.add_parser("dry-exact")
+    de.add_argument("program", nargs="+", help="the lab's program plans")
+    de.add_argument("--dry", type=float, default=15.0)
     sub.add_parser("walls")
     sub.add_parser("body-check")
     sb = sub.add_parser("seat-beam")
@@ -2015,7 +2231,8 @@ def main():
     if getattr(a, "h", 0.0) is None:                    # the plate's own seat height
         a.h = (SEAT_BLOCK if PLATE[0] == "block" else LAYOUT)["seat_h"]
     dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam, "home-check": cmd_home_check,
-            "pass1-check": cmd_pass1_check, "walls": cmd_walls, "body-check": cmd_body_check}, build=cmd_build,
+            "pass1-check": cmd_pass1_check, "dry-check": cmd_dry_check, "dry-exact": cmd_dry_exact, "walls": cmd_walls,
+            "body-check": cmd_body_check}, build=cmd_build,
          reach=cmd_reach, replay=cmd_replay, film=cmd_film)[a.cmd](a)
 
 
