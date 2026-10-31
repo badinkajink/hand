@@ -11,7 +11,7 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 10-30 18:21: the watcher exited 0 at 18:18 on line 38 (18:07,
+State: armed 2026-10-27 21:00 from the colorado window. 10-30 18:20: the watcher exited 0 at 18:18 on line 38 (18:07,
 d7617918: the inverted rig's dry run checked, rests 15 mm back along the stem after the lab's fix 330e5c49, none of
 960 actions flagged on the three seats' plans and the sphere 7.8 mm or more from its held tip, f8f4159e; it waits for
 the parts and the owner's go). Calibration page 6ba1b8e6: the rig item defines the dry run and cites the seat-block
