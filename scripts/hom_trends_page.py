@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Builds docs/experiments/20261029-foundational_pose_review/20261030-hom_layout_trends.html: the SR2 layout study after
-the finger-clearance fix, across object sizes and with a table under the object (2026-10-30, afternoon). It follows the
-design page (20261029-foundational_pose_hand_design.html, built by scripts/fp_review_page.py, whose helpers and template it
-uses) from its Section 9.
+"""Builds docs/experiments/20261029-foundational_pose_review/20261030-hom_layout_trends.html: the best layouts of the SR2
+hand under HOM control across object sizes, with the fingers kept 2 mm apart and with a table under the object
+(2026-10-30 and 31). It follows the design page (20261029-foundational_pose_hand_design.html, built by
+scripts/fp_review_page.py, whose helpers and template it uses) from its Section 9.
 
-Data: rows/grid2dff_v4b (re-solved grids, toy_check.json, rerun.json, ground/), rows/ff_timing, rows/cpu_best
-(top_*_ff*.jsonl, table_*.jsonl), rows/ea_ff (the offline EA on the re-solved grids), rows/ea_live and ea_live_gr (the
-live EA, summary.json from scripts/hom_ea.py report), rows/grid2dgr_v4b (the grids clear of the table), rows/films_v4b.json.
+Data: rows/ea_live (the live EA at 17 sizes, summary.json from scripts/hom_ea.py report), rows/cpu_best
+(top_*_ff*.jsonl, table_*.jsonl), rows/ea_ff (the offline EA on the re-solved grids), rows/grid2dff_v4b (re-solved grids,
+toy_check.json, rerun.json, ground/), rows/grid2dgr_v4b and ea_live_gr (the grids clear of the table), rows/ff_timing,
+rows/films_v4b.json.
 
     .venv/bin/python scripts/hom_trends_page.py
 """
@@ -30,11 +31,14 @@ import texsvg  # noqa: E402
 D, MEDIA, ROWS = P.D, P.MEDIA, P.ROWS
 OUT = D / "20261030-hom_layout_trends.html"
 DESIGN = "20261029-foundational_pose_hand_design.html"
+CONTACT = "../20261030-v3_tip_contact_model/20261030-v3_fingertip_contact_models.html"
 fill, table, img, film, esc = P.fill, P.table, P.img, P.film, P.esc
+TASKS = ("twist", "roll", "pinpush", "press")
 NAMES = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
 OBJ = {"twist": "sphere", "roll": "sphere", "pinpush": "cylinder", "press": "cylinder"}
 DEFAULT = {"twist": 40.0, "roll": 40.0, "pinpush": 25.0, "press": 25.0}
 REFS = [P.REFS[0], P.REFS[1], P.REFS[5]]           # [1] foundational pose, [2] HOM, [3] Yang et al.
+CPU_TOL = 0.04                                      # a best layout's CPU score agrees with its GPU score within this
 
 
 def load_jsonl(p):
@@ -46,6 +50,12 @@ def v4b_film(name, caption_fn):
     path = MEDIA / f"20261030-film_{name}.mp4"
     info = json.loads(P.FILMS_V4B.read_text()).get(name) if P.FILMS_V4B.exists() else None
     return film(path, caption_fn(info)) if (path.exists() and info) else ""
+
+
+def span(v, fmt="{:.2f}"):
+    """'a to b' over a list, or 'a' when both ends print alike."""
+    lo, hi = fmt.format(min(v)), fmt.format(max(v))
+    return lo if lo == hi else f"{lo} to {hi}"
 
 
 # ------------------------------------------------------------------------------------------------ numbers
@@ -81,19 +91,38 @@ def rerun_numbers():
     return out
 
 
+def ea_top_calls(task, d, out="ea_live", n=10):
+    """The n best layouts (lattice indices) of a live search by hom_ea.fitness: per layout, the best grasp's mean score
+    over all its rows (a layout drawn twice in one generation has six)."""
+    import hom_landscape as L
+    sc = {}
+    for r in load_jsonl(ROWS / out / f"{task}_d{d:g}_s0.jsonl"):
+        sc.setdefault(int(r["call"]), {}).setdefault(int(r.get("grasp", 0)), []).append(L.rollout_score(task, r))
+    fit = {c: max(float(np.mean(v)) for v in g.values()) for c, g in sc.items()}
+    return sorted(fit, key=lambda c: -fit[c])[:n]
+
+
 def trend_numbers(src="grid2dff"):
-    """hom_ea.py report's summary (rows/ea_live[_gr]/summary.json) and the CPU check of each search's best layouts."""
+    """hom_ea.py report's summary (rows/ea_live[_gr]/summary.json) and the CPU check of each search's 10 best layouts
+    (at the default objects, of the full grid's 40 best)."""
     p_ = ROWS / ("ea_live" if src == "grid2dff" else "ea_live_gr") / "summary.json"
     if not p_.exists():
         return None
     S = json.loads(p_.read_text())
     out = {k: v for k, v in S.items() if isinstance(v, dict) and "task" in v}
     for k, v in out.items():
-        rows = load_jsonl(ROWS / "cpu_best" / f"top_{v['task']}_d{v['d_mm']:g}_ff_ea.jsonl")
-        full = [r for r in rows if not r["gpu_filter"]]
+        stem = f"top_{v['task']}_d{v['d_mm']:g}_" + ("ff" if src == "grid2dff" else "gr")
+        if v.get("grid"):
+            rows, calls = load_jsonl(ROWS / "cpu_best" / f"{stem}.jsonl"), None
+        else:
+            rows = load_jsonl(ROWS / "cpu_best" / f"{stem}_ea.jsonl")
+            calls = ea_top_calls(v["task"], v["d_mm"], "ea_live" if src == "grid2dff" else "ea_live_gr")
+        full = [r for r in rows if not r["gpu_filter"] and (calls is None or r["call"] in calls)]
         if full:
-            top = max(full, key=lambda r: r["gpu_best"])
+            top = (next((r for r in full if r["call"] == calls[0]), None) if calls else None) or \
+                max(full, key=lambda r: r["gpu_best"])
             v["cpu"] = {"n": len(full), "touch": sum(1 for r in full if r["finger_touch_periods"]),
+                        "top_touch": bool(top["finger_touch_periods"]),
                         "low": sum(1 for r in full if r["score"] < 0.5 <= r["gpu_best"]),
                         "best_cpu": top["score"], "best_gpu": top["gpu_best"], "best_xy": [top["x_sep"], top["y_sep"]]}
     return out
@@ -101,7 +130,8 @@ def trend_numbers(src="grid2dff"):
 
 def ground_numbers():
     """The table clearance of the re-solved grids' grasps (scripts/hom_ground.py): per pose family and size the share of
-    grasps and of layouts within 1 mm of the table at the touch pose and at the touch and open poses."""
+    grasps and of layouts within 1 mm of the table at the touch pose and at the touch and open poses; the layouts that
+    reach the pose when the toy keeps the table clear (rows grid2dgr_*) and their contacts' latitudes."""
     G = ROWS / "grid2dff_v4b" / "ground"
     out = {}
     for p_ in sorted(G.glob("*.jsonl")):
@@ -120,6 +150,37 @@ def ground_numbers():
                 "grasps": len(rr), "touch_ok": float(np.mean(ok_t)), "both_ok": float(np.mean(ok_b)),
                 "layouts": len(lay), "layouts_ok": int(sum(lay.values())),
                 "touch_median": float(np.median([r["touch_mm"] for r in rr]))}
+    for (pose, d), v in out.items():                   # the grids solved with the table as a constraint
+        rows = FF.load(f"grid2dgr_{'tripod' if pose == 'tripod' else 'pinch'}{d:g}_v4b")
+        if rows:
+            recs = [(r["fp"].get(pose) or {}) for r in rows]
+            ok = [r for r in recs if r.get("ok")]
+            lat = [np.degrees(g["v"][6]) for r in ok for g in (r.get("grasps") or [])]
+            v["gr_reached"] = len(ok)
+            v["gr_lat"] = [float(np.percentile(lat, 5)), float(np.percentile(lat, 95))] if lat else None
+    return out
+
+
+def gr_grid_numbers():
+    """The GPU's best-of-16 scores on the grids clear of the table at the default objects, beside the re-solved grids'."""
+    import hom_landscape as L
+    out = {}
+    for task, d in DEFAULT.items():
+        if not (ROWS / "grid2dgr_v4b" / f"{task}_d{d:g}.jsonl").exists():
+            continue
+        res = {}
+        for src in ("grid2dff", "grid2dgr"):
+            keep = L.GRID_SRC, L.GRID_ROWS
+            L.GRID_SRC, L.GRID_ROWS = src, ROWS / f"{src}_v4b"
+            try:
+                tab = [r for r in L.grid_table(task, d) if r.get("n_grasps")]
+            finally:
+                L.GRID_SRC, L.GRID_ROWS = keep
+            top = max(tab, key=lambda r: r["best"])
+            res[src] = {"layouts": len(tab), "best": top["best"], "best_xy": [top["x_sep"], top["y_sep"]],
+                        "median": float(np.median([r["best"] for r in tab])),
+                        "above": float(np.mean([r["best"] > 0.5 for r in tab]))}
+        out[task] = res
     return out
 
 
@@ -144,142 +205,195 @@ def table_numbers():
     return out
 
 
+def trend_stats(Tn, task):
+    """Per task: sizes, reach, best scores and positions, the near sets' sizes and centroid slopes (mm per mm of
+    diameter, least squares), and the CPU check of each size's best layout."""
+    pts = sorted(((v["d_mm"], v.get("grid") or v.get("ea"), v) for v in Tn.values()
+                  if v["task"] == task and (v.get("grid") or v.get("ea"))), key=lambda p_: p_[0])
+    if len(pts) < 3:
+        return None
+    d = np.array([p_[0] for p_ in pts])
+    cx = np.array([p_[1]["near_centroid"][0] for p_ in pts])
+    cy = np.array([p_[1]["near_centroid"][1] for p_ in pts])
+    return {"d": d, "reach": [p_[2]["reach"] for p_ in pts], "best": [p_[1]["best"] for p_ in pts],
+            "best_x": [p_[1]["best_xy"][0] for p_ in pts], "best_y": [p_[1]["best_xy"][1] for p_ in pts],
+            "near_n": [p_[1]["near_n"] for p_ in pts], "slope_x": float(np.polyfit(d, cx, 1)[0]),
+            "slope_y": float(np.polyfit(d, cy, 1)[0]),
+            "cpu": [(p_[0], p_[2]["cpu"]) for p_ in pts if p_[2].get("cpu")],
+            "layouts": [p_[1]["layouts"] for p_ in pts if p_[2].get("ea") and not p_[2].get("grid")],
+            "rollouts": [p_[1]["rollouts"] for p_ in pts if p_[2].get("ea") and not p_[2].get("grid")]}
+
+
+def repeat_share(out="ea_live"):
+    """Share of the live searches' rollouts that repeat a layout drawn twice in one generation (rows beyond a grasp's
+    three seeds)."""
+    from collections import Counter
+    tot = rep = 0
+    for p_ in sorted((ROWS / out).glob("*_s0.jsonl")):
+        c = Counter((r["call"], r.get("grasp", 0)) for r in load_jsonl(p_))
+        tot += sum(c.values())
+        rep += sum(n - 3 for n in c.values() if n > 3)
+    return rep / tot if tot else None
+
+
+def cpu_agreement(St):
+    """Over every task and size with a CPU check: how many best layouts agree within CPU_TOL, and the others."""
+    n, ok, bad = 0, 0, []
+    for task, s in St.items():
+        for d, c in (s or {}).get("cpu", []):
+            n += 1
+            if abs(c["best_cpu"] - c["best_gpu"]) <= CPU_TOL:
+                ok += 1
+            else:
+                bad.append((task, d, c))
+    return n, ok, bad
+
+
 # ------------------------------------------------------------------------------------------------ sections
 
 def sec_terms():
     terms = [
-        ("Layout", "the six palm-frame mount coordinates (mm) of the SR2 hand's three gantries. This page uses the "
-         "symmetric tripod only. The thumb's mount lies $x_{sep}$ from the pair's, and the index's $y_{sep}$ from the "
-         "middle's. The lattice runs in steps of 5 mm from 40 to 160 mm and from 50 to 170 mm, 625 layouts."),
-        ("HOM tasks", "the four tasks of the design page. The twist turns a sphere about the vertical, and the roll "
-         "rolls it along the thumb's pad. In the pin-push and the press, the middle finger turns a cylinder about the "
-         "pinch of thumb and index. Default objects: a 40 mm sphere and a 25 mm cylinder, 100 mm long."),
-        ("Task score", "a rollout's score in [0, 1], 0 when the object is dropped; the design page's Terms give it per "
-         "task. A grasp's score is its mean over seeds 0 to 2."),
+        ("Layout", "the six palm-frame mount coordinates (mm) of the SR2 hand's three gantries. Only the symmetric "
+         "tripod is used here, in two coordinates. The thumb's mount lies $x_{sep}$ from the pair's, and the index's "
+         "lies $y_{sep}$ from the middle's. The lattice has 625 layouts in steps of 5 mm. Its $x_{sep}$ runs from 40 to "
+         "160 mm and its $y_{sep}$ from 50 to 170 mm."),
+        ("HOM tasks", "the four tasks of the design page under HOM control [2]. The twist turns a sphere about the "
+         "vertical, and the roll rolls it along the thumb's pad. In the pin-push and the press, the middle finger turns a "
+         "cylinder about the pinch of thumb and index. Default objects: a 40 mm sphere, and a cylinder 25 mm across and "
+         "100 mm long."),
+        ("Task score", "a rollout's score in [0, 1], 0 when the object is dropped. Twist: the largest turn with all "
+         "three pads in contact, over 90 deg. Roll: $1/(1+e)$, where $e$ is the RMS error of the rolling rate over the "
+         "commanded rate. Pin-push and press: one less the RMS error of the cylinder's angle over the stroke of 15 and "
+         "20 deg. A grasp's score is its mean over seeds 0 to 2."),
         ("Grasp set, best of 16", "up to 16 grasps of one layout and object solved by the pose toy, the foundational "
-         "pose first; a layout's best of 16 is its highest grasp score."),
+         "pose [1] first. A layout's best of 16 is its highest grasp score."),
+        ("GPU evaluator, CPU plant", "the GPU evaluator runs HOM in batches of up to 2,048 rollouts on MuJoCo-Warp. "
+         "There the pads and the rigid spheres under 2 mm collide with the object only (the collision filter). The CPU "
+         "plant runs the same scene on MuJoCo with every contact."),
+        ("CPU check", "a layout's best grasp run once more on the CPU plant, seed 0. Its score is the CPU score."),
         ("Touch pose, open pose", "the plant's finger joint angles with each pad's own surface on its contact point. "
-         "The open pose lies 8 mm further out along each contact normal; the HOM pick starts there."),
+         "The HOM pick starts at the open pose, 8 mm further out along each contact normal."),
         ("Finger clearance", "the smallest surface distance (mm) between the collision spheres of two fingers at the "
-         "touch pose: the sphere packs of the links and the pad spheres, 1,465 per finger."),
+         "touch pose. Each finger has 1,465 spheres: the sphere packs of its links and the spheres of its pad."),
         ("Table clearance", "the smallest height (mm) of the bottom of a finger's collision sphere above the plane "
          "through the object's lowest point. That plane is the table the object would rest on. A grasp clears the table "
          "when this height is at least -1 mm at the touch pose and at the open pose."),
-        ("Collision filter", "on the GPU, the pads and the rigid spheres under 2 mm collide with the object only. Every "
-         "contact is kept on the CPU plant."),
         ("EA", "the elitist, mutation-only evolutionary algorithm of Yang et al. [3]. In each generation the best half "
          "is kept and the best eighth are the parents. A child is a parent moved by up to 15 mm per coordinate, rounded "
          "to the 5 mm lattice. Population: the layouts per generation. Budget: the rollouts after which no generation "
          "starts."),
         ("Within 0.05", "a search succeeds when its best layout so far scores within 0.05 of the full grid's best."),
-        ("Near set", "the layouts a search ran that score within 0.05 of the best one it found."),
-        ("Reach", "the share of the 625 layouts on which the task's pose is found for the object."),
+        ("Near set, centroid", "the layouts a search ran that score within 0.05 of the best one it reached. The centroid "
+         "is their mean $x_{sep}$ and $y_{sep}$."),
+        ("Slope", "the least-squares slope of the near set's centroid against the object's diameter, in mm of mount "
+         "spacing per mm of diameter."),
+        ("Reach", "the share of the 625 layouts on which the pose toy finds the task's pose for the object."),
         ("Hold", "the cylinder tasks' plant variant. The object is held at its start pose until the grasp closes at "
          "0.8 s, so it cannot roll off its 3 mm post during the approach."),
     ]
     return '<dl class="terms">' + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in terms) + "</dl>"
 
 
-def sec_fix(N):
-    R = N["rerun"]
-    ck, tm, ss = R["check"], R["timing"], R["solve_s"]
-    if not (ck and tm):
+def sec_trends(N):
+    Tn = N["trends"]
+    if not Tn:
         return "<p>Not run yet.</p>"
-    tw = ck["twist_d40"]
-    return fill(r"""<p>In a third of the design page's sphere grasps, the index's and the middle's v4b caps overlapped at
-the touch pose. The pose toy kept the fingers apart by a skeleton of capsules that omits the caps, and the GPU evaluator's
-collision filter hid the overlap (design page, Section 9). The pose toy now keeps the fingers apart with the plant's own
-collision spheres (<code>fp_sr2_toy.ff_clearance_v4b</code>). Each finger has 1,465 of them: the sphere packs of its links
-and the 1,018 spheres of its pad. The toy places them by its closed-form kinematics, which reproduced MuJoCo's body poses
-to within 1e-15 m at 50 random sets of joint angles. Each finger stands at the plant's touch pose. Every two fingers must
-stay 2 mm apart, and that clearance is a constraint of the toy's program and of its grasp walk.</p>
-<p>On <<n>> grasps of the earlier twist grid, the toy's clearance differed from the plant's by a median of <<md>> mm and
-at most <<mx>> mm. Both put the same <<nb>> grasps under 2 mm, and <<po>> more fell under it on the plant alone. The
-constraint slows the toy: a tripod layout's pose and grasp set took a median of <<t0>> s before and <<t1>> s after, a pinch
-layout's <<p0>> and <<p1>> s.</p>
-<p>Finger-to-finger contact in the GPU evaluator itself would cost 9 to 13 times the rollout time (rows
-<code>ff_timing</code>, the first 42 layouts of the earlier twist grid). With the small rigid spheres colliding with every
-finger part, as on the CPU, a batch of 2,016 twist worlds took <<r1>> s. With the filter it took <<r0>> s, <<m1>> against
-<<m0>> ms per rollout. At 480 worlds the ratio was <<x4>>, and with the pads colliding as well it was <<xn>>. The filter
-therefore stays, and the fingers are kept apart before a rollout starts. A coarser stand-in did not fit: 96 k-means spheres
-per fingertip, each grown to contain its members, still reached 7.6 mm in radius on a tip 15 mm wide.</p>""",
-                n=tw["grasps"], md=f"{tw['median_diff_mm']:+.2f}", mx=f"{tw['max_abs_diff_mm']:.2f}", nb=tw["both_under"],
-                po=tw["plant_only"], t0=f"{ss['tripod'][0]:.1f}", t1=f"{ss['tripod'][1]:.1f}",
-                p0=f"{ss['pinch'][0]:.1f}", p1=f"{ss['pinch'][1]:.1f}", r1=f"{tm['rigid_42']['run_s']:.0f}",
-                r0=f"{tm['object_42']['run_s']:.0f}", m1=f"{tm['rigid_42']['ms']:.0f}", m0=f"{tm['object_42']['ms']:.0f}",
-                x4=f"{tm['rigid_10']['run_s'] / tm['object_10']['run_s']:.1f}",
-                xn=f"{tm['none_10']['run_s'] / tm['object_10']['run_s']:.1f}")
-
-
-def sec_rerun(N):
-    R = N["rerun"]
-    if not R["rerun"]:
+    St = {task: trend_stats(Tn, task) for task in TASKS}
+    if not all(St.values()):
         return "<p>Not run yet.</p>"
-    old, new = R["rerun"]["old"], R["rerun"]["new"]
-    keys = [k for k in ("twist_d40", "roll_d40", "pinpush_d25", "press_d25") if k in new and k in old]
-    if len(keys) < 4:
-        return "<p>Not run yet.</p>"
-    tw0, tw1 = old["twist_d40"], new["twist_d40"]
-    c0, c1 = old["cross"], new["cross"]
-    t = fill(r"""<p>Re-solved with the constraint, the grids at the default objects keep most of their layouts and
-scores (Table <<tb>>, Figure <<fg>>). The twist's tripod is reached on <<r1>> layouts against <<r0>> before; the skeleton's
-pad sphere is wider than the v4b tip across the finger and had rejected some clear poses. The twist's median best-of-16
-score is <<b1>> against <<b0>>. Its best layout scores <<bb>> at (<<bx>>, <<by>>) mm, and its largest basin peaks at
-(<<px>>, <<py>>) mm. On <<a1>> % of the layouts all four tasks score above 0.5 with their best grasps, against <<a0>> %
-before. The best worst-case layout is (<<mx>>, <<my>>) mm, where the four tasks score <<ms>>. The cylinder tasks now
-hold the object at its start until the grasp closes; before, it could roll off its post during the approach.</p>""",
-             tb=P.TAB[0] + 1, fg=P.FIG[0] + 1, r1=tw1["reached"], r0=tw0["reached"], b1=f"{tw1['best_median']:.2f}",
-             b0=f"{tw0['best_median']:.2f}", bb=f"{tw1['best']:.2f}", bx=f"{tw1['best_xy'][0]:.0f}",
-             by=f"{tw1['best_xy'][1]:.0f}", px=f"{tw1['peak'][0]:.0f}", py=f"{tw1['peak'][1]:.0f}",
-             a1=f"{100 * c1['share_all_above_0.5']:.0f}", a0=f"{100 * c0['share_all_above_0.5']:.0f}",
-             mx=f"{c1['maximin_xy'][0]:.0f}", my=f"{c1['maximin_xy'][1]:.0f}",
-             ms=", ".join(f"{x:.2f}" for x in c1["maximin_scores"]))
+    tw, ro, pp, pr = (St[k] for k in TASKS)
+    lay = [x for s in St.values() for x in s["layouts"]]
+    tb, f1, fm = P.TAB[0] + 1, P.FIG[0] + 1, P.FILM[0] + 1
+    t = fill(r"""<p>Each task was searched at 8 or 9 object sizes besides its default one: spheres of 25 to 80 mm for
+the twist and the roll, and cylinders 100 mm long and 8 to 50 mm across for the pin-push and the press. At each size the
+pose toy first solved the grasp sets of all 625 layouts. The EA of Section SEC[search] then ran on the GPU evaluator from
+64 random layouts. It stopped after the generation that passed 6,000 rollouts (<code>scripts/hom_ea.py</code>). A search
+ran <<l0>> to <<l1>> layouts in about 5 minutes. At the default objects the full grids of Section SEC[rerun] stand in.
+The 10 best layouts of each search then ran on the CPU plant.</p>""", l0=min(lay), l1=max(lay))
+    hi = [d_ for d_, b in zip(tw["d"], tw["best"]) if b >= 0.97]
+    d_hi = next((tw["d"][k - 1] for k, b in enumerate(tw["best"]) if b < 0.97), tw["d"][-1]) if hi else None
+    fi = json.loads(P.FILMS_V4B.read_text()) if P.FILMS_V4B.exists() else {}
+    t80 = (fi.get("sizes_twist") or {}).get("80")
+    e = [1.0 / b - 1.0 for b in ro["best"]]
+    k_pr = int(np.argmax(pr["best"]))
+    t += fill(r"""<p>The twist's best layout scores 0.97 or more up to the <<dh>> mm sphere and <<tw80>> at 80 mm (Table
+<<tb>>, Figure <<f1>>).<<film80>> The roll's best layout scores <<ro>> at every size. Its rolling rate's RMS error stays at
+<<e>> times the commanded rate. The pin-push's best layout scores <<pp>>. The press's rises from <<pr8>> on the 8 mm
+cylinder to <<prm>> at <<prd>> mm.</p>""",
+              dh=f"{d_hi:g}", tw80=f"{tw['best'][-1]:.2f}", tb=tb, f1=f1, ro=span(ro["best"]), e=span(e),
+              pp=span(pp["best"]), pr8=f"{pr['best'][0]:.2f}", prm=f"{pr['best'][k_pr]:.2f}",
+              prd=f"{pr['d'][k_pr]:g}",
+              film80=(f" On the 80 mm sphere the turn reached {t80['ramp_three_pads_max_deg']:.0f} deg with three pads in "
+                      f"contact (Film {fm}). By the hold, the thumb's pad had moved over the top of the sphere, and the "
+                      "thumb and the index pressed on it with no force." if t80 else ""))
+    edge = sum(1 for y in pr["best_y"] if y >= 155)
+    far = [n for d_, n in zip(tw["d"], tw["near_n"]) if d_ >= 50]
+    t += fill(r"""<p>The best layouts move with the object (Figures <<f1>> and <<f2>>). The near set's centroid moves
+$x_{sep}$ out by <<sx_tw>> mm per millimetre of diameter in the twist, <<sx_ro>> in the roll, <<sx_pp>> in the pin-push
+and <<sx_pr>> in the press. A slope of 1 keeps each mount at a fixed distance from the object's surface. On spheres
+$y_{sep}$ narrows, by <<sy_tw>> mm per millimetre in the twist and <<sy_ro>> in the roll. On cylinders it widens, by
+<<sy_pp>> in the pin-push and <<sy_pr>> in the press. At <<edge>> of its <<n_pr>> sizes the press's best $y_{sep}$ is 155
+mm or more, within 15 mm of the lattice's edge.</p>
+<p>From 50 mm on, <<far>> layouts lie within 0.05 of the twist's best. The roll has <<ro_n>> such layouts at every size,
+as its scores differ little between layouts. The share of the lattice that reaches the pose depends on the size as well
+(Figure <<f3>>). The tripod is reached on <<r25>> % of the layouts at 25 mm, <<rmax>> % at <<dmax>> mm and <<r80>> % at
+80 mm. The pinch is reached on <<p8>> % at 8 mm and <<pmax>> % at <<pdmax>> mm. The press is reached on <<q>> % at
+every size.</p>""",
+              f1=f1, f2=f1 + 1, f3=f1 + 2, sx_tw=f"{tw['slope_x']:.2f}", sx_ro=f"{ro['slope_x']:.2f}",
+              sx_pp=f"{pp['slope_x']:.2f}", sx_pr=f"{pr['slope_x']:.2f}", sy_tw=f"{-tw['slope_y']:.2f}",
+              sy_ro=f"{-ro['slope_y']:.2f}", sy_pp=f"{pp['slope_y']:.2f}", sy_pr=f"{pr['slope_y']:.2f}", edge=edge,
+              n_pr=len(pr["d"]), far=span(far, "{:d}"), ro_n=span(ro["near_n"], "{:d}"),
+              r25=f"{100 * tw['reach'][0]:.0f}", rmax=f"{100 * max(tw['reach']):.0f}",
+              dmax=f"{tw['d'][int(np.argmax(tw['reach']))]:g}", r80=f"{100 * tw['reach'][-1]:.0f}",
+              p8=f"{100 * pp['reach'][0]:.0f}", pmax=f"{100 * max(pp['reach']):.0f}",
+              pdmax=f"{pp['d'][int(np.argmax(pp['reach']))]:g}", q=span([100 * x for x in pr["reach"]], "{:.0f}"))
+    n, ok, bad = cpu_agreement(St)
+    exc = [f"the {NAMES[task].lower()} on the {d_:g} mm {OBJ[task]} ({c['best_cpu']:.2f} against {c['best_gpu']:.2f})"
+           for task, d_, c in bad]
+    tw25 = next((c for d_, c in tw["cpu"] if d_ == 25), None)
+    cyl_touch = sum(c["touch"] for s in (pp, pr) for _d, c in s["cpu"])
+    t += fill(r"""<p>On the CPU plant, the best layout of each search scored within <<tol>> of its GPU score at <<ok>> of
+<<n>> sizes. <<exc>><<tw25>> <<cyl>></p>""",
+              tol=CPU_TOL, ok=ok, n=n,
+              exc=("The exceptions are " + " and ".join(exc) + "." if len(exc) > 1 else
+                   f"The exception is {exc[0]}." if exc else ""),
+              tw25=(f" On the 25 mm sphere the index and the middle touched in {tw25['touch']} of the {tw25['n']} twist "
+                    "runs." if tw25 and tw25["touch"] else ""),
+              cyl=("No two fingers touched during the pin-push or the press at any size." if cyl_touch == 0 else
+                   f"Two fingers touched in {cyl_touch} of the cylinder runs."))
     rows = []
-    for k in keys:
-        a, b = old[k], new[k]
-        task, d = k.split("_d")
-        pk = (lambda q: f"{q[0]:.0f}, {q[1]:.0f}" if q else "&ndash;")
-        rows.append([NAMES[task], f"{OBJ[task]} {d} mm", f"{a['reached']} / {b['reached']}",
-                     f"{a['best_median']:.2f} / {b['best_median']:.2f}", f"{a['fp_median']:.2f} / {b['fp_median']:.2f}",
-                     f"{100 * a['above_0.5']:.0f} / {100 * b['above_0.5']:.0f}", f"{b['best']:.2f} at {pk(b['best_xy'])}",
-                     f"{pk(a['peak'])} / {pk(b['peak'])}"])
-    t += table(["Task", "Object", "Layouts reaching the pose", "Best-of-16 median", "Foundational pose median",
-                "Layouts above 0.5 (%)", "Best layout after (mm)", "Largest basin's peak (mm)"], rows,
-               "The grids at the default objects before the fix (the skeleton's clearance, all grasps) and after it "
-               "(the plant's spheres 2 mm apart at the touch pose), seeds 0 to 2, before / after in each cell. "
-               "<code>hom_landscape.py rerun</code>.", num_from=2)
-    t += img(MEDIA / "20261030-gridff_maps.png",
-             "Best-of-16 score over the grid of symmetric tripods at the default objects, before the fix (top) and after "
-             "it (bottom). Grey: the pose is not reached. Star: the best layout. Seeds 0 to 2.")
-    cp = R["cpu"]
-    if len(cp) == 4:
-        t += fill(r"""<p>The CPU plant, with every contact, ran the best grasp of each new grid's <<n>> best layouts at
-seed 0 (<code>hom_top_cpu_check.py --grid grid2dff</code>). The medians agree with the GPU's: <<med>>. The index and the
-middle still touched during the task, though they started 2 mm apart: in <<tt>> of the <<n>> twist runs, <<tr>> roll
-runs, <<tp>> pin-push runs and <<tq>> press runs. The CPU scored under 0.5 where the GPU scored 0.5 or more in <<lt>>
-twist runs, <<lr>> roll runs, <<lp>> pin-push runs and <<lq>> press runs (Film <<fm>>). The best layouts of the searches
-below therefore run on the CPU as well.</p>""",
-                  n=cp["twist"]["n"],
-                  med="; ".join(f"{NAMES[k].lower()} {cp[k]['cpu_median']:.2f} against {cp[k]['gpu_median']:.2f}"
-                                for k in ("twist", "roll", "pinpush", "press")),
-                  tt=cp["twist"]["touch"], tr=cp["roll"]["touch"], tp=cp["pinpush"]["touch"], tq=cp["press"]["touch"],
-                  lt=cp["twist"]["low"], lr=cp["roll"]["low"], lp=cp["pinpush"]["low"], lq=cp["press"]["low"],
-                  fm=P.FILM[0] + 1)
+    for task in TASKS:
+        for v in sorted((v for v in Tn.values() if v["task"] == task), key=lambda v: v["d_mm"]):
+            src_ = v.get("grid") or v.get("ea")
+            if src_ is None:
+                continue
+            c = v.get("cpu")
+            rows.append([NAMES[task], f"{v['d_mm']:g}", f"{100 * v['reach']:.0f}", "grid" if v.get("grid") else "EA",
+                         f"{src_['best']:.2f}", f"{c['best_cpu']:.2f}" if c else "&ndash;",
+                         f"{src_['best_xy'][0]:.0f}, {src_['best_xy'][1]:.0f}",
+                         f"{src_['near_n']}", f"{src_['near_lo'][0]:.0f}&ndash;{src_['near_hi'][0]:.0f}",
+                         f"{src_['near_lo'][1]:.0f}&ndash;{src_['near_hi'][1]:.0f}"])
+    t += table(["Task", "Diameter (mm)", "Reach (%)", "Search", "Best score", "CPU score", "Best layout (mm)",
+                "Near set (layouts)", "Near set $x_{sep}$ (mm)", "Near set $y_{sep}$ (mm)"], rows,
+               "Per task and object size: the share of layouts that reach the pose; the best layout found by the live EA "
+               "(population 64, 6,000 rollouts) or by the full grid at the default object; its best-of-16 score on "
+               "seeds 0 to 2 and its CPU score; the near set's size and ranges. <code>hom_ea.py report</code>.",
+               num_from=1)
+    t += img(MEDIA / "20261030-size_trends_sph.png",
+             "Spheres. Top: the best layout's score against the diameter. Middle and bottom: its $x_{sep}$ and $y_{sep}$, "
+             "with bars over the near set. Filled: the live EA; open: the full grid. Crosses: the near set's centroid; "
+             "red line: its least-squares fit. Dotted: the lattice's edges.")
+    t += img(MEDIA / "20261030-size_trends_cyl.png", f"Cylinders, drawn as Figure {f1}.")
+    t += img(MEDIA / "20261030-size_reach.png",
+             "Layouts of the 625 that reach each pose, against the object's diameter.")
 
-        def cap_c(i):
-            a, b = i["all contacts"], i["pads and small rigid spheres meet the object only"]
-            return (f"A re-solved twist layout whose index and middle start 2 mm apart and touch during the twist (x_sep "
-                    f"{i['layout'][0]:.0f} mm, y_sep {i['layout'][1]:.0f} mm, GPU score {i['gpu']:.2f}), CPU plant, "
-                    f"seed 0: all contacts (left, score {a['score']:.2f}) and the GPU's collision filter (right, "
-                    f"{b['score']:.2f}). <code>scripts/hom_films.py contact_ff</code>.")
-        t += v4b_film("contact_ff", cap_c)
-
-    def cap_f(i):
-        return (f"The four tasks on the re-solved grids' best worst-case layout (x_sep {i['layout'][0]:.0f} mm, y_sep "
-                f"{i['layout'][1]:.0f} mm), each with its best grasp, CPU plant, seed 0. Scores: "
-                + ", ".join(f"{NAMES[k].lower()} {i[k]['score']:.2f}" for k in ("twist", "roll", "pinpush", "press"))
-                + ". <code>scripts/hom_films.py four_ff</code>.")
-    t += v4b_film("four_ff", cap_f)
+    def cap(i, task):
+        parts = [f"{k} mm at ({v['layout'][0]:.0f}, {v['layout'][1]:.0f}) mm, {v['score']:.2f} here and "
+                 f"{v['gpu']:.2f} on the GPU" for k, v in i.items() if isinstance(v, dict) and "layout" in v]
+        return (f"The {NAMES[task].lower()} on the best layout found at three {OBJ[task]} diameters, each with its best "
+                f"grasp, CPU plant, seed 0: " + "; ".join(parts) + f". <code>scripts/hom_films.py sizes_{task}</code>.")
+    for task in ("twist", "roll", "pinpush", "press"):
+        t += v4b_film(f"sizes_{task}", lambda i, task=task: cap(i, task))
     return t
 
 
@@ -305,97 +419,254 @@ def sec_search(N):
     gr = [6000 / T_[k]["grid_rollouts"] for k in T_]
     st16 = [T_[k]["runs"][f"ea_best_pop{pop}"]["to_within_0.05"]["reached"] for k in T_]
     rnd = [share(k, "random_best", 6000) for k in T_]
-    t = fill(r"""<p>On the design page the EA came within 0.05 of the grid's best after a median of 5 to 8 % of the
-grid's rollouts. The median hides how often a run fails to get there. On the re-solved grids, the EA with a population
-of <<p2>> came within 0.05 of the grid's best within 6,000 rollouts in <<e0>> to <<e1>> % of its <<nr>> runs per task
-(Table <<tb>>, Figure <<fg>>). That budget is <<g0>> to <<g1>> % of a full grid's rollouts. Random search over the
-lattice got there within the same budget in <<q0>> to <<q1>> % of runs. With a population of <<p1>> the EA stalls: it
-came within 0.05 in <<s0>> to <<s1>> % of its runs however long it ran, because its best eighth, two layouts, is all it
-breeds from. The live searches of the next section therefore use a population of <<p2>> and 6,000 rollouts per task and
-object.</p>""",
-             p2=4 * pop, p1=pop, nr=E["runs"], e0=f"{100 * min(by):.0f}", e1=f"{100 * max(by):.0f}",
-             g0=f"{100 * min(gr):.0f}", g1=f"{100 * max(gr):.0f}", q0=f"{100 * min(rnd):.0f}", q1=f"{100 * max(rnd):.0f}",
-             s0=f"{100 * min(st16):.0f}", s1=f"{100 * max(st16):.0f}", tb=P.TAB[0] + 1, fg=P.FIG[0] + 1)
+    pct = (lambda v: span([100 * x for x in v], "{:.0f}"))
+    t = fill(r"""<p>The searches of Section SEC[trends] rest on the EA's reliability, which was measured on the full grids
+at the default objects. Each search was repeated <<nr>> times per task from random starts (<code>hom_landscape.py ea
+--grid grid2dff</code>). With a population of <<p2>>, the EA came within 0.05 of the grid's best within 6,000 rollouts in
+<<e>> % of its runs (Table <<tb>>, Figure <<fg>>). That budget is <<g>> % of a full grid's rollouts. Random search over
+the lattice got there within the same budget in <<q>> % of its runs. With a population of <<p1>>, the EA got there in
+<<st>> % of its runs, however long it ran. On the design page's grids, with the overlapping grasps masked, 55 % of its
+twist runs did. Its best eighth is two layouts, and with a population of <<p1>> the best basin can be lost.</p>""",
+             p2=4 * pop, p1=pop, nr=E["runs"], e=pct(by), g=pct(gr), q=pct(rnd), st=pct(st16), tb=P.TAB[0] + 1,
+             fg=P.FIG[0] + 1)
     t += table(["Task", "Grid rollouts", "Layouts within 0.05", f"EA {4 * pop}, 2,000", f"EA {4 * pop}, 4,000",
                 f"EA {4 * pop}, 6,000", f"EA {pop}, 2,000", f"EA {pop}, 6,000", "Random, 2,000", "Random, 6,000"], rows,
                f"Share of {E['runs']} runs (%) whose best layout scores within 0.05 of the re-solved grid's best after "
                "2,000, 4,000 and 6,000 rollouts, for the EA with two populations and for random search; default objects, "
-               "seeds 0 to 2. <code>hom_landscape.py ea --grid grid2dff</code>.", num_from=1)
+               "seeds 0 to 2.", num_from=1)
     t += img(MEDIA / "20261030-ea_baseline_ff.png",
-             "The median over runs of the best-of-16 score of the best layout found, against rollouts, on the re-solved "
-             "grids. Dash-dotted: the grid's best; dotted: 0.05 below it.")
+             "The median over runs of the best-of-16 score of the best layout so far, against rollouts, on the re-solved "
+             "grids at the default objects.")
     return t
 
 
-def sec_trends(N, src="grid2dff"):
-    Tn = N["trends"] if src == "grid2dff" else N["trends_gr"]
-    if not Tn:
+def sec_fix(N):
+    R = N["rerun"]
+    ck, tm, ss = R["check"], R["timing"], R["solve_s"]
+    if not (ck and tm):
         return "<p>Not run yet.</p>"
+    tw = ck["twist_d40"]
+    return fill(r"""<p>Finger-to-finger contact in the GPU evaluator would cost 9 to 13 times the rollout time (rows
+<code>ff_timing</code>, the first 42 layouts of the earlier twist grid). With the small rigid spheres colliding with every
+finger part, as on the CPU, a batch of 2,016 twist worlds took <<r1>> s. With the collision filter it took <<r0>> s,
+<<m1>> against <<m0>> ms per rollout. At 480 worlds the ratio was <<x4>>, and with the pads colliding as well it was
+<<xn>>. The filter therefore stays, and the fingers are kept apart before a rollout starts. A coarser stand-in did not fit:
+96 k-means spheres per fingertip, each grown to contain its members, still reached 7.6 mm in radius on a tip 15 mm
+wide.</p>
+<p>The pose toy now keeps the fingers apart with the plant's own collision spheres
+(<code>fp_sr2_toy.ff_clearance_v4b</code>). Before, a third of the design page's sphere grasps overlapped the index's and
+the middle's caps at the touch pose (design page, Section 9). Each finger has 1,465 spheres: the sphere packs of its links
+and the 1,018 spheres of its pad. The toy places them by its closed-form kinematics, which reproduced MuJoCo's body poses
+to within 1e-15 m at 50 random sets of joint angles. Every two fingers must stay 2 mm apart at the touch pose. That
+clearance is a constraint of the toy's program and of its grasp walk.</p>
+<p>On <<n>> grasps of the earlier twist grid, the toy's clearance differed from the plant's by a median of <<md>> mm and
+at most <<mx>> mm. Both put the same <<nb>> grasps under 2 mm, and <<po>> more fell under it on the plant alone. The
+constraint slows the toy. A tripod layout's pose and grasp set took a median of <<t0>> s before and <<t1>> s after, and a
+pinch layout's took <<p0>> and <<p1>> s.</p>""",
+                n=tw["grasps"], md=f"{tw['median_diff_mm']:+.2f}", mx=f"{tw['max_abs_diff_mm']:.2f}", nb=tw["both_under"],
+                po=tw["plant_only"], t0=f"{ss['tripod'][0]:.1f}", t1=f"{ss['tripod'][1]:.1f}",
+                p0=f"{ss['pinch'][0]:.1f}", p1=f"{ss['pinch'][1]:.1f}", r1=f"{tm['rigid_42']['run_s']:.0f}",
+                r0=f"{tm['object_42']['run_s']:.0f}", m1=f"{tm['rigid_42']['ms']:.0f}", m0=f"{tm['object_42']['ms']:.0f}",
+                x4=f"{tm['rigid_10']['run_s'] / tm['object_10']['run_s']:.1f}",
+                xn=f"{tm['none_10']['run_s'] / tm['object_10']['run_s']:.1f}")
+
+
+def sec_rerun(N):
+    R = N["rerun"]
+    if not R["rerun"]:
+        return "<p>Not run yet.</p>"
+    old, new = R["rerun"]["old"], R["rerun"]["new"]
+    keys = [k for k in ("twist_d40", "roll_d40", "pinpush_d25", "press_d25") if k in new and k in old]
+    if len(keys) < 4:
+        return "<p>Not run yet.</p>"
+    tw0, tw1 = old["twist_d40"], new["twist_d40"]
+    c0, c1 = old["cross"], new["cross"]
+    t = fill(r"""<p>Re-solved with the finger clearance, the grids at the default objects keep most of their layouts and
+scores (Table <<tb>>, Figure <<fg>>). The twist's tripod is reached on <<r1>> layouts against <<r0>> before. The
+skeleton's pad sphere is wider than the v4b tip across the finger and had rejected some clear poses. The twist's median
+best-of-16 score is <<b1>> against <<b0>>. Its best layout scores <<bb>> at (<<bx>>, <<by>>) mm, and its largest basin
+peaks at (<<px>>, <<py>>) mm. On <<a1>> % of the layouts all four tasks score above 0.5 with their best grasps, against
+<<a0>> % before. The best worst-case layout is (<<mx>>, <<my>>) mm, where the four tasks score <<ms>>. The cylinder tasks
+now hold the object at its start until the grasp closes; before, it could roll off its post during the approach.</p>""",
+             tb=P.TAB[0] + 1, fg=P.FIG[0] + 1, r1=tw1["reached"], r0=tw0["reached"], b1=f"{tw1['best_median']:.2f}",
+             b0=f"{tw0['best_median']:.2f}", bb=f"{tw1['best']:.2f}", bx=f"{tw1['best_xy'][0]:.0f}",
+             by=f"{tw1['best_xy'][1]:.0f}", px=f"{tw1['peak'][0]:.0f}", py=f"{tw1['peak'][1]:.0f}",
+             a1=f"{100 * c1['share_all_above_0.5']:.0f}", a0=f"{100 * c0['share_all_above_0.5']:.0f}",
+             mx=f"{c1['maximin_xy'][0]:.0f}", my=f"{c1['maximin_xy'][1]:.0f}",
+             ms=", ".join(f"{x:.2f}" for x in c1["maximin_scores"]))
     rows = []
-    for task in ("twist", "roll", "pinpush", "press"):
-        for v in sorted((v for v in Tn.values() if v["task"] == task), key=lambda v: v["d_mm"]):
-            src_ = v.get("grid") or v.get("ea")
-            if src_ is None:
-                rows.append([NAMES[task], f"{v['d_mm']:g}", f"{100 * (v['reach'] or 0):.0f}", "&ndash;", "&ndash;",
-                             "&ndash;", "&ndash;", "&ndash;"])
-                continue
-            kind = "grid" if v.get("grid") else "EA"
-            c = v.get("cpu")
-            rows.append([NAMES[task], f"{v['d_mm']:g}", f"{100 * v['reach']:.0f}", kind,
-                         f"{src_['best']:.2f}", f"{src_['best_xy'][0]:.0f}, {src_['best_xy'][1]:.0f}",
-                         f"{src_['near_n']} ({src_['near_lo'][0]:.0f}&ndash;{src_['near_hi'][0]:.0f}, "
-                         f"{src_['near_lo'][1]:.0f}&ndash;{src_['near_hi'][1]:.0f})",
-                         f"{c['best_cpu']:.2f}" if c else "&ndash;"])
-    t = table(["Task", "Diameter (mm)", "Reach (%)", "Search", "Best score", "Best layout (mm)",
-               "Near set: layouts (x_sep, y_sep range, mm)", "CPU score of the best"], rows,
-              "Per task and object size: the share of layouts that reach the pose, the best layout found by the live EA "
-              "(population 64, 6,000 rollouts) or by the full grid at the default object, its best-of-16 score on seeds 0 "
-              "to 2, the layouts within 0.05 of it, and the CPU plant's score of its best grasp with every contact at "
-              "seed 0. <code>hom_ea.py report</code>.", num_from=1)
-    suf = "" if src == "grid2dff" else "_gr"
-    t += img(MEDIA / f"20261030-size_reach{suf}.png",
-             "Layouts (of 625) on which the pose toy finds each pose, against the object's diameter.")
-    t += img(MEDIA / f"20261030-size_trends{suf}.png",
-             "Per task: the best layout's score against the object's diameter (top) and its x_sep and y_sep (middle, "
-             "bottom), with bars over the layouts within 0.05 of it. Filled: the live EA; open: the full grid. Dotted: "
-             "the gantries' travel.")
+    for k in keys:
+        a, b = old[k], new[k]
+        task, d = k.split("_d")
+        pk = (lambda q: f"{q[0]:.0f}, {q[1]:.0f}" if q else "&ndash;")
+        rows.append([NAMES[task], f"{OBJ[task]} {d} mm", f"{a['reached']} / {b['reached']}",
+                     f"{a['best_median']:.2f} / {b['best_median']:.2f}", f"{a['fp_median']:.2f} / {b['fp_median']:.2f}",
+                     f"{100 * a['above_0.5']:.0f} / {100 * b['above_0.5']:.0f}", f"{b['best']:.2f} at {pk(b['best_xy'])}",
+                     f"{pk(a['peak'])} / {pk(b['peak'])}"])
+    t += table(["Task", "Object", "Layouts reaching the pose", "Best-of-16 median", "Foundational pose median",
+                "Layouts above 0.5 (%)", "Best layout after (mm)", "Largest basin's peak (mm)"], rows,
+               "The grids at the default objects before the fix (the skeleton's clearance, all grasps) and after it "
+               "(the plant's spheres 2 mm apart at the touch pose), seeds 0 to 2, before / after in each cell. "
+               "<code>hom_landscape.py rerun</code>.", num_from=2)
+    t += img(MEDIA / "20261030-gridff_maps.png",
+             "Best-of-16 score over the lattice at the default objects, before the fix (top) and after it (bottom). "
+             "Grey: the pose is not reached. Star: the best layout. Seeds 0 to 2.")
+    cp = R["cpu"]
+    if len(cp) == 4:
+        t += fill(r"""<p>The best grasp of each new grid's <<n>> best layouts then ran on the CPU plant, seed 0
+(<code>hom_top_cpu_check.py --grid grid2dff</code>). On every task the CPU's median differs from the GPU's by <<med>> or
+less. The index and the middle still touched during the task, though they started 2 mm apart. They touched in <<tt>> of
+the <<n>> twist runs, <<tr>> of the roll runs, <<tp>> of the pin-push runs and <<tq>> of the press runs. The CPU scored
+under 0.5 where the GPU scored 0.5 or more in <<lt>>, <<lr>>, <<lp>> and <<lq>> of the twist, roll, pin-push and press
+runs (Film <<fm>>). The best layouts of every search are therefore checked on the CPU as well.</p>""",
+                  n=cp["twist"]["n"],
+                  med=f"{max(abs(cp[k]['cpu_median'] - cp[k]['gpu_median']) for k in cp):.2f}",
+                  tt=cp["twist"]["touch"], tr=cp["roll"]["touch"], tp=cp["pinpush"]["touch"], tq=cp["press"]["touch"],
+                  lt=cp["twist"]["low"], lr=cp["roll"]["low"], lp=cp["pinpush"]["low"], lq=cp["press"]["low"],
+                  fm=P.FILM[0] + 1)
+
+        def cap_c(i):
+            a, b = i["all contacts"], i["pads and small rigid spheres meet the object only"]
+            return (f"A re-solved twist layout, $x_{{sep}}$ {i['layout'][0]:.0f} mm and $y_{{sep}}$ {i['layout'][1]:.0f} "
+                    f"mm, with a GPU score of {i['gpu']:.2f}. Its index and middle start 2 mm apart and touch during the "
+                    f"twist. CPU plant, seed 0: all contacts on the left (score {a['score']:.2f}), the GPU's collision "
+                    f"filter on the right ({b['score']:.2f}). <code>scripts/hom_films.py contact_ff</code>.")
+        t += v4b_film("contact_ff", cap_c)
+
+    def cap_f(i):
+        return (f"The four tasks on the re-solved grids' best worst-case layout ($x_{{sep}}$ {i['layout'][0]:.0f} mm, "
+                f"$y_{{sep}}$ {i['layout'][1]:.0f} mm), each with its best grasp, CPU plant, seed 0. Scores: "
+                + ", ".join(f"{NAMES[k].lower()} {i[k]['score']:.2f}" for k in TASKS)
+                + ". <code>scripts/hom_films.py four_ff</code>.")
+    t += v4b_film("four_ff", cap_f)
     return t
+
+
+def lat_words(a):
+    """A contact latitude (deg, positive below the equator) as words."""
+    return f"{abs(a):.0f} deg {'below' if a > 0 else 'above'}"
 
 
 def sec_table(N):
     G = N["ground"]
     if not G:
         return "<p>Not run yet.</p>"
+    g = (lambda pose, d: G.get((pose, float(d)), {}))
+    sph = sorted(d for (pose, d) in G if pose == "tripod")
+    cyl = sorted(d for (pose, d) in G if pose == "pinch")
+    first_all = next((d for d in sph if g("tripod", d)["both_ok"] >= 0.999), None)
+    first_pinch = next((d for d in cyl if g("pinch", d)["both_ok"] > 0), None)
+    t = fill(r"""<p>A real object starts on a table, and the grids above were solved without one. Few of their grasps
+clear it (Table <<tb>>, <code>scripts/hom_ground.py</code>). Of the tripod grasps on the 40 mm sphere, <<s40>> % clear
+it, and the median grasp reaches <<m40>> mm below it. Every tripod grasp clears it from the <<s100>> mm sphere on. No
+pinch clears it below the <<fp>> mm cylinder, and no press clears it at any size.</p>""",
+             tb=P.TAB[0] + 1, s40=f"{100 * g('tripod', 40)['both_ok']:.0f}", m40=f"{-g('tripod', 40)['touch_median']:.1f}",
+             s100=f"{first_all:g}" if first_all else "&ndash;", fp=f"{first_pinch:g}" if first_pinch else "&ndash;")
+    t40, p25 = g("tripod", 40), g("pinch", 25)
+    if "gr_reached" in t40 and "gr_reached" in p25:
+        p_first = next((d for d in cyl if g("pinch", d).get("gr_reached")), None)
+        t += fill(r"""<p>The pose toy can keep the table clear as a constraint (<code>fp_sr2_toy.py grid2d
+--ground</code>, rows <code>grid2dgr_*</code>). The touch and open poses must then stay within 1 mm of the table, and the
+contacts may lie up to 40 deg above the equator. On the 40 mm sphere <<r40>> layouts then reach a tripod, against <<u40>>
+without the table. Its contacts lie between <<a40>> and <<b40>> the equator. On cylinders a pinch is reached from
+<<pf>> mm on: on <<rp1>> layouts at <<pf>> mm, <<r25>> at 25 mm and <<r50>> at 50 mm. No layout reaches a press, whose
+middle finger presses 30 to 45 deg below the equator.</p>""",
+                  r40=t40["gr_reached"], u40=t40["layouts"], a40=lat_words(t40["gr_lat"][0]),
+                  b40=lat_words(t40["gr_lat"][1]), pf=f"{p_first:g}", rp1=g("pinch", p_first)["gr_reached"],
+                  r25=p25["gr_reached"], r50=g("pinch", 50)["gr_reached"])
     rows = []
     for (pose, d), v in sorted(G.items(), key=lambda kv: (kv[0][0] != "tripod", kv[0][0], kv[0][1])):
-        rows.append([pose, f"{d:g}", f"{v['grasps']:,}", f"{v['touch_median']:+.1f}", f"{100 * v['touch_ok']:.0f}",
-                     f"{100 * v['both_ok']:.0f}", f"{v['layouts_ok']} of {v['layouts']}"])
-    t = table(["Pose", "Diameter (mm)", "Grasps", "Table clearance at touch, median (mm)", "Clear at touch (%)",
-               "Clear at touch and open (%)", "Layouts with a clear grasp"], rows,
-              "The re-solved grids' grasps against a table under the object (<code>scripts/hom_ground.py</code>): the "
-              "table clearance's median at the touch pose and the share of grasps within 1 mm of the table.", num_from=1)
+        lat = v.get("gr_lat")
+        rows.append([pose, f"{d:g}", f"{v['touch_median']:+.1f}", f"{100 * v['both_ok']:.0f}",
+                     f"{v['layouts_ok']} of {v['layouts']}", str(v["gr_reached"]) if "gr_reached" in v else "&ndash;",
+                     f"{lat[0]:+.0f} to {lat[1]:+.0f}" if lat else "&ndash;"])
+    t += table(["Pose", "Diameter (mm)", "Table clearance at touch, median (mm)", "Grasps that clear the table (%)",
+                "Layouts with a clear grasp", "Layouts reached with the table constraint",
+                "Contact latitude with the constraint (deg)"], rows,
+               "The re-solved grids' grasps against a table under the object, and the grids solved with the table as a "
+               "constraint. A grasp clears the table when every finger sphere stays above it, less 1 mm, at the touch "
+               "and open poses. Latitude: 5th to 95th percentile over the grasps, positive below the equator.",
+               num_from=1)
+    GG = N.get("gr_grid") or {}
+    if GG.get("twist") and GG.get("roll") and GG.get("pinpush"):
+        a = {k: GG[k]["grid2dff"] for k in GG}
+        b = {k: GG[k]["grid2dgr"] for k in GG}
+        t += fill(r"""<p>On the GPU, the best tripod layout clear of the table scores <<tw1>> in the twist and <<ro1>> in
+the roll, against <<tw0>> and <<ro0>> without the table constraint. The best pinch layout clear of it scores <<pp1>> in the
+pin-push, against <<pp0>>. Fewer layouts score well: <<s1>> % of the twist's layouts score above 0.5 with the constraint,
+against <<s0>> % without it, and <<q1>> % of the pin-push's, against <<q0>> %.</p>""",
+                  tw1=f"{b['twist']['best']:.2f}", ro1=f"{b['roll']['best']:.2f}", tw0=f"{a['twist']['best']:.2f}",
+                  ro0=f"{a['roll']['best']:.2f}", pp1=f"{b['pinpush']['best']:.2f}", pp0=f"{a['pinpush']['best']:.2f}",
+                  s1=f"{100 * b['twist']['above']:.0f}", s0=f"{100 * a['twist']['above']:.0f}",
+                  q1=f"{100 * b['pinpush']['above']:.0f}", q0=f"{100 * a['pinpush']['above']:.0f}")
+    TB = N.get("table") or {}
+    if TB.get("twist") and all(k in TB["twist"] for k in ("grid2dff_post", "grid2dff_table", "grid2dgr_table")):
+        rows = []
+        for task in ("twist", "roll", "pinpush"):
+            v = TB.get(task) or {}
+            cell = (lambda k: f"{v[k]['held']} of {v[k]['n']}, {v[k]['median']:.2f}" if k in v else "&ndash;")
+            rows.append([NAMES[task], cell("grid2dff_post"), cell("grid2dff_table"), cell("grid2dgr_post"),
+                         cell("grid2dgr_table")])
+        said = []
+        for task in ("twist", "roll", "pinpush"):
+            v = TB.get(task) or {}
+            if not all(k in v for k in ("grid2dff_post", "grid2dff_table", "grid2dgr_post", "grid2dgr_table")):
+                continue
+            a0, a1, b0, b1 = (v[k] for k in ("grid2dff_post", "grid2dff_table", "grid2dgr_post", "grid2dgr_table"))
+            said.append(f"In the {NAMES[task].lower()}, the best layouts of the grid without the constraint scored a "
+                        f"median of {a1['median']:.2f} with the table, against {a0['median']:.2f} on the post alone. A "
+                        f"finger touched the table before the lift in {a1['touch']} of their {a1['n']} runs. The best "
+                        f"layouts of the grid with the constraint scored {b1['median']:.2f} with the table and "
+                        f"{b0['median']:.2f} without it.")
+        t += fill(r"""<p>With a physical table under the object until the lift, the 20 best layouts of each grid ran on
+the CPU plant (Table <<tb>>, <code>scripts/hom_table_check.py</code>). <<said>></p>""", tb=P.TAB[0] + 1,
+                  said=" ".join(said))
+        t += table(["Task", "Unconstrained grid, post", "Unconstrained grid, table", "Table-constrained grid, post",
+                    "Table-constrained grid, table"], rows,
+                   "The 20 best layouts of each grid at the default object, best grasp, seed 0, CPU plant with every "
+                   "contact: runs held and the median score, on the 3 mm post alone and with a table under the object "
+                   "until the lift.", num_from=1)
+
+    def cap_t(i, task):
+        a, b = i.get("grid2dff", {}), i.get("grid2dgr", {})
+        return (f"The {NAMES[task].lower()} with a table under the object until the lift, CPU plant, seed 0. Left: the "
+                f"best layout of the grid without the table constraint, ({a['layout'][0]:.0f}, {a['layout'][1]:.0f}) "
+                f"mm, score {a['score']:.2f} against {a['gpu']:.2f} on the GPU without a table. Right: the best layout "
+                f"of the grid with it, ({b['layout'][0]:.0f}, {b['layout'][1]:.0f}) mm, {b['score']:.2f} against "
+                f"{b['gpu']:.2f}. <code>scripts/hom_table_check.py film</code>.")
+    for task in ("twist", "pinpush"):
+        t += v4b_film(f"table_{task}", lambda i, task=task: cap_t(i, task))
     return t
 
 
 def sec_limits(N):
-    return r"""<ul>
-<li>The GPU evaluator keeps its collision filter: the index and middle start 2 mm apart, but contact between them during
-a task is missed there. The best layouts are therefore re-run on the CPU plant, at seed 0 only.</li>
-<li>Each live search ran once per task and object, with one random start; on the full grids 3 % or fewer of such runs
+    return fill(r"""<ul>
+<li>The GPU evaluator keeps its collision filter, so contact between two fingers during a task is missed there. The best
+layouts are re-run on the CPU plant, at seed 0 only.</li>
+<li>Each live search ran once per task and object, from one random start. On the full grids, 3 % or fewer of such runs
 missed the best by more than 0.05.</li>
+<li>Two children of one generation can land on the same layout, which is then run twice. Such repeats made up <<rep>> %
+of the live searches' rollouts and count against the 6,000.</li>
+<li>The lattice is the symmetric tripod in two coordinates, and its $y_{sep}$ ends at 170 mm. The press's best layouts lie
+within 15 mm of that edge at most sizes. The six-coordinate layouts are the Sobol study's.</li>
 <li>In the table study the GPU plant keeps its 3 mm post. The grasps clear a table, but a table stands under the object
-only in the CPU check, on the default objects.</li>
-<li>The lattice is the symmetric tripod in two coordinates; the six-coordinate layouts are the Sobol study's.</li>
-</ul>"""
+only in the CPU check, at the default objects.</li>
+<li>Every run uses the scenes cached on 2026-10-30, whose pads have a modulus of 10 MPa. The scenes have used 2.5 MPa,
+fitted to the v3 tips' presses, since that evening (<a href="<<contact>>">contact model page</a>).</li>
+</ul>""", contact=CONTACT, rep=f"{100 * (repeat_share() or 0):.1f}")
 
 
 def sec_future(N):
     return r"""<ul>
-<li>Finger-to-finger contact on the GPU at small cost. Fit capsules to each v4b part, or a sphere tree, with collisions
-across fingers only. Time a 2,016-world twist batch against 31 ms per rollout. Rerun the 40 best twist layouts against
-the CPU's scores. The k-means attempt is <code>scripts/hom_proxy_check.py</code>.</li>
-<li>Repeat each live search from three random starts and report the spread of the best layout's position per size.</li>
-<li>A table in the GPU plant (a box under the object until the lift) to score grasps from a table at grid scale.</li>
+<li>Finger-to-finger contact on the GPU at small cost: capsules or a sphere tree fitted to each v4b part, colliding
+across fingers only. Time a 2,016-world twist batch against 31 ms per rollout, and rerun the 40 best twist layouts. The
+claim that the filter changes the ranking only on the smallest spheres fails if their order differs from the CPU's. The
+k-means attempt is <code>scripts/hom_proxy_check.py</code>.</li>
+<li>Repeat each live search from three random starts and report the spread of the best layout's position per size. The
+slopes of Section SEC[trends] hold if each lies within that spread of its fit.</li>
+<li>Run <code>hom_top_cpu_check.py</code> on the 10 best layouts per size with scenes rebuilt at 2.5 MPa. The trends hold
+if the best layouts' CPU scores move by less than 0.05.</li>
+<li>A table in the GPU plant, a box under the object until the lift, to score grasps from a table at grid scale.</li>
 </ul>"""
 
 
@@ -436,28 +707,61 @@ def assemble(sections, title, h1, eyebrow, lede, byline, summary):
     print(f"{OUT.relative_to(ROOT)}: {OUT.stat().st_size / 1e6:.2f} MB, {n[0]} formulas", flush=True)
 
 
+def lede_and_summary(N):
+    """The page's lede and its docs-summary from the numbers."""
+    R, Tn = N["rerun"], N["trends"]
+    plain = ("Best layouts of the SR2 hand under HOM control across object sizes, with the fingers kept 2 mm apart and "
+             "with a table under the object.")
+    if not (R["rerun"] and R["timing"] and R["ea"] and Tn):
+        return plain, plain
+    St = {task: trend_stats(Tn, task) for task in TASKS}
+    if not all(St.values()):
+        return plain, plain
+    sx = [St[k]["slope_x"] for k in TASKS]
+    n, ok, _bad = cpu_agreement(St)
+    tm = R["timing"]
+    x_lo = min(tm[f"rigid_{k}"]["run_s"] / tm[f"object_{k}"]["run_s"] for k in ("10", "42"))
+    x_hi = max(tm[f"rigid_{k}"]["run_s"] / tm[f"object_{k}"]["run_s"] for k in ("10", "42"))
+    G = N["ground"] or {}
+    cyl = sorted(d for (pose, d) in G if pose == "pinch")
+    p_first = next((d for d in cyl if G[("pinch", d)].get("gr_reached")), None)
+    table_s = (f" A table under the object leaves no clear press at any size and no clear pinch of a cylinder under "
+               f"{p_first:g} mm." if p_first else "")
+    lede = fill("""Over 19 object sizes, the best layout of the SR2 hand moves with the object. In all four HOM tasks the
+thumb's mount moves away from the finger pair by <<sx>> mm per millimetre of diameter. The spacing of the index and the
+middle narrows on spheres and widens on cylinders. Each size was searched with Yang et al.'s evolutionary algorithm in
+6,000 rollouts, which came within 0.05 of a full grid's best in every test run. The CPU plant with every contact gave the
+best layout's score within <<tol>> at <<ok>> of <<n>> sizes. The fingers were kept 2 mm apart by the pose solver, because
+finger contact on the GPU costs <<xl>> to <<xh>> times the rollout time.<<tb>>""",
+                sx=span(sx), tol=CPU_TOL, ok=ok, n=n, xl=f"{x_lo:.0f}", xh=f"{x_hi:.0f}", tb=table_s)
+    summary = fill("""Across 19 object sizes the SR2 hand's best layout under HOM control moves with the object: the
+thumb's mount moves out <<sx>> mm per mm of diameter in all four tasks, found by an evolutionary search in 6,000 rollouts
+per size and confirmed on the CPU plant at <<ok>> of <<n>> sizes.<<tb>>""", sx=span(sx, "{:.1f}"), ok=ok, n=n,
+                   tb=table_s)
+    return lede, " ".join(summary.split())
+
+
 def main():
-    N = {"rerun": rerun_numbers(), "trends": trend_numbers("grid2dff"), "trends_gr": trend_numbers("grid2dgr"),
-         "ground": ground_numbers(), "table": table_numbers()}
+    N = {"rerun": rerun_numbers(), "trends": trend_numbers("grid2dff"), "ground": ground_numbers(),
+         "gr_grid": gr_grid_numbers(), "table": table_numbers()}
     sections = [
         ("terms", "Terms and metrics", sec_terms()),
+        ("trends", "Best layouts across object sizes", sec_trends(N)),
+        ("search", "Reliability of the evolutionary search", sec_search(N)),
         ("fix", "Finger clearance in the pose toy and its cost on the GPU", sec_fix(N)),
         ("rerun", "Grids at the default objects re-solved with the finger clearance", sec_rerun(N)),
-        ("search", "Reliability of the evolutionary search on the re-solved grids", sec_search(N)),
-        ("trends", "Best layouts across object sizes from the evolutionary search", sec_trends(N)),
         ("table", "Grasps clear of a table under the object", sec_table(N)),
         ("limits", "Limitations", sec_limits(N)),
         ("future", "Future work", sec_future(N)),
         ("refs", "References and files", "<ol class=\"refs\">" + "".join(f"<li>{r[r.index(']') + 2:]}</li>"
                                                                          for r in REFS) + "</ol>" + sec_files()),
     ]
-    lede = ("The SR2 layout study of the design page, after its pose toy learned the plant's finger clearance, across "
-            "object sizes and with a table under the object.")
-    byline = ("Simulation, 2026-10-30. Hand: the CAD-model SR2 hand with the v4b fingertip (<code>SCALE_HAND=cad_v2</code>); "
-              f"HOM on MuJoCo-Warp and on the CPU plant. Follows <a href=\"{DESIGN}\">the design page</a>, Section 9. "
-              "Builder: <code>scripts/hom_trends_page.py</code>.")
-    assemble(sections, "SR2 layouts across object sizes", "SR2 layouts across object sizes under HOM control, with "
-             "finger and table clearance", "HOM layout study, 2026-10-30", lede, byline, lede)
+    lede, summary = lede_and_summary(N)
+    byline = ("Simulation, 2026-10-30 and 31. Hand: the CAD-model SR2 hand with the v4b fingertip "
+              "(<code>SCALE_HAND=cad_v2</code>); HOM on MuJoCo-Warp and on the CPU plant. Follows "
+              f"<a href=\"{DESIGN}\">the design page</a>, Section 9. Builder: <code>scripts/hom_trends_page.py</code>.")
+    assemble(sections, "SR2 layouts across object sizes", "Best SR2 hand layouts across object sizes under HOM control",
+             "HOM layout study, 2026-10-30", lede, byline, summary)
     return 0
 
 

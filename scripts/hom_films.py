@@ -365,7 +365,8 @@ def film_sizes_ea(task, sizes):
         rows_dir, name = (L.GRID_ROWS, None) if (L.GRID_ROWS / f"{task}_d{size:g}.jsonl").exists() else \
             (ROWS / "ea_live", f"{task}_d{size:g}_s0")
         sc, _ = L.grid_scores(task, size, rows_dir, name)
-        (call, g), m = max(((k, float(np.mean(v))) for k, v in sc.items() if len(v) == 3), key=lambda kv: kv[1])
+        (call, g), m = max(((k, float(np.mean(v))) for k, v in sc.items() if len(v) >= 3),   # as hom_ea.fitness: a
+                           key=lambda kv: kv[1])            # layout drawn twice in one generation has 6 rows
         x, y, _r = L.grid_poses(task, size)[call]
         obj = f"{size:g} mm {'sphere' if T.SHAPE[task] == 'sphere' else 'cylinder'}"
         fr, res = clip(task, "grid2dff_size", size, call, g, f"{obj}, ({x:.0f}, {y:.0f}) mm: score {{cpu}} here, "
@@ -380,7 +381,9 @@ FILMS = {"overlap": film_overlap, "grasp_twist": lambda: film_grasp("twist", 40.
          "post": film_post, "local": film_local, "sizes": film_sizes, "four": film_four, "reanchor": film_reanchor,
          "four_ff": film_four_ff, "contact_ff": film_contact_ff,
          "sizes_twist": lambda: film_sizes_ea("twist", (25.0, 45.0, 80.0)),
-         "sizes_pinpush": lambda: film_sizes_ea("pinpush", (13.0, 25.0, 50.0))}
+         "sizes_pinpush": lambda: film_sizes_ea("pinpush", (13.0, 25.0, 50.0)),
+         "sizes_roll": lambda: film_sizes_ea("roll", (25.0, 50.0, 80.0)),
+         "sizes_press": lambda: film_sizes_ea("press", (8.0, 25.0, 50.0))}
 
 
 def main():

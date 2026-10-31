@@ -15,6 +15,7 @@ os.environ.setdefault("SCALE_HAND", "cad_v2")
 os.environ.setdefault("MUJOCO_GL", "egl")
 
 import argparse  # noqa: E402
+import json  # noqa: E402
 import re  # noqa: E402
 import sys  # noqa: E402
 import time  # noqa: E402
@@ -96,7 +97,7 @@ def main():
         sc, _ = L.grid_scores(a.task, a.d, L.ROWS / "ea_live", f"{a.task}_d{a.d:g}_s0")
         poses, best = L.grid_poses(a.task, a.d), {}
         for (c, j), v in sc.items():
-            if len(v) == 3 and np.mean(v) > best.get(c, (-1.0, None))[0]:
+            if len(v) >= 3 and np.mean(v) > best.get(c, (-1.0, None))[0]:   # 6 rows: drawn twice in a generation
                 best[c] = (float(np.mean(v)), j)
         tab = [{"call": c, "x_sep": poses[c][0], "y_sep": poses[c][1], "best": m, "best_grasp": j}
                for c, (m, j) in best.items()]
@@ -105,8 +106,12 @@ def main():
     top = sorted(tab, key=lambda r: -r["best"])[:a.n][a.part::a.parts]
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / f"top_{a.task}_d{a.d:g}{'_ff' if ff else ''}{'_ea' if a.ea else ''}.jsonl"
+    done = {(int(x["call"]), bool(x["gpu_filter"])) for x in map(json.loads, path.read_text().splitlines() if
+                                                                 path.exists() else []) if x}
     for r in top:
         for gf in (False, True):
+            if (int(r["call"]), gf) in done:              # resumable: a layout's run already in the rows
+                continue
             t0 = time.time()
             res, touch = run(a.task, a.d, r["call"], r["best_grasp"], 0, gf, f"{a.grid}_size", hold)
             row = {"task": a.task, "d_mm": a.d, "call": r["call"], "x_sep": r["x_sep"], "y_sep": r["y_sep"],

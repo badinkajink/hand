@@ -621,21 +621,30 @@ def fig_ea(out, suffix=""):
            f"ea_best_pop{4 * EA_POP}": ("tab:blue", "-", f"EA, population {4 * EA_POP}"),
            "random_best": ("tab:orange", "--", "random search"),
            f"ea_fp_pop{EA_POP}": ("0.55", ":", "EA on the foundational pose's score")}
-    fig, axs = plt.subplots(1, 4, figsize=(18, 4.6), sharey=False)
+    two = suffix.endswith("_ff")                         # the result page of 10-30's afternoon: two by two
+    fig, axs = plt.subplots(2, 2, figsize=(9.6, 8.0)) if two else plt.subplots(1, 4, figsize=(18, 4.6), sharey=False)
+    axs = np.ravel(axs)
     for ax, (key, res) in zip(axs, out.items()):
         for run, (c, ls, lab) in sty.items():
             cv = res["runs"][run]["curve"]
             ax.plot(np.array(cv["rollouts"]) / 1e3, cv["median_best"], color=c, ls=ls, lw=1.6, label=lab)
         ax.axhline(res["grid_best"], color="tab:red", lw=0.9, ls="-.", label="the grid's best")
-        ax.axhline(res["grid_best"] - 0.05, color="tab:red", lw=0.6, ls=":")
+        ax.axhline(res["grid_best"] - 0.05, color="tab:red", lw=0.8 if two else 0.6, ls=":",
+                   label="0.05 below the grid's best")
         ax.set_xlim(0, 8)
         ax.set_ylim(max(0.0, res["grid_best"] - 0.4), res["grid_best"] + 0.03)
         ax.set_title(names[key.split("_d")[0]])
         ax.set_xlabel("Rollouts (thousands)")
-    axs[0].set_ylabel("Median best-of-16 score found")
-    axs[0].text(0.98, 0.62, "dotted red: 0.05 below the best", transform=axs[0].transAxes, ha="right", fontsize=10)
-    axs[0].legend(loc="lower right", fontsize=10)
-    fig.tight_layout()
+    for ax in (axs[[0, 2]] if two else axs[:1]):
+        ax.set_ylabel("Median best-of-16 score found")
+    if two:                                              # the legend under the panels, legible at the page's width
+        h, lab = axs[0].get_legend_handles_labels()
+        fig.legend(h, lab, loc="lower center", ncol=2, fontsize=12, frameon=False)
+        fig.tight_layout(rect=(0, 0.13, 1, 1))
+    else:
+        axs[0].text(0.98, 0.62, "dotted red: 0.05 below the best", transform=axs[0].transAxes, ha="right", fontsize=10)
+        axs[0].legend(loc="lower right", fontsize=10)
+        fig.tight_layout()
     FR.save(fig, f"20261030-ea_baseline{suffix}.png")
 
 
@@ -794,7 +803,9 @@ def fig_rerun():
     global GRID_SRC, GRID_ROWS
     keep = GRID_SRC, GRID_ROWS
     plt = FR.plt_setup()
-    fig, axs = plt.subplots(2, 4, figsize=(13.5, 7.4), constrained_layout=True, sharex=True, sharey=True)
+    plt.rcParams.update({"font.size": 15, "axes.titlesize": 15, "axes.labelsize": 15, "xtick.labelsize": 14,
+                         "ytick.labelsize": 14})
+    fig, axs = plt.subplots(2, 4, figsize=(11, 5.5), constrained_layout=True, sharex=True, sharey=True)
     for i, (src, rows) in enumerate((("grid2d", ROWS / "grid2d_v4b"), ("grid2dff", ROWS / "grid2dff_v4b"))):
         GRID_SRC, GRID_ROWS = src, rows
         for j, task in enumerate(("twist", "roll", "pinpush", "press")):
@@ -810,8 +821,10 @@ def fig_rerun():
             im = ax.imshow(M["best"], origin="lower", extent=ext, cmap="viridis", vmin=0, vmax=1, aspect="equal")
             k = np.nanargmax(M["best"])
             ax.plot(xs[k % len(xs)], ys[k // len(xs)], "r*", ms=14, mec="k")
+            ax.set_xticks([50, 100, 150])
+            ax.set_yticks([60, 100, 140])
             if i == 0:
-                ax.set_title(f"{TASK_NAME[task]}, {size:g} mm {T_SHAPE[task]}")
+                ax.set_title(f"{TASK_NAME[task]}\n{size:g} mm {T_SHAPE[task]}")
             if i == 1:
                 ax.set_xlabel("x_sep (mm)")
             if j == 0:

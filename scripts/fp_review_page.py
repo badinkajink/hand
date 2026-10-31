@@ -1234,13 +1234,22 @@ SEC[future].</p>""",
     t += v4b_film("overlap", cap_ov)
     rj = ROWS / "grid2dff_v4b" / "rerun.json"
     rn = json.loads(rj.read_text())["new"] if rj.exists() else {}
+    sj, sl = ROWS / "ea_live" / "summary.json", []
+    for task in ("twist", "roll", "pinpush", "press") if sj.exists() else ():   # the size trends' centroid slopes
+        pts = sorted((v["d_mm"], (v.get("grid") or v.get("ea"))["near_centroid"][0])
+                     for v in json.loads(sj.read_text()).values()
+                     if isinstance(v, dict) and v.get("task") == task and (v.get("grid") or v.get("ea")))
+        if len(pts) >= 3:
+            sl.append(float(np.polyfit([p_[0] for p_ in pts], [p_[1] for p_ in pts], 1)[0]))
     if "twist_d40" in rn and "cross" in rn:
         t += fill(r"""<p>The overlap is fixed on the page <a href="20261030-hom_layout_trends.html">SR2 layouts across
 object sizes</a>. There the pose toy keeps every two fingers 2 mm apart by the plant's own collision spheres. Re-solved
 that way, the 40 mm twist's median best-of-16 score is <<b>>, against <<bc>> here with the overlapping grasps left out.
-On <<a>> % of the re-solved layouts all four tasks score above 0.5.</p>""",
+On <<a>> % of the re-solved layouts all four tasks score above 0.5.<<sz>></p>""",
                   b=f"{rn['twist_d40']['best_median']:.2f}", bc=f"{tw['best_median_clear']:.2f}",
-                  a=f"{100 * rn['cross']['share_all_above_0.5']:.0f}")
+                  a=f"{100 * rn['cross']['share_all_above_0.5']:.0f}",
+                  sz=(f" Across 19 object sizes there, the thumb's mount in the best layouts moves out by {min(sl):.1f} "
+                      f"to {max(sl):.1f} mm per millimetre of the object's diameter." if len(sl) == 4 else ""))
     return t
 
 
@@ -2463,6 +2472,7 @@ the grasp, and for the twist that decides the outcome.</p>""",
             sl.append((GS[(task, szs[-1])]["peak"][0] - GS[(task, szs[0])]["peak"][0]) / (szs[-1] - szs[0]))
     rj = ROWS / "grid2dff_v4b" / "rerun.json"
     RN = json.loads(rj.read_text())["new"] if rj.exists() else {}
+    RO = json.loads(rj.read_text())["old"] if rj.exists() else {}
     lede = fill("""The foundational-pose paper [1] keeps a hand design if it reaches a few poses that tools are wielded
 from. On the SR2 hand with the calibrated v4b fingertip, a GPU version of the HOM controller scored 8,192 layouts on four
 tasks and four object sizes. With the best of 16 grasps per layout and task, the median twist score of a 625-layout grid
@@ -2474,8 +2484,9 @@ mounts 4 mm cost the best twist layouts a median <<c4>>.<<lr>>""",
                 c4=f"{-pe['change_median']:.2f}",
                 ov=(" In a third of the sphere grasps the index's and middle's fingertip parts overlap, which the GPU "
                     "evaluator does not detect. Re-solved with the fingers 2 mm apart, "
-                    f"{100 * RN['cross']['share_all_above_0.5']:.0f} % of the layouts score above 0.5 on all four tasks "
-                    "on the seeds the grasps were picked on (Section 9)." if RN.get("cross") else
+                    f"{100 * RN['cross']['share_all_above_0.5']:.0f} % of the layouts score above 0.5 on all four tasks, "
+                    f"against {100 * RO['cross']['share_all_above_0.5']:.0f} % before, both on the seeds the grasps were "
+                    "picked on (Section 9)." if RN.get("cross") else
                     " In a third of the sphere grasps the index's and middle's fingertip parts overlap, which the GPU "
                     "evaluator does not detect (Section 9)."),
                 lr=(" Searching 64 layouts within 2 mm of each of the 20 best found a better one on fresh seeds for "

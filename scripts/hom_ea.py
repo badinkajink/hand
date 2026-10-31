@@ -238,12 +238,19 @@ NAMES = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Pres
 
 
 def fig_trends(out, suffix=""):
-    """Per task (columns): the best score found against the object's diameter, and the best layout's x_sep and y_sep
-    with the range of the layouts within NEAR of it; the EA's (filled) and the full grid's (open) where both ran."""
+    """One figure per object shape (20261030-size_trends_sph and _cyl), a column per task: the best score found against
+    the object's diameter, and the best layout's x_sep and y_sep with the range of the layouts within NEAR of it; the
+    EA's (filled) and the full grid's (open) where both ran. Then the reach figure."""
     import fp_review_figures as FR
     plt = FR.plt_setup()
-    fig, axs = plt.subplots(3, 4, figsize=(18, 11), sharex="col")
-    for j, task in enumerate(("twist", "roll", "pinpush", "press")):
+    for shape, tasks in (("sph", ("twist", "roll")), ("cyl", ("pinpush", "press"))):
+        fig_trends_shape(plt, FR, out, tasks, f"20261030-size_trends_{shape}{suffix}.png")
+    fig_reach(plt, FR, out, suffix)
+
+
+def fig_trends_shape(plt, FR, out, tasks, name):
+    fig, axs = plt.subplots(3, 2, figsize=(8.6, 9.6), sharex="col")
+    for j, task in enumerate(tasks):
         for kind, mk, fc, dx in (("ea", "o", "k", -0.3), ("grid", "s", "none", 0.3)):
             pts = [(v["d_mm"], v[kind]) for v in out.values() if v["task"] == task and v.get(kind)]
             if not pts:
@@ -256,7 +263,17 @@ def fig_trends(out, suffix=""):
                 lo = np.array([p[1]["near_lo"][k] for p in pts])
                 hi = np.array([p[1]["near_hi"][k] for p in pts])
                 ax.errorbar(d, y, yerr=[y - lo, hi - y], fmt=mk, mfc=fc, mec="k", ecolor="0.5", ms=7, capsize=3)
-        axs[0, j].set_title(NAMES[task] + (", spheres" if T.SHAPE[task] == "sphere" else ", cylinders"))
+                ax.plot(d, [p[1]["near_centroid"][k] for p in pts], "x", color="tab:red", ms=8, mew=2)
+        cen = sorted((v["d_mm"], (v.get("grid") or v.get("ea"))["near_centroid"]) for v in out.values()
+                     if v["task"] == task and (v.get("grid") or v.get("ea")))
+        if len(cen) >= 3:                                  # the near sets' centroids against diameter, least squares
+            dd = np.array([c[0] for c in cen])
+            for k, ax in ((0, axs[1, j]), (1, axs[2, j])):
+                a, b = np.polyfit(dd, [c[1][k] for c in cen], 1)
+                ax.plot(dd, a * dd + b, color="tab:red", lw=1.2, label=f"centroid fit, {a:+.2f} mm/mm")
+                ax.legend(loc="upper right" if (task, k) == ("roll", 1) else "best", fontsize=12,
+                          handlelength=1.5)                # "best" covers the 40 mm grid's point on the roll's y_sep
+        axs[0, j].set_title(NAMES[task] + (", spheres" if T.SHAPE[task] == "sphere" else ", cylinders"), fontsize=13)
         axs[0, j].set_ylim(0, 1.05)
         axs[1, j].axhline(LO[0], color="0.6", ls=":", lw=1)
         axs[1, j].axhline(HI[0], color="0.6", ls=":", lw=1)
@@ -264,12 +281,15 @@ def fig_trends(out, suffix=""):
         axs[2, j].axhline(HI[1], color="0.6", ls=":", lw=1)
         axs[2, j].set_xlabel("Object diameter (mm)")
     axs[0, 0].set_ylabel("Best layout's score")
-    axs[1, 0].set_ylabel("Its thumb-to-pair x_sep (mm)")
-    axs[2, 0].set_ylabel("Its index-to-middle y_sep (mm)")
-    axs[0, 0].legend(loc="lower left")
+    axs[1, 0].set_ylabel("Its x_sep (mm)")
+    axs[2, 0].set_ylabel("Its y_sep (mm)")
+    axs[0, 0].legend(loc="lower left", fontsize=12)
     fig.tight_layout()
-    FR.save(fig, f"20261030-size_trends{suffix}.png")
-    fig, axs = plt.subplots(1, 2, figsize=(11, 4.2))
+    FR.save(fig, name)
+
+
+def fig_reach(plt, FR, out, suffix):
+    fig, axs = plt.subplots(1, 2, figsize=(9.6, 4.0))
     for ax, tasks in zip(axs, (("twist",), ("pinpush", "press"))):
         for task, ls in zip(tasks, ("-", "--")):
             pts = [(v["d_mm"], v["reach"]) for v in out.values() if v["task"] == task and v.get("reach") is not None]
