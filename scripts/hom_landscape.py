@@ -64,10 +64,11 @@ def layouts():
     return d, z
 
 
-def reach(task, size):
-    """Draw indices whose pose for the task's object of this size was reached."""
+def reach(task, size, src="sobol8k"):
+    """Draw indices whose pose for the task's object of this size was reached (src sobol8kff: the poses with the plant's
+    finger clearance)."""
     import fp_sr2_toy as FP
-    name = FP.size_name("sobol8k", "sphere" if POSE_ROWS[task] == "tripod" else "cylinder", size)
+    name = FP.size_name(src, "sphere" if POSE_ROWS[task] == "tripod" else "cylinder", size)
     pose = {"twist": "tripod", "roll": "tripod", "pinpush": "pinch", "press": "press"}[task]
     out = set()
     for r in FR.load(name):
@@ -757,6 +758,38 @@ def cross_block(per_task):
     return {"layouts": len(common), "share_all_above_0.5": float(np.mean([v > 0.5 for v in worst.values()])),
             "maximin_xy": list(mm), "maximin_scores": [p[mm] for p in per],
             "worst_median": float(np.median(list(worst.values())))}
+
+
+def cmd_sobol_rerun(a):
+    """The 8,192 Sobol layouts re-solved with the plant's finger clearance (poses sobol8kff, GPU rows sizes_v4bff; the
+    cylinder tasks with the object held until the grasp closes) beside the earlier run (sobol8k, sizes_v4b): per task and
+    size the layouts that reach the pose, the median and 90th percentile of the mean score over seeds 0-2 among the
+    layouts run, the share above 0.5, the best layout, and over the layouts both runs ran the Spearman correlation of
+    their scores and the share of the best tenth kept. Writes rows/sizes_v4bff/rerun.json."""
+    d, _z = layouts()
+    n = len(d)
+    new_dir, out = ROWS / "sizes_v4bff", {}
+    for task in TASKS:
+        for size in SIZES[task]:
+            if not (new_dir / f"{task}_d{size:g}.jsonl").exists():
+                continue
+            A, B = scores(task, size, n, SIZE_ROWS), scores(task, size, n, new_dir)
+            both = A["run"] & B["run"]
+            res = {"both": int(both.sum())}
+            for k, S, src in (("old", A, "sobol8k"), ("new", B, "sobol8kff")):
+                m = S["mean"][S["run"]]
+                i = int(np.argmax(S["mean"]))
+                res[k] = {"reached": len(reach(task, size, src)), "run": int(S["run"].sum()),
+                          "median": float(np.median(m)), "p90": float(np.quantile(m, 0.9)),
+                          "above_0.5": float(np.mean(m > 0.5)), "best": float(S["mean"][i]),
+                          "best_d": d[i].round(1).tolist()}
+            if both.sum() > 10:
+                res["spearman"] = float(FR.spearman(A["mean"][both], B["mean"][both]))
+                res["top_kept"] = float(top_kept(A["mean"][both], B["mean"][both]))
+            out[f"{task}_d{size:g}"] = res
+            print(task, size, json.dumps(res)[:400], flush=True)
+    (new_dir / "rerun.json").write_text(json.dumps(out, indent=1))
+    return 0
 
 
 def cmd_rerun(a):
@@ -1863,6 +1896,7 @@ def main():
     sub.add_parser("draws")
     sub.add_parser("overlap")
     sub.add_parser("rerun")
+    sub.add_parser("sobol-rerun")
     for name in ("moves", "moves-report", "local-report"):
         p = sub.add_parser(name)
         p.add_argument("--task", choices=TASKS, required=True)
@@ -1883,6 +1917,7 @@ def main():
         GRID_SRC, GRID_ROWS, EA_DIR = "grid2dff", ROWS / "grid2dff_v4b", ROWS / "ea_ff"
     return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
             "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "local-report": cmd_local_report, "ea": cmd_ea, "ea-figure": cmd_ea_figure, "draws": cmd_draws, "overlap": cmd_overlap, "rerun": cmd_rerun,
+            "sobol-rerun": cmd_sobol_rerun,
             "cross": cmd_cross,
             "valrep": cmd_valrep, "cross-grid": cmd_cross_grid}[a.cmd](a)
 

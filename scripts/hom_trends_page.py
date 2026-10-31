@@ -94,6 +94,8 @@ def rerun_numbers():
                                 "held": sum(1 for r in full if r["held"])}
     ep = ROWS / "ea_ff" / "summary.json"
     out["ea"] = json.loads(ep.read_text()) if ep.exists() else None
+    rc = G / "reach_check.json"                          # scripts/hom_toy_reach_check.py
+    out["reach_check"] = json.loads(rc.read_text()) if rc.exists() else {}
     return out
 
 
@@ -509,13 +511,13 @@ def sec_rerun(N):
     tw0, tw1 = old["twist_d40"], new["twist_d40"]
     c0, c1 = old["cross"], new["cross"]
     t = fill(r"""<p>Re-solved with the finger clearance, the grids at the default objects keep most of their layouts and
-scores (Table <<tb>>, Figure <<fg>>). The twist's tripod is reached on <<r1>> layouts against <<r0>> before. The
-skeleton's pad sphere is wider than the v4b tip across the finger and had rejected some clear poses. The twist's median
-best-of-16 score is <<b1>> against <<b0>>. Its best layout scores <<bb>> at (<<bx>>, <<by>>) mm, and its largest basin
+scores (Table <<tb>>, Figure <<fg>>). The twist's tripod is reached on <<r1>> layouts against <<r0>> before.<<why>> The
+twist's median best-of-16 score is <<b1>> against <<b0>>. Its best layout scores <<bb>> at (<<bx>>, <<by>>) mm, and its largest basin
 peaks at (<<px>>, <<py>>) mm. On <<a1>> % of the layouts all four tasks score above 0.5 with their best grasps, against
 <<a0>> % before. The best worst-case layout is (<<mx>>, <<my>>) mm, where the four tasks score <<ms>>. The cylinder tasks
 now hold the object at its start until the grasp closes; before, it could roll off its post during the approach.</p>""",
-             tb=P.TAB[0] + 1, fg=P.FIG[0] + 1, r1=tw1["reached"], r0=tw0["reached"], b1=f"{tw1['best_median']:.2f}",
+             tb=P.TAB[0] + 1, fg=P.FIG[0] + 1, r1=tw1["reached"], r0=tw0["reached"], why=reach_why(R, "grid2dff"),
+             b1=f"{tw1['best_median']:.2f}",
              b0=f"{tw0['best_median']:.2f}", bb=f"{tw1['best']:.2f}", bx=f"{tw1['best_xy'][0]:.0f}",
              by=f"{tw1['best_xy'][1]:.0f}", px=f"{tw1['peak'][0]:.0f}", py=f"{tw1['peak'][1]:.0f}",
              a1=f"{100 * c1['share_all_above_0.5']:.0f}", a0=f"{100 * c0['share_all_above_0.5']:.0f}",
@@ -567,6 +569,18 @@ runs (Film <<fm>>). The best layouts of every search are therefore checked on th
                 + ". <code>scripts/hom_films.py four_ff</code>.")
     t += v4b_film("four_ff", cap_f)
     return t
+
+
+def reach_why(R, stem):
+    """Why the toy reaches more tripods with the clearance in its program (scripts/hom_toy_reach_check.py)."""
+    c = (R.get("reach_check") or {}).get(f"{stem}_tripod40_v4b")
+    if not c:
+        return ""
+    return fill(""" Before, the toy solved from one start without the clearance in its program, and it rejected the
+result when two fingers' skeletons came within 1 mm. Solved that way again, <<rf>> of <<rt>> layouts that only the new toy
+reaches were rejected for their fingers (<code>scripts/hom_toy_reach_check.py</code>). The new toy's poses on them keep
+the skeletons a median of <<sk>> mm apart.""", rf=c["old_path"]["fingers"], rt=c["tested"],
+                sk=f"{c['new_pose_skeleton_mm_median']:.1f}")
 
 
 def lat_words(a):
