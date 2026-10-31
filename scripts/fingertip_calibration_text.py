@@ -1168,7 +1168,11 @@ def sections(N, F, P, link, L):
         "the pad's normal, and by 0.13 to 0.27 mm across it. The miss across comes from the seat's turn about the "
         "vertical, which moves the pad's surface little. The turn is measured by four touch-offs on the tip's flat side "
         "walls (inverted rig page). The next calibration runs wait "
-        "for the rig. The first robot motion on it, a dry run and the touch-offs, waits for the printed parts. Run one "
+        "for the rig. The first robot motion on it is a dry run, in which each rest stands 15 mm back along the probe's "
+        "stem and nothing is touched. The dry run was replayed move by move on the three seats' plans ("
+        + P.code("docs/experiments/20261030-inverted_rig_seat_block/data/20261030-seat_block_dry_check.json")
+        + "). None of its 960 actions was flagged, and the sphere stayed 7.8 mm or more from its held tip. The dry run "
+        "and the touch-offs wait for the printed parts and the owner's go. Run one "
         "seat's plan with v3 ID 3 held, and score the direction GP on the face's held-out presses. Within 0.3 mm "
         "and 6 % of their force, the rig calibrates a tip as well as the sphere suite of the finger on the robot.",
         "Twists and slides in the suite: score the presses and slides again with the twists' holds in training, and "
