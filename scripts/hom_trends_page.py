@@ -52,6 +52,12 @@ def v4b_film(name, caption_fn):
     return film(path, caption_fn(info)) if (path.exists() and info) else ""
 
 
+def join_and(items):
+    """'a', 'a and b', 'a, b and c'."""
+    items = list(items)
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
 def span(v, fmt="{:.2f}"):
     """'a to b' over a list, or 'a' when both ends print alike."""
     lo, hi = fmt.format(min(v)), fmt.format(max(v))
@@ -240,6 +246,21 @@ def repeat_share(out="ea_live"):
         tot += sum(c.values())
         rep += sum(n - 3 for n in c.values() if n > 3)
     return rep / tot if tot else None
+
+
+def table_costs(N):
+    """The searches with and without the table constraint across sizes (rows/ea_live_gr and ea_live summaries): per task
+    {d: (best without, best with, near-set x_sep without, with)} where both ran."""
+    A, B = N.get("trends"), N.get("trends_gr")
+    if not (A and B):
+        return None
+    out = {}
+    for task in ("twist", "roll", "pinpush"):
+        a = {v["d_mm"]: v.get("grid") or v.get("ea") for v in A.values() if v["task"] == task}
+        b = {v["d_mm"]: v.get("grid") or v.get("ea") for v in B.values() if v["task"] == task}
+        out[task] = {d: (a[d]["best"], b[d]["best"], a[d]["near_centroid"][0], b[d]["near_centroid"][0])
+                     for d in sorted(a) if a.get(d) and b.get(d)}
+    return out
 
 
 def cpu_agreement(St):
@@ -605,6 +626,32 @@ against <<s0>> % without it, and <<q1>> % of the pin-push's, against <<q0>> %.</
                   ro0=f"{a['roll']['best']:.2f}", pp1=f"{b['pinpush']['best']:.2f}", pp0=f"{a['pinpush']['best']:.2f}",
                   s1=f"{100 * b['twist']['above']:.0f}", s0=f"{100 * a['twist']['above']:.0f}",
                   q1=f"{100 * b['pinpush']['above']:.0f}", q0=f"{100 * a['pinpush']['above']:.0f}")
+    C = table_costs(N)
+    if C and all(C.values()):
+        tw, ro, pp = C["twist"], C["roll"], C["pinpush"]
+        small = [d for d in tw if d < 40]
+        big = [d for d in tw if d >= 40]
+        ro_off = [d for d in ro if abs(ro[d][0] - ro[d][1]) > 0.03]
+        pl = [pp[d][0] - pp[d][1] for d in pp]
+        t += fill(r"""<p>Searched across sizes with the table constraint (<code>hom_ea.py sweep --src grid2dgr</code>),
+the constraint lowers the scores on small objects and not on large ones (Figure <<fg>>). The twist's best layout scores
+<<tws>> on the <<ds>> mm
+spheres, against <<twu>> without the constraint. From 40 mm on the two differ by <<twb>> or less. On the 25 mm sphere the
+thumb's mount sits <<dx>> mm closer to the pair. The roll's best scores differ by 0.03 or less<<rx>>. The pin-push's best
+layout scores <<p0>> on the <<d0>> mm cylinder and <<p1>> at <<d1>> mm, <<pl>> below its scores without the
+constraint.</p>""",
+                  fg=P.FIG[0] + 1, tws=join_and(f"{tw[d][1]:.2f}" for d in small),
+                  ds=join_and(f"{d:g}" for d in small),
+                  twu=span([tw[d][0] for d in small]), twb=f"{max(abs(tw[d][0] - tw[d][1]) for d in big):.2f}",
+                  dx=f"{tw[25.0][2] - tw[25.0][3]:.0f}" if 25.0 in tw else "&ndash;",
+                  rx=("" if not ro_off else ", except at " + join_and(
+                      f"{d:g} mm ({ro[d][1]:.2f} against {ro[d][0]:.2f})" for d in ro_off)),
+                  p0=f"{pp[min(pp)][1]:.2f}", d0=f"{min(pp):g}", p1=f"{pp[max(pp)][1]:.2f}", d1=f"{max(pp):g}",
+                  pl=span(pl))
+        t += img(MEDIA / "20261030-size_table_compare.png",
+                 "The twist, the roll and the pin-push across object sizes, searched with grasps not checked against the "
+                 "table (black) and with grasps clear of it (red). Top: the best layout's score. Bottom: the near set's "
+                 "centroid in $x_{sep}$. Dotted: the lattice's edge.")
     TB = N.get("table") or {}
     if TB.get("twist") and all(k in TB["twist"] for k in ("grid2dff_post", "grid2dff_table", "grid2dgr_table")):
         rows = []
@@ -744,15 +791,20 @@ def lede_and_summary(N):
     G = N["ground"] or {}
     cyl = sorted(d for (pose, d) in G if pose == "pinch")
     p_first = next((d for d in cyl if G[("pinch", d)].get("gr_reached")), None)
-    table_s = (f" A table under the object leaves no clear press at any size and no clear pinch of a cylinder under "
-               f"{p_first:g} mm." if p_first else "")
+    table_s = (f" With a table under the object, no press and no pinch of a cylinder under {p_first:g} mm clears it."
+               if p_first else "")
+    C = table_costs(N)
+    if C and all(C.values()):
+        tw_loss = max(C["twist"][d][0] - C["twist"][d][1] for d in C["twist"] if d < 40)
+        table_s += (f" Grasps kept clear of the table cost the twist up to {tw_loss:.2f} on spheres under 40 mm and the "
+                    f"pin-push {span([a - b for a, b, _x, _y in C['pinpush'].values()])}.")
     TB = N.get("table") or {}
     tw_c, ro_c = (TB.get(k, {}).get("grid2dgr_table") for k in ("twist", "roll"))
     pp_c = TB.get("pinpush", {}).get("grid2dgr_table")
     if tw_c and ro_c and pp_c and pp_c["touch"]:
-        table_s += (" With grasps kept clear of it, the twist and the roll score the same with a table under the object "
-                    f"as without one. The pin-push dropped the cylinder in {pp_c['touch_dropped']} of the "
-                    f"{pp_c['touch']} runs in which a finger pressed on the table.")
+        table_s += (" On the CPU plant with a table, they kept the twist's and the roll's scores on the 40 mm sphere. The "
+                    f"pin-push dropped the cylinder in {pp_c['touch_dropped']} of the {pp_c['touch']} runs in which a "
+                    "finger pressed on the table.")
     lede = fill("""Over 19 object sizes, the best layout of the SR2 hand moves with the object. In all four HOM tasks the
 thumb's mount moves away from the finger pair by <<sx>> mm per millimetre of diameter. The spacing of the index and the
 middle narrows on spheres and widens on cylinders. Each size was searched with Yang et al.'s evolutionary algorithm in
@@ -761,14 +813,14 @@ best layout's score within <<tol>> at <<ok>> of <<n>> sizes.<<tb>>""", sx=span(s
     summary = fill("""Across 19 object sizes the SR2 hand's best layout under HOM control moves with the object: the
 thumb's mount moves out <<sx>> mm per mm of diameter in all four tasks, found by an evolutionary search in 6,000 rollouts
 per size and confirmed on the CPU plant at <<ok>> of <<n>> sizes.<<tb>>""", sx=span(sx, "{:.1f}"), ok=ok, n=n,
-                   tb=(f" A table under the object leaves no clear press and no clear pinch of a cylinder under "
-                       f"{p_first:g} mm." if p_first else ""))
+                   tb=(f" With a table under the object, no press and no pinch of a cylinder under {p_first:g} mm "
+                       "clears it." if p_first else ""))
     return lede, " ".join(summary.split())
 
 
 def main():
-    N = {"rerun": rerun_numbers(), "trends": trend_numbers("grid2dff"), "ground": ground_numbers(),
-         "gr_grid": gr_grid_numbers(), "table": table_numbers()}
+    N = {"rerun": rerun_numbers(), "trends": trend_numbers("grid2dff"), "trends_gr": trend_numbers("grid2dgr"),
+         "ground": ground_numbers(), "gr_grid": gr_grid_numbers(), "table": table_numbers()}
     sections = [
         ("terms", "Terms and metrics", sec_terms()),
         ("trends", "Best layouts across object sizes", sec_trends(N)),

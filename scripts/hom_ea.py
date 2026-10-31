@@ -103,12 +103,14 @@ class Live:
             self.fit[c], self.cost[c] = f, n
 
     def evaluate(self, cells):
-        """Run every layout of cells (lattice points) not run yet; unreached layouts score 0 at no rollout."""
+        """Run every layout of cells (lattice points) not run yet, once; unreached layouts score 0 at no rollout. (Before
+        2026-10-31 17:30 a layout drawn twice in one generation ran twice; rows/ea_live and ea_live_gr have those
+        repeats, 7.3 % of their rollouts.)"""
         import multiprocessing as mp
         todo = []
         for xy in cells:
             c = self.cells[xy]
-            if c in self.fit:
+            if c in self.fit or c in todo:
                 continue
             if c not in self.grasps:
                 self.fit[c], self.cost[c] = 0.0, 0
@@ -231,7 +233,40 @@ def cmd_report(seed=0, src=SRC):
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "summary.json").write_text(json.dumps({"near": NEAR, "seed": seed, "src": src, **out}, indent=1))
     fig_trends(out, "" if src == SRC else "_gr")
+    base = OUT_SRC[SRC] / "summary.json"
+    if src != SRC and base.exists():
+        fig_table_compare(json.loads(base.read_text()), out)
     return 0
+
+
+def fig_table_compare(free, clear):
+    """The twist, roll and pin-push across object sizes without the table constraint (black) and with it (red): the best
+    layout's score (top) and the near set's centroid in x_sep (bottom). 20261030-size_table_compare.png."""
+    import fp_review_figures as FR
+    plt = FR.plt_setup()
+    plt.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13})
+    fig, axs = plt.subplots(2, 3, figsize=(10.2, 6.8), sharex="col")
+    for j, task in enumerate(("twist", "roll", "pinpush")):
+        for out, c, mk, lab in ((free, "k", "o", "grasps not checked against the table"),
+                                (clear, "tab:red", "s", "grasps clear of the table")):
+            pts = sorted((v["d_mm"], v.get("grid") or v.get("ea")) for v in out.values()
+                         if isinstance(v, dict) and v.get("task") == task and (v.get("grid") or v.get("ea")))
+            if not pts:
+                continue
+            d = [p[0] for p in pts]
+            axs[0, j].plot(d, [p[1]["best"] for p in pts], mk + "-", color=c, mfc=c, ms=6, lw=1.2, label=lab)
+            axs[1, j].plot(d, [p[1]["near_centroid"][0] for p in pts], mk + "-", color=c, mfc=c, ms=6, lw=1.2)
+        axs[0, j].set_title(NAMES[task] + (", spheres" if T.SHAPE[task] == "sphere" else ", cylinders"), fontsize=14)
+        axs[0, j].set_ylim(0, 1.05)
+        axs[1, j].axhline(HI[0], color="0.6", ls=":", lw=1)
+        axs[1, j].set_ylim(LO[0] - 5, HI[0] + 5)
+        axs[1, j].set_xlabel("Object diameter (mm)")
+    axs[0, 0].set_ylabel("Best layout's score")
+    axs[1, 0].set_ylabel("Near set's $x_{sep}$ (mm)")
+    h, lab = axs[0, 0].get_legend_handles_labels()
+    fig.legend(h, lab, loc="lower center", ncol=2, fontsize=13, frameon=False)
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    FR.save(fig, "20261030-size_table_compare.png")
 
 
 NAMES = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
