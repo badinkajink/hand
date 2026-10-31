@@ -11,8 +11,8 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. Last check 10-30 23:23: the watcher exited 3, no news in 230 min
-(HEAD 2e4c6cb7, 38 lines, no new holds); relaunched. Window 220623e7's step 37 is in 698d3f65 (19:29), before
+State: armed 2026-10-27 21:00 from the colorado window. Last check 10-31 03:13: the watcher exited 3, no news in 230 min
+(HEAD 8ad62d08, 38 lines, no new holds; also none from 19:32 to 23:23); relaunched. Window 220623e7's step 37 is in 698d3f65 (19:29), before
 1bb75138, whose INDEX.md and pages.html blobs change only this page's entry. 10-30 19:33: the watcher exited 0 at 19:20 on v3 ID 3's analysed
 holds (logs/20261030-{rod,tall,sphere}v3id3, 18:59-19:09), from window 220623e7, which pulled the sessions from corvus,
 ran the coordinator's analysis and itself did step 37 (v3 contact model with ID 3, marked done 19:28; leave its files).
