@@ -603,6 +603,27 @@ def block_text(fig_path):
                      f"next to the cassette, so each action's deepest press keeps 0.1 mm more on the tool's end; "
                      f"{'no pose' if nm == 0 else f'{nm} poses'} then {'stands' if nm == 0 else 'stand'} under the margin "
                      f"by the exact distance.</p>")
+        dk, dx, dp = (BLOCK / "data" / f"{R.BLOCK_STEM}_{k}.json" for k in ("dry_check", "dry_exact", "dry_check_along_push"))
+        if dk.exists() and dx.exists():
+            ds, de = json.loads(dk.read_text())["seats"], json.loads(dx.read_text())["seats"]
+            n_d, f_d = sum(v["n"] for v in ds.values()), sum(v["flagged"] for v in ds.values())
+            stem = min(v["least"]["stem"][0] for v in ds.values())
+            sph = min(v["exact_least_mm"] for v in de.values())
+            text += (f"<p>The lab program's dry run (<code>--dry 15</code>) is the first step on the robot. Each rest moves "
+                     f"15 mm back along the stem. Each touch and press then runs its whole length in free air, and each "
+                     f"twist turns at the end of its press. Replayed move by move on the three seats' program plans, with "
+                     f"no pad left out of the check, {'none' if f_d == 0 else f_d} of the {n_d} actions "
+                     f"{'comes' if f_d == 0 else 'come'} under a margin. The stem stays {stem:.1f} mm or more from anything, "
+                     f"and the sphere {sph:.1f} mm or more from its tip by the exact meshes.")
+            if dp.exists():
+                rows = [r for r in json.loads(dp.read_text())["rows"] if r["flags"]]
+                walls = [r for r in rows if r["stage"] == "wall"]
+                q3 = [r for r in rows if any(w.startswith("q3") for w in r["flags"])]
+                end = -min(r["clear"]["tip"][0] for r in walls) if walls else 0.0
+                text += (f" Until 17:45 on 10-30 the dry run moved each rest back along its push. On seat 1 that put "
+                         f"{len(walls)} wall touch-offs into key 1, the tool's end up to {end:.1f} mm deep, and brought the "
+                         f"elbow within 20 deg of straight in {len(q3)} flank touch-offs.")
+            text += "</p>"
     text += (
         f"<p>A sixth tool takes a fingertip by its cassette, screwed by its four M2 &#215; 8 onto a station block as on "
         f"a seat, with no DIP link. Its palmar face points along the tool axis, so the robot can hold that tip face to "

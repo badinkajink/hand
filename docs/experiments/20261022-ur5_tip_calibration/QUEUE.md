@@ -1044,6 +1044,15 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
+    15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
+    4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
+    dry rest back along the stem, as every travel retreats. The lab simulated the three seats' dry runs with no abort
+    and no early contact. The workstation replayed them move by move (`ur5_inverted_rig.py --plate block dry-check`):
+    0 of 960 actions flagged, joint 6 within -16.5 and +15.8 deg, the stem 5.56 mm or more from anything. The sphere
+    stays at least 7.80 mm from its held tip (`dry-exact`). The old dry run flags 5 actions on seat 1: three wall
+    touch-offs inside key 1, and two flank touch-offs with the elbow within 20 deg of straight. The dry run itself
+    waits for the printed parts and the owner's go in the lab's session.
   - 14:5x on 10-30, lab (0d7a7a4f): block 6 ended at 14:49:02 with 100 of 100 ok, no abort and no HEX-E time-out,
     so v3 ID 3's suite is complete. Since the 11:09 reseat, 155 actions ran with no HEX-E loss. The lab installed
     the probe mode and is simulating it (not yet committed). The homing check now includes the seated pose: the
