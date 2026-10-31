@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-30 17:45 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-10-30 18:08 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -145,7 +145,7 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 
 ## Waiting on the owner
 
-- The probe mode on the robot: a dry run (--dry 15, about 0.5 h, the owner present; in probe mode it backs off along the stem, simulated clean apart from the homing) and then pass 1's touch-offs and the walls on one seat, each on the owner's go in the lab's session, once the strip and the probe are printed and mounted. The owner's yes for the code came by way of the workstation (13:2x: "sure, run the probe mode").
+- The probe mode on the robot: a dry run (--dry 15, about 0.5 h, the owner present; in probe mode it backs off along the stem; simulated clean apart from the homing, and the workstation's move-by-move replay flags none of 960 actions, f8f4159e) and then pass 1's touch-offs and the walls on one seat, each on the owner's go in the lab's session, once the strip and the probe are printed and mounted. The owner's yes for the code came by way of the workstation (13:2x: "sure, run the probe mode").
 - The homing's seated pose: with the probe's socket on a key, the arm's last link stands about 4 mm from the low sphere's 2x4 in the model, about 5.5 mm in the real cell (8 mm wanted). With that 2x4 off the table it is about 40 mm (the workstation, d52b1998). The owner's call.
 - When the tips go on the strip: hold a steel rule flat along the station block's side and the tip's wall while tightening the M2 (the strip's README, 8ee8556e). The tip can shift about 0.2 mm across in its bores. A block face more than about 0.35 mm proud would meet the walls' low touch first.
 - When v3 ID 1 goes back on, the three plans above.
