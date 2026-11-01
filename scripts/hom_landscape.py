@@ -33,6 +33,7 @@ import fp_review_figures as FR  # noqa: E402
 
 ROWS = FR.ROWS
 SIZE_ROWS = ROWS / "sizes_v4b"                 # the v4b fingertip (SCALE_HAND=cad_v2, the default of the toy)
+SOBOL_SRC = "sobol8k"                           # --sobol sobol8kff: the rerun with the finger clearance (sizes_v4bff)
 SIZES = {"twist": (30.0, 40.0, 50.0, 63.0), "roll": (30.0, 40.0, 50.0, 63.0), "pinpush": (10.0, 16.0, 25.0, 40.0),
          "press": (10.0, 16.0, 25.0, 40.0)}
 TASKS = tuple(SIZES)
@@ -64,11 +65,11 @@ def layouts():
     return d, z
 
 
-def reach(task, size, src="sobol8k"):
+def reach(task, size, src=None):
     """Draw indices whose pose for the task's object of this size was reached (src sobol8kff: the poses with the plant's
     finger clearance)."""
     import fp_sr2_toy as FP
-    name = FP.size_name(src, "sphere" if POSE_ROWS[task] == "tripod" else "cylinder", size)
+    name = FP.size_name(src or SOBOL_SRC, "sphere" if POSE_ROWS[task] == "tripod" else "cylinder", size)
     pose = {"twist": "tripod", "roll": "tripod", "pinpush": "pinch", "press": "press"}[task]
     out = set()
     for r in FR.load(name):
@@ -77,11 +78,11 @@ def reach(task, size, src="sobol8k"):
     return out
 
 
-def scores(task, size, n, rows_dir=SIZE_ROWS):
+def scores(task, size, n, rows_dir=None):
     """Per draw index: mean score over seeds (0 where the pose is not reached), held in every seed, seeds run, and
     the per-seed scores (n x seeds, NaN where not run)."""
     import hom_rows
-    p = rows_dir / f"{task}_d{size:g}.jsonl"
+    p = (rows_dir or SIZE_ROWS) / f"{task}_d{size:g}.jsonl"
     rows = [hom_rows.rescale_metrics(json.loads(x)) for x in p.read_text().splitlines() if x.strip()] if p.exists() else []
     seeds = sorted({r["seed"] for r in rows})
     per = np.full((n, max(1, len(seeds))), np.nan)
@@ -773,7 +774,7 @@ def cmd_sobol_rerun(a):
         for size in SIZES[task]:
             if not (new_dir / f"{task}_d{size:g}.jsonl").exists():
                 continue
-            A, B = scores(task, size, n, SIZE_ROWS), scores(task, size, n, new_dir)
+            A, B = scores(task, size, n, ROWS / "sizes_v4b"), scores(task, size, n, new_dir)
             both = A["run"] & B["run"]
             res = {"both": int(both.sum())}
             for k, S, src in (("old", A, "sobol8k"), ("new", B, "sobol8kff")):
@@ -1911,7 +1912,12 @@ def main():
     for p in sub.choices.values():
         p.add_argument("--grid", choices=("grid2d", "grid2dff"), default="grid2d",
                        help="grid2dff: the grids solved with the plant's finger clearance (rows grid2dff_v4b, ea_ff)")
+        p.add_argument("--sobol", choices=("sobol8k", "sobol8kff"), default="sobol8k",
+                       help="sobol8kff: the Sobol rerun with the plant's finger clearance (rows sizes_v4bff)")
     a = ap.parse_args()
+    if a.sobol == "sobol8kff":
+        global SIZE_ROWS, SOBOL_SRC
+        SIZE_ROWS, SOBOL_SRC = ROWS / "sizes_v4bff", "sobol8kff"
     if a.grid == "grid2dff":
         global GRID_SRC, GRID_ROWS, EA_DIR
         GRID_SRC, GRID_ROWS, EA_DIR = "grid2dff", ROWS / "grid2dff_v4b", ROWS / "ea_ff"

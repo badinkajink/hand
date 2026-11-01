@@ -1248,8 +1248,19 @@ On <<a>> % of the re-solved layouts all four tasks score above 0.5.<<sz>></p>"""
                   b=f"{rn['twist_d40']['best_median']:.2f}", bc=f"{tw['best_median_clear']:.2f}",
                   a=f"{100 * rn['cross']['share_all_above_0.5']:.0f}",
                   sz=(f" Across 19 object sizes there, the thumb's mount in the best layouts moves out by {min(sl):.1f} "
-                      f"to {max(sl):.1f} mm per millimetre of the object's diameter." if len(sl) == 4 else ""))
+                      f"to {max(sl):.1f} mm per millimetre of the object's diameter." if len(sl) == 4 else "")
+                  + sobol_rerun_words())
     return t
+
+
+def sobol_rerun_words():
+    """A sentence on the Sobol layouts re-run with the finger clearance (rows/sizes_v4bff/landscape.json), or nothing."""
+    lj = ROWS / "sizes_v4bff" / "landscape.json"
+    if not lj.exists():
+        return ""
+    V = [T["variance"]["interaction"] for T in json.loads(lj.read_text())["tasks"].values() if T.get("variance")]
+    return (f" Re-run there on the 8,192 Sobol layouts, the interaction of layout and object size makes up "
+            f"{100 * min(V):.0f} to {100 * max(V):.0f} % of the score variance." if len(V) == 4 else "")
 
 
 def sec_grid(N):

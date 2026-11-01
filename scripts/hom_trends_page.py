@@ -39,6 +39,8 @@ OBJ = {"twist": "sphere", "roll": "sphere", "pinpush": "cylinder", "press": "cyl
 DEFAULT = {"twist": 40.0, "roll": 40.0, "pinpush": 25.0, "press": 25.0}
 REFS = [P.REFS[0], P.REFS[1], P.REFS[5]]           # [1] foundational pose, [2] HOM, [3] Yang et al.
 CPU_TOL = 0.04                                      # a best layout's CPU score agrees with its GPU score within this
+L_SIZES = {"twist": (30.0, 40.0, 50.0, 63.0), "roll": (30.0, 40.0, 50.0, 63.0), "pinpush": (10.0, 16.0, 25.0, 40.0),
+           "press": (10.0, 16.0, 25.0, 40.0)}        # the Sobol study's sizes, hom_landscape.SIZES
 
 
 def load_jsonl(p):
@@ -265,6 +267,16 @@ def table_costs(N):
     return out
 
 
+def sobol_numbers():
+    """The Sobol rerun with the finger clearance (rows/sizes_v4bff: rerun.json from hom_landscape.py sobol-rerun,
+    landscape.json from stats --sobol sobol8kff) and the first run's statistics (rows/sizes_v4b/landscape.json)."""
+    G, out = ROWS / "sizes_v4bff", {}
+    for k, path in (("rerun", G / "rerun.json"), ("new", G / "landscape.json"),
+                    ("old", ROWS / "sizes_v4b" / "landscape.json")):
+        out[k] = json.loads(path.read_text()) if path.exists() else None
+    return out
+
+
 def cpu_agreement(St):
     """Over every task and size with a CPU check: how many best layouts agree within CPU_TOL, and the others."""
     n, ok, bad = 0, 0, []
@@ -317,6 +329,8 @@ def sec_terms():
         ("Slope", "the least-squares slope of the near set's centroid against the object's diameter, in mm of mount "
          "spacing per mm of diameter."),
         ("Reach", "the share of the 625 layouts on which the pose toy finds the task's pose for the object."),
+        ("Spearman, best tenth kept", "Spearman's rank correlation of two runs' scores over the layouts both ran, and "
+         "the share of one run's best tenth of layouts that is in the other's best tenth."),
         ("Hold", "the cylinder tasks' plant variant. The object is held at its start pose until the grasp closes at "
          "0.8 s, so it cannot roll off its 3 mm post during the approach."),
     ]
@@ -583,6 +597,58 @@ the skeletons a median of <<sk>> mm apart.""", rf=c["old_path"]["fingers"], rt=c
                 sk=f"{c['new_pose_skeleton_mm_median']:.1f}")
 
 
+def sec_sobol(N):
+    S = N["sobol"]
+    if not (S["rerun"] and S["old"] and S["new"]):
+        return "<p>Not run yet.</p>"
+    R = S["rerun"]
+    sph = [k for k in R if k.startswith("twist")]
+    cyl = [k for k in R if k.startswith(("pinpush", "press"))]
+    gain = [100 * (R[k]["new"]["reached"] / R[k]["old"]["reached"] - 1) for k in sph]
+    cd = max(abs(R[k]["new"]["reached"] - R[k]["old"]["reached"]) for k in cyl)
+    tw40, pr25 = R["twist_d40"], R["press_d25"]
+    var = {t: S["new"]["tasks"][t]["variance"] for t in TASKS}
+    ends = {t: S["new"]["tasks"][t]["pairs"] for t in TASKS}
+    sp = {t: next(v["spearman"] for k, v in ends[t].items()
+                  if k == f"{min(L_SIZES[t]):g}-{max(L_SIZES[t]):g}") for t in TASKS}
+    t = fill(r"""<p>The design page's 8,192 Sobol layouts ran again with the finger clearance in the pose toy, at four
+sizes per object and seeds 0 to 2 (rows <code>sizes_v4bff</code>, <code>hom_landscape.py sobol-rerun</code>). The
+cylinder tasks ran with the hold, as everywhere on this page. On spheres the tripod is now reached on <<g0>> to <<g1>> %
+more layouts, for the reason given in Section SEC[rerun]. On cylinders the reach changed by <<cd>> layouts or fewer. The
+added sphere layouts mostly score low: the twist's share of layouts above 0.5 falls from <<a0>> to <<a1>> % at 40 mm.</p>
+<p>On the layouts both runs reached, the scores rank alike on large objects and less so on small ones (Table <<tb>>).
+Spearman's rank correlation is <<r63t>> for the twist and <<r63r>> for the roll on the 63 mm sphere, and <<r30t>> and
+<<r30r>> on the 30 mm sphere. The hold raises the cylinder tasks' scores on small cylinders. On the 25 mm cylinder the
+press's median rises from <<p0>> to <<p1>>, and its share above 0.5 from <<q0>> to <<q1>> %.</p>
+<p>The design page's finding on object size stands. The interaction of layout and size makes up <<i0>> to <<i1>> % of the
+score variance, against <<n1>> % or less from seed noise. The ranks at the smallest and the largest object correlate at
+<<s0>> to <<s1>> for the twist, the roll and the pin-push, and at <<spr>> for the press.</p>""",
+             g0=f"{min(gain):.0f}", g1=f"{max(gain):.0f}", cd=cd, a0=f"{100 * tw40['old']['above_0.5']:.0f}",
+             a1=f"{100 * tw40['new']['above_0.5']:.0f}", tb=P.TAB[0] + 1,
+             r63t=f"{R['twist_d63']['spearman']:.2f}", r63r=f"{R['roll_d63']['spearman']:.2f}",
+             r30t=f"{R['twist_d30']['spearman']:.2f}", r30r=f"{R['roll_d30']['spearman']:.2f}",
+             p0=f"{pr25['old']['median']:.2f}", p1=f"{pr25['new']['median']:.2f}",
+             q0=f"{100 * pr25['old']['above_0.5']:.0f}", q1=f"{100 * pr25['new']['above_0.5']:.0f}",
+             i0=f"{100 * min(v['interaction'] for v in var.values()):.0f}",
+             i1=f"{100 * max(v['interaction'] for v in var.values()):.0f}",
+             n1=f"{100 * max(v['interaction_noise'] for v in var.values()):.0f}",
+             s0=f"{min(sp[k] for k in ('twist', 'roll', 'pinpush')):.2f}",
+             s1=f"{max(sp[k] for k in ('twist', 'roll', 'pinpush')):.2f}", spr=f"{sp['press']:.2f}")
+    rows = []
+    for k, v in R.items():
+        task, d = k.split("_d")
+        o, n = v["old"], v["new"]
+        rows.append([NAMES[task].replace("-", "&#8209;"), d, f"{o['reached']:,} / {n['reached']:,}",
+                     f"{o['median']:.2f} / {n['median']:.2f}", f"{100 * o['above_0.5']:.0f} / {100 * n['above_0.5']:.0f}",
+                     f"{o['best']:.2f} / {n['best']:.2f}", f"{v['spearman']:.2f}", f"{100 * v['top_kept']:.0f}"])
+    t += table(["Task", "Diameter (mm)", "Layouts reached", "Median score", "Above 0.5 (%)", "Best score", "Spearman",
+                "Best tenth kept (%)"], rows,
+               "The 8,192 Sobol layouts, first run / rerun with the finger clearance and, on cylinders, the hold; seeds 0 "
+               "to 2. Median and share over the layouts each run reached; Spearman and the best tenth over the layouts "
+               "both reached.", num_from=1)
+    return t
+
+
 def lat_words(a):
     """A contact latitude (deg, positive below the equator) as words."""
     return f"{abs(a):.0f} deg {'below' if a > 0 else 'above'}"
@@ -836,13 +902,14 @@ per size and confirmed on the CPU plant at <<ok>> of <<n>> sizes.<<tb>>""", sx=s
 
 def main():
     N = {"rerun": rerun_numbers(), "trends": trend_numbers("grid2dff"), "trends_gr": trend_numbers("grid2dgr"),
-         "ground": ground_numbers(), "gr_grid": gr_grid_numbers(), "table": table_numbers()}
+         "ground": ground_numbers(), "gr_grid": gr_grid_numbers(), "table": table_numbers(), "sobol": sobol_numbers()}
     sections = [
         ("terms", "Terms and metrics", sec_terms()),
         ("trends", "Best layouts across object sizes", sec_trends(N)),
         ("search", "Reliability of the evolutionary search", sec_search(N)),
         ("fix", "Finger clearance in the pose toy and its cost on the GPU", sec_fix(N)),
         ("rerun", "Grids at the default objects re-solved with the finger clearance", sec_rerun(N)),
+        ("sobol", "The Sobol layouts re-run with the finger clearance", sec_sobol(N)),
         ("table", "Grasps clear of a table under the object", sec_table(N)),
         ("limits", "Limitations", sec_limits(N)),
         ("future", "Future work", sec_future(N)),
