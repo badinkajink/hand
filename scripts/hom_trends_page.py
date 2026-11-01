@@ -47,9 +47,9 @@ def load_jsonl(p):
     return [json.loads(x) for x in Path(p).read_text().splitlines() if x.strip()] if Path(p).exists() else []
 
 
-def v4b_film(name, caption_fn):
-    """Film media/20261030-film_<name>.mp4 with its caption from rows/films_v4b.json, or nothing."""
-    path = MEDIA / f"20261030-film_{name}.mp4"
+def v4b_film(name, caption_fn, date="20261030"):
+    """Film media/<date>-film_<name>.mp4 with its caption from rows/films_v4b.json, or nothing."""
+    path = MEDIA / f"{date}-film_{name}.mp4"
     info = json.loads(P.FILMS_V4B.read_text()).get(name) if P.FILMS_V4B.exists() else None
     return film(path, caption_fn(info)) if (path.exists() and info) else ""
 
@@ -179,7 +179,9 @@ def gr_grid_numbers():
         if not (ROWS / "grid2dgr_v4b" / f"{task}_d{d:g}.jsonl").exists():
             continue
         res = {}
-        for src in ("grid2dff", "grid2dgr"):
+        for src in ("grid2dff", "grid2dgr", "grid2dgn", "grid2dgs"):
+            if not (ROWS / f"{src}_v4b" / f"{task}_d{d:g}.jsonl").exists():
+                continue
             keep = L.GRID_SRC, L.GRID_ROWS
             L.GRID_SRC, L.GRID_ROWS = src, ROWS / f"{src}_v4b"
             try:
@@ -187,7 +189,10 @@ def gr_grid_numbers():
             finally:
                 L.GRID_SRC, L.GRID_ROWS = keep
             top = max(tab, key=lambda r: r["best"])
+            pose = FF.load(f"{src}_{'tripod' if OBJ[task] == 'sphere' else 'pinch'}{d:g}_v4b")
+            key = {"twist": "tripod", "roll": "tripod", "pinpush": "pinch", "press": "press"}[task]
             res[src] = {"layouts": len(tab), "best": top["best"], "best_xy": [top["x_sep"], top["y_sep"]],
+                        "reached": sum(1 for r in pose if (r["fp"].get(key) or {}).get("ok")),
                         "median": float(np.median([r["best"] for r in tab])),
                         "above": float(np.mean([r["best"] > 0.5 for r in tab]))}
         out[task] = res
@@ -202,7 +207,7 @@ def table_numbers():
         if not rows:
             continue
         res = {}
-        for src in ("grid2dff", "grid2dgr"):
+        for src in ("grid2dff", "grid2dgr", "grid2dgn", "grid2dgs"):
             for tb in (False, True):
                 rr = [r for r in rows if r["src"] == src and r["table"] == tb]
                 if rr:
@@ -347,8 +352,8 @@ def sec_trends(N):
     tw, ro, pp, pr = (St[k] for k in TASKS)
     lay = [x for s in St.values() for x in s["layouts"]]
     tb, f1, fm = P.TAB[0] + 1, P.FIG[0] + 1, P.FILM[0] + 1
-    t = fill(r"""<p>Each task was searched at 8 or 9 object sizes besides its default one: spheres of 25 to 80 mm for
-the twist and the roll, and cylinders 100 mm long and 8 to 50 mm across for the pin-push and the press. At each size the
+    t = fill(r"""<p>Each task was searched at 8 or 9 object sizes besides its default one. The twist and the roll used
+spheres of 25 to 80 mm, and the pin-push and the press used cylinders 100 mm long and 8 to 50 mm across. At each size the
 pose toy first solved the grasp sets of all 625 layouts. The EA of Section SEC[search] then ran on the GPU evaluator from
 64 random layouts. It stopped after the generation that passed 6,000 rollouts (<code>scripts/hom_ea.py</code>). A search
 ran <<l0>> to <<l1>> layouts in about 5 minutes. At the default objects the full grids of Section SEC[rerun] stand in.
@@ -431,10 +436,10 @@ every size.</p>""",
              "Layouts of the 625 that reach each pose, against the object's diameter.")
 
     def cap(i, task):
-        parts = [f"{k} mm at ({v['layout'][0]:.0f}, {v['layout'][1]:.0f}) mm, {v['score']:.2f} here and "
-                 f"{v['gpu']:.2f} on the GPU" for k, v in i.items() if isinstance(v, dict) and "layout" in v]
+        parts = [f"{k} mm: layout ({v['layout'][0]:.0f}, {v['layout'][1]:.0f}) mm, score {v['score']:.2f} here and "
+                 f"{v['gpu']:.2f} on the GPU." for k, v in i.items() if isinstance(v, dict) and "layout" in v]
         return (f"The {NAMES[task].lower()} on the best layout found at three {OBJ[task]} diameters, each with its best "
-                f"grasp, CPU plant, seed 0: " + "; ".join(parts) + f". <code>scripts/hom_films.py sizes_{task}</code>.")
+                f"grasp, CPU plant, seed 0. " + " ".join(parts) + f" <code>scripts/hom_films.py sizes_{task}</code>.")
     for task in ("twist", "roll", "pinpush", "press"):
         t += v4b_film(f"sizes_{task}", lambda i, task=task: cap(i, task))
     return t
@@ -738,7 +743,8 @@ constraint.</p>""",
         for task in ("twist", "roll", "pinpush"):
             v = TB.get(task) or {}
             cell = (lambda k: f"{v[k]['held']} of {v[k]['n']}, {v[k]['median']:.2f}" if k in v else "&ndash;")
-            rows.append([NAMES[task], cell("grid2dff_post"), cell("grid2dff_table"), cell("grid2dgr_post"),
+            rows.append([NAMES[task].replace("-", "&#8209;"), cell("grid2dff_post"), cell("grid2dff_table"),
+                         cell("grid2dgr_post"),
                          cell("grid2dgr_table")])
         full = [k for k in ("twist", "roll", "pinpush") if all(
             x in (TB.get(k) or {}) for x in ("grid2dff_post", "grid2dff_table", "grid2dgr_post", "grid2dgr_table"))]
@@ -752,11 +758,11 @@ on the CPU plant (Table <<tb>>, <code>scripts/hom_table_check.py</code>). In the
 finger touched the table before the lift in <<ut>> of the 60 runs, with peak forces of <<f00>> N to <<fm>> MN. Most of
 their grasps start inside the table (Table <<tb4>>). Their twist scored a median of <<u_tw>> with the table, against
 <<p_tw>> on the post alone. In the film of the best such layout, the index and the middle never press on the sphere
-together, so no turn is made with all three pads in contact (Film <<fl>>). With the constraint, the twist and the roll
+together. No turn is therefore made with all three pads in contact (Film <<fl>>). With the constraint, the twist and the roll
 scored the same with the table and without it, <<c_tw>> and <<c_ro>>.</p>
 <p>The pin-push's layouts clear of the table scored a median of <<c_pp1>> with the table, against <<c_pp0>> on the post
-alone. A finger touched the table before the lift in <<pt>> of the <<pn>> runs, with peak forces of <<f0>> to <<f1>> N,
-and <<pd>> of those <<pt>> runs dropped the cylinder. The <<pf>> runs without table contact all held it, with a median
+alone. A finger touched the table before the lift in <<pt>> of the <<pn>> runs, with peak forces of <<f0>> to <<f1>> N.
+Of those <<pt>> runs, <<pd>> dropped the cylinder. The <<pf>> runs without table contact all held it, with a median
 score of <<pm>>. The constraint allows 1 mm of penetration at the touch and open poses and does not check the squeeze
 that follows. After the lift, the cylinder of the best such layout swung down about the pinch (Film <<fl2>>).</p>""",
                       tb=P.TAB[0] + 1, tb4=P.TAB[0], ut=sum(u[k]["touch"] for k in full), fm=f"{fmax / 1e6:.1f}",
@@ -782,7 +788,72 @@ that follows. After the lift, the cylinder of the best such layout swung down ab
                 f"{b['gpu']:.2f}. <code>scripts/hom_table_check.py film</code>.")
     for task in ("twist", "pinpush"):
         t += v4b_film(f"table_{task}", lambda i, task=task: cap_t(i, task))
-    return t
+    return t + sec_table_followup(N)
+
+
+def sec_table_followup(N):
+    """The pin-push's table failure traced, and the 25 mm pinch grid solved with no penetration of the table and with the
+    squeezed pose (rows grid2dgn_*, grid2dgs_*; logs/20261030-hom_ff/table_study2.sh)."""
+    tr = ROWS / "cpu_best" / "table_trace_pinpush_d25_grid2dgr.json"
+    tp = ROWS / "cpu_best" / "table_trace_pinpush_d25_grid2dgr_post.json"
+    PP = (N.get("table") or {}).get("pinpush") or {}
+    GG = (N.get("gr_grid") or {}).get("pinpush") or {}
+    srcs = ("grid2dgr", "grid2dgn", "grid2dgs")
+    tc = ROWS / "cpu_best" / "table_trace_pinpush_d25_grid2dgs.json"
+    if not (tr.exists() and tp.exists() and tc.exists() and all(f"{g}_table" in PP and g in GG for g in srcs)):
+        return ""
+    C_ = json.loads(tc.read_text())
+    A, B = json.loads(tr.read_text()), json.loads(tp.read_text())
+    fc = [v for v in A["table_force_N"]["close"].values()]
+    t = fill(r"""<p>A trace of the best of those layouts shows the cause (<code>hom_table_check.py trace</code>). Its three
+fingers' DIP links, cassettes and caps rested on the table from the first control step, up to <<dp>> mm into it, which the
+1 mm tolerance allows. The approach then pressed them on the table with <<f0>> to <<f1>> N each, and no pad met the
+cylinder before the lift at <<tl>> s. The pads met it at <<to>> s, and by <<td>> s the cylinder had fallen 10 mm. On the
+post alone, the same grasp's pads met the cylinder at <<tp>> s and sank <<s0>> to <<s1>> mm into it before the lift.</p>""",
+             dp=f"{-min(A['table_deepest_mm'].values()):.2f}", f0=f"{min(fc):.0f}", f1=f"{max(fc):.0f}",
+             tl=f"{A['lift_s']:.1f}", to=f"{min(A['object_first_s'].values()):.2f}", td=f"{A['object_10mm_down_s']:.2f}",
+             tp=f"{min(B['object_first_s'].values()):.2f}",
+             s0=f"{-max(B['object_deepest_before_lift_mm'].values()):.2f}",
+             s1=f"{-min(B['object_deepest_before_lift_mm'].values()):.2f}")
+    r_, n_, s_ = (GG[g] for g in srcs)
+    pr, pn, ps = (PP[f"{g}_table"] for g in srcs)
+    t += fill(r"""<p>The 25 mm pinch grid was therefore solved again with no penetration of the table (rows
+<code>grid2dgn_*</code>). It was solved once more with the squeezed pose clear of the table as well, the pads 0.6 mm into
+the cylinder (<code>grid2dgs_*</code>). <<rn>> and <<rs>> layouts reach the pinch, against <<rr>> with the tolerance. Their best
+layouts score <<gn>> and <<gs>> on the GPU, against <<gr>>. With the table under the cylinder, the 20 best layouts of each
+grid held it in <<hn>> and <<hs>> of 20 runs. Their median scores were <<mn>> and <<ms>> (Table <<tb>>). No finger touched the
+table before the lift in any of those runs, against <<cr>> of 20 with the tolerance. On the post alone the same layouts
+held the cylinder in <<hpn>> and <<hps>> of 20 runs, so the table still costs the pin-push. The remaining drops come later.
+In the best layout of the grid with the squeezed pose, the pads met the cylinder at <<ts>> s, before the lift. The
+cylinder fell 10 mm at <<tds>> s, in the turn's down stroke (Film <<fm>>). The cause of these later drops is not known.</p>""",
+              rn=n_["reached"], rs=s_["reached"], rr=r_["reached"], gn=f"{n_['best']:.2f}", gs=f"{s_['best']:.2f}",
+              gr=f"{r_['best']:.2f}", hn=pn["held"], hs=ps["held"], mn=f"{pn['median']:.2f}", ms=f"{ps['median']:.2f}",
+              tb=P.TAB[0] + 1, cr=pr["touch"], hpn=PP["grid2dgn_post"]["held"], hps=PP["grid2dgs_post"]["held"],
+              ts=f"{min(C_['object_first_s'].values()):.2f}", tds=f"{C_['object_10mm_down_s']:.2f}",
+              fm=P.FILM[0] + 1)
+    names = {"grid2dgr": "1 mm allowed", "grid2dgn": "No penetration", "grid2dgs": "No penetration, squeeze"}
+    rows = []
+    for g in srcs:
+        po, tb_ = PP[f"{g}_post"], PP[f"{g}_table"]
+        rows.append([names[g], str(GG[g]["reached"]), f"{GG[g]['best']:.2f}",
+                     f"{po['held']} of {po['n']}, {po['median']:.2f}", f"{tb_['held']} of {tb_['n']}, {tb_['median']:.2f}",
+                     f"{tb_['touch']} ({tb_['touch_dropped']} dropped)"])
+    t += table(["Constraint", "Layouts reached", "GPU best", "Post: held, median", "Table: held, median",
+                "Table contact (dropped)"], rows,
+               "The pin-push on the 25 mm cylinder with three versions of the pose toy's table constraint (rows "
+               "<code>grid2dgr</code>, <code>grid2dgn</code>, <code>grid2dgs</code>). CPU plant with every contact, "
+               "seed 0, the 20 best layouts of each grid by the GPU's score, each with its best grasp; runs held and "
+               "median score on the post and with the table, and runs with a finger on the table before the lift.",
+               num_from=1)
+
+    def cap(i):
+        parts = [f"{side}: {names[g].lower().replace('1 mm allowed', '1 mm of penetration allowed')}, layout "
+                 f"({i[g]['layout'][0]:.0f}, {i[g]['layout'][1]:.0f}) mm, score "
+                 f"{i[g]['score']:.2f} against {i[g]['gpu']:.2f} on the GPU." for side, g in
+                 zip(("Left", "Middle", "Right"), srcs) if g in i]
+        return ("The pin-push with a table under the cylinder until the lift, CPU plant, seed 0, on the best layout of "
+                "each grid. " + " ".join(parts) + " <code>scripts/hom_table_check.py film</code>.")
+    return t + v4b_film("table_pinpush_squeeze", cap, "20261031")
 
 
 def sec_limits(N):
@@ -812,9 +883,12 @@ k-means attempt is <code>scripts/hom_proxy_check.py</code>.</li>
 slopes of Section SEC[trends] hold if each lies within that spread of its fit.</li>
 <li>Run <code>hom_top_cpu_check.py</code> on the 10 best layouts per size with scenes rebuilt at 2.5 MPa. The trends hold
 if the best layouts' CPU scores move by less than 0.05.</li>
-<li>Add the squeezed pose to the pose toy's table constraint (<code>fp_sr2_toy.ground_pair</code>) with no penetration
-allowed, re-solve the pinch grid at 25 mm and rerun <code>hom_table_check.py pinpush 25</code>. The account of Section
-SEC[table] holds if the runs with table contact, 14 of 20, and the drops fall together.</li>
+<li>Find why the pin-push's table-clear layouts drop the cylinder in 5 to 8 of 20 runs with the table, though no finger
+touches it. On the post alone they drop it in 0 or 1 of 20. Compare the cylinder's angle and the pads' forces at the end of the squeeze with
+and without the table (<code>hom_table_check.py trace pinpush 25 grid2dgs</code> on the dropping layouts). The account
+holds if the dropping runs leave the squeeze with the cylinder turned or the pads' forces lower than on the post.</li>
+<li>Re-solve the tripod grids and the table-clear searches across sizes with no penetration of the table
+(<code>fp_sr2_toy.py grid2d --ground --ground-tol 0</code>), and repeat the table check of the twist and the roll.</li>
 <li>A table in the GPU plant, a box under the object until the lift, to score grasps from a table at grid scale.</li>
 </ul>"""
 
@@ -887,6 +961,10 @@ def lede_and_summary(N):
         table_s += (" On the CPU plant with a table, they kept the twist's and the roll's scores on the 40 mm sphere. The "
                     f"pin-push dropped the cylinder in {pp_c['touch_dropped']} of the {pp_c['touch']} runs in which a "
                     "finger pressed on the table.")
+        nn = [TB["pinpush"].get(f"{g}_table") for g in ("grid2dgn", "grid2dgs")]
+        if all(nn) and not any(x["touch"] for x in nn):
+            table_s += (" With no penetration of the table allowed, no finger touched it, and the pin-push held the "
+                        f"cylinder in {span([x['held'] for x in nn], '{:d}')} of 20 runs, against {pp_c['held']}.")
     lede = fill("""Over 19 object sizes, the best layout of the SR2 hand moves with the object. In all four HOM tasks the
 thumb's mount moves away from the finger pair by <<sx>> mm per millimetre of diameter. The spacing of the index and the
 middle narrows on spheres and widens on cylinders. Each size was searched with Yang et al.'s evolutionary algorithm in

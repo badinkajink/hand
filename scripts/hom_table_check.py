@@ -108,8 +108,91 @@ def run(task, d, src, call, grasp, seed, table, label=None):
             film.close()
     if label:
         import hom_contact_rig as HR
-        frames = [HR.annotate(f, label.replace("{cpu}", f"{L.rollout_score(task, res):.2f}"), size=14) for f in frames]
+        frames = [HR.annotate(f, label.replace("{cpu}", f"{L.rollout_score(task, res):.2f}"), size=22) for f in frames]
     return res, touch, frames
+
+
+def trace(task, d, src, k=0, table=True):
+    """The k-th best layout of a grid, seed 0, traced with the table (or on the post alone): per finger body the first
+    control step with table contact, its deepest penetration (mm) and its table force (N) at the phase ends, and per pad
+    when it first meets the object and how deep it sinks into it before the lift (mm). Writes
+    rows/cpu_best/table_trace_<task>_d<d>_<src>[_post].json."""
+    import json
+    import mujoco
+    r = top_layouts(task, d, src, k + 1)[k]
+    _k, mxy, setup = F.find(task, f"{src}_size", d, r["call"], r["best_grasp"])
+    scene = HG.Scene(T.SHAPE[task], d)
+    bm, q_open = scene.prepare(mxy, setup)
+    path = table_scene(scene.pads_path, S.Z_OBJ - scene.r) if table else scene.pads_path
+    try:
+        plant = T.Plant(path, setup)
+    finally:
+        if table:
+            path.unlink()
+    m = plant.m
+    for f in F.FINGERS:
+        m.body_pos[m.body(f"{f}_mount").id] = bm[f]
+    tg, ob = (m.geom("table").id if table else -1), m.body(S.OBJ).id
+    log, adv, off = [], plant.advance, plant.post_off
+    lift = {}
+
+    def post_off():                                    # the table goes with the post at the lift, as in run()
+        off()
+        lift["t"], lift["z"] = float(plant.d.time), float(plant.d.xpos[ob][2])
+        if table:
+            m.geom_contype[tg] = m.geom_conaffinity[tg] = 0
+
+    def advance(t1):
+        adv(t1)
+        dd = plant.d
+        if "t" in lift and "drop_s" not in lift and float(dd.xpos[ob][2]) < lift["z"] - 0.010:
+            lift["drop_s"] = round(float(dd.time), 3)          # the object 10 mm below its height at the lift
+        for i in range(dd.ncon):
+            c = dd.contact[i]
+            g1, g2 = int(c.geom1), int(c.geom2)
+            b1, b2 = (m.body(m.geom_bodyid[g]).name for g in (g1, g2))
+            if tg in (g1, g2):
+                g, b = (g2, b2) if g1 == tg else (g1, b1)
+                kind = "table"
+            elif ob in (int(m.geom_bodyid[g1]), int(m.geom_bodyid[g2])):
+                g, b = (g2, b2) if int(m.geom_bodyid[g1]) == ob else (g1, b1)
+                kind = "object"
+            else:
+                continue
+            if not b.startswith(tuple(f"{f}_" for f in F.FINGERS)):
+                continue
+            f6 = np.zeros(6)
+            mujoco.mj_contactForce(m, dd, i, f6)
+            log.append((round(float(dd.time), 3), kind, b, float(c.dist) * 1000, float(f6[0])))
+    plant.advance, plant.post_off = advance, post_off
+    m_pt = mujoco.MjModel.from_xml_path(str(scene.pt_path))
+    for f in F.FINGERS:
+        m_pt.body_pos[m_pt.body(f"{f}_mount").id] = bm[f]
+    S.set_palm(m_pt, setup["palm"])
+    fs, os_ = T.sr2_specs(setup)
+    res, _tr, _fr = T.rollout(task, setup, plant, H.Mirror(m_pt, fs, os_), q_open, 0, T.PRM,
+                              replace(H.HomParams(dt=T.DT_C)), None, None, HOLD[task])
+    tab = [x for x in log if x[1] == "table"]
+    out = {"task": task, "d_mm": d, "src": src, "rank": k, "call": r["call"], "layout": [r["x_sep"], r["y_sep"]],
+           "grasp": r["best_grasp"], "table": table, "score": round(L.rollout_score(task, res), 3),
+           "held": res.get("held"), "table_first_s": {}, "table_deepest_mm": {}, "table_force_N": {},
+           "object_first_s": {}, "object_deepest_before_lift_mm": {}, "lift_s": lift.get("t"),
+           "object_10mm_down_s": lift.get("drop_s")}
+    for t, _kd, b, dist, fn in tab:
+        out["table_first_s"].setdefault(b, t)
+        out["table_deepest_mm"][b] = round(min(out["table_deepest_mm"].get(b, 0.0), dist), 2)
+    for ph, t_end in (("open", T.T_OPEN), ("close", T.T_CLOSE), ("squeeze", T.T_LIFT)):
+        rows = [x for x in tab if abs(x[0] - t_end) < 0.006]
+        out["table_force_N"][ph] = {b: round(sum(x[4] for x in rows if x[2] == b), 1) for b in sorted({x[2] for x in rows})}
+    for t, kd, b, dist, _fn in log:
+        if kd == "object" and b.endswith("_tip"):
+            out["object_first_s"].setdefault(b, t)
+            if t < T.T_LIFT:
+                out["object_deepest_before_lift_mm"][b] = round(min(out["object_deepest_before_lift_mm"].get(b, 0.0),
+                                                                    dist), 2)
+    path = OUT / f"table_trace_{task}_d{d:g}_{src}{'' if table else '_post'}.json"
+    path.write_text(json.dumps(out, indent=1))
+    return out
 
 
 def top_layouts(task, d, src, n):
@@ -123,28 +206,41 @@ def top_layouts(task, d, src, n):
     return sorted(tab, key=lambda r: -r["best"])[:n]
 
 
-def film(task, d):
-    """The best layout of each grid with its best grasp, seed 0, the table under the object until the lift: the grid with
-    the plant's finger clearance (left) and the grid whose grasps clear the ground (right). Writes
-    media/20261030-film_table_<task>.mp4 and its entry in rows/films_v4b.json."""
+NAMES = {"grid2dff": "unconstrained", "grid2dgr": "clear, 1 mm allowed", "grid2dgn": "clear, no penetration",
+         "grid2dgs": "clear, squeeze"}                       # the films' labels, short enough for a third of the width
+
+
+def film(task, d, srcs=("grid2dff", "grid2dgr"), stem=None):
+    """The best layout of each grid with its best grasp, seed 0, the table under the object until the lift, side by side:
+    by default the grid with the plant's finger clearance (left) and the grid whose grasps clear the ground (right).
+    Writes media/<stem or 20261030-film_table_<task>>.mp4 and its entry in rows/films_v4b.json."""
     import json
     clips, info = [], {}
-    for src, name in (("grid2dff", "best grasp"), ("grid2dgr", "best grasp clear of the table")):
+    for src, name in ((s_, NAMES[s_]) for s_ in srcs):
         r = top_layouts(task, d, src, 1)[0]
         res, touch, frames = run(task, d, src, r["call"], r["best_grasp"], 0, True,
-                                 f"{name} ({r['x_sep']:.0f}, {r['y_sep']:.0f}) mm: score {{cpu}}, {r['best']:.2f} on the GPU")
+                                 f"{name}: {{cpu}} (GPU {r['best']:.2f})")
         clips.append(frames)
         info[src] = {"layout": [r["x_sep"], r["y_sep"]], "call": r["call"], "grasp": r["best_grasp"], "gpu": r["best"],
                      "score": round(L.rollout_score(task, res), 3), "held": res.get("held"), **touch}
-    F.compose(clips, F.MEDIA / f"20261030-film_table_{task}.mp4")
+    stem = stem or f"20261030-film_table_{task}"
+    F.compose(clips, F.MEDIA / f"{stem}.mp4")
     allf = json.loads(F.INFO.read_text()) if F.INFO.exists() else {}
-    allf[f"table_{task}"] = dict(info, when=time.strftime("%Y-%m-%d %H:%M"))
+    allf[stem.split("-film_", 1)[1]] = dict(info, when=time.strftime("%Y-%m-%d %H:%M"))
     F.INFO.write_text(json.dumps(allf, indent=1, default=float))
     return info
 
 
 def main():
-    if sys.argv[1:2] == ["film"]:
+    if sys.argv[1:2] == ["trace"]:                      # trace task d src [rank] [post]
+        print(trace(sys.argv[2], float(sys.argv[3]), sys.argv[4], int(sys.argv[5]) if len(sys.argv) > 5 else 0,
+                    sys.argv[6:7] != ["post"]))
+        return 0
+    if sys.argv[1:2] == ["film"]:                       # film [task d stem src ...]
+        if len(sys.argv) > 2:
+            task, d, stem, srcs = sys.argv[2], float(sys.argv[3]), sys.argv[4], tuple(sys.argv[5:])
+            print(task, film(task, d, srcs, stem), flush=True)
+            return 0
         for task, d in (("twist", 40.0), ("pinpush", 25.0)):
             print(task, film(task, d), flush=True)
         return 0

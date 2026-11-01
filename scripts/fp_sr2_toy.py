@@ -325,13 +325,20 @@ _SPH = {}
 # Grasps clear of the ground (owner, 2026-10-30: "only allow grasps that would not penetrate the ground (with a tiny bit
 # of tolerance)"): with set_ground(True) the plant's spheres stay above the plane through the object's lowest point, less
 # GROUND_TOL, at the touch pose and at the open pose OPEN further out along each contact normal (hom_tasks.open_pose, where
-# the pick starts), and the contacts may lie up to LAT_UP above the equator.
-GROUND, GROUND_TOL, LAT_UP, OPEN = False, 0.001, math.radians(40.0), 0.008
+# the pick starts), and the contacts may lie up to LAT_UP above the equator. The table check of 2026-10-31 found the pin-push's
+# fingers resting on the table from the first step at GROUND_TOL = 1 mm: tol=0 allows no penetration, and squeeze > 0 adds
+# the squeezed pose, the pads SQUEEZE into the object (on the post the pads sink at most 0.54 mm during the squeeze).
+GROUND, GROUND_TOL, LAT_UP, OPEN, SQUEEZE = False, 0.001, math.radians(40.0), 0.008, 0.0
 
 
-def set_ground(on=True):
-    global GROUND
+def set_ground(on=True, tol=None, squeeze=None):
+    """Grasps clear of the ground; tol, squeeze (m): the penetration allowed and the squeezed pose's depth."""
+    global GROUND, GROUND_TOL, SQUEEZE
     GROUND = bool(on)
+    if tol is not None:
+        GROUND_TOL = float(tol)
+    if squeeze is not None:
+        SQUEEZE = float(squeeze)
 
 
 def finger_frames(f, q, mount):
@@ -406,9 +413,15 @@ def ground_clearance_v4b(qs, M, z):
 
 
 def ground_pair(qt, pc, n, M, branch, z):
-    """Ground clearance (m) of the touch pose qt and of the open pose OPEN further out along each contact normal."""
+    """Ground clearance (m) of the touch pose qt, of the open pose OPEN further out along each contact normal and, with
+    SQUEEZE > 0, of the squeezed pose SQUEEZE further in."""
     qo = {f: finger_state(f, pc[f] + (support(f, qt[f], n[f]) + OPEN) * n[f], M[f], branch[f])[0] for f in FINGERS}
-    return min(ground_clearance_v4b(qt, M, z), ground_clearance_v4b(qo, M, z))
+    out = min(ground_clearance_v4b(qt, M, z), ground_clearance_v4b(qo, M, z))
+    if SQUEEZE > 0:
+        qs = {f: finger_state(f, pc[f] + (support(f, qt[f], n[f]) - SQUEEZE) * n[f], M[f], branch[f])[0]
+              for f in FINGERS}
+        out = min(out, ground_clearance_v4b(qs, M, z))
+    return out
 
 
 def touch_q(f, pc, n, mount, branch, q):
@@ -1018,6 +1031,8 @@ def main():
     pg.add_argument("--shards", type=int, default=1)
     pg.add_argument("--src", default=None, help="the rows' name stem (default grid2dff, grid2dgr with --ground)")
     pg.add_argument("--ground", action="store_true", help="grasps clear of the ground (set_ground)")
+    pg.add_argument("--ground-tol", type=float, default=1.0, help="penetration allowed with --ground (mm)")
+    pg.add_argument("--squeeze", type=float, default=0.0, help="with --ground, also the squeezed pose this deep (mm)")
     a = ap.parse_args()
     if a.cmd == "run2d":
         rrt("rrt2d", 2, a.max, a.calls, step=0.05, dmin=0.03, seed=1)
@@ -1038,7 +1053,7 @@ def main():
     elif a.cmd == "merge":
         merge(a.name, a.shards)
     elif a.cmd == "grid2d":
-        set_ground(a.ground)
+        set_ground(a.ground, a.ground_tol / 1000, a.squeeze / 1000)
         grid2d(a.shape, a.d, a.n, a.step, a.shard, a.shards, a.src or ("grid2dgr" if a.ground else GRID_SRC))
 
 
