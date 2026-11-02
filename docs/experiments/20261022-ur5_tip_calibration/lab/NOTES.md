@@ -2214,13 +2214,6 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - The rebuilt plans' whole sessions (s1wf3, s2wf3, s3wf3) print what s1wf2 to s3wf2 printed: every action done, no
   abort, the same fits and the same true misses. Their walls' moves are clean in the cell as before.
 
-## The lab clone and git-lfs
-
-The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
-because `.lfsconfig` skips LFS content. The program then failed to read the plan (19:26, nothing moved). The files came
-back from the local LFS store, identical to the originals in `logs/20261022-ur5_homing_by_hand/`. This clone now has
-`lfs.fetchexclude` cleared in `.git/config`, as the workstation's has, and `tipcal_run.sh` refuses to start on a pointer.
-
 ## The strip on the robot: homing, and the owner's press configuration (11-02, from 12:5x)
 
 - The owner mounted the probe base with the 5 mm sphere, the strip with three new tips on one 2x4 clamped to the
@@ -2255,3 +2248,10 @@ back from the local LFS store, identical to the originals in `logs/20261022-ur5_
   hand, and the robot e-stopped ("you just moved the robot very, very quickly"). Nothing was damaged. A renewal queued to
   start after the cap never started; it was killed by PID. `teach_hold.py` now takes `--minutes` and an extend file
   (`logs/ur5_lab_teach_extend`), and freedrive is extended or stopped only on the owner's word.
+
+## The lab clone and git-lfs
+
+The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
+because `.lfsconfig` skips LFS content. The program then failed to read the plan (19:26, nothing moved). The files came
+back from the local LFS store, identical to the originals in `logs/20261022-ur5_homing_by_hand/`. This clone now has
+`lfs.fetchexclude` cleared in `.git/config`, as the workstation's has, and `tipcal_run.sh` refuses to start on a pointer.
