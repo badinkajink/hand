@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-02 15:16 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-02 16:12 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -151,17 +151,29 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 - The owner's go of 15:0x on 11-02 covers the remaining runs ("you have my go ahead to run the remaining runs"). More
   runs on twists and wrenches, and at other contact speeds, are covered too, if the data shows that more data still
   pays.
-- Running since 14:50: seat 1 (v3 ID 6), pass 1 (20 of 20), register, then the grid from 15:06 at about 25 s a press,
-  so it ends about 17:15 (`20261102-plan_probe_table_seat1_v3id6.json`, session `s1v6b`, tmux `tipcal`, printout
+- Running since 14:50: seat 1 (v3 ID 6), pass 1 (20 of 20), register, then the grid from 15:06 at about 28 s a
+  press; it ends about 17:25 (`20261102-plan_probe_table_seat1_v3id6.json`, session `s1v6b`, tmux `tipcal`, printout
   `logs/20261102-145009-tipcal-s1v6b.log`). No walls and no return stage: the robot ends over seat 1.
-- Next: seat 2 (v3 ID 5), then seat 3 (v3 ID 4), each from where the one before ends
-  (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`, 44509f1e). `logs/20261102-chain_seats23.sh`
-  starts each when the run before ends cleanly. It is armed only after these pass: the chained simulations (whole
-  sessions from the previous seat's end) and the workstation's replays of both seats and both seams in the two-key
-  frame.
-- Owner, 14:4x: the travels go too high ("you don't need to go this high at all"): the 45 mm back-off along the stem and
-  the hub 90 mm over the apex come from the 10-30 configuration. Lower them in the next plans, with the workstation's
-  check. The owner also asked for one shared set of pose helpers (quaternions) in place of the copies in each script.
+- Armed (16:10): `logs/20261102-chain_seats23.sh` (copy here as `20261102-chain_seats23.sh`, PID 2658916, its log
+  `logs/20261102-chain_seats23.log`) starts seat 2 (v3 ID 5) when seat 1 ends cleanly, then seat 3 (v3 ID 4), each
+  from where the one before ends (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`, 58d88f5f:
+  safe_mm 15, the hubs 40 mm over the apex). They passed the chained simulations (294 of 294, 295 of 295) and the
+  workstation's replays (ee772007 and 15:3x). A run stopped by a HEX-E loss is resumed once `hexe_probe.py` finds the
+  sensor streaming again; anything else stops the chain. To stop it: kill the chain's PID (the running program goes on).
+- Overnight, after seat 3 (owner's go, if more data pays; the learning curves say it does, about 13 to 17 % less
+  direction error per doubling): the list `logs/20261102-overnight.txt` (copy here), each run on its seat's session
+  (--resume, stages preflight,grid), each only with its marker `logs/20261102-ok-NAME`; the list stops at the first
+  run without one. Planned: the workstation's coverage set a) (flank obliques at 10/20/30 deg and 8 azimuths, the face
+  and edge points without obliques, levels from 0.25 N) if it is built and replayed in time; the speed set
+  (`20261102-plan_probe_table_speed_seat*`: 12 points a seat at 0.05, 0.15, 0.6 and 1.2 mm/s); the fallback
+  (`..._fast_seat*`: the grid's 264 presses at 0.6 mm/s). No twists: torsion has no skill on v3 IDs 2 and 3.
+- Owner, 14:4x: the travels go too high ("you don't need to go this high at all"). Seats 2 and 3 and the overnight
+  plans back off 15 mm (was 45) and go by a hub 40 mm over the apex (was 90): the sphere stays 46 to 80 mm over the
+  strip between seats. The owner also asked for one shared set of pose helpers (quaternions) in place of the copies in
+  each script: later, not while runs depend on the program.
+- The program returns a twist st + 0.5 mm from its press's end, which leaves the sphere on the pad when the press ran to
+  its full depth (the workstation, 15:3x): fix later (return to 0.5 mm behind the rest); tonight's extra runs have no
+  twists.
 - Joint 6 near 0 in the press configuration (owner, 13:5x).
 - A new HEX-E cable.
 

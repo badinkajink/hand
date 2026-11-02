@@ -2312,6 +2312,49 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   stem): 1.92, 143, 539 mm/s and 1.63 N per N m. They are about equally good; the owner's configuration gains its wrist
   travel over a seat's grid (45/1/49 deg against 626/458/315).
 
+## Seats 2 and 3 checked and armed, lower travels, the overnight plans (11-02, 15:2x to 16:1x)
+
+- The workstation replayed seats 2 and 3 and both seams as they run, in the two-key frame (ee772007; `--real --chain`,
+  seat 1 from over the seats, pass 1 at 5/5 mm, the grid). It found no joint or travel flags, and the seams' least stem
+  is 9.35 mm. Two kinds of flag, neither a collision:
+  - 86 travels follow a twist whose press ran its full 2.0 mm. The program then returns st + 0.5 mm from the press's
+    end, which leaves the sphere on the pad's surface.
+  - 2 presses meet their own pad 0.33 and 0.40 mm outside 4 mm of the target at full depth.
+  With seat 1's fit applied to every seat, the flags are the same.
+- Lower travels (owner, 14:4x): a 15 mm back-off and hubs 40 mm over each apex replay as clean as 45 mm and 90 mm (the
+  workstation, 15:3x). Each travel's closest point is one of its end rests. They are now in seats 2 and 3
+  (`probe_low_travel.py`) and in the overnight plans. Between seats the sphere stays 46 to 80 mm over the strip, where
+  it reached 128 mm before. Simulated chained, each seat from the previous seat's probe-ref-final rest, with the truth at
+  the two-key frame:
+  - seat 2: 294 of 294, pass 1 20 of 20 at 0.028 mm rms;
+  - seat 3: 295 of 295 at 0.019 mm rms;
+  - no abort on either seat.
+- The chain (`20261102-chain_seats23.sh`) was armed at 16:10. When seat 1 ends cleanly it starts seat 2, then seat 3. A
+  run stopped by a HEX-E loss is resumed on its session once `hexe_probe.py` reads the sensor again, every 60 s for up
+  to 3 h and at most 3 times. After seat 3 come the overnight runs in `20261102-overnight.txt`, each gated on a marker.
+- Whether more data pays (owner, 15:0x):
+  - The workstation's 10-29 `motion_value.json` and 11-02 `v3_data_curve.json`: the direction error falls about 13 to
+    17 % per doubling of training data on IDs 1 and 2, the contact point 11 to 19 %.
+  - The direction errors at 0.5 N and under are 14 to 18 deg; over 3.5 N they are about 2 deg.
+  - Torsion has no skill on IDs 2 and 3, so tonight's extra runs leave twists out.
+  - So: more coverage, low forces, and contact speed.
+- The overnight plans:
+  - The workstation's coverage set: flank obliques at 10/20/30 deg and 8 azimuths, the face and edge points without
+    obliques, levels from 0.25 N. Built from 17:00 if its login lasts.
+  - The speed set (`probe_speed_plan.py speed`): 12 existing points a seat (the reference, 4 face, 2 + 2 flank,
+    3 edge) at 0.05, 0.15, 0.6 and 1.2 mm/s, one ramp to 3 N (2 N on flanks) held 1 s.
+  - The fallback (`... fast`): the grid's 264 presses at 0.6 mm/s.
+  Rests, push lines and depths are the checked ones.
+- The simulator moves at the plan's speeds whatever the slider (`ur5_tip_calibration_sim.py`: "the simulator moves at
+  the plan's speeds whatever the slider"). So every simulation so far ran 3.3 times faster than the robot, which is the
+  harsher case for a press's overshoot. Simulated at the real speeds (v and fast_v times 0.3), the 2.0 mm/s presses
+  overshot 3 N to 5.2 N on average and 8.2 N at most; at 0.6 mm/s, 3.7 and 4.6 N. With the push's 20-sample mean the
+  stop comes late, and the owner said more force isn't needed, so the top speed is 1.2 mm/s.
+- Seat 1's reference press, 15:06 to 15:55: the depth at 0.5 N held at 1.75 to 1.79 mm, and at 1 N at 1.89 to 1.94 mm.
+  The depth at 3 N went from 2.53-2.57 to 2.40-2.44 mm. The pad stiffens at the higher force; the tip does not move.
+  The HEX-E's raw Fz at rest climbs about 2.8 N/h since its restart at 14:34. Each action tares, so a press sees about
+  0.01 N of it.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
