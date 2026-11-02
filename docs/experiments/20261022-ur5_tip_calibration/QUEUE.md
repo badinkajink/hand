@@ -1044,6 +1044,16 @@ push that answers it arrives.
   The rod waits for the owner: its margins are about the size of its seatings' spread. The top-edge pass is still to be
   built. Path checks: `lab/20261027-paths_*_v3id1*.json` (`scripts/ur5_tip_calibration_holder_paths.py`: touch-offs to
   first contact, presses to their largest force's depth, turns left to the lab's simulator).
+  - 14:1x on 11-02, workstation (4b7999e2): new seat plans for the strip on the table, in the owner's press
+    configuration. The strip lies on one 2x4 on the table, 192 mm from the 10-30 plans' place (lab dc859de5). The
+    owner wants the probe straight down, the wrist flipped (branch 2) and joint 6 near 0 (13:5x). With
+    `ur5_inverted_rig.py --cell table`, the three seats give 279 actions and the way back each, none flagged. 270 to
+    276 stems a seat are vertical, none tilts over 5.1 deg, and every travel between presses is straight. Joint 5
+    stays within -96.7 and -80.2 deg. The twelve wall touches reach, and the exact body check finds the tool's end
+    0.340 mm or more from the tip body. The homing travel follows the owner's hand path of 13:2x reversed until he
+    describes the one for joint 6 near 0. The lab rebuilds the program plans and changes the program (joint moves to
+    each action's joints, the wrist window from the plan, the path from the homing); pass 1, the walls and the dry
+    run are checked again on them before the owner's go.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
     15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
     4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
