@@ -187,6 +187,74 @@ SEAT_BLOCK = dict(   # --plate block (owner, 2026-10-30): v2e's three seats alon
 HOME_KEY = [0]                                              # the block's key the probe homes on (the replay takes the
 #                                                             nearer of the seat)
 PLATE = ["v2e"]                                             # what build, reach, replay and film take (--plate)
+CELLMODE = ["v1030"]                                        # --cell: the cell the plans are for (use_cell)
+TABLE = dict(        # --cell table (lab dc859de5, 11-02): the strip on one 2x4 lying flat on the table, clamped; the old
+#                      fixtures off. The strip's place is the mean of the owner's two hand seatings on key 1, by the
+#                      controller's own poses as the program's homing takes them (192 mm from the 10-30 plans' place)
+    poses=LAB / "poses.jsonl", seatings=("strip_key1_seated", "strip_key1_seated_2"),
+    press="probe_primed_seat1_v3id6",   # the owner's press pose over seat 1: the probe straight down, the wrist flipped
+    key=0,                              # every seat homes on key 1, where the owner's hand path ends
+    z_table_B=0.0,                      # the table: the plane through the robot's base
+    board=dict(x=(50.0, 139.0), y=(-400.0, 400.0), h=38.0),  # the 2x4 (89 x 38 mm) under the strip, its robot-side face
+#                                                             flush with the strip's edge and running on behind it (owner,
+#                                                             11-02 13:5x); its clamps 2 to 3 in from its far ends
+    j5=(-100.0, -30.0), j5_search=(-97.0, -35.0),            # joint 5 in the flipped wrist (branch 2)
+    j6_ref=0.0, j6_lo=62.0, j6_hi=45.0, j6_owner=60.0,       # joint 6 near 0 (owner, 13:5x), within -62 and +45 (+60 with
+#                                                             the owner present) as on 10-30
+    q6_off=(0.0, -30.0, 30.0, -55.0, 40.0),                  # the tool's turns about its axis tried, from j6_ref
+    max_clear=200,                                           # stems tried past a clearance failure before giving up (a
+#                                                             wall's low touch clears its 8 mm stem 10 deg or more out)
+    hub_dz=(90.0, 120.0, 60.0),                              # the hub: the sphere's centre this far over the seat's apex
+    home_steps=({4: 71.0}, {0: 48.0, 1: -100.0, 2: 128.0}, {5: "hub"}, {4: "hub"}, {3: "hub"},
+                {0: "hub", 1: "hub", 2: "hub"}),             # from the homing's lift to the hub, joint by joint (deg): the
+#                                                             owner's hand path of 11-02 13:2x reversed (NOTES), until he
+#                                                             describes the one for joint 6 near 0
+    stem="20261102-strip_table")
+
+
+def use_cell(name, j6=None):
+    """Set the cell the plans are for: 'v1030' (the 10-30 plans: the strip on the tall's 2x4, the probe in the homing's
+    branch, its stem leaning toward the robot) or 'table' (11-02: TABLE). The lab's converter calls it with the seat
+    plan's 'cell' and 'j6_ref'."""
+    global J5_WIN, J5_SEARCH, J6_WIN, J6_OWNER, Q6_TRY, STEM, OUT
+    CELLMODE[0] = name
+    if name != "table":
+        return
+    t = TABLE
+    if j6 is not None:
+        t["j6_ref"] = float(j6)
+    PLATE[0] = "block"
+    OUT, STEM = BLOCK_OUT, t["stem"]
+    J5_WIN, J5_SEARCH = tuple(t["j5"]), tuple(t["j5_search"])
+    J6_WIN, J6_OWNER = (t["j6_ref"] - t["j6_lo"], t["j6_ref"] + t["j6_hi"]), t["j6_ref"] + t["j6_owner"]
+    Q6_TRY = tuple(t["j6_ref"] + o for o in t["q6_off"])
+    NEED["self"] = 10.0
+
+
+def home_key(seat):
+    """The key a seat's session homes on: the nearer one on 10-30's strip, key 1 for every seat on the table."""
+    return TABLE["key"] if CELLMODE[0] == "table" else (1 if seat == 2 else 0)
+
+
+def _poses():
+    return {r["label"]: r for r in (json.loads(s) for s in TABLE["poses"].read_text().splitlines() if s.strip().startswith("{"))}
+
+
+def table_T_BA(T_EM, T_AM_home):
+    """The strip's frame A in B from the owner's seatings on key 1: their mean flange pose by the controller (the pose the
+    program's homing measures), through the probe's mount T_EM and the key's socket pose T_AM_home."""
+    rows = _poses()
+    Ts = [np.array(rows[k]["T_tcp_mm"], float) for k in TABLE["seatings"]]
+    U_, _, Vt = np.linalg.svd(sum(T[:3, :3] for T in Ts))
+    Th = C.Tm(U_ @ Vt, np.mean([T[:3, 3] for T in Ts], axis=0))
+    return Th @ T_EM @ C.inv(T_AM_home), [np.array(rows[k]["q_rad"], float) for k in TABLE["seatings"]]
+
+
+def table_sdf(PA, T_BA):
+    """Distance (mm) to the table (z_B = TABLE z_table_B) and the 2x4 under the strip (its top at z_A = 0)."""
+    b = TABLE["board"]
+    return np.minimum(C.apply(T_BA, PA)[:, 2] - TABLE["z_table_B"],
+                      CELL.sd_box(PA, (b["x"][0], b["y"][0], -b["h"] - 10.0), (b["x"][1], b["y"][1], 0.0)))
 
 
 def T_AF(orient, apex):
@@ -798,7 +866,7 @@ def plate_sdfs(PA, g, T_BA, contact=None, reach=20.0):
     mm outside the plate's bounding box get the 2x4s and the table only (1e9 for the rest)."""
     a = g["params"]
     x0, x1, y0, y1, tb = a["base"]
-    out = {"2x4s, table": CELL.cell_sdf(PA, T_BA)}
+    out = {"2x4, table": table_sdf(PA, T_BA)} if CELLMODE[0] == "table" else {"2x4s, table": CELL.cell_sdf(PA, T_BA)}
     if CELL.OTHER:                             # the seat block: the low sphere and the rod stay on the table
         out["fixtures"] = CELL.other_sdf(C.apply(T_BA, PA))
     m = ((PA[:, 0] > x0 - reach) & (PA[:, 0] < x1 + reach) & (PA[:, 1] > y0 - reach) & (PA[:, 1] < y1 + reach)
@@ -856,12 +924,21 @@ def context(layout=None, tool="sphere5"):
     CELL.OTHER[:] = [(np.array(json.loads((LAB / d / "registration.json").read_text())["T_BI"], float), k)
                      for k, d in (SEAT_BLOCK["others"] if PLATE[0] == "block" else ())]
     T_AM = np.array(g["keys"][HOME_KEY[0] if PLATE[0] == "block" else 1]["T_AM_home"], float)   # the probe's socket is the
+    surf = json.loads(SURFACE_PLAN.read_text())["geometry"]["surface"]
+    out = dict(g=g, T_EM=T_EM, tool=tool, pts_P=np.array(surf["pts"], float), nrm_P=np.array(surf["normals"], float))
+    if CELLMODE[0] == "table":                          # the strip where the owner's seatings put it; the presses in the
+        T_BA, q_seats = table_T_BA(T_EM, np.array(g["keys"][TABLE["key"]]["T_AM_home"], float))   # owner's branch
+        T_BE_home = T_BA @ T_AM @ C.inv(T_EM)
+        b0 = branch_of(q_seats[0])
+        q_seat = ik_near(T_BE_home[None], q_seats[0], branch=b0)[0]
+        q_press = np.array(_poses()[TABLE["press"]]["q_rad"], float)
+        q_press[5] = math.radians(TABLE["j6_ref"])     # joint 6 as the owner wants it (the tool turned about its axis)
+        BR[0] = branch_of(q_press)
+        return dict(out, T_BA=T_BA, T_BE_home=T_BE_home, q_home=q_press, q_seat=q_seat)
     T_BE_home = T_BA @ T_AM @ C.inv(T_EM)                                                      # fork's
     q_home = SIM.ik(T_BE_home, np.asarray(reg["q_home"], float))
     BR[0] = branch_of(q_home)
-    surf = json.loads(SURFACE_PLAN.read_text())["geometry"]["surface"]
-    return dict(g=g, T_BA=T_BA, T_EM=T_EM, q_home=q_home, T_BE_home=T_BE_home, tool=tool,
-                pts_P=np.array(surf["pts"], float), nrm_P=np.array(surf["normals"], float))
+    return dict(out, T_BA=T_BA, q_home=q_home, T_BE_home=T_BE_home)
 
 
 def region(n):
@@ -873,17 +950,23 @@ def region(n):
     return "face" if n[0] > 0.9 else ("edge" if n[0] > 0.5 else None)
 
 
-def joint_flags(q, owner=False):
-    """The path checker's limits on joints q (rad): a list of what fails (empty when none)."""
+def joint_flags(q, owner=False, mode="work"):
+    """The path checker's limits on joints q (rad): a list of what fails (empty when none). mode 'work' takes them all;
+    'home' (a straight move by the homing, in its own branch) the wrist's and elbow's singularities and the joints' limits;
+    'path' (a joint move between joint waypoints, as the owner's hand path) the joints' limits alone."""
     j = np.degrees(q)
     why = []
+    if float(np.min(360.0 - np.abs(j))) < 10.0:
+        why.append("limit")
+    if mode == "path":
+        return why
     if abs(math.sin(q[4])) < 0.5:
         why.append("sin5")
     q3 = abs(math.degrees(math.atan2(math.sin(q[2]), math.cos(q[2]))))
     if q3 < 20.0:
         why.append("q3")
-    if float(np.min(360.0 - np.abs(j))) < 10.0:
-        why.append("limit")
+    if mode == "home":
+        return why
     if not J5_WIN[0] <= j[4] <= J5_WIN[1]:
         why.append("j5")
     if not J6_WIN[0] <= j[5] <= (J6_OWNER if owner else J6_WIN[1]):
@@ -921,6 +1004,7 @@ def clearance(q, ctx, contact=None, groups=None):
     for ln, p in robot_pts().items():
         upd("robot", plate_sdfs(C.apply(T_AB @ LF[ln], p), g, T_BA, contact))
     T_AM = T_AB @ LF["tool0"] @ T_EM
+    own = []
     for name, p in probe_points(ctx["tool"]).items():
         grp = next((k for k, v in GROUPS.items() if name in v), "robot")
         if groups and grp not in groups:
@@ -928,9 +1012,15 @@ def clearance(q, ctx, contact=None, groups=None):
         PA = C.apply(T_AM, p)
         sd = plate_sdfs(PA, g, T_BA, contact if name == "tool_tip" else None)
         upd(grp, sd)
+        if grp != "hex_e":
+            own.append(p[::2])
     pe = CELL.port_points()
     port = min(float(tree.query(C.apply(C.inv(LF[ln]) @ LF["tool0"], pe))[0].min()) for ln, tree in CELL._self_trees().items())
     res["port"] = (port, "arm")
+    if "self" in NEED and own:                         # the probe base and the tool against the forearm and the first two
+        PM = np.vstack(own)                            # wrist links: a flipped wrist folds the tool toward the arm
+        res["self"] = min((float(tree.query(C.apply(C.inv(LF[ln]) @ LF["tool0"] @ T_EM, PM))[0].min()), ln)
+                          for ln, tree in CELL._self_trees().items())
     return res
 
 
@@ -953,6 +1043,10 @@ def fib_dirs(n=400):
 
 U_ALL = fib_dirs(400)
 U_ROBOT = np.array([-1.0, 0.0, 1.2]) / math.hypot(1.0, 1.2)     # a stem toward the robot and up
+U_TABLE = np.vstack([[[0.0, 0.0, 1.0]]] + [                     # table: the vertical, rings 2.5 deg apart to 45 deg
+    np.c_[math.sin(math.radians(t)) * np.cos(az), math.sin(math.radians(t)) * np.sin(az), np.full(24, math.cos(math.radians(t)))]
+    for t in np.arange(2.5, 45.1, 2.5) for az in [np.radians(np.arange(0.0, 360.0, 15.0))]]   # (24 azimuths each),
+    + [U_ALL[U_ALL[:, 2] < math.cos(math.radians(46.0))]])                                   # then U_ALL's beyond
 Q6_TRY = (0.0, -30.0, 30.0, -55.0, 40.0)
 
 
@@ -1034,11 +1128,17 @@ def search_sphere(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=Tru
     (u_z >= -0.5); the preferred one lies between the normal and U_ROBOT."""
     zc = tool_end_z(ctx["tool"])
     c = p + PROBE[SPHERES[ctx["tool"]]]["R"] * n
-    keep = (U_ALL @ n >= -0.2) & (U_ALL[:, 2] >= -0.5)
-    U = U_ALL[keep]
-    pref = n + U_ROBOT
-    pref /= np.linalg.norm(pref)
-    U = U[np.argsort(-(U @ pref))]
+    U_SET = U_TABLE if CELLMODE[0] == "table" else U_ALL
+    keep = (U_SET @ n >= -0.2) & (U_SET[:, 2] >= -0.5)
+    U = U_SET[keep]
+    if CELLMODE[0] == "table":                          # the probe straight down (the owner's press configuration),
+        tilt = np.round(np.degrees(np.arccos(np.clip(U[:, 2], -1.0, 1.0))), 1)   # tilted only as far as the clearances
+        U = U[np.lexsort((-(U @ n), tilt))]             # need, and of equal tilts the one leaning out along n first
+        max_clear = max(max_clear, TABLE["max_clear"])
+    else:
+        pref = n + U_ROBOT
+        pref /= np.linalg.norm(pref)
+        U = U[np.argsort(-(U @ pref))]
     Rs = frames_for(U)
     T_rest = pose_B(ctx, Rs, np.tile(c - ST * d, (len(U), 1)), zc)
     T_deep = pose_B(ctx, Rs, np.tile(c + DEEP * d, (len(U), 1)), zc)
@@ -1230,21 +1330,27 @@ def _slerp(T0, T1, s):
 
 
 def segment_samples(seg, q0):
-    """Joints along a move ('L' straight in the flange's pose every 2 mm and 1 deg, 'J' in joints every 1 deg of the
-    largest joint's travel), each from the previous; None where the inverse kinematics has no solution."""
+    """Joints along a move ('L' straight in the flange's pose every 2 mm and 1 deg, in the branch it starts in; 'LH' the
+    same by the homing; 'J' in joints every 1 deg of the largest joint's travel, to the pose's solution nearest the hint
+    in the hint's branch; 'Q' in joints to the joint waypoint seg[2]), each from the previous; None where the inverse
+    kinematics has no solution."""
     kind, T0, T1 = seg[:3]
-    if kind == "J":                                     # to the solution nearest the hint (the action's own branch)
-        q1 = ik_near(T1[None], seg[3] if len(seg) > 3 else q0, branch=BR[0])[0]
+    if kind in ("J", "Q"):
+        if kind == "Q":
+            q1 = np.asarray(T1, float)
+        else:                                           # to the solution nearest the hint (the action's own branch)
+            hint = seg[3] if len(seg) > 3 else q0
+            q1 = ik_near(T1[None], hint, branch=branch_of(hint))[0]
         if not np.isfinite(q1).all():
             return None
         n = max(2, int(math.ceil(math.degrees(np.max(np.abs(q1 - q0))))) + 1)
         return [(None, q0 + (q1 - q0) * s) for s in np.linspace(0.0, 1.0, n)]
     mm, deg = C.pose_error(T0, T1)
     n = max(2, int(math.ceil(max(mm / 2.0, deg))) + 1)
-    out, q = [], q0
+    out, q, br = [], q0, branch_of(q0)
     for s in np.linspace(0.0, 1.0, n):
         T = _slerp(T0, T1, s)
-        q = ik_near(T[None], q, branch=BR[0])[0]
+        q = ik_near(T[None], q, branch=br)[0]
         if not np.isfinite(q).all():
             return None
         out.append((T, q))
@@ -1376,6 +1482,14 @@ def travel_options(ctx, T_prev, q_prev, act):
     if T_prev is None:                                  # from the homing: out of the key along -x_M (up) first
         T0 = fk_many(q_prev[None])[0]
         up = [C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-mm, 0.0, 0.0])) for mm in LIFT]
+        if CELLMODE[0] == "table":                      # then the joint path to the hub (home_path), and in
+            out = []
+            for mm, u in zip(LIFT, up):
+                q_up = ik_near(u[None], q_prev, branch=branch_of(q_prev))[0]
+                if np.isfinite(q_up).all():
+                    out.append((f"joint-lift{mm:g}", [("LH", T0, u)] + [("Q", None, w) for w in home_path(ctx, q_up)]
+                                + [("J", Th, a1, qa), ("L", a1, Tr)]))
+            return out
         return ([(f"joint-lift{mm:g}", [("L", T0, u), ("J", u, a1, qa), ("L", a1, Tr)]) for mm, u in zip(LIFT, up)]
                 + [("hub", [("L", T0, up[-1]), ("J", up[-1], Th, qh), ("J", Th, a1, qa), ("L", a1, Tr)])])
     out = []
@@ -1389,6 +1503,29 @@ def travel_options(ctx, T_prev, q_prev, act):
     return out
 
 
+def home_path(ctx, q_lift):
+    """Joint waypoints (rad) from the homing's lift (joints q_lift) to the hub over the seat: TABLE['home_steps'] in turn,
+    each moving the joints it names to its value (deg) or to the hub's, the others where they stand."""
+    qh = np.asarray(ctx["hub"][1], float)
+    q, out = np.asarray(q_lift, float).copy(), []
+    for step in TABLE["home_steps"]:
+        for j, v in step.items():
+            q[j] = qh[j] if v == "hub" else math.radians(v)
+        out.append(q.copy())
+    return out
+
+
+def return_segments(ctx, T_last, q_start):
+    """Table: from the last rest back to the homing's start, the way the program returns (the lab, 11-02: the home path
+    back): back SAFE along the stem, a joint move to the hub, the home path reversed, and down into the key's lift."""
+    T0 = fk_many(np.asarray(q_start, float)[None])[0]
+    u = C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-LIFT[0], 0.0, 0.0]))
+    q_up = ik_near(u[None], q_start, branch=branch_of(q_start))[0]
+    a0 = back_along(T_last, ctx, SAFE)
+    path = home_path(ctx, q_up)[::-1][1:] + [q_up]
+    return [("L", T_last, a0), ("J", a0, ctx["hub"][0], ctx["hub"][1])] + [("Q", None, w) for w in path] + [("LH", u, T0)]
+
+
 def sample_all(segs, q, owner):
     """Samples of consecutive segments from joints q: [(segment index, kind, k, n, T or None, q)], the joint flags."""
     out, why = [], []
@@ -1396,8 +1533,9 @@ def sample_all(segs, q, owner):
         sm = segment_samples(seg, q)
         if sm is None:
             return out, why + [f"no IK on segment {si}"]
+        mode = dict(Q="path", LH="home").get(seg[0], "work")
         for k, (T, qq) in enumerate(sm):
-            why += [f"{w} on segment {si}" for w in joint_flags(qq, owner)]
+            why += [f"{w} on segment {si}" for w in joint_flags(qq, owner, mode)]
             out.append((si, seg[0], k, len(sm), T, qq))
         q = sm[-1][1]
     return out, sorted(set(why))
@@ -1409,7 +1547,7 @@ def clear_of(ctx, sms, contact, joints_only=False):
     if joints_only:
         return cl
     for si, kind, k, n, T, qq in sms:
-        if kind == "L" or k % 5 == 0 or k == n - 1:
+        if kind in ("L", "LH") or k % 5 == 0 or k == n - 1:
             for g_, v in clearance(qq, ctx, contact).items():
                 if v[0] < cl.get(g_, (1e9, ""))[0]:
                     cl[g_] = v
@@ -1434,7 +1572,9 @@ def hub(ctx, seat_i):
     """A pose over the seat for joint moves that would pass a singularity or leave a window: the sphere's centre 90 mm over
     the pad's apex and 60 mm toward the robot, the stem up and back toward the robot, joint 6 near 0; (T_BE, q)."""
     apex = np.asarray(ctx["g"]["seats"][seat_i]["apex"], float)
-    for dx, dz, ux in ((-60.0, 90.0, -0.5), (-40.0, 120.0, -0.3), (-80.0, 70.0, -0.7), (0.0, 110.0, 0.0)):
+    opts = (((0.0, dz, 0.0) for dz in TABLE["hub_dz"]) if CELLMODE[0] == "table"    # table: straight over the apex
+            else ((-60.0, 90.0, -0.5), (-40.0, 120.0, -0.3), (-80.0, 70.0, -0.7), (0.0, 110.0, 0.0)))
+    for dx, dz, ux in opts:
         u = np.array([ux, 0.0, 1.0]) / math.hypot(ux, 1.0)
         T = pose_B(ctx, frames_for(u[None]), (apex + [dx, 0.0, dz])[None], tool_end_z(ctx["tool"]))[0]
         ok, info = try_poses(ctx, T, T, True, False, None, need_clear=False)
@@ -1448,7 +1588,8 @@ def start_q(ctx):
     scripts/ur5_tip_calibration_holder_paths.py starts)."""
     T = np.asarray(ctx["T_BE_home"], float)
     T = C.Tm(T[:3, :3], T[:3, 3] + T[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-12.0, 0.0, 0.0]))
-    return ik_near(T[None], ctx["q_home"], branch=BR[0])[0]
+    q_ref = ctx.get("q_seat", ctx["q_home"])           # table: the seating's own branch, not the presses'
+    return ik_near(T[None], q_ref, branch=branch_of(q_ref))[0]
 
 
 def cmd_replay(a):
@@ -1456,18 +1597,20 @@ def cmd_replay(a):
     sample of a straight move and every 5th of a joint move, from 12 mm out of key 2 (on the seat block, out of the key
     nearer the seat)."""
     t0 = time.time()
-    HOME_KEY[0] = 1 if a.seat == 2 else 0
+    HOME_KEY[0] = home_key(a.seat)
     ctx = context(dict(orient=a.orient, seat_h=a.h), tool=a.tool)
     ctx["seat"] = a.seat
     ctx["hub"] = hub(ctx, a.seat)
     acts, P_A, N_A = build_plan(ctx, a.seat, a)
     print(f"{len(acts)} actions on seat {a.seat + 1} ({a.orient}), built in {time.time() - t0:.0f} s", flush=True)
     q = start_q(ctx)
+    q_start, first_way = q.copy(), None
     T_prev, rows, n_way = None, [], {}
     for x in acts:
         contact = (a.seat, P_A[x["i"]], EXCL[ctx["tool"]])
         w, tsm, why, cl = pick_travel(ctx, T_prev, q, x, a.owner, a.joints_only)
         n_way[w] = n_way.get(w, 0) + 1
+        first_way = first_way or w
         q_t = tsm[-1][5] if tsm else q
         osm, why_o = sample_all(own_moves(ctx, x), q_t, a.owner)
         why = [v for v in why if "mm to" not in v] + [f"{v} (own)" for v in why_o]
@@ -1477,6 +1620,8 @@ def cmd_replay(a):
         j5r, j6r = [1e9, -1e9], [1e9, -1e9]
         for sms in (tsm, osm):
             for si, kind, k, n, T, qq in sms:
+                if kind in ("Q", "LH"):                 # the homing's own moves: in the first row's flags, not the ranges
+                    continue
                 j5r = [min(j5r[0], math.degrees(qq[4])), max(j5r[1], math.degrees(qq[4]))]
                 j6r = [min(j6r[0], math.degrees(qq[5])), max(j6r[1], math.degrees(qq[5]))]
         q = osm[-1][5] if osm else q_t
@@ -1487,6 +1632,17 @@ def cmd_replay(a):
         if why:
             print(f"  {x['id']}: {'; '.join(why)}", flush=True)
         T_prev = x["T_rest"]
+    if CELLMODE[0] == "table":                          # the way back to the homing at the end
+        sm, why = sample_all(return_segments(ctx, T_prev, q_start), q, a.owner)
+        cl = clear_of(ctx, sm, None, a.joints_only) if not why else {}
+        why = list(why) + clear_flags(cl)
+        j5r = [min(math.degrees(v[5][4]) for v in sm), max(math.degrees(v[5][4]) for v in sm)] if sm else [0.0, 0.0]
+        j6r = [min(math.degrees(v[5][5]) for v in sm), max(math.degrees(v[5][5]) for v in sm)] if sm else [0.0, 0.0]
+        rows.append(dict(id="return", kind="return", region=None, travel="home-path", flags=why,
+                         clear={k: [round(v[0], 2), v[1]] for k, v in cl.items()},
+                         j5_deg=np.round(j5r, 1).tolist(), j6_deg=np.round(j6r, 1).tolist()))
+        if why:
+            print(f"  return: {'; '.join(why)}", flush=True)
     for x in acts:                                      # each action's own depth limit for the program
         x["deep_clear_mm"] = DEEP if a.joints_only else deep_clear(ctx, x, P_A, a.deep_max, owner=a.owner)
     least = {}
@@ -1497,12 +1653,29 @@ def cmd_replay(a):
     kinds = {}
     for x in acts:
         kinds[x["kind"]] = kinds.get(x["kind"], 0) + 1
+    extra, note = {}, "the inverted rig, written for the path check and the page; the lab program has no probe mode yet."
+    if CELLMODE[0] == "table":                          # what the program needs for the owner's configuration
+        lift = float(first_way[len("joint-lift"):]) if first_way and first_way.startswith("joint-lift") else LIFT[0]
+        T0 = fk_many(q_start[None])[0]
+        u = C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-lift, 0.0, 0.0]))
+        q_up = ik_near(u[None], q_start, branch=branch_of(q_start))[0]
+        extra = dict(cell="table", branch=int(BR[0]), wrist_window=list(J5_WIN), j6_window=list(J6_WIN),
+                     j6_ref=TABLE["j6_ref"], home_key=HOME_KEY[0], homing_lift_mm=lift,
+                     q_start_deg=np.round(np.degrees(q_start), 3).tolist(),
+                     home_path_q=[np.round(np.degrees(w), 3).tolist() for w in home_path(ctx, q_up)],
+                     hub=dict(T_BE=np.asarray(ctx["hub"][0]).round(6).tolist(), q=np.round(ctx["hub"][1], 6).tolist()),
+                     table=dict(z_table_B=TABLE["z_table_B"], board=TABLE["board"]),
+                     T_BA_from=dict(poses=str(TABLE["poses"].relative_to(ROOT)), seatings=list(TABLE["seatings"]),
+                                    pose="the controller's (T_tcp_mm)"))
+        note = ("the strip on the table (lab dc859de5, 11-02): the probe straight down in the owner's branch "
+                f"{int(BR[0])}, joint 6 near {TABLE['j6_ref']:g} deg; the travel from the homing goes by home_path_q "
+                "(deg) to the hub over the seat.")
     plan = dict(version=1, created=time.strftime("%Y-%m-%d"), kind="probe", seat=a.seat, orient=a.orient,
                 standoff_mm=ST, deep_mm=DEEP, lift_mm=list(LIFT),
                 seat_apex_A=ctx["g"]["seats"][a.seat]["apex"], T_BA=ctx["T_BA"].round(6).tolist(),
-                T_EM=ctx["T_EM"].round(6).tolist(), probe=PROBE, tool=ctx["tool"],
+                T_EM=ctx["T_EM"].round(6).tolist(), probe=PROBE, tool=ctx["tool"], **extra,
                 notes=[f"{time.strftime('%Y-%m-%d %H:%M')}, workstation: scripts/ur5_inverted_rig.py replay. A probe plan for "
-                       "the inverted rig, written for the path check and the page; the lab program has no probe mode yet."],
+                       + note],
                 actions=[{k: (np.round(v, 5).tolist() if isinstance(v, np.ndarray) else v) for k, v in x.items()}
                          for x in acts])
     odir = Path(a.out_dir).resolve() if a.out_dir else OUT / "data"
@@ -1514,8 +1687,10 @@ def cmd_replay(a):
                travel=n_way,
                deep_clear_mm={f"{v:g}": sum(x["deep_clear_mm"] == v for x in acts) for v in sorted({x["deep_clear_mm"] for x in acts})},
                least={k: [round(v[0], 2), v[1]] for k, v in least.items()}, joints_only=bool(a.joints_only),
-               j5_deg=[min(r["j5_deg"][0] for r in rows), max(r["j5_deg"][1] for r in rows)],
-               j6_deg=[min(r["j6_deg"][0] for r in rows), max(r["j6_deg"][1] for r in rows)],
+               j5_deg=[min(r["j5_deg"][0] for r in rows if r["kind"] != "return"),
+                       max(r["j5_deg"][1] for r in rows if r["kind"] != "return")],
+               j6_deg=[min(r["j6_deg"][0] for r in rows if r["kind"] != "return"),
+                       max(r["j6_deg"][1] for r in rows if r["kind"] != "return")],
                seconds=round(time.time() - t0, 1), rows=rows)
     dst2 = odir / f"{STEM}_paths_{a.orient}_seat{a.seat + 1}{tt}{'_joints' if a.joints_only else ''}.json"
     dst2.write_text(json.dumps(out, default=float) + "\n")
@@ -1537,7 +1712,7 @@ def cmd_home_check(a):
             for mm in sorted({-12.0, -7.0, 0.0, *LIFT, *np.arange(0.0, LIFT[1] + 0.1, 5.0).tolist()}):   # seated (-12),
 #                                                                     5 mm out (-7), the start and the lift every 5 mm,
                 T = C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-mm, 0.0, 0.0]))  # also the way back
-                qq = ik_near(T[None], q, branch=BR[0])[0]
+                qq = ik_near(T[None], q, branch=branch_of(q))[0]    # the seating's branch (table: not the presses')
                 cl = clearance(qq, ctx) if np.isfinite(qq).all() else {}
                 least = min(((v[0], g_, v[1]) for g_, v in cl.items() if g_ != "port"), default=(None, None, None))
                 rows.append(dict(key=key + 1, tool=tool, lift_mm=mm, ik=bool(cl), least_mm=least[0], group=least[1],
@@ -1551,7 +1726,10 @@ def cmd_home_check(a):
     print("->", dst)
 
 
-WALL = dict(z_F=-99.75, x_F=(1.0, 7.0), standoff=3.5, beyond=0.3, cut=2.5, parts=("tip body", "block"))
+WALL = dict(z_F=-99.75, x_F=(1.0, 7.0), standoff=3.5, beyond=0.3, cut=2.5, parts=("tip body", "block"),
+            extra=dict(stem=0.15, tip=0.1))  # margins kept over NEED: with the stem nearly vertical (table, 11-02) the low
+#                                              touch's stem passes the cassette's distal edge, where the k-d tree read
+#                                              1.00-1.04 mm and the exact meshes give 0.93-0.98 (body-check)
 #   the tip's side walls (lab, 14:55 on 10-30: the seat's turn about z_P, the tip's long axis, is loose in pass 1). The
 #   plane y_F = +-10.5 is flat on the cassette and the cap only 2 to 2.5 mm high over most of the tip's length; at the
 #   distal end the cap's strip z_F -100.04 to -98.46 is flat from x_F 0.5 to 8.0, so two touches there stand 6 mm
@@ -1596,15 +1774,17 @@ def cmd_walls(a):
     res = dict(what="touch-offs on the cassette's flat side walls for the seat's turn about z_P: the sphere's centre to the "
                     "wall's plane, minus R, is the fit's residual", wall=WALL, seats={})
     for seat in (0, 1, 2):
-        HOME_KEY[0] = 1 if seat == 2 else 0
+        HOME_KEY[0] = home_key(seat)
         ctx = context(dict(orient=LAYOUT["orient"], seat_h=SEAT_BLOCK["seat_h"]), tool="sphere5")
         ctx["seat"] = seat
         st = ctx["g"]["seats"][seat]
         T_AF = np.asarray(st["T_AF"], float)
         T_AP = T_AF @ T_FP
         acts = []
-        st0, dp0 = ST, DEEP
+        st0, dp0, need0 = ST, DEEP, dict(NEED)
         globals()["ST"], globals()["DEEP"] = WALL["standoff"], WALL["beyond"]
+        for k, v in WALL["extra"].items():              # the k-d tree's error next to the cassette's edge (body-check)
+            NEED[k] += v
         try:
             for side in (1, -1):
                 for xf in WALL["x_F"]:
@@ -1631,6 +1811,7 @@ def cmd_walls(a):
                     print(f"seat {seat + 1} {wid}: stem {info['u']}, joint 5 {info['j5']}, joint 6 {info['j6']}", flush=True)
         finally:
             globals()["ST"], globals()["DEEP"] = st0, dp0
+            NEED.update(need0)
         res["seats"][str(seat + 1)] = dict(T_AP=T_AP.round(6).tolist(), actions=acts)
     dst = OUT / "data" / f"{STEM}_walls.json"
     dst.write_text(json.dumps(res, default=float) + "\n")
@@ -1666,7 +1847,7 @@ def cmd_body_check(a):
                     "exact signed distance, at each action's deepest poses and the wall touches", need=NEED, seats={})
     for seat in (0, 1, 2):
         src = json.loads((OUT / "data" / f"{STEM}_plan_up_xm_seat{seat + 1}.json").read_text())
-        HOME_KEY[0] = 1 if seat == 2 else 0
+        HOME_KEY[0] = home_key(seat)
         ctx = context(dict(orient=src["orient"], seat_h=SEAT_BLOCK["seat_h"]), tool=src["tool"])
         st = ctx["g"]["seats"][seat]
         T_FB = C.inv(np.asarray(st["T_AF"], float)) @ C.inv(ctx["T_BA"])
@@ -1865,6 +2046,9 @@ def cmd_dry_check(a):
         prog = json.loads(Path(f).read_text())
         src = json.loads((ROOT / prog["checks"]["source"]).read_text())
         seat = int(src["seat"])
+        if src.get("cell", "v1030") != CELLMODE[0]:
+            raise SystemExit(f"{f}: its seat plan is for the cell {src.get('cell', 'v1030')}: pass --cell")
+        table = CELLMODE[0] == "table"
         HOME_KEY[0] = int(prog["homing"]["key"])
         ctx = context(dict(orient=src["orient"], seat_h=SEAT_BLOCK["seat_h"]), tool=src["tool"])
         ctx["seat"] = seat
@@ -1874,7 +2058,10 @@ def cmd_dry_check(a):
             raise SystemExit(f"seat {seat + 1}: the plan's T_EM ({e_em}) or T_BI ({e_ba}) differs from the replay's")
         pr = prog["travel"]["probe"]
         safe, ret = float(pr.get("safe_mm", 45.0)), float(pr.get("retract_mm", 12.0))
-        Th, q_ref = np.asarray(pr["hub"]["T_BE"], float), ctx["q_home"]
+        Th, q_ref, qh = np.asarray(pr["hub"]["T_BE"], float), ctx["q_home"], np.asarray(pr["hub"]["q"], float)
+        path = [np.radians(w) for w in pr.get("home_path_q", [])]    # table: the joint path after the homing's lift
+        if table and not path:
+            raise SystemExit(f"{f}: no travel.probe.home_path_q")
         c_M = np.asarray(prog["geometry"]["probe"]["centre_M"], float)
         ids = [x["id"] for x in prog["actions"]]
         prev_in_plan = dict(zip(ids[1:], ids[:-1]))
@@ -1891,10 +2078,11 @@ def cmd_dry_check(a):
             way, segs, T0 = x.get("travel_ws", "joint"), [], None
             if mm < 1e-3 and deg < 1e-3:
                 way = "none"
-            elif from_homing:                               # out of the key along -x_M, then the joint move
-                T0 = C.Tm(Tc[:3, :3], Tc[:3, 3] + Tc[:3, :3] @ ctx["T_EM"][:3, :3]
+            elif from_homing:                               # out of the key along -x_M, then the joint move (table:
+                T0 = C.Tm(Tc[:3, :3], Tc[:3, 3] + Tc[:3, :3] @ ctx["T_EM"][:3, :3]    # through the home path first)
                           @ np.array([-float(x.get("homing_lift_mm", 30.0)), 0.0, 0.0]))
-                segs.append(("L", Tc, T0))
+                segs.append(("LH" if table else "L", Tc, T0))
+                segs += [("Q", None, w) for w in path]
                 from_homing = False
                 way = "hub" if way == "hub" else "joint"
             elif way == "straight" and prev_ok == prev_in_plan.get(x["id"]) and deg <= 20.0 and mm <= 30.0:
@@ -1904,12 +2092,12 @@ def cmd_dry_check(a):
                 way = "hub" if way == "hub" else "joint"
                 T0 = back_along(Tc, ctx, safe)
                 segs.append(("L", Tc, T0))
-            if T0 is not None:
+            if T0 is not None:                              # table: joint moves to each action's own joints (lab, 11-02)
                 if way == "hub":
-                    segs.append(("J", T0, Th, q_ref))
+                    segs.append(("J", T0, Th, qh if table else q_ref))
                     T0 = Th
                 a1 = back_along(T_t, ctx, safe)
-                segs += [("J", T0, a1, q_ref), ("L", a1, T_t)]
+                segs += [("J", T0, a1, np.asarray(x["q_rest"], float) if table else q_ref), ("L", a1, T_t)]
             n_way[way] = n_way.get(way, 0) + 1
             lim = st + float(x.get("beyond_mm", 1.2) if x["kind"] == "touch"
                              else x.get("max_depth_mm", 1.0 if x["kind"] == "twist" else 2.5))
@@ -1957,6 +2145,24 @@ def cmd_dry_check(a):
                 print(f"  seat {seat + 1} {x['id']} ({way}): {'; '.join(why)}", flush=True)
             q = osm[-1][5] if osm else q_t
             Tc, prev_ok = T_after, x["id"]
+        if table:                                       # back at the end: back safe_mm, the home path reversed, to the lift
+            q0 = start_q(ctx)
+            T0 = fk_many(q0[None])[0]
+            u = C.Tm(T0[:3, :3], T0[:3, 3] + T0[:3, :3] @ ctx["T_EM"][:3, :3]
+                     @ np.array([-float(acts[0].get("homing_lift_mm", 30.0)), 0.0, 0.0]))
+            q_up = ik_near(u[None], q0, branch=branch_of(q0))[0]
+            segs = [("L", Tc, back_along(Tc, ctx, safe))] + [("Q", None, w) for w in path[::-1]] + [("Q", None, q_up)]
+            sm, why = sample_all(segs, q, a.owner)
+            cl = clear_of(ctx, sm, None) if not why else {}
+            why = sorted(set(list(why) + clear_flags(cl)))
+            out["rows"].append(dict(seat=seat + 1, id="return", stage="return", kind="return", travel="home-path", flags=why,
+                                    clear={g_: [round(v[0], 2), v[1]] for g_, v in cl.items()}, own_tip=None))
+            flagged += bool(why)
+            for g_, v in cl.items():
+                if v[0] < least.get(g_, (1e9, ""))[0]:
+                    least[g_] = v
+            if why:
+                print(f"  seat {seat + 1} return: {'; '.join(why)}", flush=True)
         out["seats"][str(seat + 1)] = dict(n=len(acts), flagged=flagged, travel=n_way, j6_deg=np.round(j6r, 1).tolist(),
                                            least={g_: [round(v[0], 2), v[1]] for g_, v in least.items()},
                                            own_tip=[round(own_tip[0], 2), own_tip[1], own_tip[2]])
@@ -2160,6 +2366,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--plate", default="v2e", choices=("v2e", "block"),
                     help="plate v2e (2026-10-29), or the seat block (2026-10-30, its own folder)")
+    ap.add_argument("--cell", default="v1030", choices=("v1030", "table"),
+                    help="the cell: the strip on the tall's 2x4 (10-30), or on a 2x4 lying on the table with the probe "
+                         "straight down (11-02; implies --plate block)")
+    ap.add_argument("--j6", type=float, default=None, help="table: joint 6's value in the presses (deg; TABLE j6_ref)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     ik = sub.add_parser("ik-check")
     ik.add_argument("--n", type=int, default=200)
@@ -2222,10 +2432,11 @@ def main():
     r.add_argument("--resume", action="store_true", help="keep the orientations already in --out")
     r.add_argument("--part", default="", help="k/n: this job's share of the points (merge the parts with merge-reach)")
     a = ap.parse_args()
-    if a.plate == "block":
+    if a.plate == "block" or a.cell == "table":
         global OUT, STEM
         PLATE[0] = "block"
         OUT, STEM = BLOCK_OUT, BLOCK_STEM
+    use_cell(a.cell, a.j6)
     if getattr(a, "deep", None) is not None:            # the press depth the plans are built and checked to
         globals()["DEEP"] = a.deep
     if getattr(a, "h", 0.0) is None:                    # the plate's own seat height
