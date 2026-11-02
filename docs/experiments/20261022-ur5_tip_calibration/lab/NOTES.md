@@ -2220,3 +2220,38 @@ The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the imag
 because `.lfsconfig` skips LFS content. The program then failed to read the plan (19:26, nothing moved). The files came
 back from the local LFS store, identical to the originals in `logs/20261022-ur5_homing_by_hand/`. This clone now has
 `lfs.fetchexclude` cleared in `.git/config`, as the workstation's has, and `tipcal_run.sh` refuses to start on a pointer.
+
+## The strip on the robot: homing, and the owner's press configuration (11-02, from 12:5x)
+
+- The owner mounted the probe base with the 5 mm sphere, the strip with three new tips on one 2x4 clamped to the
+  table, and the RealSense; the robot was on. The tips first went on with their Qwiic plugs toward the robot; the owner
+  turned them, since the plans need the plug at the back. Seat 1 (y_A -80) holds v3 ID 6 on mux channel 3, seat 2
+  v3 ID 5 on channel 2, seat 3 v3 ID 4 on channel 0.
+- Checks at 13:03: robot in normal mode; the slider at 1.0 after the restart (the program sets the plan's 0.30 before any
+  motion); payload 0.403 kg, the finger mount's (the probe's is not measured). The HEX-E at 100 Hz with no time-outs,
+  untared Fz -33 N. The held boards on channels 0, 2 and 3 at 143 records/s each. A time-lapse runs from 13:05
+  (`timelapse_d435.py`, one frame per 2 s, into `/dev/shm/20261102-tipcal-timelapse`, nice 19).
+- Homing by hand on key 1 (`teach_hold.py`, `record_pose.py`): 13:11 and 13:35, the joints still to 0.0012 deg, within
+  0.39 mm and 0.26 deg of their mean. The strip's A is at (-202.7, -417.0, 39.2) mm in B, yaw -92.07 deg, tilt 1.85 deg:
+  192.3 mm from the plans' (-138.8, -595.7, 70.2), or -176.0, -71.0 and -31.0 mm along A's axes. The program refuses
+  past 20 mm, and no check covers this place; the owner chose new plans (13:3x).
+- The owner's press configuration: the probe straight down over seat 1's pad, recorded at 13:19:50
+  (`probe_primed_seat1_v3id6`: joints 46.5, -76.65, 104.73, -120.06, -86.17, 178.27 deg; the sphere's centre 8.1 mm over
+  the apex and 2.6 mm toward the robot, the stem 6 deg from vertical). Over seat 2 the owner gave (50, -83, 111, -122,
+  -80, 186), and the hand path from there to the homing: joints 1 to 3 to (48, -100, 128); joint 4 from -122 to -51;
+  joint 5 from -80 to 71; joint 6 from 186 to -19; joints 1 to 3 to (37, -72, 123); joint 5 from 71 to 41; seat.
+- The analysis (scratchpad `ideal_pose_analysis.py`, `ideal_pose_compare.py`), at the strip's place. Seat 2's reference
+  press straight down: joints (56.3, -79.2, 108.6, -120.2, -91.8, 180.5); the velocity ellipsoid at the sphere has a
+  condition number of 2.36 and a Yoshikawa measure of 146 (1e6 mm^3); the joints push 1.46 N along the press per N m.
+  With the old plans' stem in the homing branch: (52.7, -68.8, 91.5, 45.8, 83.8, -1.3), 1.92, 145 and 1.61 N. Over
+  seat 2's 297 grid rests the wrist joints turn 45, 1 and 49 deg in all straight down, against 626, 458 and 315 deg with
+  the old stems; the largest joint change between two presses is 3.8 deg against 58.6. Every target of the three seats
+  reaches straight down; with the stem along the push, 26 to 28 a seat fail |sin q5| >= 0.5. The port keeps 48.5 mm
+  from the arm with joint 6 near 0, 90, -90 or 180 deg. Not yet checked: the tool against the tip's body, and the new
+  table.
+- 13:20:36: the HEX-E gave no samples (120 time-outs in 6 s) after the owner's hand move to the press pose. By 13:27:21
+  it streamed at 100 Hz again, untared at Fz 629 N with status 0x40000: a restart, as on 10-22.
+- 13:21:06: `teach_hold.py`'s 15 min cap ended teach mode and stopped its script while the owner was moving the arm by
+  hand, and the robot e-stopped ("you just moved the robot very, very quickly"). Nothing was damaged. A renewal queued to
+  start after the cap never started; it was killed by PID. `teach_hold.py` now takes `--minutes` and an extend file
+  (`logs/ur5_lab_teach_extend`), and freedrive is extended or stopped only on the owner's word.

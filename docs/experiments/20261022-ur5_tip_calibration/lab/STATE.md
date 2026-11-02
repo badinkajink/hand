@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-10-30 18:08 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-02 13:42 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -8,22 +8,25 @@ request to the owner must come from this file.
 
 | Item | Now | Registration (folder here) |
 |---|---|---|
-| Tip | v3 ID 3 since the swap at about 13:3x on 10-29: the owner took it from a holder station and put v3 ID 2 there | tool: block 1 (`20261029-134508-spherev3id3`), seeded from `20261028-184415-spherev3id2` |
-| Mount | v7 standoff fork on the HEX-E; stayed on the flange through both swaps | homing pose: `20261027-225213-spherev3id1` |
-| Sphere | low sphere, not moved since 10-27 | `20261027-225213-spherev3id1`; with ID 2's tool `20261028-184415-spherev3id2`; with ID 3's `20261029-134508-spherev3id3` |
-| Rod | on, at its third seating | `20261028-102701-rodv3id1`; with ID 2's tool `20261029-031559-rodv3id2`, 0.16 mm from 102701's; with ID 3's `20261029-230820-rodv3id3`, 0.67 mm from 102701's and 0.54 mm lower (NOTES, block 5) |
-| Tall indenter | on | `20261028-114908-tallv3id1`; with ID 2's tool `20261028-200508-tallv3id2`, 1.85 mm from 114908's along -y, within the pass's own error in y |
-| Holder | both held tips pad-up, seating 5: v3 ID 1 in the right-side station since 10-28; v3 ID 2 in the station ID 3 left (owner, 13:4x on 10-29) | `20261027-holder-apex-both` |
+| Probe | probe base with the 5 mm sphere (sphere5) on mount v7's adapter disc on the HEX-E (owner, 11-02 13:0x); no tip on the robot | none yet |
+| Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume: 176 mm toward the robot, 71 mm toward seat 1's end, 31 mm lower (the 2x4 lies on the table); yaw within 0.2 deg, tilt 1.9 deg | two hand seatings on key 1, 13:11 and 13:35 (`poses.jsonl` strip_key1_seated, strip_key1_seated_2), within 0.39 mm and 0.26 deg of their mean |
+| Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 143 records/s | pass 1 to come |
+| Old fixtures | the low sphere, rod, tall indenter and holder: off the table as the strip's README asks; the camera frame of 13:05 shows only the strip, its tips and the mux board on the 2x4 | as before 10-30 |
 
 `cell.json` holds the same registrations for the path checks and the renders.
 
 The HEX-E's link fails about once per 6 to 9 h of running: 7 losses since 10-25 (`../QUEUE.md` R31, 17:42 on 10-28).
+An eighth came on 11-02 between 13:03 and 13:20, while the owner moved the arm by hand to the press pose (joint 6 to
++178 deg); by 13:27 it streamed again after a restart, untared (Fz 629 N, status 0x40000), as after the loss of 10-22.
 A loss aborts three actions and stops the session, and the robot then waits for a reseat. The cable is clamped 3 to 5
 cm from the connector with slack. The fix is a new cable.
 
 ## Rules in force
 
 - Every robot run needs the owner's go in the lab's session.
+- Freedrive (`teach_hold.py`) never ends or restarts on its own while the owner may hold the arm: extend it (touch
+  `logs/ur5_lab_teach_extend`) or stop it on the owner's word, and ask before switching it either way. On 11-02 at
+  13:21:06 its 15 min cap ended it under the owner's hands and the robot e-stopped (nothing damaged).
 - Joint 6 goes to +45 deg at most without the owner, and to +60 deg with the owner present.
 - No gravity sweeps.
 - travel.speed is 1.0. The tall plans lift 20 mm between actions.
@@ -145,10 +148,16 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 
 ## Waiting on the owner
 
-- The probe mode on the robot: a dry run (--dry 15, about 0.5 h, the owner present; in probe mode it backs off along the stem; simulated clean apart from the homing, and the workstation's move-by-move replay flags none of 960 actions, f8f4159e) and then pass 1's touch-offs and the walls on one seat, each on the owner's go in the lab's session, once the strip and the probe are printed and mounted. The owner's yes for the code came by way of the workstation (13:2x: "sure, run the probe mode").
-- The homing's seated pose: with the probe's socket on a key, the arm's last link stands about 4 mm from the low sphere's 2x4 in the model, about 5.5 mm in the real cell (8 mm wanted). With that 2x4 off the table it is about 40 mm (the workstation, d52b1998). The owner's call.
-- When the tips go on the strip: hold a steel rule flat along the station block's side and the tip's wall while tightening the M2 (the strip's README, 8ee8556e). The tip can shift about 0.2 mm across in its bores. A block face more than about 0.35 mm proud would meet the walls' low touch first.
-- When v3 ID 1 goes back on, the three plans above.
+- New probe plans for the strip's measured place, in the owner's press configuration (11-02 13:3x: "yea i think we just
+  rerun the plans man"): the probe straight down over the pad, wrist 2 near -90 deg (the old plans used wrist 2 near +60
+  deg and turned the wrist through 626, 458 and 315 deg over seat 2's grid; straight down it turns 45, 1 and 49 deg). The
+  owner's press pose over seat 1 is `poses.jsonl` probe_primed_seat1_v3id6; the owner's hand path between it and the
+  homing is in NOTES (11-02). The lab changes the program (joint moves to each action's own joints, the wrist window
+  from the plan, the path from the homing) and simulates; the workstation replays the seats. Then a dry run and pass 1
+  on one seat, each on the owner's go.
+- Joint 6 in the press configuration: the owner allows 180 deg there ("wrist 3 has pretty much unimpeded motion
+  here"); the port keeps 48 mm from the arm at any joint 6, so near 0 would spare the cable the half turn from the
+  homing. The owner's call.
 - A new HEX-E cable.
 
 ## Where things are
