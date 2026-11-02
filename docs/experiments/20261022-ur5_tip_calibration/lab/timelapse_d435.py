@@ -1,6 +1,7 @@
 """Overhead D435 time-lapse during a run: one colour frame every PERIOD s as JPEG into OUT, until the file
 logs/ur5_lab_stop_timelapse exists or SECONDS pass. 640 x 360 at 15 fps, colour only, so it loads the computer little.
-Read-only (the camera).
+Read-only (the camera). When the camera stops sending frames, the pipeline is restarted after 5 s and the frames go on
+(11-02 15:06: "Frame didn't arrive within 5000" ended the run's time-lapse).
 
     /usr/bin/python3 docs/experiments/20261022-ur5_tip_calibration/lab/timelapse_d435.py OUT [--period 2] [--seconds 7200]
 """
@@ -22,19 +23,43 @@ a = ap.parse_args()
 out = Path(a.out)
 out.mkdir(parents=True, exist_ok=True)
 STOP.unlink(missing_ok=True)
-pipe, cfg = rs.pipeline(), rs.config()
+cfg = rs.config()
 cfg.enable_stream(rs.stream.color, 640, 360, rs.format.rgb8, 15)
-pipe.start(cfg)
+
+
+def start():
+    p = rs.pipeline()
+    p.start(cfg)
+    for _ in range(30):
+        p.wait_for_frames()
+    return p
+
+
+pipe = start()
 t0, n = time.time(), 0
 try:
-    for _ in range(30):
-        pipe.wait_for_frames()
     while time.time() - t0 < a.seconds and not STOP.exists():
-        fr = pipe.wait_for_frames()
+        try:
+            fr = pipe.wait_for_frames()
+        except RuntimeError as e:
+            print(time.strftime("%H:%M:%S"), f"camera: {e}; restarting it", flush=True)
+            try:
+                pipe.stop()
+            except RuntimeError:
+                pass
+            time.sleep(5.0)
+            try:
+                pipe = start()
+            except RuntimeError as e2:
+                print(time.strftime("%H:%M:%S"), f"camera: {e2}", flush=True)
+            continue
         img = np.asanyarray(fr.get_color_frame().get_data())
         Image.fromarray(img).save(out / f"{time.strftime('%H%M%S')}_{n:05d}.jpg", quality=85)
         n += 1
         time.sleep(max(0.0, a.period - 0.07))
 finally:
-    pipe.stop()
+    try:
+        pipe.stop()
+    except RuntimeError:
+        pass
     print(f"{n} frames in {out}")

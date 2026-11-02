@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-02 14:52 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-02 15:16 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -10,7 +10,7 @@ request to the owner must come from this file.
 |---|---|---|
 | Probe | probe base with the 5 mm sphere (sphere5) on mount v7's adapter disc on the HEX-E (owner, 11-02 13:0x); no tip on the robot | none yet |
 | Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume; nearly level | the frame through both keys' socket points (`20261102-strip_frame_two_keys.json`: 7 seatings, the keys 80.04 mm apart, tilt 0.33 deg); sessions take it by `--frame`, with `--home-from poses.jsonl:strip_key1_seated_4` for the line out of key 1 |
-| Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 143 records/s | pass 1 to come |
+| Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 138 records/s | seat 1: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame); seats 2 and 3 to come |
 | Old fixtures | the low sphere, rod, tall indenter and holder: off the table as the strip's README asks; the camera frame of 13:05 shows only the strip, its tips and the mux board on the 2x4 | as before 10-30 |
 
 `cell.json` holds the same registrations for the path checks and the renders.
@@ -148,10 +148,17 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 
 ## Waiting on the owner
 
-- Running since 14:50 on 11-02 (owner's go, 14:35: "get going"): seat 1 (v3 ID 6), pass 1, register and the grid
-  (`20261102-plan_probe_table_seat1_v3id6.json`, session `s1v6b`, tmux `tipcal`, printout `logs/20261102-145009-tipcal-s1v6b.log`).
-  No walls (their check is pending) and no return stage: the robot ends over seat 1. Seats 2 and 3 wait for the
-  workstation's plans on the two-key frame and the owner's recorded path.
+- The owner's go of 15:0x on 11-02 covers the remaining runs ("you have my go ahead to run the remaining runs"). More
+  runs on twists and wrenches, and at other contact speeds, are covered too, if the data shows that more data still
+  pays.
+- Running since 14:50: seat 1 (v3 ID 6), pass 1 (20 of 20), register, then the grid from 15:06 at about 25 s a press,
+  so it ends about 17:15 (`20261102-plan_probe_table_seat1_v3id6.json`, session `s1v6b`, tmux `tipcal`, printout
+  `logs/20261102-145009-tipcal-s1v6b.log`). No walls and no return stage: the robot ends over seat 1.
+- Next: seat 2 (v3 ID 5), then seat 3 (v3 ID 4), each from where the one before ends
+  (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`, 44509f1e). `logs/20261102-chain_seats23.sh`
+  starts each when the run before ends cleanly. It is armed only after these pass: the chained simulations (whole
+  sessions from the previous seat's end) and the workstation's replays of both seats and both seams in the two-key
+  frame.
 - Owner, 14:4x: the travels go too high ("you don't need to go this high at all"): the 45 mm back-off along the stem and
   the hub 90 mm over the apex come from the 10-30 configuration. Lower them in the next plans, with the workstation's
   check. The owner also asked for one shared set of pose helpers (quaternions) in place of the copies in each script.
