@@ -40,6 +40,11 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   series spring. `E=1e7, tr=0.02` reproduces runs before 2026-10-30, whose frozen and cached scenes keep 10 MPa (the HOM
   study's `logs/20261030-hand_object_scale_cad_v2/scenes` among them). The scenes' friction (1.0, 2.4 in the deploy
   scenes) stands for the bench tools' grip tape; the UR5's 0.37-0.44 is TPU on bare PLA.
+- **Servo plant of the HOM scripts (2026-11-02):** `HOS_PLANT` (`servo` = `kp0.72_kv0_fr0.18_fl0_dp0.0144`, the
+  SCS0009's strength; default the work plant `kp4_kv0_fr1_fl0_dp0.08`, 4.4x too strong), `HOS_SCENES` (a fresh scene
+  cache; cached scenes keep the pad modulus they were built with) and `HOM_ROWS_TAG` (required with either; appended to
+  the rows directories). HOM landscapes and best grasps change with the plant (`scripts/hom_plant_transfer.py`); quote a
+  landscape with its plant.
 - **GPU is single (16 GB).** Train sequentially. **Every Warp process needs its own kernel cache:**
   `WARP_CACHE_PATH=$(mktemp -d)` — a shared cache races and NaNs. After killing a Warp run, wait for
   GPU memory to drop to ~1 GB before relaunching.
@@ -145,7 +150,10 @@ The pattern, followed by every page in `docs/experiments/INDEX.md`:
    `docs/experiments/INDEX.md` (one row per page: date, topic, title and summary, local file, artifact),
    `docs/index.html` (the newest pages), `docs/pages.html` (a search over titles and summaries), the index tables of the
    topic overviews and `docs/pages.json`. Commit those files with the page; `python3 scripts/docs_index.py` reruns it
-   by hand. Never edit an INDEX.md row by hand: change the page's tags or lede and rebuild.
+   by hand. Never edit an INDEX.md row by hand: change the page's tags or lede and rebuild. The same refresh rewrites
+   `docs/changelog.html` (`scripts/docs_changelog.py`, owner 2026-11-02): every page's commits, newest first, each with a
+   one-line summary and links to the commit and to that version on GitHub; curated one-liners go in
+   `scripts/docs_changelog_notes.json`.
 4. **The artifact**, a copy of that file published to claude.ai. Updating a page means editing
    the local file and republishing to the **same URL** — never a second artifact for one result.
    The home page `docs/index.html` and the topic overviews `docs/overviews/<topic>.html` are the
