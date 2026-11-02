@@ -2270,7 +2270,7 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   projecting onto the nearest rotation first: the round trip of all 1256 poses of seat 1's plan within 2.3e-9 deg.
   The simulator never meets this: it does not use the robot's rotation vectors.
 - s1v6 (14:46): three aborts, "target outside the box": each of p1dry's failed actions had backed off 45 mm along the
-  stem and lifted 5 mm, so the robot stood at 425 mm, and the next back-off left the 400 mm box. Fixed (0b... 14:50):
+  stem and lifted 5 mm, so the robot stood at 425 mm, and the next back-off left the 400 mm box. Fixed (e26f29ad, 14:50):
   the back-off and the abort's lift only near the pad. Simulated from the robot's own 425 mm start (t1high, exit 0).
 - Pass 1 of seat 1 starts 5 mm out and runs 2.5 mm past the expected contact (were 3.5 and 1.2): in the simulator a
   1.4 mm, 2 deg error of the frame made 4 of 20 flank and tip touches miss with 1.2.
