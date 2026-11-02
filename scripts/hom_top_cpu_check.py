@@ -86,15 +86,18 @@ def main():
     ap.add_argument("--parts", type=int, default=1)
     ap.add_argument("--grid", choices=("grid2d", "grid2dff"), default="grid2d",
                     help="grid2dff: the grids with the plant's finger clearance, the cylinder held until the grasp closes")
+    ap.add_argument("--from-tag", default=None, help="read the top layouts from the rows of this HOM_ROWS_TAG ('' = the "
+                    "work plant's rows of 10-30) and run them on this process's plant; default: HOM_ROWS_TAG")
     ap.add_argument("--ea", action="store_true", help="the top layouts of hom_ea.py's rows (rows/ea_live, seed 0's search) "
                     "in place of the full grid's; with --grid grid2dff")
     a = ap.parse_args()
     ff = a.grid == "grid2dff"
+    src_tag = HG.ROWS_TAG if a.from_tag is None else a.from_tag
     if ff:
-        L.GRID_SRC, L.GRID_ROWS = "grid2dff", L.ROWS / "grid2dff_v4b"
+        L.GRID_SRC, L.GRID_ROWS = "grid2dff", L.ROWS / f"grid2dff_v4b{src_tag}"
     hold = T.T_CLOSE if ff and T.SHAPE[a.task] == "cylinder" else 0.0
     if a.ea:
-        sc, _ = L.grid_scores(a.task, a.d, L.ROWS / "ea_live", f"{a.task}_d{a.d:g}_s0")
+        sc, _ = L.grid_scores(a.task, a.d, L.ROWS / f"ea_live{src_tag}", f"{a.task}_d{a.d:g}_s0")
         poses, best = L.grid_poses(a.task, a.d), {}
         for (c, j), v in sc.items():
             if len(v) >= 3 and np.mean(v) > best.get(c, (-1.0, None))[0]:   # 6 rows: drawn twice in a generation
@@ -105,7 +108,8 @@ def main():
         tab = [r for r in L.grid_table(a.task, a.d) if r.get("n_grasps")]
     top = sorted(tab, key=lambda r: -r["best"])[:a.n][a.part::a.parts]
     OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / f"top_{a.task}_d{a.d:g}{'_ff' if ff else ''}{'_ea' if a.ea else ''}.jsonl"
+    from_ = "" if src_tag == HG.ROWS_TAG else f"_from{src_tag or 'work'}"
+    path = OUT / f"top_{a.task}_d{a.d:g}{'_ff' if ff else ''}{'_ea' if a.ea else ''}{HG.ROWS_TAG}{from_}.jsonl"
     done = {(int(x["call"]), bool(x["gpu_filter"])) for x in map(json.loads, path.read_text().splitlines() if
                                                                  path.exists() else []) if x}
     for r in top:
@@ -115,7 +119,8 @@ def main():
             t0 = time.time()
             res, touch = run(a.task, a.d, r["call"], r["best_grasp"], 0, gf, f"{a.grid}_size", hold)
             row = {"task": a.task, "d_mm": a.d, "call": r["call"], "x_sep": r["x_sep"], "y_sep": r["y_sep"],
-                   "grasp": r["best_grasp"], "gpu_best": r["best"], "seed": 0, "gpu_filter": gf,
+                   "grasp": r["best_grasp"], "gpu_best": r["best"], "seed": 0, "gpu_filter": gf, "plant": S.PLANT,
+                   "scenes": os.path.relpath(S.SCENES, ROOT),
                    "finger_touch_periods": touch, "score": L.rollout_score(a.task, res),
                    **{k: res.get(k) for k in ("held", "ramp_three_pads_max_deg", "w_rmse_ratio", "theta_rmse_deg",
                                               "link_force_max_N")}}

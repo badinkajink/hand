@@ -56,9 +56,13 @@ OUT_DIR = K.OUT_DIR
 GEN = ROOT / "assets/mjcf/experimental/20261008-hand_object_scale"
 BASE_HAND = ROOT / "assets/mjcf/real_v1/real_hand.xml"
 OBJ = RB.OBJ                     # the object body keeps the screwdriver's name so the shared tooling finds it
-PLANT = "kp4_kv0_fr1_fl0_dp0.08"
+WORK_PLANT = "kp4_kv0_fr1_fl0_dp0.08"             # fitted to 177 bench replays on 2026-10-06; 4.4x an SCS0009's strength
+SERVO_PLANT = "kp0.72_kv0_fr0.18_fl0_dp0.0144"    # the servo-limited plant: full drive at 18 deg of error, 0.18 N m
+# HOS_PLANT sets the plant for every importer and for the processes it spawns: 'servo', 'work' or a spec string
+PLANT = {"servo": SERVO_PLANT, "work": WORK_PLANT}.get(os.environ.get("HOS_PLANT", ""),
+                                                      os.environ.get("HOS_PLANT") or WORK_PLANT)
 BUILDER = None      # pad stiffness builder of the cell scenes (--builder); None: reorient_backends.PAD_BUILDER (v2)
-DEFAULT_PLANT = PLANT                # cell scenes of another plant (run --plant) carry its spec in the file name
+DEFAULT_PLANT = WORK_PLANT           # cell scenes of another plant (run --plant, HOS_PLANT) carry its spec in the file name
 MU, IMPRATIO = 1.0, 100.0
 MASS = 0.025
 Z_OBJ = 0.120                    # object centre above the table, m
@@ -205,6 +209,10 @@ elif HAND == "cad_v2":
     GEN = ROOT / "assets/mjcf/experimental/20261030-hand_object_scale_cad_v2"
     SCENES = ROOT / "logs/20261030-hand_object_scale_cad_v2/scenes"
     TIP = "tcd_ell7.4x8.5x11x22"
+# HOS_SCENES: a fresh cell-scene cache. A cached scene keeps the pad modulus it was built with (those of 2026-10-30 have
+# 10 MPa), so scenes at the current modulus (reorient_backends.E_TPU) need a directory of their own.
+if os.environ.get("HOS_SCENES"):
+    SCENES = (ROOT / os.environ["HOS_SCENES"]).resolve()
 
 
 def candidates(cell: dict, shape: str, d_mm: float) -> list[dict]:
@@ -363,7 +371,7 @@ def cell_scenes(cell: dict, shape: str, d_mm: float, models=("pads", "pt")) -> d
         ET.ElementTree(root).write(tmp)
         os.replace(tmp, path)
         meta = {"hand": cell["tag"], "hand_model": HAND, "tag": cell["tag"], "shape": shape, "d_mm": d_mm, "model": mdl,
-                "plant": PLANT,
+                "plant": PLANT, "pad_E_Pa": RB.E_TPU, "pad_tr_s": RB.pad_tr(RB.E_TPU),
                 "mu": MU, "impratio": IMPRATIO, "tool7": tool7, "mass_kg": MASS, "f_grip_N": F_GRIP,
                 "design_scene": str(design_scene(xs, ys, shape, d_mm).relative_to(ROOT)),
                 **{k: v for k, v in pads_meta.items() if k != "meshes"}}

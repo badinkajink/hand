@@ -71,6 +71,12 @@ import hom_tasks as T  # noqa: E402
 
 S, H, K, G = T.S, T.H, T.K, T.G
 FINGERS, JOINTS = T.FINGERS, T.JOINTS
+# Rows of a run on another plant (HOS_PLANT) or scene cache (HOS_SCENES) go to directories of their own: HOM_ROWS_TAG is
+# appended to the default rows directories of hom_ea.py, hom_top_cpu_check.py and hom_landscape.py (2026-11-02: the
+# servo-limited plant with pads at 2.5 MPa, tag _sv25).
+ROWS_TAG = os.environ.get("HOM_ROWS_TAG", "")
+if (S.PLANT != S.DEFAULT_PLANT or os.environ.get("HOS_SCENES")) and not ROWS_TAG:
+    raise SystemExit(f"plant {S.PLANT} or HOS_SCENES set without HOM_ROWS_TAG: its rows would join the default plant's")
 assert tuple(FINGERS) == ("thumb", "index", "middle") and T.PINCH == ("thumb", "index") and T.PUSHER == "middle"
 TASKS = ("pinpush", "press", "roll", "twist")
 D_FP = {"pinpush": 25.0, "press": 25.0, "roll": 40.0, "twist": 40.0}   # the toy's objects
@@ -1264,7 +1270,8 @@ def batch_child(spec):
     with open(spec["path"], "a") as fh:
         for wd_, r in zip(chunk, res):
             row = dict(wd_["key"], task=task, d_mm=float(spec["d_mm"]), seed=wd_["seed"], variant=wd_["var"]["var"],
-                       status="ok", engine="mjwarp", hand=K.HAND, **r)
+                       status="ok", engine="mjwarp", hand=K.HAND, plant=S.PLANT,
+                       scenes=os.path.relpath(S.SCENES, ROOT), **r)
             fh.write(json.dumps(row) + "\n")
         fh.flush()
         os.fsync(fh.fileno())

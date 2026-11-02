@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -1920,7 +1921,8 @@ def main():
         SIZE_ROWS, SOBOL_SRC = ROWS / "sizes_v4bff", "sobol8kff"
     if a.grid == "grid2dff":
         global GRID_SRC, GRID_ROWS, EA_DIR
-        GRID_SRC, GRID_ROWS, EA_DIR = "grid2dff", ROWS / "grid2dff_v4b", ROWS / "ea_ff"
+        tag = os.environ.get("HOM_ROWS_TAG", "")     # rows of another plant (hom_gpu.ROWS_TAG)
+        GRID_SRC, GRID_ROWS, EA_DIR = "grid2dff", ROWS / f"grid2dff_v4b{tag}", ROWS / f"ea_ff{tag}"
     return {"stats": cmd_stats, "grid": cmd_grid, "figures": cmd_figures, "derive": cmd_derive, "views": cmd_views,
             "value": cmd_value, "moves": cmd_moves, "moves-report": cmd_moves_report, "local-report": cmd_local_report, "ea": cmd_ea, "ea-figure": cmd_ea_figure, "draws": cmd_draws, "overlap": cmd_overlap, "rerun": cmd_rerun,
             "sobol-rerun": cmd_sobol_rerun,

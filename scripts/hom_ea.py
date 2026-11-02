@@ -41,7 +41,7 @@ import hom_gpu as HG  # noqa: E402
 import hom_landscape as L  # noqa: E402
 
 T = HG.T
-OUT = HG.ROWS / "ea_live"
+OUT = HG.ROWS / f"ea_live{HG.ROWS_TAG}"
 SRC = "grid2dff"                                # the pose toy's grids with the plant's finger clearance
 STEP = 5.0
 LO, HI = np.array([40.0, 50.0]), np.array([160.0, 170.0])     # fp_sr2_toy.LO2, HI2
@@ -177,7 +177,7 @@ def search(live, rng, pop, delta, budget, gens):
     return log
 
 
-OUT_SRC = {"grid2dff": OUT, "grid2dgr": HG.ROWS / "ea_live_gr"}
+OUT_SRC = {"grid2dff": OUT, "grid2dgr": HG.ROWS / f"ea_live_gr{HG.ROWS_TAG}"}
 
 
 def cmd_run(task, d, seed, pop, delta, budget, gens, src=SRC):
@@ -218,7 +218,7 @@ def cmd_report(seed=0, src=SRC):
     """Per task and size: the share of layouts that reach the pose, the EA's outcome and the full grid's where one ran.
     Writes rows/ea_live[_gr]/summary.json and the figures 20261030-size_trends[_gr].png and size_reach[_gr].png."""
     inv = {c: xy for xy, c in lattice().items()}
-    out_dir, grid = OUT_SRC[src], HG.ROWS / f"{src}_v4b"
+    out_dir, grid = OUT_SRC[src], HG.ROWS / f"{src}_v4b{HG.ROWS_TAG}"
     out = {}
     for task in HG.TASKS:
         for d in SIZES[T.SHAPE[task]]:
@@ -232,7 +232,7 @@ def cmd_report(seed=0, src=SRC):
                 print(task, d, {k: v for k, v in res.items() if k in ("reach", "ea", "grid")}, flush=True)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "summary.json").write_text(json.dumps({"near": NEAR, "seed": seed, "src": src, **out}, indent=1))
-    fig_trends(out, "" if src == SRC else "_gr")
+    fig_trends(out, ("" if src == SRC else "_gr") + HG.ROWS_TAG)
     base = OUT_SRC[SRC] / "summary.json"
     if src != SRC and base.exists():
         fig_table_compare(json.loads(base.read_text()), out)
