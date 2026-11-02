@@ -88,6 +88,10 @@ def exp_so3(w):
 
 
 def log_so3(R):
+    U_, _, Vt = np.linalg.svd(np.asarray(R, float))         # the nearest rotation first: near 180 deg the formula below
+    R = U_ @ np.diag([1.0, 1.0, np.sign(np.linalg.det(U_ @ Vt))]) @ Vt   # turns a plan's 7-decimal rounding (7e-6 off
+    #                                                         orthonormal) into a degree (2026-11-02, the probe straight
+    #                                                         down at 178.6 deg: every IK target 1.0 deg off its pose)
     c = min(1.0, max(-1.0, (np.trace(R) - 1.0) / 2.0))
     th = math.acos(c)
     v = np.array([R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]])
