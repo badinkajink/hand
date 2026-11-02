@@ -2130,6 +2130,15 @@ def cmd_dry_check(a):
                stages=list(stages), safe_mm=a.safe, hub_dz=a.hub_dz, program_plans=a.program, need=NEED, seats={},
                rows=[])
     carry = None                                        # --chain: (flange pose, joints) where the plan before ended
+    if a.start_after:                                   # where that plan's run ended: its last grid action's rest
+        prog0 = json.loads(Path(a.start_after).read_text())
+        src0 = json.loads((ROOT / prog0["checks"]["source"]).read_text())
+        HOME_KEY[0] = int(prog0["homing"]["key"])
+        ctx0 = context(dict(orient=src0["orient"], seat_h=SEAT_BLOCK["seat_h"]), tool=src0["tool"])
+        x0 = [x for x in prog0["actions"] if x["stage"] == "grid"][-1]
+        T0_, _, _ = program_rest(prog0, ctx0, x0, float(x0.get("standoff", 1.5)))
+        q0_ = np.asarray(x0["q_rest"], float)
+        carry = (T0_, ik_near(T0_[None], q0_, branch=branch_of(q0_))[0])
     for fi, f in enumerate(a.program):
         prog = json.loads(Path(f).read_text())
         src = json.loads((ROOT / prog["checks"]["source"]).read_text())
@@ -2534,6 +2543,8 @@ def main():
     dc.add_argument("--safe", type=float, default=None, help="mm: in place of the plans' travel.probe.safe_mm")
     dc.add_argument("--hub-dz", type=float, default=None, help="mm: a hub this far over the apex in place of the plans'")
     dc.add_argument("--tag", default="", help="appended to the output's name")
+    dc.add_argument("--start-after", default="", help="a program plan: start where its run ended (its last grid "
+                    "action's rest), as the overnight plans follow seat 3's")
     dc.add_argument("--fit", default="", help="RX,RY,RZ,TX,TY,TZ: each seat's pad moved so in P (deg about x_P, y_P, "
                     "z_P, then mm), as a registration found it; the grid aims by it")
     de = sub.add_parser("dry-exact")
