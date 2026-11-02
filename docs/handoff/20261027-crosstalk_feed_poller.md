@@ -11,8 +11,10 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. Last check 11-02 08:00: the watcher exited 3, no news in 230 min
-(HEAD e9aabd86, 38 lines, no new holds; no commit by another session since 21:35 on 10-31). The commits since 14:45 on 10-31 are the HOM window's pages, the contact
+State: armed 2026-10-27 21:00 from the colorado window. Last check 11-02 11:51: the watcher exited 3, no news in 230 min
+(HEAD 03f1952f, 38 lines, no new holds). The commits of 11-02 are HOM work and the documentation's revisions page
+(484cc151, CLAUDE.md 39ac30d6): every page build now also rewrites docs/changelog.html through docs_index.refresh();
+commit it with the page, or only this job's lines when other windows' commits are in it. The commits since 14:45 on 10-31 are the HOM window's pages, the contact
 pages reworded (bbae9301) and the status page; none touches this job's files or the v3 folder. Relaunched. At 10:55
 the calibration page's Section 7 dropped its stale 'analysis to come' for v3 ID 3 (its sessions analysed on 10-30, the
 physical model checked on their holds; learned models to come). The section on v3 ID 3 waits for the coordinator's
