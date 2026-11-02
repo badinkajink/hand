@@ -580,7 +580,8 @@ folder tree in {n_topics} topics. A topic opens to its study folders, newest fir
 pages, each with its size, the script in <code>scripts/</code> that rebuilds it and its copy on claude.ai where they
 exist, and to a folder of the other files beside them: data, films, images, print files and bench plans. That folder lists two levels of
 subfolders and at most {CAP} files per folder besides the print files, with a link to the folder for the rest. The result
-pages, data and media are Git LFS files; the commands that fetch them are <a href="#fetch">at the end</a>.</p>
+pages, data and media are Git LFS files; the commands that fetch them are <a href="#fetch">at the end</a>. The
+<a href="changelog.html">revisions page</a> lists each page&#8217;s changes with links to its older versions.</p>
 </header>
 <h2 id="find">Find a page</h2>
 <p class="findui" id="findui" hidden><input type="search" id="q" size="44" placeholder="Words of the title or summary"
@@ -694,7 +695,9 @@ git -c lfs.fetchexclude= lfs pull --include="docs/experiments/**/*.html"</pre>
 <code>git -c lfs.fetchexclude= lfs pull --include="docs/experiments/20261004-codex/**"</code>.
 The <a href="pages.html">index of result pages</a> lists each page&#8217;s size, the script that rebuilds it and its copy
 on claude.ai where one exists. It also gives the command that fetches one topic.
-<a href="{rel("docs/experiments/INDEX.md")}">INDEX.md</a> lists the same pages by date with a sentence on each.</p>
+<a href="{rel("docs/experiments/INDEX.md")}">INDEX.md</a> lists the same pages by date with a sentence on each.
+The <a href="changelog.html">revisions page</a> lists every page&#8217;s changes in git, newest first, each with a link to
+that version of the page on GitHub.</p>
 
 <h2>Code</h2>
 <p><code>src/morphohand/</code> contains the simulation, RL, sampling and bench-replay code. <code>scripts/</code>

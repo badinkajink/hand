@@ -1,0 +1,17 @@
+{
+ "about": "One-line summaries for docs/changelog.html (scripts/docs_changelog.py), by page. 'commits' maps a commit (its first 9 characters) to a summary that replaces the commit's subject; 'earlier' lists the revisions made before the page had a stable name, newest first.",
+ "pages": {
+  "docs/overviews/contact_model.html": {
+   "earlier": [
+    {"date": "2026-10-09", "file": "docs/experiments/20261009-contact_overview/20261009-sphere_pad_contact_model.html",
+     "summary": "Policies trained on four fingertip contact models; the plain page style."},
+    {"date": "2026-10-08", "file": "docs/experiments/20261008-contact_overview/20261008-sphere_pad_contact_model.html",
+     "summary": "Native-compliance candidates, the Newton hydroelastic tests and the hand-object scale study."},
+    {"date": "2026-10-07", "file": "docs/experiments/20261007-contact_overview/20261007-sphere_pad_contact_model.html",
+     "summary": "Agreement of the pads with Drake across MuJoCo, MuJoCo-Warp and Newton; effective mass; the cost on one RL state."},
+    {"date": "2026-10-05", "file": "docs/experiments/20261005-contact_overview/20261005-sphere_pad_contact_model.html",
+     "summary": "First revision: the sphere-packed pad model of the printed fingertip."}
+   ]
+  }
+ }
+}

@@ -22,7 +22,8 @@ refresh() rewrites every index from docs_inventory.records():
   - the index table of each topic overview built by scripts/topic_overview_page.py, between its <!--docs-index-->
     markers, without rebuilding the overview's figures: the pages its text module lists, then every other page of the
     topic with its summary;
-  - docs/pages.json, the same records for scripts and agents.
+  - docs/pages.json, the same records for scripts and agents;
+  - docs/changelog.html, every page's revisions with links to each older version on GitHub (scripts/docs_changelog.py).
 A page in docs/ cannot read other files when opened from the file system, so the pages are found here, in Python, and
 written into the indices; the search on pages.html runs over a list embedded in it.
 
@@ -226,6 +227,9 @@ def refresh(check: bool = False, quiet: bool = False, written=None) -> list[str]
         import docs_home_page
         for path in docs_home_page.main(quiet=True):
             changes.append(os.path.relpath(path, ROOT))
+        import docs_changelog
+        if docs_changelog.main(quiet=True):
+            changes.append(os.path.relpath(docs_changelog.OUT, ROOT))
     if not quiet:
         print("\n".join(changes) if changes else "every index is up to date")
     return changes
