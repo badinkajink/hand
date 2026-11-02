@@ -1054,6 +1054,15 @@ push that answers it arrives.
     describes the one for joint 6 near 0. The lab rebuilds the program plans and changes the program (joint moves to
     each action's joints, the wrist window from the plan, the path from the homing); pass 1, the walls and the dry
     run are checked again on them before the owner's go.
+  - 15:3x on 11-02, workstation (ee772007): the lab's program plans for seats 1 to 3 (v3 IDs 6, 5, 4, from 4b7999e2
+    and aimed by the strip's two-key frame) replay as they run, seat after seat (`dry-check --real --chain`). No joint
+    or travel move is flagged. In the seams the stem keeps 9.35 mm from the previous seat's tip body. Pass 1's touches
+    to 5 mm past contact are checked as a frame error they ride out, and none is flagged. 86 travels start on the pad's
+    surface after a twist whose press ran its full 2.0 mm, and the lab changes that return for the overnight plans. A
+    15 mm back-off and a hub 40 mm over the apex replay as clean as 45 and 90 mm; they are the table cell's values now.
+    The board GP's held-out error on v3 IDs 1 to 3 still falls with more points: from half to all of them, location
+    0.56-0.63 to 0.46-0.51 mm and force direction 4.2-4.9 to 3.9-4.3 deg. Torsion has no skill on IDs 2 and 3
+    (`ur5_tip_calibration_v3_data_curve.py`). The overnight obliques (lab, 15:25) are building.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
     15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
     4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
