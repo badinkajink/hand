@@ -266,13 +266,11 @@ pgrep -af wrench_viewer.py      # a running viewer: kill -INT the PID of its pyt
 cd ~/Programs/hand
 BOARD=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_40:4C:CA:4C:49:C4-if00            # C6, mux 0x71
 # BOARD=/dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00 # QT Py, mux 0x70
-ARGS=(--mux "$BOARD" --http 8790 --floor 1.0 --names "ID 1" "ID 2" "ID 3"
-      --calib logs/20261020-contact_estimation/calib/20261026-134217-id_1-calib.json
-              docs/experiments/20261022-ur5_tip_calibration/data/20261025-152920-cb2t/calib_rest.json
-              logs/20261020-contact_estimation/calib/20261025-112147-calib.json
-      --correction docs/experiments/20261022-ur5_tip_calibration/data/20261023-203938-cb1t
-                   docs/experiments/20261022-ur5_tip_calibration/data/20261025-152920-cb2t -
-      --board-gp docs/experiments/20261022-ur5_tip_calibration/data/20261026-board_gp_id1_id2.npz)
+C=logs/20261020-contact_estimation/calib
+ARGS=(--mux "$BOARD" --http 8790 --floor 1.0 --case four_05R4 --names "ID 1" "ID 2" "ID 3"
+      --calib $C/20261102-v3_id_1-calib.json $C/20261102-v3_id_2-calib.json $C/20261102-v3_id_3-calib.json
+      --correction logs/20261028-spherev3id1_twists logs/20261029-spherev3id2 logs/20261030-spherev3id3
+      --board-gp docs/experiments/20261022-ur5_tip_calibration/data/20261102-board_gp_v3_id1_id3.npz)
 ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py "${ARGS[@]}"
 ```
 
@@ -285,14 +283,29 @@ nohup setsid ~/.claude/bin/resguard.sh run --mem 3G --cpu 200 -- ~/miniconda3/bi
 ```
 
 Names, calibrations and UR5 corrections go one per board, in the order of the mux channels, with `-` for none. The
-arguments above are the three v1 fingertips of 2026-10-26, ID 1, ID 2 and ID 3 on channels 0, 1 and 2 of the C6's mux.
-At start the viewer prints the channels with a board and the name given to each, as
-`boards on mux channels [0, 1, 2]: ID 1, ID 2, ID 3`. A board without a name is labelled by its channel. Each
-fingertip's rest is calibrated in its first 2 s, so the pads stay untouched then. On 2026-10-27 the two UR5 corrections
-were learned in 8 and 21 s. `--floor 1.0` sets the noise floor to 1 µT; the default is 2 µT. The two calibrations under
-`logs/` exist only on this workstation, because `logs/` is not tracked by git. Stream logs and new calibrations are
-written to `logs/20261020-contact_estimation/stream/` and `calib/`. The flags, the one-board firmware and the estimates
-are described in [`src/morphohand/driver/reskin5x/README.md`](src/morphohand/driver/reskin5x/README.md).
+arguments above are the three v3 fingertips of 2026-11-02, ID 1, ID 2 and ID 3 on channels 0, 1 and 3 of the C6's mux.
+`--case four_05R4` selects their pad, four magnets in a checkerboard. Each tip's calibration is its UR5 rest fit with
+the board's offset limited to 0.43 to 1.03 mm, its correction is learned on its sphere session's presses, and the board
+GP is pooled over the sphere and rod sessions of all three tips. At start the viewer prints the channels with a board
+and the name given to each, as `boards on mux channels [0, 1, 3]: ID 1, ID 2, ID 3`. A board without a name is
+labelled by its channel. Each fingertip's rest is calibrated in its first 2 s, so the pads stay untouched then. On
+2026-11-02 the three UR5 corrections were learned in 21 to 27 s. `--floor 1.0` sets the noise floor to 1 µT; the
+default is 2 µT. The calibrations and the UR5 sessions under `logs/` exist only on this workstation, because `logs/` is
+not tracked by git. Stream logs and new calibrations are written to `logs/20261020-contact_estimation/stream/` and
+`calib/`. The flags, the one-board firmware and the estimates are described in
+[`src/morphohand/driver/reskin5x/README.md`](src/morphohand/driver/reskin5x/README.md).
+
+The three five-magnet v1 fingertips of 2026-10-26, on channels 0, 1 and 2, took these arguments instead:
+
+```bash
+ARGS=(--mux "$BOARD" --http 8790 --floor 1.0 --names "ID 1" "ID 2" "ID 3"
+      --calib $C/20261026-134217-id_1-calib.json
+              docs/experiments/20261022-ur5_tip_calibration/data/20261025-152920-cb2t/calib_rest.json
+              $C/20261025-112147-calib.json
+      --correction docs/experiments/20261022-ur5_tip_calibration/data/20261023-203938-cb1t
+                   docs/experiments/20261022-ur5_tip_calibration/data/20261025-152920-cb2t -
+      --board-gp docs/experiments/20261022-ur5_tip_calibration/data/20261026-board_gp_id1_id2.npz)
+```
 
 ---
 

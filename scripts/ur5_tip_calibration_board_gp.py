@@ -8,8 +8,16 @@ standardized with the board's 1 uT floor, outputs standardized, one length and o
 summed log marginal likelihood. The squared distances are formed from dot products, so the fit needs O(N^2) memory
 where GP.fit's broadcast needs O(N^2 d); --check compares the two on a subset.
 
+The v3 tips' GP (2026-11-02) is pooled over the sphere and rod sessions of v3 ID 1 to ID 3, 9,185 presses and slides
+analysed under logs/. The fit took 63 s and 3.4 GB on four cores, and the marginal likelihood was highest at length
+1.94 and noise 0.3. On 300 of its holds the two fits agreed to 3e-13.
+
     .venv/bin/python scripts/ur5_tip_calibration_board_gp.py [--sessions 20261023-203938-cb1t 20261025-114653-cb1r
         20261025-152920-cb2t] [--kinds press slide] [--check] [--out data/20261026-board_gp_id1_id2.npz]
+    ~/.claude/bin/resguard.sh run --mem 4G --cpu 500 -- env OPENBLAS_NUM_THREADS=4 taskset -c 0-3 .venv/bin/python \\
+        scripts/ur5_tip_calibration_board_gp.py --check --sessions logs/20261028-spherev3id1_twists logs/20261028-rodv3id1 \\
+        logs/20261029-spherev3id2 logs/20261029-rodv3id2 logs/20261030-spherev3id3 logs/20261030-rodv3id3 \\
+        --out docs/experiments/20261022-ur5_tip_calibration/data/20261102-board_gp_v3_id1_id3.npz
 """
 from __future__ import annotations
 
@@ -19,6 +27,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+from scipy.linalg import cho_solve
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -29,9 +38,11 @@ SESSIONS = ("20261023-203938-cb1t", "20261025-114653-cb1r", "20261025-152920-cb2
 
 
 def holds(sessions, kinds):
+    """The holds of each session: a folder under DATA by name, or any analysed session folder by path (the v3 tips'
+    are under logs/, 2026-11-02)."""
     X, Y, src = [], [], []
     for s in sessions:
-        z = np.load(DATA / s / "holds.npz", allow_pickle=True)
+        z = np.load((Path(s) if Path(s).is_dir() else DATA / s) / "holds.npz", allow_pickle=True)
         ok = (np.isin(z["kind"].astype(str), kinds) & np.isfinite(z["d_board"]).all(1) & np.isfinite(z["p"]).all(1)
               & np.isfinite(z["f"]).all(1))
         X.append(z["d_board"][ok])
@@ -61,7 +72,7 @@ def fit(X, Y, floor):
                 L = np.linalg.cholesky(K0)
             except np.linalg.LinAlgError:
                 continue
-            a = np.linalg.solve(L.T, np.linalg.solve(L, T))
+            a = cho_solve((L, True), T)                 # the two triangular solves: no LU copies of the N x N factor
             ll = -0.5 * np.sum(T * a) - T.shape[1] * np.sum(np.log(np.diag(L)))
             if best is None or ll > best[0]:
                 best = (ll, ell, nz, a)

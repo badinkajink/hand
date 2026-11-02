@@ -76,10 +76,20 @@ conditioned on the 256 holds of largest kernel weight, which leaves it 0.011 to 
 average. On those presses w was 0.8 to 0.98 between 1 and 4 N and 0 to 0.07 above 5 N. The panel's contact line gives
 w, and the table gives the force's direction and its angle from the inward normal.
 
+Four-magnet pads (2026-11-02). --case four_05R4 sets up pad 05R4 of the v3 fingertips, four N52 magnets in a 5.0 mm
+checkerboard. It selects the pad's field model (fingertip_wrench_model.fe_row), its FE surface basis
+(data/20261028-b_05R4_surface_basis.npz) and the case of every new calibration. With four magnets the strength and the
+board's offset dx are nearly interchangeable in the rest fit: the free fit put v3 ID 1 and ID 2 at strength 2.0, its
+upper bound, with dx 2.6 to 2.7 mm. In a new calibration of this case dx is therefore limited to 0.43 to 1.03 mm
+(--dx-range), v2 ID 1's 0.73 mm within 0.3 mm, as in the physical-model check of 2026-10-30
+(scripts/fingertip_physical_model_v3_check.py). That check's fits gave strengths of 1.07 to 1.14 at 0.23 to 0.32 mT.
+The UR5 correction is learned on the physical estimates of the model the board starts from (--calib, else the session's
+calib_rest.json), with the viewer's basis.
+
     ~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py [--port /dev/ttyACM0] [--http 8790]
         [--board-cal docs/experiments/20261020-fingertip_contact_estimation/data/20261020-calib_pad_as_found.json]
         [--poles 1 1 1 1 1] [--replay rec.csv] [--no-log] [--foreign-gate] [--correction <UR5 session data folder>]
-        [--calib logs/20261020-contact_estimation/calib/<time>-calib.json]
+        [--calib logs/20261020-contact_estimation/calib/<time>-calib.json] [--case four_05R4]
     ... --mux /dev/serial/by-id/<mux board> --names "ID 1" "ID 2" --calib <cal 1> <cal 2> --correction <folder 1> <folder 2>
         --board-gp docs/experiments/20261022-ur5_tip_calibration/data/20261026-board_gp_id1_id2.npz
 then open http://localhost:8790. Keys (every board): b new baseline, c recalibrate at rest (keep the pad untouched),
@@ -110,6 +120,8 @@ from reskin5x_plot import Reader, MuxReader, ADDRS  # noqa: E402
 DATA = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data"
 BASIS = DATA / "20261020-b_v2_surface_basis.npz"
 BOARD_CAL = DATA / "20261020-calib_pad_as_found.json"
+DX_RANGE = {"four_05R4": (0.43, 1.03)}   # the board's offset dx (mm) in a new calibration: v2 ID 1's 0.73 mm within 0.3 mm
+                                         # (docstring, "Four-magnet pads")
 REC_DIR = ROOT / "logs/20261020-contact_estimation"
 WIN_S, FRAME_S, REST_S = 0.05, 1 / 30, 2.0
 PAD_OFF_MT, PAD_ON_MT = 0.5, 1.0   # field magnitude over the 15 components: 0.16 mT with no pad, 9-13 mT with the pads of 10-22
@@ -228,8 +240,9 @@ class App:
         self.a = a
         self.name, self.calib_arg, self.correction_arg, self.board_gp = name, calib, correction, board_gp
         self.tag = f"-{slug(name)}" if name else ""
+        self.case = a.case
         self.basis = W.load_basis(a.basis)
-        self.row = W.fe_row(str(self.basis["case"]))
+        self.row = W.fe_row(a.case)
         self.tris = self.basis["tris"]
         self.pads = Pads(self.basis["pts"], self.basis["normals"], self.basis["pad_area"], float(self.row["E_best_MPa"]),
                          self.basis["node_centroid"])
@@ -290,6 +303,8 @@ class App:
     def saved_model(self, path):
         """(calibration, model, estimator, steel test) of a saved calibration (--calib)."""
         cal = W.Calib.load(path)
+        if cal.case != self.case:
+            raise SystemExit(f"{path} is a calibration of pad case {cal.case}; the viewer's case is {self.case} (--case)")
         model = W.Model(cal, self.row)
         est = W.SurfaceEstimator(model, self.basis, floor_uT=self.floor)
         est.set_noise_scale(1 / np.sqrt(WIN_S * 140))
@@ -326,7 +341,8 @@ class App:
                 return
             self.T_cal = r[:, :, 0].mean(0)
             t0 = time.time()
-            cal = W.calibrate_frames_fixed(b_rest, self.board, poles=tuple(self.a.poles) if self.a.poles else None)
+            cal = W.calibrate_frames_fixed(b_rest, self.board, case=self.case,
+                                           poles=tuple(self.a.poles) if self.a.poles else None, dx_range=self.a.dx_range)
             if prev is not None:
                 kept = self.kept_fit(prev[1], b_rest)
                 if kept <= cal.rms_mT:
@@ -398,7 +414,9 @@ class App:
         import ur5_tip_calibration_predict as PR
         t0 = time.time()
         H, _, cal0 = PR.load(folder)
-        Pv, Fv = PR.Physical(cal0, W.load_basis(PR.BASIS)).predict(H, np.arange(len(H["id"])))
+        if self.calib_arg:                                    # the model the board starts from, whose estimates it corrects
+            cal0 = W.Calib.load(self.calib_arg)
+        Pv, Fv = PR.Physical(cal0, self.basis).predict(H, np.arange(len(H["id"])))
         ok = np.all(np.isfinite(Pv), axis=1) & np.isfinite(Fv)
         self.gp = PR.GP().fit(np.c_[Pv, Fv][ok], np.c_[H["p"][ok] - Pv[ok], H["f_n"][ok] - Fv[ok]],
                               np.array([0.2, 0.2, 0.2, 0.05]))
@@ -692,9 +710,15 @@ def main():
     ap.add_argument("--board-gp", default=None, help="a pooled GP from the board's change to the contact point and force "
                     "(scripts/ur5_tip_calibration_board_gp.py): an estimate of its own, shown from the start (g cycles)")
     ap.add_argument("--http", type=int, default=8790)
-    ap.add_argument("--basis", default=str(BASIS), help="FE surface basis (scripts/fingertip_wrench_fe.py --surface)")
+    ap.add_argument("--case", default="b_v2", choices=sorted(W.SURFACE_BASES), help="the pad's magnet layout "
+                    "(fingertip_wrench_model.fe_row): b_v2 for the five-magnet tips, four_05R4 for the v3 tips")
+    ap.add_argument("--basis", default=None, help="FE surface basis (scripts/fingertip_wrench_fe.py --surface); default: "
+                    "the case's")
+    ap.add_argument("--dx-range", type=float, nargs=2, default=None, help="limits (mm) of the board's offset dx in a new "
+                    "calibration; default 0.43 1.03 for four_05R4, none for b_v2")
     ap.add_argument("--board-cal", default=str(BOARD_CAL), help="a full calibration of this board (chip frames)")
-    ap.add_argument("--poles", type=int, nargs=5, default=None, help="known poles, e.g. 1 1 1 1 1 for N52 inserted one way")
+    ap.add_argument("--poles", type=int, nargs="+", default=None, help="known poles, one per magnet, e.g. 1 1 1 1 1 for "
+                    "N52 inserted one way")
     ap.add_argument("--threshold", type=float, default=25.0, help="explained chi-square above which a contact is shown")
     ap.add_argument("--min-force", type=float, default=0.25, help="pressing force (N) above which a contact is shown")
     ap.add_argument("--floor", type=float, default=2.0, help="noise floor (uT a component) added to the chips' noise")
@@ -715,6 +739,8 @@ def main():
     ap.add_argument("--replay-seconds", type=float, default=None, help="replay only the first this many seconds")
     ap.add_argument("--no-log", action="store_true", help="do not write the stream log")
     a = ap.parse_args()
+    a.basis = a.basis or str(W.basis_path(a.case) or BASIS)
+    a.dx_range = a.dx_range or DX_RANGE.get(a.case)
     gp = BoardGP(a.board_gp) if a.board_gp else None
 
     def pick(values, k):

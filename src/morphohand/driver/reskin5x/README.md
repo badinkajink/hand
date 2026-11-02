@@ -133,6 +133,17 @@ contact line gives w, and the table gives the force's direction in the tip frame
         --names "ID 1" "ID 2" --calib <ID 1 calib_rest.json> <ID 2 calib_rest.json> --correction <cb1t folder> <cb2t folder> \
         --board-gp docs/experiments/20261022-ur5_tip_calibration/data/20261026-board_gp_id1_id2.npz
 
+The four-magnet v3 fingertips (pad 05R4) take `--case four_05R4` (2026-11-02). It selects their field model and FE
+surface basis, and it limits the board's offset in a new calibration to 0.43 to 1.03 mm. With four magnets the free
+rest fit trades the strength against that offset, and on v3 ID 1 and ID 2 it went to strength 2.0 at 2.6 to 2.7 mm.
+Each tip's calibration is its UR5 rest fit within that limit, at strength 1.07, 1.12 and 1.14 of N52
+(`logs/20261020-contact_estimation/calib/20261102-v3_id_<n>-calib.json`). Its correction is learned on its sphere
+session's presses. The board GP `data/20261102-board_gp_v3_id1_id3.npz` is pooled over the sphere and rod sessions of
+the three tips, 9,185 presses and slides. On 2026-11-02 the tips sat on channels 0, 1 and 3 of the C6's mux. With a
+field from outside the pad removed, each channel's rest differed from its own tip's UR5 rest by 0.06 to 0.07 mT and
+from the other tips' by 0.27 to 0.35 mT. The UR5 models were kept, fitting the rests at 0.20, 0.11 and 0.25 mT against
+0.27, 0.21 and 0.34 mT for new calibrations. The top-level README gives the command.
+
 The same firmware runs on a SparkFun Thing Plus ESP32-C6, whose Qwiic connector is `Wire` on GPIO6 and GPIO7, a bus it
 shares with the board's LiPo fuel gauge at 0x36 (2026-10-25). Its mux answered at 0x71. With one finger on channel 0 it
 streams 537 records/s in the one-board format, so `host/wrench_viewer.py --port` reads its port with no splitter. The
