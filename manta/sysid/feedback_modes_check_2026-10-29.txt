@@ -1,0 +1,75 @@
+driver: /tmp/mh_fb/manta_hand/servos.py
+position@free          {'rate_hz': 86.2, 'period_ms_median': 12.0, 'period_ms_max': 13.01, 'deadline_misses': 0, 'transactions': 6219, 'timeouts': 0, 'speed_sign_agree': None, 'max_temp_c': 22.0}
+position@50Hz          {'rate_hz': 50.1, 'period_ms_median': 20.0, 'period_ms_max': 21.17, 'deadline_misses': 0, 'transactions': 3618, 'timeouts': 0, 'speed_sign_agree': None, 'max_temp_c': 22.0}
+position_load@free     {'rate_hz': 85.1, 'period_ms_median': 12.0, 'period_ms_max': 13.01, 'deadline_misses': 0, 'transactions': 6138, 'timeouts': 0, 'speed_sign_agree': None, 'max_temp_c': 22.0}
+position_load@50Hz     {'rate_hz': 50.1, 'period_ms_median': 20.0, 'period_ms_max': 22.0, 'deadline_misses': 0, 'transactions': 3618, 'timeouts': 0, 'speed_sign_agree': None, 'max_temp_c': 22.0}
+all@free               {'rate_hz': 84.2, 'period_ms_median': 12.0, 'period_ms_max': 13.01, 'deadline_misses': 0, 'transactions': 6075, 'timeouts': 0, 'speed_sign_agree': '513/787', 'max_temp_c': 22.0}
+all@50Hz               {'rate_hz': 50.1, 'period_ms_median': 20.0, 'period_ms_max': 21.02, 'deadline_misses': 0, 'transactions': 3618, 'timeouts': 0, 'speed_sign_agree': '521/591', 'max_temp_c': 22.0}
+  ALL TORQUE OFF (end of test)
+JSON_BEGIN
+{
+ "port": "/dev/ttyUSB1",
+ "runs": {
+  "position@free": {
+   "rate_hz": 86.2,
+   "period_ms_median": 12.0,
+   "period_ms_max": 13.01,
+   "deadline_misses": 0,
+   "transactions": 6219,
+   "timeouts": 0,
+   "speed_sign_agree": null,
+   "max_temp_c": 22.0
+  },
+  "position@50Hz": {
+   "rate_hz": 50.1,
+   "period_ms_median": 20.0,
+   "period_ms_max": 21.17,
+   "deadline_misses": 0,
+   "transactions": 3618,
+   "timeouts": 0,
+   "speed_sign_agree": null,
+   "max_temp_c": 22.0
+  },
+  "position_load@free": {
+   "rate_hz": 85.1,
+   "period_ms_median": 12.0,
+   "period_ms_max": 13.01,
+   "deadline_misses": 0,
+   "transactions": 6138,
+   "timeouts": 0,
+   "speed_sign_agree": null,
+   "max_temp_c": 22.0
+  },
+  "position_load@50Hz": {
+   "rate_hz": 50.1,
+   "period_ms_median": 20.0,
+   "period_ms_max": 22.0,
+   "deadline_misses": 0,
+   "transactions": 3618,
+   "timeouts": 0,
+   "speed_sign_agree": null,
+   "max_temp_c": 22.0
+  },
+  "all@free": {
+   "rate_hz": 84.2,
+   "period_ms_median": 12.0,
+   "period_ms_max": 13.01,
+   "deadline_misses": 0,
+   "transactions": 6075,
+   "timeouts": 0,
+   "speed_sign_agree": "513/787",
+   "max_temp_c": 22.0
+  },
+  "all@50Hz": {
+   "rate_hz": 50.1,
+   "period_ms_median": 20.0,
+   "period_ms_max": 21.02,
+   "deadline_misses": 0,
+   "transactions": 3618,
+   "timeouts": 0,
+   "speed_sign_agree": "521/591",
+   "max_temp_c": 22.0
+  }
+ }
+}
+JSON_END

@@ -1,0 +1,45 @@
+servo port /dev/ttyUSB0
+fe1 (servo 4) start 47.17 deg, max target 32.17 (limits [-15.0, 64.75]); fe2 (servo 5) held at -2.34 deg
+
+Setup: tare the scale EMPTY, then place it so the index fingertip rests lightly on it.
+Curling (fe1 +) must press the fingertip INTO the scale. Torque is still off.
+[up  0] fe1 target  47.17  at  47.17 deg  fe1 load     0.0  fe2 load     0.0
+[up  1] fe1 target  46.57  at  47.46 deg  fe1 load    90.0  fe2 load     0.0
+[up  2] fe1 target  45.97  at  45.79 deg  fe1 load     0.0  fe2 load     0.0
+[up  3] fe1 target  45.37  at  46.00 deg  fe1 load    75.0  fe2 load     0.0
+[up  4] fe1 target  44.77  at  44.53 deg  fe1 load     0.0  fe2 load     0.0
+[up  5] fe1 target  44.17  at  44.53 deg  fe1 load     0.0  fe2 load     0.0
+[up  6] fe1 target  43.57  at  43.65 deg  fe1 load     0.0  fe2 load     0.0
+[up  7] fe1 target  42.97  at  43.95 deg  fe1 load    90.0  fe2 load     0.0
+[up  8] fe1 target  42.37  at  43.95 deg  fe1 load   120.0  fe2 load     0.0
+[up  9] fe1 target  41.77  at  43.95 deg  fe1 load   150.0  fe2 load     0.0
+[up 10] fe1 target  41.17  at  43.36 deg  fe1 load   150.0  fe2 load     0.0
+[up 11] fe1 target  40.57  at  43.36 deg  fe1 load   180.0  fe2 load     0.0
+[up 12] fe1 target  39.97  at  43.36 deg  fe1 load   210.0  fe2 load     0.0
+[up 13] fe1 target  39.37  at  42.77 deg  fe1 load   210.0  fe2 load     0.0
+[up 14] fe1 target  38.77  at  42.77 deg  fe1 load   240.0  fe2 load     0.0
+[up 15] fe1 target  38.17  at  42.77 deg  fe1 load   270.0  fe2 load     0.0
+[up 16] fe1 target  37.57  at  42.19 deg  fe1 load   270.0  fe2 load     0.0
+[up 17] fe1 target  36.97  at  42.21 deg  fe1 load   300.0  fe2 load     0.0
+   load cap 300 reached; unloading
+[down 16] fe1 target  37.57  at  42.22 deg  fe1 load   270.0  fe2 load     0.0
+[down 15] fe1 target  38.17  at  42.46 deg  fe1 load   253.1  fe2 load     0.0
+[down 14] fe1 target  38.77  at  42.48 deg  fe1 load   225.0  fe2 load     0.0
+[down 13] fe1 target  39.37  at  42.48 deg  fe1 load   195.0  fe2 load     0.0
+[down 12] fe1 target  39.97  at  42.48 deg  fe1 load   165.0  fe2 load     0.0
+[down 11] fe1 target  40.57  at  42.48 deg  fe1 load   135.0  fe2 load     0.0
+[down 10] fe1 target  41.17  at  42.48 deg  fe1 load   105.0  fe2 load     0.0
+[down  9] fe1 target  41.77  at  42.48 deg  fe1 load    75.0  fe2 load     0.0
+[down  8] fe1 target  42.37  at  42.19 deg  fe1 load     0.0  fe2 load     0.0
+[down  7] fe1 target  42.97  at  42.19 deg  fe1 load     0.0  fe2 load     0.0
+[down  6] fe1 target  43.57  at  43.18 deg  fe1 load     0.0  fe2 load     0.0
+[down  5] fe1 target  44.17  at  43.36 deg  fe1 load     0.0  fe2 load     0.0
+[down  4] fe1 target  44.77  at  43.95 deg  fe1 load   -60.0  fe2 load     0.0
+[down  3] fe1 target  45.37  at  43.95 deg  fe1 load   -90.0  fe2 load     0.0
+[down  2] fe1 target  45.97  at  43.96 deg  fe1 load  -119.1  fe2 load     0.0
+[down  1] fe1 target  46.57  at  45.70 deg  fe1 load   -60.0  fe2 load     0.0
+[down  0] fe1 target  47.17  at  45.92 deg  fe1 load   -92.8  fe2 load     0.0
+
+TORQUE OFF: end of test
+bus timeouts 0/9040
+wrote 2239 samples, 35 steps to /tmp/load_scale_cal*.csv

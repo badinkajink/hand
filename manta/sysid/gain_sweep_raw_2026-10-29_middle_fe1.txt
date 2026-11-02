@@ -1,0 +1,3 @@
+finger 2 fe1 (servo 7): gains (15, 0, 15), lock 1, start 1.46, center 1.46, settings [(15, 0, 15), (30, 0, 15), (45, 0, 15), (15, 0, 15)]
+  P15I0D15: running
+  P15I0D15: done, 21 C

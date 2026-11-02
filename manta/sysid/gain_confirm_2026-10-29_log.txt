@@ -1,0 +1,54 @@
+=== index_fe1_amp2
+  P15I0D15: done, 23 C
+  P22I0D15: done, 23 C
+  P30I0D90: done, 23 C
+  P30I0D45: done, 23 C
+  P15I0D15: done, 23 C
+  gains restored to (15, 0, 15)
+=== index_fe1_amp8
+  P15I0D15: done, 23 C
+  P22I0D15: done, 23 C
+  P30I0D90: done, 23 C
+  P30I0D45: done, 23 C
+  P15I0D15: done, 23 C
+  gains restored to (15, 0, 15)
+=== middle_fe1_amp2
+  P15I0D15: done, 20 C
+  P22I0D15: done, 20 C
+  P30I0D90: done, 20 C
+  P30I0D45: done, 20 C
+  P15I0D15: done, 20 C
+  gains restored to (15, 0, 15)
+=== middle_fe1_amp8
+  P15I0D15: done, 20 C
+  P22I0D15: done, 20 C
+  P30I0D90: done, 20 C
+  P30I0D45: done, 20 C
+  P15I0D15: done, 21 C
+  gains restored to (15, 0, 15)
+=== thumb_fe2_amp2
+  P15I0D15: done, 20 C
+  P22I0D15: done, 20 C
+  P30I0D90: done, 20 C
+  P30I0D45: done, 20 C
+  P15I0D15: done, 20 C
+  gains restored to (15, 0, 15)
+=== thumb_fe2_amp8
+  P15I0D15: done, 21 C
+  P22I0D15: done, 21 C
+  P30I0D90: done, 21 C
+  P30I0D45: done, 21 C
+  P15I0D15: done, 21 C
+  gains restored to (15, 0, 15)
+=== index_aa_amp2
+  P15I0D15: done, 21 C
+  P22I0D15: done, 21 C
+  !! ABORT: P30I0D90: oscillating (7 reversals)
+  gains restored to (15, 0, 15)
+=== index_aa_amp4
+  P15I0D15: done, 22 C
+  P22I0D15: done, 22 C
+  P30I0D90: done, 22 C
+  P30I0D45: done, 23 C
+  P15I0D15: done, 23 C
+  gains restored to (15, 0, 15)

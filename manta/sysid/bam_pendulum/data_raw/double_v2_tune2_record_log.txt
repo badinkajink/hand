@@ -1,0 +1,30 @@
+=== --gains 22 --kd 45
+run circle, P gain 22 (temps [29, 23] C)
+  circle kp 22: ok; 5839 samples in 21.5 s (271 Hz); path tracking error rms 1.9/2.3 deg, max 5.7/4.5 deg (j1/j2); max |load| 445.0/353.0
+run square, P gain 22 (temps [29, 23] C)
+  square kp 22: ok; 5860 samples in 21.5 s (272 Hz); path tracking error rms 1.7/2.0 deg, max 4.8/4.8 deg (j1/j2); max |load| 489.0/428.0
+run square_wave, P gain 22 (temps [28, 23] C)
+  square_wave kp 22: ok; 5880 samples in 21.5 s (273 Hz); path tracking error rms 2.3/3.0 deg, max 9.3/11.7 deg (j1/j2); max |load| 661.0/747.0
+run triangle_wave, P gain 22 (temps [28, 23] C)
+  triangle_wave kp 22: ok; 5870 samples in 21.5 s (273 Hz); path tracking error rms 1.6/1.8 deg, max 5.4/3.8 deg (j1/j2); max |load| 513.0/311.0
+all runs done; bus retries 0
+=== --gains 26 --kd 90
+run circle, P gain 26 (temps [28, 23] C)
+  circle kp 26: ok; 5810 samples in 21.5 s (270 Hz); path tracking error rms 1.8/2.1 deg, max 6.0/4.1 deg (j1/j2); max |load| 795.0/651.0
+run square, P gain 26 (temps [28, 23] C)
+  square kp 26: ok; 5889 samples in 21.5 s (274 Hz); path tracking error rms 1.6/1.9 deg, max 4.1/4.6 deg (j1/j2); max |load| 807.0/445.0
+run square_wave, P gain 26 (temps [28, 24] C)
+  square_wave kp 26: ok; 5899 samples in 21.5 s (274 Hz); path tracking error rms 2.3/3.1 deg, max 10.0/12.3 deg (j1/j2); max |load| 799.0/877.0
+run triangle_wave, P gain 26 (temps [28, 23] C)
+  triangle_wave kp 26: ok; 5794 samples in 21.5 s (269 Hz); path tracking error rms 1.5/1.7 deg, max 3.7/3.6 deg (j1/j2); max |load| 639.0/485.0
+all runs done; bus retries 0
+=== --gains 30 --kd 150
+run circle, P gain 30 (temps [28, 23] C)
+  circle kp 30: ok; 5786 samples in 21.5 s (269 Hz); path tracking error rms 2.0/2.3 deg, max 6.1/5.0 deg (j1/j2); max |load| 1000.0/775.0
+run square, P gain 30 (temps [28, 24] C)
+  square kp 30: ok; 5930 samples in 21.5 s (275 Hz); path tracking error rms 1.7/1.9 deg, max 5.6/4.7 deg (j1/j2); max |load| 1000.0/915.0
+run square_wave, P gain 30 (temps [28, 24] C)
+  square_wave kp 30: ok; 5861 samples in 21.5 s (272 Hz); path tracking error rms 2.7/3.9 deg, max 11.2/16.1 deg (j1/j2); max |load| 1000.0/1000.0
+run triangle_wave, P gain 30 (temps [29, 24] C)
+  triangle_wave kp 30: ok; 5865 samples in 21.5 s (272 Hz); path tracking error rms 1.5/1.6 deg, max 5.2/4.0 deg (j1/j2); max |load| 925.0/855.0
+all runs done; bus retries 0

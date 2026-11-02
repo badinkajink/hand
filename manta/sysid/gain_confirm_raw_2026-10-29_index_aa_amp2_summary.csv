@@ -1,0 +1,4 @@
+run,setting,hz,rms_err,jitter,max_err,moves_per_s,jump_med,jump_max,stuck_med_ms,load_abs_mean,hold_err,hold_load,temp_c
+1,P15I0D15,884,1.45,0.07,2.86,3.9,0.29,1.76,40,87,0.29,0,21.0
+2,P22I0D15,886,1.22,0.115,2.83,8.1,0.29,2.34,24,92,0.88,89,21.0
+3,P30I0D90,888,1.01,0.164,1.91,8.8,0.29,0.88,28,98,0.59,75,

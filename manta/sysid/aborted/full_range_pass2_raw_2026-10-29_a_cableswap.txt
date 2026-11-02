@@ -1,0 +1,1 @@
+finger 0 aa (servo 0): start -4.39, sweep [-10.00, 10.00], limits [-85.0, 85.0], ~26s, backstop 40s

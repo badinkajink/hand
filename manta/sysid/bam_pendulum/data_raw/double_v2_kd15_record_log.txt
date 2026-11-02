@@ -1,0 +1,53 @@
+circle         q1   -55.5 ..   -3.7   q2   +37.6 .. +107.1   OK
+square         q1   -61.6 ..   +6.0   q2   +28.3 .. +108.5   OK
+square_wave    q1   -64.9 ..  +10.6   q2   +30.3 .. +102.2   OK
+triangle_wave  q1   -58.6 ..  +10.6   q2   +30.3 .. +101.7   OK
+run circle, P gain 15 (temps [30, 21] C)
+  TORQUE OFF (end of run)
+  circle kp 15: ok; 5912 samples in 21.5 s (275 Hz); path tracking error rms 1.9/2.8 deg, max 5.7/5.4 deg (j1/j2); max |load| 320.0/330.0
+  saved data_raw/double_v2_kd15/20261029_155351_circle_kp15_kd15.json
+run square, P gain 15 (temps [30, 22] C)
+  TORQUE OFF (end of run)
+  square kp 15: ok; 5852 samples in 21.5 s (272 Hz); path tracking error rms 1.9/2.7 deg, max 5.4/6.0 deg (j1/j2); max |load| 390.0/330.0
+  saved data_raw/double_v2_kd15/20261029_155415_square_kp15_kd15.json
+run square_wave, P gain 15 (temps [30, 22] C)
+  TORQUE OFF (end of run)
+  square_wave kp 15: ok; 5807 samples in 21.5 s (270 Hz); path tracking error rms 2.6/3.6 deg, max 8.0/14.4 deg (j1/j2); max |load| 435.0/675.0
+  saved data_raw/double_v2_kd15/20261029_155438_square_wave_kp15_kd15.json
+run triangle_wave, P gain 15 (temps [29, 22] C)
+  TORQUE OFF (end of run)
+  triangle_wave kp 15: ok; 5816 samples in 21.5 s (270 Hz); path tracking error rms 1.9/2.4 deg, max 4.7/4.6 deg (j1/j2); max |load| 320.0/270.0
+  saved data_raw/double_v2_kd15/20261029_155502_triangle_wave_kp15_kd15.json
+run circle, P gain 30 (temps [29, 22] C)
+  TORQUE OFF (end of run)
+  circle kp 30: ok; 5828 samples in 21.5 s (271 Hz); path tracking error rms 2.2/1.7 deg, max 6.3/4.4 deg (j1/j2); max |load| 750.0/495.0
+  saved data_raw/double_v2_kd15/20261029_155526_circle_kp30_kd15.json
+run square, P gain 30 (temps [29, 23] C)
+  TORQUE OFF (end of run)
+  square kp 30: ok; 5832 samples in 21.5 s (271 Hz); path tracking error rms 2.1/1.5 deg, max 6.6/5.4 deg (j1/j2); max |load| 675.0/555.0
+  saved data_raw/double_v2_kd15/20261029_155549_square_kp30_kd15.json
+run square_wave, P gain 30 (temps [30, 23] C)
+  TORQUE OFF (end of run)
+  square_wave kp 30: ok; 5824 samples in 21.5 s (271 Hz); path tracking error rms 1.8/2.0 deg, max 7.7/8.9 deg (j1/j2); max |load| 765.0/810.0
+  saved data_raw/double_v2_kd15/20261029_155613_square_wave_kp30_kd15.json
+run triangle_wave, P gain 30 (temps [29, 23] C)
+  TORQUE OFF (end of run)
+  triangle_wave kp 30: ok; 5830 samples in 21.5 s (271 Hz); path tracking error rms 1.4/1.4 deg, max 3.9/3.4 deg (j1/j2); max |load| 645.0/405.0
+  saved data_raw/double_v2_kd15/20261029_155636_triangle_wave_kp30_kd15.json
+run circle, P gain 45 (temps [29, 23] C)
+  TORQUE OFF (end of run)
+  circle kp 45: ok; 5862 samples in 21.5 s (272 Hz); path tracking error rms 3.3/1.6 deg, max 7.9/4.4 deg (j1/j2); max |load| 1000.0/675.0
+  saved data_raw/double_v2_kd15/20261029_155700_circle_kp45_kd15.json
+run square, P gain 45 (temps [33, 23] C)
+  TORQUE OFF (end of run)
+  square kp 45: ok; 5824 samples in 21.5 s (271 Hz); path tracking error rms 3.2/1.4 deg, max 8.5/4.8 deg (j1/j2); max |load| 1000.0/765.0
+  saved data_raw/double_v2_kd15/20261029_155724_square_kp45_kd15.json
+run square_wave, P gain 45 (temps [36, 24] C)
+  TORQUE OFF (end of run)
+  square_wave kp 45: ok; 5849 samples in 21.5 s (272 Hz); path tracking error rms 3.2/1.8 deg, max 10.0/7.9 deg (j1/j2); max |load| 1000.0/1000.0
+  saved data_raw/double_v2_kd15/20261029_155747_square_wave_kp45_kd15.json
+run triangle_wave, P gain 45 (temps [38, 24] C)
+  TORQUE OFF (end of run)
+  triangle_wave kp 45: ok; 5804 samples in 21.5 s (270 Hz); path tracking error rms 3.1/1.4 deg, max 7.6/4.0 deg (j1/j2); max |load| 1000.0/750.0
+  saved data_raw/double_v2_kd15/20261029_155811_triangle_wave_kp45_kd15.json
+all runs done; bus retries 0
