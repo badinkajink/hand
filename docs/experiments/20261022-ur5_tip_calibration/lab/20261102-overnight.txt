@@ -1,0 +1,7 @@
+# NAME SEAT PLAN: the overnight runs after seat 3, in order (seams join one seat to the next); each needs logs/20261102-ok-NAME
+speed3 3 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_speed_seat3_v3id4.json
+speed2 2 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_speed_seat2_v3id5.json
+speed1 1 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_speed_seat1_v3id6.json
+fast1 1 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_fast_seat1_v3id6.json
+fast2 2 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_fast_seat2_v3id5.json
+fast3 3 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_fast_seat3_v3id4.json
