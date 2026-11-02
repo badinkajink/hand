@@ -88,6 +88,10 @@ def exp_so3(w):
 
 
 def log_so3(R):
+    U_, _, Vt = np.linalg.svd(np.asarray(R, float))         # the nearest rotation first: near 180 deg the formula below
+    R = U_ @ np.diag([1.0, 1.0, np.sign(np.linalg.det(U_ @ Vt))]) @ Vt   # turns a plan's 7-decimal rounding (7e-6 off
+    #                                                         orthonormal) into a degree (2026-11-02, the probe straight
+    #                                                         down at 178.6 deg: every IK target 1.0 deg off its pose)
     c = min(1.0, max(-1.0, (np.trace(R) - 1.0) / 2.0))
     th = math.acos(c)
     v = np.array([R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]])
@@ -1048,7 +1052,11 @@ class Session:
         self.geo = Geometry(plan)
         self.reg = Registration(self.geo)
         self.safety = dict(plan.get("safety", {}))
-        self.wrist_window = tuple(float(v) for v in str(getattr(args, "wrist_window", "30,100")).split(","))
+        ww = getattr(args, "wrist_window", None) or self.safety.get("wrist_window") or "30,100"
+        self.wrist_window = tuple(float(v) for v in (ww.split(",") if isinstance(ww, str) else ww))
+        tw = self.safety.get("travel_wrist_window")                 # probe mode: the lift and the home path run in
+        self.travel_window = tuple(float(v) for v in tw) if tw else None   # this window, from the homing's branch
+        self.wrist_travel = False
         self.safety.setdefault("abort_N", 10.0)
         self.safety.setdefault("abort_Nm", 1.5)
         self.safety.setdefault("box_mm", 400.0)
@@ -1058,6 +1066,7 @@ class Session:
         self.probe = self.geo.probe is not None
         self.last_d = None              # probe mode: the last target's push direction (base), for the recovery
         self.from_homing = False        # probe mode: the robot stands where the homing left it (out of the key)
+        self.started = False            # probe mode with a home path: the session's first travel has been made
         self.prev_ok = None             # the last action that ended ok in this run
         ids = [a["id"] for a in plan["actions"]]
         self.prev_in_plan = dict(zip(ids[1:], ids[:-1]))
@@ -1105,8 +1114,12 @@ class Session:
             if self.now() - t0 > timeout:
                 raise Abort("the robot did not come to rest")
 
+    def window(self):
+        """Joint 5's window now: the plan's travel window while the lift and the home path run, else the work window."""
+        return self.travel_window if self.wrist_travel and self.travel_window else self.wrist_window
+
     def wrist_ok(self, q):
-        lo, hi = self.wrist_window
+        lo, hi = self.window()
         return lo <= math.degrees(float(q[4])) <= hi
 
     def check_wrist(self, q=None, target=False):
@@ -1116,8 +1129,9 @@ class Session:
         if not self.wrist_ok(q):
             if not target:
                 self.be.robot.stopL(3.0)
+            lo, hi = self.window()
             raise Abort(f"joint 5 {'target' if target else 'at'} {math.degrees(float(q[4])):.1f} deg, outside "
-                        f"{self.wrist_window[0]:.0f} to {self.wrist_window[1]:.0f} deg")
+                        f"{lo:.0f} to {hi:.0f} deg")
 
     def check_ft(self, tare=None):
         """Abort on a stale HEX-E stream, a protective stop, a load past the limits (relative to tare), or joint 5
@@ -1154,23 +1168,42 @@ class Session:
         p = apply(inv(self.reg.T_BI), T[:3, 3])
         return np.all(np.abs(p[:2]) < self.safety["box_mm"]) and -20.0 < p[2] < self.safety["box_mm"]
 
-    def goto(self, T, v=0.02, a=0.2, joint=False, jv=0.4, ja=0.6):
+    def goto(self, T, v=0.02, a=0.2, joint=False, jv=0.4, ja=0.6, q_ref=None):
         if not self.in_box(T):
             raise Abort("target outside the box around the indenter")
         _, w0 = self.be.ft.ring.latest()
-        if joint:                       # joint moves go to the IK branch of the homing pose, as the plan checked them
-            q_ref = self.reg.q_home if getattr(self.reg, "q_home", None) is not None else self.be.robot.q()
-            q = self.be.robot.ik(T, q_ref)
+        if joint:                       # joint moves go to the IK branch the plan checked: q_ref (probe mode: the action's
+            if q_ref is None:           # own joints, or the hub's), else the homing pose's
+                q_ref = self.reg.q_home if getattr(self.reg, "q_home", None) is not None else self.be.robot.q()
+            q = self.be.robot.ik(T, np.asarray(q_ref, float))
             if q is None:
                 raise Abort("no IK solution")
             self.check_wrist(q, target=True)
             self.be.robot.moveJ(q, jv, ja, asynchronous=True)
         else:
             self.be.robot.moveL(T, v, a, asynchronous=True)
+        self.await_move(w0, T=T)
+
+    def goto_q(self, q_deg, jv=0.4, ja=0.6):
+        """A joint waypoint of the plan's home path (deg): a joint move there, guarded as goto's."""
+        q = np.radians(np.asarray(q_deg, float))
+        self.check_wrist(q, target=True)
+        _, w0 = self.be.ft.ring.latest()
+        self.be.robot.moveJ(q, jv, ja, asynchronous=True)
+        self.await_move(w0, q=q)
+
+    def await_move(self, w0, T=None, q=None):
+        """Watch a move started asynchronously until the robot is steady: abort on the HEX-E's or the wrist's checks, a
+        load past travel_abort_N, 60 s, or a stop off its target (T, 1 mm and 0.5 deg; or joints q, 0.5 deg)."""
+        def off():                      # mm (or deg of the farthest joint) from the target
+            if q is not None:
+                return math.degrees(float(np.abs(self.be.robot.q() - q).max()))
+            return pose_error(self.be.robot.pose(), T)[0]
+
         t0 = self.now()
         self.sleep(0.05)
         lim = float(self.safety.get("travel_abort_N", 8.0))      # the payload's weight turns by at most 3.6 N
-        while not self.be.robot.steady() or (self.now() - t0 < 0.2 and pose_error(self.be.robot.pose(), T)[0] > 1.0):
+        while not self.be.robot.steady() or (self.now() - t0 < 0.2 and off() > (0.5 if q is not None else 1.0)):
             self.check_ft()
             _, w = self.be.ft.ring.latest()
             if w0 is not None and np.linalg.norm(w[:3] - w0[:3]) > lim:
@@ -1179,6 +1212,10 @@ class Session:
             self.sleep(0.01)
             if self.now() - t0 > 60.0:
                 raise Abort("travel took over 60 s")
+        if q is not None:
+            if off() > 0.5:
+                raise Abort(f"the robot stopped {off():.2f} deg from its joint target")
+            return
         e = pose_error(self.be.robot.pose(), T)
         if e[0] > 1.0 or e[1] > 0.5:
             raise Abort(f"the robot stopped {e[0]:.2f} mm, {e[1]:.2f} deg from its target")
@@ -1212,7 +1249,14 @@ class Session:
         checked for this action (a['travel_ws']): straight (back travel.probe.retract_mm along the stem, across, in), joint
         (back safe_mm, a joint move to safe_mm back from the target, in) or hub (the joint move by way of the hub pose over
         the seat). From the homing, out of the key along -x_M by a['homing_lift_mm'] first, then the joint move. A straight
-        way only follows the action the replay had before it; any other start takes the joint move."""
+        way only follows the action the replay had before it; any other start takes the joint move. Joint moves solve near
+        the action's own joints (a['q_rest']) and the hub's (hub.q), in the branch the replay checked.
+
+        A plan with travel.probe.home_path_q (the owner's press configuration of 2026-11-02, another IK branch than the
+        homing's) goes from the homing's lift through those joints (deg; the last is the hub's) with joint 5 held to
+        safety.travel_wrist_window, then on. The session's first travel starts from the homing key only when the robot
+        stands on the line out of it; inside the work wrist window it backs off along the stem and goes by the hub; any
+        other start stops the run."""
         cfg = dict(speed=1.0)
         cfg.update(self.plan.get("travel", {}))
         pr = cfg.get("probe", {})
@@ -1224,11 +1268,34 @@ class Session:
             return
         way = a.get("travel_ws", "joint")
         safe, ret = float(pr.get("safe_mm", 45.0)), float(pr.get("retract_mm", 12.0))
+        path, hub, q_rest = pr.get("home_path_q"), pr.get("hub") or {}, a.get("q_rest")
+        if path and q_rest is None:
+            raise Abort("a joint move with no q_rest in a plan with a home path")
+        if path and not self.started:
+            self.started = True
+            if not self.from_homing:
+                if self.on_homing_line(Tc, float(a.get("homing_lift_mm", 30.0))):
+                    self.from_homing = True
+                elif self.wrist_ok(self.be.robot.q()):
+                    way = "hub"                                      # over the seats, placed by hand
+                else:
+                    raise Abort("the robot stands neither out of the homing key nor in the work wrist window: take it "
+                                "to the key or over a seat by hand")
         if self.from_homing:
-            up = Tc[:3, :3] @ (self.reg.T_EM[:3, :3] @ np.array([-1.0, 0.0, 0.0]))
-            self.goto(Tm(Tc[:3, :3], Tc[:3, 3] + up * float(a.get("homing_lift_mm", 30.0))), 0.02 * k, 0.2 * k)
+            lift_mm = float(a.get("homing_lift_mm", 30.0))
+            self.wrist_travel = bool(path)               # the lift and the home path start in the homing's branch
+            try:
+                if path:                                 # to the line's end (12 mm of homing and the lift), from the seat
+                    self.goto(self.T_lift(lift_mm), 0.02 * k, 0.2 * k)     # or from anywhere on the line
+                    for q in path:
+                        self.goto_q(q, 0.4 * kj, 0.6 * kj)
+                else:
+                    up = Tc[:3, :3] @ (self.reg.T_EM[:3, :3] @ np.array([-1.0, 0.0, 0.0]))
+                    self.goto(Tm(Tc[:3, :3], Tc[:3, 3] + up * lift_mm), 0.02 * k, 0.2 * k)
+            finally:
+                self.wrist_travel = False
             self.from_homing = False
-            way = "hub" if way == "hub" else "joint"
+            way = "joint" if path else ("hub" if way == "hub" else "joint")    # the home path ends at the hub's joints
         elif way == "straight" and self.prev_ok == self.prev_in_plan.get(a["id"]) and deg <= 20.0 and mm <= 30.0:
             self.goto(self.back_along(Tc, ret), 0.02 * k, 0.2 * k)
             self.goto(self.back_along(T_target, ret), 0.02 * k, 0.2 * k)
@@ -1236,11 +1303,74 @@ class Session:
             return
         else:
             way = "hub" if way == "hub" else "joint"
-            self.goto(self.back_along(Tc, safe), 0.03 * k, 0.2 * k)
+            if not self.clear_above(Tc, safe):          # back off only near the pad: an aborted action's next travel
+                self.goto(self.back_along(Tc, safe), 0.03 * k, 0.2 * k)    # climbed safe_mm each time (11-02, p1dry)
         if way == "hub":
-            self.goto(np.array(pr["hub"]["T_BE"], float), joint=True, jv=0.4 * kj, ja=0.6 * kj)
-        self.goto(self.back_along(T_target, safe), joint=True, jv=0.4 * kj, ja=0.6 * kj)
+            self.goto(np.array(hub["T_BE"], float), joint=True, jv=0.4 * kj, ja=0.6 * kj, q_ref=hub.get("q"))
+        self.goto(self.back_along(T_target, safe), joint=True, jv=0.4 * kj, ja=0.6 * kj, q_ref=q_rest)
         self.goto(T_target, 0.01 * k, 0.2 * k)
+
+    def stage_return(self):
+        """Probe mode with a home path: back to the homing key's line by the plan's way back: safe_mm along the stem and
+        the hub (from the work wrist window), the home path backwards with joint 5 held to the travel window, then the
+        lift pose (T_lift, the homing's branch). The robot ends 12 mm and the lift out of the key."""
+        cfg = dict(speed=1.0)
+        cfg.update(self.plan.get("travel", {}))
+        pr = cfg.get("probe", {})
+        path, hub = pr.get("home_path_q"), pr.get("hub") or {}
+        if not (self.probe and path and "T_BE" in hub and self.reg.T_BE_home is not None):
+            raise SystemExit("return needs probe mode, travel.probe.home_path_q and hub, and the homing")
+        k = float(cfg["speed"])
+        kj = min(k, 1.5)
+        lift_mm = float(pr.get("homing_lift_mm", 30.0))
+        self.log.event(event="start", id="return", stage="return", kind="return")
+        if self.on_homing_line(self.be.robot.pose(), lift_mm):
+            print("return: the robot already stands out of the homing key", flush=True)
+        else:
+            if not self.wrist_ok(self.be.robot.q()):
+                raise SystemExit("return: the robot is outside the work wrist window; take it back by hand")
+            self.goto(self.back_along(self.be.robot.pose(), float(pr.get("safe_mm", 45.0))), 0.03 * k, 0.2 * k)
+            self.goto(np.array(hub["T_BE"], float), joint=True, jv=0.4 * kj, ja=0.6 * kj, q_ref=hub.get("q"))
+            self.wrist_travel = True
+            try:
+                for q in reversed(path[:-1]):              # the path's last waypoint is the hub's joints
+                    self.goto_q(q, 0.4 * kj, 0.6 * kj)
+                self.goto(self.T_lift(lift_mm), joint=True, jv=0.4 * kj, ja=0.6 * kj, q_ref=self.reg.q_home)
+            finally:
+                self.wrist_travel = False
+        self.from_homing = True
+        self.log.event(event="end", id="return", status="ok")
+
+    def up_key(self):
+        """Probe mode with a home path: out of the homing key along the key's pin, z_I (the fixture's frame; 2026-11-02:
+        the probe base sits about 2.7 deg about its axis off the fork's T_EM, so -x_M ran 2 mm off the pin over 42 mm)."""
+        return self.reg.T_BI[:3, 2]
+
+    def clear_above(self, T, mm):
+        """Probe mode: whether the sphere's centre at flange pose T stands mm or more over the seat's apex (z_I), clear
+        of the pad by mm and the sphere's radius."""
+        seat = getattr(self.geo, "seat", None) or {}
+        if not self.probe or "apex_A" not in seat or self.reg.T_BI is None:
+            return False
+        c = apply(inv(self.reg.T_BI) @ T @ self.reg.T_EM, np.asarray(self.reg.c_M, float))
+        return float(c[2]) >= float(seat["apex_A"][2]) + float(self.geo.R) + mm
+
+    def T_lift(self, lift_mm):
+        """Probe mode: the homing pose moved out of the key along its pin by the homing's 12 mm and lift_mm."""
+        Th = self.reg.T_BE_home
+        return Tm(Th[:3, :3], Th[:3, 3] + self.up_key() * (12.0 + lift_mm))
+
+    def on_homing_line(self, T, lift_mm, tol_mm=2.0, tol_deg=1.0):
+        """Whether the flange pose T stands on the line out of the homing key, from seated to T_lift (within tol)."""
+        Th = self.reg.T_BE_home
+        if Th is None:
+            return False
+        up = self.up_key()
+        d = T[:3, 3] - Th[:3, 3]
+        s = float(d @ up)
+        _, e_deg = pose_error(T, Th)
+        return (-tol_mm <= s <= 12.0 + lift_mm + tol_mm and float(np.linalg.norm(d - s * up)) <= tol_mm
+                and e_deg <= tol_deg)
 
     def travel(self, T_target, a=None):
         """From wherever the tool is to T_target near the indenter, as the plan checked it: up 10 mm, across, down; or,
@@ -1474,6 +1604,8 @@ class Session:
             self.be.operator("the robot is stopped: clear the protective stop on the pendant", kind="clear")
         try:
             Tc = self.be.robot.pose()
+            if self.clear_above(Tc, 20.0):                       # probe mode: already clear of the pad (an abort before
+                return                                           # any motion), so no lift
             self.be.robot.moveL(Tm(Tc[:3, :3], Tc[:3, 3] - self.approach_dir() * 5.0), 0.005, 0.05)
         except Exception as e:                                   # noqa: BLE001
             print("  recovery move failed:", e)
@@ -1517,22 +1649,25 @@ class Session:
 
     def home_from_file(self):
         """The flange pose of a recorded seating on the indenter's key (--home-from FILE:LABEL, a JSON line with label and
-        T_tcp_mm, the flange pose in mm as 4 x 4: the hand seatings of 2026-10-22), for runs with nobody at the robot."""
+        T_tcp_mm, the flange pose in mm as 4 x 4: the hand seatings of 2026-10-22), for runs with nobody at the robot; and
+        its joints (q_deg, rad here) when the record has them, else None."""
         path, _, label = self.args.home_from.rpartition(":")
         recs = [json.loads(s) for s in Path(path).read_text().splitlines() if s.strip()]
         hit = [r for r in recs if r.get("label") == label]
         if not hit:
             raise SystemExit(f"--home-from: no record labelled {label!r} in {path}")
-        return np.array(hit[-1]["T_tcp_mm"], float)
+        q = hit[-1].get("q_deg")
+        return np.array(hit[-1]["T_tcp_mm"], float), (np.radians(np.asarray(q, float)) if q is not None else None)
 
     def stage_homing(self):
         if "homing" in self.done and self.reg.T_BI is not None:
             return
         n = int(self.plan.get("homing", {}).get("repeats", 3))
-        poses = []
+        poses, q_seed = [], None
         self.log.event(event="start", id="homing", stage="homing", kind="homing")
         if getattr(self.args, "home_from", None):
-            poses = [self.home_from_file()]
+            T, q_seed = self.home_from_file()               # the seating's own joints: the homing's branch, wherever
+            poses = [T]                                     # the robot stands now
             n = 0
             print(f"homing: from the recorded seating {self.args.home_from} (no freedrive, nothing moves)", flush=True)
         what = (f"seat the probe's socket on the strip's key {int(self.plan.get('homing', {}).get('key', 0)) + 1} (palmar "
@@ -1553,8 +1688,15 @@ class Session:
         Th = mean_pose(poses)
         spread = [pose_error(Th, T) for T in poses]
         self.reg.T_BE_home = Th
-        self.reg.q_home = self.be.robot.ik(Th, self.be.robot.q())
+        self.reg.q_home = self.be.robot.ik(Th, q_seed if q_seed is not None else self.be.robot.q())
         self.reg.T_BI = Th @ self.reg.T_EM @ inv(self.geo.T_IM_home)
+        if getattr(self.args, "frame", None):       # the fixture's frame measured otherwise (both keys of the strip):
+            T_fr = np.array(json.loads(Path(self.args.frame).read_text())["T_BA"], float)   # the seating still gives
+            e = pose_error(T_fr, self.reg.T_BI)                                               # the homing's line
+            print(f"homing: the fixture's frame from {self.args.frame}, {e[0]:.2f} mm and {e[1]:.2f} deg from the "
+                  "seating's own", flush=True)
+            self.reg.notes["frame_from"] = dict(file=str(self.args.frame), d_mm=e[0], d_deg=e[1])
+            self.reg.T_BI = T_fr
         self.reg.notes["homing_spread_mm_deg"] = spread
         print(f"homing: {len(poses)} seatings within {max(s[0] for s in spread):.3f} mm, {max(s[1] for s in spread):.3f} deg "
               "of their mean")
@@ -1567,13 +1709,19 @@ class Session:
     def check_placement(self, max_mm=20.0, max_yaw=5.0, max_tilt=2.0):
         """The plan's reach and clearance checks hold for the placement it was built on (checks.placement_mm_deg: x, y, z
         in the base frame, yaw of x_I about z_B). Homing measures the real one; past the limits the operator moves the
-        plywood, rebuilds the plan, or types 'continue'."""
-        pl = self.plan.get("checks", {}).get("placement_mm_deg")
-        if pl is None:
+        plywood, rebuilds the plan, or types 'continue'. A plan built on a measured frame (checks.T_BA, the probe plans of
+        2026-11-02 on a tilted strip) is compared with that frame, its tilt with the frame's."""
+        chk = self.plan.get("checks", {})
+        pl, Tp = chk.get("placement_mm_deg"), chk.get("T_BA")
+        if pl is None and Tp is None:
             return
         p, R = self.reg.T_BI[:3, 3], self.reg.T_BI[:3, :3]
         yaw = math.degrees(math.atan2(R[1, 0], R[0, 0]))
         tilt = math.degrees(math.acos(float(np.clip(R[2, 2], -1.0, 1.0))))
+        if Tp is not None:
+            Tp = np.array(Tp, float)
+            pl = list(Tp[:3, 3]) + [math.degrees(math.atan2(Tp[1, 0], Tp[0, 0]))]
+            tilt = math.degrees(math.acos(float(np.clip(Tp[:3, 2] @ R[:, 2], -1.0, 1.0))))
         dp = p - np.array(pl[:3], float)
         dyaw = (yaw - pl[3] + 180.0) % 360.0 - 180.0
         self.reg.notes["placement_offset_mm_deg"] = dict(d_mm=dp.tolist(), d_yaw=dyaw, tilt=tilt)
@@ -2056,6 +2204,8 @@ class Session:
                 self.stage_gravity("final_gravity")
             elif s == "hover":
                 self.stage_hover()
+            elif s == "return":
+                self.stage_return()
             else:
                 raise SystemExit(f"unknown stage {s}")
         self.log.save("registration.json", self.reg.to_json())
@@ -2079,9 +2229,14 @@ def main(argv=None):
                     "reskin5x_mux_stream behind an I2C mux), recorded into held.bin; give --board too when it is set")
     ap.add_argument("--home-from", default=None, help="FILE:LABEL, a recorded seating on the key (JSON lines with label "
                     "and T_tcp_mm) in place of the three freedrive seatings: for runs with nobody at the robot")
+    ap.add_argument("--frame", default=None, help="JSON with T_BA: the fixture's frame in B measured otherwise (lab "
+                    "20261102-strip_frame_two_keys.json, both keys of the strip), in place of the homing's own; the homing "
+                    "still gives the seating, its joints and the line out of the key")
     ap.add_argument("--stages", default=",".join(STAGES))
-    ap.add_argument("--wrist-window", default="30,100", help="deg: joint 5 stays within LO,HI in every move and target "
-                    "(the lab plan of 2026-10-22 needs 37 to 90 deg outside the mount stage)")
+    ap.add_argument("--wrist-window", default=None, help="deg: joint 5 stays within LO,HI in every move and target; "
+                    "default the plan's safety.wrist_window, else 30,100 (the lab plan of 2026-10-22 needs 37 to 90 deg "
+                    "outside the mount stage). The lift and the home path of a probe plan hold to "
+                    "safety.travel_wrist_window instead")
     ap.add_argument("--gravity-expect-N", type=float, default=None, help="N: the weight of an earlier sweep with the same "
                     "tool; a fitted weight over 5 %% from it stops the session before any contact (2026-10-22: 1.567 N "
                     "in first2, before the HEX-E's cable port was squeezed)")

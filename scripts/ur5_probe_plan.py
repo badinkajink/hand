@@ -22,6 +22,11 @@ the CAD: each added touch-off is the one that most lowers the expected squared m
 sphere's centre stands in P against where it was aimed), through the fit's posterior covariance. A twist action presses to 3 N, turns, holds 1 s at each angle, and is followed at the same point by the
 same twist at 1 N (owner, 13:4x on 10-30: stronger twists; workstation: hold about 1 s for the Tz noise).
 
+A seat plan of the table cell (cell "table", 11-02: the strip on the table, the probe straight down in the owner's IK
+branch) brings its own hub, start, homing lift and joint path from the lift to the hub (home_path_q, deg); the program
+plan takes them into travel.probe, with the work wrist window (safety.wrist_window), the travel window of the lift and the
+path (safety.travel_wrist_window) and the plan's measured T_BA (checks.T_BA), and every seat homes on key 1.
+
 With --walls (the workstation's ur5_inverted_rig.py walls: data/20261030-seat_block_walls.json), stage wall touches the
 cap's flat side walls, two heights 6 mm apart on each, for the seat's turn about z_P. Each wall takes the travel of the
 workstation's pass1-check --walls of these plans (--walls-check: data/20261030-seat_block_pass1_check.json), whose rows
@@ -48,9 +53,11 @@ import ur5_inverted_rig as RIG  # noqa: E402
 C = RIG.C
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
 GEOM_PLAN = LAB / "20261029-plan_sphere_lab_pass1_night_v3id3.json"       # the pad's surface, T_ES and the mount's face
-KEY_OF_SEAT = {0: 0, 1: 0, 2: 1}                                          # key 1 serves seats 1 and 2, key 2 seat 3
-HELD_CHANNEL = {0: 3, 1: 1, 2: 0}   # the held boards' mux channels on b4:3a:45:b0:d9:94 (owner, 14:3x on 10-30, the strip's
-#                                     README step 5): seat 1 v3 ID 1 on 3, seat 2 v3 ID 3 on 1, seat 3 v3 ID 2 on 0
+HELD_CHANNEL = {0: 3, 1: 2, 2: 0}   # the held boards' mux channels on b4:3a:45:b0:d9:94 (owner, 11-02 13:0x): seat 1 v3 ID 6
+#                                     on 3, seat 2 v3 ID 5 on 2, seat 3 v3 ID 4 on 0 (10-30: v3 IDs 1, 3, 2 on 3, 1, 0)
+TRAVEL_WRIST = [-100.0, 100.0]      # deg, joint 5 during the lift and the home path of a plan in the owner's branch (11-02):
+#                                     from the homing's +39 through 0 to the presses' -97, never near +-180 where the HEX-E's
+#                                     port meets the forearm
 TWISTS = ((3.0, ""), (1.0, "-1N"))                                       # (N, id suffix): 3 N first, then 1 N there
 TOUCH_STOP_N, TOUCH_FIT_N = 1.0, 0.8     # a probe pushes mostly along its stem, the HEX-E's z, whose noise (0.21 N a sample)
 #                                          is five times x's and y's, where the tip mode's touches push: twice its 0.5, 0.4 N
@@ -179,11 +186,20 @@ def travel_of(name):
 
 
 def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, walls=None, walls_check=None):
+    table = ws.get("cell") == "table"                          # 11-02: the strip on the table, the owner's branch
+    RIG.use_cell(ws.get("cell", "v1030"), ws.get("j6_ref"))
     RIG.PLATE[0] = "block"
     g = RIG.plate()
     seat = int(ws["seat"])
-    key = KEY_OF_SEAT[seat]
-    hub, first = replay_travel(ws, seat, key)
+    key = RIG.home_key(seat)
+    if table:                                                  # the replay's own hub, start and lift, and its joint path
+        if int(ws["home_key"]) != key:                         # from the lift to the hub
+            raise SystemExit(f"the seat plan homes on key {int(ws['home_key']) + 1}, the rig model on key {key + 1}")
+        hub = dict(T_BE=ws["hub"]["T_BE"], q=ws["hub"]["q"])
+        first = dict(way="joint", lift_mm=float(ws["homing_lift_mm"]),
+                     q_start=np.radians(np.asarray(ws["q_start_deg"], float)).round(6).tolist())
+    else:
+        hub, first = replay_travel(ws, seat, key)
     way = {r["id"]: r["travel"] for r in rows}
     w0, lift0 = travel_of(way[ws["actions"][0]["id"]])
     if lift0 is not None and abs(lift0 - first["lift_mm"]) > 1e-6:
@@ -307,12 +323,14 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
                     probe=dict(retract_mm=RIG.RETRACT, safe_mm=RIG.SAFE, hub=hub,
                                note="the replay's travel_options: straight (back retract_mm along the stem, across, in), "
                                     "joint (back safe_mm, a joint move, in), hub (back safe_mm, joint moves by way of "
-                                    "the hub, in); from the homing out of the key along -x_M by homing_lift_mm first")),
-        safety=dict(abort_N=10.0, abort_Nm=1.5, box_mm=400.0, travel_abort_N=8.0),
+                                    "the hub, in); from the homing out of the key along -x_M by homing_lift_mm first",
+                               **(dict(home_path_q=ws["home_path_q"], homing_lift_mm=first["lift_mm"]) if table else {}))),
+        safety=dict(abort_N=10.0, abort_Nm=1.5, box_mm=400.0, travel_abort_N=8.0,
+                    **(dict(wrist_window=list(ws["wrist_window"]), travel_wrist_window=TRAVEL_WRIST) if table else {})),
         payload=dict(kg=0.403, cog_mm=[0.0, -0.5, 34.3], note="the tip's mount; the probe's to be measured"),
         speed_slider=0.3,
         checks=dict(placement_mm_deg=[float(T_BA[0, 3]), float(T_BA[1, 3]), float(T_BA[2, 3]), yaw],
-                    source=ws.get("source")),
+                    source=ws.get("source"), **(dict(T_BA=T_BA.round(6).tolist()) if table else {})),
         sim=dict(T_BI=T_BA.tolist(), q_seed=first["q_start"], q_start=first["q_start"], start=None,
                  walls=wall_faces_P(walls["seats"][str(seat + 1)]["actions"]) if walls is not None else []),
         actions=touches + wall_acts + acts)
