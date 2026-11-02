@@ -2304,6 +2304,14 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - The time-lapse stopped at 15:06:25 on the D435's "Frame didn't arrive within 5000". `timelapse_d435.py` now restarts
   the camera after a stall. It runs again from 15:13 into the same folder, until 08:13 on 11-03.
 
+- The ellipsoids in MuJoCo (`20261102-ellipsoids_owner_vs_old.png`, numbers in `20261102-ellipsoids.json`, script
+  `ellipsoid_render.py`): both configurations press seat 2's reference point at its rest, with the strip at the two-key
+  frame. Each panel draws the velocity ellipsoid at the sphere's centre, sqrt(eig(J J^T)), and the force ellipsoid,
+  1000/sqrt(eig), at one scale in both. The owner's configuration: condition 2.34, Yoshikawa 146 (1e6 mm^3), 525 mm/s
+  and 1.48 N per N m along the press. The 10-30 plans' configuration (the homing's branch, joint 5 +82, the 10-30
+  stem): 1.92, 143, 539 mm/s and 1.63 N per N m. They are about equally good; the owner's configuration gains its wrist
+  travel over a seat's grid (45/1/49 deg against 626/458/315).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
