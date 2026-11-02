@@ -43,8 +43,9 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
 - **Servo plant of the HOM scripts (2026-11-02):** `HOS_PLANT` (`servo` = `kp0.72_kv0_fr0.18_fl0_dp0.0144`, the
   SCS0009's strength; default the work plant `kp4_kv0_fr1_fl0_dp0.08`, 4.4x too strong), `HOS_SCENES` (a fresh scene
   cache; cached scenes keep the pad modulus they were built with) and `HOM_ROWS_TAG` (required with either; appended to
-  the rows directories). HOM landscapes and best grasps change with the plant (`scripts/hom_plant_transfer.py`); quote a
-  landscape with its plant.
+  the rows directories). HOM landscapes and best grasps change with the plant and the pad modulus
+  (`scripts/hom_plant_transfer.py --set plants|modulus|factorial`); quote a landscape with both.
+  `scripts/hom_modulus_scenes.py` builds a scene cache at another modulus.
 - **GPU is single (16 GB).** Train sequentially. **Every Warp process needs its own kernel cache:**
   `WARP_CACHE_PATH=$(mktemp -d)` — a shared cache races and NaNs. After killing a Warp run, wait for
   GPU memory to drop to ~1 GB before relaunching.
