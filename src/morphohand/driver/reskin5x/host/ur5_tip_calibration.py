@@ -1303,7 +1303,8 @@ class Session:
             return
         else:
             way = "hub" if way == "hub" else "joint"
-            self.goto(self.back_along(Tc, safe), 0.03 * k, 0.2 * k)
+            if not self.clear_above(Tc, safe):          # back off only near the pad: an aborted action's next travel
+                self.goto(self.back_along(Tc, safe), 0.03 * k, 0.2 * k)    # climbed safe_mm each time (11-02, p1dry)
         if way == "hub":
             self.goto(np.array(hub["T_BE"], float), joint=True, jv=0.4 * kj, ja=0.6 * kj, q_ref=hub.get("q"))
         self.goto(self.back_along(T_target, safe), joint=True, jv=0.4 * kj, ja=0.6 * kj, q_ref=q_rest)
@@ -1344,6 +1345,15 @@ class Session:
         """Probe mode with a home path: out of the homing key along the key's pin, z_I (the fixture's frame; 2026-11-02:
         the probe base sits about 2.7 deg about its axis off the fork's T_EM, so -x_M ran 2 mm off the pin over 42 mm)."""
         return self.reg.T_BI[:3, 2]
+
+    def clear_above(self, T, mm):
+        """Probe mode: whether the sphere's centre at flange pose T stands mm or more over the seat's apex (z_I), clear
+        of the pad by mm and the sphere's radius."""
+        seat = getattr(self.geo, "seat", None) or {}
+        if not self.probe or "apex_A" not in seat or self.reg.T_BI is None:
+            return False
+        c = apply(inv(self.reg.T_BI) @ T @ self.reg.T_EM, np.asarray(self.reg.c_M, float))
+        return float(c[2]) >= float(seat["apex_A"][2]) + float(self.geo.R) + mm
 
     def T_lift(self, lift_mm):
         """Probe mode: the homing pose moved out of the key along its pin by the homing's 12 mm and lift_mm."""
@@ -1594,6 +1604,8 @@ class Session:
             self.be.operator("the robot is stopped: clear the protective stop on the pendant", kind="clear")
         try:
             Tc = self.be.robot.pose()
+            if self.clear_above(Tc, 20.0):                       # probe mode: already clear of the pad (an abort before
+                return                                           # any motion), so no lift
             self.be.robot.moveL(Tm(Tc[:3, :3], Tc[:3, 3] - self.approach_dir() * 5.0), 0.005, 0.05)
         except Exception as e:                                   # noqa: BLE001
             print("  recovery move failed:", e)
