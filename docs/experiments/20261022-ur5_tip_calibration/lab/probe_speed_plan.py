@@ -2,8 +2,8 @@
 "varying speed of contact might matter more"). Only the plan's speed, force levels and hold change: the rests, the push
 lines and max_depth_mm are the targets' own, as the workstation's replay checked them, so no new path is made.
 
-  speed  12 normal presses (the reference, 4 face, 4 flank (2 a side), 3 edge points), each at 0.05, 0.15, 0.6 and 2.0 mm/s
-         of contact (plan v 0.000167, 0.0005, 0.002, 0.00667 at the 0.30 slider), the order of the speeds turned by one
+  speed  12 normal presses (the reference, 4 face, 4 flank (2 a side), 3 edge points), each at 0.05, 0.15, 0.6 and 1.2 mm/s
+         of contact (plan v 0.000167, 0.0005, 0.002, 0.004 at the 0.30 slider), the order of the speeds turned by one
          per point so that speed and time do not go together; one ramp to 3 N (2 N on flanks and tips) held 1 s
   fast   every grid action again (twists excepted) at plan v 0.002 (0.6 mm/s, 4 times the grid's), levels as planned
 
@@ -16,7 +16,9 @@ import json
 import sys
 
 SLIDER = 0.30
-SPEEDS = ((0.05, "v005"), (0.15, "v015"), (0.6, "v060"), (2.0, "v200"))    # mm/s of contact at the slider
+SPEEDS = ((0.05, "v005"), (0.15, "v015"), (0.6, "v060"), (1.2, "v120"))    # mm/s of contact at the slider: 2.0 overshot
+#                                     3 N to 5.2 N on average and 8.2 N at most in the simulator at the real speeds; 1.2 keeps
+#                                     the overshoot near half that (owner, 15:0x: "increased force may not be necessary")
 
 
 def pick(acts, region, k, side=None):
