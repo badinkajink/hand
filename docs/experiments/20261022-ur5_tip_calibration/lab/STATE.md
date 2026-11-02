@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-02 13:42 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-02 14:52 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -9,7 +9,7 @@ request to the owner must come from this file.
 | Item | Now | Registration (folder here) |
 |---|---|---|
 | Probe | probe base with the 5 mm sphere (sphere5) on mount v7's adapter disc on the HEX-E (owner, 11-02 13:0x); no tip on the robot | none yet |
-| Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume: 176 mm toward the robot, 71 mm toward seat 1's end, 31 mm lower (the 2x4 lies on the table); yaw within 0.2 deg, tilt 1.9 deg | two hand seatings on key 1, 13:11 and 13:35 (`poses.jsonl` strip_key1_seated, strip_key1_seated_2), within 0.39 mm and 0.26 deg of their mean |
+| Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume; nearly level | the frame through both keys' socket points (`20261102-strip_frame_two_keys.json`: 7 seatings, the keys 80.04 mm apart, tilt 0.33 deg); sessions take it by `--frame`, with `--home-from poses.jsonl:strip_key1_seated_4` for the line out of key 1 |
 | Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 143 records/s | pass 1 to come |
 | Old fixtures | the low sphere, rod, tall indenter and holder: off the table as the strip's README asks; the camera frame of 13:05 shows only the strip, its tips and the mux board on the 2x4 | as before 10-30 |
 
@@ -148,16 +148,14 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 
 ## Waiting on the owner
 
-- New probe plans for the strip's measured place, in the owner's press configuration (11-02 13:3x: "yea i think we just
-  rerun the plans man"): the probe straight down over the pad, wrist 2 near -90 deg (the old plans used wrist 2 near +60
-  deg and turned the wrist through 626, 458 and 315 deg over seat 2's grid; straight down it turns 45, 1 and 49 deg). The
-  owner's press pose over seat 1 is `poses.jsonl` probe_primed_seat1_v3id6; the owner's hand path between it and the
-  homing is in NOTES (11-02). The lab changes the program (joint moves to each action's own joints, the wrist window
-  from the plan, the path from the homing) and simulates; the workstation replays the seats. Then a dry run and pass 1
-  on one seat, each on the owner's go.
-- Joint 6 in the press configuration: the owner allows 180 deg there ("wrist 3 has pretty much unimpeded motion
-  here"); the port keeps 48 mm from the arm at any joint 6, so near 0 would spare the cable the half turn from the
-  homing. The owner's call.
+- Running since 14:50 on 11-02 (owner's go, 14:35: "get going"): seat 1 (v3 ID 6), pass 1, register and the grid
+  (`20261102-plan_probe_table_seat1_v3id6.json`, session `s1v6b`, tmux `tipcal`, printout `logs/20261102-145009-tipcal-s1v6b.log`).
+  No walls (their check is pending) and no return stage: the robot ends over seat 1. Seats 2 and 3 wait for the
+  workstation's plans on the two-key frame and the owner's recorded path.
+- Owner, 14:4x: the travels go too high ("you don't need to go this high at all"): the 45 mm back-off along the stem and
+  the hub 90 mm over the apex come from the 10-30 configuration. Lower them in the next plans, with the workstation's
+  check. The owner also asked for one shared set of pose helpers (quaternions) in place of the copies in each script.
+- Joint 6 near 0 in the press configuration (owner, 13:5x).
 - A new HEX-E cable.
 
 ## Where things are

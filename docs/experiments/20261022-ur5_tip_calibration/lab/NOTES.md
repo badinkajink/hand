@@ -2249,6 +2249,33 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   start after the cap never started; it was killed by PID. `teach_hold.py` now takes `--minutes` and an extend file
   (`logs/ur5_lab_teach_extend`), and freedrive is extended or stopped only on the owner's word.
 
+## The probe on the table: plans, three program faults, and seat 1 (11-02, from 13:5x)
+
+- Homing: four seatings on key 1 and three on key 2. Each seating's own frame tilts 1.6-3.3 deg with the probe's rock
+  on the key (the workstation: the probe base sits about 2.75 deg about its axis off the fork's T_EM), and key 2's frame
+  put the pads 3.3-4.3 mm above key 1's. The socket's point repeats within 0.24 mm (key 1) and 0.55 mm (key 2), and the
+  keys stand 80.04 mm apart, 0.42 mm apart in height: the strip is level within 0.33 deg. Its frame through both keys'
+  socket points is `20261102-strip_frame_two_keys.json`; the program takes it by the new `--frame`.
+- The owner's hand path from key 1 to the press pose, joint 6 near 0 (`poses.jsonl` path_home_to_press_1..3): the
+  shoulder lifts 19 deg; then the wrist flips (joint 5 +38 to -90, with joint 3 -20 and joint 4 -31); then over seat 1.
+  The HEX-E's cable dragged on the probe during the flip; the owner rerouted it under the probe. The HEX-E dropped at
+  14:20 and was back at 14:34 after the owner reseated it.
+- The workstation replayed the three seats in the owner's branch (4b7999e2: 0 of 840 actions flagged, stems vertical but
+  for walls and flanks, joint 5 -97 to -80, joint 6 within +-16). Program changes (3c51b552, simulated t1a):
+  `travel.probe.home_path_q` after the lift, a travel wrist window, joint moves near each action's q_rest, a `return`
+  stage, the lift along the key's pin, `check_placement` against the plan's `checks.T_BA`.
+- p1dry (14:38, --dry 15): three aborts, "no IK solution". The program's rotation-matrix-to-vector conversion
+  (log_so3) turned the plan's 7-decimal rounding (7e-6 off orthonormal) into 1.0 deg near 180 deg, where the flange
+  turns with the probe straight down, so every IK target missed its pose by 1.0 deg and the check refused it. Fixed by
+  projecting onto the nearest rotation first: the round trip of all 1256 poses of seat 1's plan within 2.3e-9 deg.
+  The simulator never meets this: it does not use the robot's rotation vectors.
+- s1v6 (14:46): three aborts, "target outside the box": each of p1dry's failed actions had backed off 45 mm along the
+  stem and lifted 5 mm, so the robot stood at 425 mm, and the next back-off left the 400 mm box. Fixed (0b... 14:50):
+  the back-off and the abort's lift only near the pad. Simulated from the robot's own 425 mm start (t1high, exit 0).
+- Pass 1 of seat 1 starts 5 mm out and runs 2.5 mm past the expected contact (were 3.5 and 1.2): in the simulator a
+  1.4 mm, 2 deg error of the frame made 4 of 20 flank and tip touches miss with 1.2.
+- s1v6b from 14:50:09: pad-ref-00's onset 1.38 mm before the two-key frame's expectation.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
