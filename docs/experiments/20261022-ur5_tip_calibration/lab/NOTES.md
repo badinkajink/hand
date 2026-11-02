@@ -2276,6 +2276,42 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   1.4 mm, 2 deg error of the frame made 4 of 20 flank and tip touches miss with 1.2.
 - s1v6b from 14:50:09: pad-ref-00's onset 1.38 mm before the two-key frame's expectation.
 
+## Seat 1's pass 1, and seats 2 and 3 made ready (11-02, from 15:0x)
+
+- The owner left at about 15:00 with the go for the remaining runs: "you have my go ahead to run the remaining runs".
+  On the v3 IDs 1-3 in his viewer, the flank presses are still the hardest and least accurate ("that's where the
+  embedded magnets stiffen/alter the typical gyroid infill the most"). "contact direction! super smooth, super accurate,
+  super important!" And: "if it's possible to get twists/wrenches, e.g. we see some kind of predictive performance scaling
+  with data collection, then you have my go ahead to send off more runs on that end too. while increased force may not be
+  necessary, as you measured, varying speed of contact might matter more."
+- Seat 1's pass 1 (s1v6b): 20 of 20 landed, every one early, by 0.12 to 2.48 mm on the two-key frame. The fit gives
+  0.055 mm rms: the pad stands 1.68 mm and 4.12 deg from its CAD. The turn is -4.07 deg about y_P, +0.56 about x_P and
+  -0.26 about z_P (sd 0.20, 0.13, 0.47); the move is (1.61, 0.28, -0.40) mm in P. The tip droops about 4 deg toward the
+  robot and stands 1.6 mm high along its face normal. The sphere's centre fits 0.58 mm from its CAD, along the stem.
+- The grid started at 15:06 at about 25 s a press. At the fitted pose its rests, deep poses and twists keep joint 5
+  within -92 to -75 deg and joint 6 within -18 to +13 deg; the rig model flags none, and the arm keeps 182 mm from the
+  table and the 2x4 (scratchpad `check_fitted.py`).
+- Seats 2 and 3's plans (44509f1e) come from 4b7999e2's seat plans, aimed by `--frame` as seat 1's. The workstation
+  (15:1x) kept these: its rebuild on the two-key frame has the same actions. Pass 1 starts 5.0 mm out and runs up to
+  5.0 mm past. In the simulator, with the truth at the two-key frame plus its default errors (about 2.6 mm in plane),
+  2.5 mm past left both seats' first three flank touches without contact. The three-aborts rule then stopped the
+  sessions. With 5.0 mm all 20 land, 2.2 to 3.2 mm late, and the fits give 0.043 and 0.026 mm rms. A touch stops at 1 N
+  on whatever it meets, so the longer reach matters only when the pad stands farther than expected.
+- In the two-key frame (rig model, scratchpad `check_seats_twokey.py`), the rests and deep poses of all three seats keep
+  joint 5 within -92.3 to -89.7 deg and joint 6 within -1.3 to -0.5 deg, with no flags. The seams were checked as the
+  program travels: from one seat's last rest, back 45 mm, to the next seat's hub, then in to its first touch-off. They
+  are clean, and the sphere stays 46 to 128 mm over the strip.
+- The time-lapse stopped at 15:06:25 on the D435's "Frame didn't arrive within 5000". `timelapse_d435.py` now restarts
+  the camera after a stall. It runs again from 15:13 into the same folder, until 08:13 on 11-03.
+
+- The ellipsoids in MuJoCo (`20261102-ellipsoids_owner_vs_old.png`, numbers in `20261102-ellipsoids.json`, script
+  `ellipsoid_render.py`): both configurations press seat 2's reference point at its rest, with the strip at the two-key
+  frame. Each panel draws the velocity ellipsoid at the sphere's centre, sqrt(eig(J J^T)), and the force ellipsoid,
+  1000/sqrt(eig), at one scale in both. The owner's configuration: condition 2.34, Yoshikawa 146 (1e6 mm^3), 525 mm/s
+  and 1.48 N per N m along the press. The 10-30 plans' configuration (the homing's branch, joint 5 +82, the 10-30
+  stem): 1.92, 143, 539 mm/s and 1.63 N per N m. They are about equally good; the owner's configuration gains its wrist
+  travel over a seat's grid (45/1/49 deg against 626/458/315).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
