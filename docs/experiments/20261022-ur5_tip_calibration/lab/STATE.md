@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 10:53 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 11:01 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -8,7 +8,7 @@ request to the owner must come from this file.
 
 | Item | Now | Registration (folder here) |
 |---|---|---|
-| Probe | probe base with the 5 mm sphere (sphere5) on mount v7's adapter disc on the HEX-E (owner, 11-02 13:0x); no tip on the robot | none yet |
+| Probe | probe base with the 2 mm sphere (sphere2: R 2 mm, centre (0, 0, 118) mm in M) on mount v7's adapter disc on the HEX-E (owner, 11-03 10:5x; the 5 mm sphere from 11-02 13:0x to 11-03 10:5x); no tip on the robot | each seat's 2 mm sphere session fits it in its pass 1 |
 | Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume | tonight's sessions: the frame through both keys' socket points (`20261102-strip_frame_two_keys.json`), by `--frame`, with `--home-from poses.jsonl:strip_key1_seated_4`; each seat's grid aims by its own pass 1 fit. For later plans: the workstation's frame from the three pads' fits (`../../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`, 9cd8b375: the two-key frame turned 3.44 deg about y_A and moved (2.48, 0.10, -3.70) mm; the pads within 0.14 to 0.22 mm on average, the rest the strip's twist) |
 | Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 138 records/s | seat 1: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame); seat 2: `182710-s2v5` (0.051 mm rms; 1.21 mm, 3.5 deg); seat 3: `220337-s3v4` (0.051 mm rms; 0.81 mm, 2.9 deg); the overnight runs resume these sessions |
 | Old fixtures | the low sphere, rod, tall indenter and holder: off the table as the strip's README asks; the camera frame of 13:05 shows only the strip, its tips and the mux board on the 2x4 | as before 10-30 |
@@ -166,16 +166,33 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 - Stopped: fast2 on seat 2 at 10:16:40 after 25 of 264 (SIGINT by PID between presses, the program's Ctrl-C), with
   fast1, because the owner (relayed by the workstation, 10:1x) means to put the 2 mm sphere on after fast3. The chain
   then stopped itself.
-- **Now: the robot is idle over seat 2** (flange z_B 237 mm; joints 53.2, -79.3, 108.3, -120.8, -87.0, -2.0 deg), sphere5
-  on, no program running.
-- Next, on the owner's swap to the 2 mm sphere and his go in the lab's session: the 2 mm sphere's plans
-  (`20261103-plan_probe_table_sphere2_seat*`, a new session per seat with its own pass 1, `--frame` the pad-fitted frame
-  `../../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`), simulated and replayed clean. About 2.3 h
-  a seat. Then the rod (`20261103-plan_probe_table_rod_seat*`, about 17:00, the owner swaps), each seat's session
-  seeded from its 2 mm sphere session (`probe_seed_session.py`). The rod code is installed (ce3a3f0b): in the simulator
-  its pass 1 fits to 0.013 to 0.022 mm rms on the three seats, and seat 1's grid ran 177 of 177. The workstation's
-  replay of the rod plans (from the end of the 2 mm sphere's seat 3, order 3, 2, 1) was due at about 11:00. The rod's
-  turn about the tool's axis stays unseen (sd about 3 deg), even with rod-along touches; it barely changes a contact.
+- The owner put the 2 mm sphere on and gave the go at 10:5x in the lab's session: "ok the 2mm radius sphere is on
+  there. the arm is oevr the seats. you can go ahead". The arm stood over seat 2, moved a little by hand (joints 54.2,
+  -79.1, 105.9, -114.1, -86.6, -2.0 deg). From those joints, the workstation's replay code (dry-check --real, its start
+  carried in by a scratch wrapper) flags nothing in seat 1's first travel by the hub. Its least clearances are those of
+  the final descent into seat 1, as in the workstation's replay from the hub.
+- **Now (from 11:00:37): the 2 mm sphere's chain**, `logs/20261103-chain_sphere2.sh` (copy here; PID 2812384; its log
+  `logs/20261103-chain_sphere2.log`):
+  - seat 1 (`s1sph2`), then seat 2 (`s2sph2`), then seat 3 (`s3sph2`);
+  - each run is a new session with its own pass 1 (`20261103-plan_probe_table_sphere2_seat*`, stages
+    preflight,homing,pad,register,grid), with `--frame` the pad-fitted frame
+    `../../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`;
+  - simulated chained at the real speeds and replayed clean by the workstation (0 of 860 travels flagged);
+  - about 2.3 h a seat: seat 1 to about 13:20, seat 2 to about 15:40, seat 3 to about 18:00;
+  - a run stopped by a HEX-E loss is resumed once `hexe_probe.py` finds the sensor streaming, and anything else stops
+    the chain;
+  - to stop the chain, kill its PID (a running program goes on).
+- Next, after the owner's swap to the rod and a go in the lab's session: the rod (`20261103-plan_probe_table_rod_seat*`),
+  in the order 3, 2, 1 from over seat 3. Each seat's session is seeded from its 2 mm sphere session
+  (`probe_seed_session.py`) and runs `--resume SEED --stages preflight,pad,register,grid` on the same frame. The rod code
+  is installed (ce3a3f0b). In the simulator its pass 1 fits to 0.013 to 0.022 mm rms on the three seats, and seat 1's
+  grid ran 177 of 177.
+  - The workstation replayed the rod plans at 11:0x (4dec06c1), chained 3, 2, 1 from the end of the 2 mm sphere's seat 3:
+    0 of 584 travels flagged, the seams' least stem 12.85 mm.
+  - Two presses read 4.5 and 4.7 mm into the tip's body by the k-d tree. On the exact meshes they stand 1.65 and 1.56 mm
+    off it.
+  - The rod's turn about the tool's axis stays unseen (sd about 3 deg), even with rod-along touches; it barely changes a
+    contact.
 - Armed (16:10): `logs/20261102-chain_seats23.sh` (copy here, PID 2658916, its log `logs/20261102-chain_seats23.log`)
   started seat 2 (v3 ID 5) at 18:27, to about 22:05; then seat 3 (v3 ID 4), about 22:05 to 01:45
   (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`: safe_mm 15, hubs 40 mm over the apex). Both
