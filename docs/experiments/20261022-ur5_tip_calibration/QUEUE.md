@@ -1063,6 +1063,12 @@ push that answers it arrives.
     The board GP's held-out error on v3 IDs 1 to 3 still falls with more points: from half to all of them, location
     0.56-0.63 to 0.46-0.51 mm and force direction 4.2-4.9 to 3.9-4.3 deg. Torsion has no skill on IDs 2 and 3
     (`ur5_tip_calibration_v3_data_curve.py`). The overnight obliques (lab, 15:25) are building.
+  - 17:5x on 11-02, workstation: the overnight list replays as run, chained from seat 3's end (speed3 to speed1, the
+    night obliques on seats 1 to 3, fast3 to fast1; 5a6ff549 and the commit after it). None of its 1,521 travels is
+    flagged. The night plans keep 221 to 222 of the 1,285 to 1,289 obliques a seat that the full set reaches
+    (`replay --extra`, then `--from-plan`). Three night presses come 0.33 to 0.37 mm from the tip body at their 1.0 mm
+    depth limit and clear with max_depth_mm 0.75, which the lab patches. deep_clear never tests depths below its
+    1.0 mm floor with the tree's 0.1 mm extra; fix it before the next build.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
     15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
     4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
