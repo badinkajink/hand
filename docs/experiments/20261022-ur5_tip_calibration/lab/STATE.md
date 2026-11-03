@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-02 16:12 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-02 17:52 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -151,22 +151,26 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 - The owner's go of 15:0x on 11-02 covers the remaining runs ("you have my go ahead to run the remaining runs"). More
   runs on twists and wrenches, and at other contact speeds, are covered too, if the data shows that more data still
   pays.
-- Running since 14:50: seat 1 (v3 ID 6), pass 1 (20 of 20), register, then the grid from 15:06 at about 28 s a
-  press; it ends about 17:25 (`20261102-plan_probe_table_seat1_v3id6.json`, session `s1v6b`, tmux `tipcal`, printout
-  `logs/20261102-145009-tipcal-s1v6b.log`). No walls and no return stage: the robot ends over seat 1.
-- Armed (16:10): `logs/20261102-chain_seats23.sh` (copy here as `20261102-chain_seats23.sh`, PID 2658916, its log
-  `logs/20261102-chain_seats23.log`) starts seat 2 (v3 ID 5) when seat 1 ends cleanly, then seat 3 (v3 ID 4), each
-  from where the one before ends (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`, 58d88f5f:
-  safe_mm 15, the hubs 40 mm over the apex). They passed the chained simulations (294 of 294, 295 of 295) and the
-  workstation's replays (ee772007 and 15:3x). A run stopped by a HEX-E loss is resumed once `hexe_probe.py` finds the
-  sensor streaming again; anything else stops the chain. To stop it: kill the chain's PID (the running program goes on).
-- Overnight, after seat 3 (owner's go, if more data pays; the learning curves say it does, about 13 to 17 % less
-  direction error per doubling): the list `logs/20261102-overnight.txt` (copy here), each run on its seat's session
-  (--resume, stages preflight,grid), each only with its marker `logs/20261102-ok-NAME`; the list stops at the first
-  run without one. Planned: the workstation's coverage set a) (flank obliques at 10/20/30 deg and 8 azimuths, the face
-  and edge points without obliques, levels from 0.25 N) if it is built and replayed in time; the speed set
-  (`20261102-plan_probe_table_speed_seat*`: 12 points a seat at 0.05, 0.15, 0.6 and 1.2 mm/s); the fallback
-  (`..._fast_seat*`: the grid's 264 presses at 0.6 mm/s). No twists: torsion has no skill on v3 IDs 2 and 3.
+- Running since 14:50: seat 1 (v3 ID 6), pass 1 (20 of 20), register, then the grid from 15:06; 252 of 294 by 17:50,
+  ending about 18:15 (`20261102-plan_probe_table_seat1_v3id6.json`, session `s1v6b`, tmux `tipcal`, printout
+  `logs/20261102-145009-tipcal-s1v6b.log`). A press takes about 29 s and a twist about 145 s, so a seat's main run is
+  about 3.6 h. No walls and no return stage.
+- Armed (16:10): `logs/20261102-chain_seats23.sh` (copy here, PID 2658916, its log `logs/20261102-chain_seats23.log`)
+  starts seat 2 (v3 ID 5) when seat 1 ends cleanly, about 18:15 to 21:50, then seat 3 (v3 ID 4), about 21:50 to 01:30
+  (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`: safe_mm 15, hubs 40 mm over the apex). Both
+  passed the chained simulations and the workstation's replays. A run stopped by a HEX-E loss is resumed once
+  `hexe_probe.py` finds the sensor streaming; anything else stops the chain. To stop the chain: kill its PID (a running
+  program goes on).
+- Overnight, after seat 3 (owner's go, if more data pays; the learning curves say about 13 to 17 % less direction error
+  per doubling): `logs/20261102-overnight.txt` (copy here), each run resuming its seat's session (stages
+  preflight,grid) and only with its marker `logs/20261102-ok-NAME`; the list stops at the first run without one. In
+  order, each seam joining neighbouring seats:
+  - speed3, speed2, speed1 (`..._speed_seat*`: 12 points a seat at 0.05, 0.15, 0.6 and 1.2 mm/s), about 0.4 h each;
+  - night1, night2, night3 (`..._night_seat*`: the workstation's night subset, 231 to 232 flank, face and edge
+    obliques at 10/20/30 deg with levels from 0.25 N; ids end in -n), about 2 h each;
+  - fast3, fast2, fast1 (`..._fast_seat*`: the grid's 264 presses at 0.6 mm/s), about 1.8 h each, into the morning.
+  The workstation replayed the whole list chained from seat 3's end (0 of 1,521 travels flagged; three night presses
+  capped at 0.75 mm, 83150a9a). No twists: torsion has no skill on v3 IDs 2 and 3.
 - Owner, 14:4x: the travels go too high ("you don't need to go this high at all"). Seats 2 and 3 and the overnight
   plans back off 15 mm (was 45) and go by a hub 40 mm over the apex (was 90): the sphere stays 46 to 80 mm over the
   strip between seats. The owner also asked for one shared set of pose helpers (quaternions) in place of the copies in
