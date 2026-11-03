@@ -2347,8 +2347,9 @@ def cmd_dry_check(a):
     the apex, by hub()), to try lower and shorter travels. A touch in --real is checked twice: its line in B to beyond_mm past the expected contact against what
     stays fixed in B (the table and the 2x4), and the same line shifted back by beyond_mm and ending TOUCH_DEPTH past the
     contact against everything, the pad standing up to beyond_mm farther than expected. --fit moves each seat's pad and
-    tip as a registration found them (the grid aims by the fit). A travel after a twist that ran to its max depth starts
-    on the pad's surface (the program returns st + 0.5 mm from where the press stopped): its flags say so."""
+    tip as a registration found them (the grid aims by the fit). A twist ends 0.5 mm behind its rest, back along d from
+    wherever its press stopped (the program since d1b5ea6f; before it, st + 0.5 mm from the stop left a press that ran
+    to its max depth on the pad, and a tip flag on the next travel says "after a twist")."""
     t0 = time.time()
     real = bool(a.real)
     stages = tuple(s for s in a.stages.split(",") if s)
@@ -2481,7 +2482,7 @@ def cmd_dry_check(a):
                             own.append(("L", T, T1))
                             T = T1
                         cur = dg
-                T_after = C.Tm(T[:3, :3], T[:3, 3] - (st + 0.5) * d_B)
+                T_after = C.Tm(T[:3, :3], T_t[:3, 3] - 0.5 * d_B)     # 0.5 mm behind the rest (d1b5ea6f)
                 own.append(("L", T, T_after))
             elif x["kind"] == "sweep":                      # each offset and slide from the deepest pose and back to it
                 t1_B = ctx["T_BA"][:3, :3] @ T_AP[:3, :3] @ np.asarray(x["target"]["t1"], float)
