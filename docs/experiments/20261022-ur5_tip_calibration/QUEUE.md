@@ -1641,6 +1641,16 @@ push that answers it arrives.
     only by that patch and replays with 0 of 12 flagged. The sweep code goes into the program after seat 3 starts, once
     it reruns seat 3's quick plan line for line in the simulator. The test, about 22 min after seat 3, waits on the
     owner's go.
+  - 15:3x to 15:46 on 11-03, owner, lab (5b639198, a2f44c8f) and workstation (8189c5ff). The owner said yes to the
+    sweep test, to sweeps in place of grids, to the slider at 1.0, to rolls with the rod and to presses to 8 N. In the
+    lab's session the owner said: "relays count yes, we can go on the sweep test after 16:37 since i doubt we're getting
+    very good info right now". So the workstation's relays of the owner's words, with their time, are the owner's go.
+    Seat 3's 2 mm grid is dropped, and the sweep action is in the program. After seat 2 (about 16:37) the test runs on
+    seat 2 from a seed of s2sph2 (lab/20261103-plan_probe_table_sphere2_seat2_v3id5_sweep_test.json, about 22 min). It
+    is the workstation's seat 2 draft without pass 1 and replays with 0 of 12 flagged. The rod follows tonight with
+    sweeps across the tip (rod_deg 90) on seats 2, 3 and 1: offsets at the rod's slip estimate (0.06 to 0.20 mm from the
+    slides of 10-26) and slides, levels to 3 N. Twists, rolls, the slider at 1.0 and 8 N need new program code, so
+    they come tomorrow.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call

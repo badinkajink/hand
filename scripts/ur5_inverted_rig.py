@@ -1625,7 +1625,8 @@ def subset_plan(ctx, seat_i, a):
     if getattr(a, "sweep", 0):                          # the cone sweep's test (QUEUE R32): a.sweep of the region's normal
         axis = -np.asarray(ctx["g"]["seats"][seat_i]["T_AF"], float)[:3, 2]          # presses, spread by farthest points
         regs = set(a.sweep_region.split(","))                                        # from the one nearest the reference
-        pr = [arr(x) for x in src["actions"] if x["kind"] == "press" and x["region"] in regs]
+        pr = [arr(x) for x in src["actions"] if x["kind"] == "press" and x["region"] in regs
+              and (a.sweep_rod_deg is None or abs(float(x.get("rod_deg", 0.0)) - a.sweep_rod_deg) < 1e-6)]
         PP = np.array([x["p_P"] for x in pr], float)
         pick = [int(np.argmin(np.linalg.norm(PP - np.asarray(ref["p_P"], float), axis=1)))]
         dmin = np.linalg.norm(PP - PP[pick[0]], axis=1)
@@ -3002,6 +3003,8 @@ def main():
                     "cone sweeps (QUEUE R32, SWEEP), the reference first and last")
     rp.add_argument("--sweep-region", default="face", help="the regions whose normal presses are taken (comma-separated)")
     rp.add_argument("--sweep-levels", default="0.5,1,2,3", help="N: the sweep's level stops")
+    rp.add_argument("--sweep-rod-deg", type=float, default=None, help="the rod: only its presses at this rod_deg (the lab, "
+                    "15:45 on 11-03: 90, the rod across the tip, tonight)")
     rp.add_argument("--drop-flagged", action="store_true", help="leave out an action whose travel and own moves no way "
                     "clears (not a reference); the next travel starts from the last action kept")
     rp.add_argument("--no-twist", action="store_true", help="no twists (11-02: the twists' torsion sits under the "
