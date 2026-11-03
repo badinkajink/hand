@@ -188,6 +188,7 @@ HOME_KEY = [0]                                              # the block's key th
 #                                                             nearer of the seat)
 PLATE = ["v2e"]                                             # what build, reach, replay and film take (--plate)
 CELLMODE = ["v1030"]                                        # --cell: the cell the plans are for (use_cell)
+OUT_FRAME_PADS = ROOT / "docs/experiments/20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json"
 TABLE = dict(        # --cell table (lab dc859de5, 11-02): the strip on one 2x4 lying flat on the table, clamped; the old
 #                      fixtures off. The strip's place is the mean of the owner's two hand seatings on key 1, by the
 #                      controller's own poses as the program's homing takes them (192 mm from the 10-30 plans' place)
@@ -195,7 +196,8 @@ TABLE = dict(        # --cell table (lab dc859de5, 11-02): the strip on one 2x4 
     seatings=(("strip_key1_seated", "strip_key1_seated_2", "strip_key1_seated_3", "strip_key1_seated_4"),
               ("strip_key2_seated", "strip_key2_seated_2", "strip_key2_seated_3")),   # key 1's and key 2's (table_T_BA)
     axis_M=(0.0, 0.0, 49.0),            # a point on the tool axis at the socket's height: a turn about the axis keeps it
-    frame=LAB / "20261102-strip_frame_two_keys.json",   # the lab's fit through both keys' socket points (1b078a24):
+    frame=OUT_FRAME_PADS,               # 11-03: the two-key frame turned 3.44 deg to the three pads' pass-1 fits (9cd8b375;
+#                                         the two-key one, LAB / "20261102-strip_frame_two_keys.json", took 11-02's plans);
 #                                         the program aims with it (--frame); table_T_BA is the workstation's own fit
     home_from="strip_key1_seated_4",    # the seating the start, the lift and the home path take (the program's --home-from)
     T_EM_turn_deg=0.0,                  # the plans' T_EM, as the lab's frame takes it. With the probe base turned 2.75 deg
@@ -223,7 +225,7 @@ TABLE = dict(        # --cell table (lab dc859de5, 11-02): the strip on one 2x4 
 #                                                             11-02 14:1x from key 1 (the shoulder up; the wrist flipped,
 #                                                             joints 3 and 4 with it and joint 6 at 0; poses.jsonl), then
 #                                                             the hub over the seat (lab, 14:3x)
-    stem="20261102-strip_table_2key")     # 11-02 15:1x: the plans on the two-key frame; the lab runs
+    stem="20261103-strip_table_pads")     # 11-02 15:1x: the plans on the two-key frame; the lab runs
 #                                                             20261102-strip_table (4b7999e2, key 1's frame) by --frame
 
 
@@ -1459,7 +1461,7 @@ def build_plan(ctx, seat_i, a):
                     t = math.cos(math.radians(az)) * t1 + math.sin(math.radians(az)) * t2
                     d = -(math.cos(math.radians(th)) * n + math.sin(math.radians(th)) * t)
                     add(f"probe-{regs[i]}-{i:03d}-o{th:g}-a{az:g}", "oblique", i, d, th, az)
-        if regs[i] in ("face", "edge"):
+        if regs[i] in ("face", "edge") and not getattr(a, "no_twist", False):
             k_face += 1
             if k_face % 4 == 0:
                 for tw in (-15.0, 15.0):
@@ -1542,6 +1544,15 @@ def deep_clear(ctx, act, P_A, deep_max=2.0, step=0.25, owner=False):
     contact = (ctx["seat"], P_A[act["i"]], EXCL[ctx["tool"]])
     q = np.asarray(act["q_rest"], float)
     best = DEEP
+    for depth in np.arange(DEEP, 0.5 - 1e-9, -step):   # DEEP itself with the extra, and below it while it fails (11-02:
+        T = Td.copy()                                   # three night presses at 1.0 mm stood 0.33-0.37 mm off the body)
+        T[:3, 3] += (depth - DEEP) * d_B
+        qq = ik_near(T[None], q, branch=BR[0])[0]
+        if np.isfinite(qq).all() and not joint_flags(qq, owner) and not clear_flags(clearance(qq, ctx, contact), DEEP_EXTRA):
+            break
+        best = round(float(depth - step), 2)
+    if best < DEEP:
+        return max(best, 0.5)
     for depth in np.arange(DEEP + step, deep_max + 1e-9, step):
         T = Td.copy()
         T[:3, 3] += (depth - DEEP) * d_B
@@ -2608,6 +2619,8 @@ def main():
                     "obliques, levels from 0.25 N; no normal presses")
     rp.add_argument("--tag", default="", help="after the stem in the output's names")
     rp.add_argument("--from-plan", default="", help="a built --extra plan: its obliques cut to the night (subset_plan)")
+    rp.add_argument("--no-twist", action="store_true", help="no twists (11-02: the twists' torsion sits under the "
+                    "estimate's floor, and they took 1.2 of a seat's 3.6 h)")
     rp.add_argument("--out-dir", default="", help="where the plan and its check go (default the experiment's data/)")
     rp.add_argument("--deep", type=float, default=None, help="each press's checked deep pose this far past contact (mm; "
                     "default DEEP)")
