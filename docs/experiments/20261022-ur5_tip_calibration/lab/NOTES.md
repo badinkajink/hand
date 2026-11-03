@@ -2379,6 +2379,19 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - The chain started seat 2 (s2v5) at 18:27:09. It went by seat 2's hub from seat 1's end, and pad-ref-00's onset came
   0.96 mm early (seat 1's: 1.38).
 
+- Seat 2 (v3 ID 5, s2v5) ended at 22:03:30 with exit 0. Pass 1 landed 20 of 20 (0.051 mm rms) and the grid 294 of
+  294, with no abort. The HEX-E gave 1,296,427 samples, none timed out. Copy: `20261102-182710-s2v5/`. Its reference
+  press moved +0.13 mm at 3 N by 19:17 and was back within 0.01 mm by 20:08; its 0.5 N depth held at 1.76 to 1.83 mm.
+- The chain started seat 3 (s3v4) at 22:03:37. pad-ref-00 came 0.15 mm early, and pass 1 landed 20 of 20 at 0.051 mm
+  rms.
+- The pads against the seat CAD in the two-key frame, seats 1, 2 and 3 (y_A -80, 0, +80):
+  - turn about y_P: -4.07, -3.41 and -2.82 deg;
+  - move along x_P: +1.61, +1.11 and +0.54 mm;
+  - turn about x_P: +0.56, +0.26 and -0.50 deg; about z_P: -0.26, -0.74 and +0.04 deg.
+  That is about -3.4 deg common to all three, plus +0.6 deg and -0.53 mm per 80 mm along the strip. It reads as the
+  frame's roll about y_A, which the rocking key seatings cannot fix, plus a slight twist along the strip. Each seat's grid
+  aims by its own fit, and at the fitted poses the grids flag nothing (joint 5 -94 to -76, joint 6 -18 to +14).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
