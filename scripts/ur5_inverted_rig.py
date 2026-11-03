@@ -108,6 +108,13 @@ NECK = dict(sphere2=4.0)     # a press's neck: the stem's points this near the s
 GROUPS = dict(mount=("adapter", "probe_base"), stem=("tool_stem",), tip=("tool_tip",), hex_e=("hex_e",))
 EXCL = dict(sphere5=4.0, sphere2=3.0, rod=12.0, flat=20.0, flat30=20.0, fingertip=25.0)   # the tool end's points this near the contact meet the pad
 #                                                         (the 2 mm sphere's 3 mm: a push 35 deg off the normal drags it 0.6 mm)
+
+
+def excl(tool, act):
+    """EXCL for an action: a sweep's contact moves with its slides and offsets, so its radius grows by the longest."""
+    if act.get("kind") != "sweep":
+        return EXCL[tool]
+    return EXCL[tool] + max([sl["mm"] for sl in act["slides"]] + [r for lev in act["offsets"] for r, _ in lev])
 J5_WIN, J6_WIN, J6_OWNER = (30.0, 100.0), (-62.0, 45.0), 60.0
 J5_SEARCH = (35.0, 97.0)                                  # a press's own poses keep this much inside joint 5's window
 Q3_SEARCH = 30.0                                          # and the elbow this far from straight (the check's 20 deg)
@@ -1338,6 +1345,47 @@ def tangent_basis(n, axis):
     return t1, np.cross(n, t1)
 
 
+SLIP = dict(give=0.266, give_exp=-0.53, mu=((1.0, 0.37), (2.0, 0.44)), R=5.0)
+#   the slides of 10-26 (the 5 mm PLA sphere on the 85A pad; scripts/ur5_shear_slides.py vector): the tangential give
+#   before slip 0.266 mm/N at 1 N, going as f_n^-0.53 (0.181 at 2 N), and friction 0.37 at 1 N and 0.44 at 2 N, flat
+#   outside. Another sphere's give goes as R^(-1/3) (Mindlin: as the contact radius at a force)
+SWEEP = dict(radii=(0.5, 0.9), azimuths=8, slides=(0.0, 90.0, 180.0, 270.0), slide_mm=1.0, slide_at=2.0, settle_s=0.2,
+             step_hold_s=0.2, via_centre=True, v_slide=0.0005, ft_t_cap_N=2.0)
+#   the cone sweep (QUEUE R32; the fields as the lab took them at 13:25 on 11-03): at each level, 8 azimuths at 0.5 and
+#   0.9 times the slip offset, each reached from the stopped pose and back to it (via_centre), as translations of the
+#   flange along t1 and t2 with its orientation kept; then four 1 mm slides at 2 N at v_slide (m/s before the slider),
+#   each back to its start. ft_t_cap_N: the sweep check's cap on the tangential force (a slide's friction is about
+#   0.9 N at 2 N)
+
+
+def slip_mm(F, tool):
+    """The tangential offset (mm) from where a sphere stopped at F newtons at which it starts to slide (SLIP)."""
+    mu = float(np.interp(F, [m[0] for m in SLIP["mu"]], [m[1] for m in SLIP["mu"]]))
+    R = PROBE[SPHERES[tool]]["R"]
+    return mu * F * SLIP["give"] * F ** SLIP["give_exp"] * (R / SLIP["R"]) ** (-1.0 / 3.0)
+
+
+def sweep_fields(x, axis_A, tool, levels):
+    """A seat plan's press made a sweep: its levels, t1 in A, each level's offsets [r_mm, az_deg] and the slides."""
+    t1, _ = tangent_basis(np.asarray(x["n_A"], float), axis_A)
+    az = np.arange(SWEEP["azimuths"]) * 360.0 / SWEEP["azimuths"]
+    return dict(kind="sweep", levels=[float(F) for F in levels], t1_A=t1.round(6).tolist(),
+                offsets=[[[round(f * slip_mm(F, tool), 3), float(z)] for f in SWEEP["radii"] for z in az] for F in levels],
+                slides=[dict(az_deg=float(z), mm=SWEEP["slide_mm"], at_N=SWEEP["slide_at"]) for z in SWEEP["slides"]],
+                **{k: SWEEP[k] for k in ("via_centre", "settle_s", "step_hold_s", "v_slide", "ft_t_cap_N")})
+
+
+def sweep_vectors(act, n_B, t1_B):
+    """A sweep's tangential moves in B (mm): each azimuth's largest offset over the levels, and each slide's end."""
+    t2_B = np.cross(n_B, t1_B)
+    far = {}
+    for lev in act["offsets"]:
+        for r, z in lev:
+            far[z] = max(far.get(z, 0.0), r)
+    moves = list(far.items()) + [(sl["az_deg"], sl["mm"]) for sl in act["slides"]]
+    return [r * (math.cos(math.radians(z)) * t1_B + math.sin(math.radians(z)) * t2_B) for z, r in moves]
+
+
 def thin_idx(pts, mm):
     if mm <= 0:
         return np.arange(len(pts))
@@ -1557,6 +1605,24 @@ def subset_plan(ctx, seat_i, a):
     T = np.asarray(ctx["g"]["seats"][seat_i]["T_AF"], float) @ T_FP
     P_A, N_A = C.apply(T, ctx["pts_P"]), ctx["nrm_P"] @ T[:3, :3].T
     arr = (lambda x: {k: (np.asarray(v, float) if k in ("T_rest", "T_deep", "q_rest") else v) for k, v in x.items()})
+    ref = next(arr(x) for x in src["actions"] if x["kind"] == "reference")
+    if getattr(a, "sweep", 0):                          # the cone sweep's test (QUEUE R32): a.sweep of the region's normal
+        axis = -np.asarray(ctx["g"]["seats"][seat_i]["T_AF"], float)[:3, 2]          # presses, spread by farthest points
+        pr = [arr(x) for x in src["actions"] if x["kind"] == "press" and x["region"] == a.sweep_region]   # from the one
+        PP = np.array([x["p_P"] for x in pr], float)                                  # nearest the reference
+        pick = [int(np.argmin(np.linalg.norm(PP - np.asarray(ref["p_P"], float), axis=1)))]
+        dmin = np.linalg.norm(PP - PP[pick[0]], axis=1)
+        while len(pick) < min(a.sweep, len(pr)):
+            pick.append(int(np.argmax(dmin)))
+            dmin = np.minimum(dmin, np.linalg.norm(PP - PP[pick[-1]], axis=1))
+        levels = [float(v) for v in a.sweep_levels.split(",")]
+        keep = []
+        for j in pick:                                  # the depth and the body's distances again for the sweep's moves
+            x = {k: v for k, v in pr[j].items() if not k.startswith(("deep_clear", "deep_body", "touch_body"))}
+            keep.append(dict(x, id=x["id"].replace("probe-", "sweep-", 1), **sweep_fields(x, axis, ctx["tool"], levels)))
+        key = [(round(math.degrees(math.atan2(x["u_A"][1], x["u_A"][0])) / 20.0), x["u_A"][2]) for x in keep]
+        keep = [keep[j] for j in sorted(range(len(keep)), key=lambda j: key[j])]
+        return [dict(ref, id="probe-ref-00")] + keep + [dict(ref, id="probe-ref-final")], P_A, N_A
     obl = [arr(x) for x in src["actions"] if x["kind"] == "oblique"]
     rank = {}
     for reg in ("flank", "face", "edge"):
@@ -1566,7 +1632,6 @@ def subset_plan(ctx, seat_i, a):
             and (x["region"] == "flank" or x["theta"] == 20.0)]
     key = [(round(math.degrees(math.atan2(x["u_A"][1], x["u_A"][0])) / 20.0), x["u_A"][2]) for x in keep]
     keep = [keep[j] for j in sorted(range(len(keep)), key=lambda j: key[j])]
-    ref = next(arr(x) for x in src["actions"] if x["kind"] == "reference")
     out = []
     for j, x in enumerate(keep):
         if j % 25 == 0:
@@ -1591,6 +1656,11 @@ def own_moves(ctx, act):
             segs.append(("L", T, T1))
             T = T1
         segs.append(("L", T, Td))
+    if act["kind"] == "sweep":                          # each offset and slide from the deep pose and back to it
+        R_BA = ctx["T_BA"][:3, :3]
+        for v in sweep_vectors(act, R_BA @ np.asarray(act["n_A"], float), R_BA @ np.asarray(act["t1_A"], float)):
+            T1 = C.Tm(Td[:3, :3], Td[:3, 3] + v)
+            segs += [("L", Td, T1), ("L", T1, Td)]
     segs.append(("L", Td, Tr))
     return segs
 
@@ -1609,14 +1679,23 @@ def deep_clear(ctx, act, P_A, deep_max=2.0, step=0.25, owner=False):
     d_B = ctx["T_BA"][:3, :3] @ np.asarray(act["d_A"], float)
     n_B = ctx["T_BA"][:3, :3] @ np.asarray(act["n_A"], float)
     Td = np.asarray(act["T_deep"], float)
-    contact = (ctx["seat"], P_A[act["i"]], EXCL[ctx["tool"]])
+    contact = (ctx["seat"], P_A[act["i"]], excl(ctx["tool"], act))
     q = np.asarray(act["q_rest"], float)
+    sw = (sweep_vectors(act, n_B, ctx["T_BA"][:3, :3] @ np.asarray(act["t1_A"], float)) if act["kind"] == "sweep"
+          else [])                                      # a sweep's offsets and slides at each depth
+
+    def fails(T, q0):
+        for P in [T] + [C.Tm(T[:3, :3], T[:3, 3] + v) for v in sw]:
+            q0 = ik_near(P[None], q0, branch=BR[0])[0]
+            if not np.isfinite(q0).all() or joint_flags(q0, owner) or clear_flags(clearance(q0, ctx, contact), DEEP_EXTRA):
+                return True
+        return False
+
     best = DEEP
     for depth in np.arange(DEEP, 0.5 - 1e-9, -step):   # DEEP itself with the extra, and below it while it fails (11-02:
         T = Td.copy()                                   # three night presses at 1.0 mm stood 0.33-0.37 mm off the body)
         T[:3, 3] += (depth - DEEP) * d_B
-        qq = ik_near(T[None], q, branch=BR[0])[0]
-        if np.isfinite(qq).all() and not joint_flags(qq, owner) and not clear_flags(clearance(qq, ctx, contact), DEEP_EXTRA):
+        if not fails(T, q):
             break
         best = round(float(depth - step), 2)
     if best < DEEP:
@@ -1629,6 +1708,7 @@ def deep_clear(ctx, act, P_A, deep_max=2.0, step=0.25, owner=False):
             TM = T @ ctx["T_EM"]
             c_B = TM[:3, 3] + TM[:3, 2] * tool_end_z(ctx["tool"])
             poses += [C.turn_about(T, c_B, n_B, act["twist"] * s_) for s_ in np.linspace(0.0, 1.0, 16)[1:]]
+        poses += [C.Tm(T[:3, :3], T[:3, 3] + v) for v in sw]
         qq = q
         for P in poses:
             qq = ik_near(P[None], qq, branch=BR[0])[0]
@@ -1773,7 +1853,7 @@ def cmd_replay(a):
     T_prev, rows, n_way = None, [], {}
     dropped = []
     for x in acts:
-        contact = (a.seat, P_A[x["i"]], EXCL[ctx["tool"]])
+        contact = (a.seat, P_A[x["i"]], excl(ctx["tool"], x))
         q_before = q
         w, tsm, why, cl = pick_travel(ctx, T_prev, q, x, a.owner, a.joints_only)
         n_way[w] = n_way.get(w, 0) + 1
@@ -2371,6 +2451,13 @@ def cmd_dry_check(a):
                         cur = dg
                 T_after = C.Tm(T[:3, :3], T[:3, 3] - (st + 0.5) * d_B)
                 own.append(("L", T, T_after))
+            elif x["kind"] == "sweep":                      # each offset and slide from the deepest pose and back to it
+                t1_B = ctx["T_BA"][:3, :3] @ T_AP[:3, :3] @ np.asarray(x["target"]["t1"], float)
+                for v in sweep_vectors(x, n_B, t1_B):
+                    T1 = C.Tm(T_e[:3, :3], T_e[:3, 3] + v)
+                    own += [("L", T_e, T1), ("L", T1, T_e)]
+                T_after = T_t
+                own.append(("L", T_e, T_t))
             else:
                 T_after = T_t
                 own.append(("L", T_e, T_t))
@@ -2378,7 +2465,7 @@ def cmd_dry_check(a):
             if real:                                        # the held pad left out near the target
                 p_A = C.apply(T_AP, np.asarray(x["target"]["p"], float))
                 contact = ((seat, p_A, WALL["cut"], WALL["parts"]) if x["stage"] == "wall"
-                           else (seat, p_A, EXCL[ctx["tool"]]))
+                           else (seat, p_A, excl(ctx["tool"], x)))
             tsm, why_t = sample_all(segs, q, a.owner) if segs else ([], [])
             q_t = tsm[-1][5] if tsm else q
             osm, why_o = sample_all(own, q_t, a.owner)
@@ -2599,7 +2686,8 @@ def cmd_body_exact(a):
                       DEEP_EXTRA) from the body from its rest to its max depth; the replay's own value stays as
                       deep_clear_kd_mm (the k-d tree read up to 0.3 mm long by the cassette's edges for the rod)
       deep_body_mm    the press's least distance to the body at its deep_clear_mm
-    A press that keeps DEEP_NEED at no depth from 0.5 mm is marked body_drop (the converter leaves it out). --deep first
+    A press that keeps DEEP_NEED at no depth from 0.5 mm is marked body_drop (the converter leaves it out). A sweep's
+    offsets and slides at its depth keep DEEP_NEED as well. --redeep first
     takes each press's replay depth again from deep_clear by the current NEED (11-03: the 2 mm sphere's neck rule, NECK),
     and keeps the depth before it in deep_clear_was_mm; --suffix writes the plan under a new name."""
     t0 = time.time()
@@ -2616,8 +2704,8 @@ def cmd_body_exact(a):
         P_A = C.apply(np.asarray(ctx["g"]["seats"][seat]["T_AF"], float) @ T_FP, ctx["pts_P"])
         n_low, n_drop, n_up, rows = 0, 0, 0, []
         for x in sp["actions"]:
-            if x["kind"] not in ("press", "oblique", "reference", "twist"):      # the converter's presses and twists
-                continue
+            if x["kind"] not in ("press", "oblique", "reference", "twist", "sweep"):   # the converter's presses, twists
+                continue                                                                  # and sweeps
             T_r = np.asarray(x["T_rest"], float)
             d_B = R_BA @ np.asarray(x["d_A"], float)
             up = -(T_r @ ctx["T_EM"])[:3, 2]
@@ -2631,29 +2719,36 @@ def cmd_body_exact(a):
                 tb[f"{s1:g}"] = round(float(body_dist(poses, ctx, seat, tool).min()), 3)
             kd = float(x.get("deep_clear_kd_mm", x.get("deep_clear_mm") or DEEP))
             was = float(x.get("deep_clear_mm") or DEEP)
-            if a.deep:                                  # the replay's depth again by the current NEED (the neck, 11-03)
+            if a.redeep:                                # the replay's depth again by the current NEED (the neck, 11-03)
                 kd = deep_clear(ctx, x, P_A, a.deep_max)
             s_dp = np.r_[np.arange(0.0, st + kd, 0.05), st + kd]
             dd = body_dist([C.Tm(T_r[:3, :3], T_r[:3, 3] + s * d_B) for s in s_dp], ctx, seat, tool)
             run = np.minimum.accumulate(dd)
+            sw = (sweep_vectors(x, R_BA @ np.asarray(x["n_A"], float), R_BA @ np.asarray(x["t1_A"], float))
+                  if x["kind"] == "sweep" else [])
+
+            def side(depth):                            # a sweep's offsets and slides at that depth
+                c = T_r[:3, 3] + (st + depth) * d_B
+                return (float(body_dist([C.Tm(T_r[:3, :3], c + v) for v in sw], ctx, seat, tool).min()) if sw
+                        else 1e9)
             depth, drop = kd, False
             while True:
                 k = int(np.searchsorted(s_dp, st + depth + 1e-9)) - 1
-                if run[k] >= DEEP_NEED:
+                if run[k] >= DEEP_NEED and side(depth) >= DEEP_NEED:
                     break
                 if depth - 0.25 < 0.5 - 1e-9:
                     drop = True
                     break
                 depth = round(depth - 0.25, 2)
             k = int(np.searchsorted(s_dp, st + depth + 1e-9)) - 1
-            row = dict(id=x["id"], touch_body_mm=tb, deep_kd=kd, deep=depth, deep_body_mm=round(float(run[k]), 3),
-                       drop=drop, was=was)
+            row = dict(id=x["id"], touch_body_mm=tb, deep_kd=kd, deep=depth,
+                       deep_body_mm=round(float(min(run[k], side(depth))), 3), drop=drop, was=was)
             rows.append(row)
             n_low += depth < kd - 1e-9
             n_drop += drop
             n_up += depth > was + 1e-9
             if a.write:
-                if a.deep:
+                if a.redeep:
                     x.setdefault("deep_clear_was_mm", was)
                 x["touch_body_mm"] = tb
                 x["deep_clear_kd_mm"] = kd
@@ -2669,7 +2764,7 @@ def cmd_body_exact(a):
               f"least at the depth: {min(r['deep_body_mm'] for r in rows):.3f} mm; {time.time() - t0:.0f} s", flush=True)
         low = sorted(rows, key=lambda r: r["deep_body_mm"])[:3]
         print("   lowest at their depth:", [(r["id"], r["deep_kd"], r["deep"], r["deep_body_mm"]) for r in low], flush=True)
-        if a.deep:
+        if a.redeep:
             moves = {}
             for r in rows:
                 moves[(r["was"], r["deep"])] = moves.get((r["was"], r["deep"]), 0) + 1
@@ -2680,9 +2775,9 @@ def cmd_body_exact(a):
                 f"{time.strftime('%Y-%m-%d %H:%M')}, workstation: body-exact (body_dist on the body sampled every 0.1 mm): "
                 f"touch_body_mm at the pass 1 standoffs {list(PASS1_STANDOFFS)}; deep_clear_mm lowered on {n_low} presses "
                 f"to keep {DEEP_NEED:g} mm from the tip's body (the replay's in deep_clear_kd_mm); {n_drop} marked body_drop."
-                + (f" --deep: deep_clear_kd_mm recomputed by deep_clear with the neck rule (NEED neck {NEED['neck']:g} mm "
+                + (f" --redeep: deep_clear_kd_mm recomputed by deep_clear with the neck rule (NEED neck {NEED['neck']:g} mm "
                    f"from the own pad within {NECK.get(tool, 0):g} mm of the sphere's centre); deeper on {n_up}, the "
-                   "earlier depth in deep_clear_was_mm." if a.deep else ""))
+                   "earlier depth in deep_clear_was_mm." if a.redeep else ""))
             dst = Path(f).with_name(Path(f).stem + a.suffix + ".json") if a.suffix else Path(f)
             dst.write_text(json.dumps(sp, default=float) + "\n")
             print("   ->", dst, flush=True)
@@ -2854,8 +2949,9 @@ def main():
     be.add_argument("plans", nargs="+", help="seat plans (this script's replay output)")
     be.add_argument("--write", action="store_true", help="write touch_body_mm and the depths into the plans")
     be.add_argument("--pass1-body", type=float, default=2.0, help="mm: the count printed of presses a pass 1 may take")
-    be.add_argument("--deep", action="store_true", help="recompute each press's deep_clear_kd_mm with deep_clear by the "
-                    "current NEED (the 2 mm sphere's neck rule, 11-03) before the exact check")
+    be.add_argument("--redeep", action="store_true", help="recompute each press's deep_clear_kd_mm with deep_clear by "
+                    "the current NEED (the 2 mm sphere's neck rule, 11-03) before the exact check (840f40da named it "
+                    "--deep, which main also took as DEEP: True, that is 1.0 mm, so its depths stand)")
     be.add_argument("--deep-max", type=float, default=2.0)
     be.add_argument("--suffix", default="", help="write <plan>SUFFIX.json in place of the plan")
     sb = sub.add_parser("seat-beam")
@@ -2885,6 +2981,10 @@ def main():
                     "obliques, levels from 0.25 N; no normal presses")
     rp.add_argument("--tag", default="", help="after the stem in the output's names")
     rp.add_argument("--from-plan", default="", help="a built --extra plan: its obliques cut to the night (subset_plan)")
+    rp.add_argument("--sweep", type=int, default=0, help="with --from-plan: N of its --sweep-region normal presses made "
+                    "cone sweeps (QUEUE R32, SWEEP), the reference first and last")
+    rp.add_argument("--sweep-region", default="face")
+    rp.add_argument("--sweep-levels", default="0.5,1,2,3", help="N: the sweep's level stops")
     rp.add_argument("--drop-flagged", action="store_true", help="leave out an action whose travel and own moves no way "
                     "clears (not a reference); the next travel starts from the last action kept")
     rp.add_argument("--no-twist", action="store_true", help="no twists (11-02: the twists' torsion sits under the "

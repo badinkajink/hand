@@ -71,6 +71,9 @@ PRIOR = np.r_[np.radians([1.0, 1.0, 0.5]), [0.5] * 3, [0.3] * 3]            # th
 SIG_PAD, SIG_WALL, SIG_WALL_OFFSET = 0.03, 0.02, 0.1
 
 
+SWEEP_KEYS = ("offsets", "slides", "via_centre", "settle_s", "step_hold_s", "v_slide", "ft_t_cap_N")   # a sweep's
+#                                                     fields (ur5_inverted_rig.py SWEEP), as the seat plan has them
+
 def jacobians(acts, T_BA, T_AP, T_EM, c_M, R, geo0):
     """At the CAD, per action (its onset pose along the push): the touch residual's row d r / d x (x: the seat's 6, the
     sphere centre's 3), and the 3 x 9 change of where the sphere's centre stands in P when the truth is off by x and the
@@ -262,6 +265,9 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
             x["homing_lift_mm"] = lift
         if tool == "rod":                                      # the rod's turn about n from the tip's axis (R_PM has it)
             x["rod_deg"] = float(a["rod_deg"])
+        if a["kind"] == "sweep":                               # the cone sweep (QUEUE R32): the press's level stops, then
+            x.update(kind="sweep", **{k: a[k] for k in SWEEP_KEYS})   # the offsets along t1 and t2 (t1 in P) and the
+            tg["t1"] = (R_AP.T @ np.asarray(a["t1_A"], float)).round(6).tolist()   # slides
         if a["kind"] != "twist":
             acts.append(x)
             continue
@@ -276,7 +282,7 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
             acts.append(y)
     if worst > 0.01:
         raise SystemExit(f"the rest poses from the directions in P stand {worst:.3f} mm off the replay's")
-    presses = [a for a in acts if a["kind"] == "press"]
+    presses = [a for a in acts if a["kind"] in ("press", "sweep")]
     if tool == "rod":                                          # the rod's pass 1: touches with the rod across the tip, on
         presses = [a for a in presses if abs(a["rod_deg"] - 90.0) < 1e-6]    # the face and the edges (the workstation)
     J, G = jacobians(presses, T_BA, T_AP, T_EM, c_M, R, geo0)
@@ -297,7 +303,7 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
                      travel_ws="joint")
             if st1 is not None:
                 t["standoff"] = float(st1)
-            for k in ("levels", "max_depth_mm", "hold_s", "homing_lift_mm"):
+            for k in ("levels", "max_depth_mm", "hold_s", "homing_lift_mm") + SWEEP_KEYS:
                 t.pop(k, None)
             touches.append(t)
     touches[0].update(travel_ws=first["way"], homing_lift_mm=first["lift_mm"])   # pass 1 starts from the homing
