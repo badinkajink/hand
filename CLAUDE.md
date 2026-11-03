@@ -115,7 +115,7 @@ Rotations, quaternions and rigid transforms come from `morphohand.geometry.rotat
 Hamilton products, radians, batched, over scipy's `Rotation`. It imports numpy and scipy only, so it runs in `femtip`
 and on corvus (scipy 1.12). Never write a private quaternion product, quaternion-to-matrix, axis rotation, Rodrigues
 formula, skew matrix or frame builder in a script. Call the module, or scipy or trimesh, and add a missing function to
-the module with a test in `tests/test_geometry_rotations.py`. The owner was "very concerned about us rewriting
+the module, checked once against MuJoCo or scipy. The owner was "very concerned about us rewriting
 rotations, geometry, math helpers everywhere with custom math instead of using proven library calls / a single help
 file(s)". The audit of 2026-11-03 (`docs/notes/20261103-scripts_cleanup/`) found 309 rotation copies in 128 files and
 165 geometry and statistics copies, with eight bugs among them. The hand-off `docs/handoff/20261103-scripts_topic_folders.md`

@@ -303,5 +303,6 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run --extra dev python -m pytest tests/ -q
 ```
 
 Plugin autoloading is off because ROS Humble's pytest plugin, which is on this workstation's Python path, fails to
-import. The hardware tests need no hardware: `tests/test_manta_hardware_faults.py` runs the real driver stack against
-`manta_hand.fake_hardware`.
+import. The tests cover the code that moves hardware and that has no other check off the bench: the Manta driver
+against a fake board (`manta_hand.fake_hardware`), the frame map, the tag tracker and its service. They also cover the
+pinned dependencies, and the rotation module against MuJoCo.

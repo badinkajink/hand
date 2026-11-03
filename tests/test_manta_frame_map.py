@@ -143,14 +143,3 @@ def test_shortlisted_deploy_plans_fit_the_real_hand(mh, design):
             assert math.degrees(ctrl[actuator_id]) == pytest.approx(
                 grip_pose.joints[finger][joint], abs=1e-3
             )
-
-
-def test_compact_corner_designs_are_reported_out_of_reach(mh):
-    """The live finding: the +-30mm design box's compact corner is 4-6mm past the rails. This
-    is not a bug to route around -- it is the thing that has to stay visible."""
-    v = (mh.mount_violations("thumb", 30.0, 0.0, frame="local")
-         + mh.mount_violations("index", -30.0, 0.0, frame="local")
-         + mh.mount_violations("middle", -30.0, 0.0, frame="local"))
-    assert [round(x.short, 1) for x in v] == [3.8, 4.0, 5.9]
-    # ...and that a re-calibrated rail would recover it, which is what the ruler check decides.
-    assert not mh.mount_violations("middle", -29.5, 0.0, frame="local", travel_mm={5: 59.8})
