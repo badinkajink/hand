@@ -1099,8 +1099,9 @@ push that answers it arrives.
     body before contact by construction: `ur5_inverted_rig.py body-exact --write` puts touch_body_mm on every press of a
     seat plan, and `ur5_probe_plan.py --pass1-body 2.0` takes pass 1 only from those at 2 mm or more. The rod's pass 1
     then keeps 20 touches a seat, each 3.14 mm or more from the body, and its depth is lowered on 11 presses a seat to
-    keep 0.40 mm, where the rod came to 0.26 mm. A retract of 6 mm in place of 12 replays clean but saves only 0.9 s of a
-    press's 29.3 s: a travel takes 8.56 s plus 0.15 s/mm, most of it waiting for the robot to settle after each move.
+    keep 0.40 mm, where the rod came to 0.26 mm. A retract of 6 mm in place of 12 replays clean and saves about 3.0 s of
+    a press's 29.3 s. With the speed slider at 0.30 the travel's moves run at 6 mm/s back and across and 3 mm/s in, so
+    most of its 8.7 s is motion (12:19 correction; 11:24 had 0.9 s from leaving the slider out).
     The rod's program plans converted again on that (fe4e1914) replay clean, chained 3, 2, 1 after the 2 mm sphere's
     seat 3 (bb79d68e): none of 587 travels flagged. The restart waits for the owner's look at v3 ID 6 and his go.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
