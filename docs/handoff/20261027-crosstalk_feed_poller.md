@@ -11,7 +11,13 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 11-03 11:3x: feed lines 39-42 (11-02 14:11 to 11-03 11:10,
+State: armed 2026-10-27 21:00 from the colorado window. 11-03 12:5x: the watcher woke at 12:02 on feed lines 43-45
+(12:01 s1sph2's stop at 11:25, 12:14 fast3 ran 252 not 263, 12:25 restart at 12:20:20 on quick plans; line 42's time
+became 11:03, text unchanged). Calibration page 5a3ab038: the rig item only (fast3 252 + 11 in speed3; seat 1's first
+2 mm run stopped at 11:25, a pass 1 touch on the body in the registration, two travel aborts 8.4/8.8 N on v3 ID 6,
+lab/NOTES.md; restart 12:20; seats 2-3 and the rod on plans ~4 s a press faster; prose 603, 16.7, 2 %, 260/1000). The
+overview and the physical-model page state none of it. Acked 45 lines at HEAD 5a3ab038. Next as below.
+11-03 11:3x: feed lines 39-42 (11-02 14:11 to 11-03 11:10,
 kind calibration) waited until this session found them at 11:04 on 11-03; handled as step 41. Calibration page 36d73cb4:
 Section 14 on the coordinator's data curve (ee772007; docs/experiments/20261022-ur5_tip_calibration/data/
 20261102-v3_data_curve.json: location 0.56-0.63 -> 0.46-0.51 mm half -> all, torsion no better than none on IDs 2-3),
