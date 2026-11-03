@@ -1123,8 +1123,11 @@ push that answers it arrives.
     presses go from 1.0 to 1.5 mm (63 a seat) or to 1.75 mm (17 to 20). No press comes nearer the tip's body than 0.53
     mm. The lab's quick plans patched with those depths replay with no new flag: 288 and 291 actions, with 0 and 1
     flagged (the seat 3 flag of every earlier replay). If the force goes as depth^1.5 from 1 N at 1.0 mm, 1.5 mm gives
-    about 1.8 N. The patch waits on the owner's go in the lab's session by 13:50; without it seats 2 and 3 run as
-    checked.
+    about 1.8 N. The lab's simulations of the patched plans ran clean (269 of 269 and 271 of 271, d716071e). The owner
+    gave the go in the lab's session at 13:5x, and the chain switched at 13:52:41 (chain_sphere2d, 6fe2a926): seats 2
+    and 3 run the _quick_neck plans after seat 1. By the lab's timing from s1sph2b (30.5 s a press), seat 1 ends about
+    14:45, seat 2 about 16:55 and seat 3 about 19:05. Grid presses at 0.6 mm/s (_quick_neck_fast, in simulation to
+    14:15) would end seat 3 about 18:15; they wait on the owner's go.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
     15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
     4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
