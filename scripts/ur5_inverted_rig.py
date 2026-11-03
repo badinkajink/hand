@@ -1352,6 +1352,8 @@ SLIP = dict(sphere=dict(give=0.266, give_exp=-0.53, mu=((1.0, 0.37), (2.0, 0.44)
 #   0.37 at 1 N and 0.44 at 2 N (the vector fit), flat outside. The 12.5 mm rod (cb1r) gave 0.232 mm/N at 1 N and 0.188
 #   at 2 N (f_n^-0.30), with friction 0.42 and 0.38. Another sphere's give goes as R^(-1/3) (Mindlin: as the contact
 #   radius at a force)
+SWEEP_KEYS = ("offsets", "slides", "via_centre", "settle_s", "step_hold_s", "v_slide", "v_offset", "ft_t_cap_N",
+              "ft_t_ratio", "ft_t_floor_N")   # a sweep's fields past the press's (ur5_probe_plan.py has the same)
 SWEEP = dict(radii=(0.5, 0.9), azimuths=8, slides=(0.0, 90.0, 180.0, 270.0), slide_mm=1.0, slide_at=2.0, settle_s=0.2,
              step_hold_s=0.2, via_centre=True, v_slide=0.0005, v_offset=0.002, ft_t_cap_N=3.0, ft_t_ratio=1.2,
              ft_t_floor_N=0.5, r_min=0.06, light_N=0.5)
@@ -1375,8 +1377,9 @@ def slip_mm(F, tool):
     return mu * F * give
 
 
-def sweep_fields(x, axis_A, tool, levels):
-    """A seat plan's press made a sweep: its levels, t1 in A, each level's offsets [r_mm, az_deg] and the slides."""
+def sweep_fields(x, axis_A, tool, levels, slide_at=None):
+    """A seat plan's press made a sweep: its levels, t1 in A, each level's offsets [r_mm, az_deg] and the slides (at
+    each of slide_at's levels, SWEEP["slide_at"] by default)."""
     t1, _ = tangent_basis(np.asarray(x["n_A"], float), axis_A)
     az = np.arange(SWEEP["azimuths"]) * 360.0 / SWEEP["azimuths"]
 
@@ -1386,9 +1389,11 @@ def sweep_fields(x, axis_A, tool, levels):
         return [f * slip_mm(F, tool) for f in SWEEP["radii"] if f * slip_mm(F, tool) >= SWEEP["r_min"]]
     return dict(kind="sweep", levels=[float(F) for F in levels], t1_A=t1.round(6).tolist(),
                 offsets=[[[round(r, 3), float(z)] for r in rings(F) for z in az] for F in levels],
-                slides=[dict(az_deg=float(z), mm=SWEEP["slide_mm"], at_N=SWEEP["slide_at"]) for z in SWEEP["slides"]],
-                **{k: SWEEP[k] for k in ("via_centre", "settle_s", "step_hold_s", "v_slide", "v_offset", "ft_t_cap_N",
-                                         "ft_t_ratio", "ft_t_floor_N")})
+                slides=[dict(az_deg=float(z), mm=SWEEP["slide_mm"], at_N=float(F))
+                        for F in (slide_at or [SWEEP["slide_at"]]) for z in SWEEP["slides"]],
+                **{k: SWEEP[k] for k in ("via_centre", "settle_s", "step_hold_s", "v_slide", "v_offset", "ft_t_ratio",
+                                         "ft_t_floor_N")},
+                ft_t_cap_N=max(SWEEP["ft_t_cap_N"], round(0.6 * max(levels) + 0.5, 1)))   # friction 0.6 at most
 
 
 def sweep_vectors(act, n_B, t1_B):
@@ -1631,13 +1636,22 @@ def subset_plan(ctx, seat_i, a):
         pick = [int(np.argmin(np.linalg.norm(PP - np.asarray(ref["p_P"], float), axis=1)))]
         dmin = np.linalg.norm(PP - PP[pick[0]], axis=1)
         while len(pick) < min(a.sweep, len(pr)):
+            dmin[pick] = -1.0                           # each press once (the rod's two turns share a point)
             pick.append(int(np.argmax(dmin)))
             dmin = np.minimum(dmin, np.linalg.norm(PP - PP[pick[-1]], axis=1))
         levels = [float(v) for v in a.sweep_levels.split(",")]
+        slide_at = [float(v) for v in a.sweep_slide_at.split(",")] if a.sweep_slide_at else None
         keep = []
         for j in pick:                                  # the depth and the body's distances again for the sweep's moves
             x = {k: v for k, v in pr[j].items() if not k.startswith(("deep_clear", "deep_body", "touch_body"))}
-            keep.append(dict(x, id=x["id"].replace("probe-", "sweep-", 1), **sweep_fields(x, axis, ctx["tool"], levels)))
+            keep.append(dict(x, id=x["id"].replace("probe-", "sweep-", 1),
+                             **sweep_fields(x, axis, ctx["tool"], levels, slide_at)))
+        tw = [x for x in keep if x["region"] == "face" and abs(float(x.get("rod_deg", 90.0)) - 90.0) < 1e-6]
+        for x in tw[:a.sweep_twists]:                   # twists about n at the first face points (the converter makes
+            for deg in (-15.0, 15.0):                   # each one at 3 N and at 1 N)
+                keep.append({**{k: v for k, v in x.items() if k not in SWEEP_KEYS + ("t1_A", "levels")},
+                             "id": x["id"].replace("sweep-", "probe-", 1) + f"-t{deg:+g}", "kind": "twist",
+                             "twist": deg, "levels": [0.5, 1.0, 2.0, 3.0]})
         key = [(round(math.degrees(math.atan2(x["u_A"][1], x["u_A"][0])) / 20.0), x["u_A"][2]) for x in keep]
         keep = [keep[j] for j in sorted(range(len(keep)), key=lambda j: key[j])]
         return [dict(ref, id="probe-ref-00")] + keep + [dict(ref, id="probe-ref-final")], P_A, N_A
@@ -3003,6 +3017,9 @@ def main():
                     "cone sweeps (QUEUE R32, SWEEP), the reference first and last")
     rp.add_argument("--sweep-region", default="face", help="the regions whose normal presses are taken (comma-separated)")
     rp.add_argument("--sweep-levels", default="0.5,1,2,3", help="N: the sweep's level stops")
+    rp.add_argument("--sweep-slide-at", default="", help="N, comma-separated: the levels the slides run at (default "
+                    "SWEEP slide_at, 2 N)")
+    rp.add_argument("--sweep-twists", type=int, default=0, help="this many face sweeps also get +-15 deg twists")
     rp.add_argument("--sweep-rod-deg", type=float, default=None, help="the rod: only its presses at this rod_deg (the lab, "
                     "15:45 on 11-03: 90, the rod across the tip, tonight)")
     rp.add_argument("--drop-flagged", action="store_true", help="leave out an action whose travel and own moves no way "
