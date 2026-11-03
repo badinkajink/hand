@@ -1350,13 +1350,16 @@ SLIP = dict(give=0.266, give_exp=-0.53, mu=((1.0, 0.37), (2.0, 0.44)), R=5.0)
 #   before slip 0.266 mm/N at 1 N, going as f_n^-0.53 (0.181 at 2 N), and friction 0.37 at 1 N and 0.44 at 2 N, flat
 #   outside. Another sphere's give goes as R^(-1/3) (Mindlin: as the contact radius at a force)
 SWEEP = dict(radii=(0.5, 0.9), azimuths=8, slides=(0.0, 90.0, 180.0, 270.0), slide_mm=1.0, slide_at=2.0, settle_s=0.2,
-             step_hold_s=0.2, via_centre=True, v_slide=0.0005, ft_t_cap_N=2.0, r_min=0.06)
+             step_hold_s=0.2, via_centre=True, v_slide=0.0005, v_offset=0.002, ft_t_cap_N=3.0, ft_t_ratio=1.2,
+             ft_t_floor_N=0.5, r_min=0.06, light_N=0.5)
 #   the cone sweep (QUEUE R32; the fields as the lab took them at 13:25 on 11-03): at each level, 8 azimuths at 0.5 and
 #   0.9 times the slip offset, each reached from the stopped pose and back to it (via_centre), as translations of the
 #   flange along t1 and t2 with its orientation kept; then four 1 mm slides at 2 N at v_slide (m/s before the slider),
-#   each back to its start. ft_t_cap_N: the sweep check's cap on the tangential force (a slide's friction is about
-#   0.9 N at 2 N). r_min: no offset under twice the arm's settling error of 0.03 mm (the lab, 13:34: the 2 mm sphere's
-#   inner ring at 0.5 N came to 0.048 mm), so 0.5 N keeps its outer ring alone
+#   each back to its start; the offsets at v_offset. The program's sweep check aborts when the force across n passes
+#   ft_t_cap_N, or ft_t_ratio times the force along n plus ft_t_floor_N (past friction). ft_t_cap_N 3.0 (the lab, 13:56
+#   on 11-03: at mu 1.0 its simulator passed 2.0 by the 3 N level) in case the 2 mm sphere's friction on the TPU passes
+#   0.6. r_min: no offset under twice the arm's settling error of 0.03 mm. At light_N and under, one ring at r_min: in the
+#   lab's simulator the 0.087 mm ring at 0.5 N unloaded sweep-face-717 to about 0 N (13:56)
 
 
 def slip_mm(F, tool):
@@ -1370,11 +1373,16 @@ def sweep_fields(x, axis_A, tool, levels):
     """A seat plan's press made a sweep: its levels, t1 in A, each level's offsets [r_mm, az_deg] and the slides."""
     t1, _ = tangent_basis(np.asarray(x["n_A"], float), axis_A)
     az = np.arange(SWEEP["azimuths"]) * 360.0 / SWEEP["azimuths"]
+
+    def rings(F):
+        if F <= SWEEP["light_N"] + 1e-9:
+            return [SWEEP["r_min"]]
+        return [f * slip_mm(F, tool) for f in SWEEP["radii"] if f * slip_mm(F, tool) >= SWEEP["r_min"]]
     return dict(kind="sweep", levels=[float(F) for F in levels], t1_A=t1.round(6).tolist(),
-                offsets=[[[round(f * slip_mm(F, tool), 3), float(z)] for f in SWEEP["radii"] for z in az
-                          if f * slip_mm(F, tool) >= SWEEP["r_min"]] for F in levels],
+                offsets=[[[round(r, 3), float(z)] for r in rings(F) for z in az] for F in levels],
                 slides=[dict(az_deg=float(z), mm=SWEEP["slide_mm"], at_N=SWEEP["slide_at"]) for z in SWEEP["slides"]],
-                **{k: SWEEP[k] for k in ("via_centre", "settle_s", "step_hold_s", "v_slide", "ft_t_cap_N")})
+                **{k: SWEEP[k] for k in ("via_centre", "settle_s", "step_hold_s", "v_slide", "v_offset", "ft_t_cap_N",
+                                         "ft_t_ratio", "ft_t_floor_N")})
 
 
 def sweep_vectors(act, n_B, t1_B):

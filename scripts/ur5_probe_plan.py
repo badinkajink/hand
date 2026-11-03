@@ -71,7 +71,8 @@ PRIOR = np.r_[np.radians([1.0, 1.0, 0.5]), [0.5] * 3, [0.3] * 3]            # th
 SIG_PAD, SIG_WALL, SIG_WALL_OFFSET = 0.03, 0.02, 0.1
 
 
-SWEEP_KEYS = ("offsets", "slides", "via_centre", "settle_s", "step_hold_s", "v_slide", "ft_t_cap_N")   # a sweep's
+SWEEP_KEYS = ("offsets", "slides", "via_centre", "settle_s", "step_hold_s", "v_slide", "v_offset", "ft_t_cap_N",
+              "ft_t_ratio", "ft_t_floor_N")                                                           # a sweep's
 #                                                     fields (ur5_inverted_rig.py SWEEP), as the seat plan has them
 
 def jacobians(acts, T_BA, T_AP, T_EM, c_M, R, geo0):
