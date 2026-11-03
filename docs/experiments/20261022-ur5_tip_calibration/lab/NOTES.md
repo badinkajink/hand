@@ -2392,6 +2392,22 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   frame's roll about y_A, which the rocking key seatings cannot fix, plus a slight twist along the strip. Each seat's grid
   aims by its own fit, and at the fitted poses the grids flag nothing (joint 5 -94 to -76, joint 6 -18 to +14).
 
+- Seat 3 (v3 ID 4, s3v4) ended at 01:43:27 on 11-03 with exit 0: pass 1 20 of 20 (0.051 mm rms), the grid 295 of
+  295, no abort. The HEX-E gave 1,317,359 samples, none timed out. Copy: `20261102-220337-s3v4/`. Across the three
+  seats' main runs, 60 touch-offs and 883 grid actions ran, and none aborted.
+- The chain began the overnight list at 01:43:35 with speed3 on seat 3's session (resumed: 317 actions done, 20
+  touches). The first eight presses, the peak load against the rest (3 N target) and the press's time:
+
+  | Speed | Peak | Time |
+  |---|---|---|
+  | 0.05 mm/s | 3.7-3.8 N | 30 s |
+  | 0.15 mm/s | 3.7-3.9 N | 10 s |
+  | 0.6 mm/s | 4.2-4.6 N | 3.3 s |
+  | 1.2 mm/s | 5.0-5.4 N | 2.2 s |
+
+  At 1.2 mm/s the stop came 0.4 mm deeper than at 0.05 mm/s, 0.3 mm short of the press's depth limit. The simulator at
+  the real speeds had given 3.6, 3.7, 4.1 and 4.7 N.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
