@@ -2355,6 +2355,30 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   The HEX-E's raw Fz at rest climbs about 2.8 N/h since its restart at 14:34. Each action tares, so a press sees about
   0.01 N of it.
 
+## Seat 1 done; the chain on seats 2 and 3, and the overnight list (11-02, from 16:2x)
+
+- Seat 1 (v3 ID 6, s1v6b) ended at 18:27:09 with exit 0. Pass 1 landed 20 of 20, the grid 294 of 294, with no abort.
+  The HEX-E gave 1,300,309 samples, none timed out, with two gaps of 0.6 s outside any action. Copy:
+  `20261102-145010-s1v6b/` (the small files and the printout); the streams stay on corvus.
+- A press took 28.9 s on average and a twist 145 s, so a seat's main run takes about 3.6 h.
+- Seat 1's reference press over the run, its stop at 3 N against the first: -0.165 to +0.057 mm along the push (the
+  low between 15:43 and 16:11, back by 16:32), at most 0.031 mm across. At the end it stood +0.012 mm.
+- The workstation built the overnight coverage set (17:4x, 5a6ff549). The full set reaches 1,285 to 1,289 obliques a
+  seat, about 9 h a seat, and stays for later nights. Its night subset runs 221 to 222 obliques plus 10 references a
+  seat:
+  - flank points: theta 10, 20 and 30 at two opposite azimuths;
+  - face and edge points: theta 20 at two;
+  - the pair turns 45 deg from point to point.
+  The lab's plans (`20261102-plan_probe_table_night_seat*`) drop pass 1, and every id ends in -n: 20 a seat were the
+  main plan's ids, which a resumed session skips as done.
+- The workstation replayed the whole overnight list chained from seat 3's end: 0 of 1,521 travels flagged. Three night
+  flank obliques came 0.33 to 0.37 mm from the rigid tip body at their 1.0 mm depth limit (the margin is 0.4 mm); they
+  are capped at 0.75 mm (83150a9a).
+- All nine overnight runs passed their chained simulations at the robot's real speeds, with no abort. Each has its
+  marker. The order: speed3, speed2, speed1, night1, night2, night3, fast3, fast2, fast1.
+- The chain started seat 2 (s2v5) at 18:27:09. It went by seat 2's hub from seat 1's end, and pad-ref-00's onset came
+  0.96 mm early (seat 1's: 1.38).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
