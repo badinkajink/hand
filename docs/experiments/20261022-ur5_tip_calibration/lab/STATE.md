@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 01:44 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 02:48 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -156,8 +156,10 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   (`20261102-182710-s2v5/`). Its pad stands 1.21 mm and 3.5 deg from its CAD, much as seat 1's (1.68 mm, 4.1 deg).
 - Done: seat 3 (v3 ID 4), 22:03 to 01:43 on 11-03, pass 1 20 of 20 (0.051 mm rms) and the grid 295 of 295 with no abort
   (`20261102-220337-s3v4/`). All three seats' main runs: 883 grid actions and 60 touch-offs, not one aborted.
-- Running since 01:43 (the chain's overnight list): speed3 on seat 3's session, printout
-  `logs/20261103-014335-tipcal-speed3.log`; then speed2, speed1, night1-3, fast3-1.
+- Done overnight: speed3, speed2, speed1 (01:43 to 02:47), 48 of 48 each with no abort.
+- Running since 02:47: night1 on seat 1's session (232 presses, about 2 h), printout `logs/20261103-024751-tipcal-night1.log`;
+  then night2, night3, fast3, fast2, fast1 (into the afternoon of 11-03). To stop after the run in progress: kill the
+  chain's PID 2658916.
 - Armed (16:10): `logs/20261102-chain_seats23.sh` (copy here, PID 2658916, its log `logs/20261102-chain_seats23.log`)
   started seat 2 (v3 ID 5) at 18:27, to about 22:05; then seat 3 (v3 ID 4), about 22:05 to 01:45
   (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`: safe_mm 15, hubs 40 mm over the apex). Both
