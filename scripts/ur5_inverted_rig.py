@@ -2235,7 +2235,8 @@ def cmd_dry_check(a):
                      + ", each press and touch to its full length in free air")
                     + ", the travels between them, each twist at the end of its press", dry_mm=0.0 if real else a.dry,
                along="push" if a.along_push else "stem", real=real, chain=bool(a.chain), start=a.start,
-               stages=list(stages), safe_mm=a.safe, retract_mm=a.retract, hub_dz=a.hub_dz, program_plans=a.program, need=NEED, seats={},
+               stages=list(stages), safe_mm=a.safe, retract_mm=a.retract, hub_dz=a.hub_dz, start_q=a.start_q or None,
+               program_plans=a.program, need=NEED, seats={},
                rows=[])
     carry = None                                        # --chain: (flange pose, joints) where the plan before ended
     if a.start_after:                                   # where that plan's run ended: its last grid action's rest
@@ -2247,6 +2248,9 @@ def cmd_dry_check(a):
         T0_, _, _ = program_rest(prog0, ctx0, x0, float(x0.get("standoff", 1.5)))
         q0_ = np.asarray(x0["q_rest"], float)
         carry = (T0_, ik_near(T0_[None], q0_, branch=branch_of(q0_))[0])
+    if a.start_q:                                       # from the robot's joints (deg), as the program finds it
+        q0_ = np.radians([float(v) for v in a.start_q.split(",")])
+        carry = (fk_many(q0_[None])[0], q0_)
     for fi, f in enumerate(a.program):
         prog = json.loads(Path(f).read_text())
         src = json.loads((ROOT / prog["checks"]["source"]).read_text())
@@ -2662,6 +2666,8 @@ def main():
     dc.add_argument("--retract", type=float, default=None, help="mm: in place of the plans' travel.probe.retract_mm "
                     "(the straight travels' back-off)")
     dc.add_argument("--tag", default="", help="appended to the output's name")
+    dc.add_argument("--start-q", default="", help="Q1,...,Q6 deg: the first plan starts from these joints (the robot "
+                    "where it stands), its first travel by the program's rule")
     dc.add_argument("--start-after", default="", help="a program plan: start where its run ended (its last grid "
                     "action's rest), as the overnight plans follow seat 3's")
     dc.add_argument("--fit", default="", help="RX,RY,RZ,TX,TY,TZ: each seat's pad moved so in P (deg about x_P, y_P, "
