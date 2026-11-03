@@ -54,8 +54,8 @@ Until 2026-11-03 every script was directly in `scripts/`. `MOVED.tsv` maps each 
 notes and pages written before. `archive/` has the scripts no longer used, with a README that says when and why each
 was moved; move a script back before running it.
 
-Shared numerical code is in `src/morphohand/geometry/` and `src/morphohand/numerics/`, not in scripts: rotations,
-quaternions and rigid transforms in `morphohand.geometry.rotations`, over scipy.
+Shared numerical code is in the package `sr2hand` (`src/sr2hand/`), not in scripts: rotations, quaternions and rigid
+transforms are in `sr2hand.geometry.rotations`, over scipy.
 
 This file is written by `scripts/docs/scripts_map.py` from the scripts' docstrings.
 """

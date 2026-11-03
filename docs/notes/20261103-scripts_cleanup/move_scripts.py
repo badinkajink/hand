@@ -29,9 +29,9 @@ from pathlib import Path
 
 LIVE_TEXT = ["scripts", "src", "tests", "configs", ".claude", "CLAUDE.md", "AGENTS.md", "README.md",
              "docs/hardware_control_station.md", "docs/rl/morph_sweep_STATUS.md"]
-LIVE_GLOBS = ["docs/experiments/*/README.md", "docs/experiments/*/*/README.md",
-              "docs/experiments/20261022-ur5_tip_calibration/lab/STATE.md"]
-TEXT_EXT = {".py", ".sh", ".md", ".txt", ".yaml", ".yml", ".toml", ".json", ".html", ".slurm", ".cfg"}
+# the lab's STATE.md is not rewritten: the lab writes it during runs and takes one appended bullet (lab, 11-03 12:04)
+LIVE_GLOBS = ["docs/experiments/*/README.md", "docs/experiments/*/*/README.md"]
+TEXT_EXT = {".py", ".sh", ".md", ".txt", ".yaml", ".yml", ".toml", ".json", ".html", ".js", ".css", ".slurm", ".cfg"}
 SKIP_PARTS = {"archive", "__pycache__", "firmware", "node_modules"}
 
 ROOT_FIXES = [  # (pattern, replacement) for a script one folder deeper
@@ -99,6 +99,31 @@ for _p in [str(ROOT / "src"), str(SCRIPTS), *map(str, folders())][::-1]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 '''
+PKG_NAMES = ("geometry|numerics|rl|sampling|optimization|bench|studies|tools|control|backends|uhas|config|driver|"
+             "create_backend|MorphologyValues|apply_morphology_to_qpos|build_morphology_suffix|build_rigid_model_name|"
+             "create_rigid_hand_and_scene_xmls|create_rigid_morphology_xml|extract_morphology_from_qpos|__file__|__path__")
+# phrases where the old name means the package, or sits in a string a test compares; applied before the word rules
+PKG_PHRASES = [("mujoco, no morphohand.", "mujoco, no sr2hand."), ("mujoco + morphohand.", "mujoco + sr2hand."),
+               ("ActionTerms for morphohand.", "ActionTerms for the hand."), ('== "morphohand"', '== "sr2hand"'),
+               ('b"MorphoHand control"', 'b"SR2 Hand control"'), ('<span class="mark">MH</span>', '<span class="mark">SR2</span>')]
+# the runbook's commands on the CB1 keep the CB1's own src/morphohand/; its workstation commands change by hand
+PKG_KEEP_TEXT = {"docs/hardware_control_station.md"}
+SPECIAL_PKG = [
+    ("docs/hardware_control_station.md",
+     "PYTHONPATH=src/morphohand/driver/manta/host python -m manta_hand.web --fake --port 8765",
+     "PYTHONPATH=src/sr2hand/driver/manta/host python -m manta_hand.web --fake --port 8765"),
+    ("docs/hardware_control_station.md",
+     "  --directory src/morphohand/driver/manta/host/manta_hand/static",
+     "  --directory src/sr2hand/driver/manta/host/manta_hand/static"),
+    ("docs/hardware_control_station.md",
+     "## CB1 install\n",
+     "## CB1 install\n\nThe CB1's checkout (`~/hand`, never pulled) keeps the package's old folder `src/morphohand/`, so the\n"
+     "commands run on the CB1 use it; on the workstation the folder is `src/sr2hand/` since 2026-11-03. A file shipped from\n"
+     "`src/sr2hand/driver/manta/host/` goes to the same place under the CB1's `src/morphohand/driver/manta/host/`.\n"),
+    ("docs/hardware_control_station.md", "# MorphoHand hardware control station", "# SR² Hand hardware control station"),
+    ("pyproject.toml", 'name = "morphohand"', 'name = "sr2hand"'),
+    ("uv.lock", 'name = "morphohand"', 'name = "sr2hand"'),
+]
 # code that builds a script's path instead of naming it in a string: (file after the move, old, new)
 SPECIAL = [
     ("scripts/docs/docs_inventory.py",
@@ -117,13 +142,6 @@ SPECIAL = [
     ("scripts/design/sweep_perp_thumb.py",
      'PROJECT_ROOT / "scripts" / "generate_morphology_xml.py"',
      'PROJECT_ROOT / "scripts" / "design" / "generate_morphology_xml.py"'),
-    ("tests/test_action_budget.py",
-     'ROOT / "scripts" / "probe_action_budget.py"', 'ROOT / "scripts" / "rl" / "probe_action_budget.py"'),
-    ("tests/test_sphere_pack.py",
-     "from scripts.generate_sphere_packed_scene import pack_scene",
-     "from scripts.design.generate_sphere_packed_scene import pack_scene"),
-    ("tests/test_config_parity.py",
-     'ROOT / "scripts" / "assert_config_parity.py"', 'ROOT / "scripts" / "rl" / "assert_config_parity.py"'),
     ("scripts/docs/retro_style.py",
      'exp = os.path.join(os.path.dirname(here), "docs", "experiments")',
      'exp = os.path.join(os.path.dirname(os.path.dirname(here)), "docs", "experiments")'),
@@ -248,6 +266,61 @@ def live_text_files(root):
     return sorted(set(files))
 
 
+def rename_package(root):
+    """src/morphohand/ -> src/sr2hand/ (owner, 2026-11-03): the imports, the dotted names and the paths in the live
+    code and text, MorphoHandEnvCfg -> HandEnvCfg, the project's name in pyproject.toml and uv.lock, and the venv's
+    editable install. The CB1's checkout keeps src/morphohand/ (it is never pulled), so the runbook's CB1 commands keep
+    it. Lightning Grasp's asset names (morphohand.urdf, assets/hand/morphohand) are another project's and stay."""
+    git(root, "mv", "src/morphohand", "src/sr2hand")
+    code = [p for p in [*root.glob("scripts/**/*.py"), *root.glob("scripts/**/*.sh"), *root.glob("src/**/*.py"),
+                        *root.glob("tests/**/*.py"), *root.glob("paper/**/*.py"), *root.glob("configs/**/*.yaml")]
+            if not ({"archive", "firmware", "__pycache__"} & set(p.relative_to(root).parts))]
+    imp = re.compile(r"^(\s*)(from|import)(\s+)morphohand\b", re.M)
+    dotted = re.compile(rf"\bmorphohand\.(?=(?:{PKG_NAMES})\b)")
+    path = re.compile(r"(?<!~/hand/)(?<!irlab/hand/)\b(src/)morphohand\b")
+    word = re.compile(r"(?<![\w\"'/.\-])morphohand(?![\w\"'/.\-])")   # prose: "the morphohand" -> "the hand"
+    n = 0
+    for f in sorted(set(code) | set(live_text_files(root))):
+        if str(f.relative_to(root)) in PKG_KEEP_TEXT:
+            continue
+        try:
+            t = f.read_text()
+        except (UnicodeDecodeError, FileNotFoundError):
+            continue
+        u = path.sub(r"\1sr2hand", dotted.sub("sr2hand.", t))
+        if f in code:
+            u = imp.sub(r"\1\2\3sr2hand", u).replace("MorphoHandEnvCfg", "HandEnvCfg")
+        u = re.sub(r"\b_morphohand_", "_sr2hand_", u).replace("MORPHOHAND_", "SR2HAND_")
+        for old_s, new_s in PKG_PHRASES:
+            u = u.replace(old_s, new_s)
+        u = re.sub(r"\bMorphoHand\b", "SR² Hand" if f.suffix == ".md" else "SR2 Hand", u)
+        u = "".join(line if "--name morphohand" in line else word.sub("hand", line)
+                    for line in u.splitlines(keepends=True))
+        if u != t:
+            f.write_text(u)
+            n += 1
+    for rel, old, new in SPECIAL_PKG:
+        p = root / rel
+        t = p.read_text()
+        if old in t:
+            p.write_text(t.replace(old, new, 1))
+        else:
+            print(f"special edit not applied: {rel}: {old[:60]}")
+    print(f"package renamed to sr2hand; rewrote {n} files")
+    left = subprocess.run(["rg", "-n", "-i", "morphohand", "scripts", "src", "tests", "configs", ".claude", "CLAUDE.md",
+                           "AGENTS.md", "README.md", "pyproject.toml", "-g", "!**/archive/**", "-g", "!*.json"],
+                          cwd=root, capture_output=True, text=True).stdout.splitlines()
+    print(f"{len(left)} lines still name morphohand (expected: Lightning Grasp's and GraspGenX's asset names, the W&B "
+          "project, an SVG hash salt, check_scripts.py):")
+    print("\n".join(l[:160] for l in left))
+    venv = root / ".venv" / "bin" / "python"
+    if venv.exists():  # its editable install puts src/ on sys.path; reinstall under the new name
+        for cmd in (["uv", "pip", "uninstall", "--python", str(venv), "morphohand"],
+                    ["uv", "pip", "install", "--python", str(venv), "--no-deps", "-e", str(root)]):
+            r = subprocess.run(cmd, cwd=root, capture_output=True, text=True)
+            print(" ".join(cmd[:3]), "->", r.returncode, (r.stderr.strip().splitlines() or [""])[-1][:120])
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("plan")
@@ -258,12 +331,16 @@ def main():
     scripts = root / "scripts"
     plan = json.load(open(a.plan))
 
-    moves = {}  # file name -> folder
-    for name, folder in plan.items():
+    moves = {}    # file name -> folder
+    renamed = {}  # file name -> its new name, for a plan value "folder/new_name.py"
+    for name, dest in plan.items():
         if not (scripts / name).exists():
             print(f"missing, skipped: scripts/{name}")
             continue
+        folder, _, new_name = dest.partition("/")
         moves[name] = folder
+        if new_name:
+            renamed[name] = new_name
         for c in companions(scripts, Path(name).stem):
             moves.setdefault(c, folder)
     stems = sorted((Path(n).stem for n in moves if n.endswith(".py")), key=len, reverse=True)
@@ -285,14 +362,14 @@ def main():
 
     for name, folder in sorted(moves.items()):
         (scripts / folder).mkdir(exist_ok=True)
-        git(root, "mv", f"scripts/{name}", f"scripts/{folder}/{name}")
+        git(root, "mv", f"scripts/{name}", f"scripts/{folder}/{renamed.get(name, name)}")
 
     # 1. root depth, _paths after scripts/ insertions, bootstrap where a cross-folder import has none
     review = []
     for name, folder in sorted(moves.items()):
         if folder == "archive":
             continue
-        p = scripts / folder / name
+        p = scripts / folder / renamed.get(name, name)
         src = p.read_text()
         new = src
         if name.endswith(".py"):
@@ -327,7 +404,7 @@ def main():
             t = f.read_text()
         except UnicodeDecodeError:
             continue
-        u = ref.sub(lambda m: f"{m.group(1)}{moves[m.group(2)]}/{m.group(2)}", t)
+        u = ref.sub(lambda m: f"{m.group(1)}{moves[m.group(2)]}/{renamed.get(m.group(2), m.group(2))}", t)
         if u != t:
             f.write_text(u)
             changed += 1
@@ -351,8 +428,11 @@ def main():
 
     with open(scripts / "MOVED.tsv", "w") as fh:
         fh.write("# scripts/ moved into topic folders on 2026-11-03; old path, new path\n")
+        fh.write("# the package src/morphohand/ is src/sr2hand/ (import sr2hand) since the same day\n")
         for name, folder in sorted(moves.items()):
-            fh.write(f"scripts/{name}\tscripts/{folder}/{name}\n")
+            fh.write(f"scripts/{name}\tscripts/{folder}/{renamed.get(name, name)}\n")
+
+    rename_package(root)
 
     # 4. the archive's README, the map, the checker, and this tool among the spent ones
     archived = sorted(Path(n).stem for n, f in moves.items() if f == "archive" and n.endswith((".py", ".sh")))

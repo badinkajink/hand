@@ -7,7 +7,8 @@
 2. every bare import of a script resolves, through the folders _paths puts on sys.path, by importlib's finder;
 3. a script run as a program reaches `import _paths` before its first top-level import of a script in another folder;
 4. no moved script computes the root one level short (parents[1] or two dirnames of __file__, other than scripts/);
-5. every "scripts/..." path in the live text names a file that exists.
+5. every "scripts/..." path in the live text names a file that exists;
+6. no live code imports the package under its old name, morphohand.
 Prints one line per problem and the counts; exits 1 if there is any problem.
 """
 import argparse
@@ -85,6 +86,15 @@ def main():
                 if re.search(r"(?<!dirname\()os\.path\.dirname\(os\.path\.dirname\(os\.path\.abspath\(__file__\)\)\)",
                              line) and "sys.path" not in line:
                     problems.append(f"{rel}:{i}: root one level short: {line.strip()[:100]}")
+    # 6. the package is sr2hand since 2026-11-03: no live code imports or names morphohand's modules
+    old_pkg = re.compile(r"^\s*(from|import)\s+morphohand\b|\bmorphohand\.(geometry|numerics|rl|sampling|optimization|"
+                         r"bench|studies|tools|control|backends|uhas|config|driver)\b", re.M)
+    for p in files:
+        t = p.read_text(errors="replace")
+        for m in old_pkg.finditer(t):
+            problems.append(f"{p.relative_to(root)}:{t[:m.start()].count(chr(10)) + 1}: names the old package: {m.group(0).strip()}")
+    if not (root / "src" / "sr2hand" / "__init__.py").exists():
+        problems.append("src/sr2hand/__init__.py does not exist")
     # 5. scripts/... paths in the live text
     live = [*files, *(scripts.rglob("*.sh")), *(scripts.rglob("*.html")), *(scripts.rglob("*.md")),
             *(root / ".claude").rglob("*.md"), root / "CLAUDE.md", root / "AGENTS.md", root / "README.md",
