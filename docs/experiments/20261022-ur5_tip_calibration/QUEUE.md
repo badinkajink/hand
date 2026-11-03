@@ -1086,6 +1086,21 @@ push that answers it arrives.
     stem 12.85 mm. Two presses read 4.5 and 4.7 mm into the tip body by the k-d tree; on the exact meshes they stand
     1.65 and 1.56 mm off it. The owner's go for the 2 mm sphere came in the lab's session at 10:5x, and its chain of
     the three seats started at 11:00:37 (about 2.3 h a seat). The rod waits for the owner's change and go.
+  - 11:2x to 12:0x on 11-03, lab (df6d5b4f) and workstation (4524e1d5, a45ddde0, d8cecd9e): the lab stopped s1sph2 at
+    11:25:04. Its pass 1 touch pad-tip-349-o35-a270 met the tip's body 4.81 mm before the pad. register took it in
+    (0.758 mm rms), and the grid ran 23 actions on that fit, with 10 early contacts and two travel aborts at 8.4 and
+    8.8 N on v3 ID 6. The other 19 touches came about 0.7 mm early and fit to 0.051 mm rms without it. On the exact
+    meshes that touch's sphere stood 0.71 mm from the cassette at its rest, 5.0 mm back along an oblique push, and
+    0.69 mm where it met it, so the model's body agrees with the real one to about 0.1 to 0.2 mm. The program now
+    leaves out touches over 0.5 mm off the pad, stops before the grid over 0.15 mm rms, and stops a run at its third
+    early contact or third press with no level. The restart plans without that touch replay clean from where the arm
+    stopped (`dry-check --start-q`; none of 858 travels flagged). At the lab's request, pass 1 now keeps 2 mm from the
+    body before contact by construction: `ur5_inverted_rig.py body-exact --write` puts touch_body_mm on every press of a
+    seat plan, and `ur5_probe_plan.py --pass1-body 2.0` takes pass 1 only from those at 2 mm or more. The rod's pass 1
+    then keeps 20 touches a seat, each 3.14 mm or more from the body, and its depth is lowered on 11 presses a seat to
+    keep 0.40 mm, where the rod came to 0.26 mm. A retract of 6 mm in place of 12 replays clean but saves only 0.9 s of a
+    press's 29.3 s: a travel takes 8.56 s plus 0.15 s/mm, most of it waiting for the robot to settle after each move.
+    The restart waits for the owner's look at v3 ID 6 and his go.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
     15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
     4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
