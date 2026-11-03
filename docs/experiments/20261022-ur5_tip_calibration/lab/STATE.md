@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 11:01 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 11:41 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -162,7 +162,8 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 - Done overnight: night3 on seat 3 (06:36 to 08:31), 232 of 232 with no abort. So the three seats' main runs, speed
   sets and night obliques all ran without one abort: 60 touch-offs, 883 grid actions, 144 speed presses and 695
   night presses.
-- Done: fast3 on seat 3 (08:31 to 10:07), 263 of 263 with no abort.
+- Done: fast3 on seat 3 (08:31 to 10:07), 252 presses with no abort. Its other 11 ids (`-v060`) were speed3's on the
+  same session, so `--resume` skipped them; speed3 has those 11 at the same speed.
 - Stopped: fast2 on seat 2 at 10:16:40 after 25 of 264 (SIGINT by PID between presses, the program's Ctrl-C), with
   fast1, because the owner (relayed by the workstation, 10:1x) means to put the 2 mm sphere on after fast3. The chain
   then stopped itself.
@@ -171,7 +172,23 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   -79.1, 105.9, -114.1, -86.6, -2.0 deg). From those joints, the workstation's replay code (dry-check --real, its start
   carried in by a scratch wrapper) flags nothing in seat 1's first travel by the hub. Its least clearances are those of
   the final descent into seat 1, as in the workstation's replay from the hub.
-- **Now (from 11:00:37): the 2 mm sphere's chain**, `logs/20261103-chain_sphere2.sh` (copy here; PID 2812384; its log
+- **Stopped at 11:25:04: seat 1's 2 mm sphere run (s1sph2) and its chain**, after a bad pass 1 fit (NOTES, "s1sph2: a
+  touch on the tip's body and a bad fit").
+  - Now the arm stands over seat 1 (joints 38.3, -70.1, 97.3, -103.1, -67.0, -7.6 deg) with the tool clear of the pad
+    (the HEX-E at its rest reading), sphere2 on, and no program running.
+  - pad-tip-349-o35-a270 met the tip's body 4.7 mm before the pad. The replay gave its own moves 0.76 mm to the body,
+    and the pad stood about 0.7 mm nearer than the frame put it. register took it in (0.758 mm rms); the 19 others fit
+    to 0.051 mm.
+  - On that fit the grid ran 23 actions: 10 contacts before the slow approach, 8 presses with no level, and two travels
+    aborted at 8.8 and 8.4 N on v3 ID 6.
+  - **The owner should look at v3 ID 6 (seat 1) before it is pressed again.**
+  - The fix, simulated before any robot run: register leaves out a touch over 0.5 mm off the pad (at most 3) and stops
+    before the grid over 0.15 mm rms; a run stops at its 3rd early contact or its 3rd press with no level. Plans: seats
+    1 and 2 less pad-tip-349-o35-a270 (`20261103-plan_probe_table_sphere2_seat{1,2}_v3id{6,5}_no349.json`), seat 3 as
+    before.
+  - Next: the owner's look at v3 ID 6 and a go in the lab's session, then the chain again on the fixed program, seat 1
+    in a new session.
+- The chain as it was started (from 11:00:37), `logs/20261103-chain_sphere2.sh` (copy here; its log
   `logs/20261103-chain_sphere2.log`):
   - seat 1 (`s1sph2`), then seat 2 (`s2sph2`), then seat 3 (`s3sph2`);
   - each run is a new session with its own pass 1 (`20261103-plan_probe_table_sphere2_seat*`, stages
