@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 15:44 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 16:06 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -216,23 +216,45 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   - The owner, 13:5x in the lab's session: "Yes go on the faster presses too".
   - **Done: seat 1 (s1sph2b), 12:20 to 14:48:02.** Pass 1 19 of 19 (0.060 mm rms), the grid 260 of 260, no early
     contact, miss or abort (`20261103-122020-s1sph2b/`). 40 presses stopped at their depth below their top level.
-  - **Now (from 14:48:07): seat 2 (s2sph2, v3 ID 5) on `..._seat2_v3id5_quick_neck_fast.json`**, to about 16:37.
-    - Pass 1: 19 of 19 at 0.053 mm rms. The grid's fast presses take 21.4 s, and none has stopped short.
-  - **Next: the sweep test on seat 2, in place of seat 3's 2 mm grid.** The owner, 15:4x: "relays count yes, we can go
-    on the sweep test after 16:37 since i doubt we're getting very good info right now".
-    - Run by `logs/20261103-chain_sweep2.sh` (copy here; PID 2849427; its log `logs/20261103-chain_sweep2.log`).
-    - It waits for s2sph2's end (resuming it after a HEX-E loss), then seeds `..._sweep_seed` from s2sph2's session
-      (`probe_seed_session.py --keep-probe`).
-    - Then it runs s2sweep: `20261103-plan_probe_table_sphere2_seat2_v3id5_sweep_test.json`, which is 10 face sweeps
-      between two reference presses with stages preflight,grid, about 22 min. It is the workstation's 8189c5ff less
-      pass 1, and replays clean.
-    - The sweep action is in the program from a2f44c8f.
+  - **Now (from 14:48:07): seat 2 (s2sph2, v3 ID 5) on `..._seat2_v3id5_quick_neck_fast.json`**, to about 16:15.
+    - Pass 1: 19 of 19 at 0.053 mm rms. The grid's fast presses take about 17 s.
+    - **Seat 2's contact stepped at 15:42.** The reference press (the same point every ~25 presses) reached 0.5 N at
+      2.13 to 2.19 mm of travel up to ref-04 (15:35), and at 2.60 to 2.64 mm from ref-05 (15:43:39) on, still
+      creeping. Its curve is stiffer at 3 N: 2 to 3 N now takes 0.17 to 0.24 mm (was 0.42). s1sph2b's 11 refs held
+      1.86 to 1.97 mm all session.
+    - The step came with the edge-639 family (15:42:11 to 15:43:26, the neck rule's max_depth 2.0 at 0.6 mm/s). They
+      peaked at 5.7 to 7.5 N; every press before peaked at 3.7 to 4.6 N. Since then normal presses peak at 5 to 7.8 N,
+      under the press abort of 10 N.
+    - So the sphere moved on its neck, or seat 2's tip moved in its seat. The grid presses can't tell which, since the
+      tool keeps one orientation in P. The program loads no changed code mid-run.
+    - Of the 146 ids pressed on both seats by 15:48, 32 stopped short of their top level on seat 1 and 8 on seat 2.
+  - **Next: the sweep test on seat 2 as a new session with its own pass 1**, in place of seat 3's 2 mm grid. The owner,
+    15:4x: "relays count yes, we can go on the sweep test after 16:37 since i doubt we're getting very good info right
+    now".
+    - Run by `logs/20261103-chain_sweep2b.sh` (copy here; PID 2851870 from 16:00:14; its log
+      `logs/20261103-chain_sweep2b.log`). It waits for s2sph2's end, resuming it after a HEX-E loss.
+    - The plan is `20261103-plan_probe_table_sphere2_seat2_v3id5_sweep_test_pass1.json`. It holds s2sph2's 19 touches
+      as they ran at 14:48, then the 12 grid actions (10 face sweeps between two reference presses) as the workstation
+      replayed them.
+    - Stages preflight,homing,pad,register,grid: about 35 min, to about 16:50. The register stops the session before
+      the grid if its fit is over 0.15 mm rms.
+    - chain_sweep2, which would have run the test on a seed of s2sph2's fit, was stopped by its PID at 16:00:12.
+    - The sweep action is in the program from a2f44c8f. `sweep_test_summary.py SESSION OUT.json` summarizes the test:
+      the push along and across the pad at each offset, and each slide's friction ratio.
     - Then the arm waits over seat 2 for the owner's swap to the rod.
+  - For the owner at the swap: look at the 2 mm sphere on its neck, and at seat 2's tip near edge 639.
+    - A 3 min check, if the owner says go: two of seat 1's reference presses on a seed of s1sph2b.
+    - If they show the +0.45 mm, the sphere moved. If they match s1sph2b's, seat 2's tip moved, and needs reseating
+      before the rod presses it.
   - chain_sphere2e was stopped by its PID at 15:42 so that seat 3's 2 mm grid does not start. Seat 3 has no 2 mm sphere
     session today; its rod seed comes from its 5 mm sphere session s3v4 (the two-key frame and that fit's T_AP).
   - The rod tonight (the owner, relayed 15:3x: "sure, yes to all these suggestions. we can put the rod on hopefully
-    soon"): sweeps with offsets and slides, levels to 3 N, from the rod's checked presses. The workstation is building
-    them, both rod_deg 0 and 90 (about 2.4 h a seat), or rod_deg 90 alone (about 1.2 h).
+    soon"): the workstation's sweep plans across the tip (rod_deg 90; c867f7d4), about 1.3 h a seat.
+    - They are `../../20261030-inverted_rig_seat_block/data/20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_sweep_draft.json`.
+    - Each has 20 touches, all 2.68 mm or more from the tip's body, and 31 or 32 sweeps between two reference presses.
+      A sweep has levels 0.5 to 3 N, 48 offsets on rings of 0.06 to 0.18 mm, and four 1 mm slides at 2 N.
+    - Chained 2, 3, 1 from seat 2's hub, they replay with no flags; seat 3 also with s3v4's fit.
+    - The lab is simulating three of seat 2's sweeps, since the sweep with the rod is a new pairing of code.
   - Tomorrow: the slider at 1.0 (needs v_ref_slider in the program, scaling every contact speed, the hard-coded ones
     too), forces to 8 N (abort_N to about 12 N), and twists and rolls inside a sweep.
   - **Since 14:17:57: `logs/20261103-chain_sphere2e.sh`** (copy here; PID 2838758; its log
@@ -266,8 +288,9 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   - a run stopped by a HEX-E loss is resumed once `hexe_probe.py` finds the sensor streaming, and anything else stops
     the chain;
   - to stop the chain, kill its PID (a running program goes on).
-- Next, after the owner's swap to the rod and a go in the lab's session: the rod (`20261103-plan_probe_table_rod_seat*`,
-  converted again at 12:0x on the workstation's d8cecd9e, fe4e1914), in the order 3, 2, 1 from over seat 3.
+- The rod's grid plans below are replaced by its sweep plans (above, c867f7d4, in the order 2, 3, 1). They stay for the
+  record. The rod's grid plans: (`20261103-plan_probe_table_rod_seat*`, converted again at 12:0x on the workstation's
+  d8cecd9e, fe4e1914), in the order 3, 2, 1 from over seat 3.
   - Pass 1 now takes only presses whose touch-off keeps 2.0 mm from the tip's body. That gives 20 touches a seat, all
     3.14 mm or more. ce3a3f0b's plans, with five touches at 1.21 to 1.48 mm, are in `superseded/`.
   - The depth is lowered on 11 presses a seat.
