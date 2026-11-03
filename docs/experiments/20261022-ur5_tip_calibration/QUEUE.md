@@ -1074,15 +1074,16 @@ push that answers it arrives.
     (2.48, 0.10, -3.70) mm, brings the pads' points from 0.66-0.94 mm off their CAD to 0.14-0.22 mm (at most
     0.33 mm). Later plans and sessions on the table use this frame
     (`../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`, by `--frame`).
-  - 10:1x on 11-03, workstation (35bd1937, 77cb1f34, fd7a6fa4): the overnight list ran without a flag; fast3 ended
-    263 of 263 at 10:07:55, and the lab stopped fast2 after 25 for the owner's tool change. The 2 mm sphere's plans
+  - 09:4x to 10:0x on 11-03, workstation (35bd1937, 77cb1f34, fd7a6fa4): the overnight list ran without a flag.
+    fast3 ended at 10:07:55 with 252 presses (its other 11 had the ids of speed3's 0.6 mm/s presses, which --resume
+    skipped), and the lab stopped fast2 after 25 for the owner's tool change. The 2 mm sphere's plans
     leave out the twists, which took 1.2 h of a seat's 3.6 h: 260, 269 and 271 actions, none flagged. The lab's program
     plans from them (8c3ac200) replay as run, chained 1, 2, 3 from over the seats, with none of 860 travels flagged and
     the seams' least stem 4.90 mm. The half rod's plans press across and along the tip, with a 40 mm back-off and a
     90 mm hub (at 15 and 40 mm, 13 of 557 travels took the rod into a pad). `--drop-flagged` leaves out the 14 and 11
     actions on seats 1 and 2 that no travel clears. deep_clear now tests its 1.0 mm floor with the tree's extra.
-  - 11:0x on 11-03, workstation (4dec06c1) and lab (f46d831f): the rod's program plans (ce3a3f0b) replay as run,
-    chained 3, 2, 1 from the end of the 2 mm sphere's seat 3, with none of 584 travels flagged and the seams' least
+  - 10:5x to 11:0x on 11-03, workstation (4dec06c1) and lab (f46d831f): the rod's program plans (ce3a3f0b) replay as
+    run, chained 3, 2, 1 from the end of the 2 mm sphere's seat 3, with none of 584 travels flagged and the seams' least
     stem 12.85 mm. Two presses read 4.5 and 4.7 mm into the tip body by the k-d tree; on the exact meshes they stand
     1.65 and 1.56 mm off it. The owner's go for the 2 mm sphere came in the lab's session at 10:5x, and its chain of
     the three seats started at 11:00:37 (about 2.3 h a seat). The rod waits for the owner's change and go.
