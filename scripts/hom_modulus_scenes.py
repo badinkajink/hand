@@ -50,15 +50,25 @@ def main():
     ap = argparse.ArgumentParser(description="the HOM reference scenes at another pad modulus")
     ap.add_argument("--E-MPa", type=float, required=True, help="the pads' modulus")
     ap.add_argument("--objects", nargs="*", default=["sphere:40", "cylinder:25"], help="shape:diameter_mm")
+    ap.add_argument("--mu", type=float, default=None, help="the scenes' friction (hand_object_scale_sim.MU, 1.0; 11-02)")
     ap.add_argument("--check", action="store_true", help="only check the cache's scenes")
     a = ap.parse_args()
     if not os.environ.get("HOS_SCENES"):
         raise SystemExit("set HOS_SCENES to the cache directory of this modulus")
     scenes = (ROOT / os.environ["HOS_SCENES"]).resolve()
     E = a.E_MPa * 1e6
+    if a.mu is not None:
+        bad = [p for p, m in metas(scenes) if abs(m.get("mu", -1) - a.mu) > 1e-9] if scenes.exists() else []
+        for p in bad:
+            print(f"{p.relative_to(ROOT)}: friction {json.loads(p.read_text()).get('mu')}, not {a.mu:g}")
+        if bad:
+            return 1
     if a.check or (scenes.exists() and check(scenes, E)):
         return check(scenes, E) if a.check else 1
 
+    if a.mu is not None:
+        import hand_object_scale_sim as S          # cell_scenes reads MU when it builds; F_GRIP does not depend on it
+        S.MU = a.mu
     import reorient_backends as RB
     RB.E_TPU = E                                     # each scene's meta records pad_E_Pa and pad_tr_s from it
     replace = RB.replace_tips

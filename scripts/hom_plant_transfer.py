@@ -46,15 +46,24 @@ WORK10, WORK25 = ("work plant, 10 MPa", "grid2dff_v4b"), ("work plant, 2.5 MPa",
 SCS = {1.25: "grid2dff_v4b_svE1p25", 2.5: "grid2dff_v4b_sv25", 5: "grid2dff_v4b_svE5", 10: "grid2dff_v4b_svE10"}
 SCS = {e: (f"SCS0009, {e:g} MPa", src) for e, src in SCS.items()}                                   # kp 0.72, 0.18 N m
 STS25 = ("STS3032 tuned, 2.5 MPa", "grid2dff_v4b_k21")       # kp 2.1, 0.515 N m (the owner's estimate at 7 V)
+STS = {1.25: "grid2dff_v4b_k21E1p25", 2.5: "grid2dff_v4b_k21", 5: "grid2dff_v4b_k21E5", 10: "grid2dff_v4b_k21E10"}
+STS = {e: (f"STS3032, {e:g} MPa", src) for e, src in STS.items()}
+STSMU = {0.4: "grid2dff_v4b_k21mu0p4", 0.7: "grid2dff_v4b_k21mu0p7", 1.0: "grid2dff_v4b_k21", 2.4: "grid2dff_v4b_k21mu2p4"}
+STSMU = {mu: (f"STS3032, friction {mu:g}", src) for mu, src in STSMU.items()}   # at 2.5 MPa (owner 11-02 17:4x)
 SETS = {"plants": (WORK10, SCS[2.5], STS25),
         "modulus": (SCS[1.25], SCS[2.5], SCS[5], SCS[10]),
-        "factorial": (WORK10, WORK25, SCS[10], SCS[2.5])}
+        "factorial": (WORK10, WORK25, SCS[10], SCS[2.5]),
+        "sts_modulus": (STS[1.25], STS[2.5], STS[5], STS[10]),
+        "sts_friction": (STSMU[0.4], STSMU[0.7], STSMU[1.0], STSMU[2.4])}
 # subsets that get one design for all their grids; None = every grid of the set that has rows
 ROBUST = {"plants": (None, (SCS[2.5][0], STS25[0])),
           "modulus": ((SCS[1.25][0], SCS[2.5][0], SCS[5][0]), None),          # the calibration's band, then 1.25-10 MPa
-          "factorial": ((WORK25[0], SCS[2.5][0]), (SCS[2.5][0], SCS[10][0]))}
+          "factorial": ((WORK25[0], SCS[2.5][0]), (SCS[2.5][0], SCS[10][0])),
+          "sts_modulus": ((STS[1.25][0], STS[2.5][0], STS[5][0]), None),
+          "sts_friction": ((STSMU[0.4][0], STSMU[0.7][0], STSMU[1.0][0]), None)}   # bare PLA to grip tape, then all
 OUT = {"plants": "20261102-plant_transfer.json", "modulus": "20261102-modulus_transfer.json",
-       "factorial": "20261102-plant_modulus_factorial.json"}
+       "factorial": "20261102-plant_modulus_factorial.json", "sts_modulus": "20261102-sts_modulus_transfer.json",
+       "sts_friction": "20261102-sts_friction_transfer.json"}
 
 
 def grasp_means(task, path):
