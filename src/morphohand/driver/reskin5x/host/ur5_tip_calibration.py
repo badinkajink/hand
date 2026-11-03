@@ -1656,6 +1656,7 @@ class Session:
     def act(self, a, fn):
         if a["id"] in self.done:
             return None
+        self.check_slider()
         if self.args.step:
             self.be.operator(f"next: {a['id']} ({a['kind']})", kind="step")
         self.log.event(event="start", id=a["id"], stage=a["stage"], kind=a["kind"])
@@ -2324,9 +2325,10 @@ class Session:
                     centre, axis = top_B, I[:3, :3] @ EZ
                 self.run_turns(a, r, centre, axis, list(mv["degs"]) + [0.0], hold_s=float(a.get("hold_s", 0.4)))
                 r["moves"].append(dict(dir_deg=mv.get("dir_deg", 0.0), centre_B=centre, axis_B=axis, turns=r.pop("turns")))
-        finally:
-            T_now = self.be.robot.pose()
-            self.be.robot.moveL(Tm(T_now[:3, :3], T_now[:3, 3] - d * (st + 0.5)), 0.002, 0.05)
+        finally:                                        # back along d to 0.5 mm behind the rest (11-03: st + 0.5 from the
+            T_now = self.be.robot.pose()                # stop left a press that ran to its full depth on the pad)
+            back = max(float((T_now[:3, 3] - T_rest[:3, 3]) @ d), 0.0) + 0.5
+            self.be.robot.moveL(Tm(T_now[:3, :3], T_now[:3, 3] - d * back), 0.002, 0.05)
         t0 = self.now()
         self.mean_ft(0.5)
         r["t_rest1"] = [t0, self.now()]
@@ -2427,6 +2429,19 @@ class Session:
         print(f"speed slider {got:.2f} (the plan's {f:.2f})", flush=True)
         if abs(got - f) > 0.02:
             raise SystemExit(f"the speed slider reads {got:.2f} and the plan asks {f:.2f}: stopping before any motion")
+
+    def check_slider(self):
+        """The plan's speed slider read again before each action: a change at the pendant scales every speed of the run
+        unseen (11-03: 0.30 to about 0.50 at 15:42; s2sph2's 3 N presses then stopped 0.45 mm deeper, peaking at 5 to
+        7.8 N, for 30 min)."""
+        f = self.plan.get("speed_slider")
+        if f is None:
+            return
+        got = self.be.robot.speed_fraction()
+        if abs(got - float(f)) > 0.02:
+            self.log.event(event="speed_slider", id="run", rec=dict(plan=float(f), read=got))
+            raise SystemExit(f"the speed slider reads {got:.2f} and the plan asks {float(f):.2f}: stopping before the "
+                             "next action")
 
     def run(self, stages):
         if ("wall" in stages and not self.dry and "register_probe" not in self.reg.notes

@@ -1,0 +1,307 @@
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 138 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 138 records/s, mux channel 2 138 records/s, mux channel 3 138 records/s
+  HEX-E noise (1 sigma) N, N m: [0.041  0.0465 0.2438 0.0029 0.0039 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== homing
+homing: from the recorded seating docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:strip_key1_seated_4 (no freedrive, nothing moves)
+homing: the fixture's frame from docs/experiments/20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json, 4.15 mm and 4.49 deg from the seating's own
+homing: 1 seatings within 0.000 mm, 0.000 deg of their mean
+  indenter at (-201.4, -419.8, 36.6) mm, yaw -92.2 deg, tilt 0.00 deg; the plan has (-201, -420, 37) mm, yaw -92 deg
+== pad
+  pad-ref-00: onset -0.543 mm from the expected (power 1.75, fit 243.2 mN)
+  pad-tip-454: onset -0.336 mm from the expected (power 1.50, fit 143.2 mN)
+  pad-flank-433: onset -0.063 mm from the expected (power 2.00, fit 160.7 mN)
+  pad-flank-387-o35-a90: onset +0.207 mm from the expected (power 1.25, fit 40.7 mN)
+  pad-flank-549-o20-a0: onset -0.372 mm from the expected (power 1.25, fit 144.4 mN)
+  pad-flank-563-o35-a180: onset -0.447 mm from the expected (power 1.00, fit 123.3 mN)
+  pad-edge-576: onset -0.300 mm from the expected (power 1.00, fit 148.0 mN)
+  pad-edge-628: onset -0.536 mm from the expected (power 2.00, fit 229.2 mN)
+  pad-edge-639-o35-a0: onset -0.352 mm from the expected (power 1.00, fit 189.0 mN)
+  pad-edge-639-o35-a90: onset -0.475 mm from the expected (power 1.50, fit 250.4 mN)
+  pad-edge-666: onset -0.684 mm from the expected (power 1.75, fit 183.9 mN)
+  pad-face-731-o35-a270: onset -0.593 mm from the expected (power 1.00, fit 121.6 mN)
+  pad-face-756-o35-a90: onset -0.931 mm from the expected (power 2.00, fit 143.8 mN)
+  pad-flank-535-o20-a270: onset -0.088 mm from the expected (power 2.00, fit 75.0 mN)
+  pad-flank-535: onset -0.050 mm from the expected (power 1.00, fit 160.5 mN)
+  pad-flank-535-o20-a90: onset -0.035 mm from the expected (power 1.00, fit 212.9 mN)
+  pad-flank-535-o20-a0: onset -0.121 mm from the expected (power 1.75, fit 146.8 mN)
+  pad-tip-460-o35-a270: onset -0.208 mm from the expected (power 1.25, fit 35.6 mN)
+  pad-tip-344: onset +0.378 mm from the expected (power 1.00, fit 128.3 mN)
+== register
+register (probe): pad touches 0.053 mm rms (19); the seat's pad stands 1.497 mm, 1.378 deg from its CAD (the turn about z_P -0.553 deg, sd 0.478); the sphere's centre 1.124 mm, at [ -0.454  -0.442 117.072] in M (sd [0.114 0.095 0.055] mm)
+== grid
+  probe-ref-00 (1/269): to 3.00 N
+  probe-tip-454 (2/269): to 2.00 N
+  probe-tip-342 (3/269): to 2.00 N
+  probe-tip-342-o20-a0 (4/269): to 2.00 N
+  probe-tip-342-o20-a180 (5/269): to 2.00 N
+  probe-tip-342-o20-a90 (6/269): to 2.00 N
+  probe-tip-342-o35-a180 (7/269): to 2.00 N
+  probe-tip-342-o35-a0 (8/269): to 2.00 N
+  probe-tip-342-o35-a90 (9/269): to 2.00 N
+  probe-flank-430-o20-a0 (10/269): to 2.00 N
+  probe-flank-445 (11/269): to 2.00 N
+  probe-flank-430 (12/269): to 2.00 N
+  probe-flank-430-o20-a270 (13/269): to 2.00 N
+  probe-flank-430-o35-a270 (14/269): to 2.00 N
+  probe-flank-430-o20-a90 (15/269): to 2.00 N
+  probe-flank-430-o20-a180 (16/269): to 2.00 N
+  probe-flank-430-o35-a0 (17/269): to 2.00 N
+  probe-flank-430-o35-a180 (18/269): to 2.00 N
+  probe-flank-430-o35-a90 (19/269): to 2.00 N
+  probe-flank-544 (20/269): to 2.00 N
+  probe-flank-387 (21/269): to 2.00 N
+  probe-flank-387-o20-a0 (22/269): to 2.00 N
+  probe-flank-387-o20-a270 (23/269): to 2.00 N
+  probe-flank-387-o35-a270 (24/269): to 2.00 N
+  probe-flank-387-o20-a90 (25/269): to 2.00 N
+  probe-flank-387-o20-a180 (26/269): to 2.00 N
+  probe-ref-01 (27/269): to 3.00 N
+  probe-flank-387-o35-a180 (28/269): to 2.00 N
+  probe-flank-387-o35-a0 (29/269): to 2.00 N
+  probe-flank-433 (30/269): to 2.00 N
+  probe-flank-436 (31/269): to 2.00 N
+  probe-flank-438 (32/269): to 2.00 N
+  probe-flank-438-o20-a270 (33/269): to 2.00 N
+  probe-flank-440 (34/269): to 2.00 N
+  probe-flank-387-o35-a90 (35/269): to 2.00 N
+  probe-flank-438-o20-a0 (36/269): to 2.00 N
+  probe-flank-438-o20-a90 (37/269): to 2.00 N
+  probe-flank-438-o20-a180 (38/269): to 2.00 N
+  probe-flank-438-o35-a270 (39/269): to 2.00 N
+  probe-flank-449 (40/269): to 2.00 N
+  probe-flank-449-o20-a270 (41/269): to 2.00 N
+  probe-flank-449-o35-a270 (42/269): to 2.00 N
+  probe-flank-438-o35-a0 (43/269): to 2.00 N
+  probe-flank-438-o35-a180 (44/269): to 2.00 N
+  probe-flank-449-o20-a0 (45/269): to 2.00 N
+  probe-flank-449-o20-a180 (46/269): to 2.00 N
+  probe-flank-438-o35-a90 (47/269): to 2.00 N
+  probe-flank-449-o20-a90 (48/269): to 2.00 N
+  probe-flank-449-o35-a0 (49/269): to 2.00 N
+  probe-flank-449-o35-a180 (50/269): to 2.00 N
+  probe-flank-449-o35-a90 (51/269): to 2.00 N
+  probe-flank-501 (52/269): to 2.00 N
+  probe-ref-02 (53/269): to 3.00 N
+  probe-flank-547 (54/269): to 2.00 N
+  probe-flank-549 (55/269): to 2.00 N
+  probe-flank-549-o20-a180 (56/269): to 2.00 N
+  probe-flank-549-o20-a270 (57/269): to 2.00 N
+  probe-flank-549-o35-a270 (58/269): to 2.00 N
+  probe-flank-551 (59/269): to 2.00 N
+  probe-flank-549-o20-a0 (60/269): to 2.00 N
+  probe-flank-549-o20-a90 (61/269): to 2.00 N
+  probe-flank-549-o35-a180 (62/269): to 2.00 N
+  probe-flank-553 (63/269): to 2.00 N
+  probe-flank-549-o35-a0 (64/269): to 2.00 N
+  probe-flank-549-o35-a90 (65/269): to 2.00 N
+  probe-flank-563 (66/269): to 2.00 N
+  probe-flank-563-o20-a0 (67/269): to 2.00 N
+  probe-flank-563-o20-a90 (68/269): to 2.00 N
+  probe-flank-563-o20-a180 (69/269): to 2.00 N
+  probe-flank-563-o20-a270 (70/269): to 2.00 N
+  probe-flank-563-o35-a0 (71/269): to 2.00 N
+  probe-flank-563-o35-a90 (72/269): to 2.00 N
+  probe-flank-563-o35-a180 (73/269): to 2.00 N
+  probe-flank-563-o35-a270 (74/269): to 2.00 N
+  probe-edge-565 (75/269): to 3.00 N
+  probe-edge-569 (76/269): to 3.00 N
+  probe-edge-573 (77/269): to 3.00 N
+  probe-edge-573-o20-a0 (78/269): to 3.00 N
+  probe-ref-03 (79/269): to 3.00 N
+  probe-edge-573-o20-a90 (80/269): to 3.00 N
+  probe-edge-573-o20-a180 (81/269): to 3.00 N
+  probe-edge-573-o20-a270 (82/269): to 3.00 N
+  probe-edge-573-o35-a0 (83/269): to 3.00 N
+  probe-edge-573-o35-a90 (84/269): to 3.00 N
+  probe-edge-573-o35-a180 (85/269): to 3.00 N
+  probe-edge-573-o35-a270 (86/269): to 3.00 N
+  probe-edge-576 (87/269): to 3.00 N
+  probe-flank-582 (88/269): to 2.00 N
+  probe-flank-582-o20-a0 (89/269): to 2.00 N
+  probe-flank-582-o20-a90 (90/269): to 2.00 N
+  probe-flank-582-o20-a180 (91/269): to 2.00 N
+  probe-flank-582-o20-a270 (92/269): to 2.00 N
+  probe-flank-582-o35-a0 (93/269): to 2.00 N
+  probe-flank-582-o35-a90 (94/269): to 1.00 N
+  probe-flank-582-o35-a180 (95/269): to 2.00 N
+  probe-flank-582-o35-a270 (96/269): to 2.00 N
+  probe-flank-584 (97/269): to 2.00 N
+  probe-flank-593-o35-a0 (98/269): to 2.00 N
+  probe-flank-593-o35-a270 (99/269): to 2.00 N
+  probe-edge-610 (100/269): to 3.00 N
+  probe-edge-615 (101/269): to 3.00 N
+  probe-edge-615-o20-a0 (102/269): to 3.00 N
+  probe-edge-615-o20-a90 (103/269): to 3.00 N
+  probe-edge-615-o20-a180 (104/269): to 3.00 N
+  probe-ref-04 (105/269): to 3.00 N
+  probe-edge-615-o20-a270 (106/269): to 3.00 N
+  probe-edge-615-o35-a0 (107/269): to 3.00 N
+  probe-edge-615-o35-a90 (108/269): to 3.00 N
+  probe-edge-615-o35-a180 (109/269): to 3.00 N
+  probe-edge-615-o35-a270 (110/269): to 3.00 N
+  probe-edge-618 (111/269): to 3.00 N
+  probe-edge-628 (112/269): to 3.00 N
+  probe-edge-630 (113/269): to 3.00 N
+  probe-edge-630-o20-a0 (114/269): to 3.00 N
+  probe-edge-630-o20-a90 (115/269): to 3.00 N
+  probe-edge-630-o20-a180 (116/269): to 3.00 N
+  probe-edge-630-o20-a270 (117/269): to 3.00 N
+  probe-edge-630-o35-a0 (118/269): to 3.00 N
+  probe-edge-630-o35-a90 (119/269): to 3.00 N
+  probe-edge-630-o35-a180 (120/269): to 3.00 N
+  probe-edge-630-o35-a270 (121/269): to 3.00 N
+  probe-edge-634 (122/269): to 3.00 N
+  probe-edge-638 (123/269): to 3.00 N
+  probe-edge-639 (124/269): to 3.00 N
+  probe-edge-639-o20-a0 (125/269): to 3.00 N
+  probe-edge-639-o20-a90 (126/269): to 3.00 N
+  probe-edge-639-o20-a180 (127/269): to 3.00 N
+  probe-edge-639-o20-a270 (128/269): to 3.00 N
+  probe-edge-639-o35-a0 (129/269): to 3.00 N
+  probe-edge-639-o35-a90 (130/269): to 3.00 N
+  probe-ref-05 (131/269): to 3.00 N
+  probe-edge-639-o35-a180 (132/269): to 3.00 N
+  probe-edge-639-o35-a270 (133/269): to 3.00 N
+  probe-edge-642 (134/269): to 3.00 N
+  probe-edge-651 (135/269): to 3.00 N
+  probe-edge-654 (136/269): to 2.00 N
+  probe-edge-654-o20-a0 (137/269): to 3.00 N
+  probe-edge-654-o20-a90 (138/269): to 2.00 N
+  probe-edge-654-o20-a180 (139/269): to 3.00 N
+  probe-edge-654-o20-a270 (140/269): to 3.00 N
+  probe-edge-654-o35-a0 (141/269): to 2.00 N
+  probe-edge-654-o35-a90 (142/269): to 2.00 N
+  probe-edge-654-o35-a180 (143/269): to 2.00 N
+  probe-edge-654-o35-a270 (144/269): to 2.00 N
+  probe-edge-666 (145/269): to 3.00 N
+  probe-edge-668 (146/269): to 3.00 N
+  probe-edge-675 (147/269): to 3.00 N
+  probe-edge-675-o20-a0 (148/269): to 3.00 N
+  probe-edge-675-o20-a90 (149/269): to 3.00 N
+  probe-edge-675-o20-a180 (150/269): to 3.00 N
+  probe-edge-675-o20-a270 (151/269): to 3.00 N
+  probe-edge-675-o35-a0 (152/269): to 2.00 N
+  probe-edge-675-o35-a90 (153/269): to 3.00 N
+  probe-edge-675-o35-a180 (154/269): to 2.00 N
+  probe-edge-675-o35-a270 (155/269): to 2.00 N
+  probe-face-690 (156/269): to 3.00 N
+  probe-ref-06 (157/269): to 3.00 N
+  probe-face-692 (158/269): to 3.00 N
+  probe-face-697 (159/269): to 3.00 N
+  probe-face-697-o20-a0 (160/269): to 3.00 N
+  probe-face-697-o20-a90 (161/269): to 3.00 N
+  probe-face-697-o20-a180 (162/269): to 3.00 N
+  probe-face-697-o20-a270 (163/269): to 3.00 N
+  probe-face-697-o35-a0 (164/269): to 2.00 N
+  probe-face-697-o35-a90 (165/269): to 3.00 N
+  probe-face-697-o35-a180 (166/269): to 2.00 N
+  probe-face-697-o35-a270 (167/269): to 2.00 N
+  probe-face-708 (168/269): to 3.00 N
+  probe-face-713 (169/269): to 3.00 N
+  probe-face-717 (170/269): to 3.00 N
+  probe-face-717-o20-a0 (171/269): to 3.00 N
+  probe-face-717-o20-a90 (172/269): to 3.00 N
+  probe-face-717-o20-a180 (173/269): to 3.00 N
+  probe-face-717-o20-a270 (174/269): to 3.00 N
+  probe-face-717-o35-a0 (175/269): to 3.00 N
+  probe-face-717-o35-a90 (176/269): to 3.00 N
+  probe-face-717-o35-a180 (177/269): to 3.00 N
+  probe-face-717-o35-a270 (178/269): to 3.00 N
+  probe-face-721 (179/269): to 3.00 N
+  probe-edge-729 (180/269): to 3.00 N
+  probe-face-731 (181/269): to 3.00 N
+  probe-face-731-o20-a0 (182/269): to 3.00 N
+  probe-ref-07 (183/269): to 3.00 N
+  probe-face-731-o20-a90 (184/269): to 3.00 N
+  probe-face-731-o20-a180 (185/269): to 3.00 N
+  probe-face-731-o20-a270 (186/269): to 3.00 N
+  probe-face-731-o35-a0 (187/269): to 2.00 N
+  probe-face-731-o35-a90 (188/269): to 2.00 N
+  probe-face-731-o35-a180 (189/269): to 2.00 N
+  probe-face-731-o35-a270 (190/269): to 2.00 N
+  probe-face-733 (191/269): to 3.00 N
+  probe-face-735 (192/269): to 3.00 N
+  probe-face-756 (193/269): to 3.00 N
+  probe-face-756-o20-a0 (194/269): to 3.00 N
+  probe-face-756-o20-a90 (195/269): to 3.00 N
+  probe-face-756-o20-a180 (196/269): to 3.00 N
+  probe-face-756-o20-a270 (197/269): to 3.00 N
+  probe-face-756-o35-a0 (198/269): to 2.00 N
+  probe-face-756-o35-a90 (199/269): to 2.00 N
+  probe-face-756-o35-a180 (200/269): to 2.00 N
+  probe-face-756-o35-a270 (201/269): to 2.00 N
+  probe-face-759 (202/269): to 3.00 N
+  probe-face-768 (203/269): to 3.00 N
+  probe-face-776 (204/269): to 3.00 N
+  probe-face-776-o20-a0 (205/269): to 3.00 N
+  probe-face-776-o20-a90 (206/269): to 3.00 N
+  probe-face-776-o20-a180 (207/269): to 3.00 N
+  probe-face-776-o20-a270 (208/269): to 3.00 N
+  probe-ref-08 (209/269): to 3.00 N
+  probe-face-776-o35-a0 (210/269): to 2.00 N
+  probe-face-776-o35-a90 (211/269): to 3.00 N
+  probe-face-776-o35-a180 (212/269): to 2.00 N
+  probe-face-776-o35-a270 (213/269): to 2.00 N
+  probe-face-781 (214/269): to 3.00 N
+  probe-face-785 (215/269): to 3.00 N
+  probe-face-790 (216/269): to 3.00 N
+  probe-face-790-o20-a0 (217/269): to 3.00 N
+  probe-face-790-o20-a90 (218/269): to 3.00 N
+  probe-face-790-o20-a180 (219/269): to 3.00 N
+  probe-face-790-o20-a270 (220/269): to 3.00 N
+  probe-face-790-o35-a0 (221/269): to 2.00 N
+  probe-face-790-o35-a90 (222/269): to 3.00 N
+  probe-face-790-o35-a180 (223/269): to 2.00 N
+  probe-face-790-o35-a270 (224/269): to 3.00 N
+  probe-flank-535-o20-a270 (225/269): to 2.00 N
+  probe-flank-535-o35-a0 (226/269): to 2.00 N
+  probe-flank-535-o35-a180 (227/269): to 2.00 N
+  probe-flank-535-o35-a270 (228/269): to 2.00 N
+  probe-flank-591 (229/269): to 2.00 N
+  probe-flank-593 (230/269): to 1.00 N
+  probe-flank-593-o20-a180 (231/269): to 2.00 N
+  probe-flank-593-o35-a90 (232/269): to 0.50 N
+  probe-flank-593-o20-a270 (233/269): to 2.00 N
+  probe-flank-593-o35-a180 (234/269): to 2.00 N
+  probe-ref-09 (235/269): to 3.00 N
+  probe-flank-595 (236/269): to 2.00 N
+  probe-flank-535-o20-a180 (237/269): to 2.00 N
+  probe-flank-593-o20-a90 (238/269): to 2.00 N
+  probe-flank-593-o20-a0 (239/269): to 1.00 N
+  probe-flank-535 (240/269): to 2.00 N
+  probe-flank-535-o20-a90 (241/269): to 2.00 N
+  probe-flank-525 (242/269): to 2.00 N
+  probe-flank-535-o20-a0 (243/269): to 2.00 N
+  probe-flank-535-o35-a90 (244/269): to 2.00 N
+  probe-edge-579 (245/269): to 3.00 N
+  probe-tip-349 (246/269): to 2.00 N
+  probe-tip-349-o20-a90 (247/269): to 2.00 N
+  probe-tip-349-o20-a0 (248/269): to 2.00 N
+  probe-tip-349-o20-a180 (249/269): to 2.00 N
+  probe-tip-349-o35-a90 (250/269): to 2.00 N
+  probe-tip-349-o20-a270 (251/269): to 2.00 N
+  probe-tip-349-o35-a0 (252/269): to 2.00 N
+  probe-tip-349-o35-a180 (253/269): to 2.00 N
+  probe-tip-349-o35-a270 (254/269): to 2.00 N
+  probe-flank-462 (255/269): to 2.00 N
+  probe-flank-465 (256/269): to 2.00 N
+  probe-tip-460 (257/269): to 2.00 N
+  probe-tip-460-o20-a90 (258/269): to 2.00 N
+  probe-tip-460-o20-a180 (259/269): to 2.00 N
+  probe-tip-460-o20-a0 (260/269): to 2.00 N
+  probe-ref-10 (261/269): to 3.00 N
+  probe-tip-460-o20-a270 (262/269): to 2.00 N
+  probe-tip-460-o35-a90 (263/269): to 2.00 N
+  probe-tip-460-o35-a180 (264/269): to 2.00 N
+  probe-tip-460-o35-a270 (265/269): to 2.00 N
+  probe-tip-460-o35-a0 (266/269): to 2.00 N
+  probe-tip-344 (267/269): to 2.00 N
+  probe-tip-458 (268/269): to 2.00 N
+  probe-ref-final (269/269): to 3.00 N
+HEX-E: 497626 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.8 s, Fz +0.5 N; 0.7 s, Fz +0.3 N
+session in /home/will/workspace/hand/logs/20261103-tip_calibration/144808-s2sph2
+exit 0 at 16:11:13
