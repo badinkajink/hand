@@ -10,9 +10,7 @@ m = [x_T, y_T, x_I, y_I, x_M, y_M] which are driven by stepper gantries. The thu
 index and middle bases span 60 × 60 mm. Nine DoFs are "control": MCP yaw, MCP pitch and PIP pitch per
 finger, on SCS0009 servos.
 
-Of 8,198 sampled layouts, 227 passed the simulated screens and eight were built (D1 to D8). They held the tool in 48
-of 77 bench trials. Over the eight hands, the Spearman correlation of the simulated and measured final tool angle is
-0.50. The paper and CAD can be found at [`sr2-hand.github.io`](https://sr2-hand.github.io).
+The paper and CAD can be found at [`sr2-hand.github.io`](https://sr2-hand.github.io).
 
 Since October the work has been on the fingertip and on how the best layout depends on the object and the
 controller. A printed TPU fingertip has four magnets over a five-chip MLX90393 board, and a UR5 calibrates each one
@@ -301,12 +299,9 @@ summaries to `docs/experiments/`, free-form notes to `docs/notes/`.
 ## Tests
 
 ```bash
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run --extra dev --with pyserial python -m pytest tests/ -q
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run --extra dev python -m pytest tests/ -q
 ```
 
 Plugin autoloading is off because ROS Humble's pytest plugin, which is on this workstation's Python path, fails to
 import. The hardware tests need no hardware: `tests/test_manta_hardware_faults.py` runs the real driver stack against
-`manta_hand.fake_hardware`. They need `pyserial`, which the `dev` extra omits; without it all 23 fail. On 2026-11-03,
-without pyserial, the suite gave 360 passed, 25 failed, 3 errors and 3 skipped in 103 s. Besides the 23 hardware
-tests, the failures were 2 pad contact laws, the perp scene parity, the bench tags' floor datum and the frame map's
-compact corner designs.
+`manta_hand.fake_hardware`.
