@@ -2218,8 +2218,8 @@ def cmd_dry_check(a):
     past the expected contact, and the held pad is left out within EXCL of the target, as in cmd_replay; the own moves keep
     NEED plus DEEP_EXTRA. --chain: each plan after the first starts where the one before it ended (the lab runs the seats
     back to back, 11-02 14:59), and only the last one returns. Table: the plan's frame is checks.T_BA (the session's
-    --frame) when it has one. --safe and --hub-dz replace the plans' safe_mm and hub (dz mm over the apex, by hub()), to
-    try lower travels. A touch in --real is checked twice: its line in B to beyond_mm past the expected contact against what
+    --frame) when it has one. --safe, --retract and --hub-dz replace the plans' safe_mm, retract_mm and hub (dz mm over
+    the apex, by hub()), to try lower and shorter travels. A touch in --real is checked twice: its line in B to beyond_mm past the expected contact against what
     stays fixed in B (the table and the 2x4), and the same line shifted back by beyond_mm and ending TOUCH_DEPTH past the
     contact against everything, the pad standing up to beyond_mm farther than expected. --fit moves each seat's pad and
     tip as a registration found them (the grid aims by the fit). A travel after a twist that ran to its max depth starts
@@ -2235,7 +2235,7 @@ def cmd_dry_check(a):
                      + ", each press and touch to its full length in free air")
                     + ", the travels between them, each twist at the end of its press", dry_mm=0.0 if real else a.dry,
                along="push" if a.along_push else "stem", real=real, chain=bool(a.chain), start=a.start,
-               stages=list(stages), safe_mm=a.safe, hub_dz=a.hub_dz, program_plans=a.program, need=NEED, seats={},
+               stages=list(stages), safe_mm=a.safe, retract_mm=a.retract, hub_dz=a.hub_dz, program_plans=a.program, need=NEED, seats={},
                rows=[])
     carry = None                                        # --chain: (flange pose, joints) where the plan before ended
     if a.start_after:                                   # where that plan's run ended: its last grid action's rest
@@ -2271,7 +2271,7 @@ def cmd_dry_check(a):
             ctx["g"]["seats"][seat]["T_AF"] = (T_fit @ C.inv(T_FP)).tolist()
         pr = prog["travel"]["probe"]
         safe = float(a.safe if a.safe is not None else pr.get("safe_mm", 45.0))
-        ret = float(pr.get("retract_mm", 12.0))
+        ret = float(a.retract if a.retract is not None else pr.get("retract_mm", 12.0))
         Th, qh = ((lambda h: (h[0], np.asarray(h[1], float)))(hub(ctx, seat)) if a.hub_dz is not None
                   else (np.asarray(pr["hub"]["T_BE"], float), np.asarray(pr["hub"]["q"], float)))
         q_ref = ctx["q_home"]
@@ -2295,7 +2295,7 @@ def cmd_dry_check(a):
             from_homing = a.start != "hub"
         started = not (table and path)                       # Session.started: the session's first travel made
         prev_ok, prev_kind = None, None
-        flagged, least, n_way, j6r, own_tip = 0, {}, {}, [1e9, -1e9], (1e9, "", "")
+        flagged, least, n_way, j6r, own_tip, across = 0, {}, {}, [1e9, -1e9], (1e9, "", ""), {}
         for x in acts:
             st = float(x.get("standoff", 1.5))
             T_real, d_B, n_B = program_rest(prog, ctx, x, st)
@@ -2366,6 +2366,8 @@ def cmd_dry_check(a):
             q_t = tsm[-1][5] if tsm else q
             osm, why_o = sample_all(own, q_t, a.owner)
             cl_t = clear_of(ctx, tsm, None) if tsm and not why_t else {}
+            cl_x = (clear_of(ctx, [s_ for s_ in tsm if s_[0] == 1], None)          # a straight travel's move across,
+                    if way == "straight" and tsm and not why_t else {})           # retract_mm back from both rests
             if rel is None:
                 cl_o = clear_of(ctx, osm, contact) if not why_o else {}
             else:                                           # past the expected contact in B: what stays fixed in B; the
@@ -2390,12 +2392,16 @@ def cmd_dry_check(a):
             row = dict(seat=seat + 1, id=x["id"], stage=x["stage"], kind=x["kind"], travel=way, flags=why,
                        clear={g_: [round(v[0], 2), v[1]] for g_, v in cl.items()},
                        travel_clear={g_: [round(v[0], 2), v[1]] for g_, v in cl_t.items()},
+                       across_clear={g_: [round(v[0], 2), v[1]] for g_, v in cl_x.items()} if cl_x else None,
                        own_tip=[round(cl_o["tip"][0], 2), cl_o["tip"][1]] if "tip" in cl_o else None)
             out["rows"].append(row)
             flagged += bool(why)
             for g_, v in cl.items():
                 if v[0] < least.get(g_, (1e9, ""))[0]:
                     least[g_] = v
+            for g_, v in cl_x.items():
+                if v[0] < across.get(g_, (1e9, "", ""))[0]:
+                    across[g_] = (v[0], v[1], x["id"])
             if why:
                 print(f"  seat {seat + 1} {x['id']} ({way}): {'; '.join(why)}", flush=True)
             q = osm[-1][5] if osm else q_t
@@ -2421,12 +2427,15 @@ def cmd_dry_check(a):
         out["seats"][str(seat + 1)] = dict(n=len(acts), flagged=flagged, travel=n_way, j6_deg=np.round(j6r, 1).tolist(),
                                            least={g_: [round(v[0], 2), v[1]] for g_, v in least.items()},
                                            own_tip=[round(own_tip[0], 2), own_tip[1], own_tip[2]],
-                                           safe_mm=safe, hub=dict(T_BE=np.round(Th, 6).tolist(),
+                                           least_across={g_: [round(v[0], 2), v[1], v[2]] for g_, v in across.items()},
+                                           safe_mm=safe, retract_mm=ret, hub=dict(T_BE=np.round(Th, 6).tolist(),
                                                                   q=np.round(qh, 6).tolist()))
         print(f"seat {seat + 1}: {len(acts)} actions, {flagged} flagged; travels {n_way}; joint 6 "
               f"{j6r[0]:.1f}..{j6r[1]:.1f} deg; least " + json.dumps({g_: [round(v[0], 2), v[1]] for g_, v in least.items()})
               + f"; the tool's end at least {own_tip[0]:.2f} mm from the {own_tip[1]} in its own moves ({own_tip[2]}); "
-              f"{time.time() - t0:.0f} s", flush=True)
+              + (f"straight travels' moves across (retract {ret:g} mm): stem {across['stem'][0]:.2f} mm ({across['stem'][1]}), "
+                 f"tool's end {across['tip'][0]:.2f} mm ({across['tip'][1]}); " if 'stem' in across and 'tip' in across else "")
+              + f"{time.time() - t0:.0f} s", flush=True)
     out["seconds"] = round(time.time() - t0, 1)
     dst = OUT / "data" / f"{STEM}_{'run' if real else 'dry'}_check{'_along_push' if a.along_push else ''}{a.tag}.json"
     dst.write_text(json.dumps(out, default=float) + "\n")
@@ -2650,6 +2659,8 @@ def main():
     dc.add_argument("--no-return", action="store_true", help="table: no return stage")
     dc.add_argument("--safe", type=float, default=None, help="mm: in place of the plans' travel.probe.safe_mm")
     dc.add_argument("--hub-dz", type=float, default=None, help="mm: a hub this far over the apex in place of the plans'")
+    dc.add_argument("--retract", type=float, default=None, help="mm: in place of the plans' travel.probe.retract_mm "
+                    "(the straight travels' back-off)")
     dc.add_argument("--tag", default="", help="appended to the output's name")
     dc.add_argument("--start-after", default="", help="a program plan: start where its run ended (its last grid "
                     "action's rest), as the overnight plans follow seat 3's")
