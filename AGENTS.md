@@ -15,6 +15,11 @@ follow them: a builder that writes a page under `docs/experiments/` reruns `scri
 rewrites `docs/experiments/INDEX.md`, `docs/index.html`, `docs/pages.html`, the overviews' index tables and
 `docs/pages.json`. Commit those with the page; never edit an INDEX.md row by hand.
 
+Shared numerical code (owner, 2026-11-03): rotations, quaternions and rigid transforms come from
+`morphohand.geometry.rotations` (wxyz quaternions, Hamilton products, radians, over scipy's `Rotation`; numpy and scipy
+only). Never write a private quaternion, rotation-matrix, Rodrigues, skew or frame helper in a script; call the module,
+scipy or trimesh, and add a missing function to the module with a test in `tests/test_geometry_rotations.py`.
+
 Large files: media, data rows and detailed result pages under `docs/` are Git LFS files (`.gitattributes`); the home
 page, the overviews and the pages marked `!filter` there stay ordinary files. History before 2026-10-09 is in
 `badinkajink/hand-archive`.

@@ -109,6 +109,18 @@ add a live second address (`nmcli device modify enp3s0 +ipv4.addresses ...`); ne
 Find an ATI box at an unknown address with `scripts/ati_netft_discover.py`, ATI's discovery broadcast; subnet sweeps
 miss it. The Mini45's box sits at 192.168.123.50.
 
+## Shared numerical code (owner, 2026-11-03)
+
+Rotations, quaternions and rigid transforms come from `morphohand.geometry.rotations`: wxyz quaternions as in MuJoCo,
+Hamilton products, radians, batched, over scipy's `Rotation`. It imports numpy and scipy only, so it runs in `femtip`
+and on corvus (scipy 1.12). Never write a private quaternion product, quaternion-to-matrix, axis rotation, Rodrigues
+formula, skew matrix or frame builder in a script. Call the module, or scipy or trimesh, and add a missing function to
+the module with a test in `tests/test_geometry_rotations.py`. The owner was "very concerned about us rewriting
+rotations, geometry, math helpers everywhere with custom math instead of using proven library calls / a single help
+file(s)". The audit of 2026-11-03 (`docs/notes/20261103-scripts_cleanup/`) found 309 rotation copies in 128 files and
+165 geometry and statistics copies, with eight bugs among them. The hand-off `docs/handoff/20261103-scripts_topic_folders.md`
+migrates them and adds the geometry and statistics modules.
+
 ## Writing
 
 Prose rules for every page, report, commit message and runbook are the **Writing** section of the
