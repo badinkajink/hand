@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 12:12 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 12:23 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -190,8 +190,19 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     Seat 3 prints line for line as before the fix.
   - Replayed from the robot's joints (the lab, and the workstation with `--start-q`): none of 858 travels flagged, and
     only this morning's three own-press flags.
-  - **Ready, not started: `logs/20261103-chain_sphere2b.sh` (copy here).** It runs seat 1 (s1sph2b, a new session),
-    then seat 2, then seat 3, about 2.3 h each. It waits on the owner's look at v3 ID 6 and a go in the lab's session.
+  - The owner, 12:1x in the lab's session: "currently, the 2mm radius sphere is not damaged or contacting anything. it
+    is almost grazing the flank of the the fingertip. you have the goahead to contnue, although ive asked the lab
+    session to see if we can speed up these fingertip calibrations on these passes". Under s1sph2's good 19-touch fit
+    the sphere stood 0.6 mm from the pad; backing along the stem opens the gap steadily.
+  - **Now (from 12:20:20): `logs/20261103-chain_sphere2b.sh`** (copy here; PID 2823533; its log
+    `logs/20261103-chain_sphere2b.log`). Seat 1 runs as s1sph2b, a new session on the _no349 plan, then seats 2 and 3.
+    Seat 1 runs to about 14:40.
+  - The speed-up, for seats 2 and 3 and the rod: quick plans (`..._quick.json`) with travel.probe.retract_mm 6 (was
+    12) and travel.probe.in_v 0.02 (the last move in at 6 mm/s, was 3). They save about 4 s a press, about 20 min a
+    seat. They are in the simulator and the workstation's --retract 6 replay. The presses are unchanged, and so is the
+    return to the rest (0.6 mm/s): its rest window t_rest1 sets the analysis's zeros.
+  - Once both pass, the lab stops chain_sphere2b by its PID (s1sph2b runs on). It starts a chain that waits for
+    s1sph2b's end, then runs seats 2 and 3 on the quick plans.
 - The chain as it was started (from 11:00:37), `logs/20261103-chain_sphere2.sh` (copy here; its log
   `logs/20261103-chain_sphere2.log`):
   - seat 1 (`s1sph2`), then seat 2 (`s2sph2`), then seat 3 (`s3sph2`);
