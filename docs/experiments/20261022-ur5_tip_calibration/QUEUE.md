@@ -1616,6 +1616,13 @@ push that answers it arrives.
     differ by more than the HEX-E's noise. A draft (0cf14f84) of 10 face sweeps on seat 3, with the reference first
     and last, replays after seat 3's quick plan with 0 of 20 actions flagged. A pass 1 of face touches alone fits the
     seat to about 0.27 mm sd, so the test is better aimed by seat 3's registration from its run.
+  - The lab's sweep action (logs/sweepwork/, 13:56 on 11-03) ran in its simulator, which has stick and slip. At mu
+    0.45, 9 of the 10 sweeps ran whole, at 118 s each plus about 6 s of travel on the robot. At mu 1.0 three aborted
+    when the force across passed the 2.0 N cap. sweep-face-717 aborted at both mu on its first 0.5 N offset (0.087 mm),
+    where the force along fell to about 0 N. So the cap is now 3.0 N, a check aborts past ft_t_ratio 1.2 times the force
+    along plus 0.5 N, and 0.5 N keeps one ring at 0.06 mm (69734875). The lab's test plan (cf1e200f, no pass 1, a seed
+    of s3sph2's registration) replays with 0 of 12 flagged, its first travel by the hub. The code goes into the program
+    only after seat 3 has started, and the test waits on the owner's go.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
