@@ -11,7 +11,16 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 11-03 12:5x: the watcher woke at 12:02 on feed lines 43-45
+State: armed 2026-10-27 21:00 from the colorado window. 11-03 13:5x: the watcher woke at 13:17 on feed lines 46-47
+(13:15 the 2 mm sphere's depth cap and neck rule; 13:33 the owner's cone sweep, QUEUE R32); line 48 (13:53, the owner's
+go for the deeper flank presses at 13:52) came while they were handled. Calibration page 25acc521 and e64c081b: the rig
+item takes the speed sets' summary (lab/20261103-speed_set_summary.json: holds +0.24/+0.85/+1.73 N at 0.15/0.6/1.2 mm/s,
+board change within ~2 % of 0.15 mm/s's), the depth cap (13 of seat 1's first 72 at 1.0 mm, 1 N of 2) and the go
+(seats 2-3 deeper on 170/169); new future-work item on the friction-cone sweep (R32's numbers of 13:38: 56 pairs a
+point, ~2 min; the 10-point test on seat 3 and what revises it); prose 617, 16.8, 1.9 %, 267/1000. Overview and
+physical-model page unchanged (they state none of it). Acked 48 lines at HEAD e64c081b. Run --once before --ack: a line
+can arrive between the watcher's wake and the ack.
+11-03 12:5x: the watcher woke at 12:02 on feed lines 43-45
 (12:01 s1sph2's stop at 11:25, 12:14 fast3 ran 252 not 263, 12:25 restart at 12:20:20 on quick plans; line 42's time
 became 11:03, text unchanged). Calibration page 5a3ab038: the rig item only (fast3 252 + 11 in speed3; seat 1's first
 2 mm run stopped at 11:25, a pass 1 touch on the body in the registration, two travel aborts 8.4/8.8 N on v3 ID 6,
