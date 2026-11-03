@@ -2515,6 +2515,146 @@ def cmd_dry_exact(a):
     print("->", dst)
 
 
+_DENSE = {}
+PASS1_STANDOFFS = (3.5, 5.0)  # the converter's --pass1-standoff of the 5 mm sphere, and of the 2 mm sphere and the rod
+DEEP_NEED = NEED["tip"] + DEEP_EXTRA["tip"]                  # a press's least distance to the tip's body at its max depth
+
+
+def body_dense():
+    """The held tip's body in F, sampled about every 0.1 mm (the cassette and the trimmed cap with its screw heads) and
+    the held board's boxes every 0.2 mm, with their k-d tree. A distance taken to these samples stands at most about
+    0.05 mm over the exact one."""
+    if not _DENSE:
+        import trimesh
+        from scipy.spatial import cKDTree
+        pts = []
+        for name in ("cover", "cap"):
+            m = CELL.part_F(name)
+            pts.append(trimesh.sample.sample_surface_even(m, int(min(400000, m.area / 0.1 ** 2)), seed=2)[0])
+        pts += [_box_pts(lo, hi, 0.2) for _, lo, hi in CELL.held_board_boxes_F()]
+        P = np.vstack(pts)
+        _DENSE["P"], _DENSE["tree"] = P, cKDTree(P)
+    return _DENSE["P"], _DENSE["tree"]
+
+
+def rod_solid_dist(PM):
+    """Signed distance (mm) of points in M to the half rod's solid: the round half (z_M over the axis) and the box from
+    the axis back box_dz, both half_len along y_M."""
+    r_ = PROBE["rod"]
+    R, L, za = r_["R"], r_["half_len"], PROBE["tip_z"] - r_["R"]
+    x, y, z = PM[:, 0], PM[:, 1], PM[:, 2] - za
+    ey = np.maximum(0.0, np.abs(y) - L)
+    r = np.hypot(x, z)
+    d_cyl = np.hypot(np.where(z >= 0.0, np.maximum(0.0, r - R), np.hypot(np.maximum(0.0, np.abs(x) - R), z)), ey)
+    d_cyl = np.where((z >= 0.0) & (r < R) & (np.abs(y) < L), -np.minimum(R - r, L - np.abs(y)), d_cyl)
+    q = np.c_[np.abs(x) - R, np.abs(y) - L, np.maximum(z, -r_["box_dz"] - z)]
+    d_box = np.linalg.norm(np.maximum(q, 0.0), axis=1) + np.minimum(q.max(axis=1), 0.0)
+    return np.minimum(d_cyl, d_box)
+
+
+def body_dist(poses, ctx, seat, tool):
+    """The tool end's least distance (mm) to its held tip's body at each flange pose (B): a sphere's centre to the nearest
+    body sample, less its radius; the half rod's solid to the body samples within reach of it (negative inside)."""
+    P, tree = body_dense()
+    T_FB = C.inv(np.asarray(ctx["g"]["seats"][seat]["T_AF"], float)) @ C.inv(ctx["T_BA"])
+    z0 = tool_end_z(tool)
+    if tool in SPHERES:
+        c = np.array([C.apply(T_FB @ T @ ctx["T_EM"], np.array([0.0, 0.0, z0])) for T in poses])
+        return tree.query(c)[0] - PROBE[SPHERES[tool]]["R"]
+    if tool != "rod":
+        raise SystemExit(f"body_dist: no solid for {tool}")
+    r_ = PROBE["rod"]
+    reach = math.sqrt(r_["R"] ** 2 + r_["half_len"] ** 2 + r_["box_dz"] ** 2) + 4.0
+    out = np.empty(len(poses))
+    for k, T in enumerate(poses):
+        T_FM = T_FB @ T @ ctx["T_EM"]
+        idx = tree.query_ball_point(C.apply(T_FM, np.array([0.0, 0.0, z0])), reach)
+        out[k] = float(rod_solid_dist(C.apply(C.inv(T_FM), P[idx])).min()) if idx else 99.0
+    return out
+
+
+def cmd_body_exact(a):
+    """Exact clearances of a seat plan's presses to their held tip's body (body_dist), written into the plan (--write) for
+    the converter (lab, 11:5x on 11-03, after s1sph2's pass 1 touch met the cassette with the frame 0.7 mm off):
+
+      touch_body_mm   {standoff: mm}, a pass 1 touch made from the press at that standoff: the least distance before its
+                      expected contact, over its approach down the stem from safe_mm and its line from the rest to the
+                      contact. Past the contact a touch stops on the pad, so the frame's error along d does not bring the
+                      body nearer there; before it, the error comes off this distance. The converter takes pass 1 from
+                      presses with --pass1-body (2.0 mm) or more.
+      deep_clear_mm   lowered, in steps of 0.25 mm and not under 0.5 mm, until the press keeps DEEP_NEED (tip need plus
+                      DEEP_EXTRA) from the body from its rest to its max depth; the replay's own value stays as
+                      deep_clear_kd_mm (the k-d tree read up to 0.3 mm long by the cassette's edges for the rod)
+      deep_body_mm    the press's least distance to the body at its deep_clear_mm
+    A press that keeps DEEP_NEED at no depth from 0.5 mm is marked body_drop (the converter leaves it out)."""
+    t0 = time.time()
+    for f in a.plans:
+        sp = json.loads(Path(f).read_text())
+        seat, tool = int(sp["seat"]), sp["tool"]
+        HOME_KEY[0] = int(sp.get("home_key", HOME_KEY[0]))
+        ctx = context(dict(orient=sp["orient"], seat_h=SEAT_BLOCK["seat_h"]), tool=tool)
+        if C.pose_error(ctx["T_BA"], np.asarray(sp["T_BA"], float))[0] > 0.01:
+            raise SystemExit(f"{f}: the plan's T_BA is not the cell's (--cell table and its frame)")
+        st, safe = float(sp.get("standoff_mm", ST)), float(sp.get("safe_mm", SAFE))
+        R_BA = ctx["T_BA"][:3, :3]
+        n_low, n_drop, rows = 0, 0, []
+        for x in sp["actions"]:
+            if x["kind"] not in ("press", "oblique", "reference", "twist"):      # the converter's presses and twists
+                continue
+            T_r = np.asarray(x["T_rest"], float)
+            d_B = R_BA @ np.asarray(x["d_A"], float)
+            up = -(T_r @ ctx["T_EM"])[:3, 2]
+            tb = {}
+            for s1 in PASS1_STANDOFFS:
+                c1 = T_r[:3, 3] - (s1 - st) * d_B
+                s_up = np.r_[np.arange(0.0, 6.0, 0.1), np.arange(6.0, safe + 1e-6, 0.5)]
+                s_ln = np.r_[np.arange(0.1, s1, 0.1), s1]
+                poses = ([C.Tm(T_r[:3, :3], c1 + s * up) for s in s_up]
+                         + [C.Tm(T_r[:3, :3], c1 + s * d_B) for s in s_ln])
+                tb[f"{s1:g}"] = round(float(body_dist(poses, ctx, seat, tool).min()), 3)
+            kd = float(x.get("deep_clear_kd_mm", x.get("deep_clear_mm") or DEEP))
+            s_dp = np.r_[np.arange(0.0, st + kd, 0.05), st + kd]
+            dd = body_dist([C.Tm(T_r[:3, :3], T_r[:3, 3] + s * d_B) for s in s_dp], ctx, seat, tool)
+            run = np.minimum.accumulate(dd)
+            depth, drop = kd, False
+            while True:
+                k = int(np.searchsorted(s_dp, st + depth + 1e-9)) - 1
+                if run[k] >= DEEP_NEED:
+                    break
+                if depth - 0.25 < 0.5 - 1e-9:
+                    drop = True
+                    break
+                depth = round(depth - 0.25, 2)
+            k = int(np.searchsorted(s_dp, st + depth + 1e-9)) - 1
+            row = dict(id=x["id"], touch_body_mm=tb, deep_kd=kd, deep=depth, deep_body_mm=round(float(run[k]), 3),
+                       drop=drop)
+            rows.append(row)
+            n_low += depth < kd - 1e-9
+            n_drop += drop
+            if a.write:
+                x["touch_body_mm"] = tb
+                x["deep_clear_kd_mm"] = kd
+                x["deep_clear_mm"] = depth
+                x["deep_body_mm"] = row["deep_body_mm"]
+                if drop:
+                    x["body_drop"] = True
+                else:
+                    x.pop("body_drop", None)
+        ok = {s: sum(r["touch_body_mm"][s] >= a.pass1_body for r in rows) for s in rows[0]["touch_body_mm"]} if rows else {}
+        print(f"{Path(f).name} (seat {seat + 1}, {tool}): {len(rows)} presses; touch_body_mm >= {a.pass1_body:g} at the "
+              f"standoffs {ok}; deep_clear_mm lowered on {n_low}, {n_drop} kept DEEP_NEED {DEEP_NEED:g} mm at no depth; "
+              f"least at the depth: {min(r['deep_body_mm'] for r in rows):.3f} mm; {time.time() - t0:.0f} s", flush=True)
+        low = sorted(rows, key=lambda r: r["deep_body_mm"])[:3]
+        print("   lowest at their depth:", [(r["id"], r["deep_kd"], r["deep"], r["deep_body_mm"]) for r in low], flush=True)
+        if a.write:
+            sp.setdefault("notes", []).append(
+                f"{time.strftime('%Y-%m-%d %H:%M')}, workstation: body-exact (body_dist on the body sampled every 0.1 mm): "
+                f"touch_body_mm at the pass 1 standoffs {list(PASS1_STANDOFFS)}; deep_clear_mm lowered on {n_low} presses "
+                f"to keep {DEEP_NEED:g} mm from the tip's body (the replay's in deep_clear_kd_mm); {n_drop} marked body_drop.")
+            Path(f).write_text(json.dumps(sp, default=float) + "\n")
+            print("   ->", f, flush=True)
+
+
 # ------------------------------------------------------------------------------------------------ the film
 FILM_PICKS = (("press", "face", 0.0, "Press on the face"), ("press", "edge", 0.0, "Press on an edge"),
               ("press", "flank", 0.0, "Press on a flank"), ("press", "tip", 0.0, "Press on the tip's end"),
@@ -2677,6 +2817,10 @@ def main():
     de.add_argument("--dry", type=float, default=15.0)
     sub.add_parser("walls")
     sub.add_parser("body-check")
+    be = sub.add_parser("body-exact")
+    be.add_argument("plans", nargs="+", help="seat plans (this script's replay output)")
+    be.add_argument("--write", action="store_true", help="write touch_body_mm and the depths into the plans")
+    be.add_argument("--pass1-body", type=float, default=2.0, help="mm: the count printed of presses a pass 1 may take")
     sb = sub.add_parser("seat-beam")
     sb.add_argument("--orient", default=",".join(ORIENT))
     sb.add_argument("--wall", type=float, default=2.0)
@@ -2740,7 +2884,7 @@ def main():
         a.h = (SEAT_BLOCK if PLATE[0] == "block" else LAYOUT)["seat_h"]
     dict(**{"ik-check": cmd_ik_check, "seat-beam": cmd_seat_beam, "home-check": cmd_home_check,
             "pass1-check": cmd_pass1_check, "dry-check": cmd_dry_check, "dry-exact": cmd_dry_exact, "walls": cmd_walls,
-            "body-check": cmd_body_check}, build=cmd_build,
+            "body-check": cmd_body_check, "body-exact": cmd_body_exact}, build=cmd_build,
          reach=cmd_reach, replay=cmd_replay, film=cmd_film)[a.cmd](a)
 
 

@@ -22,6 +22,11 @@ the CAD: each added touch-off is the one that most lowers the expected squared m
 sphere's centre stands in P against where it was aimed), through the fit's posterior covariance. A twist action presses to 3 N, turns, holds 1 s at each angle, and is followed at the same point by the
 same twist at 1 N (owner, 13:4x on 10-30: stronger twists; workstation: hold about 1 s for the Tz noise).
 
+Pass 1 takes only presses whose touch-off keeps --pass1-body mm (2.0) from the held tip's body before its expected contact
+at the pass 1 standoff: the seat plan's touch_body_mm (ur5_inverted_rig.py body-exact --write; lab, 11:5x on 11-03, after
+s1sph2's pad-tip-349-o35-a270 stood 0.71 mm from the cassette at its rest and met it with the frame 0.7 mm off before the
+fit). A press the seat plan marks body_drop (no depth from 0.5 mm keeps the tip's need from the body) is left out.
+
 A seat plan of the table cell (cell "table", 11-02: the strip on the table, the probe straight down in the owner's IK
 branch) brings its own hub, start, homing lift and joint path from the lift to the hub (home_path_q, deg); the program
 plan takes them into travel.probe, with the work wrist window (safety.wrist_window), the travel window of the lift and the
@@ -32,8 +37,8 @@ cap's flat side walls, two heights 6 mm apart on each, for the seat's turn about
 workstation's pass1-check --walls of these plans (--walls-check: data/20261030-seat_block_pass1_check.json), whose rows
 must list this plan's touch-offs in order; the plan carries the walls' faces in P for the simulator (sim.walls).
 
-    /usr/bin/python3 scripts/ur5_probe_plan.py PLAN [--out OUT] [--pass1 N] [--pass1-standoff MM] [--held-channel K]
-        [--walls WALLS --walls-check CHECK]
+    /usr/bin/python3 scripts/ur5_probe_plan.py PLAN [--out OUT] [--pass1 N] [--pass1-standoff MM] [--pass1-body MM]
+        [--held-channel K] [--walls WALLS --walls-check CHECK]
 """
 from __future__ import annotations
 
@@ -92,18 +97,22 @@ def jacobians(acts, T_BA, T_AP, T_EM, c_M, R, geo0):
     return J, G
 
 
-def pass1_ids(acts, n, J, G):
+def pass1_ids(acts, n, J, G, ok=None):
     """The first reference, then greedily the press whose touch-off most lowers the expected squared miss over every
-    press of the plan, trace(Sigma sum G^T G), Sigma the fit's posterior covariance (priors PRIOR, touches SIG_PAD)."""
+    press of the plan, trace(Sigma sum G^T G), Sigma the fit's posterior covariance (priors PRIOR, touches SIG_PAD).
+    ok: which presses a touch-off may be made from (all by default)."""
+    ok = [True] * len(acts) if ok is None else list(ok)
+    if not any(ok):
+        raise SystemExit("no press may be a pass 1 touch-off")
     H = np.diag(1.0 / PRIOR ** 2)
     M = np.einsum("kai,kaj->ij", G, G) / len(G)
-    first = next((i for i, a in enumerate(acts) if a.get("ws_kind") == "reference"), 0)
+    first = next((i for i, a in enumerate(acts) if a.get("ws_kind") == "reference" and ok[i]), ok.index(True))
     pick = [first]
     H = H + np.outer(J[first], J[first]) / SIG_PAD ** 2
-    while len(pick) < min(n, len(acts)):
+    while len(pick) < min(n, sum(ok)):
         best = None
         for k in range(len(acts)):
-            if k in pick:
+            if k in pick or not ok[k]:
                 continue
             v = float(np.trace(np.linalg.inv(H + np.outer(J[k], J[k]) / SIG_PAD ** 2) @ M))
             if best is None or v < best[0]:
@@ -185,7 +194,8 @@ def travel_of(name):
     return name, None
 
 
-def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, walls=None, walls_check=None):
+def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, walls=None, walls_check=None,
+          pass1_body=2.0):
     table = ws.get("cell") == "table"                          # 11-02: the strip on the table, the owner's branch
     RIG.use_cell(ws.get("cell", "v1030"), ws.get("j6_ref"))
     RIG.PLATE[0] = "block"
@@ -227,8 +237,12 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
                        held_channel=ch)
     R_AP = T_AP[:3, :3]
     st = float(ws.get("standoff_mm") or RIG.ST)
-    acts, worst = [], 0.0
+    acts, worst, tbody, dropped = [], 0.0, {}, []
     for a in ws["actions"]:
+        if a.get("body_drop"):                                 # body-exact: no depth keeps the tip's need from the body
+            dropped.append(a["id"])
+            continue
+        tbody[a["id"]] = a.get("touch_body_mm")
         T_rest = np.array(a["T_rest"], float)
         R_PM = R_AP.T @ T_BA[:3, :3].T @ T_rest[:3, :3] @ T_EM[:3, :3]
         d_P = R_AP.T @ np.asarray(a["d_A"], float)
@@ -266,7 +280,14 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
     if tool == "rod":                                          # the rod's pass 1: touches with the rod across the tip, on
         presses = [a for a in presses if abs(a["rod_deg"] - 90.0) < 1e-6]    # the face and the edges (the workstation)
     J, G = jacobians(presses, T_BA, T_AP, T_EM, c_M, R, geo0)
-    p1, sd1, miss1, H1, M1 = pass1_ids(presses, n_pass1, J, G)
+    s1 = float(st1 if st1 is not None else st)
+    ok = [True] * len(presses)
+    if pass1_body > 0.0:                                       # body-exact's touch_body_mm at the pass 1 standoff
+        if any((tbody.get(a["id"]) or {}).get(f"{s1:g}") is None for a in presses):
+            raise SystemExit(f"the seat plan has no touch_body_mm at the standoff {s1:g} mm: run ur5_inverted_rig.py "
+                             "body-exact --write on it, or pass --pass1-body 0")
+        ok = [tbody[a["id"]][f"{s1:g}"] >= pass1_body for a in presses]
+    p1, sd1, miss1, H1, M1 = pass1_ids(presses, n_pass1, J, G, ok)
     p1 = set(p1)
     touches = []
     for a in acts:
@@ -321,7 +342,9 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
             f"{np.degrees(sd1[:3]).round(2).tolist()} deg and {sd1[3:6].round(3).tolist()} mm for the seat, "
             f"{sd1[6:9].round(3).tolist()} mm for the sphere's centre, a press's expected miss {miss1:.3f} mm rms{wall_note}) "
             f"and {len(acts)} presses and twists; rest poses "
-            f"within {worst * 1e3:.1f} um of the replay's at the plan's T_BA and T_EM.")
+            f"within {worst * 1e3:.1f} um of the replay's at the plan's T_BA and T_EM. Pass 1 from the {sum(ok)} of "
+            f"{len(ok)} presses whose touch-off at {s1:g} mm keeps {pass1_body:g} mm from the tip's body before contact"
+            f"{'; left out as body_drop: ' + ', '.join(dropped) if dropped else ''}.")
     plan = dict(
         version=1, mode="probe", created=ws["created"], notes=[note] + list(ws.get("notes", [])),
         geometry=geo,
@@ -352,6 +375,8 @@ def main():
     ap.add_argument("--pass1", type=int, default=20, help="touch-offs in pass 1")
     ap.add_argument("--pass1-standoff", type=float, default=None, help="mm: the touch-offs' standoff (default the plan's, "
                     "the replay's checked rest)")
+    ap.add_argument("--pass1-body", type=float, default=2.0, help="mm: pass 1 only from presses whose touch-off keeps this "
+                    "from the tip's body before contact (the seat plan's touch_body_mm; 0: any press)")
     ap.add_argument("--held-channel", type=int, default=None, help="the seat's board's mux channel (default HELD_CHANNEL)")
     ap.add_argument("--no-1n-twists", action="store_true", help="the twists at 3 N only (each 1 N twist adds about 2 min)")
     ap.add_argument("--walls", default=None, help="the workstation's wall touch-offs (ur5_inverted_rig.py walls)")
@@ -372,7 +397,7 @@ def main():
     walls = json.loads(Path(a.walls).read_text()) if a.walls else None
     check = json.loads(Path(a.walls_check).read_text()) if a.walls_check else None
     plan = build(ws, rows, a.pass1, a.pass1_standoff, a.held_channel, TWISTS[:1] if a.no_1n_twists else TWISTS, walls,
-                 check)
+                 check, a.pass1_body)
     out = Path(a.out) if a.out else Path(a.plan).with_name(Path(a.plan).stem.replace("_plan_", "_program_plan_") + ".json")
     out.write_text(json.dumps(plan, indent=1))
     n1 = sum(1 for x in plan["actions"] if x["stage"] in ("pad", "wall"))
