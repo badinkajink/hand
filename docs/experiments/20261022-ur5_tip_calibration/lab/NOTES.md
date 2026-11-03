@@ -2408,6 +2408,12 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   At 1.2 mm/s the stop came 0.4 mm deeper than at 0.05 mm/s, 0.3 mm short of the press's depth limit. The simulator at
   the real speeds had given 3.6, 3.7, 4.1 and 4.7 N.
 
+- The overnight list, from 01:43 on 11-03 (each run on its seat's session; printouts and plans in each session's copy):
+  - speed3, speed2 and speed1: 01:43 to 02:47, 48 of 48 each;
+  - night1, night2 and night3: 02:47 to 08:31, 232, 231 and 232, about 2 h each;
+  - none aborted, and the HEX-E never timed out. Seat 1's reference press stood within 0.03 mm of 15:06's at 03:13.
+- fast3 (the fallback) started at 08:31. fast2 and fast1 follow, about 1.8 h each.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

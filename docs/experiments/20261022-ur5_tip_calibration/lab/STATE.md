@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 06:37 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 08:31 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -159,9 +159,13 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 - Done overnight: speed3, speed2, speed1 (01:43 to 02:47), 48 of 48 each with no abort.
 - Done overnight: night1 on seat 1 (02:47 to 04:41), 232 of 232 with no abort.
 - Done overnight: night2 on seat 2 (04:41 to 06:36), 231 of 231 with no abort.
-- Running since 06:36: night3 on seat 3's session (232 presses, to about 08:30), printout
-  `logs/20261103-063624-tipcal-night3.log`; then fast3, fast2, fast1 (about 1.8 h each, into the afternoon). To stop
-  after the run in progress: kill the chain's PID 2658916.
+- Done overnight: night3 on seat 3 (06:36 to 08:31), 232 of 232 with no abort. So the three seats' main runs, speed
+  sets and night obliques all ran without one abort: 60 touch-offs, 883 grid actions, 144 speed presses and 695
+  night presses.
+- Running since 08:31: fast3, the fallback (the grid's 263 presses at 0.6 mm/s) on seat 3's session, to about 10:20,
+  printout `logs/20261103-083111-tipcal-fast3.log`; then fast2 and fast1 (to about 14:00). To stop after the run in
+  progress: kill the chain's PID 2658916. To stop now: Ctrl-C in tmux `tipcal` stops the robot (stopL) and closes the
+  files.
 - Armed (16:10): `logs/20261102-chain_seats23.sh` (copy here, PID 2658916, its log `logs/20261102-chain_seats23.log`)
   started seat 2 (v3 ID 5) at 18:27, to about 22:05; then seat 3 (v3 ID 4), about 22:05 to 01:45
   (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`: safe_mm 15, hubs 40 mm over the apex). Both
