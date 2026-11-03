@@ -2,8 +2,10 @@
 """Figures and numbers of the page on the fingertip's calibration on the UR5 (docs/experiments/20261026-fingertip_calibration/):
 the six motions of a session, the press targets on the pad, the learning set-up, location error by force level, location
 error against the distance to the nearest training press, shear on the slides, transfer and pooling across tips, the
-sessions' hold counts, v2 ID 1's hard presses and four magnets against five on v3 ID 1. The last two are drawn from the UR5
-coordinator's analysis files as committed at HEAD (fingertip_calibration_text.at_head), without refitting.
+sessions' hold counts, v2 ID 1's hard presses, four magnets against five on v3 ID 1, v3 ID 3's hold counts and the board
+GP's error against the number of training holds on v3 IDs 1 to 3. The hard presses, four against five and the data curve
+are drawn from the UR5 coordinator's analysis files as committed at HEAD (fingertip_calibration_text.at_head), without
+refitting.
 
 Reads the sessions' analysis outputs in docs/experiments/20261022-ur5_tip_calibration/data/ (holds.npz, summary.json,
 checks.json, density_curve.json, pooled_checks.json) and the estimator's surface basis; the Gaussian process is the one
@@ -549,13 +551,75 @@ def fig_four_five():
     save(fig, "20261028-four_vs_five.png")
 
 
+# v3 ID 3's analysis folders of 2026-10-30: scripts/ur5_tip_calibration_analysis.py on copies of the lab's session folders
+# (logs/ is not in git); the coordinator's data curve of 2026-11-02 trains on its sphere and rod folders
+V3ID3 = {fx: ROOT / f"logs/20261030-{fx}v3id3" for fx in ("sphere", "tall", "rod")}
+DATA_CURVE = UR5 / "20261102-v3_data_curve.json"
+V3COL = {"1": FOUR, "2": "#2e7d32", "3": "#6a3d9a"}
+
+
+def v3id3_sessions():
+    """v3 ID 3's holds and actions by kind, filtered as scripts/ur5_tip_calibration_motion_value.py filters v3 ID 1's and
+    ID 2's (finite board, point and force; normal force over 0.05 N), for the page's session table."""
+    out = {}
+    for fx, folder in V3ID3.items():
+        H = K.load(folder)
+        m = (np.isfinite(H["d_board"]).all(1) & np.isfinite(H["p"]).all(1) & np.isfinite(H["f"]).all(1)
+             & np.isfinite(H["f_n"]) & (H["f_n"] > 0.05))
+        kind, aid = np.asarray(H["kind"]).astype(str)[m], np.asarray(H["id"]).astype(str)[m]
+        out[fx] = dict(folder=str(folder.relative_to(ROOT)),
+                       **{k: dict(holds=int(np.sum(kind == k)), actions=len(set(aid[kind == k])))
+                          for k in ("press", "slide", "twist", "roll")})
+    NUM["v3id3_sessions"] = out
+
+
+def fig_data_curve():
+    """The board GP's held-out error on v3 IDs 1 to 3 against the number of training holds (the coordinator's
+    scripts/ur5_tip_calibration_v3_data_curve.py, 2026-11-02): (a) location error at 1 N and over, (b) torsion error on
+    the held-out twists, with the error of predicting no torsion dashed. Medians over four seeds; the band spans the
+    seeds."""
+    from fingertip_calibration_text import at_head
+    plt = plt_setup()
+    C = json.loads(at_head(DATA_CURVE))
+    fr = C["fractions"]
+    fig, (a, b) = plt.subplots(1, 2, figsize=(9.6, 4.7))
+    for tip, d in C["tips"].items():
+        col = V3COL[tip]
+        med = [d["median"][f"{f:g}"] for f in fr]
+        x = [m["n_train"] for m in med]
+        for ax, key in ((a, "location_mm"), (b, "torsion_Nmm")):
+            seeds = [[r[key] for r in d["rows"] if r["fraction"] == f] for f in fr]
+            ax.fill_between(x, [min(s) for s in seeds], [max(s) for s in seeds], color=col, alpha=0.14, lw=0)
+            ax.plot(x, [m[key] for m in med], marker="o", color=col, lw=1.8, ms=6,
+                    label=f"v3 ID {tip}, {d['holds']:,} holds" if ax is a else None)
+        b.axhline(med[0]["torsion_zero_Nmm"], color=col, ls="--", lw=1.4)
+    b.plot([], [], color="0.35", ls="--", lw=1.4, label="No torsion predicted")
+    for ax, yl, ttl in ((a, "Location error, median (mm)", "(a) Contact point, holds of 1 N and over"),
+                        (b, "Torsion error, median (N mm)", "(b) Torsion, held-out twists")):
+        ax.set_xscale("log")
+        ax.set_xticks([250, 500, 1000, 2000])
+        ax.set_xticklabels(["250", "500", "1,000", "2,000"])
+        ax.minorticks_off()
+        ax.set_xlabel("Training holds")
+        ax.set_ylabel(yl)
+        ax.set_title(ttl)
+    a.set_yscale("log")
+    log_ticks(a, (0.4, 0.5, 0.7, 1, 1.5, 2, 3, 4))
+    a.set_ylim(0.38, 1.08 * max(r["location_mm"] for d in C["tips"].values() for r in d["rows"]))
+    b.set_ylim(0, 9.5)
+    h = a.get_legend_handles_labels()[0] + b.get_legend_handles_labels()[0]
+    fig.legend(handles=h, loc="lower center", ncol=2, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.12, 1, 1))
+    save(fig, "20261102-v3_data_curve.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
     a = ap.parse_args()
     figs = dict(motions=fig_motions, coverage=fig_coverage, learning=fig_learning, by_level=fig_by_level,
                 density=fig_density, shear=fig_shear, transfer=fig_transfer, sessions=sessions, hard=fig_hard,
-                four_five=fig_four_five)
+                four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)

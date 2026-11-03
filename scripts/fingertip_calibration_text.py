@@ -68,6 +68,10 @@ def sections(N, F, P, link, L):
     # what each motion adds on v3 ID 1 and ID 2: direction GPs with one kind of hold left out of training, on both tips'
     # sessions on the three indenters (feed line of 10-29 12:45); v3 ID 2's twists are in its four-against-five file
     MV = jl(V3D / "20261029-motion_value.json")
+    # the board GP's held-out error on v3 IDs 1 to 3 against the number of training holds (feed line of 2026-11-02 15:36,
+    # commit ee772007), and v3 ID 3's holds by kind in its analysis folders of 10-30 (fingertip_calibration_figures.py)
+    DCV = jl(UR5D / "20261102-v3_data_curve.json")
+    I3 = N["v3id3_sessions"]
     T3 = ("v3 ID 1", "v3 ID 2")
     tw2 = G2["twists"]["four_v3id2"]
     C2, V2S, V2T, V2R, V3S = ("cb2t (10-25)", "v2 ID 1 sphere", "v2 ID 1 sphere + tall", "v2 ID 1 sphere + tall + rod",
@@ -90,8 +94,12 @@ def sections(N, F, P, link, L):
     acc = gp_hi + [TP["ID 3"]["own"]["over_1p5N"], TP["v2 ID 1"]["own"]["over_1p5N"]]
     # the v3 tips' sessions as Section 13's analysis takes them: presses, slides, twists and rolls on each indenter
     mvh = lambda t, k: sum(MV["holds"][t][k][a] for a in ("press", "slide", "twist", "roll"))  # noqa: E731
+    i3h = lambda k: sum(I3[k][a]["holds"] for a in ("press", "slide", "twist", "roll"))  # noqa: E731
     n_hold = (sum(v["press_holds"] + v["turn_holds"] for v in N["sessions"].values())
-              + sum(mvh(t, k) for t in T3 for k in FX))
+              + sum(mvh(t, k) for t in T3 for k in FX) + sum(i3h(k) for k in FX))
+    DT = ("1", "2", "3")
+    dcm = lambda t, f: DCV["tips"][t]["median"][f]  # noqa: E731   (f "0.5": half of the training points, "1": all)
+    dcr = lambda key, f, fmt="{:.2f}", k=1: rg([k * dcm(t, f)[key] for t in DT], fmt)  # noqa: E731
     t2 = {k: TT[k]["tips"]["v3 ID 2"]["gp_direction"] for k in FX}
     t1 = {k: TT[k]["tips"]["v3 ID 1"]["gp_direction"] for k in FX}
     tg = lambda k, t: TT[k]["tips"][t]["gain_uT_per_N"]["1-2"]  # noqa: E731
@@ -107,8 +115,8 @@ def sections(N, F, P, link, L):
     bloc, bfe = strict("gp", "loc_mm"), strict("gp", "force_rel_err", 100)
 
     lede = (
-        "Seven printed fingertips were pressed onto 5 mm spheres and a rod by the lab's UR5. The reference force was "
-        "measured by an OptoForce HEX-E force-torque sensor between the flange and the fingertip. In sixteen sessions "
+        "Eight printed fingertips were pressed onto 5 mm spheres and a rod by the lab's UR5. The reference force was "
+        "measured by an OptoForce HEX-E force-torque sensor between the flange and the fingertip. In nineteen sessions "
         f"they gave {n_hold:,} holds. Trained on a tip's own presses, a Gaussian process (GP) from the 15 "
         f"magnetometer readings locates presses at new points within {rg(acc)} mm at 1.5 N and over. On tips 0 to 2 it "
         f"gives their normal force within {min(fn_err):.2f}–{max(fn_err):.2f} N. On v2 ID 1, with five N52 magnets, a GP "
@@ -125,14 +133,16 @@ def sections(N, F, P, link, L):
         f"they are placed within {TE['with_the_pass']['all']['loc_mm']:.2f} mm at the median, against "
         f"{TE['grid_only']['all']['loc_mm']:.2f} mm from the grid alone. Each indenter's presses, the tip end and the "
         "slides must all be in a tip's training data. Without its own presses, an indenter's contacts are placed "
-        f"{min(wo):.2f}–{max(wo):.2f} mm off, against {min(own):.2f}–{max(own):.2f} mm with them. Torsion is not "
+        f"{min(wo):.2f}–{max(wo):.2f} mm off, against {min(own):.2f}–{max(own):.2f} mm with them. On v3 IDs 1 to 3 "
+        f"the board GP's location error at 1 N and over falls from {dcr('location_mm', '0.5')} mm with half of the "
+        f"training points to {dcr('location_mm', '1')} mm with all of them. Torsion is not "
         "recovered. On the twists of three tips, a GP's estimate correlates with the measured torsion at "
         f"{rg([tw['gp_twists']['r'] for tw in (tw2, tw4, tw5)])}. A model learned on "
         "one tip misses on another. Between the two four-magnet tips, presses are placed "
         f"{xf(*T3)['loc_mm']:.2f} and {xf(*T3[::-1])['loc_mm']:.2f} mm off by the other tip's GP, against "
         f"{pall(T3[1]):.2f} and {pall(T3[0]):.2f} mm by the tip's own.")
     summary = (
-        f"UR5 + HEX-E calibration of seven printed magnetic fingertips ({n_hold:,} holds, 2026-10-22 to 10-29): a GP from the "
+        f"UR5 + HEX-E calibration of eight printed magnetic fingertips ({n_hold:,} holds, 2026-10-22 to 10-30): a GP from the "
         f"15 readings locates new points within {rg(acc).replace('–', '-')} mm at 1.5 N and over on a tip's own presses "
         f"(normal force within {min(fn_err):.2f}-{max(fn_err):.2f} N on tips 0-2); on v2 ID 1 (five N52) a GP from the "
         f"direction of the change, trained at 2 N and under, places 2-8 N presses within {rg(dloc).replace('–', '-')} mm and "
@@ -149,8 +159,11 @@ def sections(N, F, P, link, L):
         f"within {TE['with_the_pass']['all']['loc_mm']:.2f} mm with the pass's other presses in training "
         f"({TE['grid_only']['all']['loc_mm']:.2f} mm from the grid alone); each indenter's presses, the tip end and "
         f"slides are needed in a tip's training (an indenter left out: {min(wo):.2f}-{max(wo):.2f} mm against "
-        f"{min(own):.2f}-{max(own):.2f} mm with its own); torsion not recovered (GP r {tw4['gp_twists']['r']:.2f}, "
-        f"{tw5['gp_twists']['r']:.2f} and {tw2['gp_twists']['r']:.2f} on the twists); a GP trained on another tip gives "
+        f"{min(own):.2f}-{max(own):.2f} mm with its own); on v3 IDs 1-3 the board GP's held-out location error falls "
+        f"from {dcr('location_mm', '0.5').replace('–', '-')} to {dcr('location_mm', '1').replace('–', '-')} mm from half "
+        f"to all of the training points; torsion not recovered (GP r {tw4['gp_twists']['r']:.2f}, "
+        f"{tw5['gp_twists']['r']:.2f} and {tw2['gp_twists']['r']:.2f} on the twists; on v3 IDs 2 and 3 no better than "
+        f"predicting none); a GP trained on another tip gives "
         f"1.42 mm against 0.39 mm on the v1 tips and {xf(*T3)['loc_mm']:.2f} and {xf(*T3[::-1])['loc_mm']:.2f} mm against "
         f"{pall(T3[1]):.2f} and {pall(T3[0]):.2f} mm between the four-magnet tips.")
     film = P.film(0, F["film"], F["film_poster"],
@@ -200,6 +213,9 @@ def sections(N, F, P, link, L):
          "$\\bigl|\\lVert\\hat{\\mathbf f}\\rVert-\\lVert\\mathbf f\\rVert\\bigr|$ as a share of "
          "$\\lVert\\mathbf f\\rVert$, in %. The force angle is the median angle between the estimated and the measured force. "
          "The normal angle is the median angle between the pad's normals at the estimated and the registered point."),
+        ("Torsion error", "The median of $|\\hat\\tau-\\tau|$ over the holds of a set of twists, in N mm, where $\\tau$ is "
+         "the torsion about the normal measured by the HEX-E and $\\hat\\tau$ its estimate. A prediction of no torsion "
+         "errs by the median of $|\\tau|$."),
         ("Compliance scale $c$", "A factor on every displacement of the FE basis, fitted to the board's change. The FE "
          "is linear in one TPU, so the fitted modulus is the FE's 12 MPa divided by $c$."),
         ("Pooling", "Training one model on the holds of more than one tip."),
@@ -361,6 +377,12 @@ def sections(N, F, P, link, L):
                  (f["time"][k].get("roll", {}).get("actions", 0), "rolls"))
         return [name, tip, "v7", date, f"{h['press']:,} ({f['fixtures']['press_actions'][k]})",
                 f"{h['slide'] + h['twist'] + h['roll']:,} (" + ", ".join(f"{n} {w}" for n, w in turns if n) + ")"]
+    def v3id3row(name, k, tip, date):
+        c = I3[k]
+        turns = [(c[a]["actions"], w) for a, w in (("slide", "slides"), ("twist", "twists"), ("roll", "rolls"))]
+        return [name, tip, "v7", date, f"{c['press']['holds']:,} ({c['press']['actions']})",
+                f"{sum(c[a]['holds'] for a in ('slide', 'twist', 'roll')):,} ("
+                + ", ".join(f"{n} {w}" for n, w in turns if n) + ")"]
     rows = [
         srow("sphere2", "20261022-210852-sphere2", "0, magnets one way", "v3", "2026-10-22 night"),
         srow("rod1", "20261023-104526-rod1-joint", "0, rod of radius 12.5 mm", "v3", "2026-10-23"),
@@ -378,8 +400,11 @@ def sections(N, F, P, link, L):
         v3row("spherev3id2", "v3 ID 2", "sphere", "v3 ID 2, four N52", "2026-10-28 night"),
         v3row("tallv3id2", "v3 ID 2", "tall", "v3 ID 2, tall indenter", "2026-10-28 and 10-29"),
         v3row("rodv3id2", "v3 ID 2", "rod", "v3 ID 2, rod", "2026-10-29"),
+        v3id3row("spherev3id3", "sphere", "v3 ID 3, four N52", "2026-10-29"),
+        v3id3row("tallv3id3", "tall", "v3 ID 3, tall indenter", "2026-10-29 and 10-30"),
+        v3id3row("rodv3id3", "rod", "v3 ID 3, rod", "2026-10-29 and 10-30"),
     ]
-    assert len(rows) == 16  # the lede's "sixteen sessions"
+    assert len(rows) == 19  # the lede's "nineteen sessions"
     t5 = P.table(["Sessions and indenters", "Press actions"]
                  + [f"{nm} ({CV[C2][r]['n']} points)" for r, nm in (("face", "Face"), ("edge", "Edges"), ("flank", "Flanks"))],
                  [[nm, str(CV[k]["targets"])] + [f"{cvp(k, r)} / {cvp(k, r, 15)}" for r in ("face", "edge", "flank")]
@@ -401,15 +426,20 @@ def sections(N, F, P, link, L):
         "from 09:41, once the HEX-E was back, and the rod's session from 10:27 (Section 11). v3 ID 2 ran its suite of "
         "488 actions from 18:44 on 2026-10-28 to 08:13 on 10-29 (Section 12). v3 ID 3 ran its suite of 501 actions "
         "from 13:45 on 10-29 to 14:49 on 10-30, all ok. Two HEX-E losses stopped its tall stage 2, which was resumed "
-        "each time (Section 14). Its sessions were analysed on 10-30, and the physical model is checked on their holds ("
-        + link(L["phys"], "physical-model page") + ", Section 9). Its learned models are to come. Tip 2's session "
+        "each time (Section 15). Its sessions were analysed on 10-30 from copies of the lab's session folders, with "
+        + P.code("scripts/ur5_tip_calibration_analysis.py") + ". The physical model is checked on their holds ("
+        + link(L["phys"], "physical-model page") + ", Section 9), and Section 14 gives the board GP's errors. v3 IDs "
+        "6, 5 and 4 were pressed on the inverted rig from 14:50 on 11-02, and their sessions are not analysed yet "
+        "(Future work). Tip 2's session "
         "cb2t has 104 press points in 921 holds, and 87 slides.</p>"
         + P.table(["Session", "Tip, indenter", "Mount", "Date", "Press holds (presses)", "Turn holds (turns)"], rows,
                   caption="Sessions on the UR5. Turn holds are those of slides, rolls and twists. Counts from each session's "
                           "<code>holds.npz</code> in <code>docs/experiments/20261022-ur5_tip_calibration/data/</code>. The "
                           "v3 tips' counts are those of Section 13's analysis ("
-                          + P.code("data/20261029-motion_value.json") + " in the v3 folder). v3 ID 2's presses on the "
-                          "low sphere include its top-edge pass. Sections 11 and 12 compare the press actions that two "
+                          + P.code("data/20261029-motion_value.json") + " in the v3 folder). v3 ID 3's are counted "
+                          "the same way in its analysis folders of 10-30 (" + P.code("logs/20261030-*v3id3/holds.npz")
+                          + " on the workstation). v3 ID 2's and ID 3's presses on the low sphere include their top-edge "
+                          "passes. Sections 11 and 12 compare the press actions that two "
                           "tips both ran. v2 ID 1's 26 slides on the tall indenter, of 2026-10-27, are not analysed "
                           "yet.", n=4)
         + f"<p><b>Coverage of the pad.</b> With the tall indenter and the rod, {cvp(V2R, 'face')} % of v2 ID 1's face "
@@ -1105,6 +1135,57 @@ def sections(N, F, P, link, L):
     )
     S.append(("motion_value", "Contribution of each calibration motion on the four-magnet tips", body))
 
+    # the board GP's held-out error against the number of training holds on v3 IDs 1 to 3 (feed line of 2026-11-02 15:36)
+    dcp = P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261102-v3_data_curve.json")
+    dct = lambda t: DCV["tips"][t]  # noqa: E731
+    fall = lambda key: rg([100 * (1 - dcm(t, "1")[key] / dcm(t, "0.5")[key]) for t in DT], "{:.0f}")  # noqa: E731
+    late = rg([100 * (1 - dcm(t, "1")["location_mm"] / dcm(t, "0.7")["location_mm"]) for t in DT], "{:.0f}")
+    grow = rg([dcm(t, "1")["n_train"] / dcm(t, "0.5")["n_train"] for t in DT], "{:.1f}")
+    tor = lambda t, k="torsion_Nmm": dcm(t, "1")[k]  # noqa: E731
+    over = rg([100 * (tor(t) / tor(t, "torsion_zero_Nmm") - 1) for t in ("2", "3")], "{:.0f}")
+    hv = lambda t, key, fmt, k=1: " / ".join(fmt.format(k * dcm(t, f)[key]) for f in ("0.5", "1"))  # noqa: E731
+    t18 = P.table(["Tip", "Holds (points)", "Training holds", "Location error (mm)", "Force angle (°)", "Force error (%)",
+                   "Torsion error (N mm)", "No torsion predicted (N mm)"],
+                  [[f"v3 ID {t}", f"{dct(t)['holds']:,} ({dct(t)['groups']})", hv(t, "n_train", "{:,.0f}"),
+                    hv(t, "location_mm", "{:.2f}"), hv(t, "direction_deg", "{:.1f}"), hv(t, "magnitude", "{:.1f}", 100),
+                    hv(t, "torsion_Nmm", "{:.2f}"), f"{tor(t, 'torsion_zero_Nmm'):.2f}"] for t in DT],
+                  caption="The board GP's held-out errors on v3 IDs 1 to 3, trained on half / all of the other points; "
+                          "medians over four seeds. The location error, force angle and force error are taken over the "
+                          "held-out holds of 1 N and over, the torsion error over the held-out twists. Rows in " + dcp
+                          + " (" + P.code("scripts/ur5_tip_calibration_v3_data_curve.py") + ").", n=18)
+    body = (
+        "<p>On the three four-magnet tips the board GP's errors still fall as training holds are added (Table 18, "
+        f"Figure 11). From half to all of the training points, the location error at 1 N and over falls from "
+        f"{dcr('location_mm', '0.5')} to {dcr('location_mm', '1')} mm. The force angle falls from "
+        f"{dcr('direction_deg', '0.5', '{:.1f}')} to {dcr('direction_deg', '1', '{:.1f}')}°. On v3 ID 2 and ID 3 the "
+        "GP's torsion errs more than a prediction of no torsion.</p>"
+        "<p>In the UR5 coordinator's analysis each tip's sessions on the low sphere and the rod are pooled, with their "
+        "presses, slides, rolls and twists (" + P.code("scripts/ur5_tip_calibration_v3_data_curve.py") + "). v3 ID 1 gives "
+        f"{dct('1')['holds']:,} holds at {dct('1')['groups']} points, v3 ID 2 {dct('2')['holds']:,} at "
+        f"{dct('2')['groups']} and v3 ID 3 {dct('3')['holds']:,} at {dct('3')['groups']}. A point is a group of holds "
+        "whose median contact points lie within 0.75 mm (Section 8). For each of four seeds, a fifth of the points is "
+        "held out, and a fifth of the points with twists among them. The board GP is trained on nested shares of the "
+        "other points: a tenth, a fifth, 0.35, a half, 0.7 and all of them. The errors are medians over the held-out "
+        "holds, and the figure and table give their median over the seeds.</p>"
+        f"<p>Between half and all of the points the training holds grow {grow} times. The location error falls by "
+        f"{fall('location_mm')} %, and the force angle by {fall('direction_deg')} %. The force error falls from "
+        f"{dcr('magnitude', '0.5', '{:.1f}', 100)} to {dcr('magnitude', '1', '{:.1f}', 100)} %. From 0.7 to all of the "
+        f"points the location error still falls by {late} %. With all points in training the torsion error is "
+        f"{tor('1'):.2f}, {tor('2'):.2f} and {tor('3'):.2f} N mm on v3 IDs 1 to 3. A prediction of no torsion errs by "
+        f"{tor('1', 'torsion_zero_Nmm'):.2f}, {tor('2', 'torsion_zero_Nmm'):.2f} and "
+        f"{tor('3', 'torsion_zero_Nmm'):.2f} N mm. On v3 ID 1 the GP's error is "
+        f"{100 * tor('1') / tor('1', 'torsion_zero_Nmm'):.0f} % of that. On v3 ID 2 and ID 3 it is {over} % above it, "
+        "and it does not fall with more holds (Figure 11b). The overnight runs on the inverted rig and its 2 mm "
+        "sphere's plans leave the twists out (Future work).</p>"
+        + t18
+        + P.fig(11, F["data_curve"], "The board GP's held-out error on v3 IDs 1 to 3 against the number of training "
+                "holds, from a tenth to all of the other points. (a) Location error over the held-out holds of 1 N and "
+                "over, on a log scale. (b) Torsion error over the held-out twists. Dashed: the error of a prediction of "
+                "no torsion, 3.0 N mm on both v3 ID 2 and ID 3. Medians over four seeds; the bands span the seeds. "
+                "Drawn from " + dcp + ".")
+    )
+    S.append(("data_curve", "Held-out error against the number of training holds on v3 IDs 1 to 3", body))
+
     body = (
         "<p>The HEX-E is a weak reference. Its $F_z$ channel reads 0.78–0.87 of its other axes' gain in two gravity fits. "
         "Its link was lost nine times in the robot's logs since 10-25, which cover 62.1 h in 23 sessions ("
@@ -1134,7 +1215,7 @@ def sections(N, F, P, link, L):
         "Wrist order and the HEX-E's link: run each tall stage 2 in the new order of "
         + P.code("scripts/ur5_tip_calibration_next_tip_suite.py") + ", and count the losses with "
         + P.code("scripts/ur5_hexe_link_losses.py") + ". The order comes from an exact search over the orders that move "
-        "each action at most four places. It has no upward travel (Section 14). No travel in it takes wrist 1 across 0° "
+        "each action at most four places. It has no upward travel (Section 15). No travel in it takes wrist 1 across 0° "
         "with a swing over 40°, against 23 in the old order. The wrists travel 2,701° in all, against 5,144°. The path "
         "check flags no action and gives the same least margins (mount 3.73 mm, finger 1.07 mm). v3 ID 3's last 55 tall "
         "actions ran in this order from 11:15 to 13:20 on 10-30 with no loss. Twice they reached the pose of the 11:02 "
@@ -1155,27 +1236,24 @@ def sections(N, F, P, link, L):
         "within 5 %, one 5 mm sphere on a column can stand for both. The session needs both indenters, which are off "
         "the table while the inverted rig's seat strip is on.",
         "Inverted rig: a probe on the HEX-E presses tips held pad up on a printed strip of three seats ("
-        + link(L["rig"], "inverted rig page") + "). The strip is the only thing on the table, with the pads' apexes "
-        "40 mm over it, and the probe homes on two keys between the seats ("
-        + P.code("docs/experiments/20261030-inverted_rig_seat_block/README.md") + "). In the reach search on plate "
-        "v2e's seats, which the strip keeps in place, a press of the 5 or 2 mm sphere reaches 452 "
-        "of the pad's 808 points. The finger on the robot reaches 286. On the tip end the probe reaches 40 of 88 points, "
-        "against 14. It also pushes 20 and 35° off the normal at every face and edge point. Each seat's plan of 279 "
-        "or 280 actions replays on the strip with no flag. The strip, the probe base and six tools print on one P1S "
-        "plate in 9 h 56 min. The owner approved a probe mode for the lab program on 2026-10-30, and the lab wrote it "
-        "into the program and its simulator by 15:02 ("
-        + P.code("docs/experiments/20261022-ur5_tip_calibration/lab/NOTES.md") + "). In the simulator the onset "
-        "was detected in all 20 touch-offs of pass 1 at 1 N. The presses after them missed by 0.08 to 0.12 mm rms along "
-        "the pad's normal, and by 0.13 to 0.27 mm across it. The miss across comes from the seat's turn about the "
-        "vertical, which moves the pad's surface little. The turn is measured by four touch-offs on the tip's flat side "
-        "walls (inverted rig page). The next calibration runs wait "
-        "for the rig. The first robot motion on it is a dry run, in which each rest stands 15 mm back along the probe's "
-        "stem and nothing is touched. The dry run was replayed move by move on the three seats' plans ("
-        + P.code("docs/experiments/20261030-inverted_rig_seat_block/data/20261030-seat_block_dry_check.json")
-        + "). None of its 960 actions was flagged, and the sphere stayed 7.8 mm or more from its held tip. The dry run "
-        "and the touch-offs wait for the printed parts and the owner's go. Run one "
-        "seat's plan with v3 ID 3 held, and score the direction GP on the face's held-out presses. Within 0.3 mm "
+        + link(L["rig"], "inverted rig page") + "). In the reach search a press of the 5 or 2 mm sphere reaches 452 of "
+        "the pad's 808 points, against 286 for the finger on the robot. On the tip end it reaches 40 of 88 points, "
+        "against 14. On 2026-11-02 the strip was clamped on a 2x4 on the table, with v3 IDs 6, 5 and 4 on seats 1 to 3 ("
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/lab/STATE.md") + "). The probe points straight down, "
+        "with the wrist flipped and joint 6 near 0°, as the owner set it. In the replay none of the three seats' 840 "
+        "actions is flagged. With the 5 mm sphere each seat ran a pass 1 of 20 touch-offs and a grid of 294 or 295 "
+        "actions, from 14:50 on 11-02 to 01:43 on 11-03. Overnight each seat ran a speed set of 48 presses and 231 or "
+        "232 oblique presses, and seat 3 ran its grid again at 0.6 mm/s (263 actions). None of these runs aborted. The "
+        "three pads' fits tilt by 2.8 to 4.1° along the strip. One rigid correction of the strip's frame, 3.44° about "
+        "its $y$ axis, brings the pads' points within 0.33 mm of their CAD ("
+        + P.code("docs/experiments/20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json") + "). The 2 mm "
+        "sphere's sessions on the three seats began at 11:00 on 11-03, and the rod follows on the owner's go. None of "
+        "the rig's sessions is analysed yet. Score the direction GP on each seat's held-out face presses. Within 0.3 mm "
         "and 6 % of their force, the rig calibrates a tip as well as the sphere suite of the finger on the robot.",
+        "Training data on the rig's tips: run the data curve of Section 14 on v3 IDs 4 to 6, with their overnight "
+        "presses in the pool (" + P.code("scripts/ur5_tip_calibration_v3_data_curve.py") + "). If the location error "
+        "still falls by 10 % or more from half to all of the points, more presses a seat lower it further. A fall under "
+        "5 % means a seat's suite has enough presses.",
         "Twists and slides in the suite: score the presses and slides again with the twists' holds in training, and "
         "with half the low sphere's slides (" + P.code("scripts/ur5_tip_calibration_motion_value.py") + "). If the "
         "errors move by under 2 % with the twists, cutting them to 4 stands. A shear error that rises by under 10 % "
