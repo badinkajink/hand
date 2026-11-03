@@ -1345,10 +1345,13 @@ def tangent_basis(n, axis):
     return t1, np.cross(n, t1)
 
 
-SLIP = dict(give=0.266, give_exp=-0.53, mu=((1.0, 0.37), (2.0, 0.44)), R=5.0)
-#   the slides of 10-26 (the 5 mm PLA sphere on the 85A pad; scripts/ur5_shear_slides.py vector): the tangential give
-#   before slip 0.266 mm/N at 1 N, going as f_n^-0.53 (0.181 at 2 N), and friction 0.37 at 1 N and 0.44 at 2 N, flat
-#   outside. Another sphere's give goes as R^(-1/3) (Mindlin: as the contact radius at a force)
+SLIP = dict(sphere=dict(give=0.266, give_exp=-0.53, mu=((1.0, 0.37), (2.0, 0.44)), R=5.0),
+            rod=dict(give=0.232, give_exp=-0.30, mu=((1.0, 0.40), (2.0, 0.40)), R=None))
+#   the slides of 10-26 on the 85A pad (data/20261026-ur5_slides_summary.json; scripts/ur5_shear_slides.py): the 5 mm PLA
+#   sphere (cb2t) gave 0.266 mm/N tangentially before slip at 1 N, going as f_n^-0.53 (0.181 at 2 N), with friction
+#   0.37 at 1 N and 0.44 at 2 N (the vector fit), flat outside. The 12.5 mm rod (cb1r) gave 0.232 mm/N at 1 N and 0.188
+#   at 2 N (f_n^-0.30), with friction 0.42 and 0.38. Another sphere's give goes as R^(-1/3) (Mindlin: as the contact
+#   radius at a force)
 SWEEP = dict(radii=(0.5, 0.9), azimuths=8, slides=(0.0, 90.0, 180.0, 270.0), slide_mm=1.0, slide_at=2.0, settle_s=0.2,
              step_hold_s=0.2, via_centre=True, v_slide=0.0005, v_offset=0.002, ft_t_cap_N=3.0, ft_t_ratio=1.2,
              ft_t_floor_N=0.5, r_min=0.06, light_N=0.5)
@@ -1363,10 +1366,13 @@ SWEEP = dict(radii=(0.5, 0.9), azimuths=8, slides=(0.0, 90.0, 180.0, 270.0), sli
 
 
 def slip_mm(F, tool):
-    """The tangential offset (mm) from where a sphere stopped at F newtons at which it starts to slide (SLIP)."""
-    mu = float(np.interp(F, [m[0] for m in SLIP["mu"]], [m[1] for m in SLIP["mu"]]))
-    R = PROBE[SPHERES[tool]]["R"]
-    return mu * F * SLIP["give"] * F ** SLIP["give_exp"] * (R / SLIP["R"]) ** (-1.0 / 3.0)
+    """The tangential offset (mm) from where a sphere or the rod stopped at F newtons at which it starts to slide."""
+    m = SLIP["rod" if tool == "rod" else "sphere"]
+    mu = float(np.interp(F, [v[0] for v in m["mu"]], [v[1] for v in m["mu"]]))
+    give = m["give"] * F ** m["give_exp"]
+    if tool in SPHERES:
+        give *= (PROBE[SPHERES[tool]]["R"] / m["R"]) ** (-1.0 / 3.0)
+    return mu * F * give
 
 
 def sweep_fields(x, axis_A, tool, levels):
@@ -1618,8 +1624,9 @@ def subset_plan(ctx, seat_i, a):
     ref = next(arr(x) for x in src["actions"] if x["kind"] == "reference")
     if getattr(a, "sweep", 0):                          # the cone sweep's test (QUEUE R32): a.sweep of the region's normal
         axis = -np.asarray(ctx["g"]["seats"][seat_i]["T_AF"], float)[:3, 2]          # presses, spread by farthest points
-        pr = [arr(x) for x in src["actions"] if x["kind"] == "press" and x["region"] == a.sweep_region]   # from the one
-        PP = np.array([x["p_P"] for x in pr], float)                                  # nearest the reference
+        regs = set(a.sweep_region.split(","))                                        # from the one nearest the reference
+        pr = [arr(x) for x in src["actions"] if x["kind"] == "press" and x["region"] in regs]
+        PP = np.array([x["p_P"] for x in pr], float)
         pick = [int(np.argmin(np.linalg.norm(PP - np.asarray(ref["p_P"], float), axis=1)))]
         dmin = np.linalg.norm(PP - PP[pick[0]], axis=1)
         while len(pick) < min(a.sweep, len(pr)):
@@ -2993,7 +3000,7 @@ def main():
     rp.add_argument("--from-plan", default="", help="a built --extra plan: its obliques cut to the night (subset_plan)")
     rp.add_argument("--sweep", type=int, default=0, help="with --from-plan: N of its --sweep-region normal presses made "
                     "cone sweeps (QUEUE R32, SWEEP), the reference first and last")
-    rp.add_argument("--sweep-region", default="face")
+    rp.add_argument("--sweep-region", default="face", help="the regions whose normal presses are taken (comma-separated)")
     rp.add_argument("--sweep-levels", default="0.5,1,2,3", help="N: the sweep's level stops")
     rp.add_argument("--drop-flagged", action="store_true", help="leave out an action whose travel and own moves no way "
                     "clears (not a reference); the next travel starts from the last action kept")
