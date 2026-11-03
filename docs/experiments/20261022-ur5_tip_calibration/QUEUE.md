@@ -1544,12 +1544,14 @@ push that answers it arrives.
     GP places the contact 0.26 and 0.28 mm from the registered point and errs 5.0 and 5.1 % in force (five folds
     grouped by action); under 1 N 0.59 and 0.75 mm, 10.8 and 9.4 %.
 
-- R32 (draft, 13:2x on 11-03; owner, 12:4x: "per point, we can construct a cone of approach/pressing/angle, more or less
-  matching the friction cone of contact ... up to some specified force ... twists/rotations about this vector, as well
-  as linear slides/shears ... N vectors x M force magnitudes (cone height) x T twists x S slides"). A sweep of the
-  friction cone at each pad point, inside one contact, takes about 62 s a point. A seat's 66 points then take 68 min,
-  against 127 min for today's 260 presses. Each point gives 96 pairs of force level and direction (4 levels, 2 circles,
-  12 azimuths of 30 deg). Today a point gets about 14 holds on average (260 presses at 3 or 4 levels over 66 points).
+- R32 (draft, 13:2x on 11-03, revised at 13:3x with the lab's answers of 13:24; owner, 12:4x: "per point, we can
+  construct a cone of approach/pressing/angle, more or less matching the friction cone of contact ... up to some
+  specified force ... twists/rotations about this vector, as well as linear slides/shears ... N vectors x M force
+  magnitudes (cone height) x T twists x S slides"). A sweep of the friction cone at each pad point, inside one contact,
+  takes about 1.8 min a point at today's in-contact speeds, without twists. A seat's 66 points then take about 2.0 h,
+  as long as today's 260 presses (2.1 h). Each point gives 64 pairs of force level and direction (4 levels, 8 azimuths
+  at 2 offsets) and 4 slides. Today a point gets about 14 holds on average (260 presses at 3 or 4 levels over 66
+  points).
   - Terms. The friction cone at a point is the set of force directions that the contact takes without sliding. It lies
     within atan(mu) of the normal: 20 to 24 deg for the friction coefficient mu of 0.37 to 0.44 (PLA sphere on the 85A
     pad, the slides of 10-26). The slip offset is the tangential move of the sphere, from where it stopped, at which it
@@ -1558,38 +1560,50 @@ push that answers it arrives.
   - The cone at one force is small. Before slip the pad gave 266 um per N of tangential force at 1 N, and 181 um/N at
     2 N (10-26, 5 mm sphere). The slip offset is then 0.10 mm at 1 N and 0.16 mm at 2 N. Mindlin's tangential
     stiffness goes as the contact radius, so the 2 mm sphere's offsets are 1.36 times larger (0.13 and 0.22 mm). Inside
-    that disc the sphere sticks, and its offset sets the force's direction. A circle of offsets therefore sweeps every
-    azimuth of the cone, in about 1.5 s at 0.6 mm/s. Today each direction costs a press of 29 s. Today's obliques push
-    the sphere sideways by 0.34 mm (20 deg) and 0.57 mm (35 deg) for each mm of push. Both pass the slip offset early in
-    the press, so both reach the cone's edge and slide.
+    that disc the sphere sticks, and its offset sets the force's direction. Today each direction costs a press of 29 s.
+    Today's obliques push the sphere sideways by 0.34 mm (20 deg) and 0.57 mm (35 deg) for each mm of push. Both pass
+    the slip offset early in the press, so both reach the cone's edge and slide.
   - Per point, with a sphere: travel to the rest and tare, as now. Press along the normal and stop at each level (0.5,
-    1, 2 and 3 N) on the HEX-E's force, as now, with a 0.6 s hold. At each level, run two circles of offsets about the
-    stopped pose, at 0.5 and 0.9 times the slip offset, under position control. Twist by +-15 deg at 1 and 3 N. Slide
-    1 mm four times at 2 N (azimuths 0, 90, 180 and 270 deg), each back to its start. Return to the rest and tare. The
-    HEX-E records the realized wrench at every sample, with the board and the tool's pose.
-  - Time per point: travel 8.7 s, tare 0.5 s, approach 1.4 s, press with holds 12.9 s, circles 12 s (4 levels, 2
-    circles of about 1.5 s), twists 8 s (4 of about 2 s), slides 13.6 s (4 of 3.4 s), return and rest 4.7 s: 62 s. At
-    1.5 mm spacing a seat has about twice as many points.
-  - Program (the lab's constraints of 12:53 on 11-03): a new action kind, sweep. It keeps the press's level stops, then
-    runs a moveL_path of poses relative to the stopped pose (circles, twists, slides) at the plan's v_sweep. The press
-    loop's aborts apply, with a cap on the tangential force. The streams are recorded continuously with the tool's
-    pose. There is no force feedback: the levels are stops on the HEX-E's force, as now, and the circles and slides are
-    position moves. Probe-mode slides need new code, small by the lab's estimate.
-  - Path check (workstation): a sweep's own moves (each level's circles and twists, the slides' ends) go into
-    deep_clear and dry-check, as the twists do now. The lab simulates the new action's code once; plans then pass the
-    path check.
-  - Analysis: samples in motion, with zeros interpolated between the tares before and after the point (as t_rest0 and
-    t_rest1 now). The pad is viscoelastic, so the moving samples read a dynamic stiffness; the 0.6 s holds tie them to
-    the static ones. The HEX-E's torque (1 N mm steps, 1 to 2 N mm noise) does not resolve the sphere's spin torque (0.4
-    to 1.7 N mm at 1 to 2.5 N), so a twist is a pose sample for the skin. A slide leaves stored shear after its return,
-    so the circles and twists come before the slides.
-  - Faster, each with the owner's go. The speed slider at 1.0 in place of 0.30, with v rescaled to keep the in-contact
-    speeds, takes the travel from 8.7 s to about 3 s. A slide to the next point in place of the travel, with a tare
-    every fourth point (HEX-E creep 0.08 N/min untared), removes the travel, tare, approach and return at three points
-    in four.
-  - Test before a seat: 10 face points of one seat with the 5 mm sphere, about 11 min, in the simulator and then on the
-    rig. The next step changes if the realized directions do not reach 0.9 mu at every azimuth (the arm's path at 0.1 to
-    0.2 mm is near its repeatability), or if the holds and the moving samples differ by more than the HEX-E's noise.
+    1, 2 and 3 N) on the HEX-E's force, as now, with a 0.6 s hold. At each level, step through 8 azimuths at 0.5 and
+    0.9 times the slip offset, each step a small moveL with a 0.2 s settle and a short hold. The realized offset is
+    read from the arm's pose and the realized wrench from the HEX-E. Then slide 1 mm four times at 2 N (azimuths 0, 90,
+    180 and 270 deg), each back to its start. Return to the rest and tare. The board and the tool's pose are recorded
+    with the HEX-E.
+  - Steps in place of circles (lab, 13:24). The program's moveL_path blends at 0.2 mm, and a blend can be at most half
+    its segment. A 0.15 mm circle in 16 poses has 0.03 mm segments, so the arm would all but stop at each pose. The
+    circle is also at the arm's resolution: repeatability +-0.1 mm, pose jitter 0.025 mm, settling 0.03 mm from a
+    target. A servoL stream at 125 Hz would run circles, but the backend has none, and it needs its own tests on the
+    CB3.
+  - Time per point: travel 8.7 s, tare 0.5 s, approach 1.4 s, press with holds 12.9 s, offsets 40 s (4 levels of 16
+    steps at about 0.6 s), slides 40 s (4 of about 10 s at today's speed), return and rest 4.7 s: 108 s.
+  - Twists. A probe twist turns at 0.26 deg/s today (travel.turn_v 0.004 under the 0.30 slider). A +-15 deg twist with
+    its turn back then takes about 2 min (s1v6b's probe-edge-576-t-15: 144 s for the action). The HEX-E's torque (1 N
+    mm steps, 1 to 2 N mm noise) does not resolve the sphere's spin torque (0.4 to 1.7 N mm at 1 to 2.5 N). So the
+    sphere's sweep leaves twists out. They go with the rod, whose line contact gives a larger torque, or with a faster
+    turn_v on the owner's go.
+  - Program (the lab's constraints of 12:53 and answers of 13:24): a new action kind, sweep. It keeps the press's level
+    stops, then steps through the offsets about the stopped pose, then the slides. Its check aborts (stopL and Abort,
+    as now) when the tangential force in the pad's frame, |F - (F.n)n|, passes a cap. There is no force feedback: the
+    levels are stops on the HEX-E's force, as now, and the offsets and slides are position moves. Probe-mode slides
+    need new code, small by the lab's estimate.
+  - Path check (workstation): a sweep's own moves (each level's offsets, the slides' ends) go into deep_clear and
+    dry-check, as the twists do now. The lab simulates the new action's code once (kinematics only: the simulator has
+    no tangential contact); plans then pass the path check.
+  - Analysis: the steps' holds and the samples in motion, with zeros interpolated between the tares before and after
+    the point (as t_rest0 and t_rest1 now). The pad is viscoelastic, so the moving samples read a dynamic stiffness; the
+    0.6 s holds tie them to the static ones. A slide leaves stored shear after its return, so the offsets come before
+    the slides.
+  - Faster, each with the owner's go. Slides at 0.6 mm/s (fast3's press speed) take 3.4 s in place of 10 s: 82 s a
+    point and 90 min a seat. The speed set of 11-03 (12 points a seat at 0.05, 0.15, 0.6 and 1.2 mm/s) shows whether
+    that speed changes the force at a depth. The speed slider at 1.0 in place of 0.30, with v rescaled to keep the
+    in-contact speeds, takes the travel from 8.7 s to about 3 s. A servoL stream would take a level's offsets from 10 s
+    to about 1.5 s. A slide to the next point in place of the travel, with a tare every fourth point (HEX-E creep 0.08
+    N/min untared), removes the travel, tare, approach and return at three points in four.
+  - Test: 10 face points on one seat with the 2 mm sphere, after seat 3 ends at about 18:40 and before the rod's swap,
+    about 18 min (lab, 13:24). It also measures the 2 mm sphere's slip offsets, for which Mindlin gives an estimate. It
+    needs the sweep action written and simulated, the workstation's path check, and the owner's go. The next step
+    changes if the realized directions do not reach 0.9 mu at every azimuth, or if the holds and the moving samples
+    differ by more than the HEX-E's noise.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
