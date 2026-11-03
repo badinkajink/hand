@@ -660,7 +660,7 @@ def main(quiet=False):
 <body>
 <div class="wrap">
 <header>
-<div class="eyebrow">MorphoHand &#183; updated {time.strftime("%Y-%m-%d")}</div>
+<div class="eyebrow">SR&#178; Hand &#183; updated {time.strftime("%Y-%m-%d")}</div>
 <h1>Documentation of the SR&#178; Hand</h1>
 <p class="lede">SR&#178; Hand is a three-finger robot hand. Its finger bases ride on XY gantries. Six gantry
 coordinates set the finger layout (the morphology), and nine servos move the fingers. We search layouts and controllers

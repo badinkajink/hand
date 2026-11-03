@@ -1,4 +1,4 @@
-# CLAUDE.md — MorphoHand standing guidance
+# CLAUDE.md — SR² Hand standing guidance
 
 Project context + hard-won lessons for AI assistants working in this repo. Read this first; it
 encodes conventions and failure modes that are expensive to relearn. (Point-in-time memories live
@@ -6,7 +6,7 @@ in `~/.claude/.../memory/MEMORY.md`; this file is the durable, repo-level guidan
 
 ## What this project is
 
-Co-design of a **3-finger reconfigurable hand** ("MorphoHand"): optimize the 9-param finger
+Co-design of the **SR² Hand**, a three-finger reconfigurable hand: optimize the 9-param finger
 morphology *and* the grasp/manipulation together, in simulation (MuJoCo-Warp), validated toward
 hardware. Two tracks: **grasp/morphology optimization** (CEM grasp synthesis over a parametric hand)
 and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vertical, finger-only).
