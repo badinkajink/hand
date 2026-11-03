@@ -1478,6 +1478,34 @@ def build_plan(ctx, seat_i, a):
     return out, P_A, N_A
 
 
+def subset_plan(ctx, seat_i, a):
+    """The overnight set cut to the night (lab, 11-02 17:4x; the full set's 1,341 actions would take 9 h a seat): from
+    a.from_plan's obliques, at each flank point the three thetas at two opposite azimuths, at each face and edge point
+    theta 20 at two, the pair turning by 45 deg from one point of a region to the next. Ordered by the stem's direction,
+    with the reference every 25 actions and last, as build_plan; each action keeps its deep_clear_mm."""
+    src = json.loads(Path(a.from_plan).read_text())
+    T = np.asarray(ctx["g"]["seats"][seat_i]["T_AF"], float) @ T_FP
+    P_A, N_A = C.apply(T, ctx["pts_P"]), ctx["nrm_P"] @ T[:3, :3].T
+    arr = (lambda x: {k: (np.asarray(v, float) if k in ("T_rest", "T_deep", "q_rest") else v) for k, v in x.items()})
+    obl = [arr(x) for x in src["actions"] if x["kind"] == "oblique"]
+    rank = {}
+    for reg in ("flank", "face", "edge"):
+        for k, i in enumerate(sorted({x["i"] for x in obl if x["region"] == reg})):
+            rank[i] = k
+    keep = [x for x in obl if round(x["azimuth"]) % 180 == 45 * (rank[x["i"]] % 4)
+            and (x["region"] == "flank" or x["theta"] == 20.0)]
+    key = [(round(math.degrees(math.atan2(x["u_A"][1], x["u_A"][0])) / 20.0), x["u_A"][2]) for x in keep]
+    keep = [keep[j] for j in sorted(range(len(keep)), key=lambda j: key[j])]
+    ref = next(arr(x) for x in src["actions"] if x["kind"] == "reference")
+    out = []
+    for j, x in enumerate(keep):
+        if j % 25 == 0:
+            out.append(dict(ref, id=f"probe-ref-{j // 25:02d}"))
+        out.append(x)
+    out.append(dict(ref, id="probe-ref-final"))
+    return out, P_A, N_A
+
+
 def own_moves(ctx, act):
     """An action's own segments from its rest: the press to its depth, a twist there (about the pad's normal through the
     sphere's centre, in 16 steps, and back) and back to the rest."""
@@ -1656,7 +1684,7 @@ def cmd_replay(a):
     ctx = context(dict(orient=a.orient, seat_h=a.h), tool=a.tool)
     ctx["seat"] = a.seat
     ctx["hub"] = hub(ctx, a.seat)
-    acts, P_A, N_A = build_plan(ctx, a.seat, a)
+    acts, P_A, N_A = subset_plan(ctx, a.seat, a) if a.from_plan else build_plan(ctx, a.seat, a)
     print(f"{len(acts)} actions on seat {a.seat + 1} ({a.orient}), built in {time.time() - t0:.0f} s", flush=True)
     q = start_q(ctx)
     q_start, first_way = q.copy(), None
@@ -1699,7 +1727,8 @@ def cmd_replay(a):
         if why:
             print(f"  return: {'; '.join(why)}", flush=True)
     for x in acts:                                      # each action's own depth limit for the program
-        x["deep_clear_mm"] = DEEP if a.joints_only else deep_clear(ctx, x, P_A, a.deep_max, owner=a.owner)
+        if "deep_clear_mm" not in x:
+            x["deep_clear_mm"] = DEEP if a.joints_only else deep_clear(ctx, x, P_A, a.deep_max, owner=a.owner)
     least = {}
     for r in rows:
         for k, (v, part) in r["clear"].items():
@@ -2578,6 +2607,7 @@ def main():
                     "obliques at --azimuths at every flank point and at the face's and edges' points without the plan's "
                     "obliques, levels from 0.25 N; no normal presses")
     rp.add_argument("--tag", default="", help="after the stem in the output's names")
+    rp.add_argument("--from-plan", default="", help="a built --extra plan: its obliques cut to the night (subset_plan)")
     rp.add_argument("--out-dir", default="", help="where the plan and its check go (default the experiment's data/)")
     rp.add_argument("--deep", type=float, default=None, help="each press's checked deep pose this far past contact (mm; "
                     "default DEEP)")
