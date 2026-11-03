@@ -508,7 +508,11 @@ matches the first&#8217;s. On the 116 press actions that both tips ran on the lo
 direction GP within 0.29&#8202;mm, against 0.38&#8202;mm on v3 ID 1. With five magnets the signal per newton is
 1.83&#8211;1.87 times v3 ID 2&#8217;s on the three indenters
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id2),
-Section 12).</p>
+Section 12). A third print, v3 ID 3, ran the same suite on 2026-10-29 and 10-30. On the three tips, the board GP&#8217;s
+held-out location error falls from 0.56&#8211;0.63&#8202;mm with half of the training points to 0.46&#8211;0.51&#8202;mm
+with all of them
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#data_curve),
+Section 14).</p>
 <p>On the hand the other fingertips&#8217; magnets add their field to each board. In the field model a four-magnet
 neighbour adds 38&#8202;&#181;T with the pads facing and touching, and 2,928&#8202;&#181;T side by side. A five-magnet
 neighbour like v2 ID 1 adds 513 and 4,162&#8202;&#181;T. A 0.5&#8202;N press changes v2 ID 1&#8217;s board by
@@ -643,7 +647,8 @@ the turns&#8217; new orientations. The twists&#8217; torsion, half the differenc
 2.9&#8202;N&#8202;mm and up to 9.9&#8202;N&#8202;mm at 2.5&#8202;N; a point torque in the physical model does not recover it
 from the board. On the twists of v2 ID 1 and v3 ID 1, a board GP&#8217;s torsion correlates with the HEX-E&#8217;s at 0.38
 and 0.42 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#v3id1),
-Section 11). On the UR5 the face&#8217;s normal lies across the
+Section 11). On held-out twists of v3 ID 2 and ID 3 its torsion errs by 3.42 and 3.24&#8202;N&#8202;mm, against 3.01 and
+2.99&#8202;N&#8202;mm for a prediction of no torsion (Section 14). On the UR5 the face&#8217;s normal lies across the
 tool axis. The torsion then lies under a push moment of
 about 230&#8202;N&#8202;mm on the HEX-E ([calibration protocol](exp:20261022-ur5_tip_calibration/20261022-ur5_tip_calibration_protocol.html)).</li>
 <li><b>The simulators.</b> Calibrated to the FE, the pads and Drake agree on approach within 6&#8202;%. They end a turn
