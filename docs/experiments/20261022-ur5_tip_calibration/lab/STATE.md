@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 11:41 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 12:12 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -182,12 +182,16 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   - On that fit the grid ran 23 actions: 10 contacts before the slow approach, 8 presses with no level, and two travels
     aborted at 8.8 and 8.4 N on v3 ID 6.
   - **The owner should look at v3 ID 6 (seat 1) before it is pressed again.**
-  - The fix, simulated before any robot run: register leaves out a touch over 0.5 mm off the pad (at most 3) and stops
-    before the grid over 0.15 mm rms; a run stops at its 3rd early contact or its 3rd press with no level. Plans: seats
-    1 and 2 less pad-tip-349-o35-a270 (`20261103-plan_probe_table_sphere2_seat{1,2}_v3id{6,5}_no349.json`), seat 3 as
-    before.
-  - Next: the owner's look at v3 ID 6 and a go in the lab's session, then the chain again on the fixed program, seat 1
-    in a new session.
+  - The fix is in the program (ada1ee4b). register leaves out a touch over 0.5 mm off the pad (at most 3) and stops
+    before the grid over 0.15 mm rms. A run stops at its 3rd early contact or its 3rd press with no level.
+  - The plans: seats 1 and 2 less pad-tip-349-o35-a270 (`20261103-plan_probe_table_sphere2_seat{1,2}_v3id{6,5}_no349.json`,
+    df6d5b4f), seat 3 as before.
+  - In the simulator on the fixed program: 260, 269 and 271 of 260, 269 and 271, with no early contact, miss or abort.
+    Seat 3 prints line for line as before the fix.
+  - Replayed from the robot's joints (the lab, and the workstation with `--start-q`): none of 858 travels flagged, and
+    only this morning's three own-press flags.
+  - **Ready, not started: `logs/20261103-chain_sphere2b.sh` (copy here).** It runs seat 1 (s1sph2b, a new session),
+    then seat 2, then seat 3, about 2.3 h each. It waits on the owner's look at v3 ID 6 and a go in the lab's session.
 - The chain as it was started (from 11:00:37), `logs/20261103-chain_sphere2.sh` (copy here; its log
   `logs/20261103-chain_sphere2.log`):
   - seat 1 (`s1sph2`), then seat 2 (`s2sph2`), then seat 3 (`s3sph2`);
@@ -199,8 +203,14 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   - a run stopped by a HEX-E loss is resumed once `hexe_probe.py` finds the sensor streaming, and anything else stops
     the chain;
   - to stop the chain, kill its PID (a running program goes on).
-- Next, after the owner's swap to the rod and a go in the lab's session: the rod (`20261103-plan_probe_table_rod_seat*`),
-  in the order 3, 2, 1 from over seat 3. Each seat's session is seeded from its 2 mm sphere session
+- Next, after the owner's swap to the rod and a go in the lab's session: the rod (`20261103-plan_probe_table_rod_seat*`,
+  converted again at 12:0x on the workstation's d8cecd9e, fe4e1914), in the order 3, 2, 1 from over seat 3.
+  - Pass 1 now takes only presses whose touch-off keeps 2.0 mm from the tip's body. That gives 20 touches a seat, all
+    3.14 mm or more. ce3a3f0b's plans, with five touches at 1.21 to 1.48 mm, are in `superseded/`.
+  - The depth is lowered on 11 presses a seat.
+  - The workstation's replay (bb79d68e): none of 587 travels flagged.
+  - If the owner moves the arm for the tool change, replay the first travel from the robot's joints (`dry-check --real
+    --start-q`). Each seat's session is seeded from its 2 mm sphere session
   (`probe_seed_session.py`) and runs `--resume SEED --stages preflight,pad,register,grid` on the same frame. The rod code
   is installed (ce3a3f0b). In the simulator its pass 1 fits to 0.013 to 0.022 mm rms on the three seats, and seat 1's
   grid ran 177 of 177.

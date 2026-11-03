@@ -2493,6 +2493,26 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - The plans: `20261103-plan_probe_table_sphere2_seat{1,2}_v3id{6,5}_no349.json`, the plans of 8c3ac200 less
   pad-tip-349-o35-a270. Seat 2's pass 1 has the same touch, also 0.76 mm from the body. Seat 3's has none (its least is
   1.41 mm), so its plan stays as it was.
+- The workstation's exact meshes (11:5x) agree. At its rest the touch stood 0.71 mm from the body, and 0.69 mm where it
+  met it, so the body sits where the model has it relative to the pad, within 0.1 to 0.2 mm. The frame's 0.7 mm error
+  before the fit is the whole cause.
+  - The other pass 1 touches stand 1.45 mm or more from the body, and at least 0.55 mm with the frame 0.9 mm off.
+  - The grid's presses come at least 0.89 mm from the body at their depth, aiming by a fit of about 0.05 mm. They stay.
+- The replays of the restart chain from the robot's joints (the lab's wrapper of dry-check --real, and the workstation's
+  `--start-q`) flag no travel among 858. The only flags are this morning's three presses at their margin against their
+  own pad.
+- The fixed program in the simulator (ada1ee4b), at the real speeds:
+  - seats 1 and 2 (_no349) 260 of 260 and 269 of 269, pass 1 at 0.037 and 0.028 mm rms (19 touches);
+  - seat 3 271 of 271, printing line for line as before the fix;
+  - no early contact, miss, abort or touch left out;
+  - the rod's register on the fixed program fits as before (f_rod2's touches 0.013 mm).
+- The rod's plans, converted again at 12:0x on the workstation's d8cecd9e (fe4e1914):
+  - pass 1 takes only presses whose touch-off keeps 2.0 mm from the tip's body (touch_body_mm), giving 20 a seat, all
+    3.14 mm or more;
+  - ce3a3f0b's plans had five at 1.21 to 1.48 mm (pad-flank-553-r90, pad-flank-563-r90, pad-flank-582-o20-a0-r90,
+    pad-edge-573-r90 and pad-edge-569-r90), and are in `superseded/`;
+  - the depth is lowered on 11 presses a seat, where the rod came within 0.4 mm of the body;
+  - the workstation's replay (bb79d68e) flags none of 587 travels.
 
 ## The lab clone and git-lfs
 
