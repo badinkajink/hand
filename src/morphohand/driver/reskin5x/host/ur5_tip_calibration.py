@@ -1338,6 +1338,7 @@ class Session:
             return
         way = a.get("travel_ws", "joint")
         safe, ret = float(pr.get("safe_mm", 45.0)), float(pr.get("retract_mm", 12.0))
+        vin = float(pr.get("in_v", 0.01))              # m/s: the last move in to the rest (11-03: 0.02 saves 1 to 7 s a travel)
         path, hub, q_rest = pr.get("home_path_q"), pr.get("hub") or {}, a.get("q_rest")
         if path and q_rest is None:
             raise Abort("a joint move with no q_rest in a plan with a home path")
@@ -1369,7 +1370,7 @@ class Session:
         elif way == "straight" and self.prev_ok == self.prev_in_plan.get(a["id"]) and deg <= 20.0 and mm <= 30.0:
             self.goto(self.back_along(Tc, ret), 0.02 * k, 0.2 * k)
             self.goto(self.back_along(T_target, ret), 0.02 * k, 0.2 * k)
-            self.goto(T_target, 0.01 * k, 0.2 * k)
+            self.goto(T_target, vin * k, 0.2 * k)
             return
         else:
             way = "hub" if way == "hub" else "joint"
@@ -1378,7 +1379,7 @@ class Session:
         if way == "hub":
             self.goto(np.array(hub["T_BE"], float), joint=True, jv=0.4 * kj, ja=0.6 * kj, q_ref=hub.get("q"))
         self.goto(self.back_along(T_target, safe), joint=True, jv=0.4 * kj, ja=0.6 * kj, q_ref=q_rest)
-        self.goto(T_target, 0.01 * k, 0.2 * k)
+        self.goto(T_target, vin * k, 0.2 * k)
 
     def stage_return(self):
         """Probe mode with a home path: back to the homing key's line by the plan's way back: safe_mm along the stem and
@@ -1544,7 +1545,9 @@ class Session:
         if keep:
             rec["tare_v"] = tare_v
             return rec
-        self.be.robot.moveL(T_rest, 0.002, 0.05)
+        # travel.back_v (m/s, before the slider): the return to the rest, 0.002 by default (11-03: 0.01 saves about 2.7 s
+        # a press at the 0.30 slider, the workstation's timing of s1v6b, s2v5 and s3v4)
+        self.be.robot.moveL(T_rest, float(self.plan.get("travel", {}).get("back_v", 0.002)), 0.05)
         t0 = self.now()
         self.mean_ft(rest_s)
         rec["t_rest1"] = [t0, self.now()]
