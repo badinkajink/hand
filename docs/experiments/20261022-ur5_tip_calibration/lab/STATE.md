@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-02 22:20 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 01:44 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -10,7 +10,7 @@ request to the owner must come from this file.
 |---|---|---|
 | Probe | probe base with the 5 mm sphere (sphere5) on mount v7's adapter disc on the HEX-E (owner, 11-02 13:0x); no tip on the robot | none yet |
 | Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume | tonight's sessions: the frame through both keys' socket points (`20261102-strip_frame_two_keys.json`), by `--frame`, with `--home-from poses.jsonl:strip_key1_seated_4`; each seat's grid aims by its own pass 1 fit. For later plans: the workstation's frame from the three pads' fits (`../../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`, 9cd8b375: the two-key frame turned 3.44 deg about y_A and moved (2.48, 0.10, -3.70) mm; the pads within 0.14 to 0.22 mm on average, the rest the strip's twist) |
-| Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 138 records/s | seat 1: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame; done); seat 2: `182710-s2v5` (0.051 mm rms; 1.21 mm, 3.5 deg; done); seat 3: s3v4 from 22:03 |
+| Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 138 records/s | seat 1: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame); seat 2: `182710-s2v5` (0.051 mm rms; 1.21 mm, 3.5 deg); seat 3: `220337-s3v4` (0.051 mm rms; 0.81 mm, 2.9 deg); the overnight runs resume these sessions |
 | Old fixtures | the low sphere, rod, tall indenter and holder: off the table as the strip's README asks; the camera frame of 13:05 shows only the strip, its tips and the mux board on the 2x4 | as before 10-30 |
 
 `cell.json` holds the same registrations for the path checks and the renders.
@@ -154,8 +154,10 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 - Done: seat 1 (v3 ID 6), 14:50 to 18:27, pass 1 20 of 20 and the grid 294 of 294 with no abort (`20261102-145010-s1v6b/`).
 - Done: seat 2 (v3 ID 5), 18:27 to 22:03, pass 1 20 of 20 (0.051 mm rms) and the grid 294 of 294 with no abort
   (`20261102-182710-s2v5/`). Its pad stands 1.21 mm and 3.5 deg from its CAD, much as seat 1's (1.68 mm, 4.1 deg).
-- Running since 22:03 (started by the chain): seat 3 (v3 ID 4), session `s3v4`, printout
-  `logs/20261102-220337-tipcal-s3v4.log`, tmux `tipcal`; to about 01:40. Then the overnight list.
+- Done: seat 3 (v3 ID 4), 22:03 to 01:43 on 11-03, pass 1 20 of 20 (0.051 mm rms) and the grid 295 of 295 with no abort
+  (`20261102-220337-s3v4/`). All three seats' main runs: 883 grid actions and 60 touch-offs, not one aborted.
+- Running since 01:43 (the chain's overnight list): speed3 on seat 3's session, printout
+  `logs/20261103-014335-tipcal-speed3.log`; then speed2, speed1, night1-3, fast3-1.
 - Armed (16:10): `logs/20261102-chain_seats23.sh` (copy here, PID 2658916, its log `logs/20261102-chain_seats23.log`)
   started seat 2 (v3 ID 5) at 18:27, to about 22:05; then seat 3 (v3 ID 4), about 22:05 to 01:45
   (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`: safe_mm 15, hubs 40 mm over the apex). Both
