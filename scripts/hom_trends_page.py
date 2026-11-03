@@ -868,8 +868,15 @@ of the live searches' rollouts and count against the 6,000.</li>
 within 15 mm of that edge at most sizes. The six-coordinate layouts are the Sobol study's.</li>
 <li>In the table study the GPU plant keeps its 3 mm post. The grasps clear a table, but a table stands under the object
 only in the CPU check, at the default objects.</li>
-<li>Every run uses the scenes cached on 2026-10-30, whose pads have a modulus of 10 MPa. The scenes have used 2.5 MPa,
-fitted to the v3 tips' presses, since that evening (<a href="<<contact>>">contact model page</a>).</li>
+<li>Every run uses the work plant (4 N&#8201;m/rad, 1 N&#8201;m), 4.4 times stronger than the hand's SCS0009 servos, and
+the scenes cached on 2026-10-30, whose pads have a modulus of 10 MPa. The scenes have used 2.5 MPa, fitted to the v3
+tips' presses, since that evening (<a href="<<contact>>">contact model page</a>). The study was rerun on the SCS0009
+plant (0.72 N&#8201;m/rad, 0.18 N&#8201;m) at 2.5 MPa. There the near sets' slopes in $x_{sep}$ are 1.41, 0.57, 1.20
+and 1.09 mm per mm of diameter for the twist, roll, pin-push and press, against 0.98, 0.59, 0.98 and 1.11 here. The
+slopes in $y_{sep}$ do not persist: the press's changes sign, from 0.88 to &#8722;0.43, and the twist's falls from
+&#8722;0.73 to &#8722;0.16. On the work plant at 2.5 MPa, 68 % of the 380 layouts checked on the CPU score within 0.05
+of their 10 MPa scores. The servo, the pad modulus and the scene friction are compared on the
+<a href="20261102-hom_plant_modulus.html">plant and modulus page</a>.</li>
 </ul>""", contact=CONTACT, rep=f"{100 * (repeat_share() or 0):.1f}")
 
 
@@ -881,8 +888,6 @@ claim that the filter changes the ranking only on the smallest spheres fails if 
 k-means attempt is <code>scripts/hom_proxy_check.py</code>.</li>
 <li>Repeat each live search from three random starts and report the spread of the best layout's position per size. The
 slopes of Section SEC[trends] hold if each lies within that spread of its fit.</li>
-<li>Run <code>hom_top_cpu_check.py</code> on the 10 best layouts per size with scenes rebuilt at 2.5 MPa. The trends hold
-if the best layouts' CPU scores move by less than 0.05.</li>
 <li>Find why the pin-push's table-clear layouts drop the cylinder in 5 to 8 of 20 runs with the table, though no finger
 touches it. On the post alone they drop it in 0 or 1 of 20. Compare the cylinder's angle and the pads' forces at the end of the squeeze with
 and without the table (<code>hom_table_check.py trace pinpush 25 grid2dgs</code> on the dropping layouts). The account
