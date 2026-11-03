@@ -1,3 +1,9 @@
 [submodule "external/eFlesh"]
 	path = external/eFlesh
 	url = https://github.com/badinkajink/eFlesh.git
+[submodule "external/mujoco_warp"]
+	path = external/mujoco_warp
+	url = https://github.com/google-deepmind/mujoco_warp.git
+[submodule "external/comfree_warp"]
+	path = external/comfree_warp
+	url = https://github.com/asu-iris/comfree_warp.git
