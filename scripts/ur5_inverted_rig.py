@@ -98,7 +98,13 @@ PROBE = dict(
 TOOLS = ("sphere5", "sphere2", "rod", "flat", "flat30", "fingertip")
 FLATS = dict(flat=0.0, flat30=PROBE["flat_tilt"])         # the flat tools and their face's tilt from the tool axis (deg)
 SPHERES = dict(sphere5="sphere", sphere2="sphere2")      # the sphere tools and their PROBE entries
-NEED = dict(robot=8.0, hex_e=6.0, mount=3.0, stem=1.0, tip=0.3)
+NEED = dict(robot=8.0, hex_e=6.0, mount=3.0, stem=1.0, tip=0.3, neck=0.5)
+NECK = dict(sphere2=4.0)     # a press's neck: the stem's points this near the sphere's centre keep NEED["neck"] from their own
+#                              seat's pad (the stem's NEED from everything else). 11-03 13:1x: on the flanks and the tip's end
+#                              the stem leans 40 to 60 deg from the pad's normal, and the 2 mm sphere's neck, where it leaves
+#                              the sphere, came within 0.76 to 0.98 mm of the undeformed pad at 1.25 mm past contact; deep_clear
+#                              held 113 presses a seat at 1.0 mm, where the sphere reached 1 N of 2 (s1sph2b). The pad's
+#                              surface sinks round the sphere by about 0.3 times the depth at the neck (Hertz)
 GROUPS = dict(mount=("adapter", "probe_base"), stem=("tool_stem",), tip=("tool_tip",), hex_e=("hex_e",))
 EXCL = dict(sphere5=4.0, sphere2=3.0, rod=12.0, flat=20.0, flat30=20.0, fingertip=25.0)   # the tool end's points this near the contact meet the pad
 #                                                         (the 2 mm sphere's 3 mm: a push 35 deg off the normal drags it 0.6 mm)
@@ -1056,6 +1062,13 @@ def clearance(q, ctx, contact=None, groups=None, only=None):
             continue
         PA = C.apply(T_AM, p)
         sd = plate_sdfs(PA, g, T_BA, contact if name == "tool_tip" else None)
+        pad = f"seat {contact[0] + 1} pad" if contact is not None and len(contact) == 3 else None
+        if name == "tool_stem" and ctx["tool"] in NECK and pad in sd:      # a press on the pad: the neck by NEED["neck"]
+            s = PROBE[SPHERES[ctx["tool"]]]
+            near = np.linalg.norm(p - [0.0, 0.0, PROBE["tip_z"] - s["R"]], axis=1) < NECK[ctx["tool"]]
+            if near.any():
+                upd("neck", {pad: sd[pad][near]})
+                sd = dict(sd, **{pad: np.where(near, 1e9, sd[pad])})
         upd(grp, sd)
         if grp != "hex_e":
             own.append(p[::2])
@@ -2586,7 +2599,9 @@ def cmd_body_exact(a):
                       DEEP_EXTRA) from the body from its rest to its max depth; the replay's own value stays as
                       deep_clear_kd_mm (the k-d tree read up to 0.3 mm long by the cassette's edges for the rod)
       deep_body_mm    the press's least distance to the body at its deep_clear_mm
-    A press that keeps DEEP_NEED at no depth from 0.5 mm is marked body_drop (the converter leaves it out)."""
+    A press that keeps DEEP_NEED at no depth from 0.5 mm is marked body_drop (the converter leaves it out). --deep first
+    takes each press's replay depth again from deep_clear by the current NEED (11-03: the 2 mm sphere's neck rule, NECK),
+    and keeps the depth before it in deep_clear_was_mm; --suffix writes the plan under a new name."""
     t0 = time.time()
     for f in a.plans:
         sp = json.loads(Path(f).read_text())
@@ -2597,7 +2612,9 @@ def cmd_body_exact(a):
             raise SystemExit(f"{f}: the plan's T_BA is not the cell's (--cell table and its frame)")
         st, safe = float(sp.get("standoff_mm", ST)), float(sp.get("safe_mm", SAFE))
         R_BA = ctx["T_BA"][:3, :3]
-        n_low, n_drop, rows = 0, 0, []
+        ctx["seat"] = seat
+        P_A = C.apply(np.asarray(ctx["g"]["seats"][seat]["T_AF"], float) @ T_FP, ctx["pts_P"])
+        n_low, n_drop, n_up, rows = 0, 0, 0, []
         for x in sp["actions"]:
             if x["kind"] not in ("press", "oblique", "reference", "twist"):      # the converter's presses and twists
                 continue
@@ -2613,6 +2630,9 @@ def cmd_body_exact(a):
                          + [C.Tm(T_r[:3, :3], c1 + s * d_B) for s in s_ln])
                 tb[f"{s1:g}"] = round(float(body_dist(poses, ctx, seat, tool).min()), 3)
             kd = float(x.get("deep_clear_kd_mm", x.get("deep_clear_mm") or DEEP))
+            was = float(x.get("deep_clear_mm") or DEEP)
+            if a.deep:                                  # the replay's depth again by the current NEED (the neck, 11-03)
+                kd = deep_clear(ctx, x, P_A, a.deep_max)
             s_dp = np.r_[np.arange(0.0, st + kd, 0.05), st + kd]
             dd = body_dist([C.Tm(T_r[:3, :3], T_r[:3, 3] + s * d_B) for s in s_dp], ctx, seat, tool)
             run = np.minimum.accumulate(dd)
@@ -2627,11 +2647,14 @@ def cmd_body_exact(a):
                 depth = round(depth - 0.25, 2)
             k = int(np.searchsorted(s_dp, st + depth + 1e-9)) - 1
             row = dict(id=x["id"], touch_body_mm=tb, deep_kd=kd, deep=depth, deep_body_mm=round(float(run[k]), 3),
-                       drop=drop)
+                       drop=drop, was=was)
             rows.append(row)
             n_low += depth < kd - 1e-9
             n_drop += drop
+            n_up += depth > was + 1e-9
             if a.write:
+                if a.deep:
+                    x.setdefault("deep_clear_was_mm", was)
                 x["touch_body_mm"] = tb
                 x["deep_clear_kd_mm"] = kd
                 x["deep_clear_mm"] = depth
@@ -2646,13 +2669,23 @@ def cmd_body_exact(a):
               f"least at the depth: {min(r['deep_body_mm'] for r in rows):.3f} mm; {time.time() - t0:.0f} s", flush=True)
         low = sorted(rows, key=lambda r: r["deep_body_mm"])[:3]
         print("   lowest at their depth:", [(r["id"], r["deep_kd"], r["deep"], r["deep_body_mm"]) for r in low], flush=True)
+        if a.deep:
+            moves = {}
+            for r in rows:
+                moves[(r["was"], r["deep"])] = moves.get((r["was"], r["deep"]), 0) + 1
+            print(f"   --deep: deeper on {n_up}; (was, now): count", {f"{w:g}->{d:g}": v for (w, d), v in sorted(moves.items())
+                                                                 if w != d}, flush=True)
         if a.write:
             sp.setdefault("notes", []).append(
                 f"{time.strftime('%Y-%m-%d %H:%M')}, workstation: body-exact (body_dist on the body sampled every 0.1 mm): "
                 f"touch_body_mm at the pass 1 standoffs {list(PASS1_STANDOFFS)}; deep_clear_mm lowered on {n_low} presses "
-                f"to keep {DEEP_NEED:g} mm from the tip's body (the replay's in deep_clear_kd_mm); {n_drop} marked body_drop.")
-            Path(f).write_text(json.dumps(sp, default=float) + "\n")
-            print("   ->", f, flush=True)
+                f"to keep {DEEP_NEED:g} mm from the tip's body (the replay's in deep_clear_kd_mm); {n_drop} marked body_drop."
+                + (f" --deep: deep_clear_kd_mm recomputed by deep_clear with the neck rule (NEED neck {NEED['neck']:g} mm "
+                   f"from the own pad within {NECK.get(tool, 0):g} mm of the sphere's centre); deeper on {n_up}, the "
+                   "earlier depth in deep_clear_was_mm." if a.deep else ""))
+            dst = Path(f).with_name(Path(f).stem + a.suffix + ".json") if a.suffix else Path(f)
+            dst.write_text(json.dumps(sp, default=float) + "\n")
+            print("   ->", dst, flush=True)
 
 
 # ------------------------------------------------------------------------------------------------ the film
@@ -2821,6 +2854,10 @@ def main():
     be.add_argument("plans", nargs="+", help="seat plans (this script's replay output)")
     be.add_argument("--write", action="store_true", help="write touch_body_mm and the depths into the plans")
     be.add_argument("--pass1-body", type=float, default=2.0, help="mm: the count printed of presses a pass 1 may take")
+    be.add_argument("--deep", action="store_true", help="recompute each press's deep_clear_kd_mm with deep_clear by the "
+                    "current NEED (the 2 mm sphere's neck rule, 11-03) before the exact check")
+    be.add_argument("--deep-max", type=float, default=2.0)
+    be.add_argument("--suffix", default="", help="write <plan>SUFFIX.json in place of the plan")
     sb = sub.add_parser("seat-beam")
     sb.add_argument("--orient", default=",".join(ORIENT))
     sb.add_argument("--wall", type=float, default=2.0)
