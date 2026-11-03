@@ -1,0 +1,65 @@
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 137 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 137 records/s, mux channel 2 137 records/s, mux channel 3 137 records/s
+  HEX-E noise (1 sigma) N, N m: [0.0349 0.04   0.2232 0.0029 0.0037 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== homing
+homing: from the recorded seating docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:strip_key1_seated_4 (no freedrive, nothing moves)
+homing: the fixture's frame from docs/experiments/20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json, 4.15 mm and 4.49 deg from the seating's own
+homing: 1 seatings within 0.000 mm, 0.000 deg of their mean
+  indenter at (-201.4, -419.8, 36.6) mm, yaw -92.2 deg, tilt 0.00 deg; the plan has (-201, -420, 37) mm, yaw -92 deg
+== pad
+  pad-ref-00: onset -0.602 mm from the expected (power 1.50, fit 236.0 mN)
+  pad-flank-430-o35-a270: onset -0.381 mm from the expected (power 2.00, fit 220.4 mN)
+  pad-flank-387-o20-a270: onset +0.075 mm from the expected (power 2.00, fit 213.8 mN)
+  pad-flank-549-o35-a0: onset -0.653 mm from the expected (power 1.00, fit 112.5 mN)
+  pad-flank-563-o35-a180: onset -0.683 mm from the expected (power 1.00, fit 122.2 mN)
+  pad-edge-628: onset -0.796 mm from the expected (power 1.00, fit 215.5 mN)
+  pad-edge-639-o35-a0: onset -0.735 mm from the expected (power 1.00, fit 184.3 mN)
+  pad-edge-639-o35-a90: onset -0.784 mm from the expected (power 1.00, fit 250.0 mN)
+  pad-edge-651: onset -0.235 mm from the expected (power 1.00, fit 169.6 mN)
+  pad-edge-666: onset -0.766 mm from the expected (power 1.75, fit 186.8 mN)
+  pad-face-717-o35-a90: onset -0.919 mm from the expected (power 1.00, fit 204.1 mN)
+  pad-face-731-o35-a180: onset -0.796 mm from the expected (power 2.00, fit 183.6 mN)
+  pad-face-731-o35-a270: onset -0.665 mm from the expected (power 1.25, fit 111.5 mN)
+  pad-flank-535: onset +0.077 mm from the expected (power 1.00, fit 147.4 mN)
+  pad-flank-535-o20-a90: onset +0.005 mm from the expected (power 2.00, fit 201.3 mN)
+  pad-flank-535-o20-a180: onset +0.082 mm from the expected (power 1.25, fit 163.6 mN)
+  contact before the slow approach (0.54 N): back to the rest pose, the approach at its slow speed
+  pad-tip-349-o35-a270: onset -4.808 mm from the expected (power 1.00, fit 83.3 mN)
+  pad-tip-460-o35-a0: onset -0.084 mm from the expected (power 1.25, fit 44.9 mN)
+  pad-tip-460-o35-a270: onset -0.055 mm from the expected (power 1.00, fit 44.2 mN)
+  pad-tip-458: onset -0.302 mm from the expected (power 2.00, fit 145.7 mN)
+== register
+register (probe): pad touches 0.758 mm rms (20); the seat's pad stands 5.714 mm, 8.649 deg from its CAD (the turn about z_P -4.548 deg, sd 0.480); the sphere's centre 7.030 mm, at [  2.311  -5.217 122.106] in M (sd [0.18  0.169 0.104] mm)
+== grid
+  contact before the slow approach (0.31 N): back to the rest pose, the approach at its slow speed
+  probe-ref-00 (1/260): to 3.00 N
+  probe-tip-454 (2/260): to 2.00 N
+  probe-flank-445: ABORT load of 8.8 N while travelling
+  contact before the slow approach (2.41 N): back to the rest pose, the approach at its slow speed
+  probe-flank-430 (4/260): to 2.00 N
+  contact before the slow approach (1.28 N): back to the rest pose, the approach at its slow speed
+  probe-flank-430-o20-a270 (5/260): to 2.00 N
+  contact before the slow approach (0.84 N): back to the rest pose, the approach at its slow speed
+  probe-flank-430-o35-a270 (6/260): to 2.00 N
+  contact before the slow approach (1.15 N): back to the rest pose, the approach at its slow speed
+  probe-flank-430-o20-a0 (7/260): to 1.00 N
+  contact before the slow approach (1.53 N): back to the rest pose, the approach at its slow speed
+  probe-flank-430-o20-a90 (8/260): to 2.00 N
+  contact before the slow approach (0.70 N): back to the rest pose, the approach at its slow speed
+  probe-flank-430-o20-a180 (9/260): to 2.00 N
+  contact before the slow approach (0.32 N): back to the rest pose, the approach at its slow speed
+  probe-flank-430-o35-a180: ABORT load of 8.4 N while travelling
+  contact before the slow approach (0.56 N): back to the rest pose, the approach at its slow speed
+  probe-flank-430-o35-a90 (12/260): to 0.50 N
+  probe-flank-544 (13/260): to 2.00 N
+  probe-flank-436 (22/260): to 0.50 N
+  probe-flank-438 (23/260): to 0.50 N
+
+interrupted: stopping the robot
+HEX-E: 146326 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.9 s, Fz -0.4 N; 0.7 s, Fz -0.2 N
+session in /home/will/workspace/hand/logs/20261103-tip_calibration/110037-s1sph2
+exit 0 at 11:25:07
