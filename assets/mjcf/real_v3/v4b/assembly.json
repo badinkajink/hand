@@ -1,0 +1,49 @@
+{
+ "source": "assets/mjcf/experimental/20261013-cad_v1",
+ "tip_key": "tcd_ell7.4x8.5x11x22",
+ "tip_body_mm": 36.36,
+ "pip_F_mm": [
+  0.0,
+  0.0,
+  -51.55
+ ],
+ "cap_trim_x_F": -0.1,
+ "screw_heads": "button",
+ "spheres": {
+  "dip_link": {
+   "spheres": 160,
+   "covered_share": 0.7305,
+   "watertight": true,
+   "r_mm_range": [
+    0.49,
+    3.31
+   ],
+   "palmar_extent_x_F_mm": -6.46
+  },
+  "cassette": {
+   "spheres": 85,
+   "covered_share": 0.9703,
+   "watertight": true,
+   "r_mm_range": [
+    0.42,
+    1.65
+   ],
+   "palmar_extent_x_F_mm": -0.07
+  },
+  "cap": {
+   "spheres": 70,
+   "covered_share": 0.9751,
+   "watertight": true,
+   "r_mm_range": [
+    0.53,
+    1.41
+   ],
+   "palmar_extent_x_F_mm": -1.2
+  }
+ },
+ "mass_kg": {
+  "pip_frame": 0.009263,
+  "tip": 0.003654
+ },
+ "parts_dir": "docs/experiments/20261018-dip_link_board_mount/v4/b/cad"
+}

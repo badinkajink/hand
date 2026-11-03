@@ -62,11 +62,14 @@ Q_D1 = np.radians([32.50, 39.58, 0.0, -23.15, 32.25, 18.87, -0.61, 24.92, 40.68]
 import os as _os
 W_FLOOR = float(_os.environ.get("PLAN_W_FLOOR", 100.0))   # 1e4 changed nothing (2026-10-30)
 PRE_MODE = _os.environ.get("PLAN_PRE", "horizontal")   # "virtual" (larger-cylinder grasp) broke grasps: E1 0.02
+CONT_START_R = 0.0125  # curved pad: plan_table's continuation starts at the 25 mm cylinder
 PALM_UP = 0.01         # initial palm guess above touching height (the IK then frees palm z)
 
 
 def make_plan(model, radius: float, squeeze: float = SQUEEZE, standoff: float = 0.012,
-              K: kin.Kinematics | None = None) -> GraspPlan:
+              K: kin.Kinematics | None = None, seed: tuple | None = None) -> GraspPlan:
+    """seed: (q, palm_z) of a neighbouring radius's touch pose to start the touch IK from (plan_table's
+    continuation on the curved v4b pad, whose IK from the D1 pose falls into yawed local minima)."""
     K = K or kin.Kinematics(model)
     K.floor_clear = FLOOR_CLEAR
     K.lo[[2, 5, 8]] = np.maximum(K.lo[[2, 5, 8]], 0.0)           # PIP >= 0
@@ -74,8 +77,11 @@ def make_plan(model, radius: float, squeeze: float = SQUEEZE, standoff: float = 
     palm_base = model.body("palm_pose").pos[2]
     yaw_z = model.body("thumb_mount").pos[2]
     p0 = (radius + 0.0505) - (palm_base + yaw_z) + PALM_UP          # 50.5 mm = D1 grip depth
+    if K.curved:   # v4b tip (longer finger): the palm that puts the D1 pads level with the axis
+        p0 = p0 + float(obj[2] - K._fk(np.concatenate([Q_D1, [p0]]))[0][:, 2].mean())
     kw = dict(w_y=0.0, w_eq=0.1, w_floor=W_FLOOR)
-    touch = K.grasp_ik(obj, radius, squeeze=0.0, q0=Q_D1, palm0=p0, **kw)
+    q_seed, p_seed = (Q_D1, p0) if seed is None else seed
+    touch = K.grasp_ik(obj, radius, squeeze=0.0, q0=q_seed, palm0=p_seed, **kw)
     grip = K.grasp_ik(obj, radius, squeeze=squeeze, q0=touch.q, palm0=touch.palm_z, palm_free=False, **kw)
     # pre-shape: the same grasp on a cylinder `standoff` larger (same centre), so the pads sit
     # clear of the shaft AND the table term still applies (backing off along the pad normal, the
@@ -88,7 +94,9 @@ def make_plan(model, radius: float, squeeze: float = SQUEEZE, standoff: float = 
         nh /= np.linalg.norm(nh, axis=1, keepdims=True) + 1e-9
         pre = K.track_ik(face - nh * standoff + np.array([0, 0, 0.003]), nrm, touch.q, touch.palm_z)
     feasible = touch.residual < 2e-3 and touch.floor_z > 0
-    return GraspPlan(radius, pre.q, grip.q, touch.palm_z, obj, feasible)
+    out = GraspPlan(radius, pre.q, grip.q, touch.palm_z, obj, feasible)
+    out.touch_q = touch.q
+    return out
 
 
 @lru_cache(maxsize=None)
@@ -96,4 +104,13 @@ def plan_table(radii: tuple, squeeze: float = SQUEEZE) -> dict:
     """Plans for a grid of radii on the default D1 model (cached; the env interpolates)."""
     m = scene.build()
     K = kin.Kinematics(m)
-    return {r: make_plan(m, r, squeeze=squeeze, K=K) for r in radii}
+    if not K.curved:
+        return {r: make_plan(m, r, squeeze=squeeze, K=K) for r in radii}
+    # curved pad: solve the radius nearest CONT_START_R from the D1 pose, then walk outward, each radius
+    # seeded by its neighbour's touch pose
+    order = sorted(radii, key=lambda r: abs(r - CONT_START_R))
+    out = {order[0]: make_plan(m, order[0], squeeze=squeeze, K=K)}
+    for r in order[1:]:
+        done = sorted(out, key=lambda x: abs(x - r))[0]
+        out[r] = make_plan(m, r, squeeze=squeeze, K=K, seed=(out[done].touch_q, out[done].palm_z))
+    return {r: out[r] for r in radii}

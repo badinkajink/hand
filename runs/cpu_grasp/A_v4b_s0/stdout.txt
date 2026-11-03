@@ -1,0 +1,200 @@
+it    1     12s  return -10.45  lifted 0.26  success 0.21  tilt  15.4
+it    2     24s  return -10.00  lifted 0.27  success 0.23  tilt  16.9
+it    3     36s  return -10.67  lifted 0.23  success 0.20  tilt  14.6
+it    4     50s  return  -8.24  lifted 0.35  success 0.30  tilt  22.2
+it    5     63s  return  -8.26  lifted 0.34  success 0.29  tilt  22.0
+it    6     76s  return  -7.29  lifted 0.39  success 0.32  tilt  24.0
+it    7     90s  return  -6.35  lifted 0.43  success 0.36  tilt  27.2
+it    8    103s  return  -5.81  lifted 0.44  success 0.39  tilt  28.7
+it    9    118s  return  -4.40  lifted 0.52  success 0.44  tilt  33.0
+it   10    143s  return  -3.56  lifted 0.55  success 0.47  tilt  36.0  | EVAL success 0.730 lifted 0.86
+it   11    158s  return  -2.55  lifted 0.59  success 0.51  tilt  39.3
+it   12    173s  return  -1.77  lifted 0.63  success 0.54  tilt  40.7
+it   13    188s  return  -2.15  lifted 0.60  success 0.53  tilt  40.3
+it   14    204s  return  -0.29  lifted 0.67  success 0.61  tilt  46.2
+it   15    220s  return   0.28  lifted 0.71  success 0.63  tilt  47.3
+it   16    236s  return   0.18  lifted 0.71  success 0.61  tilt  46.8
+it   17    252s  return  -0.01  lifted 0.69  success 0.62  tilt  46.2
+it   18    268s  return   0.52  lifted 0.71  success 0.62  tilt  48.1
+it   19    284s  return   1.75  lifted 0.76  success 0.70  tilt  51.6
+it   20    311s  return   1.69  lifted 0.76  success 0.68  tilt  51.6  | EVAL success 0.790 lifted 0.92
+it   21    327s  return   1.72  lifted 0.76  success 0.68  tilt  51.3
+it   22    343s  return   3.07  lifted 0.80  success 0.74  tilt  56.7
+it   23    360s  return   2.85  lifted 0.80  success 0.72  tilt  54.3
+it   24    376s  return   3.03  lifted 0.80  success 0.73  tilt  55.0
+it   25    393s  return   3.02  lifted 0.81  success 0.73  tilt  55.3
+it   26    409s  return   3.08  lifted 0.81  success 0.72  tilt  55.2
+it   27    426s  return   4.09  lifted 0.85  success 0.78  tilt  58.2
+it   28    443s  return   3.82  lifted 0.85  success 0.75  tilt  57.8
+it   29    460s  return   3.99  lifted 0.85  success 0.75  tilt  57.2
+it   30    488s  return   4.00  lifted 0.85  success 0.76  tilt  57.9  | EVAL success 0.825 lifted 0.96
+it   31    505s  return   4.58  lifted 0.87  success 0.77  tilt  58.7
+it   32    522s  return   4.46  lifted 0.86  success 0.77  tilt  58.9
+it   33    539s  return   4.91  lifted 0.88  success 0.78  tilt  60.5
+it   34    556s  return   4.79  lifted 0.88  success 0.78  tilt  59.8
+it   35    574s  return   5.59  lifted 0.92  success 0.81  tilt  61.8
+it   36    591s  return   5.23  lifted 0.89  success 0.80  tilt  60.6
+it   37    608s  return   6.19  lifted 0.92  success 0.83  tilt  64.7
+it   38    625s  return   5.85  lifted 0.91  success 0.83  tilt  63.0
+it   39    643s  return   6.04  lifted 0.92  success 0.83  tilt  63.5
+it   40    672s  return   6.60  lifted 0.93  success 0.86  tilt  64.3  | EVAL success 0.861 lifted 0.98
+it   41    690s  return   6.61  lifted 0.92  success 0.85  tilt  64.7
+it   42    707s  return   6.79  lifted 0.95  success 0.85  tilt  65.6
+it   43    725s  return   6.84  lifted 0.95  success 0.84  tilt  65.4
+it   44    743s  return   6.90  lifted 0.95  success 0.85  tilt  65.1
+it   45    761s  return   6.90  lifted 0.96  success 0.85  tilt  65.7
+it   46    779s  return   7.08  lifted 0.95  success 0.85  tilt  65.4
+it   47    797s  return   7.32  lifted 0.96  success 0.86  tilt  66.3
+it   48    815s  return   7.33  lifted 0.96  success 0.85  tilt  66.5
+it   49    833s  return   7.13  lifted 0.95  success 0.85  tilt  65.5
+it   50    861s  return   8.21  lifted 0.96  success 0.91  tilt  69.2  | EVAL success 0.897 lifted 1.00
+it   51    879s  return   7.79  lifted 0.95  success 0.88  tilt  67.5
+it   52    897s  return   7.94  lifted 0.98  success 0.87  tilt  68.9
+it   53    915s  return   8.10  lifted 0.97  success 0.88  tilt  68.7
+it   54    933s  return   7.93  lifted 0.97  success 0.87  tilt  67.3
+it   55    951s  return   8.37  lifted 0.97  success 0.90  tilt  69.7
+it   56    968s  return   8.10  lifted 0.97  success 0.88  tilt  69.2
+it   57    986s  return   8.02  lifted 0.98  success 0.87  tilt  68.1
+it   58   1004s  return   8.68  lifted 0.98  success 0.91  tilt  70.6
+it   59   1022s  return   7.99  lifted 0.97  success 0.87  tilt  69.0
+it   60   1051s  return   8.76  lifted 0.99  success 0.89  tilt  70.4  | EVAL success 0.944 lifted 1.00
+it   61   1070s  return   8.71  lifted 0.99  success 0.89  tilt  69.6
+it   62   1088s  return   9.16  lifted 0.99  success 0.92  tilt  71.6
+it   63   1106s  return   9.05  lifted 0.98  success 0.91  tilt  72.3
+it   64   1124s  return   9.30  lifted 0.99  success 0.92  tilt  71.1
+it   65   1143s  return   9.59  lifted 0.99  success 0.94  tilt  71.7
+it   66   1161s  return   9.38  lifted 0.98  success 0.93  tilt  71.8
+it   67   1179s  return   9.73  lifted 0.99  success 0.93  tilt  73.0
+it   68   1197s  return   9.46  lifted 0.99  success 0.92  tilt  72.2
+it   69   1215s  return   9.68  lifted 0.99  success 0.94  tilt  73.1
+it   70   1244s  return   9.71  lifted 0.99  success 0.93  tilt  72.7  | EVAL success 0.968 lifted 1.00
+it   71   1262s  return   9.88  lifted 0.99  success 0.94  tilt  72.8
+it   72   1279s  return   9.53  lifted 0.99  success 0.92  tilt  72.1
+it   73   1298s  return  10.10  lifted 0.99  success 0.95  tilt  74.0
+it   74   1316s  return  10.11  lifted 0.99  success 0.95  tilt  73.0
+it   75   1334s  return   9.81  lifted 0.99  success 0.92  tilt  72.4
+it   76   1352s  return  10.54  lifted 1.00  success 0.96  tilt  75.2
+it   77   1370s  return  10.30  lifted 0.99  success 0.95  tilt  73.2
+it   78   1388s  return  10.40  lifted 1.00  success 0.95  tilt  73.7
+it   79   1406s  return  10.18  lifted 0.99  success 0.93  tilt  73.1
+it   80   1435s  return  10.53  lifted 1.00  success 0.96  tilt  74.8  | EVAL success 0.984 lifted 1.00
+it   81   1453s  return  10.60  lifted 1.00  success 0.96  tilt  74.4
+it   82   1471s  return  10.36  lifted 0.99  success 0.94  tilt  73.6
+it   83   1489s  return  10.70  lifted 1.00  success 0.95  tilt  74.9
+it   84   1507s  return  10.52  lifted 0.99  success 0.94  tilt  73.7
+it   85   1525s  return  10.78  lifted 1.00  success 0.96  tilt  75.0
+it   86   1543s  return  10.76  lifted 0.99  success 0.95  tilt  74.9
+it   87   1562s  return  10.86  lifted 1.00  success 0.95  tilt  75.4
+it   88   1580s  return  11.24  lifted 1.00  success 0.97  tilt  76.1
+it   89   1598s  return  11.15  lifted 1.00  success 0.96  tilt  75.0
+it   90   1627s  return  11.06  lifted 1.00  success 0.96  tilt  74.9  | EVAL success 0.984 lifted 1.00
+it   91   1645s  return  11.07  lifted 1.00  success 0.95  tilt  75.8
+it   92   1663s  return  11.06  lifted 0.99  success 0.95  tilt  75.0
+it   93   1681s  return  11.24  lifted 1.00  success 0.97  tilt  75.8
+it   94   1699s  return  11.39  lifted 1.00  success 0.97  tilt  76.3
+it   95   1717s  return  11.37  lifted 1.00  success 0.97  tilt  75.3
+it   96   1735s  return  11.22  lifted 0.99  success 0.96  tilt  75.0
+it   97   1754s  return  11.41  lifted 1.00  success 0.97  tilt  75.8
+it   98   1772s  return  11.50  lifted 1.00  success 0.97  tilt  76.3
+it   99   1790s  return  11.71  lifted 1.00  success 0.98  tilt  76.8
+it  100   1819s  return  11.75  lifted 1.00  success 0.97  tilt  76.4  | EVAL success 0.984 lifted 1.00
+it  101   1837s  return  11.94  lifted 1.00  success 0.99  tilt  77.4
+it  102   1855s  return  11.54  lifted 1.00  success 0.97  tilt  76.7
+it  103   1873s  return  11.90  lifted 1.00  success 0.98  tilt  76.9
+it  104   1891s  return  11.98  lifted 1.00  success 0.99  tilt  77.5
+it  105   1909s  return  11.91  lifted 1.00  success 0.97  tilt  77.3
+it  106   1927s  return  11.85  lifted 1.00  success 0.97  tilt  76.8
+it  107   1945s  return  11.94  lifted 1.00  success 0.98  tilt  77.2
+it  108   1964s  return  12.02  lifted 1.00  success 0.98  tilt  77.3
+it  109   1982s  return  11.97  lifted 1.00  success 0.98  tilt  77.2
+it  110   2011s  return  12.23  lifted 1.00  success 0.99  tilt  78.3  | EVAL success 0.992 lifted 1.00
+it  111   2029s  return  12.30  lifted 1.00  success 0.98  tilt  78.1
+it  112   2048s  return  12.29  lifted 1.00  success 0.98  tilt  78.1
+it  113   2066s  return  12.09  lifted 1.00  success 0.97  tilt  77.5
+it  114   2085s  return  12.19  lifted 1.00  success 0.97  tilt  78.6
+it  115   2103s  return  12.43  lifted 1.00  success 0.99  tilt  78.8
+it  116   2121s  return  12.34  lifted 0.99  success 0.98  tilt  77.4
+it  117   2139s  return  12.57  lifted 1.00  success 0.98  tilt  78.1
+it  118   2157s  return  12.45  lifted 1.00  success 0.98  tilt  78.2
+it  119   2175s  return  12.50  lifted 1.00  success 0.98  tilt  78.0
+it  120   2204s  return  12.31  lifted 1.00  success 0.97  tilt  78.2  | EVAL success 0.996 lifted 1.00
+it  121   2222s  return  12.51  lifted 1.00  success 0.98  tilt  78.2
+it  122   2240s  return  12.56  lifted 1.00  success 0.97  tilt  78.3
+it  123   2259s  return  12.65  lifted 1.00  success 0.99  tilt  78.5
+it  124   2277s  return  12.61  lifted 1.00  success 0.98  tilt  78.5
+it  125   2295s  return  12.60  lifted 1.00  success 0.98  tilt  78.3
+it  126   2313s  return  12.75  lifted 1.00  success 0.99  tilt  78.4
+it  127   2332s  return  12.68  lifted 1.00  success 0.98  tilt  78.2
+it  128   2351s  return  12.77  lifted 1.00  success 0.98  tilt  78.0
+it  129   2369s  return  12.56  lifted 1.00  success 0.97  tilt  78.0
+it  130   2506s  return  12.80  lifted 1.00  success 0.98  tilt  78.4  | EVAL success 0.992 lifted 1.00
+it  131   2670s  return  12.77  lifted 1.00  success 0.98  tilt  77.8
+it  132   2743s  return  12.69  lifted 1.00  success 0.97  tilt  78.0
+it  133   2809s  return  12.93  lifted 1.00  success 0.98  tilt  78.7
+it  134   2906s  return  12.80  lifted 1.00  success 0.98  tilt  78.2
+it  135   3681s  return  12.92  lifted 1.00  success 0.99  tilt  78.5
+it  136   5148s  return  13.03  lifted 1.00  success 0.98  tilt  78.8
+it  137   5330s  return  13.02  lifted 1.00  success 0.99  tilt  78.4
+it  138   6398s  return  12.87  lifted 1.00  success 0.97  tilt  78.2
+it  139   8526s  return  12.99  lifted 1.00  success 0.98  tilt  78.1
+it  140  13343s  return  13.17  lifted 1.00  success 0.99  tilt  78.4  | EVAL success 0.996 lifted 1.00
+it  141  14456s  return  12.98  lifted 1.00  success 0.98  tilt  78.0
+it  142  14491s  return  13.10  lifted 1.00  success 0.99  tilt  78.6
+it  143  14516s  return  13.11  lifted 1.00  success 0.98  tilt  78.8
+it  144  14541s  return  12.86  lifted 1.00  success 0.97  tilt  77.2
+it  145  14566s  return  13.36  lifted 1.00  success 0.99  tilt  78.8
+it  146  14590s  return  13.18  lifted 1.00  success 0.99  tilt  78.9
+it  147  14615s  return  13.04  lifted 1.00  success 0.98  tilt  78.3
+it  148  14640s  return  13.31  lifted 1.00  success 0.99  tilt  79.5
+it  149  14664s  return  13.31  lifted 1.00  success 0.99  tilt  79.4
+it  150  14704s  return  13.28  lifted 1.00  success 0.97  tilt  78.4  | EVAL success 0.996 lifted 1.00
+it  151  14729s  return  13.31  lifted 1.00  success 0.99  tilt  79.2
+it  152  14753s  return  13.40  lifted 1.00  success 0.99  tilt  79.0
+it  153  14778s  return  13.56  lifted 1.00  success 1.00  tilt  79.7
+it  154  14802s  return  13.65  lifted 1.00  success 0.99  tilt  79.3
+it  155  14827s  return  13.50  lifted 1.00  success 0.99  tilt  79.4
+it  156  14852s  return  13.43  lifted 1.00  success 0.98  tilt  78.3
+it  157  14876s  return  13.68  lifted 1.00  success 0.99  tilt  79.4
+it  158  14901s  return  13.58  lifted 1.00  success 0.99  tilt  79.0
+it  159  14925s  return  13.52  lifted 1.00  success 0.99  tilt  79.3
+it  160  14965s  return  13.51  lifted 1.00  success 0.99  tilt  79.3  | EVAL success 0.996 lifted 1.00
+it  161  14990s  return  13.68  lifted 1.00  success 0.99  tilt  79.5
+it  162  15014s  return  13.78  lifted 1.00  success 0.99  tilt  79.6
+it  163  15039s  return  13.73  lifted 1.00  success 0.99  tilt  79.6
+it  164  15064s  return  13.76  lifted 1.00  success 0.99  tilt  79.4
+it  165  15088s  return  13.72  lifted 1.00  success 0.99  tilt  79.7
+it  166  15112s  return  13.72  lifted 1.00  success 0.99  tilt  79.7
+it  167  15137s  return  13.82  lifted 1.00  success 0.99  tilt  79.5
+it  168  15162s  return  13.72  lifted 1.00  success 0.99  tilt  79.1
+it  169  15186s  return  13.87  lifted 1.00  success 0.99  tilt  79.0
+it  170  15226s  return  13.78  lifted 1.00  success 0.99  tilt  79.2  | EVAL success 0.992 lifted 1.00
+it  171  15250s  return  13.74  lifted 1.00  success 0.98  tilt  78.6
+it  172  15275s  return  13.93  lifted 1.00  success 0.99  tilt  80.1
+it  173  15300s  return  13.91  lifted 1.00  success 0.99  tilt  79.6
+it  174  15324s  return  13.80  lifted 1.00  success 0.98  tilt  79.2
+it  175  15348s  return  13.95  lifted 1.00  success 0.99  tilt  79.5
+it  176  15374s  return  14.00  lifted 1.00  success 0.99  tilt  80.1
+it  177  15398s  return  13.97  lifted 1.00  success 0.99  tilt  79.6
+it  178  15424s  return  13.91  lifted 1.00  success 0.98  tilt  79.1
+it  179  15448s  return  14.00  lifted 1.00  success 0.99  tilt  79.3
+it  180  15489s  return  13.88  lifted 1.00  success 0.98  tilt  78.6  | EVAL success 0.988 lifted 1.00
+it  181  15513s  return  13.95  lifted 1.00  success 0.98  tilt  79.7
+it  182  15538s  return  14.00  lifted 1.00  success 0.99  tilt  78.6
+it  183  15564s  return  13.98  lifted 1.00  success 0.99  tilt  79.4
+it  184  15588s  return  14.10  lifted 1.00  success 0.99  tilt  79.7
+it  185  15613s  return  14.00  lifted 1.00  success 0.99  tilt  78.8
+it  186  15639s  return  14.09  lifted 1.00  success 0.99  tilt  79.5
+it  187  15665s  return  14.19  lifted 1.00  success 0.99  tilt  79.3
+it  188  15689s  return  13.98  lifted 1.00  success 0.98  tilt  79.4
+it  189  15715s  return  14.13  lifted 1.00  success 0.99  tilt  80.3
+it  190  15755s  return  14.18  lifted 1.00  success 0.99  tilt  80.3  | EVAL success 0.988 lifted 1.00
+it  191  15780s  return  14.06  lifted 1.00  success 0.99  tilt  79.6
+it  192  15805s  return  14.04  lifted 1.00  success 0.99  tilt  80.0
+it  193  15829s  return  14.14  lifted 1.00  success 0.99  tilt  80.3
+it  194  15854s  return  14.17  lifted 1.00  success 0.99  tilt  80.3
+it  195  15878s  return  14.08  lifted 1.00  success 0.98  tilt  80.2
+it  196  15903s  return  14.14  lifted 1.00  success 0.98  tilt  79.9
+it  197  15928s  return  14.20  lifted 1.00  success 0.99  tilt  80.4
+it  198  15952s  return  14.19  lifted 1.00  success 0.99  tilt  80.1
+it  199  15977s  return  14.36  lifted 1.00  success 0.99  tilt  80.7
+it  200  16019s  return  14.27  lifted 1.00  success 0.99  tilt  80.5  | EVAL success 0.992 lifted 1.00

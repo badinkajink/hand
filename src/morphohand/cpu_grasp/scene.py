@@ -22,6 +22,7 @@ is a rotation about x.
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -29,7 +30,10 @@ import mujoco
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[3]
-HAND_XML = ROOT / "assets" / "mjcf" / "real_v3" / "real_hand.xml"
+# real_hand.xml has the v4b magnetic-sensing fingertip since 2026-11-02; CPU_GRASP_HAND=block loads the TPU block tip
+# (real_hand_block.xml) that policy A (runs/cpu_grasp/A_palm_s0_full) was trained on
+HAND_XML = ROOT / "assets" / "mjcf" / "real_v3" / ("real_hand_block.xml" if os.environ.get("CPU_GRASP_HAND") == "block"
+                                                   else "real_hand.xml")
 FINGERS = ("thumb", "index", "middle")
 JOINTS = tuple(f"{f}_{j}" for f in FINGERS for j in ("yaw", "mcp", "pip"))
 CYL_HALF_LEN = 0.05            # 100 mm long cylinders

@@ -11,6 +11,12 @@ Two problems, one damped Gauss-Newton solver over (9 finger joints, palm_z):
   track_ik     put each pad on an explicit world point with an explicit normal. The reorient
                judge uses it: rotate the achieved contact points with the object and follow.
 
+Pad models (chosen from the hand): the block tip's flat face (the pad site's plane and extents),
+or, for the v4b half-ellipsoid tip (real_v3 since 2026-11-02, scripts/build_real_v3_v4b_tip.py),
+the pad's own sphere grid: the pad's distance to the cylinder axis is a soft minimum over its
+spheres, the contact normal is the nearest sphere's, and the v4b link / cassette / cap spheres
+must stay 1 mm farther from the axis than the pad.
+
 Joint limits are enforced by projection after every step; `margin` reports how close the
 solution sits to them. Finite-difference Jacobians on mj_kinematics: ~1 ms per solve.
 """
@@ -24,6 +30,7 @@ import numpy as np
 from . import scene
 
 Y = np.array([0.0, 1.0, 0.0])
+COS_CONE = float(np.cos(np.radians(35.0)))   # curved pad: contact normal within 35 deg of the pad's palmar normal
 
 
 @dataclass
@@ -49,6 +56,14 @@ class Kinematics:
         self.fgeoms = np.array([g for g in range(model.ngeom)
                                 if model.geom_bodyid[g] in moving and model.geom_contype[g]])
         self.floor_clear = 0.001
+        self.curved = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_MESH, "v4b_pad_pos") >= 0
+        if self.curved:
+            names = [model.geom(g).name for g in range(model.ngeom)]
+            self.pad_g = [np.array([g for g, n in enumerate(names) if n.startswith(f"{f}_pad_s")])
+                          for f in scene.FINGERS]
+            self.rigid_g = [np.array([g for g, n in enumerate(names) if n.startswith(f"{f}_v4b_")])
+                            for f in scene.FINGERS]
+            self.pad_r = float(model.geom_size[self.pad_g[0][0], 0])
 
     def finger_min_z(self) -> float:
         """Lowest point of any finger collision geom at the current FK state."""
@@ -142,6 +157,8 @@ class Kinematics:
             return np.concatenate([r_dist, r_perp, r_face, r_mid, r_eq, r_y, [r_floor]])
 
         p0 = np.concatenate([q0 if q0 is not None else np.tile([0, 0.6, 0.6], 3), [palm0]])
+        if self.curved:
+            return self._grasp_ik_curved(c, target_r, mount_y, p0, w_eq, w_y, w_floor, palm_free)
         p = self._solve(res, p0, palm_free=palm_free)
         pos, nrm = self._fk(p)
         t, sd, off, ext = face(pos, nrm)
@@ -152,6 +169,59 @@ class Kinematics:
         out.face_ok = bool(np.all(np.abs(off) <= ext - face_margin + 1e-4))
         out.floor_z = self.finger_min_z()
         out.contact_elev_deg = np.degrees(np.arcsin(np.clip(-nrm[:, 2], -1, 1)))   # + = contact above equator
+        return out
+
+    def _curved_contacts(self, c, tau=3e-4):
+        """Per finger at the current FK: pad surface distance to the axis through c along Y (soft min over the pad
+        spheres), contact point on that surface, pad normal there (toward the axis), offset of the contact from the
+        pad site along the finger, and the rigid parts' least surface distance to the axis."""
+        X = self.d.geom_xpos
+        site = self.d.site_xpos[self.ix["pad_site"]]
+        along = self.d.site_xmat[self.ix["pad_site"]].reshape(-1, 3, 3)[:, :, 0]
+        out = []
+        for i in range(3):
+            P = X[self.pad_g[i]]
+            v = P - c
+            v -= np.outer(v @ Y, Y)
+            dist = np.linalg.norm(v, axis=1)
+            w = np.exp(-(dist - dist.min()) / tau)
+            w /= w.sum()
+            sd = dist.min() - tau * np.log(np.sum(np.exp(-(dist - dist.min()) / tau))) - self.pad_r
+            n = (w[:, None] * v / dist[:, None]).sum(0)
+            n /= np.linalg.norm(n)
+            pc = (w[:, None] * P).sum(0) - n * self.pad_r              # on the pad surface
+            Rg = X[self.rigid_g[i]]
+            vr = Rg - c
+            vr -= np.outer(vr @ Y, Y)
+            rigid = float(np.min(np.linalg.norm(vr, axis=1) - self.m.geom_size[self.rigid_g[i], 0]))
+            out.append((sd, pc, -n, float((pc - site[i]) @ along[i]), rigid))
+        return out
+
+    def _grasp_ik_curved(self, c, target_r, mount_y, p0, w_eq, w_y, w_floor, palm_free, rigid_gap=0.001):
+        def res(pos, nrm):
+            cs = self._curved_contacts(c)
+            sd = np.array([x[0] for x in cs]); n = np.array([x[2] for x in cs])
+            off = np.array([x[3] for x in cs]); rg = np.array([x[4] for x in cs])
+            pc = np.array([x[1] for x in cs])
+            r_floor = w_floor * max(0.0, self.floor_clear - self.finger_min_z())
+            r_cone = 0.05 * np.maximum(0.0, COS_CONE - (n * nrm).sum(1))     # contact on the pad's palmar face
+            return np.concatenate([sd - target_r, 3.0 * np.maximum(0.0, sd + rigid_gap - rg), 0.05 * off, r_cone,
+                                   w_eq * 0.02 * n[:, 2], w_y * (pc[:, 1] - mount_y), [r_floor]])
+
+        p = self._solve(res, p0, palm_free=palm_free)
+        self._fk(p)
+        cs = self._curved_contacts(c)
+        sd = np.array([x[0] for x in cs]); n = np.array([x[2] for x in cs])
+        t = np.array([x[1] for x in cs]); rg = np.array([x[4] for x in cs]); off = np.array([x[3] for x in cs])
+        margin = float(np.min(np.minimum(p[:9] - self.lo, self.hi - p[:9])))
+        out = IKResult(p[:9].copy(), float(p[9]), float(np.sqrt(np.mean((sd - target_r) ** 2))),
+                       float(np.degrees(np.max(np.abs(np.arcsin(np.clip(n @ Y, -1, 1)))))), margin, t, n)
+        out.face_offset = off
+        nrm_site = self.d.site_xmat[self.ix["pad_site"]].reshape(-1, 3, 3)[:, :, 2]
+        out.face_ok = bool(np.all(rg >= sd + rigid_gap - 1e-4) and np.all((n * nrm_site).sum(1) >= COS_CONE - 0.02))
+        out.rigid_gap = rg - sd
+        out.floor_z = self.finger_min_z()
+        out.contact_elev_deg = np.degrees(np.arcsin(np.clip(-n[:, 2], -1, 1)))
         return out
 
     def track_ik(self, targets, normals, q0, palm0, palm_free=False, w_n=0.02) -> IKResult:
