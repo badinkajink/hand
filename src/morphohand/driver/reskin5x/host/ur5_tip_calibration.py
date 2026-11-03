@@ -229,6 +229,10 @@ class Geometry:
             self.kind = self.probe.get("kind", "sphere")
             self.c_M = np.array(self.probe["centre_M"], float)
             self.R = float(self.probe["radius"])
+            if self.kind == "rod":                          # a rod (11-03): c_M a point of its axis under the tool's axis,
+                self.axis_M = np.array(self.probe.get("axis_M", [0.0, 1.0, 0.0]), float)   # the axis along axis_M
+                self.axis_M /= np.linalg.norm(self.axis_M)
+                self.half_len = float(self.probe["half_len"])
             self.c_I, self.rod_axis = None, None
             self.seat = g["seat"]
             self.T_AP0 = np.array(self.seat["T_AP"], float)
@@ -248,6 +252,9 @@ class Geometry:
         vn = self.nrm[self.tris].sum(axis=1)
         n *= np.sign(np.einsum("ij,ij->i", n, vn))[:, None]       # outward, as the vertex normals
         self.tA, self.tB, self.tC, self.tN = A, B, C, n
+        if self.probe is not None and self.kind == "rod":   # the surface densely sampled for the rod's line distance:
+            self.dense = np.vstack([self.pts, (A + B + C) / 3.0, (A + B) / 2.0, (B + C) / 2.0, (C + A) / 2.0])   # vertices,
+#                                                             centroids and edge midpoints, about 0.25 mm apart
         self.face = g["mount_face"]                                 # plane of the column's palmar face, in M
         self.face_n = np.array(self.face["normal"], float)
         self.face_d = float(np.array(self.face["point"], float) @ self.face_n)
@@ -260,6 +267,17 @@ class Geometry:
         k = int(np.argmin(d))
         s = 1.0 if (q - cp[k]) @ self.tN[k] >= 0 else -1.0
         return s * float(d[k]), cp[k], self.tN[k]
+
+    def line_distance(self, c, a):
+        """Probe mode with a rod: the least distance (mm) of the pad's surface from the rod's axis, the line through c
+        along a (P), over the surface within half_len of c along the line."""
+        r = self.dense - np.asarray(c, float)
+        y = r @ a
+        m = np.abs(y) <= self.half_len
+        if not m.any():
+            return float("inf")
+        rp = r[m] - y[m, None] * a[None]
+        return float(np.sqrt(np.min(np.einsum("ij,ij->i", rp, rp))))
 
     def contact_point_I(self, standoff, y_rod=0.0):
         """Where the target point sits in I: standoff above the sphere's top (or the rod's top line)."""
@@ -553,6 +571,47 @@ def fit_probe_registration(geo: Geometry, reg: Registration, touches, sig=REG_SI
                 rms_wall_mm=float(np.sqrt(np.mean((r[n:n + m] * sig["wall_mm"]) ** 2))) if m else float("nan"), n_wall=m,
                 wall_offset_mm=x[9:], wall_turn_deg=wall_turn_deg, chi2=float(r @ r), dof=int(len(r) - nx),
                 seat_change_mm_deg=pose_error(T_AP0, T_AP), probe_change_mm=float(np.linalg.norm(c_M - c_M0)))
+
+
+def fit_rod_registration(geo: Geometry, reg: Registration, touches, sig=REG_SIGMA_PROBE):
+    """Probe mode with a rod (11-03): the rod and the pad's place from the rod's touches, the pad's place seeded from the 2
+    mm sphere's session of the same seat (the tips stay seated through the tool change). Fitted: the pad's T_AP about the
+    seed (6, prior seat_rot_deg and seat_t_mm), the rod's axis point c_M across the axis (2, prior 1 mm) and the axis
+    turned about z_M (the tool's axis) and about the first direction square to it (2, priors 4 and 2 deg). A sphere's
+    touches leave the mount's turn about the tool's axis and its error on the flange in T_AP, which suits the sphere's
+    point but not the rod's line (in the simulator the seeded pad stood 1.6 mm and 0.7 deg off, and a fixed rod correction
+    left 0.12 mm rms), so the pad is fitted again with the rod. A pad touch's residual is the pad surface's least distance
+    from the rod's axis at the onset (geo.line_distance) less R. Returns fit_probe_registration's dict (x: the seat's 6,
+    then c_M's change in M) with axis_M and axis_turn_deg."""
+    pad = [t for t in touches if t["kind"] == "pad"]
+    T_AP0, c_M0 = reg.T_AP, reg.c_M
+    a_M0 = geo.axis_M
+    e1 = np.cross(a_M0, [0.0, 0.0, 1.0] if abs(a_M0[2]) < 0.9 else [1.0, 0.0, 0.0])
+    e1 /= np.linalg.norm(e1)
+    e2 = np.cross(a_M0, e1)
+    Ts = [np.array(t["T_BE"], float) @ reg.T_EM for t in pad]
+    sd = np.r_[np.radians(sig["seat_rot_deg"]), sig["seat_t_mm"], [1.0, 1.0], np.radians([4.0, 2.0])]
+
+    def unpack(x):
+        a = rot(EZ, math.degrees(x[8])) @ rot(e1, math.degrees(x[9])) @ a_M0
+        return perturb(T_AP0, x[0:6]), c_M0 + x[6] * e1 + x[7] * e2, a / np.linalg.norm(a)
+
+    def resid(x):
+        T_AP, c, a = unpack(x)
+        T_PB = inv(reg.T_BI @ T_AP)
+        r = [(geo.line_distance(apply(T_PB @ T, c), (T_PB @ T)[:3, :3] @ a) - geo.R) / sig["pad_mm"] for T in Ts]
+        return np.r_[r, x / sd]
+
+    x, r, cov = lm(resid, np.zeros(10))
+    T_AP, c_M, a_M = unpack(x)
+    n = len(pad)
+    dc = c_M - c_M0
+    sx = np.sqrt(np.clip(np.diag(cov), 0, None))
+    return dict(T_AP=T_AP, c_M=c_M, axis_M=a_M, axis_turn_deg=np.degrees(x[8:10]), axis_turn_sd_deg=np.degrees(sx[8:10]),
+                x=np.r_[x[0:6], dc], sd=np.r_[sx[0:6], np.abs(e1) * sx[6] + np.abs(e2) * sx[7]],
+                rms_pad_mm=float(np.sqrt(np.mean((r[:n] * sig["pad_mm"]) ** 2))) if n else float("nan"), n_pad=n,
+                rms_wall_mm=float("nan"), n_wall=0, wall_offset_mm=np.zeros(0), wall_turn_deg={}, chi2=float(r @ r),
+                dof=int(len(r) - 10), seat_change_mm_deg=pose_error(T_AP0, T_AP), probe_change_mm=float(np.linalg.norm(dc)))
 
 
 # ------------------------------------------------------------------------------------------- streams (real hardware)
@@ -1857,11 +1916,13 @@ class Session:
             print("register: no touches")
             return
         if self.probe:
-            fit = fit_probe_registration(self.geo, self.reg, self.touches)
+            fit = (fit_rod_registration if self.geo.kind == "rod" else fit_probe_registration)(self.geo, self.reg, self.touches)
             self.reg.T_AP, self.reg.c_M = fit["T_AP"], fit["c_M"]
             self.reg.notes["register_probe"] = {k: fit[k] for k in ("rms_pad_mm", "n_pad", "rms_wall_mm", "n_wall",
                                                                      "wall_offset_mm", "wall_turn_deg",
-                                                                     "seat_change_mm_deg", "probe_change_mm", "sd", "x")}
+                                                                     "seat_change_mm_deg", "probe_change_mm", "sd", "x",
+                                                                     "axis_M", "axis_turn_deg", "axis_turn_sd_deg")
+                                                if k in fit}
             wt = fit["wall_turn_deg"]
             walls = (f", walls {fit['rms_wall_mm']:.3f} mm rms ({fit['n_wall']}; their offsets "
                      f"{np.round(fit['wall_offset_mm'], 3).tolist()} mm; each wall alone turns it "
@@ -1870,11 +1931,20 @@ class Session:
                 #                                                          the station block's face, 0.12 mm early: 1.5 deg
                 print(f"WARNING the walls' turns differ by {np.ptp(list(wt.values())):.2f} deg: one of them may have met "
                       "something other than the tip's wall (the station block's face beside the low touch)", flush=True)
-            print(f"register (probe): pad touches {fit['rms_pad_mm']:.3f} mm rms ({fit['n_pad']}){walls}; the seat's pad "
-                  f"stands {fit['seat_change_mm_deg'][0]:.3f} mm, {fit['seat_change_mm_deg'][1]:.3f} deg from its CAD (the "
-                  f"turn about z_P {math.degrees(fit['x'][2]):+.3f} deg, sd {math.degrees(fit['sd'][2]):.3f}); the sphere's "
-                  f"centre {fit['probe_change_mm']:.3f} mm, at {np.round(fit['c_M'], 3)} in M (sd "
-                  f"{np.round(fit['sd'][6:9], 3)} mm)")
+            if self.geo.kind == "rod":
+                self.reg.axis_M = fit["axis_M"]                  # the rod's fitted axis (M), kept in registration.json
+                print(f"register (probe, rod): pad touches {fit['rms_pad_mm']:.3f} mm rms ({fit['n_pad']}); the pad "
+                      f"{fit['seat_change_mm_deg'][0]:.3f} mm, {fit['seat_change_mm_deg'][1]:.3f} deg from the seed; the rod's "
+                      f"axis moved {fit['probe_change_mm']:.3f} mm across itself, c_M at "
+                      f"{np.round(fit['c_M'], 3)} in M (sd {np.round(fit['sd'][6:9], 3)} mm), turned "
+                      f"{fit['axis_turn_deg'][0]:+.2f} deg about z_M and {fit['axis_turn_deg'][1]:+.2f} deg across (sd "
+                      f"{np.round(fit['axis_turn_sd_deg'], 2)})")
+            else:
+                print(f"register (probe): pad touches {fit['rms_pad_mm']:.3f} mm rms ({fit['n_pad']}){walls}; the seat's pad "
+                      f"stands {fit['seat_change_mm_deg'][0]:.3f} mm, {fit['seat_change_mm_deg'][1]:.3f} deg from its CAD (the "
+                      f"turn about z_P {math.degrees(fit['x'][2]):+.3f} deg, sd {math.degrees(fit['sd'][2]):.3f}); the sphere's "
+                      f"centre {fit['probe_change_mm']:.3f} mm, at {np.round(fit['c_M'], 3)} in M (sd "
+                      f"{np.round(fit['sd'][6:9], 3)} mm)")
             self.save_reg()
             self.log.event(event="fit", id="register_probe", rec=fit)
             return

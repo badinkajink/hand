@@ -2430,6 +2430,27 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   warns. It stopped only that command and a simulation. Since then sessions are stopped by explicit PIDs and relaunched
   from script files.
 
+- The 2 mm sphere's plans simulated chained at the real speeds, seats 1, 2 and 3 from fast1's end: pass 1 20 of 20 on
+  each (0.035, 0.027 and 0.037 mm rms) and 260, 269 and 271 of 260, 269 and 271 presses, no abort. The workstation's
+  replay as pushed: 0 of 860 travels flagged.
+- The rod in the program (installed 10:4x; gated on geometry.probe.kind == "rod"):
+  - Geometry reads axis_M and half_len, and samples the pad's surface densely (vertices, centroids, edge midpoints).
+    line_distance gives the surface's least distance from the rod's axis within half_len.
+  - register fits the rod with fit_rod_registration. That fits the pad's T_AP about the seed (prior as the spheres'),
+    the rod's axis point across the axis (2, prior 1 mm) and the axis' turn about z_M and across (priors 4 and 2 deg).
+  - The simulator's probe contact uses the distance to the rod's axis within half_len, and the walls are skipped for a
+    rod.
+  - `probe_seed_session.py` seeds the rod's session from the 2 mm sphere's session of the same seat: its registration,
+    c_M set to the rod's, the homing marked done. The run resumes the seed with stages preflight,pad,register,grid.
+- A seed alone does not fit the rod. With the pad held at the 2 mm sphere's fit and only the rod's place fitted, the
+  simulator's rod touches gave 0.12 mm rms. Under the simulator's true geometry the same touches agree to 0.05 mm. A
+  sphere's touches leave the mount's error on the flange (0.8 mm and 0.9 deg in the simulator) in T_AP, which suits the
+  sphere's centre but not the rod's line: the seeded pad stood 1.6 mm and 0.7 deg off. With the pad fitted again with the
+  rod, the same touches give 0.015 mm rms, and the pad comes within 0.3 mm and 0.5 deg.
+- Seat 1's rod session in the simulator: pass 1 20 of 20 (0.015 mm rms), the grid 177 of 177, no abort. A 2 mm sphere
+  session prints line for line the same with the rod code as without it. The converter takes tool "rod": the pass 1
+  from the rod-across actions, safe_mm and retract_mm from the seat plan (the rod's 40 and 12; the spheres keep 15).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

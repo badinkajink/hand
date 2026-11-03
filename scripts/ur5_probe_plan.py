@@ -246,6 +246,8 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
                  ws_kind=a["kind"], theta=a["theta"], azimuth=a["azimuth"], q_rest=a["q_rest"], travel_ws=w)
         if lift is not None:
             x["homing_lift_mm"] = lift
+        if tool == "rod":                                      # the rod's turn about n from the tip's axis (R_PM has it)
+            x["rod_deg"] = float(a["rod_deg"])
         if a["kind"] != "twist":
             acts.append(x)
             continue
@@ -261,6 +263,8 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
     if worst > 0.01:
         raise SystemExit(f"the rest poses from the directions in P stand {worst:.3f} mm off the replay's")
     presses = [a for a in acts if a["kind"] == "press"]
+    if tool == "rod":                                          # the rod's pass 1: touches with the rod across the tip, on
+        presses = [a for a in presses if abs(a["rod_deg"] - 90.0) < 1e-6]    # the face and the edges (the workstation)
     J, G = jacobians(presses, T_BA, T_AP, T_EM, c_M, R, geo0)
     p1, sd1, miss1, H1, M1 = pass1_ids(presses, n_pass1, J, G)
     p1 = set(p1)
@@ -323,7 +327,8 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
         geometry=geo,
         homing=dict(repeats=3, key=key),
         travel=dict(speed=1.0, fast_v=0.005, slow_mm_touch=2.5, slow_mm_press=0.5, turn_v=0.004,   # 0.23 deg/s at 0.30
-                    probe=dict(retract_mm=RIG.RETRACT, safe_mm=RIG.SAFE, hub=hub,
+                    probe=dict(retract_mm=float(ws.get("retract_mm", RIG.RETRACT)), safe_mm=float(ws.get("safe_mm", RIG.SAFE)),
+                               hub=hub,
                                note="the replay's travel_options: straight (back retract_mm along the stem, across, in), "
                                     "joint (back safe_mm, a joint move, in), hub (back safe_mm, joint moves by way of "
                                     "the hub, in); from the homing out of the key along -x_M by homing_lift_mm first",

@@ -328,6 +328,9 @@ class World:
             T_PI = T_PB @ Tf @ self.T_EM                               # the probe's mount in P (the indenter's frame)
             c = C.apply(T_PI, self.c_M)
             r = X - c
+            if g.kind == "rod":                                        # a rod probe (11-03): the distance to its axis
+                a = T_PI[:3, :3] @ g.axis_M
+                r = r - (r @ a)[:, None] * a[None]
             self.o_P, self.Cw = self.hex_in_P(T_PB @ Tf)
         elif g.kind == "sphere":
             c = C.apply(T_PB, self.c_B)
@@ -341,9 +344,9 @@ class World:
         gap = dist - g.R
         nh = r / dist[:, None]
         cand = np.nonzero((gap < 0.6) & (np.einsum("ij,ij->i", nh, self.N) < -0.2))[0]
-        if g.kind == "rod":
+        if g.kind == "rod":                                            # only the rod's length (tip mode: 20 mm)
             yl = (X - c) @ a
-            cand = cand[np.abs(yl[cand]) < 10.0]
+            cand = cand[np.abs(yl[cand]) < (g.half_len if self.probe else 10.0)]
         if len(cand) == 0 or gap[cand].min() >= 0:
             self.F, self.Fidx, self.wrench_P = np.zeros((0, 3)), np.zeros(0, int), np.zeros(6)
             self.truth_row = np.zeros(12)
@@ -351,7 +354,7 @@ class World:
             self.cache = (key,)
             if g.kind == "sphere" and not self.probe:
                 self.face_contact(T_PB)
-            elif self.probe and self.walls:
+            elif self.probe and self.walls and g.kind != "rod":
                 self.wall_contact(c)
             return
         if not self.probe:
