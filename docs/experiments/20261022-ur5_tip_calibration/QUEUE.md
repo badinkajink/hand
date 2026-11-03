@@ -1548,10 +1548,10 @@ push that answers it arrives.
   construct a cone of approach/pressing/angle, more or less matching the friction cone of contact ... up to some
   specified force ... twists/rotations about this vector, as well as linear slides/shears ... N vectors x M force
   magnitudes (cone height) x T twists x S slides"). A sweep of the friction cone at each pad point, inside one contact,
-  takes about 2.1 min a point at today's in-contact speeds, without twists. A seat's 66 points then take about 2.3 h,
+  takes about 2.0 min a point at today's in-contact speeds, without twists. A seat's 66 points then take about 2.2 h,
   against 2.1 h for today's 260 presses. With presses and slides at 0.6 mm/s, which the speed sets of 11-03 support, a
-  point takes about 1.6 min and a seat 1.7 h. Each point gives 64 pairs of force level and direction (4 levels, 8
-  azimuths at 2 offsets) and 4 slides. Today a point gets about 14 holds on average (260 presses at 3 or 4 levels over 66
+  point takes about 1.4 min and a seat 1.6 h. Each point gives 56 pairs of force level and direction (8 azimuths at
+  one offset at 0.5 N and at two offsets at 1, 2 and 3 N) and 4 slides. Today a point gets about 14 holds on average (260 presses at 3 or 4 levels over 66
   points).
   - Terms. The friction cone at a point is the set of force directions that the contact takes without sliding. It lies
     within atan(mu) of the normal: 20 to 24 deg for the friction coefficient mu of 0.37 to 0.44 (PLA sphere on the 85A
@@ -1578,7 +1578,8 @@ push that answers it arrives.
     CB3.
   - Time per point: travel 8.7 s, tare 0.5 s, approach 1.4 s, press with holds 12.9 s, offsets 58 s (4 levels of 16
     steps at about 0.9 s, by way of the centre), slides 40 s (4 of about 10 s at today's speed), return and rest
-    4.7 s: 126 s.
+    4.7 s: 126 s. No offset is under 0.06 mm, twice the arm's settling error (1e1020ec), so 0.5 N keeps its outer
+    ring alone (0.087 mm with the 2 mm sphere): 8 steps fewer, 119 s.
   - Twists. A probe twist turns at 0.26 deg/s today (travel.turn_v 0.004 under the 0.30 slider). A +-15 deg twist with
     its turn back then takes about 2 min (s1v6b's probe-edge-576-t-15: 144 s for the action). The HEX-E's torque (1 N
     mm steps, 1 to 2 N mm noise) does not resolve the sphere's spin torque (0.4 to 1.7 N mm at 1 to 2.5 N). So the
@@ -1596,8 +1597,8 @@ push that answers it arrives.
     the point (as t_rest0 and t_rest1 now). The pad is viscoelastic, so the moving samples read a dynamic stiffness; the
     0.6 s holds tie them to the static ones. A slide leaves stored shear after its return, so the offsets come before
     the slides.
-  - Faster, each with the owner's go. Presses and slides at 0.6 mm/s (fast3's press speed) take a point to 93 s and a
-    seat to 1.7 h. The speed sets of 11-03 support it (lab 3c849789: 144 presses, 12 points a seat at 0.05, 0.15, 0.6
+  - Faster, each with the owner's go. Presses and slides at 0.6 mm/s (fast3's press speed) take a point to 86 s and a
+    seat to 1.6 h. The speed sets of 11-03 support it (lab 3c849789: 144 presses, 12 points a seat at 0.05, 0.15, 0.6
     and 1.2 mm/s). The board's change at a hold follows the realized push, as push^1.03, within 2 % of the relation at
     0.15 mm/s. Its direction agrees to a median cosine of 0.999, and to 18 deg at the worst point. The holds land 0.85
     N over their level at 0.6 mm/s, so the analysis takes the realized push. The return to the rest stays at 0.6
