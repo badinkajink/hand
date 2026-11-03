@@ -1,0 +1,5 @@
+# The night's rod run (the owner's go of 16:3x; "ok it's on there godspeed go", 16:5x): the workstation's 8 N sweep plans
+# of 4d135caf with the slides at 0.3 mm/s (lab copies), seats 2, 3, 1 as the workstation replayed them chained
+seed 2 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_sweep8.json logs/20261103-tip_calibration/144808-s2sph2
+seed 3 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat3_v3id4_sweep8.json logs/20261102-tip_calibration/220337-s3v4
+seed 1 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat1_v3id6_sweep8.json logs/20261103-tip_calibration/122020-s1sph2b
