@@ -1103,7 +1103,17 @@ push that answers it arrives.
     a press's 29.3 s. With the speed slider at 0.30 the travel's moves run at 6 mm/s back and across and 3 mm/s in, so
     most of its 8.7 s is motion (12:19 correction; 11:24 had 0.9 s from leaving the slider out).
     The rod's program plans converted again on that (fe4e1914) replay clean, chained 3, 2, 1 after the 2 mm sphere's
-    seat 3 (bb79d68e): none of 587 travels flagged. The restart waits for the owner's look at v3 ID 6 and his go.
+    seat 3 (bb79d68e): none of 587 travels flagged.
+  - 12:1x to 12:25 on 11-03, owner, lab (4f54fc80) and workstation (6e53dc57): the owner looked at v3 ID 6 ("the 2mm
+    radius sphere is not damaged or contacting anything. it is almost grazing the flank of the the fingertip. you have
+    the goahead to contnue, although ive asked the lab session to see if we can speed up these fingertip calibrations
+    on these passes"). The restart chain began at 12:20:20 with seat 1 on its plan as checked. Seats 2 and 3 and the
+    rod follow on quick plans: retract 6 mm and the travel's in-move at 6 mm/s, twice today's (in_v 0.02 with the
+    slider at 0.30). They differ from the checked plans only in those two fields, and the plans replay clean at
+    retract 6 (none of 858 and 587 travels flagged). They save about 4 s of a press's 29 s. The return to the rest
+    after a press stays at 0.6 mm/s, because the analysis zeroes the board and the HEX-E on the rest after it
+    (t_rest1). A faster return waits for a check of the pad's recovery on the 11-02 streams. The press speed stays at
+    0.15 mm/s: the effect of 0.6 mm/s (fast3) on the data is not analysed.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
     15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
     4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
