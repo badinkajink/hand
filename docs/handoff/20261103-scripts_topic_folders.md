@@ -11,16 +11,18 @@ worktrees: 754 files moved, 2,072 script imports resolve, 15 dangling references
 lists them), pytest identical in both layouts (302 passed, 43 failed, 43 skipped, 3 errors with LFS pointers), and no
 script that imported in the flat layout fails in the moved one. The tools and plan.json are in
 docs/notes/20261103-scripts_cleanup/. Nothing is switched yet.
-Next:
-1. Wait for the switch conditions: run `bash docs/notes/20261103-scripts_cleanup/wait_switch_conditions.sh 230` as a background command with `ap snooze <job> 240 "waiting for the lab"`, rerun it when it gives up; when it exits 0, read the lab's STATE.md and wait again if a run is going or queued. If the lab is still not idle at 09:00 on 11-04, `ap step wait` with what it is doing.
-2. Switch per RUNBOOK "The switch": stop the crosstalk job and its watcher, `git pull --no-rebase`, run move_scripts.py, check_scripts.py (the 15 known problems only), the tests against a baseline of the same commit, one commit, push.
-3. After the push, per RUNBOOK: the bullet in the lab's STATE.md (commit, push), the crosstalk job's rule step and `ap arm docs/handoff/20261027-crosstalk_feed_poller.md --at now`, the memory file and its MEMORY.md line.
-4. src/morphohand/geometry/rotations.py with tests/test_geometry_rotations.py, per RUNBOOK "Shared math modules" (skip if a window has committed it; check git log).
-5. The other modules (geometry vectors, distances, sdf, mesh, sampling; numerics stats, signal, angles), each with its test against scipy or trimesh.
-6. Migrate the copies folder by folder per RUNBOOK "Migration", with the 1e-12 checks, one commit per folder; not src/morphohand/driver/ and not the UR5 programs that move the robot.
-7. Fix the bugs in RUNBOOK's table, one commit each, naming the pages and runs whose numbers change; rebuild those pages locally and list them under "Publish pending".
-8. tests/test_no_private_math.py with its allow-list, and the section in CLAUDE.md and AGENTS.md.
-9. Report in State: the commits, copies removed per folder, bugs fixed; regenerate scripts/README.md (scripts/docs/scripts_map.py); disarm.
+<!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
+Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
+- [ ] 1. Wait for the switch conditions: run `bash docs/notes/20261103-scripts_cleanup/wait_switch_conditions.sh 230` as a background command with `ap snooze <job> 240 "waiting for the lab"`, rerun it when it gives up; when it exits 0, read the lab's STATE.md and wait again if a run is going or queued. If the lab is still not idle at 09:00 on 11-04, `ap step wait` with what it is doing.
+- [ ] 2. Switch per RUNBOOK "The switch": stop the crosstalk job and its watcher, `git pull --no-rebase`, run move_scripts.py, check_scripts.py (the 15 known problems only), the tests against a baseline of the same commit, one commit, push.
+- [ ] 3. After the push, per RUNBOOK: the bullet in the lab's STATE.md (commit, push), the crosstalk job's rule step and `ap arm docs/handoff/20261027-crosstalk_feed_poller.md --at now`, the memory file and its MEMORY.md line.
+- [ ] 4. src/morphohand/geometry/rotations.py with tests/test_geometry_rotations.py, per RUNBOOK "Shared math modules" (skip if a window has committed it; check git log).
+- [ ] 5. The other modules (geometry vectors, distances, sdf, mesh, sampling; numerics stats, signal, angles), each with its test against scipy or trimesh.
+- [ ] 6. Migrate the copies folder by folder per RUNBOOK "Migration", with the 1e-12 checks, one commit per folder; not src/morphohand/driver/ and not the UR5 programs that move the robot.
+- [ ] 7. Fix the bugs in RUNBOOK's table, one commit each, naming the pages and runs whose numbers change; rebuild those pages locally and list them under "Publish pending".
+- [ ] 8. tests/test_no_private_math.py with its allow-list, and the section in CLAUDE.md and AGENTS.md.
+- [ ] 9. Report in State: the commits, copies removed per folder, bugs fixed; regenerate scripts/README.md (scripts/docs/scripts_map.py); disarm.
+<!-- /ap:steps -->
 Claimed: during step 2 every file under scripts/; after it, the folder being migrated; src/morphohand/geometry/,
 src/morphohand/numerics/, tests/test_geometry_*.py, tests/test_numerics_*.py, tests/test_no_private_math.py,
 docs/notes/20261103-scripts_cleanup/, scripts/README.md, and the scripts and math lines of README.md, CLAUDE.md, AGENTS.md.
