@@ -1134,6 +1134,11 @@ push that answers it arrives.
     seat 3. The lab's /dev/shm filled with its simulation sessions at 14:02: the fast and sweep simulations and the
     time-lapse stopped (ENOSPC), and the time-lapse restarted at 14:24, so it has no frames from 14:02 to 14:24. Seat 1
     writes to the disk and ran on (212 of 260 at 14:26).
+  - 14:49 on 11-03, lab (9f18c4f8): seat 1 (s1sph2b) ended at 14:48:02 with exit 0. Pass 1 landed 19 of 19 (0.060 mm
+    rms) and the grid 260 of 260, with no early contact, no press without a level and no abort. Of the 260 presses, 40
+    stopped at their depth below their top level: 26 at 1 N of 2 at 1.0 mm, 13 more at 1.25 to 1.75 mm, and 1 at 0.5
+    N of 2. They were 28 flank, 11 edge and 1 tip-end presses, and 26 of them obliques at 35 deg. Seat 2 started at
+    14:48:07 on _quick_neck_fast, with depths raised on 170 presses.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
     15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
     4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
