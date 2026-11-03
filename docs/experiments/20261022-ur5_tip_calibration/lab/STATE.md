@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 08:31 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 10:17 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -162,10 +162,18 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 - Done overnight: night3 on seat 3 (06:36 to 08:31), 232 of 232 with no abort. So the three seats' main runs, speed
   sets and night obliques all ran without one abort: 60 touch-offs, 883 grid actions, 144 speed presses and 695
   night presses.
-- Running since 08:31: fast3, the fallback (the grid's 263 presses at 0.6 mm/s) on seat 3's session, to about 10:20,
-  printout `logs/20261103-083111-tipcal-fast3.log`; then fast2 and fast1 (to about 14:00). To stop after the run in
-  progress: kill the chain's PID 2658916. To stop now: Ctrl-C in tmux `tipcal` stops the robot (stopL) and closes the
-  files.
+- Done: fast3 on seat 3 (08:31 to 10:07), 263 of 263 with no abort.
+- Stopped: fast2 on seat 2 at 10:16:40 after 25 of 264 (SIGINT by PID between presses, the program's Ctrl-C), with
+  fast1, because the owner (relayed by the workstation, 10:1x) means to put the 2 mm sphere on after fast3. The chain
+  then stopped itself.
+- **Now: the robot is idle over seat 2** (flange z_B 237 mm; joints 53.2, -79.3, 108.3, -120.8, -87.0, -2.0 deg), sphere5
+  on, no program running.
+- Next, on the owner's swap to the 2 mm sphere and his go in the lab's session: the 2 mm sphere's plans
+  (`20261103-plan_probe_table_sphere2_seat*`, a new session per seat with its own pass 1, `--frame` the pad-fitted frame
+  `../../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`), simulated and replayed clean. About 2.3 h
+  a seat. Then the rod (`20261103-plan_probe_table_rod_seat*`, about 17:00, the owner swaps), each seat's session
+  seeded from its 2 mm sphere session (`probe_seed_session.py`); the program's rod fit is in `logs/rodwork` until it fits
+  as well as the spheres in the simulator.
 - Armed (16:10): `logs/20261102-chain_seats23.sh` (copy here, PID 2658916, its log `logs/20261102-chain_seats23.log`)
   started seat 2 (v3 ID 5) at 18:27, to about 22:05; then seat 3 (v3 ID 4), about 22:05 to 01:45
   (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`: safe_mm 15, hubs 40 mm over the apex). Both

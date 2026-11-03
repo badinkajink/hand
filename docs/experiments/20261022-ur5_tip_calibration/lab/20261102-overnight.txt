@@ -6,5 +6,6 @@ night1 1 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_t
 night2 2 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_night_seat2_v3id5.json
 night3 3 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_night_seat3_v3id4.json
 fast3 3 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_fast_seat3_v3id4.json
-fast2 2 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_fast_seat2_v3id5.json
-fast1 1 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_fast_seat1_v3id6.json
+# fast2 2 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_fast_seat2_v3id5.json
+# fast1 1 docs/experiments/20261022-ur5_tip_calibration/lab/20261102-plan_probe_table_fast_seat1_v3id6.json
+# 11-03 10:1x: fast2 and fast1 off the list (the owner, relayed: the 2 mm sphere goes on after fast3)

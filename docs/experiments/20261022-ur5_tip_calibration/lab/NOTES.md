@@ -2414,6 +2414,22 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - none aborted, and the HEX-E never timed out. Seat 1's reference press stood within 0.03 mm of 15:06's at 03:13.
 - fast3 (the fallback) started at 08:31. fast2 and fast1 follow, about 1.8 h each.
 
+- fast3 (the fallback on seat 3) ran 08:31 to 10:07:55, 263 of 263, no abort. The chain started fast2 at 10:07:57.
+- 11-03, 10:1x, the owner (relayed by the workstation): "yea, we can pop it on after the fast3 pas" (the 2 mm sphere).
+  So fast2 and fast1 came off the list, and fast2 was stopped at 10:16:40 after 25 of 264. The stop was a SIGINT to its
+  PID, the program's own Ctrl-C (stopL, files closed), sent 1.5 s after its next action began, while the robot backed
+  away from the pad. The chain then stopped (not clean, as designed). The arm holds over seat 2, the flange at z_B 237
+  mm.
+- The 2 mm sphere's plans (the workstation's 35bd1937, pad-fitted frame, no twists) are converted, simulated chained at
+  the real speeds and replayed clean. The rod's plans (a4b4f679: safe_mm 40, the hub 90 mm over the apex, the rod across
+  and along the tip) are converted. The program's rod support (geometry kind rod, the line distance, the rod's fit
+  across its axis with the pads seeded from the 2 mm sphere's session) is written in `logs/rodwork`. A sphere session
+  prints the same with it as before. In the simulator the rod's fit gives 0.12 mm rms against the spheres' 0.03, which
+  is not good enough yet.
+- A mistake at 10:10: a `kill` of PIDs from `pgrep -f` on a session name matched its own shell, as CLAUDE.md lesson 9
+  warns. It stopped only that command and a simulation. Since then sessions are stopped by explicit PIDs and relaunched
+  from script files.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
