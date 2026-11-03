@@ -1126,8 +1126,10 @@ push that answers it arrives.
     about 1.8 N. The lab's simulations of the patched plans ran clean (269 of 269 and 271 of 271, d716071e). The owner
     gave the go in the lab's session at 13:5x, and the chain switched at 13:52:41 (chain_sphere2d, 6fe2a926): seats 2
     and 3 run the _quick_neck plans after seat 1. By the lab's timing from s1sph2b (30.5 s a press), seat 1 ends about
-    14:45, seat 2 about 16:55 and seat 3 about 19:05. Grid presses at 0.6 mm/s (_quick_neck_fast, in simulation to
-    14:15) would end seat 3 about 18:15; they wait on the owner's go.
+    14:45, seat 2 about 16:55 and seat 3 about 19:05. The owner also gave the go for grid presses at 0.6 mm/s (13:5x),
+    which end seat 3 about 18:15. The _quick_neck_fast plans (0dfd61da) differ from _quick_neck only in v, 0.0005 to
+    0.002 on all 269 and 271 grid presses. Their simulations end about 14:50. The chain (chain_sphere2e, PID 2838758)
+    then starts each seat on the fast plan if both simulations passed, and on _quick_neck if not.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
     15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
     4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
