@@ -2637,6 +2637,68 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - s2sph2's pass 1 files (touches, registration, session and plan) are in `20261103-144808-s2sph2/`, for the
   workstation's joint fit of c_M.
 
+### The speed slider at 15:42, the sweep test stopped, and the night's rod run (from 16:00)
+
+- s2sph2 ended at 16:11:13 with exit 0: the grid 269 of 269, no early contact, miss or abort. 29 presses stopped short
+  of their top level, against seat 1's 40 of 260. The HEX-E gave 497,626 samples with none timed out. Copy, with
+  events and printout: `20261103-144808-s2sph2/`.
+- **The robot's speed slider went from 0.30 to about 0.50 between 15:42:11 and 15:42:25.** From
+  probe-edge-639-o20-a0 on, every move ran 1.67 times faster: the grid's 1 mm fast approach took 0.85 s, not 1.42 s,
+  and the press's slow approach ran about 1.0 mm/s, not 0.6.
+  - No program set it: the program sets the slider only at its start. None started then, and no one logged in. It was
+    most likely moved at the pendant (the owner asked).
+  - The sweep test's start set it back to 0.30 at 16:11:15. Its touches ran 2.5 mm in 2.41 s, as at 14:48.
+- How it showed, and how the lab first misread it:
+  - The program stops for a level about 0.9 s after the force crosses it, as it did all session. At the faster speed
+    each stop came about 0.45 mm deeper. The reference press's 0.5 N hold stood at 2.60 to 2.64 mm of travel from
+    ref-05 on, against 2.13 to 2.19 mm before.
+  - The 3 N presses peaked at 5 to 7.8 N (face-717 7.8 N), against 3.7 to 4.6 N before. The edge-639 family, the
+    first at the faster speed, peaked at 5.7 to 7.5 N.
+  - The lab read this at 16:0x as the sphere or the tip moving: a "step" of the reference press, with a stiffer end.
+    It changed the sweep test to a new session with its own pass 1 (chain_sweep2b,
+    `20261103-plan_probe_table_sphere2_seat2_v3id5_sweep_test_pass1.json`) and told the workstation so.
+  - The test's touches then found the pad where it was at 14:48: onsets within 0.07 mm on 10 touches, and the travel
+    from onset to stop unchanged (-0.017 +- 0.077 mm, as seat 1's two sessions).
+  - The force against travel at the reference point, smoothed over the HEX-E's 0.24 N noise, did not change either: 0.5
+    N at 1.93 to 1.97 mm of travel in every reference press. The tips and the sphere did not move.
+  - The HEX-E streamed at 100 Hz all session and the held board at 455 records/s, so neither caused it.
+- 16:1x, the owner, in the lab's session: "if you pause now i can check the seating".
+  - chain_sweep2b was stopped by its PID. The program was stopped by SIGINT to its PID at 16:17:26, right after
+    pad-edge-639-o35-a0's onset line (its return to the rest done): "interrupted: stopping the robot", exit 0 at
+    16:17:29.
+  - 10 of the 19 pass 1 touches had run. The arm stands over seat 2 at joints (55.4, -80.1, 109.2, -121.5, -87.9,
+    0.2) deg, TCP (-198.0, -487.0, 238.4) mm, with the HEX-E at its rest reading.
+- The owner's words, relayed by the workstation:
+  - 16:1x: "ok i just checked and confirmed that all were seated. it could be the deflectin of the small spehre
+    indenter. also, this is probably going to be the last calibration we do for a while, we're mounting the sr2 hand
+    after this. so thsi rod experiment better be good."
+  - 16:2x: "to be clear we can still do the rod experiments, just tmw the hand is going on. so i pray to god you get
+    as good information as we did ont he v3 ids 1-3 fingertips + the better coverage + angles i was hoping for with
+    the inverted rig".
+  - 16:3x: "ok i reenabled remote control. itll go on early tomorrow morning, but seems like you have time budget for
+    it + additional plans (that i preemptively give yo uthe go-ahead now on since ill be asleep) to improve
+    calibration".
+- The night's run, as the workstation proposed at 16:22: rod sweeps across and along the tip (rod_deg 90 and 0) on
+  all three seats, levels 0.5, 1, 2, 4 and 8 N, slides at 2 and 4 N, then twists. v3 ID 3's rod block 6 is the
+  standard: 70 presses (to 8 N), 24 slides, 4 rolls and 2 twists.
+- The program (d1b5ea6f):
+  - the speed slider is read before every action, and the run stops if it is off the plan's by over 0.02;
+  - a probe twist backs off to 0.5 mm behind its rest. It used to back off st + 0.5 mm from its stop, which left a
+    press that ran to its full depth on the pad (the workstation's finding of 15:3x).
+- In the simulator, on the rod seeded from seat 2's simulated rod session, at the real speeds:
+  - the rod sweep plans of c867f7d4 (3 N, rod across; three of seat 2's sweeps): whole at mu 0.45. At mu 1.0 the
+    ratio check skipped some 2 N slides.
+  - two 8 N sweeps (abort_N 12, ft_t_cap_N 6): whole at mu 0.45, with 64 of 64 offsets and 8 of 8 slides each, and
+    0.8 to 2.7 N across at 8 N. At mu 1.0 one was whole and one aborted on the 6 N cap (6.00 N across at 6.04 N
+    along). So the 8 N plans take ft_t_cap_N 10.
+  - a face and an edge twist (2.5 N; 5, 10, 15, 10 and 5 deg; turn_v 0.016): every turn ran, with peaks of 3.9 N
+    and 0.1 N m, and each ended 0.500 mm behind its rest.
+  - the 3 N rod sweep simulation of 16:08 on the new program prints line for line as before.
+- v3 ID 3's twists on the robot (rod-twist-019, at 2.5 and 5 N) took 86 s each at turn_v 0.016, and its rolls 69 s.
+- Corrections: the commit 05a5ea2e is stamped 16:06 but was made at 16:04, and the lab's message to the workstation
+  stamped 16:36 was sent at 16:34. The lab's message of 16:27 went to the wrong session (the workstation's had
+  restarted); the answers went into STATE (3efa4802) and again to the workstation's new session.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
