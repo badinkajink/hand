@@ -1114,6 +1114,17 @@ push that answers it arrives.
     after a press stays at 0.6 mm/s, because the analysis zeroes the board and the HEX-E on the rest after it
     (t_rest1). A faster return waits for a check of the pad's recovery on the 11-02 streams. The press speed stays at
     0.15 mm/s: the effect of 0.6 mm/s (fast3) on the data is not analysed.
+  - 13:0x to 13:15 on 11-03, lab and workstation (840f40da): the stem's 1.0 mm need to the pad capped the 2 mm
+    sphere's presses on the flanks, the tip's end and some edges at 1.0 mm (113 a seat). There the stem leans 40 to 60
+    deg from the pad's normal. The neck, where it leaves the sphere, came within 0.76 to 0.98 mm of the undeformed pad
+    at 1.25 mm. In s1sph2b, 13 of the first 72 grid presses stopped at that depth at 1 N of 2. Twelve of them were
+    flank obliques at 35 deg. Now the neck (the stem within 4 mm of the sphere's centre) keeps 0.5 mm from its own pad
+    in a press, and 1.0 mm from every rigid part. Seats 2 and 3 then go deeper on 170 and 169 presses. Most flank
+    presses go from 1.0 to 1.5 mm (63 a seat) or to 1.75 mm (17 to 20). No press comes nearer the tip's body than 0.53
+    mm. The lab's quick plans patched with those depths replay with no new flag: 288 and 291 actions, with 0 and 1
+    flagged (the seat 3 flag of every earlier replay). If the force goes as depth^1.5 from 1 N at 1.0 mm, 1.5 mm gives
+    about 1.8 N. The patch waits on the owner's go in the lab's session by 13:50; without it seats 2 and 3 run as
+    checked.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
     15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
     4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
