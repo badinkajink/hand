@@ -39,6 +39,7 @@ L = dict(
     xt=EXP / "20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html",
     overview=ROOT / "docs/overviews/printed_fingertips.html",
     contact=ROOT / "docs/overviews/contact_model.html",
+    v3contact=EXP / "20261030-v3_tip_contact_model/20261030-v3_fingertip_contact_models.html",
 )
 
 

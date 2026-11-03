@@ -488,8 +488,12 @@ def sections(N, F, P, link, L):
         f"closer to the magnets than v3 ID 1's, and its strength is "
         f"{100 * (ft['v3id3']['k'] / ft['v3id1']['k'] - 1):.0f} % higher. Under five folds, the fitted model's location "
         f"error over all holds is {ft['v3id3']['cv']['all']['loc_mm']:.2f} mm, and untrained "
-        f"{ft['v3id3']['untrained']['all']['loc_mm']:.2f} mm. Its holds are from the UR5 coordinator's analysis of "
-        "10-30 in " + P.code("logs/20261030-spherev3id3/") + ", which is not in git.</p>"
+        f"{ft['v3id3']['untrained']['all']['loc_mm']:.2f} mm. Its holds were made on 10-30 for the "
+        + link(L["v3contact"], "v3 contact-model page") + " (its Section 2). Copies of the lab computer's session "
+        "folders were analysed with " + P.code("scripts/ur5_tip_calibration_analysis.py") + " and the options of v3 "
+        "ID 1 and ID 2 (" + P.code("--case four_05R4 --gravity-from lab/20261022-195420-first2") + "). The holds are "
+        "in " + P.code("logs/20261030-spherev3id3/") + ", which is not in git. The UR5 coordinator's data curve of 11-02 "
+        "is trained on the same holds (" + cal + ", Section 14).</p>"
         + P.table(["Tip, magnets", "Board offset (mm)", "Strength at rest, board held there", "Compliance scale $c$",
                    "Location error, untrained, 0–1 / 1–2 / 2–3.5 / 3.5–8 N (mm)",
                    "Normal force error, untrained, same bins (%)", "Location error, all holds, untrained / fitted (mm)"],
