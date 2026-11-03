@@ -2514,6 +2514,42 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - the depth is lowered on 11 presses a seat, where the rod came within 0.4 mm of the body;
   - the workstation's replay (bb79d68e) flags none of 587 travels.
 
+### The restart, s1sph2b, and quicker travels
+
+- 12:1x, the owner, in the lab's session: "currently, the 2mm radius sphere is not damaged or contacting anything. it
+  is almost grazing the flank of the the fingertip. you have the goahead to contnue, although ive asked the lab session
+  to see if we can speed up these fingertip calibrations on these passes".
+  - Under s1sph2's good 19-touch fit, the sphere stood 0.6 mm from the pad at the stop pose.
+  - Backing along the stem opens the gap steadily: 1.18 mm after 1 mm back, 12.4 mm after 15 mm.
+- 12:20:20: `logs/20261103-chain_sphere2b.sh` started seat 1 as s1sph2b, a new session on the _no349 plan.
+  - The first travel backed off 15 mm along the stem, went by the hub and came in to pad-ref-00 (-0.588 mm).
+  - Pass 1: 19 of 19, 0.060 mm rms, none left out. The pad stands 1.806 mm and 1.960 deg from its CAD, and c_M is at
+    (-0.15, 0.03, 117.21) mm.
+  - The 19 touches stand within 0.135 mm of s1sph2's (mean -0.014 mm, rms 0.068 mm). Both edge-639 obliques came
+    0.13 mm earlier and edge-666 0.11 mm later.
+  - The pad's fit moved 0.27 mm and 0.6 deg from the morning's 19-touch refit. The tip may have turned slightly in its
+    seat, in the incident or in the owner's look.
+- Two flank obliques with max_depth_mm 1.0 (probe-flank-430-o35-a0, probe-flank-438-o35-a90) stop at 1 N: the 2 mm
+  sphere reaches its depth there before 2 N (reached_max). The simulator and the 5 mm sphere reached 2 N on them.
+- The speed-up (the workstation's timing at the 0.30 slider, 12:19): a straight travel moves at 6 mm/s back and across
+  and 3 mm/s in, and the return to the rest at 0.6 mm/s.
+  - The quick plans set travel.probe.retract_mm 6 (was 12) and travel.probe.in_v 0.02 (the in-move at 6 mm/s), for
+    about 4 s a press, or 20 min a seat. They are `20261103-plan_probe_table_sphere2_seat{2,3}_v3id{5,4}_quick.json` and
+    `20261103-plan_probe_table_rod_seat{1,2,3}_v3id{6,5,4}_quick.json` (4f54fc80).
+  - The program reads in_v and travel.back_v, with defaults as before (6d0a05ef).
+  - The return to the rest stays at 0.6 mm/s. The analysis interpolates the HEX-E's and the board's zeros between
+    t_rest0 and t_rest1, and a quicker return would start t_rest1 sooner after release (the workstation, 12:21). Before
+    any change, a check of the board across t_rest1 in the 11-02 streams.
+  - The workstation's --retract 6 replays of today's exact plans (6e53dc57) flag none of 858 and 587 travels, with the
+    same own-press flags. The quick plans differ from them only in retract_mm and in_v.
+  - Simulated at the real speeds: seats 2 and 3 269 of 269 and 271 of 271 (0.033 and 0.032 mm rms), and the rod's
+    three seats 177, 176 and 173 of the same (0.017 to 0.021 mm rms). No early contact, miss or abort.
+- 12:58:17: `logs/20261103-chain_sphere2c.sh` took over from chain_sphere2b, which was stopped by its PID while s1sph2b
+  ran on. It waits for s1sph2b's end, then runs seats 2 and 3 on the quick plans.
+- The lab's second monitor of the run also printed nothing at first. corvus's `awk` is mawk, which reads a pipe in
+  blocks, so fflush alone did not help; `awk -W interactive` does. The lab now tries each monitor's pipe on the log for
+  5 s before arming it.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
