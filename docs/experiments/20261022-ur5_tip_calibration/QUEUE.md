@@ -1629,6 +1629,13 @@ push that answers it arrives.
     along plus 0.5 N, and 0.5 N keeps one ring at 0.06 mm (69734875). The lab's test plan (cf1e200f, no pass 1, a seed
     of s3sph2's registration) replays with 0 of 12 flagged, its first travel by the hub. The code goes into the program
     only after seat 3 has started, and the test waits on the owner's go.
+  - 14:38 on 11-03, lab (4d21a74c): with the 0.06 mm ring at 0.5 N, the 3.0 N cap and the friction check, the test plan
+    runs 12 of 12 in the simulator at mu 0.45 and at mu 1.0. At mu 0.45 every sweep ran whole: 56 offsets and 4 slides
+    in 116 to 118 s. At mu 1.0, face-717's first slide tripped the friction check. A trip on an offset or a slide now
+    skips the rest of that level's moves, and the cap and the load limits still abort. The plan differs from cf1e200f
+    only by that patch and replays with 0 of 12 flagged. The sweep code goes into the program after seat 3 starts, once
+    it reruns seat 3's quick plan line for line in the simulator. The test, about 22 min after seat 3, waits on the
+    owner's go.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
