@@ -11,7 +11,11 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 11-03 13:5x: the watcher woke at 13:17 on feed lines 46-47
+State: armed 2026-10-27 21:00 from the colorado window. 11-03 15:0x: feed line 49 (14:49: the 2 mm sphere's seat 1
+done 260/260 at 14:48, no abort, 40 at their depth limit; seat 2 from 14:48 at 0.6 mm/s; the cone test passed the lab's
+simulator) on the calibration page 0579fbff (rig item and cone item; prose 620, 16.8, 1.9 %, 271/1000). Acked 49 lines
+at HEAD 0579fbff.
+11-03 13:5x: the watcher woke at 13:17 on feed lines 46-47
 (13:15 the 2 mm sphere's depth cap and neck rule; 13:33 the owner's cone sweep, QUEUE R32); line 48 (13:53, the owner's
 go for the deeper flank presses at 13:52) came while they were handled. Calibration page 25acc521 and e64c081b: the rig
 item takes the speed sets' summary (lab/20261103-speed_set_summary.json: holds +0.24/+0.85/+1.73 N at 0.15/0.6/1.2 mm/s,
