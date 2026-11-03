@@ -1544,7 +1544,7 @@ push that answers it arrives.
     GP places the contact 0.26 and 0.28 mm from the registered point and errs 5.0 and 5.1 % in force (five folds
     grouped by action); under 1 N 0.59 and 0.75 mm, 10.8 and 9.4 %.
 
-- R32 (draft, 13:2x on 11-03, revised at 13:3x with the lab's answers of 13:24; owner, 12:4x: "per point, we can
+- R32 (draft, 13:21 on 11-03, revised at 13:24 with the lab's answers of 13:24; owner, 12:4x: "per point, we can
   construct a cone of approach/pressing/angle, more or less matching the friction cone of contact ... up to some
   specified force ... twists/rotations about this vector, as well as linear slides/shears ... N vectors x M force
   magnitudes (cone height) x T twists x S slides"). A sweep of the friction cone at each pad point, inside one contact,
