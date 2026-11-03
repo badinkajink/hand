@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 16:06 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 16:28 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -216,36 +216,45 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   - The owner, 13:5x in the lab's session: "Yes go on the faster presses too".
   - **Done: seat 1 (s1sph2b), 12:20 to 14:48:02.** Pass 1 19 of 19 (0.060 mm rms), the grid 260 of 260, no early
     contact, miss or abort (`20261103-122020-s1sph2b/`). 40 presses stopped at their depth below their top level.
-  - **Now (from 14:48:07): seat 2 (s2sph2, v3 ID 5) on `..._seat2_v3id5_quick_neck_fast.json`**, to about 16:15.
-    - Pass 1: 19 of 19 at 0.053 mm rms. The grid's fast presses take about 17 s.
-    - **Seat 2's contact stepped at 15:42.** The reference press (the same point every ~25 presses) reached 0.5 N at
-      2.13 to 2.19 mm of travel up to ref-04 (15:35), and at 2.60 to 2.64 mm from ref-05 (15:43:39) on, still
-      creeping. Its curve is stiffer at 3 N: 2 to 3 N now takes 0.17 to 0.24 mm (was 0.42). s1sph2b's 11 refs held
-      1.86 to 1.97 mm all session.
-    - The step came with the edge-639 family (15:42:11 to 15:43:26, the neck rule's max_depth 2.0 at 0.6 mm/s). They
-      peaked at 5.7 to 7.5 N; every press before peaked at 3.7 to 4.6 N. Since then normal presses peak at 5 to 7.8 N,
-      under the press abort of 10 N.
-    - So the sphere moved on its neck, or seat 2's tip moved in its seat. The grid presses can't tell which, since the
-      tool keeps one orientation in P. The program loads no changed code mid-run.
-    - Of the 146 ids pressed on both seats by 15:48, 32 stopped short of their top level on seat 1 and 8 on seat 2.
-  - **Next: the sweep test on seat 2 as a new session with its own pass 1**, in place of seat 3's 2 mm grid. The owner,
-    15:4x: "relays count yes, we can go on the sweep test after 16:37 since i doubt we're getting very good info right
-    now".
-    - Run by `logs/20261103-chain_sweep2b.sh` (copy here; PID 2851870 from 16:00:14; its log
-      `logs/20261103-chain_sweep2b.log`). It waits for s2sph2's end, resuming it after a HEX-E loss.
-    - The plan is `20261103-plan_probe_table_sphere2_seat2_v3id5_sweep_test_pass1.json`. It holds s2sph2's 19 touches
-      as they ran at 14:48, then the 12 grid actions (10 face sweeps between two reference presses) as the workstation
-      replayed them.
-    - Stages preflight,homing,pad,register,grid: about 35 min, to about 16:50. The register stops the session before
-      the grid if its fit is over 0.15 mm rms.
-    - chain_sweep2, which would have run the test on a seed of s2sph2's fit, was stopped by its PID at 16:00:12.
-    - The sweep action is in the program from a2f44c8f. `sweep_test_summary.py SESSION OUT.json` summarizes the test:
-      the push along and across the pad at each offset, and each slide's friction ratio.
-    - Then the arm waits over seat 2 for the owner's swap to the rod.
-  - For the owner at the swap: look at the 2 mm sphere on its neck, and at seat 2's tip near edge 639.
-    - A 3 min check, if the owner says go: two of seat 1's reference presses on a seed of s1sph2b.
-    - If they show the +0.45 mm, the sphere moved. If they match s1sph2b's, seat 2's tip moved, and needs reseating
-      before the rod presses it.
+  - **Done: seat 2 (s2sph2, v3 ID 5) on `..._seat2_v3id5_quick_neck_fast.json`, 14:48:07 to 16:11:13.** Pass 1 19 of
+    19 (0.053 mm rms), the grid 269 of 269, no early contact, miss or abort; 29 presses stopped short of their top level.
+    The HEX-E gave 497,626 samples with none timed out. Copy: `20261103-144808-s2sph2/`.
+    - **The speed slider went from 0.30 to about 0.50 between 15:42:11 and 15:42:25**, from probe-edge-639-o20-a0 on,
+      unseen until 16:2x. The 1 mm fast approach took 0.85 s, not 1.42 s, and the press about 1.0 mm/s, not 0.6.
+    - So the last 146 presses stopped about 0.45 mm deeper at each level (the reference press reached its 0.5 N hold at
+      2.60 mm, against 2.15), and the 3 N presses peaked at 5 to 7.8 N, against 3.7 to 4.6 N before.
+    - The force against travel at the reference point did not change, and the sweep test's touches found the pad within
+      0.07 mm of 14:48: the tip and the sphere did not move. No program sets the slider mid-run, so it was likely moved
+      at the pendant (the owner asked). The sweep test's start set it back to 0.30 at 16:11.
+    - The program now reads the slider before every action and stops if it is off the plan's (logs/sweepwork, in the
+      simulator; it goes in before the next robot run).
+  - **The sweep test on seat 2 (s2sweep), 16:11:15 to 16:17:29: stopped at the owner's word** ("if you pause now i can
+    check the seating"), after 10 of its 19 pass 1 touches. chain_sweep2b was stopped by its PID first, then the program
+    by SIGINT to its PID, right after a touch's return to its rest. The arm stands over seat 2: joints (55.4, -80.1,
+    109.2, -121.5, -87.9, 0.2) deg, TCP (-198.0, -487.0, 238.4) mm, the HEX-E at its rest reading. Nothing runs.
+    - The owner, 16:1x (relayed): "ok i just checked and confirmed that all were seated. it could be the deflectin of
+      the small spehre indenter. also, this is probably going to be the last calibration we do for a while, we're
+      mounting the sr2 hand after this. so thsi rod experiment better be good."
+    - The owner, 16:2x (relayed): "to be clear we can still do the rod experiments, just tmw the hand is going on. so i
+      pray to god you get as good information as we did ont he v3 ids 1-3 fingertips + the better coverage + angles i
+      was hoping for with the inverted rig".
+    - The lab recommends the rod now, without the 2 mm sphere's sweep test: the rod's first sweeps test the code.
+  - **Tonight's rod run** (the workstation's proposal of 16:22, in priority order): sweeps on all three seats with the rod
+    across and along (rod_deg 90 and 0), levels 0.5, 1, 2, 4 and 8 N, slides at 2 and 4 N, about 10 h; twists at about
+    8 points a seat; rolls only if written and checked tonight. The lab's answers (16:27; the workstation's session
+    could not be reached, so they are here):
+    - 8 N: yes. abort_N is a plan field (safety.abort_N, default 10): 12 for the 8 N plans; travel_abort_N 8 and
+      abort_Nm 1.5 stay. ft_t_cap_N 3.0 would abort 8 N offsets (0.45 x 8 N = 3.6 N across): about 6 in the 8 N plans.
+      The lab is simulating two 8 N sweeps of seat 2 at mu 0.45 and 1.0.
+    - Twists: yes, with the program's fix (the twist now backs off to 0.5 mm behind its rest; st + 0.5 from its stop
+      left a deep press on the pad) and a simulated face and edge twist. v3 ID 3's twists used turn_v 0.016 at 2.5 N,
+      5, 10, 15, 10, 5 deg (its 0.04 was for slides of under 1 deg): use 0.016. Check the turn poses for joint 6
+      (seat 1 reaches -61 deg; the cap is -65) and the rod's ends against the body.
+    - Rolls: not in the first chain. The lab can write a probe roll for the rod during the night; appended after the
+      sweeps if the workstation checks its poses.
+    - Presses at 0.15 mm/s (v 0.0005) at the 0.30 slider: agreed.
+    - The workstation's session of the day can no longer be messaged from here (its bridge address is stale). This
+      session is hand-e3 [27e636].
   - chain_sphere2e was stopped by its PID at 15:42 so that seat 3's 2 mm grid does not start. Seat 3 has no 2 mm sphere
     session today; its rod seed comes from its 5 mm sphere session s3v4 (the two-key frame and that fit's T_AP).
   - The rod tonight (the owner, relayed 15:3x: "sure, yes to all these suggestions. we can put the rod on hopefully
