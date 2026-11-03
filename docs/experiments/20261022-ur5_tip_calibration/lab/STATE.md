@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 10:17 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 10:53 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -172,8 +172,10 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   (`20261103-plan_probe_table_sphere2_seat*`, a new session per seat with its own pass 1, `--frame` the pad-fitted frame
   `../../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`), simulated and replayed clean. About 2.3 h
   a seat. Then the rod (`20261103-plan_probe_table_rod_seat*`, about 17:00, the owner swaps), each seat's session
-  seeded from its 2 mm sphere session (`probe_seed_session.py`); the program's rod fit is in `logs/rodwork` until it fits
-  as well as the spheres in the simulator.
+  seeded from its 2 mm sphere session (`probe_seed_session.py`). The rod code is installed (ce3a3f0b): in the simulator
+  its pass 1 fits to 0.013 to 0.022 mm rms on the three seats, and seat 1's grid ran 177 of 177. The workstation's
+  replay of the rod plans (from the end of the 2 mm sphere's seat 3, order 3, 2, 1) was due at about 11:00. The rod's
+  turn about the tool's axis stays unseen (sd about 3 deg), even with rod-along touches; it barely changes a contact.
 - Armed (16:10): `logs/20261102-chain_seats23.sh` (copy here, PID 2658916, its log `logs/20261102-chain_seats23.log`)
   started seat 2 (v3 ID 5) at 18:27, to about 22:05; then seat 3 (v3 ID 4), about 22:05 to 01:45
   (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`: safe_mm 15, hubs 40 mm over the apex). Both
