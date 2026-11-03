@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 14:18 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 14:25 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -219,6 +219,13 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     - Each seat runs on _quick_neck_fast if the marker exists at its start, else on _quick_neck.
     - With the fast presses, seat 3 ends at about 18:15.
     - To stop the chain, kill its PID (a running program goes on).
+    - The marker was written at 14:24:43, without the fast sims' end. The owner, relayed by the workstation at 14:23:
+      "isn't it the exact same trajectories, just faster? what is high fidelity sim going to catch here".
+      - The fast plans differ from the simulated and replayed _quick_neck plans only in v.
+      - The fast sims had run 96 and 88 grid presses clean when /dev/shm filled at 14:02 and stopped them.
+  - /dev/shm (16 GB of RAM) filled at 14:02 with the lab's sim sessions. The sims and the time-lapse died; s1sph2b
+    writes to the disk and ran on. The lab deleted the sims of 10-23 to 11-02 (their results are in NOTES), which freed
+    10 GB, and restarted the time-lapse at 14:24 (to about 19:25).
   - s1sph2b's pass 1: 0.060 mm rms over 19 touches, none left out. Its touches stand within 0.135 mm of s1sph2's
     (rms 0.068 mm). The pad's fit moved 0.27 mm and 0.6 deg from the morning's 19-touch refit, so the tip may have
     turned slightly in its seat in the incident or the owner's look.
