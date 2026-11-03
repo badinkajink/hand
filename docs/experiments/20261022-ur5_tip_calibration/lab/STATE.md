@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 14:25 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 14:49 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -211,8 +211,12 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   - From 13:52:41, `logs/20261103-chain_sphere2d.sh` waited to run seats 2 and 3 on `..._quick_neck.json`, with 170 and
     169 presses deeper (sims l_sph2_2 and l_sph2_3 clean). It was stopped by its PID at 14:17.
   - The owner, 13:5x in the lab's session: "Yes go on the faster presses too".
+  - **Done: seat 1 (s1sph2b), 12:20 to 14:48:02.** Pass 1 19 of 19 (0.060 mm rms), the grid 260 of 260, no early
+    contact, miss or abort (`20261103-122020-s1sph2b/`). 40 presses stopped at their depth below their top level.
+  - **Now (from 14:48:07): seat 2 (s2sph2, v3 ID 5) on `..._seat2_v3id5_quick_neck_fast.json`**, then seat 3. Seat 3
+    ends at about 18:20.
   - **Since 14:17:57: `logs/20261103-chain_sphere2e.sh`** (copy here; PID 2838758; its log
-    `logs/20261103-chain_sphere2e.log`). It waits for s1sph2b's end (about 14:45), then up to 20 min for the marker
+    `logs/20261103-chain_sphere2e.log`). It waited for s1sph2b's end, then for the marker
     `logs/20261103-ok-fast`.
     - The lab writes the marker once the sims of `..._quick_neck_fast.json` pass (n_sph2_2, n_sph2_3, at about 14:50).
       Those plans have the grid presses at v 0.002 (0.6 mm/s) and pass 1 as before.

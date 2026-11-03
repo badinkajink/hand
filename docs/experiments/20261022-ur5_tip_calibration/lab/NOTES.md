@@ -2550,6 +2550,51 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   blocks, so fflush alone did not help; `awk -W interactive` does. The lab now tries each monitor's pipe on the log for
   5 s before arming it.
 
+### Seat 1 done; the deeper and faster plans for seats 2 and 3
+
+- s1sph2b ended at 14:48:02 with exit 0. Pass 1 ran 19 of 19 (0.060 mm rms) and the grid 260 of 260, with no early
+  contact, no press without a level, and no abort. Copy: `20261103-122020-s1sph2b/`.
+  - The HEX-E gave 884,840 samples with none timed out. Its two gaps (1.0 and 0.7 s) came at the program's start, 12:20:20,
+    before any action, as at s1sph2's start.
+  - Grid presses took 30.5 s on average, and pass 1's touches 37.3 s.
+- 40 of the 260 grid presses stopped below their top level, at their depth (reached_max). Of these, 28 were flanks, 11
+  edges and 1 a tip end; 26 were o35, 10 o20 and 4 normal.
+  - 26 stopped at 1 N of 2 N with max_depth_mm 1.0, and 8 at 2 N of 3 N with 1.25.
+  - The workstation's neck rule (840f40da) deepens these presses on seats 2 and 3. The stem's points within 4 mm of the
+    sphere's centre keep 0.5 mm from their own pad, and the rest of the stem 1.0 mm from everything.
+- The owner's go in the lab's session: "yes please go" (13:5x) to the deeper flank presses, and "Yes go on the faster
+  presses too" (13:5x).
+  - The plans: `20261103-plan_probe_table_sphere2_seat{2,3}_v3id{5,4}_quick_neck_fast.json`. They are the quick plans
+    with 170 and 169 presses deeper, and the grid presses at v 0.002 (0.6 mm/s).
+  - The deeper plans' sims passed (l_sph2_2 and l_sph2_3, 269 and 271 of the same, clean).
+  - The fast sims (n_sph2_2 and n_sph2_3) had run 96 and 88 grid presses clean when /dev/shm filled at 14:02. The
+    owner, relayed at 14:23, said a change of speed alone needs no sim, so the gate (the marker
+    `logs/20261103-ok-fast`) was lifted at 14:24:43.
+  - The workstation's diff: the fast plans differ from the replayed _quick_neck plans only in v.
+- /dev/shm, 16 GB of corvus's 31 GB of RAM, filled at 14:02 with the lab's sim sessions and the time-lapse.
+  - The sims and the time-lapse died with ENOSPC. s1sph2b writes to the disk and ran on.
+  - The lab deleted the sim sessions of 10-23 to 11-02, whose results are above, freeing 10 GB. It restarted the
+    time-lapse at 14:24.
+- 14:48:07: chain_sphere2e started seat 2 (v3 ID 5) as s2sph2 on the fast plan. Its first touch, pad-ref-00, came
+  -0.543 mm from the expected.
+- The speed sets of 11-03 (3c849789, `speed_set_summary.py`, read on corvus at nice 19 beside s1sph2b):
+  - holds land +0.10, +0.24, +0.85 and +1.73 N over their level at 0.05, 0.15, 0.6 and 1.2 mm/s;
+  - the board's change follows the realized push, |board| ~ push^1.03 per point, every speed within about 2 % and
+    with a direction cosine of 0.999 median;
+  - t_rest1 starts 2.85 s after the release, and the board still drifts 1.6x its noise within it, so the return to
+    the rest stays at 0.6 mm/s.
+- The owner's cone sweep (QUEUE R32): the lab wrote the sweep action in `logs/sweepwork`, not yet in src.
+  - At each level stop the sphere steps to offsets on rings in the pad's tangent plane via the stopped pose, and slides
+    1 mm out and back at 2 N.
+  - A sideways push over ft_t_cap_N aborts. Over 1.2 x the push along + 0.5 N, it skips the rest of that level's
+    offsets or slides.
+  - The test plan, 10 face sweeps on seat 3, is `20261103-plan_probe_table_sphere2_seat3_v3id4_sweep_test.json`
+    (4d21a74c). It replays clean.
+  - In the simulator at mu 0.45, all 10 sweeps ran whole (56 offsets and 4 slides each, about 118 s). At mu 1.0, all 10
+    ran, with face-717's slides skipped.
+  - The simulator's probe contact has friction (Truth.mu, 1.0 by default), not normal-only as the lab had told the
+    workstation at 12:53.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
