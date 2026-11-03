@@ -1100,7 +1100,8 @@ push that answers it arrives.
     then keeps 20 touches a seat, each 3.14 mm or more from the body, and its depth is lowered on 11 presses a seat to
     keep 0.40 mm, where the rod came to 0.26 mm. A retract of 6 mm in place of 12 replays clean but saves only 0.9 s of a
     press's 29.3 s: a travel takes 8.56 s plus 0.15 s/mm, most of it waiting for the robot to settle after each move.
-    The restart waits for the owner's look at v3 ID 6 and his go.
+    The rod's program plans converted again on that (fe4e1914) replay clean, chained 3, 2, 1 after the 2 mm sphere's
+    seat 3 (bb79d68e): none of 587 travels flagged. The restart waits for the owner's look at v3 ID 6 and his go.
   - 18:0x on 10-30, lab (330e5c49) and workstation (f8f4159e): the probe mode's `--dry 15` had moved each rest
     15 mm back along its push. A wall's push is horizontal at the seats' height, so seat 1's wall-py-lo put the stem
     4.58 mm and the tool's end 5.70 mm into key 1 in the lab's simulation. In probe mode the program now moves a
