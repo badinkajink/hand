@@ -208,10 +208,10 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
     T_AM_home = np.array(g["keys"][key]["T_AM_home"], float)
     T_BA, T_EM = np.array(ws["T_BA"], float), np.array(ws["T_EM"], float)
     tool = ws["tool"]
-    if tool not in RIG.SPHERES:
-        raise SystemExit(f"tool {tool}: the probe mode presses with a sphere only")
-    R = float(RIG.PROBE[RIG.SPHERES[tool]]["R"])
-    c_M = np.array([0.0, 0.0, RIG.tool_end_z(tool)])
+    if tool not in RIG.SPHERES and tool != "rod":
+        raise SystemExit(f"tool {tool}: the probe mode presses with a sphere or the rod")
+    R = float(RIG.PROBE[RIG.SPHERES[tool]]["R"] if tool in RIG.SPHERES else RIG.PROBE["rod"]["R"])
+    c_M = np.array([0.0, 0.0, RIG.tool_end_z(tool)])      # the sphere's centre, or the rod's axis point under the tool's axis
     base = json.loads(GEOM_PLAN.read_text())
     geo0 = C.Geometry(base)                                   # the pad's surface (the tip mode's geometry has it too)
     geo = copy.deepcopy(base["geometry"])
@@ -219,6 +219,9 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
     geo["T_EM"] = T_EM.tolist()
     geo["T_IM_home"] = T_AM_home.tolist()
     geo["probe"] = dict(kind="sphere", tool=tool, centre_M=c_M.tolist(), radius=R)
+    if tool == "rod":                                          # 11-03: its axis along y_M; R_PM carries its turn (rod_deg)
+        geo["probe"] = dict(kind="rod", tool=tool, centre_M=c_M.tolist(), radius=R, axis_M=[0.0, 1.0, 0.0],
+                            half_len=float(RIG.PROBE["rod"]["half_len"]))
     ch = HELD_CHANNEL[seat] if held_channel is None else int(held_channel)
     geo["seat"] = dict(index=seat, key=key, T_AP=T_AP.tolist(), apex_A=ws["seat_apex_A"], orient=ws["orient"],
                        held_channel=ch)
