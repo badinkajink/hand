@@ -2595,6 +2595,48 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - The simulator's probe contact has friction (Truth.mu, 1.0 by default), not normal-only as the lab had told the
     workstation at 12:53.
 
+### The sweep action in the program, and the sweep test on seat 2 (from 15:3x)
+
+- 15:3x, the owner, relayed by the workstation: "sure, yes to all these suggestions. we can put the rod on hopefully
+  soon". The suggestions were:
+  - the sweep test after seat 3;
+  - sweeps in place of grids for the rod and later;
+  - the slider at 1.0, with the in-contact speeds rescaled;
+  - rolls with the rod or a flat tool;
+  - forces to 8 N.
+- 15:4x, the owner, in the lab's session: "relays count yes, we can go on the sweep test after 16:37 since i doubt we're
+  getting very good info right now, also im gonna compact".
+  - From now on, a go that the workstation relays with the owner's words and time counts as the owner's go.
+  - The sweep test runs on seat 2 after s2sph2, in place of seat 3's 2 mm grid. Seat 3 gets no 2 mm sphere session
+    today. Its rod session will be seeded from s3v4 (the 5 mm sphere, two-key frame).
+- 15:42: chain_sphere2e was stopped by its PID. s2sph2 ran on.
+- The sweep action is in the program (a2f44c8f, from `logs/sweepwork`):
+  - press() takes on_level. It is called after each level's hold, and at the press's depth for a level not reached.
+  - At each level, the sphere steps to that level's offsets on rings in the pad's tangent plane (t1 from target.t1),
+    each from and back to the stopped pose. At at_N it slides out and back.
+  - Every move and hold watches the load as a press does, and the push across the pad's normal. Over ft_t_cap_N the
+    sweep aborts. Over ft_t_ratio x the push along + ft_t_floor_N, the rest of that level's offsets or slides is
+    skipped.
+  - In the simulator, seat 3's quick plan printed line for line as before (o_regress3 against k_sph2_3).
+- The test plan is `20261103-plan_probe_table_sphere2_seat2_v3id5_sweep_test.json`, the workstation's 8189c5ff less
+  pass 1.
+  - It has 12 grid actions: two reference presses (probe-ref-00 and probe-ref-final) around 10 face sweeps.
+  - Each sweep has levels 0.5, 1, 2 and 3 N, 56 offsets on rings of 0.06 to 0.24 mm, and four 1 mm slides at 2 N.
+  - ft_t_cap_N is 3.0 and max_depth_mm 2.0. The press moves at v 0.0005, the offsets at 0.002 and the slides at 0.0005:
+    0.15, 0.6 and 0.15 mm/s at the 0.30 slider.
+- 15:43:48: `logs/20261103-chain_sweep2.sh` started. It waits for s2sph2's end, resuming it after a HEX-E loss. Then
+  it seeds s2sweep from s2sph2's session with `probe_seed_session.py --keep-probe` (cf1e200f: the source's registration
+  and c_M, for the same tool), and runs s2sweep with stages preflight,grid.
+- s2sph2 at 15:48, 152 of 269:
+  - pass 1 19 of 19 at 0.053 mm rms, the pad 1.497 mm and 1.378 deg from its CAD, c_M (-0.45, -0.44, 117.07) mm;
+  - no early contact, no press without a level, no abort.
+  - 8 of the 152 stopped below their top level. Of the 146 ids pressed on both seats so far, 32 stopped short on seat 1
+    and 8 on seat 2. So the neck rule's deeper presses reached their top on 27 of seat 1's 32.
+  - The edge-654 family stops at 2 N of 3 N at 1.75 mm, and probe-flank-582-o35-a90 at 1 N of 2 N at 1.5 mm, as on
+    seat 1.
+- s2sph2's pass 1 files (touches, registration, session and plan) are in `20261103-144808-s2sph2/`, for the
+  workstation's joint fit of c_M.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
