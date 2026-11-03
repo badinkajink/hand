@@ -220,6 +220,7 @@ TABLE = dict(        # --cell table (lab dc859de5, 11-02): the strip on one 2x4 
 #                                                             lab's three plans, owner 14:4x: "you don't need to go this
 #                                                             high at all")
     safe=15.0,                                               # SAFE in the table cell (the same replays)
+    rod_safe=40.0, rod_hub_dz=(90.0, 120.0),                 # the rod's (cmd_replay --tool rod)
     home_path=("path_home_to_press_1", "path_home_to_press_2", "hub"),
 #                                                             from the homing's lift to the hub: the owner's hand path of
 #                                                             11-02 14:1x from key 1 (the shoulder up; the wrist flipped,
@@ -1248,8 +1249,54 @@ def search_flat(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=True)
     return False, dict(why=why, n_u=len(Rs) * len(FLAT_OFFSETS))
 
 
+ROD_PHI = 60.0          # the rod's stem within this of the pad's normal at the contact: its curved face spans 90 either side
+ROD_J6_MARGIN = 3.0     # deg inside joint 6's window for a rod's rest: no turn about the tool's axis is free
+
+
+def search_rod(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=True, cut=None, psi=90.0):
+    """A press of the half rod (11-03; PROBE['rod']: R 12.5 mm, 20 mm long, its axis along y_M): the rod's axis tangent to
+    the pad at p, turned psi deg about n from the tip's axis (90: across the tip, as a finger closes on a cylinder), R
+    along n from p, so the contact is the line through p along the axis. The stem (-z_M) stands across the rod's axis
+    within ROD_PHI of n, the most upright first (the probe straight down), each with the rod either way along its axis
+    (joint 6 differs by 180 deg). A line contact turns with the tool about its axis, so no Q6_TRY turns: the first pose
+    whose joints and clearances pass. The pressed pad is left out within EXCL['rod'] of p, the tip's body is not."""
+    zc = tool_end_z("rod")
+    axis = -np.asarray(ctx["g"]["seats"][seat_i]["T_AF"], float)[:3, 2]
+    t1, t2 = tangent_basis(n, axis)
+    a = math.cos(math.radians(psi)) * t1 + math.sin(math.radians(psi)) * t2
+    c = p + PROBE["rod"]["R"] * n
+    cands = []
+    for phi in np.arange(-ROD_PHI, ROD_PHI + 1e-9, 5.0):
+        u = C.rot(a, phi) @ n                           # n turned phi about the rod's axis: still across it
+        for sgn in (1.0, -1.0):
+            z, y = -u, sgn * a
+            cands.append((round(math.degrees(math.acos(float(np.clip(u[2], -1.0, 1.0)))), 1), abs(phi), sgn,
+                          np.stack([np.cross(y, z), y, z], axis=1), u))
+    cands.sort(key=lambda t: (t[0], t[1]))
+    why, n_try = {}, 0
+    contact = (seat_i, p) + (cut if cut is not None else (EXCL["rod"],))
+    for tilt, phi, sgn, R, u in cands:
+        T_rest = pose_B(ctx, R[None], (c - ST * d)[None], zc)[0]
+        T_deep = pose_B(ctx, R[None], (c + DEEP * d)[None], zc)[0]
+        ok, info = try_poses(ctx, T_rest, T_deep, False, owner, contact, need_clear)
+        if ok and not J6_WIN[0] + ROD_J6_MARGIN <= info["j6"] <= J6_WIN[1] - ROD_J6_MARGIN:
+            ok, info = False, dict(why=["j6"])         # the back-off pose turns joint 6 by a degree or two more
+        if ok:
+            info.update(u=np.round(u, 3).tolist(), c=c, psi=psi, flip=sgn, n_u=len(cands), tried=n_try + 1)
+            return True, info
+        for w in info.get("why", []):
+            key = w.split(" mm to the ")[0].split()[0] if " mm to the " in w else w.split()[0]
+            why[key] = why.get(key, 0) + 1
+        if "clear" in info:
+            n_try += 1
+            if n_try >= max(max_clear, 24):
+                break
+    return False, dict(why=why, n_u=len(cands))
+
+
 def search(ctx, seat_i, p, n, d, **kw):
-    return (search_flat if ctx["tool"] in FLATS else search_sphere)(ctx, seat_i, p, n, d, **kw)
+    return (search_flat if ctx["tool"] in FLATS else search_rod if ctx["tool"] == "rod" else search_sphere)(
+        ctx, seat_i, p, n, d, **kw)
 
 
 def twist_ok(ctx, seat_i, p, n, info, deg, owner=False, need_clear=True):
@@ -1429,8 +1476,12 @@ def build_plan(ctx, seat_i, a):
     azim = np.arange(a.azimuths) * 360.0 / a.azimuths
     acts, k_face = [], 0
 
-    def add(aid, kind, i, d, theta=0.0, az=0.0, twist=0.0):
-        ok, info = search_sphere(ctx, seat_i, P_A[i], N_A[i], d, need_clear=not a.joints_only)
+    rod = ctx["tool"] == "rod"
+
+    def add(aid, kind, i, d, theta=0.0, az=0.0, twist=0.0, psi=90.0):
+        aid = aid + (f"-r{psi:g}" if rod else "")      # the rod: its axis psi deg about n from the tip's axis
+        ok, info = (search_rod(ctx, seat_i, P_A[i], N_A[i], d, need_clear=not a.joints_only, psi=psi) if rod
+                    else search_sphere(ctx, seat_i, P_A[i], N_A[i], d, need_clear=not a.joints_only))
         if not ok or (twist and not twist_ok(ctx, seat_i, P_A[i], N_A[i], info, twist, need_clear=not a.joints_only)):
             return False
         acts.append(dict(id=aid, kind=kind, i=int(i), region=regs[i], theta=theta, azimuth=az, twist=twist,
@@ -1439,6 +1490,8 @@ def build_plan(ctx, seat_i, a):
                          q_rest=info["q"],
                          levels=([0.25] if getattr(a, "extra", False) and kind != "reference" else [])
                          + ([0.5, 1.0, 2.0] if regs[i] in ("flank", "tip") else [0.5, 1.0, 2.0, 3.0])))
+        if rod:
+            acts[-1]["rod_deg"] = psi
         return True
 
     for m, i in enumerate(idx):
@@ -1454,6 +1507,8 @@ def build_plan(ctx, seat_i, a):
             continue
         if not add(f"probe-{regs[i]}-{i:03d}", "press", i, -n):
             continue
+        if rod:                                         # the rod along the tip as well
+            add(f"probe-{regs[i]}-{i:03d}", "press", i, -n, psi=0.0)
         t1, t2 = tangent_basis(n, axis)
         if m % a.obl_every == 0:
             for th in thetas:
@@ -1692,6 +1747,9 @@ def cmd_replay(a):
     nearer the seat)."""
     t0 = time.time()
     HOME_KEY[0] = home_key(a.seat)
+    if a.tool == "rod" and CELLMODE[0] == "table":     # the rod is 25 mm across: its joint moves start farther out
+        globals()["SAFE"] = TABLE["rod_safe"]           # (11-03: at 15 mm, 13 of 557 joint and hub travels took it 3 to
+        TABLE["hub_dz"] = TABLE["rod_hub_dz"]          # 6 mm into the pad or the tip's body)
     ctx = context(dict(orient=a.orient, seat_h=a.h), tool=a.tool)
     ctx["seat"] = a.seat
     ctx["hub"] = hub(ctx, a.seat)
@@ -1700,8 +1758,10 @@ def cmd_replay(a):
     q = start_q(ctx)
     q_start, first_way = q.copy(), None
     T_prev, rows, n_way = None, [], {}
+    dropped = []
     for x in acts:
         contact = (a.seat, P_A[x["i"]], EXCL[ctx["tool"]])
+        q_before = q
         w, tsm, why, cl = pick_travel(ctx, T_prev, q, x, a.owner, a.joints_only)
         n_way[w] = n_way.get(w, 0) + 1
         first_way = first_way or w
@@ -1720,6 +1780,11 @@ def cmd_replay(a):
                 j6r = [min(j6r[0], math.degrees(qq[5])), max(j6r[1], math.degrees(qq[5]))]
         q = osm[-1][5] if osm else q_t
         why = why + clear_flags(cl)
+        if why and a.drop_flagged and x["kind"] != "reference":     # left out: the next travel starts where this
+            dropped.append(dict(id=x["id"], flags=why))              # one's started
+            q = q_before
+            print(f"  dropped {x['id']}: {'; '.join(why)}", flush=True)
+            continue
         rows.append(dict(id=x["id"], kind=x["kind"], region=x["region"], travel=w, flags=why,
                          clear={k: [round(v[0], 2), v[1]] for k, v in cl.items()},
                          j5_deg=np.round(j5r, 1).tolist(), j6_deg=np.round(j6r, 1).tolist()))
@@ -1737,6 +1802,8 @@ def cmd_replay(a):
                          j5_deg=np.round(j5r, 1).tolist(), j6_deg=np.round(j6r, 1).tolist()))
         if why:
             print(f"  return: {'; '.join(why)}", flush=True)
+    if dropped:
+        acts = [x for x in acts if x["id"] not in {d_["id"] for d_ in dropped}]
     for x in acts:                                      # each action's own depth limit for the program
         if "deep_clear_mm" not in x:
             x["deep_clear_mm"] = DEEP if a.joints_only else deep_clear(ctx, x, P_A, a.deep_max, owner=a.owner)
@@ -1754,6 +1821,7 @@ def cmd_replay(a):
         u = out_of_key(fk_many(q_start[None])[0], ctx, lift)
         q_up = ik_near(u[None], q_start, branch=branch_of(q_start))[0]
         extra = dict(cell="table", branch=int(BR[0]), wrist_window=list(J5_WIN), j6_window=list(J6_WIN),
+                     safe_mm=SAFE, retract_mm=RETRACT,
                      j6_ref=TABLE["j6_ref"], home_key=HOME_KEY[0], homing_lift_mm=lift,
                      q_start_deg=np.round(np.degrees(q_start), 3).tolist(),
                      home_path_q=[np.round(np.degrees(w), 3).tolist() for w in home_path(ctx, q_up)],
@@ -1778,7 +1846,7 @@ def cmd_replay(a):
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(json.dumps(plan, default=float) + "\n")
     out = dict(plan=str(dst.relative_to(ROOT)) if ROOT in dst.parents else str(dst), n=len(rows), kinds=kinds, flagged=sum(bool(r["flags"]) for r in rows),
-               travel=n_way,
+               travel=n_way, dropped=dropped,
                deep_clear_mm={f"{v:g}": sum(x["deep_clear_mm"] == v for x in acts) for v in sorted({x["deep_clear_mm"] for x in acts})},
                least={k: [round(v[0], 2), v[1]] for k, v in least.items()}, joints_only=bool(a.joints_only),
                j5_deg=[min(r["j5_deg"][0] for r in rows if r["kind"] != "return"),
@@ -2605,7 +2673,7 @@ def main():
     fm.add_argument("--fps", type=int, default=20)
     rp = sub.add_parser("replay")
     rp.add_argument("--orient", default=LAYOUT["orient"])
-    rp.add_argument("--tool", default="sphere5", choices=tuple(SPHERES))
+    rp.add_argument("--tool", default="sphere5", choices=tuple(SPHERES) + ("rod",))
     rp.add_argument("--h", type=float, default=None)
     rp.add_argument("--seat", type=int, default=1)
     rp.add_argument("--spacing", type=float, default=2.0, help="normal presses at pad points this far apart (mm)")
@@ -2619,6 +2687,8 @@ def main():
                     "obliques, levels from 0.25 N; no normal presses")
     rp.add_argument("--tag", default="", help="after the stem in the output's names")
     rp.add_argument("--from-plan", default="", help="a built --extra plan: its obliques cut to the night (subset_plan)")
+    rp.add_argument("--drop-flagged", action="store_true", help="leave out an action whose travel and own moves no way "
+                    "clears (not a reference); the next travel starts from the last action kept")
     rp.add_argument("--no-twist", action="store_true", help="no twists (11-02: the twists' torsion sits under the "
                     "estimate's floor, and they took 1.2 of a seat's 3.6 h)")
     rp.add_argument("--out-dir", default="", help="where the plan and its check go (default the experiment's data/)")
