@@ -281,6 +281,7 @@ def data():
     N["compare"] = load("cpu_best/20261102-plant_compare.json")
     N["ea"] = {src: load(f"{src}/summary.json") for src in ("ea_live", "ea_live_sv25")}
     N["films"] = load(FILMS.name)
+    N["fresh"] = load("20261103-fresh_seeds.json")
     return N
 
 
@@ -540,7 +541,72 @@ added, the largest losses are <<s10>> on the SCS0009 and <<k10>> on the STS3032.
                     "One design on three plants. Top: the twist; bottom: the press. Columns: the work plant at 10 MPa, the "
                     "SCS0009 and the STS3032 at 2.5 MPa. CPU plant, seed 0, every contact. Under each clip: the run's "
                     "score and the grasp's GPU score. <code>hom_plant_page.py films</code>.")
+    return out + sec_fresh(N)
+
+
+def fresh_stats(N):
+    """Per entry of the fresh-seed check: the one-design loss at seeds 0-2 and at seeds 3-7 (largest over the grids)."""
+    out = {}
+    for e in (N.get("fresh") or {}).get("entries", []):
+        ns, t3, fr = list(e["picks"]), e["three_seed"], e["fresh"]
+        k = "one_layout_and_grasp"
+        if any(fr[n].get(k) is None or t3[n].get(k) is None for n in ns):
+            continue
+        out[e["key"]] = (max(t3[n]["own"] - t3[n][k] for n in ns), max(fr[n]["own"] - fr[n][k] for n in ns), e)
     return out
+
+
+def sec_fresh(N):
+    st = fresh_stats(N)
+    if not st:
+        return ""
+    grew = sorted(b - a for a, b, _ in st.values() if b - a > 0.05)
+    body = []
+    for key, names, label in SUBSETS:
+        for task in TASKS:
+            k = f"{task}_d{40 if task in ('twist', 'roll') else 25}|" + "|".join(names)
+            if k not in st:
+                continue
+            a, b, e = st[k]
+            p = e["picks"][names[0]]["one_layout_and_grasp"]
+            xy = (40 + 5 * (p[0] // 25), 50 + 5 * (p[0] % 25))
+            body.append([label if task == "twist" else "", NAME[task], f"({xy[0]}, {xy[1]}), grasp {p[1]}",
+                         " / ".join(f2(e["three_seed"][n]["one_layout_and_grasp"]) for n in names),
+                         " / ".join(f2(e["fresh"][n]["one_layout_and_grasp"]) for n in names),
+                         " / ".join(f2(e["fresh"][n]["own"]) for n in names), f2(a), f2(b)])
+    t = table(["Grids", "Task", "One layout and grasp", "Seeds 0-2", "Seeds 3-7", "Own best, seeds 3-7", "Loss, 0-2",
+               "Loss, 3-7"], body,
+              "The one-design picks of Table " + str(TABNO["design"]) + " rerun at seeds 3 to 7 on each grid's plant and "
+              "scene cache, with a noise seed no grid used (<code>hom_fresh_seeds.py</code>). Scores in the order of the "
+              "grids. Own best: each grid's own pick, rerun the same way. Loss: the largest over the grids, against the "
+              "own picks at the same seeds.", num_from=3)
+    txt = fill("""
+<p>The picks were chosen and scored on seeds 0 to 2, so each score is the best of many draws. Rerun at seeds 3 to 7
+(Table <<tf>>), the one-layout-and-grasp design keeps its loss within 0.05 of its three-seed loss in <<n_ok>> of the
+<<n>> grid subsets of the transfer files. In the other <<n_bad>> its loss grows by <<lo>> to <<hi>>, because the pick
+scored near its three-seed value on some grids and much lower on one. The grids' own picks fall as well: of the
+<<n_own>> own picks, <<n_own_drop>> lose more than 0.1 at fresh seeds. Over friction 0.4 to 1.0 on the STS3032 the
+fresh-seed losses are <<mu>>.</p>
+""", tf=P.TAB[0], n=len(st), n_ok=len(st) - len(grew), n_bad=len(grew), lo=f2(grew[0]) if grew else "-",
+               hi=f2(grew[-1]) if grew else "-", n_own=OWN_N(N), n_own_drop=OWN_DROP(N),
+               mu=andj([st[f"{x}_d{40 if x in ('twist', 'roll') else 25}|" + "|".join(SUBSETS[3][1])][1] for x in TASKS]))
+    return txt + t
+
+
+def _own_pairs(N):
+    seen = {}
+    for e in (N.get("fresh") or {}).get("entries", []):
+        for n in e["picks"]:
+            seen[(e["task"], e["src"][n], tuple(e["picks"][n]["own"]))] = (e["three_seed"][n]["own"], e["fresh"][n]["own"])
+    return seen
+
+
+def OWN_N(N):
+    return len(_own_pairs(N))
+
+
+def OWN_DROP(N):
+    return sum(1 for a, b in _own_pairs(N).values() if b is not None and a - b > 0.1)
 
 
 def slopes(S):
@@ -600,17 +666,18 @@ grasps on the SCS0009. In the press all 10 best layouts score 0.00 at <<pz>> of 
 
 def sec_limits(N):
     return """
-<p>The one-design picks are chosen and scored on the same three seeds, so each pick's score is the best of many draws. They
-have not been rerun at other seeds. The STS3032's gain of 2.1 N m/rad is an estimate that has not been measured. The scene
+<p>The one-design picks are chosen on three seeds. Rerun at five other seeds, some lose much more than at the seeds they
+were chosen on (Section SEC[design]). The STS3032's gain of 2.1 N m/rad is an estimate that has not been measured. The scene
 friction is one coefficient for the pads and the object, and the friction and modulus sweeps ran at the two default objects
 only.</p>"""
 
 
 def sec_future(N):
     return fill("""<ul>
-<li>Run the one-design picks of Table <<td>> at seeds 3 to 7 on each grid's plant and scene cache. Use
-<code>hom_gpu.py</code> on those layouts, one GPU job at a time through resguard. A pick whose fresh-seed mean falls more than 0.05 below its
-three-seed mean on any grid is withdrawn.</li>
+<li>Choose a single design in two stages: rank the layouts and grasps by the worst grid's three-seed score, rerun the best
+20 at ten more seeds on every grid, and choose by the worst grid's mean over all of them. Check the choice at five further
+seeds. Two-stage choice fails if its loss there exceeds its selection loss by more than 0.05 as often as the one-stage
+picks of Table <<td>> do.</li>
 <li>Measure the STS3032's position gain on the bench, as the SCS0009's 0.0186 deg per load unit was measured, and rerun the
 four grids at the measured gain. A gain of 1.64 N m/rad or less would bring back the twist and press failures of the smoke
 test.</li>
@@ -642,6 +709,11 @@ def lede_and_summary(N):
             f"STS3032, friction 0.4 against 1.0 gives {span(mu)}. One layout for the three plants loses at most {lpl:.2f} "
             f"against each plant's best, with the grasp re-picked on each. One layout and grasp for friction 0.4 to 1.0 "
             f"loses at most {lmu:.2f}.")
+    st = fresh_stats(N)
+    if st:
+        grew = sorted(b - a for a, b, _ in st.values() if b - a > 0.05)
+        lede += (f" Rerun at five fresh seeds, {len(st) - len(grew)} of {len(st)} such picks keep their loss within 0.05; "
+                 f"{len(grew)} lose {grew[0]:.2f} to {grew[-1]:.2f} more." if grew else "")
     summary = (f"The finger servo and the scene friction reorder the HOM layouts (Spearman {span(ws)} between the work plant "
                f"and the SCS0009, {span(mu)} between friction 0.4 and 1.0); pad moduli of 1.25-10 MPa barely do "
                f"({span(md)}). One layout for three servos loses at most {lpl:.2f}.")
