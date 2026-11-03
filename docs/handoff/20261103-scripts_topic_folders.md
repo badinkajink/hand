@@ -10,7 +10,9 @@ State: 11-03 11:5x. README and .gitmodules committed (6eabaf56b). Dry run of the
 worktrees: 754 files moved, 2,072 script imports resolve, 15 dangling references that predate the move (RUNBOOK
 lists them), pytest identical in both layouts (302 passed, 43 failed, 43 skipped, 3 errors with LFS pointers), and no
 script that imported in the flat layout fails in the moved one. The tools and plan.json are in
-docs/notes/20261103-scripts_cleanup/. Nothing is switched yet.
+docs/notes/20261103-scripts_cleanup/. Nothing is switched yet. Step 4 is done: the rotations module and its tests are
+ab59888dd (the ledger's 529a91a48 is the same commit before its message was corrected), with the rule in CLAUDE.md
+and AGENTS.md; the worktrees of the dry run are removed.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [ ] 1. Wait for the switch conditions: run `bash docs/notes/20261103-scripts_cleanup/wait_switch_conditions.sh 230` as a background command with `ap snooze <job> 240 "waiting for the lab"`, rerun it when it gives up; when it exits 0, read the lab's STATE.md and wait again if a run is going or queued. If the lab is still not idle at 09:00 on 11-04, `ap step wait` with what it is doing.
