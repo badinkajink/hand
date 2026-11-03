@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 12:23 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 12:58 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -201,8 +201,19 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     12) and travel.probe.in_v 0.02 (the last move in at 6 mm/s, was 3). They save about 4 s a press, about 20 min a
     seat. They are in the simulator and the workstation's --retract 6 replay. The presses are unchanged, and so is the
     return to the rest (0.6 mm/s): its rest window t_rest1 sets the analysis's zeros.
-  - Once both pass, the lab stops chain_sphere2b by its PID (s1sph2b runs on). It starts a chain that waits for
-    s1sph2b's end, then runs seats 2 and 3 on the quick plans.
+  - Both passed. The workstation's replays at --retract 6 flagged none of 858 and 587 travels (6e53dc57). In the
+    simulator the quick plans of seats 2 and 3 ran 269 of 269 and 271 of 271, with no early contact, miss or abort. The
+    program reads in_v and back_v from 6d0a05ef.
+  - **Since 12:58:17: `logs/20261103-chain_sphere2c.sh`** (copy here; PID 2829132; its log
+    `logs/20261103-chain_sphere2c.log`). It took over from chain_sphere2b, which was stopped by its PID while s1sph2b
+    runs on. It waits for s1sph2b's end, resuming it after a HEX-E loss, then runs seat 2 (s2sph2) and seat 3 (s3sph2)
+    on the quick plans. Seats 2 and 3 take about 2 h each, to about 18:40. To stop the chain, kill its PID (a running
+    program goes on).
+  - s1sph2b's pass 1: 0.060 mm rms over 19 touches, none left out. Its touches stand within 0.135 mm of s1sph2's
+    (rms 0.068 mm). The pad's fit moved 0.27 mm and 0.6 deg from the morning's 19-touch refit, so the tip may have
+    turned slightly in its seat in the incident or the owner's look.
+  - The grid's flank obliques capped at max_depth_mm 1.0 stop at 1 N with the 2 mm sphere (reached_max). The
+    simulator and the 5 mm sphere reached 2 N there.
 - The chain as it was started (from 11:00:37), `logs/20261103-chain_sphere2.sh` (copy here; its log
   `logs/20261103-chain_sphere2.log`):
   - seat 1 (`s1sph2`), then seat 2 (`s2sph2`), then seat 3 (`s3sph2`);
