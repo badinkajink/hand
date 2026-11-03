@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 12:58 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 13:52 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -204,11 +204,17 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   - Both passed. The workstation's replays at --retract 6 flagged none of 858 and 587 travels (6e53dc57). In the
     simulator the quick plans of seats 2 and 3 ran 269 of 269 and 271 of 271, with no early contact, miss or abort. The
     program reads in_v and back_v from 6d0a05ef.
-  - **Since 12:58:17: `logs/20261103-chain_sphere2c.sh`** (copy here; PID 2829132; its log
-    `logs/20261103-chain_sphere2c.log`). It took over from chain_sphere2b, which was stopped by its PID while s1sph2b
-    runs on. It waits for s1sph2b's end, resuming it after a HEX-E loss, then runs seat 2 (s2sph2) and seat 3 (s3sph2)
-    on the quick plans. Seats 2 and 3 take about 2 h each, to about 18:40. To stop the chain, kill its PID (a running
-    program goes on).
+  - From 12:58:17, `logs/20261103-chain_sphere2c.sh` waited to run seats 2 and 3 on the quick plans. It was stopped by
+    its PID at 13:52 for the owner's go on the deeper flank presses.
+  - The owner, 13:5x in the lab's session: "yes please go", to the deeper flank presses (the workstation's neck rule,
+    840f40da). It was relayed by the workstation as "we can go on it. will we be done by 6?".
+  - **Since 13:52:41: `logs/20261103-chain_sphere2d.sh`** (copy here; PID 2835403; its log
+    `logs/20261103-chain_sphere2d.log`). It waits for s1sph2b's end (about 14:45), then runs seat 2 (s2sph2) and seat 3
+    (s3sph2) on `..._quick_neck.json`, with 170 and 169 presses deeper. Their sims were clean (l_sph2_2, l_sph2_3).
+    Seat 3 ends at about 19:05 at s1sph2b's pace (30.5 s a press, less about 4 s). To stop the chain, kill its PID (a
+    running program goes on).
+  - Ready if the owner wants it: `..._quick_neck_fast.json`, the grid presses at v 0.002 (0.6 mm/s), simulating. With
+    it, seat 3 would end at about 18:15.
   - s1sph2b's pass 1: 0.060 mm rms over 19 touches, none left out. Its touches stand within 0.135 mm of s1sph2's
     (rms 0.068 mm). The pad's fit moved 0.27 mm and 0.6 deg from the morning's 19-touch refit, so the tip may have
     turned slightly in its seat in the incident or the owner's look.
