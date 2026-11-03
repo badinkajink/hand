@@ -1492,11 +1492,12 @@ class Session:
 
     # ---------------------------------------------------------------- the press primitive
     def press(self, a, T_rest, d_B, levels=(), stop_N=0.5, max_mm=3.0, v=0.0005, hold_s=0.6, rest_s=0.5, keep=False,
-              fast_mm=0.0, v_fast=0.005):
+              fast_mm=0.0, v_fast=0.005, on_level=None):
         """From T_rest along d_B at v (m/s) until the push passes each level (hold there), or stop_N, or max_mm; then
         back to T_rest (unless keep, which leaves the pad pressed). With fast_mm, the first fast_mm of free travel go at
         v_fast, and the slow approach (t_move0) starts there; a push over FAST_STOP_N on the way sends the tool back to
-        T_rest, and the whole approach then runs at v. Returns the record of times."""
+        T_rest, and the whole approach then runs at v. on_level(N, tare_v, rec), after each level's hold, may move the
+        tool in contact if it leaves it at the stopped pose (a sweep's offsets and slides). Returns the record of times."""
         rec = dict(id=a["id"], levels=[], t_rest0=None)
         tare_v, _, _ = self.mean_ft(rest_s)
         rec["t_rest0"] = [self.now() - rest_s, self.now()]
@@ -1530,16 +1531,24 @@ class Session:
                         t0 = self.now()
                         self.hold(hold_s, tare_v)
                         rec["levels"].append(dict(N=lv[k], t=[t0, self.now()]))
+                        if on_level is not None:
+                            on_level(lv[k], tare_v, rec)
                     break
                 t0 = self.now()
                 self.hold(hold_s, tare_v)
                 rec["levels"].append(dict(N=lv[k], t=[t0, self.now()]))
+                if on_level is not None:
+                    on_level(lv[k], tare_v, rec)
+                    f_hist.clear()                  # the push moved during the sweep: the next level from new samples
                 k += 1
                 self.be.robot.moveL(T_end, v, 0.05, asynchronous=True)
                 continue
             if self.be.robot.steady() and self.now() - t_start > 0.3:
                 rec["t_stop"] = self.now()
                 rec["reached_max"] = True
+                if on_level is not None and k < len(lv) and any(abs(lv[k] - float(x)) < 1e-9 for x in levels):
+                    rec["at_depth_N"] = lv[k]           # a sweep's level not reached at max_depth_mm: its steps here
+                    on_level(lv[k], tare_v, rec)        # (the workstation, 11-03 13:37), the push the HEX-E's
                 break
         rec["T_stop"] = self.be.robot.pose()
         if keep:
@@ -2124,11 +2133,147 @@ class Session:
         r["T_rest"] = T_rest
         return r
 
+    def grid_sweep(self, a):
+        """Probe mode, the owner's cone of contact (11-03): a press whose level stops each carry offsets, and whose level
+        at_N carries slides. After each level's hold, for each [r_mm, az_deg] of that level (a['offsets'][k], aligned with
+        a['levels']), the flange moves r along the pad's tangent plane at azimuth az (t1 = target.t1, t2 = n x t1, in P;
+        the orientation kept) at v_offset, settles settle_s and holds step_hold_s, then goes back to the stopped pose
+        (via_centre) before the next. Each slide {az_deg, mm, at_N} goes mm out at v_slide, holds step_hold_s and comes
+        back. Every move and hold watches the load as the press does and the push across the pad's normal against
+        ft_t_cap_N. The press then goes on to its next level. Recorded: offsets [{N, r_mm, az_deg, t, T_BE}] and slides
+        [{az_deg, mm, at_N, t_out, t_hold, t_back, T_end}]."""
+        if not self.probe:
+            raise Abort("a sweep is the probe mode's")
+        st = float(a.get("standoff", 1.5))
+        T_rest, d = self.target_pose(a, st)
+        tg = a["target"]
+        if "t1" not in tg:
+            raise Abort("a sweep needs target.t1")
+        R_BP = self.reg.T_BP()[:3, :3]
+        n_P = np.asarray(tg["n"], float) / np.linalg.norm(tg["n"])
+        t1_P = np.asarray(tg["t1"], float)
+        t1_P = (t1_P - (t1_P @ n_P) * n_P) / np.linalg.norm(t1_P - (t1_P @ n_P) * n_P)
+        t1_B, t2_B, n_B = R_BP @ t1_P, R_BP @ np.cross(n_P, t1_P), R_BP @ n_P
+        levels = [float(x) for x in a.get("levels", (0.5, 1.0, 2.0))]
+        offsets = a.get("offsets") or []
+        slides = a.get("slides") or []
+        # the push across the pad's normal: at most ft_t_cap_N, and at most ft_t_ratio x the push along it + ft_t_floor_N
+        # (friction gives up to mu x the normal push; the simulator's mu is 1.0, the TPU's 0.37 to 0.44 on PLA)
+        cap = float(a.get("ft_t_cap_N", 4.0))
+        ratio, floor = float(a.get("ft_t_ratio", 1.2)), float(a.get("ft_t_floor_N", 0.5))
+        v_off, v_sl = float(a.get("v_offset", 0.002)), float(a.get("v_slide", 0.0005))
+        settle, hold = float(a.get("settle_s", 0.2)), float(a.get("step_hold_s", 0.2))
+        via = bool(a.get("via_centre", True))
+        last = [0.0, 0.0]                               # the last push along and across the pad's normal (N)
+        dbg = bool(os.environ.get("SWEEP_DEBUG"))
+
+        class Skip(Exception):
+            pass
+
+        def watch(tare_v, R_BE, on_ratio):
+            """The load as the press watches it, the push across against cap (always an abort), and against ratio x the
+            push along + floor: on_ratio "abort", "skip" (raises Skip: the offsets of 11-03's face-717 in the simulator,
+            where a light contact unloaded) or "off" (the way back to the stopped pose after a skip)."""
+            self.check_ft(tare_v)
+            _, v = self.be.ft.ring.latest()
+            f_B = R_BE @ np.linalg.solve(self.reg.K, np.asarray(v[:3], float) - tare_v[:3])
+            f_n = float(f_B @ n_B)
+            f_t = float(np.linalg.norm(f_B - f_n * n_B))
+            last[:] = [f_n, f_t]
+            over = f"the push across the pad {f_t:.2f} N at {f_n:.2f} N along its normal"
+            if f_t > cap:
+                self.be.robot.stopL(3.0)
+                raise Abort(f"{over}, over the sweep's {cap:g} N")
+            if on_ratio != "off" and f_t > ratio * max(f_n, 0.0) + floor:     # past any friction (mu 0.4 to 1)
+                self.be.robot.stopL(3.0)
+                msg = f"{over}, over {ratio:g} x the push along + {floor:g} N"
+                raise Skip(msg) if on_ratio == "skip" else Abort(msg)
+
+        def go(T, v, tare_v, on_ratio):
+            self.be.robot.moveL(T, v, 0.05, asynchronous=True)
+            t_m = self.now()
+            self.sleep(0.02)
+            while not self.be.robot.steady() or self.now() - t_m < 0.05:
+                watch(tare_v, T[:3, :3], on_ratio)
+                self.sleep(0.004)
+                if self.now() - t_m > 30.0:
+                    self.be.robot.stopL(3.0)
+                    raise Abort("a sweep's move did not end")
+
+        def stay(dur, tare_v, R_BE, on_ratio):
+            t0 = self.now()
+            while self.now() - t0 < dur:
+                watch(tare_v, R_BE, on_ratio)
+                self.sleep(0.01)
+            return [t0, self.now()]
+
+        def on_level(N, tare_v, rec):
+            T0 = self.be.robot.pose()
+            R_BE = T0[:3, :3]
+            rec.setdefault("offsets", [])
+            rec.setdefault("slides", [])
+            rec.setdefault("skips", [])
+            k = next((j for j, x in enumerate(levels) if abs(x - N) < 1e-9), None)
+            for r_mm, az in (offsets[k] if k is not None and k < len(offsets) else []):
+                u = math.cos(math.radians(az)) * t1_B + math.sin(math.radians(az)) * t2_B
+                T = Tm(R_BE, T0[:3, 3] + u * float(r_mm))
+                if dbg:
+                    print(f"    {a['id']} {N:g} N: before r {r_mm} az {az}: along {last[0]:.2f} across {last[1]:.2f}", flush=True)
+                try:
+                    go(T, v_off, tare_v, "skip")
+                    stay(settle, tare_v, R_BE, "skip")
+                    tw = stay(hold, tare_v, R_BE, "skip")
+                    if dbg:
+                        print(f"    {a['id']} {N:g} N: at r {r_mm} az {az}: along {last[0]:.2f} across {last[1]:.2f}", flush=True)
+                    rec["offsets"].append(dict(N=N, r_mm=float(r_mm), az_deg=float(az), t=tw, T_BE=self.be.robot.pose(),
+                                               at_depth=rec.get("at_depth_N") == N))
+                    if via:
+                        go(T0, v_off, tare_v, "skip")
+                except Skip as e:                       # the rest of this level's offsets left out, the press goes on
+                    self.wait_steady()
+                    rec["skips"].append(dict(N=N, r_mm=float(r_mm), az_deg=float(az), t=self.now(), why=str(e)))
+                    print(f"  {a['id']}: {N:g} N's offsets stop at r {r_mm} az {az:g}: {e}", flush=True)
+                    go(T0, v_off, tare_v, "off")
+                    break
+            if not via:
+                go(T0, v_off, tare_v, "skip")
+            for s in slides:
+                if abs(float(s["at_N"]) - N) > 1e-9:
+                    continue
+                u = math.cos(math.radians(s["az_deg"])) * t1_B + math.sin(math.radians(s["az_deg"])) * t2_B
+                T = Tm(R_BE, T0[:3, 3] + u * float(s["mm"]))
+                try:
+                    t0 = self.now()
+                    go(T, v_sl, tare_v, "skip")
+                    t_out = [t0, self.now()]
+                    tw = stay(hold, tare_v, R_BE, "skip")
+                    T_end = self.be.robot.pose()
+                    t0 = self.now()
+                    go(T0, v_sl, tare_v, "skip")
+                except Skip as e:                       # the rest of this level's slides left out (in the simulator at
+                    self.wait_steady()                  # mu 1.0 a slide's push along fell to 0.85 N at 2 N)
+                    rec["skips"].append(dict(N=N, slide_az_deg=float(s["az_deg"]), t=self.now(), why=str(e)))
+                    print(f"  {a['id']}: {N:g} N's slides stop at az {s['az_deg']:g}: {e}", flush=True)
+                    go(T0, v_sl, tare_v, "off")
+                    break
+                rec["slides"].append(dict(az_deg=float(s["az_deg"]), mm=float(s["mm"]), at_N=N, t_out=t_out, t_hold=tw,
+                                          t_back=[t0, self.now()], T_end=T_end))
+
+        self.travel(T_rest, a)
+        fm, fv = self.fast_mm(a, st, "press")
+        r = self.press(a, T_rest, d, levels=levels, stop_N=a.get("stop_N", max(levels)),
+                       max_mm=st + float(a.get("max_depth_mm", 2.5)), v=float(a.get("v", 0.0005)),
+                       hold_s=float(a.get("hold_s", 0.6)), fast_mm=fm, v_fast=fv, on_level=on_level)
+        r["T_rest"] = T_rest
+        return r
+
     def stage_presses(self, stage):
         acts = self.actions(stage)
         for k, a in enumerate(acts):
             if a["kind"] == "press":
                 r = self.act(a, self.grid_press)
+            elif a["kind"] == "sweep":
+                r = self.act(a, self.grid_sweep)
             elif a["kind"] in ("slide", "roll", "twist"):
                 r = self.act(a, self.contact_turns)
             else:
