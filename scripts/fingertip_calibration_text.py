@@ -1257,8 +1257,9 @@ def sections(N, F, P, link, L):
         + P.code("docs/experiments/20261022-ur5_tip_calibration/lab/NOTES.md") + "). Such touches are now left out, "
         "and the runs restarted at 12:20 after the owner had checked that v3 ID 6 was undamaged. In the restarted run, "
         "13 of the first 72 grid presses stopped at 1.0 mm past contact, at 1 N of their 2 N. Their depth was capped "
-        "because the stem had to keep 1.0 mm from the pad. On the owner's go, the stem within 4 mm of the sphere's "
-        "centre may come within 0.5 mm of its own pad. Seats 2 and 3 then press deeper on 170 and 169 presses ("
+        "because the stem had to keep 1.0 mm from the pad. From 13:52, on the owner's go, the stem within 4 mm of the "
+        "sphere's centre may come within 0.5 mm of its own pad. Seats 2 and 3 therefore press deeper on 170 and 169 "
+        "presses, most flank presses to 1.5 or 1.75 mm ("
         + P.code("docs/experiments/20261030-inverted_rig_seat_block/data/20261103-strip_table_pads_sphere2_neck_depths.json")
         + "). Their plans also shorten a 29 s press by about 4 s, with a 6 mm retract and a final approach at twice "
         "the speed. "
