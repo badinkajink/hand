@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 14:49 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 15:44 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -23,7 +23,10 @@ cm from the connector with slack. The fix is a new cable.
 
 ## Rules in force
 
-- Every robot run needs the owner's go in the lab's session.
+- Every robot run needs the owner's go. Since 15:4x on 11-03 ("relays count yes"), a go that the workstation relays
+  with the owner's words and time counts the same as one typed in the lab's session.
+- Simulate new or changed program code. A plan that changes only numbers on paths already checked (speeds, or depth
+  caps the workstation's path check covers) runs on that path check alone (owner, 14:2x on 11-03).
 - Freedrive (`teach_hold.py`) never ends or restarts on its own while the owner may hold the arm: extend it (touch
   `logs/ur5_lab_teach_extend`) or stop it on the owner's word, and ask before switching it either way. On 11-02 at
   13:21:06 its 15 min cap ended it under the owner's hands and the robot e-stopped (nothing damaged).
@@ -213,8 +216,25 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   - The owner, 13:5x in the lab's session: "Yes go on the faster presses too".
   - **Done: seat 1 (s1sph2b), 12:20 to 14:48:02.** Pass 1 19 of 19 (0.060 mm rms), the grid 260 of 260, no early
     contact, miss or abort (`20261103-122020-s1sph2b/`). 40 presses stopped at their depth below their top level.
-  - **Now (from 14:48:07): seat 2 (s2sph2, v3 ID 5) on `..._seat2_v3id5_quick_neck_fast.json`**, then seat 3. Seat 3
-    ends at about 18:20.
+  - **Now (from 14:48:07): seat 2 (s2sph2, v3 ID 5) on `..._seat2_v3id5_quick_neck_fast.json`**, to about 16:37.
+    - Pass 1: 19 of 19 at 0.053 mm rms. The grid's fast presses take 21.4 s, and none has stopped short.
+  - **Next: the sweep test on seat 2, in place of seat 3's 2 mm grid.** The owner, 15:4x: "relays count yes, we can go
+    on the sweep test after 16:37 since i doubt we're getting very good info right now".
+    - Run by `logs/20261103-chain_sweep2.sh` (copy here; PID 2849427; its log `logs/20261103-chain_sweep2.log`).
+    - It waits for s2sph2's end (resuming it after a HEX-E loss), then seeds `..._sweep_seed` from s2sph2's session
+      (`probe_seed_session.py --keep-probe`).
+    - Then it runs s2sweep: `20261103-plan_probe_table_sphere2_seat2_v3id5_sweep_test.json`, which is 10 face sweeps
+      between two reference presses with stages preflight,grid, about 22 min. It is the workstation's 8189c5ff less
+      pass 1, and replays clean.
+    - The sweep action is in the program from a2f44c8f.
+    - Then the arm waits over seat 2 for the owner's swap to the rod.
+  - chain_sphere2e was stopped by its PID at 15:42 so that seat 3's 2 mm grid does not start. Seat 3 has no 2 mm sphere
+    session today; its rod seed comes from its 5 mm sphere session s3v4 (the two-key frame and that fit's T_AP).
+  - The rod tonight (the owner, relayed 15:3x: "sure, yes to all these suggestions. we can put the rod on hopefully
+    soon"): sweeps with offsets and slides, levels to 3 N, from the rod's checked presses. The workstation is building
+    them, both rod_deg 0 and 90 (about 2.4 h a seat), or rod_deg 90 alone (about 1.2 h).
+  - Tomorrow: the slider at 1.0 (needs v_ref_slider in the program, scaling every contact speed, the hard-coded ones
+    too), forces to 8 N (abort_N to about 12 N), and twists and rolls inside a sweep.
   - **Since 14:17:57: `logs/20261103-chain_sphere2e.sh`** (copy here; PID 2838758; its log
     `logs/20261103-chain_sphere2e.log`). It waited for s1sph2b's end, then for the marker
     `logs/20261103-ok-fast`.
