@@ -512,6 +512,13 @@ REG_SIGMA_PROBE = dict(pad_mm=0.03, wall_mm=0.02, wall_offset_mm=0.1, seat_rot_d
 # see it: two touches 6 mm apart on each flat wall of the cap, 0.02 mm each (the onset on PLA and the face's flatness).
 # Each wall's place along its normal is free within wall_offset_mm (the print), so the walls' tilt enters the fit and
 # their width, which would pull the sphere's centre along the stems, mostly does not
+REG_DROP_MM = 0.5       # probe mode: register leaves out a pad touch standing this far off the pad under the fit, the
+REG_DROP_MAX = 3        # worst first and at most 3, and stops the session before the grid when the rest stand over
+REG_RMS_MAX_MM = 0.15   # REG_RMS_MAX_MM rms. On 11-03 s1sph2's pad-tip-349-o35-a270 met the tip's body 4.7 mm early: the fit
+#                         with it stood 0.76 mm rms with the pad 5.7 mm off, its 19 others fit to 0.051 mm, and the grid
+#                         met the pad early on most presses, two travels aborting at 8.4 and 8.8 N
+EARLY_STOP = 3          # contacts before the slow approach that stop a session (none in the 2,400 actions of 11-02 and 11-03)
+MISS_STOP = 3           # presses with no level reached that stop a session (none in those runs; s1sph2 had 8 in a row)
 PUSH_AVG = dict(tip=8, probe=20)    # the push's running mean: the tip mode's over the last 8 passes of its 250 Hz loop (about
 #                                     3 HEX-E samples), the probe mode's over 20 HEX-E samples (0.2 s), tested only when
 #                                     full. A probe pushes along the HEX-E's z (0.21 N a sample at --ft-filter 3, five times x
@@ -570,7 +577,8 @@ def fit_probe_registration(geo: Geometry, reg: Registration, touches, sig=REG_SI
                 rms_pad_mm=float(np.sqrt(np.mean((r[:n] * sig["pad_mm"]) ** 2))) if n else float("nan"), n_pad=n,
                 rms_wall_mm=float(np.sqrt(np.mean((r[n:n + m] * sig["wall_mm"]) ** 2))) if m else float("nan"), n_wall=m,
                 wall_offset_mm=x[9:], wall_turn_deg=wall_turn_deg, chi2=float(r @ r), dof=int(len(r) - nx),
-                seat_change_mm_deg=pose_error(T_AP0, T_AP), probe_change_mm=float(np.linalg.norm(c_M - c_M0)))
+                seat_change_mm_deg=pose_error(T_AP0, T_AP), probe_change_mm=float(np.linalg.norm(c_M - c_M0)),
+                pad_ids=[t["id"] for t in pad], pad_resid_mm=(r[:n] * sig["pad_mm"]).tolist())
 
 
 def fit_rod_registration(geo: Geometry, reg: Registration, touches, sig=REG_SIGMA_PROBE):
@@ -611,7 +619,8 @@ def fit_rod_registration(geo: Geometry, reg: Registration, touches, sig=REG_SIGM
                 x=np.r_[x[0:6], dc], sd=np.r_[sx[0:6], np.abs(e1) * sx[6] + np.abs(e2) * sx[7]],
                 rms_pad_mm=float(np.sqrt(np.mean((r[:n] * sig["pad_mm"]) ** 2))) if n else float("nan"), n_pad=n,
                 rms_wall_mm=float("nan"), n_wall=0, wall_offset_mm=np.zeros(0), wall_turn_deg={}, chi2=float(r @ r),
-                dof=int(len(r) - 10), seat_change_mm_deg=pose_error(T_AP0, T_AP), probe_change_mm=float(np.linalg.norm(dc)))
+                dof=int(len(r) - 10), seat_change_mm_deg=pose_error(T_AP0, T_AP), probe_change_mm=float(np.linalg.norm(dc)),
+                pad_ids=[t["id"] for t in pad], pad_resid_mm=(r[:n] * sig["pad_mm"]).tolist())
 
 
 # ------------------------------------------------------------------------------------------- streams (real hardware)
@@ -1121,6 +1130,8 @@ class Session:
         self.safety.setdefault("box_mm", 400.0)
         self.touches, self.pivots = [], []
         self.n_abort = 0
+        self.n_early = 0                # contacts before the slow approach in this run (EARLY_STOP)
+        self.n_miss = 0                 # presses with no level reached in this run (MISS_STOP)
         self.dry = float(args.dry or 0.0)
         self.probe = self.geo.probe is not None
         self.last_d = None              # probe mode: the last target's push direction (base), for the recovery
@@ -1562,6 +1573,10 @@ class Session:
                 out["contact"] = True
                 print(f"  contact before the slow approach ({float(np.mean(f_hist)):.2f} N): back to the rest pose, "
                       "the approach at its slow speed", flush=True)
+                self.n_early += 1
+                if self.n_early >= EARLY_STOP:
+                    raise SystemExit(f"{self.n_early} contacts before the slow approach in this run: the registration or "
+                                     "the frame may be off, or the tool meets something else; stopping at the rest pose")
                 break
             # the CB3 settles about 0.03 mm from T_f and reports its pose with 0.025 mm of jitter: at 0.02 mm roll-0-tv004
             # waited out the timeout (2026-10-25 14:33). As in goto and the turns, steady after 0.2 s is arrived
@@ -1916,7 +1931,25 @@ class Session:
             print("register: no touches")
             return
         if self.probe:
-            fit = (fit_rod_registration if self.geo.kind == "rod" else fit_probe_registration)(self.geo, self.reg, self.touches)
+            fit_fn = fit_rod_registration if self.geo.kind == "rod" else fit_probe_registration
+            use, dropped = list(self.touches), []
+            while True:                                 # a touch that met something else (REG_DROP_MM), the worst first
+                fit = fit_fn(self.geo, self.reg, use)
+                res = np.abs(fit["pad_resid_mm"])
+                if not len(res) or res.max() <= REG_DROP_MM or len(dropped) >= REG_DROP_MAX:
+                    break
+                k = int(np.argmax(res))
+                dropped.append((fit["pad_ids"][k], fit["pad_resid_mm"][k]))
+                use = [t for t in use if not (t["kind"] == "pad" and t["id"] == fit["pad_ids"][k])]
+            for i, r_ in dropped:
+                print(f"register: {i} left out, {r_:+.2f} mm off the pad under the fit that held it (it met something "
+                      "other than the pad)", flush=True)
+            fit["dropped"] = [list(d) for d in dropped]
+            if fit["rms_pad_mm"] > REG_RMS_MAX_MM:
+                self.log.event(event="fit", id="register_probe_refused", rec=fit)
+                raise SystemExit(f"register: the pad touches stand {fit['rms_pad_mm']:.3f} mm rms ({fit['n_pad']}; "
+                                 f"{len(dropped)} left out), over {REG_RMS_MAX_MM} mm: the registration is kept as it was "
+                                 "and the session stops before the grid")
             self.reg.T_AP, self.reg.c_M = fit["T_AP"], fit["c_M"]
             self.reg.notes["register_probe"] = {k: fit[k] for k in ("rms_pad_mm", "n_pad", "rms_wall_mm", "n_wall",
                                                                      "wall_offset_mm", "wall_turn_deg",
@@ -2100,6 +2133,12 @@ class Session:
             if r is not None and r.get("levels"):
                 top = r["levels"][-1]["N"]
                 print(f"  {a['id']} ({k + 1}/{len(acts)}): to {top:.2f} N", flush=True)
+            elif r is not None:                         # its whole depth with no level reached: the pad stood elsewhere
+                self.n_miss += 1
+                print(f"  {a['id']} ({k + 1}/{len(acts)}): no level reached", flush=True)
+                if self.n_miss >= MISS_STOP:
+                    raise SystemExit(f"{self.n_miss} presses reached no level in this run: the registration or the frame "
+                                     "may be off; stopping")
 
     def contact_turns(self, a):
         """Press to a['press_N'] and hold, then the moves in turn, each back to the pressed pose at its end: slide =
