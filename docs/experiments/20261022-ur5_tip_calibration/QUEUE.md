@@ -1651,6 +1651,11 @@ push that answers it arrives.
     sweeps across the tip (rod_deg 90) on seats 2, 3 and 1: offsets at the rod's slip estimate (0.06 to 0.20 mm from the
     slides of 10-26) and slides, levels to 3 N. Twists, rolls, the slider at 1.0 and 8 N need new program code, so
     they come tomorrow.
+  - The rod's sweep plans (c867f7d4): 31, 32 and 32 sweeps on seats 2, 3 and 1, with the rod across the tip, and the
+    rod quick plans' pass 1 and travel. Four sweeps are left out on seats 2 and 3 and two on seat 1, because their
+    slides took the rod's end within the tip body's need. Chained 2, 3, 1 from seat 2's hub they replay with 0 of 53, 54
+    and 54 flagged, and the rod's end comes to 0.42 mm of the body at its closest. Seat 3, aimed from s3v4's fit, also
+    replays clean. At about 1.3 h a seat the three take about 4 h. The lab simulates two rod sweeps first, as new code.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
