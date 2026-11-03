@@ -2450,6 +2450,49 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - Seat 1's rod session in the simulator: pass 1 20 of 20 (0.015 mm rms), the grid 177 of 177, no abort. A 2 mm sphere
   session prints line for line the same with the rod code as without it. The converter takes tool "rod": the pass 1
   from the rod-across actions, safe_mm and retract_mm from the seat plan (the rod's 40 and 12; the spheres keep 15).
+- A correction to fast3: it ran 252 presses, not 263. Its other 11 ids (`probe-flank-413-v060` and ten more) were the
+  ids of speed3's 0.6 mm/s presses on the same session, so `--resume` skipped them as done. Speed3 has those 11 at the
+  same speed. The printout's counter numbers the plan's actions, so it ended at (263/263) all the same.
+
+### s1sph2: a touch on the tip's body and a bad fit
+
+- 10:5x, the owner, in the lab's session: "ok the 2mm radius sphere is on there. the arm is oevr the seats. you can go
+  ahead". The arm stood over seat 2, moved a little by hand during the swap (joints 54.2, -79.1, 105.9, -114.1, -86.6,
+  -2.0 deg). Seat 1's first travel from there, replayed with the workstation's dry-check --real, flagged nothing.
+- 11:00:37: the chain `logs/20261103-chain_sphere2.sh` started seat 1 (v3 ID 6) as s1sph2. Preflight: HEX-E 100 Hz, held
+  channels 0, 2 and 3 at 137 records/s.
+- Pass 1: 19 of the 20 touches came -0.92 to +0.08 mm from the expected, most near -0.7 mm. So the pad stood about 0.7 mm
+  nearer than the pad-fitted frame put it.
+  - The 17th, pad-tip-349-o35-a270, saw 0.54 N in its fast approach, then an onset 4.81 mm early.
+  - The workstation's replay had given that touch's own moves 0.76 mm to the tip's body, the least of the pass.
+  - The tool met the tip's body, not the pad: under the fit of the other 19 it stands 4.66 mm off the pad.
+- register took all 20 in: 0.758 mm rms, the pad 5.71 mm and 8.65 deg from its CAD, and c_M (2.31, -5.22, 122.11) mm.
+  Without that touch, the 19 fit to 0.051 mm rms, with the pad 1.53 mm and 1.34 deg from its CAD and c_M (-0.10, -0.20,
+  117.35) mm.
+- The program had no gate on the fit, so the grid ran on it:
+  - 23 actions, with 10 contacts before the slow approach and 8 presses that reached no level;
+  - two travels aborted on the load, at 8.8 N (probe-flank-445) and 8.4 N (probe-flank-430-o35-a180).
+  - None of the 2,400 actions of 11-02 and 11-03 had an early contact or an abort.
+- The lab's monitor of the run printed nothing, because `cut` at the end of its pipe held the lines. The lab saw the fit
+  at 11:24 by reading the printout.
+  - The chain was stopped by its PID, and the program by SIGINT to its PID (its Ctrl-C), at 11:25:04.
+  - The arm stopped over seat 1 (joints 38.3, -70.1, 97.3, -103.1, -67.0, -7.6 deg), at rest before probe-flank-440's
+    approach.
+  - The HEX-E read (0.62, -0.30, -0.03) N, its rest reading, so the tool was clear of the pad.
+- The fix in the program:
+  - register in probe mode leaves out a pad touch standing over REG_DROP_MM = 0.5 mm off the pad, the worst first and at
+    most 3, and prints each one;
+  - it stops the session before the grid when the rest stand over REG_RMS_MAX_MM = 0.15 mm rms (the registration kept
+    as it was);
+  - a run stops at its 3rd contact before the slow approach (EARLY_STOP) or its 3rd press with no level (MISS_STOP).
+- In the simulator:
+  - s1sph2's own touches leave out pad-tip-349-o35-a270 (+2.74 mm under the fit that held it) and fit to 0.051 mm rms;
+  - s1sph2's bad fit resumed in the grid stops at the third early contact (without the miss stop: 80 presses reached no
+    level first). With the miss stop it stops at the third press with no level (probe-flank-445, probe-flank-430-o35-a180
+    and probe-flank-440), exit 1.
+- The plans: `20261103-plan_probe_table_sphere2_seat{1,2}_v3id{6,5}_no349.json`, the plans of 8c3ac200 less
+  pad-tip-349-o35-a270. Seat 2's pass 1 has the same touch, also 0.76 mm from the body. Seat 3's has none (its least is
+  1.41 mm), so its plan stays as it was.
 
 ## The lab clone and git-lfs
 
