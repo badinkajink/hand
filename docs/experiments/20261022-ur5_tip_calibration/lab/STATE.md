@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-02 17:52 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-02 18:32 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -10,7 +10,7 @@ request to the owner must come from this file.
 |---|---|---|
 | Probe | probe base with the 5 mm sphere (sphere5) on mount v7's adapter disc on the HEX-E (owner, 11-02 13:0x); no tip on the robot | none yet |
 | Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume; nearly level | the frame through both keys' socket points (`20261102-strip_frame_two_keys.json`: 7 seatings, the keys 80.04 mm apart, tilt 0.33 deg); sessions take it by `--frame`, with `--home-from poses.jsonl:strip_key1_seated_4` for the line out of key 1 |
-| Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 138 records/s | seat 1: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame); seats 2 and 3 to come |
+| Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 138 records/s | seat 1: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame; done); seat 2: s2v5 from 18:27; seat 3 to come |
 | Old fixtures | the low sphere, rod, tall indenter and holder: off the table as the strip's README asks; the camera frame of 13:05 shows only the strip, its tips and the mux board on the 2x4 | as before 10-30 |
 
 `cell.json` holds the same registrations for the path checks and the renders.
@@ -151,12 +151,11 @@ The owner answered at about 11:37, in the workstation's session, which passed th
 - The owner's go of 15:0x on 11-02 covers the remaining runs ("you have my go ahead to run the remaining runs"). More
   runs on twists and wrenches, and at other contact speeds, are covered too, if the data shows that more data still
   pays.
-- Running since 14:50: seat 1 (v3 ID 6), pass 1 (20 of 20), register, then the grid from 15:06; 252 of 294 by 17:50,
-  ending about 18:15 (`20261102-plan_probe_table_seat1_v3id6.json`, session `s1v6b`, tmux `tipcal`, printout
-  `logs/20261102-145009-tipcal-s1v6b.log`). A press takes about 29 s and a twist about 145 s, so a seat's main run is
-  about 3.6 h. No walls and no return stage.
+- Done: seat 1 (v3 ID 6), 14:50 to 18:27, pass 1 20 of 20 and the grid 294 of 294 with no abort (`20261102-145010-s1v6b/`).
+- Running since 18:27 (started by the chain): seat 2 (v3 ID 5), session `s2v5`, printout
+  `logs/20261102-182709-tipcal-s2v5.log`, tmux `tipcal`; about 3.6 h.
 - Armed (16:10): `logs/20261102-chain_seats23.sh` (copy here, PID 2658916, its log `logs/20261102-chain_seats23.log`)
-  starts seat 2 (v3 ID 5) when seat 1 ends cleanly, about 18:15 to 21:50, then seat 3 (v3 ID 4), about 21:50 to 01:30
+  started seat 2 (v3 ID 5) at 18:27, to about 22:05; then seat 3 (v3 ID 4), about 22:05 to 01:45
   (`20261102-plan_probe_table_seat2_v3id5.json`, `..._seat3_v3id4.json`: safe_mm 15, hubs 40 mm over the apex). Both
   passed the chained simulations and the workstation's replays. A run stopped by a HEX-E loss is resumed once
   `hexe_probe.py` finds the sensor streaming; anything else stops the chain. To stop the chain: kill its PID (a running
