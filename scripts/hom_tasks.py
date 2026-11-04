@@ -586,13 +586,13 @@ class Schedule:
             for f in PINCH:                              # the revolute pinch of Exp. C: held, free to spin and roll
                 c = fc[f]
                 c.mode, c.follow_object = "pinch", False
-                c.weights = np.array([0.0, self.prm["w_roll_pinch"], self.prm["w_roll_pinch"], 1.0, 1.0, 1.0])
+                c.weights = mode_weights(self.prm, "pinch")
                 c.force = 0.0 if t < T_CLOSE else self.prm["f_pinch"]
                 _approach(c, t)
             pu = fc[PUSHER]
             pu.mode = "pusher"
             pu.force = 0.0 if t < T_CLOSE else self.prm["f_drive" if task == "pinpush" else "f_press"]
-            pu.weights = np.array([1.0, self.prm["w_roll_push"], self.prm["w_roll_push"], 1.0, 1.0, 1.0])
+            pu.weights = mode_weights(self.prm, "push")
             # the thumb alone opposes the index and the middle along the pinch axis: it presses with both forces'
             # components along that axis, so the commanded forces balance and the cylinder stays between the pads
             n_t, n_m = self.setup["n_out"][PINCH[0]], self.setup["n_out"][PUSHER]
@@ -610,7 +610,7 @@ class Schedule:
             for f in FINGERS:
                 c = fc[f]
                 c.mode = "pinch"
-                c.weights = np.array([1.0, 0.0, 0.0, 1.0, 1.0, 1.0])            # free rolling (paper Exp. B)
+                c.weights = mode_weights(self.prm, "tripod")                   # free rolling (paper Exp. B)
                 c.force = 0.0 if t < T_CLOSE else self.prm["f_tripod"]
                 _approach(c, t)
             if ph == "task":
@@ -652,7 +652,21 @@ class Schedule:
 
 PRM = {"f_pinch": 3.0, "f_drive": 1.5, "f_press": 0.5, "rot_deg": 15.0, "rot_dps": 15.0, "press_deg": 20.0,
        "press_dps": 20.0, "w_roll_pinch": 0.0, "w_roll_push": 1.0, "f_tripod": 2.5, "ramp_dps": 30.0,
-       "w_step_dps": 40.0}
+       "w_step_dps": 40.0,
+       # Eq. (2)'s row weights by finger role (mode_weights; 2026-11-03): the values the tasks have used since 10-22
+       "w_spin_pinch": 0.0, "w_slide_pinch": 1.0, "w_spin_push": 1.0, "w_slide_push": 1.0,
+       "w_spin_tripod": 1.0, "w_roll_tripod": 0.0, "w_slide_tripod": 1.0}
+
+
+def mode_weights(prm, role):
+    """Eq. (2)'s row weights (hom.COMPONENTS: spin, roll_y, roll_z, sep, slide_y, slide_z) of a finger in `role`: 'pinch'
+    (the pinching thumb and index), 'push' (the pusher) or 'tripod' (every finger of the sphere tasks). A weight of 1
+    keeps that relative motion of the contact at its reference, 0 leaves it free; the separation row keeps weight 1.
+    Keys missing from prm take PRM's values (2026-11-03: the contact modes as parameters of
+    scripts/hom_grasp_refine.py)."""
+    p = {**PRM, **prm}
+    return np.array([p[f"w_spin_{role}"], p[f"w_roll_{role}"], p[f"w_roll_{role}"], 1.0, p[f"w_slide_{role}"],
+                     p[f"w_slide_{role}"]])
 
 
 # ------------------------------------------------------------------------------------------------ rollout

@@ -9,7 +9,8 @@ The scale study's layouts compile to models that differ only in the positions of
 field by field, 2026-10-29), so one MuJoCo-Warp model serves every layout of one object: body_pos gets one row per world
 with that world's mounts, and the palm and the post are mocap bodies (MuJoCo-Warp computes the poses of geoms welded to
 the world once, in make_data). One batch runs one task on one object size at one control period; each world is one
-(layout and grasp, seed, sensing variant). The grasps (--layouts):
+(layout and grasp, seed, sensing variant), and a world's `prm` (optional) changes hom_tasks.PRM's commanded forces and
+contact-mode weights for that world only (2026-11-03, scripts/hom_grasp_refine.py). The grasps (--layouts):
   design   the task study's grasp for the task and size (docs/experiments/20261021-hom_framework/design.json);
   2d       the symmetric tripods of the toy's 2-D case with the task study's equator grasp (roll and twist);
   2dfp, rrt6d, sobol8k   the toy's layouts (scripts/fp_sr2_toy.py; rows rrt2d, rrt6d, sobol8k) from their
@@ -408,18 +409,18 @@ def mocap_model(path):
         tmp.unlink()
 
 
-def finger_commands(task, n_out):
+def finger_commands(task, n_out, prm=None):
     """Per finger (thumb, index, middle): Eq. (2)'s weights, whether the object's reference twist enters Eq. (1),
-    whether Eq. (3)'s pusher twist does, and the commanded force after the close (hom_tasks.Schedule)."""
-    P = T.PRM
+    whether Eq. (3)'s pusher twist does, and the commanded force after the close (hom_tasks.Schedule). prm: a world's
+    changes to hom_tasks.PRM's forces and contact-mode weights (2026-11-03, scripts/hom_grasp_refine.py)."""
+    P = {**T.PRM, **(prm or {})}
     if task in ("pinpush", "press"):
-        wpin = [0.0, P["w_roll_pinch"], P["w_roll_pinch"], 1.0, 1.0, 1.0]
-        wpu = [1.0, P["w_roll_push"], P["w_roll_push"], 1.0, 1.0, 1.0]
+        wpin, wpu = T.mode_weights(P, "pinch"), T.mode_weights(P, "push")
         fpu = P["f_drive" if task == "pinpush" else "f_press"]
         f_thumb = P["f_pinch"] + fpu * max(0.0, -float(n_out["middle"] @ n_out["thumb"]))
         return (np.array([wpin, wpin, wpu]), np.array([False, False, True]), np.array([False, False, True]),
                 np.array([f_thumb, P["f_pinch"], fpu]))
-    return (np.tile([1.0, 0.0, 0.0, 1.0, 1.0, 1.0], (3, 1)), np.ones(3, bool), np.zeros(3, bool),
+    return (np.tile(T.mode_weights(P, "tripod"), (3, 1)), np.ones(3, bool), np.zeros(3, bool),
             np.full(3, P["f_tripod"]))
 
 
@@ -847,8 +848,8 @@ class Batch:
             self.k_small = tuple(int(h_.argmin()) for h_ in self.a_halves)
         self.graph_c = None
         self.n_out = T_([[wd_["setup"]["n_out"][f] for f in FINGERS] for wd_ in self.worlds])
-        cmds = [finger_commands(self.task, wd_["setup"]["n_out"]) for wd_ in self.worlds]
-        self.weights = T_(cmds[0][0])                                          # (3, 6), the same in every world
+        cmds = [finger_commands(self.task, wd_["setup"]["n_out"], wd_.get("prm")) for wd_ in self.worlds]
+        self.weights = T_([c[0] for c in cmds])                                # (W, 3, 6): a world's prm may change them
         self.follow = T_(cmds[0][1], th.bool)
         self.pusher = T_(cmds[0][2], th.bool)
         self.follow_f, self.pusher_f = self.follow.to(f64), self.pusher.to(f64)
@@ -1020,9 +1021,9 @@ class Batch:
         aw = (dist < pr.aw_dist) & (v_ref[..., 3] > 0) & ~floop
         v_ref[..., 3] = th.where(aw, th.zeros_like(dist), v_ref[..., 3])
         # Eq. (2): min |sw (A u + b - v_ref)|^2 + w_damp |u|^2 + w_healthy |k (theta_h - theta) - u|^2, box bounds
-        sw = th.sqrt(self.weights) * self.scale                                          # (3, 6)
-        As = sw[None, :, :, None] * A
-        rs = sw[None] * (v_ref - b)
+        sw = th.sqrt(self.weights) * self.scale                                          # (W, 3, 6)
+        As = sw[..., None] * A
+        rs = sw * (v_ref - b)
         I3 = th.eye(3, dtype=f64, device=self.dev)
         Hm = As.transpose(-1, -2) @ As + (pr.w_damp + pr.w_healthy) * I3
         g = th.einsum("wfij,wfi->wfj", As, rs) + pr.w_healthy * pr.k_healthy * (self.healthy - theta)

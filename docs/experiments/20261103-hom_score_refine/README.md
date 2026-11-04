@@ -1,0 +1,61 @@
+# Grasp, force and contact-mode refinement on the HOM score: runbook (2026-11-03)
+
+Owner, 2026-11-03 ~18:00: "can't we score and refine a grasp based off how well the grasp (+morphology) executes the
+HOM control? from what i understand we are doing pretty random sampling"; "is it possible to co-design HOM? are there
+hyperparameters / parameters that we can change within it?"; 18:1x: "yea, let's send it on these tasks ... we can try
+out multiple scores, set up different autopilot jobs to continue promising work. make sure things are documented well!"
+
+## What runs
+
+`scripts/hom_grasp_refine.py` scores each sampled layout three ways (the module docstring has the details):
+
+| score | HOM | grasp | searched by |
+|---|---|---|---|
+| S1 | defaults (`hom_tasks.PRM`) | best of the layout's grasp set (up to 16) | the grids of `hom_plant_transfer.py` |
+| S2 | defaults | refined | CEM from S1's grasp, 24 candidates x 8 iterations |
+| S3 | forces and contact modes refined | refined | CEM from S2's grasp, 32 candidates x 8 iterations |
+
+The search scores every candidate at seeds 0-2, as the grids scored S1; `validate` runs the three picks of each layout
+at seeds 20-24, which no grid or search used, and those scores are the ones to compare. The contact modes are Eq. (2)'s
+row weights by finger role (`hom_tasks.mode_weights`, new keys in `hom_tasks.PRM` with the old values as defaults); the
+forces are `f_tripod`, `f_pinch`, `f_drive` and `f_press`. `hom_gpu.Batch` takes them per world (a world's `prm`).
+
+The queue `queue.sh` (a copy of `logs/20261103-hom_score_refine/queue.sh`, which runs) does, one GPU job at a time:
+
+1. `sv25` (the SCS0009 with pads at 2.5 MPa, the hand's servos): 60 layouts per task (30 best by S1 and 30 at random),
+   levels grasp and full, validation, report. About 5.2 h.
+2. `k21` (the STS3032 at kp 2.1 N m/rad, friction 1.0), then `k21mu0p4` (the same at friction 0.4, TPU on bare PLA) on
+   the same 30 layouts (20 best by k21's S1, 10 at random), 6 iterations each. About 2 h each.
+3. The picks tuned at each friction run at the other (`validate --picks-from`): what knowing the friction is worth when
+   the forces and modes can be retuned. About 20 min.
+
+## Files
+
+- `rows/<plant>/<task>_layouts.json`: the layout sample, with S1 and its grasp.
+- `rows/<plant>/<level>/<task>_d<d>.jsonl`: every rollout, in `hom_gpu.py`'s format; the key holds `call`, `it`,
+  `cand`, `v` (the toy's grasp variables), `prm` and `x` (the CEM variables). `_gens.jsonl`: one line per layout and
+  iteration (scores, elite mean, best so far, the CEM mean and spread). `_timing.jsonl`: one line per GPU batch.
+- `rows/<plant>/val/` and `rows/<plant>/val_from_<other>/`: the picks at seeds 20-24.
+- `rows/<plant>/<date>-score_levels.json`: the report (`report`): per layout S1, S2 and S3 at search and validation
+  seeds, the twist's ramp angle, the tuned forces and modes; per task medians, Spearman's rho between levels, the best
+  layout under each score.
+- `rows_smoke/`: the smoke test of 18:22 (two twist layouts, two iterations); not results.
+
+## Rerun or resume
+
+```bash
+nohup setsid bash logs/20261103-hom_score_refine/queue.sh >> logs/20261103-hom_score_refine/queue.log 2>&1 &
+```
+
+A finished step leaves `logs/20261103-hom_score_refine/Q_<step>.done`; a stopped step resumes from its rows (the
+iterations are replayed with the same random draws, and a replay that draws another candidate stops with an error).
+Each step goes through `resguard.sh run --mem 5G` and retries while resguard refuses it.
+
+## Checks
+
+- `logs/20261103-hom_score_refine/check_prm.py` (18:2x): default worlds reproduce the grid's rows within the GPU's
+  run-to-run spread (twist 1.0 = 1.0; pin-push within 0.036); a world with changed forces and modes scores the same in a
+  mixed batch and alone (within 0.01); the CPU runner with the same prm agrees (pin-push 0.130 vs 0.132, twist ramp 91.8
+  vs 94.9 deg).
+- The probe (`hom_grasp_refine.py probe`): a feasibility draw costs about 3 ms and an open pose 1-2 ms; 19-53 % of
+  draws at 0.25 of the feasible widths pass.
