@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 05:2x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 06:2x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -272,8 +272,8 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       22:07:10 turned the rod -2.90 deg, inside the envelope). Seat 1's half b ended cleanly at 01:19:52 on 11-04, so
       seat 1 has every sweep location, twist and 4 N roll. Seat 3's half b ended cleanly at 03:01:39, so seat 3 has
       them too. Seat 2's half b ended cleanly at 04:39:56: every tip has all its sweep locations, twists and 4 N rolls.
-    - The extras run from 04:39:59. Seat 2's ended cleanly at 05:28:29 (obliques about 26 s each). Seat 3's (rod38)
-      runs from 05:28:35, to about 06:23. Seat 1's should then end about 07:15, inside the 08:00 last start.
+    - The extras run from 04:39:59. Seat 2's ended cleanly at 05:28:29 and seat 3's at 06:21:09 (obliques about 25 s
+      each). Seat 1's (rod19), the night's last step, runs from 06:21:10 and should end about 07:12.
     - Seat 2 so far: 7 sweeps in full (64 offsets, 8 slides) and probe-ref-00 before the switch; half a done (26
       light sweeps, probe-ref-a1; 809 of 832 offsets, 102 of 104 slides); 3 of half b's sweeps done.
     - The workstation's checker on the whole chain in run order flagged none of its 589 actions (19:29;
