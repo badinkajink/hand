@@ -27,7 +27,9 @@ in contact at the end) as elites, mean and spread moved 0.8 of the way to the el
 iterations; the pick is the best candidate seen. The starting spread is 0.25 (grasp) or 0.15 (full) of the feasible
 width of each grasp variable that fp_sr2_toy.grasp_set measured around the foundational pose, and 0.3 for the log
 forces and the mode variables u. `validate` runs each layout's three picks at seeds 20-24, which no search or grid
-used; those are the scores to compare.
+used; those are the scores to compare. The night's searches of 2026-11-03 scored draws around each start and never the
+start itself, so `report` also gives the elitist picks (elitist()): S2e, the better of S1's grasp and S2's pick at
+seeds 0-2, and S3e, the best of S1, S2 and S3.
 
     python3 scripts/hom_grasp_refine.py run --task twist --level grasp [--plant sv25] [--top 30 --rand 30] [--iters 8]
     python3 scripts/hom_grasp_refine.py run --task twist --level full
@@ -429,6 +431,43 @@ def picks(task, plant, level):
     return out
 
 
+def s1_start(task, plant, lays):
+    """{call: (mean score, mean margin)} of S1's grasp at the search seeds, from the plant's grid rows."""
+    import hom_landscape as L
+    want = {int(L_["call"]): int(L_["s1_grasp"]) for L_ in lays}
+    p = GRID_ROWS / f"grid2dff_v4b{PLANTS[plant][2]}" / f"{task}_d{TASKS[task]:g}.jsonl"
+    acc = {}
+    for x in p.read_text().splitlines():
+        if not x.strip():
+            continue
+        r = json.loads(x)
+        c = int(r["call"])
+        if want.get(c) == int(r.get("grasp", 0)) and int(r["seed"]) in SEARCH_SEEDS:
+            a = acc.setdefault(c, [[], []])
+            a[0].append(L.rollout_score(task, r))
+            a[1].append(margin(task, r))
+    return {c: (float(np.mean(s)), float(np.mean(m))) for c, (s, m) in acc.items()}
+
+
+def elitist(task, plant):
+    """{call: {"S2e": pick, "S3e": pick}}, the elitist picks of a plant's searches (the night of 2026-11-03 scored draws
+    around each start, never the start itself). S2e is the better of S1's grasp and S2's pick, S3e the best of S1, S2 and
+    S3, by mean score at the search seeds and then the search's tie-break; a full tie keeps the earlier level."""
+    lays = json.loads((rows_dir(plant) / f"{task}_layouts.json").read_text())["layouts"]
+    p2, p3, s1 = picks(task, plant, "grasp"), picks(task, plant, "full"), s1_start(task, plant, lays)
+    out = {}
+    for L_ in lays:
+        c = L_["call"]
+        sc = {"S1": s1.get(c, (L_["s1"], 0.0))}
+        if c in p2:
+            sc["S2"] = (p2[c]["score"], p2[c]["fe"])
+        if c in p3:
+            sc["S3"] = (p3[c]["score"], p3[c]["fe"])
+        out[c] = {"S2e": max((k for k in ("S1", "S2") if k in sc), key=lambda k: sc[k]),
+                  "S3e": max((k for k in ("S1", "S2", "S3") if k in sc), key=lambda k: sc[k])}
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ validation
 
 def cmd_validate(a):
@@ -485,13 +524,19 @@ def cmd_report(a):
         val = scores(task, read_rows(rows_dir(a.plant) / "val" / f"{task}_d{TASKS[task]:g}.jsonl"))
         cross = {d.name.removeprefix("val_from_"): scores(task, read_rows(d / f"{task}_d{TASKS[task]:g}.jsonl"))
                  for d in sorted(rows_dir(a.plant).glob("val_from_*"))}
+        eli = {p: elitist(task, p) for p in [a.plant, *cross]}     # a pick run elsewhere was chosen on its own plant
+        s1 = s1_start(task, a.plant, lays)
         per = []
         for L_ in lays:
             c = L_["call"]
             e = {"call": c, "xy": L_["xy"], "group": L_["group"], "s1": L_["s1"],
                  "s2": round(p2[c]["score"], 4) if c in p2 else None,
                  "s3": round(p3[c]["score"], 4) if c in p3 else None,
-                 "prm3": p3[c]["prm"] if c in p3 else None}
+                 "prm3": p3[c]["prm"] if c in p3 else None,
+                 "s1_margin": round(s1[c][1], 3) if c in s1 else None,
+                 "s2_margin": round(p2[c]["fe"], 3) if c in p2 else None,
+                 "s3_margin": round(p3[c]["fe"], 3) if c in p3 else None,
+                 "s2e_pick": eli[a.plant][c]["S2e"], "s3e_pick": eli[a.plant][c]["S3e"]}
             for k in ("S1", "S2", "S3"):
                 v = val.get((c, k))
                 e[f"{k.lower()}_val"] = round(v[0], 4) if v and v[2] >= len(VAL_SEEDS) else None
@@ -500,21 +545,35 @@ def cmd_report(a):
                 for src, vv in cross.items():
                     w = vv.get((c, k))
                     e[f"{k.lower()}_val_from_{src}"] = round(w[0], 4) if w and w[2] >= len(VAL_SEEDS) else None
+            for k in ("S2e", "S3e"):
+                e[f"{k.lower()}_val"] = e[f"{eli[a.plant][c][k].lower()}_val"]
+                for src in cross:
+                    e[f"{k.lower()}_pick_{src}"] = eli[src][c][k] if c in eli[src] else None
+                    e[f"{k.lower()}_val_from_{src}"] = (e[f"{eli[src][c][k].lower()}_val_from_{src}"]
+                                                        if c in eli[src] else None)
             per.append(e)
         t = {"layouts": per, "n": len(per)}
-        for lo, hi in (("s1_val", "s2_val"), ("s1_val", "s3_val"), ("s2_val", "s3_val"), ("s1", "s1_val")):
+        for lo, hi in (("s1_val", "s2_val"), ("s1_val", "s3_val"), ("s2_val", "s3_val"), ("s1", "s1_val"),
+                       ("s1_val", "s2e_val"), ("s1_val", "s3e_val"), ("s2e_val", "s3e_val")):
             pairs = [(e[lo], e[hi]) for e in per if e[lo] is not None and e[hi] is not None]
             t[f"rho_{lo}_{hi}"] = spearman(*zip(*pairs)) if len(pairs) >= 3 else None
             t[f"n_{lo}_{hi}"] = len(pairs)
-        for k in ("s1", "s2", "s3", "s1_val", "s2_val", "s3_val"):
+        for k in ("s1", "s2", "s3", "s1_val", "s2_val", "s3_val", "s2e_val", "s3e_val"):
             vals = [e[k] for e in per if e[k] is not None]
             t[f"median_{k}"] = round(float(np.median(vals)), 4) if vals else None
             if vals:
                 b = max((e for e in per if e[k] is not None), key=lambda e: e[k])
                 t[f"best_{k}"] = {"call": b["call"], "xy": b["xy"], "score": b[k]}
+        # a search that ended below its start: level grasp started from S1's grasp, level full from S2's raw pick
+        for level, lo, hi in (("grasp", "s1", "s2"), ("full", "s2", "s3")):
+            d = [e[hi] - e[lo] for e in per if e[lo] is not None and e[hi] is not None]
+            t[f"below_start_{level}"] = {"n": int(sum(x < 0 for x in d)), "of": len(d),
+                                         "worst": round(min(d), 4) if d and min(d) < 0 else None}
         out["tasks"][task] = t
-        print(f"{task}: medians S1 {t['median_s1_val']} S2 {t['median_s2_val']} S3 {t['median_s3_val']} (seeds 20-24); "
-              f"rho S1-S2 {t['rho_s1_val_s2_val']}, S1-S3 {t['rho_s1_val_s3_val']}", flush=True)
+        print(f"{task}: medians S1 {t['median_s1_val']} S2 {t['median_s2_val']} S3 {t['median_s3_val']}, elitist S2e "
+              f"{t['median_s2e_val']} S3e {t['median_s3e_val']} (seeds 20-24); rho S1-S2 {t['rho_s1_val_s2_val']}, "
+              f"S1-S3 {t['rho_s1_val_s3_val']}, S1-S3e {t['rho_s1_val_s3e_val']}; ended below the start: grasp "
+              f"{t['below_start_grasp']}, full {t['below_start_full']}", flush=True)
     p = rows_dir(a.plant) / f"{time.strftime('%Y%m%d')}-score_levels.json"
     p.write_text(json.dumps(out, indent=1))
     print("wrote", p.relative_to(ROOT))
