@@ -149,7 +149,9 @@ def sections(N, F, P, link, L):
         f"{min(wo):.2f}–{max(wo):.2f} mm off, against {min(own):.2f}–{max(own):.2f} mm with them. On v3 IDs 1 to 3 "
         f"the board GP's location error at 1 N and over falls from {dcr('location_mm', '0.5')} mm with half of the "
         f"training points to {dcr('location_mm', '1')} mm with all of them. On v3 IDs 4 to 6, pressed pad up on an "
-        f"inverted rig, it falls from {rcr('location_mm', '0.5')} to {rcr('location_mm')} mm. Torsion is not "
+        f"inverted rig, it falls from {rcr('location_mm', '0.5')} to {rcr('location_mm')} mm. Their points stand 2.0 mm "
+        "apart, against 1.0 mm. With the load near the normal, on holds held out at random, a session's GP gives "
+        "0.32–0.37 mm. Torsion is not "
         "recovered. On the twists of three tips, a GP's estimate correlates with the measured torsion at "
         f"{rg([tw['gp_twists']['r'] for tw in (tw2, tw4, tw5)])}. A model learned on "
         "one tip misses on another. Between the two four-magnet tips, presses are placed "
@@ -176,7 +178,8 @@ def sections(N, F, P, link, L):
         f"{min(own):.2f}-{max(own):.2f} mm with its own); on v3 IDs 1-3 the board GP's held-out location error falls "
         f"from {dcr('location_mm', '0.5').replace('–', '-')} to {dcr('location_mm', '1').replace('–', '-')} mm from half "
         f"to all of the training points; on v3 IDs 4-6 on the inverted rig it falls from "
-        f"{rcr('location_mm', '0.5').replace('–', '-')} to {rcr('location_mm').replace('–', '-')} mm; "
+        f"{rcr('location_mm', '0.5').replace('–', '-')} to {rcr('location_mm').replace('–', '-')} mm, with points 2.0 mm "
+        "apart against 1.0 mm (0.32-0.37 mm against 0.27-0.30 mm on random holds with the load near the normal); "
         f"torsion not recovered (GP r {tw4['gp_twists']['r']:.2f}, "
         f"{tw5['gp_twists']['r']:.2f} and {tw2['gp_twists']['r']:.2f} on the twists; on v3 IDs 2 and 3 no better than "
         f"predicting none); a GP trained on another tip gives "
@@ -1254,6 +1257,15 @@ def sections(N, F, P, link, L):
                   caption="The board GP's held-out errors on v3 ID 4 / ID 5 / ID 6 with all of the other points in "
                           "training, on parts of the pool. Medians over four seeds. Rows in "
                           + P.code("data/20261104-v3_id456_data_curve_*.json") + " in the UR5 folder.", n=20)
+    t21 = P.table(["Holds scored", "Load's tilt", "v3 IDs 4 to 6 (mm)", "v3 IDs 1 to 3 (mm)"],
+                  [["A fifth of the points held out", "All", rcr("location_mm"), dcr("location_mm", "1")],
+                   ["A fifth of the holds held out at random", "All", "0.50–0.54", "0.30–0.32"],
+                   ["The same, a GP per session", "Under 0.1", "0.32–0.37", "0.27–0.30"],
+                   ["The same, a GP per session", "0.1 to 0.3", "0.45–0.49", "–"],
+                   ["The same, a GP per session", "Over 0.3", "0.50–0.57", "–"]],
+                  caption="The board GP's location error at 1 N and over, by what is held out and by the load's tilt, the "
+                          "tangential over the normal force. Ranges over the three tips of each set, as given in "
+                          + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32.", n=21)
     body = (
         f"<p>On the inverted rig the board GP locates contact on v3 IDs 4, 5 and 6 within {rcv('location_mm', '{:.2f}')} mm "
         "at 1 N and over (Table 19, Figure 12). All of the other points are in training. On v3 IDs 1 to 3, which the "
@@ -1262,6 +1274,12 @@ def sections(N, F, P, link, L):
         f"{rcr('magnitude', '1', '{:.0f}', 100)} %, against {dcr('magnitude', '1', '{:.0f}', 100)} %. From half to all of "
         f"the points the location error falls by {rfall} %, against {fall('location_mm')} % on v3 IDs 1 to 3. From 0.7 to "
         f"all of them it still falls by {rlate} %.</p>"
+        "<p>The points of v3 IDs 4 to 6 stand 1.94–2.02 mm from their nearest neighbour, against 0.97–0.99 mm on v3 IDs "
+        "1 to 3. The night's tilted loads also raise the error (Table 21). With the load's tilt under 0.1 and the holds held "
+        "out at random, a session's GP gives 0.32–0.37 mm, against 0.27–0.30 mm. Each tip has 30 flank points, against 11 "
+        "or 12. The session s1sph2b alone gives 0.62–0.71 mm in every quarter of it, and the other sphere sessions "
+        "0.31–0.43 mm. The board reads 31–32 µT/N on v3 IDs 4 to 6 and 26–27 µT/N on v3 IDs 1 to 3, and its rest drift "
+        "is 6–8 µT on both. The seat's deflection does not change the error.</p>"
         "<p>In the UR5 coordinator's analysis the ground truth of the eight sessions comes from "
         + P.code("scripts/ur5_probe_calibration_analysis.py") + ", and each session's holds are in "
         + P.code("docs/experiments/20261030-inverted_rig_seat_block/data/holds/") + ". The sphere sessions have "
@@ -1282,6 +1300,7 @@ def sections(N, F, P, link, L):
                 "seeds; the bands span the seeds of v3 IDs 4 to 6. Drawn from " + rcp + " and "
                 + P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261102-v3_data_curve.json") + ".")
         + t20
+        + t21
         + "<p><b>The rig.</b> A probe on the HEX-E presses tips held pad up on a printed strip of three seats ("
         + link(L["rig"], "inverted rig page") + "). In the reach search a press of the 5 or 2 mm sphere reaches 452 of "
         "the pad's 808 points, against 286 for the finger on the robot. On the tip end it reaches 40 of 88 points, "
@@ -1403,11 +1422,13 @@ def sections(N, F, P, link, L):
         "the board GP's errors). Within 0.3 mm and 6 % of their force, the rig calibrates a tip as well as the sphere "
         "suite of the finger on the robot.",
         f"Denser presses on the rig's tips: on v3 IDs 4 to 6 the location error still falls by {rfall} % from half to all "
-        "of the points (Section 15). More presses a seat should lower it further. On the owner's go of 10:4x on "
-        "11-04, the rod presses are to be denser (" + P.code("--seed-spacing") + ", " + P.code("--regions") + " and "
-        + P.code("--rod-one") + " of " + P.code("scripts/ur5_inverted_rig.py") + " replay). Run the data curve of "
-        "Section 14 again with them in the pool. A fall under 5 % from half to all of the points means a seat's suite "
-        "has enough presses.",
+        "of the points (Section 15). On the owner's go of 10:4x on 11-04, the rod presses 203 new face and edge points, "
+        "1.0 mm or more from the night's points and from each other. It also presses 11 flank and tip points at 1.3 mm. "
+        "These single normal presses to 3 N run from 11:17 to about 13:20 ("
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32). Run the data curve of Section 14 "
+        "again with them in the pool. If the error reaches v3 IDs 1 to 3's "
+        f"{dcr('location_mm', '1')} mm, the spacing explains the gap. A fall under 5 % from half to all of the points "
+        "means a seat's suite has enough presses.",
         "Friction cone at each pad point (owner, 11-03; "
         + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32): analyse the rod's sweeps of Section "
         "15 by force level and direction. The sweep is revised if in some direction the ratio of tangential to normal "
