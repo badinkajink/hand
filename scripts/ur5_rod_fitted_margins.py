@@ -21,7 +21,8 @@ RIG.use_cell("table", None)
 D = Path("docs/experiments/20261030-inverted_rig_seat_block/data")
 ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
 ap.add_argument("seat", type=int, help="1, 2 or 3")
-ap.add_argument("--turn-z", type=float, default=-5.40, help="the fit's turn about z_M (deg)")
+ap.add_argument("--turn-z", default="-5.40", help="the fit's turn about z_M (deg); a comma-separated list for an envelope "
+                "(11-03: seats 2 and 3 fitted -5.40 and +10.75 on the same rod)")
 ap.add_argument("--across", type=float, default=0.77, help="the fit's turn across (deg), tried with either sign")
 ap.add_argument("--first", default="", help="sweep ids printed first")
 ap.add_argument("--plan", default="sweep8", choices=("sweep8", "extras"), help="the program plan: the 8 N sweeps or "
@@ -43,8 +44,9 @@ T_AP = np.asarray(prog["geometry"]["seat"]["T_AP"], float)
 c0 = np.array([0.0, 0.0, RIG.tool_end_z("rod")])
 T_EM, T_ME = ctx["T_EM"], C.inv(ctx["T_EM"])
 var = {"nominal": np.eye(3)}
-for tl in (a.across, -a.across):
-    var[f"fit z{a.turn_z:+g} x{tl:+g}"] = C.rot([1, 0, 0], tl) @ C.rot([0, 0, 1], a.turn_z)
+for tz in [float(v) for v in str(a.turn_z).split(",")]:
+    for tl in (a.across, -a.across):
+        var[f"fit z{tz:+g} x{tl:+g}"] = C.rot([1, 0, 0], tl) @ C.rot([0, 0, 1], tz)
 Tf = {k: C.Tm(R, c0 - R @ c0) for k, R in var.items()}
 acts = [x for x in prog["actions"] if x["stage"] == "grid" and x["kind"] in ("sweep", "press", "roll", "twist")
         and (not a.ids or x["id"] in a.ids.split(","))]
@@ -89,5 +91,5 @@ for x in acts:
     if w < 1.0 or x["id"] in first:
         print(json.dumps(row), flush=True)
 Path(a.out or D / f"20261103-strip_table_pads_rod_{a.plan}_fitted_margins_seat{s_}.json").write_text(
-    json.dumps(dict(turn_z_deg=a.turn_z, across_deg=a.across, rows=out), indent=1) + "\n")
+    json.dumps(dict(turn_z_deg=str(a.turn_z), across_deg=a.across, rows=out), indent=1) + "\n")
 print("done", len(out), "actions")
