@@ -561,6 +561,7 @@ V3COL = {"1": FOUR, "2": "#2e7d32", "3": "#6a3d9a"}
 RIG_HOLDS = ROOT / "docs/experiments/20261030-inverted_rig_seat_block/data/holds"
 RIG_CURVE = UR5 / "20261104-v3_id456_data_curve_pooled.json"
 RIGCOL = {"4": "#1f78b4", "5": "#d95f02", "6": "#1b9e77"}
+RIG_DENSE = {t: UR5 / f"20261104-v3_id{t}_dense_seat{7 - int(t)}_gp.json" for t in RIGCOL}  # seats 3, 2 and 1
 
 
 def v3id3_sessions():
@@ -619,8 +620,9 @@ def fig_data_curve():
 
 
 def rig_sessions():
-    """Holds and actions by kind in the inverted rig's analysed sessions (the coordinator's holds.npz, commit ab47f8b6 of
-    2026-11-04), for the page's session table."""
+    """Holds and actions by kind in the inverted rig's analysed sessions (the coordinator's holds.npz, commits ab47f8b6 and
+    c13136a8 of 2026-11-04; a <session>_dense folder is the rod session with its new presses), for the page's session
+    table."""
     from fingertip_calibration_text import at_head
     out = {}
     for folder in sorted(RIG_HOLDS.iterdir()):
@@ -672,6 +674,51 @@ def fig_rig_curve():
     save(fig, "20261104-v3_id456_data_curve.png")
 
 
+def fig_rig_dense():
+    """What the new rod presses of 2026-11-04 do to the board GP on v3 IDs 4 to 6 (the coordinator's
+    data/20261104-v3_id456_dense_gp.py, commit c13136a8), holds of 1 N and over: (a) location error on a fixed fifth of the
+    earlier points without and with the new holds, and on a fifth of the new points, by seed with the medians thick; (b) the
+    data curve with the new holds in the pool, a fifth of all points held out, medians over two seeds and their span. The
+    grey band is v3 IDs 1 to 3's location error with all of their points."""
+    from statistics import median
+
+    from fingertip_calibration_text import at_head
+    plt = plt_setup()
+    O = json.loads(at_head(DATA_CURVE))
+    ref = [d["median"]["1"]["location_mm"] for d in O["tips"].values()]
+    fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.7), sharey=True)
+    for k, (tip, path) in enumerate(RIG_DENSE.items()):
+        d, col = json.loads(at_head(path)), RIGCOL[tip]
+        a, b = [[r[w]["location_mm"] for r in d["fixed"]] for w in "AB"]
+        for u, v in zip(a, b):
+            axes[0].plot((0, 1), (u, v), color=col, lw=1, alpha=0.45, marker="o", ms=3.5)
+        axes[0].plot((0, 1), (median(a), median(b)), color=col, lw=2.6, marker="o", ms=7, label=f"v3 ID {tip}")
+        n = [r["location_mm"] for r in d["dense"]]
+        x = 2 + 0.16 * (k - 1)
+        axes[0].plot([x] * len(n), n, ls="", color=col, alpha=0.45, marker="o", ms=3.5)
+        axes[0].plot([x], [median(n)], ls="", color=col, marker="o", ms=7)
+        fr = sorted({r["fraction"] for r in d["curve"]})
+        seeds = [[r for r in d["curve"] if r["fraction"] == f] for f in fr]
+        xs = [s[0]["groups"] for s in seeds]
+        ys = [[r["location_mm"] for r in s] for s in seeds]
+        axes[1].fill_between(xs, [min(y) for y in ys], [max(y) for y in ys], color=col, alpha=0.14, lw=0)
+        axes[1].plot(xs, [median(y) for y in ys], color=col, lw=1.8, marker="o", ms=6)
+    for j, ax in enumerate(axes):
+        ax.axhspan(min(ref), max(ref), color="0.75", alpha=0.6, lw=0, label="v3 IDs 1 to 3, all of their points" if j == 0 else None)
+    axes[0].set_xticks((0, 1, 2))
+    axes[0].set_xticklabels(("Earlier points,\nearlier holds", "Earlier points,\nnew holds added", "New points,\nall other holds"))
+    axes[0].set_xlim(-0.35, 2.45)
+    axes[0].set_ylim(0.4, 1.12)
+    axes[0].set_ylabel("Location error, median (mm)")
+    axes[0].set_title("(a) By the points held out")
+    axes[1].set_xlabel("Training points")
+    axes[1].set_title("(b) With the new holds in the pool")
+    h = axes[0].get_legend_handles_labels()[0]
+    fig.legend(handles=h, loc="lower center", ncol=4, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    save(fig, "20261104-v3_id456_dense_presses.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
@@ -679,7 +726,7 @@ def main():
     figs = dict(motions=fig_motions, coverage=fig_coverage, learning=fig_learning, by_level=fig_by_level,
                 density=fig_density, shear=fig_shear, transfer=fig_transfer, sessions=sessions, hard=fig_hard,
                 four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve, rig=rig_sessions,
-                rig_curve=fig_rig_curve)
+                rig_curve=fig_rig_curve, rig_dense=fig_rig_dense)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)

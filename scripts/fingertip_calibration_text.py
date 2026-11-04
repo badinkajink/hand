@@ -78,13 +78,19 @@ def sections(N, F, P, link, L):
     # bb18d7c6 of 2026-11-04)
     RGC = {k: jl(UR5D / f"20261104-v3_id456_data_curve_{k}.json") for k in ("pooled", "pooled_kinds4", "sphere", "rod")}
     RJ = jl(RIGD / "20261104-strip_table_pads_rod_joint_registration_final_grid05.json")
-    RS = N["rig_sessions"]
-    # seat 1's denser rod presses in the board GP of v3 ID 6 (commit 5916bdad of 2026-11-04): medians over the seeds; a set
-    # of new points with no twists has NaN torsions, so the table leaves those cells out
-    RDS = jl(UR5D / "20261104-v3_id6_dense_seat1_gp.json")
+    # a <session>_dense folder is the rod session with its new presses of 11-04, and it replaces the session's counts
+    RS = {s: c for s, c in N["rig_sessions"].items() if s + "_dense" not in N["rig_sessions"]}
+    # the new rod presses in the board GP of v3 IDs 4 to 6 (commit c13136a8 of 2026-11-04), medians over the seeds; most sets
+    # of new points have no twists, so the table leaves their torsions out
+    RDS = {t: jl(UR5D / f"20261104-v3_id{t}_dense_seat{7 - int(t)}_gp.json") for t in "456"}
     rdm = lambda rows, k, sc=1: sc * median(r[k] for r in rows)  # noqa: E731
-    rda, rdb = [r["A"] for r in RDS["fixed"]], [r["B"] for r in RDS["fixed"]]
-    rdc = lambda fr, k: median(r[k] for r in RDS["curve"] if r["fraction"] == fr)  # noqa: E731
+    rda = lambda t, k="location_mm", sc=1: rdm([r["A"] for r in RDS[t]["fixed"]], k, sc)  # noqa: E731
+    rdb = lambda t, k="location_mm", sc=1: rdm([r["B"] for r in RDS[t]["fixed"]], k, sc)  # noqa: E731
+    rdn = lambda t, k="location_mm", sc=1: rdm(RDS[t]["dense"], k, sc)  # noqa: E731
+    rdc = lambda t, fr, k="location_mm": median(r[k] for r in RDS[t]["curve"] if r["fraction"] == fr)  # noqa: E731
+    rdg = [round(rda(t), 3) - round(rdb(t), 3) for t in "456"]  # the fall on the earlier points, as the rounded values show it
+    rds = [r["A"]["location_mm"] - r["B"]["location_mm"] for t in "456" for r in RDS[t]["fixed"]]
+    rdf = lambda fr: [100 * (1 - rdc(t, 1.0) / rdc(t, fr)) for t in "456"]  # noqa: E731   (the curve's fall from fr to all)
     I3 = N["v3id3_sessions"]
     T3 = ("v3 ID 1", "v3 ID 2")
     tw2 = G2["twists"]["four_v3id2"]
@@ -158,8 +164,8 @@ def sections(N, F, P, link, L):
         f"training points to {dcr('location_mm', '1')} mm with all of them. On v3 IDs 4 to 6, pressed pad up on an "
         f"inverted rig, it falls from {rcr('location_mm', '0.5')} to {rcr('location_mm')} mm. Their points stand 2.0 mm "
         "apart, against 1.0 mm. With the load near the normal, on holds held out at random, a session's GP gives "
-        f"0.32–0.37 mm. On v3 ID 6, presses at 71 new points lower the error on its earlier points from "
-        f"{rdm(rda, 'location_mm'):.3f} to {rdm(rdb, 'location_mm'):.3f} mm. Torsion is not "
+        f"0.32–0.37 mm. Presses at 66 to 71 new points per tip lower the error on the earlier points by "
+        f"{rg(rdg, '{:.3f}')} mm. With the new points held out, it is {rg([rdn(t) for t in '456'])} mm. Torsion is not "
         "recovered. On the twists of three tips, a GP's estimate correlates with the measured torsion at "
         f"{rg([tw['gp_twists']['r'] for tw in (tw2, tw4, tw5)])}. A model learned on "
         "one tip misses on another. Between the two four-magnet tips, presses are placed "
@@ -188,8 +194,9 @@ def sections(N, F, P, link, L):
         f"to all of the training points; on v3 IDs 4-6 on the inverted rig it falls from "
         f"{rcr('location_mm', '0.5').replace('–', '-')} to {rcr('location_mm').replace('–', '-')} mm, with points 2.0 mm "
         "apart against 1.0 mm (0.32-0.37 mm against 0.27-0.30 mm on random holds with the load near the normal), and "
-        f"71 new rod points on v3 ID 6 lower its error from {rdm(rda, 'location_mm'):.3f} to "
-        f"{rdm(rdb, 'location_mm'):.3f} mm; torsion not recovered (GP r {tw4['gp_twists']['r']:.2f}, "
+        f"66-71 new rod points per tip lower the error on the earlier points by {rg(rdg, '{:.3f}').replace('–', '-')} mm "
+        f"({rg([rdn(t) for t in '456']).replace('–', '-')} mm among the new points); torsion not recovered "
+        f"(GP r {tw4['gp_twists']['r']:.2f}, "
         f"{tw5['gp_twists']['r']:.2f} and {tw2['gp_twists']['r']:.2f} on the twists; on v3 IDs 2 and 3 no better than "
         f"predicting none); a GP trained on another tip gives "
         f"1.42 mm against 0.39 mm on the v1 tips and {xf(*T3)['loc_mm']:.2f} and {xf(*T3[::-1])['loc_mm']:.2f} mm against "
@@ -448,9 +455,9 @@ def sections(N, F, P, link, L):
         rigrow("s3v4", "20261102-220337-s3v4", "v3 ID 4, 5 mm sphere", "Seat 3", "2026-11-02 and the night"),
         rigrow("s1sph2b", "20261103-122020-s1sph2b", "v3 ID 6, 2 mm sphere", "Seat 1", "2026-11-03"),
         rigrow("s2sph2", "20261103-144808-s2sph2", "v3 ID 5, 2 mm sphere", "Seat 2", "2026-11-03"),
-        rigrow("rod21", "20261103-172647-rod21", "v3 ID 5, rod", "Seat 2", "2026-11-03 night"),
-        rigrow("rod32", "20261103-202017-rod32", "v3 ID 4, rod", "Seat 3", "2026-11-03 night"),
-        rigrow("rod13", "20261103-214753-rod13", "v3 ID 6, rod", "Seat 1", "2026-11-03 night"),
+        rigrow("rod21", "20261103-172647-rod21_dense", "v3 ID 5, rod", "Seat 2", "2026-11-03 night and 11-04"),
+        rigrow("rod32", "20261103-202017-rod32_dense", "v3 ID 4, rod", "Seat 3", "2026-11-03 night and 11-04"),
+        rigrow("rod13", "20261103-214753-rod13_dense", "v3 ID 6, rod", "Seat 1", "2026-11-03 night and 11-04"),
     ]
     assert len(rows) == 27  # the lede's "twenty-seven sessions"
     t5 = P.table(["Sessions and indenters", "Press actions"]
@@ -477,7 +484,7 @@ def sections(N, F, P, link, L):
         "each time (Section 16). Its sessions were analysed on 10-30 from copies of the lab's session folders, with "
         + P.code("scripts/ur5_tip_calibration_analysis.py") + ". The physical model is checked on their holds ("
         + link(L["phys"], "physical-model page") + ", Section 9), and Section 14 gives the board GP's errors. v3 IDs "
-        "6, 5 and 4 were pressed on the inverted rig from 14:50 on 11-02 to 07:11 on 11-04 (Section 15). Tip 2's session "
+        "6, 5 and 4 were pressed on the inverted rig from 14:50 on 11-02 to 13:17 on 11-04 (Section 15). Tip 2's session "
         "cb2t has 104 press points in 921 holds, and 87 slides.</p>"
         + P.table(["Session", "Tip, indenter", "Mount", "Date", "Press holds (presses)", "Turn holds (turns)"], rows,
                   caption="Sessions on the UR5. Turn holds are those of slides, rolls and twists. Counts from each session's "
@@ -487,7 +494,8 @@ def sections(N, F, P, link, L):
                           "the same way in its analysis folders of 10-30 (" + P.code("logs/20261030-*v3id3/holds.npz")
                           + " on the workstation). The inverted rig's come from each session's holds.npz in "
                           + P.code("docs/experiments/20261030-inverted_rig_seat_block/data/holds/") + ", and on its rod "
-                          "rows the press holds include the sweeps' levels and the turn holds their offsets and slides. "
+                          "rows the press holds include the sweeps' levels and the turn holds their offsets and slides. Those "
+                          "rows count the new presses of 11-04, without the flank and tip presses of rod13 and rod32. "
                           "v3 ID 2's and ID 3's presses on the low sphere include their top-edge "
                           "passes. Sections 11 and 12 compare the press actions that two "
                           "tips both ran. v2 ID 1's 26 slides on the tall indenter, of 2026-10-27, are not analysed "
@@ -1253,8 +1261,9 @@ def sections(N, F, P, link, L):
                   [[f"v3 ID {t}", f"{rct(t)['holds']:,} ({rct(t)['groups']})", rhv(t, "n_train", "{:,.0f}"),
                     rhv(t, "location_mm", "{:.2f}"), rhv(t, "direction_deg", "{:.1f}"), rhv(t, "magnitude", "{:.1f}", 100),
                     rhv(t, "torsion_Nmm", "{:.2f}"), f"{rcm(t, '1')['torsion_zero_Nmm']:.2f}"] for t in RGT],
-                  caption="The board GP's held-out errors on v3 IDs 4 to 6 on the inverted rig, trained on half / all of "
-                          "the other points; medians over four seeds, as in Table 18. Rows in " + rcp + " ("
+                  caption="The board GP's held-out errors on v3 IDs 4 to 6 on the inverted rig, on their holds up to 07:11 "
+                          "on 11-04, trained on half / all of the other points; medians over four seeds, as in Table 18. "
+                          "Rows in " + rcp + " ("
                           + P.code("scripts/ur5_tip_calibration_v3_data_curve.py") + ").", n=19)
     tv = lambda fn: " / ".join(fn(t) for t in RGT)  # noqa: E731
     t20 = P.table(["Sessions and kinds of hold", "Holds", "Location error (mm)", "Force angle (°)", "Force error (%)"],
@@ -1275,21 +1284,38 @@ def sections(N, F, P, link, L):
                   caption="The board GP's location error at 1 N and over, by what is held out and by the load's tilt, the "
                           "tangential over the normal force. Ranges over the three tips of each set, as given in "
                           + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32.", n=21)
-    rdrow = lambda nm, k, fmt, sc=1: [nm] + [fmt.format(rdm(r, k, sc)) for r in (rda, rdb, RDS["dense"])]  # noqa: E731
-    rdtor = lambda nm, k: [nm, f"{rdm(rda, k):.1f}", f"{rdm(rdb, k):.1f}", "–"]  # noqa: E731
-    t22 = P.table(["Error at 1 N and over", "Earlier points held out, earlier holds in training",
-                   "The same points held out, 300 new holds added", "New points held out, all other holds in training"],
-                  [rdrow("Location error (mm)", "location_mm", "{:.3f}"),
+    rdrow = lambda nm, k, fmt, sc=1: [nm] + [f"{fmt.format(rda(t, k, sc))} / {fmt.format(rdb(t, k, sc))}" for t in RGT]  # noqa: E731
+    rod = {"4": "20261103-202017-rod32", "5": "20261103-172647-rod21", "6": "20261103-214753-rod13"}
+    rnh = lambda t: N["rig_sessions"][rod[t] + "_dense"]["press"]["holds"] - N["rig_sessions"][rod[t]]["press"]["holds"]  # noqa: E731
+    t22 = P.table(["Error at 1 N and over"] + [f"v3 ID {t}, seat {7 - int(t)}" for t in RGT],
+                  [["New points (holds)"] + [f"{n} ({rnh(t)})" for t, n in zip(RGT, (66, 70, 71))],
+                   rdrow("Location error (mm)", "location_mm", "{:.3f}"),
                    rdrow("Location error, load's tilt under 0.1 (mm)", "loc_normal_mm", "{:.3f}"),
                    rdrow("Location error, load's tilt 0.1 or over (mm)", "loc_tilted_mm", "{:.3f}"),
                    rdrow("Force angle (°)", "direction_deg", "{:.2f}"),
                    rdrow("Force error (%)", "magnitude", "{:.1f}", 100),
-                   rdtor("Torsion error (N mm)", "torsion_Nmm"), rdtor("No torsion predicted (N mm)", "torsion_zero_Nmm")],
-                  caption="The board GP's errors on v3 ID 6 with and without seat 1's new rod presses. The earlier holds "
-                          "are those of s1v6b, s1sph2b and rod13 up to 07:11 on 11-04. A fifth of the points is held out. "
-                          "Medians over four seeds; three of the new points' seeds have no twists, hence the dashes. Rows in "
-                          + P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261104-v3_id6_dense_seat1_gp.json")
-                          + ", with its script and printout beside it.", n=22)
+                   rdrow("Torsion error (N mm)", "torsion_Nmm", "{:.1f}"),
+                   ["No torsion predicted (N mm)"] + [f"{rda(t, 'torsion_zero_Nmm'):.1f}" for t in RGT]],
+                  caption="The board GP's errors on a fixed fifth of each tip's earlier points, trained on its other "
+                          "earlier holds / with its new holds added. The earlier holds are those up to 07:11 on 11-04. "
+                          "Medians over four seeds. Rows in "
+                          + P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261104-v3_id*_dense_seat*_gp.json")
+                          + "; script " + P.code("20261104-v3_id456_dense_gp.py") + " beside them.", n=22)
+    rdnr = lambda nm, k, fmt, sc=1: [nm] + [fmt.format(rdn(t, k, sc)) for t in RGT]  # noqa: E731
+    rdcr = lambda nm, fr: [nm] + [f"{rdc(t, fr):.3f} ({rdc(t, fr, 'groups'):.0f})" for t in RGT]  # noqa: E731
+    t23 = P.table(["Points held out", "Error at 1 N and over"] + [f"v3 ID {t}" for t in RGT],
+                  [[w] + r for w, r in zip(("A fifth of the new points", "The same", "The same", "The same",
+                                            "A fifth of all points", "The same", "The same", "The same"),
+                                           (rdnr("Location error (mm)", "location_mm", "{:.3f}"),
+                                            rdnr("Location error, load's tilt under 0.1 (mm)", "loc_normal_mm", "{:.3f}"),
+                                            rdnr("Force angle (°)", "direction_deg", "{:.2f}"),
+                                            rdnr("Force error (%)", "magnitude", "{:.1f}", 100),
+                                            rdcr("Location error (mm), half of the other points in training (their number)", 0.5),
+                                            rdcr("Location error (mm), 0.7 of them", 0.7),
+                                            rdcr("Location error (mm), 0.85 of them", 0.85),
+                                            rdcr("Location error (mm), all of them", 1.0)))],
+                  caption="The board GP's errors with the new holds in the pool. Medians over four seeds for the new "
+                          "points and over two seeds for all points. Rows in the files of Table 22.", n=23)
     body = (
         f"<p>On the inverted rig the board GP locates contact on v3 IDs 4, 5 and 6 within {rcv('location_mm', '{:.2f}')} mm "
         "at 1 N and over (Table 19, Figure 12). All of the other points are in training. On v3 IDs 1 to 3, which the "
@@ -1300,8 +1326,8 @@ def sections(N, F, P, link, L):
         f"all of them it still falls by {rlate} %.</p>"
         "<p>The points of v3 IDs 4 to 6 stand 1.94–2.02 mm from their nearest neighbour, against 0.97–0.99 mm on v3 IDs "
         "1 to 3. The night's tilted loads also raise the error (Table 21). With the load's tilt under 0.1 and the holds held "
-        "out at random, a session's GP gives 0.32–0.37 mm, against 0.27–0.30 mm. On v3 ID 6, 300 holds at new points lower "
-        f"the error on its earlier points from {rdm(rda, 'location_mm'):.3f} to {rdm(rdb, 'location_mm'):.3f} mm (Table 22). "
+        "out at random, a session's GP gives 0.32–0.37 mm, against 0.27–0.30 mm. Presses at 66 to 71 new points per tip "
+        f"lower the error on the earlier points by {rg(rdg, '{:.3f}')} mm (Table 22). "
         "Each tip has 30 flank points, against 11 "
         "or 12. The session s1sph2b alone gives 0.62–0.71 mm in every quarter of it, and the other sphere sessions "
         "0.31–0.43 mm. The board reads 31–32 µT/N on v3 IDs 4 to 6 and 26–27 µT/N on v3 IDs 1 to 3, and its rest drift "
@@ -1311,7 +1337,7 @@ def sections(N, F, P, link, L):
         + P.code("docs/experiments/20261030-inverted_rig_seat_block/data/holds/") + ". The sphere sessions have "
         f"{min(sph_holds):,} to {max(sph_holds):,} holds. The rod sessions have {min(rod_holds):,} to {max(rod_holds):,}, "
         f"among them {min(off):,} to {max(off):,} offsets and {min(lev)} to {max(lev)} sweep levels (Table 4). Each tip's "
-        f"sessions are pooled: v3 ID 4 has {rct('4')['holds']:,} holds at {rct('4')['groups']} points, v3 ID 5 "
+        f"sessions up to 07:11 on 11-04 are pooled. v3 ID 4 then has {rct('4')['holds']:,} holds at {rct('4')['groups']} points, v3 ID 5 "
         f"{rct('5')['holds']:,} at {rct('5')['groups']} and v3 ID 6 {rct('6')['holds']:,} at {rct('6')['groups']}. v3 ID 4 "
         "has no 2 mm sphere session. The held-out split and the shares of the training points are those of Section 14. "
         f"On the sphere sessions alone the location error is {rcr('location_mm', pool='sphere')} mm, and on the rod "
@@ -1392,22 +1418,37 @@ def sections(N, F, P, link, L):
         "0.5 N to 7.1–7.7 N/mm at 8 N. This stiffness includes "
         "everything between the flange and the strip. Each seat's six reference presses reached 3 N within 0.10 to 0.15 "
         "mm of one another over the night.</p>"
-        "<p><b>Denser rod presses.</b> On v3 ID 6, presses at 71 new points lower the location error on a fixed fifth of "
-        f"the tip's earlier points from {rdm(rda, 'location_mm'):.3f} to {rdm(rdb, 'location_mm'):.3f} mm (Table 22). Each "
-        "of the four seeds improves, by 0.014 to 0.050 mm. The force angle, the force error and the torsion error do not "
-        f"change. With the new points held out the location error is {rdm(RDS['dense'], 'location_mm'):.3f} mm. Over all of "
-        f"the tip's holds and two seeds, it falls from {rdc(0.5, 'location_mm'):.3f} mm at {rdc(0.5, 'groups'):.0f} training "
-        f"points to {rdc(1.0, 'location_mm'):.3f} mm at {rdc(1.0, 'groups'):.0f}, by "
-        f"{100 * (1 - rdc(1.0, 'location_mm') / rdc(0.5, 'location_mm')):.0f} %.</p>"
+        "<p><b>Denser rod presses.</b> v3 IDs 4, 5 and 6 were pressed at 66, 70 and 71 new points. On a fixed fifth of "
+        f"their earlier points the location error falls by {rdg[0]:.3f}, {rdg[1]:.3f} and {rdg[2]:.3f} mm (Table 22, Figure 13a). "
+        f"Each of the {len(rds)} seeds improves, by {min(rds):.3f} to {max(rds):.3f} mm. The force angle, the force error "
+        "and the torsion error do not change. With the new points held out, where the presses are normal and the "
+        f"points stand about 1 mm apart, the location error is {rdn('4'):.2f}, {rdn('5'):.2f} and {rdn('6'):.2f} mm (Table 23). "
+        f"With the load's tilt under 0.1 it is {rg([rdn(t, 'loc_normal_mm') for t in RGT])} mm. There the force angle is "
+        f"{rg([rdn(t, 'direction_deg') for t in RGT], '{:.1f}')}° and the force error "
+        f"{rg([rdn(t, 'magnitude', 100) for t in RGT], '{:.1f}')} %. With the new holds in the pool, the location error "
+        f"falls by {rg(rdf(0.5), '{:.0f}')} % from half to all of the training points (Figure 13b). From 0.85 to all of them "
+        f"it still falls by {rg(rdf(0.85), '{:.0f}')} %. On every set of held-out points it stays above the "
+        f"{dcr('location_mm', '1')} mm of v3 IDs 1 to 3.</p>"
         "<p>These presses began on the owner's go of 10:4x on 11-04 ("
         + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32). At 12:0x the owner asked what they "
         "give, to decide whether more contacts are needed. Each new point stands 1.0 mm or more from the tip's earlier "
-        "points and from the other new points. It takes one normal press with the rod, with holds at 0.5, 1, 2 and 3 N. "
-        "Seat 1 ran its 71 presses and 4 reference presses from 11:17 to 11:54, with no skip or abort. The lab sent the "
-        "bytes that they added to rod13's session by git ("
-        + P.code("docs/experiments/20261022-ur5_tip_calibration/lab/20261104-rod13_tail/") + "). Their 300 holds raise "
-        "rod13's holds from 3,011 to 3,311. Table 4 counts the 3,011.</p>"
+        "points and from the other new points. Flank and tip points stand 1.3 mm or more apart. Each takes one normal "
+        "press with the rod, with holds at 0.5, 1, 2 and 3 N, and to 2 N on the flanks and tip. The chain ran from "
+        "11:17:06 to 13:16:58 with no skip or abort. All 232 actions ran: 214 new points and 18 reference presses. The "
+        "HEX-E gave 712,913 samples, and no read timed out ("
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/lab/NOTES.md") + "). The lab sent the bytes that they "
+        "added to each session by git (" + P.code("docs/experiments/20261022-ur5_tip_calibration/lab/20261104-rod*_tail/")
+        + "). The holds with the new presses are in "
+        + P.code("docs/experiments/20261030-inverted_rig_seat_block/data/holds/<session>_dense/") + ". The scores above "
+        "leave out the flank and tip presses of seats 1 and 3, 6 and 5 actions.</p>"
         + t22
+        + t23
+        + P.fig(13, F["rig_dense"], "The board GP's location error on v3 IDs 4 to 6 over the held-out holds of 1 N and over. "
+                "(a) On a fixed fifth of each tip's earlier points, without and with the new holds in training, and on a "
+                "fifth of the new points. Thin lines and small dots are the seeds, thick lines and large dots their "
+                "medians. (b) With the new holds in the pool and a fifth of all points held out, against the number of "
+                "training points. Medians over two seeds; the bands span them. The grey band spans v3 IDs 1 to 3 with all "
+                "of their points. Drawn from the files of Table 22.")
     )
     S.append(("rig", "Calibration of v3 IDs 4 to 6 on the inverted rig", body))
 
@@ -1463,13 +1504,14 @@ def sections(N, F, P, link, L):
         "Direction GP on the rig's tips: score the direction GP on each seat's held-out face presses (Section 15 gives "
         "the board GP's errors). Within 0.3 mm and 6 % of their force, the rig calibrates a tip as well as the sphere "
         "suite of the finger on the robot.",
-        f"Denser presses on the rig's tips: seat 1's 71 new points leave v3 ID 6's location error at "
-        f"{rdm(rdb, 'location_mm'):.3f} mm, still falling with the number of points (Section 15). Seat 3 pressed its 66 new "
-        "points from 11:54 to 12:29, and seat 2's 66 began at 12:29. Then 11 flank and tip points follow at 1.3 mm ("
-        + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32). Score v3 IDs 4 and 5 as in Table 22, "
-        "and run the data curve of Section 14 again with all three seats' presses in the pool. If the error reaches v3 "
-        f"IDs 1 to 3's {dcr('location_mm', '1')} mm, the spacing explains the gap. A fall under 5 % from half to all of "
-        "the points means a seat's suite has enough presses.",
+        "Denser presses on the rig's tips: the owner asked for Section 15's scores to decide whether more contacts are "
+        "needed (" + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32). Add the flank and tip "
+        "presses of seats 1 and 3 to their holds ("
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/lab/20261104-rod*_ft_tail/") + "), and run the data curve "
+        "of Section 14 with four seeds on each tip's whole pool. Score any further presses on the same held-out earlier "
+        f"points. If the error reaches v3 IDs 1 to 3's {dcr('location_mm', '1')} mm, the spacing explains the gap. A fall "
+        f"under 5 % from half to all of the points means a seat's suite has enough presses; it is {rg(rdf(0.5), '{:.0f}')} % "
+        "now.",
         "Friction cone at each pad point (owner, 11-03; "
         + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32): analyse the rod's sweeps of Section "
         "15 by force level and direction. The sweep is revised if in some direction the ratio of tangential to normal "
