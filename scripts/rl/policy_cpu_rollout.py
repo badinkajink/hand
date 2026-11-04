@@ -32,6 +32,9 @@ from pathlib import Path
 
 import numpy as np
 import torch
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_apply as quat_rotate, quat_conj as quat_inv, quat_mul, tilt_cos
 
 ROOT = Path(__file__).resolve().parents[2]
 FINGER_JOINTS = ("thumb_yaw", "thumb_mcp", "thumb_pip", "index_yaw", "index_mcp", "index_pip",
@@ -57,22 +60,6 @@ def load_actor(ckpt_path: Path) -> torch.nn.Module:
     mlp.load_state_dict({k.replace("mlp.", ""): v for k, v in sd.items() if k.startswith("mlp.")})
     mlp.eval()
     return mlp
-
-
-def quat_mul(q1, q2):
-    w1, x1, y1, z1 = q1; w2, x2, y2, z2 = q2
-    return np.array([w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2, w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-                     w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2, w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2])
-
-
-def quat_rotate(q, v):
-    qw, qvec = q[0], q[1:]
-    t = 2.0 * np.cross(qvec, v)
-    return v + qw * t + np.cross(qvec, t)
-
-
-def quat_inv(q):
-    return np.array([q[0], -q[1], -q[2], -q[3]])
 
 
 def seg_seg(p1, q1, p2, q2):
@@ -140,8 +127,7 @@ class CpuPolicy:
         self.robot_joints = list(PALM_JOINTS) + list(FINGER_JOINTS)
 
     def tool_cos(self):
-        q = self.d.xquat[self.tool]
-        return 1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2])
+        return tilt_cos(self.d.xquat[self.tool])
 
     def pad_forces(self):
         """Contact force magnitude (N) between each fingertip body's geoms and the tool."""
@@ -313,8 +299,7 @@ def main():
         return best - 2 * CAP_R
 
     def tool_cos():
-        q = d.xquat[tool]
-        return 1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2])
+        return tilt_cos(d.xquat[tool])
 
     def obs(k, last_action):
         jp = np.array([d.qpos[qadr[n]] - default_q[n] if n in qadr else 0.0 for n in robot_joints])

@@ -39,6 +39,7 @@ import torch
 from rsl_rl.utils import check_nan
 
 from mjlab.tasks.manipulation.rl.runner import ManipulationOnPolicyRunner
+from sr2hand.rl.math import tilt_cos
 
 
 class LiveAOnPolicyRunner(ManipulationOnPolicyRunner):
@@ -99,8 +100,7 @@ class LiveAOnPolicyRunner(ManipulationOnPolicyRunner):
   def _schedule_reward(self, step_in_ep: torch.Tensor) -> torch.Tensor:
     """Per-env one-sided below-curve penalty on B-driven reorient steps; 0 else."""
     q = self._sched_obj.data.root_link_pose_w[:, 3:7]
-    qx, qy = q[:, 1], q[:, 2]
-    cos = (1.0 - 2.0 * (qx * qx + qy * qy)).clamp(-1.0, 1.0)
+    cos = tilt_cos(q).clamp(-1.0, 1.0)
     phase = (step_in_ep - self._sched_rs).clamp(0, self._sched_K - 1)
     target = self._sched[phase]
     active = (step_in_ep >= self._sched_rs).to(cos.dtype)

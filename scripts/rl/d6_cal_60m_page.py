@@ -18,6 +18,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import interactive_figure as IF
 import retro_style
 from policy_eval_suite import load_traces
+from sr2hand.geometry.vectors import deg_from_cos
 
 ROOT = "docs/experiments/20260917-d6_cal_60M"
 TRACES = f"{ROOT}/traces"                          # re-evaluation of 2026-10-11 (scripts/rl/policy_reeval_traces.py)
@@ -113,7 +114,7 @@ def cellc(frac, text):
 
 
 def deg(c):
-    return f"{np.degrees(np.arccos(np.clip(c, -1, 1))):.0f}"
+    return f"{deg_from_cos(c):.0f}"
 
 
 def row(label, e, timing):

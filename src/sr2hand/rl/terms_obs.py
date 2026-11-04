@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from sr2hand.rl.math import quat_mul, quat_rotate
+from sr2hand.rl.math import quat_conj, quat_mul, quat_rotate
 from sr2hand.rl.terms_common import _alignment_cos, _get_ref_batch
 
 if TYPE_CHECKING:
@@ -49,9 +49,7 @@ def object_pose_rel_palm(env: "ManagerBasedRlEnv",
     obj_pos = obj_pose_w[:, :3]
     obj_quat = obj_pose_w[:, 3:7]
 
-    # Inverse quat: conjugate (negate xyz). wxyz format.
-    palm_quat_inv = palm_quat.clone()
-    palm_quat_inv[:, 1:] *= -1.0
+    palm_quat_inv = quat_conj(palm_quat)
 
     diff = obj_pos - palm_pos
     rel_pos = quat_rotate(palm_quat_inv, diff)

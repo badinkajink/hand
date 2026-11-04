@@ -31,6 +31,25 @@ def quat_rotate(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
 
 def quat_rotate_inv(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
     """Rotate vectors `v` (B, 3) by the INVERSE of batched wxyz quats `q` (B, 4)."""
-    q_inv = q.clone()
-    q_inv[..., 1:] *= -1.0
-    return quat_rotate(q_inv, v)
+    return quat_rotate(quat_conj(q), v)
+
+
+def quat_conj(q: torch.Tensor) -> torch.Tensor:
+    """Conjugate of wxyz quaternions, the inverse of a unit quaternion."""
+    return q * q.new_tensor([1.0, -1.0, -1.0, -1.0])
+
+
+def tilt_cos(q: torch.Tensor) -> torch.Tensor:
+    """R(q)[2, 2] of unit wxyz quaternions: the cosine between the body's z axis and the world's z axis."""
+    _, x, y, _ = q.unbind(dim=-1)
+    return 1.0 - 2.0 * (x * x + y * y)
+
+
+def rotate_axis(q: torch.Tensor, axis: tuple[float, float, float]) -> torch.Tensor:
+    """R(q) @ axis for unit wxyz quaternions (B, 4) and one body-local axis, as (B, 3)."""
+    qw, qx, qy, qz = q.unbind(dim=-1)
+    ax, ay, az = axis
+    return torch.stack([(1 - 2 * (qy * qy + qz * qz)) * ax + 2 * (qx * qy - qw * qz) * ay + 2 * (qx * qz + qw * qy) * az,
+                        2 * (qx * qy + qw * qz) * ax + (1 - 2 * (qx * qx + qz * qz)) * ay + 2 * (qy * qz - qw * qx) * az,
+                        2 * (qx * qz - qw * qy) * ax + 2 * (qy * qz + qw * qx) * ay + (1 - 2 * (qx * qx + qy * qy)) * az],
+                       dim=-1)

@@ -28,6 +28,7 @@ from sr2hand.rl.terms_common import (
     _track,
 )
 from sr2hand.rl.terms_obs import object_pose_rel_palm
+from sr2hand.rl.math import rotate_axis
 
 if TYPE_CHECKING:
     from mjlab.envs import ManagerBasedRlEnv
@@ -312,13 +313,7 @@ def palm_brace_distance(env: "ManagerBasedRlEnv",
     palm_id = robot.body_names.index(palm_body)
     palm = robot.data.body_link_pose_w[:, palm_id, :3]
     op = obj.data.root_link_pose_w[:, :3]
-    qw, qx, qy, qz = obj.data.root_link_pose_w[:, 3:7].unbind(-1)
-    ax, ay, az = object_axis_local
-    bz = torch.stack([
-        (1 - 2*(qy*qy + qz*qz))*ax + 2*(qx*qy - qw*qz)*ay + 2*(qx*qz + qw*qy)*az,
-        2*(qx*qy + qw*qz)*ax + (1 - 2*(qx*qx + qz*qz))*ay + 2*(qy*qz - qw*qx)*az,
-        2*(qx*qz - qw*qy)*ax + 2*(qy*qz + qw*qx)*ay + (1 - 2*(qx*qx + qy*qy))*az,
-    ], dim=-1)
+    bz = rotate_axis(obj.data.root_link_pose_w[:, 3:7], object_axis_local)
     gap_p = (op + float(cylinder_half_len)*bz - palm).norm(dim=-1)
     gap_m = (op - float(cylinder_half_len)*bz - palm).norm(dim=-1)
     gap = torch.minimum(gap_p, gap_m)

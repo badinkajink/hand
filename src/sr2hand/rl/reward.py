@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from typing import Mapping
 
 import numpy as np
+from sr2hand.geometry.rotations import heading, quat_to_mat, tilt_cos
 
 # Per-term defaults — keep in sync with docs/rl/architecture.md table.
 # Each entry: (kind, weight, alpha). kind ∈ {"track", "penalty", "linear", "bonus"}.
@@ -134,19 +135,14 @@ def pen_cube_yaw_drift(object_quat_now: np.ndarray, object_quat_initial: np.ndar
     """Approx yaw-only drift via z-axis projection (cheap, OK as a penalty)."""
     import numpy as np
     def yaw_from_quat(q: np.ndarray) -> float:
-        w, x, y, z = q
-        # ZYX yaw extraction.
-        return float(np.arctan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z)))
+        return float(heading(quat_to_mat(q)))
     return float(abs(yaw_from_quat(np.asarray(object_quat_now))
                      - yaw_from_quat(np.asarray(object_quat_initial))))
 
 
 def pen_cube_axis_tilt(object_quat: np.ndarray) -> float:
     """How far the object's z-axis tilts from world-z. Angle in radians."""
-    w, x, y, z = np.asarray(object_quat)
-    cos_tilt = float(1.0 - 2.0 * (x * x + y * y))
-    cos_tilt = max(-1.0, min(1.0, cos_tilt))
-    return float(np.arccos(cos_tilt))
+    return float(np.arccos(np.clip(tilt_cos(object_quat), -1.0, 1.0)))
 
 
 def pen_cube_ang_drift(object_angvel: np.ndarray) -> float:

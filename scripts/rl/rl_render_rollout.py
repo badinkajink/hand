@@ -29,6 +29,7 @@ import torch
 from sr2hand.rl.deploy import (act, act_b, build_actor, ckpt_obs_dim, finger_ctrl_from_keyframe,
                                   make_env_cfg, run_env_overrides)
 from sr2hand.tools.video_paths import tmp_dir
+from sr2hand.geometry.rotations import tilt_cos
 
 
 def main() -> int:
@@ -96,10 +97,9 @@ def main() -> int:
             actions = act_b(actor, obs_td, args.stochastic) if is_b else act(actor, obs[:, :obs_dim])
             obs_td, *_ = wrapped.step(actions)
             pose = env.unwrapped.scene["cube"].data.root_link_pose_w
-            qx, qy = float(pose[0, 4]), float(pose[0, 5])
             f = env.unwrapped.scene.sensors[sensor].data.force
             mag = f.norm(dim=-1)[0].cpu().numpy() if f is not None else np.zeros(3)
-            rows.append([s, round(1.0 - 2.0 * (qx * qx + qy * qy), 4), round(float(pose[0, 2]), 4)]
+            rows.append([s, round(float(tilt_cos(pose[0, 3:7].cpu().numpy().astype(float))), 4), round(float(pose[0, 2]), 4)]
                         + [round(float(v), 3) for v in mag[:3]])
             frame = env.unwrapped.render()
             if frame is not None:

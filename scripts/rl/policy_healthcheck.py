@@ -26,6 +26,10 @@ from sr2hand.rl.deploy import (
     read_per_finger,
 )
 from sr2hand.rl.trajectory_health import characterize_trajectory, format_scorecard
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_axis
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -85,13 +89,13 @@ def main():
             obs = obs_td["actor"]
             pose = env.unwrapped.scene["cube"].data.root_link_pose_w[0]
             x, y, z = float(pose[0]), float(pose[1]), float(pose[2])
-            qw, qx, qy, qz = (float(pose[3]), float(pose[4]), float(pose[5]), float(pose[6]))
-            cos = 1.0 - 2.0 * (qx * qx + qy * qy)
+            axis = quat_axis(pose[3:7].cpu().numpy().astype(float))
+            cos = float(axis[2])
             ff, fg = read_per_finger(env.unwrapped, "fingertip_cube_contact")
             full["found"].append(fg if fg is not None else [0., 0., 0.])
             full["force"].append(ff if ff is not None else [0., 0., 0.])
             full["z"].append(z); full["cos"].append(cos); full["x"].append(x); full["y"].append(y)
-            full["axis"].append((2.0 * (qx * qz + qw * qy), 2.0 * (qy * qz - qw * qx), cos))
+            full["axis"].append((float(axis[0]), float(axis[1]), cos))
     env.close()
 
     axis = np.asarray(full["axis"])

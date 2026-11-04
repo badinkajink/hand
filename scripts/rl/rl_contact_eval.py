@@ -71,6 +71,10 @@ import time
 from pathlib import Path
 
 import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import log_so3, quat_to_mat
+from sr2hand.rl.math import rotate_axis, tilt_cos
 
 ROOT = Path(__file__).resolve().parents[2]
 MORPH = ROOT / "results/phase1/real_v1"
@@ -402,10 +406,9 @@ class Evaluator:
                         if hit.any():
                             palm[s, np.unique(wd.contact.worldid.numpy()[:nc][hit])] = True
                 pose = self.cube.data.root_link_pose_w
-                w, x, y, zq = pose[:, 3], pose[:, 4], pose[:, 5], pose[:, 6]
-                cos[s] = (1.0 - 2.0 * (x * x + y * y)).cpu().numpy()
+                cos[s] = tilt_cos(pose[:, 3:7]).cpu().numpy()
                 z[s] = pose[:, 2].cpu().numpy()
-                axis[s] = torch.stack([2 * (x * zq + w * y), 2 * (y * zq - w * x), 1 - 2 * (x * x + y * y)], -1).cpu().numpy()
+                axis[s] = rotate_axis(pose[:, 3:7], (0.0, 0.0, 1.0)).cpu().numpy()
                 rel[s] = (pose[:, :3] - self.robot.data.body_link_pose_w[:, self.palm, :3]).cpu().numpy()
                 d = self.sensor.data
                 force[s] = d.force.norm(dim=-1).reshape(N, -1)[:, :3].cpu().numpy()
@@ -716,25 +719,6 @@ def save_traces(tag: str, r: dict, sub: str = "final_traces", root: Path | None 
                         force=r["force"].astype(np.float16), found=r["found"].astype(np.uint8), **extra)
 
 
-def _quat_mat(q):
-    """(..., 4) wxyz -> (..., 3, 3)."""
-    q = q / np.linalg.norm(q, axis=-1, keepdims=True)
-    w, x, y, z = np.moveaxis(q, -1, 0)
-    return np.stack([np.stack([1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)], -1),
-                     np.stack([2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)], -1),
-                     np.stack([2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)], -1)], -2)
-
-
-def _rotvec(R):
-    """(..., 3, 3) rotation -> (..., 3) axis times angle (rad); the increments here are a few degrees."""
-    c = np.clip((np.trace(R, axis1=-2, axis2=-1) - 1.0) / 2.0, -1.0, 1.0)
-    th = np.arccos(c)
-    v = np.stack([R[..., 2, 1] - R[..., 1, 2], R[..., 0, 2] - R[..., 2, 0], R[..., 1, 0] - R[..., 0, 1]], -1)
-    s = np.sin(th)
-    k = np.where(s > 1e-9, th / np.maximum(2 * s, 1e-12), 0.5)
-    return v * k[..., None]
-
-
 TURN_END = 150      # the turn: the residual's onset to policy step 150; the hold: 150 to the end (as the watch's hold)
 
 
@@ -745,8 +729,8 @@ def slip_record(tool_q, con_rel, car_rel, car_q) -> np.ndarray:
     the tool to k and compared with where it sat in the body's frame at k-1. NaN where the finger had no contact at k-1;
     increment 0 is NaN. Relative to the skin body it is the slide over the spheres (the friction rows' creep and slip);
     relative to the rigid tip it is the tool's whole motion against the fingertip (skin deflection plus slide)."""
-    RT = _quat_mat(tool_q.astype(np.float64))                              # (T, N, 3, 3)
-    RC = _quat_mat(car_q.astype(np.float64))                               # (T, N, 3 fingers, 3, 3)
+    RT = quat_to_mat(tool_q.astype(np.float64))                              # (T, N, 3, 3)
+    RC = quat_to_mat(car_q.astype(np.float64))                               # (T, N, 3 fingers, 3, 3)
     con, car = con_rel.astype(np.float64), car_rel.astype(np.float64)
     x = np.einsum("tnji,tnkj->tnki", RT[:-1], con[:-1])                    # the material point in the tool frame at k-1
     w = np.einsum("tnij,tnkj->tnki", RT[1:], x)                            # ... relative to the tool position at k
@@ -839,9 +823,9 @@ def pinch_turn(r: dict, a0: int = 58, e: int = TURN_END) -> dict:
     nb = n[a0:e].sum(0)
     nb /= np.maximum(np.linalg.norm(nb, axis=-1, keepdims=True), 1e-9)     # (N, 3) the rollout's mean axis
     n = np.where(((n * nb).sum(-1) < 0)[..., None], -n, n)
-    RT, RF = _quat_mat(r["tool_q"].astype(np.float64)), _quat_mat(r["tip_q"].astype(np.float64))
-    dT = _rotvec(RT[1:] @ np.swapaxes(RT[:-1], -1, -2))                    # (T-1, N, 3)
-    dF = _rotvec(RF[1:] @ np.swapaxes(RF[:-1], -1, -2))                    # (T-1, N, 3, 3)
+    RT, RF = quat_to_mat(r["tool_q"].astype(np.float64)), quat_to_mat(r["tip_q"].astype(np.float64))
+    dT = log_so3(RT[1:] @ np.swapaxes(RT[:-1], -1, -2))                    # (T-1, N, 3)
+    dF = log_so3(RF[1:] @ np.swapaxes(RF[:-1], -1, -2))                    # (T-1, N, 3, 3)
     tool = np.zeros(n.shape[:2])
     tips = np.zeros(n.shape[:2] + (3,))
     tool[1:] = (dT * n[1:]).sum(-1)
@@ -849,7 +833,7 @@ def pinch_turn(r: dict, a0: int = 58, e: int = TURN_END) -> dict:
     fallback = np.isnan(con[..., 0]).any(-1)                               # (T, N): a finger without contact
     spread = np.degrees(np.arccos(np.clip((n[a0:e] * nb).sum(-1), -1, 1)))  # (e - a0, N): step axis vs rollout axis
     # the tool's net rotation over the turn: its angle, and the angle between its axis and the rollout's pinch axis
-    net = _rotvec(RT[e - 1] @ np.swapaxes(RT[a0 - 1], -1, -2))             # (N, 3)
+    net = log_so3(RT[e - 1] @ np.swapaxes(RT[a0 - 1], -1, -2))             # (N, 3)
     net_ang = np.linalg.norm(net, axis=-1)
     net_off = np.degrees(np.arccos(np.clip(np.abs((net * nb).sum(-1)) / np.maximum(net_ang, 1e-9), 0, 1)))
     return dict(axis=n, axis_rollout=nb, tool=tool, tips=tips, fallback=fallback, axis_spread=spread,

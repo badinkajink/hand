@@ -43,6 +43,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import tilt_cos, wxyz_to_xyzw
 OUT = ROOT / "docs/experiments/20261006-rl_contact/policy_replay.jsonl"
 REPLAY = ROOT / "logs/20261006-rl_contact/replay"
 # --study 20261008: the contact-model policy study (scripts/rl/rl_contact_train_queue_20261008.sh); --study 20261011: the
@@ -384,7 +385,7 @@ def replay_newton(d, meta, targets, newton_dir=None, nworld=1, film_cb=None):
             if m.jnt_type[j0] == mujoco.mjtJoint.mjJNT_FREE:
                 q = q_mj[a:a + 7]
                 jq[qs[jn]:qs[jn] + 3] = q[:3]
-                jq[qs[jn] + 3:qs[jn] + 7] = [q[4], q[5], q[6], q[3]]
+                jq[qs[jn] + 3:qs[jn] + 7] = wxyz_to_xyzw(q[3:7])
             else:
                 jq[qs[jn] + (dof - qds[jn])] = q_mj[a]
     model.joint_q.assign(jq)
@@ -404,7 +405,7 @@ def replay_newton(d, meta, targets, newton_dir=None, nworld=1, film_cb=None):
 
     def tool_state():
         x, y, z, qx, qy, qz, qw = st["s0"].body_q.numpy()[tool_id]
-        return 1.0 - 2.0 * (qx * qx + qy * qy), float(z)
+        return float(tilt_cos([qw, qx, qy, qz])), float(z)
 
     cos0, z0 = tool_state()
     w0 = time.perf_counter()

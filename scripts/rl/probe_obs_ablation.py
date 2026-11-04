@@ -46,6 +46,10 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.rl.math import tilt_cos
 
 # These three blocks are everything derived from the OBJECT's pose.
 #
@@ -163,9 +167,8 @@ def rollout(env, wrapped, actor_a, actor_b, a_obs_dim, *, handoff_step, total_st
             obs_td, *_ = wrapped.step(actions)
 
             pose = unwrapped.scene["cube"].data.root_link_pose_w  # (B,7) xyz + wxyz
-            qx, qy = pose[:, 4], pose[:, 5]
             z_hist.append(pose[:, 2].clone())
-            cos_hist.append(1.0 - 2.0 * (qx * qx + qy * qy))
+            cos_hist.append(tilt_cos(pose[:, 3:7]))
             mag, found = read_batched(unwrapped, "fingertip_cube_contact")
             if mag is not None:
                 force_hist.append(mag.clone())

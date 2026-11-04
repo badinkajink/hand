@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 import torch
 
 from mjlab.managers.action_manager import ActionTerm, ActionTermCfg
+from sr2hand.rl.math import tilt_cos
 
 if TYPE_CHECKING:
     from mjlab.envs import ManagerBasedRlEnv
@@ -303,8 +304,7 @@ class LerpFingerAction(ActionTerm):
             obj = self._env.scene[self.cfg.hold_object_name].data.root_link_pose_w
             up = torch.ones(self.num_envs, device=self.device, dtype=torch.bool)
             if self.cfg.hold_switch_align_thresh > 0.0:
-                qx, qy = obj[:, 4], obj[:, 5]
-                cos = 1.0 - 2.0 * (qx * qx + qy * qy)      # object body +z against world +z
+                cos = tilt_cos(obj[:, 3:7])      # object body +z against world +z
                 up = up & (cos >= float(self.cfg.hold_switch_align_thresh))
             if self.cfg.hold_switch_from_sim_step > 0:
                 up = up & (self._sim_step >= int(self.cfg.hold_switch_from_sim_step))

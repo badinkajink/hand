@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 import torch
 
 from sr2hand.rl.reference_trajectory import ReferenceTrajectory
+from sr2hand.rl.math import rotate_axis
 
 if TYPE_CHECKING:
     from mjlab.envs import ManagerBasedRlEnv
@@ -134,14 +135,9 @@ def _alignment_cos(env: "ManagerBasedRlEnv", object_name: str,
     Used by both `target_axis_alignment` (state reward), `target_axis_progress`
     (delta reward), and the velocity-based termination."""
     obj = env.scene[object_name]
-    quat = obj.data.root_link_pose_w[:, 3:7]
-    qw, qx, qy, qz = quat.unbind(dim=-1)
-    ax, ay, az = object_axis_local
-    bx = (1 - 2 * (qy * qy + qz * qz)) * ax + 2 * (qx * qy - qw * qz) * ay + 2 * (qx * qz + qw * qy) * az
-    by = 2 * (qx * qy + qw * qz) * ax + (1 - 2 * (qx * qx + qz * qz)) * ay + 2 * (qy * qz - qw * qx) * az
-    bz = 2 * (qx * qz - qw * qy) * ax + 2 * (qy * qz + qw * qx) * ay + (1 - 2 * (qx * qx + qy * qy)) * az
+    b = rotate_axis(obj.data.root_link_pose_w[:, 3:7], object_axis_local)
     tx, ty, tz = target_axis_world
-    return (bx * tx + by * ty + bz * tz).clamp(-1.0, 1.0)
+    return (b[:, 0] * tx + b[:, 1] * ty + b[:, 2] * tz).clamp(-1.0, 1.0)
 
 
 def _alignment_hold_counter(env: "ManagerBasedRlEnv", attr: str,

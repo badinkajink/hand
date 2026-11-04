@@ -19,6 +19,9 @@ from __future__ import annotations
 import sys, dataclasses
 from pathlib import Path
 import numpy as np, torch, yaml
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.rl.math import tilt_cos
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
@@ -63,8 +66,7 @@ def run_one(run_dir: Path, ckpt_name: str, N=32, T=200, overrides=None):
         for _ in range(T):
             a = actor.mlp(obs) if hasattr(actor, "mlp") else actor(obs)
             obs_td, *_ = wrapped.step(a); obs = obs_td["actor"]
-            q = obj.data.root_link_pose_w[:, 3:7]; qw, qx, qy, qz = q.unbind(-1)
-            cos_hist.append((1 - 2 * (qx * qx + qy * qy)).clamp(-1, 1))
+            cos_hist.append(tilt_cos(obj.data.root_link_pose_w[:, 3:7]).clamp(-1, 1))
             minz = torch.minimum(minz, obj.data.root_link_pose_w[:, 2])
             w = obj.data.root_link_ang_vel_w
             if prev_w is not None: jerk = jerk + ((w - prev_w) ** 2).sum(-1); jn += 1

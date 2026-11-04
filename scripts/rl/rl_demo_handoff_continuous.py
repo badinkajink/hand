@@ -34,6 +34,10 @@ import torch
 from sr2hand.rl.deploy import (
     act, act_b, build_actor, ckpt_obs_dim, make_env_cfg, read_contact_force, read_per_finger,
 )
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_axis
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -289,12 +293,9 @@ def main():
                 min_z = min(min_z, z)
                 # held-cos = world-z component of the object's body +Z (long axis):
                 # 1 - 2(qx^2+qy^2) for quat (w,x,y,z). flat ~0, vertical ~1.
-                qw, qx, qy, qz = (float(pose[3]), float(pose[4]), float(pose[5]), float(pose[6]))
-                held_cos = 1.0 - 2.0 * (qx * qx + qy * qy)
                 # object body +Z direction in world (the long axis), for jitter/wobble.
-                ax_x = 2.0 * (qx * qz + qw * qy)
-                ax_y = 2.0 * (qy * qz - qw * qx)
-                ax_z = held_cos
+                ax_x, ax_y, ax_z = (float(v) for v in quat_axis(pose[3:7].cpu().numpy().astype(float)))
+                held_cos = ax_z
                 # FULL-rollout log (every step, incl. the grasp phase) for the scorecard.
                 _ff, _fg = read_per_finger(env.unwrapped, "fingertip_cube_contact")
                 full["found"].append(_fg if _fg is not None else [0.0, 0.0, 0.0])

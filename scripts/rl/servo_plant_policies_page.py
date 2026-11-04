@@ -33,6 +33,8 @@ import interactive_figure as IF  # noqa: E402
 import retro_style  # noqa: E402
 import rl_contact_eval as E  # noqa: E402
 import texsvg  # noqa: E402
+from sr2hand.numerics.signal import moving_average
+from sr2hand.numerics.stats import bootstrap_ci
 
 D = os.path.join(P.EXP, "20261011-servo_plant_policies")
 D8 = os.path.join(P.EXP, "20261008-contact_model_policies")
@@ -1066,11 +1068,7 @@ def boot_delta(a, b, n=20000, seed=0):
 
 def boot_ci(x, n=20000, seed=0):
     """95 % interval of the mean of x over n resamples of its elements."""
-    if len(x) < 2:
-        return None
-    rng = np.random.default_rng(seed)
-    m = x[rng.integers(0, len(x), size=(n, len(x)))].mean(1)
-    return float(np.percentile(m, 2.5)), float(np.percentile(m, 97.5))
+    return bootstrap_ci(x, n=n, seed=seed)
 
 
 def skin_compare(X: Data):
@@ -1554,10 +1552,7 @@ TB = [("Train/mean_reward", "Mean episode return", None),
 
 
 def _smooth(y, win=9):
-    y = np.asarray(y, float)
-    k = np.ones(win) / win
-    pad = np.r_[np.full(win // 2, y[0]), y, np.full(win // 2, y[-1])]
-    return np.convolve(pad, k, mode="valid")
+    return moving_average(y, win)
 
 
 def ifig_curves(X: Data):

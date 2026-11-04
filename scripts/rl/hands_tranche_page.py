@@ -24,6 +24,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import interactive_figure as IF
 import retro_style
 from policy_eval_suite import load_traces
+from sr2hand.geometry.vectors import deg_from_cos
 
 HANDS = ["D6", "D3", "D4", "D5", "D7", "D1", "D2", "D8"]
 ARM_LABEL = {"clip": "clipped residual (&#177;1 rad)", "clipsep": "clipped residual + index&#8211;middle clearance &#8805; 30 mm",
@@ -68,7 +69,7 @@ def cellc(frac, text):
 
 
 def deg(c):
-    return f"{np.degrees(np.arccos(np.clip(c, -1, 1))):.0f}"
+    return f"{deg_from_cos(c):.0f}"
 
 
 def f1(v, fmt="{:.1f}", none="&#8211;"):

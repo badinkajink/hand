@@ -82,6 +82,9 @@ import time
 from pathlib import Path
 
 import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.rl.math import tilt_cos
 
 ROOT = Path(__file__).resolve().parents[2]
 REL_TOL = 1e-6        # --check: float32 precision
@@ -458,8 +461,7 @@ def main():
             actions = act_b(actor, obs_td, args.stochastic) if is_b else act(actor, obs[:, :obs_dim])
             obs_td, *_ = wrapped.step(actions)
             pose = env.unwrapped.scene["cube"].data.root_link_pose_w      # (N, 7)
-            qx, qy = pose[:, 4], pose[:, 5]
-            cos_t[s] = (1.0 - 2.0 * (qx * qx + qy * qy)).cpu().numpy()
+            cos_t[s] = tilt_cos(pose[:, 3:7]).cpu().numpy()
             z_t[s] = pose[:, 2].cpu().numpy()
             f = env.unwrapped.scene.sensors[sensor].data.force
             if f is not None:
