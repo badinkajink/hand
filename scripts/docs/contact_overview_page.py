@@ -47,6 +47,7 @@ import hom_chain_page as CP  # noqa: E402
 import hom_contact_patch_page as R  # noqa: E402
 import texsvg  # noqa: E402
 import retro_style  # noqa: E402
+from sr2hand.geometry.rotations import rot_x
 
 EXP = os.path.join(ROOT, "docs/experiments")
 D = os.path.join(EXP, "20261009-contact_overview")                 # last dated snapshot; its artifact_url.txt
@@ -1526,8 +1527,7 @@ def flat_pad(spacing, cap_deg, F, tilt_deg=0.0):
     n, K = cap_pad(spacing, cap_deg)
     dirs = G.fib_cap(n, math.radians(cap_deg))
     if tilt_deg:
-        c, s = math.cos(math.radians(tilt_deg)), math.sin(math.radians(tilt_deg))
-        dirs = dirs @ np.array([[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s, c]]).T
+        dirs = dirs @ rot_x(math.radians(tilt_deg)).T
     z = (G.R - G.RS) * dirs[:, 2]
     rho = (G.R - G.RS) * np.hypot(dirs[:, 0], dirs[:, 1])
     force = lambda d0: K * np.clip(G.RS - ((G.R - d0) - z), 0.0, None)  # noqa: E731

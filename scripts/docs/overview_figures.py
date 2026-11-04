@@ -110,13 +110,10 @@ def scale_ridges(fid: str) -> IF.Figure:
 
 def _spearman_auc(x, y, lab):
     import numpy as np
-    from scipy.stats import spearmanr
+    from sr2hand.numerics.stats import auc, spearman
     x, y, lab = np.asarray(x, float), np.asarray(y, float), np.asarray(lab, bool)
     ok = np.isfinite(x) & np.isfinite(y)
-    rho = float(spearmanr(x[ok], y[ok]).correlation)
-    pos, neg = x[ok & lab], x[ok & ~lab]
-    auc = float(((pos[:, None] > neg[None, :]).sum() + 0.5 * (pos[:, None] == neg[None, :]).sum()) / (len(pos) * len(neg)))
-    return rho, auc
+    return spearman(x[ok], y[ok]), auc(x[ok & lab], x[ok & ~lab])
 
 
 def design_scores(fid: str) -> IF.Figure:
