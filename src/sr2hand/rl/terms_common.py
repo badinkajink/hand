@@ -209,6 +209,13 @@ def _seg_seg_dist(p1: torch.Tensor, q1: torch.Tensor, p2: torch.Tensor, q2: torc
     t_c = t.clamp(0.0, 1.0)
     s = torch.where(t < 0.0, (-c / a.clamp(min=eps)).clamp(0.0, 1.0),
                     torch.where(t > 1.0, ((b - c) / a.clamp(min=eps)).clamp(0.0, 1.0), s))
+    # a point against a segment (Ericson 5.1.9), as sr2hand.geometry.distances.segment_segment: the second, then the first
+    point2, point1 = e <= eps, a <= eps
+    zero = torch.zeros_like(a)
+    s = torch.where(point2, (-c / a.clamp(min=eps)).clamp(0.0, 1.0), s)
+    t_c = torch.where(point2, zero, t_c)
+    s = torch.where(point1, zero, s)
+    t_c = torch.where(point1, (f / e.clamp(min=eps)).clamp(0.0, 1.0), t_c)
     c1 = p1 + d1 * s.unsqueeze(-1)
     c2 = p2 + d2 * t_c.unsqueeze(-1)
     return (c1 - c2).norm(dim=-1)
