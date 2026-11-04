@@ -13,27 +13,29 @@ layouts per task, S2 and S3 searches of 8 iterations, validation at seeds 20-24)
 friction 1.0 and 0.4, the same 30 layouts, 6 iterations) and each friction's picks run at the other. Twist's first
 iteration: 4,314 rollouts in 221 s, median best 0.832. Page builder scripts/hom_score_refine_page.py (figs, films,
 page) was checked on rows_smoke/ (prose within targets); its result text is a draft to rewrite from the numbers.
-Next:
-1. Wait for the queue: while `grep -q "score refine queue done" logs/20261103-hom_score_refine/queue.log` fails,
-   `ap snooze <job> 45 "waiting for the HOM score queue"`. Then `grep -E "failed|refused" logs/20261103-hom_score_refine/queue.log`;
-   for a failed step read its logs/20261103-hom_score_refine/Q_<step>.log, fix the cause, relaunch
-   `nohup setsid bash logs/20261103-hom_score_refine/queue.sh >> logs/20261103-hom_score_refine/queue.log 2>&1 &`
-   (finished steps are skipped, a stopped step resumes from its rows) and wait again.
-2. Commit and push docs/experiments/20261103-hom_score_refine/rows/ (LFS; not rows_smoke/), with a message giving per
-   task the median S1, S2 and S3 at seeds 20-24 on the 30 best SCS0009 layouts and rho(S1, S3) over 60.
-3. `.venv/bin/python scripts/hom_score_refine_page.py figs`, then `... films` (CPU clips through resguard). Read every
-   PNG and film poster at its displayed size and fix what is unreadable.
-4. Rewrite the lede and the text of the result sections (sec_sv25, sec_prm, sec_sts, limitations, future work) from the
-   numbers: outcome first, which tasks gain and by how much, whether the best layout or the ranking changes, what S3
-   chose for forces and modes, what retuning at friction 0.4 is worth. Build the page
-   (`.venv/bin/python scripts/hom_score_refine_page.py`), keep prose_lint within targets, search the banned words.
-   Commit the page, builder, media and the refreshed indices; push.
-5. Record: memory project_hom_codesign_levels_2026_11_03.md (results, page path) and its MEMORY.md line; one sentence in
-   CLAUDE.md's HOM servo-plant bullet: HOM's forces and contact modes are per-world parameters (hom_tasks.mode_weights,
-   a world's prm in hom_gpu) and scripts/hom_grasp_refine.py refines them; the outcome appended to the README.
-6. Write a "Go/no-go:" line in State for the follow-up jobs (armed after this one, from 09:15): the validated median of
-   S2 - S1 and S3 - S2 per task on the 30 best layouts, rho(S1, S3) per task, and the median of (S3 tuned at 0.4) - (S3
-   tuned at 1.0, run at 0.4) per task.
+<!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
+Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
+- [ ] 1. Wait for the queue: while `grep -q "score refine queue done" logs/20261103-hom_score_refine/queue.log` fails,
+    `ap snooze <job> 45 "waiting for the HOM score queue"`. Then `grep -E "failed|refused" logs/20261103-hom_score_refine/queue.log`;
+    for a failed step read its logs/20261103-hom_score_refine/Q_<step>.log, fix the cause, relaunch
+    `nohup setsid bash logs/20261103-hom_score_refine/queue.sh >> logs/20261103-hom_score_refine/queue.log 2>&1 &`
+    (finished steps are skipped, a stopped step resumes from its rows) and wait again.
+- [ ] 2. Commit and push docs/experiments/20261103-hom_score_refine/rows/ (LFS; not rows_smoke/), with a message giving per
+    task the median S1, S2 and S3 at seeds 20-24 on the 30 best SCS0009 layouts and rho(S1, S3) over 60.
+- [ ] 3. `.venv/bin/python scripts/hom_score_refine_page.py figs`, then `... films` (CPU clips through resguard). Read every
+    PNG and film poster at its displayed size and fix what is unreadable.
+- [ ] 4. Rewrite the lede and the text of the result sections (sec_sv25, sec_prm, sec_sts, limitations, future work) from the
+    numbers: outcome first, which tasks gain and by how much, whether the best layout or the ranking changes, what S3
+    chose for forces and modes, what retuning at friction 0.4 is worth. Build the page
+    (`.venv/bin/python scripts/hom_score_refine_page.py`), keep prose_lint within targets, search the banned words.
+    Commit the page, builder, media and the refreshed indices; push.
+- [ ] 5. Record: memory project_hom_codesign_levels_2026_11_03.md (results, page path) and its MEMORY.md line; one sentence in
+    CLAUDE.md's HOM servo-plant bullet: HOM's forces and contact modes are per-world parameters (hom_tasks.mode_weights,
+    a world's prm in hom_gpu) and scripts/hom_grasp_refine.py refines them; the outcome appended to the README.
+- [ ] 6. Write a "Go/no-go:" line in State for the follow-up jobs (armed after this one, from 09:15): the validated median of
+    S2 - S1 and S3 - S2 per task on the 30 best layouts, rho(S1, S3) per task, and the median of (S3 tuned at 0.4) - (S3
+    tuned at 1.0, run at 0.4) per task.
+<!-- /ap:steps -->
 Claimed: docs/experiments/20261103-hom_score_refine/, scripts/hom_score_refine_page.py, logs/20261103-hom_score_refine/,
 scripts/hom_grasp_refine.py (fixes only, never while the queue runs).
 Waiting on owner: none.
