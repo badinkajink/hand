@@ -1783,6 +1783,10 @@ push that answers it arrives.
     predicts the inverted presses to 0.893 mm (near-normal 0.661), with a mean offset of (-0.46, 0.13, 0.53) mm in P,
     7.8 deg and 15.3 %. The 14 reference presses at 2 N read 13.6 to 18.1 uT/N (15.0 % spread; tip mode 10.5 to 13.6 %).
     The same tip localizes to 0.59 mm on the inverted rig and 0.32 mm in tip mode (data/20261104-v3_id3_inverted_vs_tipmode.txt).
+    At its reference presses (same point, same rod) the board's uT/N varies 7.9 % (sd) at 2 and 3 N on the inverted rig and
+    2.2 to 2.5 % at 2 N in tip mode (sphere and rod), while the force lands within 3.8 % and 3.4 to 4.7 %; the rest drift
+    is 4.2 and 2.6 to 3.3 uT, and a hold averages 92 board records against 227. The held stream's stamps are spread
+    evenly over each serial read (reskin5x_plot.MuxReader), tens of ms, too little to scatter a static hold.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
