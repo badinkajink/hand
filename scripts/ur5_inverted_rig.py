@@ -1407,6 +1407,27 @@ def sweep_vectors(act, n_B, t1_B):
     return [r * (math.cos(math.radians(z)) * t1_B + math.sin(math.radians(z)) * t2_B) for z, r in moves]
 
 
+ROLL = dict(degs=(3.0, 6.0, -3.0, -6.0), spacing_mm=2.5)    # the rod's probe roll (lab, 17:07 on 11-03): v3 ID 3's rolls
+#                                                            of 10-29, at 4 and 1.5 N (the converter makes both)
+
+
+def roll_poses(ctx, act, T, n_B, c_B=None):
+    """A roll's poses from the pressed flange pose T, in steps of at most 1 deg through its degs and back to 0: about the
+    rod's axis (R_BM y_M) through its contact line, the axis point c_B less R along n_B, right-handed about the axis (the
+    lab program's probe roll, 17:09 on 11-03). The rod rolls on the pad, and its axis moves R times the angle across it,
+    1.3 mm at 6 deg."""
+    TM = T @ ctx["T_EM"]
+    if c_B is None:
+        c_B = TM[:3, 3] + TM[:3, 2] * tool_end_z("rod")
+    centre, axis = c_B - PROBE["rod"]["R"] * n_B, TM[:3, :3] @ np.array([0.0, 1.0, 0.0])
+    out, cur = [], 0.0
+    for dg in [float(v) for v in act.get("roll_degs", ROLL["degs"])] + [0.0]:
+        k = max(1, int(math.ceil(abs(dg - cur))))
+        out += [C.turn_about(T, centre, axis, cur + (dg - cur) * j / k) for j in range(1, k + 1)]
+        cur = dg
+    return out
+
+
 def thin_idx(pts, mm):
     if mm <= 0:
         return np.arange(len(pts))
@@ -1655,6 +1676,24 @@ def subset_plan(ctx, seat_i, a):
         key = [(round(math.degrees(math.atan2(x["u_A"][1], x["u_A"][0])) / 20.0), x["u_A"][2]) for x in keep]
         keep = [keep[j] for j in sorted(range(len(keep)), key=lambda j: key[j])]
         return [dict(ref, id="probe-ref-00")] + keep + [dict(ref, id="probe-ref-final")], P_A, N_A
+    if getattr(a, "extras", False):                     # the night's extras after the rod's sweeps (11-03, the owner's
+        pr = [arr(x) for x in src["actions"] if x["kind"] == "press" and x["region"] == "face"         # go of 16:3x):
+              and abs(float(x.get("rod_deg", 90.0)) - 90.0) < 1e-6]                                 # rolls at a.rolls
+        r0 = np.asarray(ref["p_P"], float)              # face points nearest the reference, ROLL spacing_mm apart, then
+        pick = []                                       # the plan's obliques, azimuths 0 and 180 first, then 90 and 270
+        for j in sorted(range(len(pr)), key=lambda j: np.linalg.norm(np.asarray(pr[j]["p_P"], float) - r0)):
+            if len(pick) < a.rolls and all(np.linalg.norm(np.asarray(pr[j]["p_P"], float) - np.asarray(pr[k]["p_P"], float))
+                                           >= ROLL["spacing_mm"] for k in pick):
+                pick.append(j)
+        rolls = [dict({k: v for k, v in pr[j].items() if not k.startswith(("deep_clear", "deep_body", "touch_body"))},
+                      id=pr[j]["id"] + "-roll", kind="roll", roll_degs=list(ROLL["degs"])) for j in pick]
+        obl = [arr(x) for x in src["actions"] if x["kind"] == "oblique"]
+        out = []
+        for azs in ((0, 180), (90, 270)):
+            part = [x for x in obl if round(float(x["azimuth"])) % 360 in azs]
+            key = [(round(math.degrees(math.atan2(x["u_A"][1], x["u_A"][0])) / 20.0), x["u_A"][2]) for x in part]
+            out += [part[j] for j in sorted(range(len(part)), key=lambda j: key[j])]
+        return [dict(ref, id="probe-ref-00")] + rolls + out + [dict(ref, id="probe-ref-final")], P_A, N_A
     obl = [arr(x) for x in src["actions"] if x["kind"] == "oblique"]
     rank = {}
     for reg in ("flank", "face", "edge"):
@@ -1688,6 +1727,11 @@ def own_moves(ctx, act):
             segs.append(("L", T, T1))
             T = T1
         segs.append(("L", T, Td))
+    if act["kind"] == "roll":                           # about the rod's axis through its contact line, back to 0
+        T = Td
+        for T1 in roll_poses(ctx, act, Td, ctx["T_BA"][:3, :3] @ np.asarray(act["n_A"], float)):
+            segs.append(("L", T, T1))
+            T = T1
     if act["kind"] == "sweep":                          # each offset and slide from the deep pose and back to it
         R_BA = ctx["T_BA"][:3, :3]
         for v in sweep_vectors(act, R_BA @ np.asarray(act["n_A"], float), R_BA @ np.asarray(act["t1_A"], float)):
@@ -1717,7 +1761,8 @@ def deep_clear(ctx, act, P_A, deep_max=2.0, step=0.25, owner=False):
           else [])                                      # a sweep's offsets and slides at each depth
 
     def fails(T, q0):
-        for P in [T] + [C.Tm(T[:3, :3], T[:3, 3] + v) for v in sw]:
+        for P in ([T] + [C.Tm(T[:3, :3], T[:3, 3] + v) for v in sw]
+                  + (roll_poses(ctx, act, T, n_B) if act["kind"] == "roll" else [])):
             q0 = ik_near(P[None], q0, branch=BR[0])[0]
             if not np.isfinite(q0).all() or joint_flags(q0, owner) or clear_flags(clearance(q0, ctx, contact), DEEP_EXTRA):
                 return True
@@ -1740,6 +1785,8 @@ def deep_clear(ctx, act, P_A, deep_max=2.0, step=0.25, owner=False):
             TM = T @ ctx["T_EM"]
             c_B = TM[:3, 3] + TM[:3, 2] * tool_end_z(ctx["tool"])
             poses += [C.turn_about(T, c_B, n_B, act["twist"] * s_) for s_ in np.linspace(0.0, 1.0, 16)[1:]]
+        if act["kind"] == "roll":                       # the roll as own_moves makes it, at this depth
+            poses += roll_poses(ctx, act, T, n_B)
         poses += [C.Tm(T[:3, :3], T[:3, 3] + v) for v in sw]
         qq = q
         for P in poses:
@@ -2157,6 +2204,9 @@ def cmd_body_check(a):
                     n_B = R_BA @ np.asarray(x["n_A"], float)
                     for s_ in np.linspace(0.0, 1.0, 16)[1:]:
                         poses.append((f"{x['id']}@{depth:g}+{x['twist'] * s_:.0f}", C.turn_about(T, c_B, n_B, x["twist"] * s_), None))
+                if x["kind"] == "roll":
+                    for k_, T1 in enumerate(roll_poses(ctx, x, T, R_BA @ np.asarray(x["n_A"], float))):
+                        poses.append((f"{x['id']}@{depth:g}~{k_}", T1, None))
         for w in walls[str(seat + 1)]["actions"]:
             pF = C.apply(T_FB @ ctx["T_BA"], np.asarray(w["p_A"], float)) if False else \
                 C.apply(C.inv(np.asarray(st["T_AF"], float)), np.asarray(w["p_A"], float))
@@ -2484,6 +2534,14 @@ def cmd_dry_check(a):
                         cur = dg
                 T_after = C.Tm(T[:3, :3], T_t[:3, 3] - 0.5 * d_B)     # 0.5 mm behind the rest (d1b5ea6f)
                 own.append(("L", T, T_after))
+            elif x["kind"] == "roll":                       # about the rod's axis through its contact line (lab, 17:09)
+                c_B, T = C.apply(T_e @ ctx["T_EM"], c_M), T_e
+                for mv in x["moves"]:
+                    for T1 in roll_poses(ctx, dict(roll_degs=mv["degs"]), T_e, n_B, c_B):
+                        own.append(("L", T, T1))
+                        T = T1
+                T_after = C.Tm(T[:3, :3], T_t[:3, 3] - 0.5 * d_B)     # back as a twist (the program's contact_turns)
+                own.append(("L", T, T_after))
             elif x["kind"] == "sweep":                      # each offset and slide from the deepest pose and back to it
                 t1_B = ctx["T_BA"][:3, :3] @ T_AP[:3, :3] @ np.asarray(x["target"]["t1"], float)
                 for v in sweep_vectors(x, n_B, t1_B):
@@ -2737,7 +2795,7 @@ def cmd_body_exact(a):
         P_A = C.apply(np.asarray(ctx["g"]["seats"][seat]["T_AF"], float) @ T_FP, ctx["pts_P"])
         n_low, n_drop, n_up, rows = 0, 0, 0, []
         for x in sp["actions"]:
-            if x["kind"] not in ("press", "oblique", "reference", "twist", "sweep"):   # the converter's presses, twists
+            if x["kind"] not in ("press", "oblique", "reference", "twist", "sweep", "roll"):   # the converter's actions
                 continue                                                                  # and sweeps
             T_r = np.asarray(x["T_rest"], float)
             d_B = R_BA @ np.asarray(x["d_A"], float)
@@ -3023,6 +3081,11 @@ def main():
     rp.add_argument("--sweep-twists", type=int, default=0, help="this many face sweeps also get +-15 deg twists")
     rp.add_argument("--sweep-rod-deg", type=float, default=None, help="the rod: only its presses at this rod_deg (the lab, "
                     "15:45 on 11-03: 90, the rod across the tip, tonight)")
+    rp.add_argument("--extras", action="store_true", help="with --from-plan: the night's extras after the rod's sweeps "
+                    "(11-03): --rolls rolls at face points near the reference, then the plan's obliques, azimuths 0 and "
+                    "180 first; the reference first and last")
+    rp.add_argument("--rolls", type=int, default=4, help="with --extras: this many rolls (ROLL; the converter makes each at "
+                    "4 N and at 1.5 N)")
     rp.add_argument("--drop-flagged", action="store_true", help="leave out an action whose travel and own moves no way "
                     "clears (not a reference); the next travel starts from the last action kept")
     rp.add_argument("--no-twist", action="store_true", help="no twists (11-02: the twists' torsion sits under the "

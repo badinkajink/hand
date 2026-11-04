@@ -67,6 +67,8 @@ TWISTS = ((3.0, ""), (1.0, "-1N"))                                       # (N, i
 TOUCH_STOP_N, TOUCH_FIT_N = 1.0, 0.8     # a probe pushes mostly along its stem, the HEX-E's z, whose noise (0.21 N a sample)
 #                                          is five times x's and y's, where the tip mode's touches push: twice its 0.5, 0.4 N
 TWIST_HOLD_S = 1.0
+ROLLS = ((4.0, ""), (1.5, "-1.5N"))     # (N, id suffix): the rod's rolls at 4 N, then 1.5 N there, as v3 ID 3's of 10-29
+ROLL_HOLD_S = 0.4                       # each angle's hold (v3 ID 3's rolls; the lab's probe roll, 17:09 on 11-03)
 PRIOR = np.r_[np.radians([1.0, 1.0, 0.5]), [0.5] * 3, [0.3] * 3]            # the program's REG_SIGMA_PROBE
 SIG_PAD, SIG_WALL, SIG_WALL_OFFSET = 0.03, 0.02, 0.1
 
@@ -269,6 +271,17 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
         if a["kind"] == "sweep":                               # the cone sweep (QUEUE R32): the press's level stops, then
             x.update(kind="sweep", **{k: a[k] for k in SWEEP_KEYS})   # the offsets along t1 and t2 (t1 in P) and the
             tg["t1"] = (R_AP.T @ np.asarray(a["t1_A"], float)).round(6).tolist()   # slides
+        if a["kind"] == "roll":                               # about the rod's axis through its contact line, and back
+            for k, (N, sfx) in enumerate(ROLLS):
+                y = dict(x, id=a["id"] + sfx, kind="roll", press_N=N, hold_s=ROLL_HOLD_S,
+                         moves=[dict(degs=[float(v) for v in a["roll_degs"]])])
+                for kk in ("levels", "stop_N"):
+                    y.pop(kk)
+                if k:
+                    y["travel_ws"] = "straight"                # from the same rest
+                    y.pop("homing_lift_mm", None)
+                acts.append(y)
+            continue
         if a["kind"] != "twist":
             acts.append(x)
             continue

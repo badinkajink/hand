@@ -1670,6 +1670,17 @@ push that answers it arrives.
     and joint 6 spans -61.3 to +42.6 deg (data/20261103-strip_table_pads_run_check_rod_sweep8_chain.json). Seat 3 aimed
     from s3v4's fit also replays with 0 flagged (_rod_sweep8_seat3_seed.json). The chain should end about 03:00 on 11-04.
     No step starts after 05:20, and at 05:50 the program stops after its action.
+  - 17:0x to 17:24 on 11-03, lab and workstation: seat 2's pass 1 with the rod (its first real fit in probe mode)
+    found the rod tool seated a quarter turn off on its square boss, its axis along x_M in place of the plans' y_M. The
+    onsets against the expected contact followed the stem's angle off the pad's normal, as the CAD rod turned 90 deg about
+    z_M predicts (a rod turned so lies inclined to the pad by that angle and meets it with one end). Less a common +1.2 mm
+    they read -0.09 to +0.13 mm at 0 deg (5 touches), -1.07 to -0.86 at 10 to 15 deg (model -0.92 to -1.00) and -3.04
+    and -3.14 at 30 deg (edge-630, edge-634; model -3.08). A longer rod meets nothing before y = 0 even at ±18 mm, and a
+    tilt of 3 or 6 deg moves an onset by 0.3 mm at most. The program's fit refused the touches (0.229 mm rms with 2 left
+    out) and stopped the session before the grid at 17:15:54. The camera showed the rod end-on at a rod_deg 90 rest. The
+    owner is asked to reseat the tool a quarter turn; pass 1 then reruns from s2sph2's seed. The 8 N plans' closest
+    passes (8 sweeps a seat, the rod's contact side 7 to 10 mm along its axis within 0.42 to 0.99 mm of the tip body,
+    each at one slide azimuth) are in data/20261103-strip_table_pads_rod_sweep8_end_margins.json.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
