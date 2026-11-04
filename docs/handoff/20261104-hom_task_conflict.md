@@ -15,7 +15,13 @@ layout (x_sep 70, y_sep 110 mm) gives a mean task score of 0.738, against 0.803 
 the other grids: STS3032 1.10, the same at friction 0.4 1.17, work plant 1.12. The straight line between two tasks'
 best layouts passes through layouts that another layout beats on both tasks by 0.10-0.66. Neighbouring layouts 5 mm
 apart differ by up to 0.5 on one task, so seed noise inflates these numbers, the specialists' scores most (each the
-best of 561): validate first. Gantry travel between the specialists (25-115 mm apart): 2.8-18.4 s.
+best of 561): validate first. 22:4x, performance only (direction 9): coverage at a level alpha of each task's best.
+SCS0009 lattice: alpha*_1 0.83 (the best generalist's worst task 0.835), alpha*_2 0.89, alpha*_3 0.93; generalists 30
+at alpha 0.6, 7 at 0.7, 1 at 0.8, none at 0.9 (K* 3, three mutually incompatible tasks). alpha*_1 on the other
+plants: STS3032 0.87, friction 0.4 0.79, work plant 0.85; the STS3032 at 0.9 has no incompatible pair yet needs K* 2.
+Size grid (16 tasks, 8,182 Sobol layouts): alpha*_1 0.51, alpha*_3 0.80, alpha*_7 0.90; K* 7 at 0.9 and 11 at 0.95,
+each equal to the largest mutually incompatible set; K* 3 against a bound of 2 at 0.7. One layout over the four twist
+sizes (30-63 mm) reaches 0.60 of each size's best, over the four press sizes (10-40 mm) 0.88.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [ ] 1. Paths: after the scripts switch the scripts are under scripts/hom/ and the package is sr2hand (`git log -1 -- scripts/hom`).
@@ -50,6 +56,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 Standing directions (for every step):
 - Compute tracking (owner 11-03 19:0x: "let's make sure we're timing this all for compute-tracking purposes and throughput measuring, including cpu vs gpu speedups"): run every GPU batch through hom_gpu.batch_child so each writes its _timing.jsonl line beside its rows; log each run's wall, draw and GPU-batch times as JSON lines; after the runs, `python3 scripts/hom_compute.py ledger` and `report` (add this study's rows to the ledger's roots if they are missing), and give the job's rollouts, batch hours and ms per rollout in its page section.
 - Every search scores its start: candidate 0 of iteration 0 is the start itself (the page job's fix to hom_grasp_refine.draw_layout after the queue; check it is in before step 3), and a refined score is quoted beside its start's at the same seeds.
+- Performance only (owner 11-03 22:3x: "we shouldnt consider time, only performance. for desired performance, we should be able to mathematically formulate the blend vs switch decision, given the current layout"; "there can be many capable generalists"; "not saying i expect you to solve that here with experiments, nor this project to answer that either. that's just one ultimate goal" (the specialist-generalist question at scale)). No time, gantry travel or score-per-second rule anywhere: steps 2 and 5's break-even run length and gantry times are dropped. The decision is the coverage formulation of scripts/hom_task_conflict.py's docstring (window commit of 22:4x): capable tasks C(x) at a desired level alpha of each task's best, generalists G and N_G, the decision at a current layout x0 (stay, move once to a generalist, or switch with the fewest extra layouts), K* as an exact set cover, alpha*_K, incompatible pairs and the largest mutually incompatible set. Report these at the validated scores (step 2) and at S2/S3 on shared layouts (step 3: does task-specific grasp and control enlarge G?). Step 4 is done by the window (20261103-conflict_sizes.json, 16 tasks on 8,182 Sobol layouts): check it, put it on the page as the breadth example, run nothing new. Launch no new grids for more sizes or task types.
 <!-- /ap:steps -->
 Claimed: scripts/hom_task_conflict.py, scripts/hom_task_conflict_page.py, docs/experiments/20261103-hom_task_conflict/.
 Waiting on owner: none.
