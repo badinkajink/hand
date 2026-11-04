@@ -53,3 +53,11 @@ def rotate_axis(q: torch.Tensor, axis: tuple[float, float, float]) -> torch.Tens
                         2 * (qx * qy + qw * qz) * ax + (1 - 2 * (qx * qx + qz * qz)) * ay + 2 * (qy * qz - qw * qx) * az,
                         2 * (qx * qz - qw * qy) * ax + 2 * (qy * qz + qw * qx) * ay + (1 - 2 * (qx * qx + qy * qy)) * az],
                        dim=-1)
+
+
+def quat_to_mat(q: torch.Tensor) -> torch.Tensor:
+    """Rotation matrices (..., 3, 3) of unit wxyz quaternions (..., 4)."""
+    w, x, y, z = q.unbind(-1)
+    return torch.stack([1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w),
+                        2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w),
+                        2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)], -1).reshape(*q.shape[:-1], 3, 3)
