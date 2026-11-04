@@ -73,6 +73,8 @@ def main():
                 lv["travel_mm"] = round(float((stop[lv["N"]] - p0) @ d_B), 4)
             res["refs"][e["id"]] = dict(levels=levels)
             continue
+        if a["kind"] != "sweep":                    # twists and the rest: not summarized here
+            continue
         t1_P = np.asarray(tg["t1"], float)
         t1_P = (t1_P - (t1_P @ n_P) * n_P) / np.linalg.norm(t1_P - (t1_P @ n_P) * n_P)
         t1_B, t2_B = R_BP @ t1_P, R_BP @ np.cross(n_P, t1_P)
