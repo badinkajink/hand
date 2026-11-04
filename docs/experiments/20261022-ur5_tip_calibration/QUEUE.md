@@ -1693,6 +1693,15 @@ push that answers it arrives.
     in two alternating halves (first halves 2, 3, 1, second halves 1, 3, 2, with the 5 N twists and the 4 N rolls at the
     end of each second half), then each seat's extras (rolls, then the 20 and 35 deg obliques), seats 2, 3 and 1, from
     lab/20261103-rod_halves.py. Seat 2's first half started at 19:15:01 with 8 full sweeps done.
+  - 20:37 to 21:43 on 11-03: seat 3's fit turned the same rod +10.75 deg about z_M (seat 2's: -5.40); a square boss
+    does not turn a tool that far, so pass 1 trades the rod's turn against the pad's yaw. Every plan still to run was
+    checked over turns of -11 to +11 deg with ±1.05 across, on the exact rod solid (scripts/ur5_rod_fitted_margins.py
+    --turn-z LIST; data/20261103-strip_table_pads_rod_night_turn_envelope.json). The lab left out the offsets and slides
+    and the obliques that came under 0.2 mm anywhere in that range, re-checked each plan after every drop, and sent the
+    travels that a drop changed by the hub. Seat 2's eight edge-654 obliques went from 2x, because their hub approaches
+    came within 0.17 to 0.27 mm of the pad at -11. In the installed plans (lab f0f745c8) every action keeps 0.21 mm or
+    more from the tip body over the range, and the chained dry-check flags none of 54, 49, 46, 44, 97, 103 and 99 actions
+    unturned and no travel at ±11 (lab/20261103-rod_night_envelope_checks.json).
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
