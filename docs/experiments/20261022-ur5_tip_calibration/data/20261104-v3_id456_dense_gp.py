@@ -1,7 +1,7 @@
-"""What seat 1's dense normal presses (11-04, 11:17 to 11:54) do to the board GP on v3 ID 6.
+"""What a seat's dense normal presses (11-04, from 11:17) do to the board GP on its v3 tip (seat 1 ID 6, 2 ID 5, 3 ID 4).
 
-A: the night's data alone (s1v6b, s1sph2b, rod13 before 11-04). B: the same plus the dense presses (rod13's actions whose
-ids are in the dense plan). Grouping by point over A and B together (scripts/ur5_tip_calibration_density_curve.groups).
+A: the night's data alone (the seat's sphere sessions and its rod session before 11-04). B: the same plus the dense presses
+(the rod session's actions whose ids are in the seat's dense plan). Usage: gp_dense.py ROD_HOLDS OUT.json [SEAT]. Grouping by point over A and B together (scripts/ur5_tip_calibration_density_curve.groups).
   fixed     a fifth of the night's point groups held out (seeds 0-3), trained on the other night groups (A) or on them
             and every dense group (B): location, direction, magnitude, torsion on the same test holds; location also for
             loads within 0.1 of the normal (|f_t| / |f_n|) and for tilted ones.
@@ -17,16 +17,21 @@ sys.path.insert(0, "/home/humanoid/Programs/hand/scripts")
 import ur5_tip_calibration_v3_data_curve as V  # noqa: E402
 
 H_ = "docs/experiments/20261030-inverted_rig_seat_block/data/holds/"
-NIGHT = [H_ + "20261102-145010-s1v6b", H_ + "20261103-122020-s1sph2b"]
-ROD = sys.argv[1]                                   # rod13's holds with the dense step
-PLAN = "docs/experiments/20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat1_v3id6_dense_fe_draft.json"
+SEAT = int(sys.argv[3]) if len(sys.argv) > 3 else 1
+NIGHT = {1: [H_ + "20261102-145010-s1v6b", H_ + "20261103-122020-s1sph2b"], 2: [H_ + "20261102-182710-s2v5",
+         H_ + "20261103-144808-s2sph2"], 3: [H_ + "20261102-220337-s3v4"]}[SEAT]
+ROD = sys.argv[1]                                   # the seat's rod holds with the dense step
+PLAN = ("docs/experiments/20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat%d_v3id%d_dense_fe_draft.json"
+        % (SEAT, 7 - SEAT))
 V.KINDS[:] = ["press", "sweep", "offset", "slide", "roll", "twist"]
 floor = V.PR.floors(0)[:15]
-dense_ids = {a["id"] for a in json.load(open(V.ROOT / PLAN))["actions"] if a["stage"] == "grid"}
+dense_ids = {a["id"] for pl in (PLAN, PLAN.replace("_dense_fe_", "_dense_ft_")) if (V.ROOT / pl).exists()
+             for a in json.load(open(V.ROOT / pl))["actions"] if a["stage"] == "grid"}   # the face and edge plan, and the
+#                                                                                   flank and tip plan once it has run
 H = V.load(NIGHT + [ROD])
 raw = np.array([s.split(":", 1)[1] for s in H["id"].astype(str)])
 src = np.array([int(s.split(":", 1)[0]) for s in H["id"].astype(str)])
-dense = (src == 2) & np.isin(raw, list(dense_ids))
+dense = (src == len(NIGHT)) & np.isin(raw, list(dense_ids))
 Y = np.c_[H["p"], H["f"], H["tn"]]
 fm = np.linalg.norm(H["f"], axis=1)
 fn = np.abs(np.sum(H["f"] * H["n"], 1))

@@ -1751,7 +1751,18 @@ push that answers it arrives.
     mm. Direction (5.86 deg), magnitude (8.2 %) and torsion (6.9 to 7.4 N mm, against 4.3 N mm predicting none) do not
     change. Held out among the new points the GP gives 0.726 mm (0.608 on normal loads) and 4.4 deg. On all of ID 6's
     data the error falls from 0.917 mm at 54 groups to 0.861, 0.812 and 0.756 mm at 76, 93 and 109 groups
-    (data/20261104-v3_id6_dense_seat1_gp.json, .txt and .py).
+    (data/20261104-v3_id6_dense_seat1_gp.json and .txt; the script data/20261104-v3_id456_dense_gp.py).
+  - 13:16:58 on 11-04: the chain ended, 232 of 232 actions clean (214 new points: 75, 70 and 69 on seats 1, 2 and 3).
+    The arm waits at seat 1's reference rest, the rod a few mm over seat 1's pad. Seats 3 and 2 came as tails too (lab
+    49b39a9f1, b3d7736fb; the flank steps of seats 3 and 1 in 1574fa060); their holds with the dense steps are in
+    data/holds/<session>_dense (rod13 and rod32 without their flank steps). On the night's held-out points the dense
+    presses take ID 4 from 0.797 to 0.754 mm (near-normal loads 0.814 to 0.767) and ID 5 from 0.819 to 0.816 mm (0.718
+    to 0.710); direction, magnitude and torsion do not change. Held out among the new points, where the data are 1 mm
+    apart and the loads normal, the GP gives 0.54, 0.62 and 0.73 mm on IDs 4, 5 and 6 (0.51 to 0.61 mm on near-normal
+    loads), 3.7 to 4.4 deg and 5.9 to 8.9 %. On all data the error still falls at the end of the curve: 0.804 to 0.776
+    mm (ID 4, 88 to 104 groups), 0.888 to 0.843 (ID 5, 106 to 125) and 0.812 to 0.756 (ID 6, 93 to 109). The watchdog
+    killed seat 3's GP and seat 2's holds at 13:28:44 on memory PSI 15 (desktop pages read back from swap; RAM 12.5 GB
+    free), and both reran at 13:29 to 13:46.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
