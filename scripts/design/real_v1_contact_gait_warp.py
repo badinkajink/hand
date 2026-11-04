@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import real_v1_d1_continuation as d1  # noqa: E402
 from real_v1_d1_continuation import FINGERS, HORIZON_MS, Scene, hold_vector  # noqa: E402
+from sr2hand.geometry.rotations import tilt_cos
 
 
 def main():
@@ -87,10 +88,7 @@ def main():
             if finger >= 0:
                 forces[int(w), finger] += max(0.0, float(efc[int(w), int(a)]))
         for w in range(nw):
-            quat = q[w, qa + 3:qa + 7].astype(float)
-            quat /= np.linalg.norm(quat)
-            cos = 1 - 2*(quat[1]**2 + quat[2]**2)
-            traces[w].append({"t_s": t_ms/1000, "vertical_cos": float(cos),
+            traces[w].append({"t_s": t_ms/1000, "vertical_cos": float(tilt_cos(q[w, qa + 3:qa + 7].astype(float))),
                               "tool_z_m": float(q[w, qa + 2]),
                               "finger_normal_force_N": {f: float(forces[w, j])
                                                         for j, f in enumerate(FINGERS)}})

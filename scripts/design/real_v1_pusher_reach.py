@@ -23,6 +23,10 @@ import numpy as np
 ROOT = Path("/home/humanoid/Programs/hand")
 sys.path.insert(0, str(ROOT / "src"))
 from sr2hand.tools.keyframe_ik import FINGERS, TIPS, ik_finger  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.distances import point_line
+from sr2hand.geometry.rotations import rot_axis_angle
 
 SC = ROOT / "assets/mjcf/experimental/20260904-chain_bothsets"
 OBJ = "screwdriver_medium"
@@ -34,12 +38,6 @@ VARIANTS = {  # D-label: cached swing-study fit tag
     "D7 ta20": "rv05_manual_b85_ta20_y180_sq10",
     "D2 ta30": "sv1_w2360_b075_ta30_y180_sq10",
 }
-
-
-def rot(axis, a):
-    axis = axis / np.linalg.norm(axis)
-    K = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
-    return np.eye(3) + np.sin(a) * K + (1 - np.cos(a)) * K @ K
 
 
 def pad_contact(m, d, f, ogid):
@@ -102,8 +100,7 @@ def main():
         lever = np.cross(pts["middle"] - p_ax, nrm["middle"]) @ a_hat * 1e3  # mm (N m per N)
         # perpendicular distance of middle contact / CG from the pinch line
         def perp(p):
-            v = p - p_ax
-            return np.linalg.norm(v - a_hat * (v @ a_hat)) * 1e3
+            return point_line(p, p_ax, a_hat) * 1e3
         row = {"tag": tag, "scene": str(flat.relative_to(ROOT)), "mass_g": round(mass * 1e3, 1),
                "pinch_axis_vs_shaft_deg": round(float(np.degrees(np.arccos(abs(a_hat @ ax)))), 1),
                "pinch_axis_vs_horizontal_deg": round(float(np.degrees(np.arcsin(abs(a_hat[2])))), 1),
@@ -117,7 +114,7 @@ def main():
         tip0 = d.body(TIPS["middle"]).xpos.copy()
         fixed, slide = {}, {}
         for deg in (10, 20, 30, 45, 60, 75, 90):
-            R = rot(a_hat, sgn * np.radians(deg))
+            R = rot_axis_angle(a_hat, sgn * np.radians(deg))
             d.qpos[:] = q0
             fixed[deg] = round(ik_finger(m, d, "middle", p_ax + R @ (tip0 - p_ax), iters=400) * 1e3, 1)
             best = 1e9
