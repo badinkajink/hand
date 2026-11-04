@@ -1742,6 +1742,16 @@ push that answers it arrives.
     seat 2's edge-653, whose travel then failed. Chained fe 1, 3, 2, ft 2, 3, 1 from the arm's joints at 10:45, the
     dry-check flags none of 75, 70, 70, 6, 5 and 6 actions
     (data/20261103-strip_table_pads_run_check_rod_dense_chain.json).
+  - 12:0x on 11-04, the owner: "can you retrieve that data right now and see how much that improves localization,
+    direction, twist/wrench sensing? so we can assess whether we need to add more contacts or not". Seat 1's step
+    (pts11, 75 of 75 actions, 11:17 to 11:54) came as the bytes it appended to rod13's streams (lab 8863079a8; prefixes'
+    sha256 equal the workstation's copies). Its ground truth adds 300 holds (3311 in rod13). On a fixed fifth of the
+    night's point groups of v3 ID 6 (4 seeds), the GP trained with the 300 holds locates contact to 0.746 mm, against
+    0.780 mm without them; on loads within 0.1 of the normal 0.673 against 0.710. Every seed improves, by 0.014 to 0.050
+    mm. Direction (5.86 deg), magnitude (8.2 %) and torsion (6.9 to 7.4 N mm, against 4.3 N mm predicting none) do not
+    change. Held out among the new points the GP gives 0.726 mm (0.608 on normal loads) and 4.4 deg. On all of ID 6's
+    data the error falls from 0.917 mm at 54 groups to 0.861, 0.812 and 0.756 mm at 76, 93 and 109 groups
+    (data/20261104-v3_id6_dense_seat1_gp.json, .txt and .py).
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call

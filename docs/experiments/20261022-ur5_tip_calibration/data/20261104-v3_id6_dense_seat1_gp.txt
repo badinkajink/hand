@@ -1,0 +1,34 @@
+6237 holds, 300 dense (75 dense actions in the plan, 75 with holds); groups 136, dense 69 (12 shared with the night)
+fixed seed 0: A location_mm 0.750, loc_normal_mm 0.646, loc_tilted_mm 0.780, direction_deg 6.481, magnitude 0.072, torsion_Nmm 21.395, torsion_zero_Nmm 25.830 (train 5291)
+              B location_mm 0.700, loc_normal_mm 0.593, loc_tilted_mm 0.760, direction_deg 6.639, magnitude 0.073, torsion_Nmm 21.521, torsion_zero_Nmm 25.830 (train 5591)
+dense seed 0: location_mm 0.678, loc_normal_mm 0.621, loc_tilted_mm 0.689, direction_deg 4.591, magnitude 0.096
+fixed seed 1: A location_mm 0.857, loc_normal_mm 0.811, loc_tilted_mm 0.870, direction_deg 6.439, magnitude 0.077, torsion_Nmm 9.012, torsion_zero_Nmm 3.614 (train 4906)
+              B location_mm 0.843, loc_normal_mm 0.756, loc_tilted_mm 0.860, direction_deg 6.418, magnitude 0.079, torsion_Nmm 9.102, torsion_zero_Nmm 3.614 (train 5206)
+dense seed 1: location_mm 0.723, loc_normal_mm 0.595, loc_tilted_mm 0.741, direction_deg 4.176, magnitude 0.079
+fixed seed 2: A location_mm 0.790, loc_normal_mm 0.711, loc_tilted_mm 0.809, direction_deg 5.245, magnitude 0.089, torsion_Nmm 4.853, torsion_zero_Nmm 4.899 (train 4827)
+              B location_mm 0.758, loc_normal_mm 0.683, loc_tilted_mm 0.769, direction_deg 5.144, magnitude 0.090, torsion_Nmm 5.666, torsion_zero_Nmm 4.899 (train 5127)
+dense seed 2: location_mm 1.073, loc_normal_mm 0.791, loc_tilted_mm 1.175, direction_deg 4.847, magnitude 0.097
+fixed seed 3: A location_mm 0.769, loc_normal_mm 0.709, loc_tilted_mm 0.782, direction_deg 5.288, magnitude 0.089, torsion_Nmm 2.851, torsion_zero_Nmm 3.672 (train 4936)
+              B location_mm 0.734, loc_normal_mm 0.663, loc_tilted_mm 0.758, direction_deg 5.298, magnitude 0.084, torsion_Nmm 2.804, torsion_zero_Nmm 3.672 (train 5236)
+dense seed 3: location_mm 0.729, loc_normal_mm 0.577, loc_tilted_mm 0.765, direction_deg 3.976, magnitude 0.082
+curve seed 0 fraction 0.5: 54 groups, location 0.898 (normal 0.664), direction 5.77
+curve seed 0 fraction 0.7: 76 groups, location 0.810 (normal 0.626), direction 5.44
+curve seed 0 fraction 0.85: 93 groups, location 0.767 (normal 0.519), direction 5.28
+curve seed 0 fraction 1.0: 109 groups, location 0.759 (normal 0.537), direction 5.13
+curve seed 1 fraction 0.5: 54 groups, location 0.936 (normal 0.907), direction 5.02
+curve seed 1 fraction 0.7: 76 groups, location 0.912 (normal 0.886), direction 4.89
+curve seed 1 fraction 0.85: 93 groups, location 0.857 (normal 0.835), direction 4.22
+curve seed 1 fraction 1.0: 109 groups, location 0.752 (normal 0.700), direction 4.35
+SUMMARY fixed test, night only (A) vs with the dense presses (B):
+  location_mm        A 0.780  B 0.746
+  loc_normal_mm      A 0.710  B 0.673
+  loc_tilted_mm      A 0.795  B 0.765
+  direction_deg      A 5.864  B 5.858
+  magnitude          A 0.083  B 0.082
+  torsion_Nmm        A 6.932  B 7.384
+  torsion_zero_Nmm   A 4.285  B 4.285
+SUMMARY dense points held out: location_mm 0.726, loc_normal_mm 0.608, loc_tilted_mm 0.753, direction_deg 4.383, magnitude 0.089
+SUMMARY curve 0.5: 54 groups, location 0.917, normal 0.786
+SUMMARY curve 0.7: 76 groups, location 0.861, normal 0.756
+SUMMARY curve 0.85: 93 groups, location 0.812, normal 0.677
+SUMMARY curve 1.0: 109 groups, location 0.756, normal 0.618
