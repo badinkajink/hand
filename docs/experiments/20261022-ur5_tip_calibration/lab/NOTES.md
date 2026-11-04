@@ -2699,6 +2699,93 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   stamped 16:36 was sent at 16:34. The lab's message of 16:27 went to the wrong session (the workstation's had
   restarted); the answers went into STATE (3efa4802) and again to the workstation's new session.
 
+### The rod: a quarter turn, the fit, the trims and the HEX-E (from 16:5x)
+
+- 16:5x, the owner, in the lab's session: "ok it's on there godspeed go". The arm moved in the swap, to joints (49.72,
+  -83.46, 116.43, -141.09, -95.65, 0.13) deg. The workstation's checker, run from there, flagged 0 of seat 2's first
+  travel and 20 touches.
+- 16:58:23: `logs/20261103-chain_rod_night.sh` (PID 2859347) seeded seat 2's session from s2sph2 with the rod's c_M
+  (0, 0, 107.5) and started rod21.
+  - Pass 1 met the pad from -3.29 to +1.33 mm of where it was expected.
+  - register left out pad-edge-628-r90 (+1.85 mm off the pad) and pad-face-717-r90 (+0.51 mm). The other 18 stood
+    0.229 mm rms, over the 0.15 mm gate, so the session stopped before the grid (exit 1 at 17:15:54), as designed.
+  - The rod tool sat a quarter turn off on its square boss. The workstation's CAD model, the lab's forward model and
+    the camera agree. The forward model fits the touches at 1.59 mm rms with the tool as planned, and at 0.31 mm turned
+    about 112 deg. Copy: `20261103-165823-rod21-turned/`.
+- 17:2x, the owner: "ok it's rotated please go". At 17:26:47 the chain (PID 2862548) started again from a fresh seed of
+  s2sph2.
+  - Pass 1: 20 touches at +0.13 to +1.33 mm. The fit stands 0.054 mm rms, none left out. The pad moved 0.648 mm and
+    0.868 deg from the seed.
+  - The rod's axis moved 1.168 mm across itself: c_M (-0.838, 0, 106.687) mm in M. The rod turned -5.40 deg about z_M
+    (sd 2.5) and +0.77 deg across. Copy: `20261103-172647-rod21/`.
+  - From 17:46 the grid ran probe-ref-00 and two sweeps to 8 N, the first on the robot (sweep-edge-573-r0 and
+    sweep-edge-634-r0). On 634 the friction check stopped the 0.5 N offsets at r 0.06 az 135 and the 2 N slides at az
+    270.
+- With the fitted turn, the workstation's exact margins put a few slides within 0.2 mm of a tip body.
+  - The lab stopped the chain by its PID at 17:55:11. It stopped the program by SIGINT after grid 3's finished line
+    (exit 0 at 17:55:49).
+  - It took those slides and sweeps out of all three seats: the `_sweep8_fit` plans (STATE lists them).
+- 18:01:10: the chain started again (PID 2867047, `logs/20261103-rod_night_steps2.txt`), resuming seat 2's session.
+  - The HEX-E dropped on the resume's first travel, a large joint 6 turn. Three aborts ("no HEX-E sample for 100 ms")
+    stopped the run (exit 1 at 18:01:33). Nothing was pressing.
+  - The chain probed the sensor every minute: no samples from 18:01:38 to 18:49:16, 199 of 300 at 18:50:19, and
+    streaming at 18:51:23. The owner had reseated the connector (relayed at 18:5x: "i already reseated it...").
+  - The first resume (rod21r1, 18:51:28) lost the HEX-E again on its first travel: 155 reads timed out, exit 1 at
+    18:52:00. The second (rod21r2, 18:52:17) ran on, and sweep 4 of 85 finished at 18:58.
+- The hard stop at 05:50 held the first chain's PID: the chain restarted at 18:01 under a new one. At 05:50 it would
+  still have stopped the program, and the chain with it. But a chain waiting out a HEX-E loss would have run the robot
+  again once the sensor came back, maybe while the owner mounts the hand.
+  - `logs/20261103-deadline_stop.sh` now finds every running chain at 05:50 and stops each by its PID (dc183040).
+  - It was rearmed at 18:58 (PID 2874853). The old stop was killed by its PID, with its sleep.
+
+### The night in halves (from 19:0x)
+
+- Seat 2's sweeps take 258 s each on the robot (573, 634 and 638), against the plans' estimate. Roughly:
+  - the travel in and the return out, about 31 s;
+  - the press and its five level holds, about 31 s;
+  - 64 offsets, about 140 s: 1.8 s each at 0.5 N and 2.6 s at 8 N;
+  - 8 slides, about 60 s: each 1 mm out at 0.3 mm/s and back.
+- At that rate seat 2's _fit plan ends about 23:40 and seat 3's about 04:45. Seat 1 would get its pass 1 and about 10
+  sweeps before 05:50, and no seat its extras.
+- The lab proposed lighter sweeps (19:0x). The workstation's pick, under the owner's go of 16:3x: lighter sweeps in
+  halves, so that a HEX-E loss after the owner is asleep leaves every tip half its coverage.
+  - Offsets at azimuths 0, 90, 180 and 270, every ring and level kept: 32 a sweep.
+  - Slides at az 0 and 90 at 2 and 4 N: 4 a sweep. Each slide returns the opposite way, so ±along and ±across stay at
+    both forces.
+  - Twists at 5 N only, after the second half's sweeps, so that a cut takes twists before locations.
+  - The 4 N rolls of each seat's extras (3 or 4, about 70 s each) at the very end.
+  - The obliques of the extras are dropped for tonight.
+- A lighter sweep should take about 157 s. First halves: seat 2 to about 21:00, seat 3 with its pass 1 to about 22:40,
+  seat 1 to about 00:30. Second halves: 1, 3 and 2, to about 05:45.
+- `20261103-rod_halves.py` writes the six plans (`..._half_a.json`, `..._half_b.json`). Half a holds every other
+  sweep in the _fit plan's order, which is sorted by the stem's direction, so each half spans the pad and both rod
+  turns. Half b holds the rest, then the twists, the last reference press and the rolls. The reference presses take new
+  ids (probe-ref-a1, -b0), so that a resumed session runs each.
+- The switch:
+  - The chain was killed by its PID at 19:09:41. Sweep 713 had ended at 19:09:19, so the program ran 618 too and got
+    its SIGINT right after 618's line (8/85), at 19:13:35; exit 0 at 19:13:38. The HEX-E gave 128,089 samples with
+    none timed out.
+  - Seat 2 so has 8 sweeps in full, 4 in each half (573, 638, 630 and 618 in a; 634, 569 and 713 in b, with
+    probe-ref-00).
+  - The arm stood at 618's rest, joints (35.700, -78.985, 115.334, -113.396, -47.707, 41.349) deg, within 1.2 deg of
+    its q_rest. The workstation's checker from there flagged 0 of half a's 27 actions: joint 6 -56.4 to 42.2 deg, the
+    rod at least 0.50 mm from the tip body in its own moves.
+  - At 19:15:01 the chain (PID 2881408) started on `logs/20261103-rod_night_steps3.txt`. The first light sweep,
+    sweep-face-697-r0, ended at 19:17:52 with its hub travel; the HEX-E held.
+- 19:1x, the owner, relayed by the workstation: "i mean i wont be in until 9". The SR2 mounting starts about 09:00.
+  - The workstation proposed no step after 08:00 and the hard stop at 08:30, and each seat's extras after the second
+    halves: 2, 3, then 1.
+  - The hard stop was rearmed for 08:30 at 19:10:56 (PID 2877930). LAST_START and STOP_AT in the chain script became
+    08:00 and 08:30, edited while no chain ran.
+  - The extras (`..._extras_night.json`, also from `20261103-rod_halves.py`) are fca3d1cb's: probe-ref-x0, the rolls
+    at 4 and 1.5 N, the obliques at azimuths 0 and 180, those at 90 and 270, and probe-ref-x1. A 4 N roll that half b
+    ran is skipped as done.
+- The workstation's checker on the whole chain in run order (from 618's rest; 3a and 1a with their pass 1; the extras
+  less the 4 N rolls): 2a 0 of 27 flagged, 3a 0 of 50 (joint 6 -51.1 to 42.0 deg, the rod at least 0.52 mm from seat
+  3's tip body).
+- Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
+  19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

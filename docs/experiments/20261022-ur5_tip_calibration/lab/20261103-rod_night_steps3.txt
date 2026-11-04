@@ -1,0 +1,14 @@
+# 19:1x on 11-03: the night's rod run in halves (the workstation's pick of 19:0x: the _fit plans would leave seat 1 about
+# 10 sweeps before 05:50). Lighter sweeps (offsets at 4 azimuths, slides at az 0 and 90), every other sweep a half;
+# first halves 2, 3, 1, then second halves 1, 3, 2 with the 5 N twists and the 4 N rolls last. Then the extras 2, 3, 1
+# (the workstation, relayed at 19:1x: the owner is in at 09:00; no step after 08:00, the hard stop at 08:30)
+# (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-rod_halves.py)
+resume 2 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_half_a.json logs/20261103-tip_calibration/172647-rod21_seed
+seed 3 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat3_v3id4_half_a.json logs/20261102-tip_calibration/220337-s3v4
+seed 1 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat1_v3id6_half_a.json logs/20261103-tip_calibration/122020-s1sph2b
+more 1 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat1_v3id6_half_b.json
+more 3 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat3_v3id4_half_b.json
+more 2 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_half_b.json
+more 2 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_extras_night.json
+more 3 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat3_v3id4_extras_night.json
+more 1 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat1_v3id6_extras_night.json

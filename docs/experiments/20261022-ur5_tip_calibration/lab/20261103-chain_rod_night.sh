@@ -1,7 +1,8 @@
 #!/bin/bash
 # The night's rod run, 11-03 to 11-04. The owner, 16:3x (relayed): "seems like you have time budget for it + additional
 # plans (that i preemptively give yo uthe go-ahead now on since ill be asleep) to improve calibration"; the SR2 hand goes
-# on early on 11-04. Each step is one robot session, in order:
+# on on 11-04, from about 09:00 (the owner, relayed at 19:1x: "i mean i wont be in until 9"; the workstation's proposal:
+# no step after 08:00, the hard stop at 08:30). Each step is one robot session, in order:
 #   seed SEAT PLAN SOURCE  a new session seeded from SOURCE (probe_seed_session.py, c_M set to the rod's), stages
 #                          preflight,pad,register,grid (pass 1, the rod's fit, then the plan's grid)
 #   more SEAT PLAN         the same seat's session again (the last seed step's), stages preflight,grid
@@ -72,8 +73,8 @@ finish() {                          # $1 printout, $2 name, $3 plan: resume afte
 }
 
 T=logs/20261103-tip_calibration
-LAST_START=05:20
-STOP_AT=05:50
+LAST_START=08:00
+STOP_AT=08:30
 STEPS=${1:?the steps file}
 pgrep -f "[d]eadline_stop.sh" > /dev/null || bash logs/20261103-deadline_stop.sh $STOP_AT $$ > /dev/null 2>&1 < /dev/null &
 say "chain $$ from $STEPS; no step starts after $LAST_START; the hard stop at $STOP_AT (logs/20261103-deadline_stop.log)"

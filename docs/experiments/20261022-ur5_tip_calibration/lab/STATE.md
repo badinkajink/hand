@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 18:06 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 19:2x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -258,24 +258,31 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       - Seat 3: edge-642-r90; the az 0 slides of edge-618-r90; the az 270 slides of edge-573-r0 and edge-651-r90.
       - Seat 1: edge-651-r90 and edge-642-r90; the az 90 slides of edge-569-r0; the az 0 slides of edge-618-r90.
       - The plans are `20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_sweep8_fit.json`.
-  - **Now (from 18:01:10): `logs/20261103-chain_rod_night.sh` on `logs/20261103-rod_night_steps2.txt`** (PID 2867047;
-    its log `logs/20261103-chain_rod_night.log`). It resumes seat 2's session `172647-rod21_seed`, then seeds seat 3
-    (from s3v4) and seat 1 (from s1sph2b).
-    - The HEX-E dropped at 18:01:2x, on the resume's first travel (a large joint 6 turn). Three aborts stopped the
-      session; nothing was pressing. The chain probes the sensor every minute and resumes when it streams; still out
-      at 18:05.
-    - The plans are the workstation's 8 N plans of 4d135caf. Seats 2, 3 and 1 have 60, 57 and 65 sweeps (less the
-      drops), with the rod along and across, and 24, 24 and 28 twists (5 and 2.5 N, ±(5, 10, 15, 10, 5) deg, turn_v
-      0.016), plus 20 pass 1 touches and two reference presses each.
-    - A sweep has levels 0.5, 1, 2, 4 and 8 N, 64 offsets (rings of 0.06 to 0.36 mm), and 8 slides of 1 mm at 2 and
-      4 N. The plans take abort_N 12, ft_t_cap_N 10 and retract 6. The lab's change: the slides at 0.3 mm/s.
-    - About 10 h of work in all, with seat 1 ending about 04:00 if the HEX-E comes back soon.
-    - After the chain: the extras (`20261103-plan_probe_table_rod_seat{1,2,3}_v3id{6,5,4}_extras.json`, fca3d1cb),
-      resuming each seat's session. They hold 3 or 4 rolls at 4 and 1.5 N and about 100 obliques (20 and 35 deg, to
-      3 N), about 52 min a seat; the roll is in the program from ce1edccc.
-    - No step starts after 05:20. `logs/20261103-deadline_stop.sh` (PID 2862557) stops the program at 05:50 right
-      after a finished action.
+  - **Now (from 19:15:01): `logs/20261103-chain_rod_night.sh` on `logs/20261103-rod_night_steps3.txt`** (PID 2881408;
+    its log `logs/20261103-chain_rod_night.log`): the night in halves (NOTES, "The night in halves").
+    - The order: seat 2's first half (resuming `172647-rod21_seed`), seat 3's (a new session from s3v4, with its
+      pass 1), seat 1's (from s1sph2b, with its pass 1); then the second halves of seats 1, 3 and 2; then the extras of
+      seats 2, 3 and 1. Plans: `20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_half_{a,b}.json` and
+      `..._extras_night.json`, written by `20261103-rod_halves.py`.
+    - Every sweep location of the _fit plans stays, lighter: offsets at 4 azimuths (32 a sweep), slides at az 0 and
+      90 at 2 and 4 N (4 a sweep). Half b ends with the 5 N twists, a reference press and the 4 N rolls. The extras
+      hold the 1.5 N rolls and the 20 and 35 deg obliques, those at azimuths 0 and 180 first.
+    - Expected at about 150 s a light sweep (the first took 2.3 min with its hub travel): seat 2's half to about
+      20:25, seat 3's to about 22:05, seat 1's to about 23:50; the second halves to about 04:40; then the extras, about
+      45 min a seat, to about 07:00. An outage of over an hour cuts seat 1's extras first.
+    - Seat 2 so far: 8 sweeps in full (64 offsets, 8 slides) before the switch, 4 in each half.
+    - No step starts after 08:00 (the owner, relayed at 19:1x: "i mean i wont be in until 9").
+      `logs/20261103-deadline_stop.sh` (PID 2877930) stops every running chain at 08:30, then the program right after
+      its next finished action.
     - To stop the chain by hand, kill its PID; a running program goes on.
+  - The earlier chain (18:01:10 to 19:09:41, PID 2867047, `logs/20261103-rod_night_steps2.txt`) ran seat 2 on the _fit
+    plan from grid 4 to 8.
+    - The HEX-E dropped at 18:01:2x, on the resume's first travel, and streamed again from 18:51:23 after the owner
+      reseated the connector. The first resume (18:51:28) lost it again on its first travel; the second (18:52:17)
+      ran on.
+    - Sweeps took 258 s each, so the _fit plans would have ended seat 2 about 23:40 and left seat 1 its pass 1 and
+      about 10 sweeps before the stop, then at 05:50. The chain was stopped by its PID at 19:09:41, then the program
+      by SIGINT after grid 8 (exit 0 at 19:13:38).
   - **Tonight's rod run** (the workstation's proposal of 16:22, in priority order): sweeps on all three seats with the rod
     across and along (rod_deg 90 and 0), levels 0.5, 1, 2, 4 and 8 N, slides at 2 and 4 N, about 10 h; twists at about
     8 points a seat; rolls only if written and checked tonight. The lab's answers (16:27; the workstation's session
