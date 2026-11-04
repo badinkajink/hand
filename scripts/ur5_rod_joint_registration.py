@@ -18,8 +18,14 @@ own fit; at the rest moved standoff along d (the onset under the own fit), the p
 the joint fit is compared with the one under the own fit (P): its shift along the surface and the change in the rod's
 gap from the pad (positive: the onset comes later under the joint fit).
 
+--grid-level N adds the grid's sweeps (events.jsonl): at level N each sweep holds the rod at offsets of r_mm (0.06 mm
+at 0.5 N) around its rest, and their mean flange pose is a contact at N. Its residual is the axis's least distance from
+the pad less R plus the indentation at N, one fitted depth per region class (face, edge, flank), over --grid-sd. Pass 1
+of 11-03 leaves the rod's turn about z_M unidentified: the shared turn fits the 60 touches at +9.3 or -10.9 deg, both
+below the own fits' chi2; the sweeps press with the rod turned 0 and 90 deg about the stem.
+
     python3 scripts/ur5_rod_joint_registration.py SESSION [SESSION ...] [--share both|turn] [--seat-scale K
-        [--loose NAME ...]] [--drop ID ...] [--out OUT]
+        [--loose NAME ...]] [--grid-level N [--grid-sd MM]] [--drop ID ...] [--out OUT]
 """
 from __future__ import annotations
 
@@ -46,7 +52,33 @@ def seed_dir(reg_json, seeds_root):
     return Path(seeds_root) / f"{src.parent.name.split('-')[0]}-{src.name}"
 
 
-def load(sd, drop, seeds_root):
+CLASSES = ("face", "edge", "flank")
+
+
+def grid_poses(sd, level, T_EM):
+    """(T_BM, region class, sweep id) for each completed sweep: the mean flange pose of its offsets at the level's
+    smallest ring."""
+    f = Path(sd) / "events.jsonl"
+    if level is None or not f.exists():
+        return []
+    out = []
+    for line in f.read_text().splitlines():
+        e = json.loads(line)
+        rec = e.get("rec") or {}
+        if e.get("event") != "end" or not str(e.get("id", "")).startswith("sweep-") or "offsets" not in rec:
+            continue
+        o = [x for x in rec["offsets"] if abs(x["N"] - level) < 1e-6 and "T_BE" in x]
+        if not o:
+            continue
+        r0 = min(x["r_mm"] for x in o)
+        T = [np.array(x["T_BE"], float) for x in o if x["r_mm"] == r0]
+        Tb = T[0].copy()
+        Tb[:3, 3] = np.mean([t[:3, 3] for t in T], axis=0)
+        out.append((Tb @ T_EM, CLASSES.index(e["id"].split("-")[1]), e["id"]))
+    return out
+
+
+def load(sd, drop, seeds_root, level=None):
     sd = Path(sd)
     plan = json.loads((sd / "plan.json").read_text())
     geo = U.Geometry(plan)
@@ -58,7 +90,25 @@ def load(sd, drop, seeds_root):
     seed.load(json.loads((sdir / "registration.json").read_text()))
     pad = [t for t in json.loads((sd / "touches.json").read_text()) if t["kind"] == "pad" and t["id"] not in drop]
     return dict(name=sd.name, plan=plan, geo=geo, reg=reg, rj=rj, seed_name=sdir.name, T_AP0=seed.T_AP, pad=pad,
-                Ts=[np.array(t["T_BE"], float) @ reg.T_EM for t in pad], seat=int(plan["geometry"]["seat"]["index"]))
+                Ts=[np.array(t["T_BE"], float) @ reg.T_EM for t in pad], seat=int(plan["geometry"]["seat"]["index"]),
+                grid=grid_poses(sd, level, reg.T_EM))
+
+
+def grid_raw(s, T_AP, c_M, a_M):
+    """Each sweep's axis distance from the pad less R at the grid level (mm; minus the indentation)."""
+    T_PB = U.inv(s["reg"].T_BI @ T_AP)
+    return np.array([s["geo"].line_distance(U.apply(T_PB @ T, c_M), (T_PB @ T)[:3, :3] @ a_M) - s["geo"].R
+                     for T, _, _ in s["grid"]])
+
+
+def class_spread(raw, cls):
+    """Per region class: n, mean and sd of the grid residuals (the mean is the class's indentation)."""
+    out = {}
+    for k, name in enumerate(CLASSES):
+        v = raw[cls == k]
+        if len(v):
+            out[name] = dict(n=int(len(v)), mean_mm=round(float(v.mean()), 4), sd_mm=round(float(v.std()), 4))
+    return out
 
 
 def own_fit(s):
@@ -127,12 +177,15 @@ def main():
     ap.add_argument("--share", choices=("both", "turn"), default="both", help="share c_M and the turn, or the turn only")
     ap.add_argument("--seat-scale", type=float, default=1.0, help="the pad priors widened by this factor")
     ap.add_argument("--loose", nargs="*", default=[], help="sessions (folder names or parts) whose pad priors are widened")
+    ap.add_argument("--grid-level", type=float, default=None, help="add the sweeps' contacts at this level (N)")
+    ap.add_argument("--grid-sd", type=float, default=0.05, help="the grid contacts' sd (mm)")
     ap.add_argument("--drop", nargs="*", default=[], help="touch ids left out")
     ap.add_argument("--seeds", default=str(LAB), help="where the seed sessions' folders are")
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
     sig = U.REG_SIGMA_PROBE
-    S = [load(sd, set(a.drop), a.seeds) for sd in a.sessions]
+    S = [load(sd, set(a.drop), a.seeds, a.grid_level) for sd in a.sessions]
+    nG = sum(len(s["grid"]) for s in S)
     g0 = S[0]["geo"]
     for s in S[1:]:
         g = s["geo"]
@@ -147,12 +200,16 @@ def main():
                         vs_session_mm_deg=[round(float(v), 4) for v in e],
                         vs_session_c_mm=float(np.linalg.norm(f["c_M"] - s["reg"].c_M)),
                         seed_change_mm_deg=[round(float(v), 4) for v in f["seat_change_mm_deg"]]))
+        if s["grid"]:
+            cls = np.array([g[1] for g in s["grid"]])
+            own[-1]["grid"] = class_spread(grid_raw(s, f["T_AP"], f["c_M"], f["axis_M"]), cls)
     nS = len(S)
     nc = 2 if a.share == "both" else 2 * nS               # c_M across the axis: one, or one per session
     pri_c, pri_t = [1.0, 1.0], np.radians([4.0, 2.0])
     seat_sd = np.r_[np.radians(sig["seat_rot_deg"]), sig["seat_t_mm"]]
     wide = [a.seat_scale if not a.loose or any(n in s["name"] for n in a.loose) else 1.0 for s in S]
-    sd = np.r_[np.tile(pri_c, nc // 2), pri_t, np.concatenate([seat_sd * w for w in wide])]
+    sd = np.r_[np.tile(pri_c, nc // 2), pri_t, np.concatenate([seat_sd * w for w in wide]), [1.0] * (3 if nG else 0)]
+    i_d = nc + 2 + 6 * nS                                 # the indentations at the grid level, per class
 
     def unpack(x):
         xt = x[nc:nc + 2]
@@ -169,6 +226,9 @@ def main():
             T_PB = U.inv(s["reg"].T_BI @ T_AP)
             r += [(s["geo"].line_distance(U.apply(T_PB @ T, c), (T_PB @ T)[:3, :3] @ ax) - s["geo"].R) / sig["pad_mm"]
                   for T in s["Ts"]]
+            if s["grid"]:
+                cls = np.array([g[1] for g in s["grid"]])
+                r += list((grid_raw(s, T_AP, c, ax) + x[i_d + cls]) / a.grid_sd)
         return np.r_[r, x / sd]
 
     x, r, cov = U.lm(resid, np.zeros(len(sd)))
@@ -177,6 +237,9 @@ def main():
     turn, turn_sd = np.degrees(x[nc:nc + 2]), np.degrees(sx[nc:nc + 2])
     chi2_j, chi2_o = float(r @ r), float(sum(o["chi2"] for o in own))
     more = (2 + 2) * (nS - 1) if a.share == "both" else 2 * (nS - 1)
+    if nG:
+        print(f"grid at {a.grid_level} N: {nG} sweeps; the indentation per class (face, edge, flank) "
+              f"{np.round(x[i_d:i_d + 3], 3).tolist()} mm (sd {np.round(sx[i_d:i_d + 3], 3).tolist()})")
     print(f"joint ({a.share}, pad priors x{wide}): the rod turned {turn[0]:+.2f} deg about z_M (sd {turn_sd[0]:.2f}) and {turn[1]:+.2f} across "
           f"(sd {turn_sd[1]:.2f}); c_M {np.round(fits[0][1], 3).tolist()}; chi2 joint {chi2_j:.1f}, sum of own "
           f"{chi2_o:.1f}, for {more} more constraints; {sum(len(s['pad']) for s in S)} touches", flush=True)
@@ -201,6 +264,12 @@ def main():
                                       gap_mean_mm=q(gp.mean()) if len(gp) else None,
                                       gap_absmax_mm=q(np.abs(gp).max()) if len(gp) else None),
                    T_AP_joint=np.round(T_AP, 6).tolist())
+        if s["grid"]:
+            cls = np.array([g[1] for g in s["grid"]])
+            row["own"]["grid"] = o["grid"]
+            row["joint"]["grid"] = class_spread(grid_raw(s, T_AP, c, ax) + x[i_d + cls], cls)
+            print(f"  {s['name']} grid ({len(cls)}): own fit per class {o['grid']}; joint (less the indentation) "
+                  f"{row['joint']['grid']}", flush=True)
         rows.append(row)
         print(f"{s['name']} (seat {s['seat'] + 1}, {len(s['pad'])} touches, seed {s['seed_name']}): own turn "
               f"{o['turn_deg'][0]:+.2f}/{o['turn_deg'][1]:+.2f} deg, rms {o['rms']:.3f} mm (registration.json: "
@@ -212,6 +281,8 @@ def main():
                     "turn only) and each rod session's pad pose T_AP over the pass 1 touches "
                     "(scripts/ur5_rod_joint_registration.py), the program's residuals and priors (fit_rod_registration)",
                share=a.share, seat_scale=wide, sessions=list(a.sessions), dropped=list(a.drop),
+               grid_level_N=a.grid_level, grid_sd_mm=a.grid_sd, n_grid=nG,
+               indentation_mm=dict(zip(CLASSES, np.round(x[i_d:i_d + 3], 4).tolist())) if nG else None,
                turn_deg=np.round(turn, 3).tolist(), turn_sd_deg=np.round(turn_sd, 3).tolist(),
                chi2_joint=round(chi2_j, 2), chi2_own_sum=round(chi2_o, 2), more_constraints=more, rows=rows)
     Path(a.out).write_text(json.dumps(res, indent=1) + "\n")

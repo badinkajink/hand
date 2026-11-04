@@ -6,6 +6,11 @@ point. Per sweep: the exact distance of the rod's solid to the tip body (ur5_inv
 the deep pose (max_depth_mm past the expected contact), each azimuth's largest offset and each slide's end, for the
 nominal rod and the fitted turn with the across turn of either sign.
 
+--joint JSON (ur5_rod_joint_registration.py, 11-03 23:5x): the rod as the joint fit found it, against what the seat's own
+fit aimed: turned about z_M and across as fitted (the fit's order, about z_M after across), its axis point moved by the
+joint c_M less the own, and the pad moved by the joint T_AP against the own; also each corner of the turns at
+--joint-sd sd.
+
     python3 scripts/ur5_rod_fitted_margins.py SEAT [--turn-z DEG] [--across DEG] [--first ID,ID] [--out OUT]
 """
 import argparse
@@ -29,6 +34,8 @@ ap.add_argument("--plan", default="sweep8", choices=("sweep8", "extras"), help="
                 "the night's extras (each press's deep pose, each roll's turns)")
 ap.add_argument("--plan-file", default="", help="a program plan in place of --plan's draft (the lab's halves)")
 ap.add_argument("--ids", default="", help="only these actions (comma-separated)")
+ap.add_argument("--joint", default="", help="a joint rod registration: the rod and pad as it fitted them")
+ap.add_argument("--joint-sd", type=float, default=2.0, help="the corners of the joint turns at this many sd")
 ap.add_argument("--out", default="")
 a = ap.parse_args()
 s_, v_ = a.seat, 7 - a.seat
@@ -48,6 +55,24 @@ for tz in [float(v) for v in str(a.turn_z).split(",")]:
     for tl in (a.across, -a.across):
         var[f"fit z{tz:+g} x{tl:+g}"] = C.rot([1, 0, 0], tl) @ C.rot([0, 0, 1], tz)
 Tf = {k: C.Tm(R, c0 - R @ c0) for k, R in var.items()}
+Tpad = {k: np.eye(4) for k in Tf}                       # the pad's error in P: the true pad against the aimed one
+if a.joint:
+    J = json.loads(Path(a.joint).read_text())
+    jr = next(r for r in J["rows"] if r["seat"] == s_)
+    reg_o = json.loads((RIG.ROOT / next(x for x in J["sessions"] if x.rstrip("/").endswith(jr["session"]))
+                        / "registration.json").read_text())
+    dc = np.asarray(jr["joint"]["c_M"], float) - np.asarray(reg_o["c_M"], float)
+    dP = C.inv(np.asarray(jr["T_AP_joint"], float)) @ np.asarray(reg_o["T_AP"], float)
+    (t0, t1), (s0, s1) = J["turn_deg"], J["turn_sd_deg"]
+    k_ = a.joint_sd
+    for name, z_, x_ in [("joint", t0, t1)] + [(f"joint z{t0 + i * k_ * s0:+.2f} x{t1 + j * k_ * s1:+.2f}",
+                                                t0 + i * k_ * s0, t1 + j * k_ * s1) for i in (-1, 1) for j in (-1, 1)]:
+        R = C.rot([0, 0, 1], z_) @ C.rot([1, 0, 0], x_)
+        Tf[name], Tpad[name] = C.Tm(R, c0 - R @ c0 + dc), dP
+    print(f"joint: seat {s_} {jr['session']}: c_M joint less own {np.round(dc, 3).tolist()} mm; the pad "
+          f"{jr['joint']['T_AP_vs_own_mm_deg']} mm, deg off the own; turns {t0:+.2f} (sd {s0:.2f}), {t1:+.2f} (sd {s1:.2f})",
+          flush=True)
+T_BP_plan = ctx["T_BA"] @ T_AP
 acts = [x for x in prog["actions"] if x["stage"] == "grid" and x["kind"] in ("sweep", "press", "roll", "twist")
         and (not a.ids or x["id"] in a.ids.split(","))]
 acts.sort(key=lambda x: (x["id"] not in first, prog["actions"].index(x)))
@@ -82,7 +107,8 @@ for x in acts:
         poses, moves = [T_e], [("deep", 0, 0)]
     row = dict(id=x["id"], grid=grid.index(x["id"]) + 1)
     for k, T_fit in Tf.items():
-        d = RIG.body_dist([T @ T_EM @ T_fit @ T_ME for T in poses], ctx, seat, "rod")
+        W = T_BP_plan @ Tpad[k] @ C.inv(T_BP_plan)
+        d = RIG.body_dist([W @ T @ T_EM @ T_fit @ T_ME for T in poses], ctx, seat, "rod")
         j = int(np.argmin(d))
         row[k] = dict(deep=round(float(d[0]), 2), least=round(float(d[j]), 2), at=moves[j][0],
                       under=[(moves[i][0], round(float(d[i]), 2)) for i in np.argsort(d)[:4] if d[i] < 1.0])
@@ -91,5 +117,6 @@ for x in acts:
     if w < 1.0 or x["id"] in first:
         print(json.dumps(row), flush=True)
 Path(a.out or D / f"20261103-strip_table_pads_rod_{a.plan}_fitted_margins_seat{s_}.json").write_text(
-    json.dumps(dict(turn_z_deg=str(a.turn_z), across_deg=a.across, rows=out), indent=1) + "\n")
+    json.dumps(dict(turn_z_deg=str(a.turn_z), across_deg=a.across, joint=a.joint or None, joint_sd=a.joint_sd,
+                    rows=out), indent=1) + "\n")
 print("done", len(out), "actions")
