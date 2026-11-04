@@ -28,6 +28,11 @@ flags goes by the hub (HUB), and an oblique whose approach the hub does not clea
 obliques go, all of them: at -11 deg the rod reaches 0.22 mm into the pad on the way to o20-a0 by the hub, and each
 drop left the next edge-654 oblique a joint travel into the pad and a hub approach 0.17 to 0.27 mm from it.
 
+The joint rod fit (the workstation, 23:48: one rod over the three sessions' pass 1 and their sweeps' 0.5 N contacts)
+turns the rod -0.22 deg about z_M (sd 1.16) and -1.90 across (sd 0.50), outside the ±1.05 checked. At the fit's 2 sd
+corners eight edge-573 obliques of the extras come 0.20 mm or less from the tip body at their deep poses, and are left
+out (EDGE573); the travels were checked again at the fit and its corners.
+
 Writes the nine plans here, and for the path check copies under CHECK_DIR without the pad stage where it does not
 run, without the ids DONE in seat 2's session, and without the 4 N rolls in the extras.
 
@@ -51,10 +56,13 @@ TRIM = {2: {"sweep-edge-569-r0": {"offsets": {90.0, 180.0}}, "sweep-edge-618-r90
                                                     # the azimuths a sweep leaves out, by seat
 FLANK563 = {"probe-flank-563-o35-a90-r90", "probe-flank-563-o35-a180-r90", "probe-flank-563-o20-a90-r90",
             "probe-flank-563-o20-a180-r90", "probe-flank-563-o20-a270-r90"}
+EDGE573 = {2: {"o35-a90", "o20-a270", "o35-a270", "o20-a0", "o20-a180"}, 3: {"o20-a270", "o35-a270"}, 1: {"o35-a90"}}
 DROP = {2: FLANK563 | {f"probe-edge-654-o{o}-a{az}-r90" for o in (20, 35) for az in (0, 90, 180, 270)},
         3: FLANK563 | {"probe-edge-573-o35-a90-r90"},
         1: {"probe-edge-615-o35-a0-r90", "probe-edge-615-o35-a180-r90",
             "sweep-edge-569-r0"}}                   # the actions left out, by seat (seat 1's 569-r0: its deep pose too)
+for s_, k_ in EDGE573.items():
+    DROP[s_] = DROP[s_] | {f"probe-edge-573-{k}-r90" for k in k_}
 NOTE = time.strftime("%Y-%m-%d %H:%M") + ", lab: " + __doc__.split("\n\n")[0].replace("\n", " ")
 
 

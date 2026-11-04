@@ -2907,6 +2907,24 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
     check skipped seven times, all at 0.5 N's offsets.
   - The HEX-E gave 606,523 samples, none timed out.
 - 23:29:10, step 4: seat 1's half b (rod14, 49 grid actions) on `214753-rod13_seed`.
+- 23:35, the rod sessions' small files went to the workstation by git (c5a25696): registration, touches, plan,
+  session, events snapshots and printouts in `20261103-202017-rod32/`, `20261103-214753-rod13/` and
+  `20261103-172647-rod21/`.
+- 23:48, the workstation's joint rod fit (`scripts/ur5_rod_joint_registration.py`, c2378efe): one rod over the three
+  sessions.
+  - Pass 1 alone does not fix the turn: a shared turn fits its 60 touches at +9.29 or -10.88 deg about as well.
+  - With each sweep's 0.5 N offset poses from 2a, 3a and 1a as contacts (94 sweeps, both rod orientations), the rod
+    is turned -0.22 deg about z_M (sd 1.16) and -1.90 across (sd 0.50), with c_M (-0.993, 0, 106.721).
+  - The across tilt is outside the ±1.05 deg checked before.
+- The margins with the joint fit, at the fit and at the corners of its 2 sd (the workstation): the second halves keep
+  0.28 mm or more and stand. Eight edge-573 obliques of the extras come 0.20 mm or less from the tip body at their deep
+  poses and were left out (23:55; `20261103-rod_halves.py` EDGE573):
+  - seat 2's o35-a90, o20-a270, o35-a270, o20-a0 and o20-a180;
+  - seat 3's o20-a270 and o35-a270;
+  - seat 1's o35-a90.
+- The workstation's checker on 2x, 3x and 1x chained from 2b's end, unturned (0 of 92, 101 and 98), at the fit and
+  at its four corners: no travel flagged. The flags left are the presses' own moves: the k-d tree's deep values, and
+  the edge-573 r90 obliques at 0.25 to 0.40 mm.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 
