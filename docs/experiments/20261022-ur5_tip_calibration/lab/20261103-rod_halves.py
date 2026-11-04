@@ -18,6 +18,12 @@ azimuths 0 and 180, those at 90 and 270, and probe-ref-x1. Seat 1's probe-edge-6
 workstation, 19:43: its joint travel from probe-face-790-o35-a270-r90 takes the rod 0.31 mm into the pad when the rod
 is turned as seat 2's fit found it).
 
+The turn envelope (the workstation, 20:42): seats 2 and 3's fits turn the rod -5.40 and +10.75 deg about z_M, so every
+remaining plan was checked against the exact rod solid at turns of -11 to +11 deg about z_M, ±1.05 across. What goes
+under 0.2 mm from the tip body anywhere in that range is left out (TRIM: a sweep's offsets or slides at one azimuth,
+every ring and level; DROP: the extras' obliques). Seat 3's half a, then running, stays as it was. A drop changes the
+travel into the action after it, so the extras were checked again and a travel the replay flags goes by the hub (HUB).
+
 Writes the nine plans here, and for the path check copies under CHECK_DIR without the pad stage where it does not
 run, without the ids DONE in seat 2's session, and without the 4 N rolls in the extras.
 
@@ -33,14 +39,25 @@ HERE = Path(__file__).resolve().parent
 SEATS = ((2, 5), (3, 4), (1, 6))
 KEEP_OFF = {0.0, 90.0, 180.0, 270.0}
 KEEP_SLIDE = {0.0, 90.0}
-HUB = {1: {"probe-edge-654-o20-a90-r90"}}           # the extras' actions that travel by the hub, by seat
+HUB = {1: {"probe-edge-654-o20-a90-r90"}, 2: {"probe-flank-563-o35-a270-r90"},
+       3: {"probe-flank-563-o35-a270-r90"}}         # the extras' actions that travel by the hub, by seat
+TRIM = {2: {"sweep-edge-569-r0": {"offsets": {90.0}}, "sweep-edge-618-r90": {"offsets": {0.0}}},
+        3: {"sweep-edge-618-r90": {"offsets": {0.0}}, "sweep-edge-638-r90": {"slides": {0.0}}},
+        1: {"sweep-edge-615-r90": {"offsets": {180.0}}, "sweep-edge-618-r90": {"offsets": {0.0}},
+            "sweep-edge-569-r0": {"offsets": {90.0}}}}  # the azimuths a sweep leaves out, by seat
+FLANK563 = {"probe-flank-563-o35-a90-r90", "probe-flank-563-o35-a180-r90", "probe-flank-563-o20-a90-r90",
+            "probe-flank-563-o20-a180-r90", "probe-flank-563-o20-a270-r90"}
+DROP = {2: FLANK563, 3: FLANK563 | {"probe-edge-573-o35-a90-r90"},
+        1: {"probe-edge-615-o35-a0-r90", "probe-edge-615-o35-a180-r90"}}     # the extras' actions left out, by seat
 NOTE = time.strftime("%Y-%m-%d %H:%M") + ", lab: " + __doc__.split("\n\n")[0].replace("\n", " ")
 
 
-def lite(a):
+def lite(a, cut=None):
+    cut = cut or {}
     a = copy.deepcopy(a)
-    a["offsets"] = [[o for o in lv if float(o[1]) % 360 in KEEP_OFF] for lv in a["offsets"]]
-    a["slides"] = [s for s in a["slides"] if float(s["az_deg"]) % 360 in KEEP_SLIDE]
+    off, sl = KEEP_OFF - set(cut.get("offsets", ())), KEEP_SLIDE - set(cut.get("slides", ()))
+    a["offsets"] = [[o for o in lv if float(o[1]) % 360 in off] for lv in a["offsets"]]
+    a["slides"] = [s for s in a["slides"] if float(s["az_deg"]) % 360 in sl]
     return a
 
 
@@ -60,7 +77,7 @@ def main():
         ext = json.loads((HERE / f"{stem}_extras.json").read_text())
         grid = [a for a in fit["actions"] if a["stage"] == "grid"]
         r0 = [a for a in grid if a["id"] == "probe-ref-00"][0]
-        sweeps = [lite(a) for a in grid if a["kind"] == "sweep"]
+        sweeps = [lite(a, TRIM.get(seat, {}).get(a["id"])) for a in grid if a["kind"] == "sweep"]
         twists = [a for a in grid if a["kind"] == "twist" and not a["id"].endswith("-2.5N")]
         rolls = [a for a in ext["actions"] if a["stage"] == "grid" and a["kind"] == "roll" and float(a["press_N"]) == 4.0]
         halves = dict(a=[r0] + sweeps[0::2] + [ref(r0, "probe-ref-a1")],
@@ -71,6 +88,7 @@ def main():
         halves["x"] = ([ref([a for a in xg if a["id"] == "probe-ref-00"][0], "probe-ref-x0")]
                        + [a for a in xg if a["kind"] == "roll"] + first + [a for a in obl if a not in first]
                        + [ref([a for a in xg if a["id"] == "probe-ref-final"][0], "probe-ref-x1")])
+        halves["x"] = [a for a in halves["x"] if a["id"] not in DROP.get(seat, ())]
         for a in halves["x"]:
             if a["id"] in HUB.get(seat, ()):
                 a["travel_ws"] = "hub"
