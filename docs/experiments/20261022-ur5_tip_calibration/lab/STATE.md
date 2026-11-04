@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 09:2x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 10:5x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -258,6 +258,18 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       - Seat 3: edge-642-r90; the az 0 slides of edge-618-r90; the az 270 slides of edge-573-r0 and edge-651-r90.
       - Seat 1: edge-651-r90 and edge-642-r90; the az 90 slides of edge-569-r0; the az 0 slides of edge-618-r90.
       - The plans are `20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_sweep8_fit.json`.
+  - **Next, 11-04 from about 11:1x: more rod points before the SR2 mounting.** The owner, relayed at 10:44: "if we
+    just lost density of coverage why dont we just add points now. i know i said we were done earlier, but we should
+    have a few hours left to get that density". The held-out GP places contact to 0.78 to 0.82 mm on IDs 4 to 6,
+    against 0.46 to 0.51 on IDs 1 to 3; the night's points stand 2.0 mm apart, IDs 1 to 3's 1.0 mm.
+    - The workstation's plans: one normal press per new point (0.5, 1, 2 and 3 N), reference presses first, every 25
+      actions and last. Per seat, `_dense_fe` (face and edges at 1.0 mm, about 75 presses, about 35 min) and then
+      `_dense_ft` (flanks and tip at 1.3 mm) if time remains. Order 1, 3, 2, each resuming its rod session.
+    - The cell at 10:45, unchanged since 07:11: the arm at seat 1's probe-ref-x1 rest (joints 48.99, -77.26, 106.61,
+      -124.34, -91.36, -38.05 deg), slider 0.30, no program, nothing in the controller's log since 07:11:21. The HEX-E
+      streams with the night's noise; its zero drifted 0.26 N in Fz, which each action's tare takes out.
+    - The run: `logs/20261104-chain_rod_points.sh STEPS LAST_START STOP_AT` (the night's chain with the day's times)
+      and `logs/20261104-deadline_stop.sh`. The owner's latest time for the robot is asked.
   - **Done, 07:11:26 on 11-04: the night's rod run, every step clean, no abort.** The arm waits at the rest of seat 1's
     last reference press (probe-ref-x1), the rod a few mm over seat 1's pad. Move it clear before working at the rig.
     Nothing runs on the robot: the chain ended, and the 08:30 stop (PID 2877930) was stopped by its PID at 07:12:29.

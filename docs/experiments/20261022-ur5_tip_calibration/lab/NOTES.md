@@ -3050,6 +3050,31 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - The controller logged nothing after the program's stop at 07:11:21 (`logs/ur5_lab_robot_messages.log`, read at
   09:18). The arm waits at seat 1's probe-ref-x1 rest unless the owner has moved it.
 
+### More rod points before the SR2 mounting (11-04, from 10:4x)
+
+- 10:44, the workstation relayed the owner's go: "if we just lost density of coverage why dont we just add points now.
+  i know i said we were done earlier, but we should have a few hours left to get that density".
+  - The held-out GP places contact to 0.78 to 0.82 mm on IDs 4 to 6, against 0.46 to 0.51 mm on IDs 1 to 3. The
+    night's points stand 2.0 mm apart; IDs 1 to 3's stood 1.0 mm apart.
+  - The workstation's plans hold one normal press per new point, to 3 N on faces and edges. Reference presses come
+    first, every 25 actions and last. Each seat resumes its rod session, in the order 1, 3, 2.
+- The cell, read at 10:45 (nothing sent to the robot):
+  - The arm stood at the 07:11 pose: joints (48.99, -77.26, 106.61, -124.34, -91.36, -38.05) deg, TCP (-270.4,
+    -476.2, 237.4) mm, as the last move's target. The slider read 0.30. The robot was in normal mode, with no
+    program running.
+  - The HEX-E gave 301 samples in 3 s, none timed out. Its Fz noise was 0.24 N sd, against 0.23 N at 07:11 in the
+    same pose. Its zero had drifted 0.26 N in Fz, under 0.03 N in Fx and Fy and 0.001 N m in torque. Each action's
+    tare takes that out.
+- The night's timings, for the plans: an oblique to 3 N took a median 25.2 to 25.6 s on each seat. That is 5.0 s of
+  straight travel, 7.0 s from the rest to 0.5 N, 7.7 s for the four levels and 4.4 s back to the rest.
+  - A joint travel costs more: the sweeps' travels across the pad took 17 to 18 s.
+  - A reference press with its travel took 43 to 46 s.
+  - A resumed run reached its first action 2 s after its preflight.
+- The night's chain would not start a step between 08:00 and noon, and its stop finds only `chain_rod_night.sh`. So
+  the day runs on copies with the times as arguments:
+  - `logs/20261104-chain_rod_points.sh STEPS LAST_START STOP_AT`, its runs named pts<seat><step>;
+  - `logs/20261104-deadline_stop.sh`, which it starts.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
