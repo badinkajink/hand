@@ -51,6 +51,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_contact_rig as H  # noqa: E402
 from sr2hand.geometry.rotations import quat_to_mat, xyzw_to_wxyz
+from sr2hand.numerics.angles import wrap
 
 OUTDIR = ROOT / "docs/experiments/20261005-contact_bed"
 FILMDIR = OUTDIR / "media"
@@ -418,7 +419,7 @@ class NewtonRig:
         a = R[:, 2]
         theta = math.atan2(a[2], a[1])
         if self.theta_prev is not None:
-            dth = (theta - self.theta_prev + math.pi) % (2 * math.pi) - math.pi
+            dth = wrap(theta - self.theta_prev)
             self.theta_unwrap += dth
         else:
             self.theta_unwrap = theta

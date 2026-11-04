@@ -41,6 +41,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_contact_rig as H  # noqa: E402
+from sr2hand.numerics.signal import window_mean
 
 MODELS = {   # chain spec (hom_chain.make_plant) -> rig spec (hom_contact_rig.make_rig), as in 10-01 torsion.jsonl
     "mj:point3": "mj:point3:ir100",
@@ -95,11 +96,6 @@ def drive(rig, dt, p0, a0, force_of_t, stop, t_max):
     return np.array(T), np.array(F), np.array(U), np.array(V), np.array(W), rig.t - t0
 
 
-def smooth_v_at(T, V, t, half=0.010):
-    m = np.abs(T - t) <= half
-    return float(V[m].mean()) if m.any() else float("nan")
-
-
 def run_case(chain, N, dt_ms):
     spec = MODELS[chain]
     dt = dt_ms * 1e-3
@@ -149,8 +145,8 @@ def run_case(chain, N, dt_ms):
         vw = V[(T > t0) & (T <= t0 + 0.050)]
         row.update(slipped=True, t_detect=td, F_detect=RATE * td, creep_c_mm_s_per_N=c * 1e3,
                    t_onset=t0, F_onset=F_on, mu_eff=F_on / (2 * N), u_pre_mm=u_pre * 1e3,
-                   v_at_half_onset_mm_s=smooth_v_at(T, V, 0.5 * t0) * 1e3,
-                   v_at_090_onset_mm_s=smooth_v_at(T, V, 0.9 * t0) * 1e3,
+                   v_at_half_onset_mm_s=window_mean(T, V, 0.5 * t0, 0.010) * 1e3,
+                   v_at_090_onset_mm_s=window_mean(T, V, 0.9 * t0, 0.010) * 1e3,
                    v_slip_mean50_mm_s=(u50 - u_pre) / 0.050 * 1e3,
                    v_slip_mean50_coulomb_mm_s=RATE * 0.050 ** 2 / (6 * H.M_TOOL) * 1e3,
                    v_slip_cv50=float(vw.std() / max(abs(vw.mean()), 1e-12)) if len(vw) > 2 else float("nan"),

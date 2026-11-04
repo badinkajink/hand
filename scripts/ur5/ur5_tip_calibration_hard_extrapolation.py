@@ -71,7 +71,7 @@ from pathlib import Path
 import numpy as np
 from scipy.linalg import solve_triangular
 from scipy.spatial import cKDTree
-from scipy.stats import rankdata, spearmanr
+from scipy.stats import spearmanr
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -80,6 +80,7 @@ sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import fingertip_wrench_model as W  # noqa: E402
 import ur5_tip_calibration_cb1r_checks as K  # noqa: E402
 import ur5_tip_calibration_predict as PR  # noqa: E402
+from sr2hand.numerics.stats import auc as rank_auc
 
 SESSION = "20261026-192158-v2id1"
 DATA = K.EXP / "data" / SESSION
@@ -275,11 +276,9 @@ def auc(score, label):
     """Area under the ROC curve of score for the binary label (Mann-Whitney)."""
     ok = np.isfinite(score)
     s, y = score[ok], label[ok]
-    npos, nneg = int(y.sum()), int((~y).sum())
-    if not npos or not nneg:
+    if not y.any() or y.all():
         return None
-    r = rankdata(s)
-    return float((r[y].sum() - npos * (npos + 1) / 2) / (npos * nneg))
+    return rank_auc(s[y], s[~y])
 
 
 def rho(a, b):

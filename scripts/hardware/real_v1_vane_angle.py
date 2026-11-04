@@ -38,6 +38,10 @@ import math
 import sys
 
 import numpy as np
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.numerics.angles import unwrap_step
 
 
 def _cv2():
@@ -63,9 +67,7 @@ def tag_angle_deg(corners):
 
 def unwrap(prev, cur):
     """atan2 wraps at +-180; the turn does not.  Keep the running angle continuous."""
-    if prev is None:
-        return cur
-    return cur + 360.0 * round((prev - cur) / 360.0)
+    return cur if prev is None else unwrap_step(prev, cur, 360.0)
 
 
 def main():

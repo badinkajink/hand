@@ -50,6 +50,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import tip_codesign_geometry as TG  # noqa: E402
 from sr2hand.geometry.sampling import fibonacci
+from sr2hand.numerics.signal import loglog_interp
 
 D = ROOT / "docs/experiments/20261018-fe_contact_calibration"
 OUT = D / "fit"
@@ -439,13 +440,7 @@ def fit_ks(fe, cur, tip, E_loc, probes=None):
 
 def _loglog(xs, ys, x):
     """Linear interpolation on log-log axes, extended linearly beyond the end points."""
-    lx, ly = np.log(np.asarray(xs, float)), np.log(np.asarray(ys, float))
-    u = math.log(x)
-    if u <= lx[0]:
-        return float(np.exp(ly[0] + (ly[1] - ly[0]) / (lx[1] - lx[0]) * (u - lx[0])))
-    if u >= lx[-1]:
-        return float(np.exp(ly[-1] + (ly[-1] - ly[-2]) / (lx[-1] - lx[-2]) * (u - lx[-1])))
-    return float(np.exp(np.interp(u, lx, ly)))
+    return loglog_interp(x, np.asarray(xs, float), np.asarray(ys, float))
 
 
 def fe_at(row, F, lam=1.0):

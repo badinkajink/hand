@@ -31,6 +31,10 @@ from pathlib import Path
 
 import numpy as np
 from scipy import stats
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.numerics.stats import auc as rank_auc
 
 MOUNT_KEYS = ["thumb x", "thumb y", "index x", "index y", "middle x", "middle y"]
 SCORES = ["karma_t", "karma_r", "karma_s", "n_voxels", "volume_mm3", "seed_depth_mm"]
@@ -42,8 +46,7 @@ def auc(score: np.ndarray, label: np.ndarray) -> float:
     pos, neg = score[label], score[~label]
     if len(pos) == 0 or len(neg) == 0:
         return float("nan")
-    r = stats.rankdata(np.concatenate([pos, neg]))
-    return float((r[:len(pos)].sum() - len(pos) * (len(pos) + 1) / 2) / (len(pos) * len(neg)))
+    return rank_auc(pos, neg)
 
 
 def auc_ci(score: np.ndarray, label: np.ndarray, n: int = 2000,

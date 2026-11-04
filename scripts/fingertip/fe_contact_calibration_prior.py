@@ -45,6 +45,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_angle
 OUT = ROOT / "docs/experiments/20261018-fe_contact_calibration/prior"
 STIFF = ROOT / "docs/experiments/20261015-curved_tips/stiffness"
 READY = ROOT / "docs/experiments/20261016-sim2real_fingertip_readiness"
@@ -264,7 +265,7 @@ def cmd_replays(a):
 
     def ang(q1, q2):
         n = min(len(q1), len(q2))
-        return np.degrees(2 * np.arccos(np.clip(np.abs(np.sum(q1[:n] * q2[:n], 1)), -1, 1)))
+        return np.degrees(quat_angle(q1[:n], q2[:n]))
 
     def rms(x):
         return float(np.sqrt(np.mean(np.square(x))))

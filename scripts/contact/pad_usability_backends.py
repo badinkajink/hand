@@ -59,20 +59,6 @@ import fingertip_geometry as G  # noqa: E402
 import reorient_backends as RB  # noqa: E402
 
 _RB_BUILD = RB.build_scene
-_G_WRITE_OBJ = G.write_obj
-
-
-def _write_obj_atomic(path, V, F):
-    """fingertip_geometry.write_obj through a temporary file: a process compiling a scene never reads a mesh that a
-    parallel process is rewriting (every build rewrites the block's OBJ files)."""
-    path = Path(path)
-    tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
-    _G_WRITE_OBJ(tmp, V, F)
-    os.replace(tmp, path)
-    return path
-
-
-G.write_obj = _write_obj_atomic
 
 SCRIPT = "scripts/contact/pad_usability_backends.py"
 SCN = ROOT / "logs/20261014-pad_usability/scenes"

@@ -43,6 +43,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import contact_bed_common as B  # noqa: E402
+from sr2hand.numerics.signal import window_mean
 
 H = B.H
 C_LAW = 0.996e-3                 # m N^-1/4
@@ -96,11 +97,6 @@ def drive(rig, dt, st0, tau_of_t, stop, t_max, on_step=None):
         if not math.isfinite(th) or dp_max > EJECT_M or stop(tt, th, w):
             break
     return np.array(T), np.array(TAU), np.array(TH), np.array(W), np.array(WALL), dp_max
-
-
-def smooth_at(T, V, t, half=0.010):
-    m = np.abs(T - t) <= half
-    return float(V[m].mean()) if m.any() else float("nan")
 
 
 class TwistFilm:
@@ -184,14 +180,14 @@ def run_case(model, N, dt_ms, film=False):
         else:
             tau_slide = float("nan")
         ww = W[(T > t0) & (T <= t0 + 0.050)]
-        w_half = smooth_at(T, W, 0.5 * t0)
+        w_half = window_mean(T, W, 0.5 * t0, 0.010)
         w_free = R * (0.5 * t0) ** 2 / (2 * H.I_TOOL_T)    # spin-up speed with no friction torque at all
         row.update(spun=True, t_detect=td, tau_detect_Nm=R * td,
                    creep_k_deg_s_per_mNm=math.degrees(k) * 1e-3, t_onset=t0, tau_onset_Nm=tau_on,
                    rbar_onset_mm=tau_on / (2 * H.MU * N) * 1e3, tau_onset_over_law=tau_on / R,
                    rot_pre_deg=math.degrees(th_pre),
                    w_at_half_onset_deg_s=math.degrees(w_half),
-                   w_at_090_onset_deg_s=math.degrees(smooth_at(T, W, 0.9 * t0)),
+                   w_at_090_onset_deg_s=math.degrees(window_mean(T, W, 0.9 * t0, 0.010)),
                    w_half_over_free=abs(w_half) / max(w_free, 1e-12),
                    stuck_before_onset=bool(abs(w_half) < 0.1 * w_free),
                    w_slip_mean50_deg_s=math.degrees((th50 - th_pre) / 0.050),

@@ -23,6 +23,10 @@ import json
 from pathlib import Path
 
 import numpy as np
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.vectors import deg_from_cos
 
 ROOT = Path(__file__).resolve().parents[2]
 E = ROOT / "docs/experiments"
@@ -49,7 +53,7 @@ def held_staged(r):
 
 def turn_deg(s):
     c = s.get("cos")
-    return None if c is None else round(90.0 - float(np.degrees(np.arccos(np.clip(c, -1, 1)))), 1)
+    return None if c is None else round(90.0 - float(deg_from_cos(c)), 1)
 
 
 def chain_rows(path, key=lambda r: (r["plant"], r["axis_k"])):

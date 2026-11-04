@@ -57,7 +57,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 os.environ.setdefault("UR5M_REV", "v3")
 import ur5_calibration_mount as UM  # noqa: E402  (MeshK: manifold booleans; v3's patterns; the renderer)
-from sr2hand.geometry.rotations import skew as _skew
+from sr2hand.geometry.rotations import rot_z, skew as _skew, tf
 
 OUT = ROOT / "docs/experiments/20261023-ati_ft_calibration"
 STEM = "20261023-ati_stack"
@@ -223,8 +223,7 @@ def base(K, clock):
     tie = [K.box((TIE_R[0], -cw / 2 - 3.0, t0), (TIE_R[1], cw / 2 + 3.0, t1)),
            K.box((TIE_R[0], cw / 2 + 0.8, t0), (TIE_R[1], cw / 2 + 3.0, BASE_T + 1.0)),
            K.box((TIE_R[0], -cw / 2 - 3.0, t0), (TIE_R[1], -cw / 2 - 0.8, BASE_T + 1.0))]
-    rot = np.eye(4)
-    rot[:2, :2] = [[math.cos(math.radians(a)), -math.sin(math.radians(a))], [math.sin(math.radians(a)), math.cos(math.radians(a))]]
+    rot = tf(rot_z(math.radians(a)))
     cut += [K.transform(t, rot @ R) for t in [ch] + tie]
     return K.cut_all(s, cut)
 
@@ -388,10 +387,7 @@ def holder_build(K=None):
 
 def frames(clock):
     """The ATI's sensing frame in M (4 x 4) and the eyes in M and in the ATI frame."""
-    c, s_ = math.cos(math.radians(clock)), math.sin(math.radians(clock))
-    T_MA = np.eye(4)
-    T_MA[:3, :3] = [[c, -s_, 0.0], [s_, c, 0.0], [0.0, 0.0, 1.0]]
-    T_MA[:3, 3] = [0.0, 0.0, z_ati_origin()]
+    T_MA = tf(rot_z(math.radians(clock)), [0.0, 0.0, z_ati_origin()])
     R_AM, t = T_MA[:3, :3].T, T_MA[:3, 3]
     ev = []
     for e in eyes():

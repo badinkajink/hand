@@ -39,6 +39,7 @@ import retro_style  # noqa: E402
 import texsvg  # noqa: E402
 import build_cad_v1_finger as B  # noqa: E402
 import mjwasm_embed  # noqa: E402
+from sr2hand.geometry.vectors import reject_norm
 
 D = os.path.join(ROOT, "docs/experiments/20261013-cad_v1_finger")
 OUT = os.path.join(D, "20261013-cad_v1_finger_model.html")
@@ -584,7 +585,7 @@ def parts_section(X: Data):
         pi, ci = A["parent_info"].get(k), A["child_info"].get(k)
         bear = f"{pt(pi['bore'].point)}, axis {pt(pi['bore'].axis)}" if pi else "None"
         slot = f"{pt(ci['slot'].point)}, axis {pt(ci['slot'].axis)}" if ci else "None"
-        pil = num(np.linalg.norm(B.perp(pi["pilots"][0].point - pi["pilots"][1].point, pi["a"]))) if pi else "&#8211;"
+        pil = num(reject_norm(pi["pilots"][0].point - pi["pilots"][1].point, pi["a"])) if pi else "&#8211;"
         rows.append([f"{title} <code>{f}</code>", bear, slot, pil])
     t = table(["Part (file in <code>assets/cad_v1/</code>)", "Bearing bore centre and axis (part frame, mm)",
                "Slotted bore centre and axis (part frame, mm)", "Pilot-hole pitch (mm)"], rows,

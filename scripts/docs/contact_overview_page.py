@@ -48,6 +48,7 @@ import hom_contact_patch_page as R  # noqa: E402
 import texsvg  # noqa: E402
 import retro_style  # noqa: E402
 from sr2hand.geometry.rotations import rot_x
+from sr2hand.geometry import sampling
 
 EXP = os.path.join(ROOT, "docs/experiments")
 D = os.path.join(EXP, "20261009-contact_overview")                 # last dated snapshot; its artifact_url.txt
@@ -1515,9 +1516,8 @@ G_ACC = 9.81
 def cap_pad(spacing, cap_deg):
     """(sphere count, per-sphere stiffness in N/m) of a pad of `spacing` on a cap of half-angle `cap_deg` of the 10.55 mm
     fingertip, (8)."""
-    A = 2 * math.pi * G.R ** 2 * (1 - math.cos(math.radians(cap_deg)))
-    n = max(1, int(round(A / spacing ** 2)))
-    return n, E_FIELD / G.R * (A / n) * ((G.R - G.RS) / G.R) ** 2
+    n, _, k = sampling.cap_pad(G.R, G.RS, spacing, math.radians(cap_deg), E_FIELD)
+    return n, k
 
 
 def flat_pad(spacing, cap_deg, F, tilt_deg=0.0):
@@ -1525,7 +1525,7 @@ def flat_pad(spacing, cap_deg, F, tilt_deg=0.0):
     lattice is tilted by `tilt_deg` about x before pressing, which moves the contact over the cap. Returns (spheres
     touching, arm in m about the pressing axis)."""
     n, K = cap_pad(spacing, cap_deg)
-    dirs = G.fib_cap(n, math.radians(cap_deg))
+    dirs = sampling.fibonacci(n, math.cos(math.radians(cap_deg)))
     if tilt_deg:
         dirs = dirs @ rot_x(math.radians(tilt_deg)).T
     z = (G.R - G.RS) * dirs[:, 2]

@@ -28,6 +28,11 @@ Sources (all read-only, none regenerated here):
 """
 import csv, glob, json, os, re
 import numpy as np
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.numerics.stats import auc as rank_auc
 
 SOBOL = "docs/experiments/20260831-real_v1-sobol8192"
 DEPLOY = "docs/experiments/20260829-real_v1_deploy/deploy"
@@ -165,9 +170,8 @@ def load_bench(path="paper/transfer_table.tex"):
 
 
 def auc(score, label):
-    """Rank AUC of `score` for the boolean `label` -- no sklearn dependency."""
-    r = np.argsort(np.argsort(score)); n1 = int(label.sum()); n0 = len(label) - n1
-    return (r[label].sum() - n1 * (n1 - 1) / 2) / (n1 * n0)
+    """Rank AUC of `score` for the boolean `label`."""
+    return rank_auc(score[label], score[~label])
 
 
 def pca(A):
