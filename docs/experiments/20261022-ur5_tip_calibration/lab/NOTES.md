@@ -2830,6 +2830,53 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - The HEX-E gave 390,162 samples, none timed out.
 - 20:20:17, step 2: seat 3's half a (rod32) on `202017-rod32_seed`, seeded from s3v4 (c_M from the plan, (0, 0,
   107.5) mm), with its pass 1 and fit first.
+- 20:36:49, seat 3's fit: pad touches 0.041 mm rms (20), chi2 52.3 on 20 dof.
+  - c_M (-0.803, 0, 107.078) mm, sd (0.096, 0, 0.162).
+  - The rod turned +10.75 deg about z_M (sd 1.46) and +1.05 across (sd 1.66).
+  - The pad 1.027 mm and 1.234 deg from the seed (s3v4's T_AP); the rod's axis moved 0.907 mm across itself.
+  - Pass 1's onsets ran from +0.38 to -1.35 mm against the expected; the last nine came 0.7 to 1.35 mm early.
+  - Seat 2's fit of the same rod, not reseated in between, turned it -5.40 deg (sd 2.49). That is 16 deg apart, about
+    5.6 combined sd. c_M agrees within 0.04 mm in x and 0.39 mm in z.
+  - The workstation reads the turn as pass 1 trading the rod's turn against the pad's yaw: a square boss can't turn
+    the tool 10 deg.
+- 20:38, the workstation (exact rod solid at seat 3's turn): 3a keeps 0.47 mm (sweep-edge-615-r90, grid 16) and 3b
+  0.25 mm, so 3a was not stopped. The lab's dry-check of 3a from the arm's joints and the exact check agreed (0.47 mm).
+- 20:42, the turn envelope (the workstation): every remaining plan against the exact rod solid at turns of -11 to
+  +11 deg about z_M, ±1.05 across. What goes under 0.2 mm from the tip body anywhere in that range is left out, so that
+  seat 1's fit can't catch the night out. 3a, then running, stays as it was: its three actions under 0.2 mm (grids 2,
+  3 and 27) are under only at -11 deg.
+- A drop changes the travel into the action after it. The lab re-checked after every change (the workstation's
+  dry-check, unturned and at --tool-turn ±11 with ±1.05), and that found:
+  - After the five flank-563 drops, probe-flank-563-o35-a270-r90's joint travel took the rod 9.3 mm into seat 3's
+    block and 3.6 mm into seat 2's pad, unturned. It now travels by the hub on both seats.
+  - At -11 deg the rod reached 0.22 mm into seat 2's pad on the hub travel to edge-654-o20-a0. Each drop of a
+    seat 2 edge-654 oblique left the next one a joint travel into the pad, and a hub approach 0.17 to 0.27 mm from it.
+    Seat 2's edge-654 obliques all went.
+  - 3b's probe-face-692-r90-t-15: its joint travel from sweep-face-735-r90 came 0.19 mm from seat 3's pad at -11,
+    -1.05. It now travels by the hub.
+- The exact check on the plans as they will run found two more. The envelope list had named one azimuth per sweep,
+  and its lists keep only the four closest moves under 1 mm.
+  - Seat 1's sweep-edge-569-r0 in 1b: its az 180 offsets came 0.09 mm and its deep pose 0.12 mm from the tip body at
+    -11, +1.05. The whole sweep went.
+  - Seat 3's sweep-edge-638-r90 in 3b: its az 0 offsets came 0.18 mm at -11, -1.05, and were trimmed with its az 0
+    slides.
+- What the night gives up (installed 20:53 and 21:42; `20261103-rod_halves.py` TRIM, DROP and HUB):
+
+  | Plan | Left out |
+  |---|---|
+  | 1a | sweep-edge-615-r90's az 180 offsets, sweep-edge-618-r90's az 0 offsets |
+  | 1b | sweep-edge-569-r0 |
+  | 3b | sweep-edge-618-r90's az 0 offsets, sweep-edge-638-r90's az 0 offsets and slides |
+  | 2b | sweep-edge-618-r90's az 0 offsets (sweep-edge-569-r0 ran in full before the switch) |
+  | 2x | flank-563 o20-a90, -a180, -a270, o35-a90, -a180; the eight edge-654 obliques |
+  | 3x | the same five flank-563 obliques; edge-573-o35-a90 |
+  | 1x | edge-615-o35-a0 and -a180 |
+
+- As installed, every action still to run keeps 0.21 mm or more from the tip body over the whole range (exact). The
+  workstation's checker flags no travel, unturned or at ±11 with ±1.05 (`20261103-rod_night_envelope_checks.json`).
+  Unturned, chained: 1a 0 of 54, 1b 0 of 49, 3b 0 of 46, 2b 0 of 44; 2x 0 of 97, 3x 0 of 103, 1x 0 of 99.
+- Correction: the lab's message to the workstation stamped 20:49 was sent at about 20:44, with the time typed without
+  running `date`.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 

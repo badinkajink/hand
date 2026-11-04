@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 20:2x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 21:4x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -278,6 +278,10 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     - Since 19:4x, 1x's probe-edge-654-o20-a90-r90 travels by the hub. With the rod turned as seat 2's fit found it,
       its joint travel reached 0.31 mm into seat 1's pad (the workstation's check of 19:43). Checked again: the
       travel keeps 1.23 mm or more (NOTES).
+    - Seat 3's fit (20:36:49) turned the rod +10.75 deg about z_M, against seat 2's -5.40. Since 20:53 and 21:42,
+      the plans still to run leave out what comes under 0.2 mm from the tip body at any turn from -11 to +11 deg. That
+      is a few sweep azimuths, seat 1's sweep-edge-569-r0, and 8 to 13 obliques a seat in the extras. Four travels
+      go by the hub. 3a runs as it was (NOTES, "the turn envelope").
     - No step starts after 08:00 (the owner, relayed at 19:1x: "i mean i wont be in until 9").
       `logs/20261103-deadline_stop.sh` (PID 2877930) stops every running chain at 08:30, then the program right after
       its next finished action.

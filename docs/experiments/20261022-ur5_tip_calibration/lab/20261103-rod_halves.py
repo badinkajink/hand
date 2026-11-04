@@ -20,9 +20,13 @@ is turned as seat 2's fit found it).
 
 The turn envelope (the workstation, 20:42): seats 2 and 3's fits turn the rod -5.40 and +10.75 deg about z_M, so every
 remaining plan was checked against the exact rod solid at turns of -11 to +11 deg about z_M, ±1.05 across. What goes
-under 0.2 mm from the tip body anywhere in that range is left out (TRIM: a sweep's offsets or slides at one azimuth,
-every ring and level; DROP: the extras' obliques). Seat 3's half a, then running, stays as it was. A drop changes the
-travel into the action after it, so the extras were checked again and a travel the replay flags goes by the hub (HUB).
+under 0.2 mm from the tip body anywhere in that range is left out (TRIM: a sweep's offsets or slides at an azimuth,
+every ring and level; DROP: the extras' obliques, and seat 1's sweep-edge-569-r0, whose deep pose comes 0.12 mm from
+the body at -11 deg). Seat 3's half a, then running, stays as it was. A drop changes the
+travel into the action after it, so the plans were checked again, unturned and at the range's ends: a travel the replay
+flags goes by the hub (HUB), and an oblique whose approach the hub does not clear is left out too. Seat 2's edge-654
+obliques go, all of them: at -11 deg the rod reaches 0.22 mm into the pad on the way to o20-a0 by the hub, and each
+drop left the next edge-654 oblique a joint travel into the pad and a hub approach 0.17 to 0.27 mm from it.
 
 Writes the nine plans here, and for the path check copies under CHECK_DIR without the pad stage where it does not
 run, without the ids DONE in seat 2's session, and without the 4 N rolls in the extras.
@@ -40,15 +44,17 @@ SEATS = ((2, 5), (3, 4), (1, 6))
 KEEP_OFF = {0.0, 90.0, 180.0, 270.0}
 KEEP_SLIDE = {0.0, 90.0}
 HUB = {1: {"probe-edge-654-o20-a90-r90"}, 2: {"probe-flank-563-o35-a270-r90"},
-       3: {"probe-flank-563-o35-a270-r90"}}         # the extras' actions that travel by the hub, by seat
-TRIM = {2: {"sweep-edge-569-r0": {"offsets": {90.0}}, "sweep-edge-618-r90": {"offsets": {0.0}}},
-        3: {"sweep-edge-618-r90": {"offsets": {0.0}}, "sweep-edge-638-r90": {"slides": {0.0}}},
-        1: {"sweep-edge-615-r90": {"offsets": {180.0}}, "sweep-edge-618-r90": {"offsets": {0.0}},
-            "sweep-edge-569-r0": {"offsets": {90.0}}}}  # the azimuths a sweep leaves out, by seat
+       3: {"probe-flank-563-o35-a270-r90", "probe-face-692-r90-t-15"}}     # the actions that travel by the hub, by seat
+TRIM = {2: {"sweep-edge-569-r0": {"offsets": {90.0, 180.0}}, "sweep-edge-618-r90": {"offsets": {0.0}}},
+        3: {"sweep-edge-618-r90": {"offsets": {0.0}}, "sweep-edge-638-r90": {"slides": {0.0}, "offsets": {0.0}}},
+        1: {"sweep-edge-615-r90": {"offsets": {180.0}}, "sweep-edge-618-r90": {"offsets": {0.0}}}}
+                                                    # the azimuths a sweep leaves out, by seat
 FLANK563 = {"probe-flank-563-o35-a90-r90", "probe-flank-563-o35-a180-r90", "probe-flank-563-o20-a90-r90",
             "probe-flank-563-o20-a180-r90", "probe-flank-563-o20-a270-r90"}
-DROP = {2: FLANK563, 3: FLANK563 | {"probe-edge-573-o35-a90-r90"},
-        1: {"probe-edge-615-o35-a0-r90", "probe-edge-615-o35-a180-r90"}}     # the extras' actions left out, by seat
+DROP = {2: FLANK563 | {f"probe-edge-654-o{o}-a{az}-r90" for o in (20, 35) for az in (0, 90, 180, 270)},
+        3: FLANK563 | {"probe-edge-573-o35-a90-r90"},
+        1: {"probe-edge-615-o35-a0-r90", "probe-edge-615-o35-a180-r90",
+            "sweep-edge-569-r0"}}                   # the actions left out, by seat (seat 1's 569-r0: its deep pose too)
 NOTE = time.strftime("%Y-%m-%d %H:%M") + ", lab: " + __doc__.split("\n\n")[0].replace("\n", " ")
 
 
@@ -88,8 +94,8 @@ def main():
         halves["x"] = ([ref([a for a in xg if a["id"] == "probe-ref-00"][0], "probe-ref-x0")]
                        + [a for a in xg if a["kind"] == "roll"] + first + [a for a in obl if a not in first]
                        + [ref([a for a in xg if a["id"] == "probe-ref-final"][0], "probe-ref-x1")])
-        halves["x"] = [a for a in halves["x"] if a["id"] not in DROP.get(seat, ())]
-        for a in halves["x"]:
+        halves = {h: [a for a in g if a["id"] not in DROP.get(seat, ())] for h, g in halves.items()}
+        for a in (a for g in halves.values() for a in g):
             if a["id"] in HUB.get(seat, ()):
                 a["travel_ws"] = "hub"
         for h, g in halves.items():
