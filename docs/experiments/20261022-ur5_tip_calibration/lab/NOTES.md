@@ -3103,6 +3103,18 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - The HEX-E gave 225,334 samples, none timed out. Its two gaps (0.9 and 0.7 s) came at 11:17:06 and 11:17:07, at
     the program's start, before the preflight.
 - 11:54:51, step 2: seat 3's face and edges (pts32, 70 grid actions) on `202017-rod32_seed` (199 actions done there).
+- 12:0x, the owner asked (relayed) to see what seat 1's new presses give for localization, direction and wrench before
+  the other seats finish. The workstation's SSH login to corvus was refused three times (it tried the CB1's password)
+  and read nothing. So the lab sent the bytes pts11 appended to rod13's live session files through git (8863079a8,
+  12:10:00).
+  - The files, in `20261104-rod13_tail/`: ft_tail.bin, robot_tail.bin, held_tail.bin and events_tail.jsonl, 141 MB.
+    `*.tail` matches no LFS pattern, hence the names.
+  - The prefixes' sizes and sha256 are in `prefix_sha256.txt`. The workstation's copies matched all four.
+  - The cut ran at idle I/O priority and the push at 44 MB/s. Over 12:09:20 to 12:10:05, seat 3's HEX-E stream held
+    99.9 Hz with a longest step of 13 ms (17 ms in the 4 min before), and the robot's 123.7 Hz with 11 ms.
+- 12:29:23, seat 3's face and edges ended cleanly: 70 of 70 to 3 N, no skip or abort, in 34.5 min. The HEX-E gave
+  206,448 samples, none timed out. Its two gaps (0.7 s each) came at 11:54:52, at the program's start, as on seat 1.
+- 12:29:27, step 3: seat 2's face and edges (pts23, 70 grid actions) on `172647-rod21_seed`.
 
 ## The lab clone and git-lfs
 
