@@ -58,6 +58,20 @@ _iters.jsonl in rows/<band>/<level>/, the sample rows/<band>/<task>_layouts.json
     python3 scripts/hom_grasp_refine.py report --band k21mu0p4,k21mu0p7,k21   # rows/<band>/<date>-band_levels.json
 `validate --band` runs the band's picks, or with --picks-from another plant's, on every plant of the band; rows of the
 2026-11-03 queue (a plant's val/ and val_from_<plant>/) are read where they exist and never appended to.
+Shared forces and contact modes (level shared, 2026-11-04; owner, 2026-11-03: "is it possible to co-design HOM?", and
+HOM fixed "gives us a fixed reference to evaluate morphologies"): one set of commanded forces and mode weights per task
+for every layout, searched by CEM over level full's force and mode variables and ranges with no grasp variable. Every
+candidate runs on 40 layouts of the plant's sample (shared_layouts: the 30 best by S1 and 10 of the 30 random ones,
+drawn with numpy seed 0, because the sample stores its random layouts in lattice order) with their S1 grasps at seeds
+0-2; its score is the mean of the layouts' three-seed means, and the lowest layout's mean is recorded. 24 candidates, 8
+iterations, the elites and the update of the other levels; candidate 0 of iteration 0 is HOM's defaults. hom_gpu.py run
+--prm rescores a grid with the pick (rows grid2dff_v4b<tag>_shared); `validate --shared` runs the pick on the sample at
+seeds 20-24 with S1's grasp (pick S1sh) and with the best grasp of the layout's set on the rescored grid (pick Sh), rows
+under rows/<plant>/val_shared/; `report --shared` compares the two grids as hom_plant_transfer.compare does and writes
+rows/<plant>/<date>-shared_levels.json.
+    python3 scripts/hom_grasp_refine.py run --task press --level shared [--plant sv25]
+    python3 scripts/hom_grasp_refine.py validate --task press --shared
+    python3 scripts/hom_grasp_refine.py report --shared
 Hom_gpu takes the forces and modes per world (a world's prm); check of 2026-11-03 18:2x (logs/20261103-hom_score_refine/
 check_prm.py): default worlds reproduce the grid rows within the GPU's run-to-run spread, a world with prm scores the
 same in a mixed batch and alone, and the CPU runner with the same prm agrees.
@@ -100,8 +114,9 @@ TASKS = {"twist": 40.0, "roll": 40.0, "pinpush": 25.0, "press": 25.0}
 POSE = {"twist": "tripod", "roll": "tripod", "pinpush": "pinch", "press": "press"}
 SEARCH_SEEDS, VAL_SEEDS = (0, 1, 2), (20, 21, 22, 23, 24)
 N_TOP, N_RAND = 30, 30
-POP = {"grasp": 24, "full": 32}
+POP = {"grasp": 24, "full": 32, "shared": 24}
 ITERS = 8
+SHARED_TOP, SHARED_RAND = 30, 10                    # level shared: the sample's layouts its candidates run on
 ELITE = 0.25
 SMOOTH = 0.8
 STD0 = {"grasp": 0.25, "full": 0.15}               # x the feasible width of each grasp variable
@@ -196,6 +211,37 @@ class Space:
         return out
 
 
+class SharedSpace(Space):
+    """Level shared: level full's log forces and mode variables u, ranges and starting spread, with no grasp variable."""
+
+    def __init__(self, task):
+        import hom_tasks as T
+        self.task, self.level, self.nv = task, "shared", 0
+        self.forces = list(FORCES[task])
+        self.modes = [f"w_{c}_{r}" for r in ROLES[task] for c in COMPS]
+        fb = np.log(np.array([FORCES[task][k] for k in self.forces], float).reshape(-1, 2))
+        self.lo = np.r_[fb[:, 0], np.zeros(len(self.modes))]
+        self.hi = np.r_[fb[:, 1], np.ones(len(self.modes))]
+        self.width = np.zeros(0)
+        self.default_prm = np.r_[np.log([T.PRM[k] for k in self.forces]), np.sqrt([T.PRM[k] for k in self.modes])]
+
+    def start(self, v0=()):
+        return self.default_prm.copy(), np.full(len(self.default_prm), STD0_PRM)
+
+
+def draw_shared(task, it, mean, std, lo, hi, n):
+    """Level shared's n candidates of one iteration, numpy's generator seeded by (task, it), so a replayed iteration draws
+    the same; at iteration 0 the first candidate is the mean, HOM's defaults."""
+    rng = np.random.default_rng([sum(map(ord, task + "shared")), int(it)])
+    out = []
+    for k in range(n):
+        if k == 0 and int(it) == 0:
+            out.append(np.clip(np.asarray(mean, float), lo, hi))
+        else:
+            out.append(np.clip(mean + std * rng.standard_normal(len(mean)), lo, hi))
+    return out
+
+
 def feasible(task, d6, v):
     """The pose toy's verdict on grasp v of layout d6 (mm): every constraint slack >= 0 and the clearances pass."""
     import fp_sr2_toy as FP
@@ -255,9 +301,12 @@ def toy_rows(task):
 
 def s1_table(task, plant):
     """{call: (best grasp index, its mean score over seeds 0-2)} from the plant's grid rows."""
+    return best_of_set(task, GRID_ROWS / f"grid2dff_v4b{PLANTS[plant][2]}" / f"{task}_d{TASKS[task]:g}.jsonl")
+
+
+def best_of_set(task, p):
+    """{call: (best grasp index, its mean score over seeds 0-2)} from the grid rows of p (ties: the lowest index)."""
     import hom_landscape as L
-    tag = PLANTS[plant][2]
-    p = GRID_ROWS / f"grid2dff_v4b{tag}" / f"{task}_d{TASKS[task]:g}.jsonl"
     sc = {}
     for x in p.read_text().splitlines():
         if x.strip():
@@ -347,6 +396,16 @@ def band_layouts(task, name, base):
     p.write_text(json.dumps({"task": task, "band": name, "plants": BANDS[name], "base": base, "layouts": out},
                             indent=1))
     return out
+
+
+def shared_layouts(task, plant):
+    """Level shared's layouts: the SHARED_TOP best by S1 of the plant's sample (from the study's rows, also under
+    --smoke) and SHARED_RAND of its random ones drawn with numpy seed 0, in the sample's order."""
+    lays = json.loads((OUT / "rows" / plant / f"{task}_layouts.json").read_text())["layouts"]
+    top = [L_ for L_ in lays if L_["group"] == "top"][:SHARED_TOP]
+    rand = [L_ for L_ in lays if L_["group"] == "random"]
+    keep = set(np.random.default_rng(0).choice(len(rand), size=min(SHARED_RAND, len(rand)), replace=False).tolist())
+    return top + [L_ for i, L_ in enumerate(rand) if i in keep]
 
 
 # ------------------------------------------------------------------------------------------------ evaluation
@@ -516,7 +575,142 @@ def band_scores(task, paths, it=None):
 
 # ------------------------------------------------------------------------------------------------ the search
 
+def shared_scores(task, rows, calls):
+    """{(it, cand): (mean of the layouts' three-seed means, mean margin, lowest layout mean, {call: mean})} of the
+    level-shared candidates in rows that ran every layout of calls at every search seed."""
+    acc = {}
+    for (c, it, k), (s, m, n) in scores(task, rows).items():
+        if n >= len(SEARCH_SEEDS):
+            acc.setdefault((it, k), {})[c] = (s, m)
+    out = {}
+    for ik, d in acc.items():
+        if set(calls) <= set(d):
+            s = [d[c][0] for c in calls]
+            out[ik] = (float(np.mean(s)), float(np.mean([d[c][1] for c in calls])), float(min(s)),
+                       {c: round(d[c][0], 4) for c in calls})
+    return out
+
+
+def cmd_run_shared(a):
+    """Level shared (module docstring): CEM over the task's forces and mode weights, each candidate on the layouts of
+    shared_layouts with S1's grasps at seeds 0-2. Rows rows/<plant>/shared/<task>_d<d>.jsonl (key: call, it, cand,
+    grasp, v, prm, x), _gens.jsonl one line per iteration (every candidate's mean and lowest layout score, the elites'
+    mean, the best so far, the CEM mean and spread), _iters.jsonl one line per iteration (compute)."""
+    if a.band:
+        raise SystemExit("level shared runs on one plant")
+    setenv(a.plant)
+    import fp_sr2_toy as FP
+    import hom_ea as E
+    import hom_gpu as HG
+    task = a.task
+    FP.set_sizes(**({"sph_d_mm": TASKS[task]} if POSE[task] == "tripod" else {"cyl_d_mm": TASKS[task]}))
+    lays = shared_layouts(task, a.plant)
+    lays = lays[:a.n] if a.n else lays
+    calls = [L_["call"] for L_ in lays]
+    sp = SharedSpace(task)
+    path = rows_dir(a.plant) / "shared" / f"{task}_d{TASKS[task]:g}.jsonl"
+    gpath = path.with_name(path.stem + "_gens.jsonl")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    mean, std = sp.start()
+    best = None
+    gens_done = {int(g["it"]) for g in read_rows(gpath)}
+    scene = HG.Scene("sphere" if POSE[task] == "tripod" else "cylinder", TASKS[task])
+    pop, iters = a.pop or POP["shared"], a.iters or ITERS
+    for it in range(iters):
+        t0 = time.time()
+        xs = draw_shared(task, it, mean, std, sp.lo, sp.hi, pop)
+        t_draw = time.time() - t0
+        stored = {(int(r["it"]), int(r["cand"])): r["x"] for r in read_rows(path) if int(r["it"]) == it}
+        for k, x in enumerate(xs):                  # a replayed iteration must draw what its rows hold
+            if (it, k) in stored and np.abs(np.asarray(stored[(it, k)]) - x).max() > 1e-5:
+                raise SystemExit(f"replay of {task} shared it {it} cand {k} drew another candidate")
+        items = []
+        for k, x in enumerate(xs):
+            prm = sp.prm(x)
+            for L_ in lays:
+                key = {"d": L_["d"], "call": L_["call"], "it": it, "cand": k, "level": "shared",
+                       "grasp": L_["s1_grasp"], "v": [round(float(y), 7) for y in L_["v1"]], "prm": prm,
+                       "x": [round(float(y), 7) for y in x]}
+                items.append((key, L_["d"], np.asarray(L_["v1"], float), prm))
+        tm = {}
+        n_run = evaluate(task, a.plant, path, items, SEARCH_SEEDS, scene, HG, E, tm)
+        sc = shared_scores(task, [r for r in read_rows(path) if int(r["it"]) == it], calls)
+        cand = sorted(((sc[(it, k)], k, x) for k, x in enumerate(xs) if (it, k) in sc),
+                      key=lambda z: (-z[0][0], -z[0][1], z[1]))
+        if len(cand) < len(xs):
+            print(f"{task} shared it {it}: {len(xs) - len(cand)} candidates lack a layout's rollouts; left out", flush=True)
+        if not cand:
+            raise SystemExit(f"{task} shared it {it}: no candidate ran every layout")
+        if best is None or cand[0][0][0] > best["score"]:
+            best = {"score": cand[0][0][0], "lowest": cand[0][0][2], "it": it, "cand": cand[0][1],
+                    "prm": sp.prm(cand[0][2])}
+        ne = max(2, int(math.ceil(ELITE * len(cand))))
+        X = np.array([z[2] for z in cand[:ne]])
+        mean = SMOOTH * X.mean(0) + (1 - SMOOTH) * mean
+        std = np.maximum(SMOOTH * X.std(0) + (1 - SMOOTH) * std, sp.floor())
+        if it not in gens_done:
+            with open(gpath, "a") as fh:
+                fh.write(json.dumps({"it": it, "n": len(cand), "layouts": len(calls), "cands": [z[1] for z in cand],
+                                     "scores": [round(z[0][0], 4) for z in cand],
+                                     "lowest": [round(z[0][2], 4) for z in cand],
+                                     "elite_mean": round(float(np.mean([z[0][0] for z in cand[:ne]])), 4),
+                                     "best": round(best["score"], 4), "best_lowest": round(best["lowest"], 4),
+                                     "best_it_cand": [best["it"], best["cand"]], "best_prm": best["prm"],
+                                     "mean": mean.round(7).tolist(), "std": std.round(7).tolist(),
+                                     "mean_prm": sp.prm(mean)}) + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
+        t_all = time.time() - t0
+        start = sc.get((0, 0)) if it == 0 else None
+        print(f"{time.strftime('%H:%M:%S')} {task} shared it {it}: {len(cand)} candidates on {len(calls)} layouts, "
+              f"{n_run} rollouts run, draw {t_draw:.0f} s, all {t_all:.0f} s, best {best['score']:.3f} (lowest layout "
+              f"{best['lowest']:.3f}) prm {best['prm']}"
+              + (f"; start {start[0]:.3f} (lowest {start[2]:.3f})" if start else ""), flush=True)
+        with open(path.with_name(path.stem + "_iters.jsonl"), "a") as fh:     # the iteration's compute record
+            fh.write(json.dumps({"when": time.strftime("%Y-%m-%d %H:%M:%S"), "task": task, "level": "shared",
+                                 "plant": a.plant, "it": it, "layouts": len(calls), "candidates": len(xs),
+                                 "draws": len(xs), "rollouts": n_run, "replay": n_run == 0, "draw_s": round(t_draw, 2),
+                                 **tm, "total_s": round(t_all, 2)}) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+    pk = shared_pick(task, a.plant)                 # the pick and its start, for hom_gpu.py run --prm
+    ppath = path.with_name(path.stem + "_pick.json")
+    ppath.write_text(json.dumps({"task": task, "plant": a.plant, "iters": iters, "pop": pop, **pk}, indent=1))
+    print(f"{task} shared: pick it {pk['pick']['it']} cand {pk['pick']['cand']} score {pk['pick']['score']} (lowest "
+          f"{pk['pick']['lowest']}), start {pk['start']['score'] if pk['start'] else None}; prm {pk['pick']['prm']}; "
+          f"wrote {ppath.relative_to(ROOT)}", flush=True)
+
+
+def shared_pick(task, plant):
+    """Level shared's pick, the best candidate by the mean over the layouts (ties: the mean margin, then the earlier
+    candidate), and its start, candidate 0 of iteration 0: {"pick": {...}, "start": {...}}, each with prm, score,
+    lowest, it, cand and the layouts' means."""
+    path = rows_dir(plant) / "shared" / f"{task}_d{TASKS[task]:g}.jsonl"
+    rows = read_rows(path)
+    if not rows:
+        return None
+    calls = [L_["call"] for L_ in shared_layouts(task, plant)]
+    calls = [c for c in calls if any(int(r["call"]) == c for r in rows)]       # a smoke run's first layouts
+    sc = shared_scores(task, rows, calls)
+    prm = {}
+    for r in rows:
+        prm.setdefault((int(r["it"]), int(r["cand"])), r["prm"])
+    rec = lambda ik: {"prm": prm[ik], "score": round(sc[ik][0], 4), "margin": round(sc[ik][1], 3),  # noqa: E731
+                      "lowest": round(sc[ik][2], 4), "it": ik[0], "cand": ik[1], "layouts": sc[ik][3]}
+    ik = max(sc, key=lambda k: (sc[k][0], sc[k][1], -k[0], -k[1]))
+    return {"pick": rec(ik), "start": rec((0, 0)) if (0, 0) in sc else None, "calls": calls,
+            "candidates": len(sc)}
+
+
+def cmd_prm(a):
+    """Print level shared's pick, the forces and mode weights as JSON (for hom_gpu.py run --prm)."""
+    print(json.dumps(json.loads((rows_dir(a.plant) / "shared" / f"{a.task}_d{TASKS[a.task]:g}_pick.json").read_text())
+                     ["pick"]["prm"]))
+
+
 def cmd_run(a):
+    if a.level == "shared":
+        return cmd_run_shared(a)
     name = band_name(a.band) if a.band else a.plant         # --band: the worst-case score over the band's plants
     band = BANDS.get(name)
     setenv(band[-1] if band else a.plant)
@@ -699,6 +893,8 @@ def cmd_validate(a):
     (the same layouts), rows under val_from_<plant>/: the score a design tuned on that plant keeps on this one."""
     if a.band:
         return cmd_validate_band(a)
+    if a.shared:
+        return cmd_validate_shared(a)
     setenv(a.plant)
     import fp_sr2_toy as FP
     import hom_ea as E
@@ -724,6 +920,151 @@ def cmd_validate(a):
     scene = HG.Scene("sphere" if POSE[task] == "tripod" else "cylinder", TASKS[task])
     n = evaluate(task, a.plant, path, items, VAL_SEEDS, scene, HG, E)
     print(f"{task}: {len(items)} picks, {n} rollouts run", flush=True)
+
+
+def shared_grid(task, plant):
+    """The rows of the plant's grid rescored with level shared's pick (hom_gpu.py run --prm)."""
+    return GRID_ROWS / f"grid2dff_v4b{PLANTS[plant][2]}_shared" / f"{task}_d{TASKS[task]:g}.jsonl"
+
+
+def cmd_validate_shared(a):
+    """Level shared's pick at the validation seeds on every layout of the plant's sample: with S1's grasp (pick S1sh)
+    and with the best grasp of the layout's set on the rescored grid at seeds 0-2 (pick Sh; best_of_set). Rows under
+    rows/<plant>/val_shared/; without the rescored grid only S1sh runs."""
+    setenv(a.plant)
+    import fp_sr2_toy as FP
+    import hom_ea as E
+    import hom_gpu as HG
+    task = a.task
+    FP.set_sizes(**({"sph_d_mm": TASKS[task]} if POSE[task] == "tripod" else {"cyl_d_mm": TASKS[task]}))
+    pk = shared_pick(task, a.plant)
+    if not pk:
+        raise SystemExit(f"{task}: no level-shared rows on {a.plant}; run the search first")
+    prm = pk["pick"]["prm"]
+    lays = json.loads((rows_dir(a.plant) / f"{task}_layouts.json").read_text())["layouts"]
+    lays = lays[:a.n] if a.n else lays
+    gp = shared_grid(task, a.plant)
+    best = best_of_set(task, gp) if gp.exists() else {}
+    if not best:
+        print(f"{task}: no rescored grid at {gp.relative_to(ROOT)}; pick S1sh only", flush=True)
+    toy = toy_rows(task)
+    items = []
+    for L_ in lays:
+        c = L_["call"]
+        sets = [("S1sh", L_["s1_grasp"], L_["v1"])]
+        if c in best:
+            j = best[c][0]
+            sets.append(("Sh", j, toy[c]["fp"][POSE[task]]["grasps"][j]["v"]))
+        for pick, j, v in sets:
+            key = {"d": L_["d"], "call": c, "pick": pick, "grasp": j, "v": [round(float(y), 7) for y in v], "prm": prm}
+            items.append((key, L_["d"], np.asarray(v, float), prm))
+    path = rows_dir(a.plant) / "val_shared" / f"{task}_d{TASKS[task]:g}.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    stale = [r for r in read_rows(path) if r["prm"] != prm]
+    if stale:
+        raise SystemExit(f"{task}: {len(stale)} rows of {path.relative_to(ROOT)} ran another prm ({stale[0]['prm']})")
+    scene = HG.Scene("sphere" if POSE[task] == "tripod" else "cylinder", TASKS[task])
+    n = evaluate(task, a.plant, path, items, VAL_SEEDS, scene, HG, E)
+    print(f"{task}: {len(items)} picks with prm {prm}, {n} rollouts run", flush=True)
+
+
+def cmd_report_shared(a):
+    """rows/<plant>/<date>-shared_levels.json, per task: the search (start and pick, each layout's mean, the pick's
+    forces and modes, per iteration the best and the elites' mean); the default and rescored grids compared as
+    hom_plant_transfer.compare does (Spearman of the best-of-set scores, best tenth kept, same best grasp, each grid's
+    best layout on the other), with the rows of the search's worlds that the grids repeat; per layout of the sample the
+    validated S1, S2e, S3e, S1sh and Sh, and per group the medians and the paired differences."""
+    import hom_plant_transfer as PT
+    setenv(a.plant)
+    out = {"plant": a.plant, "hos_plant": PLANTS[a.plant][0], "scenes": PLANTS[a.plant][1], "search_seeds": SEARCH_SEEDS,
+           "val_seeds": VAL_SEEDS, "pop": POP["shared"], "elite": ELITE, "smooth": SMOOTH, "std0": STD0_PRM,
+           "floor": FLOOR_PRM, "forces": FORCES, "roles": ROLES, "layouts": [SHARED_TOP, SHARED_RAND], "tasks": {}}
+    for task in TASKS:
+        pk = shared_pick(task, a.plant)
+        if not pk:
+            continue
+        f = f"{task}_d{TASKS[task]:g}"
+        gens = read_rows(rows_dir(a.plant) / "shared" / f"{f}_gens.jsonl")
+        t = {"search": {**pk, "iters": len(gens),
+                        "per_iter": [{"it": g["it"], "best": g["best"], "best_lowest": g["best_lowest"],
+                                      "elite_mean": g["elite_mean"], "it_best": max(g["scores"]),
+                                      "it_median": float(np.median(g["scores"])), "mean_prm": g["mean_prm"]}
+                                     for g in gens]}}
+        g0 = GRID_ROWS / f"grid2dff_v4b{PLANTS[a.plant][2]}" / f"{f}.jsonl"
+        g1 = shared_grid(task, a.plant)
+        if g1.exists():
+            ga, gb = PT.grasp_means(task, g0), PT.grasp_means(task, g1)
+            t["grids"] = PT.compare(task, ga, gb)
+            t["grids"]["rows"] = {"default": len(read_rows(g0)), "shared": len(read_rows(g1))}
+            bad = [r for r in read_rows(g1) if r.get("prm") != pk["pick"]["prm"]]
+            if bad:
+                raise SystemExit(f"{task}: {len(bad)} rows of {g1.relative_to(ROOT)} ran another prm")
+            # the worlds that a grid repeats from the search: the start on the default grid, the pick on the rescored one
+            s1g = {L_["call"]: L_["s1_grasp"] for L_ in shared_layouts(task, a.plant)}
+            rep = {}
+            for name, gg, ik in (("start", ga, "start"), ("pick", gb, "pick")):
+                d = [gg[c][s1g[c]] - s for c, s in pk[ik]["layouts"].items() if c in gg and s1g[c] in gg[c]] \
+                    if pk.get(ik) else []
+                rep[name] = {"n": len(d), "median_abs": round(float(np.median(np.abs(d))), 4) if d else None,
+                             "max_abs": round(float(np.max(np.abs(d))), 4) if d else None}
+            t["grids"]["search_worlds_repeated"] = rep
+            sh = best_of_set(task, g1)
+        else:
+            sh = {}
+        lays = json.loads((rows_dir(a.plant) / f"{task}_layouts.json").read_text())["layouts"]
+        val = scores(task, read_rows(rows_dir(a.plant) / "val" / f"{f}.jsonl"))
+        vsh = scores(task, read_rows(rows_dir(a.plant) / "val_shared" / f"{f}.jsonl"))
+        eli = elitist(task, a.plant)
+        insearch = set(pk["calls"])
+        per = []
+        for L_ in lays:
+            c = L_["call"]
+            e = {"call": c, "xy": L_["xy"], "group": L_["group"], "in_search": c in insearch, "s1": L_["s1"],
+                 "s1_grasp": L_["s1_grasp"], "sh": round(sh[c][1], 4) if c in sh else None,
+                 "sh_grasp": sh[c][0] if c in sh else None,
+                 "search_start": pk["start"]["layouts"].get(c) if pk.get("start") else None,
+                 "search_pick": pk["pick"]["layouts"].get(c)}
+            for k, src in (("S1", val), ("S2", val), ("S3", val), ("S1sh", vsh), ("Sh", vsh)):
+                v = src.get((c, k))
+                e[f"{k.lower()}_val"] = round(v[0], 4) if v and v[2] >= len(VAL_SEEDS) else None
+            for k in ("S2e", "S3e"):
+                e[f"{k.lower()}_pick"] = eli[c][k]
+                e[f"{k.lower()}_val"] = e[f"{eli[c][k].lower()}_val"]
+            per.append(e)
+        groups = {"top": lambda e: e["group"] == "top", "random": lambda e: e["group"] == "random",
+                  "random_in_search": lambda e: e["group"] == "random" and e["in_search"],
+                  "random_held_out": lambda e: e["group"] == "random" and not e["in_search"], "all": lambda e: True}
+        med, diff = {}, {}
+        keys = ("s1_val", "s2e_val", "s3e_val", "s1sh_val", "sh_val", "s1", "sh")
+        for gname, fn in groups.items():
+            sel = [e for e in per if fn(e)]
+            med[gname] = {k: (round(float(np.median([e[k] for e in sel if e[k] is not None])), 4)
+                              if any(e[k] is not None for e in sel) else None) for k in keys}
+            med[gname]["n"] = len(sel)
+            for hi, lo in (("sh_val", "s1_val"), ("s1sh_val", "s1_val"), ("s3e_val", "sh_val"), ("s3e_val", "s1_val"),
+                           ("sh_val", "s1sh_val"), ("sh", "s1")):
+                diff[f"{gname}|{hi}-{lo}"] = stats([e[hi] - e[lo] for e in sel
+                                                    if e[hi] is not None and e[lo] is not None])
+        rho = {}
+        for x, y in (("s1_val", "sh_val"), ("sh_val", "s3e_val"), ("s1_val", "s3e_val")):
+            pairs = [(e[x], e[y]) for e in per if e[x] is not None and e[y] is not None]
+            rho[f"{x}|{y}"] = {"rho": spearman(*zip(*pairs)) if len(pairs) >= 3 else None, "n": len(pairs)}
+        best = {}
+        for k in ("s1_val", "sh_val", "s3e_val", "s1", "sh"):
+            ok = [e for e in per if e[k] is not None]
+            if ok:
+                b = max(ok, key=lambda e: e[k])
+                best[k] = {"call": b["call"], "xy": b["xy"], "score": b[k]}
+        t.update(layouts=per, median=med, diff=diff, rho=rho, best=best)
+        out["tasks"][task] = t
+        s = t["search"]
+        print(f"{task}: search start {s['start']['score'] if s['start'] else None} -> pick {s['pick']['score']} "
+              f"(lowest {s['pick']['lowest']}) prm {s['pick']['prm']}; grids rho "
+              f"{t.get('grids', {}).get('spearman')}; medians at seeds 20-24 (all 60) S1 {med['all']['s1_val']} "
+              f"S1sh {med['all']['s1sh_val']} Sh {med['all']['sh_val']} S3e {med['all']['s3e_val']}", flush=True)
+    p = rows_dir(a.plant) / f"{time.strftime('%Y%m%d')}-shared_levels.json"
+    p.write_text(json.dumps(out, indent=1))
+    print("wrote", p.relative_to(ROOT))
 
 
 def val_path(task, name, plant, src):
@@ -803,6 +1144,8 @@ def spearman(a, b):
 def cmd_report(a):
     if a.band:
         return cmd_report_band(a)
+    if a.shared:
+        return cmd_report_shared(a)
     setenv(a.plant)
     out = {"plant": a.plant, "hos_plant": PLANTS[a.plant][0], "scenes": PLANTS[a.plant][1], "search_seeds": SEARCH_SEEDS,
            "val_seeds": VAL_SEEDS, "pop": POP, "iters": ITERS, "elite": ELITE, "smooth": SMOOTH, "forces": FORCES,
@@ -997,7 +1340,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     pr = sub.add_parser("run")
     pr.add_argument("--task", required=True, choices=list(TASKS))
-    pr.add_argument("--level", required=True, choices=("grasp", "full"))
+    pr.add_argument("--level", required=True, choices=("grasp", "full", "shared"))
     pr.add_argument("--plant", default="sv25", choices=list(PLANTS))
     pr.add_argument("--n", type=int, default=0, help="only the first n layouts of the sample (a smoke test)")
     pr.add_argument("--iters", type=int, default=0)
@@ -1013,12 +1356,18 @@ def main():
     pv.add_argument("--plant", default="sv25", choices=list(PLANTS))
     pv.add_argument("--picks-from", default=None, choices=list(PLANTS), help="run another plant's picks here")
     pv.add_argument("--band", default=None, help=hb + "; the picks run on each plant of the band")
-    pv.add_argument("--n", type=int, default=0, help="--band: only the first n layouts (a smoke test)")
+    pv.add_argument("--shared", action="store_true", help="level shared's pick on the sample (picks S1sh and Sh)")
+    pv.add_argument("--n", type=int, default=0, help="--band, --shared: only the first n layouts (a smoke test)")
     pv.add_argument("--smoke", action="store_true")
     pp = sub.add_parser("report")
     pp.add_argument("--plant", default="sv25", choices=list(PLANTS))
     pp.add_argument("--band", default=None, help=hb)
+    pp.add_argument("--shared", action="store_true", help="level shared and the rescored grids")
     pp.add_argument("--smoke", action="store_true")
+    pq = sub.add_parser("prm", help="print level shared's pick (forces and mode weights) as JSON")
+    pq.add_argument("--task", required=True, choices=list(TASKS))
+    pq.add_argument("--plant", default="sv25", choices=list(PLANTS))
+    pq.add_argument("--smoke", action="store_true")
     pb = sub.add_parser("probe")
     pb.add_argument("--task", required=True, choices=list(TASKS))
     pb.add_argument("--level", default="grasp", choices=("grasp", "full"))
@@ -1028,7 +1377,7 @@ def main():
     if getattr(a, "smoke", False):
         global ROWS_ROOT
         ROWS_ROOT = OUT / "rows_smoke"
-    {"run": cmd_run, "validate": cmd_validate, "report": cmd_report, "probe": cmd_probe}[a.cmd](a)
+    {"run": cmd_run, "validate": cmd_validate, "report": cmd_report, "probe": cmd_probe, "prm": cmd_prm}[a.cmd](a)
 
 
 if __name__ == "__main__":

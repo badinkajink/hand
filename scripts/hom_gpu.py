@@ -44,6 +44,8 @@ collide only with the object. Scores come from hom_tasks.metrics on the same per
   .venv/bin/python scripts/hom_gpu.py run --task pinpush press --layouts design --d 10 16 25 40 \\
         --variants rate50 notip0 tip cal_tip --seeds 0 1 2 --out sensing_gpu --rows-dir <dir>
   .venv/bin/python scripts/hom_gpu.py run --task press --layouts sobol8k --seeds 0 1 2 --out hom6d_gpu_press
+  .venv/bin/python scripts/hom_gpu.py run --task press --layouts grid2dff_size --d 25 --variants hold --batch 1536 \
+        --out press_d25 --rows-dir <dir> --prm '{"f_pinch": 1.8, "w_roll_push": 0.38}'   # every world gets that prm
   .venv/bin/python scripts/hom_gpu.py compare --cpu <cpu rows> --gpu <gpu rows>
 Rows: docs/experiments/20261029-foundational_pose_review/rows/<out>.jsonl unless --rows-dir is given.
 """
@@ -1292,8 +1294,21 @@ def batch_child(spec):
           flush=True)
 
 
+def run_prm(arg):
+    """--prm: a JSON object, or a file holding one, of hom_tasks.PRM's forces and mode weights for every world of the
+    run (2026-11-04: the shared forces and modes of scripts/hom_grasp_refine.py); each row records it in its key."""
+    if not arg:
+        return None
+    prm = json.loads(arg if arg.lstrip().startswith("{") else Path(arg).read_text())
+    bad = sorted(set(prm) - set(T.PRM))
+    if bad:
+        raise SystemExit(f"--prm: {bad} are not keys of hom_tasks.PRM")
+    return {k: float(v) for k, v in prm.items()}
+
+
 def cmd_run(a):
     import multiprocessing as mp
+    prm = run_prm(a.prm)
     rows_dir = Path(a.rows_dir) if a.rows_dir else ROWS
     rows_dir.mkdir(parents=True, exist_ok=True)
     path = rows_dir / f"{a.out}.jsonl"
@@ -1312,10 +1327,12 @@ def cmd_run(a):
             worlds = []
             for key, mxy, setup in lays:
                 bm, q_open = scene.prepare(mxy, setup)
+                if prm is not None:
+                    key = dict(key, prm=prm)
                 for var in a.variants:
                     for sd in a.seeds:
                         worlds.append({"key": key, "seed": sd, "setup": setup, "body_mounts": bm, "q_open": q_open,
-                                       "var": variant_world(var, sd)})
+                                       "var": variant_world(var, sd), **({"prm": prm} if prm is not None else {})})
             print(f"{task} {d_mm:g} mm: {len(lays)} layouts, {len(worlds)} worlds prepared in {time.time() - t0:.1f} s",
                   flush=True)
             by_dt = {}
@@ -1435,6 +1452,7 @@ def main():
     p.add_argument("--out", default="hom_gpu")
     p.add_argument("--rows-dir", default="")
     p.add_argument("--append", action="store_true")
+    p.add_argument("--prm", default="", help="JSON object or file: hom_tasks.PRM's forces and mode weights for every world")
     p = sub.add_parser("compare")
     p.add_argument("--cpu", required=True)
     p.add_argument("--gpu", required=True)
