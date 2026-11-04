@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 13:0x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 13:1x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -258,11 +258,12 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       - Seat 3: edge-642-r90; the az 0 slides of edge-618-r90; the az 270 slides of edge-573-r0 and edge-651-r90.
       - Seat 1: edge-651-r90 and edge-642-r90; the az 90 slides of edge-569-r0; the az 0 slides of edge-618-r90.
       - The plans are `20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_sweep8_fit.json`.
-  - **Now (from 11:17:06 on 11-04): the rod points, `logs/20261104-chain_rod_points.sh` on
-    `logs/20261104-rod_points_steps.txt` (copies here; chain PID 2960508, its log `logs/20261104-chain_rod_points.log`).**
-    The robot must be free at 14:15 (the owner chose it at 10:55, relayed): the hard stop (PID 2960534) stops the chain
-    and then the program after its next finished action at 14:15. A step starts only if its expected minutes end by
-    14:15. Expected end about 13:20.
+  - **Done, 13:16:58 on 11-04: the rod points, every step clean: 232 of 232 actions, no skip, abort or early contact.**
+    The arm waits at seat 1's reference rest, the pose of 10:45 (joints 48.99, -77.26, 106.61, -124.34, -91.36, -38.05
+    deg), the rod a few mm over seat 1's pad. Move it clear before mounting the SR2 hand. Nothing runs on the robot:
+    the chain ended, and the 14:15 stop (PID 2960534) was stopped by its PID at 13:17:14.
+    - The run: `logs/20261104-chain_rod_points.sh` on `logs/20261104-rod_points_steps.txt` (copies here), 11:17:06 to
+      13:16:58; the robot had to be free at 14:15 (the owner chose it at 10:55, relayed).
     - Steps: face and edges on seats 1, 3 and 2 (75, 70 and 70 grid actions), then flanks and tip on seats 2, 3 and 1
       (6, 5 and 6), each resuming its seat's rod session. Plans: the workstation's
       `../../20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat{1,3,2}_v3id{6,4,5}_dense_{fe,ft}_draft.json`
@@ -276,9 +277,13 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       seat 2's (pts23).
     - Done: seat 2's face and edges (pts23), 12:29:27 to 13:04:04, 70 of 70 to 3 N, no skip or abort. All three seats'
       face and edges are done, 215 of 215.
-    - Done: seat 2's flanks and tip (pts24), 13:04:12 to 13:08:37, 6 of 6. From 13:08:37, seat 3's (pts35), then seat
-      1's.
-  - **Next, 11-04 from about 11:1x: more rod points before the SR2 mounting.** The owner, relayed at 10:44: "if we
+    - Done: seat 2's flanks and tip (pts24), 13:04:12 to 13:08:37, 6 of 6; seat 3's (pts35), 13:08:37 to 13:12:18, 5
+      of 5; seat 1's (pts16), 13:12:23 to 13:16:53, 6 of 6. The flanks and tip reached their 2 N top, the reference
+      presses 3 N.
+    - The HEX-E gave 712,913 samples over the six runs, none timed out; each run's two gaps came 1 to 2 s before its
+      preflight. Each session's new bytes are with the workstation by git (`20261104-rod{13,32,21}_tail/`,
+      `20261104-rod{13,32}_ft_tail/`).
+  - **The go for the rod points (11-04, 10:44).** The owner, relayed at 10:44: "if we
     just lost density of coverage why dont we just add points now. i know i said we were done earlier, but we should
     have a few hours left to get that density". The held-out GP places contact to 0.78 to 0.82 mm on IDs 4 to 6,
     against 0.46 to 0.51 on IDs 1 to 3; the night's points stand 2.0 mm apart, IDs 1 to 3's 1.0 mm.
