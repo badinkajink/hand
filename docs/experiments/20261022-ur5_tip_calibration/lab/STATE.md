@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 07:1x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 09:2x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -8,9 +8,9 @@ request to the owner must come from this file.
 
 | Item | Now | Registration (folder here) |
 |---|---|---|
-| Probe | probe base with the 2 mm sphere (sphere2: R 2 mm, centre (0, 0, 118) mm in M) on mount v7's adapter disc on the HEX-E (owner, 11-03 10:5x; the 5 mm sphere from 11-02 13:0x to 11-03 10:5x); no tip on the robot | each seat's 2 mm sphere session fits it in its pass 1 |
+| Probe | probe base with the rod tool (R 12.5 mm, its axis along y_M) on mount v7's adapter disc on the HEX-E (owner, 11-03 16:5x; set right at 17:2x after it sat a quarter turn off its square boss); before it the 2 mm sphere from 11-03 10:5x and the 5 mm sphere from 11-02 13:0x; no tip on the robot | the workstation's joint fit on the night's 0.5 N sweeps (bb18d7c65): c_M (-0.988, 0, 106.713) mm in M, turned +0.43 deg about z_M (sd 1.04) and -0.89 deg across (sd 0.50); each rod session's pass 1 fits it too |
 | Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume | tonight's sessions: the frame through both keys' socket points (`20261102-strip_frame_two_keys.json`), by `--frame`, with `--home-from poses.jsonl:strip_key1_seated_4`; each seat's grid aims by its own pass 1 fit. For later plans: the workstation's frame from the three pads' fits (`../../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`, 9cd8b375: the two-key frame turned 3.44 deg about y_A and moved (2.48, 0.10, -3.70) mm; the pads within 0.14 to 0.22 mm on average, the rest the strip's twist) |
-| Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 138 records/s | seat 1: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame); seat 2: `182710-s2v5` (0.051 mm rms; 1.21 mm, 3.5 deg); seat 3: `220337-s3v4` (0.051 mm rms; 0.81 mm, 2.9 deg); the overnight runs resume these sessions |
+| Held tips | seat 1 (y_A -80, the right end seen from the robot) v3 ID 6 on mux channel 3; seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 138 records/s | seat 1: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame); seat 2: `182710-s2v5` (0.051 mm rms; 1.21 mm, 3.5 deg); seat 3: `220337-s3v4` (0.051 mm rms; 0.81 mm, 2.9 deg). The rod's sessions of 11-03 have lab folders `20261103-214753-rod13`, `20261103-172647-rod21` and `20261103-202017-rod32` (seats 1, 2 and 3) |
 | Old fixtures | the low sphere, rod, tall indenter and holder: off the table as the strip's README asks; the camera frame of 13:05 shows only the strip, its tips and the mux board on the 2x4 | as before 10-30 |
 
 `cell.json` holds the same registrations for the path checks and the renders.
@@ -261,7 +261,9 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   - **Done, 07:11:26 on 11-04: the night's rod run, every step clean, no abort.** The arm waits at the rest of seat 1's
     last reference press (probe-ref-x1), the rod a few mm over seat 1's pad. Move it clear before working at the rig.
     Nothing runs on the robot: the chain ended, and the 08:30 stop (PID 2877930) was stopped by its PID at 07:12:29.
-    The sessions' streams go to the workstation by git-lfs from about 07:2x (NOTES).
+    All nine probe sessions' streams were on GitHub by 09:20:49. The push stalled from 07:15 to 09:15 on the lab's
+    uncommitted edit (NOTES, "The morning"). The night's sweeps per seat (friction, the offsets' stiffness, the
+    reference presses) are in `20261104-rod_night_sweep_summary.json` (39b814e1c).
   - **The night (19:15:01 to 07:11:26): `logs/20261103-chain_rod_night.sh` on `logs/20261103-rod_night_steps3.txt`**
     (PID 2881408; its log `logs/20261103-chain_rod_night.log`): the night in halves (NOTES, "The night in halves").
     - The order: seat 2's first half (resuming `172647-rod21_seed`), seat 3's (a new session from s3v4, with its

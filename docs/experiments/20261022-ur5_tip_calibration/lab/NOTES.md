@@ -2997,6 +2997,59 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 
+### The morning: the sweeps in brief, and the streams to GitHub (11-04, from 07:1x)
+
+- 07:13: the night's small files went to GitHub (21d67c8ed, a2d9e460f). They are each session's events, registration,
+  touches, session and plan, the rod runs' printouts, and the chain's log as `20261103-chain_rod_night_log.txt`
+  (`*.log` is ignored).
+- `sweep_test_summary.py` now takes the night's plans as PLAN. A resumed run does not rewrite the session's
+  `plan.json`, so the halves' and extras' actions were missing from it. With each seat's three night plans it covers
+  62, 59 and 56 sweeps (seats 1, 2 and 3).
+  - Each rod session's lab folder holds its `sweep_summary.json` and `sweep_summary.txt`.
+  - `20261104-rod_night_sweep_aggregate.py` writes the per-seat medians and quartiles to
+    `20261104-rod_night_sweep_summary.json` (39b814e1c).
+- The slides' friction. On r0 the rod's axis runs along the tip's axis, on r90 across it. A slide at az 0 runs along
+  the tip's axis on the pad, at az 90 across it. μ is the push across over the push along in the slide's second half.
+
+  | μ while sliding, median at 2 N / 4 N | Seat 1 (ID 6) | Seat 2 (ID 5) | Seat 3 (ID 4) |
+  |---|---|---|---|
+  | r0, az 0/180 (along the rod) | 0.44 / 0.43 | 0.41 / 0.39 | 0.46 / 0.40 |
+  | r0, az 90/270 (across the rod) | 0.56 / 0.59 | 0.61 / 0.62 | 0.62 / 0.61 |
+  | r90, az 0/180 (across the rod) | 0.48 / 0.49 | 0.47 / 0.49 | 0.46 / 0.48 |
+  | r90, az 90/270 (along the rod) | 0.50 / 0.50 | 0.50 / 0.49 | 0.45 / 0.50 |
+
+  - The three tips agree within 0.06 in every row.
+  - Held at the slide's end, the medians are 0.01 higher to 0.08 lower.
+  - Only r0's slides across the rod stand out. Both pushes are split against the target point's normal, so a slide
+    that carries the contact onto a curved part of the pad adds the normal's tilt to μ. The workstation's analysis
+    can separate the two.
+- The offsets' push across over the flange's step (median, N/mm):
+
+  | Level | Seat 1 | Seat 2 | Seat 3 |
+  |---|---|---|---|
+  | 0.5 N | 4.42 | 4.39 | 4.63 |
+  | 1 N | 4.64 | 4.53 | 4.68 |
+  | 2 N | 5.61 | 5.74 | 5.55 |
+  | 4 N | 6.72 | 6.96 | 6.39 |
+  | 8 N | 7.50 | 7.68 | 7.07 |
+
+  - The quartiles are wide: 2.8 to 6.1 N/mm at 0.5 N, 4.4 to 10.0 at 8 N.
+  - The step is the flange's, so the stiffness holds everything between the flange and the strip, not the pad alone.
+- The reference presses: each seat ran six from 19:15 to 07:11 (probe-ref-00, -a1, -b0, -final, -x0 and -x1).
+  - They reached 3 N at 2.28 to 2.43 mm from their rests on seat 1, 2.36 to 2.46 mm on seat 2 and 2.31 to 2.45 mm on
+    seat 3.
+  - No trend shows over the night. Each seat's last press reached 3 N 0.02 to 0.05 mm sooner than its first.
+- The streams (`ft.bin`, `robot.bin` and `held.bin`; 8.19 GB for nine sessions) went one commit and push per session.
+  - s1v6b went at 07:14:49 and s2v5 at 07:15:28.
+  - s3v4 was committed at 07:15 but went only at 09:17:58 (cc1de3e3a after the rebase). The lab had edited `sweep_test_summary.py`, a
+    tracked file, while the push loop ran. Every `git pull --rebase` then refused ("You have unstaged changes"). The
+    loop retried every 5 min for two hours, then gave up at 09:15:46.
+  - The loop now stops at once on an uncommitted tracked edit, and skips a session already committed.
+  - The other six went from 09:18:32 to 09:20:49: s1sph2b, s2sph2 and 165823-rod21-turned, then the night's
+    172647-rod21 (09:19:28), 202017-rod32 (09:20:02) and 214753-rod13 (09:20:49). All nine are on GitHub.
+- The controller logged nothing after the program's stop at 07:11:21 (`logs/ur5_lab_robot_messages.log`, read at
+  09:18). The arm waits at seat 1's probe-ref-x1 rest unless the owner has moved it.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
