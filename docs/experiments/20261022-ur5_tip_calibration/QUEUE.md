@@ -1702,6 +1702,19 @@ push that answers it arrives.
     came within 0.17 to 0.27 mm of the pad at -11. In the installed plans (lab f0f745c8) every action keeps 0.21 mm or
     more from the tip body over the range, and the chained dry-check flags none of 54, 49, 46, 44, 97, 103 and 99 actions
     unturned and no travel at ±11 (lab/20261103-rod_night_envelope_checks.json).
+  - 23:35 to 23:48 on 11-03: one rod fitted across the three rod sessions (scripts/ur5_rod_joint_registration.py, on
+    the small files of rod21, rod32 and rod13 that the lab pushed in c5a25696). Pass 1 alone leaves the turn about z_M
+    open: a shared turn fits the 60 touches at +9.29 or -10.88 deg, both under the own fits' chi2. The first halves'
+    94 sweeps add their 0.5 N poses as contacts, each region class with one fitted indentation (0.31 mm on the face,
+    0.30 on the edges). With them, the rod is turned -0.22 deg about z_M (sd 1.16) and -1.90 deg across (sd 0.50). The
+    sweeps' contacts stand 0.05 to 0.09 mm sd from this fit and 0.065 to 0.256 mm from the own fits. Seat 3's +10.75 came
+    from its seed: s3v4 is the 5 mm sphere's session, and on seats 1 and 2 the 5 mm and 2 mm sessions put the pad 1.67
+    and 1.34 mm apart along x_P. At the four corners of 2 sd, the second halves keep 0.28 mm or more from the tip body
+    (scripts/ur5_rod_fitted_margins.py --joint). Eight edge-573 r90 obliques of the extras come to 0.20 mm or less: five on
+    seat 2, two on seat 3 and one on seat 1. The worst, seat 2's o35-a90, is at 0.09 mm at the fit itself. The workstation
+    asked the lab at 23:48 to leave them out. The chained dry-check at the corners flags no travel
+    (data/20261103-strip_table_pads_run_check_rod_night_joint_z{p,m}.json). The morning's ground truth uses this fit
+    (data/20261103-strip_table_pads_rod_joint_registration_grid05.json).
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
