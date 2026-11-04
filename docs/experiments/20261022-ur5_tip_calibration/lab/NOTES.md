@@ -2935,7 +2935,7 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   | Rolls at 4 N | 3 | 103 s |
   | Reference presses | 3 | 38 s |
 
-  - These were the night's first rod twists and rolls on the robot, and none aborted. The program's plans had
+  - These were the night's first rod twists and rolls on the robot, and none aborted. The lab's estimates had
     assumed about 100 s a twist with its travel and 70 s a roll.
   - 946 of 960 offsets and 116 of 120 slides were held; six friction skips.
   - 27 sweeps reached 8 N. sweep-edge-651-r0 stopped at 2 N; sweep-edge-573-r90 and sweep-face-733-r90 at 4 N.
