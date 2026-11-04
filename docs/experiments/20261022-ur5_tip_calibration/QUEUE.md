@@ -1656,6 +1656,20 @@ push that answers it arrives.
     slides took the rod's end within the tip body's need. Chained 2, 3, 1 from seat 2's hub they replay with 0 of 53, 54
     and 54 flagged, and the rod's end comes to 0.42 mm of the body at its closest. Seat 3, aimed from s3v4's fit, also
     replays clean. At about 1.3 h a seat the three take about 4 h. The lab simulates two rod sweeps first, as new code.
+  - 16:3x to 17:04 on 11-03, owner, lab and workstation (20a46758, d1b5ea6f, 4d135caf). The owner, 16:3x: the rod run is the
+    last calibration before the SR2 hand goes on early on 11-04, with the go for the night and for plans that improve the
+    calibration. The rod's sweeps now press to 8 N in place of 3. Each of 182 sweeps (60, 57 and 65 on seats 2, 3 and 1,
+    over 34 points, the rod along and across the tip) stops at 0.5, 1, 2, 4 and 8 N. At each level the rod steps to 8
+    azimuths at 0.5 and 0.9 of its slip offset and back, 64 offsets in all. Four 1 mm slides follow at 2 N and four at
+    4 N, with ft_t_cap_N 10 and abort_N 12. The twists of v3 ID 3 (5, 10, 15, 10, 5 deg at turn_v 0.016) run at 5 N and at
+    2.5 N, 12, 12 and 14 of them. The program's twist now ends 0.5 mm behind its rest (d1b5ea6f), and the dry-check models
+    it so (4d135caf); the old model flagged 20 to 28 travels a seat. The rod went on at 16:55, and the chain 2, 3, 1 started
+    at 16:58:23 (lab/20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_sweep8.json). The lab's copies run the
+    slides at 0.3 mm/s, which takes the chain from about 12.8 h to about 10 h. From the arm's joints at 16:55:34 the three
+    seats replay with 0 of 106, 103 and 115 actions flagged. The rod's end comes to 0.42 mm of a tip body at its closest,
+    and joint 6 spans -61.3 to +42.6 deg (data/20261103-strip_table_pads_run_check_rod_sweep8_chain.json). Seat 3 aimed
+    from s3v4's fit also replays with 0 flagged (_rod_sweep8_seat3_seed.json). The chain should end about 03:00 on 11-04.
+    No step starts after 05:20, and at 05:50 the program stops after its action.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
