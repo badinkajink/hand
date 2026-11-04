@@ -3129,6 +3129,27 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - 13:08:37, step 5: seat 3's flanks and tip (pts35, 5 grid actions) on `202017-rod32_seed`.
 - 13:0x, seat 2's dense bytes (pts23 and pts24) went to the workstation the same way: `20261104-rod21_tail/`, 140 MB.
   The four prefix sha256s matched the workstation's.
+- 13:12:18, seat 3's flanks and tip ended cleanly (pts35): 5 of 5 in 3.7 min. Flank-486 and -499 and tip-513 reached
+  their 2 N top, both reference presses 3 N.
+- 13:16:53, seat 1's flanks and tip ended cleanly (pts16): 6 of 6 in 4.5 min. Flank-581, -486 and -499 and tip-513
+  reached 2 N, both reference presses 3 N.
+- 13:16:58, the chain: "all steps done; the arm waits at the last action's rest". That is seat 1's reference rest,
+  the pose of 10:45, the rod a few mm over seat 1's pad. The 14:15 stop (PID 2960534) had nothing left to stop. It
+  was stopped by its PID at 13:17:14, with its sleep, so that it cannot catch a program started near 14:15.
+- The rod points, 11:17:06 to 13:16:58: six steps, all clean. No action aborted or met the pad early, and no level
+  was skipped. The HEX-E gave 712,913 samples, none timed out. Each run's two gaps of 0.6 to 1.2 s came 1 to 2 s
+  before its preflight, never in an action.
+
+  | | Seat 1 (v3 ID 6) | Seat 2 (v3 ID 5) | Seat 3 (v3 ID 4) |
+  |---|---|---|---|
+  | Face and edges | 75 of 75, 37.6 min | 70 of 70, 34.5 min | 70 of 70, 34.5 min |
+  | Flanks and tip | 6 of 6, 4.5 min | 6 of 6, 4.4 min | 5 of 5, 3.7 min |
+  | New points | 75 | 70 | 69 |
+  | Session | `214753-rod13_seed` | `172647-rod21_seed` | `202017-rod32_seed` |
+
+  Each plan holds two reference presses or more; the new points are the rest.
+- 13:1x, seats 1 and 3's flanks and tip went to the workstation by git: `20261104-rod13_ft_tail/` (16 MB) and
+  `20261104-rod32_ft_tail/` (13 MB), past the sizes at the end of their face and edge steps.
 
 ## The lab clone and git-lfs
 
