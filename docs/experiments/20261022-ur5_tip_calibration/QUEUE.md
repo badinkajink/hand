@@ -1558,7 +1558,7 @@ push that answers it arrives.
     GP places the contact 0.26 and 0.28 mm from the registered point and errs 5.0 and 5.1 % in force (five folds
     grouped by action); under 1 N 0.59 and 0.75 mm, 10.8 and 9.4 %.
 
-- R32 (draft, 13:21 on 11-03, revised at 13:24 with the lab's answers of 13:24; owner, 12:4x: "per point, we can
+- R32 (closed at 16:4x on 11-04; draft, 13:21 on 11-03, revised at 13:24 with the lab's answers of 13:24; owner, 12:4x: "per point, we can
   construct a cone of approach/pressing/angle, more or less matching the friction cone of contact ... up to some
   specified force ... twists/rotations about this vector, as well as linear slides/shears ... N vectors x M force
   magnitudes (cone height) x T twists x S slides"). A sweep of the friction cone at each pad point, inside one contact,
@@ -1787,6 +1787,10 @@ push that answers it arrives.
     2.2 to 2.5 % at 2 N in tip mode (sphere and rod), while the force lands within 3.8 % and 3.4 to 4.7 %; the rest drift
     is 4.2 and 2.6 to 3.3 uT, and a hold averages 92 board records against 227. The held stream's stamps are spread
     evenly over each serial read (reskin5x_plot.MuxReader), tens of ms, too little to scatter a static hold.
+  - Closed at 16:4x on 11-04. The owner, in the lab's session: "yea idk what to say it's pretty on there. if the inverted
+    rig is marginally worse, then so be it. it seems like it is marginally more reliable, hex-e wise. but we are done
+    calibrating now". No seat that clamps the board and no tip-mode run of IDs 4 to 6. The owner moved the arm clear by
+    hand at 16:44 (flange 422.6 mm up); the rod stays on the probe base. The tips go to the SR2 hand.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
