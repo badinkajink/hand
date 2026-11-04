@@ -3253,6 +3253,46 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - The session is copied whole, with its printout, to `20261104-145215-id3pts11/`: ft.bin 35 MB, robot.bin 72 MB,
   held.bin 196 MB (channel 3 is ID 3), and events, plan, registration, session and touches. It is byte for byte the
   live folder.
+- ID 3's result, from the workstation at 16:2x (fc09a648c, QUEUE R32): the gap is the rig's, not the tips'.
+  - On near-normal loads, with a fifth of 111 to 126 point groups held out, the same tip places contact to 0.592 mm on
+    the inverted rig and 0.319 mm in tip mode. Direction is 2.77 deg against 2.09.
+  - The tip-mode GP predicts the inverted rig's presses with a 0.71 mm mean offset and 15 % in magnitude. The
+    reference presses spread 15 %.
+  - At the 14 reference presses, the board's uT/N varies 7.9 % (sd) at 2 and 3 N on the inverted rig, against 2.2 to
+    2.5 % at 2 N in tip mode, on sphere and rod alike.
+  - The force lands within 3.8 % against 3.4 to 4.7 %. The rest drift is 4.2 uT against 2.6 to 3.3.
+  - So the extra scatter is in the board's reading of the same press, not in the force or the stamps.
+- The workstation's working hypothesis is the mount. In tip mode the DIP link clamps the board against the tip. In the
+  seat block the board sits between the tip and the block, under the four M2. The tests would be a seat that clamps the
+  board as the DIP link does, or IDs 4 to 6 in tip mode.
+- What the lab knows of how the tips sit in the seats:
+  - The camera at 640 x 360 does not resolve the M2 heads or the boards, and nobody at the lab reported a loose screw
+    or a board that moved.
+  - The note of 10-30 (above, the station block's face) holds the one known play. The M2 sit in 2.4 mm bores, so a
+    tip can shift about 0.2 mm across y, and the strip's README flattens one side with a steel rule while the M2 are
+    tightened.
+  - In ID 3's run the tip did not move along the press. The 14 reference presses reached 3 N within 0.11 mm of one
+    another over the hour (2.29 to 2.40 mm from rest), and 0.5 N to 3 N took 0.52 to 0.63 mm each time.
+  - The owner put ID 3 in at 14:3x; the M2 torque was not recorded. IDs 4 to 6 had run the night's sweeps to 8 N with
+    slides before today.
+- The workstation's stamps question (16:3x) was answered from the code. ft.bin's t is the poll answer's arrival, about
+  1 ms after the request, behind the DAQ's 50 Hz filter. held.bin's records carry the arrival time spread evenly
+  between 50 ms reads, all channels in a record sharing one stamp, behind 0 to 7 ms of the chips' burst conversions.
+  The board in tip mode (board.bin) is stamped back from each read at a fixed 1/375 s, and its values are 0 to 2.7 ms
+  old. About 10 ms of held lag is 1.5 um at the presses' 0.15 mm/s, so the stamps do not explain the gap.
+- 16:2x, relayed: the owner is taking the tips off the rig for the SR2 hand and will move the arm clear by hand first.
+  Nothing more is planned on the robot today. At 16:40 the arm still stood at seat 1's reference rest.
+- 16:4x, the owner in the lab's session, asked whether the seats' M2 were tight and whether a board could move: "yea
+  idk what to say it's pretty on there. if the inverted rig is marginally worse, then so be it. it seems like it is
+  marginally more reliable, hex-e wise. but we are done calibrating now".
+  - **The calibration is done.** The inverted rig stands as it is: about 0.6 mm against tip mode's 0.3 mm on ID 3.
+    The HEX-E's link held better in probe mode, by the owner's account.
+  - 16:44, the arm moved clear by hand: joints (43.45, -97.96, 105.78, -123.23, -91.95, -36.55) deg, flange (-253.2,
+    -387.8, 422.6) mm, 185 mm over the rest of 16:13. The rod is still on the probe base.
+  - Still running, read-only: `robot_messages.py` (PID 2632536), the controller's messages to
+    `logs/ur5_lab_robot_messages.log`. The tmux pane tipcal holds id3pts11's printout.
+  - /dev/shm holds 6.7 GB: the sim sessions (4.3 GB) and the time-lapse frames of 11-02, 11-03 and 11-04 (1.3 GB,
+    1.0 GB, 0.13 GB). Their films are in this folder. RAM keeps them only until corvus restarts.
 
 ## The lab clone and git-lfs
 
