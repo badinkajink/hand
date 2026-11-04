@@ -6,10 +6,11 @@ Every GPU batch of scripts/hom_gpu.py writes a timing line beside its rows (<row
 run_s, score_s, max_mem_gb, when), the queues log each step's wall time and peak RSS (/usr/bin/time), and
 hom_grasp_refine.py logs each iteration's wall and draw times. This script:
   ledger       sums the timing lines per rows directory (every HOM GPU run since 2026-10-29 under
-               docs/experiments/20261029-foundational_pose_review/rows and docs/experiments/20261103-hom_score_refine/rows):
-               rollouts, batches, batch seconds (build + run + score), run seconds, ms per rollout, first and last
-               batch; and the queue steps of logs/20261103-hom_score_refine (wall, peak RSS, iterations);
-               writes compute/<date>-ledger.json.
+               docs/experiments/20261029-foundational_pose_review/rows and docs/experiments/20261103-hom_score_refine/rows,
+               and from 2026-11-04 the task-conflict study's rows and rows_refine under
+               docs/experiments/20261103-hom_task_conflict): rollouts, batches, batch seconds (build + run + score), run
+               seconds, ms per rollout, first and last batch, per study; and the queue steps of
+               logs/20261103-hom_score_refine (wall, peak RSS, iterations); writes compute/<date>-ledger.json.
   cpu-bench    times the CPU runner (hom_tasks.rollout, one process per core, BLAS threads 1) on the GPU runs' own
                layouts, grasps, plant and seed: the best S1 layouts of a task with their S1 grasps, seed 0. Variants:
                'plant', the CPU plant as the CPU checks run it (every contact, the scene's solver: tolerance 1e-10, 100
@@ -56,6 +57,7 @@ import hom_grasp_refine as R  # noqa: E402
 STUDY = R.OUT
 COMPUTE = STUDY / "compute"
 HOM_ROWS = R.GRID_ROWS
+CONFLICT = ROOT / "docs/experiments/20261103-hom_task_conflict"    # hom_task_conflict.py: validation and refined layouts
 LOGS = ROOT / "logs/20261103-hom_score_refine"
 SIZES = (64, 256, 1024)                        # gpu-bench sizes below the queue's batch (hom_ea.BATCH)
 GPU_SETTINGS = {"tolerance": 1e-6, "iterations": 20, "ls_iterations": 10}     # hom_gpu.Batch
@@ -120,7 +122,7 @@ def steps():
 
 def cmd_ledger(a):
     dirs = {}
-    for root in (STUDY / "rows", HOM_ROWS):
+    for root in (STUDY / "rows", HOM_ROWS, CONFLICT / "rows", CONFLICT / "rows_refine"):
         for p in sorted(root.rglob("*_timing.jsonl")):
             lines = batch_lines(p)
             if lines:
@@ -131,6 +133,7 @@ def cmd_ledger(a):
         for p, ls in files:
             per_file[str(p.relative_to(ROOT))] = summarize(ls)
     study = {k: v for k, v in per_file.items() if k.startswith(str(STUDY.relative_to(ROOT)))}
+    conflict = {k: v for k, v in per_file.items() if k.startswith(str(CONFLICT.relative_to(ROOT)))}
     allb = [x for files in dirs.values() for _p, ls in files for x in ls]
     tot = summarize(allb)
     out = {"made": time.strftime("%Y-%m-%d %H:%M"), "host": socket.gethostname(),
@@ -139,6 +142,9 @@ def cmd_ledger(a):
                                       files=sorted(study)),
            "per_dir": per_dir, "per_file": per_file, "queue_steps": steps()}
     out["score_refine_study"]["batch_hours"] = round(out["score_refine_study"]["batch_s"] / 3600, 2)
+    out["task_conflict_study"] = dict(summarize([x for k in conflict for x in batch_lines(ROOT / k)]),
+                                      files=sorted(conflict))
+    out["task_conflict_study"]["batch_hours"] = round(out["task_conflict_study"]["batch_s"] / 3600, 2)
     COMPUTE.mkdir(parents=True, exist_ok=True)
     p = COMPUTE / f"{time.strftime('%Y%m%d')}-ledger.json"
     p.write_text(json.dumps(out, indent=1))
