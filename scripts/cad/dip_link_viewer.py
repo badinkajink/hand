@@ -46,6 +46,7 @@ sys.path.insert(0, str(REPO / "src"))
 import numpy as np  # noqa: E402
 
 import dip_link_params as DP  # noqa: E402
+from sr2hand.geometry.sdf import sd_cylinder
 
 PAGE = REPO / "scripts/cad/dip_link_viewer.html"
 JOBS_DIR = REPO / "logs/20261018-dip_link/viewer_jobs"
@@ -91,9 +92,7 @@ def _magnets(M3, items, d):
 
 
 def disc_distance(P, centre, x0, x1, R):
-    r = np.hypot(P[:, 1] - centre[1], P[:, 2] - centre[2])
-    dx = np.maximum.reduce([x0 - P[:, 0], np.zeros(len(P)), P[:, 0] - x1])
-    return np.hypot(dx, np.maximum(r - R, 0.0))
+    return np.maximum(sd_cylinder(P, R, x0, x1, axis=0, centre=centre[1:]), 0.0)
 
 
 class Geometry:

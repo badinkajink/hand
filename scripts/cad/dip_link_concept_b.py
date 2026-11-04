@@ -2001,8 +2001,8 @@ def cmd_eval(a):
     g_hi = np.array([X_SLOT, RAIL_Y + RAIL_TOP / 2 - GROOVE_FIT, RAIL_Z[1] + 0.2])
 
     def box_dist(P, lo, hi):
-        d = np.maximum(np.maximum(lo - P, P - hi), 0.0)
-        return np.linalg.norm(d, axis=1)
+        from sr2hand.geometry.sdf import sd_box
+        return np.maximum(sd_box(P, lo, hi), 0.0)
     r4 = {}
     for key in TIPS:
         pm = trimesh.load(WORK / f"pad_{key}.stl")

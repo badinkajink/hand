@@ -39,6 +39,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import rot_y
 
 STUDY = REPO / "docs/experiments/20261018-dip_link_board_mount"
 LOGS = REPO / "logs/20261018-dip_link"
@@ -77,12 +78,7 @@ def board_to_F(uvw, x_comp, comp_toward_tip=True):
 
 def rot_pip(points, q_deg):
     """Points fixed to the MCP link (F at q = 0) as seen from the DIP link at PIP angle q: a turn by -q about the PIP axis."""
-    phi = math.radians(-q_deg)
-    c, s = math.cos(phi), math.sin(phi)
-    p = np.asarray(points, float) - PIP_C
-    x, z = p[..., 0], p[..., 2]
-    out = np.stack([x * c + z * s, p[..., 1], -x * s + z * c], axis=-1)   # rotation about +y by phi
-    return out + PIP_C
+    return (np.asarray(points, float) - PIP_C) @ rot_y(math.radians(-q_deg)).T + PIP_C
 
 
 # ---------------------------------------------------------------------------------------------------------- CAD parts

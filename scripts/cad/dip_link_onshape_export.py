@@ -46,6 +46,7 @@ import Part  # noqa: E402
 
 import dip_link_concept_a as A  # noqa: E402
 import dip_link_board_mount as DLF  # noqa: E402  (sets A.clamp_plate to the final's, with the Qwiic pocket)
+from sr2hand.geometry.rotations import rot_y, tf, tf_inv
 
 STUDY = REPO / "docs/experiments/20261018-dip_link_board_mount"
 OUT = STUDY / "onshape"
@@ -62,11 +63,7 @@ def T_D_from_F():
     """Inverse of spec.json's transforms_F_from_stl['dip_link'] (x_F = -x_D, y_F = y_D - 21.25, z_F = -z_D - 51.55), with
     the rotation's 8e-6 entries set to zero so that the transform stays a rigid placement of the exact solids."""
     T = A._T_F_from_stl("dip_link")
-    R = np.round(T[:3, :3])
-    t = -R.T @ T[:3, 3]
-    M = np.eye(4)
-    M[:3, :3], M[:3, 3] = R.T, t
-    return M
+    return tf_inv(tf(np.round(T[:3, :3]), T[:3, 3]))
 
 
 def to_D(shape, M):
@@ -159,12 +156,8 @@ def faceted(path, M=None):
 def pip_T(q_deg):
     """4 x 4 form of dip_link_geometry.rot_pip: a part fixed to the MCP link as seen from the DIP link at PIP angle q, a
     turn by -q about the PIP axis."""
-    phi = math.radians(-q_deg)
-    c, s = math.cos(phi), math.sin(phi)
-    R = np.array([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]])
-    T = np.eye(4)
-    T[:3, :3], T[:3, 3] = R, np.array(PIP_C) - R @ np.array(PIP_C)
-    return T
+    R = rot_y(math.radians(-q_deg))
+    return tf(R, np.array(PIP_C) - R @ np.array(PIP_C))
 
 
 def T_F_from_stl(part, src):

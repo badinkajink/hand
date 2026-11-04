@@ -1403,7 +1403,8 @@ def b_r4(B):
     g_hi = np.array([B.X_SLOT, B.RAIL_Y + B.RAIL_TOP / 2 - B.GROOVE_FIT, B.RAIL_Z[1] + 0.2])
 
     def box_dist(P, lo, hi):
-        return np.linalg.norm(np.maximum(np.maximum(lo - P, P - hi), 0.0), axis=1)
+        from sr2hand.geometry.sdf import sd_box
+        return np.maximum(sd_box(P, lo, hi), 0.0)
     out = {}
     for key in B.TIPS:
         pm = trimesh.load(B.WORK / f"pad_{key}.stl")

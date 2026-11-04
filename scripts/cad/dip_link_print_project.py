@@ -110,8 +110,7 @@ def box_F_to_print(lo, hi, Rt):
 
 def box_mesh(lo, hi):
     import trimesh
-    lo, hi = np.asarray(lo, float), np.asarray(hi, float)
-    return trimesh.creation.box(extents=hi - lo, transform=trimesh.transformations.translation_matrix((lo + hi) / 2))
+    return trimesh.creation.box(bounds=[lo, hi])
 
 
 def link_volumes(link_print, Rt):

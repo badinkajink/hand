@@ -51,6 +51,7 @@ sys.path.insert(0, str(REPO / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 sys.path.insert(0, str(REPO / "src"))
 import dip_link_concept_a as A  # noqa: E402
+from sr2hand.geometry.sdf import sd_cylinder
 
 STUDY = REPO / "docs/experiments/20261018-dip_link_board_mount"
 FINAL = STUDY / "final"
@@ -265,8 +266,7 @@ def board_to_F_pts(P_b, theta_deg, flipped):
 
 def box_mesh(lo, hi):
     import trimesh
-    lo, hi = np.asarray(lo, float), np.asarray(hi, float)
-    return trimesh.creation.box(extents=hi - lo, transform=trimesh.transformations.translation_matrix((lo + hi) / 2))
+    return trimesh.creation.box(bounds=[lo, hi])
 
 
 def qwiic_header_final():
@@ -396,10 +396,7 @@ def cmd_qwiic(a):
 # ----------------------------------------------------------------------------------------------- checks
 def disc_distance(P, centre, x0, x1, R):
     """Least distance (mm) from points P (n, 3) to a solid disc magnet with its axis along x."""
-    r = np.hypot(P[:, 1] - centre[1], P[:, 2] - centre[2])
-    dx = np.maximum.reduce([x0 - P[:, 0], np.zeros(len(P)), P[:, 0] - x1])
-    dr = np.maximum(r - R, 0.0)
-    return np.hypot(dx, dr)
+    return np.maximum(sd_cylinder(P, R, x0, x1, axis=0, centre=centre[1:]), 0.0)
 
 
 def cmd_check(a):

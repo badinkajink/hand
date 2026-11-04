@@ -167,24 +167,13 @@ def section_props(path, z):
     (about the PIP axis' direction), I_x across the finger."""
     import numpy as np
     import trimesh
+    from sr2hand.geometry.mesh import polygon_section
     m = trimesh.load(path, force="mesh")
     sec = m.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1])
     p2, _ = sec.to_planar(to_2D=np.eye(4))                       # x, y as they are (normal +z)
-    A = Sx = Sy = Ixx = Iyy = 0.0
-    for poly in p2.polygons_full:
-        for ring, s in [(np.asarray(poly.exterior.coords), 1.0)] + [(np.asarray(h.coords), -1.0) for h in poly.interiors]:
-            x, y = ring[:, 0], ring[:, 1]
-            cr = x[:-1] * y[1:] - x[1:] * y[:-1]
-            w = s * np.sign(cr.sum())                              # each ring counter-clockwise, holes subtracted
-            A += w * 0.5 * cr.sum()
-            Sx += w * np.sum((x[:-1] + x[1:]) * cr) / 6.0
-            Sy += w * np.sum((y[:-1] + y[1:]) * cr) / 6.0
-            Ixx += w * np.sum((x[:-1] ** 2 + x[:-1] * x[1:] + x[1:] ** 2) * cr) / 12.0
-            Iyy += w * np.sum((y[:-1] ** 2 + y[:-1] * y[1:] + y[1:] ** 2) * cr) / 12.0
-    xc, yc = Sx / A, Sy / A
-    # Ixx here is the integral of x^2 (bending about the y axis), Iyy of y^2 (about the x axis)
+    A, xc, yc, I_x, I_y = polygon_section(p2.polygons_full)
     return dict(z_F=z, area_mm2=round(A, 1), centroid_x_F=round(xc, 2), centroid_y_F=round(yc, 2),
-                I_about_y_mm4=round(Ixx - A * xc ** 2, 0), I_about_x_mm4=round(Iyy - A * yc ** 2, 0),
+                I_about_y_mm4=round(I_y, 0), I_about_x_mm4=round(I_x, 0),
                 x_range_F=[round(float(p2.bounds[0][0]), 2), round(float(p2.bounds[1][0]), 2)])
 
 

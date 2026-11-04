@@ -40,6 +40,7 @@ except NameError:                                   # freecadcmd executes the fi
     REPO = Path(os.environ["DIPA_REPO"])
 sys.path.insert(0, str(REPO / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.vectors import project_free_camera
 sys.path.insert(0, str(REPO / "src"))
 
 STUDY = REPO / "docs/experiments/20261018-dip_link_board_mount"
@@ -1188,15 +1189,7 @@ def _render(meshes, cam, dst, w=W_IMG, h=H_IMG):
 def _project(P, cam, w=W_IMG, h=H_IMG):
     """Pixel coordinates (u right, v down) of points P (n, 3) in F (mm) for MuJoCo's free camera."""
     lookat, dist, az, el = cam
-    a, e = math.radians(az), math.radians(el)
-    fwd = np.array([math.cos(e) * math.cos(a), math.cos(e) * math.sin(a), math.sin(e)])
-    up = np.array([-math.sin(e) * math.cos(a), -math.sin(e) * math.sin(a), math.cos(e)])
-    right = np.cross(fwd, up)
-    eye = np.asarray(lookat, float) - dist * fwd
-    f = (h / 2) / math.tan(math.radians(FOVY) / 2)
-    Q = np.atleast_2d(P) - eye
-    zc = Q @ fwd
-    return np.column_stack([w / 2 + f * (Q @ right) / zc, h / 2 - f * (Q @ up) / zc])
+    return project_free_camera(np.atleast_2d(P), lookat, dist, az, el, FOVY, w, h)
 
 
 def _annotate(path, cam, labels, title=None, callout=False):
