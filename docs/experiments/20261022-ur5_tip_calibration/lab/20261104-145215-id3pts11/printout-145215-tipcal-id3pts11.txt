@@ -1,0 +1,160 @@
+resumed logs/20261104-tip_calibration/145215-id3pts11_seed: 1 actions done, 0 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 136 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 136 records/s, mux channel 2 136 records/s, mux channel 3 136 records/s
+  HEX-E noise (1 sigma) N, N m: [0.0429 0.049  0.2301 0.0028 0.0036 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== pad
+  pad-ref-00: onset +0.689 mm from the expected (power 2.00, fit 245.5 mN)
+  pad-face-775-r90: onset +0.932 mm from the expected (power 2.00, fit 244.2 mN)
+  pad-edge-608-r90: onset +0.788 mm from the expected (power 1.00, fit 246.5 mN)
+  pad-edge-693-r90: onset +0.674 mm from the expected (power 1.25, fit 229.5 mN)
+  pad-face-757-r90: onset +0.871 mm from the expected (power 2.00, fit 253.6 mN)
+  pad-edge-609-r90: onset +0.950 mm from the expected (power 1.25, fit 229.2 mN)
+  pad-edge-620-r90: onset +1.141 mm from the expected (power 1.50, fit 241.2 mN)
+  pad-edge-624-r90: onset +0.583 mm from the expected (power 1.25, fit 230.0 mN)
+  pad-edge-628-r90: onset +0.484 mm from the expected (power 2.00, fit 236.4 mN)
+  pad-edge-629-r90: onset +1.243 mm from the expected (power 2.00, fit 197.4 mN)
+  pad-face-765-r90: onset +0.882 mm from the expected (power 1.00, fit 239.8 mN)
+  pad-edge-571-r90: onset +1.487 mm from the expected (power 1.00, fit 166.6 mN)
+  pad-face-716-r90: onset +0.726 mm from the expected (power 1.00, fit 236.1 mN)
+  pad-edge-638-r90: onset +1.138 mm from the expected (power 1.00, fit 234.3 mN)
+  pad-face-731-r90: onset +0.467 mm from the expected (power 1.25, fit 225.3 mN)
+  pad-edge-574-r90: onset +1.515 mm from the expected (power 1.00, fit 208.9 mN)
+  pad-face-723-r90: onset +0.584 mm from the expected (power 1.50, fit 236.7 mN)
+  pad-face-787-r90: onset +0.852 mm from the expected (power 2.00, fit 238.2 mN)
+  pad-edge-639-r90: onset +0.209 mm from the expected (power 1.00, fit 204.0 mN)
+  pad-face-730-r90: onset +0.539 mm from the expected (power 1.00, fit 223.4 mN)
+== register
+register (probe, rod): pad touches 0.060 mm rms (20); the pad 0.713 mm, 1.547 deg from the seed; the rod's axis moved 1.486 mm across itself, c_M at [ -0.933   0.    106.343] in M (sd [0.103 0.    0.133] mm), turned +8.52 deg about z_M and -3.67 deg across (sd [1.72 1.55])
+== grid
+  probe-ref-s00 (1/125): to 3.00 N
+  probe-ref-r00 (2/125): to 3.00 N
+  probe-ref-r01 (3/125): to 3.00 N
+  probe-ref-r02 (4/125): to 3.00 N
+  probe-ref-r03 (5/125): to 3.00 N
+  probe-ref-r04 (6/125): to 3.00 N
+  probe-ref-r05 (7/125): to 3.00 N
+  probe-ref-r06 (8/125): to 3.00 N
+  probe-ref-r07 (9/125): to 3.00 N
+  probe-edge-575-r0 (10/125): to 3.00 N
+  probe-edge-577-r0 (11/125): to 3.00 N
+  probe-edge-568-r0 (12/125): to 3.00 N
+  probe-edge-566-r0 (13/125): to 3.00 N
+  probe-edge-510-r0 (14/125): to 3.00 N
+  probe-edge-558-r0 (15/125): to 3.00 N
+  probe-edge-704-r90 (16/125): to 3.00 N
+  probe-face-775-r90 (17/125): to 3.00 N
+  probe-edge-608-r90 (18/125): to 3.00 N
+  probe-edge-612-r90 (19/125): to 3.00 N
+  probe-edge-617-r90 (20/125): to 3.00 N
+  probe-edge-675-r90 (21/125): to 3.00 N
+  probe-edge-676-r90 (22/125): to 3.00 N
+  probe-edge-671-r90 (23/125): to 3.00 N
+  probe-edge-683-r90 (24/125): to 3.00 N
+  probe-edge-693-r90 (25/125): to 3.00 N
+  probe-face-692-r90 (26/125): to 3.00 N
+  probe-face-689-r90 (27/125): to 3.00 N
+  probe-edge-569-r90 (28/125): to 3.00 N
+  probe-face-757-r90 (29/125): to 3.00 N
+  probe-face-761-r90 (30/125): to 3.00 N
+  probe-face-701-r90 (31/125): to 3.00 N
+  probe-face-769-r90 (32/125): to 3.00 N
+  probe-face-762-r90 (33/125): to 3.00 N
+  probe-face-763-r90 (34/125): to 3.00 N
+  probe-ref-s01 (35/125): to 3.00 N
+  probe-face-707-r90 (36/125): to 3.00 N
+  probe-edge-631-r90 (37/125): to 3.00 N
+  probe-face-779-r90 (38/125): to 3.00 N
+  probe-face-780-r90 (39/125): to 3.00 N
+  probe-edge-609-r90 (40/125): to 3.00 N
+  probe-edge-614-r90 (41/125): to 3.00 N
+  probe-edge-604-r90 (42/125): to 3.00 N
+  probe-edge-610-r90 (43/125): to 3.00 N
+  probe-edge-621-r90 (44/125): to 3.00 N
+  probe-edge-620-r90 (45/125): to 3.00 N
+  probe-edge-622-r90 (46/125): to 3.00 N
+  probe-edge-624-r90 (47/125): to 3.00 N
+  probe-edge-618-r90 (48/125): to 3.00 N
+  probe-edge-673-r90 (49/125): to 3.00 N
+  probe-edge-669-r90 (50/125): to 3.00 N
+  probe-edge-672-r90 (51/125): to 3.00 N
+  probe-edge-628-r90 (52/125): to 3.00 N
+  probe-edge-626-r90 (53/125): to 3.00 N
+  probe-face-687-r90 (54/125): to 3.00 N
+  probe-edge-680-r90 (55/125): to 3.00 N
+  probe-face-691-r90 (56/125): to 3.00 N
+  probe-edge-681-r90 (57/125): to 3.00 N
+  probe-face-759-r90 (58/125): to 3.00 N
+  probe-edge-629-r90 (59/125): to 3.00 N
+  probe-edge-696-r90 (60/125): to 3.00 N
+  probe-ref-s02 (61/125): to 3.00 N
+  probe-face-697-r90 (62/125): to 3.00 N
+  probe-face-703-r90 (63/125): to 3.00 N
+  probe-face-765-r90 (64/125): to 3.00 N
+  probe-face-767-r90 (65/125): to 3.00 N
+  probe-face-771-r90 (66/125): to 3.00 N
+  probe-edge-571-r90 (67/125): to 3.00 N
+  probe-face-706-r90 (68/125): to 3.00 N
+  probe-face-709-r90 (69/125): to 3.00 N
+  probe-face-772-r90 (70/125): to 3.00 N
+  probe-face-777-r90 (71/125): to 3.00 N
+  probe-edge-606-r90 (72/125): to 3.00 N
+  probe-face-712-r90 (73/125): to 3.00 N
+  probe-face-713-r90 (74/125): to 3.00 N
+  probe-face-716-r90 (75/125): to 3.00 N
+  probe-face-784-r90 (76/125): to 3.00 N
+  probe-face-788-r90 (77/125): to 3.00 N
+  probe-face-789-r90 (78/125): to 3.00 N
+  probe-face-793-r90 (79/125): to 3.00 N
+  probe-face-714-r90 (80/125): to 3.00 N
+  probe-edge-634-r90 (81/125): to 3.00 N
+  probe-face-786-r90 (82/125): to 3.00 N
+  probe-face-791-r90 (83/125): to 3.00 N
+  probe-face-792-r90 (84/125): to 3.00 N
+  probe-edge-638-r90 (85/125): to 3.00 N
+  probe-face-731-r90 (86/125): to 3.00 N
+  probe-ref-s03 (87/125): to 3.00 N
+  probe-edge-726-r90 (88/125): to 3.00 N
+  probe-face-738-r90 (89/125): to 3.00 N
+  probe-edge-574-r90 (90/125): to 3.00 N
+  probe-edge-636-r90 (91/125): to 3.00 N
+  probe-face-721-r90 (92/125): to 3.00 N
+  probe-edge-718-r90 (93/125): to 3.00 N
+  probe-face-720-r90 (94/125): to 3.00 N
+  probe-face-719-r90 (95/125): to 3.00 N
+  probe-face-725-r90 (96/125): to 3.00 N
+  probe-face-723-r90 (97/125): to 3.00 N
+  probe-face-803-r90 (98/125): to 3.00 N
+  probe-face-796-r90 (99/125): to 3.00 N
+  probe-face-787-r90 (100/125): to 3.00 N
+  probe-face-790-r90 (101/125): to 3.00 N
+  probe-edge-654-r90 (102/125): to 3.00 N
+  probe-edge-652-r90 (103/125): to 3.00 N
+  probe-edge-656-r90 (104/125): to 3.00 N
+  probe-edge-650-r90 (105/125): to 3.00 N
+  probe-edge-653-r90 (106/125): to 3.00 N
+  probe-edge-658-r90 (107/125): to 3.00 N
+  probe-edge-643-r90 (108/125): to 3.00 N
+  probe-edge-644-r90 (109/125): to 3.00 N
+  probe-edge-642-r90 (110/125): to 3.00 N
+  probe-edge-645-r90 (111/125): to 3.00 N
+  probe-edge-750-r90 (112/125): to 3.00 N
+  probe-ref-s04 (113/125): to 3.00 N
+  probe-edge-641-r90 (114/125): to 3.00 N
+  probe-edge-743-r90 (115/125): to 3.00 N
+  probe-edge-639-r90 (116/125): to 3.00 N
+  probe-face-732-r90 (117/125): to 3.00 N
+  probe-face-733-r90 (118/125): to 3.00 N
+  probe-face-730-r90 (119/125): to 3.00 N
+  probe-face-734-r90 (120/125): to 3.00 N
+  probe-edge-729-r90 (121/125): to 3.00 N
+  probe-edge-739-r90 (122/125): to 3.00 N
+  probe-face-735-r90 (123/125): to 3.00 N
+  probe-face-728-r90 (124/125): to 3.00 N
+  probe-ref-sfinal (125/125): to 3.00 N
+HEX-E: 483589 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 1.0 s, Fz +0.1 N; 0.7 s, Fz +0.1 N
+session in logs/20261104-tip_calibration/145215-id3pts11_seed
+exit 0 at 16:13:01

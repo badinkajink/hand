@@ -3214,6 +3214,45 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
     plan's.
   - The hard stop is at 17:00 (min=85). At this morning's pace, 30 s an action, the run takes about 80 min with pass 1.
 - Preflight: HEX-E 100 Hz with none timed out; mux channels 0, 2 and 3 at 136 records/s each; robot 124 Hz.
+- Pass 1, 14:52:20 to 15:11:39: 20 of 20 touches at +0.21 to +1.52 mm from the expected.
+  - Edge-571 (+1.49) and edge-574 (+1.52) came latest and edge-639 (+0.21) earliest, as a tilted pad would give.
+  - The register fitted them to 0.060 mm rms, none left out. ID 3's pad lies 0.713 mm and 1.547 deg from the seed
+    (rod13's fit of ID 6's pad).
+  - The rod's c_M is at (-0.933, 0, 106.343) in M (sd 0.103, 0.133), 1.486 mm across the axis from the plan's. The
+    turn came out +8.52 deg about z_M and -3.67 deg across (sd 1.72, 1.55).
+- The turn did not stop the run.
+  - The program uses the fitted axis only for rod rolls (`ur5_tip_calibration.py` line 2320), and this plan has none.
+  - Pass 1's turns have scattered on this one rod: rod21 -5.40, rod32 +10.75, rod13 -2.90 deg. The workstation's joint
+    fit over 176 sweeps gives +0.43 and -0.89 deg, and the rod was not reseated.
+  - The workstation's worst case took this fit's turn as true, at each press's deep pose 2 mm past contact. Edge-574-r90
+    reached 0.10 mm. With the opposite sign across, edge-617-r90 reached -0.16 mm. The presses stop at 3 N, about 1.3 mm
+    short of that pose.
+- The lab checked the four tightest actions from robot.bin: the flange's travel from rest to each level's first time,
+  along the press (scratchpad `press_depth.py`). On the pad, 0.5 N to 3 N takes about 0.4 to 0.6 mm; a rigid body would
+  take a fraction of that. All four pressed the pad:
+
+  | Action (grid) | Rest to 0.5 N | 0.5 to 3 N |
+  |---|---|---|
+  | edge-617-r90 (20) | 1.68 mm | 0.48 mm |
+  | edge-604-r90 (42) | 1.56 mm | 0.39 mm |
+  | edge-618-r90 (48) | 1.48 mm | 0.48 mm |
+  | edge-574-r90 (90) | 1.64 mm | 0.39 mm |
+
+  Their neighbours: edge-608 and -612 1.68 and 1.71 mm; edge-571 1.60 and 0.39 mm. Over all 125 presses the rise is
+  0.37 to 0.63 mm (median 0.51): face presses and r90 edges 0.47 to 0.63, r0 edges 0.37 to 0.45.
+- The grid, 15:11:46 to 16:12:58: 125 of 125 to 3 N in 61.2 min, with no skip, abort, early contact or missed level.
+  The program exited 0 at 16:13:01, and the chain ended at 16:13:11 ("all steps done").
+- The 14 reference presses held still over the hour. Rest to 3 N was 2.29 to 2.40 mm (s00 2.36, sfinal 2.40) and rest
+  to 0.5 N 1.71 to 1.84 mm. The eight back to back (r00 to r07) gave 2.34 to 2.40 mm.
+- The HEX-E gave 483,589 samples, none timed out. Its two gaps (1.0 and 0.7 s) came at the program's start. In pass 1
+  it showed the night's pattern: bursts of 20 to 46 ms once a minute at the touches, as in rod13's pass 1.
+- 16:13:15: the time-lapse stopped by its stop file, 2,523 frames from 14:51:42. The 17:00 stop (PID 2978001) was stopped
+  by its PID with its sleep.
+- The arm waits at seat 1's reference rest for ID 3's fit: joints (49.31, -76.80, 105.76, -123.11, -91.97, -36.55) deg,
+  flange (-270.7, -479.8, 237.5) mm. The rod is a few mm over ID 3's pad, and the slider is 0.30.
+- The session is copied whole, with its printout, to `20261104-145215-id3pts11/`: ft.bin 35 MB, robot.bin 72 MB,
+  held.bin 196 MB (channel 3 is ID 3), and events, plan, registration, session and touches. It is byte for byte the
+  live folder.
 
 ## The lab clone and git-lfs
 
