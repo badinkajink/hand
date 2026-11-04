@@ -11,7 +11,15 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 11-03 15:0x: feed line 49 (14:49: the 2 mm sphere's seat 1
+State: armed 2026-10-27 21:00 from the colorado window. 11-03 17:2x: feed line 50 (16:59: the rod's cone sweeps to
+8 N on seats 2, 3, 1 from 16:58 to about 03:00 on 11-04, the last calibration before the SR2 hand) on the calibration
+page 889579d3, with what ran before it from lab/NOTES.md and QUEUE R31/R32 (seat 2's 2 mm grid 14:48-16:11, 269/269,
+moves 1.67x faster from 15:42 after the speed slider was changed at the pendant, 3 N presses peaked 5-7.8 N; seat 3's
+2 mm grid dropped; the 2 mm test stopped at 16:17 before its first sweep); the cone item now describes the night's rod
+sweeps; prose 626, 16.8, 1.9 %, 267/1000. Acked 50 lines at HEAD 889579d3. The resguard SIGTERM of 16:56:04
+(ur5_inverted_rig.py dry-check --tag _rod_sweep8_chain) was the coordinator's job, not this one's; its replay is in
+29d4f4de. Next: the rod run's end (~03:00 on 11-04), then the coordinator's analysis of the rig's sessions.
+11-03 15:0x: feed line 49 (14:49: the 2 mm sphere's seat 1
 done 260/260 at 14:48, no abort, 40 at their depth limit; seat 2 from 14:48 at 0.6 mm/s; the cone test passed the lab's
 simulator) on the calibration page 0579fbff (rig item and cone item; prose 620, 16.8, 1.9 %, 271/1000). Acked 49 lines
 at HEAD 0579fbff.
