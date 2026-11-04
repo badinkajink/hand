@@ -33,6 +33,9 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from sr2hand.studies.scene_mutate import seated_scene  # noqa: E402  (tool resting on the post)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_mul, quat_yaw
 
 ROOT = Path(__file__).resolve().parents[2]
 FINGERS = ("thumb", "index", "middle")
@@ -76,14 +79,7 @@ def run_trial(scene: Path, plan: dict, jitter_xy: float, jitter_yaw: float,
     d.qpos[qadr + 0] += rng.normal(0, jitter_xy)
     d.qpos[qadr + 1] += rng.normal(0, jitter_xy)
     if jitter_yaw:
-        a = rng.normal(0, jitter_yaw) / 2.0
-        q = d.qpos[qadr + 3:qadr + 7].copy()
-        dq = np.array([np.cos(a), 0.0, 0.0, np.sin(a)])
-        d.qpos[qadr + 3:qadr + 7] = np.array([
-            q[0]*dq[0]-q[1]*dq[1]-q[2]*dq[2]-q[3]*dq[3],
-            q[0]*dq[1]+q[1]*dq[0]+q[2]*dq[3]-q[3]*dq[2],
-            q[0]*dq[2]-q[1]*dq[3]+q[2]*dq[0]+q[3]*dq[1],
-            q[0]*dq[3]+q[1]*dq[2]-q[2]*dq[1]+q[3]*dq[0]])
+        d.qpos[qadr + 3:qadr + 7] = quat_mul(quat_yaw(rng.normal(0, jitter_yaw)), d.qpos[qadr + 3:qadr + 7])
 
     def hold(pose, seconds):
         d.ctrl[:] = base_ctrl          # keeps the six palm-pose channels where the plan put them
