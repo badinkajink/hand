@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_mul, quat_yaw
 
 BASES = [ROOT / "assets/mjcf/experimental/20260830-real_v1-sobol4096",
          ROOT / "assets/mjcf/experimental/20260830-real_v1-sobol128"]
@@ -151,15 +152,6 @@ def _rec(tag: str, m: dict, which: str) -> dict | None:
             "axis_k": m["axis_k"], "angle_deg": m["angle_deg"], "budget": m["budget_rad"]}
 
 
-def _qmul(a, b):
-    w1, x1, y1, z1 = a
-    w2, x2, y2, z2 = b
-    return (w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
-            w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-            w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
-            w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2)
-
-
 def prepare(h: dict, yaw_deg: float = 0.0, squeeze_mm: float | None = None) -> dict | None:
     """Design scene -> fitted grasp baked into `open_ik` -> countersink -> UR5e arm scene.
 
@@ -199,9 +191,7 @@ def prepare(h: dict, yaw_deg: float = 0.0, squeeze_mm: float | None = None) -> d
             root = ET.parse(flat).getroot()
             b = next(x for x in root.iter("body") if x.get("name") == BASE["obj"])
             q = tuple(float(v) for v in (b.get("quat") or "1 0 0 0").split())
-            a = math.radians(yaw_deg) / 2.0
-            b.set("quat", " ".join(f"{v:.9g}" for v in
-                                   _qmul((math.cos(a), 0.0, 0.0, math.sin(a)), q)))
+            b.set("quat", " ".join(f"{v:.9g}" for v in quat_mul(quat_yaw(math.radians(yaw_deg)), q)))
             ET.ElementTree(root).write(flat, encoding="unicode")
     built = pc._grip_from_fit(flat, h["straddle"], 0.0, sq / 1000.0, BASE["obj"],
                               h["depth"], h["thumb_axial"], h.get("elevation", 0.0))

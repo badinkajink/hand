@@ -52,6 +52,7 @@ import fit_real_v1_pose as fp  # noqa: E402
 from sr2hand.tools.keyframe_ik import (  # noqa: E402
     FINGERS, actuator_ctrl_from_qpos, ik_finger,
 )
+from sr2hand.geometry.rotations import rot_x as _rotx
 
 TIPS = {f: f"{f}_tip" for f in FINGERS}
 
@@ -192,11 +193,6 @@ def _min_cross_clearance(m, d, pairs, owner, distmax=0.05):
         if dist < best:
             best, who = dist, (owner[a], owner[b])
     return (None, None) if who is None else (best, who)
-
-
-def _rotx(a: float) -> np.ndarray:
-    c, s = np.cos(a), np.sin(a)
-    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
 
 
 def _contacts(m, d, obj: str):

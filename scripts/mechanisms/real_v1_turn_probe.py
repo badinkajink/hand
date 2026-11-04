@@ -23,6 +23,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import rot_x
 FINGERS = {"thumb": ("thumb_yaw", "thumb_mcp", "thumb_pip"),
            "index": ("index_yaw", "index_mcp", "index_pip"),
            "middle": ("middle_yaw", "middle_mcp", "middle_pip")}
@@ -127,8 +128,7 @@ def run(hand_tag: str, plant: str, squeeze: float, axis_k: float, budget: float,
             for k in (0.0, 0.15, 0.3, 0.5, 0.75, 1.0):
                 c = p0.copy(); c[2] += k * span
                 for deg in (-10, -20, -30, -40, -50, -60, -75, -90, 10, 20, 30):
-                    a = np.radians(deg)
-                    Rx = np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]])
+                    Rx = rot_x(np.radians(deg))
                     res = {}
                     for f in FINGERS:
                         dk.qpos[:] = q_lift
@@ -160,7 +160,7 @@ def run(hand_tag: str, plant: str, squeeze: float, axis_k: float, budget: float,
             u = min(1.0, (step - T["step0"] + 1) / T["turn_steps"])
             a = T["angle"] * u
             c = np.array(T["centroid"])
-            Rx = np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]])
+            Rx = rot_x(a)
             tip_tgt = {f: (c + Rx @ (np.array(T["tip0"][f]) - c)).tolist() for f in FINGERS}
         pads = {f: {"n": 0.0, "t": 0.0, "slip": 0.0, "k": 0} for f in FINGERS}
         nonpad = []

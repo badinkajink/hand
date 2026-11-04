@@ -63,6 +63,10 @@ from sr2hand.tools.keyframe_ik import (  # noqa: E402
     inject_keyframe,
 )
 from sr2hand.tools.morphology_xml import create_rigid_hand_and_scene_xmls  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.distances import point_segment
+from sr2hand.geometry.rotations import rot_x as _rx, rot_y as _ry
 
 HAND = ROOT / "assets/mjcf/real_v1/real_hand.xml"
 SCENE = ROOT / "assets/mjcf/real_v1/scenes/scene_basketball.xml"
@@ -210,20 +214,6 @@ PIP_RANGE = (-0.314159, 1.605703)
 PLATE_UNDERSIDE = 0.025 - 0.0015          # plate underside above the mounting plane
 
 
-def _rx(a):
-    c, s_ = np.cos(a), np.sin(a)
-    out = np.zeros(a.shape + (3, 3)); out[..., 0, 0] = 1
-    out[..., 1, 1] = c; out[..., 1, 2] = -s_; out[..., 2, 1] = s_; out[..., 2, 2] = c
-    return out
-
-
-def _ry(a):
-    c, s_ = np.cos(a), np.sin(a)
-    out = np.zeros(a.shape + (3, 3)); out[..., 1, 1] = 1
-    out[..., 0, 0] = c; out[..., 0, 2] = s_; out[..., 2, 0] = -s_; out[..., 2, 2] = c
-    return out
-
-
 def finger_fk(finger: str, yaw, mcp, pip):
     """Pad centre and the three link segments (mount frame) for arrays of joint angles.
 
@@ -253,13 +243,6 @@ def finger_fk(finger: str, yaw, mcp, pip):
     return pad, ((zero, yaw_end), (mcp_j, mid_end), (pip_j, dist_end))
 
 
-def _seg_dist(c, a, b):
-    """Distance from point c to segments a->b (broadcast over leading dims)."""
-    ab = b - a
-    t = np.clip(np.einsum("...i,...i->...", c - a, ab) / np.maximum(np.einsum("...i,...i->...", ab, ab), 1e-12), 0, 1)
-    return np.linalg.norm(c - (a + t[..., None] * ab), axis=-1)
-
-
 def reach_map(mounts: dict[str, np.ndarray], centre: np.ndarray, R: float,
               touch_tol: float = 0.0015, link_clear: float = -0.0005,
               n_yaw: int = 69, n_mcp: int = 55, n_pip: int = 38) -> dict[str, dict]:
@@ -283,7 +266,7 @@ def reach_map(mounts: dict[str, np.ndarray], centre: np.ndarray, R: float,
         touching = np.abs(dist - (R + PAD_RADIUS)) < touch_tol
         clear = np.ones_like(touching)
         for a, b in segs:
-            clear &= _seg_dist(centre, a + mounts[f], b + mounts[f]) - (R + PAD_RADIUS) > link_clear
+            clear &= point_segment(centre, a + mounts[f], b + mounts[f]) - (R + PAD_RADIUS) > link_clear
         marg = np.minimum.reduce([Y - YAW_RANGE[0], YAW_RANGE[1] - Y, MCP_RANGE[1] - M, PIP_RANGE[1] - P])
         ok = touching & clear & (marg > LIMIT_MARGIN)
         theta = np.degrees(np.arccos(np.clip(rel[..., 2] / np.maximum(dist, 1e-9), -1, 1)))

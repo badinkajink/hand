@@ -22,6 +22,10 @@ from pathlib import Path
 
 import mujoco
 import numpy as np
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import euler_to_mat, mat_to_euler
 
 GANTRY_JOINTS = ("palm_px", "palm_py", "palm_pz", "palm_rx", "palm_ry", "palm_rz")
 
@@ -36,11 +40,8 @@ def _euler_xyz(m, R: np.ndarray, p: np.ndarray, body: str = "palm_pose"):
     """
     assert np.allclose(m.body(body).quat, [1, 0, 0, 0], atol=1e-9), \
         f"{body} carries a body quat; this Euler decomposition assumes identity"
-    b = float(np.arcsin(np.clip(R[0, 2], -1.0, 1.0)))
-    a = float(np.arctan2(-R[1, 2], R[2, 2]))
-    c = float(np.arctan2(-R[0, 1], R[0, 0]))
     t = np.asarray(p, float) - np.asarray(m.body(body).pos, float)
-    return np.array([t[0], t[1], t[2], a, b, c])
+    return np.r_[t[:3], mat_to_euler(R, "XYZ")]
 
 
 class GantryPalm:
@@ -74,14 +75,7 @@ class GantryPalm:
 
     def fk(self, u: np.ndarray):
         """Palm world pose for a command vector. Closed form: the gantry IS the pose."""
-        R = np.eye(3)
-        for ang, ax in ((u[3], 0), (u[4], 1), (u[5], 2)):
-            c, s = np.cos(ang), np.sin(ang)
-            Rm = {0: np.array([[1, 0, 0], [0, c, -s], [0, s, c]]),
-                  1: np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]]),
-                  2: np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])}[ax]
-            R = R @ Rm
-        return R, np.asarray(self.m.body("palm_pose").pos, float) + u[:3]
+        return euler_to_mat(u[3:6], "XYZ"), np.asarray(self.m.body("palm_pose").pos, float) + u[:3]
 
     def cmd_pose(self):
         return self.fk(self.read())

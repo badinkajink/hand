@@ -31,27 +31,16 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import numpy as np
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import mat_to_quat
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def _quat_from_cols(x, y, z) -> str:
-    R = np.column_stack([x, y, z])
-    t = float(np.trace(R))
-    if t > 0:
-        s = np.sqrt(t + 1.0) * 2
-        q = [0.25 * s, (R[2, 1] - R[1, 2]) / s, (R[0, 2] - R[2, 0]) / s, (R[1, 0] - R[0, 1]) / s]
-    else:
-        i = int(np.argmax(np.diag(R)))
-        j, k = (i + 1) % 3, (i + 2) % 3
-        s = np.sqrt(1.0 + R[i, i] - R[j, j] - R[k, k]) * 2
-        q = [0.0] * 4
-        q[0] = (R[k, j] - R[j, k]) / s
-        q[i + 1] = 0.25 * s
-        q[j + 1] = (R[j, i] + R[i, j]) / s
-        q[k + 1] = (R[k, i] + R[i, k]) / s
-    q = np.array(q) / np.linalg.norm(q)
-    return " ".join(f"{v:.9g}" for v in q)
+    return " ".join(f"{v:.9g}" for v in mat_to_quat(np.column_stack([x, y, z])))
 
 
 def _frustum_obj(path: Path, r_top: float, r_bot: float, h: float, n: int = 32) -> None:

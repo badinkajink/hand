@@ -61,6 +61,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sr2hand.tools.keyframe_ik import FINGERS, TIPS, ik_finger  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.vectors import deg_from_cos
 
 # Thumb opposite the pair, pair at +/-60 deg: a tripod on the circle the standing shaft affords.
 # Identical to probe_real_v1_vertical_hold.py -- do not re-derive it, the two must agree.
@@ -180,7 +183,7 @@ def _util(m, d, obj: str) -> dict:
 def _axis_tilt(m, d, obj: str):
     """Shaft axis in world, and its tilt from vertical in degrees."""
     ax = d.body(obj).xmat.reshape(3, 3)[:, 2].copy()
-    return ax, float(np.degrees(np.arccos(np.clip(abs(ax[2]), -1.0, 1.0))))
+    return ax, float(deg_from_cos(abs(ax[2])))
 
 
 # ------------------------------------------------------------------------------------- command

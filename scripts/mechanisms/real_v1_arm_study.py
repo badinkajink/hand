@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import rot_angle
 
 RUN = ROOT / "results/phase1/real_v1/rv05_manual_stored"
 GRAVCOMP = (0.0, 0.5, 0.8, 0.9, 0.95, 1.0)
@@ -69,8 +70,7 @@ def droop(g: float) -> dict:
     Ra = d.body("palm_pose").xmat.reshape(3, 3)
     pa = d.body("palm_pose").xpos
     return {"gravcomp": g, "droop_mm": round(float(np.linalg.norm(pa - pc)) * 1000, 3),
-            "droop_deg": round(float(np.degrees(np.arccos(
-                np.clip((np.trace(Ra.T @ Rc) - 1) / 2, -1, 1)))), 3)}
+            "droop_deg": round(float(np.degrees(rot_angle(Ra, Rc))), 3)}
 
 
 def main() -> int:

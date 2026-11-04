@@ -50,17 +50,14 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import palm_driver as pd  # noqa: E402
 import probe_real_v1_gait as pg  # noqa: E402
 from sr2hand.tools.keyframe_ik import FINGERS, TIPS, ik_finger  # noqa: E402
+from sr2hand.geometry.rotations import frame_from_axis, rot_angle, rot_axis_angle, rot_slerp, rot_x as _rotx
+from sr2hand.geometry.vectors import deg_from_cos
 
 DEBUG = []
 CONTROL_DECIMATION = pg.CONTROL_DECIMATION
 
 
 # ------------------------------------------------------------------------------------ geometry
-
-def _rotx(a: float) -> np.ndarray:
-    c, s = np.cos(a), np.sin(a)
-    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
-
 
 def _align(u: np.ndarray, v: np.ndarray) -> np.ndarray:
     """Minimal rotation taking unit vector u onto unit vector v (Rodrigues)."""
@@ -72,20 +69,6 @@ def _align(u: np.ndarray, v: np.ndarray) -> np.ndarray:
         return np.eye(3) if c > 0 else -np.eye(3)
     K = np.array([[0, -w[2], w[1]], [w[2], 0, -w[0]], [-w[1], w[0], 0]]) / s
     return np.eye(3) + np.sin(np.arccos(np.clip(c, -1, 1))) * K + (1 - c) * (K @ K)
-
-
-def _rot_lerp(R0: np.ndarray, R1: np.ndarray, t: float) -> np.ndarray:
-    """Rotation `t` of the way from R0 to R1 along the geodesic."""
-    dR = R0.T @ R1
-    c = float(np.clip((np.trace(dR) - 1.0) / 2.0, -1.0, 1.0))
-    th = float(np.arccos(c))
-    sn = np.sin(th)
-    if th < 1e-7 or abs(sn) < 1e-7:
-        return R1.copy() if t >= 1.0 else R0.copy()
-    w = np.array([dR[2, 1] - dR[1, 2], dR[0, 2] - dR[2, 0], dR[1, 0] - dR[0, 1]]) / (2.0 * sn)
-    a = th * float(t)
-    K = np.array([[0, -w[2], w[1]], [w[2], 0, -w[0]], [-w[1], w[0], 0]])
-    return R0 @ (np.eye(3) + np.sin(a) * K + (1 - np.cos(a)) * (K @ K))
 
 
 def _rigid_palm_pose(m, d, obj: str, R_des: np.ndarray, p_des: np.ndarray):
@@ -372,7 +355,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         return R[:, 2].copy() if tipped else R[:, 2] * (1.0 if R[2, 2] >= 0 else -1.0)
 
     def _tilt() -> float:
-        return float(np.degrees(np.arccos(np.clip(_av()[2], -1.0, 1.0))))
+        return float(deg_from_cos(_av()[2]))
 
     key = m.key("open_ik").id
     mujoco.mj_resetDataKeyframe(m, d, key)
@@ -572,10 +555,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         if not grip_ref:
             return {"roll_deg": 0.0, "slide_mm": 0.0}
         Rp = d.body("palm_pose").xmat.reshape(3, 3)
-        dR = grip_ref["R"].T @ (Rp.T @ d.body(obj).xmat.reshape(3, 3))
-        c = (float(np.trace(dR)) - 1.0) / 2.0
         po = Rp.T @ (d.body(obj).xpos - d.body("palm_pose").xpos)
-        return {"roll_deg": round(float(np.degrees(np.arccos(np.clip(c, -1.0, 1.0)))), 2),
+        return {"roll_deg": round(float(np.degrees(rot_angle(grip_ref["R"], Rp.T @ d.body(obj).xmat.reshape(3, 3)))), 2),
                 "slide_mm": round(float(np.linalg.norm(po - grip_ref["p"])) * 1000, 1)}
 
     def _snap(name: str) -> dict:
@@ -882,7 +863,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
 
         def _mv(k):
             t = min(1.0, (k + CONTROL_DECIMATION) / n)
-            palm.write(palm.solve(_rot_lerp(R0, R1, t), p0 + (p1 - p0) * t)[0])
+            palm.write(palm.solve(rot_slerp(R0, R1, t), p0 + (p1 - p0) * t)[0])
 
         _run(n, _mv)
         palm.write(palm.solve(R1, p1)[0])
@@ -987,8 +968,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
             if nw > 1e-9 and th > 1e-9:
                 k = w / nw
                 delta = g * th
-                K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
-                R_des = (np.eye(3) + np.sin(delta) * K + (1 - np.cos(delta)) * (K @ K)) @ R_obj
+                R_des = rot_axis_angle(k, delta) @ R_obj
             else:
                 R_des = R_obj
             po = d.body(obj).xpos.copy()
@@ -1032,8 +1012,7 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
             if nw < 1e-9 or delta < 1e-9:
                 break
             k = w / nw
-            K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
-            R_corr = np.eye(3) + np.sin(delta) * K + (1 - np.cos(delta)) * (K @ K)
+            R_corr = rot_axis_angle(k, delta)
             po = d.body(obj).xpos.copy()
             piv = _low_point() if about_foot else po
             p_new = piv + R_corr @ (po - piv)
@@ -1182,10 +1161,8 @@ def chain(morph_run: Path, obj: str = "screwdriver_medium",
         """Origin and orthonormal triad of the tool: axis up, plus two radial directions."""
         o = d.body(obj).xpos.copy()
         av = _av()
-        e1 = np.array([1.0, 0.0, 0.0]) - av[0] * av
-        n1 = float(np.linalg.norm(e1))
-        e1 = e1 / n1 if n1 > 1e-9 else np.array([1.0, 0.0, 0.0])
-        return o, av, e1, np.cross(av, e1)
+        F = frame_from_axis(av, (1.0, 0.0, 0.0))
+        return o, av, F[:, 0], F[:, 1]
 
     def _cyl(pt, frame):
         """A world point as (axial station, radius, azimuth) on the tool."""
