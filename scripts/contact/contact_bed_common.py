@@ -137,6 +137,9 @@ class StepProbe:
 
 # ------------------------------------------------------------------------------------------ films
 
+heat = H.heat
+
+
 def _add_geom(scn, kind, size, pos, mat, rgba):
     import mujoco
     if scn.ngeom >= scn.maxgeom:

@@ -42,6 +42,7 @@ import hom_control as C  # noqa: E402
 import hom_hand_brake as B  # noqa: E402
 from sr2hand.geometry import vectors
 from sr2hand.geometry.rotations import heading
+from sr2hand.numerics.angles import wrap
 
 OUT = ROOT / "docs/experiments/20261002-hom_chain"
 MEDIA = OUT / "media"
@@ -252,7 +253,7 @@ def pick_and_lift(spec, trial, film=None, title="", focus="thumb", wide=None, ge
     ax_hat = K.rotz(perc[2]) @ lay["axis"]
     c_hat = lay["c"] + np.array([perc[0], perc[1], 0.0])
     psi = math.atan2(ax_hat[1], ax_hat[0]) - math.atan2(a[1], a[0])
-    psi = (psi + math.pi) % (2 * math.pi) - math.pi
+    psi = wrap(psi)
     s_hat = c_hat - d_cg * ax_hat
     pick = np.r_[s_hat - K.rotz(psi) @ P, psi]
     start = pick.copy()
@@ -517,7 +518,7 @@ def wield(spec=SPEC, film=None, cycles=6, F_w=2.0, rate_dps=40.0, T_twist=0.5, o
 
     def turned():
         t_ = theta()
-        dth = (t_ - th["last"] + math.pi) % (2 * math.pi) - math.pi
+        dth = wrap(t_ - th["last"])
         th["acc"] += dth
         th["last"] = t_
         return math.degrees(th["acc"])

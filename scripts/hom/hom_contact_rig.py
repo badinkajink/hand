@@ -52,6 +52,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _p
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 from sr2hand.geometry.rotations import mat_to_quat, rot_between, rot_y, rot_z
 from sr2hand.geometry.sampling import cap_pad, fibonacci
+from sr2hand.numerics.angles import wrap
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -380,7 +381,7 @@ class MjRig:
         a = R[:, 2]
         theta = math.atan2(a[2], a[1])                # rotation about +x of the tool axis from +y
         if self.theta_prev is not None:
-            dth = (theta - self.theta_prev + math.pi) % (2 * math.pi) - math.pi
+            dth = wrap(theta - self.theta_prev)
             self.theta_unwrap += dth
         else:
             self.theta_unwrap = theta
@@ -526,7 +527,7 @@ class DrakeRig:
         a = X.rotation().matrix()[:, 2]
         theta = math.atan2(a[2], a[1])
         if self.theta_prev is not None:
-            dth = (theta - self.theta_prev + math.pi) % (2 * math.pi) - math.pi
+            dth = wrap(theta - self.theta_prev)
             self.theta_unwrap += dth
         else:
             self.theta_unwrap = theta
