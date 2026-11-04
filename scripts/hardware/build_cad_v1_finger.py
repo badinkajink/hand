@@ -43,7 +43,8 @@ from scipy.spatial import cKDTree
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
-from sr2hand.geometry import cad_features as cf  # noqa: E402
+from sr2hand.geometry import cad_features as cf, rotations, vectors  # noqa: E402
+from sr2hand.geometry.mesh import combine_inertia  # noqa: E402
 
 CAD = REPO / "assets/cad_v1"
 OUT = REPO / "assets/mjcf/experimental/20261013-cad_v1"
@@ -68,13 +69,7 @@ def load(name: str) -> trimesh.Trimesh:
 
 
 def unit(v):
-    v = np.asarray(v, float)
-    return v / np.linalg.norm(v)
-
-
-def perp(v, a):
-    v = np.asarray(v, float)
-    return v - (v @ a) * a
+    return vectors.unit(v, zero="nan")
 
 
 def design_rotation(mesh: trimesh.Trimesh) -> np.ndarray:
@@ -100,11 +95,7 @@ def design_rotation(mesh: trimesh.Trimesh) -> np.ndarray:
 
 
 def kabsch(A, B):
-    ca, cb = A.mean(0), B.mean(0)
-    U, _, Vt = np.linalg.svd((A - ca).T @ (B - cb))
-    D = np.diag([1, 1, np.sign(np.linalg.det(Vt.T @ U.T))])
-    R = Vt.T @ D @ U.T
-    return cf.transform(R, cb - R @ ca)
+    return cf.transform(*rotations.kabsch(A, B))
 
 
 def register_copy(src: trimesh.Trimesh, tgt: trimesh.Trimesh):
@@ -143,7 +134,7 @@ def pilot_pair(cyls, axis):
     """The two 1.8 mm servo pilot holes parallel to the bearing axis, SERVO_TAB_PITCH apart."""
     c = [x for x in cf.find(cyls, PILOT_D, "hole", tol=0.06) if abs(abs(x.axis @ axis) - 1) < 1e-3]
     for p, q in itertools.combinations(c, 2):
-        d = perp(q.point - p.point, axis)
+        d = vectors.reject(q.point - p.point, axis)
         if abs(np.linalg.norm(d) - SERVO_TAB_PITCH) < 0.15:
             return p, q
     raise RuntimeError("no pilot-hole pair at the servo tab pitch")
@@ -185,8 +176,8 @@ def servo_features(servo):
     base = spline.point + a * lo.min()  # the base plane, on the output axis
     tab_lo = float(min(((t.point - base) @ a) - t.length / 2 for t in tabs))
     tab_hi = float(max(((t.point - base) @ a) + t.length / 2 for t in tabs))
-    x = unit(perp(np.mean([t.point for t in tabs], axis=0) - spline.point, a))  # output -> body centre
-    pitch = float(np.linalg.norm(perp(tabs[0].point - tabs[1].point, a)))
+    x = unit(vectors.reject(np.mean([t.point for t in tabs], axis=0) - spline.point, a))  # output -> body centre
+    pitch = float(np.linalg.norm(vectors.reject(tabs[0].point - tabs[1].point, a)))
     top = float(lo.max() - lo.min())
     return dict(axis=a, base=base, x=x, tab_lo=tab_lo, tab_hi=tab_hi, pitch=pitch, height=top,
                 spline=spline, tabs=tabs, boss_top=None)
@@ -202,7 +193,7 @@ def derive() -> dict:
 
     # export rotation of the carriage
     R0 = design_rotation(meshes["carriage"])
-    report["parts"]["carriage_export_rotation_deg"] = float(np.degrees(np.arccos(np.clip((np.trace(R0) - 1) / 2, -1, 1))))
+    report["parts"]["carriage_export_rotation_deg"] = float(np.degrees(np.linalg.norm(rotations.log_so3(R0))))
     T_design = {k: np.eye(4) for k in meshes}
     T_design["carriage"] = cf.transform(R0, np.zeros(3))
     for k in meshes:
@@ -215,7 +206,7 @@ def derive() -> dict:
     boss = [c for c in cf.cylinders(meshes["servo"]) if c.kind == "boss" and abs(c.diameter - 12.1) < 0.1][0]
     sv["boss_top"] = float((boss.point - sv["base"]) @ sv["axis"] + boss.length / 2)
     report["servo"] = dict(height=sv["height"], tab_face=sv["tab_lo"], tab_top=sv["tab_hi"], boss_top=sv["boss_top"],
-                           tab_pitch=sv["pitch"], spline_offset_from_tab_centre=float(np.linalg.norm(perp(
+                           tab_pitch=sv["pitch"], spline_offset_from_tab_centre=float(np.linalg.norm(vectors.reject(
                                np.mean([t.point for t in sv["tabs"]], axis=0) - sv["spline"].point, sv["axis"]))))
 
     parent_info = {}
@@ -242,7 +233,7 @@ def derive() -> dict:
     def common_perp(p1, a1, p2, a2):
         n = np.cross(a1, a2)
         if np.linalg.norm(n) < 1e-6:
-            return unit(perp(p2 - p1, a1)), float(np.linalg.norm(perp(p2 - p1, a1)))
+            return unit(vectors.reject(p2 - p1, a1)), float(np.linalg.norm(vectors.reject(p2 - p1, a1)))
         n = unit(n)
         if (p2 - p1) @ n < 0:
             n = -n
@@ -288,7 +279,7 @@ def derive() -> dict:
     # carriage: down = from the rail-block holes towards the bearing
     pc = parent_info["carriage"]
     rail = [c for c in cf.find(cyl["carriage"], 2.4, "hole", tol=0.06) if abs(c.axis @ pc["a"]) < 1e-3]
-    down_c = unit(perp(pc["bore"].point - np.mean([c.point for c in rail], axis=0), pc["a"]))
+    down_c = unit(vectors.reject(pc["bore"].point - np.mean([c.point for c in rail], axis=0), pc["a"]))
 
     # joint transforms at q = 0: T_parent_child maps child design coordinates to parent design coordinates
     T = {}
@@ -312,7 +303,7 @@ def derive() -> dict:
         P = parent_info[parent]
         base_p = P["bore"].point + P["wall"][1] * P["a"]
         pil_mid = 0.5 * (P["pilots"][0].point + P["pilots"][1].point)
-        x_p = unit(perp(pil_mid - P["bore"].point, P["a"]))
+        x_p = unit(vectors.reject(pil_mid - P["bore"].point, P["a"]))
         R = cf.rotation_from_frames(sv["axis"], sv["x"], P["a"], x_p)
         Ts = cf.transform(R, base_p - R @ sv["base"])
         T_servo[parent] = Ts
@@ -471,7 +462,6 @@ def body_meshes(A) -> dict:
 
 def inertial(meshes_in_body: list[tuple[str, trimesh.Trimesh]]) -> dict:
     """Mass, centre of mass and full inertia of the parts of one body (body frame, SI)."""
-    mass, com_acc, I_acc = 0.0, np.zeros(3), np.zeros((3, 3))
     items = []
     for p, m in meshes_in_body:
         k = part_kind(p)
@@ -484,12 +474,7 @@ def inertial(meshes_in_body: list[tuple[str, trimesh.Trimesh]]) -> dict:
         mp = m.copy()
         mp.density = rho
         items.append((mk, mp.center_mass, mp.moment_inertia))  # inertia about the part's own COM
-        mass += mk
-        com_acc += mk * mp.center_mass
-    com = com_acc / mass
-    for mk, c, Ic in items:
-        d = c - com
-        I_acc += Ic + mk * (d @ d * np.eye(3) - np.outer(d, d))
+    mass, com, I_acc = combine_inertia(items)
     return dict(mass=mass, pos=com, fullinertia=[I_acc[0, 0], I_acc[1, 1], I_acc[2, 2], I_acc[0, 1], I_acc[0, 2], I_acc[1, 2]])
 
 

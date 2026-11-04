@@ -68,6 +68,7 @@ import probe_real_v1_carry as pc  # noqa: E402
 import real_v1_design_search as ds  # noqa: E402
 from sr2hand.studies.scene_mutate import Scene  # noqa: E402
 from sr2hand.tools.keyframe_ik import FINGERS  # noqa: E402
+from sr2hand.geometry.rotations import quat_mul, quat_yaw
 
 OBJ = "screwdriver_medium"
 TABLE = ROOT / "docs/experiments/20260828-real_v1_search/table.json"
@@ -420,11 +421,7 @@ def execute(scene: Path, plan: dict, *, place=(0.0, 0.0, 0.0), yaw: float = 0.0,
     d.qpos[adr + 1] += place[1] + (rng.normal(0.0, jitter) if jitter > 0 else 0.0)
     d.qpos[adr + 2] += place[2]
     if abs(yaw) > 1e-9:
-        q = d.qpos[adr + 3:adr + 7].copy()
-        qz = np.array([np.cos(yaw / 2), 0.0, 0.0, np.sin(yaw / 2)])
-        out = np.zeros(4)
-        mujoco.mju_mulQuat(out, qz, q)
-        d.qpos[adr + 3:adr + 7] = out
+        d.qpos[adr + 3:adr + 7] = quat_mul(quat_yaw(yaw), d.qpos[adr + 3:adr + 7])
 
     acts = pc._finger_act(m)
     _set_servo_torque_limit(m, acts, turn_torque_limit_nm)

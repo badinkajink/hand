@@ -36,6 +36,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.mesh import combine_inertia
 SRC = ROOT / "assets/mjcf/experimental/20261013-cad_v1"
 OUT = ROOT / "assets/mjcf/experimental/20261030-cad_v2"
 FINGERS = ("thumb", "index", "middle")
@@ -121,18 +122,12 @@ def pack(m, budget, seed=0):
 
 def mass_props(meshes_m):
     """Mass, centre of mass and inertia about it (body frame) of parts [(mesh in m, density)]."""
-    J = np.zeros((3, 3))
     props = []
     for m, rho in meshes_m:
         mm = m.copy()
         mm.density = rho
         props.append((mm.mass, mm.center_mass, mm.moment_inertia))
-    M = sum(p[0] for p in props)
-    c = sum(p[0] * p[1] for p in props) / M
-    for mass, cm, Ic in props:
-        d = cm - c
-        J += Ic + mass * (d @ d * np.eye(3) - np.outer(d, d))
-    return M, c, J
+    return combine_inertia(props)
 
 
 def fmt(v, nd=6):

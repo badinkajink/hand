@@ -50,6 +50,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import reorient_backends as RB  # noqa: E402
 from fit_servo_compliance import achieved_sim_deg, read_run  # noqa: E402
+from sr2hand.numerics.signal import index_at
 
 LOGS = ROOT / "docs/experiments/20260902-cb1-log-archive/logs"
 OUT_DIR = ROOT / "docs/experiments/20261006-servo_recalibration"
@@ -230,7 +231,7 @@ def compare(run: dict, sim: dict) -> dict:
     t = sim["t"]
 
     def at(arr, tb):
-        return arr[int(np.clip(np.searchsorted(t, T_GRIP + tb), 0, len(t) - 1))]
+        return arr[index_at(t, T_GRIP + tb)]
 
     names = sim["names"]
     jerr = {}
