@@ -24,11 +24,13 @@ ap.add_argument("seat", type=int, help="1, 2 or 3")
 ap.add_argument("--turn-z", type=float, default=-5.40, help="the fit's turn about z_M (deg)")
 ap.add_argument("--across", type=float, default=0.77, help="the fit's turn across (deg), tried with either sign")
 ap.add_argument("--first", default="", help="sweep ids printed first")
+ap.add_argument("--plan", default="sweep8", choices=("sweep8", "extras"), help="the program plan: the 8 N sweeps or "
+                "the night's extras (each press's deep pose, each roll's turns)")
 ap.add_argument("--out", default="")
 a = ap.parse_args()
 s_, v_ = a.seat, 7 - a.seat
 first = [f for f in a.first.split(",") if f]
-prog = json.loads((D / f"20261103-plan_probe_table_rod_seat{s_}_v3id{v_}_sweep8_draft.json").read_text())
+prog = json.loads((D / f"20261103-plan_probe_table_rod_seat{s_}_v3id{v_}_{a.plan}_draft.json").read_text())
 src = json.loads((RIG.ROOT / prog["checks"]["source"]).read_text())
 seat = int(src["seat"])
 RIG.HOME_KEY[0] = int(prog["homing"]["key"])
@@ -41,7 +43,7 @@ var = {"nominal": np.eye(3)}
 for tl in (a.across, -a.across):
     var[f"fit z{a.turn_z:+g} x{tl:+g}"] = C.rot([1, 0, 0], tl) @ C.rot([0, 0, 1], a.turn_z)
 Tf = {k: C.Tm(R, c0 - R @ c0) for k, R in var.items()}
-acts = [x for x in prog["actions"] if x["kind"] == "sweep"]
+acts = [x for x in prog["actions"] if x["stage"] == "grid" and x["kind"] in ("sweep", "press", "roll")]
 acts.sort(key=lambda x: (x["id"] not in first, prog["actions"].index(x)))
 grid = [x["id"] for x in prog["actions"] if x["stage"] == "grid"]
 out = []
@@ -49,16 +51,22 @@ for x in acts:
     st = float(x.get("standoff", 1.5))
     T_r, d_B, n_B = RIG.program_rest(prog, ctx, x, st)
     T_e = C.Tm(T_r[:3, :3], T_r[:3, 3] + (st + float(x["max_depth_mm"])) * d_B)
-    t1_B = ctx["T_BA"][:3, :3] @ T_AP[:3, :3] @ np.asarray(x["target"]["t1"], float)
-    t2_B = np.cross(n_B, t1_B)
-    far = {}
-    for lev in x["offsets"]:
-        for r_, z in lev:
-            far[z] = max(far.get(z, 0.0), r_)
-    moves = [("deep", 0.0, 0.0)] + [(f"offset az {z:g}", z, r_) for z, r_ in far.items()] + \
-        [(f"slide az {sl['az_deg']:g}", sl["az_deg"], sl["mm"]) for sl in x["slides"] if sl["at_N"] == x["slides"][0]["at_N"]]
-    poses = [C.Tm(T_e[:3, :3], T_e[:3, 3] + r_ * (math.cos(math.radians(z)) * t1_B + math.sin(math.radians(z)) * t2_B))
-             for _, z, r_ in moves]
+    if x["kind"] == "sweep":
+        t1_B = ctx["T_BA"][:3, :3] @ T_AP[:3, :3] @ np.asarray(x["target"]["t1"], float)
+        t2_B = np.cross(n_B, t1_B)
+        far = {}
+        for lev in x["offsets"]:
+            for r_, z in lev:
+                far[z] = max(far.get(z, 0.0), r_)
+        moves = [("deep", 0.0, 0.0)] + [(f"offset az {z:g}", z, r_) for z, r_ in far.items()] + \
+            [(f"slide az {sl['az_deg']:g}", sl["az_deg"], sl["mm"]) for sl in x["slides"] if sl["at_N"] == x["slides"][0]["at_N"]]
+        poses = [C.Tm(T_e[:3, :3], T_e[:3, 3] + r_ * (math.cos(math.radians(z)) * t1_B + math.sin(math.radians(z)) * t2_B))
+                 for _, z, r_ in moves]
+    elif x["kind"] == "roll":                           # about the plan's axis (the fitted one is within the turn)
+        poses = [T_e] + RIG.roll_poses(ctx, dict(roll_degs=x["moves"][0]["degs"]), T_e, n_B)
+        moves = [("deep", 0, 0)] + [(f"roll pose {k}", 0, 0) for k in range(len(poses) - 1)]
+    else:
+        poses, moves = [T_e], [("deep", 0, 0)]
     row = dict(id=x["id"], grid=grid.index(x["id"]) + 1)
     for k, T_fit in Tf.items():
         d = RIG.body_dist([T @ T_EM @ T_fit @ T_ME for T in poses], ctx, seat, "rod")
@@ -69,6 +77,6 @@ for x in acts:
     w = min(row[k]["least"] for k in Tf if k != "nominal")
     if w < 1.0 or x["id"] in first:
         print(json.dumps(row), flush=True)
-Path(a.out or D / f"20261103-strip_table_pads_rod_sweep8_fitted_margins_seat{s_}.json").write_text(
+Path(a.out or D / f"20261103-strip_table_pads_rod_{a.plan}_fitted_margins_seat{s_}.json").write_text(
     json.dumps(dict(turn_z_deg=a.turn_z, across_deg=a.across, rows=out), indent=1) + "\n")
-print("done", len(out), "sweeps")
+print("done", len(out), "actions")
