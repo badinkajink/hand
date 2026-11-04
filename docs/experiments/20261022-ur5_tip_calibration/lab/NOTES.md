@@ -2803,6 +2803,24 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - The rod's end passes 0.48 to 0.59 mm from the tip body in the deep presses near the pad's edge (edge-573, -615,
     -618 and flank-553, -563).
   - Least to the table's 2x4: 17.1 mm in 3a (the checker needs 8 mm).
+- 19:43, the workstation (3ebf9b39, dry-check --tool-turn): it reran the whole chain with the rod turned as seat 2's
+  fit found it, -5.40 deg about z_M and ±0.77 across.
+  - One real flag: 1x's probe-edge-654-o20-a90-r90. Its joint travel from probe-face-790-o35-a270-r90 takes the rod
+    0.31 mm into seat 1's pad at -0.77 across, and leaves 0.08 mm at +0.77 (0.36 mm unturned).
+  - The exact rod solid (`ur5_rod_fitted_margins.py`, with the turn and the twists) keeps every action of the nine plans
+    0.21 mm or more from the tip body. The closest is seat 3's edge-573-o35-a90 at full depth.
+  - The k-d tree also flags the edge-654 obliques and face-731, -733 and -735 at 4 to 6.6 mm inside the tip body. The
+    exact solid puts them at 0.51 mm or more (edge-654) and 2.99 mm or more (face): the sign error seen before.
+  - Seat 3's edge-639 obliques bring the stem 0.95 to 0.97 mm from seat 3's pad at full depth, against a need of
+    1.0 mm. The workstation keeps them.
+- 19:4x: probe-edge-654-o20-a90-r90 in 1x travels by the hub. The plan was edited in place. `20261103-rod_halves.py`
+  (HUB) now writes the same change; its output equals the edited plan less the notes, and the other eight plans are
+  unchanged. The workstation's checker on 3x then 1x from 2x's end (`20261103-rod_night_1x_hub_run_check*.json`):
+  - Unturned: 0 of 109 and 0 of 101 flagged.
+  - The hub travel keeps the rod 1.23 mm from seat 1's pad unturned and at +0.77, and 1.25 mm at -0.77. No travel of
+    3x or 1x comes under 0.3 mm with either turn.
+  - With the turn, the flags left are the presses' own moves above: the edge-654 obliques, the edge-639 stems at
+    0.95 to 0.97 mm, and deep presses at 0.31 to 0.40 mm from the tip body.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 

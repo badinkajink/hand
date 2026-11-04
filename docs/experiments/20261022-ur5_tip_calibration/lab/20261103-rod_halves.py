@@ -14,7 +14,9 @@ pass 1), then 1b, 3b and 2b, each resuming its seat's session.
 Then each seat's extras (the workstation's addition, relayed at 19:1x: the owner is in at 09:00, the hard stop moves
 to 08:30): the extras of fca3d1cb (seat 1's flank-582 obliques out) as _extras_night, in the order 2, 3, 1. Each holds
 probe-ref-x0, the rolls at 4 and 1.5 N (a 4 N roll that half b ran is skipped as done), the 20 and 35 deg obliques at
-azimuths 0 and 180, those at 90 and 270, and probe-ref-x1.
+azimuths 0 and 180, those at 90 and 270, and probe-ref-x1. Seat 1's probe-edge-654-o20-a90-r90 travels by the hub (the
+workstation, 19:43: its joint travel from probe-face-790-o35-a270-r90 takes the rod 0.31 mm into the pad when the rod
+is turned as seat 2's fit found it).
 
 Writes the nine plans here, and for the path check copies under CHECK_DIR without the pad stage where it does not
 run, without the ids DONE in seat 2's session, and without the 4 N rolls in the extras.
@@ -31,6 +33,7 @@ HERE = Path(__file__).resolve().parent
 SEATS = ((2, 5), (3, 4), (1, 6))
 KEEP_OFF = {0.0, 90.0, 180.0, 270.0}
 KEEP_SLIDE = {0.0, 90.0}
+HUB = {1: {"probe-edge-654-o20-a90-r90"}}           # the extras' actions that travel by the hub, by seat
 NOTE = time.strftime("%Y-%m-%d %H:%M") + ", lab: " + __doc__.split("\n\n")[0].replace("\n", " ")
 
 
@@ -68,6 +71,9 @@ def main():
         halves["x"] = ([ref([a for a in xg if a["id"] == "probe-ref-00"][0], "probe-ref-x0")]
                        + [a for a in xg if a["kind"] == "roll"] + first + [a for a in obl if a not in first]
                        + [ref([a for a in xg if a["id"] == "probe-ref-final"][0], "probe-ref-x1")])
+        for a in halves["x"]:
+            if a["id"] in HUB.get(seat, ()):
+                a["travel_ws"] = "hub"
         for h, g in halves.items():
             p = copy.deepcopy(ext if h == "x" else fit)
             p["actions"] = [a for a in p["actions"] if a["stage"] != "grid"] + g

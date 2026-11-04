@@ -274,6 +274,9 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       and 3 in half b.
     - The workstation's checker on the whole chain in run order flagged none of its 589 actions (19:29;
       `20261103-rod_night_halves_run_check.json`, NOTES).
+    - Since 19:4x, 1x's probe-edge-654-o20-a90-r90 travels by the hub. With the rod turned as seat 2's fit found it,
+      its joint travel reached 0.31 mm into seat 1's pad (the workstation's check of 19:43). Checked again: the
+      travel keeps 1.23 mm or more (NOTES).
     - No step starts after 08:00 (the owner, relayed at 19:1x: "i mean i wont be in until 9").
       `logs/20261103-deadline_stop.sh` (PID 2877930) stops every running chain at 08:30, then the program right after
       its next finished action.
