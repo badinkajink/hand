@@ -43,6 +43,8 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .surfaces import Posed, unit
+from sr2hand.geometry.rotations import adjoint, frame_from_axis, quat_to_mat, skew
+from sr2hand.geometry.vectors import reject
 
 COMPONENTS = ("spin", "roll_y", "roll_z", "sep", "slide_y", "slide_z")
 SEP = 3
@@ -90,31 +92,7 @@ class Gcf:
 
 def frame_from_normal(x: np.ndarray, axis: np.ndarray, fallback: np.ndarray) -> np.ndarray:
     """Columns (x, y, z): y is `axis` projected on the plane normal to x, z = x cross y."""
-    y = axis - (axis @ x) * x
-    if np.linalg.norm(y) < 1e-6:
-        y = fallback - (fallback @ x) * x
-    y = unit(y)
-    return np.column_stack([x, y, np.cross(x, y)])
-
-
-def quat_to_mat(q) -> np.ndarray:
-    w, x, y, z = (float(v) for v in q)
-    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-                     [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-                     [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
-
-
-def skew(v) -> np.ndarray:
-    return np.array([[0.0, -v[2], v[1]], [v[2], 0.0, -v[0]], [-v[1], v[0], 0.0]])
-
-
-def adjoint(R: np.ndarray, p: np.ndarray) -> np.ndarray:
-    """Ad_T for T = (R, p), acting on twists ordered (w, v)."""
-    A = np.zeros((6, 6))
-    A[:3, :3] = R
-    A[3:, 3:] = R
-    A[3:, :3] = skew(p) @ R
-    return A
+    return frame_from_axis(x, axis if np.linalg.norm(reject(axis, x)) >= 1e-6 else fallback, which=0)
 
 
 # ------------------------------------------------------------------------------------------------ the Mirror

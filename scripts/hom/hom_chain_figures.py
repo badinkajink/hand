@@ -9,17 +9,14 @@ from __future__ import annotations
 import math
 
 import numpy as np
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.sampling import cap_pad, fibonacci
 
 R, RC, E, RS, CAP = 0.01055, 0.0125, 1e7, 0.00075, math.radians(45.0)
 AREA_CAP = 2 * math.pi * R ** 2 * (1 - math.cos(CAP))
-
-
-def fib_cap(n, cap):
-    k = np.arange(n) + 0.5
-    z = 1.0 - (1.0 - math.cos(cap)) * k / n
-    r = np.sqrt(1.0 - z ** 2)
-    phi = k * math.pi * (3.0 - math.sqrt(5.0))
-    return np.stack([r * np.cos(phi), r * np.sin(phi), z], axis=1)
 
 
 # Tool axis along x, contact at the top of the cylinder (z = RC); fingertip centre above it at RC + R - delta0.
@@ -40,10 +37,8 @@ def field(delta0, h=2.5e-5, L=0.0042):
 
 
 def pad(spacing, delta0):
-    n = max(1, int(round(AREA_CAP / spacing ** 2)))
-    A_s = AREA_CAP / n
-    K = E / R * A_s * ((R - RS) / R) ** 2
-    dirs = fib_cap(n, CAP) * np.array([1.0, 1.0, -1.0])  # cap facing the tool (-z)
+    n, A_s, K = cap_pad(R, RS, spacing, CAP, E)
+    dirs = fibonacci(n, math.cos(CAP)) * np.array([1.0, 1.0, -1.0])  # cap facing the tool (-z)
     c = np.array([0.0, 0.0, RC + R - delta0]) + (R - RS) * dirs
     gap = np.sqrt(c[:, 1] ** 2 + c[:, 2] ** 2) - RC
     over = RS - gap

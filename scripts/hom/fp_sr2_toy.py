@@ -62,6 +62,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hand_object_scale_kin as K  # noqa: E402
+from sr2hand.geometry.rotations import rot_axis_angle, skew
 
 OUT = ROOT / "docs/experiments/20261029-foundational_pose_review"
 ROWS = OUT / "rows"
@@ -346,9 +347,9 @@ def finger_frames(f, q, mount):
     """(rotation, origin) in the palm frame of finger f's bodies in the pads model at joint angles q (3,): the yaw about x
     at the mount, the MCP and PIP about FLEX * y, J, J2 and P apart along each frame's -z."""
     ay = np.array([0.0, K.FLEX[f], 0.0])
-    R0 = rot(np.array([1.0, 0.0, 0.0]), q[0])
-    R1 = R0 @ rot(ay, q[1])
-    R2 = R1 @ rot(ay, q[2])
+    R0 = rot_axis_angle(np.array([1.0, 0.0, 0.0]), q[0])
+    R1 = R0 @ rot_axis_angle(ay, q[1])
+    R2 = R1 @ rot_axis_angle(ay, q[2])
     mount = np.asarray(mount, float)
     p1 = mount + R0 @ np.array([0.0, 0.0, -K.J])
     p2 = p1 + R1 @ np.array([0.0, 0.0, -K.J2])
@@ -534,13 +535,6 @@ def clear_ok(clear):
     return clear[0] >= FF_CLEAR and clear[1] >= OBJ_CLEAR and (not GROUND or clear[2] >= -GROUND_TOL)
 
 
-def rot(u, ang):
-    """Rotation matrices (..., 3, 3) about unit axis u by angles ang (...)."""
-    k = np.array([[0, -u[2], u[1]], [u[2], 0, -u[0]], [-u[1], u[0], 0]])
-    a = np.asarray(ang)[..., None, None]
-    return np.eye(3) + np.sin(a) * k + (1 - np.cos(a)) * (k @ k)
-
-
 def metrics(fp, v, M, branch):
     """TMR (deg, both directions, capped), MFT (mN m) along it, smallest pad singular value (mm/rad) at the pose."""
     obj, tg, n, pc, (p_ax, u_ax) = geometry(fp, v, M)
@@ -548,7 +542,7 @@ def metrics(fp, v, M, branch):
     out = {}
     tau_max = 0.0
     for sgn, key in ((1.0, "plus"), (-1.0, "minus")):
-        Rm = rot(u_ax, sgn * ang)                                          # (A, 3, 3)
+        Rm = rot_axis_angle(u_ax, sgn * ang)                                          # (A, 3, 3)
         ok = np.ones(len(ang), bool)
         world = {}
         tau = np.zeros(len(ang))
@@ -764,8 +758,7 @@ def grasp_matrix_smin(fp, v, M):
     obj, _tg, _n, pc, _ax = geometry(fp, v, M)
     c = np.asarray(obj["centre"], float)
     G = np.vstack([np.hstack([np.eye(3)] * 3),
-                   np.hstack([np.array([[0, -x[2], x[1]], [x[2], 0, -x[0]], [-x[1], x[0], 0]]) for x in
-                              (pc[f] - c for f in FINGERS)])])
+                   np.hstack([skew(pc[f] - c) for f in FINGERS])])
     return float(np.linalg.svd(G, compute_uv=False)[-1])
 
 

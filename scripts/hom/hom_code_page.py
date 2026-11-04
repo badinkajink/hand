@@ -33,6 +33,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import docs_index  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
+from sr2hand.geometry.rotations import rot_z
 
 D = ROOT / "docs/experiments/20261029-hom_control_review"
 MEDIA, ROWS = D / "media", D / "rows"
@@ -423,7 +424,7 @@ def fig_pinpush(N, out):
     t = np.array([p["t"] for p in pp["periods"]])
     fig, axs = plt.subplots(4, 1, figsize=(8.2, 9.6), sharex=True)
     psi = pp["pose_v"][3]
-    Rz = np.array([[math.cos(psi), math.sin(psi), 0], [-math.sin(psi), math.cos(psi), 0], [0, 0, 1.0]])
+    Rz = rot_z(-psi)
     ax_ = np.array([Rz @ np.asarray(p["axis"]) for p in pp["periods"]])
     th = np.degrees(np.arctan2(ax_[:, 2], -ax_[:, 1]))
     th = th - th[int(np.argmax(t >= 2.0 - 1e-9))]                 # from the task's start, as hom_tasks.metrics
@@ -604,7 +605,7 @@ def build():
                              for q in task_pp]))
     yaw = [math.degrees(math.atan2(q["axis"][0], -q["axis"][1])) for q in (at(pp, 0.79), at(pp, 1.41))]
     psi = pp["pose_v"][3]
-    Rz = np.array([[math.cos(psi), math.sin(psi), 0], [-math.sin(psi), math.cos(psi), 0], [0, 0, 1.0]])
+    Rz = rot_z(-psi)
     pin = [math.degrees(math.atan2((Rz @ arr(q["axis"]))[2], -(Rz @ arr(q["axis"]))[1])) for q in (at(pp, 0.79), at(pp, 2.0))]
     sq_turn = pin[1] - pin[0]
     mcp = [math.degrees(at(pp, t)["fingers"]["middle"]["theta"][1]) for t in (0.79, 1.41)]

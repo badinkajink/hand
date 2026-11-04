@@ -46,6 +46,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_turn3 as H3  # noqa: E402
+from sr2hand.geometry.rotations import quat_from_axis_angle as quat_axis, quat_mul, quat_normalize, quat_to_mat as rot, skew
 
 RB = H3.RB
 FINGERS, JOINTS, NAMES = H3.FINGERS, H3.JOINTS, H3.NAMES
@@ -59,25 +60,6 @@ IK_TOL, NORMAL_DEG = 0.001, 45.0
 SQUEEZE, PRE = 0.002, 0.008
 BOUNDS = dict(a=0.012, b=0.005, psi=math.radians(15.0))
 OPT = {"lim_deg": LIM_DEG}       # joint-limit margin of the search; hom_turn3's governor stops within 3 deg of a limit
-
-
-def quat_mul(q, r):
-    w0, x0, y0, z0 = q
-    w1, x1, y1, z1 = r
-    return np.array([w0 * w1 - x0 * x1 - y0 * y1 - z0 * z1, w0 * x1 + x0 * w1 + y0 * z1 - z0 * y1,
-                     w0 * y1 - x0 * z1 + y0 * w1 + z0 * x1, w0 * z1 + x0 * y1 - y0 * x1 + z0 * w1])
-
-
-def quat_axis(axis, ang):
-    axis = np.asarray(axis, float) / np.linalg.norm(axis)
-    return np.r_[math.cos(ang / 2), math.sin(ang / 2) * axis]
-
-
-def rot(q):
-    w, x, y, z = q
-    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-                     [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-                     [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
 
 
 class Hand:
@@ -121,7 +103,7 @@ class Hand:
         a, b, psi = x[:3]
         p = self.p0 + a * self.u0 + b * self.lat
         q = quat_mul(quat_axis([0, 0, 1], psi), self.q0)
-        return p, q / np.linalg.norm(q)
+        return p, quat_normalize(q)
 
     def contacts_local(self, x):
         out = {}
@@ -173,7 +155,7 @@ class Hand:
             sl = slice(3 * i, 3 * i + 3)
             A_eq[0:3, sl] = np.eye(3)
             rx = C[f] - com
-            A_eq[3:6, sl] = np.array([[0, -rx[2], rx[1]], [rx[2], 0, -rx[0]], [-rx[1], rx[0], 0]])
+            A_eq[3:6, sl] = skew(rx)
             n = N[f]                                     # outward tool normal; the finger pushes along -n
             t1 = np.cross(n, [0, 0, 1.0]) if abs(n[2]) < 0.9 else np.cross(n, [1.0, 0, 0])
             t1 /= np.linalg.norm(t1)

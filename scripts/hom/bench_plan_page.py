@@ -32,6 +32,8 @@ import texsvg  # noqa: E402
 import retro_style  # noqa: E402
 import hand_object_scale_kin as K  # noqa: E402
 from hand_object_scale_page import table as _table, im, esc  # noqa: E402
+from scipy.stats import binom
+from sr2hand.numerics.stats import spearman as rank_correlation
 
 SRC = os.path.join(ROOT, "docs/experiments/20261008-hand_object_scale")
 D = os.path.join(ROOT, "docs/experiments/20261011-bench_plan")
@@ -294,27 +296,12 @@ def fisher_two_sided(a, n1, b, n2):
 
 
 def binom_at_least(n, k, p):
-    return sum(math.comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(k, n + 1))
+    return float(binom.sf(k - 1, n, p))
 
 
 def spearman(xs, ys):
-    def ranks(v):
-        order = sorted(range(len(v)), key=lambda i: v[i])
-        r = [0.0] * len(v)
-        i = 0
-        while i < len(v):
-            j = i
-            while j + 1 < len(v) and v[order[j + 1]] == v[order[i]]:
-                j += 1
-            for m in range(i, j + 1):
-                r[order[m]] = (i + j) / 2
-            i = j + 1
-        return r
-    rx, ry = ranks(xs), ranks(ys)
-    mx, my = statistics.fmean(rx), statistics.fmean(ry)
-    num = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
-    den = math.sqrt(sum((a - mx) ** 2 for a in rx) * sum((b - my) ** 2 for b in ry))
-    return num / den if den else 0.0
+    r = rank_correlation(xs, ys)
+    return 0.0 if math.isnan(r) else r
 
 
 def hours(n_cells, n_days, meta, push=False):

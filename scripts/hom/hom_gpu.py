@@ -72,6 +72,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 sys.path.insert(0, str(ROOT / "src"))
 import fp_hom_check as C  # noqa: E402
 import hom_tasks as T  # noqa: E402
+from sr2hand.geometry.rotations import quat_mul, quat_yaw, rot_z
 
 S, H, K, G = T.S, T.H, T.K, T.G
 FINGERS, JOINTS = T.FINGERS, T.JOINTS
@@ -147,13 +148,6 @@ def sym6(xs, ys):
     return [-xs / 2, 0.0, xs / 2, ys / 2, xs / 2, -ys / 2]
 
 
-def quat_mul(a, b):
-    w1, x1, y1, z1 = a
-    w2, x2, y2, z2 = b
-    return np.array([w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2, w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-                     w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2, w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2])
-
-
 def tripod_setup(task, mounts_xy, grasp, d_mm=40.0):
     """hom_tasks' setup dict for an equator-type sphere grasp: grasp = (centre in the palm frame, {f: outward normal})."""
     centre, n_out = grasp
@@ -174,7 +168,7 @@ def pinch_setup(task, v, d6):
     obj, tg, n, _pc, _ax = FP.geometry("pinch", np.asarray(v, float), M)
     c, psi = np.asarray(obj["centre"], float), float(v[3])
     palm = np.array([-c[0], -c[1], S.Z_OBJ - c[2]])
-    quat = quat_mul([math.cos(psi / 2), 0.0, 0.0, math.sin(psi / 2)], T.SPHERE_Q)
+    quat = quat_mul(quat_yaw(psi), T.SPHERE_Q)
     return {"task": task, "shape": "cylinder", "d_mm": FP.CYL_D * 1000, "r": FP.CYL_D / 2, "hl": FP.CYL_L / 2,
             "palm": palm, "quat": quat, "design": {}, "targets": tg, "n_out": {f: np.asarray(n[f], float) for f in FINGERS},
             "mounts": M, "psi": psi}
@@ -552,9 +546,7 @@ class Batch:
             rng = np.random.default_rng(seed)
             jit = np.zeros(3) if seed == 0 else np.array([rng.uniform(-1, 1) * 1e-3, rng.uniform(-1, 1) * 1e-3, 0.0])
             yaw = 0.0 if seed == 0 else math.radians(rng.uniform(-2, 2))
-            qz = np.array([math.cos(yaw / 2), 0, 0, math.sin(yaw / 2)])
-            q = np.zeros(4)
-            self.mj.mju_mulQuat(q, qz, np.asarray(wd_["setup"]["quat"], float))
+            q = quat_mul(quat_yaw(yaw), wd_["setup"]["quat"])
             qpos[w, self.qa:self.qa + 3] = np.array([0.0, 0.0, S.Z_OBJ]) + jit
             qpos[w, self.qa + 3:self.qa + 7] = q
             for k, f in enumerate(FINGERS):
@@ -807,21 +799,13 @@ class Batch:
         dist = th.where(sep, dc, -th.linalg.norm(q2 - s_sup, dim=-1))
         return p1, p0, x1, dist
 
-    @staticmethod
     def _quat_mat(q):
-        import torch as th
-        w, x, y, z = q.unbind(-1)
-        return th.stack([1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w),
-                         2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w),
-                         2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)], -1).reshape(*q.shape[:-1], 3, 3)
+        from sr2hand.rl.math import quat_to_mat
+        return quat_to_mat(q)
 
-    @staticmethod
     def _quat_mul(a, b):
-        import torch as th
-        w1, x1, y1, z1 = a.unbind(-1)
-        w2, x2, y2, z2 = b.unbind(-1)
-        return th.stack([w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2, w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-                         w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2, w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2], -1)
+        from sr2hand.rl.math import quat_mul as torch_quat_mul
+        return torch_quat_mul(a, b)
 
     # ---------------------------------------------------------------- the controller
     def reset_controller(self):
@@ -1218,7 +1202,7 @@ class Batch:
         out = []
         for w, wd_ in enumerate(self.worlds):
             psi = float(wd_["setup"].get("psi", 0.0))
-            Rz = np.array([[math.cos(psi), math.sin(psi), 0.0], [-math.sin(psi), math.cos(psi), 0.0], [0, 0, 1.0]])
+            Rz = rot_z(-psi)
             ax = rec["ax"][:, w] @ Rz.T                          # the axis in the frame where the pinch runs along x
             rows = []
             for k, t in enumerate(times):

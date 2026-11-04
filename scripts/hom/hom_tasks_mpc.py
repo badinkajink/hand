@@ -62,6 +62,7 @@ import hand_object_scale_sim as S  # noqa: E402
 import hom_tasks as T  # noqa: E402
 from hom_tasks import Plant, Schedule, build, metrics, open_pose  # noqa: E402
 from sr2hand.control import hom as H  # noqa: E402
+from sr2hand.geometry.rotations import quat_apply as quat_rotate, quat_axis
 
 FINGERS = S.FINGERS
 T_TASK = T.T_LIFT + 0.4
@@ -108,13 +109,6 @@ class _PlantView:
         self.qa, self.va, self.tb = plant.qa, plant.va, plant.tb
 
 
-def quat_rotate(q, v):
-    """Rotate vectors v (..., 3) by unit quaternions q (..., 4) (w, x, y, z)."""
-    w, r = q[..., :1], q[..., 1:]
-    c = np.cross(r, v)
-    return v + 2.0 * w * c + 2.0 * np.cross(r, c)
-
-
 class TaskPlanner(M.Planner):
     """hand_object_scale_mpc.Planner (its sampling, iCEM update, pinning and shift) with the task costs of this
     module; `ref` holds the references at the cost samples of the current replanning."""
@@ -157,8 +151,7 @@ class TaskPlanner(M.Planner):
         run = prm["w_drop"] * (p[..., 2] < ref["z0"] - 0.015)
         F = np.linalg.norm(sens[:, ce - 1::ce].reshape(sens.shape[0], -1, len(FINGERS), 3), axis=-1)
         if self.task in ("pinpush", "press"):
-            w_, x, y, z_ = qw[..., 0], qw[..., 1], qw[..., 2], qw[..., 3]
-            a = np.stack([2 * (x * z_ + w_ * y), 2 * (y * z_ - w_ * x), 1 - 2 * (x * x + y * y)], -1)   # body z
+            a = quat_axis(qw)                                                                            # body z
             th = np.degrees(np.arctan2(a[..., 2], -a[..., 1])) - ref["th0"]
             dth = (th - ref["theta_ref"] + 180.0) % 360.0 - 180.0
             run = run + prm["w_theta"] * (dth / prm["sig_theta_deg"]) ** 2

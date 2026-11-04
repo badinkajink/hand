@@ -67,6 +67,7 @@ import hand_object_scale_sim as S  # noqa: E402
 from sr2hand.control import hom as H  # noqa: E402
 from sr2hand.control.surfaces import Cylinder, HalfEllipsoid, Posed, RoundedBox, Sphere, unit  # noqa: E402
 from hom_rows import rescale_metrics  # noqa: E402,F401  (stored rows scored with the fixed 0.01 s step)
+from sr2hand.geometry.rotations import quat_from_axis_angle, quat_mul, quat_yaw
 
 OUT = ROOT / "docs/experiments/20261021-hom_framework"
 ROWS = OUT / "rows"
@@ -431,10 +432,7 @@ class Plant:
         jit = np.zeros(3) if seed == 0 else np.array([rng.uniform(-1, 1) * 1e-3, rng.uniform(-1, 1) * 1e-3, 0.0])
         yaw = 0.0 if seed == 0 else math.radians(rng.uniform(-2, 2))
         d.qpos[self.qa:self.qa + 3] = np.array([0.0, 0.0, S.Z_OBJ]) + jit
-        qz = np.array([math.cos(yaw / 2), 0, 0, math.sin(yaw / 2)])
-        q = np.zeros(4)
-        self.mj.mju_mulQuat(q, qz, np.asarray(self.setup["quat"], float))
-        d.qpos[self.qa + 3:self.qa + 7] = q
+        d.qpos[self.qa + 3:self.qa + 7] = quat_mul(quat_yaw(yaw), self.setup["quat"])
         for f in FINGERS:
             d.qpos[self.qadr[f]] = q0[f]
             d.ctrl[self.act[f]] = q0[f]
@@ -712,10 +710,7 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
             meas.q = {f: np.asarray(v) + cal["q"][f] for f, v in sm["q"].items()}
             ax = unit(rng.normal(size=3))
             ang = math.radians(noise.get("rot_deg", 0.0)) * rng.normal()
-            dq = np.concatenate([[math.cos(ang / 2)], math.sin(ang / 2) * ax])
-            qn = np.zeros(4)
-            plant.mj.mju_mulQuat(qn, dq, sm["quat"])
-            meas.obj_quat = qn
+            meas.obj_quat = quat_mul(quat_from_axis_angle(ax, ang), sm["quat"])
             if noise.get("no_tip"):
                 meas.cop = {}                    # no fingertip sensing: every contact frame from the witness points
             elif noise.get("tip_model"):

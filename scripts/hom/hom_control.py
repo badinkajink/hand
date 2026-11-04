@@ -41,6 +41,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_contact_rig as H  # noqa: E402
 import hom_hand_brake as B  # noqa: E402
+from sr2hand.control.hom import frame_from_normal
 
 COMPONENTS = ("spin", "roll_y", "roll_z", "sep", "slide_y", "slide_z")
 ANGULAR = (0, 1, 2)
@@ -90,14 +91,7 @@ def gcf_sphere_cylinder(c, r_tip, p_tool, R_tool, r_cyl, hl, flex_axis):
         dn = float(np.linalg.norm(dv))
         n = dv / dn
         dist = dn - r_tip
-    y = flex_axis - (flex_axis @ n) * n
-    ny = np.linalg.norm(y)
-    if ny < 1e-6:
-        y = np.cross(n, a)
-        ny = np.linalg.norm(y)
-    y /= ny
-    z = np.cross(n, y)
-    return {"dist": float(dist), "n": n, "p_fing": c - r_tip * n, "p_obj": q, "E": np.column_stack([n, y, z])}
+    return {"dist": float(dist), "n": n, "p_fing": c - r_tip * n, "p_obj": q, "E": frame_from_normal(n, flex_axis, np.cross(n, a))}
 
 
 # --------------------------------------------------------------------------------- the mirror

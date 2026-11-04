@@ -52,6 +52,8 @@ sys.path.insert(0, str(ROOT / "src"))
 import hand_object_scale_kin as K  # noqa: E402
 import hom_turn3 as H  # noqa: E402
 import reorient_backends as RB  # noqa: E402
+from sr2hand.control.hom import frame_from_normal
+from sr2hand.geometry.rotations import rot_angle
 
 OUT_DIR = K.OUT_DIR
 GEN = ROOT / "assets/mjcf/experimental/20261008-hand_object_scale"
@@ -428,8 +430,7 @@ def _fingers_loaded(d, tool_mask, finger_idx, weight) -> int:
 
 
 def _angle(Ra, Rb) -> float:
-    c = (np.trace(Ra.T @ Rb) - 1.0) / 2.0
-    return math.degrees(math.acos(max(-1.0, min(1.0, c))))
+    return math.degrees(rot_angle(Ra, Rb))
 
 
 def hold_rollout(path: Path, meta: dict, seed: int, disturb: bool = True) -> dict:
@@ -566,12 +567,8 @@ class Mirror(H.Mirror):
         p_f, p_o = ft[:3].copy(), ft[3:].copy()
         rad = p_o - d.geom_xpos[self.cyl]
         n = rad / max(np.linalg.norm(rad), 1e-9)
-        y = d.xaxis[self.flex[f]] - (d.xaxis[self.flex[f]] @ n) * n
-        if np.linalg.norm(y) < 1e-6:
-            y = np.cross(n, [0.0, 0.0, 1.0])
-        y /= np.linalg.norm(y)
-        z = np.cross(n, y)
-        return {"dist": float(dist), "p_f": p_f, "p_o": p_o, "n": n, "E": np.column_stack([n, y, z])}
+        return {"dist": float(dist), "p_f": p_f, "p_o": p_o, "n": n,
+                "E": frame_from_normal(n, d.xaxis[self.flex[f]], np.cross(n, [0.0, 0.0, 1.0]))}
 
 
 def turn_rollout(plant, mirror, meta, seed, prm, frame_cb=None) -> dict:

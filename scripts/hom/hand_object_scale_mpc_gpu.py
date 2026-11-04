@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hand_object_scale_mpc as M  # noqa: E402
 import hand_object_scale_sim as S  # noqa: E402
+from sr2hand.geometry.rotations import tilt_cos
 
 NCONMAX, NJMAX = 1024, 2048
 
@@ -151,10 +152,7 @@ class GPUPlanner(M.Planner):
         """Planner.cost on the recorded samples (q: (n, nrec, 7) cylinder pose, w: angular velocity, s: sensors)."""
         import math
         prm = self.prm
-        p, x, y = q[..., :3], q[..., 4], q[..., 5]
-        nq = np.linalg.norm(q[..., 3:7], axis=-1)
-        x, y = x / nq, y / nq
-        uz = 1.0 - 2.0 * (x * x + y * y)
+        p, uz = q[..., :3], tilt_cos(q[..., 3:7])
         run = prm["w_tilt"] * (1.0 - uz) + prm["w_pos"] * np.sum((p - p_ref) ** 2, -1) / M.SIGMA_POS ** 2 \
             + prm["w_drop"] * (p[..., 2] < z0 - 0.015)
         if prm.get("w_rate", 0.0) > 0:

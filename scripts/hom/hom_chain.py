@@ -43,6 +43,9 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_contact_rig as H  # noqa: E402
 import hom_control as C  # noqa: E402
 import hom_hand_brake as B  # noqa: E402
+from sr2hand.geometry.rotations import frame_from_axis, mat_to_quat as quat_from_R, rot_z as rotz
+from sr2hand.geometry.sampling import cap_pad
+from hom_contact_rig import heat
 
 PINCH_DEPTH = 0.050
 PINCH_ROT_DEG = 45.0
@@ -69,33 +72,14 @@ def pinch_frame():
     ix = np.array(B.BASE_MOUNTS["index"]) + off["index"]
     mid = 0.5 * (th + ix)
     u0 = (ix - th) / np.linalg.norm(ix - th)
-    c, s = math.cos(math.radians(PINCH_ROT_DEG)), math.sin(math.radians(PINCH_ROT_DEG))
-    u = np.array([c * u0[0] - s * u0[1], s * u0[0] + c * u0[1], 0.0])
+    u = (rotz(math.radians(PINCH_ROT_DEG)) @ u0) * np.array([1.0, 1.0, 0.0])
     a = np.cross([0.0, 0.0, 1.0], u)
     return np.array([mid[0], mid[1], -PINCH_DEPTH]), u, a
 
 
-def rotz(psi):
-    c, s = math.cos(psi), math.sin(psi)
-    return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1.0]])
-
-
-def quat_from_R(R):
-    import mujoco
-    q = np.zeros(4)
-    mujoco.mju_mat2Quat(q, np.asarray(R, float).reshape(-1))
-    return q
-
-
 def tool_R(axis):
     """Rotation whose z column is `axis` (horizontal or not) and x column horizontal."""
-    z = axis / np.linalg.norm(axis)
-    x = np.cross(z, [0, 0, 1.0])
-    if np.linalg.norm(x) < 1e-6:
-        x = np.array([1.0, 0, 0])
-    x /= np.linalg.norm(x)
-    y = np.cross(z, x)
-    return np.column_stack([x, y, z])
+    return frame_from_axis(axis, np.cross(axis / np.linalg.norm(axis), [0, 0, 1.0]))
 
 
 def make_trial(seed, d_cg=0.015, clearance=0.001, perturb=True):
@@ -170,10 +154,7 @@ def chain_scene(spec, trial, geom_dirs=None, pad_tc=None):
     if model == "spheres" and geom_dirs is not None:
         s, rs = sp["s"], sp["rs"]
         cap = math.radians(sp.get("cap_deg", 45.0))
-        area = 2 * math.pi * B.R_TIP ** 2 * (1 - math.cos(cap))
-        n = max(1, int(round(area / s ** 2)))
-        A_s = area / n
-        K_s = sp["E"] / B.R_TIP * A_s * ((B.R_TIP - rs) / B.R_TIP) ** 2
+        n, A_s, K_s = cap_pad(B.R_TIP, rs, s, cap, sp["E"])
         info.update(n_spheres=n, K_sphere=K_s)
         tc, d0 = pad_tc if pad_tc is not None else (0.01, 0.9)
         for f in geom_dirs:
@@ -1058,17 +1039,6 @@ def label(spec, brake=None):
 
 
 # -------------------------------------------------------------------------------------- films
-
-def heat(x):
-    """Dark violet -> red -> orange -> pale yellow for x in [0, 1]."""
-    x = min(max(float(x), 0.0), 1.0)
-    stops = [(0.0, (0.22, 0.06, 0.38)), (0.35, (0.70, 0.13, 0.32)), (0.7, (0.96, 0.47, 0.10)), (1.0, (1.0, 0.94, 0.45))]
-    for (x0, c0), (x1, c1) in zip(stops, stops[1:]):
-        if x <= x1:
-            f = (x - x0) / (x1 - x0)
-            return [c0[i] + f * (c1[i] - c0[i]) for i in range(3)] + [1.0]
-    return list(stops[-1][1]) + [1.0]
-
 
 SCALE_POINT_N, SCALE_PRESSURE = 4.0, 3e5      # colour full scale in the close-up: point force; pressure, or a
                                                # sphere's force over its share of pad area

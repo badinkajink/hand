@@ -137,17 +137,6 @@ class StepProbe:
 
 # ------------------------------------------------------------------------------------------ films
 
-def heat(x):
-    """Dark violet -> red -> orange -> pale yellow for x in [0, 1] (the colour map of hom_chain's films)."""
-    x = min(max(float(x), 0.0), 1.0)
-    stops = [(0.0, (0.22, 0.06, 0.38)), (0.35, (0.70, 0.13, 0.32)), (0.7, (0.96, 0.47, 0.10)), (1.0, (1.0, 0.94, 0.45))]
-    for (x0, c0), (x1, c1) in zip(stops, stops[1:]):
-        if x <= x1:
-            f = (x - x0) / (x1 - x0)
-            return [c0[i] + f * (c1[i] - c0[i]) for i in range(3)] + [1.0]
-    return list(stops[-1][1]) + [1.0]
-
-
 def _add_geom(scn, kind, size, pos, mat, rgba):
     import mujoco
     if scn.ngeom >= scn.maxgeom:
@@ -256,7 +245,7 @@ class BedFilm(H.FilmRig):
         if self.point:
             for s, pos, n, fN, _ in cons:
                 _add_geom(scn, mujoco.mjtGeom.mjGEOM_SPHERE, [0.0008] * 3 if closeup else [0.0011] * 3, pos,
-                          np.eye(3), heat(fN / SCALE_POINT_N))
+                          np.eye(3), H.heat(fN / SCALE_POINT_N))
                 if fN > 1e-4 and scn.ngeom < scn.maxgeom:
                     g = scn.geoms[scn.ngeom]
                     mujoco.mjv_initGeom(g, mujoco.mjtGeom.mjGEOM_ARROW, np.zeros(3), np.zeros(3), np.eye(3).reshape(-1),
@@ -268,7 +257,7 @@ class BedFilm(H.FilmRig):
             for s, c, nv, a, p in faces:
                 r = math.sqrt(max(a, 1e-14) / math.pi) * 1.15
                 _add_geom(scn, mujoco.mjtGeom.mjGEOM_CYLINDER, [r, r, 0.00005], c + 0.00005 * nv,
-                          H._rot_z_to(nv), heat(p / SCALE_PRESSURE))
+                          H._rot_z_to(nv), H.heat(p / SCALE_PRESSURE))
 
     def frame(self, rig, text, bottom=None, speed=None):
         speed = self.speed if speed is None else speed
@@ -286,7 +275,7 @@ class BedFilm(H.FilmRig):
             for s, pos, n, fN, name in cons:
                 force[name] = force.get(name, 0.0) + fN
             for name, g in self.pad_sph.items():
-                m.geom_rgba[g] = heat(force[name] / self.A_s / SCALE_PRESSURE) if force.get(name, 0.0) > 1e-5 \
+                m.geom_rgba[g] = H.heat(force[name] / self.A_s / SCALE_PRESSURE) if force.get(name, 0.0) > 1e-5 \
                     else [0.80, 0.80, 0.82, 0.55]
         self.r.update_scene(self.d, self.cam)
         self._decorate(self.r.scene, rig, cons, faces, False)

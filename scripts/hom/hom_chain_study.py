@@ -22,6 +22,7 @@ import hom_chain as K  # noqa: E402
 import hom_contact_rig as H  # noqa: E402
 import hom_control as C  # noqa: E402
 import hom_hand_brake as B  # noqa: E402
+from sr2hand.geometry.sampling import cap_pad
 
 OUT = ROOT / "docs/experiments/20261002-hom_chain"
 MEDIA = OUT / "media"
@@ -344,9 +345,7 @@ def one_contact(model, T=1.0):
         pads = ""
         if model == "mj:spheres1":
             s, rs, cap = 0.001, 0.00075, math.radians(45.0)
-            area = 2 * math.pi * r_t ** 2 * (1 - math.cos(cap))
-            n = int(round(area / s ** 2))
-            K_s = 1e7 / r_t * area / n * ((r_t - rs) / r_t) ** 2
+            n, _, K_s = cap_pad(r_t, rs, s, cap, 1e7)
             tc = 0.01
             diag = 1.0 / 0.02                         # the tip's inverse mass; the cylinder is fixed
             d0 = 1.0 - 1.0 / (tc ** 2 * K_s * diag)

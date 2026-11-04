@@ -40,6 +40,8 @@ import hom_chain as K  # noqa: E402
 import hom_contact_rig as H  # noqa: E402
 import hom_control as C  # noqa: E402
 import hom_hand_brake as B  # noqa: E402
+from sr2hand.geometry import vectors
+from sr2hand.geometry.rotations import heading
 
 OUT = ROOT / "docs/experiments/20261002-hom_chain"
 MEDIA = OUT / "media"
@@ -56,7 +58,7 @@ class TaskEscape(RuntimeError):
 
 
 def unit(v):
-    return v / np.linalg.norm(v)
+    return vectors.unit(v, zero="nan")
 
 
 class Rollout:
@@ -509,8 +511,7 @@ def wield(spec=SPEC, film=None, cycles=6, F_w=2.0, rate_dps=40.0, T_twist=0.5, o
     res = {"task": "wield", "spec": spec, "cycles": cycles, "F_w": F_w, "rate_dps": rate_dps, "T_twist": T_twist}
 
     def theta():
-        R = ro.st["tool_R"]
-        return math.atan2(R[1, 0], R[0, 0])
+        return float(heading(ro.st["tool_R"]))
 
     th = {"last": theta(), "acc": 0.0}
 
@@ -522,7 +523,7 @@ def wield(spec=SPEC, film=None, cycles=6, F_w=2.0, rate_dps=40.0, T_twist=0.5, o
         return math.degrees(th["acc"])
 
     def tilt():
-        return math.degrees(math.acos(min(1.0, abs(ro.st["tool_R"][2, 2]))))
+        return float(vectors.deg_from_cos(abs(ro.st["tool_R"][2, 2])))
 
     def line(ph, k):
         return f"cycle {k}  {ph:7s} turned {turned():+6.1f} deg  tilt {tilt():3.1f}  t {ro.t:5.2f} s"

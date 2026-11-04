@@ -48,6 +48,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import reorient_backends as RB  # noqa: E402
+from sr2hand.control.hom import frame_from_normal
 
 OUT = ROOT / "docs/experiments/20261006-hom_turn3/turn3.jsonl"
 SCENES = ROOT / "logs/20261006-hom_turn3/scenes"
@@ -116,12 +117,8 @@ class Mirror:
             n = rad / np.linalg.norm(rad)
         else:
             n = u * math.copysign(1.0, s)
-        y = d.xaxis[self.flex[f]] - (d.xaxis[self.flex[f]] @ n) * n
-        if np.linalg.norm(y) < 1e-6:
-            y = np.cross(n, u)
-        y /= np.linalg.norm(y)
-        z = np.cross(n, y)
-        return {"dist": float(dist), "p_f": p_f, "p_o": p_o, "n": n, "E": np.column_stack([n, y, z])}
+        E = frame_from_normal(n, d.xaxis[self.flex[f]], np.cross(n, u))
+        return {"dist": float(dist), "p_f": p_f, "p_o": p_o, "n": n, "E": E}
 
     def gravity(self):
         """Joint torques holding the nine finger joints against gravity at the mirror's posture (qfrc_bias at rest)."""

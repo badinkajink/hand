@@ -22,6 +22,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.numerics.signal import trailing_average
 D = ROOT / "docs/experiments/20261029-foundational_pose_review"
 ROWS = D / "rows"
 MEDIA = D / "media"
@@ -94,16 +95,6 @@ def fig_landscape():
             "y_range": [float(ys.min()), float(ys.max())]}
 
 
-def moving(x, w):
-    x = np.asarray(x, float)
-    c = np.cumsum(np.insert(x, 0, 0.0))
-    out = np.full(len(x), np.nan)
-    for i in range(len(x)):
-        a = max(0, i + 1 - w)
-        out[i] = (c[i + 1] - c[a]) / (i + 1 - a)
-    return out
-
-
 def fig_efficiency():
     plt = plt_setup()
     fig, axs = plt.subplots(1, 2, figsize=(14, 5.0))
@@ -117,7 +108,7 @@ def fig_efficiency():
         # efficiency per RRT call: calls rejected for being too close to a candidate count as calls without one
         allc = np.zeros(int(summ.get("calls", calls.max() if len(calls) else 0)) + 1)
         allc[calls[okc > 0].astype(int)] = 1.0
-        eff = moving(allc[1:], 400)
+        eff = trailing_average(allc[1:], 400)
         axs[0].plot(np.arange(1, len(eff) + 1), eff, color=col, lw=2, label=lab)
         cand, raw, sc, mean, par = table(rows)
         for k, fp in enumerate(FPS):

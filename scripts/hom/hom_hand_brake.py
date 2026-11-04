@@ -42,6 +42,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_contact_rig as H  # noqa: E402
+from sr2hand.geometry.rotations import frame_from_axis, mat_to_quat
+from sr2hand.geometry.sampling import cap_pad
 
 HAND = ROOT / "assets/mjcf/real_v1/real_hand.xml"
 PLAN = ROOT / "docs/experiments/20260829-real_v1_deploy/deploy/sv1_w0099_b100_plan.json"
@@ -233,10 +235,7 @@ def mj_scene(spec, offsets, d_cg, q_init, geom_dirs=None, pad_tc=None):
     if model == "spheres" and geom_dirs is not None:
         s, rs = sp["s"], sp["rs"]
         cap = math.radians(sp.get("cap_deg", 45.0))
-        area = 2 * math.pi * R_TIP ** 2 * (1 - math.cos(cap))
-        n = max(1, int(round(area / s ** 2)))
-        A_s = area / n
-        K_s = sp["E"] / R_TIP * A_s * ((R_TIP - rs) / R_TIP) ** 2
+        n, A_s, K_s = cap_pad(R_TIP, rs, s, cap, sp["E"])
         info.update(n_spheres=n, K_sphere=K_s)
         tc, d0 = pad_tc if pad_tc is not None else (0.01, 0.9)
         for f in ("thumb", "index"):
@@ -254,11 +253,7 @@ def mj_scene(spec, offsets, d_cg, q_init, geom_dirs=None, pad_tc=None):
                               solref=f"{tc:.6g} 1", solimp=f"{d0:.6g} {d0:.6g} 0.001 0.5 2",
                               rgba="0.75 0.4 0.25 1", mass="0")
     # tool: axis a, centre c; its contact params mirror the fingertips'
-    R = np.column_stack([np.cross(a, [0, 0, 1.0]) / np.linalg.norm(np.cross(a, [0, 0, 1.0])), [0, 0, 1.0], a])
-    R[:, 1] = np.cross(R[:, 2], R[:, 0])
-    quat = np.zeros(4)
-    import mujoco
-    mujoco.mju_mat2Quat(quat, R.reshape(-1))
+    quat = mat_to_quat(frame_from_axis(a, np.cross(a, [0, 0, 1.0])))
     wb = root.find("worldbody")
     tool = ET.SubElement(wb, "body", name="tool", pos=f"{c[0]:.6f} {c[1]:.6f} {c[2]:.6f}",
                          quat=" ".join(f"{x:.8f}" for x in quat))

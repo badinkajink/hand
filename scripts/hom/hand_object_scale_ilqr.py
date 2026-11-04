@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hand_object_scale_mpc as M  # noqa: E402
 import hand_object_scale_sim as S  # noqa: E402
+from sr2hand.geometry.rotations import quat_axis
 
 ILQR_DEFAULTS = dict(eps_q=1e-4, eps_v=1e-3, eps_u=1e-3, soft_k=5.0, w_du_step=2.0, mu0=1e-2, alphas=(1.0, 0.5, 0.25, 0.1))
 
@@ -103,8 +104,7 @@ class ILQRPlanner:
     def pose_res(self, q, p_ref, w_scale=1.0):
         prm = self.prm
         p = q[self.qa:self.qa + 3]
-        w_, x_, y_, z_ = q[self.qa + 3:self.qa + 7] / np.linalg.norm(q[self.qa + 3:self.qa + 7])
-        axis = np.array([2 * (x_ * z_ + w_ * y_), 2 * (y_ * z_ - w_ * x_), 1 - 2 * (x_ * x_ + y_ * y_)])
+        axis = quat_axis(q[self.qa + 3:self.qa + 7])
         r_t = math.sqrt(w_scale * prm["w_tilt"] / 2.0) * (axis - [0.0, 0.0, 1.0])
         r_p = math.sqrt(w_scale * prm["w_pos"]) * (p - p_ref) / M.SIGMA_POS
         return np.concatenate([r_t, r_p])

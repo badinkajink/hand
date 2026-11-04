@@ -37,6 +37,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_code_trace as CT  # noqa: E402
+from sr2hand.geometry.rotations import rot_z
 
 T, S, H, HG, HR = CT.T, CT.S, CT.H, CT.HG, CT.HR
 FINGERS = HG.FINGERS
@@ -60,7 +61,7 @@ class Snap:
 def yaw_pitch(axis, psi):
     """The cylinder's angle about palm x (hom_tasks.pinch_angle) and about the vertical (deg), in the frame where the
     pinch runs along x (the toy's psi undone)."""
-    Rz = np.array([[math.cos(psi), math.sin(psi), 0.0], [-math.sin(psi), math.cos(psi), 0.0], [0.0, 0.0, 1.0]])
+    Rz = rot_z(-psi)
     a = Rz @ np.asarray(axis, float)
     return T.pinch_angle(a), math.degrees(math.atan2(a[0], -a[1]))
 

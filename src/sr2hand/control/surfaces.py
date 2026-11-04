@@ -15,11 +15,11 @@ from __future__ import annotations
 import math
 
 import numpy as np
+from sr2hand.geometry.vectors import unit as vector_unit
 
 
 def unit(v: np.ndarray) -> np.ndarray:
-    n = float(np.linalg.norm(v))
-    return v / n if n > 1e-15 else v
+    return vector_unit(v, zero="keep", eps=1e-15)
 
 
 class Surface:

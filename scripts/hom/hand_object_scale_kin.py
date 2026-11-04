@@ -34,6 +34,10 @@ import time
 from pathlib import Path
 
 import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.distances import segment_segment as seg_seg
+from sr2hand.geometry.rotations import exp_so3 as rotmat
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
@@ -223,24 +227,6 @@ def jac_cond(finger: str, q: np.ndarray, eps: float = 1e-6):
 
 
 # --- distances ---------------------------------------------------------------------------------
-def seg_seg(p1, q1, p2, q2):
-    """Closest distance between segments p1q1 and p2q2 (..., 3); degenerate segments allowed."""
-    d1, d2, r = q1 - p1, q2 - p2, p1 - p2
-    a, e = (d1 * d1).sum(-1), (d2 * d2).sum(-1)
-    b, c, f = (d1 * d2).sum(-1), (d1 * r).sum(-1), (d2 * r).sum(-1)
-    tiny = 1e-14
-    A, E = np.where(a > tiny, a, 1.0), np.where(e > tiny, e, 1.0)
-    denom = a * e - b * b
-    s = np.where(denom > tiny, np.clip((b * f - c * e) / np.where(denom > tiny, denom, 1.0), 0, 1), 0.0)
-    t = (b * s + f) / E
-    s = np.where(t < 0, np.clip(-c / A, 0, 1), np.where(t > 1, np.clip((b - c) / A, 0, 1), s))
-    t = np.clip(t, 0, 1)
-    # a point against a segment (Ericson 5.1.9): the second, then the first, degenerate
-    s, t = np.where(e <= tiny, np.clip(-c / A, 0, 1), s), np.where(e <= tiny, 0.0, t)
-    s, t = np.where(a <= tiny, 0.0, s), np.where(a <= tiny, np.clip(f / E, 0, 1), t)
-    return np.linalg.norm(p1 + d1 * s[..., None] - (p2 + d2 * t[..., None]), axis=-1)
-
-
 GEOMS = (("yaw_a", "yaw_b"), ("mid_a", "mid_b"), ("dist_a", "dist_b"), ("pad", "pad"))
 
 
@@ -425,15 +411,6 @@ def rotvec_grid(step_deg: float = 15.0, max_deg: float = 45.0) -> np.ndarray:
     ijk = np.array([(i, j, l) for i in range(-k, k + 1) for j in range(-k, k + 1) for l in range(-k, k + 1)], float)
     v = ijk * step_deg
     return np.radians(v[np.linalg.norm(v, axis=1) <= max_deg + 1e-9])
-
-
-def rotmat(rv) -> np.ndarray:
-    th = float(np.linalg.norm(rv))
-    if th < 1e-12:
-        return np.eye(3)
-    k = np.asarray(rv, float) / th
-    K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
-    return np.eye(3) + math.sin(th) * K + (1 - math.cos(th)) * K @ K
 
 
 POS_STEP = 0.003

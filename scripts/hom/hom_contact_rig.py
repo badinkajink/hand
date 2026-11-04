@@ -48,6 +48,10 @@ import time
 from pathlib import Path
 
 import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import mat_to_quat, rot_between, rot_y, rot_z
+from sr2hand.geometry.sampling import cap_pad, fibonacci
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -165,29 +169,15 @@ def winkler_law(N, E):
 
 def fib_cap(n, cap):
     """n near-uniform unit vectors on the cap of half-angle `cap` about +z (Fibonacci lattice)."""
-    k = np.arange(n) + 0.5
-    z = 1.0 - (1.0 - math.cos(cap)) * k / n
-    r = np.sqrt(1.0 - z ** 2)
-    phi = k * math.pi * (3.0 - math.sqrt(5.0))
-    return np.stack([r * np.cos(phi), r * np.sin(phi), z], axis=1)
+    return fibonacci(n, math.cos(cap))
 
 
 # ------------------------------------------------------------------------------------- MuJoCo
 
 def _rot_z_to(v):
-    """Rotation matrix taking +z to unit vector v."""
+    """Rotation matrix taking +z to unit vector v (for v = -z, the half turn about x)."""
     v = np.asarray(v, float) / np.linalg.norm(v)
-    z = np.array([0.0, 0.0, 1.0])
-    c = float(z @ v)
-    if c > 1 - 1e-12:
-        return np.eye(3)
-    if c < -1 + 1e-12:
-        return np.diag([1.0, -1.0, -1.0])
-    ax = np.cross(z, v)
-    s = np.linalg.norm(ax)
-    ax /= s
-    K = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
-    return np.eye(3) + s * K + (1 - c) * K @ K
+    return np.diag([1.0, -1.0, -1.0]) if v[2] < -1 + 1e-12 else rot_between([0.0, 0.0, 1.0], v)
 
 
 def mj_xml(sp: dict, d_cg: float, gravity: bool, kinematic: bool = False,
@@ -208,14 +198,11 @@ def mj_xml(sp: dict, d_cg: float, gravity: bool, kinematic: bool = False,
     elif model == "spheres":
         s, rs = sp["s"], sp["rs"]
         cap = math.radians(sp.get("cap_deg", 35.0))
-        area = 2 * math.pi * R_PAD ** 2 * (1 - math.cos(cap))
-        n = max(1, int(round(area / s ** 2)))
+        n, A_s, K_s = cap_pad(R_PAD, rs, s, cap, sp["E"])
         dirs = fib_cap(n, cap)
-        A_s = area / n
         # N/m per sphere: the same elastic foundation as Drake's p = E * depth / R. The contact
         # points lie on the inner sphere R - rs, (R / (R - rs))^2 more densely than on the
         # envelope, so the per-sphere area is scaled down by that factor.
-        K_s = sp["E"] / R_PAD * A_s * ((R_PAD - rs) / R_PAD) ** 2
         info.update(n_spheres=n, area_per_sphere_mm2=A_s * 1e6, K_sphere=K_s)
         # Critically damped reference dynamics: solref (tc, 1) with tc = 1/sqrt(K_s (1-d0) diag)
         # gives the per-contact steady stiffness K_s = 1 / (tc^2 (1-d0) diag). With hundreds of
@@ -703,9 +690,9 @@ def exp_cop(spec, delta_mm=0.18, angles=np.linspace(0.0, 20.0, 81)):
         for ang in angles:
             a = math.radians(ang)
             if ax == "z":
-                R = np.array([[math.cos(a), -math.sin(a), 0], [math.sin(a), math.cos(a), 0], [0, 0, 1]])
+                R = rot_z(a)
             else:
-                R = np.array([[math.cos(a), 0, math.sin(a)], [0, 1, 0], [-math.sin(a), 0, math.cos(a)]])
+                R = rot_y(a)
             cop, n = kinematic_cop(rig, c, R)
             out["angle"].append(f"{ax}{ang:.2f}")
             # tangential error only: MuJoCo places a contact mid-overlap, Drake on the rigid surface
@@ -788,8 +775,7 @@ def kinematic_cop(rig, center, R):
     mj = rig.mj
     jid = rig.m.body_jntadr[rig.pads["L"]]
     qa = rig.m.jnt_qposadr[jid]
-    quat = np.zeros(4)
-    mj.mju_mat2Quat(quat, R.reshape(-1))
+    quat = mat_to_quat(R)
     rig.d.qpos[qa:qa + 3] = center
     rig.d.qpos[qa + 3:qa + 7] = quat
     jr = rig.m.body_jntadr[rig.pads["R"]]
@@ -979,3 +965,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def heat(x):
+    """Dark violet -> red -> orange -> pale yellow for x in [0, 1]: the colour map of the contact films."""
+    x = min(max(float(x), 0.0), 1.0)
+    stops = [(0.0, (0.22, 0.06, 0.38)), (0.35, (0.70, 0.13, 0.32)), (0.7, (0.96, 0.47, 0.10)), (1.0, (1.0, 0.94, 0.45))]
+    for (x0, c0), (x1, c1) in zip(stops, stops[1:]):
+        if x <= x1:
+            f = (x - x0) / (x1 - x0)
+            return [c0[i] + f * (c1[i] - c0[i]) for i in range(3)] + [1.0]
+    return list(stops[-1][1]) + [1.0]

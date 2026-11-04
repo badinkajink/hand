@@ -45,6 +45,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 sys.path.insert(0, str(ROOT / "src"))
 import hand_object_scale_sim as S  # noqa: E402
 import hom_turn3 as H  # noqa: E402
+from sr2hand.geometry.rotations import tilt_cos
 
 OUT = ROOT / "docs/experiments/20261013-scale_turn_controllers"
 if S.HAND == "cad_v1":       # SCALE_HAND=cad_v1: every default output and HOM-row input of the CAD-hand rerun
@@ -166,8 +167,7 @@ class Planner:
     def cost(self, states, samples, p_ref, z0, sens=None):
         prm = self.prm
         q = states[:, prm["cost_every"] - 1::prm["cost_every"], self.qa:self.qa + 7]
-        p, x, y = q[..., :3], q[..., 4], q[..., 5]
-        uz = 1.0 - 2.0 * (x * x + y * y)
+        p, uz = q[..., :3], tilt_cos(q[..., 3:7])
         run = prm["w_tilt"] * (1.0 - uz) + prm["w_pos"] * np.sum((p - p_ref) ** 2, -1) / SIGMA_POS ** 2 \
             + prm["w_drop"] * (p[..., 2] < z0 - 0.015)
         if prm.get("w_rate", 0.0) > 0:

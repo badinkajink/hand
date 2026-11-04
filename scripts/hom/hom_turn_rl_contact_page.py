@@ -31,6 +31,7 @@ import contact_overview_page as P  # noqa: E402
 import simulator_agreement_figure as SAF  # noqa: E402
 import texsvg  # noqa: E402
 import retro_style  # noqa: E402
+from sr2hand.geometry.vectors import deg_from_cos
 
 D = os.path.join(ROOT, "docs/experiments/20261006-hom_turn3")
 CAL = os.path.join(ROOT, "docs/experiments/20261006-servo_recalibration")
@@ -1070,7 +1071,7 @@ def films_paragraph(R):
         return ""
 
     def turn(t):
-        return 90.0 - math.degrees(math.acos(max(-1.0, min(1.0, fin[t]["final_cos_mean"]))))
+        return 90.0 - float(deg_from_cos(fin[t]["final_cos_mean"]))
     mesh = sorted(t for t in fin if "pads1" not in t)
     pads = sorted(t for t in fin if "pads1" in t)
 
