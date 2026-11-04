@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 10:5x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 11:1x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -258,6 +258,18 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       - Seat 3: edge-642-r90; the az 0 slides of edge-618-r90; the az 270 slides of edge-573-r0 and edge-651-r90.
       - Seat 1: edge-651-r90 and edge-642-r90; the az 90 slides of edge-569-r0; the az 0 slides of edge-618-r90.
       - The plans are `20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_sweep8_fit.json`.
+  - **Now (from 11:17:06 on 11-04): the rod points, `logs/20261104-chain_rod_points.sh` on
+    `logs/20261104-rod_points_steps.txt` (copies here; chain PID 2960508, its log `logs/20261104-chain_rod_points.log`).**
+    The robot must be free at 14:15 (the owner chose it at 10:55, relayed): the hard stop (PID 2960534) stops the chain
+    and then the program after its next finished action at 14:15. A step starts only if its expected minutes end by
+    14:15. Expected end about 13:20.
+    - Steps: face and edges on seats 1, 3 and 2 (75, 70 and 70 grid actions), then flanks and tip on seats 2, 3 and 1
+      (6, 5 and 6), each resuming its seat's rod session. Plans: the workstation's
+      `../../20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat{1,3,2}_v3id{6,4,5}_dense_{fe,ft}_draft.json`
+      (b73de9a1d).
+    - Checked: no id ended ok in its session before; the lab's chained dry-check from the arm's joints flags 0 of the
+      232 (`20261104-rod_points_run_check.json`), as the workstation's; at the joint fit's 2 sd corners every action
+      keeps 0.2 mm from the tip body (the workstation's).
   - **Next, 11-04 from about 11:1x: more rod points before the SR2 mounting.** The owner, relayed at 10:44: "if we
     just lost density of coverage why dont we just add points now. i know i said we were done earlier, but we should
     have a few hours left to get that density". The held-out GP places contact to 0.78 to 0.82 mm on IDs 4 to 6,

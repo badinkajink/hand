@@ -1,0 +1,11 @@
+# 11-04 from 11:2x: the rod points (the owner, relayed at 10:44: "we should have a few hours left to get that density";
+# the robot free at 14:15, relayed at 10:56). Face and edges at 1.0 mm on seats 1, 3 and 2, then flanks and tip at 1.3 mm
+# on seats 2, 3 and 1, each resuming its seat's rod session of the night (the workstation's plans, b73de9a1d). min= is a
+# step's expected minutes (30 s an action and 2 min; the night's straight-travel press took 25 s): a step starts only if
+# it would end by 14:15.
+resume 1 docs/experiments/20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat1_v3id6_dense_fe_draft.json logs/20261103-tip_calibration/214753-rod13_seed min=40
+resume 3 docs/experiments/20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat3_v3id4_dense_fe_draft.json logs/20261103-tip_calibration/202017-rod32_seed min=37
+resume 2 docs/experiments/20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat2_v3id5_dense_fe_draft.json logs/20261103-tip_calibration/172647-rod21_seed min=37
+resume 2 docs/experiments/20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat2_v3id5_dense_ft_draft.json logs/20261103-tip_calibration/172647-rod21_seed min=7
+resume 3 docs/experiments/20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat3_v3id4_dense_ft_draft.json logs/20261103-tip_calibration/202017-rod32_seed min=6
+resume 1 docs/experiments/20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat1_v3id6_dense_ft_draft.json logs/20261103-tip_calibration/214753-rod13_seed min=7

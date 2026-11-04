@@ -8,6 +8,8 @@
 #                          preflight,pad,register,grid (pass 1, the rod's fit, then the plan's grid)
 #   more SEAT PLAN         the same seat's session again (the last seed step's), stages preflight,grid
 #   resume SEAT PLAN DIR   the session DIR (of an earlier chain) again, stages preflight,grid
+# A step may end in min=M, its expected minutes: it starts only if it would end by STOP_AT (the owner, relayed at 10:56:
+# the robot free at 14:15; the workstation: "let no seat start after 14:15 less that seat's run"), else the chain ends.
 # A run stopped by a HEX-E loss resumes once hexe_probe.py finds the sensor streaming; anything else stops the chain.
 # Each step goes to logs/20261104-chain_rod_points.log; the runs are named pts<seat><step>.
 # Usage: bash logs/20261104-chain_rod_points.sh STEPS_FILE LAST_START STOP_AT   (HH:MM, today)
@@ -85,11 +87,17 @@ declare -A DIR                      # each seat's session folder
 mapfile -t ROWS < "$STEPS"         # read whole: no command in a step can take the file's lines
 k=0
 for row in "${ROWS[@]}"; do
+    min=$(grep -o ' min=[0-9]*' <<< "$row" | cut -d= -f2)
+    row=${row/ min=$min/}
     read -r kind seat plan src <<< "$row"
     [ -z "$kind" ] || [ "${kind:0:1}" = "#" ] && continue
     k=$((k + 1))
     if late; then
         say "step $k ($kind seat $seat) not started: past $LAST_START; the chain ends"
+        exit 0
+    fi
+    if [ -n "$min" ] && [ $(($(date +%s) + 60 * min)) -gt "$(date -d "$STOP_AT" +%s)" ]; then
+        say "step $k ($kind seat $seat, $min min) not started: it would end past $STOP_AT; the chain ends"
         exit 0
     fi
     name=pts$seat$k
