@@ -1,0 +1,12 @@
+resumed logs/20261103-tip_calibration/214753-rod13_seed: 56 actions done, 20 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 138 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 138 records/s, mux channel 2 138 records/s, mux channel 3 138 records/s
+  HEX-E noise (1 sigma) N, N m: [0.0308 0.0487 0.2185 0.0029 0.0034 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  probe-ref-b0 (1/49): to 3.00 N
+  sweep-face-713-r0 (2/49): to 8.00 N
+  sweep-edge-618-r0 (3/49): to 8.00 N

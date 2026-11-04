@@ -1,0 +1,42 @@
+resumed logs/20261103-tip_calibration/172647-rod21_seed: 1 actions done, 0 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 138 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 138 records/s, mux channel 2 138 records/s, mux channel 3 138 records/s
+  HEX-E noise (1 sigma) N, N m: [0.0354 0.0293 0.2653 0.0029 0.0039 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== pad
+  pad-ref-00: onset +1.172 mm from the expected (power 1.50, fit 230.9 mN)
+  pad-edge-666-r90: onset +1.246 mm from the expected (power 1.00, fit 222.8 mN)
+  pad-face-692-r90: onset +1.196 mm from the expected (power 1.00, fit 234.2 mN)
+  pad-face-756-r90: onset +1.292 mm from the expected (power 2.00, fit 236.8 mN)
+  pad-face-708-r90: onset +1.048 mm from the expected (power 1.50, fit 223.2 mN)
+  pad-edge-610-r90: onset +1.329 mm from the expected (power 1.25, fit 232.1 mN)
+  pad-edge-668-r90: onset +1.234 mm from the expected (power 2.00, fit 241.8 mN)
+  pad-edge-628-r90: onset +0.974 mm from the expected (power 2.00, fit 239.4 mN)
+  pad-face-759-r90: onset +1.279 mm from the expected (power 1.25, fit 235.3 mN)
+  pad-edge-630-r90: onset +1.256 mm from the expected (power 1.00, fit 198.0 mN)
+  pad-face-776-r90: onset +1.237 mm from the expected (power 1.50, fit 232.7 mN)
+  pad-face-717-r90: onset +0.982 mm from the expected (power 1.00, fit 238.4 mN)
+  pad-edge-634-r90: onset +1.153 mm from the expected (power 2.00, fit 210.8 mN)
+  pad-face-721-r90: onset +0.672 mm from the expected (power 1.00, fit 216.8 mN)
+  pad-edge-639-r90: onset +0.132 mm from the expected (power 1.00, fit 173.2 mN)
+  pad-face-731-r90: onset +0.449 mm from the expected (power 1.00, fit 222.5 mN)
+  pad-edge-638-r90: onset +0.794 mm from the expected (power 1.00, fit 224.9 mN)
+  pad-face-733-r90: onset +0.459 mm from the expected (power 1.50, fit 206.1 mN)
+  pad-edge-729-r90: onset +0.548 mm from the expected (power 1.25, fit 224.0 mN)
+  pad-ref-final: onset +1.120 mm from the expected (power 2.00, fit 241.8 mN)
+== register
+register (probe, rod): pad touches 0.054 mm rms (20); the pad 0.648 mm, 0.868 deg from the seed; the rod's axis moved 1.168 mm across itself, c_M at [ -0.838   0.    106.687] in M (sd [0.099 0.    0.163] mm), turned -5.40 deg about z_M and +0.77 deg across (sd [2.49 1.95])
+== grid
+  probe-ref-00 (1/86): to 3.00 N
+  sweep-edge-573-r0 (2/86): to 8.00 N
+  sweep-edge-634-r0: 0.5 N's offsets stop at r 0.06 az 135: the push across the pad 0.50 N at -0.02 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-edge-634-r0: 2 N's slides stop at az 270: the push across the pad 1.59 N at 0.84 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-edge-634-r0 (3/86): to 8.00 N
+
+interrupted: stopping the robot
+HEX-E: 173432 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.8 s, Fz +0.3 N; 0.7 s, Fz +0.2 N
+session in logs/20261103-tip_calibration/172647-rod21_seed
+exit 0 at 17:55:49

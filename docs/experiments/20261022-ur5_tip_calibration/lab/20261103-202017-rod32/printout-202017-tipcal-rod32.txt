@@ -1,0 +1,68 @@
+resumed logs/20261103-tip_calibration/202017-rod32_seed: 1 actions done, 0 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 138 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 138 records/s, mux channel 2 138 records/s, mux channel 3 138 records/s
+  HEX-E noise (1 sigma) N, N m: [0.036  0.0156 0.2447 0.0031 0.0037 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== pad
+  pad-ref-00: onset -0.198 mm from the expected (power 2.00, fit 234.0 mN)
+  pad-edge-666-r90: onset +0.265 mm from the expected (power 1.50, fit 234.2 mN)
+  pad-face-692-r90: onset +0.162 mm from the expected (power 1.00, fit 236.8 mN)
+  pad-face-756-r90: onset +0.172 mm from the expected (power 1.00, fit 223.0 mN)
+  pad-face-708-r90: onset -0.141 mm from the expected (power 1.50, fit 231.3 mN)
+  pad-edge-610-r90: onset +0.384 mm from the expected (power 2.00, fit 233.1 mN)
+  pad-edge-668-r90: onset +0.191 mm from the expected (power 1.00, fit 236.4 mN)
+  pad-edge-628-r90: onset +0.238 mm from the expected (power 1.00, fit 227.7 mN)
+  pad-face-759-r90: onset +0.013 mm from the expected (power 2.00, fit 240.9 mN)
+  pad-edge-630-r90: onset -0.005 mm from the expected (power 2.00, fit 201.5 mN)
+  pad-face-776-r90: onset -0.163 mm from the expected (power 2.00, fit 234.6 mN)
+  pad-face-717-r90: onset -0.247 mm from the expected (power 1.50, fit 232.8 mN)
+  pad-edge-634-r90: onset -0.069 mm from the expected (power 1.00, fit 195.5 mN)
+  pad-edge-729-r90: onset -1.006 mm from the expected (power 2.00, fit 204.8 mN)
+  pad-face-721-r90: onset -0.772 mm from the expected (power 1.00, fit 202.2 mN)
+  pad-edge-639-r90: onset -1.351 mm from the expected (power 2.00, fit 150.5 mN)
+  pad-face-731-r90: onset -1.104 mm from the expected (power 1.00, fit 195.1 mN)
+  pad-edge-638-r90: onset -0.678 mm from the expected (power 1.00, fit 212.9 mN)
+  pad-face-733-r90: onset -1.110 mm from the expected (power 1.75, fit 187.9 mN)
+  pad-ref-final: onset -0.237 mm from the expected (power 1.50, fit 235.4 mN)
+== register
+register (probe, rod): pad touches 0.041 mm rms (20); the pad 1.027 mm, 1.234 deg from the seed; the rod's axis moved 0.907 mm across itself, c_M at [ -0.803   0.    107.078] in M (sd [0.096 0.    0.162] mm), turned +10.75 deg about z_M and +1.05 deg across (sd [1.46 1.66])
+== grid
+  probe-ref-00 (1/30): to 3.00 N
+  sweep-edge-573-r0 (2/30): to 8.00 N
+  sweep-edge-618-r0 (3/30): to 8.00 N
+  sweep-face-697-r0 (4/30): to 8.00 N
+  sweep-edge-638-r0 (5/30): to 8.00 N
+  sweep-face-756-r0 (6/30): to 8.00 N
+  sweep-edge-666-r90 (7/30): to 8.00 N
+  sweep-edge-675-r90 (8/30): to 8.00 N
+  sweep-face-756-r90 (9/30): to 8.00 N
+  sweep-face-708-r90 (10/30): to 8.00 N
+  sweep-face-790-r0 (11/30): to 8.00 N
+  sweep-face-781-r0: 0.5 N's offsets stop at r 0.06 az 90: the push across the pad 0.88 N at 0.14 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-face-781-r0 (12/30): to 8.00 N
+  sweep-face-690-r0 (13/30): to 8.00 N
+  sweep-edge-610-r0 (14/30): to 8.00 N
+  sweep-face-776-r0 (15/30): to 8.00 N
+  sweep-edge-615-r90 (16/30): to 8.00 N
+  sweep-edge-675-r0 (17/30): to 8.00 N
+  sweep-edge-610-r90 (18/30): to 8.00 N
+  sweep-edge-668-r90: 0.5 N's offsets stop at r 0.06 az 90: the push across the pad 0.54 N at -0.08 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-edge-668-r90 (19/30): to 8.00 N
+  sweep-face-690-r90 (20/30): to 8.00 N
+  sweep-edge-630-r90: 0.5 N's offsets stop at r 0.06 az 0: the push across the pad 0.64 N at 0.03 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-edge-630-r90 (21/30): to 8.00 N
+  sweep-face-776-r90 (22/30): to 8.00 N
+  sweep-face-717-r90 (23/30): to 8.00 N
+  sweep-edge-634-r90 (24/30): to 8.00 N
+  sweep-face-790-r90 (25/30): to 8.00 N
+  sweep-edge-573-r90 (26/30): to 2.00 N
+  sweep-edge-651-r90 (27/30): to 8.00 N
+  sweep-face-731-r90 (28/30): to 8.00 N
+  sweep-face-733-r90 (29/30): to 4.00 N
+  probe-ref-a1 (30/30): to 3.00 N
+HEX-E: 524234 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.9 s, Fz +0.2 N; 0.7 s, Fz -0.3 N
+session in logs/20261103-tip_calibration/202017-rod32_seed
+exit 0 at 21:47:50
