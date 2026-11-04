@@ -11,13 +11,17 @@ CEM's progress), the films' rows media/<date>-films.json, the friction check med
 drops, contact-normal elevations and the static friction need of the STS3032 picks, from the validation rows) and
 compute/ (scripts/hom_compute.py). The results quote the elitist picks S2e and S3e. The worst-case section (2026-11-04)
 reads rows/band_k21mu/<date>-band_levels.json (hom_grasp_refine.py report --band), its timing lines and the queue logs
-of logs/20261104-hom_worst_case/. The design page's helpers and template (scripts/fp_review_page.py) draw the tables and
-figures.
+of logs/20261104-hom_worst_case/. The shared-set section (2026-11-04) reads rows/sv25/<date>-shared_levels.json
+(hom_grasp_refine.py report --shared), the rescored grids grid2dff_v4b_sv25_shared, the timing lines and the queue logs of
+logs/20261104-hom_shared_controller/ and the CPU rows of shared_cpu_bench.py. The design page's helpers and template
+(scripts/fp_review_page.py) draw the tables and figures.
 
     .venv/bin/python scripts/hom_score_refine_page.py figs     # the figures and the friction check from the reports
     .venv/bin/python scripts/hom_score_refine_page.py films    # CPU clips through resguard (after the GPU queue)
     .venv/bin/python scripts/hom_score_refine_page.py band-figs    # the worst-case section's figure (2026-11-04)
     .venv/bin/python scripts/hom_score_refine_page.py band-films   # ... and its film
+    .venv/bin/python scripts/hom_score_refine_page.py shared-figs  # the shared-set section's figures (2026-11-04)
+    .venv/bin/python scripts/hom_score_refine_page.py shared-films # ... and its films
     .venv/bin/python scripts/hom_score_refine_page.py          # the page
     .venv/bin/python scripts/hom_score_refine_page.py --smoke  # the page from rows_smoke/ (a layout check, not results)
 """
@@ -578,6 +582,12 @@ def sec_terms():
         ("S1w, S2w, S3w", "S1, S2 and S3 with the worst-case score in place of the mean score at one friction. Their "
          "searches scored the start as the first candidate, so S2w and S3w are elitist by construction."),
         ("Lowest score over the band", "a pick's lowest validated score over the three frictions of the band."),
+        ("Shared set", "one set of commanded forces and contact-mode weights per task, used for every layout "
+         "(Section SEC[shared]). It is the pick of a search over the forces and modes alone, run on 40 layouts of the "
+         "SCS0009 sample with S1's grasps."),
+        ("S1sh, Sh", "a layout's validated score with the shared set. S1sh keeps S1's grasp. Sh takes the grasp of the "
+         "layout's grasp set that scores best under the shared set at seeds 0-2, as S1 takes the best under HOM's "
+         "defaults."),
         ("Contact filter", "the rule for which hand geoms meet the object. On the GPU only the pads and the rigid "
          "spheres under 2 mm meet it. On the CPU plant every geom meets it, unless the GPU's contact filter is applied "
          "(<code>hom_compute.py</code>'s variant <code>filter</code>)."),
@@ -1226,6 +1236,519 @@ def cmd_band(what):
     return 0
 
 
+# ----------------------------------------------------------------------------------------------- shared forces and modes
+
+SH_PLANT = "sv25"
+SH_LOGS = ROOT / "logs/20261104-hom_shared_controller"
+SH_DIR = D / "rows" / SH_PLANT / "shared"
+SH_GRID = R.GRID_ROWS / "grid2dff_v4b_sv25_shared"   # each task's grid rescored with the shared set (hom_gpu.py --prm)
+SH_STEPS = SH_DIR / "20261104-queue_steps.json"      # wall clock and peak RSS of each step of SH_LOGS/queue.sh
+SH_CPU = SH_DIR / "cpu" / "cpu_bench.jsonl"          # shared_cpu_bench.py beside the page: the CPU runner, shared set
+SH_FILMS = MEDIA / "20261104-shared_films.json"
+SH_FILM_PICKS = ("S1", "S1sh", "S3e")
+SH_LABEL = {"S1": "S1, HOM's defaults", "S1sh": "S1's grasp, shared set", "Sh": "Sh", "S3e": "S3e, tuned per layout"}
+SH_CAPTION = {"S1": "S1 with HOM's defaults", "S1sh": "S1's grasp with the shared set", "Sh": "Sh",
+              "S3e": "S3e, tuned per layout"}
+
+
+def shared_report():
+    """The newest report of the shared forces and modes (hom_grasp_refine.py report --shared), or None."""
+    base = (R.OUT / ("rows_smoke" if SMOKE else "rows")) / SH_PLANT
+    ps = sorted(base.glob("*-shared_levels.json"))
+    return json.loads(ps[-1].read_text()) if ps else None
+
+
+def shared_maps():
+    """{task: (default, shared)}: each layout's best score over its grasp set on the default grid and on the grid
+    rescored with the shared set."""
+    import hom_plant_transfer as TR
+    out = {}
+    for task in TASKS:
+        f = f"{task}_d{R.TASKS[task]:g}.jsonl"
+        a = TR.grasp_means(task, R.GRID_ROWS / f"grid2dff_v4b{R.PLANTS[SH_PLANT][2]}" / f)
+        b = TR.grasp_means(task, SH_GRID / f)
+        if a and b:
+            out[task] = ({c: max(v.values()) for c, v in a.items()}, {c: max(v.values()) for c, v in b.items()})
+    return out
+
+
+def fig_shared_maps():
+    """Best-of-set maps over (x_sep, y_sep): HOM's defaults, the shared set, and the change; a column per task, grey
+    where no grasp was solved, each map's best layout starred."""
+    M = shared_maps()
+    if not M:
+        return
+    plt = plt_setup()
+    plt.rcParams.update({"font.size": 15, "axes.titlesize": 15, "axes.labelsize": 15, "xtick.labelsize": 14,
+                         "ytick.labelsize": 14})
+    fig, axs = plt.subplots(3, 4, figsize=(11, 8.4), constrained_layout=True, sharex=True, sharey=True)
+    ext = [37.5, 162.5, 47.5, 172.5]
+    d = [M[t_][1][c] - v for t_ in M for c, v in M[t_][0].items() if c in M[t_][1]]
+    lim = max(0.1, float(np.ceil(10 * np.percentile(np.abs(d), 99)) / 10))
+    ims = [None, None]
+    for j, task in enumerate(TASKS):
+        if task not in M:
+            continue
+        a, b = M[task]
+        for i, (vs, cmap, lo, hi) in enumerate(((a, "viridis", 0, 1), (b, "viridis", 0, 1),
+                                                ({c: b[c] - a[c] for c in a if c in b}, "RdBu", -lim, lim))):
+            Z = np.full((25, 25), np.nan)
+            for c, v in vs.items():
+                Z[c % 25, c // 25] = v
+            ax = axs[i, j]
+            ax.imshow(np.where(np.isfinite(Z), np.nan, 0.0), origin="lower", extent=ext, cmap="Greys", vmin=-1, vmax=1,
+                      aspect="equal")
+            im = ax.imshow(Z, origin="lower", extent=ext, cmap=cmap, vmin=lo, vmax=hi, aspect="equal")
+            ims[0 if i < 2 else 1] = im
+            if i < 2:
+                c = max(sorted(vs), key=vs.get)
+                ax.plot(40 + 5 * (c // 25), 50 + 5 * (c % 25), "r*", ms=14, mec="k")
+            ax.set_xticks([50, 100, 150])
+            ax.set_yticks([60, 100, 140])
+            if i == 0:
+                ax.set_title(f"{NAME[task]}\n{OBJ[task]}")
+            if i == 2:
+                ax.set_xlabel("$x_{sep}$ (mm)")
+            if j == 0:
+                ax.set_ylabel(("HOM's defaults", "Shared set", "Change")[i] + "\n$y_{sep}$ (mm)")
+    fig.colorbar(ims[0], ax=axs[:2, :].ravel().tolist(), shrink=0.7, label="Best-of-16 score")
+    fig.colorbar(ims[1], ax=axs[2, :].ravel().tolist(), shrink=0.9, label="Shared less\ndefaults")
+    save(fig, "20261104-shared_maps.png")
+
+
+def fig_shared_gain(S):
+    """Per task and sampled layout: the validated change of Sh over S1 against that of S3e over S1, with the line of
+    equal change."""
+    plt = plt_setup()
+    fig, axs = grid4((9.5, 8.6))
+    for ax, task in zip(axs, TASKS):
+        lays = S["tasks"].get(task, {}).get("layouts", [])
+        pts_all = []
+        for grp, c, m, lab in (("top", C2, "o", "30 best by S1"), ("random", C3, "s", "30 at random")):
+            pts = [(e["s3e_val"] - e["s1_val"], e["sh_val"] - e["s1_val"]) for e in lays if e["group"] == grp
+                   and None not in (e["s3e_val"], e["sh_val"], e["s1_val"])]
+            pts_all += pts
+            if pts:
+                x, y = zip(*pts)
+                ax.scatter(x, y, s=34, color=c, marker=m, alpha=0.75, label=lab, edgecolors="none")
+        if pts_all:
+            v = np.array(pts_all)
+            lo, hi = min(-0.05, float(v.min()) - 0.05), max(0.05, float(v.max()) + 0.05)
+            ax.plot([lo, hi], [lo, hi], "k--", lw=1, label="Equal change")
+            ax.set_xlim(lo, hi)
+            ax.set_ylim(lo, hi)
+            ax.set_aspect("equal")
+        ax.axhline(0, color="k", lw=0.5)
+        ax.axvline(0, color="k", lw=0.5)
+        ax.set_title(f"{NAME[task]}, {OBJ[task]}")
+        ax.grid(alpha=0.3)
+    labels(axs, "S3e less S1", "Sh less S1")
+    axs[0].legend(loc="upper left", frameon=False, fontsize=12)
+    save(fig, "20261104-shared_gain.png")
+
+
+def shared_compute():
+    """The shared set's GPU work: the searches' and the validation's timing lines under rows/sv25/, the rescored grids'
+    beside their rows, the queue steps' wall clocks (SH_STEPS, from the logs of SH_LOGS), and the CPU runner's time per
+    rollout with the shared set (SH_CPU) against the searches' full GPU batches."""
+    import hom_compute as HC
+    kinds = {"search": sorted(SH_DIR.glob("*_timing.jsonl")), "grid": sorted(SH_GRID.glob("*_timing.jsonl")),
+             "val": sorted((D / "rows" / SH_PLANT / "val_shared").glob("*_timing.jsonl"))}
+    lines = {k: [x for q in v for x in HC.batch_lines(q)] for k, v in kinds.items()}
+    if not any(lines.values()):
+        return None
+    steps = {}
+    for q in sorted(SH_LOGS.glob("Q_*.log")):     # the queue's logs are not in git: their wall clocks go to SH_STEPS
+        m = re.search(r"peak (\d+) kB, ([\d.]+) s", q.read_text(errors="replace"))
+        if m:
+            steps[q.stem[2:]] = {"wall_s": float(m.group(2)), "peak_rss_gb": round(int(m.group(1)) / 1e6, 2)}
+    if steps and not SMOKE:
+        SH_STEPS.write_text(json.dumps(steps, indent=1))
+    elif SH_STEPS.exists():
+        steps = json.loads(SH_STEPS.read_text())
+    pre = {"search": "shared_", "grid": "grid_", "val": "val_"}
+    out = {"all": HC.summarize([x for ls in lines.values() for x in ls]), "kinds": {}, "peak_rss_gb":
+           max((s["peak_rss_gb"] for s in steps.values()), default=None)}
+    for k, ls in lines.items():
+        if ls:
+            w = sum(s["wall_s"] for n, s in steps.items() if n.startswith(pre[k]))
+            out["kinds"][k] = dict(HC.summarize(ls), step_s=w)
+    out["wall_s"] = sum(s["wall_s"] for s in steps.values())
+    its = [x for q in sorted(SH_DIR.glob("*_iters.jsonl")) for x in R.read_rows(q)]
+    out["iters"] = {t_: {"n": len([x for x in its if x["task"] == t_]),
+                         "total_s": float(np.median([x["total_s"] for x in its if x["task"] == t_])),
+                         "rollouts": int(np.median([x["rollouts"] for x in its if x["task"] == t_]))}
+                    for t_ in TASKS if any(x["task"] == t_ for x in its)}
+    run = {t_: [1000 * r["run_s"] / r["worlds"] for r in lines["search"] if r["task"] == t_ and r["worlds"] >= 1024]
+           for t_ in TASKS}
+    cpu = {}
+    for r in R.read_rows(SH_CPU):
+        cpu.setdefault((r["task"], r["variant"]), []).append(r)
+    out["cpu"] = {t_: {v: {"wall_s": float(np.median([r["wall_s"] for r in cpu[(t_, v)]])), "n": len(cpu[(t_, v)]),
+                           "agree": sum(abs(r["score"] - r["gpu_score_seed"]) <= 0.05 for r in cpu[(t_, v)]
+                                        if r.get("gpu_score_seed") is not None),
+                           "load": float(np.median([r["load_before"][0] for r in cpu[(t_, v)]]))}
+                       for v in ("plant", "filter") if (t_, v) in cpu}
+                  for t_ in TASKS}
+    out["gpu_run_ms"] = {t_: float(np.median(v)) if v else None for t_, v in run.items()}
+    return out
+
+
+def rerun_rollouts():
+    """Per task whose shared set is HOM's defaults: the rescored grid's rollouts against the default grid's, the same
+    worlds at the same seeds. {task: (rollouts, differing by more than 0.02, by more than 0.5)}."""
+    S = shared_report()
+    if not S:
+        return {}
+    import hom_landscape as L
+    out = {}
+    for t_ in shared_kinds(S)[0]:
+        f = f"{t_}_d{R.TASKS[t_]:g}.jsonl"
+        a = {(r["call"], r.get("grasp", 0), r["seed"]): L.rollout_score(t_, r)
+             for r in R.read_rows(R.GRID_ROWS / f"grid2dff_v4b{R.PLANTS[SH_PLANT][2]}" / f)}
+        b = {(r["call"], r.get("grasp", 0), r["seed"]): L.rollout_score(t_, r) for r in R.read_rows(SH_GRID / f)}
+        d = np.array([abs(b[k] - a[k]) for k in a if k in b])
+        if len(d):
+            out[t_] = (len(d), int((d > 0.02).sum()), int((d > 0.5).sum()))
+    return out
+
+
+def shared_kinds(S):
+    """The tasks whose search kept HOM's defaults (its pick is candidate 0 of iteration 0), those whose pick scores less
+    than 0.01 above the defaults at seeds 0-2, and the others."""
+    tk = [t_ for t_ in TASKS if t_ in S["tasks"]]
+    s = {t_: S["tasks"][t_]["search"] for t_ in tk}
+    kept = [t_ for t_ in tk if (s[t_]["pick"]["it"], s[t_]["pick"]["cand"]) == (0, 0)]
+    near = [t_ for t_ in tk if t_ not in kept and s[t_]["pick"]["score"] - s[t_]["start"]["score"] < 0.01]
+    return kept, near, [t_ for t_ in tk if t_ not in kept and t_ not in near]
+
+
+def shared_film_specs(S):
+    """For each task whose shared set gains 0.01 or more at the search seeds: the layout of the 30 best with the largest
+    validated gain of S1sh over S1, and the one with the largest loss when it loses more than 0.05; on each, the picks
+    SH_FILM_PICKS on the SCS0009 at seed 20 (CPU plant)."""
+    specs = []
+    for task in shared_kinds(S)[2]:
+        t = S["tasks"][task]
+        prm = t["search"]["pick"]["prm"]
+        lays = [e for e in t["layouts"] if e["group"] == "top" and e["s1sh_val"] is not None and e["s1_val"] is not None]
+        ch = lambda e: e["s1sh_val"] - e["s1_val"]  # noqa: E731
+        up, down = max(lays, key=lambda e: (ch(e), -e["call"])), min(lays, key=lambda e: (ch(e), e["call"]))
+        for tag, e in (("up", up), ("down", down)):
+            if tag == "down" and ch(e) > -0.05:
+                continue
+            L_ = next(x for x in R.layouts(task, SH_PLANT) if x["call"] == e["call"])
+            for name in SH_FILM_PICKS:
+                if name == "S1":
+                    v, p = L_["v1"], {}
+                elif name == "S1sh":
+                    v, p = L_["v1"], prm
+                else:
+                    v, p = pick_of(task, SH_PLANT, e["call"], e["s3e_pick"])
+                specs.append({"set": "shared", "case": tag, "plant": SH_PLANT, "task": task, "call": e["call"],
+                              "xy": e["xy"], "d6": L_["d"], "pick": name, "v": v, "prm": p,
+                              "gpu": e[f"{name.lower()}_val"], "seed": R.VAL_SEEDS[0],
+                              "top": f"{e['xy'][0]:g} x {e['xy'][1]:g}: {SH_LABEL[name]}",
+                              "out": str(MEDIA / f"20261104-clip_shared_{task}_{tag}_{name}.mp4")})
+    return specs
+
+
+def cmd_shared(what):
+    """shared-figs: the shared set's figures; shared-films: its films (CPU clips through resguard, after the queue)."""
+    S = shared_report()
+    if not S:
+        raise SystemExit("no shared report: hom_grasp_refine.py report --shared")
+    if what == "shared-figs":
+        fig_shared_maps()
+        fig_shared_gain(S)
+        return 0
+    specs = shared_film_specs(S)
+    for s in specs:
+        if Path(s["out"]).with_suffix(".json").exists():
+            continue
+        hp, scenes, tag = R.PLANTS[s["plant"]]
+        env = dict(os.environ, HOS_PLANT=hp, HOS_SCENES=scenes, HOM_ROWS_TAG=tag, CUDA_VISIBLE_DEVICES="",
+                   MUJOCO_GL="egl", NUMPY_MADVISE_HUGEPAGE="0")
+        cmd = [str(Path.home() / ".claude/bin/resguard.sh"), "run", "--mem", "3G", "--cpu", "200", "--",
+               str(ROOT / ".venv/bin/python"), str(ROOT / "scripts/hom_score_refine_page.py"), "clip", json.dumps(s)]
+        while True:
+            rc = subprocess.call(cmd, env=env, cwd=ROOT)
+            if rc != 3:
+                break
+            print(time.strftime("%T"), "refused by resguard; retry in 120 s", flush=True)
+            time.sleep(120)
+        if rc:
+            raise SystemExit(f"clip {s['out']} failed (exit {rc})")
+    import hom_plant_page as HP
+    for task, case in dict.fromkeys((s["task"], s["case"]) for s in specs):
+        cl = [s["out"] for s in specs if (s["task"], s["case"]) == (task, case)]
+        HP.compose(cl, MEDIA / f"20261104-film_shared_{task}_{case}.mp4", cols=len(cl))
+    res = [dict(s, **json.loads(Path(s["out"]).with_suffix(".json").read_text())) for s in specs]
+    SH_FILMS.write_text(json.dumps(res, indent=1))
+    print("wrote", SH_FILMS.relative_to(ROOT))
+    return 0
+
+
+def prm_label(k):
+    return (f"{k[2:].capitalize()} force" if k.startswith("f_") else "{}, {}".format(*k[2:].split("_")).capitalize())
+
+
+def sgx(v):
+    """A signed number: three decimals below 0.01, else two."""
+    return f"{v:+.3f}" if abs(v) < 0.01 else f"{v:+.2f}"
+
+
+def prm_long(k):
+    """'the pinch force', 'the pusher's roll weight' for a key of hom_tasks.PRM."""
+    if k.startswith("f_"):
+        return f"the {k[2:]} force"
+    _w, comp, role = k.split("_")
+    return {"tripod": "the tripod's", "pinch": "the pinching fingers'", "push": "the pusher's"}[role] + f" {comp} weight"
+
+
+def sec_shared(S, J):
+    """Section shared: one set of forces and contact modes per task for every layout of the SCS0009 (S: the report of
+    hom_grasp_refine.py report --shared; J: the SCS0009's score_levels report, for S3's per-layout forces and modes)."""
+    if not S:
+        return "<p>The shared-set runs have not finished.</p>"
+    import math
+    import hom_tasks as T
+    tk = [t_ for t_ in TASKS if t_ in S["tasks"]]
+    St = {t_: S["tasks"][t_] for t_ in tk}
+    sr = {t_: St[t_]["search"] for t_ in tk}
+    kept, near, gain = shared_kinds(S)
+    dm = lambda t_, k: St[t_]["diff"][k]["median"]  # noqa: E731
+    md = lambda t_, g, k: St[t_]["median"][g][k]  # noqa: E731
+    nm = lambda ts: andj("the " + NAME[t_].lower() for t_ in ts)  # noqa: E731
+    n0, f0 = P.TAB[0], P.FIG[0]
+    n_lay = len(sr[tk[0]]["calls"])
+    names = {t_: list(R.FORCES[t_]) + [f"w_{c}_{r}" for r in R.ROLES[t_] for c in R.COMPS] for t_ in tk}
+
+    def changed(t_):
+        pk = sr[t_]["pick"]["prm"]
+        return [f"{prm_long(k)} from {T.PRM[k]:g} to {pk[k]:.2f}" + (" N" if k.startswith("f_") else "")
+                for k in names[t_] if (abs(math.log(pk[k] / T.PRM[k])) > math.log(1.25) if k.startswith("f_")
+                                       else abs(pk[k] - T.PRM[k]) > 0.25)]
+
+    p = [f"""<p>One set of commanded forces and contact-mode weights per task, the shared set, was searched on {n_lay}
+layouts of the SCS0009 sample and applied to every layout."""]
+    if kept:
+        p.append(f"On {nm(kept)} no candidate scored above HOM's defaults at seeds 0-2, so the shared set is the "
+                 "defaults.")
+    for t_ in near:
+        p.append(f"On the {NAME[t_].lower()} the search's pick scores {sr[t_]['pick']['score']:.3f}, against "
+                 f"{sr[t_]['start']['score']:.3f} for the defaults.")
+    for t_ in gain:
+        a3, ash = dm(t_, "top|s3e_val-s1_val"), dm(t_, "top|sh_val-s1_val")
+        p.append(f"On the {NAME[t_].lower()} the pick scores {sr[t_]['pick']['score']:.2f} against "
+                 f"{sr[t_]['start']['score']:.2f}. It changes {andj(changed(t_))}. At seeds 20-24 it raises the median "
+                 f"score of the {NAME[t_].lower()}'s 30 best layouts by {ash:.2f} (Sh less S1). Tuning forces, modes and "
+                 f"grasp per layout raises it by {a3:.2f} (S3e less S1), so {100 * ash / a3:.0f} % of that gain is reached "
+                 f"with the shared set. It also reorders the {NAME[t_].lower()}'s layouts: Spearman's rho between the default and "
+                 f"the rescored grid is {St[t_]['grids']['spearman']:.2f}.")
+    out = [" ".join(p) + "</p>"]
+
+    lays0 = {t_: R.shared_layouts(t_, SH_PLANT) if not SMOKE else [] for t_ in tk}
+    xs = sorted({40 + 5 * (L_["call"] // 25) for t_ in tk for L_ in lays0[t_] if L_["group"] == "random"})
+    out.append(fill("""<p>The search is the CEM of Section SEC[method] over the force and mode variables of S3, with their
+ranges, starting spread and floor, and with no grasp variable. Every candidate set $\\theta$ is run on <<nl>> layouts
+of the SCS0009 sample: the 30 best by S1 and 10 of the 30 random ones. S1's grasp $v_\\ell$ is kept on each layout. The sample
+stores its random layouts in lattice order, so its first ten are the narrowest. The ten were therefore drawn from the 30
+with numpy seed 0, at $x_{sep}$ = <<xlo>> to <<xhi>> mm. A candidate's score is the mean over the layouts of their
+three-seed means,</p>
+$$\\bar J(\\theta) = \\frac{1}{<<nl>>} \\sum_{\\ell=1}^{<<nl>>} \\frac{1}{3} \\sum_{s=0}^{2} J(v_\\ell, \\theta;\\, \\ell,\\, s),$$
+<p>and the lowest layout's three-seed mean is recorded beside it. <<pop>> candidates are drawn per iteration for <<it>>
+iterations, and the first candidate is HOM's defaults. Each task's grid of Section 2 of [3] was then rescored with the
+search's pick. The grid contains every layout of the 5 mm lattice whose pose is reached, with every grasp of its set, at
+seeds 0-2. For Sh, each layout's grasp is the best of its set on the rescored grid. Sh and S1sh were run at seeds 20-24
+on the 60 layouts of the sample.</p>""", nl=n_lay, xlo=xs[0] if xs else "n/a", xhi=xs[-1] if xs else "n/a", pop=S["pop"],
+                    it=sr[tk[0]]["iters"]))
+
+    body = []
+    for task in tk:
+        pk, st = sr[task]["pick"], sr[task]["start"]
+        s3 = {}
+        if J and task in J["tasks"]:
+            for k in names[task]:
+                v = [e["prm3"][k] for e in J["tasks"][task]["layouts"] if e.get("prm3") and k in e["prm3"]]
+                s3[k] = float(np.median(v)) if v else None
+        cell = lambda ks: "<br>".join(f"{prm_label(k)}: {T.PRM[k]:.2f}, {pk['prm'][k]:.2f}"  # noqa: E731
+                                      + (f" ({s3[k]:.2f})" if s3.get(k) is not None else "") for k in ks)
+        body.append([NAME[task], cell([k for k in names[task] if k.startswith("f_")]),
+                     cell([k for k in names[task] if k.startswith("w_")]), f"{st['score']:.3f}, {pk['score']:.3f}",
+                     f"{st['lowest']:.2f}, {pk['lowest']:.2f}"])
+    out.append(table(["Task", "Forces (N): default, shared (S3's median)", "Mode weights: default, shared (S3's median)",
+                      "Search score: defaults, shared", "Lowest layout: defaults, shared"], body,
+                     f"The shared set of each task against HOM's defaults, with the median of the S3 picks over the 60 "
+                     f"layouts in brackets (Section SEC[prm]). Search score: $\\bar J$ at seeds 0-2 over the {n_lay} "
+                     f"layouts; lowest layout: the lowest of their three-seed means.", num_from=1))
+    last = {t_: sr[t_]["per_iter"][-1] for t_ in tk}
+    rerun = {}                          # the defaults' 40-layout mean in the search against the grid's, same seeds
+    for t_ in tk:
+        ins = [e for e in St[t_]["layouts"] if e["in_search"] and e["search_start"] is not None]
+        rerun[t_] = abs(float(np.mean([e["search_start"] for e in ins])) - float(np.mean([e["s1"] for e in ins])))
+    q = ([f"""<p>On {nm(kept + near)} the best candidate of the last iteration differs from the defaults by
+{andj(f"{last[t_]['it_best'] - sr[t_]['start']['score']:+.3f}" for t_ in kept + near)} at seeds 0-2 (Table {n0 + 1}). Rerun in
+the search's batches, the defaults' mean over the {n_lay} layouts moves from the grid's by
+{andj(f"{rerun[t_]:.3f}" for t_ in kept + near)}, and single layouts' three-seed means by up to
+{max(St[t_]['grids']['search_worlds_repeated']['start']['max_abs'] for t_ in kept + near if St[t_].get('grids')):.2f}."""]
+         if kept + near else ["<p>"])
+    for t_ in gain:
+        pi = sr[t_]["per_iter"]
+        ks = [k for k in names[t_] if (k.startswith("f_") and abs(math.log(sr[t_]["pick"]["prm"][k] / T.PRM[k]))
+                                       > math.log(1.25)) or (k.startswith("w_") and abs(sr[t_]["pick"]["prm"][k]
+                                                                                       - T.PRM[k]) > 0.25)]
+        fk = max(R.FORCES[t_], key=lambda k: abs(math.log(sr[t_]["pick"]["prm"][k] / T.PRM[k])))
+        med3 = {k: float(np.median([e["prm3"][k] for e in J["tasks"][t_]["layouts"] if e.get("prm3")])) for k in ks} \
+            if J else {}
+        unit = lambda k: " N" if k.startswith("f_") else ""  # noqa: E731
+        q.append(f"""On the {NAME[t_].lower()} the CEM's mean moved {prm_long(fk)} from {T.PRM[fk]:g} N to
+{pi[-1]['mean_prm'][fk]:.2f} N over the {len(pi)} iterations, and the median candidate rose from {pi[0]['it_median']:.2f}
+to {pi[-1]['it_median']:.2f}.""" + (f""" The pick's {andj(f"{prm_long(k)[4:]} of {sr[t_]['pick']['prm'][k]:.2f}{unit(k)}"
+                                                   for k in ks)} lie near the S3 picks' medians,
+{andj(f"{med3[k]:.2f}{unit(k)}" for k in ks)} (Section SEC[prm]).""" if med3 else ""))
+    out.append(" ".join(q) + "</p>")
+
+    body = []
+    for task in tk:
+        for g, gl in (("top", "30 best by S1"), ("random", "30 at random")):
+            d1, d3 = St[task]["diff"][f"{g}|sh_val-s1_val"], St[task]["diff"][f"{g}|s3e_val-s1_val"]
+            body.append([f"{NAME[task]}, {gl}", f2(md(task, g, "s1_val")), f2(md(task, g, "s1sh_val")),
+                         f2(md(task, g, "sh_val")), f2(md(task, g, "s3e_val")), sg(d1["median"]), sg(d3["median"]),
+                         f"{d1['up']} / {d1['down']} of {d1['n']}"])
+    tb = table(["Task, layouts", "S1", "S1sh", "Sh", "S3e", "Sh - S1", "S3e - S1", "Sh up / down by 0.05"], body,
+               "Median validated scores (seeds 20-24) on the SCS0009 with HOM's defaults (S1), with the shared set "
+               "(S1sh with S1's grasp, Sh with the best grasp of the set under the shared set) and with forces, modes "
+               "and grasp tuned per layout (S3e), and the median paired changes. The last column counts the layouts "
+               "whose Sh is more than 0.05 above or below their S1.")
+    rho = {t_: St[t_]["rho"]["s1_val|sh_val"]["rho"] for t_ in tk}
+    v = [f"<p>The scores at seeds 20-24 are in Table {n0 + 2} and Figure {f0 + 1}."]
+    if kept:
+        mv = [St[t_]["diff"]["top|sh_val-s1_val"]["up"] + St[t_]["diff"]["top|sh_val-s1_val"]["down"] for t_ in kept]
+        md0 = [f"{abs(dm(t_, 'top|sh_val-s1_val')):.3f}" for t_ in kept]
+        v.append(f"""On {nm(kept)} the shared set is HOM's defaults, so Sh and S1 differ only by the rerun of the
+grid. On their 30 best layouts Sh less S1 has a median of {md0[0] + ' on each' if len(set(md0)) == 1 else andj(md0)},
+and {andj(str(x) for x in mv)} of the 30 move by more than 0.05.""")
+    for t_ in near:
+        v.append(f"""On the {NAME[t_].lower()} Sh less S1 has a median of {sgx(dm(t_, 'top|sh_val-s1_val'))} on the 30
+best layouts and {sgx(dm(t_, 'random|sh_val-s1_val'))} on the 30 random ones.""")
+    low = [t_ for t_ in tk if t_ not in gain]
+    if low:
+        v.append(f"""On the 30 best layouts of {nm(low)}, per-layout tuning gains
+{andj(f"{dm(t_, 'top|s3e_val-s1_val'):.2f}" for t_ in low)}, and the shared set
+{andj(f"{dm(t_, 'top|sh_val-s1_val'):.3f}" for t_ in low)}.""")
+    for t_ in gain:
+        a3, ash = dm(t_, "top|s3e_val-s1_val"), dm(t_, "top|sh_val-s1_val")
+        r3, rsh = dm(t_, "random|s3e_val-s1_val"), dm(t_, "random|sh_val-s1_val")
+        dh = St[t_]["diff"]["random|sh_val-s1_val"]
+        n_in = sum(1 for e in St[t_]['layouts'] if e['group'] == 'random' and e['in_search'])
+        n_out = sum(1 for e in St[t_]['layouts'] if e['group'] == 'random' and not e['in_search'])
+        v.append(f"""On the {NAME[t_].lower()}, Sh exceeds S1 by more than 0.05 on
+{St[t_]['diff']['top|sh_val-s1_val']['up']} of the 30 best layouts. On the 30 random layouts the median of Sh less S1
+is {rsh:.2f}, {100 * rsh / r3:.0f} % of the {r3:.2f} of S3e less S1. There {dh['up']} layouts rise by more than
+0.05 and {dh['down']} fall by more than 0.05. Of the random layouts, {n_in} were used by the search. On the other
+{n_out}, Sh less S1 has a median of {dm(t_, 'random_held_out|sh_val-s1_val'):.2f}; on those {n_in}, it is
+{dm(t_, 'random_in_search|sh_val-s1_val'):.2f}. Re-picking the grasp under the
+shared set adds a median of {dm(t_, 'all|sh_val-s1sh_val'):.2f} over the 60 layouts (Sh less S1sh).""")
+    v.append("Spearman's rho between S1 and Sh over the 60 layouts is "
+             + andj(f"{f2(rho[t_])} on the {NAME[t_].lower()}" for t_ in tk) + ".</p>")
+    out += [" ".join(v), tb]
+    if (MEDIA / "20261104-shared_gain.png").exists():
+        out.append(img(MEDIA / "20261104-shared_gain.png", "Each sampled layout's validated change under the shared set "
+                       "(Sh less S1) against its change under per-layout tuning (S3e less S1). Points on the dashed line "
+                       "gain as much from the shared set as from tuning per layout."))
+
+    gr = {t_: St[t_].get("grids") for t_ in tk if St[t_].get("grids")}
+    if gr:
+        body = []
+        for task, g in gr.items():
+            ba, bb = g["best_a"], g["best_b"]
+            body.append([NAME[task], f"{g['layouts']}", f2(g["spearman"]), f2(g["top_tenth_kept"]),
+                         f2(g["same_best_grasp"]), f"({ba['xy'][0]:g}, {ba['xy'][1]:g}): {ba['on_a']:.2f}, {ba['on_b']:.2f}",
+                         f"({bb['xy'][0]:g}, {bb['xy'][1]:g}): {bb['on_b']:.2f}, {bb['on_a']:.2f}",
+                         f"{g['median_a']:.2f}, {g['median_b']:.2f}", f"{g['above_half_a']:.2f}, {g['above_half_b']:.2f}"])
+        tc = table(["Task", "Layouts", "Rho", "Best tenth kept", "Same best grasp", "Best at defaults: there, shared",
+                    "Best with the shared set: there, defaults", "Median: defaults, shared",
+                    "Above 0.5: defaults, shared"], body,
+                   "The default and the rescored grid of each task compared as on the plant page [3], by each layout's "
+                   "best score over its grasp set at seeds 0-2. Rho: Spearman's rho of the two over the layouts. Best "
+                   "tenth kept: the share of one grid's best tenth of layouts that is in the other's. Same best grasp: the "
+                   "share of layouts whose best grasp is the same on both. Then each grid's best layout scored on both, "
+                   "the medians and the shares of layouts above 0.5. On the twist and the roll the rescored grid reruns "
+                   "the default one with the same set.", num_from=1)
+        kg = [t_ for t_ in kept if t_ in gr]
+        rr = rerun_rollouts()
+        w = [f"""<p>The rescored grids of {nm(kg)} rerun the default grids with the same set, worlds and batches
+(Table {n0 + 3}, Figure {f0 + 2}).""" + "".join(f""" Of the {NAME[t_].lower()}'s {rr[t_][0]:,} rollouts, {rr[t_][1]:,}
+differ from the default grid's by more than 0.02 and {rr[t_][2]:,} by more than 0.5.""" for t_ in kg if t_ in rr)
+             + f""" Spearman's rho is {andj(f2(gr[t_]['spearman']) for t_ in kg)};
+{andj(f"{100 * gr[t_]['top_tenth_kept']:.0f}" for t_ in kg)} % of the best tenth are kept, and
+{andj(f"{100 * gr[t_]['same_best_grasp']:.0f}" for t_ in kg)} % of the layouts keep their best grasp. This is the
+evaluator's run-to-run spread for a whole landscape.""" if kg else "<p>"]
+        for t_ in near + gain:
+            if t_ not in gr:
+                continue
+            g = gr[t_]
+            mv = g["best_a"]["call"] != g["best_b"]["call"]
+            w.append(f"""On the {NAME[t_].lower()} rho is {g['spearman']:.2f}; {100 * g['top_tenth_kept']:.0f} % of the best
+tenth and {100 * g['same_best_grasp']:.0f} % of the best grasps are kept. The median best-of-16 score goes from
+{g['median_a']:.2f} to {g['median_b']:.2f}.""" + (f""" The best layout moves from ({g['best_a']['xy'][0]:g},
+{g['best_a']['xy'][1]:g}) to ({g['best_b']['xy'][0]:g}, {g['best_b']['xy'][1]:g}), which scores {g['best_b']['on_a']:.2f}
+with the defaults.""" if mv else f""" The best layout, ({g['best_a']['xy'][0]:g}, {g['best_a']['xy'][1]:g}), stays."""))
+        out += [" ".join(w) + "</p>", tc]
+        if (MEDIA / "20261104-shared_maps.png").exists():
+            out.append(img(MEDIA / "20261104-shared_maps.png", "Each layout's best score over its grasp set at seeds "
+                           "0-2, with HOM's defaults (top), with the shared set (middle), and the change (bottom). Grey: "
+                           "no grasp solved; a star marks a best layout of the map."))
+
+    if SH_FILMS.exists():
+        info = json.loads(SH_FILMS.read_text())
+        for task, case in dict.fromkeys((s["task"], s["case"]) for s in info):
+            fs = {s["pick"]: s for s in info if (s["task"], s["case"]) == (task, case)}
+            a = fs["S1"]
+            act = lambda s: ((f"scores {s['cpu']:.2f}" if s["held"] else "drops the cylinder")  # noqa: E731
+                             + f" (GPU {s['gpu']:.2f} at seeds 20-24)")
+            which = "gain" if case == "up" else "loss"
+            out.append(f"""<p>Film {P.FILM[0] + 1} runs the {NAME[task].lower()} on layout ({a['xy'][0]:g},
+{a['xy'][1]:g}) on the CPU plant at seed 20. Among the 30 best layouts, the largest {which} under the shared set is that of
+its S1 grasp. With
+HOM's defaults S1 {act(fs['S1'])}. With the shared set the same grasp {act(fs['S1sh'])}, and S3e
+{act(fs['S3e'])}.</p>""")
+            out.append(film(MEDIA / f"20261104-film_shared_{task}_{case}.mp4",
+                            f"The {NAME[task].lower()} on the SCS0009, layout ({a['xy'][0]:g}, {a['xy'][1]:g}), seed 20, "
+                            "CPU plant. From left to right: " + "; ".join(SH_CAPTION[k] for k in SH_FILM_PICKS) + ". "
+                            "Under each clip: its score and the pick's GPU score at seeds 20-24."))
+
+    C = shared_compute()
+    if C:
+        a_, K = C["all"], C["kinds"]
+        part = andj(f"{K[k]['rollouts']:,} {w_}" for k, w_ in (("search", "in the searches"),
+                                                              ("grid", "in the rescored grids"),
+                                                              ("val", "in the validation")) if k in K)
+        it_ = C["iters"]
+        out.append(f"""<p>For the shared set {a_['rollouts']:,} GPU rollouts were run in {a_['batches']} batches:
+{part}. That is {a_['batch_s'] / 3600:.2f} h of batch time in {C['wall_s'] / 3600:.2f} h of queue steps. Per rollout it
+is {a_['ms_per_rollout_run']:.0f} ms of run time, {a_['ms_per_rollout_batch']:.0f} ms of batch time and
+{1000 * C['wall_s'] / a_['rollouts']:.0f} ms of step time. The median wall time of a search iteration of
+{min(v_['rollouts'] for v_ in it_.values()):,} rollouts was
+{andj(f"{it_[t_]['total_s']:.0f} s on the {NAME[t_].lower()}" for t_ in list(it_)[:2])}. On
+{andj("the " + NAME[t_].lower() for t_ in list(it_)[2:])} it was
+{andj(f"{it_[t_]['total_s']:.0f} s" for t_ in list(it_)[2:])}.</p>""")
+        cp = {t_: v_ for t_, v_ in C["cpu"].items() if v_.get("filter") and C["gpu_run_ms"].get(t_)}
+        if cp:
+            spd = [1000 * v_["filter"]["wall_s"] / C["gpu_run_ms"][t_] for t_, v_ in cp.items()]
+            n_cpu = C['cpu'][next(iter(cp))]['filter']['n']
+            out.append(f"""<p>Rollouts with the shared sets of {nm(list(cp))} are new to the CPU runner; the twist's
+and the roll's sets are HOM's defaults, timed in Section SEC[compute]. The CPU runner was timed on the {n_cpu} best layouts per
+task, with S1's grasps at seed 0. With the GPU's contact filter a rollout takes
+{andj(f"{v_['filter']['wall_s']:.1f} s on the {NAME[t_].lower()}" for t_, v_ in cp.items())} on one core. In the
+searches' full GPU batches it takes {andj(f"{C['gpu_run_ms'][t_]:.0f} ms" for t_ in cp)}, so one GPU equals
+{min(spd):.0f} to {max(spd):.0f} cores on the rollout loop. With every contact,
+{andj(f"{v_['plant']['agree']} of the {v_['plant']['n']} {NAME[t_].lower()} rollouts" for t_, v_ in cp.items() if v_.get('plant'))}
+on the CPU score within 0.05 of the GPU's at the same seed.</p>""")
+    return "".join(out)
+
+
 def sec_films():
     if not FILMS.exists():
         return "<p>The films are made after the GPU queue (<code>hom_score_refine_page.py films</code>).</p>"
@@ -1267,7 +1790,8 @@ def sec_compute():
     plants = [pl for pl in ("sv25", "k21", "k21mu0p4") if pl in Tp["plants"]]
     per = {}
     for pl in plants:
-        ds = [v for k, v in Lg["per_dir"].items() if k.startswith(f"{base}/{pl}/")]
+        ds = [v for k, v in Lg["per_dir"].items() if k.startswith(f"{base}/{pl}/")
+              and k.rsplit("/", 1)[-1] not in ("shared", "val_shared")]     # the shared-set runs: Section shared
         st_ = [v for k, v in Lg["queue_steps"].items() if k.startswith(f"{pl}_") and v.get("wall_s")]
         per[pl] = {"rollouts": sum(d["rollouts"] for d in ds), "batches": sum(d["batches"] for d in ds),
                    "batch_s": sum(d["batch_s"] for d in ds), "wall_s": sum(s["wall_s"] for s in st_)}
@@ -1368,17 +1892,22 @@ def fig_throughput():
 
 
 def sec_limits():
+    rr = rerun_rollouts()
+    p2, p5 = [100 * v[1] / v[0] for v in rr.values()], [100 * v[2] / v[0] for v in rr.values()]
+    rerun = (f" A rerun of a whole grid with the same set changed {min(p2):.0f} to {max(p2):.0f} % of its rollouts by more "
+             f"than 0.02 and up to {max(p5):.1f} % by more than 0.5 (Section SEC[shared])." if rr else "")
     return """<ul>
 <li>The layouts are the symmetric tripods of the 5 mm lattice, at one object size per task. The six-coordinate layouts
 and other object sizes were not refined.</li>
 <li>Each pick is chosen on three seeds and validated on five. The GPU evaluator's run-to-run spread is about 0.01 per
 rollout. On marginal twist candidates, whose sphere is held at some seeds and dropped at others, a repeat of an
-identical batch changed a three-seed mean by up to 0.22 (median 0.001).</li>
+identical batch changed a three-seed mean by up to 0.22 (median 0.001).""" + rerun + """</li>
 <li>The friction band has three points, 0.4, 0.7 and 1.0, on one plant, the STS3032 at kp 2.1. The UR5's 0.37 for
 TPU on bare PLA lies below it.</li>
 <li>The twist's score saturates at 1.0, a 90 deg turn on three pads. Among saturated candidates the searches ranked by
 the three-pad angle, and Section SEC[sv25] reports that angle.</li>
-<li>S3 tunes the forces and modes per layout. A controller tuned once for all layouts was not searched.</li>
+<li>The shared set was tuned on 40 layouts of the SCS0009 with S1's grasps, and only on that plant. Under it each
+layout's grasp was the best of its grasp set at seeds 0-2, with no grasp search.</li>
 <li>The rows record no contact normals or forces. The friction check of Section SEC[sts] uses the planned contacts of
 the pose toy and static balance.</li>
 <li>On the GPU only the pads and the rigid spheres under 2 mm meet the object. The films run on the CPU plant with every
@@ -1406,6 +1935,25 @@ seed 20 (<code>band_cpu_check.py</code> beside this page). The GPU's sphere resu
 picks' median lowest score on the CPU lies within 0.05 of S3w's on the GPU.</li>"""
 
 
+def shared_future():
+    """The shared set's items for Future work: the press's set on the STS3032, and the press's size trend under it."""
+    S = shared_report()
+    if not S or "press" not in shared_kinds(S)[2]:
+        return ""
+    t = S["tasks"]["press"]
+    fp = t["search"]["pick"]["prm"]["f_pinch"]
+    ga, gb = t["grids"]["best_a"], t["grids"]["best_b"]
+    return f"""<li>The press's shared set on the STS3032: <code>hom_grasp_refine.py run --task press --level shared</code>
+with <code>--plant k21</code> and <code>--plant k21mu0p4</code>, about 15 min each on the GPU. The pinch force of
+{fp:.2f} N is a property of the SCS0009's servos if the STS3032's shared pinch force stays above 2.5 N at friction
+1.0.</li>
+<li>The press's size trend under the shared set: the live evolutionary search of the trends page [4] at the eight other
+cylinder sizes, with the press's shared set. A <code>--prm</code> option is to be added to <code>scripts/hom_ea.py</code>,
+as in <code>hom_gpu.py run</code>. At 25 mm the best layout moved from ({ga['xy'][0]:g}, {ga['xy'][1]:g}) to
+({gb['xy'][0]:g}, {gb['xy'][1]:g}). The size trend of [4] holds for the press if the shared set's best layout lies within
+10 mm of the default's in $x_{{sep}}$ at six of the eight sizes.</li>"""
+
+
 def sec_future(Js):
     drops = ""
     if FRICTION_CHECK.exists():
@@ -1416,9 +1964,7 @@ def sec_future(Js):
 squeeze to the drop in the GPU rows (<code>scripts/hom_gpu.py</code>). Rerun the twist's friction-1.0 S1 grasps at 0.4
 with the tripod force at 1.5, 2.5 and 4 N (a world's <code>prm</code>).{drops}</li>
 {band_future()}
-<li>One controller for all layouts (job <code>hand-20261104-hom_shared_controller</code>): one set of forces and modes
-tuned on the 60 SCS0009 layouts of a task, then the grid rescored. Per-layout tuning is needed if the shared set's
-median gain over S1 on the 30 best layouts is below half of S3e's.</li>
+{shared_future()}
 <li>The grasp in the evolutionary search's genome (job <code>hand-20261104-hom_grasp_genome_ea</code>): a child
 inherits its parent's refined grasp. It is worth its rollouts if it beats the best-of-16 search of
 <code>scripts/hom_ea.py</code> at equal rollouts by more than the GPU's spread of 0.01.</li>
@@ -1435,7 +1981,13 @@ def sec_files():
 <code>media/20261103-friction_check.json</code>; the logs in <code>logs/20261103-hom_score_refine/</code>. The worst-case
 runs: <code>hom_grasp_refine.py --band</code>, the queue <code>queue_band.sh</code> beside this page, the rows and report
 in <code>rows/band_k21mu/</code>, the CPU check <code>band_cpu_check.py</code> and the logs in
-<code>logs/20261104-hom_worst_case/</code>.</p>"""
+<code>logs/20261104-hom_worst_case/</code>. The shared set: <code>hom_grasp_refine.py run --level shared</code>,
+<code>validate --shared</code> and <code>report --shared</code>, and <code>hom_gpu.py run --prm</code>. Its queue is
+<code>queue_shared.sh</code> beside this page, with logs in <code>logs/20261104-hom_shared_controller/</code>. Its rows
+are in <code>rows/sv25/shared/</code> and <code>rows/sv25/val_shared/</code>, and its report is
+<code>rows/sv25/20261104-shared_levels.json</code>. The rescored grids are in
+<code>docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25_shared/</code>. The CPU timing is
+<code>shared_cpu_bench.py</code>, with rows in <code>rows/sv25/shared/cpu/</code>.</p>"""
 
 
 REFS = [
@@ -1497,6 +2049,26 @@ def lede_and_summary(Js):
                         f"{max(sph):.2f} or less on the two sphere tasks.")
         summary += (f" Picks searched on the lowest score over friction 0.4-1.0 raise it by {min(dw):.2f} to "
                     f"{max(dw):.2f} over the 1.0 picks.")
+    S = shared_report()
+    if S:
+        kept, near, gain = shared_kinds(S)
+        St = S["tasks"]
+        rest = kept + near
+        top = {t_: St[t_]["diff"]["top|sh_val-s1_val"]["median"] for t_ in St}
+        for t_ in gain:
+            sh, s3 = top[t_], St[t_]["diff"]["top|s3e_val-s1_val"]["median"]
+            lede.append(f"One set of forces and modes for all layouts raises the median score of the "
+                        f"{NAME[t_].lower()}'s 30 best layouts by {sh:.2f}, against {s3:.2f} with per-layout tuning.")
+            summary += (f" One set of forces and modes for all layouts gains {sh:.2f} on the {NAME[t_].lower()}'s 30 "
+                        f"best layouts (per-layout tuning {s3:.2f})")
+        if rest:
+            mx = max(top[t_] for t_ in rest)
+            lede.append(f"On {'the other ' + WORDS[len(rest)] + ' tasks' if gain else 'every task'} the shared set gains "
+                        f"{max(mx, 0.0):.3f} or less over HOM's defaults.")
+            summary += (f" and less than {max(mx, 0.0) + 0.005:.2f} on {andj('the ' + NAME[t_].lower() for t_ in rest)}."
+                        if gain else "")
+        elif gain:
+            summary += "."
     return " ".join(lede), summary
 
 
@@ -1519,6 +2091,8 @@ def cmd_page():
         ("prm", "Forces and contact modes chosen by the search", sec_prm(Js)),
         ("sts", "Refinement at two frictions on the STS3032", sec_sts(Js)),
         ("band", "Worst-case score over three frictions on the STS3032", sec_band(band_report())),
+        ("shared", "Forces and contact modes shared by all layouts on the SCS0009", sec_shared(shared_report(),
+                                                                                             Js.get("sv25"))),
         ("films", "Films of the picks", sec_films()),
         ("compute", "Compute and throughput", sec_compute()),
         ("limits", "Limitations", sec_limits()),
@@ -1563,6 +2137,8 @@ def main():
         return cmd_clip(a[1])
     if a and a[0] in ("band-figs", "band-films"):
         return cmd_band(a[0])
+    if a and a[0] in ("shared-figs", "shared-films"):
+        return cmd_shared(a[0])
     return cmd_page()
 
 

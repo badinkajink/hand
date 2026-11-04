@@ -164,3 +164,70 @@ and the press. On the CPU plant with every contact, S3w scores 0 at 0.4 on 16 of
 the GPU; with the GPU's contact filter the CPU's twist change is +0.28. The runs took 371,871 GPU rollouts in 308
 batches, 4.30 h of batch time in 4.53 h of queue steps (34 ms run, 42 ms batch and 44 ms step time per rollout). The
 CPU runner at friction 0.7 takes 1.8 to 3.2 s a rollout on one core, 72 to 82 cores per GPU.
+
+## Forces and contact modes shared by all layouts on the SCS0009 (2026-11-04)
+
+Owner, 2026-11-03: "is it possible to co-design HOM? are there hyperparameters / parameters that we can change within
+it?"; HOM fixed "gives us a fixed reference to evaluate morphologies". Autopilot job `hand-20261104-hom_shared_controller`;
+the page's Section 7.
+
+`hom_grasp_refine.py run --level shared` searches one set of commanded forces and contact-mode weights per task, the
+shared set, by CEM over S3's force and mode variables (their ranges, starting spread and floor) with no grasp variable:
+24 candidates, 8 iterations, HOM's defaults as candidate 0 of iteration 0. Every candidate runs on 40 layouts of the
+sv25 sample with S1's grasps at seeds 0-2: the sample's 30 best by S1 and 10 of its 30 random layouts. The sample stores
+its random layouts in lattice order, so the ten are drawn from the 30 with numpy seed 0 (`shared_layouts`). A
+candidate's score is the mean of the layouts' three-seed means; the lowest layout's mean is recorded. Then
+`hom_gpu.py run --prm JSON` rescores each task's grid with the pick (every world gets that set; each row records it in
+its key), `validate --shared` runs the pick on the 60 sample layouts at seeds 20-24 with S1's grasp (S1sh) and with the
+best grasp of the layout's set on the rescored grid (Sh), and `report --shared` compares the two grids as
+`hom_plant_transfer.compare` does. `queue_shared.sh` is a copy of `logs/20261104-hom_shared_controller/queue.sh`:
+
+```bash
+python3 scripts/hom_grasp_refine.py run --task press --level shared
+P=$(python3 scripts/hom_grasp_refine.py prm --task press)          # the pick, from rows/sv25/shared/press_d25_pick.json
+HOS_PLANT=servo HOS_SCENES=logs/20261102-hom_servo_plant/scenes HOM_ROWS_TAG=_sv25_shared \
+  python3 scripts/hom_gpu.py run --task press --layouts grid2dff_size --d 25 --seeds 0 1 2 --variants hold \
+  --batch 1536 --out press_d25 --prm "$P" \
+  --rows-dir docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25_shared
+python3 scripts/hom_grasp_refine.py validate --task press --shared
+python3 scripts/hom_grasp_refine.py report --shared
+nohup setsid bash logs/20261104-hom_shared_controller/queue.sh >> logs/20261104-hom_shared_controller/queue.log 2>&1 &
+```
+
+Files:
+
+- `rows/sv25/shared/<task>_d<d>.jsonl` and `_timing.jsonl`: every rollout and GPU batch of the search; `_gens.jsonl`, one
+  line per iteration (every candidate's mean and lowest layout score, the elites' mean, the best so far, the CEM mean
+  and spread); `_iters.jsonl`, one line per iteration (draw, open-pose and GPU seconds); `_pick.json`, the pick and its
+  start with each layout's mean.
+- `rows/sv25/val_shared/`: S1sh and Sh at seeds 20-24. `rows/sv25/20261104-shared_levels.json`: the report.
+- `docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25_shared/`: the rescored grids.
+- `rows/sv25/shared/cpu/`: the CPU runner with the shared set (`shared_cpu_bench.py` beside this file, which runs
+  `hom_compute.py`'s cpu-worker with `hom_tasks.PRM` updated); `rows/sv25/shared/20261104-queue_steps.json`: each queue
+  step's wall clock and peak RSS.
+
+Smoke test 09:33-09:36 (`logs/20261104-hom_shared_controller/smoke.sh`; rows in `rows_smoke/`, not results): `--prm`
+with HOM's default values reproduces the default grid's 96 rollouts of the same batch (largest difference 0.0004); the
+search's start reproduces S1's three-seed means within the GPU's batch spread.
+
+Outcome (queue 09:36-11:52 on 11-04, no failed step; medians at seeds 20-24; S1sh is S1's grasp and Sh the rescored
+grid's best grasp, both with the shared set):
+
+| task | shared set | search score, defaults and shared | 30 best: S1, Sh, S3e | 30 random: S1, Sh, S3e | grids: rho, best tenth kept |
+|---|---|---|---|---|---|
+| twist | HOM's defaults | 0.745, 0.745 | 0.89, 0.89, 1.00 | 0.23, 0.23, 0.62 | 0.96, 0.90 |
+| roll | HOM's defaults | 0.540, 0.540 | 0.56, 0.56, 0.60 | 0.45, 0.45, 0.53 | 0.98, 0.92 |
+| pin-push | pinch 2.89 N, drive 1.56 N, pusher roll 0.84 | 0.644, 0.648 | 0.70, 0.70, 0.75 | 0.45, 0.47, 0.67 | 0.96, 0.67 |
+| press | pinch 1.73 N, press 0.53 N, pusher roll 0.35 | 0.621, 0.776 | 0.70, 0.89, 0.91 | 0.35, 0.72, 0.83 | 0.47, 0.28 |
+
+On the press one shared set reaches 94 % of the per-layout gain on the 30 best layouts (Sh less S1 +0.19, S3e less S1
++0.20) and 67 % on the 30 random ones; it lowers the pinch force from 3 N to 1.73 N and the pusher's roll weight from 1
+to 0.35, near the S3 picks' medians of 1.80 N and 0.38. It reorders the press landscape: rho 0.47 between the grids,
+the median best-of-16 score from 0.42 to 0.78, the best layout from (70, 150) to (65, 140). On the twist and the roll no
+candidate beat HOM's defaults, and the pin-push's pick scores 0.004 above them. The twist's and the roll's rescored
+grids are therefore reruns of the default grids: 5 to 13 % of their rollouts move by more than 0.02 and up to 0.6 % by
+more than 0.5. Their rho is 0.96 and 0.98, with 90 and 92 % of the best tenth kept and 79 and 82 % of the best grasps
+kept: the evaluator's run-to-run spread for a whole landscape. Compute: 183,840 GPU rollouts, 2.07 h of batch
+time in 2.17 h of queue steps (33, 40 and 43 ms per rollout of run, batch and step time). The CPU runner with the shared
+sets takes 3.0 s (pin-push) and 2.0 s (press) a rollout on one core, 68 to 69 cores per GPU; with every contact the CPU
+scores all 6 press rollouts within 0.05 of the GPU.
