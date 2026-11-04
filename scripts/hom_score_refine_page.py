@@ -195,6 +195,7 @@ def cmd_figs():
         fig_levels(plant, J)
         fig_cem(plant)
         fig_prm(plant, J)
+    fig_throughput()
     return 0
 
 
@@ -333,6 +334,13 @@ def sec_terms():
          "The searches score every candidate at seeds 0-2, as the grids scored S1. The picks then run at seeds 20-24, "
          "which no grid or search used."),
         ("Spearman's rho", "the rank correlation of two scores over the same layouts; 1 means the same order."),
+        ("Run, batch and step time", "three clocks of the GPU work, each divided by the rollouts it covers. Run time is "
+         "the rollout loop of one batch (the GPU's physics and the batched controller, with the host's loop). Batch "
+         "time adds the batch's model build and its scoring. Step time is a whole queue step's wall clock, with the "
+         "CPU's candidate draws, open poses and the start of a process per batch."),
+        ("Speedup", "the CPU runner's wall seconds per rollout on one core, divided by the GPU's seconds per rollout "
+         "at one of those clocks: the number of CPU cores that one GPU equals, if the CPU scaled linearly."),
+        ("Real-time factor", "simulated seconds per wall-clock second of one rollout."),
         ("Plants", "the finger servo model and the scene. The SCS0009 model (0.72 N m/rad, 0.18 N m) with pads at "
          "2.5 MPa is the hand's. The STS3032 model is tuned to 2.1 N m/rad and 0.515 N m. It runs at scene friction 1.0 "
          "and at 0.4, the friction of TPU on bare PLA. Section 2 of [3] defines both."),
@@ -494,6 +502,74 @@ def sec_films():
     return "".join(out)
 
 
+def newest(pattern):
+    ps = sorted((D / "compute").glob(pattern))
+    return json.loads(ps[-1].read_text()) if ps else None
+
+
+def sec_compute():
+    """The queue's timing, the CPU runner's and the speedups (scripts/hom_compute.py ledger, cpu-bench, report)."""
+    Lg, Tp = newest("*-ledger.json"), newest("*-throughput.json")
+    if not (Lg and Tp):
+        return "<p>The compute ledger is written by <code>scripts/hom_compute.py</code> (not run yet).</p>"
+    body = []
+    for task in TASKS:
+        q = (Tp["queue"].get(task) or {}).get("grasp") or (Tp["queue"].get(task) or {}).get("full") or {}
+        c = Tp["cpu"].get(task) or {}
+        cp, cm = c.get("plant_p1"), c.get("matched_p1")
+        sp = Tp["speedup"].get(task) or {}
+        body.append([NAME[task], f2(q.get("ms_per_rollout_run_full_batches")), f2(q.get("ms_per_rollout_batch")),
+                     f2(q.get("step_ms_per_rollout")), f2(cp["wall_s"]) if cp else "n/a",
+                     f2(cm["wall_s"]) if cm else "n/a",
+                     (f"{sp['plant_p1']['vs_gpu_run']:.0f} / {sp['plant_p1']['vs_gpu_batch']:.0f} / "
+                      f"{sp['plant_p1']['vs_gpu_step']:.0f}") if sp.get("plant_p1") and sp["plant_p1"].get("vs_gpu_step")
+                     else "n/a",
+                     (f"{sp['matched_p1']['vs_gpu_run']:.0f} / {sp['matched_p1']['vs_gpu_batch']:.0f} / "
+                      f"{sp['matched_p1']['vs_gpu_step']:.0f}") if sp.get("matched_p1") and sp["matched_p1"].get("vs_gpu_step")
+                     else "n/a"])
+    t1 = table(["Task", "GPU run (ms)", "GPU batch (ms)", "Queue step (ms)", "CPU plant (s)", "CPU matched (s)",
+                "Speedup on plant: run / batch / step", "Speedup on matched: run / batch / step"], body,
+               "Time per rollout on the SCS0009. GPU columns: the S2 search's full batches (2,048 sphere or 1,536 "
+               "cylinder worlds) and its whole steps. CPU columns: the CPU runner on one core, as the CPU checks run "
+               "it (plant) and with the GPU's contact filter and solver settings (matched), on the best S1 layouts.")
+    tot, st = Lg["total_hom_gpu"], Lg["score_refine_study"]
+    text = fill("""<p>Every GPU batch writes its own timing line beside its rows, and <code>scripts/hom_compute.py</code>
+sums them into a ledger. This study ran <<sr>> rollouts in <<sh>> h of batch time. All HOM GPU runs since 2026-10-29 come
+to <<tr>> rollouts in <<tb>> batches and <<th>> h. Table <<t>> sets the GPU's time per rollout against the CPU
+runner's.</p>""", sr=f"{st['rollouts']:,}", sh=f"{st['batch_hours']:.1f}", tr=f"{tot['rollouts']:,}",
+                tb=f"{tot['batches']:,}", th=f"{tot['batch_hours']:.1f}", t=P.TAB[0])
+    fg = ""
+    if (MEDIA / "20261103-throughput.png").exists():
+        fg = img(MEDIA / "20261103-throughput.png", "GPU time per rollout against the batch's worlds (run and batch "
+                 "time, scripts/hom_compute.py gpu-bench), with the CPU runner's time per rollout on one core as "
+                 "horizontal lines.")
+    return text + t1 + fg
+
+
+def fig_throughput():
+    """GPU ms per rollout against worlds per batch, per task, with the CPU's per-rollout times as lines."""
+    Tp = newest("*-throughput.json")
+    if not Tp or not any(Tp["gpu_bench"].values()):
+        return
+    plt = plt_setup()
+    fig, axs = plt.subplots(1, 4, figsize=(15, 3.8), constrained_layout=True, sharey=True)
+    for ax, task in zip(axs, TASKS):
+        g = sorted(Tp["gpu_bench"].get(task, []), key=lambda r: r["worlds"])
+        if g:
+            ax.loglog([r["worlds"] for r in g], [r["run_ms"] for r in g], "-o", color=C2, label="GPU run")
+            ax.loglog([r["worlds"] for r in g], [r["batch_ms"] for r in g], "--s", color=C3, label="GPU batch")
+        for key, ls, lab in (("plant_p1", ":", "CPU plant"), ("matched_p1", "-.", "CPU matched")):
+            c = (Tp["cpu"].get(task) or {}).get(key)
+            if c:
+                ax.axhline(1000 * c["wall_s"], color="k", ls=ls, label=lab)
+        ax.set_title(NAME[task])
+        ax.set_xlabel("Worlds per batch")
+        ax.grid(alpha=0.3, which="both")
+    axs[0].set_ylabel("ms per rollout")
+    axs[0].legend(frameon=False, fontsize=11)
+    save(fig, "20261103-throughput.png")
+
+
 def sec_limits():
     return """<ul>
 <li>The layouts are the symmetric tripods of the 5 mm lattice, at one object size per task. The size study [4] and the
@@ -522,7 +598,8 @@ bench.</li>
 
 def sec_files():
     return """<p>Files: the search <code>scripts/hom_grasp_refine.py</code>; this page's builder
-<code>scripts/hom_score_refine_page.py</code>; the runbook, queue and rows in
+<code>scripts/hom_score_refine_page.py</code>; the compute ledger and benchmarks <code>scripts/hom_compute.py</code>
+(<code>compute/</code> beside this page); the runbook, queue and rows in
 <code>docs/experiments/20261103-hom_score_refine/</code> (README.md); the logs in
 <code>logs/20261103-hom_score_refine/</code>.</p>"""
 
@@ -577,6 +654,7 @@ def cmd_page():
         ("prm", "Forces and contact modes chosen by the search", sec_prm(Js)),
         ("sts", "Refinement at two frictions on the STS3032", sec_sts(Js)),
         ("films", "Films of the picks", sec_films()),
+        ("compute", "Compute and throughput", sec_compute()),
         ("limits", "Limitations", sec_limits()),
         ("future", "Future work", sec_future()),
         ("refs", "References and files", '<ol class="refs">' + "".join(f"<li>{r[r.index(']') + 2:]}</li>" for r in REFS)

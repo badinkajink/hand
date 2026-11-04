@@ -51,6 +51,25 @@ A finished step leaves `logs/20261103-hom_score_refine/Q_<step>.done`; a stopped
 iterations are replayed with the same random draws, and a replay that draws another candidate stops with an error).
 Each step goes through `resguard.sh run --mem 5G` and retries while resguard refuses it.
 
+## Compute tracking
+
+Owner, 2026-11-03 19:0x: "let's make sure we're timing this all for compute-tracking purposes and throughput
+measuring, including cpu vs gpu speedups". Three records, all written as the work runs:
+
+- each GPU batch: one line in `<rows>_timing.jsonl` beside its rows (`hom_gpu.batch_child`: worlds, `build_s`, `run_s`,
+  `score_s`, `max_mem_gb`, `when`);
+- each search iteration: the line `HH:MM:SS <task> <level> it k: ... rollouts run, draw X s, all Y s` in
+  `logs/20261103-hom_score_refine/Q_<step>.log`;
+- each queue step: `peak <kB> kB, <s> s` from `/usr/bin/time` at the end of the same log.
+
+`scripts/hom_compute.py` reads them. `ledger` sums every HOM GPU timing line since 2026-10-29 (this study and the grids
+and searches under `docs/experiments/20261029-foundational_pose_review/rows/`) into `compute/<date>-ledger.json`.
+`cpu-bench` times the CPU runner on one core on the same layouts, grasps, plant and seed, in two variants: as the CPU
+checks run it, and with the GPU's contact filter and solver settings. `gpu-bench` times GPU batches of 64 worlds up to
+the queue's batch size, and runs only while no GPU queue does. `report` writes `compute/<date>-throughput.json` with the
+speedups of one GPU against one CPU core at three clocks: the rollout loop, the whole batch, and the whole queue step.
+Ledger of 2026-11-03 18:5x: 3,270,293 HOM rollouts on the GPU since 10-29, in 2,442 batches and 35.2 h of batch time.
+
 ## Checks
 
 - `logs/20261103-hom_score_refine/check_prm.py` (18:2x): default worlds reproduce the grid's rows within the GPU's
