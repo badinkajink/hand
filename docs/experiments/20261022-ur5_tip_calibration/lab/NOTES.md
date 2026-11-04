@@ -3199,6 +3199,14 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
     14:02, when /dev/shm filled, and 14:24 to 19:24:28, the end of its 5 h. Nothing was filmed during the night or this
     morning.
   - The frames of 11-03 are still in `/dev/shm/20261103-tipcal-timelapse` (19,515, 1.0 GB).
+  - 14:56 to 14:57, the films of 11-03, made at nice 19 with idle I/O during ID 3's pass 1. The HEX-E's steps in the
+    run kept the night's pattern: bursts of 20 to 46 ms once a minute at the touches, as in rod13's pass 1 (20 to 53
+    ms), and none over 50 ms.
+    - `20261103-tipcal-timelapse_60fps.mp4`: every frame, 08:32:27 to 19:24:28, at 60 fps (5.4 min, 23 MB).
+    - `20261103-tipcal-timelapse_short.mp4`: every 16th frame with its clock and run (1 s of film = 32 min), and a
+      card for the gap of 14:02 to 14:24 (21.1 s). Made by `timelapse_short.py`, new here: it reads each frame's clock
+      from its name and draws the look of `scripts/ur5_timelapse_short.py`, which cut the film of 11-02. Its labels
+      are `20261103-timelapse_runs.json`, from the times above.
 - 14:52:15, the chain started the run as id3pts11:
   `PREFIX=id3pts bash logs/20261104-chain_rod_points.sh logs/20261104-id3_steps.txt 15:10 17:00` (copies here).
   - PREFIX, new in the chain, names the run so that it is not a second pts11.
