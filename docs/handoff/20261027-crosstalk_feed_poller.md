@@ -11,7 +11,11 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 11-03 17:2x: feed line 50 (16:59: the rod's cone sweeps to
+State: armed 2026-10-27 21:00 from the colorado window. 11-03 18:0x: feed line 51 (17:38: the rod's first start
+stopped before the grid at 17:15, the tool a quarter turn off on its boss; reseated, the chain restarted at 17:26:47,
+end about 03:30 on 11-04) in the cone item, calibration page f1217549 (prose 628, 16.8, 1.9 %, 268/1000). Acked 51
+lines at HEAD f1217549.
+11-03 17:2x: feed line 50 (16:59: the rod's cone sweeps to
 8 N on seats 2, 3, 1 from 16:58 to about 03:00 on 11-04, the last calibration before the SR2 hand) on the calibration
 page 889579d3, with what ran before it from lab/NOTES.md and QUEUE R31/R32 (seat 2's 2 mm grid 14:48-16:11, 269/269,
 moves 1.67x faster from 15:42 after the speed slider was changed at the pendant, 3 N presses peaked 5-7.8 N; seat 3's
