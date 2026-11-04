@@ -2900,6 +2900,13 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 
     Seats 1 and 2 agree on the turn (2.5 deg apart, combined sd 4.4). Seat 3's is the odd one; its pass 1 was the one
     whose onsets ran early. c_M agrees within 0.08 mm in x and 0.39 mm in z.
+- 23:29:10, seat 1's half a (rod13) ended cleanly, and with it the first halves: every tip has half its sweep
+  locations. It ran 56 actions, all ok.
+  - The 32 sweeps took 125 to 161 s, median 152 s. 31 reached 8 N; sweep-edge-618-r90 stopped at 4 N.
+  - 988 of the 1008 planned offsets (two sweeps trimmed by 8 each) and 126 of 128 slides were held. The friction
+    check skipped seven times, all at 0.5 N's offsets.
+  - The HEX-E gave 606,523 samples, none timed out.
+- 23:29:10, step 4: seat 1's half b (rod14, 49 grid actions) on `214753-rod13_seed`.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 
