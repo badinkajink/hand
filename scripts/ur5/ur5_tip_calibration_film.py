@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_cb3_cell as CELL  # noqa: E402
+from sr2hand.geometry.rotations import mat_to_quat
 
 C = CELL.C
 MEDIA = ROOT / "docs/experiments/20261022-ur5_tip_calibration/media"
@@ -34,15 +35,6 @@ COL = {"robot": "0.80 0.82 0.84 1", "joint": "0.30 0.52 0.78 1", "hex_e": "0.62 
        "block": "0.72 0.58 0.40 1", "board": "0.80 0.68 0.50 1", "table": "0.93 0.93 0.93 1"}
 ROBOT_MESH = {"base_link_inertia": "base", "shoulder_link": "shoulder", "upper_arm_link": "upperarm",
               "forearm_link": "forearm", "wrist_1_link": "wrist1", "wrist_2_link": "wrist2", "wrist_3_link": "wrist3"}
-
-
-def quat(R):
-    """(w, x, y, z) of a rotation matrix."""
-    w = math.sqrt(max(0.0, 1.0 + R[0, 0] + R[1, 1] + R[2, 2])) / 2
-    x = math.copysign(math.sqrt(max(0.0, 1.0 + R[0, 0] - R[1, 1] - R[2, 2])) / 2, R[2, 1] - R[1, 2])
-    y = math.copysign(math.sqrt(max(0.0, 1.0 - R[0, 0] + R[1, 1] - R[2, 2])) / 2, R[0, 2] - R[2, 0])
-    z = math.copysign(math.sqrt(max(0.0, 1.0 - R[0, 0] - R[1, 1] + R[2, 2])) / 2, R[1, 0] - R[0, 1])
-    return np.array([w, x, y, z])
 
 
 def mesh_obj(tm, path):
@@ -112,12 +104,12 @@ def set_pose(m, d, q, T_EM):
         k = m.body_mocapid[bid]
         T = LF[ln]
         d.mocap_pos[k] = T[:3, 3] * 1e-3
-        d.mocap_quat[k] = quat(T[:3, :3])
+        d.mocap_quat[k] = mat_to_quat(T[:3, :3])
     bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "tool")
     k = m.body_mocapid[bid]
     T = LF["tool0"]
     d.mocap_pos[k] = T[:3, 3] * 1e-3
-    d.mocap_quat[k] = quat(T[:3, :3])
+    d.mocap_quat[k] = mat_to_quat(T[:3, :3])
     mujoco.mj_forward(m, d)
 
 
