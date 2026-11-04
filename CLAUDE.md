@@ -45,7 +45,9 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   cache; cached scenes keep the pad modulus they were built with) and `HOM_ROWS_TAG` (required with either; appended to
   the rows directories). HOM landscapes and best grasps change with the plant and the pad modulus
   (`scripts/hom_plant_transfer.py --set plants|modulus|factorial`); quote a landscape with both.
-  `scripts/hom_modulus_scenes.py` builds a scene cache at another modulus.
+  `scripts/hom_modulus_scenes.py` builds a scene cache at another modulus. HOM's commanded forces and contact modes are
+  per-world parameters (`hom_tasks.mode_weights`, a world's `prm` in `hom_gpu`), and `scripts/hom_grasp_refine.py`
+  refines them with the grasp (`docs/experiments/20261103-hom_score_refine/`).
 - **GPU is single (16 GB).** Train sequentially. **Every Warp process needs its own kernel cache:**
   `WARP_CACHE_PATH=$(mktemp -d)` — a shared cache races and NaNs. After killing a Warp run, wait for
   GPU memory to drop to ~1 GB before relaunching.

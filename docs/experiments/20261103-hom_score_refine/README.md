@@ -78,3 +78,28 @@ Ledger of 2026-11-03 18:5x: 3,270,293 HOM rollouts on the GPU since 10-29, in 2,
   vs 94.9 deg).
 - The probe (`hom_grasp_refine.py probe`): a feasibility draw costs about 3 ms and an open pose 1-2 ms; 19-53 % of
   draws at 0.25 of the feasible widths pass.
+
+## Outcome (2026-11-04)
+
+Page: `20261103-hom_score_refine.html` beside this file, built by `scripts/hom_score_refine_page.py` (`figs`, `films`,
+then the page). The results quote the elitist picks (`hom_grasp_refine.elitist`; fields `s2e_*`, `s3e_*` and
+`below_start_*` in the reports), because the night's searches scored draws around each start and never the start
+itself: 7 of 240 grasp searches and 5 of 240 full searches on the SCS0009 picked a candidate below their start.
+
+| SCS0009, 30 best layouts, seeds 20-24 | S1 | S2e | S3e | rho(S1, S3e) over 60 |
+|---|---|---|---|---|
+| twist | 0.89 | 0.95 | 1.00 | 0.75 |
+| roll | 0.56 | 0.58 | 0.60 | 0.56 |
+| pin-push | 0.70 | 0.72 | 0.75 | 0.71 |
+| press | 0.70 | 0.75 | 0.91 | 0.67 |
+
+The best layout moves under S3e on the twist, the roll and the press. The S3 search lowered the press's pinch force
+from 3 N to a median 1.8 N and the pusher's roll weight from 1 to 0.38. On the STS3032 the picks tuned at friction 1.0
+score a median 0 at friction 0.4 on the twist, the roll and the pin-push; retuning at 0.4 gains a median 0.43, 0.51,
+0.53 and 0.18. The pose toy's contact normals of both sets lie inside the 0.4 friction cone, and the friction needed for
+static balance is the same in both sets, so the drops have no named cause (`media/20261103-friction_check.json`).
+
+From 2026-11-04 the search scores its start as candidate 0 of iteration 0, so its pick is elitist by construction, and
+each iteration writes one line to `<task>_d<d>_iters.jsonl` (draw, open-pose and GPU-batch seconds, batches,
+rollouts). The compute ledger, the GPU and CPU benchmarks and the speedups are in `compute/`
+(`scripts/hom_compute.py`; `report` keeps the newest CPU session per plant, task and variant).

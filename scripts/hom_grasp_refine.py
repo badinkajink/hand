@@ -24,8 +24,9 @@ object-pose draws, as S1's grasps did.
 Layouts per task: the 30 best by S1 and 30 drawn at random (numpy seed 0) from the other layouts whose pose is reached.
 CEM per layout: 24 candidates (grasp) or 32 (full) per iteration, the best quarter by mean score (ties by the fingers
 in contact at the end) as elites, mean and spread moved 0.8 of the way to the elites', a floor on the spread, 8
-iterations; the pick is the best candidate seen. The starting spread is 0.25 (grasp) or 0.15 (full) of the feasible
-width of each grasp variable that fp_sr2_toy.grasp_set measured around the foundational pose, and 0.3 for the log
+iterations; the pick is the best candidate seen. From 2026-11-04 the start itself is candidate 0 of iteration 0, so
+the pick never scores below the start at the search seeds. The starting spread is 0.25 (grasp) or 0.15 (full) of the
+feasible width of each grasp variable that fp_sr2_toy.grasp_set measured around the foundational pose, and 0.3 for the log
 forces and the mode variables u. `validate` runs each layout's three picks at seeds 20-24, which no search or grid
 used; those are the scores to compare. The night's searches of 2026-11-03 scored draws around each start and never the
 start itself, so `report` also gives the elitist picks (elitist()): S2e, the better of S1's grasp and S2's pick at
@@ -45,8 +46,9 @@ check_prm.py): default worlds reproduce the grid rows within the GPU's run-to-ru
 same in a mixed batch and alone, and the CPU runner with the same prm agrees.
 Rows: docs/experiments/20261103-hom_score_refine/rows/<plant>/<level>/<task>_d<d>.jsonl in hom_gpu.py's format, the
 key with call, it, cand, the grasp v, prm and x (the CEM variables); <task>_d<d>_gens.jsonl, one line per layout and
-iteration; rows/<plant>/<task>_layouts.json, the layout sample with S1. A stopped run resumes: the iterations are
-replayed from the rows with the same random draws.
+iteration; <task>_d<d>_iters.jsonl (from 2026-11-04), one line per iteration with its draw, open-pose and GPU-batch
+seconds, batches and rollouts; rows/<plant>/<task>_layouts.json, the layout sample with S1. A stopped run resumes: the
+iterations are replayed from the rows with the same random draws.
 """
 from __future__ import annotations
 
@@ -163,15 +165,22 @@ def feasible(task, d6, v):
 
 def draw_layout(job):
     """Candidates of one layout and iteration (a worker's job): n feasible draws around mean with spread std, numpy's
-    generator seeded by (task, call, it), so a replayed iteration draws the same candidates. Returns
-    (call, [x or None], draws tried)."""
+    generator seeded by (task, call, it), so a replayed iteration draws the same candidates. At iteration 0 the first
+    candidate is the start itself (the mean, when feasible), so that the search's pick never scores below its start at
+    the search seeds (2026-11-04; the searches of 2026-11-03 drew all n). Returns (call, [x or None], draws tried)."""
     import fp_sr2_toy as FP
     task, level, call, it, d6, mean, std, lo, hi, nv, n = job
     FP.set_sizes(**({"sph_d_mm": TASKS[task]} if POSE[task] == "tripod" else {"cyl_d_mm": TASKS[task]}))
     rng = np.random.default_rng([sum(map(ord, task + level)), int(call), int(it)])
     out, tried = [], 0
-    for _ in range(n):
+    for k in range(n):
         x = None
+        if k == 0 and int(it) == 0:
+            y = np.clip(np.asarray(mean, float), lo, hi)
+            tried += 1
+            if feasible(task, d6, y[:nv]):
+                out.append(y)
+                continue
         for t in range(TRIES):
             s = std if t < TRIES // 2 else 0.5 * std
             y = np.clip(mean + s * rng.standard_normal(len(mean)), lo, hi)
@@ -263,10 +272,14 @@ def read_rows(path):
     return [json.loads(x) for x in (path.read_text().splitlines() if path.exists() else []) if x.strip()]
 
 
-def evaluate(task, plant, path, items, seeds, scene, HG, E):
+def evaluate(task, plant, path, items, seeds, scene, HG, E, timing=None):
     """Run every (key, d6, v, prm) of items at each seed not yet in the rows of path, as GPU batches in spawned
-    processes. key must identify the candidate: rows are matched on (call, it, cand) or (call, pick)."""
+    processes. key must identify the candidate: rows are matched on (call, it, cand) or (call, pick). timing (a dict)
+    receives the open poses' and the GPU batches' wall seconds and the number of batches."""
     import multiprocessing as mp
+    t0 = time.time()
+    if timing is not None:
+        timing.update(open_s=0.0, gpu_s=0.0, batches=0)
     done = set()
     for r in read_rows(path):
         done.add((ident(r), int(r["seed"])))
@@ -284,12 +297,16 @@ def evaluate(task, plant, path, items, seeds, scene, HG, E):
             continue
         worlds += [{"key": key, "seed": sd, "setup": setup, "body_mounts": bm, "q_open": q_open, "prm": prm,
                     "var": HG.variant_world(var, sd)} for sd in todo]
+    t_open = time.time() - t0
+    if timing is not None:
+        timing["open_s"] = round(t_open, 3)
     if not worlds:
         return 0
     ctx = mp.get_context("spawn")
     tpath = path.with_name(path.stem + "_timing.jsonl")
     b = E.BATCH[task]
     n0 = len(read_rows(tpath))
+    t1 = time.time()
     for i, b0 in enumerate(range(0, len(worlds), b)):
         spec = {"shape": "sphere" if POSE[task] == "tripod" else "cylinder", "d_mm": TASKS[task], "task": task,
                 "worlds": worlds[b0:b0 + b], "dt": worlds[0]["var"]["dt"], "gen_seed": GEN_SEED + b0,
@@ -299,6 +316,8 @@ def evaluate(task, plant, path, items, seeds, scene, HG, E):
         pr.join()
         if pr.exitcode != 0:
             raise SystemExit(f"{task} {plant}: batch {n0 + i} failed (exit {pr.exitcode})")
+    if timing is not None:
+        timing.update(gpu_s=round(time.time() - t1, 2), batches=-(-len(worlds) // b))
     return len(worlds)
 
 
@@ -382,7 +401,8 @@ def cmd_run(a):
                            "v": [round(float(y), 7) for y in x[:sp.nv]], "prm": sp.prm(x),
                            "x": [round(float(y), 7) for y in x]}
                     items.append((key, d6[c], x[:sp.nv], key["prm"]))
-            n_run = evaluate(task, a.plant, path, items, SEARCH_SEEDS, scene, HG, E)
+            tm = {}
+            n_run = evaluate(task, a.plant, path, items, SEARCH_SEEDS, scene, HG, E, tm)
             sc = scores(task, [r for r in read_rows(path) if int(r["it"]) == it])
             for c, (xs, tried) in drawn.items():
                 cand = [(sc[(c, it, k)], k, x) for k, x in enumerate(xs) if x is not None and (c, it, k) in sc]
@@ -407,9 +427,18 @@ def cmd_run(a):
                         fh.flush()
                         os.fsync(fh.fileno())
             n_feas = sum(sum(x is not None for x in xs) for xs, _ in drawn.values())
+            t_all = time.time() - t0
             print(f"{time.strftime('%H:%M:%S')} {task} {level} it {it}: {n_feas} candidates of {len(d6)} layouts, "
-                  f"{n_run} rollouts run, draw {t_draw:.0f} s, all {time.time() - t0:.0f} s, median best "
+                  f"{n_run} rollouts run, draw {t_draw:.0f} s, all {t_all:.0f} s, median best "
                   f"{np.median([b['score'] for b in best.values() if b]):.3f}", flush=True)
+            with open(path.with_name(path.stem + "_iters.jsonl"), "a") as fh:     # the iteration's compute record
+                fh.write(json.dumps({"when": time.strftime("%Y-%m-%d %H:%M:%S"), "task": task, "level": level,
+                                     "plant": a.plant, "it": it, "layouts": len(d6), "candidates": n_feas,
+                                     "draws": sum(tr for _xs, tr in drawn.values()), "rollouts": n_run,
+                                     "replay": n_run == 0, "draw_s": round(t_draw, 2), **tm,
+                                     "total_s": round(t_all, 2)}) + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
 
 
 def picks(task, plant, level):
