@@ -69,7 +69,7 @@ def load(name: str) -> trimesh.Trimesh:
 
 
 def unit(v):
-    return vectors.unit(v, zero="nan")
+    return vectors.unit(v)
 
 
 def design_rotation(mesh: trimesh.Trimesh) -> np.ndarray:
@@ -233,7 +233,9 @@ def derive() -> dict:
     def common_perp(p1, a1, p2, a2):
         n = np.cross(a1, a2)
         if np.linalg.norm(n) < 1e-6:
-            return unit(vectors.reject(p2 - p1, a1)), float(np.linalg.norm(vectors.reject(p2 - p1, a1)))
+            d = vectors.reject(p2 - p1, a1)
+            s = float(np.linalg.norm(d))
+            return (unit(d) if s > 1e-12 else rotations.tangent_basis(a1)[0]), s      # coaxial: any perpendicular, spacing 0
         n = unit(n)
         if (p2 - p1) @ n < 0:
             n = -n
