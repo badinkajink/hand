@@ -26,11 +26,14 @@ ap.add_argument("--across", type=float, default=0.77, help="the fit's turn acros
 ap.add_argument("--first", default="", help="sweep ids printed first")
 ap.add_argument("--plan", default="sweep8", choices=("sweep8", "extras"), help="the program plan: the 8 N sweeps or "
                 "the night's extras (each press's deep pose, each roll's turns)")
+ap.add_argument("--plan-file", default="", help="a program plan in place of --plan's draft (the lab's halves)")
+ap.add_argument("--ids", default="", help="only these actions (comma-separated)")
 ap.add_argument("--out", default="")
 a = ap.parse_args()
 s_, v_ = a.seat, 7 - a.seat
 first = [f for f in a.first.split(",") if f]
-prog = json.loads((D / f"20261103-plan_probe_table_rod_seat{s_}_v3id{v_}_{a.plan}_draft.json").read_text())
+prog = json.loads((Path(a.plan_file) if a.plan_file else
+                   D / f"20261103-plan_probe_table_rod_seat{s_}_v3id{v_}_{a.plan}_draft.json").read_text())
 src = json.loads((RIG.ROOT / prog["checks"]["source"]).read_text())
 seat = int(src["seat"])
 RIG.HOME_KEY[0] = int(prog["homing"]["key"])
@@ -43,7 +46,8 @@ var = {"nominal": np.eye(3)}
 for tl in (a.across, -a.across):
     var[f"fit z{a.turn_z:+g} x{tl:+g}"] = C.rot([1, 0, 0], tl) @ C.rot([0, 0, 1], a.turn_z)
 Tf = {k: C.Tm(R, c0 - R @ c0) for k, R in var.items()}
-acts = [x for x in prog["actions"] if x["stage"] == "grid" and x["kind"] in ("sweep", "press", "roll")]
+acts = [x for x in prog["actions"] if x["stage"] == "grid" and x["kind"] in ("sweep", "press", "roll", "twist")
+        and (not a.ids or x["id"] in a.ids.split(","))]
 acts.sort(key=lambda x: (x["id"] not in first, prog["actions"].index(x)))
 grid = [x["id"] for x in prog["actions"] if x["stage"] == "grid"]
 out = []
@@ -65,6 +69,13 @@ for x in acts:
     elif x["kind"] == "roll":                           # about the plan's axis (the fitted one is within the turn)
         poses = [T_e] + RIG.roll_poses(ctx, dict(roll_degs=x["moves"][0]["degs"]), T_e, n_B)
         moves = [("deep", 0, 0)] + [(f"roll pose {k}", 0, 0) for k in range(len(poses) - 1)]
+    elif x["kind"] == "twist":                          # about n through the axis point, each degree to the largest
+        c_B = C.apply(T_e @ T_EM, c0)
+        degs = [d for mv in x["moves"] for d in mv["degs"]]
+        lo, hi = min(degs + [0.0]), max(degs + [0.0])
+        ang = [float(g) for g in np.arange(math.floor(lo), math.ceil(hi) + 1.0, 1.0)]
+        poses = [T_e] + [C.turn_about(T_e, c_B, n_B, g) for g in ang]
+        moves = [("deep", 0, 0)] + [(f"twist {g:+.0f}", 0, 0) for g in ang]
     else:
         poses, moves = [T_e], [("deep", 0, 0)]
     row = dict(id=x["id"], grid=grid.index(x["id"]) + 1)

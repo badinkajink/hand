@@ -599,9 +599,15 @@ def probe_points(tool, sp=1.5):
     if tool in SPHERES:                                  # the neck's end lies inside the sphere: those points are not stem
         s = p[SPHERES[tool]]
         stem = stem[np.linalg.norm(stem - [0.0, 0.0, tz - s["R"]], axis=1) > s["R"] + 0.05]
+    if TOOL_TURN[0] is not None:                        # the tool as a registration turned it about its reference point
+        c0 = np.array([0.0, 0.0, tool_end_z(tool)])     # (the rod's fit, 11-03: -5.40 deg about z_M); the program aims
+        stem, tip = c0 + (stem - c0) @ TOOL_TURN[0].T, c0 + (tip - c0) @ TOOL_TURN[0].T     # the point, not the turn
     out["tool_stem"] = stem
     out["tool_tip"] = tip
     return out
+
+
+TOOL_TURN = [None]   # dry-check --tool-turn: the tool's stem and end turned about tool_end_z's point
 
 
 # ------------------------------------------------------------------------------------------------ the CAD (MeshK, M)
@@ -2402,6 +2408,9 @@ def cmd_dry_check(a):
     to its max depth on the pad, and a tip flag on the next travel says "after a twist")."""
     t0 = time.time()
     real = bool(a.real)
+    if a.tool_turn:
+        z_, x_ = (float(v) for v in a.tool_turn.split(","))
+        TOOL_TURN[0] = C.rot([1.0, 0.0, 0.0], x_) @ C.rot([0.0, 0.0, 1.0], z_)
     stages = tuple(s for s in a.stages.split(",") if s)
     if a.hub_dz is not None:
         TABLE["hub_dz"] = (float(a.hub_dz),)
@@ -3031,6 +3040,9 @@ def main():
                     "action's rest), as the overnight plans follow seat 3's")
     dc.add_argument("--fit", default="", help="RX,RY,RZ,TX,TY,TZ: each seat's pad moved so in P (deg about x_P, y_P, "
                     "z_P, then mm), as a registration found it; the grid aims by it")
+    dc.add_argument("--tool-turn", default="", help="Z,X deg: the tool turned Z about z_M, then X about x_M, about its "
+                    "reference point, as a registration found it (the program aims the fitted point and keeps the plan's "
+                    "R_PM, so the turn reaches the run: 11-03, seat 2's rod fit -5.40 deg about z_M, 0.77 across)")
     de = sub.add_parser("dry-exact")
     de.add_argument("program", nargs="+", help="the lab's program plans")
     de.add_argument("--dry", type=float, default=15.0)
