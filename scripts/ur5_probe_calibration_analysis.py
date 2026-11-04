@@ -77,7 +77,9 @@ class ProbeSession(AN.Session):
         if JOINT:
             J = json.loads(Path(JOINT[0]).read_text())
             seat = int(self.d["plan"]["geometry"]["seat"]["index"]) + 1
-            jr = next(r for r in J["rows"] if r["seat"] == seat)
+            rows = [r for r in J["rows"] if r["seat"] == seat]      # this session's own row when the fit has it (11-04:
+            jr = next((r for r in rows if self.sd.name.startswith(r["session"])     # v3 ID 3's session on seat 1
+                       or r["session"].startswith(self.sd.name)), rows[0])           # beside rod13)
             src = next(x for x in J["sessions"] if x.rstrip("/").endswith(jr["session"]))
             rb = json.loads(((ROOT / src) / "registration.json").read_text())
             for k in ("T_BI", "T_EM"):
