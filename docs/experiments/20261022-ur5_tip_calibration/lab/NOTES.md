@@ -3115,6 +3115,12 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - 12:29:23, seat 3's face and edges ended cleanly: 70 of 70 to 3 N, no skip or abort, in 34.5 min. The HEX-E gave
   206,448 samples, none timed out. Its two gaps (0.7 s each) came at 11:54:52, at the program's start, as on seat 1.
 - 12:29:27, step 3: seat 2's face and edges (pts23, 70 grid actions) on `172647-rod21_seed`.
+- 12:3x, the workstation's result on seat 1 (QUEUE R32). It took a fixed fifth of the night's point groups of v3 ID 6,
+  over 4 seeds. With pts11's 300 holds, the GP locates contact to 0.746 mm, against 0.780 mm without them.
+  - On near-normal loads it is 0.673 mm, against 0.710 mm. Every seed improves, by 0.014 to 0.050 mm.
+  - Direction (5.86 deg), magnitude (8.2 %) and torsion (no skill against predicting zero) do not change.
+  - Seat 3 is the check on a second tip. Its dense bytes went the same way (`20261104-rod32_tail/`); the workstation's
+    four prefix sha256s matched those cut here.
 
 ## The lab clone and git-lfs
 
