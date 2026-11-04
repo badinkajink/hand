@@ -30,8 +30,10 @@ done; band-films done, but on the CPU plant S3w of layout 362 drops at 0.4 (GPU 
 of all picks at seed 20 done 09:13 (logs/20261104-hom_worst_case/cpu_check.sh, 900 rollouts; rows copied to
 rows/band_k21mu/20261104-cpu_check.jsonl): lowest of 0.4/1.0, S3w less the 1.0 picks, CPU every contact vs GPU:
 pin-push +0.55/+0.54, press +0.10/+0.11, twist +0.00/+0.27 (with the GPU's filter on the CPU +0.28), roll +0.01/+0.47.
-Film now 2x2 (S3w at 0.4 with the filter 0.67, every contact 0.00). 09:2x: sec_band, lede, limits, future work, files
-written; page built (prose within targets); next: read it, commit, push; README + queue_band.sh, memory (step 5).
+Film now 2x2 (S3w at 0.4 with the filter 0.67, every contact 0.00). 09:2x: Section 6, lede, limits, future work,
+files; page built (prose within targets), commit 351ba39e3 pushed 09:4x (merge f7a682318). 09:4x: README section,
+queue_band.sh and band_cpu_check.py beside the page, memory project_hom_codesign_levels_2026_11_03 updated; second
+commit (wording fixes, README) and push, then steps 4-5 done and disarm.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Paths: if the scripts switch has landed (scripts/hom/ exists), the scripts are under scripts/hom/ and the pac… Done 11-04 04:00: scripts/hom/ absent; switch job waits after fingertip_shape_rerun (not migrating): scripts stay at scripts/hom_*.py, package morphohand

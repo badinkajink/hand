@@ -103,3 +103,64 @@ From 2026-11-04 the search scores its start as candidate 0 of iteration 0, so it
 each iteration writes one line to `<task>_d<d>_iters.jsonl` (draw, open-pose and GPU-batch seconds, batches,
 rollouts). The compute ledger, the GPU and CPU benchmarks and the speedups are in `compute/`
 (`scripts/hom_compute.py`; `report` keeps the newest CPU session per plant, task and variant).
+
+## Worst-case score over three frictions (2026-11-04)
+
+Owner, 2026-11-03: "maybe do need to do some online sysid to measure friction, and/or to have robustness to a band of
+physical parameters as a scoring parameter in hand selection"; "worst-case sampling makes sense, i saw it in spider
+too". Autopilot job `hand-20261104-hom_worst_case_score`; the page's Section 6.
+
+`hom_grasp_refine.py --band k21mu0p4,k21mu0p7,k21` (the band `band_k21mu` of `BANDS`) runs each candidate at seeds 0-2
+on the STS3032 at kp 2.1 at scene friction 0.4, 0.7 and 1.0 (scene caches `logs/20261102-hom_servo_plant/scenes_mu0.4`,
+`scenes_mu0.7` and `scenes`) and scores its lowest three-seed mean; ties go to the larger margin at that friction. The
+open pose does not depend on the friction, so one open pose per candidate is used on all three plants. The parent sets
+`HOS_PLANT`, `HOS_SCENES` and `HOM_ROWS_TAG` before it spawns each `hom_gpu.batch_child`, and stops if a row reports
+another scene cache. `queue_band.sh` is a copy of `logs/20261104-hom_worst_case/queue.sh`, which ran 04:22-08:54:
+
+```bash
+B=k21mu0p4,k21mu0p7,k21
+python3 scripts/hom_grasp_refine.py validate --task twist --band $B --picks-from k21        # 11-03 picks at 0.7
+python3 scripts/hom_grasp_refine.py run --task twist --level grasp --band $B --layouts-from k21 --iters 6
+python3 scripts/hom_grasp_refine.py run --task twist --level full --band $B --layouts-from k21 --iters 6
+python3 scripts/hom_grasp_refine.py validate --task twist --band $B                         # S1w, S2w, S3w
+python3 scripts/hom_grasp_refine.py report --band $B
+nohup setsid bash logs/20261104-hom_worst_case/queue.sh >> logs/20261104-hom_worst_case/queue.log 2>&1 &
+```
+
+Files under `rows/band_k21mu/`:
+
+- `<task>_layouts.json`: the k21 sample (20 best by S1 at 1.0, 10 at random) with S1w, the grasp of the grasp set with
+  the best worst-case score on the three grids, and each plant's mean.
+- `<level>/<plant>/<task>_d<d>.jsonl` and `_timing.jsonl`: each plant's rollouts and GPU batches;
+  `<level>/<task>_d<d>_gens.jsonl` (per layout and iteration, with `best_plants`) and `_iters.jsonl` (per iteration,
+  with `gpu_s_plants`).
+- `val/<plant>/`: S1w, S2w and S3w at seeds 20-24. `val_from_k21/` and `val_from_k21mu0p4/`: the 11-03 picks at 0.7;
+  their rows at 0.4 and 1.0 are the 11-03 ones (read, never appended to).
+- `20261104-band_levels.json`: the report. `20261104-cpu_check.jsonl`: every pick on the CPU plant at seed 20, at 0.4
+  and 1.0 (`band_cpu_check.py` beside this file, a copy of `logs/20261104-hom_worst_case/cpu_check.py`).
+  `20261104-queue_steps.json`: each queue step's wall clock and peak RSS.
+
+Checks before the queue (`logs/20261104-hom_worst_case/check_band.py`, `check*.log`; rows in `rows_smoke/`, not
+results): candidate 0 of iteration 0 against the grid rows, at most 0.025 apart over 18 rollouts. A plant's band rows
+against a single-plant run of the same candidates: three-seed means a median 0.0004-0.0012 apart, at most 0.24. An
+identical batch against its repeat: a median 0.0001-0.0010 apart, at most 0.22. The large differences are the GPU's own
+spread on marginal twist candidates.
+
+Outcome, at seeds 20-24 over the 30 layouts per task (the last column at seed 20, the lower of the scores at 0.4 and
+1.0):
+
+| task | lowest score over 0.4-1.0: S3w | picks tuned at 1.0 | picks tuned at 0.4 | at 1.0: S3w less the 1.0 picks | CPU, every contact: S3w less the 1.0 picks (GPU) |
+|---|---|---|---|---|---|
+| twist | 0.28 | 0.00 | 0.17 | -0.46 | +0.00 (+0.27) |
+| roll | 0.57 | 0.00 | 0.53 | -0.05 | +0.01 (+0.47) |
+| pin-push | 0.59 | 0.00 | 0.63 | -0.12 | +0.55 (+0.54) |
+| press | 0.92 | 0.42 | 0.88 | -0.02 | +0.10 (+0.11) |
+
+The paired change of the lowest score, S3w less the picks tuned at 1.0, has a median of +0.26, +0.32, +0.56 and +0.21.
+Against the picks tuned at 0.4 it is +0.08, +0.00, +0.00 and +0.01. Friction 0.7 gives the lowest validated score of 1
+to 4 of the 30 worst-case picks per task. The layouts are reordered: Spearman's rho between the lowest score under S3w
+and the score at 1.0 under the picks tuned there is 0.27 to 0.51, and the best layout moves on the roll, the pin-push
+and the press. On the CPU plant with every contact, S3w scores 0 at 0.4 on 16 of the 30 twist layouts at seed 20, 7 on
+the GPU; with the GPU's contact filter the CPU's twist change is +0.28. The runs took 371,871 GPU rollouts in 308
+batches, 4.30 h of batch time in 4.53 h of queue steps (34 ms run, 42 ms batch and 44 ms step time per rollout). The
+CPU runner at friction 0.7 takes 1.8 to 3.2 s a rollout on one core, 72 to 82 cores per GPU.

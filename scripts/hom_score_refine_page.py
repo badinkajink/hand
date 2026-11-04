@@ -889,7 +889,7 @@ WC_LOGS = ROOT / "logs/20261104-hom_worst_case"
 BAND_FILMS = MEDIA / "20261104-band_films.json"
 BAND_FILM = {"task": "twist", "call": 362}          # layout 110 x 110 mm, as the friction film of Section sts
 BAND_STEPS = D / "rows" / BAND / "20261104-queue_steps.json"   # wall clock and peak RSS of each step of WC_LOGS/queue.sh
-BAND_CPU = D / "rows" / BAND / "20261104-cpu_check.jsonl"      # WC_LOGS/cpu_check.py: the picks on the CPU plant, seed 20
+BAND_CPU = D / "rows" / BAND / "20261104-cpu_check.jsonl"      # band_cpu_check.py beside the page: the picks on the CPU plant, seed 20
 
 
 def band_report():
@@ -1401,9 +1401,9 @@ in <code>scripts/hom_grasp_refine.py</code>), at two-thirds of the rollouts. Fri
 score of {min(n07)} to {max(n07)} of the 30 worst-case picks per task. Two frictions suffice if their picks' median
 lowest score over the three frictions lies within 0.02 of S3w's on every task.</li>
 <li>The band on the 40 mm sphere with every contact meeting the object: the twist's and the roll's worst-case search
-with the rigid geoms in the GPU's contact filter (<code>scripts/hom_gpu.py</code>), its picks then run on the CPU plant
-at seeds 20-24 (<code>logs/20261104-hom_worst_case/cpu_check.py</code>). The GPU's sphere results at friction 0.4 stand
-if the new picks' lowest score on the CPU lies within 0.05 of S3w's on the GPU.</li>"""
+with the rigid geoms in the GPU's contact filter (<code>scripts/hom_gpu.py</code>), then its picks on the CPU plant at
+seed 20 (<code>band_cpu_check.py</code> beside this page). The GPU's sphere results at friction 0.4 stand if the new
+picks' median lowest score on the CPU lies within 0.05 of S3w's on the GPU.</li>"""
 
 
 def sec_future(Js):
@@ -1434,7 +1434,7 @@ def sec_files():
 <code>docs/experiments/20261103-hom_score_refine/</code> (README.md); the friction check
 <code>media/20261103-friction_check.json</code>; the logs in <code>logs/20261103-hom_score_refine/</code>. The worst-case
 runs: <code>hom_grasp_refine.py --band</code>, the queue <code>queue_band.sh</code> beside this page, the rows and report
-in <code>rows/band_k21mu/</code>, the CPU check <code>logs/20261104-hom_worst_case/cpu_check.py</code> and the logs in
+in <code>rows/band_k21mu/</code>, the CPU check <code>band_cpu_check.py</code> and the logs in
 <code>logs/20261104-hom_worst_case/</code>.</p>"""
 
 
