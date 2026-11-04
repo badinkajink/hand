@@ -3163,7 +3163,7 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - 8 reference presses back to back;
   - one normal rod press at each face and edge point 1.0 mm apart (about 105, 0.5 to 3 N);
   - a reference press every 25 actions and last.
-- 14:40, the held board, read with the program's reader while nothing ran (scratchpad `held_check.py`):
+- 14:40, the held board, read with the program's reader while nothing ran (`held_check.py`, here since 16:2x):
   - It finds channels 0, 2 and 3, each at 151 records/s, with 1.6 to 2.8 uT of noise.
   - Channel 3's rest field is ID 3's (scratchpad `tip_identity.py`). It lies 73 to 77 uT rms from ID 3's own at the
     start of its tip-mode sessions of 10-29 (`134508-spherev3id3`, `230820-rodv3id3`). The tip then hung pad down,
@@ -3228,7 +3228,7 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
     reached 0.10 mm. With the opposite sign across, edge-617-r90 reached -0.16 mm. The presses stop at 3 N, about 1.3 mm
     short of that pose.
 - The lab checked the four tightest actions from robot.bin: the flange's travel from rest to each level's first time,
-  along the press (scratchpad `press_depth.py`). On the pad, 0.5 N to 3 N takes about 0.4 to 0.6 mm; a rigid body would
+  along the press (`press_depth.py`, here since 16:2x). On the pad, 0.5 N to 3 N takes about 0.4 to 0.6 mm; a rigid body would
   take a fraction of that. All four pressed the pad:
 
   | Action (grid) | Rest to 0.5 N | 0.5 to 3 N |
