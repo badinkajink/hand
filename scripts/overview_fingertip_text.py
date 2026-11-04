@@ -535,7 +535,9 @@ Section 14). Three more prints, v3 IDs 4 to 6, were pressed pad up on an inverte
 training points to 0.78&#8211;0.82&#8202;mm with all of them. Their points stand 2.0&#8202;mm apart, against 1.0&#8202;mm on
 the first three tips. On holds held out at random with the load near the normal, a session&#8217;s GP gives
 0.32&#8211;0.37&#8202;mm, against 0.27&#8211;0.30&#8202;mm. Presses at 66 to 71 new points per tip lower the error on the
-earlier points by 0.003&#8211;0.043&#8202;mm. With the new points held out, it is 0.54&#8211;0.73&#8202;mm
+earlier points by 0.003&#8211;0.043&#8202;mm. With the new points held out, it is 0.54&#8211;0.73&#8202;mm. v3 ID 3 was
+pressed on the rig as well. With the load near the normal it gives 0.59&#8202;mm there and 0.32&#8202;mm on the robot, and
+its board&#8217;s reading of a repeated press varies by 7.9&#8202;% against 2.2&#8211;2.5&#8202;%
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#rig),
 Section 15).</p>
 <p>On the hand the other fingertips&#8217; magnets add their field to each board. In the field model a four-magnet
