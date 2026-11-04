@@ -564,6 +564,9 @@ RIG_CURVE = UR5 / "20261104-v3_id456_data_curve_pooled.json"
 RIGCOL = {"4": "#1f78b4", "5": "#d95f02", "6": "#1b9e77"}
 RIG_DENSE = {t: UR5 / f"20261104-v3_id{t}_dense_seat{7 - int(t)}_gp.json" for t in RIGCOL}  # seats 3, 2 and 1
 RIG_TILT = UR5 / "20261104-v3_tilt_reference_check.txt"
+RIG_ID3 = UR5 / "20261104-v3_id3_inverted_vs_tipmode.txt"
+RIG_ID3_HOLDS = RIG_HOLDS / "20261104-145215-id3pts11"
+RIG_ID3_FILM = UR5.parent / "lab/20261104-tipcal-timelapse_short.mp4"
 TILTS = (("0-0.1", "Under 0.1"), ("0.1-0.3", "0.1 to 0.3"), ("0.3-0.5", "0.3 to 0.5"), ("0.5-9", "Over 0.5"))
 
 
@@ -765,6 +768,78 @@ def fig_rig_tilt():
     save(fig, "20261104-v3_id123456_by_tilt.png")
 
 
+def rig_id3():
+    """The coordinator's printout of v3 ID 3 on seat 1 of the inverted rig against the tip on the robot (commit fc09a648 of
+    2026-11-04) and the session's summary, parsed for the page's table and Figure 15."""
+    from fingertip_calibration_text import at_head
+    nums = lambda s: [float(x) for x in s.split(",")]  # noqa: E731
+    out = {}
+    for line in at_head(RIG_ID3).decode().splitlines():
+        if m := re.match(r"within ([^:]+): (\d+) holds, (\d+) groups; location ([\d.]+) mm \(near-normal ([\d.]+)\), direction "
+                         r"([\d.]+) deg \(near-normal ([\d.]+)\), magnitude ([\d.]+) %; location per seed \[(.+)\]", line):
+            out[m[1]] = dict(holds=int(m[2]), groups=int(m[3]), location_mm=float(m[4]), loc_normal_mm=float(m[5]),
+                             direction_deg=float(m[6]), dir_normal_deg=float(m[7]), magnitude_pct=float(m[8]),
+                             seeds_normal_mm=nums(m[9]))
+        elif m := re.match(r"transfer tip mode -> inverted: (\d+) holds; location ([\d.]+) mm \(near-normal ([\d.]+)\); mean "
+                           r"offset in P \[(.+)\] mm; direction ([\d.]+) deg; magnitude ([\d.]+) %", line):
+            out["transfer"] = dict(holds=int(m[1]), location_mm=float(m[2]), loc_normal_mm=float(m[3]), offset_mm=nums(m[4]),
+                                   direction_deg=float(m[5]), magnitude_pct=float(m[6]))
+        elif m := re.match(r"refs at 2 N: (\d+), board spread ([\d.]+) %; uT/N in order \[(.+)\]", line):
+            out["refs"] = dict(presses=int(m[1]), board_pct=float(m[2]), uT_per_N=nums(m[3]))
+    assert set(out) == {"inverted", "tip mode, presses", "tip mode, all", "transfer", "refs"}
+    summ = json.loads(at_head(RIG_ID3_HOLDS / "summary.json"))
+    out["board_uT_per_N"] = summ["board_uT_per_N_median"]
+    out["pad_vs_session_mm_deg"] = summ["registration"]["pad_vs_session_mm_deg"]
+    NUM["rig_id3"] = out
+
+
+def fig_rig_id3():
+    """v3 ID 3 on seat 1 of the inverted rig against the tip on the robot (the coordinator's
+    data/20261104-v3_id3_inverted_vs_tipmode.py, commit fc09a648): (a) the held-out location error with the load's tilt under
+    0.1, by seed with the medians as bars, and v3 IDs 4 to 6's at that tilt as a band; (b) the reference presses at 2 N in
+    time order."""
+    from statistics import median
+    plt = plt_setup()
+    R = NUM["rig_id3"]
+    fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.7))
+    band = [NUM["rig_tilt"][t]["0-0.1"]["location_mm"] for t in RIGCOL]
+    axes[0].axhspan(min(band), max(band), color="0.75", alpha=0.6, lw=0, label="v3 IDs 4 to 6 on the rig")
+    for k, (key, col) in enumerate((("inverted", "#7570b3"), ("tip mode, presses", "0.25"), ("tip mode, all", "0.25"))):
+        s = R[key]["seeds_normal_mm"]
+        axes[0].plot([k] * len(s), s, ls="", color=col, alpha=0.6, marker="o", ms=6)
+        axes[0].plot((k - 0.22, k + 0.22), [median(s)] * 2, color=col, lw=3)
+    axes[0].set_xticks((0, 1, 2))
+    axes[0].set_xticklabels(("On seat 1,\npresses", "On the robot,\npresses", "On the robot,\nall kinds"))
+    axes[0].set_xlim(-0.5, 2.5)
+    axes[0].set_ylim(0, 0.75)
+    axes[0].set_ylabel("Location error (mm)")
+    axes[0].set_title("(a) Location error, load's tilt under 0.1")
+    axes[0].legend(frameon=False, loc="lower left")
+    y = R["refs"]["uT_per_N"]
+    x = range(1, len(y) + 1)
+    axes[1].axvspan(1.5, 9.5, color="0.9", lw=0)
+    axes[1].text(5.5, 19.1, "Eight back to back", ha="center", fontsize=13)
+    axes[1].plot(x, y, color="#7570b3", lw=1.4, marker="o", ms=6)
+    axes[1].set_xticks(list(x))
+    axes[1].set_xlim(0.4, len(y) + 0.6)
+    axes[1].set_ylim(12, 20)
+    axes[1].set_xlabel("Reference press, in time order")
+    axes[1].set_ylabel("Board's reading over the force (\N{MICRO SIGN}T/N)")
+    axes[1].set_title("(b) Reference presses at 2 N on seat 1")
+    fig.tight_layout()
+    save(fig, "20261104-v3_id3_seat1_vs_robot.png")
+
+
+def poster_rig_id3():
+    """The poster frame of the time-lapse of v3 ID 3's session on seat 1 (lab/20261104-tipcal-timelapse_short.mp4), at
+    15:46 with the rod over the seat."""
+    import subprocess
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    out = MEDIA / "20261104-v3_id3_seat1_film_poster.png"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "14", "-i", str(RIG_ID3_FILM), "-frames:v", "1", str(out)], check=True)
+    print("wrote", out.relative_to(ROOT), flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
@@ -772,7 +847,8 @@ def main():
     figs = dict(motions=fig_motions, coverage=fig_coverage, learning=fig_learning, by_level=fig_by_level,
                 density=fig_density, shear=fig_shear, transfer=fig_transfer, sessions=sessions, hard=fig_hard,
                 four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve, rig=rig_sessions,
-                rig_curve=fig_rig_curve, rig_dense=fig_rig_dense, rig_tilt=rig_tilt, fig_tilt=fig_rig_tilt)
+                rig_curve=fig_rig_curve, rig_dense=fig_rig_dense, rig_tilt=rig_tilt, fig_tilt=fig_rig_tilt,
+                rig_id3=rig_id3, fig_id3=fig_rig_id3, poster_id3=poster_rig_id3)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)
