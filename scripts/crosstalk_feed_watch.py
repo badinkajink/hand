@@ -43,9 +43,10 @@ PREFIX = "Crosstalk:"
 # they are this job's own
 WATCHED = (V3 + "data/", V3 + "README.md")
 # the inverted rig's analyses, outside the v3 folder since commit ab47f8b6 of 11-04: the holds of its sessions and its rod
-# fits in the seat block's data/, and the tips' held-out curves in the UR5 folder's data/
+# fits in the seat block's data/, the tips' held-out curves in the UR5 folder's data/, and the coordinator's QUEUE.md,
+# where the plans' changes and the analyses' readings go without a feed line
 ANALYSES = re.compile(r"docs/experiments/(20261030-inverted_rig_seat_block/data/(holds/|[^/]*rod_joint_registration)"
-                      r"|20261022-ur5_tip_calibration/data/[^/]*v3_)")
+                      r"|20261022-ur5_tip_calibration/(data/[^/]*v3_|QUEUE\.md))")
 # the coordinator's analysis folders of a tip's sessions, logs/YYYYMMDD-{sphere,tall,rod}v3idN*/ with holds.npz,
 # calib_rest.json and summary.json; tips from v3 ID 3 on
 HOLDS_RE = re.compile(r"v3id(\d+)")
