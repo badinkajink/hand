@@ -1585,7 +1585,9 @@ def build_plan(ctx, seat_i, a):
     regs = [region(v) for v in ctx["nrm_P"]]
     seed = (thin_idx(ctx["pts_P"], a.seed_spacing) if getattr(a, "seed_spacing", 0.0) > 0 else ())
     keep_r = set(a.regions.split(",")) if getattr(a, "regions", "") else None
-    idx = [i for i in thin_idx(ctx["pts_P"], a.spacing, seed) if regs[i] and (keep_r is None or regs[i] in keep_r)]
+    excl = {int(v) for v in getattr(a, "exclude", "").split(",") if v}
+    idx = [i for i in thin_idx(ctx["pts_P"], a.spacing, seed) if regs[i] and (keep_r is None or regs[i] in keep_r)
+           and i not in excl]
     i_ref = int(np.argmin(np.linalg.norm(ctx["pts_P"] - [8.5, 0.0, 10.86], axis=1)))
     thetas = [float(v) for v in a.thetas.split(",") if v]
     azim = np.arange(a.azimuths) * 360.0 / a.azimuths
@@ -3116,6 +3118,8 @@ def main():
                     "points made denser)")
     rp.add_argument("--regions", default="", help="only these regions' points (comma-separated: face, edge, flank, tip)")
     rp.add_argument("--rod-one", action="store_true", help="the rod: one press a point, across the tip, else along it")
+    rp.add_argument("--exclude", default="", help="pad point indices left out (comma-separated), so that the travels are "
+                    "planned without them")
     rp.add_argument("--out-dir", default="", help="where the plan and its check go (default the experiment's data/)")
     rp.add_argument("--deep", type=float, default=None, help="each press's checked deep pose this far past contact (mm; "
                     "default DEEP)")

@@ -1715,6 +1715,33 @@ push that answers it arrives.
     asked the lab at 23:48 to leave them out. The chained dry-check at the corners flags no travel
     (data/20261103-strip_table_pads_run_check_rod_night_joint_z{p,m}.json). The morning's ground truth uses this fit
     (data/20261103-strip_table_pads_rod_joint_registration_grid05.json).
+  - 07:11 to 10:3x on 11-04: the night ended at 07:11 with no action aborted. The arm waits at seat 1's probe-ref-x1
+    rest, the rod a few mm over seat 1's pad. The joint fit on all 176 sweeps at 0.5 N
+    (data/20261104-strip_table_pads_rod_joint_registration_final_grid05.json) turns the rod +0.43 deg about z_M (sd
+    1.04) and -0.89 deg across (sd 0.50). It is the registration of the rod sessions' ground truth. The holds of the eight
+    probe sessions are in data/holds/<session> (commit ab47f8b66): 883 to 2933 per sphere session, 2778 to 3108 per rod
+    session. The held-out GP of scripts/ur5_tip_calibration_v3_data_curve.py locates contact to 0.79, 0.82 and 0.78 mm
+    on IDs 4, 5 and 6 (sphere and rod sessions pooled; data/20261104-v3_id456_data_curve_pooled.json). IDs 1 to 3 gave
+    0.46 to 0.51 mm. The direction error is 4.7 to 6.1 deg and the magnitude error 8 to 9 % (IDs 1 to 3: about 4 deg
+    and 7 %). The sphere or the rod sessions alone give 0.77 to 0.91 mm, and the kinds of IDs 1 to 3 alone 0.73 to 0.84 mm.
+    The points of IDs 4 to 6 stand 1.94 to 2.02 mm from their nearest neighbour (IDs 1 to 3: 0.97 to 0.99 mm), with 30
+    flank points per tip against 11 to 12. Held out at random, so that each hold's point stays in training, the holds
+    give 0.50 to 0.54 mm on IDs 4 to 6 and 0.30 to 0.32 mm on IDs 1 to 3. The board reads 31 to 32 uT/N on IDs 4 to 6
+    and 26 to 27 on IDs 1 to 3, and its rest drift is 6 to 8 uT on both. The seat's deflection does not change the error.
+    With the load within 0.1 of the normal (tangential over normal force) IDs 4 to 6 give 0.32 to 0.37 mm (IDs 1 to 3:
+    0.27 to 0.30); at 0.1 to 0.3 they give 0.45 to 0.49 mm and beyond it 0.50 to 0.57 mm. s1sph2b alone gives 0.62 to
+    0.71 mm in every quarter of its session; the other sphere sessions 0.31 to 0.43 mm.
+  - 10:4x on 11-04, the owner: "if we just lost density of coverage why dont we just add points now. i know i said we
+    were done earlier, but we should have a few hours left to get that density"; at 10:55 the robot free by 14:15. The
+    plans (scripts/ur5_inverted_rig.py replay --seed-spacing 2.0 --spacing 1.0 --regions face,edge --rod-one; flanks and
+    tip at 1.3 mm) put one normal press with the rod at each pad point 1.0 mm or more from the night's 2 mm points and
+    from each other, levels 0.5 to 3 N, to resume rod13, rod32 and rod21. Face and edges
+    (data/20261104-plan_probe_table_rod_seat{1,3,2}_v3id{6,4,5}_dense_fe_draft.json): 71, 66 and 66 new presses and 4
+    reference presses (probe-ref-dNN) on seats 1, 3 and 2; flanks and tip (_dense_ft): 4, 3 and 4. Left out: edge-637 on
+    every seat and edge-641 and -658 on seat 2, under 0.2 mm from the tip body at the joint fit's 2 sd corners, and
+    seat 2's edge-653, whose travel then failed. Chained fe 1, 3, 2, ft 2, 3, 1 from the arm's joints at 10:45, the
+    dry-check flags none of 75, 70, 70, 6, 5 and 6 actions
+    (data/20261103-strip_table_pads_run_check_rod_dense_chain.json).
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
