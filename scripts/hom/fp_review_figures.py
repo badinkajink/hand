@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 from sr2hand.numerics.signal import trailing_average
+from sr2hand.numerics.stats import spearman
 D = ROOT / "docs/experiments/20261029-foundational_pose_review"
 ROWS = D / "rows"
 MEDIA = D / "media"
@@ -361,15 +362,6 @@ def rank01(v):
     return out
 
 
-def spearman(a, b):
-    a, b = np.asarray(a, float), np.asarray(b, float)
-    ok = np.isfinite(a) & np.isfinite(b)
-    if ok.sum() < 3:
-        return float("nan")
-    ra, rb = np.argsort(np.argsort(a[ok])), np.argsort(np.argsort(b[ok]))
-    return float(np.corrcoef(ra, rb)[0, 1])
-
-
 def pareto_mask(sc):
     """Non-dominated rows of a score matrix, every column maximised."""
     n = len(sc)
@@ -590,7 +582,7 @@ def fig_dyn2d():
     kin = np.array([tw[k]["kin"]["tmr_deg"] for k in keys])
     ramp = np.array([tw[k]["ramp"] for k in keys])
     return {"n": len(keys), "dropped_twist": int(drop.sum()),
-            "spearman_kin_ramp": float(np.corrcoef(np.argsort(np.argsort(kin)), np.argsort(np.argsort(ramp)))[0, 1])}
+            "spearman_kin_ramp": spearman(kin, ramp)}
 
 
 def fig_dyn6d(name_tw="hom6d_gpu_twist", name_ro="hom6d_gpu_roll"):
@@ -643,11 +635,10 @@ def fig_dyn6d(name_tw="hom6d_gpu_twist", name_ro="hom6d_gpu_roll"):
         info["tsne_n"] = len(pts)
     fig.tight_layout()
     save(fig, "20261029-hom_landscape_6d.png")
-    rank = lambda v: np.argsort(np.argsort(v))  # noqa: E731
     info.update({"n": len(keys), "held_all": int(ok.sum()), "pareto": int(par.sum()),
-                 "spearman_kin_ramp": float(np.corrcoef(rank(kin[ok]), rank(ramp[ok]))[0, 1]),
-                 "spearman_smin_ramp": float(np.corrcoef(rank(smin[ok]), rank(ramp[ok]))[0, 1]),
-                 "spearman_smin_rmse": float(np.corrcoef(rank(smin[ok]), rank(rmse[ok]))[0, 1]),
+                 "spearman_kin_ramp": spearman(kin[ok], ramp[ok]),
+                 "spearman_smin_ramp": spearman(smin[ok], ramp[ok]),
+                 "spearman_smin_rmse": spearman(smin[ok], rmse[ok]),
                  "ramp_median": float(np.median(ramp[ok])), "rmse_median": float(np.nanmedian(rmse[ok])),
                  "pareto_layouts": [list(np.round(keys[i], 1)) for i in np.flatnonzero(par)][:12]})
     return info

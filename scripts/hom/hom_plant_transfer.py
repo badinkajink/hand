@@ -40,6 +40,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_landscape as L  # noqa: E402
+from sr2hand.numerics.stats import spearman
 
 ROWS = ROOT / "docs/experiments/20261029-foundational_pose_review/rows"
 DEFAULT = (("twist", 40), ("roll", 40), ("pinpush", 25), ("press", 25))
@@ -75,17 +76,6 @@ def grasp_means(task, path):
             r = json.loads(x)
             out.setdefault(int(r["call"]), {}).setdefault(int(r.get("grasp", 0)), []).append(L.rollout_score(task, r))
     return {c: {g: float(np.mean(v)) for g, v in gs.items()} for c, gs in out.items()}
-
-
-def rank(v):
-    o = np.argsort(v, kind="mergesort")
-    r = np.empty(len(v))
-    r[o] = np.arange(len(v))
-    return r
-
-
-def spearman(a, b):
-    return float(np.corrcoef(rank(np.asarray(a)), rank(np.asarray(b)))[0, 1]) if len(a) > 2 else float("nan")
 
 
 def xy(c):

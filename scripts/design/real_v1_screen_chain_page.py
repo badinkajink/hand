@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import retro_style
+from sr2hand.numerics.stats import spearman
 
 ROOT = Path(__file__).resolve().parents[2]
 BAND = ROOT / "docs/experiments/20260906-rv05_band"
@@ -44,17 +45,6 @@ def table(head: list[str], rows: list[list], nums: set[int], hi: set[int] = froz
         body.append(f'<tr{" class=hi" if k in hi else ""}>{td}</tr>')
     return ('<div class="tw"><table><thead><tr>' + th + "</tr></thead><tbody>"
             + "".join(body) + "</tbody></table></div>")
-
-
-def spearman(a, b):
-    n = len(a)
-    rank = lambda v: {j: i for i, j in enumerate(sorted(range(n), key=lambda k: v[k]))}
-    ra, rb = rank(a), rank(b)
-    A = [ra[i] for i in range(n)]; B = [rb[i] for i in range(n)]
-    ma, mb = st.mean(A), st.mean(B)
-    num = sum((A[i] - ma) * (B[i] - mb) for i in range(n))
-    den = math.sqrt(sum((x - ma) ** 2 for x in A) * sum((x - mb) ** 2 for x in B))
-    return num / den
 
 
 def main() -> int:

@@ -35,6 +35,7 @@ import docs_index  # noqa: E402
 import fp_review_figures as FF  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
+from sr2hand.numerics.stats import spearman
 
 D = ROOT / "docs/experiments/20261029-foundational_pose_review"
 MEDIA = D / "media"
@@ -143,12 +144,6 @@ def render(page_text, holder):
 
 def load(name):
     return FF.load(name)
-
-
-def spearman(a, b):
-    a, b = np.asarray(a, float), np.asarray(b, float)
-    ra, rb = np.argsort(np.argsort(a)), np.argsort(np.argsort(b))
-    return float(np.corrcoef(ra, rb)[0, 1])
 
 
 # ------------------------------------------------------------------------------------------------ numbers
@@ -465,14 +460,8 @@ candidates on the pinch and <<t6>> % on the tripod.</p>""",
     return t
 
 
-def rank(v):
-    return np.argsort(np.argsort(np.asarray(v, float)))
-
-
 def sp(a, b):
-    a, b = np.asarray(a, float), np.asarray(b, float)
-    ok = np.isfinite(a) & np.isfinite(b)
-    return float(np.corrcoef(rank(a[ok]), rank(b[ok]))[0, 1]) if ok.sum() > 2 else float("nan")
+    return spearman(a, b)
 
 
 def gpu_validation():
