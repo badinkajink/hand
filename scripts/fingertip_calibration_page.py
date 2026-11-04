@@ -61,17 +61,18 @@ def build():
              by_level=MEDIA / "20261026-error_by_level.png", density=MEDIA / "20261026-density.png",
              shear=MEDIA / "20261026-shear.png", transfer=MEDIA / "20261026-transfer_pooling.png",
              hard=MEDIA / "20261028-hard_presses_v2id1.png", four_five=MEDIA / "20261028-four_vs_five.png",
-             data_curve=MEDIA / "20261102-v3_data_curve.png",
+             data_curve=MEDIA / "20261102-v3_data_curve.png", rig_curve=MEDIA / "20261104-v3_id456_data_curve.png",
              film=UR5 / "media/20261022-lab_sphere2_overhead.mp4", film_poster=UR5 / "media/20261022-lab_sphere2_overhead.png")
     S, lede, summary, film_html = sections(N, F, P, link, L)
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S, 1))
     byline = ("Sessions sphere2 to cb3t of tips 0 to 3, v2id1, rodv2id1 and tallv2id1 of v2 ID 1, spherev3id1, rodv3id1 and "
-              "tallv3id1 of v3 ID 1, spherev3id2, tallv3id2 and rodv3id2 of v3 ID 2, and spherev3id3, tallv3id3 and rodv3id3 of "
-              "v3 ID 3, on the lab's UR5 with the OptoForce HEX-E, 2026-10-22 to 10-30, analysed on the workstation ("
+              "tallv3id1 of v3 ID 1, spherev3id2, tallv3id2 and rodv3id2 of v3 ID 2, spherev3id3, tallv3id3 and rodv3id3 of "
+              "v3 ID 3, and s1v6b to rod13 of v3 IDs 4 to 6 on the inverted rig, on the lab's UR5 with the OptoForce "
+              "HEX-E, 2026-10-22 to 11-04, analysed on the workstation ("
               + link(UR5, "docs/experiments/20261022-ur5_tip_calibration/") + ") and v3 ID 2's on the lab computer. "
               "v2 ID 1's and the v3 tips' analyses are the UR5 "
-              "coordinator's (commits 0a487cf5 to ee772007), read as committed. Figures by "
+              "coordinator's (commits 0a487cf5 to ab47f8b6), read as committed. Figures by "
               + P.code("scripts/fingertip_calibration_figures.py") + "; page by " + P.code("scripts/fingertip_calibration_page.py")
               + ". Read " + link(L["phys"], "the physical model of the fingertip") + " first; the topic overview is "
               + link(L["overview"], "printed fingertips and force sensing") + ".")

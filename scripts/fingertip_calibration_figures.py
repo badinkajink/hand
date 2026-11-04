@@ -17,6 +17,7 @@ writes media/*.png and data/20261026-numbers.json in the page's folder.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import math
 import sys
@@ -556,6 +557,10 @@ def fig_four_five():
 V3ID3 = {fx: ROOT / f"logs/20261030-{fx}v3id3" for fx in ("sphere", "tall", "rod")}
 DATA_CURVE = UR5 / "20261102-v3_data_curve.json"
 V3COL = {"1": FOUR, "2": "#2e7d32", "3": "#6a3d9a"}
+# the inverted rig's analysed sessions and the held-out curve of their tips (the coordinator's, 2026-11-04)
+RIG_HOLDS = ROOT / "docs/experiments/20261030-inverted_rig_seat_block/data/holds"
+RIG_CURVE = UR5 / "20261104-v3_id456_data_curve_pooled.json"
+RIGCOL = {"4": "#1f78b4", "5": "#d95f02", "6": "#1b9e77"}
 
 
 def v3id3_sessions():
@@ -613,13 +618,68 @@ def fig_data_curve():
     save(fig, "20261102-v3_data_curve.png")
 
 
+def rig_sessions():
+    """Holds and actions by kind in the inverted rig's analysed sessions (the coordinator's holds.npz, commit ab47f8b6 of
+    2026-11-04), for the page's session table."""
+    from fingertip_calibration_text import at_head
+    out = {}
+    for folder in sorted(RIG_HOLDS.iterdir()):
+        with np.load(io.BytesIO(at_head(folder / "holds.npz"))) as z:
+            kind, aid = z["kind"].astype(str), z["id"].astype(str)
+        out[folder.name] = {k: dict(holds=int(np.sum(kind == k)), actions=len(set(aid[kind == k]))) for k in sorted(set(kind))}
+    NUM["rig_sessions"] = out
+
+
+def fig_rig_curve():
+    """The board GP's held-out error on v3 IDs 4 to 6 on the inverted rig against the number of training holds (the
+    coordinator's scripts/ur5_tip_calibration_v3_data_curve.py on each tip's pooled sessions, 2026-11-04), with v3 IDs 1 to
+    3's in grey: (a) location error, (b) force angle, over the held-out holds of 1 N and over. Medians over four seeds;
+    the band spans the seeds."""
+    from fingertip_calibration_text import at_head
+    plt = plt_setup()
+    C, O = json.loads(at_head(RIG_CURVE)), json.loads(at_head(DATA_CURVE))
+    fr = C["fractions"]
+    panels = ("location_mm", "direction_deg")
+    fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.7))
+    for tip, d in O["tips"].items():
+        med = [d["median"][f"{f:g}"] for f in fr]
+        for ax, key in zip(axes, panels):
+            ax.plot([m["n_train"] for m in med], [m[key] for m in med], marker="o", color="0.62", lw=1.4, ms=4,
+                    label="v3 IDs 1 to 3, on the finger" if tip == "1" and key == panels[0] else None)
+    for tip, d in C["tips"].items():
+        med = [d["median"][f"{f:g}"] for f in fr]
+        x = [m["n_train"] for m in med]
+        for ax, key in zip(axes, panels):
+            seeds = [[r[key] for r in d["rows"] if r["fraction"] == f] for f in fr]
+            ax.fill_between(x, [min(s) for s in seeds], [max(s) for s in seeds], color=RIGCOL[tip], alpha=0.14, lw=0)
+            ax.plot(x, [m[key] for m in med], marker="o", color=RIGCOL[tip], lw=1.8, ms=6,
+                    label=f"v3 ID {tip}, {d['holds']:,} holds" if key == panels[0] else None)
+    for ax, yl, ttl in zip(axes, ("Location error, median (mm)", "Force angle, median (\N{DEGREE SIGN})"),
+                           ("(a) Contact point, holds of 1 N and over", "(b) Force, holds of 1 N and over")):
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xticks([250, 500, 1000, 2000, 4000])
+        ax.set_xticklabels(["250", "500", "1,000", "2,000", "4,000"])
+        ax.minorticks_off()
+        ax.set_xlabel("Training holds")
+        ax.set_ylabel(yl)
+        ax.set_title(ttl)
+    log_ticks(axes[0], (0.4, 0.5, 0.7, 1, 1.5, 2, 3, 4, 6))
+    log_ticks(axes[1], (4, 5, 7, 10, 15, 20, 30))
+    h = axes[0].get_legend_handles_labels()[0]
+    fig.legend(handles=h, loc="lower center", ncol=2, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.13, 1, 1))
+    save(fig, "20261104-v3_id456_data_curve.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
     a = ap.parse_args()
     figs = dict(motions=fig_motions, coverage=fig_coverage, learning=fig_learning, by_level=fig_by_level,
                 density=fig_density, shear=fig_shear, transfer=fig_transfer, sessions=sessions, hard=fig_hard,
-                four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve)
+                four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve, rig=rig_sessions,
+                rig_curve=fig_rig_curve)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)
