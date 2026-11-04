@@ -3293,6 +3293,16 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
     `logs/ur5_lab_robot_messages.log`. The tmux pane tipcal holds id3pts11's printout.
   - /dev/shm holds 6.7 GB: the sim sessions (4.3 GB) and the time-lapse frames of 11-02, 11-03 and 11-04 (1.3 GB,
     1.0 GB, 0.13 GB). Their films are in this folder. RAM keeps them only until corvus restarts.
+- 16:4x, the owner, taking the tips off: "actually i do think the self-threading holes stripped after repeated screws.
+  interesting. well, it's over now."
+  - The M2 that hold each tip and its board in the seat block cut their own threads in the print. Stripped, they no
+    longer clamp the board.
+  - That fits the workstation's mount hypothesis. At ID 3's reference presses the board's uT/N scattered 7.9 % on the
+    inverted rig against 2.2 to 2.5 % in tip mode, with the force alike. In tip mode the DIP link's clamp holds the board.
+  - So the rig's gap (0.59 against 0.32 mm on ID 3) most likely comes from the loose clamp, not from pressing the tip
+    from above.
+  - A seat block for later work would want threads that do not wear: heat-set inserts, as mount v4's set screws have,
+    or nuts.
 
 ## The lab clone and git-lfs
 

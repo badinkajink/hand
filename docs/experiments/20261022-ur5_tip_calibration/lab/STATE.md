@@ -289,6 +289,10 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     clear by hand (16:44: joints 43.45, -97.96, 105.78, -123.23, -91.95, -36.55 deg; flange 422.6 mm up). The rod
     stays on the probe base, and the tips go to the SR2 hand. Nothing runs on the robot except the read-only
     `robot_messages.py` (PID 2632536).
+    - The likely cause of the rig's gap, from the owner taking the tips off: "actually i do think the self-threading
+      holes stripped after repeated screws". The M2 clamp the board in the seat block by threads cut in the print, so
+      stripped holes leave it loose. That fits the board's 7.9 % uT/N scatter (NOTES). A later seat block would want
+      heat-set inserts or nuts.
   - **Done, 13:16:58 on 11-04: the rod points, every step clean: 232 of 232 actions, no skip, abort or early contact.**
     The arm waited at seat 1's reference rest, the pose of 10:45 (joints 48.99, -77.26, 106.61, -124.34, -91.36, -38.05
     deg), the rod a few mm over seat 1's pad. Nothing runs on the robot: the chain ended, and the 14:15 stop (PID
