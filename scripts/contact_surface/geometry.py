@@ -6,6 +6,7 @@ import math
 import numpy as np
 
 from hom_contact_rig import fib_cap
+from sr2hand.geometry.rotations import rot_z
 
 
 @dataclass(frozen=True)
@@ -55,9 +56,6 @@ class Surface:
     def centers(self, phase_degrees=0):
         p = self.parameters()
         directions = fib_cap(p["count"], math.radians(self.cap_degrees))
-        a = math.radians(phase_degrees)
-        rotation = np.array(
-            [[math.cos(a), -math.sin(a), 0], [math.sin(a), math.cos(a), 0], [0, 0, 1]]
-        )
+        rotation = rot_z(math.radians(phase_degrees))
         # Match hom_chain's MJCF coordinate precision.
         return np.round((self.radius - self.sphere_radius) * directions @ rotation.T, 7)

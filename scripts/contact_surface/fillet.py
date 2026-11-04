@@ -11,6 +11,7 @@ import math
 import numpy as np
 
 from contact_surface.geometry import Surface
+from sr2hand.geometry.rotations import quat_from_axis_angle
 
 
 def filleted_surface(spacing_mm=1.0, relaxation=0.02, width=0.0148, length=0.0148, fillet=0.006):
@@ -108,10 +109,4 @@ def support_point(p, tilt_degrees, azimuth_degrees):
         ]
     )
     point = core + r * n
-    quaternion = [
-        math.cos(theta / 2),
-        -math.sin(phi) * math.sin(theta / 2),
-        math.cos(phi) * math.sin(theta / 2),
-        0,
-    ]
-    return n, point, quaternion
+    return n, point, quat_from_axis_angle([-math.sin(phi), math.cos(phi), 0.0], theta).tolist()

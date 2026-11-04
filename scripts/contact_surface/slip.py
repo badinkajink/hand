@@ -16,6 +16,7 @@ from contact_surface.metrics import aggregate, contacts
 from contact_surface.mujoco_model import build
 from contact_surface.records import CsvLog, write_json
 from contact_surface.runtime import mass_matrix, step1
+from sr2hand.geometry.rotations import quat_angle
 
 
 def smooth(u):
@@ -148,7 +149,7 @@ def run(config, out):
                 vz=float(pre_vel[2]),
                 ax=float(d.qacc[slide]),
                 az=float(d.qacc[2]),
-                tilt_radians=float(2 * np.arccos(np.clip(abs(pre_pos[3]), 0, 1))),
+                tilt_radians=float(quat_angle(pre_pos[3:7], [1.0, 0.0, 0.0, 0.0])),
                 physical_dynamic_force_sum=normal_expected,
                 normal_force_relative_error=total["Fn_total"] / absolute_expected - 1
                 if absolute_expected > 1e-9
