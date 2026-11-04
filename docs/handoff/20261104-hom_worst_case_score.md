@@ -31,6 +31,8 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
     the score refine page (scripts/hom_score_refine_page.py) with a table and a film of one layout's nominal and
     worst-case picks at friction 0.4; rebuild; commit; push.
 - [ ] 5. Memory project_hom_codesign_levels_2026_11_03.md and the README beside the page.
+Standing directions (for every step):
+- Compute tracking (owner 11-03 19:0x: "let's make sure we're timing this all for compute-tracking purposes and throughput measuring, including cpu vs gpu speedups"): run every GPU batch through hom_gpu.batch_child so each writes its _timing.jsonl line beside its rows under docs/experiments/20261103-hom_score_refine/rows/; log each search iteration's wall, draw and GPU-batch times (and write them as JSON lines if you add a script); after the runs, `python3 scripts/hom_compute.py ledger` and `report`, and give the job's rollouts, batch hours and ms per rollout (run, batch, whole step) in its page section; for a new kind of rollout (another plant, the friction band, a new search), time the CPU runner on it with `scripts/hom_compute.py cpu-bench` (through resguard) and state the CPU against GPU speedup.
 <!-- /ap:steps -->
 Claimed: scripts/hom_grasp_refine.py (the band option), the page's worst-case section,
 docs/experiments/20261103-hom_score_refine/rows/band_*, logs/20261104-hom_worst_case/.
