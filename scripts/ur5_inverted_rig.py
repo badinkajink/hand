@@ -1434,14 +1434,18 @@ def roll_poses(ctx, act, T, n_B, c_B=None):
     return out
 
 
-def thin_idx(pts, mm):
+def thin_idx(pts, mm, seed=()):
+    """Points mm apart, taken greedily in order. seed: indices taken already; the result leaves them out and keeps mm
+    from them as well."""
     if mm <= 0:
         return np.arange(len(pts))
-    keep = []
+    keep, seed = list(seed), set(int(j) for j in seed)
+    out = []
     for i, p in enumerate(pts):
-        if all(np.linalg.norm(p - pts[j]) >= mm for j in keep):
+        if i not in seed and all(np.linalg.norm(p - pts[j]) >= mm for j in keep):
             keep.append(i)
-    return np.array(keep)
+            out.append(i)
+    return np.array(out, int)
 
 
 def cmd_reach(a):
@@ -1579,7 +1583,9 @@ def build_plan(ctx, seat_i, a):
     P_A, N_A = C.apply(T, ctx["pts_P"]), ctx["nrm_P"] @ T[:3, :3].T
     axis = -np.asarray(st["T_AF"], float)[:3, 2]
     regs = [region(v) for v in ctx["nrm_P"]]
-    idx = [i for i in thin_idx(ctx["pts_P"], a.spacing) if regs[i]]
+    seed = (thin_idx(ctx["pts_P"], a.seed_spacing) if getattr(a, "seed_spacing", 0.0) > 0 else ())
+    keep_r = set(a.regions.split(",")) if getattr(a, "regions", "") else None
+    idx = [i for i in thin_idx(ctx["pts_P"], a.spacing, seed) if regs[i] and (keep_r is None or regs[i] in keep_r)]
     i_ref = int(np.argmin(np.linalg.norm(ctx["pts_P"] - [8.5, 0.0, 10.86], axis=1)))
     thetas = [float(v) for v in a.thetas.split(",") if v]
     azim = np.arange(a.azimuths) * 360.0 / a.azimuths
@@ -1614,10 +1620,13 @@ def build_plan(ctx, seat_i, a):
                         d = -(math.cos(math.radians(th)) * n + math.sin(math.radians(th)) * t)
                         add(f"probe-{regs[i]}-{i:03d}-o{th:g}-a{az:g}", "oblique", i, d, th, az)
             continue
-        if not add(f"probe-{regs[i]}-{i:03d}", "press", i, -n):
-            continue
-        if rod:                                         # the rod along the tip as well
+        ok = add(f"probe-{regs[i]}-{i:03d}", "press", i, -n)
+        if rod and getattr(a, "rod_one", False):        # one press a point: across the tip, else along it
+            ok = ok or add(f"probe-{regs[i]}-{i:03d}", "press", i, -n, psi=0.0)
+        elif rod and ok:                                # the rod along the tip as well
             add(f"probe-{regs[i]}-{i:03d}", "press", i, -n, psi=0.0)
+        if not ok:
+            continue
         t1, t2 = tangent_basis(n, axis)
         if m % a.obl_every == 0:
             for th in thetas:
@@ -3102,6 +3111,11 @@ def main():
                     "clears (not a reference); the next travel starts from the last action kept")
     rp.add_argument("--no-twist", action="store_true", help="no twists (11-02: the twists' torsion sits under the "
                     "estimate's floor, and they took 1.2 of a seat's 3.6 h)")
+    rp.add_argument("--seed-spacing", type=float, default=0.0, help="mm: only points between those of a plan at this "
+                    "spacing, --spacing from them and from each other (11-04, the owner's go of 10:4x: the night's 2 mm "
+                    "points made denser)")
+    rp.add_argument("--regions", default="", help="only these regions' points (comma-separated: face, edge, flank, tip)")
+    rp.add_argument("--rod-one", action="store_true", help="the rod: one press a point, across the tip, else along it")
     rp.add_argument("--out-dir", default="", help="where the plan and its check go (default the experiment's data/)")
     rp.add_argument("--deep", type=float, default=None, help="each press's checked deep pose this far past contact (mm; "
                     "default DEEP)")
