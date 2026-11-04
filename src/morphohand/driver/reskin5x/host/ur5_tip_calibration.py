@@ -2297,8 +2297,8 @@ class Session:
         through its own centre, as the workstation's replay turned it (at most standoff + max_depth_mm along the push)."""
         st = float(a.get("standoff", 1.5))
         T_rest, d = self.target_pose(a, st)
-        if self.probe and a["kind"] != "twist":
-            raise Abort(f"a {a['kind']} is the tip mode's")
+        if self.probe and a["kind"] != "twist" and not (a["kind"] == "roll" and self.geo.kind == "rod"):
+            raise Abort(f"a {a['kind']} is the tip mode's (probe mode: twists, and rolls of a rod)")
         self.travel(T_rest, a)
         fm, fv = self.fast_mm(a, st, "press")
         r = self.press(a, T_rest, d, levels=(a["press_N"],), stop_N=a["press_N"],
@@ -2315,7 +2315,12 @@ class Session:
             for mv in a["moves"]:
                 ang = math.radians(mv.get("dir_deg", 0.0))
                 u_I = np.array([math.cos(ang), math.sin(ang), 0.0])
-                if self.probe:
+                if self.probe and a["kind"] == "roll":       # the rod rolls on the pad (11-03): about its contact line, along
+                    T_BM = np.array(r["T_stop"]) @ self.reg.T_EM  # its fitted axis, R from its axis along the pad's normal
+                    a_M = np.asarray(getattr(self.reg, "axis_M", self.geo.axis_M), float)
+                    centre = apply(T_BM, self.reg.c_M) - self.geo.R * n_B / np.linalg.norm(n_B)
+                    axis = T_BM[:3, :3] @ (a_M / np.linalg.norm(a_M))
+                elif self.probe:
                     centre, axis = apply(np.array(r["T_stop"]) @ self.reg.T_EM, self.reg.c_M), n_B / np.linalg.norm(n_B)
                 elif a["kind"] == "slide":
                     centre, axis = c_B, I[:3, :3] @ np.cross(EZ, u_I)
