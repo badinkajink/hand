@@ -1,0 +1,111 @@
+16:58:23 chain 2859347 from logs/20261103-rod_night_steps.txt; no step starts after 05:20; the hard stop at 05:50 (logs/20261103-deadline_stop.log)
+logs/20261103-tip_calibration/165823-rod21_seed: seeded from logs/20261103-tip_calibration/144808-s2sph2 (seat 2), c_M [0.0, 0.0, 107.5] (rod, R 12.5)
+16:58:23 step 1: rod21 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_sweep8.json, 86 grid actions) on logs/20261103-tip_calibration/165823-rod21_seed, seeded from logs/20261103-tip_calibration/144808-s2sph2
+started rod21 in tmux session tipcal; printout in logs/20261103-165823-tipcal-rod21.log
+16:58:28 rod21 printing to logs/20261103-165823-tipcal-rod21.log
+17:15:58 logs/20261103-165823-tipcal-rod21.log did not end cleanly (exit 1 at 17:15:54; resumes 0); stopping the chain
+17:26:47 the owner reseated the rod tool a quarter turn ("ok it's rotated please go"); the chain starts again from step 1
+17:26:47 chain 2862548 from logs/20261103-rod_night_steps.txt; no step starts after 05:20; the hard stop at 05:50 (logs/20261103-deadline_stop.log)
+logs/20261103-tip_calibration/172647-rod21_seed: seeded from logs/20261103-tip_calibration/144808-s2sph2 (seat 2), c_M [0.0, 0.0, 107.5] (rod, R 12.5)
+17:26:47 step 1: rod21 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_sweep8.json, 86 grid actions) on logs/20261103-tip_calibration/172647-rod21_seed, seeded from logs/20261103-tip_calibration/144808-s2sph2
+started rod21 in tmux session tipcal; printout in logs/20261103-172647-tipcal-rod21.log
+17:26:52 rod21 printing to logs/20261103-172647-tipcal-rod21.log
+18:01:10 chain 2867047 from logs/20261103-rod_night_steps2.txt; no step starts after 05:20; the hard stop at 05:50 (logs/20261103-deadline_stop.log)
+18:01:10 step 1: rod21 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_sweep8_fit.json, 85 grid actions) on seat 2's session logs/20261103-tip_calibration/172647-rod21_seed
+started rod21 in tmux session tipcal; printout in logs/20261103-180110-tipcal-rod21.log
+18:01:15 rod21 printing to logs/20261103-180110-tipcal-rod21.log
+18:01:35 logs/20261103-180110-tipcal-rod21.log stopped on a HEX-E loss; waiting for the HEX-E to stream (resume 1 of rod21 on logs/20261103-tip_calibration/172647-rod21_seed)
+18:01:38 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:02:42 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:03:45 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:04:49 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:05:52 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:06:56 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:07:59 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:09:03 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:10:06 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:11:10 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:12:13 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:13:17 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:14:20 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:15:24 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:16:27 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:17:31 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:18:34 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:19:38 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:20:41 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:21:45 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:22:48 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:23:52 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:24:55 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:25:59 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:27:02 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:28:06 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:29:09 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:30:13 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:31:16 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:32:20 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:33:23 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:34:27 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:35:30 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:36:34 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:37:37 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:38:41 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:39:44 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:40:48 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:41:51 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:42:55 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:43:58 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:45:02 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:46:05 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:47:09 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:48:12 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:49:16 HEX-E: 0 samples in 3 s, 60 timed out NOT STREAMING
+18:50:19 HEX-E: 199 samples in 3 s, 18 timed out NOT STREAMING
+18:51:23 HEX-E: 299 samples in 3 s, 0 timed out ok
+started rod21r1 in tmux session tipcal; printout in logs/20261103-185123-tipcal-rod21r1.log
+18:51:28 resumed rod21 as rod21r1, printing to logs/20261103-185123-tipcal-rod21r1.log
+18:52:08 logs/20261103-185123-tipcal-rod21r1.log stopped on a HEX-E loss; waiting for the HEX-E to stream (resume 2 of rod21 on logs/20261103-tip_calibration/172647-rod21_seed)
+18:52:12 HEX-E: 300 samples in 3 s, 0 timed out ok
+started rod21r2 in tmux session tipcal; printout in logs/20261103-185212-tipcal-rod21r2.log
+18:52:17 resumed rod21 as rod21r2, printing to logs/20261103-185212-tipcal-rod21r2.log
+19:15:01 chain 2881408 from logs/20261103-rod_night_steps3.txt; no step starts after 08:00; the hard stop at 08:30 (logs/20261103-deadline_stop.log)
+19:15:01 step 1: rod21 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_half_a.json, 32 grid actions) on seat 2's session logs/20261103-tip_calibration/172647-rod21_seed
+started rod21 in tmux session tipcal; printout in logs/20261103-191501-tipcal-rod21.log
+19:15:06 rod21 printing to logs/20261103-191501-tipcal-rod21.log
+20:20:17 rod21 ended cleanly (logs/20261103-tip_calibration/172647-rod21_seed)
+logs/20261103-tip_calibration/202017-rod32_seed: seeded from logs/20261102-tip_calibration/220337-s3v4 (seat 3), c_M [0.0, 0.0, 107.5] (rod, R 12.5)
+20:20:17 step 2: rod32 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat3_v3id4_half_a.json, 30 grid actions) on logs/20261103-tip_calibration/202017-rod32_seed, seeded from logs/20261102-tip_calibration/220337-s3v4
+started rod32 in tmux session tipcal; printout in logs/20261103-202017-tipcal-rod32.log
+20:20:22 rod32 printing to logs/20261103-202017-tipcal-rod32.log
+21:47:53 rod32 ended cleanly (logs/20261103-tip_calibration/202017-rod32_seed)
+logs/20261103-tip_calibration/214753-rod13_seed: seeded from logs/20261103-tip_calibration/122020-s1sph2b (seat 1), c_M [0.0, 0.0, 107.5] (rod, R 12.5)
+21:47:53 step 3: rod13 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat1_v3id6_half_a.json, 34 grid actions) on logs/20261103-tip_calibration/214753-rod13_seed, seeded from logs/20261103-tip_calibration/122020-s1sph2b
+started rod13 in tmux session tipcal; printout in logs/20261103-214753-tipcal-rod13.log
+21:47:58 rod13 printing to logs/20261103-214753-tipcal-rod13.log
+23:29:10 rod13 ended cleanly (logs/20261103-tip_calibration/214753-rod13_seed)
+23:29:10 step 4: rod14 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat1_v3id6_half_b.json, 49 grid actions) on seat 1's session logs/20261103-tip_calibration/214753-rod13_seed
+started rod14 in tmux session tipcal; printout in logs/20261103-232910-tipcal-rod14.log
+23:29:15 rod14 printing to logs/20261103-232910-tipcal-rod14.log
+01:19:56 rod14 ended cleanly (logs/20261103-tip_calibration/214753-rod13_seed)
+01:19:56 step 5: rod35 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat3_v3id4_half_b.json, 46 grid actions) on seat 3's session logs/20261103-tip_calibration/202017-rod32_seed
+started rod35 in tmux session tipcal; printout in logs/20261104-011956-tipcal-rod35.log
+01:20:01 rod35 printing to logs/20261104-011956-tipcal-rod35.log
+03:01:43 rod35 ended cleanly (logs/20261103-tip_calibration/202017-rod32_seed)
+03:01:43 step 6: rod26 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_half_b.json, 47 grid actions) on seat 2's session logs/20261103-tip_calibration/172647-rod21_seed
+started rod26 in tmux session tipcal; printout in logs/20261104-030143-tipcal-rod26.log
+03:01:48 rod26 printing to logs/20261104-030143-tipcal-rod26.log
+04:39:59 rod26 ended cleanly (logs/20261103-tip_calibration/172647-rod21_seed)
+04:39:59 step 7: rod27 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_extras_night.json, 96 grid actions) on seat 2's session logs/20261103-tip_calibration/172647-rod21_seed
+started rod27 in tmux session tipcal; printout in logs/20261104-043959-tipcal-rod27.log
+04:40:04 rod27 printing to logs/20261104-043959-tipcal-rod27.log
+05:28:35 rod27 ended cleanly (logs/20261103-tip_calibration/172647-rod21_seed)
+05:28:35 step 8: rod38 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat3_v3id4_extras_night.json, 105 grid actions) on seat 3's session logs/20261103-tip_calibration/202017-rod32_seed
+started rod38 in tmux session tipcal; printout in logs/20261104-052835-tipcal-rod38.log
+05:28:40 rod38 printing to logs/20261104-052835-tipcal-rod38.log
+06:21:10 rod38 ended cleanly (logs/20261103-tip_calibration/202017-rod32_seed)
+06:21:10 step 9: rod19 (docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat1_v3id6_extras_night.json, 101 grid actions) on seat 1's session logs/20261103-tip_calibration/214753-rod13_seed
+started rod19 in tmux session tipcal; printout in logs/20261104-062110-tipcal-rod19.log
+06:21:15 rod19 printing to logs/20261104-062110-tipcal-rod19.log
+07:11:26 rod19 ended cleanly (logs/20261103-tip_calibration/214753-rod13_seed)
+07:11:26 all steps done; the arm waits at the last action's rest
