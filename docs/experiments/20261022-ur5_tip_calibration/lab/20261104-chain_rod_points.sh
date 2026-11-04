@@ -11,7 +11,8 @@
 # A step may end in min=M, its expected minutes: it starts only if it would end by STOP_AT (the owner, relayed at 10:56:
 # the robot free at 14:15; the workstation: "let no seat start after 14:15 less that seat's run"), else the chain ends.
 # A run stopped by a HEX-E loss resumes once hexe_probe.py finds the sensor streaming; anything else stops the chain.
-# Each step goes to logs/20261104-chain_rod_points.log; the runs are named pts<seat><step>.
+# Each step goes to logs/20261104-chain_rod_points.log; the runs are named pts<seat><step>, or PREFIX<seat><step> with
+# PREFIX in the environment (14:5x: v3 ID 3's run on seat 1 is id3pts11, not a second pts11).
 # Usage: bash logs/20261104-chain_rod_points.sh STEPS_FILE LAST_START STOP_AT   (HH:MM, today)
 cd /home/will/workspace/hand || exit 1
 L=docs/experiments/20261022-ur5_tip_calibration/lab
@@ -100,7 +101,7 @@ for row in "${ROWS[@]}"; do
         say "step $k ($kind seat $seat, $min min) not started: it would end past $STOP_AT; the chain ends"
         exit 0
     fi
-    name=pts$seat$k
+    name=${PREFIX:-pts}$seat$k
     if [ "$kind" = seed ]; then
         SEED=$T/$(date +%H%M%S)-${name}_seed
         /usr/bin/python3 $L/probe_seed_session.py "$src" $plan $SEED >> $OUT 2>&1 || { say "step $k: the seed failed; stopping"; exit 1; }

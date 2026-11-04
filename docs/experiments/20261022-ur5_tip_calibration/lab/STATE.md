@@ -269,6 +269,12 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     - Checked at 14:40, nothing running: ID 3's board streams on channel 3, and its rest field is ID 3's (NOTES).
       The arm is not at the 10:45 pose: the owner moved it by hand, 11.2 mm up. Joints (49.05, -78.46, 106.71,
       -124.79, -91.31, -38.05) deg, flange (-267.8, -474.1, 248.6) mm. Slider 0.30, safety normal.
+    - **Running from 14:52:15: id3pts11**, the workstation's plan of 2d9820f3f
+      (`../../20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat1_v3id3_swap_draft.json`): pass
+      1 (20 touches), then 125 grid actions. Both dry-checks from the arm's joints flag none of 145
+      (`20261104-id3_swap_run_check.json`). Session `logs/20261104-tip_calibration/145215-id3pts11_seed`, a seed of
+      rod13's. The chain: `logs/20261104-chain_rod_points.sh` with PREFIX=id3pts on `logs/20261104-id3_steps.txt`
+      (copies here), hard stop 17:00. A time-lapse films it into `/dev/shm/20261104-tipcal-timelapse`.
   - **Done, 13:16:58 on 11-04: the rod points, every step clean: 232 of 232 actions, no skip, abort or early contact.**
     The arm waited at seat 1's reference rest, the pose of 10:45 (joints 48.99, -77.26, 106.61, -124.34, -91.36, -38.05
     deg), the rod a few mm over seat 1's pad. Nothing runs on the robot: the chain ended, and the 14:15 stop (PID

@@ -1,0 +1,5 @@
+# v3 ID 3 in seat 1, where ID 6 was (the owner at 14:3x on 11-04, relayed: "i placed v3 id 3 where v3 id6 is. let's
+# settle this quickly"): tip or rig. The workstation's plan of 2d9820f3f: pass 1 (20 touches), then 125 grid actions (a
+# reference, 8 back-to-back references, 111 face and edge presses 1.0 mm apart to 3 N, a reference every 25 and last).
+# A seed of rod13's session: the rod's c_M from the plan, ID 6's pad as the fit's start. Run as id3pts11 (PREFIX=id3pts).
+seed 1 docs/experiments/20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat1_v3id3_swap_draft.json logs/20261103-tip_calibration/214753-rod13_seed min=85

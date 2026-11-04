@@ -3180,6 +3180,32 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 
   A seed from rod13's session starts the fit from ID 6's pad. The roll about the tip's long axis is the least seen (its
   prior 0.5 deg), as on the night's rod sessions.
+- 14:48, the workstation's plan (2d9820f3f):
+  `../../20261030-inverted_rig_seat_block/data/20261104-plan_probe_table_rod_seat1_v3id3_swap_draft.json`.
+  - Pass 1: 20 touches, as the night's.
+  - Grid: 125 actions. probe-ref-s00 first, then eight reference presses back to back (r00 to r07), then 111 presses
+    at face and edge points 1.0 mm apart. Every press goes to 0.5, 1, 2 and 3 N. A reference press follows every 25
+    actions (s01 to s04) and comes last (sfinal). Edge-637 is left out, as on every seat today.
+  - Safety: abort 12 N, travel abort 8 N, retract 6 mm.
+- The workstation's dry-check from the arm's joints flagged none of 145 actions. The lab's flagged none either
+  (`20261104-id3_swap_run_check.json`, 150 s):
+  - the tool's end 0.44 mm from the tip body at its closest (edge-618-r90), the stem 1.07 mm;
+  - joint 6 from -61.5 to +39.6 deg;
+  - travels: 94 straight, 41 joint, 2 by the hub.
+- 14:51:42, the time-lapse started for this run: one frame per 2 s, nice 19, idle I/O, `--seconds 7200`.
+  - Its frames go to `/dev/shm/20261104-tipcal-timelapse`. The workstation asked for the disk, but RAM keeps the disk
+    quiet during the run (10-22), and /dev/shm had 9.2 GB free.
+  - The owner asked (relayed at 14:5x) whether the night was filmed. It was not. On 11-03 the camera ran 08:32:27 to
+    14:02, when /dev/shm filled, and 14:24 to 19:24:28, the end of its 5 h. Nothing was filmed during the night or this
+    morning.
+  - The frames of 11-03 are still in `/dev/shm/20261103-tipcal-timelapse` (19,515, 1.0 GB).
+- 14:52:15, the chain started the run as id3pts11:
+  `PREFIX=id3pts bash logs/20261104-chain_rod_points.sh logs/20261104-id3_steps.txt 15:10 17:00` (copies here).
+  - PREFIX, new in the chain, names the run so that it is not a second pts11.
+  - The seed `logs/20261104-tip_calibration/145215-id3pts11_seed` is rod13's session with c_M (0, 0, 107.5), the
+    plan's.
+  - The hard stop is at 17:00 (min=85). At this morning's pace, 30 s an action, the run takes about 80 min with pass 1.
+- Preflight: HEX-E 100 Hz with none timed out; mux channels 0, 2 and 3 at 136 records/s each; robot 124 Hz.
 
 ## The lab clone and git-lfs
 
