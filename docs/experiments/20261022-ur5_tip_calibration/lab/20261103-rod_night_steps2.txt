@@ -1,0 +1,6 @@
+# 18:0x on 11-03: the night's rod run continued after the stop at 17:55:46 (seat 2 stopped after grid 3 to take out the slides
+# and the sweep the workstation's fitted margins put under 0.2 mm from a tip body): seat 2's session resumed, then 3 and 1,
+# each on the lab's _fit copy (the drops with seat 2's fitted turn, the tool's)
+resume 2 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_sweep8_fit.json logs/20261103-tip_calibration/172647-rod21_seed
+seed 3 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat3_v3id4_sweep8_fit.json logs/20261102-tip_calibration/220337-s3v4
+seed 1 docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat1_v3id6_sweep8_fit.json logs/20261103-tip_calibration/122020-s1sph2b

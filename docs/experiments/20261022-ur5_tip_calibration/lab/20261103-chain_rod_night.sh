@@ -5,6 +5,7 @@
 #   seed SEAT PLAN SOURCE  a new session seeded from SOURCE (probe_seed_session.py, c_M set to the rod's), stages
 #                          preflight,pad,register,grid (pass 1, the rod's fit, then the plan's grid)
 #   more SEAT PLAN         the same seat's session again (the last seed step's), stages preflight,grid
+#   resume SEAT PLAN DIR   the session DIR (of an earlier chain) again, stages preflight,grid
 # A run stopped by a HEX-E loss resumes once hexe_probe.py finds the sensor streaming; anything else stops the chain.
 # No step starts after LAST_START; logs/20261103-deadline_stop.sh, started here, stops the chain and then the program
 # right after a finished action at STOP_AT. Each step goes to logs/20261103-chain_rod_night.log.
@@ -99,6 +100,7 @@ for row in "${ROWS[@]}"; do
         log=$(start $name $plan --resume $SEED --stages $STAGES)
         STG=$STAGES
     else
+        [ "$kind" = resume ] && DIR[$seat]=$src     # resume SEAT PLAN DIR: a session of an earlier chain
         [ -n "${DIR[$seat]}" ] || { say "step $k: no session of seat $seat yet; stopping"; exit 1; }
         say "step $k: $name ($plan, $(n_grid $plan) grid actions) on seat $seat's session ${DIR[$seat]}"
         log=$(start $name $plan --resume ${DIR[$seat]} --stages preflight,grid)

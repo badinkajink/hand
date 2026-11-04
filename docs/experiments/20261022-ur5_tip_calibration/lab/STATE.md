@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 16:59 by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 18:06 by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -242,21 +242,39 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   - **The rod is on** (the owner, 16:5x in the lab's session: "ok it's on there godspeed go"). The arm moved in the swap:
     joints (49.72, -83.46, 116.43, -141.09, -95.65, 0.13) deg, TCP (-240.3, -442.0, 249.3) mm. The lab's replay of
     seat 2's first travel and pass 1 from there with the workstation's checker flagged 0 of 20.
-  - **Now (from 16:58:23): the night's rod chain, `logs/20261103-chain_rod_night.sh`** (copy here; PID 2859347; its log
-    `logs/20261103-chain_rod_night.log`; steps `logs/20261103-rod_night_steps.txt`). Each step is one session on a
-    seed of that seat's sphere session: seat 2 (rod21, from s2sph2), seat 3 (from s3v4), then seat 1 (from s1sph2b).
-    - The plans are the workstation's 8 N plans of 4d135caf, as lab copies
-      `20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_sweep8.json`. Seats 2, 3 and 1 have 60, 57 and 65 sweeps,
-      with the rod along and across, and 24, 24 and 28 twists (5 and 2.5 N, ±(5, 10, 15, 10, 5) deg, turn_v 0.016).
-      Each also has 20 pass 1 touches and two reference presses.
+  - 16:58:23: the night's chain started seat 2. Its pass 1 met the pad from -3.29 to +1.33 mm of the expected, and the
+    rod's fit refused it (0.229 mm rms, 2 left out). The session stopped before the grid at 17:15:54, as designed.
+    The rod tool sat a quarter turn off on its square boss: the workstation's CAD model, the lab's forward model and
+    the camera agree (`20261103-165823-rod21-turned/`).
+  - 17:2x, the owner: "ok it's rotated please go". At 17:26:47 the chain started again from a fresh seed of s2sph2.
+    - Pass 1: 20 touches at +0.13 to +1.33 mm. The fit is 0.054 mm rms, none left out; the pad is 0.65 mm and
+      0.87 deg from the seed. The rod's c_M is at (-0.838, 0, 106.687) in M, turned -5.40 deg about z_M (sd 2.5) and
+      +0.77 deg across (`20261103-172647-rod21/`).
+    - The grid started at 17:46. Grids 1 to 3 ran to 8 N, the first sweeps on the robot. The friction check skipped
+      some offsets and slides.
+    - With the fitted turn, the workstation's exact margins put a few slides within 0.2 mm of a tip body. The lab
+      stopped the chain (17:55:11) and the program after grid 3 (17:55:46), and took them out of all three seats.
+      - Seat 2: the az 90 slides of edge-569-r0, the az 0 slides of edge-618-r90, and edge-642-r90 whole.
+      - Seat 3: edge-642-r90; the az 0 slides of edge-618-r90; the az 270 slides of edge-573-r0 and edge-651-r90.
+      - Seat 1: edge-651-r90 and edge-642-r90; the az 90 slides of edge-569-r0; the az 0 slides of edge-618-r90.
+      - The plans are `20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_sweep8_fit.json`.
+  - **Now (from 18:01:10): `logs/20261103-chain_rod_night.sh` on `logs/20261103-rod_night_steps2.txt`** (PID 2867047;
+    its log `logs/20261103-chain_rod_night.log`). It resumes seat 2's session `172647-rod21_seed`, then seeds seat 3
+    (from s3v4) and seat 1 (from s1sph2b).
+    - The HEX-E dropped at 18:01:2x, on the resume's first travel (a large joint 6 turn). Three aborts stopped the
+      session; nothing was pressing. The chain probes the sensor every minute and resumes when it streams; still out
+      at 18:05.
+    - The plans are the workstation's 8 N plans of 4d135caf. Seats 2, 3 and 1 have 60, 57 and 65 sweeps (less the
+      drops), with the rod along and across, and 24, 24 and 28 twists (5 and 2.5 N, ±(5, 10, 15, 10, 5) deg, turn_v
+      0.016), plus 20 pass 1 touches and two reference presses each.
     - A sweep has levels 0.5, 1, 2, 4 and 8 N, 64 offsets (rings of 0.06 to 0.36 mm), and 8 slides of 1 mm at 2 and
-      4 N. The plans take abort_N 12, ft_t_cap_N 10 and retract 6.
-    - The lab's one change: the slides at 0.3 mm/s (v_slide 0.001, was 0.0005). In the simulator an 8 N sweep takes
-      about 195 s, 108 s of it in the slides at 0.15 mm/s. The night would have taken 12.8 h, past the stop. Now it
-      takes about 10 h: seat 2 3.3 h, seat 3 3.2 h, seat 1 3.6 h, to about 03:00.
-    - A run stopped by a HEX-E loss resumes once the sensor streams. Anything else stops the chain.
-    - No step starts after 05:20. `logs/20261103-deadline_stop.sh` (PID 2859356, its log
-      `logs/20261103-deadline_stop.log`) stops the chain at 05:50 and then the program, right after a finished action.
+      4 N. The plans take abort_N 12, ft_t_cap_N 10 and retract 6. The lab's change: the slides at 0.3 mm/s.
+    - About 10 h of work in all, with seat 1 ending about 04:00 if the HEX-E comes back soon.
+    - After the chain: the extras (`20261103-plan_probe_table_rod_seat{1,2,3}_v3id{6,5,4}_extras.json`, fca3d1cb),
+      resuming each seat's session. They hold 3 or 4 rolls at 4 and 1.5 N and about 100 obliques (20 and 35 deg, to
+      3 N), about 52 min a seat; the roll is in the program from ce1edccc.
+    - No step starts after 05:20. `logs/20261103-deadline_stop.sh` (PID 2862557) stops the program at 05:50 right
+      after a finished action.
     - To stop the chain by hand, kill its PID; a running program goes on.
   - **Tonight's rod run** (the workstation's proposal of 16:22, in priority order): sweeps on all three seats with the rod
     across and along (rod_deg 90 and 0), levels 0.5, 1, 2, 4 and 8 N, slides at 2 and 4 N, about 10 h; twists at about
