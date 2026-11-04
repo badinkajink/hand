@@ -84,7 +84,8 @@ def load(sd):
     ev = [json.loads(l) for l in open(sd / "events.jsonl") if l.strip()]
     ft = np.fromfile(sd / "ft.bin", "<f8")
     ft = ft[: len(ft) // 9 * 9].reshape(-1, 9)                    # a copy made mid-run can cut the last row
-    bd = np.fromfile(sd / "board.bin", C.BoardStream.DTYPE)
+    bd = np.fromfile(sd / "board.bin", C.BoardStream.DTYPE) if (sd / "board.bin").exists() else \
+        np.zeros(0, C.BoardStream.DTYPE)                          # a probe session's boards are in held.bin
     rb = np.fromfile(sd / "robot.bin", "<f8")
     rb = rb[: len(rb) // 15 * 15].reshape(-1, 15)
     truth = None
