@@ -7,7 +7,11 @@ along in the move's second half and at its hold, the friction coefficient once t
 the push and the flange's travel along d at each level, to compare the test's first and last. Reads only the actions'
 windows (memory maps); run it at low priority beside a run:
 
-    nice -n 19 ionice -c3 /usr/bin/python3 docs/experiments/20261022-ur5_tip_calibration/lab/sweep_test_summary.py SESSION OUT.json
+    nice -n 19 ionice -c3 /usr/bin/python3 docs/experiments/20261022-ur5_tip_calibration/lab/sweep_test_summary.py SESSION OUT.json [PLAN...]
+
+A resumed run does not rewrite the session's plan.json, so the plans of its later runs (the night of 11-03's halves
+and extras) come as PLAN; each overrides plan.json's actions of the same id, so an action run under an earlier plan
+(seat 2's full sweeps before the switch) reports the later plan's planned counts.
 """
 import json
 import math
@@ -30,6 +34,8 @@ def main():
     K = np.asarray(reg["K"], float)
     R_BP = (np.asarray(reg["T_BI"], float) @ np.asarray(reg["T_AP"], float))[:3, :3]
     acts = {a["id"]: a for a in json.loads((S / "plan.json").read_text())["actions"]}
+    for f in sys.argv[3:]:
+        acts.update({a["id"]: a for a in json.loads(Path(f).read_text())["actions"]})
     ft = np.memmap(S / "ft.bin", "<f8", "r").reshape(-1, 9)
     rob = np.memmap(S / "robot.bin", "<f8", "r").reshape(-1, 15)
     ft_t, rob_t = ft[:, 0], rob[:, 0]
