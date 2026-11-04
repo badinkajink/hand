@@ -66,7 +66,8 @@ main checkout's; the two layouts were compared in two worktrees at the same comm
 
 ## The switch
 
-Conditions, all at once (check each; if one fails, `ap snooze <job> 60 "<which>"` and check again):
+Before it, `python3 move_scripts.py PLAN.json --dry-run` prints "not in the plan" for scripts added since the last dry run: add
+them to `plan.json`. Conditions, all at once (check each; if one fails, `ap snooze <job> 60 "<which>"` and check again):
 
 1. The lab is idle: `docs/experiments/20261022-ur5_tip_calibration/lab/STATE.md` (after `git pull`) says no session
    runs and none is queued, the newest "UR5 lab" commit is over 45 minutes old, and `ssh` is not needed: the
@@ -88,7 +89,7 @@ Then:
 pgrep -af "[c]rosstalk_feed_watch.py"             # its detached watcher: kill <pid> (resguard logs the signal)
 git pull --no-rebase                              # this repository merges origin/main
 python3 docs/notes/20261103-scripts_cleanup/move_scripts.py docs/notes/20261103-scripts_cleanup/plan.json
-python3 scripts/docs/check_scripts.py             # expect exactly the 15 problems listed above
+.venv/bin/python scripts/docs/check_scripts.py    # expect exactly the 15 problems above (system python3 3.10 adds 3 parse errors: f-strings of 3.12)
 .venv/bin/python -c "import sr2hand, sr2hand.geometry.rotations"
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run --extra dev python -m pytest tests/ -q   # 114 passed, the floor datum failing
 git status --short | grep -v '^R ' | head -50     # read what changed besides the renames

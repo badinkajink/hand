@@ -171,7 +171,7 @@ SPECIAL = [
      "  `scripts/archive/` — resurrect by moving back, don't run in place."),
     ("scripts/fingertip/sim2real_fingertip_manifest.py",
      'cite(f"scripts/{s}", "code the study runs")',
-     'cite(os.path.relpath(_paths.script(s), ROOT), "code the study runs")'),
+     'cite(str(_paths.script(s).relative_to(ROOT)), "code the study runs")'),
 ]
 
 
