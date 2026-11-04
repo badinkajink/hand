@@ -1791,6 +1791,11 @@ push that answers it arrives.
     rig is marginally worse, then so be it. it seems like it is marginally more reliable, hex-e wise. but we are done
     calibrating now". No seat that clamps the board and no tip-mode run of IDs 4 to 6. The owner moved the arm clear by
     hand at 16:44 (flange 422.6 mm up); the rod stays on the probe base. The tips go to the SR2 hand.
+  - 16:5x on 11-04, the owner, taking the tips off: "actually i do think the self-threading holes stripped after repeated
+    screws. interesting. well, it's over now." The seat block's M2 cut their threads in the print, and stripped holes
+    leave the board loose between tip and block, which fits ID 3's 7.9 % scatter in uT/N on the rig against 2.2 to 2.5 % in
+    tip mode. The rig's 0.59 against 0.32 mm on the same tip is most likely the loose clamp, not pressing the tip from
+    above; quote the rig's numbers with this. A later seat block takes heat-set inserts or nuts.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
