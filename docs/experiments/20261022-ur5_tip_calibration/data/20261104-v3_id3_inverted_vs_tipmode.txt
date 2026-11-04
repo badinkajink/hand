@@ -1,0 +1,5 @@
+within inverted: 500 holds, 111 groups; location 0.588 mm (near-normal 0.592), direction 2.72 deg (near-normal 2.77), magnitude 5.8 %; location per seed [0.619, 0.614, 0.544, 0.57]
+within tip mode, presses: 1177 holds, 126 groups; location 0.364 mm (near-normal 0.319), direction 2.90 deg (near-normal 2.09), magnitude 5.4 %; location per seed [0.343, 0.281, 0.337, 0.301]
+within tip mode, all: 3508 holds, 129 groups; location 0.442 mm (near-normal 0.341), direction 4.44 deg (near-normal 2.75), magnitude 6.7 %; location per seed [0.326, 0.339, 0.343, 0.387]
+transfer tip mode -> inverted: 377 holds; location 0.893 mm (near-normal 0.661); mean offset in P [-0.463, 0.133, 0.525] mm; direction 7.77 deg; magnitude 15.3 %
+refs at 2 N: 14, board spread 15.0 %; uT/N in order [15.4, 15.5, 14.9, 13.9, 15.0, 14.5, 18.1, 15.5, 13.6, 13.9, 15.2, 15.7, 17.5, 15.8]

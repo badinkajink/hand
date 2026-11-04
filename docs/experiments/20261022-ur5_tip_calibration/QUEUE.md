@@ -1772,6 +1772,17 @@ push that answers it arrives.
     force's error is 0.14 to 0.19 N on IDs 1 to 3 and 0.13 to 0.37 N on IDs 4 to 6. ID 5 on near-normal loads (0.48 mm,
     3.0 deg, 0.13 N) comes near IDs 1 to 3 (0.39 to 0.40 mm). The reference presses at 2 N read 12.2 to 20.6 uT/N over the
     rod sessions and 10.7 to 14.0 on IDs 1 to 3.
+  - 14:3x to 16:1x on 11-04: v3 ID 3 in seat 1 in place of ID 6 (the owner: "i placed v3 id 3 where v3 id6 is. let's
+    settle this quickly"). A new rod session (lab/20261104-145215-id3pts11, seeded from rod13): pass 1 (20 touches, 0.060
+    mm rms), 14 reference presses (8 back to back) and 111 normal presses at face and edge points 1.0 mm apart, 125 of
+    125 clean (plan data/20261104-plan_probe_table_rod_seat1_v3id3_swap_draft.json). Its pad was refitted with the rod
+    of the joint fit (data/20261104-strip_table_pads_rod_joint_registration_final_grid05_id3.json: the rod +0.31 / -0.97
+    deg; ID 3's pad 0.42 mm and 0.98 deg from pass 1's own fit). Its 500 holds (data/holds/20261104-145215-id3pts11),
+    a fifth of the 111 point groups held out: location 0.592 mm on near-normal loads, direction 2.77 deg, magnitude 5.8 %.
+    ID 3's tip-mode presses (10-30), the same test: 0.319 mm, 2.09 deg, 5.4 %. The GP fitted on ID 3's tip-mode data
+    predicts the inverted presses to 0.893 mm (near-normal 0.661), with a mean offset of (-0.46, 0.13, 0.53) mm in P,
+    7.8 deg and 15.3 %. The 14 reference presses at 2 N read 13.6 to 18.1 uT/N (15.0 % spread; tip mode 10.5 to 13.6 %).
+    The same tip localizes to 0.59 mm on the inverted rig and 0.32 mm in tip mode (data/20261104-v3_id3_inverted_vs_tipmode.txt).
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
