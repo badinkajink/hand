@@ -1,4 +1,4 @@
-Status: active
+Status: done
 Task: Owner, 2026-11-03 18:1x: "yea, let's send it on these tasks ... we can try out multiple scores, set up different
 autopilot jobs to continue promising work. make sure things are documented well!" The tasks: refine each layout's grasp
 on the HOM score (S2), and the grasp with HOM's commanded forces and contact modes (S3), against the best of 16 grasps
@@ -33,7 +33,9 @@ argv); hom_compute report now per plant and per CPU session. Writing step 4's te
 edit hom_grasp_refine.py or hom_compute.py until the chain ends.
 02:2x: benchmark chain done 02:05:47 (all exit 0; compute/20261104-ledger.json, -throughput.json); hom_grasp_refine
 patched (start = cand 0 of it 0; <task>_d<d>_iters.jsonl; smoke on roll ok, rows_smoke only); page built within prose
-targets; README outcome, CLAUDE.md sentence, memory done. Next: commit and push, then mark 4, 5, 6, 8.
+targets; README outcome, CLAUDE.md sentence, memory done. 02:3x: committed and pushed 05f1ca731 (page, media,
+compute, indices) and a18c0abfe (refine script, README, CLAUDE.md, note); every step done. Direction 12's 97 pin-push
+drops of the friction-1.0 S1 grasps at 0.4 is 108 of 150 in the rows (val_from_k21); the page quotes the rows.
 Go/no-go: (11-04 02:0x; elitist picks S2e/S3e, validated at seeds 20-24) on the 30 best SCS0009 layouts the median
 S2e - S1 is twist +0.083, roll +0.019, pin-push +0.025, press +0.032 (twist above 0.03: the grasp-genome EA goes);
 S3e - S2e is twist +0.002, roll +0.019, pin-push +0.036, press +0.143 (pin-push and press above 0.03: the shared
@@ -44,18 +46,10 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 1. Wait for the queue: while `grep -q "score refine queue done" logs/20261103-hom_score_refine/queue.log` fails,… Done 11-04 01:29: queue done 01:20:11 on 11-04, no failed or refused step, no traceback, no candidate left out; reports rows/sv25/20261103-score_levels.json and rows/{k21,k21mu0p4}/20261104-score_levels.json
 - [x] 2. Commit and push docs/experiments/20261103-hom_score_refine/rows/ (LFS; not rows_smoke/), with a message givin… Done 11-04 01:33: db9baaa57 pushed: rows (LFS, 127 files), reports rows/<plant>/20261104-score_levels.json with elitist picks; top-30 SCS0009 S1/S2/S3 twist 0.885/0.953/1.000, roll 0.560/0.577/0.604, pin-push 0.695/0.719/0.749, press 0.702/0.754/0.906; rho(S1,S3) over 60: 0.75/0.56/0.71/0.67
 - [x] 3. `.venv/bin/python scripts/hom_score_refine_page.py figs`, then `... films` (CPU clips through resguard). Read… Done 11-04 01:46: figs as 2x2 grids (text >= 13 px at the 828 px column), S2e/S3e plotted, new friction_k21.png; 15 CPU clips (4 task films S1/S2e/S3e on SCS0009 + friction film twist 110x110: 1.0 pick at 1.0 and 0.4, 0.4 pick at 0.4), labels 24/23 px; every PNG and poster read at display size
-- [ ] 4. Rewrite the lede and the text of the result sections (sec_sv25, sec_prm, sec_sts, limitations, future work) from the
-    numbers: outcome first, which tasks gain and by how much, whether the best layout or the ranking changes, what S3
-    chose for forces and modes, what retuning at friction 0.4 is worth. Build the page
-    (`.venv/bin/python scripts/hom_score_refine_page.py`), keep prose_lint within targets, search the banned words.
-    Commit the page, builder, media and the refreshed indices; push.
-- [ ] 5. Record: memory project_hom_codesign_levels_2026_11_03.md (results, page path) and its MEMORY.md line; one sentence in
-    CLAUDE.md's HOM servo-plant bullet: HOM's forces and contact modes are per-world parameters (hom_tasks.mode_weights,
-    a world's prm in hom_gpu) and scripts/hom_grasp_refine.py refines them; the outcome appended to the README.
-- [ ] 6. Write a "Go/no-go:" line in State for the follow-up jobs (armed after this one, from 09:15): the validated median of
-    S2 - S1 and S3 - S2 per task on the 30 best layouts, rho(S1, S3) per task, and the median of (S3 tuned at 0.4) - (S3
-    tuned at 1.0, run at 0.4) per task.
-- [ ] 8. Compute and throughput, after the queue has ended (the GPU free, the box otherwise idle; record resguard status): through resguard, `.venv/bin/python scripts/hom_compute.py gpu-bench` (batches of 64, 256, 1024 and the queue's size per task), `cpu-bench --n 6 --variants plant matched --procs 1`, then `cpu-bench --n 4 --variants plant --procs 4` (the throughput of four cores), then `ledger` and `report`. `scripts/hom_score_refine_page.py figs` draws media/20261103-throughput.png and the page's Compute and throughput section reads compute/; state the speedups in the lede only if they are new. Then add to scripts/hom_grasp_refine.py a JSON line per search iteration (draw, open poses, GPU batches, total seconds, rollouts) in <task>_d<d>_iters.jsonl for later runs, keeping the log line. Commit compute/ and the scripts.
+- [x] 4. Rewrite the lede and the text of the result sections (sec_sv25, sec_prm, sec_sts, limitations, future work) f… Done 11-04 02:11: page docs/experiments/20261103-hom_score_refine/20261103-hom_score_refine.html rewritten from the numbers (elitist picks; lede: gain .05-.20 top-30 SCS0009, grasp alone .02-.08, rho .56-.75, best layout moves on 3 tasks, friction-1.0 picks score 0 at 0.4, retune +.18-.53; cone check names no cause), prose 16.6 words/sentence, 0.4 % over 30, 237 flagged/1000, no banned words; 05f1ca731 pushed with media and indices
+- [x] 5. Record: memory project_hom_codesign_levels_2026_11_03.md (results, page path) and its MEMORY.md line; one sen… Done 11-04 02:11: memory project_hom_codesign_levels_2026_11_03.md + MEMORY.md line; CLAUDE.md servo-plant bullet sentence; README outcome (a18c0abfe)
+- [x] 6. Write a "Go/no-go:" line in State for the follow-up jobs (armed after this one, from 09:15): the validated me… Done 11-04 02:11: Go/no-go line in State: S2e-S1 .083/.019/.025/.032, S3e-S2e .002/.019/.036/.143, rho(S1,S3e) .75/.56/.71/.67, STS3032 retune gain .432/.513/.528/.181 (twist, roll, pin-push, press)
+- [x] 8. Compute and throughput, after the queue has ended (the GPU free, the box otherwise idle; record resguard stat… Done 11-04 02:11: gpu-bench 64-2048 worlds and cpu-bench (plant+filter one core, plant four cores; sv25, k21, k21mu0p4) through resguard on the idle box 01:47-02:05 (gate 13.7 GB, PSI 0, load 0.32); ledger 575,241 rollouts, 6.5 h batch time; GPU = 69-87 cores (loop), 49-66 (step); hom_grasp_refine start = cand 0 of it 0 + _iters.jsonl (smoke ok); 05f1ca731, a18c0abfe
 Standing directions (for every step):
 - Compute tracking (owner 11-03 19:0x: "let's make sure we're timing this all for compute-tracking purposes and throughput measuring, including cpu vs gpu speedups"): run every GPU batch through hom_gpu.batch_child so each writes its _timing.jsonl line beside its rows under docs/experiments/20261103-hom_score_refine/rows/; log each search iteration's wall, draw and GPU-batch times (and write them as JSON lines if you add a script); after the runs, `python3 scripts/hom_compute.py ledger` and `report`, and give the job's rollouts, batch hours and ms per rollout (run, batch, whole step) in its page section; for a new kind of rollout (another plant, the friction band, a new search), time the CPU runner on it with `scripts/hom_compute.py cpu-bench` (through resguard) and state the CPU against GPU speedup.
 - In the compute step, run cpu-bench with --variants plant filter, never matched or solver: on 11-03 the GPU's solver settings (20 iterations, tolerance 1e-6) made CPU MuJoCo drop every twist and roll sphere and one matched pin-push rollout ran for minutes (scripts/hom_compute.py docstring). The CPU numbers of 11-03 19:1x were taken beside the running GPU queue (load about 5 on 20 cores); the clean rerun after the queue is the one to quote, with both in compute/cpu_bench.jsonl.
