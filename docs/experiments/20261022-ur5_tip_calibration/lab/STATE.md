@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 16:1x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 16:4x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -278,6 +278,12 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     - The arm waits at seat 1's reference rest, the rod a few mm over ID 3's pad: joints (49.31, -76.80, 105.76,
       -123.11, -91.97, -36.55) deg. Move it clear before mounting the SR2 hand. Nothing runs on the robot. The chain
       ended, the 17:00 stop was stopped by its PID, and the time-lapse stopped at 16:13:15.
+    - **ID 3's result (workstation, fc09a648c): the gap is the rig's, not the tips'.** The same tip places near-normal
+      contact to 0.592 mm on the inverted rig and 0.319 mm in tip mode. Its board's uT/N at the reference presses
+      varies 7.9 % here against 2.2 to 2.5 % in tip mode, while the force varies alike. The workstation suspects the
+      board's clamping in the seat block (NOTES).
+    - **16:2x, relayed: the owner is taking the tips off for the SR2 hand.** They will move the arm clear by hand first.
+      Nothing more is planned on the robot today.
   - **Done, 13:16:58 on 11-04: the rod points, every step clean: 232 of 232 actions, no skip, abort or early contact.**
     The arm waited at seat 1's reference rest, the pose of 10:45 (joints 48.99, -77.26, 106.61, -124.34, -91.36, -38.05
     deg), the rod a few mm over seat 1's pad. Nothing runs on the robot: the chain ended, and the 14:15 stop (PID
