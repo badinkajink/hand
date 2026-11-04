@@ -2950,6 +2950,18 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - The HEX-E gave 609,299 samples, none timed out.
 - 03:01:43, step 6: seat 2's half b (rod26, 47 grid actions, 3 sweeps of them run before the switch) on
   `172647-rod21_seed`.
+- 03:02 to 03:09, GitHub's git operations were degraded (its incident from 02:53, "Incident with Pull Requests, Git
+  Operations and Issues"). corvus's SSH key was refused on and off, and the workstation's too. The 03:02 commit
+  went out at 03:09:26 on a retry every 5 min.
+- 04:39:56, seat 2's half b ended cleanly, and with it the second halves. Every tip now has all its sweep locations
+  (light), its 5 N twists and its 4 N rolls, less what the turn envelope left out.
+  - 46 actions, all ok: 26 sweeps (median 150 s), 12 twists (120 s), 4 rolls (112 s), two reference presses.
+  - 818 of 824 offsets and 102 of 102 slides were held; two friction skips.
+  - 24 sweeps reached 8 N; sweep-edge-618-r90 and sweep-face-733-r90 stopped at 4 N.
+  - The HEX-E gave 588,423 samples, none timed out.
+- 04:39:59, step 7: seat 2's extras (rod27, 96 grid actions, its four 4 N rolls skipped as done). By 04:49 the
+  reference press, the four 1.5 N rolls and the first obliques had run clean. flank-563-o35-a0 stopped at 2 N, at
+  its deep pose's limit.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 
