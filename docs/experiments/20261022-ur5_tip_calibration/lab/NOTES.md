@@ -2877,6 +2877,29 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   Unturned, chained: 1a 0 of 54, 1b 0 of 49, 3b 0 of 46, 2b 0 of 44; 2x 0 of 97, 3x 0 of 103, 1x 0 of 99.
 - Correction: the lab's message to the workstation stamped 20:49 was sent at about 20:44, with the time typed without
   running `date`.
+- 21:47:50, seat 3's half a (rod32) ended cleanly: 51 actions ok (pass 1's 20 touches, 28 sweeps, two reference
+  presses).
+  - Sweeps took 126 to 163 s, median 150 s. 26 reached 8 N; sweep-edge-573-r90 stopped at 2 N, as on seat 2, and
+    sweep-face-733-r90 at 4 N.
+  - 879 of 896 offsets and 112 of 112 slides were held. Three friction skips, all at 0.5 N's offsets.
+  - The HEX-E gave 524,234 samples, none timed out.
+- 21:47:53, step 3: seat 1's half a (rod13) on `214753-rod13_seed`, seeded from s1sph2b. Pass 1's onsets came 0.05
+  to 1.34 mm late, as seat 2's did (both seeded from a 2 mm sphere session).
+- 22:07:10, seat 1's fit: pad touches 0.056 mm rms (20), chi2 76.5 on 20 dof.
+  - c_M (-0.884, 0, 106.815) mm, sd (0.111, 0, 0.138).
+  - The rod turned -2.90 deg about z_M (sd 3.63) and -0.25 across (sd 1.84). That is inside the envelope, so the
+    plans stand.
+  - The pad 0.992 mm and 1.318 deg from the seed; the rod's axis moved 1.119 mm across itself.
+  - The three fits of the rod:
+
+    | Seat | c_M x, mm | c_M z, mm | Turn about z_M, deg |
+    |---|---|---|---|
+    | 1 | -0.884 | 106.815 | -2.90 (sd 3.63) |
+    | 2 | -0.838 | 106.687 | -5.40 (sd 2.49) |
+    | 3 | -0.803 | 107.078 | +10.75 (sd 1.46) |
+
+    Seats 1 and 2 agree on the turn (2.5 deg apart, combined sd 4.4). Seat 3's is the odd one; its pass 1 was the one
+    whose onsets ran early. c_M agrees within 0.08 mm in x and 0.39 mm in z.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 

@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 21:4x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 22:1x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -267,10 +267,11 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     - Every sweep location of the _fit plans stays, lighter: offsets at 4 azimuths (32 a sweep), slides at az 0 and
       90 at 2 and 4 N (4 a sweep). Half b ends with the 5 N twists, a reference press and the 4 N rolls. The extras
       hold the 1.5 N rolls and the 20 and 35 deg obliques, those at azimuths 0 and 180 first.
-    - Light sweeps take 103 to 165 s on the robot (seat 2's half a: 26, median 150 s). Seat 2's half a ended cleanly
-      at 20:20:11. Seat 3's (rod32 on `202017-rod32_seed`, from 20:20:17, its pass 1 and fit first) is expected to
-      end about 21:50, seat 1's about 23:30. The second halves should end about 04:30; then the extras, about 45 min
-      a seat, to about 06:45. An outage of over an hour cuts seat 1's extras first.
+    - Light sweeps take 103 to 165 s on the robot (median 150 s). Seat 2's half a ended cleanly at 20:20:11 and seat
+      3's at 21:47:50 (`202017-rod32_seed`). Seat 1's (rod13 on `214753-rod13_seed`, from 21:47:53) is running; its
+      fit at 22:07:10 turned the rod -2.90 deg, inside the envelope. It should end about 23:30. The second halves
+      should end about 04:20; then the extras, about 45 min a seat, to about 06:30. An outage of over an hour cuts
+      seat 1's extras first.
     - Seat 2 so far: 7 sweeps in full (64 offsets, 8 slides) and probe-ref-00 before the switch; half a done (26
       light sweeps, probe-ref-a1; 809 of 832 offsets, 102 of 104 slides); 3 of half b's sweeps done.
     - The workstation's checker on the whole chain in run order flagged none of its 589 actions (19:29;
