@@ -14,7 +14,11 @@ friction 1.0 and 0.4, the same 30 layouts, 6 iterations) and each friction's pic
 level grasp done on all four tasks (twist 215 s per iteration of 4,320 rollouts, roll 138 s, pin-push 211 s, press
 168 s); median S2 - S1 at seeds 0-2 over 60 layouts: twist 0.096, roll 0.040, pin-push 0.034, press 0.062 (validation
 pending). Level full: twist's first iteration 5,757 rollouts in 266 s, median best 0.908 (below S2's 0.949: see
-direction 10). Page builder scripts/hom_score_refine_page.py (figs, films,
+direction 10). 22:13: sv25 done (report rows/sv25/20261103-score_levels.json); k21 started. Window's look at seeds
+20-24, 30 best layouts, median S1/S2/S3: twist 0.885/0.953/1.000, roll 0.560/0.577/0.604, pin-push 0.695/0.719/0.749,
+press 0.702/0.754/0.906; random 30 gain more (S3 - S1 twist +0.27, press +0.38); rho(S1, S3) 0.57-0.76; S3 < S1 on 7
+of the roll's 30 best; S3 lowered the press's pinch to a median 1.8 N (22 % at the 1.5 N floor) and w_roll_push to
+0.38. Elitist picks change no top-30 median. Page builder scripts/hom_score_refine_page.py (figs, films,
 page) was checked on rows_smoke/ (prose within targets); its result text is a draft to rewrite from the numbers.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
