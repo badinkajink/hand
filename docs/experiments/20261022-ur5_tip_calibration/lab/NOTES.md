@@ -2962,6 +2962,18 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - 04:39:59, step 7: seat 2's extras (rod27, 96 grid actions, its four 4 N rolls skipped as done). By 04:49 the
   reference press, the four 1.5 N rolls and the first obliques had run clean. flank-563-o35-a0 stopped at 2 N, at
   its deep pose's limit.
+- 05:28:29, seat 2's extras ended cleanly: 93 actions, all ok.
+  - The four 1.5 N rolls took a median 107 s.
+  - The 86 obliques took a median 26 s. 83 reached 3 N; flank-563-o35-a0, -o20-a0 and -o35-a270 stopped at 2 N.
+  - The HEX-E gave 290,324 samples, none timed out.
+- 05:28:35, step 8: seat 3's extras (rod38, 105 grid actions, its four 4 N rolls skipped as done).
+- 06:21:09, seat 3's extras ended cleanly: 102 actions, all ok.
+  - The four 1.5 N rolls took a median 108 s.
+  - The 95 obliques took a median 25 s. 92 reached 3 N; flank-563-o35-a0, -o20-a0 and -o35-a270 stopped at 2 N, as
+    on seat 2.
+  - The HEX-E gave 314,725 samples, none timed out.
+- 06:21:10, step 9, the night's last: seat 1's extras (rod19, 101 grid actions, its three 4 N rolls skipped as
+  done).
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 
