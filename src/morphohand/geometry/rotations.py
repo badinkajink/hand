@@ -17,11 +17,11 @@ from scipy.spatial.transform import Rotation, Slerp
 __all__ = [
     "wxyz_to_xyzw", "xyzw_to_wxyz", "to_scipy", "from_scipy", "quat_normalize", "quat_canonical", "quat_to_mat",
     "mat_to_quat", "quat_mul", "quat_conj", "quat_apply", "quat_apply_inv", "quat_from_axis_angle", "quat_from_rotvec",
-    "quat_to_rotvec", "quat_yaw", "quat_axis", "tilt_cos", "quat_angle", "quat_slerp", "quat_random",
-    "rot_x", "rot_y", "rot_z", "exp_so3", "log_so3", "rot_axis_angle", "rot_angle", "heading", "rot_between",
+    "quat_to_rotvec", "quat_yaw", "quat_axis", "tilt_cos", "quat_angle", "quat_twist", "quat_slerp", "quat_random",
+    "rot_x", "rot_y", "rot_z", "exp_so3", "log_so3", "rot_axis_angle", "rot_angle", "rot_slerp", "heading", "rot_between",
     "frame_from_axis", "tangent_basis", "skew", "vee", "project_to_so3", "euler_to_mat", "mat_to_euler",
     "tf", "tf_inv", "tf_apply", "tf_compose", "tf_from_pose", "tf_to_pose", "tf_from_ur", "tf_to_ur", "perturb_body",
-    "turn_about", "pose_error", "kabsch", "umeyama",
+    "turn_about", "pose_error", "adjoint", "kabsch", "umeyama",
 ]
 
 _EPS = 1e-12
@@ -138,12 +138,19 @@ def quat_axis(q, k=2):
 
 def tilt_cos(q):
     """R(q)[2, 2], the cosine between the body's z axis and the world's z axis."""
-    return quat_to_mat(q)[..., 2, 2]
+    q = _arr(q)
+    return 1.0 - 2.0 * (q[..., 1] ** 2 + q[..., 2] ** 2) / np.sum(q * q, axis=-1)
 
 
 def quat_angle(a, b):
     """Geodesic angle (rad, in [0, pi]) between the rotations a and b."""
     return np.linalg.norm(quat_to_rotvec(quat_mul(quat_conj(quat_normalize(a)), quat_normalize(b))), axis=-1)
+
+
+def quat_twist(q0, q1, axis):
+    """Signed turn (rad) of q1 relative to q0 about a world axis (unit length): the twist of q1 * conj(q0), 2 atan2(v . u, w)."""
+    d = quat_mul(q1, quat_conj(q0))
+    return 2.0 * np.arctan2(np.sum(d[..., 1:] * _arr(axis), axis=-1), d[..., 0])
 
 
 def quat_slerp(a, b, t):
@@ -191,6 +198,12 @@ def rot_axis_angle(axis, angle):
 def rot_angle(Ra, Rb):
     """Angle (rad) of the rotation that takes Ra to Rb."""
     return np.linalg.norm(log_so3(np.swapaxes(_arr(Ra), -1, -2) @ _arr(Rb)), axis=-1)
+
+
+def rot_slerp(R0, R1, t):
+    """The rotation t of the way from R0 (t = 0) to R1 (t = 1) along the geodesic, in R0's own frame."""
+    R0 = _arr(R0)
+    return R0 @ exp_so3(log_so3(np.swapaxes(R0, -1, -2) @ _arr(R1)) * _arr(t)[..., None])
 
 
 def heading(R):
@@ -347,6 +360,16 @@ def pose_error(Ta, Tb):
     """(distance between the origins, angle in rad between the rotations) of two transforms."""
     Ta, Tb = _arr(Ta), _arr(Tb)
     return np.linalg.norm(Ta[..., :3, 3] - Tb[..., :3, 3], axis=-1), rot_angle(Ta[..., :3, :3], Tb[..., :3, :3])
+
+
+def adjoint(R, p):
+    """The 6 x 6 adjoint of the rigid transform (R, p), acting on twists ordered (angular, linear)."""
+    R, p = _arr(R), _arr(p)
+    A = np.zeros((6, 6))
+    A[:3, :3] = R
+    A[3:, 3:] = R
+    A[3:, :3] = skew(p) @ R
+    return A
 
 
 # ---------------------------------------------------------------------------------------------------- registration

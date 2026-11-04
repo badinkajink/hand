@@ -93,7 +93,7 @@ docs/                   the documentation, described above
 external/               submodules: mujoco_warp, comfree_warp, eFlesh
 paper/                  the IROS submission (hand_iros26-4.pdf), its sources and figures
 scripts/                the scripts; scripts/README.md maps them, and archive/ has the retired ones
-src/morphohand/         the package: backends, bench, control (HOM), geometry, optimization, rl, sampling,
+src/morphohand/         the package: backends, bench, control (HOM), geometry, numerics, optimization, rl, sampling,
                         studies, tools; driver/manta (gantry and servo firmware, the CB1 host) and
                         driver/reskin5x (fingertip board firmware, the viewer, the UR5 session program)
 tests/                  pytest suite

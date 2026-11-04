@@ -112,14 +112,19 @@ miss it. The Mini45's box sits at 192.168.123.50.
 ## Shared numerical code (owner, 2026-11-03)
 
 Rotations, quaternions and rigid transforms come from `morphohand.geometry.rotations`: wxyz quaternions as in MuJoCo,
-Hamilton products, radians, batched, over scipy's `Rotation`. It imports numpy and scipy only, so it runs in `femtip`
-and on corvus (scipy 1.12). Never write a private quaternion product, quaternion-to-matrix, axis rotation, Rodrigues
-formula, skew matrix or frame builder in a script. Call the module, or scipy or trimesh, and add a missing function to
-the module, checked once against MuJoCo or scipy. The owner was "very concerned about us rewriting
-rotations, geometry, math helpers everywhere with custom math instead of using proven library calls / a single help
-file(s)". The audit of 2026-11-03 (`docs/notes/20261103-scripts_cleanup/`) found 309 rotation copies in 128 files and
-165 geometry and statistics copies, with eight bugs among them. The hand-off `docs/handoff/20261103-scripts_topic_folders.md`
-migrates them and adds the geometry and statistics modules.
+Hamilton products, radians, batched, over scipy's `Rotation`. Unit vectors, angles and pinhole cameras are in
+`geometry.vectors`, distances in `geometry.distances`, signed distances in `geometry.sdf`, hulls, OBJ files, inertia and
+section properties in `geometry.mesh`, Fibonacci lattices and cap pads in `geometry.sampling`. Rank statistics, smoothing
+and angle wrapping are in `morphohand.numerics` (`stats`, `signal`, `angles`), and the torch versions of the quaternion
+functions in `morphohand.rl.math`. These modules import numpy and scipy at the top, and trimesh or shapely only inside a
+function, so they run in `femtip`, under `freecadcmd` and on corvus (scipy 1.12). Never write a private quaternion
+product, quaternion-to-matrix, axis rotation, Rodrigues formula, skew matrix, frame builder, Spearman correlation or
+moving average in a script. Call the module, or scipy or trimesh, and add a missing function to the module, checked once
+against MuJoCo, scipy or trimesh in a scratch script. The owner was "very concerned about us rewriting rotations,
+geometry, math helpers everywhere with custom math instead of using proven library calls / a single help file(s)". The
+audit of 2026-11-03 (`docs/notes/20261103-scripts_cleanup/`) found 309 rotation copies in 128 files and 165 geometry and
+statistics copies, with eight bugs among them. The hand-off `docs/handoff/20261103-scripts_topic_folders.md` migrates the live copies once the scripts have moved into topic folders, after the fingertip-shape rerun. `src/morphohand/driver/`, `bench/tags.py` and the UR5 programs that move the robot (`ur5_inverted_rig.py`, the
+plan generators, `ur5_tip_calibration_holder_paths.py`) keep theirs until a session with the owner and the lab's simulator.
 
 ## Writing
 

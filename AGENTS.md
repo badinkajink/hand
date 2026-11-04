@@ -17,8 +17,12 @@ rewrites `docs/experiments/INDEX.md`, `docs/index.html`, `docs/pages.html`, the 
 
 Shared numerical code (owner, 2026-11-03): rotations, quaternions and rigid transforms come from
 `morphohand.geometry.rotations` (wxyz quaternions, Hamilton products, radians, over scipy's `Rotation`; numpy and scipy
-only). Never write a private quaternion, rotation-matrix, Rodrigues, skew or frame helper in a script; call the module,
-scipy or trimesh, and add a missing function to the module, checked once against MuJoCo or scipy.
+only, so it runs in `femtip` and on corvus). Vectors, distances, signed distances, meshes and lattices are in
+`geometry.vectors`, `distances`, `sdf`, `mesh` and `sampling`; rank statistics, smoothing and angle wrapping in
+`morphohand.numerics` (`stats`, `signal`, `angles`); the torch quaternion functions in `morphohand.rl.math`. Never write a private
+copy in a script: call the module, or scipy or trimesh, and add a missing function to the module, checked once against
+MuJoCo, scipy or trimesh. The driver, `bench/tags.py` and the UR5 programs that move the robot keep their copies until a
+session with the owner and the lab's simulator.
 
 Large files: media, data rows and detailed result pages under `docs/` are Git LFS files (`.gitattributes`); the home
 page, the overviews and the pages marked `!filter` there stay ordinary files. History before 2026-10-09 is in
