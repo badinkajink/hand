@@ -2941,6 +2941,15 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - 27 sweeps reached 8 N. sweep-edge-651-r0 stopped at 2 N; sweep-edge-573-r90 and sweep-face-733-r90 at 4 N.
   - The HEX-E gave 663,183 samples, none timed out.
 - 01:19:56, step 5: seat 3's half b (rod35, 46 grid actions) on `202017-rod32_seed`.
+- 03:01:39, seat 3's half b ended cleanly, so seat 3 has all its sweep locations, twists and 4 N rolls. It ran 47
+  actions, all ok: 28 sweeps (median 149 s), 12 twists at 5 N (119 s), 4 rolls at 4 N (113 s) and two reference
+  presses.
+  - 870 of 880 offsets and 108 of 108 slides were held; four friction skips.
+  - 27 sweeps reached 8 N; sweep-edge-618-r90 stopped at 4 N.
+  - The twist probe-face-692-r90-t-15 went by the hub, as installed at 21:42.
+  - The HEX-E gave 609,299 samples, none timed out.
+- 03:01:43, step 6: seat 2's half b (rod26, 47 grid actions, 3 sweeps of them run before the switch) on
+  `172647-rod21_seed`.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 
