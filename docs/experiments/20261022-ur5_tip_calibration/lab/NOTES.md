@@ -3282,6 +3282,17 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   old. About 10 ms of held lag is 1.5 um at the presses' 0.15 mm/s, so the stamps do not explain the gap.
 - 16:2x, relayed: the owner is taking the tips off the rig for the SR2 hand and will move the arm clear by hand first.
   Nothing more is planned on the robot today. At 16:40 the arm still stood at seat 1's reference rest.
+- 16:4x, the owner in the lab's session, asked whether the seats' M2 were tight and whether a board could move: "yea
+  idk what to say it's pretty on there. if the inverted rig is marginally worse, then so be it. it seems like it is
+  marginally more reliable, hex-e wise. but we are done calibrating now".
+  - **The calibration is done.** The inverted rig stands as it is: about 0.6 mm against tip mode's 0.3 mm on ID 3.
+    The HEX-E's link held better in probe mode, by the owner's account.
+  - 16:44, the arm moved clear by hand: joints (43.45, -97.96, 105.78, -123.23, -91.95, -36.55) deg, flange (-253.2,
+    -387.8, 422.6) mm, 185 mm over the rest of 16:13. The rod is still on the probe base.
+  - Still running, read-only: `robot_messages.py` (PID 2632536), the controller's messages to
+    `logs/ur5_lab_robot_messages.log`. The tmux pane tipcal holds id3pts11's printout.
+  - /dev/shm holds 6.7 GB: the sim sessions (4.3 GB) and the time-lapse frames of 11-02, 11-03 and 11-04 (1.3 GB,
+    1.0 GB, 0.13 GB). Their films are in this folder. RAM keeps them only until corvus restarts.
 
 ## The lab clone and git-lfs
 

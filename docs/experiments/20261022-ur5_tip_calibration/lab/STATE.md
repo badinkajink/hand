@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 16:4x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 16:4x by the lab. **The calibration is done** (the owner, 16:4x on 11-04; below, under "Waiting on the owner"). From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -10,7 +10,7 @@ request to the owner must come from this file.
 |---|---|---|
 | Probe | probe base with the rod tool (R 12.5 mm, its axis along y_M) on mount v7's adapter disc on the HEX-E (owner, 11-03 16:5x; set right at 17:2x after it sat a quarter turn off its square boss); before it the 2 mm sphere from 11-03 10:5x and the 5 mm sphere from 11-02 13:0x; no tip on the robot | the workstation's joint fit on the night's 0.5 N sweeps (bb18d7c65): c_M (-0.988, 0, 106.713) mm in M, turned +0.43 deg about z_M (sd 1.04) and -0.89 deg across (sd 0.50); each rod session's pass 1 fits it too |
 | Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume | tonight's sessions: the frame through both keys' socket points (`20261102-strip_frame_two_keys.json`), by `--frame`, with `--home-from poses.jsonl:strip_key1_seated_4`; each seat's grid aims by its own pass 1 fit. For later plans: the workstation's frame from the three pads' fits (`../../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`, 9cd8b375: the two-key frame turned 3.44 deg about y_A and moved (2.48, 0.10, -3.70) mm; the pads within 0.14 to 0.22 mm on average, the rest the strip's twist) |
-| Held tips | seat 1 (y_A -80, the right end seen from the robot) **v3 ID 3 on mux channel 3 since 14:3x on 11-04** (the owner; v3 ID 6 sat there from 11-02 13:0x); seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 151 records/s (14:40 on 11-04; 138 on 11-02) | seat 1's ID 3: `20261104-tip_calibration/145215-id3pts11_seed` (pass 1, 0.060 mm rms; its pad 0.71 mm and 1.55 deg from ID 6's). Seat 1's ID 6: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame); seat 2: `182710-s2v5` (0.051 mm rms; 1.21 mm, 3.5 deg); seat 3: `220337-s3v4` (0.051 mm rms; 0.81 mm, 2.9 deg). The rod's sessions of 11-03 have lab folders `20261103-214753-rod13`, `20261103-172647-rod21` and `20261103-202017-rod32` (seats 1, 2 and 3) |
+| Held tips | **coming off for the SR2 hand (the owner, 16:2x on 11-04).** Until then: seat 1 (y_A -80, the right end seen from the robot) v3 ID 3 on mux channel 3 since 14:3x on 11-04 (the owner; v3 ID 6 sat there from 11-02 13:0x); seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 151 records/s (14:40 on 11-04; 138 on 11-02) | seat 1's ID 3: `20261104-tip_calibration/145215-id3pts11_seed` (pass 1, 0.060 mm rms; its pad 0.71 mm and 1.55 deg from ID 6's). Seat 1's ID 6: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame); seat 2: `182710-s2v5` (0.051 mm rms; 1.21 mm, 3.5 deg); seat 3: `220337-s3v4` (0.051 mm rms; 0.81 mm, 2.9 deg). The rod's sessions of 11-03 have lab folders `20261103-214753-rod13`, `20261103-172647-rod21` and `20261103-202017-rod32` (seats 1, 2 and 3) |
 | Old fixtures | the low sphere, rod, tall indenter and holder: off the table as the strip's README asks; the camera frame of 13:05 shows only the strip, its tips and the mux board on the 2x4 | as before 10-30 |
 
 `cell.json` holds the same registrations for the path checks and the renders.
@@ -284,6 +284,11 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       board's clamping in the seat block (NOTES).
     - **16:2x, relayed: the owner is taking the tips off for the SR2 hand.** They will move the arm clear by hand first.
       Nothing more is planned on the robot today.
+  - **The calibration is done (the owner, 16:4x on 11-04): "if the inverted rig is marginally worse, then so be it. it
+    seems like it is marginally more reliable, hex-e wise. but we are done calibrating now".** The arm was moved
+    clear by hand (16:44: joints 43.45, -97.96, 105.78, -123.23, -91.95, -36.55 deg; flange 422.6 mm up). The rod
+    stays on the probe base, and the tips go to the SR2 hand. Nothing runs on the robot except the read-only
+    `robot_messages.py` (PID 2632536).
   - **Done, 13:16:58 on 11-04: the rod points, every step clean: 232 of 232 actions, no skip, abort or early contact.**
     The arm waited at seat 1's reference rest, the pose of 10:45 (joints 48.99, -77.26, 106.61, -124.34, -91.36, -38.05
     deg), the rod a few mm over seat 1's pad. Nothing runs on the robot: the chain ended, and the 14:15 stop (PID
