@@ -71,6 +71,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_contact_rig as H  # noqa: E402
+from sr2hand.geometry.rotations import mat_to_quat
 
 MODELS = {   # bed model name -> rig spec (PROTOCOL.md)
     "mj_point3": "mj:point3:ir100",
@@ -385,31 +386,10 @@ def make_roll_rig(spec, dt):
 
 # ----------------------------------------------------------------------------------- measurement
 
-def mat2quat(R):
-    """Unit quaternion (w, x, y, z), w >= 0, of a rotation matrix."""
-    t = R[0, 0] + R[1, 1] + R[2, 2]
-    if t > 0:
-        S = math.sqrt(t + 1.0) * 2
-        q = [0.25 * S, (R[2, 1] - R[1, 2]) / S, (R[0, 2] - R[2, 0]) / S, (R[1, 0] - R[0, 1]) / S]
-    elif R[0, 0] > R[1, 1] and R[0, 0] > R[2, 2]:
-        S = math.sqrt(1.0 + R[0, 0] - R[1, 1] - R[2, 2]) * 2
-        q = [(R[2, 1] - R[1, 2]) / S, 0.25 * S, (R[0, 1] + R[1, 0]) / S, (R[0, 2] + R[2, 0]) / S]
-    elif R[1, 1] > R[2, 2]:
-        S = math.sqrt(1.0 + R[1, 1] - R[0, 0] - R[2, 2]) * 2
-        q = [(R[0, 2] - R[2, 0]) / S, (R[0, 1] + R[1, 0]) / S, 0.25 * S, (R[1, 2] + R[2, 1]) / S]
-    else:
-        S = math.sqrt(1.0 + R[2, 2] - R[0, 0] - R[1, 1]) * 2
-        q = [(R[1, 0] - R[0, 1]) / S, (R[0, 2] + R[2, 0]) / S, (R[1, 2] + R[2, 1]) / S, 0.25 * S]
-    q = np.array(q)
-    if q[0] < 0:
-        q = -q
-    return q / np.linalg.norm(q)
-
-
 def tool_angles(R, R0):
     """Roll (rotation about world y, signed so no-slip rolling under the rising +x pad is positive) and
     the tilt of the tool axis about world x and z, all relative to R0, in rad."""
-    q = mat2quat(R @ R0.T)
+    q = mat_to_quat(R @ R0.T)
     roll = -2.0 * math.atan2(q[2], q[0])
     a, a0 = R[:, 2], R0[:, 2]
     rot_x = math.atan2(a[2], a[1]) - math.atan2(a0[2], a0[1])
@@ -468,7 +448,7 @@ def run_roll(rig, N, dt, V, T, film_every=None, on_frame=None):
         p, R, v, w = rig.tool_kin()
         pk = rig.pad_kin()
         pat = rig.contact_patches(detail=True)
-        return {"t": t_rel, "tool_p": p, "tool_q": mat2quat(R), "pads": {s: pk[s][0] for s in "LR"},
+        return {"t": t_rel, "tool_p": p, "tool_q": mat_to_quat(R), "pads": {s: pk[s][0] for s in "LR"},
                 "pts": pat["L"]["pts"] + pat["R"]["pts"], **extra}
 
     for k in range(n_settle):

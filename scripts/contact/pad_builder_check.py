@@ -40,6 +40,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_turn3 as HT  # noqa: E402
 import reorient_backends as RB  # noqa: E402
+from sr2hand.geometry.rotations import quat_angle, quat_axis, tilt_cos
 
 SCRIPT = "scripts/contact/pad_builder_check.py"
 D = ROOT / "docs/experiments/20261014-tip_codesign/builder_default"
@@ -138,11 +139,8 @@ class DrakePlantF(HT.DrakePlant):
 def snap(plant, t):
     p, q = plant.pose()
     N, T, n = plant.forces()
-    R9 = np.zeros(9)
-    import mujoco
-    mujoco.mju_quat2Mat(R9, q / np.linalg.norm(q))
     return {"t": round(float(t), 4), "p": [round(float(x), 7) for x in p], "q": [round(float(x), 7) for x in q],
-            "cos": float(R9[8]), "x": float(p[0]), "y": float(p[1]), "z": float(p[2]),
+            "cos": float(tilt_cos(q)), "x": float(p[0]), "y": float(p[1]), "z": float(p[2]),
             "F": {f: round(N[f], 4) for f in FINGERS}, "T": {f: [round(float(x), 4) for x in T[f]] for f in FINGERS},
             "n": n}
 
@@ -270,22 +268,16 @@ def divergence(a, b):
     if len(common) < 10:
         return None
     qa_, qb_ = qa[ia] / np.linalg.norm(qa[ia], axis=1, keepdims=True), qb[ib] / np.linalg.norm(qb[ib], axis=1, keepdims=True)
-    ang = np.degrees(2 * np.arccos(np.clip(np.abs(np.sum(qa_ * qb_, axis=1)), 0, 1)))
+    ang = np.degrees(quat_angle(qa_, qb_))
     dp = 1e3 * np.linalg.norm(pa[ia] - pb[ib], axis=1)
     dF = Fa[ia] - Fb[ib]
     dT = np.linalg.norm(Ta[ia] - Tb[ib], axis=2)
     rms = lambda x: float(np.sqrt(np.mean(np.square(x))))  # noqa: E731
-    za, zb = _zaxis(qa_), _zaxis(qb_)                      # the tool's axis (body z), whose tilt the end turn measures
+    za, zb = quat_axis(qa_), quat_axis(qb_)                      # the tool's axis (body z), whose tilt the end turn measures
     ax = np.degrees(np.arccos(np.clip(np.sum(za * zb, axis=1), -1, 1)))
     return {"ang_rms_deg": rms(ang), "ang_end_deg": float(ang[-1]), "pos_rms_mm": rms(dp), "pos_end_mm": float(dp[-1]),
             "F_rms_N": rms(dF), "T_rms_N": rms(dT), "axis_rms_deg": rms(ax), "axis_end_deg": float(ax[-1]),
             "t_common_s": float(common[-1] * TRACE_DT)}
-
-
-def _zaxis(q):
-    """Body z axis in the world of unit quaternions (w, x, y, z), one per row."""
-    w, x, y, z = q.T
-    return np.column_stack([2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y)])
 
 
 def _q(v):
@@ -399,7 +391,7 @@ def _rot_from(tr, t0):
     t, _, q, _, _ = _arr(tr)
     q = q / np.linalg.norm(q, axis=1, keepdims=True)
     k = int(np.argmin(np.abs(t - t0)))
-    return t, np.degrees(2 * np.arccos(np.clip(np.abs(q @ q[k]), 0, 1)))
+    return t, np.degrees(quat_angle(q, q[k]))
 
 
 def cmd_figure(a):

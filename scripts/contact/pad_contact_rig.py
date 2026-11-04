@@ -34,6 +34,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import fingertip_geometry as G  # noqa: E402
 import reorient_backends as RB  # noqa: E402
+from sr2hand.geometry.rotations import mat_to_quat
 
 SRC = ROOT / "assets/mjcf/real_v1/scenes/scene_screwdriver_medium.xml"
 OUT = ROOT / "docs/experiments/20261013-contact_feedback/pad_laws.json"
@@ -101,8 +102,7 @@ class Rig:
         m, d = self.m, self.d
         mujoco.mj_resetData(m, d)
         Rc = np.column_stack([self.R[:, 0], np.cross(self.R[:, 1], self.R[:, 0]), self.R[:, 1]])
-        q = np.zeros(4)
-        mujoco.mju_mat2Quat(q, Rc.ravel())
+        q = mat_to_quat(Rc)
         d.qpos[self.qadr:self.qadr + 3] = self.p + self.R @ np.array([G.REACH + R_CYL, 0.0, G.CENTRE[2]])
         d.qpos[self.qadr + 3:self.qadr + 7] = q
         d.xfrc_applied[self.tool, :3] = -F * self.n

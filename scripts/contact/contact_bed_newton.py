@@ -50,6 +50,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_contact_rig as H  # noqa: E402
+from sr2hand.geometry.rotations import quat_to_mat, xyzw_to_wxyz
 
 OUTDIR = ROOT / "docs/experiments/20261005-contact_bed"
 FILMDIR = OUTDIR / "media"
@@ -413,10 +414,7 @@ class NewtonRig:
         v = self.s0.body_qd.numpy()[self.tool].astype(float)
         if not (np.isfinite(q).all() and np.isfinite(v).all()):
             self._nonfinite = True
-        x, y, z, w = q[3:7]
-        R = np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-                      [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-                      [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+        R = quat_to_mat(xyzw_to_wxyz(q[3:7]))
         a = R[:, 2]
         theta = math.atan2(a[2], a[1])
         if self.theta_prev is not None:
@@ -581,8 +579,7 @@ def render_film(frames, path, model, d_cg=0.0, view=None, poster=None, fscale=No
     for fr in frames:
         d.qpos[:] = 0
         d.qpos[qa:qa + 3] = fr["tool_pos"]
-        x, y, z, w = fr["tool_quat"]
-        d.qpos[qa + 3:qa + 7] = [w, x, y, z]
+        d.qpos[qa + 3:qa + 7] = xyzw_to_wxyz(fr["tool_quat"])
         for sd in "LR":
             d.qpos[m.joint("rail" + sd).qposadr[0]] = fr["pad_x"][sd] - (-H.X0 if sd == "L" else H.X0)
         mujoco.mj_forward(m, d)

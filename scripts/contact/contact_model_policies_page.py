@@ -35,6 +35,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import contact_overview_page as P  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
+from sr2hand.numerics.signal import moving_average
 
 D = os.path.join(P.EXP, "20261008-contact_model_policies")
 OUT = os.path.join(D, "20261008-fingertip_contact_model_policies.html")
@@ -625,7 +626,7 @@ def _tb_lines(X: Data, arm, key, every=8, win=9):
     for tag, d in by_tag.items():
         its = sorted(d)
         v = np.array([d[i] for i in its], float)
-        vs = np.convolve(np.pad(v, (win // 2, win // 2), mode="edge"), np.ones(win) / win, mode="valid")
+        vs = moving_average(v, win)
         out[tag] = [((i + 1) * STEPS_PER_IT / 1e6, float(x)) for i, x in zip(its, vs) if i % every == 0 or i == its[-1]]
     return out
 

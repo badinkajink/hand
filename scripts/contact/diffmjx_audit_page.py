@@ -26,6 +26,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import contact_overview_page as P  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
+from sr2hand.geometry.vectors import deg_from_cos
 
 D07 = os.path.join(ROOT, "docs/experiments/20261007-diffmjx")
 G07 = os.path.join(ROOT, "docs/experiments/20261007-contact-gait")
@@ -141,7 +142,7 @@ def render_tex(t):
 
 
 def tilt_deg(c0, c1):
-    return math.degrees(math.acos(c0) - math.acos(c1))
+    return float(deg_from_cos(c0) - deg_from_cos(c1))
 
 
 def rel(a, b):

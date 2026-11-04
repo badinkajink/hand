@@ -27,6 +27,7 @@ from contact_surface.records import CsvLog, ROOT, versions, write_json
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_angle
 
 DOC = ROOT / "docs/experiments/20261004-codex"
 DEFAULTS = dict(
@@ -161,7 +162,7 @@ def static_run(c, out):
     total["normal_jacobian_rank"] = int(np.linalg.matrix_rank(jac[addresses])) if addresses else 0
     total["constraint_rows"] = int(d.nefc)
     total["object_lateral_offset"] = float(np.linalg.norm(d.xpos[1, :2]))
-    total["object_tilt_radians"] = float(2 * np.arccos(np.clip(abs(d.qpos[3]), 0, 1)))
+    total["object_tilt_radians"] = float(quat_angle(d.qpos[3:7], [1.0, 0.0, 0.0, 0.0]))
     reference = (
         dict(force=None, arm=None, area=None)
         if c.get("tip_shape") == "filleted_prism"

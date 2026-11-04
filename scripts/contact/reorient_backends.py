@@ -47,6 +47,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import fingertip_geometry as G  # noqa: E402
+from sr2hand.geometry.rotations import quat_mul, quat_normalize, quat_yaw
+from sr2hand.geometry.vectors import deg_from_cos
+from sr2hand.numerics.signal import index_at
 
 OUT = ROOT / "docs/experiments/20261006-fingertip_backends/reorient.jsonl"
 SCENES = ROOT / "assets/mjcf/experimental/20261006-reorient_backends"
@@ -416,24 +419,20 @@ def jitter(seed, mode=None):
 
 
 def _yaw_quat(q, yaw):
-    c, s = math.cos(yaw / 2), math.sin(yaw / 2)
-    w1, x1, y1, z1 = c, 0.0, 0.0, s
-    w2, x2, y2, z2 = q
-    return np.array([w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2, w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-                     w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2, w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2])
+    return quat_mul(quat_yaw(yaw), q)
 
 
 def score(trace, segs):
     """Bench metrics from a trace of (t, cos, x, y, z, pads{finger: N}, n_pads{finger: n})."""
     t = np.array([s["t"] for s in trace])
     def at(tt):
-        return trace[int(np.clip(np.searchsorted(t, tt - 1e-9), 0, len(trace) - 1))]
+        return trace[index_at(t, tt - 1e-9)]
     t_traj_end = [e for e, _, k in segs if k == "traj"][-1]
     g = at(T_GRIP)
     h = at(t_traj_end + T_HOLD)
     e = trace[-1]
     def turn(a, b):
-        return math.degrees(math.acos(max(-1, min(1, a["cos"]))) - math.acos(max(-1, min(1, b["cos"]))))
+        return float(deg_from_cos(a["cos"]) - deg_from_cos(b["cos"]))
     out = {"cos_grip": g["cos"], "cos_hold": h["cos"], "cos_end": e["cos"],
            "turn_hold_deg": turn(g, h), "turn_end_deg": turn(g, e),
            "z_grip": g["z"], "z_hold": h["z"], "z_end": e["z"],
@@ -680,7 +679,7 @@ class DrakeBench:
             p.GetJointByName(n).set_angle(self.pc, float(q0[n]))
         dx, dy, dyaw = jitter(seed)
         q = _yaw_quat(np.asarray(tool7[3:], float), dyaw)
-        X = RigidTransform(Quaternion(q / np.linalg.norm(q)), np.asarray(tool7[:3], float) + [dx, dy, 0.0])
+        X = RigidTransform(Quaternion(quat_normalize(q)), np.asarray(tool7[:3], float) + [dx, dy, 0.0])
         p.SetFreeBodyPose(self.pc, self.tool, X)
         self.ctx.SetTime(0.0)
         self.sim.Initialize()

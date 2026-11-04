@@ -51,6 +51,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import numpy as np
+from sr2hand.geometry.rotations import wxyz_to_xyzw
 
 ROOT = Path(__file__).resolve().parents[2]
 STATES = ROOT / "logs/20261006-rl_contact"
@@ -293,7 +294,7 @@ def build_newton(xml, m, meta, nworld, engine, variant, buffer_fraction, buffer_
             import warp as wp
             p = [float(x) for x in (dg["pos"] or "0 0 0").split()]
             q = [float(x) for x in (dg["quat"] or "1 0 0 0").split()]
-            xform = wp.transform(p, wp.quat(q[1], q[2], q[3], q[0]))
+            xform = wp.transform(p, wp.quat(*wxyz_to_xyzw(q)))
         k = b0.add_shape_mesh(body_of[bname], mesh=mesh, cfg=cfg, label=f"{bname}_{dg['mesh'].split('/')[-1]}",
                               **({"xform": xform} if xform is not None else {}))
         if on_hydro:
@@ -417,7 +418,7 @@ def run_newton(xml, m, st, meta, nworld, nblocks, engine, variant, buffer_fracti
             if m.jnt_type[j0] == mujoco.mjtJoint.mjJNT_FREE:
                 q = Q[w, a:a + 7]
                 jq[qs[jn]:qs[jn] + 3] = q[:3]
-                jq[qs[jn] + 3:qs[jn] + 7] = [q[4], q[5], q[6], q[3]]
+                jq[qs[jn] + 3:qs[jn] + 7] = wxyz_to_xyzw(q[3:7])
             else:
                 jq[qs[jn] + (dof - qds[jn])] = Q[w, a]
     model.joint_q.assign(jq)

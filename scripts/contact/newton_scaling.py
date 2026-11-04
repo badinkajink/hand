@@ -63,6 +63,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 from distributed_contact_transfer import build  # noqa: E402
+from sr2hand.geometry.rotations import quat_twist, xyzw_to_wxyz
+from sr2hand.geometry.vectors import reject
 
 OUT = ROOT / "docs/experiments/20261005-gpu_scaling/newton_scaling.jsonl"
 WORK = ROOT / "logs/20261005-newton_scaling"
@@ -538,7 +540,7 @@ class Sim:
 
         def rel(pp):
             s = pp["tool"][:, :3] - 0.5 * (pp["thumb_tip"][:, :3] + pp["index_tip"][:, :3])
-            return s - (s @ u)[:, None] * u
+            return reject(s, u)
 
         ds = rel(now) - rel(ini)
         slip = np.linalg.norm(ds, axis=1)
@@ -556,11 +558,7 @@ class Sim:
 
 
 def twist_deg_xyzw(q0, q1, u):
-    inv = np.concatenate([-q0[:, :3], q0[:, 3:4]], axis=1)
-    av, aw, bv, bw = q1[:, :3], q1[:, 3:4], inv[:, :3], inv[:, 3:4]
-    v = aw * bv + bw * av + np.cross(av, bv)
-    w = (aw * bw)[:, 0] - np.sum(av * bv, axis=1)
-    return np.degrees(2.0 * np.arctan2(v @ u, w))
+    return np.degrees(quat_twist(xyzw_to_wxyz(q0), xyzw_to_wxyz(q1), u))
 
 
 def summarize(f, ok):

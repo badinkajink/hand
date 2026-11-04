@@ -51,6 +51,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import reorient_backends as RB  # noqa: E402
+from sr2hand.geometry.rotations import quat_normalize, tilt_cos, wxyz_to_xyzw
+from sr2hand.geometry.vectors import deg_from_cos
 
 OUT = ROOT / "docs/experiments/20261006-hom_turn3/plans_newton.jsonl"
 OUT_MC = ROOT / "docs/experiments/20261006-hom_turn3/plans_newton_mc.jsonl"
@@ -76,10 +78,6 @@ def read_obj(path):
             for j in range(1, len(idx) - 1):
                 F += [idx[0], idx[j], idx[j + 1]]
     return np.array(V, np.float32), np.array(F, np.int32)
-
-
-def quat_wxyz_to_xyzw(q):
-    return np.array([q[1], q[2], q[3], q[0]], float)
 
 
 NUM = dict(dt=0.001, iterations=100, ls_iterations=50, impratio=100.0, tolerance=1e-10)
@@ -185,7 +183,7 @@ def build(hand, seeds):
         q = RB._yaw_quat(tool7[3:], dyaw)
         a = qs[k]
         jq[a:a + 3] = tool7[:3] + [dx, dy, 0.0]
-        jq[a + 3:a + 7] = quat_wxyz_to_xyzw(q / np.linalg.norm(q))
+        jq[a + 3:a + 7] = wxyz_to_xyzw(quat_normalize(q))
     model.joint_q.assign(jq)
     meta["mass_correct"] = mass_correct(model, solver) if OPT["mass_correct"] else None
     if pads:
@@ -258,8 +256,7 @@ def run(hand, seeds):
         out = []
         for w in range(nw):
             x, y, z, qx, qy, qz, qw = bq[w]
-            cos = 1.0 - 2.0 * (qx * qx + qy * qy)          # R[2,2] of the tool's frame
-            out.append((float(x), float(y), float(z), float(cos)))
+            out.append((float(x), float(y), float(z), float(tilt_cos([qw, qx, qy, qz]))))
         return out
 
     # the solver's MuJoCo-Warp contacts: geom -> finger index (0-2) or the tool (3)
@@ -339,7 +336,7 @@ def run(hand, seeds):
         g, h, e = got["grip"][w], got["hold"][w], end[w]
 
         def turn(a, b):
-            return math.degrees(math.acos(max(-1, min(1, a[3]))) - math.acos(max(-1, min(1, b[3]))))
+            return float(deg_from_cos(a[3]) - deg_from_cos(b[3]))
         dropped = e[2] < g[2] - 0.020
         npad = {k: int(np.sum(forces[k][w] > 1e-6)) for k in ("grip", "hold", "end")}
         Fp = {k: round(float(np.sum(forces[k][w])), 4) for k in ("grip", "hold", "end")}

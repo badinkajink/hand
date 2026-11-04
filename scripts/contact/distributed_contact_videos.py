@@ -18,6 +18,7 @@ import numpy as np
 
 from contact_surface.records import ROOT, versions, write_json
 from contact_surface.video import StateCapture, load_states
+from sr2hand.numerics.signal import index_at
 
 DOC = ROOT / "docs/experiments/20261004-codex"
 RESULTS = ROOT / "results/20261004-distributed-contact"
@@ -472,7 +473,7 @@ class MovieView:
 
 def state_at(states, t):
     times = np.array([s["time"] for s in states])
-    ix = max(0, int(np.searchsorted(times, t, side="right")) - 1)
+    ix = index_at(times, t, "previous")
     s = dict(states[ix])
     if t > times[-1] + 1e-9:
         s["frozen"] = True
