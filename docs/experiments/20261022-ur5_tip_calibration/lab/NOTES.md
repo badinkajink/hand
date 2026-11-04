@@ -2925,6 +2925,22 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - The workstation's checker on 2x, 3x and 1x chained from 2b's end, unturned (0 of 92, 101 and 98), at the fit and
   at its four corners: no travel flagged. The flags left are the presses' own moves: the k-d tree's deep values, and
   the edge-573 r90 obliques at 0.25 to 0.40 mm.
+- 01:19:52 on 11-04, seat 1's half b (rod14) ended cleanly, so seat 1 has all its sweep locations, twists and 4 N
+  rolls. It ran 50 actions, all ok.
+
+  | Kind | Count | Median |
+  |---|---|---|
+  | Sweeps | 30 | 151 s |
+  | Twists at 5 N | 14 | 121 s |
+  | Rolls at 4 N | 3 | 103 s |
+  | Reference presses | 3 | 38 s |
+
+  - These were the night's first rod twists and rolls on the robot, and none aborted. The program's plans had
+    assumed about 100 s a twist with its travel and 70 s a roll.
+  - 946 of 960 offsets and 116 of 120 slides were held; six friction skips.
+  - 27 sweeps reached 8 N. sweep-edge-651-r0 stopped at 2 N; sweep-edge-573-r90 and sweep-face-733-r90 at 4 N.
+  - The HEX-E gave 663,183 samples, none timed out.
+- 01:19:56, step 5: seat 3's half b (rod35, 46 grid actions) on `202017-rod32_seed`.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 
