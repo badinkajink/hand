@@ -1571,9 +1571,10 @@ def sections(N, F, P, link, L):
         "time stamps spread over tens of ms in each serial read, too little to scatter a static hold. On seat 1 the presses at "
         "2 N read "
         f"{rg(RI3['refs']['uT_per_N'], '{:.1f}')} µT/N. The nine at the run's start, over 4.5 minutes, already span that range "
-        f"(Figure 15b). Over the whole session the board reads {RI3['board_uT_per_N']:.1f} µT/N at the median. The UR5 "
-        "coordinator suspects how the seat block fixes the board ("
-        + P.code("docs/experiments/20261018-printed_fingertip_status/status.json") + "). The owner took the tips to the SR2 "
+        f"(Figure 15b). Over the whole session the board reads {RI3['board_uT_per_N']:.1f} µT/N at the median. On a "
+        "seat, four M2 screws pass through the cap and the board into the block ("
+        + P.code("docs/experiments/20261029-inverted_calibration_rig/README.md") + "). The UR5 coordinator suspects this "
+        "fixing of the board (" + P.code("docs/experiments/20261018-printed_fingertip_status/status.json") + "). The owner took the tips to the SR2 "
         "hand at about 16:30 on 11-04.</p>"
         "<p>The owner put v3 ID 3 in seat 1 at 14:3x on 11-04, in place of v3 ID 6 (“let's settle this quickly”). The "
         "question was whether the tips or the rig explain the gap between v3 IDs 1 to 3 and v3 IDs 4 to 6. The rod ran a new "
@@ -1662,8 +1663,9 @@ def sections(N, F, P, link, L):
         "now.",
         f"Source of the rig's higher location error: v3 ID 3 gives {rin['loc_normal_mm']:.2f} mm on seat 1 and "
         f"{rir['loc_normal_mm']:.2f} mm on the robot with the load's tilt under 0.1. Its board's reading per newton varies by "
-        "7.9 %, against 2.2–2.5 % (Section 15). Fix a tip's board rigidly to its seat and repeat the eight reference presses "
-        "back to back. A reading that still varies by about 7.9 % falsifies the seat block's fixing as the cause.",
+        "7.9 %, against 2.2–2.5 % (Section 15). Hold a tip in its DIP link on the rig, as on the hand, and repeat the eight "
+        "reference presses back to back. A reading that still varies by about 7.9 % falsifies the seat block's fixing as the "
+        "cause.",
         "Friction cone at each pad point (owner, 11-03; "
         + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32): analyse the rod's sweeps of Section "
         "15 by force level and direction. The sweep is revised if in some direction the ratio of tangential to normal "
