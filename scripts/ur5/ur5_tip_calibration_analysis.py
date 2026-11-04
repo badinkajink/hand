@@ -38,6 +38,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_tip_calibration as C  # noqa: E402
 import ur5_tip_calibration_sim as SIM  # noqa: E402
 import fingertip_wrench_model as W  # noqa: E402
+from sr2hand.geometry.vectors import reject
 
 DATA = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data"
 BASIS = DATA / "20261020-b_v2_surface_basis.npz"
@@ -364,7 +365,7 @@ def estimator(ses, holds, mask=None):
 
 
 def tangential(v, n):
-    return v - (v @ n) * n
+    return reject(v, n)
 
 
 def evaluate(holds, est, key="est"):

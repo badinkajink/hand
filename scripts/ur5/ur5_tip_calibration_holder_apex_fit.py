@@ -29,6 +29,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+from sr2hand.geometry.rotations import heading, rot_x as rx_, rot_z as rz
 
 ROOT = Path(__file__).resolve().parents[2]
 RY = 2 * 7.4 ** 2 / 8.5
@@ -58,16 +59,6 @@ def fit(rows, flat_x=False):
     return np.array([x0, y0, z0]), rx, r
 
 
-def rz(a):
-    c, s = math.cos(a), math.sin(a)
-    return np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
-
-
-def rx_(a):
-    c, s = math.cos(a), math.sin(a)
-    return np.array([[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s, c]])
-
-
 def model_apexes():
     sys.path.insert(0, str(ROOT / "scripts"))
     import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
@@ -79,7 +70,7 @@ def model_apexes():
 
 def frame_one(T_prog, a_model, p_B):
     """Level, turned as the program's frame, through the measured apex."""
-    R = rz(math.atan2(T_prog[1, 0], T_prog[0, 0]))
+    R = rz(heading(T_prog))
     T = np.eye(4)
     T[:3, :3] = R
     T[:3, 3] = p_B - R @ a_model
@@ -102,7 +93,7 @@ def frame_two(T_prog, a, p):
         R, t = pose(v)
         return (A @ R.T + t - P).ravel()
 
-    v = least_squares(res, [math.atan2(T_prog[1, 0], T_prog[0, 0]), 0.0]).x
+    v = least_squares(res, [heading(T_prog), 0.0]).x
     R, t = pose(v)
     T = np.eye(4)
     T[:3, :3], T[:3, 3] = R, t
@@ -158,7 +149,7 @@ def main():
         T = frame_one(T_prog, am[station], p_B)
         how = f"the {station} apex, level"
     tilt = math.degrees(math.acos(min(1.0, T[2, 2])))
-    yaw = math.degrees(math.atan2(T[1, 0], T[0, 0]))
+    yaw = math.degrees(heading(T))
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     pred = {k: (T[:3, :3] @ v + T[:3, 3]) for k, v in am.items()}

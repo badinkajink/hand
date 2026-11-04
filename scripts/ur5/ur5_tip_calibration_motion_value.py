@@ -56,6 +56,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_tip_calibration_cb1r_checks as K  # noqa: E402
 import ur5_tip_calibration_hard_extrapolation as HX  # noqa: E402
+from sr2hand.geometry.rotations import log_so3
 
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
 OUT = ROOT / "docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data/20261029-motion_value.json"
@@ -296,7 +297,7 @@ def part_shared(D):
                 gain_ratio=round(float((np.linalg.norm(dT) / T["f_n"][i]) / (np.linalg.norm(dS) / S["f_n"][j])), 3),
                 shear_per_N=[round(float(np.linalg.norm(K.shear(T["f"][i:i + 1], T["n"][i:i + 1])) / T["f_n"][i]), 3),
                              round(float(np.linalg.norm(K.shear(S["f"][j:j + 1], S["n"][j:j + 1])) / S["f_n"][j]), 3)],
-                tool_angle_deg=round(float(np.degrees(np.arccos(np.clip((np.trace(dR) - 1) / 2, -1, 1)))), 2),
+                tool_angle_deg=round(float(np.degrees(np.linalg.norm(log_so3(dR)))), 2),
                 gp_loc_mm=[round(float(eT["loc"][0]), 3), round(float(eS["loc"][0]), 3)],
                 gp_force_rel=[round(float(eT["rel"][0]), 3), round(float(eS["rel"][0]), 3)],
                 gp_points_apart_mm=round(float(np.linalg.norm(PT[0] - PS[0])), 3)))

@@ -21,6 +21,10 @@ import json
 from pathlib import Path
 
 import numpy as np
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_to_mat
 
 R_31565 = np.array([[-0.026289, 0.000278, 0.056518, -0.702557, -0.032851, 0.708130],
                     [-0.095998, 0.795815, 0.015191, -0.420373, 0.026813, -0.424028],
@@ -111,10 +115,7 @@ def selftest(seed=0):
         for o in range(8):
             q = rng.normal(size=4)
             q /= np.linalg.norm(q)
-            a, b, c, d = q
-            R = np.array([[a * a + b * b - c * c - d * d, 2 * (b * c - a * d), 2 * (b * d + a * c)],
-                          [2 * (b * c + a * d), a * a - b * b + c * c - d * d, 2 * (c * d - a * b)],
-                          [2 * (b * d - a * c), 2 * (c * d + a * b), a * a - b * b - c * c + d * d]])
+            R = quat_to_mat(q)
             W.append(gravity_wrench(R, 0.5, r))
             grp.append(h * 8 + o)
     W = np.array(W)

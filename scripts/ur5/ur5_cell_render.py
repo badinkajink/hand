@@ -82,6 +82,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import fingertip_holder as FH  # noqa: E402
 import ur5_cb3_cell as CELL  # noqa: E402
+from sr2hand.geometry.rotations import heading, mat_to_quat, rot_z
+from sr2hand.numerics.signal import smoothstep
 
 C = CELL.C
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
@@ -248,10 +250,7 @@ def transformed(m, T):
 
 def box_mesh(lo, hi):
     import trimesh
-    lo, hi = np.minimum(lo, hi), np.maximum(lo, hi)
-    m = trimesh.creation.box(extents=hi - lo)
-    m.apply_translation((lo + hi) / 2)
-    return m
+    return trimesh.creation.box(bounds=[np.minimum(lo, hi), np.maximum(lo, hi)])
 
 
 def cylinder(a, b, r, sections=32):
@@ -380,11 +379,6 @@ def _noise(h, w, cy, cx, rng):
     return np.asarray(Image.fromarray(lat, "F").resize((w, h), Image.BICUBIC), np.float32)
 
 
-def _smooth(a, b, x):
-    t = np.clip((x - a) / (b - a), 0.0, 1.0)
-    return t * t * (3 - 2 * t)
-
-
 def _save(rgb, path):
     from PIL import Image
     Image.fromarray(np.clip(rgb * 255.0 + 0.5, 0, 255).astype(np.uint8), "RGB").save(path)
@@ -410,7 +404,7 @@ def pine_long(path, seed, mm_w, mm_h, px_mm=6.0):
         r = r + 2.5 * kr * np.exp(-d2 / (2 * (2.2 * kr) ** 2))
         knots.append((kr, d2))
     phase = np.mod(r / 4.2 + 0.18 * _noise(H, W, 12, 30, rng), 1.0)
-    late = _smooth(0.70, 0.84, phase) * (1.0 - _smooth(0.93, 1.0, phase))
+    late = smoothstep(0.70, 0.84, phase) * (1.0 - smoothstep(0.93, 1.0, phase))
     early, latec = np.array([0.90, 0.82, 0.63], np.float32), np.array([0.81, 0.68, 0.47], np.float32)
     rgb = early + (latec - early) * (0.70 * late)[..., None]
     rgb *= (1.0 + 0.035 * _noise(H, W, 6, 9, rng) + 0.02 * _noise(H, W, max(H // 6, 2), max(W // 60, 2), rng))[..., None]
@@ -429,7 +423,7 @@ def pine_end(path, seed, px_mm=8.0):
     px, py = rng.uniform(25, 65), -rng.uniform(25, 60)
     r = np.sqrt((X - px) ** 2 + (Y - py) ** 2) + 0.6 * _noise(H, W, 6, 12, rng)
     phase = np.mod(r / 4.2, 1.0)
-    late = _smooth(0.6, 0.8, phase) * (1.0 - _smooth(0.9, 1.0, phase))
+    late = smoothstep(0.6, 0.8, phase) * (1.0 - smoothstep(0.9, 1.0, phase))
     early, latec = np.array([0.84, 0.73, 0.54], np.float32), np.array([0.70, 0.56, 0.37], np.float32)
     rgb = early + (latec - early) * late[..., None]
     rgb *= (1.0 + 0.04 * _noise(H, W, max(H // 3, 2), 4, rng))[..., None]
@@ -462,7 +456,7 @@ def cutting_mat(path, px_mm=5.0):
 
     def line(g, step, half):
         d = np.abs(g - step * np.round(g / step))
-        return 1.0 - _smooth(half, half + 0.25, d)
+        return 1.0 - smoothstep(half, half + 0.25, d)
 
     lines = np.maximum(np.maximum(line(gx, b["grid"], 0.30), line(gy, b["grid"], 0.30)),
                        np.maximum(line(gx, b["bold"], 0.55), line(gy, b["bold"], 0.55)))
@@ -527,13 +521,6 @@ def write_obj(m, path, smooth_deg=30.0):
 
 
 # ------------------------------------------------------------------------------------------------ the scene
-def quat(R):
-    import mujoco
-    q = np.zeros(4)
-    mujoco.mju_mat2Quat(q, np.ascontiguousarray(R, float).reshape(9))
-    return q
-
-
 def fmt(v, k=6):
     return " ".join(f"{float(x):.{k}g}" for x in v)
 
@@ -559,7 +546,7 @@ class Scene:
             self._geom(f'<geom type="mesh" mesh="{name}" material="{material}"/>', body)
         else:
             self._geom(f'<geom type="mesh" mesh="{name}" material="{material}" pos="{fmt(T[:3, 3] * 1e-3)}" '
-                       f'quat="{fmt(quat(T[:3, :3]))}"/>', body)
+                       f'quat="{fmt(mat_to_quat(T[:3, :3]))}"/>', body)
 
     def raw(self, xml, body="world"):
         self._geom(xml, body)
@@ -690,7 +677,7 @@ def build(work, fx, w, h):
         S.obj(box_obj(work / f"lumber_{bname}.obj", lo, hi, uv_long, ("+z", "-z", "+y", "-y")), f"pine{k}", T=T)
         S.obj(box_obj(work / f"lumber_{bname}_ends.obj", lo, hi, uv_end, ("+x", "-x")), f"pine_end{k}", T=T)
         log[f"2x4_{bname}"] = dict(top_centre_B=np.round(T[:3, 3], 1).tolist(), length=round(float(L), 1),
-                                   yaw_deg=round(math.degrees(math.atan2(T[1, 0], T[0, 0])), 2))
+                                   yaw_deg=round(math.degrees(heading(T)), 2))
     # the clamps: grey C-clamps on the near 2x4, blue bar clamps on the far one
     clamps = []
     T, _ = boards["near"]
@@ -708,7 +695,7 @@ def build(work, fx, w, h):
     z_mat = boards["near"][0][2, 3] - Hh
     psi = float(np.mean([math.atan2(boards[k][0][1, 0], boards[k][0][0, 0]) for k in ("near", "far")]))
     cmb = np.array([(mb["x"][0] + mb["x"][1]) / 2, (mb["y"][0] + mb["y"][1]) / 2, 0.0])
-    Rp = np.array([[math.cos(psi), -math.sin(psi), 0.0], [math.sin(psi), math.cos(psi), 0.0], [0.0, 0.0, 1.0]])
+    Rp = rot_z(psi)
     T_BU = C.Tm(Rp, cmb - Rp @ cmb)
     tex["mat"] = (cutting_mat(work / "mat.png"), 0.10, 0.25, "")
     mw, mh = mb["x"][1] - mb["x"][0], mb["y"][1] - mb["y"][0]
@@ -765,7 +752,7 @@ def set_pose(m, d, q):
         k = m.body_mocapid[bid]
         T = LF["tool0"] if ln == "tool" else LF[ln]
         d.mocap_pos[k] = T[:3, 3] * 1e-3
-        d.mocap_quat[k] = quat(T[:3, :3])
+        d.mocap_quat[k] = mat_to_quat(T[:3, :3])
     mujoco.mj_forward(m, d)
     return LF
 

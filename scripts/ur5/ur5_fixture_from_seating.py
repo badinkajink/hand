@@ -19,6 +19,10 @@ import sys
 from pathlib import Path
 
 import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import heading
+from sr2hand.geometry.vectors import deg_from_cos
 
 ROOT = Path(__file__).resolve().parents[2]
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
@@ -53,8 +57,8 @@ def main():
     T_EM = np.array(json.loads(Path(a.registration).read_text())["T_EM"], float)
     T_IM = np.array(json.loads(Path(a.plan).read_text())["geometry"]["T_IM_home"], float)
     T_BI = T_BE @ T_EM @ np.linalg.inv(T_IM)
-    yaw = np.degrees(np.arctan2(T_BI[1, 0], T_BI[0, 0]))
-    tilt = np.degrees(np.arccos(np.clip(T_BI[2, 2], -1.0, 1.0)))
+    yaw = np.degrees(heading(T_BI))
+    tilt = deg_from_cos(T_BI[2, 2])
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "registration.json").write_text(json.dumps(dict(

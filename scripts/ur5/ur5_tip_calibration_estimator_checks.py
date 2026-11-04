@@ -37,14 +37,15 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import fingertip_wrench_model as W  # noqa: E402
 import ur5_tip_calibration_predict as PR  # noqa: E402
+from sr2hand.geometry.rotations import log_so3, umeyama
+from sr2hand.geometry.vectors import reject_norm
 
 GATES = (1.0, 1.5, 2.0, 3.0)                      # mm, the position sigma below which a contact point is reported
 H_STEP = 0.5                                      # mm, the step of the curl
 
 
 def tangential(P, Pt, N):
-    d = P - Pt
-    return np.linalg.norm(d - np.sum(d * N, axis=1)[:, None] * N, axis=1)
+    return reject_norm(P - Pt, N)
 
 
 class Estimates:
@@ -93,18 +94,13 @@ def distortion(H, E, tr, te, snap):
     hi = lambda idx: idx[(H["level_N"][idx] >= 2.0) & np.all(np.isfinite(E.P[idx]), axis=1)]   # noqa: E731
     tr2, te2 = hi(tr), hi(te)
     X, Y = E.P[tr2], H["p"][tr2]
-    # similarity (Umeyama): Y ~ s R X + t
-    mx, my = X.mean(0), Y.mean(0)
-    U, S, Vt = np.linalg.svd((Y - my).T @ (X - mx) / len(X))
-    D = np.diag([1, 1, np.sign(np.linalg.det(U @ Vt))])
-    R = U @ D @ Vt
-    s = float(np.trace(np.diag(S) @ D) / np.mean(np.sum((X - mx) ** 2, axis=1)))
-    sim = lambda P: s * (P - mx) @ R.T + my                                                    # noqa: E731
+    s, R, t = umeyama(X, Y)                                                                    # similarity: Y ~ s R X + t
+    sim = lambda P: s * P @ R.T + t                                                            # noqa: E731
     A = np.linalg.lstsq(np.c_[X, np.ones(len(X))], Y, rcond=None)[0]
     aff = lambda P: np.c_[P, np.ones(len(P))] @ A                                              # noqa: E731
     out = dict(n_train=int(len(tr2)), n_test=int(len(te2)), similarity_scale=s,
-               similarity_turn_deg=float(np.degrees(np.arccos(np.clip((np.trace(R) - 1) / 2, -1, 1)))),
-               similarity_shift_mm=(my - s * mx @ R.T).tolist())
+               similarity_turn_deg=float(np.degrees(np.linalg.norm(log_so3(R)))),
+               similarity_shift_mm=t.tolist())
     for name, f in (("none", lambda P: P), ("similarity", sim), ("affine", aff)):
         out[name] = dict(test_mm=float(np.median(tangential(snap(f(E.P[te2])), H["p"][te2], H["n"][te2]))),
                          train_mm=float(np.median(tangential(snap(f(E.P[tr2])), H["p"][tr2], H["n"][tr2]))))

@@ -40,6 +40,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_shear_slides as U  # noqa: E402
+from sr2hand.geometry.vectors import reject, unit
+from sr2hand.numerics.signal import moving_average
 
 OUT = U.OUT
 NU = 0.45
@@ -56,10 +58,7 @@ SMOOTH_S = 0.7                  # s: moving average of the measured travel and n
 
 def smooth(x, k):
     """Centred moving average over k samples, the ends padded with the end values."""
-    if k <= 1:
-        return np.asarray(x, float)
-    xp = np.r_[np.full(k // 2, x[0]), x, np.full(k - 1 - k // 2, x[-1])]
-    return np.convolve(xp, np.ones(k) / k, mode="valid")
+    return moving_average(x, k)
 
 
 def sizing(F=1.0):
@@ -78,10 +77,8 @@ def sizing(F=1.0):
 
 
 def frame(n, v):
-    n = np.asarray(n, float) / np.linalg.norm(n)
-    v = np.asarray(v, float)
-    v = v - (v @ n) * n
-    v /= np.linalg.norm(v)
+    n = unit(n)
+    v = unit(reject(v, n))
     return n, v, np.cross(n, v)
 
 

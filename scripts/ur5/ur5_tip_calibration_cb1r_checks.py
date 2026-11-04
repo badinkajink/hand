@@ -31,6 +31,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_tip_calibration_predict as PR  # noqa: E402
+from sr2hand.geometry.vectors import angle as vector_angle
 
 EXP = ROOT / "docs/experiments/20261022-ur5_tip_calibration"
 A_DIR, B_DIR = EXP / "data/20261023-203938-cb1t", EXP / "data/20261025-114653-cb1r"
@@ -66,8 +67,7 @@ def shear(f, n):
 
 
 def angle(f1, f2):
-    c = np.sum(f1 * f2, 1) / (np.linalg.norm(f1, axis=1) * np.linalg.norm(f2, axis=1) + 1e-12)
-    return np.degrees(np.arccos(np.clip(c, -1, 1)))
+    return np.degrees(vector_angle(f1, f2))
 
 
 def med(x):

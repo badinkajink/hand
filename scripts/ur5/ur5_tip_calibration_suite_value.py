@@ -65,6 +65,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_tip_calibration_cb1r_checks as K  # noqa: E402
+from sr2hand.geometry.rotations import exp_so3, rot_angle
 
 EXP = K.EXP
 LAB, DATA = EXP / "lab", EXP / "data"
@@ -143,13 +144,7 @@ class Robot:
 
     @staticmethod
     def rotm(W):
-        th = np.linalg.norm(W, axis=1)
-        k = W / np.maximum(th, 1e-12)[:, None]
-        Km = np.zeros((len(W), 3, 3))
-        Km[:, 0, 1], Km[:, 0, 2], Km[:, 1, 0] = -k[:, 2], k[:, 1], k[:, 2]
-        Km[:, 1, 2], Km[:, 2, 0], Km[:, 2, 1] = -k[:, 0], -k[:, 1], k[:, 0]
-        s, c = np.sin(th)[:, None, None], np.cos(th)[:, None, None]
-        return np.eye(3)[None] + s * Km + (1 - c) * Km @ Km
+        return exp_so3(W)
 
     def last_motion(self, t0, t1, W=30):
         """The time of the last sample between t0 and t1 at which the flange still moved (as in window)."""
@@ -244,7 +239,7 @@ def action_phases(s, e, a, robot=None):
         i = min(np.searchsorted(robot.t, t0), len(robot.t) - 1)
         j = min(np.searchsorted(robot.t, r["t_rest0"][0]), len(robot.t) - 1)      # the rest pose, where it ends
         R0, R1 = robot.rotm(robot.w[[i, j]])
-        ang = math.degrees(math.acos(np.clip((np.trace(R0.T @ R1) - 1) / 2, -1, 1)))
+        ang = math.degrees(rot_angle(R0, R1))
         d["travel_turn_deg"], d["travel_mm"] = ang, float(np.linalg.norm(robot.p[j] - robot.p[i]))
         d["lifted"] = bool(ang > cfg["turn_deg"] or d["travel_mm"] > cfg["far_mm"])
         k0, k1 = np.searchsorted(robot.t, r["t_rest0"][1]), np.searchsorted(robot.t, r["t_rest1"][0])

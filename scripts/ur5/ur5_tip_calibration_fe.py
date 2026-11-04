@@ -26,6 +26,9 @@ from pathlib import Path
 
 import numpy as np
 from scipy.optimize import nnls
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from scipy.stats import linregress
 
 ROOT = Path(__file__).resolve().parents[2]
 BASIS = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261020-b_v2_surface_basis.npz"
@@ -73,11 +76,8 @@ class FEPad:
 
 def line_fit(x, y):
     """y = a + c x by least squares: the fit [a, c], its standard errors and the number of points."""
-    X = np.c_[np.ones(len(x)), x]
-    b, *_ = np.linalg.lstsq(X, y, rcond=None)
-    r = y - X @ b
-    cov = (r @ r) / max(len(x) - 2, 1) * np.linalg.inv(X.T @ X)
-    return dict(n=int(len(x)), fit=b.tolist(), se=np.sqrt(np.diag(cov)).tolist())
+    r = linregress(x, y)
+    return dict(n=int(len(x)), fit=[float(r.intercept), float(r.slope)], se=[float(r.intercept_stderr), float(r.stderr)])
 
 
 def main():

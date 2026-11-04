@@ -57,6 +57,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 os.environ.setdefault("UR5M_REV", "v3")
 import ur5_calibration_mount as UM  # noqa: E402  (MeshK: manifold booleans; v3's patterns; the renderer)
+from sr2hand.geometry.rotations import skew as _skew
 
 OUT = ROOT / "docs/experiments/20261023-ati_ft_calibration"
 STEM = "20261023-ati_stack"
@@ -476,10 +477,6 @@ def main(clock=None, sensor="mini45"):
 
 # ------------------------------------------------------------------------------------------------ figures
 NUM = {2: "two", 3: "three", 4: "four", 6: "six"}
-
-
-def _skew(v):
-    return np.array([[0.0, -v[2], v[1]], [v[2], 0.0, -v[0]], [-v[1], v[0], 0.0]])
 
 
 def ati_mesh(clock):

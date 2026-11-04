@@ -24,6 +24,11 @@ HOST = ROOT / "src/sr2hand/driver/reskin5x/host"
 sys.path.insert(0, str(HOST))
 import ur5_tip_calibration as C  # noqa: E402
 import ur5_tip_calibration_sim as SIM  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.distances import point_segment
+from sr2hand.geometry.rotations import euler_to_mat, rot_x
+from sr2hand.geometry.sdf import sd_box, sd_capped_cone, sd_convex as _convex_sdf, sd_cylinder
 
 UR_DESC = next((p for p in (Path.home() / "Programs/rh56_controller/magpie_force_control/src/ur_description",
                             Path.home() / "workspace/rh56_controller/magpie_force_control/src/ur_description")   # UR5's PC
@@ -66,7 +71,7 @@ _AS_SET = object()
 
 
 def rpy_R(r, p, y):
-    return C.exp_so3([0.0, 0.0, y]) @ C.exp_so3([0.0, p, 0.0]) @ C.exp_so3([r, 0.0, 0.0])
+    return euler_to_mat([r, p, y], "xyz")
 
 
 @lru_cache(maxsize=1)
@@ -157,9 +162,7 @@ def _inside_2d(Q, S):
 
 def _seg_dist_2d(Q, S):
     """Least distance of points Q (k, 2) to segments S (m, 2, 2)."""
-    a, d = S[:, 0], S[:, 1] - S[:, 0]
-    t = np.clip(np.einsum("kmj,mj->km", Q[:, None, :] - a[None], d) / np.maximum((d * d).sum(1), 1e-18)[None], 0.0, 1.0)
-    return np.linalg.norm(Q[:, None, :] - (a[None] + t[..., None] * d[None]), axis=2).min(axis=1)
+    return point_segment(Q[:, None, :], S[:, 0][None], S[:, 1][None]).min(axis=1)
 
 
 def trim_x(m, x0, sign=1.0, h=0.1, grid=0.3):
@@ -354,41 +357,12 @@ def self_ok(q, T_EM, need=SELF_CLEAR):
 
 
 # ------------------------------------------------------------------------------------------- indenters (I frame)
-def sd_box(P, lo, hi):
-    c = (np.asarray(lo) + np.asarray(hi)) / 2
-    h = (np.asarray(hi) - np.asarray(lo)) / 2
-    q = np.abs(P - c) - h
-    return np.linalg.norm(np.maximum(q, 0.0), axis=1) + np.minimum(q.max(axis=1), 0.0)
-
-
 def sd_cyl_z(P, r, z0, z1, c=(0.0, 0.0)):
-    rho = np.hypot(P[:, 0] - c[0], P[:, 1] - c[1])
-    zc, h = (z0 + z1) / 2, (z1 - z0) / 2
-    d = np.c_[rho - r, np.abs(P[:, 2] - zc) - h]
-    return np.linalg.norm(np.maximum(d, 0.0), axis=1) + np.minimum(d.max(axis=1), 0.0)
+    return sd_cylinder(P, r, z0, z1, axis=2, centre=c)
 
 
 def sd_cyl_y(P, r, y0, y1, xz=(0.0, 30.0)):
-    rho = np.hypot(P[:, 0] - xz[0], P[:, 2] - xz[1])
-    yc, h = (y0 + y1) / 2, (y1 - y0) / 2
-    d = np.c_[rho - r, np.abs(P[:, 1] - yc) - h]
-    return np.linalg.norm(np.maximum(d, 0.0), axis=1) + np.minimum(d.max(axis=1), 0.0)
-
-
-def sd_capped_cone(P, z0, z1, r0, r1):
-    """Exact distance to a cone frustum about z (radius r0 at z0, r1 at z1); Quilez's sdCappedCone."""
-    qx = np.hypot(P[:, 0], P[:, 1])
-    h = (z1 - z0) / 2
-    qy = P[:, 2] - (z0 + z1) / 2
-    k1 = np.array([r1, h])
-    k2 = np.array([r1 - r0, 2 * h])
-    cax = qx - np.minimum(qx, np.where(qy < 0, r0, r1))
-    cay = np.abs(qy) - h
-    t = np.clip(((k1[0] - qx) * k2[0] + (k1[1] - qy) * k2[1]) / (k2 @ k2), 0.0, 1.0)
-    cbx = qx - k1[0] + k2[0] * t
-    cby = qy - k1[1] + k2[1] * t
-    s = np.where((cbx < 0) & (cay < 0), -1.0, 1.0)
-    return s * np.sqrt(np.minimum(cax ** 2 + cay ** 2, cbx ** 2 + cby ** 2))
+    return sd_cylinder(P, r, y0, y1, axis=1, centre=xz)
 
 
 # The tall indenter of 2026-10-26 (docs/experiments/20261026-tall_indenter, scripts/ur5/tall_indenter.py builds it from these
@@ -455,13 +429,6 @@ def key_halves(d, t=None):
     at the mouth, drafted 20 deg; scripts/ur5/ur5_calibration_mount.py home_halves) less 0.05 mm on every face."""
     tn = math.tan(math.radians(20.0))
     return (9.0 - d * tn - 0.05, 4.0 - d * tn - 0.05)
-
-
-def _convex_sdf(P, pts):
-    """Lower bound of the signed distance to the convex hull of pts (the largest of its faces' plane distances)."""
-    from scipy.spatial import ConvexHull
-    eq = ConvexHull(np.asarray(pts, float)).equations          # n . p + d <= 0 inside, n unit
-    return (P @ eq[:, :3].T + eq[:, 3]).max(axis=1)
 
 
 def key_points(t=None):
@@ -588,7 +555,7 @@ def tiphold_T_IF(t=None, i=0):
     turn = float((t.get("turn_deg") or (0.0,) * len(t["stations"]))[i])
     if turn:                                               # about x_F (the vertical) through the screw pattern's centre
         th = math.radians(turn)
-        Rx = np.array([[1.0, 0.0, 0.0], [0.0, math.cos(th), -math.sin(th)], [0.0, math.sin(th), math.cos(th)]])
+        Rx = rot_x(th)
         c = np.array([0.0, 0.0, float(np.mean([z for _, z in TIP_F["holes"]]))])
         Tc = np.eye(4)
         Tc[:3, :3], Tc[:3, 3] = Rx, c - Rx @ c

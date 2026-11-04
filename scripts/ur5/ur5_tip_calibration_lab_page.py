@@ -29,6 +29,8 @@ import docs_index  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
 import ur5_tip_calibration_page as P  # noqa: E402   (esc, link, code, fig, film, table, plt_setup)
+from sr2hand.geometry.rotations import project_to_so3, rot_angle
+from sr2hand.numerics.signal import moving_average
 
 D = ROOT / "docs/experiments/20261022-ur5_tip_calibration"
 LAB = D / "lab"
@@ -131,17 +133,13 @@ def earth_field(run="20261022-195420-first2"):
     Bc = W.thermal_correct(B, T, kap)
     n = len(R)
 
-    def procrustes(M):
-        U, _, Vt = np.linalg.svd(M)
-        return U @ np.diag([1, 1, np.sign(np.linalg.det(U @ Vt))]) @ Vt
-
     w = np.array([0.0, 0.0, -50.0])
     for _ in range(300):
         U_ = np.einsum("nji,j->ni", R, w)
         A, b0 = [], []
         for k in range(5):
             sol, *_ = np.linalg.lstsq(np.c_[U_, np.ones(n)], Bc[:, k], rcond=None)
-            Ak = procrustes(sol[:3].T)
+            Ak = project_to_so3(sol[:3].T)
             A.append(Ak)
             b0.append((Bc[:, k] - U_ @ Ak.T).mean(0))
         M = np.vstack([A[k] @ R[i].T for k in range(5) for i in range(n)])
@@ -153,7 +151,7 @@ def earth_field(run="20261022-195420-first2"):
         w = w_new
     U_ = np.einsum("nji,j->ni", R, w)
     res = np.array([[Bc[i, k] - b0[k] - A[k] @ U_[i] for k in range(5)] for i in range(n)])
-    ang = [math.degrees(math.acos(np.clip((np.trace(A[0].T @ A[k]) - 1) / 2, -1, 1))) for k in range(5)]
+    ang = [math.degrees(rot_angle(A[0], A[k])) for k in range(5)]
     return dict(n=n, w=w.tolist(), w_norm=float(np.linalg.norm(w)), dip=float(math.degrees(math.atan2(-w[2], math.hypot(w[0], w[1])))),
                 spread=np.ptp(Bc, axis=0).max(1).tolist(), rms=np.sqrt((res ** 2).mean(axis=(0, 2))).tolist(),
                 rms_all=float(np.sqrt((res ** 2).mean())), chip_deg=ang, T_range=[float(T.min()), float(T.max())])
@@ -318,10 +316,7 @@ def press_rows(run="20261022-210852-sphere2", stages=("grid", "pivot")):
 
 def smooth15(v):
     """The mean over 15 samples (0.15 s), the same length as the input, without the zeros of np.convolve's edges."""
-    v = np.asarray(v, float)
-    c = np.convolve(v, np.ones(15), mode="same")
-    n = np.convolve(np.ones(len(v)), np.ones(15), mode="same")
-    return c / n
+    return moving_average(v, 15, edges="shrink")
 
 
 def precontact(pr, run="20261022-210852-sphere2"):
@@ -839,17 +834,13 @@ def board_drift(run="20261022-210852-sphere2", field_run="20261022-195420-first2
     Bg = np.array([r["board"] for r in recs]).reshape(-1, 5, 4)
     Bgc = W.thermal_correct(Bg[:, :, 1:], Bg[:, :, 0], kap)
 
-    def procrustes(M):
-        U, _, Vt = np.linalg.svd(M)
-        return U @ np.diag([1, 1, np.sign(np.linalg.det(U @ Vt))]) @ Vt
-
     w = np.array([0.0, 0.0, -50.0])
     for _ in range(300):
         U_ = np.einsum("nji,j->ni", Rg, w)
         A = []
         for k in range(5):
             sol, *_ = np.linalg.lstsq(np.c_[U_, np.ones(len(Rg))], Bgc[:, k], rcond=None)
-            A.append(procrustes(sol[:3].T))
+            A.append(project_to_so3(sol[:3].T))
         b0 = [(Bgc[:, k] - U_ @ A[k].T).mean(0) for k in range(5)]
         M = np.vstack([A[k] @ Rg[i].T for k in range(5) for i in range(len(Rg))])
         rhs = np.concatenate([Bgc[i, k] - b0[k] for k in range(5) for i in range(len(Rg))])

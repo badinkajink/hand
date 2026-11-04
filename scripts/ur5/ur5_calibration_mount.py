@@ -57,6 +57,9 @@ except NameError:                                   # freecadcmd executes the fi
     REPO = Path(os.environ["UR5M_REPO"])
 sys.path.insert(0, str(REPO / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.mesh import polygon_section
+from sr2hand.geometry.rotations import rot_axis_angle
+from sr2hand.geometry.vectors import project_free_camera
 sys.path.insert(0, str(REPO / "src"))
 
 # UR5M_REV=v2: the revision of 2026-10-20 after the owner printed v1 (no spigot, one-way foot, the finger on the tool axis,
@@ -1485,7 +1488,7 @@ def turn_play(dm, sf, centre=(0.0, -1.8, -62.0), angles=(0.05, 0.1, 0.15, 0.2, 0
         for sgn in (1, -1):
             hit = None
             for a in angles:
-                R = _rot(np.asarray(v), math.radians(sgn * a))
+                R = rot_axis_angle(np.asarray(v), math.radians(sgn * a))
                 T = np.eye(4)
                 T[:3, :3] = R
                 T[:3, 3] = c - R @ c
@@ -1494,12 +1497,6 @@ def turn_play(dm, sf, centre=(0.0, -1.8, -62.0), angles=(0.05, 0.1, 0.15, 0.2, 0
                     break
             out[f"{ax}_{'+' if sgn > 0 else '-'}"] = hit
     return out
-
-
-def _rot(axis, ang):
-    axis = axis / np.linalg.norm(axis)
-    K_ = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
-    return np.eye(3) + math.sin(ang) * K_ + (1 - math.cos(ang)) * K_ @ K_
 
 
 WEDGE_MU = (0.2, 0.3, 0.4)        # PLA on PLA, dry: the range for the wedge's friction at both faces
@@ -1871,24 +1868,8 @@ def section_props(tm, z_M, shell=None):
     if g.is_empty:
         return None
     gs = list(g.geoms) if hasattr(g, "geoms") else [g]
-    A = Sx = Sy = Ixx0 = Iyy0 = 0.0
-    for poly in gs:
-        rings = [np.asarray(poly.exterior.coords)] + [np.asarray(h.coords) for h in poly.interiors]
-        for k_, ring in enumerate(rings):
-            x, y = ring[:, 0], ring[:, 1]
-            x1, y1 = np.roll(x, -1), np.roll(y, -1)
-            cr = x * y1 - x1 * y
-            sgn = 1.0
-            a_ = 0.5 * cr.sum()
-            if (k_ == 0 and a_ < 0) or (k_ > 0 and a_ > 0):
-                sgn = -1.0
-            A += sgn * a_
-            Sx += sgn * ((x + x1) * cr).sum() / 6
-            Sy += sgn * ((y + y1) * cr).sum() / 6
-            Iyy0 += sgn * ((x * x + x * x1 + x1 * x1) * cr).sum() / 12        # integral of x^2 dA
-            Ixx0 += sgn * ((y * y + y * y1 + y1 * y1) * cr).sum() / 12        # integral of y^2 dA
-    cx, cy = Sx / A, Sy / A
-    return dict(A=A, cx=cx, cy=cy, I_about_y=Iyy0 - A * cx * cx, I_about_x=Ixx0 - A * cy * cy)
+    A, cx, cy, I_x, I_y = polygon_section(gs)
+    return dict(A=A, cx=cx, cy=cy, I_about_y=I_y, I_about_x=I_x)
 
 
 def cmd_estimate(a):
@@ -2082,15 +2063,7 @@ def _render(meshes, cam, dst, w=W_IMG, h=H_IMG):
 
 def _project(Pw, cam, w=W_IMG, h=H_IMG):
     lookat, dist, az, el = cam
-    a, e = math.radians(az), math.radians(el)
-    fwd = np.array([math.cos(e) * math.cos(a), math.cos(e) * math.sin(a), math.sin(e)])
-    up = np.array([-math.sin(e) * math.cos(a), -math.sin(e) * math.sin(a), math.cos(e)])
-    right = np.cross(fwd, up)
-    eye = np.asarray(lookat, float) - dist * fwd
-    f = (h / 2) / math.tan(math.radians(FOVY) / 2)
-    Q = np.atleast_2d(Pw) - eye
-    zc = Q @ fwd
-    return np.column_stack([w / 2 + f * (Q @ right) / zc, h / 2 - f * (Q @ up) / zc])
+    return project_free_camera(np.atleast_2d(Pw), lookat, dist, az, el, FOVY, w, h)
 
 
 def _annotate(path, cam, labels, title=None, callout=True):

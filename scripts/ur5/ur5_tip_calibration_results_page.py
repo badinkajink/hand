@@ -45,6 +45,7 @@ import docs_index  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
 import ur5_tip_calibration_page as P  # noqa: E402   (esc, link, code, fig, table, plt_setup)
+from sr2hand.geometry.vectors import reject_norm
 
 D = ROOT / "docs/experiments/20261022-ur5_tip_calibration"
 DATA, LAB, MEDIA = D / "data", D / "lab", D / "media"
@@ -153,9 +154,7 @@ def press_mask(H):
 
 
 def tangential_err(H, key="est_p"):
-    d = H[key] - H["p"]
-    n = H["n"]
-    return np.linalg.norm(d - (d * n).sum(1)[:, None] * n, axis=1)
+    return reject_norm(H[key] - H["p"], H["n"])
 
 
 # ------------------------------------------------------------------------------------------------ figures

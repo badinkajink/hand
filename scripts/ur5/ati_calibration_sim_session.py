@@ -31,6 +31,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ati_calibration_analysis as AN  # noqa: E402
 import ur5_tip_calibration as TC  # noqa: E402
 import ur5_tip_calibration_sim as URSIM  # noqa: E402
+from sr2hand.geometry.rotations import rot_z
 
 R_31565 = np.array([[-0.026289, 0.000278, 0.056518, -0.702557, -0.032851, 0.708130],
                     [-0.095998, 0.795815, 0.015191, -0.420373, 0.026813, -0.424028],
@@ -43,8 +44,7 @@ ROBOT_RATE = 125.0
 
 
 def rotz(deg):
-    c, s = math.cos(math.radians(deg)), math.sin(math.radians(deg))
-    return np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
+    return rot_z(math.radians(deg))
 
 
 def small_rot(rng, sd_deg):

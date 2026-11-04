@@ -36,6 +36,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ati_calibration_fit as FIT  # noqa: E402
 import ur5_tip_calibration_sim as URSIM  # noqa: E402
+from sr2hand.geometry.rotations import rot_z
 
 AXES = ("Fx", "Fy", "Fz", "Tx", "Ty", "Tz")
 
@@ -160,8 +161,7 @@ def score_truth(C, truth, n=2000, seed=1):
     """C applied to the true sensor's gages for wrenches of the pad's range, against the wrench in the nominal ATI frame."""
     rng = np.random.default_rng(seed)
     D = np.array(truth["D"], float)
-    c, s_ = math.cos(math.radians(truth["clock_err_deg"])), math.sin(math.radians(truth["clock_err_deg"]))
-    Rz = np.array([[c, -s_, 0.0], [s_, c, 0.0], [0.0, 0.0, 1.0]])
+    Rz = rot_z(math.radians(truth["clock_err_deg"]))
     off = np.array(truth["origin_err_mm"], float) * 1e-3
     E = []
     for _ in range(n):
