@@ -20,6 +20,7 @@ import argparse
 import io
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -562,6 +563,8 @@ RIG_HOLDS = ROOT / "docs/experiments/20261030-inverted_rig_seat_block/data/holds
 RIG_CURVE = UR5 / "20261104-v3_id456_data_curve_pooled.json"
 RIGCOL = {"4": "#1f78b4", "5": "#d95f02", "6": "#1b9e77"}
 RIG_DENSE = {t: UR5 / f"20261104-v3_id{t}_dense_seat{7 - int(t)}_gp.json" for t in RIGCOL}  # seats 3, 2 and 1
+RIG_TILT = UR5 / "20261104-v3_tilt_reference_check.txt"
+TILTS = (("0-0.1", "Under 0.1"), ("0.1-0.3", "0.1 to 0.3"), ("0.3-0.5", "0.3 to 0.5"), ("0.5-9", "Over 0.5"))
 
 
 def v3id3_sessions():
@@ -719,6 +722,49 @@ def fig_rig_dense():
     save(fig, "20261104-v3_id456_dense_presses.png")
 
 
+def rig_tilt():
+    """The coordinator's printout of v3 IDs 1 to 6 by the load's tilt and of their reference presses (commit 15c09673 of
+    2026-11-04), parsed for the page's tables and Figure 14."""
+    from fingertip_calibration_text import at_head
+    tilt, refs = {}, {}
+    for line in at_head(RIG_TILT).decode().splitlines():
+        if m := re.match(r"\s+ID (\d): (.+)", line):
+            tilt[m[1]] = {b: dict(holds=int(n), location_mm=float(x), direction_deg=float(a), shear_N=float(e))
+                          for b, n, x, a, e in re.findall(r"([\d.]+-[\d.]+): (\d+) at ([\d.]+) mm, ([\d.]+) deg, ([\d.]+) N", m[2])}
+        elif m := re.match(r"\s+ID (\d) (\S+): (\d+) at ([\d.]+) N; label ([\d.]+) mm, board ([\d.]+) %, direction ([\d.]+) deg", line):
+            refs.setdefault(m[1], {})[m[2]] = dict(presses=int(m[3]), level_N=float(m[4]), label_mm=float(m[5]),
+                                                   board_pct=float(m[6]), direction_deg=float(m[7]))
+    NUM["rig_tilt"], NUM["rig_refs"] = tilt, refs
+
+
+def fig_rig_tilt():
+    """The board GP's held-out error by the load's tilt on v3 IDs 1 to 6 (the coordinator's
+    data/20261104-v3_tilt_reference_check.py, commit 15c09673): (a) location error, (b) force angle, over the held-out holds
+    of 1 N and over, with v3 IDs 1 to 3 in grey."""
+    plt = plt_setup()
+    fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.7))
+    x = list(range(len(TILTS)))
+    for tip, c in NUM["rig_tilt"].items():
+        rig = tip in RIGCOL
+        lab = f"v3 ID {tip}" if rig else ("v3 IDs 1 to 3, on the finger" if tip == "1" else None)
+        for ax, key in zip(axes, ("location_mm", "direction_deg")):
+            ax.plot(x, [c[b][key] for b, _ in TILTS], color=RIGCOL.get(tip, "0.62"), lw=1.8 if rig else 1.4, marker="o",
+                    ms=6 if rig else 4, zorder=3 if rig else 2, label=lab)
+    for ax, yl, ttl in zip(axes, ("Location error, median (mm)", "Force angle, median (\N{DEGREE SIGN})"),
+                           ("(a) Contact point, holds of 1 N and over", "(b) Force, holds of 1 N and over")):
+        ax.set_xticks(x)
+        ax.set_xticklabels([n for _, n in TILTS])
+        ax.set_xlabel("Load's tilt")
+        ax.set_ylabel(yl)
+        ax.set_ylim(bottom=0)
+        ax.set_title(ttl)
+    h, lab = axes[0].get_legend_handles_labels()
+    order = sorted(range(len(lab)), key=lambda i: lab[i].startswith("v3 IDs 1"))   # the grey tips last
+    fig.legend(handles=[h[i] for i in order], loc="lower center", ncol=4, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    save(fig, "20261104-v3_id123456_by_tilt.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
@@ -726,7 +772,7 @@ def main():
     figs = dict(motions=fig_motions, coverage=fig_coverage, learning=fig_learning, by_level=fig_by_level,
                 density=fig_density, shear=fig_shear, transfer=fig_transfer, sessions=sessions, hard=fig_hard,
                 four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve, rig=rig_sessions,
-                rig_curve=fig_rig_curve, rig_dense=fig_rig_dense)
+                rig_curve=fig_rig_curve, rig_dense=fig_rig_dense, rig_tilt=rig_tilt, fig_tilt=fig_rig_tilt)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)

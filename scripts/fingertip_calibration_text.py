@@ -91,6 +91,10 @@ def sections(N, F, P, link, L):
     rdg = [round(rda(t), 3) - round(rdb(t), 3) for t in "456"]  # the fall on the earlier points, as the rounded values show it
     rds = [r["A"]["location_mm"] - r["B"]["location_mm"] for t in "456" for r in RDS[t]["fixed"]]
     rdf = lambda fr: [100 * (1 - rdc(t, 1.0) / rdc(t, fr)) for t in "456"]  # noqa: E731   (the curve's fall from fr to all)
+    # v3 IDs 1 to 6 by the load's tilt, and the spread of their reference presses (commit 15c09673 of 2026-11-04)
+    RTL, RF = N["rig_tilt"], N["rig_refs"]
+    TB = ("0-0.1", "0.1-0.3", "0.3-0.5", "0.5-9")
+    rtr = lambda tips, b, k, fmt="{:.2f}": rg([RTL[t][b][k] for t in tips], fmt)  # noqa: E731
     I3 = N["v3id3_sessions"]
     T3 = ("v3 ID 1", "v3 ID 2")
     tw2 = G2["twists"]["four_v3id2"]
@@ -165,7 +169,9 @@ def sections(N, F, P, link, L):
         f"inverted rig, it falls from {rcr('location_mm', '0.5')} to {rcr('location_mm')} mm. Their points stand 2.0 mm "
         "apart, against 1.0 mm. With the load near the normal, on holds held out at random, a session's GP gives "
         f"0.32–0.37 mm. Presses at 66 to 71 new points per tip lower the error on the earlier points by "
-        f"{rg(rdg, '{:.3f}')} mm. With the new points held out, it is {rg([rdn(t) for t in '456'])} mm. Torsion is not "
+        f"{rg(rdg, '{:.3f}')} mm. With the new points held out, it is {rg([rdn(t) for t in '456'])} mm. With the load near "
+        f"the normal the force angle on v3 IDs 4 to 6 is {rtr(RGT, TB[0], 'direction_deg', '{:.1f}')}°, against "
+        f"{rtr(DT, TB[0], 'direction_deg', '{:.1f}')}° on v3 IDs 1 to 3. Torsion is not "
         "recovered. On the twists of three tips, a GP's estimate correlates with the measured torsion at "
         f"{rg([tw['gp_twists']['r'] for tw in (tw2, tw4, tw5)])}. A model learned on "
         "one tip misses on another. Between the two four-magnet tips, presses are placed "
@@ -195,7 +201,9 @@ def sections(N, F, P, link, L):
         f"{rcr('location_mm', '0.5').replace('–', '-')} to {rcr('location_mm').replace('–', '-')} mm, with points 2.0 mm "
         "apart against 1.0 mm (0.32-0.37 mm against 0.27-0.30 mm on random holds with the load near the normal), and "
         f"66-71 new rod points per tip lower the error on the earlier points by {rg(rdg, '{:.3f}').replace('–', '-')} mm "
-        f"({rg([rdn(t) for t in '456']).replace('–', '-')} mm among the new points); torsion not recovered "
+        f"({rg([rdn(t) for t in '456']).replace('–', '-')} mm among the new points), with a force angle of "
+        f"{rtr(RGT, TB[0], 'direction_deg', '{:.1f}').replace('–', '-')} deg against "
+        f"{rtr(DT, TB[0], 'direction_deg', '{:.1f}').replace('–', '-')} deg with the load near the normal; torsion not recovered "
         f"(GP r {tw4['gp_twists']['r']:.2f}, "
         f"{tw5['gp_twists']['r']:.2f} and {tw2['gp_twists']['r']:.2f} on the twists; on v3 IDs 2 and 3 no better than "
         f"predicting none); a GP trained on another tip gives "
@@ -254,6 +262,7 @@ def sections(N, F, P, link, L):
         ("Compliance scale $c$", "A factor on every displacement of the FE basis, fitted to the board's change. The FE "
          "is linear in one TPU, so the fitted modulus is the FE's 12 MPa divided by $c$."),
         ("Pooling", "Training one model on the holds of more than one tip."),
+        ("Load's tilt", "A hold's shear over its normal force. A load near the normal has a tilt under 0.1."),
         ("Inverted rig, seat", "A printed strip of three seats holds tips pad up on the table, and a probe on the HEX-E "
          "presses them (Section 15)."),
         ("Sweep, offset", "A sweep stops a normal press of the rod at force levels from 0.5 to 8 N, and each level is a "
@@ -1316,6 +1325,27 @@ def sections(N, F, P, link, L):
                                             rdcr("Location error (mm), all of them", 1.0)))],
                   caption="The board GP's errors with the new holds in the pool. Medians over four seeds for the new "
                           "points and over two seeds for all points. Rows in the files of Table 22.", n=23)
+    rtpath = "docs/experiments/20261022-ur5_tip_calibration/data/20261104-v3_tilt_reference_check.txt"
+    t24 = P.table(["Tip", "Load's tilt under 0.1", "0.1 to 0.3", "0.3 to 0.5", "Over 0.5"],
+                  [[f"v3 ID {t}"] + [f"{RTL[t][b]['location_mm']:.2f} mm, {RTL[t][b]['direction_deg']:.1f}°, "
+                                     f"{RTL[t][b]['shear_N']:.2f} N ({RTL[t][b]['holds']:,})" for b in TB] for t in DT + RGT],
+                  caption="The board GP's errors by the load's tilt, with a fifth of the points held out over three seeds. "
+                          "Each cell gives the location error, the force angle and the shear error, then the held-out holds "
+                          "of 1 N and over. The shear error is the size of the difference between the estimated and the "
+                          "measured shear. The pools of v3 IDs 4 to 6 include the new presses. Printout in "
+                          + P.code(rtpath) + ", with its script beside it.", n=24)
+
+    def rfrow(t):
+        cells = ["–", "–", "–"]
+        for sess, c in RF[t].items():
+            cells[1 if "sph2" in sess else 2 if "rod" in sess else 0] = (
+                f"{c['board_pct']:.1f} %, {c['direction_deg']:.2f}°, {c['label_mm']:.3f} mm ({c['presses']})")
+        return [f"v3 ID {t}"] + cells
+    t25 = P.table(["Tip", "Sphere", "2 mm sphere", "Rod"], [rfrow(t) for t in DT + RGT],
+                  caption="The spread of the reference presses repeated through each session, at 2 N. Each cell gives the "
+                          "spread of the board's reading, of the measured force's direction and of the contact label, then "
+                          "the number of presses. A spread is the median distance from the session's mean, and the board's "
+                          "is in % of the mean's size. Printout in the file of Table 24.", n=25)
     body = (
         f"<p>On the inverted rig the board GP locates contact on v3 IDs 4, 5 and 6 within {rcv('location_mm', '{:.2f}')} mm "
         "at 1 N and over (Table 19, Figure 12). All of the other points are in training. On v3 IDs 1 to 3, which the "
@@ -1327,7 +1357,8 @@ def sections(N, F, P, link, L):
         "<p>The points of v3 IDs 4 to 6 stand 1.94–2.02 mm from their nearest neighbour, against 0.97–0.99 mm on v3 IDs "
         "1 to 3. The night's tilted loads also raise the error (Table 21). With the load's tilt under 0.1 and the holds held "
         "out at random, a session's GP gives 0.32–0.37 mm, against 0.27–0.30 mm. Presses at 66 to 71 new points per tip "
-        f"lower the error on the earlier points by {rg(rdg, '{:.3f}')} mm (Table 22). "
+        f"lower the error on the earlier points by {rg(rdg, '{:.3f}')} mm (Table 22). At equal tilt the force angle on these "
+        "tips lies within about 1° of that on v3 IDs 1 to 3 (Table 24). "
         "Each tip has 30 flank points, against 11 "
         "or 12. The session s1sph2b alone gives 0.62–0.71 mm in every quarter of it, and the other sphere sessions "
         "0.31–0.43 mm. The board reads 31–32 µT/N on v3 IDs 4 to 6 and 26–27 µT/N on v3 IDs 1 to 3, and its rest drift "
@@ -1449,6 +1480,33 @@ def sections(N, F, P, link, L):
                 "medians. (b) With the new holds in the pool and a fifth of all points held out, against the number of "
                 "training points. Medians over two seeds; the bands span them. The grey band spans v3 IDs 1 to 3 with all "
                 "of their points. Drawn from the files of Table 22.")
+        + "<p><b>Load's tilt and tool.</b> At equal tilt the force angle on v3 IDs 4 to 6 lies within about 1° of that on "
+        f"v3 IDs 1 to 3 (Table 24, Figure 14b). With the tilt under 0.1 it is {rtr(RGT, TB[0], 'direction_deg', '{:.1f}')}°, "
+        f"against {rtr(DT, TB[0], 'direction_deg', '{:.1f}')}°. With the tilt over 0.5 it is "
+        f"{rtr(RGT, TB[3], 'direction_deg', '{:.1f}')}°, against {rtr(DT, TB[3], 'direction_deg', '{:.1f}')}°. Over all tilts "
+        f"the shear error is {rg([RTL[t][b]['shear_N'] for t in RGT for b in TB])} N, against "
+        f"{rg([RTL[t][b]['shear_N'] for t in DT for b in TB])} N. The location error stays higher at every tilt (Figure 14a). "
+        f"With the tilt under 0.1 it is {rtr(RGT, TB[0], 'location_mm')} mm, against {rtr(DT, TB[0], 'location_mm')} mm. There "
+        f"v3 ID 5 comes nearest to the first three tips, at {RTL['5'][TB[0]]['location_mm']:.2f} mm, "
+        f"{RTL['5'][TB[0]]['direction_deg']:.1f}° and {RTL['5'][TB[0]]['shear_N']:.2f} N. On near-normal loads the GP locates "
+        "new points about equally on the sphere's holds and on the rod's. On v3 IDs 4 to 6 it gives 0.62–0.67 mm on the "
+        "sphere's and 0.61–0.72 mm on the rod's. On v3 IDs 1 to 3 it gives 0.33–0.45 and 0.33–0.42 mm ("
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32; "
+        + P.code("data/20261104-v3_sphere_vs_rod_check.py") + " in the UR5 folder). The owner asked at 14:0x on 11-04 whether "
+        "the rig's coverage and angles of approach improve the force's direction.</p>"
+        "<p>The reference presses at 2 N repeat less well on the rig's rod sessions (Table 25). There the board's reading "
+        f"spreads by {rg([RF[t][k]['board_pct'] for t in RGT for k in RF[t] if 'rod' in k], '{:.1f}')} %, against "
+        f"{rg([c['board_pct'] for t in DT for c in RF[t].values()], '{:.1f}')} % over the sessions of v3 IDs 1 to 3. On the "
+        f"rig's sphere sessions it spreads by {rg([RF[t][k]['board_pct'] for t in RGT for k in RF[t] if 'rod' not in k], '{:.1f}')} %. "
+        f"The measured force's direction spreads by {rg([c['direction_deg'] for t in DT + RGT for c in RF[t].values()], '{:.1f}')}° "
+        "over all sessions. The contact label spreads by at most "
+        f"{max(c['label_mm'] for t in DT + RGT for k, c in RF[t].items() if 'sph2' not in k):.2f} mm, apart from "
+        f"{RF['5']['20261103-144808-s2sph2']['label_mm']:.2f} mm on s2sph2.</p>"
+        + t24
+        + P.fig(14, F["rig_tilt"], "The board GP's held-out errors on v3 IDs 1 to 6 by the load's tilt, with a fifth of the "
+                "points held out over three seeds. (a) Location error and (b) force angle over the held-out holds of 1 N "
+                "and over. v3 IDs 1 to 3 are in grey. Drawn from " + P.code(rtpath) + ".")
+        + t25
     )
     S.append(("rig", "Calibration of v3 IDs 4 to 6 on the inverted rig", body))
 
