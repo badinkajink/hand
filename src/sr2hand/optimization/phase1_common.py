@@ -16,6 +16,9 @@ from .force_closure import (
     force_closure_metrics,
 )
 from .phase1_trajectory import build_trajectory_interpolator
+from sr2hand.geometry.rotations import heading, rot_angle
+from sr2hand.geometry.vectors import angle as vector_angle
+from sr2hand.numerics.angles import wrap
 
 
 @dataclass
@@ -416,24 +419,18 @@ class Phase1GraspEvaluator:
 
     @staticmethod
     def _wrap_to_pi(angle: float) -> float:
-        return float((angle + np.pi) % (2.0 * np.pi) - np.pi)
+        return float(wrap(angle))
 
     def _cube_yaw(self, rot: np.ndarray) -> float:
         # Body x-axis heading around world Z. Works for all current scenes and catches spin/twist.
-        return float(np.arctan2(rot[1, 0], rot[0, 0]))
+        return float(heading(rot))
 
     def _cube_axis_tilt(self, rot_before: np.ndarray, rot_after: np.ndarray) -> float:
         # Cylinder's principal axis is local +Z.
-        axis_before = np.asarray(rot_before[:, 2], dtype=np.float64)
-        axis_after = np.asarray(rot_after[:, 2], dtype=np.float64)
-        dot = float(np.clip(np.dot(axis_before, axis_after), -1.0, 1.0))
-        return float(np.arccos(dot))
+        return float(vector_angle(rot_before[:, 2], rot_after[:, 2]))
 
     def _cube_total_angle_drift(self, rot_before: np.ndarray, rot_after: np.ndarray) -> float:
-        rel = np.asarray(rot_after @ rot_before.T, dtype=np.float64)
-        trace = float(np.trace(rel))
-        cos_ang = float(np.clip(0.5 * (trace - 1.0), -1.0, 1.0))
-        return float(np.arccos(cos_ang))
+        return float(rot_angle(rot_before, rot_after))
 
     def _tip_positions(self) -> np.ndarray:
         return np.vstack([self.data.xpos[bid] for bid in self.tip_body_ids])

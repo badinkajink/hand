@@ -18,6 +18,7 @@ from pathlib import Path
 
 import mujoco
 import numpy as np
+from sr2hand.geometry.rotations import rot_angle
 
 UR5E_JOINTS = ("shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
                "wrist_1_joint", "wrist_2_joint", "wrist_3_joint")
@@ -78,5 +79,5 @@ class ArmIK:
                 break
         q = np.array([cfg.q[a] for a in self.adr])
         Rf, pf = self.fk(q)
-        rot = float(np.arccos(np.clip((np.trace(Rf.T @ np.asarray(R, float)) - 1) / 2, -1, 1)))
+        rot = float(rot_angle(Rf, R))
         return q, float(np.linalg.norm(pf - np.asarray(p, float))), rot

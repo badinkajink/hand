@@ -25,6 +25,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+from sr2hand.geometry.rotations import frame_from_axis
+from sr2hand.geometry.vectors import unit
 
 try:  # pragma: no cover - mujoco is a runtime dep of the evaluator
     import mujoco  # pyright: ignore[reportMissingImports]
@@ -46,11 +48,7 @@ class ContactWrench:
 
     def __post_init__(self) -> None:
         self.point = np.asarray(self.point, dtype=np.float64).reshape(3)
-        n = np.asarray(self.normal, dtype=np.float64).reshape(3)
-        nn = float(np.linalg.norm(n))
-        if nn < 1e-12:
-            raise ValueError("ContactWrench: zero-length normal")
-        self.normal = n / nn
+        self.normal = unit(np.asarray(self.normal, dtype=np.float64).reshape(3))
 
 
 def extract_finger_contacts(
@@ -115,10 +113,8 @@ def _build_friction_cone_wrenches(
     for c in contacts:
         n = c.normal
         # Build two tangent directions perpendicular to n
-        helper = np.array([1.0, 0.0, 0.0]) if abs(n[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
-        t1 = helper - np.dot(helper, n) * n
-        t1 /= np.linalg.norm(t1) + 1e-12
-        t2 = np.cross(n, t1)
+        F = frame_from_axis(n, np.array([1.0, 0.0, 0.0]) if abs(n[0]) < 0.9 else np.array([0.0, 1.0, 0.0]))
+        t1, t2 = F[:, 0], F[:, 1]
 
         r = c.point - object_com
         for k in range(n_edges):

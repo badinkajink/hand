@@ -24,6 +24,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 import trimesh
+from sr2hand.geometry.distances import line_line, ray_triangles
+from sr2hand.geometry.rotations import frame_from_axis, tf
 
 
 @dataclass
@@ -117,22 +119,7 @@ def find(cyls: list[Cylinder], diameter: float, kind: str = "hole", tol: float =
 
 def _ray_all(tri: np.ndarray, o: np.ndarray, d: np.ndarray) -> np.ndarray:
     """Ray parameters of every crossing of the line o + t d with the triangles (Moller-Trumbore)."""
-    v0 = tri[:, 0]
-    e1, e2 = tri[:, 1] - v0, tri[:, 2] - v0
-    p = np.cross(d, e2)
-    det = (e1 * p).sum(1)
-    ok = np.abs(det) > 1e-12
-    inv = np.where(ok, 1.0 / np.where(ok, det, 1.0), 0.0)
-    s = o - v0
-    u = (s * p).sum(1) * inv
-    q = np.cross(s, e1)
-    v = (q @ d) * inv
-    t = (e2 * q).sum(1) * inv
-    hit = ok & (u >= 0) & (v >= 0) & (u + v <= 1)
-    ts = np.sort(t[hit])
-    if len(ts):
-        ts = ts[np.r_[True, np.diff(ts) > 1e-6]]
-    return ts
+    return ray_triangles(tri, o, d)
 
 
 def perpendicular_basis(a: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -174,19 +161,11 @@ def interval_ends(rows, near: float, side: str) -> float:
 
 def rotation_from_frames(src_a, src_b, dst_a, dst_b) -> np.ndarray:
     """Rotation R with R @ src_a = dst_a and R @ src_b = dst_b (both pairs orthonormalised)."""
-    def frame(a, b):
-        a = np.asarray(a, float) / np.linalg.norm(a)
-        b = np.asarray(b, float) - (np.asarray(b, float) @ a) * a
-        b /= np.linalg.norm(b)
-        return np.column_stack([a, b, np.cross(a, b)])
-    return frame(dst_a, dst_b) @ frame(src_a, src_b).T
+    return frame_from_axis(dst_a, dst_b, which=0) @ frame_from_axis(src_a, src_b, which=0).T
 
 
 def transform(R: np.ndarray, t) -> np.ndarray:
-    T = np.eye(4)
-    T[:3, :3] = R
-    T[:3, 3] = t
-    return T
+    return tf(R, t)
 
 
 @dataclass
@@ -278,8 +257,4 @@ def voxelize_solid(mesh: trimesh.Trimesh, pitch: float, margin: int = 2) -> Soli
 
 def line_distance(p1, a1, p2, a2) -> float:
     """Shortest distance between two lines (point, direction)."""
-    n = np.cross(a1, a2)
-    if np.linalg.norm(n) < 1e-9:
-        d = np.asarray(p2) - np.asarray(p1)
-        return float(np.linalg.norm(d - (d @ a1) * np.asarray(a1)))
-    return float(abs((np.asarray(p2) - np.asarray(p1)) @ (n / np.linalg.norm(n))))
+    return float(line_line(p1, a1, p2, a2))
