@@ -2974,6 +2974,26 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - The HEX-E gave 314,725 samples, none timed out.
 - 06:21:10, step 9, the night's last: seat 1's extras (rod19, 101 grid actions, its three 4 N rolls skipped as
   done).
+- 07:11:24, seat 1's extras ended cleanly: 99 actions, all ok. The three 1.5 N rolls took a median 103 s. All 93
+  obliques reached 3 N, at a median 25 s each. The HEX-E gave 300,620 samples, none timed out.
+- 07:11:26, the chain: "all steps done; the arm waits at the last action's rest" (seat 1's probe-ref-x1, the rod a
+  few mm over seat 1's pad). The 08:30 stop (PID 2877930) had nothing left to stop and was stopped by its PID at
+  07:12:29, so that it cannot catch a program started near 08:30.
+- The night, 19:15:01 on 11-03 to 07:11:26 on 11-04: nine steps, every one clean. No action aborted and the HEX-E
+  timed out on no read. The friction check skipped the rest of a level 29 times: 23 at 0.5 N's offsets, 3 at 1 N's
+  offsets, and slides once at 2 N and twice at 4 N.
+
+  | | Seat 1 (v3 ID 6) | Seat 2 (v3 ID 5) | Seat 3 (v3 ID 4) |
+  |---|---|---|---|
+  | Sweeps | 62 light | 52 light, 7 full | 56 light |
+  | Offsets held, light sweeps | 1934 of 1968 | 1627 of 1656 | 1749 of 1776 |
+  | Slides held, light sweeps | 242 of 248 | 204 of 206 | 220 of 220 |
+  | Twists at 5 N | 14 | 12 | 12 |
+  | Rolls at 4 N and 1.5 N | 3 and 3 | 4 and 4 | 4 and 4 |
+  | Obliques to 3 N | 93 of 93 | 83 of 86 | 92 of 95 |
+
+  Seat 2's seven full sweeps (64 offsets, 8 slides each) ran before the switch at 19:13. The obliques that stopped at
+  2 N are flank-563-o35-a0, -o20-a0 and -o35-a270 on seats 2 and 3.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 
