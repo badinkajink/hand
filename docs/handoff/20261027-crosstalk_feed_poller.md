@@ -11,7 +11,7 @@ and its builder scripts/fingertip_crosstalk_page.py; docs/experiments/20261027-v
 (the plan, and its section "Results feed for the doc-writing session") and feed.jsonl beside it;
 docs/experiments/20261027-fingertip_holder/README.md; the docstring of scripts/crosstalk_feed_watch.py;
 ~/.claude/writing_reference.md; memory project_fingertip_crosstalk_budget_2026_10_27.md and project_v3_tips_plan_2026_10_27.md.
-State: armed 2026-10-27 21:00 from the colorado window. 11-03 18:0x: feed line 51 (17:38: the rod's first start
+State: armed 2026-10-27 21:00 from the colorado window. 11-03 19:3x: feed line 52 (19:18: a full sweep took 258 s, so the night's plan became lighter sweeps in two halves per seat, then rolls and obliques; last start 08:00, hard stop 08:30; seat 2's fitted turn of 5.4° and its trims; the HEX-E out from 18:01 to 18:51) in the cone item, calibration page f9d42b24 and 132803fa (prose 637, 16.8, 1.9 %, 272/1000). The rig item's pointer now names the cone item. QUEUE R32 and lab/NOTES.md say 8 full sweeps on seat 2, but their list and the plan's order give 7 sweeps and the reference press (grid action 8 of 85), so the page says 7, and 171 lighter sweeps of the 178. The overview and the physical-model page state none of this. Acked 52 lines at HEAD 132803fa. Next: the run's end by 08:30 on 11-04, then the coordinator's analysis of the rig's sessions. 11-03 18:0x: feed line 51 (17:38: the rod's first start
 stopped before the grid at 17:15, the tool a quarter turn off on its boss; reseated, the chain restarted at 17:26:47,
 end about 03:30 on 11-04) in the cone item, calibration page f1217549 (prose 628, 16.8, 1.9 %, 268/1000). Acked 51
 lines at HEAD f1217549.
