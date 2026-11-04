@@ -2765,8 +2765,8 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - The chain was killed by its PID at 19:09:41. Sweep 713 had ended at 19:09:19, so the program ran 618 too and got
     its SIGINT right after 618's line (8/85), at 19:13:35; exit 0 at 19:13:38. The HEX-E gave 128,089 samples with
     none timed out.
-  - Seat 2 so has 8 sweeps in full, 4 in each half (573, 638, 630 and 618 in a; 634, 569 and 713 in b, with
-    probe-ref-00).
+  - Seat 2 so has 7 sweeps in full and probe-ref-00: 573, 638, 630 and 618 in half a; 634, 569 and 713 in half b.
+    (This line said 8 sweeps, 4 in each half, until 19:3x.)
   - The arm stood at 618's rest, joints (35.700, -78.985, 115.334, -113.396, -47.707, 41.349) deg, within 1.2 deg of
     its q_rest. The workstation's checker from there flagged 0 of half a's 27 actions: joint 6 -56.4 to 42.2 deg, the
     rod at least 0.50 mm from the tip body in its own moves.
@@ -2781,8 +2781,28 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
     at 4 and 1.5 N, the obliques at azimuths 0 and 180, those at 90 and 270, and probe-ref-x1. A 4 N roll that half b
     ran is skipped as done.
 - The workstation's checker on the whole chain in run order (from 618's rest; 3a and 1a with their pass 1; the extras
-  less the 4 N rolls): 2a 0 of 27 flagged, 3a 0 of 50 (joint 6 -51.1 to 42.0 deg, the rod at least 0.52 mm from seat
-  3's tip body).
+  less the 4 N rolls) flagged none of the 589 actions. It ran from 19:11:55 to 19:29:02 (`20261103-rod_night_halves_run_check.json`).
+
+  | Plan | Actions | Joint 6, deg | Rod to the tip body in its own moves, mm |
+  |---|---|---|---|
+  | 2a | 27 | -56.4 to 42.2 | 0.50 |
+  | 3a | 50 | -51.1 to 42.0 | 0.52 |
+  | 1a | 54 | -61.0 to 42.2 | 0.52 |
+  | 1b | 50 | -61.3 to 42.2 | 0.56 |
+  | 3b | 46 | -51.0 to 41.8 | 0.56 |
+  | 2b | 44 | -58.1 to 42.3 | 0.56 |
+  | 2x | 108 | -59.0 to 0.0 | 0.48 |
+  | 3x | 109 | -54.2 to 0.0 | 0.48 |
+  | 1x | 101 | -61.1 to 0.0 | 0.49 |
+
+  The checker needs 0.3 mm from the rod's end to a tip and 1.0 mm from the stem. The closest passes:
+  - probe-edge-654-o20-a90-r90 in 1x: its joint travel from probe-face-790-o35-a270-r90 passes 0.36 mm from seat 1's
+    pad. The workstation's own check of the extras (run_check_rod_extras_seat1) has the same 0.36 mm.
+  - Seat 3's edge-639: the stem passes 1.02 to 1.18 mm from seat 3's pad in the eight obliques of 3x, and 1.24 mm in
+    sweep-edge-639-r90 of 3b.
+  - The rod's end passes 0.48 to 0.59 mm from the tip body in the deep presses near the pad's edge (edge-573, -615,
+    -618 and flank-553, -563).
+  - Least to the table's 2x4: 17.1 mm in 3a (the checker needs 8 mm).
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 

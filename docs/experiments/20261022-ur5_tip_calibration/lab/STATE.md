@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-03 19:2x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-03 19:3x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -267,10 +267,13 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     - Every sweep location of the _fit plans stays, lighter: offsets at 4 azimuths (32 a sweep), slides at az 0 and
       90 at 2 and 4 N (4 a sweep). Half b ends with the 5 N twists, a reference press and the 4 N rolls. The extras
       hold the 1.5 N rolls and the 20 and 35 deg obliques, those at azimuths 0 and 180 first.
-    - Expected at about 150 s a light sweep (the first took 2.3 min with its hub travel): seat 2's half to about
-      20:25, seat 3's to about 22:05, seat 1's to about 23:50; the second halves to about 04:40; then the extras, about
-      45 min a seat, to about 07:00. An outage of over an hour cuts seat 1's extras first.
-    - Seat 2 so far: 8 sweeps in full (64 offsets, 8 slides) before the switch, 4 in each half.
+    - Light sweeps take 149 to 165 s on the robot (six by 19:31, mean 159 s). Expected: seat 2's half to about 20:25,
+      seat 3's to about 22:05, seat 1's to about 23:50; the second halves to about 05:00; then the extras, about 45 min
+      a seat, to about 07:10. An outage of over an hour cuts seat 1's extras first.
+    - Seat 2 so far: 7 sweeps in full (64 offsets, 8 slides) and probe-ref-00 before the switch, 4 sweeps in half a
+      and 3 in half b.
+    - The workstation's checker on the whole chain in run order flagged none of its 589 actions (19:29;
+      `20261103-rod_night_halves_run_check.json`, NOTES).
     - No step starts after 08:00 (the owner, relayed at 19:1x: "i mean i wont be in until 9").
       `logs/20261103-deadline_stop.sh` (PID 2877930) stops every running chain at 08:30, then the program right after
       its next finished action.
