@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 12:2x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 13:0x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -274,6 +274,10 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       seat 3's (pts32).
     - Done: seat 3's face and edges (pts32), 11:54:51 to 12:29:23, 70 of 70 to 3 N, no skip or abort. From 12:29:27,
       seat 2's (pts23).
+    - Done: seat 2's face and edges (pts23), 12:29:27 to 13:04:04, 70 of 70 to 3 N, no skip or abort. All three seats'
+      face and edges are done, 215 of 215.
+    - Done: seat 2's flanks and tip (pts24), 13:04:12 to 13:08:37, 6 of 6. From 13:08:37, seat 3's (pts35), then seat
+      1's.
   - **Next, 11-04 from about 11:1x: more rod points before the SR2 mounting.** The owner, relayed at 10:44: "if we
     just lost density of coverage why dont we just add points now. i know i said we were done earlier, but we should
     have a few hours left to get that density". The held-out GP places contact to 0.78 to 0.82 mm on IDs 4 to 6,
