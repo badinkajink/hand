@@ -12,10 +12,15 @@ hom_grasp_refine.py logs each iteration's wall and draw times. This script:
                writes compute/<date>-ledger.json.
   cpu-bench    times the CPU runner (hom_tasks.rollout, one process per core, BLAS threads 1) on the GPU runs' own
                layouts, grasps, plant and seed: the best S1 layouts of a task with their S1 grasps, seed 0. Variants:
-               'plant', the CPU plant as the CPU checks run it (every contact, the scene's solver settings), and
-               'matched', with the GPU evaluator's contact filter (pads and rigid spheres under 2 mm meet the object
-               only) and solver settings (tolerance 1e-6, 20 iterations, 10 line-search iterations). --procs P runs P
-               processes at once for the throughput of P cores. Rows compute/cpu_bench.jsonl, one per rollout.
+               'plant', the CPU plant as the CPU checks run it (every contact, the scene's solver: tolerance 1e-10, 100
+               iterations, 50 line-search iterations), and 'filter', with the GPU evaluator's contact filter (pads and
+               rigid spheres under 2 mm meet the object only), the CPU model closest to the GPU's. Diagnostics: 'solver'
+               sets the GPU's solver settings (tolerance 1e-6, 20 iterations, 10 line-search iterations) and 'matched'
+               both. On 2026-11-03 'filter' scored as the GPU on 4 of 4 rollouts and as fast as 'plant'; 'solver' dropped
+               every twist and roll sphere that the GPU holds (CPU MuJoCo's Newton solver does not converge the pads in
+               20 iterations), and a 'matched' pin-push rollout ran for minutes; so the GPU's solver settings are no CPU
+               baseline. --procs P runs P processes at once for the throughput of P cores. Rows compute/cpu_bench.jsonl,
+               one per rollout.
   gpu-bench    times GPU batches of 64 to the queue's batch size of the same rollouts (the GPU must be free: it
                refuses while logs/20261103-hom_score_refine/queue.sh runs); rows compute/gpu_bench_<task>.jsonl and
                _timing.jsonl.
@@ -24,7 +29,7 @@ hom_grasp_refine.py logs each iteration's wall and draw times. This script:
                poses and process starts), the CPU runner's s per rollout, and the speedups: one GPU against one CPU core.
 
     python3 scripts/hom_compute.py ledger
-    python3 scripts/hom_compute.py cpu-bench --tasks twist roll pinpush press --n 6 --variants plant matched [--procs 4]
+    python3 scripts/hom_compute.py cpu-bench --tasks twist roll pinpush press --n 6 --variants plant filter [--procs 4]
     python3 scripts/hom_compute.py gpu-bench --tasks twist roll pinpush press
     python3 scripts/hom_compute.py report
 Run cpu-bench and gpu-bench through ~/.claude/bin/resguard.sh run (cpu-bench: about 1 GB per process).
@@ -194,13 +199,14 @@ def cmd_cpu_worker(a):
             S.set_palm(m_pt, setup["palm"])
             m = plant.m
             opt0 = {k: float(getattr(m.opt, k)) for k in GPU_SETTINGS}
-            if a.variant == "matched":
+            if a.variant in ("matched", "filter"):
                 filt = np.array([("_pad" in (m.geom(g).name or "")) or bool(fine.search(m.geom(g).name or "")
                                                                          and m.geom_size[g][0] < 0.002)
                                  for g in range(m.ngeom)])
                 tool = np.flatnonzero(m.geom_bodyid == plant.tb)
                 m.geom_contype[filt], m.geom_conaffinity[filt] = 2, 0
                 m.geom_conaffinity[tool] = m.geom_conaffinity[tool] | 2
+            if a.variant in ("matched", "solver"):
                 for k, v in GPU_SETTINGS.items():
                     setattr(m.opt, k, v)
             fs, os_ = T.sr2_specs(setup)
@@ -214,6 +220,7 @@ def cmd_cpu_worker(a):
                                     T.PLANT_VARIANTS.get(var, {}).get("hold_s", 0.0))
             wall, cpu = time.perf_counter() - t1, time.process_time() - c0
             row = {"task": task, "plant": a.plant, "hos_plant": R.PLANTS[a.plant][0], "variant": a.variant,
+                   "solver": int(m.opt.solver), "cone": int(m.opt.cone), "impratio": float(m.opt.impratio),
                    "call": L_["call"], "xy": L_["xy"], "grasp": L_["s1_grasp"], "seed": a.seed, "wall_s": round(wall, 3),
                    "cpu_s": round(cpu, 3), "setup_s": round(t_setup, 3), "sim_s": round(float(sch.t_end), 3),
                    "phys_dt": float(m.opt.timestep), "opt_scene": opt0, "score": round(L.rollout_score(task, res), 4),
@@ -295,7 +302,7 @@ def cmd_report(a):
     out = {"made": time.strftime("%Y-%m-%d %H:%M"), "cpu": {}, "gpu_bench": {}, "queue": {}, "speedup": {}}
     for task in R.TASKS:
         c = {}
-        for v in ("plant", "matched"):
+        for v in ("plant", "filter", "solver", "matched"):
             for procs in sorted({r["procs"] for r in cpu if r["task"] == task and r["variant"] == v}):
                 rs = [r for r in cpu if r["task"] == task and r["variant"] == v and r["procs"] == procs]
                 c[f"{v}_p{procs}"] = {"n": len(rs), "wall_s": round(float(np.median([r["wall_s"] for r in rs])), 3),
@@ -355,9 +362,10 @@ def main():
         p.add_argument("--seed", type=int, default=0)
         p.add_argument("--procs", type=int, default=1)
         if name == "cpu-bench":
-            p.add_argument("--variants", nargs="+", default=["plant", "matched"], choices=("plant", "matched"))
+            p.add_argument("--variants", nargs="+", default=["plant", "filter"],
+                           choices=("plant", "matched", "filter", "solver"))
         else:
-            p.add_argument("--variant", required=True, choices=("plant", "matched"))
+            p.add_argument("--variant", required=True, choices=("plant", "matched", "filter", "solver"))
             p.add_argument("--proc", type=int, default=0)
     g = sub.add_parser("gpu-bench")
     g.add_argument("--plant", default="sv25", choices=list(R.PLANTS))

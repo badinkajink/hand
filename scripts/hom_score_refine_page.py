@@ -516,7 +516,7 @@ def sec_compute():
     for task in TASKS:
         q = (Tp["queue"].get(task) or {}).get("grasp") or (Tp["queue"].get(task) or {}).get("full") or {}
         c = Tp["cpu"].get(task) or {}
-        cp, cm = c.get("plant_p1"), c.get("matched_p1")
+        cp, cm = c.get("plant_p1"), c.get("filter_p1")
         sp = Tp["speedup"].get(task) or {}
         body.append([NAME[task], f2(q.get("ms_per_rollout_run_full_batches")), f2(q.get("ms_per_rollout_batch")),
                      f2(q.get("step_ms_per_rollout")), f2(cp["wall_s"]) if cp else "n/a",
@@ -524,14 +524,17 @@ def sec_compute():
                      (f"{sp['plant_p1']['vs_gpu_run']:.0f} / {sp['plant_p1']['vs_gpu_batch']:.0f} / "
                       f"{sp['plant_p1']['vs_gpu_step']:.0f}") if sp.get("plant_p1") and sp["plant_p1"].get("vs_gpu_step")
                      else "n/a",
-                     (f"{sp['matched_p1']['vs_gpu_run']:.0f} / {sp['matched_p1']['vs_gpu_batch']:.0f} / "
-                      f"{sp['matched_p1']['vs_gpu_step']:.0f}") if sp.get("matched_p1") and sp["matched_p1"].get("vs_gpu_step")
+                     (f"{sp['filter_p1']['vs_gpu_run']:.0f} / {sp['filter_p1']['vs_gpu_batch']:.0f} / "
+                      f"{sp['filter_p1']['vs_gpu_step']:.0f}") if sp.get("filter_p1") and sp["filter_p1"].get("vs_gpu_step")
                      else "n/a"])
-    t1 = table(["Task", "GPU run (ms)", "GPU batch (ms)", "Queue step (ms)", "CPU plant (s)", "CPU matched (s)",
-                "Speedup on plant: run / batch / step", "Speedup on matched: run / batch / step"], body,
+    t1 = table(["Task", "GPU run (ms)", "GPU batch (ms)", "Queue step (ms)", "CPU, every contact (s)",
+                "CPU, GPU's filter (s)", "Speedup, every contact: run / batch / step",
+                "Speedup, GPU's filter: run / batch / step"], body,
                "Time per rollout on the SCS0009. GPU columns: the S2 search's full batches (2,048 sphere or 1,536 "
-               "cylinder worlds) and its whole steps. CPU columns: the CPU runner on one core, as the CPU checks run "
-               "it (plant) and with the GPU's contact filter and solver settings (matched), on the best S1 layouts.")
+               "cylinder worlds) and its whole steps. CPU columns: the CPU runner on one core with the scene's solver "
+               "settings, with every contact as the CPU checks run it, and with the GPU's contact filter, on the best "
+               "S1 layouts. With the GPU's solver settings (20 iterations) the CPU dropped every twist and roll "
+               "sphere, so those settings are no CPU baseline.")
     tot, st = Lg["total_hom_gpu"], Lg["score_refine_study"]
     text = fill("""<p>Every GPU batch writes its own timing line beside its rows, and <code>scripts/hom_compute.py</code>
 sums them into a ledger. This study ran <<sr>> rollouts in <<sh>> h of batch time. All HOM GPU runs since 2026-10-29 come
@@ -558,7 +561,7 @@ def fig_throughput():
         if g:
             ax.loglog([r["worlds"] for r in g], [r["run_ms"] for r in g], "-o", color=C2, label="GPU run")
             ax.loglog([r["worlds"] for r in g], [r["batch_ms"] for r in g], "--s", color=C3, label="GPU batch")
-        for key, ls, lab in (("plant_p1", ":", "CPU plant"), ("matched_p1", "-.", "CPU matched")):
+        for key, ls, lab in (("plant_p1", ":", "CPU, every contact"), ("filter_p1", "-.", "CPU, GPU's filter")):
             c = (Tp["cpu"].get(task) or {}).get(key)
             if c:
                 ax.axhline(1000 * c["wall_s"], color="k", ls=ls, label=lab)
