@@ -1,0 +1,910 @@
+probe-ref-00: 0.5 N at 1.742 mm, 1 N at 1.893 mm, 2 N at 2.126 mm, 3 N at 2.334 mm
+probe-ref-a1: 0.5 N at 1.772 mm, 1 N at 1.978 mm, 2 N at 2.165 mm, 3 N at 2.354 mm
+probe-ref-b0: 0.5 N at 1.811 mm, 1 N at 1.921 mm, 2 N at 2.151 mm, 3 N at 2.332 mm
+probe-ref-final: 0.5 N at 1.830 mm, 1 N at 1.980 mm, 2 N at 2.237 mm, 3 N at 2.433 mm
+probe-ref-x0: 0.5 N at 1.791 mm, 1 N at 1.928 mm, 2 N at 2.092 mm, 3 N at 2.303 mm
+probe-edge-615-o20-a0-r90: 0.5 N at 1.706 mm, 1 N at 1.854 mm, 2 N at 2.070 mm, 3 N at 2.232 mm
+probe-edge-615-o20-a180-r90: 0.5 N at 1.738 mm, 1 N at 1.804 mm, 2 N at 1.991 mm, 3 N at 2.177 mm
+probe-edge-675-o20-a0-r90: 0.5 N at 1.807 mm, 1 N at 1.934 mm, 2 N at 2.140 mm, 3 N at 2.340 mm
+probe-edge-675-o20-a180-r90: 0.5 N at 1.845 mm, 1 N at 1.913 mm, 2 N at 2.109 mm, 3 N at 2.312 mm
+probe-edge-675-o35-a0-r90: 0.5 N at 1.779 mm, 1 N at 1.950 mm, 2 N at 2.119 mm, 3 N at 2.396 mm
+probe-edge-675-o35-a180-r90: 0.5 N at 1.782 mm, 1 N at 1.926 mm, 2 N at 2.123 mm, 3 N at 2.384 mm
+probe-face-756-o20-a0-r90: 0.5 N at 1.913 mm, 1 N at 1.957 mm, 2 N at 2.210 mm, 3 N at 2.477 mm
+probe-face-756-o20-a180-r90: 0.5 N at 1.868 mm, 1 N at 1.964 mm, 2 N at 2.130 mm, 3 N at 2.395 mm
+probe-face-756-o35-a0-r90: 0.5 N at 1.945 mm, 1 N at 2.077 mm, 2 N at 2.300 mm, 3 N at 2.554 mm
+probe-face-756-o35-a180-r90: 0.5 N at 1.881 mm, 1 N at 2.022 mm, 2 N at 2.185 mm, 3 N at 2.480 mm
+probe-edge-630-o20-a0-r90: 0.5 N at 1.686 mm, 1 N at 1.760 mm, 2 N at 1.980 mm, 3 N at 2.183 mm
+probe-edge-630-o20-a180-r90: 0.5 N at 1.676 mm, 1 N at 1.774 mm, 2 N at 1.945 mm, 3 N at 2.131 mm
+probe-edge-630-o35-a0-r90: 0.5 N at 1.708 mm, 1 N at 1.849 mm, 2 N at 2.077 mm, 3 N at 2.289 mm
+probe-edge-630-o35-a180-r90: 0.5 N at 1.732 mm, 1 N at 1.838 mm, 2 N at 2.082 mm, 3 N at 2.227 mm
+probe-face-697-o20-a0-r90: 0.5 N at 1.768 mm, 1 N at 1.901 mm, 2 N at 2.146 mm, 3 N at 2.359 mm
+probe-face-697-o20-a180-r90: 0.5 N at 1.764 mm, 1 N at 1.962 mm, 2 N at 2.148 mm, 3 N at 2.301 mm
+probe-face-697-o35-a0-r90: 0.5 N at 1.870 mm, 1 N at 2.005 mm, 2 N at 2.213 mm, 3 N at 2.514 mm
+probe-face-697-o35-a180-r90: 0.5 N at 1.755 mm, 1 N at 1.832 mm, 2 N at 2.094 mm, 3 N at 2.236 mm
+probe-face-776-o20-a0-r90: 0.5 N at 1.838 mm, 1 N at 1.952 mm, 2 N at 2.148 mm, 3 N at 2.350 mm
+probe-face-776-o20-a180-r90: 0.5 N at 1.859 mm, 1 N at 1.954 mm, 2 N at 2.155 mm, 3 N at 2.355 mm
+probe-face-776-o35-a0-r90: 0.5 N at 1.936 mm, 1 N at 2.073 mm, 2 N at 2.243 mm, 3 N at 2.498 mm
+probe-face-776-o35-a180-r90: 0.5 N at 1.911 mm, 1 N at 2.060 mm, 2 N at 2.266 mm, 3 N at 2.471 mm
+probe-face-717-o20-a0-r90: 0.5 N at 1.674 mm, 1 N at 1.786 mm, 2 N at 1.991 mm, 3 N at 2.112 mm
+probe-face-717-o20-a180-r90: 0.5 N at 1.600 mm, 1 N at 1.649 mm, 2 N at 1.880 mm, 3 N at 2.023 mm
+probe-face-717-o35-a0-r90: 0.5 N at 1.672 mm, 1 N at 1.811 mm, 2 N at 2.034 mm, 3 N at 2.228 mm
+probe-face-717-o35-a180-r90: 0.5 N at 1.586 mm, 1 N at 1.698 mm, 2 N at 1.883 mm, 3 N at 2.106 mm
+probe-face-731-o20-a0-r90: 0.5 N at 1.690 mm, 1 N at 1.845 mm, 2 N at 2.063 mm, 3 N at 2.294 mm
+probe-face-731-o20-a180-r90: 0.5 N at 1.736 mm, 1 N at 1.796 mm, 2 N at 2.019 mm, 3 N at 2.225 mm
+probe-face-731-o35-a0-r90: 0.5 N at 1.694 mm, 1 N at 1.906 mm, 2 N at 2.193 mm, 3 N at 2.406 mm
+probe-face-731-o35-a180-r90: 0.5 N at 1.722 mm, 1 N at 1.809 mm, 2 N at 2.090 mm, 3 N at 2.300 mm
+probe-edge-573-o20-a0-r90: 0.5 N at 1.925 mm, 1 N at 2.030 mm, 2 N at 2.225 mm, 3 N at 2.397 mm
+probe-edge-573-o20-a180-r90: 0.5 N at 1.933 mm, 1 N at 2.043 mm, 2 N at 2.219 mm, 3 N at 2.371 mm
+probe-edge-573-o35-a0-r90: 0.5 N at 2.045 mm, 1 N at 2.188 mm, 2 N at 2.394 mm, 3 N at 2.569 mm
+probe-edge-573-o35-a180-r90: 0.5 N at 2.024 mm, 1 N at 2.124 mm, 2 N at 2.321 mm, 3 N at 2.507 mm
+probe-face-790-o20-a0-r90: 0.5 N at 1.780 mm, 1 N at 1.946 mm, 2 N at 2.127 mm, 3 N at 2.295 mm
+probe-face-790-o20-a180-r90: 0.5 N at 1.808 mm, 1 N at 1.972 mm, 2 N at 2.170 mm, 3 N at 2.290 mm
+probe-face-790-o35-a0-r90: 0.5 N at 1.870 mm, 1 N at 1.975 mm, 2 N at 2.176 mm, 3 N at 2.401 mm
+probe-face-790-o35-a180-r90: 0.5 N at 1.827 mm, 1 N at 1.934 mm, 2 N at 2.176 mm, 3 N at 2.372 mm
+probe-edge-654-o35-a0-r90: 0.5 N at 1.642 mm, 1 N at 1.812 mm, 2 N at 2.052 mm, 3 N at 2.289 mm
+probe-edge-654-o20-a0-r90: 0.5 N at 1.633 mm, 1 N at 1.744 mm, 2 N at 1.936 mm, 3 N at 2.140 mm
+probe-edge-654-o20-a180-r90: 0.5 N at 1.609 mm, 1 N at 1.749 mm, 2 N at 1.986 mm, 3 N at 2.173 mm
+probe-edge-654-o35-a180-r90: 0.5 N at 1.625 mm, 1 N at 1.745 mm, 2 N at 2.020 mm, 3 N at 2.242 mm
+probe-edge-639-o20-a0-r90: 0.5 N at 1.554 mm, 1 N at 1.695 mm, 2 N at 1.844 mm, 3 N at 1.993 mm
+probe-edge-639-o20-a180-r90: 0.5 N at 1.664 mm, 1 N at 1.659 mm, 2 N at 1.882 mm, 3 N at 2.054 mm
+probe-edge-639-o35-a0-r90: 0.5 N at 1.643 mm, 1 N at 1.755 mm, 2 N at 1.944 mm, 3 N at 2.194 mm
+probe-edge-639-o35-a180-r90: 0.5 N at 1.631 mm, 1 N at 1.683 mm, 2 N at 1.937 mm, 3 N at 2.142 mm
+probe-edge-615-o20-a90-r90: 0.5 N at 1.751 mm, 1 N at 1.852 mm, 2 N at 2.042 mm, 3 N at 2.209 mm
+probe-edge-615-o20-a270-r90: 0.5 N at 1.715 mm, 1 N at 1.812 mm, 2 N at 1.925 mm, 3 N at 2.075 mm
+probe-edge-615-o35-a90-r90: 0.5 N at 1.755 mm, 1 N at 1.878 mm, 2 N at 2.067 mm, 3 N at 2.294 mm
+probe-edge-615-o35-a270-r90: 0.5 N at 1.769 mm, 1 N at 1.879 mm, 2 N at 2.080 mm, 3 N at 2.289 mm
+probe-edge-675-o20-a90-r90: 0.5 N at 1.770 mm, 1 N at 1.921 mm, 2 N at 2.109 mm, 3 N at 2.300 mm
+probe-edge-675-o20-a270-r90: 0.5 N at 1.831 mm, 1 N at 1.991 mm, 2 N at 2.125 mm, 3 N at 2.279 mm
+probe-edge-675-o35-a90-r90: 0.5 N at 1.785 mm, 1 N at 1.917 mm, 2 N at 2.154 mm, 3 N at 2.348 mm
+probe-edge-675-o35-a270-r90: 0.5 N at 1.835 mm, 1 N at 1.946 mm, 2 N at 2.162 mm, 3 N at 2.351 mm
+probe-face-756-o20-a90-r90: 0.5 N at 1.843 mm, 1 N at 1.990 mm, 2 N at 2.221 mm, 3 N at 2.417 mm
+probe-face-756-o20-a270-r90: 0.5 N at 1.936 mm, 1 N at 2.062 mm, 2 N at 2.213 mm, 3 N at 2.479 mm
+probe-face-756-o35-a90-r90: 0.5 N at 1.939 mm, 1 N at 2.049 mm, 2 N at 2.256 mm, 3 N at 2.552 mm
+probe-face-756-o35-a270-r90: 0.5 N at 1.940 mm, 1 N at 2.075 mm, 2 N at 2.298 mm, 3 N at 2.566 mm
+probe-edge-630-o20-a90-r90: 0.5 N at 1.651 mm, 1 N at 1.750 mm, 2 N at 1.980 mm, 3 N at 2.151 mm
+probe-edge-630-o20-a270-r90: 0.5 N at 1.708 mm, 1 N at 1.801 mm, 2 N at 1.967 mm, 3 N at 2.135 mm
+probe-edge-630-o35-a90-r90: 0.5 N at 1.700 mm, 1 N at 1.796 mm, 2 N at 2.043 mm, 3 N at 2.240 mm
+probe-edge-630-o35-a270-r90: 0.5 N at 1.701 mm, 1 N at 1.845 mm, 2 N at 2.046 mm, 3 N at 2.264 mm
+probe-face-697-o20-a90-r90: 0.5 N at 1.709 mm, 1 N at 1.848 mm, 2 N at 2.050 mm, 3 N at 2.242 mm
+probe-face-697-o20-a270-r90: 0.5 N at 1.791 mm, 1 N at 1.930 mm, 2 N at 2.135 mm, 3 N at 2.330 mm
+probe-face-697-o35-a90-r90: 0.5 N at 1.832 mm, 1 N at 1.885 mm, 2 N at 2.180 mm, 3 N at 2.464 mm
+probe-face-697-o35-a270-r90: 0.5 N at 1.803 mm, 1 N at 1.948 mm, 2 N at 2.181 mm, 3 N at 2.408 mm
+probe-face-776-o20-a90-r90: 0.5 N at 1.847 mm, 1 N at 1.952 mm, 2 N at 2.174 mm, 3 N at 2.388 mm
+probe-face-776-o20-a270-r90: 0.5 N at 1.938 mm, 1 N at 2.067 mm, 2 N at 2.259 mm, 3 N at 2.438 mm
+probe-face-776-o35-a90-r90: 0.5 N at 1.908 mm, 1 N at 2.118 mm, 2 N at 2.320 mm, 3 N at 2.503 mm
+probe-face-776-o35-a270-r90: 0.5 N at 1.891 mm, 1 N at 2.055 mm, 2 N at 2.293 mm, 3 N at 2.558 mm
+probe-face-717-o20-a90-r90: 0.5 N at 1.609 mm, 1 N at 1.703 mm, 2 N at 1.903 mm, 3 N at 2.074 mm
+probe-face-717-o20-a270-r90: 0.5 N at 1.648 mm, 1 N at 1.758 mm, 2 N at 1.936 mm, 3 N at 2.099 mm
+probe-face-717-o35-a90-r90: 0.5 N at 1.621 mm, 1 N at 1.692 mm, 2 N at 1.948 mm, 3 N at 2.078 mm
+probe-face-717-o35-a270-r90: 0.5 N at 1.602 mm, 1 N at 1.751 mm, 2 N at 1.909 mm, 3 N at 2.141 mm
+probe-face-731-o20-a90-r90: 0.5 N at 1.718 mm, 1 N at 1.824 mm, 2 N at 2.016 mm, 3 N at 2.213 mm
+probe-face-731-o20-a270-r90: 0.5 N at 1.743 mm, 1 N at 1.872 mm, 2 N at 2.085 mm, 3 N at 2.279 mm
+probe-face-731-o35-a90-r90: 0.5 N at 1.768 mm, 1 N at 1.847 mm, 2 N at 2.084 mm, 3 N at 2.324 mm
+probe-face-731-o35-a270-r90: 0.5 N at 1.703 mm, 1 N at 1.933 mm, 2 N at 2.155 mm, 3 N at 2.396 mm
+probe-edge-573-o20-a90-r90: 0.5 N at 1.968 mm, 1 N at 2.093 mm, 2 N at 2.240 mm, 3 N at 2.398 mm
+probe-edge-573-o20-a270-r90: 0.5 N at 1.887 mm, 1 N at 1.957 mm, 2 N at 2.179 mm, 3 N at 2.351 mm
+probe-edge-573-o35-a270-r90: 0.5 N at 2.029 mm, 1 N at 2.150 mm, 2 N at 2.351 mm, 3 N at 2.532 mm
+probe-face-790-o20-a90-r90: 0.5 N at 1.799 mm, 1 N at 1.928 mm, 2 N at 2.142 mm, 3 N at 2.319 mm
+probe-face-790-o20-a270-r90: 0.5 N at 1.814 mm, 1 N at 1.926 mm, 2 N at 2.144 mm, 3 N at 2.349 mm
+probe-face-790-o35-a90-r90: 0.5 N at 1.892 mm, 1 N at 2.060 mm, 2 N at 2.213 mm, 3 N at 2.398 mm
+probe-face-790-o35-a270-r90: 0.5 N at 1.851 mm, 1 N at 2.030 mm, 2 N at 2.267 mm, 3 N at 2.504 mm
+probe-edge-654-o20-a90-r90: 0.5 N at 1.645 mm, 1 N at 1.730 mm, 2 N at 2.005 mm, 3 N at 2.144 mm
+probe-edge-654-o20-a270-r90: 0.5 N at 1.670 mm, 1 N at 1.772 mm, 2 N at 2.016 mm, 3 N at 2.243 mm
+probe-edge-654-o35-a90-r90: 0.5 N at 1.631 mm, 1 N at 1.724 mm, 2 N at 1.970 mm, 3 N at 2.186 mm
+probe-edge-654-o35-a270-r90: 0.5 N at 1.597 mm, 1 N at 1.787 mm, 2 N at 1.993 mm, 3 N at 2.267 mm
+probe-edge-639-o20-a90-r90: 0.5 N at 1.559 mm, 1 N at 1.657 mm, 2 N at 1.843 mm, 3 N at 2.014 mm
+probe-edge-639-o20-a270-r90: 0.5 N at 1.664 mm, 1 N at 1.677 mm, 2 N at 1.878 mm, 3 N at 2.103 mm
+probe-edge-639-o35-a90-r90: 0.5 N at 1.634 mm, 1 N at 1.670 mm, 2 N at 1.874 mm, 3 N at 2.159 mm
+probe-edge-639-o35-a270-r90: 0.5 N at 1.651 mm, 1 N at 1.748 mm, 2 N at 1.946 mm, 3 N at 2.180 mm
+probe-ref-x1: 0.5 N at 1.736 mm, 1 N at 1.877 mm, 2 N at 2.107 mm, 3 N at 2.281 mm
+sweep-edge-634-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.97/0.08, 1 N 1.88/0.42, 2 N 2.20/0.08, 4 N 4.00/0.58, 8 N 8.30/1.64
+   0.5 N r 0.06: across 0.22 N (along 1.05), cos_u -0.86, step 0.060 mm, 3.9 N/mm
+   1 N r 0.084: across 0.36 N (along 1.66), cos_u -0.54, step 0.095 mm, 5.4 N/mm
+   2 N r 0.075: across 0.33 N (along 2.22), cos_u -0.97, step 0.064 mm, 5.1 N/mm
+   2 N r 0.136: across 0.80 N (along 2.29), cos_u -0.99, step 0.155 mm, 5.2 N/mm
+   4 N r 0.122: across 0.81 N (along 3.94), cos_u -0.83, step 0.120 mm, 7.7 N/mm
+   4 N r 0.22: across 1.23 N (along 3.85), cos_u -0.98, step 0.229 mm, 5.6 N/mm
+   8 N r 0.199: across 1.99 N (along 8.35), cos_u -0.27, step 0.192 mm, 11.8 N/mm
+   8 N r 0.358: across 2.34 N (along 7.84), cos_u -0.89, step 0.355 mm, 7.5 N/mm
+   slide az 0 at 2 N: mu 0.33 moving, 0.30 held (along 2.43/2.44 N), cos_u -0.95
+   slide az 90 at 2 N: mu 0.49 moving, 0.42 held (along 1.89/1.85 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.40 moving, 0.34 held (along 3.80/3.71 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.49 moving, 0.45 held (along 3.48/3.47 N), cos_u -1.00
+sweep-edge-573-r0: offsets 29 of 32, slides 4 of 4, skips 1; levels 0.5 N 0.65/0.25, 1 N 1.56/0.21, 2 N 2.48/0.33, 4 N 4.27/0.63, 8 N 8.35/1.21
+   0.5 N r 0.06: across 0.16 N (along 0.74), cos_u -0.78, step 0.040 mm, 4.0 N/mm
+   1 N r 0.084: across 0.36 N (along 1.59), cos_u -0.84, step 0.080 mm, 4.9 N/mm
+   2 N r 0.075: across 0.39 N (along 2.47), cos_u -0.57, step 0.060 mm, 7.3 N/mm
+   2 N r 0.136: across 0.62 N (along 2.30), cos_u -0.84, step 0.105 mm, 5.9 N/mm
+   4 N r 0.122: across 0.90 N (along 4.01), cos_u -0.70, step 0.126 mm, 7.7 N/mm
+   4 N r 0.22: across 1.13 N (along 3.98), cos_u -0.92, step 0.191 mm, 6.4 N/mm
+   8 N r 0.199: across 1.45 N (along 7.94), cos_u -0.79, step 0.197 mm, 7.8 N/mm
+   8 N r 0.358: across 2.21 N (along 7.28), cos_u -0.96, step 0.351 mm, 6.3 N/mm
+   slide az 0 at 2 N: mu 0.46 moving, 0.40 held (along 2.33/2.47 N), cos_u -0.81
+   slide az 90 at 2 N: mu 0.62 moving, 0.66 held (along 2.05/1.87 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.38 moving, 0.34 held (along 3.79/3.81 N), cos_u -0.93
+   slide az 90 at 4 N: mu 0.57 moving, 0.49 held (along 3.36/3.41 N), cos_u -0.99
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 90.0, 't': 1793769054.1756167, 'why': 'the push across the pad 0.69 N at -0.01 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-edge-638-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.78/0.17, 1 N 1.35/0.24, 2 N 2.42/0.21, 4 N 4.39/0.59, 8 N 8.48/1.48
+   0.5 N r 0.06: across 0.28 N (along 0.71), cos_u -0.72, step 0.041 mm, 7.1 N/mm
+   1 N r 0.084: across 0.46 N (along 1.35), cos_u -0.94, step 0.090 mm, 5.1 N/mm
+   2 N r 0.075: across 0.39 N (along 2.33), cos_u -0.92, step 0.067 mm, 6.5 N/mm
+   2 N r 0.136: across 0.71 N (along 2.12), cos_u -0.95, step 0.139 mm, 4.8 N/mm
+   4 N r 0.122: across 0.88 N (along 4.26), cos_u -0.78, step 0.130 mm, 6.5 N/mm
+   4 N r 0.22: across 1.18 N (along 3.81), cos_u -0.97, step 0.210 mm, 5.6 N/mm
+   8 N r 0.199: across 1.28 N (along 7.87), cos_u -0.84, step 0.176 mm, 8.4 N/mm
+   8 N r 0.358: across 1.75 N (along 7.31), cos_u -0.95, step 0.349 mm, 5.0 N/mm
+   slide az 0 at 2 N: mu 0.48 moving, 0.43 held (along 2.17/2.26 N), cos_u -0.78
+   slide az 90 at 2 N: mu 0.62 moving, 0.52 held (along 1.96/2.10 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.44 moving, 0.37 held (along 3.82/4.06 N), cos_u -0.93
+   slide az 90 at 4 N: mu 0.64 moving, 0.55 held (along 3.28/3.36 N), cos_u -1.00
+sweep-edge-630-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.75/0.06, 1 N 1.28/0.15, 2 N 2.38/0.13, 4 N 4.38/0.75, 8 N 8.20/1.69
+   0.5 N r 0.06: across 0.23 N (along 0.78), cos_u -0.93, step 0.045 mm, 5.9 N/mm
+   1 N r 0.084: across 0.33 N (along 1.22), cos_u -0.91, step 0.079 mm, 5.2 N/mm
+   2 N r 0.075: across 0.47 N (along 2.23), cos_u -0.94, step 0.084 mm, 5.3 N/mm
+   2 N r 0.136: across 0.67 N (along 2.13), cos_u -0.98, step 0.129 mm, 5.1 N/mm
+   4 N r 0.122: across 0.98 N (along 4.22), cos_u -0.56, step 0.140 mm, 7.5 N/mm
+   4 N r 0.22: across 1.31 N (along 4.00), cos_u -0.93, step 0.215 mm, 6.7 N/mm
+   8 N r 0.199: across 1.83 N (along 7.76), cos_u -0.30, step 0.189 mm, 11.1 N/mm
+   8 N r 0.358: across 2.33 N (along 7.84), cos_u -0.90, step 0.351 mm, 7.5 N/mm
+   slide az 0 at 2 N: mu 0.43 moving, 0.41 held (along 2.29/2.18 N), cos_u -0.95
+   slide az 90 at 2 N: mu 0.59 moving, 0.48 held (along 1.75/1.59 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.41 moving, 0.39 held (along 3.94/3.88 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.53 moving, 0.48 held (along 3.94/3.88 N), cos_u -1.00
+sweep-edge-668-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.81/0.06, 1 N 1.62/0.10, 2 N 2.11/0.24, 4 N 4.42/0.66, 8 N 8.46/1.24
+   0.5 N r 0.06: across 0.26 N (along 1.08), cos_u -0.96, step 0.071 mm, 3.4 N/mm
+   1 N r 0.084: across 0.36 N (along 1.70), cos_u -0.87, step 0.076 mm, 6.0 N/mm
+   2 N r 0.075: across 0.39 N (along 2.22), cos_u -0.69, step 0.065 mm, 6.1 N/mm
+   2 N r 0.136: across 0.62 N (along 2.03), cos_u -0.91, step 0.127 mm, 5.0 N/mm
+   4 N r 0.122: across 0.94 N (along 4.18), cos_u -0.40, step 0.123 mm, 8.0 N/mm
+   4 N r 0.22: across 1.32 N (along 4.08), cos_u -0.92, step 0.212 mm, 7.0 N/mm
+   8 N r 0.199: across 1.57 N (along 8.10), cos_u -0.67, step 0.196 mm, 9.8 N/mm
+   8 N r 0.358: across 2.40 N (along 7.71), cos_u -0.90, step 0.343 mm, 7.7 N/mm
+   slide az 0 at 2 N: mu 0.44 moving, 0.43 held (along 1.98/1.69 N), cos_u -0.99
+   slide az 90 at 2 N: mu 0.40 moving, 0.38 held (along 2.01/1.86 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.45 moving, 0.42 held (along 3.91/3.73 N), cos_u -0.98
+   slide az 90 at 4 N: mu 0.47 moving, 0.41 held (along 4.11/3.91 N), cos_u -0.99
+sweep-edge-615-r90: offsets 21 of 24, slides 4 of 4, skips 1; levels 0.5 N 0.69/0.18, 1 N 1.44/0.42, 2 N 3.14/0.60, 4 N 4.38/0.55, 8 N 8.60/0.93
+   1 N r 0.084: across 0.43 N (along 1.33), cos_u -0.95, step 0.114 mm, 4.2 N/mm
+   2 N r 0.075: across 0.38 N (along 2.65), cos_u -0.74, step 0.113 mm, 2.3 N/mm
+   2 N r 0.136: across 0.77 N (along 2.50), cos_u -0.95, step 0.150 mm, 3.8 N/mm
+   4 N r 0.122: across 0.85 N (along 4.15), cos_u -0.82, step 0.118 mm, 7.9 N/mm
+   4 N r 0.22: across 1.41 N (along 4.06), cos_u -0.96, step 0.221 mm, 6.6 N/mm
+   8 N r 0.199: across 1.34 N (along 8.32), cos_u -0.83, step 0.185 mm, 8.5 N/mm
+   8 N r 0.358: across 2.32 N (along 8.21), cos_u -0.96, step 0.367 mm, 6.1 N/mm
+   slide az 0 at 2 N: mu 0.51 moving, 0.52 held (along 2.44/2.40 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.41 moving, 0.41 held (along 2.41/2.25 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.50 moving, 0.46 held (along 4.11/4.13 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.40 moving, 0.37 held (along 4.06/4.08 N), cos_u -0.99
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 0.0, 't': 1793769664.2718577, 'why': 'the push across the pad 0.57 N at -0.08 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-edge-675-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.84/0.20, 1 N 1.20/0.13, 2 N 2.40/0.39, 4 N 4.54/0.49, 8 N 8.19/0.70
+   0.5 N r 0.06: across 0.30 N (along 0.99), cos_u -0.68, step 0.045 mm, 6.1 N/mm
+   1 N r 0.084: across 0.38 N (along 1.31), cos_u -0.46, step 0.070 mm, 5.3 N/mm
+   2 N r 0.075: across 0.51 N (along 2.43), cos_u -0.89, step 0.089 mm, 6.0 N/mm
+   2 N r 0.136: across 0.71 N (along 2.33), cos_u -0.88, step 0.115 mm, 6.0 N/mm
+   4 N r 0.122: across 0.73 N (along 4.35), cos_u -0.92, step 0.115 mm, 7.1 N/mm
+   4 N r 0.22: across 1.44 N (along 4.43), cos_u -0.97, step 0.237 mm, 6.3 N/mm
+   8 N r 0.199: across 1.35 N (along 7.62), cos_u -0.84, step 0.180 mm, 8.1 N/mm
+   8 N r 0.358: across 2.42 N (along 7.33), cos_u -0.96, step 0.366 mm, 6.8 N/mm
+   slide az 0 at 2 N: mu 0.47 moving, 0.47 held (along 2.20/2.04 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.58 moving, 0.54 held (along 2.09/2.07 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.50 moving, 0.46 held (along 4.38/4.49 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.51 moving, 0.47 held (along 4.07/4.10 N), cos_u -0.96
+sweep-face-692-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.58/0.10, 1 N 1.20/0.12, 2 N 2.34/0.08, 4 N 4.74/0.56, 8 N 8.74/0.86
+   0.5 N r 0.06: across 0.20 N (along 0.66), cos_u -0.93, step 0.043 mm, 4.8 N/mm
+   1 N r 0.084: across 0.39 N (along 1.09), cos_u -0.97, step 0.083 mm, 4.7 N/mm
+   2 N r 0.075: across 0.40 N (along 2.37), cos_u -0.97, step 0.084 mm, 5.0 N/mm
+   2 N r 0.136: across 0.63 N (along 2.17), cos_u -0.99, step 0.125 mm, 5.1 N/mm
+   4 N r 0.122: across 0.86 N (along 4.54), cos_u -0.63, step 0.136 mm, 6.0 N/mm
+   4 N r 0.22: across 1.14 N (along 4.32), cos_u -0.91, step 0.194 mm, 5.9 N/mm
+   8 N r 0.199: across 1.24 N (along 8.59), cos_u -0.84, step 0.193 mm, 6.8 N/mm
+   8 N r 0.358: across 2.14 N (along 8.20), cos_u -0.94, step 0.363 mm, 6.2 N/mm
+   slide az 0 at 2 N: mu 0.54 moving, 0.60 held (along 2.15/1.85 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.47 moving, 0.41 held (along 2.14/2.23 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.46 moving, 0.40 held (along 4.31/4.32 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.44 moving, 0.39 held (along 3.78/3.90 N), cos_u -0.99
+sweep-face-756-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.67/0.16, 1 N 1.10/0.26, 2 N 2.26/0.54, 4 N 4.11/0.66, 8 N 8.46/0.74
+   0.5 N r 0.06: across 0.24 N (along 0.82), cos_u -0.87, step 0.049 mm, 4.2 N/mm
+   1 N r 0.084: across 0.24 N (along 0.80), cos_u -0.69, step 0.108 mm, 2.2 N/mm
+   2 N r 0.075: across 0.50 N (along 2.32), cos_u -0.42, step 0.067 mm, 6.8 N/mm
+   2 N r 0.136: across 0.73 N (along 2.26), cos_u -0.92, step 0.125 mm, 6.0 N/mm
+   4 N r 0.122: across 0.94 N (along 3.73), cos_u -0.56, step 0.120 mm, 8.2 N/mm
+   4 N r 0.22: across 1.39 N (along 3.85), cos_u -0.92, step 0.218 mm, 6.9 N/mm
+   8 N r 0.199: across 1.56 N (along 8.05), cos_u -0.89, step 0.215 mm, 8.3 N/mm
+   8 N r 0.358: across 2.36 N (along 7.80), cos_u -0.95, step 0.352 mm, 7.2 N/mm
+   slide az 0 at 2 N: mu 0.39 moving, 0.34 held (along 2.17/1.85 N), cos_u -0.96
+   slide az 90 at 2 N: mu 0.50 moving, 0.42 held (along 2.15/2.27 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.48 moving, 0.46 held (along 3.81/3.64 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.52 moving, 0.47 held (along 3.36/3.26 N), cos_u -0.94
+sweep-edge-729-r0: offsets 30 of 32, slides 4 of 4, skips 1; levels 0.5 N 0.72/0.15, 1 N 1.15/0.18, 2 N 2.52/0.15, 4 N 4.27/0.56, 8 N 8.29/0.83
+   0.5 N r 0.06: across 0.27 N (along 0.69), cos_u -0.93, step 0.065 mm, 4.1 N/mm
+   1 N r 0.084: across 0.36 N (along 1.17), cos_u -0.61, step 0.074 mm, 5.2 N/mm
+   2 N r 0.075: across 0.53 N (along 2.30), cos_u -0.88, step 0.077 mm, 7.9 N/mm
+   2 N r 0.136: across 0.66 N (along 2.28), cos_u -0.95, step 0.148 mm, 5.0 N/mm
+   4 N r 0.122: across 0.68 N (along 3.82), cos_u -0.95, step 0.131 mm, 4.8 N/mm
+   4 N r 0.22: across 1.37 N (along 3.80), cos_u -0.93, step 0.214 mm, 5.8 N/mm
+   8 N r 0.199: across 1.57 N (along 8.26), cos_u -0.84, step 0.201 mm, 8.1 N/mm
+   8 N r 0.358: across 2.03 N (along 7.58), cos_u -0.95, step 0.352 mm, 6.4 N/mm
+   slide az 0 at 2 N: mu 0.44 moving, 0.46 held (along 2.41/2.39 N), cos_u -0.79
+   slide az 90 at 2 N: mu 0.54 moving, 0.54 held (along 1.98/1.92 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.47 moving, 0.46 held (along 3.55/3.59 N), cos_u -0.77
+   slide az 90 at 4 N: mu 0.66 moving, 0.60 held (along 3.06/3.17 N), cos_u -0.99
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 90.0, 't': 1793770258.7684755, 'why': 'the push across the pad 0.71 N at 0.10 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-face-708-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.90/0.12, 1 N 1.25/0.13, 2 N 2.19/0.07, 4 N 4.12/0.74, 8 N 8.59/1.43
+   0.5 N r 0.06: across 0.29 N (along 0.90), cos_u -0.80, step 0.053 mm, 5.7 N/mm
+   1 N r 0.084: across 0.43 N (along 1.29), cos_u -0.97, step 0.086 mm, 5.0 N/mm
+   2 N r 0.075: across 0.36 N (along 2.31), cos_u -0.95, step 0.074 mm, 4.6 N/mm
+   2 N r 0.136: across 0.66 N (along 2.20), cos_u -0.98, step 0.131 mm, 5.2 N/mm
+   4 N r 0.122: across 0.96 N (along 3.73), cos_u -0.71, step 0.161 mm, 7.1 N/mm
+   4 N r 0.22: across 1.09 N (along 3.70), cos_u -0.96, step 0.206 mm, 5.5 N/mm
+   8 N r 0.199: across 1.53 N (along 8.43), cos_u -0.33, step 0.180 mm, 8.6 N/mm
+   8 N r 0.358: across 2.11 N (along 8.31), cos_u -0.92, step 0.362 mm, 6.3 N/mm
+   slide az 0 at 2 N: mu 0.51 moving, 0.48 held (along 2.15/2.06 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.48 moving, 0.40 held (along 1.98/2.14 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.49 moving, 0.43 held (along 3.64/3.68 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.47 moving, 0.44 held (along 3.14/3.23 N), cos_u -1.00
+sweep-edge-610-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.78/0.10, 1 N 1.31/0.41, 2 N 2.46/0.33, 4 N 4.30/0.60, 8 N 8.45/0.89
+   0.5 N r 0.06: across 0.24 N (along 0.85), cos_u -0.83, step 0.071 mm, 3.4 N/mm
+   1 N r 0.084: across 0.60 N (along 1.56), cos_u -0.93, step 0.106 mm, 5.5 N/mm
+   2 N r 0.075: across 0.57 N (along 2.49), cos_u -0.68, step 0.079 mm, 8.0 N/mm
+   2 N r 0.136: across 0.91 N (along 2.31), cos_u -0.87, step 0.152 mm, 5.8 N/mm
+   4 N r 0.122: across 0.87 N (along 4.08), cos_u -0.70, step 0.108 mm, 9.0 N/mm
+   4 N r 0.22: across 1.36 N (along 4.17), cos_u -0.96, step 0.208 mm, 6.8 N/mm
+   8 N r 0.199: across 1.53 N (along 8.24), cos_u -0.78, step 0.185 mm, 8.4 N/mm
+   8 N r 0.358: across 2.55 N (along 8.02), cos_u -0.96, step 0.361 mm, 6.9 N/mm
+   slide az 0 at 2 N: mu 0.49 moving, 0.41 held (along 2.44/2.40 N), cos_u -0.99
+   slide az 90 at 2 N: mu 0.54 moving, 0.48 held (along 2.37/2.47 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.47 moving, 0.43 held (along 4.33/4.36 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.52 moving, 0.48 held (along 4.15/4.19 N), cos_u -0.95
+sweep-face-735-r0: offsets 29 of 32, slides 4 of 4, skips 1; levels 0.5 N 0.80/0.29, 1 N 1.48/0.48, 2 N 2.31/0.47, 4 N 4.43/0.20, 8 N 8.42/0.69
+   0.5 N r 0.06: across 0.50 N (along 0.85), cos_u -0.66, step 0.091 mm, 5.5 N/mm
+   1 N r 0.084: across 0.55 N (along 1.44), cos_u -0.31, step 0.079 mm, 7.0 N/mm
+   2 N r 0.075: across 0.54 N (along 2.25), cos_u -0.27, step 0.047 mm, 11.7 N/mm
+   2 N r 0.136: across 0.60 N (along 2.13), cos_u -0.37, step 0.146 mm, 3.5 N/mm
+   4 N r 0.122: across 0.80 N (along 4.33), cos_u -0.84, step 0.111 mm, 7.3 N/mm
+   4 N r 0.22: across 1.22 N (along 4.43), cos_u -0.56, step 0.213 mm, 6.0 N/mm
+   8 N r 0.199: across 1.27 N (along 8.13), cos_u -0.92, step 0.218 mm, 6.5 N/mm
+   8 N r 0.358: across 2.20 N (along 7.62), cos_u -0.73, step 0.365 mm, 6.2 N/mm
+   slide az 0 at 2 N: mu 0.53 moving, 0.58 held (along 2.28/2.28 N), cos_u -0.62
+   slide az 90 at 2 N: mu 0.58 moving, 0.53 held (along 1.99/2.04 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.52 moving, 0.53 held (along 4.00/4.08 N), cos_u -0.61
+   slide az 90 at 4 N: mu 0.67 moving, 0.64 held (along 3.51/3.50 N), cos_u -1.00
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 0.0, 't': 1793770732.4226236, 'why': 'the push across the pad 1.04 N at 0.37 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-edge-618-r90: offsets 24 of 24, slides 2 of 2, skips 0; levels 0.5 N 0.76/0.12, 1 N 1.45/0.20, 2 N 2.42/0.30, 4 N 4.56/0.41
+   0.5 N r 0.06: across 0.19 N (along 0.75), cos_u -0.91, step 0.029 mm, 6.8 N/mm
+   1 N r 0.084: across 0.42 N (along 1.18), cos_u -0.89, step 0.086 mm, 3.8 N/mm
+   2 N r 0.075: across 0.39 N (along 2.65), cos_u -0.86, step 0.074 mm, 6.1 N/mm
+   2 N r 0.136: across 0.72 N (along 2.27), cos_u -0.98, step 0.125 mm, 6.5 N/mm
+   4 N r 0.122: across 0.76 N (along 4.75), cos_u -0.80, step 0.133 mm, 5.6 N/mm
+   4 N r 0.22: across 1.25 N (along 4.20), cos_u -0.96, step 0.249 mm, 4.8 N/mm
+   8 N r 0.199: across 1.21 N (along 6.03), cos_u -0.99, step nan mm
+   8 N r 0.358: across 2.11 N (along 5.65), cos_u -0.98, step nan mm
+   slide az 90 at 2 N: mu 0.52 moving, 0.49 held (along 2.38/2.18 N), cos_u -0.95
+   slide az 90 at 4 N: mu 0.43 moving, 0.41 held (along 4.16/4.08 N), cos_u -0.97
+sweep-face-790-r0: offsets 29 of 32, slides 4 of 4, skips 1; levels 0.5 N 0.74/0.15, 1 N 1.28/0.14, 2 N 2.66/0.18, 4 N 4.63/0.72, 8 N 8.29/1.45
+   0.5 N r 0.06: across 0.34 N (along 0.67), cos_u -0.80, step 0.084 mm, 4.1 N/mm
+   1 N r 0.084: across 0.30 N (along 1.35), cos_u -0.97, step 0.063 mm, 5.1 N/mm
+   2 N r 0.075: across 0.39 N (along 2.76), cos_u -0.99, step 0.070 mm, 5.4 N/mm
+   2 N r 0.136: across 0.64 N (along 2.73), cos_u -0.99, step 0.121 mm, 5.8 N/mm
+   4 N r 0.122: across 0.84 N (along 4.46), cos_u -0.87, step 0.132 mm, 6.8 N/mm
+   4 N r 0.22: across 1.20 N (along 4.37), cos_u -0.96, step 0.233 mm, 5.5 N/mm
+   8 N r 0.199: across 1.46 N (along 7.82), cos_u -0.50, step 0.185 mm, 9.0 N/mm
+   8 N r 0.358: across 1.92 N (along 7.25), cos_u -0.96, step 0.370 mm, 5.5 N/mm
+   slide az 0 at 2 N: mu 0.43 moving, 0.44 held (along 2.35/2.40 N), cos_u -0.78
+   slide az 90 at 2 N: mu 0.50 moving, 0.50 held (along 2.11/2.08 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.43 moving, 0.46 held (along 3.99/3.85 N), cos_u -0.71
+   slide az 90 at 4 N: mu 0.62 moving, 0.60 held (along 3.42/3.51 N), cos_u -0.99
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 90.0, 't': 1793771015.3552866, 'why': 'the push across the pad 0.53 N at -0.11 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-face-733-r0: offsets 29 of 32, slides 4 of 4, skips 1; levels 0.5 N 0.64/0.22, 1 N 1.24/0.20, 2 N 2.53/0.26, 4 N 4.54/0.34, 8 N 7.93/0.95
+   0.5 N r 0.06: across 0.45 N (along 0.76), cos_u -0.77, step 0.078 mm, 5.8 N/mm
+   1 N r 0.084: across 0.47 N (along 1.23), cos_u -0.69, step 0.078 mm, 5.4 N/mm
+   2 N r 0.075: across 0.48 N (along 2.25), cos_u -0.33, step 0.075 mm, 10.5 N/mm
+   2 N r 0.136: across 0.69 N (along 2.31), cos_u -0.92, step 0.142 mm, 6.0 N/mm
+   4 N r 0.122: across 0.90 N (along 4.47), cos_u -0.94, step 0.123 mm, 7.4 N/mm
+   4 N r 0.22: across 1.20 N (along 4.18), cos_u -0.95, step 0.221 mm, 6.4 N/mm
+   8 N r 0.199: across 1.37 N (along 7.28), cos_u -0.91, step 0.234 mm, 6.4 N/mm
+   8 N r 0.358: across 2.24 N (along 6.96), cos_u -0.84, step 0.358 mm, 7.2 N/mm
+   slide az 0 at 2 N: mu 0.49 moving, 0.56 held (along 2.35/2.33 N), cos_u -0.68
+   slide az 90 at 2 N: mu 0.56 moving, 0.54 held (along 1.99/1.97 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.53 moving, 0.53 held (along 3.91/4.00 N), cos_u -0.69
+   slide az 90 at 4 N: mu 0.65 moving, 0.66 held (along 3.44/3.43 N), cos_u -1.00
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 90.0, 't': 1793771149.030099, 'why': 'the push across the pad 0.85 N at 0.03 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-face-731-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.89/0.32, 1 N 1.45/0.23, 2 N 2.62/0.20, 4 N 4.53/0.66, 8 N 8.55/1.25
+   0.5 N r 0.06: across 0.20 N (along 0.78), cos_u +0.00, step 0.068 mm, 2.8 N/mm
+   1 N r 0.084: across 0.29 N (along 1.44), cos_u -0.46, step 0.072 mm, 4.7 N/mm
+   2 N r 0.075: across 0.40 N (along 2.54), cos_u -0.95, step 0.049 mm, 8.6 N/mm
+   2 N r 0.136: across 0.58 N (along 2.42), cos_u -0.97, step 0.136 mm, 5.0 N/mm
+   4 N r 0.122: across 0.70 N (along 4.37), cos_u -0.91, step 0.120 mm, 5.5 N/mm
+   4 N r 0.22: across 1.38 N (along 3.90), cos_u -0.98, step 0.237 mm, 6.5 N/mm
+   8 N r 0.199: across 1.04 N (along 8.05), cos_u -0.77, step 0.200 mm, 5.0 N/mm
+   8 N r 0.358: across 2.38 N (along 7.52), cos_u -0.89, step 0.374 mm, 7.1 N/mm
+   slide az 0 at 2 N: mu 0.48 moving, 0.50 held (along 2.35/2.35 N), cos_u -0.76
+   slide az 90 at 2 N: mu 0.41 moving, 0.31 held (along 2.24/2.37 N), cos_u -0.97
+   slide az 0 at 4 N: mu 0.50 moving, 0.55 held (along 3.82/3.58 N), cos_u -0.72
+   slide az 90 at 4 N: mu 0.59 moving, 0.54 held (along 3.44/3.55 N), cos_u -1.00
+sweep-edge-628-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.62/0.11, 1 N 1.19/0.22, 2 N 2.47/0.30, 4 N 4.41/0.77, 8 N 8.53/1.29
+   0.5 N r 0.06: across 0.13 N (along 0.62), cos_u -0.89, step 0.053 mm, 2.7 N/mm
+   1 N r 0.084: across 0.33 N (along 1.16), cos_u -0.97, step 0.082 mm, 3.8 N/mm
+   2 N r 0.075: across 0.35 N (along 2.25), cos_u -0.61, step 0.105 mm, 3.6 N/mm
+   2 N r 0.136: across 0.58 N (along 2.24), cos_u -0.94, step 0.142 mm, 4.4 N/mm
+   4 N r 0.122: across 0.79 N (along 4.37), cos_u -0.60, step 0.137 mm, 5.7 N/mm
+   4 N r 0.22: across 1.05 N (along 4.31), cos_u -0.86, step 0.207 mm, 5.4 N/mm
+   8 N r 0.199: across 1.40 N (along 8.15), cos_u -0.45, step 0.187 mm, 7.7 N/mm
+   8 N r 0.358: across 1.93 N (along 7.93), cos_u -0.87, step 0.346 mm, 5.8 N/mm
+   slide az 0 at 2 N: mu 0.47 moving, 0.42 held (along 2.43/2.21 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.38 moving, 0.35 held (along 2.02/1.98 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.58 moving, 0.33 held (along 4.89/4.40 N), cos_u -0.98
+   slide az 90 at 4 N: mu 0.33 moving, 0.30 held (along 4.25/4.18 N), cos_u -1.00
+sweep-face-759-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.98/0.08, 1 N 1.32/0.41, 2 N 2.90/0.44, 4 N 4.56/0.84, 8 N 8.28/2.17
+   0.5 N r 0.06: across 0.22 N (along 0.74), cos_u -0.74, step 0.058 mm, 4.7 N/mm
+   1 N r 0.084: across 0.35 N (along 1.32), cos_u -0.34, step 0.057 mm, 6.3 N/mm
+   2 N r 0.075: across 0.60 N (along 2.36), cos_u -0.48, step 0.078 mm, 9.2 N/mm
+   2 N r 0.136: across 0.77 N (along 2.38), cos_u -0.95, step 0.127 mm, 6.7 N/mm
+   4 N r 0.122: across 1.01 N (along 4.23), cos_u -0.41, step 0.125 mm, 8.8 N/mm
+   4 N r 0.22: across 1.34 N (along 4.42), cos_u -0.90, step 0.206 mm, 7.4 N/mm
+   8 N r 0.199: across 2.24 N (along 8.27), cos_u -0.29, step 0.197 mm, 11.9 N/mm
+   8 N r 0.358: across 2.54 N (along 8.07), cos_u -0.86, step 0.361 mm, 8.0 N/mm
+   slide az 0 at 2 N: mu 0.46 moving, 0.43 held (along 2.30/2.26 N), cos_u -0.96
+   slide az 90 at 2 N: mu 0.53 moving, 0.39 held (along 2.42/2.54 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.48 moving, 0.42 held (along 4.09/4.19 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.57 moving, 0.52 held (along 4.22/4.47 N), cos_u -0.99
+sweep-edge-675-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.72/0.08, 1 N 1.39/0.21, 2 N 2.29/0.44, 4 N 4.34/0.42, 8 N 8.37/1.21
+   0.5 N r 0.06: across 0.21 N (along 0.88), cos_u -0.98, step 0.053 mm, 4.1 N/mm
+   1 N r 0.084: across 0.44 N (along 1.66), cos_u -0.98, step 0.093 mm, 5.2 N/mm
+   2 N r 0.075: across 0.45 N (along 2.21), cos_u -0.86, step 0.086 mm, 5.8 N/mm
+   2 N r 0.136: across 0.86 N (along 2.13), cos_u -0.96, step 0.156 mm, 5.4 N/mm
+   4 N r 0.122: across 0.96 N (along 4.43), cos_u -0.81, step 0.146 mm, 7.3 N/mm
+   4 N r 0.22: across 1.48 N (along 4.37), cos_u -0.84, step 0.243 mm, 6.3 N/mm
+   8 N r 0.199: across 1.52 N (along 8.13), cos_u -0.86, step 0.196 mm, 9.0 N/mm
+   8 N r 0.358: across 2.40 N (along 8.07), cos_u -0.93, step 0.347 mm, 7.5 N/mm
+   slide az 0 at 2 N: mu 0.35 moving, 0.34 held (along 2.17/2.03 N), cos_u -0.98
+   slide az 90 at 2 N: mu 0.36 moving, 0.33 held (along 2.11/2.01 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.34 moving, 0.31 held (along 4.45/4.20 N), cos_u -0.96
+   slide az 90 at 4 N: mu 0.37 moving, 0.33 held (along 4.61/4.43 N), cos_u -1.00
+sweep-edge-610-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.99/0.10, 1 N 1.45/0.19, 2 N 2.41/0.25, 4 N 4.71/0.48, 8 N 9.24/0.14
+   0.5 N r 0.06: across 0.23 N (along 0.84), cos_u -0.96, step 0.055 mm, 4.2 N/mm
+   1 N r 0.084: across 0.42 N (along 1.34), cos_u -0.94, step 0.089 mm, 4.6 N/mm
+   2 N r 0.075: across 0.48 N (along 2.36), cos_u -0.96, step 0.072 mm, 6.9 N/mm
+   2 N r 0.136: across 0.77 N (along 2.28), cos_u -0.95, step 0.129 mm, 6.3 N/mm
+   4 N r 0.122: across 1.06 N (along 4.32), cos_u -0.87, step 0.143 mm, 8.1 N/mm
+   4 N r 0.22: across 1.43 N (along 4.40), cos_u -0.96, step 0.220 mm, 6.8 N/mm
+   8 N r 0.199: across 1.32 N (along 8.56), cos_u -0.96, step 0.190 mm, 7.0 N/mm
+   8 N r 0.358: across 2.49 N (along 8.50), cos_u -0.99, step 0.361 mm, 6.9 N/mm
+   slide az 0 at 2 N: mu 0.35 moving, 0.30 held (along 2.05/2.10 N), cos_u -0.98
+   slide az 90 at 2 N: mu 0.31 moving, 0.27 held (along 2.48/2.31 N), cos_u -0.96
+   slide az 0 at 4 N: mu 0.34 moving, 0.30 held (along 3.85/3.65 N), cos_u -0.92
+   slide az 90 at 4 N: mu 0.31 moving, 0.26 held (along 4.71/4.50 N), cos_u -0.99
+sweep-edge-615-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.72/0.10, 1 N 1.19/0.20, 2 N 2.29/0.24, 4 N 4.13/0.30, 8 N 9.00/0.49
+   0.5 N r 0.06: across 0.20 N (along 0.68), cos_u -0.82, step 0.070 mm, 2.7 N/mm
+   1 N r 0.084: across 0.29 N (along 1.02), cos_u -0.03, step 0.104 mm, 2.6 N/mm
+   2 N r 0.075: across 0.43 N (along 2.09), cos_u -0.89, step 0.162 mm, 4.3 N/mm
+   2 N r 0.136: across 0.75 N (along 2.02), cos_u -0.89, step 0.124 mm, 6.2 N/mm
+   4 N r 0.122: across 0.98 N (along 3.81), cos_u -0.96, step 0.157 mm, 6.2 N/mm
+   4 N r 0.22: across 1.29 N (along 3.71), cos_u -0.96, step 0.221 mm, 5.8 N/mm
+   8 N r 0.199: across 1.32 N (along 8.42), cos_u -0.95, step 0.189 mm, 7.1 N/mm
+   8 N r 0.358: across 2.53 N (along 8.26), cos_u -0.99, step 0.386 mm, 6.4 N/mm
+   slide az 0 at 2 N: mu 0.35 moving, 0.32 held (along 1.90/1.73 N), cos_u -0.91
+   slide az 90 at 2 N: mu 0.27 moving, 0.22 held (along 2.10/1.88 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.29 moving, 0.27 held (along 3.60/3.67 N), cos_u -0.89
+   slide az 90 at 4 N: mu 0.28 moving, 0.24 held (along 3.98/3.79 N), cos_u -0.97
+sweep-face-697-r90: offsets 29 of 32, slides 4 of 4, skips 1; levels 0.5 N 0.74/0.17, 1 N 1.11/0.18, 2 N 2.03/0.21, 4 N 4.45/0.27, 8 N 8.90/0.84
+   0.5 N r 0.06: across 0.17 N (along 0.77), cos_u -0.23, step 0.036 mm, 4.7 N/mm
+   1 N r 0.084: across 0.29 N (along 1.06), cos_u -0.76, step 0.092 mm, 3.2 N/mm
+   2 N r 0.075: across 0.30 N (along 2.02), cos_u -0.63, step 0.065 mm, 4.8 N/mm
+   2 N r 0.136: across 0.69 N (along 1.83), cos_u -0.97, step 0.133 mm, 5.9 N/mm
+   4 N r 0.122: across 0.72 N (along 4.36), cos_u -0.87, step 0.110 mm, 7.0 N/mm
+   4 N r 0.22: across 1.30 N (along 4.19), cos_u -0.96, step 0.211 mm, 6.2 N/mm
+   8 N r 0.199: across 1.45 N (along 8.33), cos_u -0.90, step 0.202 mm, 8.1 N/mm
+   8 N r 0.358: across 2.40 N (along 7.95), cos_u -0.97, step 0.366 mm, 7.2 N/mm
+   slide az 0 at 2 N: mu 0.39 moving, 0.38 held (along 2.19/1.97 N), cos_u -0.93
+   slide az 90 at 2 N: mu 0.56 moving, 0.49 held (along 1.90/1.96 N), cos_u -0.81
+   slide az 0 at 4 N: mu 0.40 moving, 0.34 held (along 4.57/4.12 N), cos_u -0.97
+   slide az 90 at 4 N: mu 0.51 moving, 0.45 held (along 3.73/3.71 N), cos_u -0.88
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 90.0, 't': 1793772206.9651444, 'why': 'the push across the pad 0.59 N at 0.02 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-face-781-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.81/0.09, 1 N 1.27/0.15, 2 N 2.43/0.07, 4 N 4.11/0.94, 8 N 8.18/1.29
+   0.5 N r 0.06: across 0.26 N (along 0.96), cos_u -0.84, step 0.051 mm, 5.1 N/mm
+   1 N r 0.084: across 0.42 N (along 1.14), cos_u -0.97, step 0.090 mm, 4.5 N/mm
+   2 N r 0.075: across 0.43 N (along 2.25), cos_u -0.92, step 0.088 mm, 4.9 N/mm
+   2 N r 0.136: across 0.72 N (along 2.22), cos_u -0.98, step 0.151 mm, 4.9 N/mm
+   4 N r 0.122: across 0.98 N (along 4.06), cos_u -0.32, step 0.112 mm, 8.8 N/mm
+   4 N r 0.22: across 1.34 N (along 3.94), cos_u -0.90, step 0.223 mm, 7.0 N/mm
+   8 N r 0.199: across 1.53 N (along 7.97), cos_u -0.33, step 0.184 mm, 9.6 N/mm
+   8 N r 0.358: across 2.30 N (along 7.65), cos_u -0.92, step 0.361 mm, 7.0 N/mm
+   slide az 0 at 2 N: mu 0.54 moving, 0.54 held (along 2.25/2.17 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.50 moving, 0.45 held (along 2.02/1.99 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.53 moving, 0.51 held (along 3.86/3.82 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.52 moving, 0.44 held (along 3.38/3.43 N), cos_u -0.98
+sweep-flank-563-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.95/0.19, 1 N 1.64/0.38, 2 N 2.30/0.48, 4 N 4.46/0.17, 8 N 8.53/0.48
+   0.5 N r 0.06: across 0.23 N (along 1.05), cos_u -0.57, step 0.040 mm, 7.0 N/mm
+   1 N r 0.084: across 0.38 N (along 1.65), cos_u -0.41, step 0.113 mm, 3.4 N/mm
+   2 N r 0.075: across 0.44 N (along 1.75), cos_u -0.43, step 0.099 mm, 4.2 N/mm
+   2 N r 0.136: across 0.47 N (along 2.01), cos_u -0.90, step 0.143 mm, 2.8 N/mm
+   4 N r 0.122: across 0.73 N (along 4.29), cos_u -0.98, step 0.122 mm, 6.8 N/mm
+   4 N r 0.22: across 1.20 N (along 4.26), cos_u -0.94, step 0.264 mm, 4.9 N/mm
+   8 N r 0.199: across 1.41 N (along 8.27), cos_u -0.98, step 0.210 mm, 7.1 N/mm
+   8 N r 0.358: across 2.12 N (along 7.93), cos_u -0.98, step 0.366 mm, 6.1 N/mm
+   slide az 0 at 2 N: mu 0.29 moving, 0.28 held (along 1.79/1.73 N), cos_u -0.98
+   slide az 90 at 2 N: mu 0.25 moving, 0.23 held (along 2.02/1.98 N), cos_u -0.95
+   slide az 0 at 4 N: mu 0.25 moving, 0.22 held (along 4.05/3.93 N), cos_u -0.90
+   slide az 90 at 4 N: mu 0.24 moving, 0.22 held (along 4.36/4.42 N), cos_u -0.96
+sweep-face-713-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.65/0.23, 1 N 1.43/0.37, 2 N 2.40/0.55, 4 N 4.18/0.16, 8 N 8.32/0.96
+   0.5 N r 0.06: across 0.23 N (along 0.71), cos_u -0.29, step 0.053 mm, 2.8 N/mm
+   1 N r 0.084: across 0.35 N (along 1.10), cos_u -0.04, step 0.117 mm, 3.7 N/mm
+   2 N r 0.075: across 0.41 N (along 2.37), cos_u -0.93, step 0.077 mm, 7.0 N/mm
+   2 N r 0.136: across 0.79 N (along 2.07), cos_u -0.96, step 0.149 mm, 5.5 N/mm
+   4 N r 0.122: across 0.71 N (along 3.91), cos_u -0.98, step 0.122 mm, 5.7 N/mm
+   4 N r 0.22: across 1.15 N (along 4.07), cos_u -0.99, step 0.208 mm, 5.7 N/mm
+   8 N r 0.199: across 1.42 N (along 8.00), cos_u -0.91, step 0.202 mm, 8.8 N/mm
+   8 N r 0.358: across 2.23 N (along 7.52), cos_u -0.96, step 0.352 mm, 7.2 N/mm
+   slide az 0 at 2 N: mu 0.42 moving, 0.33 held (along 2.29/2.04 N), cos_u -0.96
+   slide az 90 at 2 N: mu 0.50 moving, 0.38 held (along 2.04/2.24 N), cos_u -0.94
+   slide az 0 at 4 N: mu 0.42 moving, 0.35 held (along 4.22/4.12 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.55 moving, 0.50 held (along 3.48/3.44 N), cos_u -0.78
+sweep-face-785-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.61/0.05, 1 N 1.19/0.31, 2 N 2.40/0.19, 4 N 4.21/0.86, 8 N 8.41/1.55
+   0.5 N r 0.06: across 0.30 N (along 0.68), cos_u -0.87, step 0.059 mm, 5.4 N/mm
+   1 N r 0.084: across 0.45 N (along 1.23), cos_u -0.68, step 0.084 mm, 4.7 N/mm
+   2 N r 0.075: across 0.34 N (along 2.36), cos_u -0.87, step 0.064 mm, 5.2 N/mm
+   2 N r 0.136: across 0.77 N (along 2.31), cos_u -0.98, step 0.145 mm, 5.2 N/mm
+   4 N r 0.122: across 1.14 N (along 4.08), cos_u -0.30, step 0.122 mm, 9.2 N/mm
+   4 N r 0.22: across 1.42 N (along 4.23), cos_u -0.93, step 0.229 mm, 7.1 N/mm
+   8 N r 0.199: across 1.62 N (along 8.16), cos_u -0.47, step 0.196 mm, 9.2 N/mm
+   8 N r 0.358: across 2.28 N (along 7.80), cos_u -0.91, step 0.343 mm, 7.3 N/mm
+   slide az 0 at 2 N: mu 0.42 moving, 0.40 held (along 2.56/2.27 N), cos_u -0.98
+   slide az 90 at 2 N: mu 0.46 moving, 0.38 held (along 2.10/2.17 N), cos_u -0.97
+   slide az 0 at 4 N: mu 0.49 moving, 0.41 held (along 4.29/4.34 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.49 moving, 0.43 held (along 3.51/3.69 N), cos_u -0.97
+sweep-face-731-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.76/0.13, 1 N 1.10/0.15, 2 N 2.40/0.29, 4 N 4.20/0.94, 8 N 8.34/2.57
+   0.5 N r 0.06: across 0.28 N (along 0.88), cos_u -0.78, step 0.067 mm, 4.8 N/mm
+   1 N r 0.084: across 0.26 N (along 0.88), cos_u -0.93, step 0.094 mm, 2.8 N/mm
+   2 N r 0.075: across 0.44 N (along 2.09), cos_u -0.51, step 0.060 mm, 8.2 N/mm
+   2 N r 0.136: across 0.77 N (along 2.13), cos_u -0.99, step 0.136 mm, 5.7 N/mm
+   4 N r 0.122: across 1.14 N (along 4.12), cos_u -0.37, step 0.136 mm, 9.1 N/mm
+   4 N r 0.22: across 1.37 N (along 4.09), cos_u -0.92, step 0.215 mm, 7.0 N/mm
+   8 N r 0.199: across 2.47 N (along 7.84), cos_u -0.27, step 0.194 mm, 11.9 N/mm
+   8 N r 0.358: across 2.45 N (along 7.60), cos_u -0.63, step 0.367 mm, 8.0 N/mm
+   slide az 0 at 2 N: mu 0.47 moving, 0.47 held (along 2.27/2.17 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.38 moving, 0.31 held (along 2.13/2.25 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.49 moving, 0.48 held (along 3.92/3.94 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.41 moving, 0.40 held (along 3.61/3.69 N), cos_u -1.00
+sweep-face-721-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.65/0.07, 1 N 1.69/0.20, 2 N 1.99/0.21, 4 N 4.39/0.86, 8 N 8.32/1.51
+   0.5 N r 0.06: across 0.24 N (along 0.63), cos_u -0.39, step 0.065 mm, 3.5 N/mm
+   1 N r 0.084: across 0.42 N (along 1.49), cos_u -0.85, step 0.082 mm, 4.7 N/mm
+   2 N r 0.075: across 0.30 N (along 1.68), cos_u -0.88, step 0.082 mm, 4.2 N/mm
+   2 N r 0.136: across 0.49 N (along 1.81), cos_u -0.95, step 0.141 mm, 3.3 N/mm
+   4 N r 0.122: across 1.04 N (along 4.30), cos_u -0.63, step 0.140 mm, 8.3 N/mm
+   4 N r 0.22: across 1.20 N (along 3.92), cos_u -0.92, step 0.226 mm, 6.2 N/mm
+   8 N r 0.199: across 1.65 N (along 8.14), cos_u -0.31, step 0.181 mm, 10.7 N/mm
+   8 N r 0.358: across 2.24 N (along 8.12), cos_u -0.90, step 0.350 mm, 7.2 N/mm
+   slide az 0 at 2 N: mu 0.44 moving, 0.32 held (along 1.92/1.77 N), cos_u -0.99
+   slide az 90 at 2 N: mu 0.29 moving, 0.26 held (along 1.72/1.92 N), cos_u -0.96
+   slide az 0 at 4 N: mu 0.49 moving, 0.48 held (along 3.92/3.75 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.36 moving, 0.34 held (along 3.68/3.50 N), cos_u -0.99
+sweep-edge-639-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 1.04/0.14, 1 N 1.70/0.12, 2 N 2.13/0.25, 4 N 4.32/0.79, 8 N 8.54/1.68
+   0.5 N r 0.06: across 0.17 N (along 1.03), cos_u -0.81, step 0.066 mm, 2.2 N/mm
+   1 N r 0.084: across 0.36 N (along 1.62), cos_u -0.61, step 0.078 mm, 6.2 N/mm
+   2 N r 0.075: across 0.30 N (along 2.07), cos_u -0.58, step 0.062 mm, 5.4 N/mm
+   2 N r 0.136: across 0.50 N (along 2.10), cos_u -0.96, step 0.118 mm, 3.9 N/mm
+   4 N r 0.122: across 0.83 N (along 4.24), cos_u -0.32, step 0.121 mm, 8.0 N/mm
+   4 N r 0.22: across 0.91 N (along 3.92), cos_u -0.92, step 0.221 mm, 4.9 N/mm
+   8 N r 0.199: across 1.77 N (along 8.14), cos_u -0.29, step 0.206 mm, 8.6 N/mm
+   8 N r 0.358: across 1.64 N (along 7.85), cos_u -0.86, step 0.360 mm, 5.4 N/mm
+   slide az 0 at 2 N: mu 0.32 moving, 0.36 held (along 1.83/1.76 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.33 moving, 0.31 held (along 1.78/1.81 N), cos_u -0.93
+   slide az 0 at 4 N: mu 0.43 moving, 0.33 held (along 3.94/3.98 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.28 moving, 0.20 held (along 3.72/3.78 N), cos_u -0.96
+sweep-edge-729-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.59/0.06, 1 N 1.57/0.32, 2 N 2.39/0.34, 4 N 4.10/0.77, 8 N 8.27/1.68
+   0.5 N r 0.06: across 0.24 N (along 0.75), cos_u -0.61, step 0.061 mm, 4.0 N/mm
+   1 N r 0.084: across 0.49 N (along 1.44), cos_u -0.57, step 0.084 mm, 5.4 N/mm
+   2 N r 0.075: across 0.55 N (along 2.36), cos_u -0.51, step 0.069 mm, 8.9 N/mm
+   2 N r 0.136: across 0.54 N (along 2.09), cos_u -0.89, step 0.109 mm, 5.5 N/mm
+   4 N r 0.122: across 0.88 N (along 4.01), cos_u -0.71, step 0.132 mm, 8.0 N/mm
+   4 N r 0.22: across 1.29 N (along 3.70), cos_u -0.94, step 0.223 mm, 6.6 N/mm
+   8 N r 0.199: across 1.67 N (along 8.23), cos_u -0.51, step 0.211 mm, 10.0 N/mm
+   8 N r 0.358: across 2.26 N (along 8.03), cos_u -0.94, step 0.352 mm, 7.0 N/mm
+   slide az 0 at 2 N: mu 0.50 moving, 0.41 held (along 2.14/2.22 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.35 moving, 0.33 held (along 1.85/2.00 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.52 moving, 0.44 held (along 3.73/3.84 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.40 moving, 0.36 held (along 3.44/3.43 N), cos_u -0.99
+sweep-edge-642-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.72/0.27, 1 N 1.45/0.19, 2 N 2.56/0.18, 4 N 4.36/0.51, 8 N 8.42/1.18
+   0.5 N r 0.06: across 0.15 N (along 0.71), cos_u +0.22, step 0.051 mm, 1.4 N/mm
+   1 N r 0.084: across 0.41 N (along 1.53), cos_u -0.80, step 0.064 mm, 6.9 N/mm
+   2 N r 0.075: across 0.45 N (along 2.60), cos_u -0.95, step 0.069 mm, 6.0 N/mm
+   2 N r 0.136: across 0.65 N (along 2.45), cos_u -0.91, step 0.121 mm, 7.0 N/mm
+   4 N r 0.122: across 0.93 N (along 4.15), cos_u -0.69, step 0.119 mm, 8.2 N/mm
+   4 N r 0.22: across 1.33 N (along 3.97), cos_u -0.96, step 0.230 mm, 6.0 N/mm
+   8 N r 0.199: across 1.38 N (along 7.80), cos_u -0.91, step 0.183 mm, 7.9 N/mm
+   8 N r 0.358: across 1.83 N (along 7.13), cos_u -0.96, step 0.343 mm, 5.5 N/mm
+   slide az 0 at 2 N: mu 0.52 moving, 0.50 held (along 2.27/2.38 N), cos_u -0.68
+   slide az 90 at 2 N: mu 0.62 moving, 0.56 held (along 2.09/2.05 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.47 moving, 0.49 held (along 3.85/3.80 N), cos_u -0.69
+   slide az 90 at 4 N: mu 0.72 moving, 0.65 held (along 3.13/3.16 N), cos_u -1.00
+sweep-face-713-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.62/0.11, 1 N 1.27/0.34, 2 N 2.47/0.38, 4 N 4.41/0.85, 8 N 8.11/1.78
+   0.5 N r 0.06: across 0.09 N (along 0.55), cos_u -0.73, step 0.069 mm, 0.9 N/mm
+   1 N r 0.084: across 0.44 N (along 1.51), cos_u -0.93, step 0.076 mm, 5.6 N/mm
+   2 N r 0.075: across 0.61 N (along 2.29), cos_u -0.35, step 0.064 mm, 9.0 N/mm
+   2 N r 0.136: across 0.67 N (along 2.30), cos_u -0.97, step 0.122 mm, 5.8 N/mm
+   4 N r 0.122: across 0.93 N (along 4.30), cos_u -0.76, step 0.124 mm, 9.8 N/mm
+   4 N r 0.22: across 1.34 N (along 4.11), cos_u -0.92, step 0.218 mm, 6.9 N/mm
+   8 N r 0.199: across 1.93 N (along 7.78), cos_u -0.30, step 0.201 mm, 10.6 N/mm
+   8 N r 0.358: across 2.23 N (along 7.71), cos_u -0.89, step 0.337 mm, 7.7 N/mm
+   slide az 0 at 2 N: mu 0.47 moving, 0.42 held (along 2.36/2.37 N), cos_u -0.86
+   slide az 90 at 2 N: mu 0.57 moving, 0.52 held (along 1.99/1.86 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.38 moving, 0.35 held (along 4.05/4.15 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.57 moving, 0.52 held (along 3.58/3.47 N), cos_u -1.00
+sweep-edge-618-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.82/0.23, 1 N 1.64/0.23, 2 N 2.29/0.31, 4 N 4.46/0.73, 8 N 8.56/1.37
+   0.5 N r 0.06: across 0.35 N (along 1.08), cos_u -0.32, step 0.058 mm, 5.6 N/mm
+   1 N r 0.084: across 0.43 N (along 1.64), cos_u -0.90, step 0.073 mm, 6.1 N/mm
+   2 N r 0.075: across 0.39 N (along 2.20), cos_u -0.89, step 0.073 mm, 5.0 N/mm
+   2 N r 0.136: across 0.77 N (along 2.12), cos_u -0.94, step 0.138 mm, 5.8 N/mm
+   4 N r 0.122: across 0.89 N (along 4.50), cos_u -0.44, step 0.124 mm, 7.0 N/mm
+   4 N r 0.22: across 1.27 N (along 4.33), cos_u -0.93, step 0.192 mm, 7.2 N/mm
+   8 N r 0.199: across 1.75 N (along 8.31), cos_u -0.36, step 0.187 mm, 10.0 N/mm
+   8 N r 0.358: across 2.43 N (along 8.11), cos_u -0.91, step 0.355 mm, 7.5 N/mm
+   slide az 0 at 2 N: mu 0.47 moving, 0.44 held (along 2.27/2.14 N), cos_u -0.99
+   slide az 90 at 2 N: mu 0.42 moving, 0.36 held (along 2.07/1.87 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.47 moving, 0.41 held (along 4.25/4.48 N), cos_u -0.97
+   slide az 90 at 4 N: mu 0.47 moving, 0.40 held (along 4.39/4.16 N), cos_u -0.98
+sweep-face-697-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.72/0.08, 1 N 1.30/0.12, 2 N 2.24/0.17, 4 N 4.21/0.79, 8 N 8.55/1.68
+   0.5 N r 0.06: across 0.24 N (along 0.91), cos_u -0.78, step 0.052 mm, 4.1 N/mm
+   1 N r 0.084: across 0.42 N (along 1.31), cos_u -0.93, step 0.083 mm, 5.3 N/mm
+   2 N r 0.075: across 0.43 N (along 2.41), cos_u -0.99, step 0.075 mm, 6.0 N/mm
+   2 N r 0.136: across 0.76 N (along 2.19), cos_u -1.00, step 0.141 mm, 5.4 N/mm
+   4 N r 0.122: across 0.96 N (along 4.06), cos_u -0.70, step 0.137 mm, 6.9 N/mm
+   4 N r 0.22: across 1.23 N (along 4.05), cos_u -0.89, step 0.203 mm, 6.5 N/mm
+   8 N r 0.199: across 1.78 N (along 8.36), cos_u -0.31, step 0.190 mm, 11.7 N/mm
+   8 N r 0.358: across 2.48 N (along 7.98), cos_u -0.89, step 0.367 mm, 7.7 N/mm
+   slide az 0 at 2 N: mu 0.49 moving, 0.44 held (along 2.13/2.09 N), cos_u -0.95
+   slide az 90 at 2 N: mu 0.63 moving, 0.48 held (along 1.83/1.73 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.44 moving, 0.39 held (along 3.77/3.77 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.58 moving, 0.51 held (along 3.67/3.72 N), cos_u -0.99
+sweep-face-785-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.91/0.14, 1 N 0.99/0.29, 2 N 2.48/0.13, 4 N 4.26/0.62, 8 N 8.27/1.36
+   0.5 N r 0.06: across 0.19 N (along 1.02), cos_u +0.13, step 0.071 mm, 2.6 N/mm
+   1 N r 0.084: across 0.28 N (along 1.15), cos_u -0.88, step 0.078 mm, 3.9 N/mm
+   2 N r 0.075: across 0.34 N (along 2.41), cos_u -0.92, step 0.058 mm, 5.4 N/mm
+   2 N r 0.136: across 0.63 N (along 2.19), cos_u -0.99, step 0.116 mm, 5.7 N/mm
+   4 N r 0.122: across 0.72 N (along 3.96), cos_u -0.88, step 0.114 mm, 7.4 N/mm
+   4 N r 0.22: across 1.19 N (along 4.02), cos_u -0.97, step 0.207 mm, 6.1 N/mm
+   8 N r 0.199: across 1.63 N (along 8.03), cos_u -0.69, step 0.196 mm, 9.9 N/mm
+   8 N r 0.358: across 2.40 N (along 7.64), cos_u -0.92, step 0.372 mm, 7.1 N/mm
+   slide az 0 at 2 N: mu 0.44 moving, 0.42 held (along 2.55/2.55 N), cos_u -0.92
+   slide az 90 at 2 N: mu 0.57 moving, 0.52 held (along 2.02/1.97 N), cos_u -0.98
+   slide az 0 at 4 N: mu 0.37 moving, 0.34 held (along 3.79/3.66 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.55 moving, 0.52 held (along 3.50/3.54 N), cos_u -1.00
+sweep-edge-666-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.72/0.09, 1 N 1.40/0.38, 2 N 2.12/0.19, 4 N 4.16/0.94, 8 N 8.18/1.09
+   0.5 N r 0.06: across 0.40 N (along 1.00), cos_u -0.92, step 0.067 mm, 6.7 N/mm
+   1 N r 0.084: across 0.48 N (along 1.20), cos_u -0.33, step 0.131 mm, 5.1 N/mm
+   2 N r 0.075: across 0.70 N (along 3.08), cos_u -0.39, step 0.159 mm, 4.3 N/mm
+   2 N r 0.136: across 0.88 N (along 2.84), cos_u -0.77, step 0.189 mm, 4.7 N/mm
+   4 N r 0.122: across 1.03 N (along 4.07), cos_u -0.44, step 0.118 mm, 8.0 N/mm
+   4 N r 0.22: across 1.45 N (along 4.02), cos_u -0.90, step 0.216 mm, 7.5 N/mm
+   8 N r 0.199: across 1.60 N (along 8.13), cos_u -0.76, step 0.198 mm, 9.2 N/mm
+   8 N r 0.358: across 2.50 N (along 7.60), cos_u -0.91, step 0.352 mm, 7.4 N/mm
+   slide az 0 at 2 N: mu 0.46 moving, 0.40 held (along 2.93/2.95 N), cos_u -0.99
+   slide az 90 at 2 N: mu 0.60 moving, 0.64 held (along 2.76/2.45 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.48 moving, 0.45 held (along 4.18/4.21 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.56 moving, 0.53 held (along 3.77/3.60 N), cos_u -0.97
+sweep-face-756-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.70/0.09, 1 N 1.44/0.32, 2 N 2.30/0.34, 4 N 4.25/0.99, 8 N 8.10/1.65
+   0.5 N r 0.06: across 0.27 N (along 0.82), cos_u -0.88, step 0.047 mm, 5.2 N/mm
+   1 N r 0.084: across 0.46 N (along 1.21), cos_u -0.80, step 0.105 mm, 4.6 N/mm
+   2 N r 0.075: across 0.50 N (along 2.01), cos_u -0.93, step 0.095 mm, 4.9 N/mm
+   2 N r 0.136: across 0.82 N (along 2.14), cos_u -0.98, step 0.157 mm, 5.2 N/mm
+   4 N r 0.122: across 1.05 N (along 3.84), cos_u -0.79, step 0.145 mm, 8.7 N/mm
+   4 N r 0.22: across 1.28 N (along 3.64), cos_u -0.93, step 0.250 mm, 5.4 N/mm
+   8 N r 0.199: across 1.83 N (along 8.00), cos_u -0.38, step 0.205 mm, 10.0 N/mm
+   8 N r 0.358: across 2.42 N (along 7.85), cos_u -0.92, step 0.360 mm, 7.6 N/mm
+   slide az 0 at 2 N: mu 0.47 moving, 0.41 held (along 1.91/1.88 N), cos_u -0.94
+   slide az 90 at 2 N: mu 0.54 moving, 0.50 held (along 1.91/1.88 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.49 moving, 0.45 held (along 3.52/3.35 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.58 moving, 0.53 held (along 3.61/3.58 N), cos_u -1.00
+sweep-edge-666-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.95/0.08, 1 N 1.15/0.24, 2 N 2.21/0.33, 4 N 4.68/0.29, 8 N 8.44/1.04
+   0.5 N r 0.06: across 0.26 N (along 0.93), cos_u -0.90, step 0.058 mm, 3.8 N/mm
+   1 N r 0.084: across 0.33 N (along 1.22), cos_u -0.82, step 0.116 mm, 3.7 N/mm
+   2 N r 0.075: across 0.45 N (along 2.39), cos_u -0.67, step 0.098 mm, 5.0 N/mm
+   2 N r 0.136: across 0.66 N (along 2.07), cos_u -0.94, step 0.146 mm, 4.6 N/mm
+   4 N r 0.122: across 0.78 N (along 4.30), cos_u -0.94, step 0.120 mm, 7.3 N/mm
+   4 N r 0.22: across 1.27 N (along 4.39), cos_u -0.99, step 0.204 mm, 6.5 N/mm
+   8 N r 0.199: across 1.64 N (along 8.04), cos_u -0.61, step 0.194 mm, 9.3 N/mm
+   8 N r 0.358: across 2.44 N (along 7.73), cos_u -0.93, step 0.345 mm, 7.3 N/mm
+   slide az 0 at 2 N: mu 0.34 moving, 0.29 held (along 2.05/2.02 N), cos_u -0.98
+   slide az 90 at 2 N: mu 0.34 moving, 0.27 held (along 1.86/1.71 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.33 moving, 0.29 held (along 4.18/4.26 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.33 moving, 0.31 held (along 4.35/4.33 N), cos_u -0.99
+sweep-edge-651-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.68/0.27, 1 N 1.31/0.54, 2 N 2.45/0.25, 4 N 4.33/0.33
+   0.5 N r 0.06: across 0.36 N (along 0.67), cos_u -0.21, step 0.071 mm, 4.9 N/mm
+   1 N r 0.084: across 0.44 N (along 1.39), cos_u -0.62, step 0.081 mm, 4.4 N/mm
+   2 N r 0.075: across 0.58 N (along 2.40), cos_u -0.79, step 0.070 mm, 8.3 N/mm
+   2 N r 0.136: across 0.79 N (along 2.36), cos_u -0.70, step 0.143 mm, 5.9 N/mm
+   4 N r 0.122: across 0.71 N (along 3.81), cos_u -0.47, step 0.146 mm, 5.6 N/mm
+   4 N r 0.22: across 1.36 N (along 3.82), cos_u -0.53, step 0.237 mm, 5.1 N/mm
+   8 N r 0.199: across 1.16 N (along 4.77), cos_u -0.74, step nan mm
+   8 N r 0.358: across 1.56 N (along 4.41), cos_u -0.48, step nan mm
+   slide az 0 at 2 N: mu 0.52 moving, 0.54 held (along 2.27/2.32 N), cos_u -0.66
+   slide az 90 at 2 N: mu 0.58 moving, 0.67 held (along 1.88/1.94 N), cos_u -0.95
+   slide az 0 at 4 N: mu 0.56 moving, 0.60 held (along 3.60/3.58 N), cos_u -0.60
+   slide az 90 at 4 N: mu 0.69 moving, 0.68 held (along 3.23/3.40 N), cos_u -0.98
+sweep-face-768-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.71/0.18, 1 N 1.33/0.14, 2 N 2.20/0.17, 4 N 4.36/0.75, 8 N 8.24/1.46
+   0.5 N r 0.06: across 0.31 N (along 0.72), cos_u -0.44, step 0.072 mm, 4.8 N/mm
+   1 N r 0.084: across 0.38 N (along 1.08), cos_u -0.45, step 0.120 mm, 3.4 N/mm
+   2 N r 0.075: across 0.35 N (along 2.33), cos_u -0.87, step 0.056 mm, 6.4 N/mm
+   2 N r 0.136: across 0.67 N (along 2.01), cos_u -0.95, step 0.123 mm, 5.5 N/mm
+   4 N r 0.122: across 0.96 N (along 4.06), cos_u -0.56, step 0.135 mm, 8.7 N/mm
+   4 N r 0.22: across 1.38 N (along 4.10), cos_u -0.91, step 0.219 mm, 7.0 N/mm
+   8 N r 0.199: across 1.72 N (along 7.91), cos_u -0.34, step 0.197 mm, 10.1 N/mm
+   8 N r 0.358: across 2.39 N (along 7.62), cos_u -0.87, step 0.344 mm, 7.8 N/mm
+   slide az 0 at 2 N: mu 0.51 moving, 0.42 held (along 2.11/1.98 N), cos_u -0.99
+   slide az 90 at 2 N: mu 0.58 moving, 0.55 held (along 1.89/1.82 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.52 moving, 0.50 held (along 4.34/4.33 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.50 moving, 0.43 held (along 3.73/3.77 N), cos_u -1.00
+sweep-face-717-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.84/0.21, 1 N 2.12/0.32, 2 N 1.75/0.48, 4 N 4.54/0.42, 8 N 8.73/0.75
+   0.5 N r 0.06: across 0.27 N (along 0.99), cos_u -0.28, step 0.073 mm, 3.4 N/mm
+   1 N r 0.084: across 0.51 N (along 1.62), cos_u -0.28, step 0.084 mm, 6.0 N/mm
+   2 N r 0.075: across 0.48 N (along 2.54), cos_u -0.23, step 0.061 mm, 7.9 N/mm
+   2 N r 0.136: across 0.63 N (along 2.56), cos_u -0.80, step 0.130 mm, 5.5 N/mm
+   4 N r 0.122: across 0.80 N (along 4.37), cos_u -0.72, step 0.157 mm, 5.9 N/mm
+   4 N r 0.22: across 1.09 N (along 4.26), cos_u -0.97, step 0.241 mm, 4.1 N/mm
+   8 N r 0.199: across 1.16 N (along 8.41), cos_u -0.93, step 0.212 mm, 5.7 N/mm
+   8 N r 0.358: across 1.58 N (along 8.07), cos_u -0.95, step 0.351 mm, 4.7 N/mm
+   slide az 0 at 2 N: mu 0.37 moving, 0.39 held (along 2.60/2.62 N), cos_u -0.64
+   slide az 90 at 2 N: mu 0.57 moving, 0.53 held (along 2.24/2.22 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.34 moving, 0.31 held (along 4.27/4.43 N), cos_u -0.81
+   slide az 90 at 4 N: mu 0.67 moving, 0.66 held (along 3.50/3.47 N), cos_u -0.99
+sweep-face-721-r0: offsets 29 of 32, slides 4 of 4, skips 1; levels 0.5 N 1.06/0.40, 1 N 1.44/0.23, 2 N 2.49/0.30, 4 N 4.33/0.37, 8 N 8.47/0.91
+   0.5 N r 0.06: across 0.33 N (along 1.31), cos_u -1.00, step 0.056 mm, 5.8 N/mm
+   1 N r 0.084: across 0.37 N (along 1.12), cos_u -0.55, step 0.088 mm, 4.4 N/mm
+   2 N r 0.075: across 0.65 N (along 2.37), cos_u -0.36, step 0.084 mm, 7.4 N/mm
+   2 N r 0.136: across 0.73 N (along 2.49), cos_u -0.80, step 0.128 mm, 6.2 N/mm
+   4 N r 0.122: across 0.92 N (along 4.04), cos_u -0.57, step 0.123 mm, 7.9 N/mm
+   4 N r 0.22: across 1.16 N (along 3.90), cos_u -0.65, step 0.242 mm, 5.6 N/mm
+   8 N r 0.199: across 1.45 N (along 8.49), cos_u -0.91, step 0.215 mm, 6.8 N/mm
+   8 N r 0.358: across 1.84 N (along 7.83), cos_u -0.91, step 0.365 mm, 5.6 N/mm
+   slide az 0 at 2 N: mu 0.44 moving, 0.49 held (along 2.52/2.48 N), cos_u -0.67
+   slide az 90 at 2 N: mu 0.60 moving, 0.55 held (along 2.02/1.97 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.57 moving, 0.58 held (along 3.84/3.87 N), cos_u -0.57
+   slide az 90 at 4 N: mu 0.71 moving, 0.63 held (along 3.40/3.46 N), cos_u -1.00
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 90.0, 't': 1793775391.8443487, 'why': 'the push across the pad 1.04 N at 0.36 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-face-708-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 1.03/0.13, 1 N 1.71/0.14, 2 N 2.33/0.23, 4 N 4.95/0.60, 8 N 8.44/0.93
+   0.5 N r 0.06: across 0.16 N (along 1.02), cos_u -0.97, step 0.044 mm, 3.6 N/mm
+   1 N r 0.084: across 0.29 N (along 1.72), cos_u -0.82, step 0.081 mm, 4.2 N/mm
+   2 N r 0.075: across 0.29 N (along 2.19), cos_u -0.82, step 0.077 mm, 3.0 N/mm
+   2 N r 0.136: across 0.62 N (along 2.33), cos_u -0.96, step 0.158 mm, 3.9 N/mm
+   4 N r 0.122: across 0.74 N (along 4.88), cos_u -0.83, step 0.144 mm, 4.5 N/mm
+   4 N r 0.22: across 1.08 N (along 4.94), cos_u -0.96, step 0.216 mm, 4.9 N/mm
+   8 N r 0.199: across 1.29 N (along 8.31), cos_u -0.89, step 0.203 mm, 6.0 N/mm
+   8 N r 0.358: across 1.88 N (along 8.17), cos_u -0.96, step 0.360 mm, 5.4 N/mm
+   slide az 0 at 2 N: mu 0.39 moving, 0.42 held (along 2.47/2.33 N), cos_u -0.74
+   slide az 90 at 2 N: mu 0.61 moving, 0.56 held (along 2.19/2.30 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.32 moving, 0.31 held (along 4.84/4.86 N), cos_u -0.93
+   slide az 90 at 4 N: mu 0.68 moving, 0.68 held (along 4.05/4.00 N), cos_u -1.00
+sweep-edge-668-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.87/0.17, 1 N 1.18/0.41, 2 N 2.26/0.24, 4 N 4.56/0.55, 8 N 8.27/1.01
+   0.5 N r 0.06: across 0.29 N (along 0.82), cos_u -0.96, step 0.052 mm, 6.8 N/mm
+   1 N r 0.084: across 0.44 N (along 1.00), cos_u -0.88, step 0.080 mm, 6.1 N/mm
+   2 N r 0.075: across 0.47 N (along 2.14), cos_u -0.70, step 0.086 mm, 8.1 N/mm
+   2 N r 0.136: across 0.74 N (along 2.08), cos_u -0.93, step 0.138 mm, 5.5 N/mm
+   4 N r 0.122: across 0.83 N (along 4.56), cos_u -0.71, step 0.119 mm, 7.7 N/mm
+   4 N r 0.22: across 1.43 N (along 4.27), cos_u -0.98, step 0.237 mm, 6.6 N/mm
+   8 N r 0.199: across 1.50 N (along 7.80), cos_u -0.89, step 0.207 mm, 8.3 N/mm
+   8 N r 0.358: across 2.43 N (along 7.43), cos_u -0.95, step 0.373 mm, 7.3 N/mm
+   slide az 0 at 2 N: mu 0.42 moving, 0.35 held (along 2.36/2.20 N), cos_u -0.96
+   slide az 90 at 2 N: mu 0.55 moving, 0.53 held (along 2.09/1.98 N), cos_u -0.91
+   slide az 0 at 4 N: mu 0.46 moving, 0.41 held (along 4.82/4.59 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.50 moving, 0.47 held (along 4.09/4.11 N), cos_u -0.90
+sweep-face-781-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 1.21/0.10, 1 N 1.67/0.16, 2 N 2.40/0.33, 4 N 4.59/0.65, 8 N 8.61/1.67
+   0.5 N r 0.06: across 0.25 N (along 1.13), cos_u -0.78, step 0.044 mm, 5.8 N/mm
+   1 N r 0.084: across 0.42 N (along 1.58), cos_u -0.92, step 0.104 mm, 4.4 N/mm
+   2 N r 0.075: across 0.54 N (along 2.44), cos_u -0.33, step 0.056 mm, 9.7 N/mm
+   2 N r 0.136: across 0.71 N (along 2.07), cos_u -0.80, step 0.117 mm, 6.3 N/mm
+   4 N r 0.122: across 0.71 N (along 4.13), cos_u -0.93, step 0.118 mm, 6.5 N/mm
+   4 N r 0.22: across 1.24 N (along 4.12), cos_u -0.96, step 0.225 mm, 5.7 N/mm
+   8 N r 0.199: across 1.72 N (along 8.40), cos_u -0.61, step 0.212 mm, 8.8 N/mm
+   8 N r 0.358: across 2.07 N (along 7.95), cos_u -0.93, step 0.353 mm, 6.5 N/mm
+   slide az 0 at 2 N: mu 0.43 moving, 0.41 held (along 2.33/2.38 N), cos_u -0.84
+   slide az 90 at 2 N: mu 0.55 moving, 0.44 held (along 2.05/2.05 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.36 moving, 0.34 held (along 4.07/3.93 N), cos_u -0.97
+   slide az 90 at 4 N: mu 0.62 moving, 0.54 held (along 3.27/3.38 N), cos_u -1.00
+sweep-face-692-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.83/0.06, 1 N 1.20/0.42, 2 N 3.04/0.40, 4 N 4.44/0.78, 8 N 8.34/1.57
+   0.5 N r 0.06: across 0.17 N (along 0.70), cos_u -0.93, step 0.045 mm, 6.9 N/mm
+   1 N r 0.084: across 0.39 N (along 1.08), cos_u -0.83, step 0.077 mm, 5.3 N/mm
+   2 N r 0.075: across 0.35 N (along 2.22), cos_u -0.98, step 0.095 mm, 3.8 N/mm
+   2 N r 0.136: across 0.57 N (along 2.23), cos_u -0.98, step 0.137 mm, 4.4 N/mm
+   4 N r 0.122: across 0.95 N (along 4.20), cos_u -0.36, step 0.136 mm, 7.3 N/mm
+   4 N r 0.22: across 1.31 N (along 4.02), cos_u -0.86, step 0.226 mm, 6.6 N/mm
+   8 N r 0.199: across 1.85 N (along 8.11), cos_u -0.40, step 0.200 mm, 10.3 N/mm
+   8 N r 0.358: across 2.28 N (along 8.13), cos_u -0.86, step 0.356 mm, 7.2 N/mm
+   slide az 0 at 2 N: mu 0.44 moving, 0.37 held (along 2.28/2.44 N), cos_u -0.94
+   slide az 90 at 2 N: mu 0.62 moving, 0.54 held (along 2.23/2.18 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.43 moving, 0.42 held (along 3.94/3.69 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.60 moving, 0.55 held (along 3.83/3.60 N), cos_u -1.00
+sweep-face-690-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.78/0.09, 1 N 1.47/0.25, 2 N 2.03/0.71, 4 N 4.25/0.81, 8 N 8.48/1.60
+   0.5 N r 0.06: across 0.26 N (along 1.01), cos_u -0.99, step 0.058 mm, 4.3 N/mm
+   1 N r 0.084: across 0.50 N (along 1.50), cos_u +0.02, step 0.100 mm, 4.7 N/mm
+   2 N r 0.075: across 0.60 N (along 2.19), cos_u -0.29, step 0.068 mm, 8.3 N/mm
+   2 N r 0.136: across 0.83 N (along 2.17), cos_u -0.85, step 0.144 mm, 6.2 N/mm
+   4 N r 0.122: across 0.97 N (along 3.81), cos_u -0.83, step 0.160 mm, 6.8 N/mm
+   4 N r 0.22: across 1.37 N (along 3.75), cos_u -0.90, step 0.240 mm, 6.7 N/mm
+   8 N r 0.199: across 1.77 N (along 7.89), cos_u -0.36, step 0.185 mm, 10.1 N/mm
+   8 N r 0.358: across 2.31 N (along 7.91), cos_u -0.88, step 0.343 mm, 7.6 N/mm
+   slide az 0 at 2 N: mu 0.49 moving, 0.47 held (along 2.30/2.33 N), cos_u -0.90
+   slide az 90 at 2 N: mu 0.65 moving, 0.59 held (along 2.14/2.05 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.45 moving, 0.42 held (along 3.82/3.80 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.65 moving, 0.61 held (along 3.66/3.54 N), cos_u -1.00
+sweep-face-768-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.97/0.14, 1 N 1.14/0.20, 2 N 3.11/1.09, 4 N 4.19/0.61, 8 N 8.37/1.62
+   0.5 N r 0.06: across 0.25 N (along 1.17), cos_u -0.92, step 0.046 mm, 5.3 N/mm
+   1 N r 0.084: across 0.34 N (along 0.87), cos_u -0.42, step 0.083 mm, 4.9 N/mm
+   2 N r 0.075: across 0.97 N (along 2.47), cos_u -0.21, step 0.067 mm, 13.2 N/mm
+   2 N r 0.136: across 0.88 N (along 2.28), cos_u -0.83, step 0.167 mm, 5.1 N/mm
+   4 N r 0.122: across 0.96 N (along 3.90), cos_u -0.85, step 0.154 mm, 6.9 N/mm
+   4 N r 0.22: across 1.31 N (along 3.96), cos_u -0.96, step 0.227 mm, 6.0 N/mm
+   8 N r 0.199: across 1.76 N (along 8.09), cos_u -0.47, step 0.214 mm, 9.6 N/mm
+   8 N r 0.358: across 2.28 N (along 7.84), cos_u -0.92, step 0.361 mm, 6.9 N/mm
+   slide az 0 at 2 N: mu 0.46 moving, 0.45 held (along 2.46/2.46 N), cos_u -0.81
+   slide az 90 at 2 N: mu 0.58 moving, 0.52 held (along 2.29/2.37 N), cos_u -0.99
+   slide az 0 at 4 N: mu 0.39 moving, 0.34 held (along 3.80/3.58 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.60 moving, 0.53 held (along 3.34/3.25 N), cos_u -0.99
+sweep-face-776-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.81/0.15, 1 N 1.21/0.11, 2 N 2.32/0.78, 4 N 4.22/0.71, 8 N 8.57/1.55
+   0.5 N r 0.06: across 0.24 N (along 0.73), cos_u -0.80, step 0.047 mm, 5.1 N/mm
+   1 N r 0.084: across 0.34 N (along 1.08), cos_u -0.60, step 0.086 mm, 3.6 N/mm
+   2 N r 0.075: across 0.82 N (along 2.07), cos_u -0.38, step 0.090 mm, 9.7 N/mm
+   2 N r 0.136: across 0.88 N (along 2.16), cos_u -0.76, step 0.139 mm, 6.5 N/mm
+   4 N r 0.122: across 0.84 N (along 4.03), cos_u -0.49, step 0.121 mm, 8.1 N/mm
+   4 N r 0.22: across 1.42 N (along 3.95), cos_u -0.95, step 0.235 mm, 6.7 N/mm
+   8 N r 0.199: across 1.74 N (along 8.20), cos_u -0.36, step 0.192 mm, 9.6 N/mm
+   8 N r 0.358: across 2.51 N (along 7.97), cos_u -0.91, step 0.361 mm, 7.7 N/mm
+   slide az 0 at 2 N: mu 0.48 moving, 0.51 held (along 2.27/2.19 N), cos_u -0.81
+   slide az 90 at 2 N: mu 0.61 moving, 0.61 held (along 2.03/1.97 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.41 moving, 0.39 held (along 3.82/3.73 N), cos_u -0.97
+   slide az 90 at 4 N: mu 0.61 moving, 0.57 held (along 3.36/3.40 N), cos_u -1.00
+sweep-face-690-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.60/0.08, 1 N 1.17/0.19, 2 N 2.48/0.38, 4 N 4.71/0.94, 8 N 8.17/1.09
+   0.5 N r 0.06: across 0.15 N (along 0.64), cos_u -0.44, step 0.067 mm, 1.9 N/mm
+   1 N r 0.084: across 0.50 N (along 1.11), cos_u -0.96, step 0.118 mm, 3.8 N/mm
+   2 N r 0.075: across 0.39 N (along 2.74), cos_u -0.70, step 0.063 mm, 6.1 N/mm
+   2 N r 0.136: across 0.83 N (along 2.46), cos_u -0.99, step 0.163 mm, 5.1 N/mm
+   4 N r 0.122: across 1.07 N (along 4.34), cos_u -0.25, step 0.114 mm, 11.2 N/mm
+   4 N r 0.22: across 1.48 N (along 4.23), cos_u -0.86, step 0.231 mm, 7.7 N/mm
+   8 N r 0.199: across 1.51 N (along 8.00), cos_u -0.71, step 0.205 mm, 8.5 N/mm
+   8 N r 0.358: across 2.29 N (along 8.06), cos_u -0.94, step 0.358 mm, 6.5 N/mm
+   slide az 0 at 2 N: mu 0.58 moving, 0.60 held (along 2.51/2.28 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.57 moving, 0.55 held (along 2.39/2.36 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.55 moving, 0.49 held (along 4.33/4.25 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.54 moving, 0.48 held (along 3.98/4.08 N), cos_u -0.96
+sweep-face-759-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.86/0.15, 1 N 1.26/0.22, 2 N 2.29/0.32, 4 N 4.15/0.71, 8 N 8.41/1.18
+   0.5 N r 0.06: across 0.26 N (along 0.80), cos_u -0.88, step 0.047 mm, 5.6 N/mm
+   1 N r 0.084: across 0.50 N (along 1.13), cos_u -0.89, step 0.088 mm, 5.7 N/mm
+   2 N r 0.075: across 0.49 N (along 2.23), cos_u -0.56, step 0.084 mm, 6.4 N/mm
+   2 N r 0.136: across 0.77 N (along 2.47), cos_u -0.85, step 0.125 mm, 6.2 N/mm
+   4 N r 0.122: across 1.08 N (along 3.88), cos_u -0.80, step 0.162 mm, 7.4 N/mm
+   4 N r 0.22: across 1.42 N (along 4.06), cos_u -0.97, step 0.246 mm, 5.9 N/mm
+   8 N r 0.199: across 1.61 N (along 7.99), cos_u -0.55, step 0.209 mm, 8.1 N/mm
+   8 N r 0.358: across 2.28 N (along 7.54), cos_u -0.93, step 0.346 mm, 7.0 N/mm
+   slide az 0 at 2 N: mu 0.57 moving, 0.57 held (along 2.47/2.36 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.60 moving, 0.60 held (along 2.09/1.99 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.57 moving, 0.56 held (along 4.11/3.92 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.57 moving, 0.52 held (along 3.58/3.47 N), cos_u -0.95
+sweep-edge-630-r90: offsets 30 of 32, slides 4 of 4, skips 1; levels 0.5 N 0.85/0.14, 1 N 1.62/0.22, 2 N 2.28/0.21, 4 N 4.36/0.21, 8 N 8.52/0.94
+   0.5 N r 0.06: across 0.30 N (along 1.01), cos_u -0.94, step 0.067 mm, 4.7 N/mm
+   1 N r 0.084: across 0.39 N (along 1.81), cos_u -0.93, step 0.073 mm, 5.1 N/mm
+   2 N r 0.075: across 0.56 N (along 2.00), cos_u -0.88, step 0.117 mm, 5.1 N/mm
+   2 N r 0.136: across 0.64 N (along 2.07), cos_u -0.90, step 0.119 mm, 5.2 N/mm
+   4 N r 0.122: across 0.79 N (along 4.01), cos_u -0.92, step 0.124 mm, 5.6 N/mm
+   4 N r 0.22: across 1.19 N (along 3.97), cos_u -0.99, step 0.204 mm, 5.3 N/mm
+   8 N r 0.199: across 1.54 N (along 8.26), cos_u -0.79, step 0.209 mm, 8.4 N/mm
+   8 N r 0.358: across 2.43 N (along 8.19), cos_u -0.97, step 0.356 mm, 7.6 N/mm
+   slide az 0 at 2 N: mu 0.25 moving, 0.14 held (along 2.04/1.99 N), cos_u -0.90
+   slide az 90 at 2 N: mu 0.61 moving, 0.49 held (along 2.01/2.14 N), cos_u -0.78
+   slide az 0 at 4 N: mu 0.29 moving, 0.20 held (along 4.49/4.44 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.61 moving, 0.54 held (along 3.68/3.81 N), cos_u -0.74
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 180.0, 't': 1793776877.2258708, 'why': 'the push across the pad 0.67 N at 0.11 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-face-776-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.82/0.16, 1 N 1.30/0.08, 2 N 2.42/0.43, 4 N 4.36/0.94, 8 N 8.18/1.63
+   0.5 N r 0.06: across 0.20 N (along 0.77), cos_u -0.70, step 0.039 mm, 5.4 N/mm
+   1 N r 0.084: across 0.39 N (along 1.34), cos_u -0.95, step 0.072 mm, 5.6 N/mm
+   2 N r 0.075: across 0.74 N (along 2.28), cos_u -0.51, step 0.112 mm, 6.9 N/mm
+   2 N r 0.136: across 0.76 N (along 2.28), cos_u -0.79, step 0.124 mm, 6.1 N/mm
+   4 N r 0.122: across 1.08 N (along 4.23), cos_u -0.34, step 0.139 mm, 9.4 N/mm
+   4 N r 0.22: across 1.44 N (along 4.20), cos_u -0.93, step 0.234 mm, 6.8 N/mm
+   8 N r 0.199: across 1.89 N (along 7.85), cos_u -0.38, step 0.188 mm, 10.6 N/mm
+   8 N r 0.358: across 2.57 N (along 7.73), cos_u -0.89, step 0.384 mm, 7.7 N/mm
+   slide az 0 at 2 N: mu 0.58 moving, 0.58 held (along 2.49/2.35 N), cos_u -0.99
+   slide az 90 at 2 N: mu 0.55 moving, 0.52 held (along 1.98/1.76 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.56 moving, 0.53 held (along 4.24/4.08 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.57 moving, 0.52 held (along 3.68/3.65 N), cos_u -0.97
+sweep-edge-628-r0: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.60/0.06, 1 N 1.39/0.34, 2 N 2.67/0.54, 4 N 4.31/0.99, 8 N 8.34/1.92
+   0.5 N r 0.06: across 0.18 N (along 0.38), cos_u -0.54, step 0.054 mm, 3.1 N/mm
+   1 N r 0.084: across 0.36 N (along 1.34), cos_u -0.82, step 0.076 mm, 4.7 N/mm
+   2 N r 0.075: across 0.64 N (along 2.36), cos_u -0.46, step 0.110 mm, 5.7 N/mm
+   2 N r 0.136: across 0.68 N (along 2.28), cos_u -0.85, step 0.135 mm, 5.0 N/mm
+   4 N r 0.122: across 1.13 N (along 4.06), cos_u -0.29, step 0.121 mm, 9.7 N/mm
+   4 N r 0.22: across 1.33 N (along 4.06), cos_u -0.63, step 0.218 mm, 6.8 N/mm
+   8 N r 0.199: across 2.10 N (along 8.17), cos_u -0.25, step 0.185 mm, 12.2 N/mm
+   8 N r 0.358: across 2.33 N (along 8.08), cos_u -0.68, step 0.355 mm, 7.5 N/mm
+   slide az 0 at 2 N: mu 0.44 moving, 0.43 held (along 2.31/2.01 N), cos_u -0.99
+   slide az 90 at 2 N: mu 0.51 moving, 0.51 held (along 1.92/1.81 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.50 moving, 0.46 held (along 4.25/4.20 N), cos_u -0.95
+   slide az 90 at 4 N: mu 0.48 moving, 0.41 held (along 3.84/3.94 N), cos_u -0.98
+sweep-face-717-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.90/0.13, 1 N 1.37/0.09, 2 N 2.36/0.19, 4 N 4.42/0.51, 8 N 8.30/1.55
+   0.5 N r 0.06: across 0.22 N (along 1.02), cos_u -0.34, step 0.054 mm, 3.6 N/mm
+   1 N r 0.084: across 0.34 N (along 1.07), cos_u -0.92, step 0.099 mm, 3.8 N/mm
+   2 N r 0.075: across 0.32 N (along 2.03), cos_u -0.86, step 0.084 mm, 3.6 N/mm
+   2 N r 0.136: across 0.52 N (along 2.03), cos_u -0.98, step 0.134 mm, 3.9 N/mm
+   4 N r 0.122: across 0.62 N (along 4.10), cos_u -0.78, step 0.120 mm, 4.9 N/mm
+   4 N r 0.22: across 1.02 N (along 3.87), cos_u -0.91, step 0.221 mm, 4.7 N/mm
+   8 N r 0.199: across 1.60 N (along 8.02), cos_u -0.27, step 0.181 mm, 9.6 N/mm
+   8 N r 0.358: across 1.90 N (along 7.73), cos_u -0.90, step 0.358 mm, 5.9 N/mm
+   slide az 0 at 2 N: mu 0.83 moving, 0.83 held (along 2.20/2.38 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.39 moving, 0.33 held (along 1.84/1.88 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.58 moving, 0.65 held (along 4.25/4.31 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.47 moving, 0.42 held (along 3.22/3.33 N), cos_u -0.97
+sweep-edge-634-r90: offsets 32 of 32, slides 2 of 4, skips 1; levels 0.5 N 0.67/0.28, 1 N 1.48/0.26, 2 N 2.50/0.27, 4 N 4.47/1.28, 8 N 8.36/1.44
+   0.5 N r 0.06: across 0.27 N (along 0.64), cos_u -0.68, step 0.041 mm, 6.8 N/mm
+   1 N r 0.084: across 0.32 N (along 1.43), cos_u -0.82, step 0.059 mm, 5.4 N/mm
+   2 N r 0.075: across 0.57 N (along 2.18), cos_u -0.61, step 0.121 mm, 5.1 N/mm
+   2 N r 0.136: across 0.77 N (along 2.06), cos_u -0.70, step 0.119 mm, 6.8 N/mm
+   4 N r 0.122: across 1.67 N (along 3.82), cos_u -0.17, step 0.119 mm, 17.6 N/mm
+   4 N r 0.22: across 1.70 N (along 3.92), cos_u -0.32, step 0.208 mm, 8.0 N/mm
+   8 N r 0.199: across 1.78 N (along 7.93), cos_u -0.58, step 0.188 mm, 10.0 N/mm
+   8 N r 0.358: across 2.36 N (along 7.78), cos_u -0.83, step 0.338 mm, 7.0 N/mm
+   slide az 0 at 4 N: mu 0.27 moving, 0.21 held (along 4.79/4.59 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.65 moving, 0.53 held (along 3.76/4.03 N), cos_u -0.77
+   skip: {'N': 2.0, 'slide_az_deg': 0.0, 't': 1793777535.6558645, 'why': 'the push across the pad 1.65 N at 0.86 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-edge-638-r90: offsets 32 of 32, slides 2 of 4, skips 1; levels 0.5 N 0.76/0.15, 1 N 1.27/0.27, 2 N 2.23/0.14, 4 N 4.31/0.97, 8 N 8.23/1.28
+   0.5 N r 0.06: across 0.27 N (along 0.79), cos_u -0.91, step 0.059 mm, 6.1 N/mm
+   1 N r 0.084: across 0.49 N (along 1.33), cos_u -0.99, step 0.107 mm, 4.7 N/mm
+   2 N r 0.075: across 0.47 N (along 2.12), cos_u -0.93, step 0.085 mm, 6.1 N/mm
+   2 N r 0.136: across 0.80 N (along 2.12), cos_u -0.99, step 0.145 mm, 5.7 N/mm
+   4 N r 0.122: across 0.96 N (along 4.05), cos_u -0.38, step 0.125 mm, 7.6 N/mm
+   4 N r 0.22: across 1.20 N (along 3.95), cos_u -0.90, step 0.203 mm, 6.6 N/mm
+   8 N r 0.199: across 1.45 N (along 7.95), cos_u -0.76, step 0.202 mm, 7.9 N/mm
+   8 N r 0.358: across 2.30 N (along 7.43), cos_u -0.93, step 0.360 mm, 6.5 N/mm
+   slide az 0 at 2 N: mu 0.44 moving, 0.35 held (along 2.18/1.92 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.58 moving, 0.48 held (along 1.76/1.89 N), cos_u -0.98
+   skip: {'N': 4.0, 'slide_az_deg': 0.0, 't': 1793777724.2807457, 'why': 'the push across the pad 3.12 N at 2.09 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-edge-573-r90: offsets 23 of 32, slides 4 of 4, skips 1; levels 0.5 N 0.70/0.13, 1 N 1.39/0.28, 2 N 2.28/0.43
+   0.5 N r 0.06: across 0.19 N (along 0.72), cos_u -0.88, step 0.048 mm, 3.1 N/mm
+   1 N r 0.084: across 0.43 N (along 1.23), cos_u -0.64, step 0.088 mm, 6.4 N/mm
+   2 N r 0.075: across 0.44 N (along 2.09), cos_u -0.73, step 0.069 mm, 7.9 N/mm
+   2 N r 0.136: across 0.70 N (along 2.00), cos_u -0.93, step 0.154 mm, 4.0 N/mm
+   4 N r 0.122: across 0.75 N (along 1.95), cos_u -0.57, step nan mm
+   4 N r 0.22: across 0.82 N (along 2.07), cos_u -0.90, step nan mm
+   slide az 0 at 2 N: mu 0.29 moving, 0.23 held (along 1.96/1.82 N), cos_u -0.98
+   slide az 90 at 2 N: mu 0.50 moving, 0.43 held (along 1.90/1.86 N), cos_u -0.81
+   slide az 0 at 4 N: mu 0.28 moving, 0.21 held (along 2.01/1.83 N), cos_u -0.95
+   slide az 90 at 4 N: mu 0.47 moving, 0.44 held (along 2.04/2.01 N), cos_u -0.82
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 270.0, 't': 1793777783.8379643, 'why': 'the push across the pad 0.54 N at -0.03 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-face-790-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.82/0.14, 1 N 1.29/0.24, 2 N 2.52/0.43, 4 N 4.42/1.19, 8 N 8.14/1.53
+   0.5 N r 0.06: across 0.21 N (along 0.70), cos_u -0.71, step 0.098 mm, 8.3 N/mm
+   1 N r 0.084: across 0.50 N (along 1.18), cos_u -0.97, step 0.108 mm, 5.7 N/mm
+   2 N r 0.075: across 0.39 N (along 2.61), cos_u -0.61, step 0.071 mm, 4.4 N/mm
+   2 N r 0.136: across 0.92 N (along 2.35), cos_u -0.96, step 0.171 mm, 5.9 N/mm
+   4 N r 0.122: across 1.23 N (along 4.19), cos_u -0.26, step 0.117 mm, 11.8 N/mm
+   4 N r 0.22: across 1.43 N (along 4.18), cos_u -0.89, step 0.219 mm, 7.5 N/mm
+   8 N r 0.199: across 1.73 N (along 7.75), cos_u -0.40, step 0.188 mm, 10.2 N/mm
+   8 N r 0.358: across 2.43 N (along 7.49), cos_u -0.87, step 0.359 mm, 7.7 N/mm
+   slide az 0 at 2 N: mu 0.55 moving, 0.55 held (along 2.57/2.38 N), cos_u -0.99
+   slide az 90 at 2 N: mu 0.54 moving, 0.53 held (along 2.13/2.05 N), cos_u -0.98
+   slide az 0 at 4 N: mu 0.58 moving, 0.60 held (along 4.08/3.88 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.51 moving, 0.45 held (along 3.52/3.52 N), cos_u -0.99
+sweep-face-733-r90: offsets 32 of 32, slides 4 of 4, skips 1; levels 0.5 N 0.61/0.12, 1 N 1.33/0.08, 2 N 2.46/0.16, 4 N 4.18/0.96
+   0.5 N r 0.06: across 0.25 N (along 0.48), cos_u -0.28, step 0.088 mm, 3.2 N/mm
+   1 N r 0.084: across 0.37 N (along 1.27), cos_u -0.97, step 0.080 mm, 4.7 N/mm
+   2 N r 0.075: across 0.32 N (along 2.40), cos_u -0.89, step 0.062 mm, 4.6 N/mm
+   2 N r 0.136: across 0.65 N (along 2.28), cos_u -0.99, step 0.125 mm, 5.3 N/mm
+   4 N r 0.122: across 1.07 N (along 4.08), cos_u -0.40, step 0.129 mm, 10.4 N/mm
+   4 N r 0.22: across 1.25 N (along 4.09), cos_u -0.88, step 0.217 mm, 7.0 N/mm
+   8 N r 0.199: across 1.94 N (along 7.60), cos_u -0.30, step nan mm
+   8 N r 0.358: across 2.35 N (along 7.39), cos_u -0.73, step nan mm
+   slide az 0 at 2 N: mu 0.58 moving, 0.51 held (along 2.19/2.23 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.35 moving, 0.33 held (along 2.28/2.39 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.51 moving, 0.52 held (along 3.77/3.48 N), cos_u -1.00
+   slide az 90 at 4 N: mu 0.39 moving, 0.35 held (along 3.62/3.70 N), cos_u -0.99
+   skip: {'N': 0.5, 'r_mm': 0.06, 'az_deg': 270.0, 't': 1793778064.4428864, 'why': 'the push across the pad 0.52 N at 0.00 N along its normal, over 1.2 x the push along + 0.5 N'}
+sweep-face-735-r90: offsets 32 of 32, slides 4 of 4, skips 0; levels 0.5 N 0.70/0.14, 1 N 1.19/0.19, 2 N 2.28/0.33, 4 N 4.47/0.98, 8 N 8.34/1.83
+   0.5 N r 0.06: across 0.18 N (along 0.67), cos_u -0.66, step 0.055 mm, 3.3 N/mm
+   1 N r 0.084: across 0.39 N (along 1.15), cos_u -0.53, step 0.074 mm, 4.9 N/mm
+   2 N r 0.075: across 0.41 N (along 2.30), cos_u -0.87, step 0.079 mm, 6.5 N/mm
+   2 N r 0.136: across 0.65 N (along 2.13), cos_u -0.93, step 0.115 mm, 6.3 N/mm
+   4 N r 0.122: across 1.07 N (along 4.24), cos_u -0.32, step 0.123 mm, 9.4 N/mm
+   4 N r 0.22: across 1.28 N (along 4.10), cos_u -0.92, step 0.199 mm, 7.2 N/mm
+   8 N r 0.199: across 2.07 N (along 8.22), cos_u -0.24, step 0.183 mm, 12.1 N/mm
+   8 N r 0.358: across 2.40 N (along 8.00), cos_u -0.89, step 0.360 mm, 7.7 N/mm
+   slide az 0 at 2 N: mu 0.55 moving, 0.51 held (along 2.14/2.15 N), cos_u -1.00
+   slide az 90 at 2 N: mu 0.36 moving, 0.34 held (along 2.23/2.23 N), cos_u -1.00
+   slide az 0 at 4 N: mu 0.51 moving, 0.45 held (along 4.03/4.13 N), cos_u -0.99
+   slide az 90 at 4 N: mu 0.38 moving, 0.36 held (along 3.84/3.72 N), cos_u -1.00
+-> /tmp/claude-1002/-home-will-workspace-hand/1b197fd2-ec1e-4cf7-a44d-32104879c0b7/scratchpad/summary/214753-rod13_seed.json
