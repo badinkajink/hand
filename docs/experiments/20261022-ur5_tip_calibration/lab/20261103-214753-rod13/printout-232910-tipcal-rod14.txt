@@ -10,3 +10,58 @@ preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 138 records/s, robot 124
   probe-ref-b0 (1/49): to 3.00 N
   sweep-face-713-r0 (2/49): to 8.00 N
   sweep-edge-618-r0 (3/49): to 8.00 N
+  sweep-face-697-r0 (4/49): to 8.00 N
+  sweep-face-785-r0 (5/49): to 8.00 N
+  sweep-edge-666-r90 (6/49): to 8.00 N
+  sweep-face-756-r0 (7/49): to 8.00 N
+  sweep-edge-666-r0 (8/49): to 8.00 N
+  sweep-edge-651-r0 (9/49): to 4.00 N
+  sweep-face-768-r90 (10/49): to 8.00 N
+  sweep-face-717-r0 (11/49): to 8.00 N
+  sweep-face-721-r0: 0.5 N's offsets stop at r 0.06 az 90: the push across the pad 1.04 N at 0.36 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-face-721-r0 (12/49): to 8.00 N
+  sweep-face-708-r0 (13/49): to 8.00 N
+  sweep-edge-668-r90 (14/49): to 8.00 N
+  sweep-face-781-r0 (15/49): to 8.00 N
+  sweep-face-692-r0 (16/49): to 8.00 N
+  sweep-face-690-r0 (17/49): to 8.00 N
+  sweep-face-768-r0 (18/49): to 8.00 N
+  sweep-face-776-r0 (19/49): to 8.00 N
+  sweep-face-690-r90 (20/49): to 8.00 N
+  sweep-face-759-r90 (21/49): to 8.00 N
+  sweep-edge-630-r90: 0.5 N's offsets stop at r 0.06 az 180: the push across the pad 0.67 N at 0.11 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-edge-630-r90 (22/49): to 8.00 N
+  sweep-face-776-r90 (23/49): to 8.00 N
+  sweep-edge-628-r0 (24/49): to 8.00 N
+  sweep-face-717-r90 (25/49): to 8.00 N
+  sweep-edge-634-r90: 2 N's slides stop at az 0: the push across the pad 1.65 N at 0.86 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-edge-634-r90 (26/49): to 8.00 N
+  sweep-edge-638-r90: 4 N's slides stop at az 0: the push across the pad 3.12 N at 2.09 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-edge-638-r90 (27/49): to 8.00 N
+  sweep-edge-573-r90: 0.5 N's offsets stop at r 0.06 az 270: the push across the pad 0.54 N at -0.03 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-edge-573-r90 (28/49): to 2.00 N
+  sweep-face-790-r90 (29/49): to 8.00 N
+  sweep-face-733-r90: 0.5 N's offsets stop at r 0.06 az 270: the push across the pad 0.52 N at 0.00 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-face-733-r90 (30/49): to 4.00 N
+  sweep-face-735-r90 (31/49): to 8.00 N
+  probe-face-692-r90-t-15 (32/49): to 5.00 N
+  probe-face-756-r90-t-15 (33/49): to 5.00 N
+  probe-face-756-r90-t+15 (34/49): to 5.00 N
+  probe-face-768-r90-t-15 (35/49): to 5.00 N
+  probe-face-768-r90-t+15 (36/49): to 5.00 N
+  probe-face-708-r90-t-15 (37/49): to 5.00 N
+  probe-face-708-r90-t+15 (38/49): to 5.00 N
+  probe-face-690-r90-t-15 (39/49): to 5.00 N
+  probe-face-759-r90-t-15 (40/49): to 5.00 N
+  probe-face-759-r90-t+15 (41/49): to 5.00 N
+  probe-face-697-r90-t-15 (42/49): to 5.00 N
+  probe-face-697-r90-t+15 (43/49): to 5.00 N
+  probe-face-776-r90-t-15 (44/49): to 5.00 N
+  probe-face-776-r90-t+15 (45/49): to 5.00 N
+  probe-ref-final (46/49): to 3.00 N
+  probe-face-776-r90-roll (47/49): to 4.00 N
+  probe-face-785-r90-roll (48/49): to 4.00 N
+  probe-face-756-r90-roll (49/49): to 4.00 N
+HEX-E: 663183 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.7 s, Fz +0.4 N; 0.7 s, Fz +0.2 N
+session in logs/20261103-tip_calibration/214753-rod13_seed
+exit 0 at 01:19:52

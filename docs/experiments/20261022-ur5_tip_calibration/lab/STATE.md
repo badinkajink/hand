@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 06:2x by the lab. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 07:1x by the lab. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -258,8 +258,12 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       - Seat 3: edge-642-r90; the az 0 slides of edge-618-r90; the az 270 slides of edge-573-r0 and edge-651-r90.
       - Seat 1: edge-651-r90 and edge-642-r90; the az 90 slides of edge-569-r0; the az 0 slides of edge-618-r90.
       - The plans are `20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_sweep8_fit.json`.
-  - **Now (from 19:15:01): `logs/20261103-chain_rod_night.sh` on `logs/20261103-rod_night_steps3.txt`** (PID 2881408;
-    its log `logs/20261103-chain_rod_night.log`): the night in halves (NOTES, "The night in halves").
+  - **Done, 07:11:26 on 11-04: the night's rod run, every step clean, no abort.** The arm waits at the rest of seat 1's
+    last reference press (probe-ref-x1), the rod a few mm over seat 1's pad. Move it clear before working at the rig.
+    Nothing runs on the robot: the chain ended, and the 08:30 stop (PID 2877930) was stopped by its PID at 07:12:29.
+    The sessions' streams go to the workstation by git-lfs from about 07:2x (NOTES).
+  - **The night (19:15:01 to 07:11:26): `logs/20261103-chain_rod_night.sh` on `logs/20261103-rod_night_steps3.txt`**
+    (PID 2881408; its log `logs/20261103-chain_rod_night.log`): the night in halves (NOTES, "The night in halves").
     - The order: seat 2's first half (resuming `172647-rod21_seed`), seat 3's (a new session from s3v4, with its
       pass 1), seat 1's (from s1sph2b, with its pass 1); then the second halves of seats 1, 3 and 2; then the extras of
       seats 2, 3 and 1. Plans: `20261103-plan_probe_table_rod_seat{2,3,1}_v3id{5,4,6}_half_{a,b}.json` and
@@ -272,8 +276,8 @@ The owner answered at about 11:37, in the workstation's session, which passed th
       22:07:10 turned the rod -2.90 deg, inside the envelope). Seat 1's half b ended cleanly at 01:19:52 on 11-04, so
       seat 1 has every sweep location, twist and 4 N roll. Seat 3's half b ended cleanly at 03:01:39, so seat 3 has
       them too. Seat 2's half b ended cleanly at 04:39:56: every tip has all its sweep locations, twists and 4 N rolls.
-    - The extras run from 04:39:59. Seat 2's ended cleanly at 05:28:29 and seat 3's at 06:21:09 (obliques about 25 s
-      each). Seat 1's (rod19), the night's last step, runs from 06:21:10 and should end about 07:12.
+    - The extras ran from 04:39:59: seat 2's ended cleanly at 05:28:29, seat 3's at 06:21:09 and seat 1's at 07:11:24
+      (obliques about 25 s each).
     - Seat 2 so far: 7 sweeps in full (64 offsets, 8 slides) and probe-ref-00 before the switch; half a done (26
       light sweeps, probe-ref-a1; 809 of 832 offsets, 102 of 104 slides); 3 of half b's sweeps done.
     - The workstation's checker on the whole chain in run order flagged none of its 589 actions (19:29;
@@ -288,10 +292,8 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     - The workstation's joint rod fit (23:48) turns the rod -0.22 deg about z_M and -1.90 across. Since 23:55 the
       extras also leave out eight edge-573 obliques that come within 0.20 mm of the tip body at its 2 sd corners.
       Checked again at the fit and its corners, no travel is flagged (NOTES).
-    - No step starts after 08:00 (the owner, relayed at 19:1x: "i mean i wont be in until 9").
-      `logs/20261103-deadline_stop.sh` (PID 2877930) stops every running chain at 08:30, then the program right after
-      its next finished action.
-    - To stop the chain by hand, kill its PID; a running program goes on.
+    - No step was to start after 08:00 (the owner, relayed at 19:1x: "i mean i wont be in until 9"), with the hard
+      stop at 08:30 (`logs/20261103-deadline_stop.sh`). The chain ended at 07:11:26, before either.
   - The earlier chain (18:01:10 to 19:09:41, PID 2867047, `logs/20261103-rod_night_steps2.txt`) ran seat 2 on the _fit
     plan from grid 4 to 8.
     - The HEX-E dropped at 18:01:2x, on the resume's first travel, and streamed again from 18:51:23 after the owner
