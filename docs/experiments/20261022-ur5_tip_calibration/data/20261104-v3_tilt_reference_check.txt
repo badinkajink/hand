@@ -1,0 +1,22 @@
+1. held-out error by tilt: holds, location mm, direction deg, tangential force error N
+  ID 1: 0-0.1: 259 at 0.39 mm, 2.8 deg, 0.15 N; 0.1-0.3: 392 at 0.46 mm, 4.8 deg, 0.16 N; 0.3-0.5: 168 at 0.50 mm, 6.3 deg, 0.16 N; 0.5-9: 178 at 0.71 mm, 6.4 deg, 0.19 N
+  ID 2: 0-0.1: 349 at 0.40 mm, 3.1 deg, 0.15 N; 0.1-0.3: 662 at 0.48 mm, 4.3 deg, 0.15 N; 0.3-0.5: 395 at 0.53 mm, 4.8 deg, 0.15 N; 0.5-9: 341 at 0.56 mm, 5.0 deg, 0.14 N
+  ID 3: 0-0.1: 338 at 0.39 mm, 2.9 deg, 0.14 N; 0.1-0.3: 596 at 0.48 mm, 4.0 deg, 0.14 N; 0.3-0.5: 357 at 0.60 mm, 6.0 deg, 0.16 N; 0.5-9: 278 at 0.56 mm, 5.9 deg, 0.16 N
+  ID 4: 0-0.1: 447 at 0.67 mm, 4.4 deg, 0.17 N; 0.1-0.3: 1382 at 0.80 mm, 4.4 deg, 0.19 N; 0.3-0.5: 591 at 0.77 mm, 5.2 deg, 0.25 N; 0.5-9: 77 at 0.85 mm, 7.8 deg, 0.37 N
+  ID 5: 0-0.1: 887 at 0.48 mm, 3.0 deg, 0.13 N; 0.1-0.3: 1760 at 0.80 mm, 5.2 deg, 0.22 N; 0.3-0.5: 948 at 0.71 mm, 5.3 deg, 0.24 N; 0.5-9: 269 at 0.79 mm, 5.7 deg, 0.29 N
+  ID 6: 0-0.1: 493 at 0.67 mm, 4.7 deg, 0.21 N; 0.1-0.3: 1479 at 0.80 mm, 5.1 deg, 0.20 N; 0.3-0.5: 933 at 0.75 mm, 5.7 deg, 0.24 N; 0.5-9: 197 at 0.79 mm, 6.8 deg, 0.24 N
+2. reference presses near 2 N: session, presses, label spread mm, board spread %, force direction spread deg
+  ID 1 20261028-spherev3id1_twists: 7 at 2 N; label 0.025 mm, board 13.6 %, direction 2.98 deg
+  ID 1 20261028-rodv3id1: 4 at 2 N; label 0.026 mm, board 11.4 %, direction 1.44 deg
+  ID 2 20261029-spherev3id2: 9 at 2 N; label 0.041 mm, board 11.9 %, direction 3.22 deg
+  ID 2 20261029-rodv3id2: 4 at 2 N; label 0.013 mm, board 8.5 %, direction 1.38 deg
+  ID 3 20261030-spherev3id3: 9 at 2 N; label 0.039 mm, board 10.5 %, direction 3.71 deg
+  ID 3 20261030-rodv3id3: 4 at 2 N; label 0.026 mm, board 11.0 %, direction 1.97 deg
+  ID 4 20261102-220337-s3v4: 24 at 2 N; label 0.077 mm, board 16.8 %, direction 1.47 deg
+  ID 4 20261103-202017-rod32_dense: 10 at 2 N; label 0.000 mm, board 21.1 %, direction 2.86 deg
+  ID 5 20261102-182710-s2v5: 12 at 2 N; label 0.041 mm, board 14.8 %, direction 1.77 deg
+  ID 5 20261103-144808-s2sph2: 12 at 2 N; label 0.357 mm, board 23.1 %, direction 1.14 deg
+  ID 5 20261103-172647-rod21_dense: 12 at 2 N; label 0.000 mm, board 12.4 %, direction 1.74 deg
+  ID 6 20261102-145010-s1v6b: 12 at 2 N; label 0.022 mm, board 8.9 %, direction 1.09 deg
+  ID 6 20261103-122020-s1sph2b: 11 at 2 N; label 0.027 mm, board 9.5 %, direction 1.60 deg
+  ID 6 20261103-214753-rod13_dense: 10 at 2 N; label 0.000 mm, board 16.6 %, direction 3.58 deg

@@ -1763,6 +1763,15 @@ push that answers it arrives.
     mm (ID 4, 88 to 104 groups), 0.888 to 0.843 (ID 5, 106 to 125) and 0.812 to 0.756 (ID 6, 93 to 109). The watchdog
     killed seat 3's GP and seat 2's holds at 13:28:44 on memory PSI 15 (desktop pages read back from swap; RAM 12.5 GB
     free), and both reran at 13:29 to 13:46.
+  - 14:0x to 14:2x on 11-04 (the owner: "is the contact direction any better? i thought the huge advantage with the
+    inverted rig was the improved coverage and angles of approach at that coverage?"). On near-normal loads, with all of
+    each tip's data, sphere and rod localize alike: new points 0.62 to 0.67 mm (sphere) and 0.61 to 0.72 mm (rod) on IDs
+    4 to 6, 0.33 to 0.45 and 0.33 to 0.42 mm on IDs 1 to 3 (data/20261104-v3_sphere_vs_rod_check.py). By load tilt
+    (|f_t| / |f_n|; data/20261104-v3_tilt_reference_check.txt), direction is within about 1 deg between the rigs: under
+    0.1, 2.8 to 3.1 deg on IDs 1 to 3 and 3.0 to 4.7 on IDs 4 to 6; over 0.5, 5.0 to 6.4 and 5.7 to 7.8. The tangential
+    force's error is 0.14 to 0.19 N on IDs 1 to 3 and 0.13 to 0.37 N on IDs 4 to 6. ID 5 on near-normal loads (0.48 mm,
+    3.0 deg, 0.13 N) comes near IDs 1 to 3 (0.39 to 0.40 mm). The reference presses at 2 N read 12.2 to 20.6 uT/N over the
+    rod sessions and 10.7 to 14.0 on IDs 1 to 3.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
