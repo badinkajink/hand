@@ -24,8 +24,12 @@ the pad less R plus the indentation at N, one fitted depth per region class (fac
 of 11-03 leaves the rod's turn about z_M unidentified: the shared turn fits the 60 touches at +9.3 or -10.9 deg, both
 below the own fits' chi2; the sweeps press with the rod turned 0 and 90 deg about the stem.
 
-    python3 scripts/ur5_rod_joint_registration.py SESSION [SESSION ...] [--share both|turn] [--seat-scale K
-        [--loose NAME ...]] [--grid-level N [--grid-sd MM]] [--drop ID ...] [--out OUT]
+--more SESSION ...: sessions that ran on a rod session's registration (the night of 11-03: each seat's second half and
+extras ran on its first half's fitted registration); their sweeps join the grid of the rod session on the same seat.
+Their registration's T_BI, T_EM and T_AP must equal that session's.
+
+    python3 scripts/ur5_rod_joint_registration.py SESSION [SESSION ...] [--more SESSION ...] [--share both|turn]
+        [--seat-scale K [--loose NAME ...]] [--grid-level N [--grid-sd MM]] [--drop ID ...] [--out OUT]
 """
 from __future__ import annotations
 
@@ -180,11 +184,26 @@ def main():
     ap.add_argument("--grid-level", type=float, default=None, help="add the sweeps' contacts at this level (N)")
     ap.add_argument("--grid-sd", type=float, default=0.05, help="the grid contacts' sd (mm)")
     ap.add_argument("--drop", nargs="*", default=[], help="touch ids left out")
+    ap.add_argument("--more", nargs="*", default=[], help="sessions on a rod session's registration: their sweeps join "
+                    "that seat's grid")
     ap.add_argument("--seeds", default=str(LAB), help="where the seed sessions' folders are")
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
     sig = U.REG_SIGMA_PROBE
     S = [load(sd, set(a.drop), a.seeds, a.grid_level) for sd in a.sessions]
+    for sd in a.more:
+        sd = Path(sd)
+        seat = int(json.loads((sd / "plan.json").read_text())["geometry"]["seat"]["index"])
+        base = [s for s in S if s["seat"] == seat]
+        if len(base) != 1:
+            raise SystemExit(f"{sd.name}: {len(base)} rod sessions on seat {seat + 1}")
+        s, rj = base[0], json.loads((sd / "registration.json").read_text())
+        for k in ("T_BI", "T_EM", "T_AP"):
+            if np.abs(np.asarray(rj[k], float) - np.asarray(s["rj"][k], float)).max() > 1e-6:
+                raise SystemExit(f"{sd.name}: its {k} is not {s['name']}'s")
+        g = grid_poses(sd, a.grid_level, s["reg"].T_EM)
+        s["grid"] += g
+        s.setdefault("more", []).append(f"{sd.name} ({len(g)} sweeps)")
     nG = sum(len(s["grid"]) for s in S)
     g0 = S[0]["geo"]
     for s in S[1:]:
@@ -251,11 +270,13 @@ def main():
         e = U.pose_error(o["T_AP"], T_AP)
         q = lambda v: round(float(v), 4) if v is not None else None  # noqa: E731
         row = dict(session=s["name"], seed=s["seed_name"], seat=s["seat"] + 1, n_touch=len(s["pad"]),
+                   more=s.get("more", []), n_grid=len(s["grid"]),
                    own=dict(c_M=np.round(o["c_M"], 4).tolist(), turn_deg=np.round(o["turn_deg"], 3).tolist(),
                             turn_sd_deg=np.round(o["turn_sd_deg"], 3).tolist(), rms_mm=q(o["rms"]),
                             pad_from_seed_mm_deg=o["seed_change_mm_deg"], vs_session_mm_deg=o["vs_session_mm_deg"],
                             vs_session_c_mm=q(o["vs_session_c_mm"])),
                    joint=dict(T_AP_vs_own_mm_deg=[q(v) for v in e], rms_mm=q(rms_j), c_M=np.round(c, 4).tolist(),
+                              axis_M=np.round(ax, 6).tolist(),
                               c_M_vs_own_mm=np.round(c - o["c_M"], 4).tolist(),
                               pad_from_seed_mm_deg=[q(v) for v in U.pose_error(s["T_AP0"], T_AP)]),
                    contact_shift=dict(n_press=len(sh), median_mm=q(np.median(sh)) if len(sh) else None,
@@ -280,7 +301,7 @@ def main():
     res = dict(what="the joint fit of one rod (its axis point c_M across the axis and its turn about z_M and across, or the "
                     "turn only) and each rod session's pad pose T_AP over the pass 1 touches "
                     "(scripts/ur5_rod_joint_registration.py), the program's residuals and priors (fit_rod_registration)",
-               share=a.share, seat_scale=wide, sessions=list(a.sessions), dropped=list(a.drop),
+               share=a.share, seat_scale=wide, sessions=list(a.sessions), more=list(a.more), dropped=list(a.drop),
                grid_level_N=a.grid_level, grid_sd_mm=a.grid_sd, n_grid=nG,
                indentation_mm=dict(zip(CLASSES, np.round(x[i_d:i_d + 3], 4).tolist())) if nG else None,
                turn_deg=np.round(turn, 3).tolist(), turn_sd_deg=np.round(turn_sd, 3).tolist(),

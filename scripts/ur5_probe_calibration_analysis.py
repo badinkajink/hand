@@ -19,7 +19,16 @@ roll's turns) the ground truth comes from the robot, the HEX-E and the session's
   torsion   the pad's torque about its normal at the contact point (the probe's, opposite)
   board     the held board's hold mean against its rests before and after, each chip corrected for its die temperature
 
-    .venv/bin/python scripts/ur5_probe_calibration_analysis.py SESSION_DIR [--plans PLAN ...] [--out DIR]
+--joint JSON (scripts/ur5_rod_joint_registration.py, 11-04): the pad pose T_AP, the rod's axis point c_M and its axis
+of the joint rod fit's row for the session's seat replace the session's registration. The session's T_BI and T_EM must
+equal those of the row's session (the night's second halves and extras ran on their first half's registration).
+
+The rod's contact label stays the pad's point nearest the axis (11-04 06:3x, on the simulated rod session's 58 holds):
+it stands 0.095 mm (median) from the simulator's centre of pressure, the penetration-weighted centroid 0.191 mm. Turning
+the axis by 0.5 or 1 deg (across or about z_M) moves neither label's median; by 2.5 deg the nearest point moves 0.69 mm
+and the centroid 0.41 mm, by 5 deg about 1 mm and 0.88 mm. The label's error is set by the registration's turn.
+
+    .venv/bin/python scripts/ur5_probe_calibration_analysis.py SESSION_DIR [--plans PLAN ...] [--joint JSON] [--out DIR]
 
 Checked on a simulated rod session (11-03, seat 2's half b cut to a reference press, an 8 N sweep, a twist and a roll;
 58 holds): the contact point stands 0.095 mm (median) from the simulator's centre of pressure and the force 0.106 N from
@@ -43,6 +52,7 @@ C, SIM, W = AN.C, AN.SIM, AN.W
 OUT = ROOT / "docs/experiments/20261030-inverted_rig_seat_block/data/holds"
 KINDS = ("press", "sweep", "twist", "roll")
 PLANS = []           # --plans: more program plans whose actions a resumed run took (a resume keeps the seed's plan.json)
+JOINT = []           # --joint: a joint rod registration whose row for the seat replaces the session's
 
 
 class ProbeSession(AN.Session):
@@ -63,6 +73,22 @@ class ProbeSession(AN.Session):
             hb = np.fromfile(self.sd / "held.bin", C.HeldBoardStream.DTYPE)     # channel (the simulator writes the held
             hb = hb[hb["b"] == int(self.geo.seat["held_channel"])]              # board into board.bin)
             self.d["t_b"], self.d["r_b"] = hb["t"], hb["r"].reshape(-1, 5, 4).astype(float)
+        self.joint = None
+        if JOINT:
+            J = json.loads(Path(JOINT[0]).read_text())
+            seat = int(self.d["plan"]["geometry"]["seat"]["index"]) + 1
+            jr = next(r for r in J["rows"] if r["seat"] == seat)
+            src = next(x for x in J["sessions"] if x.rstrip("/").endswith(jr["session"]))
+            rb = json.loads(((ROOT / src) / "registration.json").read_text())
+            for k in ("T_BI", "T_EM"):
+                if np.abs(np.asarray(rb[k], float) - np.asarray(self.d["reg"][k], float)).max() > 1e-6:
+                    raise SystemExit(f"{sd}: its {k} is not that of {jr['session']}, the joint fit's seat {seat}")
+            if "axis_M" not in jr["joint"]:
+                raise SystemExit(f"{JOINT[0]}: no joint axis_M (rerun ur5_rod_joint_registration.py)")
+            dP = C.pose_error(np.asarray(self.d["reg"]["T_AP"], float), np.asarray(jr["T_AP_joint"], float))
+            self.d["reg"] = dict(self.d["reg"], T_AP=jr["T_AP_joint"], c_M=jr["joint"]["c_M"], axis_M=jr["joint"]["axis_M"])
+            self.joint = dict(file=str(JOINT[0]), seat=seat, session=jr["session"],
+                              pad_vs_session_mm_deg=[round(float(v), 4) for v in dP])
         self.reg = C.Registration(self.geo).load(self.d["reg"])
         self.T_BP = self.reg.T_BP()
         self.T_PB = C.inv(self.T_BP)
@@ -194,8 +220,11 @@ def main():
     ap.add_argument("session")
     ap.add_argument("--out", default="", help="folder for holds.npz and summary.json (default data/holds/<session>)")
     ap.add_argument("--plans", nargs="*", default=[], help="program plans of the session's resumes (their targets)")
+    ap.add_argument("--joint", default="", help="a joint rod registration (ur5_rod_joint_registration.py) in place of "
+                    "the session's")
     a = ap.parse_args()
     PLANS[:] = a.plans
+    JOINT[:] = [a.joint] if a.joint else []
     ses = ProbeSession(a.session)
     H = ses.holds()
     out = Path(a.out) if a.out else OUT / Path(a.session).name
@@ -208,7 +237,7 @@ def main():
     dep = np.array([h["depth"] for h in H])
     db = np.array([np.linalg.norm(h["d_board"]) for h in H])
     m = fn >= 1.0
-    s = dict(session=str(a.session), tool=ses.geo.kind, holds=len(H), kinds=kinds,
+    s = dict(session=str(a.session), tool=ses.geo.kind, registration=ses.joint or "the session's", holds=len(H), kinds=kinds,
              f_n_N=[round(float(np.percentile(fn, q)), 2) for q in (5, 50, 95)] if len(H) else None,
              depth_mm_at_1N_and_over=[round(float(np.percentile(dep[m], q)), 3) for q in (5, 50, 95)] if m.any() else None,
              board_uT_per_N_median=round(float(np.median(db[m] / fn[m])), 2) if m.any() else None)
