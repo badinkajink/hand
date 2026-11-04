@@ -1681,6 +1681,18 @@ push that answers it arrives.
     owner is asked to reseat the tool a quarter turn; pass 1 then reruns from s2sph2's seed. The 8 N plans' closest
     passes (8 sweeps a seat, the rod's contact side 7 to 10 mm along its axis within 0.42 to 0.99 mm of the tip body,
     each at one slide azimuth) are in data/20261103-strip_table_pads_rod_sweep8_end_margins.json.
+  - 17:46 to 19:18 on 11-03, lab and workstation. Seat 2's fit after the reseat: 0.054 mm rms over 20 touches, c_M
+    (-0.838, 0, 106.687) in M, the rod turned -5.40 deg about z_M and 0.77 deg across. The program aims the fitted c_M and
+    keeps the plan's R_PM, so the rod's ends turn with the fit. With that turn (scripts/ur5_rod_fitted_margins.py, the
+    exact body distance), edge-569-r0's az 90 slides came 0.10 mm from seat 2's tip body, edge-618-r90's az 0 slides
+    0.11 mm, and edge-642-r90's deep pose 0.16 mm. The lab left those out on all three seats (lab/..._sweep8_fit.json),
+    with seats 3 and 1 trimmed by seat 2's turn until their own fits. The HEX-E was out from 18:01:2x to 18:51:23 (its
+    cable; the owner reseated it). On the robot a sweep took 258 s, so the plans did not fit the night. The owner (19:1x):
+    "i mean i wont be in until 9"; the last start is now 08:00 and the hard stop 08:30. The night runs lighter sweeps
+    (offsets at 4 azimuths with every ring and level, slides at az 0 and 90 at 2 and 4 N, about 160 s), each seat's sweeps
+    in two alternating halves (first halves 2, 3, 1, second halves 1, 3, 2, with the 5 N twists and the 4 N rolls at the
+    end of each second half), then each seat's extras (rolls, then the 20 and 35 deg obliques), seats 2, 3 and 1, from
+    lab/20261103-rod_halves.py. Seat 2's first half started at 19:15:01 with 8 full sweeps done.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
