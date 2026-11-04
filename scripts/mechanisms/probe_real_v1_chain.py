@@ -59,18 +59,6 @@ CONTROL_DECIMATION = pg.CONTROL_DECIMATION
 
 # ------------------------------------------------------------------------------------ geometry
 
-def _align(u: np.ndarray, v: np.ndarray) -> np.ndarray:
-    """Minimal rotation taking unit vector u onto unit vector v (Rodrigues)."""
-    u = u / np.linalg.norm(u)
-    v = v / np.linalg.norm(v)
-    w = np.cross(u, v)
-    s, c = float(np.linalg.norm(w)), float(np.dot(u, v))
-    if s < 1e-9:
-        return np.eye(3) if c > 0 else -np.eye(3)
-    K = np.array([[0, -w[2], w[1]], [w[2], 0, -w[0]], [-w[1], w[0], 0]]) / s
-    return np.eye(3) + np.sin(np.arccos(np.clip(c, -1, 1))) * K + (1 - c) * (K @ K)
-
-
 def _rigid_palm_pose(m, d, obj: str, R_des: np.ndarray, p_des: np.ndarray):
     """World palm pose that would put a RIGIDLY HELD object at (R_des, p_des).
 
