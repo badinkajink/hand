@@ -38,9 +38,26 @@ seeds 0-2, and S3e, the best of S1, S2 and S3.
     python3 scripts/hom_grasp_refine.py validate --task twist [--picks-from k21]   # another plant's picks run here
     python3 scripts/hom_grasp_refine.py report                # rows/<plant>/<date>-score_levels.json
     python3 scripts/hom_grasp_refine.py run ... --smoke       # rows under rows_smoke/
-Plants (PLANTS): sv25 the SCS0009 with pads at 2.5 MPa (the hand), k21 the STS3032 at kp 2.1 N m/rad, k21mu0p4 the
-same at scene friction 0.4 (TPU on bare PLA), work10 the work plant at 10 MPa; each is a grid of hom_plant_transfer.py,
-whose rows give S1. The overnight queue of 2026-11-03 is logs/20261103-hom_score_refine/queue.sh (README.md there).
+Plants (PLANTS): sv25 the SCS0009 with pads at 2.5 MPa (the hand), k21 the STS3032 at kp 2.1 N m/rad, k21mu0p4 and
+k21mu0p7 the same at scene friction 0.4 (TPU on bare PLA) and 0.7, work10 the work plant at 10 MPa; each is a grid of
+hom_plant_transfer.py, whose rows give S1. The overnight queue of 2026-11-03 is logs/20261103-hom_score_refine/queue.sh
+(README.md there).
+
+Worst-case score over a band of scene frictions (owner, 2026-11-03: "robustness to a band of physical parameters as a
+scoring parameter in hand selection"; "worst-case sampling makes sense"). With --band (BANDS: band_k21mu, the STS3032
+at friction 0.4, 0.7 and 1.0), every candidate runs at seeds 0-2 on each plant of the band, and its score is the lowest
+of its three-seed means; the tie-break is the margin at that plant. S1 is the grasp of the layout's set with the best
+worst-case score over the band's grids. The open pose is found once per candidate (hom_tasks.open_pose is kinematic,
+and the band's pt scenes differ only in friction); each plant's batches are spawned with that plant's HOS_PLANT,
+HOS_SCENES and HOM_ROWS_TAG, which hand_object_scale_sim and hom_gpu read at import, and every row's scene cache is
+checked. Rows: rows/<band>/<level>/<plant>/<task>_d<d>.jsonl (and _timing.jsonl) per plant, the band's _gens.jsonl and
+_iters.jsonl in rows/<band>/<level>/, the sample rows/<band>/<task>_layouts.json (another plant's layouts,
+--layouts-from).
+    python3 scripts/hom_grasp_refine.py run --task twist --level grasp --band k21mu0p4,k21mu0p7,k21 --layouts-from k21
+    python3 scripts/hom_grasp_refine.py validate --task twist --band k21mu0p4,k21mu0p7,k21 [--picks-from k21]
+    python3 scripts/hom_grasp_refine.py report --band k21mu0p4,k21mu0p7,k21   # rows/<band>/<date>-band_levels.json
+`validate --band` runs the band's picks, or with --picks-from another plant's, on every plant of the band; rows of the
+2026-11-03 queue (a plant's val/ and val_from_<plant>/) are read where they exist and never appended to.
 Hom_gpu takes the forces and modes per world (a world's prm); check of 2026-11-03 18:2x (logs/20261103-hom_score_refine/
 check_prm.py): default worlds reproduce the grid rows within the GPU's run-to-run spread, a world with prm scores the
 same in a mixed batch and alone, and the CPU runner with the same prm agrees.
@@ -75,7 +92,10 @@ LG = "logs/20261102-hom_servo_plant/"
 PLANTS = {"sv25": ("servo", LG + "scenes", "_sv25"),                       # SCS0009, pads at 2.5 MPa: the hand
           "k21": ("kp2.1_kv0_fr0.515_fl0_dp0.042", LG + "scenes", "_k21"),  # STS3032 at kp 2.1, 2.5 MPa
           "k21mu0p4": ("kp2.1_kv0_fr0.515_fl0_dp0.042", LG + "scenes_mu0.4", "_k21mu0p4"),  # ... friction 0.4
+          "k21mu0p7": ("kp2.1_kv0_fr0.515_fl0_dp0.042", LG + "scenes_mu0.7", "_k21mu0p7"),  # ... friction 0.7
           "work10": ("work", None, "")}                                     # the work plant, 10 MPa (10-30 grids)
+# band name -> its plants, the nominal plant last (the parent process runs with it; worst-case score, --band)
+BANDS = {"band_k21mu": ("k21mu0p4", "k21mu0p7", "k21")}
 TASKS = {"twist": 40.0, "roll": 40.0, "pinpush": 25.0, "press": 25.0}
 POSE = {"twist": "tripod", "roll": "tripod", "pinpush": "pinch", "press": "press"}
 SEARCH_SEEDS, VAL_SEEDS = (0, 1, 2), (20, 21, 22, 23, 24)
@@ -110,6 +130,30 @@ ROWS_ROOT = OUT / "rows"                            # --smoke: OUT / "rows_smoke
 
 def rows_dir(plant):
     return ROWS_ROOT / plant
+
+
+def band_name(arg):
+    """The BANDS name of --band: the name itself, or its plants comma-separated in BANDS's order."""
+    if arg in BANDS:
+        return arg
+    want = tuple(x.strip() for x in arg.split(","))
+    for k, v in BANDS.items():
+        if v == want:
+            return k
+    raise SystemExit(f"--band {arg}: not a band of {BANDS}")
+
+
+def use_plant(plant):
+    """setenv, and HOS_SCENES cleared for a plant of the default scene cache: a band switches the plant of the GPU
+    batches it spawns."""
+    setenv(plant)
+    if not PLANTS[plant][1]:
+        os.environ.pop("HOS_SCENES", None)
+
+
+def band_paths(path, plants):
+    """{plant: rows path} of a band: path's file in a folder per plant beside it."""
+    return {p: path.parent / p / path.name for p in plants}
 
 
 # ------------------------------------------------------------------------------------------------ the search space
@@ -256,6 +300,55 @@ def layouts(task, plant, n_top=N_TOP, n_rand=N_RAND, base=None):
     return out
 
 
+def s1_band(task, plants):
+    """{call: (grasp index, its lowest three-seed mean over the plants' grids, {plant: mean})}: the grasp of the layout's
+    set with the best worst-case score (ties: the lowest index, as s1_table)."""
+    import hom_landscape as L
+    per = {}
+    for p in plants:
+        sc = {}
+        for r in read_rows(GRID_ROWS / f"grid2dff_v4b{PLANTS[p][2]}" / f"{task}_d{TASKS[task]:g}.jsonl"):
+            if int(r["seed"]) in SEARCH_SEEDS:
+                sc.setdefault((int(r["call"]), int(r.get("grasp", 0))), []).append(L.rollout_score(task, r))
+        per[p] = {k: float(np.mean(v)) for k, v in sc.items() if len(v) >= len(SEARCH_SEEDS)}
+    keys = set.intersection(*(set(s) for s in per.values()))
+    by_call = {}
+    for c, j in keys:
+        by_call.setdefault(c, []).append(j)
+    out = {}
+    for c, js in by_call.items():
+        w = {j: min(per[p][(c, j)] for p in plants) for j in sorted(js)}
+        j = max(w, key=lambda k: w[k])
+        out[c] = (j, w[j], {p: round(per[p][(c, j)], 4) for p in plants})
+    return out
+
+
+def band_layouts(task, name, base):
+    """A band's layout sample (written once, then read): base's sample (from the study's rows, also under --smoke), each
+    layout with the grasp that S1 picks by the worst-case score (s1_band)."""
+    p = rows_dir(name) / f"{task}_layouts.json"
+    if p.exists():
+        return json.loads(p.read_text())["layouts"]
+    if not base:
+        raise SystemExit(f"{name}: the band's layout sample is another plant's; give --layouts-from")
+    s1, toy = s1_band(task, BANDS[name]), toy_rows(task)
+    out = []
+    for L_ in json.loads((OUT / "rows" / base / f"{task}_layouts.json").read_text())["layouts"]:
+        c = L_["call"]
+        if c not in s1:
+            print(f"{task} call {c}: not on every grid of {name}; left out", flush=True)
+            continue
+        j, w, per = s1[c]
+        rec = toy[c]["fp"][POSE[task]]
+        out.append({"call": c, "xy": toy[c]["xy"], "d": toy[c]["d"], "group": L_["group"], "s1": round(w, 4),
+                    "s1_plants": per, "s1_grasp": j, "v1": rec["grasps"][j]["v"], "widths": rec["grasps"][0]["widths"],
+                    "base_s1_grasp": L_["s1_grasp"]})
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"task": task, "band": name, "plants": BANDS[name], "base": base, "layouts": out},
+                            indent=1))
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ evaluation
 
 def setup_of(HG, task, d6, v):
@@ -346,27 +439,105 @@ def scores(task, rows):
     return {k: (float(np.mean(s)), float(np.mean(f)), len(s)) for k, (s, f) in acc.items()}
 
 
+def evaluate_band(task, plants, paths, items, seeds, scene, HG, E, timing=None):
+    """evaluate() on several plants: each candidate's open pose once, then each plant's GPU batches, spawned with that
+    plant's environment (use_plant), into paths[plant]. A row whose scene cache is not its plant's stops the run.
+    timing receives the open poses' seconds and each plant's GPU seconds and batches."""
+    import multiprocessing as mp
+    t0 = time.time()
+    done = {p: {(ident(r), int(r["seed"])) for r in read_rows(paths[p])} for p in plants}
+    var = E.VARIANT[task]
+    worlds = {p: [] for p in plants}
+    for key, d6, v, prm in items:
+        todo = {p: [sd for sd in seeds if (ident(key), sd) not in done[p]] for p in plants}
+        if not any(todo.values()):
+            continue
+        setup = setup_of(HG, task, d6, v)
+        try:
+            bm, q_open = scene.prepare(HG.mount_xy(d6), setup)
+        except Exception as e:                          # the open pose not found: the candidate is left out
+            print(f"{task} call {key['call']}: open pose failed ({type(e).__name__}: {e}); left out", flush=True)
+            continue
+        for p in plants:
+            worlds[p] += [{"key": key, "seed": sd, "setup": setup, "body_mounts": bm, "q_open": q_open, "prm": prm,
+                           "var": HG.variant_world(var, sd)} for sd in todo[p]]
+    if timing is not None:
+        timing.update(open_s=round(time.time() - t0, 3), gpu_s=0.0, batches=0, gpu_s_plants={}, batches_plants={})
+    ctx = mp.get_context("spawn")
+    b = E.BATCH[task]
+    home = {k: os.environ.get(k) for k in ("HOS_PLANT", "HOS_SCENES", "HOM_ROWS_TAG")}
+    for p in plants:
+        if not worlds[p]:
+            continue
+        path = paths[p]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tpath = path.with_name(path.stem + "_timing.jsonl")
+        n0, nr0 = len(read_rows(tpath)), len(read_rows(path))
+        use_plant(p)                                    # the spawned batch reads it at import
+        t1 = time.time()
+        for i, b0 in enumerate(range(0, len(worlds[p]), b)):
+            spec = {"shape": "sphere" if POSE[task] == "tripod" else "cylinder", "d_mm": TASKS[task], "task": task,
+                    "worlds": worlds[p][b0:b0 + b], "dt": worlds[p][0]["var"]["dt"], "gen_seed": GEN_SEED + b0,
+                    "batch": n0 + i, "path": str(path), "tpath": str(tpath), "layouts": "grid2dff_size"}
+            pr = ctx.Process(target=HG.batch_child, args=(spec,))
+            pr.start()
+            pr.join()
+            if pr.exitcode != 0:
+                raise SystemExit(f"{task} {p}: batch {n0 + i} failed (exit {pr.exitcode})")
+        for k, v in home.items():                   # back to the parent's plant
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        want = os.path.normpath(PLANTS[p][1]) if PLANTS[p][1] else None
+        bad = [r for r in read_rows(path)[nr0:] if want and os.path.normpath(r.get("scenes", "")) != want]
+        if bad:
+            raise SystemExit(f"{task} {p}: {len(bad)} rows ran on scene cache {bad[0].get('scenes')}, not {want}")
+        if timing is not None:
+            timing["gpu_s_plants"][p] = round(time.time() - t1, 2)
+            timing["batches_plants"][p] = -(-len(worlds[p]) // b)
+    if timing is not None:
+        timing.update(gpu_s=round(sum(timing["gpu_s_plants"].values()), 2),
+                      batches=sum(timing["batches_plants"].values()))
+    return sum(len(w) for w in worlds.values())
+
+
+def band_scores(task, paths, it=None):
+    """{ident: (lowest mean score over the plants, the margin at that plant, the fewest seeds, {plant: mean score})} for
+    the candidates run on every plant of paths; it: one search iteration's rows only."""
+    per = {p: scores(task, [r for r in read_rows(q) if it is None or int(r["it"]) == it]) for p, q in paths.items()}
+    out = {}
+    for k in set.intersection(*(set(s) for s in per.values())):
+        w = min(per, key=lambda p: per[p][k][:2])
+        out[k] = (per[w][k][0], per[w][k][1], min(s[k][2] for s in per.values()),
+                  {p: round(s[k][0], 4) for p, s in per.items()})
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ the search
 
 def cmd_run(a):
-    setenv(a.plant)
+    name = band_name(a.band) if a.band else a.plant         # --band: the worst-case score over the band's plants
+    band = BANDS.get(name)
+    setenv(band[-1] if band else a.plant)
     import multiprocessing as mp
     import fp_sr2_toy as FP
     import hom_ea as E
     import hom_gpu as HG
     task, level = a.task, a.level
     FP.set_sizes(**({"sph_d_mm": TASKS[task]} if POSE[task] == "tripod" else {"cyl_d_mm": TASKS[task]}))
-    lays = layouts(task, a.plant, a.top, a.rand, a.layouts_from)
+    lays = band_layouts(task, name, a.layouts_from) if band else layouts(task, a.plant, a.top, a.rand, a.layouts_from)
     lays = lays[:a.n] if a.n else lays
     d6 = {L_["call"]: L_["d"] for L_ in lays}
-    path = rows_dir(a.plant) / level / f"{task}_d{TASKS[task]:g}.jsonl"
+    path = rows_dir(name) / level / f"{task}_d{TASKS[task]:g}.jsonl"   # a band's rows: band_paths(path)
+    paths = band_paths(path, band) if band else {a.plant: path}
     gpath = path.with_name(path.stem + "_gens.jsonl")
     path.parent.mkdir(parents=True, exist_ok=True)
     space = {c: Space(task, level, L_["widths"]) for c, L_ in ((L_["call"], L_) for L_ in lays)}
     if level == "grasp":
         start = {L_["call"]: L_["v1"] for L_ in lays}
     else:                                   # from S2's pick
-        prev = picks(task, a.plant, "grasp")
+        prev = band_picks(task, name, "grasp") if band else picks(task, a.plant, "grasp")
         if not prev:
             raise SystemExit("level full starts from level grasp's picks: run level grasp first")
         missing = [c for c in d6 if c not in prev]
@@ -386,7 +557,7 @@ def cmd_run(a):
                      a.pop or POP[level]) for c in d6]
             drawn = {c: (xs, tried) for c, xs, tried in pool.map(draw_layout, jobs)}
             t_draw = time.time() - t0
-            stored = {ident(r): r["x"] for r in read_rows(path) if int(r["it"]) == it}
+            stored = {ident(r): r["x"] for q in paths.values() for r in read_rows(q) if int(r["it"]) == it}
             for c, (xs, _tried) in drawn.items():          # a replayed iteration must draw what its rows hold
                 for k, x in enumerate(xs):
                     if x is not None and (c, it, k) in stored and np.abs(np.asarray(stored[(c, it, k)]) - x).max() > 1e-5:
@@ -402,15 +573,20 @@ def cmd_run(a):
                            "x": [round(float(y), 7) for y in x]}
                     items.append((key, d6[c], x[:sp.nv], key["prm"]))
             tm = {}
-            n_run = evaluate(task, a.plant, path, items, SEARCH_SEEDS, scene, HG, E, tm)
-            sc = scores(task, [r for r in read_rows(path) if int(r["it"]) == it])
+            if band:
+                n_run = evaluate_band(task, band, paths, items, SEARCH_SEEDS, scene, HG, E, tm)
+                sc = band_scores(task, paths, it)
+            else:
+                n_run = evaluate(task, a.plant, path, items, SEARCH_SEEDS, scene, HG, E, tm)
+                sc = scores(task, [r for r in read_rows(path) if int(r["it"]) == it])
             for c, (xs, tried) in drawn.items():
                 cand = [(sc[(c, it, k)], k, x) for k, x in enumerate(xs) if x is not None and (c, it, k) in sc]
                 if not cand:
                     continue
                 cand.sort(key=lambda z: (-z[0][0], -z[0][1], z[1]))
                 if best[c] is None or cand[0][0][0] > best[c]["score"]:
-                    best[c] = {"score": cand[0][0][0], "it": it, "cand": cand[0][1], "x": cand[0][2].tolist()}
+                    best[c] = {"score": cand[0][0][0], "it": it, "cand": cand[0][1], "x": cand[0][2].tolist(),
+                               "plants": cand[0][0][3] if band else None}
                 ne = max(2, int(math.ceil(ELITE * len(cand))))
                 X = np.array([z[2] for z in cand[:ne]])
                 mean, std = state[c]
@@ -423,7 +599,8 @@ def cmd_run(a):
                                              "scores": [round(z[0][0], 4) for z in cand],
                                              "elite_mean": round(float(np.mean([z[0][0] for z in cand[:ne]])), 4),
                                              "best": round(best[c]["score"], 4), "mean": mean.round(7).tolist(),
-                                             "std": std.round(7).tolist()}) + "\n")
+                                             "std": std.round(7).tolist(),
+                                             **({"best_plants": best[c]["plants"]} if band else {})}) + "\n")
                         fh.flush()
                         os.fsync(fh.fileno())
             n_feas = sum(sum(x is not None for x in xs) for xs, _ in drawn.values())
@@ -433,7 +610,7 @@ def cmd_run(a):
                   f"{np.median([b['score'] for b in best.values() if b]):.3f}", flush=True)
             with open(path.with_name(path.stem + "_iters.jsonl"), "a") as fh:     # the iteration's compute record
                 fh.write(json.dumps({"when": time.strftime("%Y-%m-%d %H:%M:%S"), "task": task, "level": level,
-                                     "plant": a.plant, "it": it, "layouts": len(d6), "candidates": n_feas,
+                                     "plant": name, "it": it, "layouts": len(d6), "candidates": n_feas,
                                      "draws": sum(tr for _xs, tr in drawn.values()), "rollouts": n_run,
                                      "replay": n_run == 0, "draw_s": round(t_draw, 2), **tm,
                                      "total_s": round(t_all, 2)}) + "\n")
@@ -457,6 +634,24 @@ def picks(task, plant, level):
         if c not in out or (s, fe, -k[1], -k[2]) > (out[c]["score"], out[c]["fe"], -out[c]["it"], -out[c]["cand"]):
             r = keyed[k]
             out[c] = {"v": r["v"], "prm": r.get("prm") or {}, "score": s, "fe": fe, "it": k[1], "cand": k[2]}
+    return out
+
+
+def band_picks(task, name, level):
+    """picks() of a band: the best candidate seen per layout by the worst-case score, with its score on each plant."""
+    paths = band_paths(rows_dir(name) / level / f"{task}_d{TASKS[task]:g}.jsonl", BANDS[name])
+    keyed = {}
+    for r in read_rows(paths[BANDS[name][-1]]):
+        keyed.setdefault(ident(r), r)
+    out = {}
+    for k, (s, fe, n, per) in band_scores(task, paths).items():
+        if n < len(SEARCH_SEEDS):
+            continue
+        c = k[0]
+        if c not in out or (s, fe, -k[1], -k[2]) > (out[c]["score"], out[c]["fe"], -out[c]["it"], -out[c]["cand"]):
+            r = keyed[k]
+            out[c] = {"v": r["v"], "prm": r.get("prm") or {}, "score": s, "fe": fe, "it": k[1], "cand": k[2],
+                      "plants": per}
     return out
 
 
@@ -502,6 +697,8 @@ def elitist(task, plant):
 def cmd_validate(a):
     """Each layout's S1, S2 and S3 picks at the validation seeds on a.plant; with --picks-from, another plant's picks
     (the same layouts), rows under val_from_<plant>/: the score a design tuned on that plant keeps on this one."""
+    if a.band:
+        return cmd_validate_band(a)
     setenv(a.plant)
     import fp_sr2_toy as FP
     import hom_ea as E
@@ -529,6 +726,70 @@ def cmd_validate(a):
     print(f"{task}: {len(items)} picks, {n} rollouts run", flush=True)
 
 
+def val_path(task, name, plant, src):
+    """The validation rows of src's picks (src: the band or a plant) on a plant of the band: the band's own under
+    rows/<band>/val/<plant>/; another plant's from the 2026-11-03 queue (src's val/, or the plant's val_from_<src>/)
+    where they exist, else under rows/<band>/val_from_<src>/<plant>/."""
+    f = f"{task}_d{TASKS[task]:g}.jsonl"
+    if src == name:
+        return rows_dir(name) / "val" / plant / f
+    old = rows_dir(src) / "val" / f if plant == src else rows_dir(plant) / f"val_from_{src}" / f
+    return old if old.exists() else rows_dir(name) / f"val_from_{src}" / plant / f
+
+
+def val_items(task, src, name):
+    """The layouts of src and the (key, d6, v, prm) of their S1, S2 and S3 picks, as cmd_validate builds them."""
+    band = src == name
+    lays = json.loads((rows_dir(src) / f"{task}_layouts.json").read_text())["layouts"]
+    p2, p3 = ((band_picks(task, src, "grasp"), band_picks(task, src, "full")) if band
+              else (picks(task, src, "grasp"), picks(task, src, "full")))
+    items = []
+    for L_ in lays:
+        c = L_["call"]
+        sets = [("S1", L_["v1"], {})]
+        if c in p2:
+            sets.append(("S2", p2[c]["v"], {}))
+        if c in p3:
+            sets.append(("S3", p3[c]["v"], p3[c]["prm"]))
+        for pick, v, prm in sets:
+            key = {"d": L_["d"], "call": c, "pick": pick, "v": [round(float(y), 7) for y in v], "prm": prm}
+            items.append((key, L_["d"], np.asarray(v, float), prm))
+    return lays, items
+
+
+def cmd_validate_band(a):
+    """The band's picks, or with --picks-from a plant's picks (the same layouts), at the validation seeds on every plant
+    of the band (val_path). Rows of the 2026-11-03 queue are read, never appended to: a plant whose old rows lack a
+    pick or a seed stops the run."""
+    name = band_name(a.band)
+    band = BANDS[name]
+    setenv(band[-1])
+    import fp_sr2_toy as FP
+    import hom_ea as E
+    import hom_gpu as HG
+    task = a.task
+    FP.set_sizes(**({"sph_d_mm": TASKS[task]} if POSE[task] == "tripod" else {"cyl_d_mm": TASKS[task]}))
+    src = a.picks_from or name
+    lays, items = val_items(task, src, name)
+    if a.n:
+        keep = {L_["call"] for L_ in lays[:a.n]}
+        items = [it for it in items if it[0]["call"] in keep]
+    paths = {p: val_path(task, name, p, src) for p in band}
+    run = []
+    for p, q in paths.items():
+        if q.is_relative_to(rows_dir(name)):
+            run.append(p)
+            continue
+        have = {(ident(r), int(r["seed"])) for r in read_rows(q)}
+        miss = [(ident(k), sd) for k, *_ in items for sd in VAL_SEEDS if (ident(k), sd) not in have]
+        if miss:
+            raise SystemExit(f"{task}: {q.relative_to(ROOT)} lacks {len(miss)} rollouts of {src}'s picks, e.g. {miss[0]}")
+        print(f"{task} {p}: {src}'s picks read from {q.relative_to(ROOT)}", flush=True)
+    scene = HG.Scene("sphere" if POSE[task] == "tripod" else "cylinder", TASKS[task])
+    n = evaluate_band(task, run, paths, items, VAL_SEEDS, scene, HG, E) if run else 0
+    print(f"{task}: {len(items)} picks of {src} on {', '.join(run) or 'no plant'}, {n} rollouts run", flush=True)
+
+
 # ------------------------------------------------------------------------------------------------ report
 
 def spearman(a, b):
@@ -540,6 +801,8 @@ def spearman(a, b):
 
 
 def cmd_report(a):
+    if a.band:
+        return cmd_report_band(a)
     setenv(a.plant)
     out = {"plant": a.plant, "hos_plant": PLANTS[a.plant][0], "scenes": PLANTS[a.plant][1], "search_seeds": SEARCH_SEEDS,
            "val_seeds": VAL_SEEDS, "pop": POP, "iters": ITERS, "elite": ELITE, "smooth": SMOOTH, "forces": FORCES,
@@ -608,6 +871,102 @@ def cmd_report(a):
     print("wrote", p.relative_to(ROOT))
 
 
+def stats(d):
+    """Median, mean, n and the counts above +0.05 and below -0.05 of paired differences."""
+    d = np.asarray(d, float)
+    if not len(d):
+        return {"n": 0, "median": None, "mean": None, "up": 0, "down": 0}
+    return {"n": len(d), "median": round(float(np.median(d)), 4), "mean": round(float(d.mean()), 4),
+            "up": int((d > 0.05).sum()), "down": int((d < -0.05).sum())}
+
+
+def cmd_report_band(a):
+    """rows/<band>/<date>-band_levels.json: per layout the band's S1, S2 and S3 (worst-case score at the search seeds,
+    each plant's score, and each search's start re-scored as candidate 0), and the validated scores on every plant of
+    the band and their lowest, of the band's picks and of the S1, S2e and S3e picks of each plant with searches of its
+    own (the nominal friction 1.0 and friction 0.4); per task the medians and the paired differences between the
+    band's picks and each plant's picks of the same level."""
+    name = band_name(a.band)
+    band = BANDS[name]
+    out = {"band": name, "plants": list(band), "plant_specs": {p: PLANTS[p] for p in band}, "search_seeds": SEARCH_SEEDS,
+           "val_seeds": VAL_SEEDS, "pop": POP, "elite": ELITE, "smooth": SMOOTH, "forces": FORCES, "roles": ROLES,
+           "tasks": {}}
+    for task in TASKS:
+        lp = rows_dir(name) / f"{task}_layouts.json"
+        if not lp.exists():
+            continue
+        lays = json.loads(lp.read_text())["layouts"]
+        f = f"{task}_d{TASKS[task]:g}.jsonl"
+        pk = {"s2": band_picks(task, name, "grasp"), "s3": band_picks(task, name, "full")}
+        st = {"s2": band_scores(task, band_paths(rows_dir(name) / "grasp" / f, band)),
+              "s3": band_scores(task, band_paths(rows_dir(name) / "full" / f, band))}
+        srcs = [p for p in band if (rows_dir(p) / f"{task}_layouts.json").exists()]     # plants with searches
+        eli = {p: elitist(task, p) for p in srcs}
+        val = {(src, p): scores(task, read_rows(val_path(task, name, p, src))) for src in [name, *srcs] for p in band}
+        per = []
+        for L_ in lays:
+            c = L_["call"]
+            e = {"call": c, "xy": L_["xy"], "group": L_["group"], "s1": L_["s1"], "s1_plants": L_["s1_plants"],
+                 "s1_grasp": L_["s1_grasp"], "base_s1_grasp": L_.get("base_s1_grasp")}
+            for k in ("s2", "s3"):
+                s0 = st[k].get((c, 0, 0))
+                e[f"{k}_start"] = round(s0[0], 4) if s0 else None
+                e[f"{k}_start_plants"] = s0[3] if s0 else None
+                e[k] = round(pk[k][c]["score"], 4) if c in pk[k] else None
+                e[f"{k}_plants"] = pk[k][c]["plants"] if c in pk[k] else None
+                e[f"{k}_it_cand"] = [pk[k][c]["it"], pk[k][c]["cand"]] if c in pk[k] else None
+            e["prm3"] = pk["s3"][c]["prm"] if c in pk["s3"] else None
+            e["v"] = {"S1": L_["v1"], "S2": pk["s2"][c]["v"] if c in pk["s2"] else None,
+                      "S3": pk["s3"][c]["v"] if c in pk["s3"] else None}
+            e["val"] = {}
+            for src in [name, *srcs]:
+                d = {}
+                for pick in ("S1", "S2", "S3"):
+                    v = {}
+                    for p in band:
+                        w = val[(src, p)].get((c, pick))
+                        v[p] = round(w[0], 4) if w and w[2] >= len(VAL_SEEDS) else None
+                    v["min"] = min(v.values()) if all(x is not None for x in v.values()) else None
+                    d[pick] = v
+                if src != name:
+                    for k in ("S2e", "S3e"):
+                        d[k] = dict(d[eli[src][c][k]]) if c in eli[src] else {p: None for p in [*band, "min"]}
+                        e[f"{k.lower()}_pick_{src}"] = eli[src][c][k] if c in eli[src] else None
+                e["val"][src] = d
+            per.append(e)
+        t = {"n": len(per), "sources": [name, *srcs], "median_val": {}, "diff": {},
+             "iters": {lvl: 1 + max((int(g["it"]) for g in read_rows(rows_dir(name) / lvl / f"{task}_d{TASKS[task]:g}"
+                                                                     "_gens.jsonl")), default=-1)
+                       for lvl in ("grasp", "full")}}
+        for src in [name, *srcs]:
+            for pick in (("S1", "S2", "S3") if src == name else ("S1", "S2e", "S3e")):
+                for p in [*band, "min"]:
+                    xs = [e["val"][src][pick][p] for e in per if e["val"][src][pick][p] is not None]
+                    t["median_val"][f"{src}|{pick}|{p}"] = round(float(np.median(xs)), 4) if xs else None
+        for src in srcs:                    # the band's pick against the plant's pick of the same level
+            for wk, sk in (("S1", "S1"), ("S2", "S2e"), ("S3", "S3e")):
+                for p in [*band, "min"]:
+                    t["diff"][f"{wk}|{src}|{p}"] = stats([e["val"][name][wk][p] - e["val"][src][sk][p] for e in per
+                                                          if e["val"][name][wk][p] is not None
+                                                          and e["val"][src][sk][p] is not None])
+        for k in ("s1", "s2_start", "s2", "s3_start", "s3"):
+            xs = [e[k] for e in per if e[k] is not None]
+            t[f"median_{k}"] = round(float(np.median(xs)), 4) if xs else None
+        for k in ("s2", "s3"):              # the pick against its search's start, re-scored in the same batches
+            t[f"{k}_minus_start"] = stats([e[k] - e[f"{k}_start"] for e in per
+                                           if e[k] is not None and e[f"{k}_start"] is not None])
+        t["layouts"] = per
+        out["tasks"][task] = t
+        mv = t["median_val"]
+        line = lambda src, k: ", ".join(f"{p} {mv[src + '|' + k + '|' + p]}" for p in [*band, "min"])  # noqa: E731
+        print(f"{task}: medians at seeds 20-24, {name} S3 {line(name, 'S3')}; "
+              + "; ".join(f"{src} S3e {line(src, 'S3e')}" for src in srcs), flush=True)
+    out["iters_run"] = max((n for t in out["tasks"].values() for n in t["iters"].values()), default=0)
+    p = rows_dir(name) / f"{time.strftime('%Y%m%d')}-band_levels.json"
+    p.write_text(json.dumps(out, indent=1))
+    print("wrote", p.relative_to(ROOT))
+
+
 def cmd_probe(a):
     """Time the feasibility check and scene.prepare on the first layouts of a task (no GPU)."""
     setenv(a.plant)
@@ -647,13 +1006,18 @@ def main():
     pr.add_argument("--top", type=int, default=N_TOP, help="layouts by S1 (when the sample is first written)")
     pr.add_argument("--rand", type=int, default=N_RAND, help="layouts at random (when the sample is first written)")
     pr.add_argument("--layouts-from", default=None, choices=list(PLANTS), help="another plant's layout sample")
+    hb = "a band of plants (BANDS: its name, or its plants comma-separated): the worst-case score over them"
+    pr.add_argument("--band", default=None, help=hb)
     pv = sub.add_parser("validate")
     pv.add_argument("--task", required=True, choices=list(TASKS))
     pv.add_argument("--plant", default="sv25", choices=list(PLANTS))
     pv.add_argument("--picks-from", default=None, choices=list(PLANTS), help="run another plant's picks here")
+    pv.add_argument("--band", default=None, help=hb + "; the picks run on each plant of the band")
+    pv.add_argument("--n", type=int, default=0, help="--band: only the first n layouts (a smoke test)")
     pv.add_argument("--smoke", action="store_true")
     pp = sub.add_parser("report")
     pp.add_argument("--plant", default="sv25", choices=list(PLANTS))
+    pp.add_argument("--band", default=None, help=hb)
     pp.add_argument("--smoke", action="store_true")
     pb = sub.add_parser("probe")
     pb.add_argument("--task", required=True, choices=list(TASKS))
