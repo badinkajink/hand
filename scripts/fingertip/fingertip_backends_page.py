@@ -25,6 +25,7 @@ import contact_overview_page as P  # noqa: E402
 import fingertip_geometry as FG  # noqa: E402
 import reorient_backends_summary as RS  # noqa: E402
 import retro_style  # noqa: E402
+from sr2hand.numerics.stats import spearman as rank_correlation
 
 D = os.path.join(ROOT, "docs/experiments/20261006-fingertip_backends")
 BED = os.path.join(ROOT, "docs/experiments/20261005-contact_bed")
@@ -121,25 +122,8 @@ def one(rows, **kw):
 
 
 def spearman(a, b):
-    def ranks(x):
-        order = sorted(range(len(x)), key=lambda i: x[i])
-        r = [0.0] * len(x)
-        i = 0
-        while i < len(order):
-            j = i
-            while j + 1 < len(order) and x[order[j + 1]] == x[order[i]]:
-                j += 1
-            for k in range(i, j + 1):
-                r[order[k]] = (i + j) / 2.0
-            i = j + 1
-        return r
-    if len(a) < 3:
-        return None
-    ra, rb = ranks(a), ranks(b)
-    ma, mb = statistics.mean(ra), statistics.mean(rb)
-    num_ = sum((x - ma) * (y - mb) for x, y in zip(ra, rb))
-    den = math.sqrt(sum((x - ma) ** 2 for x in ra) * sum((y - mb) ** 2 for y in rb))
-    return num_ / den if den > 0 else None
+    r = rank_correlation(a, b)
+    return None if math.isnan(r) else r
 
 
 # ------------------------------------------------------------------------------------------ terms

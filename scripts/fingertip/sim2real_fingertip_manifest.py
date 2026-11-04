@@ -32,6 +32,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.distances import point_line
 OUT = ROOT / "docs/experiments/20261016-sim2real_fingertip_readiness/manifest.json"
 HOME = Path.home()
 FINGERS, JOINTS = ("thumb", "index", "middle"), ("yaw", "mcp", "pip")
@@ -90,9 +91,7 @@ def probe(xml):
         ax = {j: d.xaxis[jid[j]].copy() for j in JOINTS}
 
         def axis_dist(a, b):
-            n = ax[b] / max(1e-12, (ax[b] ** 2).sum() ** 0.5)       # MCP and PIP axes are parallel
-            w = anc[b] - anc[a]
-            return float(((w - (w @ n) * n) ** 2).sum() ** 0.5)
+            return float(point_line(anc[b], anc[a], ax[b]))         # MCP and PIP axes are parallel
         root = m.body(f"{f}_mount").id if mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, f"{f}_mount") >= 0 else None
         sub = [b for b in range(m.nbody) if m.body(b).name.startswith(f + "_")]
         out[f] = {"range_deg": {j: [round(math.degrees(x), 2) for x in m.jnt_range[jid[j]]] for j in JOINTS},

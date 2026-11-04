@@ -45,6 +45,7 @@ import hand_object_scale_sim as S  # noqa: E402
 import hom_turn3 as HT  # noqa: E402
 import reorient_backends as RB  # noqa: E402
 import tip_codesign_rig as R  # noqa: E402
+from sr2hand.geometry.rotations import quat_normalize
 
 OUT = C.D / "cell10" / "turn.jsonl"
 SCRIPT = "scripts/fingertip/curved_tips_cell_drake.py"
@@ -206,7 +207,7 @@ class CellDrake:
         tool7 = np.asarray(self.meta["tool7"], float)
         dx, dy, dyaw = RB.jitter(seed)
         q = RB._yaw_quat(tool7[3:], dyaw)
-        p.SetFreeBodyPose(self.pc, self.tool, RigidTransform(Quaternion(q / np.linalg.norm(q)), tool7[:3] + [dx, dy, 0.0]))
+        p.SetFreeBodyPose(self.pc, self.tool, RigidTransform(Quaternion(quat_normalize(q)), tool7[:3] + [dx, dy, 0.0]))
         self.ctx.SetTime(0.0)
         self.sim.Initialize()
 

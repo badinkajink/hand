@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import mlx90393_model as MLX  # noqa: E402
 import tpu_tip_design as TD  # noqa: E402
+from sr2hand.geometry.rotations import frame_from_axis
 
 FE_ROWS = ROOT / "docs/experiments/20261019-v2_tip_fe_checks/sense_fe.jsonl"
 GAP_B = 3.32 - 6.45            # concept b's sensing plane behind the whole tip's back face, mm (v2_tip_fe_checks.SENSE_GAP)
@@ -521,9 +522,8 @@ def tangent_frames(Nn):
     normal lies within 25 degrees of z, t1 is +y projected instead."""
     ez, ey = np.array([0.0, 0.0, 1.0]), np.array([0.0, 1.0, 0.0])
     ref = np.where((np.abs(Nn @ ez) > 0.9)[:, None], ey[None], ez[None])
-    t1 = ref - np.einsum("ij,ij->i", ref, Nn)[:, None] * Nn
-    t1 /= np.linalg.norm(t1, axis=1, keepdims=True)
-    return t1, np.cross(Nn, t1)
+    F = frame_from_axis(Nn, ref)
+    return F[:, :, 0], F[:, :, 1]
 
 
 class SurfaceEstimator:

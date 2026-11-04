@@ -30,6 +30,10 @@ import math
 from pathlib import Path
 
 import numpy as np
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.mesh import convex_hull, write_obj as mesh_obj
 
 DEPTH, WIDTH, LENGTH = 0.0170, 0.0148, 0.0220
 REACH = 0.01055                     # finger axis to the palmar face
@@ -153,34 +157,15 @@ def pad_spheres(r: float, s: float, rs: float, sign: float = 1.0, E: float = 1e7
 
 def hull_mesh(r: float, sign: float = 1.0, res: float = 0.0005):
     """Vertices and triangles of the rounded block (convex hull of its surface samples)."""
-    from scipy.spatial import ConvexHull
     p, _, _ = surface_samples(r, res, sign)
     if r <= 1e-9:                                  # a sharp box: its 8 corners suffice
         c = np.array([[sx, sy, sz] for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)]) * HALF + CENTRE
         p = c * np.array([sign, 1.0, 1.0])
-    h = ConvexHull(p)
-    V = h.points[h.vertices]
-    remap = {old: new for new, old in enumerate(h.vertices)}
-    F = np.array([[remap[i] for i in simp] for simp in h.simplices])
-    # orient outward
-    cen = V.mean(0)
-    for t in range(len(F)):
-        a_, b_, c_ = V[F[t]]
-        if np.dot(np.cross(b_ - a_, c_ - a_), a_ - cen) < 0:
-            F[t] = F[t][[0, 2, 1]]
-    return V, F
+    return convex_hull(p)
 
 
 def write_obj(path: Path, V, F):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as fh:
-        fh.write("# SR2 TPU fingertip, rounded block (scripts/fingertip/fingertip_geometry.py)\n")
-        for v in V:
-            fh.write(f"v {v[0]:.7f} {v[1]:.7f} {v[2]:.7f}\n")
-        for f in F:
-            fh.write(f"f {f[0] + 1} {f[1] + 1} {f[2] + 1}\n")
-    return path
+    return mesh_obj(path, V, F, header="SR2 TPU fingertip, rounded block (scripts/fingertip/fingertip_geometry.py)")
 
 
 def tag(r: float) -> str:

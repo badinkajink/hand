@@ -54,6 +54,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import tip_codesign_geometry as TG  # noqa: E402
+from sr2hand.geometry.sampling import fibonacci
 
 OUT = ROOT / "docs/experiments/20261015-curved_tips/stiffness"
 SCRIPT = "scripts/fingertip/curved_tips_stiffness.py"
@@ -242,11 +243,7 @@ class Probe:
         self.c0 = np.array([(xc_ins * 1e-3) + X_OFF, y_t * 1e-3, z_t * 1e-3])     # sphere centre or a point on the axis
         if kind == "sphere":
             n = 24000
-            i = np.arange(n) + 0.5
-            u = np.column_stack([-(1 - 2 * i / n), np.zeros(n), np.zeros(n)])
-            r = np.sqrt(1 - u[:, 0] ** 2)
-            th = math.pi * (3 - math.sqrt(5)) * i
-            u[:, 1], u[:, 2] = r * np.cos(th), r * np.sin(th)
+            u = fibonacci(n)[:, [2, 0, 1]] * np.array([-1.0, 1.0, 1.0])     # the lattice's pole along -x
             keep = u[:, 0] < 0.35
             self.u = u[keep]
             self.X0 = self.c0 + R_SPH * 1e-3 * self.u

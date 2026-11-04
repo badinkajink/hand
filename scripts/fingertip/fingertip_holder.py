@@ -38,6 +38,8 @@ except NameError:                                   # freecadcmd executes the fi
     REPO = Path(os.environ["FHOLD_REPO"])
 sys.path.insert(0, str(REPO / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.distances import ray_triangles
+from sr2hand.geometry.rotations import tf
 OUT = REPO / "docs/experiments/20261027-fingertip_holder"
 CAD = OUT / "cad"
 STEM = "20261027-fingertip_holder"
@@ -112,23 +114,12 @@ def cmd_build(a):
 # ------------------------------------------------------------------------------------------------ the held tips' boards
 def _first_hit_x(m, y, z, r, n=12, x0=-20.0):
     """Least x_F at which rays along +x_F, on a circle of radius r about the line (y, z), first enter mesh m."""
-    tri = m.triangles
-    v0, e1, e2 = tri[:, 0], tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]
-    d = np.array([1.0, 0.0, 0.0])
-    p = np.cross(d, e2)
-    det = (e1 * p).sum(1)
-    ok = np.abs(det) > 1e-12
-    inv = np.where(ok, 1.0 / np.where(ok, det, 1.0), 0.0)
     best = np.inf
     for a in np.radians(np.arange(n) * 360.0 / n):
-        s = np.array([x0, y + r * math.cos(a), z + r * math.sin(a)]) - v0
-        u = (s * p).sum(1) * inv
-        q = np.cross(s, e1)
-        v = (q @ d) * inv
-        t = (e2 * q).sum(1) * inv
-        hit = ok & (u >= 0) & (v >= 0) & (u + v <= 1) & (t > 1e-9)
-        if hit.any():
-            best = min(best, x0 + float(t[hit].min()))
+        t = ray_triangles(m.triangles, np.array([x0, y + r * math.cos(a), z + r * math.sin(a)]), np.array([1.0, 0.0, 0.0]), merge=0.0)
+        t = t[t > 1e-9]
+        if len(t):
+            best = min(best, x0 + float(t[0]))
     return best
 
 
@@ -218,10 +209,7 @@ def T_IF_moving(p, tw):
     """v2 ID 1's frame F in I with its apex at p, pad down, turned tw deg about the vertical (0: its tip toward +x_I)."""
     th = math.radians(tw)
     R = np.array([[0.0, -math.sin(th), -math.cos(th)], [0.0, math.cos(th), -math.sin(th)], [1.0, 0.0, 0.0]])
-    T = np.eye(4)
-    T[:3, :3] = R
-    T[:3, 3] = np.asarray(p, float) - R @ APEX_F
-    return T
+    return tf(R, np.asarray(p, float) - R @ APEX_F)
 
 
 def held_apex(CELL, i):

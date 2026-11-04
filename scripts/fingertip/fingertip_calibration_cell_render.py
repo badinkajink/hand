@@ -34,6 +34,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_cell_render as R  # noqa: E402
+from sr2hand.geometry.vectors import project_look_at
 
 CELL = R.CELL
 SESSION = R.LAB / "20261026-192158-v2id1"
@@ -87,14 +88,8 @@ def close_camera(fx, T_BE, T_EM, side, az, el, dist, fovy, lift):
 
 def project(cam, X, w, h):
     """Pixel of a point X (mm, B) in a look_at camera's image of w x h."""
-    pos, target, fovy = np.asarray(cam[0], float), np.asarray(cam[1], float), cam[2]
-    f = (target - pos) / np.linalg.norm(target - pos)
-    right = np.cross(f, [0.0, 0.0, 1.0])
-    right /= np.linalg.norm(right)
-    up = np.cross(right, f)
-    v = np.asarray(X, float) - pos
-    fp = (h / 2) / math.tan(math.radians(fovy) / 2)
-    return w / 2 + fp * (v @ right) / (v @ f), h / 2 - fp * (v @ up) / (v @ f)
+    u, v = project_look_at(X, cam[0], cam[1], cam[2], w, h)
+    return float(u), float(v)
 
 
 def fixture_tops(fx):

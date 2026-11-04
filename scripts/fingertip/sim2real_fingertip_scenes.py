@@ -41,6 +41,8 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.mesh import box_inertia, combine_inertia, cylinder_inertia
+from sr2hand.geometry.sdf import sd_oriented_box as box_sd
 
 DATE = "20261016"
 D = ROOT / "docs/experiments/20261016-sim2real_fingertip_readiness"
@@ -166,14 +168,8 @@ def tip_mass_props(spec, sheet):
     M = tpu_g * 1e-3
     pts = magnet_centres(spec, sheet)
     mm = MAGNET_G * 1e-3
-    tot = M + mm * len(pts)
-    c = (M * com + mm * np.sum(pts, axis=0)) / tot if pts else com
-    J = I + M * (np.dot(com - c, com - c) * np.eye(3) - np.outer(com - c, com - c))
-    for p in pts:
-        d = np.asarray(p) - c
-        r, h = 1.5e-3, 2.0e-3                            # the magnet as a solid cylinder, axis along x
-        Ic = np.diag([0.5 * mm * r * r, mm * (3 * r * r + h * h) / 12, mm * (3 * r * r + h * h) / 12])
-        J += Ic + mm * (np.dot(d, d) * np.eye(3) - np.outer(d, d))
+    Ic = cylinder_inertia(mm, 1.5e-3, 2.0e-3, axis=0)     # the magnet as a solid cylinder, axis along x
+    tot, c, J = combine_inertia([(M, com, I)] + [(mm, p, Ic) for p in pts])
     return dict(tpu_g=round(tpu_g, 3), magnets_g=round(MAGNET_G * len(pts), 3), mass_g=round(tot * 1e3, 3),
                 volume_mm3=round(vol_mm3, 1), com_m=c.tolist(), inertia=J, magnet_centres_m=pts)
 
@@ -202,15 +198,7 @@ def add_mass(inertial, items):
         I0 = np.array([[f[0], f[3], f[4]], [f[3], f[1], f[5]], [f[4], f[5], f[2]]])
     else:
         I0 = np.diag([float(v) for v in inertial.get("diaginertia").split()])
-    tot = m0 + sum(m for _, _, m in items)
-    c = (m0 * c0 + sum(m * np.asarray(p) for p, _, m in items)) / tot
-    d = c0 - c
-    J = I0 + m0 * (d @ d * np.eye(3) - np.outer(d, d))
-    for p, h, m in items:
-        a, b, cc = (2 * np.asarray(h)) ** 2
-        Ib = np.diag([m * (b + cc) / 12, m * (a + cc) / 12, m * (a + b) / 12])
-        dd = np.asarray(p) - c
-        J += Ib + m * (dd @ dd * np.eye(3) - np.outer(dd, dd))
+    tot, c, J = combine_inertia([(m0, c0, I0)] + [(m, p, box_inertia(m, 2 * np.asarray(h))) for p, h, m in items])
     inertial.set("pos", " ".join(f"{v:.6f}" for v in c))
     inertial.set("mass", f"{tot:.6f}")
     inertial.attrib.pop("diaginertia", None)
@@ -323,14 +311,6 @@ def sample_mesh_points(m, gid, n_per_mm2=4.0, cap=60000, seed=0):
     flip = u + v > 1
     u[flip], v[flip] = 1 - u[flip], 1 - v[flip]
     return a[k] + u[:, None] * (b[k] - a[k]) + v[:, None] * (c[k] - a[k])
-
-
-def box_sd(P, pos, R, half):
-    """Signed distance of world points P to a box (negative inside)."""
-    q = np.abs((P - pos) @ R) - half
-    out = np.linalg.norm(np.maximum(q, 0), axis=1)
-    ins = np.minimum(q.max(axis=1), 0)
-    return out + ins
 
 
 def cmd_sweep(a):

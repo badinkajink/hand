@@ -34,6 +34,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import tpu_tip_magnet as TM  # noqa: E402
 import tpu_tip_print_plan as PP  # noqa: E402
+from sr2hand.numerics.signal import loglog_interp
 
 OUT_DIR = ROOT / "docs/experiments/20261009-tpu_tip_fem/print"
 BASE_SCENE = ROOT / "results/phase1/real_v1/20261011-sv1_u0308_b050_servo_tip"
@@ -58,9 +59,7 @@ def approach_at(r, F):
     """FE approach (um) at force F: log-log between the rows' forces, extended along the end segments outside them (the
     page's calculator, scripts/fingertip/tpu_tip_widget.py, does the same)."""
     Fs, d = fe_curve(r)
-    x, xs, ys = math.log(F), np.log(Fs), np.log(d)
-    i = int(np.clip(np.searchsorted(xs, x) - 1, 0, len(xs) - 2))
-    return float(np.exp(ys[i] + (ys[i + 1] - ys[i]) * (x - xs[i]) / (xs[i + 1] - xs[i])))
+    return loglog_interp(F, Fs, d)
 
 
 def predict(r, gap=PP.GAPS[0]):

@@ -40,6 +40,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import fingertip_wrench_model as W  # noqa: E402
 import ur5_tip_calibration_predict as PR  # noqa: E402
+from sr2hand.geometry.vectors import reject_norm
 
 
 def checkerboard(cal):
@@ -68,8 +69,7 @@ def synth(cal, P, F, rbf, rng, c_true, delta, noise_uT):
 
 
 def tangential(P, Pt, N):
-    d = P - Pt
-    return np.linalg.norm(d - (d * N).sum(1)[:, None] * N, axis=1)
+    return reject_norm(P - Pt, N)
 
 
 def run(folder, out, c_true=1.15, delta=(-0.33, -1.21, 0.72), noise_uT=2.0, seed=0, want="ABCD"):

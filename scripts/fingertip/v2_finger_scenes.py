@@ -39,6 +39,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.mesh import box_inertia, combine_inertia
 
 SRC = ROOT / "assets/mjcf/experimental/20261016-sim2real_fingertip_readiness"
 OUT = ROOT / "assets/mjcf/experimental/20261019-v2_finger"
@@ -80,16 +81,8 @@ def inertial(meshes):
         mm.density = mass / mm.volume
         items.append((mass, np.asarray(mm.center_mass), np.asarray(mm.moment_inertia)))
     for _, c, h, mass in board_boxes():
-        a, b, d = 2 * h
-        I = mass / 12.0 * np.diag([b * b + d * d, a * a + d * d, a * a + b * b])
-        items.append((mass, c, I))
-    M = sum(i[0] for i in items)
-    com = sum(i[0] * i[1] for i in items) / M
-    J = np.zeros((3, 3))
-    for mass, c, I in items:
-        r = c - com
-        J += I + mass * (np.dot(r, r) * np.eye(3) - np.outer(r, r))
-    return M, com, J
+        items.append((mass, c, box_inertia(mass, 2 * h)))
+    return combine_inertia(items)
 
 
 def tip_block_bounds():

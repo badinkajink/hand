@@ -52,6 +52,7 @@ import numpy as np  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_to_mat as quat_R
 
 D = ROOT / "docs/experiments/20261018-fe_contact_calibration"
 READY = ROOT / "docs/experiments/20261016-sim2real_fingertip_readiness"
@@ -313,13 +314,6 @@ def drake_snap(cd):
     q = X.rotation().ToQuaternion()
     qj = np.array([j.get_angle(pc) for j in cd.jidx])
     return acc, np.array(X.translation()), np.array([q.w(), q.x(), q.y(), q.z()]), qj
-
-
-def quat_R(q):
-    w, x, y, z = q / np.linalg.norm(q)
-    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
-                     [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
-                     [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]])
 
 
 HOLD = 0.01        # s: the replays hold each servo command for 10 ms (the HOM controller's tick), the value of the logged

@@ -26,6 +26,10 @@ from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_angle
 
 ROOT = Path(__file__).resolve().parents[2]
 D = ROOT / "docs/experiments/20261015-curved_tips/traj"
@@ -54,8 +58,7 @@ def compare(ra, rb):
     ta, pa, qa, Na, Ta = ta[ia], pa[ia], qa[ia], Na[ia], Ta[ia]
     tb, pb, qb, Nb, Tb = tb[ib], pb[ib], qb[ib], Nb[ib], Tb[ib]
     dp = np.linalg.norm(pa - pb, axis=1)
-    c = np.clip(np.abs(np.sum(qa * qb, axis=1)) / (np.linalg.norm(qa, axis=1) * np.linalg.norm(qb, axis=1)), 0, 1)
-    ang = np.degrees(2 * np.arccos(c))
+    ang = np.degrees(quat_angle(qa, qb))
     dN, dT = Na - Nb, np.linalg.norm(Ta - Tb, axis=2)
     rms = lambda x: float(np.sqrt(np.mean(np.square(x))))  # noqa: E731
     return {"n": int(n), "t_end": float(ta[-1]),

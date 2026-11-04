@@ -55,6 +55,9 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_tip_calibration_fe as FE  # noqa: E402
 import ur5_tip_calibration_pads as PD  # noqa: E402
+from sr2hand.geometry.rotations import rot_between
+from sr2hand.geometry.sampling import fibonacci
+from sr2hand.geometry.vectors import reject_norm
 
 D = ROOT / "docs/experiments/20261030-v3_tip_contact_model"
 OUT = D / "data/20261030-contact_model_fit.json"
@@ -127,28 +130,13 @@ def fib_cap(R, cos_min, spacing):
     directions (outward normals) and the area of each point (mm^2)."""
     area = 2 * np.pi * R * R * (1 - cos_min)
     n = max(int(area / spacing ** 2), 200)
-    k = np.arange(n) + 0.5
-    z = 1 - (1 - cos_min) * k / n
-    phi = np.pi * (1 + 5 ** 0.5) * k
-    r = np.sqrt(1 - z * z)
-    U = np.c_[r * np.cos(phi), r * np.sin(phi), z]
-    return U, np.full(n, area / n)
+    return fibonacci(n, cos_min, mirror=True), np.full(n, area / n)
 
 
 def rot_z_to(v):
-    """Rotation matrix taking +z to the unit vector v."""
+    """Rotation matrix taking +z to the unit vector v (for v = -z, the half turn about x)."""
     v = np.asarray(v, float) / np.linalg.norm(v)
-    z = np.array([0.0, 0.0, 1.0])
-    c = float(z @ v)
-    if c > 1 - 1e-12:
-        return np.eye(3)
-    if c < -1 + 1e-12:
-        return np.diag([1.0, -1.0, -1.0])
-    a = np.cross(z, v)
-    s = np.linalg.norm(a)
-    a /= s
-    K = np.array([[0, -a[2], a[1]], [a[2], 0, -a[0]], [-a[1], a[0], 0]])
-    return np.eye(3) + s * K + (1 - c) * K @ K
+    return np.diag([1.0, -1.0, -1.0]) if v[2] < -1 + 1e-12 else rot_between([0.0, 0.0, 1.0], v)
 
 
 def indenter_samples(c, n, R, axis, reach):
@@ -197,9 +185,7 @@ def field_contact(field, c, n, R, axis, reach, planes=None):
 
 
 def r_bar(X, w, cen, n):
-    v = X - cen
-    v = v - (v @ n)[:, None] * n[None]
-    return float((w * np.linalg.norm(v, axis=1)).sum() / w.sum())
+    return float((w * reject_norm(X - cen, n)).sum() / w.sum())
 
 
 def pads_contact(pads, c, n, R, axis):

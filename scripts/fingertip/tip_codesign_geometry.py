@@ -61,6 +61,11 @@ from functools import cached_property
 from pathlib import Path
 
 import numpy as np
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.mesh import convex_hull, surface_distance, write_obj
+from sr2hand.geometry.sampling import fibonacci
 
 REACH, END = 0.01055, 0.01055
 DEPTH, WIDTH, LENGTH = 0.0170, 0.0148, 0.02141
@@ -71,29 +76,7 @@ C0 = np.array([X_FACE - DEPTH / 2, 0.0, Z_END + LENGTH / 2])     # box centre, t
 KEY_RE = re.compile(r"^tcd_rs(?P<a>[0-9.]+)_re(?P<b>[0-9.]+)(?:_cr(?P<R>[0-9.]+))?(?:_p(?P<h>[0-9.]+))?$")
 
 
-def _fib(n):
-    i = np.arange(n) + 0.5
-    z = 1 - 2 * i / n
-    r = np.sqrt(1 - z * z)
-    th = math.pi * (3 - math.sqrt(5)) * i
-    return np.column_stack([r * np.cos(th), r * np.sin(th), z])
-
-
 DEGENERATE = 1e-14       # m^2, |(b - a) x (c - a)| below which a hull facet is degenerate (see TipShape._planes)
-
-
-def _hull(P):
-    from scipy.spatial import ConvexHull
-    h = ConvexHull(P)
-    V = h.points[h.vertices]
-    remap = np.full(len(P), -1)
-    remap[h.vertices] = np.arange(len(h.vertices))
-    F = remap[h.simplices]
-    cen = V.mean(0)
-    a, b, c = V[F[:, 0]], V[F[:, 1]], V[F[:, 2]]
-    flip = np.einsum("ij,ij->i", np.cross(b - a, c - a), a - cen) < 0
-    F[flip] = F[flip][:, [0, 2, 1]]
-    return V, F
 
 
 def _subsample(V, F, a_target=1e-8):
@@ -231,8 +214,8 @@ class TipShape:
         """(V, F) of a fine hull: the design surface from 300k rays, or for an as-printed key the hull of the layers'
         top outlines (and their bottom outlines, which only the lowest layer contributes)."""
         if not self.layer:
-            P = self._bisect(_fib(300_000), self.inside_design)
-            return _hull(P)
+            P = self._bisect(fibonacci(300_000), self.inside_design)
+            return convex_hull(P)
         h = self.layer
         nl = int(round(DEPTH / h))
         pts = []
@@ -245,7 +228,7 @@ class TipShape:
                 Q = O.copy()
                 Q[:, 0] = xs
                 pts.append(Q)
-        return _hull(np.concatenate(pts))
+        return convex_hull(np.concatenate(pts))
 
     # ------------------------------------------------------------------ outputs
     @cached_property
@@ -312,10 +295,10 @@ class TipShape:
             D = M - C0
             D /= np.linalg.norm(D, axis=1, keepdims=True)
             M = self._bisect(D, self.inside_design)
-        V, F = _hull(M * np.array([sign, 1.0, 1.0]))
+        V, F = convex_hull(M * np.array([sign, 1.0, 1.0]))
         if sign < 0:
             F = F[:, [0, 2, 1]]
-            V2, F2 = _hull(V)
+            V2, F2 = convex_hull(V)
             return V2, F2
         return V, F
 
@@ -393,12 +376,7 @@ class TipShape:
             p = Path(out_dir) / f"{self.key}{tag}_{name}.obj"
             p.parent.mkdir(parents=True, exist_ok=True)
             if not p.exists():
-                tmp = p.with_name(p.name + f".{os.getpid()}.tmp")
-                with open(tmp, "w") as fh:
-                    fh.write(f"# {self.key} (scripts/fingertip/tip_codesign_geometry.py)\n")
-                    fh.writelines(f"v {v[0]:.7f} {v[1]:.7f} {v[2]:.7f}\n" for v in V)
-                    fh.writelines(f"f {f[0] + 1} {f[1] + 1} {f[2] + 1}\n" for f in F)
-                os.replace(tmp, p)
+                write_obj(p, V, F, header=f"{self.key} (scripts/fingertip/tip_codesign_geometry.py)")
             out[sign] = p
         return out
 
@@ -597,7 +575,7 @@ class CurvedTip(TipShape):
                 Q = O.copy()
                 Q[:, 2] = zs
                 pts.append(Q)
-        return _hull(np.concatenate(pts))
+        return convex_hull(np.concatenate(pts))
 
     def mesh_paths(self, out_dir, eps=None, res=0.00025):
         """TipShape.mesh_paths at 0.25 mm: a curved tip's contact patch at 1 N spans 2-3 mm, and Drake's field on the
@@ -617,9 +595,9 @@ class CurvedTip(TipShape):
         inv = inv.ravel()
         order = np.lexsort((-np.linalg.norm(V0 - C0, axis=1), inv))
         first = order[np.r_[True, inv[order][1:] != inv[order][:-1]]]
-        V, F = _hull(V0[first] * np.array([sign, 1.0, 1.0]))
+        V, F = convex_hull(V0[first] * np.array([sign, 1.0, 1.0]))
         if sign < 0:
-            return _hull(V)
+            return convex_hull(V)
         return V, F
 
     def _terrace_corners(self, eps=None):
@@ -669,8 +647,8 @@ def compare_cad(key="tcd_rs3_re3", stl=None):
     mine = trimesh.Trimesh(W, F, process=True)
     a = trimesh.sample.sample_surface(mine, 60000, seed=0)[0]
     b = trimesh.sample.sample_surface(cad, 60000, seed=0)[0]
-    d_ab = np.abs(trimesh.proximity.signed_distance(cad, a))
-    d_ba = np.abs(trimesh.proximity.signed_distance(mine, b))
+    d_ab = surface_distance(cad, a)
+    d_ba = surface_distance(mine, b)
     return {"hausdorff_mm": float(max(d_ab.max(), d_ba.max())), "mean_mm": float(0.5 * (d_ab.mean() + d_ba.mean())),
             "volume_mm3": float(mine.volume), "cad_volume_mm3": float(cad.volume),
             "volume_ratio": float(mine.volume / cad.volume), "cad_bounds": cad.bounds.tolist(),

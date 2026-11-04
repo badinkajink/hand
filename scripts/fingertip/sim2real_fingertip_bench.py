@@ -27,6 +27,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.numerics.signal import loglog_interp
 D = ROOT / "docs/experiments/20261016-sim2real_fingertip_readiness"
 OUT = D / "bench"
 E0 = 12.0
@@ -39,10 +40,7 @@ def fe_rows():
 
 def _loglog(x, xs, ys):
     """Piecewise power law through (xs, ys), extended beyond the ends with the nearest segment's exponent."""
-    lx, lxs, lys = math.log(x), np.log(xs), np.log(ys)
-    k = int(np.clip(np.searchsorted(lxs, lx) - 1, 0, len(xs) - 2))
-    s = (lys[k + 1] - lys[k]) / (lxs[k + 1] - lxs[k])
-    return float(math.exp(lys[k] + s * (lx - lxs[k])))
+    return loglog_interp(x, xs, ys)
 
 
 def approach_at(row, F, E_s):

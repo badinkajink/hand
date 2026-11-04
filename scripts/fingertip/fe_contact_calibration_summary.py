@@ -26,6 +26,9 @@ import time
 from pathlib import Path
 
 import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import quat_angle, quat_axis
 
 ROOT = Path(__file__).resolve().parents[2]
 D = ROOT / "docs/experiments/20261018-fe_contact_calibration"
@@ -64,13 +67,6 @@ def tr_arrays(tr):
     return t, q, N, T
 
 
-def axis_of(q):
-    """The body z axis (a cylinder's marked axis) of unit quaternions (n, 4), w first."""
-    q = q / np.linalg.norm(q, axis=1, keepdims=True)
-    w, x, y, z = q.T
-    return np.stack([2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)], 1)
-
-
 def pair(A, B, turn_key="turn_end_deg", held_key="held", axis=False):
     """axis: compare the tools' axes (a cylinder is symmetric about its own axis, so its spin about it is no part of the
     turn); otherwise the full orientations (the D1-D8 screwdriver).
@@ -87,9 +83,9 @@ def pair(A, B, turn_key="turn_end_deg", held_key="held", axis=False):
     if n == 0:
         return None
     if axis:
-        ang = np.degrees(np.arccos(np.clip(np.sum(axis_of(qa[:n]) * axis_of(qb[:n]), 1), -1, 1)))
+        ang = np.degrees(np.arccos(np.clip(np.sum(quat_axis(qa[:n]) * quat_axis(qb[:n]), 1), -1, 1)))
     else:
-        ang = np.degrees(2 * np.arccos(np.clip(np.abs(np.sum(qa[:n] * qb[:n], 1)), -1, 1)))
+        ang = np.degrees(quat_angle(qa[:n], qb[:n]))
     sep = np.where(ang > 10)[0]
     ha, hb = bool(A[held_key]), bool(B[held_key])
     if axis:
