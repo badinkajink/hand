@@ -1276,7 +1276,9 @@ def sections(N, F, P, link, L):
         "5 % means a seat's suite has enough presses.",
         "Friction cone at each pad point (owner, 11-03; "
         + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32): the rod sweeps seats 2, 3 and 1 "
-        "from 16:58 on 11-03 to about 03:00 on 11-04. It is the last calibration before the SR2 hand is mounted. The "
+        "from 17:26 on 11-03 to about 03:30 on 11-04. A first start at 16:58 stopped before the grid at 17:15, "
+        "because seat 2's touch-offs showed the rod tool seated a quarter turn off on its square boss. The owner "
+        "reseated it. The run is the last calibration before the SR2 hand is mounted. The "
         "182 sweeps cover 34 points a seat, with the rod along and across the tip ("
         + P.code("docs/experiments/20261022-ur5_tip_calibration/lab/20261103-plan_probe_table_rod_seat2_v3id5_sweep8.json")
         + " and its seats 3 and 1). Each sweep stops a normal press at 0.5, 1, 2, 4 and 8 N. At these levels the rod "
