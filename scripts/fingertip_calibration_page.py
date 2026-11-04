@@ -72,7 +72,7 @@ def build():
               "HEX-E, 2026-10-22 to 11-04, analysed on the workstation ("
               + link(UR5, "docs/experiments/20261022-ur5_tip_calibration/") + ") and v3 ID 2's on the lab computer. "
               "v2 ID 1's and the v3 tips' analyses are the UR5 "
-              "coordinator's (commits 0a487cf5 to ab47f8b6), read as committed. Figures by "
+              "coordinator's (commits 0a487cf5 to 5916bdad), read as committed. Figures by "
               + P.code("scripts/fingertip_calibration_figures.py") + "; page by " + P.code("scripts/fingertip_calibration_page.py")
               + ". Read " + link(L["phys"], "the physical model of the fingertip") + " first; the topic overview is "
               + link(L["overview"], "printed fingertips and force sensing") + ".")
