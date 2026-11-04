@@ -1,0 +1,30 @@
+Status: active
+Task: Owner, 2026-11-03: "can't we score and refine a grasp based off how well the grasp (+morphology) executes the HOM
+control? from what i understand we are doing pretty random sampling"; 18:1x: "set up different autopilot jobs to
+continue promising work". Put the grasp in the evolutionary search's genome: a child inherits its parent's grasp,
+re-solved on its own layout and mutated, and HOM scores that one grasp; compare with scripts/hom_ea.py's best-of-16
+search at equal rollouts on the SCS0009.
+Read first: docs/handoff/20261104-hom_score_refine_page.md (State, its Go/no-go line); the score refine page and README
+in docs/experiments/20261103-hom_score_refine/; scripts/hom_ea.py and hom_landscape.ea_search; fp_sr2_toy.py (Problem,
+grasp_set, clearances); the trends page docs/experiments/20261029-foundational_pose_review/20261030-hom_layout_trends.html
+(the EA's budget study: pop 64 and 6,000 rollouts reach within 0.05 of the grid's best in 97-100 % of runs).
+State: 11-03 18:4x, not started.
+Next:
+1. Go/no-go from the page job's line: if the validated S2 - S1 is under 0.03 in median on all four tasks, the grasp set
+   already holds what refinement finds: write that in State and on the page, set Status done and disarm. Paths: after
+   the scripts switch the scripts are under scripts/hom/ (package sr2hand).
+2. Write scripts/hom_ea_grasp.py: an individual is (lattice layout, grasp v). A child moves its parent's layout by
+   U(-delta/2, delta/2) mm on the 5 mm lattice (hom_ea's mutation), re-solves the parent's v on the new layout with
+   fp_sr2_toy.Problem.solve warm-started from it, then steps v by N(0, (0.25 x the feasible widths)^2) until feasible
+   (hom_grasp_refine.draw_layout's rule); with probability 0.5 a child keeps the layout and mutates only the grasp.
+   Fitness: the one grasp's mean score at seeds 0-2 (3 rollouts a child, against 48 for a best-of-16 layout).
+   Population 64, budget 6,000 rollouts, elitist as hom_ea; rows and gens files as hom_ea's, under
+   docs/experiments/20261103-hom_score_refine/rows/ea_grasp/.
+3. Run it on sv25 at the default objects (twist and roll 40 mm sphere, pin-push and press 25 mm cylinder), three search
+   seeds each, and hom_ea.py at the same budget on the same plant (HOS_PLANT=servo, HOS_SCENES, HOM_ROWS_TAG=_sv25);
+   validate each run's incumbent at seeds 20-24.
+4. Report the best validated score per method and the rollouts each needs to come within 0.05 of the grid's best; add a
+   section and a figure to the score refine page; commit; push; memory and README.
+Claimed: scripts/hom_ea_grasp.py, docs/experiments/20261103-hom_score_refine/rows/ea_grasp/, the page's EA section.
+Waiting on owner: none.
+Do not: publish artifacts; run beside another GPU job; change scripts/hom_ea.py's behaviour (its rows are the reference).
