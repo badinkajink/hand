@@ -296,57 +296,104 @@ def cmd_gpu_bench(a):
 
 # ------------------------------------------------------------------------------------------------ report
 
-def cmd_report(a):
+SESSION_H = 3.0                                # CPU rows within this many hours of a key's newest row form its session
+
+
+def cpu_sessions(rows):
+    """{(plant, task, variant, procs): (newest session's rows, [earlier sessions' summaries])}. The CPU numbers of
+    11-03 19:1x ran beside the GPU queue (load about 5); a rerun on the idle box is the session to quote."""
+    import datetime as dt
     import numpy as np
-    cpu = R.read_rows(COMPUTE / "cpu_bench.jsonl")
-    out = {"made": time.strftime("%Y-%m-%d %H:%M"), "cpu": {}, "gpu_bench": {}, "queue": {}, "speedup": {}}
-    for task in R.TASKS:
-        c = {}
-        for v in ("plant", "filter", "solver", "matched"):
-            for procs in sorted({r["procs"] for r in cpu if r["task"] == task and r["variant"] == v}):
-                rs = [r for r in cpu if r["task"] == task and r["variant"] == v and r["procs"] == procs]
-                c[f"{v}_p{procs}"] = {"n": len(rs), "wall_s": round(float(np.median([r["wall_s"] for r in rs])), 3),
-                                      "cpu_s": round(float(np.median([r["cpu_s"] for r in rs])), 3),
-                                      "setup_s": round(float(np.median([r["setup_s"] for r in rs])), 3),
-                                      "sim_s": rs[0]["sim_s"],
-                                      "real_time_factor": round(rs[0]["sim_s"] / float(np.median([r["wall_s"] for r in rs])), 3),
-                                      "load_before": [float(np.median([r["load_before"][0] for r in rs]))],
-                                      "score_agree": sum(abs(r["score"] - r["gpu_score_seed"]) <= 0.05 for r in rs
-                                                         if r.get("gpu_score_seed") is not None)}
-        out["cpu"][task] = c
+    when = lambda r: dt.datetime.strptime(r["when"], "%Y-%m-%d %H:%M:%S")  # noqa: E731
+    keyed = {}
+    for r in rows:
+        keyed.setdefault((r.get("plant", "sv25"), r["task"], r["variant"], int(r["procs"])), []).append(r)
+    out = {}
+    for k, rs in keyed.items():
+        rs.sort(key=when)
+        new = [r for r in rs if (when(rs[-1]) - when(r)).total_seconds() <= 3600 * SESSION_H]
+        old = [r for r in rs if r not in new]
+        prev = [{"n": len(old), "wall_s": round(float(np.median([r["wall_s"] for r in old])), 3),
+                 "load_before": float(np.median([r["load_before"][0] for r in old])), "first": old[0]["when"]}] if old else []
+        out[k] = (new, prev)
+    return out
+
+
+def cpu_summary(rs, prev):
+    import numpy as np
+    wall = float(np.median([r["wall_s"] for r in rs]))
+    return {"n": len(rs), "wall_s": round(wall, 3), "cpu_s": round(float(np.median([r["cpu_s"] for r in rs])), 3),
+            "setup_s": round(float(np.median([r["setup_s"] for r in rs])), 3), "sim_s": rs[0]["sim_s"],
+            "real_time_factor": round(rs[0]["sim_s"] / wall, 3),
+            "load_before": [float(np.median([r["load_before"][0] for r in rs]))],
+            "first": min(r["when"] for r in rs), "last": max(r["when"] for r in rs),
+            "score_agree": sum(abs(r["score"] - r["gpu_score_seed"]) <= 0.05 for r in rs
+                               if r.get("gpu_score_seed") is not None),
+            "previous_sessions": prev}
+
+
+def queue_of(plant, task):
+    """The plant's queue timing per level: the timing lines of its search rows and the steps' wall clocks."""
+    q = {}
+    for level in ("grasp", "full"):
+        tf = R.ROWS_ROOT / plant / level / f"{task}_d{R.TASKS[task]:g}_timing.jsonl"
+        st_ = steps().get(f"{plant}_{level}_{task}", {})
+        ls = batch_lines(tf)
+        if ls:
+            s = summarize(ls)
+            q[level] = dict(s, step_wall_s=st_.get("wall_s"),
+                            step_ms_per_rollout=round(1000 * st_["wall_s"] / s["rollouts"], 2)
+                            if st_.get("wall_s") else None)
+    return q
+
+
+def speedups(c, q):
+    """One GPU against one CPU core: the CPU's wall seconds per rollout over the GPU's per-rollout time at three clocks,
+    the GPU's reference being the plant's level-grasp search."""
+    sp = {}
+    ref = q.get("grasp") or q.get("full")
+    for key, cc in c.items():
+        if ref and ref.get("ms_per_rollout_run_full_batches"):
+            sp[key] = {"vs_gpu_run": round(1000 * cc["wall_s"] / ref["ms_per_rollout_run_full_batches"], 1),
+                       "vs_gpu_batch": round(1000 * cc["wall_s"] / ref["ms_per_rollout_batch"], 1),
+                       "vs_gpu_step": round(1000 * cc["wall_s"] / ref["step_ms_per_rollout"], 1)
+                       if ref.get("step_ms_per_rollout") else None}
+    return sp
+
+
+def cmd_report(a):
+    sess = cpu_sessions(R.read_rows(COMPUTE / "cpu_bench.jsonl"))
+    out = {"made": time.strftime("%Y-%m-%d %H:%M"), "cpu": {}, "gpu_bench": {}, "queue": {}, "speedup": {},
+           "plants": {}}
+    for plant in ("sv25", "k21", "k21mu0p4"):
+        P = {"cpu": {}, "queue": {}, "speedup": {}}
+        for task in R.TASKS:
+            c = {f"{v}_p{procs}": cpu_summary(*sess[(pl, t, v, procs)])
+                 for (pl, t, v, procs) in sorted(sess) if pl == plant and t == task}
+            if c.get("plant_p1") and c.get("plant_p4"):
+                c["plant_p4"]["per_core_slowdown"] = round(c["plant_p4"]["wall_s"] / c["plant_p1"]["wall_s"], 3)
+            q = queue_of(plant, task)
+            P["cpu"][task], P["queue"][task], P["speedup"][task] = c, q, speedups(c, q)
+        out["plants"][plant] = P
+    for task in R.TASKS:                          # the SCS0009 at the top level, as the page reads it
+        out["cpu"][task] = out["plants"]["sv25"]["cpu"][task]
+        out["queue"][task] = out["plants"]["sv25"]["queue"][task]
+        out["speedup"][task] = out["plants"]["sv25"]["speedup"][task]
         tl = batch_lines(COMPUTE / f"gpu_bench_{task}_timing.jsonl")
         proc = {int(r["worlds"]): r["process_s"] for r in R.read_rows(COMPUTE / "gpu_bench_process.jsonl")
                 if r["task"] == task}
         out["gpu_bench"][task] = [{"worlds": int(r["worlds"]), "run_ms": round(1000 * r["run_s"] / r["worlds"], 2),
                                    "batch_ms": round(1000 * (r["build_s"] + r["run_s"] + r["score_s"]) / r["worlds"], 2),
                                    "process_ms": round(1000 * proc[int(r["worlds"])] / r["worlds"], 2)
-                                   if int(r["worlds"]) in proc else None} for r in tl]
-        q = {}
-        for level in ("grasp", "full"):
-            tf = R.ROWS_ROOT / "sv25" / level / f"{task}_d{R.TASKS[task]:g}_timing.jsonl"
-            st_ = steps().get(f"sv25_{level}_{task}", {})
-            ls = batch_lines(tf)
-            if ls:
-                s = summarize(ls)
-                q[level] = dict(s, step_wall_s=st_.get("wall_s"),
-                                step_ms_per_rollout=round(1000 * st_["wall_s"] / s["rollouts"], 2)
-                                if st_.get("wall_s") else None)
-        out["queue"][task] = q
-        sp = {}
-        ref = q.get("grasp") or q.get("full")
-        for key, cc in c.items():
-            if ref and ref.get("ms_per_rollout_run_full_batches"):
-                sp[key] = {"vs_gpu_run": round(1000 * cc["wall_s"] / ref["ms_per_rollout_run_full_batches"], 1),
-                           "vs_gpu_batch": round(1000 * cc["wall_s"] / ref["ms_per_rollout_batch"], 1),
-                           "vs_gpu_step": round(1000 * cc["wall_s"] / ref["step_ms_per_rollout"], 1)
-                           if ref.get("step_ms_per_rollout") else None}
-        out["speedup"][task] = sp
+                                   if int(r["worlds"]) in proc else None, "when": r.get("when")} for r in tl]
     p = COMPUTE / f"{time.strftime('%Y%m%d')}-throughput.json"
     p.write_text(json.dumps(out, indent=1))
-    for task in R.TASKS:
-        c, s = out["cpu"][task], out["speedup"][task]
-        if c:
-            print(task, {k: (v["wall_s"], v["real_time_factor"]) for k, v in c.items()}, "speedup", s, flush=True)
+    for plant, P in out["plants"].items():
+        for task in R.TASKS:
+            c, s = P["cpu"][task], P["speedup"][task]
+            if c:
+                print(plant, task, {k: (v["wall_s"], v["real_time_factor"], v["load_before"][0]) for k, v in c.items()},
+                      "speedup", s, flush=True)
     print("wrote", p.relative_to(ROOT))
 
 

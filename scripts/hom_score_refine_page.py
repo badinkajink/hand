@@ -7,10 +7,12 @@ friction 1.0 and 0.4 (owner, 2026-11-03: "can't we score and refine a grasp base
 sure things are documented well!").
 
 Data: the reports rows/<plant>/<date>-score_levels.json of scripts/hom_grasp_refine.py, its _gens.jsonl files (the
-CEM's progress) and the films' rows media/<date>-films.json. The design page's helpers and template
-(scripts/fp_review_page.py) draw the tables and figures.
+CEM's progress), the films' rows media/<date>-films.json, the friction check media/20261103-friction_check.json (figs:
+drops, contact-normal elevations and the static friction need of the STS3032 picks, from the validation rows) and
+compute/ (scripts/hom_compute.py). The results quote the elitist picks S2e and S3e. The design page's helpers and
+template (scripts/fp_review_page.py) draw the tables and figures.
 
-    .venv/bin/python scripts/hom_score_refine_page.py figs     # the figures from the reports
+    .venv/bin/python scripts/hom_score_refine_page.py figs     # the figures and the friction check from the reports
     .venv/bin/python scripts/hom_score_refine_page.py films    # CPU clips through resguard (after the GPU queue)
     .venv/bin/python scripts/hom_score_refine_page.py          # the page
     .venv/bin/python scripts/hom_score_refine_page.py --smoke  # the page from rows_smoke/ (a layout check, not results)
@@ -106,6 +108,21 @@ def plt_setup():
     return plt
 
 
+def grid4(figsize, **kw):
+    """Four task panels in a 2 x 2 grid, sized for the page's 828 px column (text at least 13 px as displayed)."""
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(2, 2, figsize=figsize, constrained_layout=True, **kw)
+    return fig, list(axs.ravel())
+
+
+def labels(axs, xlabel, ylabel):
+    """The x label under the bottom row and the y label left of the left column."""
+    for ax in axs[2:]:
+        ax.set_xlabel(xlabel)
+    for ax in axs[::2]:
+        ax.set_ylabel(ylabel)
+
+
 def save(fig, name):
     import matplotlib.pyplot as plt
     MEDIA.mkdir(parents=True, exist_ok=True)
@@ -115,22 +132,22 @@ def save(fig, name):
 
 
 def fig_levels(plant, J):
-    """Per task: each layout's S1, S2 and S3 at the validation seeds, the layouts in order of S1."""
+    """Per task: each layout's S1 and its elitist picks S2e and S3e at the validation seeds, the layouts in order of
+    S1."""
     plt = plt_setup()
-    fig, axs = plt.subplots(1, 4, figsize=(15, 3.9), constrained_layout=True, sharey=True)
+    fig, axs = grid4((9.5, 7.0), sharey=True)
     for ax, task in zip(axs, TASKS):
         lays = [e for e in J["tasks"].get(task, {}).get("layouts", []) if e.get("s1_val") is not None]
         lays.sort(key=lambda e: (e["s1_val"], e["s1"]))
         x = np.arange(len(lays))
-        for key, c, m, lab in (("s1_val", C1, "o", "S1"), ("s2_val", C2, "^", "S2"), ("s3_val", C3, "s", "S3")):
+        for key, c, m, lab in (("s1_val", C1, "o", "S1"), ("s2e_val", C2, "^", "S2e"), ("s3e_val", C3, "s", "S3e")):
             xs = [i for i, e in zip(x, lays) if e.get(key) is not None]
             ys = [e[key] for e in lays if e.get(key) is not None]
             ax.plot(xs, ys, m, color=c, ms=5, mfc="none" if key == "s1_val" else c, label=lab, alpha=0.9)
         ax.set_title(f"{NAME[task]}, {OBJ[task]}")
-        ax.set_xlabel("Layouts in order of S1")
         ax.set_ylim(-0.03, 1.03)
         ax.grid(alpha=0.3)
-    axs[0].set_ylabel("Score at seeds 20-24")
+    labels(axs, "Layouts in order of S1", "Score at seeds 20-24")
     axs[0].legend(loc="upper left", frameon=False)
     save(fig, f"20261103-levels_{plant}.png")
 
@@ -140,7 +157,7 @@ def fig_cem(plant):
     median at iteration -1."""
     plt = plt_setup()
     J = report(plant)
-    fig, axs = plt.subplots(1, 4, figsize=(15, 3.7), constrained_layout=True, sharey=True)
+    fig, axs = grid4((9.5, 6.8), sharey=True)
     for ax, task in zip(axs, TASKS):
         if J and task in J["tasks"]:
             s1 = med(vals(J["tasks"][task]["layouts"], "s1"))
@@ -156,9 +173,8 @@ def fig_cem(plant):
             ax.plot(its, m, "-o", color=c, ms=4, label=lab)
             ax.fill_between(its, q1, q3, color=c, alpha=0.15)
         ax.set_title(f"{NAME[task]}")
-        ax.set_xlabel("CEM iteration")
         ax.grid(alpha=0.3)
-    axs[0].set_ylabel("Best so far, seeds 0-2")
+    labels(axs, "CEM iteration", "Best so far, seeds 0-2")
     axs[0].legend(loc="lower right", frameon=False)
     save(fig, f"20261103-cem_{plant}.png")
 
@@ -167,7 +183,7 @@ def fig_prm(plant, J):
     """S3's forces (relative to HOM's defaults) and mode weights over the layouts, per task."""
     import hom_tasks as T
     plt = plt_setup()
-    fig, axs = plt.subplots(1, 4, figsize=(15, 4.2), constrained_layout=True)
+    fig, axs = grid4((9.5, 8.4))
     rng = np.random.default_rng(0)
     for ax, task in zip(axs, TASKS):
         lays = [e for e in J["tasks"].get(task, {}).get("layouts", []) if e.get("prm3")]
@@ -179,12 +195,35 @@ def fig_prm(plant, J):
             ax.plot(i + 0.12 * rng.standard_normal(len(v)), v, "o", color=C3, ms=4, alpha=0.6)
             ax.plot([i - 0.3, i + 0.3], [1.0 if k.startswith("f_") else T.PRM[k]] * 2, color="k", lw=1.5)
         ax.set_xticks(range(len(keys)))
-        ax.set_xticklabels([k.replace("w_", "").replace("_", " ") if k.startswith("w_") else k[2:] + " / default"
-                            for k in keys], rotation=60, ha="right")
+        ax.set_xticklabels([f"{k[2:].capitalize()} force" if k.startswith("f_") else
+                            "{}, {}".format(*k[2:].split("_")).capitalize() for k in keys], rotation=60, ha="right")
         ax.set_title(f"{NAME[task]}")
         ax.grid(alpha=0.3, axis="y")
-    axs[0].set_ylabel("Force / default, or weight")
+    labels(axs, "", "Force over default, or mode weight")
     save(fig, f"20261103-prm_{plant}.png")
+
+
+def fig_friction(A, B):
+    """Per task on the STS3032: each layout's score at friction 0.4 with the picks tuned at 1.0 (x) and with the picks
+    tuned at 0.4 (y), for S1 and S3e; the diagonal marks equal scores."""
+    plt = plt_setup()
+    fig, axs = grid4((8.6, 8.6), sharex=True, sharey=True)
+    for ax, task in zip(axs, TASKS):
+        lb = B["tasks"].get(task, {}).get("layouts", [])
+        for kx, ky, c, m, lab in (("s1_val_from_k21", "s1_val", C1, "o", "S1"),
+                                  ("s3e_val_from_k21", "s3e_val", C3, "s", "S3e")):
+            pts = [(e[kx], e[ky]) for e in lb if e.get(kx) is not None and e.get(ky) is not None]
+            ax.plot([p[0] for p in pts], [p[1] for p in pts], m, color=c, ms=6, alpha=0.8,
+                    mfc="none" if lab == "S1" else c, label=lab)
+        ax.plot([0, 1], [0, 1], color="k", lw=1)
+        ax.set_title(NAME[task])
+        ax.set_xlim(-0.03, 1.03)
+        ax.set_ylim(-0.03, 1.03)
+        ax.set_aspect("equal")
+        ax.grid(alpha=0.3)
+    labels(axs, "Tuned at 1.0, run at 0.4", "Tuned at 0.4, run at 0.4")
+    axs[0].legend(loc="lower right", frameon=False)
+    save(fig, "20261103-friction_k21.png")
 
 
 def cmd_figs():
@@ -195,39 +234,71 @@ def cmd_figs():
         fig_levels(plant, J)
         fig_cem(plant)
         fig_prm(plant, J)
+    A, B = report("k21"), report("k21mu0p4")
+    if A and B:
+        fig_friction(A, B)
+        friction_check()
     fig_throughput()
     return 0
 
 
 # ----------------------------------------------------------------------------------------------- films
 
+FRICTION_FILM = {"task": "twist", "call": 362}       # layout 110 x 110 mm, the plant page's one-layout twist design
+
+
+def pick_of(task, plant, call, name):
+    """(v, prm) of a layout's pick S1, S2 or S3 on a plant."""
+    if name == "S1":
+        return next(x for x in R.layouts(task, plant) if x["call"] == call)["v1"], {}
+    p = R.picks(task, plant, "grasp" if name == "S2" else "full")[call]
+    return p["v"], (p["prm"] if name == "S3" else {})
+
+
 def film_specs():
-    """Per task on the SCS0009: the layout with the highest S3 at the validation seeds, its S1, S2 and S3 picks at seed
-    20 (a validation seed)."""
+    """Per task on the SCS0009: the layout with the highest S3e at the validation seeds, its S1, S2e and S3e picks at
+    seed 20 (a validation seed). Then the friction film on the STS3032: one twist layout's S3e pick tuned at friction
+    1.0, run at 1.0 and at 0.4, beside its S3e pick tuned at 0.4."""
     J = report("sv25")
     specs = []
     for task in TASKS:
-        lays = [e for e in J["tasks"].get(task, {}).get("layouts", []) if e.get("s3_val") is not None]
+        lays = [e for e in J["tasks"].get(task, {}).get("layouts", []) if e.get("s3e_val") is not None]
         if not lays:
             continue
-        e = max(lays, key=lambda e: (e["s3_val"], e.get("s3_val_ramp_deg", 0.0)))
+        e = max(lays, key=lambda e: (e["s3e_val"], e.get(f"{e['s3e_pick'].lower()}_val_ramp_deg", 0.0)))
         L_ = next(x for x in R.layouts(task, "sv25") if x["call"] == e["call"])
-        p2, p3 = R.picks(task, "sv25", "grasp"), R.picks(task, "sv25", "full")
-        for name, v, prm, gpu in (("S1", L_["v1"], {}, e["s1_val"]), ("S2", p2[e["call"]]["v"], {}, e["s2_val"]),
-                                  ("S3", p3[e["call"]]["v"], p3[e["call"]]["prm"], e["s3_val"])):
-            specs.append({"task": task, "call": e["call"], "xy": e["xy"], "d6": L_["d"], "pick": name, "v": v,
-                          "prm": prm, "gpu": gpu, "seed": R.VAL_SEEDS[0],
+        for name, raw in (("S1", "S1"), ("S2e", e["s2e_pick"]), ("S3e", e["s3e_pick"])):
+            v, prm = pick_of(task, "sv25", e["call"], raw)
+            specs.append({"set": "levels", "plant": "sv25", "task": task, "call": e["call"], "xy": e["xy"],
+                          "d6": L_["d"], "pick": name, "raw": raw, "v": v, "prm": prm, "gpu": e[f"{name.lower()}_val"],
+                          "seed": R.VAL_SEEDS[0],
                           "top": f"{NAME[task]}, layout {e['xy'][0]:g} x {e['xy'][1]:g} mm, {name}",
                           "out": str(MEDIA / f"20261103-clip_{task}_{name}.mp4")})
+    A, B = report("k21"), report("k21mu0p4")
+    if A and B:
+        task, call = FRICTION_FILM["task"], FRICTION_FILM["call"]
+        ea = next(e for e in A["tasks"][task]["layouts"] if e["call"] == call)
+        eb = next(e for e in B["tasks"][task]["layouts"] if e["call"] == call)
+        L_ = next(x for x in R.layouts(task, "k21") if x["call"] == call)
+        va, pa = pick_of(task, "k21", call, ea["s3e_pick"])
+        vb, pb = pick_of(task, "k21mu0p4", call, eb["s3e_pick"])
+        for tag, plant, v, prm, gpu, lab in (
+                ("10at10", "k21", va, pa, ea["s3e_val"], "tuned at friction 1.0, run at 1.0"),
+                ("10at04", "k21mu0p4", va, pa, eb["s3e_val_from_k21"], "tuned at friction 1.0, run at 0.4"),
+                ("04at04", "k21mu0p4", vb, pb, eb["s3e_val"], "tuned at friction 0.4, run at 0.4")):
+            specs.append({"set": "friction", "plant": plant, "task": task, "call": call, "xy": ea["xy"], "d6": L_["d"],
+                          "pick": "S3e", "cond": lab, "v": v, "prm": prm, "gpu": gpu, "seed": R.VAL_SEEDS[0],
+                          "top": f"S3e {lab.replace('friction ', '')}",
+                          "out": str(MEDIA / f"20261103-clip_friction_{task}_{tag}.mp4")})
     return specs
 
 
 def cmd_films():
     specs = film_specs()
-    hp, scenes, tag = R.PLANTS["sv25"]
     for s in specs:
         if Path(s["out"]).with_suffix(".json").exists():
             continue
+        hp, scenes, tag = R.PLANTS[s["plant"]]
         env = dict(os.environ, HOS_PLANT=hp, HOS_SCENES=scenes, HOM_ROWS_TAG=tag, CUDA_VISIBLE_DEVICES="",
                    MUJOCO_GL="egl", NUMPY_MADVISE_HUGEPAGE="0")
         cmd = [str(Path.home() / ".claude/bin/resguard.sh"), "run", "--mem", "3G", "--cpu", "200", "--",
@@ -242,9 +313,12 @@ def cmd_films():
             raise SystemExit(f"clip {s['out']} failed (exit {rc})")
     import hom_plant_page as HP
     for task in TASKS:
-        cl = [s["out"] for s in specs if s["task"] == task]
+        cl = [s["out"] for s in specs if s["task"] == task and s["set"] == "levels"]
         if cl:
             HP.compose(cl, MEDIA / f"20261103-film_{task}.mp4", cols=len(cl))
+    cl = [s["out"] for s in specs if s["set"] == "friction"]
+    if cl:
+        HP.compose(cl, MEDIA / "20261103-film_friction_twist.mp4", cols=len(cl))
     res = [dict(s, **json.loads(Path(s["out"]).with_suffix(".json").read_text())) for s in specs]
     FILMS.write_text(json.dumps(res, indent=1))
     print("wrote", FILMS.relative_to(ROOT))
@@ -287,8 +361,7 @@ def cmd_clip(spec):
     finally:
         fl.close()
     cpu = L.rollout_score(task, res)
-    frames = [HR.annotate_bottom(HR.annotate(f, s["top"], size=22),
-                                 f"score {cpu:.2f} here; {s['gpu']:.2f} on the GPU, seeds 20-24", size=20)
+    frames = [HR.annotate_bottom(HR.annotate(f, s["top"], size=24), f"score {cpu:.2f}, GPU {s['gpu']:.2f}", size=23)
               for f in frames]
     HR.write_mp4(frames, s["out"], fps=25)
     brief = dict(HF.res_brief(task, res), cpu=round(cpu, 3), frames=len(frames))
@@ -297,17 +370,143 @@ def cmd_clip(spec):
     return 0
 
 
+# ----------------------------------------------------------------------------------------------- numbers from the rows
+
+FRICTION_CHECK = MEDIA / "20261103-friction_check.json"
+SPHERE_KG = 0.025                                   # the 40 mm sphere of the scenes
+
+
+def angle_of(e, k):
+    """The twist's three-pad angle (deg) at the validation seeds of a layout's pick k: s1, s2e or s3e."""
+    name = "s1" if k == "s1" else e[f"{k}_pick"].lower()
+    return e.get(f"{name}_val_ramp_deg") or 0.0
+
+
+def best_layout(lays, k, task):
+    """The layout with the highest validated score k (s1_val, s2e_val, s3e_val); the twist's ties at 1.0 go to the
+    larger three-pad angle."""
+    ok = [e for e in lays if e.get(k) is not None]
+    if not ok:
+        return None
+    return max(ok, key=lambda e: (e[k], angle_of(e, k.removesuffix("_val")) if task == "twist" else 0.0))
+
+
+def xy(e):
+    return f"({e['xy'][0]:g}, {e['xy'][1]:g})"
+
+
+def andj(items):
+    """'a, b, c and d'."""
+    items = [str(x) for x in items]
+    return ", ".join(items[:-1]) + " and " + items[-1] if len(items) > 1 else "".join(items)
+
+
+def fx(v):
+    """Two decimals, or three below 0.01."""
+    return f"{v:.3f}" if abs(v) < 0.01 else f"{v:.2f}"
+
+
+WORDS = {0: "none", 1: "one", 2: "two", 3: "three", 4: "four"}
+
+
+def mu_need(n_out, f, weight):
+    """The smallest friction coefficient at which tangential forces t_i, perpendicular to the inward normals n_i,
+    balance the commanded normal forces f and the weight: min mu subject to sum(f n_i + t_i) = weight z and
+    |t_i| <= mu f (scipy's SLSQP from three starts)."""
+    from scipy.optimize import minimize
+    import fp_sr2_toy as FP
+    N = np.array([-np.asarray(n_out[k], float) for k in FP.FINGERS])
+    target = np.array([0.0, 0.0, weight]) - f * N.sum(0)
+    tt = lambda x: x[:9].reshape(3, 3)  # noqa: E731
+    cons = [{"type": "eq", "fun": lambda x: tt(x).sum(0) - target},
+            {"type": "eq", "fun": lambda x: np.einsum("ij,ij->i", tt(x), N)},
+            {"type": "ineq", "fun": lambda x: (x[9] * f) ** 2 - (tt(x) ** 2).sum(1)}]
+    best = None
+    for s0 in (0.5, 1.0, 2.0):
+        r = minimize(lambda x: x[9], np.r_[np.zeros(9), s0], constraints=cons, method="SLSQP",
+                     options={"maxiter": 500, "ftol": 1e-10})
+        if r.success and (best is None or r.x[9] < best):
+            best = float(r.x[9])
+    return best
+
+
+def friction_check():
+    """The STS3032 picks tuned at friction 1.0 and at 0.4 against the friction cone at 0.4, from the rows: the drops at
+    each friction, the elevation of the pose toy's inward contact normals above the horizontal (the hand is palm-down),
+    the friction each tripod grasp needs for static balance at its commanded forces (mu_need), and Spearman's rho of
+    the pinch's latitude with the drops at 0.4. Written by figs to media/20261103-friction_check.json."""
+    import math
+    import fp_sr2_toy as FP
+    import hom_tasks as T
+    from scipy.stats import spearmanr
+    cone = math.degrees(math.atan(0.4))
+    out = {"cone_deg": round(cone, 1), "sphere_kg": SPHERE_KG, "tasks": {}}
+    for task in TASKS:
+        FP.set_sizes(**({"sph_d_mm": R.TASKS[task]} if R.POSE[task] == "tripod" else {"cyl_d_mm": R.TASKS[task]}))
+        d = f"{task}_d{R.TASKS[task]:g}.jsonl"
+        rr = {("1.0", "0.4"): R.read_rows(R.ROWS_ROOT / "k21mu0p4" / "val_from_k21" / d),
+              ("1.0", "1.0"): R.read_rows(R.ROWS_ROOT / "k21" / "val" / d),
+              ("0.4", "0.4"): R.read_rows(R.ROWS_ROOT / "k21mu0p4" / "val" / d),
+              ("0.4", "1.0"): R.read_rows(R.ROWS_ROOT / "k21" / "val_from_k21mu0p4" / d)}
+        t = {}
+        for tuned, plant in (("1.0", "k21"), ("0.4", "k21mu0p4")):
+            lays = {x["call"]: x for x in R.layouts(task, plant)}
+            el = R.elitist(task, plant)
+            p2, p3 = R.picks(task, plant, "grasp"), R.picks(task, plant, "full")
+            for k in ("S1", "S3e"):
+                elev, need, drops, n_rows, no_finger, forces = {}, [], {"0.4": [], "1.0": []}, {"0.4": 0, "1.0": 0}, 0, []
+                for c, L_ in lays.items():
+                    kk = "S1" if k == "S1" else el[c]["S3e"]
+                    v = np.asarray(L_["v1"] if kk == "S1" else (p2 if kk == "S2" else p3)[c]["v"], float)
+                    prm = p3[c]["prm"] if kk == "S3" else {}
+                    if R.POSE[task] == "tripod":
+                        e_ = {"tripod": math.degrees(v[6])}
+                        f = prm.get("f_tripod", T.PRM["f_tripod"])
+                        _o, _tg, n, _pc, _ax = FP.geometry("tripod", v, FP.mounts6(L_["d"]))
+                        need.append(mu_need(n, f, SPHERE_KG * 9.81))
+                        forces.append(f)
+                    else:
+                        e_ = {"pinch": math.degrees(v[6]), "middle": math.degrees(v[7])}
+                        forces.append(prm.get("f_pinch", T.PRM["f_pinch"]))
+                    for g, x in e_.items():
+                        elev.setdefault(g, []).append(x)
+                    for at in ("0.4", "1.0"):
+                        mine = [r for r in rr[(tuned, at)] if r["call"] == c and r["pick"] == kk]
+                        drops[at].append(sum(bool(r.get("dropped")) for r in mine))
+                        n_rows[at] += len(mine)
+                        if at == "0.4":
+                            no_finger += sum(1 for r in mine if not r.get("dropped") and not r.get("held")
+                                             and not int(r.get("fingers_end", 0)))
+                rec = {"layouts": len(lays), "drops": {at: int(sum(x)) for at, x in drops.items()}, "rollouts": n_rows,
+                       "no_finger_04": no_finger, "force_median": round(float(np.median(forces)), 3),
+                       "elev": {g: {"median": round(float(np.median(x)), 1), "min": round(float(np.min(x)), 1),
+                                    "max": round(float(np.max(x)), 1), "outside": int(sum(abs(y) > cone for y in x))}
+                                for g, x in elev.items()}}
+                if need:
+                    ok = [x for x in need if x is not None]
+                    rec["mu_need"] = {"median": round(float(np.median(ok)), 3), "min": round(float(np.min(ok)), 3),
+                                      "max": round(float(np.max(ok)), 3), "above_04": int(sum(x > 0.4 for x in ok)),
+                                      "n": len(ok)}
+                if "pinch" in elev and np.ptp(drops["0.4"]) > 0:
+                    rec["rho_pinch_drops_04"] = round(float(spearmanr(elev["pinch"], drops["0.4"]).statistic), 2)
+                t[f"{k}_{tuned}"] = rec
+        out["tasks"][task] = t
+    FRICTION_CHECK.write_text(json.dumps(out, indent=1))
+    print("wrote", FRICTION_CHECK.relative_to(ROOT), flush=True)
+
+
 # ----------------------------------------------------------------------------------------------- page
 
 def sec_terms():
     terms = [
         ("Layout", "the palm-frame mounts of the SR2 hand's three fingers, here a symmetric tripod in two coordinates. "
          "The thumb's mount lies $x_{sep}$ from the pair's, and the index's lies $y_{sep}$ from the middle's. The "
-         "lattice steps by 5 mm, from 40 to 160 mm in $x_{sep}$ and from 50 to 170 mm in $y_{sep}$ [1]."),
+         "lattice steps by 5 mm, from 40 to 160 mm in $x_{sep}$ and from 50 to 170 mm in $y_{sep}$ [1]. A layout is "
+         "written ($x_{sep}$, $y_{sep}$) in mm."),
         ("Grasp", "the object's pose and the three contacts on it, written as the pose toy's variables $v$. On the 40 mm "
          "sphere these are seven numbers: the centre (x, y, depth), each finger's azimuth offset and one latitude. On "
          "the 25 mm cylinder they are eight: the centre, the yaw, the positions of the pinch and the middle along the "
-         "axis, and their two latitudes."),
+         "axis, and their two latitudes. A latitude is the contact's angle below the object's equator."),
         ("Feasible grasp", "a grasp that passes the pose toy's constraints. Each finger reaches its contact inside the "
          "servo limits less 3 deg, and its distal link faces the object. The pads touch the object, and the fingers' "
          "collision spheres stay 2 mm apart. The pinch has a lever of at least 40 mm."),
@@ -317,29 +516,46 @@ def sec_terms():
         ("HOM", "the hand-object controller of [2], reimplemented in <code>src/morphohand/control/hom.py</code> and "
          "batched on the GPU in <code>scripts/hom_gpu.py</code>. By default it commands 2.5 N per pad in the tripod "
          "and 3 N per pinching pad. The pin-push's middle finger drives with 1.5 N and the press's with 0.5 N."),
-        ("Contact mode", "the weights of a finger's relative contact motion in Eq. (2) of [2]: spin, roll and slide. A "
-         "weight of 1 keeps that motion at its reference, and 0 leaves it free; the separation row keeps weight 1. By "
-         "default the tripod's fingers roll freely, as in the paper's Experiment B. In the pinch tasks the pinching "
-         "fingers spin and roll freely and the pusher keeps all three, as in Experiment C."),
-        ("Task score", "a rollout's score in [0, 1], 0 when the object drops. The twist scores its largest three-pad "
-         "angle over 90 deg, capped at 1. The roll scores $1/(1 + e_\\omega)$, with $e_\\omega$ the angular-velocity "
-         "error over the command. The pin-push and the press score $1 - e_\\theta/A$, with $e_\\theta$ the angle "
-         "error about the pinch axis and $A$ the stroke of 15 or 20 deg. A layout's score is a mean over seeds."),
-        ("S1, S2, S3", "three scores of one layout. S1 uses HOM's defaults and the best grasp of the grasp set; it is "
-         "the score of the grids [3]. S2 uses HOM's defaults and the grasp refined by CEM from S1's grasp. S3 refines "
-         "the grasp, the commanded forces and the contact modes together, from S2's grasp."),
+        ("Contact mode", "the weights of a finger's relative contact motion in Eq. (2) of [2]: spin, roll and slide. "
+         "With a weight of 1 that motion follows its reference, and with 0 it is free; the separation row has weight 1 "
+         "throughout. By default the tripod's fingers roll freely, as in the paper's Experiment B. In the pinch tasks "
+         "the pinching fingers spin and roll freely and the pusher's three weights are 1, as in Experiment C."),
+        ("Task score", "a rollout's score in [0, 1], 0 when the object drops. The twist scores its three-pad angle over "
+         "90 deg, capped at 1. The roll scores $1/(1 + e_\\omega)$, with $e_\\omega$ the angular-velocity error over "
+         "the command. The pin-push and the press score $1 - e_\\theta/A$, with $e_\\theta$ the angle error about the "
+         "pinch axis and $A$ the stroke of 15 or 20 deg. A layout's score is a mean over seeds."),
+        ("Three-pad angle", "the twist's largest turn of the sphere with all three pads in contact, in deg, uncapped."),
+        ("Drop", "a rollout whose object ends more than 15 mm below its starting height. It scores 0."),
+        ("S1, S2, S3", "three scores of one layout. S1 is scored with HOM's defaults and the best grasp of the grasp "
+         "set, as in the grids [3]. S2 is scored with HOM's defaults and the best grasp that a search found from S1's "
+         "grasp. S3 is the score of the best candidate of a search over the grasp, the commanded forces and the contact "
+         "modes together, started from S2's grasp."),
+        ("Elitist pick", "the better of a search's start and its best candidate, by the mean score at seeds 0-2. S2e "
+         "is the better of S1's grasp and S2's pick. S3e is the best of S1, S2 and S3. Ties go to the larger "
+         "tie-break value (Section SEC[method]) and then to the earlier level. The results quote S2e and S3e; S2 and "
+         "S3 name the searches' own picks."),
+        ("Paired change", "a layout's validated score under one level less its validated score under another. Tables "
+         "give its median over the layouts."),
+        ("Best layout", "the layout with the highest validated score under a level. Twist scores tie at 1.0, and the "
+         "ties are broken by the three-pad angle."),
         ("CEM", "the cross-entropy method. Candidates are drawn from a Gaussian, the best quarter are kept as elites, "
          "and the Gaussian moves toward them (Section SEC[method])."),
         ("Search and validation seeds", "a seed sets the object's start offset, up to 1 mm and 2 deg; seed 0 has none. "
          "The searches score every candidate at seeds 0-2, as the grids scored S1. The picks then run at seeds 20-24, "
-         "which no grid or search used."),
+         "which no grid or search used. A validated score is the mean at seeds 20-24."),
         ("Spearman's rho", "the rank correlation of two scores over the same layouts; 1 means the same order."),
+        ("Contact-normal elevation", "the angle of a contact's inward normal above the horizontal, from the pose toy's "
+         "grasp. The hand is palm-down, so a positive elevation pushes the object up toward the palm."),
+        ("Friction cone", "the contact forces within $\\arctan\\mu$ of the inward normal, with $\\mu$ the scene "
+         "friction: 21.8 deg at 0.4 and 45 deg at 1.0. A pad whose force leaves it slides."),
+        ("Static friction need", "the smallest friction coefficient $\\mu_{need}$ at which tangential pad forces can "
+         "balance a grasp's commanded normal forces and the object's weight (Section SEC[sts])."),
         ("Run, batch and step time", "three clocks of the GPU work, each divided by the rollouts it covers. Run time is "
          "the rollout loop of one batch (the GPU's physics and the batched controller, with the host's loop). Batch "
          "time adds the batch's model build and its scoring. Step time is a whole queue step's wall clock, with the "
          "CPU's candidate draws, open poses and the start of a process per batch."),
         ("Speedup", "the CPU runner's wall seconds per rollout on one core, divided by the GPU's seconds per rollout "
-         "at one of those clocks: the number of CPU cores that one GPU equals, if the CPU scaled linearly."),
+         "at one of those clocks. It is the number of CPU cores that one GPU equals if the CPU scaled linearly."),
         ("Real-time factor", "simulated seconds per wall-clock second of one rollout."),
         ("Plants", "the finger servo model and the scene. The SCS0009 model (0.72 N m/rad, 0.18 N m) with pads at "
          "2.5 MPa is the hand's. The STS3032 model is tuned to 2.1 N m/rad and 0.515 N m. It runs at scene friction 1.0 "
@@ -361,16 +577,19 @@ def sec_method(Js):
 the plant page [3]. S2 and S3 come from a search per layout by the cross-entropy method. Iteration $k$ draws $n$
 candidates $x$ from $\\mathcal{N}(\\mu_k, \\mathrm{diag}\\,\\sigma_k^2)$ inside the variables' ranges. A candidate whose
 grasp fails the pose toy's constraints is drawn again, up to 40 times. Every candidate runs at seeds 0-2. The best
-quarter by mean score are the elites $E$. Ties are broken by the twist's uncapped three-pad angle, or else by the
-fingers in contact at the end. The update is</p>
+quarter by mean score are the elites $E$. Ties are broken by the twist's three-pad angle, or else by the fingers in
+contact at the end. The update is</p>
 $$\\mu_{k+1} = 0.8\\,\\bar{x}_E + 0.2\\,\\mu_k, \\qquad \\sigma_{k+1} = \\max\\left(0.8\\,s_E + 0.2\\,\\sigma_k,\\;
 \\sigma_{\\min}\\right),$$
 <p>with $\\bar{x}_E$ and $s_E$ the elites' mean and standard deviation. S2 searches the grasp alone with HOM's defaults,
 from S1's grasp. It draws <<n2>> candidates per iteration for <<it>> iterations. S3 searches the grasp, the forces and
-the mode weights together, from S2's best grasp and HOM's defaults. It draws <<n3>> candidates per iteration. The pick
-of each level is the best candidate seen. That pick is the largest of about <<nc>> noisy means, so its search score is
-biased upward. Each layout's three picks therefore run again at seeds 20-24, and Sections SEC[sv25] and SEC[sts]
-compare those scores.</p>
+the mode weights together, from S2's pick and HOM's defaults. It draws <<n3>> candidates per iteration. The pick of each
+search is the best candidate seen. That pick is the largest of about <<nc>> noisy means, so its search score is biased
+upward. Each layout's three picks therefore run again at seeds 20-24, and those validated scores are compared.</p>
+<p>A search scores draws around its start and never the start itself, so its pick can score below the start. The S3
+search started from the S2 search's own pick, also where that pick scored below S1's grasp. The elitist picks S2e and
+S3e keep the start where it scored higher (Section SEC[terms]). Searches run after 2026-11-04 score the start as the
+first candidate of the first iteration.</p>
 <p>On the SCS0009 the layouts are the 30 best by S1 and 30 drawn at random from the others whose pose is reached, per
 task. On the STS3032 they are the 20 best by S1 at friction 1.0 and 10 at random, run at both frictions. All rollouts
 run on the GPU evaluator of the grids, with the forces and modes set per world. A check on 2026-11-03 compared default
@@ -390,11 +609,14 @@ def level_table(J, caption):
             n = len([e for e in lays if e["group"] == group])
             if not n:
                 continue
-            d2, d3 = paired(lays, "s1_val", "s2_val", group), paired(lays, "s1_val", "s3_val", group)
+            d2, d3 = paired(lays, "s1_val", "s2e_val", group), paired(lays, "s2e_val", "s3e_val", group)
+            d31 = paired(lays, "s1_val", "s3e_val", group)
             body.append([f"{NAME[task]}, {gl.replace('30', str(n))}", f2(med(vals(lays, "s1_val", group))),
-                         f2(med(vals(lays, "s2_val", group))), f2(med(vals(lays, "s3_val", group))),
-                         sg(d2["median"]), sg(d3["median"]), f"{d3['up']} / {d3['down']} of {d3['n']}"])
-    return table(["Task, layouts", "S1", "S2", "S3", "S2 - S1", "S3 - S1", "S3 up / down by 0.05"], body, caption)
+                         f2(med(vals(lays, "s2e_val", group))), f2(med(vals(lays, "s3e_val", group))),
+                         sg(d2["median"]), sg(d3["median"]), sg(d31["median"]),
+                         f"{d31['up']} / {d31['down']} of {d31['n']}"])
+    return table(["Task, layouts", "S1", "S2e", "S3e", "S2e - S1", "S3e - S2e", "S3e - S1", "S3e up / down by 0.05"],
+                 body, caption)
 
 
 def rank_table(J, caption):
@@ -403,43 +625,104 @@ def rank_table(J, caption):
         if task not in J["tasks"]:
             continue
         t = J["tasks"][task]
-        b = {k: t.get(f"best_{k}") for k in ("s1_val", "s2_val", "s3_val")}
-        bx = lambda k: f"{b[k]['xy'][0]:g} x {b[k]['xy'][1]:g} ({b[k]['score']:.2f})" if b[k] else "n/a"  # noqa: E731
-        body.append([NAME[task], f2(t.get("rho_s1_val_s2_val")), f2(t.get("rho_s1_val_s3_val")),
-                     f2(t.get("rho_s1_s1_val")), bx("s1_val"), bx("s3_val")])
-    return table(["Task", "rho S1, S2", "rho S1, S3", "rho S1 at search, validation seeds", "Best layout by S1",
-                  "Best layout by S3"], body, caption)
+        lays = t["layouts"]
+        cells = []
+        for k in ("s1_val", "s3e_val"):
+            b = best_layout(lays, k, task)
+            cells.append(f"{xy(b)}: {b[k]:.2f}" + (f", {angle_of(b, k[:-4]):.0f} deg" if task == "twist" else ""))
+        body.append([NAME[task], f2(t.get("rho_s1_val_s2e_val")), f2(t.get("rho_s1_val_s3e_val")),
+                     f2(t.get("rho_s1_s1_val")), *cells])
+    return table(["Task", "Rho S1, S2e", "Rho S1, S3e", "Rho S1 at search and validation seeds", "Best layout by S1",
+                  "Best layout by S3e"], body, caption)
+
+
+def elitist_table(J, caption):
+    body = []
+    for task in TASKS:
+        if task not in J["tasks"]:
+            continue
+        t = J["tasks"][task]
+        bg, bf = t["below_start_grasp"], t["below_start_full"]
+        cell = (lambda b: f"{b['n']} of {b['of']}" + (f" (-{fx(-b['worst'])})" if b["worst"] is not None else ""))
+        body.append([NAME[task], cell(bg), cell(bf), f2(t["median_s2_val"]), f2(t["median_s2e_val"]),
+                     f2(t["median_s3_val"]), f2(t["median_s3e_val"])])
+    return table(["Task", "Grasp searches below their start", "Full searches below their start", "S2", "S2e", "S3",
+                  "S3e"], body, caption)
 
 
 def sec_sv25(Js):
     J = Js.get("sv25")
     if not J:
         return "<p>The SCS0009 runs have not finished.</p>"
-    t1 = level_table(J, "Median scores at the validation seeds (20-24) on the SCS0009 with pads at 2.5 MPa, and the "
-                        "median paired change per layout. The last column counts the layouts whose S3 is more than "
-                        "0.05 above or below their S1.")
-    t2 = rank_table(J, "Rank agreement over each task's layouts at the validation seeds, and the best layout (x_sep x "
-                       "y_sep, mm, with its score) under S1 and under S3.")
-    fig1 = img(MEDIA / "20261103-levels_sv25.png", "Each layout's S1 (open circles), S2 (triangles) and S3 (squares) at "
-               "the validation seeds, the layouts in order of S1. SCS0009, pads at 2.5 MPa.") \
+    n0 = P.TAB[0]
+    t1 = level_table(J, "Median validated scores (seeds 20-24) on the SCS0009 with pads at 2.5 MPa, and the median "
+                        "paired changes per layout. The last column counts the layouts whose S3e is more than 0.05 "
+                        "above or below their S1.")
+    t2 = rank_table(J, "Rank agreement over each task's 60 layouts at the validation seeds, and the best layout "
+                       "($x_{sep}$, $y_{sep}$) with its validated score under S1 and under S3e; on the twist also its "
+                       "three-pad angle. The third column compares S1 at seeds 0-2 with S1 at seeds 20-24.")
+    t3 = elitist_table(J, "Searches whose pick scored below their start at seeds 0-2, of the 60 layouts per task, "
+                          "with the largest shortfall; and the median validated scores over the 60 layouts of the "
+                          "searches' own picks (S2, S3) and the elitist picks (S2e, S3e).")
+    f0 = P.FIG[0]
+    fig1 = img(MEDIA / "20261103-levels_sv25.png", "Each layout's S1 (open circles), S2e (triangles) and S3e "
+               "(squares) at the validation seeds, the layouts in order of S1. SCS0009, pads at 2.5 MPa.") \
         if (MEDIA / "20261103-levels_sv25.png").exists() else ""
-    fig2 = img(MEDIA / "20261103-cem_sv25.png", "The searches' progress: the median over layouts of the best candidate "
-               "so far at seeds 0-2 by iteration, with the quartiles shaded, against S1's median (dotted).") \
-        if (MEDIA / "20261103-cem_sv25.png").exists() else ""
-    ch = []
-    for task in TASKS:
-        if task in J["tasks"]:
-            lays = J["tasks"][task]["layouts"]
-            ch.append((NAME[task].lower(), paired(lays, "s1_val", "s2_val", "top")["median"],
-                       paired(lays, "s1_val", "s3_val", "top")["median"]))
-    text = ""
-    if ch:
-        text = ("<p>On the 30 best layouts of each task, refining the grasp changed the median validated score by "
-                + ", ".join(f"{sg(a)} ({t})" for t, a, _b in ch) + ". Refining the forces and contact modes as well "
-                "changed it by " + ", ".join(f"{sg(b)} ({t})" for t, _a, b in ch) + ". These are medians of each "
-                "layout's own change. Table <<t1>> gives the medians for both groups of layouts, and Table <<t2>> the "
-                "rank agreement.</p>")
-    return fill(text, t1=P.TAB[0] - 1, t2=P.TAB[0]) + t1 + t2 + fig1 + fig2
+    fig2 = img(MEDIA / "20261103-cem_sv25.png", "The searches' progress: the median over the 60 layouts of the best "
+               "candidate so far at seeds 0-2, by iteration, with the quartiles shaded, against S1's median "
+               "(dotted).") if (MEDIA / "20261103-cem_sv25.png").exists() else ""
+    tk = {task: J["tasks"][task]["layouts"] for task in TASKS if task in J["tasks"]}
+    top = {task: {k: paired(L_, a, b, "top") for k, (a, b) in
+                  {"g": ("s1_val", "s2e_val"), "f": ("s2e_val", "s3e_val"), "a": ("s1_val", "s3e_val")}.items()}
+           for task, L_ in tk.items()}
+    rnd = {task: paired(L_, "s1_val", "s3e_val", "random") for task, L_ in tk.items()}
+    lo = min(tk, key=lambda t_: top[t_]["a"]["median"])
+    hi = max(tk, key=lambda t_: top[t_]["a"]["median"])
+    T_ = lambda k: andj(f"{fx(top[t_][k]['median'])} on the {NAME[t_].lower()}" for t_ in tk)  # noqa: E731
+    falls = {t_: [e["s3e_val"] - e["s1_val"] for e in L_ if e["group"] == "top"] for t_, L_ in tk.items()}
+    tw = [e for e in tk.get("twist", []) if e["group"] == "top"]
+    sat = {k: sum(e[f"{k}_val"] >= 0.9999 for e in tw) for k in ("s1", "s2e", "s3e")}
+    ang = {k: med([angle_of(e, k) for e in tw]) for k in ("s1", "s2e", "s3e")}
+    rho = {t_: (J["tasks"][t_]["rho_s1_val_s3e_val"], J["tasks"][t_]["rho_s1_val_s2e_val"]) for t_ in tk}
+    moved = [(t_, best_layout(L_, "s1_val", t_), best_layout(L_, "s3e_val", t_)) for t_, L_ in tk.items()]
+    bg = sum(J["tasks"][t_]["below_start_grasp"]["n"] for t_ in tk)
+    bf = sum(J["tasks"][t_]["below_start_full"]["n"] for t_ in tk)
+    nl = sum(J["tasks"][t_]["below_start_grasp"]["of"] for t_ in tk)
+    worst = sorted(((J["tasks"][t_][f"below_start_{lv}"]["worst"], t_, lv) for t_ in tk for lv in ("grasp", "full")
+                    if J["tasks"][t_][f"below_start_{lv}"]["worst"] is not None))[:2]
+    same = [t_ for t_, a, b in moved if a["call"] == b["call"]]
+    mv = [f"from {xy(a)} to {xy(b)} on the {NAME[t_].lower()}" for t_, a, b in moved if a["call"] != b["call"]]
+    paras = [
+        f"""<p>Refining the grasp, the commanded forces and the contact modes raised the validated scores of each
+task's 30 best layouts (Table {n0 + 1}). The median gain over S1 ranges from {top[lo]['a']['median']:.2f} on the
+{NAME[lo].lower()} to {top[hi]['a']['median']:.2f} on the {NAME[hi].lower()}. The grasp search alone gave a median {T_('g')}. The forces and
+modes added {T_('f')}. On the press the median rose from {med(vals(tk['press'], 's1_val', 'top')):.2f} under S1 to
+{med(vals(tk['press'], 's2e_val', 'top')):.2f} under S2e and {med(vals(tk['press'], 's3e_val', 'top')):.2f} under
+S3e.</p>""",
+        f"""<p>The 30 random layouts start lower and gain more. Their median S3e - S1 is
+{andj(f"{rnd[t_]['median']:.2f} on the {NAME[t_].lower()}" for t_ in tk)}. On the 30 best layouts, S3e falls more than
+0.05 below S1 on {andj(f"{WORDS.get(sum(x < -0.05 for x in falls[t_]))} of the {NAME[t_].lower()}" for t_ in tk)}.
+The largest fall is {-min(falls['twist']):.2f} on the twist and {-min(falls['roll']):.2f} on the roll. These picks
+scored at least as high as S1 at seeds 0-2.</p>""",
+        f"""<p>On the twist, {sat['s1']} of the 30 best layouts score 1.0 under S1, {sat['s2e']} under S2e and
+{sat['s3e']} under S3e. The median three-pad angle of the 30 rises from {ang['s1']:.0f} deg under S1 to {ang['s2e']:.0f} deg
+under S2e and {ang['s3e']:.0f} deg under S3e (Figure {f0 + 1}).</p>""",
+        f"""<p>The refined scores reorder the layouts. Over the 60 layouts of each task, Spearman's rho between S1 and
+S3e is {min(r[0] for r in rho.values()):.2f} to {max(r[0] for r in rho.values()):.2f} (Table {n0 + 2}). Between S1 and
+S2e it is {min(r[1] for r in rho.values()):.2f} to {max(r[1] for r in rho.values()):.2f}. Under S3e the best layout moves on {WORDS[len(mv)]} of the four tasks. It
+moves {andj(mv)}. """ + (f"The {andj(NAME[t_].lower() for t_ in same)}'s best layout stays at "
+       f"{andj(xy(a) for t_, a, b in moved if t_ in same)}." if same else "") + "</p>",
+        f"""<p>At seeds 0-2, {bg} of {nl} grasp searches and {bf} of {nl} full searches picked a candidate below their
+start (Table {n0 + 3}). The largest shortfalls are {-worst[0][0]:.2f} on the {NAME[worst[0][1]].lower()} and
+{-worst[1][0]:.2f} on the {NAME[worst[1][1]].lower()}, """ + (f"both in the {worst[0][2]} searches" if worst[0][2] == worst[1][2]
+                                                    else f"in the {worst[0][2]} and {worst[1][2]} searches") + f""". The elitist picks change no median of
+the 30 best layouts. Over all 60 layouts they move the twist's median S3 from {J['tasks']['twist']['median_s3_val']:.2f}
+to {J['tasks']['twist']['median_s3e_val']:.2f}.</p>""",
+        f"""<p>The best candidates rise for about four of the eight iterations (Figure {f0 + 2}). On the press the
+first iteration of the S3 search already scores above the last of the S2 search.</p>""",
+    ]
+    out = paras[0] + t1 + paras[1] + paras[2] + fig1 + paras[3] + t2 + paras[4] + t3 + paras[5] + fig2
+    return out
 
 
 def sec_prm(Js):
@@ -447,7 +730,7 @@ def sec_prm(Js):
     if not J:
         return ""
     import hom_tasks as T
-    body = []
+    body, q = [], {}
     for task in TASKS:
         lays = [e for e in J["tasks"].get(task, {}).get("layouts", []) if e.get("prm3")]
         if not lays:
@@ -455,14 +738,34 @@ def sec_prm(Js):
         cells = []
         for k in list(R.FORCES[task]) + [f"w_{c}_{r}" for r in R.ROLES[task] for c in R.COMPS]:
             v = np.array([e["prm3"][k] for e in lays if k in e["prm3"]], float)
-            q1, q2, q3 = np.percentile(v, [25, 50, 75])
-            cells.append(f"{k.replace('w_', '').replace('_', ' ')}: {q2:.2f} ({q1:.2f}-{q3:.2f}; default {T.PRM[k]:g})")
+            q[(task, k)] = np.percentile(v, [25, 50, 75])
+            lab = (f"{k[2:].capitalize()} force (N)" if k.startswith("f_")
+                   else "{}, {}".format(*k[2:].split("_")).capitalize())
+            cells.append(f"{lab}: {q[(task, k)][1]:.2f} ({q[(task, k)][0]:.2f}-{q[(task, k)][2]:.2f}; "
+                         f"default {T.PRM[k]:g})")
         body.append([NAME[task], "<br>".join(cells)])
+    n0, f0 = P.TAB[0], P.FIG[0]
     t = table(["Task", "S3's forces (N) and mode weights: median (quartiles; HOM's default)"], body,
-              "The forces and mode weights of the S3 picks over each task's layouts on the SCS0009.", num_from=9)
+              "The forces and mode weights of the S3 search's picks over each task's 60 layouts on the SCS0009.",
+              num_from=9)
     fg = img(MEDIA / "20261103-prm_sv25.png", "The S3 picks' forces over HOM's defaults and their mode weights, one "
              "dot per layout; the black bars mark the defaults.") if (MEDIA / "20261103-prm_sv25.png").exists() else ""
-    return "<p>Table <<t>> lists what the S3 search chose.</p>".replace("<<t>>", str(P.TAB[0])) + t + fg
+    m = lambda t_, k: q[(t_, k)][1]  # noqa: E731
+    fixed = [m(t_, f"w_{c}_{r}") for t_ in TASKS for r in R.ROLES[t_] for c in R.COMPS if T.PRM[f"w_{c}_{r}"] == 1.0]
+    free = [q[(t_, f"w_{c}_{r}")][2] for t_ in TASKS for r in R.ROLES[t_] for c in R.COMPS
+            if T.PRM[f"w_{c}_{r}"] == 0.0]
+    text = f"""<p>In the S3 picks the tripod's force stayed near HOM's 2.5 N: a median {m('twist', 'f_tripod'):.2f} N on
+the twist and {m('roll', 'f_tripod'):.2f} N on the roll (Table {n0 + 1}, Figure {f0 + 1}). The pinch force on the
+cylinder fell from 3 N to a median {m('pinpush', 'f_pinch'):.2f} N on the pin-push and {m('press', 'f_pinch'):.2f} N on
+the press. The largest gain from S2e to S3e is the <<gmax>>'s. The pin-push's drive stayed at
+{m('pinpush', 'f_drive'):.2f} N, and the press force went from 0.5 N to {m('press', 'f_press'):.2f} N.</p>
+<p>The modes that HOM leaves free by default stayed nearly free: their weights stayed below {max(free):.2f} in three
+quarters of the layouts. The weights that are 1 by default fell to medians of {min(fixed):.2f} to {max(fixed):.2f}. The
+pusher's roll weight fell most, to {m('press', 'w_roll_push'):.2f} on the press and {m('pinpush', 'w_roll_push'):.2f}
+on the pin-push. With a lower weight, that motion departs further from its reference.</p>"""
+    gmax = max((t_ for t_ in TASKS if t_ in J["tasks"]),
+               key=lambda t_: paired(J["tasks"][t_]["layouts"], "s2e_val", "s3e_val", "top")["median"])
+    return text.replace("<<gmax>>", NAME[gmax].lower()) + t + fg
 
 
 def sec_sts(Js):
@@ -470,34 +773,115 @@ def sec_sts(Js):
     if not (A and B):
         return "<p>The STS3032 runs have not finished.</p>"
     body = []
-    for task in TASKS:
-        if task not in A["tasks"] or task not in B["tasks"]:
-            continue
-        la, lb = A["tasks"][task]["layouts"], B["tasks"][task]["layouts"]
-        body.append([NAME[task], f2(med(vals(la, "s1_val"))), f2(med(vals(la, "s3_val"))),
-                     f2(med(vals(lb, "s1_val"))), f2(med(vals(lb, "s3_val_from_k21"))), f2(med(vals(lb, "s3_val"))),
-                     f2(med(vals(la, "s3_val_from_k21mu0p4")))])
-    t = table(["Task", "S1 at 1.0", "S3 at 1.0", "S1 at 0.4", "S3 tuned at 1.0, run at 0.4", "S3 tuned at 0.4",
-               "S3 tuned at 0.4, run at 1.0"], body,
-              "Median scores at the validation seeds on the STS3032 at kp 2.1, scene friction 1.0 and 0.4, over the "
-              "same 30 layouts per task. The fifth column against the sixth is the gain of retuning the grasp, forces "
-              "and modes once the friction is known.")
-    return ("<p>On the STS3032 the same layouts were refined at friction 1.0 and at 0.4, and each friction's S3 picks "
-            "ran at the other friction (Table <<t>>).</p>").replace("<<t>>", str(P.TAB[0])) + t
+    tk = [t_ for t_ in TASKS if t_ in A["tasks"] and t_ in B["tasks"]]
+    la = {t_: A["tasks"][t_]["layouts"] for t_ in tk}
+    lb = {t_: B["tasks"][t_]["layouts"] for t_ in tk}
+    for task in tk:
+        g = paired(lb[task], "s3e_val_from_k21", "s3e_val")
+        body.append([NAME[task], f2(med(vals(la[task], "s1_val"))), f2(med(vals(la[task], "s3e_val"))),
+                     f2(med(vals(lb[task], "s1_val"))), f2(med(vals(lb[task], "s3e_val_from_k21"))),
+                     f2(med(vals(lb[task], "s3e_val"))), sg(g["median"]),
+                     f2(med(vals(la[task], "s3e_val_from_k21mu0p4")))])
+    n0, f0, m0 = P.TAB[0], P.FIG[0], P.FILM[0]
+    t = table(["Task", "S1 at 1.0", "S3e at 1.0", "S1 at 0.4", "S3e tuned at 1.0, run at 0.4", "S3e tuned at 0.4",
+               "Gain of retuning at 0.4", "S3e tuned at 0.4, run at 1.0"], body,
+              "Median validated scores on the STS3032 at kp 2.1, scene friction 1.0 and 0.4, over the same 30 layouts "
+              "per task. The gain of retuning is the median paired change from the fifth column to the sixth.")
+    fg = img(MEDIA / "20261103-friction_k21.png", "Each layout's validated score at friction 0.4 with the picks tuned "
+             "at 1.0 (horizontal) and with the picks tuned at 0.4 (vertical), for S1 (open circles) and S3e (squares). "
+             "Points above the diagonal gain from retuning.") if (MEDIA / "20261103-friction_k21.png").exists() else ""
+    gain = {t_: paired(lb[t_], "s3e_val_from_k21", "s3e_val")["median"] for t_ in tk}
+    gain1 = {t_: paired(lb[t_], "s1_val_from_k21", "s1_val")["median"] for t_ in tk}
+    back = {t_: paired(la[t_], "s3e_val_from_k21mu0p4", "s3e_val")["median"] for t_ in tk}
+    up10 = {t_: paired(la[t_], "s1_val", "s3e_val")["median"] for t_ in tk}
+    zero = [t_ for t_ in tk if med(vals(lb[t_], "s3e_val_from_k21")) < 0.005]
+    others = [t_ for t_ in tk if t_ not in zero]
+    lst = lambda d: andj(f"{d[t_]:.2f} on the {NAME[t_].lower()}" for t_ in tk)  # noqa: E731
+    paras = [f"""<p>On the STS3032 at friction 1.0, refinement gains less than on the SCS0009. Over the 30 layouts the
+median S3e - S1 is {lst(up10)} (Table {n0 + 1}).</p>"""]
+    if FRICTION_CHECK.exists():
+        F = json.loads(FRICTION_CHECK.read_text())["tasks"]
+        dr = lambda k, tu, at: [F[t_][f"{k}_{tu}"]["drops"][at] for t_ in tk]  # noqa: E731
+        per = lambda xs: andj(f"{x} on the {NAME[t_].lower()}" for x, t_ in zip(xs, tk))  # noqa: E731
+        nr = F[tk[0]]["S3e_1.0"]["rollouts"]["0.4"]
+        paras.append(f"""<p>At friction 0.4 the picks tuned at 1.0 fail. Their S3e picks score a median 0.00 on the
+{andj(NAME[t_].lower() for t_ in zero)}, and {andj(f"{med(vals(lb[t_], 's3e_val_from_k21')):.2f} on the "
+                                                f"{NAME[t_].lower()}" for t_ in others)}. Of {nr} rollouts per task,
+they drop the object in {per(dr('S3e', '1.0', '0.4'))}. On the roll, {F['roll']['S3e_1.0']['no_finger_04']} more
+rollouts end with no finger on the sphere. The picks tuned at 0.4 drop it in {per(dr('S3e', '0.4', '0.4'))}. At
+friction 1.0 no pick drops the object in more than
+{max(max(dr(k, tu, '1.0')) for k in ('S1', 'S3e') for tu in ('1.0', '0.4'))} of {nr} rollouts.</p>""")
+    paras.append(f"""<p>Retuning at friction 0.4 gains a median {lst(gain)} (Figure {f0 + 1}). For S1, choosing among the same 16 sampled grasps at 0.4 gains {lst(gain1)}. Run at friction
+1.0, the S3e picks tuned at 0.4 score below the picks tuned at 1.0. The median loss is {lst(back)}.</p>""")
+    if FRICTION_CHECK.exists():
+        F = json.loads(FRICTION_CHECK.read_text())
+        G = F["tasks"]
+        el = [G[t_][f"{k}_{tu}"]["elev"][g] for t_ in tk for k in ("S1", "S3e") for tu in ("1.0", "0.4")
+              for g in G[t_][f"{k}_{tu}"]["elev"] if g != "middle"]
+        mid = [G[t_][f"{k}_{tu}"]["elev"]["middle"] for t_ in ("press",) if t_ in tk for k in ("S1", "S3e")
+               for tu in ("1.0", "0.4")]
+        mu = {(t_, tu): G[t_][f"S1_{tu}"]["mu_need"]["median"] for t_ in ("twist", "roll") for tu in ("1.0", "0.4")}
+        paras.append(f"""<p>The planned contact normals do not separate the grasps that drop at friction 0.4 from
+those that stay. In both sets the pose toy's inward normals point {min(x['min'] for x in el):.0f} to
+{max(x['max'] for x in el):.0f} deg above the horizontal, inside the {F['cone_deg']:.1f} deg cone of friction 0.4. Only
+the press's middle finger, at {min(x['min'] for x in mid):.0f} to {max(x['max'] for x in mid):.0f} deg by the bounds of
+its pose, lies outside it, in both sets. The friction needed for static balance with the commanded normal forces
+$f_i$ and the {1000 * F['sphere_kg']:.0f} g sphere is</p>
+$$\\mu_{{need}} = \\min\\Big\\{{\\mu : \\sum_i \\left(f_i \\hat n_i + t_i\\right) = m g\\,\\hat z,\\;\\; t_i \\perp \\hat n_i,\\;\\;
+\\lVert t_i \\rVert \\le \\mu f_i\\Big\\}},$$
+<p>with $\\hat n_i$ the inward normals. For the twist's S1 grasps its median is {mu[('twist', '1.0')]:.2f} for those
+tuned at 1.0 and {mu[('twist', '0.4')]:.2f} for those tuned at 0.4; for the roll's it is {mu[('roll', '1.0')]:.2f} and
+{mu[('roll', '0.4')]:.2f}. On the cylinder tasks the drops of the friction-1.0 S1 grasps at 0.4 rise with the pinch's
+latitude: Spearman's rho is {G['pinpush']['S1_1.0']['rho_pinch_drops_04']:.2f} on the pin-push and
+{G['press']['S1_1.0']['rho_pinch_drops_04']:.2f} on the press. The S1 grasps tuned at 0.4 pinch at a median
+{G['pinpush']['S1_0.4']['elev']['pinch']['median']:.0f} deg on the pin-push, against
+{G['pinpush']['S1_1.0']['elev']['pinch']['median']:.0f} deg for those tuned at 1.0.</p>""")
+    fm = ""
+    if FILMS.exists():
+        info = [s for s in json.loads(FILMS.read_text()) if s.get("set") == "friction"]
+        if len(info) == 3:
+            a, b, c = info
+            va, vb = np.asarray(a["v"], float), np.asarray(c["v"], float)
+            fa = a["prm"].get("f_tripod", 2.5)
+            fb = c["prm"].get("f_tripod", 2.5)
+            paras.append(f"""<p>Film {m0 + 1} runs layout {a['xy'][0]:g} x {a['xy'][1]:g} mm on the CPU plant at seed
+20. Its S3e pick tuned at friction 1.0 turns the sphere at 1.0 (score {a['cpu']:.2f}). At 0.4 the same pick loses the
+sphere after the commanded forces turn on at 0.8 s. The sphere tilts at 1.0 s, rises out of the pads and has left the
+hand by 1.3 s, before the support post is removed at 1.6 s (score {b['cpu']:.2f}). The pick tuned at 0.4 keeps the sphere and turns it (score
+{c['cpu']:.2f} here and {c['gpu']:.2f} on the GPU at seeds 20-24). The pick tuned at 1.0 touches the sphere
+{np.degrees(va[6]):.1f} deg below its equator with {fa:.2f} N per pad. The pick tuned at 0.4 touches it
+{np.degrees(vb[6]):.1f} deg below with {fb:.2f} N per pad and a spin weight of {c['prm'].get('w_spin_tripod', 1.0):.2f}.
+</p>""")
+            fm = film(MEDIA / "20261103-film_friction_twist.mp4",
+                      f"The twist on the STS3032, layout {a['xy'][0]:g} x {a['xy'][1]:g} mm, seed 20, CPU plant. Left: "
+                      "the S3e pick tuned at friction 1.0, run at 1.0. Centre: the same pick at friction 0.4. Right: "
+                      "the S3e pick tuned at 0.4, run at 0.4. Under each clip: its score and the pick's GPU score at "
+                      "seeds 20-24.")
+    return paras[0] + t + "".join(paras[1:3]) + fg + "".join(paras[3:]) + fm
 
 
 def sec_films():
     if not FILMS.exists():
         return "<p>The films are made after the GPU queue (<code>hom_score_refine_page.py films</code>).</p>"
-    info = json.loads(FILMS.read_text())
-    out = []
+    info = [s for s in json.loads(FILMS.read_text()) if s.get("set", "levels") == "levels"]
+    agree = sum(abs(s["cpu"] - s["gpu"]) <= 0.05 for s in info)
+    tw = {s["pick"]: s for s in info if s["task"] == "twist"}
+    m0 = P.FILM[0]
+    out = [f"""<p>Films {m0 + 1} to {m0 + 4} run each task's best layout under S3e on the SCS0009 at seed 20, with its
+S1, S2e and S3e picks side by side. They run on the CPU plant, where every contact meets the object; on the GPU only
+the pads and the rigid spheres under 2 mm do. On {agree} of the {len(info)} clips the CPU score lies within 0.05 of
+the pick's GPU score at seeds 20-24. The twist's S2e and S3e picks score {tw['S2e']['cpu']:.2f} and
+{tw['S3e']['cpu']:.2f} on the CPU at seed 20, against """ + (f"{tw['S2e']['gpu']:.2f} for both"
+                                                       if f"{tw['S2e']['gpu']:.2f}" == f"{tw['S3e']['gpu']:.2f}"
+                                                       else f"{tw['S2e']['gpu']:.2f} and {tw['S3e']['gpu']:.2f}")
+           + """ on the GPU at seeds 20-24.</p>""" if {"S2e", "S3e"} <= set(tw) else ""]
     for task in TASKS:
         fs = [s for s in info if s["task"] == task]
         if not fs:
             continue
-        cap = (f"{NAME[task]} on the {OBJ[task]}, layout {fs[0]['xy'][0]:g} x {fs[0]['xy'][1]:g} mm on the SCS0009, "
-               "the S1, S2 and S3 picks from left to right at seed 20, CPU plant: "
-               + "; ".join(f"{s['pick']} {s['cpu']:.2f} here, {s['gpu']:.2f} on the GPU at seeds 20-24" for s in fs) + ".")
+        cap = (f"{NAME[task]} on the {OBJ[task]}, layout {fs[0]['xy'][0]:g} x {fs[0]['xy'][1]:g} mm on the SCS0009: "
+               "the S1, S2e and S3e picks from left to right, CPU plant, seed 20. Under each clip: its score and the "
+               "pick's GPU score at seeds 20-24.")
         out.append(film(MEDIA / f"20261103-film_{task}.mp4", cap))
     return "".join(out)
 
@@ -508,45 +892,90 @@ def newest(pattern):
 
 
 def sec_compute():
-    """The queue's timing, the CPU runner's and the speedups (scripts/hom_compute.py ledger, cpu-bench, report)."""
+    """The queue's compute per plant, the GPU's time per rollout against the CPU runner's, and the speedups
+    (scripts/hom_compute.py ledger, gpu-bench, cpu-bench and report)."""
     Lg, Tp = newest("*-ledger.json"), newest("*-throughput.json")
-    if not (Lg and Tp):
+    if not (Lg and Tp and Tp.get("plants")):
         return "<p>The compute ledger is written by <code>scripts/hom_compute.py</code> (not run yet).</p>"
-    body = []
-    for task in TASKS:
-        q = (Tp["queue"].get(task) or {}).get("grasp") or (Tp["queue"].get(task) or {}).get("full") or {}
-        c = Tp["cpu"].get(task) or {}
-        cp, cm = c.get("plant_p1"), c.get("filter_p1")
-        sp = Tp["speedup"].get(task) or {}
-        body.append([NAME[task], f2(q.get("ms_per_rollout_run_full_batches")), f2(q.get("ms_per_rollout_batch")),
-                     f2(q.get("step_ms_per_rollout")), f2(cp["wall_s"]) if cp else "n/a",
-                     f2(cm["wall_s"]) if cm else "n/a",
-                     (f"{sp['plant_p1']['vs_gpu_run']:.0f} / {sp['plant_p1']['vs_gpu_batch']:.0f} / "
-                      f"{sp['plant_p1']['vs_gpu_step']:.0f}") if sp.get("plant_p1") and sp["plant_p1"].get("vs_gpu_step")
-                     else "n/a",
-                     (f"{sp['filter_p1']['vs_gpu_run']:.0f} / {sp['filter_p1']['vs_gpu_batch']:.0f} / "
-                      f"{sp['filter_p1']['vs_gpu_step']:.0f}") if sp.get("filter_p1") and sp["filter_p1"].get("vs_gpu_step")
-                     else "n/a"])
-    t1 = table(["Task", "GPU run (ms)", "GPU batch (ms)", "Queue step (ms)", "CPU, every contact (s)",
-                "CPU, GPU's filter (s)", "Speedup, every contact: run / batch / step",
-                "Speedup, GPU's filter: run / batch / step"], body,
-               "Time per rollout on the SCS0009. GPU columns: the S2 search's full batches (2,048 sphere or 1,536 "
-               "cylinder worlds) and its whole steps. CPU columns: the CPU runner on one core with the scene's solver "
-               "settings, with every contact as the CPU checks run it, and with the GPU's contact filter, on the best "
-               "S1 layouts. With the GPU's solver settings (20 iterations) the CPU dropped every twist and roll "
-               "sphere, so those settings are no CPU baseline.")
-    tot, st = Lg["total_hom_gpu"], Lg["score_refine_study"]
-    text = fill("""<p>Every GPU batch writes its own timing line beside its rows, and <code>scripts/hom_compute.py</code>
-sums them into a ledger. This study ran <<sr>> rollouts in <<sh>> h of batch time. All HOM GPU runs since 2026-10-29 come
-to <<tr>> rollouts in <<tb>> batches and <<th>> h. Table <<t>> sets the GPU's time per rollout against the CPU
-runner's.</p>""", sr=f"{st['rollouts']:,}", sh=f"{st['batch_hours']:.1f}", tr=f"{tot['rollouts']:,}",
-                tb=f"{tot['batches']:,}", th=f"{tot['batch_hours']:.1f}", t=P.TAB[0])
+    base = str((D / "rows").relative_to(ROOT))
+    plants = [pl for pl in ("sv25", "k21", "k21mu0p4") if pl in Tp["plants"]]
+    per = {}
+    for pl in plants:
+        ds = [v for k, v in Lg["per_dir"].items() if k.startswith(f"{base}/{pl}/")]
+        st_ = [v for k, v in Lg["queue_steps"].items() if k.startswith(f"{pl}_") and v.get("wall_s")]
+        per[pl] = {"rollouts": sum(d["rollouts"] for d in ds), "batches": sum(d["batches"] for d in ds),
+                   "batch_s": sum(d["batch_s"] for d in ds), "wall_s": sum(s["wall_s"] for s in st_)}
+    rows_a = [[PLANT_NAME[pl], f"{per[pl]['rollouts']:,}", f"{per[pl]['batches']:,}", f"{per[pl]['batch_s'] / 3600:.2f}",
+               f"{per[pl]['wall_s'] / 3600:.2f}", f"{1000 * per[pl]['batch_s'] / per[pl]['rollouts']:.1f}",
+               f"{1000 * per[pl]['wall_s'] / per[pl]['rollouts']:.1f}"] for pl in plants if per[pl]["rollouts"]]
+    tot = {k: sum(per[pl][k] for pl in plants) for k in ("rollouts", "batches", "batch_s", "wall_s")}
+    rows_a.append(["All three", f"{tot['rollouts']:,}", f"{tot['batches']:,}", f"{tot['batch_s'] / 3600:.2f}",
+                   f"{tot['wall_s'] / 3600:.2f}", f"{1000 * tot['batch_s'] / tot['rollouts']:.1f}",
+                   f"{1000 * tot['wall_s'] / tot['rollouts']:.1f}"])
+    n0, f0 = P.TAB[0], P.FIG[0]
+    ta = table(["Plant", "Rollouts", "GPU batches", "Batch time (h)", "Queue steps (h)", "Batch time per rollout (ms)",
+                "Step time per rollout (ms)"], rows_a,
+               "The night's GPU work per plant, from the timing line of every batch and the wall clock of every queue "
+               "step (searches, validation and the cross-friction runs).")
+    body, sp_run, sp_step = [], [], []
+    for pl in plants:
+        for task in TASKS:
+            q = Tp["plants"][pl]["queue"].get(task) or {}
+            q = q.get("grasp") or q.get("full") or {}
+            c = Tp["plants"][pl]["cpu"].get(task) or {}
+            sp = (Tp["plants"][pl]["speedup"].get(task) or {}).get("filter_p1") or {}
+            if sp.get("vs_gpu_run"):
+                sp_run.append(sp["vs_gpu_run"])
+            if sp.get("vs_gpu_step"):
+                sp_step.append(sp["vs_gpu_step"])
+            body.append([PLANT_NAME[pl], NAME[task], f2(q.get("ms_per_rollout_run_full_batches")),
+                         f2(q.get("ms_per_rollout_batch")), f2(q.get("step_ms_per_rollout")),
+                         f2(c["plant_p1"]["wall_s"]) if c.get("plant_p1") else "n/a",
+                         f2(c["filter_p1"]["wall_s"]) if c.get("filter_p1") else "n/a",
+                         f"{sp['vs_gpu_run']:.0f} / {sp['vs_gpu_batch']:.0f} / {sp['vs_gpu_step']:.0f}"
+                         if sp.get("vs_gpu_step") else "n/a"])
+    tb = table(["Plant", "Task", "GPU run (ms)", "GPU batch (ms)", "Queue step (ms)", "CPU, every contact (s)",
+                "CPU, GPU's filter (s)", "Speedup: run / batch / step"], body,
+               "Time per rollout. GPU columns: the S2 search's full batches (2,048 sphere or 1,536 cylinder worlds) and "
+               "its whole queue steps. CPU columns: the CPU runner on one core with the scene's solver settings, with "
+               "every contact as the CPU checks run it and with the GPU's contact filter, on the best S1 layouts at "
+               "seed 0. The speedup uses the CPU with the GPU's filter. With the GPU's solver settings (20 iterations) "
+               "the CPU dropped every twist and roll sphere, so those settings are no CPU baseline.", num_from=2)
     fg = ""
     if (MEDIA / "20261103-throughput.png").exists():
-        fg = img(MEDIA / "20261103-throughput.png", "GPU time per rollout against the batch's worlds (run and batch "
-                 "time, scripts/hom_compute.py gpu-bench), with the CPU runner's time per rollout on one core as "
-                 "horizontal lines.")
-    return text + t1 + fg
+        fg = img(MEDIA / "20261103-throughput.png", "GPU time per rollout on the SCS0009 against the worlds per batch, "
+                 "as run and batch time (<code>scripts/hom_compute.py gpu-bench</code>). The horizontal lines give the "
+                 "CPU runner's time per rollout on one core; the two lie on top of each other.")
+    gb = Tp["gpu_bench"].get("twist") or []
+    gb = sorted(gb, key=lambda r: r["worlds"])
+    sv = Tp["plants"]["sv25"]["cpu"]
+    slow = [sv[t_]["plant_p4"]["per_core_slowdown"] for t_ in TASKS if sv.get(t_, {}).get("plant_p4", {}).get("per_core_slowdown")]
+    prev = [(sv[t_]["plant_p1"]["previous_sessions"][0]["wall_s"], sv[t_]["plant_p1"]["wall_s"]) for t_ in TASKS
+            if sv.get(t_, {}).get("plant_p1", {}).get("previous_sessions")]
+    load = [sv[t_]["plant_p1"]["load_before"][0] for t_ in TASKS if sv.get(t_, {}).get("plant_p1")]
+    paras = [f"""<p>Every GPU batch writes its own timing line beside its rows, and <code>scripts/hom_compute.py</code>
+sums them into a ledger. The night's queue ran {tot['rollouts']:,} rollouts in {tot['batches']:,} GPU batches, with
+{tot['batch_s'] / 3600:.1f} h of batch time in {tot['wall_s'] / 3600:.1f} h of queue steps (Table {n0 + 1}). All HOM GPU
+runs since 2026-10-29 come to {Lg['total_hom_gpu']['rollouts']:,} rollouts in {Lg['total_hom_gpu']['batches']:,} batches
+and {Lg['total_hom_gpu']['batch_hours']:.1f} h.</p>"""]
+    if sp_run and sp_step:
+        paras.append(f"""<p>One GPU equals {min(sp_run):.0f} to {max(sp_run):.0f} CPU cores on the rollout loop and
+{min(sp_step):.0f} to {max(sp_step):.0f} cores over whole queue steps (Table {n0 + 2}). The CPU runner with every
+contact takes about as long as with the GPU's contact filter.</p>""")
+    if len(gb) >= 2:
+        r1k = next((r for r in gb if r["worlds"] == 1024), None)
+        paras.append(f"""<p>On the GPU the time per rollout falls with the batch's size: on the twist from
+{gb[0]['run_ms']:.0f} ms at {gb[0]['worlds']} worlds to {gb[-1]['run_ms']:.0f} ms at {gb[-1]['worlds']:,} (Figure
+{f0 + 1})."""
+                     + (f" A batch of 1,024 worlds takes {r1k['run_ms'] / gb[-1]['run_ms']:.2f} times the full batch's "
+                        f"time per rollout." if r1k else "") + "</p>")
+    if slow:
+        paras.append(f"""<p>With four CPU processes at once, a rollout takes {min(slow):.2f} to {max(slow):.2f} times its
+time alone, so four cores run {4 / max(slow):.1f} to {4 / min(slow):.1f} times as many rollouts as one. The CPU times
+were measured on 11-04 on the otherwise idle workstation (load {med(load):.1f} on 20 cores)."""
+                     + (f" Those of 11-03, beside the running GPU queue at a load of about 5, are within "
+                        f"{100 * max(abs(a - b) / b for a, b in prev):.0f} % of them." if prev else "") + "</p>")
+    return paras[0] + ta + "".join(paras[1:]) + tb + fg
 
 
 def fig_throughput():
@@ -555,7 +984,7 @@ def fig_throughput():
     if not Tp or not any(Tp["gpu_bench"].values()):
         return
     plt = plt_setup()
-    fig, axs = plt.subplots(1, 4, figsize=(15, 3.8), constrained_layout=True, sharey=True)
+    fig, axs = grid4((9.5, 7.0), sharey=True)
     for ax, task in zip(axs, TASKS):
         g = sorted(Tp["gpu_bench"].get(task, []), key=lambda r: r["worlds"])
         if g:
@@ -566,36 +995,53 @@ def fig_throughput():
             if c:
                 ax.axhline(1000 * c["wall_s"], color="k", ls=ls, label=lab)
         ax.set_title(NAME[task])
-        ax.set_xlabel("Worlds per batch")
         ax.grid(alpha=0.3, which="both")
-    axs[0].set_ylabel("ms per rollout")
-    axs[0].legend(frameon=False, fontsize=11)
+    labels(axs, "Worlds per batch", "ms per rollout")
+    axs[0].legend(frameon=False)
     save(fig, "20261103-throughput.png")
 
 
 def sec_limits():
     return """<ul>
-<li>The layouts are the symmetric tripods of the 5 mm lattice, at one object size per task. The size study [4] and the
-six-coordinate layouts were not refined.</li>
+<li>The layouts are the symmetric tripods of the 5 mm lattice, at one object size per task. The six-coordinate layouts
+and other object sizes were not refined.</li>
+<li>Each pick is chosen on three seeds and validated on five. The GPU evaluator's run-to-run spread is about 0.01 per
+rollout.</li>
 <li>The twist's score saturates at 1.0, a 90 deg turn on three pads. Among saturated candidates the searches ranked by
-the uncapped angle, and the page reports that angle beside the score.</li>
-<li>The picks are the best of hundreds of noisy means. Only the validation seeds, five draws of the object's start,
-compare the levels. The GPU evaluator's run-to-run spread is about 0.01 per rollout.</li>
-<li>S3 tunes forces and modes per layout. A controller tuned once for all layouts was not searched.</li>
+the three-pad angle, and Section SEC[sv25] reports that angle.</li>
+<li>S3 tunes the forces and modes per layout. A controller tuned once for all layouts was not searched.</li>
+<li>The rows record no contact normals or forces. The friction check of Section SEC[sts] uses the planned contacts of
+the pose toy and static balance.</li>
+<li>The films run on the CPU plant with every contact, where some refined twist picks score lower than on the GPU
+(Section SEC[films]).</li>
 </ul>"""
 
 
-def sec_future():
-    return """<ul>
-<li>One controller for all layouts. Tune HOM's forces, modes and gains once on a set of layouts, with per-world
-<code>HomParams</code> in <code>hom_gpu</code>. Then rescore the grid and compare its ranking with S1's and S3's. The
-fixed reference holds if Spearman's rho with S1 stays above 0.8.</li>
-<li>The grasp in the evolutionary search's genome. A child inherits its parent's refined grasp, re-solved on its own
-layout. Compare it with the best-of-16 search of <code>scripts/hom_ea.py</code> at equal rollouts.</li>
-<li>A worst-case score: each candidate's lowest score over the friction band 0.4-1.0, with its picks run at each
-friction.</li>
-<li>The refined picks on the CPU plant with all contacts (<code>scripts/hom_top_cpu_check.py</code>), then on the
-bench.</li>
+def sec_future(Js):
+    A, B = Js.get("k21"), Js.get("k21mu0p4")
+    gain, drops = "", ""
+    if A and B:
+        g = [paired(B["tasks"][t_]["layouts"], "s3e_val_from_k21", "s3e_val")["median"] for t_ in TASKS
+             if t_ in B["tasks"]]
+        gain = f"; retuning at 0.4 gained {min(g):.2f} to {max(g):.2f} here"
+    if FRICTION_CHECK.exists():
+        F = json.loads(FRICTION_CHECK.read_text())["tasks"]["twist"]["S1_1.0"]
+        drops = f" If the drops stay near {F['drops']['0.4']} of {F['rollouts']['0.4']} at every force, the force is not the cause."
+    return f"""<ul>
+<li>Find what drops the friction-1.0 grasps at friction 0.4. Log each pad's contact normal and normal force from the
+squeeze to the drop in the GPU rows (<code>scripts/hom_gpu.py</code>). Rerun the twist's friction-1.0 S1 grasps at 0.4
+with the tripod force at 1.5, 2.5 and 4 N (a world's <code>prm</code>).{drops}</li>
+<li>A worst-case score over the friction band (job <code>hand-20261104-hom_worst_case_score</code>): each candidate's
+lowest score at friction 0.4, 0.7 and 1.0, with its picks run at each friction. One pick for the band suffices if it
+scores within 0.05 of the S3e picks tuned at each friction{gain}.</li>
+<li>One controller for all layouts (job <code>hand-20261104-hom_shared_controller</code>): one set of forces and modes
+tuned on the 60 SCS0009 layouts of a task, then the grid rescored. Per-layout tuning is needed if the shared set's
+median gain over S1 on the 30 best layouts is below half of S3e's.</li>
+<li>The grasp in the evolutionary search's genome (job <code>hand-20261104-hom_grasp_genome_ea</code>): a child
+inherits its parent's refined grasp. It is worth its rollouts if it beats the best-of-16 search of
+<code>scripts/hom_ea.py</code> at equal rollouts by more than the GPU's spread of 0.01.</li>
+<li>The S3e picks on the CPU plant with every contact (<code>scripts/hom_top_cpu_check.py</code>), then on the hand. A
+pick transfers to the CPU plant if its CPU score at seeds 20-24 lies within 0.1 of its GPU score.</li>
 </ul>"""
 
 
@@ -603,8 +1049,8 @@ def sec_files():
     return """<p>Files: the search <code>scripts/hom_grasp_refine.py</code>; this page's builder
 <code>scripts/hom_score_refine_page.py</code>; the compute ledger and benchmarks <code>scripts/hom_compute.py</code>
 (<code>compute/</code> beside this page); the runbook, queue and rows in
-<code>docs/experiments/20261103-hom_score_refine/</code> (README.md); the logs in
-<code>logs/20261103-hom_score_refine/</code>.</p>"""
+<code>docs/experiments/20261103-hom_score_refine/</code> (README.md); the friction check
+<code>media/20261103-friction_check.json</code>; the logs in <code>logs/20261103-hom_score_refine/</code>.</p>"""
 
 
 REFS = [
@@ -620,22 +1066,38 @@ def lede_and_summary(Js):
     J = Js.get("sv25")
     if not J:
         return "The searches have not finished.", "Grasp and HOM parameter refinement of SR2 layouts: runs pending."
-    parts = []
-    for task in TASKS:
-        if task in J["tasks"]:
-            lays = J["tasks"][task]["layouts"]
-            parts.append((task, med(vals(lays, "s1_val", "top")), med(vals(lays, "s2_val", "top")),
-                          med(vals(lays, "s3_val", "top")), J["tasks"][task].get("rho_s1_val_s3_val")))
-    lede = ("Each SR2 layout was scored three ways under HOM control. S1 takes the best of 16 sampled grasps at "
-            "HOM's defaults. S2 refines the grasp on the HOM score, and S3 refines the grasp, forces and contact modes "
-            "together. " + " ".join(f"In the {NAME[t].lower()} the median of the 30 best SCS0009 layouts went from "
-                                  f"{f2(a)} to {f2(b)} and {f2(c)}." for t, a, b, c, _ in parts)
-            + " Over 60 layouts per task, Spearman's rho between S1 and S3 is "
-            + ", ".join(f"{f2(r)} ({NAME[t].lower()})" for t, _a, _b, _c, r in parts) + ".")
-    summary = ("Grasp refinement on the HOM score (S2) and grasp, force and contact-mode refinement (S3) against the "
-               "best of 16 grasps (S1) on SR2 layouts: median validated scores " + "; ".join(
-                   f"{NAME[t].lower()} {f2(a)}/{f2(b)}/{f2(c)}" for t, a, b, c, _ in parts) + ".")
-    return lede, summary
+    tk = [t_ for t_ in TASKS if t_ in J["tasks"]]
+    L = {t_: J["tasks"][t_]["layouts"] for t_ in tk}
+    a = {t_: paired(L[t_], "s1_val", "s3e_val", "top")["median"] for t_ in tk}
+    g = {t_: paired(L[t_], "s1_val", "s2e_val", "top")["median"] for t_ in tk}
+    rho = [J["tasks"][t_]["rho_s1_val_s3e_val"] for t_ in tk]
+    moved = sum(best_layout(L[t_], "s1_val", t_)["call"] != best_layout(L[t_], "s3e_val", t_)["call"] for t_ in tk)
+    lo, hi = min(a, key=a.get), max(a, key=a.get)
+    pinch = med([e["prm3"]["f_pinch"] for e in L["press"] if e.get("prm3")]) if "press" in L else float("nan")
+    lede = [f"Each SR2 layout's grasp, HOM's commanded forces and its contact modes were refined together on the HOM "
+            f"score. On the SCS0009 plant this raised the validated score of each task's 30 best layouts. The median gain over "
+            f"the best of 16 sampled grasps ranges from {a[lo]:.2f} on the {NAME[lo].lower()} to {a[hi]:.2f} on the "
+            f"{NAME[hi].lower()}. Refining "
+            f"the grasp alone gave {min(g.values()):.2f} to {max(g.values()):.2f}."]
+    if hi == "press":
+        lede.append(f"On the press the pinch force was lowered from 3 N to a median {pinch:.1f} N.")
+    lede.append(f"The refined scores reorder the layouts. Over 60 layouts per task, Spearman's rho between the sampled "
+                f"and the refined score is {min(rho):.2f} to {max(rho):.2f}. The best layout moves on {WORDS[moved]} of "
+                f"the four tasks.")
+    summary = (f"Refining the grasp, HOM's forces and its contact modes per SR2 layout raised the median validated "
+               f"score of the 30 best SCS0009 layouts by {a[lo]:.2f} ({NAME[lo].lower()}) to {a[hi]:.2f} "
+               f"({NAME[hi].lower()}) over the best of 16 grasps and reordered the layouts (rho {min(rho):.2f} to "
+               f"{max(rho):.2f}).")
+    A, B = Js.get("k21"), Js.get("k21mu0p4")
+    if A and B:
+        tb = [t_ for t_ in TASKS if t_ in B["tasks"]]
+        zero = sum(med(vals(B["tasks"][t_]["layouts"], "s3e_val_from_k21")) < 0.005 for t_ in tb)
+        gn = [paired(B["tasks"][t_]["layouts"], "s3e_val_from_k21", "s3e_val")["median"] for t_ in tb]
+        lede.append(f"On the STS3032, the picks tuned at friction 1.0 score a median 0 at friction 0.4 on {WORDS[zero]} of "
+                    f"the four tasks. Retuning at 0.4 gains a median {min(gn):.2f} to {max(gn):.2f} per task.")
+        summary += (f" On the STS3032, picks tuned at friction 1.0 score 0 at friction 0.4 on {WORDS[zero]} tasks; retuning "
+                    f"at 0.4 gains {min(gn):.2f} to {max(gn):.2f}.")
+    return " ".join(lede), summary
 
 
 def render(page):
@@ -659,7 +1121,7 @@ def cmd_page():
         ("films", "Films of the picks", sec_films()),
         ("compute", "Compute and throughput", sec_compute()),
         ("limits", "Limitations", sec_limits()),
-        ("future", "Future work", sec_future()),
+        ("future", "Future work", sec_future(Js)),
         ("refs", "References and files", '<ol class="refs">' + "".join(f"<li>{r[r.index(']') + 2:]}</li>" for r in REFS)
          + "</ol>" + sec_files()),
     ]
@@ -672,7 +1134,8 @@ def cmd_page():
                      for k, (sid, hd, body) in enumerate(sections, 1))
     lede, summary = lede_and_summary(Js)
     byline = ("Simulation, 2026-11-03 and 04. Hand: the CAD-model SR2 hand with the v4b fingertip "
-              "(<code>SCALE_HAND=cad_v2</code>); HOM on MuJoCo-Warp. Follows the plant and modulus page [3]. Builder: "
+              "(<code>SCALE_HAND=cad_v2</code>); HOM on MuJoCo-Warp, the films on the CPU plant. Follows the plant and "
+              "modulus page [3]. Builder: "
               "<code>scripts/hom_score_refine_page.py</code>." + (" SMOKE TEST DATA, NOT RESULTS." if SMOKE else ""))
     page = P.TEMPLATE.read_text()
     for k, v in {"TITLE": "HOM score levels", "H1": "Grasp, force and contact-mode refinement of SR2 hand layouts "
