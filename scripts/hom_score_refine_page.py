@@ -591,6 +591,14 @@ def sec_terms():
         ("Contact filter", "the rule for which hand geoms meet the object. On the GPU only the pads and the rigid "
          "spheres under 2 mm meet it. On the CPU plant every geom meets it, unless the GPU's contact filter is applied "
          "(<code>hom_compute.py</code>'s variant <code>filter</code>)."),
+        ("Layout EA", "the elitist, mutation-only evolutionary algorithm of Yang et al. [5] over the lattice of layouts, "
+         "as <code>scripts/hom_ea.py</code> runs it on the trends page [4]. An individual is a layout, and its fitness "
+         "is S1 at seeds 0-2 (Section SEC[ea])."),
+        ("Layout-and-grasp EA", "the same algorithm with one grasp per individual (<code>scripts/hom_ea_grasp.py</code>, "
+         "Section SEC[ea]). An individual is a layout and one grasp on it, and its fitness is that grasp's mean score "
+         "at seeds 0-2."),
+        ("Incumbent", "the individual with the highest fitness that a search has evaluated so far."),
+        ("Grid's best", "the highest S1 at seeds 0-2 over every layout of the lattice, from the plant's grid [3]."),
     ]
     return "<dl>" + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in terms) + "</dl>"
 
@@ -1749,6 +1757,487 @@ on the CPU score within 0.05 of the GPU's at the same seed.</p>""")
     return "".join(out)
 
 
+# ----------------------------------------------------------------------------------------------- the EA over layout and grasp
+
+EA_PLANT = "sv25"
+EA_LOGS = ROOT / "logs/20261104-hom_grasp_genome_ea"
+EA_FILMS = MEDIA / "20261104-ea_films.json"
+EA_NAME = {"ea": "layout EA", "ea_grasp": "layout-and-grasp EA"}
+EA_CLIP = {"grid": "grid's best layout, S1", "ea": "layout EA's incumbent", "ea_grasp": "layout-and-grasp EA's incumbent"}
+
+
+def ea_report():
+    """The newest report of scripts/hom_ea_grasp.py (rows/ea_grasp/<plant>/<date>-ea_grasp.json), or None."""
+    base = (R.OUT / ("rows_smoke" if SMOKE else "rows")) / "ea_grasp" / EA_PLANT
+    ps = sorted(base.glob("*-ea_grasp.json"))
+    return json.loads(ps[-1].read_text()) if ps else None
+
+
+def ea_runs(t, method):
+    """The searches of one method on one task, in order of search seed."""
+    return [t["runs"][k] for k in sorted(t["runs"]) if k.rsplit("_s", 1)[0] == method]
+
+
+def fig_ea(E):
+    """Per task: each search's incumbent score at seeds 0-2 against its rollouts, for both EAs; the median of the layout
+    EA replayed 200 times on the stored grid; the grid's best and 0.05 below it; each incumbent at seeds 20-24 at the
+    end of its curve."""
+    plt = plt_setup()
+    fig, axs = grid4((9.5, 7.8))
+    for ax, task in zip(axs, TASKS):
+        t = E["tasks"].get(task)
+        if not t:
+            ax.set_axis_off()
+            continue
+        gb = t["grid"]["best"]
+        lk = t["lookup_ea"]["curve"]
+        ax.plot(np.array(lk["rollouts"]) / 1e3, lk["median_best"], color=C1, ls="--", lw=1.5,
+                label="Layout EA on the stored grid, median of 200")
+        ys = [gb]
+        for method, c, m in (("ea", "k", "o"), ("ea_grasp", C2, "^")):
+            name = EA_NAME[method][0].upper() + EA_NAME[method][1:]
+            for i, r in enumerate(ea_runs(t, method)):
+                cv = np.array(r["curve"], float)
+                if not len(cv):
+                    continue
+                ax.step(np.r_[cv[0, 0], cv[:, 0]] / 1e3, np.r_[cv[0, 1], cv[:, 1]], where="post", color=c, lw=1.4,
+                        alpha=0.85, label=f"{name}, three searches" if i == 0 else None)
+                ys += list(cv[:, 1])
+                if r["val"] is not None:
+                    ax.plot(cv[-1, 0] / 1e3, r["val"], m, color=c, mfc="white", mew=1.6, ms=8,
+                            label=f"{name}'s incumbent at seeds 20-24" if i == 0 else None)
+                    ys.append(r["val"])
+        ax.axhline(gb, color=C3, lw=1.1, ls="-.", label="Grid's best")
+        ax.axhline(gb - 0.05, color=C3, lw=1.0, ls=":", label="0.05 below the grid's best")
+        lo = max(0.0, min(min(ys), gb - 0.05) - 0.08)
+        ax.set_ylim(lo, min(1.06, max(ys) + 0.06))
+        ax.set_xlim(0, 8)
+        ax.set_title(f"{NAME[task]}, {OBJ[task]}")
+        ax.grid(alpha=0.3)
+    labels(axs, "Rollouts (thousands)", "Incumbent's score")
+    h, lab = axs[0].get_legend_handles_labels()
+    fig.legend(h, lab, loc="upper center", ncol=2, frameon=False, bbox_to_anchor=(0.5, 0.0))
+    save(fig, "20261104-ea_grasp.png")
+
+
+def ea_angles(task):
+    """{pick: mean three-pad angle (deg) at seeds 20-24} of the incumbents' validation rows (the twist's tie-break)."""
+    base = (R.OUT / ("rows_smoke" if SMOKE else "rows")) / "ea_grasp" / EA_PLANT / "val"
+    acc = {}
+    for r in R.read_rows(base / f"{task}_d{R.TASKS[task]:g}.jsonl"):
+        acc.setdefault(r["pick"], []).append(float(r.get("ramp_three_pads_max_deg") or 0.0) if r.get("held") else 0.0)
+    return {k: float(np.mean(v)) for k, v in acc.items()}
+
+
+def ea_maps():
+    """{task: (foundational pose, best of the set)}: each layout's score at seeds 0-2 with grasp 0 of its set and with
+    the best grasp of the set, from the plant's grid."""
+    import hom_plant_transfer as TR
+    out = {}
+    for task in TASKS:
+        g = TR.grasp_means(task, R.GRID_ROWS / f"grid2dff_v4b{R.PLANTS[EA_PLANT][2]}" / f"{task}_d{R.TASKS[task]:g}.jsonl")
+        if g:
+            out[task] = ({c: v[0] for c, v in g.items() if 0 in v}, {c: max(v.values()) for c, v in g.items()})
+    return out
+
+
+def fig_ea_maps(E):
+    """The foundational pose's map (top) and the best-of-16 map (bottom) over (x_sep, y_sep), a column per task, grey
+    where no grasp was solved; on both, each search's last incumbent of the two EAs and the grid's best layout."""
+    M = ea_maps()
+    if not M:
+        return
+    plt = plt_setup()
+    plt.rcParams.update({"font.size": 15, "axes.titlesize": 15, "axes.labelsize": 15, "xtick.labelsize": 14,
+                         "ytick.labelsize": 14, "legend.fontsize": 14})
+    fig, axs = plt.subplots(2, 4, figsize=(11, 6.6), constrained_layout=True, sharex=True, sharey=True)
+    ext = [37.5, 162.5, 47.5, 172.5]
+    im = None
+    for j, task in enumerate(TASKS):
+        if task not in M or task not in E["tasks"]:
+            continue
+        t = E["tasks"][task]
+        for i, vs in enumerate(M[task]):
+            Z = np.full((25, 25), np.nan)
+            for c, v in vs.items():
+                Z[c % 25, c // 25] = v
+            ax = axs[i, j]
+            ax.imshow(np.where(np.isfinite(Z), np.nan, 0.0), origin="lower", extent=ext, cmap="Greys", vmin=-1, vmax=1,
+                      aspect="equal")
+            im = ax.imshow(Z, origin="lower", extent=ext, cmap="viridis", vmin=0, vmax=1, aspect="equal")
+            for method, lab in (("ea", "Layout EA's incumbents"), ("ea_grasp", "Layout-and-grasp EA's incumbents")):
+                xy = np.array([r["incumbent"]["xy"] for r in ea_runs(t, method)], float)
+                if not len(xy):
+                    continue
+                if method == "ea":                              # a ring, black outside and white inside
+                    ax.plot(xy[:, 0], xy[:, 1], "o", ms=15, mfc="none", mec="k", mew=3.4, ls="none", label=lab,
+                            zorder=3)
+                    ax.plot(xy[:, 0], xy[:, 1], "o", ms=15, mfc="none", mec="white", mew=1.4, ls="none", zorder=3)
+                else:
+                    ax.plot(xy[:, 0], xy[:, 1], "^", ms=10, mfc="#ff7f0e", mec="k", mew=1.6, ls="none", label=lab,
+                            zorder=3)
+            for c in t["grid"]["best_calls"][:1]:              # on top: an incumbent there rings the star
+                ax.plot(40 + 5 * (c // 25), 50 + 5 * (c % 25), "r*", ms=13, mec="k", label="Grid's best layout",
+                        zorder=4)
+            ax.set_xticks([50, 100, 150])
+            ax.set_yticks([60, 100, 140])
+            if i == 0:
+                ax.set_title(f"{NAME[task]}\n{OBJ[task]}")
+            else:
+                ax.set_xlabel("$x_{sep}$ (mm)")
+            if j == 0:
+                ax.set_ylabel(("Foundational pose", "Best of 16")[i] + "\n$y_{sep}$ (mm)")
+    fig.colorbar(im, ax=axs.ravel().tolist(), shrink=0.8, label="Score at seeds 0-2")
+    h, lab = axs[0, 0].get_legend_handles_labels()
+    fig.legend(h, lab, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.45, 0.0))
+    save(fig, "20261104-ea_maps.png")
+
+
+def ea_best(t, method, task=None):
+    """The search of a method whose incumbent scores highest at seeds 20-24; the twist's ties at 1.0 go to the larger
+    three-pad angle, other ties to the lower seed."""
+    rs = [(k, r) for k, r in sorted(t["runs"].items()) if k.rsplit("_s", 1)[0] == method and r["val"] is not None]
+    ang = ea_angles(task) if task == "twist" else {}
+    return max(rs, key=lambda kr: (kr[1]["val"], ang.get(kr[0], 0.0)))[1] if rs else None
+
+
+def ea_film_specs(E):
+    """Per task on the SCS0009 at seed 20 (CPU plant): the grid's best layout with S1's grasp, and the incumbent with the
+    highest score at seeds 20-24 of each EA; an incumbent that repeats an earlier clip's layout and grasp is left out."""
+    J = report(EA_PLANT)
+    specs = []
+    for task in TASKS:
+        t = E["tasks"].get(task)
+        if not t:
+            continue
+        lays = {L_["call"]: L_ for L_ in R.layouts(task, EA_PLANT)}
+        gc = t["grid"]["best_calls"][0]
+        clips = []
+        if gc in lays:
+            e = next((x for x in J["tasks"][task]["layouts"] if x["call"] == gc), None) if J else None
+            clips.append(("grid", gc, lays[gc]["xy"], lays[gc]["d"], lays[gc]["v1"], e["s1_val"] if e else None))
+        for method in ("ea", "ea_grasp"):
+            r = ea_best(t, method, task)
+            if r:
+                inc = r["incumbent"]
+                clips.append((method, inc["call"], inc["xy"], inc["d"], inc["v"], r["val"]))
+        seen = []
+        for name, call, xy, d6, v, gpu in clips:
+            key = (call, tuple(round(float(x), 5) for x in v))
+            if key in seen:
+                continue
+            seen.append(key)
+            specs.append({"set": "ea", "plant": EA_PLANT, "task": task, "call": call, "xy": xy, "d6": d6, "pick": name,
+                          "v": v, "prm": {}, "gpu": gpu if gpu is not None else float("nan"), "seed": R.VAL_SEEDS[0],
+                          "top": f"{xy[0]:g} x {xy[1]:g}: {EA_CLIP[name]}",
+                          "out": str(MEDIA / f"20261104-clip_ea_{task}_{name}.mp4")})
+    return specs
+
+
+def cmd_ea(what):
+    """ea-figs: the EA section's figure; ea-films: its films (CPU clips through resguard, after the GPU queue)."""
+    E = ea_report()
+    if not E:
+        raise SystemExit("no EA report: scripts/hom_ea_grasp.py report")
+    if what == "ea-figs":
+        fig_ea(E)
+        fig_ea_maps(E)
+        return 0
+    specs = ea_film_specs(E)
+    for s in specs:
+        if Path(s["out"]).with_suffix(".json").exists():
+            continue
+        hp, scenes, tag = R.PLANTS[s["plant"]]
+        env = dict(os.environ, HOS_PLANT=hp, HOS_SCENES=scenes, HOM_ROWS_TAG=tag, CUDA_VISIBLE_DEVICES="",
+                   MUJOCO_GL="egl", NUMPY_MADVISE_HUGEPAGE="0")
+        cmd = [str(Path.home() / ".claude/bin/resguard.sh"), "run", "--mem", "3G", "--cpu", "200", "--",
+               str(ROOT / ".venv/bin/python"), str(ROOT / "scripts/hom_score_refine_page.py"), "clip", json.dumps(s)]
+        while True:
+            rc = subprocess.call(cmd, env=env, cwd=ROOT)
+            if rc != 3:
+                break
+            print(time.strftime("%T"), "refused by resguard; retry in 120 s", flush=True)
+            time.sleep(120)
+        if rc:
+            raise SystemExit(f"clip {s['out']} failed (exit {rc})")
+    import hom_plant_page as HP
+    for task in dict.fromkeys(s["task"] for s in specs):
+        cl = [s["out"] for s in specs if s["task"] == task]
+        HP.compose(cl, MEDIA / f"20261104-film_ea_{task}.mp4", cols=len(cl))
+    res = [dict(s, **json.loads(Path(s["out"]).with_suffix(".json").read_text())) for s in specs]
+    EA_FILMS.write_text(json.dumps(res, indent=1))
+    print("wrote", EA_FILMS.relative_to(ROOT))
+    return 0
+
+
+def ea_list(xs, fmt="{:.2f}"):
+    """'a, b and c' of three searches' values; 'none' for a search that did not get there."""
+    return andj(fmt.format(x) if x is not None else "none" for x in xs)
+
+
+def ea_compute(E):
+    """Both EAs' GPU work and wall clock on the plant: rollouts, batches and batch seconds from the timing lines, the
+    queue steps' wall clock (logs/20261104-hom_grasp_genome_ea), the generations' records, and the CPU check."""
+    C = E.get("compute") or {}
+    st = E.get("queue_steps") or {}
+    out = {}
+    for method in ("ea_grasp", "ea", "val"):
+        ls = [C[t_][method] for t_ in TASKS if C.get(t_, {}).get(method)]
+        if not ls:
+            continue
+        steps = [v["wall_s"] for k, v in st.items() if v.get("wall_s") and
+                 (k.startswith("eag_") if method == "ea_grasp" else k.startswith("ea_") if method == "ea"
+                  else k.startswith("val_"))]
+        out[method] = {"rollouts": sum(x["rollouts"] for x in ls), "batches": sum(x["batches"] for x in ls),
+                       "batch_s": sum(x["batch_s"] for x in ls), "run_s": sum(x["run_s"] for x in ls),
+                       "wall_s": sum(steps) if steps else None,
+                       "worlds_max": max(x["worlds_max"] for x in ls)}
+    it = [C[t_]["ea_grasp_iters"] for t_ in TASKS if C.get(t_, {}).get("ea_grasp_iters")]
+    if it:
+        out["gens"] = {k: sum(x[k] for x in it) for k in ("gens", "wall_s", "draw_s", "child_cpu_s", "open_s", "gpu_s")}
+    return out
+
+
+def sec_ea(E, J):
+    """Section ea: the evolutionary search with the grasp in the genome (scripts/hom_ea_grasp.py) against the layout EA
+    of scripts/hom_ea.py at the same budget on the SCS0009 (E: the report of hom_ea_grasp.py report; J: the SCS0009's
+    score_levels report)."""
+    if not E:
+        return "<p>The runs of the layout-and-grasp EA have not finished.</p>"
+    from scipy.stats import spearmanr
+    tk = [t_ for t_ in TASKS if t_ in E["tasks"]]
+    Et = {t_: E["tasks"][t_] for t_ in tk}
+    n0, f0 = P.TAB[0], P.FIG[0]
+    near = E["near"]
+    runs = {(t_, m): ea_runs(Et[t_], m) for t_ in tk for m in ("ea", "ea_grasp")}
+    vm = {k: [r["val"] for r in v] for k, v in runs.items()}
+    med_v = {k: med([x for x in v if x is not None]) for k, v in vm.items()}
+    hit = {k: [r["to_within"] for r in v] for k, v in runs.items()}
+    n_hit = {k: sum(x is not None and x <= E["budget"] for x in v) for k, v in hit.items()}
+    up = [t_ for t_ in tk if med_v[(t_, "ea_grasp")] > med_v[(t_, "ea")] + 0.01]
+    down = [t_ for t_ in tk if med_v[(t_, "ea_grasp")] < med_v[(t_, "ea")] - 0.01]
+    same = [t_ for t_ in tk if t_ not in up and t_ not in down]
+    nm = lambda ts: andj("the " + NAME[t_].lower() for t_ in ts)  # noqa: E731
+    d = lambda t_: med_v[(t_, "ea_grasp")] - med_v[(t_, "ea")]  # noqa: E731
+    xy = lambda c: f"({40 + 5 * (c // 25)}, {50 + 5 * (c % 25)})"  # noqa: E731
+
+    p = [f"""<p>With one grasp per individual, the EA's incumbents scored a median
+{andj(f"{med_v[(t_, 'ea_grasp')]:.2f} on the {NAME[t_].lower()}" for t_ in tk)} at seeds 20-24. The layout EA's
+incumbents scored {andj(f"{med_v[(t_, 'ea')]:.2f}" for t_ in tk)}, at the same budget of 6,000 rollouts per search
+and three searches per task."""]
+    if up:
+        p.append(f"The grasp in the genome raised the median on {nm(up)} by {andj(f'{d(t_):.2f}' for t_ in up)}.")
+    if down:
+        p.append(f"The grasp in the genome lowered the median on {nm(down)} by "
+                 f"{andj(f'{-d(t_):.2f}' for t_ in down)}.")
+    if same:
+        p.append(f"On {nm(same)} the two medians lie within 0.01 of each other.")
+    p.append(f"""The layout-and-grasp EA came within {near:g} of the grid's best in {sum(n_hit[(t_, 'ea_grasp')] for t_ in tk)}
+of its {3 * len(tk)} searches, and the layout EA in {sum(n_hit[(t_, 'ea')] for t_ in tk)} (Tables {n0 + 1} and {n0 + 2},
+Figure {f0 + 1}).""")
+    fast = [t_ for t_ in tk if n_hit[(t_, "ea_grasp")] == 3 and n_hit[(t_, "ea")] == 3
+            and max(hit[(t_, "ea_grasp")]) < min(hit[(t_, "ea")])]
+    for t_ in fast:
+        p.append(f"""On the {NAME[t_].lower()} it got there after {ea_list(hit[(t_, 'ea_grasp')], '{:,}')} rollouts, and
+the layout EA after {ea_list(hit[(t_, 'ea')], '{:,}')}.""")
+    out = [" ".join(p) + "</p>"]
+
+    M = ea_maps()
+    rho = {t_: float(spearmanr([M[t_][0][c] for c in M[t_][0]], [M[t_][1][c] for c in M[t_][0]])[0])
+           for t_ in tk if t_ in M}
+    q = [f"""<p>The layout-and-grasp EA's incumbents lie where the foundational pose scores well (Figure {f0 + 2}). Its
+generation 0 scores each layout by its foundational pose alone, and a grasp step moves the grasp by a quarter of its
+feasible width. Over the grid, Spearman's rho between a layout's foundational-pose score and its best of 16 is
+{andj(f"{rho[t_]:.2f} on the {NAME[t_].lower()}" for t_ in tk if t_ in rho)}."""]
+    for t_ in down:
+        if t_ not in M:
+            continue
+        fp, bo = M[t_]
+        cb = Et[t_]["grid"]["best_calls"][0]
+        cf = max(sorted(fp), key=fp.get)
+        q.append(f"""On the {NAME[t_].lower()} the foundational pose scores {fp[cf]:.2f} at its best layout, {xy(cf)}.
+At the grid's best layout, {xy(cb)}, it scores {fp.get(cb, 0.0):.2f}, while the best of that layout's 16 grasps scores
+{bo[cb]:.2f}.""")
+    out.append(" ".join(q) + "</p>")
+
+    out.append(fill(r"""<p>Both searches run the elitist, mutation-only EA of Yang et al. [5] on the 5 mm lattice of
+layouts, as on the trends page [4]. A population of 64 is evaluated per generation. Its best half is kept, its best
+eighth are the parents, and 32 children replace the rest. Generation 0 draws 64 layouts at random with numpy's generator
+seeded by $1000\,s + 7$ for search seed $s$, so both EAs start from the same layouts. In the layout EA an individual is a
+layout $\ell$. Its fitness is S1, the best three-seed mean over the layout's grasp set $\{v_1, \dots, v_{16}\}$:</p>
+$$F(\ell) = \max_{j} \frac{1}{3} \sum_{s=0}^{2} J(v_j;\, \ell,\, s),$$
+<p>with $J$ the task score of the rollout at seed $s$. It costs up to 48 rollouts. A child is a parent moved by
+$U(-15, 15)$ mm in each coordinate, rounded to the lattice. In the layout-and-grasp EA an individual is a layout and one grasp, $(\ell, v)$, with the fitness</p>
+$$F(\ell, v) = \frac{1}{3} \sum_{s=0}^{2} J(v;\, \ell,\, s)$$
+<p>at 3 rollouts. Generation 0 takes each layout's foundational pose. A child is made by Algorithm 1. With probability
+0.5 it keeps its parent's layout. Otherwise its layout moves as in the layout EA, and the pose toy re-solves the parent's
+grasp on the new layout, started from that grasp. The grasp then takes a Gaussian step of 0.25 of each variable's
+feasible width, the starting spread of the S2 search, and is redrawn until it is feasible. A layout whose pose the toy
+did not reach scores 0 at no rollout in both EAs. A search stops after the generation in which its rollouts reach
+<<budget>>. Each search's last incumbent was run at seeds 20-24. The three searches of a task share one GPU batch per
+generation, about 288 worlds.</p>""", budget=f"{E['budget']:,}"))
+    out.append(ea_alg("A child of the parent $(\\ell_p, v_p)$ in the layout-and-grasp EA "
+                      "(<code>hom_ea_grasp.make_child</code>).",
+                      r"""\Require parent \((\ell_p, v_p)\); the feasible widths \(w_\ell\) of each layout's grasp set
+\If{a uniform draw \(< 0.5\)}
+  \State \(\ell \gets \ell_p\), \(v_0 \gets v_p\)
+\Else
+  \State \(\ell \gets \ell_p + u\), \(u \sim U(-15, 15)^2\) mm, rounded to the lattice and clipped to the travel
+  \If{the toy did not reach the pose on \(\ell\)}
+    \State \Return \((\ell, -)\), fitness 0 at no rollout
+  \EndIf
+  \State \(v_0 \gets\) the toy's SQP on \(\ell\) started from \(v_p\); the foundational pose of \(\ell\) if it fails
+\EndIf
+\For{\(k = 1, \dots, 40\)}
+  \State \(v \gets v_0 + \sigma_k\, w_\ell \odot \epsilon\), \(\epsilon \sim N(0, I)\), \(\sigma_k = 0.25\) for \(k \le 20\), else 0.125
+  \If{\(v\) passes the toy's constraints and clearances}
+    \State \Return \((\ell, v)\)
+  \EndIf
+\EndFor
+\State \Return \((\ell, v_0)\) after a layout move; no child after a grasp step"""))
+
+    body = []
+    for t_ in tk:
+        t = Et[t_]
+        lk = t["lookup_ea"]
+        bv = t["grid"].get("best_val") or {}
+        b0 = bv.get(str(t["grid"]["best_calls"][0]))
+        body.append([NAME[t_], f"{t['grid']['best']:.2f}" + (f" ({b0:.2f})" if b0 is not None else ""),
+                     f"{t['grid']['layouts_near']}", ea_list(hit[(t_, "ea")], "{:,}"),
+                     ea_list(hit[(t_, "ea_grasp")], "{:,}"),
+                     f"{100 * lk['share_within_by']['6000']:.0f} %"
+                     + (f" ({lk['median_to_within']:,.0f})" if lk.get("median_to_within") is not None else "")])
+    tb1 = table(["Task", "Grid's best, seeds 0-2 (20-24)", f"Layouts within {near:g}",
+                 f"Layout EA: rollouts to within {near:g}", f"Layout-and-grasp EA: rollouts to within {near:g}",
+                 "Layout EA on the stored grid: share by 6,000 (median rollouts)"], body,
+                f"Rollouts until a search's incumbent scores within {near:g} of the grid's best at seeds 0-2, for each "
+                "of the three searches per EA in order of search seed ('none': not within the search's budget). The "
+                "grid's best is the highest S1 over the lattice, with that layout's S1 at seeds 20-24 in brackets. The "
+                f"third column counts the layouts whose S1 lies within {near:g} of it. The last column replays the "
+                "layout EA 200 times on the grid's stored rollouts (<code>hom_landscape.ea_search</code>).")
+    body = []
+    for t_ in tk:
+        t = Et[t_]
+        s2, s3 = t.get("sample_best_s2e_val"), t.get("sample_best_s3e_val")
+        body.append([NAME[t_], ea_list(vm[(t_, "ea")]), ea_list(vm[(t_, "ea_grasp")]),
+                     ea_list([r["final_fit"] for r in runs[(t_, "ea_grasp")]]),
+                     f2(s2["score"]) if s2 else "n/a", f2(s3["score"]) if s3 else "n/a"])
+    tb2 = table(["Task", "Layout EA's incumbents, seeds 20-24", "Layout-and-grasp EA's incumbents, seeds 20-24",
+                 "Layout-and-grasp EA's incumbents, seeds 0-2", "Best S2e of the 60 layouts", "Best S3e of the 60 layouts"],
+                body, "Each search's last incumbent at seeds 20-24, three searches per EA in order of search seed, and "
+                "the layout-and-grasp EA's incumbents at seeds 0-2, as its search scored them. The last two columns "
+                "give the highest validated S2e and S3e over the 60 sampled layouts of Section SEC[sv25], searched with "
+                "24 to 32 candidates per iteration for 8 iterations per layout and level.")
+    out += [tb1, tb2]
+    if (MEDIA / "20261104-ea_grasp.png").exists():
+        out.append(img(MEDIA / "20261104-ea_grasp.png", "The incumbent's score at seeds 0-2 against rollouts in each "
+                       "search of both EAs, with the median of the layout EA replayed 200 times on the stored grid "
+                       "(dashed grey). The marker at the end of each curve gives its incumbent's score at seeds 20-24. "
+                       f"Red: the grid's best and {near:g} below it."))
+    if (MEDIA / "20261104-ea_maps.png").exists():
+        out.append(img(MEDIA / "20261104-ea_maps.png", "Each layout's score at seeds 0-2 with its foundational pose "
+                       "(top) and with the best grasp of its set (bottom), with the last incumbents of both EAs and the "
+                       "grid's best layout. Grey: no pose reached."))
+
+    q = []
+    for t_ in tk:
+        rs = runs[(t_, "ea_grasp")]
+        ops = [r["incumbent"].get("op") for r in rs]
+        lay = [tuple(r["incumbent"]["xy"]) for r in rs]
+        opt = [r["final_fit"] - r["val"] for r in rs if r["val"] is not None]
+        ng = sum(o == "grasp" for o in ops)
+        made = ("all three came from grasp steps" if ng == 3 else "none came from a grasp step" if ng == 0
+                else f"{WORDS.get(ng, ng)} of the three came from grasp steps")
+        moved = (f"Their scores at seeds 20-24 lie within {max(0.01, max(abs(x) for x in opt)):.2f} of those at seeds "
+                 "0-2." if opt and max(abs(x) for x in opt) < 0.01 else
+                 f"From seeds 0-2 to seeds 20-24 they changed by {andj(sgx(-x) for x in opt)}." if opt else "")
+        q.append(f"""On the {NAME[t_].lower()} the layout-and-grasp EA's incumbents sit at
+{andj(f"({x:g}, {y:g})" for x, y in lay)}, and {made}. {moved}""")
+    e_drop = [(t_, r) for t_ in tk for r in runs[(t_, "ea")] if r["val"] is not None and r["final_fit"] - r["val"] > 0.1]
+    for t_, r in e_drop:
+        q.append(f"""One layout EA incumbent of the {NAME[t_].lower()}, at ({r['incumbent']['xy'][0]:g},
+{r['incumbent']['xy'][1]:g}), fell from {r['final_fit']:.2f} at seeds 0-2 to {r['val']:.2f} at seeds 20-24.""")
+    out.append("<p>" + " ".join(q) + "</p>")
+
+    ch = {t_: [r.get("children", {}) for r in runs[(t_, "ea_grasp")]] for t_ in tk}
+    rs_ok = sum(c.get("resolved", 0) for t_ in tk for c in ch[t_])
+    rs_bad = sum(c.get("resolve_failed", 0) for t_ in tk for c in ch[t_])
+    n_kid = sum(c.get("grasp", 0) + c.get("layout", 0) - c.get("unreached", 0) - c.get("no_draw", 0)
+                for t_ in tk for c in ch[t_])               # children whose grasp step found a feasible draw
+    n_draw = sum(c.get("draws", 0) for t_ in tk for c in ch[t_])
+    lay_n = [r["layouts_run"] for t_ in tk for r in runs[(t_, "ea_grasp")]]
+    lay_e = [r["layouts_run"] for t_ in tk for r in runs[(t_, "ea")]]
+    out.append(f"""<p>Over the {len(lay_n)} layout-and-grasp searches the toy re-solved the parent's grasp on
+{rs_ok:,} of {rs_ok + rs_bad:,} layout moves, and {100 * n_kid / max(n_draw, 1):.0f} % of the grasp draws were
+feasible. A layout-and-grasp search visited {min(lay_n)} to {max(lay_n)} layouts, and a layout EA search
+{min(lay_e)} to {max(lay_e)}.</p>""")
+
+    if EA_FILMS.exists():
+        info = json.loads(EA_FILMS.read_text())
+        m0 = P.FILM[0]
+        tasks_f = list(dict.fromkeys(s["task"] for s in info))
+        agree = sum(abs(s["cpu"] - s["gpu"]) <= 0.05 for s in info if np.isfinite(s["gpu"]))
+        out.append(f"""<p>Films {m0 + 1} to {m0 + len(tasks_f)} run, per task, the grid's best layout with S1's grasp
+and the incumbent of each EA that scored highest at seeds 20-24 (the twist's ties by the three-pad angle). They run on
+the CPU plant at seed 20. On {agree} of the {len(info)} clips the CPU score lies within 0.05 of the GPU's score at
+seeds 20-24.</p>""")
+        for task in tasks_f:
+            fs = [s for s in info if s["task"] == task]
+            out.append(film(MEDIA / f"20261104-film_ea_{task}.mp4",
+                            f"{NAME[task]} on the {OBJ[task]}, SCS0009, CPU plant, seed 20. From left to right: "
+                            + "; ".join(f"{EA_CLIP[s['pick']]} at ({s['xy'][0]:g}, {s['xy'][1]:g})" for s in fs)
+                            + ". Under each clip: its score and the pick's GPU score at seeds 20-24."))
+
+    cpu = {m: [c for t_ in tk for r in runs[(t_, m)] for c in r.get("cpu", [])] for m in ("ea", "ea_grasp")}
+    if cpu["ea"] and cpu["ea_grasp"]:
+        ag = {m: sum(c["gpu_score_seed"] is not None and abs(c["score"] - c["gpu_score_seed"]) <= 0.05 for c in v)
+              for m, v in cpu.items()}
+        out.append(f"""<p>On the CPU plant with every contact at seed 20, {ag['ea_grasp']} of the
+{len(cpu['ea_grasp'])} layout-and-grasp incumbents score within 0.05 of their GPU score at that seed, and
+{ag['ea']} of the {len(cpu['ea'])} layout EA incumbents. """ + " ".join(
+            f"""On the {NAME[t_].lower()} the CPU scores are {ea_list([c['score'] for r in runs[(t_, 'ea_grasp')]
+                                                                        for c in r.get('cpu', [])])} for the
+layout-and-grasp EA and {ea_list([c['score'] for r in runs[(t_, 'ea')] for c in r.get('cpu', [])])} for the layout EA."""
+            for t_ in tk) + "</p>")
+
+    C = ea_compute(E)
+    if C.get("ea_grasp") and C.get("ea"):
+        g, e = C["ea_grasp"], C["ea"]
+        gn = C.get("gens", {})
+        allc = cpu["ea"] + cpu["ea_grasp"]
+        line = [f"""<p>The layout-and-grasp EA ran {g['rollouts']:,} GPU rollouts in {g['batches']} batches of up to
+{g['worlds_max']} worlds, {g['batch_s'] / 3600:.2f} h of batch time. The layout EA ran {e['rollouts']:,} in
+{e['batches']} batches of up to {e['worlds_max']:,} worlds, {e['batch_s'] / 3600:.2f} h. The smaller batches cost the
+layout-and-grasp EA more GPU time per rollout: {1000 * g['run_s'] / g['rollouts']:.0f} against
+{1000 * e['run_s'] / e['rollouts']:.0f} ms of run time, and {1000 * g['batch_s'] / g['rollouts']:.0f} against
+{1000 * e['batch_s'] / e['rollouts']:.0f} ms of batch time."""]
+        if g.get("wall_s") and e.get("wall_s"):
+            line.append(f"""Over whole queue steps it is {1000 * g['wall_s'] / g['rollouts']:.0f} against
+{1000 * e['wall_s'] / e['rollouts']:.0f} ms, in {g['wall_s'] / 3600:.2f} and {e['wall_s'] / 3600:.2f} h.""")
+        if gn:
+            line.append(f"""Of the layout-and-grasp EA's {gn['gens']} lockstep generations, {gn['gpu_s'] / 3600:.2f} h
+of the {gn['wall_s'] / 3600:.2f} h were GPU batches, and {gn['draw_s'] / 60:.1f} min the re-solves and draws on four
+worker processes.""")
+        if allc and g.get("wall_s"):
+            wall = med([c["wall_s"] for c in allc])
+            line.append(f"""The CPU runner took a median {wall:.1f} s per rollout on one core in the CPU check. One GPU
+running the layout-and-grasp EA's batches thus equals {wall / (g['run_s'] / g['rollouts']):.0f} such cores on the
+rollout loop and {wall / (g['wall_s'] / g['rollouts']):.0f} over whole queue steps. Running the layout EA's batches it
+equals {wall / (e['run_s'] / e['rollouts']):.0f} and {wall / (e['wall_s'] / e['rollouts']):.0f}.""")
+        out.append(" ".join(line) + "</p>")
+    return "".join(out)
+
+
+EA_ALG = [0]
+
+
+def ea_alg(caption, body):
+    """An algorithm block, typeset by texsvg (render)."""
+    EA_ALG[0] += 1
+    return (f'<figure class="alg"><figcaption>Algorithm {EA_ALG[0]}. {caption}</figcaption>'
+            f"\\begin{{algorithmic}}[1]\n{body}\n\\end{{algorithmic}}</figure>")
+
+
 def sec_films():
     if not FILMS.exists():
         return "<p>The films are made after the GPU queue (<code>hom_score_refine_page.py films</code>).</p>"
@@ -1908,6 +2397,8 @@ TPU on bare PLA lies below it.</li>
 the three-pad angle, and Section SEC[sv25] reports that angle.</li>
 <li>The shared set was tuned on 40 layouts of the SCS0009 with S1's grasps, and only on that plant. Under it each
 layout's grasp was the best of its grasp set at seeds 0-2, with no grasp search.</li>
+<li>The two EAs of Section SEC[ea] were compared with three searches per task, at one population of 64 and one budget
+of 6,000 rollouts per search, on the SCS0009 only.</li>
 <li>The rows record no contact normals or forces. The friction check of Section SEC[sts] uses the planned contacts of
 the pose toy and static balance.</li>
 <li>On the GPU only the pads and the rigid spheres under 2 mm meet the object. The films run on the CPU plant with every
@@ -1954,6 +2445,33 @@ as in <code>hom_gpu.py run</code>. At 25 mm the best layout moved from ({ga['xy'
 10 mm of the default's in $x_{{sep}}$ at six of the eight sizes.</li>"""
 
 
+def ea_lost(E):
+    """The tasks on which the layout-and-grasp EA's median validated incumbent lies more than 0.01 below the layout
+    EA's."""
+    out = []
+    for t_ in TASKS:
+        t = E["tasks"].get(t_)
+        if not t:
+            continue
+        m = {k: med([r["val"] for r in ea_runs(t, k) if r["val"] is not None]) for k in ("ea", "ea_grasp")}
+        if m["ea_grasp"] < m["ea"] - 0.01:
+            out.append(t_)
+    return out
+
+
+def ea_future():
+    """The layout-and-grasp EA's item for Future work: generation 0 from S1's grasp, where its incumbents lost."""
+    E = ea_report()
+    lost = ea_lost(E) if E else []
+    if not lost:
+        return ""
+    nm = andj("the " + NAME[t_].lower() for t_ in lost)
+    return f"""<li>The layout-and-grasp EA with generation 0 started from each layout's best grasp of its set, S1's grasp
+on the grid, in place of its foundational pose. It costs up to 48 rollouts per layout of generation 0 and is a
+<code>--start s1</code> option to add to <code>scripts/hom_ea_grasp.py</code>. The foundational pose explains the loss
+on {nm} if all three searches per task then come within 0.05 of the grid's best by 6,000 rollouts.</li>"""
+
+
 def sec_future(Js):
     drops = ""
     if FRICTION_CHECK.exists():
@@ -1965,9 +2483,7 @@ squeeze to the drop in the GPU rows (<code>scripts/hom_gpu.py</code>). Rerun the
 with the tripod force at 1.5, 2.5 and 4 N (a world's <code>prm</code>).{drops}</li>
 {band_future()}
 {shared_future()}
-<li>The grasp in the evolutionary search's genome (job <code>hand-20261104-hom_grasp_genome_ea</code>): a child
-inherits its parent's refined grasp. It is worth its rollouts if it beats the best-of-16 search of
-<code>scripts/hom_ea.py</code> at equal rollouts by more than the GPU's spread of 0.01.</li>
+{ea_future()}
 <li>The S3e picks on the CPU plant with every contact (<code>scripts/hom_top_cpu_check.py</code>), then on the hand. A
 pick transfers to the CPU plant if its CPU score at seeds 20-24 lies within 0.1 of its GPU score.</li>
 </ul>"""
@@ -1987,7 +2503,12 @@ in <code>rows/band_k21mu/</code>, the CPU check <code>band_cpu_check.py</code> a
 are in <code>rows/sv25/shared/</code> and <code>rows/sv25/val_shared/</code>, and its report is
 <code>rows/sv25/20261104-shared_levels.json</code>. The rescored grids are in
 <code>docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25_shared/</code>. The CPU timing is
-<code>shared_cpu_bench.py</code>, with rows in <code>rows/sv25/shared/cpu/</code>.</p>"""
+<code>shared_cpu_bench.py</code>, with rows in <code>rows/sv25/shared/cpu/</code>. The layout-and-grasp EA:
+<code>scripts/hom_ea_grasp.py</code> (<code>run</code>, <code>validate</code>, <code>cpu</code> and <code>report</code>),
+its queue <code>queue_ea_grasp.sh</code> beside this page with logs in <code>logs/20261104-hom_grasp_genome_ea/</code>,
+and its rows, CPU check and report <code>20261104-ea_grasp.json</code> in <code>rows/ea_grasp/sv25/</code>. The layout
+EA's searches at the default objects on the SCS0009 are in
+<code>docs/experiments/20261029-foundational_pose_review/rows/ea_live_sv25/</code>.</p>"""
 
 
 REFS = [
@@ -1996,6 +2517,8 @@ REFS = [
     f'[3] <a href="{PLANT_PAGE}">SR2 hand layouts under HOM control across finger servos, pad moduli and scene '
     'friction</a> (2026-11-02).',
     f'[4] <a href="{TRENDS}">Layout trends with object size</a> (2026-10-30).',
+    '[5] B. Yang, L. Jiang, W. Wu, M. Cheng and K. Gong, "Evolving Robot Morphology with Manipulation Learning Inspired '
+    'by Human Hand Evolution", IEEE Transactions on Evolutionary Computation, 2026, DOI 10.1109/TEVC.2026.3696420.',
 ]
 
 
@@ -2069,14 +2592,39 @@ def lede_and_summary(Js):
                         if gain else "")
         elif gain:
             summary += "."
+    E = ea_report()
+    if E:
+        tk = [t_ for t_ in TASKS if t_ in E["tasks"]]
+        mv = {(t_, m): med([r["val"] for r in ea_runs(E["tasks"][t_], m) if r["val"] is not None])
+              for t_ in tk for m in ("ea", "ea_grasp")}
+        dd = andj(sgx(mv[(t_, "ea_grasp")] - mv[(t_, "ea")]) for t_ in tk)
+        names = andj(NAME[t_].lower() for t_ in tk)
+        lost = ea_lost(E)
+        lede.append(f"With one grasp per layout in its genome, an evolutionary search changed the median validated "
+                    f"score of its incumbents by {dd} on the {names}. The reference is the search over layouts alone "
+                    f"at the same 6,000 rollouts.")
+        if lost:
+            lede.append("Its searches stayed where each layout's foundational pose scores well, away from the best "
+                        f"layouts of the {andj(NAME[t_].lower() for t_ in lost)}.")
+        summary += (f" One grasp per layout in an evolutionary search's genome changed its incumbents' median by {dd} "
+                    f"({names}) against the layout search at 6,000 rollouts.")
     return " ".join(lede), summary
 
 
+ALG_RE = re.compile(r"\\begin\{algorithmic\}.*?\\end\{algorithmic\}", re.S)
+
+
 def render(page):
+    """The $...$ and $$...$$ formulas and the algorithmic blocks (ea_alg) as inline SVG."""
+    blocks = ALG_RE.findall(page)
+    page = ALG_RE.sub("\x00ALG\x00", page)
     items = [((m.group(1) if m.group(1) is not None else m.group(2)).strip(), m.group(1) is not None)
              for m in P.TEX_RE.finditer(page)]
-    svgs = iter(texsvg.render(items, cache_path=TEX_CACHE))
-    return P.TEX_RE.sub(lambda m: next(svgs), page), len(items)
+    svgs = texsvg.render(items + [(b, "block") for b in blocks], cache_path=TEX_CACHE)
+    it = iter(svgs[:len(items)])
+    page = P.TEX_RE.sub(lambda m: next(it), page)
+    ib = iter(svgs[len(items):])
+    return re.sub("\x00ALG\x00", lambda m: next(ib), page), len(items)
 
 
 def cmd_page():
@@ -2093,6 +2641,7 @@ def cmd_page():
         ("band", "Worst-case score over three frictions on the STS3032", sec_band(band_report())),
         ("shared", "Forces and contact modes shared by all layouts on the SCS0009", sec_shared(shared_report(),
                                                                                              Js.get("sv25"))),
+        ("ea", "Evolutionary search over layout and grasp on the SCS0009", sec_ea(ea_report(), Js.get("sv25"))),
         ("films", "Films of the picks", sec_films()),
         ("compute", "Compute and throughput", sec_compute()),
         ("limits", "Limitations", sec_limits()),
@@ -2139,6 +2688,8 @@ def main():
         return cmd_band(a[0])
     if a and a[0] in ("shared-figs", "shared-films"):
         return cmd_shared(a[0])
+    if a and a[0] in ("ea-figs", "ea-films"):
+        return cmd_ea(a[0])
     return cmd_page()
 
 

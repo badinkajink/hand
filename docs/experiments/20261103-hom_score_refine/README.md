@@ -231,3 +231,46 @@ kept: the evaluator's run-to-run spread for a whole landscape. Compute: 183,840 
 time in 2.17 h of queue steps (33, 40 and 43 ms per rollout of run, batch and step time). The CPU runner with the shared
 sets takes 3.0 s (pin-push) and 2.0 s (press) a rollout on one core, 68 to 69 cores per GPU; with every contact the CPU
 scores all 6 press rollouts within 0.05 of the GPU.
+
+## Evolutionary search over layout and grasp on the SCS0009 (2026-11-04)
+
+Owner, 2026-11-03: "can't we score and refine a grasp based off how well the grasp (+morphology) executes the HOM
+control? from what i understand we are doing pretty random sampling". Autopilot job `hand-20261104-hom_grasp_genome_ea`;
+the page's Section 8.
+
+`scripts/hom_ea_grasp.py` runs the evolutionary search of `scripts/hom_ea.py` (the layout EA: an individual is a lattice
+layout, its fitness S1, the best of its grasp set at seeds 0-2, up to 48 rollouts) with one grasp per individual (the
+layout-and-grasp EA). Generation 0 is hom_ea's 64 layouts for the same search seed, each with its foundational pose. A
+child keeps its parent's layout with probability 0.5; otherwise the layout moves as hom_ea's children do and the pose
+toy re-solves the parent's grasp there (`fp_sr2_toy.Problem.solve` started from it; the layout's foundational pose if
+that fails). The grasp then steps by N(0, (0.25 x the feasible widths)^2), redrawn until feasible
+(`hom_grasp_refine.draw_layout`'s rule). The fitness is the grasp's mean score at seeds 0-2, 3 rollouts. Selection,
+order and ties are hom_ea's; a search stops after the generation in which it reaches 6,000 rollouts. The three search
+seeds of a task share one GPU batch per generation (about 288 worlds). `queue_ea_grasp.sh` is a copy of
+`logs/20261104-hom_grasp_genome_ea/queue.sh`:
+
+```bash
+python3 scripts/hom_ea_grasp.py run --task twist                     # search seeds 0-2, population 64, 6,000 rollouts
+HOS_PLANT=servo HOS_SCENES=logs/20261102-hom_servo_plant/scenes HOM_ROWS_TAG=_sv25 \
+  python3 scripts/hom_ea.py run --task twist --d 40 --seed 0 --budget 6000          # and seeds 1, 2
+python3 scripts/hom_ea_grasp.py validate --task twist                # both EAs' incumbents at seeds 20-24
+python3 scripts/hom_ea_grasp.py cpu --task twist                     # ... on the CPU plant at seed 20, one core
+python3 scripts/hom_ea_grasp.py report                               # rows/ea_grasp/sv25/<date>-ea_grasp.json
+nohup setsid bash logs/20261104-hom_grasp_genome_ea/queue.sh >> logs/20261104-hom_grasp_genome_ea/queue.log 2>&1 &
+```
+
+Files under `rows/ea_grasp/sv25/`:
+
+- `<task>_d<d>.jsonl` and `_timing.jsonl`: every rollout of the three searches (the key holds `pick`, the individual
+  `s<seed>g<gen>c<child>`, with `run`, `gen`, `child`, `op`, `parent`, `resolved` and `v`) and every GPU batch;
+- `<task>_d<d>_s<seed>_gens.jsonl`: one line per generation of a search (the population with its fitness, the
+  incumbent, the rollouts so far, the children made by each operator), as hom_ea's gens files;
+- `<task>_d<d>_iters.jsonl`: one line per lockstep generation (re-solve and draw, open-pose and GPU seconds);
+- `val/`: both EAs' last incumbents at seeds 20-24; `cpu/cpu_check.jsonl`: the same on the CPU plant at seed 20;
+- `<date>-ea_grasp.json`: the report (the grid's best and its replay of hom_ea, each search's curve, incumbent,
+  rollouts to within 0.05 of the grid's best, validated and CPU scores; compute; the queue steps).
+
+hom_ea's own searches write to `docs/experiments/20261029-foundational_pose_review/rows/ea_live_sv25/`.
+
+Smoke test 12:22-12:26 on the roll (population 8, budget 60 and 90; rows in `rows_smoke/ea_grasp/`, not results): run,
+resume by replay (the replayed children matched their rows), validate, the CPU check and the report.
