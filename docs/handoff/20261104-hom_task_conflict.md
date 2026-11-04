@@ -22,36 +22,31 @@ plants: STS3032 0.87, friction 0.4 0.79, work plant 0.85; the STS3032 at 0.9 has
 Size grid (16 tasks, 8,182 Sobol layouts): alpha*_1 0.51, alpha*_3 0.80, alpha*_7 0.90; K* 7 at 0.9 and 11 at 0.95,
 each equal to the largest mutually incompatible set; K* 3 against a bound of 2 at 0.7. One layout over the four twist
 sizes (30-63 mm) reaches 0.60 of each size's best, over the four press sizes (10-40 mm) 0.88.
+11-04 02:3x (autopilot): scripts not yet switched (paths scripts/hom_*.py). `validate` added; queue
+docs/experiments/20261103-hom_task_conflict/queue.sh (logs/20261103-hom_task_conflict/) from 02:20: sv25 done 02:27
+(9,300 rollouts, 415 s, peak 2.44 GB), k21 then k21mu0p4 running. Rows reproduce the score-refine S1 val rows on 60 shared
+layouts (mean |diff| 0.008-0.012). `scope --val` written (chosen(): choose on one matrix, score on another; smooth()).
+02:4x: k21 done 02:34; k21mu0p4 running. 20261104-conflict_{sv25,k21}.json written with --val. SCS0009 at seeds 20-24
+(chosen at 0-2): same specialists and J_1 layout (70,110); J_K .749 .775 .810 .824 (J_T/J_1 1.10); max-min reaches
+0.843; generalists kept 20/30 at .6, 4/7 at .7, 1/1 at .8; segment margins up to 0.61; rho(seeds) .89-.93. Step 4 done
+(sizes rerun identical). Refine queue (queue_refine.sh, 10 shared layouts in rows_refine/sv25/) waits for the validation;
+do not edit scripts/hom_task_conflict.py while either queue runs. Page builder scripts/hom_task_conflict_page.py: figs
+drafted (maps, curves, pairs, sizes, refined); text sections, films, compute still to write.
+02:5x: steps 1, 2, 4 done (commit 36ede6927). Refine queue from 02:41 (twist grasp ~43 s/iteration; ends ~03:45).
+Page draft builds (20261104-hom_task_conflict.html, prose within targets); still open: sec_refined text, related work
+(a background agent reads the papers), lede, future work, the S3 film clips (S1 clips done, CPU within 0.08 of GPU),
+compute (ledger after the queue), README written (outcome to add), memory, commit, push.
+03:5x: done. Refine queue ended 03:29 (no failed step); step 3 commit 2fbe624c6, page commit 85845f03e
+(docs/experiments/20261103-hom_task_conflict/20261104-hom_task_conflict.html, not published). Validated SCS0009:
+alpha*_1 0.84, K*(0.9) 3, J_4/J_1 1.10; S3 on 10 shared layouts: J_4/J_1 1.09, K*(0.9) 2, pin-push gap persists.
+README outcome, memory (project_hom_task_conflict_2026_11_03, reference_specialist_generalist_literature) updated.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
-- [ ] 1. Paths: after the scripts switch the scripts are under scripts/hom/ and the package is sr2hand (`git log -1 -- scripts/hom`).
-    Add `validate --plant P` to hom_task_conflict.py: every layout of the grid on every task it reaches, with its S1 grasp,
-    at seeds 20-24, through hom_grasp_refine.setenv and evaluate (hom_gpu.batch_child; rows
-    docs/experiments/20261103-hom_task_conflict/rows/<plant>/val/<task>_d<d>.jsonl with their _timing lines), launched
-    through resguard (--mem 5G; retry on exit 3 as logs/20261103-hom_score_refine/queue.sh's job() does). About 10,000
-    rollouts per plant; run sv25, k21 and k21mu0p4.
-- [ ] 2. Add `--val` to scope: choose the specialists, blends, K-sets and pair curves at seeds 0-2 and score them at seeds
-    20-24; also the choice made at seeds 20-24 alone. Add a smoothed variant (each layout's score the mean over its 3 x 3
-    lattice block), standing for seed noise and the gantries' placement error. Write per plant J_K, J_T/J_1, the pair
-    quantities and the break-even run length N T_e = T_s / (J_K / J_1 - 1) to the JSON.
-- [ ] 3. Blending through the grasp and HOM's parameters, on sv25: the four specialists, the J_1 layouts (raw and normalized),
-    the max-min layout and the K = 2 and 3 layouts (at most 10). For each task a layout reaches, write <task>_layouts.json
-    in hom_grasp_refine's format under docs/experiments/20261103-hom_task_conflict/rows_refine/sv25/ and run its levels
-    grasp and full and validate there, from a wrapper in hom_task_conflict.py that sets hom_grasp_refine.ROWS_ROOT
-    (layouts() reads an existing sample file; no edit to hom_grasp_refine.py). Recompute J_K at the validated S2 and S3:
-    does each task's own grasp, forces and modes on one shared layout close the gap to the refined specialists?
-- [ ] 4. Object sizes in the six gantry coordinates (CPU only): rows/sizes_v4bff under
-    docs/experiments/20261029-foundational_pose_review/ (pin-push and press at 10, 16, 25 and 40 mm, twist and roll at
-    30, 40, 50 and 63 mm, on the 8,192 Sobol layouts; work plant at 10 MPa). If one layout set is scored at every size,
-    run the scope with (task, size) as the objectives: how many layouts does a range of object sizes need?
-- [ ] 5. Page: scripts/hom_task_conflict_page.py from scripts/hom_score_refine_page.py's components (topic design), output
-    docs/experiments/20261103-hom_task_conflict/<date>-hom_task_conflict.html: Terms and metrics; method (J_K, pair
-    curves, dominance margin, the rule, in LaTeX); the SCS0009 (payoff table of specialists by task, J_K against K, maps
-    of each task's score over x_sep and y_sep with the specialists and the blend marked, the pair fronts with the
-    straight segment); the other plants; the refined layouts; sizes; the rule with the gantry times and episode
-    lengths; limitations; future work. Films of the J_1 layout and each task's specialist doing the task (CPU clips
-    through resguard, hom_plant_page.compose). Read every figure at its displayed size; prose_lint within targets;
-    banned words searched.
+- [x] 1. Paths: after the scripts switch the scripts are under scripts/hom/ and the package is sr2hand (`git log -1 --… Done 11-04 02:42: validate added (paths unchanged: no scripts switch yet); queue.sh 02:20-02:41 ran sv25, k21, k21mu0p4: 1,860 pairs and 9,300 rollouts each, peak 2.44 GB; rows rows/<plant>/val/ with _timing and _runs lines; agree with the score-refine S1 validation on 60 shared layouts to 0.008-0.012 mean; commit 36ede6927
+- [x] 2. Add `--val` to scope: choose the specialists, blends, K-sets and pair curves at seeds 0-2 and score them at s… Done 11-04 02:42: scope --val: choices at seeds 0-2 scored at 20-24, at 20-24 alone, and 3x3 smoothed (smooth()); JSONs 20261104-conflict_{sv25,k21,k21mu0p4}.json with J_K, J_T/J_1, pairs, coverage, decisions per variant (break-even run length dropped, direction 9). SCS0009: J_K .749/.775/.810/.824 (J_4/J_1 1.10), alpha*_1 .84, K*(0.9) 3; STS3032 1.11, .87; friction 0.4 1.15, .81; segment margins up to .61 (.02-.11 smoothed); commit 36ede6927
+- [x] 3. Blending through the grasp and HOM's parameters, on sv25: the four specialists, the J_1 layouts (raw and norm… Done 11-04 03:37: 10 shared layouts refined (S2, S3, start as cand 0; 78 searches) and validated at seeds 20-24 (queue_refine.sh 02:41-03:29); refined: J_1 .749/.772/.821, J_4 .838/.849/.898 (J_4/J_1 1.12->1.09); best generalist vs own best .80 (S1) .77 (S3); K*(0.9) 3 -> 2 at S3; at S1 thresholds generalists 1->4 at 0.7, 0->1 at 0.8, none at 0.9; the gap persists on the pin-push (.73 vs .94); commit 2fbe624c6
+- [x] 4. Object sizes in the six gantry coordinates (CPU only): rows/sizes_v4bff under docs/experiments/20261029-found… Done 11-04 02:34: Checked, nothing new run: scope --grid sizes reruns field-for-field identical from rows/sizes_v4bff (8,182 Sobol layouts, 16 tasks, work plant 10 MPa, seeds 0-2): alpha*_1 0.51, alpha*_3 0.80, alpha*_7 0.90; K* 7 at 0.9 and 11 at 0.95, each equal to the largest mutually incompatible set; K* 3 vs a set of 2 at 0.7; one layout over four sizes reaches 0.60 (twist), 0.86 (roll), 0.85 (pin-push), 0.88 (press). Goes on the page in step 5 (20261103-conflict_sizes.json).
+- [x] 5. Page: scripts/hom_task_conflict_page.py from scripts/hom_score_refine_page.py's components (topic design), ou… Done 11-04 03:37: page docs/experiments/20261103-hom_task_conflict/20261104-hom_task_conflict.html (builder scripts/hom_task_conflict_page.py): terms, method + Algorithm 1, SCS0009 (payoff, maps, lambda(A) table, decision table, pairs), plants, refined layouts, sizes, related work (checked), 4 films x 4 clips (CPU within 0.1 of GPU), compute, limits, future work; gantry times dropped (direction 9); every figure read at 828 px; prose lint within targets; banned words searched; commit 85845f03e
 - [ ] 6. Record: README.md in the study folder (runbook), memory, commit and push.
 Standing directions (for every step):
 - Compute tracking (owner 11-03 19:0x: "let's make sure we're timing this all for compute-tracking purposes and throughput measuring, including cpu vs gpu speedups"): run every GPU batch through hom_gpu.batch_child so each writes its _timing.jsonl line beside its rows; log each run's wall, draw and GPU-batch times as JSON lines; after the runs, `python3 scripts/hom_compute.py ledger` and `report` (add this study's rows to the ledger's roots if they are missing), and give the job's rollouts, batch hours and ms per rollout in its page section.

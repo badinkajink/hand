@@ -624,7 +624,7 @@ is {js[0]:.3f}, against {js[-1]:.3f} with each task on its own specialist (Table
     p2 = f"""<p>At seeds 20-24 alone, {lev[0.6]['n_generalists']} layouts are generalists at level 0.6,
 {lev[0.7]['n_generalists']} at 0.7 and {lev[0.8]['n_generalists']} at 0.8. None is at 0.85. The best single layout is
 also the best generalist: its worst task reaches {co['best_generalist_worst']:.2f} of that task's best, so
-$\\alpha^*_1$ = {co['alpha_star']['1']:.2f}. Two layouts reach $\\alpha^*_2$ = {co['alpha_star']['2']:.2f} and three
+$\\alpha^*_1$ = {co['best_generalist_worst']:.2f}. Two layouts reach $\\alpha^*_2$ = {co['alpha_star']['2']:.2f} and three
 reach $\\alpha^*_3$ = {co['alpha_star']['3']:.2f}. At level 0.9 three layouts are needed, and the
 {andj([NAME[t].lower() for t in inc])} are mutually incompatible there. Of the
 {kept[0.6]['n_generalists_choose']} generalists at level 0.6 found at seeds 0-2, {kept[0.6]['n_generalists_kept']}
@@ -689,7 +689,8 @@ def plant_rows(Js):
             lev = {r["alpha"]: r for r in co["levels"]}
             seeds = "0-2"
         a = co["alpha_star"]
-        rows.append([PLANT_NAME[pl], seeds, f2(js[0]), f2(js[-1]), f2(js[-1] / js[0]), f2(a["1"]), f2(a["2"]),
+        rows.append([PLANT_NAME[pl], seeds, f2(js[0]), f2(js[-1]), f2(js[-1] / js[0]), f2(co["best_generalist_worst"]),
+                     f2(a["2"]),
                      f2(a["3"]), str(lev[0.7]["n_generalists"]), str(lev[0.8]["n_generalists"]),
                      str(lev[0.9]["K_star"]), str(len(lev[0.9]["mutually_incompatible"]))])
     return rows
