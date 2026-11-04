@@ -69,7 +69,7 @@ def rot_from_to(a, b):
     a, b = np.asarray(a, float) / np.linalg.norm(a), np.asarray(b, float) / np.linalg.norm(b)
     v, c = np.cross(a, b), float(a @ b)
     if np.linalg.norm(v) < 1e-12:
-        return np.eye(3) if c > 0 else -np.eye(3)
+        return np.eye(3) if c > 0 else C.rot_from_to(a, b)   # a half turn about a perpendicular, never -I
     K = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
     return np.eye(3) + K + K @ K * (1.0 / (1.0 + c))
 
