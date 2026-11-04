@@ -2821,6 +2821,15 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
     3x or 1x comes under 0.3 mm with either turn.
   - With the turn, the flags left are the presses' own moves above: the edge-654 obliques, the edge-639 stems at
     0.95 to 0.97 mm, and deep presses at 0.31 to 0.40 mm from the tip body.
+- 20:20:11, seat 2's half a (rod21, from 19:15:06) ended cleanly: 26 light sweeps and probe-ref-a1, all ok.
+  - The sweeps took 103 to 165 s, median 150 s. 25 reached 8 N; sweep-edge-573-r90 stopped at 2 N (its max_depth
+    0.75 mm near the edge).
+  - 809 of 832 offsets and 102 of 104 slides were held.
+  - The friction check skipped seven times: five at 0.5 N's offsets (r 0.06 mm, the push along the normal 0.16 N or
+    less), one at 1 N's offsets (edge-668-r90) and one at 4 N's slides (edge-573-r90).
+  - The HEX-E gave 390,162 samples, none timed out.
+- 20:20:17, step 2: seat 3's half a (rod32) on `202017-rod32_seed`, seeded from s3v4 (c_M from the plan, (0, 0,
+  107.5) mm), with its pass 1 and fit first.
 - Correction: the lab's message to the workstation stamped 19:1x (the plans not fitting) was sent between 18:59 and
   19:05. The workstation's relays reach corvus stamped about 10 min ahead of its clock.
 
