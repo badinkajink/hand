@@ -40,13 +40,29 @@ grasp EA 0.00 (85, 70: drop; GPU 0.998), 1.00, 1.00; layout EA 0.92, 0.37, 0.92 
 incumbents (95, 60), (80, 55), (75, 55) at 0.583/0.592/0.583, validated 0.580/0.595/0.580. Layout EA: within 0.05 at
 5,184, 5,424, 3,648; incumbents (85, 170) x2 validated 0.654, 0.653 and (90, 130) 0.607 -> 0.330 at seeds 20-24. CPU
 seed 20: grasp EA 0.58, 0.59, 0.59 (GPU 0.58-0.60); layout EA 0.62, 0.50, 0.62. eag_pinpush from 14:30:50.
+Cause of the roll's loss: generation 0 scores layouts by their foundational pose (FP); the roll's FP map peaks at
+(80, 60) 0.557 while the grid's best (85, 170) has FP 0.113 and best-of-16 0.654 (rho FP vs best-of-16: twist 0.58,
+roll 0.70). 14:4x: builder committed (6a7298928): ea-figs (curves + FP/best-of-16 maps), ea-films, sec_ea with
+Algorithm 1, terms, ref [5], limitation, future item (generation 0 from S1's grasp, --start s1), lede/summary; README
+runbook; queue_ea_grasp.sh. A test build to logs/.../test_page.html renders. After the queue: report, ea-figs, ea-films,
+page build, hom_compute ledger/report, commit rows (LFS) + page, push, memory, README outcome.
+15:22: pin-push done. Grasp EA within 0.05 of 0.744 at 621, 1,167, 237; incumbents (75, 115) 0.754, (85, 85) 0.808,
+(70, 135) 0.742, validated 0.751, 0.812, 0.731. Layout EA within 0.05 at 768, 2,064, 576; incumbents (75, 55),
+(75, 80), (55, 170) at 0.73/0.73/0.72, validated 0.781, 0.682, 0.689. CPU seed 20: grasp EA 0.73, 0.81, 0.72; layout EA
+0.87, 0.67, 0.66. eag_press from 15:22:36 (queue end ~16:15).
+16:13 queue done, no failed step. Press: grasp EA within 0.05 of 0.816 at 2,124, 1,575, none; validated 0.780, 0.782,
+0.751; layout EA at 1,008, 3,168, 288; validated 0.812, 0.615, 0.615 ((85, 65) twice, 0.77 -> 0.61). Validated
+medians grasp EA vs layout EA: twist 1.00/1.00, roll 0.58/0.65, pin-push 0.75/0.69, press 0.78/0.61. Grasp-EA
+incumbents within 0.011 of their search scores; CPU seed 20 within 0.05: 11/12 vs 7/12. Compute: grasp EA 72,561
+rollouts, 1.59 h batches, 2.05 h steps (61/79/102 ms run/batch/step); layout EA 70,944, 1.03 h, 1.10 h (41/52/56 ms);
+CPU 2.5 s a rollout: 40/24 cores per GPU (grasp EA), 61/44 (layout EA). hom_compute ledger and report rerun (4,595,537
+HOM GPU rollouts since 10-29). Page Section 8 built (prose 17.6 words, 2.9 % over 30), 4 films and 2 figures; rows
+commit 2024f6778; README outcome; memory project_hom_codesign_levels_2026_11_03 updated.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Go/no-go from the page job's line: if the validated S2 - S1 is under 0.03 in median on all four tasks, the gr… Done 11-04 12:14: Go 11-04 12:2x: validated median S2e - S1 on the 30 best SCS0009 layouts is twist +0.083, roll +0.019, pin-push +0.025, press +0.032 (page job's Go/no-go line); twist and press above 0.03, so the grasp-genome EA runs
 - [x] 2. Write scripts/hom_ea_grasp.py: an individual is (lattice layout, grasp v). A child moves its parent's layout … Done 11-04 12:29: scripts/hom_ea_grasp.py (f90255448): (layout, grasp) individuals, hom_ea's gen 0 and selection, layout move + Problem.solve re-solve or grasp step at p 0.5, draw_layout's rule at 0.25 widths, fitness = 3-seed mean; search seeds in lockstep (one GPU batch per generation); run/validate/cpu/report smoke-tested on the roll (rows_smoke), resume by replay checked
-- [ ] 3. Run it on sv25 at the default objects (twist and roll 40 mm sphere, pin-push and press 25 mm cylinder), three search
-    seeds each, and hom_ea.py at the same budget on the same plant (HOS_PLANT=servo, HOS_SCENES, HOM_ROWS_TAG=_sv25);
-    validate each run's incumbent at seeds 20-24.
+- [x] 3. Run it on sv25 at the default objects (twist and roll 40 mm sphere, pin-push and press 25 mm cylinder), three… Done 11-04 16:14: Queue 12:27-16:13 (stalled 13:02-13:34 on the swap gate), no failed step: grasp EA x3 and hom_ea x3 per task on sv25 at the default objects, 6,000 rollouts each, incumbents validated at seeds 20-24 and on the CPU plant at seed 20; validated medians grasp EA vs layout EA twist 1.00/1.00, roll 0.58/0.65, pin-push 0.75/0.69, press 0.78/0.61; report rows/ea_grasp/sv25/20261104-ea_grasp.json
 - [ ] 4. Report the best validated score per method and the rollouts each needs to come within 0.05 of the grid's best; add a
     section and a figure to the score refine page; commit; push; memory and README.
 Standing directions (for every step):

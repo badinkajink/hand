@@ -274,3 +274,30 @@ hom_ea's own searches write to `docs/experiments/20261029-foundational_pose_revi
 
 Smoke test 12:22-12:26 on the roll (population 8, budget 60 and 90; rows in `rows_smoke/ea_grasp/`, not results): run,
 resume by replay (the replayed children matched their rows), validate, the CPU check and the report.
+
+Outcome (queue 12:27-16:13 on 11-04, no failed step; from 13:02 to 13:34 resguard refused its steps on swap 15.1 GB >
+15 GB, the desktop's pages). Rollouts until a search's incumbent scores within 0.05 of the grid's best at seeds 0-2,
+and each search's last incumbent at seeds 20-24, three searches per EA:
+
+| task | grid's best, seeds 0-2 (its layout at 20-24) | rollouts to within 0.05: layout EA | layout-and-grasp EA | incumbents at 20-24: layout EA | layout-and-grasp EA |
+|---|---|---|---|---|---|
+| twist | 1.00 (1.00) | 5,472, 1,728, 3,216 | 1,479, 1,410, 747 | 1.00, 1.00, 1.00 | 1.00, 1.00, 1.00 |
+| roll | 0.65 (0.66) | 5,184, 5,424, 3,648 | none, none, none | 0.65, 0.33, 0.65 | 0.58, 0.60, 0.58 |
+| pin-push | 0.74 (0.80) | 768, 2,064, 576 | 621, 1,167, 237 | 0.78, 0.68, 0.69 | 0.75, 0.81, 0.73 |
+| press | 0.82 (0.86) | 1,008, 3,168, 288 | 2,124, 1,575, none | 0.81, 0.61, 0.61 | 0.78, 0.78, 0.75 |
+
+The medians at seeds 20-24 differ by +0.00, -0.07, +0.06 and +0.17 (layout-and-grasp EA less layout EA). The
+layout-and-grasp EA's incumbents lie where each layout's foundational pose scores well, because its generation 0 scores
+each layout by that pose and its grasp steps stay near it: Spearman's rho between the foundational pose's score and the
+best of 16 over the grid is 0.58, 0.70, 0.68 and 0.49. On the roll the foundational pose peaks at (80, 60), 0.56, and
+scores 0.11 at the grid's best layout (85, 170), whose best grasp scores 0.65; on the press it scores 0 at (70, 150),
+the grid's best (0.82). Every layout-and-grasp incumbent kept its search score within 0.011 at seeds 20-24; the layout
+EA's lost up to 0.28 (roll, (90, 130)) and 0.15 (press, (85, 65) in two searches). On the CPU plant with every contact
+at seed 20, 11 of the 12 layout-and-grasp incumbents and 7 of the 12 layout EA incumbents score within 0.05 of the GPU
+at that seed; the twist's (85, 70) layout-and-grasp incumbent drops the sphere there (GPU 1.00), and the layout EA's
+twist incumbent at (105, 105) scores 0.37 (GPU 1.00).
+Three layout EA searches stopped at hom_ea's cap of 40 generations, at 4,704 to 5,328 rollouts. Compute: the
+layout-and-grasp EA ran 72,561 GPU rollouts in 278 batches of up to 483 worlds, 1.59 h of batch time in 2.05 h of queue
+steps (61, 79 and 102 ms per rollout of run, batch and step time); the layout EA 70,944 in 110 batches, 1.03 h in 1.10 h
+(41, 52 and 56 ms). The CPU runner took a median 2.5 s a rollout on one core in the CPU check: one GPU equals 40 cores on
+the layout-and-grasp EA's rollout loop and 24 over its steps, and 60 and 44 on the layout EA's.
