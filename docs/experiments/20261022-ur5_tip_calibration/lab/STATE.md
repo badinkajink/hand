@@ -270,6 +270,8 @@ The owner answered at about 11:37, in the workstation's session, which passed th
     - Checked: no id ended ok in its session before; the lab's chained dry-check from the arm's joints flags 0 of the
       232 (`20261104-rod_points_run_check.json`), as the workstation's; at the joint fit's 2 sd corners every action
       keeps 0.2 mm from the tip body (the workstation's).
+    - Done: seat 1's face and edges (pts11), 11:17:06 to 11:54:46, 75 of 75 to 3 N, no skip or abort. From 11:54:51,
+      seat 3's (pts32).
   - **Next, 11-04 from about 11:1x: more rod points before the SR2 mounting.** The owner, relayed at 10:44: "if we
     just lost density of coverage why dont we just add points now. i know i said we were done earlier, but we should
     have a few hours left to get that density". The held-out GP places contact to 0.78 to 0.82 mm on IDs 4 to 6,

@@ -3097,6 +3097,12 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - Its preflight: slider 0.30; HEX-E at 100 Hz with the night's noise (Fz 0.247 N sd); the three mux channels at 138
     records/s each.
   - The steps file and the chain are copied here (`20261104-rod_points_steps.txt`, `20261104-chain_rod_points.sh`).
+- 11:54:46, seat 1's face and edges ended cleanly: 75 of 75 to 3 N, no skip or abort, in 37.6 min.
+  - The first five actions took 41 to 51 s each. Their travels are joint by the plan (the r0 edges, then the turn to
+    r90) and took 22 to 31 s. The presses after straight travels took 23 to 30 s.
+  - The HEX-E gave 225,334 samples, none timed out. Its two gaps (0.9 and 0.7 s) came at 11:17:06 and 11:17:07, at
+    the program's start, before the preflight.
+- 11:54:51, step 2: seat 3's face and edges (pts32, 70 grid actions) on `202017-rod32_seed` (199 actions done there).
 
 ## The lab clone and git-lfs
 
