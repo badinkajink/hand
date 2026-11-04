@@ -221,7 +221,25 @@ newton, until the approach outgrows what 1&#8202;mm pads represent. The rule fro
 95A tips of the first studies gave 11.7&#8202;&#181;m/N at best. eFlesh lattices, printed open as eFlesh prints them, give
 250&#8202;&#181;m/N of travel, but they sink 613&#8202;&#181;m at 1&#8202;N and print with unsupported islands. With a skin closing
 every face they sink 81&#8202;&#181;m and give 0.075&#8202;N, which is the gyroid&#8217;s resolution
-([eFlesh printability](exp:20261013-eflesh_printability/20261013-eflesh_lattice_printability.html)).</p>"""),
+([eFlesh printability](exp:20261013-eflesh_printability/20261013-eflesh_lattice_printability.html)).</p>
+<p>The pad&#8217;s shape is the 11/22 half-ellipsoid, the owner&#8217;s choice of 2026-10-18 after two screens on the
+SR2 hand and a calibration of the contact models to the FE. The screens scored 24 rounded blocks and nine curved tips:
+three capsules, three half-ellipsoids and three quarter-ellipsoids. A tip&#8217;s score is the held turn of the grasps
+on four cylinder cells and of HOM on D1&#8211;D8, as a fraction of 90&#8202;&#176;. Its worst over five friction and
+servo conditions chose the finalists, which were scored again on fresh placements (J3). No tip beat the printed block:
+the 11/22 half-ellipsoid scored J3 = 0.223 against 0.170, and the 90&#8202;% interval of the difference runs from
+&#8722;0.004 to +0.100 ([fingertip co-design](exp:20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html),
+[curved tips](exp:20261015-curved_tips/20261015-capsule_and_ellipsoid_fingertips.html)). Its GPU world-step took
+1.72&#8202;&#181;s against the block&#8217;s 2.93, and its GPU memory was the least of the capsules and half-ellipsoids,
+5.5 against 11.1&#8202;GB. One contact model fitted to the FE reproduced the half-ellipsoids, at 5.2&#8202;% RMS in Drake
+and 5.6&#8202;% with the pads on the 11/22. No single spring fitted the capsule, which met 4.1 times the stiffness from a
+rod along the finger as from one across it
+([FE calibration](exp:20261018-fe_contact_calibration/20261018-fe_contact_calibration.html)). The quarter-ellipsoids
+failed the screens&#8217; agreement gate with Drake, and their nearest chip saturates at 214&#8202;mT.</p>
+<p>A hemisphere was tested only on the contact bed, and the force resolution only on the block and the 11/22. The
+screens ran on the first CAD hand, before the pads&#8217; modulus moved to 2.5&#8202;MPa and before the measured servo
+plant. A rerun on the current hand, with a hemisphere and a resolution for every shape, is queued after the HOM
+studies.</p>"""),
     ("fe", "Finite elements of the printed structure",
      r"""<p><b>Materials.</b> The tip&#8217;s shape is voxelized at 0.05&#8202;mm. In each layer plane, TPU within 0.9&#8202;mm
 of the outline is wall. TPU within 0.8&#8202;mm of an exposed surface along the build axis is skin. The rest is core. The
@@ -512,7 +530,11 @@ Section 12). A third print, v3 ID 3, ran the same suite on 2026-10-29 and 10-30.
 held-out location error falls from 0.56&#8211;0.63&#8202;mm with half of the training points to 0.46&#8211;0.51&#8202;mm
 with all of them
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#data_curve),
-Section 14).</p>
+Section 14). Three more prints, v3 IDs 4 to 6, were pressed pad up on an inverted rig from 2026-11-02 to 11-04, in
+17,714 holds. With each tip&#8217;s sessions pooled, the same error falls from 1.05&#8211;1.19&#8202;mm with half of the
+training points to 0.78&#8211;0.82&#8202;mm with all of them
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#rig),
+Section 15).</p>
 <p>On the hand the other fingertips&#8217; magnets add their field to each board. In the field model a four-magnet
 neighbour adds 38&#8202;&#181;T with the pads facing and touching, and 2,928&#8202;&#181;T side by side. A five-magnet
 neighbour like v2 ID 1 adds 513 and 4,162&#8202;&#181;T. A 0.5&#8202;N press changes v2 ID 1&#8217;s board by
