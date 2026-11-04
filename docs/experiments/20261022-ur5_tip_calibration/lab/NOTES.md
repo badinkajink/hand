@@ -3151,6 +3151,36 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
 - 13:1x, seats 1 and 3's flanks and tip went to the workstation by git: `20261104-rod13_ft_tail/` (16 MB) and
   `20261104-rod32_ft_tail/` (13 MB), past the sizes at the end of their face and edge steps.
 
+### v3 ID 3 on seat 1: tip or rig (11-04, from 14:3x)
+
+- At 14:3x the owner put v3 ID 3 in seat 1, where ID 6 was, and left the rod on the arm. Their words, relayed by the
+  workstation: "i placed v3 id 3 where v3 id6 is. let's settle this quickly". In the lab's session: "v3 id3 is now
+  mounted where v3 id6 was".
+- The workstation's question: tip or rig. IDs 4 to 6 on the inverted rig place near-normal loads to 0.48 to 0.67 mm,
+  and IDs 1 to 3 in tip mode to 0.39 to 0.40. ID 3 has both rigs' data once it runs here.
+- The workstation's plan, being built at 14:3x, takes about 50 min:
+  - a new session on seat 1 with its own pass 1 (20 touches, as the night's);
+  - 8 reference presses back to back;
+  - one normal rod press at each face and edge point 1.0 mm apart (about 105, 0.5 to 3 N);
+  - a reference press every 25 actions and last.
+- 14:40, the held board, read with the program's reader while nothing ran (scratchpad `held_check.py`):
+  - It finds channels 0, 2 and 3, each at 151 records/s, with 1.6 to 2.8 uT of noise.
+  - Channel 3's rest field is ID 3's (scratchpad `tip_identity.py`). It lies 73 to 77 uT rms from ID 3's own at the
+    start of its tip-mode sessions of 10-29 (`134508-spherev3id3`, `230820-rodv3id3`). The tip then hung pad down,
+    so Earth's field turned with it.
+  - Every other v3 tip lies 219 to 480 uT away: IDs 1 and 2 in tip mode, and IDs 4, 5 and 6 in their seats.
+- 14:40, the arm: the owner moved it by hand, since the robot logged no message after 13:16:50.
+  - Now: joints (49.05, -78.46, 106.71, -124.79, -91.31, -38.05) deg, flange (-267.8, -474.1, 248.6) mm.
+  - From seat 1's reference rest of 10:45, that is 11.2 mm up, 3.3 mm across and turned 1.54 deg.
+  - Slider 0.30, robot mode 7, safety normal. The plan's first travel is checked from these joints.
+- The rod's pass 1 fits the pad's pose again (`fit_rod_registration`), so ID 3 gets its own frame. It fits:
+  - the pad's T_AP about the seed's, 6 parameters with priors of 1, 1 and 0.5 deg and 0.5 mm;
+  - the rod's c_M across its axis;
+  - the rod axis's turn.
+
+  A seed from rod13's session starts the fit from ID 6's pad. The roll about the tip's long axis is the least seen (its
+  prior 0.5 deg), as on the night's rod sessions.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
