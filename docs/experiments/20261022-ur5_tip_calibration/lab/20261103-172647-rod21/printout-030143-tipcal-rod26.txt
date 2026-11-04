@@ -1,0 +1,58 @@
+resumed logs/20261103-tip_calibration/172647-rod21_seed: 57 actions done, 20 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 138 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 138 records/s, mux channel 2 138 records/s, mux channel 3 138 records/s
+  HEX-E noise (1 sigma) N, N m: [0.0388 0.0141 0.2451 0.0027 0.0037 0.001 ]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  probe-ref-b0 (1/47): to 3.00 N
+  sweep-edge-668-r0 (5/47): to 8.00 N
+  sweep-edge-642-r0 (6/47): to 8.00 N
+  sweep-face-756-r0 (7/47): to 8.00 N
+  sweep-edge-666-r0 (8/47): to 8.00 N
+  sweep-face-785-r0 (9/47): to 8.00 N
+  sweep-face-756-r90 (10/47): to 8.00 N
+  sweep-face-708-r90 (11/47): to 8.00 N
+  sweep-face-708-r0: 0.5 N's offsets stop at r 0.06 az 90: the push across the pad 0.68 N at 0.13 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-face-708-r0 (12/47): to 8.00 N
+  sweep-edge-610-r90 (13/47): to 8.00 N
+  sweep-edge-628-r0 (14/47): to 8.00 N
+  sweep-face-692-r0: 1 N's offsets stop at r 0.084 az 90: the push across the pad 0.91 N at 0.30 N along its normal, over 1.2 x the push along + 0.5 N
+  sweep-face-692-r0 (15/47): to 8.00 N
+  sweep-face-768-r0 (16/47): to 8.00 N
+  sweep-edge-618-r90 (17/47): to 4.00 N
+  sweep-face-776-r0 (18/47): to 8.00 N
+  sweep-flank-563-r0 (19/47): to 8.00 N
+  sweep-flank-553-r0 (20/47): to 8.00 N
+  sweep-edge-628-r90 (21/47): to 8.00 N
+  sweep-face-759-r90 (22/47): to 8.00 N
+  sweep-face-697-r90 (23/47): to 8.00 N
+  sweep-face-781-r90 (24/47): to 8.00 N
+  sweep-face-713-r90 (25/47): to 8.00 N
+  sweep-face-785-r90 (26/47): to 8.00 N
+  sweep-face-790-r90 (27/47): to 8.00 N
+  sweep-face-731-r90 (28/47): to 8.00 N
+  sweep-face-733-r90 (29/47): to 4.00 N
+  sweep-face-735-r90 (30/47): to 8.00 N
+  probe-face-692-r90-t-15 (31/47): to 5.00 N
+  probe-face-692-r90-t+15 (32/47): to 5.00 N
+  probe-face-756-r90-t-15 (33/47): to 5.00 N
+  probe-face-756-r90-t+15 (34/47): to 5.00 N
+  probe-face-768-r90-t-15 (35/47): to 5.00 N
+  probe-face-768-r90-t+15 (36/47): to 5.00 N
+  probe-face-708-r90-t-15 (37/47): to 5.00 N
+  probe-face-708-r90-t+15 (38/47): to 5.00 N
+  probe-face-721-r90-t+15 (39/47): to 5.00 N
+  probe-face-731-r90-t+15 (40/47): to 5.00 N
+  probe-face-733-r90-t+15 (41/47): to 5.00 N
+  probe-face-735-r90-t+15 (42/47): to 5.00 N
+  probe-ref-final (43/47): to 3.00 N
+  probe-face-776-r90-roll (44/47): to 4.00 N
+  probe-face-731-r90-roll (45/47): to 4.00 N
+  probe-face-785-r90-roll (46/47): to 4.00 N
+  probe-face-756-r90-roll (47/47): to 4.00 N
+HEX-E: 588423 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 1.0 s, Fz -0.1 N; 0.7 s, Fz -0.2 N
+session in logs/20261103-tip_calibration/172647-rod21_seed
+exit 0 at 04:39:56
