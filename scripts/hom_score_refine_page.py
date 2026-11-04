@@ -9,11 +9,15 @@ sure things are documented well!").
 Data: the reports rows/<plant>/<date>-score_levels.json of scripts/hom_grasp_refine.py, its _gens.jsonl files (the
 CEM's progress), the films' rows media/<date>-films.json, the friction check media/20261103-friction_check.json (figs:
 drops, contact-normal elevations and the static friction need of the STS3032 picks, from the validation rows) and
-compute/ (scripts/hom_compute.py). The results quote the elitist picks S2e and S3e. The design page's helpers and
-template (scripts/fp_review_page.py) draw the tables and figures.
+compute/ (scripts/hom_compute.py). The results quote the elitist picks S2e and S3e. The worst-case section (2026-11-04)
+reads rows/band_k21mu/<date>-band_levels.json (hom_grasp_refine.py report --band), its timing lines and the queue logs
+of logs/20261104-hom_worst_case/. The design page's helpers and template (scripts/fp_review_page.py) draw the tables and
+figures.
 
     .venv/bin/python scripts/hom_score_refine_page.py figs     # the figures and the friction check from the reports
     .venv/bin/python scripts/hom_score_refine_page.py films    # CPU clips through resguard (after the GPU queue)
+    .venv/bin/python scripts/hom_score_refine_page.py band-figs    # the worst-case section's figure (2026-11-04)
+    .venv/bin/python scripts/hom_score_refine_page.py band-films   # ... and its film
     .venv/bin/python scripts/hom_score_refine_page.py          # the page
     .venv/bin/python scripts/hom_score_refine_page.py --smoke  # the page from rows_smoke/ (a layout check, not results)
 """
@@ -349,6 +353,14 @@ def cmd_clip(spec):
         for f in HG.FINGERS:
             m.body_pos[m.body(f"{f}_mount").id] = bm[f]
     S.set_palm(m_pt, setup["palm"])
+    if s.get("filter"):     # the GPU's contact filter, as scripts/hom_compute.py cpu-worker --variant filter applies it
+        m = plant.m
+        fine = re.compile(r"_(dip_link|cassette|cap)_s\d+$")
+        filt = np.array([("_pad" in (m.geom(g).name or "")) or bool(fine.search(m.geom(g).name or "")
+                                                                    and m.geom_size[g][0] < 0.002) for g in range(m.ngeom)])
+        tool = np.flatnonzero(m.geom_bodyid == plant.tb)
+        m.geom_contype[filt], m.geom_conaffinity[filt] = 2, 0
+        m.geom_conaffinity[tool] = m.geom_conaffinity[tool] | 2
     fs, os_ = T.sr2_specs(setup)
     mirror = H.Mirror(m_pt, fs, os_)
     fl = HF.Film(plant, setup)
@@ -559,7 +571,16 @@ def sec_terms():
         ("Real-time factor", "simulated seconds per wall-clock second of one rollout."),
         ("Plants", "the finger servo model and the scene. The SCS0009 model (0.72 N m/rad, 0.18 N m) with pads at "
          "2.5 MPa is the hand's. The STS3032 model is tuned to 2.1 N m/rad and 0.515 N m. It runs at scene friction 1.0 "
-         "and at 0.4, the friction of TPU on bare PLA. Section 2 of [3] defines both."),
+         "and at 0.4, the friction of TPU on bare PLA, and in Section SEC[band] also at 0.7. Section 2 of [3] defines "
+         "both."),
+        ("Worst-case score", "a candidate's lowest three-seed mean score over the friction band, the STS3032 at scene "
+         "friction 0.4, 0.7 and 1.0 (Section SEC[band])."),
+        ("S1w, S2w, S3w", "S1, S2 and S3 with the worst-case score in place of the mean score at one friction. Their "
+         "searches scored the start as the first candidate, so S2w and S3w are elitist by construction."),
+        ("Lowest score over the band", "a pick's lowest validated score over the three frictions of the band."),
+        ("Contact filter", "the rule for which hand geoms meet the object. On the GPU only the pads and the rigid "
+         "spheres under 2 mm meet it. On the CPU plant every geom meets it, unless the GPU's contact filter is applied "
+         "(<code>hom_compute.py</code>'s variant <code>filter</code>)."),
     ]
     return "<dl>" + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in terms) + "</dl>"
 
@@ -860,6 +881,351 @@ hand by 1.3 s, before the support post is removed at 1.6 s (score {b['cpu']:.2f}
     return paras[0] + t + "".join(paras[1:3]) + fg + "".join(paras[3:]) + fm
 
 
+# ----------------------------------------------------------------------------------------------- worst-case score
+
+BAND = "band_k21mu"                                 # hom_grasp_refine.BANDS: the STS3032 at friction 0.4, 0.7, 1.0
+FRIC = {"k21mu0p4": "0.4", "k21mu0p7": "0.7", "k21": "1.0"}
+WC_LOGS = ROOT / "logs/20261104-hom_worst_case"
+BAND_FILMS = MEDIA / "20261104-band_films.json"
+BAND_FILM = {"task": "twist", "call": 362}          # layout 110 x 110 mm, as the friction film of Section sts
+BAND_STEPS = D / "rows" / BAND / "20261104-queue_steps.json"   # wall clock and peak RSS of each step of WC_LOGS/queue.sh
+BAND_CPU = D / "rows" / BAND / "20261104-cpu_check.jsonl"      # WC_LOGS/cpu_check.py: the picks on the CPU plant, seed 20
+
+
+def band_report():
+    """The newest worst-case report (hom_grasp_refine.py report --band), or None."""
+    base = (R.OUT / ("rows_smoke" if SMOKE else "rows")) / BAND
+    ps = sorted(base.glob("*-band_levels.json"))
+    return json.loads(ps[-1].read_text()) if ps else None
+
+
+def band_sets(W):
+    """The three pick sets: (source, pick, label), the worst case first; the friction-1.0 picks are the nominal ones."""
+    lo, hi = W["plants"][0], W["plants"][-1]
+    return [(BAND, "S3", "Worst case, S3w"), (hi, "S3e", "Tuned at 1.0, S3e"), (lo, "S3e", "Tuned at 0.4, S3e")]
+
+
+def fig_band(W):
+    """Per task: the validated score of the three pick sets at each scene friction, median over the layouts with the
+    interquartile range."""
+    plt = plt_setup()
+    fig, axs = grid4((9.5, 7.4), sharex=True, sharey=True)
+    fr = [float(FRIC[p]) for p in W["plants"]]
+    for ax, task in zip(axs, TASKS):
+        lays = W["tasks"].get(task, {}).get("layouts", [])
+        for (src, pick, lab), c, m in zip(band_sets(W), (C3, C2, C1), ("s", "o", "^")):
+            ys = [[e["val"][src][pick][p] for e in lays if e["val"][src][pick][p] is not None] for p in W["plants"]]
+            if not all(ys):
+                continue
+            q = np.array([np.percentile(y, (25, 50, 75)) for y in ys])
+            ax.plot(fr, q[:, 1], "-" + m, color=c, ms=7, lw=2, label=lab)
+            ax.fill_between(fr, q[:, 0], q[:, 2], color=c, alpha=0.12)
+        ax.set_title(f"{NAME[task]}, {OBJ[task]}")
+        ax.set_xticks(fr)
+        ax.set_ylim(-0.03, 1.03)
+        ax.grid(alpha=0.3)
+    labels(axs, "Scene friction", "Score at seeds 20-24")
+    axs[1].legend(loc="lower right", frameon=False)
+    save(fig, "20261104-band_k21mu.png")
+
+
+def band_compute():
+    """The worst-case job's GPU work (timing lines under rows/band_k21mu/, the queue steps' logs) and the CPU runner's
+    time per rollout at friction 0.7 (scripts/hom_compute.py cpu-bench --plant k21mu0p7)."""
+    import hom_compute as HC
+    lines = {p: [] for p in FRIC}
+    for q in sorted((D / "rows" / BAND).rglob("*_timing.jsonl")):
+        p = q.parent.name
+        if p in lines:
+            lines[p] += HC.batch_lines(q)
+    allb = [x for ls in lines.values() for x in ls]
+    if not allb:
+        return None
+    steps = {}
+    for q in sorted(WC_LOGS.glob("Q_*.log")):     # the queue's logs are not in git: their wall clocks go to BAND_STEPS
+        m = re.search(r"peak (\d+) kB, ([\d.]+) s", q.read_text(errors="replace"))
+        if m:
+            steps[q.stem[2:]] = {"wall_s": float(m.group(2)), "peak_rss_gb": round(int(m.group(1)) / 1e6, 2)}
+    if steps:
+        BAND_STEPS.write_text(json.dumps(steps, indent=1))
+    elif BAND_STEPS.exists():
+        steps = json.loads(BAND_STEPS.read_text())
+    out = {"all": HC.summarize(allb), "plants": {p: HC.summarize(ls) for p, ls in lines.items() if ls},
+           "steps": len(steps), "wall_s": sum(s["wall_s"] for s in steps.values())}
+    sess = HC.cpu_sessions(R.read_rows(D / "compute" / "cpu_bench.jsonl"))
+    cpu = {t_: HC.cpu_summary(*sess[k]) for t_ in TASKS for k in [("k21mu0p7", t_, "filter", 1)] if k in sess}
+    run07 = {t_: [1000 * r["run_s"] / r["worlds"] for r in lines["k21mu0p7"] if r["task"] == t_ and r["worlds"] >= 1024]
+             for t_ in TASKS}
+    out["cpu07"] = {t_: {"cpu_s": c["wall_s"], "gpu_run_ms": float(np.median(run07[t_])) if run07[t_] else None,
+                         "load": c["load_before"][0]} for t_, c in cpu.items()}
+    return out
+
+
+def cpu_gains(lo, hi):
+    """The CPU plant with every contact, seed 20: per task the median change of the lower of a pick's scores at 0.4 and
+    1.0, S3w less the picks tuned at 1.0, split into the cylinder tasks and the sphere tasks."""
+    if not BAND_CPU.exists():
+        return [], []
+    rows = [r for r in R.read_rows(BAND_CPU) if r["variant"] == "plant"]
+    idx = {(r["task"], r["plant"], r["call"], r["set"]): r["cpu"] for r in rows}
+    g = {}
+    for t_ in TASKS:
+        calls = sorted({r["call"] for r in rows if r["task"] == t_})
+        if calls:
+            low = lambda s: np.array([min(idx[(t_, p, c, s)] for p in (lo, hi)) for c in calls])  # noqa: E731
+            g[t_] = float(np.median(low("S3w") - low("S3e10")))
+    return ([g[t_] for t_ in g if OBJ[t_].endswith("cylinder")], [g[t_] for t_ in g if OBJ[t_].endswith("sphere")])
+
+
+def cpu_para(tk, lo, hi):
+    """The picks on the CPU plant at seed 20 (BAND_CPU) against the GPU's rollouts of the same seed: the lowest of each
+    pick's scores at friction 0.4 and 1.0, S3w less the picks tuned at 1.0, as a paragraph and a table."""
+    rows = R.read_rows(BAND_CPU)
+    idx = {(r["task"], r["plant"], r["variant"], r["call"], r["set"]): r for r in rows}
+
+    def change(task, var, src):
+        calls = sorted({r["call"] for r in rows if r["task"] == task and r["variant"] == var})
+        if not calls:
+            return None
+        low = lambda s: np.array([min(idx[(task, p, var, c, s)][src] for p in (lo, hi)) for c in calls])  # noqa: E731
+        return float(np.median(low("S3w") - low("S3e10")))
+
+    def zeros(task, s, src):
+        return sum(r[src] < 0.005 for r in rows if (r["task"], r["plant"], r["variant"], r["set"]) == (task, lo, "plant", s))
+
+    ch = {t_: {"gpu": change(t_, "plant", "gpu"), "cpu": change(t_, "plant", "cpu"), "filter": change(t_, "filter", "cpu")}
+          for t_ in tk}
+    n0 = P.TAB[0]
+    agree = [t_ for t_ in tk if abs(ch[t_]["cpu"] - ch[t_]["gpu"]) <= 0.05]
+    differ = [t_ for t_ in tk if t_ not in agree]
+    nm = lambda t_: f"the {NAME[t_].lower()}"  # noqa: E731
+    p = [f"""<p>Every layout's three picks also ran on the CPU plant at seed 20, at friction 0.4 and 1.0: {len(rows)}
+rollouts (Table {n0 + 1}). Each was compared with the GPU's rollout of the same pick and seed."""]
+    if agree:
+        p.append(f"""On {andj(nm(t_) for t_ in agree)} the lowest of a pick's two scores changes under S3w, against the
+picks tuned at 1.0, by a median of {andj(f"{ch[t_]['cpu']:+.2f}" for t_ in agree)} on the CPU with every contact. On the
+GPU it changes by {andj(f"{ch[t_]['gpu']:+.2f}" for t_ in agree)}.""")
+    for t_ in differ:
+        p.append(f"""On {nm(t_)} it changes by {ch[t_]['cpu']:+.2f} on the CPU with every contact and by
+{ch[t_]['gpu']:+.2f} on the GPU. At 0.4 on the CPU with every contact, S3w scores 0 on {zeros(t_, 'S3w', 'cpu')} of the
+30 layouts and the picks tuned at 1.0 on {zeros(t_, 'S3e10', 'cpu')}. On the GPU they score 0 on
+{zeros(t_, 'S3w', 'gpu')} and {zeros(t_, 'S3e10', 'gpu')}.""")
+        if ch[t_]["filter"] is not None:
+            p.append(f"With the GPU's contact filter on the CPU, the change on {nm(t_)} is {ch[t_]['filter']:+.2f}.")
+    body = [[NAME[t_], sg(ch[t_]["gpu"]), sg(ch[t_]["cpu"]), sg(ch[t_]["filter"]) if ch[t_]["filter"] is not None else "",
+             f"{zeros(t_, 'S3w', 'gpu')}, {zeros(t_, 'S3e10', 'gpu')}", f"{zeros(t_, 'S3w', 'cpu')}, {zeros(t_, 'S3e10', 'cpu')}"]
+            for t_ in tk]
+    tab = table(["Task", "Lowest, S3w less the 1.0 picks: GPU", "CPU, every contact", "CPU, GPU's contact filter",
+                 "Scoring 0 at 0.4 on the GPU: S3w, 1.0 picks", "On the CPU, every contact: S3w, 1.0 picks"], body,
+                "The picks at seed 20 on the GPU and on the CPU plant, at friction 0.4 and 1.0, over the 30 layouts per "
+                "task. Lowest: the lower of a pick's two scores; the columns give the median paired change of S3w "
+                "against the S3e picks tuned at 1.0. The twist also ran on the CPU with the GPU's contact filter.",
+                num_from=1)
+    return " ".join(p) + "</p>" + tab
+
+
+def sec_band(W):
+    if not W:
+        return "<p>The worst-case runs have not finished.</p>"
+    tk = [t_ for t_ in TASKS if t_ in W["tasks"]]
+    pl = W["plants"]
+    lo, hi = pl[0], pl[-1]
+    sets = band_sets(W)
+    T_ = {t_: W["tasks"][t_] for t_ in tk}
+    Ls = {t_: T_[t_]["layouts"] for t_ in tk}
+    M = {t_: T_[t_]["median_val"] for t_ in tk}
+    dm = lambda t_, k: T_[t_]["diff"][k]["median"]  # noqa: E731
+    zero = lambda t_, src, pick, p: sum(e["val"][src][pick][p] < 0.005 for e in Ls[t_])  # noqa: E731
+    lsg = lambda xs: andj(f"{x:+.2f} on the {NAME[t_].lower()}" for x, t_ in zip(xs, tk))  # noqa: E731
+    lst = lambda xs: andj(f"{x:.2f} on the {NAME[t_].lower()}" for x, t_ in zip(xs, tk))  # noqa: E731
+    rng = lambda xs, f="{:d}": (f"{f.format(min(xs))} to {f.format(max(xs))}"  # noqa: E731
+                                if f.format(min(xs)) != f.format(max(xs)) else f.format(min(xs)))
+    n0, f0, m0 = P.TAB[0], P.FIG[0], P.FILM[0]
+
+    out = [f"""<p>Each layout's lowest validated score over scene friction 0.4, 0.7 and 1.0 is higher under the
+worst-case picks S3w than under the picks tuned at 1.0. The median paired change is
+{lsg([dm(t_, f'S3|{hi}|min') for t_ in tk])} (Table {n0 + 2}). Against the picks tuned at 0.4 it is
+{lsg([dm(t_, f'S3|{lo}|min') for t_ in tk])}. At friction 1.0 the median change against the picks tuned there is
+{lsg([dm(t_, f'S3|{hi}|{hi}') for t_ in tk])}.</p>"""]
+    zh = [zero(t_, hi, "S3e", lo) for t_ in tk]
+    out.append(f"""<p>The S3e picks tuned at friction 1.0 score 0 at friction 0.4 on {rng(zh)} of the 30 layouts per task
+(Section SEC[sts]). The bench's friction lies between 0.37, TPU on bare PLA, and 1.0 or more with grip tape. Picks for
+that range were therefore searched with a worst-case score. Each candidate runs at seeds 0-2 on the STS3032 at scene
+friction 0.4, 0.7 and 1.0, and its score is its lowest three-seed mean:</p>
+$$W(x) = \\min_{{\\mu \\in \\{{0.4,\\,0.7,\\,1.0\\}}}}\\; \\frac{{1}}{{3}} \\sum_{{s=0}}^{{2}} J(x;\\, \\mu,\\, s),$$
+<p>with $x$ the candidate's grasp, forces and modes, $\\mu$ the scene friction and $J$ a rollout's task score. Ties go
+to the larger tie-break value at the friction of the minimum. S1w is the grasp of each layout's grasp set with the
+highest $W$ on the three grids. S2w and S3w come from the two searches of Section SEC[method] with $W$ in place of the
+mean score: the grasp search starts from S1w's grasp, and the search over the grasp, forces and modes from S2w's. Both
+ran on the 30 layouts per task of Section SEC[sts], with {W.get('iters_run', 6)} iterations each. The picks then ran at
+seeds 20-24 at each friction, as did the S3e picks tuned at 1.0 and at 0.4 (Table {n0 + 1}, Figure {f0 + 1}).</p>""")
+    body = []
+    for task in tk:
+        for k, (src, pick, lab) in enumerate(sets):
+            body.append([NAME[task] if k == 0 else "", lab] + [f2(M[task][f"{src}|{pick}|{p}"]) for p in [*pl, "min"]])
+    ta = table(["Task", "Picks", "At 0.4", "At 0.7", "At 1.0", "Lowest of the three"], body,
+               "Median validated scores (seeds 20-24) of the three pick sets on the STS3032 at kp 2.1 over the same 30 "
+               "layouts per task, at each scene friction, and the median of each layout's lowest score over the three "
+               "frictions.")
+    out.append(ta)
+
+    up = [T_[t_]["diff"][f"S3|{hi}|min"]["up"] for t_ in tk]
+    down = [T_[t_]["diff"][f"S3|{hi}|min"]["down"] for t_ in tk]
+    zw, zl = [zero(t_, BAND, "S3", lo) for t_ in tk], [zero(t_, lo, "S3e", lo) for t_ in tk]
+    p2 = (f"<p>Against the picks tuned at 1.0, the lowest score rises by more than 0.05 on {rng(up)} of the 30 layouts "
+          f"per task and falls by more than 0.05 on at most {max(down)}. At 0.4 the picks tuned at 1.0 score 0 on {rng(zh)} "
+          f"layouts per task, S3w on {rng(zw)} and the picks tuned at 0.4 on {rng(zl)}.")
+    if "twist" in tk:
+        p2 += (f" The twist's picks tuned at 0.4 score a median {M['twist'][f'{lo}|S3e|{lo}']:.2f} at 0.4 and "
+               f"{M['twist'][f'{lo}|S3e|{hi}']:.2f} at 1.0. At 1.0 the median change of S3w against them is "
+               f"{dm('twist', f'S3|{lo}|{hi}'):+.2f}.")
+    out.append(p2 + "</p>")
+    body2 = [[NAME[task]] + [sg(dm(task, k)) for k in (f"S3|{hi}|min", f"S3|{lo}|min", f"S3|{hi}|{hi}", f"S3|{hi}|{lo}",
+                                                         f"S3|{lo}|{lo}")]
+             + [f"{zero(task, hi, 'S3e', lo)}, {zero(task, BAND, 'S3', lo)}, {zero(task, lo, 'S3e', lo)}"] for task in tk]
+    tb = table(["Task", "Lowest, less the 1.0 picks", "Lowest, less the 0.4 picks", "At 1.0, less the 1.0 picks",
+                "At 0.4, less the 1.0 picks", "At 0.4, less the 0.4 picks", "Scoring 0 at 0.4: 1.0 picks, S3w, 0.4 picks"],
+               body2, "S3w against the S3e picks tuned at friction 1.0 (the 1.0 picks) and at 0.4 (the 0.4 picks): median "
+               "paired changes over the 30 layouts per task at seeds 20-24. Lowest: each layout's lowest score over the "
+               "three frictions. The last column counts the layouts whose validated score at friction 0.4 is 0.",
+               num_from=1)
+    fg = img(MEDIA / "20261104-band_k21mu.png", "Validated score at seeds 20-24 against the scene friction for the three "
+             "pick sets: the median over the 30 layouts per task, with the interquartile range shaded.") \
+        if (MEDIA / "20261104-band_k21mu.png").exists() else ""
+    out += [tb, fg]
+
+    wc = {t_: {p: sum(min(pl, key=lambda q, e=e: e["val"][BAND]["S3"][q]) == p for e in Ls[t_]) for p in pl} for t_ in tk}
+    out.append(f"""<p>Of the 30 worst-case picks per task, the lowest validated score lies at friction 0.4 for
+{andj(f"{wc[t_][lo]} on the {NAME[t_].lower()}" for t_ in tk)}. It lies at 1.0 for {andj(str(wc[t_][hi]) for t_ in tk)},
+and at 0.7 for {rng([wc[t_][pl[1]] for t_ in tk])}.</p>""")
+
+    rk = {}
+    for t_ in tk:
+        nom = np.array([e["val"][hi]["S3e"][hi] for e in Ls[t_]])
+        low = np.array([e["val"][BAND]["S3"]["min"] for e in Ls[t_]])
+        b = int(np.argmax(low))
+        rk[t_] = {"rho": R.spearman(nom, low), "best": Ls[t_][b], "top": float(nom.max()),
+                  "tied": int((nom >= nom.max() - 1e-9).sum()), "short": float(nom.max() - nom[b])}
+    moved = [t_ for t_ in tk if rk[t_]["short"] > 1e-9]
+    p5 = (f"<p>The layouts are reordered by the lowest score over the band. Spearman's rho between each layout's lowest "
+          f"score under S3w and its score at 1.0 under the picks tuned at 1.0 is {lst([rk[t_]['rho'] for t_ in tk])}.")
+    if moved:
+        p5 += (f" Ranked by the lowest score, the best layout changes on {andj('the ' + NAME[t_].lower() for t_ in moved)}. "
+               f"Under the picks tuned at 1.0, the new best layouts score {rng([rk[t_]['short'] for t_ in moved], '{:.2f}')} "
+               f"below the old ones at 1.0.")
+    for t_ in tk:
+        if t_ not in moved:
+            x, y = rk[t_]["best"]["xy"]
+            p5 += (f" On the {NAME[t_].lower()} the best layout by the lowest score, ({x:g}, {y:g}), is one of the "
+                   f"{rk[t_]['tied']} that score {rk[t_]['top']:.2f} at 1.0.")
+    out.append(p5 + "</p>")
+
+    below = sum(e["s2"] < e["s2_start"] - 1e-9 or e["s3"] < e["s3_start"] - 1e-9 for t_ in tk for e in Ls[t_])
+    s2 = [T_[t_]["s2_minus_start"]["median"] for t_ in tk]
+    s3 = [T_[t_]["s3_minus_start"]["median"] for t_ in tk]
+    out.append(f"""<p>At the search seeds 0-2 the grasp search's picks score a median {rng(s2, '{:+.2f}')} above their
+starts per task, and the search over the grasp, forces and modes adds {rng(s3, '{:+.2f}')} (Table {n0 + 3}).
+{"No pick scores below its start." if not below else f"{below} picks score below their starts."} At seeds 20-24 the
+median lowest score over the band is {lst([M[t_][f'{BAND}|S1|min'] for t_ in tk])} for S1w. For S1 chosen at 1.0 it
+is {andj(f2(M[t_][f'{hi}|S1|min']) for t_ in tk)}.</p>""")
+    body3 = [[NAME[t_], f2(T_[t_]["median_s1"]), f2(T_[t_]["median_s2_start"]), f2(T_[t_]["median_s2"]),
+              f2(T_[t_]["median_s3_start"]), f2(T_[t_]["median_s3"])] for t_ in tk]
+    tc = table(["Task", "S1w, grids", "Grasp search: start", "S2w", "Full search: start", "S3w"], body3,
+               "Median worst-case scores $W$ at the search seeds 0-2 over the 30 layouts per task. Each search scored its "
+               "start as its first candidate; S1w's score comes from the grids.", num_from=1)
+    out.append(tc)
+
+    if BAND_FILMS.exists():
+        info = json.loads(BAND_FILMS.read_text())
+        a = info[0]
+        act = lambda s: (f"turns the sphere, scoring {s['cpu']:.2f}" if s["held"]  # noqa: E731
+                         else "drops the sphere") + f" (GPU {s['gpu']:.2f} at seeds 20-24)"
+        out.append(f"""<p>Film {m0 + 1} runs twist layout ({a['xy'][0]:g}, {a['xy'][1]:g}) on the CPU plant at seed
+20. At friction 0.4 the S3e pick tuned at 1.0 {act(info[0])}. With the GPU's contact filter, where only the pads and
+the rigid spheres under 2 mm meet the object, the worst-case pick S3w {act(info[1])}. With every contact it
+{act(info[2])}. At 1.0 with every contact it {act(info[3])}.</p>""")
+        out.append(film(MEDIA / f"20261104-film_band_{a['task']}.mp4",
+                  f"The {NAME[a['task']].lower()} on the STS3032, layout ({a['xy'][0]:g}, {a['xy'][1]:g}), seed 20, CPU "
+                  "plant. " + " ".join(f"{k}: {s['cond']}." for k, s in
+                                       zip(("Top left", "Top right", "Bottom left", "Bottom right"), info))
+                  + " Under each clip: its score and the pick's GPU score at seeds 20-24."))
+    if BAND_CPU.exists():
+        out.append(cpu_para(tk, lo, hi))
+
+    C = band_compute()
+    if C:
+        a_ = C["all"]
+        out.append(f"""<p>The worst-case runs took {a_['rollouts']:,} GPU rollouts in {a_['batches']:,} batches, with
+{a_['batch_s'] / 3600:.2f} h of batch time in {C['wall_s'] / 3600:.2f} h of queue steps. Per rollout that is
+{a_['ms_per_rollout_run']:.0f} ms of run time, {a_['ms_per_rollout_batch']:.0f} ms of batch time and
+{1000 * C['wall_s'] / a_['rollouts']:.0f} ms of step time.</p>""")
+        c7 = {t_: v for t_, v in C["cpu07"].items() if v["gpu_run_ms"]}
+        if c7:
+            sp = [1000 * v["cpu_s"] / v["gpu_run_ms"] for v in c7.values()]
+            out.append(f"""<p>The STS3032 at friction 0.7 is a plant new to this study. On it the CPU runner takes
+{andj(f"{v['cpu_s']:.1f} s on the {NAME[t_].lower()}" for t_, v in c7.items())} per rollout on one core, with the GPU's
+contact filter. The GPU's full batches take {andj(f"{v['gpu_run_ms']:.0f} ms" for v in c7.values())} per rollout, so one
+GPU equals {min(sp):.0f} to {max(sp):.0f} cores on the rollout loop.</p>""")
+    return "".join(out)
+
+
+def band_film_specs(W):
+    """One twist layout at seed 20: its S3e pick tuned at friction 1.0 run at 0.4 (the clip of the friction film), its
+    worst-case pick S3w run at 0.4 with the GPU's contact filter and with every contact, and S3w run at 1.0."""
+    task, call = BAND_FILM["task"], BAND_FILM["call"]
+    e = next(x for x in W["tasks"][task]["layouts"] if x["call"] == call)
+    A = report("k21")
+    ea = next(x for x in A["tasks"][task]["layouts"] if x["call"] == call)
+    d6 = next(x for x in R.layouts(task, "k21") if x["call"] == call)["d"]
+    va, pa = pick_of(task, "k21", call, ea["s3e_pick"])
+    base = {"set": "band", "task": task, "call": call, "xy": e["xy"], "d6": d6, "seed": R.VAL_SEEDS[0]}
+    return [dict(base, plant="k21mu0p4", pick="S3e", v=va, prm=pa, gpu=e["val"]["k21"]["S3e"]["k21mu0p4"],
+                 cond="S3e pick tuned at friction 1.0, run at 0.4", top="S3e tuned at 1.0, run at 0.4",
+                 out=str(MEDIA / f"20261103-clip_friction_{task}_10at04.mp4")),
+            dict(base, plant="k21mu0p4", pick="S3w", v=e["v"]["S3"], prm=e["prm3"], gpu=e["val"][BAND]["S3"]["k21mu0p4"],
+                 filter=True, cond="worst-case pick S3w, run at 0.4 with the GPU's contact filter",
+                 top="S3w at 0.4, GPU's contact filter", out=str(MEDIA / f"20261104-clip_band_{task}_w04f.mp4")),
+            dict(base, plant="k21mu0p4", pick="S3w", v=e["v"]["S3"], prm=e["prm3"], gpu=e["val"][BAND]["S3"]["k21mu0p4"],
+                 cond="worst-case pick S3w, run at 0.4 with every contact", top="S3w at 0.4, every contact",
+                 out=str(MEDIA / f"20261104-clip_band_{task}_w04.mp4")),
+            dict(base, plant="k21", pick="S3w", v=e["v"]["S3"], prm=e["prm3"], gpu=e["val"][BAND]["S3"]["k21"],
+                 cond="worst-case pick S3w, run at 1.0 with every contact", top="S3w at 1.0, every contact",
+                 out=str(MEDIA / f"20261104-clip_band_{task}_w10.mp4"))]
+
+
+def cmd_band(what):
+    """band-figs: the worst-case figure; band-films: its film (CPU clips through resguard, after the GPU queue)."""
+    W = band_report()
+    if not W:
+        raise SystemExit("no worst-case report: hom_grasp_refine.py report --band")
+    if what == "band-figs":
+        fig_band(W)
+        return 0
+    specs = band_film_specs(W)
+    for s in specs:
+        if Path(s["out"]).with_suffix(".json").exists():
+            continue
+        hp, scenes, tag = R.PLANTS[s["plant"]]
+        env = dict(os.environ, HOS_PLANT=hp, HOS_SCENES=scenes, HOM_ROWS_TAG=tag, CUDA_VISIBLE_DEVICES="",
+                   MUJOCO_GL="egl", NUMPY_MADVISE_HUGEPAGE="0")
+        cmd = [str(Path.home() / ".claude/bin/resguard.sh"), "run", "--mem", "3G", "--cpu", "200", "--",
+               str(ROOT / ".venv/bin/python"), str(ROOT / "scripts/hom_score_refine_page.py"), "clip", json.dumps(s)]
+        while True:
+            rc = subprocess.call(cmd, env=env, cwd=ROOT)
+            if rc != 3:
+                break
+            print(time.strftime("%T"), "refused by resguard; retry in 120 s", flush=True)
+            time.sleep(120)
+        if rc:
+            raise SystemExit(f"clip {s['out']} failed (exit {rc})")
+    import hom_plant_page as HP
+    HP.compose([s["out"] for s in specs], MEDIA / f"20261104-film_band_{specs[0]['task']}.mp4", cols=2)
+    res = [dict(s, **json.loads(Path(s["out"]).with_suffix(".json").read_text())) for s in specs]
+    BAND_FILMS.write_text(json.dumps(res, indent=1))
+    print("wrote", BAND_FILMS.relative_to(ROOT))
+    return 0
+
+
 def sec_films():
     if not FILMS.exists():
         return "<p>The films are made after the GPU queue (<code>hom_score_refine_page.py films</code>).</p>"
@@ -1006,24 +1372,42 @@ def sec_limits():
 <li>The layouts are the symmetric tripods of the 5 mm lattice, at one object size per task. The six-coordinate layouts
 and other object sizes were not refined.</li>
 <li>Each pick is chosen on three seeds and validated on five. The GPU evaluator's run-to-run spread is about 0.01 per
-rollout.</li>
+rollout. On marginal twist candidates, whose sphere is held at some seeds and dropped at others, a repeat of an
+identical batch changed a three-seed mean by up to 0.22 (median 0.001).</li>
+<li>The friction band has three points, 0.4, 0.7 and 1.0, on one plant, the STS3032 at kp 2.1. The UR5's 0.37 for
+TPU on bare PLA lies below it.</li>
 <li>The twist's score saturates at 1.0, a 90 deg turn on three pads. Among saturated candidates the searches ranked by
 the three-pad angle, and Section SEC[sv25] reports that angle.</li>
 <li>S3 tunes the forces and modes per layout. A controller tuned once for all layouts was not searched.</li>
 <li>The rows record no contact normals or forces. The friction check of Section SEC[sts] uses the planned contacts of
 the pose toy and static balance.</li>
-<li>The films run on the CPU plant with every contact, where some refined twist picks score lower than on the GPU
-(Section SEC[films]).</li>
+<li>On the GPU only the pads and the rigid spheres under 2 mm meet the object. The films run on the CPU plant with every
+contact, where some refined twist picks score lower than on the GPU (Section SEC[films]). On the 40 mm sphere at
+friction 0.4 the CPU plant with every contact also scores the worst-case picks and the picks tuned at 1.0 differently
+from the GPU (Section SEC[band]).</li>
 </ul>"""
 
 
+def band_future():
+    """The worst-case runs' items for Future work: a two-friction band, and the band with every contact on the sphere."""
+    W = band_report()
+    if not W:
+        return ""
+    pl = W["plants"]
+    n07 = [sum(min(pl, key=lambda q, e=e: e["val"][BAND]["S3"][q]) == pl[1] for e in W["tasks"][t_]["layouts"])
+           for t_ in TASKS if t_ in W["tasks"]]
+    return f"""<li>A two-friction band: the worst-case search at friction 0.4 and 1.0 alone (an entry of <code>BANDS</code>
+in <code>scripts/hom_grasp_refine.py</code>), at two-thirds of the rollouts. Friction 0.7 gave the lowest validated
+score of {min(n07)} to {max(n07)} of the 30 worst-case picks per task. Two frictions suffice if their picks' median
+lowest score over the three frictions lies within 0.02 of S3w's on every task.</li>
+<li>The band on the 40 mm sphere with every contact meeting the object: the twist's and the roll's worst-case search
+with the rigid geoms in the GPU's contact filter (<code>scripts/hom_gpu.py</code>), its picks then run on the CPU plant
+at seeds 20-24 (<code>logs/20261104-hom_worst_case/cpu_check.py</code>). The GPU's sphere results at friction 0.4 stand
+if the new picks' lowest score on the CPU lies within 0.05 of S3w's on the GPU.</li>"""
+
+
 def sec_future(Js):
-    A, B = Js.get("k21"), Js.get("k21mu0p4")
-    gain, drops = "", ""
-    if A and B:
-        g = [paired(B["tasks"][t_]["layouts"], "s3e_val_from_k21", "s3e_val")["median"] for t_ in TASKS
-             if t_ in B["tasks"]]
-        gain = f"; retuning at 0.4 gained {min(g):.2f} to {max(g):.2f} here"
+    drops = ""
     if FRICTION_CHECK.exists():
         F = json.loads(FRICTION_CHECK.read_text())["tasks"]["twist"]["S1_1.0"]
         drops = f" If the drops stay near {F['drops']['0.4']} of {F['rollouts']['0.4']} at every force, the force is not the cause."
@@ -1031,9 +1415,7 @@ def sec_future(Js):
 <li>Find what drops the friction-1.0 grasps at friction 0.4. Log each pad's contact normal and normal force from the
 squeeze to the drop in the GPU rows (<code>scripts/hom_gpu.py</code>). Rerun the twist's friction-1.0 S1 grasps at 0.4
 with the tripod force at 1.5, 2.5 and 4 N (a world's <code>prm</code>).{drops}</li>
-<li>A worst-case score over the friction band (job <code>hand-20261104-hom_worst_case_score</code>): each candidate's
-lowest score at friction 0.4, 0.7 and 1.0, with its picks run at each friction. One pick for the band suffices if it
-scores within 0.05 of the S3e picks tuned at each friction{gain}.</li>
+{band_future()}
 <li>One controller for all layouts (job <code>hand-20261104-hom_shared_controller</code>): one set of forces and modes
 tuned on the 60 SCS0009 layouts of a task, then the grid rescored. Per-layout tuning is needed if the shared set's
 median gain over S1 on the 30 best layouts is below half of S3e's.</li>
@@ -1050,7 +1432,10 @@ def sec_files():
 <code>scripts/hom_score_refine_page.py</code>; the compute ledger and benchmarks <code>scripts/hom_compute.py</code>
 (<code>compute/</code> beside this page); the runbook, queue and rows in
 <code>docs/experiments/20261103-hom_score_refine/</code> (README.md); the friction check
-<code>media/20261103-friction_check.json</code>; the logs in <code>logs/20261103-hom_score_refine/</code>.</p>"""
+<code>media/20261103-friction_check.json</code>; the logs in <code>logs/20261103-hom_score_refine/</code>. The worst-case
+runs: <code>hom_grasp_refine.py --band</code>, the queue <code>queue_band.sh</code> beside this page, the rows and report
+in <code>rows/band_k21mu/</code>, the CPU check <code>logs/20261104-hom_worst_case/cpu_check.py</code> and the logs in
+<code>logs/20261104-hom_worst_case/</code>.</p>"""
 
 
 REFS = [
@@ -1097,6 +1482,21 @@ def lede_and_summary(Js):
                     f"the four tasks. Retuning at 0.4 gains a median {min(gn):.2f} to {max(gn):.2f} per task.")
         summary += (f" On the STS3032, picks tuned at friction 1.0 score 0 at friction 0.4 on {WORDS[zero]} tasks; retuning "
                     f"at 0.4 gains {min(gn):.2f} to {max(gn):.2f}.")
+    W = band_report()
+    if W:
+        tw = [t_ for t_ in TASKS if t_ in W["tasks"]]
+        lo, hi = W["plants"][0], W["plants"][-1]
+        dw = [W["tasks"][t_]["diff"][f"S3|{hi}|min"]["median"] for t_ in tw]
+        dl = [W["tasks"][t_]["diff"][f"S3|{lo}|min"]["median"] for t_ in tw]
+        lede.append(f"Picks searched on the lowest score over friction 0.4, 0.7 and 1.0 raise it by a median "
+                    f"{min(dw):.2f} to {max(dw):.2f} per task above the picks tuned at 1.0. The picks tuned at 0.4 come "
+                    f"within {max(dl):.2f} of them.")
+        cyl, sph = cpu_gains(lo, hi)
+        if cyl and sph:
+            lede.append(f"On the CPU plant with every contact the gain stays on the two cylinder tasks and falls to "
+                        f"{max(sph):.2f} or less on the two sphere tasks.")
+        summary += (f" Picks searched on the lowest score over friction 0.4-1.0 raise it by {min(dw):.2f} to "
+                    f"{max(dw):.2f} over the 1.0 picks.")
     return " ".join(lede), summary
 
 
@@ -1118,6 +1518,7 @@ def cmd_page():
         ("sv25", "Refinement on the SCS0009 plant", sec_sv25(Js)),
         ("prm", "Forces and contact modes chosen by the search", sec_prm(Js)),
         ("sts", "Refinement at two frictions on the STS3032", sec_sts(Js)),
+        ("band", "Worst-case score over three frictions on the STS3032", sec_band(band_report())),
         ("films", "Films of the picks", sec_films()),
         ("compute", "Compute and throughput", sec_compute()),
         ("limits", "Limitations", sec_limits()),
@@ -1160,6 +1561,8 @@ def main():
         return cmd_films()
     if a and a[0] == "clip":
         return cmd_clip(a[1])
+    if a and a[0] in ("band-figs", "band-films"):
+        return cmd_band(a[0])
     return cmd_page()
 
 
