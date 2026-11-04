@@ -3121,6 +3121,14 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - Direction (5.86 deg), magnitude (8.2 %) and torsion (no skill against predicting zero) do not change.
   - Seat 3 is the check on a second tip. Its dense bytes went the same way (`20261104-rod32_tail/`); the workstation's
     four prefix sha256s matched those cut here.
+- 13:04:04, seat 2's face and edges ended cleanly: 70 of 70 to 3 N, no skip or abort, in 34.5 min. The HEX-E gave
+  207,064 samples, none timed out; its two gaps (0.6 and 0.7 s) came at the program's start (12:29:27). So the three
+  seats' face and edges ran 215 of 215, all to 3 N.
+- 13:04:12 to 13:08:37, seat 2's flanks and tip (pts24): 6 of 6 ok in 4.4 min. The four new points (flank-581, -486
+  and -499, tip-513) reached their 2 N top, and both reference presses 3 N.
+- 13:08:37, step 5: seat 3's flanks and tip (pts35, 5 grid actions) on `202017-rod32_seed`.
+- 13:0x, seat 2's dense bytes (pts23 and pts24) went to the workstation the same way: `20261104-rod21_tail/`, 140 MB.
+  The four prefix sha256s matched the workstation's.
 
 ## The lab clone and git-lfs
 

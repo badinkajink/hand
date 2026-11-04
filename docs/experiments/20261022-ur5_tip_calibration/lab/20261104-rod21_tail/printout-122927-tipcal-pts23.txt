@@ -1,0 +1,82 @@
+resumed logs/20261103-tip_calibration/172647-rod21_seed: 193 actions done, 20 touches
+speed slider 0.30 (the plan's 0.30)
+== preflight
+preflight: HEX-E 100 Hz (asked 100 Hz, filter 3), board 138 records/s, robot 124 Hz
+  held boards on /dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:d9:94-if00: mux channel 0 138 records/s, mux channel 2 138 records/s, mux channel 3 138 records/s
+  HEX-E noise (1 sigma) N, N m: [0.0321 0.0207 0.2239 0.0029 0.0037 0.0011]
+  HEX-E reads: 0 timed out, 0 late datagrams dropped (0 and 0 on a clean link)
+  payload set: 0.403 kg at [0.0, -0.5, 34.3] mm from the flange
+== grid
+  probe-ref-d00 (1/70): to 3.00 N
+  probe-edge-517-r0 (2/70): to 3.00 N
+  probe-edge-558-r0 (3/70): to 3.00 N
+  probe-edge-704-r90 (4/70): to 3.00 N
+  probe-face-783-r90 (5/70): to 3.00 N
+  probe-edge-612-r90 (6/70): to 3.00 N
+  probe-edge-604-r90 (7/70): to 3.00 N
+  probe-edge-617-r90 (8/70): to 3.00 N
+  probe-edge-676-r90 (9/70): to 3.00 N
+  probe-face-684-r90 (10/70): to 3.00 N
+  probe-edge-693-r90 (11/70): to 3.00 N
+  probe-face-682-r90 (12/70): to 3.00 N
+  probe-face-701-r90 (13/70): to 3.00 N
+  probe-face-769-r90 (14/70): to 3.00 N
+  probe-face-762-r90 (15/70): to 3.00 N
+  probe-face-764-r90 (16/70): to 3.00 N
+  probe-edge-631-r90 (17/70): to 3.00 N
+  probe-face-774-r90 (18/70): to 3.00 N
+  probe-edge-609-r90 (19/70): to 3.00 N
+  probe-edge-606-r90 (20/70): to 3.00 N
+  probe-edge-622-r90 (21/70): to 3.00 N
+  probe-edge-624-r90 (22/70): to 3.00 N
+  probe-edge-673-r90 (23/70): to 3.00 N
+  probe-edge-669-r90 (24/70): to 3.00 N
+  probe-edge-672-r90 (25/70): to 3.00 N
+  probe-edge-678-r90 (26/70): to 3.00 N
+  probe-ref-d01 (27/70): to 3.00 N
+  probe-edge-626-r90 (28/70): to 3.00 N
+  probe-face-687-r90 (29/70): to 3.00 N
+  probe-edge-680-r90 (30/70): to 3.00 N
+  probe-face-699-r90 (31/70): to 3.00 N
+  probe-edge-696-r90 (32/70): to 3.00 N
+  probe-face-703-r90 (33/70): to 3.00 N
+  probe-face-698-r90 (34/70): to 3.00 N
+  probe-face-767-r90 (35/70): to 3.00 N
+  probe-edge-571-r90 (36/70): to 3.00 N
+  probe-face-706-r90 (37/70): to 3.00 N
+  probe-face-772-r90 (38/70): to 3.00 N
+  probe-face-777-r90 (39/70): to 3.00 N
+  probe-face-794-r90 (40/70): to 3.00 N
+  probe-face-712-r90 (41/70): to 3.00 N
+  probe-face-788-r90 (42/70): to 3.00 N
+  probe-face-789-r90 (43/70): to 3.00 N
+  probe-face-714-r90 (44/70): to 3.00 N
+  probe-face-791-r90 (45/70): to 3.00 N
+  probe-face-792-r90 (46/70): to 3.00 N
+  probe-edge-635-r90 (47/70): to 3.00 N
+  probe-face-723-r90 (48/70): to 3.00 N
+  probe-face-720-r90 (49/70): to 3.00 N
+  probe-face-719-r90 (50/70): to 3.00 N
+  probe-face-803-r90 (51/70): to 3.00 N
+  probe-face-796-r90 (52/70): to 3.00 N
+  probe-ref-d02 (53/70): to 3.00 N
+  probe-face-797-r90 (54/70): to 3.00 N
+  probe-face-787-r90 (55/70): to 3.00 N
+  probe-edge-652-r90 (56/70): to 3.00 N
+  probe-edge-643-r90 (57/70): to 3.00 N
+  probe-edge-644-r90 (58/70): to 3.00 N
+  probe-edge-645-r90 (59/70): to 3.00 N
+  probe-edge-750-r90 (60/70): to 3.00 N
+  probe-edge-743-r90 (61/70): to 3.00 N
+  probe-face-732-r90 (62/70): to 3.00 N
+  probe-face-730-r90 (63/70): to 3.00 N
+  probe-face-734-r90 (64/70): to 3.00 N
+  probe-edge-739-r90 (65/70): to 3.00 N
+  probe-face-738-r90 (66/70): to 3.00 N
+  probe-edge-726-r90 (67/70): to 3.00 N
+  probe-face-728-r90 (68/70): to 3.00 N
+  probe-edge-718-r90 (69/70): to 3.00 N
+  probe-ref-dfinal (70/70): to 3.00 N
+HEX-E: 207064 samples, 0 timed out, 0 late datagrams dropped, 2 gaps over 0.5 s; 0.6 s, Fz -0.1 N; 0.7 s, Fz -0.1 N
+session in logs/20261103-tip_calibration/172647-rod21_seed
+exit 0 at 13:04:04
