@@ -3074,6 +3074,29 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   the day runs on copies with the times as arguments:
   - `logs/20261104-chain_rod_points.sh STEPS LAST_START STOP_AT`, its runs named pts<seat><step>;
   - `logs/20261104-deadline_stop.sh`, which it starts.
+- 10:56, relayed: the robot must be free at 14:15 (the owner chose it at 10:55: "14:15: both plans, face and edges at
+  1.0 mm, then flanks and tip at 1.3 mm"). The workstation: "let no seat start after 14:15 less that seat's run".
+  - A step of the chain may now end in min=M, its expected minutes. It starts only if it would end by STOP_AT, else
+    the chain ends.
+  - Each step's minutes are 30 s an action plus 2 min: 40, 37, 37, 7, 6 and 7.
+- 11:11, the workstation's plans (b73de9a1d, in `../../20261030-inverted_rig_seat_block/data/`):
+  `20261104-plan_probe_table_rod_seat{1,3,2}_v3id{6,4,5}_dense_fe_draft.json` and `..._dense_ft_draft.json`.
+  - Face and edges at 1.0 mm: 75, 70 and 70 grid actions on seats 1, 3 and 2. Flanks and tip at 1.3 mm: 6, 5 and 6.
+  - Each plan opens and ends with a reference press at the night's reference point, under new ids (probe-ref-d00 to
+    -dfinal, -t00 and -tfinal).
+  - At the joint fit's four 2 sd corners every action keeps 0.2 mm from the tip body (the workstation's check).
+    Edge-637 on every seat, and edge-641, -653 and -658 on seat 2, were left out for that.
+- The lab's checks:
+  - No grid id of the six plans ended ok in its session before, and none repeats.
+  - The settings match the night's extras, apart from the action kind and the new points' depth caps (1.0 to 1.75 mm).
+  - The chained dry-check from the arm's joints, in the run's order, flags 0 of 75, 70, 70, 6, 5 and 6 (4 min,
+    `20261104-rod_points_run_check.json`). Joint 6 stays within -60.4 to +41.6 deg. The least clearances are the tip
+    0.49 mm, the stem 1.00 mm and the robot 17.2 mm.
+- 11:17:06, the chain (PID 2960508; the hard stop PID 2960534) started step 1, pts11: seat 1's face and edges on
+  `214753-rod13_seed` (203 actions done there).
+  - Its preflight: slider 0.30; HEX-E at 100 Hz with the night's noise (Fz 0.247 N sd); the three mux channels at 138
+    records/s each.
+  - The steps file and the chain are copied here (`20261104-rod_points_steps.txt`, `20261104-chain_rod_points.sh`).
 
 ## The lab clone and git-lfs
 
