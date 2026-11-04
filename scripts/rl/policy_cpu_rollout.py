@@ -35,6 +35,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 from sr2hand.geometry.rotations import quat_apply as quat_rotate, quat_conj as quat_inv, quat_mul, tilt_cos
+from sr2hand.geometry.distances import segment_segment as seg_seg
 
 ROOT = Path(__file__).resolve().parents[2]
 FINGER_JOINTS = ("thumb_yaw", "thumb_mcp", "thumb_pip", "index_yaw", "index_mcp", "index_pip",
@@ -60,20 +61,6 @@ def load_actor(ckpt_path: Path) -> torch.nn.Module:
     mlp.load_state_dict({k.replace("mlp.", ""): v for k, v in sd.items() if k.startswith("mlp.")})
     mlp.eval()
     return mlp
-
-
-def seg_seg(p1, q1, p2, q2):
-    d1, d2, r = q1 - p1, q2 - p2, p1 - p2
-    a, e, f = d1 @ d1, d2 @ d2, d2 @ r
-    c, b = d1 @ r, d1 @ d2
-    denom = a * e - b * b
-    s = np.clip((b * f - c * e) / denom, 0, 1) if denom > 1e-12 else 0.0
-    t = (b * s + f) / e
-    if t < 0:
-        t, s = 0.0, np.clip(-c / a, 0, 1)
-    elif t > 1:
-        t, s = 1.0, np.clip((b - c) / a, 0, 1)
-    return np.linalg.norm((p1 + d1 * s) - (p2 + d2 * t))
 
 
 class CpuPolicy:
