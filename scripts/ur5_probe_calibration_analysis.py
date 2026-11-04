@@ -23,7 +23,7 @@ roll's turns) the ground truth comes from the robot, the HEX-E and the session's
 of the joint rod fit's row for the session's seat replace the session's registration. The session's T_BI and T_EM must
 equal those of the row's session (the night's second halves and extras ran on their first half's registration).
 
-The rod's contact label stays the pad's point nearest the axis (11-04 06:3x, on the simulated rod session's 58 holds):
+The rod's contact label stays the pad's point nearest the axis (11-04 06:2x, on the simulated rod session's 58 holds):
 it stands 0.095 mm (median) from the simulator's centre of pressure, the penetration-weighted centroid 0.191 mm. Turning
 the axis by 0.5 or 1 deg (across or about z_M) moves neither label's median; by 2.5 deg the nearest point moves 0.69 mm
 and the centroid 0.41 mm, by 5 deg about 1 mm and 0.88 mm. The label's error is set by the registration's turn.

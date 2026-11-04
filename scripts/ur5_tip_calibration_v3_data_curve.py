@@ -15,8 +15,12 @@ about the normal in N mm, in the pad's frame) on growing, nested fractions of th
   torsion    median |predicted - measured| torsion about the normal, the held-out twists; against the median measured
              |torsion| there, the error of predicting none
 
+--tip ID=DIR[,DIR ...] (11-04, the inverted rig's v3 IDs 4 to 6): the holds folders of another tip, in place of IDs 1
+to 3 (repeat for more tips; --out then required). The probe sessions' holds (scripts/ur5_probe_calibration_analysis.py)
+add the kinds sweep (a sweep's levels) and offset (its tangential loads inside the friction cone); --kinds picks them.
+
     ~/.claude/bin/resguard.sh run --mem 3G --cpu 400 -- env OPENBLAS_NUM_THREADS=4 taskset -c 4-7 .venv/bin/python \\
-        scripts/ur5_tip_calibration_v3_data_curve.py [--seeds 4]
+        scripts/ur5_tip_calibration_v3_data_curve.py [--seeds 4] [--tip ID=DIR,DIR ... --kinds KIND ... --out OUT]
 """
 from __future__ import annotations
 
@@ -37,7 +41,7 @@ import ur5_tip_calibration_predict as PR  # noqa: E402
 TIPS = {1: ("logs/20261028-spherev3id1_twists", "logs/20261028-rodv3id1"),
         2: ("logs/20261029-spherev3id2", "logs/20261029-rodv3id2"),
         3: ("logs/20261030-spherev3id3", "logs/20261030-rodv3id3")}
-KINDS = ("press", "slide", "roll", "twist")
+KINDS = ["press", "slide", "roll", "twist"]
 FRACTIONS = (0.1, 0.2, 0.35, 0.5, 0.7, 1.0)
 OUT = ROOT / "docs/experiments/20261022-ur5_tip_calibration/data/20261102-v3_data_curve.json"
 
@@ -77,11 +81,23 @@ def errors(H, P, test):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--seeds", type=int, default=4)
-    ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--out", default="")
+    ap.add_argument("--tip", action="append", default=[], help="ID=DIR[,DIR ...]: another tip's holds folders")
+    ap.add_argument("--kinds", nargs="*", default=None, help="hold kinds used (default press slide roll twist)")
     a = ap.parse_args()
+    if a.tip:
+        if not a.out:
+            raise SystemExit("--tip needs --out")
+        TIPS.clear()
+        for t in a.tip:
+            k, v = t.split("=", 1)
+            TIPS[int(k)] = tuple(x for x in v.split(",") if x)
+    if a.kinds:
+        KINDS[:] = a.kinds
+    a.out = a.out or str(OUT)
     t0 = time.time()
     floor = PR.floors(0)[:15]
-    out = dict(what=__doc__.split("\n\n")[1], tips={}, fractions=FRACTIONS, seeds=a.seeds, kinds=KINDS)
+    out = dict(what=__doc__.split("\n\n")[1], tips={}, fractions=FRACTIONS, seeds=a.seeds, kinds=list(KINDS))
     for tip, sessions in TIPS.items():
         H = load(sessions)
         Y = np.c_[H["p"], H["f"], H["tn"]]
