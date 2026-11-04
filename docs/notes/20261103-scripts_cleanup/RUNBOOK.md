@@ -69,6 +69,9 @@ main checkout's; the two layouts were compared in two worktrees at the same comm
 Before it, `python3 move_scripts.py PLAN.json --dry-run` prints "not in the plan" for scripts added since the last dry run: add
 them to `plan.json`. Conditions, all at once (check each; if one fails, `ap snooze <job> 60 "<which>"` and check again):
 
+0. `ap status` shows `hand-20261103-fingertip_shape_rerun` done or stopped, and no autopilot job runs but the crosstalk
+   poller. The owner ranked this cleanup below that rerun at 19:3x on 11-03, and the rerun runs after the HOM chain.
+   `wait_switch_conditions.sh` checks this, the conditions below and every queue under `logs/`.
 1. The lab is idle: `docs/experiments/20261022-ur5_tip_calibration/lab/STATE.md` (after `git pull`) says no session
    runs and none is queued, the newest "UR5 lab" commit is over 45 minutes old, and `ssh` is not needed: the
    workstation never writes to corvus. If the lab runs overnight, wait for its morning commit.
@@ -91,7 +94,7 @@ git pull --no-rebase                              # this repository merges origi
 python3 docs/notes/20261103-scripts_cleanup/move_scripts.py docs/notes/20261103-scripts_cleanup/plan.json
 .venv/bin/python scripts/docs/check_scripts.py    # expect exactly the 15 problems above (system python3 3.10 adds 3 parse errors: f-strings of 3.12)
 .venv/bin/python -c "import sr2hand, sr2hand.geometry.rotations"
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run --extra dev python -m pytest tests/ -q   # 114 passed, the floor datum failing
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/ -q   # 114 passed, the floor datum failing
 git status --short | grep -v '^R ' | head -50     # read what changed besides the renames
 ```
 
@@ -115,6 +118,44 @@ After the push:
   account and parallel flag).
 - A memory file `project_scripts_topic_folders_2026_11_03.md` in the project's memory directory with its line in
   `MEMORY.md`: the folders, `_paths`, `MOVED.tsv`, the checker, the map, and the package `sr2hand`.
+
+## Landing the migration after the switch
+
+The migration was prepared before the switch, on the local branch `scripts-migrate` in the worktree
+`/home/humanoid/Programs/hand_wt_migrate`, above a rehearsal of the switch (`91ab66052`, never picked). The geometry and
+numerics modules and the shared-code section of `CLAUDE.md` and `AGENTS.md` went to main before the switch, so the switch
+renames them with everything else. After the switch commit and its follow-ups:
+
+```bash
+~/.claude/autopilot/ap status                          # no hand-*-hom_* job runs; no window has uncommitted hom scripts
+bash docs/notes/20261103-scripts_cleanup/land_migration.sh     # 23 commits in order, HEAD's module files kept
+```
+
+The rehearsal of 11-04 on `91ab66052` ended with an empty diff against the branch. A conflict means that someone edited the
+same lines after `dc1830409` (the HOM chain, the lab's rod scripts). Take their change, apply the same replacement to it,
+`git add` and `git commit -C <commit>`, then rerun the script from the next commit. Before `72c82f2e3`, record one CPU HOM
+rollout on the moved tree, and compare it after that commit. If a HOM job runs, stop before `72c82f2e3` with
+`land_migration.sh 83dd092a1 71be5fc56`, land `0bb15c5d2` to `d5198b948` and `92d136d5e` the same way, and leave
+`72c82f2e3`, `f719012cd` and `517cd84f5` for when it has ended.
+
+Checks after the picks, from the repository root:
+
+```bash
+.venv/bin/python scripts/docs/check_scripts.py         # the 15 known problems
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/ -q     # 114 passed, the floor datum failing
+E=logs/20261103-scripts_cleanup/equiv
+WT=$PWD bash $E/smoke.sh <switch commit>               # imports every touched script, GPU hidden
+.venv/bin/python -W ignore $E/undefined.py <switch commit>      # bare names without a binding
+BASE=logs/20261103-scripts_cleanup/base_tree .venv/bin/python -W ignore $E/attrs.py $PWD
+    # `M.name` and `from M import name` whose target is gone; it found six on 11-03 that smoke.sh and undefined.py cannot see
+git diff scripts-migrate -- src/sr2hand/geometry src/sr2hand/numerics    # only functions that chain sessions added
+.venv/bin/python -W ignore $E/survivors.py             # names of the audits still defined; check scripts added since 11-03
+```
+
+`smoke.sh` reports `geometry` (it is `contact_surface.geometry`). In a worktree it also reports JSON errors from LFS pointers,
+which main does not have. Then replace "migrates the live copies once the scripts have moved into topic folders, after the
+fingertip-shape rerun." in `CLAUDE.md` with "migrated the live copies.", and search scripts added since 11-03 for new private
+copies. The worktree and the branch are removed at the very end: `oldcode.py` reads `91ab66052`.
 
 ## Shared math modules
 
