@@ -1,0 +1,759 @@
+{
+ "title": "cad_v3 frames: the SR2 hand as built (owner's CAD of 2026-11-04) on the UR5 CB3",
+ "written": "2026-11-04 18:05",
+ "units": "mm, deg",
+ "sources": {
+  "cad": "assets/cad_v3/step (the owner's Onshape export of 2026-11-04, assets/cad_v2/full_cad)",
+  "solids": "scripts/cad_v3_assets.py extract -> logs/20261104-cad_v3/extract/parts.json",
+  "analysis": "docs/experiments/20261104-cad_v3_hand/analysis (gantry.json, flange.json, sensors.json)"
+ },
+ "frames": {
+  "A": "CAD assembly 'hand v3 (anthro config)': z_A up toward the robot, base plate z_A 0..3, flange face 28",
+  "P": "simulator palm frame = driver {P}: x_P thumb -> pair, y_P middle -> index, z_P up, origin on the yaw-centre plane midway between the travel-box centres",
+  "E": "tool0 of the UR5 CB3 (controller flange frame, URDF wrist_3_link): z_E out of the flange into the hand; M6 holes at 45 + 90 j deg from x_E, tool connector on -y_E"
+ },
+ "P": {
+  "R_P_from_A": [
+   [
+    0.0,
+    -1.0,
+    0.0
+   ],
+   [
+    1.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    1.0
+   ]
+  ],
+  "t_P_from_A_mm": [
+   121.4375,
+   110.9998,
+   75.9003
+  ],
+  "origin_in_A_mm": [
+   -110.9998,
+   121.4375,
+   -75.9003
+  ],
+  "thumb_gantry_shift_A_mm": [
+   0.0,
+   2.5,
+   0.0
+  ],
+  "thumb_gantry_parts_not_shifted": [
+   "051",
+   "054",
+   "060"
+  ],
+  "note": "x_P = -y_A + t_x, y_P = x_A + t_y, z_P = z_A + t_z. t_y puts y_P = 0 midway between the index and middle box centres, t_x puts x_P = 0 midway between the thumb box centre and the index/middle box centres (the driver's convention, XY_space.png), t_z puts the yaw centres at z_P = 0. Primary t uses the thumb gantry moved +2.5 mm in y_A onto the base plate's holes; t_P_from_A_mm_cad_as_is uses the CAD as exported."
+ },
+ "flange": {
+  "centre_A_mm": [
+   -111.0,
+   116.0,
+   28.0
+  ],
+  "m6_angles_A_deg": [
+   -111.0,
+   -21.0,
+   69.0,
+   159.0
+  ],
+  "m6_circle_d_mm": 50.00000000000004,
+  "m6_angles_E_deg": [
+   45.0,
+   135.0,
+   225.0,
+   315.0
+  ],
+  "connector_E_deg": -90.0,
+  "theta_k_deg": [
+   24.0,
+   114.0,
+   204.0,
+   294.0
+  ],
+  "T_E_from_A_by_k": [
+   [
+    0.913545458,
+    0.406736643,
+    0.0,
+    54.22209849,
+    0.406736643,
+    -0.913545458,
+    -0.0,
+    151.119039778,
+    0.0,
+    0.0,
+    -1.0,
+    28.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   [
+    -0.406736643,
+    0.913545458,
+    0.0,
+    -151.119039778,
+    0.913545458,
+    0.406736643,
+    0.0,
+    54.22209849,
+    0.0,
+    0.0,
+    -1.0,
+    28.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   [
+    -0.913545458,
+    -0.406736643,
+    -0.0,
+    -54.22209849,
+    -0.406736643,
+    0.913545458,
+    0.0,
+    -151.119039778,
+    0.0,
+    0.0,
+    -1.0,
+    28.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   [
+    0.406736643,
+    -0.913545458,
+    -0.0,
+    151.119039778,
+    -0.913545458,
+    -0.406736643,
+    -0.0,
+    -54.22209849,
+    0.0,
+    0.0,
+    -1.0,
+    28.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ]
+  ]
+ },
+ "fingers": {
+  "thumb": {
+   "finger_instance": "Finger v3 <3>",
+   "gantry_instance": "gantry_v3_thumb <1>",
+   "yaw_centre_cad_A_mm": [
+    -126.6881,
+    162.1238,
+    -75.9003
+   ],
+   "box_centre_A_mm": [
+    -113.4001,
+    177.6187,
+    -75.9003
+   ],
+   "bridge_disp_mm": 13.288,
+   "carriage_disp_mm": 15.4949,
+   "box_size_P_mm": [
+    60.0,
+    110.0
+   ],
+   "stops_disp_mm": {
+    "x_stage": [
+     -41.712,
+     73.088
+    ],
+    "y_stage": [
+     -17.0875,
+     45.4949
+    ]
+   },
+   "box_disp_mm": {
+    "x_stage": [
+     -41.712,
+     68.288
+    ],
+    "y_stage": [
+     -14.5051,
+     45.4949
+    ]
+   },
+   "firmware": {
+    "x_stage": "J0",
+    "y_stage": "J1"
+   },
+   "motor_end": {
+    "x_stage": "-x_A",
+    "y_stage": "+y_A"
+   },
+   "stage_parts": {
+    "x_stage": [
+     "041",
+     "042",
+     "045",
+     "047",
+     "048",
+     "050",
+     "051",
+     "052",
+     "053",
+     "059",
+     "060",
+     "061"
+    ],
+    "y_stage": [
+     "040",
+     "043",
+     "044",
+     "046",
+     "049",
+     "055",
+     "056",
+     "058"
+    ]
+   },
+   "cad_joint_angles_deg": {
+    "yaw": 12.543791134589283,
+    "mcp": 38.971674841430314,
+    "pip": -41.378197211910404
+   },
+   "cad_pose_stepper_mm": {
+    "J0": 41.712,
+    "J1": 45.49494978396936
+   },
+   "box_centre_P_mm": [
+    -56.1812,
+    -2.4004,
+    0.0
+   ],
+   "box_minus_nominal_mm": [
+    -6.1812,
+    -2.4004
+   ]
+  },
+  "index": {
+   "finger_instance": "Finger v3 <2>",
+   "gantry_instance": "gantry_v3 <1>",
+   "yaw_centre_cad_A_mm": [
+    -76.732,
+    83.1407,
+    -75.9003
+   ],
+   "box_centre_A_mm": [
+    -52.6,
+    65.2563,
+    -75.9003
+   ],
+   "bridge_disp_mm": 24.132,
+   "carriage_disp_mm": -17.8844,
+   "box_size_P_mm": [
+    60.0,
+    60.0
+   ],
+   "stops_disp_mm": {
+    "x_stage": [
+     -10.668,
+     54.132
+    ],
+    "y_stage": [
+     -47.8844,
+     14.698
+    ]
+   },
+   "box_disp_mm": {
+    "x_stage": [
+     -5.868,
+     54.132
+    ],
+    "y_stage": [
+     -47.8844,
+     12.1156
+    ]
+   },
+   "firmware": {
+    "x_stage": "J2",
+    "y_stage": "J3"
+   },
+   "motor_end": {
+    "x_stage": "+x_A",
+    "y_stage": "-y_A"
+   },
+   "stage_parts": {
+    "x_stage": [
+     "064",
+     "065",
+     "070",
+     "071",
+     "074",
+     "076",
+     "077",
+     "078",
+     "079",
+     "080",
+     "081",
+     "083"
+    ],
+    "y_stage": [
+     "063",
+     "066",
+     "068",
+     "069",
+     "072",
+     "073",
+     "082",
+     "084"
+    ]
+   },
+   "cad_joint_angles_deg": {
+    "yaw": 17.379933086831613,
+    "mcp": 10.224399793339895,
+    "pip": 58.13965222821936
+   },
+   "cad_pose_stepper_mm": {
+    "J2": 54.132,
+    "J3": 47.884434078405164
+   },
+   "box_centre_P_mm": [
+    56.1812,
+    58.3997,
+    0.0
+   ],
+   "box_minus_nominal_mm": [
+    6.1812,
+    3.3997
+   ]
+  },
+  "middle": {
+   "finger_instance": "Finger v3 <1>",
+   "gantry_instance": "gantry_v3 <2>",
+   "yaw_centre_cad_A_mm": [
+    -153.6135,
+    80.0828,
+    -75.9003
+   ],
+   "box_centre_A_mm": [
+    -169.3995,
+    65.2562,
+    -75.9003
+   ],
+   "bridge_disp_mm": -15.786,
+   "carriage_disp_mm": -14.8266,
+   "box_size_P_mm": [
+    60.0,
+    60.0
+   ],
+   "stops_disp_mm": {
+    "x_stage": [
+     -45.786,
+     19.013
+    ],
+    "y_stage": [
+     -44.8266,
+     17.7559
+    ]
+   },
+   "box_disp_mm": {
+    "x_stage": [
+     -45.786,
+     14.214
+    ],
+    "y_stage": [
+     -44.8266,
+     15.1734
+    ]
+   },
+   "firmware": {
+    "x_stage": "J4",
+    "y_stage": "J5"
+   },
+   "motor_end": {
+    "x_stage": "-x_A",
+    "y_stage": "-y_A"
+   },
+   "stage_parts": {
+    "x_stage": [
+     "003",
+     "062",
+     "102",
+     "105",
+     "107",
+     "109",
+     "110",
+     "113",
+     "114",
+     "118",
+     "119",
+     "120"
+    ],
+    "y_stage": [
+     "103",
+     "104",
+     "108",
+     "111",
+     "112",
+     "115",
+     "116",
+     "117"
+    ]
+   },
+   "cad_joint_angles_deg": {
+    "yaw": -23.03831889155403,
+    "mcp": -28.799900230690238,
+    "pip": 75.94898838325834
+   },
+   "cad_pose_stepper_mm": {
+    "J4": 45.786,
+    "J5": 44.826572669857256
+   },
+   "box_centre_P_mm": [
+    56.1813,
+    -58.3998,
+    0.0
+   ],
+   "box_minus_nominal_mm": [
+    6.1813,
+    -3.3997
+   ]
+  }
+ },
+ "levels_P_mm": {
+  "flange_face": 103.9,
+  "robot_mount_underside": 78.9,
+  "base_plate_underside": 75.9,
+  "frame_plate_underside": 71.9,
+  "x_block_underside": 64.9,
+  "frame_lowest": 53.9,
+  "beam_main_underside": 47.4,
+  "beam_bearing_blocks": 24.4,
+  "beam_lowest": 21.9,
+  "yaw_plane": 0.0,
+  "carriage_bottom": -12.793
+ },
+ "sensors": {
+  "camera_parts": [
+   {
+    "solid": "hand/000",
+    "label": "Part 2",
+    "name": "d435_plate",
+    "identified_by": "the same solid as ~/Downloads/d435_plate.stl (owner's export, 2026-08-30 20:34) turned 180 deg about z: surface distance max 0.46 mm, mean 0.13 mm (match_downloads.py in this folder)",
+    "T_A_from_part": [
+     -1.0,
+     0.0,
+     0.0,
+     -111.0,
+     0.0,
+     -1.0,
+     0.0,
+     142.875,
+     0.0,
+     0.0,
+     1.0,
+     -4.0,
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ],
+    "bbox_A": [
+     -14.2,
+     111.0,
+     -10.0,
+     25.8,
+     295.5,
+     0.0
+    ],
+    "shape": "4 mm plate (z_A -4..0) under the base plate along its +x edge, from y_A 111 to 295.5; the last 52.6 mm overhang the base plate's +y edge (y_A 242.9)",
+    "screws": "M4 clearance holes (d 4.4) at (6.5, 117.0), (-1.5, 173.8), (21.3, 230.4), on the base plate's holes; the robot mount has M4 nut pockets above the first two",
+    "fork": {
+     "slot_y_A": [
+      271.1,
+      291.5
+     ],
+     "slot_x_A": [
+      -14.200000000000003,
+      6.199999999999989
+     ],
+     "slot_width_mm": 20.4,
+     "open_side": "-x_A",
+     "tines": "4 mm thick at y_A 267.1..271.1 and 291.5..295.5, x_A -14.2..4.6, z_A -10..0",
+     "hole_d_mm": 5.4,
+     "hole_xy_A": [
+      15.799999999999997,
+      281.5
+     ],
+     "reading": "a 20.4 x 20.4 mm pocket fits a 20 x 20 mm extrusion with 0.2 mm per side; the 5.4 mm hole fits M5 (2020 T-nut size) and lies on the slot's centreline. The owner's d435_mount_80-20.stl (same evening) takes a D435 on two holes 45 mm apart and has two rails about 21 mm apart (read from its render, mount8020_views.png) that straddle a 20 mm extrusion. Inferred, not measured on the hardware."
+    }
+   },
+   {
+    "solid": null,
+    "label": "D435 body",
+    "name": "Intel RealSense D435",
+    "note": "not in the export: no solid of the six STEP files is 90 x 25 x 25 mm; the hand file has 33 B-rep part definitions and 127 instances (121 solids + 6 sub-assemblies) and no tessellated bodies"
+   }
+  ],
+  "camera_mount_assumption": "ASSUMED, not in the CAD: a vertical 20 x 20 mm extrusion standing in the fork's slot (centre x_A -4.0, y_A 281.3), the owner's d435_mount_80-20 (4 mm plate) on its -y face, the D435's back on the bracket by its two rear M3 holes, upright (1/4-20 down), lenses facing -y_A toward the hand, the bracket just below the tines: body centre (-4.0, 254.78, -33.3). Lower mounts move the frames along z_A only (variant tips_level: z_A -137.85).",
+  "T_A_from_depth_optical": [
+   -1.0,
+   0.0,
+   0.0,
+   13.5,
+   0.0,
+   0.0,
+   -1.0,
+   246.55,
+   0.0,
+   -1.0,
+   0.0,
+   -33.3,
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ],
+  "T_A_from_color_optical": [
+   -1.0,
+   0.0,
+   0.0,
+   28.5,
+   0.0,
+   0.0,
+   -1.0,
+   246.55,
+   0.0,
+   -1.0,
+   0.0,
+   -33.3,
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ],
+  "tag": {
+   "size_mm": 40.0,
+   "family": "tag36h11",
+   "id": 6,
+   "size_definition": "black-square edge = pupil_apriltags tag_size",
+   "pose_A": [
+    0.0,
+    -1.0,
+    0.0,
+    22.6,
+    0.0,
+    0.0,
+    -1.0,
+    105.3,
+    1.0,
+    0.0,
+    0.0,
+    -32.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "centre_A": [
+    22.599999999999998,
+    105.3,
+    -32.0
+   ],
+   "normal_A": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "frame": "apriltag convention: origin at the tag centre, x right, y down, z into the tag in the tag's own image; mounted with x up (+z_A), y = -x_A, z = -y_A, as the 2026-08-30 probe shows (tag x along image up) and tags.py assumes (--up-axis x)",
+   "face": "+y face (y_A 105.3), facing the thumb end and the assumed camera; the CAD does not mark which face has the tag",
+   "printable_area": "not modelled; the plate face is 45 x 50 mm, the printed sheet (gen_tags.py) has a 60 mm patch, and the 2026-08-30 probe shows it trimmed to about a 2.5 mm white border",
+   "alternative_face": {
+    "pose_A": [
+     0.0,
+     1.0,
+     0.0,
+     22.6,
+     0.0,
+     0.0,
+     1.0,
+     103.3,
+     1.0,
+     0.0,
+     0.0,
+     -32.0,
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ],
+    "normal_A": [
+     0.0,
+     -1.0,
+     0.0
+    ],
+    "centre_A": [
+     22.599999999999998,
+     103.3,
+     -32.0
+    ]
+   },
+   "purpose": "in the repo, id 6 was the static reference for an external D435 on a tripod (real_v1 bench, 2026-08-30/31): world up and a height datum, at 320-500 mm. On the cad_v3 hand it rides with the hand; under the assumed camera mount the hand's own D435 sees it face-on at 141 mm"
+  },
+  "tag_parts": [
+   {
+    "solid": "hand/005",
+    "label": "Part 006",
+    "name": "static_tag_mount",
+    "identified_by": "the same solid as ~/Downloads/static_tag_mount.stl (2026-08-30 20:34) turned +90 deg about z: surface distance max 0.35 mm, mean 0.09 mm",
+    "T_A_from_part": [
+     0.0,
+     -1.0,
+     0.0,
+     6.5,
+     1.0,
+     0.0,
+     0.0,
+     117.0,
+     0.0,
+     0.0,
+     1.0,
+     -7.0,
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ],
+    "bbox_A": [
+     0.1,
+     103.3,
+     -57.0,
+     45.1,
+     120.0,
+     18.0
+    ],
+    "plate": "2.0 mm thick, x_A 0.1..45.1, y_A 103.3..105.3, z_A -57..-7: a 45.0 x 50.0 mm face on -y (2444 mm^2, flat up to the post) and 45.0 x 48.0 mm clear on +y (a 2 mm fillet and a gusset above z_A -9)",
+    "fastening": "one screw at (6.5, 117.0) through its 3.4 mm hole and the d435_plate's tab; its post (x_A 11.2..14.2, up to z_A 18) lies 0.2 mm off the +x side faces of the base plate and the robot mount at x_A 11.0, which sets its yaw"
+   }
+  ]
+ },
+ "T_E_from_P_by_k": [
+  [
+   -0.406736643,
+   0.913545458,
+   0.0,
+   2.211816445,
+   0.913545458,
+   0.406736643,
+   0.0,
+   -4.967322804,
+   0.0,
+   0.0,
+   -1.0,
+   103.9003,
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ],
+  [
+   -0.913545458,
+   -0.406736643,
+   0.0,
+   4.967322804,
+   -0.406736643,
+   0.913545458,
+   0.0,
+   2.211816445,
+   0.0,
+   0.0,
+   -1.0,
+   103.9003,
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ],
+  [
+   0.406736643,
+   -0.913545458,
+   0.0,
+   -2.211816445,
+   -0.913545458,
+   -0.406736643,
+   0.0,
+   4.967322804,
+   0.0,
+   0.0,
+   -1.0,
+   103.9003,
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ],
+  [
+   0.913545458,
+   0.406736643,
+   0.0,
+   -4.967322804,
+   0.406736643,
+   -0.913545458,
+   0.0,
+   -2.211816445,
+   0.0,
+   0.0,
+   -1.0,
+   103.9003,
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "tcp_P_origin_by_k": [
+  [
+   0.002212,
+   -0.004967,
+   0.1039,
+   1.711034,
+   2.634761,
+   0.0
+  ],
+  [
+   0.004967,
+   0.002212,
+   0.1039,
+   0.653174,
+   -3.072941,
+   -0.0
+  ],
+  [
+   -0.002212,
+   0.004967,
+   0.1039,
+   2.634761,
+   -1.711034,
+   0.0
+  ],
+  [
+   -0.004967,
+   -0.002212,
+   0.1039,
+   3.072941,
+   0.653174,
+   0.0
+  ]
+ ]
+}
