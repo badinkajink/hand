@@ -16,8 +16,8 @@ MIN = float(sys.argv[4]) if len(sys.argv) > 4 else 12.0
 rng = np.random.default_rng(seed)
 h = Hand()
 LIM = {"thumb": {"yaw": (-40, 40), "mcp": (-10, 88), "pip": (-10, 85)},
-       "index": {"yaw": (-40, 40), "mcp": (-10, 64), "pip": (0, 90)},
-       "middle": {"yaw": (-40, 40), "mcp": (-10, 69), "pip": (-10, 76)}}
+       "index": {"yaw": (-40, 40), "mcp": (-10, 50), "pip": (0, 90)},
+       "middle": {"yaw": (-40, 40), "mcp": (-10, 62), "pip": (-10, 76)}}
 ZERO = {f: {"yaw": 0.0, "mcp": 0.0, "pip": 0.0} for f in F}
 
 

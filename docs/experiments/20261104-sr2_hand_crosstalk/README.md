@@ -62,3 +62,9 @@ The owner looked at it on the hand at 18:3x: "the gap is about 1cm yea".
   the CB1.
 - The middle finger's mcp droops about 3.5 deg short of its command when the finger is near horizontal. The runner
   treats a joint as settled once it stops moving, and it stops at an error of 6 deg or more.
+- With the hand on the arm as it hangs, the index's mcp servo reaches its protective torque near 55 deg, with its load
+  at -195 to -210. Its droop grew from 1.5 deg at 39 deg to 3.4 deg at 56 deg. Commanded to 64 deg at step 126 of
+  `run1_home`, it stopped at 55.4 deg, and the runner stopped the chain at 19:31:23. That run had done the baseline,
+  torque, every stepper step, the thumb's families and the index's yaw and mcp. Since then the plans cap the index's mcp
+  at 50 deg and the middle's at 62 deg (`plan_home_rest`, the `_v2` plans, `lab/night_chain2.sh`). The thumb reached
+  88 deg with 1.6 deg of droop.
