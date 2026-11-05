@@ -4,7 +4,7 @@
 #   bash docs/notes/20261103-scripts_cleanup/wait_switch_conditions.sh [MAX_MIN] [EARLIEST_HHMM]
 # Conditions: the fingertip-shape rerun is done or stopped (owner, 19:3x on 11-03) and no other autopilot job but the
 # crosstalk poller runs; local time after EARLIEST_HHMM (default 1900) or before 08:00; no commit on origin/main under the lab
-# folder or under scripts/ in the last 45 min; no process runs a file under scripts/ other than crosstalk_feed_watch.py; no
+# folder, the SR2 hand's crosstalk folder or scripts/ in the last 45 min; no process runs a file under scripts/ other than crosstalk_feed_watch.py; no
 # queue under logs/ runs; no uncommitted change under scripts/, src/, tests/, CLAUDE.md, AGENTS.md, README.md or the lab's
 # STATE.md.
 set -u
@@ -31,7 +31,7 @@ while [ "$(date +%s)" -lt "$end" ]; do
   [ -z "$others" ] || why="$why; autopilot running: $others"
   git fetch -q origin 2>/dev/null
   now=$(date +%s)
-  for p in "$LAB" scripts; do
+  for p in "$LAB" docs/experiments/20261104-sr2_hand_crosstalk scripts; do
     t=$(git log -1 --format=%ct origin/main -- "$p" 2>/dev/null || echo 0)
     [ $(( now - ${t:-0} )) -ge 2700 ] || why="$why; commit under $p $(( (now - t) / 60 )) min ago"
   done
