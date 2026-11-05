@@ -6,18 +6,21 @@
 # runs, then the chain waits until OUT/GO_<layout> exists: the owner, or the lab from a camera frame, confirms that every
 # finger whose mount changed moved. OUT/STOP stops the chain, also inside a chunk. Every chunk runs with --keep-home,
 # so a stop keeps the home and nothing needs homing.
-#   nohup setsid bash docs/experiments/20261104-sr2_hand_crosstalk/lab/gated_chain.sh >> logs/20261105-sr2_crosstalk/chain5.out 2>&1 &
+# Any chunk folder of lab/chunk_plan.py runs the same way, its layouts in the order of their numbers:
+#   nohup setsid bash docs/experiments/20261104-sr2_hand_crosstalk/lab/gated_chain.sh [CHUNK_DIR OUT] >> OUT.out 2>&1 &
+# (defaults: plan/20261105-from32_chunks and logs/20261105-sr2_crosstalk/chain5)
 set -u
 cd /home/will/workspace/hand || exit 1
 D=docs/experiments/20261104-sr2_hand_crosstalk
-CH=$D/plan/20261105-from32_chunks
-OUT=logs/20261105-sr2_crosstalk/chain5
+CH=${1:-$D/plan/20261105-from32_chunks}
+OUT=${2:-logs/20261105-sr2_crosstalk/chain5}
 mkdir -p $OUT
 run() {
   /usr/bin/python3 -u $D/lab/run_plan.py "$1" "$2" --token-file ~/.sr2_station_token \
     --boards logs/20261105-sr2_crosstalk/boards --board-channels 0,1,3 --max-err-yaw 8 --max-blocked 1 --keep-home
 }
-for L in 1_sv1_w6689 2_rv04_mid 3_sv1_w0099 4_sv1_u0308 5_home; do
+for MF in $(ls $CH/*_mounts.json | sort -V); do
+  L=$(basename $MF _mounts.json)
   [ -e $OUT/STOP ] && { echo "$(date +%H:%M:%S) STOP before $L"; exit 3; }
   echo "$(date +%H:%M:%S) mounts $L"
   run $CH/${L}_mounts.json $OUT/${L}_mounts || { echo "$(date +%H:%M:%S) mounts $L ended early"; exit 3; }

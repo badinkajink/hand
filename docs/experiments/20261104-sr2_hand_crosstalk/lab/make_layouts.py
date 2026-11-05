@@ -34,6 +34,16 @@ LAYOUTS = {
     "sv1_w6689": {"thumb": (-54.3, -33.7), "index": (37.9, 42.1), "middle": (39.0, -43.0)},
     "sv1_w0099": {"thumb": (-43.8, -2.3), "index": (41.1, 35.7), "middle": (55.2, -44.2)},
     "sv1_u0308": {"thumb": (-37.8, 4.3), "index": (38.2, 39.1), "middle": (46.9, -76.0)},
+    # The HOM task-conflict study's layouts (SCS0009 plant, friction 1.0: docs/experiments/20261103-hom_task_conflict/
+    # 20261104-conflict_sv25.json and _refined_sv25.json), symmetric tripods (x, y) placed as fp_sr2_toy.layout2 does:
+    # thumb (-x/2, 0), index (x/2, y/2), middle (x/2, -y/2). The owner, 13:59 on 11-05: "why dont we try adding layouts
+    # determined from our very extensive recent experiments on hom control?". The pin-push specialist (75, 55) is left
+    # out: its straight index and middle clear 5.1 mm, under MIN. plan_layouts_s1 was built with the five layouts above.
+    "hom_roll_85_170": {"thumb": (-42.5, 0.0), "index": (42.5, 85.0), "middle": (42.5, -85.0)},
+    "hom_press_70_150": {"thumb": (-35.0, 0.0), "index": (35.0, 75.0), "middle": (35.0, -75.0)},
+    "hom_generalist_70_110": {"thumb": (-35.0, 0.0), "index": (35.0, 55.0), "middle": (35.0, -55.0)},
+    "hom_twist_100_70": {"thumb": (-50.0, 0.0), "index": (50.0, 35.0), "middle": (50.0, -35.0)},
+    "hom_cover_50_75": {"thumb": (-25.0, 0.0), "index": (25.0, 37.5), "middle": (25.0, -37.5)},
 }
 HOME_PALM = {f: (ORIGIN[f][0] + HOME_LOCAL[f][0], ORIGIN[f][1] + HOME_LOCAL[f][1]) for f in F}
 ZERO = {f: {"yaw": 0.0, "mcp": 0.0, "pip": 0.0} for f in F}
