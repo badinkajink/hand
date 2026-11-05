@@ -22,9 +22,11 @@ Frames (mm in frames.json, m in the MJCF):
      middle finger toward the index, z_P up, origin on the plane of the three yaw-axis centres, midway between the
      travel-box centres. P = A turned +90 deg about z_A: x_P = -y_A + t_x, y_P = x_A + t_y, z_P = z_A + t_z.
   E  tool0 of the UR5 CB3 (the controller's flange frame; the URDF's wrist_3_link): z_E out of the flange into the hand.
-     The CB3 flange's four M6 holes lie at 45 + 90 j deg from x_E and the tool connector on -y_E. The adaptor's M6 holes
-     lie at -21 + 90 i deg from x_A, so the adaptor bolts on in four clockings k: x_A lies at theta_k = 24 + 90 k deg
-     from x_E about +z_E, with z_A = -z_E.
+     The CB3 flange's four M6 holes lie at 45 + 90 j deg from x_E and the tool connector on -y_E.
+  H  the tool face of the OptoForce HEX-E that stays on the flange: 35.0 mm out along z_E, its M6 at -47.15 + 90 j deg from
+     x_E (its dowel measured at -92.15 deg), its cable port on +y_E. The adaptor's M6 holes lie at -21 + 90 i deg from
+     x_A, so the adaptor bolts on in four clockings k: x_A lies at theta_k = 21.85 + 90 k deg from x_E about +z_E, with
+     z_A = -z_E; P's origin is 138.9 mm out along z_E.
 
 The models (assets/mjcf/experimental/20261104-cad_v3):
   scene_screwdriver_medium.xml        the simplified model: cad_v2's scene (same 31 qpos, 15 actuators, names and
@@ -95,6 +97,13 @@ RGBA = {"v3_plate": "0.62 0.46 0.31 1", "v3_mount": "0.11 0.11 0.12 1", "v3_adap
         "v3_print": "0.13 0.13 0.14 1", "v3_sensor": "0.13 0.13 0.14 1", "v3_stepper": "0.07 0.07 0.08 1",
         "v3_steel": "0.70 0.72 0.75 1", "v3_alu": "0.82 0.83 0.85 1", "v3_brass": "0.80 0.62 0.28 1",
         "v3_box": "0.45 0.55 0.70 0.55", "v3_tag": "1 1 1 1"}
+# The OptoForce HEX-E (HEX-70-XE-200N) stays on the UR5's flange, and the hand's adaptor bolts to its tool face (owner,
+# 2026-11-04: "the optoforce sensor is missing, it's still in there"). Its tool face lies 35.0 mm out along z_E
+# (scripts/ur5_cb3_cell.py HEX, data sheet). Its tool-side dowel was measured at -92.15 deg from x_E (lab README, "The
+# geometry as measured": mean of two seatings, +-0.58 deg), so its tool-side M6 lie at -47.15 + 90 j deg (ISO 9409-1: 45 deg
+# from the dowel). Frame H: the HEX-E's tool face, z_H = z_E, its M6 at 45 + 90 j deg from x_H.
+HEX_E = dict(height_mm=35.0, diameter_mm=70.0, across_port_mm=78.5, mass_kg=0.260, turn_deg=-2.15,
+             port_E_deg=90.0)
 SCREW_R_MM = 2.5                               # 5 mm lead screws (T5 x 1): drawn as plain cylinders
 PAD_TIP = "tcd_ell7.4x8.5x11x22"               # the v4b pad (CLAUDE.md: the tip calibrated on the UR5)
 
@@ -145,13 +154,19 @@ def derive_flange(parts):
     theta0 = (45.0 + a + 45.0) % 90.0 - 45.0          # x_A in E for the clocking nearest x_E, in (-45, 45]
     face = float(ad["bbox"][5])
     cA = np.array([c[0], c[1], face])
-    Ts = []
+    TH = []
     for k in K_ALL:
         R = rot.rot_z(math.radians(theta0 + 90.0 * k)) @ rot.rot_x(math.pi)
-        Ts.append(tf(R, -R @ cA))
+        TH.append(tf(R, -R @ cA))
+    T_EH = tf(rot.rot_z(math.radians(HEX_E["turn_deg"])), [0.0, 0.0, HEX_E["height_mm"]])
+    Ts = [T_EH @ T for T in TH]
     return dict(centre_A_mm=cA.round(4).tolist(), m6_angles_A_deg=sorted(np.round(ang, 3).tolist()),
-                m6_circle_d_mm=float(2 * rad.mean()), m6_angles_E_deg=[45.0, 135.0, 225.0, 315.0],
-                connector_E_deg=-90.0, theta_k_deg=[round(theta0 + 90.0 * k, 6) for k in K_ALL],
+                m6_circle_d_mm=float(2 * rad.mean()), m6_angles_H_deg=[45.0, 135.0, 225.0, 315.0],
+                m6_angles_E_deg=[round(45.0 + 90.0 * j + HEX_E["turn_deg"], 4) for j in range(4)],
+                connector_E_deg=-90.0, hex_e=dict(HEX_E, T_E_from_H=T_EH.round(9).ravel().tolist()),
+                theta_H_k_deg=[round(theta0 + 90.0 * k, 6) for k in K_ALL],
+                theta_k_deg=[round(theta0 + 90.0 * k + HEX_E["turn_deg"], 6) for k in K_ALL],
+                T_H_from_A_by_k=[T.round(9).ravel().tolist() for T in TH],
                 T_E_from_A_by_k=[T.round(9).ravel().tolist() for T in Ts])
 
 
@@ -164,7 +179,7 @@ def cmd_frames(args):
     flange = derive_flange(parts)
     # the analysis' transforms agree with the derivation here
     agent = np.array(Fl.get("T_E_from_A_by_k") or Fl["data"]["T_E_from_A_by_k"], float).reshape(4, 4, 4)
-    dev = float(np.abs(agent - np.array(flange["T_E_from_A_by_k"]).reshape(4, 4, 4)).max())
+    dev = float(np.abs(agent - np.array(flange["T_H_from_A_by_k"]).reshape(4, 4, 4)).max())   # the agent had no HEX-E
     if dev > 1e-3:
         raise SystemExit(f"flange: this derivation and logs/20261104-cad_v3/flange differ by {dev}")
     shift = np.array(G.get("thumb_gantry_correction", {}).get("shift_A_mm", [0, 0, 0]), float)
@@ -206,7 +221,7 @@ def cmd_frames(args):
         written=time.strftime("%Y-%m-%d %H:%M"), units="mm, deg",
         sources=dict(cad="assets/cad_v3/step (the owner's Onshape export of 2026-11-04, assets/cad_v2/full_cad)",
                      solids="scripts/cad_v3_assets.py extract -> logs/20261104-cad_v3/extract/parts.json",
-                     analysis="docs/experiments/20261104-cad_v3_hand/analysis (gantry.json, flange.json, sensors.json)"),
+                     analysis="docs/experiments/20261104-cad_v3_hand/analysis (gantry.json, flange.json, sensors.json); HEX-E: lab README of the tip calibration"),
         frames=dict(
             A="CAD assembly 'hand v3 (anthro config)': z_A up toward the robot, base plate z_A 0..3, flange face 28",
             P="simulator palm frame = driver {P}: x_P thumb -> pair, y_P middle -> index, z_P up, origin on the "
@@ -649,10 +664,17 @@ def dropin_root(F, full):
     palm.insert(0, ET.Element("inertial", {"pos": "0 0 0.025", "mass": "0.0918",
                                            "diaginertia": "0.000247922 0.000221103 0.000468945"}))
     set_mounts(root, F)
+    # owner, 2026-11-04: the finger links are painted metallic silver; the fingertip (cassette, cap, pad) stays black
+    a = root.find("asset")
+    el(a, "material", name="v3_link_silver", rgba="0.78 0.79 0.81 1", specular="1", shininess="0.9", reflectance="0.15")
+    el(a, "material", name="v3_tip_black", rgba="0.06 0.06 0.065 1", specular="0.2", shininess="0.3")
+    for g in root.iter("geom"):
+        n = g.get("name", "")
+        if n.endswith(("_carriage_visual", "_yaw_link_visual", "_mcp_link_visual", "_dip_link_visual")):
+            g.set("material", "v3_link_silver")
+        elif n.endswith(("_cassette_visual", "_cap_visual")):
+            g.set("material", "v3_tip_black")
     if full:
-        for mat in root.find("asset").findall("material"):        # the printed finger links are black on the hand
-            if mat.get("name") == "cad_link":
-                mat.set("rgba", "0.17 0.17 0.18 1")
         add_full_visuals(root, F)
         add_pads(root)
         for key in root.iter("key"):                           # the bridges' qpos follow <f>_y
@@ -678,6 +700,9 @@ def add_pads(root):
         f = Path(m.get("file"))
         if f.is_absolute():
             m.set("file", os_rel(f, MESH.resolve()))
+    for g in root.iter("geom"):                        # the pad's envelope, drawn black and opaque
+        if g.get("name", "").endswith("_tipvis"):
+            g.set("rgba", "0.05 0.05 0.055 1")
 
 
 def write(root, path):
@@ -708,6 +733,8 @@ def arm_root(F, k, full):
         if c.tag == "mesh":
             c.set("file", "ur5/" + c.get("file"))
         asset.append(c)
+    el(asset, "material", name="v3_hexe", rgba="0.70 0.71 0.73 1", specular="0.8", shininess="0.7")
+    el(asset, "material", name="v3_hexe_port", rgba="0.08 0.08 0.09 1")
     root.append(asset)
     wb = el(root, "worldbody")
     for c in hand.find("worldbody"):
@@ -732,6 +759,17 @@ def arm_root(F, k, full):
     palm.set("pos", fmt(T[:3, 3] / 1000.0, 9))
     palm.set("quat", quat_str(T[:3, :3]))
     tool0.append(palm)
+    # the HEX-E between the flange (z_E 0) and the adaptor (z_E 35 mm): a 70 mm cylinder and its cable port on +y_E
+    h, r = HEX_E["height_mm"] / 1000.0, HEX_E["diameter_mm"] / 2000.0
+    el(tool0, "inertial", pos=f"0 0 {h / 2:.6g}", mass=f"{HEX_E['mass_kg']:g}",
+       diaginertia=fmt([HEX_E["mass_kg"] * (3 * r * r + h * h) / 12] * 2 + [HEX_E["mass_kg"] * r * r / 2]))
+    el(tool0, "geom", name="hex_e", type="cylinder", pos=f"0 0 {h / 2:.6g}", size=f"{r:.6g} {h / 2:.6g}",
+       material="v3_hexe", mass="0")
+    port = (HEX_E["across_port_mm"] - HEX_E["diameter_mm"] / 2) / 1000.0
+    el(tool0, "geom", name="hex_e_port", type="box", pos=f"0 {port / 2 + r / 2:.6g} {h / 2:.6g}",
+       size=f"0.006 {port / 2 - r / 2 + 0.002:.6g} 0.006", material="v3_hexe_port", mass="0")
+    el(tool0, "site", name="hex_e_tool_face", pos=f"0 0 {h:.6g}", quat=quat_str(rot.rot_z(math.radians(HEX_E["turn_deg"]))),
+       type="cylinder", size="0.025 0.0003", rgba="0.1 0.6 0.9 0.5", group="4")
     el(tool0, "site", name="tool0_flange", type="cylinder", size="0.0315 0.0005", rgba="0.9 0.1 0.1 0.6", group="4")
     contact = copy.deepcopy(hand.find("contact"))
     for c in ur.find("contact"):
@@ -853,6 +891,7 @@ def cmd_render(args):
     shot("scene_screwdriver_medium_full.xml", "open", 1600, 1200, None, 0.55, 135, -25, groups=(0, 1, 3),
          name="20261104-hand_simplified_boxes.png")
     shot("scene_screwdriver_medium.xml", "open", 1600, 1200, None, 0.55, 135, -25, name="20261104-hand_dropin.png")
+    shot("ur5_full_k0.xml", "hand_down", 1600, 1200, None, 0.75, 150, -12, name="20261104-ur5_full_k0_close.png")
     tiles = []
     for k in K_ALL:
         tiles.append(shot(f"ur5_full_k{k}.xml", "hand_down", 800, 800, None, 0.6, 90, -89.9, name=f"20261104-clock_k{k}.png"))

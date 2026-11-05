@@ -72,7 +72,7 @@
     <material name="palm_mat" rgba="0.18 0.2 0.24 1" />
     <material name="finger_mat" rgba="0.8 0.72 0.6 1" />
     <material name="object_mat" rgba="0.6 0.6 0.6 1" />
-    <material name="cad_link" rgba="0.17 0.17 0.18 1" />
+    <material name="cad_link" rgba="0.42 0.32 0.72 1" />
     <material name="cad_servo" rgba="0.10 0.10 0.11 1" />
     <material name="cad_tip" rgba="0.72 0.55 0.32 1" />
     <mesh name="cad_carriage" file="../../20261013-cad_v1/meshes/carriage.stl" />
@@ -94,6 +94,8 @@
     <material name="v3_alu" rgba="0.82 0.83 0.85 1" specular="0.3" shininess="0.4" />
     <material name="v3_brass" rgba="0.80 0.62 0.28 1" specular="0.3" shininess="0.4" />
     <material name="v3_box" rgba="0.45 0.55 0.70 0.55" specular="0.3" shininess="0.4" />
+    <material name="v3_link_silver" rgba="0.78 0.79 0.81 1" specular="1" shininess="0.9" reflectance="0.15" />
+    <material name="v3_tip_black" rgba="0.06 0.06 0.065 1" specular="0.2" shininess="0.3" />
     <mesh name="v3_bridge_index_alu" file="v3_bridge_index_alu.stl" />
     <mesh name="v3_bridge_index_brass" file="v3_bridge_index_brass.stl" />
     <mesh name="v3_bridge_index_print" file="v3_bridge_index_print.stl" />
@@ -163,6 +165,8 @@
     <mesh name="wrist2_2" file="ur5/visual/wrist2_2.obj" />
     <mesh name="wrist3_0" file="ur5/visual/wrist3_0.obj" />
     <mesh name="wrist3_1" file="ur5/visual/wrist3_1.obj" />
+    <material name="v3_hexe" rgba="0.70 0.71 0.73 1" specular="0.8" shininess="0.7" />
+    <material name="v3_hexe_port" rgba="0.08 0.08 0.09 1" />
   </asset>
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse=".6 .6 .6" specular=".2 .2 .2" />
@@ -237,7 +241,7 @@
                   <geom name="wrist3_connector" class="collision" type="box" pos="-4e-06 -0.040726 -0.019699" size="0.003612 0.002274 0.003412" />
                   <site name="tool0" class="frame" />
                   <body name="tool0">
-                    <body gravcomp="1" name="palm_pose" pos="-0.0049673228 -0.00221181645 0.1039003" quat="0 0.978147601 0.207911691 0">
+                    <body gravcomp="1" name="palm_pose" pos="-0.005046804 -0.00202390651 0.1389003" quat="0 0.981876111 0.189523885 0">
                       <inertial pos="0 0 0.025" mass="0.0918" diaginertia="0.000247922 0.000221103 0.000468945" />
                       <geom name="palm_plate" class="v3_box" pos="0 -2e-07 0.05015" size="0.121438 0.111 0.02575" />
                       <geom name="gantry_thumb_bridge" class="v3_box" pos="-0.0788875 -0.000625322 0.0469003" size="0.07845 0.070525 0.025" />
@@ -257,7 +261,7 @@
                         <inertial pos="-0.003714 -0.000445 0.016276" mass="0.027251" fullinertia="0.000010295 0.000010186 0.00000381 -0.000000007 -0.000001996 -0.000000129" />
                         <joint class="morph" name="thumb_x" axis="1 0 0" range="-0.03 0.03" />
                         <joint class="morph" name="thumb_y" axis="0 1 0" range="-0.055 0.055" />
-                        <geom name="thumb_carriage_visual" class="cad_visual" mesh="cad_carriage" material="cad_link" quat="0 0 0 1" />
+                        <geom name="thumb_carriage_visual" class="cad_visual" mesh="cad_carriage" material="v3_link_silver" quat="0 0 0 1" />
                         <geom name="thumb_servo_yaw_visual" class="cad_visual" mesh="cad_servo_yaw" material="cad_servo" quat="0 0 0 1" />
                         <geom name="thumb_mount_s0" class="cad_collision" pos="0.002352 0.017507 0.059825" size="0.008365" />
                         <geom name="thumb_mount_s1" class="cad_collision" pos="0.002896 -0.010622 0.026687" size="0.010545" />
@@ -298,7 +302,7 @@
                         <body name="thumb_yaw_frame">
                           <inertial pos="-0.007945 0.000201 -0.019195" mass="0.021200" fullinertia="0.000001897 0.000003343 0.000003663 -0.000000298 0.000000249 0.000000097" />
                           <joint class="ctrl" name="thumb_yaw" axis="1 0 0" range="-1.483530 1.483530" />
-                          <geom name="thumb_yaw_link_visual" class="cad_visual" mesh="cad_yaw_link" material="cad_link" quat="0 0 0 1" />
+                          <geom name="thumb_yaw_link_visual" class="cad_visual" mesh="cad_yaw_link" material="v3_link_silver" quat="0 0 0 1" />
                           <geom name="thumb_servo_mcp_visual" class="cad_visual" mesh="cad_servo_mcp" material="cad_servo" quat="0 0 0 1" />
                           <geom name="thumb_yaw_frame_s0" class="cad_collision" pos="0.008494 0.002523 -0.012808" size="0.006819" />
                           <geom name="thumb_yaw_frame_s1" class="cad_collision" pos="-0.024204 0.002253 -0.0212" size="0.008594" />
@@ -347,7 +351,7 @@
                           <body name="thumb_mcp_frame" pos="0 -0 -0.02075">
                             <inertial pos="-0.005177 0.002878 -0.025365" mass="0.025029" fullinertia="0.000004091 0.000003624 0.000003974 -0.000000058 -0.000000068 -0.000000322" />
                             <joint class="ctrl" name="thumb_mcp" axis="0 -1 0" range="-0.261799 1.605703" />
-                            <geom name="thumb_mcp_link_visual" class="cad_visual" mesh="cad_mcp_link" material="cad_link" quat="0 0 0 1" />
+                            <geom name="thumb_mcp_link_visual" class="cad_visual" mesh="cad_mcp_link" material="v3_link_silver" quat="0 0 0 1" />
                             <geom name="thumb_servo_pip_visual" class="cad_visual" mesh="cad_servo_pip" material="cad_servo" quat="0 0 0 1" />
                             <geom name="thumb_mcp_frame_s0" class="cad_collision" pos="0.005232 -0.005579 -0.019712" size="0.009322" />
                             <geom name="thumb_mcp_frame_s1" class="cad_collision" pos="-0.016132 -0.005664 -0.018685" size="0.009490" />
@@ -407,9 +411,9 @@
                               <body name="thumb_pip_frame" pos="-0 -0 -0.0308">
                                 <inertial pos="-0.002967 0.000912 -0.022687" mass="0.009263" fullinertia="0.0000025794 0.0000017135 0.0000011852 -0.0000000108 -0.0000001736 -0.0000000237" />
                                 <joint class="ctrl" name="thumb_pip" axis="0 -1 0" range="-0.314159 1.605703" />
-                                <geom name="thumb_dip_link_visual" class="cad_visual" mesh="cad_v4b_dip_link" material="cad_link" quat="0 0 0 1" />
-                                <geom name="thumb_cassette_visual" class="cad_visual" mesh="cad_v4b_cassette" material="cad_link" quat="0 0 0 1" />
-                                <geom name="thumb_cap_visual" class="cad_visual" mesh="cad_v4b_cap" material="cad_link" quat="0 0 0 1" />
+                                <geom name="thumb_dip_link_visual" class="cad_visual" mesh="cad_v4b_dip_link" material="v3_link_silver" quat="0 0 0 1" />
+                                <geom name="thumb_cassette_visual" class="cad_visual" mesh="cad_v4b_cassette" material="v3_tip_black" quat="0 0 0 1" />
+                                <geom name="thumb_cap_visual" class="cad_visual" mesh="cad_v4b_cap" material="v3_tip_black" quat="0 0 0 1" />
                                 <geom name="thumb_dip_link_s0" class="cad_collision" pos="0.0012682 0.0085 -0.01466" size="0.001090" />
                                 <geom name="thumb_dip_link_s1" class="cad_collision" pos="-0.0057318 -0.0145 -0.00466" size="0.001090" />
                                 <geom name="thumb_dip_link_s2" class="cad_collision" pos="-0.0067318 0.01 -0.01566" size="0.002718" />
@@ -727,7 +731,7 @@
                                 <geom name="thumb_cap_s69" class="cad_collision" pos="0.00065 0.0085 -0.04377" size="0.000534" />
                                 <body name="thumb_tip" pos="0 0 -0.03636">
                                   <inertial pos="0.002908 -0 0.001001" mass="0.003654" fullinertia="0.0000001631 0.0000001569 0.0000000903 -0 -0.0000000051 0" />
-                                  <geom name="thumb_tipvis" type="mesh" mesh="tpu_pos" contype="0" conaffinity="0" group="1" rgba="0.85 0.55 0.35 0.35" />
+                                  <geom name="thumb_tipvis" type="mesh" mesh="tpu_pos" contype="0" conaffinity="0" group="1" rgba="0.05 0.05 0.055 1" />
                                   <geom name="thumb_pad0" type="sphere" size="0.00075" pos="-0.0057000 -0.0064522 -0.0024558" condim="3" priority="1" friction="2.4 0 0" rgba="0.75 0.4 0.25 1" mass="0" solref="0.02 1" solimp="0.820003 0.820003 0.001 0.5 2" />
                                   <geom name="thumb_pad1" type="sphere" size="0.00075" pos="-0.0057000 -0.0065831 -0.0014219" condim="3" priority="1" friction="2.4 0 0" rgba="0.75 0.4 0.25 1" mass="0" solref="0.02 1" solimp="0.782897 0.782897 0.001 0.5 2" />
                                   <geom name="thumb_pad2" type="sphere" size="0.00075" pos="-0.0057000 -0.0066406 -0.0004826" condim="3" priority="1" friction="2.4 0 0" rgba="0.75 0.4 0.25 1" mass="0" solref="0.02 1" solimp="0.785267 0.785267 0.001 0.5 2" />
@@ -1758,7 +1762,7 @@
                         <inertial pos="0.003714 0.000445 0.016276" mass="0.027251" fullinertia="0.000010295 0.000010186 0.00000381 -0.000000007 0.000001996 0.000000129" />
                         <joint class="morph" name="index_x" axis="1 0 0" range="-0.03 0.03" />
                         <joint class="morph" name="index_y" axis="0 1 0" range="-0.03 0.03" />
-                        <geom name="index_carriage_visual" class="cad_visual" mesh="cad_carriage" material="cad_link" />
+                        <geom name="index_carriage_visual" class="cad_visual" mesh="cad_carriage" material="v3_link_silver" />
                         <geom name="index_servo_yaw_visual" class="cad_visual" mesh="cad_servo_yaw" material="cad_servo" />
                         <geom name="index_mount_s0" class="cad_collision" pos="-0.002352 -0.017507 0.059825" size="0.008365" />
                         <geom name="index_mount_s1" class="cad_collision" pos="-0.002896 0.010622 0.026687" size="0.010545" />
@@ -1799,7 +1803,7 @@
                         <body name="index_yaw_frame">
                           <inertial pos="0.007945 -0.000201 -0.019195" mass="0.021200" fullinertia="0.000001897 0.000003343 0.000003663 -0.000000298 -0.000000249 -0.000000097" />
                           <joint class="ctrl" name="index_yaw" axis="1 0 0" range="-1.483530 1.483530" />
-                          <geom name="index_yaw_link_visual" class="cad_visual" mesh="cad_yaw_link" material="cad_link" />
+                          <geom name="index_yaw_link_visual" class="cad_visual" mesh="cad_yaw_link" material="v3_link_silver" />
                           <geom name="index_servo_mcp_visual" class="cad_visual" mesh="cad_servo_mcp" material="cad_servo" />
                           <geom name="index_yaw_frame_s0" class="cad_collision" pos="-0.008494 -0.002523 -0.012808" size="0.006819" />
                           <geom name="index_yaw_frame_s1" class="cad_collision" pos="0.024204 -0.002253 -0.0212" size="0.008594" />
@@ -1848,7 +1852,7 @@
                           <body name="index_mcp_frame" pos="0 -0 -0.02075">
                             <inertial pos="0.005177 -0.002878 -0.025365" mass="0.025029" fullinertia="0.000004091 0.000003624 0.000003974 -0.000000058 0.000000068 0.000000322" />
                             <joint class="ctrl" name="index_mcp" axis="0 1 0" range="-0.261799 1.605703" />
-                            <geom name="index_mcp_link_visual" class="cad_visual" mesh="cad_mcp_link" material="cad_link" />
+                            <geom name="index_mcp_link_visual" class="cad_visual" mesh="cad_mcp_link" material="v3_link_silver" />
                             <geom name="index_servo_pip_visual" class="cad_visual" mesh="cad_servo_pip" material="cad_servo" />
                             <geom name="index_mcp_frame_s0" class="cad_collision" pos="-0.005232 0.005579 -0.019712" size="0.009322" />
                             <geom name="index_mcp_frame_s1" class="cad_collision" pos="0.016132 0.005664 -0.018685" size="0.009490" />
@@ -1908,9 +1912,9 @@
                               <body name="index_pip_frame" pos="-0 -0 -0.0308">
                                 <inertial pos="0.002967 -0.000912 -0.022687" mass="0.009263" fullinertia="0.0000025794 0.0000017135 0.0000011852 -0.0000000108 0.0000001736 0.0000000237" />
                                 <joint class="ctrl" name="index_pip" axis="0 1 0" range="-0.314159 1.605703" />
-                                <geom name="index_dip_link_visual" class="cad_visual" mesh="cad_v4b_dip_link" material="cad_link" />
-                                <geom name="index_cassette_visual" class="cad_visual" mesh="cad_v4b_cassette" material="cad_link" />
-                                <geom name="index_cap_visual" class="cad_visual" mesh="cad_v4b_cap" material="cad_link" />
+                                <geom name="index_dip_link_visual" class="cad_visual" mesh="cad_v4b_dip_link" material="v3_link_silver" />
+                                <geom name="index_cassette_visual" class="cad_visual" mesh="cad_v4b_cassette" material="v3_tip_black" />
+                                <geom name="index_cap_visual" class="cad_visual" mesh="cad_v4b_cap" material="v3_tip_black" />
                                 <geom name="index_dip_link_s0" class="cad_collision" pos="-0.0012682 -0.0085 -0.01466" size="0.001090" />
                                 <geom name="index_dip_link_s1" class="cad_collision" pos="0.0057318 0.0145 -0.00466" size="0.001090" />
                                 <geom name="index_dip_link_s2" class="cad_collision" pos="0.0067318 -0.01 -0.01566" size="0.002718" />
@@ -2228,7 +2232,7 @@
                                 <geom name="index_cap_s69" class="cad_collision" pos="-0.00065 -0.0085 -0.04377" size="0.000534" />
                                 <body name="index_tip" pos="0 0 -0.03636">
                                   <inertial pos="-0.002908 0 0.001001" mass="0.003654" fullinertia="0.0000001631 0.0000001569 0.0000000903 -0 0.0000000051 -0" />
-                                  <geom name="index_tipvis" type="mesh" mesh="tpu_neg" contype="0" conaffinity="0" group="1" rgba="0.85 0.55 0.35 0.35" />
+                                  <geom name="index_tipvis" type="mesh" mesh="tpu_neg" contype="0" conaffinity="0" group="1" rgba="0.05 0.05 0.055 1" />
                                   <geom name="index_pad0" type="sphere" size="0.00075" pos="0.0057000 -0.0064522 -0.0024558" condim="3" priority="1" friction="2.4 0 0" rgba="0.75 0.4 0.25 1" mass="0" solref="0.02 1" solimp="0.820172 0.820172 0.001 0.5 2" />
                                   <geom name="index_pad1" type="sphere" size="0.00075" pos="0.0057000 -0.0065831 -0.0014219" condim="3" priority="1" friction="2.4 0 0" rgba="0.75 0.4 0.25 1" mass="0" solref="0.02 1" solimp="0.7831 0.7831 0.001 0.5 2" />
                                   <geom name="index_pad2" type="sphere" size="0.00075" pos="0.0057000 -0.0066406 -0.0004826" condim="3" priority="1" friction="2.4 0 0" rgba="0.75 0.4 0.25 1" mass="0" solref="0.02 1" solimp="0.785468 0.785468 0.001 0.5 2" />
@@ -3259,7 +3263,7 @@
                         <inertial pos="0.003714 0.000445 0.016276" mass="0.027251" fullinertia="0.000010295 0.000010186 0.00000381 -0.000000007 0.000001996 0.000000129" />
                         <joint class="morph" name="middle_x" axis="1 0 0" range="-0.03 0.03" />
                         <joint class="morph" name="middle_y" axis="0 1 0" range="-0.03 0.03" />
-                        <geom name="middle_carriage_visual" class="cad_visual" mesh="cad_carriage" material="cad_link" />
+                        <geom name="middle_carriage_visual" class="cad_visual" mesh="cad_carriage" material="v3_link_silver" />
                         <geom name="middle_servo_yaw_visual" class="cad_visual" mesh="cad_servo_yaw" material="cad_servo" />
                         <geom name="middle_mount_s0" class="cad_collision" pos="-0.002352 -0.017507 0.059825" size="0.008365" />
                         <geom name="middle_mount_s1" class="cad_collision" pos="-0.002896 0.010622 0.026687" size="0.010545" />
@@ -3300,7 +3304,7 @@
                         <body name="middle_yaw_frame">
                           <inertial pos="0.007945 -0.000201 -0.019195" mass="0.021200" fullinertia="0.000001897 0.000003343 0.000003663 -0.000000298 -0.000000249 -0.000000097" />
                           <joint class="ctrl" name="middle_yaw" axis="1 0 0" range="-1.483530 1.483530" />
-                          <geom name="middle_yaw_link_visual" class="cad_visual" mesh="cad_yaw_link" material="cad_link" />
+                          <geom name="middle_yaw_link_visual" class="cad_visual" mesh="cad_yaw_link" material="v3_link_silver" />
                           <geom name="middle_servo_mcp_visual" class="cad_visual" mesh="cad_servo_mcp" material="cad_servo" />
                           <geom name="middle_yaw_frame_s0" class="cad_collision" pos="-0.008494 -0.002523 -0.012808" size="0.006819" />
                           <geom name="middle_yaw_frame_s1" class="cad_collision" pos="0.024204 -0.002253 -0.0212" size="0.008594" />
@@ -3349,7 +3353,7 @@
                           <body name="middle_mcp_frame" pos="0 -0 -0.02075">
                             <inertial pos="0.005177 -0.002878 -0.025365" mass="0.025029" fullinertia="0.000004091 0.000003624 0.000003974 -0.000000058 0.000000068 0.000000322" />
                             <joint class="ctrl" name="middle_mcp" axis="0 1 0" range="-0.261799 1.605703" />
-                            <geom name="middle_mcp_link_visual" class="cad_visual" mesh="cad_mcp_link" material="cad_link" />
+                            <geom name="middle_mcp_link_visual" class="cad_visual" mesh="cad_mcp_link" material="v3_link_silver" />
                             <geom name="middle_servo_pip_visual" class="cad_visual" mesh="cad_servo_pip" material="cad_servo" />
                             <geom name="middle_mcp_frame_s0" class="cad_collision" pos="-0.005232 0.005579 -0.019712" size="0.009322" />
                             <geom name="middle_mcp_frame_s1" class="cad_collision" pos="0.016132 0.005664 -0.018685" size="0.009490" />
@@ -3409,9 +3413,9 @@
                               <body name="middle_pip_frame" pos="-0 -0 -0.0308">
                                 <inertial pos="0.002967 -0.000912 -0.022687" mass="0.009263" fullinertia="0.0000025794 0.0000017135 0.0000011852 -0.0000000108 0.0000001736 0.0000000237" />
                                 <joint class="ctrl" name="middle_pip" axis="0 1 0" range="-0.314159 1.605703" />
-                                <geom name="middle_dip_link_visual" class="cad_visual" mesh="cad_v4b_dip_link" material="cad_link" />
-                                <geom name="middle_cassette_visual" class="cad_visual" mesh="cad_v4b_cassette" material="cad_link" />
-                                <geom name="middle_cap_visual" class="cad_visual" mesh="cad_v4b_cap" material="cad_link" />
+                                <geom name="middle_dip_link_visual" class="cad_visual" mesh="cad_v4b_dip_link" material="v3_link_silver" />
+                                <geom name="middle_cassette_visual" class="cad_visual" mesh="cad_v4b_cassette" material="v3_tip_black" />
+                                <geom name="middle_cap_visual" class="cad_visual" mesh="cad_v4b_cap" material="v3_tip_black" />
                                 <geom name="middle_dip_link_s0" class="cad_collision" pos="-0.0012682 -0.0085 -0.01466" size="0.001090" />
                                 <geom name="middle_dip_link_s1" class="cad_collision" pos="0.0057318 0.0145 -0.00466" size="0.001090" />
                                 <geom name="middle_dip_link_s2" class="cad_collision" pos="0.0067318 -0.01 -0.01566" size="0.002718" />
@@ -3729,7 +3733,7 @@
                                 <geom name="middle_cap_s69" class="cad_collision" pos="-0.00065 -0.0085 -0.04377" size="0.000534" />
                                 <body name="middle_tip" pos="0 0 -0.03636">
                                   <inertial pos="-0.002908 0 0.001001" mass="0.003654" fullinertia="0.0000001631 0.0000001569 0.0000000903 -0 0.0000000051 -0" />
-                                  <geom name="middle_tipvis" type="mesh" mesh="tpu_neg" contype="0" conaffinity="0" group="1" rgba="0.85 0.55 0.35 0.35" />
+                                  <geom name="middle_tipvis" type="mesh" mesh="tpu_neg" contype="0" conaffinity="0" group="1" rgba="0.05 0.05 0.055 1" />
                                   <geom name="middle_pad0" type="sphere" size="0.00075" pos="0.0057000 -0.0064522 -0.0024558" condim="3" priority="1" friction="2.4 0 0" rgba="0.75 0.4 0.25 1" mass="0" solref="0.02 1" solimp="0.820163 0.820163 0.001 0.5 2" />
                                   <geom name="middle_pad1" type="sphere" size="0.00075" pos="0.0057000 -0.0065831 -0.0014219" condim="3" priority="1" friction="2.4 0 0" rgba="0.75 0.4 0.25 1" mass="0" solref="0.02 1" solimp="0.783089 0.783089 0.001 0.5 2" />
                                   <geom name="middle_pad2" type="sphere" size="0.00075" pos="0.0057000 -0.0066406 -0.0004826" condim="3" priority="1" friction="2.4 0 0" rgba="0.75 0.4 0.25 1" mass="0" solref="0.02 1" solimp="0.785457 0.785457 0.001 0.5 2" />
@@ -4799,6 +4803,10 @@
                       <geom name="v3_screw_110" class="v3_visual" type="cylinder" fromto="0.108938 -0.105917 0.0619003 0.108938 -0.0055002 0.0619003" size="0.0025" material="v3_steel" />
                       <geom name="v3_tag" class="v3_visual" mesh="v3_tag" material="v3_tag" pos="0.0159375 0.1336 0.0439003" quat="0.707106781 -4.32978028e-17 -0.707106781 -4.32978028e-17" />
                     </body>
+                    <inertial pos="0 0 0.0175" mass="0.26" diaginertia="0.000106167 0.000106167 0.00015925" />
+                    <geom name="hex_e" type="cylinder" pos="0 0 0.0175" size="0.035 0.0175" material="v3_hexe" mass="0" />
+                    <geom name="hex_e_port" type="box" pos="0 0.03925 0.0175" size="0.006 0.00625 0.006" material="v3_hexe_port" mass="0" />
+                    <site name="hex_e_tool_face" pos="0 0 0.035" quat="0.999823993 0 0 -0.0187611887" type="cylinder" size="0.025 0.0003" rgba="0.1 0.6 0.9 0.5" group="4" />
                     <site name="tool0_flange" type="cylinder" size="0.0315 0.0005" rgba="0.9 0.1 0.1 0.6" group="4" />
                   </body>
                 </body>
