@@ -404,10 +404,10 @@ def screen_section():
                      "within hands and cells; final/summary.json).", key="stage3")
         out += img("media/fig_stage3.png", "Stage 3 per tip: the score at each condition and J3 (left), and the difference to "
                    "the v4b tip with its 90&#8202;% bootstrap interval (right).", key="stage3")
-    out += film("media/hom_cylinder_16_0.625_s3_tile.mp4", "media/hom_cylinder_16_0.625_s3_tile_poster.png",
+    out += film("media/hom_cylinder_16_0.625_s3_tile.mp4", "media/hom_cylinder_16_0.625_s3_tile_poster.jpg",
                 "HOM on the v4b hand&#8217;s 16&#8202;mm cylinder at friction 0.7, seed 3 (a placement no stage used to choose the "
-                "grasp), each tip with the grasp it chose on seed 0; pads touching the cylinder red, rigid parts touching it "
-                "blue.", key="hom")
+                "grasp), each tip with the grasp it chose on seed 0, seen from below the palm; pads touching the cylinder red, "
+                "a rigid part touching it yellow.", key="hom")
     return out
 
 

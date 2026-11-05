@@ -5,7 +5,7 @@ cad_v2 cell per tip, rendered on the CPU through Mesa's software EGL with the fi
 
   hom   the HOM turn on the cell (default cylinder:16:0.625) per tip at friction 0.7 on the SCS0009, pads at 2.5 MPa, the
         grasp each tip chose on seed 0 of the screen (screen/summary.json), at a fresh seed; pads touching the cylinder
-        drawn red and the rigid parts touching it (DIP link, cassette, cap) blue; clips, tile and poster in media/
+        drawn red and a rigid part touching it (DIP link, cassette or cap) yellow; clips, tile and poster in media/
 
     export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json MUJOCO_GL=egl LP_NUM_THREADS=1
     SCALE_HAND=cad_v2 HOS_PLANT=servo .venv/bin/python scripts/fingertip_shape_rerun_film.py hom --tips <tips>
@@ -56,14 +56,20 @@ def film_hom(tip, cell_spec, seed, cand_index, mu=0.7):
     m, dat = plant.m, plant.d
     fingers = ("thumb", "index", "middle")
     pads = [i for i in range(m.ngeom) if "_pad" in (m.geom(i).name or "")]
-    rigid = [i for i in range(m.ngeom) if (m.geom(i).name or "").split("_")[0] in fingers
-             and any(p in (m.geom(i).name or "") for p in ("_cap_s", "_cassette_s", "_dip_link_s"))]
-    rgba0 = {i: m.geom_rgba[i].copy() for i in rigid}
+    # a rigid part's collision spheres are not drawn: a contact on one colours the part's visual mesh
+    part_of = {}
+    for i in range(m.ngeom):
+        nm = m.geom(i).name or ""
+        for part in ("cap", "cassette", "dip_link"):
+            if nm.split("_")[0] in fingers and f"_{part}_s" in nm:
+                part_of[i] = m.geom(f"{nm.split('_')[0]}_{part}_visual").id
+    rgba0 = {v: m.geom_rgba[v].copy() for v in set(part_of.values())}
     for i in pads:
         m.geom_rgba[i] = (0.75, 0.4, 0.25, 0.0)
     RBF.W, RBF.H = TF.PW, TF.PH
     rend, cam = RBF.renderer_for(m, np.asarray(meta["tool7"], float)[:3])
-    cam.distance = 0.24 + 1.4 * dd / 1000.0
+    cam.azimuth, cam.elevation = 240.0, 15.0                    # from below the palm, onto the pads (11-04 camera check)
+    cam.distance = 0.155 + 1.5 * dd / 1000.0
     frames, k = [], [0]
     title = TF.tip_name(tip)
 
@@ -73,8 +79,8 @@ def film_hom(tip, cell_spec, seed, cand_index, mu=0.7):
             return
         for i in pads:
             m.geom_rgba[i, 3] = 0.0
-        for i in rigid:
-            m.geom_rgba[i] = rgba0[i]
+        for i, c in rgba0.items():
+            m.geom_rgba[i] = c
         for i in range(dat.ncon):
             g1, g2 = int(dat.contact[i].geom[0]), int(dat.contact[i].geom[1])
             for g, o in ((g1, g2), (g2, g1)):
@@ -82,8 +88,8 @@ def film_hom(tip, cell_spec, seed, cand_index, mu=0.7):
                     nm = m.geom(g).name or ""
                     if "_pad" in nm:
                         m.geom_rgba[g] = (0.9, 0.1, 0.1, 1.0)
-                    elif g in rgba0:
-                        m.geom_rgba[g] = (0.13, 0.4, 0.67, 1.0)
+                    elif g in part_of:
+                        m.geom_rgba[part_of[g]] = (0.95, 0.8, 0.1, 1.0)
         rend.update_scene(dat, cam)
         frames.append(TF.label_bar(rend.render().copy(), [title, f"t {tt:4.2f} s   turn {info.get('th_deg', 0):+5.1f}°   "
                                                                  f"{info.get('phase', '')}"]))
