@@ -46,10 +46,11 @@ WATCHED = (V3 + "data/", V3 + "README.md")
 # the inverted rig's analyses, outside the v3 folder since commit ab47f8b6 of 11-04: the holds of its sessions and its rod
 # fits in the seat block's data/, the tips' held-out curves and the viewer's board GP in the UR5 folder's data/, and the
 # coordinator's QUEUE.md, where the plans' changes and the analyses' readings go without a feed line; and the analysis files
-# of the SR2 hand's sweeps (the lab's commits to that folder's README wake by their subject, PREFIX)
+# of the SR2 hand's sweeps and its lab/ programs (the lab's commits to that folder's README wake by their subject, PREFIX;
+# a commit named for a program there, gated_chain.sh at 15:55 on 11-05, stated a stop under no such subject)
 ANALYSES = re.compile(r"docs/experiments/(20261030-inverted_rig_seat_block/data/(holds/|[^/]*rod_joint_registration)"
                       r"|20261022-ur5_tip_calibration/(data/[^/]*(v3_|board_gp)|QUEUE\.md)"
-                      r"|\d{8}-sr2_[^/]*/data/[^/]*analysis)")
+                      r"|\d{8}-sr2_[^/]*/(lab/|data/[^/]*analysis))")
 # the coordinator's analysis folders of a tip's sessions, logs/YYYYMMDD-{sphere,tall,rod}v3idN*/ with holds.npz,
 # calib_rest.json and summary.json; tips from v3 ID 3 on
 HOLDS_RE = re.compile(r"v3id(\d+)")
@@ -133,7 +134,7 @@ def report(snap, nw, first):
     for ln in nw["lines"]:
         print(ln)
     if nw["commits"]:
-        print(f'commits not acknowledged (subjects {", ".join(PREFIX)}, or changing the v3 folder\'s data/ or README.md or a rig analysis):')
+        print(f'commits not acknowledged (subjects {", ".join(PREFIX)}, or changing the v3 folder\'s data/ or README.md, a rig analysis or the SR2 folder\'s lab/):')
         for c in nw["commits"]:
             fs = ", ".join(f.removeprefix(V3) for f in c.get("files", [])[:4])
             print(f"  {c['hash']} {c['date']} {c['subject']}" + (f"  [{fs}]" if fs else ""))
