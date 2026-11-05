@@ -486,3 +486,8 @@ The owner answered at about 11:37, in the workstation's session, which passed th
   fingertip calibration page.
 - Plan files that are no longer current, and their path checks: `superseded/`, under the same names. A plan that ran
   also has a copy in its session folder.
+- The scripts moved into topic folders and the package `src/morphohand/` became `src/sr2hand/` at 00:50 on 11-05
+  (a41ffa27b). Corvus pulls before its next run. The session program is
+  `src/sr2hand/driver/reskin5x/host/ur5_tip_calibration.py`, the scripts the lab runs are under `scripts/ur5/` and
+  `scripts/fingertip/`, and `scripts/MOVED.tsv` maps the old paths. The same commit changed only the paths in `lab/*.py`,
+  `lab/tipcal_run.sh` and the READMEs here; a copy in a scratchpad still needs the new paths.
