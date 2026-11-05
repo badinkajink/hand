@@ -55,6 +55,40 @@ palm frame. At that layout only the thumb and the middle finger can come near ea
 The closest pose is the thumb at mcp 80 and pip 20 with the middle finger at mcp 65 and pip 40: 11.6 mm in the model.
 The owner looked at it on the hand at 18:3x: "the gap is about 1cm yea".
 
+## The night of 11-04
+
+The sweep ran from 18:57 to 20:34 and then stopped, with the hand at zero and the motors disabled. The files are in
+`data/20261104-night/`: the board logs in `boards/`, and one folder a run with `events.jsonl` (a line per step, on
+corvus's clock) and `telemetry.jsonl` (the station's samples, 1.7 Hz until 19:09, then 20 Hz). It also holds
+`ur5_pose.jsonl` (the arm, still and powered off from 18:57:27) and `chain.out`.
+
+| Run | Time | Steps | Families | Boards |
+|---|---|---|---|---|
+| `run0_test` | 18:55:48 to 18:56:42 | 10 | the attended test | all three |
+| `run1_home` | 18:57:47 to 19:31:31 | 126 | baseline, torque, every stepper step, all the thumb's families, index yaw and mcp | all three |
+| `run1b_home_rest` | 19:40:27 to 19:44:06 | 38 | index pip, 24 of its mcp-pip grid | all three until 19:43:52 |
+| `run1c_home_rest2` | 19:52:36 to 20:08:18 | 209 | index yaw-mcp, all the middle's families, every thumb-middle family | thumb and middle |
+| `run2_random_s1` | 20:08:19 to 20:34:09 | 355 | 327 random poses (one blocked) | thumb and middle |
+
+The owner paused the hand from 19:05:12 to 19:21:36 to colour the finger links. During that pause the board logger
+lost the port for 2 s at 19:14:05.
+
+**The index's board stopped answering at 19:43:52,** when the index stalled at mcp 50 + pip 90. Its curl most likely
+pulled its fingertip cable. Until the reset at 20:34, the C6 still read channel 1, which failed every transfer. Those
+records have zeros for the index, and the sweep slowed to about 10 records a second. After a reset the C6 finds only
+channels 0 and 3. In `boards/20261104-191407-mux.bin` after 19:43:52, half the records are misaligned and hold garbage.
+Keep the records whose index board is all zeros and whose middle and thumb boards stay within 30 % of their usual
+|B| on every chip: 29,277 records at 9.7 a second. That stretch covers `run1c_home_rest2` and `run2_random_s1`.
+
+The runs stopped three times:
+- 19:31:23, the index's mcp drooped under gravity;
+- 19:43:59, the index's curl was blocked;
+- 20:34:01, the lab's STOP after it found the bad stream.
+
+The motion was not restarted because the index's cable may hang loose across the fingers. Since 20:35:46 the thumb's
+and middle's boards log the hand at rest overnight (`logs/20261104-sr2_crosstalk/boards/20261104-203546-mux.bin` on
+corvus, channels 0 and 3).
+
 ## Known limits
 
 - The CB1's FTDI latency timer is 16 ms, and no udev rule sets it. The station's telemetry, with load and temperature,
@@ -68,3 +102,11 @@ The owner looked at it on the hand at 18:3x: "the gap is about 1cm yea".
   torque, every stepper step, the thumb's families and the index's yaw and mcp. Since then the plans cap the index's mcp
   at 50 deg and the middle's at 62 deg (`plan_home_rest`, the `_v2` plans, `lab/night_chain2.sh`). The thumb reached
   88 deg with 1.6 deg of droop.
+- At step 38 of `run1b_home_rest` (19:43:59), the index was sent from zero to mcp 50 and pip 90. It stalled at mcp
+  45 and pip 80.3, with both servos pushing: pip loads of -525 to -600 for 4 s, then -200 under the servo's protection.
+  This was not droop: pip 90 had passed at mcp 0, 25 and 37.5, and mcp 50 + pip 67.5 had passed. The CAD model shows no
+  contact there (27.6 mm to its palm box, 12.2 mm to the finger's own base). So something outside the model stopped the
+  curl, such as the base's structure or a fingertip cable to the mux on the thumb's housing. Since then the plans keep
+  the index's and middle's mcp + pip at 120 deg at most (`plan_home_rest2`, the `_v3` plans, `lab/night_chain3.sh`).
+  `run_plan.py` backs out of a pose a joint cannot reach to the last pose reached, logs a `blocked` event, and stops
+  the run at the third.

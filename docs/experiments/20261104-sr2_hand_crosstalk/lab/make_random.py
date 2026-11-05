@@ -36,6 +36,8 @@ steps.append({"op": "joints", "family": "zero", "joints": ZERO, "dwell_s": 8.0, 
 while sum(s["family"] == "random" for s in steps) < n:
     tries += 1
     p = {f: {j: round(float(rng.uniform(*LIM[f][j])), 1) for j in ("yaw", "mcp", "pip")} for f in F}
+    if any(p[f]["mcp"] + p[f]["pip"] > 120.0 for f in ("index", "middle")):   # the curl limit of 19:4x on 11-04
+        continue
     c = clearance(p)
     if c < MIN:
         continue

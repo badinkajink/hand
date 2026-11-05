@@ -1,0 +1,40 @@
+18:30:58 channels [3], 82-byte records -> logs/20261104-sr2_crosstalk/boards/20261104-183058-mux.bin
+18:35:58 483.8 records/s
+18:40:58 483.5 records/s
+18:45:58 483.8 records/s
+18:46:33 RuntimeError: no records for 3 s (board reset?); waiting for the board
+18:46:35 channels [1, 3], 162-byte records -> logs/20261104-sr2_crosstalk/boards/20261104-184635-mux.bin
+18:51:35 243.5 records/s
+18:52:42 RuntimeError: no records for 3 s (board reset?); waiting for the board
+18:52:47 RuntimeError: no answer to 'i'; waiting for the board
+18:52:52 RuntimeError: no answer to 'i'; waiting for the board
+18:52:58 RuntimeError: no answer to 'i'; waiting for the board
+18:53:03 RuntimeError: no answer to 'i'; waiting for the board
+18:53:08 RuntimeError: no answer to 'i'; waiting for the board
+18:53:13 RuntimeError: no answer to 'i'; waiting for the board
+18:53:18 RuntimeError: no answer to 'i'; waiting for the board
+18:53:23 RuntimeError: no answer to 'i'; waiting for the board
+18:53:40 channels [0, 1, 3], 242-byte records -> logs/20261104-sr2_crosstalk/boards/20261104-185340-mux.bin
+18:58:40 163.0 records/s
+19:03:40 163.0 records/s
+19:08:40 163.0 records/s
+19:13:40 163.0 records/s
+19:14:05 SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?); waiting for the board
+19:14:07 channels [0, 1, 3], 242-byte records -> logs/20261104-sr2_crosstalk/boards/20261104-191407-mux.bin
+19:19:07 163.0 records/s
+19:24:07 163.0 records/s
+19:29:07 163.0 records/s
+19:34:07 163.0 records/s
+19:39:07 163.0 records/s
+19:44:07 155.8 records/s
+19:49:07 19.4 records/s
+19:54:07 19.4 records/s
+19:59:07 19.4 records/s
+20:04:07 19.4 records/s
+20:09:07 19.4 records/s
+20:14:07 19.4 records/s
+20:19:07 19.4 records/s
+20:24:07 19.4 records/s
+20:29:07 19.4 records/s
+20:34:08 19.4 records/s
+20:35:46 channels [0, 3], 162-byte records -> logs/20261104-sr2_crosstalk/boards/20261104-203546-mux.bin

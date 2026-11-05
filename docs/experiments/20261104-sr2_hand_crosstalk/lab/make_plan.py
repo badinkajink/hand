@@ -19,6 +19,7 @@ SKIP = tuple(sys.argv[3].split(",")) if len(sys.argv) > 3 and sys.argv[3] else (
 BASELINE = float(sys.argv[4]) if len(sys.argv) > 4 else 120.0
 MIN_PATH_MM = MIN_POSE_MM - 1.0                                     # and along each move (joint-space line)
 DWELL = 3.0
+CURL_MAX = 120.0
 SPEED = 80
 h = Hand()
 ZERO = {f: {"yaw": 0.0, "mcp": 0.0, "pip": 0.0} for f in F}
@@ -43,6 +44,11 @@ def ok_range(pose):
             if not lo + 0.5 <= pose[f][j] <= hi - 0.5:
                 return False
         if abs(pose[f]["yaw"]) > 45:
+            return False
+    # 19:4x on 11-04: the index stalled at mcp 50 + pip 90 (both servos pushing; something outside the CAD model) after
+    # passing 37.5 + 90 and 50 + 67.5. The index and the middle keep mcp + pip at 120 deg at most.
+    for f in ("index", "middle"):
+        if pose[f]["mcp"] + pose[f]["pip"] > CURL_MAX:
             return False
     return True
 

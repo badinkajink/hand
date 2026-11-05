@@ -35,6 +35,7 @@ ap.add_argument("--no-disable", action="store_true",
                 help="leave the motors on when the plan ends normally (the next plan of a chain runs on this home)")
 ap.add_argument("--max-temp", type=float, default=60.0)
 ap.add_argument("--max-err", type=float, default=6.0)
+ap.add_argument("--max-blocked", type=int, default=3, help="stop the run at this many poses a joint could not reach")
 a = ap.parse_args()
 plan = json.load(open(a.plan))
 out = Path(a.out)
@@ -182,7 +183,18 @@ def do_joints(st, ctx):
         sleep_checked(1.0, ctx)
         e, which = joint_error(st["joints"])
         if e >= a.max_err:
-            raise Abort(f"joint {which} {e:.1f} deg from its command after {time.time() - t_cmd:.1f} s {ctx}")
+            # back out at once to the last pose reached, along the path that brought the hand here
+            blocked["n"] += 1
+            http("POST", "/api/v1/manual/joints", {"joints": blocked["last_ok"], "servo_speed": 60})
+            sleep_checked(2.5, ctx)
+            event("blocked", step_joints=st["joints"], err_deg=round(e, 2), err_joint=which, n=blocked["n"],
+                  back_to=blocked["last_ok"], back_err=joint_error(blocked["last_ok"]))
+            if blocked["n"] >= a.max_blocked:
+                raise Abort(f"{blocked['n']} poses not reached; the last: joint {which} {e:.1f} deg from its "
+                            f"command {ctx}")
+            return {"t_cmd": t_cmd, "t_settled": None, "t_end": time.time(), "settle_s": settle,
+                    "err_deg": round(e, 2), "err_joint": which, "blocked": True}
+    blocked["last_ok"] = st["joints"]
     t_settled = time.time()
     sleep_checked(st.get("dwell_s", 3.0), ctx)
     return {"t_cmd": t_cmd, "t_settled": t_settled, "t_end": time.time(), "settle_s": settle,
@@ -209,6 +221,7 @@ def do_mounts(st, ctx):
 
 
 ZERO = {f: {"yaw": 0.0, "mcp": 0.0, "pip": 0.0} for f in F}
+blocked = {"n": 0, "last_ok": ZERO}
 
 
 def to_zero(why):
