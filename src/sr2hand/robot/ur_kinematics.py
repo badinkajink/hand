@@ -110,8 +110,10 @@ class URParams:
 
 UR5_CB3 = URParams(
     name="UR5 CB3, nominal", d=(89.159, 0.0, 0.0, 109.15, 94.65, 82.3), a=(0.0, -425.0, -392.25, 0.0, 0.0, 0.0),
-    source="Universal Robots' DH table of the UR5; ur_description's ur5.urdf; ur5_tip_calibration_sim.DH_CB3. Every "
-           "joint +-360 deg (CB3)")
+    q_min=(-TWO_PI, -TWO_PI, -math.pi, -TWO_PI, -TWO_PI, -TWO_PI),
+    q_max=(TWO_PI, TWO_PI, math.pi, TWO_PI, TWO_PI, TWO_PI),
+    source="Universal Robots' DH table of the UR5; ur5_tip_calibration_sim.DH_CB3. The joint limits of the cell's "
+           "ur_description ur5.urdf: +-360 deg, the elbow +-180 deg")
 
 
 @dataclass
@@ -244,7 +246,8 @@ def branch_of(q, P=UR5_CB3):
 # ------------------------------------------------------------------------------------------------ the choice
 def wrap_to(Q, q_ref, P=UR5_CB3, limits=True):
     """Each joint of the solutions Q (..., 6) as its equivalent nearest q_ref (within half a turn); with limits, a joint
-    outside P's limits moves by a whole turn toward them, and a joint that no turn brings inside becomes NaN."""
+    outside P's limits moves by a whole turn toward them, and a joint that no turn brings inside becomes NaN. With the
+    UR5's limits the elbow keeps its value within +-180 deg, whatever q_ref's."""
     Qw = nearest(Q, q_ref)
     if limits:
         lo, hi = np.asarray(P.q_min), np.asarray(P.q_max)
