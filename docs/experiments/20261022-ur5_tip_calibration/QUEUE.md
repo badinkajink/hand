@@ -1828,6 +1828,25 @@ push that answers it arrives.
     mount-end holds go from 3.04 to 3.10 mm to 0.75 to 0.77 mm, from 18 to 19 deg to 5.5 to 5.6 deg, and from 24 to 5 %
     in magnitude. The held-out tip-mode holds go from 0.38 to 0.44 mm to 0.45 to 0.53 mm.
 
+- R34 (done at 11:5x on 11-05; owner, 11:4x: "can we improve the v3 ids 4-6 calibration with the calibration from ids
+  1-3. i understand we can't actaully know it since we dont have ground truth data, but maybe we use the combined GP on
+  them too"). Yes: other tips' holds improve IDs 4 to 6 on their own held-out rig holds, most where a tip's own data
+  has a gap (`scripts/ur5/ur5_tip_calibration_rig_pool_ids456.py`, `data/20261105-v3_ids456_pooled_with_ids123.json`).
+  - IDs 4 to 6's rig holds already span the pad (0.1 to 20.8 mm along it). IDs 1 to 3's tip-mode points lie 1 mm apart
+    against the rig's 2 mm, and 40 % of their holds have a tilt of 0.3 or more, against 23 to 30 % on the rig.
+  - The viewer's GP, trained on 3,000 of tip j's rig holds ("own") or on those with 1,000 holds of each other set
+    ("combined": IDs 1 to 3 in tip mode, the other two rig tips, 500 of ID 3's rig holds). Ground truth is tip j's own.
+  - A fifth of tip j's point groups held out (2 seeds, 3 tips): own 0.66 to 1.10 mm (median 0.83), combined 0.53 to
+    0.73 mm (median 0.66).
+  - Its tilted loads held out (tilt 0.3 and over): own 0.65, 0.95 and 0.84 mm, combined 0.59, 0.74 and 0.68 mm; the
+    direction error falls from 5.4 to 7.4 deg to 4.5 to 5.9 deg.
+  - One of five regions of its pad held out (k-means on the contact point, 15 cases): own 0.72 to 5.20 mm (median
+    2.51), combined 0.53 to 1.17 mm (median 0.74); direction 3.4 to 23.8 deg against 3.0 to 8.7 deg.
+  - The viewer's model of R33 (`data/20261105-board_gp_v3_id1_id3_rig_id3_id6.npz`) already pools all six tips, with
+    1,500 rig holds of each of IDs 4 to 6, so it serves IDs 4 to 6 as well.
+  - Inference (`scripts/ur5/ur5_tip_calibration_gp_timing.py`, one core of the workstation's Core Ultra 7 265KF): 1.79
+    ms a reading with the variance, 1.11 ms for the mean alone, 5.4 ms for three boards; the 11-02 model 1.31 ms.
+
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
   them v3, no ids yet). then we could run a super complete calibration suite + crosstalk analysis"). The plan is
