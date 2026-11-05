@@ -15,19 +15,17 @@ docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration
 docs/experiments/20261029-foundational_pose_review/20261102-hom_plant_modulus.html; CLAUDE.md sections "Fingertip on the
 CAD hand", "Pad modulus 2.5 MPa" and "Servo plant of the HOM scripts". If scripts/ was reorganized, find each script by
 name in scripts/README.md.
-State: 11-04 19:5x (autopilot dac2b73b, colorado): steps 1, 2, 3, 10, 11 done. Screen done 19:56 (screen/summary.json):
-J2 16/32 half-ellipsoid 0.252, capsule 8.5 0.203, as-built block 0.199, capsule 7.4 0.184, v4b 0.134 (its worst: friction
-0.5), hemisphere 0.074; stage-3 tips 16/32, hemisphere (rule 3, three-finger share 0.49), capsule 8.5, as-built, v4b.
-Detached, nothing to relaunch unless a [resguard] line names it or a log shows a crash:
-- stage 3 on 4 workers queue/worker.sh (cores 4-7; queue.txt, 40 jobs from 19:56; rows final/);
-- chain.sh: stage-3 summary and films after stage 3; GPU cost running (core 19, gpu.log); its FE pass waits on the per-tip
-  locks of fingertip_shape_rerun_fe.py behind fe_now.sh (core 11, tip 6 of 11 at 19:57), then the CPU cost (cores 13-15);
-- drake_fill.sh (core 12): the v4b tip's 4 Drake replays that failed on its design hull (degenerate facet; D2 s0, D8 s0-2),
-  on the 15 October printed-upright hull -> traj/tcd_ell7.4x8.5x11x22/drake_fill_u0.1.jsonl; relabel those rows' tip to
-  tcd_ell7.4x8.5x11x22 (keep drake_surface) before the traj and screen summaries are rerun.
-Step 12 (band): scripts/fingertip_shape_rerun_band.py; the v4b tip's caches built and identical to the 11-04 scenes; run its
-validate as the check, then the stage-3 tips, after the chain's GPU cost (one GPU job at a time). Page: protocol and bed
-prose written; the rest waits for its summaries.
+State: 11-04 20:4x (autopilot dac2b73b, colorado): steps 1, 2, 3, 5, 6, 10, 11 done. Results in
+docs/experiments/20261104-fingertip_shape_rerun/ (mount, bed, screen, final, fe, cost, band, media). Stage 3: no tip beats
+the v4b tip (J3 0.195; 16/32 +0.064 [-0.017, +0.160]). Draft page 20261104-fingertip_shapes_v4b_finger.html built with
+DOCS_REFRESH=0 (no index refresh yet); prose 17.3 words a sentence, 1.4 % over 30, 346 flags per 1000.
+Running detached: chain.sh's CPU cost (cores 13-15, 7 of 12 tips at 20:41); band_run.sh for the 16/32, hemisphere,
+capsule 8.5 and as-built (GPU, cores 16-18; the v4b repeat matched 11-04: median paired difference 0.000 on every task).
+Next: when both end, python3 scripts/fingertip_shape_rerun_analysis.py cost compute; band report; the page build WITHOUT
+DOCS_REFRESH=0 (it refreshes the indices; commit them with the page); step 8 (aside text to the crosstalk poller by
+ap step add, replacing its step-42 paragraphs in scripts/overview_fingertip_text.py; and in
+docs/notes/20261103-fingertip_shape_aside.md); step 9 (a row in the requests table of status.json, then rebuild the status
+page).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Before any run: wait until the HOM chain is done and the GPU holds no other job's process (nvidia-smi; the HO… Done 11-04 16:35: 11-04 16:30: HOM jobs of 11-02..11-04 all done, no HOM process; GPU 1.2/16 GB, desktop only; compute ledger logs/20261104-fingertip_shape_rerun/compute.jsonl (wall, core-h, GPU-h per step)
@@ -35,14 +33,8 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 3. Contact bed per tip at 2.5 MPa, pad builder v2, against the law and Drake: approach, twist-onset arm, spin ar… Done 11-04 19:29: Bed at 2.5 MPa, 13 tips (bed/<tip>/, bed/summary.json, media/fig_bed.png; 2.4 core-h): law twist-onset arm at 1 N 1.24-1.42 mm on the curved tips (10 MPa: 0.93-1.00) against 2.82 on the blocks; builder-v2 pads 0.86-0.94 of the law's onset arm on the curved tips, 0.98-0.99 on the blocks, Drake 0.82-1.00; spin arm at 1 rad/s pads/law 0.90-1.19 (v4b 0.99, quarter-ellipsoids 1.13-1.19, blocks 1.16-1.21), Drake 0.98-1.14; pads' spin arm 3 over 0.3 rad/s 0.97-1.04 curved, 1.64-1.67 blocks; brake force pads/Drake 0.94-1.07 curved, 0.71-0.84 blocks; 16-24 pads touching per side at 1 N (10 MPa: 10-12), blocks 44 (20).
 - [ ] 4. Simulation cost per tip: CPU grip step, GPU world-step and GPU memory at 2048 worlds (the U1 protocol of
     docs/experiments/20261014-pad_usability/).
-- [ ] 5. Task screen on cad_v2 at 2.5 MPa with the SCS0009 plant (HOS_PLANT=servo, a fresh HOS_SCENES, HOM_ROWS_TAG): J1, J2
-    over the five friction and servo conditions, the Drake agreement gate on the D1-D8 replays, J3 on fresh placements
-    for the finalists against the reference. For the finalists, also the worst-case score over a band of scene
-    frictions from hand-20261104-hom_worst_case_score (its band option of scripts/hom_grasp_refine.py), if that job
-    delivered it.
-- [ ] 6. FE per tip: approach and stiffness map under the 12.5 mm rod and the 2 mm sphere; force resolution at the contact
-    point with the four-magnet 05R4 layout (patch-load FE and scripts/tpu_tip_magnet_sensing.py, as the 10-19/20 checks
-    did for the 11/22 and the block), wherever the layout fits the shape; say where it does not.
+- [x] 5. Task screen on cad_v2 at 2.5 MPa with the SCS0009 plant (HOS_PLANT=servo, a fresh HOS_SCENES, HOM_ROWS_TAG): … Done 11-04 20:26: Screen on the v4b hand at 2.5 MPa, SCS0009 (screen/summary.json, final/summary.json, media/fig_screen.png; 23.8 core-h, 3.5 h wall). J2: 16/32 half-ellipsoid 0.252, capsule 8.5 0.203, as-built block 0.199, capsule 7.4 0.184, v4b tip 0.134 (worst at friction 0.5), hemisphere 0.074; gate (v4b 16/24 -> 14) failed by the quarter-ellipsoids 8.5 11/22 and 5 11/22 and the hemisphere. Stage 3 (fresh placements, against the v4b tip's J3 0.195): 16/32 +0.064 [-0.017, +0.160], as-built -0.008 [-0.107, +0.105], capsule 8.5 -0.069 [-0.152, +0.029], hemisphere -0.132 [-0.209, -0.026]; no tip beats the v4b tip. The cells' HOM turns put 0.35-0.48 of the normal force on rigid parts (the cap's end plate). Friction band: step 12.
+- [x] 6. FE per tip: approach and stiffness map under the 12.5 mm rod and the 2 mm sphere; force resolution at the con… Done 11-04 20:28: FE of 12 tips (fe/summary.json, fe/sensing.json, media/fig_fe.png; 1.75 core-h), the pad cut where the v4b pad is cut and held there (quarter-ellipsoids on their back planes), design surfaces, print orientation: 2 mm sphere at the apex 232-263 um at 1 N, the seven map points within 1.04-1.32 of each other; 12.5 mm rod across 155-187 um on the curved tips, 68 um on the blocks; rod along 42-45 um on the capsules, 116-182 on the ellipsoids and the hemisphere; twist arm under the rod 0.48-0.64 mm curved, 2.85 mm blocks; within 3 % of 18 October's whole prints. Pad 05R4 fits 9 tips: force resolution 0.032-0.037 N at the contact point (gain for the 26.8 mT field), magnet travel 5.3-6.5 um/N; the quarter-ellipsoids cannot take it (the magnets' tops 7.5 mm deep lie behind their back planes).
 - [ ] 7. Result page docs/experiments/<run date>-fingertip_shape_rerun/ (builder from scripts/curved_tips_page.py): every axis
     per tip, the 10-14/10-15/10-18 numbers beside the new, films of the finalists' HOM turns; meta tags; the docs_index
     refresh; commit with explicit paths.
