@@ -58,6 +58,11 @@ os.environ.setdefault("UR5_MOUNT", "v7")
 os.environ.setdefault("UR5M_REV", "v7")
 import ur5_cb3_cell as CELL  # noqa: E402
 import indenter_array as IA  # noqa: E402
+from sr2hand.geometry.distances import barycentric_inside  # noqa: E402
+from sr2hand.geometry.rotations import frame_from_axis, project_to_so3, rot_y, tf, tf_interp, tf_inv  # noqa: E402
+from sr2hand.geometry.sampling import fibonacci  # noqa: E402
+from sr2hand.geometry.sdf import sampled_sdf, sd_convex  # noqa: E402
+from sr2hand.numerics.angles import nearest, wrap  # noqa: E402
 
 C, SIM = CELL.C, CELL.SIM
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
@@ -150,8 +155,7 @@ def _toward_box(u, lo, hi):
 def fingertip_T_MF(p=PROBE):
     """The fingertip tool's tip frame F in M: the pad's apex on the axis at apex_z, the palmar face along +z_M, the tip's
     end toward +x_M (its board's plug and cable toward -x_M, the side away from the homing socket)."""
-    xF, zF = np.array([0.0, 0.0, -1.0]), np.array([-1.0, 0.0, 0.0])
-    R = np.column_stack([xF, np.cross(zF, xF), zF])
+    R = frame_from_axis([-1.0, 0.0, 0.0], hint=[0.0, 0.0, -1.0])     # z_F along -x_M, x_F along -z_M
     return C.Tm(R, np.array([0.0, 0.0, p["fingertip"]["apex_z"]]) - R @ APEX_F)
 
 
@@ -289,12 +293,9 @@ def table_T_BA(T_EM, T_AM_homes):
         F_all += [T @ C.inv(T_AM_homes[k]) for T in Ts]
     S_A = [C.apply(T_AM_homes[k], S_M) for k in range(2)]
     y_B = (P[1] - P[0]) / np.linalg.norm(P[1] - P[0])
-    U_, _, Vt = np.linalg.svd(sum(F[:3, :3] for F in F_all))
-    z_B = (U_ @ Vt)[:, 2]
-    z_B = z_B - (z_B @ y_B) * y_B
-    z_B /= np.linalg.norm(z_B)
+    z_B = project_to_so3(sum(F[:3, :3] for F in F_all))[:, 2]           # the seatings' chordal mean's z
     y_A = (S_A[1] - S_A[0]) / np.linalg.norm(S_A[1] - S_A[0])           # the keys' line in A (along y_A in the print)
-    R = np.column_stack([np.cross(y_B, z_B), y_B, z_B]) @ np.column_stack([np.cross(y_A, [0.0, 0.0, 1.0]), y_A, [0.0, 0.0, 1.0]]).T
+    R = frame_from_axis(y_B, hint=z_B, which=1) @ frame_from_axis(y_A, hint=[0.0, 0.0, 1.0], which=1).T
     o = (P[0] + P[1]) / 2 - R @ ((S_A[0] + S_A[1]) / 2)
     return C.Tm(R, o), [np.array(rows[l]["q_rad"], float) for l in TABLE["seatings"][0]]
 
@@ -309,8 +310,7 @@ def table_sdf(PA, T_BA):
 def T_AF(orient, apex):
     """The held tip's frame F in A: its pad's apex at apex, the face and the distal end as ORIENT gives them."""
     face, end = (np.asarray(v, float) / np.linalg.norm(v) for v in ORIENT[orient])
-    xF, zF = -face, -end
-    R = np.column_stack([xF, np.cross(zF, xF), zF])
+    R = frame_from_axis(-end, hint=-face)                              # z_F = -end, x_F = -face
     return C.Tm(R, np.asarray(apex, float) - R @ APEX_F)
 
 
@@ -378,12 +378,7 @@ def _dh(i, th):
 
 
 def _inv(T):
-    R, t = T[..., :3, :3], T[..., :3, 3]
-    out = np.zeros_like(T)
-    out[..., :3, :3] = np.swapaxes(R, -1, -2)
-    out[..., :3, 3] = -np.einsum("...ji,...j->...i", R, t)
-    out[..., 3, 3] = 1.0
-    return out
+    return tf_inv(T)
 
 
 def fk_many(Q):
@@ -439,7 +434,7 @@ def ik_all(T):
 def branch_of(q):
     """The index (0..7) in ik_all's order of the branch (shoulder, wrist, elbow) that joints q lie on."""
     Q = ik_all(fk_many(np.asarray(q, float)[None]))[0]
-    d = np.abs((Q - q + math.pi) % (2.0 * math.pi) - math.pi).max(axis=1)
+    d = np.abs(wrap(Q - q)).max(axis=1)
     return int(np.nanargmin(np.where(np.isnan(d), np.inf, d)))
 
 
@@ -450,7 +445,7 @@ def ik_near(T, q_ref, tol=0.01, free6=False, branch=None):
     T = np.asarray(T, float).reshape(-1, 4, 4)
     Q = ik_all(T)
     qr = np.asarray(q_ref, float).reshape(-1, 1, 6)
-    Qw = qr + (Q - qr + math.pi) % (2.0 * math.pi) - math.pi
+    Qw = nearest(Q, qr)
     dist = np.abs(Qw - qr)[..., :5 if free6 else 6].max(axis=2)
     if branch is not None:                              # one branch only: the homing pose's
         keep = np.zeros(8, bool)
@@ -515,10 +510,7 @@ def _box_pts(lo, hi, sp):
 
 
 def _sphere_pts(c, R, sp):
-    n = max(50, int(4 * math.pi * R * R / sp ** 2))
-    i = np.arange(n) + 0.5
-    phi, th = np.arccos(1 - 2 * i / n), math.pi * (1 + 5 ** 0.5) * i
-    return np.asarray(c) + R * np.c_[np.cos(th) * np.sin(phi), np.sin(th) * np.sin(phi), np.cos(phi)]
+    return np.asarray(c) + R * fibonacci(max(50, int(4 * math.pi * R * R / sp ** 2)), mirror=True)
 
 
 def _cyl_y_pts(xz, R, y0, y1, sp, half=False):
@@ -534,8 +526,7 @@ def _cyl_y_pts(xz, R, y0, y1, sp, half=False):
 @lru_cache(maxsize=8)
 def _flat_R(tool):
     """The turn of a flat tool's disc: FLATS[tool] deg about y_M."""
-    a = math.radians(FLATS.get(tool, 0.0))
-    return np.array([[math.cos(a), 0.0, math.sin(a)], [0.0, 1.0, 0.0], [-math.sin(a), 0.0, math.cos(a)]])
+    return rot_y(math.radians(FLATS.get(tool, 0.0)))
 
 
 def _turn_flat(P, Rt, tz):
@@ -696,8 +687,7 @@ def tool_solid(K, tool):
         parts += [K.cyl("z", (0.0, 0.0), sr, fl["z1"] - 0.01, zc0 + 0.01), K.cyl("z", (0.0, 0.0), sr, zc0, zn + 0.01, r1=fp["neck_r"])]
         if FLATS[tool]:                                  # the disc turned about its face's centre; a hull bends the neck
             Rt = _flat_R(tool)
-            T = np.eye(4)
-            T[:3, :3], T[:3, 3] = Rt, np.array([0.0, 0.0, tz]) - Rt @ np.array([0.0, 0.0, tz])
+            T = C.Tm(Rt, np.array([0.0, 0.0, tz]) - Rt @ np.array([0.0, 0.0, tz]))
             th = np.linspace(0.0, 2 * math.pi, 64, endpoint=False)
             ring0 = np.c_[fp["neck_r"] * np.cos(th), fp["neck_r"] * np.sin(th), np.full(64, zn - 0.01)]
             ring1 = _turn_flat(np.c_[fp["neck_r"] * np.cos(th), fp["neck_r"] * np.sin(th), np.full(64, zd + 0.01)], Rt, tz)
@@ -737,9 +727,7 @@ def plate_solid(K, g):
     for k in g["keys"]:
         local = K.union([K.rbox_z(-bx, bx, -by, by, tb - 0.01, k["body_top"], 2.0),
                          UM.frustum(K, "z", (0.0, 0.0), kd["k0"], kd["k1"], k["body_top"] - 0.01, k["pin_top"])])
-        T = np.eye(4)
-        T[:3, :3], T[:3, 3] = IA._Rz(k["yaw"]), [k["c"][0], k["c"][1], 0.0]
-        parts.append(K.transform(local, T))
+        parts.append(K.transform(local, C.Tm(IA._Rz(k["yaw"]), [k["c"][0], k["c"][1], 0.0])))
     if "sphere5" in g:
         s = g["sphere5"]
         cc = s["c"]
@@ -876,20 +864,14 @@ def tip_trees():
 
 def _tree_sdf(PF, key):
     tree, P, Nn = tip_trees()[key]
-    d, j = tree.query(PF, k=8)
-    s = np.einsum("ijk,ijk->i", PF[:, None, :] - P[j], Nn[j])
-    return d[:, 0] * np.where(s < 0.0, -1.0, 1.0)
+    return sampled_sdf(tree, P, Nn, PF)
 
 
 def hull_sdf(P, pts):
-    """ur5_cb3_cell._convex_sdf (a lower bound of the distance to the convex hull of pts), its planes kept between calls."""
+    """sdf.sd_convex (a lower bound of the distance to the convex hull of pts) on the first point set seen that rounds to
+    pts' 0.1 um, whose planes it keeps between calls."""
     pts = np.asarray(pts, float)
-    key = pts.round(4).tobytes()
-    eq = _HULLS.get(key)
-    if eq is None:
-        from scipy.spatial import ConvexHull
-        eq = _HULLS[key] = ConvexHull(pts).equations
-    return (P @ eq[:, :3].T + eq[:, 3]).max(axis=1)
+    return sd_convex(P, _HULLS.setdefault(pts.round(4).tobytes(), pts))
 
 
 def seat_sdfs(PA, st, cut_near=None):
@@ -970,8 +952,8 @@ def context(layout=None, tool="sphere5"):
     g = plate(layout)
     reg = json.loads(TOOLREG.read_text())
     T_BA, T_EM = np.array(reg["T_BI"], float), np.array(reg["T_EM"], float)
-    U_, _, Vt = np.linalg.svd(T_BA[:3, :3])                           # the registration's rotation, rounded in its file,
-    T_BA[:3, :3] = U_ @ Vt                                            # is 8e-5 off orthonormal
+    T_BA[:3, :3] = project_to_so3(T_BA[:3, :3])                        # the registration's rotation, rounded in its file,
+    #                                                                   is 8e-5 off orthonormal
     CELL.BOARD.update(json.loads(BOARD_PLAN.read_text())["checks"]["board"])
     x0, x1, y0, y1, _ = g["params"]["base"]
     CELL.BOARD["half_mm"] = 400.0
@@ -986,8 +968,7 @@ def context(layout=None, tool="sphere5"):
         out["T_EM"] = T_EM
         if TABLE.get("frame"):                         # the lab's fitted frame, as the program takes it (--frame)
             T_BA = np.array(json.loads(Path(TABLE["frame"]).read_text())["T_BA"], float)
-            U_, _, Vt = np.linalg.svd(T_BA[:3, :3])
-            T_BA[:3, :3] = U_ @ Vt
+            T_BA[:3, :3] = project_to_so3(T_BA[:3, :3])
         else:
             T_BA = table_T_BA(T_EM, [np.array(k["T_AM_home"], float) for k in g["keys"]])[0]
         rec = _poses()[TABLE["home_from"]]             # the start from the real seating (the program's --home-from)
@@ -1108,9 +1089,7 @@ def clear_flags(cl, extra=None):
 
 # ------------------------------------------------------------------------------------------------ the search
 def fib_dirs(n=400):
-    i = np.arange(n) + 0.5
-    phi, th = np.arccos(1 - 2 * i / n), math.pi * (1 + 5 ** 0.5) * i
-    return np.c_[np.cos(th) * np.sin(phi), np.sin(th) * np.sin(phi), np.cos(phi)]
+    return fibonacci(n, mirror=True)
 
 
 U_ALL = fib_dirs(400)
@@ -1123,22 +1102,16 @@ Q6_TRY = (0.0, -30.0, 30.0, -55.0, 40.0)
 
 
 def frames_for(u, xref=np.array([0.0, 0.0, 1.0])):
-    """Rotations (K, 3, 3) of M in A with z_M = -u and x_M the nearest to xref."""
+    """Rotations (K, 3, 3) of M in A with z_M = -u and x_M the nearest to xref, or to x_A where xref is within 1e-6 of
+    z_M's line."""
     z = -np.atleast_2d(u)
-    x = xref[None, :] - (z @ xref)[:, None] * z
-    bad = np.linalg.norm(x, axis=1) < 1e-6
-    x[bad] = np.array([1.0, 0.0, 0.0]) - (z[bad] @ np.array([1.0, 0.0, 0.0]))[:, None] * z[bad]
-    x /= np.linalg.norm(x, axis=1, keepdims=True)
-    y = np.cross(z, x)
-    return np.stack([x, y, z], axis=2)
+    along = np.linalg.norm(xref[None, :] - (z @ xref)[:, None] * z, axis=1) < 1e-6
+    return frame_from_axis(z, hint=np.where(along[:, None], [1.0, 0.0, 0.0], xref))
 
 
 def pose_B(ctx, R_AM, c_A, zc):
     """Flange poses (K, 4, 4) in B for M at rotations R_AM with the tool's reference point (z_M zc) at c_A."""
-    K = len(R_AM)
-    T = np.tile(np.eye(4), (K, 1, 1))
-    T[:, :3, :3] = R_AM
-    T[:, :3, 3] = np.asarray(c_A, float).reshape(-1, 3) - R_AM[:, :, 2] * zc
+    T = tf(R_AM, np.asarray(c_A, float).reshape(-1, 3) - R_AM[:, :, 2] * zc)
     return ctx["T_BA"][None] @ T @ C.inv(ctx["T_EM"])[None]
 
 
@@ -1298,7 +1271,7 @@ def search_rod(ctx, seat_i, p, n, d, owner=False, max_clear=6, need_clear=True, 
         for sgn in (1.0, -1.0):
             z, y = -u, sgn * a
             cands.append((round(math.degrees(math.acos(float(np.clip(u[2], -1.0, 1.0)))), 1), abs(phi), sgn,
-                          np.stack([np.cross(y, z), y, z], axis=1), u))
+                          frame_from_axis(y, hint=z, which=1), u))
     cands.sort(key=lambda t: (t[0], t[1]))
     why, n_try = {}, 0
     contact = (seat_i, p) + (cut if cut is not None else (EXCL["rod"],))
@@ -1529,9 +1502,7 @@ LIFT = (30.0, 150.0)                # mm along -x_M (up, out of the key) before 
 
 
 def _slerp(T0, T1, s):
-    from scipy.spatial.transform import Rotation, Slerp
-    r = Slerp([0.0, 1.0], Rotation.from_matrix([T0[:3, :3], T1[:3, :3]]))(s).as_matrix()
-    return C.Tm(r, (1 - s) * T0[:3, 3] + s * T1[:3, 3])
+    return tf_interp(T0, T1, s)
 
 
 def segment_samples(seg, q0):
@@ -2109,15 +2080,7 @@ def wall_faces():
 def _on_face(tri, xz, margin=0.4):
     """Whether the point xz lies on the faces tri, and every point margin mm round it too."""
     pts = [np.asarray(xz) + margin * np.array([math.cos(t), math.sin(t)]) for t in np.linspace(0, 2 * math.pi, 9)[:-1]]
-    def inside(q):
-        a, b, c = tri[:, 0], tri[:, 1], tri[:, 2]
-        v0, v1, v2 = c - a, b - a, q - a
-        d00, d01, d11 = (v0 * v0).sum(1), (v0 * v1).sum(1), (v1 * v1).sum(1)
-        d20, d21 = (v2 * v0).sum(1), (v2 * v1).sum(1)
-        den = d00 * d11 - d01 ** 2
-        u, v = (d11 * d20 - d01 * d21) / den, (d00 * d21 - d01 * d20) / den
-        return bool(((u >= -1e-9) & (v >= -1e-9) & (u + v <= 1 + 1e-9)).any())
-    return all(inside(q) for q in [np.asarray(xz)] + pts)
+    return all(barycentric_inside(tri, q, tol=1e-9) for q in [np.asarray(xz)] + pts)
 
 
 def cmd_walls(a):

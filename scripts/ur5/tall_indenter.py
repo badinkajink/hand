@@ -260,11 +260,12 @@ def _setup(kind, H):
 
 def _pose_ok(CELL, C, S, reg, kind, T_BE, contact_P, q0):
     """Joints within the windows and every group's least clearance (mm) at flange pose T_BE."""
+    from sr2hand.numerics.angles import nearest      # here: freecadcmd runs the file's CAD part without the package
     q = S.ik(T_BE, q0)
     if q is None:
         return False, None, None
     j5 = math.degrees(q[4])
-    j6 = math.degrees(q0[5] + (q[5] - q0[5] + math.pi) % (2 * math.pi) - math.pi)
+    j6 = math.degrees(nearest(q[5], q0[5]))
     if not (J5[0] <= j5 <= J5[1] and J6[0] <= j6 <= J6[1]):
         return False, None, (j5, j6)
     if CELL.self_clearance(q, reg.T_EM)["port"] < 15.0:
