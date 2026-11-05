@@ -788,8 +788,9 @@ def hand_section(R, rn, fa, mp4, poster):
           "servo torque off and on and each stepper 5&#8202;mm out and back. Each finger then moved alone through its yaw, mcp and "
           "pip and two grids. The thumb and the middle finger then moved toward each other, and last came 327 random poses of all three "
           f"fingers. One random pose was blocked, which leaves {rn['random']}. The closest step that ran was {CLOSEST_MM}&#8202;mm apart in the "
-          "CAD hand. The index&#8217;s board stopped answering at 19:43:52, when the index stalled on its way to mcp 50&#176; and pip "
-          "90&#176;. Its curl most likely pulled its cable. From then on only the thumb&#8217;s and the middle finger&#8217;s boards "
+          "CAD hand. Replayed with each servo at 0.6 to 1.4 times the others&#8217; rate, the moves between steps came no closer than "
+          "10.7&#8202;mm. The index&#8217;s board stopped answering at 19:43:52, when the index stalled on its way to mcp 50&#176; and pip "
+          "90&#176;. Its curl most likely pulled its cable, which the owner reports was tight. From then on only the thumb&#8217;s and the middle finger&#8217;s boards "
           f"were recorded, at 9.7 records a second. The runbook and the data are in <code>{(SR2 / 'README.md').relative_to(ROOT)}</code>.</p>")
     film = P.film(FIG["sweep"], mp4, poster,
                   "Replay of part of the sweep in the CAD hand that the lab&#8217;s plans were checked in "
@@ -1317,14 +1318,18 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
     fw = [
         ("A second sweep on the SR2 hand.", "The sweep stopped after 327 of the 600 random poses of "
          f"<code>{(SR2 / 'plan/20261104-plan_random_s1_v3.json').relative_to(ROOT)}</code>, and <code>20261104-plan_random_s2_v3.json</code> did "
-         f"not run. Both run with all three boards once the index&#8217;s cable is checked. First <code>lab/run_plan.py</code> needs a check of the "
-         "board stream (<code>" + str((SR2 / "README.md").relative_to(ROOT)) + "</code>). A GP is then trained on one set and tested on the other. More than "
+         "not run. The index&#8217;s cable was tight (owner, 2026-11-04), so it needs slack before all three boards run again. <code>lab/run_plan.py</code> also "
+         "needs a check of the board stream (<code>" + str((SR2 / "README.md").relative_to(ROOT)) + "</code>). A GP is then trained on one set and tested on the other. More than "
          f"{rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means that the five folds of Section&#160;{SEC['hand']} understate what a new "
          "session leaves."),
-        ("The thumb and the middle finger under 20&#8202;mm apart.", f"Only {rn['near_n']} poses lie there, and the closest is {CLOSEST_MM}&#8202;mm apart in "
-         "the model. Closer poses take their move margin from the lab&#8217;s replay at spread servo rates, which found 8.8&#8202;mm on a plan step that "
-         f"never ran. The neighbour&#8217;s field is then predicted from the joint angles with the net moments of Section&#160;{SEC['holder']}. If more than the "
+        ("The thumb and the middle finger under 20&#8202;mm apart.", f"Only {rn['near_n']} poses lie there, and the closest step is {CLOSEST_MM}&#8202;mm apart in "
+         "the model. The next sweep adds thumb-middle poses (owner, 2026-11-04). They take their move margin from a replay at spread servo rates, which gave "
+         f"8.8&#8202;mm on a plan step that never ran. The neighbour&#8217;s field is then predicted from the joint angles with the net moments of Section&#160;{SEC['holder']}. If more than the "
          f"{rn['far_med'][0]:.1f} to {rn['far_med'][1]:.1f}&#8202;&#181;T of the far poses is left, the net moments do not describe the neighbour on the hand."),
+        ("Stepper layouts of the SR2 hand.", "The next sweep also moves the mounts with the steppers to more realistic layouts (owner, 2026-11-04). The first sweep "
+         "stayed at the home layout, apart from each stepper&#8217;s 5&#8202;mm out and back. The GP fitted at the home layout then predicts a tip&#8217;s own-pose "
+         f"change at each new layout. More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means that the GP needs the mounts&#8217; "
+         "positions as inputs."),
         ("The hand&#8217;s orientation.", "The arm stayed still through the sweep, so the GP was fitted at one orientation of the hand in the "
          "room&#8217;s field. Zero dwells and about 20 random poses at a second orientation of the flange test this, moved under program control (owner: "
          f"no freedrive with the hand on the UR5). More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means the GP needs the "
