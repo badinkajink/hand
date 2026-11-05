@@ -1935,6 +1935,33 @@ push that answers it arrives.
     and the tool from flange to contact point given as data (the HEX-E, the mount, the tip, or the SR2 hand's palm and a
     finger with its link lengths, an added proximal length among them). It names the branch's commit here, and the lab
     checks it as in part B.
+    - 16:0x on 11-05, workstation: ready at `668a1cb8b` on `ur5-closed-form-ik` (pushed; five commits on `d6d98b571`;
+      nothing merged). `sr2hand.robot.ur_kinematics`: the UR5 CB3's DH table as data (`UR5_CB3` is the simulator's
+      `DH_CB3`, with the joint limits of the cell's ur5.urdf, the elbow +-180 deg; another UR arm loads from a dict or
+      JSON), fk, every closed-form solution with unreachable and singular flags, and `ik_nearest`, the solution nearest
+      a reference joint vector (Euclidean, joints within half a turn and inside the limits, ties to a fixed branch
+      order). It takes the place of SIM.ik in the tip and ATI builders, twelve other planning scripts and the rig's
+      plate-cell homing; the ATI stations stay on the homing's branch; the rig's ik_all moved into the module unchanged.
+      `sr2hand.robot.tool_chain`: the tool as named transforms (Link, ToolChain, JSON). The builders' HEX-E stacks equal
+      theirs bit for bit. `SR2Hand` composes flange, HEX-E, adaptor at k and palm from assets/cad_v3/frames.json, then
+      gantry x, y in the travel box, yaw, MCP, PIP, tip and contact point, with the link lengths in
+      src/sr2hand/robot/sr2_hand.json (yaw_to_mcp_mm 20.75, mcp_to_pip_mm 30.8, tip_body_mm 36.36, reach_mm 10.55,
+      proximal_extension_mm 0, which lengthens the MCP link along its axis); `SR2Hand.ik` solves a fingertip target for
+      given gantry and finger joints. Checks (logs/20261103-scripts_cleanup/equiv/ik/, Python 3.12 with numpy 2.4.4 and
+      3.10 with numpy 1.26.4 and scipy 1.12.0): fk(ik(T)) within 1.5e-12 m and 1.8e-11 rad for 71,416 solutions of
+      10,000 poses, the singular cases named; no branch change under 1e-12 changes of 200,000 poses; the finger chain
+      within 2.3e-10 m of the cad_v3 scenes at 1,000 configurations, and an extension e moves the contact point by e
+      along the MCP link. The rig's replays (rod, 2 mm sphere, plate cell), dry-check --real --chain on the two seat 1
+      plans of 11-03 and the cad_v3 over_object keyframes come out as before in every number. Every builder built twice
+      gives the same file but for its wall time. R24 pass 3, the holder plan and path checks, the wrist order, the tall
+      and top-edge passes and the v3 suite's tall2 are byte-identical to the base code's. The lab's --q-seed tip plans
+      (sphere and rod cells) keep every action, twist and joint target. Without --q-seed, 12 actions of the measured-rod
+      cell take twist -90 deg where the least squares had failed, and the default sphere cell takes the other of two
+      homing branches of equal cost. The ATI plan keeps its 41 gravity directions; two stations take another yaw (moveJ
+      targets up to 10.7 deg apart). The lab program's simulator runs the q-seed sphere plan of each code with the same
+      310 events, all 154 actions ok. pytest: 113 passed, the 2 known failures. Runbook:
+      docs/notes/20261103-scripts_cleanup/RUNBOOK.md, "Closed-form IK for the plan builders". The lab checks the branch
+      in its simulator as in part B.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
