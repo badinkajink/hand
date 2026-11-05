@@ -1,0 +1,86 @@
+Finger identity and handedness of the cad_v3 map, adversarial check (2026-11-04)
+
+Outcome
+The map survives. R_P_from_A = Rz(+90 deg) has determinant +1. z_A points from the fingers to the
+robot (base plate z_A 0..3, robot mount 3..28, fingertips down to z_A -157 mm), as z_P does in the
+simulator. Two independent tests put the hardware's index at gantry_v3 <1> with Finger v3 <2>
+(x_A -110..0 mm), the middle at gantry_v3 <2> with Finger v3 <1>, and the thumb at gantry_v3_thumb <1>
+with Finger v3 <3>. An ICP registration of the cad_v1 carriage reproduces the three yaw centres
+within 0.015 mm.
+
+Test 1: servo rotation sense against the measured aa signs (servo_predict.py, servo_sense.py)
+Each finger has three 6673 mm^3 SCS0009 bodies. The output spline is the convex r = 2.0 mm cylinder
+beside the r = 6.05 mm boss, and the mounting-hole line (r = 1.15 mm, 28.5 mm apart) shows which
+link each body is fixed to. The aa body is vertical at yaw 17.4, -23.0 and -12.6 deg, so it is fixed to
+the carriage. The MCP body lies along the yaw axis, so it is fixed to the yaw link. The PIP body is
+turned by the MCP angle, so it is fixed to the MCP link. Each horn drives the next link. The aa
+spline points dorsal, to -y_A on the pair and +y_A on the thumb. The MCP and PIP splines point
+along -y_F. cad_v1's assembly.json gives the same layout (spline_top 30.2 mm beyond boss_top
+27.0 mm along the axis that runs from the bearing wall to the servo).
+servos.py commands zero + relative with no per-servo sign, and plan.JOINT_SIGN has fe1 and fe2 at
++1. A positive fe command is flexion: every bench grasp closed the hand with positive fe, and the
+2026-08-29 manual sweep has the larger side positive on all six fe servos (index fe1 -50.4/+64.8,
+middle fe1 -42.8/+69.7 deg). With the horn on the child, flexion fixes the servo sense at c = -1:
+a positive command turns the horn clockwise seen from the horn side. The MCP and PIP servos give
+c = -1 on all three fingers.
+The same sense predicts the aa signs. verify_frame_mapping.py measured them as "toward +y_P (index
+side)": thumb +1, index -1, middle -1.
+
+  finger            positive aa swings the tip    claim's identity    mirrored identity
+  Finger v3 <2>     -x_A                          index  -1 (=)       middle +1 (measured -1)
+  Finger v3 <1>     -x_A                          middle -1 (=)       index  +1 (measured -1)
+  Finger v3 <3>     +x_A                          thumb  +1 (=)       thumb  -1 (measured +1)
+  agreement                                       3/3                 0/3
+
+The test needs only the module's internal layout, the fe sign and the aa measurement. Take z
+toward the base plate and x from the thumb toward the pair: the measured signs then put the index
+at +y. That is the simulator's convention. In A, x_P = -y_A, so the index is at +x_A.
+The claim's sentence "the aa signs ... do not discriminate" is therefore wrong. They are uniform
+only when the servo's rotation sense is ignored; with it they discriminate 3/3 against 0/3.
+
+Test 2: home corners at the motor ends (the claim's argument, rechecked)
+kinematics.py homes thumb bottom-left, index top-right and middle bottom-right, with firmware x
+along local y. The 11194 mm^3 motors are the thumb X motor at x_A -239..-210, the thumb Y motor
+at y_A 248..276, the gantry <1> X motor at x_A 19..48, and the gantry <2> X motor at x_A -270..-241
+(part 062, top level). The pair Y motors sit at y_A -36..-7. Each pair gantry keeps one 4927 mm^3
+motor mount, on its outboard side. Five axes home at their motor end under either identity. The
+thumb's J0 homes at its motor end only under the claim's identity. Stepper_SetInvertDir is never
+called in firmware/, so all six axes run with the same direction polarity. Motor cable pinout and
+screw hand are not recorded in the repository.
+Correction: the base plate (002) is mirror-symmetric about x_A = -111 mm. It has thumb motor-mount
+holes at both (-243.3, 230.375) and (21.3, 230.375) mm. The +x_A hole is used by the sensor plate
+000. The claim says the motor sides are "the only sides with motor-mount holes in the base plate".
+That is true for the pair, whose outboard motor sides are also forced by the adjacent gantry. For
+the thumb, the -x_A motor side is set by the assembly and the sensor plate, and a build with the
+thumb's X frame turned 180 deg would still bolt on. Test 1 does not depend on the motor sides.
+
+Test 3: carriage registration and yaw centres (register_carriage.py, resguard --mem 3G)
+The cad_v1 MJCF meshes carriage.stl and yaw_link.stl (body frames, metres, scaled to mm) were
+registered onto each v3 instance. Each fit used 25000 surface samples, initial poses from the 8
+principal-axis sign choices, and point-to-point ICP with a proper or forced-improper Kabsch.
+
+  instance        carriage RMS proper / mirrored   p99 proper / mirrored   yaw link RMS proper / mirrored
+  Finger v3 <1>   0.36 / 1.80-1.88 mm              0.77 / 9.45 mm          0.29 / 1.69-1.73 mm
+  Finger v3 <2>   0.36 / 1.80-1.88 mm              0.77 / 9.45 mm          0.29 / 1.69-1.73 mm
+  Finger v3 <3>   0.36 / 1.80-1.88 mm              0.77 / 9.45 mm          0.29 / 1.69-1.73 mm
+
+All three fingers are proper copies of the cad_v1 part, so none is mirrored. The carriage fit maps
+the F origin (the yaw centre) to these points in A:
+  Finger v3 <2> (-76.721, 83.149, -75.897)   claim (-76.732, 83.141, -75.900)
+  Finger v3 <1> (-153.604, 80.092, -75.896)  claim (-153.614, 80.083, -75.900)
+  Finger v3 <3> (-126.690, 159.616, -75.896) claim (-126.688, 159.624, -75.900)
+The fitted yaw link gives the same points within 0.02 mm. The foot of the common perpendicular from
+the registered MCP axis lies 0.008 to 0.014 mm from the carriage-borne centre, and the MCP centre is
+20.743 to 20.750 mm below it. x_F is (0, -0.99987, 0.0159) on the pair and (0, 0.99987, 0.0158) on
+the thumb. y_F is +x_A on the pair and -x_A on the thumb. The yaw angles about x_F are 17.36 (index),
+-23.06 (middle) and -12.56 deg (thumb, +12.56 about +x_P). The claim gives 17.38, -23.04 and 12.54.
+
+What the photographs show
+docs/overviews/media/sr2_hand_bench.jpg and the D435 frames of 2026-08-31 (logs/tracker/*_frames)
+show the bench hand fingers-down, labelled "0" and "THUMB" on the thumb. The 2026-10-05 frame shows
+a partly hidden label that reads like "MIDDLE" upside down. No frame shows both pair labels with a
+handed reference, so the photographs do not decide the identity.
+
+Files
+servo_sense.py, servo_predict.py, servo_predict.json; register_carriage.py, register_carriage.json;
+list_parts.py; photo_left.png, photo_right.png, photo_mid.png, tracker_sheet.png, tracker*_label.png.

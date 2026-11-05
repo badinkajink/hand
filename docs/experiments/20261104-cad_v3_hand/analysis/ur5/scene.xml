@@ -1,0 +1,20 @@
+<mujoco model="ur5_cb3 scene">
+  <include file="ur5_cb3.xml"/>
+  <statistic center="0 -0.3 0.35" extent="1.0"/>
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.35 0.35 0.35" specular="0 0 0"/>
+    <global azimuth="120" elevation="-20" offwidth="1600" offheight="1200"/>
+    <quality shadowsize="4096"/>
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="1 1 1" rgb2="0.85 0.88 0.92" width="512" height="512"/>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.86 0.86 0.86" rgb2="0.80 0.80 0.80" width="300" height="300"
+      mark="edge" markrgb="0.7 0.7 0.7"/>
+    <material name="floor" texture="grid" texrepeat="8 8" reflectance="0.05"/>
+  </asset>
+  <worldbody>
+    <light pos="0.3 -0.6 1.8" dir="-0.1 0.3 -1" directional="true" diffuse="0.5 0.5 0.5"/>
+    <!-- the robot's mounting plane is z 0 of B; the lab's mat table top stands at z_B about 32.8 mm (lab README) -->
+    <geom name="floor" type="plane" size="1.5 1.5 0.05" material="floor"/>
+  </worldbody>
+</mujoco>

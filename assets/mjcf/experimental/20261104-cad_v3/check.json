@@ -6,7 +6,7 @@
   "nbody": 21,
   "ngeom": 1381,
   "nmesh": 11,
-  "compile_s": 0.13,
+  "compile_s": 0.12,
   "joints_as_cad_v2": true,
   "actuators_as_cad_v2": true,
   "first_palm_geom": "palm_plate",
@@ -180,7 +180,7 @@
   "nbody": 24,
   "ngeom": 4474,
   "nmesh": 41,
-  "compile_s": 1.04,
+  "compile_s": 1.01,
   "joints_as_cad_v2": true,
   "actuators_as_cad_v2": true,
   "first_palm_geom": "palm_plate",
@@ -352,9 +352,9 @@
   "nv": 30,
   "nu": 15,
   "nbody": 29,
-  "ngeom": 1424,
+  "ngeom": 1426,
   "nmesh": 31,
-  "compile_s": 0.16,
+  "compile_s": 0.15,
   "contacts_at_key0": [],
   "T_E_from_P_error_mm": 4.2847432268899865e-09,
   "m6_in_E": [
@@ -378,16 +378,29 @@
     -137.15,
     35.0
    ]
-  ]
+  ],
+  "over_object": {
+   "q_deg": [
+    53.084,
+    -85.058,
+    99.237,
+    -104.178,
+    -90.0,
+    301.234
+   ],
+   "palm_position_error_mm": 3.1312873535802315e-05,
+   "palm_tilt_deg": 1.2074182697257333e-06,
+   "contacts": []
+  }
  },
  "ur5_k1.xml": {
   "nq": 31,
   "nv": 30,
   "nu": 15,
   "nbody": 29,
-  "ngeom": 1424,
+  "ngeom": 1426,
   "nmesh": 31,
-  "compile_s": 0.16,
+  "compile_s": 0.15,
   "contacts_at_key0": [],
   "T_E_from_P_error_mm": 4.284800070308847e-09,
   "m6_in_E": [
@@ -411,16 +424,29 @@
     -47.15,
     35.0
    ]
-  ]
+  ],
+  "over_object": {
+   "q_deg": [
+    53.084,
+    -85.058,
+    99.237,
+    -104.178,
+    -90.0,
+    211.234
+   ],
+   "palm_position_error_mm": 3.128538477579047e-05,
+   "palm_tilt_deg": 0.0,
+   "contacts": []
+  }
  },
  "ur5_k2.xml": {
   "nq": 31,
   "nv": 30,
   "nu": 15,
   "nbody": 29,
-  "ngeom": 1424,
+  "ngeom": 1426,
   "nmesh": 31,
-  "compile_s": 0.17,
+  "compile_s": 0.14,
   "contacts_at_key0": [],
   "T_E_from_P_error_mm": 4.284856913727708e-09,
   "m6_in_E": [
@@ -444,16 +470,29 @@
     42.85,
     35.0
    ]
-  ]
+  ],
+  "over_object": {
+   "q_deg": [
+    53.084,
+    -85.058,
+    99.237,
+    -104.178,
+    -90.0,
+    121.234
+   ],
+   "palm_position_error_mm": 3.136203010729212e-05,
+   "palm_tilt_deg": 0.0,
+   "contacts": []
+  }
  },
  "ur5_k3.xml": {
   "nq": 31,
   "nv": 30,
   "nu": 15,
   "nbody": 29,
-  "ngeom": 1424,
+  "ngeom": 1426,
   "nmesh": 31,
-  "compile_s": 0.16,
+  "compile_s": 0.14,
   "contacts_at_key0": [],
   "T_E_from_P_error_mm": 4.284800070308847e-09,
   "m6_in_E": [
@@ -477,16 +516,29 @@
     132.85,
     35.0
    ]
-  ]
+  ],
+  "over_object": {
+   "q_deg": [
+    53.084,
+    -85.058,
+    99.237,
+    -104.178,
+    -90.0,
+    391.234
+   ],
+   "palm_position_error_mm": 3.134101554038411e-05,
+   "palm_tilt_deg": 8.537736462515939e-07,
+   "contacts": []
+  }
  },
  "ur5_full_k0.xml": {
   "nq": 34,
   "nv": 33,
   "nu": 15,
   "nbody": 32,
-  "ngeom": 4517,
+  "ngeom": 4519,
   "nmesh": 61,
-  "compile_s": 1.18,
+  "compile_s": 1.11,
   "contacts_at_key0": [],
   "T_E_from_P_error_mm": 4.2847432268899865e-09,
   "m6_in_E": [
@@ -510,16 +562,29 @@
     -137.15,
     35.0
    ]
-  ]
+  ],
+  "over_object": {
+   "q_deg": [
+    53.084,
+    -85.058,
+    99.237,
+    -104.178,
+    -90.0,
+    301.234
+   ],
+   "palm_position_error_mm": 3.1312873535802315e-05,
+   "palm_tilt_deg": 1.2074182697257333e-06,
+   "contacts": []
+  }
  },
  "ur5_full_k1.xml": {
   "nq": 34,
   "nv": 33,
   "nu": 15,
   "nbody": 32,
-  "ngeom": 4517,
+  "ngeom": 4519,
   "nmesh": 61,
-  "compile_s": 1.2,
+  "compile_s": 1.12,
   "contacts_at_key0": [],
   "T_E_from_P_error_mm": 4.284800070308847e-09,
   "m6_in_E": [
@@ -543,16 +608,29 @@
     -47.15,
     35.0
    ]
-  ]
+  ],
+  "over_object": {
+   "q_deg": [
+    53.084,
+    -85.058,
+    99.237,
+    -104.178,
+    -90.0,
+    211.234
+   ],
+   "palm_position_error_mm": 3.128538477579047e-05,
+   "palm_tilt_deg": 0.0,
+   "contacts": []
+  }
  },
  "ur5_full_k2.xml": {
   "nq": 34,
   "nv": 33,
   "nu": 15,
   "nbody": 32,
-  "ngeom": 4517,
+  "ngeom": 4519,
   "nmesh": 61,
-  "compile_s": 1.23,
+  "compile_s": 1.11,
   "contacts_at_key0": [],
   "T_E_from_P_error_mm": 4.284856913727708e-09,
   "m6_in_E": [
@@ -576,16 +654,29 @@
     42.85,
     35.0
    ]
-  ]
+  ],
+  "over_object": {
+   "q_deg": [
+    53.084,
+    -85.058,
+    99.237,
+    -104.178,
+    -90.0,
+    121.234
+   ],
+   "palm_position_error_mm": 3.136203010729212e-05,
+   "palm_tilt_deg": 0.0,
+   "contacts": []
+  }
  },
  "ur5_full_k3.xml": {
   "nq": 34,
   "nv": 33,
   "nu": 15,
   "nbody": 32,
-  "ngeom": 4517,
+  "ngeom": 4519,
   "nmesh": 61,
-  "compile_s": 1.16,
+  "compile_s": 1.1,
   "contacts_at_key0": [],
   "T_E_from_P_error_mm": 4.284800070308847e-09,
   "m6_in_E": [
@@ -609,6 +700,19 @@
     132.85,
     35.0
    ]
-  ]
+  ],
+  "over_object": {
+   "q_deg": [
+    53.084,
+    -85.058,
+    99.237,
+    -104.178,
+    -90.0,
+    391.234
+   ],
+   "palm_position_error_mm": 3.134101554038411e-05,
+   "palm_tilt_deg": 8.537736462515939e-07,
+   "contacts": []
+  }
  }
 }

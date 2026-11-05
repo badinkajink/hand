@@ -1,0 +1,2 @@
+[resguard] refusing to launch: swap in use 15.5 GB > 15 GB (swap nearly full: nowhere left to park cold pages)
+[resguard] RAM avail 15.8/31.0 GB, swap used 15.5 GB, PSI some/full 0.00/0.00; load 0.90 on 20 cores; GPU free 14536 MB (0% busy)

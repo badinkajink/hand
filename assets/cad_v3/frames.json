@@ -1,11 +1,11 @@
 {
  "title": "cad_v3 frames: the SR2 hand as built (owner's CAD of 2026-11-04) on the UR5 CB3",
- "written": "2026-11-04 19:24",
+ "written": "2026-11-04 22:13",
  "units": "mm, deg",
  "sources": {
   "cad": "assets/cad_v3/step (the owner's Onshape export of 2026-11-04, assets/cad_v2/full_cad)",
   "solids": "scripts/cad_v3_assets.py extract -> logs/20261104-cad_v3/extract/parts.json",
-  "analysis": "docs/experiments/20261104-cad_v3_hand/analysis (gantry.json, flange.json, sensors.json)"
+  "analysis": "docs/experiments/20261104-cad_v3_hand/analysis (gantry.json, flange.json, sensors.json); HEX-E: lab README of the tip calibration"
  },
  "frames": {
   "A": "CAD assembly 'hand v3 (anthro config)': z_A up toward the robot, base plate z_A 0..3, flange face 28",
@@ -54,6 +54,8 @@
   "note": "x_P = -y_A + t_x, y_P = x_A + t_y, z_P = z_A + t_z. t_y puts y_P = 0 midway between the index and middle box centres, t_x puts x_P = 0 midway between the thumb box centre and the index/middle box centres (the driver's convention, XY_space.png), t_z puts the yaw centres at z_P = 0. Primary t uses the thumb gantry moved +2.5 mm in y_A onto the base plate's holes; t_P_from_A_mm_cad_as_is uses the CAD as exported."
  },
  "flange": {
+  "k_as_built": 1,
+  "k_as_built_source": "the owner's photo of 2026-11-04 from above the plate's +x_A edge: camera fit on the plate's holes, the HEX-E's plug and the arm's wrist 2 housing (scripts/cad_v3_page.py clocking)",
   "centre_A_mm": [
    -111.0,
    116.0,
@@ -86,6 +88,18 @@
    "mass_kg": 0.26,
    "turn_deg": -2.15,
    "port_E_deg": 90.0,
+   "port_z_mm": 6.4,
+   "port_r_mm": 4.0,
+   "port_out_mm": 21.0,
+   "plug_out_mm": 14.0,
+   "plug_half_mm": [
+    5.0,
+    7.0,
+    5.0
+   ],
+   "relief_at_mm": 27.0,
+   "relief_mm": 19.05,
+   "relief_r_mm": 3.97,
    "T_E_from_H": [
     0.999296036,
     0.037515773,

@@ -1,0 +1,88 @@
+Check of the UR5-flange-to-hand transform (cad_v3), geometry lens, 2026-11-04
+
+Outcome. The four T_E_from_A matrices are confirmed. My matrices, built from the STEP text with my own reader,
+differ from the claimed ones by at most 4.9e-7 per element, which is the claim's 6-decimal rounding. Each claimed
+matrix puts the adaptor's four M6 holes within 1.1e-4 mm of the flange's bolt positions at 45, 135, 225 and 315 deg.
+Two statements around the matrices are wrong or not reproducible (items 1 and 2 below).
+
+Method. stepread.py is a small ISO 10303-21 reader written for this check. It uses no FreeCAD and none of the other
+agent's scripts. It composes each instance as A(item_2) A(item_1)^-1 from ITEM_DEFINED_TRANSFORMATION. It reports
+cylinders, planes and face vertices in mm (the files are in metres). verify.py, t_standalone.py and t_extra.py
+run the checks. verify.json and standalone.json list the numbers. Peak RSS was 123 MB, run time about 1 s, and no
+mesh was loaded. The hand STEP has 31,840 cartesian points.
+
+Measured, all in frame A (mm) unless stated:
+- Adaptor = hand solid 4, robot mount = solid 1. The solid order is the same as in parts.json.
+- T_A_from_D, from the STEP text: R = [[-0.406737,0,-0.913545],[0.913545,0,-0.406737],[0,-1,0]] and
+  t = (-111.000003, 115.999998, 6.000000). This is 134.6979 deg about (-0.4173, -0.6426, 0.6426). It agrees with
+  FreeCAD's placement to 1.4e-14 deg and 0 mm.
+- The adaptor solid inside the hand file equals UR5 Adaptor.step face for face, in the same local frame.
+  robot_mount.step and base_plate.step also equal their solids in the hand file. For both,
+  T_A_from_file = Rz(180 deg) with t = (-111, 142.875, 0).
+- The four 6.4 mm M6 axes are parallel to z_A to 0 deg. Fitted at z = 28, they lie on a 50.000000 mm circle
+  (rms 1.9e-13). The centre is (-111.000003, 115.999998), 3.4e-6 mm from the claimed (-111, 116). The holes lie at
+  -111 (= 249), -21, 69 and 159 deg.
+- The 11 mm counterbores span z 6..13 and the head seats are at z 13, so the screw heads are on the z = 6 side.
+  The 6.4 mm bores span z 14.03..28. The adaptor face toward the flange is therefore z = 28.000000, and the tool
+  direction z_E is -z_A.
+- The flat sides face 24, 114, 204 and 294 deg, at a half width of 30.2 mm.
+- The 4.4 mm holes are at (-105.5, 100), (-133, 117), (-116.5, 100) and (-89, 117). They pass through the whole
+  adaptor (z 6..28) and lie 0.000 mm from the robot mount's 4.4 mm openings (z 5.8..6.0, below 8.5 mm
+  counterbores at z 3..5.8).
+- Robot mount pocket: four walls with inward normals at 24, 114, 204 and 294 deg, each 30.500 +- 3e-6 mm from the
+  M6 centre. Four R20 corners lie 14.849 mm from the centre, and the floor is at z = 6. The floor has no openings
+  other than the four 4.4 mm holes.
+- No part of the hand rises above z = 28. The robot mount and the adaptor reach z = 28. The lowest point is
+  z = -157.511, the bottom of a 3 mm sphere on solid 12 in Finger v3 <3>, which is 185.511 mm below the flange
+  face. The volume centroid of the hand is at z_E = +38.4 mm.
+
+Mate uniqueness. Of the 24 orderings of the four points, only the identity maps the trapezoid onto itself by a
+rotation. The next best has 7.778 mm rms. The one reflection that maps it onto itself (0 mm) has its mirror line
+along y_A, through x = -111. I tested the eight placements of the rounded square in its pocket: four 90-degree
+turns, each with and without turning the adaptor over. Only the as-designed placement lines up the 4.4 mm holes,
+4 of 4. Every other placement leaves each hole 1.2 to 29.7 mm from the nearest robot-mount hole.
+
+Turning the adaptor over about the trapezoid's mirror line would turn its flats to 66, 156, 246 and 336 deg,
+42 deg off the pocket walls. Turned that far, the 60.4 mm R20 square reaches 34.405 mm from the centre, against
+the pocket's 30.5 mm, so it does not enter the pocket. The result rules out the flip for a weaker reason (the
+counterbores would face the flange).
+
+The result omits four radial holes in the robot mount. Each is 6.8 mm in diameter and 55 mm long from the pocket
+wall at z = 17, opening into a 9.8 mm counterbore toward the outside. They are coaxial with the adaptor's four
+8.6 mm side holes (10 mm deep, chamfered entrance, at mid-thickness on each flat). The pattern repeats at every
+90 deg. With radial fasteners alone, the adaptor would therefore fasten in any of four turns in its pocket.
+
+The pocket is centred on the M6 circle to 3e-6 mm. Such a turn therefore composes to one of the same four
+T_E_from_A and only changes which k matches a given connector direction. The set of four transforms is complete.
+
+Transforms, with the convention as stated (flange M6 at 45 + 90 j deg, z_E out of the flange):
+- Every claimed matrix has det 0.99999945 and orthogonality error 5.5e-7. The nearest rotation is 2.5e-7 away,
+  which moves a point 300 mm out by 7e-5 mm.
+- Each claimed matrix maps c_A to the origin of E. The adaptor's flange face is at z_E = 0, its other face at
+  z_E = 22 and the head seats at z_E = 15.
+- The adaptor's flats face 0, 90, 180 and 270 deg in E in all four clockings. In every clocking, one flat side
+  faces the tool connector squarely, which can be checked by eye.
+- The claimed quaternions match the claimed matrices to 3e-5 deg. The claimed positions in metres match t to
+  4e-5 mm.
+- The hand occupies z_E 0..185.511 in every clocking, on the tool side.
+- No adaptor hole lies on the flange's 6 mm pin hole in any clocking. The nearest is 8.3 mm away, so no dowel can
+  be added through an existing hole.
+- Thumb, index and middle gantry centres lie at 90, -45 and -135 deg from the flange axis in A (exact). The
+  directions in E for each k and the connector offsets (24, 21, 21; 66 and 69 and 159 deg) are reproduced.
+
+Discrepancies:
+1. k_rule says "x_E is 90 deg counterclockwise from y_E seen from the tool side". In a right-handed frame seen
+   with z_E toward the viewer, x_E is 90 deg CLOCKWISE from y_E. The sentence is true only when the flange is seen
+   from the robot side, looking along +z_E. Read as written, it puts x_E 180 deg wrong at mount time. The
+   matrices and the by-eye descriptions in k_descriptions do not use this sentence and are correct.
+2. standalone_face_check_max_mm.base_plate_translation_only = 247.64 mm could not be reproduced. The metric that
+   reproduces the robot mount's 315.53 mm gives 399.73 mm for the base plate. That metric is the largest
+   displacement of a parts.json plane centre when the centres of mass are aligned by translation. Cylinder points
+   give 389.98 mm and vertices 412.30 mm. The conclusion, that a translation alone is wrong by hundreds of mm, is
+   unaffected.
+3. Not over the threshold: the bolt-circle centre is 3.4e-6 mm from (-111, 116).
+
+Not checked here: the flange convention itself (M6 at 45 deg, connector on -y_E, the URDF wrist3 mesh), which
+another task in this workflow covers. The index and middle labels follow the result's handedness argument
+(x_P = -y_A, y_P = x_A, z_P = z_A), which is sound for right-handed frames. No physical label in the CAD confirms
+them.

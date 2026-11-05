@@ -1,0 +1,178 @@
+<mujoco model="ur5_cb3">
+  <!-- The lab's UR5 (CB3, PolyScope 3.15.8), drafted for cad_v3 on 2026-11-04 by
+       logs/20261104-cad_v3/ur5/build_ur5_mjcf.py from ur_description's ur5.urdf (ros-industrial/universal_robot
+       6507bb67, copy in rh56_controller/magpie_force_control/src/ur_description; the package declares a BSD licence).
+       Kinematics: UR's nominal DH (d1 89.159, a2 -425, a3 -392.25, d4 109.15, d5 94.65, d6 82.3 mm); the controller's
+       own calibration is not in it. Metres, radians. -->
+  <compiler angle="radian" meshdir="meshes" autolimits="true"/>
+  <option integrator="implicitfast"/>
+
+  <default>
+    <default class="ur5">
+      <material specular="0.4" shininess="0.3"/>
+      <joint axis="0 0 1" range="-6.283185 6.283185" armature="0.1"/>
+      <position ctrlrange="-6.283185 6.283185" kp="2000" kv="400" forcerange="-150 150"/>
+      <default class="size3">
+        <default class="size3_limited">
+          <joint range="-3.141593 3.141593"/>
+          <position ctrlrange="-3.141593 3.141593"/>
+        </default>
+      </default>
+      <default class="size1">
+        <position kp="500" kv="100" forcerange="-28 28"/>
+      </default>
+      <default class="visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+      </default>
+      <default class="collision">
+        <geom group="3" rgba="0.9 0.5 0.2 0.35"/>
+      </default>
+      <default class="frame">
+        <site type="sphere" size="0.004" rgba="0.9 0.1 0.1 1" group="4"/>
+      </default>
+    </default>
+  </default>
+
+  <asset>
+    <material name="Rohr" class="ur5" rgba="0.84 0.84 0.84 1"/>
+    <material name="Scheibe" class="ur5" rgba="0.102 0.102 0.102 1"/>
+    <material name="blau" class="ur5" rgba="0.502 0.695 0.819 1"/>
+    <material name="verbindung" class="ur5" rgba="0.285 0.285 0.285 1"/>
+    <material name="blau_005" class="ur5" rgba="0.401 0.556 0.655 1"/>
+    <material name="verbindung_005" class="ur5" rgba="0.228 0.228 0.228 1"/>
+    <material name="Rohr_005" class="ur5" rgba="0.672 0.672 0.672 1"/>
+    <material name="blau_001" class="ur5" rgba="0.401 0.556 0.655 1"/>
+    <material name="verbindung_001" class="ur5" rgba="0.228 0.228 0.228 1"/>
+    <material name="Scheibe_001" class="ur5" rgba="0.0819 0.0819 0.0819 1"/>
+    <material name="blau_002" class="ur5" rgba="0.401 0.556 0.655 1"/>
+    <material name="verbindung_002" class="ur5" rgba="0.228 0.228 0.228 1"/>
+    <material name="Scheibe_002" class="ur5" rgba="0.0819 0.0819 0.0819 1"/>
+    <material name="Rohr_007_001" class="ur5" rgba="0.344 0.344 0.344 1"/>
+    <material name="SWMaterial-1_004_002_001" class="ur5" rgba="0.159 0.165 0.174 1"/>
+    <mesh name="base_0" file="visual/base_0.obj"/>
+    <mesh name="base_1" file="visual/base_1.obj"/>
+    <mesh name="shoulder_0" file="visual/shoulder_0.obj"/>
+    <mesh name="shoulder_1" file="visual/shoulder_1.obj"/>
+    <mesh name="shoulder_2" file="visual/shoulder_2.obj"/>
+    <mesh name="upperarm_0" file="visual/upperarm_0.obj"/>
+    <mesh name="upperarm_1" file="visual/upperarm_1.obj"/>
+    <mesh name="upperarm_2" file="visual/upperarm_2.obj"/>
+    <mesh name="upperarm_3" file="visual/upperarm_3.obj"/>
+    <mesh name="forearm_0" file="visual/forearm_0.obj"/>
+    <mesh name="forearm_1" file="visual/forearm_1.obj"/>
+    <mesh name="forearm_2" file="visual/forearm_2.obj"/>
+    <mesh name="wrist1_0" file="visual/wrist1_0.obj"/>
+    <mesh name="wrist1_1" file="visual/wrist1_1.obj"/>
+    <mesh name="wrist1_2" file="visual/wrist1_2.obj"/>
+    <mesh name="wrist2_0" file="visual/wrist2_0.obj"/>
+    <mesh name="wrist2_1" file="visual/wrist2_1.obj"/>
+    <mesh name="wrist2_2" file="visual/wrist2_2.obj"/>
+    <mesh name="wrist3_0" file="visual/wrist3_0.obj"/>
+    <mesh name="wrist3_1" file="visual/wrist3_1.obj"/>
+  </asset>
+
+  <worldbody>
+    <body name="base_link_inertia" childclass="ur5">
+      <!-- the controller's Base frame B (URDF base_link_inertia = base = base_link turned by pi about z); z up -->
+      <site name="base" class="frame"/>
+      <site name="base_link" class="frame" quat="0 0 0 1"/>  <!-- ROS REP-103 base_link: x forward -->
+      <inertial mass="4" pos="0 0 0" diaginertia="0.00443333156 0.00443333156 0.0072"/>
+      <geom class="visual" mesh="base_0" material="Rohr" quat="0 0 0 1"/>
+      <geom class="visual" mesh="base_1" material="Scheibe" quat="0 0 0 1"/>
+      <geom name="base_disc" class="collision" type="cylinder" pos="0 0 0.011999" size="0.074095 0.012001"/>
+      <geom name="base_cable_outlet" class="collision" type="box" pos="2e-05 0.092005 0.008554" size="0.005168 0.017995 0.005195"/>
+      <body name="shoulder_link" pos="0 0 0.089159" gravcomp="1">
+        <joint name="shoulder_pan_joint" class="size3"/>  <!-- URDF limit -360..360 deg, effort 150 N m, velocity 3.1416 rad/s -->
+        <inertial mass="3.7" pos="0 0 0" diaginertia="0.0149723523 0.0149723523 0.01040625"/>
+        <geom class="visual" mesh="shoulder_0" material="blau" quat="0 0 0 1"/>
+        <geom class="visual" mesh="shoulder_1" material="verbindung" quat="0 0 0 1"/>
+        <geom class="visual" mesh="shoulder_2" material="Scheibe" quat="0 0 0 1"/>
+        <geom name="shoulder_j1" class="collision" type="cylinder" pos="0 0 -0.001839" size="0.059764 0.063361"/>
+        <geom name="shoulder_j2_side" class="collision" type="box" pos="5.8e-05 -0.035252 0.00163" size="0.059346 0.035249 0.06683"/>
+        <body name="upper_arm_link" quat="0.707106781 0.707106781 0 0" gravcomp="1">
+          <joint name="shoulder_lift_joint" class="size3"/>  <!-- URDF limit -360..360 deg, effort 150 N m, velocity 3.1416 rad/s -->
+          <inertial mass="8.393" pos="-0.2125 0 0.136" quat="0.707106781 0 0.707106781 0" diaginertia="0.133885782 0.133885782 0.0151074"/>
+          <geom class="visual" mesh="upperarm_0" material="blau" pos="0 0 0.13585" quat="0.5 0.5 -0.5 -0.5"/>
+          <geom class="visual" mesh="upperarm_1" material="verbindung" pos="0 0 0.13585" quat="0.5 0.5 -0.5 -0.5"/>
+          <geom class="visual" mesh="upperarm_2" material="Rohr" pos="0 0 0.13585" quat="0.5 0.5 -0.5 -0.5"/>
+          <geom class="visual" mesh="upperarm_3" material="Scheibe" pos="0 0 0.13585" quat="0.5 0.5 -0.5 -0.5"/>
+          <geom name="upperarm_j2" class="collision" type="cylinder" pos="0 0 0.137549" size="0.060491 0.066899"/>
+          <geom name="upperarm_tube" class="collision" type="capsule" fromto="-0.425 9e-06 0.135717 0 9e-06 0.135717" size="0.052777"/>
+          <geom name="upperarm_flare_j2" class="collision" type="cylinder" pos="-0.048759 1e-06 0.136114" quat="0.7071068 0 0.7071068 0" size="0.05888 0.031215"/>
+          <geom name="upperarm_flare_j3" class="collision" type="cylinder" pos="-0.375935 -0.000129 0.135792" quat="0.7071068 0 0.7071068 0" size="0.059329 0.030928"/>
+          <geom name="upperarm_j3" class="collision" type="cylinder" pos="-0.425 0 0.137518" size="0.0605 0.066868"/>
+          <body name="forearm_link" pos="-0.425 0 0" gravcomp="1">
+            <joint name="elbow_joint" class="size3_limited"/>  <!-- URDF limit -180..180 deg, effort 150 N m, velocity 3.1416 rad/s -->
+            <inertial mass="2.275" pos="-0.196125 0 0.0165" quat="0.707106781 0 0.707106781 0" diaginertia="0.031216791 0.031216791 0.004095"/>
+            <geom class="visual" mesh="forearm_0" material="blau_005" pos="0 0 0.0165" quat="0.5 0.5 -0.5 -0.5"/>
+            <geom class="visual" mesh="forearm_1" material="verbindung_005" pos="0 0 0.0165" quat="0.5 0.5 -0.5 -0.5"/>
+            <geom class="visual" mesh="forearm_2" material="Rohr_005" pos="0 0 0.0165" quat="0.5 0.5 -0.5 -0.5"/>
+            <geom name="forearm_j3" class="collision" type="cylinder" pos="0 0 0.023928" size="0.059 0.047083"/>
+            <geom name="forearm_tube" class="collision" type="capsule" fromto="-0.39225 -8.6e-05 0.016621 0 -8.6e-05 0.016621" size="0.038054"/>
+            <geom name="forearm_flare_j3" class="collision" type="cylinder" pos="-0.060424 -4e-05 0.01714" quat="0.7071068 0 0.7071068 0" size="0.046837 0.019529"/>
+            <geom name="forearm_flare_j4" class="collision" type="cylinder" pos="-0.362225 1.3e-05 0.016553" quat="0.7071068 0 0.7071068 0" size="0.037985 0.017221"/>
+            <geom name="forearm_j4" class="collision" type="cylinder" pos="-0.39225 0 0.011662" size="0.039595 0.052338"/>
+            <body name="wrist_1_link" pos="-0.39225 0 0.10915" gravcomp="1">
+              <joint name="wrist_1_joint" class="size1"/>  <!-- URDF limit -360..360 deg, effort 28 N m, velocity 3.1416 rad/s -->
+              <inertial mass="1.219" pos="0 0 0" diaginertia="0.00201388878 0.00201388878 0.0021942"/>
+              <geom class="visual" mesh="wrist1_0" material="blau_001" pos="0 0 -0.093" quat="0.707106781 0.707106781 0 0"/>
+              <geom class="visual" mesh="wrist1_1" material="verbindung_001" pos="0 0 -0.093" quat="0.707106781 0.707106781 0 0"/>
+              <geom class="visual" mesh="wrist1_2" material="Scheibe_001" pos="0 0 -0.093" quat="0.707106781 0.707106781 0 0"/>
+              <geom name="wrist1_j5_housing" class="collision" type="cylinder" pos="0 0.004838 0" quat="0.7071068 -0.7071068 0 0" size="0.0395 0.052338"/>
+              <geom name="wrist1_j4_ring" class="collision" type="cylinder" pos="0 0 -0.003" size="0.037884 0.0425"/>
+              <body name="wrist_2_link" pos="0 -0.09465 0" quat="0.707106781 0.707106781 0 0" gravcomp="1">
+                <joint name="wrist_2_joint" class="size1"/>  <!-- URDF limit -360..360 deg, effort 28 N m, velocity 3.1416 rad/s -->
+                <inertial mass="1.219" pos="0 0 0" diaginertia="0.00183103885 0.00183103885 0.0021942"/>
+                <geom class="visual" mesh="wrist2_0" material="blau_002" pos="0 0 -0.095"/>
+                <geom class="visual" mesh="wrist2_1" material="verbindung_002" pos="0 0 -0.095"/>
+                <geom class="visual" mesh="wrist2_2" material="Scheibe_002" pos="0 0 -0.095"/>
+                <geom name="wrist2_j6_housing" class="collision" type="cylinder" pos="0 -0.004844 0" quat="0.7071068 -0.7071068 0 0" size="0.039496 0.052344"/>
+                <geom name="wrist2_j5_ring" class="collision" type="cylinder" pos="0 0 -0.022925" size="0.037979 0.022925"/>
+                <body name="wrist_3_link" pos="0 0.0823 0" quat="0.707106781 -0.707106781 0 0" gravcomp="1">
+                  <joint name="wrist_3_joint" class="size1"/>  <!-- URDF limit -360..360 deg, effort 28 N m, velocity 3.1416 rad/s -->
+                  <inertial mass="0.1879" pos="0 0 -0.01525" diaginertia="8.06247261e-05 8.06247261e-05 0.000132117187"/>
+                  <geom class="visual" mesh="wrist3_0" material="Rohr_007_001" pos="0 0 -0.0818" quat="0.707106781 0.707106781 0 0"/>
+                  <geom class="visual" mesh="wrist3_1" material="SWMaterial-1_004_002_001" pos="0 0 -0.0818" quat="0.707106781 0.707106781 0 0"/>
+                  <geom name="wrist3_flange" class="collision" type="cylinder" pos="0 0 -0.017225" size="0.038484 0.01725"/>
+                  <geom name="wrist3_connector" class="collision" type="box" pos="-4e-06 -0.040726 -0.019699" size="0.003612 0.002274 0.003412"/>
+                  <!-- tool0 = wrist_3_link: z out of the flange face (z 0); the visual mesh has the four M6 holes at +-45 and +-135 deg from x, no dowel hole, and the tool connector on -y -->
+                  <site name="tool0" class="frame"/>
+                  <body name="tool0">
+                    <!-- attach an end effector here (mjSpec attach, or <attach> in XML) -->
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <contact>
+    <!-- base_link_inertia is welded to the world, so MuJoCo's parent-child filter does not cover the shoulder's
+         housing, which rests 0.04 mm into the base disc's top (z_B 24 mm) -->
+    <exclude body1="base_link_inertia" body2="shoulder_link"/>
+  </contact>
+
+  <actuator>
+    <position class="size3" name="shoulder_pan" joint="shoulder_pan_joint"/>
+    <position class="size3" name="shoulder_lift" joint="shoulder_lift_joint"/>
+    <position class="size3_limited" name="elbow" joint="elbow_joint"/>
+    <position class="size1" name="wrist_1" joint="wrist_1_joint"/>
+    <position class="size1" name="wrist_2" joint="wrist_2_joint"/>
+    <position class="size1" name="wrist_3" joint="wrist_3_joint"/>
+  </actuator>
+
+  <keyframe>
+    <!-- lab_home: the calibration cell's home, 2026-10-22 18:28 (flange along base -y);
+         calib_home_v3id1: cell.json's tool registration (v3 ID 1 sphere pass 1, 2026-10-27);
+         tool_down: the inverted rig's path over seat 1, 2026-11-02 14:20 (tool axis 3.8 deg from straight down);
+         hand_down: computed by IK, not recorded: tool_down's flange x, y at z_B 400 mm, tool axis exactly -z_B -->
+    <key name="lab_home" qpos="0.84288789 -1.5053337 1.9119157 -0.43316501 0.82633405 0.11221381" ctrl="0.84288789 -1.5053337 1.9119157 -0.43316501 0.82633405 0.11221381"/>
+    <key name="calib_home_v3id1" qpos="1.038194 -1.3252234 2.0997128 -0.77868313 1.0839977 0.031856119" ctrl="1.038194 -1.3252234 2.0997128 -0.77868313 1.0839977 0.031856119"/>
+    <key name="tool_down" qpos="0.87067881 -1.3188719 1.8023392 -2.0865111 -1.628087 -0.0012640166" ctrl="0.87067881 -1.3188719 1.8023392 -2.0865111 -1.628087 -0.0012640166"/>
+    <key name="hand_down" qpos="0.86211118 -1.4205781 1.4896523 -1.6398706 -1.5707963 -0.0079838912" ctrl="0.86211118 -1.4205781 1.4896523 -1.6398706 -1.5707963 -0.0079838912"/>
+    <key name="zero" qpos="0 0 0 0 0 0" ctrl="0 0 0 0 0 0"/>
+  </keyframe>
+</mujoco>

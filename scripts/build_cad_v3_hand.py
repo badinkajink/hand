@@ -26,7 +26,8 @@ Frames (mm in frames.json, m in the MJCF):
   H  the tool face of the OptoForce HEX-E that stays on the flange: 35.0 mm out along z_E, its M6 at -47.15 + 90 j deg from
      x_E (its dowel measured at -92.15 deg), its cable port on +y_E. The adaptor's M6 holes lie at -21 + 90 i deg from
      x_A, so the adaptor bolts on in four clockings k: x_A lies at theta_k = 21.85 + 90 k deg from x_E about +z_E, with
-     z_A = -z_E; P's origin is 138.9 mm out along z_E.
+     z_A = -z_E; P's origin is 138.9 mm out along z_E. The hand as built is at k = 1 (AS_BUILT_K), read from the owner's
+     photo of 2026-11-04 (scripts/cad_v3_page.py clocking).
 
 The models (assets/mjcf/experimental/20261104-cad_v3):
   scene_screwdriver_medium.xml        the simplified model: cad_v2's scene (same 31 qpos, 15 actuators, names and
@@ -37,13 +38,16 @@ The models (assets/mjcf/experimental/20261104-cad_v3):
                                       the AprilTag and the v4b pads.
   ur5_k<k>.xml, ur5_full_k<k>.xml     the hand on the UR5 CB3 for clocking k: the object (qpos 0-6), the arm's six joints in
                                       place of the palm's pose joints (7-12), the hand (13-30; the full model's bridges
-                                      31-33); six arm and nine finger actuators.
+                                      31-33); six arm and nine finger actuators. Their keyframes: the arm's (lab_home,
+                                      calib_home_v3id1, tool_down, hand_down, zero), sr2_night (the arm's logged pose of the
+                                      night of 2026-11-04) and over_object (IK: P 150 mm over the object, palm level, x_P
+                                      along the base's +y). The world is the robot's base frame.
 
     .venv/bin/python scripts/build_cad_v3_hand.py frames      # assets/cad_v3/frames.json, inventory.json (no meshes)
     ~/.claude/bin/resguard.sh run --mem 3G --cpu 100 -- .venv/bin/python scripts/build_cad_v3_hand.py meshes
     ~/.claude/bin/resguard.sh run --mem 3G --cpu 100 -- .venv/bin/python scripts/build_cad_v3_hand.py scenes
     ~/.claude/bin/resguard.sh run --mem 3G --cpu 100 -- .venv/bin/python scripts/build_cad_v3_hand.py check
-    .venv/bin/python scripts/build_cad_v3_hand.py tcp --k 0 [--point x y z]   # UR TCP of a point of P
+    .venv/bin/python scripts/build_cad_v3_hand.py tcp [--k 1] [--point x y z]   # UR TCP of a point of P
 """
 from __future__ import annotations
 
@@ -71,16 +75,16 @@ OUT = ROOT / "assets/mjcf/experimental/20261104-cad_v3"
 MESH = OUT / "meshes"
 V2 = ROOT / "assets/mjcf/experimental/20261030-cad_v2"
 V2_SCENE = V2 / "scene_screwdriver_medium.xml"
-WORK = ROOT / "logs/20261104-cad_v3"
-EXTRACT = WORK / "extract"
-PARTS_JSON = EXTRACT / "parts.json"
-UR5_DRAFT = WORK / "ur5"                       # the analysis' UR5 CB3 MJCF; its meshes are copied to OUT/meshes/ur5
+ANALYSIS = ROOT / "docs/experiments/20261104-cad_v3_hand/analysis"   # the analysis of 2026-11-04: scripts and results
+EXTRACT = ROOT / "logs/20261104-cad_v3/extract"   # one STL per solid (scripts/cad_v3_assets.py extract); `meshes` reads them
+PARTS_JSON = ANALYSIS / "parts/extract_parts.json"   # that extraction's parts.json
+UR5_DRAFT = ANALYSIS / "ur5"                   # the analysis' UR5 CB3 MJCF; its meshes are in OUT/meshes/ur5
 D435_SRC = Path.home() / "Programs/mujoco_menagerie/realsense_d435i"
-TAG_PNG = WORK / "sensors/tag36h11_id6_quiet2.png"
+TAG_PNG = ANALYSIS / "sensors/tag36h11_id6_quiet2.png"
 FINGERS = ("thumb", "index", "middle")
 K_ALL = (0, 1, 2, 3)
 R_PA = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])     # x_P = -y_A, y_P = x_A, z_P = z_A
-# the moving parts of each gantry in the hand file (logs/20261104-cad_v3/parts/inventory.json, rigid_body)
+# the moving parts of each gantry in the hand file (analysis/parts/inventory.json, rigid_body)
 GANTRY = {"thumb": "gantry_v3_thumb <1>", "index": "gantry_v3 <1>", "middle": "gantry_v3 <2>"}
 FINGER_INSTANCE = {"thumb": "Finger v3 <3>", "index": "Finger v3 <2>", "middle": "Finger v3 <1>"}
 # visual materials by component kind (the STEP files carry no materials; colours are chosen for the renders)
@@ -102,8 +106,22 @@ RGBA = {"v3_plate": "0.62 0.46 0.31 1", "v3_mount": "0.11 0.11 0.12 1", "v3_adap
 # (scripts/ur5_cb3_cell.py HEX, data sheet). Its tool-side dowel was measured at -92.15 deg from x_E (lab README, "The
 # geometry as measured": mean of two seatings, +-0.58 deg), so its tool-side M6 lie at -47.15 + 90 j deg (ISO 9409-1: 45 deg
 # from the dowel). Frame H: the HEX-E's tool face, z_H = z_E, its M6 at 45 + 90 j deg from x_H.
+# Its cable port points along +y_E (owner, 2026-10-22; scripts/ur5_cb3_cell.py PORT). From the owner's photo of 2026-11-04
+# (scripts/cad_v3_page.py clocking): the port's axis lies 6.4 mm from the flange at the HEX-E's side, its boss and the plug's
+# knurled ring reach 21 mm out, the plug's black body another 14 mm, and the cable's strain relief leaves that body toward
+# -x_E (19.05 mm long, PORT).
 HEX_E = dict(height_mm=35.0, diameter_mm=70.0, across_port_mm=78.5, mass_kg=0.260, turn_deg=-2.15,
-             port_E_deg=90.0)
+             port_E_deg=90.0, port_z_mm=6.4, port_r_mm=4.0, port_out_mm=21.0, plug_out_mm=14.0, plug_half_mm=(5.0, 7.0, 5.0),
+             relief_at_mm=27.0, relief_mm=19.05, relief_r_mm=3.97)
+AS_BUILT_K = 1                                 # the clocking of the hand on the UR5 on 2026-11-04 (module docstring)
+# The lab's cutting-mat table in the robot's base frame (the UR5 scenes' world): top at z_B 32.8 mm (lab README), in front
+# of the arm toward base -y, under the hand's pose of the night. The object lies on it under that pose.
+MAT_POS_M, MAT_HALF_M = (-0.25, -0.55, 0.0164), (0.35, 0.25, 0.0164)
+OBJECT_MAT_M = (-0.22, -0.48, 0.0453)
+OVER_OBJECT_MM = 150.0                         # the over_object keyframe: P's origin this far above the object
+# The arm's pose through the night of 2026-11-04 (docs/experiments/20261104-sr2_hand_crosstalk/data/20261104-night/
+# ur5_pose.jsonl, its last row, deg): the hand level over the table, as the owner's photos show it
+SR2_NIGHT_Q_DEG = (53.227, -82.989, 104.542, -111.855, -89.7, 213.968)
 SCREW_R_MM = 2.5                               # 5 mm lead screws (T5 x 1): drawn as plain cylinders
 PAD_TIP = "tcd_ell7.4x8.5x11x22"               # the v4b pad (CLAUDE.md: the tip calibrated on the UR5)
 
@@ -160,7 +178,9 @@ def derive_flange(parts):
         TH.append(tf(R, -R @ cA))
     T_EH = tf(rot.rot_z(math.radians(HEX_E["turn_deg"])), [0.0, 0.0, HEX_E["height_mm"]])
     Ts = [T_EH @ T for T in TH]
-    return dict(centre_A_mm=cA.round(4).tolist(), m6_angles_A_deg=sorted(np.round(ang, 3).tolist()),
+    return dict(k_as_built=AS_BUILT_K, k_as_built_source="the owner's photo of 2026-11-04 from above the plate's +x_A edge: "
+                "camera fit on the plate's holes, the HEX-E's plug and the arm's wrist 2 housing (scripts/cad_v3_page.py clocking)",
+                centre_A_mm=cA.round(4).tolist(), m6_angles_A_deg=sorted(np.round(ang, 3).tolist()),
                 m6_circle_d_mm=float(2 * rad.mean()), m6_angles_H_deg=[45.0, 135.0, 225.0, 315.0],
                 m6_angles_E_deg=[round(45.0 + 90.0 * j + HEX_E["turn_deg"], 4) for j in range(4)],
                 connector_E_deg=-90.0, hex_e=dict(HEX_E, T_E_from_H=T_EH.round(9).ravel().tolist()),
@@ -172,16 +192,16 @@ def derive_flange(parts):
 
 def cmd_frames(args):
     parts = jload(PARTS_JSON)["parts"]
-    G = jload(WORK / "gantry/gantry.json")
-    Fl = jload(WORK / "flange/flange.json")
-    S = jload(WORK / "sensors/sensors.json")
-    inv = jload(WORK / "parts/inventory.json")
+    G = jload(ANALYSIS / "gantry/gantry.json")
+    Fl = jload(ANALYSIS / "flange/flange.json")
+    S = jload(ANALYSIS / "sensors/sensors.json")
+    inv = jload(ANALYSIS / "parts/inventory.json")
     flange = derive_flange(parts)
     # the analysis' transforms agree with the derivation here
     agent = np.array(Fl.get("T_E_from_A_by_k") or Fl["data"]["T_E_from_A_by_k"], float).reshape(4, 4, 4)
     dev = float(np.abs(agent - np.array(flange["T_H_from_A_by_k"]).reshape(4, 4, 4)).max())   # the agent had no HEX-E
     if dev > 1e-3:
-        raise SystemExit(f"flange: this derivation and logs/20261104-cad_v3/flange differ by {dev}")
+        raise SystemExit(f"flange: this derivation and analysis/flange differ by {dev}")
     shift = np.array(G.get("thumb_gantry_correction", {}).get("shift_A_mm", [0, 0, 0]), float)
     stay = set(G.get("thumb_gantry_correction", {}).get("parts_that_stay", []))
     fingers = {}
@@ -207,7 +227,7 @@ def cmd_frames(args):
             cad_joint_angles_deg=g.get("cad_joint_angles_deg", {}).get("simulator"),
             cad_pose_stepper_mm=g.get("cad_pose_stepper_mm"))
     # P: y_P = 0 midway between the index and middle box centres, x_P = 0 midway between the thumb's and the pair's,
-    # z_P = 0 on the yaw-centre plane (the driver's convention; logs/20261104-cad_v3/gantry/gantry.json)
+    # z_P = 0 on the yaw-centre plane (the driver's convention; analysis/gantry/gantry.json)
     bi, bm, bt = (np.array(fingers[f]["box_centre_A_mm"]) for f in ("index", "middle", "thumb"))
     t = np.array([0.5 * (bt[1] + 0.5 * (bi[1] + bm[1])), -0.5 * (bi[0] + bm[0]), -bi[2]])
     TPA = tf(R_PA, t)
@@ -452,12 +472,15 @@ def cmd_meshes(args):
 
 
 def write_tag_obj(path, size_mm=45.0):
-    """A unit square with texture coordinates, centred, in the xy plane facing +z; the tag plate's 45 mm face."""
+    """A square centred in the xy plane facing +z: the 45 mm of the tag's printed sheet on the plate's face. The image has 12
+    cells across, 8 of them the black square, so the 40 mm black square needs 5 mm a cell: 60 mm for the whole image, of which
+    the quad shows the middle 45 mm."""
     h = size_mm / 2000.0
+    u0, u1 = 0.5 - 0.5 * size_mm / 60.0, 0.5 + 0.5 * size_mm / 60.0
     path.write_text("\n".join([
         "# tag36h11 id 6 on the static tag mount's face, textured (cad_v3)",
         f"v {-h} {-h} 0", f"v {h} {-h} 0", f"v {h} {h} 0", f"v {-h} {h} 0",
-        "vt 0 0", "vt 1 0", "vt 1 1", "vt 0 1", "vn 0 0 1",
+        f"vt {u0} {u0}", f"vt {u1} {u0}", f"vt {u1} {u1}", f"vt {u0} {u1}", "vn 0 0 1",
         "f 1/1/1 2/2/1 3/3/1", "f 1/1/1 3/3/1 4/4/1", ""]))
 
 
@@ -660,7 +683,7 @@ def dropin_root(F, full):
     palm = root.find(".//body[@name='palm_pose']")
     boxes_xml(palm, palm_boxes(F, parts))
     # the boxes are massless; palm_pose keeps cad_v2's palm_plate mass and inertia (0.0918 kg, 170 x 180 x 3 mm at z 25 mm),
-    # which the pose actuators were tuned for (logs/20261104-cad_v3/current/spec.md)
+    # which the pose actuators were tuned for (analysis/current/spec.md)
     palm.insert(0, ET.Element("inertial", {"pos": "0 0 0.025", "mass": "0.0918",
                                            "diaginertia": "0.000247922 0.000221103 0.000468945"}))
     set_mounts(root, F)
@@ -744,11 +767,10 @@ def arm_root(F, k, full):
             c = copy.deepcopy(c)
             c.set("pos", "0 0 0")
         wb.append(copy.deepcopy(c))
-    # the lab's mat: its top stands 32.8 mm above the robot's mounting plane (lab README); the object lies on it
-    el(wb, "geom", name="mat", type="box", pos="0.45 -0.25 0.0164", size="0.30 0.25 0.0164", rgba="0.25 0.27 0.30 1")
+    el(wb, "geom", name="mat", type="box", pos=fmt(MAT_POS_M), size=fmt(MAT_HALF_M), rgba="0.25 0.27 0.30 1")
     obj = wb.find("body[@name='screwdriver_medium']")
     if obj is not None:
-        obj.set("pos", "0.45 -0.25 0.0453")
+        obj.set("pos", fmt(OBJECT_MAT_M))
     base = copy.deepcopy(ur.find("worldbody").find("body"))
     wb.append(base)
     tool0 = base.find(".//body[@name='tool0']")
@@ -765,9 +787,15 @@ def arm_root(F, k, full):
        diaginertia=fmt([HEX_E["mass_kg"] * (3 * r * r + h * h) / 12] * 2 + [HEX_E["mass_kg"] * r * r / 2]))
     el(tool0, "geom", name="hex_e", type="cylinder", pos=f"0 0 {h / 2:.6g}", size=f"{r:.6g} {h / 2:.6g}",
        material="v3_hexe", mass="0")
-    port = (HEX_E["across_port_mm"] - HEX_E["diameter_mm"] / 2) / 1000.0
-    el(tool0, "geom", name="hex_e_port", type="box", pos=f"0 {port / 2 + r / 2:.6g} {h / 2:.6g}",
-       size=f"0.006 {port / 2 - r / 2 + 0.002:.6g} 0.006", material="v3_hexe_port", mass="0")
+    z_p, out = HEX_E["port_z_mm"] / 1000.0, HEX_E["port_out_mm"] / 1000.0
+    y_b = r + out + HEX_E["plug_out_mm"] / 2000.0                 # the plug's black body along +y_E
+    y_r = r + HEX_E["relief_at_mm"] / 1000.0                      # the cable's strain relief, toward -x_E
+    el(tool0, "geom", name="hex_e_port", type="cylinder", fromto=fmt([0, r - 0.002, z_p, 0, r + out, z_p]),
+       size=f"{HEX_E['port_r_mm'] / 1000:.6g}", material="v3_hexe", mass="0")
+    el(tool0, "geom", name="hex_e_plug", type="box", pos=fmt([0, y_b, z_p]),
+       size=fmt(np.array(HEX_E["plug_half_mm"]) / 1000.0), material="v3_hexe_port", mass="0")
+    el(tool0, "geom", name="hex_e_relief", type="cylinder", fromto=fmt([0, y_r, z_p, -HEX_E["relief_mm"] / 1000.0, y_r, z_p]),
+       size=f"{HEX_E['relief_r_mm'] / 1000:.6g}", material="v3_hexe_port", mass="0")
     el(tool0, "site", name="hex_e_tool_face", pos=f"0 0 {h:.6g}", quat=quat_str(rot.rot_z(math.radians(HEX_E["turn_deg"]))),
        type="cylinder", size="0.025 0.0003", rgba="0.1 0.6 0.9 0.5", group="4")
     el(tool0, "site", name="tool0_flange", type="cylinder", size="0.0315 0.0005", rgba="0.9 0.1 0.1 0.6", group="4")
@@ -790,12 +818,31 @@ def arm_root(F, k, full):
     kf = el(root, "keyframe")
     open_q = hand.find("keyframe").find("key[@name='open']").get("qpos").split()
     open_c = hand.find("keyframe").find("key[@name='open']").get("ctrl").split()
-    obj_q = ["0.45", "-0.25", "0.0453", "0.70711", "0.70711", "0", "0"]
+    obj_q = [f"{x:g}" for x in OBJECT_MAT_M] + ["0.70711", "0.70711", "0", "0"]
     for key in ur.find("keyframe"):
         q = key.get("qpos").split()
         el(kf, "key", name=key.get("name"), qpos=" ".join(obj_q + q + open_q[13:]),
            ctrl=" ".join(q + open_c[6:]))
+    for name, q in (("sr2_night", np.radians(SR2_NIGHT_Q_DEG)), ("over_object", over_object_q(F, k))):
+        q = [f"{x:.8g}" for x in q]
+        el(kf, "key", name=name, qpos=" ".join(obj_q + q + open_q[13:]), ctrl=" ".join(q + open_c[6:]))
     return root
+
+
+def over_object_T(F, k):
+    """tool0 in the robot's base frame (mm) with P's origin OVER_OBJECT_MM above the object, the palm level, x_P along the
+    base's +y (the night's pose at k = 1 has it 2.59 deg from there)."""
+    T_BP = tf(rot.rot_z(math.pi / 2), np.array(OBJECT_MAT_M) * 1000.0 + [0.0, 0.0, OVER_OBJECT_MM])
+    return T_BP @ rot.tf_inv(T_E_from_P(F, k))
+
+
+def over_object_q(F, k):
+    """The arm's joints for over_object: the DH model's analytic IK, joints 1 to 5 nearest the night's pose."""
+    import ur5_inverted_rig as UI
+    q = UI.ik_near(over_object_T(F, k), np.radians(SR2_NIGHT_Q_DEG), free6=True)[0]
+    if not np.isfinite(q).all():
+        raise SystemExit(f"over_object: no IK solution at k = {k}")
+    return q
 
 
 def cmd_scenes(args):
@@ -848,59 +895,18 @@ def cmd_check(args):
             hE = [rot.tf_apply(T @ TPA, h) for h in holes_A]
             row["m6_in_E"] = [[round(float(np.hypot(h[0], h[1])), 4), round(float(np.degrees(np.arctan2(h[1], h[0]))), 3),
                                round(float(h[2]), 4)] for h in hE]
+            mujoco.mj_resetDataKeyframe(m, d, m.key("over_object").id)
+            mujoco.mj_forward(m, d)
+            p_err = float(np.linalg.norm(d.body("palm_pose").xpos * 1000 - (np.array(OBJECT_MAT_M) * 1000 + [0, 0, OVER_OBJECT_MM])))
+            row["over_object"] = dict(q_deg=np.degrees(d.qpos[7:13]).round(3).tolist(), palm_position_error_mm=p_err,
+                                      palm_tilt_deg=float(np.degrees(np.arccos(np.clip(d.body("palm_pose").xmat[8], -1, 1)))),
+                                      contacts=[(mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, c.geom1),
+                                                 mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, c.geom2))
+                                                for c in d.contact[:d.ncon]])
         out[fn] = row
         print(fn, {k_: v for k_, v in row.items() if k_ not in ("contacts_at_key0",)}, "contacts", len(row["contacts_at_key0"]))
     (OUT / "check.json").write_text(json.dumps(out, indent=1) + "\n")
     print("wrote", (OUT / "check.json").relative_to(ROOT))
-
-
-MEDIA = ROOT / "docs/experiments/20261104-cad_v3_hand/media"
-
-
-def cmd_render(args):
-    """Stills of the models (MUJOCO_GL=egl): the full model on the UR5 at a pose over the mat, the hand close up (full and
-    simplified), and the four clockings seen up the tool axis from below."""
-    import mujoco
-    from PIL import Image
-    MEDIA.mkdir(parents=True, exist_ok=True)
-
-    def shot(path, key, w, h, lookat, dist, az, el_, groups=(0, 1, 2), name=None):
-        m = mujoco.MjModel.from_xml_path(str(OUT / path))
-        d = mujoco.MjData(m)
-        mujoco.mj_resetDataKeyframe(m, d, m.key(key).id)
-        mujoco.mj_forward(m, d)
-        opt = mujoco.MjvOption()
-        for g in range(6):
-            opt.geomgroup[g] = 1 if g in groups else 0
-        cam = mujoco.MjvCamera()
-        cam.lookat[:] = lookat if lookat is not None else d.body("palm_pose").xpos
-        cam.distance, cam.azimuth, cam.elevation = dist, az, el_
-        r = mujoco.Renderer(m, h, w)
-        try:
-            r.update_scene(d, cam, scene_option=opt)
-            img = r.render()
-        finally:
-            r.close()
-        out = MEDIA / (name or path.replace(".xml", f"_{key}.png"))
-        Image.fromarray(img).save(out)
-        print("wrote", out.relative_to(ROOT))
-        return out
-
-    shot("ur5_full_k0.xml", "hand_down", 1600, 1200, [0.35, -0.2, 0.25], 1.6, 140, -20, name="20261104-ur5_full_k0.png")
-    shot("scene_screwdriver_medium_full.xml", "open", 1600, 1200, None, 0.55, 135, -25, name="20261104-hand_full.png")
-    shot("scene_screwdriver_medium_full.xml", "open", 1600, 1200, None, 0.55, 135, -25, groups=(0, 1, 3),
-         name="20261104-hand_simplified_boxes.png")
-    shot("scene_screwdriver_medium.xml", "open", 1600, 1200, None, 0.55, 135, -25, name="20261104-hand_dropin.png")
-    shot("ur5_full_k0.xml", "hand_down", 1600, 1200, None, 0.75, 150, -12, name="20261104-ur5_full_k0_close.png")
-    tiles = []
-    for k in K_ALL:
-        tiles.append(shot(f"ur5_full_k{k}.xml", "hand_down", 800, 800, None, 0.6, 90, -89.9, name=f"20261104-clock_k{k}.png"))
-    ims = [Image.open(t) for t in tiles]
-    grid = Image.new("RGB", (1600, 1600), "white")
-    for i, im in enumerate(ims):
-        grid.paste(im, ((i % 2) * 800, (i // 2) * 800))
-    grid.save(MEDIA / "20261104-clockings.png")
-    print("wrote", (MEDIA / "20261104-clockings.png").relative_to(ROOT))
 
 
 def cmd_tcp(args):
@@ -920,9 +926,8 @@ def main():
     sp.add_parser("meshes")
     sp.add_parser("scenes")
     sp.add_parser("check")
-    sp.add_parser("render")
     t = sp.add_parser("tcp")
-    t.add_argument("--k", type=int, default=0, choices=K_ALL)
+    t.add_argument("--k", type=int, default=AS_BUILT_K, choices=K_ALL)
     t.add_argument("--point", type=float, nargs=3, default=(0.0, 0.0, 0.0), metavar=("X", "Y", "Z"))
     sp.add_parser("all")
     a = ap.parse_args()
@@ -934,8 +939,6 @@ def main():
         cmd_scenes(a)
     if a.cmd in ("check", "all"):
         cmd_check(a)
-    if a.cmd == "render":
-        cmd_render(a)
     if a.cmd == "tcp":
         cmd_tcp(a)
 

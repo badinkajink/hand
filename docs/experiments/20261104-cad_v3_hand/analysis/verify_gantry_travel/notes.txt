@@ -1,0 +1,64 @@
+Gantry travel, box centres and heights of the SR2 hand CAD (hand v3, 2026-11-04): adversarial check
+
+Outcome. The travel ranges, box centres and heights under test were reproduced by two other methods, and none of
+them changes by more than 0.007 mm. The strokes are 64.80 mm on the index and middle X stages, 114.80 mm on the thumb
+X stage and 62.58 mm on every Y stage. The home-anchored boxes are centred at thumb (-56.181, -2.400), index (56.181,
+58.400) and middle (56.181, -58.400) mm in P, with the result's t = (121.4375, 110.9998, 75.9003) mm. No box centre or
+size needs a correction over 0.5 mm.
+
+Terms. A: the hand assembly frame of file "hand" (mm). P: x_P = -y_A + 121.4375, y_P = x_A + 110.9998, z_P = z_A +
+75.9003 (the result's map). Displacement: translation of a stage from its pose in the CAD (mm). Home stop: the hard stop
+at the motor end, where the firmware stalls and zeroes (kinematics._home_one_axis calls zero() after the stall).
+
+Method 1, B-rep faces (parts.json, no meshes; pj.py, yaw_centres.py).
+- The pair frames' X-screw bearing blocks have inner faces at x_A -94.9 and -15.1 (index) and -206.9 and -127.1
+  (middle), 79.8 mm apart. The thumb frame's are at -175.9 and -46.1, 129.8 mm apart. Each beam's main body is 15.0 mm
+  wide and centred on its yaw centre. The X strokes are therefore 79.8 - 15.0 = 64.8 mm and 129.8 - 15.0 = 114.8 mm.
+  The X-nut flange is flush with one beam face, so the flange and the beam touch the block together.
+- The Y home stop is the Y-nut flange against the beam's motor-end Y bearing block. The flange plane is tilted 0.926 deg
+  with the carriage, and the contact is on the block's lower edge (z_A -51.5). This gives -47.8837 (index), -44.8259
+  (middle) and +45.4943 mm (thumb).
+- Yaw centres (common perpendicular of the carriage's 10.2 mm yaw bore and the yaw link's 10.2 mm MCP bore): index
+  (-76.7320, 83.1407, -75.9003), middle (-153.6135, 80.0828, -75.9003), thumb (-126.6881, 159.6238, -75.9003) mm in A,
+  20.750 mm from the MCP axis in all three. The yaw plane is z_A = -75.9003 mm.
+
+Method 2, mesh casting (contact.py; travel_check.py; travel_corners.py; test_contact.py).
+Vertices and points every 0.2 mm along every edge were moved 0.01 mm into their solid. A line was cast from each point
+along the motion axis, against the front faces of every other solid, in both directions. On test boxes the method is
+within 0.01 mm, with a +0.006 mm bias. The stops agree with the result within 0.007 mm: index X +54.137/-10.674, middle
+X +19.019/-45.792, thumb X +73.094/-41.717 (thumb on the holes), index Y +14.703/-47.891, middle Y +17.761/-44.833,
+thumb Y +45.501/-17.093. The Y stops are unchanged with the X stage at either X stop, and the X stops are unchanged with
+the Y stage at either Y stop.
+
+Thumb gantry offset. The thumb frame's four corner holes are at y_A 140.375 and 235.875. The base plate and robot mount
+holes are at 142.875 and 238.375, and the standalone base_plate.step has the same holes, turned 180 deg about z. The
+thumb X screw is at y_A 227.875, its motor and motor-mount hole at 230.375. The standalone gantry_v3_thumb.step has the
+same 2.5 mm offset between motor and screw. As exported, the thumb X block meets the middle frame's rail-end tab after
++1.644 mm and the middle X block after -1.931 mm. With the thumb moved +2.5 mm in y_A (except its X motor, mount and
+shaft), no thumb part meets a pair part inside any stroke. The pair frames sit exactly on their holes.
+
+Limits that were checked and do not stop a stage. The nuts stay at least 10.6 mm (X) and 8.3 mm (Y) from their screw
+ends. The rail blocks stay at least 3.35 mm from their rail ends and 4.55 mm from their own frame's tabs. With the index
+Y stage at its far stop, the index carriage would reach the sensor bracket 005 at X +57.34 mm, which is 3.2 mm past the X
+home stop. With both fingers at their CAD postures and the thumb X at its far stop, the thumb DIP link (part 009) meets
+the index tip (part 091) after 10.0 mm of thumb Y travel toward the pair. This contact is between two fingers and depends
+on their postures.
+
+Heights (z_A, and z_P above the yaw plane): every value in the result agrees with the B-rep. They include flange face
+28.0 (+103.90), robot mount underside 3.0 (+78.90), base plate underside 0.0 (+75.90), frame plate underside -4.0
+(+71.90), X rail blocks -11.0 (+64.90), frame bearing blocks -22.0 (+53.90), X motors -24.0 (+51.90), the middle's X
+motor -27.5 (+48.40), beam underside -28.5 (+47.40), beam Y bearing blocks -51.5 (+24.40), beam motor end and Y motors
+-54.0 (+21.90), sensor bracket 005 -57.0 (+18.90) and carriage -88.693 to -10.871 (-12.79 to +65.03). The result omits one
+part: under each beam, between its Y bearing blocks, the 5 mm Y lead screw spans z_A -46.8 to -41.8 (z_P +29.10 to
++34.10). It is the lowest part mounted on the beam over the finger travel. The flange axis is at (5.4375, -0.0002,
+103.9003) mm in P; the adaptor's M6 holes fit a 25.000 mm radius circle centred on (-111.000, 116.000) in A.
+
+Wording. The result names the nut alone at the middle X far stop (+19.013 mm). The beam's +x face touches the frame
+block at the same displacement, because the flange is flush with it.
+
+Runs. Both mesh runs went through resguard.sh run --mem 3G. travel_check took 64 s with a peak RSS of 0.99 GB, and
+travel_corners took 82 s with 2.2 GB. A first travel_check with 2 mm buckets and 200k-point chunks grew to 1.4 GB. I
+stopped it at 18:26 with a SIGTERM, which resguard logged as signal_end rc 143, and reran it with smaller chunks.
+
+Files: pj.py, yaw_centres.py (+ .json), contact.py, test_contact.py, travel_check.py (+ .json, .log), travel_corners.py
+(+ .json), verify.json.
