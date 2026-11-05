@@ -7,8 +7,9 @@ torque, steppers) are written on corvus's clock, the clock of the fingertip boar
 OUTDIR gets events.jsonl (one line a step and a safety stop), telemetry.jsonl (one line a new station sample, with
 t_recv and t_sample = t_recv - the sample's age) and progress.json (pass and step done; --resume skips them).
 touch OUTDIR/STOP (or a STOP beside OUTDIR, for a chain) ends the run after the current step. Safety stops, each followed by the zero pose and the end:
-a station error or lost link; a servo at 60 C or more; a joint 6 deg or more from its command 6 s after the command
-(a finger held off its pose); a servo alarm. At the end the hand goes to the zero pose and the motors are disabled
+a station error or lost link; a servo at 60 C or more; a third pose that a joint could not reach (each such pose is
+backed out at once); with --boards, a fault in the boards' stream (channels, record rate, zeroed or implausible records,
+held 3 s). At the end the hand goes to the zero pose and the motors are disabled
 (steppers off, servo torque off), which also gives up the home.
 """
 import argparse
@@ -36,6 +37,9 @@ ap.add_argument("--no-disable", action="store_true",
 ap.add_argument("--max-temp", type=float, default=60.0)
 ap.add_argument("--max-err", type=float, default=6.0)
 ap.add_argument("--max-blocked", type=int, default=3, help="stop the run at this many poses a joint could not reach")
+ap.add_argument("--boards", default=None, help="the board logger's folder (board_log.py); its stream is checked too")
+ap.add_argument("--board-channels", default=None, help="the mux channels the boards must be on, e.g. 0,1,3")
+ap.add_argument("--min-board-rate", type=float, default=100.0, help="records/s below which the boards' stream fails")
 a = ap.parse_args()
 plan = json.load(open(a.plan))
 out = Path(a.out)
@@ -91,12 +95,76 @@ def poller():
         time.sleep(0.1)
 
 
+board_fault = {"msg": None}
+
+
+def board_watch():
+    """The boards' stream, from the logger's newest file: its channels, its record rate over 5 s, and the last 300
+    records (a board all zeros, or chips more than 50 % off their |B| at the watch's start, in a fifth of them).
+    A fault must hold 3 s before it stops the run, so a 2 s reconnect of the logger passes."""
+    import glob as _glob
+    import numpy as np
+    want = [int(c) for c in a.board_channels.split(",")] if a.board_channels else None
+    cur, ref, sizes, since = None, None, [], None
+    while not quit_flag.is_set():
+        msg = None
+        try:
+            logs = sorted(_glob.glob(str(Path(a.boards) / "*-mux.bin")))
+            if not logs:
+                msg = "no board log"
+            else:
+                log = logs[-1]
+                chans = json.loads(Path(log).with_suffix(".json").read_text())["channels"]
+                rec = 8 + 80 * len(chans)
+                if log != cur:
+                    cur, ref, sizes = log, None, []
+                if want is not None and chans != want:
+                    msg = f"board log has channels {chans}, not {want}"
+                size = Path(log).stat().st_size
+                now = time.time()
+                sizes = [(t, z) for t, z in sizes if now - t <= 5.0] + [(now, size)]
+                if msg is None and sizes[-1][0] - sizes[0][0] >= 4.0:
+                    rate = (sizes[-1][1] - sizes[0][1]) / rec / (sizes[-1][0] - sizes[0][0])
+                    if rate < a.min_board_rate:
+                        msg = f"board records at {rate:.0f}/s"
+                n = size // rec
+                if msg is None and n >= 300:
+                    with open(log, "rb") as f:
+                        f.seek((n - 300) * rec)
+                        d = np.frombuffer(f.read(300 * rec), dtype=[("t", "<f8"), ("r", "<f4", (20 * len(chans),))])
+                    v = d["r"].astype(np.float64).reshape(-1, len(chans), 5, 4)
+                    with np.errstate(all="ignore"):
+                        B = np.linalg.norm(np.clip(v[..., 1:], -1e6, 1e6), axis=-1)
+                    zero = (np.abs(v).sum(axis=(2, 3)) == 0).mean(axis=0)
+                    if ref is None:
+                        ref = np.median(B, axis=0)
+                    off = (np.abs(B / np.maximum(ref, 1.0) - 1) > 0.5).any(axis=2).mean(axis=0)
+                    bad = [f"ch{c} zeros {z:.0%}" for c, z in zip(chans, zero) if z > 0.2] + \
+                          [f"ch{c} off its |B| {o:.0%}" for c, o in zip(chans, off) if o > 0.2]
+                    if bad:
+                        msg = "boards: " + ", ".join(bad)
+        except Exception as e:  # noqa: BLE001
+            msg = f"board watch error: {e}"
+        if msg is None:
+            since = None
+            board_fault["msg"] = None
+        else:
+            since = since or time.time()
+            if time.time() - since >= 3.0:
+                if board_fault["msg"] is None:
+                    event("board_fault", msg=msg)
+                board_fault["msg"] = msg
+        time.sleep(1.0)
+
+
 def state():
     with lock:
         return latest["state"], latest["t"]
 
 
 def check(ctx=""):
+    if board_fault["msg"]:
+        raise Abort(f"{board_fault['msg']} {ctx}")
     s, t = state()
     if s is None:
         return
@@ -252,6 +320,8 @@ prog_path = out / "progress.json"
 done = json.loads(prog_path.read_text()) if a.resume and prog_path.exists() else {"pass": 0, "step": -1}
 th = threading.Thread(target=poller, daemon=True)
 th.start()
+if a.boards:
+    threading.Thread(target=board_watch, daemon=True).start()
 time.sleep(1.5)
 until = deadline()
 event("start", plan=a.plan, passes=a.passes, until=a.until, resume=done, n_steps=len(plan["steps"]))
