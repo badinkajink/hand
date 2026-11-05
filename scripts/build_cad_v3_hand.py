@@ -90,8 +90,9 @@ MATERIAL = {
     "nema8_stepper": "v3_stepper", "mgn7_rail_100": "v3_steel", "mgn7_rail_150": "v3_steel",
     "mgn7_carriage": "v3_steel", "shaft_coupler": "v3_alu", "lead_nut": "v3_brass",
 }
-RGBA = {"v3_plate": "0.78 0.79 0.80 1", "v3_mount": "0.30 0.32 0.36 1", "v3_adaptor": "0.62 0.64 0.68 1",
-        "v3_print": "0.20 0.22 0.25 1", "v3_sensor": "0.86 0.86 0.84 1", "v3_stepper": "0.07 0.07 0.08 1",
+# as built (owner's photos of 2026-11-04): black prints, a brown hardboard base plate, an aluminium adaptor
+RGBA = {"v3_plate": "0.62 0.46 0.31 1", "v3_mount": "0.11 0.11 0.12 1", "v3_adaptor": "0.74 0.75 0.77 1",
+        "v3_print": "0.13 0.13 0.14 1", "v3_sensor": "0.13 0.13 0.14 1", "v3_stepper": "0.07 0.07 0.08 1",
         "v3_steel": "0.70 0.72 0.75 1", "v3_alu": "0.82 0.83 0.85 1", "v3_brass": "0.80 0.62 0.28 1",
         "v3_box": "0.45 0.55 0.70 0.55", "v3_tag": "1 1 1 1"}
 SCREW_R_MM = 2.5                               # 5 mm lead screws (T5 x 1): drawn as plain cylinders
@@ -635,6 +636,9 @@ def dropin_root(F, full):
     rel_meshes(root, V2 / "meshes")
     root.find("compiler").set("meshdir", "meshes")
     root.find("compiler").set("texturedir", "meshes")
+    g = root.find("visual").find("global")
+    g.set("offwidth", "1920")
+    g.set("offheight", "1440")
     add_defaults(root, full)
     add_materials(root)
     parts = part_index()
@@ -646,6 +650,9 @@ def dropin_root(F, full):
                                            "diaginertia": "0.000247922 0.000221103 0.000468945"}))
     set_mounts(root, F)
     if full:
+        for mat in root.find("asset").findall("material"):        # the printed finger links are black on the hand
+            if mat.get("name") == "cad_link":
+                mat.set("rgba", "0.17 0.17 0.18 1")
         add_full_visuals(root, F)
         add_pads(root)
         for key in root.iter("key"):                           # the bridges' qpos follow <f>_y
@@ -731,6 +738,8 @@ def arm_root(F, k, full):
         contact.append(copy.deepcopy(c))
     for b in ("wrist_3_link", "wrist_2_link"):
         el(contact, "exclude", body1="palm_pose", body2=b)
+    for b in ("shoulder_link", "upper_arm_link"):       # the floor is the robot's mounting plane
+        el(contact, "exclude", body1="world", body2=b)
     root.append(contact)
     if hand.find("equality") is not None:
         root.append(copy.deepcopy(hand.find("equality")))
@@ -807,6 +816,54 @@ def cmd_check(args):
     print("wrote", (OUT / "check.json").relative_to(ROOT))
 
 
+MEDIA = ROOT / "docs/experiments/20261104-cad_v3_hand/media"
+
+
+def cmd_render(args):
+    """Stills of the models (MUJOCO_GL=egl): the full model on the UR5 at a pose over the mat, the hand close up (full and
+    simplified), and the four clockings seen up the tool axis from below."""
+    import mujoco
+    from PIL import Image
+    MEDIA.mkdir(parents=True, exist_ok=True)
+
+    def shot(path, key, w, h, lookat, dist, az, el_, groups=(0, 1, 2), name=None):
+        m = mujoco.MjModel.from_xml_path(str(OUT / path))
+        d = mujoco.MjData(m)
+        mujoco.mj_resetDataKeyframe(m, d, m.key(key).id)
+        mujoco.mj_forward(m, d)
+        opt = mujoco.MjvOption()
+        for g in range(6):
+            opt.geomgroup[g] = 1 if g in groups else 0
+        cam = mujoco.MjvCamera()
+        cam.lookat[:] = lookat if lookat is not None else d.body("palm_pose").xpos
+        cam.distance, cam.azimuth, cam.elevation = dist, az, el_
+        r = mujoco.Renderer(m, h, w)
+        try:
+            r.update_scene(d, cam, scene_option=opt)
+            img = r.render()
+        finally:
+            r.close()
+        out = MEDIA / (name or path.replace(".xml", f"_{key}.png"))
+        Image.fromarray(img).save(out)
+        print("wrote", out.relative_to(ROOT))
+        return out
+
+    shot("ur5_full_k0.xml", "hand_down", 1600, 1200, [0.35, -0.2, 0.25], 1.6, 140, -20, name="20261104-ur5_full_k0.png")
+    shot("scene_screwdriver_medium_full.xml", "open", 1600, 1200, None, 0.55, 135, -25, name="20261104-hand_full.png")
+    shot("scene_screwdriver_medium_full.xml", "open", 1600, 1200, None, 0.55, 135, -25, groups=(0, 1, 3),
+         name="20261104-hand_simplified_boxes.png")
+    shot("scene_screwdriver_medium.xml", "open", 1600, 1200, None, 0.55, 135, -25, name="20261104-hand_dropin.png")
+    tiles = []
+    for k in K_ALL:
+        tiles.append(shot(f"ur5_full_k{k}.xml", "hand_down", 800, 800, None, 0.6, 90, -89.9, name=f"20261104-clock_k{k}.png"))
+    ims = [Image.open(t) for t in tiles]
+    grid = Image.new("RGB", (1600, 1600), "white")
+    for i, im in enumerate(ims):
+        grid.paste(im, ((i % 2) * 800, (i // 2) * 800))
+    grid.save(MEDIA / "20261104-clockings.png")
+    print("wrote", (MEDIA / "20261104-clockings.png").relative_to(ROOT))
+
+
 def cmd_tcp(args):
     F = frames()
     T = T_E_from_P(F, args.k)
@@ -824,6 +881,7 @@ def main():
     sp.add_parser("meshes")
     sp.add_parser("scenes")
     sp.add_parser("check")
+    sp.add_parser("render")
     t = sp.add_parser("tcp")
     t.add_argument("--k", type=int, default=0, choices=K_ALL)
     t.add_argument("--point", type=float, nargs=3, default=(0.0, 0.0, 0.0), metavar=("X", "Y", "Z"))
@@ -837,6 +895,8 @@ def main():
         cmd_scenes(a)
     if a.cmd in ("check", "all"):
         cmd_check(a)
+    if a.cmd == "render":
+        cmd_render(a)
     if a.cmd == "tcp":
         cmd_tcp(a)
 

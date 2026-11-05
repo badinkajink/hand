@@ -5,7 +5,7 @@
     <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1" />
     <map znear=".01" />
     <quality shadowsize="2048" />
-    <global elevation="-15" />
+    <global elevation="-15" offwidth="1920" offheight="1440" />
   </visual>
   <default>
     <geom friction="1.8 0.15 0.01" solref="0.006 1" solimp="0.97 0.995 0.0005" />
@@ -49,7 +49,7 @@
     <material name="palm_mat" rgba="0.18 0.2 0.24 1" />
     <material name="finger_mat" rgba="0.8 0.72 0.6 1" />
     <material name="object_mat" rgba="0.6 0.6 0.6 1" />
-    <material name="cad_link" rgba="0.42 0.32 0.72 1" />
+    <material name="cad_link" rgba="0.17 0.17 0.18 1" />
     <material name="cad_servo" rgba="0.10 0.10 0.11 1" />
     <material name="cad_tip" rgba="0.72 0.55 0.32 1" />
     <mesh name="cad_carriage" file="../../20261013-cad_v1/meshes/carriage.stl" />
@@ -61,11 +61,11 @@
     <mesh name="cad_v4b_dip_link" file="../../20261030-cad_v2/meshes/v4b_dip_link.stl" />
     <mesh name="cad_v4b_cassette" file="../../20261030-cad_v2/meshes/v4b_cassette.stl" />
     <mesh name="cad_v4b_cap" file="../../20261030-cad_v2/meshes/v4b_cap.stl" />
-    <material name="v3_plate" rgba="0.78 0.79 0.80 1" specular="0.3" shininess="0.4" />
-    <material name="v3_mount" rgba="0.30 0.32 0.36 1" specular="0.3" shininess="0.4" />
-    <material name="v3_adaptor" rgba="0.62 0.64 0.68 1" specular="0.3" shininess="0.4" />
-    <material name="v3_print" rgba="0.20 0.22 0.25 1" specular="0.3" shininess="0.4" />
-    <material name="v3_sensor" rgba="0.86 0.86 0.84 1" specular="0.3" shininess="0.4" />
+    <material name="v3_plate" rgba="0.62 0.46 0.31 1" specular="0.3" shininess="0.4" />
+    <material name="v3_mount" rgba="0.11 0.11 0.12 1" specular="0.3" shininess="0.4" />
+    <material name="v3_adaptor" rgba="0.74 0.75 0.77 1" specular="0.3" shininess="0.4" />
+    <material name="v3_print" rgba="0.13 0.13 0.14 1" specular="0.3" shininess="0.4" />
+    <material name="v3_sensor" rgba="0.13 0.13 0.14 1" specular="0.3" shininess="0.4" />
     <material name="v3_stepper" rgba="0.07 0.07 0.08 1" specular="0.3" shininess="0.4" />
     <material name="v3_steel" rgba="0.70 0.72 0.75 1" specular="0.3" shininess="0.4" />
     <material name="v3_alu" rgba="0.82 0.83 0.85 1" specular="0.3" shininess="0.4" />
@@ -100,22 +100,6 @@
     <mesh name="v3_palm_sensor" file="v3_palm_sensor.stl" />
     <mesh name="v3_palm_steel" file="v3_palm_steel.stl" />
     <mesh name="v3_palm_stepper" file="v3_palm_stepper.stl" />
-    <material name="d435_Black_Acrylic" rgba="0.07 0.07 0.07 1" />
-    <material name="d435_Cameras_Gray" rgba="0.30 0.30 0.30 1" />
-    <material name="d435_IR_Emitter_Lens" rgba="0.29 0.67 0.33 1" />
-    <material name="d435_IR_Lens" rgba="0.036 0.036 0.036 1" />
-    <material name="d435_IR_Rim" rgba="0.80 0.81 0.80 1" />
-    <material name="d435_Metal_Casing" rgba="0.85 0.85 0.86 1" />
-    <material name="d435_RGB_Pupil" rgba="0.09 0.003 0.009 1" />
-    <mesh name="d435i_0" file="d435i/d435i_0.obj" />
-    <mesh name="d435i_1" file="d435i/d435i_1.obj" />
-    <mesh name="d435i_2" file="d435i/d435i_2.obj" />
-    <mesh name="d435i_3" file="d435i/d435i_3.obj" />
-    <mesh name="d435i_4" file="d435i/d435i_4.obj" />
-    <mesh name="d435i_5" file="d435i/d435i_5.obj" />
-    <mesh name="d435i_6" file="d435i/d435i_6.obj" />
-    <mesh name="d435i_7" file="d435i/d435i_7.obj" />
-    <mesh name="d435i_8" file="d435i/d435i_8.obj" />
     <texture name="v3_tag" type="2d" file="v3_tag36h11_id6.png" />
     <material name="v3_tag" texture="v3_tag" rgba="1 1 1 1" />
     <mesh name="v3_tag" file="v3_tag.obj" inertia="shell" />
@@ -149,7 +133,6 @@
       <geom name="hand_robot_mount" class="v3_box" pos="0 -2e-07 0.0914003" size="0.124938 0.1255 0.0125" />
       <geom name="hand_camera_arm" class="v3_box" pos="-0.0818125 0.1168 0.0709003" size="0.09225 0.02 0.005" />
       <geom name="hand_tag_plate" class="v3_box" pos="0.0097875 0.1336 0.0564003" size="0.00835 0.0225 0.0375" />
-      <geom name="hand_d435" class="v3_box" pos="-0.133437 0.107 0.0426003" size="0.012525 0.045 0.0125" />
       <site name="workspace_thumb" type="box" pos="-0.0561812 -0.0024004 0.0238" size="0.03 0.055 0.0005" rgba="0.85 0.30 0.30 0.14" />
       <site name="workspace_index" type="box" pos="0.0561812 0.0583997 0.0238" size="0.03 0.03 0.0005" rgba="0.30 0.55 0.85 0.14" />
       <site name="workspace_middle" type="box" pos="0.0561813 -0.0583998 0.0238" size="0.03 0.03 0.0005" rgba="0.30 0.75 0.45 0.14" />
@@ -4656,8 +4639,6 @@
         <geom name="v3_mount_middle_brass" class="v3_visual" mesh="v3_mount_middle_brass" material="v3_brass" />
         <geom name="v3_mount_middle_steel" class="v3_visual" mesh="v3_mount_middle_steel" material="v3_steel" />
       </body>
-      <camera name="d435_depth" pos="-0.125113 0.1245 0.0426003" quat="0.5 0.5 -0.5 -0.5" fovy="58" />
-      <camera name="d435_color" pos="-0.125113 0.1395 0.0426003" quat="0.5 0.5 -0.5 -0.5" fovy="42" />
       <body name="thumb_bridge">
         <joint name="thumb_bridge" class="v3_stage" axis="0 1 0" range="-0.055 0.055" />
         <inertial pos="0 0 0.04" mass="0.2" diaginertia="2e-4 2e-4 2e-4" />
@@ -4699,17 +4680,6 @@
       <geom name="v3_screw_050" class="v3_visual" type="cylinder" fromto="-0.108938 -0.0755002 0.0619003 -0.108938 0.0749166 0.0619003" size="0.0025" material="v3_steel" />
       <geom name="v3_screw_079" class="v3_visual" type="cylinder" fromto="0.108938 0.006083 0.0619003 0.108938 0.1065 0.0619003" size="0.0025" material="v3_steel" />
       <geom name="v3_screw_110" class="v3_visual" type="cylinder" fromto="0.108938 -0.105917 0.0619003 0.108938 -0.0055002 0.0619003" size="0.0025" material="v3_steel" />
-      <body name="d435" pos="-0.132614 0.123121 0.0426003" quat="0.000424943135 -0.000424943135 0.707106653 -0.707106653">
-        <geom name="d435_vis0" class="v3_visual" mesh="d435i_0" material="d435_IR_Lens" />
-        <geom name="d435_vis1" class="v3_visual" mesh="d435i_1" material="d435_IR_Emitter_Lens" />
-        <geom name="d435_vis2" class="v3_visual" mesh="d435i_2" material="d435_IR_Rim" />
-        <geom name="d435_vis3" class="v3_visual" mesh="d435i_3" material="d435_IR_Lens" />
-        <geom name="d435_vis4" class="v3_visual" mesh="d435i_4" material="d435_Cameras_Gray" />
-        <geom name="d435_vis5" class="v3_visual" mesh="d435i_5" material="d435_Black_Acrylic" />
-        <geom name="d435_vis6" class="v3_visual" mesh="d435i_6" material="d435_Black_Acrylic" />
-        <geom name="d435_vis7" class="v3_visual" mesh="d435i_7" material="d435_RGB_Pupil" />
-        <geom name="d435_vis8" class="v3_visual" mesh="d435i_8" material="d435_Metal_Casing" />
-      </body>
       <geom name="v3_tag" class="v3_visual" mesh="v3_tag" material="v3_tag" pos="0.0159375 0.1336 0.0439003" quat="0.707106781 -4.32978028e-17 -0.707106781 -4.32978028e-17" />
     </body>
   </worldbody>
