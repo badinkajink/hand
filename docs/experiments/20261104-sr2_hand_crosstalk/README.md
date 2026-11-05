@@ -142,7 +142,27 @@ Ready since 22:4x on 11-04, and not run on the hand:
   On 11-04 the station's fake-hardware mode (`manta_hand.web --fake`) ran the plan's first and last layout steps:
   22 steps through layout g12 and back to home. A board fault, raised by asking for channel 1, stopped a run in
   1.6 s. The hand still reached zero, and the motors were disabled.
-- **The command,** once the owner has re-routed and checked the index's cable:
+- **The workstation's replay** (23:0x on 11-04). It walked every move and safety return in 3 deg waypoints and put
+  the closest pair's six joints at the corners of each waypoint's box. No move came under 8.5 mm, which is a bound
+  with all six at their extremes at once. Per layout, as line minimum, box minimum, and the safety returns' box
+  minimum:
+
+  | Layout | Line min | Box min | Safety-return box min |
+  |---|---|---|---|
+  | g12 | 12.1 mm | 10.6 mm | 11.3 mm |
+  | sv1_w6689 | 12.0 mm | 10.3 mm | 11.6 mm |
+  | rv04_mid | 12.1 mm | 8.5 mm (thumb-index, step 299) | 10.8 mm |
+  | sv1_w0099 | 11.8 mm | 9.8 mm | 11.3 mm |
+  | sv1_u0308 | 12.0 mm | 8.6 mm (thumb-index, step 610) | 11.5 mm |
+
+  On three layouts the thumb comes closest to the index, whose cable is not in the model. The owner's eye check of
+  1 cm against 11.6 mm was made at the home layout. The cad_v3 hand-off provisionally finds the CAD's travel boxes
+  about 6 mm off the driver's nominal mounts.
+- **An attended pass comes first.** `plan/20261105-plan_layouts_attended.json` holds 35 steps, about 13 min. It moves
+  through each layout and holds that layout's box-closest and line-closest poses (steps 21, 39, 138, 189, 299, 428,
+  496, 595 and 610) for 20 s each. Each pose is reached from straight along its checked way to zero. The owner looks
+  at the gaps, and at where the index's cable runs, before the unattended plan.
+- **The command,** once the owner has re-routed and checked the index's cable and the attended pass looks right:
 
       /usr/bin/python3 docs/experiments/20261104-sr2_hand_crosstalk/lab/run_plan.py \
           docs/experiments/20261104-sr2_hand_crosstalk/plan/20261105-plan_layouts_s1.json logs/<date>-sr2_crosstalk/run_layouts \
