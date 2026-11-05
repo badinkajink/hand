@@ -65,7 +65,8 @@ def boards():
     mag = np.linalg.norm(B, axis=3)                                       # (n, 3, 5)
     before = t < T_INDEX_LOST
     usual = np.median(mag[before & np.isfinite(mag).all((1, 2))], axis=0)  # (3, 5)
-    near = (np.abs(mag - usual) <= 0.3 * usual).all(2) & np.isfinite(r).all((2, 3))
+    near = ((np.abs(mag - usual) <= 0.3 * usual).all(2) & np.isfinite(r).all((2, 3))
+            & (np.abs(np.nan_to_num(B, nan=0.0, posinf=1e30, neginf=1e30)) <= 2e4).all((2, 3)))   # misframed records (lab, 11-05)
     ok = near.copy()
     after = ~before
     idx_zero = (r[:, BOARD["index"]] == 0).all((1, 2))
