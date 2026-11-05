@@ -12,8 +12,10 @@ neighbours' chips as a function of those angles.
 - The hand hangs on the UR5's flange. **Never turn on freedrive or teach mode while the SR2 is on the UR5** (owner,
   11-04): the arm drops under the hand's weight. The sweep does not move the arm. `lab/ur5_pose_log.py` logs its pose
   once a second, read-only.
-- Fingertips: v3 ID 1 on the thumb (mux channel 3), v3 ID 3 on the index (channel 0), v3 ID 2 on the middle finger
-  (channel 1). The mux (0x71) sits on the SparkFun Thing Plus ESP32-C6 (40:4C:CA:4C:49:C4), plugged into corvus.
+- Fingertips: v3 ID 1 on the thumb (mux channel 3), v3 ID 3 on the index (channel 1), v3 ID 2 on the middle finger
+  (channel 0). The owner confirmed channel 1 at 18:4x on 11-04, and each channel's rest field matches its tip's UR5
+  sessions: 86, 114 and 57 uT rms against 342 uT or more for the other tips. The mux (0x71) sits on the SparkFun Thing
+  Plus ESP32-C6 (40:4C:CA:4C:49:C4), plugged into corvus. The index and middle boards were unplugged until 18:53.
 - Steppers and servos: the M8P and the CB1 on the hand. From corvus the CB1 answers at 10.99.99.2 once corvus has a
   live second address: `nmcli device modify enp3s0 +ipv4.addresses 10.99.99.77/24`. That command changes no profile.
   Corvus's key `~/.ssh/id_wxie` is in irlab's authorized keys since 18:2x on 11-04.
