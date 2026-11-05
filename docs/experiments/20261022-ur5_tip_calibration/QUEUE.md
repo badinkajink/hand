@@ -1924,7 +1924,17 @@ push that answers it arrives.
        the simulator (`$PY $P --plan <file> --sim --name sim-<name>`) and `dry-check --real` from the arm's joints,
        with the old and the new code, and reports any difference in NOTES.md and its commit message. Nothing moves the
        robot.
-    3. The branch merges into main after the owner's go.
+    3. The branch merges into main after the owner's go. Owner, 13:5x on 11-05: "yea we can merge after the ur5 compotuer
+       finishes running the servo calibration". The workstation merges when the lab reports that run done and its
+       step 2 check passed.
+  - Part C: closed-form IK for the plan builders. Owner, 13:5x on 11-05: "closed form IK sounds good. make sure that it
+    can handle parameterization, in case dimensions change down the line, or if we ever add the proximal phalange
+    extender". The tip and ATI builders take their joint targets from the simulator's IK, which picks another
+    solution when a pose changes in its last bits, so two builds of one plan differ. The workstation builds the branch
+    `ur5-closed-form-ik` on `ur5-shared-math`: one UR5 IK in closed form with a fixed choice among its eight solutions,
+    and the tool from flange to contact point given as data (the HEX-E, the mount, the tip, or the SR2 hand's palm and a
+    finger with its link lengths, an added proximal length among them). It names the branch's commit here, and the lab
+    checks it as in part B.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
