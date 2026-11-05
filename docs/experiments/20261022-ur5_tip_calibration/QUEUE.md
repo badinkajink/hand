@@ -1891,6 +1891,30 @@ push that answers it arrives.
     1. The workstation prepares the change on the branch `ur5-shared-math`. Each copy is replaced by its shared
        function and checked against the old code on 10,000 inputs to 1e-12. Every plan in `plan/` is regenerated
        with the old and the new code and compared. The workstation names the branch's commit here when it is ready.
+       - 13:2x on 11-05, workstation: ready at `92307424d` on `ur5-shared-math` (pushed; six commits on 1b369fd31). Files:
+         `ur5_tip_calibration.py` and `_sim.py`, `ur5_inverted_rig.py`, `indenter_array.py`, `tall_indenter.py`,
+         `ur5_tip_calibration_holder_paths.py`, `ati_calibration_plan.py`, `ur5_probe_plan.py`, `ur5_tip_calibration_plan.py`,
+         `_r24_pass3.py`, `_tall_pass.py`, `_trimmed_cap_reach.py`, `ur5_tip_calibration_check.py`, and the modules
+         `geometry/distances.py` and `rotations.py` (new: `closest_on_triangles`, `barycentric_inside`, `tf_interp`). The
+         program's C.* names keep their signatures; it imports `sr2hand.geometry` through `scripts/_paths.py` and runs by its
+         path under Python 3.10, numpy 1.26.4 and scipy 1.12.0. Replaced: skew, exp_so3, Tm, inv, apply, ur_to_T, rot,
+         rot_from_to (its exact half turn kept), perturb, turn_about, the facet normals and line distance, fit_gravity's vee
+         and heading, the placement check's yaw and tilt, the simulator's wall test, the rig's frames, projections, lattices,
+         SDFs, slerp, inside test and wraps, the holder's rot_z, rot_from_to and slerp_T, and the plans' lattice, rot_to,
+         joint wraps and headings. Kept: log_so3 and the functions that call it (T_to_ur, pose_error, mean_pose). Near a half
+         turn its formula stands off scipy's by about 1e-15 / (pi - angle)^2 rad (3e-4 rad at 2e-6 from a half turn), and
+         every target goes through it, so the switch waits for the owner and a simulator run. Also kept: fit_onset's
+         np.convolve, fit_gravity's signed polar factor, the rod fit's basis, lm, the simulator's DH chain, tangent bases and
+         seg_pose, the rig's tangent_basis (rounded normals), seat-beam section, winding number and DH kinematics, the ATI rim
+         and T_AF_press (reasons in the runbook's section "The UR5 programs on the shared math"). Checks: old against new on
+         10,000 inputs, 95 of 95 for the program and 54 of 54 for the scripts, in both numpy and scipy versions. Plans made
+         again with both: the 24 probe plans of 11-03 and 11-04 are byte-identical; the rig's seat 1 replays (2 mm sphere,
+         rod), `dry-check --real --chain` on the lab's two seat 1 plans and the 10-29 side map's path check are identical.
+         The tip and ATI plan builders differ through SIM.ik, which returns other joint solutions when a pose changes in its
+         last bits; the old builders differ as much with their placement moved by 1e-12 mm. The simulator starts its clock
+         at time.time(), so two runs of one code differ; with the start fixed they repeat bitwise. So fixed, old and new
+         give the same samples and events on a probe plan (50 actions) and a tip plan (38), every action ok, forces within
+         2.1e-6 N and registrations within 8.7e-7 mm. pytest: base and branch alike.
     2. The lab fetches the branch into a worktree (`git fetch origin ur5-shared-math`). It runs each current plan in
        the simulator (`$PY $P --plan <file> --sim --name sim-<name>`) and `dry-check --real` from the arm's joints,
        with the old and the new code, and reports any difference in NOTES.md and its commit message. Nothing moves the
