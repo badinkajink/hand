@@ -24,7 +24,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path("/home/will/workspace/hand")
-sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
+sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_tip_calibration as C  # noqa: E402
 
 ap = argparse.ArgumentParser()

@@ -7,8 +7,8 @@
 #   scripts/cluster/deltaai_pull.sh 'H06_04_s*'        # one design's seeds
 #
 # Then, before believing any of it (CLAUDE.md lesson 2):
-#   uv run python scripts/policy_filmstrip.py --run results/rl/<run> --width 960 --height 720
-#   uv run python scripts/policy_eval_suite.py --run results/rl/<run>
+#   uv run python scripts/rl/policy_filmstrip.py --run results/rl/<run> --width 960 --height 720
+#   uv run python scripts/rl/policy_eval_suite.py --run results/rl/<run>
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -27,4 +27,4 @@ rsync -avz --progress \
 
 echo
 echo "Pulled. Seeds of one design, side by side:"
-echo "  ls -d results/rl/<design>_s* | xargs -I{} uv run python scripts/policy_eval_suite.py --run {}"
+echo "  ls -d results/rl/<design>_s* | xargs -I{} uv run python scripts/rl/policy_eval_suite.py --run {}"

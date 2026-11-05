@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
+sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_tip_calibration as U  # noqa: E402
 
 BOARD = "/dev/serial/by-id/usb-Adafruit_QT_Py_ESP32-S3__4MB_Flash_2MB_PSRAM__b4:3a:45:b0:9c:d0-if00"

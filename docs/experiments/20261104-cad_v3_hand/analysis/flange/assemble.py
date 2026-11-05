@@ -76,7 +76,7 @@ def main():
         dict(source="ur_description ur5.urdf (rh56_controller/magpie_force_control/src/ur_description; "
                     "ros-industrial universal_robot 6507bb67)",
              finding="tool0 = flange (rpy 0,-pi/2,-pi/2) composed with flange-tool0 (rpy pi/2,0,pi/2) = wrist_3_link "
-                     "exactly (rotation = identity); scripts/ur5_cb3_cell.py check: URDF tool0 against the CB3 DH model "
+                     "exactly (rotation = identity); scripts/ur5/ur5_cb3_cell.py check: URDF tool0 against the CB3 DH model "
                      "(d6 82.3 mm) 0.0 mm and 0.0 deg at 5 random joint sets, so tool0 is the controller's flange frame "
                      "with a zero TCP.",
              what="measured (numerically, this session)"),

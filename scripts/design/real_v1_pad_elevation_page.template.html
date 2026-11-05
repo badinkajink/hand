@@ -1,0 +1,163 @@
+<title>Pad contact elevation and tool retention across eight deployed hands</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:19ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
+  max-width:78ch}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px;margin:24px 0}
+.col > .tw,.col > figure,.col > .chart{width:min(1020px,calc(100vw - 40px));max-width:none}
+.grid{stroke:var(--rule2)}
+.tick{font-size:16.2px;fill:var(--ink3)}
+.axlab{font-size:16.5px;fill:var(--ink3)}
+.val{font-size:16.5px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:17px;font-weight:500}
+.mark{font-size:16.2px;fill:var(--ink3)}
+.note{font-size:16.2px;fill:var(--ink3)}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+.retract{border:2px solid var(--bad);border-radius:12px;padding:22px 26px;margin:30px 0 0;
+  background:color-mix(in oklab,var(--bad) 7%,var(--card))}
+.retract .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--bad);margin-bottom:11px}
+.retract p:last-child{margin-bottom:0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">SR&#178; Hand &#183; real_v1 &#183; 6 September 2026 &#183; retracted the
+    same day</div>
+  <h1>Pad contact elevation and tool retention across eight deployed hands</h1>
+  <p class="lede">Retracted on 2026-09-06. The claimed rise from 18 to 30 full chains of 48 used a pad-target
+  angle that counted a screwdriver standing on its handle as upright. On the signed cosine {{HANDLE_DOWN}} of the
+  {{TOTAL_STANDS}} table stands were handle down. The closure measurement survives. On six of the eight deployed
+  hands all three pads touch the shaft below its equator, and the vertical pad force equals the tool&#8217;s
+  0.240 N weight. On D1 the pads press the tool down with 3.463 N.</p>
+  <div class="byline">Replaced by the <a href="../20260906-control_diagnosis/20260906-control_diagnosis.html">control
+  diagnosis</a> of the same date</div>
+
+  <div class="retract">
+    <span class="tag">Retraction</span>
+    <p>When <code>tip_len</code> is 0, <code>probe_real_v1_chain._av()</code> folds the tool&#8217;s axis to point up.
+    <code>real_v1_chain_hands._cell</code> passes <code>tip_len=0.0</code> for every table-stand cell. For these cells
+    <code>tilt_deg</code> is <code>arccos|cos|</code>, and a screwdriver standing on its <em>handle</em> reads as a
+    0.00&#176; stand. Every stand count on the original page came from that mode. Re-scored on the signed cosine,
+    <strong>{{HANDLE_DOWN}} of {{TOTAL_STANDS}}</strong> of those stands were handle down, 180&#176; from the task.
+    This voids the elevation sweep, the grip-loop sweep and the straddle&#215;depth grid. The air-mode results were
+    signed and stand: 0 stands in 96.</p>
+    <p>Two causes produce the drops. The pivot height <code>axis_k</code> decides which end of the tool goes down. The
+    grasp fitter leaves the fingers no extension to turn with (control-diagnosis page).</p>
+  </div>
+</header>
+
+<section id="terms" class="col">
+  <h2>Terms and metrics</h2>
+  <dl class="terms">
+    <dt><b>z_rel</b></dt><dd>Height of a pad contact above the shaft&#8217;s own axis at closure, in shaft radii;
+      negative is below the equator. The table lists the mean of the three pads.</dd>
+    <dt><b>Span</b></dt><dd>Angle around the shaft covered by the three contacts, in degrees.</dd>
+    <dt><b>F<sub>z,pad</sub></b></dt><dd>Vertical component of the summed pad contact force at closure, in N;
+      positive holds the tool up.</dd>
+    <dt><b>&Delta;z at close</b></dt><dd>Vertical displacement of the tool while the grasp closes, in mm.</dd>
+    <dt><b>Carry (chain), bench retention</b></dt><dd>Chain runs, of 6, that keep the tool through the carry; bench trials on the
+      CB1 that kept the tool through a completed reorientation.</dd>
+    <dt><b>Signed cosine</b></dt><dd>Cosine of the angle between the tool&#8217;s own +z axis and world +z: +1 is tip down, &minus;1 is
+      handle down.</dd>
+  </dl>
+</section>
+
+<section class="col">
+  <h2>Pad contact height at closure</h2>
+  <p class="sub">scripts/design/real_v1_grasp_closure.py &#183; static contact measurement with the palm stationary</p>
+
+  {{CLOSURE_FIG}}
+  {{CLOSURE_TBL}}
+
+  <p>On six of the eight hands F<sub>z,pad</sub> is +0.241 N, the screwdriver&#8217;s weight to three figures. On
+  <code>sv1_w6689_b060</code> it is &minus;3.463 N. The pads press the tool down with fourteen times its weight, and
+  the table under the tool keeps it in place. <code>sv1_w0099_b100</code> does the same at a tenth of the magnitude.
+  <code>fit_real_v1_pose.tip_targets</code> documents the wedge-sign rule that this measurement tests. The original
+  page&#8217;s inference that pads below the equator unblock the chain is the retracted part.</p>
+</section>
+
+<section class="col">
+  <h2>Signed chain outcomes of the same day</h2>
+  <p>The air-mode runs of the same day include a countersink, hence a nonzero <code>tip_len</code> and a signed
+  score: 1 complete chain in 352 rollouts. A per-hand sweep of clip 0.40 to 1.15 against <code>axis_k</code> 0.15,
+  0.25 and 0.35 completed 0 of 432. In 60 of them the tool was held at <code>reoriented</code> on two or more pads at or
+  above its weight. The best of these reached cos +0.83 and 0.41 N. The reference <code>rv05_manual_stored</code>
+  (169 of 169 on 2026-09-03) reached +0.994 and 10.47 N.</p>
+</section>
+
+<section class="col">
+  <h2>Future work</h2>
+  <p>Continued on the <a href="../20260906-control_diagnosis/20260906-control_diagnosis.html">control-diagnosis
+  page</a>.</p>
+</section>
+
+<footer>
+  Local: <code>docs/experiments/20260906-pad_elevation/20260906-pad_elevation.html</code><br>
+  Built by <code>scripts/design/real_v1_pad_elevation_page.py</code>. Closure data:
+  <code>docs/experiments/20260906-griploop/grasp_closure.json</code>.
+</footer>
+</div>

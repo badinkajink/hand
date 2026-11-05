@@ -13,11 +13,11 @@ results/
 relevant_papers/
 
 # platformio lib, drivers, vscode
-src/morphohand/driver/hand/.pio
-src/morphohand/driver/hand/.vscode
+src/sr2hand/driver/hand/.pio
+src/sr2hand/driver/hand/.vscode
 
 # manta (STM32H723 Makefile build output)
-src/morphohand/driver/manta/firmware/build/
+src/sr2hand/driver/manta/firmware/build/
 .DS_Store
 
 # MuJoCo runtime dumps

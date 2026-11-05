@@ -19,6 +19,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 
 pytest.importorskip("real_v1_tag_tracker", reason="camera stack absent")
 from real_v1_tracker_service import probe_station_token  # noqa: E402

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inverse kinematics and morphology–posture optimization of the SR² Hand in Drake</title>
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --s3:#5E8F5A; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --s3:#8AC286; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px;margin:0}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.val,.note,pre{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+ol.stages li{margin:0 0 10px}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure video,figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);box-shadow:var(--shadow)}
+figure video{max-width:640px;margin:10px 0 0;height:auto}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);max-width:82ch}
+.col > .tw,.col > figure,.col > .duo{width:min(1020px,calc(100vw - 40px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);
+  text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+td.cell{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;white-space:nowrap}
+td.c4{background:color-mix(in oklab,var(--good) 28%,var(--card));color:var(--ink)}
+td.c3{background:color-mix(in oklab,var(--good) 16%,var(--card))}
+td.c2{background:color-mix(in oklab,var(--s1) 16%,var(--card))}
+td.c1{background:color-mix(in oklab,var(--bad) 12%,var(--card))}
+td.c0{background:color-mix(in oklab,var(--bad) 22%,var(--card));color:var(--ink2)}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+<style>
+a{color:var(--s2)} pre{overflow-x:auto;padding:16px;background:var(--sunk);border-radius:8px;font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:24px 0}
+.card{padding:20px;border:1px solid var(--rule);border-radius:10px;background:var(--card)}
+.card strong{display:block;font:600 24px Archivo,Arial,sans-serif;color:var(--good)}
+.note{font-size:13px;color:var(--ink2)} .controls label{display:grid;grid-template-columns:90px 1fr 65px;align-items:center;gap:8px;font-size:14px}
+.controls input{width:100%;accent-color:var(--s2)} .controls select{padding:8px;background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:5px;margin-bottom:12px}
+svg{width:100%;height:auto;background:var(--card);border-radius:10px} details{margin:20px 0} summary{cursor:pointer;font-weight:600}
+</style></head>
+<body><main class="wrap">
+<header><div class="eyebrow">SR² Hand · planning study · 1 October 2026</div>
+<h1>Inverse kinematics and morphology&#8211;posture optimization of the SR² Hand in Drake</h1>
+<p class="lede">A Drake model built from the real_v1 MJCF matches MuJoCo&#8217;s fingertip poses and Jacobians to {{FK_ERROR}} m over {{SAMPLES}} configurations, and solves {{IK_COUNT}} of {{IK_COUNT}} inverse-kinematics problems (three mount layouts, frozen and with locked gantries, and one joint morphology&#8211;posture solve) within the joint limits, with at least {{MIN_CLEARANCE}} mm between enabled collision pairs, in about 1 ms each. A raw MJCF import differs in actuator limits, derivative gains and contact, so an adapter rebuilds the actuators; unlocking a gantry during a live simulation fails in Drake 1.57. Drake fits as a planning component beside the MuJoCo evaluation pipeline.</p>
+<p class="byline">Tested locally: Drake {{DRAKE}}, MuJoCo {{MUJOCO}}, Python {{PYTHON}} · fixed palm · CPU · no hardware commands</p></header>
+<section id="terms"><h2>Terms and metrics</h2>
+<dl class="terms">
+<dt><b>Gantry offsets, morphology</b></dt><dd>The six XY positions of the three finger mounts relative to their nominal origins, in mm; the only hardware morphology variables.</dd>
+<dt><b>Frozen and locked model</b></dt><dd>The nine finger joints with the mounts baked into the body transforms; the fifteen-coordinate model with the six gantry joints locked at a design.</dd>
+<dt><b>IK problem</b></dt><dd>Joint angles that place the three fingertip centres in a &#177;1 &#956;m box around world targets, within the source joint limits, with 1 mm requested clearance between enabled collision pairs.</dd>
+<dt><b>Tip error, clearance</b></dt><dd>Largest fingertip distance from its target, in &#956;m; smallest distance between enabled collision pairs, in mm.</dd>
+<dt><b>Discrepancy</b></dt><dd>Largest absolute difference between Drake and MuJoCo in a fingertip coordinate, rotation entry, Jacobian entry or mass-matrix entry.</dd>
+<dt><b>SNOPT, SAP</b></dt><dd>The nonlinear solver used for IK; Drake&#8217;s contact solver, whose assertion stops the live unlock.</dd>
+</dl></section>
+<section><h2>Agreement with MuJoCo and inverse kinematics</h2>
+<div class="cards"><div class="card"><strong>{{SAMPLES}} configurations</strong>MuJoCo and Drake pose and Jacobian comparison</div><div class="card"><strong>{{IK_COUNT}} / {{IK_COUNT}} IK solves</strong>Joint limits and 1 mm minimum clearance</div><div class="card"><strong>{{FK_ERROR}} m</strong>Largest fingertip coordinate discrepancy</div></div>
+<p>Three fixed layouts were solved as a nine-coordinate frozen model and as a fifteen-coordinate model with six locked gantry coordinates. A seventh solve chose the mounts and the finger angles together, and freezing its mounts reproduced its fingertip targets. The targets are reachable and near the start, with warm starts, so these solves test the integration of the model; manipulation and a global morphology optimum are untested.</p>
+{{CHECK_TABLE}}
+<p class="note">The mass-matrix comparison covers the 15 physical coordinates, including reflected actuator inertia; the three zero-travel length shims of the generator add no hardware degree of freedom.</p>
+</section>
+<section><h2>Planning architecture</h2>
+<p>The measured geometry and the existing morphology records stay the source of truth, and Drake joins the MuJoCo evaluation pipeline as a planning and design-optimization component. The prototype reads the existing MJCF and resolves actuator defaults with MuJoCo, without duplicating the CAD dimensions.</p>
+<div class="tw"><table><thead><tr><th>Use</th><th>Representation</th><th>Behavior</th></tr></thead><tbody>
+<tr><td>Evaluate a chosen design</td><td>Frozen model: 9 positions</td><td>Bake the six mount offsets into body transforms and rebuild for each design; the first production target.</td></tr>
+<tr><td>Many fixed-design IK problems</td><td>One 15-position plant; a context per candidate</td><td>Set and lock the six prismatic coordinates, then build IK with that context; the tested IK keeps all six exactly.</td></tr>
+<tr><td>Joint morphology and posture search</td><td>15-position model, gantries free</td><td>The six gantry positions become decision variables, with their bounds and fingertip Jacobians.</td></tr>
+<tr><td>Moving gantries during manipulation</td><td>15-position dynamics with trajectory commands</td><td>Needs motor and rail identification, collision geometry and transition handling; live unlocking fails in the tested build.</td></tr>
+</tbody></table></div>
+<p>For a trajectory or several task poses, all knots share one six-coordinate mount vector, and the nine finger angles are optimized at each knot. Otherwise the optimizer can change the hand during a task meant for one morphology. The problem minimizes the task cost of the fingertip positions at each knot plus motion and design costs. Its constraints are the workspace bounds, the joint ranges, collision clearance and the task&#8217;s contact conditions. Generic mathematical programs do not inherit the IK constructor&#8217;s locked-coordinate constraints.</p>
+</section>
+<section><h2>Reconfiguration in the palm plane</h2>
+<p>The rectangles below are the MJCF travel bounds of the three gantries. Slider values are offsets from each mount&#8217;s nominal origin; the plot uses absolute palm coordinates in millimetres.</p>
+<div class="duo"><div><svg id="mount-plot" viewBox="0 0 520 500" role="img" aria-label="Top view of three gantry workspaces and configurable mount positions"></svg></div><div class="controls"><label for="design">Example</label><select id="design"></select><div id="sliders"></div><p class="note">The plot shows the workspace only: moving a slider reruns neither IK nor collision checks, and the rails and carriages have no collision geometry.</p></div></div>
+{{MORPH_TABLE}}
+</section>
+<section><h2>Planning results</h2>
+{{IK_TABLE}}
+<p>The smallest clearance is {{MIN_CLEARANCE}} mm, and the tip errors slightly above 1 &#956;m are solver tolerance. The compact and asymmetric layouts are synthetic study designs; the deployed D1&#8211;D8 hands were not solved.</p>
+<p class="note">Solver: {{SOLVERS}}. Solve times are single measurements of small instances, excluding model construction and problem setup. Configurations and targets are in the study data.</p>
+</section>
+<section><h2>Differences of a raw MJCF import</h2>
+{{IMPORT_TABLE}}
+<p>All three source files parse. The scenes have more coordinates than the hand&#8217;s 15 because of six optional palm-pose coordinates, a free object and three length shims.</p>
+<div class="tw"><table><thead><tr><th>Issue</th><th>Observed behavior</th><th>Prototype treatment</th></tr></thead><tbody>
+<tr><td>Position control range and effort</td><td>Imported thumb-yaw effort limit {{RAW_YAW}} in place of 10 N·m; thumb-X limit {{RAW_X}} in place of 10 N.</td><td>Recreate native actuators from the compiled gains and force limits; bound position targets separately.</td></tr>
+<tr><td>Derivative gain</td><td>Imported finger derivative gain {{RAW_KD}} in place of 0.5: the parser reads kd and the MJCF uses kv.</td><td>Read MuJoCo&#8217;s resolved bias parameters and set native PD gains.</td></tr>
+<tr><td>Contact</td><td>solref and solimp do not transfer; torsional and rolling friction are unsupported.</td><td>Point contact with sliding friction only.</td></tr>
+<tr><td>Keyframes and display</td><td>Keyframes, sites, textures and display settings are skipped.</td><td>Set named joints at initialization; keep body transforms, primitives, inertials, colours and exclusions.</td></tr>
+<tr><td>Gantry locks in live simulation</td><td>{{UNLOCK_STATUS}}</td><td>Fixed-design planning and separately initialized locked and unlocked rollouts work; live lock switching is unresolved.</td></tr>
+</tbody></table></div>
+<p>The <a href="https://raw.githubusercontent.com/RobotLocomotion/drake/v1.57.0/multibody/parsing/detail_mujoco_parser.cc">Drake 1.57 parser source</a> explains the actuator mismatch, so the adapter replaces the imported actuators with native ones, and the adapted model passes strict parsing. Drake documents its <a href="https://drake.mit.edu/doxygen_cxx/group__multibody__parsing.html">MJCF limitations</a> and <a href="https://drake.mit.edu/doxygen_cxx/classdrake_1_1multibody_1_1_inverse_kinematics.html">context-dependent joint locks for IK</a>.</p>
+<details><summary>Raw parser warnings and live-unlock reproduction</summary>{{WARNINGS}}<pre>{{UNLOCK_LOG}}</pre></details>
+</section>
+<section><h2>Future work</h2>
+<ol><li><strong>Bench limits and plant.</strong> Replace the source ranges (&#177;85&#176; yaw, up to 92&#176; flexion) with the driver&#8217;s (&#177;70&#176; yaw; index MCP to 64.75&#176;), keeping the sign and unit conversion of <code>manta_hand/plan.py</code> and the ranges of <code>servos.py</code>, and the template gains (kp 30) with the calibrated ones (kp 0.5, kv 0.02, 0.35 N·m); the gantry damping of 2000 is a placeholder, and a 0.2 s unlocked rollout moved {{GANTRY_MOVE}} mm.</li>
+<li><strong>Deployed geometry.</strong> Port the flat pads, rails and carriages, the tool, the table and the UR5e, and restore the self-contact pairs that the 21 source exclusions omit. Until then, collision-free means only the enabled pairs of this simplified hand.</li>
+<li><strong>Connection to the evaluator.</strong> Import a design record, solve task targets within the hardware limits, optimize the path with Drake&#8217;s <a href="https://drake.mit.edu/doxygen_cxx/classdrake_1_1planning_1_1trajectory__optimization_1_1_kinematic_trajectory_optimization.html">kinematic trajectory optimization</a>, export the named-joint trajectory, and run the MuJoCo clearance, retention and perturbation checks. Compare D1&#8211;D8 after matching pad shape, plant and initialization.</li>
+<li><strong>Contact.</strong> Test Drake&#8217;s <a href="https://drake.mit.edu/doxygen_cxx/group__hydroelastic__user__guide.html">hydroelastic contact</a> for the pads with at least one compliant participant per pair, calibrated against the contact bed; a grasp needs force constraints beyond fingertip positions.</li></ol>
+<p>The backend factory and the RL stack target MuJoCo and Warp. The first deliverable is a planning interface that takes a morphology, task targets and limits and returns named-joint trajectories with feasibility checks.</p>
+</section>
+<section><h2>Reproduce and inspect</h2>
+<p>Drake runs in a separate ignored environment under <code>logs/20261001-drake-port/venv</code>; the project environment and lockfile are unchanged. It ran on this Ubuntu 22.04 host; check the <a href="https://drake.mit.edu/installation.html">current supported configurations</a> before choosing a deployment host.</p>
+<pre>uv venv --python .venv/bin/python logs/20261001-drake-port/venv
+uv pip install --python logs/20261001-drake-port/venv/bin/python \
+  -r docs/experiments/20261001-drake-port/requirements.txt
+logs/20261001-drake-port/venv/bin/python scripts/contact/drake_sr2_probe.py
+python3 scripts/contact/drake_sr2_page.py</pre>
+<p>The probe asserts pose/Jacobian agreement, IK success and clearance, frozen/locked agreement, frozen optimized-design targets, lock stability and actuator parameters. The live-unlock case runs in a subprocess because the tested Drake build exits on an internal assertion; its failure is recorded instead of killing the planning audit.</p>
+<details><summary>Files and data provenance</summary><ul><li><code>scripts/contact/drake_sr2_hand.py</code>: restricted source adapter and named-coordinate interface</li><li><code>scripts/contact/drake_sr2_probe.py</code>: numerical and solver checks</li><li><code>scripts/contact/drake_sr2_page.py</code> and its HTML template: this report</li><li><code>docs/experiments/20261001-drake-port/probe.json</code>: results, solutions, source hashes and warnings</li></ul><pre>{{PROVENANCE}}</pre></details>
+</section><footer>Local study artifact · rebuilt from probe.json by scripts/contact/drake_sr2_page.py · not externally published</footer>
+</main><script id="study-data" type="application/json">{{VIEWER_DATA}}</script>
+<script>
+const data=JSON.parse(document.getElementById('study-data').textContent);
+const fingers=['thumb','index','middle'], colors=['#BE7514','#4A7FC4','#5E8F5A'];
+const select=document.getElementById('design'), sliders=document.getElementById('sliders');
+for(const name of Object.keys(data.designs)){const o=document.createElement('option');o.value=name;o.textContent=name;select.append(o);}
+const inputs=[];
+for(let i=0;i<6;i++){const label=document.createElement('label');const text=document.createElement('span');text.textContent=fingers[Math.floor(i/2)]+' '+(i%2?'Y':'X');
+const input=document.createElement('input');input.type='range';input.min=data.lower[i]*1000;input.max=data.upper[i]*1000;input.step=.1;input.setAttribute('aria-label',text.textContent+' offset in millimeters');
+const out=document.createElement('output');input.addEventListener('input',draw);label.append(text,input,out);sliders.append(label);inputs.push({input,out});}
+function draw(){const m=inputs.map(({input,out})=>{const v=Number(input.value);out.textContent=v.toFixed(1)+' mm';return v;});let s='';
+const px=x=>260+x*2.35,py=y=>240-y*2.35;
+s+='<path d="M30 240H490 M260 25V455" stroke="var(--rule)"/><text x="463" y="263" fill="var(--ink2)" font-size="14">+X</text><text x="270" y="30" fill="var(--ink2)" font-size="14">+Y</text>';
+for(let f=0;f<3;f++){const i=2*f,o=data.origins[f].map(x=>1000*x);let l=data.lower[i]*1000,u=data.upper[i]*1000,b=data.lower[i+1]*1000,t=data.upper[i+1]*1000;
+s+=`<rect x="${px(o[0]+l)}" y="${py(o[1]+t)}" width="${(u-l)*2.35}" height="${(t-b)*2.35}" fill="${colors[f]}" fill-opacity=".12" stroke="${colors[f]}"/>`;
+s+=`<circle cx="${px(o[0]+m[i])}" cy="${py(o[1]+m[i+1])}" r="7" fill="${colors[f]}"/><text x="${px(o[0]+l)+5}" y="${py(o[1]+b)-7}" fill="var(--ink)" font-size="14">${fingers[f]}</text>`;}
+s+='<text x="25" y="482" fill="var(--ink2)" font-size="13">Palm coordinates · nominal origins: (−50, 0), (50, ±55) mm</text>';document.getElementById('mount-plot').innerHTML=s;}
+function pick(){data.designs[select.value].forEach((v,i)=>inputs[i].input.value=1000*v);draw();}select.addEventListener('change',pick);pick();
+</script></body></html>

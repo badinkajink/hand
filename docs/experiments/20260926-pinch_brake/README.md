@@ -12,7 +12,7 @@ the pinch force so the pinch acts as a force-modulated revolute joint and gravit
 about the pinch axis, then a pusher finger aligns it, then a tripod regrasp. On real_v1 that is the
 2026-09-16 pinch-and-swing (user: PLAN Z, rejected as ballistic) plus a brake and a pusher.
 
-Done already (commit beeaed47): `scripts/real_v1_pusher_reach.py` ->
+Done already (commit beeaed47): `scripts/design/real_v1_pusher_reach.py` ->
 `docs/experiments/20260926-hom_pusher_reach/pusher_reach.json`. The middle (only free finger)
 sits at full extension in all six swing grasps: 1.5-2.5 mm of a 10 mm request downward, 9.9 mm
 upward; IK residual 6-11 mm at 10 deg about the pinch axis, 47-91 mm at 90 deg; its normal force
@@ -62,7 +62,7 @@ Compute rules (CLAUDE.md): `~/.claude/bin/resguard.sh status` before launch, mea
 with `/usr/bin/time -v`, size jobs from it, wrap every job in `resguard.sh run --mem --cpu`, fsync
 each row, OMP/OPENBLAS threads 1. Another session's decks 02-05 batch shares the box: leave it alone.
 Commit ONLY this study's paths (`git commit -m ... -- <paths>`): the working tree carries the user's
-unrelated edits (.gitignore, docs/hardware_control_station.md, scripts/real_v1_tracker_service.py).
+unrelated edits (.gitignore, docs/hardware_control_station.md, scripts/hardware/real_v1_tracker_service.py).
 
 ## Deliverable
 

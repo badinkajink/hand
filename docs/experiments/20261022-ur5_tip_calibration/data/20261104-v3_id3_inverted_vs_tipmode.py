@@ -9,6 +9,7 @@ Usage: id3swap_gp.py HOLDS_DIR"""
 import sys
 import numpy as np
 sys.path.insert(0, "/home/humanoid/Programs/hand/scripts")
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_tip_calibration_v3_data_curve as V  # noqa: E402
 floor = V.PR.floors(0)[:15]
 ang = lambda a, b: np.degrees(np.arccos(np.clip(np.sum(a * b, 1) / (np.linalg.norm(a, axis=1) * np.linalg.norm(b, axis=1) + 1e-12), -1, 1)))  # noqa: E731

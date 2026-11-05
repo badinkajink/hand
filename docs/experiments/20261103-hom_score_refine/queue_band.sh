@@ -1,6 +1,6 @@
 #!/bin/bash
 # Worst-case score over a band of scene frictions (owner, 2026-11-03: "robustness to a band of physical parameters as
-# a scoring parameter in hand selection"; "worst-case sampling makes sense"). scripts/hom_grasp_refine.py --band: each
+# a scoring parameter in hand selection"; "worst-case sampling makes sense"). scripts/hom/hom_grasp_refine.py --band: each
 # candidate runs at seeds 0-2 on the STS3032 at kp 2.1 with scene friction 0.4, 0.7 and 1.0, and scores its lowest
 # three-seed mean. On the k21 sample (30 layouts per task: 20 best by S1 at friction 1.0, 10 at random), as the 11-03
 # queue refined at 1.0 and at 0.4 (logs/20261103-hom_score_refine/queue.sh):
@@ -28,7 +28,7 @@ step() {   # name, then hom_grasp_refine.py's arguments; a finished step leaves 
   local name=$1 rc; shift
   if [ -e $L/Q_$name.done ]; then echo "$(date +%T) $name done before"; return 0; fi
   echo "$(date +%T) $name"
-  job 5G 500 /usr/bin/time -f "peak %M kB, %e s" .venv/bin/python scripts/hom_grasp_refine.py "$@" > $L/Q_$name.log 2>&1
+  job 5G 500 /usr/bin/time -f "peak %M kB, %e s" .venv/bin/python scripts/hom/hom_grasp_refine.py "$@" > $L/Q_$name.log 2>&1
   rc=$?
   if [ $rc -eq 0 ]; then touch $L/Q_$name.done; else echo "$(date +%T) $name failed (exit $rc)"; fi
   return $rc

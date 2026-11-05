@@ -1,5 +1,5 @@
 # b_liveA — the blessed Policy-B reorient recipe via the LIVE-A RESET (b33 lineage).
-# The pinned block from scripts/train_handoff_liveA_reset.sh: B10's reorient shaping
+# The pinned block from scripts/rl/train_handoff_liveA_reset.sh: B10's reorient shaping
 # (target-axis 100 / progress 300, lateral -8, contact-min 15), NORMAL-lift env,
 # relaxed slip guards (only drop/tip-lost bite), deploy-parity residual scale 0.5 +
 # ease_out_quad + contact gate ON.

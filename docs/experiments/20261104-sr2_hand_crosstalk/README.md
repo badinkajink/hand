@@ -30,7 +30,7 @@ neighbours' chips as a function of those angles.
 3. Home: POST `/api/v1/home` with `{"confirmation": "HOME ALL AXES"}` and the station's token. It takes about 4 min.
    On 11-04 every axis homed by its timeout; StallGuard2 fired on none.
 4. Fingertip boards: `lab/board_log.py PORT logs/20261104-sr2_crosstalk/boards`. Its log has the format of
-   `src/morphohand/driver/reskin5x/host/reskin5x_mux.py`. The records of one read are spaced evenly between that read
+   `src/sr2hand/driver/reskin5x/host/reskin5x_mux.py`. The records of one read are spaced evenly between that read
    and the one before. After a fingertip is plugged in, `lab/mux_boot_text.py PORT` resets the C6 and prints its
    channel scan. The logger reconnects by itself.
 5. Sweep: `lab/run_plan.py PLAN OUTDIR --token-file F [--no-disable]`, under `/usr/bin/python3` on corvus. It drives
@@ -91,7 +91,7 @@ corvus, channels 0 and 3).
 
 ## Analysis
 
-The coordinator analysed the night on the workstation: `scripts/sr2_crosstalk_night.py` writes
+The coordinator analysed the night on the workstation: `scripts/fingertip/sr2_crosstalk_night.py` writes
 `data/20261104-night_crosstalk_analysis.json` (9a0e05a53, feed line 55).
 - **Neighbours and actuators.** At the home layout, a finger moving alone changed the other boards by 1.2 to 5.4 uT.
   That is near the 3.4 uT between two rest readings. The steppers and servo torque changed them by 1.2 to 5.9 uT.

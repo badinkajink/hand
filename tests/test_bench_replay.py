@@ -11,7 +11,7 @@ import csv
 
 import pytest
 
-from morphohand.bench import replay as R
+from sr2hand.bench import replay as R
 
 
 def write_trace(path, rows):

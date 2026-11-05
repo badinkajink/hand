@@ -129,10 +129,10 @@ protection that exists for a reason.
 With the shaft staged in the open hand and the CB1 service up:
 
 ```bash
-python3 scripts/real_v1_bench_grip.py g12
-python3 scripts/real_v1_bench_regrip.py --plan g12 \
+python3 scripts/hardware/real_v1_bench_grip.py g12
+python3 scripts/hardware/real_v1_bench_regrip.py --plan g12 \
     --target-thumb 450 --target-index 220 --target-middle 0 --preload-start 9.0
-python3 scripts/real_v1_bench_stepped_run.py --plan g12 --csv --steps 55 \
+python3 scripts/hardware/real_v1_bench_stepped_run.py --plan g12 --csv --steps 55 \
     --gate 5.0 --gate-timeout 0.8 --dwell 0.1 --speed 80 \
     --regrip logs/regrip_pose.json --load-delta 400 --stall-deg 0.5 --stall-window 5 --hold 4
 ```

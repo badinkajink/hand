@@ -27,7 +27,7 @@ def proj() -> dict:
 
 
 def test_pyproject_exists(proj):
-    assert proj["project"]["name"] == "morphohand"
+    assert proj["project"]["name"] == "sr2hand"
 
 
 def test_uv_managed(proj):

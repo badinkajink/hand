@@ -41,7 +41,7 @@ only final cosine about +0.23, consistent with its historical failed-reorienter 
 
 ## Launched comparison
 
-`scripts/train_real_v1_blind_pair.sh` trains two 5M-timestep warmstarted arms on each of
+`scripts/rl/train_real_v1_blind_pair.sh` trains two 5M-timestep warmstarted arms on each of
 `rv05_manual` and `rv03_narrowy`:
 
 - `S1_sighted_jitter`: full simulated observation, the observability oracle.

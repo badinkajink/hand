@@ -5,7 +5,7 @@ out = sys.argv[1]
 rng = random.Random(20261022)
 rows = []
 for p, n in pages.items():
-    js = subprocess.run(["python3", "scripts/prose_lint.py", "--flags", f"docs/overviews/{p}.html"], capture_output=True,
+    js = subprocess.run(["python3", "scripts/docs/prose_lint.py", "--flags", f"docs/overviews/{p}.html"], capture_output=True,
                         text=True).stdout.splitlines()
     rs = [json.loads(l) for l in js if l.startswith("{")]
     for r in rng.sample(rs, n):

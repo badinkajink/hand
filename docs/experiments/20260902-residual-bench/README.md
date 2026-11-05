@@ -10,7 +10,7 @@ held and grips that slipped rather than a distribution around a mean.
 `deploy/` holds the four plans from the transfer study, re-checked before staging:
 
 ```bash
-python3 scripts/real_v1_trajectory_clearance.py \
+python3 scripts/hardware/real_v1_trajectory_clearance.py \
   --plan sv1_w6689_b060 --plan sv1_w2360_b075 --plan rv05_manual_b85 --plan sv1_u1364_b080 \
   --deploy-dir docs/experiments/20260829-real_v1_deploy/deploy --substeps 8
 ```
@@ -35,7 +35,7 @@ The control station now points here instead.
 Tracker companion, on the workstation, at the D435's full IR sensor size:
 
 ```bash
-~/miniconda3/bin/python scripts/real_v1_tracker_service.py --host 10.99.99.50 --port 8770 \
+~/miniconda3/bin/python scripts/hardware/real_v1_tracker_service.py --host 10.99.99.50 --port 8770 \
   --tracker-arg=--width --tracker-arg=1280 --tracker-arg=--height --tracker-arg=800 \
   --tracker-arg=--fps --tracker-arg=30 --tracker-arg=--video-hz --tracker-arg=8
 ```

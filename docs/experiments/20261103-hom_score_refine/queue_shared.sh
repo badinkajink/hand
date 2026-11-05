@@ -2,7 +2,7 @@
 # Shared forces and contact modes on the SCS0009 (autopilot job hand-20261104-hom_shared_controller; owner, 2026-11-03:
 # "is it possible to co-design HOM? are there hyperparameters / parameters that we can change within it?"; HOM fixed
 # "gives us a fixed reference to evaluate morphologies"). One GPU job at a time, each through resguard:
-#   1. level shared of scripts/hom_grasp_refine.py per task: CEM over the forces and mode weights, each candidate on 40
+#   1. level shared of scripts/hom/hom_grasp_refine.py per task: CEM over the forces and mode weights, each candidate on 40
 #      layouts of the sv25 sample (30 best by S1, 10 of the random ones) with S1's grasps at seeds 0-2; 24 candidates,
 #      8 iterations, candidate 0 of iteration 0 = HOM's defaults (about 15-20 min a task);
 #   2. each task's grid at the default object rescored with its pick (hom_gpu.py run --prm; rows grid2dff_v4b_sv25_shared,
@@ -37,19 +37,19 @@ done_or_run() {   # name, then the command; a finished step leaves Q_<name>.done
   return $rc
 }
 for t in $T; do
-  done_or_run shared_$t .venv/bin/python scripts/hom_grasp_refine.py run --task $t --level shared
+  done_or_run shared_$t .venv/bin/python scripts/hom/hom_grasp_refine.py run --task $t --level shared
 done
 for t in $T; do
-  prm=$(.venv/bin/python scripts/hom_grasp_refine.py prm --task $t 2>/dev/null)
+  prm=$(.venv/bin/python scripts/hom/hom_grasp_refine.py prm --task $t 2>/dev/null)
   if [ -z "$prm" ]; then echo "$(date +%T) grid_$t: no pick of level shared; skipped"; continue; fi
   echo "$(date +%T) grid_$t prm $prm"
   HOS_PLANT=servo HOS_SCENES=logs/20261102-hom_servo_plant/scenes HOM_ROWS_TAG=_sv25_shared \
-    done_or_run grid_$t .venv/bin/python scripts/hom_gpu.py run --task $t --layouts grid2dff_size --d ${D[$t]} \
+    done_or_run grid_$t .venv/bin/python scripts/hom/hom_gpu.py run --task $t --layouts grid2dff_size --d ${D[$t]} \
     --seeds 0 1 2 --variants ${V[$t]} --batch ${B[$t]} --out ${t}_d${D[$t]} --rows-dir $ROWS/grid2dff_v4b_sv25_shared \
     --prm "$prm"
 done
 for t in $T; do
-  done_or_run val_$t .venv/bin/python scripts/hom_grasp_refine.py validate --task $t --shared
+  done_or_run val_$t .venv/bin/python scripts/hom/hom_grasp_refine.py validate --task $t --shared
 done
-done_or_run report .venv/bin/python scripts/hom_grasp_refine.py report --shared
+done_or_run report .venv/bin/python scripts/hom/hom_grasp_refine.py report --shared
 echo "$(date +%T) shared controller queue done"

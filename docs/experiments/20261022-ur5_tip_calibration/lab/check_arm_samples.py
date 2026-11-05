@@ -1,6 +1,6 @@
 """Checks every robot sample of a session (robot.bin, real or simulated) against the arm rules of 2026-10-22: joint 5
 inside the wrist window and the HEX-E, its cable port, the mount and the finger clear of the robot's own forearm and
-wrist links (scripts/ur5_cb3_cell.py self_clearance). With --cell it also checks the HEX-E, the mount and the finger
+wrist links (scripts/ur5/ur5_cb3_cell.py self_clearance). With --cell it also checks the HEX-E, the mount and the finger
 against the indenters, the board and the table (clearance, the session's registration), as on 2026-10-22 when a twist
 swung the mount's fork to the indenter's key, a pose no check had covered; the pad, which touches by design, is left
 out. Prints each stage's joint 5 range and least clearances and every sample that breaks a rule. Moves nothing.
@@ -19,6 +19,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT / "scripts"))
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_cb3_cell as CELL  # noqa: E402
 
 C = CELL.C

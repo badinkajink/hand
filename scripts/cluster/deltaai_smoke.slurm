@@ -79,7 +79,7 @@ ARGS=(--recipe perp_single --morphology-run "$MORPH_RUN"
 [ -n "$SCENE" ] && ARGS+=(--frozen-scene-xml "$SCENE" --closed-ctrl-from-keyframe closed_manual)
 
 START=$SECONDS
-python scripts/rl_train_cube.py "${ARGS[@]}"
+python scripts/rl/rl_train_cube.py "${ARGS[@]}"
 ELAPSED=$((SECONDS - START))
 
 echo "=============================================================="

@@ -11,7 +11,7 @@ import math
 import numpy as np
 import pytest
 
-from morphohand.bench import tags as T
+from sr2hand.bench import tags as T
 
 
 def rot(axis: str, deg: float) -> np.ndarray:

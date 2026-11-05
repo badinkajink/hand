@@ -24,7 +24,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-HOST = ROOT / "src/morphohand/driver/manta/host"
+HOST = ROOT / "src/sr2hand/driver/manta/host"
 sys.path.insert(0, str(HOST))
 
 # ruff: noqa: E402

@@ -27,7 +27,7 @@ folder is the same idea under the older spelling.
 ## The budget band, and why the shipped budget is not the best one
 
 Sweeping the clip from 0.40 to 2.00 rad on each finalist's own saved plan (4 reps, 9.6 s hold,
-`scripts/probe_hold_convergence.py`) turns up a structure the pilot's single 0.5 rad point could
+`scripts/design/probe_hold_convergence.py`) turns up a structure the pilot's single 0.5 rad point could
 not see. **Every design has a contiguous band of clip values inside which it keeps the tool, and
 drops it on both sides.**
 
@@ -127,13 +127,13 @@ was not run.
 ```bash
 # the band scan
 for B in $(python3 -c "print(' '.join(f'{0.40+0.05*i:.2f}' for i in range(33)))"); do
-  python3 scripts/probe_hold_convergence.py \
+  python3 scripts/design/probe_hold_convergence.py \
     --plans docs/experiments/20260830-real_v1-sobol128/plans \
     --holds 4800 --reps 4 --budget $B --out band/b_$B.json
 done
 
 # one export (cell values from ../selected_safe_cells.json, scene from ../plans/<design>.json)
-python3 scripts/real_v1_export_plan.py --design sv1_u0060 --object medium \
+python3 scripts/hardware/real_v1_export_plan.py --design sv1_u0060 --object medium \
   --design-table docs/experiments/20260830-real_v1-sobol128/pilot_table.json \
   --scene <the pilot's scene> --straddle-mm 40 --thumb-axial-mm 10 --squeeze-mm 10 \
   --axis-k 0.15 --angle-deg -90 --turn-steps 550 --hold-squeeze-mm 0 \
@@ -141,7 +141,7 @@ python3 scripts/real_v1_export_plan.py --design sv1_u0060 --object medium \
   --budget 0.75 --out <dir>
 
 # the gates
-python3 scripts/real_v1_trajectory_clearance.py --deploy-dir <dir> --plan <tag> --substeps 8
+python3 scripts/hardware/real_v1_trajectory_clearance.py --deploy-dir <dir> --plan <tag> --substeps 8
 ```
 
 ## Two metadata bugs found while diffing, both fixed, neither behavioural

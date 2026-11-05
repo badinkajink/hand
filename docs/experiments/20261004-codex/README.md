@@ -28,17 +28,17 @@ Use the existing pinned environment (MuJoCo 3.6.0, Drake 1.57.0):
 
 ```bash
 PY=logs/20261001-hom_contact/venv/bin/python
-$PY scripts/distributed_contact.py regression --dry-run
-$PY scripts/distributed_contact.py regression
-$PY scripts/distributed_contact.py static --dry-run
-$PY scripts/distributed_contact.py static
-$PY scripts/distributed_contact.py sensitivity --dry-run
-$PY scripts/distributed_contact.py sensitivity
-$PY scripts/distributed_contact.py fillet --dry-run
-$PY scripts/distributed_contact.py fillet
-$PY scripts/distributed_contact.py compensation --dry-run
-$PY scripts/distributed_contact.py compensation
-$PY scripts/distributed_contact_page.py
+$PY scripts/contact/distributed_contact.py regression --dry-run
+$PY scripts/contact/distributed_contact.py regression
+$PY scripts/contact/distributed_contact.py static --dry-run
+$PY scripts/contact/distributed_contact.py static
+$PY scripts/contact/distributed_contact.py sensitivity --dry-run
+$PY scripts/contact/distributed_contact.py sensitivity
+$PY scripts/contact/distributed_contact.py fillet --dry-run
+$PY scripts/contact/distributed_contact.py fillet
+$PY scripts/contact/distributed_contact.py compensation --dry-run
+$PY scripts/contact/distributed_contact.py compensation
+$PY scripts/contact/distributed_contact_page.py
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/test_distributed_contact.py -q
 ```
 
@@ -50,7 +50,7 @@ manifest requires a separate output directory to preserve previous results.
 
 The report builder validates that all 377 source paragraphs/table cells survive DOCX conversion.
 Use `--spec-only` to convert the document without any simulation results. HTML uses the existing
-MorphoHand result-page style; plots are both embedded and exported as SVG/PNG.
+SR² Hand result-page style; plots are both embedded and exported as SVG/PNG.
 
 ## Data
 
@@ -131,12 +131,12 @@ the 3.6.0 regression environment are preserved. Setup and reproduction:
 uv venv --python logs/20261001-hom_contact/venv/bin/python logs/20261004-contact-current/venv
 uv pip install --python logs/20261004-contact-current/venv/bin/python mujoco==3.14.0 numpy==2.5.3 matplotlib==3.11.2 pytest==9.1.1
 NEW=logs/20261004-contact-current/venv/bin/python
-$NEW scripts/distributed_contact_dynamics.py diagexact --dry-run
-$NEW scripts/distributed_contact_dynamics.py diagexact
-$NEW scripts/distributed_contact_dynamics.py slip --dry-run
-$NEW scripts/distributed_contact_dynamics.py slip
-$NEW scripts/distributed_contact_dynamics.py slip --config docs/experiments/20261004-codex/configs/slip_fine.json --out results/20261004-distributed-contact/slip_fine
-$NEW scripts/distributed_contact_page.py
+$NEW scripts/contact/distributed_contact_dynamics.py diagexact --dry-run
+$NEW scripts/contact/distributed_contact_dynamics.py diagexact
+$NEW scripts/contact/distributed_contact_dynamics.py slip --dry-run
+$NEW scripts/contact/distributed_contact_dynamics.py slip
+$NEW scripts/contact/distributed_contact_dynamics.py slip --config docs/experiments/20261004-codex/configs/slip_fine.json --out results/20261004-distributed-contact/slip_fine
+$NEW scripts/contact/distributed_contact_page.py
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 $NEW -m pytest tests/test_distributed_contact.py tests/test_distributed_contact_dynamics.py -q
 ```
 
@@ -195,21 +195,21 @@ backend exceptions and completed-but-inaccurate trajectories remain in the data.
 
 ```bash
 NEW=logs/20261004-contact-current/venv/bin/python
-$NEW scripts/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/transfer.json
-$NEW scripts/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/holding.json --out results/20261004-distributed-contact/holding
-$NEW scripts/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/holding_refine.json --out results/20261004-distributed-contact/holding_refine
-$NEW scripts/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/friction_transfer.json --out results/20261004-distributed-contact/friction_transfer
-$NEW scripts/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/friction_refine.json --out results/20261004-distributed-contact/friction_refine
-$NEW scripts/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/transfer_optimized.json --out results/20261004-distributed-contact/transfer_optimized
-$NEW scripts/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/transfer_compiled_fine.json --out results/20261004-distributed-contact/transfer_compiled_fine
-$NEW scripts/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/payload.json --out results/20261004-distributed-contact/payload
-$NEW scripts/profile_contact_mapping.py
-.venv/bin/python scripts/distributed_contact_gpu.py
-logs/20261001-hom_contact/venv/bin/python scripts/distributed_contact_drake.py
-logs/20261004-contact-transfer/venv/bin/python scripts/distributed_contact_newton.py
-logs/20261004-contact-transfer/venv/bin/python scripts/distributed_contact_pressure.py
-$NEW scripts/distributed_contact_transfer_page.py
-$NEW scripts/distributed_contact_page.py
+$NEW scripts/contact/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/transfer.json
+$NEW scripts/contact/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/holding.json --out results/20261004-distributed-contact/holding
+$NEW scripts/contact/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/holding_refine.json --out results/20261004-distributed-contact/holding_refine
+$NEW scripts/contact/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/friction_transfer.json --out results/20261004-distributed-contact/friction_transfer
+$NEW scripts/contact/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/friction_refine.json --out results/20261004-distributed-contact/friction_refine
+$NEW scripts/contact/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/transfer_optimized.json --out results/20261004-distributed-contact/transfer_optimized
+$NEW scripts/contact/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/transfer_compiled_fine.json --out results/20261004-distributed-contact/transfer_compiled_fine
+$NEW scripts/contact/distributed_contact_transfer.py --config docs/experiments/20261004-codex/configs/payload.json --out results/20261004-distributed-contact/payload
+$NEW scripts/contact/profile_contact_mapping.py
+.venv/bin/python scripts/contact/distributed_contact_gpu.py
+logs/20261001-hom_contact/venv/bin/python scripts/contact/distributed_contact_drake.py
+logs/20261004-contact-transfer/venv/bin/python scripts/contact/distributed_contact_newton.py
+logs/20261004-contact-transfer/venv/bin/python scripts/contact/distributed_contact_pressure.py
+$NEW scripts/contact/distributed_contact_transfer_page.py
+$NEW scripts/contact/distributed_contact_page.py
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 $NEW -m pytest tests/test_distributed_contact.py tests/test_distributed_contact_dynamics.py tests/test_distributed_contact_transfer.py -q
 ```
 
@@ -251,7 +251,7 @@ The subsequent user-authorized nominal timestep batch is now implemented separat
 
 ## 50 Hz rolling timestep batch
 
-`scripts/distributed_contact_timestep.py` runs 42 nominal cases: six physics steps × legacy,
+`scripts/contact/distributed_contact_timestep.py` runs 42 nominal cases: six physics steps × legacy,
 legacy exact diagonal, fixed physical mapping with approximate/exact diagonal, runtime mapping
 with approximate/exact diagonal, and Drake hydroelastic. MuJoCo workers use 3.14.0; Drake workers
 use the existing 1.57.0 environment. Controller gains and commands remain fixed at 50 Hz.
@@ -263,9 +263,9 @@ controller tick to fixed-duration phases. Existing task callers retain their his
 
 ```bash
 NEW=logs/20261004-contact-current/venv/bin/python
-$NEW scripts/distributed_contact_timestep.py --dry-run
-$NEW scripts/distributed_contact_timestep.py
-$NEW scripts/distributed_contact_timestep.py --report-only
+$NEW scripts/contact/distributed_contact_timestep.py --dry-run
+$NEW scripts/contact/distributed_contact_timestep.py
+$NEW scripts/contact/distributed_contact_timestep.py --report-only
 ```
 
 Runs are sequential, each in a separate process, with a 30 minute per-case timeout. Restarting
@@ -307,16 +307,16 @@ force oscillation, so the original native traces remain necessary.
 
 ```bash
 NEW=logs/20261004-contact-current/venv/bin/python
-$NEW scripts/distributed_contact_videos.py capture --backend cpu
-logs/20261001-hom_contact/venv/bin/python scripts/distributed_contact_videos.py capture --backend drake
-logs/20261004-contact-transfer/venv/bin/python scripts/distributed_contact_videos.py capture --backend newton
-$NEW scripts/distributed_contact_videos.py capture --backend isolated
-logs/20261004-contact-transfer/venv/bin/python scripts/distributed_contact_video_snapshots.py pressure
-$NEW scripts/distributed_contact_video_snapshots.py fillet
-$NEW scripts/distributed_contact_videos.py render
-$NEW scripts/distributed_contact_video_page.py
-$NEW scripts/distributed_contact_transfer_page.py
-$NEW scripts/distributed_contact_page.py
+$NEW scripts/contact/distributed_contact_videos.py capture --backend cpu
+logs/20261001-hom_contact/venv/bin/python scripts/contact/distributed_contact_videos.py capture --backend drake
+logs/20261004-contact-transfer/venv/bin/python scripts/contact/distributed_contact_videos.py capture --backend newton
+$NEW scripts/contact/distributed_contact_videos.py capture --backend isolated
+logs/20261004-contact-transfer/venv/bin/python scripts/contact/distributed_contact_video_snapshots.py pressure
+$NEW scripts/contact/distributed_contact_video_snapshots.py fillet
+$NEW scripts/contact/distributed_contact_videos.py render
+$NEW scripts/contact/distributed_contact_video_page.py
+$NEW scripts/contact/distributed_contact_transfer_page.py
+$NEW scripts/contact/distributed_contact_page.py
 ```
 
 Capture writes separate raw runs under `results/20261004-distributed-contact/video_capture/`;
@@ -363,12 +363,12 @@ the latter stop at the original exit guard and reproduce its time and pose.
 OLD=logs/20261001-hom_contact/venv/bin/python
 NEW=logs/20261004-contact-current/venv/bin/python
 uv pip install --python "$NEW" scipy==1.16.2 imageio==2.37.0 imageio-ffmpeg==0.6.0 pillow==11.3.0
-MUJOCO_GL=egl $OLD scripts/distributed_contact_tasks.py
-MUJOCO_GL=egl $NEW scripts/distributed_contact_diagexact_tasks.py
-$NEW scripts/distributed_contact_dynamics.py slip --config docs/experiments/20261004-codex/configs/sliding_geometry.json --out results/20261004-distributed-contact/sliding_geometry
-$NEW scripts/distributed_contact_dynamics.py slip --config docs/experiments/20261004-codex/configs/sliding_geometry_guided.json --out results/20261004-distributed-contact/sliding_geometry_guided
-MUJOCO_GL=egl $NEW scripts/distributed_contact_geometry_videos.py
-MUJOCO_GL=egl $OLD scripts/distributed_contact_task_page.py
+MUJOCO_GL=egl $OLD scripts/contact/distributed_contact_tasks.py
+MUJOCO_GL=egl $NEW scripts/contact/distributed_contact_diagexact_tasks.py
+$NEW scripts/contact/distributed_contact_dynamics.py slip --config docs/experiments/20261004-codex/configs/sliding_geometry.json --out results/20261004-distributed-contact/sliding_geometry
+$NEW scripts/contact/distributed_contact_dynamics.py slip --config docs/experiments/20261004-codex/configs/sliding_geometry_guided.json --out results/20261004-distributed-contact/sliding_geometry_guided
+MUJOCO_GL=egl $NEW scripts/contact/distributed_contact_geometry_videos.py
+MUJOCO_GL=egl $OLD scripts/contact/distributed_contact_task_page.py
 ```
 
 The force-ramp command returns a nonzero exit after recording controlled-contact exits.

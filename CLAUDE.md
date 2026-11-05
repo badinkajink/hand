@@ -16,13 +16,13 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
 - Python via **`uv`**: `uv run --extra rl --extra gpu python <script>`. `MUJOCO_GL=egl` for
   headless render.
 - **Fingertip on the CAD hand (owner, 2026-10-29): the tip being calibrated on the UR5** — the v4b tip, `SCALE_HAND=cad_v2`
-  (`scripts/build_cad_v2_finger.py`): DIP link b v4, cassette 3T, cap TW15H3 trimmed at x_F -0.10, the 11/22
+  (`scripts/hardware/build_cad_v2_finger.py`): DIP link b v4, cassette 3T, cap TW15H3 trimmed at x_F -0.10, the 11/22
   half-ellipsoid pad as 1 mm sphere pads (`tcd_ell7.4x8.5x11x22`), HOM's `surfaces.HalfEllipsoid`. Grasps on it need the
   pad-coverage and rigid-clearance checks of `fp_sr2_toy.py`; check that pads, not rigid parts, carry the contact.
   `cad_v1` (the TPU block) only reproduces runs before 2026-10-30.
 - **Default fingertip (owner, 2026-10-13): the printed TPU tip as 1 mm sphere pads** —
   `reorient_backends.replace_tips(root, "tpu2.7", "pads", ...)` in CPU scenes; for RL,
-  `scripts/make_pad_morphology_run.py --model pads` on a box-tip run (servo plant:
+  `scripts/contact/make_pad_morphology_run.py --model pads` on a box-tip run (servo plant:
   `results/phase1/real_v1/20261011-sv1_u0308_b050_servo_tip_tpu2.7pads1`). Point contact on the TPU block
   (`pt`, `tpu2.7mesh`) is the comparison arm; the legacy box tip only reproduces old runs. Pads reproduce the pinch
   friction torque that point contact lacks and agree across MuJoCo, MuJoCo-Warp, Newton and Drake
@@ -44,9 +44,9 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   SCS0009's strength; default the work plant `kp4_kv0_fr1_fl0_dp0.08`, 4.4x too strong), `HOS_SCENES` (a fresh scene
   cache; cached scenes keep the pad modulus they were built with) and `HOM_ROWS_TAG` (required with either; appended to
   the rows directories). HOM landscapes and best grasps change with the plant and the pad modulus
-  (`scripts/hom_plant_transfer.py --set plants|modulus|factorial`); quote a landscape with both.
-  `scripts/hom_modulus_scenes.py` builds a scene cache at another modulus. HOM's commanded forces and contact modes are
-  per-world parameters (`hom_tasks.mode_weights`, a world's `prm` in `hom_gpu`), and `scripts/hom_grasp_refine.py`
+  (`scripts/hom/hom_plant_transfer.py --set plants|modulus|factorial`); quote a landscape with both.
+  `scripts/hom/hom_modulus_scenes.py` builds a scene cache at another modulus. HOM's commanded forces and contact modes are
+  per-world parameters (`hom_tasks.mode_weights`, a world's `prm` in `hom_gpu`), and `scripts/hom/hom_grasp_refine.py`
   refines them with the grasp (`docs/experiments/20261103-hom_score_refine/`).
 - **GPU is single (16 GB).** Train sequentially. **Every Warp process needs its own kernel cache:**
   `WARP_CACHE_PATH=$(mktemp -d)` — a shared cache races and NaNs. After killing a Warp run, wait for
@@ -89,7 +89,7 @@ source of truth. `--plans-dir` reads the CB1's own filesystem.
 
 **Bring-up.** On the CB1, `~/run_control_station.sh start|stop|status|log` (it carries the
 token, and `--tracker-url`, without which `/reorient` silently runs untracked trials). On the
-workstation, `scripts/real_v1_tracker_service.py` under **`~/miniconda3/bin/python`** — the
+workstation, `scripts/hardware/real_v1_tracker_service.py` under **`~/miniconda3/bin/python`** — the
 camera stack is not in the uv env. Launch that service plain: its `BENCH_DEFAULTS` supply
 `--shaft-axis=-x` and a session was lost on 2026-09-01 to launching it bare. `--tracker-arg`
 is appended after the defaults, so it overrides them without dropping them.
@@ -99,7 +99,7 @@ is appended after the defaults, so it overrides them without dropping them.
 `Device or resource busy`. Telemetry also suspends while a writer owns the bus, so a probe
 that holds the stream open reads one stale sample repeated.
 
-**Before any bench session** run `scripts/real_v1_trajectory_clearance.py` on the plans you
+**Before any bench session** run `scripts/hardware/real_v1_trajectory_clearance.py` on the plans you
 will serve — three of the four plans sitting on the CB1 in 2026-09 were ones the gate had
 *excluded* for finger interpenetration. A plan's `chord` and its `_traj.csv` are **different
 paths**; the gate passes them separately and a plan can clear one and not the other.
@@ -108,24 +108,24 @@ paths**; the gate passes them separately and a plan can clear one and not the ot
 the UR5, the HEX-E and the ATI Net box. Its runbook is `docs/experiments/20261022-ur5_tip_calibration/lab/README.md`,
 with the addresses and a section *Network on corvus*. To reach a device on another subnet without losing the internet,
 add a live second address (`nmcli device modify enp3s0 +ipv4.addresses ...`); never set the IPv4 method to Manual.
-Find an ATI box at an unknown address with `scripts/ati_netft_discover.py`, ATI's discovery broadcast; subnet sweeps
+Find an ATI box at an unknown address with `scripts/ur5/ati_netft_discover.py`, ATI's discovery broadcast; subnet sweeps
 miss it. The Mini45's box sits at 192.168.123.50.
 
 ## Shared numerical code (owner, 2026-11-03)
 
-Rotations, quaternions and rigid transforms come from `morphohand.geometry.rotations`: wxyz quaternions as in MuJoCo,
+Rotations, quaternions and rigid transforms come from `sr2hand.geometry.rotations`: wxyz quaternions as in MuJoCo,
 Hamilton products, radians, batched, over scipy's `Rotation`. Unit vectors, angles and pinhole cameras are in
 `geometry.vectors`, distances in `geometry.distances`, signed distances in `geometry.sdf`, hulls, OBJ files, inertia and
 section properties in `geometry.mesh`, Fibonacci lattices and cap pads in `geometry.sampling`. Rank statistics, smoothing
-and angle wrapping are in `morphohand.numerics` (`stats`, `signal`, `angles`), and the torch versions of the quaternion
-functions in `morphohand.rl.math`. These modules import numpy and scipy at the top, and trimesh or shapely only inside a
+and angle wrapping are in `sr2hand.numerics` (`stats`, `signal`, `angles`), and the torch versions of the quaternion
+functions in `sr2hand.rl.math`. These modules import numpy and scipy at the top, and trimesh or shapely only inside a
 function, so they run in `femtip`, under `freecadcmd` and on corvus (scipy 1.12). Never write a private quaternion
 product, quaternion-to-matrix, axis rotation, Rodrigues formula, skew matrix, frame builder, Spearman correlation or
 moving average in a script. Call the module, or scipy or trimesh, and add a missing function to the module, checked once
 against MuJoCo, scipy or trimesh in a scratch script. The owner was "very concerned about us rewriting rotations,
 geometry, math helpers everywhere with custom math instead of using proven library calls / a single help file(s)". The
 audit of 2026-11-03 (`docs/notes/20261103-scripts_cleanup/`) found 309 rotation copies in 128 files and 165 geometry and
-statistics copies, with eight bugs among them. The hand-off `docs/handoff/20261103-scripts_topic_folders.md` migrates the live copies once the scripts have moved into topic folders, after the fingertip-shape rerun. `src/morphohand/driver/`, `bench/tags.py` and the UR5 programs that move the robot (`ur5_inverted_rig.py`, the
+statistics copies, with eight bugs among them. The hand-off `docs/handoff/20261103-scripts_topic_folders.md` migrates the live copies once the scripts have moved into topic folders, after the fingertip-shape rerun. `src/sr2hand/driver/`, `bench/tags.py` and the UR5 programs that move the robot (`ur5_inverted_rig.py`, the
 plan generators, `ur5_tip_calibration_holder_paths.py`) keep theirs until a session with the owner and the lab's simulator.
 
 ## Writing
@@ -134,13 +134,13 @@ Prose rules for every page, report, commit message and runbook are the **Writing
 global `~/.claude/CLAUDE.md`: thirteen elements of style, with their examples and history in
 `~/.claude/writing_reference.md`. `AGENTS.md` has a copy for Codex; if the two differ, `~/.claude/CLAUDE.md` wins.
 
-Every page build prints one line per page from `scripts/prose_lint.py --brief` (through `retro_style`): sentence length,
+Every page build prints one line per page from `scripts/docs/prose_lint.py --brief` (through `retro_style`): sentence length,
 grade and flags against the targets of the plain-language passes of 2026-10-22 (mean at most 18 words, at most 5 % of
-sentences over 30 words, at most 300 flagged per 1000). Above target, `python3 scripts/prose_lint.py --top 20 PAGE`
+sentences over 30 words, at most 300 flagged per 1000). Above target, `python3 scripts/docs/prose_lint.py --top 20 PAGE`
 lists the worst sentences with their lines in the builder; edit those instead of reading the whole builder. The flags
 find sentences to rewrite (precision 0.76, recall 0.82 against blind labels; local Qwen models did no better); judging a
 rewrite still needs a reader.
-The plain-language pass of 2026-10-22 over the overviews and about 65 result pages (run table `docs/handoff/plain-language-hand/20261022-run_table.md`) took the overviews from 26.9 to 16.7 words a sentence and the result pages from 23.7 to 21.8 on average; each page went through `scripts/prose_gate.py` and an Opus judge, and 62 of 612 judged pairs needed repair.
+The plain-language pass of 2026-10-22 over the overviews and about 65 result pages (run table `docs/handoff/plain-language-hand/20261022-run_table.md`) took the overviews from 26.9 to 16.7 words a sentence and the result pages from 23.7 to 21.8 on average; each page went through `scripts/docs/prose_gate.py` and an Opus judge, and 62 of 612 judged pairs needed repair.
 
 ## Result pages — an HTML doc page, ALWAYS. Never a RESULTS.md.
 
@@ -156,7 +156,7 @@ The pattern, followed by every page in `docs/experiments/INDEX.md`:
 1. **A builder script** `scripts/<topic>_page.py` + `scripts/<topic>_page.template.html`. The
    builder reads the study's own JSON and substitutes `{{PLACEHOLDER}}`s, so the page regenerates
    from data and cannot drift from it. Media are inlined as data URIs — the artifact is one file.
-   Mathematics and algorithms are LaTeX rendered to inline SVG by `scripts/texsvg.py`, cached beside
+   Mathematics and algorithms are LaTeX rendered to inline SVG by `scripts/docs/texsvg.py`, cached beside
    the page (`contact_overview_page.render_tex` shows the `$...$` / `$$...$$` convention); never a
    monospace font (global rule "Mathematics and algorithms").
 2. **The output file** `docs/experiments/<YYYYMMDD-topic>/<YYYYMMDD-name>.html`. Date-prefix the
@@ -166,14 +166,14 @@ The pattern, followed by every page in `docs/experiments/INDEX.md`:
    its numbers in a sentence or two (`docs-status` only for a retracted or superseded page). The builder sets them with
    `docs_index.tag(html, topic=..., summary=...)` before writing; a page written without them gets its folder's topic
    and the first two sentences of its lede. **The indices follow the pages**: when a builder that wrote a page under
-   `docs/experiments/` exits, `retro_style` runs `scripts/docs_index.py`, which tags the page and rewrites
+   `docs/experiments/` exits, `retro_style` runs `scripts/docs/docs_index.py`, which tags the page and rewrites
    `docs/experiments/INDEX.md` (one row per page: date, topic, title and summary, local file, artifact),
    `docs/index.html` (the newest pages), `docs/pages.html` (a search over titles and summaries), the index tables of the
-   topic overviews and `docs/pages.json`. Commit those files with the page; `python3 scripts/docs_index.py` reruns it
+   topic overviews and `docs/pages.json`. Commit those files with the page; `python3 scripts/docs/docs_index.py` reruns it
    by hand. Never edit an INDEX.md row by hand: change the page's tags or lede and rebuild. The same refresh rewrites
-   `docs/changelog.html` (`scripts/docs_changelog.py`, owner 2026-11-02): every page's commits, newest first, each with a
+   `docs/changelog.html` (`scripts/docs/docs_changelog.py`, owner 2026-11-02): every page's commits, newest first, each with a
    one-line summary and links to the commit and to that version on GitHub; curated one-liners go in
-   `scripts/docs_changelog_notes.json`.
+   `scripts/docs/docs_changelog_notes.json`.
 4. **The artifact**, a copy of that file published to claude.ai. Updating a page means editing
    the local file and republishing to the **same URL** — never a second artifact for one result.
    The home page `docs/index.html` and the topic overviews `docs/overviews/<topic>.html` are the
@@ -186,15 +186,15 @@ results that live only on claude.ai. Titles are descriptive noun phrases in the 
 `paper/hand_iros26-4.pdf` — not images, not phrases, no cute half after a colon.
 
 Copy the newest builder + template as the starting point; they carry the table and figure components.
-**Page style (owner, 2026-10-09):** the plain 1990s-homepage look of `scripts/retro_style.py` (Times on white,
+**Page style (owner, 2026-10-09):** the plain 1990s-homepage look of `scripts/docs/retro_style.py` (Times on white,
 default link colours, 1px black rules); builders call `retro_style.apply(html)` before writing. Figures are
 centred and chart text is at least 13 px as displayed.
 
 **Films (owner, asked three times; last 2026-10-12: "you should have been generating videos", "make sure to keep the
 visuals, figures really beautiful"):** every result page and every topic overview shows the behaviour it reports as film,
-not only as numbers. Topic overviews take `film=` figures (`scripts/topic_overview_page.py`: clips side by side under label
+not only as numbers. Topic overviews take `film=` figures (`scripts/docs/topic_overview_page.py`: clips side by side under label
 bars, panels cropped out of multi-panel films); bed tasks film several models at once with
-`scripts/contact_bed_candidates.py film-compare`. Look at every figure and poster frame at its displayed size before
+`scripts/contact/contact_bed_candidates.py film-compare`. Look at every figure and poster frame at its displayed size before
 committing it.
 
 ## Documentation — where things go (keep all three in sync for real work)
@@ -216,12 +216,12 @@ committing it.
 - **Contact tutorial deck 23** (`/home/humanoid/wxie_workspace/contact/tutorial/slides/23_soft_fingertip_contact.html`,
   its own repository) explains the contact overview step by step. When an edit to the contact model docs changes a
   derivation, a number the deck quotes, the default fingertip or a section of `docs/overviews/contact_model.html`, check
-  the deck (owner, 2026-10-14: "i also don't want the slides to get stale"). `python3 scripts/contact_overview_page.py`
+  the deck (owner, 2026-10-14: "i also don't want the slides to get stale"). `python3 scripts/docs/contact_overview_page.py`
   prints the commits since the deck last took its numbers (`--deck-check` prints only that); update the deck under that
   repository's AGENTS.md, or set `DECK_CHECKED` in the builder when nothing in the deck changes.
 - **Status page of the printed-fingertip work** (owner, 2026-10-18: "we need a good local docpage"; "it should be a standard
   docpage html grouped/associated with this printing work"): `docs/experiments/20261018-printed_fingertip_status/
-  20261018-printed_fingertip_and_dip_link_status.html`, built by `scripts/printed_fingertip_status_page.py` from the folder's
+  20261018-printed_fingertip_and_dip_link_status.html`, built by `scripts/fingertip/printed_fingertip_status_page.py` from the folder's
   `status.json` (curated: requests and their state, findings, decisions waiting on the owner) and live blocks (jobs and logins,
   prints at the chosen seat, DIP renders, recent pages, commits, resguard events). A window or autopilot that finishes a step of
   this work updates its row in `status.json` and rebuilds; a window about to be compacted brings it up to date first.
@@ -246,11 +246,11 @@ committing it.
    make the hand geometry deployable.
 1. **Monitor IN-TRAINING metrics, not just final reward.** Aggregate reward/tip-lost/held-object
    *hide* degeneracy (late/idle finger, 2-finger pinch, jitter, de-centering, over-clamp). Use the
-   **trajectory-health scorecard** (`src/morphohand/rl/trajectory_health.py`, baked into handoff
-   eval + `scripts/policy_healthcheck.py`) and per-run **watchdogs** (object-height collapse).
+   **trajectory-health scorecard** (`src/sr2hand/rl/trajectory_health.py`, baked into handoff
+   eval + `scripts/rl/policy_healthcheck.py`) and per-run **watchdogs** (object-height collapse).
    Judge policies on the **deterministic held-cos**, never reward sums.
 2. **LOOK at a finished policy before you explain its numbers** — skill **`policy-eyes`**.
-   `scripts/policy_filmstrip.py --run <run>` tiles phase-aligned frames from the run's own eval
+   `scripts/rl/policy_filmstrip.py --run <run>` tiles phase-aligned frames from the run's own eval
    video into one PNG; **read the PNG**, then get the signed per-step trace. The reward table is
    sign-blind and timing-blind: a "policy that won't rotate" was rotating hard to the **wrong
    pole** (held-cos −0.449), and a "too-weak reorient reward" was gated at step 65 for a rotation
@@ -261,14 +261,14 @@ committing it.
 3. **Train reorientation WITHOUT skipping the lift.** A skip-lift (teleport-spawn) reorienter is
    out-of-distribution at the A→B handoff seam and drops the object. Use the **live-A reset** (a
    frozen Policy A drives the real lift 0..onset; B's pre-onset steps are PPO-masked) so B sees the
-   *organic* delivery. (`scripts/train_handoff_liveA_reset.sh`, `live_a_runner.py`.)
+   *organic* delivery. (`scripts/rl/train_handoff_liveA_reset.sh`, `live_a_runner.py`.)
 4. **Generate morphologies with FROZEN morphology parameters.** The base scene's morphology joints
    drift during rollout → linkage drift contaminates eval. **Freeze the scene**
    (`freeze_scene_for_eval`) before grasp/policy evaluation; `generate_morphology_xml.py` bakes the
    9-param design into fixed geometry.
 5. **IK-retarget the grasp keyframe across morphologies** (world-frame fingertips, NOT joint-space).
    A repositioned/lengthened finger with the baseline joint angles lands its tip in the wrong world
-   spot → spurious "2-finger / ungraspable" verdicts. `scripts/retarget_keyframe_ik.py` writes an
+   spot → spurious "2-finger / ungraspable" verdicts. `scripts/design/retarget_keyframe_ik.py` writes an
    `open_ik` keyframe; CEM seeds from it and the RL env must use it via **`--open-finger-from-keyframe`**
    (both the reset pose AND the LerpFinger start), or the grip is wrong and the object drops.
 6. **Retrain Policy A from scratch per morphology** — do NOT warmstart it. A warmstarted A loads a
@@ -301,20 +301,25 @@ committing it.
   too. Files inside inherit the folder's date; don't re-date each file.
 - **A/B policy registry:** `aNN` = lift/deliver, `bNN` = reorient (b01–b13 published; b14+
   chronological), `bx_` = uncanonized exploration. The **single source of truth is
-  `scripts/rename_results_bids.sh`** (edit its `MAP`, run `--apply`; it renames run dirs, rewrites
+  `scripts/rl/rename_results_bids.sh`** (edit its `MAP`, run `--apply`; it renames run dirs, rewrites
   path refs, and regenerates `results/rl/REGISTRY.md`). Current reference policies: **a10** (native
   lift on the co-designed m05 hand) → **b33** (its reorient; `handoff_m05_FIXED.mp4`). Use these IDs
   everywhere, never the old P1/P2/v2 schemes.
-- Morphology co-design pipeline: `scripts/morph_pipeline_sweep.py` (health-gated per-design A→B,
-  resumable) + `scripts/morph_pipeline_plots.py`.
+- Morphology co-design pipeline: `scripts/design/morph_pipeline_sweep.py` (health-gated per-design A→B,
+  resumable) + `scripts/design/morph_pipeline_plots.py`.
 - **Trainer recipes (2026-07-09):** `rl_train_cube.py --recipe <name>` loads
   `configs/recipes/<name>.yaml` (blessed: `a_lift`, `b_liveA`, `b_liveA_imit`) as defaults — CLI
   flags still win, unknown keys are fatal. The train/deploy parity knobs (gotcha #13:
   `finger_residual_scale`, easing, contact gate) live THERE; never re-type them as flag soup.
   The object-height collapse watchdog is trainer-side (`--watchdog-collapse-z`, writes
-  `<log>.COLLAPSED`); shared study plumbing = `morphohand.studies.runlib`; deploy-time env/actor
-  builders = `morphohand.rl.deploy`.
+  `<log>.COLLAPSED`); shared study plumbing = `sr2hand.studies.runlib`; deploy-time env/actor
+  builders = `sr2hand.rl.deploy`.
 - **Workspace layout (2026-07-08):** run logs / sentinels / pids → `logs/` (gitignored; never the
   repo root), experiment summaries (.txt/.json/tables) → `docs/experiments/` (tracked), free-form
-  notes → `docs/notes/`. `scripts/` holds only the active scripts (map: `scripts/README.md`);
-  superseded ones live in `scripts/archive/` — resurrect by moving back, don't run in place.
+  notes → `docs/notes/`. **Scripts (2026-11-03):** one folder per topic under `scripts/` (`docs`, `design`,
+  `hom`, `mechanisms`, `hardware`, `contact`, `fingertip`, `ur5`, `cad`, `rl`); the map `scripts/README.md` is
+  written by `scripts/docs/scripts_map.py`. A new script goes in the folder of its topic and starts with
+  `sys.path.insert(0, str(Path(__file__).resolve().parents[1]))` and `import _paths`, which puts every folder and
+  `src/` on `sys.path`, so scripts import each other by bare name; `scripts/docs/check_scripts.py` checks the
+  imports and paths. `scripts/MOVED.tsv` maps the paths before 2026-11-03. Unused scripts go to
+  `scripts/archive/` — resurrect by moving back, don't run in place.

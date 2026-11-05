@@ -1,6 +1,6 @@
 #!/bin/bash
 # Owner, 11-03 18:1x: "yea, let's send it on these tasks ... we can try out multiple scores". The three scores of
-# scripts/hom_grasp_refine.py (S1 the best of 16 grasps at default HOM; S2 the grasp refined by CEM; S3 the grasp, the
+# scripts/hom/hom_grasp_refine.py (S1 the best of 16 grasps at default HOM; S2 the grasp refined by CEM; S3 the grasp, the
 # commanded forces and the contact modes refined together by CEM):
 #   1. the SCS0009 plant with pads at 2.5 MPa (sv25): 60 layouts per task (30 best by S1, 30 at random), 8 iterations;
 #   2. the STS3032 at kp 2.1 with scene friction 1.0 (k21), then 0.4 (k21mu0p4, TPU on bare PLA) on the same 30 layouts
@@ -26,7 +26,7 @@ step() {   # name, then hom_grasp_refine.py's arguments; a finished step leaves 
   local name=$1 rc; shift
   if [ -e $L/Q_$name.done ]; then echo "$(date +%T) $name done before"; return 0; fi
   echo "$(date +%T) $name"
-  job 5G 500 /usr/bin/time -f "peak %M kB, %e s" .venv/bin/python scripts/hom_grasp_refine.py "$@" > $L/Q_$name.log 2>&1
+  job 5G 500 /usr/bin/time -f "peak %M kB, %e s" .venv/bin/python scripts/hom/hom_grasp_refine.py "$@" > $L/Q_$name.log 2>&1
   rc=$?
   if [ $rc -eq 0 ]; then touch $L/Q_$name.done; else echo "$(date +%T) $name failed (exit $rc)"; fi
   return $rc

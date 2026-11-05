@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """tag36h11 id 6 in the owner's side photo of 2026-11-04 and in a frontal render of the full model (run with
 ~/miniconda3/bin/python, which has pupil_apriltags and cv2). Writes tag_in_photo.json beside this file. The camera's focal
-length is the fit of scripts/cad_v3_film.py clocking on the other photo, taken with the same phone at the same size.
+length is the fit of scripts/cad/cad_v3_film.py clocking on the other photo, taken with the same phone at the same size.
 
     ~/miniconda3/bin/python docs/experiments/20261104-cad_v3_hand/analysis/tag_in_photo.py
 """

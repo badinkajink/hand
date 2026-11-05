@@ -13,7 +13,7 @@ re-exported from its saved pilot scene and selected operating cell with a per-jo
 
 A plan is runnable only if it passes all of the following:
 
-1. export through `scripts/real_v1_export_plan.py`, with `budget_rad: 1.0` recorded in metadata;
+1. export through `scripts/hardware/real_v1_export_plan.py`, with `budget_rad: 1.0` recorded in metadata;
 2. both the three-set-point chord and the 50 Hz CSV trajectory maintain at least 5 mm simulated
    finger-to-finger clearance at eight interpolation substeps;
 3. `manta_hand.plan.HandPlan` reports no measured-rail or servo-command violation;
@@ -45,5 +45,5 @@ retain their existing warnings.
   finalists and the two saved anchors.
 - [`validation.json`](validation.json): compact gate results and final dispositions.
 
-`scripts/real_v1_export_plan.py` now accepts `--tag` and writes `meta.budget_rad`, so future budget
+`scripts/hardware/real_v1_export_plan.py` now accepts `--tag` and writes `meta.budget_rad`, so future budget
 exports no longer depend on manual renaming to preserve their provenance.

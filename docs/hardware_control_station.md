@@ -1,4 +1,4 @@
-# MorphoHand hardware control station
+# SR² Hand hardware control station
 
 Operator runbook for the `real_v1` hand. The browser and any policy inference run on the
 workstation; one service on the CB1 owns both serial links. Open-loop trajectories are timed on
@@ -43,7 +43,7 @@ references for the missing ones is an out-of-distribution test, not deployment.
 ## Trying it without hardware
 
 ```bash
-PYTHONPATH=src/morphohand/driver/manta/host python -m manta_hand.web --fake --port 8765
+PYTHONPATH=src/sr2hand/driver/manta/host python -m manta_hand.web --fake --port 8765
 ```
 
 `--fake` runs the **real** driver stack against a simulated M8P on a pty and a simulated servo
@@ -54,6 +54,10 @@ exercises none of the driver code.
 `--fake-stall-axes` defaults to `0,1,2,4`, matching the real hand.
 
 ## CB1 install
+
+The CB1's checkout (`~/hand`, never pulled) keeps the package's old folder `src/morphohand/`, so the
+commands run on the CB1 use it; on the workstation the folder is `src/sr2hand/` since 2026-11-03. A file shipped from
+`src/sr2hand/driver/manta/host/` goes to the same place under the CB1's `src/morphohand/driver/manta/host/`.
 
 Debian's system Python is externally managed; do not use `--break-system-packages`.
 
@@ -93,7 +97,7 @@ sudo nmcli connection modify "Wired connection 1" +ipv4.addresses 10.99.99.50/24
 ### 1. Tracker companion, on the workstation (once per boot, not per trial)
 
 ```bash
-scripts/run_tracker_service.sh start          # also: stop | restart | status | log
+scripts/hardware/run_tracker_service.sh start          # also: stop | restart | status | log
 ```
 
 That is the whole command. The launcher sources `.dotenv`, resolves the repo from its own
@@ -116,7 +120,7 @@ hand anyway, export the token first — assignment is not export:
 
 ```bash
 set -a && . /home/humanoid/Programs/hand/.dotenv && set +a
-~/miniconda3/bin/python scripts/real_v1_tracker_service.py --host 10.99.99.50 --port 8770 \
+~/miniconda3/bin/python scripts/hardware/real_v1_tracker_service.py --host 10.99.99.50 --port 8770 \
   --tracker-arg=--width --tracker-arg=1280 --tracker-arg=--height --tracker-arg=800 \
   --tracker-arg=--fps --tracker-arg=30
 ```
@@ -136,14 +140,14 @@ the tag on the axis where trials are lost.
 folds cos to [0,1], so a tool standing on its handle scores the same as one standing on its tip.
 It is `store_true` with no negating flag, and `BENCH_DEFAULTS` is prepended, so it cannot be
 turned off from the command line — for screwdriver work edit `BENCH_DEFAULTS` in
-`scripts/real_v1_tracker_service.py` (or add a `--no-symmetric-object` to
-`scripts/real_v1_tag_tracker.py`, which does not exist yet).
+`scripts/hardware/real_v1_tracker_service.py` (or add a `--no-symmetric-object` to
+`scripts/hardware/real_v1_tag_tracker.py`, which does not exist yet).
 
 Optional pre-flight, one frame and exit — with `--tag-end` it *checks* the sign of
 `--shaft-axis` rather than narrating it:
 
 ```bash
-~/miniconda3/bin/python scripts/real_v1_tag_tracker.py --probe \
+~/miniconda3/bin/python scripts/hardware/real_v1_tag_tracker.py --probe \
   --exposure 4000 --gain 64 --shaft-axis=-x --tag-end top --symmetric-object --heading-deg 90
 ```
 
@@ -218,7 +222,7 @@ Notes on the other flags:
 
 There is no filesystem share and no push helper: the CB1 holds only what was copied. As of
 2026-09-08 the served directory holds all eight hands of the transfer study, each re-checked
-against `scripts/real_v1_trajectory_clearance.py` (finger<->finger, PASS >= 5.0 mm):
+against `scripts/hardware/real_v1_trajectory_clearance.py` (finger<->finger, PASS >= 5.0 mm):
 
 | plan | id | chord | csv |
 |---|---|---|---|
@@ -249,7 +253,7 @@ the browser does the rest. To serve those files locally anyway:
 
 ```bash
 python3 -m http.server 8766 --bind 127.0.0.1 \
-  --directory src/morphohand/driver/manta/host/manta_hand/static
+  --directory src/sr2hand/driver/manta/host/manta_hand/static
 # then: http://127.0.0.1:8766/?api=http://10.99.99.2:8765&token=<MANTA_TOKEN>
 ```
 
@@ -391,7 +395,7 @@ stale** — check `telemetry.servo_age_s` before believing it.
 Replay a run's exact host command timing into the plan's exported scene:
 
 ```bash
-uv run --extra rl python scripts/replay_real_v1_hardware_log.py \
+uv run --extra rl python scripts/hardware/replay_real_v1_hardware_log.py \
   --log logs/hardware/<run>.jsonl \
   --plan docs/experiments/20260829-real_v1_deploy/deploy/g12_plan.json \
   --out logs/hardware/<run>_sim.npz

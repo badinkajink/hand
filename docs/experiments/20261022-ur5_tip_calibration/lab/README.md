@@ -56,14 +56,14 @@ corvus has one wired port, `enp3s0`, which takes 192.168.0.5 from the lab router
   The profile does not keep it, so a reboot or a reconnect drops it. On 2026-10-23 the internet stayed up throughout.
 - **Find an ATI box at an unknown address with ATI's discovery**, not with sweeps:
 
-      /usr/bin/python3 scripts/ati_netft_discover.py --iface-ip 192.168.0.5
+      /usr/bin/python3 scripts/ur5/ati_netft_discover.py --iface-ip 192.168.0.5
 
   It broadcasts to UDP 51000, and each box answers on the multicast group 224.0.5.128:28250 with its address, mask and
   MAC. On 2026-10-23, sweeps of 192.168.0.x, 192.168.1.x, 169.254.x.x and IPv6 all missed the box at 192.168.123.50,
   and the workstation found it this way.
 - **Then check the box:** `ping 192.168.123.50` and `curl http://192.168.123.50/`. Its web pages hold the settings;
   `comm.htm` has DHCP and RDT. Pass the address to both ATI tools, which default to 192.168.1.1:
-  `scripts/ati_netft_logger.py --ip 192.168.123.50` and `scripts/ati_calibration_session.py --ati 192.168.123.50`.
+  `scripts/ur5/ati_netft_logger.py --ip 192.168.123.50` and `scripts/ur5/ati_calibration_session.py --ati 192.168.123.50`.
 - **ATI's defaults** (manual 9620-05-NET FT-23): DHCP on, falling back to the static 192.168.1.1 after 30 s with no
   DHCP answer. DIP switch 9 on forces 192.168.1.1. PoE is IEEE 802.3af class 0, Mode A only (power on the data pairs),
   6 W at most; the alternative is 11 to 25 V DC on the M12 Pwr/CAN connector. The box is up when its MS and Xdcr
@@ -142,7 +142,7 @@ x_I along the tool axis toward the tip at homing).
 It tares the HEX-E at rest before each move, then calls `stopL` if the force changes past the move's limit. The limits
 are 3 N for travel, 2 N for the final approach, and 25 N for lifting off a key: a hand seating leaves the hand's push on
 the drafted key, and its release first tripped a 3 N limit. Before any motion it checks the clearances of every robot
-link and tool part against both indenters, the 2x4 and the table (scripts/ur5_cb3_cell.py). The cell model draws each
+link and tool part against both indenters, the 2x4 and the table (scripts/ur5/ur5_cb3_cell.py). The cell model draws each
 key as a solid block, so the fork overlaps it in the model until 10 mm of lift. That check is waived for the lift-off
 alone.
 
@@ -151,7 +151,7 @@ alone.
 `20261022-plan_sphere_measured_rod.json`, built here in 61 s:
 
 ```
-/usr/bin/python3 scripts/ur5_tip_calibration_plan.py --indenter sphere --placement=-138.5,-595.6,70.8,-92.3 \
+/usr/bin/python3 scripts/ur5/ur5_tip_calibration_plan.py --indenter sphere --placement=-138.5,-595.6,70.8,-92.3 \
     --block 38 --block-half 55,500 --mount-turn=-92.15 --other=rod,-289.5,-585.5,70.3,-94.07 \
     --out docs/experiments/20261022-ur5_tip_calibration/lab/20261022-plan_sphere_measured_rod.json
 ```
@@ -201,7 +201,7 @@ the plan or the seating is a git-lfs pointer. Written out:
 
 ```
 PY=/usr/bin/python3
-P=src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py
+P=src/sr2hand/driver/reskin5x/host/ur5_tip_calibration.py
 PLAN=docs/experiments/20261022-ur5_tip_calibration/lab/20261022-plan_sphere_measured_rod.json
 SEAT=docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl:left_indenter_seated   # not HOME: that would change $HOME
 FT="--ft 192.168.0.6"          # --ft-rate 100 --ft-filter 3 are the defaults now
@@ -214,7 +214,7 @@ FT="--ft 192.168.0.6"          # --ft-rate 100 --ft-filter 3 are the defaults no
 3. Dry run: `$PY $P --plan $PLAN $FT --home-from $SEAT --dry 15 --name dry`. Start it at 30 %. Raise the slider to
    100 % (`rtde_io.RTDEIOInterface('192.168.0.4').setSpeedSlider(1.0)`) once the first actions pass.
 4. Session: `$PY $P --plan $PLAN $FT --home-from $SEAT --name sphere1`. Resume with `--resume logs/<date>-tip_calibration/<time>-sphere1`.
-5. Light analysis runs here (`scripts/ur5_tip_calibration_analysis.py`). The session folder and its results go to the
+5. Light analysis runs here (`scripts/ur5/ur5_tip_calibration_analysis.py`). The session folder and its results go to the
    repository. The heavy simulation goes to the work computer.
 
 The program aborts an action on any of these: a load over 10 N or 1.5 N m in a press, over 8 N in travel, no HEX-E

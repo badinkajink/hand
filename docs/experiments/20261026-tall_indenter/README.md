@@ -8,7 +8,7 @@ presses rise from 60 to 88 of 492 points, 1.47 times, short of the doubling that
 flank points still out of reach, 364 fail on joints 5 and 6 at every turn, whatever the indenter. Printed solid, the
 column gives 0.004 to 0.005 mm/N laterally at the sphere's centre, against 0.0009 mm/N for the present indenter.
 
-Specification: `20261026-tall_indenter_spec.md`. Builder: `scripts/tall_indenter.py`, from the numbers in
+Specification: `20261026-tall_indenter_spec.md`. Builder: `scripts/ur5/tall_indenter.py`, from the numbers in
 `ur5_cb3_cell.TALL`, which the cell's clearance checks and `ur5_tip_calibration_plan.py --indenter tall` read too.
 
 ![The part](media/20261026-tall_indenter_part.png)
@@ -141,7 +141,7 @@ To go into `../20261022-ur5_tip_calibration/QUEUE.md` once the indenter is print
 
 ## Future work
 
-- Flank coverage: rerun `scripts/tall_indenter.py reach --kind tall --j6=-95,95` after the HEX-E's cable is rerouted for a
+- Flank coverage: rerun `scripts/ur5/tall_indenter.py reach --kind tall --j6=-95,95` after the HEX-E's cable is rerouted for a
   wider joint 6; at ±95 deg the flank presses reach 115 of 492. A count under 100 with the reroute in place falsifies the
   cable as the limit.
 - A seat check on the robot: ten seatings by hand, each recorded; their spread in roll under 0.15 deg and along the

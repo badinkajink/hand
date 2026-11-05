@@ -5,11 +5,11 @@ interpolate? if not, is there some rule we can establish (pareto front) for when
 optimal, vs when we really should switch morphologies". 22:3x: "we shouldnt consider time, only performance. for desired
 performance, we should be able to mathematically formulate the blend vs switch decision, given the current layout".
 
-The page is `20261104-hom_task_conflict.html` beside this file, built by `scripts/hom_task_conflict_page.py`.
+The page is `20261104-hom_task_conflict.html` beside this file, built by `scripts/hom/hom_task_conflict_page.py`.
 
 ## What runs
 
-`scripts/hom_task_conflict.py` (its docstring defines every quantity):
+`scripts/hom/hom_task_conflict.py` (its docstring defines every quantity):
 
 | command | what it does | output |
 |---|---|---|
@@ -35,7 +35,7 @@ nohup setsid bash docs/experiments/20261103-hom_task_conflict/queue_refine.sh >>
 
 `queue.sh` validates the three plants (9,300 rollouts each; 2026-11-04 02:20-02:41). `queue_refine.sh` waits for it,
 then runs per task the S2 search, the S3 search and the validation of the three picks on the shared layouts, then the
-report. Do not edit `scripts/hom_task_conflict.py` while a queue runs: every step and every spawned batch child
+report. Do not edit `scripts/hom/hom_task_conflict.py` while a queue runs: every step and every spawned batch child
 imports it.
 
 ## Files
@@ -52,7 +52,7 @@ imports it.
 ## Compute tracking
 
 Every GPU batch writes its timing line beside its rows; each validation run and each search iteration writes a JSON
-line (`_runs.jsonl`, `_iters.jsonl`); each queue step ends its log with `peak <kB> kB, <s> s`. `scripts/hom_compute.py
+line (`_runs.jsonl`, `_iters.jsonl`); each queue step ends its log with `peak <kB> kB, <s> s`. `scripts/hom/hom_compute.py
 ledger` includes `rows/` and `rows_refine/` from 2026-11-04 (`task_conflict_study` in the ledger).
 
 ## Outcome (2026-11-04)

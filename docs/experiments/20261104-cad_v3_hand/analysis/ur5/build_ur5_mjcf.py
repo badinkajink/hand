@@ -21,7 +21,7 @@ import numpy as np
 
 ROOT = Path("/home/humanoid/Programs/hand")
 sys.path.insert(0, str(ROOT / "src"))
-from morphohand.geometry import rotations as R  # noqa: E402
+from sr2hand.geometry import rotations as R  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 UR = Path.home() / "Programs/rh56_controller/magpie_force_control/src/ur_description"
@@ -91,7 +91,7 @@ def lab_tool_down():
 def hand_down(q0):
     """The tool axis straight down (-z_B) at tool_down's flange x, y and z_B 400 mm, x_tool0 along the horizontal part
     of tool_down's: the joints by the nominal DH's IK nearest q0 (a computed pose, never measured on the robot)."""
-    sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
+    sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
     import ur5_tip_calibration_sim as SIM
     T0 = SIM.fk(np.asarray(q0, float))
     x = T0[:3, 0].copy()

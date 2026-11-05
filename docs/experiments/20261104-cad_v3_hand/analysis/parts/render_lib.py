@@ -1,7 +1,7 @@
 """Render groups of extracted solids (logs/20261104-cad_v3/extract) with MuJoCo (EGL) and label them with matplotlib.
 
 Each render is a static MJCF of the STLs in their file's frame (mm, scaled to m), one colour per part, viewed by MuJoCo's
-free camera; labels are drawn at the projection of each part's centre of mass (morphohand.geometry.vectors)."""
+free camera; labels are drawn at the projection of each part's centre of mass (sr2hand.geometry.vectors)."""
 from __future__ import annotations
 
 import json
@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import mujoco
 import numpy as np
 
-from morphohand.geometry.vectors import project_free_camera
+from sr2hand.geometry.vectors import project_free_camera
 
 R = Path("/home/humanoid/Programs/hand")
 PARTS = json.load(open(R / "logs/20261104-cad_v3/extract/parts.json"))["parts"]

@@ -1,0 +1,147 @@
+<title>Changing grasp without releasing the tool: relay hand-over and relay gait</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E;
+  --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E;
+  --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;padding:0 20px 96px}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th,.chip b{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+header{padding:72px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(34px,5.4vw,56px);line-height:1.02;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:16ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+  margin:34px 0 8px}
+.stat{background:var(--card);padding:16px 18px}
+.stat b{display:block;font:700 27px/1.1 Archivo,sans-serif;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.stat span{display:block;margin-top:5px;font:400 12.5px/1.4 "IBM Plex Mono",monospace;
+  color:var(--ink3)}
+
+section{padding:52px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:29px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 26px}
+h3{font-size:18.5px;font-weight:600;letter-spacing:-.008em;margin:34px 0 10px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+a{color:var(--ink);text-decoration-color:var(--s1);text-underline-offset:3px}
+ul{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+
+.phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:8px;
+  margin:26px 0 30px}
+.chip{background:var(--card);border:1px solid var(--rule);border-radius:8px;
+  padding:11px 13px;box-shadow:var(--shadow)}
+.chip i{display:block;font:500 10.5px/1 "IBM Plex Mono",monospace;color:var(--ink3);
+  letter-spacing:.1em;font-style:normal}
+.chip b{display:block;font-size:15px;font-weight:600;margin:6px 0 3px}
+.chip span{font:400 12px/1.4 "IBM Plex Mono",monospace;color:var(--ink2);
+  font-variant-numeric:tabular-nums}
+
+figure{margin:30px 0}
+figure img,figure video{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
+  max-width:78ch}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px}
+/* Tables, charts and media are wider than the 70ch reading measure; let them run out to the
+   full page width instead of scrolling inside it. */
+.col > .tw,.col > figure,.col > .pair,.col > pre{width:min(1020px,calc(100vw - 40px));
+  max-width:none}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:760px){.pair{grid-template-columns:1fr}}
+.ax line{stroke:var(--rule);stroke-width:1}
+.ax .grid{stroke:var(--rule2)}
+.rule{stroke:var(--rule);stroke-width:1;stroke-dasharray:3 4}
+.tick{font-size:12.6px;fill:var(--ink3)}
+.axlab{font-size:12.6px;fill:var(--ink3)}
+.val{font-size:12.6px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:13px;font-weight:500}
+.mark{font-size:12.6px;fill:var(--ink3)}
+.note{font-size:12.6px;fill:var(--ink3)}
+
+.tw{overflow-x:auto;margin:26px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+
+.callout{border-left:3px solid var(--s1);background:var(--card);border-radius:0 10px 10px 0;
+  padding:18px 22px;margin:28px 0;box-shadow:var(--shadow)}
+.callout p:last-child{margin-bottom:0}
+.callout .tag{display:block;font:600 11px/1 Archivo,sans-serif;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--s1);margin-bottom:9px}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font:400 13px/1.7 "IBM Plex Mono",monospace;color:var(--ink2);margin:20px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+pre code{background:none;padding:0}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">SR&#178; Hand &middot; real_v1 &middot; 2026-09-03</div>
+  <h1>Changing grasp without releasing the tool: relay hand-over and relay gait</h1>
+  <p class="lede">On <code>rv05_manual_stored</code> in simulation, a relay hand-over that moves one pad at a time
+onto the gait&rsquo;s ring, followed by a gait that also releases one finger at a time, completes 6 of 6 seeds with
+{{FREE_RELAY}}&nbsp;% of the task uncontacted, against {{FREE_FULL}}&nbsp;% when the hand opens and retakes the tool. It
+turns the tool {{DEG_RELAY}}&#176; per cycle against {{DEG_FULL}}&#176;. Under a steady lateral load, keeping contact
+gains nothing on a flat floor and holds the tool in a 45&#176; countersink. In the countersink {{SEAT_OK}} seeds hold at a 30&#176; load, where
+the release chain fails by 16&#176;.</p>
+  <div class="byline">{{NCELLS}} rollouts &middot; rv05_manual_stored &middot; MuJoCo 3.6 &middot; CPU</div>
+  <div class="stats">{{STATS}}</div>
+</header>
+
+{{BODY}}
+
+<footer>
+  <p>Scripts: <code>probe_real_v1_chain.py</code> (<code>--reindex</code>, <code>--relay-gait</code>,
+<code>--relay-squeeze</code>, <code>--tilt-deg</code>), <code>real_v1_handover_study.py</code>; page by
+<code>scripts/mechanisms/real_v1_handover_page.py</code>. Data: <code>handover_study.json</code> in this folder. Related pages:
+<a href="../20260903-real_v1_chain/20260903-real_v1_chain_and_countersink.html">carry-to-gait seam and countersink</a>,
+<a href="../20260902-real_v1_gait/20260902-real_v1_gaiting.html">ground-supported gaiting</a>.</p>
+</footer>
+</div>

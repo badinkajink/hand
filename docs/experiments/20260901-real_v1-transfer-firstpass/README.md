@@ -1,6 +1,6 @@
 # Open-loop transfer, first pass — 8 morphologies, 77 bench trials, 2026-09-01
 
-Reproduce with `uv run --extra rl python scripts/real_v1_transfer_figures.py`.
+Reproduce with `uv run --extra rl python scripts/hardware/real_v1_transfer_figures.py`.
 Figure: `transfer_firstpass.png`. Per-trial data: `data.json`. Stats: `stats.txt`.
 
 77 trials survive the scoring rules (see the module docstring in the script): the last ten per

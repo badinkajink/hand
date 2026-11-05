@@ -6,8 +6,8 @@ exposure/gain sweep that picked 4000 us / gain 64 — auto-exposure had settled 
 the reference tag stops decoding, and the smear column is what ruled out the longer exposures.
 `track_tags.py` is the original one-file probe, kept as it was written.
 
-**The maintained tool is `scripts/real_v1_tag_tracker.py`**, and the geometry it uses lives in
-`morphohand.bench.tags` where it can be unit-tested without a camera. Use this directory for
+**The maintained tool is `scripts/hardware/real_v1_tag_tracker.py`**, and the geometry it uses lives in
+`sr2hand.bench.tags` where it can be unit-tested without a camera. Use this directory for
 re-running the bring-up (`--probe`, the exposure sweep, reprinting the sheet); use the script in
 `scripts/` for anything whose numbers you intend to keep. What the maintained version adds, and
 why, is in

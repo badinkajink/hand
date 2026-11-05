@@ -25,7 +25,7 @@ station logs both sides of that assumption. Per joint, over the whole turn:
 | `sv1_u0100` | 12 | **−0.00** | −0.08 | 0.55 | 0.60 | **0.56** | 0.69 | 0.99 |
 
 (medians; per-run values in [`commanded_vs_achieved.json`](commanded_vs_achieved.json),
-regenerate with `scripts/real_v1_bench_arrival.py --logs logs/`.)
+regenerate with `scripts/hardware/real_v1_bench_arrival.py --logs logs/`.)
 
 Three things in that table matter.
 

@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _record_with_fake_camera(out: Path) -> None:
     sys.path.insert(0, str(ROOT / "scripts"))
+    import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
     import real_v1_tag_tracker as tracker
 
     class Pipe:

@@ -20,7 +20,7 @@ import trimesh
 
 ROOT = Path("/home/humanoid/Programs/hand")
 sys.path.insert(0, str(ROOT / "src"))
-from morphohand.geometry import rotations as R  # noqa: E402
+from sr2hand.geometry import rotations as R  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 UR = Path.home() / "Programs/rh56_controller/magpie_force_control/src/ur_description"

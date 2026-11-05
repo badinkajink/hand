@@ -1,5 +1,5 @@
 [project]
-name = "morphohand"
+name = "sr2hand"
 version = "0.1.0"
 description = "Multi-backend morphology optimization + RL stack for a 3-finger hand"
 readme = "README.md"

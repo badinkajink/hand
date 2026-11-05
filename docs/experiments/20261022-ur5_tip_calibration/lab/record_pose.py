@@ -19,7 +19,7 @@ HERE = Path(__file__).resolve().parent
 PLAN = HERE / "20261022-plan_sphere_measured_rod.json"     # T_EM with the measured -92.15 deg turn
 DH = [(0.089159, 0.0, math.pi / 2), (0.0, -0.425, 0.0), (0.0, -0.39225, 0.0), (0.10915, 0.0, math.pi / 2),
       (0.09465, 0.0, -math.pi / 2), (0.0823, 0.0, 0.0)]
-TOP = {"sphere": 46.0, "rod": 42.5}         # the indenters' tops above their base (scripts/ur5_calibration_mount.py)
+TOP = {"sphere": 46.0, "rod": 42.5}         # the indenters' tops above their base (scripts/ur5/ur5_calibration_mount.py)
 
 
 def fk(q):

@@ -2,11 +2,11 @@
 
 Serial, gate-aware queue of reorientation-policy finetunes across the deployed hands on the calibrated
 plant. Results prose lives in the page (`20260919-reorient_policies_across_hands.html`, built by
-`scripts/hands_tranche_page.py`), never here.
+`scripts/rl/hands_tranche_page.py`), never here.
 
 ## Run / resume
 
-    nohup setsid python3 scripts/hands_tranche_queue.py --queue docs/experiments/20260919-hands_tranche/queue.json \
+    nohup setsid python3 scripts/rl/hands_tranche_queue.py --queue docs/experiments/20260919-hands_tranche/queue.json \
         >> logs/20260919-hands_tranche.log 2>&1 &
 
 The driver re-reads `queue.json` before each job (edit flags/status of *pending* jobs while it runs),

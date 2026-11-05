@@ -22,6 +22,7 @@ PY
 uv run python - "$TMP" "$V" "$OUT" <<'PY'
 import base64, sys, os
 sys.path.insert(0, "scripts")
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import retro_style
 tmp, V, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 assets = {"r4_video":(os.path.join(V,"r4_600steps.mp4"),"video/mp4"),

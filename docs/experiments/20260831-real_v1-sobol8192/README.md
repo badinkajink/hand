@@ -1,6 +1,6 @@
 # Sobol-8192 — the population doubles, and one new hand takes the top of the bench
 
-Ran overnight 2026-08-30 → 2026-08-31 (`scripts/real_v1_sobol8192.sh`, log
+Ran overnight 2026-08-30 → 2026-08-31 (`scripts/design/real_v1_sobol8192.sh`, log
 `logs/20260831-sobol8192.log`), then confirmed and promoted the same morning.
 
 `sobol_designs` is prefix-stable, so this is a strict **superset** of the 4,096-hand population:

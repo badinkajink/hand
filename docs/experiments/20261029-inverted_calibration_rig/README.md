@@ -91,8 +91,8 @@ in the lab's session.
 ## Regenerate
 
     RG="$HOME/.claude/bin/resguard.sh run --mem 3G --cpu 100 --"
-    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5_inverted_rig.py build                 # cad/
-    $RG .venv/bin/python scripts/ur5_inverted_rig.py replay --seat 1                         # seat 2's plan and check
+    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5/ur5_inverted_rig.py build                 # cad/
+    $RG .venv/bin/python scripts/ur5/ur5_inverted_rig.py replay --seat 1                         # seat 2's plan and check
     env -u VIRTUAL_ENV ~/.claude/bin/resguard.sh run --mem 6G --cpu 400 -- taskset -c 14-18 \
-        ~/miniconda3/envs/femtip/bin/python -u scripts/inverted_rig_print.py                 # print/
-    .venv/bin/python scripts/inverted_rig_page.py                                            # the page
+        ~/miniconda3/envs/femtip/bin/python -u scripts/ur5/inverted_rig_print.py                 # print/
+    .venv/bin/python scripts/ur5/inverted_rig_page.py                                            # the page

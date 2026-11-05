@@ -119,7 +119,7 @@ Automatic, from the two AprilTags, at 0.017 deg / 0.030 mm rms:
   that swung out of the camera's view, and that was the open question after the first five
   trials.
 - **the tape** — one IR frame every 0.25 s into `<trace>_frames/`, ~1 MB a run, assembled by
-  `scripts/real_v1_tracker_replay.py` into an annotated mp4 and a phase-aligned filmstrip. The
+  `scripts/hardware/real_v1_tracker_replay.py` into an annotated mp4 and a phase-aligned filmstrip. The
   trace says the shaft turned 55.9 deg; only the pictures say whether it pivoted about a contact
   or about the floor, whether a finger walked off its pad, and which of two equal cosines was
   carried and which was flung.
@@ -135,14 +135,14 @@ is between two different quantities.
 
 ### Stage 0 — preflight, every sitting, ~5 min
 
-1. `scripts/real_v1_tag_tracker.py --probe --exposure 4000 --gain 64 --shaft-axis=-x
+1. `scripts/hardware/real_v1_tag_tracker.py --probe --exposure 4000 --gain 64 --shaft-axis=-x
    --tag-end top --symmetric-object --heading-deg 90`. Require: both tags found,
    **id6 decision margin >= 30 on the raw image**, frame mean in 20..235, and the sign line
    reading `--shaft-axis -x is CORRECT`.
 2. Stand the tool upright (in the grip, or on the bench beside it) and re-probe. **A flat shaft
    cannot check the axis sign** — cos ≈ 0 puts the 77 mm offset horizontal and the height reads
    correctly either way — which is why the error survived until the first run stood the tool up.
-3. `scripts/real_v1_trajectory_clearance.py` for the plans in this sitting.
+3. `scripts/hardware/real_v1_trajectory_clearance.py` for the plans in this sitting.
 4. Keep the probe PNG in the session directory. It is the record of what the instrument could
    see that day.
 
@@ -212,7 +212,7 @@ A plan is excluded only by the clearance gate, decided before the study.
 
 ## 7. Pre-registered analysis
 
-Implemented in `scripts/real_v1_transfer_study.py`, which runs on partial data so the analysis
+Implemented in `scripts/hardware/real_v1_transfer_study.py`, which runs on partial data so the analysis
 can be exercised on Stage 1 before Stage 2 exists.
 
 1. **Primary.** Spearman rho between simulated `held_cos` and bench mean `cos_up`, over the 16
@@ -255,7 +255,7 @@ Start the workstation companion once per session with the study's settings baked
 cannot drift between trials:
 
 ```bash
-MANTA_TOKEN="$MANTA_TOKEN" ~/miniconda3/bin/python scripts/real_v1_tracker_service.py \
+MANTA_TOKEN="$MANTA_TOKEN" ~/miniconda3/bin/python scripts/hardware/real_v1_tracker_service.py \
   --host 10.99.99.50 --port 8770 \
   --tracker-arg --shaft-axis=-x \
   --tracker-arg --symmetric-object \
@@ -272,10 +272,10 @@ reads the spaced form as an option of its own.)
 Afterwards, render what was taped:
 
 ```bash
-~/miniconda3/bin/python scripts/real_v1_tracker_replay.py --all
+~/miniconda3/bin/python scripts/hardware/real_v1_tracker_replay.py --all
 ```
 
-`scripts/real_v1_bench_session.py` remains the tool for a sitting that needs its free-air control
+`scripts/hardware/real_v1_bench_session.py` remains the tool for a sitting that needs its free-air control
 arm, its grip-window arm, `max_u` truncation, or its self-describing manifest. Stage 2 needs none
 of those.
 

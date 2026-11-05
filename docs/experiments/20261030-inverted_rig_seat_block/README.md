@@ -92,9 +92,9 @@ As the rig's runbook, with three changes:
 ## Regenerate
 
     RG="$HOME/.claude/bin/resguard.sh run --mem 3G --cpu 100 --"
-    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5_inverted_rig.py --plate block build           # cad/
-    $RG .venv/bin/python scripts/ur5_inverted_rig.py --plate block replay --seat 1                   # seat 2's plan and check
-    $RG .venv/bin/python scripts/ur5_inverted_rig.py --plate block home-check                        # data/*_homing.json
+    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5/ur5_inverted_rig.py --plate block build           # cad/
+    $RG .venv/bin/python scripts/ur5/ur5_inverted_rig.py --plate block replay --seat 1                   # seat 2's plan and check
+    $RG .venv/bin/python scripts/ur5/ur5_inverted_rig.py --plate block home-check                        # data/*_homing.json
     env -u VIRTUAL_ENV ~/.claude/bin/resguard.sh run --mem 6G --cpu 400 -- taskset -c 14-18 \
-        ~/miniconda3/envs/femtip/bin/python -u scripts/inverted_rig_print.py --block                  # print/, one plate
-    .venv/bin/python scripts/inverted_rig_page.py                                                    # the rig's page
+        ~/miniconda3/envs/femtip/bin/python -u scripts/ur5/inverted_rig_print.py --block                  # print/, one plate
+    .venv/bin/python scripts/ur5/inverted_rig_page.py                                                    # the rig's page

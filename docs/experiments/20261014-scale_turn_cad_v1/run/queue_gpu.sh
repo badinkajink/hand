@@ -10,7 +10,7 @@ stamp() { echo "$(date '+%F %T') $*" >> $L/queue_gpu.log; }
 while pgrep -f "[h]and_object_scale_sim.py run.*20261014-scale_turn_cad_v1" > /dev/null; do sleep 30; done
 for cfg in anneal_gpu icem_gpu; do
   stamp "$cfg start"
-  WARP_CACHE_PATH=$(mktemp -d) $RG --mem 4G --cpu 200 -- .venv/bin/python scripts/hand_object_scale_planners.py run \
+  WARP_CACHE_PATH=$(mktemp -d) $RG --mem 4G --cpu 200 -- .venv/bin/python scripts/hom/hand_object_scale_planners.py run \
     --configs $cfg --cells $CELLS4 --seeds 0 1 --nthread 1 >> $L/planners_gpu.log 2>&1
   stamp "$cfg done"
 done

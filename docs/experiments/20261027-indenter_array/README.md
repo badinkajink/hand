@@ -85,7 +85,7 @@ used a 4 mm contact zone on the pad).
 
 ## Files
 
-- `scripts/indenter_array.py` (build, homing, press)
+- `scripts/ur5/indenter_array.py` (build, homing, press)
 - `cad/20261027-indenter_array.stl`
 - `20261027-indenter_array_parts.json`
 - `data/20261027-indenter_array_homing.json`, `data/20261027-indenter_array_press.json`

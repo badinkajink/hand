@@ -1,7 +1,7 @@
 #!/bin/bash
 # The analysis of the three v1 fingertips' night at rest (hand-off 20261026-three_v1_fingers_overnight, steps 2-7):
 # waits until the splitter's log has passed 04:00 on 2026-10-27, then runs every tool on 19:35-04:00 under resguard and
-# writes the rows the page builder reads (scripts/three_finger_soak_page.py) to data/. Progress goes to
+# writes the rows the page builder reads (scripts/fingertip/three_finger_soak_page.py) to data/. Progress goes to
 # logs/20261026-three_finger_mux/analysis.log; a job that resguard refuses or kills leaves its file missing, and the
 # script goes on. The viewer soak runs two jobs at a time (2.6 GB each on 7.3 h of log).
 #
@@ -9,7 +9,7 @@
 cd /home/humanoid/Programs/hand || exit 1
 LOG=logs/20261026-three_finger_mux/20261026-193314-mux.bin
 OUT=docs/experiments/20261027-three_v1_fingers_overnight/data
-H=src/morphohand/driver/reskin5x/host
+H=src/sr2hand/driver/reskin5x/host
 ST=logs/20261020-contact_estimation/stream
 PY=$HOME/miniconda3/bin/python
 VPY=.venv/bin/python

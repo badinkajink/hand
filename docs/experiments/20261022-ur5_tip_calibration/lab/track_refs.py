@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
+sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_tip_calibration as C  # noqa: E402
 
 sd = Path(sys.argv[1])

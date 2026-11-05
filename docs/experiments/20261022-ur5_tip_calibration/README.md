@@ -7,8 +7,8 @@ for a Claude Code session started in the clone. The protocol, the frames and a s
 `docs/experiments/20261022-ur5_tip_calibration/20261022-ur5_tip_calibration_protocol.html`: Section 2 covers the tool
 stack, Section 3 the cell and Section 4 the stages. The setup script pulls that page.
 
-The program is `src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py`. It reads the plan
-`plan/20261022-plan_sphere.json` (159 actions, built on the workstation by `scripts/ur5_tip_calibration_plan.py`). It
+The program is `src/sr2hand/driver/reskin5x/host/ur5_tip_calibration.py`. It reads the plan
+`plan/20261022-plan_sphere.json` (159 actions, built on the workstation by `scripts/ur5/ur5_tip_calibration_plan.py`). It
 writes every stream and event to a session folder `logs/<date>-tip_calibration/<time>-<name>/`.
 
 ## Intent of the session
@@ -89,7 +89,7 @@ Table 1. The cell in the plan.
 
 The plan's reach and clearance were checked at this placement only. Homing measures where the indenter is and stops the
 program past those limits. The plywood is then moved, or the plan is rebuilt on the workstation with
-`scripts/ur5_tip_calibration_plan.py --placement x,y,z,yaw --block 38` (20 s). The program prints the measured values for
+`scripts/ur5/ur5_tip_calibration_plan.py --placement x,y,z,yaw --block 38` (20 s). The program prints the measured values for
 `--placement`. The tip end of the pad cannot be pressed, because the cap covers it.
 
 ## Setup of the lab computer
@@ -97,7 +97,7 @@ program past those limits. The plywood is then moved, or the plan is rebuilt on 
 ```
 git clone --depth 1 git@github.com:badinkajink/hand.git ~/hand      # private repository: SSH key or token first
 cd ~/hand
-bash scripts/ur5_tip_calibration_lab_setup.sh                      # --ft IP, --robot IP, --venv DIR, --python PATH
+bash scripts/ur5/ur5_tip_calibration_lab_setup.sh                      # --ft IP, --robot IP, --venv DIR, --python PATH
 ```
 
 The clone skips every git-lfs file (`.lfsconfig`). The setup script changes nothing on the robot and does six things:
@@ -146,7 +146,7 @@ first two):
 ```
 PY=~/.venvs/tipcal/bin/python
 PLAN=docs/experiments/20261022-ur5_tip_calibration/plan/20261022-plan_sphere.json
-P=src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py
+P=src/sr2hand/driver/reskin5x/host/ur5_tip_calibration.py
 ```
 
 1. Check the streams and set the payload, with no motion (5 s):
@@ -206,9 +206,9 @@ is the fallback. Copy it to the workstation's `logs/20261022-tip_calibration/` (
 with the session's day), with scp, rsync or a USB drive. On the workstation:
 
 ```
-.venv/bin/python scripts/ur5_tip_calibration_analysis.py logs/<date>-tip_calibration/<session>
-.venv/bin/python scripts/ur5_tip_calibration_page.py collect logs/<date>-tip_calibration/<session>
-.venv/bin/python scripts/ur5_tip_calibration_page.py
+.venv/bin/python scripts/ur5/ur5_tip_calibration_analysis.py logs/<date>-tip_calibration/<session>
+.venv/bin/python scripts/ur5/ur5_tip_calibration_page.py collect logs/<date>-tip_calibration/<session>
+.venv/bin/python scripts/ur5/ur5_tip_calibration_page.py
 ```
 
 The analysis gives the ground truth of every hold and the estimator's scores. `collect` copies the session's small files

@@ -60,7 +60,7 @@ cable turns to +y.
 
 ## Print files
 
-Plates of 2026-10-19 evening: `../../20261019-v2_ur5_pla_plate/20261019-v2_ur5_pla_p1s.3mf` prints a's link and clamp plate, b's link and cover and the UR5e calibration mount on the P1S (PLA, AMS slot 1, 6 h 42 min, 166 g; each part's settings in the project as object settings, so Bambu Studio keeps them when it slices again; the links at 0.1 mm with tree supports and 40 % gyroid in place of the 100 % shoulder modifiers). `print/20261019-dip_link_v2_tip_a_pad_b_ell11_5_85a_t2_g30.3mf` prints a's 11/22 tip and b's 11/22 pad on the XL, tool 2, with the settings of the owner's good print of 10-18 and three magnet pauses (7.3, 12.2, 17.1 mm; 55 min). `print/20261019-dip_link_v2_fit_sizes_tips_a_pads_b_85a_t2_g30.3mf` prints the fit sizes on the XL without magnets (3 h 43 min, 21.2 g, no pauses): a's 11/22 tip with its channels at 0.00, 0.05, 0.10 and 0.20 mm per flank (A00 to A20) and b's 11/22 pad with its rail grooves at 0.00, 0.05, 0.10 and 0.15 mm per flank (B00 to B15), each ID engraved in the mount face (`scripts/v2_tip_fit_sizes_xl.py`). The size that fits on the printed link or cover prints again with magnets; the design has 0.05 mm (fit_flank, groove_fit).
+Plates of 2026-10-19 evening: `../../20261019-v2_ur5_pla_plate/20261019-v2_ur5_pla_p1s.3mf` prints a's link and clamp plate, b's link and cover and the UR5e calibration mount on the P1S (PLA, AMS slot 1, 6 h 42 min, 166 g; each part's settings in the project as object settings, so Bambu Studio keeps them when it slices again; the links at 0.1 mm with tree supports and 40 % gyroid in place of the 100 % shoulder modifiers). `print/20261019-dip_link_v2_tip_a_pad_b_ell11_5_85a_t2_g30.3mf` prints a's 11/22 tip and b's 11/22 pad on the XL, tool 2, with the settings of the owner's good print of 10-18 and three magnet pauses (7.3, 12.2, 17.1 mm; 55 min). `print/20261019-dip_link_v2_fit_sizes_tips_a_pads_b_85a_t2_g30.3mf` prints the fit sizes on the XL without magnets (3 h 43 min, 21.2 g, no pauses): a's 11/22 tip with its channels at 0.00, 0.05, 0.10 and 0.20 mm per flank (A00 to A20) and b's 11/22 pad with its rail grooves at 0.00, 0.05, 0.10 and 0.15 mm per flank (B00 to B15), each ID engraved in the mount face (`scripts/cad/v2_tip_fit_sizes_xl.py`). The size that fits on the printed link or cover prints again with magnets; the design has 0.05 mm (fit_flank, groove_fit).
 
 PLA, Bambu printer (Bambu Studio): STLs in print orientation, lying on z = 0, each one closed body. Their settings are in
 `a/print/20261018-dip_link_v2a_pla_bambu.json` and `b/print/20261018-dip_link_v2b_pla_bambu.json`; for a's link that file
@@ -87,7 +87,7 @@ magnets to the pocket floor, north pole toward the palmar face, and resume.
 
 The fit tests print as runs of one plate per printer, every piece with its ID printed on it: concept a's in
 `../../20261019-dip_link_fit_prints/` and concept b's in `../../20261019-dip_link_fit_prints_b/` (print sheet,
-projects, STLs and records.csv in each; `scripts/dip_fit_print_plates.py [--run 20261019b] pieces bambu xl`). The
+projects, STLs and records.csv in each; `scripts/cad/dip_fit_print_plates.py [--run 20261019b] pieces bambu xl`). The
 earlier coupons of a, as XL projects, are in `coupons/`.
 
 Hardware: a takes two M2 x 4 countersunk and two M2 x 5 cheese-head screws, b four M2 x 5 cheese-head screws, all brass
@@ -97,7 +97,7 @@ The assembly sequences and parts lists are in `a/evaluation.json` and `b/evaluat
 
 ## STEP files for Inventor
 
-`scripts/dip_link_params.py export` wrote both designs with the 7.8 mm J1 slot, the 3.0 mm cable groove and 1.9 mm M2 holes,
+`scripts/cad/dip_link_params.py export` wrote both designs with the 7.8 mm J1 slot, the 3.0 mm cable groove and 1.9 mm M2 holes,
 every STEP file read back valid in FreeCAD (the exports of 15:08 and 15:16, `../exports/20261019-1508-v2_concept_b_cable/` and
 `../exports/20261019-1516-v2_concept_a_cable/`, have the 6.6 mm slot and the 2.4 mm groove):
 
@@ -133,7 +133,7 @@ From the parameter files `../params/20261018-v2_concept_a.json` and `../params/2
 
     RG="$HOME/.claude/bin/resguard.sh run --mem 3G --cpu 400 -- taskset -c 8-11 env NUMPY_MADVISE_HUGEPAGE=0"
     E=~/miniconda3/envs/femtip/bin/python
-    $RG $E scripts/dip_link_v2.py a build step check sense print docs
-    $RG .venv/bin/python scripts/dip_link_v2.py a render
-    $RG $E scripts/dip_link_v2.py b build step check sense render print docs
-    $E scripts/dip_link_v2.py summary
+    $RG $E scripts/cad/dip_link_v2.py a build step check sense print docs
+    $RG .venv/bin/python scripts/cad/dip_link_v2.py a render
+    $RG $E scripts/cad/dip_link_v2.py b build step check sense render print docs
+    $E scripts/cad/dip_link_v2.py summary

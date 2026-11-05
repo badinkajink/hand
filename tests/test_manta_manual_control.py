@@ -8,7 +8,7 @@ import pytest
 
 # ruff: noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src/morphohand/driver/manta/host"))
+sys.path.insert(0, str(ROOT / "src/sr2hand/driver/manta/host"))
 
 from manta_hand import manual
 from manta_hand.runtime import (HOME_CONFIRMATION, HandRuntime, MockHardwareBackend,
@@ -242,7 +242,7 @@ def test_every_id_the_script_reaches_for_exists_in_the_page():
     the bench rather than loudly here."""
     import re
 
-    static = ROOT / "src/morphohand/driver/manta/host/manta_hand/static"
+    static = ROOT / "src/sr2hand/driver/manta/host/manta_hand/static"
     html = (static / "index.html").read_text()
     js = (static / "app.js").read_text()
     ids = set(re.findall(r'id="([^"]+)"', html))

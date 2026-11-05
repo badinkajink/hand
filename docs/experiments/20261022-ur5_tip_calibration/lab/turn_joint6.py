@@ -21,7 +21,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
+sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_tip_calibration as U  # noqa: E402
 
 ROBOT, FT = "192.168.0.4", "192.168.0.6"

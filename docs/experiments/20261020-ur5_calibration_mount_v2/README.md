@@ -1,7 +1,7 @@
 # UR5e calibration mount v2: files and how to rebuild them
 
 Mount v2 of 2026-10-20 for DIP link concept b (v2 as printed on 2026-10-19 and v3) on the OnRobot HEX-E, built by
-`scripts/ur5_calibration_mount.py` with `UR5M_REV=v2` (without it the script builds v1 of 2026-10-18 into
+`scripts/ur5/ur5_calibration_mount.py` with `UR5M_REV=v2` (without it the script builds v1 of 2026-10-18 into
 `../20261018-ur5_calibration_mount/`). The page is `20261020-dip_link_b_v3_and_ur5_mount_v2.html` in this folder.
 
 - `cad/*.step`: exact solids of the adapter, the standoff-fork and the two indenters (mount frame M: origin at the adapter's
@@ -18,14 +18,14 @@ Mount v2 of 2026-10-20 for DIP link concept b (v2 as printed on 2026-10-19 and v
 Rebuild (femtip = `~/miniconda3/envs/femtip/bin/python`; `unset VIRTUAL_ENV` before freecadcmd):
 
     RG="$HOME/.claude/bin/resguard.sh run --mem 3G --cpu 200 -- env UR5M_REV=v2 NUMPY_MADVISE_HUGEPAGE=0"
-    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5_calibration_mount.py build
-    $RG env UR5M_CMD=step UR5M_REPO=$PWD freecadcmd scripts/ur5_calibration_mount.py
-    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5_calibration_mount.py check
-    $RG env MUJOCO_GL=egl .venv/bin/python scripts/ur5_calibration_mount.py render
-    $RG ~/miniconda3/envs/femtip/bin/python scripts/v3b_ur5v2_pla_plate.py        # fork_and_indenters and link; 'calibration' when named
-    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5_calibration_mount.py payload
-    .venv/bin/python scripts/dip_b_v3_ur5_v2_page.py
+    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5/ur5_calibration_mount.py build
+    $RG env UR5M_CMD=step UR5M_REPO=$PWD freecadcmd scripts/ur5/ur5_calibration_mount.py
+    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5/ur5_calibration_mount.py check
+    $RG env MUJOCO_GL=egl .venv/bin/python scripts/ur5/ur5_calibration_mount.py render
+    $RG ~/miniconda3/envs/femtip/bin/python scripts/fingertip/v3b_ur5v2_pla_plate.py        # fork_and_indenters and link; 'calibration' when named
+    $RG ~/miniconda3/envs/femtip/bin/python scripts/ur5/ur5_calibration_mount.py payload
+    .venv/bin/python scripts/cad/dip_b_v3_ur5_v2_page.py
 
 Sizes and clearances of v2 are the `P.update(...)` under `if REV == "v2"` near the top of the script; the DIP link's faces it
 fits are `B_LINK`. DIP link b v3 rebuilds with `DLV2_PARAMS_B=docs/experiments/20261018-dip_link_board_mount/params/20261020-v3_concept_b.json
-scripts/dip_link_v2.py b build step check sense render print docs` (see `../20261018-dip_link_board_mount/v2/README.md`).
+scripts/cad/dip_link_v2.py b build step check sense render print docs` (see `../20261018-dip_link_board_mount/v2/README.md`).

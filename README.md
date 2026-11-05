@@ -74,7 +74,7 @@ Three Python environments run the code.
 ```bash
 uv venv --python 3.12          # the project targets >=3.10,<3.14
 uv sync --extra dev --extra gpu --extra rl
-uv run --extra rl --extra gpu python scripts/<script>.py
+uv run --extra rl --extra gpu python scripts/<folder>/<script>.py
 ```
 
 Result-page builders run with `.venv/bin/python`. Set `MUJOCO_GL=egl` for headless rendering. Give every Warp
@@ -92,8 +92,9 @@ configs/recipes/        pinned trainer configurations
 docs/                   the documentation, described above
 external/               submodules: mujoco_warp, comfree_warp, eFlesh
 paper/                  the IROS submission (hand_iros26-4.pdf), its sources and figures
-scripts/                the scripts; scripts/README.md maps them, and archive/ has the retired ones
-src/morphohand/         the package: backends, bench, control (HOM), geometry, numerics, optimization, rl, sampling,
+scripts/                one folder per topic: docs, design, hom, mechanisms, hardware, contact, fingertip,
+                        ur5, cad, rl; scripts/README.md maps them, and archive/ has the retired ones
+src/sr2hand/            the package: backends, bench, control (HOM), geometry, numerics, optimization, rl, sampling,
                         studies, tools; driver/manta (gantry and servo firmware, the CB1 host) and
                         driver/reskin5x (fingertip board firmware, the viewer, the UR5 session program)
 tests/                  pytest suite
@@ -103,7 +104,7 @@ results/, logs/         run outputs and run logs (gitignored)
 ## Simulation defaults
 
 - The fingertip on the CAD hand is the v4b tip that is being calibrated on the UR5 (`SCALE_HAND=cad_v2`, built by
-  `scripts/build_cad_v2_finger.py`). It is covered with 1 mm sphere pads.
+  `scripts/hardware/build_cad_v2_finger.py`). It is covered with 1 mm sphere pads.
 - Each pad's stiffness follows pad builder v2 from one 2.5 MPa modulus (`reorient_backends.E_TPU`). Runs before
   2026-10-30 used 10 MPa, and their frozen scenes keep it.
 - A scene is frozen before any grasp or policy is evaluated, and the grasp keyframe is retargeted to each layout by
@@ -116,23 +117,23 @@ results/, logs/         run outputs and run logs (gitignored)
 
 ## Design search on the real_v1 hand
 
-`scripts/real_v1_pipeline.py` takes one design through the pose fit, the CEM grasp, the lift and turn policies and
+`scripts/design/real_v1_pipeline.py` takes one design through the pose fit, the CEM grasp, the lift and turn policies and
 the hand-over evaluation. It is resumable and stage-selectable. The population comes from
-`scripts/real_v1_sobol8192.sh`. Two gates run before a plan reaches the bench, and both have caught real failures:
+`scripts/design/real_v1_sobol8192.sh`. Two gates run before a plan reaches the bench, and both have caught real failures:
 
 ```bash
-uv run --extra gpu python scripts/real_v1_trajectory_clearance.py <plan.json>   # finger-to-finger clearance along the path
-uv run --extra gpu python scripts/real_v1_export_plan.py ...                    # servo travel limits
+uv run --extra gpu python scripts/hardware/real_v1_trajectory_clearance.py <plan.json>   # finger-to-finger clearance along the path
+uv run --extra gpu python scripts/hardware/real_v1_export_plan.py ...                    # servo travel limits
 ```
 
 A plan's `chord` and its `_traj.csv` are different paths, and the clearance gate checks each one.
 
 ## Hand-object control and layout landscapes
 
-`scripts/hand_object_scale_sim.py` scores grasps and in-hand turns over finger layouts and object sizes on the CAD
-hand. `scripts/hom_landscape.py` and `scripts/hom_gpu.py` run the layout landscapes on the CPU and on MuJoCo-Warp.
+`scripts/hom/hand_object_scale_sim.py` scores grasps and in-hand turns over finger layouts and object sizes on the CAD
+hand. `scripts/hom/hom_landscape.py` and `scripts/hom/hom_gpu.py` run the layout landscapes on the CPU and on MuJoCo-Warp.
 `HOS_PLANT` selects the servo plant (`servo` is the SCS0009). `HOS_SCENES` points at a fresh scene cache, and
-`HOM_ROWS_TAG`, required with either, is appended to the row directories. `scripts/hom_plant_transfer.py` compares
+`HOM_ROWS_TAG`, required with either, is appended to the row directories. `scripts/hom/hom_plant_transfer.py` compares
 landscapes across plants, pad moduli and scene friction.
 
 ## Fingertip calibration on the UR5
@@ -141,8 +142,8 @@ The UR5, its HEX-E force-torque sensor and the ATI Net box are driven by the lab
 clone. Its runbook is
 [`docs/experiments/20261022-ur5_tip_calibration/lab/README.md`](docs/experiments/20261022-ur5_tip_calibration/lab/README.md),
 and `lab/STATE.md` beside it gives the present state of the cell. Plans are made and path-checked on the workstation
-(`scripts/ur5_tip_calibration_holder_paths.py`) and reach corvus by git. The session program and its simulator are
-`src/morphohand/driver/reskin5x/host/ur5_tip_calibration.py` and `ur5_tip_calibration_sim.py`.
+(`scripts/ur5/ur5_tip_calibration_holder_paths.py`) and reach corvus by git. The session program and its simulator are
+`src/sr2hand/driver/reskin5x/host/ur5_tip_calibration.py` and `ur5_tip_calibration_sim.py`.
 
 ## The bench hand
 
@@ -158,7 +159,7 @@ The whole control station runs with no hardware attached. This command drives th
 simulated M8P on a pty and a simulated servo bus:
 
 ```bash
-PYTHONPATH=src/morphohand/driver/manta/host \
+PYTHONPATH=src/sr2hand/driver/manta/host \
   uv run --no-project --with pyserial python -m manta_hand.web \
   --fake --host 127.0.0.1 --port 8765
 ```
@@ -168,7 +169,7 @@ of the driver code, so use `--fake` for anything that involves homing, motion or
 
 The real launch, the CB1 install, the homing flow, the API, logging and recovery are in the runbook,
 [`docs/hardware_control_station.md`](docs/hardware_control_station.md). Electrical, StallGuard and
-servo-calibration details are in [`src/morphohand/driver/manta/docs/`](src/morphohand/driver/manta/docs/).
+servo-calibration details are in [`src/sr2hand/driver/manta/docs/`](src/sr2hand/driver/manta/docs/).
 
 Five things about the bench:
 
@@ -183,14 +184,14 @@ Five things about the bench:
   once the FTDI latency timer is lowered; the default costs a factor of 16. Install the udev rule in the runbook.
 - Object pose comes from two AprilTags. A static reference tag gives world up and an absolute datum, and a 40 mm tag
   on a vane along the cylinder axis gives the shaft pose, at 0.017° and 0.03 mm rms. `SIM_TO_BENCH_Z_MM` in
-  `src/morphohand/bench/tags.py` ties the bench floor to the simulator's floor through the fingertip datum.
+  `src/sr2hand/bench/tags.py` ties the bench floor to the simulator's floor through the fingertip datum.
 - Query the board before theorising. A read-only `STATALL` has answered several hardware questions here. A load
   pinned at exactly 200 is servo overload protection, which is a configuration value.
 
 ## Fingertip viewer on the workstation
 
 The ReSkin 5X fingertips plug into an I2C mux, and the mux into a board running
-[`firmware/reskin5x_mux_stream`](src/morphohand/driver/reskin5x/firmware/reskin5x_mux_stream/). One viewer reads that
+[`firmware/reskin5x_mux_stream`](src/sr2hand/driver/reskin5x/firmware/reskin5x_mux_stream/). One viewer reads that
 board and shows every fingertip on the mux at `http://localhost:8790`. On 2026-10-27 two boards on the workstation had
 this firmware. The mux on the SparkFun Thing Plus ESP32-C6 answered at 0x71, and the one on the QT Py ESP32-S3
 b4:3a:45:b0:d9:94 at 0x70. `ls -l /dev/serial/by-id/` lists the boards plugged in.
@@ -214,7 +215,7 @@ ARGS=(--mux "$BOARD" --http 8790 --floor 1.0 --case four_05R4 --names "ID 1" "ID
       --calib $C/20261102-v3_id_1-calib.json $C/20261102-v3_id_2-calib.json $C/20261102-v3_id_3-calib.json
       --correction logs/20261028-spherev3id1_twists logs/20261029-spherev3id2 logs/20261030-spherev3id3
       --board-gp docs/experiments/20261022-ur5_tip_calibration/data/20261102-board_gp_v3_id1_id3.npz)
-~/miniconda3/bin/python src/morphohand/driver/reskin5x/host/wrench_viewer.py "${ARGS[@]}"
+~/miniconda3/bin/python src/sr2hand/driver/reskin5x/host/wrench_viewer.py "${ARGS[@]}"
 ```
 
 A Claude session starts the viewer with the same `ARGS`, detached and under the memory guard, so that it outlives the
@@ -222,7 +223,7 @@ session:
 
 ```bash
 nohup setsid ~/.claude/bin/resguard.sh run --mem 3G --cpu 200 -- ~/miniconda3/bin/python -u \
-    src/morphohand/driver/reskin5x/host/wrench_viewer.py "${ARGS[@]}" > logs/$(date +%Y%m%d-%H%M%S)-viewer.log 2>&1 &
+    src/sr2hand/driver/reskin5x/host/wrench_viewer.py "${ARGS[@]}" > logs/$(date +%Y%m%d-%H%M%S)-viewer.log 2>&1 &
 ```
 
 Names, calibrations and UR5 corrections go one per board, in the order of the mux channels, with `-` for none. The
@@ -236,7 +237,7 @@ labelled by its channel. Each fingertip's rest is calibrated in its first 2 s, s
 default is 2 µT. The calibrations and the UR5 sessions under `logs/` exist only on this workstation, because `logs/` is
 not tracked by git. Stream logs and new calibrations are written to `logs/20261020-contact_estimation/stream/` and
 `calib/`. The flags, the one-board firmware and the estimates are described in
-[`src/morphohand/driver/reskin5x/README.md`](src/morphohand/driver/reskin5x/README.md).
+[`src/sr2hand/driver/reskin5x/README.md`](src/sr2hand/driver/reskin5x/README.md).
 
 The three five-magnet v1 fingertips of 2026-10-26, on channels 0, 1 and 2, took these arguments instead:
 
@@ -253,21 +254,21 @@ ARGS=(--mux "$BOARD" --http 8790 --floor 1.0 --names "ID 1" "ID 2" "ID 3"
 ## Reinforcement learning (simulation only)
 
 The PPO policies add a learned correction to a scripted lift and turn, and none has run on the hand. They are
-trained by `scripts/rl_train_cube.py`. `configs/recipes/*.yaml` pin the known-good configurations, and the launchers
+trained by `scripts/rl/rl_train_cube.py`. `configs/recipes/*.yaml` pin the known-good configurations, and the launchers
 select them:
 
 ```bash
-scripts/train_A_on_morph.sh <morphology-run-dir>          # A (lift), always from scratch per design
-scripts/train_handoff_liveA_reset.sh <...>                # B (turn), through the live-A reset
+scripts/rl/train_A_on_morph.sh <morphology-run-dir>          # A (lift), always from scratch per design
+scripts/rl/train_handoff_liveA_reset.sh <...>                # B (turn), through the live-A reset
 ```
 
 Judge a policy on its deterministic held cosine and the trajectory-health scorecard, never on reward sums, and look
 at it before explaining its numbers:
 
 ```bash
-uv run --extra rl --extra gpu python scripts/rl_demo_handoff_continuous.py --run <run>   # the deploy evaluation
-uv run --extra rl --extra gpu python scripts/policy_filmstrip.py --run <run>             # frames to read
-uv run --extra rl --extra gpu python scripts/policy_eval_suite.py --run <run>            # a distribution, not one rollout
+uv run --extra rl --extra gpu python scripts/rl/rl_demo_handoff_continuous.py --run <run>   # the deploy evaluation
+uv run --extra rl --extra gpu python scripts/rl/policy_filmstrip.py --run <run>             # frames to read
+uv run --extra rl --extra gpu python scripts/rl/policy_eval_suite.py --run <run>            # a distribution, not one rollout
 ```
 
 The skills `policy-eyes`, `policy-metrics`, `mujoco-eyes` and `morphology-scenes` under `.claude/skills/` wrap these
@@ -280,11 +281,11 @@ Three ID schemes, none interchangeable.
 `D1` through `D8` are the eight hands evaluated on hardware, numbered by their simulated rank so a
 reader sees the predicted order on a plot axis. Their internal design tags (`sv1_w6689`, `g12`,
 `rv05_manual` and so on) are mapped in
-[`scripts/real_v1_transfer_ranking.py`](scripts/real_v1_transfer_ranking.py); their gantry
+[`scripts/hardware/real_v1_transfer_ranking.py`](scripts/hardware/real_v1_transfer_ranking.py); their gantry
 coordinates are in the paper appendix.
 
 `aNN` and `bNN` are the simulation-only policy registry, lift/deliver and reorient.
-[`scripts/rename_results_bids.sh`](scripts/rename_results_bids.sh) is the single source of truth
+[`scripts/rl/rename_results_bids.sh`](scripts/rl/rename_results_bids.sh) is the single source of truth
 and regenerates `results/rl/REGISTRY.md`.
 
 Design tags show their origin: `sv1_*` is a Sobol draw, `rv*` and `g*` are earlier hand-picked and

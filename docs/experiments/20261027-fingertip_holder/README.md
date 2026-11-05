@@ -13,7 +13,7 @@ fork, where they stood 4 mm tall at 0.4 mm. A stop faces the fork's palmar end a
 station's tip adds 4.0 to 13.4 uT at v2 ID 1's chips when it has five magnets, against 46 to 483 uT from the tip under
 test, so the test's field model includes both held tips.
 
-Builder: `scripts/fingertip_holder.py`, from the numbers in `ur5_cb3_cell.TIPHOLD` and `TIP_F`, which the cell's
+Builder: `scripts/fingertip/fingertip_holder.py`, from the numbers in `ur5_cb3_cell.TIPHOLD` and `TIP_F`, which the cell's
 clearance checks read too.
 
 ![The holder and the test poses](media/20261027-fingertip_holder_poses.png)
@@ -39,7 +39,7 @@ over v2 ID 1's tip is level with the station block.*
   these clearances hold to the holder, both held tips, the 2x4, the table, the rod fixture and the robot: mount 3.0, finger
   0.8, HEX-E 6.0, robot links 8.0 and pad 0.3 mm. These are the tall indenter's checks, with the held tips as obstacles.
 - The field is the norm over v2 ID 1's 15 chip components, in uT, from the crosstalk budget's model
-  (`scripts/fingertip_crosstalk.py`): a five-magnet tip with v2 ID 1's poles, or four N52 magnets in a 5.0 mm square.
+  (`scripts/fingertip/fingertip_crosstalk.py`): a five-magnet tip with v2 ID 1's poles, or four N52 magnets in a 5.0 mm square.
 
 ## The part
 

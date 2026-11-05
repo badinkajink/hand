@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
+sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_tip_calibration as C  # noqa: E402
 
 PRE_N = 0.3        # sphere2's clean touches (2026-10-22) read a preload of 0.06 N median, 0.17 N at most

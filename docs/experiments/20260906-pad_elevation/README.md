@@ -1,7 +1,7 @@
 # Pad contact elevation, 2026-09-06 — how to regenerate
 
 The result page is `20260906-pad_elevation.html`, built by
-`scripts/real_v1_pad_elevation_page.py`. Its inputs, and the command behind each:
+`scripts/design/real_v1_pad_elevation_page.py`. Its inputs, and the command behind each:
 
 | file | command |
 |---|---|

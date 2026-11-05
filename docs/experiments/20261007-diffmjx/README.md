@@ -1,7 +1,7 @@
 # DiffMJX contact-gradient runbook
 
 The result page is `20261007-contact_gradients_real_v1.html`. Its builder is
-`scripts/real_v1_diffmjx_page.py`. The JSON files in this directory are the
+`scripts/design/real_v1_diffmjx_page.py`. The JSON files in this directory are the
 measurements used by the builder. All commands below run on the workstation;
 none connects to the hand controller.
 
@@ -48,57 +48,57 @@ contact-from-distance gradient peaked at 10.3 GiB resident memory and used an
 11 GB guard. Run MJX jobs sequentially.
 
 ```bash
-uv run --no-sync python scripts/real_v1_diffmjx_pad_cpu.py
-uv run --no-sync python scripts/real_v1_diffmjx_local_search.py
+uv run --no-sync python scripts/design/real_v1_diffmjx_pad_cpu.py
+uv run --no-sync python scripts/design/real_v1_diffmjx_local_search.py
 
 JAX_PLATFORM_NAME=cpu JAX_ENABLE_X64=1 uv run --no-sync python \
-  scripts/real_v1_diffmjx_gate.py --steps 1 --no-post --tip tpu6 \
+  scripts/design/real_v1_diffmjx_gate.py --steps 1 --no-post --tip tpu6 \
   --contact-model padsT \
   --out docs/experiments/20261007-diffmjx/20261007-native_padsT_cylinder_1.json
 
 JAX_PLATFORM_NAME=cpu JAX_ENABLE_X64=1 uv run --no-sync python \
-  scripts/real_v1_diffmjx_gate.py --steps 20 --no-post --tool-capsule \
+  scripts/design/real_v1_diffmjx_gate.py --steps 20 --no-post --tool-capsule \
   --gradient --out docs/experiments/20261007-diffmjx/20261007-native_capsule_gradient_20_x64.json
 
 JAX_PLATFORM_NAME=cpu logs/20261007-diffmjx/venv/bin/python \
-  scripts/real_v1_diffmjx_official_gate.py --steps 20 --tool-capsule \
+  scripts/design/real_v1_diffmjx_official_gate.py --steps 20 --tool-capsule \
   --out docs/experiments/20261007-diffmjx/20261007-official_capsule_plain_20.json
 
 JAX_PLATFORM_NAME=cpu logs/20261007-diffmjx/venv/bin/python \
-  scripts/real_v1_diffmjx_official_gate.py --steps 20 --tool-capsule --cfd --scan-loop \
+  scripts/design/real_v1_diffmjx_official_gate.py --steps 20 --tool-capsule --cfd --scan-loop \
   --out docs/experiments/20261007-diffmjx/20261007-official_capsule_cfd_20.json
 
 JAX_PLATFORM_NAME=cpu logs/20261007-diffmjx/venv/bin/python \
-  scripts/real_v1_diffmjx_official_gate.py --steps 1 --tip tpu6 \
+  scripts/design/real_v1_diffmjx_official_gate.py --steps 1 --tip tpu6 \
   --contact-model padsT --skip-gradient \
   --out docs/experiments/20261007-diffmjx/20261007-official_padsT1_cylinder_1.json
 
 JAX_PLATFORM_NAME=cpu logs/20261007-diffmjx/venv/bin/python \
-  scripts/real_v1_diffmjx_pad_jvp.py --steps 1 \
+  scripts/design/real_v1_diffmjx_pad_jvp.py --steps 1 \
   --out docs/experiments/20261007-diffmjx/20261007-official_padsT1_cylinder_jvp_1.json
 
 JAX_PLATFORM_NAME=cpu logs/20261007-diffmjx/venv/bin/python \
-  scripts/real_v1_diffmjx_pad_jvp.py --steps 1 --fork-fd-only \
+  scripts/design/real_v1_diffmjx_pad_jvp.py --steps 1 --fork-fd-only \
   --out docs/experiments/20261007-diffmjx/20261007-official_padsT1_cylinder_fd_1.json
 
 JAX_PLATFORM_NAME=cpu logs/20261007-diffmjx/venv/bin/python \
-  scripts/real_v1_diffmjx_pad_jvp.py --steps 20 --all-directions \
+  scripts/design/real_v1_diffmjx_pad_jvp.py --steps 20 --all-directions \
   --out docs/experiments/20261007-diffmjx/20261007-official_padsT1_cylinder_jacobian_20.json
 
 JAX_PLATFORM_NAME=cpu logs/20261007-diffmjx/venv/bin/python \
-  scripts/real_v1_diffmjx_pad_jvp.py --steps 20 --fork-fd-only \
+  scripts/design/real_v1_diffmjx_pad_jvp.py --steps 20 --fork-fd-only \
   --fd-eps-list 0.01,0.003,0.001,0.0003,0.0001 \
   --out docs/experiments/20261007-diffmjx/20261007-official_padsT1_cylinder_fd_sweep_20.json
 
 JAX_PLATFORM_NAME=cpu logs/20261007-diffmjx/venv/bin/python \
-  scripts/real_v1_diffmjx_pad_jvp.py --steps 20 --cfd --scan-loop --all-directions \
+  scripts/design/real_v1_diffmjx_pad_jvp.py --steps 20 --cfd --scan-loop --all-directions \
   --out docs/experiments/20261007-diffmjx/20261007-official_padsT1_cylinder_cfd_jacobian_20.json
 
-logs/20261007-diffmjx/venv/bin/python scripts/real_v1_diffmjx_local_search.py \
+logs/20261007-diffmjx/venv/bin/python scripts/design/real_v1_diffmjx_local_search.py \
   --gradient-actions \
   --out docs/experiments/20261007-diffmjx/20261007-pad_local_search_20_mj331.json
 
-python scripts/real_v1_diffmjx_page.py
+python scripts/design/real_v1_diffmjx_page.py
 ```
 
 `--tip tpu6 --contact-model pads` builds the full 1 mm sphere-packed surface.

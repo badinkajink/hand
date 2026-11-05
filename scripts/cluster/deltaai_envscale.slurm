@@ -42,7 +42,7 @@ STEPS="${STEPS:-500000}"
 
 for NE in 3072 8192 16384; do
   echo "######## num_envs=$NE ########"
-  python scripts/rl_train_cube.py \
+  python scripts/rl/rl_train_cube.py \
       --recipe perp_single --morphology-run "$MORPH_RUN" \
       --frozen-scene-xml "$MORPH_RUN/frozen_scene.xml" \
       --closed-ctrl-from-keyframe closed_manual \

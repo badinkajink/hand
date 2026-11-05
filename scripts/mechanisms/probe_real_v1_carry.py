@@ -1,0 +1,841 @@
+"""Can this hand CARRY the shaft to vertical without slipping in the grip?
+
+The reorient can happen two ways and they need different fixes, so they need separating before
+any more GPU is spent:
+
+  SLIP    the shaft rotates INSIDE a static grasp. `probe_real_v1_pivot.py` says no: on
+          rv04_mid the centred tripod does not move under 0.005 Nm and loses the shaft entirely
+          at 0.010, and the largest gravitational torque the geometry affords (grip offset
+          30 mm on a 24.5 g shaft) is 0.0072 Nm. Between locked and dropped there is no
+          band where it turns.
+  CARRY   the fingers move WITH the shaft, contacts fixed on the same material points, and the
+          whole grip rotates. This is what both reference policies actually do — r4's contacts
+          are parked at s = +42 mm and slide ~5 mm over the entire reorient
+          (docs/experiments/REORIENT_PRIMITIVE.txt §2).
+
+This probe drives the carry OPEN-LOOP. It rotates the object's pose about the pinch axis through
+the contact centroid, moves each fingertip to where that rigid rotation puts its own contact
+point, and asks whether the shaft follows. No policy, no reward, no seed — if the carry works
+here then the four flat B runs were an exploration and reward-shaping failure, and if it does not
+then no amount of PPO was going to find it.
+
+TWO RULES IT OBEYS, both from REORIENT_PRIMITIVE.txt, both of which produced convincing wrong
+answers when they were broken:
+
+  * The IK solution is applied as a RESIDUAL ON THE GRASP ANCHOR, never as the anchor. These are
+    position servos and the grip force IS the commanded-minus-actual error; commanding the tip
+    exactly onto the surface zeroes that error and the hand lets go.
+  * peak_cos is not a result. A dropped shaft lands upright and reads cos 1.000, which is
+    exactly what the torque sweep in probe_real_v1_pivot.py turned out to be measuring. Every
+    row here carries final object z and contact count, and `ok` requires both.
+
+    MUJOCO_GL=egl uv run python scripts/mechanisms/probe_real_v1_carry.py \
+        --morph-run results/phase1/real_v1/rv04_mid_sp30 --lift 0.10 --turn-steps 400
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import mujoco
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src"))
+
+sys.path.insert(0, str(ROOT / "scripts"))
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+
+import fit_real_v1_pose as fp  # noqa: E402
+from sr2hand.tools.keyframe_ik import (  # noqa: E402
+    FINGERS, actuator_ctrl_from_qpos, ik_finger,
+)
+
+TIPS = {f: f"{f}_tip" for f in FINGERS}
+
+
+def workspace(morph_run: Path, obj: str = "screwdriver_medium") -> dict:
+    """Per-finger RADIAL slack at the grasp: how much reach is left to give, and to take back.
+
+    This is the scalar that predicts whether a design can carry the shaft round at all. A
+    fixed-contact rotation of theta about the pinch axis sends the descending pair contact down
+    by straddle * sin(theta), which its finger pays for by EXTENDING. `fit_real_v1_pose` picks
+    the DEEPEST reachable palm, so every real_v1 design grasps within a few millimetres of full
+    extension and the ceiling is asin(extend / straddle):
+
+        design         extend   straddle   ceiling      trained peak
+        rv04_mid        1.3 mm    30 mm     2.5 deg     0.015  (0.9 deg)
+        rv05_manual     4.1        --         --        0.030
+        rv00_wide       4.5        30         8.6       0.019  (1.1 deg)
+        rv03_narrowy    7.1        40        10.2       0.069  (4.0 deg)
+
+    Raising the pivot above the contact plane converts the demand from extension into
+    RETRACTION, of which there is 38-47 mm, and rv03_narrowy -- the design with the most
+    extension left -- is the only one of the four whose open-loop carry then holds.
+    """
+    import itertools
+    m = _load_model(morph_run / "frozen_scene.xml")
+    d = mujoco.MjData(m)
+    mujoco.mj_resetDataKeyframe(m, d, m.key("open_ik").id)
+    mujoco.mj_forward(m, d)
+    out = {}
+    for f, joints in FINGERS.items():
+        adr = [m.jnt_qposadr[m.joint(j).id] for j in joints]
+        rng = [m.jnt_range[m.joint(j).id] for j in joints]
+        root = d.body(f"{f}_yaw_frame").xpos.copy()
+        now = float(np.linalg.norm(d.body(TIPS[f]).xpos - root))
+        q0 = d.qpos.copy()
+        lo = hi = None
+        for a, b in itertools.product(np.linspace(*rng[1], 40), np.linspace(*rng[2], 40)):
+            d.qpos[adr[1]], d.qpos[adr[2]] = a, b
+            mujoco.mj_forward(m, d)
+            r = float(np.linalg.norm(d.body(TIPS[f]).xpos - d.body(f"{f}_yaw_frame").xpos))
+            lo = r if lo is None else min(lo, r)
+            hi = r if hi is None else max(hi, r)
+        d.qpos[:] = q0
+        mujoco.mj_forward(m, d)
+        out[f] = {"reach_mm": round(now * 1000, 1), "min_mm": round(lo * 1000, 1),
+                  "max_mm": round(hi * 1000, 1), "extend_mm": round((hi - now) * 1000, 1),
+                  "retract_mm": round((now - lo) * 1000, 1)}
+    return {"run": morph_run.name, "fingers": out,
+            "extend_mm": min(v["extend_mm"] for v in out.values())}
+
+
+# ---- object mass override -------------------------------------------------
+# The appendix flags the sim cylinder's 24.5 g as the parameter most likely to
+# invalidate a hardware claim ("doubling that mass causes the present open-loop
+# solution to fail"), and until now there was no way to sweep it. The carry is a
+# quasi-static geometric trajectory, so mass enters only through the contact forces
+# needed to hold the shaft against gravity while it rotates -- which is exactly the
+# thing a real screwdriver changes.
+#
+# Set once from the CLI and applied at EVERY model load: the grip fit, the IK
+# scratch model and the live rollout all have to agree, or the fit picks a grip for
+# one object and the carry runs it on another.
+_MASS_OVERRIDE: dict = {"kg": None, "scale": 1.0, "obj": "screwdriver_medium"}
+
+
+def _load_model(path):
+    """`MjModel.from_xml_path` plus the object-mass override, if one is set."""
+    m = mujoco.MjModel.from_xml_path(str(path))
+    kg, scale, obj = _MASS_OVERRIDE["kg"], _MASS_OVERRIDE["scale"], _MASS_OVERRIDE["obj"]
+    if kg is None and scale == 1.0:
+        return m
+    bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, obj)
+    if bid < 0:
+        return m
+    old = float(m.body_mass[bid])
+    new = float(kg) if kg is not None else old * float(scale)
+    if old <= 0:
+        return m
+    # Inertia scales linearly with mass at fixed geometry and density distribution;
+    # scaling mass alone would leave the shaft rotationally heavy and silently change
+    # the very dynamics the sweep is trying to measure.
+    m.body_inertia[bid] *= new / old
+    m.body_mass[bid] = new
+    return m
+
+
+# ---- finger-finger clearance ----------------------------------------------
+# Three of four deployed real_v1 designs interpenetrate their own fingers during the
+# turn, and nothing on the path from design to exported trajectory checks for it. It
+# is invisible to the contact solver here because the scene EXCLUDES the finger pairs
+# (21 exclusions), which is correct for a grasp -- adjacent phalanges of one finger
+# would otherwise chatter -- but it means the sim happily drives two fingers through
+# each other and reports a clean carry. On the real hand that is a stall or a stripped
+# horn, so it has to be measured geometrically rather than read off the solver.
+#
+# mj_geomDistance ignores contype/conaffinity and exclusions, so it sees the pairs the
+# solver was told to skip.
+#
+# THIS IS NOT THE DEPLOYMENT GATE. It checks the dense trajectory the carry itself
+# produces, i.e. "is the thing we are about to export safe". What the hardware actually
+# replays is the exported plan -- three set-points linearly interpolated, plus a CSV
+# whose per-joint timing differs from that chord -- and those are DIFFERENT paths that
+# can collide where this one does not. `scripts/hardware/real_v1_trajectory_clearance.py` is the
+# authoritative check and gates both of them; run it before any bench session. As of
+# 2026-08-30 it passes only g12 (+8.7 mm chord / +8.8 mm csv); g23 is +0.8 mm and g24
+# and rv04_mid interpenetrate outright.
+_FINGER_PREFIX = ("thumb", "index", "middle")
+
+
+def _cross_finger_pairs(m):
+    """Geom-id pairs belonging to DIFFERENT fingers. Within-finger pairs are excluded on
+    purpose: adjacent phalanges of one finger are supposed to be near each other."""
+    owner = {}
+    for g in range(m.ngeom):
+        b = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, m.geom_bodyid[g]) or ""
+        for f in _FINGER_PREFIX:
+            if b.startswith(f + "_"):
+                owner[g] = f
+                break
+    gs = sorted(owner)
+    return [(a, b) for i, a in enumerate(gs) for b in gs[i + 1:] if owner[a] != owner[b]], owner
+
+
+def _min_cross_clearance(m, d, pairs, owner, distmax=0.05):
+    """(min signed distance in m, the pair that owns it). Negative = interpenetrating."""
+    best, who = float("inf"), None
+    for a, b in pairs:
+        dist = mujoco.mj_geomDistance(m, d, a, b, distmax, None)
+        # Two non-readings must not win the minimum. `distmax` means "further apart than
+        # the cutoff", and an EXACT 0.0 is a documented box-box artifact of
+        # mj_geomDistance, not a touch -- real_v1_trajectory_clearance.py hit it on
+        # g12's thumb_tip/index_tip in the middle of a smooth 8.8 -> 20.9 mm sweep. That
+        # script uses the collision pipeline as the authority on actual contact; here the
+        # finger pairs are excluded from that pipeline, so the zeros are simply dropped
+        # and this stays a MARGIN measurement rather than a contact test.
+        if dist == 0.0 or dist >= distmax:
+            continue
+        if dist < best:
+            best, who = dist, (owner[a], owner[b])
+    return (None, None) if who is None else (best, who)
+
+
+def _rotx(a: float) -> np.ndarray:
+    c, s = np.cos(a), np.sin(a)
+    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+
+
+def _contacts(m, d, obj: str):
+    n, tot = 0, 0.0
+    f6 = np.zeros(6)
+    for i in range(d.ncon):
+        c = d.contact[i]
+        b = {m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name}
+        if obj in b and b & set(TIPS.values()):
+            mujoco.mj_contactForce(m, d, i, f6)
+            n += 1
+            tot += float(abs(f6[0]))
+    return n, tot
+
+
+def _contacts_hand(m, d, obj: str):
+    """Contacts between the object and ANY hand body, not just the three pads.
+
+    `_contacts` counts pads only, which is the right thing for a grasp metric and the wrong
+    thing for "is it still held": at the end of a raised-pivot carry the shaft is commonly
+    cradled against the middle phalanges with the pads off it, and the pad-only count reads 0
+    while the object sits at 0.103 m in the air and never falls. Six cells of the rv05_manual
+    sweep were scored `dropped` on that basis alone.
+    """
+    n, tot = 0, 0.0
+    f6 = np.zeros(6)
+    for i in range(d.ncon):
+        c = d.contact[i]
+        names = [m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name]
+        if obj not in names:
+            continue
+        other = names[0] if names[1] == obj else names[1]
+        if other.split("_")[0] in ("thumb", "index", "middle", "palm"):
+            mujoco.mj_contactForce(m, d, i, f6)
+            n += 1
+            tot += float(abs(f6[0]))
+    return n, tot
+
+
+def _per_finger_contact(m, d, obj: str) -> dict:
+    """Per finger: normal force, tangential force, and FRICTION-CONE UTILISATION |f_t|/(mu*f_n).
+
+    Utilisation is the number that separates the two explanations for a finger that fails to
+    turn the shaft. At ~1.0 the contact is on the edge of the cone and is sliding, so that finger
+    needs more NORMAL force (or the others need less, since they set how hard the object is
+    pinned). Well below 1.0 it is not slipping at all and the finger simply is not being
+    commanded far enough. `mj_contactForce` returns the wrench in the CONTACT frame, so f[0] is
+    the normal and f[1:3] are the two tangential components directly."""
+    out = {f: {"fn": 0.0, "ft": 0.0, "util": 0.0, "mu": 0.0} for f in FINGERS}
+    f6 = np.zeros(6)
+    for i in range(d.ncon):
+        c = d.contact[i]
+        names = {m.body(m.geom_bodyid[c.geom1]).name, m.body(m.geom_bodyid[c.geom2]).name}
+        if obj not in names:
+            continue
+        for f in FINGERS:
+            if TIPS[f] in names:
+                mujoco.mj_contactForce(m, d, i, f6)
+                fn = abs(float(f6[0]))
+                ft = float(np.linalg.norm(f6[1:3]))
+                mu = float(c.friction[0])
+                out[f]["fn"] += fn
+                out[f]["ft"] += ft
+                out[f]["mu"] = mu
+                out[f]["util"] = ft / (mu * fn) if fn > 1e-6 else 0.0
+    return out
+
+
+def _cos(m, d, obj: str) -> float:
+    """SIGNED alignment of the shaft's local +Z with world +Z.
+
+    Signed, not |cos|: `terms_reward.target_axis_alignment` rewards cos -> +1 only, so a carry
+    that stands the shaft up the OTHER way scores -0.8 and is punished. The first training
+    smoke of this schedule read target_axis_progress -0.93 for exactly that reason."""
+    return float(d.body(obj).xmat[8])
+
+
+def _finger_act(m):
+    return {j: next(k for k in range(m.nu) if m.actuator(k).name == f"a_{j}")
+            for joints in FINGERS.values() for j in joints}
+
+
+def _grip_from_fit(scene: Path, straddle: float, offset: float, squeeze: float, obj: str,
+                   depth: float | None = None, thumb_axial: float = 0.0,
+                   elevation_deg: float = 0.0):
+    """Author a grasp at a PINNED straddle, so the carry can be swept over it.
+
+    `fit_real_v1_pose` normally picks the straddle by scoring close-lift-hold rollouts, which
+    selects for resisting exactly the rotation this probe is trying to produce. Here the
+    straddle is the independent variable, so it is pinned and the hold is reported, not gated.
+    """
+    # GRIP DEPTH IS A VARIABLE, NOT AN OPTIMUM. `fit` normally takes the DEEPEST reachable
+    # palm height, for clearance over the shaft's upper half once it stands up. On this hand
+    # that lands every design at 52-65 mm of a 68.11 mm mount-to-pad chain -- 95% extension, the
+    # boundary of the reach shell, where the fingertip has no radial workspace left and so
+    # cannot carry the object anywhere. Capping the palm height trades clearance for workspace,
+    # and an axial grip offset buys the clearance back (the stub above the grip is half_len -
+    # offset, not half_len).
+    m0 = _load_model(scene)
+    d0 = mujoco.MjData(m0)
+    mujoco.mj_resetDataKeyframe(m0, d0, fp._seed_key(m0, "open"))
+    mujoco.mj_forward(m0, d0)
+    obj_z = float(fp._object_geometry(m0, d0, obj)[0][2])
+    pz_ref = float(m0.body("palm_pose").pos[2])
+    if depth is None:
+        pz_hi, pz_lo = 0.060, -0.030
+    else:
+        pz_hi = obj_z + depth - pz_ref
+        pz_lo = pz_hi - 0.008
+    # ELEVATION IS THE WEDGE SIGN AND IT WAS NEVER A VARIABLE. `fit`'s fourth positional is the
+    # elevation of the pad-target ring about the shaft, and every caller in this program passed
+    # 0.0. Measured at closure, that lands the pads 0.19-0.30 shaft-radii BELOW the axis on six
+    # of the eight deployed hands and 0.17 ABOVE it on `sv1_w6689`, whose fingers cannot reach
+    # further round; above the equator the pad normals push the shaft down and out (see
+    # `fit_real_v1_pose.tip_targets`). Exposing it lets a hand that lands high be asked lower.
+    out = fp.fit(scene, 0.001, straddle, elevation_deg, obj, pz_lo, pz_hi, 0.0025, verbose=False,
+                 spreads=(straddle,), squeeze=squeeze, hold_min=-1.0, axial_offset=offset,
+                 thumb_axial=thumb_axial)
+    if out is None:
+        return None
+    rep = out[0]
+    px, py, pz = rep["palm"]["px"], rep["palm"]["py"], rep["palm"]["pz"]
+    depth_mm = rep["grip_depth_mm"]
+    m = _load_model(scene)
+    d = mujoco.MjData(m)
+    seed = fp._seed_key(m, "open")
+    mujoco.mj_resetDataKeyframe(m, d, seed)
+    mujoco.mj_forward(m, d)
+    centre, radius, _ = fp._object_geometry(m, d, obj)
+    fp.solve(m, d, fp.tip_targets(centre, radius, 0.001, straddle, elevation_deg, offset,
+                                  thumb_axial),
+             px, py, pz, seed, iters=600)
+    open_qpos = d.qpos.copy()
+    fp.solve(m, d, fp.tip_targets(centre, radius, 0.001 - squeeze, straddle, elevation_deg,
+                                  offset, thumb_axial),
+             px, py, pz, seed, iters=600)
+    return m, open_qpos, np.array(actuator_ctrl_from_qpos(m, d)), depth_mm
+
+
+def carry(scene: Path, lift: float, turn_steps: int, hold_steps: int, angle: float,
+          axis_shift: float, obj: str, budget: float, trace: bool,
+          morph_run: Path | None = None, straddle: float | None = None,
+          offset: float = 0.0, squeeze: float = 0.004, label: str = "",
+          depth: float | None = None, axis_k: float = 0.0, thumb_axial: float = 0.0,
+          record: Path | None = None, linear_anchor: bool = False,
+          write_hold: bool = False, film: Path | None = None, film_frames: int = 8,
+          contact_trace: list | None = None, built=None,
+          video: Path | None = None, video_every: int = 8, video_fps: int = 40,
+          jitter: float = 0.0, seed: int = 0, cam=(0.0, -12.0, 0.40),
+          hold_squeeze: float = 0.0, hold_squeeze_steps: int = 200,
+          selfcollision: bool = False):
+    # `built` is a (model, open_qpos, grip_ctrl, depth_mm) tuple from a previous _grip_from_fit
+    # on this scene at this straddle. The fit is ~90% of a cell's cost and does not depend on
+    # the pivot height, so a sweep over axis_k pays for it once.
+    if morph_run is not None:
+        m = _load_model(scene)
+        d = mujoco.MjData(m)
+        depth_mm = float("nan")
+        closed = np.load(morph_run / "best_rollout.npz")["best_finger_ctrl"]
+        key = m.key("open_ik").id
+        mujoco.mj_resetDataKeyframe(m, d, key)
+        d.ctrl[:] = m.key_ctrl[key]
+        anchor = {j: float(closed[i * 3 + k])
+                  for i, (f, js) in enumerate(FINGERS.items()) for k, j in enumerate(js)}
+    else:
+        if built is None:
+            built = _grip_from_fit(scene, straddle, offset, squeeze, obj, depth, thumb_axial)
+        if built is None:
+            return None
+        m, open_qpos, grip, depth_mm = built
+        d = mujoco.MjData(m)
+        d.qpos[:] = open_qpos
+        d.qvel[:] = 0.0
+        d.ctrl[:] = grip
+        acts0 = _finger_act(m)
+        anchor = {j: float(grip[a]) for j, a in acts0.items()}
+    # ONE ROLLOUT IS NOT A MEASUREMENT. This schedule is chaotic at the 1e-6 level: re-serialising
+    # the scene's `open_ik` keyframe through ElementTree (which `--write-hold-keyframe` does)
+    # moved rv05_manual's k=0.25 cell from final cos 0.996 held on three fingers to 0.783 dropped,
+    # with the sim otherwise bit-identical. Perturb the object's spawn and repeat.
+    if jitter > 0.0:
+        rng = np.random.default_rng(seed)
+        adr = m.jnt_qposadr[m.body(obj).jntadr[0]]
+        d.qpos[adr + 0] += float(rng.normal(0.0, jitter))
+        d.qpos[adr + 1] += float(rng.normal(0.0, jitter))
+        mujoco.mj_forward(m, d)
+
+    mik = _load_model(scene)   # scratch pair for the IK, so the live
+    dik = mujoco.MjData(mik)                         # sim state is never disturbed
+
+    acts = _finger_act(m)
+    clr_pairs, clr_owner = _cross_finger_pairs(m) if selfcollision else ([], {})
+    clr_min, clr_at, clr_pair = float("inf"), None, None
+    pz_a = next(k for k in range(m.nu) if m.actuator(k).name == "a_palm_pz")
+    for j, a in acts.items():
+        d.ctrl[a] = anchor[j]
+    mujoco.mj_forward(m, d)
+
+    # The video covers the WHOLE schedule -- close, lift, turn, hold -- because the failure this
+    # probe most often produces is a shaft that comes upright and then falls, and a clip that
+    # starts at the turn cannot show either end of that.
+    vid, vcam, vframes = None, None, []
+    if video is not None:
+        vid = mujoco.Renderer(m, height=480, width=640)
+        vcam = mujoco.MjvCamera()
+        mujoco.mjv_defaultFreeCamera(m, vcam)
+        # Azimuth 0 looks down -X, i.e. straight at the Y-Z plane. The turn IS a rotation
+        # about X, so this is the only view in which it reads; at azimuth 110 the shaft is
+        # nearly end-on and a 90 deg turn looks like a disc that grows.
+        vcam.azimuth, vcam.elevation, vcam.distance = cam
+    step_i = 0
+
+    def _after_step():
+        """Bookkeeping shared by close, lift, turn, re-squeeze, and hold.
+
+        Clearance used to be sampled only through ``_run``, which meant the reported
+        "whole schedule" minimum silently excluded the commanded turn and final hold.
+        Keep all schedule phases on the same sampling clock so this value is usable as
+        a deployment gate.
+        """
+        nonlocal step_i, clr_min, clr_at, clr_pair
+        step_i += 1
+        # Sampled every 10 sim steps = one control step. The trajectory is smooth, so
+        # this cannot miss a crossing by more than one control period, and checking 48
+        # geom pairs every sim step would dominate the probe's runtime.
+        if clr_pairs and step_i % 10 == 0:
+            dist, who = _min_cross_clearance(m, d, clr_pairs, clr_owner)
+            if dist is not None and dist < clr_min:
+                clr_min, clr_at, clr_pair = dist, step_i, who
+        if vid is not None and step_i % video_every == 0:
+            vcam.lookat[:] = d.body(obj).xpos
+            vid.update_scene(d, vcam)
+            vframes.append(vid.render())
+
+    def _run(n, before=None):
+        for k in range(n):
+            if before is not None:
+                before(k)
+            mujoco.mj_step(m, d)
+            _after_step()
+
+    # close -> lift -> settle, the schedule Policy A's env runs
+    _run(250)
+    pz0 = float(d.ctrl[pz_a])
+    _run(200, lambda k: d.ctrl.__setitem__(pz_a, pz0 + lift * (k + 1) / 200))
+    _run(200)
+
+    tip0 = {f: d.body(TIPS[f]).xpos.copy() for f in FINGERS}
+    centroid = np.mean([tip0[f] for f in FINGERS], axis=0)
+    centroid[1] += axis_shift          # slide the pivot along the shaft
+    # RAISE THE PIVOT. Rotating about an axis through the contacts makes the descending pair
+    # finger travel S*sin(theta) DOWNWARD, i.e. it must EXTEND by that much -- and the measured
+    # extension budget on these grasps is 1.3-9.6 mm against a 30-40 mm straddle, a ceiling of
+    # 2.5-10 degrees which is exactly the 0.9-4 deg the four trained policies reached. Putting
+    # the axis h above the contact plane adds h*(1-cos theta) to BOTH pair contacts, so the
+    # descending one needs no extension once h >= S*cot(theta/2) (h = S at 90 deg) and the
+    # ascending one spends retraction instead, of which there is 38-47 mm. Physically this is
+    # the object descending relative to the palm as it stands up -- the palm has to come down
+    # by about one straddle over the turn, and nothing in Policy B's action space can do that.
+    span = abs(tip0["index"][1] - tip0["middle"][1]) / 2.0
+    centroid[2] += axis_k * span
+    q0 = {j: float(d.qpos[m.jnt_qposadr[m.joint(j).id]]) for j in acts}
+    start = {"cos": _cos(m, d, obj), "z": float(d.body(obj).xpos[2]),
+             "contacts": _contacts(m, d, obj)}
+
+    rows = []
+    ik_miss = 0.0
+    travel = {f: 0.0 for f in FINGERS}
+    ref, ref_every = [], 10          # 10 sim steps = one 0.02 s control step
+    _prev_obj: dict = {}
+    shots, renderer = [], None
+    if film is not None:
+        renderer = mujoco.Renderer(m, height=480, width=640)
+        cam = mujoco.MjvCamera()
+        mujoco.mjv_defaultFreeCamera(m, cam)
+        cam.azimuth, cam.elevation, cam.distance = 90, -10, 0.45
+        cam.lookat[:] = d.body(obj).xpos
+    final_ctrl = dict(anchor)
+
+    if linear_anchor:
+        # What `LerpFingerActionCfg.hold_target_ctrl` actually does: a straight line in JOINT
+        # space from the grasp anchor to one end pose. If that reproduces the IK'd carry then
+        # the whole reorient needs no new controller, only a second keyframe and a switch.
+        dik.qpos[:] = d.qpos
+        dik.qvel[:] = 0.0
+        mujoco.mj_forward(mik, dik)
+        R = _rotx(angle)
+        for f in FINGERS:
+            ik_finger(mik, dik, f, centroid + R @ (tip0[f] - centroid), iters=400)
+        end = {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
+    for k in range(1, turn_steps + 1):
+        th = angle * k / turn_steps
+        if linear_anchor:
+            u = k / turn_steps
+            for j, a in acts.items():
+                delta = (end[j] - q0[j]) * u
+                d.ctrl[a] = anchor[j] + float(np.clip(delta, -budget, budget))
+                final_ctrl[j] = float(d.ctrl[a])
+        else:
+            R = _rotx(th)
+            dik.qpos[:] = d.qpos
+            dik.qvel[:] = 0.0
+            mujoco.mj_forward(mik, dik)
+            for f in FINGERS:
+                tgt = centroid + R @ (tip0[f] - centroid)
+                travel[f] = max(travel[f], float(np.linalg.norm(tgt - tip0[f])))
+                ik_miss = max(ik_miss, ik_finger(mik, dik, f, tgt, iters=60))
+            for j, a in acts.items():
+                delta = float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) - q0[j]
+                d.ctrl[a] = anchor[j] + float(np.clip(delta, -budget, budget))
+                final_ctrl[j] = float(d.ctrl[a])
+        mujoco.mj_step(m, d)
+        _after_step()
+        if film is not None and k % max(1, turn_steps // film_frames) == 0:
+            renderer.update_scene(d, cam)
+            shots.append(renderer.render())
+        if record is not None and k % ref_every == 0:
+            op = d.body(obj).xpos.copy()
+            R_o = d.body(obj).xmat.reshape(3, 3)
+            ref.append([(R_o.T @ (d.body(TIPS[f]).xpos - op)) for f in FINGERS])
+        if contact_trace is not None and k % max(1, turn_steps // 20) == 0:
+            op = d.body(obj).xpos.copy()
+            R_o = d.body(obj).xmat.reshape(3, 3)
+            here = {f: (R_o.T @ (d.body(TIPS[f]).xpos - op)) for f in FINGERS}
+            nc, fc = _contacts(m, d, obj)
+            row = {"step": k, "cmd_deg": round(float(np.degrees(th)), 1),
+                   "cos": round(_cos(m, d, obj), 3),
+                   "z": round(float(d.body(obj).xpos[2]), 4),
+                   "contacts": nc, "force_N": round(fc, 2), "fingers": {}}
+            pf = _per_finger_contact(m, d, obj)
+            for f in FINGERS:
+                slip = (0.0 if not contact_trace or not _prev_obj.get(f) is not None
+                        else float(np.linalg.norm(here[f] - _prev_obj[f])))
+                _prev_obj[f] = here[f]
+                row["fingers"][f] = {"fn_N": round(pf[f]["fn"], 2),
+                                     "ft_N": round(pf[f]["ft"], 2),
+                                     "cone_util": round(pf[f]["util"], 3),
+                                     # mm the pad has moved across the shaft's SURFACE since the
+                                     # last sample: the direct measure of pad slip, in the frame
+                                     # that makes it meaningful (the object's own)
+                                     "slip_mm": round(slip * 1000, 2)}
+            contact_trace.append(row)
+        if trace and k % max(1, turn_steps // 10) == 0:
+            n, fo = _contacts(m, d, obj)
+            rows.append({"step": k, "cmd_deg": round(np.degrees(th), 1),
+                         "cos": round(_cos(m, d, obj), 3),
+                         "z": round(float(d.body(obj).xpos[2]), 4),
+                         "contacts": n, "force_N": round(fo, 2)})
+
+    # The turn's own product, before any hold. `peak_cos`/`final_cos` are taken after the hold
+    # loop, so until now there was no way to say how much of the alignment the COMMAND produced
+    # and how much was the shaft settling inside the grasp afterwards.
+    _nh_t, _fh_t = _contacts_hand(m, d, obj)
+    turn_snap = {"turn_cos": round(_cos(m, d, obj), 4),
+                 "turn_tilt_deg": round(float(np.degrees(np.arccos(
+                     np.clip(abs(_cos(m, d, obj)), -1.0, 1.0)))), 2),
+                 "turn_z": round(float(d.body(obj).xpos[2]), 4),
+                 "turn_contacts_hand": _nh_t, "turn_force_hand_N": round(_fh_t, 2)}
+
+    # RE-SQUEEZE AT THE TOP. The turn ends with the pads high on the shaft where the surface
+    # curves away from them, and these are position servos: the grip force IS the commanded-
+    # minus-actual error, so as the shaft creeps down through the pads the error shrinks and the
+    # force decays to zero. Measured on rv05_manual at axis_k 0.25, holding and doing nothing
+    # else: 16.1 N at the end of the turn -> 13.2 -> 10.9 -> 6.0 -> 1.3 -> 0, and the shaft is on
+    # the table by 1.6 s. That is the same self-extinguishing grip as the above-equator grasp in
+    # `fit_real_v1_pose.tip_targets`, arrived at from the other direction, and a 400-step hold
+    # is too short to see it. The repair is one more set-point: put the pads back INSIDE the
+    # rotated shaft's surface, which is what `--hold-squeeze` commands.
+    if hold_squeeze > 0.0:
+        o = d.body(obj).xpos.copy()
+        ax = d.body(obj).xmat.reshape(3, 3)[:, 2]          # the shaft's own long axis, in world
+        dik.qpos[:] = d.qpos
+        dik.qvel[:] = 0.0
+        mujoco.mj_forward(mik, dik)
+        for f in FINGERS:
+            t = d.body(TIPS[f]).xpos.copy()
+            v = (t - o) - float((t - o) @ ax) * ax          # radial component only
+            n = float(np.linalg.norm(v))
+            if n < 1e-6:
+                continue
+            ik_finger(mik, dik, f, t - (v / n) * hold_squeeze, iters=200)
+        sq_end = {j: float(dik.qpos[mik.jnt_qposadr[mik.joint(j).id]]) for j in acts}
+        sq_start = {j: float(d.ctrl[a]) for j, a in acts.items()}
+        for k in range(1, hold_squeeze_steps + 1):
+            u = k / hold_squeeze_steps
+            for j, a in acts.items():
+                tgt = sq_start[j] + (anchor[j] + (sq_end[j] - q0[j]) - sq_start[j]) * u
+                d.ctrl[a] = float(np.clip(tgt, anchor[j] - budget, anchor[j] + budget))
+                final_ctrl[j] = float(d.ctrl[a])
+            mujoco.mj_step(m, d)
+            _after_step()
+
+    peak = _cos(m, d, obj)
+    min_z_hold = float(d.body(obj).xpos[2])
+    for _ in range(hold_steps):
+        mujoco.mj_step(m, d)
+        min_z_hold = min(min_z_hold, float(d.body(obj).xpos[2]))
+        _after_step()
+        peak = peak if abs(peak) >= abs(_cos(m, d, obj)) else _cos(m, d, obj)
+    n, fo = _contacts(m, d, obj)
+    nh, foh = _contacts_hand(m, d, obj)
+    z = float(d.body(obj).xpos[2])
+    if film is not None:
+        renderer.update_scene(d, cam)
+        shots.append(renderer.render())
+        import PIL.Image
+        w = min(4, len(shots))
+        rows_ = [np.hstack(shots[i:i + w]) for i in range(0, len(shots), w)]
+        wmax = max(r.shape[1] for r in rows_)
+        rows_ = [np.pad(r, ((0, 0), (0, wmax - r.shape[1]), (0, 0))) for r in rows_]
+        film.parent.mkdir(parents=True, exist_ok=True)
+        PIL.Image.fromarray(np.vstack(rows_)).save(film)
+    if vid is not None and vframes:
+        import imageio.v3 as iio
+        video.parent.mkdir(parents=True, exist_ok=True)
+        iio.imwrite(video, np.stack(vframes), fps=video_fps)
+        print(f"  video -> {video}  ({len(vframes)} frames)")
+    if write_hold:
+        from sr2hand.tools.keyframe_ik import inject_keyframe
+        inject_keyframe(scene, "hold_ik",
+                        " ".join(f"{v:.6g}" for v in d.qpos),
+                        " ".join(f"{v:.6g}" for v in d.ctrl))
+    if record is not None:
+        record.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(record, fingertip_obj=np.asarray(ref, dtype=np.float32),
+                 dt=np.float64(ref_every * m.opt.timestep), t0=np.float64(0.0),
+                 source=np.str_(f"probe_real_v1_carry {label} axis_k={axis_k} "
+                                f"steps={turn_steps} peak={peak:.3f}"),
+                 hold_ctrl=np.asarray([final_ctrl[j] for js in FINGERS.values() for j in js],
+                                      dtype=np.float32),
+                 hold_qpos=d.qpos.copy(), hold_full_ctrl=d.ctrl.copy())
+    _final_tilt = float(np.degrees(np.arccos(np.clip(abs(_cos(m, d, obj)), -1.0, 1.0))))
+    return {
+        "run": label or (morph_run.name if morph_run else scene.stem[:18]),
+        "lift": lift, "turn_steps": turn_steps, "hold_steps": hold_steps,
+        "angle_deg": round(np.degrees(angle), 1), "axis_shift_mm": axis_shift * 1000,
+        "budget_rad": budget, "axis_k": axis_k,
+        "hold_squeeze_mm": hold_squeeze * 1000,
+        "axis_height_mm": round(axis_k * span * 1000, 1),
+        **turn_snap,
+        # How much alignment the HOLD added on top of the commanded turn. Negative = the shaft
+        # settled upright by itself; positive = it fell back out.
+        "final_tilt_deg": round(_final_tilt, 2),
+        "settle_deg": round(turn_snap["turn_tilt_deg"] - _final_tilt, 2),
+        "start_cos": round(start["cos"], 3), "start_z": round(start["z"], 4),
+        "peak_cos": round(peak, 3), "final_cos": round(_cos(m, d, obj), 3),
+        "final_z": round(z, 4), "contacts": n, "force_N": round(fo, 2),
+        "contacts_hand": nh, "force_hand_N": round(foh, 2),
+        "min_z_hold": round(min_z_hold, 4),
+        "max_ik_residual_mm": round(ik_miss * 1000, 2),
+        "straddle_mm": None if straddle is None else straddle * 1000,
+        "grip_depth_mm": round(depth_mm, 1),
+        "offset_mm": offset * 1000,
+        "commanded_tip_travel_mm": {f: round(v * 1000, 1) for f, v in travel.items()},
+        # A shaft standing on the table also reads cos 1.0, so `ok` is a HELD test, and it is
+        # taken over the whole hold phase (a shaft that comes upright and then slides out reads
+        # a fine final z if you look only at the last step). Contact is counted against the
+        # whole hand: the pads are often off the shaft at the end of a raised-pivot turn while
+        # the middle phalanges carry it.
+        "ok": bool(nh >= 1 and min_z_hold > start["z"] - 0.02),
+        # Reported separately from `ok`: a trajectory can be a perfect reorientation in sim
+        # and still be unrunnable on the built hand.
+        "min_finger_clearance_mm": (None if clr_min == float("inf")
+                                    else round(clr_min * 1000, 2)),
+        "clearance_at_step": clr_at,
+        "clearance_pair": None if clr_pair is None else "-".join(clr_pair),
+        "trace": rows,
+    }
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--morph-run", type=Path, default=None, action="append",
+                    help="a CEM morphology run; uses its frozen scene and its own grip")
+    ap.add_argument("--scene", type=Path, default=None,
+                    help="a generated scene; the grip is authored at --straddle / --offset")
+    ap.add_argument("--straddle", default="0.010,0.015,0.020,0.030",
+                    help="metres, half-separation of index/middle along the shaft")
+    ap.add_argument("--offset", default="0.0", help="metres, grip offset along the shaft")
+    ap.add_argument("--squeeze", type=float, default=0.004)
+    ap.add_argument("--thumb-axial", type=float, default=0.0,
+                    help="metres to slide ONLY the thumb pad along the shaft, giving it a moment "
+                         "arm about the pinch axis (see fit_real_v1_pose.tip_targets)")
+    ap.add_argument("--depth", default="",
+                    help="metres of grip depth below the mounting plane, comma list. Empty = "
+                         "the fitter's DEEPEST reachable palm, which is 95%% finger extension")
+    ap.add_argument("--object-body", default="screwdriver_medium")
+    ap.add_argument("--selfcollision", action="store_true",
+                    help="trace minimum FINGER-TO-FINGER clearance along the whole schedule. "
+                         "The scene excludes finger pairs from the contact solver, so the sim "
+                         "will drive two fingers through each other and still report a clean "
+                         "carry; on the built hand that is a stall or a stripped horn.")
+    ap.add_argument("--object-mass", type=float, default=None,
+                    help="override the object mass (kg). The scene ships 0.0245 kg; the "
+                         "appendix names 2x that as the point where the open-loop carry "
+                         "fails, and a real screwdriver should be weighed, not assumed.")
+    ap.add_argument("--mass-scale", type=float, default=1.0,
+                    help="multiply the object mass instead of setting it (ignored when "
+                         "--object-mass is given).")
+    ap.add_argument("--lift", type=float, default=0.10)
+    ap.add_argument("--turn-steps", default="200,400,800",
+                    help="sim steps over which the 90 deg is commanded (speed axis)")
+    ap.add_argument("--angle-deg", type=float, default=90.0)
+    ap.add_argument("--axis-k", default="0.0",
+                    help="height of the rotation axis above the contact plane, in units of the "
+                         "half-straddle. 1.0 removes the descending finger's extension demand "
+                         "at 90 deg; comma list")
+    ap.add_argument("--axis-shift", default="0.0",
+                    help="metres to slide the rotation pivot along the shaft, comma list")
+    ap.add_argument("--budget", type=float, default=0.5,
+                    help="per-joint clip on the anchor move; 0.5 = the trainer's residual scale")
+    ap.add_argument("--hold-steps", type=int, default=500)
+    ap.add_argument("--linear-anchor", action="store_true",
+                    help="sweep the anchor in a straight line in joint space instead of IK-ing "
+                         "each step -- exactly what LerpFingerActionCfg.hold_target_ctrl does")
+    ap.add_argument("--record-ref", type=Path, default=None,
+                    help="write the object-relative fingertip schedule + the end anchor pose "
+                         "here (the imitation-reference npz format)")
+    ap.add_argument("--write-hold-keyframe", action="store_true",
+                    help="write the end-of-carry pose into the scene as `hold_ik`; that is the "
+                         "second anchor --hold-ctrl-from-keyframe reads")
+    ap.add_argument("--film", type=Path, default=None, help="tile frames of the carry here")
+    ap.add_argument("--video", type=Path, default=None,
+                    help="write an mp4 of the whole schedule (close, lift, turn, hold) here")
+    ap.add_argument("--cam", default="0,-12,0.40",
+                    help="video camera azimuth,elevation,distance")
+    ap.add_argument("--contact-trace", type=Path, default=None,
+                    help="write per-finger normal / tangential force, friction-cone utilisation "
+                         "and pad slip across the shaft surface, through the turn")
+    ap.add_argument("--workspace", action="store_true",
+                    help="report per-finger radial slack for each --morph-run and exit")
+    ap.add_argument("--hold-squeeze", type=float, default=0.0,
+                    help="metres to press the pads back INTO the shaft after the turn, before "
+                         "the hold. 0 = the schedule as first measured, which releases.")
+    ap.add_argument("--hold-squeeze-steps", type=int, default=200)
+    ap.add_argument("--repeats", type=int, default=1,
+                    help="rollouts per cell, each with a fresh object-spawn jitter")
+    ap.add_argument("--jitter", type=float, default=0.0005,
+                    help="metres, sd of the object's spawn XY perturbation between repeats")
+    ap.add_argument("--trace", action="store_true")
+    ap.add_argument("--out", type=Path, default=None)
+    args = ap.parse_args()
+    _MASS_OVERRIDE.update(kg=args.object_mass, scale=args.mass_scale, obj=args.object_body)
+
+
+    if args.workspace:
+        print(f"{'run':22} {'finger':7} {'reach':>7} {'min':>7} {'max':>7} "
+              f"{'extend':>7} {'retract':>8}")
+        ws = []
+        for r in (args.morph_run or []):
+            w = workspace(r, args.object_body)
+            ws.append(w)
+            for f, v in w["fingers"].items():
+                print(f"{r.name:22} {f:7} {v['reach_mm']:6.1f}m {v['min_mm']:6.1f}m "
+                      f"{v['max_mm']:6.1f}m {v['extend_mm']:+6.1f}m {v['retract_mm']:+7.1f}m")
+        if args.out:
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(json.dumps(ws, indent=2))
+        return 0
+
+    steps = [int(v) for v in str(args.turn_steps).split(",")]
+    shifts = [float(v) for v in str(args.axis_shift).split(",")]
+    ks = [float(v) for v in str(args.axis_k).split(",")]
+    rows, ctrace = [], []
+    if args.morph_run:
+        cases = [(r / "frozen_scene.xml", r, None, 0.0, r.name, None)
+                 for r in args.morph_run]
+    else:
+        if args.scene is None:
+            ap.error("pass --morph-run or --scene")
+        depths = ([None] if not args.depth
+                  else [float(v) for v in str(args.depth).split(",")])
+        cases = [(args.scene, None, st, off,
+                  f"sp{st*1000:.0f}_off{off*1000:.0f}"
+                  + ("" if dp is None else f"_d{dp*1000:.0f}"), dp)
+                 for dp in depths
+                 for off in (float(v) for v in str(args.offset).split(","))
+                 for st in (float(v) for v in str(args.straddle).split(","))]
+    print(f"{'case':22} {'axisH':>6} {'steps':>6} {'peak':>6} {'final':>6} {'z':>7} "
+          f"{'con':>4} {'N':>7} {'ikRes':>7} {'travel':>7}  ok")
+    for scene, run, st_m, off, label, dp in cases:
+        for sh in shifts:
+          for kk in ks:
+            for st in steps:
+                reps = []
+                for rep in range(max(1, args.repeats)):
+                    r = carry(scene, args.lift, st, args.hold_steps,
+                              np.radians(args.angle_deg), sh, args.object_body,
+                              args.budget, args.trace, morph_run=run, straddle=st_m,
+                              offset=off, squeeze=args.squeeze, label=label, depth=dp,
+                          thumb_axial=args.thumb_axial,
+                              axis_k=kk, record=args.record_ref,
+                              linear_anchor=args.linear_anchor,
+                              write_hold=args.write_hold_keyframe, film=args.film,
+                              contact_trace=(ctrace if args.contact_trace else None),
+                              video=args.video,
+                              cam=tuple(float(v) for v in args.cam.split(",")),
+                              hold_squeeze=args.hold_squeeze,
+                              hold_squeeze_steps=args.hold_squeeze_steps,
+                              jitter=(args.jitter if args.repeats > 1 else 0.0), seed=rep,
+                              selfcollision=args.selfcollision)
+                    if r is None:
+                        break
+                    r["repeat"] = rep
+                    reps.append(r)
+                if not reps:
+                    print(f"{label:22}   -- no pose --")
+                    continue
+                rows.extend(reps)
+                r = reps[0]
+                tv = max(r["commanded_tip_travel_mm"].values())
+                fin = [x["final_cos"] for x in reps]
+                kept = sum(1 for x in reps if x["ok"])
+                extra = ("" if len(reps) == 1 else
+                         f"   n={len(reps)} mean {np.mean(fin):+.3f} sd {np.std(fin):.3f} "
+                         f"kept {kept}/{len(reps)}")
+                print(f"{label:22} {r['axis_height_mm']:6.1f} {st:6d} {r['peak_cos']:6.3f} "
+                      f"{r['final_cos']:6.3f} {r['final_z']:7.4f} {r['contacts']:4d} "
+                      f"{r['force_N']:7.2f} {r['max_ik_residual_mm']:7.2f} {tv:7.1f}  "
+                      f"{'OK' if r['ok'] else 'dropped'}{extra}")
+                if args.trace:
+                    for t in r["trace"]:
+                        print(f"       {t}")
+    if args.out:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(rows, indent=2))
+    if args.contact_trace:
+        args.contact_trace.parent.mkdir(parents=True, exist_ok=True)
+        args.contact_trace.write_text(json.dumps(ctrace, indent=2))
+        print(f"\n{'step':>5} {'deg':>6} {'cos':>6} "
+              + "  ".join(f"{f[:3]}:fn/ft/util/slip" for f in FINGERS))
+        for r in ctrace:
+            cells = "  ".join(
+                f"{v['fn_N']:5.1f}/{v['ft_N']:4.1f}/{v['cone_util']:4.2f}/{v['slip_mm']:4.1f}"
+                for v in r["fingers"].values())
+            print(f"{r['step']:5d} {r['cmd_deg']:6.1f} {r['cos']:6.3f}  {cells}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

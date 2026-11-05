@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """tool0 of the draft MJCF (ur5_cb3.xml) against the UR5 (CB3) DH model and the URDF, at 5 random joint configurations
-(seed 0, each joint uniform in [-pi, pi], as scripts/ur5_cb3_cell.py check); the keyframes' flange poses in B; and the
+(seed 0, each joint uniform in [-pi, pi], as scripts/ur5/ur5_cb3_cell.py check); the keyframes' flange poses in B; and the
 controller's reported flange pose (zero TCP) against nominal DH at the 27 poses the lab recorded
 (docs/experiments/20261022-ur5_tip_calibration/lab/poses.jsonl).
 
@@ -21,9 +21,10 @@ import numpy as np
 ROOT = Path("/home/humanoid/Programs/hand")
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "src/morphohand/driver/reskin5x/host"))
+sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 sys.path.insert(0, str(ROOT / "scripts"))
-from morphohand.geometry import rotations as R  # noqa: E402
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry import rotations as R  # noqa: E402
 import ur5_tip_calibration as C  # noqa: E402
 import ur5_tip_calibration_sim as SIM  # noqa: E402
 import ur5_cb3_cell as CELL  # noqa: E402

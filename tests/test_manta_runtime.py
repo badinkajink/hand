@@ -14,7 +14,7 @@ import pytest
 # ruff: noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-HOST = ROOT / "src/morphohand/driver/manta/host"
+HOST = ROOT / "src/sr2hand/driver/manta/host"
 sys.path.insert(0, str(HOST))
 
 from manta_hand.plan import HandPlan, Pose
@@ -194,7 +194,7 @@ def test_http_service_serves_ui_and_protects_commands(tmp_path):
     base = f"http://127.0.0.1:{server.server_port}"
     try:
         with urllib.request.urlopen(base + "/") as response:
-            assert b"MorphoHand control" in response.read()
+            assert b"SR2 Hand control" in response.read()
         with urllib.request.urlopen(base + "/api/v1/state") as response:
             assert json.load(response)["backend"] == "mock"
 

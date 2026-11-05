@@ -14,6 +14,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, "/home/humanoid/Programs/hand/scripts")
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_tip_calibration_v3_data_curve as V  # noqa: E402
 
 H_ = "docs/experiments/20261030-inverted_rig_seat_block/data/holds/"

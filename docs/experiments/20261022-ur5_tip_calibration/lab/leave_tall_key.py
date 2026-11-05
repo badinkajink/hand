@@ -23,7 +23,8 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
-sys.path[:0] = [str(HERE), str(ROOT / "scripts"), str(ROOT / "src/morphohand/driver/reskin5x/host")]
+sys.path[:0] = [str(HERE), str(ROOT / "scripts"), str(ROOT / "src/sr2hand/driver/reskin5x/host")]
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import move_guarded as MG  # noqa: E402
 import ur5_cb3_cell as CELL  # noqa: E402
 

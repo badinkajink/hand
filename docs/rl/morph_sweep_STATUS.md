@@ -28,7 +28,7 @@ and/or use pulse to trigger analysis until I come in at ~9am."
 - Bottleneck decomposed: B-side variance is SOLVED (imit-B sd ±0.02); the DOMINANT open term is the
   **Policy-A draw** (sd 0.3–0.5), and the A health gate **cannot** select good-for-reorient draws —
   it is gate-invisible and mildly **anti-orders** them (health-FAIL As gave G02_00 its best draws).
-- Tested the highest-leverage candidate fix **QF1** (`scripts/probe_a_reorientability.py`): use b33
+- Tested the highest-leverage candidate fix **QF1** (`scripts/archive/probe_a_reorientability.py`): use b33
   **zero-shot** as a cheap A-reorientability selector. **NEGATIVE** — within-design Spearman +0.345,
   best-A-hit 6/11, and it FAILS on the standout draws (G02_00_r3 t0.68/probe0.14; G02_05_r1
   t0.887/probe0.00). Finding: *zero-shot reorientability ≠ trainable reorientability* → no cheap
@@ -38,7 +38,7 @@ and/or use pulse to trigger analysis until I come in at ~9am."
 
 **LAUNCHED 2026-07-20 ~20:33 MDT (detached, resumable, waiter-armed):**
 ```
-nohup setsid env MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/morph_pipeline_sweep.py \
+nohup setsid env MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/design/morph_pipeline_sweep.py \
   --morph-set global --freeze-len --n 12 --seed 6 --replicas 2 --tag global6xy \
   --b-recipe imit --a-attempts 3 > logs/sweep_global6xy.run.log 2>&1 &
 ```
@@ -54,7 +54,7 @@ Replica-major (a full r0 pass first). Pace ~1.5–2 h/design → ~6–7 r0 desig
    needs its own `WARP_CACHE_PATH=$(mktemp -d)`).
 2. **Crashed/stuck** (no worker, no `MORPH_PIPELINE_global6xy.DONE`, `logs/sweep_global6xy.run.log`
    stale >30 min): RESUME (skips finished designs) —
-   `nohup setsid env MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/morph_pipeline_sweep.py
+   `nohup setsid env MUJOCO_GL=egl uv run --extra rl --extra gpu python scripts/design/morph_pipeline_sweep.py
    --morph-set global --freeze-len --n 12 --seed 6 --replicas 2 --tag global6xy --b-recipe imit
    --a-attempts 3 > logs/sweep_global6xy.run.log 2>&1 &` ; log the incident below.
 3. **New completed rows since last tick** (`docs/experiments/MORPH_PIPELINE_global6xy.txt`): append a
@@ -67,7 +67,7 @@ Replica-major (a full r0 pass first). Pace ~1.5–2 h/design → ~6–7 r0 desig
    render the top handoffs, full writeup in `reorientation.md`, refresh memory if a durable conclusion
    lands. **Do NOT auto-launch the next program** — promotion or the conditioned-policy build is the
    user's 09:00 decision.
-5. **Idle CPU while the sweep runs** (all above current): re-run `scripts/probe_a_reorientability.py`
+5. **Idle CPU while the sweep runs** (all above current): re-run `scripts/archive/probe_a_reorientability.py`
    after new H06 A's exist (it auto-discovers from the JSON → grows n toward ~50, firms the QF1
    negative); or sync the quick-fix note + 6-dim result into `webpaper/rl.typ` + `paper/main.tex`
    appendix (CLAUDE.md three-doc rule).
@@ -81,11 +81,11 @@ pgrep -af "morph_pipeline_sweep"; nvidia-smi ; ls logs/*.DONE
 
 **6-DIM STATUS LOG:**
 - **2026-07-24 ~08:00 MDT — pulse tick (VERIFY-ONLY, no-op, collapsed). 17th consecutive no-op.** No live
-  MorphoHand worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube` matched only this pulse proc); sweep DONE
+  SR² Hand worker (`pgrep [m]orph_pipeline_sweep|[r]l_train_cube` matched only this pulse proc); sweep DONE
   (sentinel "28 designs", mtime 20:54); `global6xy.txt` byte-identical (md5 `01b6ce4…`, 30 lines); both POOLED
   tables intact; confirm log ends "COMPLETE — 28 designs"; git clean bar pre-existing `external/mujoco_warp`.
   GPU 2056 MiB — higher than prior ticks' ~1370 but the extra 776 MiB is an **unrelated external `graspgen_server`
-  ROS node** (PID 540544, ~2h42m up), **not** a Warp/sweep job; no MorphoHand GPU work running. No GPU launch, no
+  ROS node** (PID 540544, ~2h42m up), **not** a Warp/sweep job; no SR² Hand GPU work running. No GPU launch, no
   promotion/conditioned-policy auto-launch (tree step 4 = user's call). Only change = this bullet.
 - **2026-07-24 ~07:30 MDT — pulse tick (VERIFY-ONLY, no-op, collapsed). 16th consecutive no-op.** No live
   worker (only this pulse proc); GPU idle 1355 MiB (no Warp); sentinel "28 designs"; `global6xy.txt`
@@ -726,8 +726,8 @@ reorient). Per design, the FULL honest pipeline runs — no cheap skip-lift prox
   → continuous A→B handoff eval → trajectory-health scorecard (.health.json)
 ```
 
-Orchestrator: `scripts/morph_pipeline_sweep.py` (resumable, per-design JSON checkpoint, per-design
-try/except, DONE sentinel). Analysis: `scripts/morph_pipeline_plots.py`.
+Orchestrator: `scripts/design/morph_pipeline_sweep.py` (resumable, per-design JSON checkpoint, per-design
+try/except, DONE sentinel). Analysis: `scripts/design/morph_pipeline_plots.py`.
 
 ## Decisions made (change if you disagree)
 
@@ -767,7 +767,7 @@ nvidia-smi                                 # is a trainer running?
 
 # RESUME after any crash/kill (skips finished designs — safe to re-run):
 MUJOCO_GL=egl uv run --extra rl --extra gpu \
-  python scripts/morph_pipeline_sweep.py --morph-set initial8 > sweep_initial8.run.log 2>&1 &
+  python scripts/design/morph_pipeline_sweep.py --morph-set initial8 > sweep_initial8.run.log 2>&1 &
 
 # STOP everything:
 pkill -f morph_pipeline_sweep.py ; pkill -f rl_train_cube.py   # (never pkill from inside its own cmd)
@@ -843,7 +843,7 @@ separated. Three levers, per the user:
   self-warmstart-B + ~3 seeds**. Fig `img/variance_reduction_bands.png`; writeup in `reorientation.md`.
 - **#3 object-relative fingertip imitation (CORE BUILT, pending GPU-free smoke-test).** Record the
   blessed a10→b33 reorient's **object-frame** fingertip trajectory (transferable across morphologies,
-  unlike joint angles) and imitate it with a curriculum. Built: `src/morphohand/rl/imitation.py`
+  unlike joint angles) and imitate it with a curriculum. Built: `src/sr2hand/rl/imitation.py`
   (reference loader + `track_fingertip_obj` reward, math-validated) + `--record-fingertip-traj` in
   `rl_demo_handoff_continuous.py`. TODO (needs GPU to smoke-test, so queued behind #1+#2): wire the
   reward into `env_cfg`/`rl_train_cube` CLI + a weight curriculum + a training script; record the
@@ -854,7 +854,7 @@ separated. Three levers, per the user:
 
 Nothing running, GPU idle. Deliverables from this autonomous run:
 - **Cleanup + naming:** a10/b33 canonical, REGISTRY idempotent, `*.COLLAPSED` gitignored.
-- **Pipeline:** `scripts/morph_pipeline_sweep.py` (health-gated per-design A→B, resumable) +
+- **Pipeline:** `scripts/design/morph_pipeline_sweep.py` (health-gated per-design A→B, resumable) +
   `morph_pipeline_plots.py`; 3 bugs found+fixed (B open-finger, final-vs-early ckpt, no warmstart).
 - **Sweeps:** initial8 (fragility→bugs), large16 (16 designs ranked), confirm (6-run seed test).
   Data: `docs/experiments/MORPH_PIPELINE_{initial8,large16,confirm}.{json,txt}`, `*_TABLE.md`, figs in `docs/rl/img/`,
@@ -865,14 +865,14 @@ Nothing running, GPU idle. Deliverables from this autonomous run:
 ## FINAL STATE (2026-07-08) — variance solved, sim2real characterized
 
 Nothing running, GPU idle. Since 07-05:
-- **Variance SOLVED** (`scripts/reorient_variance_study.py`): fix-A cuts held-cos sd 4×
+- **Variance SOLVED** (`scripts/rl/reorient_variance_study.py`): fix-A cuts held-cos sd 4×
   (0.38→0.09); a design-neutral **object-relative fingertip imitation** prior
-  (`src/morphohand/rl/imitation.py`, recorded via `--record-fingertip-traj`) cuts it to ±0.02 and
+  (`src/sr2hand/rl/imitation.py`, recorded via `--record-fingertip-traj`) cuts it to ±0.02 and
   gives the smoothest/lowest-force policies. Designs now separate: **m05 0.82 > L01_13 0.72**,
   m05 lower-force → **m05 validated as reference**. Fig `img/variance_reduction_bands.png`.
 - **Sim2real contact hardening** (`solimp 0.97/0.995 → 0.985/0.999`): **grasp transfers** (retrain
   holds), **reorient does NOT** (rolling needs compliance; align 13 vs 48). Eval-only
-  **compliance-robustness sweep** (`scripts/compliance_robustness_sweep.py`): trained policies are
+  **compliance-robustness sweep** (`scripts/rl/compliance_robustness_sweep.py`): trained policies are
   **fragile/non-monotonic** to stiffness; single-stiffness training overfits; imitation degrades
   most gracefully. Figs `img/compliance_robustness.png`; scenes `assets/mjcf/experimental/sim2real/`.
 - **Docs updated:** `reorientation.md` (full arc), webpaper `rl.typ` (co-design + variance + sim2real
@@ -911,7 +911,7 @@ an evaluator whose verdicts aren't optimizer noise.
   150 iters): per-design Δcos(imit − self) on the SAME A is ≥ −0.05. If it handicaps distant
   designs, the imit landscape would be an "m05-similarity map", not a capability map.
 
-**Queue (launched 2026-07-10 eve, detached):** `scripts/probe_queue.sh` → `logs/PROBE_QUEUE.log`
+**Queue (launched 2026-07-10 eve, detached):** `scripts/rl/probe_queue.sh` → `logs/PROBE_QUEUE.log`
 - **P1 `rescue`** (~12–16 h): 5 large16 failures (`rs_L01_{02,03,05,07,09}`), A best-of-2 (every
   attempt recorded in the JSON = raw draw data), then **both** B recipes on the same kept A
   (`b_liveA_imit` → `handoff`, `b_liveA` → `handoff_self`). Flip = held (min-z>0.05) + cos ≥ 0.5
@@ -930,7 +930,7 @@ an evaluator whose verdicts aren't optimizer noise.
 1. **Safety first:** if `pgrep -f "[m]orph_pipeline_sweep|[r]l_train_cube|[p]robe_queue"` shows a
    live worker → analysis/docs/commit work ONLY, never launch GPU jobs (single 16 GB GPU).
 2. **Crashed/stuck queue** (no worker, no `PROBE_QUEUE.DONE`, stale run logs >30 min):
-   relaunch `nohup setsid bash scripts/probe_queue.sh > logs/PROBE_QUEUE.log 2>&1 &` (resumable);
+   relaunch `nohup setsid bash scripts/rl/probe_queue.sh > logs/PROBE_QUEUE.log 2>&1 &` (resumable);
    log the incident here.
 3. **P1 done → score H1:** flip fraction of 5. ≥3/5 ⇒ H1 CONFIRMED (write up + memory).
    ≤1/5 ⇒ failures are real geometry effects ⇒ landscape resolvable already ⇒ jump to (5).
@@ -945,7 +945,7 @@ an evaluator whose verdicts aren't optimizer noise.
    per-design collapse rate as a first-class output in P4.
 6. **Launch P4** (once 3–5 answered, GPU free):
    `nohup setsid env MUJOCO_GL=egl uv run --extra rl --extra gpu python
-   scripts/morph_pipeline_sweep.py --morph-set global --n 24 --seed 2 --tag global24
+   scripts/design/morph_pipeline_sweep.py --morph-set global --n 24 --seed 2 --tag global24
    --b-recipe imit --a-attempts 2 > logs/sweep_global24.run.log 2>&1 &`
    (~2 days; resumable; analyze with `morph_pipeline_plots.py --tag global24`; extend with
    `--seed 3` batches in later windows).
@@ -1104,7 +1104,7 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   B-collapse pair, rs_L01_05, had fmin=0.0/tfmin=0.0); (b) the A scorecard's drop check FAILs
   spuriously on a pre-lift-window min-z artifact (4/26 kept As at minz≈0.007; 3/4 produced
   good Bs) — part of why gate verdicts can't rank draws. Full note
-  `docs/notes/a_quality_predictor.md`; rerunnable `scripts/a_quality_predictor.py` (re-run
+  `docs/notes/a_quality_predictor.md`; rerunnable `scripts/archive/a_quality_predictor.py` (re-run
   with `--tags … global12x2` after P4 → n≈50). Committed avar stragglers (av_L01_05_k0
   video+health, global12x2 table header). GPU busy — no launches this tick.
 - **2026-07-11 ~12:45 tick — P4 designs 1–2/24 complete; FIRST FULL-BOX POINT REORIENTS.**
@@ -1815,7 +1815,7 @@ tick; pokes an autonomous session pointed at THIS section when a usage window id
   Decision tree re-run: no morph worker (`pgrep -f "[m]orph_pipeline_sweep|[r]l_train_cube|[p]robe_queue"`
   matches only the pulse process), both `PROBE_QUEUE.DONE` (07-11 09:15) +
   `MORPH_PIPELINE_global12x2.DONE` (07-13 06:09, 28 records) present. Found the one genuinely-unfinished
-  CPU task: `scripts/a_quality_predictor.py`'s note (943835d, n=25 while P4 still ran) explicitly
+  CPU task: `scripts/archive/a_quality_predictor.py`'s note (943835d, n=25 while P4 still ran) explicitly
   queued a re-run at n≈50 once P4 landed, and the P4 A-run scorecards survive on disk. Ran it
   (CPU-only, reads `.health.json`; no Warp/GPU): **50 (A,B) pairs, 49 completed-B.** Result — the
   "no usable single-draw A→B predictor" verdict **STRENGTHENS**: the n=25 front-runners were

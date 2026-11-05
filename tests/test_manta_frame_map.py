@@ -13,7 +13,7 @@ import mujoco
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-HOST = ROOT / "src/morphohand/driver/manta/host"
+HOST = ROOT / "src/sr2hand/driver/manta/host"
 
 
 @pytest.fixture(scope="module")
@@ -33,7 +33,7 @@ def test_driver_tables_import_without_hardware_deps(mh):
 
 def test_mount_origins_are_identical(mh):
     """The claim that the sim's palm frame IS the firmware's {P}: same origins, no rotation."""
-    from morphohand.sampling.morphology import REAL_V1_MOUNTS
+    from sr2hand.sampling.morphology import REAL_V1_MOUNTS
 
     for finger, (mx, my) in REAL_V1_MOUNTS.items():
         ox, oy = mh.FINGER_GEOMETRY[mh.FINGER_ID[finger]]["origin"]

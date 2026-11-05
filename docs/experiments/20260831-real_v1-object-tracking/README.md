@@ -4,7 +4,7 @@
 (source kept here as `tape-measure.html`).
 
 Every hardware result this program has produced was scored by an operator looking at the shaft
-and typing a number. `scripts/probe_obs_ablation.py` called the object-derived observation
+and typing a number. `scripts/rl/probe_obs_ablation.py` called the object-derived observation
 blocks *hidden*; `real_v1_bench_session.py`'s docstring said "there is no object-pose sensor on
 this hand"; `HandRuntime.state()` reported `capabilities.object_pose: False` as a hard-coded
 literal. All three are now false, and the change cost two printed tags and four tape-measure
@@ -163,20 +163,20 @@ differences the sim predicts between plans (cos 0.73 vs 0.59 is 12° apart).
 ```bash
 # 1. before trusting anything. Checks exposure, both tags, and the SIGN of --shaft-axis
 #    (get that backwards and the centre lands 142 mm the wrong way down the shaft)
-~/miniconda3/bin/python scripts/real_v1_tag_tracker.py --probe
+~/miniconda3/bin/python scripts/hardware/real_v1_tag_tracker.py --probe
 
 # 2. only if the fixed tag was re-aimed by hand. Stage the cylinder somewhere its bench
 #    (x, y) is known, then:
-~/miniconda3/bin/python scripts/real_v1_tag_tracker.py --calibrate-heading 0,0
+~/miniconda3/bin/python scripts/hardware/real_v1_tag_tracker.py --calibrate-heading 0,0
 
 # 3a. normal web-UI operation. Start this companion once per workstation boot; every
 #     reorientation button press then arms and finalizes its own run-id trace.
-MANTA_TOKEN="$MANTA_TOKEN" ~/miniconda3/bin/python scripts/real_v1_tracker_service.py \
+MANTA_TOKEN="$MANTA_TOKEN" ~/miniconda3/bin/python scripts/hardware/real_v1_tracker_service.py \
   --host 10.99.99.50 --port 8770
 
 # 3b. use the bench-session script only when its extra experimental arms/manifest are
 #     wanted. Its own tracking remains automatic.
-python3 scripts/real_v1_bench_session.py --design sv1_w2360_b075 --arms grip,loaded
+python3 scripts/hardware/real_v1_bench_session.py --design sv1_w2360_b075 --arms grip,loaded
 ```
 
 `pyrealsense2` and `pupil_apriltags` are **not** in this repo's uv environment; on this
@@ -231,7 +231,7 @@ is a judgement about how much of a colliding path is worth running, which no rep
 
 ## 3. So can we run the RL policy now?
 
-`scripts/real_v1_obs_sources.py` maps all 66 columns and checks the total against the actor's
+`scripts/design/real_v1_obs_sources.py` maps all 66 columns and checks the total against the actor's
 own input width (66, from `model_200.pt` — it matches):
 
 | term | columns | width | status |
@@ -279,12 +279,12 @@ drop time, a real slip, and a height in the simulator's own coordinates — so t
 
 | path | what |
 |---|---|
-| `src/morphohand/bench/tags.py` | the geometry. numpy only — no camera, no mujoco, no torch |
+| `src/sr2hand/bench/tags.py` | the geometry. numpy only — no camera, no mujoco, no torch |
 | `tests/test_bench_tags.py` | 16 tests, synthetic poses whose answer is known by construction |
-| `scripts/real_v1_tag_tracker.py` | the maintained tracker: probe, calibrate, record, push |
-| `scripts/real_v1_tracker_service.py` | persistent workstation camera owner for automatic web runs |
-| `scripts/real_v1_obs_sources.py` | the 66-column map, checked against a checkpoint |
-| `scripts/real_v1_bench_session.py` | tracking wired into every loaded repeat |
+| `scripts/hardware/real_v1_tag_tracker.py` | the maintained tracker: probe, calibrate, record, push |
+| `scripts/hardware/real_v1_tracker_service.py` | persistent workstation camera owner for automatic web runs |
+| `scripts/design/real_v1_obs_sources.py` | the 66-column map, checked against a checkpoint |
+| `scripts/hardware/real_v1_bench_session.py` | tracking wired into every loaded repeat |
 | `manta_hand/runtime.py`, `web.py`, `static/*` | the station side |
 | `docs/experiments/20260830-apriltag-tracking/` | the original probe and the printable sheet |
 
@@ -328,7 +328,7 @@ say whether the tool had been occluded or flung out of the camera's view. Three 
   individual JPEGs, not a container, because the service ends a run with SIGINT and a video file
   that was never released is unplayable. ~1 MB a run at the default half scale. Encoding happens
   on a background thread behind a bounded queue that DROPS rather than blocks: a slow disk must
-  never become a slow measurement. `scripts/real_v1_tracker_replay.py` assembles them offline
+  never become a slow measurement. `scripts/hardware/real_v1_tracker_replay.py` assembles them offline
   into an annotated mp4 and a phase-aligned filmstrip.
 - **`--post-roll`** on the service. Every trace ended at the last instant of the motion, because
   that is when the station stops the camera, so `cos_hold` averaged the end of the *turn* and a

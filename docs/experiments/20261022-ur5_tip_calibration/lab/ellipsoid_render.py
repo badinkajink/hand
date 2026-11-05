@@ -13,7 +13,7 @@ At the sphere's centre, with J the arm's 3 x 6 translational Jacobian (mm/rad): 
 semi-axes 1000 / sqrt(eig(J J^T)) N. Both are drawn at the same scale in both panels: velocity 0.1 mm per mm/s (blue),
 force 25 mm per N (orange); the press direction (into the pad) is the red rod.
 
-Scene: the robot's URDF visual meshes (scripts/ur5_cell_render.py), the HEX-E, its port, the probe base and the 5 mm
+Scene: the robot's URDF visual meshes (scripts/ur5/ur5_cell_render.py), the HEX-E, its port, the probe base and the 5 mm
 sphere's tool (the seat block's CAD), the strip and its three held tips at the two-key frame, the 2x4 under the strip
 (x_A 50..139, 38 mm), the table top at z_B 0.
 
@@ -32,6 +32,7 @@ import numpy as np
 
 ROOT = Path("/home/will/workspace/hand")
 sys.path.insert(0, str(ROOT / "scripts"))
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_inverted_rig as RIG  # noqa: E402
 import ur5_cell_render as RN  # noqa: E402
 

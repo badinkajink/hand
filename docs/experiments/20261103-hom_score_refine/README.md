@@ -7,7 +7,7 @@ out multiple scores, set up different autopilot jobs to continue promising work.
 
 ## What runs
 
-`scripts/hom_grasp_refine.py` scores each sampled layout three ways (the module docstring has the details):
+`scripts/hom/hom_grasp_refine.py` scores each sampled layout three ways (the module docstring has the details):
 
 | score | HOM | grasp | searched by |
 |---|---|---|---|
@@ -62,7 +62,7 @@ measuring, including cpu vs gpu speedups". Three records, all written as the wor
   `logs/20261103-hom_score_refine/Q_<step>.log`;
 - each queue step: `peak <kB> kB, <s> s` from `/usr/bin/time` at the end of the same log.
 
-`scripts/hom_compute.py` reads them. `ledger` sums every HOM GPU timing line since 2026-10-29 (this study and the grids
+`scripts/hom/hom_compute.py` reads them. `ledger` sums every HOM GPU timing line since 2026-10-29 (this study and the grids
 and searches under `docs/experiments/20261029-foundational_pose_review/rows/`) into `compute/<date>-ledger.json`.
 `cpu-bench` times the CPU runner on one core on the same layouts, grasps, plant and seed, in two variants: as the CPU
 checks run it, and with the GPU's contact filter and solver settings. `gpu-bench` times GPU batches of 64 worlds up to
@@ -81,7 +81,7 @@ Ledger of 2026-11-03 18:5x: 3,270,293 HOM rollouts on the GPU since 10-29, in 2,
 
 ## Outcome (2026-11-04)
 
-Page: `20261103-hom_score_refine.html` beside this file, built by `scripts/hom_score_refine_page.py` (`figs`, `films`,
+Page: `20261103-hom_score_refine.html` beside this file, built by `scripts/hom/hom_score_refine_page.py` (`figs`, `films`,
 then the page). The results quote the elitist picks (`hom_grasp_refine.elitist`; fields `s2e_*`, `s3e_*` and
 `below_start_*` in the reports), because the night's searches scored draws around each start and never the start
 itself: 7 of 240 grasp searches and 5 of 240 full searches on the SCS0009 picked a candidate below their start.
@@ -102,7 +102,7 @@ static balance is the same in both sets, so the drops have no named cause (`medi
 From 2026-11-04 the search scores its start as candidate 0 of iteration 0, so its pick is elitist by construction, and
 each iteration writes one line to `<task>_d<d>_iters.jsonl` (draw, open-pose and GPU-batch seconds, batches,
 rollouts). The compute ledger, the GPU and CPU benchmarks and the speedups are in `compute/`
-(`scripts/hom_compute.py`; `report` keeps the newest CPU session per plant, task and variant).
+(`scripts/hom/hom_compute.py`; `report` keeps the newest CPU session per plant, task and variant).
 
 ## Worst-case score over three frictions (2026-11-04)
 
@@ -119,11 +119,11 @@ another scene cache. `queue_band.sh` is a copy of `logs/20261104-hom_worst_case/
 
 ```bash
 B=k21mu0p4,k21mu0p7,k21
-python3 scripts/hom_grasp_refine.py validate --task twist --band $B --picks-from k21        # 11-03 picks at 0.7
-python3 scripts/hom_grasp_refine.py run --task twist --level grasp --band $B --layouts-from k21 --iters 6
-python3 scripts/hom_grasp_refine.py run --task twist --level full --band $B --layouts-from k21 --iters 6
-python3 scripts/hom_grasp_refine.py validate --task twist --band $B                         # S1w, S2w, S3w
-python3 scripts/hom_grasp_refine.py report --band $B
+python3 scripts/hom/hom_grasp_refine.py validate --task twist --band $B --picks-from k21        # 11-03 picks at 0.7
+python3 scripts/hom/hom_grasp_refine.py run --task twist --level grasp --band $B --layouts-from k21 --iters 6
+python3 scripts/hom/hom_grasp_refine.py run --task twist --level full --band $B --layouts-from k21 --iters 6
+python3 scripts/hom/hom_grasp_refine.py validate --task twist --band $B                         # S1w, S2w, S3w
+python3 scripts/hom/hom_grasp_refine.py report --band $B
 nohup setsid bash logs/20261104-hom_worst_case/queue.sh >> logs/20261104-hom_worst_case/queue.log 2>&1 &
 ```
 
@@ -183,14 +183,14 @@ best grasp of the layout's set on the rescored grid (Sh), and `report --shared` 
 `hom_plant_transfer.compare` does. `queue_shared.sh` is a copy of `logs/20261104-hom_shared_controller/queue.sh`:
 
 ```bash
-python3 scripts/hom_grasp_refine.py run --task press --level shared
-P=$(python3 scripts/hom_grasp_refine.py prm --task press)          # the pick, from rows/sv25/shared/press_d25_pick.json
+python3 scripts/hom/hom_grasp_refine.py run --task press --level shared
+P=$(python3 scripts/hom/hom_grasp_refine.py prm --task press)          # the pick, from rows/sv25/shared/press_d25_pick.json
 HOS_PLANT=servo HOS_SCENES=logs/20261102-hom_servo_plant/scenes HOM_ROWS_TAG=_sv25_shared \
-  python3 scripts/hom_gpu.py run --task press --layouts grid2dff_size --d 25 --seeds 0 1 2 --variants hold \
+  python3 scripts/hom/hom_gpu.py run --task press --layouts grid2dff_size --d 25 --seeds 0 1 2 --variants hold \
   --batch 1536 --out press_d25 --prm "$P" \
   --rows-dir docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25_shared
-python3 scripts/hom_grasp_refine.py validate --task press --shared
-python3 scripts/hom_grasp_refine.py report --shared
+python3 scripts/hom/hom_grasp_refine.py validate --task press --shared
+python3 scripts/hom/hom_grasp_refine.py report --shared
 nohup setsid bash logs/20261104-hom_shared_controller/queue.sh >> logs/20261104-hom_shared_controller/queue.log 2>&1 &
 ```
 
@@ -238,7 +238,7 @@ Owner, 2026-11-03: "can't we score and refine a grasp based off how well the gra
 control? from what i understand we are doing pretty random sampling". Autopilot job `hand-20261104-hom_grasp_genome_ea`;
 the page's Section 8.
 
-`scripts/hom_ea_grasp.py` runs the evolutionary search of `scripts/hom_ea.py` (the layout EA: an individual is a lattice
+`scripts/hom/hom_ea_grasp.py` runs the evolutionary search of `scripts/hom/hom_ea.py` (the layout EA: an individual is a lattice
 layout, its fitness S1, the best of its grasp set at seeds 0-2, up to 48 rollouts) with one grasp per individual (the
 layout-and-grasp EA). Generation 0 is hom_ea's 64 layouts for the same search seed, each with its foundational pose. A
 child keeps its parent's layout with probability 0.5; otherwise the layout moves as hom_ea's children do and the pose
@@ -250,12 +250,12 @@ seeds of a task share one GPU batch per generation (about 288 worlds). `queue_ea
 `logs/20261104-hom_grasp_genome_ea/queue.sh`:
 
 ```bash
-python3 scripts/hom_ea_grasp.py run --task twist                     # search seeds 0-2, population 64, 6,000 rollouts
+python3 scripts/hom/hom_ea_grasp.py run --task twist                     # search seeds 0-2, population 64, 6,000 rollouts
 HOS_PLANT=servo HOS_SCENES=logs/20261102-hom_servo_plant/scenes HOM_ROWS_TAG=_sv25 \
-  python3 scripts/hom_ea.py run --task twist --d 40 --seed 0 --budget 6000          # and seeds 1, 2
-python3 scripts/hom_ea_grasp.py validate --task twist                # both EAs' incumbents at seeds 20-24
-python3 scripts/hom_ea_grasp.py cpu --task twist                     # ... on the CPU plant at seed 20, one core
-python3 scripts/hom_ea_grasp.py report                               # rows/ea_grasp/sv25/<date>-ea_grasp.json
+  python3 scripts/hom/hom_ea.py run --task twist --d 40 --seed 0 --budget 6000          # and seeds 1, 2
+python3 scripts/hom/hom_ea_grasp.py validate --task twist                # both EAs' incumbents at seeds 20-24
+python3 scripts/hom/hom_ea_grasp.py cpu --task twist                     # ... on the CPU plant at seed 20, one core
+python3 scripts/hom/hom_ea_grasp.py report                               # rows/ea_grasp/sv25/<date>-ea_grasp.json
 nohup setsid bash logs/20261104-hom_grasp_genome_ea/queue.sh >> logs/20261104-hom_grasp_genome_ea/queue.log 2>&1 &
 ```
 

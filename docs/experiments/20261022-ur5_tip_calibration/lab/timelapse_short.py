@@ -2,7 +2,7 @@
 straight from the frames' folder: every STRIDE-th lit frame at FPS, each with its clock (from its file name), the run
 then on the robot (from RUNS) and the film's speed in the corner. A one-second card stands for each dark stretch (mean
 brightness at most 60 of 255 over at least 300 frames: the lab's lights out) and for each gap of over a minute between
-frames (the camera off). The same look as scripts/ur5_timelapse_short.py, which cut the film of 11-02 from its mp4.
+frames (the camera off). The same look as scripts/ur5/ur5_timelapse_short.py, which cut the film of 11-02 from its mp4.
 
 RUNS is a JSON list of ["HH:MM[:SS]", "label"] in time order, each label shown from its time on (times before the
 previous one fall on the next day). Run it at idle priority beside a robot run (it decodes JPEGs and encodes x264).

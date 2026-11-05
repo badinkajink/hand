@@ -1,6 +1,6 @@
 # Robust continuation tranche (2026-09-20)
 
-Driver: `nohup setsid python3 scripts/hands_tranche_queue.py --queue docs/experiments/20260920-robust_tranche/queue.json >> logs/20260920-robust_tranche.log 2>&1 &`
+Driver: `nohup setsid python3 scripts/rl/hands_tranche_queue.py --queue docs/experiments/20260920-robust_tranche/queue.json >> logs/20260920-robust_tranche.log 2>&1 &`
 (started 09:23 MDT; 11 jobs, ~38 min each). Same per-job outputs as `20260919-hands_tranche/` plus
 `<id>_eval_j3dr.json` (64 rollouts at ±3 mm / ±10° spawn jitter with friction DR).
 
@@ -16,7 +16,7 @@ Driver: `nohup setsid python3 scripts/hands_tranche_queue.py --queue docs/experi
 
 ## Decision log
 - 09:23 launched; order: D6 clipsep, D3, D5, D1, D6 (clip s2), D4, D7, D2 clip, then D3/D5/D1 clipsep.
-- 11:40 page builder `scripts/robust_tranche_page.py` (+ template) written; page published
+- 11:40 page builder `scripts/rl/robust_tranche_page.py` (+ template) written; page published
   https://claude.ai/artifact/NZLr9wdDAWjZC1HM6ed6ed (same URL from now on; videos in web/ as supporting files).
   A watcher (`logs/20260920-robust_page_watch.log`) rebuilds the local page every 10 min while the driver lives
   and once after it exits; republishing the artifact needs a session (Artifact tool, same file path).

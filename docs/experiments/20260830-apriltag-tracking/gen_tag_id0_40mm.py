@@ -164,7 +164,7 @@ line(M, y - 4, 215.9 - M, y - 4, w=0.6, g=0.35)
 text(M, y + 1.5, "MOUNTING.  Keep the tag centre at 71.0 mm along the shaft axis (CYL_TAG_AXIAL_MM) and the vane normal along the pinch axis, so", 7.0, g=0.15)
 text(M, y + 5.7, "the turn stays an in-plane rotation.  Orientation matters as much as position: the detector's pose frame is fixed to the pattern, so mount", 7.0, g=0.15)
 text(M, y + 9.9, "this square the same way up as the one it replaces.  The patch is 60 mm across, 15 mm wider than the 30 mm tag's - check vane clearance.", 7.0, g=0.15)
-text(M, y + 14.1, "Then set CYL_TAG_SIZE_M = 0.040 in src/morphohand/bench/tags.py.  A tag printed at 40 mm and read as 30 mm misplaces the object by 33%.", 7.0, bold=True, g=0.0)
+text(M, y + 14.1, "Then set CYL_TAG_SIZE_M = 0.040 in src/sr2hand/bench/tags.py.  A tag printed at 40 mm and read as 30 mm misplaces the object by 33%.", 7.0, bold=True, g=0.0)
 
 content = "\n".join(ops).encode()
 comp = zlib.compress(content)

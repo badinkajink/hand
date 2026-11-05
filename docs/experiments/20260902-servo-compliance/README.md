@@ -3,7 +3,7 @@
 Reproduce with
 
 ```bash
-python3 scripts/fit_servo_compliance.py \
+python3 scripts/hardware/fit_servo_compliance.py \
   --logs docs/experiments/20260902-cb1-log-archive/logs \
   --out  docs/experiments/20260902-servo-compliance/fit.json
 ```

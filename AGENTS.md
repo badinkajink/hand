@@ -7,19 +7,19 @@ undated names) and they link the dated result pages. `webpaper/` is retired.
 
 Contact model docs: deck 23 of the contact tutorial (`/home/humanoid/wxie_workspace/contact/tutorial/slides/
 23_soft_fingertip_contact.html`) explains `docs/overviews/contact_model.html` step by step. After a change to a derivation,
-a quoted number or a section of that overview, run `python3 scripts/contact_overview_page.py --deck-check` and update the
+a quoted number or a section of that overview, run `python3 scripts/docs/contact_overview_page.py --deck-check` and update the
 deck in its own repository, or set `DECK_CHECKED` in the builder when nothing in the deck changes.
 
-Result pages carry `docs-topic`, `docs-date` and `docs-summary` meta tags (`scripts/docs_index.py tag`), and the indices
-follow them: a builder that writes a page under `docs/experiments/` reruns `scripts/docs_index.py` when it exits, which
+Result pages carry `docs-topic`, `docs-date` and `docs-summary` meta tags (`scripts/docs/docs_index.py tag`), and the indices
+follow them: a builder that writes a page under `docs/experiments/` reruns `scripts/docs/docs_index.py` when it exits, which
 rewrites `docs/experiments/INDEX.md`, `docs/index.html`, `docs/pages.html`, the overviews' index tables and
 `docs/pages.json`. Commit those with the page; never edit an INDEX.md row by hand.
 
 Shared numerical code (owner, 2026-11-03): rotations, quaternions and rigid transforms come from
-`morphohand.geometry.rotations` (wxyz quaternions, Hamilton products, radians, over scipy's `Rotation`; numpy and scipy
+`sr2hand.geometry.rotations` (wxyz quaternions, Hamilton products, radians, over scipy's `Rotation`; numpy and scipy
 only, so it runs in `femtip` and on corvus). Vectors, distances, signed distances, meshes and lattices are in
 `geometry.vectors`, `distances`, `sdf`, `mesh` and `sampling`; rank statistics, smoothing and angle wrapping in
-`morphohand.numerics` (`stats`, `signal`, `angles`); the torch quaternion functions in `morphohand.rl.math`. Never write a private
+`sr2hand.numerics` (`stats`, `signal`, `angles`); the torch quaternion functions in `sr2hand.rl.math`. Never write a private
 copy in a script: call the module, or scipy or trimesh, and add a missing function to the module, checked once against
 MuJoCo, scipy or trimesh. The driver, `bench/tags.py` and the UR5 programs that move the robot keep their copies until a
 session with the owner and the lab's simulator.
@@ -34,9 +34,9 @@ The canonical rules are the Writing section of `~/.claude/CLAUDE.md`; this is a 
 file wins where they differ. The examples and history behind each rule are in `~/.claude/writing_reference.md`.
 They apply to every page, report, commit message and runbook.
 
-Every page build prints one line per page from `scripts/prose_lint.py --brief` (through `retro_style`): sentence length,
+Every page build prints one line per page from `scripts/docs/prose_lint.py --brief` (through `retro_style`): sentence length,
 grade and flags against the targets of the plain-language passes of 2026-10-22 (mean at most 18 words, at most 5 % of
-sentences over 30 words, at most 300 flagged per 1000). Above target, `python3 scripts/prose_lint.py --top 20 PAGE`
+sentences over 30 words, at most 300 flagged per 1000). Above target, `python3 scripts/docs/prose_lint.py --top 20 PAGE`
 lists the worst sentences with their lines in the builder; edit those instead of reading the whole builder. The flags
 find sentences to rewrite (precision 0.76, recall 0.82 against blind labels; local Qwen models did no better); judging a
 rewrite still needs a reader.
@@ -95,7 +95,7 @@ frontier models, Claude among the heaviest users. Each element removes one.
 11. **Report failures flatly.** Negative results in the same voice as positive ones. A "Future work" section lists
     actionable items naming the measurement, script or flag and what would falsify the claim.
 12. **Set mathematics in LaTeX.** Equations and algorithms on a page are LaTeX rendered at build time
-    (`scripts/texsvg.py`), never code font or `<sub>`; an algorithm is an algorithmic block. Code font is for file
+    (`scripts/docs/texsvg.py`), never code font or `<sub>`; an algorithm is an algorithmic block. Code font is for file
     names, identifiers and commands.
 13. **Use sentence case** for labels, table text, legends and axis titles.
 

@@ -1,0 +1,208 @@
+<title>Basketball grasp on the real_v1 hand</title>
+<meta name="description" content="Reach, seating and held lift of a size-3 to size-7 basketball on the real_v1 hand across three gantry layouts, under the shipped and the measured servo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#1A2127; --ink2:#48545D; --ink3:#77848D; --rule:#D2DAE1; --rule2:#E2E8ED;
+  --s1:#BE7514; --s2:#4A7FC4; --ref:#8A959D;
+  --good:#3F7A46; --bad:#A8443C;
+  --shadow:0 1px 2px rgba(16,26,34,.06),0 8px 24px -14px rgba(16,26,34,.28);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --paper:#12171B; --card:#1A2026; --sunk:#161C21;
+  --ink:#E5EBF0; --ink2:#A8B4BD; --ink3:#7B8791; --rule:#2A333A; --rule2:#222A30;
+  --s1:#E39A2E; --s2:#7BA7E0; --ref:#79858E; --good:#6FB076; --bad:#DE8078;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -16px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 17px/1.62 "Source Serif 4",Georgia,"Times New Roman",serif;
+  -webkit-font-smoothing:antialiased;margin:0;padding:0 16px 96px}
+.wrap{max-width:1020px;margin:0 auto}
+.col{max-width:70ch}
+h1,h2,h3,.mono,.tag,th{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+.mono,code,td.num,.tick,.val,.ser,.mark,.note,.axlab,pre{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+header{padding:64px 0 30px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,4.6vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.022em;
+  margin:16px 0 0;text-wrap:balance;max-width:22ch}
+.lede{font-size:20px;line-height:1.55;color:var(--ink2);margin:18px 0 0;max-width:62ch}
+.byline{margin-top:22px;font:400 13px/1.5 "IBM Plex Mono",monospace;color:var(--ink3)}
+section{padding:46px 0;border-bottom:1px solid var(--rule2)}
+section:last-of-type{border-bottom:0}
+h2{font-size:27px;font-weight:700;letter-spacing:-.018em;margin:0 0 6px;text-wrap:balance}
+h3{font-size:18px;font-weight:600;letter-spacing:-.008em;margin:34px 0 8px}
+h2 + .sub{color:var(--ink3);font:400 14px/1.5 "IBM Plex Mono",monospace;margin:0 0 24px}
+p{margin:0 0 17px}
+strong{font-weight:600}
+ul,ol{margin:0 0 17px;padding-left:20px}
+li{margin:0 0 8px}
+figure{margin:28px 0}
+figure img{display:block;width:100%;border-radius:10px;background:var(--sunk);
+  box-shadow:var(--shadow)}
+figcaption{margin-top:11px;font:400 14px/1.55 "IBM Plex Mono",monospace;color:var(--ink3);
+  max-width:82ch}
+.chart{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px;margin:24px 0}
+.col > .tw,.col > figure,.col > .chart,.col > .duo,.col > .maps{
+  width:min(1020px,calc(100vw - 32px));max-width:none}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:28px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}}
+.duo figure{margin:0}
+.maps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:24px 0}
+.maps .chart{margin:0}
+.grid{stroke:var(--rule2)}
+.tick{font-size:11px;fill:var(--ink3)}
+.axlab{font-size:11.5px;fill:var(--ink3);letter-spacing:.05em}
+.val{font-size:12px;font-weight:500;fill:var(--ink2)}
+.ser{font-size:12.5px;font-weight:500}
+.mark{font-size:10.5px;fill:var(--ink3);letter-spacing:.06em}
+.note{font-size:11.5px;fill:var(--ink3)}
+.tw{overflow-x:auto;margin:24px 0;border:1px solid var(--rule);border-radius:10px;
+  background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font:600 12px/1.3 Archivo,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule);
+  white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+td.wrap{white-space:normal;min-width:22ch}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;
+  white-space:nowrap}
+tbody tr.hi td{background:color-mix(in oklab,var(--s1) 9%,transparent)}
+.ok{color:var(--good);font-weight:600}
+.no{color:var(--bad);font-weight:600}
+.keep{border:1px solid var(--rule);border-left:3px solid var(--s2);border-radius:10px;
+  padding:20px 24px;margin:28px 0;background:var(--card)}
+.keep .tag{display:block;font:700 12px/1 Archivo,sans-serif;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--s2);margin-bottom:11px}
+.keep p:last-child,.keep ul:last-child{margin-bottom:0}
+pre{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;
+  overflow-x:auto;font-size:13px;line-height:1.6;margin:22px 0}
+code{font-size:.92em;background:var(--sunk);padding:1px 4px;border-radius:4px;
+  margin:0 -1px;white-space:nowrap}
+footer{padding:40px 0 0;color:var(--ink3);font:400 13.5px/1.7 "IBM Plex Mono",monospace}
+footer a{color:var(--s2)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">SR&#178; Hand &#183; real_v1 &#183; 16 September 2026</div>
+  <h1>Basketball grasp on the real_v1 hand: reach, seating and held lift across three gantry layouts</h1>
+  <p class="lede">{{LEDE}}</p>
+  <div class="byline">{{N_ROWS}} close&#8211;lift&#8211;hold rollouts over {{N_FITS}} fitted grasps &#183;
+  {{N_LAYOUTS}} gantry layouts &#183; ball sizes 3, 5, 6, 7 &#183; shipped and measured servo &#183;
+  <span class="mono">scripts/mechanisms/real_v1_basketball_grasp.py</span></div>
+</header>
+
+<section id="terms" class="col">
+  <h2>Terms and metrics</h2>
+  <dl class="terms">
+    <dt><b>Layout</b></dt><dd>Gantry positions of the finger mounts: wide (each gantry at its travel end), nominal (CAD centre), g12 (bench hand D4).</dd>
+    <dt><b>Ball size</b></dt><dd>Sizes 7, 6, 5 and 3: radius 120, 116, 110 and 89 mm; mass 620, 540, 480 and 300 g.</dd>
+    <dt><b>Mount ring</b></dt><dd>Mean distance of the three mounts from the ball&#8217;s vertical axis, palm centred, in mm.</dd>
+    <dt><b>Ring needed</b></dt><dd>Smallest mount ring at which the yaw links clear a ball pressed against the palm plate, in mm.</dd>
+    <dt><b>Wrap angle &#952;</b></dt><dd>Polar angle of the pad contacts from the ball&#8217;s top pole, in degrees; 90&#176; is the equator.</dd>
+    <dt><b>Plate gap</b></dt><dd>Distance from the ball&#8217;s top to the palm plate in the fitted grasp, in mm; 0 is seated.</dd>
+    <dt><b>Mount plane</b></dt><dd>Height of the mount plane above the floor in the fitted grasp, in mm.</dd>
+    <dt><b>Pair azimuth</b></dt><dd>Azimuth of the index and middle contacts about the ball&#8217;s axis, from the side opposite the thumb.</dd>
+    <dt><b>Thumb yaw / MCP / PIP</b></dt><dd>Thumb joint angles of the fitted grasp, in degrees.</dd>
+    <dt><b>&#956;</b></dt><dd>Pad&#8211;ball friction coefficient: 0.6, 0.8, 1.0, 1.5 or 2.4.</dd>
+    <dt><b>Shipped servo</b></dt><dd>Finger actuator of every real_v1 scene: kp 30 N&#8239;m/rad, 10 N&#8239;m torque limit.</dd>
+    <dt><b>Measured servo</b></dt><dd>The 2026-09-02 fit: kp 0.5 N&#8239;m/rad, 0.35 N&#8239;m limit; the <a href="../20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html">2026-10-06 refit</a> gives kp 4 N&#8239;m/rad and 1 N&#8239;m.</dd>
+    <dt><b>10 mm and saturating command</b></dt><dd>Finger targets 10 mm inside the ball&#8217;s surface (0.15 N&#8239;m on the measured servo), or eight times deeper, at the torque limit.</dd>
+    <dt><b>Held</b></dt><dd>Ball within 20 mm of the lifted height after a 2 s close, a 0.10 m lift in 1.5 s and a 2 s hold.</dd>
+    <dt><b>Min &#956;, at &#952;</b></dt><dd>Lowest &#956; at which some reachable &#952; holds, and that &#952;.</dd>
+    <dt><b>Pad N</b></dt><dd>Pad normal force at the end of the hold or after the close, in N: the mean of three pads, or thumb / index / middle.</dd>
+    <dt><b>Contact setting</b></dt><dd>Default: pyramidal friction cone, impratio 1, in every repository scene; grasp: elliptic cone, impratio 10, MuJoCo&#8217;s setting for grasping.</dd>
+    <dt><b>Rise</b></dt><dd>Height the ball gained in the 100 mm lift, in mm.</dd>
+  </dl>
+</section>
+
+<section class="col">
+  <h2>Palm plate height and the mount ring of a seated ball</h2>
+  <p class="sub">assets/mjcf/real_v1 &#183; PALM_PLATE_Z in build_real_v1_scenes.py</p>
+  <p>The palm plate of the physical hand sits 25 mm above the plane of the yaw servos.
+  Since 2026-09-16 the simulated plate does too. Scenes generated before that date have the
+  plate on the servo plane, 25 mm too close to the fingertips.</p>
+  <p>A ball pressed against the plate cannot sag. Seated, a size-7 ball has its centre
+  {{SEATED_DEPTH_7}} mm below the mounting plane, where its cross-section is wider than the
+  mount ring of every layout; the table gives the ring each size needs.</p>
+  {{TABLE_SEATING}}
+</section>
+
+<section class="col">
+  <h2>Reachable wrap angle per layout and ball size</h2>
+  <p class="sub">forward-kinematic reach map on a 69 &#215; 55 &#215; 38 joint grid per finger, links clear of the ball</p>
+  <p>A pad at wrap angle &#952; pushes the ball down by \(N\cos\theta\) and lifts it by at most
+  \(\mu N\sin\theta\), so it supports weight only when \(\tan\theta > 1/\mu\): beyond 45&#176;
+  at &#956; 1.0 and beyond 59&#176; at &#956; 0.6. A finger reaches outboard of its mount by at
+  most its 15&#176; of MCP extension. On the wide layout the contacts on a size-7 ball pass
+  outboard of the mounts at &#952; = {{THETA_OUTBOARD_7}}&#176;, and beyond that the palm climbs
+  and the plate gap grows. The table gives the reachable &#952; with the thumb on its meridian
+  and the pair near &#177;60&#176;, and the fitted grasp at the largest &#952;.</p>
+  {{TABLE_REACH}}
+  {{FIG_POSE}}
+</section>
+
+<section class="col">
+  <h2>Held lift under the shipped and the measured servo</h2>
+  <p class="sub">close 2 s &#183; lift 0.10 m over 1.5 s (smoothstep) &#183; hold 2 s</p>
+  <p>{{HOLD_PARA}}</p>
+  {{MAPS_MEASURED}}
+  <p>{{HOLD_PARA_2}}</p>
+  {{TABLE_MIN_MU}}
+  {{FIG_FILMS}}
+</section>
+
+<section class="col">
+  <h2>Contact-setting sensitivity of the cap grasp</h2>
+  <p class="sub">cone and impratio in &lt;option&gt;</p>
+  <p>{{CONTACT_PARA}}</p>
+  {{TABLE_CONTACT}}
+  <p>Every real_v1 scene runs the default. The screwdriver pinch is insensitive to it, because
+  its normals oppose each other. In a cap grasp friction must also cancel the normals&#8217;
+  downward component, and at the default the pads lose their 0.5&#8211;1 mm of penetration in
+  the first millimetre of lift. The hold results above use the grasp setting.</p>
+</section>
+
+<section class="col">
+  <h2>Future work</h2>
+  <ol>
+    <li><strong>Pad&#8211;ball friction.</strong> Drag a pad across an inflated ball under a known
+    normal load on the bench scale. A size-7 hold needs &#956; &#8805; {{MU_MIN_7}} on the
+    measured servo; a lower value rules the grasp out on this hand.</li>
+    <li><strong>Pad force.</strong> Press a pad on the scale at a saturating command (joint error
+    over 0.7 rad). The model gives {{N_PAD_MEASURED}} N; a larger force lowers the friction a hold
+    needs.</li>
+    <li><strong>Gantry travel.</strong> Measure the travel of each gantry axis; 6 mm more on each
+    would give the {{RING_REQ_7}} mm ring that seats a size-7 ball.</li>
+    <li><strong>Approach from above.</strong> Lower the palm onto the ball from 50 mm in the UR5e
+    scene of <code>scripts/mechanisms/build_real_v1_arm_scene.py</code> (these rollouts start with the pads
+    8 mm off the ball); if the thumb reaches the cap before the pair closes, the fitted grasp is
+    unreachable.</li>
+    <li><strong>Compliant pads.</strong> Repeat <code>real_v1_basketball_grasp.py sweep</code> with
+    the 1 mm sphere-pad fingertips; a hold at lower &#956; would show that pad compliance helps the
+    cap grasp.</li>
+  </ol>
+</section>
+
+<footer>
+  Built by <span class="mono">scripts/mechanisms/real_v1_basketball_page.py</span> from
+  <span class="mono">docs/experiments/20260916-basketball/sweep/rows.jsonl</span>,
+  <span class="mono">fits.json</span> and <span class="mono">contact_sensitivity.json</span>.
+  Scenes: <span class="mono">assets/mjcf/real_v1/scenes/scene_basketball.xml</span> and the
+  generated layouts under <span class="mono">docs/experiments/20260916-basketball/sweep/scenes/</span>.
+</footer>
+</div>

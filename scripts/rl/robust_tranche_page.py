@@ -1,0 +1,456 @@
+#!/usr/bin/env python3
+"""Build the page for the 2026-09-20 continuation ("robust") tranche from the queue's own outputs.
+
+    python3 scripts/rl/robust_tranche_page.py [--root docs/experiments/20260920-robust_tranche]
+                                           [--parent docs/experiments/20260919-hands_tranche]
+
+Reads queue.json, tranche_results.json, <id>_eval.json, <id>_eval_j3dr.json, <id>_strip.png,
+<id>_chain_pl{25,0}.json and each run's tensorboard scalars; the parent tranche's results and its
+robust/<id>_eval_j3dr.json for the comparison; writes 20260920-robust_reorient_policies.html beside
+the queue (the rollout videos are web/<id>.mp4 beside the page, transcoded from videos/).
+"""
+from __future__ import annotations
+
+import argparse
+import glob
+import json
+import os
+import subprocess
+import sys
+import time
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from hands_tranche_page import ARM_LABEL as _ARM_LABEL_LONG, HAND_ORDER, cellc, curves, f1, plot_curves, reeval, table, uri, uri_jpeg  # noqa: E402
+import interactive_figure as IF  # noqa: E402
+import retro_style  # noqa: E402
+from policy_eval_suite import load_traces  # noqa: E402
+
+ARM_LABEL = {"clip": "clip (&#177;1 rad)", "clipsep": "clip + separation"}
+
+PLANT_ROWS = [
+    ("tool spawn", "one nominal pose", "&#177;3 mm in x and y, &#177;10&#176; of yaw", "a policy trained at one pose has no reason to hold elsewhere; the CPU probe and the chain never start at the trained pose to the millimetre"),
+    ("Tool", "25 mm cylinder, 24.5 g", "+ screw-tip mesh, 25.6 g", "the chain&#8217;s tool and the real screwdriver carry it"),
+    ("Floor", "mjlab plane: &#956; 1 / 0.005 / 0.0001, solref 0.02, solimp 0.9&#8211;0.95", "the scene&#8217;s floor: &#956; 1.8 / 0.15 / 0.01, solref 0.006, solimp 0.97&#8211;0.995", "the tool lies on it through the closure and the start of the lift (<code>--scene-floor</code>)"),
+    ("tool contact class", "MuJoCo defaults (solref 0.02, solimp 0.9&#8211;0.95); the pair with a pad averaged to 0.013 / 0.935", "the scene&#8217;s (0.006, 0.97&#8211;0.995), the same as the pads", "<code>make_object_spec_from_frozen</code> copied only type, size, mass and friction since the first mjlab run"),
+    ("finger joint damping", "0.5 N&#183;m&#183;s/rad (template)", "0.5, unchanged", "found 2026-09-23: at kp 0.5 it is a 1.04 s time constant, against a bench servo that tracks a 1.08 s trajectory to under 1&#176;; with it removed every policy here drops the tool in its turn (<a href=\"../20260923-chain_handover_gait/20260923-chain_handover_gait.html\">2026-09-23 page</a>)"),
+]
+
+
+# --- the pipeline section --------------------------------------------------------------------
+# Fixed reward weights and shapes that the trainer does not expose as flags (env_build._build_rewards);
+# the flagged ones are read from the run's config.yaml so the table cannot drift from the run.
+REWARD_FIXED = [
+    ("track_finger_qpos", "4", "exp(&#8722;20&#183;|q &#8722; q_ref|&#178;) against the open-loop rollout of the fitted grip", "all episode"),
+    ("track_object_pos", "6", "exp(&#8722;200&#183;|p &#8722; p_ref|&#178;)", "all episode"),
+    ("track_object_quat", "2", "exp(&#8722;10&#183;quat error&#178;)", "all episode"),
+    ("track_finger_ctrl_anchor", "1", "exp(&#8722;4&#183;|ctrl &#8722; anchor|&#178;), keeps the set-point near the grip", "all episode"),
+    ("contact_mean", "10", "mean pad-contact indicator", "all episode"),
+    ("lift_height", "80", "object height above spawn, clipped at the 100 mm target", "lift phase"),
+    ("object_drop", "&#8722;12", "indicator: object 20 mm below spawn", "lift phase"),
+    ("fingertip_to_object", "&#8722;3", "mean pad-to-shaft distance", "all episode"),
+    ("joint_pos_limits", "&#8722;2", "joint excursion beyond its range", "all episode"),
+]
+
+DECISIONS = [
+    ("Hand provenance", "Eight deployed real_v1 hands (D1&#8211;D8)", "2026-08-27/28",
+     "Generated from <code>assets/mjcf/real_v1/real_hand.xml</code>, exported as plans and run on hardware (251 runs)", "Measured"),
+    ("Grasp", "Chain-fitter anchor, pads at or below the shaft equator, 10 mm commanded squeeze", "2026-08-27, 2026-09-16",
+     "Pads above the equator wedge the shaft out within 0.6 s; 10 mm lifts at 2.5&#8211;4.5 N on 3&#8211;4 pads", "Measured"),
+    ("Finger plant", "kp 0.5, kv 0.02, 0.35 N&#183;m, frictionloss 0.0035, damping 0.5, elliptic cone, impratio 10, pad &#956; 1.0, plate +25 mm", "2026-09-02, 2026-09-16",
+     "kp 30 predicts 0.03&#176; of deficit against 11.7&#176; measured; the damping left at 0.5 gives a 1.04 s time constant", "kp measured (static); dynamics unmeasured"),
+    ("Tool and floor", "Screw-tip mesh (25.6 g), the scene&#8217;s floor and contact class", "2026-09-20",
+     "The object had trained on MuJoCo&#8217;s defaults on mjlab&#8217;s plane", "Measured (this page)"),
+    ("Control", "Residual 0.5 rad &#215; action clipped to &#177;2, on a set-point eased to the grip anchor over 80 sim steps", "Scale 2026-07; clip 2026-09-19",
+     "Action 0 reproduces the open-loop grasp and lift; at clip 2 every hand held 64/64", "Clip measured; scale inherited"),
+    ("Residual onset", "Policy step 58, 0.52 s after the lift ramp", "2026-08-30",
+     "The tool comes to rest on the pads after the lift", "Inherited"),
+    ("Reorient reward", "Alignment 100 &#215; exp(&#8722;4(1 &#8722; cos)&#178;) + progress 300 &#215; &#916;cos per step, contact_min 15, lateral drift &#8722;8", "2026-06 (B10 block)",
+     "The progress term gives a gradient where the exponential is flat", "Inherited; not re-swept on real_v1"),
+    ("Grip penalty", "&#8722;2 &#215; mean over pads of (max(F &#8722; 6 N, 0) / 4)&#178;", "2026-09-19",
+     "The 10.8 N finetune dropped the tool in the chain; the 17 N parent held 3/4", "Measured in the chain; not swept"),
+    ("Separation term", "&#8722;10 &#215; (max(30 mm &#8722; clearance, 0) / 30 mm)&#178; on index and middle", "2026-09-19",
+     "The built index and middle carry housings and cabling that the capsules omit", "Measured; the 30 mm not calipered"),
+    ("Terminations", "Drop 20 mm below spawn; fewer than 3 pads for 15 consecutive steps", "Recipe 2026-07; 15 steps 2026-08-30",
+     "Only drop and tip-lost end an episode; no measurement behind the 15", "Inherited"),
+    ("Domain randomisation", "Friction &#215;[0.55, 1.15]; observation noise; spawn &#177;3 mm / &#177;10&#176;", "2026-07; spawn 2026-09-20",
+     "With the tool on the scene&#8217;s contact class the 2026-09-19 policies dropped it at &#177;3 mm (D7 0/64); on the contact "
+     "class they trained with, D7 holds 57/64 (re-evaluated 2026-10-11)", "Spawn measured; friction and noise inherited"),
+    ("Observation", "Sighted 66-dim actor; the critic sees the same terms without noise", "2026-08-30, 2026-09-19",
+     "A blind warm start had not recovered in 22 iterations; the tag tracker gives the pose at 50 Hz", "Measured once"),
+    ("Optimiser", "PPO (rsl_rl), settings in the table above", "2026-07",
+     "The GPU saturates at about 10,000 steps/s", "Inherited"),
+    ("Budget", "20 M steps per finetune; 60 M for the D6 parent", "2026-09-17/19",
+     "The 60 M parent was still gaining alignment", "Measured once"),
+    ("Warm start", "Actor and critic from the parent checkpoint", "2026-09-17",
+     "Warm-started draws have an sd of 0.032 in cos against 0.3&#8211;0.5 from scratch", "Measured"),
+    ("Seeding", "None: <code>--seed</code> is parsed and never applied", "2026-07",
+     "Every run is an unseeded draw", "Defect"),
+    ("Timing", "5 s episodes, 2 ms physics, 50 Hz control", "2026-07",
+     "The bench servo bus closes a loop at 50&#8211;111 Hz", "Inherited"),
+]
+
+EVAL_ROWS = [
+    ("nominal", "<code>policy_eval_suite.py</code>, 64 GPU rollouts, deterministic actor, the run&#8217;s own onset and clip", "held = total pad force &gt; 0.5 N and object above the floor at the last step; a shaft standing on the floor reads cos 1 and is not a hold"),
+    ("jittered", "the same with <code>--spawn-jitter-mm 3 --spawn-yaw-deg 10 --friction-dr</code>", "the judging number: 64 deterministic rollouts at one pose are one rollout under solver noise"),
+    ("CPU replay and variants", "<code>policy_transfer_probe.py</code> on the frozen scene: base, plate 0, &#956; 0.6 / 1.5, mass &#215;1.3, kp 0.25", "the CPU solver is the chain&#8217;s; a GPU/CPU disagreement marks a fragile policy"),
+    ("chain", "<code>real_v1_chain_policy.py --stages policy</code>: UR5e lift on the menagerie arm at kp &#215;10, finger gravcomp off, the policy shadowed from step 0, plates 25 and 0 mm", "the first active observation matches the benchmark within 1&#176; / 1.3 mm / 0.015 quat; what remains is the maneuver"),
+    ("filmstrip and video", "<code>policy_filmstrip.py</code> frames at steps 40, 58, 80, 110, 140, 170, 200, 249; <code>rl_render_rollout.py</code> 640&#215;480", "looked at before any number is explained"),
+]
+
+
+def num(v):
+    """Number with a true minus sign."""
+    return f"{float(v):g}".replace("-", "&#8722;")
+
+
+def pipeline_blocks(run_dir, common_flags=()):
+    """Timeline, observation/action, reward, termination and PPO tables for the pipeline section, read
+    from one finished run's config.yaml and rsl_rl_cfg.json so every number is the run's own."""
+    import yaml
+    cfg = yaml.safe_load(open(os.path.join(run_dir, "config.yaml")))
+    env, ppo = cfg["env"], cfg["ppo"]
+    rr = json.load(open(os.path.join(run_dir, "rsl_rl_cfg.json")))
+    dec = int(env["decimation"]); dt = float(env["sim_timestep"]) * dec
+    ep_steps = int(round(float(env["episode_length_s"]) / dt))
+    close, settle, ramp = int(env["finger_close_sim_steps"]), int(env["settle_steps"]), int(env["lift_ramp_steps"])
+    onset = int(env["finger_residual_active_from_step"]); onset_sim = onset * dec
+    total_sim = ep_steps * dec
+
+    # --- episode timeline (SVG): the first `onset_sim` steps get 55 % of the width, the turn the rest
+    W, L, Rm, H = 760, 100, 16, 150
+    split = 0.55
+    def x(sim):
+        if sim <= onset_sim:
+            return L + (W - L - Rm) * split * sim / onset_sim
+        return L + (W - L - Rm) * (split + (1 - split) * (sim - onset_sim) / (total_sim - onset_sim))
+    phases = [(0, close, "close", ".45"), (close, settle, "seat", ".18"), (settle, settle + ramp, "lift", ".45"),
+              (settle + ramp, onset_sim, "settle", ".18"), (onset_sim, total_sim, "residual on, reorient reward on, tip-lost live", ".32")]
+    svg = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="episode timeline" style="max-width:{W}px;font-family:inherit;color:inherit">']
+    for a, b, lab, op in phases:
+        svg.append(f'<rect x="{x(a):.1f}" y="40" width="{x(b) - x(a):.1f}" height="34" fill="currentColor" fill-opacity="{op}" stroke="currentColor" stroke-opacity=".5" stroke-width="0.6"/>')
+        svg.append(f'<text x="{(x(a) + x(b)) / 2:.1f}" y="61" font-size="13" text-anchor="middle" fill="currentColor">{lab}</text>')
+    svg.append(f'<text x="{x(onset_sim):.1f}" y="30" font-size="13" text-anchor="middle" fill="currentColor">scale changes here</text>')
+    svg.append(f'<path d="M{x(onset_sim) - 4:.1f},74 l4,8 l4,-8" fill="none" stroke="currentColor" stroke-width="0.8"/>')
+    for sim in (0, close, settle, settle + ramp, onset_sim, total_sim):
+        svg.append(f'<line x1="{x(sim):.1f}" y1="74" x2="{x(sim):.1f}" y2="82" stroke="currentColor" stroke-opacity=".6" stroke-width="0.8"/>')
+        svg.append(f'<text x="{x(sim):.1f}" y="96" font-size="13" text-anchor="middle" fill="currentColor" fill-opacity=".8">{sim}</text>')
+        svg.append(f'<text x="{x(sim):.1f}" y="112" font-size="13" text-anchor="middle" fill="currentColor" fill-opacity=".8">{sim // dec}</text>')
+        svg.append(f'<text x="{x(sim):.1f}" y="128" font-size="13" text-anchor="middle" fill="currentColor" fill-opacity=".8">{sim * float(env["sim_timestep"]):.2f} s</text>')
+    for yy, lab in ((96, "sim step"), (112, "policy step"), (128, "time")):
+        svg.append(f'<text x="{L - 18}" y="{yy}" font-size="13" text-anchor="end" fill="currentColor" fill-opacity=".8">{lab}</text>')
+    svg.append("</svg>")
+    timeline = "".join(svg)
+
+    # --- observation and action
+    n_joint = 15
+    obs_rows = [
+        ("joint_pos", str(n_joint), "9 finger + 6 palm joint positions relative to default", "&#177;0.01 rad"),
+        ("joint_vel", str(n_joint), "their velocities", "&#177;0.5 rad/s"),
+        ("object_pos", "3", "tool position relative to the palm site", "&#177;5 mm"),
+        ("object_pose_actual", "7", "tool position and quaternion in the palm frame", "&#177;5 mm"),
+        ("ref_finger_qpos", "9", "finger joints of the open-loop reference rollout at this step", "None"),
+        ("ref_object_pose", "7", "tool pose of the reference rollout at this step", "None"),
+        ("actions", "9", "the actor&#8217;s previous output", "None"),
+        ("target_axis_misalign", "1", "1 &#8722; cos between the shaft axis and vertical", "None"),
+    ]
+    obs_table = table(["term", "dims", "meaning", "actor noise (uniform)"], [list(r) for r in obs_rows])
+    act = (f"<p>The actor is an MLP {'-'.join(str(d) for d in rr['actor']['hidden_dims'])} ({rr['actor']['activation']}) from the 66 inputs to 9 Gaussian "
+           f"means with a learned per-dimension standard deviation (initial {rr['actor']['distribution_cfg']['init_std']}). The critic has the same shape and reads the "
+           f"same 66 terms without noise. Each action is clipped to &#177;{ppo['clip_actions']} by the rsl_rl wrapper and multiplied by "
+           f"{env['finger_residual_scale']} rad before it is added to the finger set-point, so the residual is limited to "
+           f"&#177;{float(ppo['clip_actions']) * float(env['finger_residual_scale']):.1f} rad and is zero before policy step {onset}. "
+           f"The palm has no learned degree of freedom: its six joints follow the scripted lift (<code>enable_palm_rotation_residual</code> {str(env['enable_palm_rotation_residual']).lower()}).</p>")
+
+    # --- rewards: flagged weights from the run, fixed ones from env_build
+    rows = [
+        ("target_axis_alignment", num(env['target_axis_weight']), f"exp(&#8722;{env['target_axis_alpha']:g}(1 &#8722; cos)&#178;), cos between the shaft axis and world +z", f"from step {env['reorient_start_step']}"),
+        ("target_axis_progress", num(env['target_axis_progress_weight']), "cos(t) &#8722; cos(t &#8722; 1), signed", f"from step {env['reorient_start_step']}"),
+        ("contact_min", num(env['contact_min_weight']), f"indicator: all {env['min_tips_in_contact']} pads on the tool", "all episode"),
+        ("object_lateral_drift", num(env['lateral_drift_weight']), f"|xy &#8722; xy_spawn| beyond a {float(env['lateral_drift_deadband']) * 1000:g} mm deadband, power {env['lateral_drift_power']:g}, contact-gated", "all episode"),
+        ("object_xy_drift", num(env['object_xy_drift_weight']), "xy drift from the reference, contact-gated", "all episode"),
+        ("object_orientation_drift", num(env['object_orientation_drift_weight']), "orientation drift from the reference, contact-gated", "all episode"),
+        ("finger_drift_from_grip", num(env['finger_drift_weight']), "finger joints away from the grip pose, contact-gated", "all episode"),
+        ("action_rate_l2", num(env['action_rate_weight']), "|a(t) &#8722; a(t &#8722; 1)|&#178;", "all episode"),
+        ("grip_force_excess", num(env['grip_force_penalty_weight']), f"mean over pads of (max(F &#8722; {env['grip_force_penalty_thresh']:g} N, 0) / {env['grip_force_penalty_scale']:g})&#178;", "all episode"),
+    ]
+    rows.append(("finger_separation_penalty", "0 in the clip arm; &#8722;10 in the separation arm",
+                 "(max(d_min &#8722; clearance, 0) / d_min)&#178; on the index&#8211;middle link chains, d_min 30 mm", "all episode"))
+    rows += [list(r) for r in REWARD_FIXED]
+    reward_table = table(["term", "weight", "shape", "active"], [list(r) for r in rows])
+    reward_note = (f"<p>mjlab multiplies every term by the control period ({dt:g} s), so a weight of 100 is 2 per step. The tracking terms follow the "
+                   f"open-loop rollout of the fitted grip on the same scene (<code>best_rollout.npz</code> in the morphology run); the contact gate zeroes a "
+                   f"stability term while the mean pad-contact indicator is below {env['contact_gate_min']:g}.</p>")
+
+    # --- terminations
+    def flag(name, default):
+        cf = list(common_flags)
+        return cf[cf.index(name) + 1] if name in cf else default
+    term_rows = [
+        ("time_out", f"{env['episode_length_s']:g} s ({ep_steps} steps)", "the normal end"),
+        ("object_drop", f"tool {float(env['term_object_drop']) * 1000:g} mm below its spawn height during the lift phase (from step {env['lift_phase_start_step']})", "ends the episode"),
+        ("tip_lost", f"fewer than {env['min_tips_in_contact']} pads on the tool for {env['term_tip_lost_steps']} consecutive steps, from step {env['lift_phase_start_step']}", "ends the episode"),
+        ("object_slip / orientation_slip / finger_slip", f"{env['term_object_slip_xy']:g} m / {env['term_object_slip_yaw']:g} rad / {env['term_finger_slip']:g} rad", "thresholds the recipe set out of reach: they never fire"),
+        ("collapse watchdog", f"the trainer aborts when the episode-mean object height falls below {flag('--watchdog-collapse-z', '0.03')} m after iteration {flag('--watchdog-from-iter', '40')}", "a run that has dropped the tool stops costing GPU time"),
+    ]
+    term_table = table(["termination", "condition", "effect"], [list(r) for r in term_rows])
+
+    # --- PPO
+    al = rr["algorithm"]
+    ppo_rows = [
+        ("environments &#215; steps per iteration", f"{ppo['num_envs']} &#215; {ppo['num_steps_per_env']} = {ppo['num_envs'] * ppo['num_steps_per_env']:,} samples"),
+        ("iterations", f"{rr['max_iterations']} for {ppo['total_timesteps'] / 1e6:g} M steps"),
+        ("epochs &#215; minibatches", f"{al['num_learning_epochs']} &#215; {al['num_mini_batches']}"),
+        ("learning rate", f"{al['learning_rate']:g}, {al['schedule']} on a KL target of {al['desired_kl']:g}"),
+        ("&#947;, &#955;, clip, entropy", f"{al['gamma']:g}, {al['lam']:g}, {al['clip_param']:g}, {al['entropy_coef']:g}"),
+        ("value loss, gradient clip", f"{al['value_loss_coef']:g} (clipped), {al['max_grad_norm']:g}"),
+        ("checkpoints", f"every {rr['save_interval']} iterations; <code>model_{rr['max_iterations'] - 1}.pt</code> is the one evaluated"),
+        ("seed", "none is applied: <code>rl_train_cube.py</code> parses <code>--seed</code> and never uses it, mjlab&#8217;s environment seed stays None and "
+                 f"the rsl_rl config field ({rr['seed']}) is not read by the runner; every run, s0/s1/s2 included, is an unseeded draw"),
+    ]
+    ppo_table = table(["PPO", ""], [list(r) for r in ppo_rows])
+
+    return {"TIMELINE": timeline, "TABLE_OBS": obs_table, "ACTION_NOTE": act, "TABLE_REWARD": reward_table, "REWARD_NOTE": reward_note,
+            "TABLE_TERM": term_table, "TABLE_PPO": ppo_table,
+            "TABLE_DECISIONS": table(["decision", "value", "since", "reason on record", "status"], [list(r) for r in DECISIONS]),
+            "TABLE_EVAL": table(["number", "how it is produced", "what it means"], [list(r) for r in EVAL_ROWS])}
+
+
+def eval_figure(R, P, done, res, pres):
+    """Each continued policy against its parent under the nominal and the jittered reset (traces of 2026-10-11): colour by
+    hand, solid for the continuation, dashed for the parent."""
+    col = {h: IF.PALETTE[i] for i, h in enumerate(HAND_ORDER)}
+    resets = [("nominal", "Nominal"), ("j3dr", "Spawn &#177;3 mm, &#177;10&#176;, friction DR")]
+    items, ids = [], {}
+    for j in done:
+        for pol, root, run in (("cont", R, res[j["id"]].get("run")), ("parent", P, pres.get(j.get("warm_start", ""), {}).get("run"))):
+            path = os.path.join(root, "traces", f"{os.path.basename(run or '')}.npz")
+            if not run or not os.path.exists(path):
+                continue
+            T = load_traces(path)
+            for key, _ in resets:
+                if key not in T:
+                    continue
+                sid = f"{j['id']}-{pol}-{key}"
+                items.append(dict(id=sid, label=f"{j['hand']}, {ARM_LABEL.get(j['arm'], j['arm'])}, {'continued' if pol == 'cont' else 'parent'}",
+                                  trace=T[key], color=col[j["hand"]], dash="" if pol == "cont" else "7 4", width=1.6,
+                                  facets={"reset": key, "policy": pol, "hand": j["hand"], "arm": j["arm"]}))
+                for g in (j["hand"], pol):
+                    ids.setdefault(g, []).append(sid)
+    hands = [h for h in HAND_ORDER if h in ids]
+    legend = [(h, col[h], "", ids[h]) for h in hands] + [("Continued (solid)", "#000", "", ids.get("cont", [])),
+                                                         ("Parent, 2026-09-19 (dashed)", "#000", "7 4", ids.get("parent", []))]
+    facets = [{"key": "reset", "label": "Reset", "kind": "radio", "values": resets, "on": ["j3dr"]},
+              {"key": "policy", "label": "Policy", "values": [("cont", "Continued"), ("parent", "Parent")]},
+              {"key": "hand", "label": "Hand", "values": [(h, h) for h in hands]},
+              {"key": "arm", "label": "Arm", "values": [("clip", "Clip"), ("clipsep", "Clip + separation")], "on": ["clip"]}]
+    return IF.eval_figure("eval-robust", items, facets=facets, legend=legend, n_roll=0, show_band=False, caption=(
+        "Medians over 64 rollouts of each continued policy (solid) and its parent (dashed) under the jittered reset with "
+        "friction DR (the default view; the reset box switches to the trained pose), clip arm; the arm box adds the "
+        "separation arm. Each policy runs on its own plant: the continuation on the scene&#8217;s floor, tool contact "
+        "class and tip mesh, the parent on the 2026-09-19 environment."))
+
+
+def chain_cell(path):
+    if not os.path.exists(path):
+        return ("&#8211;", "cell")
+    c = json.load(open(path)); tr = c.get("policy_trace", [])
+    if not tr:
+        return ("&#8211;", "cell")
+    end = tr[-1]; peak = max(r[1] for r in tr)
+    held = end[2] > 0.06 and sum(end[4:7]) >= 0.5
+    return (f"{'held' if held else 'lost'} &#183; {end[1]:+.2f} (peak {peak:.2f})", "cell c4" if held else "cell c0")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--root", default="docs/experiments/20260920-robust_tranche")
+    ap.add_argument("--parent", default="docs/experiments/20260919-hands_tranche")
+    a = ap.parse_args()
+    R, P = a.root, a.parent
+    q = json.load(open(os.path.join(R, "queue.json")))
+    res = {r["id"]: r for r in (json.load(open(os.path.join(R, "tranche_results.json"))) if os.path.exists(os.path.join(R, "tranche_results.json")) else [])}
+    pres = {r["id"]: r for r in json.load(open(os.path.join(P, "tranche_results.json")))}
+    jobs = q["jobs"]
+    done = [j for j in jobs if res.get(j["id"], {}).get("status") == "done"]
+
+    # evaluation numbers: the 2026-10-11 re-evaluation of every policy on its own plant (traces/ in each folder)
+    def run_of(rows, jid):
+        return rows.get(jid, {}).get("run")
+
+    def jit(root, jid, sub=""):
+        return reeval(root, run_of(pres if root == P else res, jid), "j3dr")
+
+    def nom(root, jid):
+        return reeval(root, run_of(pres if root == P else res, jid), "nominal") or (pres if root == P else res).get(jid, {})
+
+    def hc(e, key="hold_rate", cos="final_cos_mean"):
+        if not e or e.get(key) is None:
+            return ("&#8211;", "cell")
+        n = int(e.get("n", 64)); h = int(round(e[key] * n))
+        return cellc(h / n, f"{h}/{n} &#183; {e[cos]:+.2f}")
+
+    # --- main table: continuation against its parent
+    rows, reading_bits = [], []
+    for j in done:
+        r = nom(R, j["id"]); pr = nom(P, j.get("warm_start", ""))
+        pj = jit(P, j.get("warm_start", ""), "robust"); cj = jit(R, j["id"])
+        rows.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]),
+                     hc(pr), hc(pj), f1(pr.get("clearance_min_mm_mean")),
+                     hc(r), hc(cj), f1(r.get("clearance_min_mm_mean")),
+                     chain_cell(os.path.join(P, f"{j.get('warm_start', '')}_chain_pl25.json")),
+                     chain_cell(os.path.join(R, f"{j['id']}_chain_pl25.json"))])
+        if pj and cj:
+            reading_bits.append((j["hand"], j["arm"], int(round(pj["hold_rate"] * 64)), int(round(cj["hold_rate"] * 64)),
+                                 pj["final_cos_mean"], cj["final_cos_mean"]))
+    for j in jobs:
+        if j.get("status") == "failed":
+            rows.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]), "", "", "", ("training aborted: " + j.get("fail_note", "see the log"), "cell c0"), "", "", "", ""])
+    table_main = table(["hand", "arm", "parent nominal: held &#183; cos", "parent jittered", "parent clearance (mm)",
+                        "continued nominal", "continued jittered", "continued clearance (mm)",
+                        "chain, parent", "chain, continued"], rows) if rows else "<p>No job has finished yet.</p>"
+    up = [b for b in reading_bits if b[3] >= b[2] + 8]; down = [b for b in reading_bits if b[3] <= b[2] - 8]
+    reading = ""
+    if reading_bits:
+        sc = []
+        for j in done:
+            e = reeval(P, run_of(pres, j.get("warm_start", "")), "j3dr_scene")
+            if e:
+                sc.append(f"{j['hand']}{'' if j['arm'] == 'clip' else ' + separation'} {int(round(e['hold_rate'] * 64))}")
+        reading = ("<p>Jittered hold with friction DR, continued against parent, each on the plant it trained on. The parent used "
+                   "MuJoCo&#8217;s default tool contact and mjlab&#8217;s floor. The continuation used the scene&#8217;s contact "
+                   "class, floor and tip mesh. " +
+                   "; ".join(f"{h} {ARM_LABEL.get(a_, a_)} {p}&#8594;{c} of 64 (cos {pc:+.2f}&#8594;{cc:+.2f})" for h, a_, p, c, pc, cc in reading_bits) +
+                   ". " + (f"Gains of 8 or more: {', '.join(b[0] for b in up)}. " if up else "") +
+                   (f"Losses of 8 or more: {', '.join(b[0] for b in down)}. " if down else "") +
+                   (f"With the tool on the scene&#8217;s contact class (the 2026-09-19 scene otherwise), the parents hold "
+                    f"{', '.join(sc)} of 64 (re-evaluated 2026-10-11)." if sc else "") + "</p>")
+
+    # --- plausibility
+    prow = []
+    for j in done:
+        r = nom(R, j["id"])
+        flags = []
+        if max(r.get("pad_peak_thumb", 0), r.get("pad_peak_index", 0), r.get("pad_peak_middle", 0)) > 9: flags.append("pad peak &gt; 9 N")
+        if (r.get("ctrl_gap_max_deg") or 0) > 60: flags.append("gap &gt; 60&#176;")
+        if (r.get("clearance_min_mm_mean") or 99) < 10: flags.append("clearance &lt; 10 mm")
+        if r.get("hold_rate", 1) < 1: flags.append("drops")
+        prow.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]),
+                     f"{f1(r.get('pad_peak_thumb'))} / {f1(r.get('pad_peak_index'))} / {f1(r.get('pad_peak_middle'))}",
+                     f"{f1(r.get('force_active_thumb'))} / {f1(r.get('force_active_index'))} / {f1(r.get('force_active_middle'))}",
+                     f1(r.get("joint_speed_p99_deg_s"), "{:.0f}"), f1(r.get("residual_gt1_frac"), "{:.2f}"),
+                     f1(r.get("ctrl_gap_max_deg"), "{:.0f}"), f1(r.get("raw_cmd_beyond_range_deg"), "{:.0f}"),
+                     f"{f1(r.get('clearance_min_mm_mean'))} / {f1(r.get('clearance_end_mm_mean'))}",
+                     ("; ".join(flags) if flags else "None", "cell c0" if flags else "cell c4")])
+    table_plaus = table(["hand", "arm", "pad peak th / ix / md (N)", "pad force active th / ix / md (N)", "#joint speed p99 (&#176;/s)",
+                         "#|a| &gt; 1 share", "#gap (&#176;)", "#raw cmd beyond range (&#176;)", "clearance min / end (mm)", "flags"], prow) if prow else "<p>No job has finished yet.</p>"
+
+    # --- chain: the turn, then every seam the chain runs after it (re-pose, set-down, relay handover, gait)
+    def seam(c, name, key="cos"):
+        v = (c.get("seams") or {}).get(name) or {}
+        return v.get(key)
+    crow, seam_rows = [], []
+    for j in done:
+        crow.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]),
+                     chain_cell(os.path.join(R, f"{j['id']}_chain_pl25.json")), chain_cell(os.path.join(R, f"{j['id']}_chain_pl0.json"))])
+        for pl in (25, 0):
+            cp = os.path.join(R, f"{j['id']}_chain_pl{pl}.json")
+            if not os.path.exists(cp):
+                continue
+            c = json.load(open(cp)); cs = c.get("chain_scalars", {})
+            def sc(name):
+                v = seam(c, name); z = seam(c, name, "z")
+                return "&#8211;" if v is None else f"{v:+.2f} / {z * 1000:.0f}"
+            ok = bool(c.get("ok"))
+            seam_rows.append([j["hand"], ARM_LABEL.get(j["arm"], j["arm"]), str(pl), sc("turned"), sc("staged"), sc("set_down"),
+                              sc("handover_grip"), sc("gaited"),
+                              f"{cs.get('cycles_run', 0)} / {cs.get('turns', 0):+.2f}",
+                              ((f"Stood, held through {cs.get('cycles_run', 0)} cycles at {cs.get('turns', 0):+.2f} turns" if ok
+                                else (", ".join(k for k, f in (("carried", "carry_ok"), ("stood", "stood_ok"), ("gripped", "grip_ok")) if cs.get(f)) or "lost").capitalize()),
+                               "cell c4" if ok else ("cell c2" if cs.get("stood_ok") else "cell c0"))])
+    table_chain = table(["hand", "arm", "plate 25 mm: end cos", "plate 0: end cos"], crow) if crow else "<p>No chain run yet.</p>"
+    table_seams = table(["hand", "arm", "plate", "turned: cos / z (mm)", "staged", "set down", "handover grip", "gaited", "cycles / turns", "outcome"],
+                        seam_rows) if seam_rows else "<p>No chain run yet.</p>"
+    # chain films: videos/<id>_chain_pl<pl>.mp4 (real_v1_chain_policy.py --video), transcoded beside the page
+    chain_videos = []
+    os.makedirs(os.path.join(R, "web"), exist_ok=True)
+    for j in done:
+        for pl in (25, 0):
+            src_v, web_v = os.path.join(R, "videos", f"{j['id']}_chain_pl{pl}.mp4"), os.path.join(R, "web", f"{j['id']}_chain_pl{pl}.mp4")
+            if os.path.exists(src_v) and not os.path.exists(web_v):
+                subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src_v, "-vf", "scale=640:480", "-c:v", "libx264", "-crf", "28",
+                                "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", web_v], stdin=subprocess.DEVNULL)
+            if os.path.exists(web_v):
+                cp = os.path.join(R, f"{j['id']}_chain_pl{pl}.json"); c = json.load(open(cp)) if os.path.exists(cp) else {}
+                cs = c.get("chain_scalars", {})
+                chain_videos.append(f'<figure><video controls muted loop playsinline preload="metadata" width="640" height="480" src="{uri(web_v)}"></video>'
+                                    f'<figcaption>{j["hand"]}, {ARM_LABEL.get(j["arm"], j["arm"])}, plate {pl} mm: grasp on the post, arm lift, the policy&#8217;s turn (5 s), '
+                                    f'arm re-pose, set-down, relay handover, gait. {"Plate at the chain scenes&#8217; original height; the built hand&#8217;s is 25 mm. " if pl == 0 else ""}'
+                                    f'Outcome: {"stood and held" if c.get("ok") else "lost after the turn"}; '
+                                    f'{cs.get("cycles_run", 0)} gait cycles commanded, {cs.get("turns", 0):+.3f} screw turns, final tilt {cs.get("final_tilt_deg", float("nan")):.1f}&#176;.</figcaption></figure>')
+    chain_videos_html = "\n".join(chain_videos) if chain_videos else "<p>No chain film yet (the driver runs the chain without <code>--video</code>; films are rendered by hand for the policies that hold).</p>"
+
+    # --- strips + videos (web/<id>.mp4 transcoded from videos/<id>.mp4 if missing)
+    strips = []
+    os.makedirs(os.path.join(R, "web"), exist_ok=True)
+    for j in done:
+        sp = os.path.join(R, f"{j['id']}_strip.png")
+        if not os.path.exists(sp):
+            continue
+        src_v, web_v = os.path.join(R, "videos", f"{j['id']}.mp4"), os.path.join(R, "web", f"{j['id']}.mp4")
+        if os.path.exists(src_v) and not os.path.exists(web_v):
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src_v, "-vf", "scale=640:480", "-c:v", "libx264", "-crf", "28",
+                            "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", web_v], stdin=subprocess.DEVNULL)
+        r = nom(R, j["id"]); cj = jit(R, j["id"])
+        video = (f'<video controls muted loop playsinline preload="metadata" width="640" height="480" src="{uri(web_v)}"></video>'
+                 if os.path.exists(web_v) else "")
+        strips.append(f'<figure><img src="{uri_jpeg(sp)}" alt="{j["id"]} filmstrip">{video}<figcaption>{j["hand"]}, '
+                      f'{ARM_LABEL.get(j["arm"], j["arm"])}: nominal held {int(round(r["hold_rate"] * 64))}/64 at cos {r["final_cos_mean"]:+.3f}'
+                      + (f', jittered {int(round(cj["hold_rate"] * 64))}/64 at {cj["final_cos_mean"]:+.3f}' if cj else "")
+                      + f', clearance min {f1(r.get("clearance_min_mm_mean"))} mm. Steps 40, 58 (lifted, residual on), 80, 110, 140, 170, 200, 249.</figcaption></figure>')
+    strips_html = "\n".join(strips) if strips else "<p>No filmstrip yet.</p>"
+
+    # --- curves
+    runs = {j["id"]: res[j["id"]]["run"] for j in done if res[j["id"]].get("run")}
+    keys = ["Episode_Reward/target_axis_alignment", "Episode_Termination/tip_lost", "Metrics/lift_height/object_height", "Episode_Reward/grip_force_excess"]
+    cv = curves(runs, keys) if runs else {}
+    curves_html = "<p>No run yet.</p>"
+    if cv:
+        png = os.path.join(R, "20260920-robust_curves.png")
+        plot_curves(cv, png)
+        curves_html = f'<figure><img src="{uri(png)}" alt="training curves"><figcaption>Per-iteration alignment reward, tip-lost termination share, object height and grip excess for every finished job (10-iteration moving mean).</figcaption></figure>'
+
+    n_done = len(done)
+    failed = [j for j in jobs if res.get(j["id"], {}).get("status") == "failed" or j.get("status") == "failed"]
+    rank = sorted(reading_bits, key=lambda b: -b[3])
+    lede = (f"{n_done} of {len(jobs)} continuation jobs trained"
+            + (f" ({', '.join(sorted(set(j['hand'] for j in failed)))} stopped on NaN observations)" if failed else "") + ". "
+            + ("Under &#177;3 mm / &#177;10&#176; spawn jitter with friction DR the continued policies hold the tool in this many "
+               "rollouts: "
+               + ", ".join(f"{h}{'' if a_ == 'clip' else ' + separation'} {c}" for h, a_, p, c, pc, cc in rank)
+               + " of 64. " if rank else "")
+            + "Every policy here trained on a plant whose finger joints have the template&#8217;s 0.5 N&#183;m&#183;s/rad of "
+              "damping, a 1&#8202;s time constant. The chain after the turn and that plant defect are on the 2026-09-23 page.")
+    when = sorted({e["evaluated"][:10] for jj in done for e in (nom(R, jj["id"]), jit(R, jj["id"])) if e and e.get("evaluated")})
+    fig = eval_figure(R, P, done, res, pres)
+    sub = {"LEDE": lede, "F_EVAL": fig.html(), "REEVAL": f"numbers and figure from the re-evaluation of {', '.join(when)} (<code>traces/</code>)",
+           "TABLE_PLANT": table(["", "2026-09-19 tranche", "here", "why"], [list(r) for r in PLANT_ROWS]),
+           "TABLE_MAIN": table_main, "READING": reading, "TABLE_PLAUS": table_plaus, "TABLE_CHAIN": table_chain,
+           "STRIPS": strips_html, "TABLE_SEAMS": table_seams, "CHAIN_VIDEOS": chain_videos_html,
+ "CURVES": curves_html, "N_JOBS": str(len(jobs)), "N_DONE": str(n_done),
+           "BUILT": "2026-09-23 21:46"}  # build time of the corrected record, pinned 2026-10-09
+    sub.update(pipeline_blocks(res[done[0]["id"]]["run"], q.get("common_flags", ())) if done and res[done[0]["id"]].get("run") else
+               {k: "<p>No finished run yet.</p>" for k in ("TIMELINE", "TABLE_OBS", "ACTION_NOTE", "TABLE_REWARD", "REWARD_NOTE", "TABLE_TERM", "TABLE_PPO", "TABLE_DECISIONS", "TABLE_EVAL")})
+    tpl = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "robust_tranche_page.template.html")).read()
+    for k, v in sub.items():
+        tpl = tpl.replace("{{" + k + "}}", v)
+    left = [ln for ln in tpl.splitlines() if "{{" in ln]
+    assert not left, left[:3]
+    out = os.path.join(R, "20260920-robust_reorient_policies.html")
+    page = IF.add_assets(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09); interactive figure (2026-10-11)
+    open(out, "w").write(page)
+    print(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB, figure data {IF.data_bytes(page) / 1e3:.0f} kB)")
+
+
+if __name__ == "__main__":
+    main()

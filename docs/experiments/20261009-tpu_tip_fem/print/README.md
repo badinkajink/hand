@@ -1,6 +1,6 @@
 # SR2 fingertips to print (2026-10-12; press-fit pockets with air above the magnet 2026-10-13)
 
-Written by `scripts/tpu_tip_print_plan.py stl`; the page that explains them is
+Written by `scripts/fingertip/tpu_tip_print_plan.py stl`; the page that explains them is
 `docs/experiments/20261009-tpu_tip_fem/20261009-printed_tpu_fingertip_finite_elements.html`.
 
 Every tip is the whole block (17 x 14.8 x 21.4 mm, palmar edges rounded r 2.7 mm, end edge r 3.0 mm, back square),
@@ -20,7 +20,7 @@ Magnet: N52 disc 4.76 x 1.59 mm, axially magnetized, north toward the palmar fac
 Four magnets: 20261013-sr2_tip_four_d4p76x1p59_depth5.stl has four of these pockets on a grid 6 mm across and 7 mm along the finger, centred on the contact point, with the same pause (20261013-sr2_tip_w95_20_four_d4p76x1p59_depth5.json; the bounds are on the readout page, docs/experiments/20261013-magnet_layouts/20261013-mlx90393_fingertip_readout.html).
 
 Other pocket depths (1.5 and 3 mm) and a 3.18 x 1.59 mm magnet are in the other STLs; their pause heights come from
-`scripts/tpu_tip_design.py sheet --magnet <name> --depth <mm>`.
+`scripts/fingertip/tpu_tip_design.py sheet --magnet <name> --depth <mm>`.
 
-After printing: `scripts/tpu_tip_calibrate.py fit` turns an indentation and a pull test into E_s, E* and the friction
+After printing: `scripts/fingertip/tpu_tip_calibrate.py fit` turns an indentation and a pull test into E_s, E* and the friction
 coefficient, and prints the command that writes the pad scene at those values.

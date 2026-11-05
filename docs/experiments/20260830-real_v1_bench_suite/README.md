@@ -9,8 +9,8 @@ Everything runs from the workstation against the CB1 service.  One command per
 session; hand back the whole directory.
 
 ```bash
-python3 scripts/real_v1_bench_session.py --design g12 --note "what this is testing"
-python3 scripts/real_v1_bench_report.py            # read every session back
+python3 scripts/hardware/real_v1_bench_session.py --design g12 --note "what this is testing"
+python3 scripts/hardware/real_v1_bench_report.py            # read every session back
 ```
 
 ---
@@ -251,7 +251,7 @@ Three things that are currently unmeasurable:
 
 ### Software
 
-`scripts/real_v1_vane_angle.py` reads a video and writes per-frame
+`scripts/hardware/real_v1_vane_angle.py` reads a video and writes per-frame
 `(t, vane_deg, ref_deg, angle_deg, cx, cy)`.  It uses OpenCV's ArUco detector with
 `cv2.aruco.DICT_APRILTAG_36h11` for the four corner pixels — never a pose — and
 `imageio`, already a project dependency, for frames.  The only extra install is the
@@ -259,7 +259,7 @@ detector:
 
 ```bash
 uv pip install opencv-python-headless
-python3 scripts/real_v1_vane_angle.py run.mp4 --vane-id 0 --ref-id 1 \
+python3 scripts/hardware/real_v1_vane_angle.py run.mp4 --vane-id 0 --ref-id 1 \
     --t0 <started_unix from the run's meta> --out vane.csv
 ```
 
@@ -305,7 +305,7 @@ log.  It is a hypothesis from one run; do not report it as a measurement.
 
 The driver picks `max_u` from this table automatically.  The sim's links are
 thinner than the printed parts, so these are already optimistic.
-`scripts/real_v1_trajectory_clearance.py --all` regenerates it.
+`scripts/hardware/real_v1_trajectory_clearance.py --all` regenerates it.
 
 **g24 and rv04_mid have only one holder** — two of three fingers travel more than
 60 % of what the busiest one does, so one finger has to anchor the shaft while the
@@ -348,7 +348,7 @@ docs/experiments/20260830-real_v1_bench_suite/20260830-1530-g12/
 ```
 
 Commit the directory (they are small) and say which sessions are new.  Then
-`python3 scripts/real_v1_bench_report.py` gives the whole table.  The first thing
+`python3 scripts/hardware/real_v1_bench_report.py` gives the whole table.  The first thing
 worth extracting from a loaded log is the driver finger's **yaw at the last step**
 against the free-air value from the same day — that difference is grip load and
 nothing else.

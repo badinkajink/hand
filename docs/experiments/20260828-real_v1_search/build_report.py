@@ -20,6 +20,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 from real_v1_search_report import GEOM, SCORES, auc, spearman  # noqa: E402
 
 F = ("thumb", "index", "middle")
@@ -278,6 +279,7 @@ def main() -> None:
         src = src.replace("{{" + token + "}}", value)
     src = re.sub(r"\{\{ASSET:([^}]+)\}\}", inline, src)
     sys.path.insert(0, str(ROOT / "scripts"))
+    import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
     import retro_style  # plain page style (owner, 2026-10-09)
     out = HERE / "20260828-real_v1_design_search.html"
     out.write_text(retro_style.apply(src))

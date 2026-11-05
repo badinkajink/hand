@@ -1,7 +1,7 @@
 # Contact-model comparison bed: pull-to-slip runbook
 
 Task 1 of the bed: a pinched tool pulled along its own axis until it slips. Four contact models on
-the two-pad pinch rig of the 10-01 study (`scripts/hom_contact_rig.py`), gravity off, mu 1, the
+the two-pad pinch rig of the 10-01 study (`scripts/hom/hom_contact_rig.py`), gravity off, mu 1, the
 real_v1 fingertip sphere (r 10.55 mm) and screwdriver (r 12.5 mm, 24.5 g).
 
 | chain spec (`hom_chain.make_plant`) | rig spec used here |
@@ -19,7 +19,7 @@ with, so the torsion numbers of that study apply to the same models.
     PY=logs/20261001-hom_contact/venv/bin/python        # MuJoCo 3.6 + Drake 1.57
     ~/.claude/bin/resguard.sh status
     ~/.claude/bin/resguard.sh run --mem 1G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
-        $PY scripts/contact_bed_pull.py --out docs/experiments/20261005-contact_bed/pull_slip.jsonl
+        $PY scripts/contact/contact_bed_pull.py --out docs/experiments/20261005-contact_bed/pull_slip.jsonl
 
 Set the thread limits inside the wrapped command, not before `resguard.sh`: the gate reads `nproc`,
 which honours `OMP_NUM_THREADS`, and with 1 it refuses every launch.
@@ -60,12 +60,12 @@ impratio 100-10 000 and noslip 1-10 iterations on tasks 1, 2, 4 and 5 (`--varian
 Not run (scripts written, each resumes from its JSONL):
 
     PY=logs/20261001-hom_contact/venv/bin/python
-    ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 $PY scripts/contact_bed_roll.py
-    ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 $PY scripts/contact_bed_creep.py
-    ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 $PY scripts/contact_bed_stability.py
-    logs/20261004-contact-transfer/venv/bin/python scripts/newton_scaling.py      # 4096-8192 worlds, unreduced 4096+
-    logs/20261004-contact-transfer/venv/bin/python scripts/contact_bed_newton.py  # Newton shake, brake, roll
+    ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 $PY scripts/contact/contact_bed_roll.py
+    ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 $PY scripts/contact/contact_bed_creep.py
+    ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 $PY scripts/contact/contact_bed_stability.py
+    logs/20261004-contact-transfer/venv/bin/python scripts/contact/newton_scaling.py      # 4096-8192 worlds, unreduced 4096+
+    logs/20261004-contact-transfer/venv/bin/python scripts/contact/contact_bed_newton.py  # Newton shake, brake, roll
 
-Pages: `python3 scripts/contact_bed_page.py` and `python3 scripts/contact_overview_page.py`, then republish to the
+Pages: `python3 scripts/contact/contact_bed_page.py` and `python3 scripts/docs/contact_overview_page.py`, then republish to the
 URLs in `artifact_url.txt` beside each page. Open finding: Newton carries 2.3-2.9x the hydroelastic law's torque at
 spin onset (task 2); vary its friction gain (`kf10` in the spec) and the 100x tool stiffness first.

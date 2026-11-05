@@ -1,11 +1,11 @@
-"""morphohand.geometry.rotations against MuJoCo's own quaternion and rotation functions, on random rotations and on the
+"""sr2hand.geometry.rotations against MuJoCo's own quaternion and rotation functions, on random rotations and on the
 half turns and opposite vectors where hand-written copies went wrong (audit of 2026-11-03)."""
 import math
 
 import numpy as np
 import pytest
 
-from morphohand.geometry import rotations as G
+from sr2hand.geometry import rotations as G
 
 mujoco = pytest.importorskip("mujoco")
 RNG = np.random.default_rng(20261103)

@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+"""Build the bench partial-reorientation page from tip_gait_data.json.
+
+    python3 scripts/fingertip/tip_gait_data.py
+    python3 scripts/fingertip/tip_gait_page.py
+"""
+from __future__ import annotations
+
+import base64
+import json
+import mimetypes
+import os
+
+import numpy as np
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # scripts/, for _paths
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+import interactive_figure as IF
+import retro_style
+from policy_eval_suite import load_traces
+
+ROOT = "docs/experiments/20260916-tip_gait"
+DATA = f"{ROOT}/tip_gait_data.json"
+TPL = "scripts/fingertip/tip_gait_page.template.html"
+OUT = f"{ROOT}/20260916-bench_partial_reorientation.html"
+HANDS = ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"]
+# re-evaluation of 2026-10-11 (scripts/rl/policy_reeval_traces.py): this page's evaluation (residual from step 0) and the
+# same checkpoint as trained, from the D6 60 M page's traces
+RUN20, RUN60 = "20260916-2142-d6_cal_reorient_s0", "20260917-1141-d6_cal_reorient_gp025_60M_s0"
+D6_TRACES = "docs/experiments/20260917-d6_cal_60M/traces"
+
+
+def rl_eval():
+    tr = {"r0": load_traces(f"{ROOT}/traces/{RUN20}.npz")["nominal_r0"], "t": load_traces(f"{D6_TRACES}/{RUN20}.npz")["nominal"]}
+    e = {"r0": json.load(open(f"{ROOT}/traces/{RUN20}_nominal_r0.json")), "t": json.load(open(f"{D6_TRACES}/{RUN20}_nominal.json")),
+         "60": json.load(open(f"{D6_TRACES}/{RUN60}_nominal.json"))}
+    col = IF.PALETTE[1]
+    fig = IF.eval_figure("eval-20m", [dict(id="r0", label="Residual from step 0 (this section)", trace=tr["r0"], color=col, dash="7 4",
+                                           facets={"ev": "r0"}),
+                                      dict(id="t", label="Residual from step 58, as trained", trace=tr["t"], color=col, facets={"ev": "t"})],
+                         facets=[{"key": "ev", "label": "Evaluator", "values": [("r0", "Residual from step 0"), ("t", "As trained")]}],
+                         caption=(f"Model 270 over 64 deterministic rollouts: median and 10&#8211;90 % band of the signed cosine, the "
+                                  f"tool height and the pad force sum, and the share of rollouts held, with the residual from step 0 "
+                                  f"(dashed; cos {e['r0']['final_cos_mean']:.2f}) and from step 58 as trained (solid; cos "
+                                  f"{e['t']['final_cos_mean']:.2f})."))
+    when = sorted({x["evaluated"][:10] for x in e.values()})
+    return {"F_RL_EVAL": fig.html(), "COS_R0": f"{e['r0']['final_cos_mean']:.2f} &#177; {e['r0']['final_cos_sd']:.2f}",
+            "DEG_R0": f"{90 - np.degrees(np.arccos(np.clip(e['r0']['final_cos_mean'], -1, 1))):.0f}", "HELD_R0": str(int(round(e["r0"]["hold_rate"] * 64))),
+            "COS_T": f"{e['t']['final_cos_mean']:.3f}", "COS60": f"{e['60']['final_cos_mean']:.3f} &#177; {e['60']['final_cos_sd']:.3f}",
+            "HELD60": str(int(round(e["60"]["hold_rate"] * 64))),
+            "REEVAL": f"numbers and figure from the re-evaluation of {', '.join(when)} (<code>traces/</code>)"}
+
+
+def uri(path):
+    p = os.path.join(ROOT, path)
+    return f"data:{mimetypes.guess_type(p)[0]};base64," + base64.b64encode(open(p, "rb").read()).decode()
+
+
+def table(head, rows):
+    out = ['<div class="tw"><table><thead><tr>']
+    for h in head:
+        out.append(f'<th{" class=num" if h.startswith("#") else ""}>{h.lstrip("#")}</th>')
+    out.append("</tr></thead><tbody>")
+    for r in rows:
+        klass = ""
+        if isinstance(r, tuple) and len(r) == 2 and isinstance(r[1], str) and isinstance(r[0], list):
+            r, klass = r
+        out.append(f'<tr{" class=" + klass if klass else ""}>')
+        for h, c in zip(head, r):
+            if isinstance(c, tuple):
+                out.append(f'<td class="{c[1]}">{c[0]}</td>')
+            else:
+                out.append(f'<td{" class=num" if h.startswith("#") else ""}>{c}</td>')
+        out.append("</tr>")
+    out.append("</tbody></table></div>")
+    return "\n".join(out)
+
+
+def cellc(h, n, extra=""):
+    frac = h / n if n else 0
+    cls = "c4" if frac >= 0.99 else "c3" if frac >= 0.6 else "c2" if frac >= 0.4 else "c1" if frac > 0 else "c0"
+    return (f"{h}/{n}{extra}", f"cell {cls}")
+
+
+def table_trace(d):
+    rows = []
+    for s in d["trace_d7"]:
+        c = s["contacts"]
+
+        def cell(k):
+            v = c.get(k)
+            return "&#8211;" if v is None else f"{v['axial_mm']:+.0f} mm &#183; {v['N']:.2f} N"
+        rows.append([s["phase"].capitalize(), f"{s['t']:.2f}", f"{s['from_vertical_deg']:.0f}", f"{s['z_mm']:.0f}",
+                     cell("thumb"), cell("index"), cell("middle"), cell("plate"), cell("post")])
+    return table(["Phase", "#Time (s)", "#From vertical (deg)", "#Centre z (mm)", "Thumb", "Index", "Middle",
+                  "Palm plate", "Post"], rows)
+
+
+def table_plate(d):
+    rows = []
+    for h in HANDS:
+        hold, turn = d["hw"][h]
+        r = [h, hold, f"{90 - turn:.0f}"]
+        for plant in ("fast", "cal"):
+            for plate in (0.0, 25.0):
+                cells = [x for x in d["plate"] if x["hand"] == h and x["plant"] == plant and x["plate_mm"] == plate]
+                held = [x for x in cells if x["held"]]
+                lost = sum(1 for x in cells if x["lost_at_grip"])
+                degs = ", ".join(f"{x['from_vertical_deg']:.0f}" for x in held) or "&#8211;"
+                r.append(degs)
+                r.append(cellc(len(held), len(cells), f" ({lost} lost at grip)" if lost else ""))
+        rows.append(r)
+    return table(["Hand", "Bench hold", "#Bench, from vertical (deg)",
+                  "Fast, plate 0 (deg)", "Held", "Fast, plate +25 (deg)", "Held",
+                  "Cal, plate 0 (deg)", "Held", "Cal, plate +25 (deg)", "Held"], rows)
+
+
+def table_angle(d):
+    rows = []
+    order = ["rv05_manual_b85", "rv05_manual_a60", "rv05_manual_a75", "rv05_manual_a90", "rv05_manual_a110"]
+    for tag in order:
+        rs = [x for x in d["angle"] if x["plan"] == tag]
+        if not rs:
+            continue
+        r = ["Deployed plan (b85)" if tag.endswith("b85") else f"Re-export, {abs(rs[0]['angle_cmd']):.0f}&#176;",
+             f"{abs(rs[0]['angle_cmd']):.0f}"]
+        for plant in ("fast", "cal"):
+            xs = [x for x in rs if x["plant"] == plant]
+            r.append(", ".join(f"{x['from_vertical_deg']:.0f}" for x in xs))
+            r.append(", ".join(f"{x['f_pad_end']:.2f}" for x in xs))
+            r.append(f"{sum(1 for x in xs if not x['dropped'])}/{len(xs)}")
+        rows.append(r)
+    return table(["Plan", "#Commanded turn (deg)", "Fast: from vertical (deg)", "Pad force (N)", "Held",
+                  "Cal: from vertical (deg)", "Pad force (N)", "Held"], rows)
+
+
+def table_gait(d):
+    rows = []
+    for r in d["gait"]:
+        for t in r["tips"]:
+            rows.append([r["plant"].capitalize(), f"Tip {t['tip']}", f"{np.degrees(np.arccos(np.clip(t['cos_rest'], -1, 1))):.0f}",
+                         f"{t['pads_rest']}", f"{t['f_pad_rest']['thumb']:.2f} / {t['f_pad_rest']['index']:.2f} / {t['f_pad_rest']['middle']:.2f}",
+                         f"{np.degrees(np.arccos(np.clip(t['cos_regrip'], -1, 1))):.0f}", f"{t['pads_regrip']}",
+                         f"{t['closure_deg']['thumb']:+.0f} / {t['closure_deg']['index']:+.0f} / {t['closure_deg']['middle']:+.0f}",
+                         ("Carried", "ok") if t["carried"] else ("Lost", "no")])
+    return table(["Plant", "Step", "#Rest: from vertical (deg)", "#Pads &#8805; 0.24 N", "Pad force th / ix / md (N)",
+                  "#Regrip: from vertical (deg)", "#Pads", "Regrip closure th / ix / md (deg)", "Tool"], rows)
+
+
+def main():
+    d = json.load(open(DATA))
+    tpl = open(TPL).read()
+    d7_cal_pl0 = [x for x in d["plate"] if x["hand"] == "D7" and x["plant"] == "cal" and x["plate_mm"] == 0 and x["held"]]
+    d7_fast_pl25 = [x for x in d["plate"] if x["hand"] == "D7" and x["plant"] == "fast" and x["plate_mm"] == 25 and x["held"]]
+    sub = {
+        "N_PLATE": str(d["n"]["plate"]), "N_ANGLE": str(d["n"]["angle"]), "N_GAIT": str(d["n"]["gait"]),
+        "D7_CAL_PL0": ", ".join(f"{x['from_vertical_deg']:.0f}" for x in d7_cal_pl0),
+        "D7_FAST_PL25": ", ".join(f"{x['from_vertical_deg']:.0f}" for x in d7_fast_pl25),
+        "TABLE_TRACE": table_trace(d), "TABLE_PLATE": table_plate(d), "TABLE_ANGLE": table_angle(d),
+        "TABLE_GAIT": table_gait(d),
+        "I_D7_STRIP": uri("D7_rv05_manual_b85__cal__s0_strip.png"),
+        "I_PLATE_STRIP": uri("D7_plate_strip.png"),
+        "V_D7_PL0": uri("videos/rv05_manual_b85__fast_pl0__s0.mp4"),
+        "V_D7_PL25": uri("videos/rv05_manual_b85__fast_pl25__s0.mp4"),
+        "V_D7_GAIT": uri("videos/D7_rv05_manual_b85__cal__s0.mp4"),
+        "I_RL_STRIP": uri("d6_cal_rl_m270_strip.png"),
+        "V_RL": uri("videos/d6_cal_rl_m270.mp4"),
+    }
+    sub.update(rl_eval())
+    for k, v in sub.items():
+        tpl = tpl.replace("{{" + k + "}}", v)
+    left = [ln for ln in tpl.splitlines() if "{{" in ln]
+    assert not left, left[:3]
+    page = IF.add_assets(retro_style.apply(tpl))  # plain page style (owner, 2026-10-09); interactive figure (2026-10-11)
+    open(OUT, "w").write(page)
+    print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.1f} MB, figure data {IF.data_bytes(page) / 1e3:.0f} kB)")
+
+
+if __name__ == "__main__":
+    main()

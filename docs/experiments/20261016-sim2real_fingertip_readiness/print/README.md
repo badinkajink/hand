@@ -1,10 +1,10 @@
 # Siraya Tech TPU 85A fingertip prints for 3 x 2 mm magnets (2026-10-16)
 
-Every file here is an 85A print: PrusaSlicer projects on the owner's v17 template (Original Prusa XL 5T Input Shaper, 0.4 mm nozzles) with Siraya Tech's Prusa XL 0.4 mm TPU 85A filament profile in slot 2 and the part on extruder 2. The 95A projects of the same geometry in docs/experiments/20261016-metric_magnet_prints/print/ use Generic FLEX at 230 C and are not 85A prints. `scripts/sim2real_fingertip_prints.py` (template, build, coupon, readme) writes them; each project has a sheet (JSON) with the geometry and the G-code checks.
+Every file here is an 85A print: PrusaSlicer projects on the owner's v17 template (Original Prusa XL 5T Input Shaper, 0.4 mm nozzles) with Siraya Tech's Prusa XL 0.4 mm TPU 85A filament profile in slot 2 and the part on extruder 2. The 95A projects of the same geometry in docs/experiments/20261016-metric_magnet_prints/print/ use Generic FLEX at 230 C and are not 85A prints. `scripts/fingertip/sim2real_fingertip_prints.py` (template, build, coupon, readme) writes them; each project has a sheet (JSON) with the geometry and the G-code checks.
 
 ## Seat test first
 
-The owner's seat test of 2026-10-18 chose 2.9 mm ('the 2.9mm holes are what we should use'): print the seat2p9 projects, listed first in the table of tips. Two tips change at that seat to keep the 1.8 mm pocket-wall rule: tcd_ell7.4x8.5x11x22, magnets 7.5 mm deep (1.76 mm to the surface at 7.0 mm); five_z7p4, corners 7.4 mm apart along the finger (1.71 mm web at 7.0 mm). The 2.7 mm projects below them are the provisional set printed before the test. `scripts/sim2real_fingertip_prints.py build --seat 2.9 --depth tcd_ell7.4x8.5x11x22=7.5 --five five_z7p4` rewrites the 2.9 mm set.
+The owner's seat test of 2026-10-18 chose 2.9 mm ('the 2.9mm holes are what we should use'): print the seat2p9 projects, listed first in the table of tips. Two tips change at that seat to keep the 1.8 mm pocket-wall rule: tcd_ell7.4x8.5x11x22, magnets 7.5 mm deep (1.76 mm to the surface at 7.0 mm); five_z7p4, corners 7.4 mm apart along the finger (1.71 mm web at 7.0 mm). The 2.7 mm projects below them are the provisional set printed before the test. `scripts/fingertip/sim2real_fingertip_prints.py build --seat 2.9 --depth tcd_ell7.4x8.5x11x22=7.5 --five five_z7p4` rewrites the 2.9 mm set.
 
 | Coupon | Walls at each seat | Print time | Project |
 |---|---|---|---|

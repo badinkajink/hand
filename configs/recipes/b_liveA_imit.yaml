@@ -1,7 +1,7 @@
 # b_liveA_imit — b_liveA + the design-neutral IMITATION prior (variance-study `imit`
 # mode; the compliance-DR pipeline's B recipe). Adds the object-relative fingertip
 # imitation of the blessed a10->b33 reorient, annealed out over 150 iters so the
-# task reward takes over. See src/morphohand/rl/imitation.py.
+# task reward takes over. See src/sr2hand/rl/imitation.py.
 # Same run-specific knobs as b_liveA.
 object_body_name: screwdriver_medium
 warmstart_critic: true

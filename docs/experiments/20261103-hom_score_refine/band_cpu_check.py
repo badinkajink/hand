@@ -11,7 +11,7 @@ on 11-04 through logs/20261104-hom_worst_case/cpu_check.sh (six single-core proc
     python3 docs/experiments/20261103-hom_score_refine/band_cpu_check.py summary
 
 One process per plant (hom_gpu reads the plant at import). --variant plant: every contact meets the object, as the
-films; filter: the GPU's contact filter, as scripts/hom_compute.py cpu-worker applies it. Rows (fsynced) to
+films; filter: the GPU's contact filter, as scripts/hom/hom_compute.py cpu-worker applies it. Rows (fsynced) to
 docs/experiments/20261103-hom_score_refine/rows/band_k21mu/20261104-cpu_check.jsonl; summary beside this script.
 """
 from __future__ import annotations
@@ -27,13 +27,14 @@ from pathlib import Path
 import numpy as np
 
 os.environ.setdefault("SCALE_HAND", "cad_v2")
-ROOT = next(p for p in Path(__file__).resolve().parents if (p / "scripts/hom_grasp_refine.py").exists())
+ROOT = next(p for p in Path(__file__).resolve().parents if (p / "scripts/hom/hom_grasp_refine.py").exists())
 sys.path.insert(0, str(ROOT / "scripts"))
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_grasp_refine as R  # noqa: E402
 
 NAME = "band_k21mu"
 SEED = R.VAL_SEEDS[0]
-OUT = R.rows_dir(NAME) / "20261104-cpu_check.jsonl"                # read by scripts/hom_score_refine_page.py
+OUT = R.rows_dir(NAME) / "20261104-cpu_check.jsonl"                # read by scripts/hom/hom_score_refine_page.py
 SETS = (("S3w", NAME), ("S3e10", "k21"), ("S3e04", "k21mu0p4"))   # the page's pick sets and the rows they came from
 
 
@@ -85,7 +86,7 @@ def cmd_run(a):
                     for f in HG.FINGERS:
                         m.body_pos[m.body(f"{f}_mount").id] = bm[f]
                 S.set_palm(m_pt, setup["palm"])
-                if a.variant == "filter":      # as scripts/hom_compute.py cmd_cpu_worker
+                if a.variant == "filter":      # as scripts/hom/hom_compute.py cmd_cpu_worker
                     m = plant.m
                     filt = np.array([("_pad" in (m.geom(k).name or "")) or bool(fine.search(m.geom(k).name or "")
                                                                              and m.geom_size[k][0] < 0.002)

@@ -1,7 +1,7 @@
 # Contact-gait experiment runbook
 
 The dated result page is `20261007-contact_release_real_v1.html`. Its builder is
-`scripts/real_v1_contact_gait_page.py`; its raw JSON inputs are in this
+`scripts/design/real_v1_contact_gait_page.py`; its raw JSON inputs are in this
 directory. The study is simulation-only. No command connects to the
 hand controller.
 
@@ -12,7 +12,7 @@ paper supplies the external evidence discussed on the page.
 
 ## Scene and score
 
-`scripts/real_v1_diffmjx_gate.py` generates the D1 scene from
+`scripts/design/real_v1_diffmjx_gate.py` generates the D1 scene from
 `assets/mjcf/real_v1/real_hand.xml` and the deployed D1 grasp plan at
 `docs/experiments/20260902-residual-bench/deploy/sv1_w6689_b060_plan.json`.
 The plan supplies the first 0.8 s of a supported grasp. The continuation
@@ -51,7 +51,7 @@ measures collision noise; the corrected searches and the audit are in `docs/expe
 
 ```bash
 RESGUARD_MAX_SWAP_GB=16 ~/.claude/bin/resguard.sh run --mem 1G --cpu 300 -- \
-  uv run --no-sync python scripts/real_v1_contact_gait_search.py \
+  uv run --no-sync python scripts/design/real_v1_contact_gait_search.py \
   --tip tpu6 --contact-model padsT --seed 1 --budget 256 --fd-step scipy \
   --out docs/experiments/20261007-contact-gait/20261007-padsT-seed1-256.json
 
@@ -59,7 +59,7 @@ RESGUARD_MAX_SWAP_GB=16 ~/.claude/bin/resguard.sh run --mem 1G --cpu 300 -- \
 # --tip sphere --contact-model pt. Repeat those three seed-1 cases with
 # --forced-release and the corresponding *-release-seed1-256.json output.
 
-uv run --no-sync python scripts/real_v1_contact_gait_transfer.py \
+uv run --no-sync python scripts/design/real_v1_contact_gait_transfer.py \
   --plans docs/experiments/20261007-contact-gait/20261007-padsT-seed1-256.json \
   docs/experiments/20261007-contact-gait/20261007-mesh-seed1-256.json \
   docs/experiments/20261007-contact-gait/20261007-sphere-seed1-256.json \
@@ -91,7 +91,7 @@ jitters and four plans. Use a distinct `WARP_CACHE_PATH` for each process.
 
 ```bash
 WARP_CACHE_PATH=$(mktemp -d) ~/.claude/bin/resguard.sh run --mem 6G --cpu 500 -- \
-  uv run --no-sync python scripts/real_v1_contact_gait_warp.py \
+  uv run --no-sync python scripts/design/real_v1_contact_gait_warp.py \
   --plans docs/experiments/20261007-contact-gait/20261007-padsT-seed1-256.json \
   --tip tpu6 --contact-model padsT --seeds 1 2 3 4 5 6 7 8 \
   --methods hold direct_gradient cem hybrid \
@@ -117,7 +117,7 @@ records CPU time, first-call compilation and five warm GPU repetitions.
 JAX_PLATFORM_NAME=gpu XLA_PYTHON_CLIENT_PREALLOCATE=false \
   ~/.claude/bin/resguard.sh run --mem 8G --cpu 500 -- \
   logs/20261007-diffmjx/venv/bin/python \
-  scripts/real_v1_diffmjx_official_gate.py --steps 20 --tip tpu6 \
+  scripts/design/real_v1_diffmjx_official_gate.py --steps 20 --tip tpu6 \
   --contact-model padsT --pad-spacing-mm 2 --skip-gradient --warm-repeats 5 \
   --out docs/experiments/20261007-contact-gait/20261007-mjx-gpu-padsT2-20-warm.json
 
@@ -141,7 +141,7 @@ resource guard. Use `JAX_ENABLE_X64=1` for the 64-bit cases and
 
 ```bash
 logs/20261007-diffmjx/venv-native-gpu/bin/python \
-  scripts/real_v1_diffmjx_gate.py --steps 20 --no-post --tip tpu6 \
+  scripts/design/real_v1_diffmjx_gate.py --steps 20 --no-post --tip tpu6 \
   --contact-model padsT --pad-spacing-mm 2 --warm-repeats 3 \
   --out docs/experiments/20261007-contact-gait/20261007-native-mjx-gpu-padsT2-20-warm.json
 ```
@@ -152,7 +152,7 @@ warm repeats. The 32-bit packed test used the same 2 mm command and wrote
 
 ## Derivative at recontact
 
-`scripts/real_v1_diffmjx_recontact_jvp.py` replays the seed-1 packed-pad CEM
+`scripts/design/real_v1_diffmjx_recontact_jvp.py` replays the seed-1 packed-pad CEM
 release plan in CPU MuJoCo 3.3.1 with 2 mm pads. At 280 ms, index force is
 zero; at 290 ms it is 0.571 N. The script transfers the 280 ms state to the
 released DiffMJX fork, differentiates the next 10 ms with respect to the index
@@ -163,7 +163,7 @@ run used an 8 GB memory cap and 64-bit JAX on GPU:
 JAX_PLATFORM_NAME=gpu XLA_PYTHON_CLIENT_PREALLOCATE=false \
   ~/.claude/bin/resguard.sh run --mem 8G --cpu 500 -- \
   logs/20261007-diffmjx/venv/bin/python \
-  scripts/real_v1_diffmjx_recontact_jvp.py \
+  scripts/design/real_v1_diffmjx_recontact_jvp.py \
   --plans docs/experiments/20261007-contact-gait/20261007-padsT-release-seed1-256.json \
   --method cem --start-ms 280 --steps 10 \
   --out docs/experiments/20261007-contact-gait/20261007-fork-padsT2-recontact-jvp.json
@@ -177,4 +177,4 @@ forward vertical cosine differed from the plain fork by less than 1e-9.
 The plain derivative compiled in 70.3 s and took 9.84 s warm; CFD compiled in
 122.8 s and took 17.31 s warm. Both runs stayed within the 8 GB memory cap.
 
-Rebuild the page with `python scripts/real_v1_contact_gait_page.py`.
+Rebuild the page with `python scripts/design/real_v1_contact_gait_page.py`.

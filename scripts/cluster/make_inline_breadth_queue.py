@@ -51,7 +51,7 @@ def train(tag: str, seed: int, morph: str = MORPH_M05, *,
           steps: int = STEPS) -> str:
     """One live-A reorient run, in b33's configuration."""
     a = [
-        "python scripts/rl_train_cube.py",
+        "python scripts/rl/rl_train_cube.py",
         "--recipe b_liveA",
         f"--morphology-run {morph}",
         f"--num-envs 3072 --total-timesteps {steps}",
@@ -112,7 +112,7 @@ def study_friction_cliff(n_scratch: int, n_warm: int, n_ctrl: int) -> list[tuple
     without it a null result is uninterpretable.
     """
     mu05 = "logs/scenes/m05_mu05.xml"
-    mk = (f"python scripts/mutate_scene.py --scene {MORPH_M05}/frozen_scene.xml "
+    mk = (f"python scripts/archive/mutate_scene.py --scene {MORPH_M05}/frozen_scene.xml "
           f"--out {mu05} --friction 0.5")
     rows = []
     for s in range(1, n_scratch + 1):

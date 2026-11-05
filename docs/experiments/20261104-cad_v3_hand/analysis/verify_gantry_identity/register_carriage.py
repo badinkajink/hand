@@ -4,7 +4,7 @@ Method: sample points on each mesh surface; initial poses from the inertia princ
 sign combinations: 4 proper, 4 improper); point-to-point ICP with Kabsch (reflection allowed only
 in the improper runs). The best proper fit maps the cad_v1 finger frame F (origin = yaw centre,
 x_F = yaw axis toward the servo side, z_F up; assets/mjcf/experimental/20261013-cad_v1/assembly.json,
-T_F_from_part_design after the export rotation R0 of scripts/build_cad_v1_finger.py) into A.
+T_F_from_part_design after the export rotation R0 of scripts/hardware/build_cad_v1_finger.py) into A.
 The best improper fit tests chirality: a mirrored copy should not fit as well as the proper one.
 
 Run: ~/.claude/bin/resguard.sh run --mem 3G -- .venv/bin/python <this file>

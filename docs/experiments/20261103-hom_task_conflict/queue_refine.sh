@@ -1,7 +1,7 @@
 #!/bin/bash
 # Task-conflict study, step 3 (hand-off docs/handoff/20261104-hom_task_conflict.md): the grasp (S2), then the grasp,
 # forces and contact modes (S3) refined by hom_grasp_refine.py's CEM on the 10 shared layouts of the SCS0009 plant
-# (scripts/hom_task_conflict.py refine; samples rows_refine/sv25/<task>_layouts.json), each task each layout reaches,
+# (scripts/hom/hom_task_conflict.py refine; samples rows_refine/sv25/<task>_layouts.json), each task each layout reaches,
 # then the S1, S2 and S3 picks at seeds 20-24 and the report. The search scores its start as candidate 0. Per task about
 # 5,800 rollouts at level grasp and 7,700 at level full, one GPU batch per iteration; the batch child peaked at 2.44 GB
 # in the score-refine queue. Waits for queue.sh (the validation) to end: one GPU job at a time.
@@ -25,7 +25,7 @@ step() {   # name, then hom_task_conflict.py's arguments; a finished step leaves
   local name=$1 rc; shift
   if [ -e $L/Q_$name.done ]; then echo "$(date +%T) $name done before"; return 0; fi
   echo "$(date +%T) $name"
-  job 5G 500 /usr/bin/time -f "peak %M kB, %e s" .venv/bin/python scripts/hom_task_conflict.py "$@" > $L/Q_$name.log 2>&1
+  job 5G 500 /usr/bin/time -f "peak %M kB, %e s" .venv/bin/python scripts/hom/hom_task_conflict.py "$@" > $L/Q_$name.log 2>&1
   rc=$?
   if [ $rc -eq 0 ]; then touch $L/Q_$name.done; else echo "$(date +%T) $name failed (exit $rc)"; fi
   return $rc

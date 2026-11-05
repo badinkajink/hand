@@ -75,7 +75,7 @@ if [ -f "$DEST/.DONE" ]; then echo "SKIP (.DONE) — array is resumable"; exit 0
 #   is GPU time; render locally from the checkpoint instead, with policy-eyes.
 # The collapse watchdog still runs — a design that drops the object should stop
 # burning its 40 minutes.
-python scripts/rl_train_cube.py \
+python scripts/rl/rl_train_cube.py \
     --morphology-run "$MORPH_RUN" \
     --tag "$TAG" \
     --seed "$SEED" \

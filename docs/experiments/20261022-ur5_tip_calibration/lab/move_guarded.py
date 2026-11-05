@@ -4,7 +4,7 @@ you go home, above both indenters ... bring the fingertip to 2mm +Z of the left 
     /usr/bin/python3 docs/experiments/20261022-ur5_tip_calibration/lab/move_guarded.py plan|go home|over-sphere|over-rod [--gap 2]
 
 plan: prints the waypoints (flange poses), their joints by IK and the least clearances of the tool and the robot's links
-to the indenters, the 2x4 and the table (scripts/ur5_cb3_cell.py), without connecting to the robot's control.
+to the indenters, the 2x4 and the table (scripts/ur5/ur5_cb3_cell.py), without connecting to the robot's control.
 go: the same check, then ur_rtde's control (TCP set to the flange, as the calibration program does), the HEX-E polled at
 100 Hz with its 50 Hz filter, and each waypoint as a linear move: up 25 mm at 10 mm/s when the tool is low, travel at
 25 mm/s, the last 30 mm down at 5 mm/s. A change of the HEX-E's force past --stop-N (3 N) from its reading at the start,
@@ -25,7 +25,8 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
-sys.path[:0] = [str(HERE), str(ROOT / "scripts"), str(ROOT / "src/morphohand/driver/reskin5x/host")]
+sys.path[:0] = [str(HERE), str(ROOT / "scripts"), str(ROOT / "src/sr2hand/driver/reskin5x/host")]
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import indenters as I                    # noqa: E402
 import ur5_cb3_cell as CELL              # noqa: E402
 import ur5_tip_calibration as C          # noqa: E402
