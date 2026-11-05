@@ -36,6 +36,8 @@ ap.add_argument("--no-disable", action="store_true",
                 help="leave the motors on when the plan ends normally (the next plan of a chain runs on this home)")
 ap.add_argument("--max-temp", type=float, default=60.0)
 ap.add_argument("--max-err", type=float, default=6.0)
+ap.add_argument("--max-err-yaw", type=float, default=None,
+                help="the yaw joints' own limit (deg; default --max-err): hanging, they hold short of gravity")
 ap.add_argument("--max-blocked", type=int, default=3, help="stop the run at this many poses a joint could not reach")
 ap.add_argument("--boards", default=None, help="the board logger's folder (board_log.py); its stream is checked too")
 ap.add_argument("--board-channels", default=None, help="the mux channels the boards must be on, e.g. 0,1,3")
@@ -187,6 +189,25 @@ def servo_target(joints):
             for f in F}
 
 
+def past_limit(joints):
+    """The joint furthest past its limit as (error, joint), or (0.0, None) when every joint is within: --max-err-yaw
+    for the yaw joints, --max-err for mcp and pip (11-05: the yaw servos hold 2 to 6 deg short of gravity at 25 to 40
+    deg, more on their positive side, with nothing restricting them)."""
+    s, _ = state()
+    sv = s["telemetry"].get("servos") or {}
+    worst, out = 0.0, (0.0, None)
+    for fid, js in servo_target(joints).items():
+        for j, v in js.items():
+            have = (sv.get(fid) or {}).get(j)
+            if have is None:
+                continue
+            e = abs(have - v)
+            over = e - (a.max_err_yaw if j == "aa" and a.max_err_yaw is not None else a.max_err)
+            if over >= worst:
+                worst, out = over, (e, f"{fid}.{j}")
+    return out
+
+
 def joint_error(joints):
     s, _ = state()
     sv = s["telemetry"].get("servos") or {}
@@ -268,8 +289,8 @@ def do_joints(st, ctx):
     t_cmd = time.time()
     http("POST", "/api/v1/manual/joints", {"joints": st["joints"], "servo_speed": st.get("speed", 80)})
     # settled: a fresh sample within 2 deg of the command, or two fresh samples 1.2 s or more after the command that
-    # differ by under 0.4 deg on every joint (stopped, e.g. drooping under gravity); at most 6 s. A joint 6 deg or more
-    # from its command then stops the run.
+    # differ by under 0.4 deg on every joint (stopped, e.g. drooping under gravity); at most 6 s. A joint at its limit
+    # or further from its command (past_limit) then backs the hand out.
     settle, prev = None, None
     while time.time() - t_cmd < 6.0:
         check(ctx)
@@ -286,10 +307,12 @@ def do_joints(st, ctx):
             prev = (t, v)
         time.sleep(0.05)
     e, which = joint_error(st["joints"])
-    if e >= a.max_err:
+    if past_limit(st["joints"])[1]:
         sleep_checked(1.0, ctx)
         e, which = joint_error(st["joints"])
-        if e >= a.max_err:
+        pe, pwhich = past_limit(st["joints"])
+        if pwhich:
+            e, which = pe, pwhich
             # back out at once to the last pose reached, along the path that brought the hand here
             blocked["n"] += 1
             ramp(blocked["last_ok"], 60, ctx)
