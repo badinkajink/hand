@@ -1949,8 +1949,8 @@ def sections(N, F, P, link, L):
         + link(L["motions"], "calibration motions page") + "). If the board's changes agree within 3° and the gains "
         "within 5 %, one 5 mm sphere on a column can stand for both. The session needs both indenters, which are off "
         "the table while the inverted rig's seat strip is on.",
-        "Mount end on the SR2 hand: load the contact viewer's model of Section 16 for v3 IDs 1 to 3, and press a "
-        "tip's mount end on the hand with a known load (" + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md")
+        "Mount end on the SR2 hand: the contact viewer has run on the hand with the model of Section 16 since 11-05, on v3 IDs 1 "
+        "to 3 (commit 84572398). Press a tip's mount end with a known load (" + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md")
         + " R33). An error over 2 mm there refutes it.",
         "The viewer's model on v3 IDs 4 to 6: rerun " + P.code("scripts/ur5/ur5_tip_calibration_rig_pool_ids456.py") + " with "
         f"1,500 of a tip's rig holds, that model's share. A location error over {max(plv(PL_REG, 'combined')):.2f} mm on a held-out "
