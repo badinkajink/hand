@@ -10,6 +10,14 @@ package, renamed in the same switch; and, "very hesitant now to run endless unit
 pass them", cut the tests to the ten files that exercise the hardware path (`fd2100da0`): no new test files. The hand-off
 note is `docs/handoff/20261103-scripts_topic_folders.md`.
 
+## Outcome (2026-11-05)
+
+The switch landed at 00:50 on 11-05 as `a41ffa27b` and the migration at 00:52 (`e7040b5b4` to `c86d3fe66`). The sections below describe the
+procedure as planned. Two things differed from the dry runs. A script that the coordinator committed 45 minutes earlier was not in the plan
+and was moved by hand, so a dry run belongs immediately before the switch. `move_scripts.py` left out the code under `docs/experiments/` and
+`paper/`, `.gitignore` and the VS Code workspace, and `move_extra_live_code.py` did those. The Spearman fix changed the plant-transfer rows by up to
+0.062, on a friction grid with many tied scores, where the table below says 0.003.
+
 ## Files in this folder
 
 | file | what it is |
@@ -20,6 +28,8 @@ note is `docs/handoff/20261103-scripts_topic_folders.md`.
 | `scripts_map.py` | writes `scripts/README.md`, installed as `scripts/docs/scripts_map.py` |
 | `smoke_imports.py` | imports every script with a main guard, each in its own process |
 | `wait_switch_conditions.sh` | waits until the mechanical conditions of the switch hold |
+| `land_migration.sh` | cherry-picks the 23 migration commits of the local branch `scripts-migrate`; the branch was removed on 11-05, and its commits are on main |
+| `move_extra_live_code.py` | the second pass of the switch, for the code that `move_scripts.py` leaves out |
 | `audit_rotations.md` | 309 hand-written rotation and transform copies in 128 files, the library call for each kind, four bugs |
 | `audit_geometry.md` | 165 geometry and numerics copies (143 live), the library call for each kind, the bugs |
 

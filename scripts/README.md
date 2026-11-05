@@ -673,7 +673,7 @@ Reinforcement learning: the trainer and its launchers, the morphology runs, poli
 | `train_real_v1_blind_pair.sh` | Real-hardware-family observation transfer: sighted vs hidden-object actor. |
 | `train_reorient_on_morph.sh` | Skip-lift REORIENTER on a NEW morphology — does the balanced grasp give a balanced grip? |
 
-## ur5/ (107)
+## ur5/ (108)
 
 The UR5 calibration cell: session plans, the cell model, registration and analysis of the presses, the ATI sensor and the inverted rig.
 
@@ -727,6 +727,7 @@ The UR5 calibration cell: session plans, the cell model, registration and analys
 | `ur5_timelapse_short.py` | A short cut of the lab's overhead time-lapse of 11-02 to 11-03 (lab/timelapse_d435.py's frames, one every 2 s, made into lab/20261102-tipcal-timelapse_60fps.mp4: 35,401 frames, 9.8 min). |
 | `ur5_tip_calibration_analysis.py` | Ground truth of a calibration session of the fingertip on the UR5 (src/sr2hand/driver/reskin5x/host/ ur5_tip_calibration.py), and the contact estimator scored against it. |
 | `ur5_tip_calibration_board_gp.py` | The Gaussian process from the board's change to the contact point and the 3D force, pooled over UR5 sessions, fitted once and saved for the contact viewer (owner, 2026-10-26: ID 1 and ID 2 on the mux, "let's see if this  |
+| `ur5_tip_calibration_board_gp_rig.py` | The contact viewer's board GP for v3 IDs 1 to 3 with the inverted rig's presses of IDs 3 to 6 added (owner, 2026-11-05 00:4x: "the calibration rig is off, the hand is on the robot, there's no chance to calibrate these ot |
 | `ur5_tip_calibration_cb1r_checks.py` | The new tests of cb1r (R24 on v1 ID 1, 2026-10-25) against cb1t, the same tip on 10-23: left-right twins, slides, twists at 5 N, and the rate set (owner, 10-25: "did we get good results from those new calibration tests?" |
 | `ur5_tip_calibration_cb2t_checks.py` | The tests of cb2t (R24 on v1 ID 2, mount v7, 2026-10-25, passes 1 to 6) with its own grid as the training set, in the terms of scripts/ur5/ur5_tip_calibration_cb1r_checks.py, and two more: density location error (mm) at  |
 | `ur5_tip_calibration_centre_coverage.py` | The calibrated GP's location error at the face centre, four magnets (v3 ID 1) against five (v2 ID 1), on the sphere presses both tips ran (owner, 2026-10-28: "do you think we can improve this error with greater coverage  |
