@@ -3,11 +3,13 @@
 Every function takes one value or a batch over leading axes, and arguments broadcast, in any length unit. The module
 imports numpy only. numpy, scipy and trimesh have no routine for point to segment, segment to segment or line to line;
 for a point to a triangle mesh use trimesh.triangles.closest_point in chunks of 4,096 points, and for geoms in a MuJoCo
-model mujoco.mj_geomDistance.
+model mujoco.mj_geomDistance. closest_on_triangles is the same routine as trimesh's for one point and every triangle,
+in numpy alone, for the UR5 lab program, which runs without trimesh.
 """
 import numpy as np
 
-__all__ = ["point_segment", "segment_segment", "point_line", "line_line", "ray_triangles"]
+__all__ = ["point_segment", "segment_segment", "point_line", "line_line", "ray_triangles", "closest_on_triangles",
+           "barycentric_inside"]
 
 
 def _arr(x):
@@ -80,3 +82,51 @@ def ray_triangles(tri, o, d, merge=1e-6):
     if len(ts) and merge > 0:
         ts = ts[np.r_[True, np.diff(ts) > merge]]
     return ts
+
+
+def closest_on_triangles(p, A, B, C):
+    """Closest point to the point p on each triangle (A, B, C rows, (n, 3)): (n, 3). Ericson, Real-Time Collision
+    Detection 5.1.5, vectorised over the triangles; trimesh.triangles.closest_point is the same routine for paired
+    points and triangles. Moved from the UR5 lab program (src/sr2hand/driver/reskin5x/host/ur5_tip_calibration.py) on
+    2026-11-05."""
+    p, A, B, C = _arr(p), _arr(A), _arr(B), _arr(C)
+    ab, ac, ap = B - A, C - A, p - A
+    d1, d2 = np.einsum("ij,ij->i", ab, ap), np.einsum("ij,ij->i", ac, ap)
+    bp = p - B
+    d3, d4 = np.einsum("ij,ij->i", ab, bp), np.einsum("ij,ij->i", ac, bp)
+    cp = p - C
+    d5, d6 = np.einsum("ij,ij->i", ab, cp), np.einsum("ij,ij->i", ac, cp)
+    vc = d1 * d4 - d3 * d2
+    vb = d5 * d2 - d1 * d6
+    va = d3 * d6 - d5 * d4
+    den = va + vb + vc
+    den = np.where(np.abs(den) < 1e-18, 1e-18, den)
+    v, w = vb / den, vc / den
+    out = A + ab * v[:, None] + ac * w[:, None]                     # inside the face
+    with np.errstate(divide="ignore", invalid="ignore"):
+        m_ab = (vc <= 0) & (d1 >= 0) & (d3 <= 0)
+        out = np.where(m_ab[:, None], A + ab * (d1 / (d1 - d3))[:, None], out)
+        m_ac = (vb <= 0) & (d2 >= 0) & (d6 <= 0)
+        out = np.where(m_ac[:, None], A + ac * (d2 / (d2 - d6))[:, None], out)
+        m_bc = (va <= 0) & ((d4 - d3) >= 0) & ((d5 - d6) >= 0)
+        out = np.where(m_bc[:, None], B + (C - B) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)))[:, None], out)
+    out = np.where(((d1 <= 0) & (d2 <= 0))[:, None], A, out)
+    out = np.where(((d3 >= 0) & (d4 <= d3))[:, None], B, out)
+    out = np.where(((d6 >= 0) & (d5 <= d6))[:, None], C, out)
+    return out
+
+
+def barycentric_inside(tri, q, tol=0.0):
+    """Whether the point q lies in any of the triangles tri (n, 3, d) of its plane (d = 2, or 3 with q on their plane),
+    by the barycentric coordinates along the third vertex and the second, each at least -tol and their sum at most
+    1 + tol. q never lies in a degenerate triangle. trimesh.triangles.points_to_barycentric gives the coordinates of
+    paired points and triangles in 3-D."""
+    tri, q = _arr(tri), _arr(q)
+    a, b, c = tri[:, 0], tri[:, 1], tri[:, 2]
+    v0, v1, v2 = c - a, b - a, q - a
+    d00, d01, d11 = (v0 * v0).sum(1), (v0 * v1).sum(1), (v1 * v1).sum(1)
+    d20, d21 = (v2 * v0).sum(1), (v2 * v1).sum(1)
+    den = d00 * d11 - d01 ** 2
+    with np.errstate(divide="ignore", invalid="ignore"):
+        u, v = (d11 * d20 - d01 * d21) / den, (d00 * d21 - d01 * d20) / den
+    return bool(((u >= -tol) & (v >= -tol) & (u + v <= 1 + tol)).any())

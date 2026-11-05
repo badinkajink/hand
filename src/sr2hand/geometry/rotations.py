@@ -20,8 +20,8 @@ __all__ = [
     "quat_to_rotvec", "quat_yaw", "quat_axis", "tilt_cos", "quat_angle", "quat_twist", "quat_slerp", "quat_random",
     "rot_x", "rot_y", "rot_z", "exp_so3", "log_so3", "rot_axis_angle", "rot_angle", "rot_slerp", "heading", "rot_between",
     "frame_from_axis", "tangent_basis", "skew", "vee", "project_to_so3", "euler_to_mat", "mat_to_euler",
-    "tf", "tf_inv", "tf_apply", "tf_compose", "tf_from_pose", "tf_to_pose", "tf_from_ur", "tf_to_ur", "perturb_body",
-    "turn_about", "pose_error", "adjoint", "kabsch", "umeyama",
+    "tf", "tf_inv", "tf_apply", "tf_compose", "tf_from_pose", "tf_to_pose", "tf_from_ur", "tf_to_ur", "tf_interp",
+    "perturb_body", "turn_about", "pose_error", "adjoint", "kabsch", "umeyama",
 ]
 
 _EPS = 1e-12
@@ -341,6 +341,14 @@ def tf_to_ur(T, scale=1e-3):
     """Transform to a UR pose [x, y, z, rotation vector]; scale turns its translation unit into metres."""
     T = _arr(T)
     return np.concatenate([T[..., :3, 3] * scale, log_so3(T[..., :3, :3])], axis=-1)
+
+
+def tf_interp(T0, T1, s):
+    """The pose s of the way from T0 (s = 0) to T1 (s = 1), s in [0, 1] or an array of them: the rotation by scipy's
+    Slerp, along the shorter geodesic, and the translation along the straight line."""
+    T0, T1, s = _arr(T0), _arr(T1), _arr(s)
+    R = Slerp([0.0, 1.0], Rotation.from_matrix(np.stack([T0[:3, :3], T1[:3, :3]])))(s).as_matrix()
+    return tf(R, (1.0 - s)[..., None] * T0[:3, 3] + s[..., None] * T1[:3, 3])
 
 
 def perturb_body(T, d):
