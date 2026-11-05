@@ -410,7 +410,7 @@ def fe():
     sfe = {r["case"]: r for r in rows(F / "sense_fe.jsonl")}
     out = {"tips": {}}
     for tip in C.TIPS:
-        P = {r["probe"]: r for r in fr if r.get("fe_key") == tip}
+        P = {r["probe"]: r for r in fr if str(r.get("case", "")).split("|")[0] == tip}
         if not P:
             continue
         ap = lambda p, F_="1": (P.get(p) or {}).get("per_force", {}).get(F_, {}).get("approach_um")  # noqa: E731

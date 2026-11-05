@@ -2,8 +2,8 @@
 """Finite elements of the fingertip-shape rerun's tips (docs/handoff/20261103-fingertip_shape_rerun.md, ledger step 6),
 through the machinery of the 10-19/20 checks of the 11/22 (scripts/v2_tip_fe_checks.py) with each tip in place of the 11/22:
 the model of the 10-18 calibration (two 0.45 mm perimeters and four skins of solid TPU at 12 MPa over the homogenized 30 %
-gyroid of Siraya 85A, bonded magnets, frictionless rigid probes), in the tip's print orientation (upright, or face up for
-the blocks and the hemisphere).
+gyroid of Siraya 85A, bonded magnets, frictionless rigid probes) on the tip's design surface, in its print orientation
+(upright, or face up for the blocks and the hemisphere). Rows carry the tip's key in their case name, <tip>|<body>.
 
 Bodies:
   pad      the tip cut where the v4b pad is cut (13.45 mm under the apex, x_F 2.90), the cut face fixed on the cassette and
@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -58,10 +59,16 @@ def grid(kind="base"):
 FE.grid = grid
 
 
+def design_key(tip):
+    """The FE's shape: the tip's design surface, as on 18 October (the print enters through the walls, skins and build
+    direction; a printed key's hull would cost one plane test per facet for each of the 43 M voxels)."""
+    return re.sub(r"_(?:p|u)[0-9.]+$", "", tip)
+
+
 def case_of(tip, mount):
     """(case name, case dict) of a tip: the v4b pad body with 05R4 where its magnets fit, the quarter-ellipsoid on its
     back plane without magnets."""
-    sh = TG.shape(tip)
+    sh = TG.shape(design_key(tip))
     if getattr(sh, "family", "") == "qell":
         xb = round((sh.xc - (TG.REACH - 0.0085)) * 1e3, 6)
         return f"{tip}|qell", dict(grid=f"qell:{xb}", depth=7.5, mags="none")
@@ -80,7 +87,7 @@ def main():
     for tip in a.tips:
         name, case = case_of(tip, mount)
         V.CASES[name] = case
-        V.KEY, V.BUILD = tip, C.build_axis(tip)
+        V.KEY, V.BUILD = design_key(tip), C.build_axis(tip)
         if case.get("body") == "b":
             V.SENSE_GAP[name] = 3.32 - 6.45            # the board's sensing plane, x_F 3.32 (the DIP study's level)
         if "probes" in a.what:

@@ -245,12 +245,21 @@ def glossary():
 
 def question():
     return ("<p>The owner chose the 11/22 half-ellipsoid on 18 October after two screens on the first CAD hand at 10&#8202;MPa "
-            "and a calibration of the contact models to the finite elements. Since then the hand moved to the v4b finger "
-            "(DIP link b v4, cassette 3T, cap TW15H3), the pads&#8217; modulus to 2.5&#8202;MPa and the plant to the SCS0009 "
-            "servo, which the screens already used. This rerun repeats the 14 and 15 October protocol on the current hand: "
-            "the fit of each tip on the v4b finger, the contact bed against the law and Drake, the cost of a simulation step, "
-            "the three-stage task screen with Drake&#8217;s agreement gate, and the finite elements with the force resolution "
-            "of pad 05R4. A hemisphere was added. The v4b tip is the reference throughout.</p>")
+            "and a calibration of the contact models to the finite elements. Since then the hand has moved to the v4b "
+            "finger (DIP link b v4, cassette 3T, cap TW15H3) and the pads&#8217; modulus to 2.5&#8202;MPa; the SCS0009 plant "
+            "is the one the screens used. This rerun repeats the 14 and 15 October protocol on the current hand for the "
+            "nine curved tips, the two blocks and a hemisphere, with the v4b tip as the reference: the fit of each tip on "
+            "the v4b finger, the contact bed against the law and Drake, the cost of a simulation step, the three-stage task "
+            "screen with Drake&#8217;s agreement gate, and the finite elements with the force resolution of pad 05R4.</p>"
+            "<p>Five rules differ from 15 October. The cells keep their layouts and cylinders, and their candidate grasps "
+            "come from the v4b finger&#8217;s kinematics (<code>kin/reach.json</code>). The gate and stage 3 compare each tip "
+            "with the v4b tip in place of the as-built block, which runs stage 3 beside it. The cost of finalist rule (2) "
+            "is the median, over the placements on which both tips&#8217; pads hold the tool, of the ratio of microseconds "
+            "per replay step: the v4b tip&#8217;s pads drop the tool in about half the replays, and a dropped tool makes a "
+            "replay cheap. Drake runs the bed&#8217;s four metrics at one load and rate (approach at 1 and 3&#8202;N, onset "
+            "arm at 1&#8202;N, spin arm at 1&#8202;rad/s, brake force at a 1&#8202;ms step); its replays of the hand take "
+            "130&#8211;350&#8202;s at 2.5&#8202;MPa against 61&#8202;s at 10&#8202;MPa. Every turn row records the rigid "
+            "parts&#8217; share of the contact force.</p>")
 
 
 def mount_section():
@@ -301,7 +310,39 @@ def bed_section():
                 "pads of 15 October at 10&#8202;MPa.", key="bed")
     fig = img("media/fig_bed.png", "Bed per tip: the twist-onset arm at 1&#8202;N (law, pads and Drake at 2.5&#8202;MPa; open: the "
               "pads at 10&#8202;MPa on 15 October) and the spin arm at 1&#8202;rad/s over the law.", key="bed")
-    return "<p>[bed prose]</p>" + fig + tab
+    curved = C.HALF + [C.REF, C.HEMI] + C.CAPSULES
+    g = lambda k, *p: get(BED.get(k) or {}, *p)  # noqa: E731
+    onset = [g(k, "law", "onset_arm_mm", "1") for k in curved]
+    onset_q = [g(k, "law", "onset_arm_mm", "1") for k in C.QUARTERS]
+    onset_b = [g(k, "law", "onset_arm_mm", "1") for k in C.BLOCKS]
+    o15 = [get(BED15.get(old(k)) or {}, "law", "onset_arm_mm", "1") for k in curved if k != C.HEMI]
+    b15 = [get(BED15.get(k) or {}, "law", "onset_arm_mm", "1") for k in C.BLOCKS]
+    R = lambda k, key: g(k, "ratios", key)  # noqa: E731
+    text = (
+        f"<p>At 2.5&#8202;MPa the curved tips turn the tool on half of the blocks&#8217; friction arm. The law&#8217;s "
+        f"twist-onset arm at 1&#8202;N is {rng(onset)}&#8202;mm on the capsules, half-ellipsoids and the hemisphere and "
+        f"{rng(onset_q)}&#8202;mm on the quarter-ellipsoids, against {rng(onset_b)}&#8202;mm on the blocks. At 10&#8202;MPa "
+        f"on 15 October it was {rng(o15)} against {rng(b15)}&#8202;mm; the softer pads sink deeper, so their patch is wider "
+        f"(Table&#160;[[tab:bed]], Figure&#160;[[fig:bed]]). "
+        f"{rng([g(k, 'pads', 'touching_1N') for k in curved], 0)} pads touch per side at 1&#8202;N on these tips, against "
+        f"{rng([get(BED15.get(old(k)) or {}, 'pads', 'touching_1N') for k in curved if k != C.HEMI], 0)} at 10&#8202;MPa, and "
+        f"{rng([g(k, 'pads', 'touching_1N') for k in C.BLOCKS], 0)} on the blocks.</p>"
+        f"<p>The pads give {rng([R(k, 'pads_onset_1N_over_law') for k in curved])} of the law&#8217;s onset arm on the "
+        f"capsules, half-ellipsoids and hemisphere and {rng([R(k, 'pads_onset_1N_over_law') for k in C.BLOCKS])} on the "
+        f"blocks; Drake gives {rng([R(k, 'drake_onset_1N_over_law') for k in ORDER])}. At 1&#8202;rad/s the pads&#8217; spin "
+        f"arm is {f(R(C.REF, 'pads_spin_1_over_law'))} of the law&#8217;s on the v4b tip, "
+        f"{rng([R(k, 'pads_spin_1_over_law') for k in C.CAPSULES])} on the capsules, "
+        f"{rng([R(k, 'pads_spin_1_over_law') for k in C.QUARTERS])} on the quarter-ellipsoids and "
+        f"{rng([R(k, 'pads_spin_1_over_law') for k in C.BLOCKS])} on the blocks, and Drake&#8217;s "
+        f"{rng([R(k, 'drake_spin_1_over_law') for k in ORDER])}. From 0.3 to 3&#8202;rad/s the pads&#8217; spin arm grows by "
+        f"a factor {rng([R(k, 'pads_spin_3_over_0.3') for k in C.BLOCKS])} on the blocks and "
+        f"{rng([R(k, 'pads_spin_3_over_0.3') for k in curved + C.QUARTERS])} on the curved tips. The pads&#8217; brake force "
+        f"lies within {rng([R(k, 'pads_N45_over_drake') for k in curved + C.QUARTERS])} of Drake&#8217;s on the curved tips "
+        f"and {rng([R(k, 'pads_N45_over_drake') for k in C.BLOCKS])} on the blocks.</p>"
+        f"<p>On the quarter-ellipsoids each pad&#8217;s depth is taken to the rigid back plane, which makes the pads "
+        f"{rng([R(k, 'pads_approach_1N_over_law') for k in C.QUARTERS])} of the law&#8217;s approach; the law measures "
+        f"depth to the volume centroid. On 15 October the ratio was 1.26&#8211;1.32.</p>")
+    return text + fig + tab
 
 
 def cost_section():
