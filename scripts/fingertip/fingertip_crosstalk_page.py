@@ -1317,11 +1317,14 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
 
     # 9. future work
     fw = [
-        ("The layout sweep on the SR2 hand.", "A plan for the next sweep is ready and has not run: 120 random poses at each of five grasp layouts of the transfer "
+        ("The layout sweep on the SR2 hand.", "The plan takes 120 random poses at each of five grasp layouts of the transfer "
          f"study, half of them with the thumb and the middle finger within 30&#8202;mm (<code>{(SR2 / 'plan/20261105-plan_layouts_s1.json').relative_to(ROOT)}</code>, "
-         "672 steps, about 75&#8202;min). It follows the owner&#8217;s direction of 2026-11-04. The index&#8217;s cable was a little tight, so the owner re-routes it "
-         "with slack first. An attended pass of 35 steps, about 13&#8202;min, then shows the owner each layout&#8217;s closest poses "
-         "(<code>20261105-plan_layouts_attended.json</code>). <code>lab/run_plan.py</code> now stops a run on a fault in the boards&#8217; stream. Replayed on the "
+         "672 steps, about 75&#8202;min). It follows the owner&#8217;s direction of 2026-11-04. On 2026-11-05 the owner lengthened the index&#8217;s cable through a second "
+         "mux. The attended pass of 35 steps then ran with no blocked pose and no board fault (<code>20261105-plan_layouts_attended.json</code>). The plan stopped at "
+         "12:43:37 on step 32, at layout g12, with the middle finger&#8217;s yaw servo 6.2&#176; short of its command. A cable resisting the yaw is the likeliest load "
+         "(<code>data/20261105-middle_carriage_by_layout.jpg</code> in the sweep&#8217;s folder). The hand stays stopped until the owner has looked. A resume plan "
+         "without the poses whose middle yaw is below &#8722;25&#176; is ready and has not run (<code>20261105-plan_layouts_s1_resume32.json</code>, 492 steps, about "
+         "46&#8202;min). <code>lab/run_plan.py</code> stops a run on a fault in the boards&#8217; stream. Replayed on the "
          "night&#8217;s log, the check gave no false alarm in 968 windows before 19:43:52 and flagged every window after. The runbook is <code>"
          + str((SR2 / "README.md").relative_to(ROOT)) + "</code>. The GP takes the mount coordinates as inputs, so the term learned at some layouts is tested at the "
          f"others. More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile at a layout left out of training means that each layout needs its own "
