@@ -919,16 +919,13 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
          f"{r4('side', 10)['norm_uT']:.0f}&#8202;&#181;T at a 10&#8202;mm gap and {r4('side', 20)['norm_uT']:.0f}&#8202;&#181;T "
          "at 20&#8202;mm. If the model with the net moments fitted facing explains less than 90&#8202;% of the side-by-side "
          "change, the side-by-side pose needs a fit of its own."),
-        ("A pinch between two v3 tips.", "The holder comes off the table for the inverted rig&#8217;s strip of tip seats "
-         "(owner, 2026-10-30). On that rig a fingertip is mounted by its cassette on a sixth tool, with no DIP link and "
-         "its palmar face along the tool axis. With it the crosstalk is measured face to face over a tip held pad up on "
-         "the strip ("
-         "<code>docs/experiments/20261030-inverted_rig_seat_block/README.md</code>). The robot apex presses the held apex "
-         "at 0.25&#8211;3&#8202;N. The robot&#8217;s target is also shifted 2 and 4&#8202;mm off its apex, across and "
-         "along, and turned by &#8722;20 to +20&#176;. The apex press comes first, in the middle and last. The robot "
-         "tip&#8217;s contact is estimated from the raw change, with the modelled field at the commanded pose subtracted, and with "
-         "the held tip&#8217;s pose fitted from the board. With the fitted pose, a force error above 0.2&#8202;N at 0.5&#8202;N "
-         f"contradicts the one-board bound of Table&#160;{TAB['crb']}."),
+        ("A pinch between two v3 tips.", "The plan pressed a tip on a robot tool against a tip held pad up on the inverted "
+         "rig&#8217;s strip, at 0.25&#8211;3&#8202;N ("
+         "<code>docs/experiments/20261030-inverted_rig_seat_block/README.md</code>). The owner ended the UR5 calibration on "
+         "2026-11-04 before this ran, and the tips went to the SR2 hand "
+         "(<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R32). On the hand the joint angles give the "
+         f"neighbour&#8217;s pose (Section&#160;{SEC['subtract']}), and the pinched object needs a force sensor of its own. With "
+         f"that pose, a force error above 0.2&#8202;N at 0.5&#8202;N contradicts the one-board bound of Table&#160;{TAB['crb']}."),
         ("A five-magnet neighbour.", "The owner tabled this check on 2026-10-27. It takes about 30&#8202;min with a five-magnet "
          "tip on the +y station. Its 483&#8202;&#181;T at W 0.5&#8202;mm tests the model at 1&#8202;% (4.8&#8202;&#181;T); at "
          "v3&#8217;s 34&#8202;&#181;T, 1&#8202;% is about the board&#8217;s noise. A misfit above 1&#8202;% at the closest poses "
