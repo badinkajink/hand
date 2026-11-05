@@ -16,6 +16,9 @@ neighbours' chips as a function of those angles.
   (channel 0). The owner confirmed channel 1 at 18:4x on 11-04, and each channel's rest field matches its tip's UR5
   sessions: 86, 114 and 57 uT rms against 342 uT or more for the other tips. The mux (0x71) sits on the SparkFun Thing
   Plus ESP32-C6 (40:4C:CA:4C:49:C4), plugged into corvus. The index and middle boards were unplugged until 18:53.
+  Since 11:4x on 11-05 the index's cable runs through a second mux, for slack. Its board sits on channel 0 of a mux at
+  0x70, which is cabled to channel 1 of the mux at 0x71. The firmware (7e5859883) streams it as channel 1, so the logs
+  and `--board-channels 0,1,3` are as before.
 - Steppers and servos: the M8P and the CB1 on the hand. From corvus the CB1 answers at 10.99.99.2 once corvus has a
   live second address: `nmcli device modify enp3s0 +ipv4.addresses 10.99.99.77/24`. That command changes no profile.
   Corvus's key `~/.ssh/id_wxie` is in irlab's authorized keys since 18:2x on 11-04.
@@ -26,9 +29,10 @@ neighbours' chips as a function of those angles.
 1. M8P: hold BOOT0, press and release RESET, release BOOT0, press and release RESET. `/dev/ttyACM0` (the "Manta Hand
    Controller") then appears on the CB1.
 2. Station: `ssh -i ~/.ssh/id_wxie irlab@10.99.99.2 '~/run_control_station.sh start'`. It turns servo torque on at
-   connect.
+   connect. After a run has disabled the motors, POST `/api/v1/servos/torque` with `{"state": "on"}`: the servos then
+   hold where they hang. The station refuses joint commands until it is homed again.
 3. Home: POST `/api/v1/home` with `{"confirmation": "HOME ALL AXES"}` and the station's token. It takes about 4 min.
-   On 11-04 every axis homed by its timeout; StallGuard2 fired on none.
+   On 11-04 and 11-05 every axis homed by its timeout; StallGuard2 fired on none.
 4. Fingertip boards: `lab/board_log.py PORT logs/20261104-sr2_crosstalk/boards`. Its log has the format of
    `src/sr2hand/driver/reskin5x/host/reskin5x_mux.py`. The records of one read are spaced evenly between that read
    and the one before. After a fingertip is plugged in, `lab/mux_boot_text.py PORT` resets the C6 and prints its
@@ -114,7 +118,8 @@ term.
 The owner, 22:10 on 11-04, relayed by the workstation: "ahh yea the index cable was a little tight, i shouldve
 prepared better for that. i hoipe the cables not damaged. we could try more thumb-middle poses yea, we can use the
 steppers to move them to more realistic poses too". That is a direction, not a go: the hand stays stopped until the
-owner re-routes the index's cable with slack.
+owner re-routes the index's cable with slack. The owner lengthened the cable through a second mux at 11:4x on 11-05
+and gave the go (section "11-05").
 
 1. Check the cable. Run `firmware/bench_mux_scan` on the C6. Channel 1 should answer with five chips at every clock
    from 400 down to 20 kHz. Nothing at all, or answers only at the low clocks, means a damaged conductor. Then compare
@@ -168,11 +173,56 @@ Ready since 22:4x on 11-04, and not run on the hand:
           docs/experiments/20261104-sr2_hand_crosstalk/plan/20261105-plan_layouts_s1.json logs/<date>-sr2_crosstalk/run_layouts \
           --token-file ~/.sr2_station_token --boards logs/<date>-sr2_crosstalk/boards --board-channels 0,1,3
 
+## 11-05
+
+**The index's cable.** At 11:3x the owner lengthened the index's cable with a second mux: "ive plugged the index cable
+bck into a separate mux (on port 0 on that mux), with a cable from that mux back to the original mux port. this is to
+extend the cable without losing signal, i hope". The new mux answers at 0x70. A mux of this kind switches the bus
+through and does not buffer it, so the scan, not the mux, shows that the longer run works.
+- `firmware/bench_mux_scan` now looks behind a second mux. In six rounds from 11:40 it found the index's five chips
+  (0C, 10 to 13) behind 0x70's channel 0 at 400, 100, 50 and 20 kHz. The middle's and thumb's chips answered on
+  channels 0 and 3, as before.
+- `firmware/reskin5x_mux_stream` (7e5859883) then streamed all three boards at 161 records/s, with no zeroed chip.
+- Channel 1's rest field is 126 uT rms from v3 ID 3's UR5 session of 10-29, against 357 and 474 uT from IDs 2 and 1.
+  At 18:53 on 11-04 it was 114 uT. Since then the index's rest field has moved 23 uT rms, and the untouched middle and
+  thumb 29 and 34 uT.
+
+The overnight log of the middle and thumb ends at 11:39:56 (`logs/20261104-sr2_crosstalk/boards/20261104-203546-mux.bin`,
+2.2 GB at 243 records/s). Since 11:41:16 all three boards log into `logs/20261105-sr2_crosstalk/boards/`.
+
+**The go.** The owner at 11:41, relayed by the workstation: "the index is now plugged in, and i added extra cable length
+via another mux in the chain. you have the go ahead to run further calibration now. i dont need to run the viewer at
+this moment." Asked in the lab's window whether they would watch the attended pass, the owner answered at 12:0x: "send
+it on the attended plan, unattended, and the other plan. i trust you". At 12:04, relayed: "ok i have to leave and cant
+supervise, but the ur5 computer has the go ahead to execute the readme refresh, script rebuilt, driver rebuild, shared
+math rebuilt, and then the attended runs, unattended. be careful". The CB1's manta driver stays as it is (QUEUE R35),
+so the hand ran on the driver of 11-04's 838 steps.
+
+**Without the owner's eye.** The camera has been moved since 11-04 and sees the hand from one side. The time-lapse runs
+at 1280 x 720 every 2 s (`/dev/shm/20261105-sr2_timelapse_720`). The mux boards sit strapped to the thumb's housing,
+where the main mux sat on 11-04, with cables looping between the fingers. In place of the owner's look, the lab looked
+at the frame of each hold before it started the unattended plan. The runner kept its guards and one more: `--max-blocked 1`, so the first pose a joint
+cannot reach ends the run and the chain.
+
+**The runs.** Servo torque came on at 12:15, and the hand homed from 12:16:09 to 12:20:04, every axis by its timeout.
+
+| Run | Time | Steps | Result |
+|---|---|---|---|
+| `run1_attended` | 12:20:15 to 12:34:28 | 35 of 35 | plan done; no blocked pose, no board fault |
+| `run2_layouts` | from 12:35:08 | 672 | running |
+
+In `run1_attended` the nine holds settled within 4.2 deg of their commands. The middle's yaw lagged most: 3.9 and
+4.2 deg at -37 and -22 deg. The boards gave 160.5 records/s, never under 152 in a second, with no zeroed chip. The
+servos stayed at 24 C or under. The frames of the nine holds (`data/20261105-run1_attended_holds.jpg`) show the
+cables looping around the thumb and between the fingers. None is caught where the camera can see. The logs are in
+`logs/20261105-sr2_crosstalk/` on corvus: `run1_attended/` and `run2_layouts/`, each with `events.jsonl`, `telemetry.jsonl` and `progress.json`, and
+the boards in `boards/`.
+
 ## Known limits
 
-- The CB1's FTDI latency timer is 16 ms, and no udev rule sets it. The station's telemetry, with load and temperature,
-  then runs at 1.7 Hz instead of tens of hertz. `docs/hardware_control_station.md` gives the fix, which needs sudo on
-  the CB1.
+- The CB1's FTDI latency timer was 16 ms until 19:09 on 11-04, and the station's telemetry, with load and temperature,
+  ran at 1.7 Hz. A udev rule has set it to 1 ms since then (`docs/hardware_control_station.md`). The telemetry now runs
+  at the station's `--telemetry-hz` of 20 Hz.
 - The middle finger's mcp droops about 3.5 deg short of its command when the finger is near horizontal. The runner
   treats a joint as settled once it stops moving, and it stops at an error of 6 deg or more.
 - With the hand on the arm as it hangs, the index's mcp servo reaches its protective torque near 55 deg, with its load
@@ -193,6 +243,6 @@ Ready since 22:4x on 11-04, and not run on the hand:
   workstation replayed the v2 plans in the cad_v2 model with each servo at 0.6 to 1.4 times the others' rate (11-04,
   evening). Its closest approach was thumb to middle at 8.8 mm on step 440 of `plan_random_s1_v2`, a plan that never
   ran. On the home plans it was 11.9 mm. Future plans should take their move margin from such a replay.
-- The runner checks only the servos and the station. It did not see the index's board fail, and the stream stayed
-  half garbled for 50 min. A check of the board stream (record rate, zeroed chips) belongs in `run_plan.py` before the
-  next unattended run.
+- On 11-04 the runner checked only the servos and the station. It did not see the index's board fail, and the stream
+  stayed half garbled for 50 min. Since 22:2x on 11-04 it also watches the boards' stream (`--boards`,
+  `--board-channels`).
