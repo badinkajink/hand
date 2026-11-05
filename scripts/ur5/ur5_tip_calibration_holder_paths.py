@@ -50,6 +50,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 os.environ.setdefault("UR5_MOUNT", "v7")            # the mount on the robot since R25 (2026-10-26)
 import ur5_cb3_cell as CELL  # noqa: E402
+from sr2hand.geometry import rotations  # noqa: E402
 
 C = CELL.C
 SIM = CELL.SIM
@@ -61,17 +62,11 @@ J5_WIN, J6_WIN = (30.0, 100.0), (-62.0, 45.0)
 
 
 def rot_z(deg):
-    t = math.radians(deg)
-    return np.array([[math.cos(t), -math.sin(t), 0.0], [math.sin(t), math.cos(t), 0.0], [0.0, 0.0, 1.0]])
+    return rotations.rot_z(math.radians(deg))
 
 
 def rot_from_to(a, b):
-    a, b = np.asarray(a, float) / np.linalg.norm(a), np.asarray(b, float) / np.linalg.norm(b)
-    v, c = np.cross(a, b), float(a @ b)
-    if np.linalg.norm(v) < 1e-12:
-        return np.eye(3) if c > 0 else C.rot_from_to(a, b)   # a half turn about a perpendicular, never -I
-    K = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-    return np.eye(3) + K + K @ K * (1.0 / (1.0 + c))
+    return C.rot_from_to(a, b)          # the lab program's: a half turn about a perpendicular for opposite directions
 
 
 class Moves:
@@ -166,9 +161,7 @@ class Moves:
 
 
 def slerp_T(T0, T1, s):
-    from scipy.spatial.transform import Rotation, Slerp
-    r = Slerp([0.0, 1.0], Rotation.from_matrix([T0[:3, :3], T1[:3, :3]]))(s).as_matrix()
-    return C.Tm(r, (1 - s) * T0[:3, 3] + s * T1[:3, 3])
+    return rotations.tf_interp(T0, T1, s)
 
 
 def samples(seg, q0):
