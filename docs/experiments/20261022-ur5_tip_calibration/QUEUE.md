@@ -1915,6 +1915,11 @@ push that answers it arrives.
          at time.time(), so two runs of one code differ; with the start fixed they repeat bitwise. So fixed, old and new
          give the same samples and events on a probe plan (50 actions) and a tip plan (38), every action ok, forces within
          2.1e-6 N and registrations within 8.7e-7 mm. pytest: base and branch alike.
+       - 13:4x on 11-05, workstation: the branch's head is now `d6d98b571`, which adds
+         `docs/notes/20261103-scripts_cleanup/simrun.py`. It runs the program's --sim session with the simulator's clock
+         started at a fixed time: `/usr/bin/python3 docs/notes/20261103-scripts_cleanup/simrun.py <tree> <t0> -- <the
+         program's arguments>`, once with the base tree and once with the branch's. Compare plan files that already
+         exist; plans rebuilt by the tip and ATI builders differ between any two builds through SIM.ik.
     2. The lab fetches the branch into a worktree (`git fetch origin ur5-shared-math`). It runs each current plan in
        the simulator (`$PY $P --plan <file> --sim --name sim-<name>`) and `dry-check --real` from the arm's joints,
        with the old and the new code, and reports any difference in NOTES.md and its commit message. Nothing moves the
