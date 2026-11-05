@@ -16,27 +16,19 @@ package rename"). Dry run of the move and the rename at 4f54fc805 in two worktre
 the package, 2,033 script imports resolve, no live import of morphohand, the same 15 known problems, and pytest
 identical in both layouts (108 passed, 7 failed in worktrees). Nothing is switched yet. The rule below on tests
 overrides the test parts of steps 5 and 8.
-State 11-04 00:1x (autopilot): nothing is switched, and the switch now waits for the fingertip-shape rerun. Direction 14 (owner, 19:3x on
-11-03, relayed) forbids step 2 until `ap status` shows hand-20261103-fingertip_shape_rerun done or stopped; that job runs after the HOM
-chain. This job is armed --after it, so the kit starts a fresh session when it ends; the session of 11-03 ended itself to spare the login.
-When a session starts here: `ap status`; `bash docs/notes/20261103-scripts_cleanup/wait_switch_conditions.sh 230` in the background with
-`ap snooze <job> 240 "..."` (it checks the rerun, other running jobs and every queue under logs/, and holds until 19:00 unless a second
-argument says otherwise); the lab's STATE.md; `python3 docs/notes/20261103-scripts_cleanup/move_scripts.py docs/notes/20261103-scripts_cleanup/plan.json --dry-run`
-for scripts that are not in the plan (hom_task_conflict_page.py and scripts/fingertip_shape_rerun_*.py will be new); RUNBOOK "The switch";
-RUNBOOK "Landing the migration after the switch". Use .venv/bin/python -m pytest with PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, not uv run. Dirty
-docs/handoff notes can stop `git pull`: stash those paths, pull, pop.
-On main (7467a2e99): the modules of step 5 under src/morphohand/geometry and src/morphohand/numerics, and the section of CLAUDE.md and AGENTS.md;
-no script calls them yet, and the switch renames them. Step 8 stays open until CLAUDE.md's "migrates the live copies once ..." becomes
-"migrated the live copies." after the landing.
-Steps 6-7 are prepared in the worktree /home/humanoid/Programs/hand_wt_migrate, local branch scripts-migrate (never pushed), above a rehearsal
-of the switch (91ab66052, never picked). land_migration.sh picks 23 of its 25 commits, one per folder and one per bug, and keeps HEAD's module
-files; it skips 9934b3257 and 1e33feb91, whose content is on main. The rehearsal of the landing ended with an empty diff against the branch.
-Conflicts are expected only where someone edited the same lines after dc1830409. The HOM commits 72c82f2e3, f719012cd and 517cd84f5 wait if a
-hom job runs. Before 72c82f2e3 record one CPU HOM rollout on the moved tree and compare after it. Mark steps 6-7 done only when their commits
-are on main. After Spearman lands: rerun hom_plant_transfer --set for the JSON, rebuild the plant-modulus and foundational-pose pages and the
-screen chain page locally; list them under Publish pending. plant_drop_gate's yaw (0bb15c5d2) names 20260902-residual-bench and
-plant_ranking_test, not rerun. Then regenerate scripts/README.md, remove the worktree, the branch and logs/20261103-scripts_cleanup/base_tree,
-and report per step 9.
+State 11-05 01:0x (autopilot): the switch and the landing are on main. Switch a41ffa27b at 00:50 (787 files, package sr2hand, venv reinstalled;
+second pass move_extra_live_code.py for 49 lab, study and poster files, .gitignore and the workspace). Lab bullet 0e3a94041; the crosstalk job
+re-armed with its rule step 53 and running. The 23 migration commits landed e7040b5b4..c86d3fe66 with no conflict and are pushed. Checks after the
+landing: check_scripts the 15 known problems; pytest 114 passed + the floor datum, as before; 0 undefined names; 0 attribute misses against the
+switch's tree; the modules equal the branch's; smoke 125 of 130, the other 5 not from the move (DLO_REPO, newton, and the three contact_surface
+modules, which import as a package). HOM rollout before and after (logs/20261103-scripts_cleanup/hom_rollout_*.json, equiv/hom_record.py,
+hom_compare2.py, sv25, seed 0): twist layout 304 is identical in every row and scores 1.0. Press layout 170 scores 0.891 in both, and its rows
+differ from row 87 by up to 2 um and 0.7 mm/s. A move of the open pose by 1e-14 rad on the old code gives the same spread (2 um, 0.67 mm/s), and
+reverting hom.py alone restores identity, so this is rounding in hom.py's helpers amplified by contact. Left: step 7's reruns (hom_plant_transfer
+--set and the three pages, locally, under Publish pending; plant_drop_gate's yaw names 20260902-residual-bench and plant_ranking_test, not rerun);
+private copies in scripts added since 11-03; CLAUDE.md and AGENTS.md's "migrates the live copies ..." to "migrated the live copies."; then
+scripts/README.md, remove the worktree, the branch and logs/20261103-scripts_cleanup/base_tree, and report per step 9. Use .venv/bin/python -m
+pytest with PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, not uv run. Dirty docs/handoff notes can stop `git pull`: stash those paths, pull, pop.
 Checks and edit scripts: logs/20261103-scripts_cleanup/equiv/ (oldcode.py loads a copy from 91ab66052; check_*.py, run_all.sh, migrate_*.py,
 fix_bugs.py, smoke.sh, undefined.py, attrs.py, survivors.py, show.py, rows.py, edit.py). attrs.py found six calls M.name whose target the
 migration had removed (B.heat in the contact beds, G.fib_cap in the contact overview, B.perp in the CAD page); fixed in 92d136d5e and 517cd84f5.
@@ -50,9 +42,9 @@ apply_measured_plant and newton_pinch_probe, and the three heat colour maps with
 adds a clockwise hole's moments (mesh.polygon_section works around it).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
-- [ ] 1. Wait for the switch conditions: run `bash docs/notes/20261103-scripts_cleanup/wait_switch_conditions.sh 230` as a background command with `ap snooze <job> 240 "waiting for the lab"`, rerun it when it gives up; when it exits 0, read the lab's STATE.md and wait again if a run is going or queued. If the lab is still not idle at 09:00 on 11-04, `ap step wait` with what it is doing.
-- [ ] 2. Switch per RUNBOOK "The switch": stop the crosstalk job and its watcher, `git pull --no-rebase`, run move_scripts.py, check_scripts.py (the 15 known problems only), the tests against a baseline of the same commit, one commit, push.
-- [ ] 3. After the push, per RUNBOOK: the bullet in the lab's STATE.md (commit, push), the crosstalk job's rule step and `ap arm docs/handoff/20261027-crosstalk_feed_poller.md --at now`, the memory file and its MEMORY.md line.
+- [x] 1. Wait for the switch conditions: run `bash docs/notes/20261103-scripts_cleanup/wait_switch_conditions.sh 230` … Done 11-05 00:43: Conditions held at 00:42 on 11-05: fingertip-shape rerun done, no other job running, 45 quiet minutes under scripts/, the lab and the SR2 folder; STATE.md: the hand stopped until the owner re-routes the index cable, no session runs, R33 and the layout sweep wait for the owner
+- [x] 2. Switch per RUNBOOK "The switch": stop the crosstalk job and its watcher, `git pull --no-rebase`, run move_scr… Done 11-05 00:50: a41ffa27b pushed 00:50 on 11-05: 787 files in ten folders and archive, package sr2hand, venv reinstalled; check_scripts 790 files, 2,242 imports, the 15 known problems; pytest 114 passed + floor datum before and after; second pass move_extra_live_code.py for 49 lab, study and poster files, .gitignore and the workspace
+- [x] 3. After the push, per RUNBOOK: the bullet in the lab's STATE.md (commit, push), the crosstalk job's rule step a… Done 11-05 00:51: Lab STATE bullet 0e3a94041 pushed; the crosstalk job has its rule step 53 and is armed --at now; memory project_scripts_topic_folders_2026_11_03 with its MEMORY.md line
 - [x] 4. src/morphohand/geometry/rotations.py with tests/test_geometry_rotations.py, per RUNBOOK "Shared math modules"… Done 11-03 11:55: Done by the arming window 11-03 12:1x: 529a91a48 src/morphohand/geometry/rotations.py (51 functions over scipy) and tests/test_geometry_rotations.py (15 passing with scipy 1.18 and with scipy 1.12/numpy 1.26), CLAUDE.md and AGENTS.md rule
 - [x] 5. The other modules (geometry vectors, distances, sdf, mesh, sampling; numerics stats, signal, angles), each wi… Done 11-03 23:52: 7467a2e99 on main: geometry vectors, distances, sdf, mesh, sampling and numerics stats, signal, angles under src/morphohand/ (renamed by the switch), plus quat_twist, rot_slerp, adjoint in rotations; each checked once in logs/20261103-scripts_cleanup/equiv/check_*.py. No script calls them until the landing.
 - [ ] 6. Migrate the copies folder by folder per RUNBOOK "Migration", with the 1e-12 checks, one commit per folder; not src/morphohand/driver/ and not the UR5 programs that move the robot.
