@@ -120,6 +120,11 @@ def sections(N, F, P, link, L):
     rg = lambda xs, f="{:.2f}": (f.format(min(xs)) if f.format(min(xs)) == f.format(max(xs))  # noqa: E731
                                  else f"{f.format(min(xs))}–{f.format(max(xs))}")
     me_tips = rg([RC["pool"][t]["pooled_lam0.5"]["tip"]["location_mm"] for t in "123"])
+    # the contact viewer's board GP refitted with the rig's holds (commit d8ffcf6d of 2026-11-05), validated on two seeds
+    # without v3 ID 3's rig holds
+    BGV = jl(UR5D / "20261105-board_gp_rig_validation.json")["rows"]
+    BG_T, BG_R, BG_END, BG_IDS = "tip_mode", "tip_mode_and_rig_ids4_6", ("id3_mount_end",), ("id1", "id2", "id3")
+    bgv = lambda m, keys=BG_END, f="location_mm", fmt="{:.2f}": rg([r[k][f] for r in BGV if r["model"] == m for k in keys], fmt)  # noqa: E731
     g4, g5 = G["four_v3id1"], G["five_v2id1"]
     e4, e5 = g4["gp_direction"], g5["gp_direction"]
     ro4, ro5 = RO["four_v3id1"]["gp_direction"], RO["five_v2id1"]["gp_direction"]
@@ -186,7 +191,9 @@ def sections(N, F, P, link, L):
         f"this gap. The rig's presses also reach the pad's mount end, where the robot's points start "
         f"{rg(list(RCN['z_tip_min'].values()), '{:.1f}')} mm along the pad. With the rig's holds of v3 IDs 4 to 6 in training, v3 ID 3's GP goes from "
         f"{me_o['rig3_new']['location_mm']:.2f} to {me_p['rig3_new']['location_mm']:.2f} mm there. At the robot's points "
-        f"such a GP gives {me_tips} mm on v3 IDs 1 to 3. With the load near "
+        f"such a GP gives {me_tips} mm on v3 IDs 1 to 3. The contact viewer's board GP was refitted with these holds on 11-05. "
+        f"In its validation v3 ID 3's mount-end holds go from {bgv(BG_T)} to {bgv(BG_R)} mm, and the robot's held-out points "
+        f"from {bgv(BG_T, BG_IDS)} to {bgv(BG_R, BG_IDS)} mm. With the load near "
         f"the normal the force angle on v3 IDs 4 to 6 is {rtr(RGT, TB[0], 'direction_deg', '{:.1f}')}°, against "
         f"{rtr(DT, TB[0], 'direction_deg', '{:.1f}')}° on v3 IDs 1 to 3. Torsion is not "
         "recovered. On the twists of three tips, a GP's estimate correlates with the measured torsion at "
@@ -225,7 +232,10 @@ def sections(N, F, P, link, L):
         "normal, and its repeated presses vary by 7.9 % against 2.2-2.5 % in uT/N (stripped M2 holes in the seat block left the "
         "board loose, the most likely cause); pooled with IDs 4-6's rig holds, the GP of v3 IDs 1-3 reaches the pad's mount "
         f"end (v3 ID 3's {RCN['far_1N']} holds there: {me_o['rig3_new']['location_mm']:.2f} mm on its holds from the robot, "
-        f"{me_p['rig3_new']['location_mm']:.2f} mm pooled; points on the robot {me_tips.replace('–', '-')} mm); torsion not recovered "
+        f"{me_p['rig3_new']['location_mm']:.2f} mm pooled; points on the robot {me_tips.replace('–', '-')} mm); the contact viewer's "
+        f"board GP was refitted with these holds on 11-05 (mount-end holds {bgv(BG_T).replace('–', '-')} to "
+        f"{bgv(BG_R).replace('–', '-')} mm, the robot's held-out points {bgv(BG_T, BG_IDS).replace('–', '-')} to "
+        f"{bgv(BG_R, BG_IDS).replace('–', '-')} mm); torsion not recovered "
         f"(GP r {tw4['gp_twists']['r']:.2f}, "
         f"{tw5['gp_twists']['r']:.2f} and {tw2['gp_twists']['r']:.2f} on the twists; on v3 IDs 2 and 3 no better than "
         f"predicting none); a GP trained on another tip gives "
@@ -287,6 +297,9 @@ def sections(N, F, P, link, L):
         ("Load's tilt", "A hold's shear over its normal force. A load near the normal has a tilt under 0.1."),
         ("Inverted rig, seat", "A printed strip of three seats holds tips pad up on the table, and a probe on the HEX-E "
          "presses them (Section 15)."),
+        ("Contact viewer", "The browser program " + P.code("src/sr2hand/driver/reskin5x/host/wrench_viewer.py") + ", which shows "
+         "each board's estimated contact point and force live. With " + P.code("--board-gp") + " it loads a board GP saved "
+         "from the UR5's holds and shared by the tips."),
         ("Mount-end holds", f"v3 ID 3's {RCN['far_1N']} holds of 1 N and over on seat 1 at points 1 mm or more from every point "
          f"pressed on the robot. Their points lie {RCN['z_far'][0]:.1f} to {RCN['z_far'][2]:.1f} mm along $z$ of the pad frame."),
         ("Pooled GP of Section 15", "A board GP trained on one tip's holds and on 1,500 rig holds from each of v3 IDs 4 to 6. "
@@ -1424,6 +1437,20 @@ def sections(N, F, P, link, L):
                   caption="The board GP's errors at 1 N and over on held-out points pressed on the robot, trained on the "
                           "tip's own holds and with the rig's holds of v3 IDs 4 to 6. Medians over two seeds. Rows in the file "
                           "of Table 28.", n=29)
+    bg_nm = {"id1": "v3 ID 1, held-out points on the robot", "id2": "v3 ID 2, held-out points on the robot",
+             "id3": "v3 ID 3, held-out points on the robot", "id3_mount_end": "v3 ID 3, mount-end holds"}
+    bg_s = {(r["model"], r["seed"]): r for r in BGV}
+    bg_c = lambda k, s, f, fmt: " / ".join(fmt.format(bg_s[(m, s)][k][f]) for m in (BG_T, BG_R))  # noqa: E731
+    t30 = P.table(["Test holds", "Seed", "Holds scored", "Location error, robot's holds / with the rig's (mm)",
+                   "Force angle, robot's holds / with the rig's (°)", "Force error, robot's holds / with the rig's (%)"],
+                  [[bg_nm[k], str(s), str(bg_s[(BG_T, s)][k]["n"]), bg_c(k, s, "location_mm", "{:.2f}"),
+                    bg_c(k, s, "direction_deg", "{:.1f}"), bg_c(k, s, "magnitude_pct", "{:.1f}")]
+                   for k in (*BG_IDS, *BG_END) for s in (0, 1)],
+                  caption="The contact viewer's board GP at 1 N and over: medians over the holds scored, trained on the robot's "
+                          "holds of v3 IDs 1 to 3 alone and with 1,500 rig holds of each of v3 IDs 4 to 6. A fifth of each tip's "
+                          "points on the robot is held out at each seed, and v3 ID 3's holds on seat 1 are not in training. Rows in "
+                          + P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261105-board_gp_rig_validation.json") + " ("
+                          + P.code("scripts/ur5/ur5_tip_calibration_board_gp_rig.py") + ").", n=30)
     body = (
         f"<p>On the inverted rig the board GP locates contact on v3 IDs 4, 5 and 6 within {rcv('location_mm', '{:.2f}')} mm "
         "at 1 N and over (Table 19, Figure 12). All of the other points are in training. On v3 IDs 1 to 3, which the "
@@ -1442,7 +1469,8 @@ def sections(N, F, P, link, L):
         f"<p>The rig's presses reach the pad's mount end, and the robot's do not. On v3 ID 3's {me_n} mount-end holds, a GP on "
         f"the tip's holds from the robot locates contact within {me_o['rig3_new']['location_mm']:.2f} mm. With the rig's holds "
         f"of v3 IDs 4 to 6 in training it gives {me_p['rig3_new']['location_mm']:.2f} mm (Table 28, Figure 17). At the points "
-        f"pressed on the robot, such a pooled GP gives {me_tips} mm on v3 IDs 1 to 3 (Table 29).</p>"
+        f"pressed on the robot, such a pooled GP gives {me_tips} mm on v3 IDs 1 to 3 (Table 29). The contact viewer's board GP "
+        "was refitted with these holds on 11-05 (Table 30).</p>"
         "<p>The points of v3 IDs 4 to 6 stand 1.94–2.02 mm from their nearest neighbour, against 0.97–0.99 mm on v3 IDs "
         "1 to 3. The night's tilted loads also raise the error (Table 21). With the load's tilt under 0.1 and the holds held "
         "out at random, a session's GP gives 0.32–0.37 mm, against 0.27–0.30 mm. Presses at 66 to 71 new points per tip "
@@ -1685,6 +1713,23 @@ def sections(N, F, P, link, L):
                 f"robot. On the left all {me_n} mount-end holds are scored, with training on the robot's holds alone and with v3 "
                 "IDs 4 to 6's rig holds. On the right a fifth of the points of both rigs is held out, with training on the "
                 "robot's holds alone and with seat 1's. Drawn from " + P.code(me_path) + " and the tip's holds.")
+        + "<p>The owner decided at 00:4x on 11-05: “the calibration rig is off, the hand is on the robot, there's no chance to "
+        "calibrate these other fingers anytime soon. i think we can live with the noisy calibration from ids3-6”. The UR5 "
+        "coordinator then refitted the contact viewer's board GP with the rig's holds ("
+        + P.code("scripts/ur5/ur5_tip_calibration_board_gp_rig.py") + "). One GP is shared by all the boards. It is trained on "
+        "the 9,185 presses and slides of v3 IDs 1 to 3 on the robot, v3 ID 3's 500 holds on seat 1, and 1,500 holds of each of "
+        "v3 IDs 4 to 6 drawn at random, 14,185 in all. The fit took 162 s and 8.0 GB. The model is "
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261105-board_gp_v3_id1_id3_rig_id3_id6.npz")
+        + ". The model of 11-02 on the robot's holds alone, " + P.code("data/20261102-board_gp_v3_id1_id3.npz")
+        + " in the same folder, is kept.</p>"
+        f"<p>The recipe was validated without v3 ID 3's holds on seat 1, on two seeds (Table 30). On the {me_n} mount-end holds the "
+        f"location error goes from {bgv(BG_T)} to {bgv(BG_R)} mm. The force angle goes from "
+        f"{bgv(BG_T, BG_END, 'direction_deg', '{:.1f}')}° to {bgv(BG_R, BG_END, 'direction_deg', '{:.1f}')}°, and the force error "
+        f"from {bgv(BG_T, BG_END, 'magnitude_pct', '{:.1f}')} % to {bgv(BG_R, BG_END, 'magnitude_pct', '{:.1f}')} %. On the held-out "
+        f"points pressed on the robot, the location error rises from {bgv(BG_T, BG_IDS)} to {bgv(BG_R, BG_IDS)} mm. On the same "
+        f"mount-end holds, the GP of Table 28 gives {me_o['rig3_new']['location_mm']:.2f} mm on v3 ID 3's holds from the robot and "
+        f"{me_p['rig3_new']['location_mm']:.2f} mm with the rig's holds.</p>"
+        + t30
     )
     S.append(("rig", "Calibration of v3 IDs 3 to 6 on the inverted rig", body))
 
@@ -1737,7 +1782,7 @@ def sections(N, F, P, link, L):
         + link(L["motions"], "calibration motions page") + "). If the board's changes agree within 3° and the gains "
         "within 5 %, one 5 mm sphere on a column can stand for both. The session needs both indenters, which are off "
         "the table while the inverted rig's seat strip is on.",
-        "Mount end on the SR2 hand: take the pooled GP of Section 15 as the hand's calibration of v3 IDs 1 to 3, and press a "
+        "Mount end on the SR2 hand: load the contact viewer's model of Section 15 for v3 IDs 1 to 3, and press a "
         "tip's mount end on the hand with a known load (" + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md")
         + " R33). An error over 2 mm there refutes it.",
         "Direction GP on the rig's tips: score the direction GP on each seat's held-out face presses (Section 15 gives "
