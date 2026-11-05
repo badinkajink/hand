@@ -14,6 +14,30 @@ V3D = ROOT / "docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data"
 RIGD = ROOT / "docs/experiments/20261030-inverted_rig_seat_block/data"
 
 
+# the tests of data/20261105-v3_ids456_pooled_with_ids123.json in the page's order
+POOL_NAMES = {"random s0": "Points held out, split 1", "random s1": "Points held out, split 2",
+              "tilted": "Tilted loads held out"}
+POOL_TESTS = (*POOL_NAMES.values(), "Region held out: mount end", "Region held out: flank, $y < 0$",
+              "Region held out: flank, $y > 0$", "Region held out: face centre", "Region held out: tip end")
+
+
+def pool_tests(rows):
+    """{test: {tip: row}}. The file numbers each tip's k-means regions differently, so they are named by their mean contact
+    points in the pad frame."""
+    def name(r):
+        if r["region_centre_mm"] is None:
+            return POOL_NAMES[r["test"]]
+        _, y, z = r["region_centre_mm"]
+        part = "tip end" if z > 14 else "mount end" if z < 4 else "flank, $y > 0$" if y > 4 else \
+            "flank, $y < 0$" if y < -4 else "face centre"
+        return "Region held out: " + part
+    out = {k: {} for k in POOL_TESTS}
+    for r in rows:
+        out[name(r)][str(r["tip"])] = r
+    assert all(sorted(v) == ["4", "5", "6"] for v in out.values()), {k: sorted(v) for k, v in out.items()}
+    return out
+
+
 def at_head(path):
     """A file as committed at HEAD, LFS pointers resolved: the coordinator may be rewriting its working copy mid-analysis."""
     rel = str(Path(path).resolve().relative_to(ROOT))
@@ -145,6 +169,26 @@ def sections(N, F, P, link, L):
     rcr = lambda key, f="1", fmt="{:.2f}", k=1, pool="pooled": rg([k * rcm(t, f, pool)[key] for t in RGT], fmt)  # noqa: E731
     rcv = lambda key, fmt, k=1: f"{fmt.format(k * rcm('4', '1')[key])}, {fmt.format(k * rcm('5', '1')[key])} and " \
                                 f"{fmt.format(k * rcm('6', '1')[key])}"  # noqa: E731
+    # other tips' holds on v3 IDs 4 to 6, each tip's own rig holds as ground truth (commit 0f14cc23 of 2026-11-05); rounded
+    # half up, as the coordinator quotes them (0.735 is 0.74)
+    PLR = jl(UR5D / "20261105-v3_ids456_pooled_with_ids123.json")["rows"]
+    PL, PL_PTS, PL_TILT, PL_REG = pool_tests(PLR), POOL_TESTS[:2], POOL_TESTS[2:3], POOL_TESTS[3:]
+    plv = lambda tests, m, f="location_mm": [PL[k][t][m][f] + 1e-9 for k in tests for t in RGT]  # noqa: E731
+    plm = lambda tests, m, f="location_mm", fmt="{:.2f}": fmt.format(median(plv(tests, m, f)))  # noqa: E731
+    plr = lambda tests, m, f="location_mm", fmt="{:.2f}": rg(plv(tests, m, f), fmt)  # noqa: E731
+    pl3 = lambda tests, m: ", ".join(f"{v:.2f}" for v in plv(tests, m)[:2]) + f" and {plv(tests, m)[2]:.2f}"  # noqa: E731
+    pl_d = [(r["combined"]["direction_deg"] - r["own"]["direction_deg"]) for r in PLR]
+    pl_share = [r["own"]["n_train"] / r["combined"]["n_train"] for r in PLR]
+    # the board GP against the MLP ensembles on all six tips (commit 471ffbb2 of 2026-11-05)
+    GMF = jl(UR5D / "20261105-v3_gp_vs_mlp.json")
+    GMR, GM_MODELS, GM_PTS = {r["split"]: r for r in GMF["rows"]}, ("gp", "mlp64", "mlp128"), ("random s0", "random s1")
+    gma = lambda m, tests, f="location_mm": [GMR[k][m]["all"][f] + 1e-9 for k in tests]  # noqa: E731
+    gmu = lambda m, tests: [GMR[k][m]["uncertainty_spearman_vs_location"] + 1e-9 for k in tests]  # noqa: E731
+    gmx = lambda f, tests, fmt="{:.1f}", ms=GM_MODELS: rg([v for m in ms for v in gma(m, tests, f)], fmt)  # noqa: E731
+    gm2 = lambda m, tests=GM_PTS: " and ".join(f"{v:.2f}" for v in gma(m, tests))  # noqa: E731
+    GM_E, GM_G = GM_MODELS[1:], ("gaps",)
+    gm_loc_g = " and ".join(f"{gma(m, GM_G)[0]:.2f}" for m in GM_E)
+    gm_rho_g = " and ".join(f"{gmu(m, GM_G)[0]:.2f}" for m in GM_E)
     t2 = {k: TT[k]["tips"]["v3 ID 2"]["gp_direction"] for k in FX}
     t1 = {k: TT[k]["tips"]["v3 ID 1"]["gp_direction"] for k in FX}
     tg = lambda k, t: TT[k]["tips"][t]["gain_uT_per_N"]["1-2"]  # noqa: E731
@@ -193,7 +237,13 @@ def sections(N, F, P, link, L):
         f"{me_o['rig3_new']['location_mm']:.2f} to {me_p['rig3_new']['location_mm']:.2f} mm there. At the robot's points "
         f"such a GP gives {me_tips} mm on v3 IDs 1 to 3. The contact viewer's board GP was refitted with these holds on 11-05. "
         f"In its validation v3 ID 3's mount-end holds go from {bgv(BG_T)} to {bgv(BG_R)} mm, and the robot's held-out points "
-        f"from {bgv(BG_T, BG_IDS)} to {bgv(BG_R, BG_IDS)} mm. With the load near "
+        f"from {bgv(BG_T, BG_IDS)} to {bgv(BG_R, BG_IDS)} mm. On v3 IDs 4 to 6 the other tips' holds lower the median location "
+        f"error at held-out points from {plm(PL_PTS, 'own')} to {plm(PL_PTS, 'combined')} mm. With a region of the pad held out "
+        f"it falls from {plm(PL_REG, 'own')} to {plm(PL_REG, 'combined')} mm. On all six tips an MLP ensemble on every hold "
+        f"gives {gmx('location_mm', GM_PTS, '{:.2f}', GM_E)} mm at held-out points, against "
+        f"{gmx('location_mm', GM_PTS, '{:.2f}', GM_MODELS[:1])} mm for the GP on at most 1,500 holds a set. In gaps of "
+        f"the pads' coverage the GP's uncertainty ranks the errors better, with a Spearman correlation of "
+        f"{gmu('gp', GM_G)[0]:.2f} against {rg([gmu(m, GM_G)[0] for m in GM_E])}. With the load near "
         f"the normal the force angle on v3 IDs 4 to 6 is {rtr(RGT, TB[0], 'direction_deg', '{:.1f}')}°, against "
         f"{rtr(DT, TB[0], 'direction_deg', '{:.1f}')}° on v3 IDs 1 to 3. Torsion is not "
         "recovered. On the twists of three tips, a GP's estimate correlates with the measured torsion at "
@@ -235,7 +285,14 @@ def sections(N, F, P, link, L):
         f"{me_p['rig3_new']['location_mm']:.2f} mm pooled; points on the robot {me_tips.replace('–', '-')} mm); the contact viewer's "
         f"board GP was refitted with these holds on 11-05 (mount-end holds {bgv(BG_T).replace('–', '-')} to "
         f"{bgv(BG_R).replace('–', '-')} mm, the robot's held-out points {bgv(BG_T, BG_IDS).replace('–', '-')} to "
-        f"{bgv(BG_R, BG_IDS).replace('–', '-')} mm); torsion not recovered "
+        f"{bgv(BG_R, BG_IDS).replace('–', '-')} mm); on v3 IDs 4-6 the other tips' holds lower the median held-out location "
+        f"error from {plm(PL_PTS, 'own')} to {plm(PL_PTS, 'combined')} mm at new points and from {plm(PL_REG, 'own')} to "
+        f"{plm(PL_REG, 'combined')} mm in a held-out pad region; an MLP ensemble on every hold gives "
+        f"{gmx('location_mm', GM_PTS, '{:.2f}', GM_E).replace('–', '-')} mm against the GP's "
+        f"{gmx('location_mm', GM_PTS, '{:.2f}', GM_MODELS[:1]).replace('–', '-')} mm at held-out points and "
+        f"{gmx('location_mm', GM_G, '{:.2f}', GM_E).replace('–', '-')} against {gma('gp', GM_G)[0]:.2f} mm in "
+        f"coverage gaps, where the GP's uncertainty ranks the errors better (Spearman {gmu('gp', GM_G)[0]:.2f} against "
+        f"{rg([gmu(m, GM_G)[0] for m in GM_E]).replace('–', '-')}); torsion not recovered "
         f"(GP r {tw4['gp_twists']['r']:.2f}, "
         f"{tw5['gp_twists']['r']:.2f} and {tw2['gp_twists']['r']:.2f} on the twists; on v3 IDs 2 and 3 no better than "
         f"predicting none); a GP trained on another tip gives "
@@ -304,6 +361,14 @@ def sections(N, F, P, link, L):
          f"pressed on the robot. Their points lie {RCN['z_far'][0]:.1f} to {RCN['z_far'][2]:.1f} mm along $z$ of the pad frame."),
         ("Pooled GP of Section 15", "A board GP trained on one tip's holds and on 1,500 rig holds from each of v3 IDs 4 to 6. "
          "A one-hot input marks each tip's holds. Its weight is in units of the board's standardized components."),
+        ("Own and combined GP", "Two board GPs for one of v3 IDs 4 to 6, with no input that marks the tip. The own GP is trained "
+         "on at most 3,000 of that tip's rig holds. The combined GP adds 5,500 holds of the other tips (Section 16)."),
+        ("GP's weight $w$, ensemble's spread", "The contact viewer takes $w$ times the board GP's point and force plus $1-w$ "
+         "times the physical model's. $w$ is one minus the GP's posterior variance of the standardized outputs, given the 256 "
+         "training holds of largest kernel weight. An MLP ensemble's spread is the norm of the standard deviations of its "
+         "members' contact points, in mm."),
+        ("Spearman correlation", "The correlation of the ranks of two quantities over a set of holds. It is 1 when one orders "
+         "the holds exactly as the other, and about 0 when their orders are unrelated."),
         ("Sweep, offset", "A sweep stops a normal press of the rod at force levels from 0.5 to 8 N, and each level is a "
          "hold. At a level the rod steps sideways to offsets and back. An offset is 0.5 or 0.9 times the slip offset, the "
          "sideways move at which the indenter starts to slide, and each offset is a hold."),
@@ -530,7 +595,7 @@ def sections(N, F, P, link, L):
         "from 09:41, once the HEX-E was back, and the rod's session from 10:27 (Section 11). v3 ID 2 ran its suite of "
         "488 actions from 18:44 on 2026-10-28 to 08:13 on 10-29 (Section 12). v3 ID 3 ran its suite of 501 actions "
         "from 13:45 on 10-29 to 14:49 on 10-30, all ok. Two HEX-E losses stopped its tall stage 2, which was resumed "
-        "each time (Section 16). Its sessions were analysed on 10-30 from copies of the lab's session folders, with "
+        "each time (Section 17). Its sessions were analysed on 10-30 from copies of the lab's session folders, with "
         + P.code("scripts/ur5/ur5_tip_calibration_analysis.py") + ". The physical model is checked on their holds ("
         + link(L["phys"], "physical-model page") + ", Section 9), and Section 14 gives the board GP's errors. v3 IDs "
         "6, 5 and 4 were pressed on the inverted rig from 14:50 on 11-02 to 13:17 on 11-04, and v3 ID 3 on its seat 1 from "
@@ -1451,6 +1516,35 @@ def sections(N, F, P, link, L):
                           "points on the robot is held out at each seed, and v3 ID 3's holds on seat 1 are not in training. Rows in "
                           + P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261105-board_gp_rig_validation.json") + " ("
                           + P.code("scripts/ur5/ur5_tip_calibration_board_gp_rig.py") + ").", n=30)
+    pl_path = P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261105-v3_ids456_pooled_with_ids123.json")
+    pl_c = lambda k, t, f, fmt="{:.2f}": " / ".join(fmt.format(PL[k][t][m][f] + 1e-9) for m in ("own", "combined"))  # noqa: E731
+    t31 = P.table(["Test", "Holds scored on v3 IDs 4, 5 and 6"]
+                  + [f"Location error on v3 ID {t}, own / combined (mm)" for t in RGT],
+                  [[k, ", ".join(str(PL[k][t]["own"]["n"]) for t in RGT)] + [pl_c(k, t, "location_mm") for t in RGT]
+                   for k in POOL_TESTS],
+                  caption="The board GP's location error at 1 N and over, medians over each tip's held-out rig holds, with the "
+                          "own GP and the combined GP. A row of points holds out a fifth of the tip's points. The tilted row "
+                          "holds out its holds with a tilt of 0.3 and over. A region's row holds out one of five regions from "
+                          "k-means on the contact point; regions are named by their mean contact points in the pad frame. Rows in "
+                          + pl_path + " (" + P.code("scripts/ur5/ur5_tip_calibration_rig_pool_ids456.py") + ").", n=31)
+    t32 = P.table(["Test"] + [f"Force angle on v3 ID {t}, own / combined (°)" for t in RGT]
+                  + [f"Force error on v3 ID {t}, own / combined (%)" for t in RGT],
+                  [[k] + [pl_c(k, t, "direction_deg", "{:.1f}") for t in RGT] + [pl_c(k, t, "magnitude_pct", "{:.1f}") for t in RGT]
+                   for k in POOL_TESTS],
+                  caption="The force angle and the force error on the holds of Table 31.", n=32)
+    gm_nm = (("random s0", "Points held out, split 1"), ("random s1", "Points held out, split 2"), ("gaps", "Gaps held out"))
+    gm_c = lambda k, f, fmt="{:.2f}": " / ".join(fmt.format(gma(m, (k,), f)[0]) for m in GM_MODELS)  # noqa: E731
+    t33 = P.table(["Test", "Holds scored", "Training holds, GP / ensembles", "Location error, GP / 64 units / 128 units (mm)",
+                   "Force angle, GP / 64 units / 128 units (°)", "Force error, GP / 64 units / 128 units (%)",
+                   "Spearman correlation, GP / 64 units / 128 units"],
+                  [[nm, f"{GMR[k]['gp']['all']['n']:,}", f"{GMR[k]['n_train_gp']:,} / {GMR[k]['n_train_mlp']:,}",
+                    gm_c(k, "location_mm"), gm_c(k, "direction_deg", "{:.1f}"), gm_c(k, "magnitude_pct", "{:.1f}"),
+                    " / ".join(f"{gmu(m, (k,))[0]:.2f}" for m in GM_MODELS)] for k, nm in gm_nm],
+                  caption="The board GP against the MLP ensembles of 64 and 128 units a layer on the six tips' presses and "
+                          "slides: medians over the held-out holds of 1 N and over. The correlation is between each model's "
+                          "uncertainty and its location error. Rows in "
+                          + P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261105-v3_gp_vs_mlp.json") + " ("
+                          + P.code("scripts/ur5/ur5_tip_calibration_gp_vs_mlp.py") + ").", n=33)
     body = (
         f"<p>On the inverted rig the board GP locates contact on v3 IDs 4, 5 and 6 within {rcv('location_mm', '{:.2f}')} mm "
         "at 1 N and over (Table 19, Figure 12). All of the other points are in training. On v3 IDs 1 to 3, which the "
@@ -1470,7 +1564,7 @@ def sections(N, F, P, link, L):
         f"the tip's holds from the robot locates contact within {me_o['rig3_new']['location_mm']:.2f} mm. With the rig's holds "
         f"of v3 IDs 4 to 6 in training it gives {me_p['rig3_new']['location_mm']:.2f} mm (Table 28, Figure 17). At the points "
         f"pressed on the robot, such a pooled GP gives {me_tips} mm on v3 IDs 1 to 3 (Table 29). The contact viewer's board GP "
-        "was refitted with these holds on 11-05 (Table 30).</p>"
+        "was refitted with these holds on 11-05 (Section 16).</p>"
         "<p>The points of v3 IDs 4 to 6 stand 1.94–2.02 mm from their nearest neighbour, against 0.97–0.99 mm on v3 IDs "
         "1 to 3. The night's tilted loads also raise the error (Table 21). With the load's tilt under 0.1 and the holds held "
         "out at random, a session's GP gives 0.32–0.37 mm, against 0.27–0.30 mm. Presses at 66 to 71 new points per tip "
@@ -1713,12 +1807,26 @@ def sections(N, F, P, link, L):
                 f"robot. On the left all {me_n} mount-end holds are scored, with training on the robot's holds alone and with v3 "
                 "IDs 4 to 6's rig holds. On the right a fifth of the points of both rigs is held out, with training on the "
                 "robot's holds alone and with seat 1's. Drawn from " + P.code(me_path) + " and the tip's holds.")
-        + "<p>The owner decided at 00:4x on 11-05: “the calibration rig is off, the hand is on the robot, there's no chance to "
+    )
+    S.append(("rig", "Calibration of v3 IDs 3 to 6 on the inverted rig", body))
+
+    body = (
+        "<p>The contact viewer loads one board GP for the six v3 tips, refitted on 11-05 with the rig's holds. In the validation "
+        f"of its recipe, v3 ID 3's {me_n} mount-end holds go from {bgv(BG_T)} to {bgv(BG_R)} mm (Table 30). On v3 IDs 4 to 6 the "
+        f"other tips' holds lower the median location error at held-out points from {plm(PL_PTS, 'own')} to "
+        f"{plm(PL_PTS, 'combined')} mm. With a region of the pad held out, it falls from {plm(PL_REG, 'own')} to "
+        f"{plm(PL_REG, 'combined')} mm (Tables 31 and 32, Figure 18). An MLP ensemble trained on every hold gives "
+        f"{gmx('location_mm', GM_PTS, '{:.2f}', GM_E)} mm at held-out points, against "
+        f"{gmx('location_mm', GM_PTS, '{:.2f}', GM_MODELS[:1])} mm for the GP. In gaps of the pads' coverage it gives "
+        f"{gmx('location_mm', GM_G, '{:.2f}', GM_E)} mm, against {gma('gp', GM_G)[0]:.2f} mm. In those gaps the GP's "
+        f"uncertainty ranks the location errors with a Spearman correlation of {gmu('gp', GM_G)[0]:.2f}, against "
+        f"{rg([gmu(m, GM_G)[0] for m in GM_E])} for the ensembles' spread (Table 33, Figure 19).</p>"
+        "<p>The owner decided at 00:4x on 11-05: “the calibration rig is off, the hand is on the robot, there's no chance to "
         "calibrate these other fingers anytime soon. i think we can live with the noisy calibration from ids3-6”. The UR5 "
         "coordinator then refitted the contact viewer's board GP with the rig's holds ("
         + P.code("scripts/ur5/ur5_tip_calibration_board_gp_rig.py") + "). One GP is shared by all the boards. It is trained on "
-        "the 9,185 presses and slides of v3 IDs 1 to 3 on the robot, v3 ID 3's 500 holds on seat 1, and 1,500 holds of each of "
-        "v3 IDs 4 to 6 drawn at random, 14,185 in all. The fit took 162 s and 8.0 GB. The model is "
+        "14,185 holds. They are the 9,185 presses and slides of v3 IDs 1 to 3 on the robot and v3 ID 3's 500 holds on seat 1. "
+        "From each of v3 IDs 4 to 6, 1,500 more holds were drawn at random. The fit took 162 s and 8.0 GB. The model is "
         + P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261105-board_gp_v3_id1_id3_rig_id3_id6.npz")
         + ". The model of 11-02 on the robot's holds alone, " + P.code("data/20261102-board_gp_v3_id1_id3.npz")
         + " in the same folder, is kept.</p>"
@@ -1729,9 +1837,68 @@ def sections(N, F, P, link, L):
         f"points pressed on the robot, the location error rises from {bgv(BG_T, BG_IDS)} to {bgv(BG_R, BG_IDS)} mm. On the same "
         f"mount-end holds, the GP of Table 28 gives {me_o['rig3_new']['location_mm']:.2f} mm on v3 ID 3's holds from the robot and "
         f"{me_p['rig3_new']['location_mm']:.2f} mm with the rig's holds.</p>"
-        + t30
+                + t30
+        + "<p>The owner asked at 11:4x on 11-05: “can we improve the v3 ids 4-6 calibration with the calibration from ids 1-3”. "
+        "The UR5 coordinator tested the viewer's recipe on each of the three tips, with the tip's own rig holds as ground truth ("
+        + P.code("scripts/ur5/ur5_tip_calibration_rig_pool_ids456.py") + "). The own GP is trained on at most 3,000 of the "
+        "tip's rig holds. The combined GP adds 5,500 holds of other tips. Of these, 1,000 come from each of v3 IDs 1 to 3 on the "
+        "robot and 1,000 from each of the other two tips on the rig. A further 500 come from v3 ID 3 on seat 1. Each tip has "
+        "eight tests. Two hold out a fifth of its "
+        "points, one holds out its loads at a tilt of 0.3 and over, and five hold out one region of its pad. In all "
+        f"{len(PLR)} tests the combined GP gives the lower location error and the lower force error. Its force angle is lower in "
+        f"{sum(d < 0 for d in pl_d)}, and higher by {' and '.join(f'{d:.2f}°' for d in sorted(d for d in pl_d if d >= 0))} in "
+        "the other two.</p>"
+        f"<p>With a fifth of the points held out, the location error goes from {plr(PL_PTS, 'own')} to "
+        f"{plr(PL_PTS, 'combined')} mm. The medians over the three tips and two seeds are {plm(PL_PTS, 'own')} and "
+        f"{plm(PL_PTS, 'combined')} mm. With the tilted loads held out it goes from {pl3(PL_TILT, 'own')} mm to "
+        f"{pl3(PL_TILT, 'combined')} mm. The force angle there goes from {plr(PL_TILT, 'own', 'direction_deg', '{:.1f}')}° to "
+        f"{plr(PL_TILT, 'combined', 'direction_deg', '{:.1f}')}°. The largest change comes with a region held out. Each tip's "
+        "points are split into five regions by k-means on the contact point, and one region at a time is left out of "
+        f"training. The own GP then gives {plr(PL_REG, 'own')} mm, with a median of {plm(PL_REG, 'own')} mm. The combined GP "
+        f"gives {plr(PL_REG, 'combined')} mm, with a median of {plm(PL_REG, 'combined')} mm. The force angle goes from "
+        f"{plr(PL_REG, 'own', 'direction_deg', '{:.1f}')}° to {plr(PL_REG, 'combined', 'direction_deg', '{:.1f}')}°. The own GP "
+        f"errs most at the tip end, {plr(POOL_TESTS[-1:], 'own')} mm, and least at the face's centre, "
+        f"{plr(POOL_TESTS[-2:-1], 'own')} mm, which the other regions surround.</p>"
+        "<p>The rig's holds of these tips already span the pad, from about 0 to 20.8 mm along it. The other sets add closer "
+        "points and more tilted loads. The points of v3 IDs 1 to 3 on the robot stand 1 mm apart, against 2 mm on the rig. Of "
+        "their holds 40 % have a tilt of 0.3 or more, against 23–30 % on the rig. The viewer's model of 11-05 has 1,500 rig holds "
+        f"from each of these tips, {100 * 1500 / 14185:.0f} % of its training, against "
+        f"{rg([100 * x for x in pl_share], '{:.0f}')} % in these tests. That model has no held-out score on them.</p>"
+        + t31
+        + t32
+        + P.fig(18, F["rig_pool"], "The board GP's errors on v3 IDs 4 to 6 at 1 N and over, on each tip's held-out rig holds, "
+                "with the own GP (open) and the combined GP (filled). (a) Location error. (b) Force angle. Above the line are "
+                "the tests of points and tilted loads, and below it the five regions. Drawn from the file of Table 31.")
+        + "<p>On one core of the workstation's Core Ultra 7 265KF, the viewer's model takes 1.79 ms a reading with its weight "
+        "and 1.11 ms for the mean alone. Three boards take 5.4 ms, and a frame at 100 Hz lasts 10 ms. The model of 11-02 takes "
+        "1.31 ms a reading (" + P.code("scripts/ur5/ur5_tip_calibration_gp_timing.py") + "; "
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R34).</p>"
+        "<p>The owner asked at 11:5x on 11-05: “with this much data, should we also revisit the MLP? i do like the uncertainty "
+        "measurement of the GP”. The coordinator compared the GP with the MLP ensemble on the presses and slides of the six tips, "
+        f"{GMF['holds']:,} holds in seven sets (" + P.code("scripts/ur5/ur5_tip_calibration_gp_vs_mlp.py") + "). Neither model "
+        "has an input that marks the tip, and each is scored without the physical model. The GP's memory grows as the square of "
+        "its holds, so it trains on at most 1,500 holds of each set, "
+        f"{rg([r['n_train_gp'] for r in GMF['rows']], '{:,}')} in all. The ensemble has five networks of two hidden layers, with 64 "
+        f"or 128 units a layer, and it trains on every training hold, {rg([r['n_train_mlp'] for r in GMF['rows']], '{:,}')}. "
+        "Two tests hold out a fifth of every set's points. A third holds out gaps in the coverage: v3 IDs 4 to 6 beyond 14 mm "
+        "along the pad, and v3 ID 3's mount end on seat 1.</p>"
+        f"<p>The ensembles give the lower location error (Table 33, Figure 19). With points held out the GP gives {gm2('gp')} mm. "
+        f"The ensemble of 64 units gives {gm2('mlp64')} mm, and that of 128 units {gm2('mlp128')} mm. In the gaps the GP gives "
+        f"{gma('gp', GM_G)[0]:.2f} mm, and the ensembles {gm_loc_g} mm. "
+        f"With points held out the force angle is {gmx('direction_deg', GM_PTS)}° for all three models. The force error there is "
+        f"{gmx('magnitude_pct', GM_PTS, '{:.1f}', GM_MODELS[:1])} % for the GP and {gmx('magnitude_pct', GM_PTS, '{:.1f}', GM_E)} % "
+        "for the ensembles.</p>"
+        "<p>Each model's uncertainty was scored by its Spearman correlation with the location error, using the GP's $1-w$ and "
+        f"the ensembles' spread. With points held out it is {rg(gmu('gp', GM_PTS))} for the GP and "
+        f"{rg([v for m in GM_E for v in gmu(m, GM_PTS)])} for the ensembles. In the gaps it is {gmu('gp', GM_G)[0]:.2f} for "
+        f"the GP, and {gm_rho_g} for the ensembles.</p>"
+        + t33
+        + P.fig(19, F["gp_mlp"], "The board GP and the MLP ensembles on the six tips at 1 N and over. (a) Location error by set "
+                "with a fifth of every set's points held out; two markers of a colour are the two seeds. (b) Location error by set "
+                "with the gaps held out. (c) Spearman correlation of each model's uncertainty with its location error. Drawn from "
+                "the file of Table 33.")
     )
-    S.append(("rig", "Calibration of v3 IDs 3 to 6 on the inverted rig", body))
+    S.append(("shared", "Board GP shared by the six v3 tips", body))
 
     body = (
         "<p>The HEX-E is a weak reference. Its $F_z$ channel reads 0.78–0.87 of its other axes' gain in two gravity fits. "
@@ -1762,7 +1929,7 @@ def sections(N, F, P, link, L):
         "Wrist order and the HEX-E's link: run each tall stage 2 in the new order of "
         + P.code("scripts/ur5/ur5_tip_calibration_next_tip_suite.py") + ", and count the losses with "
         + P.code("scripts/ur5/ur5_hexe_link_losses.py") + ". The order comes from an exact search over the orders that move "
-        "each action at most four places. It has no upward travel (Section 16). No travel in it takes wrist 1 across 0° "
+        "each action at most four places. It has no upward travel (Section 17). No travel in it takes wrist 1 across 0° "
         "with a swing over 40°, against 23 in the old order. The wrists travel 2,701° in all, against 5,144°. The path "
         "check flags no action and gives the same least margins (mount 3.73 mm, finger 1.07 mm). v3 ID 3's last 55 tall "
         "actions ran in this order from 11:15 to 13:20 on 10-30 with no loss. Twice they reached the pose of the 11:02 "
@@ -1782,9 +1949,16 @@ def sections(N, F, P, link, L):
         + link(L["motions"], "calibration motions page") + "). If the board's changes agree within 3° and the gains "
         "within 5 %, one 5 mm sphere on a column can stand for both. The session needs both indenters, which are off "
         "the table while the inverted rig's seat strip is on.",
-        "Mount end on the SR2 hand: load the contact viewer's model of Section 15 for v3 IDs 1 to 3, and press a "
+        "Mount end on the SR2 hand: load the contact viewer's model of Section 16 for v3 IDs 1 to 3, and press a "
         "tip's mount end on the hand with a known load (" + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md")
         + " R33). An error over 2 mm there refutes it.",
+        "The viewer's model on v3 IDs 4 to 6: rerun " + P.code("scripts/ur5/ur5_tip_calibration_rig_pool_ids456.py") + " with "
+        f"1,500 of a tip's rig holds, that model's share. A location error over {max(plv(PL_REG, 'combined')):.2f} mm on a held-out "
+        "region, the largest of Table 31, means that the tests of Section 16 overstate the model.",
+        "The ensemble's mean in the contact viewer (" + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R34, "
+        "not decided): take the point and force from the ensemble, and keep the GP's weight for the blend with the physical "
+        f"model. Score the blend on the gaps of Table 33. A location error over the GP's {gma('gp', GM_G)[0]:.2f} mm keeps the "
+        "GP's mean.",
         "Direction GP on the rig's tips: score the direction GP on each seat's held-out face presses (Section 15 gives "
         "the board GP's errors). Within 0.3 mm and 6 % of their force, the rig calibrates a tip as well as the sphere "
         "suite of the finger on the robot.",

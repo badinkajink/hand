@@ -572,6 +572,8 @@ RIG_COV = UR5 / "20261104-v3_rig_coverage_ids123.json"
 RIG_COV_TIPS = {"1": ("logs/20261028-spherev3id1_twists", "logs/20261028-rodv3id1"),   # the coordinator's analysis folders,
                 "2": ("logs/20261029-spherev3id2", "logs/20261029-rodv3id2"),            # not in git
                 "3": ("logs/20261030-spherev3id3", "logs/20261030-rodv3id3")}
+RIG_POOL = UR5 / "20261105-v3_ids456_pooled_with_ids123.json"
+GP_MLP = UR5 / "20261105-v3_gp_vs_mlp.json"
 TILTS = (("0-0.1", "Under 0.1"), ("0.1-0.3", "0.1 to 0.3"), ("0.3-0.5", "0.3 to 0.5"), ("0.5-9", "Over 0.5"))
 
 
@@ -914,6 +916,89 @@ def fig_rig_coverage():
     save(fig, "20261104-v3_rig_coverage.png")
 
 
+def fig_rig_pool():
+    """The board GP on v3 IDs 4 to 6 with their own rig holds and with other tips' holds, scored on each tip's held-out rig
+    holds (the coordinator's scripts/ur5/ur5_tip_calibration_rig_pool_ids456.py, commit 0f14cc23 of 2026-11-05)."""
+    from matplotlib.lines import Line2D
+    from fingertip_calibration_text import POOL_TESTS, at_head, pool_tests
+    plt = plt_setup()
+    T = pool_tests(json.loads(at_head(RIG_POOL))["rows"])
+    ys = [len(POOL_TESTS) - i + (0.4 if i < 3 else 0) for i in range(len(POOL_TESTS))]
+    fig, axes = plt.subplots(1, 2, figsize=(10.2, 5.1), sharey=True)
+    for a, key, title, label, lim in zip(axes, ("location_mm", "direction_deg"), ("(a) Location error", "(b) Force angle"),
+                                         ("Location error (mm)", "Force angle (\u00b0)"), (5.6, 25)):
+        for y, k in zip(ys, POOL_TESTS):
+            for off, t in zip((0.25, 0, -0.25), RIGCOL):
+                o, c = T[k][t]["own"][key], T[k][t]["combined"][key]
+                a.plot((o, c), (y + off, y + off), color=RIGCOL[t], lw=1.3, zorder=2)
+                a.plot(o, y + off, ls="", marker="o", ms=7, mfc="white", mec=RIGCOL[t], mew=1.3, zorder=3)
+                a.plot(c, y + off, ls="", marker="o", ms=7, color=RIGCOL[t], zorder=3)
+        a.axhline(ys[2] - 0.7, color="0.6", lw=0.8)
+        a.set_xlim(0, lim)
+        a.set_ylim(0.5, ys[0] + 0.6)
+        a.set_xlabel(label)
+        a.set_title(title, loc="left")
+        a.grid(axis="x", color="0.9")
+        a.set_axisbelow(True)
+    axes[0].set_yticks(ys)
+    axes[0].set_yticklabels(POOL_TESTS)
+    handles = [Line2D([], [], color=RIGCOL[t], lw=1.3, marker="o", ms=7, label=f"v3 ID {t}") for t in RIGCOL]
+    handles += [Line2D([], [], ls="", marker="o", ms=7, mfc="white", mec="0.25", mew=1.3, label="Own GP"),
+                Line2D([], [], ls="", marker="o", ms=7, color="0.25", label="Combined GP")]
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    fig.legend(handles=handles, frameon=False, loc="lower center", ncol=5, bbox_to_anchor=(0.6, 0), handletextpad=0.4,
+               columnspacing=1.4)
+    save(fig, "20261105-v3_id456_other_tips_holds.png")
+
+
+def fig_gp_mlp():
+    """The board GP against the MLP ensembles on all six v3 tips, with each model's uncertainty against its error (the
+    coordinator's scripts/ur5/ur5_tip_calibration_gp_vs_mlp.py, commit 471ffbb2 of 2026-11-05)."""
+    from matplotlib.lines import Line2D
+    from fingertip_calibration_text import at_head
+    plt = plt_setup()
+    R = {r["split"]: r for r in json.loads(at_head(GP_MLP))["rows"]}
+    sets = (("tip1", "v3 ID 1"), ("tip2", "v3 ID 2"), ("tip3", "v3 ID 3"), ("rig3", "v3 ID 3, seat 1"), ("rig4", "v3 ID 4"),
+            ("rig5", "v3 ID 5"), ("rig6", "v3 ID 6"))
+    models = (("gp", "GP", "#333333", "o"), ("mlp64", "Ensemble, 64 units a layer", "#1f78b4", "s"),
+              ("mlp128", "Ensemble, 128 units a layer", "#d95f02", "^"))
+    ys = list(range(len(sets), 0, -1))
+    fig, axes = plt.subplots(1, 3, figsize=(10.2, 4.5), gridspec_kw=dict(width_ratios=(1.25, 1.25, 1)))
+    for a, splits, title in zip(axes, (("random s0", "random s1"), ("gaps",)), ("(a) Points held out", "(b) Gaps held out")):
+        for y, (key, _) in zip(ys, sets):
+            for off, (m, _, col, mk) in zip((0.22, 0, -0.22), models):
+                xs = [R[s][m][key]["location_mm"] for s in splits if key in R[s][m]]
+                a.plot(xs, [y + off] * len(xs), ls="", marker=mk, ms=7, color=col, zorder=3)
+        a.set_xlim(0.3, 1.6)
+        a.set_ylim(0.5, len(sets) + 0.5)
+        a.set_xlabel("Location error (mm)")
+        a.set_title(title, loc="left")
+        a.grid(axis="x", color="0.9")
+        a.set_axisbelow(True)
+        a.set_yticks(ys)
+    axes[0].set_yticklabels([n for _, n in sets])
+    axes[1].set_yticklabels([])
+    c = axes[2]
+    tests = (("random s0", "Points, split 1"), ("random s1", "Points, split 2"), ("gaps", "Gaps"))
+    yc = (3, 2, 1)
+    for y, (s, _) in zip(yc, tests):
+        for off, (m, _, col, mk) in zip((0.22, 0, -0.22), models):
+            c.plot(R[s][m]["uncertainty_spearman_vs_location"], y + off, ls="", marker=mk, ms=7, color=col, zorder=3)
+    c.set_xlim(-0.02, 0.5)
+    c.set_ylim(0.5, 3.5)
+    c.set_yticks(yc)
+    c.set_yticklabels([n for _, n in tests])
+    c.set_xlabel("Spearman correlation")
+    c.set_title("(c) Uncertainty", loc="left")
+    c.grid(axis="x", color="0.9")
+    c.set_axisbelow(True)
+    handles = [Line2D([], [], ls="", marker=mk, ms=7, color=col, label=nm) for _, nm, col, mk in models]
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    fig.legend(handles=handles, frameon=False, loc="lower center", ncol=3, bbox_to_anchor=(0.5, 0), handletextpad=0.3,
+               columnspacing=1.4)
+    save(fig, "20261105-v3_gp_vs_mlp.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
@@ -922,7 +1007,8 @@ def main():
                 density=fig_density, shear=fig_shear, transfer=fig_transfer, sessions=sessions, hard=fig_hard,
                 four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve, rig=rig_sessions,
                 rig_curve=fig_rig_curve, rig_dense=fig_rig_dense, rig_tilt=rig_tilt, fig_tilt=fig_rig_tilt,
-                rig_id3=rig_id3, fig_id3=fig_rig_id3, poster_id3=poster_rig_id3, rig_cov=fig_rig_coverage)
+                rig_id3=rig_id3, fig_id3=fig_rig_id3, poster_id3=poster_rig_id3, rig_cov=fig_rig_coverage, rig_pool=fig_rig_pool,
+                gp_mlp=fig_gp_mlp)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)
