@@ -1874,6 +1874,9 @@ push that answers it arrives.
        and its logged joints. If the HEX-E has not been re-zeroed since, the two readings differ by the change of
        weight in the sensor frame, and the rod tool's weight is known from the plan (0.384 kg payload). The torques give
        the centre of mass across the tool axis. If the HEX-E's DAQ is unplugged, say so and use the CAD's numbers.
+       Result (lab, 13:0x on 11-05, 3f7060388): no mass. The reading of 12:57 is untared (Fz 625.6 N, the DAQ's raw
+       zero). The 11-04 sessions logged only tared values, and the raw zero drifted 17 N in 45 min on 10-22. The
+       payload stays the CAD's 3.24 kg until the HEX-E is tared with the hand off or the hand is weighed.
     3. Set PolyScope's TCP on the palm origin P for that k. At k = 1 it is x 5.05, y 2.02, z 138.90 mm with rotation
        vector (0.5954, -3.0847, 0) rad; the README's table gives the other k, and
        `.venv/bin/python scripts/hardware/build_cad_v3_hand.py tcp --k K --point X Y Z` gives any point of P. Set the
