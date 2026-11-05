@@ -1,6 +1,6 @@
 {
  "title": "cad_v3 frames: the SR2 hand as built (owner's CAD of 2026-11-04) on the UR5 CB3",
- "written": "2026-11-04 18:05",
+ "written": "2026-11-04 18:24",
  "units": "mm, deg",
  "sources": {
   "cad": "assets/cad_v3/step (the owner's Onshape export of 2026-11-04, assets/cad_v2/full_cad)",
@@ -50,6 +50,7 @@
    "054",
    "060"
   ],
+  "thumb_gantry_on_base_plate_holes": "confirmed by the owner, 2026-11-04",
   "note": "x_P = -y_A + t_x, y_P = x_A + t_y, z_P = z_A + t_z. t_y puts y_P = 0 midway between the index and middle box centres, t_x puts x_P = 0 midway between the thumb box centre and the index/middle box centres (the driver's convention, XY_space.png), t_z puts the yaw centres at z_P = 0. Primary t uses the thumb gantry moved +2.5 mm in y_A onto the base plate's holes; t_P_from_A_mm_cad_as_is uses the CAD as exported."
  },
  "flange": {
@@ -445,6 +446,9 @@
   "carriage_bottom": -12.793
  },
  "sensors": {
+  "camera_on_hand": false,
+  "camera_note": "Owner, 2026-11-04: the D435 is off the hand, on a tripod on the table; the d435_plate bracket arm stays on the hand. The optical frames below are the earlier assumed pose.",
+  "tag_face": "confirmed by the owner, 2026-11-04: the tag faces opposite the thumb's palmar face (-x_P = +y_A)",
   "camera_parts": [
    {
     "solid": "hand/000",

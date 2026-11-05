@@ -29,10 +29,10 @@ Frames (mm in frames.json, m in the MJCF):
 The models (assets/mjcf/experimental/20261104-cad_v3):
   scene_screwdriver_medium.xml        the simplified model: cad_v2's scene (same 31 qpos, 15 actuators, names and
                                       fingers) with the finger mounts at the CAD's travel-box centres and the palm's real
-                                      envelope as 13 static boxes on palm_pose (palm_plate first).
+                                      envelope as 11 static boxes on palm_pose (palm_plate first).
   scene_screwdriver_medium_full.xml   the same with the visual meshes of every part (group 2), the moving gantry bridges
                                       (three slide joints appended after the fingers' and tied to <f>_y by equalities),
-                                      the D435 and the AprilTag, and the v4b pads.
+                                      the AprilTag and the v4b pads.
   ur5_k<k>.xml, ur5_full_k<k>.xml     the hand on the UR5 CB3 for clocking k: the object (qpos 0-6), the arm's six joints in
                                       place of the palm's pose joints (7-12), the hand (13-30; the full model's bridges
                                       31-33); six arm and nine finger actuators.
@@ -215,11 +215,17 @@ def cmd_frames(args):
         P=dict(R_P_from_A=R_PA.tolist(), t_P_from_A_mm=t.round(4).tolist(),
                origin_in_A_mm=rot.tf_apply(rot.tf_inv(TPA), np.zeros(3)).round(4).tolist(),
                thumb_gantry_shift_A_mm=shift.tolist(), thumb_gantry_parts_not_shifted=sorted(stay),
+               thumb_gantry_on_base_plate_holes="confirmed by the owner, 2026-11-04",
                note=G.get("t_P_from_A_note", "")),
         flange=flange,
         fingers=fingers,
         levels_P_mm={k: round(v, 3) for k, v in G["heights"]["levels_above_yaw_plane_mm"].items()},
-        sensors=dict(camera_parts=S["camera_parts"], camera_mount_assumption=S.get("camera_mount_assumption"),
+        sensors=dict(camera_on_hand=False,
+                     camera_note="Owner, 2026-11-04: the D435 is off the hand, on a tripod on the table; the d435_plate "
+                                 "bracket arm stays on the hand. The optical frames below are the earlier assumed pose.",
+                     tag_face="confirmed by the owner, 2026-11-04: the tag faces opposite the thumb's palmar face "
+                              "(-x_P = +y_A)",
+                     camera_parts=S["camera_parts"], camera_mount_assumption=S.get("camera_mount_assumption"),
                      T_A_from_depth_optical=S["T_A_from_depth_optical"],
                      T_A_from_color_optical=S["T_A_from_color_optical"], tag=S["tag"], tag_parts=S["tag_parts"]),
     )
@@ -353,8 +359,6 @@ def palm_boxes(F, parts):
         ns = [n for n, p in parts.items() if p["inv"]["kind"] == kind]
         lo_, hi_ = bbox_P(F, ns, parts)
         boxes.append((name, lo_, hi_, what))
-    lo_, hi_ = d435_box_P(F)
-    boxes.append(("hand_d435", lo_, hi_, "RealSense D435 body at the assumed pose (not in the CAD)"))
     return boxes
 
 
@@ -562,8 +566,7 @@ def add_full_visuals(root, F):
         tgt = palm if body == "palm" else bridge_body.get(body.split(":")[1], palm)
         el(tgt, "geom", name=f"v3_screw_{s['name']}", **{"class": "v3_visual"}, type="cylinder", fromto=fmt(e.ravel()),
            size=f"{SCREW_R_MM / 1000:.4g}", material="v3_steel")
-    # the D435 (menagerie mesh frame -> the assumed body pose) and the tag
-    add_d435(root, palm, F)
+    # the tag (the D435 is off the hand since 2026-11-04; add_d435 and add_cameras stay for a camera put back on it)
     add_tag(root, palm, F)
 
 
@@ -642,7 +645,6 @@ def dropin_root(F, full):
     palm.insert(0, ET.Element("inertial", {"pos": "0 0 0.025", "mass": "0.0918",
                                            "diaginertia": "0.000247922 0.000221103 0.000468945"}))
     set_mounts(root, F)
-    add_cameras(palm, F)
     if full:
         add_full_visuals(root, F)
         add_pads(root)
