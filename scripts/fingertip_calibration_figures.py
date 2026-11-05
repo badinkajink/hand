@@ -567,6 +567,10 @@ RIG_TILT = UR5 / "20261104-v3_tilt_reference_check.txt"
 RIG_ID3 = UR5 / "20261104-v3_id3_inverted_vs_tipmode.txt"
 RIG_ID3_HOLDS = RIG_HOLDS / "20261104-145215-id3pts11"
 RIG_ID3_FILM = UR5.parent / "lab/20261104-tipcal-timelapse_short.mp4"
+RIG_COV = UR5 / "20261104-v3_rig_coverage_ids123.json"
+RIG_COV_TIPS = {"1": ("logs/20261028-spherev3id1_twists", "logs/20261028-rodv3id1"),   # the coordinator's analysis folders,
+                "2": ("logs/20261029-spherev3id2", "logs/20261029-rodv3id2"),            # not in git
+                "3": ("logs/20261030-spherev3id3", "logs/20261030-rodv3id3")}
 TILTS = (("0-0.1", "Under 0.1"), ("0.1-0.3", "0.1 to 0.3"), ("0.3-0.5", "0.3 to 0.5"), ("0.5-9", "Over 0.5"))
 
 
@@ -840,6 +844,75 @@ def poster_rig_id3():
     print("wrote", out.relative_to(ROOT), flush=True)
 
 
+def fig_rig_coverage():
+    """v3 ID 3's contact points on the two rigs and the board GP's error at the pad's mount end (the coordinator's
+    scripts/ur5_tip_calibration_rig_coverage.py, commit 67a227ed of 2026-11-04, its data file for panel b and its holds for
+    panel a, with its test of a new point: 1 mm or more from every point pressed on the robot)."""
+    from scipy.spatial import cKDTree
+    from fingertip_calibration_text import at_head
+    plt = plt_setup()
+    pts, kinds = {}, ("press", "slide", "roll", "twist")
+    for t, sessions in RIG_COV_TIPS.items():
+        pts[t] = []
+        for s in sessions:
+            with np.load(ROOT / s / "holds.npz", allow_pickle=True) as z:
+                ok = np.isin(z["kind"].astype(str), kinds) & np.isfinite(z["d_board"]).all(1) & np.isfinite(z["p"]).all(1) \
+                    & np.isfinite(z["f"]).all(1) & np.isfinite(z["tn"])
+                pts[t].append(z["p"][ok])
+    tip = np.concatenate(pts["3"])
+    with np.load(io.BytesIO(at_head(RIG_ID3_HOLDS / "holds.npz")), allow_pickle=True) as z:
+        rig, f, region = z["p"], z["f"], z["region"].astype(str)
+    far = cKDTree(np.unique(np.round(tip, 3), axis=0)).query(rig)[0] >= 1.0
+    z_far = rig[far, 2]
+    NUM["rig_coverage"] = dict(
+        tip_holds=len(tip), rig_holds=len(rig), far=int(far.sum()), far_edge=int((far & (region == "edge")).sum()),
+        far_face=int((far & (region == "face")).sum()), far_1N=int((far & (np.linalg.norm(f, axis=1) >= 1.0)).sum()),
+        z_tip_min={t: float(np.concatenate(v)[:, 2].min()) for t, v in pts.items()},
+        z_far=[float(z_far.min()), float(np.median(z_far)), float(z_far.max())])
+    C = json.loads(at_head(RIG_COV))
+    fig, axes = plt.subplots(1, 2, figsize=(10.2, 4.5), gridspec_kw=dict(width_ratios=(1.5, 1)))
+    a = axes[0]
+    u = np.unique(np.round(tip, 1), axis=0)
+    a.plot(u[:, 2], u[:, 1], ls="", marker="o", ms=3, color="0.72", label="Pressed on the robot")
+    a.plot(rig[~far, 2], rig[~far, 1], ls="", marker="o", ms=4, mfc="none", mec="#7570b3", mew=0.8,
+           label="Seat 1, within 1 mm of those")
+    for reg, mk, nm in (("face", "o", "face"), ("edge", "^", "edge")):
+        k = far & (region == reg)
+        a.plot(rig[k, 2], rig[k, 1], ls="", marker=mk, ms=6.5, color="#d95f02", label=f"Seat 1, 1 mm or more away, {nm}")
+    a.axvline(tip[:, 2].min(), color="0.25", lw=1, ls="--")
+    a.text(tip[:, 2].min() + 0.3, -7.0, f"Robot's points start at {tip[:, 2].min():.1f} mm", fontsize=13, va="center")
+    a.set_aspect("equal")
+    a.set_xlim(-0.5, 21.8)
+    a.set_ylim(-8.2, 7.2)
+    a.set_yticks((-5, 0, 5))
+    a.set_xlabel("Along the pad from the mount end, $z$ (mm)")
+    a.set_ylabel("Across the finger, $y$ (mm)")
+    a.set_title("(a) Contact points of v3 ID 3", loc="left")
+    a.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2, handletextpad=0.3, columnspacing=1.0)
+    b = axes[1]
+    o, p, i3 = C["id3_from_ids456"]["own"], C["id3_from_ids456"]["pooled_lam0.5"], C["id3"]
+    rows = ((o["rig3_new"], o["tip"]), (p["rig3_new"], p["tip"]), (i3["tip_only"]["rig_new"], i3["tip_only"]["tip"]),
+            (i3["both"]["rig_new"], i3["both"]["tip"]))
+    xs = (0, 1, 2.5, 3.5)
+    for x, (m, t) in zip(xs, rows):
+        b.bar(x - 0.2, m["location_mm"], 0.4, color="#d95f02", label="At the mount end" if x == 0 else None)
+        b.bar(x + 0.2, t["location_mm"], 0.4, color="0.6", label="At points on the robot" if x == 0 else None)
+        b.text(x - 0.2, m["location_mm"] + 0.08, f"{m['location_mm']:.2f}", ha="center", fontsize=13)
+        b.text(x + 0.2, t["location_mm"] + 0.08, f"{t['location_mm']:.2f}", ha="center", fontsize=13)
+    b.set_xticks(xs)
+    b.set_xticklabels(("Robot\nalone", "With\nIDs 4\u20136", "Robot\nalone", "With\nseat 1"))
+    b.axvline(1.75, color="0.25", lw=1)
+    b.text(0.5, 5.25, "70 holds", ha="center", fontsize=13)
+    b.text(3.0, 5.25, "9 a fold", ha="center", fontsize=13)
+    b.set_xlim(-0.6, 4.1)
+    b.set_ylim(0, 5.7)
+    b.set_ylabel("Location error (mm)")
+    b.set_title("(b) Board GP by training set", loc="left")
+    b.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=1, handletextpad=0.4)
+    fig.tight_layout()
+    save(fig, "20261104-v3_rig_coverage.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
@@ -848,7 +921,7 @@ def main():
                 density=fig_density, shear=fig_shear, transfer=fig_transfer, sessions=sessions, hard=fig_hard,
                 four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve, rig=rig_sessions,
                 rig_curve=fig_rig_curve, rig_dense=fig_rig_dense, rig_tilt=rig_tilt, fig_tilt=fig_rig_tilt,
-                rig_id3=rig_id3, fig_id3=fig_rig_id3, poster_id3=poster_rig_id3)
+                rig_id3=rig_id3, fig_id3=fig_rig_id3, poster_id3=poster_rig_id3, rig_cov=fig_rig_coverage)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)

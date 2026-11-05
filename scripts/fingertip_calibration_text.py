@@ -100,6 +100,10 @@ def sections(N, F, P, link, L):
     RI3, RJ3 = N["rig_id3"], jl(RIGD / "20261104-strip_table_pads_rod_joint_registration_final_grid05_id3.json")
     rin, rir, rix = RI3["inverted"], RI3["tip mode, presses"], RI3["transfer"]
     rox = ", ".join(f"{x:.2f}".replace("-", "−") for x in rix["offset_mm"])
+    # the rig's presses at the pad's mount end, pooled into the GP of v3 IDs 1 to 3 (commit 67a227ed of 2026-11-04)
+    RC, RCN = jl(UR5D / "20261104-v3_rig_coverage_ids123.json"), N["rig_coverage"]
+    me_o, me_p, me_p1 = (RC["id3_from_ids456"][k] for k in ("own", "pooled_lam0.5", "pooled_lam1"))
+    me_0, me_1 = RC["id3"]["tip_only"], RC["id3"]["both"]
     I3 = N["v3id3_sessions"]
     T3 = ("v3 ID 1", "v3 ID 2")
     tw2 = G2["twists"]["four_v3id2"]
@@ -115,6 +119,7 @@ def sections(N, F, P, link, L):
     strict = lambda est, key, k=1: [k * hx[est]["test_strict"][b][key] for b in HB]  # noqa: E731
     rg = lambda xs, f="{:.2f}": (f.format(min(xs)) if f.format(min(xs)) == f.format(max(xs))  # noqa: E731
                                  else f"{f.format(min(xs))}–{f.format(max(xs))}")
+    me_tips = rg([RC["pool"][t]["pooled_lam0.5"]["tip"]["location_mm"] for t in "123"])
     g4, g5 = G["four_v3id1"], G["five_v2id1"]
     e4, e5 = g4["gp_direction"], g5["gp_direction"]
     ro4, ro5 = RO["four_v3id1"]["gp_direction"], RO["five_v2id1"]["gp_direction"]
@@ -178,7 +183,10 @@ def sections(N, F, P, link, L):
         f"both ways. With the load near the normal it gives {rin['loc_normal_mm']:.2f} mm on the rig and "
         f"{rir['loc_normal_mm']:.2f} mm on the robot. Its board's reading of a repeated press varies by 7.9 %, against "
         "2.2–2.5 %. The seat block's self-threaded M2 holes stripped and left the board loose, the most likely cause of "
-        "this gap. With the load near "
+        f"this gap. The rig's presses also reach the pad's mount end, where the robot's points start "
+        f"{rg(list(RCN['z_tip_min'].values()), '{:.1f}')} mm along the pad. With the rig's holds of v3 IDs 4 to 6 in training, v3 ID 3's GP goes from "
+        f"{me_o['rig3_new']['location_mm']:.2f} to {me_p['rig3_new']['location_mm']:.2f} mm there. At the robot's points "
+        f"such a GP gives {me_tips} mm on v3 IDs 1 to 3. With the load near "
         f"the normal the force angle on v3 IDs 4 to 6 is {rtr(RGT, TB[0], 'direction_deg', '{:.1f}')}°, against "
         f"{rtr(DT, TB[0], 'direction_deg', '{:.1f}')}° on v3 IDs 1 to 3. Torsion is not "
         "recovered. On the twists of three tips, a GP's estimate correlates with the measured torsion at "
@@ -215,7 +223,9 @@ def sections(N, F, P, link, L):
         f"{rtr(DT, TB[0], 'direction_deg', '{:.1f}').replace('–', '-')} deg with the load near the normal; v3 ID 3 gives "
         f"{rin['loc_normal_mm']:.2f} mm on the rig and {rir['loc_normal_mm']:.2f} mm on the robot with the load near the "
         "normal, and its repeated presses vary by 7.9 % against 2.2-2.5 % in uT/N (stripped M2 holes in the seat block left the "
-        "board loose, the most likely cause); torsion not recovered "
+        "board loose, the most likely cause); pooled with IDs 4-6's rig holds, the GP of v3 IDs 1-3 reaches the pad's mount "
+        f"end (v3 ID 3's {RCN['far_1N']} holds there: {me_o['rig3_new']['location_mm']:.2f} mm on its holds from the robot, "
+        f"{me_p['rig3_new']['location_mm']:.2f} mm pooled; points on the robot {me_tips.replace('–', '-')} mm); torsion not recovered "
         f"(GP r {tw4['gp_twists']['r']:.2f}, "
         f"{tw5['gp_twists']['r']:.2f} and {tw2['gp_twists']['r']:.2f} on the twists; on v3 IDs 2 and 3 no better than "
         f"predicting none); a GP trained on another tip gives "
@@ -277,6 +287,10 @@ def sections(N, F, P, link, L):
         ("Load's tilt", "A hold's shear over its normal force. A load near the normal has a tilt under 0.1."),
         ("Inverted rig, seat", "A printed strip of three seats holds tips pad up on the table, and a probe on the HEX-E "
          "presses them (Section 15)."),
+        ("Mount-end holds", f"v3 ID 3's {RCN['far_1N']} holds of 1 N and over on seat 1 at points 1 mm or more from every point "
+         f"pressed on the robot. Their points lie {RCN['z_far'][0]:.1f} to {RCN['z_far'][2]:.1f} mm along $z$ of the pad frame."),
+        ("Pooled GP of Section 15", "A board GP trained on one tip's holds and on 1,500 rig holds from each of v3 IDs 4 to 6. "
+         "A one-hot input marks each tip's holds. Its weight is in units of the board's standardized components."),
         ("Sweep, offset", "A sweep stops a normal press of the rod at force levels from 0.5 to 8 N, and each level is a "
          "hold. At a level the rod steps sideways to offsets and back. An offset is 0.5 or 0.9 times the slip offset, the "
          "sideways move at which the indenter starts to slide, and each offset is a hold."),
@@ -1384,6 +1398,32 @@ def sections(N, F, P, link, L):
                   caption="The repeatability of one press on v3 ID 3 on the two rigs. All rows but the last as given in "
                           + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R32; the last from the "
                           "printouts of Tables 25 and 26.", n=27)
+    me_path = "docs/experiments/20261022-ur5_tip_calibration/data/20261104-v3_rig_coverage_ids123.json"
+    rcov = RC["coverage"]
+    me_row = lambda nm, n, m, t: [nm, n, f"{m['location_mm']:.2f}", f"{m['direction_deg']:.1f}", f"{m['magnitude_pct']:.1f}",  # noqa: E731
+                                  f"{t['location_mm']:.2f}"]
+    me_n = str(int(me_o["rig3_new"]["n"]))
+    t28 = P.table(["Training holds", "Mount-end holds scored", "Location error (mm)", "Force angle (°)", "Force error (%)",
+                   "Location error at points on the robot (mm)"],
+                  [me_row("v3 ID 3 on the robot", me_n, me_o["rig3_new"], me_o["tip"]),
+                   me_row("With v3 IDs 4 to 6 on the rig, weight 0.5", me_n, me_p["rig3_new"], me_p["tip"]),
+                   me_row("With v3 IDs 4 to 6 on the rig, weight 1", me_n, me_p1["rig3_new"], me_p1["tip"]),
+                   me_row("v3 ID 3 on the robot, a fifth of the points held out", "9 a fold", me_0["rig_new"], me_0["tip"]),
+                   me_row("With v3 ID 3 on seat 1, a fifth of the points held out", "9 a fold", me_1["rig_new"], me_1["tip"])],
+                  caption="The board GP's errors at 1 N and over on v3 ID 3's mount-end holds and on held-out points pressed "
+                          "on the robot. In the first three rows no hold from seat 1 is in training and all "
+                          f"{me_n} are scored; medians over two seeds. In the last two a fifth of the points of both rigs is "
+                          "held out; medians over four seeds. Rows in " + P.code(me_path) + " ("
+                          + P.code("scripts/ur5_tip_calibration_rig_coverage.py") + ").", n=28)
+    me_t = lambda t, k, f: RC["pool"][t][k]["tip"][f]  # noqa: E731
+    t29 = P.table(["Tip", "Location error, own holds (mm)", "Pooled, weight 0.5 (mm)", "Pooled, weight 1 (mm)",
+                   "Pooled, weight 2 (mm)", "Force angle, own / pooled at 0.5 (°)", "Force error, own / pooled at 0.5 (%)"],
+                  [[f"v3 ID {t}"] + [f"{me_t(t, k, 'location_mm'):.2f}" for k in ("own", "pooled_lam0.5", "pooled_lam1", "pooled_lam2")]
+                   + [f"{me_t(t, 'own', f):.1f} / {me_t(t, 'pooled_lam0.5', f):.1f}" for f in ("direction_deg", "magnitude_pct")]
+                   for t in "123"],
+                  caption="The board GP's errors at 1 N and over on held-out points pressed on the robot, trained on the "
+                          "tip's own holds and with the rig's holds of v3 IDs 4 to 6. Medians over two seeds. Rows in the file "
+                          "of Table 28.", n=29)
     body = (
         f"<p>On the inverted rig the board GP locates contact on v3 IDs 4, 5 and 6 within {rcv('location_mm', '{:.2f}')} mm "
         "at 1 N and over (Table 19, Figure 12). All of the other points are in training. On v3 IDs 1 to 3, which the "
@@ -1399,6 +1439,10 @@ def sections(N, F, P, link, L):
         "1 to 3 (Table 24). The board's reading of a repeated press varies by 7.9 % on the rig, against 2.2–2.5 % on the robot "
         "(Table 27). The seat block's self-threaded M2 holes stripped, which leaves the board loose between tip and block. "
         "The gap most likely comes from this loose clamp.</p>"
+        f"<p>The rig's presses reach the pad's mount end, and the robot's do not. On v3 ID 3's {me_n} mount-end holds, a GP on "
+        f"the tip's holds from the robot locates contact within {me_o['rig3_new']['location_mm']:.2f} mm. With the rig's holds "
+        f"of v3 IDs 4 to 6 in training it gives {me_p['rig3_new']['location_mm']:.2f} mm (Table 28, Figure 17). At the points "
+        f"pressed on the robot, such a pooled GP gives {me_tips} mm on v3 IDs 1 to 3 (Table 29).</p>"
         "<p>The points of v3 IDs 4 to 6 stand 1.94–2.02 mm from their nearest neighbour, against 0.97–0.99 mm on v3 IDs "
         "1 to 3. The night's tilted loads also raise the error (Table 21). With the load's tilt under 0.1 and the holds held "
         "out at random, a session's GP gives 0.32–0.37 mm, against 0.27–0.30 mm. Presses at 66 to 71 new points per tip "
@@ -1607,6 +1651,40 @@ def sections(N, F, P, link, L):
         + P.film(16, F["id3_film"], F["id3_poster"], "The rod pressing v3 ID 3 on seat 1, 14:51 to 16:13 on 2026-11-04. The "
                  "film shows one frame every 4 s, so 1 s of film is 4 min. The labels give the clock and the phase. The lab's "
                  "film, " + P.code("docs/experiments/20261022-ur5_tip_calibration/lab/20261104-tipcal-timelapse_short.mp4") + ".")
+        + "<p><b>The pad's mount end on v3 IDs 1 to 3.</b> The owner asked at 23:1x on 11-04: “can we see if the inverted rig "
+        "presses, while they did not help the ids 4-6, can be used to improve the coverage of ids 1-3?” The UR5 coordinator "
+        "answered with " + P.code("scripts/ur5_tip_calibration_rig_coverage.py") + " ("
+        + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md") + " R33). On the robot the points of v3 IDs 1, 2 "
+        f"and 3 start {RCN['z_tip_min']['1']:.1f}, {RCN['z_tip_min']['2']:.1f} and {RCN['z_tip_min']['3']:.1f} mm along the pad "
+        f"from the mount end (Figure 17a shows v3 ID 3). Of v3 ID 3's {RCN['rig_holds']} holds on seat 1, "
+        f"{RCN['far']} lie 1 mm or more from every point pressed on the robot. They lie {RCN['z_far'][0]:.1f} to "
+        f"{RCN['z_far'][2]:.1f} mm along the pad, with a median of {RCN['z_far'][1]:.1f} mm. Of these, {RCN['far_edge']} are on the "
+        f"edge and {RCN['far_face']} on the face. The rig's loads are near the normal: {100 * rcov['tilt_over_0p3']['rig']:.1f} % of "
+        f"its holds have a tilt of 0.3 or more, against {100 * rcov['tilt_over_0p3']['tip']:.0f} % on the robot. The mount end "
+        "therefore has almost no tilted loads in training.</p>"
+        f"<p>At 1 N and over {RCN['far_1N']} of those holds remain, the mount-end holds. A GP trained on v3 ID 3's holds from the "
+        f"robot locates them within {me_o['rig3_new']['location_mm']:.2f} mm, with a force angle of "
+        f"{me_o['rig3_new']['direction_deg']:.1f}° and a force error of {me_o['rig3_new']['magnitude_pct']:.0f} % (Table 28, Figure "
+        f"17b). With the rig's holds of v3 IDs 4 to 6 in training, it gives {me_p['rig3_new']['location_mm']:.2f} mm, "
+        f"{me_p['rig3_new']['direction_deg']:.1f}° and {me_p['rig3_new']['magnitude_pct']:.1f} %. v3 ID 3's own holds on seat 1 "
+        f"give {me_1['rig_new']['location_mm']:.2f} mm, {me_1['rig_new']['direction_deg']:.1f}° and "
+        f"{me_1['rig_new']['magnitude_pct']:.1f} % on held-out points, over four seeds with 9 holds a fold. Those holds "
+        "come from the seat whose clamp was loose (Table 27).</p>"
+        f"<p>The pooled GP errs as the tip's own does at the points pressed on the robot (Table 29). At weight 0.5, v3 ID 1 goes "
+        f"from {me_t('1', 'own', 'location_mm'):.2f} to {me_t('1', 'pooled_lam0.5', 'location_mm'):.2f} mm, v3 ID 2 from "
+        f"{me_t('2', 'own', 'location_mm'):.2f} to {me_t('2', 'pooled_lam0.5', 'location_mm'):.2f} mm and v3 ID 3 from "
+        f"{me_t('3', 'own', 'location_mm'):.2f} to {me_t('3', 'pooled_lam0.5', 'location_mm'):.2f} mm. A GP on one v3 tip alone "
+        f"locates another's contacts within {min(v['location_mm'] for v in RC['transfer'].values()):.2f} to "
+        f"{max(v['location_mm'] for v in RC['transfer'].values()) + 1e-9:.2f} mm. v3 IDs 1 and 2 have no ground truth at the mount end, "
+        f"so their error there is taken from v3 ID 3's {me_p['rig3_new']['location_mm']:.2f} mm.</p>"
+        + t28
+        + t29
+        + P.fig(17, F["rig_cov"], "Contact points of v3 ID 3 on the two rigs and the board GP's error at the pad's mount end. "
+                "(a) Points in the pad frame, with seat 1's points 1 mm or more from every point pressed on the robot in "
+                "orange. (b) Location error at 1 N and over on the mount-end holds and on held-out points pressed on the "
+                f"robot. On the left all {me_n} mount-end holds are scored, with training on the robot's holds alone and with v3 "
+                "IDs 4 to 6's rig holds. On the right a fifth of the points of both rigs is held out, with training on the "
+                "robot's holds alone and with seat 1's. Drawn from " + P.code(me_path) + " and the tip's holds.")
     )
     S.append(("rig", "Calibration of v3 IDs 3 to 6 on the inverted rig", body))
 
@@ -1659,6 +1737,9 @@ def sections(N, F, P, link, L):
         + link(L["motions"], "calibration motions page") + "). If the board's changes agree within 3° and the gains "
         "within 5 %, one 5 mm sphere on a column can stand for both. The session needs both indenters, which are off "
         "the table while the inverted rig's seat strip is on.",
+        "Mount end on the SR2 hand: take the pooled GP of Section 15 as the hand's calibration of v3 IDs 1 to 3, and press a "
+        "tip's mount end on the hand with a known load (" + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md")
+        + " R33). An error over 2 mm there refutes it.",
         "Direction GP on the rig's tips: score the direction GP on each seat's held-out face presses (Section 15 gives "
         "the board GP's errors). Within 0.3 mm and 6 % of their force, the rig calibrates a tip as well as the sphere "
         "suite of the finger on the robot.",
