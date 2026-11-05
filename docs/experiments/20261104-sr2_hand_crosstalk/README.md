@@ -210,6 +210,8 @@ cannot reach ends the run and the chain.
 |---|---|---|---|
 | `run1_attended` | 12:20:15 to 12:34:28 | 35 of 35 | plan done; no blocked pose, no board fault |
 | `run2_layouts` | 12:35:08 to 12:43:50 | 31 of 672 | stopped at step 32, the middle's yaw blocked |
+| `run3_from32` | 13:32:40 to 13:36:24 | 8 of 643 | the lab's STOP: the middle's X stage had stayed at home |
+| `run4_from32` | from 13:49:27 | 643 | running, with `--max-err-yaw 8` |
 
 In `run1_attended` the nine holds settled within 4.2 deg of their commands. The middle's yaw lagged most: 3.9 and
 4.2 deg at -37 and -22 deg. The boards gave 160.5 records/s, never under 152 in a second, with no zeroed chip. The
@@ -251,6 +253,26 @@ all three boards at rest. `lab/resume_plan.py` wrote
       /usr/bin/python3 docs/experiments/20261104-sr2_hand_crosstalk/lab/run_plan.py \
           docs/experiments/20261104-sr2_hand_crosstalk/plan/20261105-plan_layouts_s1_resume32.json logs/<date>-sr2_crosstalk/run3_resume32 \
           --token-file ~/.sr2_station_token --boards logs/<date>-sr2_crosstalk/boards --board-channels 0,1,3
+
+**The afternoon.** The owner came back at 13:0x and found the middle's yaw free through its range, so the
+shortfall is gravity against the yaw servos (above). `run_plan.py --max-err-yaw` (24468c353) gives the yaw joints a
+limit of their own, 8 deg, while mcp and pip keep 6. `plan/20261105-plan_layouts_s1_from32.json` (00ce73764) runs s1
+from step 32 as it stands.
+- `run3_from32` homed from 13:28 to 13:32. At its g12 move the station counted joint 4, the middle's X stage (M8P
+  socket M5), through 45 mm from 13:33:59 to 13:34:17 with no error. The owner saw the stage still at home, and the lab
+  stopped the run at 13:35:57. The steppers are open loop, so nothing records where a stage is.
+- With the station stopped, the firmware moved joint 4 10 mm, then 30 mm at the full 12,000 steps/s, and back. The
+  owner saw it move fine. GSTAT reads 0x05 on all six TMC5160s: reset and charge-pump undervoltage from power-up,
+  never read since, and drv_err 0. So no driver shut down. The likeliest cause, not confirmed: homing by timeout grinds
+  each stage into its hardstop for up to 27 s, and the next move did not break joint 4 loose. (The firmware's UART
+  register reads fail on every axis because these drivers are TMC5160s on SPI; `RREG5160` reads them.)
+- The middle's mount in `run3_from32` was 45 mm off its log. Whether joint 4 also skipped in `run1_attended` or
+  `run2_layouts` is unknown, so their middle mounts are uncertain.
+- The owner asked for no more homing. `lab/rearm_home.py` re-armed the home instead: joint 4's count zeroed to match
+  its stage, then a 1 ms firmware HOME on every axis, which sets homing_result 3 and moves nothing. The station then
+  adopted the home (`/api/v1/home/adopt`) with the mounts as the stages stood. `run_plan.py --keep-home` (5c3aeffad)
+  leaves the motors on at any stop, so an attended run's next start needs no homing either.
+- `run4_from32` started at 13:49:27, and joint 4 moved at its g12 step (13:49:58).
 
 ## Known limits
 

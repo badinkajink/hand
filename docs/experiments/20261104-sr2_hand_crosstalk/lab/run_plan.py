@@ -10,7 +10,8 @@ touch OUTDIR/STOP (or a STOP beside OUTDIR, for a chain) ends the run after the 
 a station error or lost link; a servo at 60 C or more; a third pose that a joint could not reach (each such pose is
 backed out at once); with --boards, a fault in the boards' stream (channels, record rate, zeroed or implausible records,
 held 3 s). At the end the hand goes to the zero pose and the motors are disabled
-(steppers off, servo torque off), which also gives up the home.
+(steppers off, servo torque off), which also gives up the home. With --keep-home (an attended run) they stay on, so the
+next run needs no homing.
 """
 import argparse
 import datetime as dt
@@ -35,6 +36,8 @@ ap.add_argument("--resume", action="store_true")
 ap.add_argument("--no-disable", action="store_true",
                 help="leave the motors on when the plan ends normally (the next plan of a chain runs on this home)")
 ap.add_argument("--max-temp", type=float, default=60.0)
+ap.add_argument("--keep-home", action="store_true",
+                help="at the end, for any reason, leave the motors on so the home survives (an attended run)")
 ap.add_argument("--max-err", type=float, default=6.0)
 ap.add_argument("--max-err-yaw", type=float, default=None,
                 help="the yaw joints' own limit (deg; default --max-err): hanging, they hold short of gravity")
@@ -423,7 +426,7 @@ except BaseException as e:
 finally:
     event("ending", reason=reason)
     to_zero(reason)
-    if not (ok and a.no_disable):
+    if not (a.keep_home or (ok and a.no_disable)):
         try:
             time.sleep(2.0)
             r = http("POST", "/api/v1/motors/disable", {}, timeout=60.0)
