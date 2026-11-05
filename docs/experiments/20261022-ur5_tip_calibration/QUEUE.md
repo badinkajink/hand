@@ -1823,7 +1823,7 @@ push that answers it arrives.
     is refitted with the rig's presses (`scripts/ur5/ur5_tip_calibration_board_gp_rig.py`): the tip-mode holds of IDs 1
     to 3, ID 3's 500 rig holds and 1,500 rig holds of each of IDs 4 to 6, 14,185 presses and slides, length 1.94, noise
     0.3, 162 s and 8.0 GB. It is `data/20261105-board_gp_v3_id1_id3_rig_id3_id6.npz`, for the viewer's --board-gp; the
-    10-02 model `data/20261102-board_gp_v3_id1_id3.npz` stays. Validation of the same recipe without ID 3's rig holds
+    11-02 model `data/20261102-board_gp_v3_id1_id3.npz` stays. Validation of the same recipe without ID 3's rig holds
     (2 seeds, a fifth of each tip's points held out; `data/20261105-board_gp_rig_validation.json`): ID 3's 70
     mount-end holds go from 3.04 to 3.10 mm to 0.75 to 0.77 mm, from 18 to 19 deg to 5.5 to 5.6 deg, and from 24 to 5 %
     in magnitude. The held-out tip-mode holds go from 0.38 to 0.44 mm to 0.45 to 0.53 mm.
