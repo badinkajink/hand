@@ -3320,6 +3320,30 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   CAD's 3.24 kg, with its centre of mass (-8.7, -7.4, 73.1) mm in tool0 at k = 1, unless the owner tares the HEX-E with
   the hand off at the next remount. k and the TCP wait for the owner at the cell.
 
+## QUEUE R35 part B, step 2: ur5-shared-math (d6d98b571) against its base (1b369fd31), 11-05
+
+Run on corvus during the SR2 sweep, in two worktrees, under nice. Nothing moved the robot; nothing ran without --sim but
+the rig's dry-check, which only computes (its rtde imports sit in URRobot.__init__, which the rig never calls).
+- `dry-check --real`, with the arm's joints read once by rtde_receive and given as --start-q (53.23, -82.99, 104.54,
+  -111.86, -89.70, 213.97 deg; robot_mode 3): the seat 1 swap plan (stages pad, grid), the three seat 1 plans of 11-04
+  chained as run (pts11, pts16, id3pts11) and the six-plan rod-points chain of 11-04. Old and new printouts are
+  identical line for line, and their JSON bitwise (2978, 5055 and 5033 numbers). Both flag "j6 on segment 0" on the
+  first travel, from joint 6 at 214 deg with the SR2 hand on.
+- Simulator, through docs/notes/20261103-scripts_cleanup/simrun.py with t0 1762300000, each plan in a fresh session
+  (--home-from poses.jsonl:strip_key1_seated_4, --frame 20261102-strip_frame_pads.json, stages preflight to grid), the
+  same plan file for both codes: 15 of the 24 probe plans. Every plan gives the same actions and statuses in both. 13
+  agree to 2.2e-6 N and 6.8e-6 mm. rod_s2 differs in one printed line, the rod fit's sd: the fit moved c_M by 6.1e-5 mm
+  and the rod's turn by 1.0e-3 deg, so its grid samples differ by up to 9.1e-3 mm and 0.14 N; the old code alone moves
+  its fit as much when the touches change in their last place. dense_fe_s3 reached a 3 N level one 8 ms cycle later in
+  the new code, so later samples at equal times differ by up to 1.72 mm and 1.03 N; action by action its stop and rest
+  poses agree within 0.012 mm. sph2_s1's logged rotation vectors differ by 9.6e-5 rad at 5 samples within 5e-5 rad of a
+  half turn, the kept log_so3's ill-conditioning there; its joints agree to 1.4e-9 rad. The aborts are the same in
+  both (fresh sessions at the plans' own speeds; the simulator ignores the 0.30 slider). The new code runs 14 to 17 %
+  slower.
+- Not run, for time (about 15 CPU-hours for all): rod_s1, rod_s3, sph2_s2, sph2_s3, sweep_s1, sweep_s3 and sweep8_s1
+  to s3 (the only plans with twists; the rolls ran through the same turn_about), and the 29 variants made from the 11-03
+  plans. The outputs and the queue of the rest are in the lab session's scratchpad (r35/).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
