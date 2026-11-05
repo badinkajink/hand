@@ -15,21 +15,19 @@ docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration
 docs/experiments/20261029-foundational_pose_review/20261102-hom_plant_modulus.html; CLAUDE.md sections "Fingertip on the
 CAD hand", "Pad modulus 2.5 MPa" and "Servo plant of the HOM scripts". If scripts/ was reorganized, find each script by
 name in scripts/README.md.
-State: 11-04 19:4x (autopilot dac2b73b, colorado reset 19:20): steps 1, 2, 3, 10, 11 done (bed: bed/summary.json,
-media/fig_bed.png). Detached, nothing to relaunch unless a [resguard] line names it or a log shows a crash:
-- 8 screen workers queue/worker.sh (cores 4-10, 12; queue.txt ~50 jobs left at 19:40, mostly Drake replays);
-- queue/fe_now.sh on core 11 (one thread): the FE of the 11 tips other than the v4b tip, design-surface keys (the v4b
-  tip's rows are in fe/ from the 19:3x smoke run; a run on the block's printed key was stopped at 19:38, see
-  fe_now_printed_keys_stopped.log); progress fe_now.log, fe_jobs.jsonl;
-- queue/chain.sh: after the screen, the screen summary, stage 3 on 4 workers (cores 4-7), the stage-3 summary, the films;
-  the GPU cost (core 19); the FE again (skips done tips) and the CPU cost (cores 13-15). Log chain_done.log.
-Changes 19:3x-19:4x: finalist rule (2) uses the replay cost paired over placements both tips hold (the v4b tip's pads
-drop the tool in about half the replays); the FE runs on design surfaces as 10-18 did; the film camera looks from below the
-palm (az 240, el 15). Step 12 (band): scripts/fingertip_shape_rerun_band.py written; the v4b tip's caches built in
-logs/.../hom_scenes/ and identical to the 11-04 band's scenes; next: `validate --tip tcd_ell7.4x8.5x11x22 --task <t>`
-for the 4 tasks as an end-to-end check against rows/band_k21mu/val/, then the stage-3 tips (scenes, then validate), one GPU
-job at a time and never beside the chain's GPU cost. Page: scripts/fingertip_shape_rerun_page.py has the protocol and bed
-prose; screen, cost, FE, lede and future work wait for their summaries.
+State: 11-04 19:5x (autopilot dac2b73b, colorado): steps 1, 2, 3, 10, 11 done. Screen done 19:56 (screen/summary.json):
+J2 16/32 half-ellipsoid 0.252, capsule 8.5 0.203, as-built block 0.199, capsule 7.4 0.184, v4b 0.134 (its worst: friction
+0.5), hemisphere 0.074; stage-3 tips 16/32, hemisphere (rule 3, three-finger share 0.49), capsule 8.5, as-built, v4b.
+Detached, nothing to relaunch unless a [resguard] line names it or a log shows a crash:
+- stage 3 on 4 workers queue/worker.sh (cores 4-7; queue.txt, 40 jobs from 19:56; rows final/);
+- chain.sh: stage-3 summary and films after stage 3; GPU cost running (core 19, gpu.log); its FE pass waits on the per-tip
+  locks of fingertip_shape_rerun_fe.py behind fe_now.sh (core 11, tip 6 of 11 at 19:57), then the CPU cost (cores 13-15);
+- drake_fill.sh (core 12): the v4b tip's 4 Drake replays that failed on its design hull (degenerate facet; D2 s0, D8 s0-2),
+  on the 15 October printed-upright hull -> traj/tcd_ell7.4x8.5x11x22/drake_fill_u0.1.jsonl; relabel those rows' tip to
+  tcd_ell7.4x8.5x11x22 (keep drake_surface) before the traj and screen summaries are rerun.
+Step 12 (band): scripts/fingertip_shape_rerun_band.py; the v4b tip's caches built and identical to the 11-04 scenes; run its
+validate as the check, then the stage-3 tips, after the chain's GPU cost (one GPU job at a time). Page: protocol and bed
+prose written; the rest waits for its summaries.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Before any run: wait until the HOM chain is done and the GPU holds no other job's process (nvidia-smi; the HO… Done 11-04 16:35: 11-04 16:30: HOM jobs of 11-02..11-04 all done, no HOM process; GPU 1.2/16 GB, desktop only; compute ledger logs/20261104-fingertip_shape_rerun/compute.jsonl (wall, core-h, GPU-h per step)
