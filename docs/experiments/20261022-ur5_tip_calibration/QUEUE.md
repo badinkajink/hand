@@ -1797,6 +1797,28 @@ push that answers it arrives.
     tip mode. The rig's 0.59 against 0.32 mm on the same tip is most likely the loose clamp, not pressing the tip from
     above; quote the rig's numbers with this. A later seat block takes heat-set inserts or nuts.
 
+- R33 (done at 23:5x on 11-04; owner, 23:1x on 11-04: "can we see if the inverted rig presses, while they did not help
+  the ids 4-6, can be used to improve the coverage of ids 1-3?"). The rig's presses reach the pad's mount end, which tip
+  mode did not. Pooled into the GP of IDs 1 to 3, they give that end a calibration without harming the rest
+  (`scripts/ur5_tip_calibration_rig_coverage.py`, `data/20261104-v3_rig_coverage_ids123.json`).
+  - Coverage. v3 ID 3 is the one tip pressed on both rigs. Of its 500 rig holds, 92 lie 1 mm or more from every
+    tip-mode point. They sit 0.6 to 7.2 mm along the pad (median 2.1 mm), and tip mode's points start at 4.3 mm. They
+    split 48 edge and 44 face. The rig's holds are near-normal: 1.4 % have a tilt of 0.3 or more, against 39 % in tip
+    mode.
+  - ID 3's own rig holds. On its 70 mount-end holds of 1 N and over, the tip-mode GP locates contact to 4.16 mm, with
+    19.7 deg in direction and 31 % in magnitude. With a fifth of the joint point groups held out, the rig holds of the
+    training groups bring the held-out mount-end holds to 0.87 mm, 3.9 deg and 6.6 % (4 seeds, 9 holds a fold). The
+    tip-mode points stay at 0.46 to 0.47 mm.
+  - IDs 4 to 6's rig holds, for a tip without rig presses. A GP on one v3 tip locates another's contacts to 0.70 to
+    1.36 mm, against about 0.5 mm on the tip's own held-out points. Pooled with ID 3's tip-mode training groups (1,500
+    holds of each, each tip marked by a one-hot input of weight 0.5), they bring ID 3's 70 mount-end holds to 1.18 mm,
+    6.1 deg and 9.6 %. The tip-mode points go from 0.51 to 0.47 mm.
+  - On IDs 1 and 2 the pooled GP leaves the tip-mode points at 0.47 to 0.52 mm (ID 1, own 0.55) and 0.49 mm (ID 2, own
+    0.48). Neither tip has ground truth at the mount end, so ID 3's 1.18 mm stands for them there.
+  - ID 3's rig holds carry the seat block's loose clamp (board reading 7.9 % in uT/N against 2.4 % in tip mode).
+  - Next, for the owner: take the pooled GP as the hand's calibration of IDs 1 to 3; a press at a tip's mount end on the
+    hand with a known load would test it, and an error over 2 mm there would refute it.
+
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
   them v3, no ids yet). then we could run a super complete calibration suite + crosstalk analysis"). The plan is
