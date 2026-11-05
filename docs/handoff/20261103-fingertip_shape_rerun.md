@@ -15,19 +15,22 @@ docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration
 docs/experiments/20261029-foundational_pose_review/20261102-hom_plant_modulus.html; CLAUDE.md sections "Fingertip on the
 CAD hand", "Pad modulus 2.5 MPa" and "Servo plant of the HOM scripts". If scripts/ was reorganized, find each script by
 name in scripts/README.md.
-State: 11-04 17:3x (autopilot dac2b73b, colorado): steps 1, 2 done (mount/mount.json: only the 11/22 and the 7.4x5x11/22
-mount on the v4b parts; the other ten tips run on the envelope alone). Running detached (nohup setsid), nothing to relaunch
-unless a [resguard] line names it: 7 screen workers logs/20261104-fingertip_shape_rerun/queue/worker.sh on cores 4-10
-(queue.txt, 228 jobs; rows docs/experiments/20261104-fingertip_shape_rerun/{screen,traj}/; per-job times queue/jobs.jsonl;
-failures failed.txt); 1 bed worker worker_bed.sh on core 11 (bed.txt; rows bed/<tip>/). J1 done for all 12 tips at 17:2x
-(scripts/fingertip_shape_rerun_analysis.py screen). Memory tight (8.5 GB available, swap 13.9 GB): add no job beside them.
-Drake replays at 2.5 MPa take 156 s each. Finding: in the cad_v2 cells' HOM turns the cylinder meets the cap TW15H3's end
-plate (tip frame z -12 mm, past the pad's end), 24-46 % of the normal force (median per tip; rows' rigid_share,
-rigid_by_part); 0 % on the D1-D8 real_v1 hands; report beside J. Written, not yet run: fingertip_shape_rerun_cost.py
-(RL scenes built in logs/.../rl/; cpu/export/time after the screen frees memory), fingertip_shape_rerun_fe.py (one tip
-at a time, femtip, --mem 5G, after the screen). Next: figures + page builder (fingertip_shape_rerun_page.py), stage 3
-queue when the screen ends (python3 scripts/fingertip_shape_rerun_analysis.py screen, then
-python3 scripts/fingertip_shape_rerun_queue.py stage3 --append).
+State: 11-04 17:4x (autopilot dac2b73b, colorado; window used up about 18:40): steps 1, 2 done. Detached, nothing to
+relaunch unless a [resguard] line names it or a log shows a crash:
+- 8 screen workers logs/20261104-fingertip_shape_rerun/queue/worker.sh (cores 4-10, 12; queue.txt, 178 of 228 jobs left at
+  17:40; rows docs/experiments/20261104-fingertip_shape_rerun/{screen,traj}/; per-job times queue/jobs.jsonl; failed.txt);
+- 1 bed worker worker_bed.sh (core 11; bed.txt, 30 left; rows bed/<tip>/);
+- queue/chain.sh (log chain_done.log): when the 228 screen jobs end, the screen summary, the stage-3 queue on 4 workers
+  (cores 4-7), the stage-3 summary and the HOM films (media/hom_cylinder_16_0.625_s3_*); in parallel the GPU cost (core 19,
+  cost/gpu_*.jsonl), the FE one tip at a time (cores 13-16, fe/), then the CPU cost (cores 13-15, cost/cpu_*.jsonl).
+Since 17:36 every new job waits at resguard's swap gate (15.5 GB > 15 GB, held by VS Code, Chrome, Zotero; ledger step
+11); the running jobs finish. J1 is done for all 12 tips. Findings: cad_v2 cells' HOM turns put 24-46 % of the normal force
+on the cap TW15H3's end plate (rigid_share), 0 % on D1-D8; Drake replays at 2.5 MPa take 130-350 s. Written, not run:
+scripts/fingertip_shape_rerun_page.py (+ .template.html; prose placeholders [..] for bed, cost, screen, FE, lede, future
+work: fill them from the summaries, then build), fingertip_shape_rerun_figures.py (mount drawn; bed, screen, stage3, fe
+after the analysis), fingertip_shape_rerun_film.py (the chain runs it). Next session: resguard.sh status; ap steps; when
+chain_done.log says stage 3 done, python3 scripts/fingertip_shape_rerun_analysis.py all, the figures, the page; step 12
+(band) only after the chain's GPU cost.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Before any run: wait until the HOM chain is done and the GPU holds no other job's process (nvidia-smi; the HO… Done 11-04 16:35: 11-04 16:30: HOM jobs of 11-02..11-04 all done, no HOM process; GPU 1.2/16 GB, desktop only; compute ledger logs/20261104-fingertip_shape_rerun/compute.jsonl (wall, core-h, GPU-h per step)
@@ -53,6 +56,8 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [ ] 9. Status page: a row in docs/experiments/20261018-printed_fingertip_status/status.json, then rebuild
     scripts/printed_fingertip_status_page.py.
 - [x] 10. Resguard events 16:41 and 16:52 (11-04): the mount check's first version (trimesh filled voxelization of the … Done 11-04 16:54: Reported in the ledger and compute.jsonl; mount check rewritten (ray parity, 8 s, 0.40 GB); nothing else affected
+- [ ] 11. Swap gate (11-04 17:36): resguard's launch gate closed on swap in use 15.5 GB > 15 GB, held by the desktop (VS Code 1.0-1.5 GB per process, Chrome, Zotero, gnome-shell, gnome-software); MemAvailable 12 GB, PSI 0. The workers (queue/worker.sh, worker_bed.sh) wait in gate() before each job and resume when it opens; the cad_v3 window's renders were refused by the same gate at 17:33-17:36. Check resguard.sh status at each wake-up; run nothing beside the workers while it is closed; when it opens, keep at most 9 single-core jobs.
+- [ ] 12. Worst-case friction band for the stage-3 tips (step 5's last sentence): hom_grasp_refine.py validate --band k21mu0p4,k21mu0p7,k21 --picks-from k21 (the v4b tip's band picks, STS3032 at friction 0.4/0.7/1.0) with each tip in place of the v4b pad. Needs a scene builder fingertip_shape_rerun_scenes.py on the pattern of scripts/hom_modulus_scenes.py with hand_object_scale_sim.TIP set to the tip: the REF scenes of sphere:40 and cylinder:25 per friction into logs/20261104-fingertip_shape_rerun/hom_scenes/<tip>_mu<mu>/ (HOS_SCENES), and validate run through a wrapper that sets S.TIP in the parent (open poses on the tip's pt mesh); HOM_ROWS_TAG _fsr_<tip>. GPU about 6 min per tip; one GPU job at a time, after the chain's GPU cost. Report the lowest of the three frictions' scores per task against the v4b tip's on the same picks.
 <!-- /ap:steps -->
 Claimed: docs/experiments/<run date>-fingertip_shape_rerun/, logs/<run date>-fingertip_shape_rerun/, new scripts
 scripts/fingertip_shape_rerun_*.py, docs/notes/20261103-fingertip_shape_aside.md.

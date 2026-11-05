@@ -22,8 +22,8 @@ rigid parts and the 05R pad's CAD mesh:
                       otherwise 'envelope alone': the tip is simulated as its shape on the v4b finger's rigid parts, which
                       would need a cassette and cap of its own
 
-Rows: docs/experiments/20261104-fingertip_shape_rerun/mount/mount.json, and mount/sections.npz (masks on the y = 0 and
-z_t = 0 planes and on the pad's back plane, for the page's figure).
+Rows: docs/experiments/20261104-fingertip_shape_rerun/mount/mount.json, and mount/sections.npz (masks on the y = 0,
+z_t = 0 and z_t = -6 mm planes and on the pad's back plane, for the page's figure).
 
     ~/.claude/bin/resguard.sh run --mem 3G --cpu 100 -- taskset -c 19 env NUMPY_MADVISE_HUGEPAGE=0 \\
         .venv/bin/python scripts/fingertip_shape_rerun_mount.py
@@ -176,6 +176,7 @@ def main():
     rows, sections = {}, {}
     iy0 = int(np.argmin(np.abs(axes[1])))
     iz0 = int(np.argmin(np.abs(axes[2] - Z_TIP_F)))
+    izd = int(np.argmin(np.abs(axes[2] - (Z_TIP_F - 6.0))))          # 6 mm distal: through the cap's side blocks
     ix_back = int(np.argmin(np.abs(axes[0] - (x_back_F - PITCH / 2))))
     for k in C.TIPS:
         t1 = time.time()
@@ -212,6 +213,7 @@ def main():
                        magnets_fit=bool(mag_fit))
         sections[f"{k}|y0"] = ins.reshape(shape)[:, iy0, :]
         sections[f"{k}|z0"] = ins.reshape(shape)[:, :, iz0]
+        sections[f"{k}|zd6"] = ins.reshape(shape)[:, :, izd]
         sections[f"{k}|back"] = ins.reshape(shape)[ix_back, :, :]
         print(f"{k:30s} {rows[k]['verdict']:15s} pad {rows[k]['pad_volume_mm3']:7.1f} mm3  extra "
               + " ".join(f"{p} {e:.1f}" for p, e in extra.items()) + "  kept "
@@ -220,6 +222,7 @@ def main():
     for p, o in occ.items():
         sections[f"part:{p}|y0"] = o.reshape(shape)[:, iy0, :]
         sections[f"part:{p}|z0"] = o.reshape(shape)[:, :, iz0]
+        sections[f"part:{p}|zd6"] = o.reshape(shape)[:, :, izd]
         sections[f"part:{p}|back"] = o.reshape(shape)[ix_back, :, :]
     sections["magnets|y0"] = mag.reshape(shape)[:, int(np.argmin(np.abs(axes[1] - 2.5))), :]
     sections["magnets|z0"] = mag.reshape(shape)[:, :, int(np.argmin(np.abs(axes[2] - (Z_TIP_F + 2.5))))]
