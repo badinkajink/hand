@@ -563,13 +563,19 @@ def screen_section():
                 row.append(f(v.get("worst_median")) if k == C.REF else
                            (f"{f(v.get('worst_median'))} ({v['diff_median']:+.2f})" if v else "&#8211;"))
             body.append(row)
-        rep = [abs(get(BAND[C.REF], t, "S3", "diff_median") or 0) for t, _ in TASKS4 if get(BAND.get(C.REF) or {}, t, "S3")]
+        rep = [abs(get(BAND[C.REF], t, pk, q) or 0) for t, _ in TASKS4 for pk in ("S1", "S2", "S3")
+               for q in ("diff_q25", "diff_q75") if get(BAND.get(C.REF) or {}, t, pk)]
+        diffs = {k: [get(BAND[k], t, "S3", "diff_median") for t, _ in TASKS4 if get(BAND[k], t, "S3")]
+                 for k in tips_b if k != C.REF}
         out += ("<p>The friction band repeats the worst-case score of 4 November. Its plant is the STS3032 with pads at "
                 "2.5&#8202;MPa, at scene friction 0.4, 0.7 and 1.0. Each HOM task has 30 layouts in its sample, and each "
                 "layout runs the design refined for the v4b tip: its grasp, forces and contact modes (pick S3). A design "
                 "scores its lowest five-seed mean over the three frictions. With another tip in place of the v4b pad the same "
-                "designs score as in Table&#160;[[tab:band]]. Run again on the v4b tip, the medians repeat those of 4 November "
-                f"within {f(max(rep) if rep else None)}.</p>"
+                "designs score as in Table&#160;[[tab:band]]. Run again on the v4b tip, they repeat the scores of 4 November: "
+                f"the paired differences have a median of 0.000 and quartiles within {f(max(rep) if rep else None, 3)}. "
+                + " ".join(f"On {nm(k)} the median paired difference per task runs from {sg(min(v), 2)} to {sg(max(v), 2)}."
+                           for k, v in diffs.items() if v)
+                + " These designs were refined for the 11/22, and the other tips&#8217; own designs were not refined.</p>"
                 + table(["Tip"] + [b for _, b in TASKS4], body,
                         "Worst case over scene friction 0.4&#8211;1.0 on the STS3032 (band/summary.json; "
                         "<code>scripts/fingertip_shape_rerun_band.py</code>). Each cell is the median over the 30 layouts of pick "
