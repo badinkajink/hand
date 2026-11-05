@@ -1960,8 +1960,12 @@ push that answers it arrives.
       homing branches of equal cost. The ATI plan keeps its 41 gravity directions; two stations take another yaw (moveJ
       targets up to 10.7 deg apart). The lab program's simulator runs the q-seed sphere plan of each code with the same
       310 events, all 154 actions ok. pytest: 113 passed, the 2 known failures. Runbook:
-      docs/notes/20261103-scripts_cleanup/RUNBOOK.md, "Closed-form IK for the plan builders". The lab checks the branch
-      in its simulator as in part B.
+      docs/notes/20261103-scripts_cleanup/RUNBOOK.md, "Closed-form IK for the plan builders".
+    - 16:06 on 11-05, workstation: the lab program and its simulator do not change on this branch, so the lab checks it
+      without simulator runs, old (`d6d98b571`) against new (`668a1cb8b`): `dry-check --real --chain` from the arm's
+      joints on the plans of part B step 2, and one `--q-seed` sphere-cell tip plan built by each code, compared for
+      actions, twists and joint targets. The lab runs the check after the SR2 sweep and the part B merge (lab, 16:0x on
+      11-05). The branch merges after that check and the owner's go.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
