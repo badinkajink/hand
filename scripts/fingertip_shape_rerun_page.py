@@ -379,7 +379,30 @@ def cost_section():
                 "Cost by the pad-usability protocol at 2.5&#8202;MPa (cost/summary.json): MuJoCo at the SCS0009&#8217;s "
                 "three-finger grip on two v4b-hand cells, and MuJoCo-Warp at the held state of an RL run with 2048 worlds.",
                 key="cost")
-    return "<p>[cost prose]</p>" + tab
+    g = lambda k, *p: get(COST.get(k) or {}, *p)  # noqa: E731
+    g15 = lambda k, *p: get(COST15.get(old(k)) or {}, *p)  # noqa: E731
+    mid = C.CAPSULES + C.HALF
+    cpu = lambda k: g(k, "cpu", "cylinder:16:0.625|pads", "step_us")  # noqa: E731
+    text = (
+        f"<p>The softer pads touch more of the tool, so a step costs more than at 10&#8202;MPa (Table&#160;[[tab:cost]]). On "
+        f"the GPU at the held RL state with 2048 worlds the v4b tip takes {f(g(C.REF, 'gpu', 'us_per_world_step'))}&#8202;&#181;s "
+        f"per world-step with {f(g(C.REF, 'gpu', 'contacts_per_world'), 0)} contacts per world and "
+        f"{f((g(C.REF, 'gpu', 'gpu_peak_mb') or 0) / 1000, 1)}&#8202;GB, the blocks "
+        f"{rng([g(k, 'gpu', 'us_per_world_step') for k in C.BLOCKS])}&#8202;&#181;s and "
+        f"{rng([(g(k, 'gpu', 'gpu_peak_mb') or 0) / 1000 for k in C.BLOCKS], 1)}&#8202;GB, the capsules and the other "
+        f"half-ellipsoids {rng([g(k, 'gpu', 'us_per_world_step') for k in mid])}&#8202;&#181;s, and the quarter-ellipsoids "
+        f"{rng([g(k, 'gpu', 'us_per_world_step') for k in C.QUARTERS])}&#8202;&#181;s. At 10&#8202;MPa on 15 October the same "
+        f"11/22 shape took {f(g15(C.REF, 'gpu', 'us_per_world_step'))}&#8202;&#181;s with "
+        f"{f(g15(C.REF, 'gpu', 'contacts_per_world'), 0)} contacts, and the as-built block "
+        f"{f(g15(C.BLOCKS[0], 'gpu', 'us_per_world_step'))}&#8202;&#181;s.</p>"
+        + (f"<p>On the CPU at the three-finger grip of the v4b hand&#8217;s 16&#8202;mm cell the v4b tip takes "
+           f"{f(cpu(C.REF), 0)}&#8202;&#181;s per 1&#8202;ms step with {f(g(C.REF, 'cpu', 'cylinder:16:0.625|pads', 'ncon'), 0)} "
+           f"contacts, the as-built block {f(cpu(C.BLOCKS[0]), 0)}&#8202;&#181;s with "
+           f"{f(g(C.BLOCKS[0], 'cpu', 'cylinder:16:0.625|pads', 'ncon'), 0)}, and the twelve tips "
+           f"{rng([cpu(k) for k in ORDER], 0)}&#8202;&#181;s. Replanning 64 plans of 0.5&#8202;s on three threads takes "
+           f"{rng([g(k, 'cpu', 'cylinder:16:0.625|pads', 'replan_3thread_s') for k in ORDER])}&#8202;s.</p>"
+           if all(cpu(k) is not None for k in ORDER) else ""))
+    return text + tab
 
 
 def screen_section():
@@ -440,6 +463,26 @@ def screen_section():
     out = text + fig + tab
     C3 = FIN.get("candidates", {})
     if C3:
+        base = C3[C.REF]
+        others = [k for k in FIN["tips"] if k != C.REF]
+        best = max(others, key=lambda k: C3[k]["J3"])
+        below = [k for k in others if C3[k].get("below_base")]
+        beat = [k for k in others if C3[k].get("beats_base")]
+        dj = lambda k: (f"{C3[k]['dJ3_vs_base']:+.3f}, interval {C3[k]['dJ3_ci90'][0]:+.3f} to "  # noqa: E731
+                        f"{C3[k]['dJ3_ci90'][1]:+.3f}")
+        o_ref = get(FIN15, "candidates", old(C.REF))
+        o_blk = get(FIN15, "candidates", C.BLOCKS[0])
+        out += (f"<p>On fresh placements " + ("no tip beats the v4b tip" if not beat else
+                                              ", ".join(name(k).lower() for k in beat) + " beat the v4b tip")
+                + f". Its J3 is {f(base['J3'], 3)}. The {name(best).lower()} scores {f(C3[best]['J3'], 3)}, a paired "
+                f"difference of {dj(best)} (Table&#160;[[tab:stage3]], Figure&#160;[[fig:stage3]]). "
+                + " ".join(f"The {name(k).lower()} gives {dj(k)}." for k in others if k != best and k not in below)
+                + (" " + " and ".join(f"the {name(k).lower()} ({dj(k)})" for k in below).capitalize()
+                   + (" scores" if len(below) == 1 else " score") + " below the v4b tip." if below else "")
+                + f" Every stage-3 tip keeps {base['hold3_mu0.5']} of {base['n_hold_mu0.5']} grasps with three loaded "
+                f"fingers through the hold test at friction 0.5. On 15 October the same 11/22 shape scored "
+                f"J3 = {f(get(o_ref, 'J3'), 3)} against the as-built block&#8217;s {f(get(o_blk, 'J3'), 3)}; here the block "
+                f"scores {f(C3[C.BLOCKS[0]]['J3'], 3)} against the v4b tip&#8217;s {f(base['J3'], 3)}.</p>")
         b3 = []
         for k in FIN["tips"]:
             v = C3[k]
