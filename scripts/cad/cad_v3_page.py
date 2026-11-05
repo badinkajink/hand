@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.numerics.angles import wrap  # noqa: E402
 import build_cad_v3_hand as B  # noqa: E402
 import docs_index  # noqa: E402
 import fp_review_page as P  # noqa: E402
@@ -55,7 +56,7 @@ def load():
 
 
 def wrap180(a):
-    return (a + 180.0) % 360.0 - 180.0
+    return wrap(a, 360.0)
 
 
 def facing(F, k):
