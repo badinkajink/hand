@@ -51,6 +51,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 os.environ.setdefault("UR5_MOUNT", "v7")            # the mount on the robot since R25 (2026-10-26)
 import ur5_cb3_cell as CELL  # noqa: E402
 from sr2hand.geometry import rotations  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 C = CELL.C
 SIM = CELL.SIM
@@ -167,7 +168,7 @@ def slerp_T(T0, T1, s):
 def samples(seg, q0):
     kind, T0, T1 = seg
     if kind == "J":
-        q1 = SIM.ik(T1, q0)
+        q1 = URK.ik_nearest(T1, q0)
         if q1 is None:
             return None
         n = max(2, int(math.ceil(math.degrees(np.max(np.abs(q1 - q0))))) + 1)
@@ -177,7 +178,7 @@ def samples(seg, q0):
     out, q = [], q0
     for s in np.linspace(0.0, 1.0, n):
         T = slerp_T(T0, T1, s)
-        q = SIM.ik(T, q)
+        q = URK.ik_nearest(T, q)
         if q is None:
             return None
         out.append((T, q))
@@ -200,7 +201,7 @@ def to_contact(seg, q0, reg):
 
     def pad(s):
         T = slerp_T(T0, T1, s)
-        qq = SIM.ik(T, q0)
+        qq = URK.ik_nearest(T, q0)
         return 1e9 if qq is None else clear_groups(qq, T, reg, None).get("pad", 1e9)
 
     L = float(np.linalg.norm(T1[:3, 3] - T0[:3, 3]))
@@ -270,7 +271,7 @@ def run(a):
     q = np.asarray(reg.q_home, float)
     T_prev = np.asarray(reg.T_BE_home, float)
     T_prev = C.Tm(T_prev[:3, :3], T_prev[:3, 3] + T_prev[:3, :3] @ reg.T_EM[:3, :3] @ np.array([-12.0, 0.0, 0.0]))
-    q = SIM.ik(T_prev, q)
+    q = URK.ik_nearest(T_prev, q)
     rows, flagged = [], []
     skipped = []
     for ai, act in enumerate(plan["actions"]):

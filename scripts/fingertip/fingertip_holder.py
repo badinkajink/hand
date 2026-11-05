@@ -294,7 +294,8 @@ def cmd_homing(a):
     TI, CELL, C, reg = _cell()
     T_IM = CELL.tiphold_parts()["frame"]["T_IM_home"]
     T_BE = reg.T_BI @ T_IM @ C.inv(reg.T_EM)
-    q = CELL.SIM.ik(T_BE, np.asarray(reg.q_home, float))
+    from sr2hand.robot import ur_kinematics as URK
+    q = URK.ik_nearest(T_BE, np.asarray(reg.q_home, float))
     cl = CELL.clearance(q, T_BE, reg.T_BI, reg.T_EM, "tiphold")
     worst = {}
     for k, v in cl.items():

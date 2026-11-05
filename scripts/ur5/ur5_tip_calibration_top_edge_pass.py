@@ -52,6 +52,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_tip_calibration_tall_pass as TP  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 P3 = TP.P3
 LAB = TP.LAB
@@ -103,7 +104,7 @@ def run(a):
             if res is None:
                 continue
             worst, j = res
-            qs = [TP.CELL.SIM.ik(T, cell.qh) for T in cell.deep(pts[i], nrm[i], tw)]
+            qs = [URK.ik_nearest(T, cell.qh) for T in cell.deep(pts[i], nrm[i], tw)]
             if any(q is None or abs(np.degrees(np.arctan2(np.sin(q[2]), np.cos(q[2])))) < 20.0 for q in qs):
                 continue
             s = min(worst["mount"] - TP.NEED["mount"] - TP.extra(LEVELS[r][-1]), (j[0] - 30.0) / 5.0)

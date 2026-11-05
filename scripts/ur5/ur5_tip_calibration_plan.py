@@ -39,6 +39,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_cb3_cell as CELL  # noqa: E402
 from sr2hand.numerics.angles import nearest, wrap  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 C, SIM = CELL.C, CELL.SIM
 OUTDIR = ROOT / "docs/experiments/20261022-ur5_tip_calibration"
@@ -146,36 +147,36 @@ class Checker:
         return self.T_BI @ T_IP @ C.inv(self.T_EP)
 
     def ik(self, T, q0=None):
+        """The joints of flange pose T nearest q0 (the closed form's choice, ur_kinematics.ik_nearest: the same pose and
+        reference give the same joints), None past +-(360 - 2.9) deg. Until 2026-11-05 the simulator's damped least
+        squares (SIM.ik), which on some poses took another solution when the pose changed in its last bits."""
         q0 = self.q if q0 is None else q0
-        q = SIM.ik(T, q0)
+        q = URK.ik_nearest(T, q0)
         if q is None or np.any(np.abs(q) > 2 * math.pi - 0.05):
             return None
         return q
 
     def seed(self, T):
         """The IK branch at the homing pose: the upper arm above the table (shoulder lift in [-180, 0] deg), wrist and
-        elbow away from their singularities, the most clearance of the robot's links, then the least wrist-3 turn."""
+        elbow away from their singularities, the most clearance of the robot's links, then the least wrist-3 turn. The
+        candidates are the closed form's eight solutions (ur_kinematics.ik_all), each joint wrapped to [-180, 180) deg;
+        until 2026-11-05 they were the simulator's damped least squares from 3,600 seeds."""
         best = None
         seen = []
-        for q2 in (-0.4, -1.0, -1.6, -2.2, -2.8):
-            for q3 in (2.4, 1.6, 0.8, -0.8, -1.6, -2.4):
-                for q4 in (-2.5, -1.6, -0.6, 0.6, 1.6):
-                    for q5 in (1.57, -1.57):
-                        for q1 in np.linspace(-math.pi, math.pi, 13)[:-1]:
-                            q = SIM.ik(T, np.array([q1, q2, q3, q4, q5, 0.0]))
-                            if q is None:
-                                continue
-                            q = wrap(q)
-                            if not (-math.pi <= q[1] <= 0.0) or abs(math.sin(q[4])) < 0.3 or abs(math.sin(q[2])) < 0.2:
-                                continue
-                            if any(np.abs(q - s_).max() < 1e-3 for s_ in seen):
-                                continue
-                            seen.append(q)
+        for q in URK.ik_all(T)[0]:
+            if not np.isfinite(q).all():
+                continue
+            q = wrap(q)
+            if not (-math.pi <= q[1] <= 0.0) or abs(math.sin(q[4])) < 0.3 or abs(math.sin(q[2])) < 0.2:
+                continue
+            if any(np.abs(q - s_).max() < 1e-3 for s_ in seen):
+                continue
+            seen.append(q)
         for q in seen:
             cl = CELL.clearance(q, T, self.T_BI, self.T_EM, self.kind)
             rob = min(v for k, v in cl.items() if k in ROBOT_LINKS)
             cost = -min(rob, 60.0) + 5.0 * abs(q[5])
-            if best is None or cost < best[0]:
+            if best is None or cost < best[0] - 1e-9:      # a tie keeps the first in the closed form's branch order
                 best = (cost, q, rob)
         if best is None:
             raise SystemExit("no IK branch with the upper arm above the table at the homing pose: move the indenter")

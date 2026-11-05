@@ -42,6 +42,7 @@ import ur5_cb3_cell as CELL  # noqa: E402
 from sr2hand.geometry.rotations import rot_between  # noqa: E402
 from sr2hand.geometry.sampling import fibonacci  # noqa: E402
 from sr2hand.numerics.angles import nearest  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 C, SIM = CELL.C, CELL.SIM
 D = ROOT / "docs/experiments/20261023-ati_ft_calibration"
@@ -58,6 +59,9 @@ NEED = dict(self_tool=15.0, port=15.0, tool_cell=30.0, links_cell=30.0, mass_lin
             mass_cell=50.0)                                         # mm; mass_line: the line from 6 mm past the eye
 NEED_MOVE = dict(NEED, mass_line=-1e9, mass_cell=30.0)                 # during a move: the line may brush the eye's arm
 SPEED = dict(v=0.3, a=0.3)                                          # rad/s, rad/s2 for every move (the swing)
+ORDER_TIE = 1e-9    # rad: a block's cycle replaces the best one only when shorter by more than this. A cycle and its reverse
+#                     cost the same, and their sums' last bits differ with the order and the numpy version; the first
+#                     cycle in the permutations' order stays (2026-11-05)
 TIME = dict(settle_s=4.0, rest_s=3.0, settle_max_s=15.0, operator_s=60.0)
 
 
@@ -149,6 +153,7 @@ class Checker:
         self.arm = arm_points()                                   # for the hanging mass only: the shoulder sits on the table
         self.trees = {ln: cKDTree(p) for ln, p in list(self.robot.items()) + list(self.arm.items())}
         self.q_home = np.radians(HOME_Q_DEG)
+        self.branch = URK.branch_of(self.q_home)                   # the homing pose's IK branch (shoulder, wrist, elbow)
 
     def cell_dist(self, P_B):
         P_I = C.apply(C.inv(self.T_BI), P_B)
@@ -242,7 +247,7 @@ def candidates(chk, P0, n_dir=160, yaws=np.arange(0.0, 360.0, 15.0)):
             R_BA = C.rot(C.EZ, yw) @ R0
             R_BE = R_BA @ chk.T_EA[:3, :3].T
             T_BE = C.Tm(R_BE, P0 - R_BE @ p_EA)
-            q = SIM.ik(T_BE, chk.q_home)
+            q = URK.ik_nearest(T_BE, chk.q_home, branch=chk.branch)   # on the homing's branch (SIM.ik until 2026-11-05)
             if q is None:
                 why["no IK"] = why.get("no IK", 0) + 1
                 continue
@@ -343,7 +348,7 @@ def order_block(chk, eye, load, others, qs):
             cost += c + (5.0 if e[0] == "via" else 0.0)
             seq += e
             cur = b
-            if best is not None and cost >= best[0]:
+            if best is not None and cost >= best[0] - ORDER_TIE:
                 break
         else:
             if cost < math.inf:

@@ -34,6 +34,7 @@ sys.path.insert(0, str(REPO / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 from sr2hand.geometry.rotations import rot_z, tf  # noqa: E402
 from sr2hand.numerics.angles import nearest  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 os.environ.setdefault("UR5M_REV", "v7")
 OUT = REPO / "docs/experiments/20261027-indenter_array"
 CAD = OUT / "cad"
@@ -252,7 +253,7 @@ def homing_at(TI, CELL, C, reg, x, y, yaw, i=None):
     T_AM = np.array(_G["keys"][i or 0]["T_AM_home"])
     T_BE = reg.T_BI @ T_AM @ C.inv(reg.T_EM)
     qh = np.asarray(reg.q_home, float)
-    q = CELL.SIM.ik(T_BE, qh)
+    q = URK.ik_nearest(T_BE, qh)
     if q is None:
         return dict(x=x, y=y, yaw=yaw, ok=False, why="ik")
     j5 = math.degrees(q[4])

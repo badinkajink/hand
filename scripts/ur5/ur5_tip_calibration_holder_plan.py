@@ -53,6 +53,7 @@ os.environ.setdefault("UR5_MOUNT", "v7")            # the mount on the robot sin
 import fingertip_holder as FH  # noqa: E402
 import tall_indenter as TI  # noqa: E402
 import ur5_cb3_cell as CELL  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 C = CELL.C
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
@@ -172,7 +173,7 @@ def run(a):
         for T in (p, p + [0.0, 0.0, ref]):                  # the robot's links one by one, at the pose and the reference
             T_IM = FH.T_IF_moving(T, tw) @ np.linalg.inv(CELL.T_M_FROM_F)
             T_BE = reg.T_BI @ T_IM @ C.inv(reg.T_EM)
-            q = CELL.SIM.ik(T_BE, qh)
+            q = URK.ik_nearest(T_BE, qh)
             for k, v in CELL.clearance(q, T_BE, T_true, reg.T_EM, "tiphold").items():
                 if k.endswith("_link"):
                     if v < links.get(k, (1e9, ""))[0]:
