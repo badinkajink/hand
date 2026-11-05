@@ -61,7 +61,7 @@ def ticks(ax, tips):
 def seps(axs, tips):
     for a in np.atleast_1d(axs):
         for s in SEPS:
-            if s < len(tips):
+            if s < len(tips) - 1:
                 a.axvline(s, color=GRID, lw=1.2)
 
 

@@ -158,6 +158,20 @@ BED15 = J("bed/summary.json", OLD15).get("tips", {})
 COST15 = J("cost/summary.json", OLD15).get("tips", {})
 SCR15 = J("screen/summary.json", OLD15)
 FIN15 = J("final/summary.json", OLD15)
+FE18_NAME = {C.BLOCKS[0]: "block4_g30", "tcd_cap8.5_u0.1": "cap_g30", "tcd_ell7.4x8.5x16x32_u0.1": "ell16_g30", C.REF: "ell11_g30"}
+
+
+def fe18(k, probe, F="1"):
+    """The 18 October FE's approach (um) of a tip under a probe: the whole print with four 3 x 2 mm magnets, base grid."""
+    nm = FE18_NAME.get(k)
+    p = os.path.join(OLD18, "fe/fe.jsonl")
+    if not nm or not os.path.exists(p):
+        return None
+    for line in open(p):
+        r = json.loads(line)
+        if r.get("tip") == nm and r.get("grid") == "base" and r.get("probe") == probe:
+            return r["per_force"][F]["approach_um"]
+    return None
 
 
 def old(k):
@@ -390,7 +404,40 @@ def screen_section():
     fig = img("media/fig_screen.png", "Stages 1 and 2 per tip: the stage score at each of the five conditions with J2, their "
               "minimum, as the bar (dash: J2 of 15 October); the D1&#8211;D8 replays within 3&#176; of Drake with the gate; the "
               "rigid parts&#8217; share of the normal force in the cells&#8217; HOM turns.", key="screen")
-    out = "<p>[screen prose]</p>" + fig + tab
+    J1 = {k: T[k].get("J1") for k in ORDER if k in T}
+    J2 = {k: T[k].get("J2") for k in ORDER if k in T}
+    top1 = sorted(J1, key=lambda k: -(J1[k] or -1))[:3]
+    top2 = sorted(J2, key=lambda k: -(J2[k] or -1))
+    allJ = [c["J"] for k in T for c in T[k]["conditions"].values() if c.get("J") is not None]
+    ref = T[C.REF]
+    fail = [k for k in ORDER if k in T and not T[k]["gate_pass"]]
+    fin, why = SCR.get("finalists", []), SCR.get("finalist_rule", {})
+    rule = lambda k: re.sub(r"^\(\d\) ", "", why.get(k, ""))  # noqa: E731
+    cond = lambda c: {f"0.7|{C.SERVO}": "friction 0.7", f"1.0|{C.SERVO}": "friction 1.0", f"0.5|{C.SERVO}": "friction 0.5",
+                      "0.7|kp0.5_kv0_fr0.18_fl0_dp0.0144": "servo gain 0.5", "0.7|kp0.72_kv0_fr0.12_fl0_dp0.0144":
+                      "torque limit 0.12&#8202;N&#8202;m"}.get(c, c)  # noqa: E731
+    rig = [get(T[k], "rigid_share_all", "median") for k in T]
+    cap = [get(T[k], "rigid_share_all", "by_part_mean", "cap") for k in T]
+    text = (
+        f"<p>No tip scores high on the v4b hand: the stage scores lie between {f(min(allJ))} and {f(max(allJ))} at every "
+        f"condition, so the held turns average under {90 * max(allJ):.0f}&#176; of the 90&#176; goal "
+        f"(Figure&#160;[[fig:screen]], Table&#160;[[tab:screen]]). J1 at friction 0.7 ranks "
+        + ", ".join(f"{name(k).lower() if k != C.REF else 'the v4b tip'} ({f(J1[k], 3)})" for k in top1)
+        + f" highest, and the v4b tip scores {f(J1[C.REF], 3)}. The worst condition reorders them. J2 is "
+        + ", ".join(f"{f(J2[k], 3)} for the {name(k).lower() if k != C.REF else 'v4b tip'}" for k in top2[:3])
+        + f" and {f(J2[C.REF], 3)} for the v4b tip, whose worst condition is {cond(ref.get('J2_condition'))}; on 15 October, "
+        f"on the first CAD hand at 10&#8202;MPa, the same tip had J2 = {f(get(SCR15, 'tips', old(C.REF), 'J2'), 3)}.</p>"
+        f"<p>The v4b tip&#8217;s pads end within 3&#176; of Drake&#8217;s turn with its held outcome in {ref['agree_drake_3deg']} "
+        f"of {ref['n_vs_drake']} replays, so the gate admits {ref['agree_drake_3deg'] - 2} or more; "
+        + ("every tip passes it" if not fail else ", ".join(name(k).lower() for k in fail) + " fail it")
+        + ". The finalists by the rules are "
+        + "; ".join(f"the {name(k).lower()} ({rule(k)})" for k in fin)
+        + ". Rule (2) adds no tip: none that passes the gate replays at 0.8 of the v4b tip&#8217;s cost or less.</p>"
+        f"<p>In the cells&#8217; HOM turns the cylinder also presses on the cap&#8217;s end plate, about 1.5&#8202;mm past "
+        f"the pad&#8217;s distal end. The rigid parts take a median {rng(rig)} of the normal force on the "
+        f"cylinder, the cap {rng(cap)} of it (Figure&#160;[[fig:screen]], bottom); in the D1&#8211;D8 turns of the real_v1 "
+        f"hands the pads take all of it.</p>")
+    out = text + fig + tab
     C3 = FIN.get("candidates", {})
     if C3:
         b3 = []
@@ -420,16 +467,49 @@ def fe_section():
         if not t:
             continue
         s = t.get("sensing") or {}
-        body.append([name(k), f(get(t, "sphere_apex_um", "1"), 0), f(get(t, "rod_across_um", "1"), 0), f(t.get("rod_along_1N_um"), 0),
+        body.append([name(k), f(get(t, "sphere_apex_um", "1"), 0), f(fe18(k, "s_apex"), 0), f(get(t, "rod_across_um", "1"), 0),
+                     f(fe18(k, "cx12.5_z0"), 0), f(t.get("rod_along_1N_um"), 0),
                      f(t.get("exponent_sphere")), f(t.get("exponent_rod")), f(get(t, "twist_arm_rod_mm", "1")),
                      f(t.get("sphere_map_spread")),
                      f(s.get("centre_force_N"), 3) if s.get("centre_force_N") is not None else ("No fit" if not t["magnets"] else "&#8211;"),
                      f(s.get("B_max_component_mT"), 1)])
-    tab = table(["Tip", "Sphere at the apex, 1&#8202;N, &#181;m", "Rod across, 1&#8202;N, &#181;m", "Rod along, 1&#8202;N, &#181;m",
+    tab = table(["Tip", "Sphere at the apex, 1&#8202;N, &#181;m", "18 Oct", "Rod across, 1&#8202;N, &#181;m", "18 Oct",
+                 "Rod along, 1&#8202;N, &#181;m",
                  "Exponent, sphere", "Exponent, rod", "Twist arm under the rod, 1&#8202;N, mm", "Sphere map, largest over least",
                  "Force resolution, N", "Largest field component, mT"], body,
                 "Finite elements per tip (fe/summary.json; <code>scripts/fingertip_shape_rerun_fe.py</code>).", key="fe")
-    return "<p>[FE prose]</p>" + img("media/fig_fe.png", "[FE figure caption]", key="fe") + tab
+    have = [k for k in ORDER if k in FE]
+    curved = [k for k in have if k not in C.BLOCKS and k not in C.QUARTERS]
+    sph = [get(FE[k], "sphere_apex_um", "1") for k in have]
+    spread = [FE[k].get("sphere_map_spread") for k in have]
+    rod_c = [get(FE[k], "rod_across_um", "1") for k in curved]
+    rod_b = [get(FE[k], "rod_across_um", "1") for k in C.BLOCKS if k in FE]
+    n_s = [FE[k].get("exponent_sphere") for k in have]
+    n_r = [FE[k].get("exponent_rod") for k in curved]
+    res = {k: get(FE[k], "sensing", "centre_force_N") for k in have if get(FE[k], "sensing", "centre_force_N") is not None}
+    trav = [get(FE[k], "sensing", "magnet_travel_um_per_N") for k in res]
+    bmax = [get(FE[k], "sensing", "B_max_component_mT") for k in res]
+    d18 = [abs(get(FE[k], "sphere_apex_um", "1") / fe18(k, "s_apex") - 1) for k in have if fe18(k, "s_apex")]
+    d18r = [abs(get(FE[k], "rod_across_um", "1") / fe18(k, "cx12.5_z0") - 1) for k in have if fe18(k, "cx12.5_z0")]
+    nofit = [k for k in have if not FE[k]["magnets"]]
+    text = (
+        f"<p>The finite elements give every tip a nearly uniform surface under the 2&#8202;mm sphere: {rng(sph, 0)}&#8202;&#181;m "
+        f"at 1&#8202;N at the apex, and the softest of the seven map points sinks {rng(spread)} times as far as the stiffest "
+        f"(Table&#160;[[tab:fe]], Figure&#160;[[fig:fe]]). The approach grows with the load to the power {rng(n_s)} under the "
+        f"sphere. Under the 12.5&#8202;mm rod across the finger the curved tips sink {rng(rod_c, 0)}&#8202;&#181;m at 1&#8202;N "
+        f"and the blocks {rng(rod_b, 0)}&#8202;&#181;m, with exponent {rng(n_r)} on the curved tips. The pads here are cut "
+        f"where the v4b pad is cut and held on that face; against the whole prints of 18 October the apex approach changes by "
+        f"at most {100 * max(d18):.0f}&#8202;% and the rod&#8217;s by at most {100 * max(d18r):.0f}&#8202;%.</p>"
+        + (f"<p>With pad 05R4&#8217;s four magnets, every tip that holds them resolves {rng(list(res.values()), 3)}&#8202;N at the "
+           f"contact point from one 141&#8202;Hz sample, at the gain its {rng(bmax, 1)}&#8202;mT field needs; the magnets move "
+           f"{rng(trav)}&#8202;&#181;m/N, and the resolution of the best tip is "
+           f"{100 * (1 - min(res.values()) / max(res.values())):.0f}&#8202;% finer than that of the worst. " if res else "<p>")
+        + (", ".join(name(k).lower() for k in nofit) + " cannot take the layout: the magnets&#8217; tops lie 7.5&#8202;mm "
+           "under the apex, behind their back planes.</p>" if nofit else "</p>"))
+    fig = img("media/fig_fe.png", "Finite elements per tip: the approach at 1&#8202;N under the 2&#8202;mm sphere at the seven map "
+              "points over the apex&#8217;s (top), the approach at 1&#8202;N under the sphere at the apex and the 12.5&#8202;mm rod "
+              "across the finger (middle), and the force resolution at the contact point with pad 05R4 (bottom).", key="fe")
+    return text + fig + tab
 
 
 def compute_section():
