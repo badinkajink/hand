@@ -70,6 +70,8 @@ def short(key: str) -> str:
         return "11/22 (v4b)"
     if key == HEMI:
         return "hemisphere 7.4"
+    if key == SPHERE:
+        return "sphere 10.55"
     m = re.match(r"tcd_cap([0-9.]+)", key)
     if m:
         return f"capsule {m[1]}"

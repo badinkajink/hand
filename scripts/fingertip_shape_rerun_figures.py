@@ -35,7 +35,7 @@ OLD = ROOT / "docs/experiments/20261015-curved_tips"
 INK, INK2, GRID, PADS, DRAKE, THIRD = CF.INK, CF.INK2, CF.GRID, CF.PADS, CF.DRAKE, CF.THIRD
 TPU, RIGID = "#e6c7a8", "#9a9a9a"
 ORDER = [C.REF] + C.HALF + [C.HEMI] + C.CAPSULES + C.BLOCKS + C.QUARTERS
-SEPS = (2.5, 3.5, 6.5, 8.5)                     # between the half-ellipsoids, hemisphere, capsules, blocks, quarters
+SEPS = (2.5, 3.5, 6.5, 8.5, 11.5)               # between the half-ellipsoids, hemisphere, capsules, blocks, quarters, sphere
 
 
 def setup():
@@ -50,7 +50,7 @@ def J(rel, base=D):
 
 def short(k):
     return C.short(k).replace("half ", "Half ").replace("quarter ", "Quarter ").replace("capsule", "Capsule").replace(
-        "block", "Block").replace("hemisphere", "Hemisphere")
+        "block", "Block").replace("hemisphere", "Hemisphere").replace("sphere 10.55", "Sphere 10.55")
 
 
 def ticks(ax, tips):
