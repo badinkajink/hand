@@ -7,7 +7,8 @@ The coordinator appends one JSON line per update to docs/experiments/20261027-v3
 it; its result commits start with "Crosstalk:". It also commits analyses with no feed line (owner, 2026-10-29 15:2x, when
 the job widened to the calibration of every v3 tip). This script only reads git. Every --interval seconds it reads the
 feed at HEAD and HEAD's last 300 commits with the files each changes. News is a feed line past the count in --state, or a
-commit not in --state that starts with "Crosstalk:" or changes the v3 folder's data/ or README.md or an analysis of the
+commit not in --state that starts with "Crosstalk:", "SR2 hand," or "SR2 crosstalk" (a run's start or stop on the hand, which
+the crosstalk page's plan items state; 11-05) or changes the v3 folder's data/ or README.md or an analysis of the
 inverted rig (ANALYSES; step 43 of the note, 11-04) and is not this job's own (subjects in MINE). Beside git it lists the coordinator's analysed holds of the v3 tips from ID 3 on
 (logs/*v3idN*/holds.npz, N >= 3; logs/ is not in git), and a holds file not in --state is news too (step 38 of the note,
 10-30). When news appears it waits until nothing more arrives for --settle seconds, prints the new lines, commits and
@@ -38,14 +39,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 V3 = "docs/experiments/20261027-v3_tip_calibration_and_crosstalk/"
 FEED = V3 + "feed.jsonl"
-PREFIX = "Crosstalk:"
+PREFIX = ("Crosstalk:", "SR2 hand,", "SR2 crosstalk")
 # the coordinator also commits analyses without a feed line (owner, 10-29 15:2x): commits that add or change these, unless
 # they are this job's own
 WATCHED = (V3 + "data/", V3 + "README.md")
 # the inverted rig's analyses, outside the v3 folder since commit ab47f8b6 of 11-04: the holds of its sessions and its rod
 # fits in the seat block's data/, the tips' held-out curves and the viewer's board GP in the UR5 folder's data/, and the
 # coordinator's QUEUE.md, where the plans' changes and the analyses' readings go without a feed line; and the analysis files
-# of the SR2 hand's sweeps (the lab's progress commits to that folder's README wake nothing)
+# of the SR2 hand's sweeps (the lab's commits to that folder's README wake by their subject, PREFIX)
 ANALYSES = re.compile(r"docs/experiments/(20261030-inverted_rig_seat_block/data/(holds/|[^/]*rod_joint_registration)"
                       r"|20261022-ur5_tip_calibration/(data/[^/]*(v3_|board_gp)|QUEUE\.md)"
                       r"|\d{8}-sr2_[^/]*/data/[^/]*analysis)")
@@ -75,7 +76,7 @@ def show(path):
 
 
 def snapshot():
-    """The feed's lines, and among HEAD's last 300 commits the "Crosstalk:" ones and the others that change the v3
+    """The feed's lines, and among HEAD's last 300 commits those with a subject in PREFIX and the others that change the v3
     folder's data/ or README.md or a rig analysis and are not this job's (merges list no files, so they count only by
     subject)."""
     head = git("rev-parse", "--short=8", "HEAD").strip()
@@ -132,7 +133,7 @@ def report(snap, nw, first):
     for ln in nw["lines"]:
         print(ln)
     if nw["commits"]:
-        print(f'commits not acknowledged ("{PREFIX}", or changing the v3 folder\'s data/ or README.md or a rig analysis):')
+        print(f'commits not acknowledged (subjects {", ".join(PREFIX)}, or changing the v3 folder\'s data/ or README.md or a rig analysis):')
         for c in nw["commits"]:
             fs = ", ".join(f.removeprefix(V3) for f in c.get("files", [])[:4])
             print(f"  {c['hash']} {c['date']} {c['subject']}" + (f"  [{fs}]" if fs else ""))
