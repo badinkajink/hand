@@ -1,4 +1,4 @@
-Status: active
+Status: done
 Task: (owner, 2026-11-03 11:0x) "repo clean up + refresh on the README", "the absolutely abysmal scripts folder", and
 "rewriting rotations, geometry, math helpers everywhere with custom math instead of using proven library calls / a
 single help file(s)". Owner's choices at 11:5x: ten topic folders, switched by this autopilot after the day's lab work;
@@ -16,19 +16,26 @@ package rename"). Dry run of the move and the rename at 4f54fc805 in two worktre
 the package, 2,033 script imports resolve, no live import of morphohand, the same 15 known problems, and pytest
 identical in both layouts (108 passed, 7 failed in worktrees). Nothing is switched yet. The rule below on tests
 overrides the test parts of steps 5 and 8.
-State 11-05 01:0x (autopilot): the switch and the landing are on main. Switch a41ffa27b at 00:50 (787 files, package sr2hand, venv reinstalled;
-second pass move_extra_live_code.py for 49 lab, study and poster files, .gitignore and the workspace). Lab bullet 0e3a94041; the crosstalk job
-re-armed with its rule step 53 and running. The 23 migration commits landed e7040b5b4..c86d3fe66 with no conflict and are pushed. Checks after the
-landing: check_scripts the 15 known problems; pytest 114 passed + the floor datum, as before; 0 undefined names; 0 attribute misses against the
-switch's tree; the modules equal the branch's; smoke 125 of 130, the other 5 not from the move (DLO_REPO, newton, and the three contact_surface
-modules, which import as a package). HOM rollout before and after (logs/20261103-scripts_cleanup/hom_rollout_*.json, equiv/hom_record.py,
-hom_compare2.py, sv25, seed 0): twist layout 304 is identical in every row and scores 1.0. Press layout 170 scores 0.891 in both, and its rows
-differ from row 87 by up to 2 um and 0.7 mm/s. A move of the open pose by 1e-14 rad on the old code gives the same spread (2 um, 0.67 mm/s), and
-reverting hom.py alone restores identity, so this is rounding in hom.py's helpers amplified by contact. Left: step 7's reruns (hom_plant_transfer
---set and the three pages, locally, under Publish pending; plant_drop_gate's yaw names 20260902-residual-bench and plant_ranking_test, not rerun);
-private copies in scripts added since 11-03; CLAUDE.md and AGENTS.md's "migrates the live copies ..." to "migrated the live copies."; then
-scripts/README.md, remove the worktree, the branch and logs/20261103-scripts_cleanup/base_tree, and report per step 9. Use .venv/bin/python -m
-pytest with PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, not uv run. Dirty docs/handoff notes can stop `git pull`: stash those paths, pull, pop.
+State 11-05 01:1x (autopilot), done. Commits on main: the switch a41ffa27b at 00:50 (787 files in ten folders and archive, package sr2hand, venv
+reinstalled; second pass move_extra_live_code.py for 49 lab, study and poster files, .gitignore and the workspace), lab bullet 0e3a94041, the 23
+migration commits e7040b5b4..c86d3fe66 at 00:52 with no conflict, Spearman rerun and three pages f15190386, wrap180 73c07869a, CLAUDE.md's line, and
+scripts/README.md with the runbook's outcome b35a4093f. The crosstalk job was re-armed with its rule step 53 and runs.
+Copies removed per commit (function definitions removed; lines added/removed): src 1 (20/51); contact_surface 0 (6/12); design 1 (8/13); docs 0 (4/7);
+hardware 1 (19/41); cad 0 (21/54); mechanisms 7 (37/105); contact 3 (40/72); rl and src/sr2hand/rl 5 (92/109); fingertip 6 (78/205); ur5 11 (81/181);
+hom and src/sr2hand/control 18 (110/295); the audits' prose-listed copies 3 (49/65); hom unwraps 0 (9/4); shared additions 0 (8/0). Total 56 definitions,
+582 lines added, 1,214 removed, besides the copies written inline. Bugs fixed, one commit each: plant_drop_gate's yaw, ur5_tip_calibration_film's quat,
+holder_paths.rot_from_to, probe_real_v1_chain._align (removed), terms_common._seg_seg_dist, policy_cpu_rollout.seg_seg, the four ordinal Spearman
+copies, build_cad_v1_finger.unit. Reruns: hom_plant_transfer's five sets (largest rho change 0.001 plants and sts_modulus, 0.008 modulus, 0.010 factorial,
+0.062 sts_friction, a grid with many tied scores). plant_drop_gate's yaw changes 20260902-residual-bench and plant_ranking_test on a rerun; neither was
+rerun.
+Checks after the landing: check_scripts the 15 known problems; pytest 114 passed + the floor datum, as before; 0 undefined names; 0 attribute misses
+against the switch's tree; smoke 125 of 130, the other 5 not from the move (DLO_REPO, newton, three contact_surface modules that import as a package).
+HOM rollout before and after (logs/20261103-scripts_cleanup/hom_rollout_*.json, sv25, seed 0): twist layout 304 is identical in every row and scores
+1.0. Press layout 170 scores 0.891 in both, and its rows differ from row 87 by up to 2 um and 0.7 mm/s. A move of the open pose by 1e-14 rad on the old code
+gives the same spread (2 um, 0.67 mm/s), and reverting hom.py alone restores identity: rounding in hom.py's helpers, amplified by contact.
+Publish pending (rebuilt locally; this hand-off does not republish): docs/experiments/20260906-screen_vs_chain/20260906-screen_vs_chain.html
+(https://claude.ai/code/artifact/28a84ea8-a8b2-405e-aea6-e6a626baa3b0); docs/experiments/20261029-foundational_pose_review/20261102-hom_plant_modulus.html
+and 20261029-foundational_pose_hand_design.html, which have no artifact in INDEX.md.
 Checks and edit scripts: logs/20261103-scripts_cleanup/equiv/ (oldcode.py loads a copy from 91ab66052; check_*.py, run_all.sh, migrate_*.py,
 fix_bugs.py, smoke.sh, undefined.py, attrs.py, survivors.py, show.py, rows.py, edit.py). attrs.py found six calls M.name whose target the
 migration had removed (B.heat in the contact beds, G.fib_cap in the contact overview, B.perp in the CAD page); fixed in 92d136d5e and 517cd84f5.
@@ -47,10 +54,11 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 3. After the push, per RUNBOOK: the bullet in the lab's STATE.md (commit, push), the crosstalk job's rule step a… Done 11-05 00:51: Lab STATE bullet 0e3a94041 pushed; the crosstalk job has its rule step 53 and is armed --at now; memory project_scripts_topic_folders_2026_11_03 with its MEMORY.md line
 - [x] 4. src/morphohand/geometry/rotations.py with tests/test_geometry_rotations.py, per RUNBOOK "Shared math modules"… Done 11-03 11:55: Done by the arming window 11-03 12:1x: 529a91a48 src/morphohand/geometry/rotations.py (51 functions over scipy) and tests/test_geometry_rotations.py (15 passing with scipy 1.18 and with scipy 1.12/numpy 1.26), CLAUDE.md and AGENTS.md rule
 - [x] 5. The other modules (geometry vectors, distances, sdf, mesh, sampling; numerics stats, signal, angles), each wi… Done 11-03 23:52: 7467a2e99 on main: geometry vectors, distances, sdf, mesh, sampling and numerics stats, signal, angles under src/morphohand/ (renamed by the switch), plus quat_twist, rot_slerp, adjoint in rotations; each checked once in logs/20261103-scripts_cleanup/equiv/check_*.py. No script calls them until the landing.
-- [ ] 6. Migrate the copies folder by folder per RUNBOOK "Migration", with the 1e-12 checks, one commit per folder; not src/morphohand/driver/ and not the UR5 programs that move the robot.
-- [ ] 7. Fix the bugs in RUNBOOK's table, one commit each, naming the pages and runs whose numbers change; rebuild those pages locally and list them under "Publish pending".
-- [ ] 8. tests/test_no_private_math.py with its allow-list, and the section in CLAUDE.md and AGENTS.md.
-- [ ] 9. Report in State: the commits, copies removed per folder, bugs fixed; regenerate scripts/README.md (scripts/docs/scripts_map.py); disarm.
+- [x] 6. Migrate the copies folder by folder per RUNBOOK "Migration", with the 1e-12 checks, one commit per folder; no… Done 11-05 00:58: e7040b5b4..af6a143d4, 83aeae6cd, 32c241ff8, c86d3fe66 on main at 00:52: one commit per folder, check_scripts 15 known problems, pytest as before, 0 undefined names, 0 attribute misses, smoke 125 of 130 (5 not from the move), twist rollout identical, press within the 1e-14 sensitivity
+- [x] 7. Fix the bugs in RUNBOOK's table, one commit each, naming the pages and runs whose numbers change; rebuild tho… Done 11-05 01:02: ae3d6115d..770886c9c, 6aa06d6b2 on main, one commit per bug; hom_plant_transfer reran, plant-modulus, foundational-pose and screen-chain pages rebuilt locally; largest rho change 0.062 on a tied friction grid; plant_drop_gate's yaw names 20260902-residual-bench and plant_ranking_test, not rerun
+- [x] 8. tests/test_no_private_math.py with its allow-list, and the section in CLAUDE.md and AGENTS.md. Done 11-05 01:02: No test file, per the owner's direction; the section in CLAUDE.md and AGENTS.md says the hand-off migrated the live copies
+- [x] 9. Report in State: the commits, copies removed per folder, bugs fixed; regenerate scripts/README.md (scripts/do… Done 11-05 01:03: Reported in the note's State; scripts/README.md regenerated b35a4093f; worktree, branch and base_tree removed
+- [x] 17. Search the scripts added since 11-03 for private copies of rotations, frames, Spearman, smoothing and angle w… Done 11-05 01:02: 31 scripts added since 11-03 searched; wrap180 in cad_v3_page migrated; no other private copy
 Standing directions (for every step):
 - The lab's STATE.md (docs/experiments/20261022-ur5_tip_calibration/lab/STATE.md), step 3: the switch's change there is ONE bullet appended at the end of its section 'Where things are' (the commit, the new paths of the scripts the lab runs), and nothing elsewhere in the file. The lab writes STATE.md during runs, and a one-bullet change merges cleanly (lab, 12:04 on 11-03, relayed by the coordinator window).
 - Owner 11-03 12:4x: no new test files. The modules of step 5 are checked once against scipy, trimesh or MuJoCo in scratch scripts under logs/20261103-scripts_cleanup/equiv/, not in tests/; step 8 writes only the section in CLAUDE.md and AGENTS.md, and no tests/test_no_private_math.py.
@@ -60,10 +68,9 @@ Standing directions (for every step):
 - New HOM script of 11-03 20:5x (window 220623e7): scripts/hom_task_conflict.py, and scripts/hom_task_conflict_page.py when it appears, go under scripts/hom/ with the other hom_* scripts (add them to plan.json); the job hand-20261104-hom_task_conflict claims them and starts at 09:15 on 11-04 or later, after the page job.
 - Autopilot 00:1x on 11-04, from direction 14: step 1's deadline of 09:00 on 11-04 no longer applies, because the switch waits for hand-20261103-fingertip_shape_rerun. This job is armed --after that job. Once a session has started after it, if the lab is still not idle 24 hours later, ap step wait with what the lab is doing.
 <!-- /ap:steps -->
-Claimed: during step 2 every file under scripts/, src/ and tests/, and pyproject.toml and uv.lock; after it, the
-folder being migrated; src/sr2hand/geometry/, src/sr2hand/numerics/, docs/notes/20261103-scripts_cleanup/,
-scripts/README.md, and the scripts and math lines of README.md, CLAUDE.md, AGENTS.md.
-Waiting on owner: migrating src/sr2hand/driver/ and the UR5 programs that move the robot (ur5_inverted_rig.py,
+Claimed: nothing; the job is done.
+Waiting on owner: the floor datum of src/sr2hand/bench/tags.py (85.0 mm beside the comment "measured 65.0"), the one failing test; the global
+~/.claude/CLAUDE.md still names scripts/texsvg.py and scripts/docs_index.py (now under scripts/docs/); migrating src/sr2hand/driver/ and the UR5 programs that move the robot (ur5_inverted_rig.py,
 the plan generators, ur5_tip_calibration_holder_paths.py) needs the lab's simulator and the owner.
 Do not: switch while the lab runs or another window has uncommitted script changes; push anything other than this
 task's commits; edit the crosstalk job's files beyond the switch's renames; republish artifacts from this login.
