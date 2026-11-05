@@ -9,7 +9,10 @@ data/20261027-crosstalk_touchoffs.json in the v3 plan folder, as committed at HE
 bins; its numbers follow the coordinator's lines in that folder's feed.jsonl. The press signal per newton of v3 ID 1 and v2 ID 1
 comes from the coordinator's comparison of four magnets with five (scripts/ur5_tip_calibration_four_vs_five.py, data/ in the
 same folder, at HEAD). The last figure is the UR5 cell render of the holder map
-(scripts/ur5_cell_render.py, in the v3 plan folder's media/). Writes docs/experiments/20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html.
+(scripts/ur5_cell_render.py, in the v3 plan folder's media/). The section on the SR2 hand reads the coordinator's analysis of the
+lab's sweep of 2026-11-04 (scripts/sr2_crosstalk_night.py, data/20261104-night_crosstalk_analysis.json in
+docs/experiments/20261104-sr2_hand_crosstalk, at HEAD), and its film replays the sweep's commanded poses in the lab's CAD hand
+(made once with MUJOCO_GL=egl and kept in media/). Writes docs/experiments/20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html.
 
     ~/.claude/bin/resguard.sh run --mem 2G --cpu 100 -- .venv/bin/python scripts/fingertip_crosstalk_page.py
 """
@@ -43,9 +46,11 @@ V3 = EXP / "20261027-v3_tip_calibration_and_crosstalk"
 HOVER = V3 / "media/20261027-ur5_cell_holder_hover.png"
 HOLD = V3 / "data/20261027-crosstalk_touchoffs.json"
 FVF = V3 / "data/20261028-four_vs_five_grid.json"   # feed 2026-10-28 00:59: stage 2's whole grid (the 00:18 file had its first 74 actions)
-SEC = dict(terms=1, field=2, holder=3, subtract=4, fit=5, sharpie=6, limits=7, future=8)
-FIG = dict(budget=1, holder=2, hovers=3, force=4, sharpie=5, render=6)
-TAB = dict(field=1, holder=2, hovers=3, force=4, crb=5)
+SR2 = EXP / "20261104-sr2_hand_crosstalk"
+NIGHT = SR2 / "data/20261104-night_crosstalk_analysis.json"
+SEC = dict(terms=1, field=2, holder=3, hand=4, subtract=5, fit=6, sharpie=7, limits=8, future=9)
+FIG = dict(budget=1, holder=2, hovers=3, force=4, sweep=5, hand=6, sharpie=7, render=8)
+TAB = dict(field=1, holder=2, hovers=3, force=4, floor=5, moved=6, left=7, apart=8, crb=9)
 SHIFTED = ("-x+", "-x-", "-y+", "-y-")   # hover ids of the apex shifted 3 mm; the others are centred
 SHARPIE_W = (7.0, 11.0)   # about a sharpie's width (the coordinator's 01:28 line)
 L = dict(
@@ -57,6 +62,11 @@ L = dict(
     gt=EXP / "20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html",
 )
 BLUE, ORANGE, GREY = "#2e5fa8", "#b06010", "0.45"
+GREEN = "#1b9e77"
+FINGERS = ("thumb", "index", "middle")
+FINGER_NAME = dict(thumb="Thumb", index="Index", middle="Middle finger")
+FINGER_COL = dict(thumb=BLUE, index=ORANGE, middle=GREEN)
+UT_PER_N = 28.0   # the coordinator's round value of the three tips' 28.0 to 28.7 uT/N, for the figure's force axis
 FACING_W = (0, 5, 10, 15, 20, 30)
 SIDE_G = (0, 2, 5, 10, 20)
 
@@ -263,6 +273,210 @@ def fig_holder(H):
     fig.legend(h, l_, loc="lower center", ncol=2, frameon=False, bbox_to_anchor=(0.5, -0.08), fontsize=13)
     fig.tight_layout()
     out = MEDIA / "20261027-holder_touchoffs.png"
+    fig.savefig(out, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return out
+
+
+def film_sweep():
+    """A replay of the sweep in the CAD hand that the lab's plans were checked in (the lab's handgeo.py, the cad_v2 scene), at
+    the commanded joint angles of its events.jsonl: part of each finger's sweep alone, the thumb and the middle finger toward
+    each other, and the first random poses. Made once and kept in media/; the poster is the closest pose that ran."""
+    mp4, poster = MEDIA / "20261104-sr2_sweep_replay.mp4", MEDIA / "20261104-sr2_sweep_replay_poster.png"
+    if mp4.exists() and poster.exists():
+        return mp4, poster
+    os.environ.setdefault("MUJOCO_GL", "egl")
+    import mujoco
+    from PIL import Image, ImageDraw, ImageFont
+    sys.path.insert(0, str(SR2 / "lab"))
+    from handgeo import F, HOME_LOCAL, Hand
+    from matplotlib.colors import to_rgb
+    from tip_codesign_film import FONT, label_bar
+
+    def steps(run, family):
+        rows = [json.loads(x) for x in at_head(SR2 / f"data/20261104-night/{run}/events.jsonl").decode().splitlines()]
+        return [e for e in rows if e.get("kind") == "step" and e.get("op") == "joints" and e.get("family") == family]
+    parts = (("Thumb alone", "run1_home", steps("run1_home", "thumb_mcp_pip")[::4]),
+             ("Index alone", "run1b_home_rest", steps("run1b_home_rest", "index_mcp_pip")[::4]),
+             ("Middle finger alone", "run1c_home_rest2", steps("run1c_home_rest2", "middle_yaw_mcp")[::4]),
+             ("Thumb and middle finger toward each other", "run1c_home_rest2", steps("run1c_home_rest2", "tm_pip")),
+             ("Random poses of all three fingers", "run2_random_s1", steps("run2_random_s1", "random")[:20]))
+    h = Hand()
+    m = h.m
+    for g in range(m.ngeom):
+        b = m.geom_bodyid[g]
+        while b > 0:
+            name = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, b) or ""
+            hit = next((f for f in F if name.startswith(f)), None)
+            if hit:
+                m.geom_matid[g] = -1
+                m.geom_rgba[g] = (*to_rgb(FINGER_COL[hit]), 1.0)
+                break
+            b = m.body_parentid[b]
+    m.geom_group[m.geom("floor").id] = 5
+    for t in range(m.ntex):                                # a white background: the skybox's texture, before the renderer takes it
+        if m.tex_type[t] == mujoco.mjtTexture.mjTEXTURE_SKYBOX:
+            m.tex_data[m.tex_adr[t]:m.tex_adr[t] + m.tex_width[t] * m.tex_height[t] * m.tex_nchannel[t]] = 255
+    W, H = 960, 640
+    m.vis.global_.offwidth, m.vis.global_.offheight = W, H
+    rend = mujoco.Renderer(m, H, W)
+    opt = mujoco.MjvOption()
+    opt.geomgroup[5] = 0
+    cam = mujoco.MjvCamera()
+    cam.lookat[:] = (0.005, 0.0, 0.07)
+    cam.azimuth, cam.elevation, cam.distance = 100.0, 6.0, 0.37
+
+    def frame(q, lines):
+        h.set(HOME_LOCAL, {f: dict(zip(("yaw", "mcp", "pip"), q[3 * i:3 * i + 3])) for i, f in enumerate(F)})
+        rend.update_scene(h.d, cam, scene_option=opt)
+        im = Image.fromarray(label_bar(rend.render().copy(), lines))
+        d = ImageDraw.Draw(im)
+        font = ImageFont.truetype(FONT, 22)
+        for k, (f, tip) in enumerate((("thumb", "v3 ID 1"), ("index", "v3 ID 3"), ("middle", "v3 ID 2"))):
+            d.text((14, H - 96 + 30 * k), f"{FINGER_NAME[f]}, {tip}", fill=FINGER_COL[f], font=font)
+        return np.asarray(im)
+
+    def pose(e):
+        return np.array([float(e["joints"][f][j]) for f in F for j in ("yaw", "mcp", "pip")])
+    fps = 12
+    ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(fps),
+                           "-i", "-", "-c:v", "libx264", "-crf", "24", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(mp4)],
+                          stdin=subprocess.PIPE)
+    last = np.zeros(9)
+    for title, run, ss in parts:
+        for e in ss:
+            q = pose(e)
+            c = e.get("clearance_mm")
+            lines = [title, f"{run}, step {e['step']}" + (f": closest fingers {c:.1f} mm apart in the model" if c is not None else "")]
+            for a in np.linspace(0.0, 1.0, 8):
+                ff.stdin.write(frame(last + a * (q - last), lines).tobytes())
+            for _ in range(3):
+                ff.stdin.write(frame(q, lines).tobytes())
+            last = q
+    ff.stdin.close()
+    ff.wait()
+    near = min(parts[3][2], key=lambda e: e["clearance_mm"])
+    Image.fromarray(frame(pose(near), [parts[3][0], f"{parts[3][1]}, step {near['step']}: closest fingers "
+                                                    f"{near['clearance_mm']:.1f} mm apart in the model"])).save(poster)
+    rend.close()
+    return mp4, poster
+
+
+def fig_hand(R, hn):
+    """The coordinator's analysis of the sweep on the SR2 hand: (a) each board's change by the family that moved, (b) what is
+    left on the random poses by predictor, (c) what is left against the clearance between the thumb and the middle finger."""
+    plt = P.plt_setup()
+    from matplotlib.lines import Line2D
+    from matplotlib.ticker import FixedLocator, FuncFormatter, NullFormatter
+    fig = plt.figure(figsize=(9.7, 9.8))
+    gs = fig.add_gridspec(2, 2, height_ratios=(1.0, 1.0), width_ratios=(1.12, 1.0), hspace=0.42, wspace=0.42)
+    a, b, c = fig.add_subplot(gs[0, :]), fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1])
+    fl = hn["floor_median"]
+
+    def force_axis(ax, ticks):
+        sec = ax.secondary_yaxis("right", functions=(lambda v: v / UT_PER_N, lambda v: v * UT_PER_N))
+        sec.set_ylabel(f"Face force at {UT_PER_N:.0f} \N{MICRO SIGN}T/N (N)")
+        sec.yaxis.set_major_locator(FixedLocator(ticks))
+        sec.yaxis.set_minor_formatter(NullFormatter())
+        sec.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+        sec.spines["top"].set_visible(False)
+
+    # (a) one column per family: each board's median, with a line up to its largest value
+    kinds = ("yaw", "mcp", "pip", "mcp_pip", "yaw_mcp")
+    labels = dict(yaw="Yaw", mcp="Mcp", pip="Pip", mcp_pip="Mcp,\npip", yaw_mcp="Yaw,\nmcp")
+    a.axhspan(fl[0], fl[1], color="0.85", zorder=0)
+    xt, xl = [], []
+    x = 0
+    for mf in FINGERS:
+        x0 = x
+        for kind in kinds:
+            row = R["families"][f"{mf}_{kind}"]
+            for k, f in enumerate(FINGERS):
+                if f not in row:
+                    continue
+                xx = x + (k - 1) * 0.24
+                a.plot([xx, xx], [row[f]["median_uT"], row[f]["max_uT"]], "-", color=FINGER_COL[f], lw=1.6, zorder=2)
+                a.plot([xx], [row[f]["median_uT"]], "o", color=FINGER_COL[f], ms=6.5, zorder=3)
+            xt.append(x)
+            xl.append(labels[kind])
+            x += 1
+        a.text(0.5 * (x0 + x - 1), 215, f"{FINGER_NAME[mf]} moved", ha="center", va="bottom", fontsize=13)
+        if mf != FINGERS[-1]:
+            a.axvline(x - 0.25, color="0.7", lw=0.8)
+        x += 0.5
+    a.set_yscale("log")
+    a.set_ylim(1, 200)
+    a.set_yticks((1, 2, 5, 10, 20, 50, 100, 200))
+    a.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+    a.yaxis.set_minor_formatter(NullFormatter())
+    a.set_xticks(xt)
+    a.set_xticklabels(xl)
+    a.set_xlim(-0.6, x - 0.9)
+    a.set_ylabel("Change at the board (\N{MICRO SIGN}T)")
+    a.set_title("(a) Change at each board, one finger moving alone", loc="left", pad=24)
+    a.spines["top"].set_visible(False)
+    force_axis(a, (0.05, 0.1, 0.25, 0.5, 1, 2, 5))
+    a.spines["right"].set_visible(False)
+    a.legend(handles=[Line2D([], [], color=FINGER_COL[f], marker="o", ms=6.5, lw=1.6, label=f"{FINGER_NAME[f]}\N{RIGHT SINGLE QUOTATION MARK}s board") for f in FINGERS]
+             + [Line2D([], [], color="0.85", lw=8, label="Between rest readings")],
+             loc="center", bbox_to_anchor=(0.5, 0.5), ncol=2, frameon=False, fontsize=12, labelspacing=0.2)
+
+    # (b) the random poses: median, with a line up to the 95th percentile
+    sub_ = R["subtract"]
+    rows = (("change_uT", "No subtraction"),
+            ("gp_own_angles_structured_only", "GP, own angles,\nstructured steps only"),
+            ("gp_own_angles_alone_only", "GP, own angles,\nits own sweeps only"),
+            ("field_turned_five_folds", "Uniform field turned\nwith the tip"),
+            ("gp_all_angles_five_folds", "GP, all nine angles"),
+            ("field_turned_and_moved_five_folds", "Field turned and moved"),
+            ("gp_own_angles_five_folds", "GP, own angles"))
+    b.axvspan(fl[0], fl[1], color="0.85", zorder=0)
+    for k, (key, _) in enumerate(rows):
+        y = len(rows) - 1 - k
+        for f, dy in (("thumb", 0.14), ("middle", -0.14)):
+            v = sub_[f][key]
+            med, p95 = (v["median"], v["p95"]) if key == "change_uT" else (v["median_uT"], v["p95_uT"])
+            b.plot([med, p95], [y + dy, y + dy], "-", color=FINGER_COL[f], lw=1.6, zorder=2)
+            b.plot([med], [y + dy], "o", color=FINGER_COL[f], ms=6.5, zorder=3)
+    b.set_xscale("log")
+    b.set_xlim(2, 200)
+    b.set_xticks((2, 5, 10, 20, 50, 100, 200))
+    b.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+    b.xaxis.set_minor_formatter(NullFormatter())
+    b.set_yticks(range(len(rows)))
+    b.set_yticklabels([r[1] for r in rows][::-1])
+    b.set_xlabel("Left on the random poses (\N{MICRO SIGN}T)")
+    b.set_title("(b) Median and 95th percentile", loc="left")
+    b.spines[["top", "right"]].set_visible(False)
+
+    # (c) what is left against the clearance: median, with a line up to the largest value
+    bins = (("0-15", "Under\n15"), ("15-20", "15\N{EN DASH}20"), ("20-30", "20\N{EN DASH}30"), ("30-50", "30\N{EN DASH}50"), ("50-999", "Over\n50"))
+    ns = R["neighbour_share"]
+    c.axhspan(fl[0], fl[1], color="0.85", zorder=0)
+    for k, (key, _) in enumerate(bins):
+        for f, dx in (("thumb", -0.2), ("middle", 0.2)):
+            for lab, mk, ddx in (("pair", "o", -0.07), ("random", "s", 0.07)):
+                v = ns[f].get(f"{lab} {key} mm")
+                if v is None:
+                    continue
+                xx = k + dx + ddx
+                c.plot([xx, xx], [v["median_uT"], v["max_uT"]], "-", color=FINGER_COL[f], lw=1.4, zorder=2)
+                c.plot([xx], [v["median_uT"]], mk, color=FINGER_COL[f], mfc=FINGER_COL[f] if lab == "pair" else "white", mew=1.4, ms=6.5, zorder=3)
+    c.set_xticks(range(len(bins)))
+    c.set_xticklabels([b_[1] for b_ in bins])
+    c.set_xlim(-0.6, len(bins) - 0.4)
+    c.set_ylim(0, 27)
+    c.set_yticks((0, 5, 10, 15, 20, 25))
+    c.set_xlabel("Clearance in the CAD hand (mm)")
+    c.set_ylabel("Left at the board (\N{MICRO SIGN}T)")
+    c.set_title("(c) Median and largest value", loc="left")
+    c.spines["top"].set_visible(False)
+    force_axis(c, (0, 0.25, 0.5, 0.75))
+    c.spines["right"].set_visible(False)
+    c.legend(handles=[Line2D([], [], color="0.3", marker="o", ls="", ms=6.5, label="Thumb and middle steps"),
+                      Line2D([], [], color="0.3", marker="s", mfc="white", mew=1.4, ls="", ms=6.5, label="Random poses")],
+             loc="upper right", frameon=False, fontsize=12)
+    out = MEDIA / "20261104-sr2_hand_crosstalk.png"
     fig.savefig(out, dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return out
@@ -513,6 +727,186 @@ def holder_section(H, hn, fh, fv, pg, B, ff):
     return body + fig + tab + fig_h + tab_h + par_f + fig_f + tab_f
 
 
+CLOSEST_MM = 12.4   # the closest step that ran on the hand: tm_pip, step 194 of run1c_home_rest2 (its events.jsonl)
+
+
+def hand_numbers(R):
+    """The numbers of the SR2 hand's section, read from the coordinator's analysis of the sweep."""
+    fam, nz, sub_, ns = R["families"], R["noise"], R["subtract"], R["neighbour_share"]
+    moved = {}
+    for mf in FINGERS:
+        rows = [v for k, v in fam.items() if k.startswith(mf + "_")]
+        moved[mf] = dict(steps=sum(r["steps"] for r in rows))
+        for f in FINGERS:
+            have = [r[f] for r in rows if f in r]
+            moved[mf][f] = dict(med=[x["median_uT"] for x in have], mx=max(x["max_uT"] for x in have),
+                                mxN=max(x["max_N"] for x in have)) if have else None
+    other = [moved[mf][f] for mf in FINGERS for f in FINGERS if f != mf and moved[mf][f]]
+    own = [moved[mf][mf] for mf in FINGERS]
+    best = max(other, key=lambda v: v["mx"])
+    near = [ns[f][f"{lab} {b} mm"] for f in ("thumb", "middle") for lab, b in (("pair", "0-15"), ("pair", "15-20"), ("random", "15-20"))]
+    far = [ns[f][f"{lab} 50-999 mm"] for f in ("thumb", "middle") for lab in ("pair", "random")]
+    worst = max(near, key=lambda v: v["max_uT"])
+    stepper = {f: [s_["change_uT"][f] for s_ in R["stepper"]] for f in FINGERS}
+    return dict(
+        moved=moved, other_max=best["mx"], other_max_N=best["mxN"], other_med=[min(m for v in other for m in v["med"]), max(m for v in other for m in v["med"])],
+        own_med=[min(m for v in own for m in v["med"]), max(m for v in own for m in v["med"])], own_sweep_max=max(v["mx"] for v in own),
+        own_sweep_max_N=max(v["mxN"] for v in own), floor_median=[min(v["left_out_zero_uT_median"] for v in nz.values()), max(v["left_out_zero_uT_median"] for v in nz.values())],
+        floor_p95=[min(v["left_out_zero_uT_p95"] for v in nz.values()), max(v["left_out_zero_uT_p95"] for v in nz.values())],
+        change=[sub_[f]["change_uT"] for f in ("thumb", "middle")], own_max=sub_["thumb"]["change_uT"]["max"],
+        own_max_N=sub_["thumb"]["change_uT"]["max"] / R["uT_per_N"]["thumb"], gp=[sub_[f]["gp_own_angles_five_folds"] for f in ("thumb", "middle")],
+        near_med=[min(v["median_uT"] for v in near), max(v["median_uT"] for v in near)], near_max=worst["max_uT"], near_max_N=worst["max_N"],
+        near_n=ns["thumb"]["pair 0-15 mm"]["n"] + ns["thumb"]["pair 15-20 mm"]["n"] + ns["thumb"]["random 15-20 mm"]["n"],
+        near_pair=ns["thumb"]["pair 0-15 mm"]["n"] + ns["thumb"]["pair 15-20 mm"]["n"], near_rand=ns["thumb"]["random 15-20 mm"]["n"],
+        far_med=[min(v["median_uT"] for v in far), max(v["median_uT"] for v in far)], stepper=stepper,
+        stepper_rng=[min(min(v) for v in stepper.values()), max(max(v) for v in stepper.values())],
+        torque_rng=[min(min(v) for v in R["torque"].values()), max(max(v) for v in R["torque"].values())],
+        random=sub_["thumb"]["random"], structured=sub_["thumb"]["structured"], alone=[sub_[f]["alone"] for f in ("thumb", "middle")])
+
+
+def hand_section(R, rn, fa, mp4, poster):
+    """Section 'Crosstalk and own-pose change measured on the SR2 hand', with the coordinator's numbers as in its file."""
+    sub_, ns, nz = R["subtract"], R["neighbour_share"], R["noise"]
+    gp, ch = rn["gp"], rn["change"]
+    th, mi = sub_["thumb"], sub_["middle"]
+    nn = lambda key, f="median_uT": (th[key][f], mi[key][f])  # noqa: E731
+    fr = lambda xs, f="{:.1f}": f"{f.format(xs[0])} to {f.format(xs[1])}"  # noqa: E731
+    pair = lambda xs, f="{:.1f}": f"{f.format(xs[0])} and {f.format(xs[1])}"  # noqa: E731
+    uT = "&#8202;&#181;T"
+    ref = lambda k: f"Table&#160;{TAB[k]}"  # noqa: E731
+    p1 = (f"<p>On the SR2 hand at its home layout, a finger moving alone changed the other fingertips&#8217; boards by at most "
+          f"{rn['other_max']:.1f}{uT}, {rn['other_max_N']:.2f}&#8202;N ({ref('moved')}). Rest readings differ by "
+          f"{fr(rn['floor_median'])}{uT} at the median ({ref('floor')}). A tip&#8217;s own pose changed its board by up to {rn['own_max']:.0f}{uT}, "
+          f"{rn['own_max_N']:.1f}&#8202;N at its 28{uT}/N. A GP on the finger&#8217;s own three joint angles left "
+          f"{pair([g['median_uT'] for g in gp])}{uT} at the median, {max(g['median_N'] for g in gp):.2f}&#8202;N ({ref('left')}). With the thumb and the "
+          f"middle finger under 20&#8202;mm apart, the median left rose to {fr(rn['near_med'])}{uT}. The largest value there was "
+          f"{rn['near_max']:.1f}{uT}, {rn['near_max_N']:.2f}&#8202;N ({ref('apart')}). The analysis is "
+          f"<code>scripts/sr2_crosstalk_night.py</code>, with its rows in <code>{NIGHT.relative_to(ROOT)}</code>.</p>")
+    p2 = (f"<p>The lab ran the sweep from 18:57 to 20:34 on 2026-11-04, with the hand hanging still from the UR5&#8217;s flange "
+          f"(Figure&#160;{FIG['sweep']}). v3 ID 1 was on the thumb, v3 ID 3 on the index and v3 ID 2 on the middle finger. The gantries "
+          f"stayed at the home layout, where only the thumb and the middle finger can come near each other. The {R['steps']} steps began with "
+          "servo torque off and on and each stepper 5&#8202;mm out and back. Each finger then moved alone through its yaw, mcp and "
+          "pip and two grids. The thumb and the middle finger then moved toward each other, and last came 327 random poses of all three "
+          f"fingers. One random pose was blocked, which leaves {rn['random']}. The closest step that ran was {CLOSEST_MM}&#8202;mm apart in the "
+          "CAD hand. The index&#8217;s board stopped answering at 19:43:52, when the index stalled on its way to mcp 50&#176; and pip "
+          "90&#176;. Its curl most likely pulled its cable. From then on only the thumb&#8217;s and the middle finger&#8217;s boards "
+          f"were recorded, at 9.7 records a second. The runbook and the data are in <code>{(SR2 / 'README.md').relative_to(ROOT)}</code>.</p>")
+    film = P.film(FIG["sweep"], mp4, poster,
+                  "Replay of part of the sweep in the CAD hand that the lab&#8217;s plans were checked in "
+                  "(<code>assets/mjcf/experimental/20261030-cad_v2</code>), at the commanded joint angles of the runs&#8217; "
+                  "<code>events.jsonl</code>. Each finger moves alone, then the thumb and the middle finger move toward each other, then all "
+                  f"three move through random poses. The poster is the closest step that ran, {CLOSEST_MM}&#8202;mm apart.")
+    p3 = (f"<p>The floor of these changes is the difference between rest readings. A zero dwell left out is predicted from the two "
+          f"beside it to {fr(rn['floor_median'])}{uT} at the median and {fr(rn['floor_p95'])}{uT} at the 95th percentile. Servo torque "
+          f"off changed the boards by {fr(rn['torque_rng'])}{uT}, and a stepper&#8217;s 5&#8202;mm step by {fr(rn['stepper_rng'])}{uT}. "
+          f"With one finger moving alone, the median on another board over a family is {fr(rn['other_med'])}{uT} (Figure&#160;{FIG['hand']}a, "
+          f"{ref('moved')}).</p>")
+    floor_rows = []
+    tips = dict(thumb="v3 ID 1", index="v3 ID 3", middle="v3 ID 2")
+    for f in FINGERS:
+        v = nz[f]
+        floor_rows.append([f"{FINGER_NAME[f]}&#8217;s, {tips[f]}", f"{R['uT_per_N'][f]:.1f}", str(v["zero_dwells"]), f"{v['left_out_zero_uT_median']:.1f}",
+                           f"{v['left_out_zero_uT_p95']:.1f}", f"{v['drift_span_uT']:.1f}", f"{v['hours']:.2f}", pair(R["torque"][f]),
+                           f"{min(rn['stepper'][f]):.1f} to {max(rn['stepper'][f]):.1f}"])
+    tab_floor = P.table(
+        ["Board", "Change per newton (&#181;T/N)", "Zero dwells", "Between rest readings, median (&#181;T)",
+         "Between rest readings, 95th percentile (&#181;T)", "Drift (&#181;T)", "Hours", "Servo torque off, two steps (&#181;T)",
+         "Stepper&#8217;s 5&#8202;mm step, 12 steps (&#181;T)"],
+        floor_rows, num_cols=tuple(range(1, 9)), n=TAB["floor"],
+        caption="Each board&#8217;s reference and its changes with the joints still. Drift is the norm over the 15 components of each "
+                "component&#8217;s range over the zero dwells, and hours the time from the first to the last. The stepper&#8217;s column "
+                "includes the finger that the stepper moved. "
+                f"Rows in <code>{NIGHT.relative_to(ROOT)}</code>.")
+    mv = rn["moved"]
+    cell = lambda v: (f"{v['med'][0]:.1f} to {v['med'][-1]:.1f}", f"{v['mx']:.1f}", f"{v['mxN']:.2f}")  # noqa: E731
+    moved_rows = []
+    for mf in FINGERS:
+        row = [FINGER_NAME[mf], str(mv[mf]["steps"])]
+        for f in FINGERS:
+            v = mv[mf][f]
+            if v:
+                row += [f"{min(v['med']):.1f} to {max(v['med']):.1f}", f"{v['mx']:.1f}"]
+            else:
+                row += ["&#8211;", "&#8211;"]
+        moved_rows.append(row)
+    tab_moved = P.table(
+        ["Finger moved", "Steps"] + [h for f in FINGERS for h in (f"{FINGER_NAME[f]}&#8217;s board, median by family (&#181;T)", "Largest (&#181;T)")],
+        moved_rows, num_cols=tuple(range(1, 8)), n=TAB["moved"],
+        caption="Each board&#8217;s change while one finger moved alone, over its five families: yaw, mcp, pip and the two grids. "
+                "The other two fingers were straight. The index&#8217;s board has no record of the index&#8217;s yaw and mcp grid or of the "
+                "middle finger&#8217;s families. Figure&#160;" + str(FIG["hand"]) + "a shows every family.")
+    p4 = (f"<p>A finger&#8217;s own motion changed its board by a median of {fr(rn['own_med'], '{:.0f}')}{uT} over a family, and by up to "
+          f"{rn['own_sweep_max']:.0f}{uT}, {rn['own_sweep_max_N']:.1f}&#8202;N, in these sweeps. On the random poses the median was "
+          f"{ch[0]['median']:.0f}{uT} on the thumb and {ch[1]['median']:.0f}{uT} on the middle finger. The largest values were "
+          f"{pair([ch[0]['max'], ch[1]['max']], '{:.0f}')}{uT}.</p>")
+    fg = nn("gp_own_angles_five_folds")
+    p95 = nn("gp_own_angles_five_folds", "p95_uT")
+    p95N = nn("gp_own_angles_five_folds", "p95_N")
+    p5 = (f"<p>The prediction from the joint angles is tested on the random poses (Figure&#160;{FIG['hand']}b, {ref('left')}). A GP on a finger&#8217;s own "
+          f"three angles left {pair(fg)}{uT} at the median and {pair(p95)}{uT} at the 95th percentile, {pair(p95N, '{:.2f}')}&#8202;N. It had "
+          f"four fifths of the random poses in its training, with the structured steps. More than 0.25&#8202;N was left at "
+          f"{th['gp_own_angles_five_folds']['over_0p25N']} of {rn['random']} poses on the thumb and {mi['gp_own_angles_five_folds']['over_0p25N']} on the "
+          f"middle finger. Trained on its own finger&#8217;s sweeps alone, {pair(rn['alone'], '{:d}')} steps, the GP left "
+          f"{pair(nn('gp_own_angles_alone_only'), '{:.0f}')}{uT}. Trained on all {rn['structured']} structured steps it left "
+          f"{pair(nn('gp_own_angles_structured_only'), '{:.0f}')}{uT}. A GP on all nine angles left {pair(nn('gp_all_angles_five_folds'))}{uT} with the "
+          f"random poses in its training. A uniform field fixed to the hand and turned with the tip left "
+          f"{pair(nn('field_turned_five_folds'), '{:.0f}')}{uT}. With the tip&#8217;s displacement added, that fit left "
+          f"{pair(nn('field_turned_and_moved_five_folds'))}{uT}.</p>")
+    left_rows = [["No subtraction", "&#8211;", f"{th['change_uT']['median']:.1f}", f"{th['change_uT']['p95']:.1f}", "&#8211;",
+                  f"{mi['change_uT']['median']:.1f}", f"{mi['change_uT']['p95']:.1f}", "&#8211;"]]
+    folds = "Five folds over the random poses, with the structured steps"
+    for name, tr, key in (("GP, own three angles", folds, "gp_own_angles_five_folds"),
+                          ("GP, own three angles", f"Its own finger&#8217;s sweeps alone ({pair(rn['alone'], '{:d}')} steps)", "gp_own_angles_alone_only"),
+                          ("GP, own three angles", f"All {rn['structured']} structured steps", "gp_own_angles_structured_only"),
+                          ("GP, all nine angles", folds, "gp_all_angles_five_folds"),
+                          ("GP, all nine angles", f"All {rn['structured']} structured steps", "gp_all_angles_structured_only"),
+                          ("Uniform field turned with the tip", folds, "field_turned_five_folds"),
+                          ("Uniform field turned and moved with the tip", folds, "field_turned_and_moved_five_folds")):
+        left_rows.append([name, tr] + [x for v in (th[key], mi[key]) for x in (f"{v['median_uT']:.1f}", f"{v['p95_uT']:.1f}", str(v["over_0p25N"]))])
+    tab_left = P.table(
+        ["Predictor", "Training set", "Thumb, median (&#181;T)", "Thumb, 95th percentile (&#181;T)", "Thumb, poses over 0.25&#8202;N",
+         "Middle finger, median (&#181;T)", "Middle finger, 95th percentile (&#181;T)", "Middle finger, poses over 0.25&#8202;N"],
+        left_rows, num_cols=tuple(range(2, 8)), n=TAB["left"],
+        caption=f"What each predictor leaves on the {rn['random']} random poses, as the norm over the board&#8217;s 15 components. "
+                "The first row is the change itself. The index&#8217;s board has no record of these poses. "
+                "Fits: <code>scripts/sr2_crosstalk_night.py</code>, with the GP of <code>scripts/ur5_tip_calibration_board_gp.py</code>.")
+    far = rn["far_med"]
+    mp = lambda b, f="middle", k="median_uT": ns[f][f"pair {b} mm"][k]  # noqa: E731
+    p6 = (f"<p>What a GP on the finger&#8217;s own angles leaves includes the neighbour&#8217;s field, and it rises as the thumb and the "
+          f"middle finger come together (Figure&#160;{FIG['hand']}c, {ref('apart')}). Beyond 50&#8202;mm the median left is {fr(far)}{uT}. Under "
+          f"20&#8202;mm it is {fr(rn['near_med'])}{uT}, over {rn['near_n']} poses: {rn['near_pair']} steps of the thumb and the middle finger and "
+          f"{rn['near_rand']} random ones. The largest value there is {rn['near_max']:.1f}{uT} on the middle finger&#8217;s board, "
+          f"{rn['near_max_N']:.2f}&#8202;N. On that board the thumb and middle steps leave {mp('20-30'):.1f}{uT} at 20 to 30&#8202;mm and "
+          f"{mp('30-50'):.1f}{uT} at 30 to 50&#8202;mm. The thumb&#8217;s board stays at {mp('20-30', 'thumb'):.1f} and {mp('30-50', 'thumb'):.1f}{uT}.</p>")
+    apart_rows = []
+    sets = (("pair", "Thumb and middle steps"), ("random", "Random poses"))
+    for lab, name in sets:
+        for b, nm in (("0-15", "Under 15"), ("15-20", "15 to 20"), ("20-30", "20 to 30"), ("30-50", "30 to 50"), ("50-999", "Over 50")):
+            a_, c_ = ns["thumb"].get(f"{lab} {b} mm"), ns["middle"].get(f"{lab} {b} mm")
+            if a_ is None:
+                continue
+            apart_rows.append([name, nm, str(a_["n"]), f"{a_['median_uT']:.1f}", f"{a_['max_uT']:.1f}", f"{a_['max_N']:.2f}",
+                               f"{c_['median_uT']:.1f}", f"{c_['max_uT']:.1f}", f"{c_['max_N']:.2f}"])
+    al = (ns["thumb"]["alone (fit)"], ns["middle"]["alone (fit)"])
+    apart_rows.append(["Its own finger&#8217;s sweeps", "&#8211;", f"{al[0]['n']} and {al[1]['n']}", f"{al[0]['median_uT']:.1f}", f"{al[0]['max_uT']:.1f}", "&#8211;",
+                       f"{al[1]['median_uT']:.1f}", f"{al[1]['max_uT']:.1f}", "&#8211;"])
+    tab_apart = P.table(
+        ["Poses", "Clearance (mm)", "Number", "Thumb&#8217;s board, median (&#181;T)", "Largest (&#181;T)", "Largest (N)",
+         "Middle finger&#8217;s board, median (&#181;T)", "Largest (&#181;T)", "Largest (N)"],
+        apart_rows, num_cols=tuple(range(2, 9)), n=TAB["apart"],
+        caption="What a GP on the finger&#8217;s own three angles leaves, by the clearance. "
+                "The thumb and middle steps and a finger&#8217;s own sweeps are predicted by a GP trained on the other steps. "
+                "The random poses are predicted by their five folds.")
+    fig = P.fig(FIG["hand"], fa,
+                "Results of the sweep on the SR2 hand. (a) Each board&#8217;s change while one finger moved alone: the median over a "
+                "family&#8217;s steps, with a line up to its largest value. (b) What each predictor leaves on the random poses: the "
+                "median, with a line up to the 95th percentile. Predictors have the random poses in their training unless the label "
+                "says otherwise. (c) What a GP on the finger&#8217;s own angles leaves, against the clearance: the median, with a line up "
+                "to the largest value. Grey: the median difference between rest readings. Blue: the thumb&#8217;s board. Orange: the "
+                f"index&#8217;s. Green: the middle finger&#8217;s. Rows in <code>{NIGHT.relative_to(ROOT)}</code>.")
+    return p1 + p2 + film + p3 + tab_floor + tab_moved + p4 + p5 + fig + tab_left + p6 + tab_apart
+
+
 def fig_hovers(H):
     """The map's hovers: each board's change against W, with the model with the net moments (fitted on the touch-off
     approaches) and the nominal model, scaled by the same gains."""
@@ -608,7 +1002,7 @@ def fig_force(H, B, pg):
     return out
 
 
-def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
+def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
     rb = rows_by(B)
     r5 = lambda kind, x: rb[("five N52", kind, float(x))]  # noqa: E731
     r4 = lambda kind, x: rb[("four N52", kind, float(x))]  # noqa: E731
@@ -644,30 +1038,28 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
     fsh = sorted(v[0] / pg["v3"] for v in fn["sw"].values())
     fsl = sorted(v[1] / pg["v3"] for v in fn["sw"].values())
     f5 = fn["five10"] / pg["v2"]
+    gp_med = [g["median_uT"] for g in rn["gp"]]
     lede = (
-        "A neighbouring fingertip&#8217;s magnets change the reading of a magnetic fingertip&#8217;s board by more than a press "
-        "does. On the UR5, two four-magnet v3 tips with their pads touching changed each other&#8217;s boards by "
-        f"{min(con):.0f} to {max(con):.0f}&#8202;&#181;T. Per newton of face press, v3 ID 1&#8217;s board changes by "
-        f"{pg['v3']:.1f}&#8202;&#181;T and the five-magnet v2 ID 1&#8217;s by {pg['v2']:.1f}&#8202;&#181;T. At W "
-        f"{SHARPIE_W[0]:.0f} to {SHARPIE_W[1]:.0f}&#8202;mm, about a sharpie&#8217;s width, a v3 neighbour changes a v3 board "
-        f"as much as a face press of {fsh[0]:.2f} to {fsh[1]:.2f}&#8202;N. In v2 ID 1&#8217;s field model a five-magnet "
-        f"neighbour at W 10&#8202;mm equals {f5:.1f}&#8202;N. "
-        f"The four magnets of a tip do not cancel fully: each tip has a net moment of {min(shr):.0f} to {max(shr):.0f}&#8202;% of "
-        "one magnet&#8217;s. With these moments, fitted on touch-offs, the dipole model explains "
-        f"{both(hov_held)} of the change at {board} in {hn['n_hover']} hovers, against {both(hov_nom, neg)} without. At a "
-        f"sharpie&#8217;s width it leaves {fsl[0]:.2f} to {fsl[1]:.2f}&#8202;N, the floor of the test. When the "
-        "neighbour&#8217;s pose is fitted from both "
-        f"boards, the Cram&#233;r&#8211;Rao bound on a press is {min(bound):.3f}&#8211;{max(bound):.3f}&#8202;N, against "
-        f"{known:.3f}&#8202;N with the pose known.")
+        f"On the SR2 hand at its home layout, a finger moving alone changed the other fingertips&#8217; boards by at most "
+        f"{rn['other_max']:.1f}&#8202;&#181;T, {rn['other_max_N']:.2f}&#8202;N. Rest readings differ by {rn['floor_median'][0]:.1f} to "
+        f"{rn['floor_median'][1]:.1f}&#8202;&#181;T. A tip&#8217;s own pose changed its board by up to {rn['own_max']:.0f}&#8202;&#181;T, "
+        f"{rn['own_max_N']:.1f}&#8202;N. A Gaussian process on the finger&#8217;s own three joint angles left {gp_med[0]:.1f} and {gp_med[1]:.1f}"
+        f"&#8202;&#181;T at the median, with random poses in its training. With the thumb and the middle finger under 20&#8202;mm apart, "
+        f"{rn['near_med'][0]:.0f} to {rn['near_med'][1]:.0f}&#8202;&#181;T was left, at most {rn['near_max_N']:.2f}&#8202;N. On the UR5, two "
+        f"four-magnet v3 tips with their pads touching changed each other&#8217;s boards by {min(con):.0f} to {max(con):.0f}&#8202;&#181;T. "
+        f"A dipole model with each tip&#8217;s net moment, {min(shr):.0f} to {max(shr):.0f}&#8202;% of one magnet&#8217;s, explains {both(hov_held)} of the "
+        f"change at {board} in {hn['n_hover']} hovers, against {both(hov_nom, neg)} without.")
     summary = (
-        "Magnetic crosstalk between neighbouring fingertips: on the UR5 two four-magnet v3 tips touching changed each other's "
-        f"boards by {min(con):.0f}-{max(con):.0f} uT, against {pg['v3']:.1f} uT per newton of face press on v3 ID 1 "
-        f"({pg['v2']:.1f} uT/N on the five-magnet v2 ID 1); at a sharpie's width (W {SHARPIE_W[0]:.0f}-{SHARPIE_W[1]:.0f} mm) "
-        f"the change equals a {fsh[0]:.2f}-{fsh[1]:.2f} N face press, {fsl[0]:.2f}-{fsl[1]:.2f} N after the dipole model with "
-        f"each tip's net moment ({min(shr):.0f}-{max(shr):.0f} % of one magnet), which explains "
+        f"Magnetic crosstalk between neighbouring fingertips: on the SR2 hand at its home layout a finger moving alone changed the other "
+        f"boards by at most {rn['other_max']:.1f} uT ({rn['other_max_N']:.2f} N), near the {rn['floor_median'][0]:.1f}-{rn['floor_median'][1]:.1f} uT "
+        f"between rest readings. A tip's own pose changed its board by up to {rn['own_max']:.0f} uT ({rn['own_max_N']:.1f} N), and a GP on the "
+        f"finger's own three angles left {gp_med[0]:.1f} and {gp_med[1]:.1f} uT at the median ({rn['near_med'][0]:.0f}-{rn['near_med'][1]:.0f} uT with the thumb and the "
+        f"middle finger under 20 mm apart). On the UR5 two four-magnet v3 tips touching changed each other's "
+        f"boards by {min(con):.0f}-{max(con):.0f} uT, against {pg['v3']:.1f} uT per newton of face press on v3 ID 1; at a sharpie's width "
+        f"(W {SHARPIE_W[0]:.0f}-{SHARPIE_W[1]:.0f} mm) the change equals a {fsh[0]:.2f}-{fsh[1]:.2f} N face press, {fsl[0]:.2f}-{fsl[1]:.2f} N after the "
+        f"dipole model with each tip's net moment ({min(shr):.0f}-{max(shr):.0f} % of one magnet), which explains "
         f"{both(hov_held, pct=' %')} of the change at {board} in {hn['n_hover']} hovers ({both(hov_nom, pct=' %')} "
-        f"without). In v2 ID 1's field model a five-N52 neighbour equals {f5:.1f} N at W 10 mm and adds "
-        f"{r5('facing', 0)['norm_uT']:.0f} uT facing and {r5('side', 0)['norm_uT']:,.0f} uT side by side when touching; fitting "
+        f"without). In v2 ID 1's field model a five-N52 neighbour equals {f5:.1f} N at W 10 mm; fitting "
         f"its pose from both boards keeps the press bound at {min(bound):.3f}-{max(bound):.3f} N ({known:.3f} N with the pose "
         "known).")
 
@@ -716,6 +1108,29 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
         ("Net moment", "The vector sum of a tip&#8217;s four magnetic moments, in mA&#8202;m&#178;, in the tip&#8217;s pad frame: "
          "x along the face&#8217;s normal, y and z in its plane. The nominal alternating square has none. It is given as a share "
          "of one magnet&#8217;s moment."),
+        ("SR2 hand, home layout", "The three-finger hand, with its fingers on stepper gantries. At the home layout the thumb&#8217;s mount is at "
+         "(&#8722;80, &#8722;55)&#8202;mm in the palm frame, the index&#8217;s at (80, 85)&#8202;mm and the middle finger&#8217;s at (80, "
+         "&#8722;85)&#8202;mm."),
+        ("Change on the hand, zero dwell", "A zero dwell is a board&#8217;s mean reading with all joint angles at zero, one every 12 poses. "
+         "A step&#8217;s change is its dwell&#8217;s mean reading less the zero dwells interpolated in time, as the norm over the 15 "
+         "components, in &#181;T, corrected for temperature. Its force is the change over the tip&#8217;s change per newton on the "
+         "UR5: the median of the norm of the change over the norm of the force, for face presses at 1 to 3&#8202;N. That gives 28.0 to "
+         "28.7&#8202;&#181;T/N. On v3 ID 1 the normal force at 0.5 to 3.5&#8202;N gives "
+         f"{pg['v3']:.1f}&#8202;&#181;T/N."),
+        ("Between rest readings", "The error of predicting a zero dwell from the two beside it, as the norm over the 15 components, in "
+         "&#181;T."),
+        ("Clearance", "The smallest distance between the collision spheres of any two fingers in the lab&#8217;s CAD hand at a step&#8217;s "
+         "commanded pose, in mm, over all parts of the fingers. The apexes of two pads can be farther apart. At the home layout only the "
+         "thumb and the middle finger can come near each other."),
+        ("GP on the joint angles", "A Gaussian process from joint angles to a board&#8217;s 15-component change "
+         "(<code>scripts/ur5_tip_calibration_board_gp.py</code>). Its inputs are the finger&#8217;s own three angles (yaw, mcp, pip) or all "
+         "nine. What is left is the norm of the change less the prediction, in &#181;T."),
+        ("Structured steps, random poses, five folds", "The structured steps are the single-finger families and the steps of the thumb and "
+         "the middle finger toward each other. The random poses move all three fingers at once. In five folds, each fifth of the "
+         "random poses is predicted by a GP trained on the other four fifths and the structured steps."),
+        ("Uniform field turned with the tip", "A linear fit of a board&#8217;s change on the entries of $R(q)^\\top - R(0)^\\top$, with "
+         "$R(q)$ the tip&#8217;s rotation in the CAD hand at the joint angles $q$. It represents a uniform field fixed to the hand. "
+         "In the turned and moved fit the tip&#8217;s displacement is added as an input."),
         ("Viewer, phantom contact", "The multi-board viewer&#8217;s estimator shows a contact when its fit explains a "
          "&#967;&#178; of more than 25 and the force is at least 0.25&#8202;N. It uses a 2&#8202;&#181;T floor and 50&#8202;ms of "
          "samples. A phantom contact is one shown with nothing pressing."),
@@ -793,7 +1208,10 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
     # 3. measured on the holder
     S_.append(("holder", "Neighbour field measured on the fingertip holder", holder_section(H, hn, fh, fv, pg, B, ff)))
 
-    # 4. subtraction from the joint angles
+    # 4. measured on the SR2 hand
+    S_.append(("hand", "Crosstalk and own-pose change measured on the SR2 hand", hand_section(R, rn, fa, mp4, poster)))
+
+    # 5. subtraction from the joint angles
     sub = (
         "<p>The joint angles give the neighbour&#8217;s pose, so its field can be predicted and subtracted. The SR2 hand&#8217;s "
         "SCS0009 servos read 0.29&#176; per tick, 0.2&#8211;0.35&#8202;mm at the fingertip. With pose errors of 0.1&#8202;mm and "
@@ -813,10 +1231,12 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
         f"{k3(r5('facing', 0))['light_force_added_N_median']:.1f}&#8202;N facing and "
         f"{k3(r5('side', 0))['light_force_added_N_median']:.1f}&#8202;N side by side. The firm presses move by "
         f"{k3(r5('facing', 0))['firm_force_added_N_median']:.2f} and {k3(r5('side', 0))['firm_force_added_N_median']:.1f}&#8202;N. "
-        "Subtraction from the joint angles alone therefore works beyond about 5&#8202;mm facing and 10&#8202;mm side by side.</p>")
+        "Subtraction from the joint angles alone therefore works beyond about 5&#8202;mm facing and 10&#8202;mm side by side. On the hand at its "
+        f"home layout a finger&#8217;s own pose changed its board by up to {rn['own_max']:.0f}&#8202;&#181;T and a neighbour by at most "
+        f"{rn['other_max']:.1f}&#8202;&#181;T, and a GP on the joint angles took out most of the first (Section&#160;{SEC['hand']}).</p>")
     S_.append(("subtract", "Subtracting the field predicted from the joint angles", sub))
 
-    # 5. two-board pose fit
+    # 6. two-board pose fit
     def crow(kind, x):
         r = r5(kind, x)
         c = r["crb"]
@@ -849,7 +1269,7 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
         f"(Section&#160;{SEC['holder']}).</p>")
     S_.append(("fit", "Fitting the neighbour's pose from both boards", fit + tab2))
 
-    # 6. sharpie
+    # 7. sharpie
     sh = (
         "<p>On 27 October at 12:18 the owner pinched a marker pen between v1 ID 2 and ID 3, with both boards streaming to the "
         f"multi-board viewer (Figure&#160;{FIG['sharpie']}). The two tips were held by hand. Over the eight windows of the pinch, ID 2&#8217;s "
@@ -880,7 +1300,7 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
                           "estimate (open) and with the two-board pose fit (filled). Grey: the eight windows. Script: "
                           "<code>scripts/fingertip_crosstalk.py sharpie</code>; rows in <code>data/sharpie.json</code>.")))
 
-    # 7. limitations
+    # 8. limitations
     S_.append(("limits", "Limitations", (
         f"<p>Figure&#160;{FIG['budget']} and Tables&#160;{TAB['field']} and {TAB['crb']} come from the dipole model of v2 ID 1&#8217;s "
         "magnets, fitted at rest on the UR5. The neighbour has v2 ID 1&#8217;s magnet strength. The measured field of "
@@ -888,10 +1308,31 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
         f"approaches and {count(hn['n_hover'])} hovers. The side-by-side map of 2026-10-29 is not yet analysed. The bound assumes an exact field model "
         "and the noise of a 50&#8202;ms window, and it is the bound for one press at the face&#8217;s centre. In the pinch the two "
         "v1 tips were held by hand, so neither the pose nor the force is known. The pinch&#8217;s boards use the fits of ID 2 on "
-        "the UR5 and of ID 3 on the bench.</p>")))
+        "the UR5 and of ID 3 on the bench.</p>"
+        f"<p>The sweep of Section&#160;{SEC['hand']} ran with the arm still, no contact on any tip and the gantries at the home layout. "
+        f"Only {rn['near_n']} of its poses lie under 20&#8202;mm, and none under {CLOSEST_MM}&#8202;mm. The index&#8217;s board ended at 19:43:52. "
+        "The GP&#8217;s five folds predict random poses of the session that trained it, with the drift between zero dwells taken out.</p>")))
 
-    # 8. future work
+    # 9. future work
     fw = [
+        ("A second sweep on the SR2 hand.", "The sweep stopped after 327 of the 600 random poses of "
+         f"<code>{(SR2 / 'plan/20261104-plan_random_s1_v3.json').relative_to(ROOT)}</code>, and <code>20261104-plan_random_s2_v3.json</code> did "
+         f"not run. Both run with all three boards once the index&#8217;s cable is checked. First <code>lab/run_plan.py</code> needs a check of the "
+         "board stream (<code>" + str((SR2 / "README.md").relative_to(ROOT)) + "</code>). A GP is then trained on one set and tested on the other. More than "
+         f"{rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means that the five folds of Section&#160;{SEC['hand']} understate what a new "
+         "session leaves."),
+        ("The thumb and the middle finger under 20&#8202;mm apart.", f"Only {rn['near_n']} poses lie there, and the closest is {CLOSEST_MM}&#8202;mm apart in "
+         "the model. Closer poses take their move margin from the lab&#8217;s replay at spread servo rates, which found 8.8&#8202;mm on a plan step that "
+         f"never ran. The neighbour&#8217;s field is then predicted from the joint angles with the net moments of Section&#160;{SEC['holder']}. If more than the "
+         f"{rn['far_med'][0]:.1f} to {rn['far_med'][1]:.1f}&#8202;&#181;T of the far poses is left, the net moments do not describe the neighbour on the hand."),
+        ("The hand&#8217;s orientation.", "The arm stayed still through the sweep, so the GP was fitted at one orientation of the hand in the "
+         "room&#8217;s field. Zero dwells and about 20 random poses at a second orientation of the flange test this, moved under program control (owner: "
+         f"no freedrive with the hand on the UR5). More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means the GP needs the "
+         "hand&#8217;s orientation as an input."),
+        ("Phantom contacts during motion.", f"More than 0.25&#8202;N is left at {R['subtract']['thumb']['gp_own_angles_five_folds']['over_0p25N']} and "
+         f"{R['subtract']['middle']['gp_own_angles_five_folds']['over_0p25N']} of the {rn['random']} random poses. The sweep&#8217;s records, less the GP&#8217;s "
+         "prediction, go through the viewer&#8217;s estimator and its steel test. A contact shown with nothing touching means the subtraction is too "
+         "coarse for the viewer on the hand."),
         ("The neighbour&#8217;s field on the holder.", f"The map of the "
          + link(L["v3"], "plan for the four-magnet v3 tips") + " and the close hovers over the &#8722;y tip ran on 2026-10-27 "
          f"(Section&#160;{SEC['holder']}). The map&#8217;s geometry is drawn in Figure&#160;{FIG['render']}. Each held tip&#8217;s "
@@ -918,12 +1359,13 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff):
          "come. In the field model four magnets give "
          f"{r4('side', 10)['norm_uT']:.0f}&#8202;&#181;T at a 10&#8202;mm gap and {r4('side', 20)['norm_uT']:.0f}&#8202;&#181;T "
          "at 20&#8202;mm. If the model with the net moments fitted facing explains less than 90&#8202;% of the side-by-side "
-         "change, the side-by-side pose needs a fit of its own."),
+         "change, the side-by-side pose needs a fit of its own. At the hand&#8217;s home layout the index&#8217;s and the middle finger&#8217;s mounts "
+         f"are 170&#8202;mm apart, so the sweep of Section&#160;{SEC['hand']} has no side-by-side pose."),
         ("A pinch between two v3 tips.", "The plan pressed a tip on a robot tool against a tip held pad up on the inverted "
          "rig&#8217;s strip, at 0.25&#8211;3&#8202;N ("
          "<code>docs/experiments/20261030-inverted_rig_seat_block/README.md</code>). The owner ended the UR5 calibration on "
          "2026-11-04 before this ran, and the tips went to the SR2 hand "
-         "(<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R32). On the hand the joint angles give the "
+         "(<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R32). The sweep on the hand had no contact. On the hand the joint angles give the "
          f"neighbour&#8217;s pose (Section&#160;{SEC['subtract']}), and the pinched object needs a force sensor of its own. With "
          f"that pose, a force error above 0.2&#8202;N at 0.5&#8202;N contradicts the one-board bound of Table&#160;{TAB['crb']}."),
         ("A five-magnet neighbour.", "The owner tabled this check on 2026-10-27. It takes about 30&#8202;min with a five-magnet "
@@ -955,7 +1397,11 @@ def build():
     fv = fig_hovers(H)
     pg = press_gain(json.loads(at_head(FVF)))
     ff = fig_force(H, B, pg)
-    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff)
+    R = json.loads(at_head(NIGHT))
+    rn = hand_numbers(R)
+    fa = fig_hand(R, rn)
+    mp4, poster = film_sweep()
+    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster)
     assert [sid for sid, _, _ in S_] == list(SEC), [sid for sid, _, _ in S_]
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S_, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S_, 1))
@@ -964,7 +1410,8 @@ def build():
               "202426-holdapexv3id1, 212131-holdmapv3id1 and 222640-holdclosev3id1 on 2026-10-27, analysed by "
               "<code>scripts/fingertip_crosstalk_holder.py</code> (commits 53993cbc to d4fa2c07); v3 ID 1&#8217;s presses on the low "
               "sphere in session 225213-spherev3id1 against v2 ID 1&#8217;s, compared by "
-              "<code>scripts/ur5_tip_calibration_four_vs_five.py</code> (commit 449464c4). Analysis "
+              "<code>scripts/ur5_tip_calibration_four_vs_five.py</code> (commit 449464c4); the lab&#8217;s sweep of three v3 tips on the SR2 hand "
+              "on 2026-11-04, analysed by <code>scripts/sr2_crosstalk_night.py</code> (commit 9a0e05a5). Analysis "
               "<code>scripts/fingertip_crosstalk.py</code> (commit bc508a6e); "
               "page by <code>scripts/fingertip_crosstalk_page.py</code>; rows in " + link(DATA, "data/") + ". The fingertip and its "
               "calibration are described on " + link(L["overview"], "the fingertip overview") + " and "
