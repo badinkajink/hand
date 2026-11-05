@@ -15,19 +15,21 @@ docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration
 docs/experiments/20261029-foundational_pose_review/20261102-hom_plant_modulus.html; CLAUDE.md sections "Fingertip on the
 CAD hand", "Pad modulus 2.5 MPa" and "Servo plant of the HOM scripts". If scripts/ was reorganized, find each script by
 name in scripts/README.md.
-State: 11-03 19:4x (window 92ca1bc5), armed after hand-20261104-hom_grasp_genome_ea; nothing run.
+State: 11-04 17:1x (autopilot dac2b73b, colorado): steps 1, 2 done (mount/mount.json: only the 11/22 and the 7.4x5x11/22
+mount on the v4b parts; the other ten tips run on the envelope alone). Running detached (nohup setsid), nothing to relaunch
+unless a [resguard] line names it: 7 screen workers logs/20261104-fingertip_shape_rerun/queue/worker.sh on cores 4-10
+(queue.txt, 228 jobs: scale/hom per tip and condition, traj plan,rl and drake per hand; rows under
+docs/experiments/20261104-fingertip_shape_rerun/{screen,traj}/; per-job times in queue/jobs.jsonl; failures in failed.txt);
+1 bed worker worker_bed.sh on core 11 (bed.txt: law, pads, drake per tip; rows bed/<tip>/). Memory is tight (8.7 GB
+available, swap 13.9 GB at 17:12): add no job beside them. Drake replays at 2.5 MPa take 156 s each (61 s at 10 MPa).
+Finding: on cad_v2 the HOM turns of the cells put 15-60 % of the normal force through the cap TW15H3 (rows' rigid_share,
+rigid_by_part), with every grasp passing fp_sr2_toy's pad and rigid checks at the touch pose; report it beside J.
+Next: when the screen jobs end, fingertip_shape_rerun_analysis.py screen (to write), then queue stage3; cost (step 4),
+FE (step 6, v2_tip_fe_checks machinery with KEY per tip, body b, 05R4) after the screen frees memory.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
-- [ ] 1. Before any run: wait until the HOM chain is done and the GPU holds no other job's process (nvidia-smi; the HOM
-    queues under logs/2026110*-hom_*); snooze while it is busy. Measure each new script's RSS once under /usr/bin/time -v
-    and give resguard run --mem from it; pin CPU workers with taskset to cores no other job uses. Record wall time, CPU
-    core-hours and GPU hours per step (owner 11-03: time all compute). The 10-15 run took about 7 h on eight cores and
-    one GPU process.
-- [ ] 2. Tips: the current v4b tip (11/22 half-ellipsoid on cad_v2) as the reference; the as-built block and the 10-14 block
-    finalist (3, 6); capsules tcd_cap6, 7.4 and 8.5; half-ellipsoids 7.4x8.5x11/22, 7.4x5x11/22 and 7.4x8.5x16/32; the
-    three quarter-ellipsoids; hemisphere tcd_ell7.4x7.4x7.4 (new; the largest dome the 14.8 mm width allows), and
-    tcd_sph10.55 on the bed only, as on 10-14. Check that each tip mounts on DIP link b v4 with cassette 3T as the 11/22
-    does; mark any tip that is simulated on the envelope alone.
+- [x] 1. Before any run: wait until the HOM chain is done and the GPU holds no other job's process (nvidia-smi; the HO… Done 11-04 16:35: 11-04 16:30: HOM jobs of 11-02..11-04 all done, no HOM process; GPU 1.2/16 GB, desktop only; compute ledger logs/20261104-fingertip_shape_rerun/compute.jsonl (wall, core-h, GPU-h per step)
+- [x] 2. Tips: the current v4b tip (11/22 half-ellipsoid on cad_v2) as the reference; the as-built block and the 10-14… Done 11-04 16:54: 12 tips (fingertip_shape_rerun_common.TIPS; the 11/22 candidate is the v4b reference, design surface; hemisphere tcd_ell7.4x7.4x7.4, design surface) + tcd_sph10.55 for the bed. Mount check (scripts/fingertip_shape_rerun_mount.py, mount/mount.json): only the 11/22 and the 7.4x5x11/22 mount on DIP link b v4 + cassette 3T + TW15H3 as the 11/22 does; blocks, capsules 7.4/8.5 and the 16/32 put 9.5-78 mm3 of TPU into the cassette walls or cap side blocks; capsule 6 and the hemisphere lose 21-100 % of a part's bearing surface; quarter-ellipsoids end in front of the cassette and cannot take 05R4's magnets. Those 10 are simulated on the envelope alone (on the v4b finger's rigid parts).
 - [ ] 3. Contact bed per tip at 2.5 MPa, pad builder v2, against the law and Drake: approach, twist-onset arm, spin arm,
     brake force (10-15 step 2's protocol).
 - [ ] 4. Simulation cost per tip: CPU grip step, GPU world-step and GPU memory at 2048 worlds (the U1 protocol of
@@ -48,6 +50,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
     `ap step add hand-20261027-crosstalk_feed_poller "..."` instead of editing.
 - [ ] 9. Status page: a row in docs/experiments/20261018-printed_fingertip_status/status.json, then rebuild
     scripts/printed_fingertip_status_page.py.
+- [x] 10. Resguard events 16:41 and 16:52 (11-04): the mount check's first version (trimesh filled voxelization of the … Done 11-04 16:54: Reported in the ledger and compute.jsonl; mount check rewritten (ray parity, 8 s, 0.40 GB); nothing else affected
 <!-- /ap:steps -->
 Claimed: docs/experiments/<run date>-fingertip_shape_rerun/, logs/<run date>-fingertip_shape_rerun/, new scripts
 scripts/fingertip_shape_rerun_*.py, docs/notes/20261103-fingertip_shape_aside.md.
