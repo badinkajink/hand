@@ -110,3 +110,10 @@ corvus, channels 0 and 3).
   the index's and middle's mcp + pip at 120 deg at most (`plan_home_rest2`, the `_v3` plans, `lab/night_chain3.sh`).
   `run_plan.py` backs out of a pose a joint cannot reach to the last pose reached, logs a `blocked` event, and stops
   the run at the third.
+- The plans check each move as a straight line in joint space, as if every servo moved at the same rate. The
+  workstation replayed the v2 plans in the cad_v2 model with each servo at 0.6 to 1.4 times the others' rate (11-04,
+  evening). Its closest approach was thumb to middle at 8.8 mm on step 440 of `plan_random_s1_v2`, a plan that never
+  ran. On the home plans it was 11.9 mm. Future plans should take their move margin from such a replay.
+- The runner checks only the servos and the station. It did not see the index's board fail, and the stream stayed
+  half garbled for 50 min. A check of the board stream (record rate, zeroed chips) belongs in `run_plan.py` before the
+  next unattended run.
