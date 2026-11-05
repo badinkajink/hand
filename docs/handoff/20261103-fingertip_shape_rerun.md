@@ -15,17 +15,19 @@ docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration
 docs/experiments/20261029-foundational_pose_review/20261102-hom_plant_modulus.html; CLAUDE.md sections "Fingertip on the
 CAD hand", "Pad modulus 2.5 MPa" and "Servo plant of the HOM scripts". If scripts/ was reorganized, find each script by
 name in scripts/README.md.
-State: 11-04 17:1x (autopilot dac2b73b, colorado): steps 1, 2 done (mount/mount.json: only the 11/22 and the 7.4x5x11/22
+State: 11-04 17:3x (autopilot dac2b73b, colorado): steps 1, 2 done (mount/mount.json: only the 11/22 and the 7.4x5x11/22
 mount on the v4b parts; the other ten tips run on the envelope alone). Running detached (nohup setsid), nothing to relaunch
 unless a [resguard] line names it: 7 screen workers logs/20261104-fingertip_shape_rerun/queue/worker.sh on cores 4-10
-(queue.txt, 228 jobs: scale/hom per tip and condition, traj plan,rl and drake per hand; rows under
-docs/experiments/20261104-fingertip_shape_rerun/{screen,traj}/; per-job times in queue/jobs.jsonl; failures in failed.txt);
-1 bed worker worker_bed.sh on core 11 (bed.txt: law, pads, drake per tip; rows bed/<tip>/). Memory is tight (8.7 GB
-available, swap 13.9 GB at 17:12): add no job beside them. Drake replays at 2.5 MPa take 156 s each (61 s at 10 MPa).
-Finding: on cad_v2 the HOM turns of the cells put 15-60 % of the normal force through the cap TW15H3 (rows' rigid_share,
-rigid_by_part), with every grasp passing fp_sr2_toy's pad and rigid checks at the touch pose; report it beside J.
-Next: when the screen jobs end, fingertip_shape_rerun_analysis.py screen (to write), then queue stage3; cost (step 4),
-FE (step 6, v2_tip_fe_checks machinery with KEY per tip, body b, 05R4) after the screen frees memory.
+(queue.txt, 228 jobs; rows docs/experiments/20261104-fingertip_shape_rerun/{screen,traj}/; per-job times queue/jobs.jsonl;
+failures failed.txt); 1 bed worker worker_bed.sh on core 11 (bed.txt; rows bed/<tip>/). J1 done for all 12 tips at 17:2x
+(scripts/fingertip_shape_rerun_analysis.py screen). Memory tight (8.5 GB available, swap 13.9 GB): add no job beside them.
+Drake replays at 2.5 MPa take 156 s each. Finding: in the cad_v2 cells' HOM turns the cylinder meets the cap TW15H3's end
+plate (tip frame z -12 mm, past the pad's end), 24-46 % of the normal force (median per tip; rows' rigid_share,
+rigid_by_part); 0 % on the D1-D8 real_v1 hands; report beside J. Written, not yet run: fingertip_shape_rerun_cost.py
+(RL scenes built in logs/.../rl/; cpu/export/time after the screen frees memory), fingertip_shape_rerun_fe.py (one tip
+at a time, femtip, --mem 5G, after the screen). Next: figures + page builder (fingertip_shape_rerun_page.py), stage 3
+queue when the screen ends (python3 scripts/fingertip_shape_rerun_analysis.py screen, then
+python3 scripts/fingertip_shape_rerun_queue.py stage3 --append).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Before any run: wait until the HOM chain is done and the GPU holds no other job's process (nvidia-smi; the HO… Done 11-04 16:35: 11-04 16:30: HOM jobs of 11-02..11-04 all done, no HOM process; GPU 1.2/16 GB, desktop only; compute ledger logs/20261104-fingertip_shape_rerun/compute.jsonl (wall, core-h, GPU-h per step)

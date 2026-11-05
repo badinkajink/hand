@@ -8,7 +8,7 @@ cases of 2026-10-15 (scripts/curved_tips_bed.py, curved_tips_law.py) at 2.5 MPa,
   bed   curved_tips_bed's cases with the pads of builder v2 at 2.5 MPa and the relaxation time pad_tr(2.5 MPa) = 0.04 s
         (impratio 100, 1 ms), and Drake's compliant convex of the 0.25 mm mesh at 2.5 MPa (relaxation 0.01 s, SAP):
         static (approach), T2 (twist-onset arm under a torque ramp scaled to the law's onset arm), spin (the arm at
-        0.1-3 rad/s), T5 (the brake force at 45 deg) -> docs/experiments/<run>/bed/<tip>/<case>.jsonl
+        0.1-3 rad/s; Drake at 1 rad/s), T5 (the brake force at 45 deg, 1 ms) -> docs/experiments/<run>/bed/<tip>/<case>.jsonl
 
 Each tip writes its own folder, so tips run in parallel processes.
 
@@ -72,7 +72,55 @@ def cmd_bed(a):
     for k in a.tips:
         CBD.OUT = OUT / k
         CBD.OUT.mkdir(parents=True, exist_ok=True)
-        CBD.run([k], a.models, a.cases)
+        run(CBD, CB, k, a.models, a.cases)
+
+
+# the cases per model: (loads N, spin rates rad/s, time steps ms); the pads' as on 10-15, Drake's the step's four metrics
+# at one load and rate (Drake's spin arm moved 3-11 % from the law over 0.1-3 rad/s on 10-15, and it runs 2.5 times
+# slower at 2.5 MPa than at 10 MPa)
+PLAN = {"pads": {"static": ((0.5, 1.0, 2.0, 3.0), (None,), (1.0,)), "T2": ((1.0, 3.0), (None,), (1.0,)),
+                 "spin": ((1.0,), (0.1, 0.3, 1.0, 3.0), (1.0,)), "T5": ((None,), (None,), (1.0,))},
+        "drake": {"static": ((1.0, 3.0), (None,), (1.0,)), "T2": ((1.0,), (None,), (1.0,)),
+                  "spin": ((1.0,), (1.0,), (1.0,)), "T5": ((None,), (None,), (1.0,))}}
+
+
+def run(CBD, CB, key, kinds, cases):
+    """curved_tips_bed.run for one tip over PLAN's loads, rates and steps (its row format and resume keys)."""
+    import time
+    import traceback
+    for kind in kinds:
+        name = CBD.model(key, kind)
+        for case in cases:
+            out = CBD.OUT / f"{case}.jsonl"
+            have = {CBD.key_of(r) for r in CB.read_rows(out) if "case" in r}
+            Ns, oms, dts = PLAN[kind][case]
+            for dt in dts:
+                for N in Ns:
+                    for om in oms:
+                        if (case, name, N, om, dt) in have:
+                            continue
+                        t0 = time.time()
+                        try:
+                            if case == "static":
+                                r = CBD.case_static(name, N, dt)
+                            elif case == "T2":
+                                r = CBD.B.case_T2(name, N, dt, CBD.law_onset(key)[N])
+                            elif case == "spin":
+                                r = CBD.B.case_spin(name, N, om, dt, decomp=kind == "pads")
+                            else:
+                                r = CBD.B.case_T5(name, dt)
+                            r.setdefault("status", "complete")
+                        except Exception as e:                  # a failed case is a row
+                            r = {"status": "failed", "error": repr(e), "traceback": traceback.format_exc()[-1500:]}
+                        r.update(case=case, model=name, tip=key, kind=kind, rig_spec=CB.MODELS[name][0], N=N, omega=om,
+                                 dt_ms=dt, E_Pa=C.E_PA, script=CBD.SCRIPT, git_rev=CB.git_rev(), wall_s=time.time() - t0,
+                                 when=time.strftime("%Y-%m-%d %H:%M"))
+                        CBD.PUB.append_row(out, r)
+                        keys = ("approach_um", "touching_per_side", "nefc_mean", "rbar_onset_mm", "creep_deg_s",
+                                "rbar_spin_mm", "N_at_45_N", "us_per_step_median")
+                        print(case, name, N, om, dt, r.get("status"),
+                              {q: round(r[q], 4) for q in keys if isinstance(r.get(q), (int, float))},
+                              r.get("error", ""), f"{time.time() - t0:.1f} s", flush=True)
 
 
 def main():
