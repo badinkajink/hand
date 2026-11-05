@@ -3304,6 +3304,22 @@ tips' side walls. The lab's answers went to the workstation at 15:37.
   - A seat block for later work would want threads that do not wear: heat-set inserts, as mount v4's set screws have,
     or nuts.
 
+## The SR2 hand's HEX-E reading for QUEUE R35 (11-05, 12:58)
+
+- The SR2 hand hangs on the HEX-E, the arm powered off since 18:57:27 on 11-04 (robot_mode 3). The hand stood still at
+  its home layout, at zero, motors disabled. Joints from the controller: (53.227, -82.989, 104.542, -111.855, -89.700,
+  213.968) deg; the pendant's TCP, still the calibration's tool: (-217.6, -475.9, 284.6) mm, rotation vector
+  (2.561, -1.809, -0.000) rad.
+- The HEX-E (192.168.0.6) through the program's reader, 100 Hz, filter 3, no bias command, 12:57:50 to 12:58:00: 1000
+  samples, no time-out. Mean F (1.153, -3.598, 625.577) N, sd (0.051, 0.018, 0.230); T (1.3501, -1.6263, -0.0972) N m,
+  sd (0.0030, 0.0038, 0.0011).
+- The reading is untared: Fz 625.6 N is the DAQ's raw zero, as at its restarts of 10-22 (627 to 653 N) and 11-02
+  (629 N). The calibration program biases the DAQ when it starts, so its sessions log only tared values. No raw reading
+  with the rod tool exists to take the difference from, and the raw zero drifted 17 N in 45 min in one pose on 10-22,
+  about half the hand's weight. So this reading gives neither the mass nor the centre of mass. The payload should be the
+  CAD's 3.24 kg, with its centre of mass (-8.7, -7.4, 73.1) mm in tool0 at k = 1, unless the owner tares the HEX-E with
+  the hand off at the next remount. k and the TCP wait for the owner at the cell.
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,

@@ -209,14 +209,45 @@ cannot reach ends the run and the chain.
 | Run | Time | Steps | Result |
 |---|---|---|---|
 | `run1_attended` | 12:20:15 to 12:34:28 | 35 of 35 | plan done; no blocked pose, no board fault |
-| `run2_layouts` | from 12:35:08 | 672 | running |
+| `run2_layouts` | 12:35:08 to 12:43:50 | 31 of 672 | stopped at step 32, the middle's yaw blocked |
 
 In `run1_attended` the nine holds settled within 4.2 deg of their commands. The middle's yaw lagged most: 3.9 and
 4.2 deg at -37 and -22 deg. The boards gave 160.5 records/s, never under 152 in a second, with no zeroed chip. The
 servos stayed at 24 C or under. The frames of the nine holds (`data/20261105-run1_attended_holds.jpg`) show the
 cables looping around the thumb and between the fingers. None is caught where the camera can see. The logs are in
-`logs/20261105-sr2_crosstalk/` on corvus: `run1_attended/` and `run2_layouts/`, each with `events.jsonl`, `telemetry.jsonl` and `progress.json`, and
-the boards in `boards/`.
+`logs/20261105-sr2_crosstalk/` on corvus: `run1_attended/` and `run2_layouts/`, each with `events.jsonl`,
+`telemetry.jsonl` and `progress.json`, and the boards in `boards/`.
+
+**The stop at step 32.** At 12:43:37 `run2_layouts` stopped on its first blocked pose. Step 32 (random_g12) sent the
+middle finger to yaw -34, mcp 43.5 and pip -6.4 deg. Its yaw servo stayed at 27.8 deg, pushing at a load of -285 to
+-345, and fell 6.2 deg short. The runner backed out to step 31's pose, took the hand to zero and disabled the motors at
+12:43:48.
+- The middle's yaw falls short only toward negative yaw. Below -25 deg it fell short by 4.1 deg on average today (at
+  most 5.6 deg before step 32), and by 2.6 to 3.0 deg on 11-04 (at most 5.3 deg in 79 poses).
+- Its load builds with the angle, and today it builds sooner. Between -20 and -10 deg the median load was -210 at g12
+  today, against +75 at the home layout on 11-04. Between -40 and -30 deg it was -225 against -193.
+- The flange points straight down, so gravity does not load the yaw axis. The frames
+  (`data/20261105-middle_carriage_by_layout.jpg`) show servo cables and a black sleeve along the middle's links, and a
+  brown servo cable arcing from the thumb's mux boards to the middle's carriage. In the stalled frame the sleeve runs
+  straight across the finger. A cable resisting the yaw is the likeliest load.
+- The coordinator's point: a cable loaded enough to stall a servo is the failure that pulled the index's board on 11-04.
+
+**Not resumed.** The lab had set the rule that a blocked pose ends the chain until the owner has looked. The hand
+stays stopped at the home layout: motors disabled at 12:57, servo torque off, unhomed. The board logger keeps logging
+all three boards at rest. `lab/resume_plan.py` wrote
+`plan/20261105-plan_layouts_s1_resume32.json`, which is ready and not run.
+- It homes, returns to g12, takes a baseline, and runs s1 from step 32. It leaves out the 166 random poses whose middle
+  yaw is below -25 deg. That leaves 407 random poses, 492 steps, about 46 min.
+- It re-checked the 110 moves whose neighbours changed. Fifteen would cross on the straight line (down to -1.6 mm), and
+  they go through zero instead. Every step clears: poses 12.0 mm, moves 12.0 mm, ways to zero 12.1 mm, gantry moves
+  25.7 mm.
+- Today's loads say a cut at -25 deg still leaves the cable under tension. Free the middle's cables first. Then run
+  either s1 from step 32 as it stands (`resume_plan.py PLAN OUT 32` without the cut) or the cut plan, after torque on
+  and homing:
+
+      /usr/bin/python3 docs/experiments/20261104-sr2_hand_crosstalk/lab/run_plan.py \
+          docs/experiments/20261104-sr2_hand_crosstalk/plan/20261105-plan_layouts_s1_resume32.json logs/<date>-sr2_crosstalk/run3_resume32 \
+          --token-file ~/.sr2_station_token --boards logs/<date>-sr2_crosstalk/boards --board-channels 0,1,3
 
 ## Known limits
 
