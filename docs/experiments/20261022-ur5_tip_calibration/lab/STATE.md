@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 16:4x by the lab. **The calibration is done** (the owner, 16:4x on 11-04; below, under "Waiting on the owner"). From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 18:5x by the lab. **The calibration is done** (the owner, 16:4x on 11-04; below, under "Waiting on the owner"). **The SR2 hand now hangs on the UR5, and the arm is powered off** (18:57:27; the brakes hold it). The crosstalk sweep of `../../20261104-sr2_hand_crosstalk/` moves only the hand's fingers and steppers, from 18:57 to about 22:30. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -8,6 +8,7 @@ request to the owner must come from this file.
 
 | Item | Now | Registration (folder here) |
 |---|---|---|
+| SR2 hand | on the flange since 18:3x on 11-04 (owner). The arm was powered off from the pendant at 18:57:27; as the brakes engaged the TCP moved 0.2 mm. Its fingertips: v3 ID 1 on the thumb (mux channel 3), v3 ID 3 on the index (channel 1) and v3 ID 2 on the middle finger (channel 0), on the C6's mux (0x71) plugged into corvus. The lab has not checked the probe base or the strip since | `../../20261104-sr2_hand_crosstalk/README.md` |
 | Probe | probe base with the rod tool (R 12.5 mm, its axis along y_M) on mount v7's adapter disc on the HEX-E (owner, 11-03 16:5x; set right at 17:2x after it sat a quarter turn off its square boss); before it the 2 mm sphere from 11-03 10:5x and the 5 mm sphere from 11-02 13:0x; no tip on the robot | the workstation's joint fit on the night's 0.5 N sweeps (bb18d7c65): c_M (-0.988, 0, 106.713) mm in M, turned +0.43 deg about z_M (sd 1.04) and -0.89 deg across (sd 0.50); each rod session's pass 1 fits it too |
 | Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume | tonight's sessions: the frame through both keys' socket points (`20261102-strip_frame_two_keys.json`), by `--frame`, with `--home-from poses.jsonl:strip_key1_seated_4`; each seat's grid aims by its own pass 1 fit. For later plans: the workstation's frame from the three pads' fits (`../../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`, 9cd8b375: the two-key frame turned 3.44 deg about y_A and moved (2.48, 0.10, -3.70) mm; the pads within 0.14 to 0.22 mm on average, the rest the strip's twist) |
 | Held tips | **coming off for the SR2 hand (the owner, 16:2x on 11-04).** Until then: seat 1 (y_A -80, the right end seen from the robot) v3 ID 3 on mux channel 3 since 14:3x on 11-04 (the owner; v3 ID 6 sat there from 11-02 13:0x); seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 151 records/s (14:40 on 11-04; 138 on 11-02) | seat 1's ID 3: `20261104-tip_calibration/145215-id3pts11_seed` (pass 1, 0.060 mm rms; its pad 0.71 mm and 1.55 deg from ID 6's). Seat 1's ID 6: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame); seat 2: `182710-s2v5` (0.051 mm rms; 1.21 mm, 3.5 deg); seat 3: `220337-s3v4` (0.051 mm rms; 0.81 mm, 2.9 deg). The rod's sessions of 11-03 have lab folders `20261103-214753-rod13`, `20261103-172647-rod21` and `20261103-202017-rod32` (seats 1, 2 and 3) |
@@ -23,6 +24,7 @@ cm from the connector with slack. The fix is a new cable.
 
 ## Rules in force
 
+- **Never freedrive or teach mode while the SR2 hand is on the UR5** (owner, 18:3x on 11-04): the arm drops and crashes under the hand's weight.
 - Every robot run needs the owner's go. Since 15:4x on 11-03 ("relays count yes"), a go that the workstation relays
   with the owner's words and time counts the same as one typed in the lab's session.
 - Simulate new or changed program code. A plan that changes only numbers on paths already checked (speeds, or depth

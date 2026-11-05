@@ -12,8 +12,10 @@ neighbours' chips as a function of those angles.
 - The hand hangs on the UR5's flange. **Never turn on freedrive or teach mode while the SR2 is on the UR5** (owner,
   11-04): the arm drops under the hand's weight. The sweep does not move the arm. `lab/ur5_pose_log.py` logs its pose
   once a second, read-only.
-- Fingertips: v3 ID 1 on the thumb (mux channel 3), v3 ID 3 on the index (channel 0), v3 ID 2 on the middle finger
-  (channel 1). The mux (0x71) sits on the SparkFun Thing Plus ESP32-C6 (40:4C:CA:4C:49:C4), plugged into corvus.
+- Fingertips: v3 ID 1 on the thumb (mux channel 3), v3 ID 3 on the index (channel 1), v3 ID 2 on the middle finger
+  (channel 0). The owner confirmed channel 1 at 18:4x on 11-04, and each channel's rest field matches its tip's UR5
+  sessions: 86, 114 and 57 uT rms against 342 uT or more for the other tips. The mux (0x71) sits on the SparkFun Thing
+  Plus ESP32-C6 (40:4C:CA:4C:49:C4), plugged into corvus. The index and middle boards were unplugged until 18:53.
 - Steppers and servos: the M8P and the CB1 on the hand. From corvus the CB1 answers at 10.99.99.2 once corvus has a
   live second address: `nmcli device modify enp3s0 +ipv4.addresses 10.99.99.77/24`. That command changes no profile.
   Corvus's key `~/.ssh/id_wxie` is in irlab's authorized keys since 18:2x on 11-04.
@@ -60,3 +62,9 @@ The owner looked at it on the hand at 18:3x: "the gap is about 1cm yea".
   the CB1.
 - The middle finger's mcp droops about 3.5 deg short of its command when the finger is near horizontal. The runner
   treats a joint as settled once it stops moving, and it stops at an error of 6 deg or more.
+- With the hand on the arm as it hangs, the index's mcp servo reaches its protective torque near 55 deg, with its load
+  at -195 to -210. Its droop grew from 1.5 deg at 39 deg to 3.4 deg at 56 deg. Commanded to 64 deg at step 126 of
+  `run1_home`, it stopped at 55.4 deg, and the runner stopped the chain at 19:31:23. That run had done the baseline,
+  torque, every stepper step, the thumb's families and the index's yaw and mcp. Since then the plans cap the index's mcp
+  at 50 deg and the middle's at 62 deg (`plan_home_rest`, the `_v2` plans, `lab/night_chain2.sh`). The thumb reached
+  88 deg with 1.6 deg of droop.

@@ -15,6 +15,8 @@ import numpy as np
 from handgeo import F, HOME_LOCAL, Hand, ORIGIN
 
 MIN_POSE_MM = float(sys.argv[2]) if len(sys.argv) > 2 else 10.0     # CAD clearance at every pose
+SKIP = tuple(sys.argv[3].split(",")) if len(sys.argv) > 3 and sys.argv[3] else ()
+BASELINE = float(sys.argv[4]) if len(sys.argv) > 4 else 120.0
 MIN_PATH_MM = MIN_POSE_MM - 1.0                                     # and along each move (joint-space line)
 DWELL = 3.0
 SPEED = 80
@@ -61,6 +63,8 @@ dropped = []
 
 def pose_step(fam, partial, dwell=DWELL):
     global poses_since_zero, last
+    if fam in SKIP:
+        return
     pose = full(partial)
     if not ok_range(pose):
         dropped.append((fam, partial, "range"))
@@ -90,6 +94,8 @@ def pose_step(fam, partial, dwell=DWELL):
 
 def zero_step(dwell=8.0, fam="zero"):
     global poses_since_zero, last
+    if fam == "zero" and steps and steps[-1]["op"] == "joints" and steps[-1]["joints"] == full({}):
+        return
     pc = path_clearance(last, full({}))
     assert pc >= MIN_PATH_MM, pc
     steps.append({"op": "joints", "family": fam, "joints": full({}), "dwell_s": dwell, "speed": SPEED,
@@ -99,14 +105,14 @@ def zero_step(dwell=8.0, fam="zero"):
 
 
 # F0 baseline
-zero_step(120.0, "baseline")
+zero_step(BASELINE, "baseline")
 # F1 servo torque
-for _ in range(2):
+for _ in range(0 if "torque" in SKIP else 2):
     steps.append({"op": "torque", "family": "torque", "state": "off", "dwell_s": 30.0})
     steps.append({"op": "torque", "family": "torque", "state": "on", "dwell_s": 30.0})
 zero_step(10.0)
 # F2 each stepper axis 5 mm toward the palm's centre and back, fingers straight
-for f in F:
+for f in (() if "stepper" in SKIP else F):
     x0, y0 = HOME_PALM[f]
     for axis in ("x", "y"):
         dx = 5.0 if axis == "x" else 0.0
@@ -118,7 +124,7 @@ for f in F:
         steps.append({"op": "mounts", "family": "stepper", "mounts": {f: {"x": x0, "y": y0}}, "dwell_s": 20.0})
 zero_step(10.0)
 # F3 each finger alone, inside each servo's range
-MCP_MAX = {"thumb": 88, "index": 64, "middle": 69}
+MCP_MAX = {"thumb": 88, "index": 50, "middle": 62}   # 19:3x on 11-04: index saturates near 55, middle near 62
 PIP_MIN = {"thumb": -10, "index": 0, "middle": -10}
 PIP_MAX = {"thumb": 85, "index": 90, "middle": 76}
 
@@ -148,21 +154,21 @@ for f in F:
             pose_step(f"{f}_yaw_mcp", {f: {"yaw": yaw, "mcp": mcp}})
     zero_step()
 # F4 thumb and middle toward each other: one parked, the other moving, then both
-PARK = {"thumb": (60, 75, 88), "middle": (45, 60, 69)}
-MOVE = {"thumb": (30, 45, 60, 70, 80, 88, 80, 60, 30), "middle": (20, 35, 50, 60, 69, 60, 45, 20)}
+PARK = {"thumb": (60, 75, 88), "middle": (45, 55, 62)}
+MOVE = {"thumb": (30, 45, 60, 70, 80, 88, 80, 60, 30), "middle": (20, 35, 50, 58, 62, 58, 45, 20)}
 for parked, moving in (("middle", "thumb"), ("thumb", "middle")):
     for p in PARK[parked]:
         for mv in MOVE[moving]:
             pose_step(f"tm_{moving}_to_{parked}{p}", {parked: {"mcp": p}, moving: {"mcp": mv}})
         zero_step()
-for a, b in itertools.product((60, 70, 80, 88), (45, 55, 63, 69)):
+for a, b in itertools.product((60, 70, 80, 88), (45, 52, 58, 62)):
     pose_step("tm_grid", {"thumb": {"mcp": a}, "middle": {"mcp": b}})
 zero_step()
 for a, b in itertools.product((0, 20, 40), repeat=2):
-    pose_step("tm_pip", {"thumb": {"mcp": 80, "pip": a}, "middle": {"mcp": 65, "pip": b}})
+    pose_step("tm_pip", {"thumb": {"mcp": 80, "pip": a}, "middle": {"mcp": 62, "pip": b}})
 zero_step()
 for ty, my in itertools.product((-20, 0, 20), repeat=2):
-    pose_step("tm_yaw", {"thumb": {"mcp": 80, "yaw": ty}, "middle": {"mcp": 65, "yaw": my}})
+    pose_step("tm_yaw", {"thumb": {"mcp": 80, "yaw": ty}, "middle": {"mcp": 62, "yaw": my}})
 zero_step(60.0, "baseline_end")
 
 dur = sum(s.get("dwell_s", 0) for s in steps) + sum(1.2 for s in steps if s["op"] == "joints") + \

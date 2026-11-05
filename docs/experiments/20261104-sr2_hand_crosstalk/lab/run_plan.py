@@ -6,7 +6,7 @@ torque, steppers) are written on corvus's clock, the clock of the fingertip boar
 
 OUTDIR gets events.jsonl (one line a step and a safety stop), telemetry.jsonl (one line a new station sample, with
 t_recv and t_sample = t_recv - the sample's age) and progress.json (pass and step done; --resume skips them).
-touch OUTDIR/STOP ends the run after the current step. Safety stops, each followed by the zero pose and the end:
+touch OUTDIR/STOP (or a STOP beside OUTDIR, for a chain) ends the run after the current step. Safety stops, each followed by the zero pose and the end:
 a station error or lost link; a servo at 60 C or more; a joint 6 deg or more from its command 6 s after the command
 (a finger held off its pose); a servo alarm. At the end the hand goes to the zero pose and the motors are disabled
 (steppers off, servo torque off), which also gives up the home.
@@ -42,7 +42,7 @@ out.mkdir(parents=True, exist_ok=True)
 TOKEN = Path(a.token_file).read_text().strip()
 EV = open(out / "events.jsonl", "a", buffering=1)
 TL = open(out / "telemetry.jsonl", "a", buffering=1)
-STOP = out / "STOP"
+STOPS = (out / "STOP", out.parent / "STOP")
 latest = {"state": None, "t": 0.0}
 lock = threading.Lock()
 quit_flag = threading.Event()
@@ -258,7 +258,7 @@ try:
         for i, st in enumerate(plan["steps"]):
             if p == done["pass"] and i <= done["step"]:
                 continue
-            if STOP.exists():
+            if any(f.exists() for f in STOPS):
                 raise Abort("STOP file")
             ctx = f"(pass {p} step {i} {st['family']})"
             fn = {"joints": do_joints, "torque": do_torque, "mounts": do_mounts}[st["op"]]
