@@ -154,6 +154,8 @@ SCR = J("screen/summary.json")
 FIN = J("final/summary.json")
 FE = J("fe/summary.json").get("tips", {})
 CMP = J("compute/summary.json")
+BAND = J("band/summary.json").get("tips", {})
+TASKS4 = (("twist", "Twist"), ("roll", "Roll"), ("pinpush", "Pin-push"), ("press", "Press"))
 BED15 = J("bed/summary.json", OLD15).get("tips", {})
 COST15 = J("cost/summary.json", OLD15).get("tips", {})
 SCR15 = J("screen/summary.json", OLD15)
@@ -494,6 +496,27 @@ def screen_section():
                      "within hands and cells; final/summary.json).", key="stage3")
         out += img("media/fig_stage3.png", "Stage 3 per tip: the score at each condition and J3 (left), and the difference to "
                    "the v4b tip with its 90&#8202;% bootstrap interval (right).", key="stage3")
+    if BAND:
+        tips_b = [k for k in [C.REF] + [t for t in FIN.get("tips", []) if t != C.REF] if k in BAND]
+        body = []
+        for k in tips_b:
+            row = [name(k)]
+            for t, _ in TASKS4:
+                v = get(BAND[k], t, "S3") or {}
+                row.append(f(v.get("worst_median")) if k == C.REF else
+                           (f"{f(v.get('worst_median'))} ({v['diff_median']:+.2f})" if v else "&#8211;"))
+            body.append(row)
+        rep = [abs(get(BAND[C.REF], t, "S3", "diff_median") or 0) for t, _ in TASKS4 if get(BAND.get(C.REF) or {}, t, "S3")]
+        out += ("<p>The friction band repeats the worst-case score of 4 November: the STS3032 with pads at 2.5&#8202;MPa at "
+                "scene friction 0.4, 0.7 and 1.0, the 30 layouts of its sample per HOM task, and for each layout the design "
+                "refined for the v4b tip (grasp, forces and contact modes, pick S3), scored by its lowest five-seed mean over "
+                "the three frictions. With another tip in place of the v4b pad the same designs score as in "
+                "Table&#160;[[tab:band]]. Run again on the v4b tip, the medians repeat those of 4 November within "
+                f"{f(max(rep) if rep else None)}.</p>"
+                + table(["Tip"] + [b for _, b in TASKS4], body,
+                        "Worst case over scene friction 0.4&#8211;1.0 on the STS3032: the median over the 30 layouts of each "
+                        "pick S3&#8217;s lowest five-seed mean, with the median paired difference to the v4b tip in brackets "
+                        "(band/summary.json; <code>scripts/fingertip_shape_rerun_band.py</code>).", key="band"))
     out += film("media/hom_cylinder_16_0.625_s3_tile.mp4", "media/hom_cylinder_16_0.625_s3_tile_poster.jpg",
                 "HOM on the v4b hand&#8217;s 16&#8202;mm cylinder at friction 0.7, seed 3 (a placement no stage used to choose the "
                 "grasp), each tip with the grasp it chose on seed 0, seen from below the palm; pads touching the cylinder red, "
@@ -559,26 +582,75 @@ def compute_section():
     jobs = CMP.get("jobs", {})
     if not jobs:
         return "<p><i>[compute summary not written]</i></p>"
-    body = [[k, str(v["n"]), f(v["core_h"]), f(v["wall_h"])] for k, v in sorted(jobs.items())]
-    return table(["Jobs", "Count", "Core-hours", "Wall time, h"], body, "Compute of the rerun by kind of job "
-                 "(compute/summary.json, from logs/20261104-fingertip_shape_rerun/queue/jobs.jsonl).", key="compute")
+    label = {"scale": "Cells, stages 1 and 2", "hom": "HOM on D1&#8211;D8, stages 1 and 2", "traj drake": "Drake replays (gate)",
+             "traj plan,rl": "Pad replays (gate)", "traj fill": "Drake replays refilled", "stage3 scale": "Cells, stage 3",
+             "stage3 hom": "HOM on D1&#8211;D8, stage 3", "law": "Bed: law", "bed": "Bed: pads and Drake", "fe": "Finite elements",
+             "gpu cost": "GPU cost", "cpu cost": "CPU cost", "band": "Friction band"}
+    body = [[label.get(k, k), str(v["n"]), f(v["core_h"]), f(v.get("gpu_h"), 2), f(v["wall_h"])] for k, v in jobs.items()]
+    tot = sum(v["core_h"] for v in jobs.values())
+    gtot = sum(v.get("gpu_h", 0) for v in jobs.values())
+    body.append(["All", str(sum(v["n"] for v in jobs.values())), f(tot), f(gtot), "&#8211;"])
+    return (f"<p>The rerun took {tot:.1f} core-hours and {gtot:.1f} GPU hours (Table&#160;[[tab:compute]]); the Drake replays of "
+            f"the agreement gate took {f(get(jobs, 'traj drake', 'core_h'), 1)} of the core-hours. The queue stood for 36 minutes "
+            "at resguard&#8217;s swap gate, which the desktop&#8217;s swapped pages held closed.</p>"
+            + table(["Jobs", "Count", "Core-hours", "GPU hours", "Wall time, h"], body, "Compute of the rerun by kind of job "
+                    "(compute/summary.json, from the job logs under <code>logs/20261104-fingertip_shape_rerun/queue/</code>). "
+                    "Wall time runs from a kind&#8217;s first start to its last end.", key="compute"))
 
 
 def limitations():
-    return ("<p>Every reference is computed: the finite elements use NinjaFlex 85A&#8217;s 12&#8202;MPa solid modulus and a "
-            "homogenized gyroid, and Drake&#8217;s field and the pads use the 2.5&#8202;MPa fitted to the v3 tips&#8217; UR5 presses. "
-            "Ten of the twelve tips would need a cassette and cap of their own; they are simulated with the 11/22&#8217;s. The "
-            "D1&#8211;D8 hands are real_v1 hands and their bench plans were made for the block. No tip other than the 11/22 has "
-            "been printed on the v4b finger.</p>")
+    return ("<p>Every reference is computed. The finite elements use NinjaFlex 85A&#8217;s 12&#8202;MPa solid modulus over a "
+            "homogenized gyroid, and the pads and Drake use the 2.5&#8202;MPa fitted to the UR5 presses of the v3 tips, which "
+            "have the 11/22 shape, for every shape. Ten of the twelve tips would need a cassette and cap of their own; they are "
+            "simulated on the 11/22&#8217;s. The cells&#8217; grasps come from the scale study&#8217;s kinematics, and in their HOM "
+            "turns the cap&#8217;s end plate takes a third or more of the normal force on the cylinder. The D1&#8211;D8 hands are "
+            "real_v1 hands, and their bench plans were made for the block. The friction band runs the v4b tip&#8217;s refined "
+            "designs on the other tips without refining them again.</p>")
 
 
 def open_items():
-    items = [("[future work]", "[to write from the results]")]
+    items = [
+        ("A longer stage 3 for the 16/32 half-ellipsoid",
+         "Rerun its stage-3 jobs and the v4b tip&#8217;s with cell seeds 3&#8211;12 and HOM seeds 5&#8211;19 "
+         "(<code>scripts/fingertip_shape_rerun_queue.py stage3</code> with the seeds widened). A 90&#8202;% interval above zero "
+         "makes it the shape to print, on a cassette and cap widened for its distal flanks; an interval that still includes "
+         "zero keeps the 11/22."),
+        ("Grasps that keep the cap off the cylinder",
+         "Check the cells&#8217; candidate grasps with <code>scripts/fp_sr2_toy.py</code>&#8217;s pad-coverage and rigid-clearance "
+         "tests along the HOM turn, not only at the touch pose, and rescore J on the grasps whose turns put under 10&#8202;% of the "
+         "normal force on rigid parts. A different order of the tips shows how much of J measures the cap."),
+        ("The friction band with each tip&#8217;s own designs",
+         "Refine the band&#8217;s grasps, forces and modes per stage-3 tip (<code>scripts/hom_grasp_refine.py run --band</code> "
+         "with the tip&#8217;s scene caches of <code>scripts/fingertip_shape_rerun_band.py</code>). A worst-case score above the "
+         "v4b tip&#8217;s on its own designs would separate the shape from the designs it was tuned with."),
+        ("Bench presses of a second shape",
+         "Print the 16/32 half-ellipsoid with pad 05R4&#8217;s magnets and press it on the UR5 under the 5&#8202;mm sphere and the "
+         "12.5&#8202;mm rod at 0.25&#8211;8&#8202;N, as the v3 tips were. A fitted modulus within 2.22&#8211;2.73&#8202;MPa, the v3 "
+         "tips&#8217; range, confirms that one modulus serves both shapes."),
+    ]
     return "<ol>" + "".join(f"<li><b>{a}.</b> {b}</li>" for a, b in items) + "</ol>"
 
 
 def lede():
-    return "[lede: the outcome with its numbers, written when the stages are done]"
+    C3 = FIN.get("candidates", {})
+    if not C3:
+        return "[lede: the outcome with its numbers, written when the stages are done]"
+    others = [k for k in FIN["tips"] if k != C.REF]
+    best = max(others, key=lambda k: C3[k]["J3"])
+    mounts = [k for k in ORDER if get(MNT, "tips", k, "verdict") == "mounts"]
+    curved = C.HALF + [C.REF, C.HEMI] + C.CAPSULES
+    onset = [get(BED.get(k) or {}, "law", "onset_arm_mm", "1") for k in curved]
+    onset_b = [get(BED.get(k) or {}, "law", "onset_arm_mm", "1") for k in C.BLOCKS]
+    res = [get(FE.get(k) or {}, "sensing", "centre_force_N") for k in ORDER]
+    beat = [k for k in others if C3[k].get("beats_base")]
+    return (f"On the v4b finger at 2.5&#8202;MPa {'no fingertip shape beats' if not beat else 'one shape beats'} the 11/22 "
+            f"half-ellipsoid that the hand uses. On fresh placements the {name(best).lower()} scores J3 = "
+            f"{f(C3[best]['J3'], 3)} against the v4b tip&#8217;s {f(C3[C.REF]['J3'], 3)}, a difference of "
+            f"{C3[best]['dJ3_vs_base']:+.3f} whose 90&#8202;% interval runs from {C3[best]['dJ3_ci90'][0]:+.3f} to "
+            f"{C3[best]['dJ3_ci90'][1]:+.3f}. Of the twelve tips only {len(mounts)} fit the v4b DIP link, cassette and cap as "
+            f"built. The curved tips turn the tool on half of the blocks&#8217; friction arm, {rng(onset)} against "
+            f"{rng(onset_b)}&#8202;mm, and pad 05R4 resolves {rng([x for x in res if x is not None], 3)}&#8202;N on every tip "
+            f"that holds its magnets.")
 
 
 def byline():

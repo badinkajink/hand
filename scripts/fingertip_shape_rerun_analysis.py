@@ -467,13 +467,28 @@ def compute():
         e["core_h"] += (j["end"] - j["start"]) / 3600
         e["first"] = min(e["first"] or j["start"], j["start"])
         e["last"] = max(e["last"] or j["end"], j["end"])
-    out = {"jobs": {k: {"n": v["n"], "core_h": round(v["core_h"], 2), "wall_h": round((v["last"] - v["first"]) / 3600, 2)}
-                    for k, v in kind.items()}}
+    gpu = defaultdict(float)
+    for f, k in (("fe_jobs.jsonl", "fe"), ("gpu_jobs.jsonl", "gpu cost"), ("cpu_jobs.jsonl", "cpu cost"),
+                 ("band_jobs.jsonl", "band")):
+        p = C.LOGS / "queue" / f
+        for line in (open(p) if p.exists() else []):
+            j = json.loads(line)
+            e = kind[k]
+            dt = j["end"] - j["start"]
+            e["n"] += 1
+            e["core_h"] += dt * j.get("threads", 1) / 3600
+            if j["start"] > 0:
+                e["first"] = min(e["first"] or j["start"], j["start"])
+            e["last"] = max(e["last"] or j["end"], j["end"])
+            if k in ("gpu cost", "band"):
+                gpu[k] += dt / 3600
+    out = {"jobs": {k: {"n": v["n"], "core_h": round(v["core_h"], 2), "gpu_h": round(gpu.get(k, 0.0), 2),
+                        "wall_h": round((v["last"] - (v["first"] or v["last"])) / 3600, 2)} for k, v in kind.items()}}
     led = [json.loads(l) for l in open(C.LOGS / "compute.jsonl")] if (C.LOGS / "compute.jsonl").exists() else []
     out["ledger"] = led
     write(D / "compute" / "summary.json", out)
     for k, v in out["jobs"].items():
-        print(f"{k:16s} {v['n']:4d} jobs {v['core_h']:6.2f} core-h over {v['wall_h']:5.2f} h")
+        print(f"{k:16s} {v['n']:4d} jobs {v['core_h']:6.2f} core-h {v['gpu_h']:5.2f} GPU-h over {v['wall_h']:5.2f} h")
     return out
 
 
