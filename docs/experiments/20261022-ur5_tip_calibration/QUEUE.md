@@ -1818,6 +1818,15 @@ push that answers it arrives.
   - ID 3's rig holds carry the seat block's loose clamp (board reading 7.9 % in uT/N against 2.4 % in tip mode).
   - Next, for the owner: take the pooled GP as the hand's calibration of IDs 1 to 3; a press at a tip's mount end on the
     hand with a known load would test it, and an error over 2 mm there would refute it.
+  - Decided (owner, 00:4x on 11-05): "the calibration rig is off, the hand is on the robot, there's no chance to calibrate
+    these other fingers anytime soon. i think we can live with the noisy calibration from ids3-6". The viewer's board GP
+    is refitted with the rig's presses (`scripts/ur5/ur5_tip_calibration_board_gp_rig.py`): the tip-mode holds of IDs 1
+    to 3, ID 3's 500 rig holds and 1,500 rig holds of each of IDs 4 to 6, 14,185 presses and slides, length 1.94, noise
+    0.3, 162 s and 8.0 GB. It is `data/20261105-board_gp_v3_id1_id3_rig_id3_id6.npz`, for the viewer's --board-gp; the
+    10-02 model `data/20261102-board_gp_v3_id1_id3.npz` stays. Validation of the same recipe without ID 3's rig holds
+    (2 seeds, a fifth of each tip's points held out; `data/20261105-board_gp_rig_validation.json`): ID 3's 70
+    mount-end holds go from 3.04 to 3.10 mm to 0.75 to 0.77 mm, from 18 to 19 deg to 5.5 to 5.6 deg, and from 24 to 5 %
+    in magnitude. The held-out tip-mode holds go from 0.38 to 0.44 mm to 0.45 to 0.53 mm.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
