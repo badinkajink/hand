@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 18:5x by the lab. **The calibration is done** (the owner, 16:4x on 11-04; below, under "Waiting on the owner"). **The SR2 hand now hangs on the UR5, and the arm is powered off** (18:57:27; the brakes hold it). The crosstalk sweep of `../../20261104-sr2_hand_crosstalk/` moves only the hand's fingers and steppers, from 18:57 to about 22:30. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-04 20:4x by the lab. **The calibration is done** (the owner, 16:4x on 11-04; below, under "Waiting on the owner"). **The SR2 hand hangs on the UR5, and the arm is powered off** (18:57:27; the brakes hold it). The crosstalk sweep of `../../20261104-sr2_hand_crosstalk/` ran from 18:57 to 20:34. It stopped with the hand at zero and its motors disabled, because the index's fingertip board stopped answering at 19:43:52, probably its cable pulled by a curl. **For the owner:** check the index's fingertip cable at both ends before anything moves. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 

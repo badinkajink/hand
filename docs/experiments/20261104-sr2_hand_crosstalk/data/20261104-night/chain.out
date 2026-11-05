@@ -1,0 +1,17 @@
+18:57:45 start 20261104-plan_home.json -> logs/20261104-sr2_crosstalk/run1_home
+19:21:36 resumed after the owner's pause (19:05:12 to now)
+19:21:36 start 20261104-plan_home.json -> logs/20261104-sr2_crosstalk/run1_home
+safety stop: joint 1.fe1 8.6 deg from its command after 2.3 s (pass 0 step 126 index_mcp)
+19:31:31 end run1_home: exit 3
+19:40:25 chain 2 on the capped plans, after the stop of 19:31:23 and the re-home of 19:36 to 19:40
+19:40:25 start 20261104-plan_home_rest.json -> logs/20261104-sr2_crosstalk/run1b_home_rest
+safety stop: joint 1.fe2 9.7 deg from its command after 7.0 s (pass 0 step 38 index_mcp_pip)
+19:44:06 end run1b_home_rest: exit 3
+19:52:35 chain 3 (curl limit 120 deg, back-out on block), after the stop of 19:43:59 and the re-home of 19:48
+19:52:35 start 20261104-plan_home_rest2.json -> logs/20261104-sr2_crosstalk/run1c_home_rest2
+plan done
+20:08:18 end run1c_home_rest2: exit 0
+20:08:18 start 20261104-plan_random_s1_v3.json -> logs/20261104-sr2_crosstalk/run2_random_s1
+20:34:01 STOP by the lab: the board stream has been bad since 19:43:52 (the index's block at mcp 50 + pip 90)
+safety stop: STOP file
+20:34:09 end run2_random_s1: exit 3
