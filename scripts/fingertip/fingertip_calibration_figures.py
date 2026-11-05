@@ -963,7 +963,7 @@ def fig_gp_mlp():
     models = (("gp", "GP", "#333333", "o"), ("mlp64", "Ensemble, 64 units a layer", "#1f78b4", "s"),
               ("mlp128", "Ensemble, 128 units a layer", "#d95f02", "^"))
     ys = list(range(len(sets), 0, -1))
-    fig, axes = plt.subplots(1, 3, figsize=(10.2, 4.5), gridspec_kw=dict(width_ratios=(1.25, 1.25, 1)))
+    fig, axes = plt.subplots(1, 3, figsize=(10.2, 4.5), gridspec_kw=dict(width_ratios=(1.2, 1.2, 1.15)))
     for a, splits, title in zip(axes, (("random s0", "random s1"), ("gaps",)), ("(a) Points held out", "(b) Gaps held out")):
         for y, (key, _) in zip(ys, sets):
             for off, (m, _, col, mk) in zip((0.22, 0, -0.22), models):
@@ -988,12 +988,12 @@ def fig_gp_mlp():
     c.set_ylim(0.5, 3.5)
     c.set_yticks(yc)
     c.set_yticklabels([n for _, n in tests])
-    c.set_xlabel("Spearman correlation")
+    c.set_xlabel("Spearman correlation", loc="right")
     c.set_title("(c) Uncertainty", loc="left")
     c.grid(axis="x", color="0.9")
     c.set_axisbelow(True)
     handles = [Line2D([], [], ls="", marker=mk, ms=7, color=col, label=nm) for _, nm, col, mk in models]
-    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    fig.tight_layout(rect=(0, 0.07, 0.98, 1))
     fig.legend(handles=handles, frameon=False, loc="lower center", ncol=3, bbox_to_anchor=(0.5, 0), handletextpad=0.3,
                columnspacing=1.4)
     save(fig, "20261105-v3_gp_vs_mlp.png")
