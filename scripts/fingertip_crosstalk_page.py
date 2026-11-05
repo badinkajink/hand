@@ -1316,20 +1316,23 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
 
     # 9. future work
     fw = [
-        ("A second sweep on the SR2 hand.", "The sweep stopped after 327 of the 600 random poses of "
-         f"<code>{(SR2 / 'plan/20261104-plan_random_s1_v3.json').relative_to(ROOT)}</code>, and <code>20261104-plan_random_s2_v3.json</code> did "
-         "not run. The index&#8217;s cable was tight (owner, 2026-11-04), so it needs slack before all three boards run again. <code>lab/run_plan.py</code> also "
-         "needs a check of the board stream (<code>" + str((SR2 / "README.md").relative_to(ROOT)) + "</code>). A GP is then trained on one set and tested on the other. More than "
-         f"{rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means that the five folds of Section&#160;{SEC['hand']} understate what a new "
-         "session leaves."),
+        ("The layout sweep on the SR2 hand.", "A plan for the next sweep is ready and has not run: 120 random poses at each of five grasp layouts of the transfer "
+         f"study, half of them with the thumb and the middle finger within 30&#8202;mm (<code>{(SR2 / 'plan/20261105-plan_layouts_s1.json').relative_to(ROOT)}</code>, "
+         "672 steps, about 75&#8202;min). It follows the owner&#8217;s direction of 2026-11-04. The index&#8217;s cable was a little tight, so the owner re-routes it "
+         "with slack first. An attended pass of 35 steps, about 13&#8202;min, then shows the owner each layout&#8217;s closest poses "
+         "(<code>20261105-plan_layouts_attended.json</code>). <code>lab/run_plan.py</code> now stops a run on a fault in the boards&#8217; stream. Replayed on the "
+         "night&#8217;s log, the check gave no false alarm in 968 windows before 19:43:52 and flagged every window after. The runbook is <code>"
+         + str((SR2 / "README.md").relative_to(ROOT)) + "</code>. The GP takes the mount coordinates as inputs, so the term learned at some layouts is tested at the "
+         f"others. More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile at a layout left out of training means that each layout needs its own "
+         "training poses."),
         ("The thumb and the middle finger under 20&#8202;mm apart.", f"Only {rn['near_n']} poses lie there, and the closest step is {CLOSEST_MM}&#8202;mm apart in "
-         "the model. The next sweep adds thumb-middle poses (owner, 2026-11-04). They take their move margin from a replay at spread servo rates, which gave "
-         f"8.8&#8202;mm on a plan step that never ran. The neighbour&#8217;s field is then predicted from the joint angles with the net moments of Section&#160;{SEC['holder']}. If more than the "
+         "the model. In the layout plan the straight moves clear 11.8 to 12.1&#8202;mm in the model. A replay in 3&#176; waypoints, with the closest pair&#8217;s "
+         f"joints at their extremes, gives at least 8.5&#8202;mm. The neighbour&#8217;s field is then predicted from the joint angles with the net moments of Section&#160;{SEC['holder']}. If more than the "
          f"{rn['far_med'][0]:.1f} to {rn['far_med'][1]:.1f}&#8202;&#181;T of the far poses is left, the net moments do not describe the neighbour on the hand."),
-        ("Stepper layouts of the SR2 hand.", "The next sweep also moves the mounts with the steppers to more realistic layouts (owner, 2026-11-04). The first sweep "
-         "stayed at the home layout, apart from each stepper&#8217;s 5&#8202;mm out and back. The GP fitted at the home layout then predicts a tip&#8217;s own-pose "
-         f"change at each new layout. More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means that the GP needs the mounts&#8217; "
-         "positions as inputs."),
+        ("Random poses at the home layout in a new session.", "The first sweep stopped after 327 of the 600 random poses of "
+         f"<code>{(SR2 / 'plan/20261104-plan_random_s1_v3.json').relative_to(ROOT)}</code>, and <code>20261104-plan_random_s2_v3.json</code> did not run. A GP trained on "
+         f"the first sweep is then tested on those poses. More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means that the five folds of "
+         f"Section&#160;{SEC['hand']} understate what a new session leaves."),
         ("The hand&#8217;s orientation.", "The arm stayed still through the sweep, so the GP was fitted at one orientation of the hand in the "
          "room&#8217;s field. Zero dwells and about 20 random poses at a second orientation of the flange test this, moved under program control (owner: "
          f"no freedrive with the hand on the UR5). More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means the GP needs the "
@@ -1365,7 +1368,8 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
          f"{r4('side', 10)['norm_uT']:.0f}&#8202;&#181;T at a 10&#8202;mm gap and {r4('side', 20)['norm_uT']:.0f}&#8202;&#181;T "
          "at 20&#8202;mm. If the model with the net moments fitted facing explains less than 90&#8202;% of the side-by-side "
          "change, the side-by-side pose needs a fit of its own. At the hand&#8217;s home layout the index&#8217;s and the middle finger&#8217;s mounts "
-         f"are 170&#8202;mm apart, so the sweep of Section&#160;{SEC['hand']} has no side-by-side pose."),
+         f"are 170&#8202;mm apart, so the sweep of Section&#160;{SEC['hand']} has no side-by-side pose. The layout plan brings them within 12.0&#8202;mm in the model, at "
+         "layout sv1_w6689."),
         ("A pinch between two v3 tips.", "The plan pressed a tip on a robot tool against a tip held pad up on the inverted "
          "rig&#8217;s strip, at 0.25&#8211;3&#8202;N ("
          "<code>docs/experiments/20261030-inverted_rig_seat_block/README.md</code>). The owner ended the UR5 calibration on "
