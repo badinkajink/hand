@@ -1846,6 +1846,17 @@ push that answers it arrives.
     1,500 rig holds of each of IDs 4 to 6, so it serves IDs 4 to 6 as well.
   - Inference (`scripts/ur5/ur5_tip_calibration_gp_timing.py`, one core of the workstation's Core Ultra 7 265KF): 1.79
     ms a reading with the variance, 1.11 ms for the mean alone, 5.4 ms for three boards; the 11-02 model 1.31 ms.
+  - GP against MLP ensemble (owner, 11:5x: "with this much data, should we also revisit the MLP? i do like the
+    uncertainty measurement of the GP"; `scripts/ur5/ur5_tip_calibration_gp_vs_mlp.py`, `data/20261105-v3_gp_vs_mlp.json`).
+    The GP trains on 1,500 holds of each of the seven sets, its memory limit; the ensemble (five members, two hidden
+    layers) on all training holds, about 16,900. With a fifth of every set's points held out (2 seeds) the GP locates
+    contact to 0.54 and 0.56 mm. The ensemble with 64 units reaches 0.50 and 0.52 mm, and with 128 units 0.48 and 0.49 mm.
+    Direction is 3.7 to 4.4 deg for all three; magnitude 7.0 to 7.3 % against 6.2 to 6.5 %. With the gaps held out (IDs 4
+    to 6 beyond 14 mm along the pad, ID 3's mount end) the GP reaches 1.24 mm and the ensembles 1.00 and 1.03 mm. Each
+    model's uncertainty was ranked against its location error (Spearman). On the held-out points the GP's 1 - w gives
+    0.02 to 0.03 and the ensembles' spread 0.09 to 0.14. In the gaps the GP gives 0.44 and the ensembles 0.20 and 0.31,
+    so the GP's weight marks a reading outside the calibration better. Not decided: the ensemble's mean with the GP's
+    weight w for the blend with the physical model.
 
 - R35 (open, 12:1x on 11-05; owner, 12:0x: "we should be able to use the ur5 information to determine the tcp
   information now that the sr2 hand is mounted. sure, i am about to head to the ur5 computer. please prepare
