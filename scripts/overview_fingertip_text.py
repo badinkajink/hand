@@ -537,9 +537,10 @@ the first three tips. On holds held out at random with the load near the normal,
 0.32&#8211;0.37&#8202;mm, against 0.27&#8211;0.30&#8202;mm. Presses at 66 to 71 new points per tip lower the error on the
 earlier points by 0.003&#8211;0.043&#8202;mm. With the new points held out, it is 0.54&#8211;0.73&#8202;mm. v3 ID 3 was
 pressed on the rig as well. With the load near the normal it gives 0.59&#8202;mm there and 0.32&#8202;mm on the robot, and
-its board&#8217;s reading of a repeated press varies by 7.9&#8202;% against 2.2&#8211;2.5&#8202;%
+its board&#8217;s reading of a repeated press varies by 7.9&#8202;% against 2.2&#8211;2.5&#8202;%. The seat block&#8217;s
+self-threaded M2 holes stripped and left the board loose, the most likely cause of this gap
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#rig),
-Section 15).</p>
+Section 15). The owner ended the UR5 calibration on 2026-11-04, and the tips went to the SR2 hand.</p>
 <p>On the hand the other fingertips&#8217; magnets add their field to each board. In the field model a four-magnet
 neighbour adds 38&#8202;&#181;T with the pads facing and touching, and 2,928&#8202;&#181;T side by side. A five-magnet
 neighbour like v2 ID 1 adds 513 and 4,162&#8202;&#181;T. A 0.5&#8202;N press changes v2 ID 1&#8217;s board by
@@ -787,7 +788,7 @@ FUTURE = [
     'Facing finger: record the board with a second tip&#8217;s magnets at 20&#8211;40&#8202;mm and compare with the dipole prediction before subtracting it from the joint angles.',
     'Steel at known distances and forces: touch the 100&#8202;g mass and the ruler through printed spacers of 0.5 to 10&#8202;mm, then set the mass on the face (0.98&#8202;N). Run <code>scripts/fingertip_foreign_field.py touches</code> on each stretch. A spacer reading over 100&#8202;&#181;T with &#923; under 25 means the test misses steel. A joint fit of a contact and the far field within 0.3&#8202;N of 0.98&#8202;N would measure presses made with steel.',
     'Temperature: with the pad at rest and the viewer logging, hold a warm hand around the finger for 60&#8202;s and take it away. Run <code>scripts/fingertip_contact_estimation_study.py thermal</code> on that stretch. No contact should show while the chips warm by 2&#8211;3&#8202;&#176;C. A drift that grows with the temperature after the correction means the magnets need a coefficient of their own. Firmware with TCMP_EN 1 is the alternative, to be tested the same way.',
-    'Fingertips beside each other on the hand (owner, 2026-10-25): once every fingertip has its UR5 calibration, mount them on the SR2 hand. Record the boards through a wide range of finger motions, with the joint angles. Fit each fingertip&#8217;s field at its neighbours&#8217; chips as a function of those angles. Laid against each other on the desk, three fingertips moved each other&#8217;s rest by 210 to 991&#8202;&#181;T. With the re-zero, no contact was shown at rest in 39 minutes (<code>src/morphohand/driver/reskin5x/README.md</code>). The fitted model fails if, during motion, it leaves a contact shown on a fingertip that nothing touches.',
+    'Fingertips beside each other on the hand (owner, 2026-10-25): the tips went to the SR2 hand on 2026-11-04, after their UR5 calibration. Record the boards through a wide range of finger motions, with the joint angles. Fit each fingertip&#8217;s field at its neighbours&#8217; chips as a function of those angles. Laid against each other on the desk, three fingertips moved each other&#8217;s rest by 210 to 991&#8202;&#181;T. With the re-zero, no contact was shown at rest in 39 minutes (<code>src/morphohand/driver/reskin5x/README.md</code>). The fitted model fails if, during motion, it leaves a contact shown on a fingertip that nothing touches.',
 ]
 
 PAGES = [
