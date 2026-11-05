@@ -97,7 +97,10 @@ The coordinator analysed the night on the workstation: `scripts/sr2_crosstalk_ni
   That is near the 3.4 uT between two rest readings. The steppers and servo torque changed them by 1.2 to 5.9 uT.
 - **The tip's own pose.** A tip's own pose changed its board by up to 166 uT, about 5.8 N at 28 uT/N. A GP on the
   finger's own three angles, trained with random poses, left 4.4 and 4.5 uT at the median and 7.5 and 9.0 uT at the
-  95th percentile on the 327 random poses. Trained on the single-finger sweeps alone, it left 20 and 21 uT.
+  95th percentile on the 327 random poses. Trained on all 318 structured steps, it left 20 and 21 uT. Trained on the
+  finger's own sweeps alone (79 and 77 steps), it left 12 to 15 uT (the coordinator's correction at 22:1x; feed line 55
+  conflated the two). A uniform field turned with the tip left 12 to 14 uT. So the own-pose term may change with the
+  mount's place on the palm.
 - **Close pairs.** With the thumb and the middle finger under 20 mm apart in the CAD model, the remainder rose to 6 to
   15 uT. Only 14 poses came that close.
 - **Clearance as run.** Replayed with each servo at its own rate (0.6 to 1.4 times), the moves that ran came no closer
@@ -105,6 +108,45 @@ The coordinator analysed the night on the workstation: `scripts/sr2_crosstalk_ni
 
 For the next sweep, more random poses train the own-pose term. Closer thumb-to-middle poses would test the neighbour
 term.
+
+## Next sweep
+
+The owner, 22:10 on 11-04, relayed by the workstation: "ahh yea the index cable was a little tight, i shouldve
+prepared better for that. i hoipe the cables not damaged. we could try more thumb-middle poses yea, we can use the
+steppers to move them to more realistic poses too". That is a direction, not a go: the hand stays stopped until the
+owner re-routes the index's cable with slack.
+
+1. Check the cable. Run `firmware/bench_mux_scan` on the C6. Channel 1 should answer with five chips at every clock
+   from 400 down to 20 kHz. Nothing at all, or answers only at the low clocks, means a damaged conductor. Then compare
+   channel 1's rest field with v3 ID 3's UR5 sessions, as at 18:53.
+2. Plan at several layouts. Move the mounts to grasp-like places with the steppers, and take random poses at each
+   layout, with closer thumb-middle poses among them. The GP takes the mount coordinates as inputs, so the own-pose term
+   learned at one layout is tested at the others. Check every pose and move, gantry moves included, at the
+   rate-spread margin.
+3. Have the runner check the boards' stream (record rate, zeroed chips) as well as the servos.
+
+Ready since 22:4x on 11-04, and not run on the hand:
+- **`lab/make_layouts.py` and `plan/20261105-plan_layouts_s1.json`.** The plan takes 120 random poses at each of five
+  grasp layouts from the transfer study: g12, sv1_w6689, rv04_mid, sv1_w0099 and sv1_u0308. rv05_manual's straight
+  fingers clear only 12.3 mm, so it is left out. Half the poses put the thumb and the middle finger within 30 mm. Every
+  pose clears 12 mm in the CAD model. So does every move, and every pose's way back to zero, along the straight
+  joint-space line. Each gantry move, one axis at a time with straight fingers, clears 25.7 mm or more. There are 672
+  steps, about 75 min with the ramps. The index's limits still apply.
+- **`lab/run_plan.py`.**
+  - It walks every move, back-out and safety return along that line in waypoints 3 deg apart (`--ramp-deg`). Servos
+    at different rates then stay within about 2.6 mm of the checked path.
+  - `--boards DIR --board-channels 0,1,3` stops a run on a fault in the boards' stream.
+  - The safety path waits for the station without the checks, so a standing fault cannot keep the hand from zero.
+  - A gantry move may take 300 s.
+
+  On 11-04 the station's fake-hardware mode (`manta_hand.web --fake`) ran the plan's first and last layout steps:
+  22 steps through layout g12 and back to home. A board fault, raised by asking for channel 1, stopped a run in
+  1.6 s. The hand still reached zero, and the motors were disabled.
+- **The command,** once the owner has re-routed and checked the index's cable:
+
+      /usr/bin/python3 docs/experiments/20261104-sr2_hand_crosstalk/lab/run_plan.py \
+          docs/experiments/20261104-sr2_hand_crosstalk/plan/20261105-plan_layouts_s1.json logs/<date>-sr2_crosstalk/run_layouts \
+          --token-file ~/.sr2_station_token --boards logs/<date>-sr2_crosstalk/boards --board-channels 0,1,3
 
 ## Known limits
 

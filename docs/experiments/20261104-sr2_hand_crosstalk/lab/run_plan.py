@@ -7,8 +7,9 @@ torque, steppers) are written on corvus's clock, the clock of the fingertip boar
 OUTDIR gets events.jsonl (one line a step and a safety stop), telemetry.jsonl (one line a new station sample, with
 t_recv and t_sample = t_recv - the sample's age) and progress.json (pass and step done; --resume skips them).
 touch OUTDIR/STOP (or a STOP beside OUTDIR, for a chain) ends the run after the current step. Safety stops, each followed by the zero pose and the end:
-a station error or lost link; a servo at 60 C or more; a joint 6 deg or more from its command 6 s after the command
-(a finger held off its pose); a servo alarm. At the end the hand goes to the zero pose and the motors are disabled
+a station error or lost link; a servo at 60 C or more; a third pose that a joint could not reach (each such pose is
+backed out at once); with --boards, a fault in the boards' stream (channels, record rate, zeroed or implausible records,
+held 3 s). At the end the hand goes to the zero pose and the motors are disabled
 (steppers off, servo torque off), which also gives up the home.
 """
 import argparse
@@ -36,6 +37,11 @@ ap.add_argument("--no-disable", action="store_true",
 ap.add_argument("--max-temp", type=float, default=60.0)
 ap.add_argument("--max-err", type=float, default=6.0)
 ap.add_argument("--max-blocked", type=int, default=3, help="stop the run at this many poses a joint could not reach")
+ap.add_argument("--boards", default=None, help="the board logger's folder (board_log.py); its stream is checked too")
+ap.add_argument("--board-channels", default=None, help="the mux channels the boards must be on, e.g. 0,1,3")
+ap.add_argument("--min-board-rate", type=float, default=100.0, help="records/s below which the boards' stream fails")
+ap.add_argument("--ramp-deg", type=float, default=3.0,
+                help="largest joint change between waypoints of a move (0: one command a move)")
 a = ap.parse_args()
 plan = json.load(open(a.plan))
 out = Path(a.out)
@@ -91,12 +97,76 @@ def poller():
         time.sleep(0.1)
 
 
+board_fault = {"msg": None}
+
+
+def board_watch():
+    """The boards' stream, from the logger's newest file: its channels, its record rate over 5 s, and the last 300
+    records (a board all zeros, or chips more than 50 % off their |B| at the watch's start, in a fifth of them).
+    A fault must hold 3 s before it stops the run, so a 2 s reconnect of the logger passes."""
+    import glob as _glob
+    import numpy as np
+    want = [int(c) for c in a.board_channels.split(",")] if a.board_channels else None
+    cur, ref, sizes, since = None, None, [], None
+    while not quit_flag.is_set():
+        msg = None
+        try:
+            logs = sorted(_glob.glob(str(Path(a.boards) / "*-mux.bin")))
+            if not logs:
+                msg = "no board log"
+            else:
+                log = logs[-1]
+                chans = json.loads(Path(log).with_suffix(".json").read_text())["channels"]
+                rec = 8 + 80 * len(chans)
+                if log != cur:
+                    cur, ref, sizes = log, None, []
+                if want is not None and chans != want:
+                    msg = f"board log has channels {chans}, not {want}"
+                size = Path(log).stat().st_size
+                now = time.time()
+                sizes = [(t, z) for t, z in sizes if now - t <= 5.0] + [(now, size)]
+                if msg is None and sizes[-1][0] - sizes[0][0] >= 4.0:
+                    rate = (sizes[-1][1] - sizes[0][1]) / rec / (sizes[-1][0] - sizes[0][0])
+                    if rate < a.min_board_rate:
+                        msg = f"board records at {rate:.0f}/s"
+                n = size // rec
+                if msg is None and n >= 300:
+                    with open(log, "rb") as f:
+                        f.seek((n - 300) * rec)
+                        d = np.frombuffer(f.read(300 * rec), dtype=[("t", "<f8"), ("r", "<f4", (20 * len(chans),))])
+                    v = d["r"].astype(np.float64).reshape(-1, len(chans), 5, 4)
+                    with np.errstate(all="ignore"):
+                        B = np.linalg.norm(np.clip(v[..., 1:], -1e6, 1e6), axis=-1)
+                    zero = (np.abs(v).sum(axis=(2, 3)) == 0).mean(axis=0)
+                    if ref is None:
+                        ref = np.median(B, axis=0)
+                    off = (np.abs(B / np.maximum(ref, 1.0) - 1) > 0.5).any(axis=2).mean(axis=0)
+                    bad = [f"ch{c} zeros {z:.0%}" for c, z in zip(chans, zero) if z > 0.2] + \
+                          [f"ch{c} off its |B| {o:.0%}" for c, o in zip(chans, off) if o > 0.2]
+                    if bad:
+                        msg = "boards: " + ", ".join(bad)
+        except Exception as e:  # noqa: BLE001
+            msg = f"board watch error: {e}"
+        if msg is None:
+            since = None
+            board_fault["msg"] = None
+        else:
+            since = since or time.time()
+            if time.time() - since >= 3.0:
+                if board_fault["msg"] is None:
+                    event("board_fault", msg=msg)
+                board_fault["msg"] = msg
+        time.sleep(1.0)
+
+
 def state():
     with lock:
         return latest["state"], latest["t"]
 
 
 def check(ctx=""):
+    if board_fault["msg"]:
+        raise Abort(f"{board_fault['msg']} {ctx}")
     s, t = state()
     if s is None:
         return
@@ -133,10 +203,11 @@ def joint_error(joints):
     return worst
 
 
-def wait_idle(timeout):
+def wait_idle(timeout, checked=True):
     t0 = time.time()
     while time.time() - t0 < timeout:
-        check("waiting for idle")
+        if checked:
+            check("waiting for idle")
         s, _ = state()
         if s and s.get("operation") == "idle":
             return time.time() - t0
@@ -157,7 +228,43 @@ def servo_vector():
     return t, [(sv.get(fid) or {}).get(j) for fid in ("0", "1", "2") for j in ("aa", "fe1", "fe2")]
 
 
+def measured_pose():
+    """The servos' last sample in the sim frame, or None."""
+    s, _ = state()
+    sv = (s or {}).get("telemetry", {}).get("servos") or {}
+    try:
+        return {f: {"yaw": YAW_SIGN[f] * sv[FID[f]]["aa"], "mcp": sv[FID[f]]["fe1"], "pip": sv[FID[f]]["fe2"]}
+                for f in F}
+    except (KeyError, TypeError):
+        return None
+
+
+def ramp(target, speed, ctx=None):
+    """Walk the hand from where it is to `target` along the straight line in joint space, in waypoints at most
+    --ramp-deg apart on every joint, each held until all joints are within 2.5 deg of it or 0.6 s have passed. Servos
+    that run at different rates then leave the line by a few degrees at most, so the plan's straight-line clearance
+    check holds. The last waypoint is the one before `target`; the caller commands `target` itself. ctx None (the
+    safety stop's way to zero) skips the checks, which could raise again."""
+    if a.ramp_deg <= 0:
+        return
+    start = measured_pose() or blocked["last_ok"]
+    d = max(abs(target[f][j] - start[f][j]) for f in F for j in ("yaw", "mcp", "pip"))
+    n = int(d // a.ramp_deg) + 1
+    for i in range(1, n):
+        w = {f: {j: start[f][j] + (target[f][j] - start[f][j]) * i / n for j in ("yaw", "mcp", "pip")} for f in F}
+        http("POST", "/api/v1/manual/joints", {"joints": w, "servo_speed": speed})
+        t0 = time.time()
+        while time.time() - t0 < 0.6:
+            if ctx is not None:
+                check(ctx)
+            _, t = state()
+            if t > t0 + 0.05 and joint_error(w)[0] < 2.5:
+                break
+            time.sleep(0.03)
+
+
 def do_joints(st, ctx):
+    ramp(st["joints"], st.get("speed", 80), ctx)
     t_cmd = time.time()
     http("POST", "/api/v1/manual/joints", {"joints": st["joints"], "servo_speed": st.get("speed", 80)})
     # settled: a fresh sample within 2 deg of the command, or two fresh samples 1.2 s or more after the command that
@@ -185,6 +292,7 @@ def do_joints(st, ctx):
         if e >= a.max_err:
             # back out at once to the last pose reached, along the path that brought the hand here
             blocked["n"] += 1
+            ramp(blocked["last_ok"], 60, ctx)
             http("POST", "/api/v1/manual/joints", {"joints": blocked["last_ok"], "servo_speed": 60})
             sleep_checked(2.5, ctx)
             event("blocked", step_joints=st["joints"], err_deg=round(e, 2), err_joint=which, n=blocked["n"],
@@ -213,7 +321,7 @@ def do_mounts(st, ctx):
     t_cmd = time.time()
     http("POST", "/api/v1/manual/mounts", {"mounts": st["mounts"]})
     time.sleep(0.5)
-    wait_idle(120.0)
+    wait_idle(300.0)                       # a full layout change moves six axes one at a time, about 95 s
     s, _ = state()
     t_settled = time.time()
     sleep_checked(st.get("dwell_s", 10.0), ctx)
@@ -229,7 +337,8 @@ def to_zero(why):
         s, _ = state()
         if s and s["telemetry"].get("servo_torque") and any(v != 1 for v in s["telemetry"]["servo_torque"].values()):
             http("POST", "/api/v1/servos/torque", {"state": "on"}, timeout=30.0)
-        wait_idle(120.0)
+        wait_idle(120.0, checked=False)    # the safety path: a standing fault must not stop the hand reaching zero
+        ramp(ZERO, 60)
         http("POST", "/api/v1/manual/joints", {"joints": ZERO, "servo_speed": 60})
         time.sleep(3.0)
         event("zero_pose", why=why, err=joint_error(ZERO))
@@ -252,6 +361,8 @@ prog_path = out / "progress.json"
 done = json.loads(prog_path.read_text()) if a.resume and prog_path.exists() else {"pass": 0, "step": -1}
 th = threading.Thread(target=poller, daemon=True)
 th.start()
+if a.boards:
+    threading.Thread(target=board_watch, daemon=True).start()
 time.sleep(1.5)
 until = deadline()
 event("start", plan=a.plan, passes=a.passes, until=a.until, resume=done, n_steps=len(plan["steps"]))
