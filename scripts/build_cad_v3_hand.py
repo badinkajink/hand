@@ -290,6 +290,11 @@ def palm_solid_owner(F, name, parts):
     return finger_of_part(p)
 
 
+def yaw_cad_P(F, f):
+    """Finger f's yaw centre in the CAD pose, in P (mm); the parts that ride with the finger keep their offset from it."""
+    return rot.tf_apply(T_P_from_A(F), np.array(F["fingers"][f]["yaw_centre_cad_A_mm"], float))
+
+
 def to_P(F, v_A, name=None, finger=None, extra_A=None):
     v = np.asarray(v_A, float) + shift_of(F, name, finger)
     if extra_A is not None:
@@ -396,7 +401,7 @@ def cmd_meshes(args):
         m = trimesh.load(EXTRACT / "hand" / f"{name}.stl", process=False)
         v = to_P(F, m.vertices, name, f, extra)
         if body.startswith("mount:"):
-            v = v - np.array(fx["box_centre_P_mm"], float)         # into the <f>_mount frame (yaw centre, P's axes)
+            v = v - yaw_cad_P(F, f)                                 # into the <f>_mount frame (yaw centre, P's axes)
         key = (body, MATERIAL.get(kind, "v3_print"))
         groups.setdefault(key, []).append(trimesh.Trimesh(v / 1000.0, m.faces, process=False))
         log.append((name, kind, body))
@@ -553,7 +558,7 @@ def add_full_visuals(root, F):
         body = s["body"]
         e = np.array(s["ends_P_mm"], float) / 1000.0
         if body.startswith("mount:"):
-            e = e - np.array(F["fingers"][body.split(":")[1]]["box_centre_P_mm"]) / 1000.0
+            e = e - yaw_cad_P(F, body.split(":")[1]) / 1000.0
         tgt = palm if body == "palm" else bridge_body.get(body.split(":")[1], palm)
         el(tgt, "geom", name=f"v3_screw_{s['name']}", **{"class": "v3_visual"}, type="cylinder", fromto=fmt(e.ravel()),
            size=f"{SCREW_R_MM / 1000:.4g}", material="v3_steel")
@@ -577,12 +582,12 @@ def add_d435(root, palm, F):
     left, right = (c0, c3) if np.linalg.norm(c0 - c7) < np.linalg.norm(c3 - c7) else (c3, c0)
     x_opt = right - left                                      # left imager -> right imager = +x_opt
     x_opt /= np.linalg.norm(x_opt)
-    ext = case[1] - case[0]
-    thin = int(np.argmin(ext))                                # the 25 mm depth axis... the front is where the lenses are
-    n = np.zeros(3)
-    n[thin] = 1.0
-    if (c7 - case.mean(0)) @ n < 0:
-        n = -n                                                # +z_opt: out of the front face
+    # +z_opt out of the front face: from the casing's centre toward the lenses, snapped to the nearest mesh axis (the body
+    # is 90 x 25 x 25 mm, so the smallest extent does not name the depth axis)
+    n = 0.5 * (left + right) - case.mean(0)
+    n -= (n @ x_opt) * x_opt
+    i = int(np.argmax(np.abs(n)))
+    n = np.sign(n[i]) * np.eye(3)[i]
     y_opt = np.cross(n, x_opt)
     R_mesh_opt = np.column_stack([x_opt, y_opt, n])           # optical axes in mesh coordinates
     T_mesh_opt = tf(R_mesh_opt, left)
