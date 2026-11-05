@@ -174,15 +174,17 @@ def fig_screen():
     ax.plot(x, [(O.get(old_key(k)) or {}).get("J2") for k in tips], "_", color=INK2, ms=16, mew=1.4, label="J2, 15 October")
     ax.set_ylabel("Stage score J")
     ax.set_ylim(0, 0.6)
-    ax.legend(fontsize=7.8, ncol=3, loc="lower center", bbox_to_anchor=(0.5, 1.0), handletextpad=0.3, columnspacing=0.9)
+    ax.legend(fontsize=8.2, ncol=3, loc="lower center", bbox_to_anchor=(0.5, 1.0), handletextpad=0.3, columnspacing=0.9)
     ax = axs[1]
     base = (S.get(C.REF) or {}).get("agree_drake_3deg") or 0
     ax.bar(x, [S[k]["agree_drake_3deg"] or 0 for k in tips], width=0.62,
            color=[DRAKE if S[k]["gate_pass"] else "#c9c9c9" for k in tips])
     ax.axhline(base - 2, color=INK2, lw=0.9, ls="--")
-    ax.text(len(tips) - 0.6, base - 2 + 0.6, f"Gate: {base - 2} of 24", fontsize=8.3, ha="right", color=INK2)
-    ax.set_ylabel("Replays within 3 deg\nof Drake (of 24)")
-    ax.set_ylim(0, 24)
+    ax.text(0.01, 0.96, f"Gate (dashed line): {base - 2} of 24", transform=ax.transAxes, fontsize=8.3, ha="left",
+            va="top", color=INK2)
+    ax.set_ylabel("Replays within 3\u00b0\nof Drake (of 24)")
+    ax.set_ylim(0, 29)
+    ax.set_yticks([0, 5, 10, 15, 20, 24])
     ax = axs[2]
     med = np.array([S[k]["rigid_share_all"]["median"] or 0 for k in tips])
     q75 = np.array([S[k]["rigid_share_all"]["q75"] or 0 for k in tips])
@@ -217,7 +219,7 @@ def fig_stage3():
     ax.set_yticks(y)
     ax.set_yticklabels([short(k) for k in tips], fontsize=8.5)
     ax.set_xlabel("Stage score on fresh placements")
-    ax.legend(fontsize=7.4, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2)
+    ax.legend(fontsize=8.2, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2)
     ax = axs[1]
     for yy, k in zip(y, tips):
         v = S[k]
@@ -227,7 +229,7 @@ def fig_stage3():
             ax.plot([v["dJ3_vs_base"]], [yy], "o", color=PADS, ms=4.5)
     ax.axvline(0, color=INK2, lw=0.8, ls=":")
     ax.tick_params(axis="y", labelleft=False)
-    ax.set_xlabel("J3 minus the v4b tip's, 90 % interval")
+    ax.set_xlabel("J3 minus the v4b tip's")
     fig.tight_layout(w_pad=0.6, rect=(0, 0, 0.985, 1))
     out = MEDIA / "fig_stage3.png"
     fig.savefig(out)
@@ -267,7 +269,7 @@ def fig_fe():
     ax.bar(x, [r if r is not None else 0 for r in res], width=0.62, color=THIRD)
     for i, r in enumerate(res):
         if r is None:
-            ax.text(i, 0.002, "no fit", rotation=90, ha="center", va="bottom", fontsize=7.6, color=INK2)
+            ax.text(i, 0.002, "no fit", rotation=90, ha="center", va="bottom", fontsize=8.2, color=INK2)
     ax.set_ylabel("Force resolution at\nthe contact point (N)")
     ticks(ax, tips)
     seps(axs, tips)

@@ -15,6 +15,7 @@ Out: docs/experiments/20261104-fingertip_shape_rerun/20261104-fingertip_shapes_v
 from __future__ import annotations
 
 import base64
+import html
 import io
 import json
 import os
@@ -227,8 +228,8 @@ def old(k):
 
 def glossary():
     items = [
-        ("Tips", "Twelve fingertips inside the printed block&#8217;s envelope: 17.0&#8202;mm deep along the palmar normal \\(x\\), "
-         "14.8&#8202;mm wide along the PIP axis \\(y\\) and 21.41&#8202;mm long along the finger \\(z\\). Each has its palmar "
+        ("Tips", "Twelve fingertips inside the printed block&#8217;s envelope. The envelope is 17.0&#8202;mm deep along the "
+         "palmar normal \\(x\\), 14.8&#8202;mm wide along the PIP axis \\(y\\) and 21.41&#8202;mm long along the finger \\(z\\). Each has its palmar "
          "apex 10.55&#8202;mm from the finger&#8217;s axis, over the contact point \\((y, z) = (0, 0)\\). The v4b tip is the "
          "11/22 half-ellipsoid (<code>tcd_ell7.4x8.5x11x22</code>), the tip calibrated on the UR5 and the reference here. Its "
          "semi-axes are 7.4&#8202;mm across, 8.5&#8202;mm deep, 11&#8202;mm distal and 22&#8202;mm proximal of the apex. A "
@@ -236,7 +237,7 @@ def glossary():
          "the section runs straight back. A quarter-ellipsoid is the same half cut flat at its equator. A capsule <i>r</i> is a "
          "cylinder of radius <i>r</i> along the finger, capped by a hemisphere at the distal end. The hemisphere has every "
          "semi-axis 7.4&#8202;mm, the envelope&#8217;s half-width: a dome on a round post. The blocks are the as-built block, with "
-         "side and end fillets of 3 and 3&#8202;mm, and the 14 October finalist with 3 and 6&#8202;mm. The whole real_v1 sphere "
+         "3&#8202;mm side and end fillets, and the finalist of 14 October, with fillets of 3 and 6&#8202;mm. The whole real_v1 sphere "
          "tip (<code>tcd_sph10.55</code>) runs on the bed only."),
         ("Surfaces", "The capsules, the quarter-ellipsoids and the half-ellipsoids other than the v4b tip are simulated as "
          "printed upright in 0.1&#8202;mm layers (key suffix <code>_u0.1</code>). Their surface lies within 4.5&#8202;&#181;m of "
@@ -249,11 +250,11 @@ def glossary():
         ("Mount check", "Each tip&#8217;s design surface is placed on the v4b finger, cut where the v4b pad is cut (13.45&#8202;mm "
          "under the apex) and sampled on a 0.2&#8202;mm grid. Extra TPU: the tip&#8217;s volume inside a rigid part where the "
          "11/22 has none (mm&#179;). Bearing kept: of the v4b pad&#8217;s surface within 0.3&#8202;mm of a part, the share that "
-         "lies inside the tip. A tip mounts as the 11/22 does when no part gains more than 2&#8202;mm&#179; and every part keeps "
-         "95&#8202;% of its bearing surface. Otherwise it is simulated on the envelope alone, on the 11/22&#8217;s rigid parts. "
+         "lies inside the tip. A tip mounts as the 11/22 does when no part gains more than 2&#8202;mm&#179; of TPU and the bearing "
+         "kept is at least 95&#8202;% on every part. Otherwise it is simulated on the envelope alone, on the 11/22&#8217;s rigid parts. "
          "Magnet wall: the least TPU between one of pad 05R4&#8217;s magnets and the tip&#8217;s surface; the print rule is "
-         "1.8&#8202;mm. Pad 05R4 has four 3&#8202;&#215;&#8202;2&#8202;mm magnets in a 5.0&#8202;mm square about the contact point, "
-         "their tops 7.5&#8202;mm deep."),
+         "1.8&#8202;mm. Pad 05R4 has four magnets of 3&#8202;&#215;&#8202;2&#8202;mm in a 5.0&#8202;mm square about the contact "
+         "point. Their tops are 7.5&#8202;mm deep."),
         ("1&#8202;mm pads", "The tip&#8217;s palmar region as spheres of radius 0.75&#8202;mm on a 1&#8202;mm lattice. Each is a "
          "MuJoCo soft contact of stiffness \\(K_i = E a_i / h_i\\) (builder v2). Here \\(E\\) = 2.5&#8202;MPa, \\(a_i\\) is "
          "the pad&#8217;s share of the surface and \\(h_i\\) its depth below the tip&#8217;s volume centroid. The relaxation time is "
@@ -272,24 +273,39 @@ def glossary():
          "swinging at 45&#176; (N)."),
         ("SCS0009 plant", "The finger servo model of the built hand: gain 0.72&#8202;N&#8202;m/rad, torque limit 0.18&#8202;N&#8202;m, "
          "damping 0.0144&#8202;N&#8202;m&#8202;s/rad (<code>kp0.72_kv0_fr0.18_fl0_dp0.0144</code>)."),
+        ("Cost", "The pad-usability protocol of 14 October. CPU step: MuJoCo&#8217;s wall time for one 1&#8202;ms step of the "
+         "SCS0009&#8217;s three-finger grip on a cell (<code>scripts/pad_usability_timing.py</code>). Replanning: the wall time "
+         "of 64 plans of 0.5&#8202;s on three threads. GPU world-step: MuJoCo-Warp&#8217;s wall time per step divided by the "
+         "number of worlds, at the held state of an RL run tiled over 2048 worlds (<code>scripts/pad_usability_gpu_cost.py"
+         "</code>). GPU memory: the process&#8217;s peak."),
         ("HOM, cells", "HOM: the hand&#8217;s closed-loop in-hand turn controller (<code>scripts/hom_turn3.py</code>, model gain "
-         "0.72). Cells: four grasps of cylinders 100&#8202;mm long on the v4b hand, 25, 16, 10 and 16&#8202;mm in diameter. Their "
-         "finger layouts are those of 14 October, with thumb-to-pair and pair separations of 92.5/102.5, 62.5/72.5, 55/65 and "
-         "122.5/132.5&#8202;mm. Each cell has nine candidate grasps from the scale study&#8217;s kinematics of the v4b finger. "
+         "0.72). Cells: four grasps of cylinders 100&#8202;mm long on the v4b hand. Their diameters are 25, 16, 10 "
+         "and 16&#8202;mm. Their finger layouts, the thumb-to-pair and pair separations, are those of 14 October. Each cell has nine candidate grasps from the scale study&#8217;s kinematics of the v4b finger. "
          "Held turn: the turn at the end of a rollout when two or more fingers hold the tool, otherwise 0 (&#176;)."),
         ("Stage scores", "The stage score is the mean of five parts, each a held turn over 90&#176;. One part per cell is the mean "
          "held turn, on the scoring seeds, of the grasp chosen by its held turn on seed 0. The fifth is the mean held turn of HOM "
-         "on the eight deployed real_v1 hands D1&#8211;D8. J1 is the score at friction 0.7 on the SCS0009 (cells seeds "
-         "1&#8211;2, HOM seeds 0&#8211;2). J2 is the minimum over five conditions: friction 0.7, 1.0 and 0.5, servo gain "
-         "0.5&#8202;N&#8202;m/rad and torque limit 0.12&#8202;N&#8202;m (HOM seeds 0&#8211;4). J3 is the minimum over the four "
-         "conditions other than friction 1.0 on fresh placements (cells seeds 3&#8211;5, HOM seeds 5&#8211;9). Seed 0 places the "
+         "on the eight deployed real_v1 hands D1&#8211;D8. J1 is the score at friction 0.7 on the SCS0009. It is "
+         "computed on cell seeds 1&#8211;2 and HOM seeds 0&#8211;2. J2 is the minimum over five conditions on HOM seeds "
+         "0&#8211;4. Three conditions set the friction to 0.7, 1.0 and 0.5. The other two lower the servo gain to "
+         "0.5&#8202;N&#8202;m/rad and the torque limit to 0.12&#8202;N&#8202;m. J3 is the minimum over the four conditions other "
+         "than friction 1.0, on fresh placements. These are cell seeds 3&#8211;5 and HOM seeds 5&#8211;9. Seed 0 places the "
          "tool as planned; other seeds move it by draws of standard deviation 2&#8202;mm and 2&#176;."),
         ("Agreement gate", "The eight deployed bench plans are replayed open loop on the SCS0009 plant at friction 1.0, seeds "
-         "0&#8211;2. A replay agrees when its pads end within 3&#176; of Drake&#8217;s turn with Drake&#8217;s held outcome, of 24. "
+         "0&#8211;2. An agreement is a replay in which the pads end within 3&#176; of Drake&#8217;s turn, with the same held outcome "
+         "as Drake. Each tip has 24 replays. "
          "A tip passes with at most two agreements fewer than the v4b tip."),
         ("Rigid share", "Of the normal force that the fingers press on a cell&#8217;s cylinder, summed over a rollout&#8217;s "
          "control samples, the share through finger geoms other than the pads. On the v4b finger these are the DIP link, the "
          "cassette and the cap."),
+        ("Friction band", "The worst-case HOM scores of 4 November (<code>scripts/hom_grasp_refine.py</code>, band "
+         "<code>band_k21mu</code>) on the STS3032 plant, with pads at 2.5&#8202;MPa. There are four HOM tasks on the SR2 "
+         "hand&#8217;s layouts. In a tripod grasp of a 40&#8202;mm sphere, the twist scores the turn reached on three pads over "
+         "90&#176;. The roll scores \\(1/(1 + w)\\), with \\(w\\) the root-mean-square error (RMSE) of the angular velocity over "
+         "its 40&#176;/s steps, divided by the step. With a 25&#8202;mm cylinder, the pin-push and the press score 1 minus the "
+         "pinch-angle RMSE over their strokes of 15&#176; and 20&#176;. A rollout that drops the object scores 0. Each task has "
+         "a sample of 30 layouts. Pick S3 is a layout&#8217;s grasp, commanded forces and contact modes, refined for the v4b "
+         "tip. Worst-case score: the lowest of a pick&#8217;s three five-seed means at scene friction 0.4, 0.7 and 1.0. The "
+         "seeds are 20&#8211;24."),
         ("Finite elements", "The printed tip as voxel finite elements, the model of 18 October. Two 0.45&#8202;mm perimeters and "
          "four skins of solid TPU at 12&#8202;MPa surround a homogenized 30&#8202;% gyroid of Siraya 85A, in the tip&#8217;s print "
          "orientation. Pad 05R4&#8217;s four magnets are bonded where they fit. The pad is cut where the v4b pad is cut and held "
@@ -309,19 +325,20 @@ def question():
     return ("<p>The owner chose the 11/22 half-ellipsoid on 18 October. Two screens on the first CAD hand at 10&#8202;MPa and a "
             "calibration of the contact models to the finite elements came before that choice. Since then the hand has moved "
             "to the v4b finger (DIP link b v4, cassette 3T, cap TW15H3), and the pads&#8217; modulus to 2.5&#8202;MPa. The "
-            "screens already used the SCS0009 plant. This rerun repeats the protocol of 14 and 15 October on the current "
+            "screens of October already ran on the SCS0009 plant. This rerun repeats the protocol of 14 and 15 October on the current "
             "hand, for the nine curved tips, the two blocks and a hemisphere. The v4b tip is the reference throughout. Each tip "
             "is checked for its fit on the v4b finger, run on the contact bed against the law and Drake, and timed in "
             "simulation. It then goes through the three-stage task screen with Drake&#8217;s agreement gate, and through the "
             "finite elements with the force resolution of pad 05R4.</p>"
-            "<p>Five rules differ from 15 October. The cells keep their layouts and cylinders, and their candidate grasps come "
-            "from the v4b finger&#8217;s kinematics (<code>kin/reach.json</code>). The gate and stage 3 compare each tip with "
+            "<p>Five rules differ from 15 October. The cells&#8217; layouts and cylinders are unchanged, and their "
+            "candidate grasps come from the v4b finger&#8217;s kinematics (<code>kin/reach.json</code>). The gate and stage 3 compare each tip with "
             "the v4b tip in place of the as-built block, which runs stage 3 beside it. For finalist rule (2) the replay cost "
-            "is a median ratio of microseconds per step over the placements on which both tips&#8217; pads hold the tool. The "
-            "v4b tip&#8217;s pads drop the tool in about half the replays, and a dropped tool makes a replay cheap. Drake runs "
-            "each of the bed&#8217;s four metrics at one load and rate. These are the approach at 1 and 3&#8202;N, the onset arm "
-            "at 1&#8202;N, the spin arm at 1&#8202;rad/s and the brake force at a 1&#8202;ms step. At 2.5&#8202;MPa a Drake replay "
-            "of the hand lasts 130&#8211;350&#8202;s of wall time, against 61&#8202;s at 10&#8202;MPa. Last, every turn row records the rigid parts&#8217; share of the "
+            "is a median ratio of microseconds per step over the placements on which neither tip&#8217;s pads drop the tool. "
+            "The v4b tip&#8217;s pads drop the tool in about half the replays, and a replay is cheap once the tool has fallen. "
+            "In Drake the bed&#8217;s four metrics are run at fewer loads and rates than with the pads. The approach is run at "
+            "1 and 3&#8202;N and the onset arm at 1&#8202;N. The spin arm is run at 1&#8202;rad/s and the brake force at a "
+            "1&#8202;ms step. A Drake replay of the hand lasts 130&#8211;350&#8202;s of wall time at 2.5&#8202;MPa. At "
+            "10&#8202;MPa it lasted 61&#8202;s. Last, every turn row records the rigid parts&#8217; share of the "
             "contact force.</p>")
 
 
@@ -341,15 +358,15 @@ def mount_section():
     t = table(["Tip", "Fit", "Pad volume, mm&#179;", "Extra TPU in the cassette, mm&#179;", "Extra TPU in the cap, mm&#179;",
                "Cassette bearing kept, %", "Cap bearing kept, %", "DIP-link bearing kept, %", "Magnet wall, mm"], body,
               "Each tip on the v4b finger (mount/mount.json; <code>scripts/fingertip_shape_rerun_mount.py</code>).", key="mount")
-    fig = img("media/fig_mount.png", "The tips on the v4b finger. Each tip has two panels: its profile along the finger at "
-              "\\(y = 0\\), distal end left and palmar side up, and its section across the finger 6&#8202;mm distal of the "
-              "contact point, through the cap&#8217;s side blocks. TPU of the tip light brown, the rigid parts grey, the 11/22&#8217;s grooves and pin hole dark brown, "
+    fig = img("media/fig_mount.png", "The tips on the v4b finger. Each tip has two panels. The upper panel "
+              "is its profile along the finger at \\(y = 0\\), with the distal end left and the palmar side up. The lower panel "
+              "is its section across the finger 6&#8202;mm distal of the contact point, through the cap&#8217;s side blocks. TPU of the tip light brown, the rigid parts grey, the 11/22&#8217;s grooves and pin hole dark brown, "
               "TPU inside a rigid part where the 11/22 has none red.", key="mount")
     wide = [k for k in ORDER if max(T[k]["extra_mm3"].values()) > 2.0]
     lose = [k for k in ORDER if k not in wide and T[k]["verdict"] != "mounts" and not k.startswith("tcd_qell")]
     ex = [max(T[k]["extra_mm3"].values()) for k in wide]
-    return (f"<p>Of the twelve tips, {WORDS[len(mounts)]} mount on the v4b finger as the 11/22 does: "
-            + joined(nm(k) for k in mounts) + " (Table&#160;[[tab:mount]], Figure&#160;[[fig:mount]]). "
+    return (f"<p>Of the twelve tips, {WORDS[len(mounts)]} mount on the v4b finger as the 11/22 does "
+            "(Table&#160;[[tab:mount]], Figure&#160;[[fig:mount]]). They are " + joined(nm(k) for k in mounts) + ". "
             + f"{WORDS[len(wide)].capitalize()} tips are wider than the 11/22 along its flanks: {joined(nm(k) for k in wide)}. "
             f"They put {rng(ex, 0)}&#8202;mm&#179; of TPU into the cassette&#8217;s walls or the cap&#8217;s side blocks. "
             + (f"{joined(nm(k) for k in lose)[:1].upper() + joined(nm(k) for k in lose)[1:]} are narrower and lose "
@@ -444,21 +461,22 @@ def cost_section():
     cpu = lambda k: g(k, "cpu", "cylinder:16:0.625|pads", "step_us")  # noqa: E731
     text = (
         f"<p>The softer pads touch more of the tool, and a step costs more than at 10&#8202;MPa (Table&#160;[[tab:cost]]). On "
-        f"the GPU, at the held RL state with 2048 worlds, the v4b tip takes {f(g(C.REF, 'gpu', 'us_per_world_step'))}&#8202;&#181;s "
-        f"per world-step. It has {f(g(C.REF, 'gpu', 'contacts_per_world'), 0)} contacts per world and uses "
-        f"{f((g(C.REF, 'gpu', 'gpu_peak_mb') or 0) / 1000, 1)}&#8202;GB. The blocks take "
-        f"{rng([g(k, 'gpu', 'us_per_world_step') for k in C.BLOCKS])}&#8202;&#181;s and "
-        f"{rng([(g(k, 'gpu', 'gpu_peak_mb') or 0) / 1000 for k in C.BLOCKS], 1)}&#8202;GB. The capsules and the other "
-        f"half-ellipsoids take {rng([g(k, 'gpu', 'us_per_world_step') for k in mid])}&#8202;&#181;s, and the quarter-ellipsoids "
-        f"{rng([g(k, 'gpu', 'us_per_world_step') for k in C.QUARTERS])}&#8202;&#181;s. On 15 October, at 10&#8202;MPa, the step "
-        f"took {f(g15(C.REF, 'gpu', 'us_per_world_step'))}&#8202;&#181;s on the 11/22 shape, with "
-        f"{f(g15(C.REF, 'gpu', 'contacts_per_world'), 0)} contacts, and {f(g15(C.BLOCKS[0], 'gpu', 'us_per_world_step'))}&#8202;&#181;s "
-        f"on the as-built block.</p>"
-        + (f"<p>On the CPU, at the three-finger grip of the v4b hand&#8217;s 16&#8202;mm cell, the v4b tip takes "
-           f"{f(cpu(C.REF), 0)}&#8202;&#181;s per 1&#8202;ms step with {f(g(C.REF, 'cpu', 'cylinder:16:0.625|pads', 'ncon'), 0)} "
-           f"contacts. The as-built block takes {f(cpu(C.BLOCKS[0]), 0)}&#8202;&#181;s with "
-           f"{f(g(C.BLOCKS[0], 'cpu', 'cylinder:16:0.625|pads', 'ncon'), 0)} contacts, and the twelve tips take "
-           f"{rng([cpu(k) for k in ORDER], 0)}&#8202;&#181;s. Replanning 64 plans of 0.5&#8202;s on three threads takes "
+        f"the GPU, at the held RL state with 2048 worlds, a world-step lasts "
+        f"{f(g(C.REF, 'gpu', 'us_per_world_step'))}&#8202;&#181;s on the v4b tip. The scene has "
+        f"{f(g(C.REF, 'gpu', 'contacts_per_world'), 0)} contacts per world and occupies "
+        f"{f((g(C.REF, 'gpu', 'gpu_peak_mb') or 0) / 1000, 1)}&#8202;GB of GPU memory. On the blocks a world-step lasts "
+        f"{rng([g(k, 'gpu', 'us_per_world_step') for k in C.BLOCKS])}&#8202;&#181;s and the scene occupies "
+        f"{rng([(g(k, 'gpu', 'gpu_peak_mb') or 0) / 1000 for k in C.BLOCKS], 1)}&#8202;GB. It lasts "
+        f"{rng([g(k, 'gpu', 'us_per_world_step') for k in mid])}&#8202;&#181;s on the capsules and the other half-ellipsoids, "
+        f"and {rng([g(k, 'gpu', 'us_per_world_step') for k in C.QUARTERS])}&#8202;&#181;s on the quarter-ellipsoids. On "
+        f"15 October, at 10&#8202;MPa, a world-step lasted {f(g15(C.REF, 'gpu', 'us_per_world_step'))}&#8202;&#181;s on the "
+        f"v4b tip&#8217;s shape, with {f(g15(C.REF, 'gpu', 'contacts_per_world'), 0)} contacts. It lasted "
+        f"{f(g15(C.BLOCKS[0], 'gpu', 'us_per_world_step'))}&#8202;&#181;s on the as-built block.</p>"
+        + (f"<p>On the CPU, at the three-finger grip of the v4b hand&#8217;s 16&#8202;mm cell, a 1&#8202;ms step lasts "
+           f"{f(cpu(C.REF), 0)}&#8202;&#181;s on the v4b tip, with {f(g(C.REF, 'cpu', 'cylinder:16:0.625|pads', 'ncon'), 0)} "
+           f"contacts. It lasts {f(cpu(C.BLOCKS[0]), 0)}&#8202;&#181;s on the as-built block, with "
+           f"{f(g(C.BLOCKS[0], 'cpu', 'cylinder:16:0.625|pads', 'ncon'), 0)} contacts, and "
+           f"{rng([cpu(k) for k in ORDER], 0)}&#8202;&#181;s over the twelve tips. Replanning 64 plans of 0.5&#8202;s on three threads takes "
            f"{rng([g(k, 'cpu', 'cylinder:16:0.625|pads', 'replan_3thread_s') for k in ORDER])}&#8202;s.</p>"
            if all(cpu(k) is not None for k in ORDER) else ""))
     return text + tab
@@ -510,15 +528,15 @@ def screen_section():
         f"{f(J2[top2[2]], 3)} for {nm(top2[2])}. The v4b tip has J2 = {f(J2[C.REF], 3)}, at its worst condition, "
         f"{cond(ref.get('J2_condition'))}. On 15 October, on the first CAD hand at 10&#8202;MPa, the same shape had "
         f"J2 = {f(get(SCR15, 'tips', old(C.REF), 'J2'), 3)}.</p>"
-        f"<p>The v4b tip&#8217;s pads end within 3&#176; of Drake&#8217;s turn, with its held outcome, in "
-        f"{ref['agree_drake_3deg']} of {ref['n_vs_drake']} replays, so the gate admits {ref['agree_drake_3deg'] - 2} agreements "
-        f"or more. {cap1(WORDS[len(fail)])} tips fail it: {joined(nm(k) for k in fail)}. "
+        f"<p>The v4b tip&#8217;s pads end within 3&#176; of Drake&#8217;s turn, with the same held outcome, in "
+        f"{ref['agree_drake_3deg']} of {ref['n_vs_drake']} replays. A tip therefore passes the gate with "
+        f"{ref['agree_drake_3deg'] - 2} agreements or more. {cap1(WORDS[len(fail)])} tips fail it: {joined(nm(k) for k in fail)}. "
         + " ".join(cap1(t) for t in rule_sentences(fin, why, T))
         + " Rule (2) adds no tip: none that passes the gate replays at 0.8 of the v4b tip&#8217;s cost or less.</p>"
         f"<p>In the cells&#8217; HOM turns the cylinder also presses on the cap&#8217;s end plate, about 1.5&#8202;mm past the "
-        f"pad&#8217;s distal end. The rigid parts take a median {rng(rig)} of the normal force on the cylinder, and the cap "
-        f"alone {rng(cap)} (Figure&#160;[[fig:screen]], bottom). In the D1&#8211;D8 turns of the real_v1 hands the pads take "
-        f"all of it.</p>")
+        f"pad&#8217;s distal end. A median {rng(rig)} of the normal force on the cylinder passes through the rigid "
+        f"parts (Figure&#160;[[fig:screen]], bottom). The cap&#8217;s share alone is {rng(cap)}. In the D1&#8211;D8 turns of "
+        f"the real_v1 hands all of it passes through the pads.</p>")
     out = text + fig + tab
     C3 = FIN.get("candidates", {})
     if C3:
@@ -534,12 +552,14 @@ def screen_section():
         rest = [k for k in others if k != best and k not in below]
         out += (f"<p>On fresh placements " + ("no tip beats the v4b tip" if not beat else
                                               joined(nm(k) for k in beat) + " beat the v4b tip")
-                + f". Its J3 is {f(base['J3'], 3)}. {nm(best)[:1].upper() + nm(best)[1:]} scores {f(C3[best]['J3'], 3)}, a paired "
-                f"difference of {dj(best)} (Table&#160;[[tab:stage3]], Figure&#160;[[fig:stage3]]). "
-                + " ".join(f"{nm(k)[:1].upper() + nm(k)[1:]} gives {dj(k)}." for k in rest)
+                + f". Its J3 is {f(base['J3'], 3)} (Table&#160;[[tab:stage3]], Figure&#160;[[fig:stage3]]). The best other "
+                f"tip is {nm(best)}. It scores {f(C3[best]['J3'], 3)}, a paired difference of {dj(best)}. "
+                + " ".join(f"{nm(k)[:1].upper() + nm(k)[1:]} differs by {dj(k)}." for k in rest)
                 + (" " + " ".join(f"{nm(k)[:1].upper() + nm(k)[1:]} scores below the v4b tip, {dj(k)}." for k in below))
-                + f" Every stage-3 tip keeps {base['hold3_mu0.5']} of {base['n_hold_mu0.5']} grasps with three loaded fingers "
-                f"through the hold test at friction 0.5. On 15 October the same 11/22 shape scored J3 = "
+                + (f" All {base['n_hold_mu0.5']} grasps of every stage-3 tip pass the hold test at friction 0.5 with three "
+                   "loaded fingers." if all(C3[k].get("hold3_mu0.5") == C3[k].get("n_hold_mu0.5") for k in FIN["tips"])
+                   else " Some grasps of the stage-3 tips fail the hold test at friction 0.5 with three loaded fingers.")
+                + f" On 15 October the v4b tip&#8217;s shape scored J3 = "
                 f"{f(get(o_ref, 'J3'), 3)} against the as-built block&#8217;s {f(get(o_blk, 'J3'), 3)}. Here the block scores "
                 f"{f(C3[C.BLOCKS[0]]['J3'], 3)} against the v4b tip&#8217;s {f(base['J3'], 3)}.</p>")
         b3 = []
@@ -623,19 +643,20 @@ def fe_section():
     d18r = [abs(get(FE[k], "rod_across_um", "1") / fe18(k, "cx12.5_z0") - 1) for k in have if fe18(k, "cx12.5_z0")]
     nofit = [k for k in have if not FE[k]["magnets"]]
     text = (
-        f"<p>The finite elements give every tip a nearly uniform surface under the 2&#8202;mm sphere "
-        f"(Table&#160;[[tab:fe]], Figure&#160;[[fig:fe]]). At the apex the tips sink {rng(sph, 0)}&#8202;&#181;m at 1&#8202;N. Over "
-        f"the seven map points the softest sinks {rng(spread)} times as far as the stiffest. Under the sphere the approach grows "
+        f"<p>In the finite elements the tips sink {rng(sph, 0)}&#8202;&#181;m at the apex under the 2&#8202;mm sphere at "
+        f"1&#8202;N. Over each tip&#8217;s seven map points, the softest point sinks {rng(spread)} times as far as the stiffest "
+        f"(Table&#160;[[tab:fe]], Figure&#160;[[fig:fe]]). Under the sphere the approach grows "
         f"with the load to the power {rng(n_s)}. Under the 12.5&#8202;mm rod across the finger the curved tips sink "
-        f"{rng(rod_c, 0)}&#8202;&#181;m at 1&#8202;N, with exponent {rng(n_r)}, and the blocks {rng(rod_b, 0)}&#8202;&#181;m. The "
+        f"{rng(rod_c, 0)}&#8202;&#181;m at 1&#8202;N. The blocks sink {rng(rod_b, 0)}&#8202;&#181;m, and the curved tips&#8217; "
+        f"exponent under the rod is {rng(n_r)}. The "
         f"pads here are cut where the v4b pad is cut and held on that face. Against the whole prints of 18 October the apex "
         f"approach changes by at most {100 * max(d18):.0f}&#8202;% and the rod&#8217;s by at most {100 * max(d18r):.0f}&#8202;%.</p>"
-        + (f"<p>With pad 05R4&#8217;s four magnets, every tip that holds them resolves {rng(list(res.values()), 3)}&#8202;N at the "
-           f"contact point from one 141&#8202;Hz sample. The chips run at the gain that the {rng(bmax, 1)}&#8202;mT field needs, "
+        + (f"<p>With pad 05R4&#8217;s four magnets, the force at the contact point is resolved to "
+           f"{rng(list(res.values()), 3)}&#8202;N from one 141&#8202;Hz sample on every tip in which they fit. The chips run at the gain that the {rng(bmax, 1)}&#8202;mT field needs, "
            f"and the magnets move {rng(trav)}&#8202;&#181;m/N. The finest resolution is "
            f"{100 * (1 - min(res.values()) / max(res.values())):.0f}&#8202;% below the coarsest. " if res else "<p>")
-        + (f"The {WORDS[len(nofit)]} quarter-ellipsoids cannot take the layout: the magnets&#8217; tops lie 7.5&#8202;mm under "
-           "the apex, behind their back planes.</p>" if nofit else "</p>"))
+        + (f"The layout does not fit the {WORDS[len(nofit)]} quarter-ellipsoids: the magnets&#8217; tops lie "
+           "7.5&#8202;mm under the apex, behind their back planes.</p>" if nofit else "</p>"))
     fig = img("media/fig_fe.png", "Finite elements per tip. Top: the approach at 1&#8202;N under the 2&#8202;mm sphere at the "
               "seven map points, over the apex&#8217;s. Middle: the approach at 1&#8202;N under the sphere at the apex and under the "
               "12.5&#8202;mm rod across the finger. Bottom: the force resolution at the contact point with pad 05R4.", key="fe")
@@ -654,20 +675,20 @@ def compute_section():
     tot = sum(v["core_h"] for v in jobs.values())
     gtot = sum(v.get("gpu_h", 0) for v in jobs.values())
     body.append(["All", str(sum(v["n"] for v in jobs.values())), f(tot), f(gtot), "&#8211;"])
-    return (f"<p>The rerun took {tot:.1f} core-hours and {gtot:.1f} GPU hours (Table&#160;[[tab:compute]]); the Drake replays of "
-            f"the agreement gate took {f(get(jobs, 'traj drake', 'core_h'), 1)} of the core-hours. The queue stood for 36 minutes "
-            "at resguard&#8217;s swap gate, which the desktop&#8217;s swapped pages held closed.</p>"
+    return (f"<p>The rerun cost {tot:.1f} core-hours and {gtot:.1f} GPU hours (Table&#160;[[tab:compute]]). Of the "
+            f"core-hours, {f(get(jobs, 'traj drake', 'core_h'), 1)} went to the Drake replays of the agreement gate. The queue "
+            "waited 36 minutes at resguard&#8217;s swap gate, which was closed by the desktop&#8217;s swapped pages.</p>"
             + table(["Jobs", "Count", "Core-hours", "GPU hours", "Wall time, h"], body, "Compute of the rerun by kind of job "
                     "(compute/summary.json, from the job logs under <code>logs/20261104-fingertip_shape_rerun/queue/</code>). "
                     "Wall time runs from a kind&#8217;s first start to its last end.", key="compute"))
 
 
 def limitations():
-    return ("<p>Every reference is computed. The finite elements use NinjaFlex 85A&#8217;s 12&#8202;MPa solid modulus over a "
-            "homogenized gyroid. The pads and Drake use one modulus for every shape, the 2.5&#8202;MPa fitted to the UR5 "
-            "presses of the v3 tips, which have the 11/22 shape. Ten of the twelve tips would need a cassette and cap of their own; they are "
+    return ("<p>Every reference is computed. In the finite elements the solid TPU has NinjaFlex 85A&#8217;s modulus of "
+            "12&#8202;MPa, over a homogenized gyroid. One modulus is used for every shape in the pads and in Drake: the "
+            "2.5&#8202;MPa fitted to the UR5 presses of the v3 tips, which have the 11/22 shape. Ten of the twelve tips would need a cassette and cap of their own; they are "
             "simulated on the 11/22&#8217;s. The cells&#8217; grasps come from the scale study&#8217;s kinematics, and in their HOM "
-            "turns the cap&#8217;s end plate takes a third or more of the normal force on the cylinder. The D1&#8211;D8 hands are "
+            "turns the cylinder also presses on the cap&#8217;s end plate. The D1&#8211;D8 hands are "
             "real_v1 hands, and their bench plans were made for the block. The friction band runs the v4b tip&#8217;s refined "
             "designs on the other tips without refining them again.</p>")
 
@@ -676,14 +697,14 @@ def open_items():
     items = [
         ("A longer stage 3 for the 16/32 half-ellipsoid",
          "Rerun its stage-3 jobs and the v4b tip&#8217;s with cell seeds 3&#8211;12 and HOM seeds 5&#8211;19 "
-         "(<code>scripts/fingertip_shape_rerun_queue.py stage3</code> with the seeds widened). A 90&#8202;% interval above zero "
-         "makes it the shape to print, on a cassette and cap widened for its distal flanks; an interval that still includes "
-         "zero keeps the 11/22."),
+         "(<code>scripts/fingertip_shape_rerun_queue.py stage3</code> with the seeds widened). With a 90&#8202;% interval above zero it "
+         "becomes the shape to print, on a cassette and cap widened for its distal flanks. With an interval that still "
+         "includes zero the 11/22 stays."),
         ("Grasps that keep the cap off the cylinder",
          "Check the cells&#8217; candidate grasps with the pad-coverage and rigid-clearance tests of "
-         "<code>scripts/fp_sr2_toy.py</code> along the HOM turn, not only at the touch pose. Rescore J on the grasps whose turns "
-         "put under 10&#8202;% of the normal force on rigid parts. A different order of the tips shows how much of J measures "
-         "the cap."),
+         "<code>scripts/fp_sr2_toy.py</code> at the touch pose and along the HOM turn. Rescore J on the grasps whose "
+         "turns put under 10&#8202;% of the normal force on rigid parts. A change in the tips&#8217; order would show how much "
+         "of J comes from the cap."),
         ("The friction band with each tip&#8217;s own designs",
          "Refine the band&#8217;s grasps, forces and modes per stage-3 tip (<code>scripts/hom_grasp_refine.py run --band</code> "
          "with the tip&#8217;s scene caches of <code>scripts/fingertip_shape_rerun_band.py</code>). A worst-case score above the "
@@ -703,18 +724,24 @@ def lede():
     others = [k for k in FIN["tips"] if k != C.REF]
     best = max(others, key=lambda k: C3[k]["J3"])
     mounts = [k for k in ORDER if get(MNT, "tips", k, "verdict") == "mounts"]
-    curved = C.HALF + [C.REF, C.HEMI] + C.CAPSULES
-    onset = [get(BED.get(k) or {}, "law", "onset_arm_mm", "1") for k in curved]
-    onset_b = [get(BED.get(k) or {}, "law", "onset_arm_mm", "1") for k in C.BLOCKS]
+    gpu = lambda k: get(COST.get(k) or {}, "gpu", "us_per_world_step")  # noqa: E731
+    rest = [k for k in ORDER if k != C.REF and k not in C.BLOCKS]
     res = [get(FE.get(k) or {}, "sensing", "centre_force_N") for k in ORDER]
     beat = [k for k in others if C3[k].get("beats_base")]
+    loss = [-get(BAND[k], t, "S3", "diff_median") for k in BAND if k != C.REF for t, _ in TASKS4 if get(BAND[k], t, "S3")]
+    band = (f"On each other stage-3 tip they score lower, by a median {rng(loss)} per task." if loss and min(loss) > 0 else
+            f"On the other stage-3 tips the median change per task runs from {sg(-max(loss), 2)} to {sg(-min(loss), 2)}."
+            if loss else "")
     return (f"On the v4b finger at 2.5&#8202;MPa {'no fingertip shape beats' if not beat else 'one shape beats'} the 11/22 "
-            f"half-ellipsoid that the hand uses. On fresh placements {nm(best)} scores J3 = {f(C3[best]['J3'], 3)}, against "
-            f"{f(C3[C.REF]['J3'], 3)} for the v4b tip. The difference is {sg(C3[best]['dJ3_vs_base'])}, with a 90&#8202;% "
-            f"interval from {sg(C3[best]['dJ3_ci90'][0])} to {sg(C3[best]['dJ3_ci90'][1])}. Of the twelve tips only "
-            f"{WORDS[len(mounts)]} fit the v4b DIP link, cassette and cap as built. The curved tips turn the tool on half of "
-            f"the blocks&#8217; friction arm, {rng(onset)} against {rng(onset_b)}&#8202;mm. Pad 05R4 resolves "
-            f"{rng([x for x in res if x is not None], 3)}&#8202;N on every tip that holds its magnets.")
+            f"half-ellipsoid that the hand uses. The best other tip is {nm(best)}. Its J3 on fresh placements is "
+            f"{f(C3[best]['J3'], 3)}, against {f(C3[C.REF]['J3'], 3)} for the v4b tip. The difference is "
+            f"{sg(C3[best]['dJ3_vs_base'])}, with a 90&#8202;% interval from {sg(C3[best]['dJ3_ci90'][0])} to "
+            f"{sg(C3[best]['dJ3_ci90'][1])}. The HOM grasps, forces and contact modes were refined for the v4b tip over scene "
+            f"friction 0.4&#8211;1.0. {band} A GPU world-step lasts {f(gpu(C.REF))}&#8202;&#181;s on the v4b tip. It lasts "
+            f"{rng([gpu(k) for k in rest])}&#8202;&#181;s on the capsules, the other ellipsoids and the hemisphere, and "
+            f"{rng([gpu(k) for k in C.BLOCKS])}&#8202;&#181;s on the blocks. Of the twelve tips only {WORDS[len(mounts)]} fit the "
+            f"v4b DIP link, cassette and cap as built. With pad 05R4&#8217;s magnets, the force at the contact point is resolved "
+            f"to {rng([x for x in res if x is not None], 3)}&#8202;N on every tip in which they fit.")
 
 
 def byline():
@@ -747,7 +774,7 @@ def main():
     t = re.sub(r"\[\[((?:fig|tab|sec|film):[a-z0-9_]+)\]\]", lambda m: str(REFS[m.group(1)]), t)
     t, n = render_tex(t)
     t = retro_style.apply(t)
-    t = docs_index.tag(t, topic="fingertip", summary=re.sub(r"<[^>]+>", "", lede()), date="2026-11-04")
+    t = docs_index.tag(t, topic="fingertip", summary=html.unescape(re.sub(r"<[^>]+>", "", lede())), date="2026-11-04")
     open(OUT, "w").write(t)
     print(f"formulas {n}; figures {FIG[0]}; tables {TAB[0]}; films {FILM[0]}; wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
 
