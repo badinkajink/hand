@@ -57,6 +57,7 @@ UP4 = "20261023-ur5_calibration_mount_v4"
 V5M = REPO / "docs/experiments/20261023-ur5_calibration_mount_v5"
 UP5 = "20261023-ur5_calibration_mount_v5"
 ATI = REPO / "docs/experiments/20261023-ati_ft_calibration"
+M2_18 = REPO / "docs/experiments/20261018-dip_link_board_mount/exports/20261105-1158-v4_concept_b_m2hole1p8"
 UP = "20261020-ur5_calibration_mount_v2"
 COVERS = {"W00": 0.0, "W10": 0.10, "W20": 0.20}        # wall clearance per cover, mm
 # owner, 2026-10-20 19:10: "we have a super dense infill on these mount parts. i think across the board it can be a standard
@@ -202,6 +203,10 @@ PLATES = {
     # 2026-10-22: two more of DIP link b v4 (owner: "i want to print two more too"), the settings of plate "link_v4"
     "link_v4_x2": [(f"B4-{k}", "b v4 DIP link, recessed bridge", V4 / "print/20261021-dip_link_v4b_dip_link_pla_bambu.stl", None,
                     V.LINK) for k in (1, 2)],
+    # 2026-11-05: three of DIP link b v4 with 1.8 mm self-forming M2 holes in the tongue (params/20261105-v4_concept_b_m2hole1p8),
+    # the settings of plate "link_v4"
+    "link_v4_m2_1p8": [(f"B4M-{k}", "b v4 DIP link, M2 holes 1.8 mm", M2_18 / f"print/{M2_18.name}_dip_link_pla_bambu.stl", None,
+                        V.LINK) for k in (1, 2, 3)],
 }
 DEFAULT_PLATES = ("fork_and_indenters", "link", "tip_caps", "solid_covers_caps2", "heights", "link_v4", "mount_v3", "fit3",
                   "mount_v3_adapter", "link_v4_x2", "fit2", "snug")   # "calibration" when named
@@ -213,6 +218,7 @@ PLATE_OUT = {"tip_caps": (V3 / "print", "20261020-dip_link_v3b_p1s_pla_tip_caps"
              "fit3": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit3"),
              "mount_v3_adapter": (V3M / "print", "20261022-ur5_calibration_mount_v3_p1s_pla_adapter_inserts"),
              "link_v4_x2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_link_x2"),
+             "link_v4_m2_1p8": (M2_18 / "print", f"{M2_18.name}_p1s_pla_link_x3"),
              "fit2": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_fit2"),
              "snug": (V4 / "print", "20261022-dip_link_v4b_p1s_pla_snug"),
              "mount_v4_fork": (V4M / "print", f"{UP4}_p1s_pla"),
@@ -254,6 +260,7 @@ def main():
                    "fit3": "DIP link b: three covers I15H3 with tighter rails (3T) and three caps TW15H3",
                    "mount_v3_adapter": "UR5 mount v3: the adapter with bores for M3 heat-set inserts",
                    "link_v4_x2": "DIP link b v4, two copies",
+                   "link_v4_m2_1p8": "DIP link b v4 with 1.8 mm M2 holes in the tongue, three copies",
                    "fit2": "DIP link b: covers 2T, caps TW15H2",
                    "snug": "DIP link b: snug covers 3S, 2S and caps",
                    "mount_v4_fork": "UR5 mount v4: standoff-fork with a stop plate behind the DIP link's tongue",
@@ -277,7 +284,9 @@ def main():
                    + ("; 2026-10-21 16:20: 'the 0.15mm inset is still perfectly fine ... let's try to lower the heights on both the "
                       "top cover and the cassette side walls'" if plate == "heights" else "")
                    + ("; 2026-10-21 16:20: 'recess/sculpt this edge of the dip link the same way we did for the column ... make the "
-                      "underlying column even smaller radius too'" if plate in ("link_v4", "link_v4_x2") else "")
+                      "underlying column even smaller radius too'" if plate in ("link_v4", "link_v4_x2", "link_v4_m2_1p8") else "")
+                   + ("; 2026-11-05: 'the m2 self-threaded screws are starting to strip'; 'let's go 1.8, please regen the dip "
+                      "links'" if plate == "link_v4_m2_1p8" else "")
                    + ("; 2026-10-22: 'where are the stls for the new dip link? i want to print two more too'"
                       if plate == "link_v4_x2" else "")
                    + ("; 2026-10-22 16:17: 'can you also prepare cassettes + top covers at the lowest setting that we tried. i think "
