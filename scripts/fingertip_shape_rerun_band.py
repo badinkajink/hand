@@ -101,14 +101,15 @@ def cmd_validate(a):
     print(f"{a.tip} {task}: {len(items)} picks on {', '.join(band)}, {n} rollouts run", flush=True)
 
 
-def worst(rows_by_plant):
-    """{(call, pick): lowest over the plants of the five-seed mean score}."""
+def worst(task, rows_by_plant):
+    """{(call, pick): lowest over the plants of the five-seed mean score (hom_landscape.rollout_score)}."""
     import numpy as np
+    import hom_landscape as L
     per = {}
     for p, rows in rows_by_plant.items():
         acc = {}
         for r in rows:
-            acc.setdefault((r["call"], r["pick"]), []).append(float(r["score"]))
+            acc.setdefault((r["call"], r["pick"]), []).append(float(L.rollout_score(task, r)))
         for k, v in acc.items():
             per.setdefault(k, {})[p] = float(np.mean(v))
     return {k: min(v.values()) for k, v in per.items() if len(v) == len(MU)}
@@ -124,8 +125,8 @@ def cmd_report(a):
         T = {}
         for task in TASKS:
             f = f"{task}_d{HR.TASKS[task]:g}.jsonl"
-            new = worst({p: HR.read_rows(tip_dir / "val" / p / f) for p in MU})
-            ref = worst({p: HR.read_rows(old / p / f) for p in MU})
+            new = worst(task, {p: HR.read_rows(tip_dir / "val" / p / f) for p in MU})
+            ref = worst(task, {p: HR.read_rows(old / p / f) for p in MU})
             T[task] = {}
             for pick in ("S1", "S2", "S3"):
                 ks = [k for k in new if k[1] == pick and k in ref]
