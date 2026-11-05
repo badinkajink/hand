@@ -57,6 +57,21 @@ def grid(kind="base"):
 
 
 FE.grid = grid
+LOCKS = C.LOGS / "fe_locks"
+_append = FE.append
+
+
+def append(path, row):
+    """FE.append under an exclusive lock: two processes (the 19:3x loop on core 11 and queue/chain.sh) append to the same
+    rows files, and a row is longer than one atomic write."""
+    import fcntl
+    LOCKS.mkdir(parents=True, exist_ok=True)
+    with open(LOCKS / "append.lock", "w") as lk:
+        fcntl.flock(lk, fcntl.LOCK_EX)
+        _append(path, row)
+
+
+FE.append = append
 
 
 def design_key(tip):
@@ -84,7 +99,11 @@ def main():
     a = ap.parse_args()
     mount = json.loads((C.D / "mount" / "mount.json").read_text())
     V.OUT.mkdir(parents=True, exist_ok=True)
+    import fcntl
+    LOCKS.mkdir(parents=True, exist_ok=True)
     for tip in a.tips:
+        lk = open(LOCKS / f"{tip}.lock", "w")       # one process per tip at a time; the next finds its rows and skips
+        fcntl.flock(lk, fcntl.LOCK_EX)
         name, case = case_of(tip, mount)
         V.CASES[name] = case
         V.KEY, V.BUILD = design_key(tip), C.build_axis(tip)
@@ -94,6 +113,7 @@ def main():
             V.run_case(name, a.max_dof)
         if "sense" in a.what and case["mags"] != "none":
             V.run_sense(name)
+        lk.close()
     if "sense" in a.what or "resolution" in a.what:
         for r in FE.rows(V.OUT / "sense_fe.jsonl"):
             V.SENSE_GAP.setdefault(r["case"], 3.32 - 6.45)
