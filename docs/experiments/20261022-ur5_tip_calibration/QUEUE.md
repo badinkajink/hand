@@ -1847,6 +1847,42 @@ push that answers it arrives.
   - Inference (`scripts/ur5/ur5_tip_calibration_gp_timing.py`, one core of the workstation's Core Ultra 7 265KF): 1.79
     ms a reading with the variance, 1.11 ms for the mean alone, 5.4 ms for three boards; the 11-02 model 1.31 ms.
 
+- R35 (open, 12:1x on 11-05; owner, 12:0x: "we should be able to use the ur5 information to determine the tcp
+  information now that the sr2 hand is mounted. sure, i am about to head to the ur5 computer. please prepare
+  information and communicate accordingly". The "sure" answers the workstation's question of 11:4x: whether a lab session
+  should now move the driver and the UR5 programs onto the shared math). The owner is at the cell for part A. The owner's
+  rule stands: never freedrive with the SR2 on the UR5.
+  - Part A: the SR2 hand's TCP and payload from the UR5's own data. The pendant's payload is still the calibration's
+    0.384 kg (README). The CAD gives 3.24 kg: the hand's 2.98 kg as solid PLA without screws, cables or boards, and the
+    HEX-E's 0.26 kg. Set a payload close to the real one before the arm is powered on and its brakes release.
+    1. The owner looks at the flange and names the clocking k. At k = 1 the HEX-E's cable plug lies between the thumb
+       and index gantries, and the robot's tool connector faces the middle gantry. The index gantry is the one beside
+       the tag plate (`assets/cad_v3/README.md`, "The four clockings").
+    2. The hand's mass from the HEX-E, with no arm motion and no gravity sweep. Take the HEX-E's static reading now, with
+       the joints the controller reports. Compare it with the last rest reading with the rod tool, at 16:4x on 11-04,
+       and its logged joints. If the HEX-E has not been re-zeroed since, the two readings differ by the change of
+       weight in the sensor frame, and the rod tool's weight is known from the plan (0.384 kg payload). The torques give
+       the centre of mass across the tool axis. If the HEX-E's DAQ is unplugged, say so and use the CAD's numbers.
+    3. Set PolyScope's TCP on the palm origin P for that k. At k = 1 it is x 5.05, y 2.02, z 138.90 mm with rotation
+       vector (0.5954, -3.0847, 0) rad; the README's table gives the other k, and
+       `.venv/bin/python scripts/hardware/build_cad_v3_hand.py tcp --k K --point X Y Z` gives any point of P. Set the
+       payload to the measured mass. Its centre of mass at k = 1 in the CAD is (-8.7, -7.4, 73.1) mm in tool0, with the
+       HEX-E (the hand alone (-9.4, -8.1, 78.0) mm, from the 121 solids of the assembly). Write k, the mass, the centre
+       of mass and the TCP in STATE.md and NOTES.md; the workstation then updates `assets/cad_v3` and the cad_v3 page.
+  - Part B: the shared math in the programs that move the robot, the last step of the scripts cleanup
+    (`docs/notes/20261103-scripts_cleanup/RUNBOOK.md`, "Not migrated by the autopilot"). Its files are
+    `src/sr2hand/driver/reskin5x/host/ur5_tip_calibration.py` and `ur5_tip_calibration_sim.py`,
+    `scripts/ur5/ur5_inverted_rig.py`, `scripts/ur5/ur5_tip_calibration_holder_paths.py` and the plan generators. The
+    copies are listed in `audit_rotations.md` and `audit_geometry.md` beside the runbook. The CB1's manta driver stays.
+    1. The workstation prepares the change on the branch `ur5-shared-math`. Each copy is replaced by its shared
+       function and checked against the old code on 10,000 inputs to 1e-12. Every plan in `plan/` is regenerated
+       with the old and the new code and compared. The workstation names the branch's commit here when it is ready.
+    2. The lab fetches the branch into a worktree (`git fetch origin ur5-shared-math`). It runs each current plan in
+       the simulator (`$PY $P --plan <file> --sim --name sim-<name>`) and `dry-check --real` from the arm's joints,
+       with the old and the new code, and reports any difference in NOTES.md and its commit message. Nothing moves the
+       robot.
+    3. The branch merges into main after the owner's go.
+
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
   them v3, no ids yet). then we could run a super complete calibration suite + crosstalk analysis"). The plan is
