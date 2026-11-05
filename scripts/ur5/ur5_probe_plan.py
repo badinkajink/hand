@@ -55,6 +55,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_inverted_rig as RIG  # noqa: E402
+from sr2hand.geometry.rotations import heading  # noqa: E402
 
 C = RIG.C
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
@@ -354,7 +355,7 @@ def build(ws, rows, n_pass1=20, st1=None, held_channel=None, twists=TWISTS, wall
                      f"{[way_w[w['id']] for w in ww['actions']]}")
         if worst > 0.01:
             raise SystemExit(f"the rest poses from the directions in P stand {worst:.3f} mm off the replay's")
-    yaw = math.degrees(math.atan2(T_BA[1, 0], T_BA[0, 0]))
+    yaw = math.degrees(float(heading(T_BA)))
     regions = {}
     for t in touches:
         regions[t["region"]] = regions.get(t["region"], 0) + 1

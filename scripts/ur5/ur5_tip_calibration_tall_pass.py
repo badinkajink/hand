@@ -50,6 +50,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_cb3_cell as CELL  # noqa: E402
 import ur5_tip_calibration_r24_pass3 as P3  # noqa: E402
+from sr2hand.numerics.angles import nearest  # noqa: E402
 
 C = CELL.C
 EXP = P3.EXP
@@ -110,7 +111,7 @@ class Cell:
         if q is None:
             return False, None, None
         j5 = math.degrees(q[4])
-        j6 = math.degrees(self.qh[5] + (q[5] - self.qh[5] + math.pi) % (2 * math.pi) - math.pi)
+        j6 = math.degrees(nearest(q[5], self.qh[5]))
         if not (J5[0] <= j5 <= J5[1] and self.j6[0] <= j6 <= self.j6[1]):
             return False, None, (j5, j6)
         if CELL.self_clearance(q, self.reg.T_EM)["port"] < 15.0:

@@ -32,6 +32,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_tip_calibration as C  # noqa: E402
+from sr2hand.geometry.rotations import heading  # noqa: E402  (src/ on sys.path through the lab program's _paths)
 
 PLAN = ROOT / "docs/experiments/20261022-ur5_tip_calibration/plan/20261022-plan_sphere.json"
 NOISE_SHEET = np.array([0.035, 0.035, 0.15, 0.002, 0.002, 0.001])      # HEX-E data sheet, 1 sigma, N and N m
@@ -153,7 +154,7 @@ class Check:
         pl = self.notes.get("placement_offset_mm_deg")
         if pl and self.reg is not None and self.reg.T_BI is not None:
             T = self.reg.T_BI
-            yaw = math.degrees(math.atan2(T[1, 0], T[0, 0]))
+            yaw = math.degrees(float(heading(T)))
             dp = np.array(pl["d_mm"])
             self.p(f"  indenter at {np.round(T[:3, 3], 1)} mm, yaw {yaw:.1f} deg, tilt {pl['tilt']:.2f} deg; off the plan by "
                    f"{np.round(dp, 1)} mm ({np.linalg.norm(dp):.1f}), yaw {pl['d_yaw']:+.1f} deg "

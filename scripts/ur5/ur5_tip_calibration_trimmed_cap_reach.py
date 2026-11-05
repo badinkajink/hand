@@ -43,6 +43,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_cb3_cell as CELL  # noqa: E402
 import ur5_tip_calibration_r24_pass3 as P3  # noqa: E402
 import ur5_tip_calibration_tall_pass as TP  # noqa: E402
+from sr2hand.numerics.angles import nearest  # noqa: E402
 
 C = CELL.C
 LAB = P3.EXP / "lab"
@@ -86,7 +87,7 @@ def evaluate(cell, p, n, tw, old_cap, heads):
         if q is None:
             return dict(why="ik")
         j5 = math.degrees(q[4])
-        j6 = math.degrees(cell.qh[5] + (q[5] - cell.qh[5] + math.pi) % (2 * math.pi) - math.pi)
+        j6 = math.degrees(nearest(q[5], cell.qh[5]))
         if not TP.J5[0] <= j5 <= TP.J5[1]:
             return dict(why="j5", j=[round(j5, 1), round(j6, 1)])
         if not cell.j6[0] <= j6 <= cell.j6[1]:
@@ -146,7 +147,7 @@ def main(a):
     if a.limit:
         idx = idx[::max(1, len(idx) // a.limit)]
     combos = [(cap, m, j6) for cap in CAPS for m in MARGINS for j6 in J6_CAPS]
-    T_FP = np.linalg.inv(np.array([[-1.0, 0, 0, -2.05], [0, 1.0, 0, 0], [0, 0, -1.0, -77.05], [0, 0, 0, 1.0]]))
+    T_FP = C.inv(np.array([[-1.0, 0, 0, -2.05], [0, 1.0, 0, 0], [0, 0, -1.0, -77.05], [0, 0, 0, 1.0]]))
     rows = []
     for k, i in enumerate(idx):
         r = reg[i]
