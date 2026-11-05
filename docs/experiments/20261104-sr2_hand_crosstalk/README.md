@@ -68,3 +68,11 @@ The owner looked at it on the hand at 18:3x: "the gap is about 1cm yea".
   torque, every stepper step, the thumb's families and the index's yaw and mcp. Since then the plans cap the index's mcp
   at 50 deg and the middle's at 62 deg (`plan_home_rest`, the `_v2` plans, `lab/night_chain2.sh`). The thumb reached
   88 deg with 1.6 deg of droop.
+- At step 38 of `run1b_home_rest` (19:43:59), the index was sent from zero to mcp 50 and pip 90. It stalled at mcp
+  45 and pip 80.3, with both servos pushing: pip loads of -525 to -600 for 4 s, then -200 under the servo's protection.
+  This was not droop: pip 90 had passed at mcp 0, 25 and 37.5, and mcp 50 + pip 67.5 had passed. The CAD model shows no
+  contact there (27.6 mm to its palm box, 12.2 mm to the finger's own base). So something outside the model stopped the
+  curl, such as the base's structure or a fingertip cable to the mux on the thumb's housing. Since then the plans keep
+  the index's and middle's mcp + pip at 120 deg at most (`plan_home_rest2`, the `_v3` plans, `lab/night_chain3.sh`).
+  `run_plan.py` backs out of a pose a joint cannot reach to the last pose reached, logs a `blocked` event, and stops
+  the run at the third.
