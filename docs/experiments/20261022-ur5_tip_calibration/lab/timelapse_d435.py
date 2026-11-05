@@ -1,9 +1,10 @@
 """Overhead D435 time-lapse during a run: one colour frame every PERIOD s as JPEG into OUT, until the file
-logs/ur5_lab_stop_timelapse exists or SECONDS pass. 640 x 360 at 15 fps, colour only, so it loads the computer little.
+logs/ur5_lab_stop_timelapse exists or SECONDS pass. 640 x 360 at 15 fps, colour only, so it loads the computer little;
+--size 1280x720 for a closer look (the SR2 hand's sweep, 11-05).
 Read-only (the camera). When the camera stops sending frames, the pipeline is restarted after 5 s and the frames go on
 (11-02 15:06: "Frame didn't arrive within 5000" ended the run's time-lapse).
 
-    /usr/bin/python3 docs/experiments/20261022-ur5_tip_calibration/lab/timelapse_d435.py OUT [--period 2] [--seconds 7200]
+    /usr/bin/python3 docs/experiments/20261022-ur5_tip_calibration/lab/timelapse_d435.py OUT [--period 2] [--seconds 7200] [--size 640x360]
 """
 import argparse
 import time
@@ -19,12 +20,14 @@ ap = argparse.ArgumentParser()
 ap.add_argument("out")
 ap.add_argument("--period", type=float, default=2.0)
 ap.add_argument("--seconds", type=float, default=7200.0)
+ap.add_argument("--size", default="640x360")
 a = ap.parse_args()
+W, H = map(int, a.size.split("x"))
 out = Path(a.out)
 out.mkdir(parents=True, exist_ok=True)
 STOP.unlink(missing_ok=True)
 cfg = rs.config()
-cfg.enable_stream(rs.stream.color, 640, 360, rs.format.rgb8, 15)
+cfg.enable_stream(rs.stream.color, W, H, rs.format.rgb8, 15)
 
 
 def start():

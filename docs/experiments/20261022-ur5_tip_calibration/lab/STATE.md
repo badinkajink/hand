@@ -1,6 +1,6 @@
 # UR5 cell: current state
 
-Updated 2026-11-04 20:4x by the lab. **The calibration is done** (the owner, 16:4x on 11-04; below, under "Waiting on the owner"). **The SR2 hand hangs on the UR5, and the arm is powered off** (18:57:27; the brakes hold it). The crosstalk sweep of `../../20261104-sr2_hand_crosstalk/` ran from 18:57 to 20:34. It stopped with the hand at zero and its motors disabled, because the index's fingertip board stopped answering at 19:43:52, probably its cable pulled by a curl. **For the owner:** check the index's fingertip cable at both ends before anything moves. From the tip swap on, the lab session updates this file at every session
+Updated 2026-11-05 12:4x by the lab. **The calibration is done** (the owner, 16:4x on 11-04; below, under "Waiting on the owner"). **The SR2 hand hangs on the UR5, and the arm is powered off** (18:57:27 on 11-04; the brakes hold it). Since 11:4x on 11-05 the index's fingertip cable runs through a second mux (0x70) on channel 1 of the C6's mux, and all three boards stream. On the owner's go (11:41 and 12:0x on 11-05: "send it on the attended plan, unattended, and the other plan. i trust you"), the hand runs the layout sweep of `../../20261104-sr2_hand_crosstalk/` unattended: the attended plan passed from 12:20 to 12:34, and plan_layouts_s1 (about 75 min) started at 12:35:08. At its end the hand goes to zero and its motors are disabled. **For the owner:** QUEUE R35's clocking k, TCP and payload wait for you at the cell; the lab takes the HEX-E's static reading after the sweep. From the tip swap on, the lab session updates this file at every session
 start and end. This file gives the present state of the cell. `../QUEUE.md` and `NOTES.md` are the history. Every
 request to the owner must come from this file.
 
@@ -8,7 +8,7 @@ request to the owner must come from this file.
 
 | Item | Now | Registration (folder here) |
 |---|---|---|
-| SR2 hand | on the flange since 18:3x on 11-04 (owner). The arm was powered off from the pendant at 18:57:27; as the brakes engaged the TCP moved 0.2 mm. Its fingertips: v3 ID 1 on the thumb (mux channel 3), v3 ID 3 on the index (channel 1) and v3 ID 2 on the middle finger (channel 0), on the C6's mux (0x71) plugged into corvus. The lab has not checked the probe base or the strip since | `../../20261104-sr2_hand_crosstalk/README.md` |
+| SR2 hand | on the flange since 18:3x on 11-04 (owner). The arm was powered off from the pendant at 18:57:27; as the brakes engaged the TCP moved 0.2 mm. Its fingertips: v3 ID 1 on the thumb (mux channel 3), v3 ID 3 on the index (channel 1) and v3 ID 2 on the middle finger (channel 0), on the C6's mux (0x71, strapped to the thumb's housing) plugged into corvus. Since 11:4x on 11-05 the index's board sits on channel 0 of a second mux (0x70), cabled to channel 1, for slack; the firmware streams it as channel 1. The lab has not checked the probe base or the strip since | `../../20261104-sr2_hand_crosstalk/README.md` |
 | Probe | probe base with the rod tool (R 12.5 mm, its axis along y_M) on mount v7's adapter disc on the HEX-E (owner, 11-03 16:5x; set right at 17:2x after it sat a quarter turn off its square boss); before it the 2 mm sphere from 11-03 10:5x and the 5 mm sphere from 11-02 13:0x; no tip on the robot | the workstation's joint fit on the night's 0.5 N sweeps (bb18d7c65): c_M (-0.988, 0, 106.713) mm in M, turned +0.43 deg about z_M (sd 1.04) and -0.89 deg across (sd 0.50); each rod session's pass 1 fits it too |
 | Strip | the seat strip on one 2x4 clamped to the table (owner, 11-02); 192 mm from the place the 10-30 plans assume | tonight's sessions: the frame through both keys' socket points (`20261102-strip_frame_two_keys.json`), by `--frame`, with `--home-from poses.jsonl:strip_key1_seated_4`; each seat's grid aims by its own pass 1 fit. For later plans: the workstation's frame from the three pads' fits (`../../20261030-inverted_rig_seat_block/data/20261102-strip_frame_pads.json`, 9cd8b375: the two-key frame turned 3.44 deg about y_A and moved (2.48, 0.10, -3.70) mm; the pads within 0.14 to 0.22 mm on average, the rest the strip's twist) |
 | Held tips | **coming off for the SR2 hand (the owner, 16:2x on 11-04).** Until then: seat 1 (y_A -80, the right end seen from the robot) v3 ID 3 on mux channel 3 since 14:3x on 11-04 (the owner; v3 ID 6 sat there from 11-02 13:0x); seat 2 v3 ID 5 on channel 2; seat 3 (left) v3 ID 4 on channel 0 (owner, 11-02 13:0x); all three stream at 151 records/s (14:40 on 11-04; 138 on 11-02) | seat 1's ID 3: `20261104-tip_calibration/145215-id3pts11_seed` (pass 1, 0.060 mm rms; its pad 0.71 mm and 1.55 deg from ID 6's). Seat 1's ID 6: `20261102-tip_calibration/145010-s1v6b` (pass 1, 0.055 mm rms; its pad 1.68 mm and 4.1 deg from the CAD in the two-key frame); seat 2: `182710-s2v5` (0.051 mm rms; 1.21 mm, 3.5 deg); seat 3: `220337-s3v4` (0.051 mm rms; 0.81 mm, 2.9 deg). The rod's sessions of 11-03 have lab folders `20261103-214753-rod13`, `20261103-172647-rod21` and `20261103-202017-rod32` (seats 1, 2 and 3) |
@@ -36,7 +36,7 @@ cm from the connector with slack. The fix is a new cable.
 - No gravity sweeps.
 - travel.speed is 1.0. The tall plans lift 20 mm between actions.
 - Before it runs, every plan is path-checked on the current registrations and `cell.json` with
-  `scripts/ur5_tip_calibration_holder_paths.py` (margins: robot 8 mm, mount 3.0 mm or 2.5 mm for touch-offs, finger
+  `scripts/ur5/ur5_tip_calibration_holder_paths.py` (margins: robot 8 mm, mount 3.0 mm or 2.5 mm for touch-offs, finger
   0.8 mm, HEX-E 6 mm), and the lab simulates it.
 - No force control, contact motion or safety threshold is set from a borrowed calibration that was not validated.
 - The workstation reads corvus over SSH and never writes there; plans reach corvus by git.
@@ -89,18 +89,18 @@ anything 2. side map -- sure 3. yea send it".
 
 ## Last night: v3 ID 2's night suite, done
 
-Built by `scripts/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
+Built by `scripts/ur5/ur5_tip_calibration_next_tip_suite.py` and path-checked on v3 ID 1's registrations. About 11.7 h.
 Done at 08:13:17: blocks 1 to 6 and the sphere's top edge, 488 actions, all ok, with no abort, no early contact and no HEX-E time-out. They took 12.6 h of robot time; block 2 ran 0.5 h over its estimate. The blocks ran in the order 3, 2, 5, 4, 6 (`NOTES.md`, from "Block 1"). The owner's go came in the lab's session at 18:3x; the owner left at about 19:25 ("worst case i can come back at ~9:30 to reseat").
 
 | Block | Plan | Actions | Hours | How it runs |
 |---|---|---|---|---|
-| 1 | `20261028-plan_sphere_lab_pass1_night_v3id2.json` | 18 | 0.5 | A seed folder from `scripts/ur5_tip_calibration_seed_registration.py`, with --tool and --fixture both `20261027-225213-spherev3id1/registration.json` (homing pose kept). Stages preflight,pad,register; no homing. |
+| 1 | `20261028-plan_sphere_lab_pass1_night_v3id2.json` | 18 | 0.5 | A seed folder from `scripts/ur5/ur5_tip_calibration_seed_registration.py`, with --tool and --fixture both `20261027-225213-spherev3id1/registration.json` (homing pose kept). Stages preflight,pad,register; no homing. |
 | 2 | `20261028-plan_sphere_lab_stage2_night_v3id2.json` | 211 | 6.1 | Resumed on block 1's registration. |
 | 3 | `20261028-plan_tall_lab_pass1_night_v3id2.json` | 19 | 0.5 | A new session on block 1's tool, as 114908 ran on 225213's. |
 | 4 | `20261028-plan_tall_lab_stage2_night_v3id2.json` | 102 | 2.8 | Resumed on block 3's registration. |
 | 5 | `20261028-plan_rod_lab_pass1_night_v3id2.json` | 26 | 0.4 | A seed folder with --tool block 1's registration and --fixture `20261028-102701-rodv3id1/registration.json`. Stages preflight,pad,pivot,register. |
 | 6 | `20261028-plan_rod_lab_stage2_night_v3id2.json` | 100 | 1.4 | Resumed on block 5's registration. |
-| top edge | `20261028-plan_sphere_lab_top_edge_v3id2.json` | 12 | 0.3 | After block 1, with the owner present; resumed on block 1's folder, stage grid. Ten presses on the tip's end and edges and a reference press before and after, built by `scripts/ur5_tip_calibration_sphere_top_edge.py` at the sphere's 60 mm lift. At a 20 mm lift, the joint move into the first top press swept the fork 3.9 mm into the sphere's model. Presses with the cap under 0.8 mm from the sphere are left out. |
+| top edge | `20261028-plan_sphere_lab_top_edge_v3id2.json` | 12 | 0.3 | After block 1, with the owner present; resumed on block 1's folder, stage grid. Ten presses on the tip's end and edges and a reference press before and after, built by `scripts/ur5/ur5_tip_calibration_sphere_top_edge.py` at the sphere's 60 mm lift. At a 20 mm lift, the joint move into the first top press swept the fork 3.9 mm into the sphere's model. Presses with the cap under 0.8 mm from the sphere are left out. |
 
 After a HEX-E reseat, `20261028-plan_sphere_lab_check2_v3id1.json` repeats three sphere touch-offs; their onsets show
 whether the tool moved.
