@@ -1076,7 +1076,7 @@ def next_section():
         + im("t") + "), the bench grid is re-centred on the replay&#8217;s ridge.",
         "<b>Point-contact check.</b> <code>hand_object_scale_sim.py run --cells coarse --model pt</code> on the 5 &#215; 5 "
         "grid; the paper&#8217;s contact-model claim needs the pad and point ridges compared object by object.",
-        "<b>Plan export.</b> A <code>scripts/hand_object_scale_export.py</code> that writes each protocol cell as "
+        "<b>Plan export.</b> A <code>scripts/hom/hand_object_scale_export.py</code> that writes each protocol cell as "
         "<code>_plan.json</code> and <code>_traj.csv</code>, then <code>real_v1_trajectory_clearance.py --deploy-dir</code> "
         "and <code>HandPlan.validate()</code> on all of them; the cells that fail leave the protocol before printing starts.",
         "<b>Mass.</b> Six objects cannot be built at 25&#8202;g (Table&#160;2). Re-run their cells at the built mass "

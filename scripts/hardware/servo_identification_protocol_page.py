@@ -266,8 +266,8 @@ def owner_section():
 
 def open_items():
     items = [
-        ("Logger and fitter.", "<code>scripts/servo_id_log.py</code> (bus logger with step and sweep generators, one JSONL row per "
-         "sample, fsynced) and <code>scripts/servo_id_fit.py</code> (model, fit, held-out error, MuJoCo actuator parameters); "
+        ("Logger and fitter.", "<code>scripts/hardware/servo_id_log.py</code> (bus logger with step and sweep generators, one JSONL row per "
+         "sample, fsynced) and <code>scripts/hardware/servo_id_fit.py</code> (model, fit, held-out error, MuJoCo actuator parameters); "
          "written before the session and dry-run on one spare servo."),
         ("Compliance budget with measured gains.", "Recompute the fingertip compliance toward the tool with the identified "
          "\\(k_\\theta\\) and compare it with the tips&#8217; 0.063 and 0.38&#8211;0.61&#8202;mm/N. The tip&#8217;s deformation needs "

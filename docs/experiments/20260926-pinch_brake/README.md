@@ -66,7 +66,7 @@ unrelated edits (.gitignore, docs/hardware_control_station.md, scripts/hardware/
 
 ## Deliverable
 
-Builder `scripts/pinch_brake_page.py` + `scripts/pinch_brake_page.template.html` (copy the newest
+Builder `scripts/hom/pinch_brake_page.py` + `scripts/hom/pinch_brake_page.template.html` (copy the newest
 builder/template pair), page `docs/experiments/20260926-pinch_brake/20260926-pinch_brake.html`,
 row in `docs/experiments/INDEX.md`, artifact published and its URL written here and in INDEX.md,
 films of representative cells (step control vs best servo cell per hand).

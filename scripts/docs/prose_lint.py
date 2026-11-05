@@ -324,7 +324,7 @@ STAT_COLS = [("page", "page"), ("words", "words"), ("sentences", "sent."), ("mea
 
 
 def sources_of(path, extra):
-    """The builder, template and text module named in the page ("builder scripts/X.py"), plus any given."""
+    """The builder, template and text module named in the page ("builder scripts/<topic>/<name>.py"), plus any given."""
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     src = list(extra or [])
     if not src:

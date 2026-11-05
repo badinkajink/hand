@@ -859,7 +859,7 @@ def next_section(S):
          "open."),
         ("MuJoCo&#8217;s own derivatives in a local planner", "Linearize the CPU model with "
          f"{code('mjd_transitionFD')} along the 400&#8201;ms continuation and run iLQR from the hold plan, scored "
-         f"like the search; new script {code('scripts/d1_ilqr.py')} on {code('real_v1_d1_continuation.py')}. "
+         f"like the search; new script {code('scripts/contact/d1_ilqr.py')} on {code('real_v1_d1_continuation.py')}. "
          "Keep it if it beats CEM&#8217;s gain of 0.114 within the 10&#8201;s that CEM takes."),
         ("Fork cost at the fork&#8217;s own solver settings", "Rerun the gradient stage of "
          f"{code('scripts/contact/diffmjx_turn_onset.py')} with the Newton solver at 4 iterations and 10 line-search steps (the "

@@ -151,7 +151,7 @@ rollout on the moved tree, and compare it after that commit. If a HOM job runs, 
 Checks after the picks, from the repository root:
 
 ```bash
-.venv/bin/python scripts/docs/check_scripts.py         # the 15 known problems
+.venv/bin/python scripts/docs/check_scripts.py         # 11 known problems since 11-05 (scripts still to be written, scripts removed before 10-09, one driver comment)
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/ -q     # 114 passed, the floor datum failing
 E=logs/20261103-scripts_cleanup/equiv
 WT=$PWD bash $E/smoke.sh <switch commit>               # imports every touched script, GPU hidden

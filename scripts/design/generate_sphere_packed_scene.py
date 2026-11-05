@@ -8,7 +8,7 @@
 
 WHY A SEPARATE SCRIPT AND NOT AN EDIT TO THE SOURCE MJCF. The frozen per-design scene is what
 RL and eval actually load, so rewriting *it* keeps capsule-vs-packed as a clean A/B pair of
-files. It also sidesteps two landmines in the source tree: `scripts/perp_phalanx_variant.py`
+files. It also sidesteps two landmines in the source tree: `scripts/perp_phalanx_variant.py` (removed before 2026-10-09; in badinkajink/hand-archive)
 hard-asserts exactly three capsule `fromto` strings, and `tests/test_perp_hand_scene_parity.py`
 pins `perp_hand.xml` byte-for-byte against the scene.
 
@@ -36,7 +36,7 @@ inertia for that body and mass is preserved exactly.
 
 What this script deliberately does NOT do: renormalize contact stiffness. N spheres pressing
 in parallel are ~N times stiffer than one capsule contact at the same penetration, which is a
-real and separate confound. That correction is measured by `scripts/probe_contact_stiffness.py`
+real and separate confound. That correction is measured by `scripts/probe_contact_stiffness.py` (removed before 2026-10-09; in badinkajink/hand-archive)
 and applied via `--solref/--solimp`, so the geometry step stays honest and inspectable.
 """
 

@@ -623,7 +623,7 @@ def stage0_section(objs):
     return (
         "<p>Four checks need the CPU only, about a day of work, and decide whether a bench turn can test the "
         "simulation.</p><ol class='steps'>"
-        "<li><b>Plan export.</b> A new <code>scripts/hand_object_scale_export.py</code> writes the turn and hold grasps "
+        "<li><b>Plan export.</b> A new <code>scripts/hom/hand_object_scale_export.py</code> writes the turn and hold grasps "
         f"of every cell in <code>{REL}/plan.json</code> as deploy plans, {n_plans} in all, and runs the clearance gate "
         "(<code>real_v1_trajectory_clearance.py</code>, chord and CSV path) and <code>HandPlan.validate()</code> on each. "
         "A cell whose plan fails moves to the neighbouring layout.</li>"

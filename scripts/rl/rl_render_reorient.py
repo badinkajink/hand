@@ -3,7 +3,7 @@
 Loads a finished run's `config.yaml`, rebuilds its EXACT env (skip-lift
 reorient mode), loads the requested checkpoint, and rolls out one
 deterministic episode while recording. This is the phase-B half of
-`scripts/rl_demo_handoff.py`, but driven from the run's own serialized
+`scripts/archive/rl_demo_handoff.py`, but driven from the run's own serialized
 config instead of hardcoded Policy B v1 args — so it faithfully renders
 any v2 finetune (5x / 10x / quick) without env drift.
 

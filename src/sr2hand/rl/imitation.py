@@ -14,7 +14,7 @@ reorienter (a10->b33 on m05) and imitate it on any design, with a curriculum tha
 imitation weight as the task reward takes over.
 
 This module is self-contained (a reference loader + a torch reward term); wire the reward into
-`env_cfg` behind a flag. Records via `scripts/rl_record_reorient_fingertip_traj.py`.
+`env_cfg` behind a flag. Records via `scripts/rl_record_reorient_fingertip_traj.py` (removed before 2026-10-09; in badinkajink/hand-archive).
 """
 from __future__ import annotations
 from pathlib import Path
