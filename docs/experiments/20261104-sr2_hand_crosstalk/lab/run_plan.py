@@ -40,6 +40,8 @@ ap.add_argument("--max-blocked", type=int, default=3, help="stop the run at this
 ap.add_argument("--boards", default=None, help="the board logger's folder (board_log.py); its stream is checked too")
 ap.add_argument("--board-channels", default=None, help="the mux channels the boards must be on, e.g. 0,1,3")
 ap.add_argument("--min-board-rate", type=float, default=100.0, help="records/s below which the boards' stream fails")
+ap.add_argument("--ramp-deg", type=float, default=3.0,
+                help="largest joint change between waypoints of a move (0: one command a move)")
 a = ap.parse_args()
 plan = json.load(open(a.plan))
 out = Path(a.out)
@@ -201,10 +203,11 @@ def joint_error(joints):
     return worst
 
 
-def wait_idle(timeout):
+def wait_idle(timeout, checked=True):
     t0 = time.time()
     while time.time() - t0 < timeout:
-        check("waiting for idle")
+        if checked:
+            check("waiting for idle")
         s, _ = state()
         if s and s.get("operation") == "idle":
             return time.time() - t0
@@ -225,7 +228,43 @@ def servo_vector():
     return t, [(sv.get(fid) or {}).get(j) for fid in ("0", "1", "2") for j in ("aa", "fe1", "fe2")]
 
 
+def measured_pose():
+    """The servos' last sample in the sim frame, or None."""
+    s, _ = state()
+    sv = (s or {}).get("telemetry", {}).get("servos") or {}
+    try:
+        return {f: {"yaw": YAW_SIGN[f] * sv[FID[f]]["aa"], "mcp": sv[FID[f]]["fe1"], "pip": sv[FID[f]]["fe2"]}
+                for f in F}
+    except (KeyError, TypeError):
+        return None
+
+
+def ramp(target, speed, ctx=None):
+    """Walk the hand from where it is to `target` along the straight line in joint space, in waypoints at most
+    --ramp-deg apart on every joint, each held until all joints are within 2.5 deg of it or 0.6 s have passed. Servos
+    that run at different rates then leave the line by a few degrees at most, so the plan's straight-line clearance
+    check holds. The last waypoint is the one before `target`; the caller commands `target` itself. ctx None (the
+    safety stop's way to zero) skips the checks, which could raise again."""
+    if a.ramp_deg <= 0:
+        return
+    start = measured_pose() or blocked["last_ok"]
+    d = max(abs(target[f][j] - start[f][j]) for f in F for j in ("yaw", "mcp", "pip"))
+    n = int(d // a.ramp_deg) + 1
+    for i in range(1, n):
+        w = {f: {j: start[f][j] + (target[f][j] - start[f][j]) * i / n for j in ("yaw", "mcp", "pip")} for f in F}
+        http("POST", "/api/v1/manual/joints", {"joints": w, "servo_speed": speed})
+        t0 = time.time()
+        while time.time() - t0 < 0.6:
+            if ctx is not None:
+                check(ctx)
+            _, t = state()
+            if t > t0 + 0.05 and joint_error(w)[0] < 2.5:
+                break
+            time.sleep(0.03)
+
+
 def do_joints(st, ctx):
+    ramp(st["joints"], st.get("speed", 80), ctx)
     t_cmd = time.time()
     http("POST", "/api/v1/manual/joints", {"joints": st["joints"], "servo_speed": st.get("speed", 80)})
     # settled: a fresh sample within 2 deg of the command, or two fresh samples 1.2 s or more after the command that
@@ -253,6 +292,7 @@ def do_joints(st, ctx):
         if e >= a.max_err:
             # back out at once to the last pose reached, along the path that brought the hand here
             blocked["n"] += 1
+            ramp(blocked["last_ok"], 60, ctx)
             http("POST", "/api/v1/manual/joints", {"joints": blocked["last_ok"], "servo_speed": 60})
             sleep_checked(2.5, ctx)
             event("blocked", step_joints=st["joints"], err_deg=round(e, 2), err_joint=which, n=blocked["n"],
@@ -281,7 +321,7 @@ def do_mounts(st, ctx):
     t_cmd = time.time()
     http("POST", "/api/v1/manual/mounts", {"mounts": st["mounts"]})
     time.sleep(0.5)
-    wait_idle(120.0)
+    wait_idle(300.0)                       # a full layout change moves six axes one at a time, about 95 s
     s, _ = state()
     t_settled = time.time()
     sleep_checked(st.get("dwell_s", 10.0), ctx)
@@ -297,7 +337,8 @@ def to_zero(why):
         s, _ = state()
         if s and s["telemetry"].get("servo_torque") and any(v != 1 for v in s["telemetry"]["servo_torque"].values()):
             http("POST", "/api/v1/servos/torque", {"state": "on"}, timeout=30.0)
-        wait_idle(120.0)
+        wait_idle(120.0, checked=False)    # the safety path: a standing fault must not stop the hand reaching zero
+        ramp(ZERO, 60)
         http("POST", "/api/v1/manual/joints", {"joints": ZERO, "servo_speed": 60})
         time.sleep(3.0)
         event("zero_pose", why=why, err=joint_error(ZERO))

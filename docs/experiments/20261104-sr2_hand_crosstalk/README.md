@@ -125,6 +125,29 @@ owner re-routes the index's cable with slack.
    rate-spread margin.
 3. Have the runner check the boards' stream (record rate, zeroed chips) as well as the servos.
 
+Ready since 22:4x on 11-04, and not run on the hand:
+- **`lab/make_layouts.py` and `plan/20261105-plan_layouts_s1.json`.** The plan takes 120 random poses at each of five
+  grasp layouts from the transfer study: g12, sv1_w6689, rv04_mid, sv1_w0099 and sv1_u0308. rv05_manual's straight
+  fingers clear only 12.3 mm, so it is left out. Half the poses put the thumb and the middle finger within 30 mm. Every
+  pose clears 12 mm in the CAD model. So does every move, and every pose's way back to zero, along the straight
+  joint-space line. Each gantry move, one axis at a time with straight fingers, clears 25.7 mm or more. There are 672
+  steps, about 75 min with the ramps. The index's limits still apply.
+- **`lab/run_plan.py`.**
+  - It walks every move, back-out and safety return along that line in waypoints 3 deg apart (`--ramp-deg`). Servos
+    at different rates then stay within about 2.6 mm of the checked path.
+  - `--boards DIR --board-channels 0,1,3` stops a run on a fault in the boards' stream.
+  - The safety path waits for the station without the checks, so a standing fault cannot keep the hand from zero.
+  - A gantry move may take 300 s.
+
+  On 11-04 the station's fake-hardware mode (`manta_hand.web --fake`) ran the plan's first and last layout steps:
+  22 steps through layout g12 and back to home. A board fault, raised by asking for channel 1, stopped a run in
+  1.6 s. The hand still reached zero, and the motors were disabled.
+- **The command,** once the owner has re-routed and checked the index's cable:
+
+      /usr/bin/python3 docs/experiments/20261104-sr2_hand_crosstalk/lab/run_plan.py \
+          docs/experiments/20261104-sr2_hand_crosstalk/plan/20261105-plan_layouts_s1.json logs/<date>-sr2_crosstalk/run_layouts \
+          --token-file ~/.sr2_station_token --boards logs/<date>-sr2_crosstalk/boards --board-channels 0,1,3
+
 ## Known limits
 
 - The CB1's FTDI latency timer is 16 ms, and no udev rule sets it. The station's telemetry, with load and temperature,
