@@ -151,3 +151,24 @@ Method: `wall_signature.py` drives J1 from 20 mm into the wall and 4 mm past it,
   - At 6000 the reading is saturated or very noisy.
 - **Interpretation:** this matches the earlier camera check. J1's rotor stops at the wall, but its SG_RESULT keeps reading like free running. J1's motor or wiring may respond differently from the other five, which is worth checking against another axis's motor and cable if J1 ever needs StallGuard.
 - **J1 zero after the sweep:** I re-homed J1 with the wall push (`home_all.py J1 --j1-near`). Camera position scans at 8–12 mm matched the morning reference best at 10.0 mm (±0.25 mm).
+
+## 8. The `home` command on the CB1 (set up 2026-11-04)
+
+After SSHing into the CB1, run:
+
+- **`home`**: the fast home. All six axes go to 3 mm together, then are pushed 1.5 mm past their walls and zeroed. It takes about 9 s and leaves every axis at 0 mm, disabled. If the stepper board has been reset since the last home, it moves nothing and asks for `home --full` instead.
+- **`home --full`**: the original sequential firmware home, the same one `hand_control.py` runs at startup. It takes about 4 minutes, and each axis grinds at its wall until its timeout. It is safe from any position, so use it after every power-up or DFU reset, and after moving a carriage by hand.
+- **`home --check`**: says which of the two is allowed, without moving anything.
+
+**How it detects a reset:** after each successful home it sets a RAM-only marker on the unused J7 (`SETSCALE J7 7.0`). The STM32 loses that marker on any reset, which is exactly when it also loses the step counts. It reads the marker back with `MOVEMM J7 0`, which returns `ERR UNCALIBRATED` once the marker is gone.
+
+**Where it lives:**
+- `~/.local/bin/home`: a wrapper with a 330 s wall-clock timeout that disables every axis on any failure.
+- `~/manta-hand/sysid/home.py`.
+
+The sysid scripts now import their helpers from their own folder instead of `/tmp`, so they survive a CB1 reboot.
+
+**Tested 2026-11-04:**
+- The old home still homes: all six by timeout in 221 s. StallGuard checks of J0, J2, J3 and J5 agreed with the push-home zeros to about 0.15 mm.
+- `home` refused correctly while the marker was unset.
+- After the marker was set, `home` ran the fast home in 9 s, with all drivers OK.

@@ -2,7 +2,7 @@
 """Prototype of a debounced StallGuard home, run from the CB1, to check it is
 repeatable before patching the firmware.
 
-    python3 /tmp/host_home_test.py <joint> [cycles=5] [hold_ms=50] [backoff_mm=20] [--sgt N]
+    python3 ~/manta-hand/sysid/host_home_test.py <joint> [cycles=5] [hold_ms=50] [backoff_mm=20] [--sgt N]
 
 Mirrors the firmware HOME (same speed 12000 sps / accel 2000, same unchecked
 window = ramp + 0.8 s), with one change: instead of stopping on the first
@@ -24,10 +24,11 @@ firmware's debounce.
 
 import csv
 import signal
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402
 

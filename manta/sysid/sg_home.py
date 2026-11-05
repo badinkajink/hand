@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Relative-StallGuard home, run from the CB1 (prototype of a firmware change).
 
-    python3 /tmp/sg_home.py J0 [J1 ...] [--cycles N] [--backoff MM] [--overtravel MM]
+    python3 ~/manta-hand/sysid/sg_home.py J0 [J1 ...] [--cycles N] [--backoff MM] [--overtravel MM]
                                         [--speed SPS] [--sgt N] [--ratio R] [--window S]
                                         [--zero] [--trusted] [--no-backoff] [--log CSV]
 --log: append every poll (cycle, t, joint, mm, sg, phase) to CSV for later plotting.
@@ -31,10 +31,11 @@ position relative to the zero at the start of each cycle.
 
 import signal
 import statistics
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402
 

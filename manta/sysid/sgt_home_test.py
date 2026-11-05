@@ -2,7 +2,7 @@
 """Validate a StallGuard SGT value for one axis's HOME with repeated
 back-off-and-rehome cycles (docs/bringup.md step 5).
 
-    python3 /tmp/sgt_home_test.py <joint> <sgt> [cycles=3] [backoff_mm=20]
+    python3 ~/manta-hand/sysid/sgt_home_test.py <joint> <sgt> [cycles=3] [backoff_mm=20]
 
 Each cycle: MOVEMM out to backoff_mm, HOME with COOLCONF = sgt<<16, report
 travel and time-to-stall, ZERO. A good SGT stalls well after the grace window
@@ -14,10 +14,11 @@ for 0.5 s without the firmware finishing, STOP+DIS (the axis is grinding at
 the wall). Always disables on exit.
 """
 
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402
 

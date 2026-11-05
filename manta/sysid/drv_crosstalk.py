@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Does each axis's DRV_STATUS really come from its own driver?
 
-    python3 /tmp/drv_crosstalk.py <mover> <watched> [<watched> ...] [--mm 10]
+    python3 ~/manta-hand/sysid/drv_crosstalk.py <mover> <watched> [<watched> ...] [--mm 10]
 
 Moves <mover> out by --mm and back (homing speed), the others staying disabled,
 while reading DRV_STATUS of the mover and every watched axis. For each, reports
@@ -10,10 +10,11 @@ Only the mover should ever show stst=0 / a moving sg. Needs the mover's zero
 valid (moves 0 -> mm -> 0 from the current count).
 """
 
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Free-running StallGuard reading vs SGT at a chosen run current, no wall contact.
 
-    python3 /tmp/sgt_free_run.py <joint> <irun> <span_mm> <sgt> [<sgt> ...]
+    python3 ~/manta-hand/sysid/sgt_free_run.py <joint> <irun> <span_mm> <sgt> [<sgt> ...]
 
 For each SGT: out by span_mm from the current count and back, at homing speed,
 logging DRV_STATUS. Reports the cruise sg median/p10 and stall-flag fraction each
@@ -12,10 +12,11 @@ caller must make sure count+span_mm is inside travel. Wall-clock capped.
 """
 
 import signal
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from host_home_test import DEFAULT_IHOLD_IRUN, set_run_current  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402

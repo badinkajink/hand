@@ -2,7 +2,7 @@
 """Does StallGuard see the home wall at a given speed/current/SGT? Needs a
 correct zero (at the wall). Logs sg + stall flag vs position on the approach.
 
-    python3 /tmp/wall_signature.py <joint> <speed_sps> <irun> <sgt> [backoff_mm=10] [overtravel_mm=1.5]
+    python3 ~/manta-hand/sysid/wall_signature.py <joint> <speed_sps> <irun> <sgt> [backoff_mm=10] [overtravel_mm=1.5]
 
 Backs off to backoff_mm, approaches the wall at speed_sps (accel 8000, so most of
 the approach is at cruise), and STOP+DIS once the count passes -overtravel_mm
@@ -11,10 +11,11 @@ median/p10 and flag fraction for free running (> 2 mm) vs the last 1 mm before
 the wall and past it. Run current applies only while approaching.
 """
 
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from host_home_test import DEFAULT_IHOLD_IRUN, set_run_current  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402

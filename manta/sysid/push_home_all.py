@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Home all listed gantry axes AT ONCE by pushing them into their home walls.
 
-    python3 /tmp/push_home_all.py [J0 J1 ...] [--approach MM] [--overtravel MM]
+    python3 ~/manta-hand/sysid/push_home_all.py [J0 J1 ...] [--approach MM] [--overtravel MM]
                                   [--speed SPS] [--no-zero]
     (default: all six, approach 3 mm, overtravel 1.5 mm, 3500 sps, zero at the end)
 
@@ -23,9 +23,10 @@ Speed per axis <= 24000 / number of axes. Run under `timeout` as a backstop.
 """
 
 import signal
+import os
 import sys
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_goto as gg  # noqa: E402
 import gantry_rom_sweep as g  # noqa: E402
 import host_home_test as hh  # noqa: E402

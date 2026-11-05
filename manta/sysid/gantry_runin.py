@@ -2,7 +2,7 @@
 """Run one gantry axis back and forth over its full range N times (break-in
 after a mechanical fix), logging StallGuard sg like gantry_rom_sweep.py.
 
-    python3 /tmp/gantry_runin.py <finger> <joint> <cycles> [--no-home]
+    python3 ~/manta-hand/sysid/gantry_runin.py <finger> <joint> <cycles> [--no-home]
 
 --no-home: trust the current step-0 (e.g. carriage pushed to the home
 hardstop by hand and ZEROed) instead of StallGuard homing -- for J1, whose
@@ -16,10 +16,11 @@ check. Writes /tmp/gantry_runin_j<joint>_<timestamp>.csv.
 
 import csv
 import signal
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402
 

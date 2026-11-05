@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Move one axis by a relative distance from wherever its count is, then disable.
 
-    python3 /tmp/jog_rel.py <joint> <delta_mm> [velocity_sps=4000] [--irun N]
+    python3 ~/manta-hand/sysid/jog_rel.py <joint> <delta_mm> [velocity_sps=4000] [--irun N]
 
 For probing when the zero is unknown (no bounds check against travel -- keep
 delta small). Positive = away from home. Wall-clock capped; STOP+DIS on exit.
@@ -9,10 +9,11 @@ delta small). Positive = away from home. Wall-clock capped; STOP+DIS on exit.
 """
 
 import signal
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from host_home_test import DEFAULT_IHOLD_IRUN, set_run_current  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402

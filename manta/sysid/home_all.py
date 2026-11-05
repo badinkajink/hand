@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Re-home gantry axes one at a time.
 
-    python3 /tmp/home_all.py [J0 J1 ...] [--j1-near]     (default: all six)
+    python3 ~/manta-hand/sysid/home_all.py [J0 J1 ...] [--j1-near]     (default: all six)
 
 J0, J2-J5: firmware HOME via the library's _home_one_axis (its own back-off,
 COOLCONF, timeout covering full travel). Flags firmware stops that land at the
@@ -19,10 +19,11 @@ Each axis is disabled straight after homing.
 """
 
 import signal
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 import host_home_test as hh  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402

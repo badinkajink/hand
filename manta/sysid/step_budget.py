@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Measure how many steps/s the firmware can generate with N axes moving at once.
 
-    python3 /tmp/step_budget.py <span_mm> <speed_sps> J2 [J3 ...] [--accel SPS2]
+    python3 ~/manta-hand/sysid/step_budget.py <span_mm> <speed_sps> J2 [J3 ...] [--accel SPS2]
 
 All listed axes start together (back to back, at standstill) from their current
 count, go out by span_mm and come back. While they move the board gets no
@@ -11,10 +11,11 @@ every 0.25 s once the expected time has passed. Prints expected vs actual time
 per leg and the implied total step rate. Axes are disabled at the end.
 """
 
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402
 from manta_hand.protocol import MantaHandError  # noqa: E402

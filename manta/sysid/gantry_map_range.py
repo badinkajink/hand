@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Map StallGuard load over a short stretch of one axis with repeated passes.
 
-    python3 /tmp/gantry_map_range.py <joint> <lo_mm> <hi_mm> <cycles> [accel] [--seat]
+    python3 ~/manta-hand/sysid/gantry_map_range.py <joint> <lo_mm> <hi_mm> <cycles> [accel] [--seat]
 
 --seat: start, and end every back pass, by driving slowly 0.5 mm past the
 home hardstop (a short deliberate push) and re-zeroing there.
@@ -14,10 +14,11 @@ per-move cap, STOP+DIS on exit). Writes /tmp/gantry_map_j<joint>_<ts>.csv.
 
 import csv
 import signal
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402
 

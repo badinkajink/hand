@@ -2,8 +2,8 @@
 """Move gantry axes to absolute mm-from-home targets, disabling each the moment
 it arrives (leadscrews hold position unpowered).
 
-    python3 /tmp/gantry_goto.py J0=21.26 J1=25.68 J2=42.92 ... [--together]
-    python3 /tmp/gantry_goto.py home [--together]      (every axis to 2 mm off its wall)
+    python3 ~/manta-hand/sysid/gantry_goto.py J0=21.26 J1=25.68 J2=42.92 ... [--together]
+    python3 ~/manta-hand/sysid/gantry_goto.py home [--together]      (every axis to 2 mm off its wall)
 
 Default: one axis at a time, with the StallGuard abort. --together: all axes
 started back to back, then no traffic until done (the firmware drops commands
@@ -19,10 +19,11 @@ for a chip reset (J2's TMC5160 reset silently on 2026-11-03).
 """
 
 import signal
+import os
 import sys
 import time
 
-sys.path.insert(1, "/tmp")
+sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))  # sibling sysid scripts
 import gantry_rom_sweep as g  # noqa: E402
 from manta_hand import MantaHandDriver  # noqa: E402
 from manta_hand.protocol import MantaHandError  # noqa: E402
