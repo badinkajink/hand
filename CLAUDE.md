@@ -118,17 +118,22 @@ Hamilton products, radians, batched, over scipy's `Rotation`. Unit vectors, angl
 `geometry.vectors`, distances in `geometry.distances`, signed distances in `geometry.sdf`, hulls, OBJ files, inertia and
 section properties in `geometry.mesh`, Fibonacci lattices and cap pads in `geometry.sampling`. Rank statistics, smoothing
 and angle wrapping are in `sr2hand.numerics` (`stats`, `signal`, `angles`), and the torch versions of the quaternion
-functions in `sr2hand.rl.math`. These modules import numpy and scipy at the top, and trimesh or shapely only inside a
-function, so they run in `femtip`, under `freecadcmd` and on corvus (scipy 1.12). Never write a private quaternion
-product, quaternion-to-matrix, axis rotation, Rodrigues formula, skew matrix, frame builder, Spearman correlation or
-moving average in a script. Call the module, or scipy or trimesh, and add a missing function to the module, checked once
-against MuJoCo, scipy or trimesh in a scratch script. The owner was "very concerned about us rewriting rotations,
+functions in `sr2hand.rl.math`. The UR arms' kinematics are in `sr2hand.robot.ur_kinematics`: the DH table as data,
+forward kinematics, every closed-form inverse solution with its flags, and `ik_nearest`, the plan builders' fixed choice
+nearest a reference joint vector. Tools on the flange are chains of named transforms in `sr2hand.robot.tool_chain`; its
+`SR2Hand` takes the SR2 hand's frames from `assets/cad_v3/frames.json` and the finger's link lengths from
+`src/sr2hand/robot/sr2_hand.json` (`proximal_extension_mm` among them). These modules import numpy and scipy at the top,
+and trimesh or shapely only inside a function, so they run in `femtip`, under `freecadcmd` and on corvus (scipy 1.12).
+Never write a private quaternion product, quaternion-to-matrix, axis rotation, Rodrigues formula, skew matrix, frame
+builder, UR inverse kinematics, Spearman correlation or moving average in a script. Call the module, or scipy or
+trimesh, and add a missing function to the module, checked once against MuJoCo, scipy or trimesh in a scratch script. The owner was "very concerned about us rewriting rotations,
 geometry, math helpers everywhere with custom math instead of using proven library calls / a single help file(s)". The
 audit of 2026-11-03 (`docs/notes/20261103-scripts_cleanup/`) found 309 rotation copies in 128 files and 165 geometry and
 statistics copies, with eight bugs among them. The hand-off `docs/handoff/20261103-scripts_topic_folders.md` migrated the live copies, and the branch `ur5-shared-math`
 (2026-11-05) the UR5 lab program and the programs that move the robot; the copies they keep, the lab program's `log_so3`
-among them, are listed with their reasons in the runbook's section "The UR5 programs on the shared math". The CB1's
-`driver/manta/` and `bench/tags.py` keep theirs.
+among them, are listed with their reasons in the runbook's section "The UR5 programs on the shared math". The branch
+`ur5-closed-form-ik` moved the plan builders from the simulator's damped least squares to `ik_nearest` (runbook,
+"Closed-form IK for the plan builders"). The CB1's `driver/manta/` and `bench/tags.py` keep theirs.
 
 ## Writing
 
