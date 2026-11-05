@@ -117,7 +117,8 @@ LEDE = (
     "with five. On the SR2 hand at its home layout, a finger moving alone changed the other boards by at most 5.4&#8202;&#181;T. "
     "A tip&#8217;s own pose changed its board by up to 166&#8202;&#181;T, and a Gaussian process on the finger&#8217;s own three "
     "joint angles left 4.4 and 4.5&#8202;&#181;T at the median. A model learned on one tip misses on another by "
-    "1.0&#8211;2.5&#8202;mm, so each tip is calibrated on its own. With each board change scaled by its magnets&#8217; "
+    "1.0&#8211;2.5&#8202;mm, so each tip&#8217;s own presses must be in its training. With them, the other tips&#8217; presses "
+    "lower the error further: on v3 IDs 4 to 6, from 0.83 to 0.66&#8202;mm at held-out points. With each board change scaled by its magnets&#8217; "
     "strength, v2 ID 1&#8217;s contacts are placed within 0.64&#8202;mm by a model of the v1 tips. Under a "
     "small sphere the printed pad sinks "
     "further than its finite-element model predicts. Three pages explain this in order: the "
@@ -177,7 +178,8 @@ TERMS = [
     ("Location error", "The distance in mm from an estimated contact point to the true one, tangential to the pad; a "
      "median over holds."),
     ("Physical model", "The estimator of this page on a pad&#8217;s rest calibration, with no training."),
-    ("Board GP, direction GP", "Gaussian processes (GP) trained on a tip&#8217;s own holds. The board GP maps the "
+    ("Board GP, direction GP", "Gaussian processes (GP) trained on a tip&#8217;s own holds, unless the text names other "
+     "tips&#8217; holds. The board GP maps the "
      "board&#8217;s change of 15 components to the contact point and the force. The input of the direction GP is only the "
      "change&#8217;s direction. It returns the point and the force per unit change, and that force is scaled by the "
      "change&#8217;s size."),
@@ -552,8 +554,14 @@ Section 15). The rig&#8217;s presses reach the pad&#8217;s mount end, where the 
 the pad. With the rig&#8217;s holds of v3 IDs 4 to 6 in training, v3 ID 3&#8217;s GP goes from 4.16 to 1.18&#8202;mm on its 70 holds
 there. At the robot&#8217;s points such a GP gives 0.47&#8211;0.52&#8202;mm on v3 IDs 1 to 3. The contact viewer&#8217;s board GP was
 refitted with these holds on 2026-11-05. In its validation v3 ID 3&#8217;s mount-end holds go from 3.04&#8211;3.10 to
-0.75&#8211;0.77&#8202;mm, and the robot&#8217;s held-out points from 0.38&#8211;0.46 to 0.45&#8211;0.53&#8202;mm. The owner ended the UR5
-calibration on 2026-11-04, and the tips went to the SR2 hand.</p>
+0.75&#8211;0.77&#8202;mm, and the robot&#8217;s held-out points from 0.38&#8211;0.46 to 0.45&#8211;0.53&#8202;mm. On v3 IDs 4 to 6 the
+other tips&#8217; holds lower the median location error at held-out points from 0.83 to 0.66&#8202;mm. With a region of the pad held
+out, it falls from 2.51 to 0.74&#8202;mm. On all six tips an MLP ensemble on every hold gives 0.48&#8211;0.52&#8202;mm at held-out
+points, against 0.54&#8211;0.56&#8202;mm for the GP on at most 1,500 holds a set. In gaps of the pads&#8217; coverage it gives
+1.00&#8211;1.03&#8202;mm, against 1.24&#8202;mm. The GP&#8217;s uncertainty ranks the errors in those gaps better, with a rank
+correlation of 0.44 against 0.20&#8211;0.31
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#shared),
+Section 16). The owner ended the UR5 calibration on 2026-11-04, and the tips went to the SR2 hand.</p>
 <p>On the SR2 hand at its home layout, a finger moving alone changed the other fingertips&#8217; boards by at most
 5.4&#8202;&#181;T, 0.19&#8202;N. Rest readings differ by 2.6 to 3.4&#8202;&#181;T. A tip&#8217;s own pose changed its board by up to
 166&#8202;&#181;T, 5.8&#8202;N at its 28&#8202;&#181;T/N. A Gaussian process on the finger&#8217;s own three joint angles left 4.4 and
@@ -809,6 +817,7 @@ FUTURE = [
     'Steel at known distances and forces: touch the 100&#8202;g mass and the ruler through printed spacers of 0.5 to 10&#8202;mm, then set the mass on the face (0.98&#8202;N). Run <code>scripts/fingertip/fingertip_foreign_field.py touches</code> on each stretch. A spacer reading over 100&#8202;&#181;T with &#923; under 25 means the test misses steel. A joint fit of a contact and the far field within 0.3&#8202;N of 0.98&#8202;N would measure presses made with steel.',
     'Temperature: with the pad at rest and the viewer logging, hold a warm hand around the finger for 60&#8202;s and take it away. Run <code>scripts/fingertip/fingertip_contact_estimation_study.py thermal</code> on that stretch. No contact should show while the chips warm by 2&#8211;3&#8202;&#176;C. A drift that grows with the temperature after the correction means the magnets need a coefficient of their own. Firmware with TCMP_EN 1 is the alternative, to be tested the same way.',
     'Mount end on the SR2 hand: load the contact viewer&#8217;s board GP refitted with the rig&#8217;s holds (<code>docs/experiments/20261022-ur5_tip_calibration/data/20261105-board_gp_v3_id1_id3_rig_id3_id6.npz</code>) for v3 IDs 1 to 3, and press a tip&#8217;s mount end on the hand with a known load (<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R33). An error over 2&#8202;mm there refutes it.',
+    'The ensemble&#8217;s mean in the contact viewer (<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R34, not decided): take the point and force from the MLP ensemble, and keep the GP&#8217;s weight for the blend with the physical model. Score the blend on the coverage gaps of the calibration page&#8217;s Table 33. A location error over the GP&#8217;s 1.24&#8202;mm keeps the GP&#8217;s mean.',
     'Fingertips beside each other on the hand (owner, 2026-10-25): the sweep of 2026-11-04 recorded the boards through 727 steps of finger motion, with the joint angles. The index&#8217;s board stopped at 19:43:52 with its cable tight, and only 14 poses lie under 20&#8202;mm. A plan for the next sweep is ready and has not run: 120 random poses at each of five grasp layouts, half of them with the thumb and the middle finger within 30&#8202;mm (<code>docs/experiments/20261104-sr2_hand_crosstalk/plan/20261105-plan_layouts_s1.json</code>). The owner re-routes the index&#8217;s cable with slack first. Laid against each other on the desk, three fingertips moved each other&#8217;s rest by 210 to 991&#8202;&#181;T. With the re-zero, no contact was shown at rest in 39 minutes (<code>src/sr2hand/driver/reskin5x/README.md</code>). More than 0.25&#8202;N is left at 20 and 43 of the 326 random poses. The sweep&#8217;s records, less the fit, go through the viewer&#8217;s estimator. The fit fails if, during motion, it leaves a contact shown on a fingertip that nothing touches.',
 ]
 
