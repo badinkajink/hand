@@ -159,6 +159,7 @@ After SSHing into the CB1, run:
 - **`home`**: the fast home. All six axes go to 3 mm together, then are pushed 1.5 mm past their walls and zeroed. It takes about 9 s and leaves every axis at 0 mm, disabled. If the stepper board has been reset since the last home, it moves nothing and asks for `home --full` instead.
 - **`home --full`**: the original sequential firmware home, the same one `hand_control.py` runs at startup. It takes about 4 minutes, and each axis grinds at its wall until its timeout. It is safe from any position, so use it after every power-up or DFU reset, and after moving a carriage by hand.
 - **`home --check`**: says which of the two is allowed, without moving anything.
+- **`hand_control.py` at startup** runs `home.py --auto`: the fast home when the counts are trusted, otherwise the full home. It then zeros the servos, as before. If it can't find `home.py`, it falls back to `Hand.home_all()`. Tested 2026-11-04: fast home in 9 s, servos zeroed, then the prompt.
 
 **How it detects a reset:** after each successful home it sets a RAM-only marker on the unused J7 (`SETSCALE J7 7.0`). The STM32 loses that marker on any reset, which is exactly when it also loses the step counts. It reads the marker back with `MOVEMM J7 0`, which returns `ERR UNCALIBRATED` once the marker is gone.
 

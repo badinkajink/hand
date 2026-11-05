@@ -5,6 +5,7 @@
                       board was reset since the last home -- then run `home --full`
     home --full       the full home (~4 min), safe from any position
     home --check      only say whether the fast home is allowed (moves nothing)
+    home --auto       fast if allowed, otherwise full (what hand_control.py runs at startup)
 (`home` is ~/.local/bin/home on the CB1, which runs this file under a 330 s timeout.)
 
 Full home: the original firmware home that hand_control.py runs at startup
@@ -86,7 +87,7 @@ def fast_home():
 
 def main():
     args = set(sys.argv[1:])
-    if args - {"--full", "--check"} or len(args) > 1:
+    if args - {"--full", "--check", "--auto"} or len(args) > 1:
         sys.exit(__doc__)
     d = MantaHandDriver(PORT)
     try:
@@ -99,7 +100,7 @@ def main():
         if "--check" in args:
             print("`home` (fast) is OK" if trusted else "`home` will refuse: run `home --full`")
             return
-        mode = "full" if "--full" in args else "fast"
+        mode = "full" if ("--full" in args or ("--auto" in args and not trusted)) else "fast"
         if mode == "fast" and not trusted:
             sys.exit("nothing moved: the fast home needs trusted step counts -- run `home --full` "
                      "(~4 min, grinds each axis at its wall)")

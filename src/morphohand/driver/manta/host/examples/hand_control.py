@@ -52,7 +52,9 @@ mix mm values between them without going through the transform in
 `manta_hand.kinematics`.
 """
 
+import os
 import re
+import subprocess
 import sys
 
 sys.path.insert(0, "..")  # allow running without installing the package
@@ -67,6 +69,19 @@ from manta_hand.kinematics import (
 
 STEPPER_PORT = "/dev/ttyACM0"
 SERVO_PORT = "/dev/ttyUSB0"
+
+# Stepper homing at startup goes through manta/sysid/home.py --auto: the fast
+# simultaneous wall push (~9 s) when the stepper board has kept its step counts
+# since the last home, else the original one-axis-at-a-time home (~4 min). On the
+# CB1 it is installed at ~/manta-hand/sysid/home.py; MANTA_HOME_SCRIPT overrides.
+# If it can't be found, the old Hand.home_all() runs instead.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+HOME_SCRIPT_CANDIDATES = [
+    os.environ.get("MANTA_HOME_SCRIPT", ""),
+    os.path.expanduser("~/manta-hand/sysid/home.py"),
+    os.path.join(_HERE, "../../../../../../manta/sysid/home.py"),  # hand repo checkout
+]
+HOME_TIMEOUT_S = 330  # full home is ~221 s; hard wall-clock backstop
 
 # finger 0/1/2 can also be addressed by these names, e.g. "thumb_x 30" or
 # "thumb_fe1 40" -- interchangeable with the numeric id everywhere.
@@ -177,7 +192,28 @@ def run_line(hand: MantaHandDriver, bus: ServoBus, line: str):
         ))
 
 
+def home_steppers() -> bool:
+    """Run home.py --auto before the ports are opened (it needs the stepper port).
+    Returns False if no home script was found, so the caller falls back to
+    Hand.home_all(). Raises if homing fails."""
+    script = next((p for p in HOME_SCRIPT_CANDIDATES if p and os.path.isfile(p)), None)
+    if script is None:
+        print("home.py not found -- using the old one-axis-at-a-time home")
+        return False
+    try:
+        r = subprocess.run([sys.executable, "-u", script, "--auto"], timeout=HOME_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        with MantaHandDriver(STEPPER_PORT) as d:
+            for j in range(6):
+                d.joints[j].disable()
+        raise RuntimeError(f"stepper homing exceeded {HOME_TIMEOUT_S} s -- all axes disabled")
+    if r.returncode != 0:
+        raise RuntimeError(f"stepper homing failed (exit {r.returncode}) -- see above")
+    return True
+
+
 def main():
+    homed = home_steppers()
     with MantaHandDriver(STEPPER_PORT) as stepper_driver, ServoBus(SERVO_PORT) as bus:
         for servo_id in range(9):  # all 9 real servos (aa/fe1/fe2 x 3 fingers)
             bus.servo(servo_id).enable()
@@ -185,7 +221,11 @@ def main():
         hand = Hand(stepper_driver, bus)  # enables + scales all 6 steppers internally
 
         try:
-            hand.home_all()  # homes all 6 steppers, then zeros all 9 servos
+            if homed:
+                for finger_id in range(3):  # the servo half of Hand.home_all()
+                    bus.finger(finger_id).zero_joints()
+            else:
+                hand.home_all()  # homes all 6 steppers, then zeros all 9 servos
             if len(sys.argv) > 1:
                 run_line(stepper_driver, bus, " ".join(sys.argv[1:]))
             else:
