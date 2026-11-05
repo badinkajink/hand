@@ -9,8 +9,9 @@ rows under docs/experiments/20261104-fingertip_shape_rerun/ and writes one JSON 
            scripts/curved_tips_traj_analysis.compare's measures; the agreement gate's count (traj/summary.json)
   screen   stages 1 and 2 (tip_codesign_analysis.stage_score): J1 at friction 0.7 on the SCS0009 (cells scored on seeds 1-2,
            HOM seeds 0-2), J2 the minimum over the five conditions (HOM seeds 0-4); the gate (the pads within 3 deg of
-           Drake's end turn with its held outcome, of 24, at most two below the v4b tip); the cost (median us per replay
-           step over the v4b tip's); the three-finger share at friction 0.5; the share of the fingers' normal force on the
+           Drake's end turn with its held outcome, of 24, at most two below the v4b tip); the cost (the median, over the
+           placements on which both tips' pads hold the tool, of us per replay step over the v4b tip's; a dropped tool
+           makes a replay cheap); the three-finger share at friction 0.5; the share of the fingers' normal force on the
            cylinder through rigid parts (rigid_share); finalists (1) highest J2 passing the gate, (2) highest J2 at <= 0.8
            of the v4b tip's cost, (3) highest three-finger share at friction 0.5, (4) the next highest J2 passing the gate,
            up to four, among the eleven tips other than the v4b tip; stage 3 runs the finalists, the v4b tip (the
@@ -171,7 +172,14 @@ def traj():
                     held[arm] += bool(r.get("held_end"))
         T["us_per_step_median"] = {k: float(np.median([x for x in v if x])) for k, v in us.items() if any(v)}
         T["held_end"] = dict(held)
+        T["us_per_step_plan"] = {f"{h}|{s}": r["plan"]["us_per_step_median"] for (tp, h, s), r in by.items()
+                                 if tp == tip and "plan" in r and r["plan"].get("held_end") and r["plan"].get("us_per_step_median")}
         out["tips"][tip] = T
+    ref = out["tips"].get(C.REF, {}).get("us_per_step_plan", {})
+    for tip, T in out["tips"].items():
+        common = sorted(set(T["us_per_step_plan"]) & set(ref))
+        T["cost_ratio_held"] = float(np.median([T["us_per_step_plan"][c] / ref[c] for c in common])) if len(common) >= 5 else None
+        T["n_cost_common"] = len(common)
     write(D / "traj" / "summary.json", out)
     for tip, T in out["tips"].items():
         pd_, rp = T["pairs"].get("plan-drake"), T["pairs"].get("rl-plan")
@@ -240,6 +248,8 @@ def screen():
         T["agree_drake_3deg"] = pdk["turn_within_3"] if pdk else None
         T["n_vs_drake"] = pdk["n_placements"] if pdk else 0
         T["us_per_step_median"] = ((tr.get(k) or {}).get("us_per_step_median") or {}).get("plan")
+        T["cost_ratio_held"] = (tr.get(k) or {}).get("cost_ratio_held")
+        T["n_cost_common"] = (tr.get(k) or {}).get("n_cost_common")
         T["three_finger_frac_mu0.5"] = T["conditions"][cname("0.5", C.SERVO)].get("three_finger_frac_cells")
         allturn = [r for mu, pl in C.CONDS for r in scale_rows(S, k, mu, pl)]
         T["rigid_share_all"] = rigid_stats(allturn)
@@ -248,7 +258,11 @@ def screen():
     for k, v in Cn.items():
         v["gate_pass"] = bool(v["n_vs_drake"] >= 20 and base.get("agree_drake_3deg") is not None and
                               v["agree_drake_3deg"] is not None and v["agree_drake_3deg"] >= base["agree_drake_3deg"] - 2)
-        v["cost_ratio"] = _ratio(v.get("us_per_step_median"), base.get("us_per_step_median"))
+        # the cost of rule (2): the median over the placements on which both this tip's and the v4b tip's pads hold the
+        # tool to the end of the per-placement ratio of us per replay step (a dropped tool makes a replay cheap, and the
+        # v4b tip's pads drop it in about half the replays); the ratio of medians over all replays is kept beside it
+        v["cost_ratio_all"] = _ratio(v.get("us_per_step_median"), base.get("us_per_step_median"))
+        v["cost_ratio"] = v.get("cost_ratio_held")
     cand = [k for k in Cn if k != C.REF]
     order = lambda f, key: sorted((k for k in cand if f(Cn[k]) and Cn[k].get(key) is not None), key=lambda k: -Cn[k][key])  # noqa: E731
     fin, why = [], {}
