@@ -125,7 +125,7 @@ moving average in a script. Call the module, or scipy or trimesh, and add a miss
 against MuJoCo, scipy or trimesh in a scratch script. The owner was "very concerned about us rewriting rotations,
 geometry, math helpers everywhere with custom math instead of using proven library calls / a single help file(s)". The
 audit of 2026-11-03 (`docs/notes/20261103-scripts_cleanup/`) found 309 rotation copies in 128 files and 165 geometry and
-statistics copies, with eight bugs among them. The hand-off `docs/handoff/20261103-scripts_topic_folders.md` migrates the live copies once the scripts have moved into topic folders, after the fingertip-shape rerun. `src/sr2hand/driver/`, `bench/tags.py` and the UR5 programs that move the robot (`ur5_inverted_rig.py`, the
+statistics copies, with eight bugs among them. The hand-off `docs/handoff/20261103-scripts_topic_folders.md` migrated the live copies. `src/sr2hand/driver/`, `bench/tags.py` and the UR5 programs that move the robot (`ur5_inverted_rig.py`, the
 plan generators, `ur5_tip_calibration_holder_paths.py`) keep theirs until a session with the owner and the lab's simulator.
 
 ## Writing
