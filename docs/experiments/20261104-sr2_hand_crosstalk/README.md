@@ -89,6 +89,23 @@ The motion was not restarted because the index's cable may hang loose across the
 and middle's boards log the hand at rest overnight (`logs/20261104-sr2_crosstalk/boards/20261104-203546-mux.bin` on
 corvus, channels 0 and 3).
 
+## Analysis
+
+The coordinator analysed the night on the workstation: `scripts/sr2_crosstalk_night.py` writes
+`data/20261104-night_crosstalk_analysis.json` (9a0e05a53, feed line 55).
+- **Neighbours and actuators.** At the home layout, a finger moving alone changed the other boards by 1.2 to 5.4 uT.
+  That is near the 3.4 uT between two rest readings. The steppers and servo torque changed them by 1.2 to 5.9 uT.
+- **The tip's own pose.** A tip's own pose changed its board by up to 166 uT, about 5.8 N at 28 uT/N. A GP on the
+  finger's own three angles, trained with random poses, left 4.4 and 4.5 uT at the median and 7.5 and 9.0 uT at the
+  95th percentile on the 327 random poses. Trained on the single-finger sweeps alone, it left 20 and 21 uT.
+- **Close pairs.** With the thumb and the middle finger under 20 mm apart in the CAD model, the remainder rose to 6 to
+  15 uT. Only 14 poses came that close.
+- **Clearance as run.** Replayed with each servo at its own rate (0.6 to 1.4 times), the moves that ran came no closer
+  than 10.7 mm in the CAD model, thumb to middle.
+
+For the next sweep, more random poses train the own-pose term. Closer thumb-to-middle poses would test the neighbour
+term.
+
 ## Known limits
 
 - The CB1's FTDI latency timer is 16 ms, and no udev rule sets it. The station's telemetry, with load and temperature,
