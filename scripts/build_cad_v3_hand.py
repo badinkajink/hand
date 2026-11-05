@@ -622,7 +622,7 @@ def add_tag(root, palm, F):
         el(asset, "material", name="v3_tag", texture="v3_tag", rgba="1 1 1 1")
     else:
         el(asset, "material", name="v3_tag", rgba="1 1 1 1")
-    el(asset, "mesh", name="v3_tag", file="v3_tag.obj")
+    el(asset, "mesh", name="v3_tag", file="v3_tag.obj", inertia="shell")   # a flat quad has no volume
     el(palm, "geom", name="v3_tag", **{"class": "v3_visual"}, mesh="v3_tag", material="v3_tag", pos=fmt(p), quat=quat_str(R))
 
 
@@ -631,11 +631,16 @@ def dropin_root(F, full):
     root.set("model", "cad_v3_scene_screwdriver_medium" + ("_full" if full else ""))
     rel_meshes(root, V2 / "meshes")
     root.find("compiler").set("meshdir", "meshes")
+    root.find("compiler").set("texturedir", "meshes")
     add_defaults(root, full)
     add_materials(root)
     parts = part_index()
     palm = root.find(".//body[@name='palm_pose']")
     boxes_xml(palm, palm_boxes(F, parts))
+    # the boxes are massless; palm_pose keeps cad_v2's palm_plate mass and inertia (0.0918 kg, 170 x 180 x 3 mm at z 25 mm),
+    # which the pose actuators were tuned for (logs/20261104-cad_v3/current/spec.md)
+    palm.insert(0, ET.Element("inertial", {"pos": "0 0 0.025", "mass": "0.0918",
+                                           "diaginertia": "0.000247922 0.000221103 0.000468945"}))
     set_mounts(root, F)
     add_cameras(palm, F)
     if full:
@@ -651,9 +656,15 @@ def add_pads(root):
     """The v4b pads with replace_tips, as every cad_v2 user does at load time (sphere pads in group 4, the pad's
     envelope as the tip's visual)."""
     import reorient_backends as RB
+    asset = root.find("asset")
+    for m in list(asset.findall("mesh")):              # cad_v2 keeps cad_v1's unused TPU block meshes under these names
+        if m.get("name") in ("tpu_pos", "tpu_neg"):
+            asset.remove(m)
     root.find("compiler").set("meshdir", str(MESH.resolve()))
+    root.find("compiler").set("texturedir", str(MESH.resolve()))
     RB.replace_tips(root, PAD_TIP, "pads", RB.MU_SCENE if hasattr(RB, "MU_SCENE") else 2.4, OUT, tool=RB.OBJ)
     root.find("compiler").set("meshdir", "meshes")
+    root.find("compiler").set("texturedir", "meshes")
     for m in root.find("asset").findall("mesh"):
         f = Path(m.get("file"))
         if f.is_absolute():

@@ -1,0 +1,469 @@
+{
+ "written": {
+  "v3_palm_sensor.stl": {
+   "body": "palm",
+   "material": "v3_sensor",
+   "faces": 1518
+  },
+  "v3_palm_mount.stl": {
+   "body": "palm",
+   "material": "v3_mount",
+   "faces": 14126
+  },
+  "v3_palm_plate.stl": {
+   "body": "palm",
+   "material": "v3_plate",
+   "faces": 5452
+  },
+  "v3_palm_alu.stl": {
+   "body": "palm",
+   "material": "v3_alu",
+   "faces": 1842
+  },
+  "v3_palm_adaptor.stl": {
+   "body": "palm",
+   "material": "v3_adaptor",
+   "faces": 5954
+  },
+  "v3_mount_thumb_brass.stl": {
+   "body": "mount:thumb",
+   "material": "v3_brass",
+   "faces": 1236
+  },
+  "v3_mount_middle_brass.stl": {
+   "body": "mount:middle",
+   "material": "v3_brass",
+   "faces": 1236
+  },
+  "v3_bridge_thumb_alu.stl": {
+   "body": "bridge:thumb",
+   "material": "v3_alu",
+   "faces": 614
+  },
+  "v3_bridge_thumb_stepper.stl": {
+   "body": "bridge:thumb",
+   "material": "v3_stepper",
+   "faces": 1256
+  },
+  "v3_palm_print.stl": {
+   "body": "palm",
+   "material": "v3_print",
+   "faces": 18450
+  },
+  "v3_bridge_thumb_steel.stl": {
+   "body": "bridge:thumb",
+   "material": "v3_steel",
+   "faces": 2320
+  },
+  "v3_bridge_thumb_print.stl": {
+   "body": "bridge:thumb",
+   "material": "v3_print",
+   "faces": 9286
+  },
+  "v3_mount_thumb_steel.stl": {
+   "body": "mount:thumb",
+   "material": "v3_steel",
+   "faces": 852
+  },
+  "v3_palm_stepper.stl": {
+   "body": "palm",
+   "material": "v3_stepper",
+   "faces": 3768
+  },
+  "v3_bridge_thumb_brass.stl": {
+   "body": "bridge:thumb",
+   "material": "v3_brass",
+   "faces": 1236
+  },
+  "v3_palm_steel.stl": {
+   "body": "palm",
+   "material": "v3_steel",
+   "faces": 4612
+  },
+  "v3_bridge_index_alu.stl": {
+   "body": "bridge:index",
+   "material": "v3_alu",
+   "faces": 614
+  },
+  "v3_bridge_index_stepper.stl": {
+   "body": "bridge:index",
+   "material": "v3_stepper",
+   "faces": 1256
+  },
+  "v3_bridge_index_brass.stl": {
+   "body": "bridge:index",
+   "material": "v3_brass",
+   "faces": 1236
+  },
+  "v3_bridge_index_steel.stl": {
+   "body": "bridge:index",
+   "material": "v3_steel",
+   "faces": 2320
+  },
+  "v3_bridge_index_print.stl": {
+   "body": "bridge:index",
+   "material": "v3_print",
+   "faces": 9072
+  },
+  "v3_mount_index_steel.stl": {
+   "body": "mount:index",
+   "material": "v3_steel",
+   "faces": 852
+  },
+  "v3_mount_index_brass.stl": {
+   "body": "mount:index",
+   "material": "v3_brass",
+   "faces": 1236
+  },
+  "v3_bridge_middle_stepper.stl": {
+   "body": "bridge:middle",
+   "material": "v3_stepper",
+   "faces": 1256
+  },
+  "v3_bridge_middle_brass.stl": {
+   "body": "bridge:middle",
+   "material": "v3_brass",
+   "faces": 1236
+  },
+  "v3_bridge_middle_steel.stl": {
+   "body": "bridge:middle",
+   "material": "v3_steel",
+   "faces": 2320
+  },
+  "v3_bridge_middle_alu.stl": {
+   "body": "bridge:middle",
+   "material": "v3_alu",
+   "faces": 614
+  },
+  "v3_mount_middle_steel.stl": {
+   "body": "mount:middle",
+   "material": "v3_steel",
+   "faces": 852
+  },
+  "v3_bridge_middle_print.stl": {
+   "body": "bridge:middle",
+   "material": "v3_print",
+   "faces": 9072
+  }
+ },
+ "screws": [
+  {
+   "body": "palm",
+   "name": "050",
+   "ends_P_mm": [
+    [
+     -108.9375,
+     -75.5002,
+     61.9003
+    ],
+    [
+     -108.9375,
+     74.9166,
+     61.9003
+    ]
+   ]
+  },
+  {
+   "body": "bridge:thumb",
+   "name": "058",
+   "ends_P_mm": [
+    [
+     -2.3207,
+     -2.4003,
+     31.5976
+    ],
+    [
+     -102.7375,
+     -2.4003,
+     31.5976
+    ]
+   ]
+  },
+  {
+   "body": "bridge:index",
+   "name": "073",
+   "ends_P_mm": [
+    [
+     102.7375,
+     58.3998,
+     31.5976
+    ],
+    [
+     2.3207,
+     58.3998,
+     31.5976
+    ]
+   ]
+  },
+  {
+   "body": "palm",
+   "name": "079",
+   "ends_P_mm": [
+    [
+     108.9375,
+     6.083,
+     61.9003
+    ],
+    [
+     108.9375,
+     106.4998,
+     61.9003
+    ]
+   ]
+  },
+  {
+   "body": "palm",
+   "name": "110",
+   "ends_P_mm": [
+    [
+     108.9375,
+     -105.917,
+     61.9003
+    ],
+    [
+     108.9375,
+     -5.5002,
+     61.9003
+    ]
+   ]
+  },
+  {
+   "body": "bridge:middle",
+   "name": "111",
+   "ends_P_mm": [
+    [
+     102.7375,
+     -58.3997,
+     31.5976
+    ],
+    [
+     2.3207,
+     -58.3997,
+     31.5976
+    ]
+   ]
+  }
+ ],
+ "parts": [
+  [
+   "000",
+   "sensor_arm",
+   "palm"
+  ],
+  [
+   "001",
+   "robot_mount",
+   "palm"
+  ],
+  [
+   "002",
+   "base_plate",
+   "palm"
+  ],
+  [
+   "003",
+   "shaft_coupler",
+   "palm"
+  ],
+  [
+   "004",
+   "ur5_adaptor",
+   "palm"
+  ],
+  [
+   "005",
+   "sensor_bracket",
+   "palm"
+  ],
+  [
+   "017",
+   "lead_nut",
+   "mount:thumb"
+  ],
+  [
+   "036",
+   "lead_nut",
+   "mount:middle"
+  ],
+  [
+   "040",
+   "shaft_coupler",
+   "bridge:thumb"
+  ],
+  [
+   "044",
+   "nema8_stepper",
+   "bridge:thumb"
+  ],
+  [
+   "045",
+   "gantry_frame_thumb",
+   "palm"
+  ],
+  [
+   "046",
+   "mgn7_rail_100",
+   "bridge:thumb"
+  ],
+  [
+   "047",
+   "x_stage_beam_thumb",
+   "bridge:thumb"
+  ],
+  [
+   "049",
+   "mgn7_carriage",
+   "mount:thumb"
+  ],
+  [
+   "051",
+   "nema8_stepper",
+   "palm"
+  ],
+  [
+   "052",
+   "mgn7_carriage",
+   "bridge:thumb"
+  ],
+  [
+   "053",
+   "lead_nut",
+   "bridge:thumb"
+  ],
+  [
+   "059",
+   "mgn7_rail_150",
+   "palm"
+  ],
+  [
+   "060",
+   "x_stepper_mount_thumb",
+   "palm"
+  ],
+  [
+   "061",
+   "shaft_coupler",
+   "palm"
+  ],
+  [
+   "062",
+   "nema8_stepper",
+   "palm"
+  ],
+  [
+   "063",
+   "shaft_coupler",
+   "bridge:index"
+  ],
+  [
+   "064",
+   "mgn7_rail_100",
+   "palm"
+  ],
+  [
+   "070",
+   "shaft_coupler",
+   "palm"
+  ],
+  [
+   "071",
+   "x_stepper_mount",
+   "palm"
+  ],
+  [
+   "072",
+   "nema8_stepper",
+   "bridge:index"
+  ],
+  [
+   "074",
+   "gantry_frame",
+   "palm"
+  ],
+  [
+   "077",
+   "nema8_stepper",
+   "palm"
+  ],
+  [
+   "078",
+   "lead_nut",
+   "bridge:index"
+  ],
+  [
+   "080",
+   "mgn7_carriage",
+   "bridge:index"
+  ],
+  [
+   "081",
+   "x_stage_beam",
+   "bridge:index"
+  ],
+  [
+   "082",
+   "mgn7_carriage",
+   "mount:index"
+  ],
+  [
+   "084",
+   "mgn7_rail_100",
+   "bridge:index"
+  ],
+  [
+   "085",
+   "lead_nut",
+   "mount:index"
+  ],
+  [
+   "102",
+   "gantry_frame",
+   "palm"
+  ],
+  [
+   "103",
+   "nema8_stepper",
+   "bridge:middle"
+  ],
+  [
+   "105",
+   "lead_nut",
+   "bridge:middle"
+  ],
+  [
+   "109",
+   "mgn7_rail_100",
+   "palm"
+  ],
+  [
+   "113",
+   "mgn7_carriage",
+   "bridge:middle"
+  ],
+  [
+   "115",
+   "shaft_coupler",
+   "bridge:middle"
+  ],
+  [
+   "116",
+   "mgn7_rail_100",
+   "bridge:middle"
+  ],
+  [
+   "117",
+   "mgn7_carriage",
+   "mount:middle"
+  ],
+  [
+   "118",
+   "x_stepper_mount",
+   "palm"
+  ],
+  [
+   "120",
+   "x_stage_beam",
+   "bridge:middle"
+  ]
+ ]
+}
