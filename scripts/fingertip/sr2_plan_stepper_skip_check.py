@@ -1,5 +1,5 @@
 """SR2 hand (docs/experiments/20261104-sr2_hand_crosstalk): plan_layouts_s1 with one stepper axis left behind at a layout move: for each layout and each axis that moves there,
-that axis stays at its previous value. Clearance of every pose and every move (21 samples on the joint-space line),
+that axis stays at its previous value. Clearance of every pose and every move (11 samples on the joint-space line),
 cad_v2 collision spheres.
 
     .venv/bin/python scripts/fingertip/sr2_plan_stepper_skip_check.py PLAN [FIRST_STEP]"""
