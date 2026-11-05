@@ -205,7 +205,7 @@ def fig_stage3():
         print("no stage-3 summary")
         return
     tips = [C.REF] + [k for k in S if k != C.REF]
-    fig, axs = plt.subplots(1, 2, figsize=(7.2, 3.0), dpi=150, gridspec_kw=dict(width_ratios=[1.25, 1]))
+    fig, axs = plt.subplots(1, 2, figsize=(7.2, 3.0), dpi=150, gridspec_kw=dict(width_ratios=[1.25, 1]), sharey=True)
     y = np.arange(len(tips))[::-1]
     ax = axs[0]
     cols = ["#111111", "#b2182b", "#e08214", "#1b7837"]
@@ -226,10 +226,9 @@ def fig_stage3():
             ax.plot([lo, hi], [yy, yy], color=INK2, lw=1.4)
             ax.plot([v["dJ3_vs_base"]], [yy], "o", color=PADS, ms=4.5)
     ax.axvline(0, color=INK2, lw=0.8, ls=":")
-    ax.set_yticks(y)
-    ax.set_yticklabels([])
-    ax.set_xlabel("J3 minus the v4b tip's (90 % interval)")
-    fig.tight_layout(w_pad=0.6)
+    ax.tick_params(axis="y", labelleft=False)
+    ax.set_xlabel("J3 minus the v4b tip's, 90 % interval")
+    fig.tight_layout(w_pad=0.6, rect=(0, 0, 0.985, 1))
     out = MEDIA / "fig_stage3.png"
     fig.savefig(out)
     print("wrote", out.relative_to(ROOT))
@@ -261,7 +260,8 @@ def fig_fe():
     ax.plot(x - 0.12, [S[k]["sphere_apex_um"]["1"] for k in tips], "o", color=PADS, ms=4.5, label="2 mm sphere at the apex")
     ax.plot(x + 0.12, [S[k]["rod_across_um"]["1"] for k in tips], "s", color=DRAKE, ms=4.2, label="12.5 mm rod across")
     ax.set_ylabel("Approach at\n1 N (µm)")
-    ax.legend(fontsize=8.0, loc="upper left", ncol=2)
+    ax.set_ylim(0, 330)
+    ax.legend(fontsize=8.0, loc="lower left", ncol=2)
     ax = axs[2]
     res = [((S[k].get("sensing") or {}).get("centre_force_N")) for k in tips]
     ax.bar(x, [r if r is not None else 0 for r in res], width=0.62, color=THIRD)
