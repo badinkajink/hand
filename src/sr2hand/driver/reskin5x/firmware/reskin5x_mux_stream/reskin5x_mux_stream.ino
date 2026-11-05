@@ -11,6 +11,14 @@
   The bus runs at 400 kHz, the MLX90393's limit. Only the chips found at start-up are read: a transfer to an absent
   address costs about 19 ms in this core.
 
+  A board can also sit on a channel of a second mux, cabled to a channel of the first (lab, 2026-11-05: the SR2 hand's
+  index on channel 0 of a mux at 0x70, on channel 1 of the mux at 0x71, to lengthen the index's cable). It streams as
+  that channel of the first mux, and the start-up text names its route ("Channel 1 through the mux at 0x70, channel
+  0"). The sketch looks behind a second mux only when no chips answer on the channel itself, and reads the first of
+  its channels with chips: one board a channel of the first mux. The second mux needs an address of its own, since one
+  at the first mux's address takes the first mux's writes. A mux behind another answers only while that channel is
+  open, so the sketch first closes every mux that answers; the first mux is the lowest address that still answers.
+
   Record: for each board in channel order and each of its five chips, t (degC) and x, y, z (uT) as little-endian
   float32, then "\r\n": 80 n + 2 bytes for n boards (242 for three, which anyskin reads with num_mags=15). A chip that
   was not found and a failed transfer give zeros; a read without a new conversion (0xFFFF) keeps the last values.
@@ -43,6 +51,8 @@ static const uint8_t MAX_BOARDS = 8;
 
 uint8_t muxAddr = 0;
 uint8_t channel[MAX_BOARDS];
+uint8_t subMux[MAX_BOARDS];   // the second mux on that channel (0 for none) and the board's channel on it
+uint8_t subCh[MAX_BOARDS];
 uint8_t nBoards = 0;
 MLX90393 mlx[MAX_BOARDS][CHIPS];
 bool live[MAX_BOARDS][CHIPS];
@@ -55,10 +65,20 @@ bool ack(uint8_t addr) {
   return SENSOR_BUS.endTransmission() == 0;
 }
 
-bool selectChannel(uint8_t ch) {
-  SENSOR_BUS.beginTransmission(muxAddr);
-  SENSOR_BUS.write((uint8_t)(1u << ch));
+bool setMux(uint8_t mux, uint8_t mask) {
+  SENSOR_BUS.beginTransmission(mux);
+  SENSOR_BUS.write(mask);
   return SENSOR_BUS.endTransmission() == 0;
+}
+
+bool selectBoard(uint8_t b) {
+  return setMux(muxAddr, 1u << channel[b]) && (!subMux[b] || setMux(subMux[b], 1u << subCh[b]));
+}
+
+uint8_t probe(bool* here) {
+  uint8_t found = 0;
+  for (uint8_t i = 0; i < CHIPS; ++i) found += (here[i] = ack(ADDR[i]));
+  return found;
 }
 
 void setup() {
@@ -68,6 +88,8 @@ void setup() {
   SENSOR_BUS.setClock(400000);
   delay(10);
 
+  for (uint8_t pass = 0; pass < 2; ++pass)
+    for (uint8_t a = 0x70; a <= 0x77; ++a) if (ack(a)) setMux(a, 0);
   for (uint8_t a = 0x70; a <= 0x77 && !muxAddr; ++a) if (ack(a)) muxAddr = a;
   if (!muxAddr) {
     Serial.println(F("[ERROR] no I2C mux at 0x70 to 0x77 on the STEMMA QT port"));
@@ -76,15 +98,31 @@ void setup() {
   Serial.print(F("Mux at 0x")); Serial.println(muxAddr, HEX);
 
   for (uint8_t ch = 0; ch < 8 && nBoards < MAX_BOARDS; ++ch) {
-    if (!selectChannel(ch)) continue;
+    if (!setMux(muxAddr, 1u << ch)) continue;
     delay(2);
-    uint8_t found = 0;
+    uint8_t sub[8], nSub = 0;
+    for (uint8_t a = 0x70; a <= 0x77; ++a) if (a != muxAddr && ack(a)) { setMux(a, 0); sub[nSub++] = a; }
     bool here[CHIPS];
-    for (uint8_t i = 0; i < CHIPS; ++i) found += (here[i] = ack(ADDR[i]));
-    Serial.print(F("Channel ")); Serial.print(ch); Serial.print(F(": ")); Serial.print(found); Serial.println(F(" chips"));
+    uint8_t found = probe(here), via = 0, viaCh = 0;
+    Serial.print(F("Channel ")); Serial.print(ch); Serial.print(F(": ")); Serial.print(found); Serial.print(F(" chips"));
+    for (uint8_t k = 0; k < nSub && !found; ++k) {
+      for (uint8_t s = 0; s < 8 && !found; ++s) {
+        setMux(sub[k], 1u << s);
+        delay(2);
+        if ((found = probe(here))) { via = sub[k]; viaCh = s; }
+      }
+      if (!found) setMux(sub[k], 0);
+    }
+    if (via) {
+      Serial.print(F("; through the mux at 0x")); Serial.print(via, HEX); Serial.print(F(", channel "));
+      Serial.print(viaCh); Serial.print(F(": ")); Serial.print(found); Serial.print(F(" chips"));
+    }
+    Serial.println();
     if (!found) continue;
     uint8_t b = nBoards++;
     channel[b] = ch;
+    subMux[b] = via;
+    subCh[b] = viaCh;
     for (uint8_t i = 0; i < CHIPS; ++i) {
       live[b][i] = here[i];
       dataBuf[b][i] = {0, 0, 0, 0};
@@ -114,6 +152,11 @@ void setup() {
 
 void printInfo() {
   Serial.print(F("Mux at 0x")); Serial.println(muxAddr, HEX);
+  for (uint8_t b = 0; b < nBoards; ++b) {
+    if (!subMux[b]) continue;
+    Serial.print(F("Channel ")); Serial.print(channel[b]); Serial.print(F(" through the mux at 0x"));
+    Serial.print(subMux[b], HEX); Serial.print(F(", channel ")); Serial.println(subCh[b]);
+  }
   Serial.print(F("Boards on mux channels: "));
   for (uint8_t b = 0; b < nBoards; ++b) { Serial.print(channel[b]); Serial.print(' '); }
   Serial.println();
@@ -123,7 +166,7 @@ void printInfo() {
 void loop() {
   while (Serial.available()) if (Serial.read() == 'i') printInfo();
   for (uint8_t b = 0; b < nBoards; ++b) {
-    if (!selectChannel(channel[b])) {
+    if (!selectBoard(b)) {
       for (uint8_t i = 0; i < CHIPS; ++i) dataBuf[b][i] = {0, 0, 0, 0};
       continue;
     }
