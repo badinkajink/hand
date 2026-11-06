@@ -86,3 +86,6 @@ assets/mjcf/experimental/20261007-diffmjx/
 assets/mjcf/experimental/20261008-hand_object_scale/
 assets/mjcf/experimental/20261014-hand_object_scale_cad_v1/
 assets/fem/
+
+# raw robot recordings stay on the workstation and move by rsync (owner, 2026-11-06); tracked ones stay tracked
+docs/**/*.bin

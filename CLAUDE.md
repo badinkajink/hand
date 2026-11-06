@@ -63,6 +63,12 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   workstation's clone has `lfs.fetchexclude` cleared in `.git/config`. History before the 2026-10-09 rewrite (commit
   hashes cited in older pages and notes, the tracked `results/` runs, retired branches) is in
   `badinkajink/hand-archive` and `~/backups/hand-20261009-full.bundle`.
+- **GitHub's LFS stores only the documentation's content (owner, 2026-11-06: "LFS should really only be for the docpage
+  videos/content"; "we should have been using rsync all along").** Pages, their media and CAD files are uploaded; raw
+  recordings (`*.bin`) and data rows (json, jsonl, csv, npz, npy) stay on the workstation, their pointers on GitHub
+  without content, and move between machines by rsync over Tailscale. This clone's pre-push hook
+  (`scripts/docs/lfs_lean.py install-hook`) uploads only that set, and `docs/**/*.bin` is in `.gitignore`. GitHub frees
+  LFS storage only when the repository is deleted; `git lfs prune` and history rewrites free local disk only.
 
 ## Hardware — two hosts, and which one owns what
 
