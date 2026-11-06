@@ -11,7 +11,8 @@ pointers stay in the history without content.
 GitHub keeps every LFS object ever pushed to a repository and frees the storage only when the repository is deleted, so
 the switch is: fetch every object that exists only on GitHub (needs an LFS budget above zero), delete and recreate the
 empty repository under the same name, then `push` from the bare mirror. Afterwards the main clone's pre-push hook
-(`install-hook`) uploads only the upload set of each push.
+(`install-hook`) uploads only the upload set of each push, when `git config lfslean.upload true`; it is off since the
+owner's decision of 2026-11-06 to keep LFS content local and move it by rsync.
 
     python3 scripts/docs/lfs_lean.py catalog [--repo DIR] [--refs REF ...]    # sizes by category, upload set, missing
     python3 scripts/docs/lfs_lean.py refresh --mirror DIR                      # the mirror's branches from the main clone
@@ -278,7 +279,13 @@ def cmd_install_hook(a):
 
 
 def cmd_pre_push(a):
-    """The hook: for each ref being pushed, the LFS objects that the new commits name, filtered to the upload set."""
+    """The hook: for each ref being pushed, the LFS objects that the new commits name, filtered to the upload set. Off
+    unless `git config lfslean.upload true` (owner, 2026-11-06: "we'll just stick to local git + rsync"): the push then
+    sends the history and the pointers only."""
+    on = subprocess.run(["git", "-C", str(ROOT), "config", "--get", "lfslean.upload"], capture_output=True,
+                        text=True).stdout.strip() == "true"
+    if not on:
+        return 0
     oids = set()
     zero = "0" * 40
     for line in sys.stdin.read().splitlines():

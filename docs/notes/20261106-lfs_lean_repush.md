@@ -59,3 +59,9 @@ Remaining step, once the budget allows uploads (a small budget now, or the next 
 The git push in it changes nothing; the upload sends the 4,412 objects (3.39 GB) and checks them. Until then a push of
 commits that add pages, media or CAD files fails in the pre-push hook, which is installed in the main clone; pushes of
 code and notes go through.
+
+## Decision, 16:1x on 2026-11-06
+
+Owner: "ok we'll just stick to local git + rsync". No LFS content goes to GitHub: the hook uploads nothing unless
+`git config lfslean.upload true`, and git pushes send the history and the pointers. Pages, media, data rows and
+recordings move by rsync.

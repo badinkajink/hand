@@ -63,12 +63,13 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   workstation's clone has `lfs.fetchexclude` cleared in `.git/config`. History before the 2026-10-09 rewrite (commit
   hashes cited in older pages and notes, the tracked `results/` runs, retired branches) is in
   `badinkajink/hand-archive` and `~/backups/hand-20261009-full.bundle`.
-- **GitHub's LFS stores only the documentation's content (owner, 2026-11-06: "LFS should really only be for the docpage
-  videos/content"; "we should have been using rsync all along").** Pages, their media and CAD files are uploaded; raw
-  recordings (`*.bin`) and data rows (json, jsonl, csv, npz, npy) stay on the workstation, their pointers on GitHub
-  without content, and move between machines by rsync over Tailscale. This clone's pre-push hook
-  (`scripts/docs/lfs_lean.py install-hook`) uploads only that set, and `docs/**/*.bin` is in `.gitignore`. GitHub frees
-  LFS storage only when the repository is deleted; `git lfs prune` and history rewrites free local disk only.
+- **No LFS content on GitHub; local git and rsync (owner, 2026-11-06: "we'll just stick to local git + rsync").** GitHub
+  has the history and the code; every LFS file there (pages, media, data rows, raw recordings) is a pointer without
+  content, and fresh clones skip LFS by `.lfsconfig`. The content stays on the workstation and moves between machines
+  by rsync over Tailscale (the workstation is `humanoid-desktop`). This clone's pre-push hook (`scripts/docs/lfs_lean.py
+  install-hook`) uploads nothing unless `git config lfslean.upload true`, and `docs/**/*.bin` is in `.gitignore`. The
+  repository was deleted and re-pushed with the same history on 2026-11-06 (`docs/notes/20261106-lfs_lean_repush.md`);
+  GitHub's LFS budget is the account's, per billing cycle.
 
 ## Hardware — two hosts, and which one owns what
 
