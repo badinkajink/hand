@@ -1,22 +1,16 @@
 # SR² Hand
 
-SR² Hand is a self-reconfigurable three-finger hand for sim-to-real verification of optimized
-morphologies. We search morphology and control together in simulation, configure the selected hands on
-hardware, and measure simulation fidelity. The task is to turn a 24.5 g screwdriver from flat to vertical and then
-drive a screw with it.
+SR² Hand is a self-reconfigurable three-finger hand for sim-to-real verification of optimized morphologies. We search morphology and control together in simulation, configure the selected hands on hardware, and measure simulation fidelity.
 
 The platform has 15 DoF. Six are "morphology" DoFs: the planar finger-base coordinates
 m = [x_T, y_T, x_I, y_I, x_M, y_M] which are driven by stepper gantries. The thumb base spans 110 × 60 mm, and the
-index and middle bases span 60 × 60 mm. Nine DoFs are "control": MCP yaw, MCP pitch and PIP pitch per
-finger, on SCS0009 servos.
+index and middle bases span 60 × 60 mm. Nine servo-driven DoFs are "control": MCP yaw, MCP pitch and PIP pitch per
+finger. Each fingertip is sensorized to provide contact pose and three-axis force via Hall effect sensing of deformation of a magnetic field created by magnets embedded in a compliant, printed fingertip.
+
+This repository contains modeling, simulation, and controls for the platform and its many configurations..
 
 The paper and CAD can be found at [`sr2-hand.github.io`](https://sr2-hand.github.io).
 
-Since October the work has been on the fingertip and on how the best layout depends on the object and the
-controller. A printed TPU fingertip has four magnets over a five-chip MLX90393 board, and a UR5 calibrates each one
-by pressing it against a force-torque sensor. In simulation each fingertip is covered with 1 mm contact spheres. Their
-2.5 MPa modulus was fitted to those presses. Under the hand-object (HOM) controller of arXiv 2609.25619, the thumb's
-mount in the best layout moves out 0.6 to 1.1 mm per mm of object diameter.
 
 The documentation starts at [`docs/index.html`](docs/index.html): open it in a browser from a clone, with no server or build step.
 
