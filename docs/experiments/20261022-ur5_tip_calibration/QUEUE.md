@@ -2021,8 +2021,18 @@ push that answers it arrives.
     gravity box gives 40 mm or more with the middle at home and 20.5 mm at least anywhere (c, the middle's yaw at +40,
     middle at (80, -37.5)). The register reader sends READ packets only. If a block stops on a blocked pose, the chain
     waits for the owner; the registers are still read with the station stopped.
-  - Next: the fits, from `dwells.tsv` and `holds_c.tsv`: each joint's droop against the CAD's gravity torque, the gap
-    between the staircase's up and down branches, and the yaw stalls.
+  - 13:12:49 to 13:44:50: the chain ran all six blocks to the end, with no pose blocked; the registers were read at 13:45
+    with the station stopped, and it stays stopped (lab, 25a261ad6).
+  - Result (workstation, 14:5x): `docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html`
+    (c658432e2; `scripts/hardware/sr2_servo_sysid_fit.py`, `_page.py`, `_film.py`). No drive within 2 encoder steps
+    (0.59 deg), then 27.5 + 14.6 per mille a step: 0.55 N m/rad at the datasheet's stall torque scaled to the measured
+    5.0-5.2 V supply, against the HOM plant's 0.72 with no dead band or friction. Friction bands of +-23 and +-27 mN m on
+    the index and middle yaws, +-10 on the thumb yaw, +-5 to +-10 on the mcp joints and +-2 to +-5 on the pip joints.
+    Yaw steps of 20 to 40 deg stop 1.5 to 3.1 deg short on the servo's positive side, the same with the mcp at 40. The
+    station's speed reaches the servo as rad/s, so every move ran at the servo's top speed. The index mcp's EEPROM limit
+    (+58.6 deg) explains its stop at 55.4 deg on 11-04; the lab corrected the crosstalk README (d55f5a69a).
+  - Open, for the owner: a known load to measure the torque scale (protocol steps 3 and 7); the measured servo in the
+    HOM plant; block c again at the layout g12.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
