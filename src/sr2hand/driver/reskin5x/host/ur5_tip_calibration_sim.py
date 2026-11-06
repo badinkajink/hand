@@ -40,6 +40,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_tip_calibration as C  # noqa: E402
+from sr2hand.geometry.distances import barycentric_inside  # noqa: E402
 
 BASIS = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261020-b_v2_surface_basis.npz"
 BOARD_CAL = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/20261020-calib_pad_as_found.json"
@@ -463,13 +464,7 @@ class World:
             if not -self.geo.R < h < self.geo.R:                       # the far wall, across the tip, is not this one
                 continue
             x_P = c - h * w["n"]                                         # the contact point on the wall
-            A, B, D = w["tris"][:, 0], w["tris"][:, 1], w["tris"][:, 2]
-            v0, v1, v2 = D - A, B - A, x_P - A
-            d00, d01, d11 = (v0 * v0).sum(1), (v0 * v1).sum(1), (v1 * v1).sum(1)
-            d20, d21 = (v2 * v0).sum(1), (v2 * v1).sum(1)
-            den = d00 * d11 - d01 ** 2
-            u, v = (d11 * d20 - d01 * d21) / den, (d00 * d21 - d01 * d20) / den
-            if not ((u >= 0) & (v >= 0) & (u + v <= 1)).any():
+            if not barycentric_inside(w["tris"], x_P):
                 continue
             n_F = -w["n"]
             gv = np.r_[np.cross(x_P - self.o_P, n_F), n_F]

@@ -46,8 +46,9 @@ stages are the tip mode's.
     python ur5_tip_calibration.py --plan plan.json --robot 192.168.0.4 --ft 192.168.0.5
     python ur5_tip_calibration.py --plan plan.json --sim                 the same session against the simulator
     ... --stages preflight,homing,gravity     a subset, in the order given
-Files needed on the robot's computer: this file, reskin5x_plot.py (the board's reader, same folder) and the plan; Python
-with numpy, pyserial and ur_rtde (pip install ur_rtde).
+It runs from the repository's clone: its rigid motions and distances come from src/sr2hand/geometry (numpy and scipy),
+which it finds through scripts/_paths.py, and the board's reader is reskin5x_plot.py in this folder. Python with numpy,
+scipy, pyserial and ur_rtde (pip install ur_rtde).
 """
 from __future__ import annotations
 
@@ -67,6 +68,14 @@ from pathlib import Path
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[4]
+sys.path.insert(0, str(ROOT / "scripts"))
+import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry import rotations  # noqa: E402
+from sr2hand.geometry.distances import closest_on_triangles, point_line  # noqa: E402,F401  (C.closest_on_triangles)
+from sr2hand.geometry.vectors import deg_from_cos, unit  # noqa: E402
+from sr2hand.numerics.angles import wrap  # noqa: E402
+
 PLAN_VERSION = 1
 G = 9.80665
 EZ = np.array([0.0, 0.0, 1.0])
@@ -74,27 +83,29 @@ FAST_STOP_N = 0.3                   # N of push that ends a fast approach early 
 
 
 # ------------------------------------------------------------------------------------------- rigid motions (mm, rad)
+# The UR5 programs call these names as C.* (2026-11-05: over sr2hand.geometry.rotations). log_so3 keeps its own formula,
+# and T_to_ur and pose_error with it: every target sent to the robot goes through T_to_ur.
 def skew(v):
-    return np.array([[0.0, -v[2], v[1]], [v[2], 0.0, -v[0]], [-v[1], v[0], 0.0]])
+    return rotations.skew(v)
 
 
 def exp_so3(w):
-    w = np.asarray(w, float)
-    th = float(np.linalg.norm(w))
-    if th < 1e-12:
-        return np.eye(3) + skew(w)
-    K = skew(w / th)
-    return np.eye(3) + math.sin(th) * K + (1.0 - math.cos(th)) * K @ K
+    """Rotation matrix of the rotation vector w (rad)."""
+    return rotations.exp_so3(w)
 
 
 def log_so3(R):
-    U_, _, Vt = np.linalg.svd(np.asarray(R, float))         # the nearest rotation first: near 180 deg the formula below
-    R = U_ @ np.diag([1.0, 1.0, np.sign(np.linalg.det(U_ @ Vt))]) @ Vt   # turns a plan's 7-decimal rounding (7e-6 off
-    #                                                         orthonormal) into a degree (2026-11-02, the probe straight
-    #                                                         down at 178.6 deg: every IK target 1.0 deg off its pose)
+    """Rotation vector of R, angle in [0, pi], by the trace formula. Within 1e-6 rad of a half turn the axis comes out
+    with its largest component positive. From there to about 1e-2 rad from a half turn the formula stands off scipy's
+    (rotations.log_so3) by about 1e-15 / (pi - angle)^2 rad: 1.4e-9 rad at 1e-3, 3e-4 rad at 2e-6. Every target sent
+    to the robot passes through it (T_to_ur), and the tool-down targets lie near a half turn, so it stays until the
+    lab's simulator has checked the change."""
+    R = rotations.project_to_so3(R)    # the nearest rotation first: near 180 deg the formula below turns a plan's
+    #                                    7-decimal rounding (7e-6 off orthonormal) into a degree (2026-11-02, the probe
+    #                                    straight down at 178.6 deg: every IK target 1.0 deg off its pose)
     c = min(1.0, max(-1.0, (np.trace(R) - 1.0) / 2.0))
     th = math.acos(c)
-    v = np.array([R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]])
+    v = 2.0 * rotations.vee(R)
     if th < 1e-9:
         return v / 2.0
     if math.pi - th < 1e-6:
@@ -106,26 +117,20 @@ def log_so3(R):
 
 
 def Tm(R=None, t=None):
-    T = np.eye(4)
-    if R is not None:
-        T[:3, :3] = R
-    if t is not None:
-        T[:3, 3] = t
-    return T
+    return rotations.tf(R, t)
 
 
 def inv(T):
-    R, t = T[:3, :3], T[:3, 3]
-    return Tm(R.T, -R.T @ t)
+    return rotations.tf_inv(T)
 
 
 def apply(T, p):
-    return np.asarray(p, float) @ T[:3, :3].T + T[:3, 3]
+    return rotations.tf_apply(T, p)
 
 
 def ur_to_T(pose):
     """UR pose [x, y, z (m), rotation vector] to a 4 x 4 transform in mm."""
-    return Tm(exp_so3(pose[3:6]), np.asarray(pose[:3], float) * 1e3)
+    return rotations.tf_from_ur(pose, 1e3)
 
 
 def T_to_ur(T):
@@ -133,33 +138,28 @@ def T_to_ur(T):
 
 
 def rot(axis, deg):
-    a = np.asarray(axis, float)
-    return exp_so3(a / np.linalg.norm(a) * math.radians(deg))
+    """The turn by deg (degrees) about axis."""
+    return rotations.rot_axis_angle(axis, math.radians(deg))
 
 
 def rot_from_to(a, b):
-    """The least rotation taking direction a to direction b."""
-    a = np.asarray(a, float) / np.linalg.norm(a)
-    b = np.asarray(b, float) / np.linalg.norm(b)
-    v = np.cross(a, b)
-    s, c = float(np.linalg.norm(v)), float(a @ b)
-    if s < 1e-10:
-        if c > 0:
-            return np.eye(3)
-        p = np.cross(a, [1.0, 0.0, 0.0] if abs(a[0]) < 0.9 else [0.0, 1.0, 0.0])
-        return exp_so3(p / np.linalg.norm(p) * math.pi)
-    return exp_so3(v / s * math.atan2(s, c))
+    """The least rotation taking direction a to direction b (rotations.rot_between). Directions within 1e-10 of parallel
+    keep this program's answer: the identity, or the exact half turn about the perpendicular rot_between takes, where
+    rot_between would turn by atan2(|a x b|, a . b), up to 1e-10 rad short of it."""
+    u, w = np.asarray(a, float) / np.linalg.norm(a), np.asarray(b, float) / np.linalg.norm(b)
+    if float(np.linalg.norm(np.cross(u, w))) < 1e-10:
+        return np.eye(3) if float(u @ w) > 0 else rotations.rot_between(u, -u)
+    return rotations.rot_between(a, b)
 
 
 def perturb(T, d):
     """T followed by the small motion d = [rotation vector (rad), translation (mm)] in T's own frame."""
-    return T @ Tm(exp_so3(d[:3]), np.asarray(d[3:6], float))
+    return rotations.perturb_body(T, d)
 
 
 def turn_about(T, c, axis, deg):
     """Pose T (world) turned by deg about the line through point c (world) along axis (world)."""
-    R = rot(axis, deg)
-    return Tm(R, np.asarray(c, float) - R @ np.asarray(c, float)) @ T
+    return rotations.turn_about(T, c, axis, math.radians(deg))
 
 
 def pose_error(Ta, Tb):
@@ -185,34 +185,6 @@ def jsonable(o):
 
 
 # ------------------------------------------------------------------------------------------- the plan's geometry
-def closest_on_triangles(p, A, B, C):
-    """Closest point to p on each triangle (A, B, C rows): (n, 3). Ericson, Real-Time Collision Detection 5.1.5."""
-    ab, ac, ap = B - A, C - A, p - A
-    d1, d2 = np.einsum("ij,ij->i", ab, ap), np.einsum("ij,ij->i", ac, ap)
-    bp = p - B
-    d3, d4 = np.einsum("ij,ij->i", ab, bp), np.einsum("ij,ij->i", ac, bp)
-    cp = p - C
-    d5, d6 = np.einsum("ij,ij->i", ab, cp), np.einsum("ij,ij->i", ac, cp)
-    vc = d1 * d4 - d3 * d2
-    vb = d5 * d2 - d1 * d6
-    va = d3 * d6 - d5 * d4
-    den = va + vb + vc
-    den = np.where(np.abs(den) < 1e-18, 1e-18, den)
-    v, w = vb / den, vc / den
-    out = A + ab * v[:, None] + ac * w[:, None]                     # inside the face
-    with np.errstate(divide="ignore", invalid="ignore"):
-        m_ab = (vc <= 0) & (d1 >= 0) & (d3 <= 0)
-        out = np.where(m_ab[:, None], A + ab * (d1 / (d1 - d3))[:, None], out)
-        m_ac = (vb <= 0) & (d2 >= 0) & (d6 <= 0)
-        out = np.where(m_ac[:, None], A + ac * (d2 / (d2 - d6))[:, None], out)
-        m_bc = (va <= 0) & ((d4 - d3) >= 0) & ((d5 - d6) >= 0)
-        out = np.where(m_bc[:, None], B + (C - B) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)))[:, None], out)
-    out = np.where(((d1 <= 0) & (d2 <= 0))[:, None], A, out)
-    out = np.where(((d3 >= 0) & (d4 <= d3))[:, None], B, out)
-    out = np.where(((d6 >= 0) & (d5 <= d6))[:, None], C, out)
-    return out
-
-
 class Geometry:
     """Frames (mm): B the robot's base, E its flange (tool0), S the HEX-E, M the mount (origin on the HEX-E's tool face,
     z along the tool axis toward the tip, x toward the palmar side and the dowel), P the pad (the estimator's tip frame),
@@ -247,8 +219,7 @@ class Geometry:
         self.nrm = np.array(s["normals"], float)
         self.tris = np.array(s["tris"], int)
         A, B, C = (self.pts[self.tris[:, k]] for k in range(3))
-        n = np.cross(B - A, C - A)
-        n /= np.linalg.norm(n, axis=1, keepdims=True)
+        n = unit(np.cross(B - A, C - A), zero="nan")             # a facet with no area has no normal
         vn = self.nrm[self.tris].sum(axis=1)
         n *= np.sign(np.einsum("ij,ij->i", n, vn))[:, None]       # outward, as the vertex normals
         self.tA, self.tB, self.tC, self.tN = A, B, C, n
@@ -271,13 +242,10 @@ class Geometry:
     def line_distance(self, c, a):
         """Probe mode with a rod: the least distance (mm) of the pad's surface from the rod's axis, the line through c
         along a (P), over the surface within half_len of c along the line."""
-        r = self.dense - np.asarray(c, float)
-        y = r @ a
-        m = np.abs(y) <= self.half_len
+        m = np.abs((self.dense - np.asarray(c, float)) @ a) <= self.half_len
         if not m.any():
             return float("inf")
-        rp = r[m] - y[m, None] * a[None]
-        return float(np.sqrt(np.min(np.einsum("ij,ij->i", rp, rp))))
+        return float(np.min(point_line(self.dense[m], c, a)))
 
     def contact_point_I(self, standoff, y_rod=0.0):
         """Where the target point sits in I: standoff above the sphere's top (or the rod's top line)."""
@@ -362,11 +330,11 @@ def fit_gravity(R_BE, f_S, t_S, g_B=(0.0, 0.0, -1.0), t=None):
     K = A / m_N
     Kt = sign * R_SE
     Cx = np.linalg.solve(m_N * Kt, Bt)                           # [c]x in m (torques N m, weight N)
-    c_m = np.array([Cx[2, 1] - Cx[1, 2], Cx[0, 2] - Cx[2, 0], Cx[1, 0] - Cx[0, 1]]) / 2.0
+    c_m = rotations.vee(Cx)
     res_f = np.asarray(f_S) - X @ sol_f
     res_t = np.asarray(t_S) - X @ sol_t
     ang = math.degrees(float(np.linalg.norm(log_so3(R_SE))))
-    z_turn = math.degrees(math.atan2(R_SE[1, 0], R_SE[0, 0]))
+    z_turn = math.degrees(float(rotations.heading(R_SE)))
     out = dict(A=A, of=of, Bt=Bt, ot=ot, K=K, Kt=Kt, R_SE=R_SE, sign=sign, weight_N=m_N, mass_kg=m_N / G,
                com_mm=c_m * 1e3, sv=s, rms_f_N=float(np.sqrt(np.mean(res_f ** 2))),
                rms_t_Nm=float(np.sqrt(np.mean(res_t ** 2))), turn_deg=ang, z_turn_deg=z_turn,
@@ -1803,14 +1771,14 @@ class Session:
         if pl is None and Tp is None:
             return
         p, R = self.reg.T_BI[:3, 3], self.reg.T_BI[:3, :3]
-        yaw = math.degrees(math.atan2(R[1, 0], R[0, 0]))
-        tilt = math.degrees(math.acos(float(np.clip(R[2, 2], -1.0, 1.0))))
+        yaw = math.degrees(float(rotations.heading(R)))
+        tilt = float(deg_from_cos(R[2, 2]))
         if Tp is not None:
             Tp = np.array(Tp, float)
-            pl = list(Tp[:3, 3]) + [math.degrees(math.atan2(Tp[1, 0], Tp[0, 0]))]
-            tilt = math.degrees(math.acos(float(np.clip(Tp[:3, 2] @ R[:, 2], -1.0, 1.0))))
+            pl = list(Tp[:3, 3]) + [math.degrees(float(rotations.heading(Tp)))]
+            tilt = float(deg_from_cos(Tp[:3, 2] @ R[:, 2]))
         dp = p - np.array(pl[:3], float)
-        dyaw = (yaw - pl[3] + 180.0) % 360.0 - 180.0
+        dyaw = wrap(yaw - pl[3], 360.0)
         self.reg.notes["placement_offset_mm_deg"] = dict(d_mm=dp.tolist(), d_yaw=dyaw, tilt=tilt)
         print(f"  indenter at ({p[0]:.1f}, {p[1]:.1f}, {p[2]:.1f}) mm, yaw {yaw:.1f} deg, tilt {tilt:.2f} deg; the plan has "
               f"({pl[0]:.0f}, {pl[1]:.0f}, {pl[2]:.0f}) mm, yaw {pl[3]:.0f} deg")

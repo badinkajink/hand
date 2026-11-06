@@ -41,6 +41,7 @@ BASIS = ROOT / "docs/experiments/20261020-fingertip_contact_estimation/data/2026
 sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_tip_calibration as C  # noqa: E402
 import ur5_tip_calibration_sim as S  # noqa: E402
+from sr2hand.numerics.angles import nearest  # noqa: E402  (src/ on sys.path through the lab program's _paths)
 
 KEEP = ("id", "stage", "kind", "target", "twist", "standoff", "press_N", "moves", "hold_s", "role", "levels", "beyond_mm",
         "v", "stop_N", "fit_N", "max_depth_mm")
@@ -169,7 +170,7 @@ def joints(geo, reg, a, turn):
         if q is None:
             return None
         j5.append(math.degrees(q[4]))
-        j6.append(math.degrees(qh[5] + (q[5] - qh[5] + math.pi) % (2 * math.pi) - math.pi))
+        j6.append(math.degrees(nearest(q[5], qh[5])))
     return min(j5), max(j5), min(j6), max(j6)
 
 

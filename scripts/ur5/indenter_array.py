@@ -32,6 +32,8 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+from sr2hand.geometry.rotations import rot_z, tf  # noqa: E402
+from sr2hand.numerics.angles import nearest  # noqa: E402
 os.environ.setdefault("UR5M_REV", "v7")
 OUT = REPO / "docs/experiments/20261027-indenter_array"
 CAD = OUT / "cad"
@@ -56,8 +58,7 @@ NAMES = ("sphere5", "rod", "sphere12", "holder")
 
 
 def _Rz(deg):
-    a = math.radians(deg)
-    return np.array([[math.cos(a), -math.sin(a), 0.0], [math.sin(a), math.cos(a), 0.0], [0.0, 0.0, 1.0]])
+    return rot_z(math.radians(deg))
 
 
 def key_dims():
@@ -80,8 +81,7 @@ def geometry(a=None):
     keys = []
     for x, y, yaw in a["keys"]:
         R = _Rz(yaw) @ np.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]])   # z_M -> tool axis, x_M -> -z
-        T = np.eye(4)
-        T[:3, :3], T[:3, 3] = R, np.array([x, y, mz]) - R @ np.array(MOUTH_M)
+        T = tf(R, np.array([x, y, mz]) - R @ np.array(MOUTH_M))
         keys.append(dict(c=(x, y), yaw=yaw, body_top=mz - kd["below"], pin_top=mz + kd["top"], T_AM_home=T.round(4).tolist()))
     out = dict(params=a, key=kd, keys=keys)
     for name in ("sphere5", "sphere12"):
@@ -130,9 +130,7 @@ def solid(K, g):
     for k in g["keys"]:
         local = K.union([K.rbox_z(-bx, bx, -by, by, tb - 0.01, k["body_top"], 2.0),
                          UM.frustum(K, "z", (0.0, 0.0), kd["k0"], kd["k1"], k["body_top"] - 0.01, k["pin_top"])])
-        T = np.eye(4)
-        T[:3, :3], T[:3, 3] = _Rz(k["yaw"]), [k["c"][0], k["c"][1], 0.0]
-        parts.append(K.transform(local, T))
+        parts.append(K.transform(local, tf(_Rz(k["yaw"]), [k["c"][0], k["c"][1], 0.0])))
     for name in ("sphere5", "sphere12"):
         s = g[name]
         c = s["c"]
@@ -258,7 +256,7 @@ def homing_at(TI, CELL, C, reg, x, y, yaw, i=None):
     if q is None:
         return dict(x=x, y=y, yaw=yaw, ok=False, why="ik")
     j5 = math.degrees(q[4])
-    j6 = math.degrees(qh[5] + (q[5] - qh[5] + math.pi) % (2 * math.pi) - math.pi)
+    j6 = math.degrees(nearest(q[5], qh[5]))
     worst = _groups(TI, CELL.clearance(q, T_BE, reg.T_BI, reg.T_EM, "array"))
     port = float(CELL.self_clearance(q, reg.T_EM)["port"])
     ok = (TI.J5[0] <= j5 <= TI.J5[1] and TI.J6[0] <= j6 <= TI.J6[1] and port >= 15.0
@@ -298,9 +296,7 @@ def T_AF_press(p, n, tw):
         z = np.array([0.0, -1.0, 0.0]) - n * (-n[1])
     z /= np.linalg.norm(z)
     R = np.column_stack([n, np.cross(z, n), z])
-    T = np.eye(4)
-    T[:3, :3], T[:3, 3] = R, np.asarray(p, float) - R @ APEX_F
-    return T
+    return tf(R, np.asarray(p, float) - R @ APEX_F)
 
 
 def press_points(g):

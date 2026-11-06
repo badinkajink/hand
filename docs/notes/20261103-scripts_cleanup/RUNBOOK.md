@@ -199,8 +199,75 @@ For each folder of `scripts/` (and `src/sr2hand/` outside `driver/`):
    folder.
 
 Not migrated by the autopilot: `src/sr2hand/driver/` and the UR5 programs that move the robot
-(`scripts/ur5/ur5_inverted_rig.py`, the plan generators and `ur5_tip_calibration_holder_paths.py`). They wait for a
-window with the owner and the lab, whose simulator checks every plan. `scripts/archive/` is never migrated.
+(`scripts/ur5/ur5_inverted_rig.py`, the plan generators and `ur5_tip_calibration_holder_paths.py`). They waited for a
+window with the owner and the lab, whose simulator checks every plan; the branch `ur5-shared-math` of 2026-11-05 moved
+them (next section). `scripts/archive/`, the CB1's `src/sr2hand/driver/manta/` and `src/sr2hand/bench/tags.py` are never
+migrated.
+
+## The UR5 programs on the shared math (branch `ur5-shared-math`, 2026-11-05)
+
+The owner's go came at 12:0x on 11-05 (QUEUE R35, part B). The lab program
+`src/sr2hand/driver/reskin5x/host/ur5_tip_calibration.py` puts `src/` on `sys.path` through `scripts/_paths.py`, as its
+simulator already did. It still runs as `/usr/bin/python3 <path>` from corvus's clone; this was checked under Python
+3.10, numpy 1.26.4 and scipy 1.12.0. Its `C.*` names keep their signatures and call the modules.
+
+Replaced:
+- lab program: `skew`, `exp_so3`, `Tm`, `inv`, `apply`, `ur_to_T`, `rot` (degrees), `rot_from_to`, `perturb`,
+  `turn_about`, `closest_on_triangles` (moved to `geometry.distances`), the facet normals, `line_distance`'s projection,
+  `fit_gravity`'s centre of mass and turn, and `check_placement`'s yaw, tilt and wrap. `rot_from_to` keeps the identity
+  and the exact half turn within 1e-10 of parallel by an explicit branch.
+- simulator: the wall contact's inside test (`distances.barycentric_inside`).
+- inverted rig: its frames (`fingertip_T_MF`, `T_AF`, `table_T_BA`, `search_rod`, `frames_for` with its old fallback),
+  the nearest rotations, `pose_B`, `_inv`, `_flat_R`, `fib_dirs`, `_sphere_pts`, `_tree_sdf`, `hull_sdf`, `_slerp`,
+  `_on_face`, the joint wraps and the 4 x 4 builds; `indenter_array._Rz` and its 4 x 4 builds.
+- holder paths: `rot_z`, `rot_from_to` (the lab program's) and `slerp_T`.
+- plan generators: the ATI plan's `fib_sphere` and `rot_to` (its half turn under a . b = -0.999999 kept), the joint 6
+  wraps of the tip plan, R24 pass 3, the tall pass, the trimmed cap and the tall indenter, and the headings of the probe
+  plan and the session checker.
+- new in the modules: `distances.closest_on_triangles` and `barycentric_inside`, `rotations.tf_interp`.
+
+Kept, with the reason:
+- the lab program's `log_so3` trace formula, and `T_to_ur`, `pose_error` and `mean_pose`, which call it (its SVD
+  projection and vee call the module). Every target sent to the robot passes through `T_to_ur`. Near a half turn the
+  formula stands off scipy's by about 1e-15 / (pi - angle)^2 rad: 3e-4 rad at 2e-6 rad from a half turn, 1.4e-9 rad at
+  1e-3. Within 1e-6 rad of a half turn it returns the axis with its largest component positive. The tool-down targets of
+  the probe plans lie near a half turn. A switch to `rotations.log_so3` waits for the owner and a run on the lab's
+  simulator.
+- `fit_onset`'s `np.convolve(mode="same")`: `numerics.signal` has no zero-padded edge, and `fit_onset` leaves out the
+  last `win // 2` samples for it. `fit_gravity`'s signed polar factor fits the HEX-E's sign. `fit_rod_registration`'s
+  basis defines its parameters and their priors. `lm`: the fits' results depend on it.
+- the simulator's DH chain, its tangent bases (cross products with a reference axis; `rotations.tangent_basis` is
+  another basis, and the friction solve runs in it) and `seg_pose`, which calls the lab program's `log_so3`.
+- the rig's `tangent_basis`: it takes the seat plans' stored normals, rounded to 5 decimals and up to 1e-5 off unit
+  length, as they are, and `frame_from_axis` would normalize them and move a sweep's `t1` by up to 1e-5. Its
+  `cmd_seat_beam.props` takes the moments about the centroid, where `mesh.polygon_section` takes them about the origin
+  and loses up to 8e-9 relative for small sections 100 to 200 mm from it. `_winding` has no library equivalent; the DH
+  kinematics (`_dh`, `fk_many`, `ik_all`) are the robot's model.
+- the ATI plan's `hanging_points` perpendiculars, which set the phase of the 16 rim samples about g, and
+  `indenter_array.T_AF_press`'s columns (n, z x n, z), whose hint sits in the column before the axis.
+
+Checks, in `logs/20261103-scripts_cleanup/equiv/ur5/` on the workstation:
+- `check_driver.py` (95 of 95) and `check_scripts.py` (54 of 54), old against new on 10,000 inputs each and the edge
+  cases, in the venv (numpy 2.4.4, scipy 1.17.1) and in a Python 3.10 venv with numpy 1.26.4 and scipy 1.12.0. Most
+  replaced functions are bitwise identical; the rest agree to 8e-16, and `apply` and `turn_about` to 1.1e-13 and 4.3e-13
+  relative on millimetre values up to 3,500 mm. The registration fits move by 2e-8 to 4.6e-7 mm and rad. The old code
+  moves as far when its touches move by 1e-15 relative, the resolution of its hand-written Levenberg-Marquardt.
+- plans made again with the old and the new code: the 24 probe plans converted from the 11-03 and 11-04 seat plans are
+  byte-identical. The rig's replays of the 2 mm sphere and the rod on seat 1 are identical in every number, and so is
+  `dry-check --real --chain` on the lab's two seat 1 program plans. The holder path check of the 10-29 side map is
+  byte-identical.
+- the tip plan builder and the ATI plan builder call the simulator's damped least-squares IK (`SIM.ik`). On some poses
+  it returns another joint solution when the pose changes in its last bits; one pose gave 10 different joint 5 values
+  over 20 changes of 1e-15 relative. Their plans differ between the old and the new code (two tip end actions kept, one
+  twist of -60 deg in place of -90, 151 ATI directions against 149). The old builders differ as much with their
+  placement moved by 1e-12 mm: the two actions kept in 4 of 6 runs, 149 to 151 ATI directions.
+- the simulator with its clock fixed (`simrun.py`, the clock's start in `World` set to 1762300000 s) repeats itself
+  bitwise. On a probe plan (50 actions) and a tip plan (38 actions) old and new give the same samples and the same
+  events, every action ok. Forces agree within 2.1e-6 N, joints within 7e-9 rad and registrations within 8.7e-7 mm.
+- pytest in the two worktrees: 113 passed and the same 2 failed (the floor datum, and the uv lock test, which needs the
+  submodules a worktree lacks).
+- cost: the replays and the run check took 6 to 9 % longer, the simulator sessions 13 to 16 %. `apply` on 10,000
+  points takes 125 us against 44, through `einsum`.
 
 ## Bugs found by the audits
 

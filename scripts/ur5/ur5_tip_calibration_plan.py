@@ -38,6 +38,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_cb3_cell as CELL  # noqa: E402
+from sr2hand.numerics.angles import nearest, wrap  # noqa: E402
 
 C, SIM = CELL.C, CELL.SIM
 OUTDIR = ROOT / "docs/experiments/20261022-ur5_tip_calibration"
@@ -69,11 +70,10 @@ def nominal(kind, mount_turn_deg=0.0):
     """mount_turn_deg: x_M's turn about the tool axis from tool0's x (the lab's mount measured -92.15 on 2026-10-22: the
     palmar side along tool0's -y, from two hand seatings on the keys, logs/20261022-ur5_homing_by_hand)."""
     B = np.load(BASIS)
-    T_IM = np.eye(4)
-    T_IM[:3, :3] = [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]]       # z_M -> x_I, y_M -> y_I, x_M -> -z_I
+    R_IM = np.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]])  # z_M -> x_I, y_M -> y_I, x_M -> -z_I
     a_M = C.apply(CELL.T_M_FROM_P, FACE_CENTRE)                              # (10.55, 0, 93.36)
     top = 46.0 if kind == "sphere" else 42.5
-    T_IM[:3, 3] = np.array([0.0, 30.0, top + 5.0]) - T_IM[:3, :3] @ a_M      # homing: contact 30 mm to +y, 5 mm up
+    T_IM = C.Tm(R_IM, np.array([0.0, 30.0, top + 5.0]) - R_IM @ a_M)      # homing: contact 30 mm to +y, 5 mm up
     ind = (dict(kind="sphere", centre=[0.0, 0.0, 41.0], radius=5.0) if kind == "sphere"
            else dict(kind="rod", centre=[0.0, 0.0, 30.0], radius=12.5, axis=[0.0, 1.0, 0.0], half_length=10.0))
     if kind == "tall":       # the tall indenter (ur5_cb3_cell.TALL): a sphere to the program, its key on a strut below it
@@ -165,7 +165,7 @@ class Checker:
                             q = SIM.ik(T, np.array([q1, q2, q3, q4, q5, 0.0]))
                             if q is None:
                                 continue
-                            q = (q + math.pi) % (2 * math.pi) - math.pi
+                            q = wrap(q)
                             if not (-math.pi <= q[1] <= 0.0) or abs(math.sin(q[4])) < 0.3 or abs(math.sin(q[2])) < 0.2:
                                 continue
                             if any(np.abs(q - s_).max() < 1e-3 for s_ in seen):
@@ -388,7 +388,7 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
         rolls = {0.0: (0, 60, 120, 180, 240, 300), 45.0: (0, 90, 180, 270), 90.0: (0, 90), -30.0: (0, 180)}[tilt]
         for roll in rolls:
             if roll_offset_deg:
-                roll = (roll + roll_offset_deg + 180.0) % 360.0 - 180.0
+                roll = wrap(roll + roll_offset_deg, 360.0)
             R = C.rot([0.0, 1.0, 0.0], tilt) @ C.rot([1.0, 0.0, 0.0], roll)
             w = C.log_so3(R)
             ang = float(np.degrees(np.linalg.norm(w)))
@@ -541,7 +541,7 @@ def build(kind="sphere", placement=(0.0, -450.0, 56.0, -90.0), out=None, block_m
         q = chk.ik(T, q_home)
         if q is None:
             return None
-        return float(q_home[5] + (q[5] - q_home[5] + math.pi) % (2 * math.pi) - math.pi)
+        return float(nearest(q[5], q_home[5]))
 
     q6 = {a["id"]: joint6(a) for a in acts}
     for a in acts:

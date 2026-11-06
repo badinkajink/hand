@@ -39,6 +39,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_cb3_cell as CELL  # noqa: E402
+from sr2hand.geometry.rotations import rot_between  # noqa: E402
+from sr2hand.geometry.sampling import fibonacci  # noqa: E402
+from sr2hand.numerics.angles import nearest  # noqa: E402
 
 C, SIM = CELL.C, CELL.SIM
 D = ROOT / "docs/experiments/20261023-ati_ft_calibration"
@@ -207,22 +210,14 @@ class Checker:
 
 
 def fib_sphere(n):
-    k = np.arange(n) + 0.5
-    phi = np.arccos(1 - 2 * k / n)
-    th = math.pi * (1 + 5 ** 0.5) * k
-    return np.c_[np.cos(th) * np.sin(phi), np.sin(th) * np.sin(phi), np.cos(phi)]
+    return fibonacci(n, mirror=True)
 
 
 def rot_to(a, b):
-    """The least rotation taking unit a to unit b."""
-    a, b = np.asarray(a, float), np.asarray(b, float)
-    v, c = np.cross(a, b), float(a @ b)
-    if c < -0.999999:
-        p = np.cross(a, [1.0, 0.0, 0.0]) if abs(a[0]) < 0.9 else np.cross(a, [0.0, 1.0, 0.0])
-        p /= np.linalg.norm(p)
-        return 2 * np.outer(p, p) - np.eye(3)
-    K = C.skew(v)
-    return np.eye(3) + K + K @ K / (1.0 + c)
+    """The least rotation taking unit a to unit b (rotations.rot_between). Within 0.08 deg of opposite (a . b under
+    -0.999999) the half turn about the perpendicular to a that rot_between takes for -a, as this plan always had it."""
+    a = np.asarray(a, float)
+    return rot_between(a, -a) if float(a @ np.asarray(b, float)) < -0.999999 else rot_between(a, b)
 
 
 def wrench(g_A, eye, m=1.0):
@@ -251,7 +246,7 @@ def candidates(chk, P0, n_dir=160, yaws=np.arange(0.0, 360.0, 15.0)):
             if q is None:
                 why["no IK"] = why.get("no IK", 0) + 1
                 continue
-            q = chk.q_home + (q - chk.q_home + math.pi) % (2 * math.pi) - math.pi
+            q = nearest(q, chk.q_home)
             r = chk.ok_q(q)
             if r:
                 why[r.split(" at")[0]] = why.get(r.split(" at")[0], 0) + 1

@@ -21,8 +21,9 @@ only, so it runs in `femtip` and on corvus). Vectors, distances, signed distance
 `geometry.vectors`, `distances`, `sdf`, `mesh` and `sampling`; rank statistics, smoothing and angle wrapping in
 `sr2hand.numerics` (`stats`, `signal`, `angles`); the torch quaternion functions in `sr2hand.rl.math`. Never write a private
 copy in a script: call the module, or scipy or trimesh, and add a missing function to the module, checked once against
-MuJoCo, scipy or trimesh. The driver, `bench/tags.py` and the UR5 programs that move the robot keep their copies until a
-session with the owner and the lab's simulator.
+MuJoCo, scipy or trimesh. The CB1's `driver/manta/` and `bench/tags.py` keep their copies; the UR5 lab program and the
+programs that move the robot keep the few listed in `docs/notes/20261103-scripts_cleanup/RUNBOOK.md` (branch
+`ur5-shared-math`, 2026-11-05).
 
 Large files: media, data rows and detailed result pages under `docs/` are Git LFS files (`.gitattributes`); the home
 page, the overviews and the pages marked `!filter` there stay ordinary files. History before 2026-10-09 is in
