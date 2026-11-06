@@ -355,18 +355,28 @@ def own_models(S, upn, names):
             e = np.linalg.norm(cv - Y, axis=1)
             r = {"five_folds": dict(median_uT=pct(e, 50), p95_uT=pct(e, 95), median_N=round(pct(e, 50) / upn[f], 3),
                                     p95_N=round(pct(e, 95) / upn[f], 3))}
+            lolo = np.full_like(Y, np.nan)
             for l in np.unique(lay):
                 te = lay == l
                 if te.sum() < 20 or (~te).sum() < 30:
                     continue
-                el = np.linalg.norm(BG.predict(BG.fit(X[~te], Y[~te], fl), X[te]) - Y[te], axis=1)
+                lolo[te] = BG.predict(BG.fit(X[~te], Y[~te], fl), X[te])
+                el = np.linalg.norm(lolo[te] - Y[te], axis=1)
                 r[f"left_out {l}"] = dict(n=int(te.sum()), median_uT=pct(el, 50), p95_uT=pct(el, 95),
                                           median_N=round(pct(el, 50) / upn[f], 3))
+            if np.isfinite(lolo).any():
+                P[f"{name}_left_out_layout"] = lolo
+                el = np.linalg.norm(lolo - Y, axis=1)
+                r["left_out_layout_all"] = dict(n=int(np.isfinite(el).sum()), median_uT=pct(el, 50), p95_uT=pct(el, 95),
+                                                median_N=round(pct(el, 50) / upn[f], 3), p95_N=round(pct(el, 95) / upn[f], 3))
             home = lay == "home"
             if home.sum() >= 30 and (~home).sum() >= 20:
-                eh = np.linalg.norm(BG.predict(BG.fit(X[home], Y[home], fl), X[~home]) - Y[~home], axis=1)
+                ho = np.full_like(Y, np.nan)
+                ho[~home] = BG.predict(BG.fit(X[home], Y[home], fl), X[~home])
+                P[f"{name}_home_only"] = ho
+                eh = np.linalg.norm(ho[~home] - Y[~home], axis=1)
                 r["home_only_to_layouts"] = dict(n=int((~home).sum()), median_uT=pct(eh, 50), p95_uT=pct(eh, 95),
-                                                 median_N=round(pct(eh, 50) / upn[f], 3))
+                                                 median_N=round(pct(eh, 50) / upn[f], 3), p95_N=round(pct(eh, 95) / upn[f], 3))
             out[name] = r
         res[f] = out
         pred[f] = dict(rows=rows, Y=Y, P=P, lay=lay)
@@ -458,10 +468,17 @@ def viewer(S, pred, field, upn):
                  "all_angles_mounts": pr["P"]["all_angles_mounts"]}
         if f in field:
             model["own_angles_and_magnets"] = pr["P"]["own_angles"] + (field[f]["M"] * field[f]["gain"][None, :, None]).sum(1)
+        for extra in ("own_angles_left_out_layout", "own_angles_mount_left_out_layout", "own_angles_home_only"):
+            if extra in pr["P"]:
+                model[extra] = pr["P"][extra]
         r = {}
         for name, P in model.items():
             fn_d, fn_w, pose_any, nfr, foreign = [], [], [], 0, 0
             for n, i in enumerate(pr["rows"]):
+                if not np.isfinite(P[n]).all():
+                    fn_d.append(np.nan)
+                    pose_any.append(False)
+                    continue
                 v, _ = shown(Y[n] - P[n])
                 fn_d.append(v)
                 w = S[i].get("w", {}).get(f)
@@ -475,7 +492,7 @@ def viewer(S, pred, field, upn):
                     nfr += len(w)
                 pose_any.append(hit)
             fn_d, fn_w = np.array(fn_d), np.array(fn_w)
-            r[name] = dict(poses=len(Y), dwell_shown=int((fn_d > 0).sum()),
+            r[name] = dict(poses=int(np.isfinite(fn_d).sum()), dwell_shown=int((fn_d > 0).sum()),
                            dwell_force_N_median=pct(fn_d[fn_d > 0], 50),
                            frames=nfr, frames_shown=int((fn_w > 0).sum()),
                            frames_shown_share=round(float((fn_w > 0).mean()), 4) if nfr else None,
@@ -598,8 +615,11 @@ def main():
         f"{f}_{k}": v for f, pr in pred.items() for k, v in
         (("rows", np.array(pr["rows"])), ("Y", pr["Y"]), ("lay", pr["lay"].astype(str)),
          *((f"P_{n}", p) for n, p in pr["P"].items()),
+         *((f"shown_{n}", v) for n, v in pr.get("shown", {}).items()),
          *((("M", field[f]["M"]), ("dist", field[f]["dist"])) if f in field else ()))},
         q=np.array([s["q"] for s in S]), t=np.array([0.5 * (s["t0"] + s["t1"]) for s in S]),
+        mounts=np.array([[s["mounts"][f][c] for f in F for c in (0, 1)] for s in S]),
+        set=np.array([s["set"] for s in S]), run=np.array([s["run"] for s in S]),
         family=np.array([s["family"] for s in S]), layout=np.array(names))
     print(json.dumps(R, indent=1))
     print("->", DATA / f"{stem}.json")
