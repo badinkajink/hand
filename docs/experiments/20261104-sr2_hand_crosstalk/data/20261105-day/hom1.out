@@ -1,0 +1,34 @@
+18:01:08 mounts 1_hom_roll_85_170
+plan done
+18:03:05 GATE 1_hom_roll_85_170: waiting for logs/20261105-sr2_crosstalk/hom1/GO_1_hom_roll_85_170
+18:04:04 poses 1_hom_roll_85_170
+safety stop: board records at 73/s (pass 0 step 25 zero)
+18:09:16 poses 1_hom_roll_85_170 ended early
+18:19:40 poses 1_hom_roll_85_170 resumed from step 25
+safety stop: board records at 90/s (pass 0 step 70 random_hom_roll_85_170)
+18:29:12 poses 1_hom_roll_85_170 ended early
+18:42:38 poses 1_hom_roll_85_170 resumed from step 70
+plan done
+18:54:12 mounts 2_hom_press_70_150
+plan done
+18:55:37 GATE 2_hom_press_70_150: waiting for logs/20261105-sr2_crosstalk/hom1/GO_2_hom_press_70_150
+19:17:33 poses 2_hom_press_70_150
+plan done
+19:43:11 mounts 3_hom_generalist_70_110
+plan done
+19:44:22 GATE 3_hom_generalist_70_110: waiting for logs/20261105-sr2_crosstalk/hom1/GO_3_hom_generalist_70_110
+19:44:34 poses 3_hom_generalist_70_110
+plan done
+20:11:01 mounts 4_hom_twist_100_70
+plan done
+20:12:42 GATE 4_hom_twist_100_70: waiting for logs/20261105-sr2_crosstalk/hom1/GO_4_hom_twist_100_70
+20:14:13 poses 4_hom_twist_100_70
+plan done
+20:40:48 mounts 5_hom_cover_50_75
+plan done
+20:42:23 GATE 5_hom_cover_50_75: waiting for logs/20261105-sr2_crosstalk/hom1/GO_5_hom_cover_50_75
+20:42:45 poses 5_hom_cover_50_75
+plan done
+20:55:19 mounts 6_home
+plan done
+20:58:11 chain done
