@@ -50,7 +50,7 @@ WATCHED = (V3 + "data/", V3 + "README.md")
 # a commit named for a program there, gated_chain.sh at 15:55 on 11-05, stated a stop under no such subject)
 ANALYSES = re.compile(r"docs/experiments/(20261030-inverted_rig_seat_block/data/(holds/|[^/]*rod_joint_registration)"
                       r"|20261022-ur5_tip_calibration/(data/[^/]*(v3_|board_gp)|QUEUE\.md)"
-                      r"|\d{8}-sr2_[^/]*/(lab/|data/[^/]*analysis))")
+                      r"|\d{8}-sr2_[^/]*/(lab/|data/[^/]*(analysis|crosstalk_hand)))")
 # the SR2 analysis's scripts change many times before its result page does (owner's high priority, 18:2x on 11-05): a commit
 # that changes only these is not news, whatever its subject; its page and data files are
 DEV_ONLY = re.compile(r"scripts/fingertip/sr2_crosstalk_")
