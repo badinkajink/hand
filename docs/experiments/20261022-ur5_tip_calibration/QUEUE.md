@@ -2005,9 +2005,17 @@ push that answers it arrives.
     5. (c) a second time with the tested finger's mcp at 40 deg.
     6. The register reader to the workstation before it runs: read only, its addresses from Feetech's SCSCL map. A D435
        frame of the fingertip cables at the start and at the end.
-  - Next: the lab's plan file, clearance check and register reader, and the workstation's check of them. Then the fits:
-    each joint's droop against the CAD's gravity torque, the gap between the staircase's up and down branches, and the
-    yaw stalls.
+  - 13:09: the lab's plans, check and reader on branch `sr2-sysid-20261106` (4d1d8037e, no LFS file):
+    `lab/make_sysid_plan.py`, `lab/sysid_chain.sh` (blocks a1, b1, a2, b2, c, c40, each its own run with `--ramp-deg 0`;
+    --max-err-yaw 10 for a and b, 15 for c and c40), `lab/scs0009_registers.py`, `lab/sysid_tables.py` and
+    `lab/push_text.py`. The tables go to the branch as .tsv, since GitHub refuses LFS transfers from 21:37 on 11-05.
+    The lab's check gives 20.2 mm or more in its boxes at the four middle positions (68.0 mm with the middle at home).
+  - 13:12: the workstation's go. On the six plans rebuilt from `make_sysid_plan.py`, every step moves one joint. The
+    gravity box gives 40 mm or more with the middle at home and 20.5 mm at least anywhere (c, the middle's yaw at +40,
+    middle at (80, -37.5)). The register reader sends READ packets only. If a block stops on a blocked pose, the chain
+    waits for the owner; the registers are still read with the station stopped.
+  - Next: the fits, from `dwells.tsv` and `holds_c.tsv`: each joint's droop against the CAD's gravity torque, the gap
+    between the staircase's up and down branches, and the yaw stalls.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
