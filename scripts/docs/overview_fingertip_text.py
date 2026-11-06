@@ -30,7 +30,7 @@ FILM_G20 = "docs/experiments/20261009-tpu_tip_fem/media/20261014-film_whole_g20x
 FILM_VIEW = "docs/experiments/20261020-fingertip_contact_estimation/media/20261020-viewer_surface_presses.mp4"
 FILM_UR5 = "docs/experiments/20261022-ur5_tip_calibration/media/20261022-lab_sphere2_overhead.mp4"
 FILM_REAL = "docs/experiments/20261023-second_fingertip_transfer/media/20261023-viewer_centre_presses.mp4"
-FILM_SR2 = "docs/experiments/20261027-fingertip_crosstalk/media/20261105-film_sr2_short.mp4"   # sr2_crosstalk_film.py --per-layout 4
+FILM_SR2 = "docs/experiments/20261027-fingertip_crosstalk/media/20261105-film_sr2_short.mp4"   # sr2_crosstalk_film.py --per-layout 2
 
 CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330" role="img" aria-label="The chain of models of the printed fingertip, from the print recipe to the contact estimate" style="display:block;margin:12px auto;max-width:100%;height:auto;font-family:'Times New Roman',Times,serif">
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker></defs>
@@ -116,8 +116,8 @@ LEDE = (
     "0.28&#8202;mm. A touching neighbour that faces the pad adds 38&#8202;&#181;T at the board with four magnets in the field "
     "model, against 513&#8202;&#181;T with five. Side by side it adds 2,928&#8202;&#181;T with four and 4,162&#8202;&#181;T "
     "with five. On the SR2 hand a tip&#8217;s own pose changed its board by up to 166&#8202;&#181;T, and a neighbour at the home layout by at most "
-    "5.4&#8202;&#181;T. With no compensation the contact viewer would show a contact in 13.4&#8202;% of the thumb&#8217;s 50&#8202;ms frames with nothing touching. "
-    "With a Gaussian process on the finger&#8217;s own three joint angles subtracted, 0 to 3 of 8,592 to 14,676 frames per board show one, over six layouts. A model learned on one tip misses on another by "
+    "5.4&#8202;&#181;T. With no compensation the contact viewer would show a contact in 15.9&#8202;% of the thumb&#8217;s 50&#8202;ms frames with nothing touching. "
+    "With a Gaussian process on the finger&#8217;s own three joint angles subtracted, at most 3 of 14,916 to 21,000 frames per board show one, over 11 layouts. A model learned on one tip misses on another by "
     "1.0&#8211;2.5&#8202;mm, so each tip&#8217;s own presses must be in its training. With them, the other tips&#8217; presses "
     "lower the error further: on v3 IDs 4 to 6, from 0.83 to 0.66&#8202;mm at held-out points. With each board change scaled by its magnets&#8217; "
     "strength, v2 ID 1&#8217;s contacts are placed within 0.64&#8202;mm by a model of the v1 tips. Under a "
@@ -563,13 +563,15 @@ points, against 0.54&#8211;0.56&#8202;mm for the GP on at most 1,500 holds a set
 correlation of 0.44 against 0.20&#8211;0.31
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#shared),
 Section 16). The owner ended the UR5 calibration on 2026-11-04, and the tips went to the SR2 hand.</p>
-<p>Over two days and six layouts of the SR2 hand, the contact viewer with no compensation would show a contact with nothing
-touching in 13.4&#8202;% of the thumb&#8217;s 50&#8202;ms frames, at a median of 3.6&#8202;N. The middle finger&#8217;s board shows
-3.5&#8202;% and the index&#8217;s 1.2&#8202;%. Most of the change comes from the finger&#8217;s own pose, a median of 65 to
-67&#8202;&#181;T. With a Gaussian process (GP) from the finger&#8217;s own three joint angles subtracted, 0 to 3 of 8,592 to 14,676
-frames per board show a contact, and 1 to 4 with the layout left out of its fit. UR5 presses added to those frames read with a
-median force error of 10 to 13&#8202;%, against 8 to 12&#8202;% on the zero pose&#8217;s noise. The pads came no closer than
-27&#8202;mm ([at six layouts](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#layouts), [result page](exp:20261104-sr2_hand_crosstalk/20261105-sr2_hand_fingertip_crosstalk.html)).</p>
+<p>Over two days and 11 layouts of the SR2 hand, the contact viewer with no compensation would show a contact with nothing
+touching in 15.9&#8202;% of the thumb&#8217;s 50&#8202;ms frames, at a median of 3.6&#8202;N. The middle finger&#8217;s board shows
+4.2&#8202;% and the index&#8217;s 1.3&#8202;%. Most of the change comes from the finger&#8217;s own pose, a median of 66 to
+69&#8202;&#181;T. With a Gaussian process (GP) from the finger&#8217;s own three joint angles subtracted, 3, 1 and 0 of 21,000, 14,916 and
+21,000 frames show a contact on the thumb&#8217;s, index&#8217;s and middle finger&#8217;s boards. The counts are the same with each layout
+left out of its fit. There the GP leaves 13.2 to 17.2&#8202;&#181;T at the 95th percentile, against 12.4 to 15.0&#8202;&#181;T with the layout&#8217;s
+own poses in its fit. UR5 presses added to those frames read with a
+median force error of 11 to 13&#8202;%, against 8 to 11&#8202;% on the zero pose&#8217;s noise. The pads came no closer than
+27&#8202;mm ([at 11 layouts](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#layouts), [result page](exp:20261104-sr2_hand_crosstalk/20261105-sr2_hand_fingertip_crosstalk.html)).</p>
 {{FIG sr2_film}}
 <p>On the SR2 hand at its home layout, a finger moving alone changed the other fingertips&#8217; boards by at most
 5.4&#8202;&#181;T, 0.19&#8202;N. Rest readings differ by 2.6 to 3.4&#8202;&#181;T. A tip&#8217;s own pose changed its board by up to
@@ -696,7 +698,7 @@ tip&#8217;s data, its presses are placed 0.54 and 0.53&#8202;mm off
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#motion_value),
 Section 13).</li>
 <li><b>Disturbances in the hand.</b> On the SR2 hand a tip&#8217;s own pose changed its board by up to 166&#8202;&#181;T, and a
-neighbour at the home layout by at most 5.4&#8202;&#181;T ([on the SR2 hand](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#hand)). With a GP on the finger&#8217;s own angles subtracted, at most 4 frames per board show a contact with nothing touching, at a layout left out of its fit ([at six layouts](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#layouts)). Between two facing v3 tips on the UR5 the held boards changed by 55 to
+neighbour at the home layout by at most 5.4&#8202;&#181;T ([on the SR2 hand](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#hand)). With a GP on the finger&#8217;s own angles subtracted, at most 3 frames per board show a contact with nothing touching, at a layout left out of its fit ([at 11 layouts](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#layouts)). Between two facing v3 tips on the UR5 the held boards changed by 55 to
 60&#8202;&#181;T at contact. The dipole model with each tip&#8217;s net moment leaves about 10&#8202;&#181;T of that
 ([magnetic crosstalk](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#holder)). Side by side and touching, a four-magnet neighbour adds 2,928&#8202;&#181;T in the
 model, and a five-magnet one 4,162&#8202;&#181;T. The neighbour&#8217;s pose must be fitted from the boards. Steel touched to the face reads as a press of 9 to 17.5&#8202;N. The test against
@@ -787,9 +789,9 @@ FIGURES = {
                                "by force level; the bars are medians and the dashed line marks 2&#8202;mm."),
     "sr2_film": dict(film=[[(FILM_SR2, "The SR2 hand at its measured poses")]],
                      page="20261104-sr2_hand_crosstalk/20261105-sr2_hand_fingertip_crosstalk.html", source="SR2 hand crosstalk", crf=36,
-                     caption="The cad_v3 hand at the measured joints of the first four random poses of each layout, with each board&#8217;s change in force equivalent: "
+                     caption="The cad_v3 hand at the measured joints of the first two random poses of each of the 11 layouts, with each board&#8217;s change in force equivalent: "
                              "with no compensation (grey) and after the own-angle GP (black). Red text marks a pose whose uncompensated change the viewer shows as a contact. "
-                             "The line at 0.25&#8202;N is the viewer&#8217;s force threshold."),
+                             "The line at 0.25&#8202;N is the viewer&#8217;s force threshold. The crosstalk page&#8217;s Section 5 has the lab&#8217;s camera on the hand."),
     "real_presses": dict(film=[[(FILM_REAL, "Second fingertip, six presses at the face centre", "1100:622:0:38")]],
                          page="20261023-second_fingertip_transfer/20261023-second_fingertip_transfer.html",
                          source="second fingertip", crf=32, poster_t=0.09,
@@ -832,7 +834,7 @@ FUTURE = [
     'Temperature: with the pad at rest and the viewer logging, hold a warm hand around the finger for 60&#8202;s and take it away. Run <code>scripts/fingertip/fingertip_contact_estimation_study.py thermal</code> on that stretch. No contact should show while the chips warm by 2&#8211;3&#8202;&#176;C. A drift that grows with the temperature after the correction means the magnets need a coefficient of their own. Firmware with TCMP_EN 1 is the alternative, to be tested the same way.',
     'Mount end on the SR2 hand: the contact viewer has run on the hand since 2026-11-05 with the board GP refitted with the rig&#8217;s holds (<code>docs/experiments/20261022-ur5_tip_calibration/data/20261105-board_gp_v3_id1_id3_rig_id3_id6.npz</code>), on v3 IDs 1 to 3. Press a tip&#8217;s mount end with a known load (<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R33). An error over 2&#8202;mm there refutes it.',
     'The ensemble&#8217;s mean in the contact viewer (<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R34, not decided): take the point and force from the MLP ensemble, and keep the GP&#8217;s weight for the blend with the physical model. Score the blend on the coverage gaps of the calibration page&#8217;s Table 33. A location error over the GP&#8217;s 1.24&#8202;mm keeps the GP&#8217;s mean.',
-    'Fingertips beside each other on the hand (owner, 2026-10-25): the sweeps of 2026-11-04 and 11-05 are analysed at six layouts (<code>scripts/fingertip/sr2_crosstalk_hand.py</code>). A second plan at five layouts of the HOM task-conflict study has run since 18:01 on 2026-11-05, and the analysis reruns with it. Its cover and press layouts bring the pads closer than the 27&#8202;mm so far. Laid against each other on the desk, three fingertips moved each other&#8217;s rest by 210 to 991&#8202;&#181;T. With the re-zero, no contact was shown at rest in 39 minutes (<code>src/sr2hand/driver/reskin5x/README.md</code>). The viewer has yet to run on the hand with the own-angle GP subtracted live, with each tip pressed at a known force at the HEX-E. A false contact while the fingers move, or a press error above the injected one, falsifies the compensation.',
+    'Fingertips beside each other on the hand (owner, 2026-10-25): the sweeps of 2026-11-04 and 11-05 are analysed at 11 layouts (<code>scripts/fingertip/sr2_crosstalk_hand.py</code>). The pads came no closer than 27&#8202;mm. A plan of its own brings them within 25&#8202;mm, where a magnet-model gain near 1 at cad_v3&#8217;s finger spacing supports the CAD&#8217;s finger positions. Laid against each other on the desk, three fingertips moved each other&#8217;s rest by 210 to 991&#8202;&#181;T. With the re-zero, no contact was shown at rest in 39 minutes (<code>src/sr2hand/driver/reskin5x/README.md</code>). The viewer has yet to run on the hand with the own-angle GP subtracted live, with each tip pressed at a known force at the HEX-E. A false contact while the fingers move, or a press error above the injected one, falsifies the compensation.',
 ]
 
 PAGES = [
@@ -871,7 +873,7 @@ PAGES = [
     ("Calibration", "20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html",
      "A neighbouring fingertip&#8217;s field at the board, measured between v3 tips on the UR5 and on the SR2 hand, and its subtraction from the joint angles and from both boards"),
     ("Calibration", "20261104-sr2_hand_crosstalk/20261105-sr2_hand_fingertip_crosstalk.html",
-     "False contacts of the contact viewer and the GP on the finger&#8217;s own angles on the SR2 hand: two days, six layouts, UR5 presses added to its frames"),
+     "False contacts of the contact viewer and the GP on the finger&#8217;s own angles on the SR2 hand: two days, 11 layouts, UR5 presses added to its frames"),
     ("Calibration", "20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html",
      "Calibration of the lab&#8217;s ATI Mini45 with a weighed mass, to replace the HEX-E"),
     ("Hardware", "20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html",
