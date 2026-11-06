@@ -211,7 +211,9 @@ cannot reach ends the run and the chain.
 | `run1_attended` | 12:20:15 to 12:34:28 | 35 of 35 | plan done; no blocked pose, no board fault |
 | `run2_layouts` | 12:35:08 to 12:43:50 | 31 of 672 | stopped at step 32, the middle's yaw blocked |
 | `run3_from32` | 13:32:40 to 13:36:24 | 8 of 643 | the lab's STOP: the middle's X stage had stayed at home |
-| `run4_from32` | from 13:49:27 | 643 | running, with `--max-err-yaw 8` |
+| `run4_from32` | 13:49:27 to 14:10:03 | 105 of 643 | g12 done; the lab's STOP, so the rest could run gated (below) |
+| `chain5` | 14:11:39 to 17:31:24 | 538 of 538 | chain done: four layouts and home, one stop (rv04_mid step 44) |
+| `hom1` | from 18:01:08 | 607 | running, with `--min-clearance 5` |
 
 In `run1_attended` the nine holds settled within 4.2 deg of their commands. The middle's yaw lagged most: 3.9 and
 4.2 deg at -37 and -22 deg. The boards gave 160.5 records/s, never under 152 in a second, with no zeroed chip. The
@@ -273,6 +275,45 @@ from step 32 as it stands.
   adopted the home (`/api/v1/home/adopt`) with the mounts as the stages stood. `run_plan.py --keep-home` (5c3aeffad)
   leaves the motors on at any stop, so an attended run's next start needs no homing either.
 - `run4_from32` started at 13:49:27, and joint 4 moved at its g12 step (13:49:58).
+
+**The gated chain.** The coordinator found at 13:5x that a stepper skipping its layout move brings fingers into each
+other in cad_v2 at four of the five remaining layouts, and nothing on the hand can see a skip. So the lab stopped
+`run4_from32` after g12 (14:09:56), and the rest of s1 ran as `lab/gated_chain.sh` (`chain5`). After each layout move
+the chain waited until the owner had looked at the stages.
+- The owner confirmed every move: sv1_w6689 at 14:36, rv04_mid at 15:41, sv1_w0099 at 16:31 ("yea the middle Y-axis
+  moved, lets keep going") and sv1_u0308 at 17:06 ("yea it moved its looking good"). The move home at 17:31 had no
+  gate. The owner checked it after the chain ended.
+- One stop. At 15:50 the middle's yaw stayed 8.1 deg short at step 44 of rv04_mid. The owner watched it stick at
+  29.6 deg for 5 s and free itself with nothing touching. The chain went on from step 44 at 15:54, with the yaw limit
+  at 10 deg (`MAX_ERR_YAW`). No other pose was blocked. The largest error elsewhere was 6.1 deg, a yaw.
+- The measured poses kept clear of each other. At the station's mounts in cad_v2, the servos' mean over each dwell
+  came no closer than 11.3 mm (sv1_w6689, step 107, thumb to middle). The other layouts' closest were 12.1, 12.3 and
+  12.5 mm. Over every 20 Hz sample of the first two layouts, moves included, the closest was 10.6 mm.
+  `lab/measured_clearance.py` computes this. Each chunk's `events.jsonl` and the 523 dwells are in `data/20261105-chain5/`.
+- The boards logged at 160.5 records/s throughout.
+
+**The measured-pose gate.** The coordinator's tolerance check (bd20939cc, `data/20261105-plan_*_tolerance_check.txt`)
+put the limits' worst case in numbers. At the 10 deg yaw limit, two neighbours both short toward each other would touch
+on 11 to 35 steps of each remaining layout and 17 to 22 of each HOM layout, up to 3.8 mm deep. `run_plan.py
+--min-clearance MM` closes that gap.
+- After a pose passes its joint limits, the runner computes handgeo's clearance of the measured joints at the
+  station's `mount_positions`. Under MM it backs out, as from a pose not reached.
+- Every step's event records `clear_mm` and `clear_pair`.
+- `lab/clearance_helper.py` runs under uv, since the runner's python has no mujoco. A helper that cannot start, or a
+  query unanswered for 5 s, is a safety stop.
+- `gated_chain.sh` passes `MIN_CLEARANCE` on.
+- Dry check on a stand-in station on localhost:
+  - 12 roll poses: the gate's clearance matched each step's plan clearance within 0.05 mm.
+  - A pose within every joint limit read back 1.8 mm into thumb and middle (the thumb's yaw 9.5 deg off, the others
+    5.5): it was backed out, the run stopped and went to zero.
+  - A helper killed mid-run stopped the run at the next pose. A helper that could not start stopped it before the
+    first.
+
+**The HOM layouts.** `hom1` runs `plan/20261105-plan_layouts_hom_s1.json` in the chunks of
+`plan/20261105-hom_s1_chunks`, with `MAX_ERR_YAW=10 MIN_CLEARANCE=5`. The owner chose it at 17:5x, "Yes, with the gate".
+It started at 18:01:08 from home, after corvus pulled the merges of QUEUE R35's parts B and C with the hand idle. The
+owner confirmed the roll move at 18:04: "yes, only the thumb x has moved, looks centered. the Y-axis on all of them
+have moved inward about the same".
 
 ## Known limits
 

@@ -11,6 +11,9 @@
 # (defaults: plan/20261105-from32_chunks and logs/20261105-sr2_crosstalk/chain5; FIRST, the number of the first layout
 # to run, default 1). MAX_ERR_YAW in the environment sets the yaw joints' limit (default 8 deg; 10 from 15:5x on 11-05,
 # after the owner watched the middle's yaw stick at 29.6 deg for 5 s and free itself with nothing touching).
+# MIN_CLEARANCE (mm) turns on run_plan.py's --min-clearance: a pose whose measured joints clear less than that in the
+# CAD hand is backed out (the coordinator, 16:3x on 11-05: two neighbours both short toward each other at the yaw
+# limit can reach contact on poses the plan clears by 12 mm).
 set -u
 cd /home/will/workspace/hand || exit 1
 D=docs/experiments/20261104-sr2_hand_crosstalk
@@ -20,7 +23,8 @@ FIRST=${3:-1}
 mkdir -p $OUT
 run() {
   /usr/bin/python3 -u $D/lab/run_plan.py "$1" "$2" --token-file ~/.sr2_station_token \
-    --boards logs/20261105-sr2_crosstalk/boards --board-channels 0,1,3 --max-err-yaw ${MAX_ERR_YAW:-8} --max-blocked 1 --keep-home
+    --boards logs/20261105-sr2_crosstalk/boards --board-channels 0,1,3 --max-err-yaw ${MAX_ERR_YAW:-8} --max-blocked 1 --keep-home \
+    ${MIN_CLEARANCE:+--min-clearance $MIN_CLEARANCE}
 }
 for MF in $(ls $CH/*_mounts.json | sort -V); do
   L=$(basename $MF _mounts.json)

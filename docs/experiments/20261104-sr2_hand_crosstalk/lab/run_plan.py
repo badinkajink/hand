@@ -9,13 +9,19 @@ t_recv and t_sample = t_recv - the sample's age) and progress.json (pass and ste
 touch OUTDIR/STOP (or a STOP beside OUTDIR, for a chain) ends the run after the current step. Safety stops, each followed by the zero pose and the end:
 a station error or lost link; a servo at 60 C or more; a third pose that a joint could not reach (each such pose is
 backed out at once); with --boards, a fault in the boards' stream (channels, record rate, zeroed or implausible records,
-held 3 s). At the end the hand goes to the zero pose and the motors are disabled
+held 3 s). With --min-clearance MM, a pose whose measured joints, at the station's mounts, clear less than MM finger to
+finger in the CAD hand counts as a pose not reached, every step's event gets the measured clearance, and a clearance
+that cannot be had is a safety stop. At the end the hand goes to the zero pose and the motors are disabled
 (steppers off, servo torque off), which also gives up the home. With --keep-home (an attended run) they stay on, so the
 next run needs no homing.
 """
 import argparse
 import datetime as dt
 import json
+import os
+import select
+import shutil
+import subprocess
 import threading
 import time
 import urllib.request
@@ -42,6 +48,9 @@ ap.add_argument("--max-err", type=float, default=6.0)
 ap.add_argument("--max-err-yaw", type=float, default=None,
                 help="the yaw joints' own limit (deg; default --max-err): hanging, they hold short of gravity")
 ap.add_argument("--max-blocked", type=int, default=3, help="stop the run at this many poses a joint could not reach")
+ap.add_argument("--min-clearance", type=float, default=None,
+                help="mm: back out of a pose whose measured joints, at the station's mounts, clear less than this finger "
+                     "to finger in the CAD hand (lab/clearance_helper.py under uv)")
 ap.add_argument("--boards", default=None, help="the board logger's folder (board_log.py); its stream is checked too")
 ap.add_argument("--board-channels", default=None, help="the mux channels the boards must be on, e.g. 0,1,3")
 ap.add_argument("--min-board-rate", type=float, default=100.0, help="records/s below which the boards' stream fails")
@@ -263,6 +272,64 @@ def measured_pose():
         return None
 
 
+CLEAR = {"p": None, "buf": b""}
+
+
+def start_clearance():
+    """Start lab/clearance_helper.py under uv (handgeo needs mujoco, which this python lacks) and wait for its ready."""
+    uv = shutil.which("uv") or "/snap/bin/uv"
+    CLEAR["p"] = subprocess.Popen([uv, "run", "-q", "--no-project", "--python", "3.10", "--with", "mujoco", "--with",
+                                   "numpy", "--with", "scipy", "python", "-u", "clearance_helper.py"],
+                                  cwd=Path(__file__).resolve().parent, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                  stderr=open(out / "clearance_helper.err", "a"))
+    t0 = time.time()
+    while time.time() - t0 < 180.0:
+        r = helper_line(180.0 - (time.time() - t0))
+        if r is None:
+            break
+        if r.get("ready"):
+            event("clearance_helper", ready=True, start_s=round(time.time() - t0, 1), min_clearance_mm=a.min_clearance)
+            return
+    raise Abort("the clearance helper did not start (see clearance_helper.err)")
+
+
+def helper_line(timeout):
+    """The helper's next line as JSON: None on a timeout or its exit, {} for a line that is not JSON."""
+    p = CLEAR["p"]
+    t0 = time.time()
+    while b"\n" not in CLEAR["buf"]:
+        left = timeout - (time.time() - t0)
+        if left <= 0 or not select.select([p.stdout], [], [], left)[0]:
+            return None
+        chunk = os.read(p.stdout.fileno(), 65536)
+        if not chunk:
+            return None
+        CLEAR["buf"] += chunk
+    line, _, CLEAR["buf"] = CLEAR["buf"].partition(b"\n")
+    try:
+        return json.loads(line)
+    except ValueError:
+        return {}
+
+
+def measured_clearance(ctx):
+    """The least clearance (mm) and its pair of the measured joints at the station's mounts in the CAD hand. A query the
+    helper does not answer within 5 s stops the run: without it nothing checks the clearance."""
+    s, _ = state()
+    pose, mounts = measured_pose(), (s or {}).get("mount_positions")
+    r = None
+    if pose is not None and mounts:
+        try:
+            CLEAR["p"].stdin.write((json.dumps({"mounts": mounts, "pose": pose}) + "\n").encode())
+            CLEAR["p"].stdin.flush()
+            r = helper_line(5.0)
+        except OSError as e:
+            r = {"error": str(e)}
+    if not r or "least" not in r:
+        raise Abort(f"no measured clearance ({r if pose is not None and mounts else 'no pose or mounts'}) {ctx}")
+    return r["least"], r["pair"]
+
+
 def ramp(target, speed, ctx=None):
     """Walk the hand from where it is to `target` along the straight line in joint space, in waypoints at most
     --ramp-deg apart on every joint, each held until all joints are within 2.5 deg of it or 0.6 s have passed. Servos
@@ -316,23 +383,32 @@ def do_joints(st, ctx):
         pe, pwhich = past_limit(st["joints"])
         if pwhich:
             e, which = pe, pwhich
-            # back out at once to the last pose reached, along the path that brought the hand here
-            blocked["n"] += 1
-            ramp(blocked["last_ok"], 60, ctx)
-            http("POST", "/api/v1/manual/joints", {"joints": blocked["last_ok"], "servo_speed": 60})
-            sleep_checked(2.5, ctx)
-            event("blocked", step_joints=st["joints"], err_deg=round(e, 2), err_joint=which, n=blocked["n"],
-                  back_to=blocked["last_ok"], back_err=joint_error(blocked["last_ok"]))
-            if blocked["n"] >= a.max_blocked:
-                raise Abort(f"{blocked['n']} poses not reached; the last: joint {which} {e:.1f} deg from its "
-                            f"command {ctx}")
-            return {"t_cmd": t_cmd, "t_settled": None, "t_end": time.time(), "settle_s": settle,
-                    "err_deg": round(e, 2), "err_joint": which, "blocked": True}
+            return back_out(st, ctx, {"t_cmd": t_cmd, "settle_s": settle, "err_deg": round(e, 2), "err_joint": which},
+                            f"joint {which} {e:.1f} deg from its command")
+    r = {"t_cmd": t_cmd, "settle_s": settle, "err_deg": round(e, 2), "err_joint": which}
+    if a.min_clearance is not None:
+        c, pair = measured_clearance(ctx)
+        r.update(clear_mm=c, clear_pair=pair)
+        if c < a.min_clearance:
+            return back_out(st, ctx, r, f"measured clearance {c:.1f} mm {pair}")
     blocked["last_ok"] = st["joints"]
     t_settled = time.time()
     sleep_checked(st.get("dwell_s", 3.0), ctx)
-    return {"t_cmd": t_cmd, "t_settled": t_settled, "t_end": time.time(), "settle_s": settle,
-            "err_deg": round(e, 2), "err_joint": which}
+    return {**r, "t_settled": t_settled, "t_end": time.time()}
+
+
+def back_out(st, ctx, r, why):
+    """Back out at once to the last pose reached, along the path that brought the hand here; the --max-blocked-th such
+    pose stops the run."""
+    blocked["n"] += 1
+    ramp(blocked["last_ok"], 60, ctx)
+    http("POST", "/api/v1/manual/joints", {"joints": blocked["last_ok"], "servo_speed": 60})
+    sleep_checked(2.5, ctx)
+    event("blocked", step_joints=st["joints"], err_deg=r["err_deg"], err_joint=r["err_joint"], n=blocked["n"],
+          back_to=blocked["last_ok"], back_err=joint_error(blocked["last_ok"]), why=why)
+    if blocked["n"] >= a.max_blocked:
+        raise Abort(f"{blocked['n']} poses not reached; the last: {why} {ctx}")
+    return {**r, "t_settled": None, "t_end": time.time(), "blocked": True}
 
 
 def do_torque(st, ctx):
@@ -400,6 +476,8 @@ try:
         raise Abort("no station state at start")
     if not s.get("homed"):
         raise Abort("station not homed")
+    if a.min_clearance is not None:
+        start_clearance()
     wait_idle(30.0)
     for p in range(done["pass"], a.passes):
         if until and time.time() > until and p > done["pass"]:
@@ -433,6 +511,11 @@ finally:
             event("motors_disabled", result=r)
         except Exception as e:
             event("disable_failed", error=str(e))
+    if CLEAR["p"] is not None:
+        try:
+            CLEAR["p"].stdin.close()       # the helper ends at the end of its input
+        except OSError:
+            pass
     time.sleep(2.0)
     quit_flag.set()
     event("end", reason=reason)
