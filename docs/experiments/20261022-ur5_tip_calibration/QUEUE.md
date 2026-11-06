@@ -1927,6 +1927,11 @@ push that answers it arrives.
     3. The branch merges into main after the owner's go. Owner, 13:5x on 11-05: "yea we can merge after the ur5 compotuer
        finishes running the servo calibration". The workstation merges when the lab reports that run done and its
        step 2 check passed.
+       - 17:41 on 11-05, workstation: merged into main at `117a8f36a` (owner, 17:4x: "let's do the merge now"). The
+         lab reported the run done at 17:31:24, and its step 2 check is `ebb1631d2`. No commit on main since `1b369fd31`
+         touched the branch's 19 files, so they equal `d6d98b571`'s. In the merged tree the lab program imports, the
+         rig, tip, probe and ATI plan programs start, and `check_scripts.py` reports its 11 known problems. corvus pulls
+         when the hand is idle; part C's check follows.
   - Part C: closed-form IK for the plan builders. Owner, 13:5x on 11-05: "closed form IK sounds good. make sure that it
     can handle parameterization, in case dimensions change down the line, or if we ever add the proximal phalange
     extender". The tip and ATI builders take their joint targets from the simulator's IK, which picks another
