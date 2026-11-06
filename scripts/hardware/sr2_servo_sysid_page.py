@@ -30,7 +30,7 @@ import fp_review_page as P  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
 
-table, img, esc = P.table, P.img, P.esc
+table, img, film, esc = P.table, P.img, P.film, P.esc
 D = ROOT / "docs/experiments/20261106-sr2_servo_sysid"
 DATA = D / "data"
 MEDIA = D / "media"
@@ -487,6 +487,11 @@ def sec_yaw(R, N):
         f"shortfalls changed by {N['same_max']:.2f} deg at most, although bending the finger shortens the yaw's gravity "
         f"arm. The middle yaw fell 3.01, 3.05 and 3.09 deg short at 20, 30 and 40 deg, while the gravity torque nearly "
         f"doubles between those angles.</p>"
+        + film(MEDIA / "20261106-yaw_steps_replay.mp4",
+               "Block c's yaw steps away from zero, replayed on the cad_v3 hand as it hangs from the measured telemetry. "
+               "Each finger is seen along its yaw axis. The red line runs from the yaw axis through the fingertip at the "
+               "commanded angle, and the blue line at the measured one. The first 2 s of each step play at real time; "
+               "<code>scripts/hardware/sr2_servo_sysid_film.py</code>.")
         + img(MEDIA / "20261106-yaw_holds.png",
               "The moving yaw's error through each 10 s hold of blocks c (solid) and c40 (dashed), for the steps away from "
               "zero. The lower curves are the steps to positive angles in the servo frame.")
@@ -562,6 +567,7 @@ def sec_files():
              "record with its gravity torque"),
             ("scripts/hardware/sr2_servo_sysid_fit.py", "the fit (under resguard; it loads the cad_v3 model)"),
             ("scripts/hardware/sr2_servo_sysid_page.py", "this page and its figures"),
+            ("scripts/hardware/sr2_servo_sysid_film.py", "the film of the yaw steps (under resguard)"),
             ("docs/experiments/20261104-sr2_hand_crosstalk/lab/", "make_sysid_plan.py, sysid_chain.sh, sysid_tables.py, "
              "scs0009_registers.py, push_text.py"),
             ("logs/20261106-sr2_sysid/ on corvus", "the full events, telemetry and D435 frames (outside git while GitHub "
