@@ -3344,6 +3344,29 @@ the rig's dry-check, which only computes (its rtde imports sit in URRobot.__init
   to s3 (the only plans with twists; the rolls ran through the same turn_about), and the 29 variants made from the 11-03
   plans. The outputs and the queue of the rest are in the lab session's scratchpad (r35/).
 
+## QUEUE R35 part C: ur5-closed-form-ik (668a1cb8b) against d6d98b571, 11-05 and 11-06
+
+Run on corvus after the SR2 sweep, from 21:00 on 11-05, under nice. The old code's tip plan was rebuilt at 12:5x on 11-06.
+Nothing moved the robot, and nothing ran in the simulator. The old code ran in a worktree of d6d98b571. The new code ran
+in the main checkout, whose rig and tip builder equal 668a1cb8b's, since 8fbd98d8d merged the branch.
+- `dry-check --real --chain`, from the arm's joints of part B step 2 (53.23, -82.99, 104.54, -111.86, -89.70,
+  213.97 deg; robot_mode 3), on the same three runs as part B: the seat 1 swap plan (stages pad, grid), the three seat 1
+  plans of 11-04 chained as run, and the six-plan rod-points chain of 11-04. Old and new printouts are identical line
+  for line, and their JSON bitwise (2978, 5055 and 5033 numbers). Both flag "j6 on segment 0" on the swap plan's first
+  travel, as in part B.
+- The lab's sphere-cell tip plan, with the options of plan/20261022-plan_sphere_lab_turns_checked.json and
+  `--q-seed 59.48,-75.93,120.3,-44.61,62.11,1.83`, built by each code. Both have the same 152 actions in the same order,
+  with the same ids, stages, kinds and twists, and both drop the same 19 actions. Joint targets agree to 0.1 deg, the
+  plans' rounding. Joint 6 of grav-05 is -27.8 deg in the old plan and -27.9 in the new; the joint6_deg of grav-00 and
+  fgrav-00 is 32.2 and 32.1; the seed's and homing's joint 6 is 2.1 and 2.2. Four drops (grav-08, grav-11, fgrav-04,
+  fgrav-05) change only their reason: "no IK" in the old code, "joint 5 outside the wrist window" with the solution's
+  joints in the new. The simulator section's q_seed differs by 7.6e-11 deg at most.
+- The old code's tip build first failed in 1 s, at 21:1x on 11-05. Its worktree was made without smudging LFS files, so
+  it held the pointer of docs/experiments/20261021-ur5_calibration_mount_v3/20261021-ur5_calibration_mount_v3_payload.json.
+  That blob is the same at d6d98b571 and main, so main's file was copied in, and the rebuild took 145 s.
+
+The outputs are in the lab session's scratchpad (r35/dry_c, r35/tip_c).
+
 ## The lab clone and git-lfs
 
 The rebase at 19:21 replaced the plan, `poses.jsonl`, `moves.jsonl` and the images of this folder with git-lfs pointers,
