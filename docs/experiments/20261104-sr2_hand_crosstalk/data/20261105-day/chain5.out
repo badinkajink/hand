@@ -1,0 +1,26 @@
+14:11:39 mounts 1_sv1_w6689
+plan done
+14:13:09 GATE 1_sv1_w6689: waiting for logs/20261105-sr2_crosstalk/chain5/GO_1_sv1_w6689
+14:36:17 poses 1_sv1_w6689
+plan done
+15:02:28 mounts 2_rv04_mid
+plan done
+15:03:59 GATE 2_rv04_mid: waiting for logs/20261105-sr2_crosstalk/chain5/GO_2_rv04_mid
+15:41:43 poses 2_rv04_mid
+safety stop: 1 poses not reached; the last: joint 2.aa 8.1 deg from its command (pass 0 step 44 random_rv04_mid)
+15:50:17 poses 2_rv04_mid ended early
+15:54:51 poses 2_rv04_mid resumed from step 44, yaw limit 10
+plan done
+16:12:16 mounts 3_sv1_w0099
+plan done
+16:13:44 GATE 3_sv1_w0099: waiting for logs/20261105-sr2_crosstalk/chain5/GO_3_sv1_w0099
+16:31:54 poses 3_sv1_w0099
+plan done
+16:56:38 mounts 4_sv1_u0308
+plan done
+16:58:09 GATE 4_sv1_u0308: waiting for logs/20261105-sr2_crosstalk/chain5/GO_4_sv1_u0308
+17:06:21 poses 4_sv1_u0308
+plan done
+17:28:56 mounts 5_home
+plan done
+17:31:24 chain done
