@@ -269,6 +269,136 @@ Checks, in `logs/20261103-scripts_cleanup/equiv/ur5/` on the workstation:
 - cost: the replays and the run check took 6 to 9 % longer, the simulator sessions 13 to 16 %. `apply` on 10,000
   points takes 125 us against 44, through `einsum`.
 
+## Closed-form IK for the plan builders (branch `ur5-closed-form-ik`, 2026-11-05)
+
+The plan builders now take their joints from `sr2hand.robot.ur_kinematics.ik_nearest`, the UR5's IK in closed form with
+one fixed choice, in place of the simulator's damped least squares (`SIM.ik`). Two builds of one plan now agree in every
+field but the build's wall time (`checks.seconds`). Rebuilt with `--q-seed`, as the lab builds them, the tip plans keep
+the old code's actions, twists and joint targets. The owner asked for it at 13:5x on 11-05 (QUEUE R35, part C): "closed
+form IK sounds good. make sure that it can handle parameterization, in case dimensions change down the line, or if we
+ever add the proximal phalange extender".
+
+`SIM.ik` runs damped least squares from a seed. On the old tip build of the lab's measured-rod cell it returned another
+solution than the nearest one on 150 of 5,330 pose checks, and the same joints a whole turn apart on 18. On 118 of those
+168 its iterations had wandered by whole turns, up to tens of thousands of degrees, and the builder read the joints past
++-357 deg as no IK. One tip pose gave 10 different joint 5 values over 20 changes of 1e-15 relative (section above).
+
+The module, `src/sr2hand/robot/`:
+- `ur_kinematics.py`: `URParams`, the DH table as data. `UR5_CB3` is the simulator's `DH_CB3`, float for float, with the
+  joint limits of the cell's `ur5.urdf` (+-360 deg, the elbow +-180 deg). Another UR arm loads with `from_dict` or
+  `from_json`; a table without the UR geometry (a calibrated one) is refused. `fk`; `ik`, every closed-form solution in
+  a fixed branch order (shoulder, wrist, elbow) with flags for unreachable and singular branches; `ik_near` and
+  `ik_nearest`, the solution nearest a reference in Euclidean joint distance, joints within half a turn of the reference
+  and inside the limits, ties within 1e-9 rad to the lower branch. `ik_nearest` first takes the target's rotation to the
+  nearest rotation, as the least squares measured its error, and keeps its acceptance of 1e-4 mm and 1e-6 rad. The rig's
+  `ik_all` moved here with its arithmetic unchanged.
+- `tool_chain.py`: `Link` and `ToolChain`, named rigid transforms from the flange, with JSON in and out.
+  `calibration_tool` and `ati_tool` are the builders' stacks (the HEX-E 35.0 mm out with the mount turned -92.15 deg,
+  then the pad frame or the ATI frame), equal to the builders' `T_EM`, `T_EP` and `T_EA` bit for bit. `SR2Hand` composes
+  the flange, the HEX-E, the adaptor at clocking k and the palm P from `assets/cad_v3/frames.json`, then one finger's
+  gantry, yaw, MCP, PIP, tip body and contact point. `SR2Hand.ik` solves a contact-point target for given gantry
+  positions and finger joints.
+- `sr2_hand.json`: the finger's link lengths with their sources: `yaw_to_mcp_mm` 20.75 and `mcp_to_pip_mm` 30.8
+  (cad_v1's `assembly.json`, `kinematics_mm`), `tip_body_mm` 36.36 (cad_v2's `assembly.json`), `reach_mm` 10.55 (the v4b
+  pad's apex, `tip_codesign_geometry.REACH`), `proximal_extension_mm` 0; per finger `flex` (the MCP and PIP axes' y
+  sign) and `face_sign` (the palmar side). `SR2Hand.load(proximal_extension_mm=e)` or `with_geometry(finger, ...)`
+  changes them.
+
+Switched from `SIM.ik` to `ik_nearest`: the tip plan builder (`Checker.ik`; its `seed` now lists the closed form's eight
+solutions), the ATI plan builder (on the homing pose's branch, as its docstring always said), the holder path checker,
+the holder plan, R24 pass 3, the tall pass, the top-edge pass, the trimmed-cap reach, the v3 suite's replay, the wrist
+order, the indenter plate layout, the indenter array, the tall indenter and the fingertip holder; and the rig's homing
+in its plate cell. Left on `SIM.ik`: the simulator itself, the lab's tools that move the robot (`lab/move_guarded.py`,
+`lab/leave_tall_key.py`), the films (`ur5_cell_render.py`, `fingertip_calibration_cell_render.py`), the results page
+(`ur5_tip_calibration_page.py`) and the cad_v3 analysis's `build_ur5_mjcf.py`.
+
+How the builders' joints reach the robot:
+- tip plans: the builder uses the joints in `check` and `joint6_deg` for its own reach, window and clearance checks and
+  its order by joint 6; the program solves each move with the controller's IK nearest the homing's joints. Only
+  `sim.q_seed` enters the program's simulator, as the seed of its start pose.
+- ATI plans: each station's `q_deg` is the moveJ target of `ati_calibration_session.py`.
+- the rig's probe plans: `home_path_q` are moveJ waypoints; `q_rest` and the hub's `q` are the seeds of the controller's
+  IK.
+
+Checks, in `logs/20261103-scripts_cleanup/equiv/ik/` on the workstation, under Python 3.12 with numpy 2.4.4 and under
+Python 3.10 with numpy 1.26.4 and scipy 1.12.0 (corvus's versions: a uv venv on the system's Python 3.10 with those two,
+trimesh 5.2.0 and pyserial, in the session's scratchpad as `corvus_env`):
+- `check_ur_ik.py`: fk equals the simulator's fk on 10,000 random joint vectors, bit for bit. fk(ik(T)) lies within
+  1.5e-12 m and 1.8e-11 rad of T for all 71,416 solutions of 10,000 random reachable poses, and the generating joints
+  are among the solutions. At and near the three singularities (4,200 poses and 16,000 at the shoulder) every solution
+  is within 2e-12 m; poses at the wrist singularity with a stretched elbow have no solution when joint 6 is held at
+  q6_des. Of 3,000 random poses in a 2.4 m box, 2,348 have none, and the damped least squares from 12 seeds reaches none
+  of 400 of them. The rig's old `ik_all`, `fk_many`, `ik_near` and `branch_of` are bitwise equal on the 10,000 poses.
+  Twenty changes of up to 1e-12 per pose (200,000 poses, two reference sets) change no branch and move joints by at most
+  9.8e-10 rad on the poses 0.01 or more from a singularity. Poses rounded to 4, 5 and 7 decimals are solved through the
+  projection. The UR5e's nominal table loads from a dict in metres and passes the same check; a calibrated table is
+  refused.
+- `cross_env.py`: the same 10,000 poses in both environments give the same branches; the joints differ by 5e-14 rad at
+  most away from singularities and by 3.2e-12 rad at |sin q3| 1e-4 (numpy's arccos and arctan2 differ in their last
+  bit).
+- `check_sr2_fk.py`: against `ur5_full_k1.xml` at 1,000 random arm, gantry and finger configurations, tool0 agrees to
+  5.7e-16 m, the tip frames to 2.2e-10 m and 6.4e-10 rad, the 3,054 pads to 2.3e-10 m. The four clockings' scenes agree
+  to 1.9e-10 m. The scene with every `<f>_pip_frame` moved e further (-3, 5, 10 and 25 mm) agrees with
+  `proximal_extension_mm=e` to 2.2e-10 m, and an extension moves the contact point by e along the MCP link to 2.8e-13
+  mm. `SR2Hand.ik` solves 2,000 targets; `calibration_tool` and `ati_tool` equal the builders' matrices bit for bit.
+- the rig (`rig/`): the table replays of seat 1 with the rod and with the 2 mm sphere give byte-identical plans, and
+  path files equal but for the wall time. The plate cell's replay with the rod (`--cell v1030 --plate block`, where the
+  homing's joints now come from `ik_nearest`) gives a plan equal in every number. `dry-check --real --chain` on the
+  lab's two seat 1 program plans of 11-03 gives the same result in every number but the wall time. The cad_v3 scenes'
+  `over_object` keyframes come out bitwise equal at k = 0 to 3.
+- the builders (`plans/`), each built twice with the branch's code: every file equal to its twin but for the build's
+  wall time. Against the base code's build: R24 pass 3, the holder plan, the wrist order, the tall pass and the holder
+  path checks (the 10-29 side map, the 10-29 sphere stage 2) byte-identical, as are the v3 suite's tall2 and the
+  indenter array's homing. The tall indenter's reach gains 12 twists at 40 deg and loses none. The trimmed-cap reach
+  keeps every result; 357 failure reasons change from joint 6 to joint 5. The plate layout's replay differs in 3 of
+  67,600 swept-map cells by one float32 step, the fingertip holder's homing by 6e-14 mm. The corvus Python builds the
+  same tip and ATI plans; the gravity stations' axes differ by 6e-14 between the numpy versions. The holder path
+  checker, move by move as the program makes them, gives the same 136 rows for the rebuilt q-seed sphere plan of each
+  code, 39 flagged in both (30 for the joint windows the plans got after 10-22, 9 for the mount's clearance in this
+  later cell model).
+- `ikrec.py` records each `SIM.ik` call of a base-tree build with the closed form's answer beside it (`plans/ikrec/`).
+- the simulator (`sim/`, `simrun.py` with the clock at 1762300000 s): the lab-cell sphere plan with `--q-seed`, built by
+  each code and run by each tree, gives the same 310 events at the same times, all 154 actions ok; forces agree within
+  2.0e-6 N, joints within 1.9e-8 rad, the registrations within 1.2e-6 mm and rad.
+- pytest in the worktree: 113 passed and the same 2 failed as on the base.
+
+What changed in the rebuilt plans, and why:
+- tip plans with `--q-seed` (the lab's way since 10-22; the lab's sphere cell,
+  `plan/20261022-plan_sphere_lab_turns_checked.json`, and rod cell, `plan/20261023-plan_rod_lab.json`): the same
+  actions, twists and joint targets as the base code's rebuild, but one joint vector and two `joint6_deg` values at the
+  0.1 deg rounding, and `sim.q_seed` by 4e-9 deg (the least squares' tolerance). Dropped gravity stations now say "joint
+  5 outside the wrist window" where the least squares found no solution. Against the lab's files, both rebuilds differ
+  alike, in 150 and 87 joint vectors, and the sphere cell's rebuilds have 10 more actions: the code since 10-22 (mount
+  v7, the trimmed cap), not the IK.
+- tip plans without `--q-seed`: in the lab's measured-rod cell, 12 actions now take twist -90 deg where the old build
+  took -60, -120 or -150 deg: at -90 the least squares wandered whole turns or reached another branch, and the builder
+  read no IK or a joint outside its window. Three travels between them now dip joint 5 to 27 to 30 deg, reported in
+  `checks.travel_joint_paths_bad`. On the default sphere cell, two homing branches tie in the seed's cost (60 mm of
+  clearance at the cap, joint 6 at -90 deg). The base code took joint 1 at -56 deg (branch 7) by its seeds' order; the
+  closed form's branch order takes +70 deg (branch 0, the branch of the lab robot's seatings), and the plan changes with
+  it. The seed now keeps the first branch when two costs lie within 1e-9.
+- the path checks and pass plans: the same as the base code's, byte for byte. Against the lab's files of 10-25 to 10-30
+  they differ alike in both codes: the holder path checks' margins by up to 0.005 deg and mm, the pass plans in their
+  targets and twists (the code and the options since those files were built).
+- the ATI plan (stations are moveJ targets): the same 41 gravity directions and per-eye counts. Two stations, st-23 and
+  st-32, take another of the 24 yaws for the same direction, so their joints move by up to 10.7 deg. The -x block, with
+  st-23 among its stations, visits them in the reverse order. A cycle and its reverse cost the same, and their sums'
+  last bits had decided between them; the builder now keeps the first cycle in the permutations' order when two lie
+  within 1e-9 rad (`ORDER_TIE`), so the workstation's and corvus's builds agree. The lab's plan of 10-23 has 39
+  stations; the base code's rebuild already differs from it, through the least squares.
+
+Open for the owner and the lab:
+- the controller's own IK (`getInverseKinematics`) chooses by a metric UR does not document; the builders now model it
+  as the Euclidean nearest. The lab's simulator still uses the damped least squares for its moves, as asked.
+- the 12 twists and the three travels of the measured-rod cell's plan without `--q-seed`; the lab builds with
+  `--q-seed`.
+- the SR2 hand's gantry positions count from the CAD's travel-box centres (frames.json), 6.2 mm along x_P and 2.4 to 3.4
+  mm along y_P from the driver's `FINGER_GEOMETRY` origins; the module has no conversion from the firmware's stepper
+  millimetres.
+- `lab/move_guarded.py` and `lab/leave_tall_key.py` still check their moves with `SIM.ik`.
+- `UR5_CB3` limits the elbow to +-180 deg, as the cell's `ur5.urdf` does; the controller's own limit for every joint is
+  +-360 deg. A wider limit is one field of `URParams`.
+
 ## Bugs found by the audits
 
 | where (path before the move) | what | effect |

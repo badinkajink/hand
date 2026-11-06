@@ -26,6 +26,7 @@ from pathlib import Path
 import numpy as np
 
 import ur5_tip_calibration_holder_paths as HP
+from sr2hand.robot import ur_kinematics as URK
 
 PENALTY = 1000.0
 
@@ -37,7 +38,7 @@ def replay(plan, session):
     reg = mv.reg
     T = np.asarray(reg.T_BE_home, float)
     T = HP.C.Tm(T[:3, :3], T[:3, 3] + T[:3, :3] @ reg.T_EM[:3, :3] @ np.array([-12.0, 0.0, 0.0]))
-    q = HP.SIM.ik(T, np.asarray(reg.q_home, float))
+    q = URK.ik_nearest(T, np.asarray(reg.q_home, float))
     out = []
     for i, act in enumerate(plan["actions"]):
         if act["kind"] not in ("touch", "hover", "press", "slide", "twist", "roll"):

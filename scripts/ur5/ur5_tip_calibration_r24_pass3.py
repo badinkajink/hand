@@ -42,6 +42,7 @@ sys.path.insert(0, str(ROOT / "src/sr2hand/driver/reskin5x/host"))
 import ur5_tip_calibration as C  # noqa: E402
 import ur5_tip_calibration_sim as S  # noqa: E402
 from sr2hand.numerics.angles import nearest  # noqa: E402  (src/ on sys.path through the lab program's _paths)
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 KEEP = ("id", "stage", "kind", "target", "twist", "standoff", "press_N", "moves", "hold_s", "role", "levels", "beyond_mm",
         "v", "stop_N", "fit_N", "max_depth_mm")
@@ -166,7 +167,7 @@ def joints(geo, reg, a, turn):
     qh = np.asarray(reg.q_home, float)
     j5, j6 = [], []
     for dz in (0.0, st + 1.0):
-        q = S.ik(reg.T_BI @ C.Tm(T_IP[:3, :3], T_IP[:3, 3] - C.EZ * dz) @ C.inv(reg.T_EM @ reg.T_MP), qh)
+        q = URK.ik_nearest(reg.T_BI @ C.Tm(T_IP[:3, :3], T_IP[:3, 3] - C.EZ * dz) @ C.inv(reg.T_EM @ reg.T_MP), qh)
         if q is None:
             return None
         j5.append(math.degrees(q[4]))

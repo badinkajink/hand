@@ -44,6 +44,7 @@ import ur5_cb3_cell as CELL  # noqa: E402
 import ur5_tip_calibration_r24_pass3 as P3  # noqa: E402
 import ur5_tip_calibration_tall_pass as TP  # noqa: E402
 from sr2hand.numerics.angles import nearest  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 C = CELL.C
 LAB = P3.EXP / "lab"
@@ -83,7 +84,7 @@ def evaluate(cell, p, n, tw, old_cap, heads):
     trimmed and with the old cap, and the screw heads'; or why it fails before the clearances (ik, j5, j6, port)."""
     js, worst = [], {}
     for T_BE in cell.deep(p, n, tw):
-        q = CELL.SIM.ik(T_BE, cell.qh)
+        q = URK.ik_nearest(T_BE, cell.qh)
         if q is None:
             return dict(why="ik")
         j5 = math.degrees(q[4])

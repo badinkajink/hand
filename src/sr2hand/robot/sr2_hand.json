@@ -1,0 +1,34 @@
+{
+ "title": "The SR2 hand's fingers below their gantries: link lengths and joint axes of the chain from the palm frame P to a fingertip's contact point (sr2hand.robot.tool_chain.SR2Hand)",
+ "units": "mm; angles in rad",
+ "frames": "assets/cad_v3/frames.json: the flange, the HEX-E, the adaptor's clockings k, the palm frame P and the travel boxes",
+ "checked": "against the cad_v3 MuJoCo scenes (assets/mjcf/experimental/20261104-cad_v3, ur5_k0..3.xml and ur5_full_k1.xml) at 1,000 random gantry, finger and arm configurations, 2026-11-05",
+ "finger_geometry": {
+  "yaw_to_mcp_mm": {
+   "value": 20.75,
+   "source": "yaw axis to MCP axis: assets/mjcf/experimental/20261013-cad_v1/assembly.json report.kinematics_mm.yaw_to_mcp (scripts/hardware/build_cad_v1_finger.py, from the yaw link's STL); the cad_v3 scenes' <f>_mcp_frame at z -0.02075 m"
+  },
+  "mcp_to_pip_mm": {
+   "value": 30.8,
+   "source": "MCP axis to PIP axis, the proximal (MCP) link: report.kinematics_mm.mcp_to_pip of the same file (the mounted MCP link's STL); the scenes' <f>_pip_frame at z -0.0308 m"
+  },
+  "tip_body_mm": {
+   "value": 36.36,
+   "source": "PIP axis to the pad's centre plane: assets/mjcf/experimental/20261030-cad_v2/assembly.json tip_body_mm (scripts/hardware/build_cad_v2_finger.py TIP_BODY_MM, DIP link b v4); the scenes' <f>_tip at z -0.03636 m"
+  },
+  "reach_mm": {
+   "value": 10.55,
+   "source": "the finger's axis to the pad's apex on the palmar side: the apex of the v4b pad tcd_ell7.4x8.5x11x22 at (y, z) = (0, 0) of the tip frame (scripts/fingertip/tip_codesign_geometry.py REACH, fingertip_geometry.REACH); the outermost of ur5_full_k1.xml's 1,018 pads of 0.75 mm radius stands 9.777 mm out"
+  },
+  "proximal_extension_mm": {
+   "value": 0.0,
+   "source": "the proximal phalange extender (owner, 2026-11-05; not built): added to mcp_to_pip_mm, so the PIP axis and everything past it move along the MCP link's axis"
+  }
+ },
+ "fingers": {
+  "thumb": {"flex": -1.0, "face_sign": 1.0},
+  "index": {"flex": 1.0, "face_sign": -1.0},
+  "middle": {"flex": 1.0, "face_sign": -1.0}
+ },
+ "fingers_source": "flex: the y component of the MCP and PIP axes (the scenes' thumb_mcp axis 0 -1 0, index_mcp and middle_mcp 0 1 0; scripts/hom/hand_object_scale_kin.py FLEX); face_sign: the palmar side of the tip frame along x (scripts/fingertip/fingertip_geometry.py FACE_SIGN); the yaw axis is x for every finger"
+}

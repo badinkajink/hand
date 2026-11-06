@@ -51,6 +51,7 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import ur5_cb3_cell as CELL  # noqa: E402
 import ur5_tip_calibration_r24_pass3 as P3  # noqa: E402
 from sr2hand.numerics.angles import nearest  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 C = CELL.C
 EXP = P3.EXP
@@ -107,7 +108,7 @@ class Cell:
 
     def pose(self, T_BE, contact_P, raise_mm, finger=None):
         """(ok, worst clearance per group, (joint 5, joint 6) deg) at flange pose T_BE."""
-        q = CELL.SIM.ik(T_BE, self.qh)
+        q = URK.ik_nearest(T_BE, self.qh)
         if q is None:
             return False, None, None
         j5 = math.degrees(q[4])

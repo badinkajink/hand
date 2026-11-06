@@ -19,11 +19,13 @@ Shared numerical code (owner, 2026-11-03): rotations, quaternions and rigid tran
 `sr2hand.geometry.rotations` (wxyz quaternions, Hamilton products, radians, over scipy's `Rotation`; numpy and scipy
 only, so it runs in `femtip` and on corvus). Vectors, distances, signed distances, meshes and lattices are in
 `geometry.vectors`, `distances`, `sdf`, `mesh` and `sampling`; rank statistics, smoothing and angle wrapping in
-`sr2hand.numerics` (`stats`, `signal`, `angles`); the torch quaternion functions in `sr2hand.rl.math`. Never write a private
-copy in a script: call the module, or scipy or trimesh, and add a missing function to the module, checked once against
-MuJoCo, scipy or trimesh. The CB1's `driver/manta/` and `bench/tags.py` keep their copies; the UR5 lab program and the
-programs that move the robot keep the few listed in `docs/notes/20261103-scripts_cleanup/RUNBOOK.md` (branch
-`ur5-shared-math`, 2026-11-05).
+`sr2hand.numerics` (`stats`, `signal`, `angles`); the torch quaternion functions in `sr2hand.rl.math`. The UR arms'
+kinematics (DH table as data, forward kinematics, the closed-form inverse, `ik_nearest` for the plan builders) are in
+`sr2hand.robot.ur_kinematics`, and tools as chains of named transforms, the SR2 hand's finger among them, in
+`sr2hand.robot.tool_chain`. Never write a private copy in a script: call the module, or scipy or trimesh, and add a
+missing function to the module, checked once against MuJoCo, scipy or trimesh. The CB1's `driver/manta/` and
+`bench/tags.py` keep their copies; the UR5 lab program and the programs that move the robot keep the few listed in
+`docs/notes/20261103-scripts_cleanup/RUNBOOK.md` (branch `ur5-shared-math`, 2026-11-05).
 
 Large files: media, data rows and detailed result pages under `docs/` are Git LFS files (`.gitattributes`); the home
 page, the overviews and the pages marked `!filter` there stay ordinary files. History before 2026-10-09 is in

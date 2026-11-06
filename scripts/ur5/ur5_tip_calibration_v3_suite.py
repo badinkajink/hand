@@ -53,6 +53,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 os.environ.setdefault("UR5_MOUNT", "v7")            # the mount on the robot since R25 (2026-10-26)
 import ur5_tip_calibration_suite_value as SV  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 LAB = SV.LAB
 J6_MAX, J6_MIN = 44.0, -61.0
@@ -269,7 +270,7 @@ def replay_ok(plan, session, act, j6_max=J6_MAX):
     T_rest = segs[i_own][1]
     T_top = mv.up(T_rest, 60.0)
     segs = [("L", T_top, T_rest)] + segs[i_own:]
-    q = HP.SIM.ik(T_top, np.asarray(reg.q_home, float))
+    q = URK.ik_nearest(T_top, np.asarray(reg.q_home, float))
     if q is None:
         return False, ["no IK above"], {}
     m = dict(sin5=9.0, q3=999.0, shoulder=1e9, lim=999.0, j5_margin=999.0, j6_margin=999.0)

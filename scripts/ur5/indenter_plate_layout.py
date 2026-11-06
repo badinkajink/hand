@@ -50,6 +50,7 @@ os.environ["UR5_TIPHOLD_STATIONS"] = "down,up"      # the plate's holder: the -y
 import ur5_cb3_cell as CELL  # noqa: E402
 import ur5_tip_calibration_holder_paths as HP  # noqa: E402
 import indenter_array as IA  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 C = CELL.C
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
@@ -224,7 +225,7 @@ def home(g, T_BA, T_EM, q0, i=1):
     """Flange pose and joints with the mount seated on key i."""
     T_AM = np.array(g["keys"][i]["T_AM_home"], float)
     T_BE = T_BA @ T_AM @ C.inv(T_EM)
-    return T_BE, CELL.SIM.ik(T_BE, q0)
+    return T_BE, URK.ik_nearest(T_BE, q0)
 
 
 def frame_map(suite, g, plan):
@@ -319,7 +320,7 @@ def replay_actions(plan, ctx, suite, quick, label):
     q = np.asarray(ctx["q_home"], float)
     T_prev = np.asarray(ctx["T_BE_home"], float)
     T_prev = C.Tm(T_prev[:3, :3], T_prev[:3, 3] + T_prev[:3, :3] @ reg.T_EM[:3, :3] @ np.array([-12.0, 0.0, 0.0]))
-    q = CELL.SIM.ik(T_prev, q)
+    q = URK.ik_nearest(T_prev, q)
     rows = []
     for ai, act in enumerate(plan["actions"]):
         if act["kind"] not in ("touch", "hover", "press", "slide", "twist", "roll"):
@@ -336,7 +337,7 @@ def replay_actions(plan, ctx, suite, quick, label):
                 seg, _ = HP.to_contact(seg, q, reg)
                 segs[-1] = ("L", seg[2], segs[-1][2])
             if quick:
-                qq = CELL.SIM.ik(seg[2], q)
+                qq = URK.ik_nearest(seg[2], q)
                 sm = None if qq is None else [(seg[2], qq)]
             else:
                 sm = HP.samples(seg, q)
@@ -372,7 +373,7 @@ def replay_keys(ctx):
         T_BE, q = home(ctx["g"], ctx["T_BA"], ctx["T_EM"], q0, i)
         for lift in (0.0, 12.0):
             T = C.Tm(T_BE[:3, :3], T_BE[:3, 3] + T_BE[:3, :3] @ ctx["T_EM"][:3, :3] @ np.array([-lift, 0.0, 0.0]))
-            qq = CELL.SIM.ik(T, q if q is not None else q0)
+            qq = URK.ik_nearest(T, q if q is not None else q0)
             if qq is None:
                 rows.append(dict(id=f"key {i + 1}, {lift:g} mm out", kind="home", flags=["no IK"], clear={}))
                 continue
@@ -463,7 +464,7 @@ def joints_rows(plan, ctx, suite):
         m = dict(sin5=9.0, q3=999.0, shoulder=1e9, lim=999.0, j5_margin=999.0, j6_margin=999.0)
         j6max, why = -1e9, []
         for T in poses:
-            qq = CELL.SIM.ik(T, q)
+            qq = URK.ik_nearest(T, q)
             if qq is None:
                 why = ["no IK"]
                 break
@@ -674,7 +675,7 @@ def pose_of(ctx, suite, aid):
     T_AI, plan = frame_map(suite, ctx["g"], plan)
     mv = HP.Moves(plan, session(ctx, suite, ctx["T_BA"] @ T_AI))
     segs, _, _, i_own = mv.action_moves(plan["actions"][0], np.asarray(ctx["T_BE_home"], float))
-    return CELL.SIM.ik(segs[i_own][2], q0)
+    return URK.ik_nearest(segs[i_own][2], q0)
 
 
 def cmd_render(a):

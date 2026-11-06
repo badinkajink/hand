@@ -261,7 +261,8 @@ def _setup(kind, H):
 def _pose_ok(CELL, C, S, reg, kind, T_BE, contact_P, q0):
     """Joints within the windows and every group's least clearance (mm) at flange pose T_BE."""
     from sr2hand.numerics.angles import nearest      # here: freecadcmd runs the file's CAD part without the package
-    q = S.ik(T_BE, q0)
+    from sr2hand.robot import ur_kinematics as URK
+    q = URK.ik_nearest(T_BE, q0)                     # S, the simulator, is no longer used here (SIM.ik until 2026-11-05)
     if q is None:
         return False, None, None
     j5 = math.degrees(q[4])
@@ -366,7 +367,8 @@ def cmd_homing(a):
     finger and the pad (the mount touches the seat by design)."""
     CELL, C, geo, reg = _setup("tall", a.H)
     T_BE = reg.T_BI @ geo.T_IM_home @ C.inv(reg.T_EM)
-    q = CELL.SIM.ik(T_BE, np.asarray(reg.q_home, float))
+    from sr2hand.robot import ur_kinematics as URK
+    q = URK.ik_nearest(T_BE, np.asarray(reg.q_home, float))
     cl = CELL.clearance(q, T_BE, reg.T_BI, reg.T_EM, "tall")
     worst = {}
     for k, v in cl.items():

@@ -62,7 +62,7 @@ from sr2hand.geometry.distances import barycentric_inside  # noqa: E402
 from sr2hand.geometry.rotations import frame_from_axis, project_to_so3, rot_y, tf, tf_interp, tf_inv  # noqa: E402
 from sr2hand.geometry.sampling import fibonacci  # noqa: E402
 from sr2hand.geometry.sdf import sampled_sdf, sd_convex  # noqa: E402
-from sr2hand.numerics.angles import nearest, wrap  # noqa: E402
+from sr2hand.robot import ur_kinematics as URK  # noqa: E402
 
 C, SIM = CELL.C, CELL.SIM
 LAB = ROOT / "docs/experiments/20261022-ur5_tip_calibration/lab"
@@ -362,19 +362,11 @@ def plate(layout=None):
 
 
 # ------------------------------------------------------------------------------------------------ analytic IK (DH model)
-_D, _A_, _AL = SIM.DH_CB3["d"], SIM.DH_CB3["a"], SIM.DH_CB3["alpha"]
-
-
+# The UR5's DH model and its closed-form inverse kinematics moved to sr2hand.robot.ur_kinematics on 2026-11-05 (QUEUE R35,
+# part C), arithmetic unchanged; these names stay for the rig's callers (ur5_probe_plan.py, lab/ellipsoid_render.py). Every
+# call here passes a branch, so ik_near's choice among branches does not enter.
 def _dh(i, th):
-    th = np.asarray(th, float)
-    ct, st = np.cos(th), np.sin(th)
-    ca, sa = math.cos(_AL[i]), math.sin(_AL[i])
-    A = np.zeros(th.shape + (4, 4))
-    A[..., 0, 0], A[..., 0, 1], A[..., 0, 2], A[..., 0, 3] = ct, -st * ca, st * sa, _A_[i] * ct
-    A[..., 1, 0], A[..., 1, 1], A[..., 1, 2], A[..., 1, 3] = st, ct * ca, -ct * sa, _A_[i] * st
-    A[..., 2, 1], A[..., 2, 2], A[..., 2, 3] = sa, ca, _D[i]
-    A[..., 3, 3] = 1.0
-    return A
+    return URK.dh(i, th, URK.UR5_CB3)
 
 
 def _inv(T):
@@ -382,86 +374,26 @@ def _inv(T):
 
 
 def fk_many(Q):
-    """Flange poses (N, 4, 4) of joints Q (N, 6), the DH model's."""
-    Q = np.atleast_2d(Q)
-    T = _dh(0, Q[:, 0])
-    for i in range(1, 6):
-        T = T @ _dh(i, Q[:, i])
-    return T
+    """Flange poses (N, 4, 4) of joints Q (N, 6), the DH model's (ur_kinematics.fk_many)."""
+    return URK.fk_many(Q)
 
 
 def ik_all(T):
-    """Every solution (N, 8, 6) of the DH model for flange poses T (N, 4, 4) in B; NaN where a branch has none."""
-    T = np.asarray(T, float).reshape(-1, 4, 4)
-    N = len(T)
-    d4, d6, a2, a3 = _D[3], _D[5], _A_[1], _A_[2]
-    Q = np.full((N, 8, 6), np.nan)
-    R, p = T[:, :3, :3], T[:, :3, 3]
-    p05 = p - d6 * R[:, :, 2]
-    r = np.hypot(p05[:, 0], p05[:, 1])
-    ok1 = r > abs(d4) + 1e-9
-    phi = np.arccos(np.clip(abs(d4) / np.maximum(r, 1e-9), -1.0, 1.0))
-    psi = np.arctan2(p05[:, 1], p05[:, 0])
-    k = 0
-    for s1 in (1.0, -1.0):
-        q1 = psi + s1 * phi + math.pi / 2
-        S1, C1 = np.sin(q1), np.cos(q1)
-        c5 = (p[:, 0] * S1 - p[:, 1] * C1 - d4) / d6
-        ok5 = ok1 & (np.abs(c5) <= 1.0)
-        a5 = np.arccos(np.clip(c5, -1.0, 1.0))
-        for s5 in (1.0, -1.0):
-            q5 = s5 * a5
-            S5 = np.sin(q5)
-            S5 = np.where(np.abs(S5) < 1e-9, 1e-9, S5)
-            q6 = np.arctan2((-R[:, 0, 1] * S1 + R[:, 1, 1] * C1) / S5, (R[:, 0, 0] * S1 - R[:, 1, 0] * C1) / S5)
-            T14 = _inv(_dh(0, q1)) @ T @ _inv(_dh(4, q5) @ _dh(5, q6))
-            x, y = T14[:, 0, 3], T14[:, 1, 3]
-            c3 = (x * x + y * y - a2 * a2 - a3 * a3) / (2.0 * a2 * a3)
-            ok3 = ok5 & (np.abs(c3) <= 1.0)
-            b3 = np.arccos(np.clip(c3, -1.0, 1.0))
-            for s3 in (1.0, -1.0):
-                q3 = s3 * b3
-                q2 = np.arctan2(y, x) - np.arctan2(a3 * np.sin(q3), a2 + a3 * np.cos(q3))
-                T34 = _inv(_dh(1, q2) @ _dh(2, q3)) @ T14
-                q4 = np.arctan2(T34[:, 1, 0], T34[:, 0, 0])
-                sol = np.stack([q1, q2, q3, q4, q5, q6], axis=1)
-                sol[~ok3] = np.nan
-                Q[:, k] = sol
-                k += 1
-    return Q
+    """Every solution (N, 8, 6) of the DH model for flange poses T (N, 4, 4) in B; NaN where a branch has none
+    (ur_kinematics.ik_all)."""
+    return URK.ik_all(T)
 
 
 def branch_of(q):
     """The index (0..7) in ik_all's order of the branch (shoulder, wrist, elbow) that joints q lie on."""
-    Q = ik_all(fk_many(np.asarray(q, float)[None]))[0]
-    d = np.abs(wrap(Q - q)).max(axis=1)
-    return int(np.nanargmin(np.where(np.isnan(d), np.inf, d)))
+    return URK.branch_of(q)
 
 
 def ik_near(T, q_ref, tol=0.01, free6=False, branch=None):
-    """The solution nearest q_ref (largest joint difference, each joint within pi of q_ref's; joints 1 to 5 alone with
-    free6, for a tool that may turn about its axis) for each pose of T; rows of NaN where none exists. Each is checked
-    against the forward kinematics (tol mm)."""
-    T = np.asarray(T, float).reshape(-1, 4, 4)
-    Q = ik_all(T)
-    qr = np.asarray(q_ref, float).reshape(-1, 1, 6)
-    Qw = nearest(Q, qr)
-    dist = np.abs(Qw - qr)[..., :5 if free6 else 6].max(axis=2)
-    if branch is not None:                              # one branch only: the homing pose's
-        keep = np.zeros(8, bool)
-        keep[branch] = True
-        dist = np.where(keep[None, :], dist, np.inf)
-    dist = np.where(np.isnan(dist), np.inf, dist)
-    best = np.argmin(dist, axis=1)
-    out = Qw[np.arange(len(T)), best]
-    bad = ~np.isfinite(dist[np.arange(len(T)), best])
-    good = ~bad
-    if good.any():
-        err = np.linalg.norm(fk_many(out[good])[:, :3, 3] - T[good, :3, 3], axis=1)
-        idx = np.flatnonzero(good)[err > tol]
-        bad[idx] = True
-    out[bad] = np.nan
-    return out
+    """The solution nearest q_ref (each joint within pi of q_ref's; joints 1 to 5 alone with free6, for a tool that may
+    turn about its axis) for each pose of T, on one branch when given; rows of NaN where none exists. Each is checked
+    against the forward kinematics (tol mm). ur_kinematics.ik_near, without the arm's joint limits."""
+    return URK.ik_near(T, q_ref, tol=tol, free6=free6, branch=branch)
 
 
 def cmd_ik_check(a):
@@ -980,7 +912,7 @@ def context(layout=None, tool="sphere5"):
         BR[0] = branch_of(q_press)
         return dict(out, T_BA=T_BA, T_BE_home=T_BE_home, q_home=q_press, q_seat=q_seat)
     T_BE_home = T_BA @ T_AM @ C.inv(T_EM)                                                      # fork's
-    q_home = SIM.ik(T_BE_home, np.asarray(reg["q_home"], float))
+    q_home = URK.ik_nearest(T_BE_home, np.asarray(reg["q_home"], float))   # nearest the registration's homing joints
     BR[0] = branch_of(q_home)
     return dict(out, T_BA=T_BA, q_home=q_home, T_BE_home=T_BE_home)
 
