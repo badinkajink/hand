@@ -1,0 +1,444 @@
+SCS0009 registers, 2026-11-06 02:29:04, /dev/ttyUSB0 at 1000000 baud; READ (0x02) only
+
+servo 0 (thumb yaw)
+    0  firmware major version                   00                               0   rustypot scs0009.rs
+    1  firmware minor version                   05                               5   rustypot scs0009.rs
+    3  version (model)                          05 04                         1284   Feetech SCSCL.h
+    5  ID                                       00                               0   Feetech SCSCL.h
+    6  baud rate code (0 = 1 Mbps)              00                               0   Feetech SCSCL.h
+    7  return delay time                        00                               0   rustypot scs0009.rs
+    8  response status level                    01                               1   rustypot scs0009.rs
+    9  min angle limit                          00 00        0 steps (-149.71 deg)   Feetech SCSCL.h
+   11  max angle limit                          ff 03   65283 steps (+18976.17 deg)   Feetech SCSCL.h
+   13  max temperature limit, C                 46                              70   rustypot scs0009.rs
+   14  max input voltage, 0.1 V                 5a                              90   rustypot scs0009.rs
+   15  min input voltage, 0.1 V                 2d                              45   rustypot scs0009.rs
+   16  max torque, 0.1 %                        03 e8                         1000   rustypot scs0009.rs
+   18  phase (special function byte)            01                            0x01   rustypot scs0009.rs
+   19  unloading condition (bits)               20                            0x20   rustypot scs0009.rs
+   20  LED alarm condition (bits)               25                            0x25   rustypot scs0009.rs
+   21  P coefficient                            0f                              15   rustypot scs0009.rs
+   22  D coefficient                            0f                              15   rustypot scs0009.rs
+   23  I coefficient                            00                               0   rustypot scs0009.rs
+   24  minimum startup force (punch)            00 2d                           45   rustypot scs0009.rs
+   26  CW dead band                             01                               1   Feetech SCSCL.h
+   27  CCW dead band                            01                               1   Feetech SCSCL.h
+   37  protective torque, %                     14                              20   rustypot scs0009.rs
+   38  protection time                          64                             100   rustypot scs0009.rs
+   39  overload torque, %                       50                              80   rustypot scs0009.rs
+   40  torque enable                            02                               2   Feetech SCSCL.h
+   41  acceleration                             00                               0   rustypot scs0009.rs
+   42  goal position                            01 72       370 steps (-41.31 deg)   Feetech SCSCL.h
+   44  goal time                                00 00                            0   Feetech SCSCL.h
+   46  goal speed                               2d d6                        11734   Feetech SCSCL.h
+   48  lock                                     01                               1   Feetech SCSCL.h
+   56  present position                         01 72       370 steps (-41.31 deg)   Feetech SCSCL.h
+   58  present speed                            00 00                            0   Feetech SCSCL.h
+   60  present load                             00 00                            0   Feetech SCSCL.h
+   62  present voltage, 0.1 V                   33                              51   Feetech SCSCL.h
+   63  present temperature, C                   14                              20   Feetech SCSCL.h
+   64  sync write flag                          00                               0   rustypot scs0009.rs
+   65  status (error bits)                      00                            0x00   rustypot scs0009.rs
+   66  moving                                   00                               0   Feetech SCSCL.h
+   69  present current                          00 00                            0   Feetech SCSCL.h
+   78  PWM maximum step                         00                               0   rustypot scs0009.rs
+   79  moving velocity threshold, 50 steps/s    01                               1   rustypot scs0009.rs
+   80  DTs                                      02                               2   rustypot scs0009.rs
+   81  minimum velocity limit, 50 steps/s       01                               1   rustypot scs0009.rs
+   82  maximum velocity limit, 50 steps/s       28                              40   rustypot scs0009.rs
+  hex  0-70: 00 05 01 05 04 00 00 00 01 00 00 ff 03 46 5a 2d 03 e8 01 20 25 0f 0f 00 00 2d 01 01 01 00 00 00 00 00 00 00 00 14 64 50 02 00 01 72 00 00 2d d6 01 00 00 00 00 00 00 00 01 72 00 00 00 00 33 14 00 00 00 01 72 00 00
+  hex 78-82: 00 01 02 01 28
+
+servo 1 (thumb mcp)
+    0  firmware major version                   00                               0   rustypot scs0009.rs
+    1  firmware minor version                   05                               5   rustypot scs0009.rs
+    3  version (model)                          05 04                         1284   Feetech SCSCL.h
+    5  ID                                       01                               1   Feetech SCSCL.h
+    6  baud rate code (0 = 1 Mbps)              00                               0   Feetech SCSCL.h
+    7  return delay time                        00                               0   rustypot scs0009.rs
+    8  response status level                    01                               1   rustypot scs0009.rs
+    9  min angle limit                          00 00        0 steps (-149.71 deg)   Feetech SCSCL.h
+   11  max angle limit                          ff 03   65283 steps (+18976.17 deg)   Feetech SCSCL.h
+   13  max temperature limit, C                 46                              70   rustypot scs0009.rs
+   14  max input voltage, 0.1 V                 5a                              90   rustypot scs0009.rs
+   15  min input voltage, 0.1 V                 2d                              45   rustypot scs0009.rs
+   16  max torque, 0.1 %                        03 e8                         1000   rustypot scs0009.rs
+   18  phase (special function byte)            01                            0x01   rustypot scs0009.rs
+   19  unloading condition (bits)               20                            0x20   rustypot scs0009.rs
+   20  LED alarm condition (bits)               25                            0x25   rustypot scs0009.rs
+   21  P coefficient                            0f                              15   rustypot scs0009.rs
+   22  D coefficient                            0f                              15   rustypot scs0009.rs
+   23  I coefficient                            00                               0   rustypot scs0009.rs
+   24  minimum startup force (punch)            00 2d                           45   rustypot scs0009.rs
+   26  CW dead band                             01                               1   Feetech SCSCL.h
+   27  CCW dead band                            01                               1   Feetech SCSCL.h
+   37  protective torque, %                     14                              20   rustypot scs0009.rs
+   38  protection time                          64                             100   rustypot scs0009.rs
+   39  overload torque, %                       50                              80   rustypot scs0009.rs
+   40  torque enable                            02                               2   Feetech SCSCL.h
+   41  acceleration                             00                               0   rustypot scs0009.rs
+   42  goal position                            01 8c       396 steps (-33.69 deg)   Feetech SCSCL.h
+   44  goal time                                00 00                            0   Feetech SCSCL.h
+   46  goal speed                               2d d6                        11734   Feetech SCSCL.h
+   48  lock                                     01                               1   Feetech SCSCL.h
+   56  present position                         01 8c       396 steps (-33.69 deg)   Feetech SCSCL.h
+   58  present speed                            00 00                            0   Feetech SCSCL.h
+   60  present load                             00 00                            0   Feetech SCSCL.h
+   62  present voltage, 0.1 V                   32                              50   Feetech SCSCL.h
+   63  present temperature, C                   12                              18   Feetech SCSCL.h
+   64  sync write flag                          00                               0   rustypot scs0009.rs
+   65  status (error bits)                      00                            0x00   rustypot scs0009.rs
+   66  moving                                   00                               0   Feetech SCSCL.h
+   69  present current                          00 00                            0   Feetech SCSCL.h
+   78  PWM maximum step                         00                               0   rustypot scs0009.rs
+   79  moving velocity threshold, 50 steps/s    01                               1   rustypot scs0009.rs
+   80  DTs                                      02                               2   rustypot scs0009.rs
+   81  minimum velocity limit, 50 steps/s       01                               1   rustypot scs0009.rs
+   82  maximum velocity limit, 50 steps/s       28                              40   rustypot scs0009.rs
+  hex  0-70: 00 05 01 05 04 01 00 00 01 00 00 ff 03 46 5a 2d 03 e8 01 20 25 0f 0f 00 00 2d 01 01 01 00 00 00 00 00 00 00 00 14 64 50 02 00 01 8c 00 00 2d d6 01 00 00 00 00 00 00 00 01 8c 00 00 00 00 32 12 00 00 00 01 8c 00 00
+  hex 78-82: 00 01 02 01 28
+
+servo 2 (thumb pip)
+    0  firmware major version                   00                               0   rustypot scs0009.rs
+    1  firmware minor version                   05                               5   rustypot scs0009.rs
+    3  version (model)                          05 04                         1284   Feetech SCSCL.h
+    5  ID                                       02                               2   Feetech SCSCL.h
+    6  baud rate code (0 = 1 Mbps)              00                               0   Feetech SCSCL.h
+    7  return delay time                        00                               0   rustypot scs0009.rs
+    8  response status level                    01                               1   rustypot scs0009.rs
+    9  min angle limit                          00 14       20 steps (-143.85 deg)   Feetech SCSCL.h
+   11  max angle limit                          03 eb     1003 steps (+144.14 deg)   Feetech SCSCL.h
+   13  max temperature limit, C                 46                              70   rustypot scs0009.rs
+   14  max input voltage, 0.1 V                 5a                              90   rustypot scs0009.rs
+   15  min input voltage, 0.1 V                 2d                              45   rustypot scs0009.rs
+   16  max torque, 0.1 %                        03 e8                         1000   rustypot scs0009.rs
+   18  phase (special function byte)            01                            0x01   rustypot scs0009.rs
+   19  unloading condition (bits)               20                            0x20   rustypot scs0009.rs
+   20  LED alarm condition (bits)               25                            0x25   rustypot scs0009.rs
+   21  P coefficient                            0f                              15   rustypot scs0009.rs
+   22  D coefficient                            0f                              15   rustypot scs0009.rs
+   23  I coefficient                            00                               0   rustypot scs0009.rs
+   24  minimum startup force (punch)            00 2d                           45   rustypot scs0009.rs
+   26  CW dead band                             01                               1   Feetech SCSCL.h
+   27  CCW dead band                            01                               1   Feetech SCSCL.h
+   37  protective torque, %                     14                              20   rustypot scs0009.rs
+   38  protection time                          64                             100   rustypot scs0009.rs
+   39  overload torque, %                       50                              80   rustypot scs0009.rs
+   40  torque enable                            02                               2   Feetech SCSCL.h
+   41  acceleration                             00                               0   rustypot scs0009.rs
+   42  goal position                            01 67       359 steps (-44.53 deg)   Feetech SCSCL.h
+   44  goal time                                00 00                            0   Feetech SCSCL.h
+   46  goal speed                               2d d6                        11734   Feetech SCSCL.h
+   48  lock                                     01                               1   Feetech SCSCL.h
+   56  present position                         01 67       359 steps (-44.53 deg)   Feetech SCSCL.h
+   58  present speed                            00 00                            0   Feetech SCSCL.h
+   60  present load                             00 00                            0   Feetech SCSCL.h
+   62  present voltage, 0.1 V                   34                              52   Feetech SCSCL.h
+   63  present temperature, C                   13                              19   Feetech SCSCL.h
+   64  sync write flag                          00                               0   rustypot scs0009.rs
+   65  status (error bits)                      00                            0x00   rustypot scs0009.rs
+   66  moving                                   00                               0   Feetech SCSCL.h
+   69  present current                          00 00                            0   Feetech SCSCL.h
+   78  PWM maximum step                         00                               0   rustypot scs0009.rs
+   79  moving velocity threshold, 50 steps/s    01                               1   rustypot scs0009.rs
+   80  DTs                                      02                               2   rustypot scs0009.rs
+   81  minimum velocity limit, 50 steps/s       01                               1   rustypot scs0009.rs
+   82  maximum velocity limit, 50 steps/s       28                              40   rustypot scs0009.rs
+  hex  0-70: 00 05 01 05 04 02 00 00 01 00 14 03 eb 46 5a 2d 03 e8 01 20 25 0f 0f 00 00 2d 01 01 01 00 00 00 00 00 00 00 00 14 64 50 02 00 01 67 00 00 2d d6 01 00 00 00 00 00 00 00 01 67 00 00 00 00 34 13 00 00 00 01 67 00 00
+  hex 78-82: 00 01 02 01 28
+
+servo 3 (index yaw)
+    0  firmware major version                   00                               0   rustypot scs0009.rs
+    1  firmware minor version                   05                               5   rustypot scs0009.rs
+    3  version (model)                          05 04                         1284   Feetech SCSCL.h
+    5  ID                                       03                               3   Feetech SCSCL.h
+    6  baud rate code (0 = 1 Mbps)              00                               0   Feetech SCSCL.h
+    7  return delay time                        00                               0   rustypot scs0009.rs
+    8  response status level                    01                               1   rustypot scs0009.rs
+    9  min angle limit                          00 14       20 steps (-143.85 deg)   Feetech SCSCL.h
+   11  max angle limit                          02 7f       639 steps (+37.50 deg)   Feetech SCSCL.h
+   13  max temperature limit, C                 46                              70   rustypot scs0009.rs
+   14  max input voltage, 0.1 V                 5a                              90   rustypot scs0009.rs
+   15  min input voltage, 0.1 V                 2d                              45   rustypot scs0009.rs
+   16  max torque, 0.1 %                        03 e8                         1000   rustypot scs0009.rs
+   18  phase (special function byte)            01                            0x01   rustypot scs0009.rs
+   19  unloading condition (bits)               20                            0x20   rustypot scs0009.rs
+   20  LED alarm condition (bits)               25                            0x25   rustypot scs0009.rs
+   21  P coefficient                            0f                              15   rustypot scs0009.rs
+   22  D coefficient                            0f                              15   rustypot scs0009.rs
+   23  I coefficient                            00                               0   rustypot scs0009.rs
+   24  minimum startup force (punch)            00 2d                           45   rustypot scs0009.rs
+   26  CW dead band                             01                               1   Feetech SCSCL.h
+   27  CCW dead band                            01                               1   Feetech SCSCL.h
+   37  protective torque, %                     14                              20   rustypot scs0009.rs
+   38  protection time                          64                             100   rustypot scs0009.rs
+   39  overload torque, %                       50                              80   rustypot scs0009.rs
+   40  torque enable                            02                               2   Feetech SCSCL.h
+   41  acceleration                             00                               0   rustypot scs0009.rs
+   42  goal position                            01 de        478 steps (-9.67 deg)   Feetech SCSCL.h
+   44  goal time                                00 00                            0   Feetech SCSCL.h
+   46  goal speed                               2d d6                        11734   Feetech SCSCL.h
+   48  lock                                     01                               1   Feetech SCSCL.h
+   56  present position                         01 de        478 steps (-9.67 deg)   Feetech SCSCL.h
+   58  present speed                            00 00                            0   Feetech SCSCL.h
+   60  present load                             00 00                            0   Feetech SCSCL.h
+   62  present voltage, 0.1 V                   33                              51   Feetech SCSCL.h
+   63  present temperature, C                   16                              22   Feetech SCSCL.h
+   64  sync write flag                          00                               0   rustypot scs0009.rs
+   65  status (error bits)                      00                            0x00   rustypot scs0009.rs
+   66  moving                                   00                               0   Feetech SCSCL.h
+   69  present current                          00 00                            0   Feetech SCSCL.h
+   78  PWM maximum step                         00                               0   rustypot scs0009.rs
+   79  moving velocity threshold, 50 steps/s    01                               1   rustypot scs0009.rs
+   80  DTs                                      02                               2   rustypot scs0009.rs
+   81  minimum velocity limit, 50 steps/s       01                               1   rustypot scs0009.rs
+   82  maximum velocity limit, 50 steps/s       28                              40   rustypot scs0009.rs
+  hex  0-70: 00 05 01 05 04 03 00 00 01 00 14 02 7f 46 5a 2d 03 e8 01 20 25 0f 0f 00 00 2d 01 01 01 00 00 00 00 00 00 00 00 14 64 50 02 00 01 de 00 00 2d d6 01 00 00 00 00 00 00 00 01 de 00 00 00 00 33 16 00 00 00 01 de 00 00
+  hex 78-82: 00 01 02 01 28
+
+servo 4 (index mcp)
+    0  firmware major version                   00                               0   rustypot scs0009.rs
+    1  firmware minor version                   05                               5   rustypot scs0009.rs
+    3  version (model)                          05 04                         1284   Feetech SCSCL.h
+    5  ID                                       04                               4   Feetech SCSCL.h
+    6  baud rate code (0 = 1 Mbps)              00                               0   Feetech SCSCL.h
+    7  return delay time                        00                               0   rustypot scs0009.rs
+    8  response status level                    01                               1   rustypot scs0009.rs
+    9  min angle limit                          01 93       403 steps (-31.64 deg)   Feetech SCSCL.h
+   11  max angle limit                          03 e9     1001 steps (+143.55 deg)   Feetech SCSCL.h
+   13  max temperature limit, C                 46                              70   rustypot scs0009.rs
+   14  max input voltage, 0.1 V                 5a                              90   rustypot scs0009.rs
+   15  min input voltage, 0.1 V                 2d                              45   rustypot scs0009.rs
+   16  max torque, 0.1 %                        03 e8                         1000   rustypot scs0009.rs
+   18  phase (special function byte)            01                            0x01   rustypot scs0009.rs
+   19  unloading condition (bits)               20                            0x20   rustypot scs0009.rs
+   20  LED alarm condition (bits)               25                            0x25   rustypot scs0009.rs
+   21  P coefficient                            0f                              15   rustypot scs0009.rs
+   22  D coefficient                            0f                              15   rustypot scs0009.rs
+   23  I coefficient                            00                               0   rustypot scs0009.rs
+   24  minimum startup force (punch)            00 2d                           45   rustypot scs0009.rs
+   26  CW dead band                             01                               1   Feetech SCSCL.h
+   27  CCW dead band                            01                               1   Feetech SCSCL.h
+   37  protective torque, %                     14                              20   rustypot scs0009.rs
+   38  protection time                          64                             100   rustypot scs0009.rs
+   39  overload torque, %                       50                              80   rustypot scs0009.rs
+   40  torque enable                            02                               2   Feetech SCSCL.h
+   41  acceleration                             00                               0   rustypot scs0009.rs
+   42  goal position                            03 20       800 steps (+84.67 deg)   Feetech SCSCL.h
+   44  goal time                                00 00                            0   Feetech SCSCL.h
+   46  goal speed                               2d d6                        11734   Feetech SCSCL.h
+   48  lock                                     01                               1   Feetech SCSCL.h
+   56  present position                         03 20       800 steps (+84.67 deg)   Feetech SCSCL.h
+   58  present speed                            00 00                            0   Feetech SCSCL.h
+   60  present load                             00 00                            0   Feetech SCSCL.h
+   62  present voltage, 0.1 V                   32                              50   Feetech SCSCL.h
+   63  present temperature, C                   14                              20   Feetech SCSCL.h
+   64  sync write flag                          00                               0   rustypot scs0009.rs
+   65  status (error bits)                      00                            0x00   rustypot scs0009.rs
+   66  moving                                   00                               0   Feetech SCSCL.h
+   69  present current                          00 00                            0   Feetech SCSCL.h
+   78  PWM maximum step                         00                               0   rustypot scs0009.rs
+   79  moving velocity threshold, 50 steps/s    01                               1   rustypot scs0009.rs
+   80  DTs                                      02                               2   rustypot scs0009.rs
+   81  minimum velocity limit, 50 steps/s       01                               1   rustypot scs0009.rs
+   82  maximum velocity limit, 50 steps/s       28                              40   rustypot scs0009.rs
+  hex  0-70: 00 05 01 05 04 04 00 00 01 01 93 03 e9 46 5a 2d 03 e8 01 20 25 0f 0f 00 00 2d 01 01 01 00 00 00 00 00 00 00 00 14 64 50 02 00 03 20 00 00 2d d6 01 00 00 00 00 00 00 00 03 20 00 00 00 00 32 14 00 00 00 03 20 00 00
+  hex 78-82: 00 01 02 01 28
+
+servo 5 (index pip)
+    0  firmware major version                   00                               0   rustypot scs0009.rs
+    1  firmware minor version                   05                               5   rustypot scs0009.rs
+    3  version (model)                          05 04                         1284   Feetech SCSCL.h
+    5  ID                                       05                               5   Feetech SCSCL.h
+    6  baud rate code (0 = 1 Mbps)              00                               0   Feetech SCSCL.h
+    7  return delay time                        00                               0   rustypot scs0009.rs
+    8  response status level                    01                               1   rustypot scs0009.rs
+    9  min angle limit                          00 00        0 steps (-149.71 deg)   Feetech SCSCL.h
+   11  max angle limit                          ff 03   65283 steps (+18976.17 deg)   Feetech SCSCL.h
+   13  max temperature limit, C                 46                              70   rustypot scs0009.rs
+   14  max input voltage, 0.1 V                 5a                              90   rustypot scs0009.rs
+   15  min input voltage, 0.1 V                 2d                              45   rustypot scs0009.rs
+   16  max torque, 0.1 %                        03 e8                         1000   rustypot scs0009.rs
+   18  phase (special function byte)            01                            0x01   rustypot scs0009.rs
+   19  unloading condition (bits)               20                            0x20   rustypot scs0009.rs
+   20  LED alarm condition (bits)               25                            0x25   rustypot scs0009.rs
+   21  P coefficient                            0f                              15   rustypot scs0009.rs
+   22  D coefficient                            0f                              15   rustypot scs0009.rs
+   23  I coefficient                            00                               0   rustypot scs0009.rs
+   24  minimum startup force (punch)            00 2d                           45   rustypot scs0009.rs
+   26  CW dead band                             01                               1   Feetech SCSCL.h
+   27  CCW dead band                            01                               1   Feetech SCSCL.h
+   37  protective torque, %                     14                              20   rustypot scs0009.rs
+   38  protection time                          64                             100   rustypot scs0009.rs
+   39  overload torque, %                       50                              80   rustypot scs0009.rs
+   40  torque enable                            02                               2   Feetech SCSCL.h
+   41  acceleration                             00                               0   rustypot scs0009.rs
+   42  goal position                            00 07        7 steps (-147.66 deg)   Feetech SCSCL.h
+   44  goal time                                00 00                            0   Feetech SCSCL.h
+   46  goal speed                               2d d6                        11734   Feetech SCSCL.h
+   48  lock                                     01                               1   Feetech SCSCL.h
+   56  present position                         00 07        7 steps (-147.66 deg)   Feetech SCSCL.h
+   58  present speed                            00 00                            0   Feetech SCSCL.h
+   60  present load                             00 00                            0   Feetech SCSCL.h
+   62  present voltage, 0.1 V                   34                              52   Feetech SCSCL.h
+   63  present temperature, C                   15                              21   Feetech SCSCL.h
+   64  sync write flag                          00                               0   rustypot scs0009.rs
+   65  status (error bits)                      00                            0x00   rustypot scs0009.rs
+   66  moving                                   00                               0   Feetech SCSCL.h
+   69  present current                          00 00                            0   Feetech SCSCL.h
+   78  PWM maximum step                         00                               0   rustypot scs0009.rs
+   79  moving velocity threshold, 50 steps/s    01                               1   rustypot scs0009.rs
+   80  DTs                                      02                               2   rustypot scs0009.rs
+   81  minimum velocity limit, 50 steps/s       01                               1   rustypot scs0009.rs
+   82  maximum velocity limit, 50 steps/s       28                              40   rustypot scs0009.rs
+  hex  0-70: 00 05 01 05 04 05 00 00 01 00 00 ff 03 46 5a 2d 03 e8 01 20 25 0f 0f 00 00 2d 01 01 01 00 00 00 00 00 00 00 00 14 64 50 02 00 00 07 00 00 2d d6 01 00 00 00 00 00 00 00 00 07 00 00 00 00 34 15 00 00 00 00 07 00 00
+  hex 78-82: 00 01 02 01 28
+
+servo 6 (middle yaw)
+    0  firmware major version                   00                               0   rustypot scs0009.rs
+    1  firmware minor version                   05                               5   rustypot scs0009.rs
+    3  version (model)                          05 04                         1284   Feetech SCSCL.h
+    5  ID                                       06                               6   Feetech SCSCL.h
+    6  baud rate code (0 = 1 Mbps)              00                               0   Feetech SCSCL.h
+    7  return delay time                        00                               0   rustypot scs0009.rs
+    8  response status level                    01                               1   rustypot scs0009.rs
+    9  min angle limit                          00 00        0 steps (-149.71 deg)   Feetech SCSCL.h
+   11  max angle limit                          ff 03   65283 steps (+18976.17 deg)   Feetech SCSCL.h
+   13  max temperature limit, C                 46                              70   rustypot scs0009.rs
+   14  max input voltage, 0.1 V                 5a                              90   rustypot scs0009.rs
+   15  min input voltage, 0.1 V                 2d                              45   rustypot scs0009.rs
+   16  max torque, 0.1 %                        03 e8                         1000   rustypot scs0009.rs
+   18  phase (special function byte)            01                            0x01   rustypot scs0009.rs
+   19  unloading condition (bits)               20                            0x20   rustypot scs0009.rs
+   20  LED alarm condition (bits)               25                            0x25   rustypot scs0009.rs
+   21  P coefficient                            0f                              15   rustypot scs0009.rs
+   22  D coefficient                            0f                              15   rustypot scs0009.rs
+   23  I coefficient                            00                               0   rustypot scs0009.rs
+   24  minimum startup force (punch)            00 2d                           45   rustypot scs0009.rs
+   26  CW dead band                             01                               1   Feetech SCSCL.h
+   27  CCW dead band                            01                               1   Feetech SCSCL.h
+   37  protective torque, %                     14                              20   rustypot scs0009.rs
+   38  protection time                          64                             100   rustypot scs0009.rs
+   39  overload torque, %                       50                              80   rustypot scs0009.rs
+   40  torque enable                            02                               2   Feetech SCSCL.h
+   41  acceleration                             00                               0   rustypot scs0009.rs
+   42  goal position                            02 3e       574 steps (+18.46 deg)   Feetech SCSCL.h
+   44  goal time                                00 00                            0   Feetech SCSCL.h
+   46  goal speed                               2d d6                        11734   Feetech SCSCL.h
+   48  lock                                     01                               1   Feetech SCSCL.h
+   56  present position                         02 3e       574 steps (+18.46 deg)   Feetech SCSCL.h
+   58  present speed                            00 00                            0   Feetech SCSCL.h
+   60  present load                             00 00                            0   Feetech SCSCL.h
+   62  present voltage, 0.1 V                   33                              51   Feetech SCSCL.h
+   63  present temperature, C                   15                              21   Feetech SCSCL.h
+   64  sync write flag                          00                               0   rustypot scs0009.rs
+   65  status (error bits)                      00                            0x00   rustypot scs0009.rs
+   66  moving                                   00                               0   Feetech SCSCL.h
+   69  present current                          00 00                            0   Feetech SCSCL.h
+   78  PWM maximum step                         00                               0   rustypot scs0009.rs
+   79  moving velocity threshold, 50 steps/s    01                               1   rustypot scs0009.rs
+   80  DTs                                      02                               2   rustypot scs0009.rs
+   81  minimum velocity limit, 50 steps/s       01                               1   rustypot scs0009.rs
+   82  maximum velocity limit, 50 steps/s       28                              40   rustypot scs0009.rs
+  hex  0-70: 00 05 01 05 04 06 00 00 01 00 00 ff 03 46 5a 2d 03 e8 01 20 25 0f 0f 00 00 2d 01 01 01 00 00 00 00 00 00 00 00 14 64 50 02 00 02 3e 00 00 2d d6 01 00 00 00 00 00 00 00 02 3e 00 00 00 00 33 15 00 00 00 02 3e 00 00
+  hex 78-82: 00 01 02 01 28
+
+servo 7 (middle mcp)
+    0  firmware major version                   00                               0   rustypot scs0009.rs
+    1  firmware minor version                   05                               5   rustypot scs0009.rs
+    3  version (model)                          05 04                         1284   Feetech SCSCL.h
+    5  ID                                       07                               7   Feetech SCSCL.h
+    6  baud rate code (0 = 1 Mbps)              00                               0   Feetech SCSCL.h
+    7  return delay time                        00                               0   rustypot scs0009.rs
+    8  response status level                    01                               1   rustypot scs0009.rs
+    9  min angle limit                          00 00        0 steps (-149.71 deg)   Feetech SCSCL.h
+   11  max angle limit                          ff 03   65283 steps (+18976.17 deg)   Feetech SCSCL.h
+   13  max temperature limit, C                 46                              70   rustypot scs0009.rs
+   14  max input voltage, 0.1 V                 5a                              90   rustypot scs0009.rs
+   15  min input voltage, 0.1 V                 2d                              45   rustypot scs0009.rs
+   16  max torque, 0.1 %                        03 e8                         1000   rustypot scs0009.rs
+   18  phase (special function byte)            01                            0x01   rustypot scs0009.rs
+   19  unloading condition (bits)               20                            0x20   rustypot scs0009.rs
+   20  LED alarm condition (bits)               25                            0x25   rustypot scs0009.rs
+   21  P coefficient                            0f                              15   rustypot scs0009.rs
+   22  D coefficient                            0f                              15   rustypot scs0009.rs
+   23  I coefficient                            00                               0   rustypot scs0009.rs
+   24  minimum startup force (punch)            00 2d                           45   rustypot scs0009.rs
+   26  CW dead band                             01                               1   Feetech SCSCL.h
+   27  CCW dead band                            01                               1   Feetech SCSCL.h
+   37  protective torque, %                     14                              20   rustypot scs0009.rs
+   38  protection time                          64                             100   rustypot scs0009.rs
+   39  overload torque, %                       50                              80   rustypot scs0009.rs
+   40  torque enable                            02                               2   Feetech SCSCL.h
+   41  acceleration                             00                               0   rustypot scs0009.rs
+   42  goal position                            03 10       784 steps (+79.98 deg)   Feetech SCSCL.h
+   44  goal time                                00 00                            0   Feetech SCSCL.h
+   46  goal speed                               2d d6                        11734   Feetech SCSCL.h
+   48  lock                                     01                               1   Feetech SCSCL.h
+   56  present position                         03 10       784 steps (+79.98 deg)   Feetech SCSCL.h
+   58  present speed                            00 00                            0   Feetech SCSCL.h
+   60  present load                             00 00                            0   Feetech SCSCL.h
+   62  present voltage, 0.1 V                   34                              52   Feetech SCSCL.h
+   63  present temperature, C                   13                              19   Feetech SCSCL.h
+   64  sync write flag                          00                               0   rustypot scs0009.rs
+   65  status (error bits)                      00                            0x00   rustypot scs0009.rs
+   66  moving                                   00                               0   Feetech SCSCL.h
+   69  present current                          00 00                            0   Feetech SCSCL.h
+   78  PWM maximum step                         00                               0   rustypot scs0009.rs
+   79  moving velocity threshold, 50 steps/s    01                               1   rustypot scs0009.rs
+   80  DTs                                      02                               2   rustypot scs0009.rs
+   81  minimum velocity limit, 50 steps/s       01                               1   rustypot scs0009.rs
+   82  maximum velocity limit, 50 steps/s       28                              40   rustypot scs0009.rs
+  hex  0-70: 00 05 01 05 04 07 00 00 01 00 00 ff 03 46 5a 2d 03 e8 01 20 25 0f 0f 00 00 2d 01 01 01 00 00 00 00 00 00 00 00 14 64 50 02 00 03 10 00 00 2d d6 01 00 00 00 00 00 00 00 03 10 00 00 00 00 34 13 00 00 00 03 10 00 00
+  hex 78-82: 00 01 02 01 28
+
+servo 8 (middle pip)
+    0  firmware major version                   00                               0   rustypot scs0009.rs
+    1  firmware minor version                   05                               5   rustypot scs0009.rs
+    3  version (model)                          05 04                         1284   Feetech SCSCL.h
+    5  ID                                       08                               8   Feetech SCSCL.h
+    6  baud rate code (0 = 1 Mbps)              00                               0   Feetech SCSCL.h
+    7  return delay time                        00                               0   rustypot scs0009.rs
+    8  response status level                    01                               1   rustypot scs0009.rs
+    9  min angle limit                          00 00        0 steps (-149.71 deg)   Feetech SCSCL.h
+   11  max angle limit                          ff 03   65283 steps (+18976.17 deg)   Feetech SCSCL.h
+   13  max temperature limit, C                 46                              70   rustypot scs0009.rs
+   14  max input voltage, 0.1 V                 5a                              90   rustypot scs0009.rs
+   15  min input voltage, 0.1 V                 2d                              45   rustypot scs0009.rs
+   16  max torque, 0.1 %                        03 e8                         1000   rustypot scs0009.rs
+   18  phase (special function byte)            01                            0x01   rustypot scs0009.rs
+   19  unloading condition (bits)               20                            0x20   rustypot scs0009.rs
+   20  LED alarm condition (bits)               25                            0x25   rustypot scs0009.rs
+   21  P coefficient                            0f                              15   rustypot scs0009.rs
+   22  D coefficient                            0f                              15   rustypot scs0009.rs
+   23  I coefficient                            00                               0   rustypot scs0009.rs
+   24  minimum startup force (punch)            00 2d                           45   rustypot scs0009.rs
+   26  CW dead band                             01                               1   Feetech SCSCL.h
+   27  CCW dead band                            01                               1   Feetech SCSCL.h
+   37  protective torque, %                     14                              20   rustypot scs0009.rs
+   38  protection time                          64                             100   rustypot scs0009.rs
+   39  overload torque, %                       50                              80   rustypot scs0009.rs
+   40  torque enable                            02                               2   Feetech SCSCL.h
+   41  acceleration                             00                               0   rustypot scs0009.rs
+   42  goal position                            02 f7       759 steps (+72.66 deg)   Feetech SCSCL.h
+   44  goal time                                00 00                            0   Feetech SCSCL.h
+   46  goal speed                               2d d6                        11734   Feetech SCSCL.h
+   48  lock                                     01                               1   Feetech SCSCL.h
+   56  present position                         02 f7       759 steps (+72.66 deg)   Feetech SCSCL.h
+   58  present speed                            00 00                            0   Feetech SCSCL.h
+   60  present load                             00 00                            0   Feetech SCSCL.h
+   62  present voltage, 0.1 V                   32                              50   Feetech SCSCL.h
+   63  present temperature, C                   14                              20   Feetech SCSCL.h
+   64  sync write flag                          00                               0   rustypot scs0009.rs
+   65  status (error bits)                      00                            0x00   rustypot scs0009.rs
+   66  moving                                   00                               0   Feetech SCSCL.h
+   69  present current                          00 00                            0   Feetech SCSCL.h
+   78  PWM maximum step                         00                               0   rustypot scs0009.rs
+   79  moving velocity threshold, 50 steps/s    01                               1   rustypot scs0009.rs
+   80  DTs                                      02                               2   rustypot scs0009.rs
+   81  minimum velocity limit, 50 steps/s       01                               1   rustypot scs0009.rs
+   82  maximum velocity limit, 50 steps/s       28                              40   rustypot scs0009.rs
+  hex  0-70: 00 05 01 05 04 08 00 00 01 00 00 ff 03 46 5a 2d 03 e8 01 20 25 0f 0f 00 00 2d 01 01 01 00 00 00 00 00 00 00 00 14 64 50 02 00 02 f7 00 00 2d d6 01 00 00 00 00 00 00 00 02 f7 00 00 00 00 32 14 00 00 00 02 f7 00 00
+  hex 78-82: 00 01 02 01 28
+
+54 READ packets sent, no other instruction
