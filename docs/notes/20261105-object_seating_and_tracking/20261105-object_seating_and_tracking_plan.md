@@ -7,16 +7,34 @@ run the HOM study's four tasks on the real hand with the simulation's protocol: 
 ## Summary
 
 Each object gets a short stem below it that ends in a printed hexagonal prism, the tag block, with a 13 mm AprilTag on
-each side face. At the HOM grasps the fingertips reach 6 to 8 mm below the object, and the block hangs 15 mm below
-them, clear of every finger. The object's pose is solved from all visible tag corners at once, in the images of two
-D435 colour cameras at the block's height, relative to tags on the hand. The block's lower end rests in a cone socket
-on a retracting seat. The
-seat drops away at 1.6 s, when the simulation removes its post, and rises after the task to take the object back. The
-arm does not move during a series of trials.
+each side face. The block's top lies 15 mm below the lowest finger point of the five layouts' grasps, so the stem is
+35.6 mm long on the cylinder and 25.2 mm on the sphere. The object's pose is solved from all visible tag corners at
+once, in the images of two D435 colour cameras mounted on their sides, with each camera's pose in the palm frame taken
+from the arm. The block rests on a flat seat fixed to the table. At 1.6 s, when the simulation removes its post, the arm
+lifts the hand 40 mm; after the task it lowers the hand and the fingers set the object down (owner, 2026-11-05).
 
 The targets are 0.3 mm and 0.3° RMS for the object's pose in the palm frame, at 30 Hz, in at least 99 % of the frames
 of a trial. The first series runs the five layouts of the task-conflict study, 10 trials per layout and task, against
 simulations of the objects as built.
+
+## Simulation of steps 1 to 3 (2026-11-05)
+
+The owner reviewed the first version of this plan the same day: a seat that drops away needs parts the lab does not
+have, so the arm lifts the hand instead, and the ballast had no purpose. Steps 1 to 3 then ran in simulation; the page is
+`docs/experiments/20261105-object_tracking_sim/20261105-object_tracking_sim.html`. Its results changed this plan in six
+places:
+
+- The seat is flat. A pocket round the block's lower end breaks the cylinder tasks: the pin-push scores 0 at four of
+  five layouts. On the flat seat the largest loss of a cylinder pick against the task-conflict study is 0.011.
+- The objects have no ballast. Infill alone makes 25 g; the stem and block lower the centre of mass by 7.5 mm
+  (cylinder) and 7.0 mm (sphere).
+- The stems are longer, because the press's middle finger reaches 20.6 mm below the cylinder.
+- A stem on the sphere works at the generalist (70,110) and the pin-push specialist (75,55) only. The HOM tripod lets
+  the sphere roll, and at the other three layouts the stem touches a finger in 3 to 5 of 5 rollouts.
+- The cameras stand on their sides at azimuths 0° and 260° from x_P, at the block's height in the task.
+- Each camera's pose in P comes from the arm after a hand-eye calibration. With it the object is tracked to 0.03 to
+  0.20 mm and 0.04 to 0.13° RMS. From one 40 mm hand tag the camera's tilt is only good to 0.1 to 1.0°, which moves
+  the object by 0.3 to 5.4 mm in P.
 
 ## Terms
 
@@ -42,74 +60,89 @@ simulations of the objects as built.
 | Rate | 30 Hz | the camera; the HOM controller steps at 50 or 100 Hz |
 | Tracked frames in a trial | at least 99 % | the HOM controller takes the object pose at every step (`src/sr2hand/control/hom.py`, `Measurement`) |
 | Frame age | 50 ms median | the "sense" variant delays every measurement by 40 ms |
-| Seated pose repeatability | 0.2 mm and 0.3° (1 sd) | the simulation jitters the start by up to 1 mm and 2° |
-| Arm motion | none within a series | the hand's cables (owner, 2026-11-05) |
-| Ferromagnetic parts | none in the objects or the seat sockets | the fingertip boards are magnetometers |
+| Start pose | measured before each trial; within 1 mm and 2° of nominal, else the arm moves the hand | the simulation jitters the start by up to 1 mm and 2° |
+| Arm motion | a 40 mm lift at 1.6 s and its return, in each trial; nothing else within a series | the hand's cables; the lift replaces a seat that drops away (owner, 2026-11-05) |
+| Ferromagnetic parts | none in the objects or the seat | the fingertip boards are magnetometers |
 
 ## Measurement chain
 
 For each camera C the object's pose in the palm frame is $T_{PO} = T_{CP}^{-1}\,T_{CO}$. $T_{CO}$ is solved from the
-tag block's corners and $T_{CP}$ from the hand's tags in the same image. Both cameras enter one least-squares solve of
-$T_{PO}$ over the reprojection error of all block corners. Each camera's pose relative to the hand comes from its own
-images, so the cameras need no calibration against the robot. A bumped camera shows as a jump in $T_{CP}$.
+tag block's corners. Both cameras enter one least-squares solve of $T_{PO}$ over the reprojection error of all block
+corners (`sr2hand.tracking.pose.solve_multi`). Each camera's pose in its own image of the block is good across the
+image (0.01 to 0.02 mm) and weak in depth: the detector puts corners about 0.06 px outside the true ones, which brings
+the block 0.5 mm closer at 0.3 m. For two cameras about 90° apart, each one's depth is a lateral offset of the other.
+Together, with their poses known, they reach 0.03 to 0.20 mm and 0.04 to 0.13° RMS per pick in simulation.
+
+$T_{CP}$ comes from the arm. Each camera's pose in the base frame and the hand tags' poses in tool0 are solved once, by
+moving the arm through about 15 poses planned with the cell model (`scripts/ur5/ur5_cb3_cell.py`; OpenCV
+`calibrateRobotWorldHandEye`). In each frame $T_{CP}$ then follows from the joint readings through
+`sr2hand.robot.ur_kinematics` and `sr2hand.robot.tool_chain.SR2Hand`, the lift included. The hand tags check this route:
+a bumped camera shows as a jump between the two. They cannot replace it. One 40 mm tag seen nearly head-on fixes its
+own tilt to 0.1 to 1.0°, and the block lies about 170 mm from it, so $T_{PO}$ from the hand tags alone was off by 0.3
+to 5.4 mm in simulation.
 
 The hand has one tag now: tag36h11 id 6, 40 mm, on the static tag mount. Its centre is at (16.1, 133.6, 43.9) mm in P,
 and it faces −x_P (`assets/cad_v3/frames.json`, `sensors.tag`). One more 40 mm tag per camera goes on a static part of
-the hand, facing that camera. The tags' poses in P start from CAD. They are refined once by moving the arm through
-about 15 poses planned with the cell model (`scripts/ur5/ur5_cb3_cell.py`). Each camera's pose in the base frame and
-the tags' poses in tool0 are solved together (OpenCV `calibrateRobotWorldHandEye`). After that, $T_{CP}$ also follows
-from the joint readings through `sr2hand.robot.ur_kinematics` and `sr2hand.robot.tool_chain.SR2Hand`. The two routes
-are compared in every series, and the second is used for frames in which the hand tags are hidden.
+the hand, facing that camera; the simulation placed them on the hand's outline 110 mm from P's z axis and 44 mm above
+P. The tags' poses in P start from CAD and are refined by the same arm poses.
 
 Both cameras connect to corvus, which records the servo, board and HEX-E logs, so every stream uses one clock. Frames
-are stamped with librealsense's global time. A 30 mm tag on the seat's carriage moves at the commanded drop time, and
-its first motion in the images gives the frame age in every trial.
+are stamped with librealsense's global time. The frame age comes from the hand tags' first motion after the lift's
+command (section "Seat and the arm's lift").
 
 ## Objects and tag blocks
 
 | | Cylinder (pin-push, press) | Sphere (roll, twist) |
 |---|---|---|
 | Body | 25 mm × 100 mm, axis along y_P | 40 mm |
-| Stem | 4 mm, from the middle of the underside | 4 mm, from the lower pole |
-| Top of the tag block | 15 mm below the grasp's lowest fingertip point | same |
-| Mass | 25 g with stem and block | 25 g with stem and block |
-| Ballast | brass or tungsten, centre of mass within 0.5 mm of O | same |
-| Seat interface | cone boss and a radial V-groove under the block | cone boss |
+| Stem | 4 mm, 35.6 mm long, from the middle of the underside | 4 mm, 25.2 mm long, from the lower pole |
+| Top of the tag block | 15 mm below the lowest finger point of the five layouts' grasps | same |
+| Mass | 25 g with stem and block, by infill; no ballast | same |
+| Centre of mass | 7.5 mm below O | 7.0 mm below O |
+| Seat interface | the block's flat underside | same |
 
 The sizes, the 25 g and the axis direction are those of the HOM scenes (`scripts/hom/hand_object_scale_sim.py:70`,
-`hom_tasks.py:77-81`). At layout (70,110) the fingertips reach 6.0 to 6.5 mm (tripod) and 6.3 to 8.4 mm (pinch) below
-the object's lowest point (`docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b/ground/`), so the
-stem is about 22 mm long. The earlier recipes (`docs/experiments/20261008-hand_object_scale/objects.json`) put steel
-ballast in both objects and a 2.5 g flag with one 40 mm tag on each. Steel near a fingertip distorts its magnets'
-field, so the ballast here is brass (8.5 g/cm³) or tungsten (19.3 g/cm³), and the tag block replaces the flag.
+`hom_tasks.py:77-81`). At the open and touch poses of the five layouts' S3 grasps the fingers reach up to 20.6 mm below
+the cylinder, where the press's middle finger touches 30° below the equator, and up to 9.9 mm below the sphere
+(`docs/experiments/20261105-object_tracking_sim/rows/stem.json`). The earlier recipes
+(`docs/experiments/20261008-hand_object_scale/objects.json`) put steel at the centre only to reach 25 g with thin walls
+and sparse infill, and a 2.5 g flag with one 40 mm tag on each object. A denser infill reaches 25 g without ballast: the
+cylinder's body is 21.4 g, 35 % of solid PLA, and the sphere's 21.6 g, 52 %. The tag block replaces the flag.
 
 The tag block is a hexagonal prism, 30 mm across flats and 17 mm tall, hollow with 0.8 mm walls, about 3 g. Each of
-its six side faces is 17.3 mm wide and bears a 13 mm tag36h11. The tags are printed into the faces in matte black and
-white PLA on the P1S with the AMS, so their geometry follows the CAD. Laser-printed matte labels are the fallback. The
-lower face has a 60° cone boss, 10 mm across. On the cylinder's block a radial V-groove fixes the yaw. Each body has its
+its six side faces is 17.3 mm wide and bears a 13 mm tag36h11, the largest whose one-cell white border fits the face.
+The tags are printed into the faces in matte black and white PLA on the P1S with the AMS, flush with the face, so
+their geometry follows the CAD. Laser-printed matte labels are the fallback. The lower face is flat. Each body has its
 own tag IDs: hand 6 to 8, seat 9, cylinder 10 to 15, sphere 16 to 21. Each tag map is refined by a bundle adjustment
 over about 40 views (step 3).
 
 The tags are placed below the fingers because the pads cover the object's sides. On the 40 mm sphere, tags printed on
 the curved surface would be about 8 mm across, and some would lie under the pads. Below the fingers the tags are flat,
-13 mm and outside every finger's path. The stem and block change the object's mass distribution, so the selected
-grasps are simulated again with the objects as built (step 2). Tags on the sphere's surface remain the option for tasks
-that turn the object by more than about 45° about a horizontal axis, where a stem would reach the fingers.
+13 mm and outside every finger's path on the cylinder. The sphere is different. The tripods of the roll and the twist
+let it roll on every pad (w_roll = 0), and in the study's own rollouts its vertical axis turns by 2 to 104° (median
+per pick) before the task starts. A stem follows that turn. At the roll and press specialists' layouts, and in the
+twist at the twist specialist's, the stem or block touches a finger in 3 to 5 of 5 rollouts and those picks lose up to
+0.50. At the generalist and the pin-push specialist it clears by 7.1 mm or more. Tags on the sphere's surface remain the
+option for the other three layouts (decision 2).
 
-## Retracting seat
+## Seat and the arm's lift
 
-The seat is a cone socket on a vertical carriage. At 1.6 s into a trial the carriage drops 30 mm in at most 0.2 s,
-when the simulation removes the post (`hom_tasks.py`, `Schedule`). After the task it rises and takes the object back.
-At the top an over-centre crank presses the carriage against a hard stop, so the seated height does not depend on the
-servo's angle. The drive is an STS3032 on its own serial adapter, at least 150 mm from the fingertips. The guides are
-carbon or brass rods. The carriage's state and the frame age are read from a 30 mm tag36h11 (id 9) on the carriage.
+The seat is a flat printed plate on a pedestal fixed to the table, under the block. At 1.6 s into a trial, when the
+simulation removes its post (`hom_tasks.py`, `Schedule`), the arm lifts the hand 40 mm in 0.4 s on a minimum-jerk
+profile, with a peak acceleration of 1.44 m/s². After the task it lowers the hand by the same distance and the fingers
+open. The hand tags start to move in the images when the lift starts, so the delay between the lift's command and
+that first motion gives the frame age in every trial.
 
-The socket's cone has a 20 mm mouth and captures the block within 5 mm. The cylinder's socket adds a ridge that fits the
-block's V-groove and turns the block into place from up to 15° of yaw. The sphere's socket has no ridge, so the sphere
-may rest at any yaw, which the tags measure.
+The seat locates nothing on purpose. A pocket 4 mm deep round the block's lower end, with 0.3 mm of clearance, broke the
+cylinder tasks in simulation. The grasp forces come on at 0.8 s while the block is caught, the pinch pushes the object
+1 to 3 mm against the walls, and after the lift the cylinder swings about the pinch axis and falls. On the study's post
+the object is supported but free to slide and tilt, and before 1.6 s it travels 1.9 to 30.3 mm as the fingers close.
+The flat seat reproduces that travel. The tracker measures the start pose, and the arm moves the hand by the measured
+offset when it exceeds 1 mm or 2°.
 
-Until the retracting seat is built, a fixed seat with the same socket is used, and the arm lifts the hand 30 mm at
-1.6 s. In the simulation the seat replaces the post and the "hold" pin: the block is constrained by the cone until 1.6 s.
+In simulation the lift's acceleration made no difference: on three picks the scores with and without it were within
+0.01. The block stayed at least 31.8 mm above the seat during every task, so it never came down more than 8.2 mm below
+its seated height; a 15 mm lift would leave 6.8 mm.
 
 ## Cameras
 
@@ -120,9 +153,12 @@ At 0.3 m a 13 mm tag then spans about 60 px, 7.6 px per cell. The earlier tracke
 resolution (focal length 674 px against 1397 px). At the roll's 40°/s the colour sensor's rolling shutter shears the
 block by about 0.2°.
 
-The cameras stand about 0.3 m from the block, at its height within ±15°, 90 to 120° apart in azimuth, fixed to the
-table. Their positions come from the visibility check of step 2. If corvus cannot run both at 1080p, 1280 × 720 gives
-5.0 px per cell at 0.3 m.
+The cameras stand on their sides, 1080 × 1920, 42° across and 69° high, fixed to the table 0.3 m from the block in the
+task, at its height, at azimuths 0° and 260° from x_P. Upright, 42° high, a camera cannot see the seated block and a
+hand tag 44 mm above P in one frame. In the simulated rollouts this pair sees two or more block tags in 99.8 % of the
+task's frames and every frame of 19 of the 20 picks; alone, the cameras cover 77 % and 86 %. Cameras 10° or more above
+the block see it as well but lose their hand tags behind the fingers. If corvus cannot run both at 1080p, 1280 × 720
+gives 5.0 px per cell at 0.3 m, and the 13 mm tag still decodes to 65° there.
 
 ## Tracking software
 
@@ -144,21 +180,21 @@ first.
 
 | Time | Step |
 |---|---|
-| before | The seat is up with the object. The seated pose is checked against nominal (0.5 mm, 1°). The fingers are at the open pose, 8 mm off the object. |
+| before | The object rests on the flat seat. The tracker measures its pose; when it is more than 1 mm or 2° from nominal, the arm moves the hand by the offset. The fingers are at the open pose, 8 mm off the object. |
 | 0.1 to 0.8 s | The fingers approach at 20 mm/s. |
 | 0.8 s | The HOM controller turns on the grasp forces. |
-| 1.6 s | The seat drops 30 mm. |
+| 1.6 s | The arm lifts the hand 40 mm in 0.4 s. |
 | 2.0 s | The task starts; the controller receives $T_{PO}$ from the tracker. |
 | 4.9 to 7.8 s | The task ends (4.9 s roll, 5.5 s press, 6.5 s pin-push, 7.8 s twist); the forces stay on. |
-| return | If the block is within 5 mm of the socket, and within 15° for the cylinder, the seat rises to 2 mm below it. The fingers open, the block drops into the cone and the seat completes its rise. The seated pose is checked again. |
+| return | The arm lowers the hand 40 mm, the fingers open and the object rests on the seat. Its pose is measured again. |
 
 The four tasks end close to their start pose. The pin-push turns +15°, −30° and +15°, the press goes up 20° and back,
-and the roll's steps return to rest. The twist leaves the sphere turned by up to 90°, which its socket accepts. The
-runner pauses when a block ends outside the capture range or the object drops. For a manual reseat the arm
+and the roll's steps return to rest. The twist leaves the sphere turned by up to 90°, which the flat seat accepts. The
+runner pauses when the object ends more than 10 mm from its start or drops. For a manual reseat the arm
 lifts the hand 80 mm, the operator places the object, and the arm returns. A catch tray around the seat keeps a dropped
 object near it.
 
-Between layouts the seat stays up with the object, the fingers flex away from it and the gantries move. The arm then
+Between layouts the object stays on the seat, the fingers flex away from it and the gantries move. The arm then
 shifts the hand so that the next grasp's object centre lies at the seat, a move of at most a few centimetres.
 
 ## Reproduction of the simulated experiments
@@ -168,9 +204,10 @@ The first series uses the five layouts of the task-conflict study on the SCS0009
 specialists for twist (100,70), roll (85,170), pin-push (75,55) and press (70,150). Each layout runs its S3 grasp and
 controller parameters for each task, 10 trials each: 200 trials, about an hour plus reseats.
 
-The simulation is run again first on the setup as built, at seeds 0 to 4. The objects enter it with stem, block and
-ballast, at their measured mass, centre of mass and inertia. The seat model, the measured friction and the plant of the
-hand's servos are added. The "sense" variant runs at the tracker's measured rate, frame age and noise.
+The simulation is run again first on the setup as built, at seeds 0 to 4. The objects enter it with stem and block,
+at their measured mass, centre of mass and inertia. The flat seat and the arm's lift are in
+`scripts/hardware/object_tracking_rollouts.py`; the measured friction and the plant of the hand's servos are added. The
+"sense" variant runs at the tracker's measured rate, frame age and noise.
 
 For each task, the score distributions (median and interquartile range) and the Spearman correlation of the five
 layouts' median scores are compared. The study's claim that (70,110) reaches 0.84 of each task's best layout is tested
@@ -199,28 +236,38 @@ measured error comes from the trials against the tracker, whose 0.3 mm target is
 
 Each step names its acceptance test. Steps 1 to 3 need no time on the hand or the arm.
 
-1. Tag size test. Print a plate with tag36h11 and tag25h9 at 10, 12, 14 and 16 mm. Record it with the colour stream at
-   1080p and 720p, at 0.25, 0.3 and 0.4 m, and at 0, 30, 45 and 60° from the tag normal. Choose the smallest family and
-   size that decodes in at least 99 % of frames up to 50°, with corner jitter of at most 0.15 px at 0.3 m. The 13 mm
-   tag36h11 of this plan changes if the test requires it.
+1. Tag size test. Print a plate with tag36h11 and tag25h9 at 10, 12, 13, 14 and 16 mm. Record it with the colour stream
+   at 1080p and 720p, at 0.25, 0.3 and 0.4 m, and at 0, 30, 45 and 60° from the tag normal. Choose the smallest family
+   and size that decodes in at least 99 % of frames up to 50°, with corner jitter of at most 0.15 px at 0.3 m. The 13 mm
+   tag36h11 of this plan changes if the test requires it. Simulated on 2026-11-05: at 1080p and 0.3 m every tag of
+   10 mm or more decodes in 99 % of frames to 65°, the 13 mm tag36h11 to 65° out to 0.5 m, with corner jitter of 0.03
+   to 0.06 px. `sr2hand.tracking.pose.detect` subtracts the detector's half-pixel offset.
 2. Clearance and visibility in simulation. Add the stem, block and seat to the HOM scenes and replay the five layouts'
    grasps and tasks. Accept when the stem and block clear every finger by 3 mm in every rollout and the scores change
-   by at most 0.02. Then render the block's tags in the cad_v3 scene from candidate camera poses over the same rollouts.
-   Choose the two poses that give, in every frame, at least 2 fully visible tags within 60° of their normal in one
-   camera or both. The hand's tags must be visible to both cameras.
+   by at most 0.02. Then render the block's tags from candidate camera poses over the same rollouts. Choose the two
+   poses that give, in every frame, at least 2 fully visible tags within 60° of their normal in one camera or both. The
+   hand's tags must be visible to both cameras. Done on 2026-11-05 for the flat seat and the 40 mm lift: on the
+   cylinder the stem clears by 1.6 mm or more (5.3 mm at nine of ten picks) and no pick loses more than 0.011; on the
+   sphere it touches at three layouts. The pair at 0° and 260° covers 99.8 % of the task's frames. Left: the hand tags'
+   brackets in the cad_v3 model, and the sphere's tags at three layouts (decision 2).
 3. Tag block and turntable. Print a block and refine its tag map by bundle adjustment from about 40 views. Track it on
    a turntable driven by an STS3032 (12-bit encoder) through 360° in 5° steps, level and on a 20° wedge. Accept 0.3°
-   and 0.3 mm RMS against the encoder and the turntable's fitted axis, with at least 99 % of frames tracked.
-4. Objects and seat. Print the cylinder and the sphere with their ballast and the chosen contact surface (decision 1).
-   Measure their mass and centre of mass. Measure the pad's friction on the surface with the hand on the UR5. One
-   fingertip presses the seated object at 1 and 2 N while the arm slides 5 mm, and the HEX-E gives the forces. Reseat
-   each object 30 times by hand in a fixed seat, and accept 0.2 mm and 0.3° (1 sd).
-5. Cameras and hand frame in the cell. Mount the cameras, the lights and the hand tags (decisions 3 and 4), and add them
-   to `cell.json`. Refine the hand tags' poses with the arm (about 15 poses). Accept when the two routes to $T_{CP}$
-   agree within 1 mm and 0.5°, and the frame age from the seat tag is at most 50 ms median.
-6. Retracting seat. Build it (decision 2). Accept an up position within 0.05 mm over 100 cycles (dial indicator) and a
-   30 mm drop in at most 0.2 s. While the seat cycles under a gripped object, the boards' readings must stay within
-   their noise (3.4 µT).
+   and 0.3 mm RMS against the encoder and the turntable's fitted axis, with at least 99 % of frames tracked. Simulated:
+   the adjustment brings an assumed print error of 0.11 mm RMS down to 0.02 mm; with the refined map the block is
+   tracked in every frame to 0.06 to 0.08° against the encoder and 0.14 to 0.20 mm from its fitted path, and at 40°/s
+   with a rolling shutter to 0.20° and 0.55 mm against the truth. One camera's error is mostly in depth (0.5 mm).
+4. Objects and seat. Print the cylinder and the sphere at the infill that makes 25 g, with the chosen contact surface
+   (decision 1). Measure their mass and centre of mass. Measure the pad's friction on the surface with the hand on the
+   UR5. One fingertip presses the seated object at 1 and 2 N while the arm slides 5 mm, and the HEX-E gives the forces.
+   Set each object down on the flat seat 30 times with the hand, and accept a start pose within 1 mm and 2° of nominal
+   in 29 of 30.
+5. Cameras and hand frame in the cell. Mount the cameras on their sides at 0° and 260°, the lights and the hand tags
+   (decisions 3 and 4), and add them to `cell.json`. Calibrate the cameras against the arm's base with the hand tags
+   (about 15 poses). Accept when the two routes to $T_{CP}$ agree within 1 mm and 0.5°, the tracked motion of a seated
+   object's block matches arm steps of 10 to 40 mm within 0.3 mm, and the frame age from the hand tags is at most 50 ms
+   median.
+6. The arm's lift. Run the lift and its return 100 times with an object held. Accept a return within 0.1 mm of the
+   start (the UR5's repeatability), and the boards' readings within their noise (3.4 µT) while the arm moves.
 7. Trial runner on corvus. Run 50 consecutive trials of one task on one layout. Accept at most 2 manual reseats and
    every stream on one clock.
 8. First series and comparison, as in "Reproduction of the simulated experiments", once the HOM controller runs on the
@@ -237,17 +284,14 @@ The lab's rules apply to every arm motion. There is no freedrive with the SR2 ha
 |---|---|---|
 | Tag test plate | session, printed | step 1 |
 | Tag blocks: cylinder, sphere, spare | session, printed | P1S with AMS, matte black and white PLA |
-| Cylinder and sphere | session, printed | halves around the ballast; stem and block in one piece with the lower half |
-| Seat sockets: cone, and cone with ridge | session, printed | |
+| Cylinder and sphere | session, printed | infill for 25 g; stem and block in one piece with the lower half |
+| Flat seat on a pedestal | session, printed | fixed to the table under the block |
 | Turntable adapter and 20° wedge | session, printed | step 3 |
 | Catch tray around the seat | session, printed | |
-| Retracting seat: carriage, crank and frame | owner, or the session's draft reviewed by the owner | decision 2 |
 | Hand tag mounts, two | owner | positions from step 2 |
 | Camera and light mounts | owner | fixed to the table |
-| Brass or tungsten ballast | bought | about 8 to 15 g per object |
 | USB 3 cable and port for the second D435 | bought if needed | |
 | Two LED panels | bought | |
-| Serial adapter for the seat's STS3032 | bought | its own bus |
 | High-friction surface | bought | decision 1 |
 
 ## Decisions for the owner
@@ -256,9 +300,10 @@ The lab's rules apply to every arm motion. There is no freedrive with the SR2 ha
    0.37 to 0.44 against the pads, and at 0.4 the twist's median best-of-set score falls from 0.91 to 0.08 in
    simulation. Recommended: grip tape or a rubber coating on the contact surfaces, measured in step 4. The tags are on
    the block, so the surface can be covered entirely.
-2. Retracting seat: designed by the owner in Inventor, or drafted by the session for review. The fixed seat with a
-   30 mm arm lift is used until it exists.
-3. Hand tag mounts: two 40 mm tags on static parts of the hand, facing the cameras chosen in step 2.
+2. The sphere's tags at the roll, press and twist specialists' layouts, where the stem touches a finger: tags on the
+   sphere's surface, or a sphere series at the generalist and the pin-push specialist only.
+3. Hand tag mounts: two 40 mm tags on static parts of the hand, facing the cameras at 0° and 260°. They check the arm's
+   route to $T_{CP}$ and give the frame age.
 4. Camera host: corvus, which already has a D435, unless the tracker delays the servo or board logs there. Otherwise a
    second computer synchronised to corvus by chrony.
 5. Object pose for the HOM controller: the tracker, as in the "sense" variant, is recommended first. The tactile and
@@ -271,6 +316,12 @@ The lab's rules apply to every arm motion. There is no freedrive with the SR2 ha
 | One tag on a vane (workshop study) | Visible through the whole run in 40 of 74 trials; the vane leaves the camera's view when the cylinder turns about its axis (`paper/transfer_results.tex`) |
 | Tags on a cube fixed to the object | Solving each face alone makes the pose jump when the visible face changes. One solve over all corners with a calibrated tag map, used for the tag block, removes the jumps |
 | Tags printed on the sphere | About 8 mm on a 40 mm sphere, and some lie under the pads; kept for tasks that turn the object beyond about 45° |
-| Slot in the cylinder over a long post | Needs a lift of more than half the cylinder's length and can jam; a 10 mm cone locates the object as well |
+| Slot in the cylinder over a long post | Needs a lift of more than half the cylinder's length and can jam |
+| Seat that drops away (this plan's first version) | Needs a carriage, guides and a drive the lab does not have (owner, 2026-11-05); the arm lifts the hand instead |
+| Pocket round the block's lower end | In simulation the pin-push scores 0 at four of five layouts: the block is caught while the forces come on |
+| Cone boss in a cone socket (first version) | A 20 mm socket mouth round a 10 mm boss puts the socket's upper half inside the block; not simulated |
+| Ballast of steel, brass or tungsten | Not needed: infill alone makes 25 g |
+| Camera poses from one hand tag each | 0.1 to 1.0° of tilt error and 0.3 to 5.4 mm in P in simulation; kept as a check of the arm's route |
+| Cameras mounted upright | 42° high: the seated block and a hand tag 44 mm above P do not fit one frame at 0.3 m |
 | Retroreflective balls seen by a D435 | Needs an infrared ring light at the lens, and the 50 mm stereo baseline limits depth |
 | OptiTrack | Not installed at the robot, and the hand covers the markers |

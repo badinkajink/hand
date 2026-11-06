@@ -282,7 +282,7 @@ Builders of the home page, the topic overviews and the page indices, and the par
 | `topic_overview_page.py` | Build the topic overviews, docs/overviews/<file> (names in docs_inventory.OVERVIEW): what a collaborator new to the project needs from one topic of the result pages, with every finding linked to the page that measured it |
 | `workshop_briefing_page.py` | Build the workshop briefing page: the record behind the SR2 Hand paper. |
 
-## fingertip/ (148)
+## fingertip/ (153)
 
 The printed fingertip: its geometry and prints, finite elements, magnets and the MLX90393 readout, the wrench model, and the calibration and crosstalk pages.
 
@@ -381,8 +381,13 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `sim2real_fingertip_sensing.py` | Five-chip magnet readout of the 85A magnet blocks on the CAD finger (docs/handoff/20261016-sim2real_fingertip_readiness.md, step 8). |
 | `spherical_magnet_check.py` | Spherical N52 magnets in place of the 3 x 2 mm cylinders of pad B00 (2026-10-21): the field at the ReSkin 5X chips, the error of the point-dipole model, the force resolution with spheres of 2-5 mm, and the torque between |
 | `spherical_magnets_page.py` | Result page of the 2026-10-21 comparison of spherical and disc N52 magnets in pad B00 on the ReSkin 5X board. |
+| `sr2_crosstalk_film.py` | Film of the SR2 hand through the crosstalk sweeps (docs/experiments/20261104-sr2_hand_crosstalk): the cad_v3 full model at each pose's measured joints and its layout's mounts, and beside it each board's change in force e |
+| `sr2_crosstalk_hand.py` | Magnetic crosstalk between the three fingertip boards on the SR2 hand, at the home layout (the night of 2026-11-04) and at the stepper layouts of 2026-11-05 (the s1 layouts and the HOM study's), from the lab's sweeps (do |
 | `sr2_crosstalk_night.py` | Crosstalk between the fingertips on the SR2 hand, from the lab's sweep of 2026-11-04 (18:57 to 20:34; runbook and data in docs/experiments/20261104-sr2_hand_crosstalk, data/20261104-night). |
+| `sr2_crosstalk_page.py` | Builds docs/experiments/20261104-sr2_hand_crosstalk/20261105-sr2_hand_fingertip_crosstalk.html: magnetic crosstalk between the three fingertip boards on the SR2 hand, measured on the UR5 at the home layout (night of 2026 |
 | `sr2_plan_ramp_replay.py` | SR2 hand: a crosstalk plan checked as lab/run_plan.py --ramp-deg 3 walks it (docs/experiments/20261104-sr2_hand_crosstalk). |
+| `sr2_plan_stepper_skip_check.py` | SR2 hand (docs/experiments/20261104-sr2_hand_crosstalk): plan_layouts_s1 with one stepper axis left behind at a layout move: for each layout and each axis that moves there, that axis stays at its previous value. |
+| `sr2_plan_tolerance_check.py` | SR2 hand: a chunk folder of the crosstalk plans checked with every joint anywhere within the runner's error limits of where it is sent (docs/experiments/20261104-sr2_hand_crosstalk). |
 | `three_finger_soak_page.py` | Page on the three v1 fingertips left at rest overnight on the ESP32-C6 mux (hand-off 20261026-three_v1_fingers_overnight; owner, 2026-10-26 19:30: "ive plugged in all v1 finger ... |
 | `tip_codesign_analysis.py` | Summaries of the fingertip co-design rows (docs/notes/20261014-tip_codesign_plan.md); each subcommand reads rows and writes one JSON summary next to them. |
 | `tip_codesign_bed.py` | Contact-bed cases of the fingertip co-design study (docs/notes/20261014-tip_codesign_plan.md, steps 3 and 5). |
@@ -437,7 +442,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `v3b_pad_b00_magnets_xl.py` | Concept b's 11/22 pad at groove fit B00 (0.00 mm per flank) with its 3 x 2 mm magnets and their pauses, 85A, on the Prusa XL's tool 2: the five magnets of the v2 tip (--magnets five) or the four of the 10-18 print (--mag |
 | `v3b_ur5v2_pla_plate.py` | Bambu Lab P1S PLA plates of 2026-10-20: the UR5e calibration mount v2 with its two indenters and three covers of DIP link b v3 at three wall clearances (plate "calibration"), and DIP link b v3 (plate "link"). |
 
-## hardware/ (39)
+## hardware/ (43)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -452,6 +457,10 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `calibrate_plant_kp.py` | Find the actuator gain and torque ceiling that reproduce the bench's measured shortfall. |
 | `fit_servo_compliance.py` | Fit the SCS0009's finite stiffness from the bench's own run logs. |
 | `mh.py` | Tiny client for the CB1 control service (workstation side). |
+| `object_tracking_mjcf.py` | MJCF pieces of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), shared by scripts/hardware/object_tracking_rollouts.py (physics, the repository's .venv) and scripts/hardware/object |
+| `object_tracking_rollouts.py` | Step 2 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), the physics: the HOM tasks of the five layouts of the task-conflict study (generalist (70,110); specialists twist (100,70 |
+| `object_tracking_sim.py` | Steps 1-3 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/) in simulation, the camera side. |
+| `object_tracking_sim_page.py` | Builds docs/experiments/20261105-object_tracking_sim/20261105-object_tracking_sim.html: steps 1 to 3 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/) in simulation, with the owne |
 | `plant_drop_gate.py` | Does the corrected plant make the simulator FAIL the way the bench fails? |
 | `plant_ranking_test.py` | Does the corrected plant make the simulator RANK the hands the bench ranked? |
 | `probe_real_v1_pivot.py` | Is the real_v1 grasp a rotational LOCK about the pinch axis? |
@@ -673,7 +682,7 @@ Reinforcement learning: the trainer and its launchers, the morphology runs, poli
 | `train_real_v1_blind_pair.sh` | Real-hardware-family observation transfer: sighted vs hidden-object actor. |
 | `train_reorient_on_morph.sh` | Skip-lift REORIENTER on a NEW morphology — does the balanced grasp give a balanced grip? |
 
-## ur5/ (108)
+## ur5/ (111)
 
 The UR5 calibration cell: session plans, the cell model, registration and analysis of the presses, the ATI sensor and the inverted rig.
 
@@ -745,6 +754,8 @@ The UR5 calibration cell: session plans, the cell model, registration and analys
 | `ur5_tip_calibration_film.py` | Film of a fingertip calibration session on the UR5 (CB3): the session's joint record (robot.bin) replayed in MuJoCo on the URDF's link meshes with the tool stack (OptoForce HEX-E, UR5 mount v3, DIP link b v4 with cover,  |
 | `ur5_tip_calibration_four_vs_five.py` | Four magnets (v3 ID 1, pad 05R4) against five (v2 ID 1, the b_v2 checkerboard) on the UR5's low sphere: the same press actions of the sphere stage, scored on each tip's own holds (owner, 2026-10-27: v3 ID 1's suite decid |
 | `ur5_tip_calibration_gain_by_region.py` | The board's signal per newton on each region of the pad, for one or more analysed sessions (2026-10-29: whether the tip's end, first pressed on v3 ID 2 in the low sphere's top-edge pass of 10-28 19:21, gives as much sign |
+| `ur5_tip_calibration_gp_timing.py` | Inference time of the contact viewer's board GP (wrench_viewer.BoardGP), one board reading at a time on one core: the full prediction (mean over every training hold, then the posterior variance from the 256 holds of larg |
+| `ur5_tip_calibration_gp_vs_mlp.py` | The contact viewer's board GP against an MLP ensemble on all six v3 tips' holds (owner, 2026-11-05 11:5x: "with this much data, should we also revisit the MLP? |
 | `ur5_tip_calibration_hard_extrapolation.py` | Extrapolation of the fingertip's contact estimators from light to hard presses, on v2 ID 1's sphere session on the UR5 (owner, 2026-10-27: "can we parameter tune the physical model to better match the resolution of the G |
 | `ur5_tip_calibration_hard_pass.py` | Hard and fast contacts on v1 ID 3 (cb3t, mount v7), request R26 (owner, 2026-10-26 13:5x: "maybe we can add harder (much harder?) presses on id 3 ... |
 | `ur5_tip_calibration_holder_apex_fit.py` | A held apex from the holder plan's apex search, and the holder's frame through the measured apexes (owner, 2026-10-27: the first touch-offs found no contact 1.2 mm past the expected apex; the plywood is level). |
@@ -766,6 +777,7 @@ The UR5 calibration cell: session plans, the cell model, registration and analys
 | `ur5_tip_calibration_r24_pass3.py` | Pass 3 of R24 on the UR5 (owner, 2026-10-25): left-right twins of the grid, slides, twists at 5 N, and a final reference. |
 | `ur5_tip_calibration_results_page.py` | Page of the fingertip's ground truth and contact predictors from a UR5 calibration session (2026-10-22): the pad's compliance against its FE model, the board's response against the HEX-E, the pivot check, the viewer's es |
 | `ur5_tip_calibration_rig_coverage.py` | Can the inverted rig's presses widen the calibration of v3 IDs 1 to 3 (owner, 2026-11-04 23:1x: "can we see if the inverted rig presses, while they did not help the ids 4-6, can be used to improve the coverage of ids 1-3 |
+| `ur5_tip_calibration_rig_pool_ids456.py` | Can the tip-mode calibration of v3 IDs 1 to 3 improve that of IDs 4 to 6, which were pressed only on the inverted rig (owner, 2026-11-05 11:4x: "can we improve the v3 ids 4-6 calibration with the calibration from ids 1-3 |
 | `ur5_tip_calibration_rod_pass2.py` | Rod pass 2 of R27 on v1 ID 3 (rod3t, mount v7), with the owner present (owner, 2026-10-26 15:05: "i think it can't hurt to get higher resolution + some data parity on the rod ... |
 | `ur5_tip_calibration_rod_registration.py` | Registration of a rod session with the rod as a cylinder (QUEUE.md R19, 2026-10-23). |
 | `ur5_tip_calibration_rod_tips.py` | How well v2 ID 1 (five N52 magnets) senses on the rod indenter, against ID 3's rod (owner, 2026-10-27 12:2x, through the lab session: "pass that analysis off to the main work pc session"). |
