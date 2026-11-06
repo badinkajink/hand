@@ -9,7 +9,9 @@ board's median and every component under 2e4 uT; misframed records), thermally c
 temperature (the calibration's kappa). Joints are the station's telemetry over the dwell (median; the command where no
 sample falls in it). Mounts follow the run's mounts steps in the palm frame (home at a run's start). A step's change d
 is its reading less the zero pose's at the same mounts, interpolated in time between the zero dwells at those mounts:
-the reading a viewer zeroed at the layout's zero pose would see.
+the reading a viewer zeroed at the layout's zero pose would see. Mounts come from the station's stepper counts in the
+telemetry (STEPPER); the manifest of 11-05 marks the middle's mount in run1_attended and run2_layouts as uncertain, and
+those rows stay out of the magnet model and of the layout moves.
 
 Analyses (each in the output JSON):
   noise       each zero dwell left out and predicted from its neighbours at the same mounts
@@ -26,7 +28,8 @@ Analyses (each in the output JSON):
               on any tip: raw, after the own-angle GP, after it and the magnet model, and after the nine-angle GP
 Forces are changes divided by the tip's change per newton (median |d_board| / |f| over its UR5 face presses at 1 to 3 N).
 
-    .venv/bin/python scripts/fingertip/sr2_crosstalk_hand.py [--sets 20261104 20261105] [--out NAME] [--no-viewer]
+    ~/.claude/bin/resguard.sh run --mem 3500M --cpu 400 -- env NUMPY_MADVISE_HUGEPAGE=0 OPENBLAS_NUM_THREADS=3 \
+        .venv/bin/python scripts/fingertip/sr2_crosstalk_hand.py [--sets 20261104 20261105] [--out NAME] [--no-viewer]
 """
 from __future__ import annotations
 
@@ -69,8 +72,13 @@ SETS = {
                      index_lost=datetime(2026, 11, 4, 19, 43, 52, tzinfo=MST).timestamp()),
     # the lab's push after hom1 (runs found by their events; run3_from32 left out: its middle X stage stayed at home
     # while the log moved it 45 mm)
-    "20261105": dict(dir=DATA / "20261105-day", runs=None, logs=None, index_lost=None, skip=["run3_from32"]),
+    "20261105": dict(dir=DATA / "20261105-day", runs=None, logs=None, index_lost=None, skip=["run3_from32"],
+                     uncertain_middle=["run1_attended", "run2_layouts"]),   # manifest_122000_173130.json, "uncertain"
 }
+# A mount in the palm frame from the station's stepper counts (telemetry "steppers", mm): offset + sign x position of
+# stepper J. Fitted on the 14 logged layout moves of 11-05, every residual 0.00 mm.
+STEPPER = {"thumb": ((1, -80.0, 1.0), (0, -55.0, 1.0)), "index": ((3, 80.0, -1.0), (2, 85.0, -1.0)),
+           "middle": ((5, 80.0, -1.0), (4, -85.0, 1.0))}
 PALM_GAP = 5.0                                          # mm: mounts this close are one layout
 
 
@@ -102,7 +110,8 @@ def log_files(cfg):
 
 
 def telemetry(run):
-    ts, q = [], []
+    """Times, measured joints (n, 9) and stepper counts (n, 6) mm, NaN where a sample has none."""
+    ts, q, st = [], [], []
     with opener(run / "telemetry.jsonl") as fh:
         for line in fh:
             s = json.loads(line)
@@ -112,14 +121,20 @@ def telemetry(run):
             ts.append(s.get("t_sample") or s["t_recv"])
             q.append([YAW_SIGN[f] * sv[FID[f]]["aa"] if j == "yaw" else sv[FID[f]]["fe1" if j == "mcp" else "fe2"]
                       for f in F for j in J])
-    return np.array(ts), np.array(q, float)
+            pos = {x["id"]: x["position_mm"] for x in (s.get("steppers") or [])}
+            st.append([pos.get(k, np.nan) for k in range(6)])
+    return np.array(ts), np.array(q, float), np.array(st, float).reshape(-1, 6)
+
+
+def stepper_mounts(pos):
+    return {f: tuple(o + sg * pos[j] for j, o, sg in STEPPER[f]) for f in F}
 
 
 def steps(cfg, name):
     """Every completed step of the set's runs in time order, with its window, measured joints and mounts."""
     out, mounts, torque_off = [], dict(HOME), False
     for run in run_dirs(cfg):
-        tq, q = telemetry(run)
+        tq, q, stp = telemetry(run)
         with opener(run / "events.jsonl") as fh:
             ev = [json.loads(line) for line in fh]
         for e in ev:
@@ -139,9 +154,13 @@ def steps(cfg, name):
             t0, t1 = e["t_end"] - keep, e["t_end"]
             k = (tq >= t0) & (tq <= t1)
             qc = np.array([e["joints"][f][j] for f in F for j in J]) if e.get("joints") else np.zeros(9)
+            ks = k & np.isfinite(stp).all(1)
+            mt = stepper_mounts(np.median(stp[ks], axis=0)) if ks.any() else dict(mounts)   # the counts, or the last log
             out.append(dict(set=name, run=run.name, step=e["step"], op=e["op"], family=e["family"], t0=t0, t1=t1,
                             q_cmd=qc, q=np.median(q[k], axis=0) if k.any() else qc, n_tel=int(k.sum()),
-                            mounts=dict(mounts), torque_off=torque_off, plan_clear=e.get("clearance_mm")))
+                            mounts=mt, mounts_from="steppers" if ks.any() else "log", torque_off=torque_off,
+                            plan_clear=e.get("clearance_mm"),
+                            mount_ok=not any(u in str(run) for u in cfg.get("uncertain_middle", []))))
     return out
 
 
@@ -160,8 +179,12 @@ def dwell_means(cfg, S):
     frames = [[[] for _ in range(3)] for _ in S]
     usual = None
     for path in log_files(cfg):
-        raw = gzip.open(path).read() if path.suffix == ".gz" else path.read_bytes()
-        z = np.frombuffer(raw, REC, count=len(raw) // REC.itemsize)
+        if path.suffix == ".gz":
+            raw = gzip.open(path).read()
+            z = np.frombuffer(raw, REC, count=len(raw) // REC.itemsize)
+        else:
+            raw = None
+            z = np.memmap(path, REC, mode="r", shape=(path.stat().st_size // REC.itemsize,))
         for i0 in range(0, len(z), 400_000):
             blk = z[i0:i0 + 400_000]
             t = blk["t"]
@@ -250,16 +273,17 @@ def baselines(S):
 
 
 def layout_name(S):
-    """A layout's name for each step: the family of its run's last mounts step, or home."""
-    names, last = [], "home"
+    """Each step's layout by its mounts: the name of the mounts step that set those mounts (family layout_<name>), home
+    for home's, and "other" for mounts no plan named (run4_from32's start, with the middle's stage still at home)."""
+    names = {key(HOME): "home"}
     for s in S:
         if s["op"] == "mounts" and s["family"].startswith("layout_"):
-            last = s["family"][len("layout_"):]
-        if key(s["mounts"]) == key(HOME):
-            last = "home"
-        s["layout"] = last
-        names.append(last)
-    return names
+            names.setdefault(key(s["mounts"]), s["family"][len("layout_"):])
+    out = []
+    for s in S:
+        s["layout"] = names.get(key(s["mounts"]), "other")
+        out.append(s["layout"])
+    return out
 
 
 def layout_moves(S, upn):
@@ -267,7 +291,7 @@ def layout_moves(S, upn):
     rows = []
     zs = [i for i, s in enumerate(S) if is_zero(s)]
     for i, s in enumerate(S):
-        if s["op"] != "mounts":
+        if s["op"] != "mounts" or not s["mount_ok"]:
             continue
         before = [j for j in zs if j < i and S[j]["set"] == s["set"]]
         after = [j for j in zs if j > i and S[j]["set"] == s["set"] and key(S[j]["mounts"]) == key(s["mounts"])]
@@ -412,7 +436,8 @@ def magnet_model(S, pred, upn):
             c = Tq[f][:3, 3]
             dist[n] = min(np.linalg.norm(Tq[g][:3, 3] - c) for g in others)
         R = pr["Y"] - pr["P"]["own_angles"]
-        big = np.linalg.norm(M.sum(1), axis=1) >= 5.0           # the model's field above the noise (3.3 uT)
+        okm = np.array([S[i]["mount_ok"] for i in pr["rows"]])
+        big = (np.linalg.norm(M.sum(1), axis=1) >= 5.0) & okm   # the model's field above the noise (3.3 uT)
         if big.sum() >= 20:
             A = M[big].transpose(0, 2, 1).reshape(-1, 2)        # (rows * 15, 2)
             gain = np.linalg.lstsq(A, R[big].ravel(), rcond=None)[0]
@@ -423,7 +448,7 @@ def magnet_model(S, pred, upn):
         bins = ((0, 25), (25, 35), (35, 50), (50, 70), (70, 999))
         rows = {}
         for a, b in bins:
-            k = (dist >= a) & (dist < b)
+            k = (dist >= a) & (dist < b) & okm
             if not k.any():
                 continue
             e0 = np.linalg.norm(R[k], axis=1)
@@ -432,13 +457,14 @@ def magnet_model(S, pred, upn):
                                        model_uT_max=round(float(np.linalg.norm(M[k].sum(1), axis=1).max()), 1),
                                        left_uT_median=pct(e0, 50), left_uT_p95=pct(e0, 95),
                                        after_model_uT_median=pct(e1, 50), after_model_uT_p95=pct(e1, 95))
+        R, fit, nominal = R[okm], fit[okm], nominal[okm]
         tot = float((R ** 2).sum())
-        out[f] = dict(rows_model_over_5uT=int(big.sum()), gain_fitted=bool(big.sum() >= 20),
+        out[f] = dict(rows_mounts_known=int(okm.sum()), rows_model_over_5uT=int(big.sum()), gain_fitted=bool(big.sum() >= 20),
                       gain=dict(zip(others, np.round(gain, 3).tolist())),
                       explained_share_fitted=round(1 - float(((R - fit) ** 2).sum()) / tot, 3),
                       explained_share_nominal=round(1 - float(((R - nominal) ** 2).sum()) / tot, 3),
                       by_distance=rows)
-        field[f] = dict(M=M, gain=gain, dist=dist)
+        field[f] = dict(M=M, gain=gain, dist=dist, mount_ok=okm)
     return out, field
 
 
@@ -513,7 +539,7 @@ class BoardGP:
     def __init__(self, path=BOARD_GP, m=256):
         from scipy.linalg import cho_factor, cho_solve
         self.cf, self.cs = cho_factor, cho_solve
-        z = np.load(path)
+        z = path if isinstance(path, dict) else np.load(path)
         self.mx, self.sx, self.my, self.sy, self.Z, self.a = (z[k] for k in ("mx", "sx", "my", "sy", "Z", "a"))
         self.ell, self.nz = float(z["ell"]), float(z["nz"])
         self.m = min(m, len(self.Z) - 1)
@@ -528,29 +554,78 @@ class BoardGP:
         w = float(np.clip(k[s] @ self.cs(self.cf(Ks + self.nz ** 2 * np.eye(self.m), lower=True), k[s]), 0.0, 1.0))
         return y[:3], y[3:], w
 
-    def press(self, est, tree, e, d):
+    def press(self, est, tree, e, d, pf=None):
+        """The viewer's shown press; pf = (p, f) of another readout in place of the GP's, weighted by the GP's w."""
         pg, fg, w = self.predict(d)
+        if pf is not None:
+            pg, fg = pf
         p = w * pg + (1 - w) * np.asarray(e["p"], float)
         f = w * fg + (1 - w) * np.asarray(e["f"], float)
         return float(-f @ est.Cn[int(tree.query(p)[1])])
 
 
+def readout_models(seed=0):
+    """The viewer's board GP and an MLP ensemble (ur5_tip_calibration_predict.MLP, five members of two hidden layers of 128
+    SiLU units), as the calibration page's Table 33 compares them: the GP on at most 1,500 holds of each set (its memory
+    limit), the ensemble on every training hold. Both are fitted on the viewer GP's training sets (ur5_tip_calibration_board_gp_rig.sets: the tip-mode presses and
+    slides of v3 IDs 1 to 3, ID 3's rig holds and 1,500 rig holds of each of IDs 4 to 6) less a fifth of each of IDs 1 to
+    3's tip-mode point groups, whose presses are the ones injected. ID 3's rig holds within 1 mm of a held-out ID 3 point
+    are left out as well. Cached in logs/20261105-sr2_crosstalk/."""
+    import pickle
+    from scipy.spatial import cKDTree
+    path = ROOT / f"logs/20261105-sr2_crosstalk/readout_models_seed{seed}.pkl"
+    if path.exists():
+        return pickle.loads(path.read_bytes())
+    import ur5_tip_calibration_board_gp_rig as GR
+    import ur5_tip_calibration_predict as PR
+    import ur5_tip_calibration_rig_coverage as RC
+    tips, rig = GR.sets()
+    rng = np.random.default_rng(seed)
+    held, train = {}, []
+    for k, h in tips.items():
+        g = rng.permutation(np.unique(h["group"]))
+        out = np.isin(h["group"], g[: len(g) // 5])
+        held[k] = {f: h[f][out] for f in ("d_board", "p", "n", "f", "kind")}
+        train.append({f: v[~out] for f, v in h.items()})
+    d3 = cKDTree(np.unique(np.round(held[3]["p"], 3), axis=0)).query(rig[3]["p"])[0]
+    train.append({f: v[d3 >= 1.0] for f, v in rig[3].items()})
+    train += [rig[4], rig[5], rig[6]]
+    X = np.concatenate([h["d_board"] for h in train])
+    Y = np.concatenate([np.c_[h["p"], h["f"]] for h in train])
+    sub = np.concatenate([o + np.sort(rng.permutation(len(h["p"]))[:1500])      # the GP's memory limit (calibration page,
+                          for o, h in zip(np.cumsum([0] + [len(h["p"]) for h in train[:-1]]), train)])   # Table 33)
+    t0 = time.time()
+    gp = BG.fit(X[sub], Y[sub], RC.FLOOR)
+    t_gp = time.time() - t0
+    perm = np.random.default_rng(7).permutation(len(X))              # the step count is chosen on the last fifth
+    mlp = PR.MLP(hidden=128).fit(X[perm], Y[perm], RC.FLOOR)
+    R = dict(gp=gp, mlp=mlp, held=held, n_train=int(len(X)), n_train_gp=int(len(sub)), fit_s=dict(gp=round(t_gp, 1), mlp=round(time.time() - t0 - t_gp, 1)),
+             held_groups={k: int(len(np.unique(v["p"].round(2), axis=0))) for k, v in held.items()})
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(pickle.dumps(R))
+    print(f"readout models: {len(X)} training holds, {len(sub)} for the GP; GP {t_gp:.0f} s, MLP {R['fit_s']['mlp']:.0f} s", flush=True)
+    return R
+
+
 def inject(S, pred, upn, n_press=400, seed=0):
-    """Real presses on the hand's residual: UR5 presses of each tip (its own tip-mode holds, 0.25 to 3 N) added to 50 ms
-    frames of the hand, through the viewer's decision. Frames from the zero dwells (the chips' noise alone) against
-    frames of the moving hand after the own-angle GP and raw. Reports the share detected and the error of the shown
-    press force against the press's normal force."""
+    """Real presses on the hand's residual: UR5 presses of each tip (0.25 to 3 N, from the point groups held out of the
+    readout models, readout_models) added to 50 ms frames of the hand, through the viewer's decision. Frames from the
+    zero dwells (the chips' noise alone) against frames of the moving hand, raw and after the own-angle GP. Reports the
+    share detected and, for each readout of a detected press, the error of the shown press against the press's normal
+    force and the error of the contact point along the surface: the physical estimator alone, the viewer's board GP
+    weighted by its w, the MLP ensemble in the GP's place, and the ensemble weighted by the GP's w."""
     from scipy.spatial import cKDTree
     basis = W.load_basis(W.basis_path("four_05R4"))
     row = W.fe_row("four_05R4")
     rng = np.random.default_rng(seed)
-    gp = BoardGP()
-    out = {}
+    RM = readout_models()
+    gp = BoardGP(RM["gp"])
+    mlp = RM["mlp"]
+    out = dict(readout=dict(training_holds=RM["n_train"], training_holds_gp=RM.get("n_train_gp"), fit_s=RM["fit_s"]))
     for f, pr in pred.items():
-        V.KINDS[:] = ["press"]
-        H = V.load(V.TIPS[TIP_ID[f]])
-        fn_true = -np.sum(H["f"] * H["n"], 1)
-        k = np.flatnonzero((fn_true >= 0.25) & (fn_true <= 3.0))
+        Hh = RM["held"][TIP_ID[f]]
+        fn_true = -np.sum(Hh["f"] * Hh["n"], 1)
+        k = np.flatnonzero((Hh["kind"].astype(str) == "press") & (fn_true >= 0.25) & (fn_true <= 3.0))
         pick = rng.choice(k, min(n_press, len(k)), replace=False)
         cal = W.Calib.load(CALIB / f"20261102-v3_id_{TIP_ID[f]}-calib.json")
         est = W.SurfaceEstimator(W.Model(cal, row), basis, floor_uT=2.0)
@@ -564,19 +639,34 @@ def inject(S, pred, upn, n_press=400, seed=0):
         r = {}
         for name, base in (("zero_pose_noise", noise), *hand.items()):
             fr = base[rng.integers(0, len(base), len(pick))]
-            det, err, err_gp = [], [], []
-            for x, j in zip(fr, pick):
-                d = x + H["d_board"][j]
+            D = fr + Hh["d_board"][pick]
+            Pm = mlp.predict(D)                                         # (n, 6): point mm, force N
+            det = np.zeros(len(pick), bool)
+            ferr = {m_: [] for m_ in ("physical", "board_gp", "mlp", "mlp_gp_weight")}
+            lerr = {m_: [] for m_ in ("board_gp", "mlp")}
+            for c_, (d, j) in enumerate(zip(D, pick)):
                 e = est.estimate(d)
-                c = bool(e["contact"] and e["e"] > 25.0 and e["f_n"] >= 0.25) and not ff.lam(d, e) > ff.on
-                det.append(c)
-                if c:
-                    err.append((e["f_n"] - fn_true[j]) / fn_true[j])
-                    err_gp.append((gp.press(est, tree, e, d) - fn_true[j]) / fn_true[j])
-            r[name] = dict(presses=len(pick), detected_share=round(float(np.mean(det)), 3))
-            for tag, ee in (("physical", np.array(err)), ("board_gp", np.array(err_gp))):
-                r[name][tag] = dict(force_error_median_pct=pct(100 * ee, 50), force_error_abs_median_pct=pct(100 * np.abs(ee), 50),
-                                    force_error_abs_p90_pct=pct(100 * np.abs(ee), 90))
+                det[c_] = bool(e["contact"] and e["e"] > 25.0 and e["f_n"] >= 0.25) and not ff.lam(d, e) > ff.on
+                pg, fg, w = gp.predict(d)
+                for m_, pp in (("board_gp", pg), ("mlp", Pm[c_, :3])):
+                    dp = pp - Hh["p"][j]
+                    lerr[m_].append(float(np.linalg.norm(dp - (dp @ Hh["n"][j]) * Hh["n"][j])))
+                if not det[c_]:
+                    continue
+                t = fn_true[j]
+                ferr["physical"].append((e["f_n"] - t) / t)
+                ferr["board_gp"].append((gp.press(est, tree, e, d) - t) / t)
+                pm, fm = Pm[c_, :3], Pm[c_, 3:]
+                ferr["mlp"].append((float(-fm @ est.Cn[int(tree.query(pm)[1])]) - t) / t)
+                ferr["mlp_gp_weight"].append((gp.press(est, tree, e, d, pf=(pm, fm)) - t) / t)
+            r[name] = dict(presses=len(pick), detected_share=round(float(det.mean()), 3))
+            for m_, ee in ferr.items():
+                ee = np.array(ee)
+                r[name][m_] = dict(force_error_median_pct=pct(100 * ee, 50), force_error_abs_median_pct=pct(100 * np.abs(ee), 50),
+                                   force_error_abs_p90_pct=pct(100 * np.abs(ee), 90))
+            for m_, ee in lerr.items():
+                r[name][m_]["location_error_median_mm"] = pct(ee, 50)
+                r[name][m_]["location_error_p90_mm"] = pct(ee, 90)
         out[f] = dict(true_force_N_median=pct(fn_true[pick], 50), **r)
     return out
 
@@ -616,7 +706,7 @@ def main():
         (("rows", np.array(pr["rows"])), ("Y", pr["Y"]), ("lay", pr["lay"].astype(str)),
          *((f"P_{n}", p) for n, p in pr["P"].items()),
          *((f"shown_{n}", v) for n, v in pr.get("shown", {}).items()),
-         *((("M", field[f]["M"]), ("dist", field[f]["dist"])) if f in field else ()))},
+         *((("M", field[f]["M"]), ("dist", field[f]["dist"]), ("mount_ok", field[f]["mount_ok"])) if f in field else ()))},
         q=np.array([s["q"] for s in S]), t=np.array([0.5 * (s["t0"] + s["t1"]) for s in S]),
         mounts=np.array([[s["mounts"][f][c] for f in F for c in (0, 1)] for s in S]),
         set=np.array([s["set"] for s in S]), run=np.array([s["run"] for s in S]),

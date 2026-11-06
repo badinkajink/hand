@@ -1848,8 +1848,9 @@ push that answers it arrives.
     ms a reading with the variance, 1.11 ms for the mean alone, 5.4 ms for three boards; the 11-02 model 1.31 ms.
   - GP against MLP ensemble (owner, 11:5x: "with this much data, should we also revisit the MLP? i do like the
     uncertainty measurement of the GP"; `scripts/ur5/ur5_tip_calibration_gp_vs_mlp.py`, `data/20261105-v3_gp_vs_mlp.json`).
-    The GP trains on 1,500 holds of each of the seven sets, its memory limit; the ensemble (five members, two hidden
-    layers) on all training holds, about 16,900. With a fifth of every set's points held out (2 seeds) the GP locates
+    The GP trains on at most 1,500 holds of each of the seven sets, its memory limit, 9,408 to 9,412 in all; the ensemble
+    (five members, two hidden layers) on all training holds, 16,560 and 16,703 in the random splits and 18,149 with the
+    gaps held out (corrected 18:4x; the page's Table 33 gives the file's numbers). With a fifth of every set's points held out (2 seeds) the GP locates
     contact to 0.54 and 0.56 mm. The ensemble with 64 units reaches 0.50 and 0.52 mm, and with 128 units 0.48 and 0.49 mm.
     Direction is 3.7 to 4.4 deg for all three; magnitude 7.0 to 7.3 % against 6.2 to 6.5 %. With the gaps held out (IDs 4
     to 6 beyond 14 mm along the pad, ID 3's mount end) the GP reaches 1.24 mm and the ensembles 1.00 and 1.03 mm. Each

@@ -212,11 +212,11 @@ def stage_rows(R, f):
 def sec_terms(R):
     upn = R["uT_per_N"]
     terms = [
-        ("Board, chip, reading", "the ReSkin 5X board under each fingertip carries five MLX90393 chips, U1 to U5. Each chip "
+        ("Board, chip, reading", "five MLX90393 chips, U1 to U5, sit on the ReSkin 5X board under each fingertip. Each chip "
          "gives the magnetic field along its three axes in µT. A reading is the 15 components, each divided by its chip's gain "
          "at its die temperature (the UR5 calibration's 0.7 % per °C)."),
-        ("Tips and boards", "the thumb carries v3 ID 1 (mux channel 3), the index v3 ID 3 (channel 1; through a second mux "
-         "since 11:4x on 11-05) and the middle finger v3 ID 2 (channel 0). Each pad holds four N52 magnets of 3 by 2 mm on a "
+        ("Tips and boards", "v3 ID 1 is on the thumb (mux channel 3), v3 ID 3 on the index (channel 1; through a second mux "
+         "since 11:4x on 11-05) and v3 ID 2 on the middle finger (channel 0). In each pad sit four N52 magnets of 3 by 2 mm on a "
          "5.0 mm square with poles (1, -1, -1, 1)."),
         ("Palm frame $P$, layout", "$x_P$ points from the thumb toward the index and middle pair, $y_P$ from the middle toward "
          "the index. A layout is the three mounts' positions $(x, y)$ in $P$, set by the stepper gantries. Home is thumb "
@@ -249,8 +249,12 @@ def sec_terms(R):
          "estimator explains the frame's change with a chi-square above 25, at a press of 0.25 N or more, and when a field from "
          "outside the pad does not explain it better by more than 25. A contact shown with nothing touching is a false contact."),
         ("Injected press", "a UR5 press of the same tip, 0.25 to 3 N, whose change is added to a frame of the hand. The force "
-         "error is the shown press less the press's normal force, over the normal force. The viewer on the hand shows the "
-         "press of its board GP (the rig-pooled GP of 2026-11-05, which was trained on these presses)."),
+         "error is the shown press less the press's normal force, over the normal force. The location error is the distance "
+         "along the surface from the readout's contact point to the press's."),
+        ("Readout", "the model that turns a board's change into a contact point and force once a contact is shown. The viewer "
+         "on the hand uses the board GP, weighted by its $w$ against the physical estimator ($w$ is 1 less the GP's posterior "
+         "variance from its 256 nearest holds). The MLP ensemble (five networks of two hidden layers of 128 units) can take the "
+         "GP's place, alone or weighted by the GP's $w$."),
     ]
     return '<dl class="terms">' + "".join(f"<dt>{a}</dt><dd>{b}</dd>" for a, b in terms) + "</dl>"
 
@@ -265,7 +269,7 @@ def sec_measurement(R, Z):
         rows.append((s[:4] + "-" + s[4:6] + "-" + s[6:], len(k.nonzero()[0]), ", ".join(LAYOUT_LABEL.get(n, n) for n in names)))
     out = ("<p>The hand hangs from the UR5's flange with the arm powered off. Each finger's board streams through the C6 "
            "mux at 160 records/s, and the station logs the servos at 20 Hz. The lab's runner moves the fingers through the "
-           "plans in 3 deg waypoints and holds each pose for 3 s. A zero pose comes every 12 poses. The mounts move only between "
+           "plans in 3 deg waypoints, and each pose is held for 3 s. A zero pose comes every 12 poses. The mounts move only between "
            "layouts, with the fingers at the zero pose, and each layout opens with a 30 s baseline. On 11-05 the owner "
            "confirmed each layout's stepper move before its poses ran.</p>"
            + table(["Date", "Dwells", "Layouts"], rows, "Data sets and the layouts they cover.", num_from=1))
@@ -274,6 +278,10 @@ def sec_measurement(R, Z):
                "rectangles are the stages' travel boxes.")
     out += film(MEDIA / "20261105-timelapse.mp4", "The lab's camera on 11-05, one frame every 2 s, played at 20 times real "
                 "time.")
+    out += film(MEDIA / "20261105-film_cad_sweep.mp4", "The cad_v3 hand at the measured joints of the first random poses of "
+                "each layout, and each board's change in force equivalent: uncompensated (grey) and after the own-angle GP "
+                "(black). Red text marks a pose whose uncompensated change the contact viewer shows as a contact. The line at "
+                "0.25 N is the viewer's force threshold.")
     return out
 
 
@@ -375,29 +383,46 @@ def sec_viewer(R):
 
 
 def sec_presses(R):
-    rows = []
+    PR_ = R.get("presses_on_the_hand", {})
+    if not PR_:
+        return "<p>Not run.</p>"
+    rd = PR_.get("readout", {})
+    frames = (("zero_pose_noise", "Zero-pose noise"), ("raw", "Hand, no compensation"), ("own_angles", "Hand, own-angle GP"))
+    reads = (("board_gp", "Board GP (viewer)"), ("mlp", "MLP ensemble"), ("mlp_gp_weight", "MLP ensemble, GP's weight"),
+             ("physical", "Physical estimator"))
+
+    def cell(v):
+        return f"{n1(v['force_error_abs_median_pct'])} ({n1(v['force_error_abs_p90_pct'])})"
+    rows, rows_l = [], []
     for f in F:
-        o = R.get("presses_on_the_hand", {}).get(f)
+        o = PR_.get(f)
         if not o:
             continue
-        for k, lab in (("zero_pose_noise", "Zero-pose noise"), ("raw", "Hand, no compensation"),
-                       ("own_angles", "Hand, own-angle GP")):
+        for k, lab in frames:
             v = o[k]
-            rows.append((f.capitalize(), lab, v["presses"], f"{100 * v['detected_share']:.0f} %",
-                         n1(v["board_gp"]["force_error_median_pct"]), n1(v["board_gp"]["force_error_abs_median_pct"]),
-                         n1(v["board_gp"]["force_error_abs_p90_pct"]), n1(v["physical"]["force_error_abs_median_pct"])))
-    return ("<p>Real presses are added to the hand's frames to see what the residual does to a contact.</p>"
-            + table(["Board", "Frames", "Presses", "Detected", "Force error, median (%)", "Force error, median |.| (%)",
-                     "Force error, p90 |.| (%)", "Physical estimator, median |.| (%)"], rows,
-                    "UR5 presses of 0.25 to 3 N added to frames of the zero pose and of the moving hand.", num_from=2))
+            rows.append((f.capitalize(), lab, f"{100 * v['detected_share']:.0f} %", *(cell(v[m]) for m, _ in reads)))
+            rows_l.append((f.capitalize(), lab, n1(v["board_gp"]["location_error_median_mm"], 2),
+                           n1(v["mlp"]["location_error_median_mm"], 2), n1(v["board_gp"]["location_error_p90_mm"], 2),
+                           n1(v["mlp"]["location_error_p90_mm"], 2)))
+    n_tr = rd.get("training_holds")
+    n_gp = rd.get("training_holds_gp")
+    return ("<p>UR5 presses of the same tip are added to the hand's frames, to see what the residual does to a contact. The "
+            "presses come from a fifth of each tip's calibration points, which both readouts were fitted without: the GP on "
+            f"{n_gp:,} holds (at most 1,500 of each set), the MLP ensemble on all {n_tr:,}, as the calibration page's Table 33 "
+            "compares them. The physical estimator decides whether a contact is shown, and each readout then gives its press "
+            "and point.</p>"
+            + table(["Board", "Frames", "Detected", *(lab for _, lab in reads)], rows,
+                    "Force error of the presses shown, median of |shown - true| / true in % (p90 in brackets), by readout.",
+                    num_from=2)
+            + table(["Board", "Frames", "Board GP, median (mm)", "MLP ensemble, median (mm)", "Board GP, p90 (mm)",
+                     "MLP ensemble, p90 (mm)"], rows_l,
+                    "Location error of the readouts' contact point along the surface, over every injected press.", num_from=2))
 
 
 def sec_limits():
     items = [
         "Nothing touched the tips in these runs, so contacts are only injected. A press on the hand also moves the finger, "
         "which the injection does not include.",
-        "The board GP of the viewer was fitted on the same UR5 presses that are injected, so its force errors here are those "
-        "of its training data.",
         "The joint angles are the servos' readings. The SCS0009's readout has 0.29 deg steps.",
         "The pad frames come from the cad_v2 model at the commanded mounts. A stepper that skipped a move would put a pad "
         "elsewhere; the owner checked every move on 11-05.",
