@@ -51,6 +51,9 @@ WATCHED = (V3 + "data/", V3 + "README.md")
 ANALYSES = re.compile(r"docs/experiments/(20261030-inverted_rig_seat_block/data/(holds/|[^/]*rod_joint_registration)"
                       r"|20261022-ur5_tip_calibration/(data/[^/]*(v3_|board_gp)|QUEUE\.md)"
                       r"|\d{8}-sr2_[^/]*/(lab/|data/[^/]*analysis))")
+# the SR2 analysis's scripts change many times before its result page does (owner's high priority, 18:2x on 11-05): a commit
+# that changes only these is not news, whatever its subject; its page and data files are
+DEV_ONLY = re.compile(r"scripts/fingertip/sr2_crosstalk_")
 # the coordinator's analysis folders of a tip's sessions, logs/YYYYMMDD-{sphere,tall,rod}v3idN*/ with holds.npz,
 # calib_rest.json and summary.json; tips from v3 ID 3 on
 HOLDS_RE = re.compile(r"v3id(\d+)")
@@ -79,7 +82,7 @@ def show(path):
 def snapshot():
     """The feed's lines, and among HEAD's last 300 commits those with a subject in PREFIX and the others that change the v3
     folder's data/ or README.md or a rig analysis and are not this job's (merges list no files, so they count only by
-    subject)."""
+    subject), less the commits that change only the SR2 analysis's scripts."""
     head = git("rev-parse", "--short=8", "HEAD").strip()
     lines = [ln for ln in show(FEED).splitlines() if ln.strip()]
     commits = []
@@ -89,7 +92,8 @@ def snapshot():
             continue
         h, ad, subj = rows[0].split("\t", 2)
         files = [f for f in rows[1:] if f.startswith(WATCHED) or ANALYSES.match(f)]
-        if subj.startswith(PREFIX) or (files and not subj.startswith(MINE)):
+        dev = rows[1:] and all(DEV_ONLY.match(f) for f in rows[1:])
+        if (subj.startswith(PREFIX) and not dev) or (files and not subj.startswith(MINE)):
             commits.append(dict(hash=h, key=f"{ad} {subj}", subject=subj, date=ad[5:16].replace("T", " "), files=files))
     holds = sorted(str(p.relative_to(ROOT)) for p in (ROOT / "logs").glob("*v3id*/holds.npz")
                    if (m := HOLDS_RE.search(p.parent.name)) and int(m.group(1)) >= 3)
