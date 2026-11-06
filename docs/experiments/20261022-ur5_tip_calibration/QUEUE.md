@@ -1971,6 +1971,12 @@ push that answers it arrives.
       joints on the plans of part B step 2, and one `--q-seed` sphere-cell tip plan built by each code, compared for
       actions, twists and joint targets. The lab runs the check after the SR2 sweep and the part B merge (lab, 16:0x on
       11-05). The branch merges after that check and the owner's go.
+    - 17:55 on 11-05, workstation: merged into main at `8fbd98d8d` on the owner's go before the lab's check (owner,
+      17:5x: "yes, we can merge the closed form ik branch too"). No commit on main since `d6d98b571` touched the
+      branch's 22 files, so they equal `668a1cb8b`'s. In the merged tree fk(ik_nearest) returns a random joint vector
+      within 4.4e-16 rad, a 10 mm `proximal_extension_mm` moves the index contact by 10.0 mm, the rig, tip, ATI and
+      holder programs start, and `check_scripts.py` reports its 11 known problems. The lab's check above still runs on
+      corvus before the arm next uses the rig or a rebuilt plan.
 
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
