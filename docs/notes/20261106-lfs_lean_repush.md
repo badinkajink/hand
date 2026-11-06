@@ -42,3 +42,20 @@ commits that could not be pushed, the remote `github` and an LFS store of hard l
 New raw recordings are ignored by git (`docs/**/*.bin`) and move by rsync; the tracked ones stay tracked, so no clone
 deletes them on a pull. The main clone and the bare copy contain the complete history and every LFS object except the
 1,464 listed beside this note, so they are the backup during the switch.
+
+## Outcome, 16:0x to 16:2x on 2026-11-06
+
+The owner deleted the repository and created the empty public `badinkajink/hand` at 16:02. The history went up from the
+bare copy: all 8 branches with the same commit hashes, `main` at 994c45258 with the ten commits that had waited. The LFS
+upload was refused with the same message, "This repository exceeded its LFS budget": the budget is the account's, and
+the old repository's storage during this billing cycle already exceeded it. Deleting the repository stops further
+storage but leaves the cycle's usage. No LFS object is on GitHub yet; on GitHub the pages and media show their
+pointers, and everything is present here.
+
+Remaining step, once the budget allows uploads (a small budget now, or the next billing cycle):
+
+    python3 scripts/docs/lfs_lean.py push --mirror /home/humanoid/Programs/hand-lean.git --allow-missing --remote github
+
+The git push in it changes nothing; the upload sends the 4,412 objects (3.39 GB) and checks them. Until then a push of
+commits that add pages, media or CAD files fails in the pre-push hook, which is installed in the main clone; pushes of
+code and notes go through.
