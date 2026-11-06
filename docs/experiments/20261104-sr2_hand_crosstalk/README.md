@@ -344,12 +344,15 @@ have moved inward about the same".
   at the station's `--telemetry-hz` of 20 Hz.
 - The middle finger's mcp droops about 3.5 deg short of its command when the finger is near horizontal. The runner
   treats a joint as settled once it stops moving, and it stops at an error of 6 deg or more.
-- With the hand on the arm as it hangs, the index's mcp servo reaches its protective torque near 55 deg, with its load
-  at -195 to -210. Its droop grew from 1.5 deg at 39 deg to 3.4 deg at 56 deg. Commanded to 64 deg at step 126 of
-  `run1_home`, it stopped at 55.4 deg, and the runner stopped the chain at 19:31:23. That run had done the baseline,
-  torque, every stepper step, the thumb's families and the index's yaw and mcp. Since then the plans cap the index's mcp
-  at 50 deg and the middle's at 62 deg (`plan_home_rest`, the `_v2` plans, `lab/night_chain2.sh`). The thumb reached
-  88 deg with 1.6 deg of droop.
+- The index's mcp servo stops at the upper angle limit in its EEPROM, 1001 steps, which is +58.6 deg from its zero,
+  less its droop. The registers were read on 11-06 (`docs/experiments/20261106-sr2_servo_sysid/data/registers.txt`).
+  Its droop grew from 1.5 deg at 39 deg to 3.4 deg at 56 deg. Commanded to 64 deg at step 126 of `run1_home`, it stopped
+  at 55.4 deg with a load of -195 to -210 from the first sample, and the runner stopped the chain at 19:31:23. That
+  load is the drive for 3.2 deg of droop below a goal clamped at 58.6 deg. It is not the protective torque, as this
+  page said until 11-06: an unclamped goal at 64 deg leaves an error of 29 steps, a load near 450 (the coordinator's fit
+  of 11-06). That run had done the baseline, torque, every stepper step, the thumb's families and the index's yaw and
+  mcp. Since then the plans cap the index's mcp at 50 deg and the middle's at 62 deg (`plan_home_rest`, the `_v2`
+  plans, `lab/night_chain2.sh`). The thumb reached 88 deg with 1.6 deg of droop.
 - At step 38 of `run1b_home_rest` (19:43:59), the index was sent from zero to mcp 50 and pip 90. It stalled at mcp
   45 and pip 80.3, with both servos pushing: pip loads of -525 to -600 for 4 s, then -200 under the servo's protection.
   This was not droop: pip 90 had passed at mcp 0, 25 and 37.5, and mcp 50 + pip 67.5 had passed. The CAD model shows no
